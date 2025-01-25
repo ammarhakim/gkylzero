@@ -11,9 +11,9 @@ extern "C" {
 // CUDA kernel to set device pointer to interpolating kernel.
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void
-dg_interp_choose_kernel_ptrs_cu(struct gkyl_dg_interpolate_kernels *kernels, struct gkyl_basis pbasis, int dir, double dxRat)
+dg_interp_choose_kernel_ptrs_cu(struct gkyl_dg_interpolate_kernels *kernels, int cdim, struct gkyl_basis basis, int dir, double dxRat)
 {
-  kernels->interp = dg_interp_choose_gk_interp_kernel(pbasis, dir);
+  kernels->interp = dg_interp_choose_gk_interp_kernel(cdim, basis, dir);
 
   // Map from grid to stencil index in each direction.
   if (dxRat > 1)
@@ -23,9 +23,9 @@ dg_interp_choose_kernel_ptrs_cu(struct gkyl_dg_interpolate_kernels *kernels, str
 }
 
 void
-dg_interp_choose_kernel_cu(struct gkyl_dg_interpolate_kernels *kernels, struct gkyl_basis pbasis, int dir, double dxRat)
+dg_interp_choose_kernel_cu(struct gkyl_dg_interpolate_kernels *kernels, int cdim, struct gkyl_basis basis, int dir, double dxRat)
 {
-  dg_interp_choose_kernel_ptrs_cu<<<1,1>>>(kernels, pbasis, dir, dxRat); 
+  dg_interp_choose_kernel_ptrs_cu<<<1,1>>>(kernels, cdim, basis, dir, dxRat); 
 }
 
 __global__ static void

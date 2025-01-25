@@ -4,7 +4,7 @@
 #include <gkyl_alloc_flags_priv.h>
 
 struct gkyl_dg_interpolate*
-gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *pbasis,
+gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *basis,
   const struct gkyl_rect_grid *grid_do, const struct gkyl_rect_grid *grid_tar,
   const struct gkyl_range *range_do, const struct gkyl_range *range_tar,
   const int *nghost, bool use_gpu)
@@ -13,7 +13,7 @@ gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *pbasis,
   struct gkyl_dg_interpolate *up = gkyl_malloc(sizeof(*up));
 
   up->use_gpu = use_gpu;
-  up->ndim = pbasis->ndim;
+  up->ndim = basis->ndim;
   up->grid_do = *grid_do;
   up->grid_tar = *grid_tar;
 
@@ -77,15 +77,15 @@ gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *pbasis,
   }
   else {
     for (int k=0; k<up->num_interp_dirs; k++)
-      up->interp_ops[k] = gkyl_dg_interpolate_new(cdim, pbasis, &up->grids[k], &up->grids[k+1],
+      up->interp_ops[k] = gkyl_dg_interpolate_new(cdim, basis, &up->grids[k], &up->grids[k+1],
         &up->ranges[k], &up->ranges[k+1], nghost, use_gpu);
   }
 
   // Pre-allocate fields for intermediate grids.
   up->fields = gkyl_malloc((up->num_interp_dirs+1) * sizeof(struct gkyl_array *));
   for (int k=1; k<up->num_interp_dirs; k++) {
-    up->fields[k] = up->use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, pbasis->num_basis, ranges_ext[k].volume)
-                               : gkyl_array_new(GKYL_DOUBLE, pbasis->num_basis, ranges_ext[k].volume);
+    up->fields[k] = up->use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, basis->num_basis, ranges_ext[k].volume)
+                               : gkyl_array_new(GKYL_DOUBLE, basis->num_basis, ranges_ext[k].volume);
 
   }
   gkyl_free(ranges_ext);
@@ -162,7 +162,7 @@ gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *pbasis,
     up->kernels = gkyl_malloc(sizeof(struct gkyl_dg_interpolate_kernels));
 
     // Choose kernels that translates the DG coefficients.
-    up->kernels->interp = dg_interp_choose_gk_interp_kernel(*pbasis, up->dir);
+    up->kernels->interp = dg_interp_choose_gk_interp_kernel(cdim, *basis, up->dir);
 
     // Map from grid to stencil index in each direction.
     if (up->dxRat > 1)
@@ -173,7 +173,7 @@ gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *pbasis,
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     up->kernels = gkyl_cu_malloc(sizeof(struct gkyl_dg_interpolate_kernels));
-    dg_interp_choose_kernel_cu(up->kernels, *pbasis, up->dir, up->dxRat);
+    dg_interp_choose_kernel_cu(up->kernels, cdim, *basis, up->dir, up->dxRat);
   }
 #endif
 

@@ -15,17 +15,17 @@ typedef struct gkyl_dg_interpolate gkyl_dg_interpolate;
  * grid with the same extents but different resolution.
  *
  * @param cdim Configuration-space dimensions.
- * @param pbasis Phase-space basis.
+ * @param basis DG basis.
  * @param grid_do Donor grid.
  * @param grid_tar Target grid.
- * @param range_do Phase-space range in donor grid.
- * @param range_tar Phase-space range in target grid.
+ * @param range_do Range in donor grid.
+ * @param range_tar Range in target grid.
  * @param nghost Number of ghost cells in each direction.
  * @param use_gpu bool to determine if on GPU.
  * @return New interpolation updater.
  */
 struct gkyl_dg_interpolate*
-gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *pbasis,
+gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *basis,
   const struct gkyl_rect_grid *grid_do, const struct gkyl_rect_grid *grid_tar,
   const struct gkyl_range *range_do, const struct gkyl_range *range_tar,
   const int *nghost, bool use_gpu);

@@ -98,7 +98,7 @@ static void calc_int_moms(int num_mom, struct gkyl_rect_grid *confGrid, struct g
   struct gkyl_array_integrate* integ_op = gkyl_array_integrate_new(confGrid, confBasis,
     num_mom, GKYL_ARRAY_INTEGRATE_OP_NONE, use_gpu);
 
-  gkyl_array_integrate_advance(integ_op, moms, 1.0, moms, confLocal, integrated_moms); 
+  gkyl_array_integrate_advance(integ_op, moms, 1.0, moms, confLocal, confLocal, integrated_moms); 
 
   if (use_gpu)
     gkyl_cu_memcpy(int_moms, integrated_moms, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
