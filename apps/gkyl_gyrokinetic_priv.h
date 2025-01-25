@@ -64,6 +64,7 @@
 #include <gkyl_mom_calc_bcorr.h>
 #include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_null_pool.h>
+#include <gkyl_position_map.h>
 #include <gkyl_prim_lbo_calc.h>
 #include <gkyl_prim_lbo_cross_calc.h>
 #include <gkyl_prim_lbo_gyrokinetic.h>
@@ -384,16 +385,17 @@ struct gk_react {
 // Context for c2p function passed to proj_on_basis.
 struct gk_proj_on_basis_c2p_func_ctx {
   int cdim, vdim;
+  struct gkyl_position_map *pos_map;
   struct gkyl_velocity_map *vel_map;
 };
 
 struct gk_proj {
   enum gkyl_projection_id proj_id; // type of projection
+  struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
   // organization of the different projection objects and the required data and solvers
   union {
     // function projection
     struct {
-      struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
       struct gkyl_proj_on_basis *proj_func; // projection operator for specified function
       struct gkyl_array *proj_host; // array for projection on host-side if running on GPUs
     };
@@ -502,6 +504,11 @@ struct gk_species {
   double *red_integ_diag, *red_integ_diag_global; // for reduction of integrated moments
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
+
+  struct gkyl_array_integrate* integ_wfsq_op; // Operator to integrate w*f^2.
+  double *L2norm_local, *L2norm_global; // L2norm in local MPI process and across the communicator.
+  gkyl_dynvec L2norm; // L2 norm.
+  bool is_first_L2norm_write_call; // flag for L2norm dynvec written first time
 
   gkyl_dg_updater_gyrokinetic *slvr; // Gyrokinetic solver 
   struct gkyl_dg_eqn *eqn_gyrokinetic; // Gyrokinetic equation object
@@ -777,6 +784,9 @@ struct gkyl_gyrokinetic_app {
   } basis_on_dev;
 
   struct gk_geometry *gk_geom;
+  struct gkyl_array *jacobtot_inv_weak; // 1/(J.B) computed via weak mul and div.
+  
+  struct gkyl_position_map *position_map; // Position mapping object.
 
   bool update_field; // are we updating the field?
   struct gk_field *field; // pointer to field object
@@ -1303,16 +1313,7 @@ void gk_species_source_release(const struct gkyl_gyrokinetic_app *app, const str
 /** gk_species API */
 
 /**
- * Initialize species.
- *
- * @param gk Input gk data
- * @param app gyrokinetic app object
- * @param s On output, initialized species object
- */
-void gk_species_common_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_species *s);
-
-/**
- * Initialize species.
+ * Initialize dynamic species.
  *
  * @param gk Input gk data
  * @param app gyrokinetic app object
@@ -1321,13 +1322,22 @@ void gk_species_common_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
 void gk_species_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_species *s);
 
 /**
- * Initialize species.
+ * Initialize static species.
  *
  * @param gk Input gk data
  * @param app gyrokinetic app object
  * @param s On output, initialized species object
  */
 void gk_species_static_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_species *s);
+
+/**
+ * Initialize common objects species.
+ *
+ * @param gk Input gk data
+ * @param app gyrokinetic app object
+ * @param s On output, initialized species object
+ */
+void gk_species_common_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_species *s);
 
 /**
  * Compute species initial conditions.
@@ -1361,7 +1371,7 @@ double gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
- * Compute RHS from species distribution function
+ * Parent function for RHS that calls function pointer
  *
  * @param app gyrokinetic app object
  * @param species Pointer to species
@@ -1373,7 +1383,7 @@ double gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
- * Compute RHS from species distribution function
+ * Compute RHS from species distribution function.
  *
  * @param app gyrokinetic app object
  * @param species Pointer to species
@@ -1385,7 +1395,7 @@ double gk_species_dynamic_rhs(gkyl_gyrokinetic_app *app, struct gk_species *spec
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
- * Compute RHS from static species distribution function
+ * RHS function for static species.
  *
  * @param app gyrokinetic app object
  * @param species Pointer to species
@@ -1397,7 +1407,7 @@ double gk_species_static_rhs(gkyl_gyrokinetic_app *app, struct gk_species *speci
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
- * Apply BCs to species distribution function.
+ * Parent function to call function pointer.
  *
  * @param app gyrokinetic app object
  * @param species Pointer to species
@@ -1415,7 +1425,7 @@ void gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *spe
 void gk_species_dynamic_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f);
 
 /**
- * Apply BCs to species distribution function.
+ * Empty function for static species.
  *
  * @param app gyrokinetic app object
  * @param species Pointer to species
@@ -1438,7 +1448,7 @@ void gk_species_coll_tm(gkyl_gyrokinetic_app *app);
 void gk_species_tm(gkyl_gyrokinetic_app *app);
 
 /**
- * Delete resources used in species.
+ * Delete common resources used in species.
  *
  * @param app gyrokinetic app object
  * @param species Species object to delete
@@ -1446,7 +1456,7 @@ void gk_species_tm(gkyl_gyrokinetic_app *app);
 void gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s);
 
 /**
- * Delete resources used in species.
+ * Delete resources used in dynamic species.
  *
  * @param app gyrokinetic app object
  * @param species Species object to delete
@@ -1454,7 +1464,7 @@ void gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species
 void gk_species_dynamic_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s);
 
 /**
- * Delete resources used in species.
+ * Empty function called for static species.
  *
  * @param app gyrokinetic app object
  * @param species Species object to delete
@@ -1694,7 +1704,7 @@ double gk_neut_species_dynamic_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_spe
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
- * Pass constant for max dt when neutral species is static
+ * RHS function for static neutral species.
  *
  * @param app gyrokinetic app object
  * @param species Pointer to neutral species
@@ -1706,7 +1716,7 @@ double gk_neut_species_static_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_spec
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
- * Parent function to choose bc pointer function
+ * Parent function to call bc funtion pointer.
  *
  * @param app gyrokinetic app object
  * @param species Pointer to neutral species
@@ -1715,7 +1725,7 @@ double gk_neut_species_static_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_spec
 void gk_neut_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gkyl_array *f);
 
 /**
- * Apply BCs to neutral species distribution function
+ * Apply BCs to neutral species distribution function.
  *
  * @param app gyrokinetic app object
  * @param species Pointer to neutral species
@@ -1724,7 +1734,7 @@ void gk_neut_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_neut_sp
 void gk_neut_species_dynamic_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gkyl_array *f);
 
 /**
- * Empty bc method for static neutral species
+ * Empty bc method for static neutral species.
  *
  * @param app gyrokinetic app object
  * @param species Pointer to neutral species

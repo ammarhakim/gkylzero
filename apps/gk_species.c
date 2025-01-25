@@ -369,30 +369,14 @@ gk_species_new(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, str
   int cdim = app->cdim, vdim = app->vdim;
   int pdim = cdim+vdim;
 
-  int cells[GKYL_MAX_DIM], ghost[GKYL_MAX_DIM];
-  double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
-
-  int cells_vel[GKYL_MAX_DIM], ghost_vel[GKYL_MAX_DIM];
-  double lower_vel[GKYL_MAX_DIM], upper_vel[GKYL_MAX_DIM];
+  int ghost[GKYL_MAX_DIM];
 
   for (int d=0; d<cdim; ++d) {
-    cells[d] = gk_app_inp->cells[d];
-    lower[d] = gk_app_inp->lower[d];
-    upper[d] = gk_app_inp->upper[d];
     ghost[d] = 1;
   }
   for (int d=0; d<vdim; ++d) {
     // full phase space grid
-    cells[cdim+d] = gks->info.cells[d];
-    lower[cdim+d] = gks->info.lower[d];
-    upper[cdim+d] = gks->info.upper[d];
     ghost[cdim+d] = 0; // No ghost-cells in velocity space.
-
-    // Only velocity space.
-    cells_vel[d] = gks->info.cells[d];
-    lower_vel[d] = gks->info.lower[d];
-    upper_vel[d] = gks->info.upper[d];
-    ghost_vel[d] = 0; // No ghost-cells in velocity space.
   }
 
   // Allocate distribution function arrays.
@@ -457,17 +441,18 @@ gk_species_new(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, str
     }
   }
 
-  struct gkyl_dg_gyrokinetic_auxfields aux_inp = { .alpha_surf = gks->alpha_surf, 
-    .sgn_alpha_surf = gks->sgn_alpha_surf, .const_sgn_alpha = gks->const_sgn_alpha, 
-    .phi = gks->phi, .apar = gks->apar, .apardot = gks->apardot };
-  // Create collisionless solver.
-  gks->slvr = gkyl_dg_updater_gyrokinetic_new(&gks->grid, &app->confBasis, &app->basis, 
-    &app->local, &gks->local, is_zero_flux, gks->info.charge, gks->info.mass,
-    gks->gkmodel_id, app->gk_geom, gks->vel_map, &aux_inp, app->use_gpu);
+  // Objects for L2 norm diagnostic.
+  gks->integ_wfsq_op = gkyl_array_integrate_new(&gks->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_SQ_WEIGHTED, app->use_gpu);
+  if (app->use_gpu) {
+    gks->L2norm_local = gkyl_cu_malloc(sizeof(double));
+    gks->L2norm_global = gkyl_cu_malloc(sizeof(double));
+  } else {
+    gks->L2norm_local = gkyl_malloc(sizeof(double));
+    gks->L2norm_global = gkyl_malloc(sizeof(double));
+  }
+  gks->L2norm = gkyl_dynvec_new(GKYL_DOUBLE, 1); // L2 norm.
+  gks->is_first_L2norm_write_call = true;
 
-  // Acquire equation object.
-  gks->eqn_gyrokinetic = gkyl_dg_updater_gyrokinetic_acquire_eqn(gks->slvr);
-  
   // Determine collision type and initialize it.
   gks->lbo = (struct gk_lbo_collisions) { };
   gks->bgk = (struct gk_bgk_collisions) { };
@@ -1004,13 +989,10 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   for (int i=0; i<s->info.num_diag_moments; ++i)
     gk_species_moment_release(app, &s->moms[i]);
   gkyl_free(s->moms);
+
+  // Release integrated moment memory.
   gk_species_moment_release(app, &s->integ_moms); 
   gkyl_dynvec_release(s->integ_diag);
-
-  gk_species_source_release(app, &s->src);
-
-  gk_species_bflux_release(app, &s->bflux);
-
   if (app->use_gpu) {
     gkyl_cu_free(s->red_integ_diag);
     gkyl_cu_free(s->red_integ_diag_global);
@@ -1019,6 +1001,9 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
     gkyl_free(s->red_integ_diag);
     gkyl_free(s->red_integ_diag_global);
   }
+
+  gk_species_source_release(app, &s->src);
+  gk_species_bflux_release(app, &s->bflux);
 
   if (app->enforce_positivity) {
     gkyl_array_release(s->ps_delta_m0);
@@ -1087,6 +1072,18 @@ gk_species_dynamic_release(const gkyl_gyrokinetic_app* app, const struct gk_spec
   }
   else {
     gkyl_free(s->omega_cfl);
+  }
+
+  // Release L2 norm memory.
+  gkyl_array_integrate_release(s->integ_wfsq_op);
+  gkyl_dynvec_release(s->L2norm);
+  if (app->use_gpu) {
+    gkyl_cu_free(s->L2norm_local);
+    gkyl_cu_free(s->L2norm_global);
+  }
+  else {
+    gkyl_free(s->L2norm_local);
+    gkyl_free(s->L2norm_global);
   }
 
   if (app->enforce_positivity) {
