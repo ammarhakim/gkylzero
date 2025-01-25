@@ -165,6 +165,7 @@ gk_neut_species_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct
   gkyl_dg_calc_vlasov_gen_geo_vars_alpha_surf(calc_vars, &app->local, &s->local, &s->local_ext, 
     s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
   gkyl_dg_calc_vlasov_gen_geo_vars_cot_vec(calc_vars, &app->local, s->cot_vec);
+  gkyl_dg_calc_vlasov_gen_geo_vars_release(calc_vars);
 
   // by default, we do not have zero-flux boundary conditions in any direction
   bool is_zero_flux[2*GKYL_MAX_DIM] = {false};
