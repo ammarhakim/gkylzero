@@ -673,7 +673,6 @@ struct gk_field {
 
   struct gkyl_array *phi_host;  // host copy for use IO and initialization
 
-  bool is_static; // is the field static? Take dphi/dt = 0 and use phi(t=0) as initial condition.
   bool init_phi_pol; // Whether to use the initial user polarization phi.
   struct gkyl_array *phi_pol; // Initial polarization density potential.
 

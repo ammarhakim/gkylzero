@@ -636,8 +636,6 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
       gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
     }
   }
-
-  app->field->is_static = app->field->info.is_static;
 }
 
 void
