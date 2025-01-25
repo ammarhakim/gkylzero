@@ -1013,6 +1013,8 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
     gk_species_moment_release(app, &s->ps_moms);
     gkyl_dynvec_release(s->ps_integ_diag);
   }
+  
+  s->release_func(app, s);
 }
 
 void
