@@ -313,5 +313,6 @@ gk_neut_species_react_release(const struct gkyl_gyrokinetic_app *app, const stru
       gkyl_dg_cx_release(react->cx[i]);
       gkyl_array_release(react->prim_vars_cxi[i]);
       gkyl_array_release(react->prim_vars_cxn[i]);
+    }
   }
 }
