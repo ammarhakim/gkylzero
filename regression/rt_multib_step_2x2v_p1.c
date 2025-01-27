@@ -1551,7 +1551,7 @@ struct gkyl_comm *comm = 0;
 
   };
 
-  struct gkyl_block_physical_bcs Ar1_phys_bcs[] = {
+  struct gkyl_gyrokinetic_block_physical_bcs Ar1_phys_bcs[] = {
     // block 0 BCs
     { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
     { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH},
@@ -1667,7 +1667,7 @@ struct gkyl_comm *comm = 0;
 
   };
 
-  struct gkyl_block_physical_bcs Ar0_phys_bcs[] = {
+  struct gkyl_gyrokinetic_block_physical_bcs Ar0_phys_bcs[] = {
     // block 0 BCs
     { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
     { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
@@ -1727,7 +1727,7 @@ struct gkyl_comm *comm = 0;
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
   };
 
-  struct gkyl_block_physical_bcs field_phys_bcs[] = {
+  struct gkyl_gyrokinetic_block_physical_bcs field_phys_bcs[] = {
     // block 0 BCs
     { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_FIELD_DIRICHLET},
     //{ .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_FIELD_NONE},
