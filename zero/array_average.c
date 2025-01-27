@@ -76,7 +76,7 @@ gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
       .basis_avg = inp->basis_avg,
       .local = inp->local,
       .local_avg = inp->local_avg,
-      .weight = NULL, // No weight -> average only
+      .weight = NULL, // Recursive call without weights
       .avg_dim = inp->avg_dim,
       .use_gpu = inp->use_gpu
     };
