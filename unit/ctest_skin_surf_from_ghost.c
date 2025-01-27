@@ -8,17 +8,16 @@
  * 
  * Specifically, the updater enforces that the skin cell value at the interface (e.g., 
  * upper edge) equals the ghost cell value, achieving continuity across the interface 
- * while altering the average skin cell value. Testing ensures accuracy by initializing 
- * skin cells to zero and ghost cells to one; in a first-order (poly_order=1) scenario, 
- * successful updates should result in a skin cell value of 0.5.
+ * while altering the average skin cell value.
  * 
  * Example for GKYL_UPPER_EDGE:
- * 
- * vls            vus  vlg                vug
- *  |___skin cell___|   |____ghost cell____|
- * 
- * Here, `vus` will be set to 1 (matching `vug`), while `vls` remains 0, yielding 
- * an expected skin cell average of 0.5 for order one polynomials.
+ *   vls            vus  vlg                vug
+ *    |___skin cell___|   |____ghost cell____|
+ *   legend: vls is the lower nodal skin cell value, vus is the upper nodal skin cell value, 
+ *           vlg is the lower nodal ghost cell value, and vug is the upper ghost cell value.
+ *  In this situation, the updater will alter the DG coefficient of the skin cell so that 
+ *    vus = vlg
+ *  keeping vls unchanged.
  */
 
 #include "gkyl_array.h"
