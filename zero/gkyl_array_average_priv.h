@@ -115,7 +115,7 @@ void gkyl_array_average_choose_kernel(struct gkyl_array_average *up)
   // We encode the average operations as a binary number 
   // (e.g. 011 = 3 = avgxy, 101 = 5 = avgxz, 111 = 7 = avgxyz)
   int op = -1; // -1 shifted to start with 0
-  for (unsigned d = 0; d < ndim; d++)
+  for (int d = 0; d < ndim; d++)
     op += pow(2,d) * up->avg_dim[d];
 
   up->kernel = gkyl_array_average_ker_list[ndim-1].list[op].kernels[poly_order-1];

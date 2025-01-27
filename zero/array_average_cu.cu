@@ -14,7 +14,7 @@ gkyl_array_average_set_ker_cu(struct gkyl_array_average *up)
   int ndim =  up->basis.ndim, poly_order = up->basis.poly_order;
 
   int op = -1; // -1 shifted to start with 0
-  for (unsigned d = 0; d < ndim; d++)
+  for (int d = 0; d < ndim; d++)
     op += pow(2,d) * up->avg_dim[d];
 
   up->kernel = gkyl_array_average_ker_list[ndim-1].list[op].kernels[poly_order-1];
@@ -66,8 +66,8 @@ gkyl_array_average_advance_cu_ker(const struct gkyl_array_average *up,
 
     // build the idx_avg array with the subdim coordinates of the idx vector
     int cnter = 0;
-    if (up->num_dim_remain > 0){
-      for (int i = 0; i < up->basis.ndim; i++){
+    if (up->num_dim_remain > 0) {
+      for (int i = 0; i < up->basis.ndim; i++) {
         if (up->dim_remains[i]) {
           idx_avg[cnter] = idx[i];
           cnter ++;

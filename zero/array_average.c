@@ -28,7 +28,7 @@ gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
   // set up the array of all dimensions that are conserved after the average (=0 for removed)
   // according to the operation input variable
   up->num_avg_dim = 0;
-  for (unsigned d=0; d < up->ndim; ++d){
+  for (int d=0; d < up->ndim; ++d) {
     up->avg_dim[d] = inp->avg_dim[d];
     up->num_avg_dim += inp->avg_dim[d]; 
   }
@@ -36,15 +36,16 @@ gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
 
   up->num_dim_remain = up->ndim - up->num_avg_dim;
 
-  for (unsigned d=0; d < up->ndim; ++d) 
+  for (int d=0; d < up->ndim; ++d) 
     up->dim_remains[d] = 1 - inp->avg_dim[d];
 
   int k = 0;
-  for (unsigned d=0; d < up->ndim; ++d) 
+  for (int d=0; d < up->ndim; ++d) {
     if(up->dim_remains[d]){
       up->sub_dir[k] = d;
       k++;
     }
+  }
 
   // compute the inverse of the volume of the averaging space
   up->vol_avg_inv = 1.;
@@ -54,7 +55,7 @@ gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
 
   // compute the cell sub-dimensional volume
   up->subvol = 1.0;
-  for (unsigned d=0; d < up->ndim; ++d){
+  for (int d=0; d < up->ndim; ++d) {
     if (up->avg_dim[d]) up->subvol *= 0.5*inp->grid->dx[d];
   }
 
