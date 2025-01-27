@@ -58,7 +58,6 @@ gkyl_dg_interpolate_advance_1x_cu_ker(struct gkyl_dg_interpolate_kernels *kernel
 
     // Get the index to the stencil for this donor cell.
     int idx_sten = kernels->grid2stencil(idx_do[dir], grid_do.cells[dir], dxRat);
-    idx_sten -= 1;
 
     for (int d=0; d<ndim; d++)
       idx_tar[d] = idx_do[d];
