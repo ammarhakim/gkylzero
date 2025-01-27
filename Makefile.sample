@@ -3,13 +3,10 @@
 # Sample Makefile to use installed gkylzero library: copy and modify
 # for your needs
 
-# Obtain the git commit ID.
-GIT_COMMIT_HASH := "$(shell git describe --dirty=+ --always --tags)"
-
 ARCH_FLAGS ?= -march=native
 CUDA_ARCH ?= 70
 # Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
-CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_COMMIT_HASH)\"
+CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP
 LDFLAGS = 
 PREFIX ?= ${HOME}/gkylsoft
 
@@ -33,7 +30,7 @@ endif
 # Include config.mak file (if it exists)
 -include G0_SHARE_INSTALL_PREFIX_TAG/config.mak
 
-CFLAGS = -O3 -g -ffast-math -I. -DGIT_COMMIT_ID=\"$(GIT_COMMIT_HASH)\"
+CFLAGS = -O3 -g -ffast-math -I. 
 
 G0_INC_DIR = ${PREFIX}/gkylzero/include
 G0_LIB_DIR = ${PREFIX}/gkylzero/lib
@@ -44,7 +41,7 @@ NVCC_FLAGS =
 CUDA_LIBS =
 ifeq ($(CC), nvcc)
        USING_NVCC = yes
-       CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -ffast-math -MMD -MP -fPIC -DGIT_COMMIT_ID=\"$(GIT_COMMIT_HASH)\"
+       CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -ffast-math -MMD -MP -fPIC
        NVCC_FLAGS = -x cu -dc -arch=sm_${CUDA_ARCH} --compiler-options="-fPIC"
        LDFLAGS += -arch=sm_${CUDA_ARCH}
        ifdef CUDAMATH_LIBDIR

@@ -7,7 +7,6 @@
 #include <gkyl_tok_geo.h>
 
 #include <rt_arg_parse.h>
-#include <mpi.h>
 
 struct gkyl_block_geom*
 create_block_geom(void)

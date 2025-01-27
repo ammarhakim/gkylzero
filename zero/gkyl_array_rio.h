@@ -5,6 +5,7 @@
 #include <gkyl_array.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_util.h>
 
 // Read status flags
 enum gkyl_array_rio_status {
@@ -24,12 +25,6 @@ enum gkyl_array_rio_status {
  */
 const char* gkyl_array_rio_status_msg(enum gkyl_array_rio_status status);
 
-// Structure to pass meta-data to write methods
-struct gkyl_array_meta {
-  size_t meta_sz; // size in bytes of meta-data
-  char *meta; // meta-data encoded in mpack format
-};
-
 // Array header data to write: this is for low-level control and is
 // typically not something most users would ever encounter
 struct gkyl_array_header_info {
@@ -44,7 +39,9 @@ struct gkyl_array_header_info {
 
 /**
  * Read grid and array data header data from file. Note that only
- * HEADER is read and NOT the array data itself.
+ * HEADER is read and NOT the array data itself. If the header has
+ * meta-data (meta_size > 0) then the meta char array must be freed
+ * using gkyl_free.
  *
  * @param grid Grid object to read
  * @param hrd On output, Header data.
@@ -53,6 +50,14 @@ struct gkyl_array_header_info {
  */
 enum gkyl_array_rio_status gkyl_grid_sub_array_header_read(struct gkyl_rect_grid *grid,
   struct gkyl_array_header_info *hdr, const char *fname);
+
+/**
+ * Free header info if needed (only of meta_size > 0) does this call
+ * actually free anything.
+ *
+ * @param info Header info to free
+ */
+void gkyl_array_header_info_release(struct gkyl_array_header_info *info);
 
 /**
  * Write out grid and array data to file in .gkyl format so postgkyl
@@ -66,7 +71,7 @@ enum gkyl_array_rio_status gkyl_grid_sub_array_header_read(struct gkyl_rect_grid
  * @return Status flag
  */
 enum gkyl_array_rio_status gkyl_grid_sub_array_write(const struct gkyl_rect_grid *grid,
-  const struct gkyl_range *range, const struct gkyl_array_meta *meta,
+  const struct gkyl_range *range, const struct gkyl_msgpack_data *meta,
   const struct gkyl_array *arr, const char *fname);
 
 /**

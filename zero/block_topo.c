@@ -26,10 +26,10 @@ block_topo_free(const struct gkyl_ref_count *ref)
   gkyl_free(btopo);
 }
 
-static struct gkyl_array_meta *
+static struct gkyl_msgpack_data *
 btopo_create_mpack(const struct gkyl_block_topo *btopo)
 {
-  struct gkyl_array_meta *mt = gkyl_malloc(sizeof(*mt));
+  struct gkyl_msgpack_data *mt = gkyl_malloc(sizeof(*mt));
   mt->meta_sz = 0;
   mt->meta = 0;
 
@@ -77,7 +77,7 @@ btopo_create_mpack(const struct gkyl_block_topo *btopo)
 }
 
 static void
-btopo_array_meta_release(struct gkyl_array_meta *amet)
+btopo_array_meta_release(struct gkyl_msgpack_data *amet)
 {
   if (!amet) return;
   MPACK_FREE(amet->meta);
@@ -141,7 +141,7 @@ gkyl_block_topo_write(const struct gkyl_block_topo *btopo, const char *fname)
   FILE *fp = 0;
   int err;
   with_file (fp, fname, "w") {
-    struct gkyl_array_meta *amet = btopo_create_mpack(btopo);
+    struct gkyl_msgpack_data *amet = btopo_create_mpack(btopo);
     if (amet) {
       status = gkyl_header_meta_write_fp( &(struct gkyl_array_header_info) {
           .file_type = gkyl_file_type_int[GKYL_BLOCK_TOPO_DATA_FILE],

@@ -78,7 +78,7 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
     }
 
     struct gyrokinetic_output_meta meta =
-      gk_meta_from_mpack( &(struct gkyl_array_meta) {
+      gk_meta_from_mpack( &(struct gkyl_msgpack_data) {
           .meta = hdr.meta,
           .meta_sz = hdr.meta_size
         }
@@ -260,10 +260,14 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   // Allocate cflrate (scalar array).
   gks->cflrate = mkarr(app->use_gpu, 1, gks->local_ext.volume);
 
-  if (app->use_gpu)
+  if (app->use_gpu) {
     gks->omega_cfl = gkyl_cu_malloc(sizeof(double));
-  else 
+    gks->m0_max = gkyl_cu_malloc(app->confBasis.num_basis*sizeof(double));
+  }
+  else {
     gks->omega_cfl = gkyl_malloc(sizeof(double));
+    gks->m0_max = gkyl_malloc(app->confBasis.num_basis*sizeof(double));
+  }
 
   // Need to figure out size of alpha_surf and sgn_alpha_surf by finding size of surface basis set 
   struct gkyl_basis surf_basis, surf_quad_basis;
@@ -362,8 +366,6 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
 
   // allocate data for density (for use in charge density accumulation and weak division for upar)
   gk_species_moment_init(app, gks, &gks->m0, "M0");
-  // allocate data for integrated moments
-  gk_species_moment_init(app, gks, &gks->integ_moms, "Integrated");
 
   // allocate data for diagnostic moments
   int ndm = gks->info.num_diag_moments;
@@ -371,6 +373,8 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   for (int m=0; m<ndm; ++m)
     gk_species_moment_init(app, gks, &gks->moms[m], gks->info.diag_moments[m]);
 
+  // allocate data for integrated moments
+  gk_species_moment_init(app, gks, &gks->integ_moms, "Integrated");
   if (app->use_gpu) {
     gks->red_integ_diag = gkyl_cu_malloc(sizeof(double[vdim+2]));
     gks->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[vdim+2]));
@@ -381,6 +385,18 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   // allocate dynamic-vector to store all-reduced integrated moments 
   gks->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
   gks->is_first_integ_write_call = true;
+
+  // Objects for L2 norm diagnostic.
+  gks->integ_wfsq_op = gkyl_array_integrate_new(&gks->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_SQ_WEIGHTED, app->use_gpu);
+  if (app->use_gpu) {
+    gks->L2norm_local = gkyl_cu_malloc(sizeof(double));
+    gks->L2norm_global = gkyl_cu_malloc(sizeof(double));
+  } else {
+    gks->L2norm_local = gkyl_malloc(sizeof(double));
+    gks->L2norm_global = gkyl_malloc(sizeof(double));
+  }
+  gks->L2norm = gkyl_dynvec_new(GKYL_DOUBLE, 1); // L2 norm.
+  gks->is_first_L2norm_write_call = true;
 
   // initialize projection routine for initial conditions
   if (gks->info.init_from_file.type == 0)
@@ -694,6 +710,40 @@ gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *gks_self
 
 }
 
+static double
+gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin)
+{
+  // Compute the time step under which the omega_H mode is stable, dt_omegaH =
+  // omegaH_CFL/omega_H.
+  // Each species computes its own omega_H as:
+  //   omega_H = q_e*sqrt(jacobgeo*n_{s0}/m_s) * omegaH_gf
+  // where
+  //   - n_{s0} is either a reference, average or max density.
+  //   - omegaH_gf = (cmag/(jacobgeo*B^_\parallel))*kpar_max / 
+  //                 min(sqrt(k_x^2*eps_xx+k_x*k_y*eps_xy+k_y^2*eps_yy+)).
+  // and k_x,k_y,k_par are wavenumbers in computational space, and eps_ij is
+  // the polarization weight in our field equation.
+ 
+  if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || app->field->gkfield_id == GKYL_GK_FIELD_ADIABATIC)) {
+    // Obtain the maximum density (using cell centers).
+    gk_species_moment_calc(&gks->m0, gks->local, app->local, fin);
+    gkyl_array_reduce_range(gks->m0_max, gks->m0.marr, GKYL_MAX, &app->local);
+  
+    double m0_max[1];
+    if (app->use_gpu)
+      gkyl_cu_memcpy(m0_max, gks->m0_max, sizeof(double), GKYL_CU_MEMCPY_D2H);
+    else
+      m0_max[0] = gks->m0_max[0];
+    m0_max[0] *= 1.0/pow(sqrt(2.0),app->cdim);
+  
+    double omegaH = fabs(gks->info.charge)*sqrt(GKYL_MAX2(0.0,m0_max[0])/gks->info.mass)*app->omegaH_gf;
+  
+    return omegaH > 1e-20? app->cfl_omegaH/omegaH : DBL_MAX;
+  }
+  else
+    return DBL_MAX;
+}
+
 // Compute the RHS for species update, returning maximum stable
 // time-step.
 double
@@ -746,8 +796,14 @@ gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
     omega_cfl_ho[0] = species->omega_cfl[0];
 
   app->stat.species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
+
+  double dt_out = app->cfl/omega_cfl_ho[0];
   
-  return app->cfl/omega_cfl_ho[0];
+  // Enforce the omega_H constraint on dt.
+  double dt_omegaH = gk_species_omegaH_dt(app, species, fin);
+  dt_out = fmin(dt_out, dt_omegaH);
+
+  return dt_out;
 }
 
 // Apply boundary conditions to the distribution function.
@@ -885,8 +941,18 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   for (int i=0; i<s->info.num_diag_moments; ++i)
     gk_species_moment_release(app, &s->moms[i]);
   gkyl_free(s->moms);
+
+  // Release integrated moment memory.
   gk_species_moment_release(app, &s->integ_moms); 
   gkyl_dynvec_release(s->integ_diag);
+  if (app->use_gpu) {
+    gkyl_cu_free(s->red_integ_diag);
+    gkyl_cu_free(s->red_integ_diag_global);
+  }
+  else {
+    gkyl_free(s->red_integ_diag);
+    gkyl_free(s->red_integ_diag_global);
+  }
 
   gk_species_source_release(app, &s->src);
 
@@ -935,13 +1001,23 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   
   if (app->use_gpu) {
     gkyl_cu_free(s->omega_cfl);
-    gkyl_cu_free(s->red_integ_diag);
-    gkyl_cu_free(s->red_integ_diag_global);
+    gkyl_cu_free(s->m0_max);
   }
   else {
     gkyl_free(s->omega_cfl);
-    gkyl_free(s->red_integ_diag);
-    gkyl_free(s->red_integ_diag_global);
+    gkyl_free(s->m0_max);
+  }
+
+  // Release L2 norm memory.
+  gkyl_array_integrate_release(s->integ_wfsq_op);
+  gkyl_dynvec_release(s->L2norm);
+  if (app->use_gpu) {
+    gkyl_cu_free(s->L2norm_local);
+    gkyl_cu_free(s->L2norm_global);
+  }
+  else {
+    gkyl_free(s->L2norm_local);
+    gkyl_free(s->L2norm_global);
   }
 
   if (app->enforce_positivity) {
