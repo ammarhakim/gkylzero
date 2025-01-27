@@ -237,13 +237,13 @@ static int dg_interp_index_stencil_map_refine(int idx,
   if ((idx == 1) ||   // First cell.
       (remDecL == 0) ||    // Interior cell with a left-boundary-like stencil.
       ((remDecL <= 0.5) && (remDecU <= 0.5))) {
-    stencilOut = 2*stencilOut - 1;
+    stencilOut = 2*stencilOut;
   }
   else if ((idx == num_cells) || // Last cell.
           (remDecU == 0)) { // Interior cell with a right-boundary-like stencil.
-    stencilOut = 2*stencilOut;
+    stencilOut = 2*stencilOut + 1;
   }
-  return stencilOut;
+  return stencilOut-1;
 }
 
 GKYL_CU_DH 
@@ -260,12 +260,85 @@ static int dg_interp_index_stencil_map_coarsen(int idx,
   if ((idx == 1) || // First cell.
       (remDecL == 0) || // Interior cell with a left-boundary-like stencil.
       ((remDecL > 0) && (remDecU > 0))) {
-     stencilOut = 2*stencilOut - 1;
+     stencilOut = 2*stencilOut;
   }
   else if ((idx == num_cells) || // Last cell.
           (remDecU == 0)) { // Interior cell with a right-boundary-like stencil.
-     stencilOut = 2*stencilOut;
+     stencilOut = 2*stencilOut + 1;
   }
-  return stencilOut;
+  return stencilOut-1;
 }
 
+static void
+dg_interpolate_check_cell_overlap(struct gkyl_dg_interpolate *up, const struct gkyl_range *range_do,
+  const int *offset_upper)
+{
+  // Check that for a given donor cell the target cells used are actually
+  // overlapping with this donor. This code is similar to the one in the
+  // advance method.
+  int idx_tar[GKYL_MAX_DIM];
+  double xc_do[GKYL_MAX_DIM];
+  double xlo_do[GKYL_MAX_DIM], xup_do[GKYL_MAX_DIM];
+  double xc_tar[GKYL_MAX_DIM];
+  double xlo_tar[GKYL_MAX_DIM], xup_tar[GKYL_MAX_DIM];
+  // Loop over the donor range.
+  struct gkyl_range_iter iter_do;
+  gkyl_range_iter_init(&iter_do, range_do);
+  while (gkyl_range_iter_next(&iter_do)) {
+
+    int *idx_do = iter_do.idx;
+    gkyl_rect_grid_cell_center(&up->grid_do, idx_do, xc_do);
+    for (int d=0; d<up->ndim; d++) {
+      xlo_do[d] = xc_do[d] - 0.5*up->grid_do.dx[d];
+      xup_do[d] = xc_do[d] + 0.5*up->grid_do.dx[d];
+    }
+
+    // Compute the index of the lower target cell this cell contributes to.
+    double eveOI = up->dxRat*(idx_do[up->dir]-1);
+    int idx_tar_lo = ceil(eveOI)+((int) ceil(eveOI-floor(eveOI))+1) % 2;
+
+    // Get the index to the stencil for this donor cell.
+    int idx_sten;
+    if (up->dxRat > 1)
+      idx_sten = dg_interp_index_stencil_map_refine(idx_do[up->dir], up->grid_do.cells[up->dir], up->dxRat);
+    else
+      idx_sten = dg_interp_index_stencil_map_coarsen(idx_do[up->dir], up->grid_do.cells[up->dir], up->dxRat);
+
+    for (int d=0; d<up->ndim; d++)
+      idx_tar[d] = idx_do[d];
+
+    // Loop over the target-grid cells this donor cell contributes to.
+    for (int off=0; off<offset_upper[idx_sten]; off++) {
+
+      idx_tar[up->dir] = idx_tar_lo + off;
+      gkyl_rect_grid_cell_center(&up->grid_tar, idx_tar, xc_tar);
+      for (int d=0; d<up->ndim; d++) {
+        xlo_tar[d] = xc_tar[d] - 0.5*up->grid_tar.dx[d];
+        xup_tar[d] = xc_tar[d] + 0.5*up->grid_tar.dx[d];
+      }
+
+      // Check that either edge of this cell is contained within the donor cell.
+      for (int d=0; d<up->ndim; d++) {
+        bool overlaps = (xlo_do[d] <= xup_tar[d]) && (xlo_tar[d] <= xup_do[d]);
+        if (!overlaps) {
+          // Print some info and exit.
+          printf("\nidx_do=");
+          for (int d=0; d<up->ndim; d++)
+            printf("%d ",idx_do[d]);
+          printf(" extents=");
+          for (int d=0; d<up->ndim; d++)
+            printf("[%e,%e] ",xlo_do[d],xup_do[d]);
+          printf("\nidx_tar=");
+          for (int d=0; d<up->ndim; d++)
+            printf("%d ",idx_do[d]);
+          printf(" extents=");
+          for (int d=0; d<up->ndim; d++)
+            printf("[%e,%e] ",xlo_tar[d],xup_tar[d]);
+          printf("\n");
+
+          assert(overlaps);
+        }
+      }
+    }
+  }
+}

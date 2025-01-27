@@ -178,6 +178,9 @@ gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *basis,
   }
 #endif
 
+  // Check that the donor and target cells actually overlap.
+  dg_interpolate_check_cell_overlap(up, range_do, offset_upper);
+
   return up;
 }
 
@@ -219,7 +222,6 @@ dg_interpolate_advance_1x(gkyl_dg_interpolate* up,
 
     // Get the index to the stencil for this donor cell.
     int idx_sten = up->kernels->grid2stencil(idx_do[up->dir], up->grid_do.cells[up->dir], up->dxRat);
-    idx_sten -= 1;
 
     for (int d=0; d<up->ndim; d++)
       idx_tar[d] = idx_do[d];
