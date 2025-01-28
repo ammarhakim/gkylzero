@@ -27,7 +27,6 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_array_rio.h>
 #include <acutest.h>
-// This the updater to be tested
 #include <gkyl_skin_surf_from_ghost.h>  
 
 // Evaluate the projection of the modal representation inside a cell from 1x to 3x
@@ -37,9 +36,9 @@ double eval_f(const double *phi, double x, double y, double z, int cdim);
 static struct gkyl_array* mkarr(bool on_gpu, long nc, long size) {
   struct gkyl_array* a;
   if (on_gpu)
-    a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);  // Allocate on GPU
+    a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
   else
-    a = gkyl_array_new(GKYL_DOUBLE, nc, size);         // Allocate on CPU
+    a = gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
 
@@ -70,37 +69,30 @@ void test_ssfg(int cdim, int poly_order, bool use_gpu, enum gkyl_edge_loc edge, 
       cells[0] = 6;
       break;
     default:
-      // Handle invalid cdim values
       fprintf(stderr, "Invalid cdim value: %d\n", cdim);
       exit(1);
   }
   const int ndim = sizeof(cells)/sizeof(cells[0]);
 
-  // Initialize grid and basis functions
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, cdim, lower, upper, cells);
-  // Get grid spacing in the direction of the ssfg
   double dx = grid.dx[dir];
 
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, cdim, poly_order);
 
-  // Define ranges for local and extended grid with ghost cells
-  int ghost[GKYL_MAX_CDIM] = {1, 1, 1};  // Ghost cell configuration
+  int ghost[GKYL_MAX_CDIM] = {1, 1, 1};
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
-  // Set up ranges for skin (outer) and ghost (inner) cells along direction and edge
   struct gkyl_range skin_r, ghost_r;
   gkyl_skin_ghost_ranges(&skin_r, &ghost_r, dir, edge, &local_ext, ghost);
 
-  // Allocate field array for storing basis-projected field values
   struct gkyl_array *field_ho, *field;
-  field = mkarr(use_gpu, basis.num_basis, local_ext.volume);      // Device or host array
-  field_ho = use_gpu ? mkarr(false, field->ncomp, field->size)    // Device host-offloaded array
-                     : gkyl_array_acquire(field);                 // Directly host-based if not using GPU
+  field = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  field_ho = use_gpu ? mkarr(false, field->ncomp, field->size)
+                     : gkyl_array_acquire(field);
 
-  // Project analytical field onto the basis functions
   gkyl_proj_on_basis *proj_field = gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, eval_field, NULL);
   gkyl_proj_on_basis_advance(proj_field, 0.0, &local, field_ho);
 
@@ -137,14 +129,13 @@ void test_ssfg(int cdim, int poly_order, bool use_gpu, enum gkyl_edge_loc edge, 
 
   // Initialize the skin-surf updater and call it if control is false
   gkyl_skin_surf_from_ghost* up = gkyl_skin_surf_from_ghost_new(dir, edge, basis, &skin_r, &ghost_r, use_gpu);
-  if (!control)
-    gkyl_skin_surf_from_ghost_advance(up, field);  // Apply ghost values to skin cells
+  if (!control) // to test identity operation
+    gkyl_skin_surf_from_ghost_advance(up, field);
   gkyl_skin_surf_from_ghost_release(up);
 
   // Copy field values back to host for checking
   gkyl_array_copy(field_ho, field);
 
-  //---------- CHECK of the result --------------
   // Check that field values in the skin cells meet the expected result
   int gidx[GKYL_MAX_DIM]; // ghost index.
   struct gkyl_range_iter iter_skin;
@@ -183,7 +174,7 @@ void test_ssfg(int cdim, int poly_order, bool use_gpu, enum gkyl_edge_loc edge, 
     double vghost = eval_f(fghost,xg,yg,zg,cdim);
     double check_val;
 
-    // Test values based on control mode: expect 0 if control, otherwise expect 0.5
+    // Test values based on control mode
     if (control) {
       check_val = 0.0;
     } else {
@@ -191,7 +182,6 @@ void test_ssfg(int cdim, int poly_order, bool use_gpu, enum gkyl_edge_loc edge, 
     }
     TEST_CHECK(gkyl_compare(vskin, check_val, 1e-14));
   }
-  // Release allocated arrays
   gkyl_array_release(field);
   gkyl_array_release(field_ho);
 }
@@ -200,10 +190,7 @@ void test_ssfg(int cdim, int poly_order, bool use_gpu, enum gkyl_edge_loc edge, 
 void test_ssfg_ho() {
   bool use_gpu    = false;
   int  poly_order = 1;
-  printf("\n");
   for (int cdim = 1; cdim <= 3; cdim++) {
-    printf("Running tests for dimensionality cdim = %d\n", cdim);
-    // Loop over control states (perform the test or not)
     for (int control = 0; control <= 0; control++) {
       for (int dir = 0; dir <= cdim-1; dir++) {
         test_ssfg(cdim, poly_order, use_gpu, GKYL_UPPER_EDGE, dir, control == 1);
@@ -217,10 +204,7 @@ void test_ssfg_ho() {
 void test_ssfg_dev() {
   int  poly_order = 1;
   bool use_gpu    = true;
-  printf("\n");
   for (int cdim = 1; cdim <= 3; cdim++) {
-    printf("Running tests for dimensionality cdim = %d\n", cdim);
-    // Loop over control states (perform the test or just check identity)
     for (int control = 0; control <= 0; control++) {
       for (int dir = 0; dir <= cdim-1; dir++) {
         test_ssfg(cdim, poly_order, use_gpu, GKYL_UPPER_EDGE, dir, control==1);
