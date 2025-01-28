@@ -120,6 +120,21 @@ struct gyrokinetic_species_lw {
 
   enum gkyl_te_min_model radiation_te_min_model; // How is the radiation turned off (constant, or with varying electron temperature)?
   double radiation_Te_min; // Minimum temperature (in J) at which to stop radiating.
+
+  int num_react; // Number of reaction types.
+
+  enum gkyl_react_id react_id[GKYL_MAX_REACT]; // What type of reaction (ionization, charge exchange, recombination)?
+  enum gkyl_react_self_type react_type_self[GKYL_MAX_REACT]; // What is the role of the species in this reaction?
+  enum gkyl_ion_type react_ion_id[GKYL_MAX_REACT]; // What type of ion is reacting?
+
+  char react_elc_nm[GKYL_MAX_REACT][128]; // Name of electron species in the reaction.
+  char react_ion_nm[GKYL_MAX_REACT][128]; // Name of ion species in the reaction.
+  char react_donor_nm[GKYL_MAX_REACT][128]; // Name of donor species in the reaction.
+  char react_recvr_nm[GKYL_MAX_REACT][128]; // Name of receiver species in the reaction.
+
+  int react_charge_state[GKYL_MAX_REACT]; // Charge state of species in the reaction.
+  double react_ion_mass[GKYL_MAX_REACT]; // Mass of ion species in the reaction.
+  double react_elc_mass[GKYL_MAX_REACT]; // Mass of electron species in the reaction.
 };
 
 static int
@@ -312,9 +327,9 @@ gyrokinetic_species_lw_new(lua_State *L)
     collision_eV = glua_tbl_get_number(L, "eV", 0.0);
 
     collision_correct_all_moms = glua_tbl_get_bool(L, "correctAllMoments", false);
-    collision_iter_eps = glua_tbl_get_number(L, "iterationEpsilon", pow(10.0, -12.0));
-    collision_max_iter = glua_tbl_get_integer(L, "maxIterations", 100);
-    collision_use_last_converged = glua_tbl_get_bool(L, "useLastConverged", true);
+    collision_iter_eps = glua_tbl_get_number(L, "iterationEpsilon", 0.0);
+    collision_max_iter = glua_tbl_get_integer(L, "maxIterations", 0);
+    collision_use_last_converged = glua_tbl_get_bool(L, "useLastConverged", false);
   }
 
   enum gkyl_source_id source_id = GKYL_NO_SOURCE;
@@ -418,6 +433,52 @@ gyrokinetic_species_lw_new(lua_State *L)
 
     radiation_te_min_model = glua_tbl_get_integer(L, "TeMinModel", 0);
     radiation_Te_min = glua_tbl_get_number(L, "TeMin", 0.0);
+  }
+
+  int num_react = 0;
+  enum gkyl_react_id react_id[GKYL_MAX_REACT];
+  enum gkyl_react_self_type react_type_self[GKYL_MAX_REACT];
+  enum gkyl_ion_type react_ion_id[GKYL_MAX_REACT];
+
+  char react_elc_nm[GKYL_MAX_REACT][128];
+  char react_ion_nm[GKYL_MAX_REACT][128];
+  char react_donor_nm[GKYL_MAX_REACT][128];
+  char react_recvr_nm[GKYL_MAX_REACT][128];
+
+  int react_charge_state[GKYL_MAX_REACT];
+  double react_ion_mass[GKYL_MAX_REACT];
+  double react_elc_mass[GKYL_MAX_REACT];
+
+  with_lua_tbl_tbl(L, "reaction") {
+    num_react = glua_tbl_get_integer(L, "numReactions", 0);
+
+    with_lua_tbl_tbl(L, "reactionTypes") {
+      for (int i = 0; i < num_react; i++) {
+        if (glua_tbl_iget_tbl(L, i + 1)) {
+          react_id[i] = glua_tbl_get_integer(L, "reactionID", GKYL_NO_REACT);
+          react_type_self[i] = glua_tbl_get_integer(L, "selfType", GKYL_SELF_ELC);
+          react_ion_id[i] = glua_tbl_get_integer(L, "ionType", GKYL_ION_H);
+
+          const char* react_elc_nm_char = glua_tbl_get_string(L, "electronName", "");
+          strcpy(react_elc_nm[i], react_elc_nm_char);
+
+          const char* react_ion_nm_char = glua_tbl_get_string(L, "ionName", "");
+          strcpy(react_ion_nm[i], react_ion_nm_char);
+
+          const char* react_donor_nm_char = glua_tbl_get_string(L, "donorName", "");
+          strcpy(react_donor_nm[i], react_donor_nm_char);
+
+          const char* react_recvr_nm_char = glua_tbl_get_string(L, "receiverName", "");
+          strcpy(react_recvr_nm[i], react_recvr_nm_char);
+
+          react_charge_state[i] = glua_tbl_get_integer(L, "chargeState", 0);
+          react_ion_mass[i] = glua_tbl_get_number(L, "ionMass", 0.0);
+          react_elc_mass[i] = glua_tbl_get_number(L, "electronMass", 0.0);
+
+          lua_pop(L, 1);
+        }
+      }
+    }
   }
   
   struct gyrokinetic_species_lw *gks_lw = lua_newuserdata(L, sizeof(*gks_lw));
@@ -565,6 +626,23 @@ gyrokinetic_species_lw_new(lua_State *L)
 
   gks_lw->radiation_te_min_model = radiation_te_min_model;
   gks_lw->radiation_Te_min = radiation_Te_min;
+
+  gks_lw->num_react = num_react;
+
+  for (int i = 0; i < num_react; i++) {
+    gks_lw->react_id[i] = react_id[i];
+    gks_lw->react_type_self[i] = react_type_self[i];
+    gks_lw->react_ion_id[i] = react_ion_id[i];
+
+    strcpy(gks_lw->react_elc_nm[i], react_elc_nm[i]);
+    strcpy(gks_lw->react_ion_nm[i], react_ion_nm[i]);
+    strcpy(gks_lw->react_donor_nm[i], react_donor_nm[i]);
+    strcpy(gks_lw->react_recvr_nm[i], react_recvr_nm[i]);
+
+    gks_lw->react_charge_state[i] = react_charge_state[i];
+    gks_lw->react_ion_mass[i] = react_ion_mass[i];
+    gks_lw->react_elc_mass[i] = react_elc_mass[i];
+  }
   
   // Set metatable.
   luaL_getmetatable(L, GYROKINETIC_SPECIES_METATABLE_NM);
@@ -755,6 +833,21 @@ struct gyrokinetic_app_lw {
   
   enum gkyl_te_min_model radiation_te_min_model[GKYL_MAX_SPECIES]; // How is the radiation turned off (constant, or with varying electron temperature)?
   double radiation_Te_min[GKYL_MAX_SPECIES]; // Minimum temperature (in J) at which to stop radiating.
+
+  int num_react[GKYL_MAX_SPECIES]; // Number of reaction types.
+
+  enum gkyl_react_id react_id[GKYL_MAX_SPECIES][GKYL_MAX_REACT]; // What type of reaction (ionization, charge exchange, recombination)?
+  enum gkyl_react_self_type react_type_self[GKYL_MAX_SPECIES][GKYL_MAX_REACT]; // What is the role of the species in this reaction?
+  enum gkyl_ion_type react_ion_id[GKYL_MAX_SPECIES][GKYL_MAX_REACT]; // What type of ion is reacting?
+
+  char react_elc_nm[GKYL_MAX_SPECIES][GKYL_MAX_REACT][128]; // Name of electron species in the reaction.
+  char react_ion_nm[GKYL_MAX_SPECIES][GKYL_MAX_REACT][128]; // Name of ion species in the reaction.
+  char react_donor_nm[GKYL_MAX_SPECIES][GKYL_MAX_REACT][128]; // Name of donor species in the reaction.
+  char react_recvr_nm[GKYL_MAX_SPECIES][GKYL_MAX_REACT][128]; // Name of receiver species in the reaction.
+
+  int react_charge_state[GKYL_MAX_SPECIES][GKYL_MAX_REACT]; // Charge state of species in the reaction.
+  double react_ion_mass[GKYL_MAX_SPECIES][GKYL_MAX_REACT]; // Mass of ion species in the reaction.
+  double react_elc_mass[GKYL_MAX_SPECIES][GKYL_MAX_REACT]; // Mass of electron species in the reaction.
   
   double t_start, t_end; // Start and end times of simulation.
   int num_frames; // Number of data frames to write.
@@ -1282,6 +1375,40 @@ gk_app_new(lua_State *L)
 
     gk.species[s].radiation.te_min_model = app_lw->radiation_te_min_model[s];
     gk.species[s].radiation.Te_min = app_lw->radiation_Te_min[s];
+
+    app_lw->num_react[s] = species[s]->num_react;
+
+    for (int i = 0; i < app_lw->num_react[s]; i++) {
+      app_lw->react_id[s][i] = species[s]->react_id[i];
+      app_lw->react_type_self[s][i] = species[s]->react_type_self[i];
+      app_lw->react_ion_id[s][i] = species[s]->react_ion_id[i];
+
+      strcpy(app_lw->react_elc_nm[s][i], species[s]->react_elc_nm[i]);
+      strcpy(app_lw->react_ion_nm[s][i], species[s]->react_ion_nm[i]);
+      strcpy(app_lw->react_donor_nm[s][i], species[s]->react_donor_nm[i]);
+      strcpy(app_lw->react_recvr_nm[s][i], species[s]->react_recvr_nm[i]);
+
+      app_lw->react_charge_state[s][i] = species[s]->react_charge_state[i];
+      app_lw->react_ion_mass[s][i] = species[s]->react_ion_mass[i];
+      app_lw->react_elc_mass[s][i] = species[s]->react_elc_mass[i];
+    }
+
+    gk.species[s].react.num_react = app_lw->num_react[s];
+
+    for (int i = 0; i < app_lw->num_react[s]; i++) {
+      gk.species[s].react.react_type[i].react_id = app_lw->react_id[s][i];
+      gk.species[s].react.react_type[i].type_self = app_lw->react_type_self[s][i];
+      gk.species[s].react.react_type[i].ion_id = app_lw->react_ion_id[s][i];
+
+      strcpy(gk.species[s].react.react_type[i].elc_nm, app_lw->react_elc_nm[s][i]);
+      strcpy(gk.species[s].react.react_type[i].ion_nm, app_lw->react_ion_nm[s][i]);
+      strcpy(gk.species[s].react.react_type[i].recvr_nm, app_lw->react_recvr_nm[s][i]);
+      strcpy(gk.species[s].react.react_type[i].donor_nm, app_lw->react_donor_nm[s][i]);
+
+      gk.species[s].react.react_type[i].charge_state = app_lw->react_charge_state[s][i];
+      gk.species[s].react.react_type[i].ion_mass = app_lw->react_ion_mass[s][i];
+      gk.species[s].react.react_type[i].elc_mass = app_lw->react_elc_mass[s][i];
+    }
   }
 
   // Set field input.

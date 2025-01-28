@@ -165,6 +165,41 @@ static const struct gkyl_str_int_pair gk_radiation_te_type[] = {
   { 0, 0 }
 };
 
+// Gyrokinetic reaction type -> enum map.
+static const struct gkyl_str_int_pair gk_react_type[] = {
+  { "None", GKYL_NO_REACT },
+  { "Ionization", GKYL_REACT_IZ },
+  { "ChargeExchange", GKYL_REACT_CX },
+  { "Recombination", GKYL_REACT_RECOMB },
+  { 0, 0 }
+};
+
+// Gyrokinetic ion type -> enum map.
+static const struct gkyl_str_int_pair gk_ion_type[] = {
+  { "Hydrogen", GKYL_ION_H },
+  { "Deuterium", GKYL_ION_D },
+  { "Helium", GKYL_ION_HE },
+  { "Lithium", GKYL_ION_LI },
+  { "Beryllium", GKYL_ION_BE },
+  { "Boron", GKYL_ION_B },
+  { "Carbon", GKYL_ION_C },
+  { "Nitrogen", GKYL_ION_N },
+  { "Oxygen", GKYL_ION_O },
+  { "Neon", GKYL_ION_NE },
+  { "Argon", GKYL_ION_AR },
+  { 0, 0 }
+};
+
+// Gyrokinetic self-reaction type -> enum map.
+static const struct gkyl_str_int_pair gk_react_self_type[] = {
+  { "Electron", GKYL_SELF_ELC },
+  { "Ion", GKYL_SELF_ION },
+  { "Donor", GKYL_SELF_DONOR },
+  { "Receiver", GKYL_SELF_RECVR },
+  { "Partner", GKYL_SELF_PARTNER },
+  { 0, 0 }
+};
+
 static void
 register_types(lua_State *L, const struct gkyl_str_int_pair types[], const char *nm)
 {
@@ -275,6 +310,24 @@ void
 gkyl_register_gyrokinetic_radiation_Te_types(lua_State *L)
 {
   register_types(L, gk_radiation_te_type, "TeMinModel");
+}
+
+void
+gkyl_register_gyrokinetic_reaction_types(lua_State *L)
+{
+  register_types(L, gk_react_type, "Reaction");
+}
+
+void
+gkyl_register_gyrokinetic_ion_types(lua_State *L)
+{
+  register_types(L, gk_ion_type, "Ion");
+}
+
+void
+gkyl_register_gyrokinetic_self_reaction_types(lua_State *L)
+{
+  register_types(L, gk_react_self_type, "Self");
 }
 
 void
