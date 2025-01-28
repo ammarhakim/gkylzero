@@ -32,7 +32,6 @@
 
 // Evaluate the projection of the modal representation inside a cell from 1x to 3x
 double eval_f(const double *phi, double x, double y, double z, int cdim);
-void compare_skin_ghost_cubes(const double* fskin, const double* fghost, const int cdim, const int edge, const int dir);
 
 // Function to allocate a gkyl array, zero-initialized, on CPU or GPU
 static struct gkyl_array* mkarr(bool on_gpu, long nc, long size) {
@@ -50,7 +49,7 @@ void eval_field(double t, const double *xn, double* restrict fout, void *ctx) {
   fout[1] = 0.0;
 }
 
-// Function to set up and test the ghost-to-skin surf copy in 3D
+// Function to set up and test the ghost-to-skin surface copy updater
 void test_ssfg(int cdim, int poly_order, bool use_gpu, enum gkyl_edge_loc edge, int dir, bool control) { 
   double lower[cdim], upper[cdim];
   int cells[cdim];
@@ -138,9 +137,8 @@ void test_ssfg(int cdim, int poly_order, bool use_gpu, enum gkyl_edge_loc edge, 
 
   // Initialize the skin-surf updater and call it if control is false
   gkyl_skin_surf_from_ghost* up = gkyl_skin_surf_from_ghost_new(dir, edge, basis, &skin_r, &ghost_r, use_gpu);
-  if (!control) {
+  if (!control)
     gkyl_skin_surf_from_ghost_advance(up, field);  // Apply ghost values to skin cells
-  }
   gkyl_skin_surf_from_ghost_release(up);
 
   // Copy field values back to host for checking
@@ -151,7 +149,6 @@ void test_ssfg(int cdim, int poly_order, bool use_gpu, enum gkyl_edge_loc edge, 
   int gidx[GKYL_MAX_DIM]; // ghost index.
   struct gkyl_range_iter iter_skin;
   gkyl_range_iter_init(&iter_skin, &skin_r);
-  int k =0;
   while (gkyl_range_iter_next(&iter_skin)) {
     // get skin cell modal values
     long skin_linidx = gkyl_range_idx(&skin_r, iter_skin.idx);
@@ -192,10 +189,7 @@ void test_ssfg(int cdim, int poly_order, bool use_gpu, enum gkyl_edge_loc edge, 
     } else {
       check_val =  vghost;
     }
-    // TEST_CHECK(gkyl_compare(vskin, check_val, 1e-14));
-    // if (k==0)
-      // compare_skin_ghost_cubes(fskin, fghost, cdim, edge, dir);
-    k++;
+    TEST_CHECK(gkyl_compare(vskin, check_val, 1e-14));
   }
   // Release allocated arrays
   gkyl_array_release(field);
@@ -207,19 +201,13 @@ void test_ssfg_ho() {
   bool use_gpu    = false;
   int  poly_order = 1;
   printf("\n");
-  // Loop over dimensionalities
   for (int cdim = 1; cdim <= 3; cdim++) {
     printf("Running tests for dimensionality cdim = %d\n", cdim);
-    // Loop over edges
-    // for (int edge = GKYL_LOWER_EDGE; edge <= GKYL_UPPER_EDGE; edge++) {
     // Loop over control states (perform the test or not)
     for (int control = 0; control <= 0; control++) {
-      // Loop over directions
       for (int dir = 0; dir <= cdim-1; dir++) {
-        // Run the actual test
         test_ssfg(cdim, poly_order, use_gpu, GKYL_UPPER_EDGE, dir, control == 1);
         test_ssfg(cdim, poly_order, use_gpu, GKYL_LOWER_EDGE, dir, control == 1);
-      // }
       }
     }
   }
@@ -230,19 +218,13 @@ void test_ssfg_dev() {
   int  poly_order = 1;
   bool use_gpu    = true;
   printf("\n");
-  // Loop over dimensionalities
   for (int cdim = 1; cdim <= 3; cdim++) {
     printf("Running tests for dimensionality cdim = %d\n", cdim);
     // Loop over control states (perform the test or just check identity)
     for (int control = 0; control <= 0; control++) {
-      // Loop over directions
       for (int dir = 0; dir <= cdim-1; dir++) {
-        // Loop over edges
-        // for (int edge = GKYL_LOWER_EDGE; edge <= GKYL_UPPER_EDGE; edge++) {
-        // Run the actual test
         test_ssfg(cdim, poly_order, use_gpu, GKYL_UPPER_EDGE, dir, control==1);
         test_ssfg(cdim, poly_order, use_gpu, GKYL_LOWER_EDGE, dir, control==1);
-        // }
       }
     }
   }
@@ -278,111 +260,6 @@ double eval_f(const double *phi, const double x, const double y, const double z,
     default:
       fprintf(stderr, "Invalid cdim value: %d. Must be 0, 1, or 2.\n", cdim);
       return 0.0;
-  }
-}
-
-void compare_skin_ghost_cubes(const double* fskin, const double* fghost, const int cdim, const int edge, const int dir) {
-  double skin[8] = {0}, ghost[8] = {0}; // Array to store skin and ghost values at each corner
-  
-  // Evaluate each corner based on the dimension
-  switch (cdim) {
-    case 1: // 1D case: evaluate only at -1 and +1 along x
-      skin[0] = eval_f(fskin, -1.0, 0.0, 0.0, cdim);
-      skin[1] = eval_f(fskin, +1.0, 0.0, 0.0, cdim);
-      ghost[0] = eval_f(fghost, -1.0, 0.0, 0.0, cdim);
-      ghost[1] = eval_f(fghost, +1.0, 0.0, 0.0, cdim);
-      if(edge == GKYL_UPPER_EDGE){
-        printf("1D, upper\n");
-        printf("    Skin Cube               Ghost Cube\n");
-        printf("  [%6.2f] --- [%6.2f]    [%6.2f] --- [%6.2f]\n", skin[0], skin[1], ghost[0], ghost[1]);
-      }
-      else{
-        printf("1D, lower\n");
-        printf("    Ghost Cube              Skin Cube\n");
-        printf("  [%6.2f] --- [%6.2f]    [%6.2f] --- [%6.2f]\n", ghost[0], ghost[1], skin[0], skin[1]);
-      }
-      break;
-
-    case 2: // 2D case: evaluate 4 corners (-1,-1), (1,-1), (-1,1), (1,1)
-      skin[0] = eval_f(fskin, -1.0, -1.0, 0.0, cdim);
-      skin[1] = eval_f(fskin, +1.0, -1.0, 0.0, cdim);
-      skin[2] = eval_f(fskin, -1.0, +1.0, 0.0, cdim);
-      skin[3] = eval_f(fskin, +1.0, +1.0, 0.0, cdim);
-      ghost[0] = eval_f(fghost, -1.0, -1.0, 0.0, cdim);
-      ghost[1] = eval_f(fghost, +1.0, -1.0, 0.0, cdim);
-      ghost[2] = eval_f(fghost, -1.0, +1.0, 0.0, cdim);
-      ghost[3] = eval_f(fghost, +1.0, +1.0, 0.0, cdim);
-      if(dir == 0){
-        if(edge == GKYL_UPPER_EDGE){
-          printf("2D, x-dir, upper\n");
-          printf("    Skin Cube        |     Ghost Cube\n");
-          printf("  [%6.2f] --- [%6.2f]    [%6.2f] --- [%6.2f]\n", skin[0], skin[1], ghost[0], ghost[1]);
-          printf("       |           |            |            |\n");
-          printf("  [%6.2f] --- [%6.2f]    [%6.2f] --- [%6.2f]\n", skin[2], skin[3], ghost[2], ghost[3]);
-        }
-        else{
-          printf("2D, x-dir, lower\n");
-          printf("    Ghost Cube        |     Skin Cube\n");
-          printf("  [%6.2f] --- [%6.2f]    [%6.2f] --- [%6.2f]\n", ghost[0], ghost[1], skin[0], skin[1]);
-          printf("       |           |            |            |\n");
-          printf("  [%6.2f] --- [%6.2f]    [%6.2f] --- [%6.2f]\n", ghost[2], ghost[3], skin[2], skin[3]);
-        }
-      }
-      else{
-        if(edge == GKYL_UPPER_EDGE){
-          printf("2D, y-dir, upper\n");
-          printf("  Ghost Cube\t [%6.2f] --- [%6.2f]\n", ghost[0], ghost[1]);
-          printf("            \t [%6.2f] --- [%6.2f]\n", ghost[2], ghost[3]);
-          printf("\n");
-          printf("  Skin  Cube\t [%6.2f] --- [%6.2f]\n", skin[0], skin[1]);
-          printf("            \t [%6.2f] --- [%6.2f]\n", skin[2], skin[3]);            
-        }
-        else{
-          printf("2D, y-dir, lower\n");
-          printf("  Skin  Cube\t [%6.2f] --- [%6.2f]\n", skin[0], skin[1]);
-          printf("            \t [%6.2f] --- [%6.2f]\n", skin[2], skin[3]);
-          printf("\n");
-          printf("  Ghost Cube\t [%6.2f] --- [%6.2f]\n", ghost[0], ghost[1]);
-          printf("            \t [%6.2f] --- [%6.2f]\n", ghost[2], ghost[3]);      
-        }        
-      }
-      break;
-
-    case 3: // 3D case: evaluate 8 corners (-1,-1,-1), (1,-1,-1), etc.
-      skin[0] = eval_f(fskin, -1.0, -1.0, -1.0, cdim);
-      skin[1] = eval_f(fskin, +1.0, -1.0, -1.0, cdim);
-      skin[2] = eval_f(fskin, -1.0, +1.0, -1.0, cdim);
-      skin[3] = eval_f(fskin, +1.0, +1.0, -1.0, cdim);
-      skin[4] = eval_f(fskin, -1.0, -1.0, +1.0, cdim);
-      skin[5] = eval_f(fskin, +1.0, -1.0, +1.0, cdim);
-      skin[6] = eval_f(fskin, -1.0, +1.0, +1.0, cdim);
-      skin[7] = eval_f(fskin, +1.0, +1.0, +1.0, cdim);
-
-      ghost[0] = eval_f(fghost, -1.0, -1.0, -1.0, cdim);
-      ghost[1] = eval_f(fghost, +1.0, -1.0, -1.0, cdim);
-      ghost[2] = eval_f(fghost, -1.0, +1.0, -1.0, cdim);
-      ghost[3] = eval_f(fghost, +1.0, +1.0, -1.0, cdim);
-      ghost[4] = eval_f(fghost, -1.0, -1.0, +1.0, cdim);
-      ghost[5] = eval_f(fghost, +1.0, -1.0, +1.0, cdim);
-      ghost[6] = eval_f(fghost, -1.0, +1.0, +1.0, cdim);
-      ghost[7] = eval_f(fghost, +1.0, +1.0, +1.0, cdim);
-
-      printf("3D Comparison:\n");
-      printf("  Skin Cube (z = -1)    |   Ghost Cube (z = -1)\n");
-      printf("  [%6.2f] --- [%6.2f]    [%6.2f] --- [%6.2f]\n", skin[0], skin[1], ghost[0], ghost[1]);
-      printf("     |           |           |           | \n");
-      printf("  [%6.2f] --- [%6.2f]    [%6.2f] --- [%6.2f]\n", skin[2], skin[3], ghost[2], ghost[3]);
-
-      printf("\n");
-
-      printf("  Skin Cube (z = +1)    |   Ghost Cube (z = +1)\n");
-      printf("  [%6.2f] --- [%6.2f]    [%6.2f] --- [%6.2f]\n", skin[4], skin[5], ghost[4], ghost[5]);
-      printf("     |           |          |           | \n");
-      printf("  [%6.2f] --- [%6.2f]    [%6.2f] --- [%6.2f]\n", skin[6], skin[7], ghost[6], ghost[7]);
-      break;
-
-    default:
-      printf("Invalid dimension (cdim must be 1, 2, or 3)\n");
   }
 }
 
