@@ -153,6 +153,11 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   double cfl_frac = gk->cfl_frac == 0 ? 1.0 : gk->cfl_frac;
   app->cfl = cfl_frac;
 
+  // The value 1.7 here is based on figure 2.4a in Durran's "Numerical methods
+  // for fluid dynamics" textbook for a purely oscillatory mode and RK3.
+  double cfl_frac_omegaH = gk->cfl_frac_omegaH == 0 ? 1.7 : gk->cfl_frac_omegaH;
+  app->cfl_omegaH = cfl_frac_omegaH;
+
 #ifdef GKYL_HAVE_CUDA
   app->use_gpu = gk->parallelism.use_gpu;
 #else
@@ -411,6 +416,71 @@ gyrokinetic_calc_field_none(gkyl_gyrokinetic_app* app, double tcurr, const struc
 {
 }
 
+static void
+gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
+{
+  // Compute the geometric and field-model dependent part of omega_H.
+  // Each species computes its own omega_H as:
+  //   omega_H = q_e*sqrt(n_{s0}/m_s) * omegaH_gf
+  // where
+  //   - n_{s0} is either a reference, average or max density.
+  //   - omegaH_gf = (cmag/(jacobgeo*B^_\parallel))*kpar_max / 
+  //                 min(sqrt(k_x^2*eps_xx+k_x*k_y*eps_xy+k_y^2*eps_yy+)).
+  // and k_x,k_y,k_par are wavenumbers in computational space, and eps_ij is
+  // the polarization weight in our field equation.
+
+  app->omegaH_gf = 1.0/DBL_MAX;
+
+  if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || app->field->gkfield_id == GKYL_GK_FIELD_ADIABATIC)) {
+    // Compute parfac = (cmag/(jacobgeo*B^_\parallel))*kpar_max.
+    struct gkyl_array *parfac = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    gkyl_dg_mul_op_range(app->confBasis, 0, parfac, 0, app->gk_geom->cmag, 0, app->gk_geom->jacobtot_inv, &app->local); 
+    double kpar_max = M_PI*(app->poly_order+1)/app->grid.dx[app->cdim-1];
+    gkyl_array_scale_range(parfac, kpar_max, &app->local);
+
+    // Compute perpfac_inv = 1/sqrt(k_x^2*eps_xx+k_x*k_y*eps_xy+k_y^2*eps_yy+)).
+    struct gkyl_array *perpfac = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    struct gkyl_array *perpfac_inv = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    double kx_min = M_PI/(app->grid.upper[0]-app->grid.lower[0]);
+    double kx_sq = app->cdim == 1? 1.0 : pow(kx_min,2); // kperp_sq included in epsilon for cdim=1.
+    gkyl_array_accumulate_offset_range(perpfac, kx_sq, app->field->epsilon, 0*app->confBasis.num_basis, &app->local);
+    if (app->cdim > 2) {
+      double ky_min = M_PI/(app->grid.upper[1]-app->grid.lower[1]);
+      gkyl_array_accumulate_offset_range(perpfac, kx_min*ky_min, app->field->epsilon, 1*app->confBasis.num_basis, &app->local);
+      gkyl_array_accumulate_offset_range(perpfac, pow(ky_min,2), app->field->epsilon, 2*app->confBasis.num_basis, &app->local);
+    }
+    gkyl_proj_powsqrt_on_basis* proj_sqrt = gkyl_proj_powsqrt_on_basis_new(&app->confBasis, app->poly_order+1, app->use_gpu);
+    gkyl_proj_powsqrt_on_basis_advance(proj_sqrt, &app->local, -1.0, perpfac, perpfac_inv);
+    gkyl_proj_powsqrt_on_basis_release(proj_sqrt);
+
+    // Compute max(parfac*perpfac_inv) (using cell centers).
+    struct gkyl_array *omegaH_gf_grid = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    gkyl_dg_mul_op_range(app->confBasis, 0, omegaH_gf_grid, 0, parfac, 0, perpfac_inv, &app->local); 
+    double *omegaH_gf_red;
+    if (app->use_gpu)
+      omegaH_gf_red = gkyl_cu_malloc(app->confBasis.num_basis*sizeof(double));
+    else 
+      omegaH_gf_red = gkyl_malloc(app->confBasis.num_basis*sizeof(double));
+
+    gkyl_array_reduce_range(omegaH_gf_red, omegaH_gf_grid, GKYL_MAX, &app->local);
+
+    if (app->use_gpu)
+      gkyl_cu_memcpy(&app->omegaH_gf, omegaH_gf_red, sizeof(double), GKYL_CU_MEMCPY_D2H);
+    else
+      app->omegaH_gf = omegaH_gf_red[0];
+    app->omegaH_gf *= 1.0/pow(sqrt(2.0),app->cdim);
+
+    if (app->use_gpu)
+      gkyl_cu_free(omegaH_gf_red);
+    else 
+      gkyl_free(omegaH_gf_red);
+    gkyl_array_release(omegaH_gf_grid);
+    gkyl_array_release(perpfac_inv);
+    gkyl_array_release(perpfac);
+    gkyl_array_release(parfac);
+  }
+}
+
 void
 gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
 {
@@ -503,6 +573,9 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     gk_neut_species_source_init(app, &app->neut_species[i], &app->neut_species[i].src);
   }
 
+  // Pre-compute time-independent factors in omega_H.
+  gkyl_gyrokinetic_app_omegaH_init(app); 
+
   // initialize stat object
   app->stat = (struct gkyl_gyrokinetic_stat) {
     .use_gpu = app->use_gpu,
@@ -510,6 +583,7 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     .stage_3_dt_diff = { DBL_MAX, 0.0 },
   };
 }
+
 
 gkyl_gyrokinetic_app*
 gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)

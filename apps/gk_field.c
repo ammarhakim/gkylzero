@@ -67,7 +67,6 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   if (f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || f->gkfield_id == GKYL_GK_FIELD_ADIABATIC)
     assert(app->cdim == 1); // Not yet implemented for cdim>1.
 
-  f->weight = 0;
   f->epsilon = 0;
   f->kSq = 0;  // not currently used by fem_perp_poisson
   double polarization_weight = 0.0; 
@@ -90,15 +89,15 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     }
     if (app->cdim == 1) {
       // Need to set weight to kperpsq*polarizationWeight for use in potential smoothing.
-      f->weight = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
+      f->epsilon = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume); // fem_parproj expects it on host.
  
       // Gather jacobgeo for smoothing in z.
       struct gkyl_array *jacobgeo_global = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
       gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->jacobgeo, jacobgeo_global);
-      gkyl_array_copy(f->weight, jacobgeo_global);
+      gkyl_array_copy(f->epsilon, jacobgeo_global);
 
-      gkyl_array_scale(f->weight, polarization_weight);
-      gkyl_array_scale(f->weight, f->info.kperpSq);
+      gkyl_array_scale(f->epsilon, polarization_weight);
+      gkyl_array_scale(f->epsilon, f->info.kperpSq);
 
 
       if (f->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
@@ -108,11 +107,12 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
         double q_s = f->info.electron_charge;
         double T_s = f->info.electron_temp;
         double quasineut_contr = q_s*n_s0*q_s/T_s;
-        struct gkyl_array *weight_adiab = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
-        gkyl_array_copy(weight_adiab, jacobgeo_global);
-        gkyl_array_scale(weight_adiab, quasineut_contr);
-        gkyl_array_accumulate(f->weight, 1., weight_adiab);
-        gkyl_array_release(weight_adiab);
+        
+        struct gkyl_array *epsilon_adiab = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume); // fem_parproj expects epsilon on host
+        gkyl_array_copy(epsilon_adiab, jacobgeo_global);
+        gkyl_array_scale(epsilon_adiab, quasineut_contr);
+        gkyl_array_accumulate(f->epsilon, 1., epsilon_adiab);
+        gkyl_array_release(epsilon_adiab);
 
         es_energy_fac_1d_adiabatic = 0.5*quasineut_contr; 
       }
@@ -153,14 +153,15 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     gkyl_range_shorten_from_below(&f->global_ext_sol, &app->global_ext, 0, app->grid.cells[0]-idxLCFS_m+1);
     gkyl_range_shorten_from_above(&f->global_core, &app->global, 0, idxLCFS_m+1);
     gkyl_range_shorten_from_above(&f->global_ext_core, &app->global_ext, 0, idxLCFS_m+1);
+
     f->fem_parproj_core = gkyl_fem_parproj_new(&f->global_core, &app->confBasis,
-      fem_parproj_bc_core, f->weight, 0, app->use_gpu);
+      fem_parproj_bc_core, 0, 0, app->use_gpu);
     f->fem_parproj_sol = gkyl_fem_parproj_new(&f->global_sol, &app->confBasis,
-      fem_parproj_bc_sol, f->weight, 0, app->use_gpu);
+      fem_parproj_bc_sol, 0, 0, app->use_gpu);
   } 
   else {
     f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->confBasis,
-      f->info.fem_parbc, f->weight, 0, app->use_gpu);
+      f->info.fem_parbc, app->cdim == 1? f->epsilon : 0, 0, app->use_gpu);
   }
 
   f->phi_host = f->phi_smooth;  
@@ -395,11 +396,8 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
       gkyl_array_release(f->sheath_vals[i]);
   } 
   else {
-    if (app->cdim == 1) {
-      gkyl_array_release(f->weight);
-    }
-    else if (app->cdim > 1) {
-      gkyl_array_release(f->epsilon);
+    gkyl_array_release(f->epsilon);
+    if (app->cdim > 1) {
       gkyl_deflated_fem_poisson_release(f->deflated_fem_poisson);
     }
   }
