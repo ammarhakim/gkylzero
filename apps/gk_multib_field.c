@@ -98,9 +98,9 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
         sbapp->confBasis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
 
     if (ndim == 1) {
-      mbf->weight_local[bI] = mkarr(false, sbapp->confBasis.num_basis, sbapp->local_ext.volume);
-      gkyl_array_copy_range_to_range(mbf->weight_local[bI], sbapp->field->weight, &sbapp->local, &sbapp->field->global_sub_range);
-      mbf->weight_multibz[bI] = mkarr(false, 
+      mbf->weight_local[bI] = mkarr(mbapp->use_gpu, sbapp->confBasis.num_basis, sbapp->local_ext.volume);
+      gkyl_array_copy_range_to_range(mbf->weight_local[bI], sbapp->field->epsilon, &sbapp->local, &sbapp->field->global_sub_range);
+      mbf->weight_multibz[bI] = mkarr(mbapp->use_gpu, 
         sbapp->confBasis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
     }
     else {
@@ -161,8 +161,8 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
     int bid = local_blocks[bI];
     struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
     enum gkyl_fem_parproj_bc_type fem_parbc = mbf->info.duplicate_across_blocks? mbf->info.blocks[0].fem_parbc : mbf->info.blocks[bid].fem_parbc;
-    mbf->fem_parproj[bI] = gkyl_fem_parproj_new(mbf->multibz_ranges[bI], mbf->multibz_ranges_ext[bI],
-        &sbapp->confBasis, fem_parbc, mbf->weight_multibz[bI], mbapp->use_gpu);
+    mbf->fem_parproj[bI] = gkyl_fem_parproj_new(mbf->multibz_ranges[bI],
+        &sbapp->confBasis, fem_parbc, mbf->weight_multibz[bI], 0, mbapp->use_gpu);
   }
   
   // Set intersects for copying local rho back out after smoothing

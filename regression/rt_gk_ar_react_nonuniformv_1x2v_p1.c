@@ -627,6 +627,8 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_field field = {
     .fem_parbc = GKYL_FEM_PARPROJ_PERIODIC, 
     .kperpSq = pow(ctx.kperp, 2.),
+    .zero_init_field = true, // Don't compute the field at t=0.
+    .is_static = true, // Don't update the field in time.
   };
 
   // GK app
@@ -656,7 +658,6 @@ main(int argc, char **argv)
     .species = { elc, ion, Ar1, Ar2},
 
     .field = field,
-    .skip_field=true,
 
     .parallelism = {
       .use_gpu = app_args.use_gpu,

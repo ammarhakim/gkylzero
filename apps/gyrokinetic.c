@@ -153,6 +153,11 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   double cfl_frac = gk->cfl_frac == 0 ? 1.0 : gk->cfl_frac;
   app->cfl = cfl_frac;
 
+  // The value 1.7 here is based on figure 2.4a in Durran's "Numerical methods
+  // for fluid dynamics" textbook for a purely oscillatory mode and RK3.
+  double cfl_frac_omegaH = gk->cfl_frac_omegaH == 0 ? 1.7 : gk->cfl_frac_omegaH;
+  app->cfl_omegaH = cfl_frac_omegaH;
+
 #ifdef GKYL_HAVE_CUDA
   app->use_gpu = gk->parallelism.use_gpu;
 #else
@@ -383,6 +388,99 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   return app;
 }
 
+static void
+gyrokinetic_calc_field_update(gkyl_gyrokinetic_app* app, double tcurr, const struct gkyl_array *fin[])
+{
+  // Compute electrostatic potential from gyrokinetic Poisson's equation.
+  gk_field_accumulate_rho_c(app, app->field, fin);
+
+  // Compute ambipolar potential sheath values if using adiabatic electrons
+  // done here as the RHS update for all species should be complete before
+  // boundary fluxes are computed (ion fluxes needed for sheath values) 
+  // and these boundary fluxes are stored temporarily in ghost cells of RHS
+  if (app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
+    gk_field_calc_ambi_pot_sheath_vals(app, app->field);
+
+  // Compute biased wall potential if present and time-dependent.
+  // Note: biased wall potential use eval_on_nodes. 
+  // so does copy to GPU every call if app->use_gpu = true.
+  if (app->field->phi_wall_lo_evolve || app->field->phi_wall_up_evolve)
+    gk_field_calc_phi_wall(app, app->field, tcurr);
+
+  // Solve the field equation.
+  gk_field_rhs(app, app->field);
+}
+
+static void
+gyrokinetic_calc_field_none(gkyl_gyrokinetic_app* app, double tcurr, const struct gkyl_array *fin[])
+{
+}
+
+static void
+gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
+{
+  // Compute the geometric and field-model dependent part of omega_H.
+  // Each species computes its own omega_H as:
+  //   omega_H = q_e*sqrt(n_{s0}/m_s) * omegaH_gf
+  // where
+  //   - n_{s0} is either a reference, average or max density.
+  //   - omegaH_gf = (cmag/(jacobgeo*B^_\parallel))*kpar_max / 
+  //                 min(sqrt(k_x^2*eps_xx+k_x*k_y*eps_xy+k_y^2*eps_yy+)).
+  // and k_x,k_y,k_par are wavenumbers in computational space, and eps_ij is
+  // the polarization weight in our field equation.
+
+  app->omegaH_gf = 1.0/DBL_MAX;
+
+  if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || app->field->gkfield_id == GKYL_GK_FIELD_ADIABATIC)) {
+    // Compute parfac = (cmag/(jacobgeo*B^_\parallel))*kpar_max.
+    struct gkyl_array *parfac = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    gkyl_dg_mul_op_range(app->confBasis, 0, parfac, 0, app->gk_geom->cmag, 0, app->gk_geom->jacobtot_inv, &app->local); 
+    double kpar_max = M_PI*(app->poly_order+1)/app->grid.dx[app->cdim-1];
+    gkyl_array_scale_range(parfac, kpar_max, &app->local);
+
+    // Compute perpfac_inv = 1/sqrt(k_x^2*eps_xx+k_x*k_y*eps_xy+k_y^2*eps_yy+)).
+    struct gkyl_array *perpfac = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    struct gkyl_array *perpfac_inv = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    double kx_min = M_PI/(app->grid.upper[0]-app->grid.lower[0]);
+    double kx_sq = app->cdim == 1? 1.0 : pow(kx_min,2); // kperp_sq included in epsilon for cdim=1.
+    gkyl_array_accumulate_offset_range(perpfac, kx_sq, app->field->epsilon, 0*app->confBasis.num_basis, &app->local);
+    if (app->cdim > 2) {
+      double ky_min = M_PI/(app->grid.upper[1]-app->grid.lower[1]);
+      gkyl_array_accumulate_offset_range(perpfac, kx_min*ky_min, app->field->epsilon, 1*app->confBasis.num_basis, &app->local);
+      gkyl_array_accumulate_offset_range(perpfac, pow(ky_min,2), app->field->epsilon, 2*app->confBasis.num_basis, &app->local);
+    }
+    gkyl_proj_powsqrt_on_basis* proj_sqrt = gkyl_proj_powsqrt_on_basis_new(&app->confBasis, app->poly_order+1, app->use_gpu);
+    gkyl_proj_powsqrt_on_basis_advance(proj_sqrt, &app->local, -1.0, perpfac, perpfac_inv);
+    gkyl_proj_powsqrt_on_basis_release(proj_sqrt);
+
+    // Compute max(parfac*perpfac_inv) (using cell centers).
+    struct gkyl_array *omegaH_gf_grid = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    gkyl_dg_mul_op_range(app->confBasis, 0, omegaH_gf_grid, 0, parfac, 0, perpfac_inv, &app->local); 
+    double *omegaH_gf_red;
+    if (app->use_gpu)
+      omegaH_gf_red = gkyl_cu_malloc(app->confBasis.num_basis*sizeof(double));
+    else 
+      omegaH_gf_red = gkyl_malloc(app->confBasis.num_basis*sizeof(double));
+
+    gkyl_array_reduce_range(omegaH_gf_red, omegaH_gf_grid, GKYL_MAX, &app->local);
+
+    if (app->use_gpu)
+      gkyl_cu_memcpy(&app->omegaH_gf, omegaH_gf_red, sizeof(double), GKYL_CU_MEMCPY_D2H);
+    else
+      app->omegaH_gf = omegaH_gf_red[0];
+    app->omegaH_gf *= 1.0/pow(sqrt(2.0),app->cdim);
+
+    if (app->use_gpu)
+      gkyl_cu_free(omegaH_gf_red);
+    else 
+      gkyl_free(omegaH_gf_red);
+    gkyl_array_release(omegaH_gf_grid);
+    gkyl_array_release(perpfac_inv);
+    gkyl_array_release(perpfac);
+    gkyl_array_release(parfac);
+  }
+}
+
 void
 gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
 {
@@ -403,8 +501,13 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
   for (int i=0; i<neuts; ++i)
     app->neut_species[i].info = gk->neut_species[i];
 
-  app->update_field = !gk->skip_field; // note inversion of truth value (default: update field)
   app->field = gk_field_new(gk, app); // initialize field, even if we are skipping field updates
+
+  // Choose the function that updates the fields in time.
+  if (app->field->update_field)
+    app->calc_field_func = gyrokinetic_calc_field_update;
+  else
+    app->calc_field_func = gyrokinetic_calc_field_none;
 
   app->enforce_positivity = gk->enforce_positivity;
   if (app->enforce_positivity) {
@@ -470,6 +573,9 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     gk_neut_species_source_init(app, &app->neut_species[i], &app->neut_species[i].src);
   }
 
+  // Pre-compute time-independent factors in omega_H.
+  gkyl_gyrokinetic_app_omegaH_init(app); 
+
   // initialize stat object
   app->stat = (struct gkyl_gyrokinetic_stat) {
     .use_gpu = app->use_gpu,
@@ -477,6 +583,7 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     .stage_3_dt_diff = { DBL_MAX, 0.0 },
   };
 }
+
 
 gkyl_gyrokinetic_app*
 gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
@@ -490,27 +597,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
 void
 gyrokinetic_calc_field(gkyl_gyrokinetic_app* app, double tcurr, const struct gkyl_array *fin[])
 {
-  // Compute fields.
-  if (app->update_field) {
-    // Compute electrostatic potential from gyrokinetic Poisson's equation.
-    gk_field_accumulate_rho_c(app, app->field, fin);
-
-    // Compute ambipolar potential sheath values if using adiabatic electrons
-    // done here as the RHS update for all species should be complete before
-    // boundary fluxes are computed (ion fluxes needed for sheath values) 
-    // and these boundary fluxes are stored temporarily in ghost cells of RHS
-    if (app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
-      gk_field_calc_ambi_pot_sheath_vals(app, app->field);
-
-    // Compute biased wall potential if present and time-dependent.
-    // Note: biased wall potential use eval_on_nodes. 
-    // so does copy to GPU every call if app->use_gpu = true.
-    if (app->field->phi_wall_lo_evolve || app->field->phi_wall_up_evolve)
-      gk_field_calc_phi_wall(app, app->field, tcurr);
-
-    // Solve the field equation.
-    gk_field_rhs(app, app->field);
-  }
+  app->calc_field_func(app, tcurr, fin);
 }
 
 void
@@ -533,7 +620,6 @@ gyrokinetic_calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr,
       gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
     }
   }
-
 }
 
 struct gk_species *
@@ -593,21 +679,37 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
   for (int i=0; i<app->num_neut_species; ++i) {
     distf_neut[i] = app->neut_species[i].f;
   }
-  if (app->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
-    for (int i=0; i<app->num_species; ++i) {
-      struct gk_species *s = &app->species[i];
+  if (app->field->calc_init_field) {
+    if (app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
+      for (int i=0; i<app->num_species; ++i) {
+        struct gk_species *s = &app->species[i];
 
-      // Compute advection speeds so we can compute the initial boundary flux.
-      gkyl_dg_calc_gyrokinetic_vars_alpha_surf(s->calc_gk_vars, 
-        &app->local, &s->local, &s->local_ext, app->field->phi_smooth,
-        s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
+        // Compute advection speeds so we can compute the initial boundary flux.
+        gkyl_dg_calc_gyrokinetic_vars_alpha_surf(s->calc_gk_vars, 
+          &app->local, &s->local, &s->local_ext, app->field->phi_smooth,
+          s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
 
-      // Compute and store (in the ghost cell of of out) the boundary fluxes.
-      // NOTE: this overwrites ghost cells that may be used for sourcing.
-      gk_species_bflux_rhs(app, s, &s->bflux, distf[i], distf[i]);
+        // Compute and store (in the ghost cell of of out) the boundary fluxes.
+        // NOTE: this overwrites ghost cells that may be used for sourcing.
+        gk_species_bflux_rhs(app, s, &s->bflux, distf[i], distf[i]);
+      }
+    }
+
+    // Compute the field.
+    // MF 2024/09/27/: Need the cast here for consistency. Fixing
+    // this may require removing 'const' from a lot of places.
+    gyrokinetic_calc_field_update(app, t0, (const struct gkyl_array **) distf);
+  }
+
+  // Apply boundary conditions.
+  for (int i=0; i<app->num_species; ++i) {
+    gk_species_apply_bc(app, &app->species[i], distf[i]);
+  }
+  for (int i=0; i<app->num_neut_species; ++i) {
+    if (!app->neut_species[i].info.is_static) {
+      gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
     }
   }
-  gyrokinetic_calc_field_and_apply_bc(app, t0, distf, distf_neut);
 }
 
 void
@@ -757,7 +859,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
 void
 gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame)
 {
-  if (app->update_field) {
+  if (app->field->update_field || frame == 0) {
     struct timespec wst = gkyl_wall_clock();
     // Copy data from device to host before writing it out.
     if (app->use_gpu) {
@@ -791,7 +893,7 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
 void
 gkyl_gyrokinetic_app_calc_field_energy(gkyl_gyrokinetic_app* app, double tm)
 {
-  if (app->update_field) {
+  if (app->field->update_field) {
     struct timespec wst = gkyl_wall_clock();
     gk_field_calc_energy(app, tm, app->field);
     app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
@@ -802,7 +904,7 @@ gkyl_gyrokinetic_app_calc_field_energy(gkyl_gyrokinetic_app* app, double tm)
 void
 gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app)
 {
-  if (app->update_field) {
+  if (app->field->update_field) {
     struct timespec wst = gkyl_wall_clock();
     // write out diagnostic moments
     const char *fmt = "%s-field_energy.gkyl";
@@ -2313,7 +2415,7 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
 
     // Compute and store (in the ghost cell of of out) the boundary fluxes.
     // NOTE: this overwrites ghost cells that may be used for sourcing.
-    if (app->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
+    if (app->field->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
       gk_species_bflux_rhs(app, s, &s->bflux, fin[i], fout[i]);
   }
 
@@ -2664,13 +2766,6 @@ gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
 struct gkyl_app_restart_status
 gkyl_gyrokinetic_app_from_file_field(gkyl_gyrokinetic_app *app, const char *fname)
 {
-  if (app->update_field != 1)
-    return (struct gkyl_app_restart_status) {
-      .io_status = GKYL_ARRAY_RIO_SUCCESS,
-      .frame = 0,
-      .stime = 0.0
-    };
-
   struct gkyl_app_restart_status rstat = header_from_file(app, fname);
 
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
@@ -2803,23 +2898,41 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
     for (int i=0; i<app->num_neut_species; ++i) {
       distf_neut[i] = app->neut_species[i].f;
     }
-    if (app->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
-      for (int i=0; i<app->num_species; ++i) {
-        struct gk_species *s = &app->species[i];
+    if (app->field->update_field) {
+      if (app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
+        for (int i=0; i<app->num_species; ++i) {
+          struct gk_species *s = &app->species[i];
 
-        // Compute advection speeds so we can compute the initial boundary flux.
-        gkyl_dg_calc_gyrokinetic_vars_alpha_surf(s->calc_gk_vars, 
-          &app->local, &s->local, &s->local_ext, app->field->phi_smooth,
-          s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
+          // Compute advection speeds so we can compute the initial boundary flux.
+          gkyl_dg_calc_gyrokinetic_vars_alpha_surf(s->calc_gk_vars, 
+            &app->local, &s->local, &s->local_ext, app->field->phi_smooth,
+            s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
 
-        // Compute and store (in the ghost cell of of out) the boundary fluxes.
-        // NOTE: this overwrites ghost cells that may be used for sourcing.
-        gk_species_bflux_rhs(app, s, &s->bflux, distf[i], distf[i]);
+          // Compute and store (in the ghost cell of of out) the boundary fluxes.
+          // NOTE: this overwrites ghost cells that may be used for sourcing.
+          gk_species_bflux_rhs(app, s, &s->bflux, distf[i], distf[i]);
+        }
+      }
+
+      // Compute the field.
+      // MF 2024/09/27/: Need the cast here for consistency. Fixing
+      // this may require removing 'const' from a lot of places.
+      gyrokinetic_calc_field(app, rstat.stime, (const struct gkyl_array **) distf);
+    }
+    else
+      // Read the t=0 field.
+      gkyl_gyrokinetic_app_from_frame_field(app, 0);
+
+    // Apply boundary conditions.
+    for (int i=0; i<app->num_species; ++i) {
+      gk_species_apply_bc(app, &app->species[i], distf[i]);
+    }
+    for (int i=0; i<app->num_neut_species; ++i) {
+      if (!app->neut_species[i].info.is_static) {
+        gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
       }
     }
-    gyrokinetic_calc_field_and_apply_bc(app, rstat.stime, distf, distf_neut);
   }
-
   app->field->is_first_energy_write_call = false; // Append to existing diagnostic.
 
   return rstat;

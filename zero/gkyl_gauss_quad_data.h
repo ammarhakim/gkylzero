@@ -135,9 +135,10 @@ static const double *gkyl_gauss_lobatto_weights[] = {
 /**
  * Compute ordinates and weights for use in Gaussian quadrature.
  *
- * @param x1 Left coordinate of domain
- * @param x2 Right coordinate of domain
- * @param x On output, ordinates
- * @param w On output, weights
+ * @param x1 Left coordinate of domain.
+ * @param x2 Right coordinate of domain.
+ * @param x On output, ordinates.
+ * @param w On output, weights.
+ * @param n Order of the quadrature.
  */
 void gkyl_gauleg(double x1, double x2,  double x[], double w[], int n);
