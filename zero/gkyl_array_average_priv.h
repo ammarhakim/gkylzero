@@ -123,9 +123,10 @@ void gkyl_array_average_choose_kernel(struct gkyl_array_average *up)
 }
 
 #ifdef GKYL_HAVE_CUDA
+// Device new functions
 struct gkyl_array_average*
-  gkyl_array_average_cu_dev_new(struct gkyl_array_average *up);
-
+gkyl_array_average_cu_dev_new(struct gkyl_array_average *up);
+// Device advance functions
 void gkyl_array_average_advance_cu(const struct gkyl_array_average *up, 
-  const struct gkyl_array *fin, struct gkyl_array *avgout);
+const struct gkyl_array *fin, struct gkyl_array *avgout);
 #endif
