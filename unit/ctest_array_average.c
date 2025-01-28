@@ -120,8 +120,8 @@ void test_1x(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(projw);
 
   // compute weighted average
-    int avg_dim_x[] = {1,0,0};
-    struct gkyl_array_average_inp inp_avg_full = {
+  int avg_dim_x[] = {1,0,0};
+  struct gkyl_array_average_inp inp_avg_full = {
     .grid = &grid,
     .basis = basis,
     .basis_avg = red_basis,
@@ -153,8 +153,6 @@ void test_1x(int poly_order, bool use_gpu)
   double solution = intf_ref/intw_ref;
   double result = avg_c0_ho[0]*0.5*sqrt(2);
   double rel_err = fabs(result - solution) / fabs(solution);
-  printf("Result: %g, solution: %g\n",result,solution);
-  printf("Relative error: %e\n", fabs(result - solution) / fabs(solution));
   TEST_CHECK(gkyl_compare(result, solution, 1e-12));
 
   // clean up
@@ -266,8 +264,6 @@ void test_2x_1step(int poly_order, bool use_gpu)
   double solution  = intwf_ref/intw_ref;
 
   double rel_err = fabs(result - solution) / fabs(solution);
-  printf("\tResult: %g, solution: %g\n",result,solution);
-  printf("\tRelative error: %e\n", rel_err);
   TEST_CHECK(gkyl_compare(rel_err, 0, 1e-12));
 
   // clean up
@@ -384,8 +380,6 @@ void test_2x_intx_inty(int poly_order, bool use_gpu)
   double solution = intw_ref;
 
   double rel_err = fabs(result - solution) / fabs(solution);
-  printf("\tResult: %g, solution: %g\n",result, solution);
-  printf("\tRelative error: %e\n", rel_err );
   TEST_CHECK(gkyl_compare(rel_err, 0.0, 1e-12));
 
   // clean up
@@ -543,8 +537,6 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
   double rel_err = fabs(result - solution) / fabs(solution);
 
   // check results two step avg
-  printf("\tResult: %g, solution: %g\n",result, solution);
-  printf("\tRelative error: %e\n", rel_err);
   TEST_CHECK(gkyl_compare(rel_err, 0, 1e-12));
 
   // clean up
@@ -710,8 +702,6 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
 
   double rel_err = fabs(result - solution) / fabs(solution);
 
-  printf("\tResult: %g, solution: %g\n",result,solution);
-  printf("\tRelative error: %e\n", rel_err);
   TEST_CHECK(gkyl_compare(rel_err, 0.0, 1e-12));
 
   // clean up
@@ -899,8 +889,6 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
 
   double rel_err = fabs(result - solution) / fabs(solution);
 
-  printf("\tResult: %g, solution: %g\n",result,solution);
-  printf("\tRelative error: %e\n", rel_err);
   TEST_CHECK(gkyl_compare(rel_err, 0, 1e-12));
 
   // clean up
@@ -1066,8 +1054,6 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
 
   double rel_err = fabs(result - solution) / fabs(solution);
 
-  printf("\tResult: %g, solution: %g\n",result,solution);
-  printf("\tRelative error: %e\n", rel_err);
   TEST_CHECK(gkyl_compare(rel_err, 0, 1e-12));
 
   // clean up
@@ -1086,7 +1072,6 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
 void test_1x_cpu()
 {
   for (int p = 1; p<=2; p++){
-  printf("\n-X to average, p = %d\n",p);   
    test_1x(p, false);
   }
 }
@@ -1094,13 +1079,9 @@ void test_1x_cpu()
 void test_2x_cpu()
 {
   for (int p = 1; p<=2; p++){
-    printf("\n-XY to average, p = %d\n",p);   
     test_2x_1step(p, false);
-    printf("\n-XY to Y then Y to integral, p = %d\n",p);   
     test_2x_intx_inty(p, false);
-    printf("\n-XY to Y then Y to average, p = %d\n",p);   
     test_2x_avgx_avgy(p, false);
-    printf("\n-XY to X then X to average, p = %d\n",p);   
     test_2x_avgy_avgx(p, false);
   }
 }
@@ -1108,9 +1089,7 @@ void test_2x_cpu()
 void test_3x_cpu()
 {
   for (int p = 1; p<=2; p++){
-    printf("\n-XYZ to YZ then YZ to average, p = %d\n",p);   
     test_3x_avgx_avgyz(p, false);
-    printf("\n-XYZ to X then X to average, p = %d\n",p);   
     test_3x_avgyz_avgx(p, false);
   }
 }
@@ -1119,7 +1098,6 @@ void test_3x_cpu()
 void test_1x_gpu()
 {
   for (int p = 1; p<=2; p++){
-  printf("\n-X to average, p = %d\n",p);   
    test_1x(p, true);
   }
 }
@@ -1127,13 +1105,9 @@ void test_1x_gpu()
 void test_2x_gpu()
 {
   for (int p = 1; p<=2; p++){
-    printf("\n-XY to average, p = %d\n",p);   
     test_2x_1step(p, true);
-    printf("\n-XY to Y then Y to integral, p = %d\n",p);   
     test_2x_intx_inty(p, true);
-    printf("\n-XY to Y then Y to average, p = %d\n",p);   
     test_2x_avgx_avgy(p, true);
-    printf("\n-XY to X then X to average, p = %d\n",p);   
     test_2x_avgy_avgx(p, true);
   }
 }
@@ -1141,18 +1115,11 @@ void test_2x_gpu()
 void test_3x_gpu()
 {
   for (int p = 1; p<=2; p++){
-    printf("\n-XYZ to YZ then YZ to average, p = %d\n",p);   
     test_3x_avgx_avgyz(p, true);
-    printf("\n-XYZ to X then X to average, p = %d\n",p);   
     test_3x_avgyz_avgx(p, true);
   }
 }
 
-void test_int_gpu()
-{
-  // test_2x_intx_inty(1,true);
-  test_2x_1step(1,true);
-}
 #endif
 
 TEST_LIST = {
@@ -1163,7 +1130,6 @@ TEST_LIST = {
   { "test_1x_gpu", test_1x_gpu },
   { "test_2x_gpu", test_2x_gpu },
   { "test_3x_gpu", test_3x_gpu },
-  // { "test_int_gpu", test_int_gpu},
 #endif
   { NULL, NULL },
 };
