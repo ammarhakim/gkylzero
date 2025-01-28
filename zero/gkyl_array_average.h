@@ -13,15 +13,15 @@ typedef struct gkyl_array_average_inp gkyl_array_average_inp;
 /**
  * The input structure contains the parameters required to perform a weighted array average:
  * 
- * @param grid          Pointer to the computational grid, used to compute the surface element.
- * @param basis         Total basis, describes the full dimensionality (ndim), polynomial type, and order.
- * @param basis_avg     Subset basis, describes the reduced dimensionality, polynomial type, and order for the output.
- * @param local         Full range of the input array, covering all dimensions of the total basis.
- * @param local_avg     Reduced range of the output array, covering only the non-averaged dimensions.
+ * @param grid Pointer to the computational grid, used to compute the surface element.
+ * @param basis Total basis, describes the full dimensionality (ndim), polynomial type, and order.
+ * @param basis_avg Subset basis, describes the reduced dimensionality, polynomial type, and order for the output.
+ * @param local Full range of the input array, covering all dimensions of the total basis.
+ * @param local_avg Reduced range of the output array, covering only the non-averaged dimensions.
  * @param local_avg_ext Extended reduced range of the output array, used only to define the integrated weight.
- * @param weight        Pointer to the array containing weight for the averaging process. (set it to NULL for integral)
- * @param avg_dim       Flag array to set which dimension is averaged
- * @param use_gpu       Boolean flag indicating whether the computation should be performed on a GPU.
+ * @param weight Pointer to the array containing weight for the averaging process. (set it to NULL for integral)
+ * @param avg_dim Flag array to set which dimension is averaged
+ * @param use_gpu Boolean flag indicating whether the computation should be performed on a GPU.
  */
 struct gkyl_array_average_inp {
   const struct gkyl_rect_grid *grid;
