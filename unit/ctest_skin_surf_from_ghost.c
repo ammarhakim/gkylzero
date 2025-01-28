@@ -248,15 +248,6 @@ void test_ssfg_dev() {
   }
 }
 
-// List of tests for the test framework
-TEST_LIST = {
-  { "test_ssfg_ho", test_ssfg_ho },
-#ifdef GKYL_HAVE_CUDA
-  { "test_ssfg_dev", test_ssfg_dev },
-#endif
-  { NULL, NULL },
-};
-
 // Evaluate the projection of the modal representation inside a cell from 1x to 3x
 double eval_f(const double *phi, const double x, const double y, const double z, const int cdim) {
   // Common constants to avoid recalculating
@@ -394,3 +385,12 @@ void compare_skin_ghost_cubes(const double* fskin, const double* fghost, const i
       printf("Invalid dimension (cdim must be 1, 2, or 3)\n");
   }
 }
+
+// List of tests for the test framework
+TEST_LIST = {
+  { "test_ssfg_ho", test_ssfg_ho },
+#ifdef GKYL_HAVE_CUDA
+  { "test_ssfg_dev", test_ssfg_dev },
+#endif
+  { NULL, NULL },
+};
