@@ -38,21 +38,31 @@ struct gkyl_array_average_inp {
 /**
  * Create a new updater that computes the weighted average of a gkyl_array.
  * The average can be performed in a subset of the dimensions of the input array and is written generally as:
- * ∫ f(x_k) w(x_i) dx^i / ∫ w(x_k) dx^i
- * where f(x_k) is the input array, w(x_i) is the weight.
- * The input are arrays in the configuration space coordinates {x_k} and the integral is performed over the dimensions i.
+ * ```math
+ *  \int f(x_k) w(x_i) dx^i / \int w(x_k) dx^i
+ * ```
+ * where $f(x_k)$ is the input array, $w(x_i)$ is the weight.
+ * The input are arrays in the configuration space coordinates $\{x_k\}$ and the integral is performed over the dimensions $i$.
  * 
  * If no weighted average is required (weight = NULL), the method will compute the average of the input array, 
  * divided by the volume of the averaging space, i.e.:
- * ∫ f(x_i) dx^i / ∫ dx^i
+ * ```math
+ * \int f(x_i) dx^i / \int dx^i
+ * ```
  * 
  * If a weight is provided the method will compute the weighted average in two steps:
  *  1. Compute the non-weighted average of the weight by a recursive call with weight = NULL, i.e.:
- *      A_w = ∫ w(x_i) dx^i / ∫ dx^i
+ *    ```math 
+ *    A_w = \int w(x_i) dx^i / \int dx^i
+ *    ```
  *  2. Compute the non-weighted average of the array multiplied by the weight, i.e.:
- *      A_f = ∫ f(x_i) w(x_i) dx^i / ∫ dx^i
+ *    ```math
+ *    A_f = \int f(x_i) w(x_i) dx^i / \int dx^i
+ *    ```
  *  3. Return the weighted average as:
- *      A_f / A_w = ∫ f(x_i) w(x_i) dx^i / ∫ w(x_i) dx^i
+ *    ```math
+ *    A_f / A_w = \int f(x_i) w(x_i) dx^i / \int w(x_i) dx^i
+ *    ```
  * 
  * @param inp see gkyl_array_average_inp structure
  */
