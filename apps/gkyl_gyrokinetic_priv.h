@@ -664,6 +664,9 @@ struct gk_field {
 
   enum gkyl_gkfield_id gkfield_id;
 
+  bool update_field; // Are we updating the field?.
+  bool calc_init_field; // Whether to compute the t=0 field.
+
   struct gkyl_job_pool *job_pool; // Job pool  
   // arrays for local charge density, global charge density, and global smoothed (in z) charge density
   struct gkyl_array *rho_c;
@@ -778,8 +781,9 @@ struct gkyl_gyrokinetic_app {
   
   struct gkyl_position_map *position_map; // Position mapping object.
 
-  bool update_field; // are we updating the field?
   struct gk_field *field; // pointer to field object
+  // Pointer to function that computes the fields.
+  void (*calc_field_func)(gkyl_gyrokinetic_app* app, double tcurr, const struct gkyl_array *fin[]);
 
   // species data
   int num_species;

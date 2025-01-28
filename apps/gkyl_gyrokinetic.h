@@ -257,6 +257,9 @@ struct gkyl_gyrokinetic_neut_species {
 // Parameter for gk field.
 struct gkyl_gyrokinetic_field {
   enum gkyl_gkfield_id gkfield_id;
+  bool is_static; // =true field does not change in time.
+  bool zero_init_field; // =true doesn't compute the initial field.
+
   double polarization_bmag; 
   double kperpSq; // kperp^2 parameter for 1D field equations
   double xLCFS; // radial location of the LCFS.
@@ -308,7 +311,6 @@ struct gkyl_gk {
   int num_neut_species; // Number of species.
   struct gkyl_gyrokinetic_neut_species neut_species[GKYL_MAX_SPECIES]; // Species objects.
   
-  bool skip_field; // Skip field update -> phi = 0 for all time.
   struct gkyl_gyrokinetic_field field; // Field object.
 
   struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
