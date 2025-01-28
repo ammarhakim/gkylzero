@@ -1,23 +1,6 @@
 /**
- * This code implements a test suite for validating the `gkyl_skin_surf_from_ghost` 
- * module, which updates discontinuous Galerkin (DG) coefficients to ensure continuity 
- * at the interface between skin and ghost cells in structured grids. The update process 
- * leverages interface-based kernels found in `gkylzero/kernels/skin_surf_from_ghost` 
- * to adjust skin cell coefficients to match ghost cell values at shared nodes, while 
- * maintaining the opposing skin cell nodal value.
- * 
- * Specifically, the updater enforces that the skin cell value at the interface (e.g., 
- * upper edge) equals the ghost cell value, achieving continuity across the interface 
- * while altering the average skin cell value.
- * 
- * Example for GKYL_UPPER_EDGE:
- *   vls            vus  vlg                vug
- *    |___skin cell___|   |____ghost cell____|
- *   legend: vls is the lower nodal skin cell value, vus is the upper nodal skin cell value, 
- *           vlg is the lower nodal ghost cell value, and vug is the upper ghost cell value.
- *  In this situation, the updater will alter the DG coefficient of the skin cell so that 
- *    vus = vlg
- *  keeping vls unchanged.
+ * This code tests the skin_surf_from_ghost (ssfg) updater. It projects a field on a basis, sets ghost cell values, and then
+ * copies the field values from ghost cells to skin cells. The test checks that the skin cell value meets the ghost cell value.
  */
 
 #include "gkyl_array.h"
@@ -34,12 +17,8 @@ double eval_f(const double *phi, double x, double y, double z, int cdim);
 
 // Function to allocate a gkyl array, zero-initialized, on CPU or GPU
 static struct gkyl_array* mkarr(bool on_gpu, long nc, long size) {
-  struct gkyl_array* a;
-  if (on_gpu)
-    a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
-  else
-    a = gkyl_array_new(GKYL_DOUBLE, nc, size);
-  return a;
+  return on_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size)
+                : gkyl_array_new(GKYL_DOUBLE, nc, size);
 }
 
 // Analytical field evaluation function, setting field to zero
@@ -137,7 +116,7 @@ void test_ssfg(int cdim, int poly_order, bool use_gpu, enum gkyl_edge_loc edge, 
   gkyl_array_copy(field_ho, field);
 
   // Check that field values in the skin cells meet the expected result
-  int gidx[GKYL_MAX_DIM]; // ghost index.
+  int gidx[GKYL_MAX_DIM];
   struct gkyl_range_iter iter_skin;
   gkyl_range_iter_init(&iter_skin, &skin_r);
   while (gkyl_range_iter_next(&iter_skin)) {
@@ -170,16 +149,12 @@ void test_ssfg(int cdim, int poly_order, bool use_gpu, enum gkyl_edge_loc edge, 
         dir_c = 'z';
         break;
     }
-    double vskin  = eval_f( fskin,xs,ys,zs,cdim);
+    double vskin  = eval_f(fskin,xs,ys,zs,cdim);
     double vghost = eval_f(fghost,xg,yg,zg,cdim);
     double check_val;
 
     // Test values based on control mode
-    if (control) {
-      check_val = 0.0;
-    } else {
-      check_val =  vghost;
-    }
+    check_val = control? 0.0 : vghost;
     TEST_CHECK(gkyl_compare(vskin, check_val, 1e-14));
   }
   gkyl_array_release(field);
@@ -216,31 +191,20 @@ void test_ssfg_dev() {
 
 // Evaluate the projection of the modal representation inside a cell from 1x to 3x
 double eval_f(const double *phi, const double x, const double y, const double z, const int cdim) {
-  // Common constants to avoid recalculating
   double sqrt2 = sqrt(2.0);
   double sqrt3 = sqrt(3.0);
   double denom = pow(2.0, 1.5);
-
   switch (cdim) {
-    case 1: // 1D case
+    case 1:
       return (sqrt3 * phi[1] * x) / sqrt2 + phi[0] / sqrt2;
-
-    case 2: // 2D case
-      return (3 * phi[3] * x * y) / 2.0
-             + (sqrt3 * phi[2] * y) / 2.0
-             + (sqrt3 * phi[1] * x) / 2.0
-             + phi[0] / 2.0;
-
-    case 3: // 3D case
-      return (pow(3.0, 1.5) * phi[7] * x * y * z) / denom
-             + (3 * phi[6] * y * z) / denom
-             + (3 * phi[5] * x * z) / denom
-             + (sqrt3 * phi[3] * z) / denom
-             + (3 * phi[4] * x * y) / denom
-             + (sqrt3 * phi[2] * y) / denom
-             + (sqrt3 * phi[1] * x) / denom
-             + phi[0] / denom;
-
+    case 2:
+      return (3 * phi[3] * x * y) / 2.0 + (sqrt3 * phi[2] * y) / 2.0
+             + (sqrt3 * phi[1] * x) / 2.0 + phi[0] / 2.0;
+    case 3:
+      return (pow(3.0, 1.5) * phi[7] * x * y * z) / denom + (3 * phi[6] * y * z) / denom
+             + (3 * phi[5] * x * z) / denom + (sqrt3 * phi[3] * z) / denom
+             + (3 * phi[4] * x * y) / denom + (sqrt3 * phi[2] * y) / denom
+             + (sqrt3 * phi[1] * x) / denom + phi[0] / denom;
     default:
       fprintf(stderr, "Invalid cdim value: %d. Must be 0, 1, or 2.\n", cdim);
       return 0.0;
