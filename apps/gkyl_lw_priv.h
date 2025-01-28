@@ -161,6 +161,30 @@ void
 gkyl_register_gyrokinetic_radiation_Te_types(lua_State *L);
 
 /**
+ * Add reaction type flags for gyrokinetic species initialization into Lua interpreter.
+ *
+ * @param L Lua state to use.
+ */
+void
+gkyl_register_gyrokinetic_reaction_types(lua_State *L);
+
+/**
+ * Add ion type flags for gyrokinetic species initialization into Lua interpreter.
+ *
+ * @param L Lua state to use.
+ */
+void
+gkyl_register_gyrokinetic_ion_types(lua_State *L);
+
+/**
+ * Add self-reaction type flags for gyrokinetic species initialization into Lua interpreter.
+ *
+ * @param L Lua state to use.
+ */
+void
+gkyl_register_gyrokinetic_self_reaction_types(lua_State *L);
+
+/**
  * Wrapper around Lua function for use in eval callbacks.
  */
 void
