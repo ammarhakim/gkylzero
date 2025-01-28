@@ -12,13 +12,15 @@ typedef struct gkyl_skin_surf_from_ghost gkyl_skin_surf_from_ghost;
  * Create an updater that sets the values of the skin cell at the skin-ghost boundary to equal 
  * the ghost cell evaluated on that boundary, while maintaining the other skin nodal values.
  * The updater alters the DG coefficient of the skin cell such that
- * 
- *               { f_g(x_s) if x_s ∈ ∂Ω_sg
- *  f(x_s)_new = {
- *               { f(x_s) if x_s ∈ ∂Ω_s \ ∂Ω_sg
- * 
- * where f is the manipulated field, f_g is the ghost field, ∂Ω_s is the 
- * skin cell boundary, and ∂Ω_sg is the skin-ghost boundary.
+ *  ```math
+ *  f_{new}(x_s) = f_g(x_s) if x_s \in \partial\Omega_{sg}
+ *  ```
+ * or
+ *  ```math
+ *  f_{new}(x_s) = f(x_s) if x_s \in \partial \Omega_s  \setminus \partial\Omega_{sg}
+ *  ```
+ * where $f$ is the manipulated field, $f_g$ is the ghost field, $\partial\Omega_{sg}$ is the 
+ * skin cell boundary, and $\partial\Omega_{sg}$ is the skin-ghost boundary.
  * Note that the cell average may be altered through this operation.
  *
  * @param dir Direction along which to apply the skin-ghost boundary copy.
