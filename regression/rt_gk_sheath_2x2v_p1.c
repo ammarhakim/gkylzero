@@ -143,7 +143,7 @@ create_ctx(void)
   double vpar_max_ion = 4.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
   double mu_max_ion = (3.0 / 2.0) * 0.5 * mass_ion * pow(4.0 * vti, 2.0) / (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
   int poly_order = 1; // Polynomial order.
-  double cfl_frac = 0.4; // CFL coefficient.
+  double cfl_frac = 1.0; // CFL coefficient.
 
   double t_end = 6.0e-6; // Final simulation time.
   int num_frames = 1; // Number of output frames.
@@ -529,6 +529,7 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr
     gkyl_gyrokinetic_app_write(app, t_curr, frame);
     gkyl_gyrokinetic_app_write_field_energy(app);
     gkyl_gyrokinetic_app_write_integrated_mom(app);
+    gkyl_gyrokinetic_app_write_L2norm(app);
   }
 }
 
@@ -545,6 +546,7 @@ calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_gyrokinetic_app* app, doub
 {
   if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
     gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
+    gkyl_gyrokinetic_app_calc_L2norm(app, t_curr);
   }
 }
 

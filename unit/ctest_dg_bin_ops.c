@@ -1055,6 +1055,21 @@ test_inv_2d(int poly_order, bool use_gpu)
     }
   }
 
+  // Check if A.A_inv = 1.
+  struct gkyl_array *iden = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local.volume);
+  gkyl_dg_mul_op_range(basis, 0, iden, 0, ffld, 0, ffld_inv, &local);
+  gkyl_range_iter_init(&iter, &local);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&local, iter.idx);
+
+    const double *iden_c = gkyl_array_cfetch(iden, loc);
+    TEST_CHECK( gkyl_compare(pow(sqrt(2.0),ndim), iden_c[0], 1e-12) );
+    for (int k=1; k<basis.num_basis; ++k) {
+      TEST_CHECK( gkyl_compare(0.0, iden_c[k], 1e-12) );
+    }
+  }
+  gkyl_array_release(iden);
+
   gkyl_proj_on_basis_release(projf);
   gkyl_array_release(ffld);
   gkyl_array_release(ffld_inv);

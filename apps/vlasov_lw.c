@@ -14,6 +14,7 @@
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
+#include <limits.h>
 
 #include <string.h>
 
