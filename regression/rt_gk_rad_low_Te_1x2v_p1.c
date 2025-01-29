@@ -567,6 +567,8 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_field field = {
     .fem_parbc = GKYL_FEM_PARPROJ_PERIODIC, 
     .kperpSq = ctx.k_perp * ctx.k_perp,
+    .zero_init_field = true, // Don't compute the field at t=0.
+    .is_static = true, // Don't update the field in time.
   };
 
   // GK app.
@@ -594,9 +596,10 @@ main(int argc, char **argv)
 
     .num_species = 3,
     .species = { elc, elc2, ion },
+
     .num_neut_species = 4,
     .neut_species = {test_sp_1, test_sp_2, test_sp_3, test_sp_4},
-    .skip_field = true, 
+
     .field = field,
 
     .parallelism = {
@@ -605,6 +608,7 @@ main(int argc, char **argv)
       .comm = comm,
     },
   };
+
   // Create app object.
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&app_inp);
   // Initial and final simulation times.

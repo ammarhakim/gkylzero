@@ -64,6 +64,7 @@
 #include <gkyl_mom_calc_bcorr.h>
 #include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_null_pool.h>
+#include <gkyl_position_map.h>
 #include <gkyl_prim_lbo_calc.h>
 #include <gkyl_prim_lbo_cross_calc.h>
 #include <gkyl_prim_lbo_gyrokinetic.h>
@@ -71,6 +72,7 @@
 #include <gkyl_proj_bimaxwellian_on_basis.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_proj_on_basis.h>
+#include <gkyl_proj_powsqrt_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_radiation_read.h>
 #include <gkyl_rect_decomp.h>
@@ -384,16 +386,17 @@ struct gk_react {
 // Context for c2p function passed to proj_on_basis.
 struct gk_proj_on_basis_c2p_func_ctx {
   int cdim, vdim;
+  struct gkyl_position_map *pos_map;
   struct gkyl_velocity_map *vel_map;
 };
 
 struct gk_proj {
   enum gkyl_projection_id proj_id; // type of projection
+  struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
   // organization of the different projection objects and the required data and solvers
   union {
     // function projection
     struct {
-      struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
       struct gkyl_proj_on_basis *proj_func; // projection operator for specified function
       struct gkyl_array *proj_host; // array for projection on host-side if running on GPUs
     };
@@ -503,6 +506,11 @@ struct gk_species {
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
 
+  struct gkyl_array_integrate* integ_wfsq_op; // Operator to integrate w*f^2.
+  double *L2norm_local, *L2norm_global; // L2norm in local MPI process and across the communicator.
+  gkyl_dynvec L2norm; // L2 norm.
+  bool is_first_L2norm_write_call; // flag for L2norm dynvec written first time
+
   gkyl_dg_updater_gyrokinetic *slvr; // Gyrokinetic solver 
   struct gkyl_dg_eqn *eqn_gyrokinetic; // Gyrokinetic equation object
   
@@ -582,7 +590,8 @@ struct gk_species {
   void (*copy_func)(struct gkyl_array *out, const struct gkyl_array *inp,
     const struct gkyl_range *range);
 
-  double *omega_cfl;
+  double *omega_cfl; // Maximum Omega_CFL in this MPI process.
+  double *m0_max; // Maximum number density in this MPI process.
 };
 
 // neutral species data
@@ -680,6 +689,9 @@ struct gk_field {
 
   enum gkyl_gkfield_id gkfield_id;
 
+  bool update_field; // Are we updating the field?.
+  bool calc_init_field; // Whether to compute the t=0 field.
+
   struct gkyl_job_pool *job_pool; // Job pool  
   // arrays for local charge density, global charge density, and global smoothed (in z) charge density
   struct gkyl_array *rho_c;
@@ -708,10 +720,9 @@ struct gk_field {
     };
   };
 
-  struct gkyl_array *weight;
   double es_energy_fac_1d; 
   struct gkyl_array *es_energy_fac; 
-  struct gkyl_array *epsilon; 
+  struct gkyl_array *epsilon; // Polarization weight including geometric factors (and kperp^2 for cdim=1).
   struct gkyl_array *kSq; 
 
   struct gkyl_fem_parproj *fem_parproj; // FEM smoother for projecting DG functions onto continuous FEM basis
@@ -753,6 +764,7 @@ struct gkyl_gyrokinetic_app {
   int poly_order; // polynomial order
   double tcurr; // current time
   double cfl; // CFL number
+  double cfl_omegaH; // CFL number used for omega_H.
   double bmag_ref; // Reference magnetic field
 
   bool use_gpu; // should we use GPU (if present)
@@ -789,9 +801,14 @@ struct gkyl_gyrokinetic_app {
   } basis_on_dev;
 
   struct gk_geometry *gk_geom;
+  struct gkyl_array *jacobtot_inv_weak; // 1/(J.B) computed via weak mul and div.
+  double omegaH_gf; // Geometry and field model dependent part of omega_H.
+  
+  struct gkyl_position_map *position_map; // Position mapping object.
 
-  bool update_field; // are we updating the field?
   struct gk_field *field; // pointer to field object
+  // Pointer to function that computes the fields.
+  void (*calc_field_func)(gkyl_gyrokinetic_app* app, double tcurr, const struct gkyl_array *fin[]);
 
   // species data
   int num_species;
