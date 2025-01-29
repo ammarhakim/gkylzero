@@ -474,12 +474,12 @@ main(int argc, char **argv)
   };
 
 
-  struct gkyl_block_physical_bcs elc_phys_bcs[] = {
+  struct gkyl_gyrokinetic_block_physical_bcs elc_phys_bcs[] = {
     // block 2 BCs
-    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ZERO_FLUX },
-    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ZERO_FLUX },
-    { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH },
-    { .bidx = 0, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH },
+    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ZERO_FLUX },
+    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ZERO_FLUX },
+    { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH },
+    { .bidx = 0, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH },
   };
 
   struct gkyl_gyrokinetic_multib_species elc = {
@@ -585,12 +585,12 @@ main(int argc, char **argv)
 
   };
 
-  struct gkyl_block_physical_bcs ion_phys_bcs[] = {
+  struct gkyl_gyrokinetic_block_physical_bcs ion_phys_bcs[] = {
     // block 2 BCs
-    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ZERO_FLUX },
-    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ZERO_FLUX },
-    { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH },
-    { .bidx = 0, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH },
+    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ZERO_FLUX },
+    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ZERO_FLUX },
+    { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH },
+    { .bidx = 0, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH },
   };
 
   struct gkyl_gyrokinetic_multib_species ion = {
@@ -646,12 +646,12 @@ main(int argc, char **argv)
 
   };
 
-  struct gkyl_block_physical_bcs Ar1_phys_bcs[] = {
+  struct gkyl_gyrokinetic_block_physical_bcs Ar1_phys_bcs[] = {
     // block 2 BCs
-    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH },
-    { .bidx = 0, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH },
+    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH },
+    { .bidx = 0, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH },
   };
 
   struct gkyl_gyrokinetic_multib_species Ar1 = {
@@ -731,12 +731,12 @@ main(int argc, char **argv)
 
   };
 
-  struct gkyl_block_physical_bcs Ar0_phys_bcs[] = {
+  struct gkyl_gyrokinetic_block_physical_bcs Ar0_phys_bcs[] = {
     // block 2 BCs
-    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ZERO_FLUX },
-    { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ZERO_FLUX },
-    { .bidx = 0, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ZERO_FLUX },
+    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ZERO_FLUX },
+    { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ZERO_FLUX },
+    { .bidx = 0, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ZERO_FLUX },
   };
 
   struct gkyl_gyrokinetic_multib_neut_species Ar0 = {
@@ -761,10 +761,10 @@ main(int argc, char **argv)
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
   };
 
-  struct gkyl_block_physical_bcs field_phys_bcs[] = {
+  struct gkyl_gyrokinetic_block_physical_bcs field_phys_bcs[] = {
     // block 2 BCs
-    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_POISSON_DIRICHLET},
-    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_POISSON_DIRICHLET},
+    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_FIELD_DIRICHLET},
+    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_FIELD_DIRICHLET},
   };
 
   struct gkyl_gyrokinetic_multib_field field = {
