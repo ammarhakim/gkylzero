@@ -536,8 +536,8 @@ main(int argc, char **argv)
     .electron_temp = ctx.Te,
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
 
-    .zero_init_field = true, // Don't compute the field at t=0.
-    .is_static = true, // Don't update the field in time.
+    .zero_init_field = true, // Don't compute the field at t = 0.
+    .is_static = true, // Don't evolve the field in time.
   };
 
   // Gyrokinetic app.

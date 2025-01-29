@@ -687,6 +687,9 @@ gyrokinetic_field_lw_new(lua_State *L)
   gk_field.fem_parbc = glua_tbl_get_integer(L, "femParBc", 0);
   gk_field.kperpSq = glua_tbl_get_number(L, "kPerpSq", 0.0);
 
+  gk_field.zero_init_field = glua_tbl_get_bool(L, "zeroInitField", false);
+  gk_field.is_static = glua_tbl_get_bool(L, "isStatic", false);
+
   with_lua_tbl_tbl(L, "poissonBcs") {
     with_lua_tbl_tbl(L, "lowerType") {
       int nbc = glua_objlen(L);
@@ -1411,9 +1414,6 @@ gk_app_new(lua_State *L)
       gk.species[s].react.react_type[i].elc_mass = app_lw->react_elc_mass[s][i];
     }
   }
-
-  // Set field input.
-  gk.skip_field = glua_tbl_get_bool(L, "skipField", false);
 
   with_lua_tbl_key(L, "field") {
     if (lua_type(L, -1) == LUA_TUSERDATA) {
