@@ -404,19 +404,11 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
 
   // initialize each species
   for (int i=0; i<ns; ++i)
-    if (app->species[i].info.is_static) {
-      gk_species_static_new(gk, app, &app->species[i]);
-    }
-    else
-      gk_species_new(gk, app, &app->species[i]);
+    gk_species_init(gk, app, &app->species[i]);
 
   // initialize each neutral species
-  for (int i=0; i<neuts; ++i) { 
-    if (app->neut_species[i].info.is_static)
-      gk_neut_species_static_new(gk, app, &app->neut_species[i]);
-    else
-      gk_neut_species_new(gk, app, &app->neut_species[i]);
-  }
+  for (int i=0; i<neuts; ++i)
+    gk_neut_species_init(gk, app, &app->neut_species[i]);
 
   // initialize each species cross-collisions terms: this has to be done here
   // as need pointers to colliding species' collision objects

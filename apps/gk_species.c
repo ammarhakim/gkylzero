@@ -184,7 +184,7 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
 }
 
 void
-gk_species_common_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
+gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
   int cdim = app->cdim, vdim = app->vdim;
   int pdim = cdim+vdim;
@@ -358,41 +358,30 @@ gk_species_common_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
   gks->bflux = (struct gk_boundary_fluxes) { };
   gk_species_bflux_init(app, gks, &gks->bflux);
 
+  if (!gks->info.is_static) {
+    gk_species_new_dynamic(gk_app_inp, app, gks);
+  }
+  else {
+    gk_species_new_static(gk_app_inp, app, gks);
+  }
+
 }
 
 // initialize species object
 void
-gk_species_new(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
+gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
-
-  gk_species_common_init(gk_app_inp, app, gks);
   int cdim = app->cdim, vdim = app->vdim;
   int pdim = cdim+vdim;
 
-  int cells[GKYL_MAX_DIM], ghost[GKYL_MAX_DIM];
-  double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
-
-  int cells_vel[GKYL_MAX_DIM], ghost_vel[GKYL_MAX_DIM];
-  double lower_vel[GKYL_MAX_DIM], upper_vel[GKYL_MAX_DIM];
+  int ghost[GKYL_MAX_DIM];
 
   for (int d=0; d<cdim; ++d) {
-    cells[d] = gk_app_inp->cells[d];
-    lower[d] = gk_app_inp->lower[d];
-    upper[d] = gk_app_inp->upper[d];
     ghost[d] = 1;
   }
   for (int d=0; d<vdim; ++d) {
     // full phase space grid
-    cells[cdim+d] = gks->info.cells[d];
-    lower[cdim+d] = gks->info.lower[d];
-    upper[cdim+d] = gks->info.upper[d];
     ghost[cdim+d] = 0; // No ghost-cells in velocity space.
-
-    // Only velocity space.
-    cells_vel[d] = gks->info.cells[d];
-    lower_vel[d] = gks->info.lower[d];
-    upper_vel[d] = gks->info.upper[d];
-    ghost_vel[d] = 0; // No ghost-cells in velocity space.
   }
 
   // Allocate distribution function arrays.
@@ -713,25 +702,23 @@ gk_species_new(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, str
   }
 
   // set function pointers
-  gks->rhs_func = gk_species_dynamic_rhs;
-  gks->bc_func = gk_species_dynamic_apply_bc;
-  gks->release_func = gk_species_dynamic_release;
+  gks->rhs_func = gk_species_rhs_dynamic;
+  gks->bc_func = gk_species_apply_bc_dynamic;
+  gks->release_func = gk_species_release_dynamic;
 }
 
 // initialize static species object
 void
-gk_species_static_new(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
+gk_species_new_static(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
-  gk_species_common_init(gk_app_inp, app, gks);
-  
   // Allocate distribution function arrays.
   gks->f1 = gks->f;
   gks->fnew = gks->f;
 
   // set function pointers
-  gks->rhs_func = gk_species_static_rhs;
-  gks->bc_func = gk_species_static_apply_bc;
-  gks->release_func = gk_species_static_release;
+  gks->rhs_func = gk_species_rhs_static;
+  gks->bc_func = gk_species_apply_bc_static;
+  gks->release_func = gk_species_release_static;
 }
 
 void
@@ -802,7 +789,7 @@ gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
 }
   
 double
-gk_species_dynamic_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
+gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
   gkyl_array_set(species->phi, 1.0, app->field->phi_smooth);
@@ -856,7 +843,7 @@ gk_species_dynamic_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
 }
 
 double
-gk_species_static_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
+gk_species_rhs_static(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
   double omega_cfl = 1/DBL_MAX;
@@ -871,7 +858,7 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
 }
 
 void
-gk_species_dynamic_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f)
+gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f)
 {
   struct timespec wst = gkyl_wall_clock();
   
@@ -940,7 +927,7 @@ gk_species_dynamic_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *
 }
 
 void
-gk_species_static_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f)
+gk_species_apply_bc_static(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f)
 {
   // do nothing
 }
@@ -1020,18 +1007,11 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
     gkyl_free(s->red_integ_diag_global);
   }
 
-  if (app->enforce_positivity) {
-    gkyl_array_release(s->ps_delta_m0);
-    gkyl_array_release(s->ps_delta_m0s_tot);
-    gkyl_array_release(s->ps_delta_m0r_tot);
-    gkyl_positivity_shift_gyrokinetic_release(s->pos_shift_op);
-    gk_species_moment_release(app, &s->ps_moms);
-    gkyl_dynvec_release(s->ps_integ_diag);
-  }
+  s->release_func(app, s);
 }
 
 void
-gk_species_dynamic_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
+gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 {
     // release various arrays and species objects
   gkyl_array_release(s->f1);
@@ -1100,6 +1080,6 @@ gk_species_dynamic_release(const gkyl_gyrokinetic_app* app, const struct gk_spec
 }
 
 void
-gk_species_static_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
+gk_species_release_static(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 {
 }
