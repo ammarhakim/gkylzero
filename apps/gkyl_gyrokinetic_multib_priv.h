@@ -69,6 +69,7 @@ struct gk_multib_field {
   struct gkyl_gyrokinetic_multib_field info; // data for field
   enum gkyl_gkfield_id gkfield_id; // type of field
   int num_local_blocks; // total number of blocks on current rank
+  int cdim; // number of configuration space dimensions
 
   struct gkyl_multib_comm_conn **mbcc_allgatherz_send; // comm object for allgather sends
   struct gkyl_multib_comm_conn **mbcc_allgatherz_recv; // comm object for allgather receives
