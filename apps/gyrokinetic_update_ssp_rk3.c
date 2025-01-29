@@ -19,9 +19,8 @@ gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   // Complete update of distribution functions.
   double dta = st->dt_actual;
   for (int i=0; i<app->num_species; ++i) {
-    if (!app->species[i].info.is_static) {   
-      gkyl_array_accumulate(gkyl_array_scale(fout[i], dta), 1.0, fin[i]);
-    }
+    struct gk_species *gks = &app->species[i];
+    gk_species_accumulate(gks, gkyl_array_scale(fout[i], dta), 1.0, fin[i]);
   }
   for (int i=0; i<app->num_neut_species; ++i) {
     if (!app->neut_species[i].info.is_static) {
@@ -100,10 +99,8 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         } 
         else {
           for (int i=0; i<app->num_species; ++i) {
-	    if (!app->species[i].info.is_static) {
-	      array_combine(app->species[i].f1,
-                3.0/4.0, app->species[i].f, 1.0/4.0, app->species[i].fnew, &app->species[i].local_ext);
-	    }
+	    struct gk_species *gks = &app->species[i];
+	    gk_species_combine(gks, gks->f1, 3.0/4.0, gks->f, 1.0/4.0, gks->fnew, &gks->local_ext);
 	  }
           for (int i=0; i<app->num_neut_species; ++i) {
             if (!app->neut_species[i].info.is_static) {
@@ -158,11 +155,9 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         }
         else {
           for (int i=0; i<app->num_species; ++i) {
-	    if (!app->species[i].info.is_static) {
-	      array_combine(app->species[i].f1,
-                1.0/3.0, app->species[i].f, 2.0/3.0, app->species[i].fnew, &app->species[i].local_ext);
-	      gkyl_array_copy_range(app->species[i].f, app->species[i].f1, &app->species[i].local_ext);
-	    }
+	    struct gk_species *gks = &app->species[i];
+	    gk_species_combine(gks, gks->f1, 1.0/3.0, gks->f, 2.0/3.0, gks->fnew, &gks->local_ext);
+	    gk_species_copy_range(gks, gks->f, gks->f1, &gks->local_ext);
 	  }
           for (int i=0; i<app->num_neut_species; ++i) {
             if (!app->neut_species[i].info.is_static) {

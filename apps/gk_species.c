@@ -229,6 +229,49 @@ gk_species_release_static(const gkyl_gyrokinetic_app* app, const struct gk_speci
 {
 }
 
+static void
+gk_species_accumulate_dynamic(struct gkyl_array* out, double a,
+  const struct gkyl_array* inp)
+{
+  gkyl_array_accumulate(out, a, inp);
+}
+
+static void
+gk_species_accumulate_static(struct gkyl_array* out, double a,
+  const struct gkyl_array* inp)
+{
+  // do nothing
+}
+
+static void
+gk_species_combine_dynamic(struct gkyl_array *out, double c1,
+  const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
+  const struct gkyl_range *rng)
+{
+  array_combine(out, c1, arr1, c2, arr2, rng);
+}
+
+static void
+gk_species_combine_static(struct gkyl_array* out, double a,
+  const struct gkyl_array* inp)
+{
+  // do nothing
+}
+
+static void
+gk_species_copy_range_dynamic(struct gkyl_array *out,
+  const struct gkyl_array *inp, const struct gkyl_range *range)
+{
+  gkyl_array_copy_range(out, inp, range);
+}
+
+static void
+gk_species_copy_range_static(struct gkyl_array *out,
+  const struct gkyl_array *inp, const struct gkyl_range *range)
+{
+  // do nothing
+}
+
 // initialize species object
 static void
 gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
@@ -982,10 +1025,30 @@ gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   return species->rhs_func(app, species, fin, rhs);
 }
   
-// Accummulate functions.
+// Accummulate function for forward euler method.
+void
+gk_species_accumulate(struct gk_species *species, struct gkyl_array* out, double a,
+  const struct gkyl_array* inp)
+{
+  species->accumulate_func(out, a, inp);
+}
 
+// Combine function for rk3 updates.
+void
+gk_species_combine(struct gk_species *species, struct gkyl_array *out, double c1,
+  const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
+  const struct gkyl_range *rng)
+{
+  species->combine_func(out, c1, arr1, c2, arr2, rng);
+}
 
-// Combine functions. 
+// Copy function for rk3 updates.
+void
+gk_species_copy_range(struct gk_species *species, struct gkyl_array *out,
+  const struct gkyl_array *inp, const struct gkyl_range *range)
+{
+  species->copy_func(out, inp, range);
+}
 
 // Apply boundary conditions to the distribution function.
 void
