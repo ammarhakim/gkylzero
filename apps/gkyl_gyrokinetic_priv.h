@@ -575,8 +575,7 @@ struct gk_species {
   void (*bc_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species,
     struct gkyl_array *f);
   void (*release_func)(const gkyl_gyrokinetic_app* app, const struct gk_species *s);
-  void (*accumulate_func)(struct gkyl_array* out, double a,
-    const struct gkyl_array* inp); 
+  void (*step_f_func)(struct gkyl_array* out, double dt, const struct gkyl_array* inp); 
   void (*combine_func)(struct gkyl_array *out, double c1,
     const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
     const struct gkyl_range *rng);
@@ -1350,14 +1349,14 @@ double gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
- * Accumulate for forward euler method.
+ * Scale and accumulate for forward euler method.
  *
  * @param species Pointer to speces
  * @param out Output array
- * @param a Scaling factor
+ * @param dt Timestep
  * @param inp Input array
  */
-void gk_species_accumulate(struct gk_species *species, struct gkyl_array* out, double a,
+void gk_species_step_f(struct gk_species *species, struct gkyl_array* out, double dt,
   const struct gkyl_array* inp);
 
 /**

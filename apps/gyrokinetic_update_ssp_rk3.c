@@ -20,7 +20,7 @@ gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   double dta = st->dt_actual;
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *gks = &app->species[i];
-    gk_species_accumulate(gks, gkyl_array_scale(fout[i], dta), 1.0, fin[i]);
+    gk_species_step_f(gks, fout[i], dta, fin[i]);
   }
   for (int i=0; i<app->num_neut_species; ++i) {
     if (!app->neut_species[i].info.is_static) {

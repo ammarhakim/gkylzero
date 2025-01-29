@@ -230,14 +230,14 @@ gk_species_release_static(const gkyl_gyrokinetic_app* app, const struct gk_speci
 }
 
 static void
-gk_species_accumulate_dynamic(struct gkyl_array* out, double a,
+gk_species_step_f_dynamic(struct gkyl_array* out, double dt,
   const struct gkyl_array* inp)
 {
-  gkyl_array_accumulate(out, a, inp);
+  gkyl_array_accumulate(gkyl_array_scale(out, dt), 1.0, inp);
 }
 
 static void
-gk_species_accumulate_static(struct gkyl_array* out, double a,
+gk_species_step_f_static(struct gkyl_array* out, double dt,
   const struct gkyl_array* inp)
 {
   // do nothing
@@ -248,12 +248,14 @@ gk_species_combine_dynamic(struct gkyl_array *out, double c1,
   const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
   const struct gkyl_range *rng)
 {
-  array_combine(out, c1, arr1, c2, arr2, rng);
+  gkyl_array_accumulate_range(gkyl_array_set_range(out, c1, arr1, rng),
+    c2, arr2, rng);
 }
 
 static void
-gk_species_combine_static(struct gkyl_array* out, double a,
-  const struct gkyl_array* inp)
+gk_species_combine_static(struct gkyl_array *out, double c1,
+  const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
+  const struct gkyl_range *rng)
 {
   // do nothing
 }
@@ -589,6 +591,9 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
   gks->rhs_func = gk_species_rhs_dynamic;
   gks->bc_func = gk_species_apply_bc_dynamic;
   gks->release_func = gk_species_release_dynamic;
+  gks->step_f_func = gk_species_step_f_dynamic;
+  gks->combine_func = gk_species_combine_dynamic;
+  gks->copy_func = gk_species_copy_range_dynamic;
 }
 
 // initialize static species object
@@ -603,6 +608,9 @@ gk_species_new_static(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *a
   gks->rhs_func = gk_species_rhs_static;
   gks->bc_func = gk_species_apply_bc_static;
   gks->release_func = gk_species_release_static;
+  gks->step_f_func = gk_species_step_f_static;
+  gks->combine_func = gk_species_combine_static;
+  gks->copy_func = gk_species_copy_range_static;
 }
 
 // End static function definitions.
@@ -1027,10 +1035,10 @@ gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   
 // Accummulate function for forward euler method.
 void
-gk_species_accumulate(struct gk_species *species, struct gkyl_array* out, double a,
+gk_species_step_f(struct gk_species *species, struct gkyl_array* out, double a,
   const struct gkyl_array* inp)
 {
-  species->accumulate_func(out, a, inp);
+  species->step_f_func(out, a, inp);
 }
 
 // Combine function for rk3 updates.
