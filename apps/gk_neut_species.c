@@ -113,6 +113,51 @@ gk_neut_species_apply_bc_static(gkyl_gyrokinetic_app *app, const struct gk_neut_
   // empty function
 }
 
+static void
+gk_neut_species_step_f_dynamic(struct gkyl_array* out, double dt,
+  const struct gkyl_array* inp)
+{
+  gkyl_array_accumulate(gkyl_array_scale(out, dt), 1.0, inp);
+}
+
+static void
+gk_neut_species_step_f_static(struct gkyl_array* out, double dt,
+  const struct gkyl_array* inp)
+{
+  // do nothing
+}
+
+static void
+gk_neut_species_combine_dynamic(struct gkyl_array *out, double c1,
+  const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
+  const struct gkyl_range *rng)
+{
+  gkyl_array_accumulate_range(gkyl_array_set_range(out, c1, arr1, rng),
+    c2, arr2, rng);
+}
+
+static void
+gk_neut_species_combine_static(struct gkyl_array *out, double c1,
+  const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
+  const struct gkyl_range *rng)
+{
+  // do nothing
+}
+
+static void
+gk_neut_species_copy_range_dynamic(struct gkyl_array *out,
+  const struct gkyl_array *inp, const struct gkyl_range *range)
+{
+  gkyl_array_copy_range(out, inp, range);
+}
+
+static void
+gk_neut_species_copy_range_static(struct gkyl_array *out,
+  const struct gkyl_array *inp, const struct gkyl_range *range)
+{
+  // do nothing
+}
+
 // release all resources for dynamic species
 static void
 gk_neut_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s)
@@ -340,6 +385,9 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
   s->rhs_func = gk_neut_species_rhs_dynamic;
   s->bc_func = gk_neut_species_apply_bc_dynamic;
   s->release_func = gk_neut_species_release_dynamic;
+  s->step_f_func = gk_neut_species_step_f_dynamic;
+  s->combine_func = gk_neut_species_combine_dynamic;
+  s->copy_func = gk_neut_species_copy_range_dynamic;
 }
 
 static void
@@ -353,6 +401,9 @@ gk_neut_species_new_static(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
   s->rhs_func = gk_neut_species_rhs_static;
   s->bc_func = gk_neut_species_apply_bc_static;
   s->release_func = gk_neut_species_release_static;
+  s->step_f_func = gk_neut_species_step_f_static;
+  s->combine_func = gk_neut_species_combine_static;
+  s->copy_func = gk_neut_species_copy_range_static;
 }
 
 void
@@ -483,6 +534,31 @@ gk_neut_species_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs) {
 
   return species->rhs_func(app, species, fin, rhs);
+}
+
+// Accummulate function for forward euler method.
+void
+gk_neut_species_step_f(struct gk_neut_species *species, struct gkyl_array* out, double a,
+  const struct gkyl_array* inp)
+{
+  species->step_f_func(out, a, inp);
+}
+
+// Combine function for rk3 updates.
+void
+gk_neut_species_combine(struct gk_neut_species *species, struct gkyl_array *out, double c1,
+  const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
+  const struct gkyl_range *rng)
+{
+  species->combine_func(out, c1, arr1, c2, arr2, rng);
+}
+
+// Copy function for rk3 updates.
+void
+gk_neut_species_copy_range(struct gk_neut_species *species, struct gkyl_array *out,
+  const struct gkyl_array *inp, const struct gkyl_range *range)
+{
+  species->copy_func(out, inp, range);
 }
 
 // Determine which directions are periodic and which directions are not periodic,

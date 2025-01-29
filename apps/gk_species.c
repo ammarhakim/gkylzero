@@ -156,6 +156,51 @@ gk_species_apply_bc_static(gkyl_gyrokinetic_app *app, const struct gk_species *s
 }
 
 static void
+gk_species_step_f_dynamic(struct gkyl_array* out, double dt,
+  const struct gkyl_array* inp)
+{
+  gkyl_array_accumulate(gkyl_array_scale(out, dt), 1.0, inp);
+}
+
+static void
+gk_species_step_f_static(struct gkyl_array* out, double dt,
+  const struct gkyl_array* inp)
+{
+  // do nothing
+}
+
+static void
+gk_species_combine_dynamic(struct gkyl_array *out, double c1,
+  const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
+  const struct gkyl_range *rng)
+{
+  gkyl_array_accumulate_range(gkyl_array_set_range(out, c1, arr1, rng),
+    c2, arr2, rng);
+}
+
+static void
+gk_species_combine_static(struct gkyl_array *out, double c1,
+  const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
+  const struct gkyl_range *rng)
+{
+  // do nothing
+}
+
+static void
+gk_species_copy_range_dynamic(struct gkyl_array *out,
+  const struct gkyl_array *inp, const struct gkyl_range *range)
+{
+  gkyl_array_copy_range(out, inp, range);
+}
+
+static void
+gk_species_copy_range_static(struct gkyl_array *out,
+  const struct gkyl_array *inp, const struct gkyl_range *range)
+{
+  // do nothing
+}
+
+static void
 gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 {
     // release various arrays and species objects
@@ -227,51 +272,6 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
 static void
 gk_species_release_static(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 {
-}
-
-static void
-gk_species_step_f_dynamic(struct gkyl_array* out, double dt,
-  const struct gkyl_array* inp)
-{
-  gkyl_array_accumulate(gkyl_array_scale(out, dt), 1.0, inp);
-}
-
-static void
-gk_species_step_f_static(struct gkyl_array* out, double dt,
-  const struct gkyl_array* inp)
-{
-  // do nothing
-}
-
-static void
-gk_species_combine_dynamic(struct gkyl_array *out, double c1,
-  const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
-  const struct gkyl_range *rng)
-{
-  gkyl_array_accumulate_range(gkyl_array_set_range(out, c1, arr1, rng),
-    c2, arr2, rng);
-}
-
-static void
-gk_species_combine_static(struct gkyl_array *out, double c1,
-  const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
-  const struct gkyl_range *rng)
-{
-  // do nothing
-}
-
-static void
-gk_species_copy_range_dynamic(struct gkyl_array *out,
-  const struct gkyl_array *inp, const struct gkyl_range *range)
-{
-  gkyl_array_copy_range(out, inp, range);
-}
-
-static void
-gk_species_copy_range_static(struct gkyl_array *out,
-  const struct gkyl_array *inp, const struct gkyl_range *range)
-{
-  // do nothing
 }
 
 // initialize species object

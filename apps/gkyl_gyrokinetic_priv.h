@@ -666,6 +666,12 @@ struct gk_neut_species {
   void (*bc_func)(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
     struct gkyl_array *f);
   void (*release_func)(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s);
+    void (*step_f_func)(struct gkyl_array* out, double dt, const struct gkyl_array* inp); 
+  void (*combine_func)(struct gkyl_array *out, double c1,
+    const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
+    const struct gkyl_range *rng);
+  void (*copy_func)(struct gkyl_array *out, const struct gkyl_array *inp,
+    const struct gkyl_range *range);
 };
 
 // field data
@@ -1351,7 +1357,7 @@ double gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
 /**
  * Scale and accumulate for forward euler method.
  *
- * @param species Pointer to speces
+ * @param species Pointer to species
  * @param out Output array
  * @param dt Timestep
  * @param inp Input array
@@ -1501,6 +1507,43 @@ void gk_neut_species_react_cross_moms(gkyl_gyrokinetic_app *app,
 void gk_neut_species_react_rhs(gkyl_gyrokinetic_app *app,
   const struct gk_neut_species *s, struct gk_react *react,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Scale and accumulate for forward euler method.
+ *
+ * @param species Pointer to neutral species
+ * @param out Output array
+ * @param dt Timestep
+ * @param inp Input array
+ */
+void gk_neut_species_step_f(struct gk_neut_species *species, struct gkyl_array* out, double dt,
+  const struct gkyl_array* inp);
+
+/**
+ * Combine for rk3 method.
+ *
+ * @param species Pointer to species
+ * @param out Output array
+ * @param c1 Scaling factor
+ * @param arr1 Input array
+ * @param c2 Scaling factor
+ * @param arr2 Input array
+ * @param rng Range
+ */
+void gk_neut_species_combine(struct gk_neut_species *species, struct gkyl_array *out, double c1,
+  const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
+  const struct gkyl_range *rng);
+
+/**
+ * Copy for rk3 method.
+ *
+ * @param species Pointer to species
+ * @param out Output array
+ * @param inp Input array
+ * @param range Range
+ */
+void gk_neut_species_copy_range(struct gk_neut_species *species, struct gkyl_array *out,
+  const struct gkyl_array *inp, const struct gkyl_range *range);
 
 /**
  * Release neutral species react object.
