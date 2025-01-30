@@ -589,6 +589,12 @@ struct gk_species {
     const struct gkyl_range *rng);
   void (*copy_func)(struct gkyl_array *out, const struct gkyl_array *inp,
     const struct gkyl_range *range);
+  void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+  void (*write_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+  void (*calc_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm);
+  void (*write_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks);
+  void (*calc_L2norm_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm);
+  void (*write_L2norm_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks);
 
   double *omega_cfl; // Maximum Omega_CFL in this MPI process.
   double *m0_max; // Maximum number density in this MPI process.
@@ -1430,6 +1436,60 @@ void gk_species_coll_tm(gkyl_gyrokinetic_app *app);
  * @param app App object to update stat timers
  */
 void gk_species_tm(gkyl_gyrokinetic_app *app);
+
+/**
+ * Species write function.
+ *
+ * @param app gyrokinetic app object
+ * @param gks Species object
+ * @param tm simulation time
+ * @param frame simulation frame
+ */
+void gk_species_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+
+/**
+ * Species moment write function.
+ *
+ * @param app gyrokinetic app object
+ * @param gks Species object
+ * @param tm simulation time
+ * @param frame simulation frame
+ */
+void gk_species_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+
+/**
+ * Species calc integrated moment function.
+ *
+ * @param app gyrokinetic app object
+ * @param gks Species object
+ * @param tm simulation time
+ */
+void gk_species_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm);
+
+/**
+ * Species write integrated moment function.
+ *
+ * @param app gyrokinetic app object
+ * @param gks Species object
+ */
+void gk_species_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks);
+
+/**
+ * Species calc L2norm function.
+ *
+ * @param app gyrokinetic app object
+ * @param gks Species object
+ * @param tm simulation time
+ */
+void gk_species_calc_L2norm(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm);
+
+/**
+ * Species write L2norm function.
+ *
+ * @param app gyrokinetic app object
+ * @param gks Species object
+ */
+void gk_species_write_L2norm(gkyl_gyrokinetic_app* app, struct gk_species *gks);
 
 /**
  * Delete resources used in species.
