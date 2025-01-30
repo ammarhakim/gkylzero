@@ -687,6 +687,10 @@ struct gk_neut_species {
     const struct gkyl_range *rng);
   void (*copy_func)(struct gkyl_array *out, const struct gkyl_array *inp,
     const struct gkyl_range *range);
+  void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm, int frame);
+  void (*write_mom_func)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm, int frame);
+  void (*calc_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm);
+  void (*write_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns);
 };
 
 // field data
@@ -1586,43 +1590,6 @@ void gk_neut_species_react_rhs(gkyl_gyrokinetic_app *app,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
- * Scale and accumulate for forward euler method.
- *
- * @param species Pointer to neutral species
- * @param out Output array
- * @param dt Timestep
- * @param inp Input array
- */
-void gk_neut_species_step_f(struct gk_neut_species *species, struct gkyl_array* out, double dt,
-  const struct gkyl_array* inp);
-
-/**
- * Combine for rk3 method.
- *
- * @param species Pointer to species
- * @param out Output array
- * @param c1 Scaling factor
- * @param arr1 Input array
- * @param c2 Scaling factor
- * @param arr2 Input array
- * @param rng Range
- */
-void gk_neut_species_combine(struct gk_neut_species *species, struct gkyl_array *out, double c1,
-  const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
-  const struct gkyl_range *rng);
-
-/**
- * Copy for rk3 method.
- *
- * @param species Pointer to species
- * @param out Output array
- * @param inp Input array
- * @param range Range
- */
-void gk_neut_species_copy_range(struct gk_neut_species *species, struct gkyl_array *out,
-  const struct gkyl_array *inp, const struct gkyl_range *range);
-
-/**
  * Release neutral species react object.
  *
  * @param app gyrokinetic app object
@@ -1751,6 +1718,80 @@ void gk_neut_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_neut_sp
  * @param app App object to update stat timers
  */
 void gk_neut_species_tm(gkyl_gyrokinetic_app *app);
+
+/**
+ * Scale and accumulate for forward euler method.
+ *
+ * @param species Pointer to neutral species
+ * @param out Output array
+ * @param dt Timestep
+ * @param inp Input array
+ */
+void gk_neut_species_step_f(struct gk_neut_species *species, struct gkyl_array* out, double dt,
+  const struct gkyl_array* inp);
+
+/**
+ * Combine for rk3 method.
+ *
+ * @param species Pointer to species
+ * @param out Output array
+ * @param c1 Scaling factor
+ * @param arr1 Input array
+ * @param c2 Scaling factor
+ * @param arr2 Input array
+ * @param rng Range
+ */
+void gk_neut_species_combine(struct gk_neut_species *species, struct gkyl_array *out, double c1,
+  const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
+  const struct gkyl_range *rng);
+
+/**
+ * Copy for rk3 method.
+ *
+ * @param species Pointer to species
+ * @param out Output array
+ * @param inp Input array
+ * @param range Range
+ */
+void gk_neut_species_copy_range(struct gk_neut_species *species, struct gkyl_array *out,
+  const struct gkyl_array *inp, const struct gkyl_range *range);
+
+/**
+ * Species write function.
+ *
+ * @param app gyrokinetic app object
+ * @param gkns Neutral species object
+ * @param tm simulation time
+ * @param frame simulation frame
+ */
+void gk_neut_species_write(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm, int frame);
+
+/**
+ * Species moment write function.
+ *
+ * @param app gyrokinetic app object
+ * @param gkns Neutral species object
+ * @param tm simulation time
+ * @param frame simulation frame
+ */
+void gk_neut_species_write_mom(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm, int frame);
+
+/**
+ * Species calc integrated moment function.
+ *
+ * @param app gyrokinetic app object
+ * @param gkns Neutral species object
+ * @param tm simulation time
+ */
+void gk_neut_species_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm);
+
+/**
+ * Species write integrated moment function.
+ *
+ * @param app gyrokinetic app object
+ * @param gkns Neutral species object
+ */
+void gk_neut_species_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns);
 
 /**
  * Delete resources used in neutral species.

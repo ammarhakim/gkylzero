@@ -946,37 +946,8 @@ gkyl_gyrokinetic_app_write_species(gkyl_gyrokinetic_app* app, int sidx, double t
 void
 gkyl_gyrokinetic_app_write_neut_species(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
 {
-  struct gk_neut_species *gk_ns = &app->neut_species[sidx];
-
-  if (!gk_ns->info.is_static || frame == 0) {
-    struct timespec wst = gkyl_wall_clock();
-    struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
-        .frame = frame,
-        .stime = tm,
-        .poly_order = app->poly_order,
-        .basis_type = app->basis.id
-      }
-    );
-
-    const char *fmt = "%s-%s_%d.gkyl";
-    int sz = gkyl_calc_strlen(fmt, app->name, gk_ns->info.name, frame);
-    char fileNm[sz+1]; // ensures no buffer overflow
-    snprintf(fileNm, sizeof fileNm, fmt, app->name, gk_ns->info.name, frame);
-
-    // copy data from device to host before writing it out
-    if (app->use_gpu) {
-      gkyl_array_copy(gk_ns->f_host, gk_ns->f);
-    }
-
-    struct timespec wtm = gkyl_wall_clock();
-    gkyl_comm_array_write(gk_ns->comm, &gk_ns->grid, &gk_ns->local, mt, gk_ns->f_host, fileNm);
-    app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
-    app->stat.nio += 1;
-
-    gk_array_meta_release(mt);  
-    app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-    app->stat.ndiag += 1;
-  }
+  struct gk_neut_species *gkns = &app->neut_species[sidx];
+  gk_neut_species_write(app, gkns, tm, frame);
 }
 
 void
@@ -989,49 +960,8 @@ gkyl_gyrokinetic_app_write_species_mom(gkyl_gyrokinetic_app* app, int sidx, doub
 void
 gkyl_gyrokinetic_app_write_neut_species_mom(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
 {
-  struct gk_neut_species *gk_ns = &app->neut_species[sidx];
-
-  if (!gk_ns->info.is_static || frame == 0) {
-    struct timespec wst = gkyl_wall_clock();
-
-    struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
-        .frame = frame,
-        .stime = tm,
-        .poly_order = app->poly_order,
-        .basis_type = app->confBasis.id
-      }
-    );
-
-    for (int m=0; m<gk_ns->info.num_diag_moments; ++m) {
-      gk_neut_species_moment_calc(&gk_ns->moms[m], gk_ns->local, app->local, gk_ns->f);
-      app->stat.nmom += 1;
-
-      const char *fmt = "%s-%s_%s_%d.gkyl";
-      int sz = gkyl_calc_strlen(fmt, app->name, gk_ns->info.name,
-        gk_ns->info.diag_moments[m], frame);
-      char fileNm[sz+1]; // ensures no buffer overflow
-      snprintf(fileNm, sizeof fileNm, fmt, app->name, gk_ns->info.name,
-        gk_ns->info.diag_moments[m], frame);
-
-      // Rescale moment by inverse of Jacobian
-      gkyl_dg_div_op_range(gk_ns->moms[m].mem_geo, app->confBasis, 
-        0, gk_ns->moms[m].marr, 0, gk_ns->moms[m].marr, 0, 
-        app->gk_geom->jacobgeo, &app->local);      
-
-      if (app->use_gpu) {
-        gkyl_array_copy(gk_ns->moms[m].marr_host, gk_ns->moms[m].marr);
-      }
-
-      struct timespec wtm = gkyl_wall_clock();
-      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
-        gk_ns->moms[m].marr_host, fileNm);
-      app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
-      app->stat.nio += 1;
-    }
-    gk_array_meta_release(mt);   
-    app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-    app->stat.ndiag += 1;
-  }
+  struct gk_neut_species *gkns = &app->neut_species[sidx];
+  gk_neut_species_write_mom(app, gkns, tm, frame);
 }
 
 void
@@ -1044,29 +974,8 @@ gkyl_gyrokinetic_app_calc_species_integrated_mom(gkyl_gyrokinetic_app* app, int 
 void
 gkyl_gyrokinetic_app_calc_neut_species_integrated_mom(gkyl_gyrokinetic_app* app, int sidx, double tm)
 {
-  struct gk_neut_species *gk_ns = &app->neut_species[sidx];
-
-  if (!gk_ns->info.is_static) {
-    struct timespec wst = gkyl_wall_clock();
-
-    int vdim = app->vdim+1; // Neutrals are always 3V
-    double avals_global[2+vdim];
-
-    gk_neut_species_moment_calc(&gk_ns->integ_moms, gk_ns->local, app->local, gk_ns->f); 
-    // reduce to compute sum over whole domain, append to diagnostics
-    gkyl_array_reduce_range(gk_ns->red_integ_diag, gk_ns->integ_moms.marr, GKYL_SUM, &app->local);
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, 
-      gk_ns->red_integ_diag, gk_ns->red_integ_diag_global);
-    if (app->use_gpu) {
-      gkyl_cu_memcpy(avals_global, gk_ns->red_integ_diag_global, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
-    }
-    else {
-      memcpy(avals_global, gk_ns->red_integ_diag_global, sizeof(double[2+vdim]));
-    }
-    gkyl_dynvec_append(gk_ns->integ_diag, tm, avals_global);
-    app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-    app->stat.ndiag += 1;
-  }
+  struct gk_neut_species *gkns = &app->neut_species[sidx];
+  gk_neut_species_calc_integrated_mom(app, gkns, tm);
 }
 
 void
@@ -1079,36 +988,8 @@ gkyl_gyrokinetic_app_write_species_integrated_mom(gkyl_gyrokinetic_app *app, int
 void
 gkyl_gyrokinetic_app_write_neut_species_integrated_mom(gkyl_gyrokinetic_app *app, int sidx)
 {
-  struct gk_neut_species *gk_ns = &app->neut_species[sidx];
-
-  if (!gk_ns->info.is_static) {
-    struct timespec wst = gkyl_wall_clock();
-
-    int rank;
-    gkyl_comm_get_rank(app->comm, &rank);
-
-    if (rank == 0) {
-      // Write integrated diagnostic moments.
-      const char *fmt = "%s-%s_%s.gkyl";
-      int sz = gkyl_calc_strlen(fmt, app->name, gk_ns->info.name, "integrated_moms");
-      char fileNm[sz+1]; // ensures no buffer overflow
-      snprintf(fileNm, sizeof fileNm, fmt, app->name, gk_ns->info.name, "integrated_moms");
-
-      struct timespec wtm = gkyl_wall_clock();
-      if (gk_ns->is_first_integ_write_call) {
-        gkyl_dynvec_write(gk_ns->integ_diag, fileNm);
-        gk_ns->is_first_integ_write_call = false;
-      }
-      else {
-        gkyl_dynvec_awrite(gk_ns->integ_diag, fileNm);
-      }
-      app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
-      app->stat.nio += 1;
-    }
-    gkyl_dynvec_clear(gk_ns->integ_diag);
-    app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-    app->stat.ndiag += 1;
-  }
+  struct gk_neut_species *gkns = &app->neut_species[sidx];
+  gk_neut_species_write_integrated_mom(app, gkns);
 }
 
 void
