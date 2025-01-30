@@ -1332,6 +1332,44 @@ void gk_species_source_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s
   struct gk_source *src, const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
+ * Write source diagnostics
+ *
+ * @param app gyrokinetic app object
+ * @param gks Pointer to species
+ * @param tm Time for source diagnostic
+ * @param frame Output frame
+ */
+void gk_species_source_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+
+/**
+ * Write source moment diagnostics
+ *
+ * @param app gyrokinetic app object
+ * @param gks Pointer to species
+ * @param tm Time for source diagnostic
+ * @param frame Output frame
+ */
+void gk_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+
+/**
+ * Calc source integrated moment diagnostics
+ *
+ * @param app gyrokinetic app object
+ * @param gks Pointer to species
+ * @param tm Time for source diagnostic
+ */
+void gk_species_source_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm);
+
+/**
+ * Write source integrated moment diagnostics
+ *
+ * @param app gyrokinetic app object
+ * @param gks Pointer to species
+ * @param tm Time for source diagnostic
+ */
+void gk_species_source_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks);
+
+/**
  * Release species source object.
  *
  * @param app gyrokinetic app object

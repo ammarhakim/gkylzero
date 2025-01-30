@@ -476,7 +476,7 @@ gk_species_calc_L2norm_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks
 }
 
 static void
-gk_species_calc_L2norm_static(gkyl_gyrokinetic_app* app, struct gk_species *gks)
+gk_species_calc_L2norm_static(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm)
 {
   // do nothing
 }
