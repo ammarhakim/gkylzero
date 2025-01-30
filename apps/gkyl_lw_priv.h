@@ -137,6 +137,14 @@ void
 gkyl_register_gyrokinetic_geometry_types(lua_State *L);
 
 /**
+ * Add position map type flags for gyrokinetic app initialization into Lua interpreter.
+ *
+ * @param L Lua state to use.
+ */
+void
+gkyl_register_gyrokinetic_position_map_types(lua_State *L);
+
+/**
  * Add field type flags for gyrokinetic field initialization into Lua interpreter.
  *
  * @param L Lua state to use.

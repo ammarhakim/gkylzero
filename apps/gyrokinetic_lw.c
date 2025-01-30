@@ -764,6 +764,8 @@ struct gyrokinetic_app_lw {
   struct lua_func_ctx mapc2p_ctx; // Function context for mapc2p.
   struct lua_func_ctx bmag_ctx; // Function context for bmag.
 
+  struct lua_func_ctx nonuniform_position_map_ctx[3]; // Function context for nonuniform position maps.
+
   bool has_mapc2p_mapping_func[GKYL_MAX_SPECIES]; // Is there a non-uniform velocity space mapping function?
   struct lua_func_ctx mapc2p_mapping_func_ctx[GKYL_MAX_SPECIES]; // Context for non-uniform velocity space mapping function.
 
@@ -1157,6 +1159,39 @@ gk_app_new(lua_State *L)
     if (glua_tbl_get_func(L, "bmagFunc")) {
       has_bmag_func = true;
       bmag_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    }
+
+    with_lua_tbl_tbl(L, "positionMap") {
+      gk.geometry.position_map_info.id = glua_tbl_get_integer(L, "ID", 0);
+      bool has_nonuniform_position_map[3];
+      int nonuniform_position_map_ref[3];
+
+      with_lua_tbl_tbl(L, "maps") {
+        for (int i = 0; i < 3; i++) {
+          gk.geometry.position_map_info.ctxs[i] = 0;
+          gk.geometry.position_map_info.maps[i] = 0;
+
+          has_nonuniform_position_map[i] = false;
+          nonuniform_position_map_ref[i] = LUA_NOREF;
+          if (glua_tbl_iget_func(L, i + 1)) {
+            has_nonuniform_position_map[i] = true;
+            nonuniform_position_map_ref[i] = luaL_ref(L, LUA_REGISTRYINDEX);
+          }
+        }
+      }
+
+      for (int i = 0; i < 3; i++) {
+        if (has_nonuniform_position_map[i]) {
+          app_lw->nonuniform_position_map_ctx[i] = (struct lua_func_ctx) {
+            .func_ref = nonuniform_position_map_ref[i],
+            .ndim = 1,
+            .nret = 1,
+            .L = L,
+          };
+          gk.geometry.position_map_info.maps[i] = gkyl_lw_eval_cb;
+          gk.geometry.position_map_info.ctxs[i] = &app_lw->nonuniform_position_map_ctx[i];
+        }
+      }
     }
 
     if (has_mapc2p) {

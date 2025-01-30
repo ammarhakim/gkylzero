@@ -139,6 +139,14 @@ static const struct gkyl_str_int_pair geometry_type[] = {
   { 0, 0 }
 };
 
+// Gyrokinetic position map type -> enum map.
+static const struct gkyl_str_int_pair position_map_type[] = {
+  { "UserInput", GKYL_PMAP_USER_INPUT },
+  { "ConstantPolynomial", GKYL_PMAP_CONSTANT_DB_POLYNOMIAL },
+  { "ConstantNumeric", GKYL_PMAP_CONSTANT_DB_NUMERIC },
+  { 0, 0 }
+};
+
 // Gyrokinetic field type -> enum map.
 static const struct gkyl_str_int_pair gk_field_type[] = {
   { "Electrostatic", GKYL_GK_FIELD_ES },
@@ -292,6 +300,12 @@ void
 gkyl_register_gyrokinetic_geometry_types(lua_State *L)
 {
   register_types(L, geometry_type, "Geometry");
+}
+
+void
+gkyl_register_gyrokinetic_position_map_types(lua_State *L)
+{
+  register_types(L, position_map_type, "PositionMap");
 }
 
 void
