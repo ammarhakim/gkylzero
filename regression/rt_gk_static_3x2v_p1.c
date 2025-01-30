@@ -534,14 +534,7 @@ main(int argc, char **argv)
   // Field.
   struct gkyl_gyrokinetic_field field = {
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
-    .poisson_bcs = {
-      .lo_type = { GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC },
-      .up_type = { GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC },
-      .lo_value = { 0.0 }, .up_value = { 0.0 }
-      //.lo_type = { GKYL_POISSON_PERIODIC, GKYL_POISSON_PERIODIC },
-      //.up_type = { GKYL_POISSON_PERIODIC, GKYL_POISSON_PERIODIC },
-      ////.lo_value = { 0.0 }, .up_value = { 0.0 }
-    },
+    .is_static = true,
   };
 
   // GK app.
@@ -554,8 +547,6 @@ main(int argc, char **argv)
     .cells = { cells_x[0], cells_x[1], cells_x[2] },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
-
-    .skip_field = true,
 
     .geometry = {
       .geometry_id = GKYL_MAPC2P,
