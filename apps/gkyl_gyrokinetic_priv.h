@@ -1703,6 +1703,44 @@ void gk_neut_species_source_rhs(gkyl_gyrokinetic_app *app, const struct gk_neut_
   struct gk_source *src, const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
+ * Write neutral source diagnostics
+ *
+ * @param app gyrokinetic app object
+ * @param gkns Pointer to species
+ * @param tm Time for source diagnostic
+ * @param frame Output frame
+ */
+void gk_neut_species_source_write(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm, int frame);
+
+/**
+ * Write neutral source moment diagnostics
+ *
+ * @param app gyrokinetic app object
+ * @param gkns Pointer to species
+ * @param tm Time for source diagnostic
+ * @param frame Output frame
+ */
+void gk_neut_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm, int frame);
+
+/**
+ * Calc neutral source integrated moment diagnostics
+ *
+ * @param app gyrokinetic app object
+ * @param gkns Pointer to species
+ * @param tm Time for source diagnostic
+ */
+void gk_neut_species_source_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm);
+
+/**
+ * Write neutral source integrated moment diagnostics
+ *
+ * @param app gyrokinetic app object
+ * @param gkns Pointer to species
+ * @param tm Time for source diagnostic
+ */
+void gk_neut_species_source_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns);
+
+/**
  * Release Neutral species source object.
  *
  * @param app gyrokinetic app object
