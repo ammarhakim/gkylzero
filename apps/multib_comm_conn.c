@@ -130,6 +130,7 @@ multib_comm_conn_new_sr(enum multib_send_recv sr,
             if (is_inter) {
               comm_conn[comm_conn_idx].rank = nn;
               comm_conn[comm_conn_idx].block_id = tar_bid;
+              comm_conn[comm_conn_idx].edge = e;
               memcpy(&comm_conn[comm_conn_idx].range, &irng, sizeof(struct gkyl_range));
 
               comm_conn_idx += 1;

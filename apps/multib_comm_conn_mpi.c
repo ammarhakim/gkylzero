@@ -25,6 +25,7 @@ gkyl_multib_comm_conn_array_transfer_mpi(struct gkyl_comm *comm, int num_blocks_
     for (int n=0; n<mbcc_r->num_comm_conn; ++n) {
       int nid = mbcc_r->comm_conn[n].rank;
       int bid = mbcc_r->comm_conn[n].block_id;
+      int e = mbcc_r->comm_conn[n].edge;
       
       size_t recv_vol = arr_recv[bI]->esznc*mbcc_r->comm_conn[n].range.volume;
 
@@ -32,7 +33,7 @@ gkyl_multib_comm_conn_array_transfer_mpi(struct gkyl_comm *comm, int num_blocks_
         if (gkyl_mem_buff_size(mpi->recv[nridx].buff) < recv_vol)
           gkyl_mem_buff_resize(mpi->recv[nridx].buff, recv_vol);
 
-        int rtag = tag + 1000*nid + bid;
+        int rtag = tag + 1000*nid + 100*e + bid;
 
         MPI_Irecv(gkyl_mem_buff_data(mpi->recv[nridx].buff),
           recv_vol, MPI_CHAR, nid, rtag, mpi->mcomm, &mpi->recv[nridx].status);
@@ -49,6 +50,7 @@ gkyl_multib_comm_conn_array_transfer_mpi(struct gkyl_comm *comm, int num_blocks_
 
     for (int n=0; n<mbcc_s->num_comm_conn; ++n) {
       int nid = mbcc_s->comm_conn[n].rank;
+      int e = mbcc_s->comm_conn[n].edge == 0 ? 1 : 0;
     
       size_t send_vol = arr_send[bI]->esznc*mbcc_s->comm_conn[n].range.volume;
 
@@ -59,7 +61,7 @@ gkyl_multib_comm_conn_array_transfer_mpi(struct gkyl_comm *comm, int num_blocks_
         gkyl_array_copy_to_buffer(gkyl_mem_buff_data(mpi->send[nsidx].buff),
           arr_send[bI], &mbcc_s->comm_conn[n].range);
 
-        int stag = tag + 1000*my_rank + local_blocks[bI];
+        int stag = tag + 1000*my_rank + 100*e + local_blocks[bI];
 
         MPI_Isend(gkyl_mem_buff_data(mpi->send[nsidx].buff),
           send_vol, MPI_CHAR, nid, stag, mpi->mcomm, &mpi->send[nsidx].status);
