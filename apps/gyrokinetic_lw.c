@@ -1843,7 +1843,6 @@ gk_app_new(lua_State *L)
 
     gk.neut_species[s].projection.proj_id = app_lw->neut_proj_id[s];
 
-
     if (neut_species[s]->has_density_init_func) {
       gk.neut_species[s].projection.density = gkyl_lw_eval_cb;
       gk.neut_species[s].projection.ctx_density = &app_lw->neut_density_init_func_ctx[s];

@@ -3,6 +3,7 @@
 #include <gkyl_app.h>
 #include <gkyl_moment.h>
 #include <gkyl_wv_euler.h>
+#include <gkyl_wv_mhd.h>
 #include <gkyl_vlasov.h>
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_lw_priv.h>
@@ -72,6 +73,22 @@ static const struct gkyl_str_int_pair euler_rp_type[] = {
   { "HLLC", WV_EULER_RP_HLLC },
   { "Lax", WV_EULER_RP_LAX },
   { "HLL", WV_EULER_RP_HLL },
+  { 0, 0 }
+};
+
+// MHD Riemann problem -> enum map.
+static const struct gkyl_str_int_pair mhd_rp_type[] = {
+  { "Roe", WV_MHD_RP_ROE },
+  { "HLLD", WV_MHD_RP_HLLD },
+  { "Lax", WV_MHD_RP_LAX },
+  { 0, 0 }
+};
+
+// MHD divergence correction -> enum map.
+static const struct gkyl_str_int_pair mhd_divb_type[] = {
+  { "None", GKYL_MHD_DIVB_NONE },
+  { "GLM", GKYL_MHD_DIVB_GLM },
+  { "EightWaves", GKYL_MHD_DIVB_EIGHT_WAVES },
   { 0, 0 }
 };
 
@@ -258,6 +275,18 @@ void
 gkyl_register_euler_rp_types(lua_State *L)
 {
   register_types(L, euler_rp_type, "EulerRP");
+}
+
+void
+gkyl_register_mhd_rp_types(lua_State *L)
+{
+  register_types(L, mhd_rp_type, "MHDRP");
+}
+
+void
+gkyl_register_mhd_divb_types(lua_State *L)
+{
+  register_types(L, mhd_divb_type, "DivB");
 }
 
 void
