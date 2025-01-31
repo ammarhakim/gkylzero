@@ -136,8 +136,11 @@ gkyl_fem_parproj_multib_new(int num_blocks, const struct gkyl_range *mbz_range,
 
         // Apply the wgt*phi*basis stencil.
         keri = idx_to_inloup_ker(up->parnum_cells[bI], up->par_iter1d.idx[0]);
+        if (bI==0 && keri==2) keri = 0;
+        if (bI==1 && keri==1) keri = 0;
         up->kernels->lhsker[keri](wgt_p, up->globalidx, tri[perpidx]);
       }
+      block_offset += up->numnodes_global[bI];
 
       if (bI < num_blocks-1) {
         // Insert additional conditions setting upper (along z) nodes of this block
@@ -158,13 +161,15 @@ gkyl_fem_parproj_multib_new(int num_blocks, const struct gkyl_range *mbz_range,
         int local_off = up->numnodes_perp; // Using the p=1 assumption here.
         for (int k=0; k<up->numnodes_perp; k++) {
           // =1 entry for node on lower block.
-          gkyl_mat_triples_insert(tri[perpidx], block_offset+k,
-            block_offset+globalidx_lo[local_off+k], 1.0);
+          long ilo = block_offset+k;
+          long jlo = block_offset-up->numnodes_global[bI]+globalidx_lo[local_off+k];
+          gkyl_mat_triples_insert(tri[perpidx], ilo, jlo, 1.0);
           // =-1 entry for node on lower block (corresponding RHS entry =0).
-          gkyl_mat_triples_insert(tri[perpidx], block_offset+k,
-            block_offset+up->numnodes_global[bI]+k+globalidx_up[k], -1.0);
+          long iup = block_offset+k;
+          long jup = block_offset+up->numnodes_perp+globalidx_up[k];
+          gkyl_mat_triples_insert(tri[perpidx], iup, jup, -1.0);
         }
-        block_offset += up->numnodes_global[bI] + up->numnodes_perp;
+        block_offset += up->numnodes_perp;
       }
 
       par_idx_offset += up->par_range1d[bI].upper[0]-up->par_range1d[bI].lower[0]+1;
@@ -206,11 +211,12 @@ gkyl_fem_parproj_multib_set_rhs(struct gkyl_fem_parproj_multib* up,
   double *brhs_p = gkyl_array_fetch(up->brhs, 0);
 
   int idx1[GKYL_MAX_CDIM];
+  long prob_offset = 0;
+
   gkyl_range_iter_init(&up->perp_iter2d, &up->perp_range2d);
   while (gkyl_range_iter_next(&up->perp_iter2d)) {
     long perpidx = gkyl_range_idx(&up->perp_range2d, up->perp_iter2d.idx);
 
-    long block_offset = 0;
     int par_idx_offset = 0;
     for (int bI=0; bI<up->num_blocks; bI++) {
 
@@ -231,13 +237,14 @@ gkyl_fem_parproj_multib_set_rhs(struct gkyl_fem_parproj_multib* up,
 
         // Shift global indices by this offset to account for linear
         // problems at other perp cells and for previous blocks.
-        long perpProbOff = perpidx*(block_offset+up->numnodes_global[bI]);
 
         keri = idx_to_inloup_ker(up->parnum_cells[bI], up->par_iter1d.idx[0]);
-        up->kernels->srcker[keri](wgt_p, rhsin_p, phibc_p, perpProbOff, up->globalidx, brhs_p);
+        if (bI==0 && keri==2) keri = 0;
+        if (bI==1 && keri==1) keri = 0;
+        up->kernels->srcker[keri](wgt_p, rhsin_p, phibc_p, prob_offset, up->globalidx, brhs_p);
       }
 
-      block_offset += up->numnodes_global[bI] + up->numnodes_perp;
+      prob_offset += up->numnodes_global[bI] + up->numnodes_perp;
 
       par_idx_offset += up->par_range1d[bI].upper[0]-up->par_range1d[bI].lower[0]+1;
     }
@@ -261,11 +268,12 @@ gkyl_fem_parproj_multib_solve(struct gkyl_fem_parproj_multib* up, struct gkyl_ar
   gkyl_superlu_solve(up->prob);
 
   int idx1[GKYL_MAX_CDIM];
+  long prob_offset = 0;
+
   gkyl_range_iter_init(&up->perp_iter2d, &up->perp_range2d);
   while (gkyl_range_iter_next(&up->perp_iter2d)) {
     long perpidx = gkyl_range_idx(&up->perp_range2d, up->perp_iter2d.idx);
 
-    long block_offset = 0;
     int par_idx_offset = 0;
     for (int bI=0; bI<up->num_blocks; bI++) {
 
@@ -282,12 +290,10 @@ gkyl_fem_parproj_multib_solve(struct gkyl_fem_parproj_multib* up, struct gkyl_ar
         int keri = up->par_iter1d.idx[0] == up->parnum_cells[bI]? 1 : 0;
         up->kernels->l2g[keri](up->parnum_cells[bI], paridx, up->globalidx);
 
-        long perpProbOff = perpidx*(block_offset+up->numnodes_global[bI]);
-
-        up->kernels->solker(gkyl_superlu_get_rhs_ptr(up->prob, 0), perpProbOff, up->globalidx, phiout_p);
+        up->kernels->solker(gkyl_superlu_get_rhs_ptr(up->prob, 0), prob_offset, up->globalidx, phiout_p);
       }
 
-      block_offset += up->numnodes_global[bI] + up->numnodes_perp;
+      prob_offset += up->numnodes_global[bI] + up->numnodes_perp;
 
       par_idx_offset += up->par_range1d[bI].upper[0]-up->par_range1d[bI].lower[0]+1;
     }
