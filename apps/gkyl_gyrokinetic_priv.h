@@ -1090,6 +1090,16 @@ void gk_species_lbo_rhs(gkyl_gyrokinetic_app *app,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
+ * Write moments from LBO object.
+ *
+ * @param app gyrokinetic app object
+ * @param gks Pointer to species
+ * @param tm Simulation time
+ * @parame frame Simulation output frame
+ */
+void gk_species_lbo_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+
+/**
  * Release species LBO object.
  *
  * @param app gyrokinetic app object
@@ -1158,6 +1168,14 @@ void gk_species_bgk_rhs(gkyl_gyrokinetic_app *app,
   const struct gk_species *species,
   struct gk_bgk_collisions *bgk,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Release species BGK object.
+ *
+ * @param app gyrokinetic app object
+ * @param gks Pointer to species
+ */
+void gk_species_bgk_write_max_corr_status(gkyl_gyrokinetic_app* app, struct gk_species *gks);
 
 /**
  * Release species BGK object.
