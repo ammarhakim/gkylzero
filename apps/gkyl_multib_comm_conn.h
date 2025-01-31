@@ -11,7 +11,8 @@ struct gkyl_comm_conn {
   int block_id; // send/recv block ID
   int rank; // send/recv range ID in block
   struct gkyl_range range; // send/recv range
-  int edge;
+  enum gkyl_oriented_edge src_edge;
+  enum gkyl_oriented_edge tar_edge;
 };
 
 // List of send/recv for a given rank

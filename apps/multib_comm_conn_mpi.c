@@ -25,7 +25,7 @@ gkyl_multib_comm_conn_array_transfer_mpi(struct gkyl_comm *comm, int num_blocks_
     for (int n=0; n<mbcc_r->num_comm_conn; ++n) {
       int nid = mbcc_r->comm_conn[n].rank;
       int bid = mbcc_r->comm_conn[n].block_id;
-      int e = mbcc_r->comm_conn[n].edge;
+      int e = mbcc_r->comm_conn[n].tar_edge;
       
       size_t recv_vol = arr_recv[bI]->esznc*mbcc_r->comm_conn[n].range.volume;
 
@@ -50,7 +50,7 @@ gkyl_multib_comm_conn_array_transfer_mpi(struct gkyl_comm *comm, int num_blocks_
 
     for (int n=0; n<mbcc_s->num_comm_conn; ++n) {
       int nid = mbcc_s->comm_conn[n].rank;
-      int e = mbcc_s->comm_conn[n].edge == 0 ? 1 : 0;
+      int e = mbcc_s->comm_conn[n].src_edge;
     
       size_t send_vol = arr_send[bI]->esznc*mbcc_s->comm_conn[n].range.volume;
 

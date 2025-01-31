@@ -72,6 +72,8 @@ multib_comm_conn_new_sr(enum multib_send_recv sr,
     for (int e=0; e<2; ++e) {
       int tar_bid = block_conn->connections[dir][e].bid;
       int tar_dir = block_conn->connections[dir][e].dir;
+      enum gkyl_oriented_edge tar_edge = block_conn->connections[dir][e].edge;
+      enum gkyl_oriented_edge src_edge = e == 0? GKYL_LOWER_POSITIVE : GKYL_UPPER_POSITIVE;
 
       if (block_conn->connections[dir][e].edge != GKYL_PHYSICAL) {
 
@@ -130,7 +132,8 @@ multib_comm_conn_new_sr(enum multib_send_recv sr,
             if (is_inter) {
               comm_conn[comm_conn_idx].rank = nn;
               comm_conn[comm_conn_idx].block_id = tar_bid;
-              comm_conn[comm_conn_idx].edge = e;
+              comm_conn[comm_conn_idx].src_edge = src_edge;
+              comm_conn[comm_conn_idx].tar_edge = tar_edge;
               memcpy(&comm_conn[comm_conn_idx].range, &irng, sizeof(struct gkyl_range));
 
               comm_conn_idx += 1;
