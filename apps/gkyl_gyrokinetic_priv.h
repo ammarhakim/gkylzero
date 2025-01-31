@@ -1277,6 +1277,45 @@ void gk_species_react_rhs(gkyl_gyrokinetic_app *app,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
+ * Write ionization reaction rate.
+ *
+ * @param app gyrokinetic app object
+ * @param gks Pointer to species
+ * @param gkr Pointer to react object
+ * @param ridx Index for reaction species
+ * @param tm Simulation time
+ * @param frame Simulation output frame
+ */
+void gk_species_react_write_iz(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct gk_react *gkr,
+  int ridx, double tm, int frame);
+
+/**
+ * Write recombination reaction rate.
+ *
+ * @param app gyrokinetic app object
+ * @param gks Pointer to species
+ * @param gkr Pointer to react object
+ * @param ridx Index for reaction species
+ * @param tm Simulation time
+ * @param frame Simulation output frame
+ */
+void gk_species_react_write_recomb(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct gk_react *gkr,
+  int ridx, double tm, int frame);
+
+/**
+ * Write CX reaction rate.
+ *
+ * @param app gyrokinetic app object
+ * @param gks Pointer to species
+ * @param gkr Pointer to react object
+ * @param ridx Index for reaction species
+ * @param tm Simulation time
+ * @param frame Simulation output frame
+ */
+void gk_species_react_write_cx(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct gk_react *gkr,
+  int ridx, double tm, int frame);
+
+/**
  * Release species react object.
  *
  * @param app gyrokinetic app object
