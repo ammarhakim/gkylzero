@@ -577,8 +577,20 @@ struct gk_species {
   gkyl_dynvec ps_integ_diag; // Integrated moments of the positivity shift.
   bool is_first_ps_integ_write_call; // Flag first time writing ps_integ_diag.
 
-  double *omega_cfl; // Maximum Omega_CFL in this MPI process.
+  // pointer to rhs functions
+  double (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
+    const struct gkyl_array *fin, struct gkyl_array *rhs);
+  void (*bc_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species,
+    struct gkyl_array *f);
+  void (*release_func)(const gkyl_gyrokinetic_app* app, const struct gk_species *s);
+  void (*step_f_func)(struct gkyl_array* out, double dt, const struct gkyl_array* inp); 
+  void (*combine_func)(struct gkyl_array *out, double c1,
+    const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
+    const struct gkyl_range *rng);
+  void (*copy_func)(struct gkyl_array *out, const struct gkyl_array *inp,
+    const struct gkyl_range *range);
 
+  double *omega_cfl; // Maximum Omega_CFL in this MPI process.
   double *m0_max; // Maximum number density in this MPI process.
 };
 
@@ -656,6 +668,19 @@ struct gk_neut_species {
   struct gk_react react_neut; // reaction object
 
   double *omega_cfl;
+
+  // pointer to rhs functions
+  double (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
+    const struct gkyl_array *fin, struct gkyl_array *rhs);
+  void (*bc_func)(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
+    struct gkyl_array *f);
+  void (*release_func)(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s);
+    void (*step_f_func)(struct gkyl_array* out, double dt, const struct gkyl_array* inp); 
+  void (*combine_func)(struct gkyl_array *out, double c1,
+    const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
+    const struct gkyl_range *rng);
+  void (*copy_func)(struct gkyl_array *out, const struct gkyl_array *inp,
+    const struct gkyl_range *range);
 };
 
 // field data
@@ -1347,7 +1372,44 @@ double gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
- * Apply BCs to species distribution function.
+ * Scale and accumulate for forward euler method.
+ *
+ * @param species Pointer to species
+ * @param out Output array
+ * @param dt Timestep
+ * @param inp Input array
+ */
+void gk_species_step_f(struct gk_species *species, struct gkyl_array* out, double dt,
+  const struct gkyl_array* inp);
+
+/**
+ * Combine for rk3 method.
+ *
+ * @param species Pointer to species
+ * @param out Output array
+ * @param c1 Scaling factor
+ * @param arr1 Input array
+ * @param c2 Scaling factor
+ * @param arr2 Input array
+ * @param rng Range
+ */
+void gk_species_combine(struct gk_species *species, struct gkyl_array *out, double c1,
+  const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
+  const struct gkyl_range *rng);
+
+/**
+ * Copy for rk3 method.
+ *
+ * @param species Pointer to species
+ * @param out Output array
+ * @param inp Input array
+ * @param range Range
+ */
+void gk_species_copy_range(struct gk_species *species, struct gkyl_array *out,
+  const struct gkyl_array *inp, const struct gkyl_range *range);
+
+/**
+ * Apply BCs to dynamic species distribution function.
  *
  * @param app gyrokinetic app object
  * @param species Pointer to species
@@ -1464,6 +1526,43 @@ void gk_neut_species_react_rhs(gkyl_gyrokinetic_app *app,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
+ * Scale and accumulate for forward euler method.
+ *
+ * @param species Pointer to neutral species
+ * @param out Output array
+ * @param dt Timestep
+ * @param inp Input array
+ */
+void gk_neut_species_step_f(struct gk_neut_species *species, struct gkyl_array* out, double dt,
+  const struct gkyl_array* inp);
+
+/**
+ * Combine for rk3 method.
+ *
+ * @param species Pointer to species
+ * @param out Output array
+ * @param c1 Scaling factor
+ * @param arr1 Input array
+ * @param c2 Scaling factor
+ * @param arr2 Input array
+ * @param rng Range
+ */
+void gk_neut_species_combine(struct gk_neut_species *species, struct gkyl_array *out, double c1,
+  const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
+  const struct gkyl_range *rng);
+
+/**
+ * Copy for rk3 method.
+ *
+ * @param species Pointer to species
+ * @param out Output array
+ * @param inp Input array
+ * @param range Range
+ */
+void gk_neut_species_copy_range(struct gk_neut_species *species, struct gkyl_array *out,
+  const struct gkyl_array *inp, const struct gkyl_range *range);
+
+/**
  * Release neutral species react object.
  *
  * @param app gyrokinetic app object
@@ -1547,9 +1646,8 @@ void gk_neut_species_source_rhs(gkyl_gyrokinetic_app *app, const struct gk_neut_
 void gk_neut_species_source_release(const struct gkyl_gyrokinetic_app *app, const struct gk_source *src);
 
 /** gk_neut_species API */
-
 /**
- * Initialize Neutral species.
+ * Initialize neutral species.
  *
  * @param gk Input gk data
  * @param app gyrokinetic app object
