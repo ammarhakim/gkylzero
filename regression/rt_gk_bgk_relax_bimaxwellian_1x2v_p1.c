@@ -506,6 +506,9 @@ main(int argc, char **argv)
     .electron_charge = ctx.charge_elc,
     .electron_temp = ctx.Te,
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
+
+    .is_static = true,
+    .zero_init_field = true,
   };
 
   // Gyrokinetic app.
@@ -537,7 +540,6 @@ main(int argc, char **argv)
     .num_species = 2,
     .species = { elc, ion },
 
-    .skip_field = true,
     .field = field,
 
     .parallelism = {
