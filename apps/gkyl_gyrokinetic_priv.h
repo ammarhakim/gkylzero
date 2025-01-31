@@ -1019,6 +1019,43 @@ void gk_species_radiation_rhs(gkyl_gyrokinetic_app *app,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
+ * Write species radiation drag.
+ *
+ * @param app gyrokinetic app object
+ * @param gks Pointer to species
+ * @param tm Simulation time
+ * @param frame Simulation output frame
+ */
+void gk_species_radiation_write_drag(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+
+/**
+ * Write species radiation emissivity.
+ *
+ * @param app gyrokinetic app object
+ * @param gks Pointer to species
+ * @param tm Simulation time
+ * @param frame Simulation output frame
+ */
+void gk_species_radiation_write_emissivity(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+
+/**
+ * Calculate species radiation integrated moments.
+ *
+ * @param app gyrokinetic app object
+ * @param gks Pointer to species
+ * @param tm Simulation time
+ */
+void gk_species_radiation_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm);
+
+/**
+ * Write species radiation integrated moments.
+ *
+ * @param app gyrokinetic app object
+ * @param gks Pointer to species
+ */
+void gk_species_radiation_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks);
+
+/**
  * Release species radiation drag object.
  *
  * @param app gyrokinetic app object
