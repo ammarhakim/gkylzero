@@ -41,6 +41,93 @@ mkarr_mb(int num_blocks, bool use_gpu, long nc, struct gkyl_range *ranges)
   return a;
 }
 
+static void check_continuity(int num_blocks, struct gkyl_rect_grid *grid,
+  struct gkyl_range *ranges, struct gkyl_basis basis, struct gkyl_array **fields)
+{
+  // Check continuity along last dim.
+  int ndim = basis.ndim;
+  int pardir = ndim-1;
+  const int num_nodes_perp_max = 4; // 3x p=1.
+  int num_nodes_perp = 1;
+  if (ndim == 2)
+    num_nodes_perp = 2;
+  else if (ndim == 3)
+    num_nodes_perp = 4;
+
+  struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, ndim, basis.num_basis);
+  basis.node_list(gkyl_array_fetch(nodes, 0));
+  for (int bI=0; bI<num_blocks; bI++) {
+    // Check continuity within each block.
+    int idx_up[ndim];
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &ranges[bI]);
+    while (gkyl_range_iter_next(&iter)) {
+      if (iter.idx[pardir] < ranges[bI].upper[pardir]) {
+        int *idx_lo = iter.idx;
+        for (int d=0; d<pardir; d++)
+          idx_up[d] = idx_lo[d];
+        idx_up[pardir] = idx_lo[pardir] + 1;
+  
+        long lidx_lo = gkyl_range_idx(&ranges[bI], idx_lo);
+        long lidx_up = gkyl_range_idx(&ranges[bI], idx_up);
+  
+        double *arr_lo = gkyl_array_fetch(fields[bI], lidx_lo);
+        double *arr_up = gkyl_array_fetch(fields[bI], lidx_up);
+  
+        double fn_lo[num_nodes_perp_max], fn_up[num_nodes_perp_max];
+        for (int i=0; i<num_nodes_perp; i++) {
+          const double *node_lo = gkyl_array_cfetch(nodes, num_nodes_perp+i);
+          fn_lo[i] = basis.eval_expand(node_lo, arr_lo);
+        }
+        for (int i=0; i<num_nodes_perp; i++) {
+          const double *node_up = gkyl_array_cfetch(nodes, i);
+          fn_up[i] = basis.eval_expand(node_up, arr_up);
+        }
+        for (int i=0; i<num_nodes_perp; i++) {
+          TEST_CHECK( gkyl_compare(fn_lo[i], fn_up[i], 1e-12) );
+          TEST_MSG( "b%d idx_lo=%d, node %d: lower=%g upper=%g diff=%g\n", bI, idx_lo[0], i, fn_lo[i], fn_up[i], fn_lo[i]-fn_up[i]);
+        }
+      }
+    }
+
+    // Check continuity between blocks.
+    if (bI < num_blocks-1) {
+      struct gkyl_range perp_range_lo, perp_range_up;
+      gkyl_range_shorten_from_below(&perp_range_lo, &ranges[bI], pardir, 1);
+      gkyl_range_shorten_from_above(&perp_range_up, &ranges[bI+1], pardir, 1);
+      struct gkyl_range_iter perp_iter_lo;
+      gkyl_range_iter_init(&perp_iter_lo, &perp_range_lo);
+      while (gkyl_range_iter_next(&perp_iter_lo)) {
+        int *idx_lo = perp_iter_lo.idx;
+        for (int d=0; d<pardir; d++)
+          idx_up[d] = idx_lo[d];
+        idx_up[pardir] = perp_range_up.lower[pardir];
+  
+        long lidx_lo = gkyl_range_idx(&ranges[bI], idx_lo);
+        long lidx_up = gkyl_range_idx(&ranges[bI+1], idx_up);
+  
+        double *arr_lo = gkyl_array_fetch(fields[bI], lidx_lo);
+        double *arr_up = gkyl_array_fetch(fields[bI+1], lidx_up);
+  
+        double fn_lo[num_nodes_perp_max], fn_up[num_nodes_perp_max];
+        for (int i=0; i<num_nodes_perp; i++) {
+          const double *node_lo = gkyl_array_cfetch(nodes, num_nodes_perp+i);
+          fn_lo[i] = basis.eval_expand(node_lo, arr_lo);
+        }
+        for (int i=0; i<num_nodes_perp; i++) {
+          const double *node_up = gkyl_array_cfetch(nodes, i);
+          fn_up[i] = basis.eval_expand(node_up, arr_up);
+        }
+        for (int i=0; i<num_nodes_perp; i++) {
+          TEST_CHECK( gkyl_compare(fn_lo[i], fn_up[i], 1e-12) );
+          TEST_MSG( "b%d-b%d idx_lo=%d, node %d: lower=%g upper=%g diff=%g\n", bI, bI+1, idx_lo[0], i, fn_lo[i], fn_up[i], fn_lo[i]-fn_up[i]);
+        }
+      }
+    }
+  }
+  gkyl_array_release(nodes);
+}
+
 void evalFunc1x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
@@ -76,12 +163,15 @@ void eval_weight_1x(double t, const double *xn, double* restrict fout, void *ctx
 void
 test_1x(int poly_order, const bool isperiodic, bool use_gpu)
 {
-  int num_blocks = 2;
+  int num_blocks = 4;
   // Grid extents and number of cells for each block, listed in flat arrays.
-  double lower[] = {-0.5, 0.0}, upper[] = {0.0, 0.5};
-  int cells[] = {2, 2};
+  double lower[] = {-0.5, -0.25, 0.0, 0.25}, upper[] = {-0.25, 0.0, 0.25, 0.5};
+  int cells[] = {2, 6, 2, 4};
 
-  int ndim = sizeof(lower)/(num_blocks*sizeof(lower[0]));
+  int ndim = 1;
+  assert( (sizeof(lower)/(sizeof(lower[0])) == ndim*num_blocks) &&
+          (sizeof(upper)/(sizeof(upper[0])) == ndim*num_blocks) &&
+          (sizeof(cells)/(sizeof(cells[0])) == ndim*num_blocks) );
 
   struct test_ctx proj_ctx = {
     .num_blocks = num_blocks, // Number of grid blocks. 
@@ -139,7 +229,6 @@ test_1x(int poly_order, const bool isperiodic, bool use_gpu)
     gkyl_proj_on_basis_release(projob);
     gkyl_array_copy(rho[bI], rho_ho[bI]);
 
-    printf("b:%d | grid=%g:%g, localRange=%d:%d\n",bI,grid[bI].lower[0],grid[bI].upper[0],localRange[bI].lower[0],localRange[bI].upper[0]);
     char fname0[1024];
     sprintf(fname0, "ctest_fem_parproj_multib_%dx_p%d_rho_b%d.gkyl", ndim, poly_order, bI);
     gkyl_grid_sub_array_write(&grid[bI], &localRange[bI], 0, rho_ho[bI], fname0);
@@ -228,52 +317,61 @@ test_1x(int poly_order, const bool isperiodic, bool use_gpu)
   sprintf(fname3, "ctest_fem_parproj_multib_%dx_p%d_phi_mb.gkyl", ndim, poly_order);
   gkyl_grid_sub_array_write(&grid_mb, &localRange_mb, 0, phi_mb_ho, fname3);
 
-//  if (poly_order == 1) {
-//    // Solution (checked visually, also checked that phi is actually continuous,
-//    // and checked that visually looks like results in g2):
-//    const double sol[8] = {-0.9089542445638024, -0.4554124667453318,
-//                           -0.8488758876834943,  0.4900987222626481,
-//                            0.8488758876834943,  0.490098722262648 ,
-//                            0.9089542445638024, -0.4554124667453318};
-//    const double *phi_p;
-//    phi_p = gkyl_array_cfetch(phi_mb_ho, 1);
-//    TEST_CHECK( gkyl_compare(sol[0], phi_p[0], 1e-14) );
-//    TEST_MSG("Expected: %.13e in cell (%d)", sol[0], 1);
-//    TEST_MSG("Produced: %.13e", phi_p[0]);
-//    TEST_CHECK( gkyl_compare(sol[1], phi_p[1], 1e-14) );
-//    phi_p = gkyl_array_cfetch(phi_mb_ho, 2);
-//    TEST_CHECK( gkyl_compare(sol[2], phi_p[0], 1e-14) );
-//    TEST_CHECK( gkyl_compare(sol[3], phi_p[1], 1e-14) );
-//    phi_p = gkyl_array_cfetch(phi_mb_ho, 3);
-//    TEST_CHECK( gkyl_compare(sol[4], phi_p[0], 1e-14) );
-//    TEST_CHECK( gkyl_compare(sol[5], phi_p[1], 1e-14) );
-//    phi_p = gkyl_array_cfetch(phi_mb_ho, 4);
-//    TEST_CHECK( gkyl_compare(sol[6], phi_p[0], 1e-14) );
-//    TEST_CHECK( gkyl_compare(sol[7], phi_p[1], 1e-14) );
-//  } if (poly_order == 2) {
-//    // Solution (checked visually against g2):
-//    const double sol[12] = {-0.9010465429057769, -0.4272439810948228,  0.0875367707148495,
-//                            -0.9039382020247494,  0.4172269800703625,  0.08107082435707  ,
-//                             0.9039382020247495,  0.4172269800703625, -0.0810708243570699,
-//                             0.9010465429057768, -0.4272439810948229, -0.0875367707148495};
-//    const double *phi_p;
-//    phi_p = gkyl_array_cfetch(phi_mb_ho, 1);
-//    TEST_CHECK( gkyl_compare(sol[0], phi_p[0], 1e-14) );
-//    TEST_CHECK( gkyl_compare(sol[1], phi_p[1], 1e-14) );
-//    TEST_CHECK( gkyl_compare(sol[2], phi_p[2], 1e-14) );
-//    phi_p = gkyl_array_cfetch(phi_mb_ho, 2);
-//    TEST_CHECK( gkyl_compare(sol[3], phi_p[0], 1e-14) );
-//    TEST_CHECK( gkyl_compare(sol[4], phi_p[1], 1e-14) );
-//    TEST_CHECK( gkyl_compare(sol[5], phi_p[2], 1e-14) );
-//    phi_p = gkyl_array_cfetch(phi_mb_ho, 3);
-//    TEST_CHECK( gkyl_compare(sol[6], phi_p[0], 1e-14) );
-//    TEST_CHECK( gkyl_compare(sol[7], phi_p[1], 1e-14) );
-//    TEST_CHECK( gkyl_compare(sol[8], phi_p[2], 1e-14) );
-//    phi_p = gkyl_array_cfetch(phi_mb_ho, 4);
-//    TEST_CHECK( gkyl_compare(sol[9], phi_p[0], 1e-14) );
-//    TEST_CHECK( gkyl_compare(sol[10], phi_p[1], 1e-14) );
-//    TEST_CHECK( gkyl_compare(sol[11], phi_p[2], 1e-14) );
-//  }
+  if (num_blocks == 2) {
+    if (cells[0] == 2 && cells[1] == 2) {
+      if (poly_order == 1) {
+        // Solution (checked visually, also checked that phi is actually continuous,
+        // and checked that visually looks like results in g2):
+        const double sol[8] = {-0.9089542445638024, -0.4554124667453318,
+                               -0.8488758876834943,  0.4900987222626481,
+                                0.8488758876834943,  0.490098722262648 ,
+                                0.9089542445638024, -0.4554124667453318};
+        const double *phi_p;
+        phi_p = gkyl_array_cfetch(phi_mb_ho, 1);
+        TEST_CHECK( gkyl_compare(sol[0], phi_p[0], 1e-14) );
+        TEST_MSG("Expected: %.13e in cell (%d)", sol[0], 1);
+        TEST_MSG("Produced: %.13e", phi_p[0]);
+        TEST_CHECK( gkyl_compare(sol[1], phi_p[1], 1e-14) );
+        phi_p = gkyl_array_cfetch(phi_mb_ho, 2);
+        TEST_CHECK( gkyl_compare(sol[2], phi_p[0], 1e-14) );
+        TEST_CHECK( gkyl_compare(sol[3], phi_p[1], 1e-14) );
+        phi_p = gkyl_array_cfetch(phi_mb_ho, 3);
+        TEST_CHECK( gkyl_compare(sol[4], phi_p[0], 1e-14) );
+        TEST_CHECK( gkyl_compare(sol[5], phi_p[1], 1e-14) );
+        phi_p = gkyl_array_cfetch(phi_mb_ho, 4);
+        TEST_CHECK( gkyl_compare(sol[6], phi_p[0], 1e-14) );
+        TEST_CHECK( gkyl_compare(sol[7], phi_p[1], 1e-14) );
+      } if (poly_order == 2) {
+        // Solution (checked visually against g2):
+        const double sol[12] = {-0.9010465429057769, -0.4272439810948228,  0.0875367707148495,
+                                -0.9039382020247494,  0.4172269800703625,  0.08107082435707  ,
+                                 0.9039382020247495,  0.4172269800703625, -0.0810708243570699,
+                                 0.9010465429057768, -0.4272439810948229, -0.0875367707148495};
+        const double *phi_p;
+        phi_p = gkyl_array_cfetch(phi_mb_ho, 1);
+        TEST_CHECK( gkyl_compare(sol[0], phi_p[0], 1e-14) );
+        TEST_CHECK( gkyl_compare(sol[1], phi_p[1], 1e-14) );
+        TEST_CHECK( gkyl_compare(sol[2], phi_p[2], 1e-14) );
+        phi_p = gkyl_array_cfetch(phi_mb_ho, 2);
+        TEST_CHECK( gkyl_compare(sol[3], phi_p[0], 1e-14) );
+        TEST_CHECK( gkyl_compare(sol[4], phi_p[1], 1e-14) );
+        TEST_CHECK( gkyl_compare(sol[5], phi_p[2], 1e-14) );
+        phi_p = gkyl_array_cfetch(phi_mb_ho, 3);
+        TEST_CHECK( gkyl_compare(sol[6], phi_p[0], 1e-14) );
+        TEST_CHECK( gkyl_compare(sol[7], phi_p[1], 1e-14) );
+        TEST_CHECK( gkyl_compare(sol[8], phi_p[2], 1e-14) );
+        phi_p = gkyl_array_cfetch(phi_mb_ho, 4);
+        TEST_CHECK( gkyl_compare(sol[9], phi_p[0], 1e-14) );
+        TEST_CHECK( gkyl_compare(sol[10], phi_p[1], 1e-14) );
+        TEST_CHECK( gkyl_compare(sol[11], phi_p[2], 1e-14) );
+      }
+    }
+    else
+      check_continuity(num_blocks, grid, localRange, basis, phi_ho);
+  }
+  else {
+    check_continuity(num_blocks, grid, localRange, basis, phi_ho);
+  }
 
   for (int bI=0; bI<num_blocks; bI++) {
     gkyl_array_release(rho[bI]);

@@ -163,6 +163,7 @@ gkyl_fem_parproj_multib_new(int num_blocks, const struct gkyl_range *mbz_range,
           long jlo = block_offset-up->numnodes_global[bI]+globalidx_lo[local_off+k];
           gkyl_mat_triples_insert(tri[perpidx], ilo, jlo, 1.0);
           gkyl_mat_triples_insert(tri[perpidx], jlo, ilo, 1.0);
+
           // =-1 entry for node on lower block (corresponding RHS entry =0).
           long iup = block_offset+k;
           long jup = block_offset+up->numnodes_perp+globalidx_up[k];
