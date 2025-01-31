@@ -136,8 +136,6 @@ gkyl_fem_parproj_multib_new(int num_blocks, const struct gkyl_range *mbz_range,
 
         // Apply the wgt*phi*basis stencil.
         keri = idx_to_inloup_ker(up->parnum_cells[bI], up->par_iter1d.idx[0]);
-        if (bI==0 && keri==2) keri = 0;
-        if (bI==1 && keri==1) keri = 0;
         up->kernels->lhsker[keri](wgt_p, up->globalidx, tri[perpidx]);
       }
       block_offset += up->numnodes_global[bI];
@@ -164,10 +162,12 @@ gkyl_fem_parproj_multib_new(int num_blocks, const struct gkyl_range *mbz_range,
           long ilo = block_offset+k;
           long jlo = block_offset-up->numnodes_global[bI]+globalidx_lo[local_off+k];
           gkyl_mat_triples_insert(tri[perpidx], ilo, jlo, 1.0);
+          gkyl_mat_triples_insert(tri[perpidx], jlo, ilo, 1.0);
           // =-1 entry for node on lower block (corresponding RHS entry =0).
           long iup = block_offset+k;
           long jup = block_offset+up->numnodes_perp+globalidx_up[k];
           gkyl_mat_triples_insert(tri[perpidx], iup, jup, -1.0);
+          gkyl_mat_triples_insert(tri[perpidx], jup, iup, -1.0);
         }
         block_offset += up->numnodes_perp;
       }
@@ -239,8 +239,6 @@ gkyl_fem_parproj_multib_set_rhs(struct gkyl_fem_parproj_multib* up,
         // problems at other perp cells and for previous blocks.
 
         keri = idx_to_inloup_ker(up->parnum_cells[bI], up->par_iter1d.idx[0]);
-        if (bI==0 && keri==2) keri = 0;
-        if (bI==1 && keri==1) keri = 0;
         up->kernels->srcker[keri](wgt_p, rhsin_p, phibc_p, prob_offset, up->globalidx, brhs_p);
       }
 
