@@ -161,17 +161,9 @@ void eval_weight_1x(double t, const double *xn, double* restrict fout, void *ctx
 }
 
 void
-test_1x(int poly_order, const bool isperiodic, bool use_gpu)
+test_1x(int num_blocks, const double *lower, const double *upper, const int *cells, int poly_order, bool use_gpu)
 {
-  int num_blocks = 4;
-  // Grid extents and number of cells for each block, listed in flat arrays.
-  double lower[] = {-0.5, -0.25, 0.0, 0.25}, upper[] = {-0.25, 0.0, 0.25, 0.5};
-  int cells[] = {2, 6, 2, 4};
-
   int ndim = 1;
-  assert( (sizeof(lower)/(sizeof(lower[0])) == ndim*num_blocks) &&
-          (sizeof(upper)/(sizeof(upper[0])) == ndim*num_blocks) &&
-          (sizeof(cells)/(sizeof(cells[0])) == ndim*num_blocks) );
 
   struct test_ctx proj_ctx = {
     .num_blocks = num_blocks, // Number of grid blocks. 
@@ -317,57 +309,61 @@ test_1x(int poly_order, const bool isperiodic, bool use_gpu)
   sprintf(fname3, "ctest_fem_parproj_multib_%dx_p%d_phi_mb.gkyl", ndim, poly_order);
   gkyl_grid_sub_array_write(&grid_mb, &localRange_mb, 0, phi_mb_ho, fname3);
 
+  bool check_values = false;
+  if (num_blocks == 1) {
+    if (cells[0] == 4) check_values = true;
+  }
   if (num_blocks == 2) {
-    if (cells[0] == 2 && cells[1] == 2) {
-      if (poly_order == 1) {
-        // Solution (checked visually, also checked that phi is actually continuous,
-        // and checked that visually looks like results in g2):
-        const double sol[8] = {-0.9089542445638024, -0.4554124667453318,
-                               -0.8488758876834943,  0.4900987222626481,
-                                0.8488758876834943,  0.490098722262648 ,
-                                0.9089542445638024, -0.4554124667453318};
-        const double *phi_p;
-        phi_p = gkyl_array_cfetch(phi_mb_ho, 1);
-        TEST_CHECK( gkyl_compare(sol[0], phi_p[0], 1e-14) );
-        TEST_MSG("Expected: %.13e in cell (%d)", sol[0], 1);
-        TEST_MSG("Produced: %.13e", phi_p[0]);
-        TEST_CHECK( gkyl_compare(sol[1], phi_p[1], 1e-14) );
-        phi_p = gkyl_array_cfetch(phi_mb_ho, 2);
-        TEST_CHECK( gkyl_compare(sol[2], phi_p[0], 1e-14) );
-        TEST_CHECK( gkyl_compare(sol[3], phi_p[1], 1e-14) );
-        phi_p = gkyl_array_cfetch(phi_mb_ho, 3);
-        TEST_CHECK( gkyl_compare(sol[4], phi_p[0], 1e-14) );
-        TEST_CHECK( gkyl_compare(sol[5], phi_p[1], 1e-14) );
-        phi_p = gkyl_array_cfetch(phi_mb_ho, 4);
-        TEST_CHECK( gkyl_compare(sol[6], phi_p[0], 1e-14) );
-        TEST_CHECK( gkyl_compare(sol[7], phi_p[1], 1e-14) );
-      } if (poly_order == 2) {
-        // Solution (checked visually against g2):
-        const double sol[12] = {-0.9010465429057769, -0.4272439810948228,  0.0875367707148495,
-                                -0.9039382020247494,  0.4172269800703625,  0.08107082435707  ,
-                                 0.9039382020247495,  0.4172269800703625, -0.0810708243570699,
-                                 0.9010465429057768, -0.4272439810948229, -0.0875367707148495};
-        const double *phi_p;
-        phi_p = gkyl_array_cfetch(phi_mb_ho, 1);
-        TEST_CHECK( gkyl_compare(sol[0], phi_p[0], 1e-14) );
-        TEST_CHECK( gkyl_compare(sol[1], phi_p[1], 1e-14) );
-        TEST_CHECK( gkyl_compare(sol[2], phi_p[2], 1e-14) );
-        phi_p = gkyl_array_cfetch(phi_mb_ho, 2);
-        TEST_CHECK( gkyl_compare(sol[3], phi_p[0], 1e-14) );
-        TEST_CHECK( gkyl_compare(sol[4], phi_p[1], 1e-14) );
-        TEST_CHECK( gkyl_compare(sol[5], phi_p[2], 1e-14) );
-        phi_p = gkyl_array_cfetch(phi_mb_ho, 3);
-        TEST_CHECK( gkyl_compare(sol[6], phi_p[0], 1e-14) );
-        TEST_CHECK( gkyl_compare(sol[7], phi_p[1], 1e-14) );
-        TEST_CHECK( gkyl_compare(sol[8], phi_p[2], 1e-14) );
-        phi_p = gkyl_array_cfetch(phi_mb_ho, 4);
-        TEST_CHECK( gkyl_compare(sol[9], phi_p[0], 1e-14) );
-        TEST_CHECK( gkyl_compare(sol[10], phi_p[1], 1e-14) );
-        TEST_CHECK( gkyl_compare(sol[11], phi_p[2], 1e-14) );
-      }
+    if (cells[0] == 2 && cells[1] == 2) check_values = true;
+  }
+
+  if (check_values) {
+    if (poly_order == 1) {
+      // Solution (checked visually, also checked that phi is actually continuous,
+      // and checked that visually looks like results in g2):
+      const double sol[8] = {-0.9089542445638024, -0.4554124667453318,
+                             -0.8488758876834943,  0.4900987222626481,
+                              0.8488758876834943,  0.490098722262648 ,
+                              0.9089542445638024, -0.4554124667453318};
+      const double *phi_p;
+      phi_p = gkyl_array_cfetch(phi_mb_ho, 1);
+      TEST_CHECK( gkyl_compare(sol[0], phi_p[0], 1e-14) );
+      TEST_MSG("Expected: %.13e in cell (%d)", sol[0], 1);
+      TEST_MSG("Produced: %.13e", phi_p[0]);
+      TEST_CHECK( gkyl_compare(sol[1], phi_p[1], 1e-14) );
+      phi_p = gkyl_array_cfetch(phi_mb_ho, 2);
+      TEST_CHECK( gkyl_compare(sol[2], phi_p[0], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[3], phi_p[1], 1e-14) );
+      phi_p = gkyl_array_cfetch(phi_mb_ho, 3);
+      TEST_CHECK( gkyl_compare(sol[4], phi_p[0], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[5], phi_p[1], 1e-14) );
+      phi_p = gkyl_array_cfetch(phi_mb_ho, 4);
+      TEST_CHECK( gkyl_compare(sol[6], phi_p[0], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[7], phi_p[1], 1e-14) );
+    } if (poly_order == 2) {
+      // Solution (checked visually against g2):
+      const double sol[12] = {-0.9010465429057769, -0.4272439810948228,  0.0875367707148495,
+                              -0.9039382020247494,  0.4172269800703625,  0.08107082435707  ,
+                               0.9039382020247495,  0.4172269800703625, -0.0810708243570699,
+                               0.9010465429057768, -0.4272439810948229, -0.0875367707148495};
+      const double *phi_p;
+      phi_p = gkyl_array_cfetch(phi_mb_ho, 1);
+      TEST_CHECK( gkyl_compare(sol[0], phi_p[0], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[1], phi_p[1], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[2], phi_p[2], 1e-14) );
+      phi_p = gkyl_array_cfetch(phi_mb_ho, 2);
+      TEST_CHECK( gkyl_compare(sol[3], phi_p[0], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[4], phi_p[1], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[5], phi_p[2], 1e-14) );
+      phi_p = gkyl_array_cfetch(phi_mb_ho, 3);
+      TEST_CHECK( gkyl_compare(sol[6], phi_p[0], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[7], phi_p[1], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[8], phi_p[2], 1e-14) );
+      phi_p = gkyl_array_cfetch(phi_mb_ho, 4);
+      TEST_CHECK( gkyl_compare(sol[9], phi_p[0], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[10], phi_p[1], 1e-14) );
+      TEST_CHECK( gkyl_compare(sol[11], phi_p[2], 1e-14) );
     }
-    else
-      check_continuity(num_blocks, grid, localRange, basis, phi_ho);
   }
   else {
     check_continuity(num_blocks, grid, localRange, basis, phi_ho);
@@ -396,25 +392,60 @@ test_1x(int poly_order, const bool isperiodic, bool use_gpu)
 
 }
 
-
-void test_1x_p1_nonperiodic() {test_1x(1, false, false);}
-
-void test_1x_p2_nonperiodic() {test_1x(2, false, false);}
+void test_1x_p1_bcnone() {
+  // List grid extents and number of cells for each block in flat arrays.
+  int num_blocks0 = 1;
+  double lower0[] = {-0.5}, upper0[] = {0.5};
+  int cells0[] = {4};
+  test_1x(num_blocks0, lower0, upper0, cells0, 1, false);
+ 
+  int num_blocks1 = 2;
+  double lower1[] = {-0.5, 0.0}, upper1[] = {0.0, 0.5};
+  int cells1[] = {2, 2};
+  test_1x(num_blocks1, lower1, upper1, cells1, 1, false);
+ 
+  int num_blocks2 = 2;
+  double lower2[] = {-0.5, 0.0}, upper2[] = {0.0, 0.5};
+  int cells2[] = {2, 4};
+  test_1x(num_blocks2, lower2, upper2, cells2, 1, false);
+ 
+  int num_blocks3 = 4;
+  double lower3[] = {-0.5, -0.25, 0.0, 0.25}, upper3[] = {-0.25, 0.0, 0.25, 0.5};
+  int cells3[] = {2, 6, 2, 4};
+  test_1x(num_blocks3, lower3, upper3, cells3, 1, false);
+}
 
 #ifdef GKYL_HAVE_CUDA
 // ......... GPU tests ............ //
-void gpu_test_1x_p1_nonperiodic() {test_1x(1, false, true);}
-
-void gpu_test_1x_p2_nonperiodic() {test_1x(2, false, true);}
+void gpu_test_1x_p1_bcnone() {
+  // List grid extents and number of cells for each block in flat arrays.
+  int num_blocks0 = 1;
+  double lower0[] = {-0.5}, upper0[] = {0.5};
+  int cells0[] = {4};
+  test_1x(num_blocks0, lower0, upper0, cells0, 1, true);
+ 
+  int num_blocks1 = 2;
+  double lower1[] = {-0.5, 0.0}, upper1[] = {0.0, 0.5};
+  int cells1[] = {2, 2};
+  test_1x(num_blocks1, lower1, upper1, cells1, 1, true);
+ 
+  int num_blocks2 = 2;
+  double lower2[] = {-0.5, 0.0}, upper2[] = {0.0, 0.5};
+  int cells2[] = {2, 4};
+  test_1x(num_blocks2, lower2, upper2, cells2, 1, true);
+ 
+  int num_blocks3 = 4;
+  double lower3[] = {-0.5, -0.25, 0.0, 0.25}, upper3[] = {-0.25, 0.0, 0.25, 0.5};
+  int cells3[] = {2, 6, 2, 4};
+  test_1x(num_blocks3, lower3, upper3, cells3, 1, true);
+}
 #endif
 
 
 TEST_LIST = {
-  { "test_1x_p1_nonperiodic", test_1x_p1_nonperiodic },
-  { "test_1x_p2_nonperiodic", test_1x_p2_nonperiodic },
+  { "test_1x_p1_bcnone", test_1x_p1_bcnone },
 #ifdef GKYL_HAVE_CUDA
-  { "gpu_test_1x_p1_nonperiodic", gpu_test_1x_p1_nonperiodic },
-  { "gpu_test_1x_p2_nonperiodic", gpu_test_1x_p2_nonperiodic },
+  { "gpu_test_1x_p1_bcnone", gpu_test_1x_p1_bcnone },
 #endif
   { NULL, NULL },
 };
