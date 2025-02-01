@@ -208,6 +208,7 @@ momentApp = Moments.App.new {
   -- Field.
   field = Moments.Field.new {
     epsilon0 = epsilon0, mu0 = mu0,
+    mgnErrorSpeedFactor = 1.0,
 
     -- Initial conditions function.
     init = function (t, xn)
