@@ -1115,52 +1115,30 @@ gkyl_gyrokinetic_app_write_species_rad_integrated_mom(gkyl_gyrokinetic_app *app,
 }
 
 //
-// ............. Ionization outputs ............... //
+// ............. Neutral reaction outputs ............... //
 // 
 void
-gkyl_gyrokinetic_app_write_species_iz_react(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame)
+gkyl_gyrokinetic_app_write_species_react(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame)
 {
   struct gk_species *gks = &app->species[sidx];
   struct gk_react *gkr = &gks->react;
-  gk_species_react_write_iz(app, gks, gkr, ridx, tm, frame);
+  gk_species_react_write(app, gks, gkr, ridx, tm, frame);
 }
 
 void
-gkyl_gyrokinetic_app_write_species_iz_react_neut(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame)
+gkyl_gyrokinetic_app_write_species_react_neut(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame)
 {
   struct gk_species *gks = &app->species[sidx];
   struct gk_react *gkr = &gks->react_neut;
-  gk_species_react_write_iz(app, gks, gkr, ridx, tm, frame);
-}
-
-//
-// ............. Recombination outputs ............... //
-// 
-void
-gkyl_gyrokinetic_app_write_species_recomb_react(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame)
-{
-  struct gk_species *gks = &app->species[sidx];
-  struct gk_react *gkr = &gks->react;
-  gk_species_react_write_recomb(app, gks, gkr, ridx, tm, frame);
+  gk_species_react_write(app, gks, gkr, ridx, tm, frame);
 }
 
 void
-gkyl_gyrokinetic_app_write_species_recomb_react_neut(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame)
+gkyl_gyrokinetic_app_write_neut_species_react_neut(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame)
 {
-  struct gk_species *gks = &app->species[sidx];
-  struct gk_react *gkr = &gks->react_neut;
-  gk_species_react_write_recomb(app, gks, gkr, ridx, tm, frame);
-}
-
-//
-// ............. Charge exchange outputs ............... //
-// 
-void
-gkyl_gyrokinetic_app_write_species_cx_react_neut(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame)
-{
-  struct gk_species *gks = &app->species[sidx];
-  struct gk_react *gkr = &gks->react_neut;
-  gk_species_react_write_cx(app, gks, gkr, ridx, tm, frame);
+  struct gk_neut_species *gkns = &app->neut_species[sidx];
+  struct gk_react *gkr = &gkns->react_neut;
+  gk_neut_species_react_write(app, gkns, gkr, ridx, tm, frame);
 }
 
 //
@@ -1195,29 +1173,15 @@ gkyl_gyrokinetic_app_write_species_conf(gkyl_gyrokinetic_app* app, int sidx, dou
 
   gkyl_gyrokinetic_app_write_species_rad_emissivity(app, sidx, tm, frame);
 
-  struct gk_species *gk_s = &app->species[sidx];
-  for (int j=0; j<gk_s->react.num_react; ++j) {
-    if ((gk_s->react.react_id[j] == GKYL_REACT_IZ) 
-      && (gk_s->react.type_self[j] == GKYL_SELF_ELC)) {
-      gkyl_gyrokinetic_app_write_species_iz_react(app, sidx, j, tm, frame);
-    }
-    if ((gk_s->react.react_id[j] == GKYL_REACT_RECOMB) 
-      && (gk_s->react.type_self[j] == GKYL_SELF_ELC)) {
-      gkyl_gyrokinetic_app_write_species_recomb_react(app, sidx, j, tm, frame);
+  struct gk_species *gks = &app->species[sidx];
+  for (int j=0; j<gks->react.num_react; ++j) {
+    if (gks->react.type_self[j] == GKYL_SELF_ION) {
+      gkyl_gyrokinetic_app_write_species_react(app, sidx, j, tm, frame);
     }
   }
-  for (int j=0; j<gk_s->react_neut.num_react; ++j) {
-    if ((gk_s->react_neut.react_id[j] == GKYL_REACT_IZ) 
-      && (gk_s->react_neut.type_self[j] == GKYL_SELF_ELC)) {
-      gkyl_gyrokinetic_app_write_species_iz_react_neut(app, sidx, j, tm, frame);
-    }
-    if ((gk_s->react_neut.react_id[j] == GKYL_REACT_RECOMB) 
-      && (gk_s->react_neut.type_self[j] == GKYL_SELF_ELC)) {
-      gkyl_gyrokinetic_app_write_species_recomb_react_neut(app, sidx, j, tm, frame);
-    }
-    if ((gk_s->react_neut.react_id[j] == GKYL_REACT_CX)
-      && (gk_s->react_neut.type_self[j] == GKYL_SELF_ION)) {
-      gkyl_gyrokinetic_app_write_species_cx_react_neut(app, sidx, j, tm, frame);
+  for (int j=0; j<gks->react_neut.num_react; ++j) {
+    if (gks->react_neut.type_self[j] == GKYL_SELF_ION) {
+      gkyl_gyrokinetic_app_write_species_react_neut(app, sidx, j, tm, frame);
     }
   }
 }
@@ -1228,6 +1192,11 @@ gkyl_gyrokinetic_app_write_neut_species_conf(gkyl_gyrokinetic_app* app, int sidx
   gkyl_gyrokinetic_app_write_neut_species_mom(app, sidx, tm, frame);
 
   gkyl_gyrokinetic_app_write_neut_species_source_mom(app, sidx, tm, frame);
+
+  struct gk_neut_species *gkns = &app->neut_species[sidx];
+  for (int j=0; j<gkns->react_neut.num_react; ++j) {
+    gkyl_gyrokinetic_app_write_neut_species_react_neut(app, sidx, j, tm, frame);
+  }
 }
 
 //
@@ -1373,11 +1342,11 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     // Compute reaction rates (e.g., ionization, recombination, or charge exchange).
     if (gk_s->react.num_react) {
       gk_species_react_cross_moms(app, &app->species[i], 
-        &gk_s->react, fin[i], fin, fin_neut);
+        &gk_s->react, fin, fin_neut);
     }
     if (gk_s->react_neut.num_react) {
       gk_species_react_cross_moms(app, &app->species[i], 
-        &gk_s->react_neut, fin[i], fin, fin_neut);
+        &gk_s->react_neut, fin, fin_neut);
     }
     // Compute necessary drag coefficients for radiation operator.
     if (gk_s->rad.radiation_id == GKYL_GK_RADIATION) {

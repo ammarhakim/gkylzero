@@ -327,6 +327,7 @@ struct gk_boundary_fluxes {
 struct gk_react {
   int num_react; // number of reactions
   bool all_gk; // boolean for if reactions are only between gyrokinetic species
+  bool write_diagnostics; // Whether to write diagnostics out.
   struct gkyl_gyrokinetic_react_type react_type[GKYL_MAX_REACT]; // input struct for type of reactions
 
   struct gkyl_array *f_react; // distribution function array which holds update for each reaction
@@ -1258,9 +1259,8 @@ void gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_spe
  * @param fin_neut Input neutral distribution functions (size: num_neut_species)
  */
 void gk_species_react_cross_moms(gkyl_gyrokinetic_app *app,
-  const struct gk_species *species,
-  struct gk_react *react,
-  const struct gkyl_array *f_self, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
+  const struct gk_species *species, struct gk_react *react,
+  const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
 
 /**
  * Compute RHS from reactions 
@@ -1277,7 +1277,7 @@ void gk_species_react_rhs(gkyl_gyrokinetic_app *app,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
- * Write ionization reaction rate.
+ * Write reaction rate.
  *
  * @param app gyrokinetic app object
  * @param gks Pointer to species
@@ -1286,33 +1286,7 @@ void gk_species_react_rhs(gkyl_gyrokinetic_app *app,
  * @param tm Simulation time
  * @param frame Simulation output frame
  */
-void gk_species_react_write_iz(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct gk_react *gkr,
-  int ridx, double tm, int frame);
-
-/**
- * Write recombination reaction rate.
- *
- * @param app gyrokinetic app object
- * @param gks Pointer to species
- * @param gkr Pointer to react object
- * @param ridx Index for reaction species
- * @param tm Simulation time
- * @param frame Simulation output frame
- */
-void gk_species_react_write_recomb(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct gk_react *gkr,
-  int ridx, double tm, int frame);
-
-/**
- * Write CX reaction rate.
- *
- * @param app gyrokinetic app object
- * @param gks Pointer to species
- * @param gkr Pointer to react object
- * @param ridx Index for reaction species
- * @param tm Simulation time
- * @param frame Simulation output frame
- */
-void gk_species_react_write_cx(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct gk_react *gkr,
+void gk_species_react_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct gk_react *gkr,
   int ridx, double tm, int frame);
 
 /**
@@ -1720,6 +1694,20 @@ void gk_neut_species_react_cross_moms(gkyl_gyrokinetic_app *app,
 void gk_neut_species_react_rhs(gkyl_gyrokinetic_app *app,
   const struct gk_neut_species *s, struct gk_react *react,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Write neutral reaction rate.
+ *
+ * @param app gyrokinetic app object
+ * @param gkns Pointer to neutral species
+ * @param gkr Pointer to react object
+ * @param ridx Index for reaction species
+ * @param tm Simulation time
+ * @param frame Simulation output frame
+ */
+void gk_neut_species_react_write(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, struct gk_react *gkr,
+  int ridx, double tm, int frame);
+
 
 /**
  * Release neutral species react object.

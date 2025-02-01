@@ -492,6 +492,7 @@ main(int argc, char **argv)
     },
 
     .react_neut = {
+      .write_diagnostics = true,
       .num_react = 3,
       .react_type = {
         { .react_id = GKYL_REACT_CX,
