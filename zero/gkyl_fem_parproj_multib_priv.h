@@ -41,6 +41,57 @@ struct gkyl_fem_parproj_multib {
   bool use_gpu; // Whether to run on the GPU.
 };
 
+GKYL_CU_D
+static void 
+fem_parproj_multib_choose_lhs_kernel(const struct gkyl_basis *basis, bool isdirichlet, bool isweighted, lhsstencil_t *lhsout)
+{
+  int bckey[1] = {-1};
+  bckey[0] = isdirichlet? 1 : 0;
+
+  switch (basis->b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      for (int k=0; k<3; k++)
+        lhsout[k] = isweighted? CK(ser_lhsstencil_list_weighted, basis->ndim, bckey[0], basis->poly_order, k)
+                              : CK(ser_lhsstencil_list_noweight, basis->ndim, bckey[0], basis->poly_order, k); 
+      if (isdirichlet) {
+        lhsout[3] = isweighted? CK(ser_lhsstencil_list_weighted, basis->ndim, 0, basis->poly_order, 1)
+                              : CK(ser_lhsstencil_list_noweight, basis->ndim, 0, basis->poly_order, 1); 
+        lhsout[4] = isweighted? CK(ser_lhsstencil_list_weighted, basis->ndim, 0, basis->poly_order, 2)
+                              : CK(ser_lhsstencil_list_noweight, basis->ndim, 0, basis->poly_order, 2); 
+      }
+      break;
+    default:
+      assert(false);
+      break;
+  }
+}
+
+GKYL_CU_D
+static void
+fem_parproj_multib_choose_srcstencil_kernel(const struct gkyl_basis *basis, bool isdirichlet, bool isweighted, srcstencil_t *srcout)
+{
+  int bckey[1] = {-1};
+  bckey[0] = isdirichlet? 1 : 0;
+
+  switch (basis->b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      for (int k=0; k<3; k++)
+        srcout[k] = isweighted? CK(ser_srcstencil_list_weighted, basis->ndim, bckey[0], basis->poly_order, k)
+                              : CK(ser_srcstencil_list_noweight, basis->ndim, bckey[0], basis->poly_order, k);
+      if (isdirichlet) {
+        srcout[3] = isweighted? CK(ser_srcstencil_list_weighted, basis->ndim, 0, basis->poly_order, 1)
+                              : CK(ser_srcstencil_list_noweight, basis->ndim, 0, basis->poly_order, 1);
+        srcout[4] = isweighted? CK(ser_srcstencil_list_weighted, basis->ndim, 0, basis->poly_order, 2)
+                              : CK(ser_srcstencil_list_noweight, basis->ndim, 0, basis->poly_order, 2);
+      }
+      break;
+    default:
+      assert(false);
+      break;
+  }
+}
+
+
 #ifdef GKYL_HAVE_CUDA
 /**
  * Assign the right-side vector with the discontinuous (DG) source field

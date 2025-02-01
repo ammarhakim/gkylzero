@@ -41,8 +41,8 @@ mkarr_mb(int num_blocks, bool use_gpu, long nc, struct gkyl_range *ranges)
   return a;
 }
 
-static void check_continuity(int num_blocks, struct gkyl_rect_grid *grid,
-  struct gkyl_range *ranges, struct gkyl_basis basis, struct gkyl_array **fields)
+static void check_continuity(int num_blocks, struct gkyl_range *ranges,
+  struct gkyl_basis basis, struct gkyl_array **fields)
 {
   // Check continuity along last dim.
   int ndim = basis.ndim;
@@ -128,6 +128,60 @@ static void check_continuity(int num_blocks, struct gkyl_rect_grid *grid,
   gkyl_array_release(nodes);
 }
 
+void check_dirichlet_bc(int num_blocks, struct gkyl_range *ranges, struct gkyl_basis basis,
+  struct gkyl_array **fields_dg, struct gkyl_array **fields_fem)
+{
+  // Check that two fields have the same boundary values in last dimension.
+  int ndim = basis.ndim;
+  int pardir = ndim-1;
+  const int num_nodes_perp_max = 4; // 3x p=1.
+  int num_nodes_perp = 1;
+  if (ndim == 2)
+    num_nodes_perp = 2;
+  else if (ndim == 3)
+    num_nodes_perp = 4;
+
+  struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, ndim, basis.num_basis);
+  basis.node_list(gkyl_array_fetch(nodes, 0));
+
+  int lo_up_blocks[] = {0,num_blocks==1? 0 : num_blocks-1};
+
+  for (int e=0; e<2; e++) {
+    int bI = lo_up_blocks[e];
+
+    struct gkyl_range perp_range;
+    if (e == 0)
+      gkyl_range_shorten_from_above(&perp_range, &ranges[bI], pardir, 1);
+    else
+      gkyl_range_shorten_from_below(&perp_range, &ranges[bI], pardir, 1);
+
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &perp_range);
+    while (gkyl_range_iter_next(&iter)) {
+      long lidx = gkyl_range_idx(&ranges[bI], iter.idx);
+      double *arr_dg = gkyl_array_fetch(fields_dg[bI], lidx);
+      double *arr_fem = gkyl_array_fetch(fields_fem[bI], lidx);
+
+      double fn_dg[num_nodes_perp_max], fn_fem[num_nodes_perp_max];
+
+      int off = e==0? 0 : num_nodes_perp;
+      for (int i=0; i<num_nodes_perp; i++) {
+        const double *node = gkyl_array_cfetch(nodes, off+i);
+        fn_dg[i] = basis.eval_expand(node, arr_dg);
+      }
+      for (int i=0; i<num_nodes_perp; i++) {
+        const double *node = gkyl_array_cfetch(nodes, off+i);
+        fn_fem[i] = basis.eval_expand(node, arr_fem);
+      }
+      for (int i=0; i<num_nodes_perp; i++) {
+        TEST_CHECK( gkyl_compare(fn_dg[i], fn_fem[i], 1e-12) );
+        TEST_MSG( "b%d idx=%d, node %d: dg=%g fem=%g diff=%g\n", bI, iter.idx[0], i, fn_dg[i], fn_fem[i], fn_dg[i]-fn_fem[i]);
+      }
+    }
+  }
+  gkyl_array_release(nodes);
+}
+
 void evalFunc1x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
@@ -161,7 +215,8 @@ void eval_weight_1x(double t, const double *xn, double* restrict fout, void *ctx
 }
 
 void
-test_1x(int num_blocks, const double *lower, const double *upper, const int *cells, int poly_order, bool use_gpu)
+test_1x(int num_blocks, const double *lower, const double *upper, const int *cells,
+  int poly_order, bool is_dirichlet, bool use_gpu)
 {
   int ndim = 1;
 
@@ -285,10 +340,10 @@ test_1x(int num_blocks, const double *lower, const double *upper, const int *cel
 
   // parallel FEM projection method.
   struct gkyl_fem_parproj_multib *parproj = gkyl_fem_parproj_multib_new(num_blocks, &localRange_mb,
-    localRange, &basis, GKYL_FEM_PARPROJ_NONE, jac_mb, jac_mb, use_gpu);
+    localRange, &basis, is_dirichlet? GKYL_FEM_PARPROJ_DIRICHLET : GKYL_FEM_PARPROJ_NONE, jac_mb, jac_mb, use_gpu);
 
   // Set the RHS source.
-  gkyl_fem_parproj_multib_set_rhs(parproj, rho_mb, NULL);
+  gkyl_fem_parproj_multib_set_rhs(parproj, rho_mb, rho_mb);
 
   // Solve the problem.
   gkyl_fem_parproj_multib_solve(parproj, phi_mb);
@@ -317,7 +372,7 @@ test_1x(int num_blocks, const double *lower, const double *upper, const int *cel
     if (cells[0] == 2 && cells[1] == 2) check_values = true;
   }
 
-  if (check_values) {
+  if (check_values && (!is_dirichlet) ) {
     if (poly_order == 1) {
       // Solution (checked visually, also checked that phi is actually continuous,
       // and checked that visually looks like results in g2):
@@ -366,8 +421,11 @@ test_1x(int num_blocks, const double *lower, const double *upper, const int *cel
     }
   }
   else {
-    check_continuity(num_blocks, grid, localRange, basis, phi_ho);
+    check_continuity(num_blocks, localRange, basis, phi_ho);
   }
+
+  if (is_dirichlet)
+    check_dirichlet_bc(num_blocks, localRange, basis, rho_ho, phi_ho);
 
   for (int bI=0; bI<num_blocks; bI++) {
     gkyl_array_release(rho[bI]);
@@ -392,58 +450,49 @@ test_1x(int num_blocks, const double *lower, const double *upper, const int *cel
 
 }
 
-void test_1x_p1_bcnone() {
+void test_1x_p_bc_dev(int poly_order, bool is_dirichlet, bool use_gpu) {
   // List grid extents and number of cells for each block in flat arrays.
   int num_blocks0 = 1;
   double lower0[] = {-0.5}, upper0[] = {0.5};
   int cells0[] = {4};
-  test_1x(num_blocks0, lower0, upper0, cells0, 1, false);
+  test_1x(num_blocks0, lower0, upper0, cells0, poly_order, is_dirichlet, use_gpu);
  
   int num_blocks1 = 2;
   double lower1[] = {-0.5, 0.0}, upper1[] = {0.0, 0.5};
   int cells1[] = {2, 2};
-  test_1x(num_blocks1, lower1, upper1, cells1, 1, false);
+  test_1x(num_blocks1, lower1, upper1, cells1, poly_order, is_dirichlet, use_gpu);
  
   int num_blocks2 = 2;
   double lower2[] = {-0.5, 0.0}, upper2[] = {0.0, 0.5};
   int cells2[] = {2, 4};
-  test_1x(num_blocks2, lower2, upper2, cells2, 1, false);
+  test_1x(num_blocks2, lower2, upper2, cells2, poly_order, is_dirichlet, use_gpu);
  
   int num_blocks3 = 4;
   double lower3[] = {-0.5, -0.25, 0.0, 0.25}, upper3[] = {-0.25, 0.0, 0.25, 0.5};
   int cells3[] = {2, 6, 2, 4};
-  test_1x(num_blocks3, lower3, upper3, cells3, 1, false);
+  test_1x(num_blocks3, lower3, upper3, cells3, poly_order, is_dirichlet, use_gpu);
+}
+
+void test_1x_p1_bcnone() {
+  test_1x_p_bc_dev(1, false, false);
+}
+
+void test_1x_p1_bcdirichlet() {
+  test_1x_p_bc_dev(1, true, false);
 }
 
 #ifdef GKYL_HAVE_CUDA
 // ......... GPU tests ............ //
 void gpu_test_1x_p1_bcnone() {
   // List grid extents and number of cells for each block in flat arrays.
-  int num_blocks0 = 1;
-  double lower0[] = {-0.5}, upper0[] = {0.5};
-  int cells0[] = {4};
-  test_1x(num_blocks0, lower0, upper0, cells0, 1, true);
- 
-  int num_blocks1 = 2;
-  double lower1[] = {-0.5, 0.0}, upper1[] = {0.0, 0.5};
-  int cells1[] = {2, 2};
-  test_1x(num_blocks1, lower1, upper1, cells1, 1, true);
- 
-  int num_blocks2 = 2;
-  double lower2[] = {-0.5, 0.0}, upper2[] = {0.0, 0.5};
-  int cells2[] = {2, 4};
-  test_1x(num_blocks2, lower2, upper2, cells2, 1, true);
- 
-  int num_blocks3 = 4;
-  double lower3[] = {-0.5, -0.25, 0.0, 0.25}, upper3[] = {-0.25, 0.0, 0.25, 0.5};
-  int cells3[] = {2, 6, 2, 4};
-  test_1x(num_blocks3, lower3, upper3, cells3, 1, true);
+  test_1x_p_bc_dev(1, false, true);
 }
 #endif
 
 
 TEST_LIST = {
   { "test_1x_p1_bcnone", test_1x_p1_bcnone },
+  { "test_1x_p1_bcdirichlet", test_1x_p1_bcdirichlet },
 #ifdef GKYL_HAVE_CUDA
   { "gpu_test_1x_p1_bcnone", gpu_test_1x_p1_bcnone },
 #endif

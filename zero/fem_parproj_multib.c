@@ -40,10 +40,10 @@ gkyl_fem_parproj_multib_new(int num_blocks, const struct gkyl_range *mbz_range,
   fem_parproj_choose_local2global_kernel(basis, false, up->kernels->l2g);
 
   // Select weighted LHS kernel (not always used):
-  fem_parproj_choose_lhs_kernel(basis, up->isdirichlet, true, up->kernels->lhsker);
+  fem_parproj_multib_choose_lhs_kernel(basis, up->isdirichlet, true, up->kernels->lhsker);
 
   // Select RHS source kernel:
-  fem_parproj_choose_srcstencil_kernel(basis, up->isdirichlet, true, up->kernels->srcker);
+  fem_parproj_multib_choose_srcstencil_kernel(basis, up->isdirichlet, true, up->kernels->srcker);
 
   // Select kernel that fetches the solution:
   up->kernels->solker = fem_parproj_choose_solstencil_kernel(basis);
@@ -136,6 +136,12 @@ gkyl_fem_parproj_multib_new(int num_blocks, const struct gkyl_range *mbz_range,
 
         // Apply the wgt*phi*basis stencil.
         keri = idx_to_inloup_ker(up->parnum_cells[bI], up->par_iter1d.idx[0]);
+        const double *phibc_p = NULL;
+        if (up->isdirichlet) {
+          // Interior blocks don't apply  Dirichlet BCs.
+          if (bI > 0 && keri == 1) keri = 3;
+          if (bI < up->num_blocks-1 && keri == 2) keri = 4;
+        }
         up->kernels->lhsker[keri](wgt_p, up->globalidx, tri[perpidx]);
       }
       block_offset += up->numnodes_global[bI];
@@ -230,7 +236,6 @@ gkyl_fem_parproj_multib_set_rhs(struct gkyl_fem_parproj_multib* up,
         long linidx = gkyl_range_idx(up->mbz_range, idx1);
 
         const double *wgt_p = gkyl_array_cfetch(up->weight_rhs, linidx);
-        const double *phibc_p = up->isdirichlet? gkyl_array_cfetch(phibc, linidx) : NULL;
         const double *rhsin_p = gkyl_array_cfetch(rhsin, linidx);
 
         int keri = up->par_iter1d.idx[0] == up->parnum_cells[bI]? 1 : 0;
@@ -240,6 +245,13 @@ gkyl_fem_parproj_multib_set_rhs(struct gkyl_fem_parproj_multib* up,
         // problems at other perp cells and for previous blocks.
 
         keri = idx_to_inloup_ker(up->parnum_cells[bI], up->par_iter1d.idx[0]);
+        const double *phibc_p = NULL;
+        if (up->isdirichlet) {
+          phibc_p = gkyl_array_cfetch(phibc, linidx);
+          // Interior blocks don't apply  Dirichlet BCs.
+          if (bI > 0 && keri == 1) keri = 3;
+          if (bI < up->num_blocks-1 && keri == 2) keri = 4;
+        }
         up->kernels->srcker[keri](wgt_p, rhsin_p, phibc_p, prob_offset, up->globalidx, brhs_p);
       }
 

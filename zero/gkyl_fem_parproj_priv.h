@@ -352,9 +352,9 @@ static const solstencil_kern_list ser_solstencil_list[] = {
 struct gkyl_fem_parproj_kernels {
   local2global_t l2g[2];  // Pointer to local-to-global kernel.
 
-  lhsstencil_t lhsker[3];  // Weighted LHS kernel.
+  lhsstencil_t lhsker[5];  // Weighted LHS kernel. Single block uses 3, multiblock uses all 5.
 
-  srcstencil_t srcker[3];  // RHS source kernel.
+  srcstencil_t srcker[5];  // RHS source kernel. Single block uses 3, multiblock uses all 5.
 
   solstencil_t solker;  // Kernel that takes the solution and converts it to modal.
 };
