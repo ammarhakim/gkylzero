@@ -84,7 +84,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     gkyl_cart_modal_serendip(&basis, ndim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[] = { 1 };
+  int confGhost[] = { 1, 1, 1 }; // 3 elements because it's used by geo.
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
@@ -92,14 +92,10 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
-  int ghost[] = { confGhost[0], 0, 0 };
+  int ghost[GKYL_MAX_DIM] = { 0 };
+  for (int d=0; d<cdim; d++) ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
-
-  // Initialize velocity space mapping.
-  struct gkyl_mapc2p_inp c2p_in = { };
-  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, velGrid,
-    local, local_ext, velLocal, velLocal_ext, use_gpu);
 
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
@@ -108,7 +104,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     .mapc2p = mapc2p_3x, // mapping of computational to physical space
     .c2p_ctx = 0,
     .bmag_func = bmag_func_3x, // magnetic field magnitude
-    .bmag_ctx = 0 ,
+    .bmag_ctx = 0,
     .grid = confGrid,
     .local = confLocal,
     .local_ext = confLocal_ext,
@@ -132,6 +128,11 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
     gkyl_gk_geometry_release(gk_geom_dev);
   }
+
+  // Initialize velocity space mapping.
+  struct gkyl_mapc2p_inp c2p_in = { };
+  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, velGrid,
+    local, local_ext, velLocal, velLocal_ext, use_gpu);
 
   // create moment arrays
   struct gkyl_array *prim_moms, *prim_moms_ho;

@@ -113,17 +113,18 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     conf_basis_on_dev = &confBasis;
   }
 
-  int confGhost[] = { 1 };
+  int confGhost[] = { 1, 1, 1 }; // 3 elements because it's used by geo.
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int ghost[] = { confGhost[0], 0, 0 };
+  int velGhost[] = { 0, 0 };
+  struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
+  gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
+
+  int ghost[GKYL_MAX_DIM] = { 0 };
+  for (int d=0; d<cdim; d++) ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
-
-  int vGhost[] = {0, 0};
-  struct gkyl_range vLocal, vLocal_ext;
-  gkyl_create_grid_ranges(&vGrid, vGhost, &vLocal_ext, &vLocal);
 
   // create primitive moment arrays
   struct gkyl_array *den, *udrift, *vtsq;
