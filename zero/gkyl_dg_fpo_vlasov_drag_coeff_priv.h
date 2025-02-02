@@ -33,6 +33,15 @@ static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_1x3v_vx_kern
 };
 
 GKYL_CU_D
+static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_2x3v_vx_kernels = {
+  {
+    {NULL, NULL, NULL},
+    {fpo_drag_coeff_2x3v_vx_ser_p1_invx, fpo_drag_coeff_2x3v_vx_ser_p1_lovx, fpo_drag_coeff_2x3v_vx_ser_p1_upvx},
+    {NULL, NULL, NULL},
+  }
+};
+
+GKYL_CU_D
 static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_1x3v_vy_kernels = {
   {
     {NULL, NULL, NULL},
@@ -42,11 +51,29 @@ static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_1x3v_vy_kern
 };
 
 GKYL_CU_D
+static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_2x3v_vy_kernels = {
+  {
+    {NULL, NULL, NULL},
+    {fpo_drag_coeff_2x3v_vy_ser_p1_invy, fpo_drag_coeff_2x3v_vy_ser_p1_lovy, fpo_drag_coeff_2x3v_vy_ser_p1_upvy},
+    {NULL, NULL, NULL},
+  }
+};
+
+GKYL_CU_D
 static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_1x3v_vz_kernels = {
   {
     {NULL, NULL, NULL},
     {fpo_drag_coeff_1x3v_vz_ser_p1_invz, fpo_drag_coeff_1x3v_vz_ser_p1_lovz, fpo_drag_coeff_1x3v_vz_ser_p1_upvz},
     {fpo_drag_coeff_1x3v_vz_ser_p2_invz, fpo_drag_coeff_1x3v_vz_ser_p2_lovz, fpo_drag_coeff_1x3v_vz_ser_p2_upvz}
+  }
+};
+
+GKYL_CU_D
+static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_2x3v_vz_kernels = {
+  {
+    {NULL, NULL, NULL},
+    {fpo_drag_coeff_2x3v_vz_ser_p1_invz, fpo_drag_coeff_2x3v_vz_ser_p1_lovz, fpo_drag_coeff_2x3v_vz_ser_p1_upvz},
+    {NULL, NULL, NULL},
   }
 };
 
@@ -61,11 +88,29 @@ static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_1x3v
 };
 
 GKYL_CU_D
+static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_2x3v_vx_kernels = {
+  {
+    {NULL, NULL, NULL},
+    {fpo_sgn_drag_coeff_2x3v_vx_ser_p1_invx, fpo_sgn_drag_coeff_2x3v_vx_ser_p1_lovx, fpo_sgn_drag_coeff_2x3v_vx_ser_p1_upvx},
+    {NULL, NULL, NULL}
+  }
+};
+
+GKYL_CU_D
 static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_1x3v_vy_kernels = {
   {
     {NULL, NULL, NULL},
     {fpo_sgn_drag_coeff_1x3v_vy_ser_p1_invy, fpo_sgn_drag_coeff_1x3v_vy_ser_p1_lovy, fpo_sgn_drag_coeff_1x3v_vy_ser_p1_upvy},
     {fpo_sgn_drag_coeff_1x3v_vy_ser_p2_invy, fpo_sgn_drag_coeff_1x3v_vy_ser_p2_lovy, fpo_sgn_drag_coeff_1x3v_vy_ser_p2_upvy}
+  }
+};
+
+GKYL_CU_D
+static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_2x3v_vy_kernels = {
+  {
+    {NULL, NULL, NULL},
+    {fpo_sgn_drag_coeff_2x3v_vy_ser_p1_invy, fpo_sgn_drag_coeff_2x3v_vy_ser_p1_lovy, fpo_sgn_drag_coeff_2x3v_vy_ser_p1_upvy},
+    {NULL, NULL, NULL}
   }
 };
 
@@ -79,15 +124,63 @@ static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_1x3v
 };
 
 GKYL_CU_D
+static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_2x3v_vz_kernels = {
+  {
+    {NULL, NULL, NULL},
+    {fpo_sgn_drag_coeff_2x3v_vz_ser_p1_invz, fpo_sgn_drag_coeff_2x3v_vz_ser_p1_lovz, fpo_sgn_drag_coeff_2x3v_vz_ser_p1_upvz},
+    {NULL, NULL, NULL}
+  }
+};
+
+// Store kernel lists by configuration space dimensionality
+GKYL_CU_D
+static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_vx_kernels[] = {
+  ser_fpo_drag_coeff_1x3v_vx_kernels,
+  ser_fpo_drag_coeff_2x3v_vx_kernels,
+  NULL
+};
+GKYL_CU_D
+static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_vy_kernels[] = {
+  ser_fpo_drag_coeff_1x3v_vy_kernels,
+  ser_fpo_drag_coeff_2x3v_vy_kernels,
+  NULL
+};
+GKYL_CU_D
+static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_vz_kernels[] = {
+  ser_fpo_drag_coeff_1x3v_vz_kernels,
+  ser_fpo_drag_coeff_2x3v_vz_kernels,
+  NULL
+};
+
+GKYL_CU_D
+static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_vx_kernels[] = {
+  ser_fpo_sgn_drag_coeff_1x3v_vx_kernels,
+  ser_fpo_sgn_drag_coeff_2x3v_vx_kernels,
+  NULL
+};
+GKYL_CU_D
+static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_vy_kernels[] = {
+  ser_fpo_sgn_drag_coeff_1x3v_vy_kernels,
+  ser_fpo_sgn_drag_coeff_2x3v_vy_kernels,
+  NULL
+};
+GKYL_CU_D
+static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_vz_kernels[] = {
+  ser_fpo_sgn_drag_coeff_1x3v_vz_kernels,
+  ser_fpo_sgn_drag_coeff_2x3v_vz_kernels,
+  NULL
+};
+
+GKYL_CU_D
 static fpo_drag_coeff_t
 choose_ser_fpo_drag_coeff_recovery_kern(int dir, int cdim, int poly_order, int stencil_idx)
 {
   if (dir == 0)
-    return ser_fpo_drag_coeff_1x3v_vx_kernels.list[poly_order].kernels[stencil_idx];
+    return ser_fpo_drag_coeff_vx_kernels[cdim-1].list[poly_order].kernels[stencil_idx];
   else if (dir == 1)
-    return ser_fpo_drag_coeff_1x3v_vy_kernels.list[poly_order].kernels[stencil_idx];
+    return ser_fpo_drag_coeff_vy_kernels[cdim-1].list[poly_order].kernels[stencil_idx];
   else if (dir == 2)
-    return ser_fpo_drag_coeff_1x3v_vz_kernels.list[poly_order].kernels[stencil_idx];
+    return ser_fpo_drag_coeff_vz_kernels[cdim-1].list[poly_order].kernels[stencil_idx];
   else
     return NULL;
 };
@@ -97,11 +190,11 @@ static fpo_sgn_drag_coeff_t
 choose_ser_fpo_sgn_drag_coeff_recovery_kern(int dir, int cdim, int poly_order, int stencil_idx)
 {
   if (dir == 0)
-    return ser_fpo_sgn_drag_coeff_1x3v_vx_kernels.list[poly_order].kernels[stencil_idx];
+    return ser_fpo_sgn_drag_coeff_vx_kernels[cdim-1].list[poly_order].kernels[stencil_idx];
   else if (dir == 1)
-    return ser_fpo_sgn_drag_coeff_1x3v_vy_kernels.list[poly_order].kernels[stencil_idx];
+    return ser_fpo_sgn_drag_coeff_vy_kernels[cdim-1].list[poly_order].kernels[stencil_idx];
   else if (dir == 2)
-    return ser_fpo_sgn_drag_coeff_1x3v_vz_kernels.list[poly_order].kernels[stencil_idx];
+    return ser_fpo_sgn_drag_coeff_vz_kernels[cdim-1].list[poly_order].kernels[stencil_idx];
   else
     return NULL;
 };

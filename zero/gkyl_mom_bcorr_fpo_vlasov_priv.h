@@ -146,9 +146,9 @@ kernel_mom_bcorr_fpo_vlasov_2x3v_ser_p1(const struct gkyl_mom_type *momt, const 
 
   long linc = gkyl_range_idx(&mom_fpo_vlasov->phase_range, fidx);
 
-  // return mom_bcorr_fpo_vlasov_2x3v_ser_p1(w, idx, edge, mom_fpo_vlasov->vBoundary, dx, 
-  //   (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, linc), 
-  //   f, out);
+  return mom_bcorr_fpo_vlasov_2x3v_ser_p1(w, fidx, edge, mom_fpo_vlasov->vBoundary, dx,
+    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, linc), 
+    f, out);
 }
 
 GKYL_CU_DH
