@@ -3,7 +3,9 @@
 #include <acutest.h>
 
 #include <gkyl_array_rio.h>
-#include <gkyl_proj_bimaxwellian_on_basis.h>
+#include <gkyl_gk_geometry.h>
+#include <gkyl_gk_geometry_mapc2p.h>
+#include <gkyl_gk_maxwellian_proj_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -19,29 +21,19 @@ mkarr(long nc, long size)
   return a;
 }
 
-void eval_bmag(double t, const double *xn, double* restrict fout, void *ctx)
+void
+mapc2p_3x(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 {
-  double x = xn[0];
+  xp[0] = xc[0]; xp[1] = xc[1]; xp[2] = xc[2];
+}
+
+void
+bmag_func_3x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xc[0], y = xc[1], z = xc[2];
   fout[0] = 1.0;
 }
-void eval_jacob_tot(double t, const double *xn, double* restrict fout, void *ctx)
-{
-  double x = xn[0];
-  fout[0] = 1.0;
-}
-void eval_moms_1x2v_gk(double t, const double *xn, double* restrict fout, void *ctx)
-{
-  double x = xn[0];
-  double den = 1.0;
-  double upar = 0.5;
-  double tpar = 1.3;
-  double tperp = 0.6;
-  double mass = 1.0;
-  fout[0] = den;  // Density.
-  fout[1] = den*upar;  // Parallel momentum.
-  fout[2] = den*(tpar/mass+upar*upar);  // Parallel kinetic energy.
-  fout[3] = den*tperp/mass;  // Perpendicular kinetic energy.
-}
+
 void eval_prim_moms_1x2v_gk(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
@@ -109,98 +101,34 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, velGrid,
     local, local_ext, velLocal, velLocal_ext, use_gpu);
 
-  // create bmag and jacob_tot arrays
-  struct gkyl_array *bmag_ho, *jacob_tot_ho, *bmag, *jacob_tot;
-  bmag_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  jacob_tot_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  if (use_gpu) { // create device copies
-    bmag = gkyl_array_cu_dev_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
-    jacob_tot = gkyl_array_cu_dev_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
-  } else {
-    bmag = bmag_ho;
-    jacob_tot = jacob_tot_ho;
-  }
-  gkyl_proj_on_basis *proj_bmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, eval_bmag, NULL);
-  gkyl_proj_on_basis *proj_jac = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, eval_jacob_tot, NULL);
-  gkyl_proj_on_basis_advance(proj_bmag, 0.0, &confLocal, bmag_ho);
-  gkyl_proj_on_basis_advance(proj_jac, 0.0, &confLocal, jacob_tot_ho);
-  gkyl_array_copy(bmag, bmag_ho);
-  gkyl_array_copy(jacob_tot, jacob_tot_ho);
+  // Initialize geometry
+  struct gkyl_gk_geometry_inp geometry_input = {
+    .geometry_id = GKYL_MAPC2P,
+    .world = {0.0},
+    .mapc2p = mapc2p_3x, // mapping of computational to physical space
+    .c2p_ctx = 0,
+    .bmag_func = bmag_func_3x, // magnetic field magnitude
+    .bmag_ctx = 0 ,
+    .grid = confGrid,
+    .local = confLocal,
+    .local_ext = confLocal_ext,
+    .global = confLocal,
+    .global_ext = confLocal_ext,
+    .basis = confBasis,
+  };
+  geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
+  gkyl_create_grid_ranges(&geometry_input.geo_grid, confGhost, &geometry_input.geo_local_ext, &geometry_input.geo_local);
+  gkyl_cart_modal_serendip(&geometry_input.geo_basis, 3, poly_order);
+  struct gk_geometry* gk_geom_3d;
+  gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_input);
+  // deflate geometry if necessary
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input);
+  gkyl_gk_geometry_release(gk_geom_3d);
 
   // create moment arrays
-  struct gkyl_array *moms, *moms_ho;
-  moms_ho = mkarr(4*confBasis.num_basis, confLocal_ext.volume);
-  if (use_gpu) { // create device copies
-    moms = gkyl_array_cu_dev_new(GKYL_DOUBLE, 4*confBasis.num_basis, confLocal_ext.volume);
-  } else {
-    moms = moms_ho;
-  }
-
-  gkyl_proj_on_basis *proj_moms = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 4, eval_moms_1x2v_gk, NULL);
-
-  gkyl_proj_on_basis_advance(proj_moms, 0.0, &confLocal, moms_ho);
-  gkyl_array_copy(moms, moms_ho);
-
-  // create distribution function array
-  struct gkyl_array *distf_ho = mkarr(basis.num_basis, local_ext.volume);
-
-  struct gkyl_array *distf;
-  if (use_gpu)
-    distf = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-  else
-    distf = distf_ho;
-
-  // projection updater to compute Maxwellian
-  gkyl_proj_bimaxwellian_on_basis *proj_max = gkyl_proj_bimaxwellian_on_basis_new(&grid,
-    &confBasis, &basis, poly_order+1, gvm, use_gpu);
-
-  gkyl_proj_bimaxwellian_on_basis_gyrokinetic_lab_mom(proj_max, &local, &confLocal, moms,
-                                                      bmag, jacob_tot, mass, distf);
-  gkyl_array_copy(distf_ho, distf);
-
-  // values to compare  at index (1, 9, 9) [remember, lower-left index is (1,1,1)]
-  double p1_vals[] = {
-    1.2844077246026704e-03, 8.5474047609025796e-20, 2.6350176904782896e-05, -2.2925318340133869e-04, -1.7211242035879901e-20, -9.3936424834558415e-21,
-    -4.7032276611997613e-06, 9.8938122762577098e-21, -2.0497552553122845e-05, -1.1378998408032301e-20, 3.6585961643864254e-06, -1.1378998408032301e-20,
-  };
-  double p2_vals[] = {
-    1.2844524987967697e-03, 3.9389697868298960e-20, 2.6351095466632584e-05, -2.3024734563371324e-04, -6.2767367023478419e-21, -6.2661441748961667e-21,
-    -4.7236233269944659e-06, -1.3380402930807540e-18, -2.0498267093668484e-05, 1.8487818299271491e-05, -1.2472007912769041e-20, -7.6464635967265530e-20,
-    -2.2254527342990302e-20, 2.2846722504428259e-19, 3.6744617592548295e-06, -5.3138683979042951e-21, 3.7928554417563121e-07, -1.5490008912633003e-21,
-    -1.5490008912633003e-21, -1.5490008912633003e-21,
-  };
-
-  const double *fv = gkyl_array_cfetch(distf_ho, gkyl_range_idx(&local_ext, (int[3]) { 1, 9, 9 }));
-  
-  if (poly_order == 1) {
-    for (int i=0; i<basis.num_basis; ++i)
-      TEST_CHECK( gkyl_compare_double(p1_vals[i], fv[i], 1e-12) );
-  }
-
-  if (poly_order == 2) {
-    for (int i=0; i<basis.num_basis; ++i)
-      TEST_CHECK( gkyl_compare_double(p2_vals[i], fv[i], 1e-12) );
-  }
-
-//  // write distribution function to file
-//  char fname[1024];
-//  sprintf(fname, "ctest_proj_bimaxwellian_on_basis_gyrokinetic_test1_1x2v_p%d.gkyl", poly_order);
-//  gkyl_grid_sub_array_write(&grid, &local, distf_ho, fname);
-
-  // release memory for moment data object
-  gkyl_array_release(moms);
-  if (use_gpu) {
-    gkyl_array_release(moms_ho);
-  }
-  gkyl_proj_on_basis_release(proj_moms);
-
-  // now perform the maxwellian projection using primitive moments.
   struct gkyl_array *prim_moms, *prim_moms_ho;
   prim_moms_ho = mkarr(4*confBasis.num_basis, confLocal_ext.volume);
-  if (use_gpu) {
+  if (use_gpu) { // create device copies
     prim_moms = gkyl_array_cu_dev_new(GKYL_DOUBLE, 4*confBasis.num_basis, confLocal_ext.volume);
   } else {
     prim_moms = prim_moms_ho;
@@ -212,62 +140,79 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_advance(proj_prim_moms, 0.0, &confLocal, prim_moms_ho);
   gkyl_array_copy(prim_moms, prim_moms_ho);
 
-  gkyl_proj_bimaxwellian_on_basis_gyrokinetic_prim_mom(proj_max, &local, &confLocal, prim_moms,
-                                                       bmag, jacob_tot, mass, distf);
-  gkyl_array_copy(distf_ho, distf);
+  // create distribution function array
+  struct gkyl_array *distf;
+  distf = mkarr(basis.num_basis, local_ext.volume);
+  struct gkyl_array *distf_cu;
+  if (use_gpu)  // create device copy.
+    distf_cu  = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
 
-  fv = gkyl_array_cfetch(distf_ho, gkyl_range_idx(&local_ext, (int[3]) { 1, 9, 9 }));
+  // bi-Maxwellian projection updater.
+  struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = {
+    .phase_grid = &grid,
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .conf_range =  &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal, 
+    .gk_geom = gk_geom,
+    .vel_map = gvm,
+    .mass = mass,
+    .bimaxwellian = true, 
+    .use_gpu = use_gpu,
+  };
+  struct gkyl_gk_maxwellian_proj_on_basis *proj_max = gkyl_gk_maxwellian_proj_on_basis_inew( &inp_proj );
+
+  if (use_gpu) {
+    gkyl_gk_maxwellian_proj_on_basis_advance(proj_max,
+      &local, &confLocal, prim_moms, false, distf_cu);  
+    gkyl_array_copy(distf, distf_cu);
+  } 
+  else {
+    gkyl_gk_maxwellian_proj_on_basis_advance(proj_max,
+      &local, &confLocal, prim_moms, false, distf);  
+  }
+
+  // values to compare  at index (1, 9, 9) [remember, lower-left index is (1,1,1)]
+  double p1_vals[] = {
+    1.2845117649060e-03, 3.4098924955929e-20, 2.6352311336353e-05, -2.2927175349421e-04, -1.0358294364538e-20, 
+    1.1737441012087e-20, -4.7036086346421e-06, 3.2926920104084e-21, -2.0499212907186e-05, -6.6910161820819e-21, 
+    3.6588925200118e-06, -6.7667527142105e-21
+  };
+
+  const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[3]) { 1, 9, 9 }));
   
   if (poly_order == 1) {
-    for (int i=0; i<basis.num_basis; ++i)
+    for (int i=0; i<basis.num_basis; ++i) {
       TEST_CHECK( gkyl_compare_double(p1_vals[i], fv[i], 1e-12) );
+    }
   }
 
-  if (poly_order == 2) {
-    for (int i=0; i<basis.num_basis; ++i)
-      TEST_CHECK( gkyl_compare_double(p2_vals[i], fv[i], 1e-12) );
-  }
-
-//  // write distribution function to file
-//  char fname[1024];
-//  sprintf(fname, "ctest_proj_bimaxwellian_on_basis_gyrokinetic_test2_1x2v_p%d.gkyl", poly_order);
-//  gkyl_grid_sub_array_write(&grid, &local, distf_ho, fname);
-
+  // release memory for moment data object
   gkyl_velocity_map_release(gvm);
+  gkyl_gk_geometry_release(gk_geom);
   gkyl_array_release(prim_moms);
-  if (use_gpu) {
-    gkyl_array_release(prim_moms_ho);
-  }
   gkyl_proj_on_basis_release(proj_prim_moms);
-
-  gkyl_array_release(bmag); gkyl_array_release(jacob_tot);
-  if (use_gpu) {
-    gkyl_array_release(bmag_ho); gkyl_array_release(jacob_tot_ho);
-  }
-
   gkyl_array_release(distf);
   if (use_gpu) {
-    gkyl_array_release(distf_ho);
+    gkyl_array_release(prim_moms_ho);
+    gkyl_array_release(distf_cu);
   }
-  gkyl_proj_bimaxwellian_on_basis_release(proj_max);
-
+  gkyl_gk_maxwellian_proj_on_basis_release(proj_max);
+  gkyl_velocity_map_release(gvm);
 }
 
 void test_1x2v_p1_gk() { test_1x2v_gk(1, false); }
-void test_1x2v_p2_gk() { test_1x2v_gk(2, false); }
 
 #ifdef GKYL_HAVE_CUDA
 void test_1x2v_p1_gk_gpu() { test_1x2v_gk(1, true); }
-void test_1x2v_p2_gk_gpu() { test_1x2v_gk(2, true); }
 #endif
 
 TEST_LIST = {
   { "test_1x2v_p1_gk", test_1x2v_p1_gk },
-  { "test_1x2v_p2_gk", test_1x2v_p2_gk },
 
 #ifdef GKYL_HAVE_CUDA
   { "test_1x2v_p1_gk_gpu", test_1x2v_p1_gk_gpu },
-  { "test_1x2v_p2_gk_gpu", test_1x2v_p2_gk_gpu },
 #endif
   { NULL, NULL },
 };

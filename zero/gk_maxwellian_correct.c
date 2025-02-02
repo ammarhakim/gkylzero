@@ -9,8 +9,7 @@
 #include <gkyl_gk_maxwellian_correct.h>
 #include <gkyl_gk_maxwellian_correct_priv.h>
 #include <gkyl_gk_maxwellian_moments.h>
-#include <gkyl_proj_maxwellian_on_basis.h>
-#include <gkyl_proj_bimaxwellian_on_basis.h>
+#include <gkyl_gk_maxwellian_proj_on_basis.h>
 
 #include <assert.h>
 

@@ -4,12 +4,7 @@ extern "C" {
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
-#include <gkyl_dg_prim_vars_vlasov.h>
-#include <gkyl_dg_prim_vars_gyrokinetic.h>
-#include <gkyl_dg_prim_vars_transform.h>
-#include <gkyl_dg_prim_vars_type.h>
 #include <gkyl_array_ops.h>
-#include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_cx.h>
 #include <gkyl_dg_cx_priv.h>

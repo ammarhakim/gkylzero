@@ -2,8 +2,6 @@
 #include <stdio.h>
 
 #include <gkyl_alloc.h>
-#include <gkyl_dg_prim_vars_vlasov.h>
-#include <gkyl_dg_prim_vars_transform.h>
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>

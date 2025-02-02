@@ -22,29 +22,6 @@ mkarr(long nc, long size)
   return a;
 }
 
-struct skin_ghost_ranges {
-  struct gkyl_range lower_skin[GKYL_MAX_DIM];
-  struct gkyl_range lower_ghost[GKYL_MAX_DIM];
-
-  struct gkyl_range upper_skin[GKYL_MAX_DIM];
-  struct gkyl_range upper_ghost[GKYL_MAX_DIM];
-};
-
-// Create ghost and skin sub-ranges given a parent range
-static void
-skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
-  const struct gkyl_range *parent, const int *ghost)
-{
-  int ndim = parent->ndim;
-
-  for (int d=0; d<ndim; ++d) {
-    gkyl_skin_ghost_ranges(&sgr->lower_skin[d], &sgr->lower_ghost[d],
-      d, GKYL_LOWER_EDGE, parent, ghost);
-    gkyl_skin_ghost_ranges(&sgr->upper_skin[d], &sgr->upper_ghost[d],
-      d, GKYL_UPPER_EDGE, parent, ghost);
-  }
-}
-
 void eval_den(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
@@ -139,14 +116,10 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   int confGhost[] = { 1 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
-  struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
-  skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
 
   int ghost[] = { confGhost[0], 0, 0 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
-  struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
-  skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   int vGhost[] = {0, 0};
   struct gkyl_range vLocal, vLocal_ext;
@@ -169,7 +142,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_advance(proj_udrift, 0.0, &confLocal, udrift);
   gkyl_proj_on_basis_advance(proj_vtsq, 0.0, &confLocal, vtsq);
 
-  // proj_maxwellian expects the primitive moments as a single array.
+  // Projection routine expects the primitive moments as a single array.
   struct gkyl_array *prim_moms_ho = mkarr(3*confBasis.num_basis, confLocal_ext.volume);
   gkyl_array_set_offset(prim_moms_ho, 1., den, 0*confBasis.num_basis);
   gkyl_array_set_offset(prim_moms_ho, 1., udrift, 1*confBasis.num_basis);
@@ -378,14 +351,10 @@ test_3x2v_gk(int poly_order, bool use_gpu)
   int confGhost[] = { 1, 1, 1 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
-  struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
-  skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
 
   int ghost[] = { confGhost[0], confGhost[1], confGhost[2], 0, 0 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
-  struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
-  skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   int vGhost[] = {0, 0};
   struct gkyl_range vLocal, vLocal_ext;
@@ -408,7 +377,7 @@ test_3x2v_gk(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_advance(proj_udrift, 0.0, &confLocal, udrift);
   gkyl_proj_on_basis_advance(proj_vtsq, 0.0, &confLocal, vtsq);
 
-  // proj_maxwellian expects the primitive moments as a single array.
+  // Projection routine expects the primitive moments as a single array.
   struct gkyl_array *prim_moms_ho = mkarr(3*confBasis.num_basis, confLocal_ext.volume);
   gkyl_array_set_offset(prim_moms_ho, 1., den, 0*confBasis.num_basis);
   gkyl_array_set_offset(prim_moms_ho, 1., udrift, 1*confBasis.num_basis);
