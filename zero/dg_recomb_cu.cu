@@ -4,12 +4,7 @@ extern "C" {
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
-#include <gkyl_dg_prim_vars_vlasov.h>
-#include <gkyl_dg_prim_vars_gyrokinetic.h>
-#include <gkyl_dg_prim_vars_transform.h>
-#include <gkyl_dg_prim_vars_type.h>
 #include <gkyl_array_ops.h>
-#include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_recomb.h>
 #include <gkyl_dg_recomb_priv.h>
@@ -35,7 +30,6 @@ gkyl_recomb_react_rate_cu_ker(const struct gkyl_dg_recomb *up,
     int cdim = conf_rng.ndim;
     const double *prim_vars_elc_d = (const double*) gkyl_array_cfetch(prim_vars_elc, loc);
     double *coef_recomb_d = (double*) gkyl_array_fetch(coef_recomb, loc);
-
 
     //Find nearest neighbor for n, Te in ADAS interpolated data
     double cell_av_fac = pow(1.0/sqrt(2.0),cdim);
