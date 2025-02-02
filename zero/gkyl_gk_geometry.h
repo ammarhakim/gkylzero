@@ -9,6 +9,7 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_tok_geo.h>
 #include <gkyl_mirror_geo.h>
+#include <gkyl_position_map.h>
 
 
 typedef struct gk_geometry gk_geometry;
@@ -26,6 +27,7 @@ struct gk_geometry {
   // GK Equation and Poisson Equation and to apply certain BC's
   // The first 20 are defined on the configuration space domain. The last is a single element.
   struct gkyl_array* mc2p; // 3 components. Cartesian X,Y, and Z
+  struct gkyl_array* mc2nu_pos; // 3 components. Uniform computational space to non-uniform computational space mapping
   struct gkyl_array* bmag; // 1 component. B Magnitude of magnetic field
   struct gkyl_array* g_ij; // 6 components. 
                            // Metric coefficients g_{ij} Stored in order g_11, g12, g_13, g_22, g_23, g_33
@@ -76,6 +78,8 @@ struct gkyl_gk_geometry_inp {
   struct gkyl_efit_inp efit_info; // context with RZ data such as efit file for a tokamak or mirror
   struct gkyl_tok_geo_grid_inp tok_grid_info; // context for tokamak geometry with computational domain info
   struct gkyl_mirror_geo_grid_inp mirror_grid_info; // context for mirror geometry with computational domain info
+  struct gkyl_position_map *position_map; // position map object
+  struct gkyl_comm *comm; // communicator object
 
   double world[3]; // extra computational coordinates for cases with reduced dimensionality
 
@@ -187,8 +191,6 @@ struct gk_geometry* gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, st
  * @return Pointer to acquired geometry
  */
 struct gk_geometry* gkyl_gk_geometry_acquire(const struct gk_geometry* up);
-
-
 
 void gkyl_gk_geometry_free(const struct gkyl_ref_count *ref);
 

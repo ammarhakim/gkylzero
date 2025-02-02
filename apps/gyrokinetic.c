@@ -153,6 +153,11 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   double cfl_frac = gk->cfl_frac == 0 ? 1.0 : gk->cfl_frac;
   app->cfl = cfl_frac;
 
+  // The value 1.7 here is based on figure 2.4a in Durran's "Numerical methods
+  // for fluid dynamics" textbook for a purely oscillatory mode and RK3.
+  double cfl_frac_omegaH = gk->cfl_frac_omegaH == 0 ? 1.7 : gk->cfl_frac_omegaH;
+  app->cfl_omegaH = cfl_frac_omegaH;
+
 #ifdef GKYL_HAVE_CUDA
   app->use_gpu = gk->parallelism.use_gpu;
 #else
@@ -264,6 +269,8 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   gkyl_comm_get_size(app->comm, &comm_sz);
 
   // Configuration space geometry initialization
+  app->position_map = gkyl_position_map_new(gk->geometry.position_map_info, app->grid, app->local, 
+      app->local_ext, app->global, app->global_ext, app->confBasis);
 
   // Initialize the input struct from user side input struct
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -275,12 +282,14 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     .efit_info = gk->geometry.efit_info,
     .tok_grid_info = gk->geometry.tok_grid_info,
     .mirror_grid_info = gk->geometry.mirror_grid_info,
+    .position_map = app->position_map,
     .grid = app->grid,
     .local = app->local,
     .local_ext = app->local_ext,
     .global = app->global,
     .global_ext = app->global_ext,
     .basis = app->confBasis,
+    .comm = app->comm,
   };
   for(int i = 0; i<3; i++)
     geometry_inp.world[i] = gk->geometry.world[i];
@@ -347,7 +356,6 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
   gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
 
-  // Set bmag_ref
   double bmag_min_local, bmag_min_global;
   bmag_min_local = gkyl_gk_geometry_reduce_bmag(app->gk_geom, GKYL_MIN);
   gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &bmag_min_local, &bmag_min_global);
@@ -357,7 +365,9 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &bmag_max_local, &bmag_max_global);
 
   app->bmag_ref = (bmag_max_global + bmag_min_global)/2.0;
-  
+
+  gkyl_position_map_set(app->position_map, app->gk_geom->mc2nu_pos);
+
   // If we are on the gpu, copy from host
   if (app->use_gpu) {
     struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_new(app->gk_geom, &geometry_inp, app->use_gpu);
@@ -376,6 +386,99 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   gkyl_array_release(tmp);
 
   return app;
+}
+
+static void
+gyrokinetic_calc_field_update(gkyl_gyrokinetic_app* app, double tcurr, const struct gkyl_array *fin[])
+{
+  // Compute electrostatic potential from gyrokinetic Poisson's equation.
+  gk_field_accumulate_rho_c(app, app->field, fin);
+
+  // Compute ambipolar potential sheath values if using adiabatic electrons
+  // done here as the RHS update for all species should be complete before
+  // boundary fluxes are computed (ion fluxes needed for sheath values) 
+  // and these boundary fluxes are stored temporarily in ghost cells of RHS
+  if (app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
+    gk_field_calc_ambi_pot_sheath_vals(app, app->field);
+
+  // Compute biased wall potential if present and time-dependent.
+  // Note: biased wall potential use eval_on_nodes. 
+  // so does copy to GPU every call if app->use_gpu = true.
+  if (app->field->phi_wall_lo_evolve || app->field->phi_wall_up_evolve)
+    gk_field_calc_phi_wall(app, app->field, tcurr);
+
+  // Solve the field equation.
+  gk_field_rhs(app, app->field);
+}
+
+static void
+gyrokinetic_calc_field_none(gkyl_gyrokinetic_app* app, double tcurr, const struct gkyl_array *fin[])
+{
+}
+
+static void
+gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
+{
+  // Compute the geometric and field-model dependent part of omega_H.
+  // Each species computes its own omega_H as:
+  //   omega_H = q_e*sqrt(n_{s0}/m_s) * omegaH_gf
+  // where
+  //   - n_{s0} is either a reference, average or max density.
+  //   - omegaH_gf = (cmag/(jacobgeo*B^_\parallel))*kpar_max / 
+  //                 min(sqrt(k_x^2*eps_xx+k_x*k_y*eps_xy+k_y^2*eps_yy+)).
+  // and k_x,k_y,k_par are wavenumbers in computational space, and eps_ij is
+  // the polarization weight in our field equation.
+
+  app->omegaH_gf = 1.0/DBL_MAX;
+
+  if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || app->field->gkfield_id == GKYL_GK_FIELD_ADIABATIC)) {
+    // Compute parfac = (cmag/(jacobgeo*B^_\parallel))*kpar_max.
+    struct gkyl_array *parfac = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    gkyl_dg_mul_op_range(app->confBasis, 0, parfac, 0, app->gk_geom->cmag, 0, app->gk_geom->jacobtot_inv, &app->local); 
+    double kpar_max = M_PI*(app->poly_order+1)/app->grid.dx[app->cdim-1];
+    gkyl_array_scale_range(parfac, kpar_max, &app->local);
+
+    // Compute perpfac_inv = 1/sqrt(k_x^2*eps_xx+k_x*k_y*eps_xy+k_y^2*eps_yy+)).
+    struct gkyl_array *perpfac = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    struct gkyl_array *perpfac_inv = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    double kx_min = M_PI/(app->grid.upper[0]-app->grid.lower[0]);
+    double kx_sq = app->cdim == 1? 1.0 : pow(kx_min,2); // kperp_sq included in epsilon for cdim=1.
+    gkyl_array_accumulate_offset_range(perpfac, kx_sq, app->field->epsilon, 0*app->confBasis.num_basis, &app->local);
+    if (app->cdim > 2) {
+      double ky_min = M_PI/(app->grid.upper[1]-app->grid.lower[1]);
+      gkyl_array_accumulate_offset_range(perpfac, kx_min*ky_min, app->field->epsilon, 1*app->confBasis.num_basis, &app->local);
+      gkyl_array_accumulate_offset_range(perpfac, pow(ky_min,2), app->field->epsilon, 2*app->confBasis.num_basis, &app->local);
+    }
+    gkyl_proj_powsqrt_on_basis* proj_sqrt = gkyl_proj_powsqrt_on_basis_new(&app->confBasis, app->poly_order+1, app->use_gpu);
+    gkyl_proj_powsqrt_on_basis_advance(proj_sqrt, &app->local, -1.0, perpfac, perpfac_inv);
+    gkyl_proj_powsqrt_on_basis_release(proj_sqrt);
+
+    // Compute max(parfac*perpfac_inv) (using cell centers).
+    struct gkyl_array *omegaH_gf_grid = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    gkyl_dg_mul_op_range(app->confBasis, 0, omegaH_gf_grid, 0, parfac, 0, perpfac_inv, &app->local); 
+    double *omegaH_gf_red;
+    if (app->use_gpu)
+      omegaH_gf_red = gkyl_cu_malloc(app->confBasis.num_basis*sizeof(double));
+    else 
+      omegaH_gf_red = gkyl_malloc(app->confBasis.num_basis*sizeof(double));
+
+    gkyl_array_reduce_range(omegaH_gf_red, omegaH_gf_grid, GKYL_MAX, &app->local);
+
+    if (app->use_gpu)
+      gkyl_cu_memcpy(&app->omegaH_gf, omegaH_gf_red, sizeof(double), GKYL_CU_MEMCPY_D2H);
+    else
+      app->omegaH_gf = omegaH_gf_red[0];
+    app->omegaH_gf *= 1.0/pow(sqrt(2.0),app->cdim);
+
+    if (app->use_gpu)
+      gkyl_cu_free(omegaH_gf_red);
+    else 
+      gkyl_free(omegaH_gf_red);
+    gkyl_array_release(omegaH_gf_grid);
+    gkyl_array_release(perpfac_inv);
+    gkyl_array_release(perpfac);
+    gkyl_array_release(parfac);
+  }
 }
 
 void
@@ -398,8 +501,13 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
   for (int i=0; i<neuts; ++i)
     app->neut_species[i].info = gk->neut_species[i];
 
-  app->update_field = !gk->skip_field; // note inversion of truth value (default: update field)
   app->field = gk_field_new(gk, app); // initialize field, even if we are skipping field updates
+
+  // Choose the function that updates the fields in time.
+  if (app->field->update_field)
+    app->calc_field_func = gyrokinetic_calc_field_update;
+  else
+    app->calc_field_func = gyrokinetic_calc_field_none;
 
   app->enforce_positivity = gk->enforce_positivity;
   if (app->enforce_positivity) {
@@ -410,11 +518,11 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
   }
 
   // initialize each species
-  for (int i=0; i<ns; ++i) 
+  for (int i=0; i<ns; ++i)
     gk_species_init(gk, app, &app->species[i]);
 
   // initialize each neutral species
-  for (int i=0; i<neuts; ++i) 
+  for (int i=0; i<neuts; ++i)
     gk_neut_species_init(gk, app, &app->neut_species[i]);
 
   // initialize each species cross-collisions terms: this has to be done here
@@ -484,6 +592,10 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     app->update_func = gyrokinetic_update_ssp_rk3;
   }
 
+  // Pre-compute time-independent factors in omega_H.
+  gkyl_gyrokinetic_app_omegaH_init(app); 
+
+
   // initialize stat object
   app->stat = (struct gkyl_gyrokinetic_stat) {
     .use_gpu = app->use_gpu,
@@ -491,6 +603,7 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     .stage_3_dt_diff = { DBL_MAX, 0.0 },
   };
 }
+
 
 gkyl_gyrokinetic_app*
 gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
@@ -504,27 +617,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
 void
 gyrokinetic_calc_field(gkyl_gyrokinetic_app* app, double tcurr, const struct gkyl_array *fin[])
 {
-  // Compute fields.
-  if (app->update_field) {
-    // Compute electrostatic potential from gyrokinetic Poisson's equation.
-    gk_field_accumulate_rho_c(app, app->field, fin);
-
-    // Compute ambipolar potential sheath values if using adiabatic electrons
-    // done here as the RHS update for all species should be complete before
-    // boundary fluxes are computed (ion fluxes needed for sheath values) 
-    // and these boundary fluxes are stored temporarily in ghost cells of RHS
-    if (app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
-      gk_field_calc_ambi_pot_sheath_vals(app, app->field);
-
-    // Compute biased wall potential if present and time-dependent.
-    // Note: biased wall potential use eval_on_nodes. 
-    // so does copy to GPU every call if app->use_gpu = true.
-    if (app->field->phi_wall_lo_evolve || app->field->phi_wall_up_evolve)
-      gk_field_calc_phi_wall(app, app->field, tcurr);
-
-    // Solve the field equation.
-    gk_field_rhs(app, app->field);
-  }
+  app->calc_field_func(app, tcurr, fin);
 }
 
 void
@@ -543,11 +636,8 @@ gyrokinetic_calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr,
     gk_species_apply_bc(app, &app->species[i], distf[i]);
   }
   for (int i=0; i<app->num_neut_species; ++i) {
-    if (!app->neut_species[i].info.is_static) {
-      gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
-    }
+    gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
   }
-
 }
 
 struct gk_species *
@@ -607,21 +697,37 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
   for (int i=0; i<app->num_neut_species; ++i) {
     distf_neut[i] = app->neut_species[i].f;
   }
-  if (app->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
-    for (int i=0; i<app->num_species; ++i) {
-      struct gk_species *s = &app->species[i];
+  if (app->field->calc_init_field) {
+    if (app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
+      for (int i=0; i<app->num_species; ++i) {
+        struct gk_species *s = &app->species[i];
 
-      // Compute advection speeds so we can compute the initial boundary flux.
-      gkyl_dg_calc_gyrokinetic_vars_alpha_surf(s->calc_gk_vars, 
-        &app->local, &s->local, &s->local_ext, app->field->phi_smooth,
-        s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
+        // Compute advection speeds so we can compute the initial boundary flux.
+        gkyl_dg_calc_gyrokinetic_vars_alpha_surf(s->calc_gk_vars, 
+          &app->local, &s->local, &s->local_ext, app->field->phi_smooth,
+          s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
 
-      // Compute and store (in the ghost cell of of out) the boundary fluxes.
-      // NOTE: this overwrites ghost cells that may be used for sourcing.
-      gk_species_bflux_rhs(app, s, &s->bflux, distf[i], distf[i]);
+        // Compute and store (in the ghost cell of of out) the boundary fluxes.
+        // NOTE: this overwrites ghost cells that may be used for sourcing.
+        gk_species_bflux_rhs(app, s, &s->bflux, distf[i], distf[i]);
+      }
+    }
+
+    // Compute the field.
+    // MF 2024/09/27/: Need the cast here for consistency. Fixing
+    // this may require removing 'const' from a lot of places.
+    gyrokinetic_calc_field_update(app, t0, (const struct gkyl_array **) distf);
+  }
+
+  // Apply boundary conditions.
+  for (int i=0; i<app->num_species; ++i) {
+    gk_species_apply_bc(app, &app->species[i], distf[i]);
+  }
+  for (int i=0; i<app->num_neut_species; ++i) {
+    if (!app->neut_species[i].info.is_static) {
+      gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
     }
   }
-  gyrokinetic_calc_field_and_apply_bc(app, t0, distf, distf_neut);
 }
 
 void
@@ -699,6 +805,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
 
   struct timespec wtm = gkyl_wall_clock();
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->mc2p        , arr_ho3, "mapc2p", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->mc2nu_pos        , arr_ho3, "mc2nu_pos", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->bmag        , arr_ho1, "bmag", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->g_ij        , arr_ho6, "g_ij", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->dxdz        , arr_ho9, "dxdz", mt);
@@ -720,7 +827,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->gxzj        , arr_ho1, "gxzj", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->eps2        , arr_ho1, "eps2", mt);
   app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
-  app->stat.nio += 21;
+  app->stat.nio += 22;
 
   // Write out nodes. This has to be done from rank 0 so we need to gather mc2p.
   struct gkyl_array *mc2p_global = mkarr(app->use_gpu, app->gk_geom->mc2p->ncomp, app->global_ext.volume);
@@ -770,7 +877,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
 void
 gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame)
 {
-  if (app->update_field) {
+  if (app->field->update_field || frame == 0) {
     struct timespec wst = gkyl_wall_clock();
     // Copy data from device to host before writing it out.
     if (app->use_gpu) {
@@ -802,7 +909,7 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
 void
 gkyl_gyrokinetic_app_calc_field_energy(gkyl_gyrokinetic_app* app, double tm)
 {
-  if (app->update_field) {
+  if (app->field->update_field) {
     struct timespec wst = gkyl_wall_clock();
     gk_field_calc_energy(app, tm, app->field);
     app->stat.field_diag_tm += gkyl_time_diff_now_sec(wst);
@@ -813,7 +920,7 @@ gkyl_gyrokinetic_app_calc_field_energy(gkyl_gyrokinetic_app* app, double tm)
 void
 gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app)
 {
-  if (app->update_field) {
+  if (app->field->update_field) {
     struct timespec wst = gkyl_wall_clock();
     // write out diagnostic moments
     const char *fmt = "%s-field_energy.gkyl";
@@ -846,33 +953,35 @@ gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app)
 void
 gkyl_gyrokinetic_app_write_species(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
 {
-  struct timespec wst = gkyl_wall_clock();
   struct gk_species *gk_s = &app->species[sidx];
 
-  struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
-      .frame = frame,
-      .stime = tm,
-      .poly_order = app->poly_order,
-      .basis_type = app->basis.id
+  if (!gk_s->info.is_static || frame == 0) {
+    struct timespec wst = gkyl_wall_clock();
+    struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
+        .frame = frame,
+        .stime = tm,
+        .poly_order = app->poly_order,
+        .basis_type = app->basis.id
+      }
+    );
+
+    const char *fmt = "%s-%s_%d.gkyl";
+    int sz = gkyl_calc_strlen(fmt, app->name, gk_s->info.name, frame);
+    char fileNm[sz+1]; // ensures no buffer overflow
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, gk_s->info.name, frame);
+
+    // copy data from device to host before writing it out
+    if (app->use_gpu) {
+      gkyl_array_copy(gk_s->f_host, gk_s->f);
     }
-  );
 
-  const char *fmt = "%s-%s_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, gk_s->info.name, frame);
-  char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, gk_s->info.name, frame);
-
-  // copy data from device to host before writing it out
-  if (app->use_gpu) {
-    gkyl_array_copy(gk_s->f_host, gk_s->f);
+    struct timespec wtm = gkyl_wall_clock();
+    gkyl_comm_array_write(gk_s->comm, &gk_s->grid, &gk_s->local, mt, gk_s->f_host, fileNm);
+    app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
+    app->stat.nio += 1;
+    
+    gk_array_meta_release(mt);  
   }
-
-  struct timespec wtm = gkyl_wall_clock();
-  gkyl_comm_array_write(gk_s->comm, &gk_s->grid, &gk_s->local, mt, gk_s->f_host, fileNm);
-  app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
-  app->stat.nio += 1;
-
-  gk_array_meta_release(mt);  
 }
 
 void
@@ -912,71 +1021,73 @@ gkyl_gyrokinetic_app_write_neut_species(gkyl_gyrokinetic_app* app, int sidx, dou
 void
 gkyl_gyrokinetic_app_write_species_mom(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
 {
-  struct timespec wst = gkyl_wall_clock();
   struct gk_species *gks = &app->species[sidx];
 
-  struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
-      .frame = frame,
-      .stime = tm,
-      .poly_order = app->poly_order,
-      .basis_type = app->confBasis.id
+  if (!gks->info.is_static || frame == 0) {
+    struct timespec wst = gkyl_wall_clock();
+    struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
+        .frame = frame,
+        .stime = tm,
+        .poly_order = app->poly_order,
+        .basis_type = app->confBasis.id
+      }
+    );
+
+    for (int m=0; m<gks->info.num_diag_moments; ++m) {
+      gk_species_moment_calc(&gks->moms[m], gks->local, app->local, gks->f);
+
+      const char *fmt = "%s-%s_%s_%d.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name,
+        gks->info.diag_moments[m], frame);
+      char fileNm[sz+1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name,
+        gks->info.diag_moments[m], frame);
+
+      // Rescale moment by inverse of Jacobian 
+      // For Maxwellian and bi-Maxwellian moments, only have to re-scale M0
+      gkyl_dg_div_op_range(gks->moms[m].mem_geo, app->confBasis, 
+        0, gks->moms[m].marr, 0, gks->moms[m].marr, 0, 
+        app->gk_geom->jacobgeo, &app->local);  
+      
+      if (app->use_gpu) {
+        gkyl_array_copy(gks->moms[m].marr_host, gks->moms[m].marr);
+      }
+
+      struct timespec wtm = gkyl_wall_clock();
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
+        gks->moms[m].marr_host, fileNm);
+      app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
+      app->stat.nio += 1;
     }
-  );
 
-  for (int m=0; m<gks->info.num_diag_moments; ++m) {
-    gk_species_moment_calc(&gks->moms[m], gks->local, app->local, gks->f);
+    if (app->enforce_positivity) {
+      // We placed the change in f from the positivity shift in fnew.
+      gk_species_moment_calc(&gks->ps_moms, gks->local, app->local, gks->fnew);
 
-    const char *fmt = "%s-%s_%s_%d.gkyl";
-    int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name,
-      gks->info.diag_moments[m], frame);
-    char fileNm[sz+1]; // ensures no buffer overflow
-    snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name,
-      gks->info.diag_moments[m], frame);
+      const char *fmt = "%s-%s_positivity_shift_FourMoments_%d.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, frame);
+      char fileNm[sz+1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, frame);
 
-    // Rescale moment by inverse of Jacobian 
-    // For Maxwellian and bi-Maxwellian moments, only have to re-scale M0
-    gkyl_dg_div_op_range(gks->moms[m].mem_geo, app->confBasis, 
-      0, gks->moms[m].marr, 0, gks->moms[m].marr, 0, 
-      app->gk_geom->jacobgeo, &app->local);  
+      // Rescale moment by inverse of Jacobian.
+      gkyl_dg_div_op_range(gks->ps_moms.mem_geo, app->confBasis, 
+        0, gks->ps_moms.marr, 0, gks->ps_moms.marr, 0, 
+        app->gk_geom->jacobgeo, &app->local);  
 
-    if (app->use_gpu) {
-      gkyl_array_copy(gks->moms[m].marr_host, gks->moms[m].marr);
+      if (app->use_gpu) {
+        gkyl_array_copy(gks->ps_moms.marr_host, gks->ps_moms.marr);
+      }
+
+      struct timespec wtm = gkyl_wall_clock();
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
+        gks->ps_moms.marr_host, fileNm);
+      app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
+      app->stat.nio += 1;
     }
-
-    struct timespec wtm = gkyl_wall_clock();
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
-      gks->moms[m].marr_host, fileNm);
-    app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
-    app->stat.nio += 1;
+    gk_array_meta_release(mt);   
+    app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
+    app->stat.ndiag += 1;
   }
-
-  if (app->enforce_positivity) {
-    // We placed the change in f from the positivity shift in fnew.
-    gk_species_moment_calc(&gks->ps_moms, gks->local, app->local, gks->fnew);
-
-    const char *fmt = "%s-%s_positivity_shift_FourMoments_%d.gkyl";
-    int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, frame);
-    char fileNm[sz+1]; // ensures no buffer overflow
-    snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, frame);
-
-    // Rescale moment by inverse of Jacobian.
-    gkyl_dg_div_op_range(gks->ps_moms.mem_geo, app->confBasis, 
-      0, gks->ps_moms.marr, 0, gks->ps_moms.marr, 0, 
-      app->gk_geom->jacobgeo, &app->local);  
-
-    if (app->use_gpu) {
-      gkyl_array_copy(gks->ps_moms.marr_host, gks->ps_moms.marr);
-    }
-
-    struct timespec wtm = gkyl_wall_clock();
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
-      gks->ps_moms.marr_host, fileNm);
-    app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
-    app->stat.nio += 1;
-  }
-  gk_array_meta_release(mt);   
-  app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-  app->stat.ndiag += 1;
 }
 
 void
@@ -1029,29 +1140,13 @@ gkyl_gyrokinetic_app_write_neut_species_mom(gkyl_gyrokinetic_app* app, int sidx,
 void
 gkyl_gyrokinetic_app_calc_species_integrated_mom(gkyl_gyrokinetic_app* app, int sidx, double tm)
 {
-  struct timespec wst = gkyl_wall_clock();
-
   struct gk_species *gk_s = &app->species[sidx];
-
-  int vdim = app->vdim;
-  double avals_global[2+vdim];
-
-  gk_species_moment_calc(&gk_s->integ_moms, gk_s->local, app->local, gk_s->f); 
-  // Reduce (sum) over whole domain, append to diagnostics.
-  gkyl_array_reduce_range(gk_s->red_integ_diag, gk_s->integ_moms.marr, GKYL_SUM, &app->local);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, 
-    gk_s->red_integ_diag, gk_s->red_integ_diag_global);
-  if (app->use_gpu) {
-    gkyl_cu_memcpy(avals_global, gk_s->red_integ_diag_global, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
-  }
-  else {
-    memcpy(avals_global, gk_s->red_integ_diag_global, sizeof(double[2+vdim]));
-  }
-  gkyl_dynvec_append(gk_s->integ_diag, tm, avals_global);
-
-  if (app->enforce_positivity) {
-    // The change in f from the positivity shift is in fnew.
-    gk_species_moment_calc(&gk_s->integ_moms, gk_s->local, app->local, gk_s->fnew); 
+  if (!gk_s->info.is_static) {
+    struct timespec wst = gkyl_wall_clock();
+    int vdim = app->vdim;
+    double avals_global[2+vdim];
+    
+    gk_species_moment_calc(&gk_s->integ_moms, gk_s->local, app->local, gk_s->f); 
     // Reduce (sum) over whole domain, append to diagnostics.
     gkyl_array_reduce_range(gk_s->red_integ_diag, gk_s->integ_moms.marr, GKYL_SUM, &app->local);
     gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, 
@@ -1062,11 +1157,27 @@ gkyl_gyrokinetic_app_calc_species_integrated_mom(gkyl_gyrokinetic_app* app, int 
     else {
       memcpy(avals_global, gk_s->red_integ_diag_global, sizeof(double[2+vdim]));
     }
-    gkyl_dynvec_append(gk_s->ps_integ_diag, tm, avals_global);
+    gkyl_dynvec_append(gk_s->integ_diag, tm, avals_global);
+    
+    if (app->enforce_positivity) {
+      // The change in f from the positivity shift is in fnew.
+      gk_species_moment_calc(&gk_s->integ_moms, gk_s->local, app->local, gk_s->fnew); 
+      // Reduce (sum) over whole domain, append to diagnostics.
+      gkyl_array_reduce_range(gk_s->red_integ_diag, gk_s->integ_moms.marr, GKYL_SUM, &app->local);
+      gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, 
+			  gk_s->red_integ_diag, gk_s->red_integ_diag_global);
+      if (app->use_gpu) {
+	gkyl_cu_memcpy(avals_global, gk_s->red_integ_diag_global, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
+      }
+      else {
+	memcpy(avals_global, gk_s->red_integ_diag_global, sizeof(double[2+vdim]));
+      }
+      gkyl_dynvec_append(gk_s->ps_integ_diag, tm, avals_global);
+    }
+    
+    app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
+    app->stat.ndiag += 1;
   }
-
-  app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-  app->stat.ndiag += 1;
 }
 
 void
@@ -1125,56 +1236,58 @@ gkyl_gyrokinetic_app_calc_species_L2norm(gkyl_gyrokinetic_app *app, int sidx, do
 void
 gkyl_gyrokinetic_app_write_species_integrated_mom(gkyl_gyrokinetic_app *app, int sidx)
 {
-  struct timespec wst = gkyl_wall_clock();
   struct gk_species *gks = &app->species[sidx];
 
-  int rank;
-  gkyl_comm_get_rank(app->comm, &rank);
+  if (!gks->info.is_static) {
+     struct timespec wst = gkyl_wall_clock();
+     int rank;
+     gkyl_comm_get_rank(app->comm, &rank);
+     
+     if (rank == 0) {
+       // Write integrated diagnostic moments.
+       const char *fmt = "%s-%s_%s.gkyl";
+       int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, "integrated_moms");
+       char fileNm[sz+1]; // ensures no buffer overflow
+       snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "integrated_moms");
 
-  if (rank == 0) {
-    // Write integrated diagnostic moments.
-    const char *fmt = "%s-%s_%s.gkyl";
-    int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, "integrated_moms");
-    char fileNm[sz+1]; // ensures no buffer overflow
-    snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "integrated_moms");
+       struct timespec wtm = gkyl_wall_clock();
+       if (gks->is_first_integ_write_call) {
+	 gkyl_dynvec_write(gks->integ_diag, fileNm);
+	 gks->is_first_integ_write_call = false;
+       }
+       else {
+	 gkyl_dynvec_awrite(gks->integ_diag, fileNm);
+       }
+       app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
+       app->stat.nio += 1;
+     }
+     gkyl_dynvec_clear(gks->integ_diag);
 
-    struct timespec wtm = gkyl_wall_clock();
-    if (gks->is_first_integ_write_call) {
-      gkyl_dynvec_write(gks->integ_diag, fileNm);
-      gks->is_first_integ_write_call = false;
-    }
-    else {
-      gkyl_dynvec_awrite(gks->integ_diag, fileNm);
-    }
-    app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
-    app->stat.nio += 1;
+     if (app->enforce_positivity) {
+       if (rank == 0) {
+	 // Write integrated diagnostic moments.
+	 const char *fmt = "%s-%s_positivity_shift_%s.gkyl";
+	 int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, "integrated_moms");
+	 char fileNm[sz+1]; // ensures no buffer overflow
+	 snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "integrated_moms");
+
+	 struct timespec wtm = gkyl_wall_clock();
+	 if (gks->is_first_ps_integ_write_call) {
+	   gkyl_dynvec_write(gks->ps_integ_diag, fileNm);
+	   gks->is_first_ps_integ_write_call = false;
+	 }
+	 else {
+	   gkyl_dynvec_awrite(gks->ps_integ_diag, fileNm);
+	 }
+	 app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
+	 app->stat.nio += 1;
+       }
+       gkyl_dynvec_clear(gks->ps_integ_diag);
+     }
+     
+     app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
+     app->stat.ndiag += 1;
   }
-  gkyl_dynvec_clear(gks->integ_diag);
-
-  if (app->enforce_positivity) {
-    if (rank == 0) {
-      // Write integrated diagnostic moments.
-      const char *fmt = "%s-%s_positivity_shift_%s.gkyl";
-      int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, "integrated_moms");
-      char fileNm[sz+1]; // ensures no buffer overflow
-      snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "integrated_moms");
-
-      struct timespec wtm = gkyl_wall_clock();
-      if (gks->is_first_ps_integ_write_call) {
-        gkyl_dynvec_write(gks->ps_integ_diag, fileNm);
-        gks->is_first_ps_integ_write_call = false;
-      }
-      else {
-        gkyl_dynvec_awrite(gks->ps_integ_diag, fileNm);
-      }
-      app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
-      app->stat.nio += 1;
-    }
-    gkyl_dynvec_clear(gks->ps_integ_diag);
-  }
-
-  app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-  app->stat.ndiag += 1;
 }
 
 void
@@ -2357,7 +2470,7 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
 
     // Compute and store (in the ghost cell of of out) the boundary fluxes.
     // NOTE: this overwrites ghost cells that may be used for sourcing.
-    if (app->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
+    if (app->field->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
       gk_species_bflux_rhs(app, s, &s->bflux, fin[i], fout[i]);
   }
 
@@ -2797,6 +2910,7 @@ gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
   struct gkyl_array* arr_ho9 = mkarr(false, 9*app->confBasis.num_basis, app->local_ext.volume);
 
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->mc2p        , arr_ho3, "mapc2p");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->mc2nu_pos   , arr_ho3, "mc2nu_pos");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->bmag        , arr_ho1, "bmag");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->g_ij        , arr_ho6, "g_ij");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->dxdz        , arr_ho9, "dxdz");
@@ -2827,13 +2941,6 @@ gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
 struct gkyl_app_restart_status
 gkyl_gyrokinetic_app_from_file_field(gkyl_gyrokinetic_app *app, const char *fname)
 {
-  if (app->update_field != 1)
-    return (struct gkyl_app_restart_status) {
-      .io_status = GKYL_ARRAY_RIO_SUCCESS,
-      .frame = 0,
-      .stime = 0.0
-    };
-
   struct gkyl_app_restart_status rstat = header_from_file(app, fname);
 
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
@@ -2948,14 +3055,20 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
 {
   struct gkyl_app_restart_status rstat;
   for (int i=0; i<app->num_neut_species; i++) {
-    int neut_frame = frame;
     if (app->neut_species[i].info.is_static) {
-      neut_frame = 0;
+      gk_neut_species_apply_ic(app, &app->neut_species[i], 0.0);
     }
-    rstat = gkyl_gyrokinetic_app_from_frame_neut_species(app, i, neut_frame);
+    else {
+      rstat = gkyl_gyrokinetic_app_from_frame_neut_species(app, i, frame);
+    }
   }
   for (int i=0; i<app->num_species; i++) {
-    rstat = gkyl_gyrokinetic_app_from_frame_species(app, i, frame);
+    if (app->species[i].info.is_static) {
+      gk_species_apply_ic(app, &app->species[i], 0.0);
+    }
+    else {
+      rstat = gkyl_gyrokinetic_app_from_frame_species(app, i, frame);
+    }
   }
   
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
@@ -2968,23 +3081,41 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
     for (int i=0; i<app->num_neut_species; ++i) {
       distf_neut[i] = app->neut_species[i].f;
     }
-    if (app->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
-      for (int i=0; i<app->num_species; ++i) {
-        struct gk_species *s = &app->species[i];
+    if (app->field->update_field) {
+      if (app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
+        for (int i=0; i<app->num_species; ++i) {
+          struct gk_species *s = &app->species[i];
 
-        // Compute advection speeds so we can compute the initial boundary flux.
-        gkyl_dg_calc_gyrokinetic_vars_alpha_surf(s->calc_gk_vars, 
-          &app->local, &s->local, &s->local_ext, app->field->phi_smooth,
-          s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
+          // Compute advection speeds so we can compute the initial boundary flux.
+          gkyl_dg_calc_gyrokinetic_vars_alpha_surf(s->calc_gk_vars, 
+            &app->local, &s->local, &s->local_ext, app->field->phi_smooth,
+            s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
 
-        // Compute and store (in the ghost cell of of out) the boundary fluxes.
-        // NOTE: this overwrites ghost cells that may be used for sourcing.
-        gk_species_bflux_rhs(app, s, &s->bflux, distf[i], distf[i]);
+          // Compute and store (in the ghost cell of of out) the boundary fluxes.
+          // NOTE: this overwrites ghost cells that may be used for sourcing.
+          gk_species_bflux_rhs(app, s, &s->bflux, distf[i], distf[i]);
+        }
+      }
+
+      // Compute the field.
+      // MF 2024/09/27/: Need the cast here for consistency. Fixing
+      // this may require removing 'const' from a lot of places.
+      gyrokinetic_calc_field(app, rstat.stime, (const struct gkyl_array **) distf);
+    }
+    else
+      // Read the t=0 field.
+      gkyl_gyrokinetic_app_from_frame_field(app, 0);
+
+    // Apply boundary conditions.
+    for (int i=0; i<app->num_species; ++i) {
+      gk_species_apply_bc(app, &app->species[i], distf[i]);
+    }
+    for (int i=0; i<app->num_neut_species; ++i) {
+      if (!app->neut_species[i].info.is_static) {
+        gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
       }
     }
-    gyrokinetic_calc_field_and_apply_bc(app, rstat.stime, distf, distf_neut);
   }
-
   app->field->is_first_energy_write_call = false; // Append to existing diagnostic.
 
   return rstat;
@@ -3022,13 +3153,16 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
 
   gk_field_release(app, app->field);
 
+  gkyl_position_map_release(app->position_map);
+
   for (int i=0; i<app->num_species; ++i)
     gk_species_release(app, &app->species[i]);
   if (app->num_species > 0)
     gkyl_free(app->species);
 
-  for (int i=0; i<app->num_neut_species; ++i)
+  for (int i=0; i<app->num_neut_species; ++i) {
     gk_neut_species_release(app, &app->neut_species[i]);
+  }
   if (app->num_neut_species > 0)
     gkyl_free(app->neut_species);
 

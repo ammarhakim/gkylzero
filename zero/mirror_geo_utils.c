@@ -41,8 +41,6 @@ mirror_find_endpoints(struct gkyl_mirror_geo_grid_inp* inp, struct gkyl_mirror_g
   arc_ctx->arcL_tot = arcL;
 }
 
-
-
 void
 mirror_set_ridders(struct gkyl_mirror_geo_grid_inp* inp, struct arc_length_ctx* arc_ctx, double psi_curr, double arcL, double arcL_curr, double zmin, double zmax, double* rclose, double *ridders_min, double* ridders_max){
 

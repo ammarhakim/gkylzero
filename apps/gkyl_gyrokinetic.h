@@ -9,6 +9,7 @@
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 #include <gkyl_velocity_map.h>
+#include <gkyl_position_map.h>
 #include <gkyl_gyrokinetic_comms.h>
 
 #include <stdbool.h>
@@ -122,6 +123,7 @@ struct gkyl_gyrokinetic_geometry {
   struct gkyl_efit_inp efit_info; // context with RZ data such as efit file for a tokamak or mirror
   struct gkyl_tok_geo_grid_inp tok_grid_info; // context for tokamak geometry with computational domain info
   struct gkyl_mirror_geo_grid_inp mirror_grid_info; // context for mirror geometry with computational domain info
+  struct gkyl_position_map_inp position_map_info; // position map object
 
   double world[3]; // extra computational coordinates for cases with reduced dimensionality
 };
@@ -193,6 +195,8 @@ struct gkyl_gyrokinetic_species {
   int cells[3]; // Velocity-space cells.
 
   struct gkyl_mapc2p_inp mapc2p;
+
+  bool is_static; // Set to true if species does not change in time.
 
   // Initial conditions using projection routine.
   struct gkyl_gyrokinetic_projection projection;
@@ -279,6 +283,9 @@ struct gkyl_gyrokinetic_neut_species {
 // Parameter for gk field.
 struct gkyl_gyrokinetic_field {
   enum gkyl_gkfield_id gkfield_id;
+  bool is_static; // =true field does not change in time.
+  bool zero_init_field; // =true doesn't compute the initial field.
+
   double polarization_bmag; 
   double kperpSq; // kperp^2 parameter for 1D field equations
   double xLCFS; // radial location of the LCFS.
@@ -306,31 +313,31 @@ struct gkyl_gyrokinetic_field {
 
 // Top-level app parameters
 struct gkyl_gk {
-  char name[128]; // name of app: used as output prefix
+  char name[128]; // Name of app: used as output prefix.
 
-  int cdim, vdim; // conf, velocity space dimensions
-  double lower[3], upper[3]; // lower, upper bounds of config-space
-  int cells[3]; // config-space cells
-  int poly_order; // polynomial order
-  enum gkyl_basis_type basis_type; // type of basis functions to use
+  int cdim, vdim; // Conf, velocity space dimensions.
+  double lower[3], upper[3]; // Lower, upper bounds of config-space.
+  int cells[3]; // Config-space cells.
+  int poly_order; // Polynomial order.
+  enum gkyl_basis_type basis_type; // Type of basis functions to use.
 
-  struct gkyl_gyrokinetic_geometry geometry; // geometry input struct
+  struct gkyl_gyrokinetic_geometry geometry; // Geometry input struct.
 
-  double cfl_frac; // CFL fraction to use (default 1.0)
+  double cfl_frac; // CFL fraction to use (default 1.0).
+  double cfl_frac_omegaH; // CFL fraction used for the omega_H dt (default 1.0).
 
   bool enforce_positivity; // Positivity enforcement via shift in f.
 
-  int num_periodic_dir; // number of periodic directions
-  int periodic_dirs[3]; // list of periodic directions
+  int num_periodic_dir; // Number of periodic directions.
+  int periodic_dirs[3]; // List of periodic directions.
 
-  int num_species; // number of species
-  struct gkyl_gyrokinetic_species species[GKYL_MAX_SPECIES]; // species objects
+  int num_species; // Number of species.
+  struct gkyl_gyrokinetic_species species[GKYL_MAX_SPECIES]; // Species objects.
 
-  int num_neut_species; // number of species
-  struct gkyl_gyrokinetic_neut_species neut_species[GKYL_MAX_SPECIES]; // species objects
+  int num_neut_species; // Number of species.
+  struct gkyl_gyrokinetic_neut_species neut_species[GKYL_MAX_SPECIES]; // Species objects.
   
-  bool skip_field; // Skip field update -> phi = 0 for all time
-  struct gkyl_gyrokinetic_field field; // field object
+  struct gkyl_gyrokinetic_field field; // Field object.
 
   struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
 };
