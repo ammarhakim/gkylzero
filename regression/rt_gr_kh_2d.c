@@ -403,6 +403,9 @@ main(int argc, char **argv)
     .upper = { ctx.Lx, 0.5 * ctx.Ly },
     .cells = { NX, NY },
 
+    .scheme_type = GKYL_MOMENT_WAVE_PROP,
+    .mp_recon = app_args.mp_recon,
+
     .cfl_frac = ctx.cfl_frac,
 
     .num_species = 1,

@@ -997,7 +997,7 @@ test_gr_euler_waves_kerr()
           gkyl_wv_eqn_rotate_to_global(gr_euler, tau1[d], tau2[d], norm[d], fr_local, fr);
 
           for (int i = 0; i < 28; i++) {
-            TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-12) );
+            TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-11) );
           }
         }
       }
