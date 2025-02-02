@@ -4,6 +4,7 @@
 #include <acutest.h>
 
 #include <gkyl_proj_on_basis.h>
+#include <gkyl_eval_on_nodes.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
@@ -49,18 +50,12 @@ void evalFunc3x(double t, const double *xn, double* restrict fout, void *ctx)
   fout[0] = exp(-(pow(x-mu[0],2)+pow(y-mu[1],2))/(2.0*sig*sig))*sin(2.*M_PI*z);
 }
 
-// allocate array (filled with zeros)
 static struct gkyl_array*
-mkarr(long nc, long size)
+mkarr(bool use_gpu, long nc, long size)
 {
-  struct gkyl_array* a = gkyl_array_new(GKYL_DOUBLE, nc, size);
-  return a;
-}
-
-static struct gkyl_array*
-mkarr_cu(long nc, long size)
-{
-  struct gkyl_array* a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
+  // Allocate array (filled with zeros)
+  struct gkyl_array* a = use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size)
+                                : gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
 
@@ -72,11 +67,11 @@ struct skin_ghost_ranges {
   struct gkyl_range upper_ghost[GKYL_MAX_DIM];
 };
 
-// Create ghost and skin sub-ranges given a parent range
 static void
 skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
   const struct gkyl_range *parent, const int *ghost)
 {
+  // Create ghost and skin sub-ranges given a parent range
   int ndim = parent->ndim;
 
   for (int d=0; d<ndim; ++d) {
@@ -87,10 +82,10 @@ skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
   }
 }
 
-// Apply periodic BCs along parallel direction
 void
 apply_periodic_bc(struct gkyl_array *buff, struct gkyl_array *fld, const int dir, const struct skin_ghost_ranges sgr)
 {
+  // Apply periodic BCs along parallel direction
   gkyl_array_copy_to_buffer(buff->data, fld, &(sgr.lower_skin[dir]));
   gkyl_array_copy_from_buffer(fld, buff->data, &(sgr.upper_ghost[dir]));
 
@@ -98,19 +93,16 @@ apply_periodic_bc(struct gkyl_array *buff, struct gkyl_array *fld, const int dir
   gkyl_array_copy_from_buffer(fld, buff->data, &(sgr.lower_ghost[dir]));
 }
 
-// Check continuity along last dim in 2x
 void check_continuity_2x(struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_basis basis, struct gkyl_array *field)
 {
+  // Check continuity along last dim in 2x
   struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, grid.ndim, basis.num_basis);
   basis.node_list(gkyl_array_fetch(nodes, 0));
   // Check continuity
+  int idx[3];
+  const double *node_i;
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
-  int nidx;
-  long lin_nidx;
-  int idx[3];
-  const double *node_i  ;
-
   while (gkyl_range_iter_next(&iter)) {
     if (iter.idx[1] != range.upper[1]) {
       long lidx = gkyl_range_idx(&range, iter.idx);
@@ -169,8 +161,6 @@ void check_bc_2x(struct gkyl_rect_grid grid, struct gkyl_range range,
   gkyl_array_release(nodes);
 }
 
-
-
 void
 test_1x(int poly_order, const bool isperiodic, bool use_gpu)
 {
@@ -197,46 +187,35 @@ test_1x(int poly_order, const bool isperiodic, bool use_gpu)
     poly_order+1, 1, evalFunc1x, NULL);
 
   // create DG field we wish to make continuous.
-  struct gkyl_array *rho = mkarr(basis.num_basis, localRange_ext.volume);
+  struct gkyl_array *rho = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
   // create array holding continuous field we'll compute.
-  struct gkyl_array *phi = mkarr(basis.num_basis, localRange_ext.volume);
-  // device copies:
-  struct gkyl_array *rho_cu, *phi_cu;
-  if (use_gpu) {
-    rho_cu = mkarr_cu(basis.num_basis, localRange_ext.volume);
-    phi_cu = mkarr_cu(basis.num_basis, localRange_ext.volume);
-  }
+  struct gkyl_array *phi = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+
+  struct gkyl_array *rho_ho = use_gpu? mkarr(false, rho->ncomp, rho->size) : gkyl_array_acquire(rho);
+  struct gkyl_array *phi_ho = use_gpu? mkarr(false, phi->ncomp, phi->size) : gkyl_array_acquire(phi);
 
   // project distribution function on basis.
-  gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho);
-  struct gkyl_array *parbuff = mkarr(basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
-//  gkyl_grid_sub_array_write(&grid, &localRange, rho, "ctest_fem_parproj_1x_p2_rho_1.gkyl");
-  if (use_gpu) gkyl_array_copy(rho_cu, rho);
+  gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
+  gkyl_array_copy(rho, rho_ho);
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, rho_ho, "ctest_fem_parproj_1x_p2_rho_1.gkyl");
 
   // parallel FEM projection method.
-  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &localRange_ext,
-    &basis, isperiodic? GKYL_FEM_PARPROJ_PERIODIC : GKYL_FEM_PARPROJ_NONE, NULL, use_gpu);
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &basis,
+    isperiodic? GKYL_FEM_PARPROJ_PERIODIC : GKYL_FEM_PARPROJ_NONE, 0, 0, use_gpu);
 
   // Set the RHS source.
-  if (use_gpu)
-    gkyl_fem_parproj_set_rhs(parproj, rho_cu, NULL);
-  else
-    gkyl_fem_parproj_set_rhs(parproj, rho, NULL);
+  gkyl_fem_parproj_set_rhs(parproj, rho, NULL);
 
   // Solve the problem.
-  if (use_gpu) {
-    gkyl_fem_parproj_solve(parproj, phi_cu);
-    gkyl_array_copy(phi, phi_cu);
-#ifdef GKYL_HAVE_CUDA
-    cudaDeviceSynchronize();
-#endif
-  } else {
-    gkyl_fem_parproj_solve(parproj, phi);
-  }
+  gkyl_fem_parproj_solve(parproj, phi);
+  gkyl_array_copy(phi_ho, phi);
 
-  if (isperiodic)
-    apply_periodic_bc(parbuff, phi, dim-1, skin_ghost);
-//  gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_parproj_1x_p2_phi_1.gkyl");
+  if (isperiodic) {
+    struct gkyl_array *parbuff = mkarr(false, basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
+    apply_periodic_bc(parbuff, phi_ho, dim-1, skin_ghost);
+    gkyl_array_release(parbuff);
+  }
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, phi_ho, "ctest_fem_parproj_1x_p2_phi_1.gkyl");
 
   if (poly_order == 1) {
     if (!isperiodic) {
@@ -247,16 +226,18 @@ test_1x(int poly_order, const bool isperiodic, bool use_gpu)
                               0.8488758876834943,  0.490098722262648 ,
                               0.9089542445638024, -0.4554124667453318};
       const double *phi_p;
-      phi_p = gkyl_array_cfetch(phi, 1);
+      phi_p = gkyl_array_cfetch(phi_ho, 1);
       TEST_CHECK( gkyl_compare(sol[0], phi_p[0], 1e-14) );
+      TEST_MSG("Expected: %.13e in cell (%d)", sol[0], 1);
+      TEST_MSG("Produced: %.13e", phi_p[0]);
       TEST_CHECK( gkyl_compare(sol[1], phi_p[1], 1e-14) );
-      phi_p = gkyl_array_cfetch(phi, 2);
+      phi_p = gkyl_array_cfetch(phi_ho, 2);
       TEST_CHECK( gkyl_compare(sol[2], phi_p[0], 1e-14) );
       TEST_CHECK( gkyl_compare(sol[3], phi_p[1], 1e-14) );
-      phi_p = gkyl_array_cfetch(phi, 3);
+      phi_p = gkyl_array_cfetch(phi_ho, 3);
       TEST_CHECK( gkyl_compare(sol[4], phi_p[0], 1e-14) );
       TEST_CHECK( gkyl_compare(sol[5], phi_p[1], 1e-14) );
-      phi_p = gkyl_array_cfetch(phi, 4);
+      phi_p = gkyl_array_cfetch(phi_ho, 4);
       TEST_CHECK( gkyl_compare(sol[6], phi_p[0], 1e-14) );
       TEST_CHECK( gkyl_compare(sol[7], phi_p[1], 1e-14) );
     } else {
@@ -266,22 +247,22 @@ test_1x(int poly_order, const bool isperiodic, bool use_gpu)
                               0.8638954769035713,  0.498770286141977,
                               0.8638954769035713, -0.498770286141977};
       const double *phi_p;
-      phi_p = gkyl_array_cfetch(phi, 0);
+      phi_p = gkyl_array_cfetch(phi_ho, 0);
       TEST_CHECK( gkyl_compare(sol[6], phi_p[0], 1e-14) );
       TEST_CHECK( gkyl_compare(sol[7], phi_p[1], 1e-14) );
-      phi_p = gkyl_array_cfetch(phi, 1);
+      phi_p = gkyl_array_cfetch(phi_ho, 1);
       TEST_CHECK( gkyl_compare(sol[0], phi_p[0], 1e-14) );
       TEST_CHECK( gkyl_compare(sol[1], phi_p[1], 1e-14) );
-      phi_p = gkyl_array_cfetch(phi, 2);
+      phi_p = gkyl_array_cfetch(phi_ho, 2);
       TEST_CHECK( gkyl_compare(sol[2], phi_p[0], 1e-14) );
       TEST_CHECK( gkyl_compare(sol[3], phi_p[1], 1e-14) );
-      phi_p = gkyl_array_cfetch(phi, 3);
+      phi_p = gkyl_array_cfetch(phi_ho, 3);
       TEST_CHECK( gkyl_compare(sol[4], phi_p[0], 1e-14) );
       TEST_CHECK( gkyl_compare(sol[5], phi_p[1], 1e-14) );
-      phi_p = gkyl_array_cfetch(phi, 4);
+      phi_p = gkyl_array_cfetch(phi_ho, 4);
       TEST_CHECK( gkyl_compare(sol[6], phi_p[0], 1e-14) );
       TEST_CHECK( gkyl_compare(sol[7], phi_p[1], 1e-14) );
-      phi_p = gkyl_array_cfetch(phi, 5);
+      phi_p = gkyl_array_cfetch(phi_ho, 5);
       TEST_CHECK( gkyl_compare(sol[0], phi_p[0], 1e-14) );
       TEST_CHECK( gkyl_compare(sol[1], phi_p[1], 1e-14) );
     }
@@ -293,19 +274,19 @@ test_1x(int poly_order, const bool isperiodic, bool use_gpu)
                                0.9039382020247495,  0.4172269800703625, -0.0810708243570699,
                                0.9010465429057768, -0.4272439810948229, -0.0875367707148495};
       const double *phi_p;
-      phi_p = gkyl_array_cfetch(phi, 1);
+      phi_p = gkyl_array_cfetch(phi_ho, 1);
       TEST_CHECK( gkyl_compare(sol[0], phi_p[0], 1e-14) );
       TEST_CHECK( gkyl_compare(sol[1], phi_p[1], 1e-14) );
       TEST_CHECK( gkyl_compare(sol[2], phi_p[2], 1e-14) );
-      phi_p = gkyl_array_cfetch(phi, 2);
+      phi_p = gkyl_array_cfetch(phi_ho, 2);
       TEST_CHECK( gkyl_compare(sol[3], phi_p[0], 1e-14) );
       TEST_CHECK( gkyl_compare(sol[4], phi_p[1], 1e-14) );
       TEST_CHECK( gkyl_compare(sol[5], phi_p[2], 1e-14) );
-      phi_p = gkyl_array_cfetch(phi, 3);
+      phi_p = gkyl_array_cfetch(phi_ho, 3);
       TEST_CHECK( gkyl_compare(sol[6], phi_p[0], 1e-14) );
       TEST_CHECK( gkyl_compare(sol[7], phi_p[1], 1e-14) );
       TEST_CHECK( gkyl_compare(sol[8], phi_p[2], 1e-14) );
-      phi_p = gkyl_array_cfetch(phi, 4);
+      phi_p = gkyl_array_cfetch(phi_ho, 4);
       TEST_CHECK( gkyl_compare(sol[9], phi_p[0], 1e-14) );
       TEST_CHECK( gkyl_compare(sol[10], phi_p[1], 1e-14) );
       TEST_CHECK( gkyl_compare(sol[11], phi_p[2], 1e-14) );
@@ -316,27 +297,27 @@ test_1x(int poly_order, const bool isperiodic, bool use_gpu)
                                0.904420145211245 ,  0.418896480241106,  -0.0799931666307734,
                                0.9044201452112451, -0.418896480241106,  -0.0799931666307734};
       const double *phi_p;
-      phi_p = gkyl_array_cfetch(phi, 0);
+      phi_p = gkyl_array_cfetch(phi_ho, 0);
       TEST_CHECK( gkyl_compare(sol[9], phi_p[0], 1e-14) );
       TEST_CHECK( gkyl_compare(sol[10], phi_p[1], 1e-14) );
       TEST_CHECK( gkyl_compare(sol[11], phi_p[2], 1e-14) );
-      phi_p = gkyl_array_cfetch(phi, 1);
+      phi_p = gkyl_array_cfetch(phi_ho, 1);
       TEST_CHECK( gkyl_compare(sol[0], phi_p[0], 1e-14) );
       TEST_CHECK( gkyl_compare(sol[1], phi_p[1], 1e-14) );
       TEST_CHECK( gkyl_compare(sol[2], phi_p[2], 1e-14) );
-      phi_p = gkyl_array_cfetch(phi, 2);
+      phi_p = gkyl_array_cfetch(phi_ho, 2);
       TEST_CHECK( gkyl_compare(sol[3], phi_p[0], 1e-14) );
       TEST_CHECK( gkyl_compare(sol[4], phi_p[1], 1e-14) );
       TEST_CHECK( gkyl_compare(sol[5], phi_p[2], 1e-14) );
-      phi_p = gkyl_array_cfetch(phi, 3);
+      phi_p = gkyl_array_cfetch(phi_ho, 3);
       TEST_CHECK( gkyl_compare(sol[6], phi_p[0], 1e-14) );
       TEST_CHECK( gkyl_compare(sol[7], phi_p[1], 1e-14) );
       TEST_CHECK( gkyl_compare(sol[8], phi_p[2], 1e-14) );
-      phi_p = gkyl_array_cfetch(phi, 4);
+      phi_p = gkyl_array_cfetch(phi_ho, 4);
       TEST_CHECK( gkyl_compare(sol[9], phi_p[0], 1e-14) );
       TEST_CHECK( gkyl_compare(sol[10], phi_p[1], 1e-14) );
       TEST_CHECK( gkyl_compare(sol[11], phi_p[2], 1e-14) );
-      phi_p = gkyl_array_cfetch(phi, 5);
+      phi_p = gkyl_array_cfetch(phi_ho, 5);
       TEST_CHECK( gkyl_compare(sol[0], phi_p[0], 1e-14) );
       TEST_CHECK( gkyl_compare(sol[1], phi_p[1], 1e-14) );
       TEST_CHECK( gkyl_compare(sol[2], phi_p[2], 1e-14) );
@@ -347,11 +328,8 @@ test_1x(int poly_order, const bool isperiodic, bool use_gpu)
   gkyl_proj_on_basis_release(projob);
   gkyl_array_release(rho);
   gkyl_array_release(phi);
-  if (use_gpu) {
-    gkyl_array_release(rho_cu);
-    gkyl_array_release(phi_cu);
-  }
-  gkyl_array_release(parbuff);
+  gkyl_array_release(rho_ho);
+  gkyl_array_release(phi_ho);
 
 }
 
@@ -381,46 +359,35 @@ test_2x(int poly_order, const bool isperiodic, bool use_gpu)
     poly_order+1, 1, evalFunc2x, NULL);
 
   // create DG field we wish to make continuous.
-  struct gkyl_array *rho = mkarr(basis.num_basis, localRange_ext.volume);
+  struct gkyl_array *rho = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
   // create array holding continuous field we'll compute.
-  struct gkyl_array *phi = mkarr(basis.num_basis, localRange_ext.volume);
-  // device copies:
-  struct gkyl_array *rho_cu, *phi_cu;
-  if (use_gpu) {
-    rho_cu = mkarr_cu(basis.num_basis, localRange_ext.volume);
-    phi_cu = mkarr_cu(basis.num_basis, localRange_ext.volume);
-  }
+  struct gkyl_array *phi = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+
+  struct gkyl_array *rho_ho = use_gpu? mkarr(false, rho->ncomp, rho->size) : gkyl_array_acquire(rho);
+  struct gkyl_array *phi_ho = use_gpu? mkarr(false, phi->ncomp, phi->size) : gkyl_array_acquire(phi);
 
   // project distribution function on basis.
-  gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho);
-  struct gkyl_array *parbuff = mkarr(basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
-//  gkyl_grid_sub_array_write(&grid, &localRange, rho, "ctest_fem_parproj_2x_p1_rho_1.gkyl");
-  if (use_gpu) gkyl_array_copy(rho_cu, rho);
+  gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
+  gkyl_array_copy(rho, rho_ho);
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, rho_ho, "ctest_fem_parproj_2x_p1_rho_1.gkyl");
 
   // parallel FEM projection method.
-  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &localRange_ext,
-    &basis, isperiodic? GKYL_FEM_PARPROJ_PERIODIC : GKYL_FEM_PARPROJ_NONE, NULL, use_gpu);
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &basis,
+    isperiodic? GKYL_FEM_PARPROJ_PERIODIC : GKYL_FEM_PARPROJ_NONE, 0, 0, use_gpu);
 
   // Set the RHS source.
-  if (use_gpu)
-    gkyl_fem_parproj_set_rhs(parproj, rho_cu, NULL);
-  else
-    gkyl_fem_parproj_set_rhs(parproj, rho, NULL);
+  gkyl_fem_parproj_set_rhs(parproj, rho, NULL);
 
   // Solve the problem.
-  if (use_gpu) {
-    gkyl_fem_parproj_solve(parproj, phi_cu);
-    gkyl_array_copy(phi, phi_cu);
-#ifdef GKYL_HAVE_CUDA
-    cudaDeviceSynchronize();
-#endif
-  } else {
-    gkyl_fem_parproj_solve(parproj, phi);
-  }
+  gkyl_fem_parproj_solve(parproj, phi);
+  gkyl_array_copy(phi_ho, phi);
 
-  if (isperiodic)
-    apply_periodic_bc(parbuff, phi, dim-1, skin_ghost);
-//  gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_parproj_2x_p1_phi_1.gkyl");
+  if (isperiodic) {
+    struct gkyl_array *parbuff = mkarr(false, basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
+    apply_periodic_bc(parbuff, phi_ho, dim-1, skin_ghost);
+    gkyl_array_release(parbuff);
+  }
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, phi_ho, "ctest_fem_parproj_2x_p1_phi_1.gkyl");
 
   if (poly_order == 1) {
     if (!isperiodic) {
@@ -459,7 +426,7 @@ test_2x(int poly_order, const bool isperiodic, bool use_gpu)
         const double *phi_p;
         int idx0[] = {0+1,k+1};
         linidx = gkyl_range_idx(&localRange, idx0); 
-        phi_p = gkyl_array_cfetch(phi, linidx);
+        phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[(0*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-14) );
           TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(0*cells[1]+k)*basis.num_basis+m], idx0[0], idx0[1]);
@@ -468,7 +435,7 @@ test_2x(int poly_order, const bool isperiodic, bool use_gpu)
         
         int idx1[] = {1+1,k+1};
         linidx = gkyl_range_idx(&localRange, idx1); 
-        phi_p = gkyl_array_cfetch(phi, linidx);
+        phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[(1*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-14) );
           TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(1*cells[1]+k)*basis.num_basis+m], idx1[0], idx1[1]);
@@ -477,7 +444,7 @@ test_2x(int poly_order, const bool isperiodic, bool use_gpu)
         
         int idx2[] = {2+1,k+1};
         linidx = gkyl_range_idx(&localRange, idx2); 
-        phi_p = gkyl_array_cfetch(phi, linidx);
+        phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[(2*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-14) );
           TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(2*cells[1]+k)*basis.num_basis+m], idx2[0], idx2[1]);
@@ -520,7 +487,7 @@ test_2x(int poly_order, const bool isperiodic, bool use_gpu)
         const double *phi_p;
         int idx0[] = {0+1,k+1};
         linidx = gkyl_range_idx(&localRange, idx0); 
-        phi_p = gkyl_array_cfetch(phi, linidx);
+        phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[(0*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-14) );
           TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(0*cells[1]+k)*basis.num_basis+m], idx0[0], idx0[1]);
@@ -529,7 +496,7 @@ test_2x(int poly_order, const bool isperiodic, bool use_gpu)
         
         int idx1[] = {1+1,k+1};
         linidx = gkyl_range_idx(&localRange, idx1); 
-        phi_p = gkyl_array_cfetch(phi, linidx);
+        phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[(1*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-14) );
           TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(1*cells[1]+k)*basis.num_basis+m], idx1[0], idx1[1]);
@@ -538,7 +505,7 @@ test_2x(int poly_order, const bool isperiodic, bool use_gpu)
         
         int idx2[] = {2+1,k+1};
         linidx = gkyl_range_idx(&localRange, idx2); 
-        phi_p = gkyl_array_cfetch(phi, linidx);
+        phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[(2*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-14) );
           TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(2*cells[1]+k)*basis.num_basis+m], idx2[0], idx2[1]);
@@ -607,7 +574,7 @@ test_2x(int poly_order, const bool isperiodic, bool use_gpu)
         const double *phi_p;
         int idx0[] = {0+1,k+1};
         linidx = gkyl_range_idx(&localRange, idx0); 
-        phi_p = gkyl_array_cfetch(phi, linidx);
+        phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[(0*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-14) );
           TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(0*cells[1]+k)*basis.num_basis+m], idx0[0], idx0[1]);
@@ -616,7 +583,7 @@ test_2x(int poly_order, const bool isperiodic, bool use_gpu)
         
         int idx1[] = {1+1,k+1};
         linidx = gkyl_range_idx(&localRange, idx1); 
-        phi_p = gkyl_array_cfetch(phi, linidx);
+        phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[(1*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-14) );
           TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(1*cells[1]+k)*basis.num_basis+m], idx1[0], idx1[1]);
@@ -625,7 +592,7 @@ test_2x(int poly_order, const bool isperiodic, bool use_gpu)
         
         int idx2[] = {2+1,k+1};
         linidx = gkyl_range_idx(&localRange, idx2); 
-        phi_p = gkyl_array_cfetch(phi, linidx);
+        phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[(2*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-14) );
           TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(2*cells[1]+k)*basis.num_basis+m], idx2[0], idx2[1]);
@@ -692,7 +659,7 @@ test_2x(int poly_order, const bool isperiodic, bool use_gpu)
         const double *phi_p;
         int idx0[] = {0+1,k+1};
         linidx = gkyl_range_idx(&localRange, idx0); 
-        phi_p = gkyl_array_cfetch(phi, linidx);
+        phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[(0*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-14) );
           TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(0*cells[1]+k)*basis.num_basis+m], idx0[0], idx0[1]);
@@ -701,7 +668,7 @@ test_2x(int poly_order, const bool isperiodic, bool use_gpu)
         
         int idx1[] = {1+1,k+1};
         linidx = gkyl_range_idx(&localRange, idx1); 
-        phi_p = gkyl_array_cfetch(phi, linidx);
+        phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[(1*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-14) );
           TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(1*cells[1]+k)*basis.num_basis+m], idx1[0], idx1[1]);
@@ -710,7 +677,7 @@ test_2x(int poly_order, const bool isperiodic, bool use_gpu)
         
         int idx2[] = {2+1,k+1};
         linidx = gkyl_range_idx(&localRange, idx2); 
-        phi_p = gkyl_array_cfetch(phi, linidx);
+        phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[(2*cells[1]+k)*basis.num_basis+m], phi_p[m], 1e-14) );
           TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(2*cells[1]+k)*basis.num_basis+m], idx2[0], idx2[1]);
@@ -724,11 +691,8 @@ test_2x(int poly_order, const bool isperiodic, bool use_gpu)
   gkyl_proj_on_basis_release(projob);
   gkyl_array_release(rho);
   gkyl_array_release(phi);
-  if (use_gpu) {
-    gkyl_array_release(rho_cu);
-    gkyl_array_release(phi_cu);
-  }
-  gkyl_array_release(parbuff);
+  gkyl_array_release(rho_ho);
+  gkyl_array_release(phi_ho);
 
 }
 
@@ -748,15 +712,13 @@ test_2x_dirichlet(int poly_order, bool use_gpu){
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
-  struct gkyl_array *field_discont_ho = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-  struct gkyl_array *field_ho = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-  struct gkyl_array *field = field_ho;
-  struct gkyl_array *field_discont = field_discont_ho;
-  if (use_gpu) {
-    field = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-    field_discont = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-  }
-  
+  struct gkyl_array *field = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *field_discont = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *field_ho = use_gpu? mkarr(false, field->ncomp, field->size)
+                                       : gkyl_array_acquire(field);
+  struct gkyl_array *field_discont_ho = use_gpu? mkarr(false, field_discont->ncomp, field_discont->size)
+                                               : gkyl_array_acquire(field_discont);
+
   // project initial function on 2d field
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, &evalFunc_2x_zdep_dirichlet, 0);
   gkyl_proj_on_basis_advance(proj, 0.0, &local, field_discont_ho);
@@ -765,8 +727,8 @@ test_2x_dirichlet(int poly_order, bool use_gpu){
 
   // Smooth it
   struct gkyl_array *weight = 0;
-  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &local_ext, &basis,
-    GKYL_FEM_PARPROJ_DIRICHLET, weight, use_gpu);
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &basis,
+    GKYL_FEM_PARPROJ_DIRICHLET, weight, 0, use_gpu);
   gkyl_fem_parproj_set_rhs(parproj, field_discont, field_discont);
   gkyl_fem_parproj_solve(parproj, field);
 
@@ -774,16 +736,105 @@ test_2x_dirichlet(int poly_order, bool use_gpu){
   check_continuity_2x(grid, local, basis, field_ho);
   check_bc_2x(grid, local, basis, field_ho, field_discont_ho);
 
-  if (use_gpu) {
-    gkyl_array_release(field);
-    gkyl_array_release(field_discont);
-  }
+  gkyl_array_release(field);
+  gkyl_array_release(field_discont);
   gkyl_array_release(field_ho);
   gkyl_array_release(field_discont_ho);
   gkyl_fem_parproj_release(parproj);
 }
 
+void evalWeight2x(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0], y = xn[1];
+  double mu = 0.0;
+  double sig = 0.3;
+  double Lx = 4.0;
 
+  fout[0] = cos((2.*M_PI/(2*Lx))*x);
+  if (y < 0.0)
+    fout[0] *= exp(-(pow(y-mu,2))/(2.0*pow(sig,2)));
+  else
+    fout[0] *= 3.0*exp(-(pow(y-mu,2))/(2.0*pow(sig,2)));
+}
+
+void
+test_2x_weighted(int poly_order, const bool isperiodic, bool use_gpu)
+{
+  double lower[] = {-2., -0.5}, upper[] = {2., 0.5};
+  int cells[] = {3, 4};
+  int dim = sizeof(lower)/sizeof(lower[0]);
+
+  // grids.
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
+
+  // basis functions.
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, dim, poly_order);
+
+  int ghost[] = { 1, 1 };
+  struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
+  gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
+  struct skin_ghost_ranges skin_ghost; // skin/ghost.
+  skin_ghost_ranges_init(&skin_ghost, &localRange_ext, ghost);
+
+  // Create DG field we wish to make continuous.
+  struct gkyl_array *rho = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+  // Create array holding continuous field we'll compute.
+  struct gkyl_array *phi = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+  // Weight in the projection operation.
+  struct gkyl_array *jac = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+
+  struct gkyl_array *rho_ho = use_gpu? mkarr(false, rho->ncomp, rho->size) : gkyl_array_acquire(rho);
+  struct gkyl_array *phi_ho = use_gpu? mkarr(false, phi->ncomp, phi->size) : gkyl_array_acquire(phi);
+  struct gkyl_array *jac_ho = use_gpu? mkarr(false, jac->ncomp, jac->size) : gkyl_array_acquire(jac);
+
+  // Project distribution function on basis.
+  gkyl_proj_on_basis *projob = gkyl_proj_on_basis_new(&grid, &basis,
+    poly_order+1, 1, evalFunc2x, NULL);
+  gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
+  gkyl_array_copy(rho, rho_ho);
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, rho_ho, "ctest_fem_parproj_2x_p1_rho_1.gkyl");
+
+  // Project the weight onto the basis.
+  gkyl_eval_on_nodes *proj_weight = gkyl_eval_on_nodes_new(&grid, &basis,
+    1, evalWeight2x, NULL);
+  gkyl_eval_on_nodes_advance(proj_weight, 0.0, &localRange, jac_ho);
+  gkyl_array_copy(jac, jac_ho);
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, jac_ho,  "ctest_fem_parproj_2x_p1_jac_1.gkyl");
+
+  // Parallel FEM projection method.
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &basis,
+    isperiodic? GKYL_FEM_PARPROJ_PERIODIC : GKYL_FEM_PARPROJ_NONE, jac, jac, use_gpu);
+
+  // Set the RHS source.
+  gkyl_fem_parproj_set_rhs(parproj, rho, NULL);
+
+  // Solve the problem.
+  gkyl_fem_parproj_solve(parproj, phi);
+  gkyl_array_copy(phi_ho, phi);
+
+  if (isperiodic) {
+    struct gkyl_array *parbuff = mkarr(false, basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
+    apply_periodic_bc(parbuff, phi_ho, dim-1, skin_ghost);
+    gkyl_array_release(parbuff);
+  }
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, phi_ho, "ctest_fem_parproj_2x_p1_phi_1.gkyl");
+
+  // Check that the field is continuous.
+  check_continuity_2x(grid, localRange, basis, phi_ho);
+
+  gkyl_fem_parproj_release(parproj);
+  gkyl_proj_on_basis_release(projob);
+  gkyl_eval_on_nodes_release(proj_weight);
+  gkyl_array_release(rho);
+  gkyl_array_release(phi);
+  gkyl_array_release(jac);
+  gkyl_array_release(rho_ho);
+  gkyl_array_release(phi_ho);
+  gkyl_array_release(jac_ho);
+
+}
 
 void
 test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
@@ -811,46 +862,35 @@ test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
     poly_order+1, 1, evalFunc3x, NULL);
 
   // create DG field we wish to make continuous.
-  struct gkyl_array *rho = mkarr(basis.num_basis, localRange_ext.volume);
+  struct gkyl_array *rho = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
   // create array holding continuous field we'll compute.
-  struct gkyl_array *phi = mkarr(basis.num_basis, localRange_ext.volume);
-  // device copies:
-  struct gkyl_array *rho_cu, *phi_cu;
-  if (use_gpu) {
-    rho_cu = mkarr_cu(basis.num_basis, localRange_ext.volume);
-    phi_cu = mkarr_cu(basis.num_basis, localRange_ext.volume);
-  }
+  struct gkyl_array *phi = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+
+  struct gkyl_array *rho_ho = use_gpu? mkarr(false, rho->ncomp, rho->size) : gkyl_array_acquire(rho);
+  struct gkyl_array *phi_ho = use_gpu? mkarr(false, phi->ncomp, phi->size) : gkyl_array_acquire(phi);
 
   // project distribution function on basis.
-  gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho);
-  struct gkyl_array *parbuff = mkarr(basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
-//  gkyl_grid_sub_array_write(&grid, &localRange, rho, "ctest_fem_parproj_3x_p2_rho_1.gkyl");
-  if (use_gpu) gkyl_array_copy(rho_cu, rho);
+  gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
+  gkyl_array_copy(rho, rho_ho);
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, rho_ho, "ctest_fem_parproj_3x_p2_rho_1.gkyl");
 
   // parallel FEM projection method.
-  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &localRange_ext,
-    &basis, isperiodic? GKYL_FEM_PARPROJ_PERIODIC : GKYL_FEM_PARPROJ_NONE, NULL, use_gpu);
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &basis,
+    isperiodic? GKYL_FEM_PARPROJ_PERIODIC : GKYL_FEM_PARPROJ_NONE, 0, 0, use_gpu);
 
   // Set the RHS source.
-  if (use_gpu)
-    gkyl_fem_parproj_set_rhs(parproj, rho_cu, NULL);
-  else
-    gkyl_fem_parproj_set_rhs(parproj, rho, NULL);
+  gkyl_fem_parproj_set_rhs(parproj, rho, NULL);
 
   // Solve the problem.
-  if (use_gpu) {
-    gkyl_fem_parproj_solve(parproj, phi_cu);
-    gkyl_array_copy(phi, phi_cu);
-#ifdef GKYL_HAVE_CUDA
-    cudaDeviceSynchronize();
-#endif
-  } else {
-    gkyl_fem_parproj_solve(parproj, phi);
-  }
+  gkyl_fem_parproj_solve(parproj, phi);
+  gkyl_array_copy(phi_ho, phi);
 
-  if (isperiodic)
-    apply_periodic_bc(parbuff, phi, dim-1, skin_ghost);
-//  gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_parproj_3x_p1_phi_1.gkyl");
+  if (isperiodic) {
+    struct gkyl_array *parbuff = mkarr(false, basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
+    apply_periodic_bc(parbuff, phi_ho, dim-1, skin_ghost);
+    gkyl_array_release(parbuff);
+  }
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, phi_ho, "ctest_fem_parproj_3x_p1_phi_1.gkyl");
 
   if (poly_order == 1) {
     if (!isperiodic) {
@@ -913,7 +953,7 @@ test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
         const double *phi_p;
         int idx0[] = {1,2,k+1};
         linidx= gkyl_range_idx(&localRange, idx0); 
-        phi_p = gkyl_array_cfetch(phi, linidx);
+        phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-14) );
           TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[k*basis.num_basis+m], idx0[0], idx0[1], idx0[2]);
@@ -922,7 +962,7 @@ test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
         
         int idx1[] = {2,1,k+1};
         linidx= gkyl_range_idx(&localRange, idx1); 
-        phi_p = gkyl_array_cfetch(phi, linidx);
+        phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[32+k*basis.num_basis+m], phi_p[m], 1e-14) );
           TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[32+k*basis.num_basis+m], idx1[0], idx1[1], idx1[2]);
@@ -931,7 +971,7 @@ test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
         
         int idx2[] = {2,3,k+1};
         linidx= gkyl_range_idx(&localRange, idx2); 
-        phi_p = gkyl_array_cfetch(phi, linidx);
+        phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[64+k*basis.num_basis+m], phi_p[m], 1e-14) );
           TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[64+k*basis.num_basis+m], idx2[0], idx0[2], idx2[2]);
@@ -999,7 +1039,7 @@ test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
         const double *phi_p;
         int idx0[] = {1,1,k+1};
         linidx= gkyl_range_idx(&localRange, idx0); 
-        phi_p = gkyl_array_cfetch(phi, linidx);
+        phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-14) );
 	  TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[k*basis.num_basis+m], idx0[0], idx0[1], idx0[2]);
@@ -1008,7 +1048,7 @@ test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
 
         int idx1[] = {2,2,k+1};
         linidx= gkyl_range_idx(&localRange, idx1); 
-        phi_p = gkyl_array_cfetch(phi, linidx);
+        phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[32+k*basis.num_basis+m], phi_p[m], 1e-14) );
 	  TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[32+k*basis.num_basis+m], idx1[0], idx1[1], idx1[2]);
@@ -1017,7 +1057,7 @@ test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
 
         int idx2[] = {3,2,k+1};
         linidx= gkyl_range_idx(&localRange, idx2); 
-        phi_p = gkyl_array_cfetch(phi, linidx);
+        phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[64+k*basis.num_basis+m], phi_p[m], 1e-14) );
 	  TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[64+k*basis.num_basis+m], idx2[0], idx2[1], idx2[2]);
@@ -1079,7 +1119,7 @@ test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
         const double *phi_p;
         int idx0[] = {1,2,k+1};
         linidx= gkyl_range_idx(&localRange, idx0); 
-        phi_p = gkyl_array_cfetch(phi, linidx);
+        phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-12) );
 	  TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[k*basis.num_basis+m], idx0[0], idx0[1], idx0[2]);
@@ -1088,7 +1128,7 @@ test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
 
         int idx1[] = {2,1,k+1};
         linidx= gkyl_range_idx(&localRange, idx1); 
-        phi_p = gkyl_array_cfetch(phi, linidx);
+        phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[80+k*basis.num_basis+m], phi_p[m], 1e-12) );
 	  TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[80+k*basis.num_basis+m], idx1[0], idx1[1], idx1[2]);
@@ -1097,7 +1137,7 @@ test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
 
         int idx2[] = {2,3,k+1};
         linidx= gkyl_range_idx(&localRange, idx2); 
-        phi_p = gkyl_array_cfetch(phi, linidx);
+        phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[160+k*basis.num_basis+m], phi_p[m], 1e-12) );
 	  TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[160+k*basis.num_basis+m], idx2[0], idx2[1], idx2[2]);
@@ -1157,7 +1197,7 @@ test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
         const double *phi_p;
         int idx0[] = {1,1,k+1};
         linidx= gkyl_range_idx(&localRange, idx0); 
-        phi_p = gkyl_array_cfetch(phi, linidx);
+        phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[k*basis.num_basis+m], phi_p[m], 1e-12) );
 	  TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[k*basis.num_basis+m], idx0[0], idx0[1], idx0[2]);
@@ -1166,7 +1206,7 @@ test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
 
         int idx1[] = {2,2,k+1};
         linidx= gkyl_range_idx(&localRange, idx1); 
-        phi_p = gkyl_array_cfetch(phi, linidx);
+        phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[80+k*basis.num_basis+m], phi_p[m], 1e-12) );
 	  TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[80+k*basis.num_basis+m], idx1[0], idx1[1], idx1[2]);
@@ -1175,7 +1215,7 @@ test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
 
         int idx2[] = {3,2,k+1};
         linidx= gkyl_range_idx(&localRange, idx2); 
-        phi_p = gkyl_array_cfetch(phi, linidx);
+        phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m=0; m<basis.num_basis; m++) {
           TEST_CHECK( gkyl_compare(sol[160+k*basis.num_basis+m], phi_p[m], 1e-12) );
 	  TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[160+k*basis.num_basis+m], idx2[0], idx2[1], idx2[2]);
@@ -1189,11 +1229,8 @@ test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
   gkyl_proj_on_basis_release(projob);
   gkyl_array_release(rho);
   gkyl_array_release(phi);
-  if (use_gpu) {
-    gkyl_array_release(rho_cu);
-    gkyl_array_release(phi_cu);
-  }
-  gkyl_array_release(parbuff);
+  gkyl_array_release(rho_ho);
+  gkyl_array_release(phi_ho);
 
 }
 
@@ -1216,6 +1253,7 @@ void test_3x_p2_nonperiodic() {test_3x(2, false, false);}
 void test_3x_p2_periodic() {test_3x(2, true, false);}
 
 void test_2x_p1_dirichlet() {test_2x_dirichlet(1, false);}
+void test_2x_p1_weighted() {test_2x_weighted(1, false, false);}
 
 #ifdef GKYL_HAVE_CUDA
 // ......... GPU tests ............ //
@@ -1232,6 +1270,7 @@ void gpu_test_3x_p2_nonperiodic() {test_3x(2, false, true);}
 void gpu_test_3x_p2_periodic() {test_3x(2, true, true);}
 
 void gpu_test_2x_p1_dirichlet() {test_2x_dirichlet(1, true);}
+void gpu_test_2x_p1_weighted() {test_2x_weighted(1, false, true);}
 #endif
 
 
@@ -1244,11 +1283,12 @@ TEST_LIST = {
   { "test_2x_p1_periodic", test_2x_p1_periodic },
   { "test_2x_p2_nonperiodic", test_2x_p2_nonperiodic },
   { "test_2x_p2_periodic", test_2x_p2_periodic },
+  { "test_2x_p1_dirichlet", test_2x_p1_dirichlet},
+  { "test_2x_p1_weighted", test_2x_p1_weighted},
   { "test_3x_p1_nonperiodic", test_3x_p1_nonperiodic },
   { "test_3x_p1_periodic", test_3x_p1_periodic },
   { "test_3x_p2_nonperiodic", test_3x_p2_nonperiodic },
   { "test_3x_p2_periodic", test_3x_p2_periodic },
-  { "test_2x_p1_dirichlet", test_2x_p1_dirichlet},
 #ifdef GKYL_HAVE_CUDA
   { "gpu_test_1x_p1_nonperiodic", gpu_test_1x_p1_nonperiodic },
   { "gpu_test_1x_p1_periodic", gpu_test_1x_p1_periodic },
@@ -1259,6 +1299,7 @@ TEST_LIST = {
   { "gpu_test_3x_p2_nonperiodic", gpu_test_3x_p2_nonperiodic },
   { "gpu_test_3x_p2_periodic", gpu_test_3x_p2_periodic },
   { "gpu_test_2x_p1_dirichlet", gpu_test_2x_p1_dirichlet},
+  { "gpu_test_2x_p1_weighted", gpu_test_2x_p1_weighted},
 #endif
   { NULL, NULL },
 };

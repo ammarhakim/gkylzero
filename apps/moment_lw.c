@@ -28,6 +28,8 @@
 #include <gkyl_wv_gr_euler.h>
 #include <gkyl_wv_gr_euler_tetrad.h>
 #include <gkyl_wv_gr_medium.h>
+#include <gkyl_wv_advect.h>
+#include <gkyl_wv_burgers.h>
 #include <gkyl_zero_lw.h>
 
 #include <lua.h>
@@ -58,22 +60,6 @@ enum moment_magic_ids {
 static const struct gkyl_str_int_pair wave_split_type[] = {
   { "qwave", GKYL_WAVE_QWAVE },
   { "fwave", GKYL_WAVE_FWAVE },
-  { 0, 0 }
-};
-
-// Ideal MHD Riemann problem -> enum map.
-static const struct gkyl_str_int_pair mhd_rp_type[] = {
-  { "roe", WV_MHD_RP_ROE },
-  { "hlld", WV_MHD_RP_HLLD },
-  { "lax", WV_MHD_RP_LAX },
-  { 0, 0 }
-};
-
-// Ideal divB correction -> enum map.
-static const struct gkyl_str_int_pair mhd_divb_type[] = {
-  { "none", GKYL_MHD_DIVB_NONE },
-  { "glm",  GKYL_MHD_DIVB_GLM },
-  { "eight_waves", GKYL_MHD_DIVB_EIGHT_WAVES },
   { 0, 0 }
 };
 
@@ -363,12 +349,8 @@ eqn_mhd_lw_new(lua_State *L)
 
   double gas_gamma = glua_tbl_get_number(L, "gasGamma", 1.4);
   
-  const char *rp_str = glua_tbl_get_string(L, "rpType", "roe");
-  enum gkyl_wv_mhd_rp rp_type = gkyl_search_str_int_pair_by_str(mhd_rp_type, rp_str, WV_MHD_RP_ROE);
-
-  const char *divb_str = glua_tbl_get_string(L, "divergenceConstraint", "none");
-  enum gkyl_wv_mhd_div_constraint divb = gkyl_search_str_int_pair_by_str(
-    mhd_divb_type, divb_str, GKYL_MHD_DIVB_NONE);
+  enum gkyl_wv_mhd_rp rp_type = glua_tbl_get_integer(L, "rpType", WV_MHD_RP_ROE);
+  enum gkyl_wv_mhd_div_constraint divb = glua_tbl_get_integer(L, "divergenceConstraint", GKYL_MHD_DIVB_NONE);
 
   double glm_ch = glua_tbl_get_number(L, "glmCh", 1.0);
   double glm_alpha = glua_tbl_get_number(L, "glmAlpha", 0.4);
@@ -849,6 +831,68 @@ static struct luaL_Reg eqn_gr_medium_ctor[] = {
   { 0, 0 }
 };
 
+/* ************************* */
+/* Linear Advection Equation */
+/* ************************* */
+
+// Advection.new { advectionSpeed = 1.0 }
+static int
+eqn_advect_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *advect_lw = gkyl_malloc(sizeof(*advect_lw));
+
+  double c = glua_tbl_get_number(L, "advectionSpeed", 1.0);
+
+  advect_lw->magic = MOMENT_EQN_DEFAULT;
+  advect_lw->eqn = gkyl_wv_advect_new(c);
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_advect_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_advect_lw = advect_lw; // Point userdata to the equation object.
+  
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_advect_ctor[] = {
+  { "new", eqn_advect_lw_new },
+  { 0, 0 }
+};
+
+/* ************************* */
+/* Inviscid Burgers Equation */
+/* ************************* */
+
+// Burgers.new { }
+static int
+eqn_burgers_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *burgers_lw = gkyl_malloc(sizeof(*burgers_lw));
+
+  burgers_lw->magic = MOMENT_EQN_DEFAULT;
+  burgers_lw->eqn = gkyl_wv_burgers_new();
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_burgers_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_burgers_lw = burgers_lw; // Point userdata to the equation object.
+  
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_burgers_ctor[] = {
+  { "new", eqn_burgers_lw_new },
+  { 0, 0 }
+};
+
 // Register and load all wave equation objects.
 static void
 eqn_openlibs(lua_State *L)
@@ -864,7 +908,7 @@ eqn_openlibs(lua_State *L)
   luaL_register(L, "G0.Moments.Eq.SrEuler", eqn_sr_euler_ctor);
   luaL_register(L, "G0.Moments.Eq.ColdFluid", eqn_coldfluid_ctor);
   luaL_register(L, "G0.Moments.Eq.TenMoment", eqn_tenmoment_ctor); 
-  luaL_register(L, "G0.Moments.Eq.Mhd", eqn_mhd_ctor);
+  luaL_register(L, "G0.Moments.Eq.MHD", eqn_mhd_ctor);
   luaL_register(L, "G0.Moments.Eq.ReactiveEuler", eqn_reactive_euler_ctor);
   luaL_register(L, "G0.Moments.Eq.EulerMixture", eqn_euler_mixture_ctor);
   luaL_register(L, "G0.Moments.Eq.IsoEulerMixture", eqn_iso_euler_mixture_ctor);
@@ -875,6 +919,8 @@ eqn_openlibs(lua_State *L)
   luaL_register(L, "G0.Moments.Eq.GREuler", eqn_gr_euler_ctor);
   luaL_register(L, "G0.Moments.Eq.GREulerTetrad", eqn_gr_euler_tetrad_ctor);
   luaL_register(L, "G0.Moments.Eq.GRMedium", eqn_gr_medium_ctor);
+  luaL_register(L, "G0.Moments.Eq.LinearAdvection", eqn_advect_ctor);
+  luaL_register(L, "G0.Moments.Eq.Burgers", eqn_burgers_ctor);
 }
 
 // Metatable name for spacetime object input struct.

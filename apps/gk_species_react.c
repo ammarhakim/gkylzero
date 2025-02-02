@@ -454,7 +454,10 @@ gk_species_react_release(const struct gkyl_gyrokinetic_app *app, const struct gk
       gkyl_dg_iz_release(react->iz[i]);
     else if (react->react_id[i] == GKYL_REACT_RECOMB)  
       gkyl_dg_recomb_release(react->recomb[i]);
-    else if (react->react_id[i] == GKYL_REACT_CX)  
+    else if (react->react_id[i] == GKYL_REACT_CX) { 
       gkyl_dg_cx_release(react->cx[i]);
+      gkyl_array_release(react->prim_vars_cxi[i]);
+      gkyl_array_release(react->prim_vars_cxn[i]);
+    }
   }
 }

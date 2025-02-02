@@ -3,6 +3,7 @@
 #include <gkyl_app.h>
 #include <gkyl_moment.h>
 #include <gkyl_wv_euler.h>
+#include <gkyl_wv_mhd.h>
 #include <gkyl_vlasov.h>
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_lw_priv.h>
@@ -76,6 +77,22 @@ static const struct gkyl_str_int_pair euler_rp_type[] = {
   { 0, 0 }
 };
 
+// MHD Riemann problem -> enum map.
+static const struct gkyl_str_int_pair mhd_rp_type[] = {
+  { "Roe", WV_MHD_RP_ROE },
+  { "HLLD", WV_MHD_RP_HLLD },
+  { "Lax", WV_MHD_RP_LAX },
+  { 0, 0 }
+};
+
+// MHD divergence correction -> enum map.
+static const struct gkyl_str_int_pair mhd_divb_type[] = {
+  { "None", GKYL_MHD_DIVB_NONE },
+  { "GLM", GKYL_MHD_DIVB_GLM },
+  { "EightWaves", GKYL_MHD_DIVB_EIGHT_WAVES },
+  { 0, 0 }
+};
+
 // Braginskii type -> enum map.
 static const struct gkyl_str_int_pair braginskii_type[] = {
   { "Mag", GKYL_BRAG_MAG },
@@ -137,6 +154,14 @@ static const struct gkyl_str_int_pair geometry_type[] = {
   { "Mirror", GKYL_MIRROR },
   { "MapC2P", GKYL_MAPC2P },
   { "FromFile", GKYL_GEOMETRY_FROMFILE },
+  { 0, 0 }
+};
+
+// Gyrokinetic position map type -> enum map.
+static const struct gkyl_str_int_pair position_map_type[] = {
+  { "UserInput", GKYL_PMAP_USER_INPUT },
+  { "ConstantPolynomial", GKYL_PMAP_CONSTANT_DB_POLYNOMIAL },
+  { "ConstantNumeric", GKYL_PMAP_CONSTANT_DB_NUMERIC },
   { 0, 0 }
 };
 
@@ -254,6 +279,18 @@ gkyl_register_euler_rp_types(lua_State *L)
 }
 
 void
+gkyl_register_mhd_rp_types(lua_State *L)
+{
+  register_types(L, mhd_rp_type, "MHDRP");
+}
+
+void
+gkyl_register_mhd_divb_types(lua_State *L)
+{
+  register_types(L, mhd_divb_type, "DivB");
+}
+
+void
 gkyl_register_braginskii_types(lua_State *L)
 {
   register_types(L, braginskii_type, "Braginskii");
@@ -293,6 +330,12 @@ void
 gkyl_register_gyrokinetic_geometry_types(lua_State *L)
 {
   register_types(L, geometry_type, "Geometry");
+}
+
+void
+gkyl_register_gyrokinetic_position_map_types(lua_State *L)
+{
+  register_types(L, position_map_type, "PositionMap");
 }
 
 void

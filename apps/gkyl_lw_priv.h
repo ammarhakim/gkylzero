@@ -81,6 +81,22 @@ void
 gkyl_register_euler_rp_types(lua_State *L);
 
 /**
+* Add Riemann problem type flags for MHD equations into Lua interpreter.
+*
+* @param L Lua state to use.
+ */
+void
+gkyl_register_mhd_rp_types(lua_State *L);
+
+/**
+* Add divergence correction type flags for MHD equations into Lua interpreter.
+*
+* @param L Lua state to use.
+ */
+void
+gkyl_register_mhd_divb_types(lua_State *L);
+
+/**
 * Add Braginskii type flags for moment equations into Lua interpreter.
 *
 * @param L Lua state to use.
@@ -135,6 +151,14 @@ gkyl_register_gyrokinetic_fem_bc_types(lua_State *L);
  */
 void
 gkyl_register_gyrokinetic_geometry_types(lua_State *L);
+
+/**
+ * Add position map type flags for gyrokinetic app initialization into Lua interpreter.
+ *
+ * @param L Lua state to use.
+ */
+void
+gkyl_register_gyrokinetic_position_map_types(lua_State *L);
 
 /**
  * Add field type flags for gyrokinetic field initialization into Lua interpreter.

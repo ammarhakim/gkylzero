@@ -552,6 +552,9 @@ main(int argc, char **argv)
       .lo_value = { 0.0, 0.0 },
       .up_value = { 0.0, 0.0 },
     },
+    
+    .zero_init_field = true, // Don't compute the field at t = 0.
+    .is_static = true, // Don't evolve the field in time.
   };
 
   // Gyrokinetic app.
@@ -583,7 +586,6 @@ main(int argc, char **argv)
     .num_species = 2,
     .species = { elc, ion },
 
-    .skip_field = true,
     .field = field,
 
     .parallelism = {
