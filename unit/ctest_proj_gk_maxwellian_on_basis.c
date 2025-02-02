@@ -85,8 +85,8 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
-  struct gkyl_rect_grid vGrid;
-  gkyl_rect_grid_init(&vGrid, vdim, vLower, vUpper, vCells);
+  struct gkyl_rect_grid velGrid;
+  gkyl_rect_grid_init(&velGrid, vdim, vLower, vUpper, vCells);
 
   // basis functions
   struct gkyl_basis basis, confBasis;
@@ -197,8 +197,8 @@ test_1x2v_gk(int poly_order, bool use_gpu)
 
   // velocity space mapping.
   struct gkyl_mapc2p_inp c2p_in = { };
-  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, vGrid,
-    local, local_ext, vLocal, vLocal_ext, use_gpu);
+  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, velGrid,
+    local, local_ext, velLocal, velLocal_ext, use_gpu);
 
   // Maxwellian (or bi-Maxwellian) projection updater.
   struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = {
@@ -207,7 +207,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     .phase_basis = &basis,
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
-    .vel_range = &vLocal, 
+    .vel_range = &velLocal, 
     .gk_geom = gk_geom,
     .vel_map = gvm,
     .mass = mass,
@@ -321,8 +321,8 @@ test_3x2v_gk(int poly_order, bool use_gpu)
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
-  struct gkyl_rect_grid vGrid;
-  gkyl_rect_grid_init(&vGrid, vdim, vLower, vUpper, vCells);
+  struct gkyl_rect_grid velGrid;
+  gkyl_rect_grid_init(&velGrid, vdim, vLower, vUpper, vCells);
 
   // basis functions
   struct gkyl_basis basis, confBasis;
@@ -358,8 +358,8 @@ test_3x2v_gk(int poly_order, bool use_gpu)
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
   int vGhost[] = {0, 0};
-  struct gkyl_range vLocal, vLocal_ext;
-  gkyl_create_grid_ranges(&vGrid, vGhost, &vLocal_ext, &vLocal);
+  struct gkyl_range velLocal, velLocal_ext;
+  gkyl_create_grid_ranges(&velGrid, vGhost, &velLocal_ext, &velLocal);
 
   // Create primitive moment arrays
   struct gkyl_array *den, *udrift, *vtsq;
@@ -431,8 +431,8 @@ test_3x2v_gk(int poly_order, bool use_gpu)
 
   // Velocity space mapping.
   struct gkyl_mapc2p_inp c2p_in = { };
-  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, vGrid,
-    local, local_ext, vLocal, vLocal_ext, use_gpu);
+  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, velGrid,
+    local, local_ext, velLocal, velLocal_ext, use_gpu);
 
   // Maxwellian (or bi-Maxwellian) projection updater.
   struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = {
@@ -441,7 +441,7 @@ test_3x2v_gk(int poly_order, bool use_gpu)
     .phase_basis = &basis,
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
-    .vel_range = &vLocal, 
+    .vel_range = &velLocal, 
     .gk_geom = gk_geom,
     .vel_map = gvm,
     .mass = mass,
