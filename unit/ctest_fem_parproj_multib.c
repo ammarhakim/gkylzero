@@ -447,7 +447,377 @@ test_1x(int num_blocks, const double *lower, const double *upper, const int *cel
   gkyl_array_release(rho_mb_ho);
   gkyl_array_release(phi_mb_ho);
   gkyl_array_release(jac_mb_ho);
+}
 
+void evalFunc2x(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0], y = xn[1];
+
+  struct test_ctx *tctx = ctx;
+  int num_blocks = tctx->num_blocks;
+  int ndim = tctx->ndim;
+  double *lower = tctx->lower;
+  double *upper = tctx->upper;
+
+  double Lx[GKYL_MAX_CDIM];
+  for (int d=0; d<ndim; d++) Lx[d] = upper[ndim*(num_blocks-1)+d] - lower[ndim*0+d];
+
+  double mu = .2;
+  double sig = 0.3;
+
+  fout[0] = exp(-(pow(x-mu,2))/(2.0*sig*sig))*sin(2.*M_PI*y);
+}
+
+void eval_weight_2x(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0], y = xn[1];
+
+  struct test_ctx *tctx = ctx;
+  int num_blocks = tctx->num_blocks;
+  int ndim = tctx->ndim;
+  double *lower = tctx->lower;
+  double *upper = tctx->upper;
+
+  double Lx[GKYL_MAX_CDIM];
+  for (int d=0; d<ndim; d++) Lx[d] = upper[ndim*(num_blocks-1)+d] - lower[ndim*0+d];
+
+  fout[0] = 1.0;
+}
+
+void
+test_2x(int num_blocks, const double *lower, const double *upper, const int *cells,
+  int poly_order, bool is_dirichlet, bool use_gpu)
+{
+  int ndim = 2;
+
+  struct test_ctx proj_ctx = {
+    .num_blocks = num_blocks, // Number of grid blocks. 
+    .ndim = ndim, // Number of position space dimensions.
+  };
+  for (int bI=0; bI<num_blocks; bI++) {
+    for (int d=0; d<ndim; d++) {
+      proj_ctx.lower[ndim*bI+d] = lower[ndim*bI+d];
+      proj_ctx.upper[ndim*bI+d] = upper[ndim*bI+d];
+    }
+  }
+
+  // Grids.
+  struct gkyl_rect_grid *grid = gkyl_malloc(num_blocks*sizeof(struct gkyl_rect_grid));
+  for (int bI=0; bI<num_blocks; bI++) {
+    gkyl_rect_grid_init(&grid[bI], ndim, &lower[bI*ndim], &upper[bI*ndim], &cells[bI*ndim]);
+  }
+
+  // Basis functions.
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+
+  // Ranges.
+  int ghost[] = { 1, 1, 1 };
+  struct gkyl_range *localRange = gkyl_malloc(num_blocks*sizeof(struct gkyl_range));
+  struct gkyl_range *localRange_ext = gkyl_malloc(num_blocks*sizeof(struct gkyl_range)); 
+  for (int i=0; i<num_blocks; i++) {
+    gkyl_create_grid_ranges(&grid[i], ghost, &localRange_ext[i], &localRange[i]);
+  }
+
+  // create DG field we wish to make continuous.
+  struct gkyl_array **rho = mkarr_mb(num_blocks, use_gpu, basis.num_basis, localRange_ext);
+  // create array holding continuous field we'll compute.
+  struct gkyl_array **phi = mkarr_mb(num_blocks, use_gpu, basis.num_basis, localRange_ext);
+
+  struct gkyl_array **rho_ho, **phi_ho;
+  if (use_gpu) {
+    rho_ho = mkarr_mb(num_blocks, false, basis.num_basis, localRange_ext);
+    phi_ho = mkarr_mb(num_blocks, false, basis.num_basis, localRange_ext);
+  }
+  else {
+    rho_ho = gkyl_malloc(num_blocks*sizeof(struct gkyl_array *));
+    phi_ho = gkyl_malloc(num_blocks*sizeof(struct gkyl_array *));
+    for (int i=0; i<num_blocks; i++) {
+      rho_ho[i] = gkyl_array_acquire(rho[i]);
+      phi_ho[i] = gkyl_array_acquire(phi[i]);
+    }
+  }
+
+  for (int bI=0; bI<num_blocks; bI++) {
+    // Project analytic field onto the DG basis.
+    gkyl_proj_on_basis *projob = gkyl_proj_on_basis_new(&grid[bI], &basis,
+      poly_order+1, 1, evalFunc2x, NULL);
+    gkyl_proj_on_basis_advance(projob, 0.0, &localRange[bI], rho_ho[bI]);
+    gkyl_proj_on_basis_release(projob);
+    gkyl_array_copy(rho[bI], rho_ho[bI]);
+
+    char fname0[1024];
+    sprintf(fname0, "ctest_fem_parproj_multib_%dx_p%d_rho_b%d.gkyl", ndim, poly_order, bI);
+    gkyl_grid_sub_array_write(&grid[bI], &localRange[bI], 0, rho_ho[bI], fname0);
+  }
+
+  // Create the multiblock grid and range.
+  struct gkyl_rect_grid grid_mb;
+  int cells_mb[ndim];
+  for (int d=0; d<ndim-1; d++) {
+    cells_mb[d] = cells[d];
+  }
+  int tot_cells_par = 0;
+  for (int bI=0; bI<num_blocks; bI++)
+    tot_cells_par += cells[bI*ndim+ndim-1];
+  cells_mb[ndim-1] = tot_cells_par;
+  gkyl_rect_grid_init(&grid_mb, ndim, &lower[0*ndim], &upper[(num_blocks-1)*ndim], cells_mb);
+
+  struct gkyl_range localRange_mb, localRange_ext_mb;
+  gkyl_create_grid_ranges(&grid_mb, ghost, &localRange_ext_mb, &localRange_mb);
+
+  // Local range of each block in the multiblock range.
+  struct gkyl_range *local_in_mb_range = gkyl_malloc(num_blocks*sizeof(struct gkyl_range));
+  int rlower[ndim], rupper[ndim];
+  for (int d=0; d<ndim-1; d++) {
+    rlower[d] = localRange[0].lower[d];
+    rupper[d] = localRange[0].upper[d];
+  }
+  int par_offset = 0;
+  for (int bI=0; bI<num_blocks; bI++) {
+    rlower[ndim-1] = par_offset+localRange[bI].lower[ndim-1];
+    rupper[ndim-1] = par_offset+localRange[bI].upper[ndim-1];
+    gkyl_sub_range_init(&local_in_mb_range[bI], &localRange_ext_mb, rlower, rupper);
+    par_offset += localRange[bI].upper[ndim-1]-localRange[bI].lower[ndim-1]+1;
+  }
+
+  // Allocate the multiblock weight.
+  struct gkyl_array *jac_mb = mkarr(use_gpu, basis.num_basis, localRange_ext_mb.volume);
+  struct gkyl_array *jac_mb_ho = use_gpu? mkarr(false, basis.num_basis, localRange_ext_mb.volume) : gkyl_array_acquire(jac_mb);
+
+  // Project the weight on the multiblock range.
+  gkyl_proj_on_basis *projob_mb = gkyl_proj_on_basis_new(&grid_mb, &basis,
+    poly_order+1, 1, eval_weight_2x, NULL);
+  gkyl_proj_on_basis_advance(projob_mb, 0.0, &localRange_mb, jac_mb_ho);
+  gkyl_proj_on_basis_release(projob_mb);
+  gkyl_array_copy(jac_mb, jac_mb_ho);
+
+  // Allocate the multiblock source and output.
+  struct gkyl_array *rho_mb = mkarr(use_gpu, basis.num_basis, localRange_ext_mb.volume);
+  struct gkyl_array *phi_mb = mkarr(use_gpu, basis.num_basis, localRange_ext_mb.volume);
+  struct gkyl_array *rho_mb_ho = use_gpu? mkarr(false, basis.num_basis, localRange_ext_mb.volume) : gkyl_array_acquire(rho_mb);
+  struct gkyl_array *phi_mb_ho = use_gpu? mkarr(false, basis.num_basis, localRange_ext_mb.volume) : gkyl_array_acquire(phi_mb);
+  
+  // Copy the source into the multiblock array.
+  for (int bI=0; bI<num_blocks; bI++) {
+    gkyl_array_copy_range_to_range(rho_mb, rho[bI], &local_in_mb_range[bI], &localRange[bI]);
+  }
+  // Write out the multiblock source.
+  gkyl_array_copy(rho_mb_ho, rho_mb);
+  char fname1[1024];
+  sprintf(fname1, "ctest_fem_parproj_multib_%dx_p%d_rho_mb.gkyl", ndim, poly_order);
+  gkyl_grid_sub_array_write(&grid_mb, &localRange_mb, 0, rho_mb_ho, fname1);
+
+  // parallel FEM projection method.
+  struct gkyl_fem_parproj_multib *parproj = gkyl_fem_parproj_multib_new(num_blocks, &localRange_mb,
+    localRange, &basis, is_dirichlet? GKYL_FEM_PARPROJ_DIRICHLET : GKYL_FEM_PARPROJ_NONE, jac_mb, jac_mb, use_gpu);
+
+  // Set the RHS source.
+  gkyl_fem_parproj_multib_set_rhs(parproj, rho_mb, rho_mb);
+
+  // Solve the problem.
+  gkyl_fem_parproj_multib_solve(parproj, phi_mb);
+  gkyl_fem_parproj_multib_release(parproj);
+  gkyl_array_copy(phi_mb_ho, phi_mb);
+
+  for (int bI=0; bI<num_blocks; bI++) {
+    // Copy solution back to local range of each block and write it out.
+    gkyl_array_copy_range_to_range(phi[bI], phi_mb, &localRange[bI], &local_in_mb_range[bI]);
+    gkyl_array_copy(phi_ho[bI], phi[bI]);
+
+    char fname2[1024];
+    sprintf(fname2, "ctest_fem_parproj_multib_%dx_p%d_phi_b%d.gkyl", ndim, poly_order, bI);
+    gkyl_grid_sub_array_write(&grid[bI], &localRange[bI], 0, phi_ho[bI], fname2);
+  }
+  // Write out the multiblock source.
+  char fname3[1024];
+  sprintf(fname3, "ctest_fem_parproj_multib_%dx_p%d_phi_mb.gkyl", ndim, poly_order);
+  gkyl_grid_sub_array_write(&grid_mb, &localRange_mb, 0, phi_mb_ho, fname3);
+
+  bool check_values = false;
+  if (num_blocks == 1) {
+    if (cells[0] == 3 && cells[1] == 4) check_values = true;
+  }
+  if (num_blocks == 2) {
+    if ((cells[0] == 3 && cells[1] == 2) && (cells[2] == 3 && cells[3] == 2)) check_values = true;
+  }
+
+  if (check_values && (!is_dirichlet) ) {
+    if (poly_order == 1) {
+      // Solution (checked continuity manually):
+      const double sol[48] = {
+        // idx = [0,:]
+        -4.2253125086607479e-04, -4.2252954845312053e-04,
+        -2.1170042428951191e-04, -2.1169957133119468e-04,
+        -3.9460357085969891e-04, -3.9460198096965074e-04,
+         2.2782447785903476e-04,  2.2782355993558733e-04,
+         3.9460357085969891e-04,  3.9460198096965057e-04,
+         2.2782447785903476e-04,  2.2782355993558747e-04,
+         4.2253125086607485e-04,  4.2252954845312059e-04,
+        -2.1170042428951191e-04, -2.1169957133119463e-04,
+        // idx = [1,:]
+        -6.2761887708076181e-01, -4.3547064325365575e-01,
+        -3.1445527945628282e-01, -2.1818343555290270e-01,
+        -5.8613569890365669e-01, -4.0668771950060645e-01,
+         3.3840560354367566e-01,  2.3480126432979020e-01,
+         5.8613569890365669e-01,  4.0668771950060634e-01,
+         3.3840560354367566e-01,  2.3480126432979012e-01,
+         6.2761887708076181e-01,  4.3547064325365564e-01,
+        -3.1445527945628282e-01, -2.1818343555290265e-01,
+        // idx = [2,:]
+        -2.8612000924778641e-02,  2.8608472382826922e-02,
+        -1.4335443172858760e-02,  1.4333675270894658e-02,
+        -2.6720858424593201e-02,  2.6717563105605024e-02,
+         1.5427294804416765e-02, -1.5425392251111881e-02,
+         2.6720858424593201e-02, -2.6717563105605024e-02,
+         1.5427294804416765e-02, -1.5425392251111872e-02,
+         2.8612000924778638e-02, -2.8608472382826912e-02,
+        -1.4335443172858762e-02,  1.4333675270894653e-02,
+      };
+      for (int k=0; k<cells[1]; k++) {
+        long linidx;
+        const double *phi_p;
+        int idx0[] = {0+1,k+1};
+        linidx = gkyl_range_idx(&localRange_mb, idx0); 
+        phi_p = gkyl_array_cfetch(phi_mb_ho, linidx);
+        for (int m=0; m<basis.num_basis; m++) {
+          TEST_CHECK( gkyl_compare(sol[(0*cells_mb[1]+k)*basis.num_basis+m], phi_p[m], 1e-14) );
+          TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(0*cells_mb[1]+k)*basis.num_basis+m], idx0[0], idx0[1]);
+          TEST_MSG("Produced: %.13e", phi_p[m]);
+        }
+        
+        int idx1[] = {1+1,k+1};
+        linidx = gkyl_range_idx(&localRange_mb, idx1); 
+        phi_p = gkyl_array_cfetch(phi_mb_ho, linidx);
+        for (int m=0; m<basis.num_basis; m++) {
+          TEST_CHECK( gkyl_compare(sol[(1*cells_mb[1]+k)*basis.num_basis+m], phi_p[m], 1e-14) );
+          TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(1*cells_mb[1]+k)*basis.num_basis+m], idx1[0], idx1[1]);
+          TEST_MSG("Produced: %.13e", phi_p[m]);
+        }
+        
+        int idx2[] = {2+1,k+1};
+        linidx = gkyl_range_idx(&localRange_mb, idx2); 
+        phi_p = gkyl_array_cfetch(phi_mb_ho, linidx);
+        for (int m=0; m<basis.num_basis; m++) {
+          TEST_CHECK( gkyl_compare(sol[(2*cells_mb[1]+k)*basis.num_basis+m], phi_p[m], 1e-14) );
+          TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(2*cells_mb[1]+k)*basis.num_basis+m], idx2[0], idx2[1]);
+          TEST_MSG("Produced: %.13e", phi_p[m]);
+        }
+      }
+    } if (poly_order == 2) {
+      // Solution (checked continuity manually):
+      const double sol[96] = {
+        // idx = [0,:]
+        -1.1330777557967131e-03, -1.5185686084598735e-03,
+        -5.3726486726801399e-04, -7.2005081530163346e-04,
+        -1.0232451194644426e-03,  1.1007862855941796e-04,
+        -5.0054690727467069e-04,  1.4752910728100009e-04,
+        -1.1367140547768834e-03, -1.5234420334777174e-03,
+         5.2466835809768231e-04,  7.0316877582606832e-04,
+        -9.4510889721781985e-04,  1.0194761685324392e-04,
+         5.4565887622221867e-04,  1.3663179765785352e-04,
+         1.1367140547768836e-03,  1.5234420334777181e-03,
+         5.2466835809768199e-04,  7.0316877582606865e-04,
+         9.4510889721782039e-04, -1.0194761685324384e-04,
+         5.4565887622221878e-04, -1.3663179765785401e-04,
+         1.1330777557967133e-03,  1.5185686084598746e-03,
+        -5.3726486726801410e-04, -7.2005081530163281e-04,
+         1.0232451194644423e-03, -1.1007862855941822e-04,
+        -5.0054690727467112e-04, -1.4752910728100011e-04,
+        // idx = [1,:]
+        -6.7690840335622460e-01, -2.4487341055248341e-01,
+        -3.2096570744703012e-01, -1.1611019609633033e-01,
+         3.1090049018637228e-01,  6.5761725813252431e-02,
+         1.5208504382060301e-01,  2.3789478759409195e-02,
+        -6.7908075324501238e-01, -2.4565926388735609e-01,
+         3.1344046668863568e-01,  1.1338792028973634e-01,
+         2.8715975657749776e-01,  6.0904203791008561e-02,
+        -1.6579176276044591e-01,  2.2032257282288872e-02,
+         6.7908075324501249e-01,  2.4565926388735596e-01,
+         3.1344046668863534e-01,  1.1338792028973639e-01,
+        -2.8715975657749782e-01, -6.0904203791008568e-02,
+        -1.6579176276044558e-01, -2.2032257282288945e-02,
+         6.7690840335622438e-01,  2.4487341055248346e-01,
+        -3.2096570744703029e-01, -1.1611019609633018e-01,
+        -3.1090049018637222e-01, -6.5761725813252764e-02,
+         1.5208504382060276e-01, -2.3789478759409195e-02,
+        // idx = [2,:]
+        -4.3172337009889768e-02,  5.7316620628891347e-02,
+        -2.0470775103125258e-02,  2.7177487526246415e-02,
+        -3.8162615108747848e-02,  4.1941972873804139e-03,
+        -1.8668233644930851e-02, -5.5683159961537557e-03,
+        -4.3310886658612019e-02,  5.7500562435244373e-02,
+         1.9990825041209737e-02, -2.6540294417767608e-02,
+        -3.5248472134667398e-02,  3.8843908545787469e-03,
+         2.0350714875473255e-02, -5.1570096132443387e-03,
+         4.3310886658612019e-02, -5.7500562435244360e-02,
+         1.9990825041209734e-02, -2.6540294417767608e-02,
+         3.5248472134667398e-02, -3.8843908545787400e-03,
+         2.0350714875473234e-02,  5.1570096132443335e-03,
+         4.3172337009889775e-02, -5.7316620628891354e-02,
+        -2.0470775103125262e-02,  2.7177487526246422e-02,
+         3.8162615108747848e-02, -4.1941972873804174e-03,
+        -1.8668233644930830e-02,  5.5683159961537644e-03,
+      };
+      for (int k=0; k<cells_mb[1]; k++) {
+        long linidx;
+        const double *phi_p;
+        int idx0[] = {0+1,k+1};
+        linidx = gkyl_range_idx(&localRange_mb, idx0); 
+        phi_p = gkyl_array_cfetch(phi_mb_ho, linidx);
+        for (int m=0; m<basis.num_basis; m++) {
+          TEST_CHECK( gkyl_compare(sol[(0*cells_mb[1]+k)*basis.num_basis+m], phi_p[m], 1e-14) );
+          TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(0*cells_mb[1]+k)*basis.num_basis+m], idx0[0], idx0[1]);
+          TEST_MSG("Produced: %.13e", phi_p[m]);
+        }
+        
+        int idx1[] = {1+1,k+1};
+        linidx = gkyl_range_idx(&localRange_mb, idx1); 
+        phi_p = gkyl_array_cfetch(phi_mb_ho, linidx);
+        for (int m=0; m<basis.num_basis; m++) {
+          TEST_CHECK( gkyl_compare(sol[(1*cells_mb[1]+k)*basis.num_basis+m], phi_p[m], 1e-14) );
+          TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(1*cells_mb[1]+k)*basis.num_basis+m], idx1[0], idx1[1]);
+          TEST_MSG("Produced: %.13e", phi_p[m]);
+        }
+        
+        int idx2[] = {2+1,k+1};
+        linidx = gkyl_range_idx(&localRange_mb, idx2); 
+        phi_p = gkyl_array_cfetch(phi_mb_ho, linidx);
+        for (int m=0; m<basis.num_basis; m++) {
+          TEST_CHECK( gkyl_compare(sol[(2*cells_mb[1]+k)*basis.num_basis+m], phi_p[m], 1e-14) );
+          TEST_MSG("Expected: %.13e in cell (%d,%d)", sol[(2*cells_mb[1]+k)*basis.num_basis+m], idx2[0], idx2[1]);
+          TEST_MSG("Produced: %.13e", phi_p[m]);
+        }
+      }
+    }
+  }
+  else {
+    check_continuity(num_blocks, localRange, basis, phi_ho);
+  }
+
+  if (is_dirichlet)
+    check_dirichlet_bc(num_blocks, localRange, basis, rho_ho, phi_ho);
+
+  for (int bI=0; bI<num_blocks; bI++) {
+    gkyl_array_release(rho[bI]);
+    gkyl_array_release(phi[bI]);
+    gkyl_array_release(rho_ho[bI]);
+    gkyl_array_release(phi_ho[bI]);
+  }
+  gkyl_free(rho);
+  gkyl_free(phi);
+  gkyl_free(rho_ho);
+  gkyl_free(phi_ho);
+  gkyl_free(grid);
+  gkyl_free(localRange);
+  gkyl_free(localRange_ext);
+  gkyl_free(local_in_mb_range);
+  gkyl_array_release(rho_mb);
+  gkyl_array_release(phi_mb);
+  gkyl_array_release(jac_mb);
+  gkyl_array_release(rho_mb_ho);
+  gkyl_array_release(phi_mb_ho);
+  gkyl_array_release(jac_mb_ho);
 }
 
 void test_1x_p_bc_dev(int poly_order, bool is_dirichlet, bool use_gpu) {
@@ -481,11 +851,54 @@ void test_1x_p1_bcdirichlet() {
   test_1x_p_bc_dev(1, true, false);
 }
 
+void test_2x_p_bc_dev(int poly_order, bool is_dirichlet, bool use_gpu) {
+  // List grid extents and number of cells for each block in flat arrays.
+  int num_blocks0 = 1;
+  double lower0[] = {-2.0, -0.5}, upper0[] = {2.0, 0.5};
+  int cells0[] = {3, 4};
+  test_2x(num_blocks0, lower0, upper0, cells0, poly_order, is_dirichlet, use_gpu);
+ 
+  int num_blocks1 = 2;
+  double lower1[] = {-2.0, -0.5, -2.0, 0.0}, upper1[] = {2.0, 0.0, 2.0, 0.5};
+  int cells1[] = {3, 2, 3, 2};
+  test_2x(num_blocks1, lower1, upper1, cells1, poly_order, is_dirichlet, use_gpu);
+ 
+  int num_blocks2 = 2;
+  double lower2[] = {-2.0, -0.5, -2.0, 0.0}, upper2[] = {2.0, 0.0, 2.0, 0.5};
+  int cells2[] = {3, 2, 3, 4};
+  test_2x(num_blocks2, lower2, upper2, cells2, poly_order, is_dirichlet, use_gpu);
+ 
+  int num_blocks3 = 4;
+  double lower3[] = {-2.0, -0.5, -2.0, -0.25, -2.0, 0.0, -2.0, 0.25},
+         upper3[] = {2.0, -0.25, 2.0, 0.0, 2.0, 0.25, 2.0, 0.5};
+  int cells3[] = {3, 2, 3, 6, 3, 2, 3, 4};
+  test_2x(num_blocks3, lower3, upper3, cells3, poly_order, is_dirichlet, use_gpu);
+}
+
+void test_2x_p1_bcnone() {
+  test_2x_p_bc_dev(1, false, false);
+}
+
+void test_2x_p1_bcdirichlet() {
+  test_2x_p_bc_dev(1, true, false);
+}
+
 #ifdef GKYL_HAVE_CUDA
 // ......... GPU tests ............ //
 void gpu_test_1x_p1_bcnone() {
-  // List grid extents and number of cells for each block in flat arrays.
   test_1x_p_bc_dev(1, false, true);
+}
+
+void gpu_test_1x_p1_bcdirchlet() {
+  test_1x_p_bc_dev(1, true, true);
+}
+
+void gpu_test_2x_p1_bcnone() {
+  test_2x_p_bc_dev(1, false, true);
+}
+
+void gpu_test_2x_p1_bcdirichlet() {
+  test_2x_p_bc_dev(1, true, true);
 }
 #endif
 
@@ -493,8 +906,13 @@ void gpu_test_1x_p1_bcnone() {
 TEST_LIST = {
   { "test_1x_p1_bcnone", test_1x_p1_bcnone },
   { "test_1x_p1_bcdirichlet", test_1x_p1_bcdirichlet },
+  { "test_2x_p1_bcnone", test_2x_p1_bcnone },
+  { "test_2x_p1_bcdirichlet", test_2x_p1_bcdirichlet },
 #ifdef GKYL_HAVE_CUDA
   { "gpu_test_1x_p1_bcnone", gpu_test_1x_p1_bcnone },
+  { "gpu_test_1x_p1_bcdirichlet", gpu_test_1x_p1_bcdirichlet },
+  { "gpu_test_2x_p1_bcnone", gpu_test_2x_p1_bcnone },
+  { "gpu_test_2x_p1_bcdirichlet", gpu_test_2x_p1_bcdirichlet },
 #endif
   { NULL, NULL },
 };

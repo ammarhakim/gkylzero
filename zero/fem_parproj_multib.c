@@ -110,6 +110,7 @@ gkyl_fem_parproj_multib_new(int num_blocks, const struct gkyl_range *mbz_range,
   }
 
   int idx1[GKYL_MAX_CDIM];
+
   gkyl_range_iter_init(&up->perp_iter2d, &up->perp_range2d);
   while (gkyl_range_iter_next(&up->perp_iter2d)) {
     long perpidx = gkyl_range_idx(&up->perp_range2d, up->perp_iter2d.idx);
@@ -255,9 +256,11 @@ gkyl_fem_parproj_multib_set_rhs(struct gkyl_fem_parproj_multib* up,
         up->kernels->srcker[keri](wgt_p, rhsin_p, phibc_p, prob_offset, up->globalidx, brhs_p);
       }
 
-      prob_offset += up->numnodes_global[bI] + up->numnodes_perp;
-
       par_idx_offset += up->par_range1d[bI].upper[0]-up->par_range1d[bI].lower[0]+1;
+
+      prob_offset += up->numnodes_global[bI];
+      if (bI < up->num_blocks-1)
+        prob_offset += up->numnodes_perp;
     }
   }
 
@@ -304,9 +307,11 @@ gkyl_fem_parproj_multib_solve(struct gkyl_fem_parproj_multib* up, struct gkyl_ar
         up->kernels->solker(gkyl_superlu_get_rhs_ptr(up->prob, 0), prob_offset, up->globalidx, phiout_p);
       }
 
-      prob_offset += up->numnodes_global[bI] + up->numnodes_perp;
-
       par_idx_offset += up->par_range1d[bI].upper[0]-up->par_range1d[bI].lower[0]+1;
+
+      prob_offset += up->numnodes_global[bI];
+      if (bI < up->num_blocks-1)
+        prob_offset += up->numnodes_perp;
     }
   }
 
