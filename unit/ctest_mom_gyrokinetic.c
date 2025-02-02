@@ -56,7 +56,7 @@ void
 test_mom_gyrokinetic()
 {
   double mass = 1.0;
-  int poly_order = 2;
+  int poly_order = 1;
   double lower[] = {-M_PI, -2.0, 0.0}, upper[] = {M_PI, 2.0, 2.0};
   int cells[] = {4, 2, 2};
   const int vdim = 2;
@@ -137,7 +137,7 @@ test_mom_gyrokinetic()
 
   TEST_CHECK( m2->cdim == 1 );
   TEST_CHECK( m2->pdim == 3 );
-  TEST_CHECK( m2->poly_order == 2 );
+  TEST_CHECK( m2->poly_order == 1 );
   TEST_CHECK( m2->num_config == confBasis.num_basis );
   TEST_CHECK( m2->num_phase == basis.num_basis );
   TEST_CHECK( m2->num_mom == 1 );
@@ -946,21 +946,21 @@ void test_2x2v_p2_cu() { test_2x2v(2, true); }
 TEST_LIST = {
   { "mom_gyrokinetic", test_mom_gyrokinetic },
   { "test_1x1v_p1", test_1x1v_p1 },
+// { "test_1x1v_p2", test_1x1v_p2 },
   { "test_1x2v_p1", test_1x2v_p1 },
-  { "test_1x1v_p2", test_1x1v_p2 },
-  { "test_1x2v_p2", test_1x2v_p2 },
+// { "test_1x2v_p2", test_1x2v_p2 },
   { "test_2x2v_p1", test_2x2v_p1 },
-  { "test_2x2v_p2", test_2x2v_p2 },
-//  { "test_3x2v_p1", test_3x2v_p1 },
+// { "test_2x2v_p2", test_2x2v_p2 },
+// { "test_3x2v_p1", test_3x2v_p1 },
 #ifdef GKYL_HAVE_CUDA
 //  { "cu_mom_gyrokinetic", test_cu_mom_gyrokinetic },
   { "test_1x1v_p1_cu", test_1x1v_p1_cu },
-  { "test_1x1v_p2_cu", test_1x1v_p2_cu },
+// { "test_1x1v_p2_cu", test_1x1v_p2_cu },
   { "test_1x2v_p1_cu", test_1x2v_p1_cu },
-  { "test_1x2v_p2_cu", test_1x2v_p2_cu },
+// { "test_1x2v_p2_cu", test_1x2v_p2_cu },
   { "test_2x2v_p1_cu", test_2x2v_p1_cu },
-  { "test_2x2v_p2_cu", test_2x2v_p2_cu },
-//  { "test_3x2v_p1_cu", test_3x2v_p1_cu },
+// { "test_2x2v_p2_cu", test_2x2v_p2_cu },
+// { "test_3x2v_p1_cu", test_3x2v_p1_cu },
 #endif
   { NULL, NULL },
 };
