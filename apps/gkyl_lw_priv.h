@@ -81,6 +81,14 @@ void
 gkyl_register_euler_rp_types(lua_State *L);
 
 /**
+* Add Riemann problem type flags for general relativistic Euler equations (general equation of state) into Lua interpreter.
+*
+* @param L Lua state to use.
+ */
+void
+gkyl_register_gr_euler_rp_types(lua_State *L);
+
+/**
 * Add Riemann problem type flags for MHD equations into Lua interpreter.
 *
 * @param L Lua state to use.

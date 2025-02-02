@@ -152,6 +152,7 @@ gkyl_zero_lw_openlibs(lua_State *L)
 
   // Register types for Riemann solvers and Braginskii types.
   gkyl_register_euler_rp_types(L);
+  gkyl_register_gr_euler_rp_types(L);
   gkyl_register_mhd_rp_types(L);
   gkyl_register_mhd_divb_types(L);
   gkyl_register_braginskii_types(L);

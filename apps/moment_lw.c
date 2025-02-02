@@ -112,13 +112,6 @@ static const struct gkyl_str_int_pair gr_ultra_rel_euler_tetrad_rp_type[] = {
   { 0, 0 }
 };
 
-// General relativistic Euler Riemann problem (general equation of state) -> enum map.
-static const struct gkyl_str_int_pair gr_euler_rp_type[] = {
-  { "roe", WV_GR_EULER_RP_ROE },
-  { "lax", WV_GR_EULER_RP_LAX },
-  { 0, 0 }
-};
-
 // General relativistic Euler Riemann problem in the tetrad basis (general equation of state) -> enum map.
 static const struct gkyl_str_int_pair gr_euler_tetrad_rp_type[] = {
   { "roe", WV_GR_EULER_TETRAD_RP_ROE },
@@ -339,9 +332,9 @@ static struct luaL_Reg eqn_tenmoment_ctor[] = {
 /* MHD Equations */
 /* ************* */
 
-// Mhd.new { gasgamma = 1.4, rpType = "roe", divB = "glm", glmCh = 0.0, glmAlpha = 0.0 }
-// rpType is one of "roe", "hlld", "lax"
-// divB is "none", "glm", "eight_waves"
+// Mhd.new { gasgamma = 1.4, rpType = G0.MHDRP.Roe, divB = G0.DivB.GLM, glmCh = 0.0, glmAlpha = 0.0 }
+// rpType is one of G0.MHDRP.Roe, G0.MHDRP.HLLD or G0.MHDRP.Lax.
+// divB is G0.DivB.None, G0.DivB.GLM or G0.DivB.EightWaves
 static int
 eqn_mhd_lw_new(lua_State *L)
 {
@@ -710,7 +703,7 @@ static struct luaL_Reg eqn_gr_ultra_rel_euler_tetrad_ctor[] = {
 /* **************************************************************** */
 
 // GREuler.new { gasGamma = 5.0 / 3.0, rpType = "roe" }
-// where rpType is one of "roe" or "lax".
+// where rpType is one of G0.GREulerRP.Roe, G0.GREulerRP.HLL or G0.GREulerRP.Lax.
 static int
 eqn_gr_euler_lw_new(lua_State *L)
 {
@@ -718,8 +711,7 @@ eqn_gr_euler_lw_new(lua_State *L)
 
   double gas_gamma = glua_tbl_get_number(L, "gasGamma", 5.0 / 3.0);
 
-  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
-  enum gkyl_wv_gr_euler_rp rp_type = gkyl_search_str_int_pair_by_str(gr_euler_rp_type, rp_str, WV_GR_EULER_RP_LAX);
+  enum gkyl_wv_gr_euler_rp rp_type = glua_tbl_get_integer(L, "rpType", WV_GR_EULER_RP_HLL);
 
   gr_euler_lw->magic = MOMENT_EQN_DEFAULT;
   gr_euler_lw->eqn = gkyl_wv_gr_euler_inew( &(struct gkyl_wv_gr_euler_inp) {

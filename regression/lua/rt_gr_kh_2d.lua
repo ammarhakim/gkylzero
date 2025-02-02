@@ -135,7 +135,8 @@ momentApp = Moments.App.new {
     end,
 
     evolve = true, -- Evolve species?
-    bcy = { G0.SpeciesBc.bcCopy, G0.SpeciesBc.bcCopy } -- Copy boundary conditions (y-direction).
+    bcy = { G0.SpeciesBc.bcCopy, G0.SpeciesBc.bcCopy }, -- Copy boundary conditions (y-direction).
+    limiter = G0.WaveLimiter.VanLeer
   }
 }
 

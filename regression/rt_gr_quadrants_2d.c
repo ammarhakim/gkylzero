@@ -366,11 +366,12 @@ main(int argc, char **argv)
     .equation = gr_euler,
     .evolve = true,
     .init = evalGREulerInit,
-    .force_low_order_flux = true, // Use Lax fluxes.
     .ctx = &ctx,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
     .bcy = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+
+    .limiter = GKYL_VAN_LEER,
   };
 
   int nrank = 1; // Number of processes in simulation.

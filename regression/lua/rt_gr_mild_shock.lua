@@ -22,7 +22,7 @@ pr = math.pow(10.0, -6.0) -- Right fluid pressure.
 -- Simulation parameters.
 Nx = 4096 -- Cell count (x-direction).
 Lx = 1.0 -- Domain size (x-direction).
-cfl_frac = 0.95 -- CFL coefficient.
+cfl_frac = 0.5 -- CFL coefficient.
 
 t_end = 0.4 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
@@ -129,7 +129,8 @@ momentApp = Moments.App.new {
     end,
 
     evolve = true, -- Evolve species?
-    bcx = { G0.SpeciesBc.bcCopy, G0.SpeciesBc.bcCopy } -- Copy boundary conditions (x-direction).
+    bcx = { G0.SpeciesBc.bcCopy, G0.SpeciesBc.bcCopy }, -- Copy boundary conditions (x-direction).
+    limiter = G0.WaveLimiter.VanLeer
   }
 }
 

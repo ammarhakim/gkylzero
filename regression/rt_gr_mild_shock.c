@@ -73,7 +73,7 @@ create_ctx(void)
   // Simulation parameters.
   int Nx = 4096; // Cell count (x-direction).
   double Lx = 1.0; // Domain size (x-direction).
-  double cfl_frac = 0.95; // CFL coefficient.
+  double cfl_frac = 0.5; // CFL coefficient.
 
   double t_end = 0.4; // Final simulation time.
   int num_frames = 1; // Number of output frames.
@@ -287,10 +287,11 @@ main(int argc, char **argv)
     .equation = gr_euler,
     .evolve = true,
     .init = evalGREulerInit,
-    .force_low_order_flux = true, // Use Lax fluxes.
     .ctx = &ctx,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+
+    .limiter = GKYL_VAN_LEER,
   };
 
   int nrank = 1; // Number of processes in simulation.

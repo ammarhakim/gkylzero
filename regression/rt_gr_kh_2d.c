@@ -321,10 +321,11 @@ main(int argc, char **argv)
     .equation = gr_euler,
     .evolve = true,
     .init = evalGREulerInit,
-    .force_low_order_flux = true, // Use Lax fluxes.
     .ctx = &ctx,
 
     .bcy = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+
+    .limiter = GKYL_VAN_LEER,
   };
 
   int nrank = 1; // Number of processes in simulation.
@@ -401,9 +402,6 @@ main(int argc, char **argv)
     .lower = { 0.0, -0.5 * ctx.Ly },
     .upper = { ctx.Lx, 0.5 * ctx.Ly },
     .cells = { NX, NY },
-
-    .scheme_type = GKYL_MOMENT_WAVE_PROP,
-    .mp_recon = app_args.mp_recon,
 
     .cfl_frac = ctx.cfl_frac,
 
