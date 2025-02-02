@@ -168,6 +168,14 @@ void test_1x1v(int poly_order, bool use_gpu)
   struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input);
   gkyl_gk_geometry_release(gk_geom_3d);
 
+  // If we are on the gpu, copy from host
+  if (use_gpu) {
+    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_new(gk_geom, &geometry_input, use_gpu);
+    gkyl_gk_geometry_release(gk_geom);
+    gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
+    gkyl_gk_geometry_release(gk_geom_dev);
+  }
+
   // Initialize velocity space mapping.
   struct gkyl_mapc2p_inp c2p_in = { };
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, velGrid,
@@ -414,6 +422,14 @@ void test_1x2v(int poly_order, bool use_gpu)
   struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input);
   gkyl_gk_geometry_release(gk_geom_3d);
 
+  // If we are on the gpu, copy from host
+  if (use_gpu) {
+    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_new(gk_geom, &geometry_input, use_gpu);
+    gkyl_gk_geometry_release(gk_geom);
+    gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
+    gkyl_gk_geometry_release(gk_geom_dev);
+  }
+
   // Initialize velocity space mapping.
   struct gkyl_mapc2p_inp c2p_in = { };
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, velGrid,
@@ -659,6 +675,14 @@ void test_2x2v(int poly_order, bool use_gpu)
   // deflate geometry if necessary
   struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input);
   gkyl_gk_geometry_release(gk_geom_3d);
+
+  // If we are on the gpu, copy from host
+  if (use_gpu) {
+    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_new(gk_geom, &geometry_input, use_gpu);
+    gkyl_gk_geometry_release(gk_geom);
+    gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
+    gkyl_gk_geometry_release(gk_geom_dev);
+  }
 
   // Initialize velocity space mapping.
   struct gkyl_mapc2p_inp c2p_in = { };

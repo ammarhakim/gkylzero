@@ -125,6 +125,14 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input);
   gkyl_gk_geometry_release(gk_geom_3d);
 
+  // If we are on the gpu, copy from host
+  if (use_gpu) {
+    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_new(gk_geom, &geometry_input, use_gpu);
+    gkyl_gk_geometry_release(gk_geom);
+    gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
+    gkyl_gk_geometry_release(gk_geom_dev);
+  }
+
   // create moment arrays
   struct gkyl_array *prim_moms, *prim_moms_ho;
   prim_moms_ho = mkarr(4*confBasis.num_basis, confLocal_ext.volume);
