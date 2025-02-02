@@ -276,7 +276,7 @@ test_1x1v(int polyOrder, bool use_gpu)
   // Initialize velocity space mapping.
   struct gkyl_mapc2p_inp c2p_in = { };
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, velGrid,
-    local, local_ext, velLocal, velLocal_ext, false);
+    local, local_ext, velLocal, velLocal_ext, use_gpu);
 
   struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gvm, gk_geom, "M0", use_gpu);
   struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gvm, gk_geom, "M1", use_gpu);
@@ -521,7 +521,7 @@ test_1x2v(int poly_order, bool use_gpu)
   // Initialize velocity space mapping.
   struct gkyl_mapc2p_inp c2p_in = { };
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, velGrid,
-    local, local_ext, velLocal, velLocal_ext, false);
+    local, local_ext, velLocal, velLocal_ext, use_gpu);
 
   struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gvm, gk_geom, "M0", use_gpu);
   struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gvm, gk_geom, "M1", use_gpu);
@@ -747,7 +747,7 @@ test_2x2v(int poly_order, bool use_gpu)
   // Initialize velocity space mapping.
   struct gkyl_mapc2p_inp c2p_in = { };
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, velGrid,
-    local, local_ext, velLocal, velLocal_ext, false);
+    local, local_ext, velLocal, velLocal_ext, use_gpu);
 
   struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gvm, gk_geom, "M0", use_gpu);
   struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gvm, gk_geom, "M1", use_gpu);
