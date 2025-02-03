@@ -35,7 +35,13 @@ void eval_T_over_m_elc_100ev(double t, const double *xn, double* restrict fout, 
 void
 test_coll_iz(bool use_gpu, enum gkyl_ion_type type_ion)
 {
-  int charge_state = 0;
+  int charge_state;
+  if (type_ion == GKYL_ION_H) {  
+    charge_state = 0;
+  }
+  else if (type_ion == GKYL_ION_LI) {
+    charge_state = 1;
+  }
   // use vt = 40 eV for all grids
   double vmax_elc = 4.*sqrt(40.*echarge/emass);
   double vmin_elc = -vmax_elc;
