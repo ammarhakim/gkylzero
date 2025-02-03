@@ -53,7 +53,7 @@ calc_skip_iter(const struct gkyl_range *rng, int *remDir)
   return del;
 }
 
-// compute volume, safely (for malformed ranges
+// compute volume, safely (for malformed ranges).
 static long
 calc_volume_safely(int ndim, const int *lower, const int *upper)
 {

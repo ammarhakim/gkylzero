@@ -8,16 +8,6 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range,
 {
   struct gkyl_fem_parproj *up = gkyl_malloc(sizeof(struct gkyl_fem_parproj));
 
-  up->kernels = gkyl_malloc(sizeof(struct gkyl_fem_parproj_kernels));
-#ifdef GKYL_HAVE_CUDA
-  if (use_gpu)
-    up->kernels_cu = gkyl_cu_malloc(sizeof(struct gkyl_fem_parproj_kernels));
-  else
-    up->kernels_cu = up->kernels;
-#else
-  up->kernels_cu = up->kernels;
-#endif
-
   up->solve_range = solve_range;
   up->ndim = solve_range->ndim;
   up->num_basis  = basis->num_basis;
@@ -45,32 +35,29 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range,
 
   up->globalidx = gkyl_malloc(sizeof(long[up->num_basis]));
 
-  // Range of parallel cells, as a sub-range of up->solve_range.
-  struct gkyl_range par_range;
-  int sublower[GKYL_MAX_CDIM], subupper[GKYL_MAX_CDIM];
-  for (int d=0; d<up->ndim; d++) {
-    sublower[d] = up->solve_range->lower[d];
-    subupper[d] = up->solve_range->lower[d];
-  }
-  subupper[up->pardir] = up->solve_range->upper[up->pardir];
-  gkyl_sub_range_init(&par_range, up->solve_range, sublower, subupper);
-  up->parnum_cells = par_range.volume;
-
-  // Range of perpendicular cells.
-  struct gkyl_range perp_range;
-  gkyl_range_shorten_from_above(&perp_range, up->solve_range, up->pardir, 1);
-
   // 1D range of parallel cells.
-  int lower1d[] = {par_range.lower[up->pardir]}, upper1d[] = {par_range.upper[up->pardir]};
+  int lower1d[] = {up->solve_range->lower[up->pardir]}, upper1d[] = {up->solve_range->upper[up->pardir]};
   gkyl_range_init(&up->par_range1d, 1, lower1d, upper1d);
-  // 2D range of perpendicular cells.
-  gkyl_range_init(&up->perp_range2d, up->ndim==3 ? 2 : 1, perp_range.lower, perp_range.upper);
+  // Range of perpendicular cells.
+  const int *lower2d = up->solve_range->lower;
+  const int *upper2d = up->ndim==1? up->solve_range->lower : up->solve_range->upper;
+  gkyl_range_init(&up->perp_range2d, up->ndim==3 ? 2 : 1, lower2d, upper2d);
+
+  up->parnum_cells = up->par_range1d.volume;
 
   // Compute the number of local and global nodes.
-  up->numnodes_local = up->num_basis;
-  up->numnodes_global = gkyl_fem_parproj_global_num_nodes(basis, up->isperiodic, par_range.volume);
+  up->numnodes_global = gkyl_fem_parproj_global_num_nodes(basis, up->isperiodic, up->par_range1d.volume);
 
-  up->brhs = gkyl_array_new(GKYL_DOUBLE, 1, up->numnodes_global*perp_range.volume); // Global right side vector.
+  up->brhs = gkyl_array_new(GKYL_DOUBLE, 1, up->numnodes_global*up->perp_range2d.volume); // Global right side vector.
+
+  // Allocate space for kernels.
+  up->kernels = gkyl_malloc(sizeof(struct gkyl_fem_parproj_kernels));
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu)
+    up->kernels_cu = gkyl_cu_malloc(sizeof(struct gkyl_fem_parproj_kernels));
+  else
+    up->kernels_cu = up->kernels;
+#endif
 
   // Select local-to-global mapping kernel:
   fem_parproj_choose_local2global_kernel(basis, up->isperiodic, up->kernels->l2g);
@@ -108,7 +95,7 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range,
       gkyl_range_init(&prob_range, up->perp_range2d.ndim, up->perp_range2d.lower, up->perp_range2d.upper);
     }
     else {
-      nrhs = perp_range.volume;
+      nrhs = up->perp_range2d.volume;
       gkyl_range_init(&prob_range, 1, &((int){1}), &((int){1}));
     }
   }
@@ -225,7 +212,8 @@ gkyl_fem_parproj_set_rhs(struct gkyl_fem_parproj* up, const struct gkyl_array *r
 }
 
 void
-gkyl_fem_parproj_solve(struct gkyl_fem_parproj* up, struct gkyl_array *phiout) {
+gkyl_fem_parproj_solve(struct gkyl_fem_parproj* up, struct gkyl_array *phiout)
+{
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     assert(gkyl_array_is_cu_dev(phiout));

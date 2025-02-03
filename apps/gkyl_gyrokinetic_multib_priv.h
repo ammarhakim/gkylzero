@@ -7,6 +7,7 @@
 #include <gkyl_rrobin_decomp.h>
 #include <gkyl_multib_comm_conn.h>
 #include <gkyl_rescale_ghost_jacf.h>
+#include <gkyl_fem_parproj_multib.h>
 
 // A multib_comm_conn send/recv pair used for communicating between blocks.
 struct gkyl_mbcc_sr {
@@ -75,11 +76,13 @@ struct gk_multib_field {
   struct gkyl_multib_comm_conn **mbcc_allgatherz_recv; // comm object for allgather receives
   struct gkyl_range **multibz_ranges; // ranges for allgather along z
   struct gkyl_range **multibz_ranges_ext; // extended ranges for smoothing along z
+  struct gkyl_range **multibz_ranges_indi; // Individual ranges forming multibz_ranges.
   struct gkyl_range **block_subrangesz; // ranges for copying smooth phi density
                                        // back to single block apps
   struct gkyl_range **parent_subrangesz; // ranges for copying smooth charge density
-
+                                        // back to single block apps
   // arrays for connected-along-z phi and smoothed (in z) phi
+  struct gkyl_array **jacobgeo_multibz_dg;
   struct gkyl_array **phi_local;
   struct gkyl_array **phi_multibz_dg;
   struct gkyl_array **phi_multibz_smooth;
@@ -95,8 +98,9 @@ struct gk_multib_field {
   struct gkyl_array **weight_multibz;
 
 
-  struct gkyl_fem_parproj **fem_parproj; // FEM smoothers for projecting DG functions onto continuous FEM basis
-                                        // weight*phi_{fem} = phi_{dg} 
+
+  struct gkyl_fem_parproj_multib **fem_parproj; // FEM smoothers for projecting DG functions onto continuous FEM basis
+                                                // weight_L*phi_{fem} = weight_R*phi_{dg} 
 };
 
 /** Time stepping API */
