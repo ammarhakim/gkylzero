@@ -176,7 +176,7 @@ gkyl_array_comp_op(struct gkyl_array *out, enum gkyl_array_op op, double a,
   assert(out->ncomp == in1->ncomp);
   assert(out->size == in1->size);
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(out)) { gkyl_array_comp_op(out, op, a, in1, in2); return out; }
+  if (gkyl_array_is_cu_dev(out)) { gkyl_array_comp_op_cu(out, op, a, in1, b, in2); return out; }
 #endif
 
   double *out_d = out->data;
@@ -184,11 +184,6 @@ gkyl_array_comp_op(struct gkyl_array *out, enum gkyl_array_op op, double a,
   long sz = out->size;
 
   switch (op) {
-    case GKYL_MAX:
-    case GKYL_MIN:
-    case GKYL_SUM:
-      assert(false);
-      break;
     case GKYL_ABS:
       for (size_t i=0; i<sz; ++i) {
         double *out_c = gkyl_array_fetch(out, i);
@@ -227,6 +222,11 @@ gkyl_array_comp_op(struct gkyl_array *out, enum gkyl_array_op op, double a,
           out_c[k] = a*in1_c[k]+b*in2_c[k];
       }
       break;                                            
+    case GKYL_MAX:
+    case GKYL_MIN:
+    case GKYL_SUM:
+      assert(false);
+      break;
   }
   return out;
 }
@@ -606,7 +606,7 @@ gkyl_array_comp_op_range(struct gkyl_array *out, enum gkyl_array_op op, double a
   assert(out->ncomp == in1->ncomp);
   assert(out->size == in1->size);
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(out)) { gkyl_array_comp_op(out, op, a, in1, in2); return out; }
+  if (gkyl_array_is_cu_dev(out)) { gkyl_array_comp_op_range_cu(out, op, a, in1, b, in2); return out; }
 #endif
 
   double *out_d = out->data;
