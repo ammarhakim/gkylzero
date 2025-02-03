@@ -30,7 +30,13 @@ void eval_T_over_m_elc(double t, const double *xn, double* restrict fout, void *
 void
 test_coll_recomb(bool use_gpu, enum gkyl_ion_type type_ion)
 {
-  int charge_state = 0;
+  int charge_state;
+  if (type_ion == GKYL_ION_H) {  
+    charge_state = 0;
+  }
+  else if (type_ion == GKYL_ION_LI || type_ion == GKYL_ION_AR) {
+    charge_state = 1;
+  }
   // use vt = 4 eV for all grids
   double vmax_elc = 4.*sqrt(4.*echarge/emass);
   double vmin_elc = -vmax_elc;
@@ -114,7 +120,7 @@ test_coll_recomb(bool use_gpu, enum gkyl_ion_type type_ion)
 
   // test against predicted value
   if (type_ion == GKYL_ION_H) {
-    double p1_vals[] = {4.0651315620487753e-19, 0.0000000000000000e+00, 0.0000000000000000e+00,
+    double p1_vals[] = {8.1302631240975506e-19, 0.0000000000000000e+00, 0.0000000000000000e+00,
             0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
             0.0000000000000000e+00, 0.0000000000000000e+00};
     for (int i=0; i<basis.num_basis; ++i) { 
@@ -122,7 +128,7 @@ test_coll_recomb(bool use_gpu, enum gkyl_ion_type type_ion)
     }    
   }
   else if (type_ion == GKYL_ION_LI) {
-    double p1_vals[] = {1.4761368114720401e-18, 0.0000000000000000e+00, 0.0000000000000000e+00,
+    double p1_vals[] = {2.9522736229440802e-18, 0.0000000000000000e+00, 0.0000000000000000e+00,
               0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
               0.0000000000000000e+00, 0.0000000000000000e+00};
     for (int i=0; i<basis.num_basis; ++i) {
@@ -130,7 +136,7 @@ test_coll_recomb(bool use_gpu, enum gkyl_ion_type type_ion)
     }
   }
   else if (type_ion == GKYL_ION_AR) {
-    double p1_vals[] = {2.6716460249415115e-18, 0.0000000000000000e+00, 0.0000000000000000e+00,
+    double p1_vals[] = {5.343292049883023e-18, 0.0000000000000000e+00, 0.0000000000000000e+00,
             0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
             0.0000000000000000e+00, 0.0000000000000000e+00};
     for (int i=0; i<basis.num_basis; ++i) {
