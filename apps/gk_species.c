@@ -686,17 +686,6 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
       }
     }
   }
-
-  struct gkyl_dg_gyrokinetic_auxfields aux_inp = { .alpha_surf = gks->alpha_surf, 
-    .sgn_alpha_surf = gks->sgn_alpha_surf, .const_sgn_alpha = gks->const_sgn_alpha, 
-    .phi = gks->phi, .apar = gks->apar, .apardot = gks->apardot };
-  // Create collisionless solver.
-  gks->slvr = gkyl_dg_updater_gyrokinetic_new(&gks->grid, &app->confBasis, &app->basis, 
-    &app->local, &gks->local, is_zero_flux, gks->info.charge, gks->info.mass,
-    gks->gkmodel_id, app->gk_geom, gks->vel_map, &aux_inp, app->use_gpu);
-
-  // Acquire equation object.
-  gks->eqn_gyrokinetic = gkyl_dg_updater_gyrokinetic_acquire_eqn(gks->slvr);
   
   // Determine collision type and initialize it.
   gks->lbo = (struct gk_lbo_collisions) { };
