@@ -849,9 +849,7 @@ gyrokinetic_multib_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcur
       gk_species_apply_bc(sbapp, &sbapp->species[i], distf[li_charged+i]);
     }
     for (int i=0; i<app->num_neut_species; ++i) {
-      if (!sbapp->neut_species[i].info.is_static) {
-        gk_neut_species_apply_bc(sbapp, &sbapp->neut_species[i], distf_neut[li_neut+i]);
-      }
+      gk_neut_species_apply_bc(sbapp, &sbapp->neut_species[i], distf_neut[li_neut+i]);
     }
   }
 
