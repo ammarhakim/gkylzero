@@ -25,12 +25,12 @@ void eval_n(double t, const double *xn, double* restrict fout, void *ctx)
 void eval_T_over_m_ion(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
-  fout[0] = 40.*echarge/d_ion_mass*1.0e19*3.;  //fabs(x);
+  fout[0] = 40.*echarge/d_ion_mass;  
 }
 void eval_T_over_m_neut(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
-  fout[0] = 4.*echarge/d_ion_mass*1.0e19*3.;  //fabs(x);
+  fout[0] = 4.*echarge/d_ion_mass;  
 }
 void eval_bmag(double t, const double *xn, double* restrict fout, void *ctx)
 {
@@ -177,7 +177,7 @@ test_coll_cx_d(bool use_gpu)
     gkyl_dg_cx_coll(coll_cx_up, moms_ion, moms_neut, 
       u_par_ion, coef_cx, 0);    
   }
-  const double *cv_cx = gkyl_array_cfetch(coef_cx, gkyl_range_idx(&confRange, (int[3]) { 1, 1, 1}));
+  const double *cv_cx = gkyl_array_cfetch(coef_cx, gkyl_range_idx(&confRange, (int[2]) { 1, 1}));
 
   // test against predicted value
   double p1_vals[] = {3.242709205939892e-14, 0.000000000000000e+00,
