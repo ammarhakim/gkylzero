@@ -325,11 +325,12 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin, double 
   // Application of the BC at the target corner
   // If we are located at the edge of the z domain (This is temporary and should be generalized)
   if(up->is_z_edge){
+    int idxLCFS_m = (up->xLCFS-1e-8 - up->grid.lower[0])/up->grid.dx[0]+1;
     // apply new BC on the RHS vector
     gkyl_range_iter_init(&up->solve_iter, up->solve_range);
     for (size_t i=0; i<up->numnodes_global; ++i) {
       int ix = up->grid.ndim == 2? i / up->grid.cells[1] : i; // get node x-index
-      if(ix == up->idxLCFS_m){
+      if(ix == idxLCFS_m){
         brhs_p[i] = target_corner_bias;
       }
     }

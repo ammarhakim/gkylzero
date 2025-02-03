@@ -296,7 +296,7 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
   // Get the z BC info from the first species in our app
   const struct gkyl_gyrokinetic_bcs *bcz = &gks->info.bcz;
   // define the parallel direction index (handle 2x and 3x cases)
-  int zdir = app->cdim == 3? 2 : 1;
+  int zdir = app->cdim - 1;
 
   // Create local and local_ext from app local range with ghosts
   int ghost[] = {1, 1, 1};
@@ -398,7 +398,7 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
   }
 
   // SSFG updaters
-  int ghost_par[GKYL_MAX_CDIM] = {0, 0, 0};
+  int ghost_par[] = {0, 0, 0};
   ghost_par[zdir] = 1;
   // create lower and upper skin and ghost ranges for the z BC in the core region
   gkyl_skin_ghost_ranges( &f->lower_skin_core, &f->lower_ghost_core, zdir, 
@@ -607,8 +607,9 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
       }
 
       // printf("target corner b ias = %g\n", field->target_corner_bias[0]);
-      gk_field_calc_target_corner_bias(app, field, NULL);
-      gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth, field->target_corner_bias);
+      // gk_field_calc_target_corner_bias(app, field, NULL);
+      // gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth, field->target_corner_bias);
+      gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth, 0.0);
 
       /*
       * If we are in a 3x simulation with IWL we apply TS BC to the upper and lower edges
@@ -630,7 +631,7 @@ gk_field_apply_bc(const gkyl_gyrokinetic_app *app, const struct gk_field *field,
 {
   //1. Apply the periodicity to fill the ghost cells
   int num_periodic_dir = 1; // we need only periodicity in z
-  int zdir = app->cdim == 3? 2 : 1; // z direction
+  int zdir = app->cdim - 1; // z direction
   int periodic_dirs[] = {zdir};
   gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
     num_periodic_dir, periodic_dirs, finout); 
