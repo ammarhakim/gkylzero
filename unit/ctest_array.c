@@ -14,6 +14,16 @@
 #include <gkyl_gauss_quad_data.h>
 #include <gkyl_util.h>
 
+
+static struct gkyl_array*
+mkarr(bool use_gpu, long nc, long size)
+{
+  // Allocate array (filled with zeros)
+  struct gkyl_array* a = use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size)
+                                : gkyl_array_new(GKYL_DOUBLE, nc, size);
+  return a;
+}
+
 void test_array_0()
 {
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, 200);
@@ -636,24 +646,212 @@ void test_array_shiftc_range(bool on_gpu)
   if (on_gpu) gkyl_array_release(a2);
 }
 
-void test_array_comp_op()
+void test_array_comp_op(bool use_gpu)
 {
+  struct gkyl_array *a1 = mkarr(use_gpu, 3, 10);
+  struct gkyl_array *a1_ho = use_gpu? mkarr(false, a1->ncomp, a1->size)
+                                    : gkyl_array_acquire(a1);
+  double *a1_d = a1_ho->data;
   // Test the ABS operation.
-  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 3, 10);
+  for (unsigned i=0; i<a1->size; ++i) {
+    for (size_t k=0; k<a1->ncomp; ++k) a1_d[i*a1->ncomp+k] = 3.0-i*2.0+k;
+  }
+  gkyl_array_copy(a1, a1_ho);
 
-  double *a1_d = a1->data;
+  double fac1 = 1.1;
+  gkyl_array_comp_op(a1, GKYL_ABS, fac1, a1, 0, 0);
+
+  gkyl_array_copy(a1_ho, a1);
+  for (unsigned i=0; i<a1->size; ++i) {
+    for (size_t k=1; k<a1->ncomp; ++k) 
+      TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+k], fabs(fac1*(3.0-i*2.0+k)), 1e-14) );
+  }
+
+  // Test the INV operation.
   for (unsigned i=0; i<a1->size; ++i) {
     for (size_t k=0; k<a1->ncomp; ++k) a1_d[i*a1->ncomp+k] = 3.0+i*2.0+k;
   }
+  gkyl_array_copy(a1_ho, a1);
 
-  gkyl_array_comp_op(a1, GKYL_ABS, 0, a1, 0, 0);
+  fac1 = 3.2;
+  gkyl_array_comp_op(a1, GKYL_INV, fac1, a1, 0, 0);
 
+  gkyl_array_copy(a1_ho, a1);
   for (unsigned i=0; i<a1->size; ++i) {
     for (size_t k=1; k<a1->ncomp; ++k) 
-      TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+k], 1.0/(3.0+i*2.0+k), 1e-14) );
+      TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+k], fac1/(3.0+i*2.0+k), 1e-14) );
   }
 
+  // Test the DIV operation.
+  struct gkyl_array *a2 = mkarr(use_gpu, a1->ncomp, a1->size);
+  struct gkyl_array *a2_ho = use_gpu? mkarr(false, a2->ncomp, a2->size)
+                                    : gkyl_array_acquire(a2);
+  double *a2_d = a2_ho->data;
+  for (unsigned i=0; i<a2->size; ++i) {
+    for (size_t k=0; k<a2->ncomp; ++k) {
+      a1_d[i*a1->ncomp+k] = 3.0+i*2.0+k;
+      a2_d[i*a2->ncomp+k] = 5.5-i*3.5+k/2.0;
+    }
+  }
+  gkyl_array_copy(a1_ho, a1);
+  gkyl_array_copy(a2_ho, a2);
+
+  fac1 = 1.1;
+  double fac2 = 2.2;
+  gkyl_array_comp_op(a1, GKYL_DIV, fac1, a1, fac2, a2);
+
+  gkyl_array_copy(a1_ho, a1);
+  for (unsigned i=0; i<a1->size; ++i) {
+    for (size_t k=0; k<a1->ncomp; ++k) {
+      TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+k], fac1*(3.0+i*2.0+k)/(fac2*(5.5-i*3.5+k/2.0)), 1e-14) );
+      TEST_MSG("i=%d k=%zu | Got: %g | Expected: %g\n",i,k,a1_d[i*a1->ncomp+k],fac1*(3.0+i*2.0+k)/(fac2*(5.5-i*3.5+k/2.0)));
+    }
+  }
+ 
+  // Test the AXPBY operation.
+  for (unsigned i=0; i<a2->size; ++i) {
+    for (size_t k=0; k<a2->ncomp; ++k) {
+      a1_d[i*a1->ncomp+k] = 3.0+i*2.0+k;
+      a2_d[i*a2->ncomp+k] = 1.5-i*3.5+k/2.0;
+    }
+  }
+  gkyl_array_copy(a1_ho, a1);
+  gkyl_array_copy(a2_ho, a2);
+
+  gkyl_array_comp_op(a1, GKYL_AXPBY, fac1, a1, fac2, a2);
+
+  gkyl_array_copy(a1_ho, a1);
+  for (unsigned i=0; i<a1->size; ++i) {
+    for (size_t k=0; k<a1->ncomp; ++k) {
+      TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+k], fac1*(3.0+i*2.0+k)+fac2*(1.5-i*3.5+k/2.0), 1e-14) );
+      TEST_MSG("i=%d k=%zu | Got: %g | Expected: %g\n",i,k,a1_d[i*a1->ncomp+k],fac1*(3.0+i*2.0+k)+fac2*(1.5-i*3.5+k/2.0));
+    }
+  }
+  gkyl_array_release(a2);
+  gkyl_array_release(a2_ho);
+
   gkyl_array_release(a1);
+  gkyl_array_release(a1_ho);
+}
+
+void test_array_comp_op_ho()
+{
+  test_array_comp_op(false);
+}
+
+void test_array_comp_op_range(bool use_gpu)
+{
+  int lower[] = {1}, upper[] = {10};
+  struct gkyl_range range;
+  gkyl_range_init(&range, 1, lower, upper);
+
+  struct gkyl_array *a1 = mkarr(use_gpu, 3, range.volume);
+  struct gkyl_array *a1_ho = use_gpu? mkarr(false, a1->ncomp, a1->size)
+                                    : gkyl_array_acquire(a1);
+  double *a1_d = a1_ho->data;
+  struct gkyl_range_iter iter;
+
+  // Test the ABS operation.
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long i = gkyl_range_idx(&range, iter.idx);
+    for (size_t k=0; k<a1->ncomp; ++k) a1_d[i*a1->ncomp+k] = 3.0-i*2.0+k;
+  }
+  gkyl_array_copy(a1, a1_ho);
+
+  double fac1 = 1.1;
+  gkyl_array_comp_op_range(a1, GKYL_ABS, fac1, a1, 0, 0, &range);
+
+  gkyl_array_copy(a1_ho, a1);
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long i = gkyl_range_idx(&range, iter.idx);
+    for (size_t k=1; k<a1->ncomp; ++k) 
+      TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+k], fabs(fac1*(3.0-i*2.0+k)), 1e-14) );
+  }
+
+  // Test the INV operation.
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long i = gkyl_range_idx(&range, iter.idx);
+    for (size_t k=0; k<a1->ncomp; ++k) a1_d[i*a1->ncomp+k] = 3.0+i*2.0+k;
+  }
+  gkyl_array_copy(a1_ho, a1);
+
+  fac1 = 3.2;
+  gkyl_array_comp_op_range(a1, GKYL_INV, fac1, a1, 0, 0, &range);
+
+  gkyl_array_copy(a1_ho, a1);
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long i = gkyl_range_idx(&range, iter.idx);
+    for (size_t k=1; k<a1->ncomp; ++k) 
+      TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+k], fac1/(3.0+i*2.0+k), 1e-14) );
+  }
+
+  // Test the DIV operation.
+  struct gkyl_array *a2 = mkarr(use_gpu, a1->ncomp, a1->size);
+  struct gkyl_array *a2_ho = use_gpu? mkarr(false, a2->ncomp, a2->size)
+                                    : gkyl_array_acquire(a2);
+  double *a2_d = a2_ho->data;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long i = gkyl_range_idx(&range, iter.idx);
+    for (size_t k=0; k<a2->ncomp; ++k) {
+      a1_d[i*a1->ncomp+k] = 3.0+i*2.0+k;
+      a2_d[i*a2->ncomp+k] = 5.5-i*3.5+k/2.0;
+    }
+  }
+  gkyl_array_copy(a1_ho, a1);
+  gkyl_array_copy(a2_ho, a2);
+
+  fac1 = 1.1;
+  double fac2 = 2.2;
+  gkyl_array_comp_op_range(a1, GKYL_DIV, fac1, a1, fac2, a2, &range);
+
+  gkyl_array_copy(a1_ho, a1);
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long i = gkyl_range_idx(&range, iter.idx);
+    for (size_t k=0; k<a1->ncomp; ++k) {
+      TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+k], fac1*(3.0+i*2.0+k)/(fac2*(5.5-i*3.5+k/2.0)), 1e-14) );
+      TEST_MSG("i=%ld k=%zu | Got: %g | Expected: %g\n",i,k,a1_d[i*a1->ncomp+k],fac1*(3.0+i*2.0+k)/(fac2*(5.5-i*3.5+k/2.0)));
+    }
+  }
+ 
+  // Test the AXPBY operation.
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long i = gkyl_range_idx(&range, iter.idx);
+    for (size_t k=0; k<a2->ncomp; ++k) {
+      a1_d[i*a1->ncomp+k] = 3.0+i*2.0+k;
+      a2_d[i*a2->ncomp+k] = 1.5-i*3.5+k/2.0;
+    }
+  }
+  gkyl_array_copy(a1_ho, a1);
+  gkyl_array_copy(a2_ho, a2);
+
+  gkyl_array_comp_op_range(a1, GKYL_AXPBY, fac1, a1, fac2, a2, &range);
+
+  gkyl_array_copy(a1_ho, a1);
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long i = gkyl_range_idx(&range, iter.idx);
+    for (size_t k=0; k<a1->ncomp; ++k) {
+      TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+k], fac1*(3.0+i*2.0+k)+fac2*(1.5-i*3.5+k/2.0), 1e-14) );
+      TEST_MSG("i=%ld k=%zu | Got: %g | Expected: %g\n",i,k,a1_d[i*a1->ncomp+k],fac1*(3.0+i*2.0+k)+fac2*(1.5-i*3.5+k/2.0));
+    }
+  }
+  gkyl_array_release(a2);
+  gkyl_array_release(a2_ho);
+
+  gkyl_array_release(a1);
+  gkyl_array_release(a1_ho);
+}
+
+void test_array_comp_op_range_ho()
+{
+  test_array_comp_op_range(false);
 }
 
 void test_array_opcombine()
@@ -2882,7 +3080,8 @@ TEST_LIST = {
   { "array_scale_by_cell", test_array_scale_by_cell },
   { "array_shiftc", test_array_shiftc },
   { "array_shiftc_range", test_array_shiftc_range_ho },
-  { "array_comp_op", test_array_comp_op },
+  { "array_comp_op_ho", test_array_comp_op_ho },
+  { "array_comp_op_range_ho", test_array_comp_op_range_ho },
   { "array_opcombine", test_array_opcombine },
   { "array_ops_comp", test_array_ops_comp },
   { "array_copy_buffer", test_array_copy_buffer },

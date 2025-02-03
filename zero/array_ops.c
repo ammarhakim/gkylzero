@@ -194,7 +194,7 @@ gkyl_array_comp_op(struct gkyl_array *out, enum gkyl_array_op op, double a,
         double *out_c = gkyl_array_fetch(out, i);
         const double *in1_c = gkyl_array_cfetch(in1, i);
         for (size_t k=0; k<nc; ++k)
-          out_c[k] = fabs(in1_c[k]);
+          out_c[k] = fabs(a*in1_c[k]);
       }
       break;                                            
     case GKYL_INV:
@@ -202,7 +202,7 @@ gkyl_array_comp_op(struct gkyl_array *out, enum gkyl_array_op op, double a,
         double *out_c = gkyl_array_fetch(out, i);
         const double *in1_c = gkyl_array_cfetch(in1, i);
         for (size_t k=0; k<nc; ++k)
-          out_c[k] = 1.0/in1_c[k];
+          out_c[k] = a/in1_c[k];
       }
       break;                                            
     case GKYL_DIV:
@@ -213,7 +213,7 @@ gkyl_array_comp_op(struct gkyl_array *out, enum gkyl_array_op op, double a,
         const double *in1_c = gkyl_array_cfetch(in1, i);
         const double *in2_c = gkyl_array_cfetch(in2, i);
         for (size_t k=0; k<nc; ++k)
-          out_c[k] = in1_c[k]/in2_c[k];
+          out_c[k] = a*in1_c[k]/(b*in2_c[k]);
       }
       break;                                            
     case GKYL_AXPBY:
@@ -247,6 +247,12 @@ gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_array_op 
         break;
       case GKYL_SUM:
         gkyl_array_reduce_sum_cu(out, arr);
+        break;
+      case GKYL_ABS:
+      case GKYL_INV:
+      case GKYL_DIV:
+      case GKYL_AXPBY:
+        assert(false);
         break;
     }
     return;
@@ -283,6 +289,12 @@ gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_array_op 
           out[k] += d[k];
       }
       break;
+    case GKYL_ABS:
+    case GKYL_INV:
+    case GKYL_DIV:
+    case GKYL_AXPBY:
+      assert(false);
+      break;
   }
 }
 
@@ -303,6 +315,12 @@ gkyl_array_reducec_dg(double *out, const struct gkyl_array *arr, int comp,
         break;                                            
       case GKYL_SUM:                                      
         gkyl_array_reducec_dg_sum_cu(out, arr, comp, basis);
+        break;
+      case GKYL_ABS:
+      case GKYL_INV:
+      case GKYL_DIV:
+      case GKYL_AXPBY:
+        assert(false);
         break;
     }
     return;
@@ -348,6 +366,12 @@ gkyl_array_reducec_dg(double *out, const struct gkyl_array *arr, int comp,
           out[0] += arr_nodal[k];
         }
       }
+      break;
+    case GKYL_ABS:
+    case GKYL_INV:
+    case GKYL_DIV:
+    case GKYL_AXPBY:
+      assert(false);
       break;
   }
 }
@@ -604,7 +628,7 @@ gkyl_array_comp_op_range(struct gkyl_array *out, enum gkyl_array_op op, double a
         double *out_c = gkyl_array_fetch(out, linidx);
         const double *in1_c = gkyl_array_cfetch(in1, linidx);
         for (size_t k=0; k<nc; ++k)
-          out_c[k] = fabs(in1_c[k]);
+          out_c[k] = fabs(a*in1_c[k]);
       }
       break;                                            
     case GKYL_INV:
@@ -613,7 +637,7 @@ gkyl_array_comp_op_range(struct gkyl_array *out, enum gkyl_array_op op, double a
         double *out_c = gkyl_array_fetch(out, linidx);
         const double *in1_c = gkyl_array_cfetch(in1, linidx);
         for (size_t k=0; k<nc; ++k)
-          out_c[k] = 1.0/in1_c[k];
+          out_c[k] = a/in1_c[k];
       }
       break;                                            
     case GKYL_DIV:
@@ -625,7 +649,7 @@ gkyl_array_comp_op_range(struct gkyl_array *out, enum gkyl_array_op op, double a
         const double *in1_c = gkyl_array_cfetch(in1, linidx);
         const double *in2_c = gkyl_array_cfetch(in2, linidx);
         for (size_t k=0; k<nc; ++k)
-          out_c[k] = in1_c[k]/in2_c[k];
+          out_c[k] = a*in1_c[k]/(b*in2_c[k]);
       }
       break;                                            
     case GKYL_AXPBY:
