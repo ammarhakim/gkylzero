@@ -636,6 +636,26 @@ void test_array_shiftc_range(bool on_gpu)
   if (on_gpu) gkyl_array_release(a2);
 }
 
+void test_array_comp_op()
+{
+  // Test the ABS operation.
+  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 3, 10);
+
+  double *a1_d = a1->data;
+  for (unsigned i=0; i<a1->size; ++i) {
+    for (size_t k=0; k<a1->ncomp; ++k) a1_d[i*a1->ncomp+k] = 3.0+i*2.0+k;
+  }
+
+  gkyl_array_comp_op(a1, GKYL_ABS, 0, a1, 0, 0);
+
+  for (unsigned i=0; i<a1->size; ++i) {
+    for (size_t k=1; k<a1->ncomp; ++k) 
+      TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+k], 1.0/(3.0+i*2.0+k), 1e-14) );
+  }
+
+  gkyl_array_release(a1);
+}
+
 void test_array_opcombine()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);  
@@ -2862,6 +2882,7 @@ TEST_LIST = {
   { "array_scale_by_cell", test_array_scale_by_cell },
   { "array_shiftc", test_array_shiftc },
   { "array_shiftc_range", test_array_shiftc_range_ho },
+  { "array_comp_op", test_array_comp_op },
   { "array_opcombine", test_array_opcombine },
   { "array_ops_comp", test_array_ops_comp },
   { "array_copy_buffer", test_array_copy_buffer },

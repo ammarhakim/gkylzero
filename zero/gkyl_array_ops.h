@@ -132,6 +132,19 @@ struct gkyl_array* gkyl_array_scale_by_cell(struct gkyl_array *out, const struct
 struct gkyl_array* gkyl_array_shiftc(struct gkyl_array *out, double a, unsigned k);
 
 /**
+ * Perform a component-wise algebraic operation between arrays.
+ *
+ * @param out Output array.
+ * @param op Type of operation to perform.
+ * @param a Coefficient to multiply in1 by.
+ * @param in1 First input array.
+ * @param b Coefficient to multiply in2 by.
+ * @param in2 Second input array.
+ */
+struct gkyl_array* gkyl_array_comp_op(struct gkyl_array *out, enum gkyl_array_op op,
+ double a, const struct gkyl_array *in1, double b, const struct gkyl_array *in2);
+
+/**
  * Clear out = val. Returns out.
  *
  * @param out Output array
@@ -230,6 +243,20 @@ struct gkyl_array* gkyl_array_scale_range(struct gkyl_array *out,
  */
 struct gkyl_array* gkyl_array_shiftc_range(struct gkyl_array *out, double a,
   unsigned k, const struct gkyl_range *range);
+
+/**
+ * Perform a component-wise algebraic operation between arrays.
+ *
+ * @param out Output array.
+ * @param op Type of operation to perform.
+ * @param a Coefficient to multiply in1 by.
+ * @param in1 First input array.
+ * @param b Coefficient to multiply in2 by.
+ * @param in2 Second input array.
+ */
+struct gkyl_array* gkyl_array_comp_op_range(struct gkyl_array *out, enum gkyl_array_op op,
+ double a, const struct gkyl_array *in1, double b, const struct gkyl_array *in2,
+ const struct gkyl_range *range);
 
 /**
  * Copy out inp. Returns out.
