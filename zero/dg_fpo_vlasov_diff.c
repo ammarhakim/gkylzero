@@ -48,13 +48,16 @@ gkyl_dg_fpo_vlasov_diff_new(const struct gkyl_basis* pbasis, const struct gkyl_r
   if(use_gpu)
     return gkyl_dg_fpo_vlasov_diff_cu_dev_new(pbasis, phase_range);
 #endif
-  
+
   struct dg_fpo_vlasov_diff* fpo_vlasov_diff = gkyl_malloc(sizeof(struct dg_fpo_vlasov_diff));
 
   // Vlasov Fokker-Planck operator only defined in 3 velocity dimensions
   int pdim = pbasis->ndim, vdim = 3, cdim = pdim - vdim;
   int poly_order = pbasis->poly_order;
 
+  // Only support up to 2x3v dimensionality
+  assert(cdim <= 2);
+  
   fpo_vlasov_diff->cdim = cdim;
   fpo_vlasov_diff->pdim = pdim;
 
@@ -62,15 +65,15 @@ gkyl_dg_fpo_vlasov_diff_new(const struct gkyl_basis* pbasis, const struct gkyl_r
   fpo_vlasov_diff->eqn.gen_surf_term = fpo_diff_gen_surf_term;
 
   const gkyl_dg_fpo_vlasov_diff_vol_kern_list* vol_kernels;
-  const fpo_vlasov_diff_surf_kern_list** surf_vxvx_kernel_list;
-  const fpo_vlasov_diff_surf_kern_list** surf_vxvy_kernel_list;
-  const fpo_vlasov_diff_surf_kern_list** surf_vxvz_kernel_list;
-  const fpo_vlasov_diff_surf_kern_list** surf_vyvx_kernel_list;
-  const fpo_vlasov_diff_surf_kern_list** surf_vyvy_kernel_list;
-  const fpo_vlasov_diff_surf_kern_list** surf_vyvz_kernel_list;
-  const fpo_vlasov_diff_surf_kern_list** surf_vzvx_kernel_list;
-  const fpo_vlasov_diff_surf_kern_list** surf_vzvy_kernel_list;
-  const fpo_vlasov_diff_surf_kern_list** surf_vzvz_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vxvx_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vxvy_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vxvz_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vyvx_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vyvy_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vyvz_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vzvx_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vzvy_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vzvz_kernel_list;
 
   switch (pbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -107,15 +110,15 @@ gkyl_dg_fpo_vlasov_diff_new(const struct gkyl_basis* pbasis, const struct gkyl_r
   } 
   fpo_vlasov_diff->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
 
-  fpo_vlasov_diff->surf[0][0] = surf_vxvx_kernel_list[cdim-1][poly_order-1];
-  fpo_vlasov_diff->surf[0][1] = surf_vxvy_kernel_list[cdim-1][poly_order-1];
-  fpo_vlasov_diff->surf[0][2] = surf_vxvz_kernel_list[cdim-1][poly_order-1];
-  fpo_vlasov_diff->surf[1][0] = surf_vyvx_kernel_list[cdim-1][poly_order-1];
-  fpo_vlasov_diff->surf[1][1] = surf_vyvy_kernel_list[cdim-1][poly_order-1];
-  fpo_vlasov_diff->surf[1][2] = surf_vyvz_kernel_list[cdim-1][poly_order-1];
-  fpo_vlasov_diff->surf[2][0] = surf_vzvx_kernel_list[cdim-1][poly_order-1];
-  fpo_vlasov_diff->surf[2][1] = surf_vzvy_kernel_list[cdim-1][poly_order-1];
-  fpo_vlasov_diff->surf[2][2] = surf_vzvz_kernel_list[cdim-1][poly_order-1];
+  fpo_vlasov_diff->surf[0][0] = surf_vxvx_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[0][1] = surf_vxvy_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[0][2] = surf_vxvz_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[1][0] = surf_vyvx_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[1][1] = surf_vyvy_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[1][2] = surf_vyvz_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[2][0] = surf_vzvx_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[2][1] = surf_vzvy_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[2][2] = surf_vzvz_kernel_list[cdim-1].list[poly_order-1];
 
   // ensure non-NULL pointers
   for (int i=0; i<vdim; ++i) 

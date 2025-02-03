@@ -24,151 +24,88 @@ typedef struct { gkyl_dg_fpo_sgn_drag_coeff_kern_list list[3]; } gkyl_dg_fpo_sgn
 
 // drag coefficient kernel lists
 GKYL_CU_D
-static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_1x3v_vx_kernels = {
-  {
+static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_vx_kernels[] = {
+  {{ // 1x3v
     {NULL, NULL, NULL},
     {fpo_drag_coeff_1x3v_vx_ser_p1_invx, fpo_drag_coeff_1x3v_vx_ser_p1_lovx, fpo_drag_coeff_1x3v_vx_ser_p1_upvx},
     {fpo_drag_coeff_1x3v_vx_ser_p2_invx, fpo_drag_coeff_1x3v_vx_ser_p2_lovx, fpo_drag_coeff_1x3v_vx_ser_p2_upvx}
-  }
-};
-
-GKYL_CU_D
-static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_2x3v_vx_kernels = {
-  {
+  }},
+  {{ // 2x3v
     {NULL, NULL, NULL},
     {fpo_drag_coeff_2x3v_vx_ser_p1_invx, fpo_drag_coeff_2x3v_vx_ser_p1_lovx, fpo_drag_coeff_2x3v_vx_ser_p1_upvx},
     {NULL, NULL, NULL},
-  }
+  }}
 };
 
 GKYL_CU_D
-static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_1x3v_vy_kernels = {
-  {
+static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_vy_kernels[] = {
+  {{ // 1x3v
     {NULL, NULL, NULL},
     {fpo_drag_coeff_1x3v_vy_ser_p1_invy, fpo_drag_coeff_1x3v_vy_ser_p1_lovy, fpo_drag_coeff_1x3v_vy_ser_p1_upvy},
     {fpo_drag_coeff_1x3v_vy_ser_p2_invy, fpo_drag_coeff_1x3v_vy_ser_p2_lovy, fpo_drag_coeff_1x3v_vy_ser_p2_upvy}
-  }
-};
-
-GKYL_CU_D
-static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_2x3v_vy_kernels = {
-  {
+  }},
+  {{ // 2x3v
     {NULL, NULL, NULL},
     {fpo_drag_coeff_2x3v_vy_ser_p1_invy, fpo_drag_coeff_2x3v_vy_ser_p1_lovy, fpo_drag_coeff_2x3v_vy_ser_p1_upvy},
     {NULL, NULL, NULL},
-  }
+  }}
 };
 
 GKYL_CU_D
-static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_1x3v_vz_kernels = {
-  {
+static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_vz_kernels[] = {
+  {{ // 1x3v
     {NULL, NULL, NULL},
     {fpo_drag_coeff_1x3v_vz_ser_p1_invz, fpo_drag_coeff_1x3v_vz_ser_p1_lovz, fpo_drag_coeff_1x3v_vz_ser_p1_upvz},
     {fpo_drag_coeff_1x3v_vz_ser_p2_invz, fpo_drag_coeff_1x3v_vz_ser_p2_lovz, fpo_drag_coeff_1x3v_vz_ser_p2_upvz}
-  }
-};
-
-GKYL_CU_D
-static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_2x3v_vz_kernels = {
-  {
+  }},
+  {{ // 2x3v
     {NULL, NULL, NULL},
     {fpo_drag_coeff_2x3v_vz_ser_p1_invz, fpo_drag_coeff_2x3v_vz_ser_p1_lovz, fpo_drag_coeff_2x3v_vz_ser_p1_upvz},
     {NULL, NULL, NULL},
-  }
+  }}
 };
 
 // sgn drag coefficient kernel lists
 GKYL_CU_D
-static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_1x3v_vx_kernels = {
-  {
+static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_vx_kernels[] = {
+  {{ // 1x3v
     {NULL, NULL, NULL},
     {fpo_sgn_drag_coeff_1x3v_vx_ser_p1_invx, fpo_sgn_drag_coeff_1x3v_vx_ser_p1_lovx, fpo_sgn_drag_coeff_1x3v_vx_ser_p1_upvx},
     {fpo_sgn_drag_coeff_1x3v_vx_ser_p2_invx, fpo_sgn_drag_coeff_1x3v_vx_ser_p2_lovx, fpo_sgn_drag_coeff_1x3v_vx_ser_p2_upvx}
-  }
-};
-
-GKYL_CU_D
-static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_2x3v_vx_kernels = {
-  {
+  }},
+  {{ // 2x3v
     {NULL, NULL, NULL},
     {fpo_sgn_drag_coeff_2x3v_vx_ser_p1_invx, fpo_sgn_drag_coeff_2x3v_vx_ser_p1_lovx, fpo_sgn_drag_coeff_2x3v_vx_ser_p1_upvx},
     {NULL, NULL, NULL}
-  }
+  }}
 };
 
 GKYL_CU_D
-static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_1x3v_vy_kernels = {
-  {
+static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_vy_kernels[] = {
+  {{ // 1x3v
     {NULL, NULL, NULL},
     {fpo_sgn_drag_coeff_1x3v_vy_ser_p1_invy, fpo_sgn_drag_coeff_1x3v_vy_ser_p1_lovy, fpo_sgn_drag_coeff_1x3v_vy_ser_p1_upvy},
     {fpo_sgn_drag_coeff_1x3v_vy_ser_p2_invy, fpo_sgn_drag_coeff_1x3v_vy_ser_p2_lovy, fpo_sgn_drag_coeff_1x3v_vy_ser_p2_upvy}
-  }
-};
-
-GKYL_CU_D
-static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_2x3v_vy_kernels = {
-  {
+  }},
+  {{ // 2x3v
     {NULL, NULL, NULL},
     {fpo_sgn_drag_coeff_2x3v_vy_ser_p1_invy, fpo_sgn_drag_coeff_2x3v_vy_ser_p1_lovy, fpo_sgn_drag_coeff_2x3v_vy_ser_p1_upvy},
     {NULL, NULL, NULL}
-  }
+  }}
 };
 
 GKYL_CU_D
-static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_1x3v_vz_kernels = {
-  {
+static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_vz_kernels[] = {
+  {{ // 1x3v
     {NULL, NULL, NULL},
     {fpo_sgn_drag_coeff_1x3v_vz_ser_p1_invz, fpo_sgn_drag_coeff_1x3v_vz_ser_p1_lovz, fpo_sgn_drag_coeff_1x3v_vz_ser_p1_upvz},
     {fpo_sgn_drag_coeff_1x3v_vz_ser_p2_invz, fpo_sgn_drag_coeff_1x3v_vz_ser_p2_lovz, fpo_sgn_drag_coeff_1x3v_vz_ser_p2_upvz}
-  }
-};
-
-GKYL_CU_D
-static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_2x3v_vz_kernels = {
-  {
+  }},
+  {{ // 2x3v
     {NULL, NULL, NULL},
     {fpo_sgn_drag_coeff_2x3v_vz_ser_p1_invz, fpo_sgn_drag_coeff_2x3v_vz_ser_p1_lovz, fpo_sgn_drag_coeff_2x3v_vz_ser_p1_upvz},
     {NULL, NULL, NULL}
-  }
-};
-
-// Store kernel lists by configuration space dimensionality
-GKYL_CU_D
-static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_vx_kernels[] = {
-  ser_fpo_drag_coeff_1x3v_vx_kernels,
-  ser_fpo_drag_coeff_2x3v_vx_kernels,
-  NULL
-};
-GKYL_CU_D
-static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_vy_kernels[] = {
-  ser_fpo_drag_coeff_1x3v_vy_kernels,
-  ser_fpo_drag_coeff_2x3v_vy_kernels,
-  NULL
-};
-GKYL_CU_D
-static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_vz_kernels[] = {
-  ser_fpo_drag_coeff_1x3v_vz_kernels,
-  ser_fpo_drag_coeff_2x3v_vz_kernels,
-  NULL
-};
-
-GKYL_CU_D
-static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_vx_kernels[] = {
-  ser_fpo_sgn_drag_coeff_1x3v_vx_kernels,
-  ser_fpo_sgn_drag_coeff_2x3v_vx_kernels,
-  NULL
-};
-GKYL_CU_D
-static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_vy_kernels[] = {
-  ser_fpo_sgn_drag_coeff_1x3v_vy_kernels,
-  ser_fpo_sgn_drag_coeff_2x3v_vy_kernels,
-  NULL
-};
-GKYL_CU_D
-static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_vz_kernels[] = {
-  ser_fpo_sgn_drag_coeff_1x3v_vz_kernels,
-  ser_fpo_sgn_drag_coeff_2x3v_vz_kernels,
-  NULL
+  }}
 };
 
 GKYL_CU_D
