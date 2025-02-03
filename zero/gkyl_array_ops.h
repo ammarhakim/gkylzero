@@ -133,6 +133,11 @@ struct gkyl_array* gkyl_array_shiftc(struct gkyl_array *out, double a, unsigned 
 
 /**
  * Perform a component-wise algebraic operation between arrays.
+ * Operations allowed (op) are:
+ *   - GKYL_ABS: fabs(in1).
+ *   - GKYL_INV: 1/a1.
+ *   - GKYL_DIV: in1 / in2.
+ *   - GKYL_AXPBY: out = a*in1 + b*in2.
  *
  * @param out Output array.
  * @param op Type of operation to perform.
@@ -246,6 +251,10 @@ struct gkyl_array* gkyl_array_shiftc_range(struct gkyl_array *out, double a,
 
 /**
  * Perform a component-wise algebraic operation between arrays.
+ *   - GKYL_ABS: fabs(in1).
+ *   - GKYL_INV: 1/a1.
+ *   - GKYL_DIV: in1 / in2.
+ *   - GKYL_AXPBY: out = a*in1 + b*in2.
  *
  * @param out Output array.
  * @param op Type of operation to perform.
