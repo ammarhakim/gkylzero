@@ -7,6 +7,7 @@
 #include <gkyl_rrobin_decomp.h>
 #include <gkyl_multib_comm_conn.h>
 #include <gkyl_rescale_ghost_jacf.h>
+#include <gkyl_fem_parproj_multib.h>
 
 // A multib_comm_conn send/recv pair used for communicating between blocks.
 struct gkyl_mbcc_sr {
@@ -79,12 +80,15 @@ struct gk_multib_field {
                                         // back to single block apps
 
   // arrays for connected-along-z phi and smoothed (in z) phi
+  struct gkyl_array **jacobgeo_multibz_dg;
   struct gkyl_array **phi_local;
   struct gkyl_array **phi_multibz_dg;
   struct gkyl_array **phi_multibz_smooth;
 
-  struct gkyl_fem_parproj **fem_parproj; // FEM smoothers for projecting DG functions onto continuous FEM basis
-                                         // weight*phi_{fem} = phi_{dg} 
+//  struct gkyl_fem_parproj **fem_parproj; // FEM smoothers for projecting DG functions onto continuous FEM basis
+//                                         // weight*phi_{fem} = phi_{dg} 
+  struct gkyl_fem_parproj_multib **fem_parproj; // FEM smoothers for projecting DG functions onto continuous FEM basis
+                                                // weight_L*phi_{fem} = weight_R*phi_{dg} 
 };
 
 /** Time stepping API */

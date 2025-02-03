@@ -135,13 +135,37 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
     gkyl_multib_comm_conn_sort(mbf->mbcc_allgatherz_recv[bI]);
   }
 
-  mbf->fem_parproj = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_fem_parproj*));
-  // Make the parallel smoother.
+  // Gather the jacobian along the magnetic field.
+  struct gkyl_array** jacobgeo_local = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
+  mbf->jacobgeo_multibz_dg = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
+  for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
+    struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
+    jacobgeo_local[bI] = gkyl_array_acquire(sbapp->gk_geom->jacobgeo);
+    mbf->jacobgeo_multibz_dg[bI] = mkarr(mbapp->use_gpu, 
+      sbapp->confBasis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
+  }
+  int stat = gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbf->num_local_blocks, mbapp->local_blocks,
+    mbf->mbcc_allgatherz_send, mbf->mbcc_allgatherz_recv, jacobgeo_local, mbf->jacobgeo_multibz_dg);
+  for (int bI= 0; bI<mbf->num_local_blocks; bI++)
+    gkyl_array_release(jacobgeo_local[bI]);
+  gkyl_free(jacobgeo_local);
+
+//  mbf->fem_parproj = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_fem_parproj*));
+//  // Make the parallel smoother.
+//  for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
+//    int bid = local_blocks[bI];
+//    struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
+//    printf("b%d bc=%d not %d\n",bid,sbapp->field->info.fem_parbc,mbf->info.blocks[bid].fem_parbc);
+//    mbf->fem_parproj[bI] = gkyl_fem_parproj_new(mbf->multibz_ranges[bI], &sbapp->confBasis, 
+//      sbapp->field->info.fem_parbc, 0, 0, mbapp->use_gpu);
+//  }
+  mbf->fem_parproj = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_fem_parproj_multib*));
   for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
     int bid = local_blocks[bI];
     struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
-    mbf->fem_parproj[bI] = gkyl_fem_parproj_new(mbf->multibz_ranges[bI], &sbapp->confBasis, 
-      mbf->info.blocks[bid].fem_parbc, 0, 0, mbapp->use_gpu);
+    mbf->fem_parproj[bI] = gkyl_fem_parproj_multib_new(nconnected[bid], mbf->multibz_ranges[bI],
+      mbf->multibz_ranges_indi[bI], &sbapp->confBasis, sbapp->field->info.fem_parbc,
+      mbf->jacobgeo_multibz_dg[bI], mbf->jacobgeo_multibz_dg[bI], mbapp->use_gpu);
   }
 
   // Set intersects for copying local info back out after smoothing.
@@ -209,8 +233,10 @@ gk_multib_field_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *
     mbapp->local_blocks, mbf->mbcc_allgatherz_send, mbf->mbcc_allgatherz_recv, mbf->phi_local, mbf->phi_multibz_dg);
   // Do the smoothing on the multiblock range.
   for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
-    gkyl_fem_parproj_set_rhs(mbf->fem_parproj[bI], mbf->phi_multibz_dg[bI], mbf->phi_multibz_dg[bI]);
-    gkyl_fem_parproj_solve(mbf->fem_parproj[bI], mbf->phi_multibz_smooth[bI]);
+//    gkyl_fem_parproj_set_rhs(mbf->fem_parproj[bI], mbf->phi_multibz_dg[bI], mbf->phi_multibz_dg[bI]);
+//    gkyl_fem_parproj_solve(mbf->fem_parproj[bI], mbf->phi_multibz_smooth[bI]);
+    gkyl_fem_parproj_multib_set_rhs(mbf->fem_parproj[bI], mbf->phi_multibz_dg[bI], mbf->phi_multibz_dg[bI]);
+    gkyl_fem_parproj_multib_solve(mbf->fem_parproj[bI], mbf->phi_multibz_smooth[bI]);
   }
   
   // Copy smooth array back to local ranges
@@ -230,21 +256,26 @@ gk_multib_field_release(struct gk_multib_field *mbf)
     gkyl_free(mbf->multibz_ranges[bI]);
     gkyl_free(mbf->multibz_ranges_ext[bI]);
     gkyl_free(mbf->block_subrangesz[bI]);
+    gkyl_array_release(mbf->jacobgeo_multibz_dg[bI]);
     gkyl_array_release(mbf->phi_local[bI]);
     gkyl_array_release(mbf->phi_multibz_dg[bI]);
     gkyl_array_release(mbf->phi_multibz_smooth[bI]);
     gkyl_multib_comm_conn_release(mbf->mbcc_allgatherz_send[bI]);
     gkyl_multib_comm_conn_release(mbf->mbcc_allgatherz_recv[bI]);
+//    gkyl_fem_parproj_release(mbf->fem_parproj[bI]);
+    gkyl_fem_parproj_multib_release(mbf->fem_parproj[bI]);
   }
 
   gkyl_free(mbf->multibz_ranges);
   gkyl_free(mbf->multibz_ranges_ext);
   gkyl_free(mbf->block_subrangesz);
+  gkyl_free(mbf->jacobgeo_multibz_dg);
   gkyl_free(mbf->phi_local);
   gkyl_free(mbf->phi_multibz_dg);
   gkyl_free(mbf->phi_multibz_smooth);
   gkyl_free(mbf->mbcc_allgatherz_send);
   gkyl_free(mbf->mbcc_allgatherz_recv);
+  gkyl_free(mbf->fem_parproj);
 
   gkyl_free(mbf);
 }
