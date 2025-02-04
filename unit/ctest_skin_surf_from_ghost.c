@@ -24,7 +24,6 @@ static struct gkyl_array* mkarr(bool on_gpu, long nc, long size) {
 // Analytical field evaluation function, setting field to zero
 void eval_field(double t, const double *xn, double* restrict fout, void *ctx) {
   fout[0] = 0.0;
-  fout[1] = 0.0;
 }
 
 // Function to set up and test the ghost-to-skin surface copy updater
@@ -74,7 +73,8 @@ void test_ssfg(int cdim, int poly_order, bool use_gpu, enum gkyl_edge_loc edge, 
 
   gkyl_proj_on_basis *proj_field = gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, eval_field, NULL);
   gkyl_proj_on_basis_advance(proj_field, 0.0, &local, field_ho);
-
+  gkyl_proj_on_basis_release(proj_field);
+  
   // Set ghost cell modal values
   double fg0 = sqrt(pow(2,cdim));
   double fg1 = 1.0;
