@@ -1799,7 +1799,7 @@ void gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_fie
  * @param fin[] Input distribution function (num_species size)
  */
 void gk_field_calc_target_corner_bias(gkyl_gyrokinetic_app *app, struct gk_field *field, 
-  const struct gkyl_array *fin[]);
+  const struct gkyl_array *fin[], bool static_TCBC, double phi_TC);
 
 
 /**

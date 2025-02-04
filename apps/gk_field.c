@@ -499,12 +499,11 @@ gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *f
 }
 
 void 
-gk_field_calc_target_corner_bias(gkyl_gyrokinetic_app *app, struct gk_field *field, const struct gkyl_array *fin[]){
+gk_field_calc_target_corner_bias(gkyl_gyrokinetic_app *app, struct gk_field *field, const struct gkyl_array *fin[],
+  bool static_TCBC, double phi_TC){
 
-  bool constant_TCBC = true;
-
-  if (constant_TCBC){ // phi = 0 time constant target corner bias
-    field->target_corner_bias = 0;
+  if (static_TCBC){
+    field->target_corner_bias = phi_TC;
 
   } else { // time dependent target corner bias
     // -- This is the method for setting phi_TC = phi_fs(xLCFS)
@@ -613,10 +612,8 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
         gkyl_fem_parproj_solve(field->fem_parproj, field->rho_c_global_smooth);
       }
 
-      // printf("target corner b ias = %g\n", field->target_corner_bias[0]);
-      // gk_field_calc_target_corner_bias(app, field, NULL);
-      // gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth, field->target_corner_bias);
-      gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth, 0.0);
+      gk_field_calc_target_corner_bias(app, field, NULL, field->info.static_TCBC, field->info.phi_TC);
+      gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth, field->target_corner_bias);
 
       /*
       * If we are in a 3x simulation with IWL we apply TS BC to the upper and lower edges
