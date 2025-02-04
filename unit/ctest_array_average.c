@@ -21,9 +21,8 @@ updater.
 static struct gkyl_array*
 mkarr(long nc, long size, bool use_gpu)
 {
-  struct gkyl_array *a = use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size)
-                                : gkyl_array_new(GKYL_DOUBLE, nc, size);
-  return a;
+  return use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size)
+    : gkyl_array_new(GKYL_DOUBLE, nc, size);
 }
 
 // Compare the computed result with the average computed with another updater.
@@ -158,6 +157,7 @@ void test_1x(int poly_order, bool use_gpu)
   // clean up
   gkyl_array_release(avgf_c);
   gkyl_array_release(fx_c);
+  gkyl_array_release(wx_c);
   gkyl_array_release(fx_c_ho);
   gkyl_array_release(wx_c_ho);
   gkyl_free(avg_c0_ho);
@@ -249,7 +249,6 @@ void test_2x_1step(int poly_order, bool use_gpu)
   gkyl_array_average_release(avg_xy);
 
   // check results
-
   double *avgf_c0 = gkyl_array_fetch(avgf_c, 0);
   double avgf_c0_ho[1];
   if (use_gpu){
@@ -622,7 +621,6 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
     .avg_dim = avg_dim_y,
     .use_gpu = use_gpu
   };
-  // this part can occasionally produce a segfault -> check with valgrind
   struct gkyl_array_average *avg_x = gkyl_array_average_new(&inp_avg_x);
 
   struct gkyl_array *fx_c = mkarr(basis_x.num_basis, local_x_ext.volume, use_gpu);
@@ -1071,14 +1069,13 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
 
 void test_1x_cpu()
 {
-  for (int p = 1; p<=2; p++){
+  for (int p = 1; p<=2; p++)
    test_1x(p, false);
-  }
 }
 
 void test_2x_cpu()
 {
-  for (int p = 1; p<=2; p++){
+  for (int p = 1; p<=2; p++) {
     test_2x_1step(p, false);
     test_2x_intx_inty(p, false);
     test_2x_avgx_avgy(p, false);
@@ -1088,7 +1085,7 @@ void test_2x_cpu()
 
 void test_3x_cpu()
 {
-  for (int p = 1; p<=2; p++){
+  for (int p = 1; p<=2; p++) {
     test_3x_avgx_avgyz(p, false);
     test_3x_avgyz_avgx(p, false);
   }
@@ -1097,14 +1094,13 @@ void test_3x_cpu()
 #ifdef GKYL_HAVE_CUDA
 void test_1x_gpu()
 {
-  for (int p = 1; p<=2; p++){
+  for (int p = 1; p<=2; p++)
    test_1x(p, true);
-  }
 }
 
 void test_2x_gpu()
 {
-  for (int p = 1; p<=2; p++){
+  for (int p = 1; p<=2; p++) {
     test_2x_1step(p, true);
     test_2x_intx_inty(p, true);
     test_2x_avgx_avgy(p, true);
@@ -1114,7 +1110,7 @@ void test_2x_gpu()
 
 void test_3x_gpu()
 {
-  for (int p = 1; p<=2; p++){
+  for (int p = 1; p<=2; p++) {
     test_3x_avgx_avgyz(p, true);
     test_3x_avgyz_avgx(p, true);
   }

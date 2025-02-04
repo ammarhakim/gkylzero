@@ -19,16 +19,13 @@ gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
   up->ndim = inp->basis.ndim;
   up->basis = inp->basis;
   up->basis_avg = inp->basis_avg;
-
-  // copy the total and sub ranges on the updater 
-  // (will be used in advance and in the declaration of the integrated weighted array)
   up->local = *inp->local;
   up->local_avg = *inp->local_avg;
 
   // set up the array of all dimensions that are conserved after the average (=0 for removed)
   // according to the operation input variable
   up->num_avg_dim = 0;
-  for (unsigned d=0; d < up->ndim; ++d){
+  for (int d=0; d < up->ndim; ++d) {
     up->avg_dim[d] = inp->avg_dim[d];
     up->num_avg_dim += inp->avg_dim[d]; 
   }
@@ -36,15 +33,16 @@ gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
 
   up->num_dim_remain = up->ndim - up->num_avg_dim;
 
-  for (unsigned d=0; d < up->ndim; ++d) 
+  for (int d=0; d < up->ndim; ++d) 
     up->dim_remains[d] = 1 - inp->avg_dim[d];
 
   int k = 0;
-  for (unsigned d=0; d < up->ndim; ++d) 
+  for (int d=0; d < up->ndim; ++d) {
     if(up->dim_remains[d]){
       up->sub_dir[k] = d;
       k++;
     }
+  }
 
   // compute the inverse of the volume of the averaging space
   up->vol_avg_inv = 1.;
@@ -54,9 +52,8 @@ gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
 
   // compute the cell sub-dimensional volume
   up->subvol = 1.0;
-  for (unsigned d=0; d < up->ndim; ++d){
+  for (int d=0; d < up->ndim; ++d)
     if (up->avg_dim[d]) up->subvol *= 0.5*inp->grid->dx[d];
-  }
 
   // handle a possible weighted average
   up->isweighted = false;
@@ -67,7 +64,7 @@ gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
     up->isweighted = true;
     // compute the subdim integral of the weight (for volume division after integration)
     up->weight_avg = up->use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis_avg.num_basis, inp->local_avg_ext->volume)
-                                  : gkyl_array_new(GKYL_DOUBLE, up->basis_avg.num_basis, inp->local_avg_ext->volume);
+      : gkyl_array_new(GKYL_DOUBLE, up->basis_avg.num_basis, inp->local_avg_ext->volume);
     // create new average routine to integrate the weight
     struct gkyl_array_average_inp inp_integral = {
       .grid = inp->grid,
@@ -75,7 +72,7 @@ gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
       .basis_avg = inp->basis_avg,
       .local = inp->local,
       .local_avg = inp->local_avg,
-      .weight = NULL, // No weight -> average only
+      .weight = NULL, // Recursive call without weights
       .avg_dim = inp->avg_dim,
       .use_gpu = inp->use_gpu
     };
@@ -152,7 +149,7 @@ void gkyl_array_average_advance(const struct gkyl_array_average *up,
     // we need to pass the moving index to the deflate operation as a sub dimensional iterator
     int parent_idx[GKYL_MAX_CDIM] = {0};
     int cnter = 0;
-    for (int i = 0; i < up->basis.ndim; i++){
+    for (int i = 0; i < up->basis.ndim; i++) {
       if (up->dim_remains[i]) {
         parent_idx[i] = iter_avg.idx[cnter];
         cnter ++;
