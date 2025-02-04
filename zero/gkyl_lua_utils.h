@@ -132,6 +132,7 @@ bool glua_tbl_iget_tbl(lua_State *L, long key);
  * @return true if function exists, false otherwise 
  */
 bool glua_tbl_get_func(lua_State *L, const char *key);
+bool glua_tbl_iget_func(lua_State *L, long key);
 
 /**
  * Run Lua code stored in @a str buffer. The size of the buffer is

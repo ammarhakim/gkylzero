@@ -124,6 +124,14 @@ glua_tbl_get_func(lua_State *L, const char *key)
   if (!has_func) lua_pop(L, 1);
   return has_func;
 }
+bool
+glua_tbl_iget_func(lua_State *L, long key)
+{
+  glua_getfield_int(L, key);
+  bool has_func = !lua_isnil(L, -1) && lua_isfunction(L, -1);
+  if (!has_func) lua_pop(L, 1);
+  return has_func;
+}
 
 int
 glua_run_lua(lua_State *L, const char *str, long sz, FILE *err)

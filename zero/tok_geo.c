@@ -386,10 +386,6 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
   double theta_lo = up->grid.lower[TH_IDX] + (up->local.lower[TH_IDX] - up->global.lower[TH_IDX])*up->grid.dx[TH_IDX],
     psi_lo = up->grid.lower[PSI_IDX] + (up->local.lower[PSI_IDX] - up->global.lower[PSI_IDX])*up->grid.dx[PSI_IDX],
     alpha_lo = up->grid.lower[AL_IDX] + (up->local.lower[AL_IDX] - up->global.lower[AL_IDX])*up->grid.dx[AL_IDX];
-
-  double theta_up = inp->cgrid.upper[TH_IDX],
-    psi_up = inp->cgrid.upper[PSI_IDX],
-    alpha_up = inp->cgrid.upper[AL_IDX];
     
   double dx_fact = up->basis.poly_order == 1.0/up->basis.poly_order;
   dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
@@ -429,13 +425,13 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
     .geo = geo
   };
 
-  position_map->constB_ctx->alpha_max = alpha_up;
-  position_map->constB_ctx->alpha_min = alpha_lo;
-  position_map->constB_ctx->psi_max = psi_up;
-  position_map->constB_ctx->psi_min = psi_lo;
-  position_map->constB_ctx->theta_max = theta_up;
-  position_map->constB_ctx->theta_min = theta_lo;
-  position_map->constB_ctx->N_theta_boundaries = nrange->upper[TH_IDX] - nrange->lower[TH_IDX] + 1;
+  position_map->constB_ctx->psi_max   = up->grid.upper[PSI_IDX];
+  position_map->constB_ctx->psi_min   = up->grid.lower[PSI_IDX];
+  position_map->constB_ctx->alpha_max = up->grid.upper[AL_IDX];
+  position_map->constB_ctx->alpha_min = up->grid.lower[AL_IDX];
+  position_map->constB_ctx->theta_max = up->grid.upper[TH_IDX];
+  position_map->constB_ctx->theta_min = up->grid.lower[TH_IDX];
+  position_map->constB_ctx->N_theta_boundaries = up->global.upper[TH_IDX] - up->global.lower[TH_IDX];
   gkyl_position_map_optimize(position_map);
 
   int cidx[3] = { 0 };

@@ -91,13 +91,13 @@ test_position_map_init_1x()
   struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp,
     grid, localRange, localRange_ext, localRange, localRange_ext, basis);
 
-  TEST_ASSERT(pos_map->to_optimize == 0);
-  TEST_ASSERT(pos_map->grid.ndim == 1);
-  TEST_ASSERT(pos_map->local.ndim == 1);
-  TEST_ASSERT(pos_map->local_ext.ndim == 1);
-  TEST_ASSERT(pos_map->basis.ndim == 1);
-  TEST_ASSERT(pos_map->basis.poly_order == 1);
-  TEST_ASSERT(pos_map->flags == 0);
+  TEST_CHECK(pos_map->to_optimize == 0);
+  TEST_CHECK(pos_map->grid.ndim == 1);
+  TEST_CHECK(pos_map->local.ndim == 1);
+  TEST_CHECK(pos_map->local_ext.ndim == 1);
+  TEST_CHECK(pos_map->basis.ndim == 1);
+  TEST_CHECK(pos_map->basis.poly_order == 1);
+  TEST_CHECK(pos_map->flags == 0);
 
   gkyl_position_map_release(pos_map);
 }
@@ -127,26 +127,26 @@ test_position_map_init_1x_null()
   struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp, \
     grid, localRange, localRange_ext, localRange, localRange_ext, basis);
 
-  TEST_ASSERT(pos_map->id == GKYL_PMAP_USER_INPUT);
+  TEST_CHECK(pos_map->id == GKYL_PMAP_USER_INPUT);
   for (double i = 0; i < 1; i = i+0.1){
     double x[1] = {i};
     double y[1];
     pos_map->maps[0](0.0, x, y, pos_map->ctxs[0]);
-    TEST_ASSERT(y[0] == x[0]);
+    TEST_CHECK(y[0] == x[0]);
 
     pos_map->maps[1](0.0, x, y, pos_map->ctxs[1]);
-    TEST_ASSERT(y[0] == x[0]);
+    TEST_CHECK(y[0] == x[0]);
 
     pos_map->maps[2](0.0, x, y, pos_map->ctxs[2]);
-    TEST_ASSERT(y[0] == x[0]);
+    TEST_CHECK(y[0] == x[0]);
   }
-  TEST_ASSERT(pos_map->to_optimize == 0);
-  TEST_ASSERT(pos_map->grid.ndim == 1);
-  TEST_ASSERT(pos_map->local.ndim == 1);
-  TEST_ASSERT(pos_map->local_ext.ndim == 1);
-  TEST_ASSERT(pos_map->basis.ndim == 1);
-  TEST_ASSERT(pos_map->basis.poly_order == 1);
-  TEST_ASSERT(pos_map->flags == 0);
+  TEST_CHECK(pos_map->to_optimize == 0);
+  TEST_CHECK(pos_map->grid.ndim == 1);
+  TEST_CHECK(pos_map->local.ndim == 1);
+  TEST_CHECK(pos_map->local_ext.ndim == 1);
+  TEST_CHECK(pos_map->basis.ndim == 1);
+  TEST_CHECK(pos_map->basis.poly_order == 1);
+  TEST_CHECK(pos_map->flags == 0);
 
   gkyl_position_map_release(pos_map);
 }
@@ -178,13 +178,13 @@ test_position_map_init_2x()
   struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp, \
     grid, localRange, localRange_ext, localRange, localRange_ext, basis);
 
-  TEST_ASSERT(pos_map->to_optimize == 0);
-  TEST_ASSERT(pos_map->grid.ndim == 2);
-  TEST_ASSERT(pos_map->local.ndim == 2);
-  TEST_ASSERT(pos_map->local_ext.ndim == 2);
-  TEST_ASSERT(pos_map->basis.ndim == 2);
-  TEST_ASSERT(pos_map->basis.poly_order == 1);
-  TEST_ASSERT(pos_map->flags == 0);
+  TEST_CHECK(pos_map->to_optimize == 0);
+  TEST_CHECK(pos_map->grid.ndim == 2);
+  TEST_CHECK(pos_map->local.ndim == 2);
+  TEST_CHECK(pos_map->local_ext.ndim == 2);
+  TEST_CHECK(pos_map->basis.ndim == 2);
+  TEST_CHECK(pos_map->basis.poly_order == 1);
+  TEST_CHECK(pos_map->flags == 0);
 
   gkyl_position_map_release(pos_map);
 }
@@ -216,13 +216,13 @@ test_position_map_init_3x()
   struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp, \
     grid, localRange, localRange_ext, localRange, localRange_ext, basis);
 
-  TEST_ASSERT(pos_map->to_optimize == 0);
-  TEST_ASSERT(pos_map->grid.ndim == 3);
-  TEST_ASSERT(pos_map->local.ndim == 3);
-  TEST_ASSERT(pos_map->local_ext.ndim == 3);
-  TEST_ASSERT(pos_map->basis.ndim == 3);
-  TEST_ASSERT(pos_map->basis.poly_order == 1);
-  TEST_ASSERT(pos_map->flags == 0);
+  TEST_CHECK(pos_map->to_optimize == 0);
+  TEST_CHECK(pos_map->grid.ndim == 3);
+  TEST_CHECK(pos_map->local.ndim == 3);
+  TEST_CHECK(pos_map->local_ext.ndim == 3);
+  TEST_CHECK(pos_map->basis.ndim == 3);
+  TEST_CHECK(pos_map->basis.poly_order == 1);
+  TEST_CHECK(pos_map->flags == 0);
 
   gkyl_position_map_release(pos_map);
 }
@@ -382,15 +382,15 @@ test_position_polynomial_map_optimize_1x()
 
   gkyl_position_map_optimize(pos_map);
 
-  TEST_ASSERT(pos_map->to_optimize == true);
-  TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->theta_throat, 1.565796, 1e-6) );
-  TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->Bmag_throat, 1.093613, 1e-6) );
-  TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->psi, 0.5, 1e-6) );
-  TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->alpha, 0.0, 1e-6) );
-  TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->map_strength, 1.0, 1e-6) );
-  TEST_ASSERT( pos_map->constB_ctx->map_order_center == 2 );
-  TEST_ASSERT( pos_map->constB_ctx->map_order_expander == 3 );
-  TEST_ASSERT( pos_map->constB_ctx->N_theta_boundaries == 65 );
+  TEST_CHECK(pos_map->to_optimize == true);
+  TEST_CHECK( gkyl_compare(pos_map->constB_ctx->theta_throat, 1.565796, 1e-6) );
+  TEST_CHECK( gkyl_compare(pos_map->constB_ctx->Bmag_throat, 1.093613, 1e-6) );
+  TEST_CHECK( gkyl_compare(pos_map->constB_ctx->psi, 0.5, 1e-6) );
+  TEST_CHECK( gkyl_compare(pos_map->constB_ctx->alpha, 0.0, 1e-6) );
+  TEST_CHECK( gkyl_compare(pos_map->constB_ctx->map_strength, 1.0, 1e-6) );
+  TEST_CHECK( pos_map->constB_ctx->map_order_center == 2 );
+  TEST_CHECK( pos_map->constB_ctx->map_order_expander == 3 );
+  TEST_CHECK( pos_map->constB_ctx->N_theta_boundaries == 65 );
 
   gkyl_position_map_release(pos_map);
   gkyl_array_release(bmag_global);
@@ -453,12 +453,12 @@ test_position_map_numeric_optimize_1x()
 
   double theta_extrema_analytic[5] = {lower[0], lower[0]/2, 0.0, upper[0]/2, upper[0]};
 
-  TEST_ASSERT( pos_map->constB_ctx->num_extrema == 5 );
-  TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->theta_extrema[0], theta_extrema_analytic[0], 1e-15) );
-  TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->theta_extrema[1], theta_extrema_analytic[1], 1e-15) );
-  TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->theta_extrema[2], theta_extrema_analytic[2], 1e-15) );
-  TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->theta_extrema[3], theta_extrema_analytic[3], 1e-15) );
-  TEST_ASSERT( gkyl_compare(pos_map->constB_ctx->theta_extrema[4], theta_extrema_analytic[4], 1e-15) );
+  TEST_CHECK( pos_map->constB_ctx->num_extrema == 5 );
+  TEST_CHECK( gkyl_compare(pos_map->constB_ctx->theta_extrema[0], theta_extrema_analytic[0], 1e-15) );
+  TEST_CHECK( gkyl_compare(pos_map->constB_ctx->theta_extrema[1], theta_extrema_analytic[1], 1e-15) );
+  TEST_CHECK( gkyl_compare(pos_map->constB_ctx->theta_extrema[2], theta_extrema_analytic[2], 1e-15) );
+  TEST_CHECK( gkyl_compare(pos_map->constB_ctx->theta_extrema[3], theta_extrema_analytic[3], 1e-15) );
+  TEST_CHECK( gkyl_compare(pos_map->constB_ctx->theta_extrema[4], theta_extrema_analytic[4], 1e-15) );
 
   gkyl_position_map_release(pos_map);
   gkyl_array_release(bmag_global);
@@ -522,7 +522,7 @@ test_position_map_numeric_calculate_1x()
 
   double theta_map = 1.0;
   pos_map->maps[2](0.0, &theta_map, &theta_map, pos_map->ctxs[2]);
-  TEST_ASSERT( gkyl_compare(theta_map, 1.503465, 1e-5) );
+  TEST_CHECK( gkyl_compare(theta_map, 1.503465, 1e-5) );
 
   gkyl_position_map_release(pos_map);
   gkyl_array_release(bmag_global);
