@@ -425,7 +425,8 @@ void gkyl_array_scale_by_cell_cu(struct gkyl_array* out, const struct gkyl_array
 
 void gkyl_array_shiftc_cu(struct gkyl_array* out, double a, unsigned k);
 
-void gkyl_array_shiftc_range_cu(struct gkyl_array *out, double a, unsigned k, const struct gkyl_range *range);
+void gkyl_array_comp_op_cu(struct gkyl_array *out, enum gkyl_array_op op,
+ double a, const struct gkyl_array *in1, double b, const struct gkyl_array *in2);
 
 /**
  * Host-side wrappers for range-based array operations
@@ -449,6 +450,12 @@ void gkyl_array_set_offset_range_cu(struct gkyl_array *out,
 
 void gkyl_array_scale_range_cu(struct gkyl_array *out,
   double a, const struct gkyl_range *range);
+
+void gkyl_array_shiftc_range_cu(struct gkyl_array *out, double a, unsigned k, const struct gkyl_range *range);
+
+void gkyl_array_comp_op_range_cu(struct gkyl_array *out, enum gkyl_array_op op,
+ double a, const struct gkyl_array *in1, double b, const struct gkyl_array *in2,
+ const struct gkyl_range *range);
 
 void gkyl_array_copy_range_cu(struct gkyl_array *out, const struct gkyl_array* inp, 
   const struct gkyl_range *range);

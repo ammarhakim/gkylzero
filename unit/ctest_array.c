@@ -671,7 +671,7 @@ void test_array_comp_op(bool use_gpu)
   for (unsigned i=0; i<a1->size; ++i) {
     for (size_t k=0; k<a1->ncomp; ++k) a1_d[i*a1->ncomp+k] = 3.0+i*2.0+k;
   }
-  gkyl_array_copy(a1_ho, a1);
+  gkyl_array_copy(a1, a1_ho);
 
   fac1 = 3.2;
   gkyl_array_comp_op(a1, GKYL_INV, fac1, a1, 0, 0);
@@ -693,8 +693,8 @@ void test_array_comp_op(bool use_gpu)
       a2_d[i*a2->ncomp+k] = 5.5-i*3.5+k/2.0;
     }
   }
-  gkyl_array_copy(a1_ho, a1);
-  gkyl_array_copy(a2_ho, a2);
+  gkyl_array_copy(a1, a1_ho);
+  gkyl_array_copy(a2, a2_ho);
 
   fac1 = 1.1;
   double fac2 = 2.2;
@@ -715,8 +715,8 @@ void test_array_comp_op(bool use_gpu)
       a2_d[i*a2->ncomp+k] = 1.5-i*3.5+k/2.0;
     }
   }
-  gkyl_array_copy(a1_ho, a1);
-  gkyl_array_copy(a2_ho, a2);
+  gkyl_array_copy(a1, a1_ho);
+  gkyl_array_copy(a2, a2_ho);
 
   gkyl_array_comp_op(a1, GKYL_AXPBY, fac1, a1, fac2, a2);
 
@@ -737,6 +737,11 @@ void test_array_comp_op(bool use_gpu)
 void test_array_comp_op_ho()
 {
   test_array_comp_op(false);
+}
+
+void test_array_comp_op_dev()
+{
+  test_array_comp_op(true);
 }
 
 void test_array_comp_op_range(bool use_gpu)
@@ -776,7 +781,7 @@ void test_array_comp_op_range(bool use_gpu)
     long i = gkyl_range_idx(&range, iter.idx);
     for (size_t k=0; k<a1->ncomp; ++k) a1_d[i*a1->ncomp+k] = 3.0+i*2.0+k;
   }
-  gkyl_array_copy(a1_ho, a1);
+  gkyl_array_copy(a1, a1_ho);
 
   fac1 = 3.2;
   gkyl_array_comp_op_range(a1, GKYL_INV, fac1, a1, 0, 0, &range);
@@ -802,8 +807,8 @@ void test_array_comp_op_range(bool use_gpu)
       a2_d[i*a2->ncomp+k] = 5.5-i*3.5+k/2.0;
     }
   }
-  gkyl_array_copy(a1_ho, a1);
-  gkyl_array_copy(a2_ho, a2);
+  gkyl_array_copy(a1, a1_ho);
+  gkyl_array_copy(a2, a2_ho);
 
   fac1 = 1.1;
   double fac2 = 2.2;
@@ -828,8 +833,8 @@ void test_array_comp_op_range(bool use_gpu)
       a2_d[i*a2->ncomp+k] = 1.5-i*3.5+k/2.0;
     }
   }
-  gkyl_array_copy(a1_ho, a1);
-  gkyl_array_copy(a2_ho, a2);
+  gkyl_array_copy(a1, a1_ho);
+  gkyl_array_copy(a2, a2_ho);
 
   gkyl_array_comp_op_range(a1, GKYL_AXPBY, fac1, a1, fac2, a2, &range);
 
@@ -852,6 +857,11 @@ void test_array_comp_op_range(bool use_gpu)
 void test_array_comp_op_range_ho()
 {
   test_array_comp_op_range(false);
+}
+
+void test_array_comp_op_range_dev()
+{
+  test_array_comp_op_range(true);
 }
 
 void test_array_opcombine()
@@ -3118,6 +3128,8 @@ TEST_LIST = {
   { "cu_array_scale_by_cell", test_cu_array_scale_by_cell },
   { "cu_array_shiftc", test_cu_array_shiftc },
   { "cu_array_shiftc_range", test_array_shiftc_range_dev },
+  { "cu_array_comp_op", test_array_comp_op_dev },
+  { "cu_array_comp_op_range", test_array_comp_op_range_dev },
   { "cu_array_copy_buffer", test_cu_array_copy_buffer },
   { "cu_array_copy_buffer_fn", test_cu_array_copy_buffer_fn },
   { "cu_array_flip_copy_buffer_fn", test_cu_array_flip_copy_buffer_fn },

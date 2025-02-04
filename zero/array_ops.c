@@ -606,7 +606,7 @@ gkyl_array_comp_op_range(struct gkyl_array *out, enum gkyl_array_op op, double a
   assert(out->ncomp == in1->ncomp);
   assert(out->size == in1->size);
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(out)) { gkyl_array_comp_op_range_cu(out, op, a, in1, b, in2); return out; }
+  if (gkyl_array_is_cu_dev(out)) { gkyl_array_comp_op_range_cu(out, op, a, in1, b, in2, range); return out; }
 #endif
 
   double *out_d = out->data;
