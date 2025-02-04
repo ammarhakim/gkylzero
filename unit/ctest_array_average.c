@@ -157,6 +157,7 @@ void test_1x(int poly_order, bool use_gpu)
   // clean up
   gkyl_array_release(avgf_c);
   gkyl_array_release(fx_c);
+  gkyl_array_release(wx_c);
   gkyl_array_release(fx_c_ho);
   gkyl_array_release(wx_c_ho);
   gkyl_free(avg_c0_ho);
