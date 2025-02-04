@@ -10,6 +10,7 @@
 #include <gkyl_gyrokinetic_pol_density.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_array_rio_priv.h>
+#include <gkyl_dg_interpolate.h>
 #include <gkyl_translate_dim_gyrokinetic.h>
 #include <gkyl_proj_on_basis.h>
 
@@ -968,6 +969,7 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
   struct gkyl_rect_grid grid_do; // Donor grid.
   struct gkyl_array_header_info hdr;
   int pdim_do, vdim_do, cdim_do;
+  bool same_res = true;
 
   // Read the header of the input file, extract needed info an create a grid
   // and other things needed.
@@ -986,6 +988,9 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
         assert(grid_do.lower[d] == grid.lower[d]);
         assert(grid_do.upper[d] == grid.upper[d]);
       }
+      // Check if the grid resolution is the same.
+      for (int d=0; d<pdim; d++)
+        same_res = same_res && (grid_do.cells[d] == grid.cells[d]);
     }
     else {
       // Assume the loaded file has one lower conf-space dimension.
@@ -1085,7 +1090,16 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
     gkyl_translate_dim_gyrokinetic_release(transdim);
   }
   else {
-    gkyl_array_copy(gks->f, fdo);
+    if (same_res) {
+      gkyl_array_copy(gks->f, fdo);
+    }
+    else {
+      // Interpolate the donor distribution to the target grid.
+      struct gkyl_dg_interpolate *interp = gkyl_dg_interpolate_new(app->cdim, &app->basis,
+        &grid_do, &grid, &local_do, &gks->local, ghost_do, app->use_gpu);
+      gkyl_dg_interpolate_advance(interp, fdo, gks->f);
+      gkyl_dg_interpolate_release(interp);
+    }
   }
 
   if (inp.type == GKYL_IC_IMPORT_AF || inp.type == GKYL_IC_IMPORT_AF_B) {
