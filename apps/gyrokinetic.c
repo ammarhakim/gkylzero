@@ -1175,14 +1175,10 @@ gkyl_gyrokinetic_app_write_species_conf(gkyl_gyrokinetic_app* app, int sidx, dou
 
   struct gk_species *gks = &app->species[sidx];
   for (int j=0; j<gks->react.num_react; ++j) {
-    if (gks->react.type_self[j] == GKYL_SELF_ION) {
-      gkyl_gyrokinetic_app_write_species_react(app, sidx, j, tm, frame);
-    }
+    gkyl_gyrokinetic_app_write_species_react(app, sidx, j, tm, frame);
   }
   for (int j=0; j<gks->react_neut.num_react; ++j) {
-    if (gks->react_neut.type_self[j] == GKYL_SELF_ION) {
-      gkyl_gyrokinetic_app_write_species_react_neut(app, sidx, j, tm, frame);
-    }
+    gkyl_gyrokinetic_app_write_species_react_neut(app, sidx, j, tm, frame);
   }
 }
 
