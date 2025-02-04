@@ -269,6 +269,41 @@ gk_species_bgk_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
 }
 
+void
+gk_species_bgk_write_max_corr_status(gkyl_gyrokinetic_app* app, struct gk_species *gks)
+{
+  if (gks->bgk.collision_id == GKYL_BGK_COLLISIONS && gks->bgk.write_diagnostics) {
+    struct timespec wst = gkyl_wall_clock();
+
+    // write out diagnostic moments
+    const char *fmt = "%s-%s-%s.gkyl";
+    int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, "corr-max-stat");
+    char fileNm[sz+1]; // ensures no buffer overflow
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "corr-max-stat");
+
+    int rank;
+    gkyl_comm_get_rank(app->comm, &rank);
+
+    if (rank == 0) {
+      struct timespec wtm = gkyl_wall_clock();
+      if (gks->bgk.is_first_corr_status_write_call) {
+        // write to a new file (this ensure previous output is removed)
+        gkyl_dynvec_write(gks->bgk.corr_stat, fileNm);
+        gks->bgk.is_first_corr_status_write_call = false;
+      }
+      else {
+        // append to existing file
+        gkyl_dynvec_awrite(gks->bgk.corr_stat, fileNm);
+      }
+      app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
+      app->stat.nio += 1;
+    }
+    gkyl_dynvec_clear(gks->bgk.corr_stat);
+    app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
+    app->stat.ndiag += 1;
+  }
+}
+
 void 
 gk_species_bgk_release(const struct gkyl_gyrokinetic_app *app, const struct gk_bgk_collisions *bgk)
 {

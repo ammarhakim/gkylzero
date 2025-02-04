@@ -158,16 +158,17 @@ struct gkyl_gyrokinetic_react_type {
   double elc_mass; // mass of electron in reaction
   double partner_mass; // mass of neutral in cx reaction
   double vt_sq_ion_min;
-  double vt_sq_partner_min; 
+  double vt_sq_partner_min;
 };
 
-// Parameters for species radiation
+// Parameters for species reaction
 struct gkyl_gyrokinetic_react {
   int num_react; // number of reactions
   // 3 types of reactions supported currently
   // Ionization, Charge exchange, and Recombination
   // GKYL_MAX_SPECIES number of reactions supported per species (8 different reactions)
   struct gkyl_gyrokinetic_react_type react_type[GKYL_MAX_REACT];
+  bool write_diagnostics; // used to write diagnostics from neutral species
 };
 
 struct gkyl_gyrokinetic_ic_import {
