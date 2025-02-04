@@ -36,7 +36,7 @@ double solution_array_integrate(struct gkyl_rect_grid grid, struct gkyl_basis ba
 
   struct gkyl_array_integrate* arr_integ = gkyl_array_integrate_new(&grid, &basis, 1, GKYL_ARRAY_INTEGRATE_OP_NONE, use_gpu);
 
-  gkyl_array_integrate_advance(arr_integ, fin, 1.0, fin, &local, avgf_ref);
+  gkyl_array_integrate_advance(arr_integ, fin, 1.0, fin, &local, &local, avgf_ref);
 
   gkyl_array_integrate_release(arr_integ);
 
