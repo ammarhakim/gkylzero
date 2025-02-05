@@ -19,12 +19,12 @@ gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   // Complete update of distribution functions.
   double dta = st->dt_actual;
   for (int i=0; i<app->num_species; ++i) {
-    gkyl_array_accumulate(gkyl_array_scale(fout[i], dta), 1.0, fin[i]);
+    struct gk_species *gks = &app->species[i];
+    gk_species_step_f(gks, fout[i], dta, fin[i]);
   }
   for (int i=0; i<app->num_neut_species; ++i) {
-    if (!app->neut_species[i].info.is_static) {
-      gkyl_array_accumulate(gkyl_array_scale(fout_neut[i], dta), 1.0, fin_neut[i]);
-    }
+    struct gk_neut_species *gkns = &app->neut_species[i];
+    gk_neut_species_step_f(gkns, fout_neut[i], dta, fin_neut[i]);
   }
 
 }
@@ -54,9 +54,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         }
         for (int i=0; i<app->num_neut_species; ++i) {
           fin_neut[i] = app->neut_species[i].f;
-          if (!app->neut_species[i].info.is_static) {
-            fout_neut[i] = app->neut_species[i].f1;
-          }
+	  fout_neut[i] = app->neut_species[i].f1;
         }
 
         gyrokinetic_forward_euler(app, tcurr, dt, fin, fout, fin_neut, fout_neut, &st);
@@ -73,13 +71,8 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           fout[i] = app->species[i].fnew;
         }
         for (int i=0; i<app->num_neut_species; ++i) {
-          if (!app->neut_species[i].info.is_static) {
-            fin_neut[i] = app->neut_species[i].f1;
-            fout_neut[i] = app->neut_species[i].fnew;
-          }
-          else {
-            fin_neut[i] = app->neut_species[i].f;
-          }
+	  fin_neut[i] = app->neut_species[i].f1;
+	  fout_neut[i] = app->neut_species[i].fnew;
         }
 
         gyrokinetic_forward_euler(app, tcurr+dt, dt, fin, fout, fin_neut, fout_neut, &st);
@@ -105,14 +98,12 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         } 
         else {
           for (int i=0; i<app->num_species; ++i) {
-            array_combine(app->species[i].f1,
-              3.0/4.0, app->species[i].f, 1.0/4.0, app->species[i].fnew, &app->species[i].local_ext);
-          }
+	    struct gk_species *gks = &app->species[i];
+	    gk_species_combine(gks, gks->f1, 3.0/4.0, gks->f, 1.0/4.0, gks->fnew, &gks->local_ext);
+	  }
           for (int i=0; i<app->num_neut_species; ++i) {
-            if (!app->neut_species[i].info.is_static) {
-              array_combine(app->neut_species[i].f1,
-                3.0/4.0, app->neut_species[i].f, 1.0/4.0, app->neut_species[i].fnew, &app->neut_species[i].local_ext);
-            }
+	    struct gk_neut_species *gkns = &app->neut_species[i];
+	    gk_neut_species_combine(gkns, gkns->f1, 3.0/4.0, gkns->f, 1.0/4.0, gkns->fnew, &gkns->local_ext);
           }
 
           // Compute the fields and apply BCs.
@@ -134,13 +125,8 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           fout[i] = app->species[i].fnew;
         }
         for (int i=0; i<app->num_neut_species; ++i) {
-          if (!app->neut_species[i].info.is_static) {
-            fin_neut[i] = app->neut_species[i].f1;
-            fout_neut[i] = app->neut_species[i].fnew;
-          }
-          else {
-            fin_neut[i] = app->neut_species[i].f;
-          }          
+	  fin_neut[i] = app->neut_species[i].f1;
+	  fout_neut[i] = app->neut_species[i].fnew;
         }
 
         gyrokinetic_forward_euler(app, tcurr+dt/2, dt, fin, fout, fin_neut, fout_neut, &st);
@@ -166,16 +152,14 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         }
         else {
           for (int i=0; i<app->num_species; ++i) {
-            array_combine(app->species[i].f1,
-              1.0/3.0, app->species[i].f, 2.0/3.0, app->species[i].fnew, &app->species[i].local_ext);
-            gkyl_array_copy_range(app->species[i].f, app->species[i].f1, &app->species[i].local_ext);
-          }
+	    struct gk_species *gks = &app->species[i];
+	    gk_species_combine(gks, gks->f1, 1.0/3.0, gks->f, 2.0/3.0, gks->fnew, &gks->local_ext);
+	    gk_species_copy_range(gks, gks->f, gks->f1, &gks->local_ext);
+	  }
           for (int i=0; i<app->num_neut_species; ++i) {
-            if (!app->neut_species[i].info.is_static) {
-              array_combine(app->neut_species[i].f1,
-                1.0/3.0, app->neut_species[i].f, 2.0/3.0, app->neut_species[i].fnew, &app->neut_species[i].local_ext);
-              gkyl_array_copy_range(app->neut_species[i].f, app->neut_species[i].f1, &app->neut_species[i].local_ext);
-            }
+	    struct gk_neut_species *gkns = &app->neut_species[i];
+	    gk_neut_species_combine(gkns, gkns->f1, 1.0/3.0, gkns->f, 2.0/3.0, gkns->fnew, &gkns->local_ext);
+	    gk_neut_species_copy_range(gkns, gkns->f, gkns->f1, &gkns->local_ext);
           }
 
           if (app->enforce_positivity) {

@@ -204,6 +204,6 @@ gkyl_fem_poisson_perp_solve_cu(struct gkyl_fem_poisson_perp *up, struct gkyl_arr
   gkyl_culinsolver_solve(up->prob_cu);
   double *x_cu = gkyl_culinsolver_get_sol_ptr(up->prob_cu, 0);
 
-  gkyl_fem_poisson_perp_get_sol_kernel<<<phiout->nblocks, phiout->nthreads>>>(phiout->on_dev, x_cu,
-    *up->solve_range, up->par_range1d, up->kernels_cu, up->numnodes_global);
+  gkyl_fem_poisson_perp_get_sol_kernel<<<phiout->nblocks, phiout->nthreads>>>(phiout->on_dev,
+    x_cu, *up->solve_range, up->par_range1d, up->kernels_cu, up->numnodes_global);
 }
