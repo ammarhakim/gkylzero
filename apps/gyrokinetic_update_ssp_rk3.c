@@ -20,15 +20,15 @@ gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   // Complete update of distribution functions.
   double dta = st->dt_actual;
   for (int i=0; i<app->num_species; ++i) {
-    gkyl_array_accumulate(gkyl_array_scale(fout[i], dta), 1.0, fin[i]);
+    struct gk_species *gks = &app->species[i];
+    gk_species_step_f(gks, fout[i], dta, fin[i]);
     if (app->species[i].info.boundary_flux_diagnostics) {
-      gk_species_bflux_forward_euler(app, &app->species[i].bflux_diag, bflux_out[i], dta, bflux_in[i]);
+      gk_species_bflux_forward_euler(app, &gks->bflux_diag, bflux_out[i], dta, bflux_in[i]);
     }
   }
   for (int i=0; i<app->num_neut_species; ++i) {
-    if (!app->neut_species[i].info.is_static) {
-      gkyl_array_accumulate(gkyl_array_scale(fout_neut[i], dta), 1.0, fin_neut[i]);
-    }
+    struct gk_neut_species *gkns = &app->neut_species[i];
+    gk_neut_species_step_f(gkns, fout_neut[i], dta, fin_neut[i]);
   }
 
 }
@@ -80,9 +80,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         }
         for (int i=0; i<app->num_neut_species; ++i) {
           fin_neut[i] = app->neut_species[i].f;
-          if (!app->neut_species[i].info.is_static) {
-            fout_neut[i] = app->neut_species[i].f1;
-          }
+	  fout_neut[i] = app->neut_species[i].f1;
         }
 
         gyrokinetic_forward_euler(app, tcurr, dt, fin, fout, bflux_in, bflux_out, fin_neut, fout_neut, &st);
@@ -103,13 +101,8 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           }
         }
         for (int i=0; i<app->num_neut_species; ++i) {
-          if (!app->neut_species[i].info.is_static) {
-            fin_neut[i] = app->neut_species[i].f1;
-            fout_neut[i] = app->neut_species[i].fnew;
-          }
-          else {
-            fin_neut[i] = app->neut_species[i].f;
-          }
+	  fin_neut[i] = app->neut_species[i].f1;
+	  fout_neut[i] = app->neut_species[i].fnew;
         }
 
         gyrokinetic_forward_euler(app, tcurr+dt, dt, fin, fout, bflux_in, bflux_out, fin_neut, fout_neut, &st);
@@ -135,18 +128,16 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         } 
         else {
           for (int i=0; i<app->num_species; ++i) {
-            struct gk_species *gk_s = &app->species[i];
-            array_combine(gk_s->f1, 3.0/4.0, gk_s->f, 1.0/4.0, gk_s->fnew, &gk_s->local_ext);
-            if (gk_s->info.boundary_flux_diagnostics) {
-              gk_species_bflux_combine_range(app, gk_s, &gk_s->bflux_diag, gk_s->bflux_diag.f1,
-                3.0/4.0, gk_s->bflux_diag.f, 1.0/4.0, gk_s->bflux_diag.fnew, &app->local_ext);
+	    struct gk_species *gks = &app->species[i];
+	    gk_species_combine(gks, gks->f1, 3.0/4.0, gks->f, 1.0/4.0, gks->fnew, &gks->local_ext);
+            if (gks->info.boundary_flux_diagnostics) {
+              gk_species_bflux_combine_range(app, gks, &gks->bflux_diag, gks->bflux_diag.f1,
+                3.0/4.0, gks->bflux_diag.f, 1.0/4.0, gks->bflux_diag.fnew, &app->local_ext);
             }
           }
           for (int i=0; i<app->num_neut_species; ++i) {
-            if (!app->neut_species[i].info.is_static) {
-              array_combine(app->neut_species[i].f1,
-                3.0/4.0, app->neut_species[i].f, 1.0/4.0, app->neut_species[i].fnew, &app->neut_species[i].local_ext);
-            }
+	    struct gk_neut_species *gkns = &app->neut_species[i];
+	    gk_neut_species_combine(gkns, gkns->f1, 3.0/4.0, gkns->f, 1.0/4.0, gkns->fnew, &gkns->local_ext);
           }
 
           // Compute the fields and apply BCs.
@@ -172,13 +163,8 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           }
         }
         for (int i=0; i<app->num_neut_species; ++i) {
-          if (!app->neut_species[i].info.is_static) {
-            fin_neut[i] = app->neut_species[i].f1;
-            fout_neut[i] = app->neut_species[i].fnew;
-          }
-          else {
-            fin_neut[i] = app->neut_species[i].f;
-          }          
+	  fin_neut[i] = app->neut_species[i].f1;
+	  fout_neut[i] = app->neut_species[i].fnew;
         }
 
         gyrokinetic_forward_euler(app, tcurr+dt/2, dt, fin, fout, bflux_in, bflux_out, fin_neut, fout_neut, &st);
@@ -204,25 +190,21 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         }
         else {
           for (int i=0; i<app->num_species; ++i) {
-            struct gk_species *gk_s = &app->species[i];
-            array_combine(gk_s->f1,
-              1.0/3.0, gk_s->f, 2.0/3.0, gk_s->fnew, &gk_s->local_ext);
-            gkyl_array_copy_range(gk_s->f, gk_s->f1, &gk_s->local_ext);
-
-            if (gk_s->info.boundary_flux_diagnostics) {
-              gk_species_bflux_combine_range(app, &app->species[i], &gk_s->bflux_diag, gk_s->bflux_diag.f1,
-                1.0/3.0, gk_s->bflux_diag.f, 2.0/3.0, gk_s->bflux_diag.fnew, &app->local_ext);
-              gk_species_bflux_copy_range(app, &app->species[i], &gk_s->bflux_diag,
-                gk_s->bflux_diag.f, gk_s->bflux_diag.f1, &app->local_ext);
-              gk_species_bflux_scale(app, &gk_s->bflux_diag, gk_s->bflux_diag.f, 1.0/dt);
+	    struct gk_species *gks = &app->species[i];
+	    gk_species_combine(gks, gks->f1, 1.0/3.0, gks->f, 2.0/3.0, gks->fnew, &gks->local_ext);
+	    gk_species_copy_range(gks, gks->f, gks->f1, &gks->local_ext);
+            if (gks->info.boundary_flux_diagnostics) {
+              gk_species_bflux_combine_range(app, gks, &gks->bflux_diag, gks->bflux_diag.f1,
+                1.0/3.0, gks->bflux_diag.f, 2.0/3.0, gks->bflux_diag.fnew, &app->local_ext);
+              gk_species_bflux_copy_range(app, gks, &gks->bflux_diag,
+                gks->bflux_diag.f, gks->bflux_diag.f1, &app->local_ext);
+              gk_species_bflux_scale(app, &gks->bflux_diag, gks->bflux_diag.f, 1.0/dt);
             }
           }
           for (int i=0; i<app->num_neut_species; ++i) {
-            if (!app->neut_species[i].info.is_static) {
-              array_combine(app->neut_species[i].f1,
-                1.0/3.0, app->neut_species[i].f, 2.0/3.0, app->neut_species[i].fnew, &app->neut_species[i].local_ext);
-              gkyl_array_copy_range(app->neut_species[i].f, app->neut_species[i].f1, &app->neut_species[i].local_ext);
-            }
+	    struct gk_neut_species *gkns = &app->neut_species[i];
+	    gk_neut_species_combine(gkns, gkns->f1, 1.0/3.0, gkns->f, 2.0/3.0, gkns->fnew, &gkns->local_ext);
+	    gk_neut_species_copy_range(gkns, gkns->f, gkns->f1, &gkns->local_ext);
           }
 
           if (app->enforce_positivity) {

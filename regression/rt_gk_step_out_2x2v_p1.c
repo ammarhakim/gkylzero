@@ -464,7 +464,6 @@ main(int argc, char **argv)
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
     .boundary_flux_diagnostics = true,
-    .fdot_diagnostics = true,
   };
 
   // Ions.
@@ -529,7 +528,6 @@ main(int argc, char **argv)
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
     .boundary_flux_diagnostics = true,
-    .fdot_diagnostics = true,
   };
 
 //  // Ar1+ ions.
@@ -678,6 +676,7 @@ main(int argc, char **argv)
     .cells = { cells_x[0], cells_x[1] },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
+    .fdot_diagnostics = true,
 
     .geometry = {
       .world = {0.0},

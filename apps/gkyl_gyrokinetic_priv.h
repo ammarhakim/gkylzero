@@ -65,6 +65,7 @@
 #include <gkyl_mom_calc_bcorr.h>
 #include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_null_pool.h>
+#include <gkyl_position_map.h>
 #include <gkyl_prim_lbo_calc.h>
 #include <gkyl_prim_lbo_cross_calc.h>
 #include <gkyl_prim_lbo_gyrokinetic.h>
@@ -72,6 +73,7 @@
 #include <gkyl_proj_bimaxwellian_on_basis.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_proj_on_basis.h>
+#include <gkyl_proj_powsqrt_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_radiation_read.h>
 #include <gkyl_rect_decomp.h>
@@ -335,6 +337,7 @@ struct gk_boundary_fluxes {
 struct gk_react {
   int num_react; // number of reactions
   bool all_gk; // boolean for if reactions are only between gyrokinetic species
+  bool write_diagnostics; // Whether to write diagnostics out.
   struct gkyl_gyrokinetic_react_type react_type[GKYL_MAX_REACT]; // input struct for type of reactions
 
   struct gkyl_array *f_react; // distribution function array which holds update for each reaction
@@ -394,16 +397,17 @@ struct gk_react {
 // Context for c2p function passed to proj_on_basis.
 struct gk_proj_on_basis_c2p_func_ctx {
   int cdim, vdim;
+  struct gkyl_position_map *pos_map;
   struct gkyl_velocity_map *vel_map;
 };
 
 struct gk_proj {
   enum gkyl_projection_id proj_id; // type of projection
+  struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
   // organization of the different projection objects and the required data and solvers
   union {
     // function projection
     struct {
-      struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
       struct gkyl_proj_on_basis *proj_func; // projection operator for specified function
       struct gkyl_array *proj_host; // array for projection on host-side if running on GPUs
     };
@@ -591,7 +595,27 @@ struct gk_species {
   gkyl_dynvec ps_integ_diag; // Integrated moments of the positivity shift.
   bool is_first_ps_integ_write_call; // Flag first time writing ps_integ_diag.
 
-  double *omega_cfl;
+  // pointer to rhs functions
+  double (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
+    const struct gkyl_array *fin, struct gkyl_array *rhs);
+  void (*bc_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species,
+    struct gkyl_array *f);
+  void (*release_func)(const gkyl_gyrokinetic_app* app, const struct gk_species *s);
+  void (*step_f_func)(struct gkyl_array* out, double dt, const struct gkyl_array* inp); 
+  void (*combine_func)(struct gkyl_array *out, double c1,
+    const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
+    const struct gkyl_range *rng);
+  void (*copy_func)(struct gkyl_array *out, const struct gkyl_array *inp,
+    const struct gkyl_range *range);
+  void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+  void (*write_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+  void (*calc_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm);
+  void (*write_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks);
+  void (*calc_L2norm_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm);
+  void (*write_L2norm_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks);
+
+  double *omega_cfl; // Maximum Omega_CFL in this MPI process.
+  double *m0_max; // Maximum number density in this MPI process.
 };
 
 // neutral species data
@@ -669,6 +693,23 @@ struct gk_neut_species {
   struct gk_react react_neut; // reaction object
 
   double *omega_cfl;
+
+  // pointer to rhs functions
+  double (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
+    const struct gkyl_array *fin, struct gkyl_array *rhs);
+  void (*bc_func)(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
+    struct gkyl_array *f);
+  void (*release_func)(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s);
+    void (*step_f_func)(struct gkyl_array* out, double dt, const struct gkyl_array* inp); 
+  void (*combine_func)(struct gkyl_array *out, double c1,
+    const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
+    const struct gkyl_range *rng);
+  void (*copy_func)(struct gkyl_array *out, const struct gkyl_array *inp,
+    const struct gkyl_range *range);
+  void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm, int frame);
+  void (*write_mom_func)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm, int frame);
+  void (*calc_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm);
+  void (*write_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns);
 };
 
 // field data
@@ -676,6 +717,9 @@ struct gk_field {
   struct gkyl_gyrokinetic_field info; // data for field
 
   enum gkyl_gkfield_id gkfield_id;
+
+  bool update_field; // Are we updating the field?.
+  bool calc_init_field; // Whether to compute the t=0 field.
 
   struct gkyl_job_pool *job_pool; // Job pool  
   // arrays for local charge density, global charge density, and global smoothed (in z) charge density
@@ -705,10 +749,9 @@ struct gk_field {
     };
   };
 
-  struct gkyl_array *weight;
   double es_energy_fac_1d; 
   struct gkyl_array *es_energy_fac; 
-  struct gkyl_array *epsilon; 
+  struct gkyl_array *epsilon; // Polarization weight including geometric factors (and kperp^2 for cdim=1).
   struct gkyl_array *kSq; 
 
   struct gkyl_fem_parproj *fem_parproj; // FEM smoother for projecting DG functions onto continuous FEM basis
@@ -754,6 +797,7 @@ struct gkyl_gyrokinetic_app {
   int poly_order; // polynomial order
   double tcurr; // current time
   double cfl; // CFL number
+  double cfl_omegaH; // CFL number used for omega_H.
   double bmag_ref; // Reference magnetic field
 
   bool use_gpu; // should we use GPU (if present)
@@ -791,9 +835,13 @@ struct gkyl_gyrokinetic_app {
 
   struct gk_geometry *gk_geom;
   struct gkyl_array *jacobtot_inv_weak; // 1/(J.B) computed via weak mul and div.
+  double omegaH_gf; // Geometry and field model dependent part of omega_H.
+  
+  struct gkyl_position_map *position_map; // Position mapping object.
 
-  bool update_field; // are we updating the field?
   struct gk_field *field; // pointer to field object
+  // Pointer to function that computes the fields.
+  void (*calc_field_func)(gkyl_gyrokinetic_app* app, double tcurr, const struct gkyl_array *fin[]);
 
   // species data
   int num_species;
@@ -1001,6 +1049,43 @@ void gk_species_radiation_rhs(gkyl_gyrokinetic_app *app,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
+ * Write species radiation drag.
+ *
+ * @param app gyrokinetic app object
+ * @param gks Pointer to species
+ * @param tm Simulation time
+ * @param frame Simulation output frame
+ */
+void gk_species_radiation_write_drag(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+
+/**
+ * Write species radiation emissivity.
+ *
+ * @param app gyrokinetic app object
+ * @param gks Pointer to species
+ * @param tm Simulation time
+ * @param frame Simulation output frame
+ */
+void gk_species_radiation_write_emissivity(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+
+/**
+ * Calculate species radiation integrated moments.
+ *
+ * @param app gyrokinetic app object
+ * @param gks Pointer to species
+ * @param tm Simulation time
+ */
+void gk_species_radiation_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm);
+
+/**
+ * Write species radiation integrated moments.
+ *
+ * @param app gyrokinetic app object
+ * @param gks Pointer to species
+ */
+void gk_species_radiation_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks);
+
+/**
  * Release species radiation drag object.
  *
  * @param app gyrokinetic app object
@@ -1070,6 +1155,16 @@ void gk_species_lbo_rhs(gkyl_gyrokinetic_app *app,
   const struct gk_species *species,
   struct gk_lbo_collisions *lbo,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Write moments from LBO object.
+ *
+ * @param app gyrokinetic app object
+ * @param gks Pointer to species
+ * @param tm Simulation time
+ * @parame frame Simulation output frame
+ */
+void gk_species_lbo_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
 
 /**
  * Release species LBO object.
@@ -1145,6 +1240,14 @@ void gk_species_bgk_rhs(gkyl_gyrokinetic_app *app,
  * Release species BGK object.
  *
  * @param app gyrokinetic app object
+ * @param gks Pointer to species
+ */
+void gk_species_bgk_write_max_corr_status(gkyl_gyrokinetic_app* app, struct gk_species *gks);
+
+/**
+ * Release species BGK object.
+ *
+ * @param app gyrokinetic app object
  * @param bgk Species BGK object to release
  */
 void gk_species_bgk_release(const struct gkyl_gyrokinetic_app *app, const struct gk_bgk_collisions *bgk);
@@ -1185,9 +1288,8 @@ void gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_spe
  * @param fin_neut Input neutral distribution functions (size: num_neut_species)
  */
 void gk_species_react_cross_moms(gkyl_gyrokinetic_app *app,
-  const struct gk_species *species,
-  struct gk_react *react,
-  const struct gkyl_array *f_self, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
+  const struct gk_species *species, struct gk_react *react,
+  const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
 
 /**
  * Compute RHS from reactions 
@@ -1202,6 +1304,19 @@ void gk_species_react_cross_moms(gkyl_gyrokinetic_app *app,
 void gk_species_react_rhs(gkyl_gyrokinetic_app *app,
   const struct gk_species *s, struct gk_react *react,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Write reaction rate.
+ *
+ * @param app gyrokinetic app object
+ * @param gks Pointer to species
+ * @param gkr Pointer to react object
+ * @param ridx Index for reaction species
+ * @param tm Simulation time
+ * @param frame Simulation output frame
+ */
+void gk_species_react_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct gk_react *gkr,
+  int ridx, double tm, int frame);
 
 /**
  * Release species react object.
@@ -1399,6 +1514,44 @@ void gk_species_source_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s
   struct gk_source *src, const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
+ * Write source diagnostics
+ *
+ * @param app gyrokinetic app object
+ * @param gks Pointer to species
+ * @param tm Time for source diagnostic
+ * @param frame Output frame
+ */
+void gk_species_source_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+
+/**
+ * Write source moment diagnostics
+ *
+ * @param app gyrokinetic app object
+ * @param gks Pointer to species
+ * @param tm Time for source diagnostic
+ * @param frame Output frame
+ */
+void gk_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+
+/**
+ * Calc source integrated moment diagnostics
+ *
+ * @param app gyrokinetic app object
+ * @param gks Pointer to species
+ * @param tm Time for source diagnostic
+ */
+void gk_species_source_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm);
+
+/**
+ * Write source integrated moment diagnostics
+ *
+ * @param app gyrokinetic app object
+ * @param gks Pointer to species
+ * @param tm Time for source diagnostic
+ */
+void gk_species_source_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks);
+
+/**
  * Release species source object.
  *
  * @param app gyrokinetic app object
@@ -1449,7 +1602,44 @@ double gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
- * Apply BCs to species distribution function.
+ * Scale and accumulate for forward euler method.
+ *
+ * @param species Pointer to species
+ * @param out Output array
+ * @param dt Timestep
+ * @param inp Input array
+ */
+void gk_species_step_f(struct gk_species *species, struct gkyl_array* out, double dt,
+  const struct gkyl_array* inp);
+
+/**
+ * Combine for rk3 method.
+ *
+ * @param species Pointer to species
+ * @param out Output array
+ * @param c1 Scaling factor
+ * @param arr1 Input array
+ * @param c2 Scaling factor
+ * @param arr2 Input array
+ * @param rng Range
+ */
+void gk_species_combine(struct gk_species *species, struct gkyl_array *out, double c1,
+  const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
+  const struct gkyl_range *rng);
+
+/**
+ * Copy for rk3 method.
+ *
+ * @param species Pointer to species
+ * @param out Output array
+ * @param inp Input array
+ * @param range Range
+ */
+void gk_species_copy_range(struct gk_species *species, struct gkyl_array *out,
+  const struct gkyl_array *inp, const struct gkyl_range *range);
+
+/**
+ * Apply BCs to dynamic species distribution function.
  *
  * @param app gyrokinetic app object
  * @param species Pointer to species
@@ -1470,6 +1660,60 @@ void gk_species_coll_tm(gkyl_gyrokinetic_app *app);
  * @param app App object to update stat timers
  */
 void gk_species_tm(gkyl_gyrokinetic_app *app);
+
+/**
+ * Species write function.
+ *
+ * @param app gyrokinetic app object
+ * @param gks Species object
+ * @param tm simulation time
+ * @param frame simulation frame
+ */
+void gk_species_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+
+/**
+ * Species moment write function.
+ *
+ * @param app gyrokinetic app object
+ * @param gks Species object
+ * @param tm simulation time
+ * @param frame simulation frame
+ */
+void gk_species_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+
+/**
+ * Species calc integrated moment function.
+ *
+ * @param app gyrokinetic app object
+ * @param gks Species object
+ * @param tm simulation time
+ */
+void gk_species_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm);
+
+/**
+ * Species write integrated moment function.
+ *
+ * @param app gyrokinetic app object
+ * @param gks Species object
+ */
+void gk_species_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks);
+
+/**
+ * Species calc L2norm function.
+ *
+ * @param app gyrokinetic app object
+ * @param gks Species object
+ * @param tm simulation time
+ */
+void gk_species_calc_L2norm(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm);
+
+/**
+ * Species write L2norm function.
+ *
+ * @param app gyrokinetic app object
+ * @param gks Species object
+ */
+void gk_species_write_L2norm(gkyl_gyrokinetic_app* app, struct gk_species *gks);
 
 /**
  * Delete resources used in species.
@@ -1566,6 +1810,20 @@ void gk_neut_species_react_rhs(gkyl_gyrokinetic_app *app,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
+ * Write neutral reaction rate.
+ *
+ * @param app gyrokinetic app object
+ * @param gkns Pointer to neutral species
+ * @param gkr Pointer to react object
+ * @param ridx Index for reaction species
+ * @param tm Simulation time
+ * @param frame Simulation output frame
+ */
+void gk_neut_species_react_write(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, struct gk_react *gkr,
+  int ridx, double tm, int frame);
+
+
+/**
  * Release neutral species react object.
  *
  * @param app gyrokinetic app object
@@ -1641,6 +1899,44 @@ void gk_neut_species_source_rhs(gkyl_gyrokinetic_app *app, const struct gk_neut_
   struct gk_source *src, const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
+ * Write neutral source diagnostics
+ *
+ * @param app gyrokinetic app object
+ * @param gkns Pointer to species
+ * @param tm Time for source diagnostic
+ * @param frame Output frame
+ */
+void gk_neut_species_source_write(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm, int frame);
+
+/**
+ * Write neutral source moment diagnostics
+ *
+ * @param app gyrokinetic app object
+ * @param gkns Pointer to species
+ * @param tm Time for source diagnostic
+ * @param frame Output frame
+ */
+void gk_neut_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm, int frame);
+
+/**
+ * Calc neutral source integrated moment diagnostics
+ *
+ * @param app gyrokinetic app object
+ * @param gkns Pointer to species
+ * @param tm Time for source diagnostic
+ */
+void gk_neut_species_source_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm);
+
+/**
+ * Write neutral source integrated moment diagnostics
+ *
+ * @param app gyrokinetic app object
+ * @param gkns Pointer to species
+ * @param tm Time for source diagnostic
+ */
+void gk_neut_species_source_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns);
+
+/**
  * Release Neutral species source object.
  *
  * @param app gyrokinetic app object
@@ -1649,9 +1945,8 @@ void gk_neut_species_source_rhs(gkyl_gyrokinetic_app *app, const struct gk_neut_
 void gk_neut_species_source_release(const struct gkyl_gyrokinetic_app *app, const struct gk_source *src);
 
 /** gk_neut_species API */
-
 /**
- * Initialize Neutral species.
+ * Initialize neutral species.
  *
  * @param gk Input gk data
  * @param app gyrokinetic app object
@@ -1695,6 +1990,80 @@ void gk_neut_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_neut_sp
  * @param app App object to update stat timers
  */
 void gk_neut_species_tm(gkyl_gyrokinetic_app *app);
+
+/**
+ * Scale and accumulate for forward euler method.
+ *
+ * @param species Pointer to neutral species
+ * @param out Output array
+ * @param dt Timestep
+ * @param inp Input array
+ */
+void gk_neut_species_step_f(struct gk_neut_species *species, struct gkyl_array* out, double dt,
+  const struct gkyl_array* inp);
+
+/**
+ * Combine for rk3 method.
+ *
+ * @param species Pointer to species
+ * @param out Output array
+ * @param c1 Scaling factor
+ * @param arr1 Input array
+ * @param c2 Scaling factor
+ * @param arr2 Input array
+ * @param rng Range
+ */
+void gk_neut_species_combine(struct gk_neut_species *species, struct gkyl_array *out, double c1,
+  const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
+  const struct gkyl_range *rng);
+
+/**
+ * Copy for rk3 method.
+ *
+ * @param species Pointer to species
+ * @param out Output array
+ * @param inp Input array
+ * @param range Range
+ */
+void gk_neut_species_copy_range(struct gk_neut_species *species, struct gkyl_array *out,
+  const struct gkyl_array *inp, const struct gkyl_range *range);
+
+/**
+ * Species write function.
+ *
+ * @param app gyrokinetic app object
+ * @param gkns Neutral species object
+ * @param tm simulation time
+ * @param frame simulation frame
+ */
+void gk_neut_species_write(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm, int frame);
+
+/**
+ * Species moment write function.
+ *
+ * @param app gyrokinetic app object
+ * @param gkns Neutral species object
+ * @param tm simulation time
+ * @param frame simulation frame
+ */
+void gk_neut_species_write_mom(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm, int frame);
+
+/**
+ * Species calc integrated moment function.
+ *
+ * @param app gyrokinetic app object
+ * @param gkns Neutral species object
+ * @param tm simulation time
+ */
+void gk_neut_species_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm);
+
+/**
+ * Species write integrated moment function.
+ *
+ * @param app gyrokinetic app object
+ * @param gkns Neutral species object
+ */
+void gk_neut_species_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns);
 
 /**
  * Delete resources used in neutral species.

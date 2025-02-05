@@ -19,6 +19,11 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
 
   f->gkfield_id = f->info.gkfield_id ? f->info.gkfield_id : GKYL_GK_FIELD_ES;
 
+  f->calc_init_field = !f->info.zero_init_field;
+  f->update_field = !f->info.is_static;
+  // The combination update_field=true, calc_init_field=false is not allowed.
+  assert(!(f->update_field && (!f->calc_init_field)));
+
   // allocate arrays for charge density
   f->rho_c = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   f->rho_c_global_dg = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
@@ -62,8 +67,8 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   if (f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || f->gkfield_id == GKYL_GK_FIELD_ADIABATIC)
     assert(app->cdim == 1); // Not yet implemented for cdim>1.
 
-  f->weight = 0;
   f->epsilon = 0;
+  struct gkyl_array *epsilon_global = 0;
   f->kSq = 0;  // not currently used by fem_perp_poisson
   double polarization_weight = 0.0; 
   double es_energy_fac_1d_adiabatic = 0.0; 
@@ -77,6 +82,9 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     }
   } else {
 
+    // Allocate array for the polarization weight times geometric coefficients.
+    f->epsilon = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->confBasis.num_basis, app->local_ext.volume);
+
     double polarization_bmag = f->info.polarization_bmag ? f->info.polarization_bmag : app->bmag_ref;
     // Linearized polarization density
     for (int i=0; i<app->num_species; ++i) {
@@ -85,15 +93,9 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     }
     if (app->cdim == 1) {
       // Need to set weight to kperpsq*polarizationWeight for use in potential smoothing.
-      f->weight = mkarr(false, app->confBasis.num_basis, app->global_ext.volume); // fem_parproj expects weight on host
- 
-      // Gather jacobgeo for smoothing in z.
-      struct gkyl_array *jacobgeo_global = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
-      gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->jacobgeo, jacobgeo_global);
-      gkyl_array_copy(f->weight, jacobgeo_global);
-
-      gkyl_array_scale(f->weight, polarization_weight);
-      gkyl_array_scale(f->weight, f->info.kperpSq);
+      gkyl_array_copy(f->epsilon, app->gk_geom->jacobgeo);
+      gkyl_array_scale(f->epsilon, polarization_weight);
+      gkyl_array_scale(f->epsilon, f->info.kperpSq);
 
 
       if (f->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
@@ -103,20 +105,22 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
         double q_s = f->info.electron_charge;
         double T_s = f->info.electron_temp;
         double quasineut_contr = q_s*n_s0*q_s/T_s;
-        struct gkyl_array *weight_adiab = mkarr(false, app->confBasis.num_basis, app->global_ext.volume); // fem_parproj expects weight on host
-        gkyl_array_copy(weight_adiab, jacobgeo_global);
-        gkyl_array_scale(weight_adiab, quasineut_contr);
-        gkyl_array_accumulate(f->weight, 1., weight_adiab);
-        gkyl_array_release(weight_adiab);
+        
+        struct gkyl_array *epsilon_adiab = mkarr(app->use_gpu, f->epsilon->ncomp, f->epsilon->size);
+        gkyl_array_copy(epsilon_adiab, app->gk_geom->jacobgeo);
+        gkyl_array_scale(epsilon_adiab, quasineut_contr);
+        gkyl_array_accumulate(f->epsilon, 1., epsilon_adiab);
+        gkyl_array_release(epsilon_adiab);
 
         es_energy_fac_1d_adiabatic = 0.5*quasineut_contr; 
       }
 
-      gkyl_array_release(jacobgeo_global);
+      // Gather gather epsilon for (global) smoothing in z.
+      epsilon_global = mkarr(app->use_gpu, f->epsilon->ncomp, app->global_ext.volume);
+      gkyl_comm_array_allgather(app->comm, &app->local, &app->global, f->epsilon, epsilon_global);
     }
     else if (app->cdim > 1) {
       // Initialize the polarization weight.
-      f->epsilon = mkarr(app->use_gpu, (2*(app->cdim-1)-1)*app->confBasis.num_basis, app->local_ext.volume);
       gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gxxj, 0*app->confBasis.num_basis);
       if (app->cdim > 2) {
         gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gxyj, 1*app->confBasis.num_basis);
@@ -148,15 +152,19 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     gkyl_range_shorten_from_below(&f->global_ext_sol, &app->global_ext, 0, app->grid.cells[0]-idxLCFS_m+1);
     gkyl_range_shorten_from_above(&f->global_core, &app->global, 0, idxLCFS_m+1);
     gkyl_range_shorten_from_above(&f->global_ext_core, &app->global_ext, 0, idxLCFS_m+1);
-    f->fem_parproj_core = gkyl_fem_parproj_new(&f->global_core, &f->global_ext_core, 
-      &app->confBasis, fem_parproj_bc_core, f->weight, app->use_gpu);
-    f->fem_parproj_sol = gkyl_fem_parproj_new(&f->global_sol, &f->global_ext_sol, 
-      &app->confBasis, fem_parproj_bc_sol, f->weight, app->use_gpu);
+
+    f->fem_parproj_core = gkyl_fem_parproj_new(&f->global_core, &app->confBasis,
+      fem_parproj_bc_core, 0, 0, app->use_gpu);
+    f->fem_parproj_sol = gkyl_fem_parproj_new(&f->global_sol, &app->confBasis,
+      fem_parproj_bc_sol, 0, 0, app->use_gpu);
   } 
   else {
-    f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->global_ext, 
-      &app->confBasis, f->info.fem_parbc, f->weight, app->use_gpu);
+    f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->confBasis,
+      f->info.fem_parbc, epsilon_global, 0, app->use_gpu);
   }
+
+  if (epsilon_global)
+    gkyl_array_release(epsilon_global);
 
   f->phi_host = f->phi_smooth;  
   if (app->use_gpu) {
@@ -437,11 +445,8 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
       gkyl_array_release(f->sheath_vals[i]);
   } 
   else {
-    if (app->cdim == 1) {
-      gkyl_array_release(f->weight);
-    }
-    else if (app->cdim > 1) {
-      gkyl_array_release(f->epsilon);
+    gkyl_array_release(f->epsilon);
+    if (app->cdim > 1) {
       gkyl_deflated_fem_poisson_release(f->deflated_fem_poisson);
 //      gkyl_fem_poisson_perp_release(f->fem_poisson);
     }

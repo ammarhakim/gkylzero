@@ -131,8 +131,8 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
   for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
     int bid = local_blocks[bI];
     struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
-    mbf->fem_parproj[bI] = gkyl_fem_parproj_new(mbf->multibz_ranges[bI], mbf->multibz_ranges_ext[bI],
-        &sbapp->confBasis, mbf->info.blocks[bid].fem_parbc, NULL, mbapp->use_gpu);
+    mbf->fem_parproj[bI] = gkyl_fem_parproj_new(mbf->multibz_ranges[bI], &sbapp->confBasis, 
+      mbf->info.blocks[bid].fem_parbc, 0, 0, mbapp->use_gpu);
   }
 
   // Last initialization step should be to set intersects for copying local info back out after smoothing
