@@ -55,18 +55,6 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
   while (state != RK_COMPLETE) {
     switch (state) {
       case RK_STAGE_1:
-        if (app->fdot_diagnostics) {
-          for (int i=0; i<app->num_species; ++i) {
-            struct gk_species *gk_s = &app->species[i];
-            // Compute moment of f_old to later compute moment of df/dt.
-            // Need to do it before the fields are updated.
-            gk_species_moment_calc(&gk_s->integ_moms, gk_s->local, app->local, gk_s->f); 
-            gkyl_array_copy(gk_s->fdot_mom_old, gk_s->integ_moms.marr);
-          }
-
-          gkyl_array_integrate_advance(app->field->calc_em_energy, app->field->phi_smooth, 
-            1.0/dt, app->field->es_energy_fac, &app->local, &app->local, app->field->em_energy_red_old);
-        }
         for (int i=0; i<app->num_species; ++i) {
           struct gk_species *gk_s = &app->species[i];
           fin[i] = gk_s->f;
@@ -84,20 +72,35 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         }
 
         gyrokinetic_forward_euler(app, tcurr, dt, fin, fout, bflux_in, bflux_out, fin_neut, fout_neut, &st);
+        dt = st.dt_actual;
+
+        if (app->fdot_diagnostics) {
+          for (int i=0; i<app->num_species; ++i) {
+            struct gk_species *gk_s = &app->species[i];
+            // Compute moment of f_old to later compute moment of df/dt.
+            // Do it before the fields are updated, but after dt is calculated.
+            gk_species_moment_calc(&gk_s->integ_moms, gk_s->local, app->local, gk_s->f); 
+            gkyl_array_copy(gk_s->fdot_mom_old, gk_s->integ_moms.marr);
+          }
+
+          gkyl_array_integrate_advance(app->field->calc_em_energy, app->field->phi_smooth, 
+            1.0/dt, app->field->es_energy_fac, &app->local, &app->local, app->field->em_energy_red_old);
+        }
+
         // Compute the fields and apply BCs.
         gyrokinetic_calc_field_and_apply_bc(app, tcurr, fout, fout_neut);
 
-        dt = st.dt_actual;
         state = RK_STAGE_2;
         break;
 
       case RK_STAGE_2:
         for (int i=0; i<app->num_species; ++i) {
-          fin[i] = app->species[i].f1;
-          fout[i] = app->species[i].fnew;
-          if (app->species[i].info.boundary_flux_diagnostics) {
-            bflux_in[i] = (const struct gkyl_array **)app->species[i].bflux_diag.f1;
-            bflux_out[i] = app->species[i].bflux_diag.fnew;
+          struct gk_species *gk_s = &app->species[i];
+          fin[i] = gk_s->f1;
+          fout[i] = gk_s->fnew;
+          if (gk_s->info.boundary_flux_diagnostics) {
+            bflux_in[i] = (const struct gkyl_array **)gk_s->bflux_diag.f1;
+            bflux_out[i] = gk_s->bflux_diag.fnew;
           }
         }
         for (int i=0; i<app->num_neut_species; ++i) {
@@ -155,11 +158,12 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
 
       case RK_STAGE_3:
         for (int i=0; i<app->num_species; ++i) {
-          fin[i] = app->species[i].f1;
-          fout[i] = app->species[i].fnew;
-          if (app->species[i].info.boundary_flux_diagnostics) {
-            bflux_in[i] = (const struct gkyl_array **)app->species[i].bflux_diag.f1;
-            bflux_out[i] = app->species[i].bflux_diag.fnew;
+          struct gk_species *gk_s = &app->species[i];
+          fin[i] = gk_s->f1;
+          fout[i] = gk_s->fnew;
+          if (gk_s->info.boundary_flux_diagnostics) {
+            bflux_in[i] = (const struct gkyl_array **)gk_s->bflux_diag.f1;
+            bflux_out[i] = gk_s->bflux_diag.fnew;
           }
         }
         for (int i=0; i<app->num_neut_species; ++i) {

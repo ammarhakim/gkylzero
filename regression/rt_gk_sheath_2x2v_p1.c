@@ -779,6 +779,12 @@ main(int argc, char **argv)
       .lo_value = { 0.0 },
       .up_value = { 0.0 },
     },
+    .is_static = true,
+//    .zero_init_field = true,
+    .init_from_file = {
+      .file_name = "gk_sheath_2x2v_p1_cfl0p5-field_1.gkyl",
+      .type = GKYL_IC_IMPORT_F,
+    },
   };
 
   // Gyrokinetic app.
@@ -793,6 +799,7 @@ main(int argc, char **argv)
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
+    .cfl_frac_omegaH = 1e10,
     .fdot_diagnostics = true,
 
     .geometry = {

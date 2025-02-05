@@ -2123,6 +2123,14 @@ void gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_fie
 void gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field);
 
 /**
+ * Read the field from a file.
+ *
+ * @param app Gyrokinetic app.
+ * @param inp Input struct with importing parameters (and file name).
+ */
+void gk_field_file_import_init(struct gkyl_gyrokinetic_app *app, struct gkyl_gyrokinetic_ic_import inp);
+
+/**
  * Compute field energy diagnostic
  *
  * @param app gyrokinetic app object

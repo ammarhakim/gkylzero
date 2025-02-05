@@ -4,6 +4,8 @@
 #include <gkyl_dg_eqn.h>
 #include <gkyl_util.h>
 #include <gkyl_gyrokinetic_priv.h>
+#include <gkyl_array_rio_priv.h>
+#include <gkyl_comm_io.h>
 
 #include <assert.h>
 #include <float.h>
@@ -372,6 +374,53 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
     }
   }
   app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
+}
+
+static struct gkyl_app_restart_status
+header_from_file(gkyl_gyrokinetic_app *app, const char *fname)
+{
+  struct gkyl_app_restart_status rstat = { .io_status = 2 };
+  
+  FILE *fp = 0;
+  with_file(fp, fname, "r") {
+    struct gkyl_rect_grid grid;
+    struct gkyl_array_header_info hdr;
+    rstat.io_status = gkyl_grid_sub_array_header_read_fp(&grid, &hdr, fp);
+
+    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+      if (hdr.etype != GKYL_DOUBLE)
+        rstat.io_status = GKYL_ARRAY_RIO_DATA_MISMATCH;
+    }
+
+    struct gyrokinetic_output_meta meta =
+      gk_meta_from_mpack( &(struct gkyl_msgpack_data) {
+          .meta = hdr.meta,
+          .meta_sz = hdr.meta_size
+        }
+      );
+
+    rstat.frame = meta.frame;
+    rstat.stime = meta.stime;
+
+    gkyl_grid_sub_array_header_release(&hdr);
+  }
+  
+  return rstat;
+}
+void
+gk_field_file_import_init(struct gkyl_gyrokinetic_app *app, struct gkyl_gyrokinetic_ic_import inp)
+{
+  // Import initial condition from a file.
+  struct gkyl_app_restart_status rstat = header_from_file(app, inp.file_name);
+
+  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+    struct gkyl_app_restart_status rstat;
+    rstat.io_status = gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->field->phi_host, inp.file_name);
+    if (app->use_gpu)
+      gkyl_array_copy(app->field->phi_smooth, app->field->phi_host);
+  }
+  else
+    assert(false);
 }
 
 void
