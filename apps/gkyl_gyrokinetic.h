@@ -265,8 +265,6 @@ struct gkyl_gyrokinetic_field {
   double polarization_bmag; 
   double kperpSq; // kperp^2 parameter for 1D field equations
   double xLCFS; // radial location of the LCFS.
-  bool static_TCBC; // set to true if target corner bias is time independent
-  double phi_TC; // constant target corner bias
 
   // parameters for adiabatic electrons simulations
   double electron_mass, electron_charge, electron_density, electron_temp;

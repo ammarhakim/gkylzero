@@ -8,7 +8,14 @@ enum gkyl_poisson_bc_type {
   GKYL_POISSON_PERIODIC = 0,
   GKYL_POISSON_DIRICHLET, // sets the value.
   GKYL_POISSON_NEUMANN,   // sets the slope normal to the boundary.
-  GKYL_POISSON_ROBIN,  // a combination of dirichlet and neumann.  
+  GKYL_POISSON_ROBIN,  // a combination of dirichlet and neumann.
+};
+
+// Target corner boundary condition (TCBC) types.
+enum gkyl_poisson_tcbc_type {
+  GKYL_POISSON_TCBC_DIRICHLET = 0, // (static) set to tc_bias
+  GKYL_POISSON_TCBC_FS_PHI, // (dynamic) set to phi_fs(xLCFS)
+  GKYL_POISSON_TCBC_FS_LTE, // (dynamic) set to lambda Te_fs(xLCFS)/e
 };
 
 // Boundary condition values. Dirichlet and Neumann use only one value,
@@ -19,10 +26,12 @@ struct gkyl_poisson_bc {
   enum gkyl_poisson_bc_type lo_type[GKYL_MAX_CDIM], up_type[GKYL_MAX_CDIM];
   struct gkyl_poisson_bc_value lo_value[GKYL_MAX_CDIM], up_value[GKYL_MAX_CDIM];
 
-  // Additional attributes to apply a different BC according to the edge planes in the z direction.
-  bool is_z_edge;
-  bool contains_lower_z_edge, contains_upper_z_edge;
-  double xLCFS;
+  // Additional attributes to apply BC at the target corner
+  enum gkyl_poisson_tcbc_type tcbc_type;
+  double tc_bias; // target corner bias
+  bool is_z_edge; // check is we are currently at the edge of z domain (detect the limiter)
+  bool contains_lower_z_edge, contains_upper_z_edge; // check if the current MPI process has an edge
+  double xLCFS; // LCFS coordinate
 };
 
 GKYL_CU_DH
