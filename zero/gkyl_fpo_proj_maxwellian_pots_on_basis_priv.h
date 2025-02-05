@@ -67,6 +67,7 @@ struct gkyl_proj_maxwellian_pots_on_basis {
 
   struct gkyl_mat_mm_array_mem *phase_quad_nodal_to_modal_mem;
   struct gkyl_mat_mm_array_mem *surf_quad_nodal_to_modal_mem;
+  struct gkyl_mat_mm_array_mem *dgdv_surf_quad_nodal_to_modal_mem;
 
   int *p2c_qidx;  // Mapping between conf-space and phase-space ordinates.
   int *surf2c_qidx;  // Mapping between conf-space and phase-space surface ordinates.

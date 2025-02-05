@@ -70,6 +70,7 @@ static const gkyl_dg_fpo_diff_coeff_diag_stencil_list ser_fpo_diff_coeff_diag_vz
 };
 
 // diffusion coefficient off-diagonal term kernel lists
+GKYL_CU_D
 static const gkyl_dg_fpo_diff_coeff_cross_stencil_list ser_fpo_diff_coeff_cross_vxvy_kernels[] = {
   {{ // 1x3v
     {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
@@ -83,6 +84,7 @@ static const gkyl_dg_fpo_diff_coeff_cross_stencil_list ser_fpo_diff_coeff_cross_
   }}
 };
 
+GKYL_CU_D
 static const gkyl_dg_fpo_diff_coeff_cross_stencil_list ser_fpo_diff_coeff_cross_vxvz_kernels[] = {
   {{ // 1x3v
     {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
@@ -96,6 +98,7 @@ static const gkyl_dg_fpo_diff_coeff_cross_stencil_list ser_fpo_diff_coeff_cross_
   }}
 };
 
+GKYL_CU_D
 static const gkyl_dg_fpo_diff_coeff_cross_stencil_list ser_fpo_diff_coeff_cross_vyvx_kernels[] = {
   {{ // 1x3v
     {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
@@ -109,6 +112,7 @@ static const gkyl_dg_fpo_diff_coeff_cross_stencil_list ser_fpo_diff_coeff_cross_
   }}
 };
 
+GKYL_CU_D
 static const gkyl_dg_fpo_diff_coeff_cross_stencil_list ser_fpo_diff_coeff_cross_vyvz_kernels[] = {
   {{ // 1x3v
     {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
@@ -122,6 +126,7 @@ static const gkyl_dg_fpo_diff_coeff_cross_stencil_list ser_fpo_diff_coeff_cross_
   }}
 };
 
+GKYL_CU_D
 static const gkyl_dg_fpo_diff_coeff_cross_stencil_list ser_fpo_diff_coeff_cross_vzvx_kernels[] = {
   {{ // 1x3v
     {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
@@ -135,6 +140,7 @@ static const gkyl_dg_fpo_diff_coeff_cross_stencil_list ser_fpo_diff_coeff_cross_
   }}
 };
 
+GKYL_CU_D
 static const gkyl_dg_fpo_diff_coeff_cross_stencil_list ser_fpo_diff_coeff_cross_vzvy_kernels[] = {
   {{ // 1x3v
     {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},

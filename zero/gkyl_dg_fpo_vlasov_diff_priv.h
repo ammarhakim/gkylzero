@@ -124,6 +124,7 @@ static const fpo_vlasov_diff_surf_stencil_list ser_surf_vzvz_kernels[] = {
 
 // Off-diagonal element kernels
 // vx-vy direction surface kernels
+GKYL_CU_D
 static const fpo_vlasov_diff_surf_stencil_list ser_surf_vxvy_kernels[] = {
   {{ // 1x3v
     { fpo_vlasov_diff_surfvxvy_1x3v_ser_p1, fpo_vlasov_diff_boundary_surfvxvy_1x3v_ser_p1_lovx_invy, fpo_vlasov_diff_boundary_surfvxvy_1x3v_ser_p1_upvx_invy, fpo_vlasov_diff_boundary_surfvxvy_1x3v_ser_p1_invx_lovy, fpo_vlasov_diff_boundary_surfvxvy_1x3v_ser_p1_invx_upvy, fpo_vlasov_diff_boundary_surfvxvy_1x3v_ser_p1_lovx_lovy, fpo_vlasov_diff_boundary_surfvxvy_1x3v_ser_p1_lovx_upvy, fpo_vlasov_diff_boundary_surfvxvy_1x3v_ser_p1_upvx_lovy, fpo_vlasov_diff_boundary_surfvxvy_1x3v_ser_p1_upvx_upvy },
@@ -138,6 +139,7 @@ static const fpo_vlasov_diff_surf_stencil_list ser_surf_vxvy_kernels[] = {
 };
 
 // vx-vz direction surface kernels
+GKYL_CU_D
 static const fpo_vlasov_diff_surf_stencil_list ser_surf_vxvz_kernels[] = {
   {{ // 1x3v
     { fpo_vlasov_diff_surfvxvz_1x3v_ser_p1, fpo_vlasov_diff_boundary_surfvxvz_1x3v_ser_p1_lovx_invz, fpo_vlasov_diff_boundary_surfvxvz_1x3v_ser_p1_upvx_invz, fpo_vlasov_diff_boundary_surfvxvz_1x3v_ser_p1_invx_lovz, fpo_vlasov_diff_boundary_surfvxvz_1x3v_ser_p1_invx_upvz, fpo_vlasov_diff_boundary_surfvxvz_1x3v_ser_p1_lovx_lovz, fpo_vlasov_diff_boundary_surfvxvz_1x3v_ser_p1_lovx_upvz, fpo_vlasov_diff_boundary_surfvxvz_1x3v_ser_p1_upvx_lovz, fpo_vlasov_diff_boundary_surfvxvz_1x3v_ser_p1_upvx_upvz },
@@ -152,6 +154,7 @@ static const fpo_vlasov_diff_surf_stencil_list ser_surf_vxvz_kernels[] = {
 };
 
 // vy-vx direction surface kernels
+GKYL_CU_D
 static const fpo_vlasov_diff_surf_stencil_list ser_surf_vyvx_kernels[] = {
   {{ // 1x3v
     { fpo_vlasov_diff_surfvyvx_1x3v_ser_p1, fpo_vlasov_diff_boundary_surfvyvx_1x3v_ser_p1_invy_lovx, fpo_vlasov_diff_boundary_surfvyvx_1x3v_ser_p1_invy_upvx, fpo_vlasov_diff_boundary_surfvyvx_1x3v_ser_p1_lovy_invx, fpo_vlasov_diff_boundary_surfvyvx_1x3v_ser_p1_upvy_invx, fpo_vlasov_diff_boundary_surfvyvx_1x3v_ser_p1_lovy_lovx, fpo_vlasov_diff_boundary_surfvyvx_1x3v_ser_p1_upvy_lovx, fpo_vlasov_diff_boundary_surfvyvx_1x3v_ser_p1_lovy_upvx, fpo_vlasov_diff_boundary_surfvyvx_1x3v_ser_p1_upvy_upvx },
@@ -166,6 +169,7 @@ static const fpo_vlasov_diff_surf_stencil_list ser_surf_vyvx_kernels[] = {
 };
 
 // vy-vz direction surface kernels
+GKYL_CU_D
 static const fpo_vlasov_diff_surf_stencil_list ser_surf_vyvz_kernels[] = {
   {{ // 1x3v
     { fpo_vlasov_diff_surfvyvz_1x3v_ser_p1, fpo_vlasov_diff_boundary_surfvyvz_1x3v_ser_p1_lovy_invz, fpo_vlasov_diff_boundary_surfvyvz_1x3v_ser_p1_upvy_invz, fpo_vlasov_diff_boundary_surfvyvz_1x3v_ser_p1_invy_lovz, fpo_vlasov_diff_boundary_surfvyvz_1x3v_ser_p1_invy_upvz, fpo_vlasov_diff_boundary_surfvyvz_1x3v_ser_p1_lovy_lovz, fpo_vlasov_diff_boundary_surfvyvz_1x3v_ser_p1_lovy_upvz, fpo_vlasov_diff_boundary_surfvyvz_1x3v_ser_p1_upvy_lovz, fpo_vlasov_diff_boundary_surfvyvz_1x3v_ser_p1_upvy_upvz },
@@ -180,6 +184,7 @@ static const fpo_vlasov_diff_surf_stencil_list ser_surf_vyvz_kernels[] = {
 };
 
 // vz-vx direction surface kernels
+GKYL_CU_D
 static const fpo_vlasov_diff_surf_stencil_list ser_surf_vzvx_kernels[] = {
   {{ // 1x3v
     { fpo_vlasov_diff_surfvzvx_1x3v_ser_p1, fpo_vlasov_diff_boundary_surfvzvx_1x3v_ser_p1_invz_lovx, fpo_vlasov_diff_boundary_surfvzvx_1x3v_ser_p1_invz_upvx, fpo_vlasov_diff_boundary_surfvzvx_1x3v_ser_p1_lovz_invx, fpo_vlasov_diff_boundary_surfvzvx_1x3v_ser_p1_upvz_invx, fpo_vlasov_diff_boundary_surfvzvx_1x3v_ser_p1_lovz_lovx, fpo_vlasov_diff_boundary_surfvzvx_1x3v_ser_p1_upvz_lovx, fpo_vlasov_diff_boundary_surfvzvx_1x3v_ser_p1_lovz_upvx, fpo_vlasov_diff_boundary_surfvzvx_1x3v_ser_p1_upvz_upvx },
@@ -194,6 +199,7 @@ static const fpo_vlasov_diff_surf_stencil_list ser_surf_vzvx_kernels[] = {
 };
 
 // vz-vy direction surface kernels
+GKYL_CU_D
 static const fpo_vlasov_diff_surf_stencil_list ser_surf_vzvy_kernels[] = {
   {{ // 1x3v
     { fpo_vlasov_diff_surfvzvy_1x3v_ser_p1, fpo_vlasov_diff_boundary_surfvzvy_1x3v_ser_p1_invz_lovy, fpo_vlasov_diff_boundary_surfvzvy_1x3v_ser_p1_invz_upvy, fpo_vlasov_diff_boundary_surfvzvy_1x3v_ser_p1_lovz_invy, fpo_vlasov_diff_boundary_surfvzvy_1x3v_ser_p1_upvz_invy, fpo_vlasov_diff_boundary_surfvzvy_1x3v_ser_p1_lovz_lovy, fpo_vlasov_diff_boundary_surfvzvy_1x3v_ser_p1_upvz_lovy, fpo_vlasov_diff_boundary_surfvzvy_1x3v_ser_p1_lovz_upvy, fpo_vlasov_diff_boundary_surfvzvy_1x3v_ser_p1_upvz_upvy },

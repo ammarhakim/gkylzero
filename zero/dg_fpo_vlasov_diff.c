@@ -106,7 +106,7 @@ gkyl_dg_fpo_vlasov_diff_new(const struct gkyl_basis* pbasis, const struct gkyl_r
 
     default:
       assert(false);
-      break;    
+      break;
   } 
   fpo_vlasov_diff->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
 

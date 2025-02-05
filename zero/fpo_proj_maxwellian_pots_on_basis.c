@@ -394,9 +394,11 @@ gkyl_proj_maxwellian_pots_on_basis_release(gkyl_proj_maxwellian_pots_on_basis *u
     gkyl_array_release(up->pot_surf_quad);
     gkyl_array_release(up->pot_deriv_surf_quad);
     gkyl_array_release(up->sol_pot_surf_modal);
+    gkyl_array_release(up->fpo_dgdv_at_surf_ords);
  
     gkyl_mat_mm_array_mem_release(up->phase_quad_nodal_to_modal_mem);
     gkyl_mat_mm_array_mem_release(up->surf_quad_nodal_to_modal_mem);
+    gkyl_mat_mm_array_mem_release(up->dgdv_surf_quad_nodal_to_modal_mem);
 
     gkyl_cart_modal_basis_release_cu(up->surf_basis_dev);
 

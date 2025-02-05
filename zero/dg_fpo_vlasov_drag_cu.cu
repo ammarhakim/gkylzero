@@ -58,6 +58,7 @@ dg_fpo_vlasov_drag_set_cu_dev_ptrs(struct dg_fpo_vlasov_drag *fpo_vlasov_drag, e
   
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
+      assert(poly_order == 2);
       vol_kernels = ser_vol_kernels;
       surf_vx_kernel_list = ser_surf_vx_kernels;
       surf_vy_kernel_list = ser_surf_vy_kernels;
@@ -65,13 +66,23 @@ dg_fpo_vlasov_drag_set_cu_dev_ptrs(struct dg_fpo_vlasov_drag *fpo_vlasov_drag, e
       boundary_surf_vx_kernel_list = ser_boundary_surf_vx_kernels;
       boundary_surf_vy_kernel_list = ser_boundary_surf_vy_kernels;
       boundary_surf_vz_kernel_list = ser_boundary_surf_vz_kernels;
-      
+      break;
+
+    case GKYL_BASIS_MODAL_HYBRID:
+      assert(poly_order == 1);
+      vol_kernels = ser_vol_kernels;
+      surf_vx_kernel_list = ser_surf_vx_kernels;
+      surf_vy_kernel_list = ser_surf_vy_kernels;
+      surf_vz_kernel_list = ser_surf_vz_kernels;
+      boundary_surf_vx_kernel_list = ser_boundary_surf_vx_kernels;
+      boundary_surf_vy_kernel_list = ser_boundary_surf_vy_kernels;
+      boundary_surf_vz_kernel_list = ser_boundary_surf_vz_kernels;
       break;
 
     default:
       assert(false);
-      break;    
-  }  
+      break;
+  }
  
   fpo_vlasov_drag->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
   fpo_vlasov_drag->surf[0] = CK(surf_vx_kernel_list, cdim, poly_order);

@@ -40,18 +40,19 @@ dg_fpo_vlasov_diff_set_cu_dev_ptrs(struct dg_fpo_vlasov_diff *fpo_vlasov_diff, e
   fpo_vlasov_diff->eqn.gen_surf_term = fpo_diff_gen_surf_term;
 
   const gkyl_dg_fpo_vlasov_diff_vol_kern_list* vol_kernels;
-  const fpo_vlasov_diff_surf_kern_list** surf_vxvx_kernel_list;
-  const fpo_vlasov_diff_surf_kern_list** surf_vxvy_kernel_list;
-  const fpo_vlasov_diff_surf_kern_list** surf_vxvz_kernel_list;
-  const fpo_vlasov_diff_surf_kern_list** surf_vyvx_kernel_list;
-  const fpo_vlasov_diff_surf_kern_list** surf_vyvy_kernel_list;
-  const fpo_vlasov_diff_surf_kern_list** surf_vyvz_kernel_list;
-  const fpo_vlasov_diff_surf_kern_list** surf_vzvx_kernel_list;
-  const fpo_vlasov_diff_surf_kern_list** surf_vzvy_kernel_list;
-  const fpo_vlasov_diff_surf_kern_list** surf_vzvz_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vxvx_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vxvy_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vxvz_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vyvx_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vyvy_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vyvz_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vzvx_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vzvy_kernel_list;
+  const fpo_vlasov_diff_surf_stencil_list* surf_vzvz_kernel_list;
   
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
+      assert(poly_order == 2);
       vol_kernels = ser_vol_kernels;
       surf_vxvx_kernel_list = ser_surf_vxvx_kernels;
       surf_vxvy_kernel_list = ser_surf_vxvy_kernels;
@@ -62,25 +63,38 @@ dg_fpo_vlasov_diff_set_cu_dev_ptrs(struct dg_fpo_vlasov_diff *fpo_vlasov_diff, e
       surf_vzvx_kernel_list = ser_surf_vzvx_kernels;
       surf_vzvy_kernel_list = ser_surf_vzvy_kernels;
       surf_vzvz_kernel_list = ser_surf_vzvz_kernels;
-      
+      break;
+
+    case GKYL_BASIS_MODAL_HYBRID:
+      assert(poly_order == 1);
+      vol_kernels = ser_vol_kernels;
+      surf_vxvx_kernel_list = ser_surf_vxvx_kernels;
+      surf_vxvy_kernel_list = ser_surf_vxvy_kernels;
+      surf_vxvz_kernel_list = ser_surf_vxvz_kernels;
+      surf_vyvx_kernel_list = ser_surf_vyvx_kernels;
+      surf_vyvy_kernel_list = ser_surf_vyvy_kernels;
+      surf_vyvz_kernel_list = ser_surf_vyvz_kernels;
+      surf_vzvx_kernel_list = ser_surf_vzvx_kernels;
+      surf_vzvy_kernel_list = ser_surf_vzvy_kernels;
+      surf_vzvz_kernel_list = ser_surf_vzvz_kernels;
       break;
 
     default:
       assert(false);
-      break;    
+      break;
   }  
  
   fpo_vlasov_diff->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
 
-  fpo_vlasov_diff->surf[0][0] = surf_vxvx_kernel_list[cdim-1][poly_order-1];
-  fpo_vlasov_diff->surf[0][1] = surf_vxvy_kernel_list[cdim-1][poly_order-1];
-  fpo_vlasov_diff->surf[0][2] = surf_vxvz_kernel_list[cdim-1][poly_order-1];
-  fpo_vlasov_diff->surf[1][0] = surf_vyvx_kernel_list[cdim-1][poly_order-1];
-  fpo_vlasov_diff->surf[1][1] = surf_vyvy_kernel_list[cdim-1][poly_order-1];
-  fpo_vlasov_diff->surf[1][2] = surf_vyvz_kernel_list[cdim-1][poly_order-1];
-  fpo_vlasov_diff->surf[2][0] = surf_vzvx_kernel_list[cdim-1][poly_order-1];
-  fpo_vlasov_diff->surf[2][1] = surf_vzvy_kernel_list[cdim-1][poly_order-1];
-  fpo_vlasov_diff->surf[2][2] = surf_vzvz_kernel_list[cdim-1][poly_order-1];
+  fpo_vlasov_diff->surf[0][0] = surf_vxvx_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[0][1] = surf_vxvy_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[0][2] = surf_vxvz_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[1][0] = surf_vyvx_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[1][1] = surf_vyvy_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[1][2] = surf_vyvz_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[2][0] = surf_vzvx_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[2][1] = surf_vzvy_kernel_list[cdim-1].list[poly_order-1];
+  fpo_vlasov_diff->surf[2][2] = surf_vzvz_kernel_list[cdim-1].list[poly_order-1];
 }
 
 struct gkyl_dg_eqn*
