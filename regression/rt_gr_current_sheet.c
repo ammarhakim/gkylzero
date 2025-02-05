@@ -258,10 +258,11 @@ main(int argc, char **argv)
     .equation = gr_maxwell,
     .evolve = true,
     .init = evalGRMaxwellInit,
-    .force_low_order_flux = false, // Use Roe fluxes.
     .ctx = &ctx,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+
+    .limiter = GKYL_VAN_LEER,
   };
 
   int nrank = 1; // Number of processes in simulation.

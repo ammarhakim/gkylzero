@@ -3,6 +3,8 @@
 #include <gkyl_app.h>
 #include <gkyl_moment.h>
 #include <gkyl_wv_euler.h>
+#include <gkyl_wv_gr_maxwell.h>
+#include <gkyl_wv_gr_maxwell_tetrad.h>
 #include <gkyl_wv_gr_euler.h>
 #include <gkyl_wv_mhd.h>
 #include <gkyl_vlasov.h>
@@ -74,6 +76,22 @@ static const struct gkyl_str_int_pair euler_rp_type[] = {
   { "HLLC", WV_EULER_RP_HLLC },
   { "Lax", WV_EULER_RP_LAX },
   { "HLL", WV_EULER_RP_HLL },
+  { 0, 0 }
+};
+
+// General relativistic Maxwell Riemann problem -> enum map.
+static const struct gkyl_str_int_pair gr_maxwell_rp_type[] = {
+  { "Roe", WV_GR_MAXWELL_RP_ROE },
+  { "HLL", WV_GR_MAXWELL_RP_HLL },
+  { "Lax", WV_GR_MAXWELL_RP_LAX },
+  { 0, 0 }
+};
+
+// General relativistic Maxwell Riemann problem in the tetrad basis -> enum map.
+static const struct gkyl_str_int_pair gr_maxwell_tetrad_rp_type[] = {
+  { "Roe", WV_GR_MAXWELL_TETRAD_RP_ROE },
+  { "HLL", WV_GR_MAXWELL_TETRAD_RP_HLL },
+  { "Lax", WV_GR_MAXWELL_TETRAD_RP_LAX },
   { 0, 0 }
 };
 
@@ -284,6 +302,18 @@ void
 gkyl_register_euler_rp_types(lua_State *L)
 {
   register_types(L, euler_rp_type, "EulerRP");
+}
+
+void
+gkyl_register_gr_maxwell_rp_types(lua_State *L)
+{
+  register_types(L, gr_maxwell_rp_type, "GRMaxwellRP");
+}
+
+void
+gkyl_register_gr_maxwell_tetrad_rp_types(lua_State *L)
+{
+  register_types(L, gr_maxwell_tetrad_rp_type, "GRMaxwellTetradRP");
 }
 
 void

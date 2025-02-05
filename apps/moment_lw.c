@@ -84,20 +84,6 @@ static const struct gkyl_str_int_pair iso_euler_mixture_rp_type[] = {
   { 0, 0 }
 };
 
-// General relativistic Maxwell Riemann problem -> enum map.
-static const struct gkyl_str_int_pair gr_maxwell_rp_type[] = {
-  { "roe", WV_GR_MAXWELL_RP_ROE },
-  { "lax", WV_GR_MAXWELL_RP_LAX },
-  { 0, 0 }
-};
-
-// General relativistic Maxwell Riemann problem in the tetrad basis -> enum map.
-static const struct gkyl_str_int_pair gr_maxwell_tetrad_rp_type[] = {
-  { "roe", WV_GR_MAXWELL_TETRAD_RP_ROE },
-  { "lax", WV_GR_MAXWELL_TETRAD_RP_LAX },
-  { 0, 0 }
-};
-
 // General relativistic Euler Riemann problem (ultra-relativistic equation of state) -> enum map.
 static const struct gkyl_str_int_pair gr_ultra_rel_euler_rp_type[] = {
   { "roe", WV_GR_ULTRA_REL_EULER_RP_ROE },
@@ -537,8 +523,7 @@ eqn_gr_maxwell_lw_new(lua_State *L)
   double e_fact = glua_tbl_get_number(L, "elcErrorSpeedFactor", 0.0);
   double b_fact = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
 
-  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
-  enum gkyl_wv_gr_maxwell_rp rp_type = gkyl_search_str_int_pair_by_str(gr_maxwell_rp_type, rp_str, WV_GR_MAXWELL_RP_LAX);
+  enum gkyl_wv_gr_maxwell_rp rp_type = glua_tbl_get_integer(L, "rpType", WV_GR_MAXWELL_RP_HLL);
 
   gr_maxwell_lw->magic = MOMENT_EQN_DEFAULT;
   gr_maxwell_lw->eqn = gkyl_wv_gr_maxwell_inew( &(struct gkyl_wv_gr_maxwell_inp) {
@@ -583,8 +568,7 @@ eqn_gr_maxwell_tetrad_lw_new(lua_State *L)
   double e_fact = glua_tbl_get_number(L, "elcErrorSpeedFactor", 0.0);
   double b_fact = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
 
-  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
-  enum gkyl_wv_gr_maxwell_tetrad_rp rp_type = gkyl_search_str_int_pair_by_str(gr_maxwell_tetrad_rp_type, rp_str, WV_GR_MAXWELL_TETRAD_RP_LAX);
+  enum gkyl_wv_gr_maxwell_tetrad_rp rp_type = glua_tbl_get_integer(L, "rpType", WV_GR_MAXWELL_TETRAD_RP_HLL);
 
   gr_maxwell_tetrad_lw->magic = MOMENT_EQN_DEFAULT;
   gr_maxwell_tetrad_lw->eqn = gkyl_wv_gr_maxwell_tetrad_inew( &(struct gkyl_wv_gr_maxwell_tetrad_inp) {
