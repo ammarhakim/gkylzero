@@ -638,53 +638,19 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
     gks->m0_max = gkyl_malloc(app->confBasis.num_basis*sizeof(double));
   }
 
-  // by default, we do not have zero-flux boundary conditions in any direction
-  bool is_zero_flux[2*GKYL_MAX_DIM] = {false};
-
-  // Determine which directions are not periodic. If any BCs are zero-flux,
-  // need to set it in is_zero_flux.
-  // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
-  // modify it in GK_IWL BCs without modifying the app's.
-  gks->num_periodic_dir = app->num_periodic_dir;
-  for (int d=0; d<gks->num_periodic_dir; ++d)
-    gks->periodic_dirs[d] = app->periodic_dirs[d];
-
-  for (int d=0; d<app->cdim; ++d) gks->bc_is_np[d] = true;
-  for (int d=0; d<gks->num_periodic_dir; ++d)
-    gks->bc_is_np[gks->periodic_dirs[d]] = false;
-
   for (int dir=0; dir<app->cdim; ++dir) {
-    gks->lower_bc[dir].type = gks->upper_bc[dir].type = GKYL_SPECIES_COPY;
-    if (gks->bc_is_np[dir]) {
-      const struct gkyl_gyrokinetic_bcs *bc;
-      if (dir == 0)
-        bc = &gks->info.bcx;
-      else if (dir == 1)
-        bc = &gks->info.bcy;
-      else
-        bc = &gks->info.bcz;
-
-      gks->lower_bc[dir] = bc->lower;
-      gks->upper_bc[dir] = bc->upper;
-      if (gks->lower_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
-        is_zero_flux[dir] = true;
-      }
-      if (gks->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
-        is_zero_flux[dir+pdim] = true;
-      }
-      if (gks->lower_bc[dir].type == GKYL_SPECIES_GK_IWL || gks->upper_bc[dir].type == GKYL_SPECIES_GK_IWL) {
-        // Make the parallel direction periodic so that we sync the core before
-        // applying sheath BCs in the SOL.
-        gks->periodic_dirs[gks->num_periodic_dir] = app->cdim-1; // The last direction is the parallel one.
-        gks->num_periodic_dir += 1;
-        // Check that the LCFS is the same on both BCs and that it's on a cell boundary within our grid.
-        double xLCFS = gks->lower_bc[dir].aux_parameter;
-        assert(fabs(xLCFS-gks->upper_bc[dir].aux_parameter) < 1e-14);
-        // Check the split happens within the domain and at a cell boundary.
-        assert((app->grid.lower[0]<xLCFS) && (xLCFS<app->grid.upper[0]));
-        double needint = (xLCFS-app->grid.lower[0])/app->grid.dx[0];
-        assert(floor(fabs(needint-floor(needint))) < 1.);
-      }
+    if (gks->lower_bc[dir].type == GKYL_SPECIES_GK_IWL || gks->upper_bc[dir].type == GKYL_SPECIES_GK_IWL) {
+      // Make the parallel direction periodic so that we sync the core before
+      // applying sheath BCs in the SOL.
+      gks->periodic_dirs[gks->num_periodic_dir] = app->cdim-1; // The last direction is the parallel one.
+      gks->num_periodic_dir += 1;
+      // Check that the LCFS is the same on both BCs and that it's on a cell boundary within our grid.
+      double xLCFS = gks->lower_bc[dir].aux_parameter;
+      assert(fabs(xLCFS-gks->upper_bc[dir].aux_parameter) < 1e-14);
+      // Check the split happens within the domain and at a cell boundary.
+      assert((app->grid.lower[0]<xLCFS) && (xLCFS<app->grid.upper[0]));
+      double needint = (xLCFS-app->grid.lower[0])/app->grid.dx[0];
+      assert(floor(fabs(needint-floor(needint))) < 1.);
     }
   }
   
@@ -707,10 +673,10 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
     gk_species_react_init(app, gks, gks->info.react_neut, &gks->react_neut, false);
   }
 
-  // determine radiation type to use in gyrokinetic update
+  // Determine radiation type to use in gyrokinetic update.
   gks->rad = (struct gk_rad_drag) { };
 
-  // initialize diffusion if present
+  // Initialize diffusion if present.
   gks->has_diffusion = false;  
   if (gks->info.diffusion.num_diff_dir) {
     gks->has_diffusion = true;
@@ -731,6 +697,18 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
     }
     // Multiply diffD by g^xx*jacobgeo.
     gkyl_dg_mul_op(app->confBasis, 0, gks->diffD, 0, app->gk_geom->gxxj, 0, gks->diffD);
+
+    // By default, we do not have zero-flux boundary conditions in any direction
+    // Determine which directions are zero-flux.
+    bool is_zero_flux[2*GKYL_MAX_DIM] = {false};
+    for (int dir=0; dir<app->cdim; ++dir) {
+      if (gks->lower_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
+        is_zero_flux[dir] = true;
+      }
+      if (gks->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
+        is_zero_flux[dir+pdim] = true;
+      }
+    }
 
     gks->diff_slvr = gkyl_dg_updater_diffusion_gyrokinetic_new(&gks->grid, &app->basis, &app->confBasis, 
       false, diff_dir, diffusion_order, &app->local, is_zero_flux, app->use_gpu);
@@ -1221,7 +1199,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   int alpha_surf_sz = (cdim+1)*surf_basis.num_basis;
   int sgn_alpha_surf_sz = (cdim+1)*surf_quad_basis.num_basis; // sign(alpha) is store at quadrature points
 
-  // allocate arrays to store fields: 
+  // Allocate arrays to store fields:
   // 1. alpha_surf (surface phase space flux)
   // 2. sgn_alpha_surf (sign(alpha_surf) at quadrature points)
   // 3. const_sgn_alpha (boolean for if sign(alpha_surf) is a constant, either +1 or -1)
@@ -1236,8 +1214,46 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->calc_gk_vars = gkyl_dg_calc_gyrokinetic_vars_new(&gks->grid, &app->confBasis, &app->basis, 
     gks->info.charge, gks->info.mass, gks->gkmodel_id, app->gk_geom, gks->vel_map, app->use_gpu);
 
-  // by default, we do not have zero-flux boundary conditions in any direction
+  // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
+  // modify it in GK_IWL BCs without modifying the app's.
+  gks->num_periodic_dir = app->num_periodic_dir;
+  for (int d=0; d<gks->num_periodic_dir; ++d)
+    gks->periodic_dirs[d] = app->periodic_dirs[d];
+
+  for (int d=0; d<app->cdim; ++d) gks->bc_is_np[d] = true;
+  for (int d=0; d<gks->num_periodic_dir; ++d)
+    gks->bc_is_np[gks->periodic_dirs[d]] = false;
+
   bool is_zero_flux[2*GKYL_MAX_DIM] = {false};
+  if (!gks->info.is_static) {
+    // Store the BCs from the input file.
+    for (int dir=0; dir<app->cdim; ++dir) {
+      gks->lower_bc[dir].type = gks->upper_bc[dir].type = GKYL_SPECIES_COPY;
+      if (gks->bc_is_np[dir]) {
+        const struct gkyl_gyrokinetic_bcs *bc;
+        if (dir == 0)
+          bc = &gks->info.bcx;
+        else if (dir == 1)
+          bc = &gks->info.bcy;
+        else
+          bc = &gks->info.bcz;
+  
+        gks->lower_bc[dir] = bc->lower;
+        gks->upper_bc[dir] = bc->upper;
+      }
+    }
+  
+    // Determine which directions are zero-flux.  By default
+    // we do not have zero-flux boundary conditions in any direction.
+    for (int dir=0; dir<app->cdim; ++dir) {
+      if (gks->lower_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
+        is_zero_flux[dir] = true;
+      }
+      if (gks->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
+        is_zero_flux[dir+pdim] = true;
+      }
+    }
+  }
 
   struct gkyl_dg_gyrokinetic_auxfields aux_inp = { .alpha_surf = gks->alpha_surf, 
     .sgn_alpha_surf = gks->sgn_alpha_surf, .const_sgn_alpha = gks->const_sgn_alpha, 
