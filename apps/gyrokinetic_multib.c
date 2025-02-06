@@ -110,6 +110,65 @@ gyrokinetic_multib_data_write(const char *fname, struct gyrokinetic_multib_outpu
   return status;
 }
 
+// Translates gyrokinetic bc type into species bc type
+static int
+choose_species_bc_type(enum gkyl_gyrokinetic_bc_type bc_type)
+{
+  switch (bc_type) {
+    case GKYL_BC_GK_SKIP:
+      return 1;
+      break;
+    case GKYL_BC_GK_SPECIES_REFLECT:
+      return 2;
+      break;
+    case GKYL_BC_GK_SPECIES_ABSORB:
+      return 3;
+      break;
+    case GKYL_BC_GK_SPECIES_FUNC:
+      return 6;
+      break;
+    case GKYL_BC_GK_SPECIES_FIXED_FUNC:
+      return 7;
+      break;
+    case GKYL_BC_GK_SPECIES_EMISSION:
+      return 8;
+      break;
+    case GKYL_BC_GK_SPECIES_ZERO_FLUX:
+      return 9;
+      break;
+    case GKYL_BC_GK_SPECIES_GK_SHEATH:
+      return 10;
+      break;
+    case GKYL_BC_GK_SPECIES_RECYCLE:
+      return 11;
+      break;
+    case GKYL_BC_GK_SPECIES_GK_IWL:
+      return 12;
+      break;
+    default:
+      assert(false);
+      break;
+  }
+}
+
+// Translates gyrokinetic bc type into field bc type
+static int
+choose_field_bc_type(enum gkyl_gyrokinetic_bc_type bc_type)
+{
+  switch (bc_type) {
+    case GKYL_BC_GK_FIELD_DIRICHLET:
+      return 1;
+      break;
+    case GKYL_BC_GK_FIELD_NEUMANN:
+      return 2;
+      break;
+    default:
+      assert(false);
+      break;
+  }
+}
+
+
 // construct single-block App geometry for given block ID
 static struct gkyl_gyrokinetic_app *
 singleb_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
@@ -253,29 +312,54 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     for (int i=0; i<sp->num_physical_bcs; ++i) {
       if (bid == sp->bcs[i].bidx) {
 
+        int bc_type = choose_species_bc_type(sp->bcs[i].bc_type);
         int e = sp->bcs[i].edge;
         if (sp->bcs[i].dir == 0) {
           if (e == 0) {
-            species_inp.bcx.lower.type = sp->bcs[i].bc_type;
+            species_inp.bcx.lower.type = bc_type;
+            species_inp.bcx.lower.aux_profile = sp->bcs[i].aux_profile;
+            species_inp.bcx.lower.aux_ctx = sp->bcs[i].aux_ctx;
+            species_inp.bcx.lower.aux_parameter = sp->bcs[i].aux_parameter;
+            species_inp.bcx.lower.projection = sp->bcs[i].projection;
           }
           else {
-            species_inp.bcx.upper.type = sp->bcs[i].bc_type;
+            species_inp.bcx.upper.type = bc_type;
+            species_inp.bcx.upper.aux_profile = sp->bcs[i].aux_profile;
+            species_inp.bcx.upper.aux_ctx = sp->bcs[i].aux_ctx;
+            species_inp.bcx.upper.aux_parameter = sp->bcs[i].aux_parameter;
+            species_inp.bcx.upper.projection = sp->bcs[i].projection;
           }
         }
         else if (sp->bcs[i].dir == 1) {
           if (e == 0) {
-            species_inp.bcy.lower.type = sp->bcs[i].bc_type;
+            species_inp.bcy.lower.type = bc_type;
+            species_inp.bcy.lower.aux_profile = sp->bcs[i].aux_profile;
+            species_inp.bcy.lower.aux_ctx = sp->bcs[i].aux_ctx;
+            species_inp.bcy.lower.aux_parameter = sp->bcs[i].aux_parameter;
+            species_inp.bcy.lower.projection = sp->bcs[i].projection;
           }
           else {
-            species_inp.bcy.upper.type = sp->bcs[i].bc_type;
+            species_inp.bcy.upper.type = bc_type;
+            species_inp.bcy.upper.aux_profile = sp->bcs[i].aux_profile;
+            species_inp.bcy.upper.aux_ctx = sp->bcs[i].aux_ctx;
+            species_inp.bcy.upper.aux_parameter = sp->bcs[i].aux_parameter;
+            species_inp.bcy.upper.projection = sp->bcs[i].projection;
           }
         }
         else {
           if (e == 0) {
-            species_inp.bcz.lower.type = sp->bcs[i].bc_type;
+            species_inp.bcz.lower.type = bc_type;
+            species_inp.bcz.lower.aux_profile = sp->bcs[i].aux_profile;
+            species_inp.bcz.lower.aux_ctx = sp->bcs[i].aux_ctx;
+            species_inp.bcz.lower.aux_parameter = sp->bcs[i].aux_parameter;
+            species_inp.bcz.lower.projection = sp->bcs[i].projection;
           }
           else {
-            species_inp.bcz.upper.type = sp->bcs[i].bc_type;
+            species_inp.bcz.upper.type = bc_type;
+            species_inp.bcz.upper.aux_profile = sp->bcs[i].aux_profile;
+            species_inp.bcz.upper.aux_ctx = sp->bcs[i].aux_ctx;
+            species_inp.bcz.upper.aux_parameter = sp->bcs[i].aux_parameter;
+            species_inp.bcz.upper.projection = sp->bcs[i].projection;
           }
         }
       }
@@ -338,29 +422,54 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     for (int i=0; i<nsp->num_physical_bcs; ++i) {
       if (bid == nsp->bcs[i].bidx) {
 
+        int bc_type = choose_species_bc_type(nsp->bcs[i].bc_type);
         int e = nsp->bcs[i].edge;
         if (nsp->bcs[i].dir == 0) {
           if (e == 0) {
-            neut_species_inp.bcx.lower.type = nsp->bcs[i].bc_type;
+            neut_species_inp.bcx.lower.type = bc_type;
+            neut_species_inp.bcx.lower.aux_profile = nsp->bcs[i].aux_profile;
+            neut_species_inp.bcx.lower.aux_ctx = nsp->bcs[i].aux_ctx;
+            neut_species_inp.bcx.lower.aux_parameter = nsp->bcs[i].aux_parameter;
+            neut_species_inp.bcx.lower.projection = nsp->bcs[i].projection;
           }
           else {
-            neut_species_inp.bcx.upper.type = nsp->bcs[i].bc_type;
+            neut_species_inp.bcx.upper.type = bc_type;
+            neut_species_inp.bcx.upper.aux_profile = nsp->bcs[i].aux_profile;
+            neut_species_inp.bcx.upper.aux_ctx = nsp->bcs[i].aux_ctx;
+            neut_species_inp.bcx.upper.aux_parameter = nsp->bcs[i].aux_parameter;
+            neut_species_inp.bcx.upper.projection = nsp->bcs[i].projection;
           }
         }
         else if (nsp->bcs[i].dir == 1) {
           if (e == 0) {
-            neut_species_inp.bcy.lower.type = nsp->bcs[i].bc_type;
+            neut_species_inp.bcy.lower.type = bc_type;
+            neut_species_inp.bcy.lower.aux_profile = nsp->bcs[i].aux_profile;
+            neut_species_inp.bcy.lower.aux_ctx = nsp->bcs[i].aux_ctx;
+            neut_species_inp.bcy.lower.aux_parameter = nsp->bcs[i].aux_parameter;
+            neut_species_inp.bcy.lower.projection = nsp->bcs[i].projection;
           }
           else {
-            neut_species_inp.bcy.upper.type = nsp->bcs[i].bc_type;
+            neut_species_inp.bcy.upper.type = bc_type;
+            neut_species_inp.bcy.upper.aux_profile = nsp->bcs[i].aux_profile;
+            neut_species_inp.bcy.upper.aux_ctx = nsp->bcs[i].aux_ctx;
+            neut_species_inp.bcy.upper.aux_parameter = nsp->bcs[i].aux_parameter;
+            neut_species_inp.bcy.upper.projection = nsp->bcs[i].projection;
           }
         }
         else {
           if (e == 0) {
-            neut_species_inp.bcz.lower.type = nsp->bcs[i].bc_type;
+            neut_species_inp.bcz.lower.type = bc_type;
+            neut_species_inp.bcz.lower.aux_profile = nsp->bcs[i].aux_profile;
+            neut_species_inp.bcz.lower.aux_ctx = nsp->bcs[i].aux_ctx;
+            neut_species_inp.bcz.lower.aux_parameter = nsp->bcs[i].aux_parameter;
+            neut_species_inp.bcz.lower.projection = nsp->bcs[i].projection;
           }
           else {
-            neut_species_inp.bcz.upper.type = nsp->bcs[i].bc_type;
+            neut_species_inp.bcz.upper.type = bc_type;
+            neut_species_inp.bcz.upper.aux_profile = nsp->bcs[i].aux_profile;
+            neut_species_inp.bcz.upper.aux_ctx = nsp->bcs[i].aux_ctx;
+            neut_species_inp.bcz.upper.aux_parameter = nsp->bcs[i].aux_parameter;
+            neut_species_inp.bcz.upper.projection = nsp->bcs[i].projection;
           }
         }
       }
@@ -388,10 +497,11 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   // support passing a value yet.
   for (int d=0; d<cdim-1; d++) {
     for (int k=0; k<fld->num_physical_bcs; k++) { 
+      int bc_type = choose_field_bc_type(fld->bcs[k].bc_type);
       if (fld->bcs[k].edge == GKYL_LOWER_EDGE)
-        field_inp.poisson_bcs.lo_type[d] = fld->bcs[k].bc_type;
+        field_inp.poisson_bcs.lo_type[d] = bc_type;
       if (fld->bcs[k].edge == GKYL_UPPER_EDGE)
-        field_inp.poisson_bcs.up_type[d] = fld->bcs[k].bc_type;
+        field_inp.poisson_bcs.up_type[d] = bc_type;
     }
   }
 

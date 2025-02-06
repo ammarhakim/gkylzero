@@ -388,6 +388,10 @@ $(BUILD_DIR)/kernels/positivity_shift/%.c.o : kernels/positivity_shift/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
+$(BUILD_DIR)/kernels/dg_interpolate/%.c.o : kernels/dg_interpolate/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
 $(BUILD_DIR)/kernels/translate_dim/%.c.o : kernels/translate_dim/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@

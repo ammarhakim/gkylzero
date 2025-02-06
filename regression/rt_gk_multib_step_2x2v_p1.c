@@ -987,41 +987,41 @@ struct gkyl_comm *comm = 0;
   };
 
 
-  struct gkyl_block_physical_bcs elc_phys_bcs[] = {
+  struct gkyl_gyrokinetic_block_physical_bcs elc_phys_bcs[] = {
     // block 0 BCs
-    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
+    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH},
     // block 1 BCs
-    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
+    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH},
     // block 2 BCs
-    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
+    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
     // block 3 BCs
-    { .bidx = 3, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 3, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH },
+    { .bidx = 3, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 3, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH },
     // block 4 BCs
-    { .bidx = 4, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 4, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
+    { .bidx = 4, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 4, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH},
     // block 5 BCs
-    { .bidx = 5, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 5, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH },
+    { .bidx = 5, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 5, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH },
     // block 6 BCs
-    { .bidx = 6, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    { .bidx = 6, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH },
+    { .bidx = 6, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 6, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH },
     // block 7 BCs
-    { .bidx = 7, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
+    { .bidx = 7, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
     // block 8 BCs
-    { .bidx = 8, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    { .bidx = 8, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
+    { .bidx = 8, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 8, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH},
     // block 9 BCs
-    { .bidx = 9, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    { .bidx = 9, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
+    { .bidx = 9, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 9, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH},
     // block 10 BCs
-    //{ .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_FIXED_FUNC},
-    { .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
+    //{ .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_FIXED_FUNC},
+    { .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
     // block 11 BCs
-    //{ .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_FIXED_FUNC},
-    { .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
+    //{ .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_FIXED_FUNC},
+    { .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
   };
 
   struct gkyl_gyrokinetic_multib_species elc = {
@@ -1460,41 +1460,41 @@ struct gkyl_comm *comm = 0;
   };
 
 
-  struct gkyl_block_physical_bcs ion_phys_bcs[] = {
+  struct gkyl_gyrokinetic_block_physical_bcs ion_phys_bcs[] = {
     // block 0 BCs
-    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
+    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH},
     // block 1 BCs
-    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
+    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH},
     // block 2 BCs
-    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
+    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
     // block 3 BCs
-    { .bidx = 3, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 3, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH },
+    { .bidx = 3, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 3, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH },
     // block 4 BCs
-    { .bidx = 4, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 4, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
+    { .bidx = 4, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 4, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH},
     // block 5 BCs
-    { .bidx = 5, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 5, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH },
+    { .bidx = 5, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 5, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH },
     // block 6 BCs
-    { .bidx = 6, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    { .bidx = 6, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH },
+    { .bidx = 6, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 6, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH },
     // block 7 BCs
-    { .bidx = 7, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
+    { .bidx = 7, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
     // block 8 BCs
-    { .bidx = 8, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    { .bidx = 8, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
+    { .bidx = 8, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 8, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH},
     // block 9 BCs
-    { .bidx = 9, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    { .bidx = 9, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
+    { .bidx = 9, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 9, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH},
     // block 10 BCs
-    //{ .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_FIXED_FUNC},
-    { .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
+    //{ .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_FIXED_FUNC},
+    { .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
     // block 11 BCs
-    //{ .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_FIXED_FUNC},
-    { .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
+    //{ .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_FIXED_FUNC},
+    { .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
   };
 
   struct gkyl_gyrokinetic_multib_species ion = {
@@ -1551,41 +1551,41 @@ struct gkyl_comm *comm = 0;
 
   };
 
-  struct gkyl_block_physical_bcs Ar1_phys_bcs[] = {
+  struct gkyl_gyrokinetic_block_physical_bcs Ar1_phys_bcs[] = {
     // block 0 BCs
-    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
+    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH},
     // block 1 BCs
-    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
+    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH},
     // block 2 BCs
-    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
+    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
     // block 3 BCs
-    { .bidx = 3, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 3, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH },
+    { .bidx = 3, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 3, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH },
     // block 4 BCs
-    { .bidx = 4, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 4, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
+    { .bidx = 4, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 4, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH},
     // block 5 BCs
-    { .bidx = 5, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 5, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH },
+    { .bidx = 5, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 5, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH },
     // block 6 BCs
-    { .bidx = 6, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    { .bidx = 6, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH },
+    { .bidx = 6, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 6, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH },
     // block 7 BCs
-    { .bidx = 7, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
+    { .bidx = 7, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
     // block 8 BCs
-    { .bidx = 8, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    { .bidx = 8, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
+    { .bidx = 8, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 8, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH},
     // block 9 BCs
-    { .bidx = 9, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    { .bidx = 9, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
+    { .bidx = 9, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 9, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH},
     // block 10 BCs
-    //{ .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_FIXED_FUNC},
-    { .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
+    //{ .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_FIXED_FUNC},
+    { .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
     // block 11 BCs
-    //{ .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_FIXED_FUNC},
-    { .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
+    //{ .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_FIXED_FUNC},
+    { .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
   };
 
   struct gkyl_gyrokinetic_multib_species Ar1 = {
@@ -1667,41 +1667,41 @@ struct gkyl_comm *comm = 0;
 
   };
 
-  struct gkyl_block_physical_bcs Ar0_phys_bcs[] = {
+  struct gkyl_gyrokinetic_block_physical_bcs Ar0_phys_bcs[] = {
     // block 0 BCs
-    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
+    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
     // block 1 BCs
-    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
+    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
     // block 2 BCs
-    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
+    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
     // block 3 BCs
-    { .bidx = 3, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 3, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
+    { .bidx = 3, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 3, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
     // block 4 BCs
-    { .bidx = 4, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 4, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
+    { .bidx = 4, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 4, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
     // block 5 BCs
-    { .bidx = 5, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
-    { .bidx = 5, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
+    { .bidx = 5, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 5, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
     // block 6 BCs
-    { .bidx = 6, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    { .bidx = 6, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
+    { .bidx = 6, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 6, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
     // block 7 BCs
-    { .bidx = 7, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
+    { .bidx = 7, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
     // block 8 BCs
-    { .bidx = 8, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    { .bidx = 8, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
+    { .bidx = 8, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 8, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
     // block 9 BCs
-    { .bidx = 9, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB },
-    { .bidx = 9, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
+    { .bidx = 9, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 9, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
     // block 10 BCs
-    //{ .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_FIXED_FUNC},
-    { .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
+    //{ .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_FIXED_FUNC},
+    { .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
     // block 11 BCs
-    //{ .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_FIXED_FUNC},
-    { .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_ABSORB},
+    //{ .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_FIXED_FUNC},
+    { .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_ABSORB},
   };
 
   struct gkyl_gyrokinetic_multib_neut_species Ar0 = {
@@ -1727,39 +1727,39 @@ struct gkyl_comm *comm = 0;
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
   };
 
-  struct gkyl_block_physical_bcs field_phys_bcs[] = {
+  struct gkyl_gyrokinetic_block_physical_bcs field_phys_bcs[] = {
     // block 0 BCs
-    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_POISSON_DIRICHLET},
-    //{ .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_POISSON_NONE},
+    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_FIELD_DIRICHLET},
+    //{ .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_FIELD_NONE},
     // block 1 BCs
-    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_POISSON_DIRICHLET},
-    //{ .bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_POISSON_NONE},
+    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_FIELD_DIRICHLET},
+    //{ .bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_FIELD_NONE},
     // block 2 BCs
-    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_POISSON_DIRICHLET},
+    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_FIELD_DIRICHLET},
     // block 3 BCs
-    { .bidx = 3, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_POISSON_DIRICHLET},
-    //{ .bidx = 3, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_POISSON_NONE },
+    { .bidx = 3, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_FIELD_DIRICHLET},
+    //{ .bidx = 3, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_FIELD_NONE },
     // block 4 BCs
-    { .bidx = 4, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_POISSON_DIRICHLET},
-    //{ .bidx = 4, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_POISSON_NONE},
+    { .bidx = 4, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_FIELD_DIRICHLET},
+    //{ .bidx = 4, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_FIELD_NONE},
     // block 5 BCs
-    { .bidx = 5, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_POISSON_DIRICHLET},
-    //{ .bidx = 5, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_POISSON_NONE },
+    { .bidx = 5, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_FIELD_DIRICHLET},
+    //{ .bidx = 5, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_FIELD_NONE },
     // block 6 BCs
-    { .bidx = 6, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_POISSON_DIRICHLET },
-    //{ .bidx = 6, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_POISSON_NONE },
+    { .bidx = 6, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_FIELD_DIRICHLET },
+    //{ .bidx = 6, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_FIELD_NONE },
     // block 7 BCs
-    { .bidx = 7, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_POISSON_DIRICHLET},
+    { .bidx = 7, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_FIELD_DIRICHLET},
     // block 8 BCs
-    { .bidx = 8, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_POISSON_DIRICHLET },
-    //{ .bidx = 8, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_POISSON_NONE},
+    { .bidx = 8, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_FIELD_DIRICHLET },
+    //{ .bidx = 8, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_FIELD_NONE},
     // block 9 BCs
-    { .bidx = 9, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_POISSON_DIRICHLET },
-    //{ .bidx = 9, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_POISSON_NONE},
+    { .bidx = 9, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_FIELD_DIRICHLET },
+    //{ .bidx = 9, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_FIELD_NONE},
     // block 10 BCs
-    { .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_POISSON_NEUMANN},
+    { .bidx = 10, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_FIELD_NEUMANN},
     // block 11 BCs
-    { .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_POISSON_NEUMANN},
+    { .bidx = 11, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_FIELD_NEUMANN},
   };
 
   struct gkyl_gyrokinetic_multib_field field = {
@@ -1772,7 +1772,7 @@ struct gkyl_comm *comm = 0;
 
 
   struct gkyl_gyrokinetic_multib app_inp = {
-    .name = "multib_step_2x2v_p1",
+    .name = "gk_multib_step_2x2v_p1",
 
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .poly_order = 1,
