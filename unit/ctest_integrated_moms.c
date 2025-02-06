@@ -238,9 +238,9 @@ test_2x_option(bool use_gpu)
   int num_mom = 4;
 
   struct gkyl_array *marr = mkarr(use_gpu, num_mom, confLocal_ext.volume);
-  struct gkyl_array *marr_host = marr;
-  if (use_gpu)
-    marr_host = mkarr(false, num_mom, local_ext.volume);  
+  struct gkyl_array *marr_host = use_gpu? marr_host = mkarr(false, marr->ncomp, marr->size)
+                                        : gkyl_array_acquire(marr);
+    
 
   double *red_integ_diag_global;
 
@@ -272,6 +272,7 @@ test_2x_option(bool use_gpu)
   gkyl_array_release(prim_moms);
 
   gkyl_array_release(marr);
+  gkyl_array_release(marr_host);
 
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_udrift);

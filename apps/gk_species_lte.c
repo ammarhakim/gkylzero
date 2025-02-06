@@ -45,7 +45,7 @@ gk_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
       .use_last_converged = use_last_converged, 
       .use_gpu = app->use_gpu,
     };
-    lte->niter = 0; // total number of iterations from correcting moments
+    lte->n_iter = 0; // total number of iterations from correcting moments
     lte->num_corr = 0; // total number of times the correction updater is called
     lte->corr_max = gkyl_gk_maxwellian_correct_inew( &inp_corr );
 
@@ -85,7 +85,7 @@ gk_species_lte_from_moms(gkyl_gyrokinetic_app *app, const struct gk_species *spe
     gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 5, corr_vec, corr_vec_global);    
     gkyl_dynvec_append(lte->corr_stat, app->tcurr, corr_vec_global);
 
-    lte->niter += status_corr.num_iter;
+    lte->n_iter += status_corr.num_iter;
     lte->num_corr += 1;
   } 
 
@@ -106,6 +106,38 @@ gk_species_lte(gkyl_gyrokinetic_app *app, const struct gk_species *species,
     app->gk_geom->jacobgeo, &app->local);  
 
   gk_species_lte_from_moms(app, species, lte, lte->moms.marr);
+}
+
+void
+gk_species_lte_write_max_corr_status(gkyl_gyrokinetic_app* app, struct gk_species *gks)
+{
+  if (gks->lte.correct_all_moms) {
+    struct timespec wst = gkyl_wall_clock();
+
+    int rank;
+    gkyl_comm_get_rank(app->comm, &rank);
+    if (rank == 0) {
+      // write out correction status 
+      const char *fmt = "%s-%s-%s.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, "corr-max-stat");
+      char fileNm[sz+1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "corr-max-stat");
+
+      if (gks->lte.is_first_corr_status_write_call) {
+        // write to a new file (this ensure previous output is removed)
+        gkyl_dynvec_write(gks->lte.corr_stat, fileNm);
+        gks->lte.is_first_corr_status_write_call = false;
+      }
+      else {
+        // append to existing file
+        gkyl_dynvec_awrite(gks->lte.corr_stat, fileNm);
+      }
+    }
+    gkyl_dynvec_clear(gks->lte.corr_stat);
+
+    app->stat.diag_io_tm += gkyl_time_diff_now_sec(wst);
+    app->stat.n_diag_io += 1;    
+  }
 }
 
 void 

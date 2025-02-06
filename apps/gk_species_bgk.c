@@ -104,8 +104,13 @@ gk_species_bgk_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
     gkyl_array_accumulate(bgk->nu_sum, 1.0, bgk->cross_nu[i]);
 
     bgk->cross_moms[i] = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
+    // Host-side copy for I/O of cross moments
+    bgk->cross_moms_host[i] = bgk->cross_moms[i];
+    if (app->use_gpu) {
+      bgk->cross_moms_host[i] = mkarr(false, 3*app->confBasis.num_basis, app->local_ext.volume);
+    }    
   }
-    
+
   bgk->betaGreenep1 = 1.0;
 
   bgk->cross_bgk = gkyl_gyrokinetic_cross_prim_moms_bgk_new(&app->basis, &app->confBasis, app->use_gpu);
@@ -146,7 +151,6 @@ gk_species_bgk_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
 {
   struct timespec wst = gkyl_wall_clock();
   
-  wst = gkyl_wall_clock();  
   for (int i=0; i<bgk->num_cross_collisions; ++i) {
     // Calculate cross_nu if using spitzer nu
     if (bgk->normNu) {
@@ -163,6 +167,7 @@ gk_species_bgk_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
       bgk->cross_nu[i], bgk->other_nu[i], bgk->cross_moms[i]);
 
   }
+
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
 }
 
@@ -205,6 +210,45 @@ gk_species_bgk_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
 }
 
+void
+gk_species_bgk_write_cross_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
+{
+  struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
+      .frame = frame,
+      .stime = tm,
+      .poly_order = app->poly_order,
+      .basis_type = app->confBasis.id
+    }
+  );
+
+  if (gks->bgk.num_cross_collisions && gks->bgk.write_diagnostics) {
+    // Compute self and cross BGK moments
+    gk_species_bgk_moms(app, gks, &gks->bgk, gks->f);
+    gk_species_bgk_cross_moms(app, gks, &gks->bgk, gks->f);
+
+    // Loop over number of cross collisions and write out cross moments for each cross collision
+    for (int i=0; i<gks->bgk.num_cross_collisions; ++i) {
+      // Construct the file handles for cross moments
+      const char *fmt_cross = "%s-%s_cross_moms_%d_%d.gkyl";
+      int sz_cross = gkyl_calc_strlen(fmt_cross, app->name, gks->info.name, frame);
+      char fileNm_cross[sz_cross+1]; // ensures no buffer overflow
+      snprintf(fileNm_cross, sizeof fileNm_cross, fmt_cross, app->name, gks->info.name, i, frame);
+
+      if (app->use_gpu) {
+        gkyl_array_copy(gks->bgk.cross_moms_host[i], gks->bgk.cross_moms[i]);
+      }
+
+      struct timespec wtm = gkyl_wall_clock();
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
+        gks->bgk.cross_moms_host[i], fileNm_cross);
+      app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
+      app->stat.n_diag_io += 1;    
+    }
+  }
+
+  gk_array_meta_release(mt); 
+}
+
 void 
 gk_species_bgk_release(const struct gkyl_gyrokinetic_app *app, const struct gk_bgk_collisions *bgk)
 {
@@ -228,6 +272,9 @@ gk_species_bgk_release(const struct gkyl_gyrokinetic_app *app, const struct gk_b
       gkyl_array_release(bgk->cross_nu[i]);
       gkyl_array_release(bgk->other_nu[i]);
       gkyl_array_release(bgk->cross_moms[i]);
+      if (app->use_gpu) {
+        gkyl_array_release(bgk->cross_moms_host[i]);
+      }
     }
     gkyl_gyrokinetic_cross_prim_moms_bgk_release(bgk->cross_bgk);
   }

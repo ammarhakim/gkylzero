@@ -41,7 +41,7 @@ gk_neut_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_specie
       .eps = iter_eps,
       .use_last_converged = use_last_converged, 
     };
-    lte->niter = 0;
+    lte->n_iter = 0;
     lte->corr_lte = gkyl_vlasov_lte_correct_inew( &inp_corr );
 
     lte->corr_stat = gkyl_dynvec_new(GKYL_DOUBLE, 7);
@@ -80,7 +80,7 @@ gk_neut_species_lte_from_moms(gkyl_gyrokinetic_app *app, const struct gk_neut_sp
     gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 7, corr_vec, corr_vec_global);    
     gkyl_dynvec_append(lte->corr_stat, app->tcurr, corr_vec_global);
 
-    lte->niter += status_corr.num_iter;
+    lte->n_iter += status_corr.num_iter;
   } 
 
   app->stat.neut_species_lte_tm += gkyl_time_diff_now_sec(wst);   
@@ -99,6 +99,38 @@ gk_neut_species_lte(gkyl_gyrokinetic_app *app, const struct gk_neut_species *spe
     app->gk_geom->jacobgeo, &app->local);  
 
   gk_neut_species_lte_from_moms(app, species, lte, lte->moms.marr);
+}
+
+void
+gk_neut_species_lte_write_max_corr_status(gkyl_gyrokinetic_app* app, struct gk_neut_species *gk_ns)
+{
+  if (gk_ns->lte.correct_all_moms) {
+    struct timespec wst = gkyl_wall_clock();
+
+    int rank;
+    gkyl_comm_get_rank(app->comm, &rank);
+    if (rank == 0) {
+      // write out correction status 
+      const char *fmt = "%s-%s-%s.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, gk_ns->info.name, "corr-max-stat");
+      char fileNm[sz+1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, gk_ns->info.name, "corr-max-stat");
+
+      if (gk_ns->lte.is_first_corr_status_write_call) {
+        // write to a new file (this ensure previous output is removed)
+        gkyl_dynvec_write(gk_ns->lte.corr_stat, fileNm);
+        gk_ns->lte.is_first_corr_status_write_call = false;
+      }
+      else {
+        // append to existing file
+        gkyl_dynvec_awrite(gk_ns->lte.corr_stat, fileNm);
+      }
+    }
+    gkyl_dynvec_clear(gk_ns->lte.corr_stat);
+
+    app->stat.neut_diag_io_tm += gkyl_time_diff_now_sec(wst);
+    app->stat.n_neut_diag_io += 1;
+  }
 }
 
 void 

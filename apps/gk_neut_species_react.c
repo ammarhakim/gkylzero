@@ -9,6 +9,7 @@ gk_neut_species_react_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spec
   // initialize information about reactions from input struct
   for (int i=0; i<react->num_react; ++i) 
     react->react_type[i] = inp.react_type[i];
+  react->write_diagnostics = inp.write_diagnostics;
 }
 
 static double
@@ -43,6 +44,7 @@ gk_neut_species_react_get_vt_sq_min(struct gkyl_gyrokinetic_app *app, struct gk_
 void 
 gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_react *react)
 {
+  // react->write_diagnostics = s->info.react_neut.write_diagnostics;
   // distribution function which holds update for each reaction
   // form depend on react->type_self, e.g., for recombination and react->type_self == GKYL_SELF_RECVR
   // react->f_react = n_elc*coeff_react*fmax(n_ion, upar_ion b_i, vt_ion^2)
@@ -297,6 +299,82 @@ gk_neut_species_react_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
       1.0, react->coeff_react[i], react->f_react, &app->local, &s->local);  
   }
   app->stat.neut_species_react_tm += gkyl_time_diff_now_sec(wst);
+}
+
+void
+gk_neut_species_react_write(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, struct gk_react *gkr,
+  int ridx, double tm, int frame)
+{
+  // React diagnostics usually written from gk_species.
+  // In the case of static gk_species, write_diagnostics flag
+  // can be used to check reaction rates from gk_neut_species.
+  if (gkr->write_diagnostics) {
+    struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
+        .frame = frame,
+        .stime = tm,
+        .poly_order = app->poly_order,
+        .basis_type = app->confBasis.id
+      }
+    );
+
+    // Compute reaction rate
+    const struct gkyl_array *fin[app->num_species];
+    const struct gkyl_array *fin_neut[app->num_neut_species];
+    for (int i=0; i<app->num_species; ++i) {
+      fin[i] = app->species[i].f;
+    }
+    for (int i=0; i<app->num_neut_species; ++i) {
+      fin_neut[i] = app->neut_species[i].f;
+    }
+    gk_neut_species_react_cross_moms(app, gkns, gkr, fin, fin_neut);
+    
+    if (app->use_gpu) {
+      gkyl_array_copy(gkr->coeff_react_host[ridx], gkr->coeff_react[ridx]);
+    }
+    
+    if (gkr->react_id[ridx] == GKYL_REACT_IZ) {
+      const char *fmt = "%s-%s_%s_%s_iz_react_%d.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, gkns->info.name,
+        gkr->react_type[ridx].elc_nm, gkr->react_type[ridx].ion_nm, frame);
+      char fileNm[sz+1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, gkns->info.name,
+       gkr->react_type[ridx].elc_nm, gkr->react_type[ridx].ion_nm, frame);
+  
+      struct timespec wtm = gkyl_wall_clock();
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, 
+        gkr->coeff_react_host[ridx], fileNm);
+      app->stat.neut_diag_io_tm += gkyl_time_diff_now_sec(wtm);
+    }
+    if (gkr->react_id[ridx] == GKYL_REACT_RECOMB) {
+      const char *fmt = "%s-%s_%s_%s_recomb_react_%d.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, gkns->info.name,
+        gkr->react_type[ridx].elc_nm, gkr->react_type[ridx].ion_nm, frame);
+      char fileNm[sz+1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, gkns->info.name,
+        gkr->react_type[ridx].elc_nm, gkr->react_type[ridx].ion_nm, frame);
+  
+      struct timespec wtm = gkyl_wall_clock();
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, 
+        gkr->coeff_react_host[ridx], fileNm);
+      app->stat.neut_diag_io_tm += gkyl_time_diff_now_sec(wtm);
+    }
+    if (gkr->react_id[ridx] == GKYL_REACT_CX) {
+      const char *fmt = "%s-%s_%s_cx_react_%d.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, gkns->info.name,
+        gkr->react_type[ridx].ion_nm, frame);
+      char fileNm[sz+1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, gkns->info.name,
+        gkr->react_type[ridx].ion_nm, frame);
+      
+      struct timespec wtm = gkyl_wall_clock();
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, 
+        gkr->coeff_react_host[ridx], fileNm);
+      app->stat.neut_diag_io_tm += gkyl_time_diff_now_sec(wtm);
+    }
+    app->stat.n_neut_diag_io += 1;
+    
+    gk_array_meta_release(mt); 
+  }
 }
 
 void 

@@ -163,16 +163,17 @@ struct gkyl_gyrokinetic_react_type {
   double elc_mass; // mass of electron in reaction
   double partner_mass; // mass of neutral in cx reaction
   double vt_sq_ion_min;
-  double vt_sq_partner_min; 
+  double vt_sq_partner_min;
 };
 
-// Parameters for species radiation
+// Parameters for species reaction
 struct gkyl_gyrokinetic_react {
   int num_react; // number of reactions
   // 3 types of reactions supported currently
   // Ionization, Charge exchange, and Recombination
   // GKYL_MAX_SPECIES number of reactions supported per species (8 different reactions)
   struct gkyl_gyrokinetic_react_type react_type[GKYL_MAX_REACT];
+  bool write_diagnostics; // used to write diagnostics from neutral species
 };
 
 struct gkyl_gyrokinetic_ic_import {
@@ -378,31 +379,39 @@ struct gkyl_gyrokinetic_stat {
   double neut_species_react_mom_tm; // total time to compute various moments needed in neutral reactions
   double neut_species_react_tm; // total time for neutral reactions updaters
 
-  long niter_corr[GKYL_MAX_SPECIES]; // total number of iterations used to correct species LTE projection
+  long n_iter_corr[GKYL_MAX_SPECIES]; // total number of iterations used to correct species LTE projection
   long num_corr[GKYL_MAX_SPECIES]; // total number of times correction updater for species LTE projection is called
-  long neut_niter_corr[GKYL_MAX_SPECIES]; // total number of iterations used to correct neutral species LTE projection
+  long neut_n_iter_corr[GKYL_MAX_SPECIES]; // total number of iterations used to correct neutral species LTE projection
   long neut_num_corr[GKYL_MAX_SPECIES]; // total number of times correction updater for neutral species LTE projection is called
 
   double species_bc_tm; // time to compute species BCs
-  long nspecies_omega_cfl; // number of times CFL-omega all-reduce is called
+  long n_species_omega_cfl; // number of times CFL-omega all-reduce is called
   double species_omega_cfl_tm; // time spent in all-reduce for omega-cfl
-  long ndiag; // total number of calls to diagnostics
+  long n_mom; // total number of calls to moment updater routines
+  long n_diag; // total number of calls to diagnostics
   double diag_tm; // total time to compute diagnostics
-  long nio; // number of calls to IO
+  long n_io; // number of calls to IO
   double io_tm; // time to perform IO
+  long n_diag_io; // number of calls to IO for diagnostics
+  double diag_io_tm; // time to perform IO for diagnostics
 
   double neut_species_bc_tm; // time to compute neutral species BCs
-  long nneut_species_omega_cfl; // number of times CFL-omega all-reduce is called for neutrals
+  long n_neut_species_omega_cfl; // number of times CFL-omega all-reduce is called for neutrals
   double neut_species_omega_cfl_tm; // time spent in all-reduce for omega-cfl for neutrals
-  long nneut_diag; // total number of calls to diagnostics for neutral species
+  long n_neut_mom; // total number of calls to neutrals moment updater routines
+  long n_neut_diag; // total number of calls to diagnostics for neutral species
   double neut_diag_tm; // total time to compute diagnostics for neutral species
-  long nneut_io; // number of calls to IO neutral species
+  long n_neut_io; // number of calls to IO for neutral species
   double neut_io_tm; // time to perform IO for neutral species
+  long n_neut_diag_io; // number of calls to IO for neutral species diagnostics
+  double neut_diag_io_tm; // time to perform IO for neutral species diagnostics
 
-  long nfield_diag; // total number of calls to diagnostics for field
+  long n_field_diag; // total number of calls to diagnostics for field
   double field_diag_tm; // total time to compute diagnostics for field 
-  long nfield_io; // number of calls to IO for field
+  long n_field_io; // number of calls to IO for field
   double field_io_tm; // time to perform IO for field
+  long n_field_diag_io; // number of calls to IO for field diagnostics
+  double field_diag_io_tm; // time to perform IO for field diagnostics
 };
 
 // Object representing gk app
@@ -672,9 +681,6 @@ void gkyl_gyrokinetic_app_write_species_lbo_mom(gkyl_gyrokinetic_app *app, int s
 
 /**
  * Write BGK cross collisional moments for species to file.
- * In general there are num_cross_collisions number of moments, 
- * *but we only write out the first cross moments by default*. 
- * This write method could be generalized to write out any number of moments.
  * 
  * @param app App object.
  * @param sidx Index of species to write.
@@ -688,18 +694,18 @@ void gkyl_gyrokinetic_app_write_species_bgk_cross_mom(gkyl_gyrokinetic_app *app,
  * Correct Maxwellian status is appended to the same file.
  * 
  * @param app App object.
- * @param sidx Index of species whose BGK Maxwellian correction status to write.
+ * @param sidx Index of species whose Maxwellian correction status to write.
  */
-void gkyl_gyrokinetic_app_write_species_max_corr_status(gkyl_gyrokinetic_app *app, int sidx);
+void gkyl_gyrokinetic_app_write_species_lte_max_corr_status(gkyl_gyrokinetic_app *app, int sidx);
 
 /**
  * Write neutral species integrated correct Maxwellian status of the to file. 
  * Correct Maxwellian status is appended to the same file.
  * 
  * @param app App object.
- * @param sidx Index of neutral species to write.
+ * @param sidx Index of neutral species whose Maxwellian correction status to write.
  */
-void gkyl_gyrokinetic_app_write_neut_species_max_corr_status(gkyl_gyrokinetic_app *app, int sidx);
+void gkyl_gyrokinetic_app_write_neut_species_lte_max_corr_status(gkyl_gyrokinetic_app *app, int sidx);
 
 /**
  * Write radiation drag coefficients for species to file.
