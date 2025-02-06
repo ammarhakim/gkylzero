@@ -284,6 +284,10 @@ struct gkyl_gyrokinetic_field {
   // Interface to read a potential from file.
   struct gkyl_gyrokinetic_ic_import init_from_file;
 
+  // Profile for the field at t=0.
+  void (*init_field_profile)(double t, const double *xn, double *out, void *ctx);
+  void *init_field_profile_ctx;
+
   void *phi_wall_lo_ctx; // context for biased wall potential on lower wall
   // pointer to biased wall potential on lower wall function
   void (*phi_wall_lo)(double t, const double *xn, double *phi_wall_lo_out, void *ctx);

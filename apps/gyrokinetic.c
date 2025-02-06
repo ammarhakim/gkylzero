@@ -722,10 +722,14 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
     // Compute the field.
     // MF 2024/09/27/: Need the cast here for consistency. Fixing
     // this may require removing 'const' from a lot of places.
-    if (app->field->info.init_from_file.type == 0)
+    if (app->field->info.init_from_file.type == 0 && app->field->info.init_field_profile == 0)
       gyrokinetic_calc_field_update(app, t0, (const struct gkyl_array **) distf);
-    else
-      gk_field_file_import_init(app, app->field->info.init_from_file);
+    else {
+      if (app->field->info.init_field_profile == 0)
+        gk_field_project_init(app);
+      else
+        gk_field_file_import_init(app, app->field->info.init_from_file);
+    }
 
   }
 

@@ -2131,6 +2131,13 @@ void gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field);
 void gk_field_file_import_init(struct gkyl_gyrokinetic_app *app, struct gkyl_gyrokinetic_ic_import inp);
 
 /**
+ * Project the initial field using a user provided function.
+ *
+ * @param app Gyrokinetic app.
+ */
+void gk_field_project_init(struct gkyl_gyrokinetic_app *app);
+
+/**
  * Compute field energy diagnostic
  *
  * @param app gyrokinetic app object

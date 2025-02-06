@@ -407,6 +407,7 @@ header_from_file(gkyl_gyrokinetic_app *app, const char *fname)
   
   return rstat;
 }
+
 void
 gk_field_file_import_init(struct gkyl_gyrokinetic_app *app, struct gkyl_gyrokinetic_ic_import inp)
 {
@@ -416,11 +417,21 @@ gk_field_file_import_init(struct gkyl_gyrokinetic_app *app, struct gkyl_gyrokine
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
     struct gkyl_app_restart_status rstat;
     rstat.io_status = gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->field->phi_host, inp.file_name);
-    if (app->use_gpu)
-      gkyl_array_copy(app->field->phi_smooth, app->field->phi_host);
+    gkyl_array_copy(app->field->phi_smooth, app->field->phi_host);
   }
   else
     assert(false);
+}
+
+void
+gk_field_project_init(struct gkyl_gyrokinetic_app *app)
+{
+  // Project the initial field.
+  struct gkyl_eval_on_nodes *phi_proj = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis,
+    1, app->field->info.init_field_profile, app->field->info.init_field_profile_ctx);
+  gkyl_eval_on_nodes_advance(phi_proj, 0.0, &app->local, app->field->phi_host);
+  gkyl_eval_on_nodes_release(phi_proj);
+  gkyl_array_copy(app->field->phi_smooth, app->field->phi_host);
 }
 
 void
