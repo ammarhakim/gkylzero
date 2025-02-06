@@ -95,6 +95,7 @@ gk_species_bflux_rhs_diag(gkyl_gyrokinetic_app *app, const struct gk_species *sp
         // Fill the ghost with the skin evaluated at the boundary.
         gkyl_bc_basic_advance(app->bc_op[2*d+e], app->bc_buffer, app->field->phi_smooth);
       }
+      gkyl_array_scale_range(app->field->phi_smooth, 0.5, e==0? &app->lower_ghost[d] : &app->upper_ghost[d]);
 
       // Ghost cells of the rhs array are filled with the bflux
       // This is overwritten by the boundary conditions and is not being stored,

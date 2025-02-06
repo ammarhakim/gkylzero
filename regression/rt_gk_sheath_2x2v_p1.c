@@ -520,6 +520,17 @@ bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, 
 }
 
 void
+init_field(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
+  double x = xn[0], z = xn[1];
+
+  double Lx = app->Lx;
+
+  fout[0] = 140; //-1.4*cos((M_PI/Lx)*x+M_PI);
+}
+
+void
 calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_gyrokinetic_app* app, double t_curr, bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
@@ -662,6 +673,7 @@ main(int argc, char **argv)
     .upper = { ctx.vpar_max_elc, ctx.mu_max_elc },
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
+    .no_by = true,
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
@@ -719,6 +731,7 @@ main(int argc, char **argv)
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion },
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0, 
+    .no_by = true,
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -779,12 +792,14 @@ main(int argc, char **argv)
       .lo_value = { 0.0 },
       .up_value = { 0.0 },
     },
-    .is_static = true,
+//    .is_static = true,
 //    .zero_init_field = true,
-    .init_from_file = {
-      .file_name = "gk_sheath_2x2v_p1_cfl0p5-field_1.gkyl",
-      .type = GKYL_IC_IMPORT_F,
-    },
+//    .init_from_file = {
+//      .file_name = "gk_sheath_2x2v_p1_cfl0p5-field_1.gkyl",
+//      .type = GKYL_IC_IMPORT_F,
+//    },
+//    .init_field_profile = init_field,
+//    .init_field_profile_ctx = &ctx,
   };
 
   // Gyrokinetic app.
