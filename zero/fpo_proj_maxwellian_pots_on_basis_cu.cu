@@ -331,8 +331,7 @@ gkyl_proj_dgdv_on_basis_surf_quad_ker(struct gkyl_rect_grid phase_grid,
 
     double *dgdv_surf_q = (double *)gkyl_array_fetch(fpo_dgdv_surf_quad, linp);
 
-    // Iterate over velocity directions for H, dH/dv, G, d2G/dv2 at each dir1 domain boundary
-    // Derivatives dH/dv and d2G/dv2 are normal to surface
+    // Compute dG/dv in transverse directions at each boundary surface
     for (int d1=0; d1<vdim; ++d1) {
       int dir1 = d1 + cdim;
       bool is_edge_in_dir1 = 0;
@@ -431,7 +430,6 @@ gkyl_proj_maxwellian_pots_on_basis_advance_cu(const gkyl_proj_maxwellian_pots_on
     up->pot_surf_quad->on_dev, up->pot_deriv_surf_quad->on_dev);
 
   gkyl_mat_mm_array(up->surf_quad_nodal_to_modal_mem, up->pot_surf_quad, up->sol_pot_surf_modal);
-  gkyl_array_clear(fpo_h_surf, 0.0);
   gkyl_array_accumulate(fpo_h_surf, 1.0, up->sol_pot_surf_modal);
   gkyl_mat_mm_array(up->surf_quad_nodal_to_modal_mem, up->pot_deriv_surf_quad, up->sol_pot_surf_modal);
   gkyl_array_accumulate(fpo_dhdv_surf, 1.0, up->sol_pot_surf_modal);
@@ -479,7 +477,7 @@ gkyl_proj_maxwellian_pots_on_basis_cu_ho_new(const struct gkyl_rect_grid *grid,
 
   if (phase_basis->poly_order == 1) {
     gkyl_cart_modal_hybrid(&up->surf_basis, up->cdim, vdim-1);
-    up->surf_basis_dev = gkyl_cart_modal_hybrid_cu_dev_new(up->cdim, vdim);
+    up->surf_basis_dev = gkyl_cart_modal_hybrid_cu_dev_new(up->cdim, vdim-1);
   } else {
     gkyl_cart_modal_serendip(&up->surf_basis, up->pdim-1, phase_basis->poly_order);
     up->surf_basis_dev = gkyl_cart_modal_serendip_cu_dev_new(up->pdim-1, phase_basis->poly_order);

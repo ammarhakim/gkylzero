@@ -51,7 +51,7 @@ gkyl_fpo_coeff_correct_copy_sol_cu_ker(gkyl_fpo_coeff_correct *up,
     long linc = gkyl_range_idx(&conf_range, cidx);
 
     double *drag_diff_coeff_corrs_d  = (double *)gkyl_array_fetch(drag_diff_coeff_corrs, linc);
-    const struct gkyl_mat out = gkyl_nmat_get(xs, linc-1);
+    const struct gkyl_mat out = gkyl_nmat_get(xs, tid);
     for (size_t i=0; i<N; ++i) {
       drag_diff_coeff_corrs_d[i] = gkyl_mat_get(&out, i, 0);
     }

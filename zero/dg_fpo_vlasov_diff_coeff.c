@@ -72,8 +72,6 @@ void gkyl_calc_fpo_diff_coeff_recovery(const struct gkyl_fpo_vlasov_coeff_recove
       int keri = idx_to_inloup_ker(1, idxc, update_dirs, phase_range->upper);
 
       const double* fpo_g_stencil[3];
-      int idx[3][GKYL_MAX_DIM];
-      int in_grid = 1;
       for (int i=0; i<3; ++i) {
         fpo_g_stencil[i] = gkyl_array_cfetch(fpo_g, linp+offsets[i]);
       }
