@@ -516,7 +516,7 @@ gkyl_vlasov_app_calc_mom(gkyl_vlasov_app* app)
       struct timespec wst = gkyl_wall_clock();
       vm_species_moment_calc(&vm_s->moms[m], vm_s->local, app->local, vm_s->f);
       app->stat.mom_tm += gkyl_time_diff_now_sec(wst);
-      app->stat.nmom += 1;
+      app->stat.n_mom += 1;
     }
   }
 }
@@ -562,7 +562,7 @@ gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
     }
 
     app->stat.mom_tm += gkyl_time_diff_now_sec(wst);
-    app->stat.nmom += 1;
+    app->stat.n_mom += 1;
   }
 
   double avals_fluid[6], avals_fluid_global[6];
@@ -588,7 +588,7 @@ gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
   }
 
   app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-  app->stat.ndiag += 1;
+  app->stat.n_diag += 1;
 }
 
 void
@@ -600,7 +600,7 @@ gkyl_vlasov_app_calc_integrated_L2_f(gkyl_vlasov_app* app, double tm)
     vm_species_calc_L2(app, tm, vm_s);
   }
   app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-  app->stat.ndiag += 1;
+  app->stat.n_diag += 1;
 }
 
 void
@@ -610,14 +610,14 @@ gkyl_vlasov_app_calc_field_energy(gkyl_vlasov_app* app, double tm)
     struct timespec wst = gkyl_wall_clock();
     app->field_energy_calc(app, tm, app->field);
     app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-    app->stat.ndiag += 1;
+    app->stat.n_diag += 1;
   }
 }
 
 void
 gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
 {
-  app->stat.nio += 1;
+  app->stat.n_io += 1;
   struct timespec wtm = gkyl_wall_clock();
   
   if (app->has_field)
@@ -1268,19 +1268,19 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
     gkyl_vlasov_app_cout(app, fp, " current_tm : %lg,\n", stat.current_tm);
   }
 
-  gkyl_vlasov_app_cout(app, fp, " nmom : %ld,\n", stat.nmom);
+  gkyl_vlasov_app_cout(app, fp, " nmom : %ld,\n", stat.n_mom);
   gkyl_vlasov_app_cout(app, fp, " mom_tm : %lg\n", stat.mom_tm);
 
-  gkyl_vlasov_app_cout(app, fp, " ndiag : %ld,\n", stat.ndiag);
+  gkyl_vlasov_app_cout(app, fp, " ndiag : %ld,\n", stat.n_diag);
   gkyl_vlasov_app_cout(app, fp, " diag_tm : %lg\n", stat.diag_tm);
   
-  gkyl_vlasov_app_cout(app, fp, " nspecies_omega_cfl : %ld,\n", stat.nspecies_omega_cfl);
+  gkyl_vlasov_app_cout(app, fp, " nspecies_omega_cfl : %ld,\n", stat.n_species_omega_cfl);
   gkyl_vlasov_app_cout(app, fp, " species_omega_cfl_tm : %lg\n", stat.species_omega_cfl_tm);
 
-  gkyl_vlasov_app_cout(app, fp, " nfield_omega_cfl : %ld,\n", stat.nfield_omega_cfl);
+  gkyl_vlasov_app_cout(app, fp, " nfield_omega_cfl : %ld,\n", stat.n_field_omega_cfl);
   gkyl_vlasov_app_cout(app, fp, " field_omega_cfl_tm : %lg\n", stat.field_omega_cfl_tm);
 
-  gkyl_vlasov_app_cout(app, fp, " nio : %ld,\n", stat.nio);
+  gkyl_vlasov_app_cout(app, fp, " nio : %ld,\n", stat.n_io);
   gkyl_vlasov_app_cout(app, fp, " io_tm : %lg\n", stat.io_tm);
   
   gkyl_vlasov_app_cout(app, fp, "}\n");
