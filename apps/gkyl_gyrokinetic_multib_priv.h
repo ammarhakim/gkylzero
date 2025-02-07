@@ -90,9 +90,11 @@ struct gk_multib_field {
   struct gkyl_array **rho_c_multibz_smooth;
 
 
-  // Weights for 1D smoothing
-  struct gkyl_array **weight_local;
-  struct gkyl_array **weight_multibz;
+  // Weights for smoothing
+  struct gkyl_array **lhs_weight_local;
+  struct gkyl_array **lhs_weight_multibz;
+  struct gkyl_array **rhs_weight_local;
+  struct gkyl_array **rhs_weight_multibz;
 
 
   struct gkyl_fem_parproj **fem_parproj; // FEM smoothers for projecting DG functions onto continuous FEM basis
