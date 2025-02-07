@@ -93,70 +93,105 @@ apply_periodic_bc(struct gkyl_array *buff, struct gkyl_array *fld, const int dir
   gkyl_array_copy_from_buffer(fld, buff->data, &(sgr.lower_ghost[dir]));
 }
 
-void check_continuity_2x(struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_basis basis, struct gkyl_array *field)
+static void check_continuity(struct gkyl_range range, struct gkyl_basis basis, struct gkyl_array *field)
 {
-  // Check continuity along last dim in 2x
-  struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, grid.ndim, basis.num_basis);
+  // Check continuity along last dim.
+  assert(basis.poly_order == 1);
+  int ndim = basis.ndim;
+  int pardir = ndim-1;
+  const int num_nodes_perp_max = 4; // 3x p=1.
+  int num_nodes_perp = 1;
+  if (ndim == 2)
+    num_nodes_perp = 2;
+  else if (ndim == 3)
+    num_nodes_perp = 4;
+
+  struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, ndim, basis.num_basis);
   basis.node_list(gkyl_array_fetch(nodes, 0));
-  // Check continuity
-  int idx[3];
-  const double *node_i;
+
+  int idx_up[ndim];
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
   while (gkyl_range_iter_next(&iter)) {
-    if (iter.idx[1] != range.upper[1]) {
-      long lidx = gkyl_range_idx(&range, iter.idx);
-      idx[0] = iter.idx[0];
-      idx[1] = iter.idx[1] + 1;
-      long lidx_up = gkyl_range_idx(&range, idx);
-      double *arr = gkyl_array_fetch(field, lidx);
+    if (iter.idx[pardir] < range.upper[pardir]) {
+      int *idx_lo = iter.idx;
+      for (int d=0; d<pardir; d++)
+        idx_up[d] = idx_lo[d];
+      idx_up[pardir] = idx_lo[pardir] + 1;
+
+      long lidx_lo = gkyl_range_idx(&range, idx_lo);
+      long lidx_up = gkyl_range_idx(&range, idx_up);
+
+      double *arr_lo = gkyl_array_fetch(field, lidx_lo);
       double *arr_up = gkyl_array_fetch(field, lidx_up);
-      node_i  = gkyl_array_cfetch(nodes, 2);
-      double temp1 = basis.eval_expand(node_i, arr);
-      node_i  = gkyl_array_cfetch(nodes, 3);
-      double temp2 = basis.eval_expand(node_i, arr);
-      node_i  = gkyl_array_cfetch(nodes, 0);
-      double temp_up1 = basis.eval_expand(node_i, arr_up);
-      node_i  = gkyl_array_cfetch(nodes, 1);
-      double temp_up2 = basis.eval_expand(node_i, arr_up);
-      TEST_CHECK( gkyl_compare(temp1, temp_up1, 1e-12) );
-      TEST_CHECK( gkyl_compare(temp2, temp_up2, 1e-12) );
+
+      double fn_lo[num_nodes_perp_max], fn_up[num_nodes_perp_max];
+      for (int i=0; i<num_nodes_perp; i++) {
+        const double *node_lo = gkyl_array_cfetch(nodes, num_nodes_perp+i);
+        fn_lo[i] = basis.eval_expand(node_lo, arr_lo);
+      }
+      for (int i=0; i<num_nodes_perp; i++) {
+        const double *node_up = gkyl_array_cfetch(nodes, i);
+        fn_up[i] = basis.eval_expand(node_up, arr_up);
+      }
+      for (int i=0; i<num_nodes_perp; i++) {
+        TEST_CHECK( gkyl_compare(fn_lo[i], fn_up[i], 1e-12) );
+        TEST_MSG( "idx_lo=%d, node %d: lower=%g upper=%g diff=%g\n", idx_lo[0], i, fn_lo[i], fn_up[i], fn_lo[i]-fn_up[i]);
+      }
     }
   }
+  
   gkyl_array_release(nodes);
 }
 
-// Check that two fields have the same boundary values in 2nd dimension in 2x
-void check_bc_2x(struct gkyl_rect_grid grid, struct gkyl_range range,
-  struct gkyl_basis basis, struct gkyl_array *field1, struct gkyl_array *field2)
+void check_dirichlet_bc(struct gkyl_range range, struct gkyl_basis basis,
+  struct gkyl_array *field_dg, struct gkyl_array *field_fem)
 {
-  struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, grid.ndim, basis.num_basis);
-  basis.node_list(gkyl_array_fetch(nodes, 0));
-  // Check continuity
-  int nidx;
-  long lin_nidx;
-  const double *node_i;
-  int remDir[2] = {0,1};
-  int locDir[2] = {0, range.upper[1]};
-  struct gkyl_range defr;
-  gkyl_range_deflate(&defr, &range, remDir, locDir);
+  // Check that two fields have the same boundary values in last dimension.
+  assert(basis.poly_order == 1);
+  int ndim = basis.ndim;
+  int pardir = ndim-1;
+  const int num_nodes_perp_max = 4; // 3x p=1.
+  int num_nodes_perp = 1;
+  if (ndim == 2)
+    num_nodes_perp = 2;
+  else if (ndim == 3)
+    num_nodes_perp = 4;
 
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &defr);
-  while (gkyl_range_iter_next(&iter)) {
-      long lidx = gkyl_range_idx(&defr, iter.idx);
-      double *arr1 = gkyl_array_fetch(field1, lidx);
-      double *arr2 = gkyl_array_fetch(field2, lidx);
-      node_i  = gkyl_array_cfetch(nodes, 2);
-      double temp_11 = basis.eval_expand(node_i, arr1);
-      node_i  = gkyl_array_cfetch(nodes, 3);
-      double temp_12 = basis.eval_expand(node_i, arr1);
-      node_i  = gkyl_array_cfetch(nodes, 2);
-      double temp_21 = basis.eval_expand(node_i, arr2);
-      node_i  = gkyl_array_cfetch(nodes, 3);
-      double temp_22 = basis.eval_expand(node_i, arr2);
-      TEST_CHECK( gkyl_compare(temp_11, temp_21, 1e-12) );
-      TEST_CHECK( gkyl_compare(temp_12, temp_22, 1e-12) );
+  struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, ndim, basis.num_basis);
+  basis.node_list(gkyl_array_fetch(nodes, 0));
+
+  for (int e=0; e<2; e++) {
+
+    struct gkyl_range perp_range;
+    if (e == 0)
+      gkyl_range_shorten_from_above(&perp_range, &range, pardir, 1);
+    else
+      gkyl_range_shorten_from_below(&perp_range, &range, pardir, 1);
+
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &perp_range);
+    while (gkyl_range_iter_next(&iter)) {
+      long lidx = gkyl_range_idx(&range, iter.idx);
+      double *arr_dg = gkyl_array_fetch(field_dg, lidx);
+      double *arr_fem = gkyl_array_fetch(field_fem, lidx);
+
+      double fn_dg[num_nodes_perp_max], fn_fem[num_nodes_perp_max];
+
+      int off = e==0? 0 : num_nodes_perp;
+      for (int i=0; i<num_nodes_perp; i++) {
+        const double *node = gkyl_array_cfetch(nodes, off+i);
+        fn_dg[i] = basis.eval_expand(node, arr_dg);
+      }
+      for (int i=0; i<num_nodes_perp; i++) {
+        const double *node = gkyl_array_cfetch(nodes, off+i);
+        fn_fem[i] = basis.eval_expand(node, arr_fem);
+      }
+      for (int i=0; i<num_nodes_perp; i++) {
+        TEST_CHECK( gkyl_compare(fn_dg[i], fn_fem[i], 1e-12) );
+        TEST_MSG( "idx=%d, node %d: dg=%g fem=%g diff=%g\n", iter.idx[0], i, fn_dg[i], fn_fem[i], fn_dg[i]-fn_fem[i]);
+      }
+    }
   }
   gkyl_array_release(nodes);
 }
@@ -733,8 +768,8 @@ test_2x_dirichlet(int poly_order, bool use_gpu){
   gkyl_fem_parproj_solve(parproj, field);
 
   gkyl_array_copy(field_ho, field);
-  check_continuity_2x(grid, local, basis, field_ho);
-  check_bc_2x(grid, local, basis, field_ho, field_discont_ho);
+  check_continuity(local, basis, field_ho);
+  check_dirichlet_bc(local, basis, field_discont_ho, field_ho);
 
   gkyl_array_release(field);
   gkyl_array_release(field_discont);
@@ -822,7 +857,7 @@ test_2x_weighted(int poly_order, const bool isperiodic, bool use_gpu)
 //  gkyl_grid_sub_array_write(&grid, &localRange, 0, phi_ho, "ctest_fem_parproj_2x_p1_phi_1.gkyl");
 
   // Check that the field is continuous.
-  check_continuity_2x(grid, localRange, basis, phi_ho);
+  check_continuity(localRange, basis, phi_ho);
 
   gkyl_fem_parproj_release(parproj);
   gkyl_proj_on_basis_release(projob);
