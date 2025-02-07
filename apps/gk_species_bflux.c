@@ -25,31 +25,44 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
     gk_species_moment_init(app, gk_s, &bflux->moms_op,
       gk_s->info.integrated_hamiltonian_moments? "HamiltonianMoments" : "FourMoments", false);
 
+    int num_mom = bflux->moms_op.num_mom;
+
     bflux->f = gkyl_malloc((2*app->cdim)*sizeof(struct gkyl_array *));
     bflux->f1 = gkyl_malloc((2*app->cdim)*sizeof(struct gkyl_array *));
     bflux->fnew = gkyl_malloc((2*app->cdim)*sizeof(struct gkyl_array *));
     for (int d=0; d<app->cdim; ++d) {
       for (int e=0; e<2; ++e) {
-        bflux->f[2*d+e] = mkarr(app->use_gpu, bflux->moms_op.num_mom*app->confBasis.num_basis, app->local_ext.volume);
-        bflux->f1[2*d+e] = mkarr(app->use_gpu, bflux->moms_op.num_mom*app->confBasis.num_basis, app->local_ext.volume);
-        bflux->fnew[2*d+e] = mkarr(app->use_gpu, bflux->moms_op.num_mom*app->confBasis.num_basis, app->local_ext.volume);
+        bflux->f[2*d+e] = mkarr(app->use_gpu, num_mom*app->confBasis.num_basis, app->local_ext.volume);
+        bflux->f1[2*d+e] = mkarr(app->use_gpu, num_mom*app->confBasis.num_basis, app->local_ext.volume);
+        bflux->fnew[2*d+e] = mkarr(app->use_gpu, num_mom*app->confBasis.num_basis, app->local_ext.volume);
       }
     }
 
     bflux->integ_op = gkyl_array_integrate_new(&app->grid, &app->confBasis,
-      bflux->moms_op.num_mom, GKYL_ARRAY_INTEGRATE_OP_NONE, app->use_gpu);
+      num_mom, GKYL_ARRAY_INTEGRATE_OP_NONE, app->use_gpu);
     if (app->use_gpu) {
-      bflux->int_moms_local = gkyl_cu_malloc(bflux->moms_op.num_mom*sizeof(double));
-      bflux->int_moms_global = gkyl_cu_malloc(bflux->moms_op.num_mom*sizeof(double));
+      bflux->int_moms_local = gkyl_cu_malloc(num_mom*sizeof(double));
+      bflux->int_moms_global = gkyl_cu_malloc(num_mom*sizeof(double));
     }
     else {
-      bflux->int_moms_local = gkyl_malloc(bflux->moms_op.num_mom*sizeof(double));
-      bflux->int_moms_global = gkyl_malloc(bflux->moms_op.num_mom*sizeof(double));
+      bflux->int_moms_local = gkyl_malloc(num_mom*sizeof(double));
+      bflux->int_moms_global = gkyl_malloc(num_mom*sizeof(double));
     }
     for (int d=0; d<app->cdim; ++d) {
       for (int e=0; e<2; ++e)
-        bflux->intmom[2*d+e] = gkyl_dynvec_new(GKYL_DOUBLE, bflux->moms_op.num_mom);
+        bflux->intmom[2*d+e] = gkyl_dynvec_new(GKYL_DOUBLE, num_mom);
     }
+
+    // Cummulative integrated moments of boundary fluxes.
+    bflux->intmom_cumm_buff = gkyl_malloc(2*app->cdim*num_mom*sizeof(double));
+    for (int d=0; d<app->cdim; ++d) {
+      for (int e=0; e<2; ++e) {
+        bflux->intmom_cumm[2*d+e] = gkyl_dynvec_new(GKYL_DOUBLE, num_mom);
+        for (int k=0; k<num_mom; k++)
+          bflux->intmom_cumm_buff[(2*d+e)*num_mom+k] = 0.0;
+      }
+    }
+
     bflux->is_first_intmom_write_call = true;
   }
 }
@@ -211,8 +224,10 @@ gk_species_bflux_release(const struct gkyl_gyrokinetic_app *app, const struct gk
     for (int d=0; d<app->cdim; ++d) {
       for (int e=0; e<2; ++e) {
         gkyl_dynvec_release(bflux->intmom[2*d+e]);
+        gkyl_dynvec_release(bflux->intmom_cumm[2*d+e]);
       }
     }
+    gkyl_free(bflux->intmom_cumm_buff);
   }
   else {
     for (int d=0; d<app->cdim; ++d) {

@@ -331,6 +331,8 @@ struct gk_boundary_fluxes {
   struct gkyl_array_integrate *integ_op; // Operator that integrates over volume.
   double *int_moms_local, *int_moms_global; // Integrated moments in this time step.
   gkyl_dynvec intmom[2*GKYL_MAX_CDIM]; // Integrated moments of the boundary fluxes.
+  double *intmom_cumm_buff; // Cummulative (in time) integrated moments of the boundary fluxes.
+  gkyl_dynvec intmom_cumm[2*GKYL_MAX_CDIM]; // Cummulative (in time) integrated moments of the boundary fluxes.
   bool is_first_intmom_write_call; // Flag 1st writing of blux_intmom.
 };
 
@@ -459,6 +461,7 @@ struct gk_source {
   struct gk_species_moment integ_moms; // integrated moments
   double *red_integ_diag, *red_integ_diag_global; // for reduction of integrated moments
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
+  gkyl_dynvec integ_diag_cumm; // Cummulative (in time) integrated moments.
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
 };
 

@@ -1068,6 +1068,23 @@ gkyl_gyrokinetic_app_calc_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_
           memcpy(avals_global, gk_s->bflux_diag.int_moms_global, sizeof(double[num_mom]));
         }
         gkyl_dynvec_append(gk_s->bflux_diag.intmom[2*d+e], tm, avals_global);
+
+        // Cummulative (in time) integrated moment of the boundary flux.
+        gkyl_array_integrate_advance(gk_s->bflux_diag.integ_op, gk_s->bflux_diag.f1[2*d+e], 1., 0,
+          e==0? &app->lower_ghost[d] : &app->upper_ghost[d], 0, gk_s->bflux_diag.int_moms_local);
+
+        gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
+          gk_s->bflux_diag.int_moms_local, gk_s->bflux_diag.int_moms_global);
+        if (app->use_gpu) {
+          gkyl_cu_memcpy(avals_global, gk_s->bflux_diag.int_moms_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
+        }
+        else {
+          memcpy(avals_global, gk_s->bflux_diag.int_moms_global, sizeof(double[num_mom]));
+        }
+        for (int k=0; k<num_mom; k++) {
+          gk_s->bflux_diag.intmom_cumm_buff[(2*d+e)*num_mom+k] += avals_global[k];
+        }
+        gkyl_dynvec_append(gk_s->bflux_diag.intmom_cumm[2*d+e], tm, &gk_s->bflux_diag.intmom_cumm_buff[(2*d+e)*num_mom]);
       }
     } 
 
@@ -1122,20 +1139,30 @@ gkyl_gyrokinetic_app_write_species_boundary_flux_integrated_mom(gkyl_gyrokinetic
         for (int e=0; e<2; ++e) {
           // Write integrated moments of the boundary fluxes.
           const char *fmt = "%s-%s_bflux_%s%s_%s.gkyl";
-          int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, vars[d], edge[e], "integrated_moms");
-          char fileNm[sz+1]; // ensures no buffer overflow
-          snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, vars[d], edge[e], "integrated_moms");
+
+          int sz0 = gkyl_calc_strlen(fmt, app->name, gks->info.name, vars[d], edge[e], "integrated_moms");
+          char fileNm0[sz0+1]; // ensures no buffer overflow
+          snprintf(fileNm0, sizeof fileNm0, fmt, app->name, gks->info.name, vars[d], edge[e], "integrated_moms");
+
+          int sz1 = gkyl_calc_strlen(fmt, app->name, gks->info.name, vars[d], edge[e], "integrated_moms_time_integrated");
+          char fileNm1[sz1+1]; // ensures no buffer overflow
+          snprintf(fileNm1, sizeof fileNm1, fmt, app->name, gks->info.name, vars[d], edge[e], "integrated_moms_time_integrated");
     
           struct timespec wtm = gkyl_wall_clock();
-          if (gks->bflux_diag.is_first_intmom_write_call)
-            gkyl_dynvec_write(gks->bflux_diag.intmom[2*d+e], fileNm);
-          else
-            gkyl_dynvec_awrite(gks->bflux_diag.intmom[2*d+e], fileNm);
+          if (gks->bflux_diag.is_first_intmom_write_call) {
+            gkyl_dynvec_write(gks->bflux_diag.intmom[2*d+e], fileNm0);
+            gkyl_dynvec_write(gks->bflux_diag.intmom_cumm[2*d+e], fileNm1);
+          }
+          else {
+            gkyl_dynvec_awrite(gks->bflux_diag.intmom[2*d+e], fileNm0);
+            gkyl_dynvec_awrite(gks->bflux_diag.intmom_cumm[2*d+e], fileNm1);
+          }
 
           app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
           app->stat.nio += 1;
 
           gkyl_dynvec_clear(gks->bflux_diag.intmom[2*d+e]);
+          gkyl_dynvec_clear(gks->bflux_diag.intmom_cumm[2*d+e]);
         }
       }
       if (gks->bflux_diag.is_first_intmom_write_call)
