@@ -349,12 +349,12 @@ gk_species_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, 
     snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name,
       gks->info.diag_moments[m], frame);
     
-    // Rescale moment by inverse of Jacobian if not already re-scaled 
-    if (!gks->moms[m].is_bimaxwellian_moms && !gks->moms[m].is_maxwellian_moms) {
-      gkyl_dg_div_op_range(gks->moms[m].mem_geo, app->confBasis, 
-        0, gks->moms[m].marr, 0, gks->moms[m].marr, 0, 
-        app->gk_geom->jacobgeo, &app->local);  
-    }    
+    // Rescale moment by inverse of Jacobian. 
+    // For Maxwellian and bi-Maxwellian moments, we only need to re-scale
+    // the density (the 0th component).
+    gkyl_dg_div_op_range(gks->moms[m].mem_geo, app->confBasis, 
+      0, gks->moms[m].marr, 0, gks->moms[m].marr, 0, 
+      app->gk_geom->jacobgeo, &app->local);  
       
     if (app->use_gpu) {
       gkyl_array_copy(gks->moms[m].marr_host, gks->moms[m].marr);
