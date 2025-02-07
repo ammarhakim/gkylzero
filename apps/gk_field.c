@@ -68,6 +68,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     assert(app->cdim == 1); // Not yet implemented for cdim>1.
 
   f->epsilon = 0;
+  struct gkyl_array *epsilon_global = 0;
   f->kSq = 0;  // not currently used by fem_perp_poisson
   double polarization_weight = 0.0; 
   double es_energy_fac_1d_adiabatic = 0.0; 
@@ -81,6 +82,9 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     }
   } else {
 
+    // Allocate array for the polarization weight times geometric coefficients.
+    f->epsilon = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->confBasis.num_basis, app->local_ext.volume);
+
     double polarization_bmag = f->info.polarization_bmag ? f->info.polarization_bmag : app->bmag_ref;
     // Linearized polarization density
     for (int i=0; i<app->num_species; ++i) {
@@ -89,13 +93,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     }
     if (app->cdim == 1) {
       // Need to set weight to kperpsq*polarizationWeight for use in potential smoothing.
-      f->epsilon = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume); // fem_parproj expects it on host.
- 
-      // Gather jacobgeo for smoothing in z.
-      struct gkyl_array *jacobgeo_global = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
-      gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->jacobgeo, jacobgeo_global);
-      gkyl_array_copy(f->epsilon, jacobgeo_global);
-
+      gkyl_array_copy(f->epsilon, app->gk_geom->jacobgeo);
       gkyl_array_scale(f->epsilon, polarization_weight);
       gkyl_array_scale(f->epsilon, f->info.kperpSq);
 
@@ -108,8 +106,8 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
         double T_s = f->info.electron_temp;
         double quasineut_contr = q_s*n_s0*q_s/T_s;
         
-        struct gkyl_array *epsilon_adiab = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume); // fem_parproj expects epsilon on host
-        gkyl_array_copy(epsilon_adiab, jacobgeo_global);
+        struct gkyl_array *epsilon_adiab = mkarr(app->use_gpu, f->epsilon->ncomp, f->epsilon->size);
+        gkyl_array_copy(epsilon_adiab, app->gk_geom->jacobgeo);
         gkyl_array_scale(epsilon_adiab, quasineut_contr);
         gkyl_array_accumulate(f->epsilon, 1., epsilon_adiab);
         gkyl_array_release(epsilon_adiab);
@@ -117,12 +115,12 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
         es_energy_fac_1d_adiabatic = 0.5*quasineut_contr; 
       }
 
-      gkyl_array_release(jacobgeo_global);
+      // Gather gather epsilon for (global) smoothing in z.
+      epsilon_global = mkarr(app->use_gpu, f->epsilon->ncomp, app->global_ext.volume);
+      gkyl_comm_array_allgather(app->comm, &app->local, &app->global, f->epsilon, epsilon_global);
     }
     else if (app->cdim > 1) {
-      // set whatever epsilon we need
-      // initialize a the weight to be used by deflated_fem_poisson
-      f->epsilon = mkarr(app->use_gpu, (2*(app->cdim-1)-1)*app->confBasis.num_basis, app->local_ext.volume);
+      // Initialize the polarization weight.
       gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gxxj, 0*app->confBasis.num_basis);
       if (app->cdim > 2) {
         gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gxyj, 1*app->confBasis.num_basis);
@@ -161,8 +159,11 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   } 
   else {
     f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->confBasis,
-      f->info.fem_parbc, app->cdim == 1? f->epsilon : 0, 0, app->use_gpu);
+      f->info.fem_parbc, epsilon_global, 0, app->use_gpu);
   }
+
+  if (epsilon_global)
+    gkyl_array_release(epsilon_global);
 
   f->phi_host = f->phi_smooth;  
   if (app->use_gpu) {

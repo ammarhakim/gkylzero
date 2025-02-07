@@ -499,7 +499,8 @@ blackhole_excision_region(const struct gkyl_gr_spacetime* spacetime, const doubl
 
   if (r <= (mass * (1.0 + sqrt(1.0 - (spin * spin))))) {
     *in_excision_region = true;
-  } else {
+  }
+  else {
     *in_excision_region = false;
   }
 }
