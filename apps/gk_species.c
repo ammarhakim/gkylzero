@@ -364,7 +364,7 @@ gk_species_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, 
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
       gks->moms[m].marr_host, fileNm);
     app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
-    app->stat.n_io += 1;
+    app->stat.n_diag_io += 1;
   }
   
   if (app->enforce_positivity) {

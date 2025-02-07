@@ -825,8 +825,8 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->gyyj        , arr_ho1, "gyyj", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->gxzj        , arr_ho1, "gxzj", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->eps2        , arr_ho1, "eps2", mt);
-  app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
-  app->stat.n_io += 22;
+  app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
+  app->stat.n_diag_io += 22;
 
   // Write out nodes. This has to be done from rank 0 so we need to gather mc2p.
   struct gkyl_array *mc2p_global = mkarr(app->use_gpu, app->gk_geom->mc2p->ncomp, app->global_ext.volume);
@@ -853,8 +853,8 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
 
     struct timespec wtn = gkyl_wall_clock();
     gkyl_grid_sub_array_write(&ngrid, &nrange, 0,  mc2p_nodal, fileNm);
-    app->stat.io_tm += gkyl_time_diff_now_sec(wtn);
-    app->stat.n_io += 1;
+    app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtn);
+    app->stat.n_diag_io += 1;
 
     gkyl_nodal_ops_release(n2m);
     gkyl_array_release(mc2p_nodal);

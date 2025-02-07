@@ -2377,14 +2377,59 @@ gk_app_run(lua_State *L)
     gkyl_gyrokinetic_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
   }  
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
+  // Plasma species timers. 
+  gkyl_gyrokinetic_app_cout(app, stdout, "Species initial conditions took %lg secs\n", stat.init_species_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Species RHS calc took %lg secs\n", stat.species_rhs_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Species LTE computation, including corrections, took %lg secs\n", stat.species_lte_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Species collisional moments took %lg secs\n", stat.species_coll_mom_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Species collisions RHS calc took %lg secs\n", stat.species_coll_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Species radiation moments took %lg secs\n", stat.species_rad_mom_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Species radiation RHS calc took %lg secs\n", stat.species_rad_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Species reaction moments took %lg secs\n", stat.species_react_mom_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Species reaction RHS calc took %lg secs\n", stat.species_react_tm);
 
-  gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
-  gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Species BCs, including parallel communication, took %lg secs\n", stat.species_bc_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of species CFL reduction calls %ld\n", stat.n_species_omega_cfl);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Reducing species CFL took %lg secs\n", stat.species_omega_cfl_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of moment updater calls %ld\n", stat.n_mom);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of diagnostics computed %ld\n", stat.n_diag);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Computing diagnostics too %lg secs\n", stat.diag_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls for phase space fields %ld\n", stat.n_io);
+  gkyl_gyrokinetic_app_cout(app, stdout, "IO time for phase space fields took %lg secs \n", stat.io_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls for configuration space fields %ld\n", stat.n_diag_io);
+  gkyl_gyrokinetic_app_cout(app, stdout, "IO time for configuration space fields took %lg secs \n", stat.diag_io_tm);
+  // Neutral species timers. 
+  if (app->num_neut_species > 0) {
+    gkyl_gyrokinetic_app_cout(app, stdout, "Neutral species initial conditions took %lg secs\n", stat.init_neut_species_tm);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Neutral species RHS calc took %lg secs\n", stat.neut_species_rhs_tm);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Neutral species LTE computation, including corrections, took %lg secs\n", stat.neut_species_lte_tm);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Neutral species collisional moments took %lg secs\n", stat.neut_species_coll_mom_tm);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Neutral species collisions RHS calc took %lg secs\n", stat.neut_species_coll_tm);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Neutral species reaction moments took %lg secs\n", stat.neut_species_react_mom_tm);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Neutral species reaction RHS calc took %lg secs\n", stat.neut_species_react_tm);
+  
+    gkyl_gyrokinetic_app_cout(app, stdout, "Neutral species BCs, including parallel communication, took %lg secs\n", stat.neut_species_bc_tm);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Number of neutral species CFL reduction calls %ld\n", stat.n_neut_species_omega_cfl);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Reducing neutral species CFL took %lg secs\n", stat.neut_species_omega_cfl_tm);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Number of neutral moment updater calls %ld\n", stat.n_neut_mom);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Number of neutral diagnostics computed %ld\n", stat.n_neut_diag);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Computing neutral diagnostics too %lg secs\n", stat.neut_diag_tm);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls for neutrals' phase space fields %ld\n", stat.n_neut_io);
+    gkyl_gyrokinetic_app_cout(app, stdout, "IO time for neutrals' phase space fields took %lg secs \n", stat.neut_io_tm);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls for neutrals' configuration space fields %ld\n", stat.n_neut_diag_io);
+    gkyl_gyrokinetic_app_cout(app, stdout, "IO time for neutrals' configuration space fields took %lg secs \n", stat.neut_diag_io_tm);    
+  }
+  // Field timers. 
+  if (app->field->update_field > 0) {
+    gkyl_gyrokinetic_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Number of field diagnostics computed %ld\n", stat.n_diag);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Computing field diagnostics too %lg secs\n", stat.diag_tm);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls for fields %ld\n", stat.n_field_io);
+    gkyl_gyrokinetic_app_cout(app, stdout, "IO time for fields took %lg secs \n", stat.field_io_tm);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls for fields' diagnostics %ld\n", stat.n_field_diag_io);
+    gkyl_gyrokinetic_app_cout(app, stdout, "IO time for fields' diagonstics took %lg secs \n", stat.field_diag_io_tm);
+  }
+  gkyl_gyrokinetic_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
 freeresources:
 
