@@ -329,11 +329,8 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr
     int frame = (!trig_now) && force_write? iot->curr : iot->curr-1;
 
     gkyl_gyrokinetic_app_write(app, t_curr, frame);
-
     gkyl_gyrokinetic_app_write_field_energy(app);
-
     gkyl_gyrokinetic_app_write_integrated_mom(app);
-
     gkyl_gyrokinetic_app_write_dt(app);
   }
 }
@@ -463,6 +460,7 @@ main(int argc, char **argv)
     
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .integrated_hamiltonian_moments = true,
     .boundary_flux_diagnostics = true,
   };
 
@@ -496,19 +494,19 @@ main(int argc, char **argv)
 //      .num_cross_collisions = 2,
 //      .collide_with = { "elc", "Ar1" },
 //    },
-//    .source = {
-//      .source_id = GKYL_PROJ_SOURCE,
-//      .num_sources = 1,
-//      .projection[0] = {
-//        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
-//        .ctx_density = &ctx,
-//        .density = eval_density_source,
-//        .ctx_upar = &ctx,
-//        .upar= eval_upar_source,
-//        .ctx_temp = &ctx,
-//        .temp = eval_temp_source,      
-//      }, 
-//    },
+    .source = {
+      .source_id = GKYL_PROJ_SOURCE,
+      .num_sources = 1,
+      .projection[0] = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
+        .ctx_density = &ctx,
+        .density = eval_density_source,
+        .ctx_upar = &ctx,
+        .upar= eval_upar_source,
+        .ctx_temp = &ctx,
+        .temp = eval_temp_source,      
+      }, 
+    },
 //    .diffusion = {
 //      .num_diff_dir = 1, 
 //      .diff_dirs = { 0 },
@@ -527,6 +525,7 @@ main(int argc, char **argv)
     
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .integrated_hamiltonian_moments = true,
     .boundary_flux_diagnostics = true,
   };
 
@@ -642,7 +641,7 @@ main(int argc, char **argv)
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
-    .fem_parbc = GKYL_FEM_PARPROJ_NONE, 
+    .fem_parbc = GKYL_FEM_PARPROJ_DIRICHLET, 
     .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET}, 
                     .up_type = {GKYL_POISSON_DIRICHLET}, 
                     .lo_value = {0.0}, .up_value = {0.0}}, 
@@ -676,6 +675,8 @@ main(int argc, char **argv)
     .cells = { cells_x[0], cells_x[1] },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
+    .cfl_frac = 0.5,
+    .cfl_frac_omegaH = 1e10,
     .fdot_diagnostics = true,
 
     .geometry = {

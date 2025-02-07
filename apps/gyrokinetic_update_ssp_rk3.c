@@ -195,8 +195,10 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         else {
           for (int i=0; i<app->num_species; ++i) {
 	    struct gk_species *gks = &app->species[i];
+            // Step f.
 	    gk_species_combine(gks, gks->f1, 1.0/3.0, gks->f, 2.0/3.0, gks->fnew, &gks->local_ext);
 	    gk_species_copy_range(gks, gks->f, gks->f1, &gks->local_ext);
+            // Step boundary fluxes.
             if (gks->info.boundary_flux_diagnostics) {
               gk_species_bflux_combine_range(app, gks, &gks->bflux_diag, gks->bflux_diag.f1,
                 1.0/3.0, gks->bflux_diag.f, 2.0/3.0, gks->bflux_diag.fnew, &app->local_ext);

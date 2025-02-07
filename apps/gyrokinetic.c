@@ -1055,6 +1055,7 @@ gkyl_gyrokinetic_app_calc_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_
   
     for (int d=0; d<app->cdim; ++d) {
       for (int e=0; e<2; ++e) {
+        // Integrated moment of the boundary flux.
         gkyl_array_integrate_advance(gk_s->bflux_diag.integ_op, gk_s->bflux_diag.f[2*d+e], 1., 0,
           e==0? &app->lower_ghost[d] : &app->upper_ghost[d], 0, gk_s->bflux_diag.int_moms_local);
 
@@ -1067,7 +1068,6 @@ gkyl_gyrokinetic_app_calc_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_
           memcpy(avals_global, gk_s->bflux_diag.int_moms_global, sizeof(double[num_mom]));
         }
         gkyl_dynvec_append(gk_s->bflux_diag.intmom[2*d+e], tm, avals_global);
-
       }
     } 
 
