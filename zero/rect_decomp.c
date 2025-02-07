@@ -426,3 +426,42 @@ gkyl_create_ranges(const struct gkyl_range *inrange,
   gkyl_range_init(ext_range, inrange->ndim, lower_ext, upper_ext);
   gkyl_sub_range_init(range, ext_range, lower, upper);  
 }
+
+void
+gkyl_rect_decomp_get_cuts(struct gkyl_rect_decomp* decomp, int* cuts)
+{
+  int ndim = decomp->ndim;
+
+  for (int d=0; d<ndim; d++) {
+    int other_dim_lo[GKYL_MAX_DIM] = {0}, other_dim_up[GKYL_MAX_DIM] = {0};
+    for (int i=0; i<ndim; i++) {
+      if (i != d) {
+        other_dim_lo[i] = decomp->ranges[0].lower[i];
+        other_dim_up[i] = decomp->ranges[0].upper[i];
+      }
+    }
+
+    int cuts_curr = 0, range_idx = 0;
+
+    bool not_reached_upper = true;
+    while (not_reached_upper) {
+      struct gkyl_range range_curr = decomp->ranges[range_idx];
+      bool same_other_lims = true;
+      for (int i=0; i<ndim; i++) {
+        if (i != d) {
+          same_other_lims = same_other_lims &&
+            ((range_curr.lower[i] == other_dim_lo[i]) && (range_curr.upper[i] == other_dim_up[i]));
+        }
+      }
+
+      if (same_other_lims) {
+        cuts_curr++;
+        if (range_curr.upper[d] == decomp->parent_range.upper[d])
+          not_reached_upper = false;
+      }
+
+      range_idx++;
+    }
+    cuts[d] = cuts_curr;
+  }
+}

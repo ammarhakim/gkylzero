@@ -11,6 +11,7 @@
 #include <gkyl_math.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_position_map.h>
 
 
 typedef struct gk_geometry gk_geometry;
@@ -57,7 +58,7 @@ struct gkyl_mirror_geo {
   struct { int max_iter; double eps; } root_param;
   struct { int max_level; double eps; } quad_param;
 
-  bool exact_roots; // If false we will allow approximate roots when no root is found
+  bool inexact_roots; // If true we will allow approximate roots when no root is found
   bool use_cubics; // If true will use the cubic rep of psi rather than the quadratic representation
 
   // pointer to root finder (depends on polyorder)
@@ -89,7 +90,7 @@ struct gkyl_mirror_geo_grid_inp {
   plate_func plate_func_lower;
   plate_func plate_func_upper;
 
-  bool exact_roots; // If false we will allow approximate roots when no root is found
+  bool inexact_roots; // If true we will allow approximate roots when no root is found
   bool use_cubics; // If true will use the cubic rep of psi rather than the quadratic representation
 
   // Parameters for root finder: leave unset to use defaults
@@ -151,26 +152,27 @@ double gkyl_mirror_geo_integrate_psi_contour(const struct gkyl_mirror_geo *geo, 
   double zmin, double zmax, double rclose);
 
 /**
- * Compute physical coordinates (mapc2p)  given computational coordinates
- *
- * @param geo Geometry object
- * @param xn computational coordinates
- * @param ret physical coordinates
- */
-void gkyl_mirror_geo_mapc2p(const struct gkyl_mirror_geo *geo, const struct gkyl_mirror_geo_grid_inp *inp,
-    const double *xn, double *ret);
-
-/**
  * Compute geometry (mapc2p) on a specified computational grid. The
  * output array must be pre-allocated by the caller.
  *
- * @param geo Geometry object
- * @param ginp Input structure for creating mapc2p
- * @param mapc2p On output, the DG representation of mapc2p
+ * @param up gk_geometry object
+ * @param nodal range of computational grid
+ * @param dzc grid spacing of nodal range
+ * @param geo gkyl_mirror_geo object with efit dats and root finder specs 
+ * @param inp mirror_geo_grid_inp Input structure for creating mapc2p
+ * @param mc2p_nodal_fd output nodal field to be filled with R,Z,phi at grid nodes
+ *  and nodes epsilon away to be used for FD
+ * @param mc2p_nodal output nodal mapc2p field R,Z,phi)
+ * @param mc2p On output, the DG representation of mapc2p ((R,Z,phi)
+ * @param ddtheta_nodal output nodal field containing dphi/dtheta = s(psi)/R|grad(psi)|, dR/dtheta and dZ/dtheta
+ * @param mc2nu_pos_nodal output nodal field containing the non-uniform mapping
+ * @param mc2nu_pos output DG field containing the non-uniform mapping
+ * @param position_map position map object
  */
 void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
-  struct gkyl_mirror_geo *geo, struct gkyl_mirror_geo_grid_inp *inp, 
-  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p);
+  struct gkyl_mirror_geo *geo, struct gkyl_mirror_geo_grid_inp *inp,
+  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, struct gkyl_array *ddtheta_nodal,
+  struct gkyl_array *mc2nu_pos_nodal, struct gkyl_array *mc2nu_pos, struct gkyl_position_map *position_map);
 
 /**
  * Return cumulative statistics from geometry computations

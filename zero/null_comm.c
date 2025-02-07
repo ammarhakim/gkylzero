@@ -3,22 +3,12 @@
 #include <gkyl_comm_priv.h>
 #include <gkyl_elem_type_priv.h>
 #include <gkyl_null_comm.h>
+#include <gkyl_null_comm_priv.h>
 
 #include <string.h>
 #include <math.h>
 
 #include <gkyl_range.h>
-
-// ranges for use in BCs
-struct skin_ghost_ranges {
-  struct gkyl_range lower_skin[GKYL_MAX_DIM];
-  struct gkyl_range lower_ghost[GKYL_MAX_DIM];
-
-  struct gkyl_range upper_skin[GKYL_MAX_DIM];
-  struct gkyl_range upper_ghost[GKYL_MAX_DIM];
-
-  long max_vol; // maximum vol of send/recv region
-};
 
 // Create ghost and skin sub-ranges given a parent range
 static void
@@ -76,29 +66,6 @@ skin_ghost_ranges_with_corners_init(struct skin_ghost_ranges *sgr,
   sgr->max_vol = max_vol;
 #undef G_MAX
 }
-
-// define long -> skin_ghost_ranges ...
-#define i_key long
-#define i_val struct skin_ghost_ranges
-#define i_tag l2sgr
-#include <stc/cmap.h>
-// ... done with map definition
-
-// Private struct
-struct null_comm {
-  struct gkyl_comm_priv priv_comm; // base communicator
-  struct gkyl_rect_decomp *decomp; // pre-computed decomposition
-
-  bool use_gpu; // flag to use if this communicator is on GPUs
-  bool sync_corners; // should we sync corners?
-  
-  struct gkyl_range grange; // range to "hash" ghost layout
-
-  cmap_l2sgr l2sgr; // map from long -> skin_ghost_ranges
-  cmap_l2sgr l2sgr_wc; // map from long -> skin_ghost_ranges with corners
-  
-  gkyl_mem_buff pbuff; // CUDA buffer for periodic BCs
-};
 
 static void
 comm_free(const struct gkyl_ref_count *ref)
@@ -273,7 +240,7 @@ barrier(struct gkyl_comm *comm)
 static int array_write(struct gkyl_comm *comm,
   const struct gkyl_rect_grid *grid,
   const struct gkyl_range *range,
-  const struct gkyl_array_meta *meta,
+  const struct gkyl_msgpack_data *meta,
   const struct gkyl_array *arr, const char *fname)
 {
   return gkyl_grid_sub_array_write(grid, range, meta, arr, fname);
@@ -314,6 +281,7 @@ static struct gkyl_comm*
 split_comm(const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new_decomp)
 {
   struct null_comm *null_comm = container_of(comm, struct null_comm, priv_comm.pub_comm);  
+
   return gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
       .use_gpu = null_comm->use_gpu,
       .sync_corners = null_comm->sync_corners,
@@ -383,6 +351,7 @@ gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
   comm->priv_comm.allreduce = allreduce;
   comm->priv_comm.allreduce_host = allreduce_host;
   comm->priv_comm.gkyl_array_allgather = array_allgather;
+  comm->priv_comm.gkyl_array_allgather_host = array_allgather;
   comm->priv_comm.gkyl_array_bcast = array_bcast;
   comm->priv_comm.gkyl_array_bcast_host = array_bcast;
   comm->priv_comm.gkyl_array_sync = array_sync;

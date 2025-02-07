@@ -102,6 +102,7 @@ static const char *const valid_moment_names[] = {
                 // of the LTE (local thermodynamic equilibrium) distribution
                 // Note: in relativity V_drift is the bulk four-velocity (GammaV, GammaV*V_drift)
   "Integrated", // this is an internal flag, not for passing to moment type
+  "MEnergy", // this is for the canonical-pb species only**
 };
 
 // check if name of moment is valid or not
@@ -860,7 +861,7 @@ void vm_species_emission_apply_bc(struct gkyl_vlasov_app *app, const struct vm_e
  * @param frame Current frame
  */
 void vm_species_emission_write(struct gkyl_vlasov_app *app, struct vm_species *s,
-  struct vm_emitting_wall *emit, struct gkyl_array_meta *mt, int frame);
+  struct vm_emitting_wall *emit, struct gkyl_msgpack_data *mt, int frame);
 
 /**
  * Release species emission object.

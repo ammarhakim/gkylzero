@@ -48,6 +48,7 @@ struct gkyl_dg_calc_gk_rad_vars {
 
   uint32_t flags;
   struct gkyl_dg_calc_gk_rad_vars *on_dev; // pointer to itself or device data
+  double cellav_norm_conf; // Normalization of configuration space cell average
 };
 
 // Radiation drag surface and volume expansions in vpar (Serendipity kernels)
@@ -98,6 +99,30 @@ choose_rad_gyrokinetic_nI_nu_kern(int cdim, int vdim, int poly_order)
   return ser_rad_gyrokinetic_nI_nu_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
 }
 
+/**
+ * Find the nearest index in an array to given value (assumes 1 component in array)
+ * @param arr A sorted array
+ * @param target The value to find the closest index to
+ * @return The index of the array with the value closest to target
+ */
+GKYL_CU_D
+static inline int gkyl_dg_rad_gyrokinetic_find_nearest_idx(const struct gkyl_array* arr, double target)
+{
+  int left = 0;
+  int right = arr->size - 1;
+  double *data = (double*)arr->data;
+  while (left < right) {
+    if (fabs(data[left] - target)
+	<= fabs(data[right] - target)) {
+      right--;
+    }
+    else {
+      left++;
+    }
+  }
+  return left;
+}
+
 #ifdef GKYL_HAVE_CUDA
 /**
  * Create new updater to compute gyrokinetic variables on
@@ -106,15 +131,15 @@ choose_rad_gyrokinetic_nI_nu_kern(int cdim, int vdim, int poly_order)
 struct gkyl_dg_calc_gk_rad_vars* 
 gkyl_dg_calc_gk_rad_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  double charge, double mass, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map,
-  double a, double alpha, double beta, double gamma, double v0);
+  double charge, double mass, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map);
 
 /**
  * Compute drag coefficients for drag due to
  * radiation in gyrokinetics on the GPU.
  */
 void gkyl_dg_calc_gk_rad_vars_nu_advance_cu(const struct gkyl_dg_calc_gk_rad_vars *up,
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+  double a, double alpha, double beta, double gamma, double v0,
   struct gkyl_array* vnu_surf, struct gkyl_array* vnu, 
   struct gkyl_array* vsqnu_surf, struct gkyl_array* vsqnu);
 
@@ -124,9 +149,11 @@ void gkyl_dg_calc_gk_rad_vars_nu_advance_cu(const struct gkyl_dg_calc_gk_rad_var
  */
 void gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu(const struct gkyl_dg_calc_gk_rad_vars *up,
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const struct gkyl_array* vnu_surf, const struct gkyl_array* vnu, 
-  const struct gkyl_array* vsqnu_surf, const struct gkyl_array* vsqnu, 
+  const struct gkyl_gk_rad_drag* vnu_surf, const struct gkyl_gk_rad_drag* vnu, 
+  const struct gkyl_gk_rad_drag* vsqnu_surf, const struct gkyl_gk_rad_drag* vsqnu,
+  const struct gkyl_array* n_elc_rad, const struct gkyl_array* n_elc,
   const struct gkyl_array* nI, 
   struct gkyl_array* nvnu_surf, struct gkyl_array* nvnu, 
-  struct gkyl_array* nvsqnu_surf, struct gkyl_array* nvsqnu);
+  struct gkyl_array* nvsqnu_surf, struct gkyl_array* nvsqnu,
+  struct gkyl_array* vtsq_min_normalized, struct gkyl_array* vtsq);
 #endif

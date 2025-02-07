@@ -34,11 +34,7 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
     double hbar = s->info.collisions.hbar ? s->info.collisions.hbar: GKYL_PLANCKS_CONSTANT_H/2/M_PI;
     double eV = s->info.collisions.eV ? s->info.collisions.eV: GKYL_ELEMENTARY_CHARGE;
 
-    struct gkyl_array* bmag_mid_host = app->use_gpu? mkarr(false, 1, 1) : gkyl_array_acquire(app->gk_geom->bmag_mid);
-    gkyl_array_copy(bmag_mid_host, app->gk_geom->bmag_mid);
-    double *bmag_mid_ptr = gkyl_array_fetch(bmag_mid_host, 0);
-    double bmag_mid = s->info.collisions.bmag_mid ? s->info.collisions.bmag_mid : bmag_mid_ptr[0];
-    gkyl_array_release(bmag_mid_host);
+    double bmag_mid = s->info.collisions.bmag_mid ? s->info.collisions.bmag_mid : app->bmag_ref;
 
     // Compute a minimum representable temperature based on the smallest dv in the grid.
     double dv_min[vdim];
@@ -84,10 +80,16 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
     lbo->nu_prim_moms_host = mkarr(false, 2*app->confBasis.num_basis, app->local_ext.volume);    
   }
 
-  // allocate moments needed for LBO update
+  // Allocate moments needed for LBO update.
   gk_species_moment_init(app, s, &lbo->moms, "ThreeMoments");
 
-  // edge of velocity space corrections to momentum and energy 
+  lbo->dg_div_mem = 0; // Memory for weak division.
+  if (app->use_gpu)
+    lbo->dg_div_mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis);
+  else
+    lbo->dg_div_mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
+
+  // Edge of velocity space corrections to momentum and energy 
   lbo->bcorr_calc = gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(&s->grid, 
     &app->confBasis, &app->basis, s->info.mass, s->vel_map, app->use_gpu);
   
@@ -113,12 +115,6 @@ gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   
   lbo->cross_nu_prim_moms = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
 
-  lbo->greene_factor_mem = 0;
-  if (app->use_gpu)
-    lbo->greene_factor_mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis);
-  else
-    lbo->greene_factor_mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
-
   // set pointers to species we cross-collide with
   for (int i=0; i<lbo->num_cross_collisions; ++i) {
     lbo->collide_with[i] = gk_find_species(app, s->info.collisions.collide_with[i]);
@@ -127,16 +123,7 @@ gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
       double eps0 = s->info.collisions.eps0 ? s->info.collisions.eps0: GKYL_EPSILON0;
       double hbar = s->info.collisions.hbar ? s->info.collisions.hbar: GKYL_PLANCKS_CONSTANT_H/2/M_PI;
       double eV = s->info.collisions.eV ? s->info.collisions.eV: GKYL_ELEMENTARY_CHARGE;
-      struct gkyl_array* bmag_mid_host = app->gk_geom->bmag_mid;
-      if (app->use_gpu) {
-        bmag_mid_host = mkarr(false, 1, 1);
-        gkyl_array_copy(bmag_mid_host, app->gk_geom->bmag_mid);
-      }
-      double *bmag_mid_ptr = gkyl_array_fetch(bmag_mid_host, 0);
-      double bmag_mid = s->info.collisions.bmag_mid ? s->info.collisions.bmag_mid : bmag_mid_ptr[0];
-      if (app->use_gpu)
-        gkyl_array_release(bmag_mid_host);
-
+      double bmag_mid = s->info.collisions.bmag_mid ? s->info.collisions.bmag_mid : app->bmag_ref;
       lbo->cross_nu_fac[i] = nuFrac*gkyl_calc_norm_nu(s->info.collisions.n_ref, lbo->collide_with[i]->info.collisions.n_ref,
         s->info.mass, lbo->collide_with[i]->info.mass, s->info.charge, lbo->collide_with[i]->info.charge,
        	s->info.collisions.T_ref, lbo->collide_with[i]->info.collisions.T_ref, bmag_mid, eps0, hbar, eV);
@@ -181,9 +168,12 @@ gk_species_lbo_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
 {
   struct timespec wst = gkyl_wall_clock();
 
-  // compute needed moments
+  // Compute needed moments.
   gk_species_moment_calc(&lbo->moms, species->local, app->local, fin);
-  gkyl_array_set_range(lbo->m0, 1.0, lbo->moms.marr, &app->local);
+
+  gkyl_dg_div_op_range(lbo->dg_div_mem, app->confBasis, 0, lbo->m0,
+    0, lbo->moms.marr, 0, app->gk_geom->jacobgeo, &app->local);  
+
   gkyl_array_set_offset_range(lbo->m2self, 1.0, lbo->moms.marr, 2*app->confBasis.num_basis, &app->local);
   
   if (app->use_gpu) {
@@ -242,7 +232,7 @@ gk_species_lbo_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
     gkyl_array_set(lbo->greene_den[i], 1.0, lbo->self_mnu_m0[i]);
     gkyl_array_accumulate(lbo->greene_den[i], 1.0, lbo->other_mnu_m0[i]);
 
-    gkyl_dg_div_op_range(lbo->greene_factor_mem, app->confBasis, 0, lbo->greene_factor[i], 0,
+    gkyl_dg_div_op_range(lbo->dg_div_mem, app->confBasis, 0, lbo->greene_factor[i], 0,
       lbo->greene_num[i], 0, lbo->greene_den[i], &app->local);
     gkyl_array_scale(lbo->greene_factor[i], 2*lbo->betaGreenep1);
 
@@ -295,6 +285,69 @@ gk_species_lbo_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
 }
 
+void
+gk_species_lbo_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
+{
+  if (gks->lbo.collision_id == GKYL_LBO_COLLISIONS && gks->lbo.write_diagnostics) {
+    struct timespec wst = gkyl_wall_clock();
+
+    struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
+        .frame = frame,
+        .stime = tm,
+        .poly_order = app->poly_order,
+        .basis_type = app->confBasis.id
+      }
+    );
+
+    // Construct the file handles for collision frequency and primitive moments
+    const char *fmt_prim = "%s-%s_prim_moms_%d.gkyl";
+    int sz_prim = gkyl_calc_strlen(fmt_prim, app->name, gks->info.name, frame);
+    char fileNm_prim[sz_prim+1]; // ensures no buffer overflow
+    snprintf(fileNm_prim, sizeof fileNm_prim, fmt_prim, app->name, gks->info.name, frame);
+
+    // Compute primitive moments
+    const struct gkyl_array *fin[app->num_species];
+    gk_species_lbo_moms(app, gks, &gks->lbo, gks->f);
+
+    // copy data from device to host before writing it out
+    if (app->use_gpu) {  
+      gkyl_array_copy(gks->lbo.prim_moms_host, gks->lbo.prim_moms);
+    }
+
+    struct timespec wtm = gkyl_wall_clock();
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gks->lbo.prim_moms_host, fileNm_prim);
+    app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
+    app->stat.nio += 1;
+
+    // Uncomment the following to write out nu_sum and nu_prim_moms
+    /*const char *fmt = "%s-%s_nu_sum_%d.gkyl";
+    int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, frame);
+    char fileNm[sz+1]; // ensures no buffer overflow
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, frame);
+    
+    const char *fmt_nu_prim = "%s-%s_nu_prim_moms_%d.gkyl";
+    int sz_nu_prim = gkyl_calc_strlen(fmt_nu_prim, app->name, gks->info.name, frame);
+    char fileNm_nu_prim[sz_nu_prim+1]; // ensures no buffer overflow
+    snprintf(fileNm_nu_prim, sizeof fileNm_nu_prim, fmt_nu_prim, app->name, gks->info.name, frame);
+    
+    if (gks->lbo.num_cross_collisions)
+      gk_species_lbo_cross_moms(app, gk_s, &gks->lbo, gks->f);
+    
+    // copy data from device to host before writing it out
+    if (app->use_gpu) {
+      gkyl_array_copy(gks->lbo.nu_sum_host, gks->lbo.nu_sum);
+      gkyl_array_copy(gks->lbo.nu_prim_moms_host, gks->lbo.nu_prim_moms);
+    }
+    
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gks->lbo.nu_sum_host, fileNm);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gks->lbo.nu_prim_moms_host, fileNm_nu_prim);*/
+
+    gk_array_meta_release(mt); 
+    app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
+    app->stat.ndiag += 1;
+  }
+}
+
 void 
 gk_species_lbo_release(const struct gkyl_gyrokinetic_app *app, const struct gk_lbo_collisions *lbo)
 {
@@ -314,6 +367,7 @@ gk_species_lbo_release(const struct gkyl_gyrokinetic_app *app, const struct gk_l
   }
 
   gk_species_moment_release(app, &lbo->moms);
+  gkyl_dg_bin_op_mem_release(lbo->dg_div_mem);
 
   gkyl_mom_calc_bcorr_release(lbo->bcorr_calc);
   gkyl_prim_lbo_calc_release(lbo->coll_pcalc);
@@ -325,7 +379,6 @@ gk_species_lbo_release(const struct gkyl_gyrokinetic_app *app, const struct gk_l
   }
 
   if (lbo->num_cross_collisions) {
-    gkyl_dg_bin_op_mem_release(lbo->greene_factor_mem);
     gkyl_array_release(lbo->cross_nu_prim_moms);
     for (int i=0; i<lbo->num_cross_collisions; ++i) {
       gkyl_array_release(lbo->cross_prim_moms[i]);

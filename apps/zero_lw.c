@@ -12,11 +12,43 @@
 
 #include <string.h>
 
+struct gkyl_tool_args *
+gkyl_tool_args_new(lua_State *L)
+{
+  struct gkyl_tool_args *args = gkyl_malloc(sizeof(*args));
+
+  with_lua_global(L, "GKYL_COMMANDS") {
+    args->argc = glua_objlen(L);
+    args->argv = 0;
+
+    if (args->argc > 0) {
+      args->argv = gkyl_malloc(args->argc*sizeof(char*));
+    
+      for (int i = 1; i <= glua_objlen(L); ++i)  {
+        const char *av = glua_tbl_iget_string(L, i, "x");
+        args->argv[i-1] = gkyl_malloc(1+strlen(av));
+        strcpy(args->argv[i-1], av);
+      }
+    }
+  }
+
+  return args;
+}
+
+void
+gkyl_tool_args_release(struct gkyl_tool_args* args)
+{
+  for (int i=0; i<args->argc; ++i)
+    gkyl_free(args->argv[i]);
+  gkyl_free(args->argv);
+  gkyl_free(args);
+}
+
 /* *********************/
 /* Rect decomp methods */
 /* *********************/
 
-// Metatable name for decomp object
+// Metatable name for top-level Vlasov App
 #define RECT_DECOMP_METATABLE_NM "GkeyllZero.Zero.RectDecomp"
 
 // Lua userdata object for holding Vlasov app and run parameters
@@ -103,15 +135,43 @@ rect_decomp_openlibs(lua_State *L)
 void
 gkyl_zero_lw_openlibs(lua_State *L)
 {
-  // push empty global table called "G0"
+  // Push empty global table called "G0".
   lua_newtable(L);
   lua_setglobal(L, "G0");
   
   rect_decomp_openlibs(L);
 
-  // species and field BCs
+  // Register types for species, field, and Poisson solver boundary conditions.
   gkyl_register_species_bc_types(L);
   gkyl_register_field_bc_types(L);
+  gkyl_register_poisson_bc_types(L);
+
+  // Register types for moment reconstruction and wave limiter schemes.
+  gkyl_register_moment_scheme_types(L);
+  gkyl_register_wave_limiter_types(L);
+
+  // Register types for Riemann solvers and Braginskii types.
+  gkyl_register_euler_rp_types(L);
+  gkyl_register_mhd_rp_types(L);
+  gkyl_register_mhd_divb_types(L);
+  gkyl_register_braginskii_types(L);
+
+  // Register types for Vlasov projection, model ID, collision ID, and source ID initialization.
+  gkyl_register_vlasov_projection_types(L);
+  gkyl_register_vlasov_model_types(L);
+  gkyl_register_vlasov_collision_types(L);
+  gkyl_register_vlasov_source_types(L);
+
+  // Register types for gyrokinetic FEM boundary conditions, geometry type, position map type, field ID, radiation ID, Te min model type, reaction type, ion type, and self-reaction type.
+  gkyl_register_gyrokinetic_fem_bc_types(L);
+  gkyl_register_gyrokinetic_geometry_types(L);
+  gkyl_register_gyrokinetic_position_map_types(L);
+  gkyl_register_gyrokinetic_field_types(L);
+  gkyl_register_gyrokinetic_radiation_types(L);
+  gkyl_register_gyrokinetic_radiation_Te_types(L);
+  gkyl_register_gyrokinetic_reaction_types(L);
+  gkyl_register_gyrokinetic_ion_types(L);
+  gkyl_register_gyrokinetic_self_reaction_types(L);
 }
 
 #endif

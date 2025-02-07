@@ -90,9 +90,9 @@ test_maxwell_basic()
   double q_local[8], flux_local[8], flux[8];
 
   for (int d=0; d<3; ++d) {
-    maxwell->rotate_to_local_func(tau1[d], tau2[d], norm[d], q, q_local);
+    maxwell->rotate_to_local_func(maxwell, tau1[d], tau2[d], norm[d], q, q_local);
     gkyl_maxwell_flux(c, e_fact, b_fact, q_local, flux_local);
-    maxwell->rotate_to_global_func(tau1[d], tau2[d], norm[d], flux_local, flux);
+    maxwell->rotate_to_global_func(maxwell, tau1[d], tau2[d], norm[d], flux_local, flux);
 
     for (int m=0; m<8; ++m)
       TEST_CHECK( gkyl_compare(flux[m], fluxes[d][m], 1e-15) );

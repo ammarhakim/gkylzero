@@ -24,15 +24,18 @@ gkyl_dg_calc_canonical_pb_vars_new(const struct gkyl_rect_grid *phase_grid,
   up->phase_grid = *phase_grid;
   int cdim = conf_basis->ndim;
   int pdim = phase_basis->ndim;
+  int vdim = pdim - cdim;
   int poly_order = phase_basis->poly_order;
   up->cdim = cdim;
   up->pdim = pdim;
 
-  up->canonical_pb_pressure = choose_canonical_pb_pressure_kern(cdim, poly_order);
+  up->canonical_pb_pressure = choose_canonical_pb_pressure_kern(phase_basis->b_type, cv_index[cdim].vdim[vdim], cdim, poly_order);
   for (int d=0; d<cdim; ++d) {
-    up->alpha_surf[d] = choose_canonical_pb_alpha_surf_kern(d, cdim, poly_order);
-    up->alpha_surf[d+cdim] = choose_canonical_pb_alpha_surf_v_kern(d, cdim, poly_order);
-    up->alpha_edge_surf[d] = choose_canonical_pb_alpha_edge_surf_kern(d, cdim, poly_order);
+    up->alpha_surf[d] = choose_canonical_pb_alpha_surf_kern(phase_basis->b_type, d, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order);
+    up->alpha_edge_surf[d] = choose_canonical_pb_alpha_edge_surf_kern(phase_basis->b_type, d, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order);
+  }
+  for (int d=0; d<vdim; ++d) {
+    up->alpha_surf[d+cdim] = choose_canonical_pb_alpha_surf_v_kern(phase_basis->b_type, d, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order);
   }
 
   up->flags = 0;
@@ -55,6 +58,7 @@ void gkyl_dg_calc_canonical_pb_vars_alpha_surf(struct gkyl_dg_calc_canonical_pb_
 #endif
   int pdim = up->pdim;
   int cdim = up->cdim;
+  int vdim = pdim - cdim;
   int idx[GKYL_MAX_DIM], idx_edge[GKYL_MAX_DIM];
   double xc[GKYL_MAX_DIM];
   struct gkyl_range_iter iter;
@@ -69,14 +73,17 @@ void gkyl_dg_calc_canonical_pb_vars_alpha_surf(struct gkyl_dg_calc_canonical_pb_
     double* alpha_surf_d = gkyl_array_fetch(alpha_surf, loc_phase);
     double* sgn_alpha_surf_d = gkyl_array_fetch(sgn_alpha_surf, loc_phase);
     int* const_sgn_alpha_d = gkyl_array_fetch(const_sgn_alpha, loc_phase);
-    for (int dir = 0; dir<cdim; ++dir) {
-      const double *hamil_local =  gkyl_array_cfetch(hamil, loc_phase);
-      
-      const_sgn_alpha_d[dir] = up->alpha_surf[dir](xc, up->phase_grid.dx, 
+
+    // Fill in the velocity space alpha_surf
+    for (int dir = 0; dir<vdim; ++dir) {
+      const_sgn_alpha_d[dir+cdim] = up->alpha_surf[dir+cdim](xc, up->phase_grid.dx, 
         (const double*) gkyl_array_cfetch(hamil, loc_phase),
         alpha_surf_d, sgn_alpha_surf_d);
+    }
 
-      const_sgn_alpha_d[dir+cdim] = up->alpha_surf[dir+cdim](xc, up->phase_grid.dx, 
+    // Fill in the conf space alpha_surf
+    for (int dir = 0; dir<cdim; ++dir) {
+      const_sgn_alpha_d[dir] = up->alpha_surf[dir](xc, up->phase_grid.dx, 
         (const double*) gkyl_array_cfetch(hamil, loc_phase),
         alpha_surf_d, sgn_alpha_surf_d);
 
@@ -103,12 +110,12 @@ void gkyl_dg_calc_canonical_pb_vars_alpha_surf(struct gkyl_dg_calc_canonical_pb_
 
 void gkyl_canonical_pb_pressure(struct gkyl_dg_calc_canonical_pb_vars *up, const struct gkyl_range *conf_range,
  const struct gkyl_array *h_ij_inv, 
- const struct gkyl_array *M2ij, const struct gkyl_array *V_drift, const struct gkyl_array *M1i,
+ const struct gkyl_array *MEnergy, const struct gkyl_array *V_drift, const struct gkyl_array *M1i,
  struct gkyl_array *pressure)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(pressure)) {
-    return gkyl_canonical_pb_pressure_cu(up, conf_range, h_ij_inv, M2ij, V_drift, M1i, pressure);
+    return gkyl_canonical_pb_pressure_cu(up, conf_range, h_ij_inv, MEnergy, V_drift, M1i, pressure);
   }
 #endif
   int cdim = up->cdim;
@@ -118,13 +125,13 @@ void gkyl_canonical_pb_pressure(struct gkyl_dg_calc_canonical_pb_vars *up, const
     long loc = gkyl_range_idx(conf_range, iter.idx);
 
     const double *h_ij_inv_d = gkyl_array_cfetch(h_ij_inv, loc);
-    const double *M2ij_d = gkyl_array_cfetch(M2ij, loc);
+    const double *MEnergy_d = gkyl_array_cfetch(MEnergy, loc);
     const double *v_j_d = gkyl_array_cfetch(V_drift, loc);
     const double *nv_i_d = gkyl_array_cfetch(M1i, loc);
 
     double* d_Jv_P_d = gkyl_array_fetch(pressure, loc);
 
-    up->canonical_pb_pressure(h_ij_inv_d, M2ij_d, v_j_d, nv_i_d, d_Jv_P_d);
+    up->canonical_pb_pressure(h_ij_inv_d, MEnergy_d, v_j_d, nv_i_d, d_Jv_P_d);
   }
 }
 

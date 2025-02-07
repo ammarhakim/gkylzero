@@ -12,6 +12,35 @@ gk_species_react_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     react->react_type[i] = inp.react_type[i];
 }
 
+static double
+gk_species_react_get_vtsq_min(struct gkyl_gyrokinetic_app *app, struct gk_species *s)
+{
+  double bmag_mid = app->bmag_ref;
+
+  int vdim = app->vdim;
+  double dv_min[vdim];
+  gkyl_velocity_map_reduce_dv_range(s->vel_map, GKYL_MIN, dv_min, s->vel_map->local_vel);
+
+  double tpar_min = (s->info.mass/6.0)*pow(dv_min[0],2);
+  double tperp_min = vdim>1 ? (bmag_mid/3.0)*dv_min[1] : tpar_min;
+  return (tpar_min + 2.0*tperp_min)/(3.0*s->info.mass);
+}
+
+static double
+gk_neut_species_react_get_vtsq_min(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s)
+{
+  double bmag_mid = app->bmag_ref;
+
+  int vdim = app->vdim+1; // neutral species are 3v otherwise
+  double dv_min[vdim];
+  gkyl_velocity_map_reduce_dv_range(s->vel_map, GKYL_MIN, dv_min, s->vel_map->local_vel);
+
+  double t_min = 0.0;
+  for (int i=0; i<vdim; i++)
+    t_min += (s->info.mass/6.0)*pow(dv_min[0],2);
+  return t_min/(3.0*s->info.mass);
+}
+
 void 
 gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_react *react)
 {
@@ -22,6 +51,8 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
   react->f_react_other = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
   react->proj_max = gkyl_proj_maxwellian_on_basis_new(&s->grid,
     &app->confBasis, &app->basis, app->basis.poly_order+1, s->vel_map, app->use_gpu);
+
+  int vdim = app->vdim;
 
   for (int i=0; i<react->num_react; ++i) {
     react->react_id[i] = react->react_type[i].react_id;
@@ -34,6 +65,9 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
     // Fetch index of species for indexing arrays
     react->elc_idx[i] = gk_find_species_idx(app, react->react_type[i].elc_nm);
     react->ion_idx[i] = gk_find_species_idx(app, react->react_type[i].ion_nm);
+
+    // Compute a minimum representable temperature based on the smallest dv in the grid.
+    react->ion_vtsq_min[i] = gk_species_react_get_vtsq_min(app, gk_find_species(app, react->react_type[i].ion_nm));
 
     gk_species_moment_init(app, &app->species[react->elc_idx[i]], &react->moms_elc[i], "ThreeMoments");
     gk_species_moment_init(app, &app->species[react->ion_idx[i]], &react->moms_ion[i], "ThreeMoments");
@@ -52,6 +86,10 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
     else if (gk_find_neut_species(app, react->react_type[i].partner_nm)) {
 
       react->partner_idx[i] = gk_find_neut_species_idx(app, react->react_type[i].partner_nm);
+
+      // Compute a minimum representable temperature based on the smallest dv in the grid.
+      react->neut_vtsq_min[i] = gk_neut_species_react_get_vtsq_min(app, &app->neut_species[react->partner_idx[i]]);
+
       gk_neut_species_moment_init(app, &app->neut_species[react->partner_idx[i]], &react->moms_partner[i], "FiveMoments");
 
       react->prim_vars_cxi[i] = mkarr(app->use_gpu, (2+app->vdim)*app->confBasis.num_basis, app->local_ext.volume);
@@ -129,7 +167,7 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
 // computes reaction coefficients
 void
 gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
-  struct gk_react *react, const struct gkyl_array *f_self, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[])
+  struct gk_react *react, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[])
 {
   for (int i=0; i<react->num_react; ++i) {
     if (react->react_id[i] == GKYL_REACT_IZ) {
@@ -203,7 +241,7 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
       gkyl_array_set_range(react->m0_partner[i], 1.0, react->moms_partner[i].marr, &app->local);
 
       // prim_vars_neut_gk is returned to prim_vars[i] here.
-      gkyl_dg_cx_coll(react->cx[i], app->species[react->ion_idx[i]].vtsq_min, app->neut_species[react->partner_idx[i]].vtsq_min,
+      gkyl_dg_cx_coll(react->cx[i], react->ion_vtsq_min[i], react->neut_vtsq_min[i],
         react->moms_ion[i].marr, react->moms_partner[i].marr, app->gk_geom->bcart, react->prim_vars_cxi[i],
         react->prim_vars_cxn[i], react->prim_vars[i], react->coeff_react[i], 0);
     }
@@ -378,6 +416,77 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
 }
 
+// write functions
+void
+gk_species_react_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct gk_react *gkr,
+  int ridx, double tm, int frame)
+{
+  if (gkr->type_self[ridx] == GKYL_SELF_ION) {
+    struct timespec wst = gkyl_wall_clock();
+    struct timespec wtm; 
+    struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
+        .frame = frame,
+        .stime = tm,
+        .poly_order = app->poly_order,
+        .basis_type = app->confBasis.id
+      }
+    );
+
+    // Compute reaction rate
+    const struct gkyl_array *fin[app->num_species];
+    const struct gkyl_array *fin_neut[app->num_neut_species];
+    for (int i=0; i<app->num_species; ++i) 
+      fin[i] = app->species[i].f;
+    for (int i=0; i<app->num_neut_species; ++i)
+      fin_neut[i] = app->neut_species[i].f;
+    gk_species_react_cross_moms(app, gks, gkr, fin, fin_neut);
+    
+    if (app->use_gpu) {
+      gkyl_array_copy(gkr->coeff_react_host[ridx], gkr->coeff_react[ridx]);
+    }
+    
+    if (gkr->react_id[ridx] == GKYL_REACT_IZ) {
+      const char *fmt = "%s-%s_%s_%s_iz_react_%d.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name,
+        gkr->react_type[ridx].elc_nm, gkr->react_type[ridx].donor_nm, frame);
+      char fileNm[sz+1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name,
+        gkr->react_type[ridx].elc_nm, gkr->react_type[ridx].donor_nm, frame);
+  
+      wtm = gkyl_wall_clock();
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gkr->coeff_react_host[ridx], fileNm);
+    }
+   if (gkr->react_id[ridx] == GKYL_REACT_RECOMB) {
+     const char *fmt = "%s-%s_%s_%s_recomb_react_%d.gkyl";
+     int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name,
+       gkr->react_type[ridx].elc_nm, gkr->react_type[ridx].recvr_nm, frame);
+     char fileNm[sz+1]; // ensures no buffer overflow
+     snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name,
+       gkr->react_type[ridx].elc_nm, gkr->react_type[ridx].recvr_nm, frame);
+  
+     wtm = gkyl_wall_clock();
+     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gkr->coeff_react_host[ridx], fileNm);
+   }
+   if (gkr->react_id[ridx] == GKYL_REACT_CX) {
+     const char *fmt = "%s-%s_%s_cx_react_%d.gkyl";
+     int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name,
+       gkr->react_type[ridx].partner_nm, frame);
+     char fileNm[sz+1]; // ensures no buffer overflow
+     snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name,
+       gkr->react_type[ridx].partner_nm, frame);
+     
+     wtm = gkyl_wall_clock();
+     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gkr->coeff_react_host[ridx], fileNm);
+   }
+   app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
+   app->stat.nio += 1;
+   
+   gk_array_meta_release(mt); 
+   app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
+   app->stat.ndiag += 1;
+  }
+}
+
 void 
 gk_species_react_release(const struct gkyl_gyrokinetic_app *app, const struct gk_react *react)
 {
@@ -416,7 +525,10 @@ gk_species_react_release(const struct gkyl_gyrokinetic_app *app, const struct gk
       gkyl_dg_iz_release(react->iz[i]);
     else if (react->react_id[i] == GKYL_REACT_RECOMB)  
       gkyl_dg_recomb_release(react->recomb[i]);
-    else if (react->react_id[i] == GKYL_REACT_CX)  
+    else if (react->react_id[i] == GKYL_REACT_CX) { 
       gkyl_dg_cx_release(react->cx[i]);
+      gkyl_array_release(react->prim_vars_cxi[i]);
+      gkyl_array_release(react->prim_vars_cxn[i]);
+    }
   }
 }

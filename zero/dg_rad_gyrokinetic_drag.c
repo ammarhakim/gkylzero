@@ -38,8 +38,6 @@ gkyl_rad_gyrokinetic_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gk
   grad->auxfields.nvnu = auxin.nvnu;
   grad->auxfields.nvsqnu_surf = auxin.nvsqnu_surf;
   grad->auxfields.nvsqnu = auxin.nvsqnu;
-  grad->auxfields.vtsq = auxin.vtsq;
-  grad->auxfields.vtsq_min = auxin.vtsq_min;
 }
 
 struct gkyl_dg_eqn*
@@ -102,7 +100,6 @@ gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis *conf_basis,
   grad->auxfields.nvnu = 0;
   grad->auxfields.nvsqnu_surf = 0;
   grad->auxfields.nvsqnu = 0;
-  grad->auxfields.vtsq = 0;
   grad->phase_range = *phase_range;
   grad->conf_range = *conf_range;
   grad->vel_map = gkyl_velocity_map_acquire(vel_map);

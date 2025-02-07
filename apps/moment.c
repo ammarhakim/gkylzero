@@ -7,10 +7,10 @@
 
 static inline int int_max(int a, int b) { return a > b ? a : b; }
 
-struct gkyl_array_meta*
+struct gkyl_msgpack_data*
 moment_array_meta_new(struct moment_output_meta meta)
 {
-  struct gkyl_array_meta *mt = gkyl_malloc(sizeof(*mt));
+  struct gkyl_msgpack_data *mt = gkyl_malloc(sizeof(*mt));
 
   mt->meta_sz = 0;
   mpack_writer_t writer;
@@ -39,7 +39,7 @@ moment_array_meta_new(struct moment_output_meta meta)
 }
 
 void
-moment_array_meta_release(struct gkyl_array_meta *mt)
+moment_array_meta_release(struct gkyl_msgpack_data *mt)
 {
   if (!mt) return;
   MPACK_FREE(mt->meta);
@@ -47,7 +47,7 @@ moment_array_meta_release(struct gkyl_array_meta *mt)
 }
 
 struct moment_output_meta
-moment_meta_from_mpack(struct gkyl_array_meta *mt)
+moment_meta_from_mpack(struct gkyl_msgpack_data *mt)
 {
   struct moment_output_meta meta = { .frame = 0, .stime = 0.0 };
 
@@ -172,11 +172,12 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     app->is_dir_skipped[mom->skip_dirs[i]] = 1;
 
   app->has_field = 0;
-  // initialize field if we have one
+  // Are we running with a field?
   if (mom->field.init) {
     app->has_field = 1;
-    moment_field_init(mom, &mom->field, app, &app->field);
   }
+  // Initialize a (potentially null) field object for safety.
+  moment_field_init(mom, &mom->field, app, &app->field);
 
   // Are we running with Braginskii transport?
   app->has_braginskii = mom->has_braginskii;
@@ -202,13 +203,12 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     for (int r=0; r<app->num_species; ++r)
       app->nu_base[s][r] = mom->nu_base[s][r];
 
-  // check if we should update sources
-  app->update_sources = 0;
-  if ((app->has_field || app->has_app_accel) && ns>0) {
-    // only update if field and species are present or species has applied acceleration
-    app->update_sources = 1; 
-    moment_coupling_init(app, &app->sources);
-  } 
+  // Right now we integrate sources by default, since there are so many scenarios in which the source solver is required
+  // (e.g. applied acceleration, geometric sources, multi-species transport, electromagnetic coupling, etc.).
+  // moment_em_coupling explicitly checks for each of these cases individually, so the performance hit of initializing by
+  // default is negligible, although we may wish to streamline this in the future. --JG 08/20/24.
+  app->update_sources = 1;
+  moment_coupling_init(app, &app->sources);
 
   app->update_mhd_source = false;
   if (ns==1 && mom->species[0].equation->type==GKYL_EQN_MHD) {
@@ -316,7 +316,7 @@ gkyl_moment_app_write_field(const gkyl_moment_app* app, double tm, int frame)
 {
   if (app->has_field != 1) return;
 
-  struct gkyl_array_meta *mt = moment_array_meta_new( (struct moment_output_meta) {
+  struct gkyl_msgpack_data *mt = moment_array_meta_new( (struct moment_output_meta) {
       .frame = frame,
       .stime= tm
     }
@@ -388,7 +388,7 @@ gkyl_moment_app_write_integrated_mom(gkyl_moment_app *app)
 void
 gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, int frame)
 {
-  struct gkyl_array_meta *mt = moment_array_meta_new( (struct moment_output_meta) {
+  struct gkyl_msgpack_data *mt = moment_array_meta_new( (struct moment_output_meta) {
       .frame = frame,
       .stime = tm
     }
@@ -710,7 +710,7 @@ header_from_file(gkyl_moment_app *app, const char *fname)
     }
 
     struct moment_output_meta meta =
-      moment_meta_from_mpack( &(struct gkyl_array_meta) {
+      moment_meta_from_mpack( &(struct gkyl_msgpack_data) {
           .meta = hdr.meta,
           .meta_sz = hdr.meta_size
         }
@@ -785,14 +785,30 @@ gkyl_moment_app_from_frame_species(gkyl_moment_app *app, int sidx, int frame)
   return rstat;
 }
 
+struct gkyl_app_restart_status
+gkyl_moment_app_read_from_frame(gkyl_moment_app *app, int frame)
+{
+  struct gkyl_app_restart_status rstat;
+
+  rstat = gkyl_moment_app_from_frame_field(app, frame);
+
+  for (int i = 0; i < app->num_species; i++) {
+    rstat = gkyl_moment_app_from_frame_species(app, i, frame);
+  }
+
+  return rstat;
+}
+
 // private function to handle variable argument list for printing
 static void
 v_moment_app_cout(const gkyl_moment_app* app, FILE *fp, const char *fmt, va_list argp)
 {
   int rank;
   gkyl_comm_get_rank(app->comm, &rank);
-  if ((rank == 0) && fp)
+  if ((rank == 0) && fp) {
     vfprintf(fp, fmt, argp);
+    fflush(fp);
+  }
 }
 
 void
@@ -817,8 +833,7 @@ gkyl_moment_app_release(gkyl_moment_app* app)
     moment_species_release(&app->species[i]);
   gkyl_free(app->species);
 
-  if (app->has_field)
-    moment_field_release(&app->field);
+  moment_field_release(&app->field);
 
   if (app->update_mhd_source)
     mhd_src_release(&app->mhd_source);
