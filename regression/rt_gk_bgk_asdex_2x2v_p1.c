@@ -266,7 +266,7 @@ create_ctx(void)
   int Nvpar = 16; // Number of cells in vpar.
   int Nmu = 8; // Number of cells in mu.
 
-  double t_end = 1.0e-7;
+  double t_end = 1.0e-8;
   double num_frames = 1;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -397,10 +397,12 @@ main(int argc, char **argv)
 
     .projection = elc_ic,
   
-    .correct_all_moms = true,
-    .use_last_converged = true,
-    .iter_eps = 1e-12,
-    .max_iter = 10,
+    .correct = {
+      .correct_all_moms = true, 
+      .use_last_converged = true, 
+      .iter_eps = 1e-12,
+      .max_iter = 10,
+    }, 
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
       .normNu = true,
@@ -476,10 +478,12 @@ main(int argc, char **argv)
 
     .projection = ion_ic,
 
-    .correct_all_moms = true,
-    .use_last_converged = true,
-    .iter_eps = 1e-12,
-    .max_iter = 10,
+    .correct = {
+      .correct_all_moms = true, 
+      .use_last_converged = true, 
+      .iter_eps = 1e-12,
+      .max_iter = 10,
+    }, 
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
       .normNu = true,

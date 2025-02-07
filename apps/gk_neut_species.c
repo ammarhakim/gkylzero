@@ -753,10 +753,10 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   // Projection routine optionally corrects all the Maxwellian/LTE moments
   // This routine is utilized by both reactions and BGK collisions
   s->lte = (struct gk_lte) { };
-  bool correct_all_moms = s->info.correct_all_moms;
-  int max_iter = s->info.max_iter > 0 ? s->info.max_iter : 50;
-  double iter_eps = s->info.iter_eps > 0 ? s->info.iter_eps  : 1e-10;
-  bool use_last_converged = s->info.use_last_converged;
+  bool correct_all_moms = s->info.correct.correct_all_moms;
+  int max_iter = s->info.correct.max_iter > 0 ? s->info.correct.max_iter : 50;
+  double iter_eps = s->info.correct.iter_eps > 0 ? s->info.correct.iter_eps  : 1e-10;
+  bool use_last_converged = s->info.correct.use_last_converged;
   struct correct_all_moms_inp corr_inp = { .correct_all_moms = correct_all_moms, 
     .max_iter = max_iter, .iter_eps = iter_eps, 
     .use_last_converged = use_last_converged };

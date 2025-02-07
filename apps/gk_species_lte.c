@@ -25,8 +25,8 @@ gk_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
   lte->proj_max = gkyl_gk_maxwellian_proj_on_basis_inew( &inp_proj );
 
   lte->correct_all_moms = corr_inp.correct_all_moms;
-  int max_iter = corr_inp.max_iter > 0 ? s->info.max_iter : 50;
-  double iter_eps = corr_inp.iter_eps > 0 ? s->info.iter_eps  : 1e-10;
+  int max_iter = corr_inp.max_iter > 0 ? corr_inp.max_iter : 50;
+  double iter_eps = corr_inp.iter_eps > 0 ? corr_inp.iter_eps  : 1e-10;
   bool use_last_converged = corr_inp.use_last_converged;
   
   if (lte->correct_all_moms) {

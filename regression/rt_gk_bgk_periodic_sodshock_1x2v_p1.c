@@ -347,11 +347,12 @@ main(int argc, char **argv)
       .ctx_upar = &ctx,
       .correct_all_moms = true,
     },
-
-    .correct_all_moms = true, 
-    .use_last_converged = true, 
-    .iter_eps = 1e-12,
-    .max_iter = 10,
+    .correct = {
+      .correct_all_moms = true, 
+      .use_last_converged = true, 
+      .iter_eps = 1e-12,
+      .max_iter = 10,
+    }, 
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
       .self_nu = evalNu,

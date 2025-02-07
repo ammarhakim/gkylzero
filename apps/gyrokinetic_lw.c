@@ -316,10 +316,17 @@ gyrokinetic_species_lw_new(lua_State *L)
   double collision_eps0 = 0.0;
   double collision_eV = 0.0;
 
-  bool correct_all_moms = glua_tbl_get_bool(L, "correctAllMoments", false);
-  double iter_eps = glua_tbl_get_number(L, "iterationEpsilon", 0.0);
-  int max_iter = glua_tbl_get_integer(L, "maxIterations", 0);
-  bool use_last_converged = glua_tbl_get_bool(L, "useLastConverged", true);
+  bool correct_all_moms = false;
+  double iter_eps = 0.0;
+  int max_iter = 0; 
+  bool use_last_converged = true; 
+  with_lua_tbl_tbl(L, "correct") {
+    correct_all_moms = glua_tbl_get_bool(L, "correctAllMoments", false);
+    iter_eps = glua_tbl_get_number(L, "iterationEpsilon", 0.0);
+    max_iter = glua_tbl_get_integer(L, "maxIterations", 0);
+    use_last_converged = glua_tbl_get_bool(L, "useLastConverged", true);
+  }
+
   with_lua_tbl_tbl(L, "collisions") {
     collision_id = glua_tbl_get_integer(L, "collisionID", 0);
 
@@ -1625,10 +1632,10 @@ gk_app_new(lua_State *L)
     app_lw->max_iter[s] = species[s]->max_iter;
     app_lw->use_last_converged[s] = species[s]->use_last_converged;
 
-    gk.species[s].correct_all_moms = app_lw->correct_all_moms[s];
-    gk.species[s].iter_eps = app_lw->iter_eps[s];
-    gk.species[s].max_iter = app_lw->max_iter[s];
-    gk.species[s].use_last_converged = app_lw->use_last_converged[s];
+    gk.species[s].correct.correct_all_moms = app_lw->correct_all_moms[s];
+    gk.species[s].correct.iter_eps = app_lw->iter_eps[s];
+    gk.species[s].correct.max_iter = app_lw->max_iter[s];
+    gk.species[s].correct.use_last_converged = app_lw->use_last_converged[s];
 
     app_lw->collision_id[s] = species[s]->collision_id;
 

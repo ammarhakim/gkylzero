@@ -186,6 +186,14 @@ struct gkyl_gyrokinetic_ic_import {
   struct gkyl_gyrokinetic_projection phase_add; // beta(x,v).
 };
 
+struct gkyl_gyrokinetic_correct_inp {
+  bool correct_all_moms; // boolean if we are correcting all the moments or only density
+  double iter_eps; // error tolerance for moment fixes (density is always exact)
+  int max_iter; // maximum number of iteration
+  bool use_last_converged; // Boolean for if we are using the results of the iterative scheme
+                           // *even if* the scheme fails to converge.   
+};
+
 // Parameters for gk species.
 struct gkyl_gyrokinetic_species {
   char name[128]; // Species name.
@@ -215,11 +223,7 @@ struct gkyl_gyrokinetic_species {
 
   // Input quantities used by LTE (local thermodynamic equilibrium, or Maxwellian) projection
   // This projection operator is used by BGK collisions and all reactions.
-  bool correct_all_moms; // boolean if we are correcting all the moments or only density
-  double iter_eps; // error tolerance for moment fixes (density is always exact)
-  int max_iter; // maximum number of iteration
-  bool use_last_converged; // Boolean for if we are using the results of the iterative scheme
-                           // *even if* the scheme fails to converge.   
+  struct gkyl_gyrokinetic_correct_inp correct; 
 
   // Collisions to include.
   struct gkyl_gyrokinetic_collisions collisions;
@@ -262,11 +266,7 @@ struct gkyl_gyrokinetic_neut_species {
 
   // Input quantities used by LTE (local thermodynamic equilibrium, or Maxwellian) projection
   // This projection operator is used by BGK collisions and all reactions.
-  bool correct_all_moms; // boolean if we are correcting all the moments or only density
-  double iter_eps; // error tolerance for moment fixes (density is always exact)
-  int max_iter; // maximum number of iteration
-  bool use_last_converged; // Boolean for if we are using the results of the iterative scheme
-                           // *even if* the scheme fails to converge.   
+  struct gkyl_gyrokinetic_correct_inp correct; 
 
   // Collisions to include.
   struct gkyl_gyrokinetic_collisions collisions;
