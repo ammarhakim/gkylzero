@@ -10,6 +10,8 @@ vm_species_fpo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   int pdim = cdim+vdim;
   struct gkyl_basis surf_basis;
 
+  fpo->write_diagnostics = s->info.collisions.write_diagnostics;
+
   // initialize surface basis for potentials on velocity space edges
   if (app->poly_order == 1) {
     gkyl_cart_modal_hybrid(&surf_basis, cdim, vdim-1);

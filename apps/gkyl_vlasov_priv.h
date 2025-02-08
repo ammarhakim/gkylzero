@@ -220,6 +220,7 @@ struct vm_rad_drag {
 };
 
 struct vm_fpo_collisions {
+  bool write_diagnostics; // Whether to write diagnostics out.
   struct gkyl_array *gamma; // FPO Gamma factor
   struct gkyl_array *h, *g; // Rosenbluth potentials
   struct gkyl_array *h_host, *g_host;

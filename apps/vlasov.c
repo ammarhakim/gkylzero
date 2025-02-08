@@ -471,8 +471,8 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
     if(app->species[i].info.output_f_lte) {
       gkyl_vlasov_app_write_species_lte(app, i, tm, frame);
     }
-    if (app->species[i].collision_id == GKYL_FPO_COLLISIONS) {
-      // gkyl_vlasov_app_write_species_fpo(app, i, tm, frame);
+    if ((app->species[i].collision_id == GKYL_FPO_COLLISIONS) && (app->species[i].fpo.write_diagnostics)) {
+      gkyl_vlasov_app_write_species_fpo(app, i, tm, frame);
     }
   }
   for (int i=0; i<app->num_fluid_species; ++i) {

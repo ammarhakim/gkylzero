@@ -52,6 +52,7 @@ struct gkyl_vlasov_projection {
 // Parameters for species collisions
 struct gkyl_vlasov_collisions {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
+  bool write_diagnostics; // Whether to write diagnostics out.
 
   void *ctx; // context for collision function
   // function for computing self-collision frequency
