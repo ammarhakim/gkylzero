@@ -10,6 +10,8 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_fem_parproj.h>
+#include <gkyl_array_integrate.h>
+#include <gkyl_dg_bin_ops.h>
 
 static struct gkyl_array*
 mkarr(bool use_gpu, long nc, long size)
@@ -830,6 +832,121 @@ test_2x_weighted(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_
 
 }
 
+void evalFunc2x_selfadjoint(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0], y = xn[1];
+  double mu = .2;
+  double sig = 0.3;
+  fout[0] = exp(-(pow(x-mu,2))/(2.0*sig*sig))*(2.0+cos(2.*M_PI*y));
+}
+void evalGunc2x_selfadjoint(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0], y = xn[1];
+  double mu = .1;
+  double sig = 0.4;
+  fout[0] = exp(-(pow(x-mu,2))/(2.0*sig*sig))*(2.0+y*y);
+}
+
+void
+test_2x_selfadjoint(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
+{
+  // Check that the operator is self-adjoint.
+  double lower[] = {-2., -0.5}, upper[] = {2., 0.5};
+  int cells[] = {3, 4};
+  int dim = sizeof(lower)/sizeof(lower[0]);
+
+  // grids.
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
+
+  // basis functions.
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, dim, poly_order);
+
+  int ghost[] = { 1, 1 };
+  struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
+  gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
+  struct skin_ghost_ranges skin_ghost; // skin/ghost.
+  skin_ghost_ranges_init(&skin_ghost, &localRange_ext, ghost);
+
+  // Create DG fields.
+  struct gkyl_array *rho_dg = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+  struct gkyl_array *phi_dg = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+  struct gkyl_array *prod = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+  // Create FEM fields.
+  struct gkyl_array *rho_fem = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+  struct gkyl_array *phi_fem = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+
+  struct gkyl_array *rho_ho = use_gpu? mkarr(false, rho_dg->ncomp, rho_dg->size) : gkyl_array_acquire(rho_dg);
+  struct gkyl_array *phi_ho = use_gpu? mkarr(false, phi_dg->ncomp, phi_dg->size) : gkyl_array_acquire(phi_dg);
+
+  // Project fields onto basis.
+  gkyl_proj_on_basis *projob_rho = gkyl_proj_on_basis_new(&grid, &basis,
+    poly_order+1, 1, evalFunc2x_selfadjoint, NULL);
+  gkyl_proj_on_basis_advance(projob_rho, 0.0, &localRange, rho_ho);
+  gkyl_proj_on_basis_release(projob_rho);
+  gkyl_array_copy(rho_dg, rho_ho);
+
+  gkyl_proj_on_basis *projob_phi = gkyl_proj_on_basis_new(&grid, &basis,
+    poly_order+1, 1, evalGunc2x_selfadjoint, NULL);
+  gkyl_proj_on_basis_advance(projob_phi, 0.0, &localRange, phi_ho);
+  gkyl_proj_on_basis_release(projob_phi);
+  gkyl_array_copy(phi_dg, phi_ho);
+
+  // Parallel FEM projection method.
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &basis,
+    bctype, 0, 0, use_gpu);
+
+  struct gkyl_array_integrate* arr_int_op = gkyl_array_integrate_new(&grid, &basis, 1, GKYL_ARRAY_INTEGRATE_OP_NONE, use_gpu);
+
+  // Smooth rho_dg and integrate phi_dg*rho_fem.
+  gkyl_fem_parproj_set_rhs(parproj, rho_dg, rho_dg);
+  gkyl_fem_parproj_solve(parproj, rho_fem);
+  gkyl_dg_mul_op(basis, 0, prod, 0, phi_dg, 0, rho_fem);
+  double *int_prodA = use_gpu? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
+  gkyl_array_integrate_advance(arr_int_op, prod, 1.0, 0, &localRange, 0, int_prodA);
+  double int_prodA_ho[1];
+  if (use_gpu)
+    gkyl_cu_memcpy(int_prodA_ho, int_prodA, sizeof(double), GKYL_CU_MEMCPY_D2H);
+  else
+    memcpy(int_prodA_ho, int_prodA, sizeof(double));
+
+  // Smooth phi_dg and integrate phi_fem*rho_dg.
+  gkyl_fem_parproj_set_rhs(parproj, phi_dg, phi_dg);
+  gkyl_fem_parproj_solve(parproj, phi_fem);
+  gkyl_dg_mul_op(basis, 0, prod, 0, phi_fem, 0, rho_dg);
+  double *int_prodB = use_gpu? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
+  gkyl_array_integrate_advance(arr_int_op, prod, 1.0, 0, &localRange, 0, int_prodB);
+  double int_prodB_ho[1];
+  if (use_gpu)
+    gkyl_cu_memcpy(int_prodB_ho, int_prodB, sizeof(double), GKYL_CU_MEMCPY_D2H);
+  else
+    memcpy(int_prodB_ho, int_prodB, sizeof(double));
+
+  TEST_CHECK( gkyl_compare(int_prodA_ho[0],int_prodB_ho[0], 1e-14) );
+  TEST_MSG("int phi_dg*rho_fem = %.13e | int phi_fem*rho_dg = %.13e", int_prodA_ho[0],int_prodB_ho[0]);
+//  printf("\nint phi_dg*rho_fem = %.13e | int phi_fem*rho_dg = %.13e\n", int_prodA_ho[0],int_prodB_ho[0]);
+
+  if (use_gpu) {
+    gkyl_cu_free(int_prodA);
+    gkyl_cu_free(int_prodB);
+  }
+  else {
+    gkyl_free(int_prodA);
+    gkyl_free(int_prodB);
+  }
+  gkyl_array_integrate_release(arr_int_op);
+  gkyl_fem_parproj_release(parproj);
+  gkyl_array_release(rho_dg);
+  gkyl_array_release(phi_dg);
+  gkyl_array_release(prod);
+  gkyl_array_release(rho_fem);
+  gkyl_array_release(phi_fem);
+  gkyl_array_release(rho_ho);
+  gkyl_array_release(phi_ho);
+
+}
+
 void evalFunc3x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
@@ -1263,6 +1380,7 @@ void test_2x_p1_bcnone_ho() {test_2x(1, GKYL_FEM_PARPROJ_NONE, false);}
 void test_2x_p1_bcdirichlet_ho() {test_2x(1, GKYL_FEM_PARPROJ_DIRICHLET, false);}
 void test_2x_p1_bcperiodic_ho() {test_2x(1, GKYL_FEM_PARPROJ_PERIODIC, false);}
 void test_2x_p1_weighted_ho() {test_2x_weighted(1, GKYL_FEM_PARPROJ_DIRICHLET, false);}
+void test_2x_p1_selfadjoint_ho() {test_2x_selfadjoint(1, GKYL_FEM_PARPROJ_NONE, false);}
 
 void test_2x_p2_bcnone_ho() {test_2x(2, GKYL_FEM_PARPROJ_NONE, false);}
 void test_2x_p2_bcdirichlet_ho() {test_2x(2, GKYL_FEM_PARPROJ_DIRICHLET, false);}
@@ -1290,6 +1408,7 @@ void test_2x_p1_bcnone_dev() {test_2x(1, GKYL_FEM_PARPROJ_NONE, true);}
 void test_2x_p1_bcdirichlet_dev() {test_2x(1, GKYL_FEM_PARPROJ_DIRICHLET, true);}
 void test_2x_p1_bcperiodic_dev() {test_2x(1, GKYL_FEM_PARPROJ_PERIODIC, true);}
 void test_2x_p1_weighted_dev() {test_2x_weighted(1, GKYL_FEM_PARPROJ_NONE, true);}
+void test_2x_p1_selfadjoint_dev() {test_2x_selfadjoint(1, GKYL_FEM_PARPROJ_NONE, true);}
 
 void test_2x_p2_bcnone_dev() {test_2x(2, GKYL_FEM_PARPROJ_NONE, true);}
 void test_2x_p2_bcdirichlet_dev() {test_2x(2, GKYL_FEM_PARPROJ_DIRICHLET, true);}
@@ -1318,6 +1437,7 @@ TEST_LIST = {
   { "test_2x_p2_bcdirichlet_ho", test_2x_p2_bcdirichlet_ho },
   { "test_2x_p2_bcperiodic_ho", test_2x_p2_bcperiodic_ho },
   { "test_2x_p1_weighted_ho", test_2x_p1_weighted_ho},
+  { "test_2x_p1_selfadjoint_ho", test_2x_p1_selfadjoint_ho},
   { "test_3x_p1_bcnone_ho", test_3x_p1_bcnone_ho },
   { "test_3x_p1_bcdirichlet_ho", test_3x_p1_bcdirichlet_ho },
   { "test_3x_p1_bcperiodic_ho", test_3x_p1_bcperiodic_ho },
@@ -1338,6 +1458,7 @@ TEST_LIST = {
   { "test_2x_p2_bcdirichlet_dev", test_2x_p2_bcdirichlet_dev },
   { "test_2x_p2_bcperiodic_dev", test_2x_p2_bcperiodic_dev },
   { "test_2x_p1_weighted_dev_dev", test_2x_p1_weighted_dev},
+  { "test_2x_p1_selfadjoint_dev", test_2x_p1_selfadjoint_dev},
   { "test_3x_p1_bcnone_dev", test_3x_p1_bcnone_dev },
   { "test_3x_p1_bcdirichlet_dev", test_3x_p1_bcdirichlet_dev },
   { "test_3x_p1_bcperiodic_dev", test_3x_p1_bcperiodic_dev },
