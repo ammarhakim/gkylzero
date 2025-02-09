@@ -568,22 +568,23 @@ gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
   for (int i=0; i<app->num_fluid_species; ++i) {
     struct vm_fluid_species *f = &app->fluid_species[i];
 
-    gkyl_array_clear(f->integ_mom, 0.0);
+    if (f->eqn_type == GKYL_EQN_EULER || f->eqn_type == GKYL_EQN_ISO_EULER) {
+      gkyl_array_clear(f->integ_mom, 0.0);
+      vm_fluid_species_prim_vars(app, f, f->fluid);
+      gkyl_dg_calc_fluid_integrated_vars(f->calc_fluid_vars, &app->local, 
+        f->fluid, f->u, f->p, f->integ_mom);
+      gkyl_array_scale_range(f->integ_mom, app->grid.cellVolume, &app->local);
+      if (app->use_gpu) {
+        gkyl_array_reduce_range(f->red_integ_diag, f->integ_mom, GKYL_SUM, &app->local);
+        gkyl_cu_memcpy(avals_fluid, f->red_integ_diag, sizeof(double[6]), GKYL_CU_MEMCPY_D2H);
+      }
+      else { 
+        gkyl_array_reduce_range(avals_fluid, f->integ_mom, GKYL_SUM, &app->local);
+      }
 
-    vm_fluid_species_prim_vars(app, f, f->fluid);
-    gkyl_dg_calc_fluid_integrated_vars(f->calc_fluid_vars, &app->local, 
-      f->fluid, f->u, f->p, f->integ_mom);
-    gkyl_array_scale_range(f->integ_mom, app->grid.cellVolume, &app->local);
-    if (app->use_gpu) {
-      gkyl_array_reduce_range(f->red_integ_diag, f->integ_mom, GKYL_SUM, &app->local);
-      gkyl_cu_memcpy(avals_fluid, f->red_integ_diag, sizeof(double[6]), GKYL_CU_MEMCPY_D2H);
+      gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 5, avals_fluid, avals_fluid_global);
+      gkyl_dynvec_append(f->integ_diag, tm, avals_fluid_global);
     }
-    else { 
-      gkyl_array_reduce_range(avals_fluid, f->integ_mom, GKYL_SUM, &app->local);
-    }
-
-    gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 5, avals_fluid, avals_fluid_global);
-    gkyl_dynvec_append(f->integ_diag, tm, avals_fluid_global);
   }
 
   app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
@@ -810,6 +811,22 @@ gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, i
   }
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
     mt, vm_fs->fluid_host, fileNm);
+
+  // If fluid species is a canonical PB fluid and we are also solving a
+  // Poisson equation, also write out phi, the potential. 
+  if (vm_fs->has_poisson) {
+    const char *fmt_phi = "%s-phi_%d.gkyl";
+    int sz_phi = gkyl_calc_strlen(fmt_phi, app->name, frame);
+    char fileNm_phi[sz_phi+1]; // ensures no buffer overflow
+    snprintf(fileNm_phi, sizeof fileNm_phi, fmt_phi, app->name, frame);
+
+    // copy data from device to host before writing it out
+    if (app->use_gpu) {
+      gkyl_array_copy(vm_fs->phi_host, vm_fs->phi);
+    }
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
+      mt, vm_fs->phi_host, fileNm_phi);    
+  }
 
   vlasov_array_meta_release(mt);    
 }

@@ -8,6 +8,8 @@
 #include <gkyl_vlasov.h>
 #include <gkyl_vlasov_lw.h>
 #include <gkyl_vlasov_priv.h>
+#include <gkyl_wv_advect.h>
+#include <gkyl_wv_canonical_pb_fluid.h>
 #include <gkyl_wv_euler.h>
 #include <gkyl_zero_lw.h>
 
@@ -109,6 +111,104 @@ static struct luaL_Reg eqn_euler_ctor[] = {
   { 0, 0 }
 };
 
+/* ****************************** */
+/* incompressible Euler Equations */
+/* ****************************** */
+
+// IncompressEuler.new { }
+static int
+eqn_incompress_euler_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *incompress_euler_lw = gkyl_malloc(sizeof(*incompress_euler_lw));
+
+  incompress_euler_lw->magic = VLASOV_EQN_DEFAULT;
+  incompress_euler_lw->eqn = gkyl_wv_can_pb_incompress_euler_new();
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_incompress_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_incompress_euler_lw = incompress_euler_lw; // Point userdata to the equation object.
+  
+  // Set metatable.
+  luaL_getmetatable(L, VLASOV_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_incompress_euler_ctor[] = {
+  { "new", eqn_incompress_euler_lw_new },
+  { 0, 0 }
+};
+
+/* *********************** */
+/* Hasegawa-Mima Equations */
+/* *********************** */
+
+// HasegawaMima.new { kappa = 1.0 }
+static int
+eqn_hasegawa_mima_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *hasegawa_mima_lw = gkyl_malloc(sizeof(*hasegawa_mima_lw));
+
+  double kappa = glua_tbl_get_number(L, "kappa", 1.0);
+
+  hasegawa_mima_lw->magic = VLASOV_EQN_DEFAULT;
+  hasegawa_mima_lw->eqn = gkyl_wv_can_pb_hasegawa_mima_new(kappa);
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_hasegawa_mima_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_hasegawa_mima_lw = hasegawa_mima_lw; // Point userdata to the equation object.
+  
+  // Set metatable.
+  luaL_getmetatable(L, VLASOV_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_hasegawa_mima_ctor[] = {
+  { "new", eqn_hasegawa_mima_lw_new },
+  { 0, 0 }
+};
+
+/* *************************** */
+/* Hasegawa-Wakatani Equations */
+/* *************************** */
+
+// HasegawaWakatani.new { alpha = 1.0, kappa = 1.0, is_modified = false }
+// Set is_modified=true to utilized modified Hasegawa-Wakatani system which
+// subtracts off zonal component of adiabatic coupling term. 
+static int
+eqn_hasegawa_wakatani_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *hasegawa_wakatani_lw = gkyl_malloc(sizeof(*hasegawa_wakatani_lw));
+
+  double alpha = glua_tbl_get_number(L, "alpha", 1.0);
+  double kappa = glua_tbl_get_number(L, "kappa", 1.0);
+  bool is_modified = glua_tbl_get_integer(L, "is_modified", false);  
+
+  hasegawa_wakatani_lw->magic = VLASOV_EQN_DEFAULT;
+  hasegawa_wakatani_lw->eqn = gkyl_wv_can_pb_hasegawa_wakatani_new(alpha, kappa, is_modified);
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_hasegawa_wakatani_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_hasegawa_wakatani_lw = hasegawa_wakatani_lw; // Point userdata to the equation object.
+  
+  // Set metatable.
+  luaL_getmetatable(L, VLASOV_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_hasegawa_wakatani_ctor[] = {
+  { "new", eqn_hasegawa_wakatani_lw_new },
+  { 0, 0 }
+};
+
 // Register and load all wave equation objects.
 static void
 eqn_openlibs(lua_State *L)
@@ -120,6 +220,9 @@ eqn_openlibs(lua_State *L)
   lua_settable(L, -3);
 
   luaL_register(L, "G0.Vlasov.Eq.Euler", eqn_euler_ctor);
+  luaL_register(L, "G0.Vlasov.Eq.IncompressEuler", eqn_incompress_euler_ctor);
+  luaL_register(L, "G0.Vlasov.Eq.HasegawaMima", eqn_hasegawa_mima_ctor);
+  luaL_register(L, "G0.Vlasov.Eq.HasegawaWakatani", eqn_hasegawa_wakatani_ctor);
 }
 
 /* *************** */

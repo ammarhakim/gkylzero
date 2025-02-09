@@ -12,68 +12,32 @@ void
 vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_fluid_species *f)
 {
   int cdim = app->cdim;
-  int vdim = app->vdim;
+  // Setup equation-specific memory and equation type/number of equations based on input table
   f->eqn_type = f->info.equation->type;
   f->num_equations = f->info.equation->num_equations;
   f->equation = gkyl_wv_eqn_acquire(f->info.equation);
-
-  // allocate fluid arrays
-  f->fluid = mkarr(app->use_gpu, f->num_equations*app->confBasis.num_basis, app->local_ext.volume);
-  f->fluid1 = mkarr(app->use_gpu, f->num_equations*app->confBasis.num_basis, app->local_ext.volume);
-  f->fluidnew = mkarr(app->use_gpu, f->num_equations*app->confBasis.num_basis, app->local_ext.volume);
-
-  f->fluid_host = f->fluid;
-  if (app->use_gpu)
-    f->fluid_host = mkarr(false, f->num_equations*app->confBasis.num_basis, app->local_ext.volume);
-
-  // Duplicate copy of fluid data in case time step fails.
-  // Needed because of implicit source split which modifies solution and 
-  // is always successful, so if a time step fails due to the SSP RK3 
-  // we must restore the old solution before restarting the time step
-  f->fluid_dup = mkarr(app->use_gpu, f->num_equations*app->confBasis.num_basis, app->local_ext.volume);
-
-  // allocate cflrate (scalar array)
-  f->cflrate = mkarr(app->use_gpu, 1, app->local_ext.volume);
-  if (app->use_gpu)
-    f->omegaCfl_ptr = gkyl_cu_malloc(sizeof(double));
-  else
-    f->omegaCfl_ptr = gkyl_malloc(sizeof(double));
-
-  int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 0};
-
-  // fluid solvers
-  if (f->info.advection.velocity) {
-    f->eqn_type = GKYL_EQN_ADVECTION;
-
-    // setup applied advection 
+  if (f->eqn_type == GKYL_EQN_ADVECTION) {
+    // setup FEM representation of applied advection 
     f->app_advect = mkarr(app->use_gpu, cdim*app->confBasis.num_basis, app->local_ext.volume);
-
     f->app_advect_host = f->app_advect;
-    if (app->use_gpu)
+    if (app->use_gpu) {
       f->app_advect_host = mkarr(false, cdim*app->confBasis.num_basis, app->local_ext.volume);
+    }
 
-    gkyl_proj_on_basis *app_advect_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
-        .grid = &app->grid,
-        .basis = &app->confBasis,
-        .qtype = GKYL_GAUSS_LOBATTO_QUAD,
-        .num_quad = 8,
-        .num_ret_vals = cdim,
-        .eval = f->info.advection.velocity,
-        .ctx = f->info.advection.velocity_ctx
-      }
-    );
-
-    gkyl_proj_on_basis_advance(app_advect_proj, 0.0, &app->local_ext, f->app_advect_host);
-    if (app->use_gpu) // note: app_advect_host is same as advect when not on GPUs
+    // Evaluate specified advection function at nodes to insure continuity of advection velocity
+    struct gkyl_eval_on_nodes* app_advect_proj = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis, cdim, 
+      f->info.advection.velocity, f->info.advection.velocity_ctx);
+    gkyl_eval_on_nodes_advance(app_advect_proj, 0.0, &app->local_ext, f->app_advect_host);
+    if (app->use_gpu) {
       gkyl_array_copy(f->app_advect, f->app_advect_host);
-    // Free projection object
-    gkyl_proj_on_basis_release(app_advect_proj);
+    }
+    gkyl_eval_on_nodes_release(app_advect_proj);
 
     struct gkyl_dg_advection_auxfields aux_inp = {.u_i = f->app_advect};
     f->advect_slvr = gkyl_dg_updater_fluid_new(&app->grid, &app->confBasis,
       &app->local, f->equation, app->geom, &aux_inp, app->use_gpu);
   }
-  else {
+  else if (f->eqn_type == GKYL_EQN_EULER || f->eqn_type == GKYL_EQN_ISO_EULER) {
     // allocate array to store fluid velocity (ux, uy, uz) and pressure
     // For isothermal Euler, p : (vth*rho)
     // For Euler, p : (gamma - 1)*(E - 1/2 rho u^2)
@@ -111,8 +75,112 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     struct gkyl_dg_euler_auxfields aux_inp = {.u = f->u, .p = f->p, 
       .u_surf = f->u_surf, .p_surf = f->p_surf};
     f->advect_slvr = gkyl_dg_updater_fluid_new(&app->grid, &app->confBasis,
-      &app->local, f->equation, app->geom, &aux_inp, app->use_gpu);    
+      &app->local, f->equation, app->geom, &aux_inp, app->use_gpu);
   }
+  else {
+    // Equation type is a Canonical Poisson Bracket (PB) fluid such as
+    // incompressible Euler, Hasegawa-Mima, or Hasegawa-Wakatani. 
+    assert(app->cdim == 2); // Canonical PB fluid only works with cdim = 2. 
+
+    // canonical PB fluids couple to a Poisson equation; initialize that
+    // here for now, though it might be better to utilize the vp_field 
+    // infrastructure once that becomes more flexible (JJ: 02/03/2025)
+    // Allocate arrays for potential and global rhs of Poisson solve.
+    f->phi = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    f->phi_global = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
+    f->poisson_rhs_global = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
+
+    // Host potential for  I/O.
+    f->phi_host = app->use_gpu ? mkarr(false, app->confBasis.num_basis, app->local_ext.volume)
+                                : gkyl_array_acquire(f->phi);
+
+    // Create global subrange we'll copy the field solver solution from (into local).
+    int intersect = gkyl_sub_range_intersect(&f->global_sub_range, &app->global, &app->local);
+
+    // Set the permittivity in the Poisson equation. Just a constant value of -1.0
+    // so that overall Poisson equation becomes grad^2 phi = RHS since FEM Poisson
+    // solver by default assumes Poisson equation of the form -nabla . (epsilon . grad phi) = RHS. 
+    f->epsilon = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
+    gkyl_array_clear(f->epsilon, 0.0);
+    gkyl_array_shiftc(f->epsilon, -1.0*pow(sqrt(2.0),app->cdim), 0);
+
+    // Create Poisson solver. Only supports periodic boundary conditions for now. 
+    struct gkyl_poisson_bc poisson_bcs = {
+      .lo_type = { GKYL_POISSON_PERIODIC, GKYL_POISSON_PERIODIC },
+      .up_type = { GKYL_POISSON_PERIODIC, GKYL_POISSON_PERIODIC },
+    };
+    if (f->eqn_type == GKYL_EQN_CAN_PB_HASEGAWA_MIMA) {
+      // If Hasegawa-Mima, we solve a Helmholtz equations (grad^2 - 1)phi = zeta
+      // where zeta is vorticity (the quantity we are evolving). 
+      f->kSq = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
+      gkyl_array_clear(f->kSq, 0.0);
+      gkyl_array_shiftc(f->kSq, pow(sqrt(2.0),app->cdim), 0);
+      f->fem_poisson = gkyl_fem_poisson_new(&app->global, &app->grid, app->confBasis,
+        &poisson_bcs, f->epsilon, f->kSq, true, app->use_gpu);
+    }
+    else {
+      f->fem_poisson = gkyl_fem_poisson_new(&app->global, &app->grid, app->confBasis,
+        &poisson_bcs, f->epsilon, NULL, true, app->use_gpu);      
+    }
+    f->has_poisson = true; 
+
+    // Need to figure out size of alpha_surf and sgn_alpha_surf by finding size of surface basis set 
+    struct gkyl_basis surf_basis, surf_quad_basis; 
+    if (app->confBasis.b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
+      gkyl_cart_modal_serendip(&surf_basis, cdim-1, app->poly_order); 
+    }
+    else if (app->confBasis.b_type == GKYL_BASIS_MODAL_TENSOR) {
+      gkyl_cart_modal_tensor(&surf_basis, cdim-1, app->poly_order); 
+    }
+    else {
+      assert(false);
+    }
+    gkyl_cart_modal_tensor(&surf_quad_basis, cdim-1, app->poly_order);    
+    int alpha_surf_sz = cdim*surf_basis.num_basis; 
+    int sgn_alpha_surf_sz = cdim*surf_quad_basis.num_basis; // sign(alpha) is store at quadrature points
+
+    // allocate arrays to store fields: 
+    // 1. alpha_surf (surface configuration space velocity)
+    // 2. sgn_alpha_surf (sign(alpha_surf) at quadrature points)
+    // 3. const_sgn_alpha (boolean for if sign(alpha_surf) is a constant, either +1 or -1)
+    f->alpha_surf = mkarr(app->use_gpu, alpha_surf_sz, app->local_ext.volume);
+    f->sgn_alpha_surf = mkarr(app->use_gpu, sgn_alpha_surf_sz, app->local_ext.volume);
+    f->const_sgn_alpha = mk_int_arr(app->use_gpu, cdim, app->local_ext.volume);
+    f->calc_can_pb_fluid_vars = gkyl_dg_calc_canonical_pb_fluid_vars_new(&app->grid, 
+      &app->confBasis, f->equation, app->use_gpu); 
+
+    struct gkyl_dg_canonical_pb_fluid_auxfields aux_inp = {.phi = f->phi, .alpha_surf = f->alpha_surf, 
+      .sgn_alpha_surf = f->sgn_alpha_surf, .const_sgn_alpha = f->const_sgn_alpha};
+    f->advect_slvr = gkyl_dg_updater_fluid_new(&app->grid, &app->confBasis,
+      &app->local, f->equation, app->geom, &aux_inp, app->use_gpu);
+  }
+
+  // allocate fluid arrays
+  f->fluid = mkarr(app->use_gpu, f->num_equations*app->confBasis.num_basis, app->local_ext.volume);
+  f->fluid1 = mkarr(app->use_gpu, f->num_equations*app->confBasis.num_basis, app->local_ext.volume);
+  f->fluidnew = mkarr(app->use_gpu, f->num_equations*app->confBasis.num_basis, app->local_ext.volume);
+
+  f->fluid_host = f->fluid;
+  if (app->use_gpu) {
+    f->fluid_host = mkarr(false, f->num_equations*app->confBasis.num_basis, app->local_ext.volume);
+  }
+
+  // Duplicate copy of fluid data in case time step fails.
+  // Needed because of implicit source split which modifies solution and 
+  // is always successful, so if a time step fails due to the SSP RK3 
+  // we must restore the old solution before restarting the time step
+  f->fluid_dup = mkarr(app->use_gpu, f->num_equations*app->confBasis.num_basis, app->local_ext.volume);
+
+  // allocate cflrate (scalar array)
+  f->cflrate = mkarr(app->use_gpu, 1, app->local_ext.volume);
+  if (app->use_gpu) {
+    f->omegaCfl_ptr = gkyl_cu_malloc(sizeof(double));
+  }
+  else {
+    f->omegaCfl_ptr = gkyl_malloc(sizeof(double));
+  }
+
+  int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 0};
 
   f->has_diffusion = false;
   f->diffD = NULL;
@@ -318,38 +386,42 @@ void
 vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species,
   const struct gkyl_array *fluid)
 {
-  struct timespec tm = gkyl_wall_clock();
+  if (fluid_species->eqn_type == GKYL_EQN_EULER || fluid_species->eqn_type == GKYL_EQN_ISO_EULER) {    
+    struct timespec tm = gkyl_wall_clock();
 
-  // Compute flow velocity in both the volume and on surfaces
-  if (fluid_species->bc_is_absorb) {
-    gkyl_dg_calc_fluid_vars_advance(fluid_species->calc_fluid_vars,
-      fluid, fluid_species->cell_avg_prim, fluid_species->u, fluid_species->u_surf); 
+    // Compute flow velocity in both the volume and on surfaces
+    if (fluid_species->bc_is_absorb) {
+      gkyl_dg_calc_fluid_vars_advance(fluid_species->calc_fluid_vars,
+        fluid, fluid_species->cell_avg_prim, fluid_species->u, fluid_species->u_surf); 
+    }
+    else {
+      gkyl_dg_calc_fluid_vars_advance(fluid_species->calc_fluid_vars_ext,
+        fluid, fluid_species->cell_avg_prim, fluid_species->u, fluid_species->u_surf); 
+    }
+
+    // Compute scalar pressure in the volume and at needed surfaces
+    gkyl_dg_calc_fluid_vars_pressure(fluid_species->calc_fluid_vars, 
+      &app->local_ext, fluid, fluid_species->u, fluid_species->p, fluid_species->p_surf);
+
+    app->stat.fluid_species_vars_tm += gkyl_time_diff_now_sec(tm);
   }
-  else {
-    gkyl_dg_calc_fluid_vars_advance(fluid_species->calc_fluid_vars_ext,
-      fluid, fluid_species->cell_avg_prim, fluid_species->u, fluid_species->u_surf); 
-  }
-
-  // Compute scalar pressure in the volume and at needed surfaces
-  gkyl_dg_calc_fluid_vars_pressure(fluid_species->calc_fluid_vars, 
-    &app->local_ext, fluid, fluid_species->u, fluid_species->p, fluid_species->p_surf);
-
-  app->stat.fluid_species_vars_tm += gkyl_time_diff_now_sec(tm);
 }
 
 void
 vm_fluid_species_limiter(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species,
   struct gkyl_array *fluid)
 {
-  struct timespec tm = gkyl_wall_clock();
+  if (fluid_species->eqn_type == GKYL_EQN_EULER || fluid_species->eqn_type == GKYL_EQN_ISO_EULER) {  
+    struct timespec tm = gkyl_wall_clock();
 
-  // Limit the slopes of the solution
-  gkyl_dg_calc_fluid_vars_limiter(fluid_species->calc_fluid_vars, &app->local, fluid);
+    // Limit the slopes of the solution
+    gkyl_dg_calc_fluid_vars_limiter(fluid_species->calc_fluid_vars, &app->local, fluid);
 
-  app->stat.fluid_species_vars_tm += gkyl_time_diff_now_sec(tm);
+    app->stat.fluid_species_vars_tm += gkyl_time_diff_now_sec(tm);
 
-  // Apply boundary conditions after limiting solution
-  vm_fluid_species_apply_bc(app, fluid_species, fluid);
+    // Apply boundary conditions after limiting solution
+    vm_fluid_species_apply_bc(app, fluid_species, fluid);
+  }
 }
 
 // Compute the RHS for fluid species update, returning maximum stable
@@ -365,12 +437,44 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
   gkyl_array_clear(fluid_species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
+  if (fluid_species->has_poisson) {
+    struct timespec wst = gkyl_wall_clock();
+
+    // Solve Poisson equation for the potential before updating the canonical PB fluid. 
+    // Gather RHS of Poisson solve into global array.
+    gkyl_comm_array_allgather(app->comm, &app->local, &app->global, 
+      fluid, fluid_species->poisson_rhs_global);
+
+    // Solve the Poisson problem.
+    gkyl_fem_poisson_set_rhs(fluid_species->fem_poisson, fluid_species->poisson_rhs_global);
+    gkyl_fem_poisson_solve(fluid_species->fem_poisson, fluid_species->phi_global);
+
+    // Copy the portion of global potential corresponding to this MPI process to the local potential.
+    gkyl_array_copy_range_to_range(fluid_species->phi, fluid_species->phi_global, 
+      &app->local, &fluid_species->global_sub_range);
+    
+    app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
+
+    struct timespec tm = gkyl_wall_clock();
+
+    // Compute the surface characteristics from the potential. 
+    gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf(fluid_species->calc_can_pb_fluid_vars, 
+      &app->local, &app->local_ext, fluid_species->phi, 
+      fluid_species->alpha_surf, fluid_species->sgn_alpha_surf, fluid_species->const_sgn_alpha); 
+
+    // Increment the source contribution for certain canonical PB fluids onto the RHS. 
+    gkyl_canonical_pb_fluid_vars_source(fluid_species->calc_can_pb_fluid_vars, 
+      &app->local, fluid_species->phi, fluid, rhs); 
+
+    app->stat.fluid_species_vars_tm += gkyl_time_diff_now_sec(tm);
+  }
+
   gkyl_dg_updater_fluid_advance(fluid_species->advect_slvr, 
     &app->local, fluid, fluid_species->cflrate, rhs);
 
   // Accumulate explicit source contribution, e.g., external forces
   // Only done if there are external forces and no EM fields, as fluid-EM coupling
-  // is handled by implicit source solve, see vm_fluid_em_coupling.c
+  // is handled by implicit source solve, see vm_fluid_em_coupling.c. 
   if (fluid_species->has_app_accel && !app->has_field) {
     gkyl_dg_calc_fluid_vars_source(fluid_species->calc_fluid_vars, &app->local, 
       fluid_species->app_accel, fluid, rhs); 
@@ -462,7 +566,48 @@ vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *f
 void
 vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
 {
-  gkyl_wv_eqn_release(f->equation);
+  // Release acquired equation object pointer 
+  // along with other equation specific data. 
+  gkyl_wv_eqn_release(f->equation);  
+  if (f->has_poisson) {
+    // If we solved a Poisson equation, our equation type was
+    // a canonical Poisson Bracket fluid, so need to free 
+    // Poisson solve data and other PB fluid data. 
+    gkyl_array_release(f->phi);
+    gkyl_array_release(f->phi_global);
+    gkyl_array_release(f->phi_host);
+    gkyl_array_release(f->poisson_rhs_global);
+    gkyl_array_release(f->epsilon);
+    if (f->eqn_type == GKYL_EQN_CAN_PB_HASEGAWA_MIMA) {
+      gkyl_array_release(f->kSq);
+    }
+    gkyl_fem_poisson_release(f->fem_poisson);
+
+    gkyl_array_release(f->alpha_surf); 
+    gkyl_array_release(f->sgn_alpha_surf); 
+    gkyl_array_release(f->const_sgn_alpha); 
+    gkyl_dg_calc_canonical_pb_fluid_vars_release(f->calc_can_pb_fluid_vars); 
+  }
+  else {
+    if (f->eqn_type == GKYL_EQN_ADVECTION) {
+      gkyl_array_release(f->app_advect);
+      if (app->use_gpu) {
+        gkyl_array_release(f->app_advect_host);
+      }
+    }
+    else if (f->eqn_type == GKYL_EQN_EULER || f->eqn_type == GKYL_EQN_ISO_EULER) {
+      gkyl_array_release(f->u);
+      gkyl_array_release(f->p);
+      gkyl_array_release(f->cell_avg_prim);
+      gkyl_array_release(f->u_surf);
+      gkyl_array_release(f->p_surf);
+      gkyl_array_release(f->ke_old);
+      gkyl_array_release(f->ke_new);
+      gkyl_dg_calc_fluid_vars_release(f->calc_fluid_vars);
+      gkyl_dg_calc_fluid_vars_release(f->calc_fluid_vars_ext);
+    }    
+  }
+  gkyl_dg_updater_fluid_release(f->advect_slvr);
 
   gkyl_array_release(f->fluid);
   gkyl_array_release(f->fluid1);
@@ -471,30 +616,14 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
   gkyl_array_release(f->cflrate);
   gkyl_array_release(f->fluid_dup);
 
-  gkyl_dg_updater_fluid_release(f->advect_slvr);
   if (f->has_diffusion) {
     gkyl_array_release(f->diffD);
-    if (f->info.diffusion.Dij)
+    if (f->info.diffusion.Dij) {
       gkyl_dg_updater_diffusion_gen_release(f->diff_slvr_gen);
-    else if (f->info.diffusion.D)
+    }
+    else if (f->info.diffusion.D) {
       gkyl_dg_updater_diffusion_fluid_release(f->diff_slvr);
-  }
-
-  if (f->eqn_type == GKYL_EQN_ADVECTION) {
-    gkyl_array_release(f->app_advect);
-    if (app->use_gpu)
-      gkyl_array_release(f->app_advect_host);
-  }
-  else if (f->eqn_type == GKYL_EQN_EULER || f->eqn_type == GKYL_EQN_ISO_EULER) {
-    gkyl_array_release(f->u);
-    gkyl_array_release(f->p);
-    gkyl_array_release(f->cell_avg_prim);
-    gkyl_array_release(f->u_surf);
-    gkyl_array_release(f->p_surf);
-    gkyl_array_release(f->ke_old);
-    gkyl_array_release(f->ke_new);
-    gkyl_dg_calc_fluid_vars_release(f->calc_fluid_vars);
-    gkyl_dg_calc_fluid_vars_release(f->calc_fluid_vars_ext);
+    }
   }
 
   gkyl_array_release(f->integ_mom);

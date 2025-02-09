@@ -25,12 +25,14 @@
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_canonical_pb_vars.h>
+#include <gkyl_dg_calc_canonical_pb_fluid_vars.h>
 #include <gkyl_dg_calc_em_vars.h>
 #include <gkyl_dg_calc_prim_vars.h>
 #include <gkyl_dg_calc_fluid_vars.h>
 #include <gkyl_dg_calc_fluid_em_coupling.h>
 #include <gkyl_dg_calc_sr_vars.h>
 #include <gkyl_dg_canonical_pb.h>
+#include <gkyl_dg_canonical_pb_fluid.h>
 #include <gkyl_dg_euler.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_updater_fluid.h>
@@ -570,6 +572,7 @@ struct vm_fluid_species {
   enum gkyl_eqn_type eqn_type;  // type ID of equation
   int num_equations;            // number of equations in species
   struct gkyl_wv_eqn *equation; // equation object
+  bool has_poisson;
   // organization of the different equation objects and the required data and solvers
   union {
     // Applied advection
@@ -597,6 +600,25 @@ struct vm_fluid_species {
       struct gkyl_dg_calc_fluid_vars *calc_fluid_vars; // Updater to compute fluid variables (flow velocity and pressure)
       struct gkyl_dg_calc_fluid_vars *calc_fluid_vars_ext; // Updater to compute fluid variables (flow velocity and pressure)
                                                            // over extended range (used when BCs are not absorbing to minimize apply BCs calls) 
+    };
+    // Canonical PB Fluid such as incompressible Euler or Hasegawa-Wakatani
+    struct {
+      struct gkyl_array *phi; // potential determined by canonical PB Poisson equation on local range used by updater
+      struct gkyl_array *phi_global; // potential determined by canonical PB Poisson equation on global range given by Poisson solver
+      struct gkyl_array *poisson_rhs_global; // global RHS of Poisson equation, simply an all-gather of, e.g., the vorticity
+      struct gkyl_array *phi_host; // host copy for use IO
+      struct gkyl_array *epsilon; // Permittivity in Poisson equation, set to -1.0 for canonical PB Poisson equations. 
+      struct gkyl_array *kSq; // k^2 factor in Helmholtz equation needed for Hasegawa-Mima where we solve (grad^2 - 1) phi = RHS
+
+      struct gkyl_range global_sub_range; // sub range of intersection of global range and local range
+                                          // for solving Poisson equation on each MPI process in parallel
+    
+      struct gkyl_fem_poisson *fem_poisson; // Poisson solver for - nabla . (epsilon * nabla phi) - kSq * phi = rho.
+
+      struct gkyl_array *alpha_surf; // Surface configuration space velocity (derivatives of potential, phi)
+      struct gkyl_array *sgn_alpha_surf; // sign(alpha_surf) at quadrature points
+      struct gkyl_array *const_sgn_alpha; // boolean for if sign(alpha_surf) is a constant, either +1 or -1
+      struct gkyl_dg_calc_canonical_pb_fluid_vars *calc_can_pb_fluid_vars; // Updater for computing surface alpha and sources. 
     };
   };
 
