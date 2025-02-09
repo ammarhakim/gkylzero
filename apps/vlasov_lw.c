@@ -2026,6 +2026,21 @@ vm_app_write_integrated_mom(lua_State *L)
   return 1;
 }
 
+// Write integrated fluid moments to file () -> bool.
+static int
+vm_app_write_fluid_integrated_mom(lua_State *L)
+{
+  bool status = true;
+
+  struct vlasov_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw *app_lw = *l_app_lw;
+
+  gkyl_vlasov_app_write_fluid_integrated_mom(app_lw->app);
+
+  lua_pushboolean(L, status);  
+  return 1;
+}
+
 // Write integrated L2 norm of f to file () -> bool.
 static int
 vm_app_write_integrated_L2_f(lua_State *L)
@@ -2084,6 +2099,7 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, boo
     gkyl_vlasov_app_write(app, t_curr, frame);
     gkyl_vlasov_app_write_field_energy(app);
     gkyl_vlasov_app_write_integrated_mom(app);
+    gkyl_vlasov_app_write_fluid_integrated_mom(app);
     gkyl_vlasov_app_write_integrated_L2_f(app);
 
     gkyl_vlasov_app_calc_mom(app);

@@ -16,7 +16,7 @@ Ly = 40.0 -- Domain size (y-direction).
 poly_order = 2 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
-cfl_frac = 0.9 -- CFL coefficient.
+cfl_frac = 1.0 -- CFL coefficient.
 
 t_end = 200.0 -- Final simulation time.
 num_frames = 1 -- Number of output frames.

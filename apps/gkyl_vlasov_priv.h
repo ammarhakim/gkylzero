@@ -620,6 +620,9 @@ struct vm_fluid_species {
       struct gkyl_array *sgn_alpha_surf; // sign(alpha_surf) at quadrature points
       struct gkyl_array *const_sgn_alpha; // boolean for if sign(alpha_surf) is a constant, either +1 or -1
       struct gkyl_dg_calc_canonical_pb_fluid_vars *calc_can_pb_fluid_vars; // Updater for computing surface alpha and sources. 
+      struct gkyl_array *can_pb_energy_fac; // Factor in calculation of canonical PB energy diagnostic.
+      struct gkyl_array_integrate *calc_can_pb_energy;
+      double *red_can_pb_energy, *red_can_pb_energy_global; // Memory for use in GPU reduction of canonical PB energy.
     };
   };
 
@@ -643,6 +646,8 @@ struct vm_fluid_species {
   double *red_integ_diag; // for reduction on GPU
   gkyl_dynvec integ_diag; // Integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for int-moments dynvec written first time
+  // Function pointer to specific integrated quantity calculator
+  void (*calc_integrated_mom_func)(gkyl_vlasov_app* app, struct vm_fluid_species *f, double tm); 
 
   bool has_app_accel; // flag to indicate there is applied acceleration
   bool app_accel_evolve; // flag to indicate applied acceleration is time dependent
@@ -1627,6 +1632,15 @@ double vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid
  * @param f Fluid Species to apply BCs
  */
 void vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species, struct gkyl_array *f);
+
+/**
+ * Computed the integrated quantities for the fluid system.
+ *
+ * @param app Vlasov app object
+ * @param fluid_species Pointer to fluid species
+ * @param tm Time integrated quantities are being computed at. 
+ */
+void vm_fluid_species_calc_integrated_mom(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double tm);
 
 /**
  * Release resources allocated by fluid species

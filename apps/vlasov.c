@@ -564,27 +564,9 @@ gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
     app->stat.nmom += 1;
   }
 
-  double avals_fluid[6], avals_fluid_global[6];
   for (int i=0; i<app->num_fluid_species; ++i) {
     struct vm_fluid_species *f = &app->fluid_species[i];
-
-    if (f->eqn_type == GKYL_EQN_EULER || f->eqn_type == GKYL_EQN_ISO_EULER) {
-      gkyl_array_clear(f->integ_mom, 0.0);
-      vm_fluid_species_prim_vars(app, f, f->fluid);
-      gkyl_dg_calc_fluid_integrated_vars(f->calc_fluid_vars, &app->local, 
-        f->fluid, f->u, f->p, f->integ_mom);
-      gkyl_array_scale_range(f->integ_mom, app->grid.cellVolume, &app->local);
-      if (app->use_gpu) {
-        gkyl_array_reduce_range(f->red_integ_diag, f->integ_mom, GKYL_SUM, &app->local);
-        gkyl_cu_memcpy(avals_fluid, f->red_integ_diag, sizeof(double[6]), GKYL_CU_MEMCPY_D2H);
-      }
-      else { 
-        gkyl_array_reduce_range(avals_fluid, f->integ_mom, GKYL_SUM, &app->local);
-      }
-
-      gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 5, avals_fluid, avals_fluid_global);
-      gkyl_dynvec_append(f->integ_diag, tm, avals_fluid_global);
-    }
+    vm_fluid_species_calc_integrated_mom(app, f, tm); 
   }
 
   app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
@@ -946,6 +928,35 @@ gkyl_vlasov_app_write_integrated_mom(gkyl_vlasov_app *app)
         gkyl_dynvec_clear(vm_s->src.integ_diag);
       }
     }
+  }
+}
+
+void
+gkyl_vlasov_app_write_fluid_integrated_mom(gkyl_vlasov_app *app)
+{
+  for (int i=0; i<app->num_fluid_species; ++i) {
+    struct vm_fluid_species *vm_fs = &app->fluid_species[i];
+
+    int rank;
+    gkyl_comm_get_rank(app->comm, &rank);
+    if (rank == 0) {
+      // write out integrated diagnostic moments
+      const char *fmt = "%s-%s-%s.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, vm_fs->info.name,
+        "imom");
+      char fileNm[sz+1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, vm_fs->info.name,
+        "imom");
+
+      if (vm_fs->is_first_integ_write_call) {
+        gkyl_dynvec_write(vm_fs->integ_diag, fileNm);
+        vm_fs->is_first_integ_write_call = false;
+      }
+      else {
+        gkyl_dynvec_awrite(vm_fs->integ_diag, fileNm);
+      }     
+    }
+    gkyl_dynvec_clear(vm_fs->integ_diag);
   }
 }
 

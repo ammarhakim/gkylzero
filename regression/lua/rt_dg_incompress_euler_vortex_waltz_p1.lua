@@ -1,24 +1,27 @@
--- Double shear flow with incompressible Euler equations. 
+-- Vortez-Waltz with incompressible Euler equations. 
 -- Input parameters match the initial conditions found in entry JE13 of Ammar's Simulation Journal 
 -- (https://ammar-hakim.org/sj/je/je13/je13-incomp-euler-2d.html)
 
 local Vlasov = G0.Vlasov
 local IncompressEuler = G0.Vlasov.Eq.IncompressEuler
 
-rho = math.pi/15.0 -- Shear layer width. 
-delta = 0.05 -- Perturbation. 
+x1 = 3.5 -- x location of first Gaussian
+y1 = 5.0 -- y location of first Gaussian
+x2 = 6.5 -- x location of second Gaussian
+y2 = 5.0 -- y location of second Gaussian
+w = 0.8 -- width of Gaussians
 
 -- Simulation parameters.
 Nx = 64 -- Cell count (x-direction).
 Ny = 64 -- Cell count (y-direction).
-Lx = 2.0*math.pi -- Domain size (x-direction).
-Ly = 2.0*math.pi -- Domain size (y-direction).
-poly_order = 2 -- Polynomial order.
+Lx = 10.0 -- Domain size (x-direction).
+Ly = 10.0 -- Domain size (y-direction).
+poly_order = 1 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 8.0 -- Final simulation time.
+t_end = 100.0 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
@@ -58,12 +61,9 @@ vlasovApp = Vlasov.App.new {
     init = function (t, xn)
       local x, y = xn[1], xn[2]
 
-      local chi = 0.0
-      if y > math.pi then
-        chi = delta*math.cos(x) + 1.0/rho*(1.0 / math.cosh((3.0*math.pi/2.0 - y) / rho))^2 -- Right shear layer
-      else
-        chi = delta*math.cos(x) - 1.0/rho*(1.0 / math.cosh((y - math.pi/2.0) / rho))^2 -- Left shear layer
-      end
+      local r1 = (x-x1)^2 + (y-y1)^2
+      local r2 = (x-x2)^2 + (y-y2)^2
+      local chi = math.exp(-r1/w^2) + math.exp(-r2/w^2)
       
       return chi
     end,

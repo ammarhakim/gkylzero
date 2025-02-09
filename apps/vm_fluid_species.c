@@ -13,6 +13,133 @@ evalBackgroundDensityGradient(double t, const double* GKYL_RESTRICT xn, double* 
   fout[0] = xn[0]; // linear gradient in x
 }
 
+static void
+vm_fluid_species_euler_calc_integrated(struct gkyl_vlasov_app *app, struct vm_fluid_species *f, double tm)
+{
+  double avals_fluid[6], avals_fluid_global[6];  
+  gkyl_array_clear(f->integ_mom, 0.0);
+  vm_fluid_species_prim_vars(app, f, f->fluid);
+  // Euler and isothermal Euler integrated quantities: rho, rhoux, rhouy, rhouz, ke, ie
+  // where ke is the kinetic energy 1/2 rhou^2 and ie is the internal energy (for ideal Euler = p/(gas_gamma - 1))
+  gkyl_dg_calc_fluid_integrated_vars(f->calc_fluid_vars, &app->local, 
+    f->fluid, f->u, f->p, f->integ_mom);
+  gkyl_array_scale_range(f->integ_mom, app->grid.cellVolume, &app->local);
+  if (app->use_gpu) {
+    gkyl_array_reduce_range(f->red_integ_diag, f->integ_mom, GKYL_SUM, &app->local);
+    gkyl_cu_memcpy(avals_fluid, f->red_integ_diag, sizeof(double[6]), GKYL_CU_MEMCPY_D2H);
+  }
+  else { 
+    gkyl_array_reduce_range(avals_fluid, f->integ_mom, GKYL_SUM, &app->local);
+  }
+
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 6, avals_fluid, avals_fluid_global);
+  gkyl_dynvec_append(f->integ_diag, tm, avals_fluid_global);
+}
+
+static void
+vm_fluid_species_advect_calc_integrated(struct gkyl_vlasov_app *app, struct vm_fluid_species *f, double tm)
+{
+  double avals_fluid[1], avals_fluid_global[1];  
+  // Advection equation integrated quantity: f, f^2
+  double advect_int[2];
+
+  // First calculate f
+  gkyl_array_clear(f->integ_mom, 0.0); 
+  gkyl_dg_calc_average_range(app->confBasis, 0, f->integ_mom, 0, f->fluid, app->local);
+  gkyl_array_scale_range(f->integ_mom, app->grid.cellVolume, &app->local);
+  if (app->use_gpu) {
+    gkyl_array_reduce_range(f->red_integ_diag, f->integ_mom, GKYL_SUM, &app->local);
+    gkyl_cu_memcpy(avals_fluid, f->red_integ_diag, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
+  }
+  else { 
+    gkyl_array_reduce_range(avals_fluid, f->integ_mom, GKYL_SUM, &app->local);
+  }
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, avals_fluid, avals_fluid_global);
+  advect_int[0] = avals_fluid_global[0];
+
+  // Now calculate f^2
+  gkyl_array_clear(f->integ_mom, 0.0); 
+  gkyl_dg_calc_l2_range(app->confBasis, 0, f->integ_mom, 0, f->fluid, app->local);
+  gkyl_array_scale_range(f->integ_mom, app->grid.cellVolume, &app->local);
+  if (app->use_gpu) {
+    gkyl_array_reduce_range(f->red_integ_diag, f->integ_mom, GKYL_SUM, &app->local);
+    gkyl_cu_memcpy(avals_fluid, f->red_integ_diag, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
+  }
+  else { 
+    gkyl_array_reduce_range(avals_fluid, f->integ_mom, GKYL_SUM, &app->local);
+  }
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, avals_fluid, avals_fluid_global);
+  advect_int[1] = avals_fluid_global[0];
+
+  gkyl_dynvec_append(f->integ_diag, tm, advect_int);
+}
+
+static void
+vm_fluid_species_can_pb_fluid_calc_integrated(struct gkyl_vlasov_app *app, struct vm_fluid_species *f, double tm)
+{ 
+  double avals_fluid[1], avals_fluid_global[1];  
+  // Canonical Poisson bracket for fluid equations integrated quantities: f, f^2, E
+  // where E is the integrated energy = integral(phi*f) since f = grad^2 phi -> E = integral(|grad phi|^2)
+  double can_pb_int[3];
+
+  // First calculate f
+  gkyl_array_clear(f->integ_mom, 0.0); 
+  gkyl_dg_calc_average_range(app->confBasis, 0, f->integ_mom, 0, f->fluid, app->local);
+  gkyl_array_scale_range(f->integ_mom, app->grid.cellVolume, &app->local);
+  if (app->use_gpu) {
+    gkyl_array_reduce_range(f->red_integ_diag, f->integ_mom, GKYL_SUM, &app->local);
+    gkyl_cu_memcpy(avals_fluid, f->red_integ_diag, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
+  }
+  else { 
+    gkyl_array_reduce_range(avals_fluid, f->integ_mom, GKYL_SUM, &app->local);
+  }
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, avals_fluid, avals_fluid_global);
+  can_pb_int[0] = avals_fluid_global[0];
+
+  // Now calculate f^2
+  gkyl_array_clear(f->integ_mom, 0.0); 
+  gkyl_dg_calc_l2_range(app->confBasis, 0, f->integ_mom, 0, f->fluid, app->local);
+  gkyl_array_scale_range(f->integ_mom, app->grid.cellVolume, &app->local);
+  if (app->use_gpu) {
+    gkyl_array_reduce_range(f->red_integ_diag, f->integ_mom, GKYL_SUM, &app->local);
+    gkyl_cu_memcpy(avals_fluid, f->red_integ_diag, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
+  }
+  else { 
+    gkyl_array_reduce_range(avals_fluid, f->integ_mom, GKYL_SUM, &app->local);
+  }
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, avals_fluid, avals_fluid_global);
+  can_pb_int[1] = avals_fluid_global[0];
+
+  // Now calculate E 
+  // First solve the Poisson equation for phi 
+  // Gather RHS of Poisson solve into global array.
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, 
+    f->fluid, f->poisson_rhs_global);
+
+  // Solve the Poisson problem.
+  gkyl_fem_poisson_set_rhs(f->fem_poisson, f->poisson_rhs_global);
+  gkyl_fem_poisson_solve(f->fem_poisson, f->phi_global);
+
+  // Copy the portion of global potential corresponding to this MPI process to the local potential.
+  gkyl_array_copy_range_to_range(f->phi, f->phi_global, 
+    &app->local, &f->global_sub_range);
+
+  // integrate |grad phi|^2
+  gkyl_array_integrate_advance(f->calc_can_pb_energy, f->phi,
+    app->grid.cellVolume, f->can_pb_energy_fac, &app->local, &app->local, f->red_can_pb_energy);
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, f->red_can_pb_energy, f->red_can_pb_energy_global);
+  if (app->use_gpu) {
+    gkyl_cu_memcpy(avals_fluid_global, f->red_can_pb_energy_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
+  }
+  else {
+    avals_fluid_global[0] = f->red_can_pb_energy_global[0];
+  }
+  can_pb_int[2] = avals_fluid_global[0];
+
+  gkyl_dynvec_append(f->integ_diag, tm, can_pb_int);
+
+}
+
 // initialize fluid species object
 void
 vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_fluid_species *f)
@@ -42,6 +169,17 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     struct gkyl_dg_advection_auxfields aux_inp = {.u_i = f->app_advect};
     f->advect_slvr = gkyl_dg_updater_fluid_new(&app->grid, &app->confBasis,
       &app->local, f->equation, app->geom, &aux_inp, app->use_gpu);
+
+    // array for storing integrated quantities in each cell = f, f^2
+    // We compute each separate and then write them to the dynvector f->integ_diag
+    f->integ_mom = mkarr(app->use_gpu, 1, app->local_ext.volume);
+    if (app->use_gpu) {
+      f->red_integ_diag = gkyl_cu_malloc(sizeof(double[1]));
+    }
+    // allocate dynamic-vector to store all-reduced integrated quantities
+    f->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, 2);
+    f->is_first_integ_write_call = true;
+    f->calc_integrated_mom_func = vm_fluid_species_advect_calc_integrated;
   }
   else if (f->eqn_type == GKYL_EQN_EULER || f->eqn_type == GKYL_EQN_ISO_EULER) {
     // allocate array to store fluid velocity (ux, uy, uz) and pressure
@@ -82,6 +220,17 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       .u_surf = f->u_surf, .p_surf = f->p_surf};
     f->advect_slvr = gkyl_dg_updater_fluid_new(&app->grid, &app->confBasis,
       &app->local, f->equation, app->geom, &aux_inp, app->use_gpu);
+
+    // Euler and isothermal Euler integrated quantities: rho, rhoux, rhouy, rhouz, ke, ie
+    // where ke is the kinetic energy 1/2 rhou^2 and ie is the internal energy (for ideal Euler = p/(gas_gamma - 1))
+    f->integ_mom = mkarr(app->use_gpu, 6, app->local_ext.volume);
+    if (app->use_gpu) {
+      f->red_integ_diag = gkyl_cu_malloc(sizeof(double[6]));
+    }
+    // allocate dynamic-vector to store all-reduced integrated moments 
+    f->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, 6);
+    f->is_first_integ_write_call = true;
+    f->calc_integrated_mom_func = vm_fluid_species_euler_calc_integrated;
   }
   else {
     // Equation type is a Canonical Poisson Bracket (PB) fluid such as
@@ -174,6 +323,31 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       .sgn_alpha_surf = f->sgn_alpha_surf, .const_sgn_alpha = f->const_sgn_alpha};
     f->advect_slvr = gkyl_dg_updater_fluid_new(&app->grid, &app->confBasis,
       &app->local, f->equation, app->geom, &aux_inp, app->use_gpu);
+
+    // Canonical Poisson bracket for fluid equations integrated quantities: f, f^2, E
+    // where E is the integrated energy = integral(phi*f) since f = grad^2 phi -> E = integral(|grad phi|^2)
+    // We compute each separate and then write them to the dynvector f->integ_diag
+    f->integ_mom = mkarr(app->use_gpu, 1, app->local_ext.volume);
+    if (app->use_gpu) {
+      f->red_integ_diag = gkyl_cu_malloc(sizeof(double[1]));
+      f->red_can_pb_energy = gkyl_cu_malloc(sizeof(double[1]));
+      f->red_can_pb_energy_global = gkyl_cu_malloc(sizeof(double[1]));
+    }
+    else {
+      f->red_can_pb_energy = gkyl_malloc(sizeof(double[1]));
+      f->red_can_pb_energy_global = gkyl_malloc(sizeof(double[1]));
+    }
+    // allocate dynamic-vector to store all-reduced integrated quantities
+    f->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, 3);
+    f->is_first_integ_write_call = true; 
+
+    // Specialized updater for integrating |grad phi|^2
+    f->can_pb_energy_fac = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    gkyl_array_shiftc(f->can_pb_energy_fac, pow(sqrt(2.0),app->cdim), 0); // Sets can_pb_energy_fac = 1.
+    f->calc_can_pb_energy = gkyl_array_integrate_new(&app->grid, &app->confBasis,
+      1, GKYL_ARRAY_INTEGRATE_OP_GRAD_SQ, app->use_gpu);
+
+    f->calc_integrated_mom_func = vm_fluid_species_can_pb_fluid_calc_integrated;
   }
 
   // allocate fluid arrays
@@ -259,15 +433,6 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     f->diff_slvr = gkyl_dg_updater_diffusion_fluid_new(&app->grid, &app->confBasis,
       true, f->num_equations, NULL, f->info.diffusion.order, &app->local, is_zero_flux, app->use_gpu);
   }
-
-  // array for storing integrated moments in each cell
-  f->integ_mom = mkarr(app->use_gpu, 6, app->local_ext.volume);
-  if (app->use_gpu) {
-    f->red_integ_diag = gkyl_cu_malloc(sizeof(double[6]));
-  }
-  // allocate dynamic-vector to store all-reduced integrated moments 
-  f->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, 6);
-  f->is_first_integ_write_call = true;
 
   // Initialize applied acceleration for use in force update. 
   // Always used by fluid implicit sources, so always initialize.
@@ -583,6 +748,13 @@ vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *f
   app->stat.fluid_species_bc_tm += gkyl_time_diff_now_sec(wst);
 }
 
+// integrated quantities calculator
+void 
+vm_fluid_species_calc_integrated_mom(gkyl_vlasov_app* app, struct vm_fluid_species *f, double tm)
+{
+  f->calc_integrated_mom_func(app, f, tm); 
+}
+
 // release resources for fluid species
 void
 vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
@@ -609,6 +781,16 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
     gkyl_array_release(f->sgn_alpha_surf); 
     gkyl_array_release(f->const_sgn_alpha); 
     gkyl_dg_calc_canonical_pb_fluid_vars_release(f->calc_can_pb_fluid_vars); 
+    gkyl_array_integrate_release(f->calc_can_pb_energy);
+    gkyl_array_release(f->can_pb_energy_fac);
+    if (app->use_gpu) {
+      gkyl_cu_free(f->red_can_pb_energy);
+      gkyl_cu_free(f->red_can_pb_energy_global);
+    } 
+    else {
+      gkyl_free(f->red_can_pb_energy);
+      gkyl_free(f->red_can_pb_energy_global);
+    }
   }
   else {
     if (f->eqn_type == GKYL_EQN_ADVECTION) {

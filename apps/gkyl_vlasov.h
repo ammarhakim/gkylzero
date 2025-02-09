@@ -570,6 +570,14 @@ void gkyl_vlasov_app_write_mom(gkyl_vlasov_app *app, double tm, int frame);
 void gkyl_vlasov_app_write_integrated_mom(gkyl_vlasov_app *app);
 
 /**
+ * Write integrated diagnostic quantities for fluid species to file. Integrated
+ * quantities are appended to the same file.
+ * 
+ * @param app App object.
+ */
+void gkyl_vlasov_app_write_fluid_integrated_mom(gkyl_vlasov_app *app);
+
+/**
  * Write integrated L2 norm of the species distribution function to file. Integrated
  * L2 norm is appended to the same file.
  * 
