@@ -61,16 +61,17 @@ void gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf(struct gkyl_dg_calc_canonic
 
 /**
  * Compute source update to canonical PB fluid system, such as the adiabatic coupling and turbulence drive
- * in Hasegawa-Wakatani, source = alpha*(phi - n) - kappa*dphi/dy. 
+ * in Hasegawa-Wakatani, source = alpha*(phi - n) + {phi, background_n_gradient} where {.,.} is the Poisson bracket. 
  * 
  * @param up Updater for computing canonical PB fluid variables 
  * @param conf_range Configuration space range 
+ * @param background_n_gradient Background density gradient for driving turbulence
  * @param phi Potential expansion in a cell
  * @param fluid Input array of fluid variables 
  * @param rhs Output increment to fluid variables from sources
  */
 void gkyl_canonical_pb_fluid_vars_source(struct gkyl_dg_calc_canonical_pb_fluid_vars *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_array *phi, 
+  const struct gkyl_range *conf_range, const struct gkyl_array *background_n_gradient, const struct gkyl_array *phi, 
   const struct gkyl_array *fluid, struct gkyl_array *rhs);
 
 /**
@@ -86,9 +87,9 @@ void gkyl_dg_calc_canonical_pb_fluid_vars_release(struct gkyl_dg_calc_canonical_
 
 void gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf_cu(struct gkyl_dg_calc_canonical_pb_fluid_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *conf_ext_range, 
-  struct gkyl_array* phi,
+  const struct gkyl_array* phi,
   struct gkyl_array* alpha_surf, struct gkyl_array* sgn_alpha_surf, struct gkyl_array* const_sgn_alpha);
 
 void gkyl_canonical_pb_fluid_vars_source_cu(struct gkyl_dg_calc_canonical_pb_fluid_vars *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_array *phi, 
+  const struct gkyl_range *conf_range, const struct gkyl_array *background_n_gradient, const struct gkyl_array *phi, 
   const struct gkyl_array *fluid, struct gkyl_array *rhs);

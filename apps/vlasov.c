@@ -820,6 +820,19 @@ gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, i
     char fileNm_phi[sz_phi+1]; // ensures no buffer overflow
     snprintf(fileNm_phi, sizeof fileNm_phi, fmt_phi, app->name, frame);
 
+    // Solve Poisson equation for the potential before writing. 
+    // Gather RHS of Poisson solve into global array.
+    gkyl_comm_array_allgather(app->comm, &app->local, &app->global, 
+      vm_fs->fluid, vm_fs->poisson_rhs_global);
+
+    // Solve the Poisson problem.
+    gkyl_fem_poisson_set_rhs(vm_fs->fem_poisson, vm_fs->poisson_rhs_global);
+    gkyl_fem_poisson_solve(vm_fs->fem_poisson, vm_fs->phi_global);
+
+    // Copy the portion of global potential corresponding to this MPI process to the local potential.
+    gkyl_array_copy_range_to_range(vm_fs->phi, vm_fs->phi_global, 
+      &app->local, &vm_fs->global_sub_range);
+
     // copy data from device to host before writing it out
     if (app->use_gpu) {
       gkyl_array_copy(vm_fs->phi_host, vm_fs->phi);

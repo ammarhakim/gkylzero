@@ -9,8 +9,8 @@ kappa = 1.0 -- Constant density gradient scale length (for turbulence drive).
 s = 2.0 -- width of the initial Gaussian density
 
 -- Simulation parameters.
-Nx = 32 -- Cell count (x-direction).
-Ny = 32 -- Cell count (y-direction).
+Nx = 64 -- Cell count (x-direction).
+Ny = 64 -- Cell count (y-direction).
 Lx = 40.0 -- Domain size (x-direction).
 Ly = 40.0 -- Domain size (y-direction).
 poly_order = 2 -- Polynomial order.
@@ -58,7 +58,7 @@ vlasovApp = Vlasov.App.new {
     init = function (t, xn)
       local x, y = xn[1], xn[2]
       local r = x^2 + y^2
-      local phi = math.exp(-r/s^2) + x -- initial potential, same as density
+      local phi = math.exp(-r/s^2) -- initial potential, same as density
       local zeta = 4.0*(r-s^2)*math.exp(-r/s^2)/s^4 -- grad^2 phi 
       local zeta_prime = zeta - phi -- conversion to the evolved quantity in Hasegawa-Mima
       

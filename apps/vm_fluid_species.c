@@ -7,6 +7,12 @@
 #include <gkyl_util.h>
 #include <gkyl_vlasov_priv.h>
 
+static void
+evalBackgroundDensityGradient(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  fout[0] = xn[0]; // linear gradient in x
+}
+
 // initialize fluid species object
 void
 vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_fluid_species *f)
@@ -93,6 +99,21 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     // Host potential for  I/O.
     f->phi_host = app->use_gpu ? mkarr(false, app->confBasis.num_basis, app->local_ext.volume)
                                 : gkyl_array_acquire(f->phi);
+
+    // Initialize background gradient which drives turbulence in some fluid systems such as
+    // Hasegawa-Mima and Hasegawa-Wakatani. This background is accumulated onto the appropriate
+    // field prior to the update so boundary conditions are not applied to the background. 
+    // For Hasegawa-Mima, phi = n, so we accumulate to phi. 
+    // For Hasegawa-Wakatani, we explicitly evolve n and thus accumulate onto the input array. 
+    f->background_n_gradient = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    struct gkyl_array* background_n_gradient_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+    // Evaluate specified background gradient function at nodes to insure continuity of gradient
+    struct gkyl_eval_on_nodes* background_n_gradient_proj = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis, 1, 
+      evalBackgroundDensityGradient, 0);
+    gkyl_eval_on_nodes_advance(background_n_gradient_proj, 0.0, &app->local_ext, background_n_gradient_host);
+    gkyl_array_copy(f->background_n_gradient, background_n_gradient_host);
+    gkyl_eval_on_nodes_release(background_n_gradient_proj); 
+    gkyl_array_release(background_n_gradient_host); 
 
     // Create global subrange we'll copy the field solver solution from (into local).
     int intersect = gkyl_sub_range_intersect(&f->global_sub_range, &app->global, &app->local);
@@ -452,7 +473,7 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
     // Copy the portion of global potential corresponding to this MPI process to the local potential.
     gkyl_array_copy_range_to_range(fluid_species->phi, fluid_species->phi_global, 
       &app->local, &fluid_species->global_sub_range);
-    
+
     app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
 
     struct timespec tm = gkyl_wall_clock();
@@ -464,7 +485,7 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
 
     // Increment the source contribution for certain canonical PB fluids onto the RHS. 
     gkyl_canonical_pb_fluid_vars_source(fluid_species->calc_can_pb_fluid_vars, 
-      &app->local, fluid_species->phi, fluid, rhs); 
+      &app->local, fluid_species->background_n_gradient, fluid_species->phi, fluid, rhs); 
 
     app->stat.fluid_species_vars_tm += gkyl_time_diff_now_sec(tm);
   }
@@ -577,6 +598,7 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
     gkyl_array_release(f->phi_global);
     gkyl_array_release(f->phi_host);
     gkyl_array_release(f->poisson_rhs_global);
+    gkyl_array_release(f->background_n_gradient); 
     gkyl_array_release(f->epsilon);
     if (f->eqn_type == GKYL_EQN_CAN_PB_HASEGAWA_MIMA) {
       gkyl_array_release(f->kSq);

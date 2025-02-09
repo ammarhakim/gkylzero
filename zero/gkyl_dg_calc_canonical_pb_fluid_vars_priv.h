@@ -13,7 +13,7 @@
 typedef int (*canonical_pb_fluid_alpha_surf_t)(const double *w, const double *dxv, const double *phi,
   double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 typedef void (*canonical_pb_fluid_source_t)(const double *dxv, double alpha, double kappa, 
-  const double *phi, const double *fluid, double* GKYL_RESTRICT rhs); 
+  const double *background_n_gradient, const double *phi, const double *fluid, double* GKYL_RESTRICT rhs); 
 
 // for use in kernel tables
 typedef struct { canonical_pb_fluid_alpha_surf_t kernels[3]; } gkyl_dg_canonical_pb_fluid_alpha_surf_kern_list;

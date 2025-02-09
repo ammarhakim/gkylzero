@@ -109,7 +109,8 @@ void gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf(struct gkyl_dg_calc_canonic
 }
 
 void gkyl_canonical_pb_fluid_vars_source(struct gkyl_dg_calc_canonical_pb_fluid_vars *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_array *phi, 
+  const struct gkyl_range *conf_range, 
+  const struct gkyl_array *background_n_gradient, const struct gkyl_array *phi, 
   const struct gkyl_array *fluid, struct gkyl_array *rhs)
 {
 #ifdef GKYL_HAVE_CUDA
@@ -123,12 +124,14 @@ void gkyl_canonical_pb_fluid_vars_source(struct gkyl_dg_calc_canonical_pb_fluid_
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(conf_range, iter.idx);
 
+    const double *background_n_gradient_d = gkyl_array_cfetch(background_n_gradient, loc);
     const double *phi_d = gkyl_array_cfetch(phi, loc);
     const double *fluid_d = gkyl_array_cfetch(fluid, loc);
 
     double* rhs_d = gkyl_array_fetch(rhs, loc);
 
-    up->canonical_pb_fluid_source(up->conf_grid.dx, up->alpha, up->kappa, phi_d, fluid_d, rhs_d);
+    up->canonical_pb_fluid_source(up->conf_grid.dx, up->alpha, up->kappa, 
+      background_n_gradient_d, phi_d, fluid_d, rhs_d);
   }
 }
 
