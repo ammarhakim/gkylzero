@@ -69,15 +69,29 @@ gkyl_dg_canonical_pb_fluid_new(const struct gkyl_basis* cbasis,
   
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      vol_kernels = ser_vol_kernels;
-      surf_x_kernels = ser_surf_x_kernels;
-      surf_y_kernels = ser_surf_y_kernels;
+      if (can_pb_fluid->eqn.num_equations == 2) {
+        vol_kernels = ser_two_fluid_vol_kernels;
+        surf_x_kernels = ser_two_fluid_surf_x_kernels;
+        surf_y_kernels = ser_two_fluid_surf_y_kernels;        
+      } 
+      else {
+        vol_kernels = ser_vol_kernels;
+        surf_x_kernels = ser_surf_x_kernels;
+        surf_y_kernels = ser_surf_y_kernels;
+      } 
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
-      vol_kernels = tensor_vol_kernels;
-      surf_x_kernels = tensor_surf_x_kernels;
-      surf_y_kernels = tensor_surf_y_kernels;
+      if (can_pb_fluid->eqn.num_equations == 2) {
+        vol_kernels = tensor_two_fluid_vol_kernels;
+        surf_x_kernels = tensor_two_fluid_surf_x_kernels;
+        surf_y_kernels = tensor_two_fluid_surf_y_kernels;        
+      } 
+      else {
+        vol_kernels = tensor_vol_kernels;
+        surf_x_kernels = tensor_surf_x_kernels;
+        surf_y_kernels = tensor_surf_y_kernels;
+      } 
       break;
 
     default:

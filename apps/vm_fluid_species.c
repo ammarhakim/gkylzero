@@ -243,7 +243,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     // Allocate arrays for potential and global rhs of Poisson solve.
     f->phi = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     f->phi_global = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
-    f->poisson_rhs_global = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
+    f->poisson_rhs_global = mkarr(app->use_gpu, f->num_equations*app->confBasis.num_basis, app->global_ext.volume);
 
     // Host potential for  I/O.
     f->phi_host = app->use_gpu ? mkarr(false, app->confBasis.num_basis, app->local_ext.volume)

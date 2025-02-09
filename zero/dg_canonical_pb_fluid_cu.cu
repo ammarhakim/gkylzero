@@ -44,7 +44,7 @@ gkyl_canonical_pb_fluid_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct g
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void 
 dg_canonical_pb_fluid_set_cu_dev_ptrs(struct dg_canonical_pb_fluid *can_pb_fluid, enum gkyl_basis_type b_type, 
-  int cdim, int poly_order)
+  int cdim, int poly_order, int num_equations)
 {
 
   can_pb_fluid->auxfields.phi = 0;  
@@ -59,15 +59,29 @@ dg_canonical_pb_fluid_set_cu_dev_ptrs(struct dg_canonical_pb_fluid *can_pb_fluid
   
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      vol_kernels = ser_vol_kernels;
-      surf_x_kernels = ser_surf_x_kernels;
-      surf_y_kernels = ser_surf_y_kernels;
+      if (num_equations == 2) {
+        vol_kernels = ser_two_fluid_vol_kernels;
+        surf_x_kernels = ser_two_fluid_surf_x_kernels;
+        surf_y_kernels = ser_two_fluid_surf_y_kernels;        
+      } 
+      else {
+        vol_kernels = ser_vol_kernels;
+        surf_x_kernels = ser_surf_x_kernels;
+        surf_y_kernels = ser_surf_y_kernels;
+      } 
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
-      vol_kernels = tensor_vol_kernels;
-      surf_x_kernels = tensor_surf_x_kernels;
-      surf_y_kernels = tensor_surf_y_kernels;
+      if (num_equations == 2) {
+        vol_kernels = tensor_two_fluid_vol_kernels;
+        surf_x_kernels = tensor_two_fluid_surf_x_kernels;
+        surf_y_kernels = tensor_two_fluid_surf_y_kernels;        
+      } 
+      else {
+        vol_kernels = tensor_vol_kernels;
+        surf_x_kernels = tensor_surf_x_kernels;
+        surf_y_kernels = tensor_surf_y_kernels;
+      } 
       break;
 
     default:
@@ -96,7 +110,8 @@ gkyl_dg_canonical_pb_fluid_cu_dev_new(const struct gkyl_basis* cbasis,
 
   can_pb_fluid->cdim = cdim;
 
-  can_pb_fluid->eqn.num_equations = wv_eqn->num_equations;
+  int num_equations = wv_eqn->num_equations;
+  can_pb_fluid->eqn.num_equations = num_equations;
   can_pb_fluid->conf_range = *conf_range;
 
   can_pb_fluid->eqn.flags = 0;
@@ -107,7 +122,7 @@ gkyl_dg_canonical_pb_fluid_cu_dev_new(const struct gkyl_basis* cbasis,
   struct dg_canonical_pb_fluid *can_pb_fluid_cu = (struct dg_canonical_pb_fluid*) gkyl_cu_malloc(sizeof(struct dg_canonical_pb_fluid));
   gkyl_cu_memcpy(can_pb_fluid_cu, canonical_pb_fluid, sizeof(struct dg_canonical_pb_fluid), GKYL_CU_MEMCPY_H2D);
 
-  dg_canonical_pb_fluid_set_cu_dev_ptrs<<<1,1>>>(can_pb_fluid_cu, cbasis->b_type, cdim, poly_order);
+  dg_canonical_pb_fluid_set_cu_dev_ptrs<<<1,1>>>(can_pb_fluid_cu, cbasis->b_type, cdim, poly_order, num_equations);
 
   // set parent on_dev pointer
   can_pb_fluid->eqn.on_dev = &can_pb_fluid_cu->eqn;

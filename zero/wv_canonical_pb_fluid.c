@@ -58,7 +58,7 @@ gkyl_wv_can_pb_hasegawa_mima_new(double kappa)
 double
 gkyl_wv_can_pb_hasegawa_mima_kappa(const struct gkyl_wv_eqn* eqn)
 {
-  struct wv_can_pb_hasegawa_mima *can_pb_hasegawa_mima = gkyl_malloc(sizeof(struct wv_can_pb_hasegawa_mima));
+  const struct wv_can_pb_hasegawa_mima *can_pb_hasegawa_mima = container_of(eqn, struct wv_can_pb_hasegawa_mima, eqn);  
   return can_pb_hasegawa_mima->kappa;
 }
 
@@ -92,20 +92,20 @@ gkyl_wv_can_pb_hasegawa_wakatani_new(double alpha, double kappa, bool is_modifie
 double
 gkyl_wv_can_pb_hasegawa_wakatani_alpha(const struct gkyl_wv_eqn* eqn)
 {
-  struct wv_can_pb_hasegawa_wakatani *can_pb_hasegawa_wakatani = gkyl_malloc(sizeof(struct wv_can_pb_hasegawa_wakatani));
+  const struct wv_can_pb_hasegawa_wakatani *can_pb_hasegawa_wakatani = container_of(eqn, struct wv_can_pb_hasegawa_wakatani, eqn);  
   return can_pb_hasegawa_wakatani->alpha;
 }
 
 double
 gkyl_wv_can_pb_hasegawa_wakatani_kappa(const struct gkyl_wv_eqn* eqn)
 {
-  struct wv_can_pb_hasegawa_wakatani *can_pb_hasegawa_wakatani = gkyl_malloc(sizeof(struct wv_can_pb_hasegawa_wakatani));
+  const struct wv_can_pb_hasegawa_wakatani *can_pb_hasegawa_wakatani = container_of(eqn, struct wv_can_pb_hasegawa_wakatani, eqn);
   return can_pb_hasegawa_wakatani->kappa;
 }
 
 bool
 gkyl_wv_can_pb_hasegawa_wakatani_is_modified(const struct gkyl_wv_eqn* eqn)
 {
-  struct wv_can_pb_hasegawa_wakatani *can_pb_hasegawa_wakatani = gkyl_malloc(sizeof(struct wv_can_pb_hasegawa_wakatani));
+  const struct wv_can_pb_hasegawa_wakatani *can_pb_hasegawa_wakatani = container_of(eqn, struct wv_can_pb_hasegawa_wakatani, eqn);  
   return can_pb_hasegawa_wakatani->is_modified;
 }
