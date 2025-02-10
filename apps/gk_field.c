@@ -307,10 +307,10 @@ gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *f
     // Assumes symmetric sheath BCs for now only in 1D
     gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_LOWER_EDGE, 
       &app->lower_skin[0], &app->lower_ghost[0], app->gk_geom->jacobgeo_inv, 
-      s->bflux.gammai[0].marr, field->rho_c, field->sheath_vals[0]);
+      s->bflux_solver.gammai[0].marr, field->rho_c, field->sheath_vals[0]);
     gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_UPPER_EDGE, 
       &app->upper_skin[0], &app->upper_ghost[0], app->gk_geom->jacobgeo_inv, 
-      s->bflux.gammai[1].marr, field->rho_c, field->sheath_vals[1]);
+      s->bflux_solver.gammai[1].marr, field->rho_c, field->sheath_vals[1]);
 
     // Broadcast the sheath values from skin processes to other processes.
     int comm_sz[1];

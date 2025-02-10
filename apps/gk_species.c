@@ -636,10 +636,8 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
     gkyl_free(s->L2norm_global);
   }
 
-  if (s->info.boundary_flux_diagnostics) {
-    // Free boundary flux diagnostics memory.
-    gk_species_bflux_release(app, &s->bflux_diag);
-  }
+  // Free boundary flux diagnostics memory.
+  gk_species_bflux_release(app, &s->bflux_diag);
 
   if (app->fdot_diagnostics) {
     // Free df/dt diagnostics memory.
@@ -917,9 +915,7 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
 
   // Create boundary flux diagnostics if requested.
   gks->bflux_diag = (struct gk_boundary_fluxes) { };
-  if (gks->info.boundary_flux_diagnostics) {
-    gk_species_bflux_init(app, gks, &gks->bflux_diag, true);
-  }
+  gk_species_bflux_init(app, gks, &gks->bflux_diag, true);
 
   if (app->enforce_positivity) {
     // Positivity enforcing by shifting f (ps=positivity shift).
@@ -1398,8 +1394,8 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
 
   // Initialize boundary fluxes for diagnostics and/or neut recycle bcs 
   // Initialize boundary fluxes for the ambipolar potential solve (after skin ghost ranges are created). 
-  gks->bflux = (struct gk_boundary_fluxes) { };
-  gk_species_bflux_init(app, gks, &gks->bflux, false);
+  gks->bflux_solver = (struct gk_boundary_fluxes) { };
+  gk_species_bflux_init(app, gks, &gks->bflux_solver, false);
 
   if (!gks->info.is_static) {
     gk_species_new_dynamic(gk_app_inp, app, gks);
@@ -1422,7 +1418,7 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *gks, double t0
   gkyl_dg_calc_gyrokinetic_vars_alpha_surf(gks->calc_gk_vars, 
     &app->local, &gks->local, &gks->local_ext, gks->phi,
     gks->alpha_surf, gks->sgn_alpha_surf, gks->const_sgn_alpha);
-  gk_species_bflux_rhs(app, gks, &gks->bflux, gks->f, gks->f);
+  gk_species_bflux_rhs(app, gks, &gks->bflux_solver, gks->f, gks->f, 0);
 }
 
 void
@@ -1628,7 +1624,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 
   gk_species_source_release(app, &s->src);
 
-  gk_species_bflux_release(app, &s->bflux);
+  gk_species_bflux_release(app, &s->bflux_solver);
 
   s->release_func(app, s);
 }

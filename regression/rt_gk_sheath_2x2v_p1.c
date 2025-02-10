@@ -143,7 +143,7 @@ create_ctx(void)
   double vpar_max_ion = 4.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
   double mu_max_ion = (3.0 / 2.0) * 0.5 * mass_ion * pow(4.0 * vti, 2.0) / (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
   int poly_order = 1; // Polynomial order.
-  double cfl_frac = 0.5; // CFL coefficient.
+  double cfl_frac = 1.0; // CFL coefficient.
 
   double t_end = 6.0e-6; // Final simulation time.
   int num_frames = 1; // Number of output frames.
@@ -491,18 +491,18 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
   struct sheath_ctx *app = ctx;
   double x = zc[0], y = zc[1], z = zc[2];
 
-//  double R0 = app->R0;
-//  double a0 = app->a0;
-//
-//  double R = x;
-//  double phi = z / (R0 + a0);
-//  double X = R * cos(phi);
-//  double Y = R * sin(phi);
-//  double Z = y;
-//
-//  // Set physical coordinates (X, Y, Z) from computational coordinates (x, y, z).
-//  xp[0] = X; xp[1] = Y; xp[2] = Z;
-  xp[0] = x; xp[1] = y; xp[2] = z;
+  double R0 = app->R0;
+  double a0 = app->a0;
+
+  double R = x;
+  double phi = z / (R0 + a0);
+  double X = R * cos(phi);
+  double Y = R * sin(phi);
+  double Z = y;
+
+  // Set physical coordinates (X, Y, Z) from computational coordinates (x, y, z).
+  xp[0] = X; xp[1] = Y; xp[2] = Z;
+//  xp[0] = x; xp[1] = y; xp[2] = z;
 }
 
 void
@@ -512,11 +512,11 @@ bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, 
   double x = zc[0];
 
   double B0 = app->B0;
-//  double R = app->R;
-//
-//  // Set magnetic field strength.
-//  fout[0] = B0 * R / x;
-  fout[0] = B0;
+  double R = app->R;
+
+  // Set magnetic field strength.
+  fout[0] = B0 * R / x;
+//  fout[0] = B0;
 }
 
 void
@@ -685,13 +685,13 @@ main(int argc, char **argv)
       .ctx_upar = &ctx,
     },
 
-//    .collisions = {
-//      .collision_id = GKYL_LBO_COLLISIONS,
-//      .self_nu = evalElcNu,
-//      .ctx = &ctx,
-//      .num_cross_collisions = 1,
-//      .collide_with = { "ion" },
-//    },
+    .collisions = {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .self_nu = evalElcNu,
+      .ctx = &ctx,
+      .num_cross_collisions = 1,
+      .collide_with = { "ion" },
+    },
 
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
@@ -719,8 +719,8 @@ main(int argc, char **argv)
 
     .num_diag_moments = 5,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
-    .integrated_hamiltonian_moments = true,
-    .boundary_flux_diagnostics = true,
+//    .integrated_hamiltonian_moments = true,
+//    .boundary_flux_diagnostics = true,
   };
 
   // Ions.
@@ -743,13 +743,13 @@ main(int argc, char **argv)
       .ctx_upar = &ctx,
     },
 
-//    .collisions =  {
-//      .collision_id = GKYL_LBO_COLLISIONS,
-//      .self_nu = evalIonNu,
-//      .ctx = &ctx,
-//      .num_cross_collisions = 1,
-//      .collide_with = { "elc" },
-//    },
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .self_nu = evalIonNu,
+      .ctx = &ctx,
+      .num_cross_collisions = 1,
+      .collide_with = { "elc" },
+    },
 
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
@@ -777,14 +777,14 @@ main(int argc, char **argv)
     
     .num_diag_moments = 5,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
-    .integrated_hamiltonian_moments = true,
-    .boundary_flux_diagnostics = true,
+//    .integrated_hamiltonian_moments = true,
+//    .boundary_flux_diagnostics = true,
   };
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
-//    .fem_parbc = GKYL_FEM_PARPROJ_NONE,
-    .fem_parbc = GKYL_FEM_PARPROJ_DIRICHLET,
+    .fem_parbc = GKYL_FEM_PARPROJ_NONE,
+//    .fem_parbc = GKYL_FEM_PARPROJ_DIRICHLET,
     .poisson_bcs = {
       .lo_type = { GKYL_POISSON_DIRICHLET },
       .up_type = { GKYL_POISSON_DIRICHLET },
@@ -814,8 +814,8 @@ main(int argc, char **argv)
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
-    .cfl_frac_omegaH = 1e10,
-    .fdot_diagnostics = true,
+//    .cfl_frac_omegaH = 1e10,
+//    .fdot_diagnostics = true,
 
     .geometry = {
       .geometry_id = GKYL_MAPC2P,

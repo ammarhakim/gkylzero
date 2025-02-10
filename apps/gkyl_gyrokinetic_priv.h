@@ -325,7 +325,8 @@ struct gk_boundary_fluxes {
   struct gk_species_moment gammai[2*GKYL_MAX_CDIM]; // integrated moments
   gkyl_boundary_flux *flux_slvr[2*GKYL_MAX_CDIM]; // boundary flux solver
   // Objects used for boundary flux diagnostics.
-  bool is_diagnostic; // Whether the object is use for diagnostics.
+  bool allocated_diagnostic; // Signal diagnostic objects were allocated.
+  bool allocated_solver; // Signal solver objects were allocated.
   struct gkyl_array **f, **f1, **fnew; // Boundary flux through each boundary (one for each RK stage).
   struct gk_species_moment moms_op; // Moments calculator.
   struct gkyl_array_integrate *integ_op; // Operator that integrates over volume.
@@ -334,6 +335,21 @@ struct gk_boundary_fluxes {
   double *intmom_cumm_buff; // Cummulative (in time) integrated moments of the boundary fluxes.
   gkyl_dynvec intmom_cumm[2*GKYL_MAX_CDIM]; // Cummulative (in time) integrated moments of the boundary fluxes.
   bool is_first_intmom_write_call; // Flag 1st writing of blux_intmom.
+  // Function pointers to various methods.
+  void (*bflux_clear_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fin, double val);
+  void (*bflux_scale_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fin, double val);
+  void (*bflux_step_f_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fout,
+    double dt, const struct gkyl_array **fin);
+  void (*bflux_combine_range_func)(gkyl_gyrokinetic_app *app, struct gk_species *gk_s, struct gk_boundary_fluxes *bflux,
+    struct gkyl_array **fout, double fac1, struct gkyl_array **fin1, double fac2, struct gkyl_array **fin2, struct gkyl_range *range);
+  void (*bflux_copy_range_func)(gkyl_gyrokinetic_app *app, struct gk_species *gk_s, struct gk_boundary_fluxes *bflux,
+    struct gkyl_array **fout, struct gkyl_array **fin, struct gkyl_range *range);
+  void (*bflux_rhs_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_boundary_fluxes *bflux,
+    const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
+  void (*calc_boundary_flux_integrated_mom_func)(gkyl_gyrokinetic_app* app, const struct gk_species *gk_s,
+    struct gk_boundary_fluxes *bflux, double tm);
+  void (*write_boundary_flux_integrated_mom_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+    struct gk_boundary_fluxes *bflux);
 };
 
 struct gk_react {
@@ -565,10 +581,10 @@ struct gk_species {
 
   struct gk_source src; // applied source
 
-  // Boundary fluxes.
-  struct gk_boundary_fluxes bflux;
+  // Boundary fluxes used for other solvers.
+  struct gk_boundary_fluxes bflux_solver;
 
-  // Boundary flux diagnostics.
+  // Boundary fluxes used for diagnostics.
   struct gk_boundary_fluxes bflux_diag;
 
   // collisions
@@ -1343,30 +1359,20 @@ void gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
   struct gk_boundary_fluxes *bflux, bool is_diagnostic);
 
 /**
- * Compute boundary flux 
+ * Compute boundary flux, either for another solver or for diagnostics. The
+ * latter also computes moments of the boundary flux.
  * Note: stores the boundary flux in the ghost cells of rhs
  * The ghost cells are overwritten by apply_bc so computations using
  * boundary fluxes are internal to rhs method (such as integrated flux)
  *
- * @param app Gyrokinetic app object
- * @param species Pointer to species
- * @param bflux Species boundary flux object
- * @param fin Input distribution function
- */
-void gk_species_bflux_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
-  struct gk_boundary_fluxes *bflux, const struct gkyl_array *fin, struct gkyl_array *rhs);
-
-/**
- * Compute boundary fluxes for diagnostics.
- *
- * @param app Gyrokinetic app object
- * @param species Pointer to species
- * @param bflux Species boundary flux object
- * @param fin Input distribution function
- * @param rhs On output, the boundary fluxes stored in the ghost cells of rhs
+ * @param app Gyrokinetic app object.
+ * @param species Pointer to species.
+ * @param bflux Species boundary flux object.
+ * @param fin Input distribution function.
+ * @param rhs On output, the boundary fluxes stored in the ghost cells of rhs.
  * @param bflux_out Array of moments of boundary fluxes through every boundary.
  */
-void gk_species_bflux_rhs_diag(gkyl_gyrokinetic_app *app, const struct gk_species *species,
+void gk_species_bflux_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   struct gk_boundary_fluxes *bflux, const struct gkyl_array *fin, struct gkyl_array *rhs,
   struct gkyl_array **bflux_moms);
 
@@ -1407,7 +1413,7 @@ gk_species_bflux_scale(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bfl
  * @param bflux_in Array of input boundary fluxes.
  */
 void
-gk_species_bflux_forward_euler(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
+gk_species_bflux_step_f(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
   struct gkyl_array **bflux_out, double dt, const struct gkyl_array **bflux_in);
 
 /**
@@ -1440,6 +1446,28 @@ gk_species_bflux_combine_range(gkyl_gyrokinetic_app *app, struct gk_species *gks
 void
 gk_species_bflux_copy_range(gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_boundary_fluxes *bflux,
   struct gkyl_array **bflux_fout, struct gkyl_array **bflux_in, struct gkyl_range *range);
+
+/**
+ * Calculate the integrated moments of the diagnostic boundary fluxes.
+ *
+ * @param app Gyrokinetic app object
+ * @param gk_s Species object.
+ * @param tm Current simulation time.
+ */
+void
+gk_species_bflux_calc_boundary_flux_integrated_mom(gkyl_gyrokinetic_app* app, const struct gk_species *gk_s,
+  struct gk_boundary_fluxes *bflux, double tm);
+
+
+/**
+ * Write the integrated moments of the diagnostic boundary fluxes.
+ *
+ * @param app Gyrokinetic app object
+ * @param gks Species object.
+ */
+void
+gk_species_bflux_write_boundary_flux_integrated_mom(gkyl_gyrokinetic_app *app,
+  const struct gk_species *gks, struct gk_boundary_fluxes *bflux);
 
 /**
  * Release species boundary flux object.

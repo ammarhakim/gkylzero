@@ -22,9 +22,7 @@ gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *gks = &app->species[i];
     gk_species_step_f(gks, fout[i], dta, fin[i]);
-    if (app->species[i].info.boundary_flux_diagnostics) {
-      gk_species_bflux_forward_euler(app, &gks->bflux_diag, bflux_out[i], dta, bflux_in[i]);
-    }
+    gk_species_bflux_step_f(app, &gks->bflux_diag, bflux_out[i], dta, bflux_in[i]);
   }
   for (int i=0; i<app->num_neut_species; ++i) {
     struct gk_neut_species *gkns = &app->neut_species[i];
@@ -59,12 +57,11 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           struct gk_species *gk_s = &app->species[i];
           fin[i] = gk_s->f;
           fout[i] = gk_s->f1;
-          if (gk_s->info.boundary_flux_diagnostics) {
-            gk_species_bflux_clear(app, &gk_s->bflux_diag, gk_s->bflux_diag.f, 0.0);
-            gk_species_bflux_clear(app, &gk_s->bflux_diag, gk_s->bflux_diag.f1, 0.0);
-            bflux_in[i] = (const struct gkyl_array **)gk_s->bflux_diag.f;
-            bflux_out[i] = gk_s->bflux_diag.f1;
-          }
+          // Boundary fluxes for diagnostics.
+          gk_species_bflux_clear(app, &gk_s->bflux_diag, gk_s->bflux_diag.f, 0.0);
+          gk_species_bflux_clear(app, &gk_s->bflux_diag, gk_s->bflux_diag.f1, 0.0);
+          bflux_in[i] = (const struct gkyl_array **)gk_s->bflux_diag.f;
+          bflux_out[i] = gk_s->bflux_diag.f1;
         }
         for (int i=0; i<app->num_neut_species; ++i) {
           fin_neut[i] = app->neut_species[i].f;
@@ -98,10 +95,9 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           struct gk_species *gk_s = &app->species[i];
           fin[i] = gk_s->f1;
           fout[i] = gk_s->fnew;
-          if (gk_s->info.boundary_flux_diagnostics) {
-            bflux_in[i] = (const struct gkyl_array **)gk_s->bflux_diag.f1;
-            bflux_out[i] = gk_s->bflux_diag.fnew;
-          }
+          // Boundary fluxes for diagnostics.
+          bflux_in[i] = (const struct gkyl_array **)gk_s->bflux_diag.f1;
+          bflux_out[i] = gk_s->bflux_diag.fnew;
         }
         for (int i=0; i<app->num_neut_species; ++i) {
 	  fin_neut[i] = app->neut_species[i].f1;
@@ -133,10 +129,8 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           for (int i=0; i<app->num_species; ++i) {
 	    struct gk_species *gks = &app->species[i];
 	    gk_species_combine(gks, gks->f1, 3.0/4.0, gks->f, 1.0/4.0, gks->fnew, &gks->local_ext);
-            if (gks->info.boundary_flux_diagnostics) {
-              gk_species_bflux_combine_range(app, gks, &gks->bflux_diag, gks->bflux_diag.f1,
-                3.0/4.0, gks->bflux_diag.f, 1.0/4.0, gks->bflux_diag.fnew, &app->local_ext);
-            }
+            gk_species_bflux_combine_range(app, gks, &gks->bflux_diag, gks->bflux_diag.f1,
+              3.0/4.0, gks->bflux_diag.f, 1.0/4.0, gks->bflux_diag.fnew, &app->local_ext);
           }
           for (int i=0; i<app->num_neut_species; ++i) {
 	    struct gk_neut_species *gkns = &app->neut_species[i];
@@ -161,10 +155,9 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           struct gk_species *gk_s = &app->species[i];
           fin[i] = gk_s->f1;
           fout[i] = gk_s->fnew;
-          if (gk_s->info.boundary_flux_diagnostics) {
-            bflux_in[i] = (const struct gkyl_array **)gk_s->bflux_diag.f1;
-            bflux_out[i] = gk_s->bflux_diag.fnew;
-          }
+          // Boundary fluxes for diagnostics.
+          bflux_in[i] = (const struct gkyl_array **)gk_s->bflux_diag.f1;
+          bflux_out[i] = gk_s->bflux_diag.fnew;
         }
         for (int i=0; i<app->num_neut_species; ++i) {
 	  fin_neut[i] = app->neut_species[i].f1;
@@ -199,13 +192,11 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
 	    gk_species_combine(gks, gks->f1, 1.0/3.0, gks->f, 2.0/3.0, gks->fnew, &gks->local_ext);
 	    gk_species_copy_range(gks, gks->f, gks->f1, &gks->local_ext);
             // Step boundary fluxes.
-            if (gks->info.boundary_flux_diagnostics) {
-              gk_species_bflux_combine_range(app, gks, &gks->bflux_diag, gks->bflux_diag.f1,
-                1.0/3.0, gks->bflux_diag.f, 2.0/3.0, gks->bflux_diag.fnew, &app->local_ext);
-              gk_species_bflux_copy_range(app, gks, &gks->bflux_diag,
-                gks->bflux_diag.f, gks->bflux_diag.f1, &app->local_ext);
-              gk_species_bflux_scale(app, &gks->bflux_diag, gks->bflux_diag.f, 1.0/dt);
-            }
+            gk_species_bflux_combine_range(app, gks, &gks->bflux_diag, gks->bflux_diag.f1,
+              1.0/3.0, gks->bflux_diag.f, 2.0/3.0, gks->bflux_diag.fnew, &app->local_ext);
+            gk_species_bflux_copy_range(app, gks, &gks->bflux_diag,
+              gks->bflux_diag.f, gks->bflux_diag.f1, &app->local_ext);
+            gk_species_bflux_scale(app, &gks->bflux_diag, gks->bflux_diag.f, 1.0/dt);
           }
           for (int i=0; i<app->num_neut_species; ++i) {
 	    struct gk_neut_species *gkns = &app->neut_species[i];

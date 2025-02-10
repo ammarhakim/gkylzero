@@ -715,7 +715,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
 
         // Compute and store (in the ghost cell of of out) the boundary fluxes.
         // NOTE: this overwrites ghost cells that may be used for sourcing.
-        gk_species_bflux_rhs(app, s, &s->bflux, distf[i], distf[i]);
+        gk_species_bflux_rhs(app, s, &s->bflux_solver, distf[i], distf[i], 0);
       }
     }
 
@@ -1046,51 +1046,11 @@ gkyl_gyrokinetic_app_calc_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_
 {
   struct timespec wst = gkyl_wall_clock();
 
-  struct gk_species *gk_s = &app->species[sidx];
+  struct gk_species *gks = &app->species[sidx];
+  gk_species_bflux_calc_boundary_flux_integrated_mom(app, gks, &gks->bflux_diag, tm);
 
-  if ((!gk_s->info.is_static) && gk_s->info.boundary_flux_diagnostics) {
-    int vdim = app->vdim;
-    int num_mom = gk_s->bflux_diag.moms_op.num_mom; 
-    double avals_global[num_mom];
-  
-    for (int d=0; d<app->cdim; ++d) {
-      for (int e=0; e<2; ++e) {
-        // Integrated moment of the boundary flux.
-        gkyl_array_integrate_advance(gk_s->bflux_diag.integ_op, gk_s->bflux_diag.f[2*d+e], 1., 0,
-          e==0? &app->lower_ghost[d] : &app->upper_ghost[d], 0, gk_s->bflux_diag.int_moms_local);
-
-        gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
-          gk_s->bflux_diag.int_moms_local, gk_s->bflux_diag.int_moms_global);
-        if (app->use_gpu) {
-          gkyl_cu_memcpy(avals_global, gk_s->bflux_diag.int_moms_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
-        }
-        else {
-          memcpy(avals_global, gk_s->bflux_diag.int_moms_global, sizeof(double[num_mom]));
-        }
-        gkyl_dynvec_append(gk_s->bflux_diag.intmom[2*d+e], tm, avals_global);
-
-        // Cummulative (in time) integrated moment of the boundary flux.
-        gkyl_array_integrate_advance(gk_s->bflux_diag.integ_op, gk_s->bflux_diag.f1[2*d+e], 1., 0,
-          e==0? &app->lower_ghost[d] : &app->upper_ghost[d], 0, gk_s->bflux_diag.int_moms_local);
-
-        gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
-          gk_s->bflux_diag.int_moms_local, gk_s->bflux_diag.int_moms_global);
-        if (app->use_gpu) {
-          gkyl_cu_memcpy(avals_global, gk_s->bflux_diag.int_moms_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
-        }
-        else {
-          memcpy(avals_global, gk_s->bflux_diag.int_moms_global, sizeof(double[num_mom]));
-        }
-        for (int k=0; k<num_mom; k++) {
-          gk_s->bflux_diag.intmom_cumm_buff[(2*d+e)*num_mom+k] += avals_global[k];
-        }
-        gkyl_dynvec_append(gk_s->bflux_diag.intmom_cumm[2*d+e], tm, &gk_s->bflux_diag.intmom_cumm_buff[(2*d+e)*num_mom]);
-      }
-    } 
-
-    app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-    app->stat.ndiag += 1;
-  } 
+  app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.ndiag += 1;
 }
 
 void
@@ -1124,51 +1084,8 @@ gkyl_gyrokinetic_app_write_species_L2norm(gkyl_gyrokinetic_app *app, int sidx)
 void
 gkyl_gyrokinetic_app_write_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_app *app, int sidx)
 {
-  struct timespec wst = gkyl_wall_clock();
   struct gk_species *gks = &app->species[sidx];
-
-  if (gks->info.boundary_flux_diagnostics) {
-    int rank;
-    gkyl_comm_get_rank(app->comm, &rank);
-
-    const char *vars[] = {"x","y","z"};
-    const char *edge[] = {"lower","upper"};
-
-    if (rank == 0) {
-      for (int d=0; d<app->cdim; ++d) {
-        for (int e=0; e<2; ++e) {
-          // Write integrated moments of the boundary fluxes.
-          const char *fmt = "%s-%s_bflux_%s%s_%s.gkyl";
-
-          int sz0 = gkyl_calc_strlen(fmt, app->name, gks->info.name, vars[d], edge[e], "integrated_moms");
-          char fileNm0[sz0+1]; // ensures no buffer overflow
-          snprintf(fileNm0, sizeof fileNm0, fmt, app->name, gks->info.name, vars[d], edge[e], "integrated_moms");
-
-          int sz1 = gkyl_calc_strlen(fmt, app->name, gks->info.name, vars[d], edge[e], "integrated_moms_time_integrated");
-          char fileNm1[sz1+1]; // ensures no buffer overflow
-          snprintf(fileNm1, sizeof fileNm1, fmt, app->name, gks->info.name, vars[d], edge[e], "integrated_moms_time_integrated");
-    
-          struct timespec wtm = gkyl_wall_clock();
-          if (gks->bflux_diag.is_first_intmom_write_call) {
-            gkyl_dynvec_write(gks->bflux_diag.intmom[2*d+e], fileNm0);
-            gkyl_dynvec_write(gks->bflux_diag.intmom_cumm[2*d+e], fileNm1);
-          }
-          else {
-            gkyl_dynvec_awrite(gks->bflux_diag.intmom[2*d+e], fileNm0);
-            gkyl_dynvec_awrite(gks->bflux_diag.intmom_cumm[2*d+e], fileNm1);
-          }
-
-          app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
-          app->stat.nio += 1;
-
-          gkyl_dynvec_clear(gks->bflux_diag.intmom[2*d+e]);
-          gkyl_dynvec_clear(gks->bflux_diag.intmom_cumm[2*d+e]);
-        }
-      }
-      if (gks->bflux_diag.is_first_intmom_write_call)
-        gks->bflux_diag.is_first_intmom_write_call = false;
-    }
-  }
+  gk_species_bflux_write_boundary_flux_integrated_mom(app, gks, &gks->bflux_diag);
 }
 
 //
@@ -1533,11 +1450,11 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
 
     // Compute and store (in the ghost cell of of out) the boundary fluxes.
     // NOTE: this overwrites ghost cells that may be used for sourcing.
-    if (app->field->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
-      gk_species_bflux_rhs(app, s, &s->bflux, fin[i], fout[i]);
+    gk_species_bflux_rhs(app, s, &s->bflux_solver, fin[i], fout[i], 0);
 
-    if (s->info.boundary_flux_diagnostics)
-      gk_species_bflux_rhs_diag(app, s, &s->bflux_diag, fin[i], fout[i], bflux_out[i]);
+    // Compute the boundary fluxes and their moments for diagnostics.
+    // NOTE: this overwrites ghost cells that may be used for sourcing.
+    gk_species_bflux_rhs(app, s, &s->bflux_diag, fin[i], fout[i], bflux_out[i]);
   }
 
   // Compute RHS of neutrals.
@@ -2076,7 +1993,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
 
           // Compute and store (in the ghost cell of of out) the boundary fluxes.
           // NOTE: this overwrites ghost cells that may be used for sourcing.
-          gk_species_bflux_rhs(app, s, &s->bflux, distf[i], distf[i]);
+          gk_species_bflux_rhs(app, s, &s->bflux_solver, distf[i], distf[i], 0);
         }
       }
 
