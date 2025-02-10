@@ -48,26 +48,20 @@ struct gkyl_dg_cx* gkyl_dg_cx_cu_dev_new(struct gkyl_dg_cx_inp *inp);
  * gkyl_sub_range_init method.
  *
  * @param cx charge exchange object.
- * @param moms_neut Input neutral moments 
- * @param moms_ion Input ion moments
- * @param b_i Input unit B vector
- * @param prim_vars_ion
- * @param prim_vars_neut
- * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
+ * @param prim_vars_ion (n, upar, T/m) for the ions
+ * @param prim_vars_neut (n, ux, uy, uz, T/m) for the neutrals
+ * @param upar_b_i (upar b_x, upar b_y, upar b_z) for computing relative velocity in charge exchange
  * @param coef_cx Output reaction rate coefficient
+ * @param cflrate CFL scalar rate (frequency) array (units of 1/[T]) 
  */
 
-void gkyl_dg_cx_coll(const struct gkyl_dg_cx *up, const double vtsq_min_ion,
-  const double vtsq_min_neut, const struct gkyl_array *moms_ion,
-  const struct gkyl_array *moms_neut, const struct gkyl_array *b_i,
+void gkyl_dg_cx_coll(const struct gkyl_dg_cx *up, 
   struct gkyl_array *prim_vars_ion, struct gkyl_array *prim_vars_neut,
-  struct gkyl_array *prim_vars_neut_gk, struct gkyl_array *coef_cx, struct gkyl_array *cflrate);
+  struct gkyl_array *upar_b_i, struct gkyl_array *coef_cx, struct gkyl_array *cflrate);
 
-void gkyl_dg_cx_coll_cu(const struct gkyl_dg_cx *up, const double vtsq_min_ion,
-  const double vtsq_min_neut, const struct gkyl_array *moms_ion,
-  const struct gkyl_array *moms_neut, const struct gkyl_array *b_i,
+void gkyl_dg_cx_coll_cu(const struct gkyl_dg_cx *up, 
   struct gkyl_array *prim_vars_ion, struct gkyl_array *prim_vars_neut,
-  struct gkyl_array *prim_vars_neut_gk, struct gkyl_array *coef_cx, struct gkyl_array *cflrate);
+  struct gkyl_array *upar_b_i, struct gkyl_array *coef_cx, struct gkyl_array *cflrate);
 
 /**
  * Delete updater.

@@ -135,6 +135,13 @@ gyrokineticApp = Gyrokinetic.App.new {
       correctAllMoments = true
     },
 
+    correct = {
+      correctAllMoments = true,
+      iterationEpsilon = 1.0e-12,
+      maxIterations = 10,
+      useLastConverged = true
+    }, 
+
     collisions = {
       collisionID = G0.Collisions.BGK,
 
@@ -147,12 +154,7 @@ gyrokineticApp = Gyrokinetic.App.new {
       end,
 
       numCrossCollisions = 1,
-      collideWith = { "ion" },
-
-      correctAllMoments = true,
-      iterationEpsilon = 1.0e-12,
-      maxIterations = 10,
-      useLastConverged = true
+      collideWith = { "ion" }
     },
 
     evolve = true, -- Evolve species?
@@ -190,6 +192,13 @@ gyrokineticApp = Gyrokinetic.App.new {
       correctAllMoments = true
     },
 
+    correct = {
+      correctAllMoments = true,
+      iterationEpsilon = 1.0e-12,
+      maxIterations = 10,
+      useLastConverged = true
+    }, 
+
     collisions = {
       collisionID = G0.Collisions.BGK,
 
@@ -202,12 +211,7 @@ gyrokineticApp = Gyrokinetic.App.new {
       end,
 
       numCrossCollisions = 1,
-      collideWith = { "elc" },
-
-      correctAllMoments = true,
-      iterationEpsilon = 1.0e-12,
-      maxIterations = 10,
-      useLastConverged = true
+      collideWith = { "elc" }
     },
 
     evolve = true, -- Evolve species?

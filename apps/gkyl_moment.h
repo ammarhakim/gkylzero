@@ -90,6 +90,7 @@ struct gkyl_moment_field {
   // pointer to external fields
   void (*ext_em_func)(double t, const double *xn, double *fout, void *ctx);
   double t_ramp_E; // linear ramp for turning on external E field
+
   bool use_explicit_em_coupling; // flag to indicate if using explicit em-coupling
 
   bool has_volume_sources; // Run with volume-based geometrical sources.

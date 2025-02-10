@@ -37,6 +37,7 @@ GKYL_CU_DH void gyrokinetic_cross_prim_moms_bgk_3x2v_ser_p1(const double betaGre
   double T2[8] = {0.0}; 
   double T3[8] = {0.0}; 
   double cVtsq[8] = {0.0}; 
+  double prod = 1.0; 
 
   binop_mul_3d_ser_p1(n_s, nu_sr, msNsNusr); 
   binop_mul_3d_ser_p1(n_r, nu_rs, mrNrNurs); 
@@ -133,5 +134,32 @@ GKYL_CU_DH void gyrokinetic_cross_prim_moms_bgk_3x2v_ser_p1(const double betaGre
   vtsq_sr[5] = vtsq_s[5] + cVtsq[5]/dv; 
   vtsq_sr[6] = vtsq_s[6] + cVtsq[6]/dv; 
   vtsq_sr[7] = vtsq_s[7] + cVtsq[7]/dv; 
-} 
  
+  // If vtsq_sr is negative at a corner, turn off collisions.
+  prod *= -0.25*(7.348469228349534*vtsq_sr[7]-4.242640687119286*(vtsq_sr[6]+vtsq_sr[5]+vtsq_sr[4])+2.449489742783178*(vtsq_sr[3]+vtsq_sr[2]+vtsq_sr[1])-1.414213562373095*vtsq_sr[0]); 
+  prod *= 0.25*(7.348469228349534*vtsq_sr[7]+4.242640687119286*vtsq_sr[6]-4.242640687119286*(vtsq_sr[5]+vtsq_sr[4])-2.449489742783178*(vtsq_sr[3]+vtsq_sr[2])+2.449489742783178*vtsq_sr[1]+1.414213562373095*vtsq_sr[0]); 
+  prod *= 0.25*(7.348469228349534*vtsq_sr[7]-4.242640687119286*vtsq_sr[6]+4.242640687119286*vtsq_sr[5]-4.242640687119286*vtsq_sr[4]-2.449489742783178*vtsq_sr[3]+2.449489742783178*vtsq_sr[2]-2.449489742783178*vtsq_sr[1]+1.414213562373095*vtsq_sr[0]); 
+  prod *= -0.25*(7.348469228349534*vtsq_sr[7]+4.242640687119286*(vtsq_sr[6]+vtsq_sr[5])-4.242640687119286*vtsq_sr[4]+2.449489742783178*vtsq_sr[3]-2.449489742783178*(vtsq_sr[2]+vtsq_sr[1])-1.414213562373095*vtsq_sr[0]); 
+  prod *= 0.25*(7.348469228349534*vtsq_sr[7]-4.242640687119286*(vtsq_sr[6]+vtsq_sr[5])+4.242640687119286*vtsq_sr[4]+2.449489742783178*vtsq_sr[3]-2.449489742783178*(vtsq_sr[2]+vtsq_sr[1])+1.414213562373095*vtsq_sr[0]); 
+  prod *= -0.25*(7.348469228349534*vtsq_sr[7]+4.242640687119286*vtsq_sr[6]-4.242640687119286*vtsq_sr[5]+4.242640687119286*vtsq_sr[4]-2.449489742783178*vtsq_sr[3]+2.449489742783178*vtsq_sr[2]-2.449489742783178*vtsq_sr[1]-1.414213562373095*vtsq_sr[0]); 
+  prod *= -0.25*(7.348469228349534*vtsq_sr[7]-4.242640687119286*vtsq_sr[6]+4.242640687119286*(vtsq_sr[5]+vtsq_sr[4])-2.449489742783178*(vtsq_sr[3]+vtsq_sr[2])+2.449489742783178*vtsq_sr[1]-1.414213562373095*vtsq_sr[0]); 
+  prod *= 0.25*(7.348469228349534*vtsq_sr[7]+4.242640687119286*(vtsq_sr[6]+vtsq_sr[5]+vtsq_sr[4])+2.449489742783178*(vtsq_sr[3]+vtsq_sr[2]+vtsq_sr[1])+1.414213562373095*vtsq_sr[0]); 
+  if (prod <= 0) { 
+    upar_sr[0] = upar_s[0]; 
+    vtsq_sr[0] = vtsq_s[0]; 
+    upar_sr[1] = upar_s[1]; 
+    vtsq_sr[1] = vtsq_s[1]; 
+    upar_sr[2] = upar_s[2]; 
+    vtsq_sr[2] = vtsq_s[2]; 
+    upar_sr[3] = upar_s[3]; 
+    vtsq_sr[3] = vtsq_s[3]; 
+    upar_sr[4] = upar_s[4]; 
+    vtsq_sr[4] = vtsq_s[4]; 
+    upar_sr[5] = upar_s[5]; 
+    vtsq_sr[5] = vtsq_s[5]; 
+    upar_sr[6] = upar_s[6]; 
+    vtsq_sr[6] = vtsq_s[6]; 
+    upar_sr[7] = upar_s[7]; 
+    vtsq_sr[7] = vtsq_s[7]; 
+  } 
+} 

@@ -130,6 +130,7 @@ vm_species_bgk_release(const struct gkyl_vlasov_app *app, const struct vm_bgk_co
   }
 
   vm_species_lte_release(app, &bgk->lte);
+
   if (bgk->fixed_temp_relax) {
     gkyl_array_release(bgk->fixed_temp);
   }

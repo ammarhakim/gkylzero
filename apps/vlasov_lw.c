@@ -2231,7 +2231,7 @@ vm_app_run(lua_State *L)
   gkyl_vlasov_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
   gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
-  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.nio);
+  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
   gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
 freeresources:
