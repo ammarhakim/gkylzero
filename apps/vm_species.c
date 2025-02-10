@@ -307,8 +307,8 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   
   // determine collision type to use in vlasov update
   s->collision_id = s->info.collisions.collision_id;
-  // initialize empty collision structs so inputs of structs are set to 0
   s->lte = (struct vm_lte) { };
+  // initialize empty collision structs so inputs of structs are set to 0
   s->lbo = (struct vm_lbo_collisions) { };
   s->bgk = (struct vm_bgk_collisions) { };
   if (s->info.output_f_lte){
@@ -506,7 +506,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
     vm_species_radiation_rhs(app, species, &species->rad, fin, rhs);
   }
   
-  app->stat.nspecies_omega_cfl +=1;
+  app->stat.n_species_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
   gkyl_array_reduce_range(species->omegaCfl_ptr, species->cflrate, GKYL_MAX, &species->local);
 
@@ -541,7 +541,7 @@ vm_species_rhs_implicit(gkyl_vlasov_app *app, struct vm_species *species,
     vm_species_bflux_rhs(app, species, &species->bflux, fin, rhs);
   }
   
-  app->stat.nspecies_omega_cfl +=1;
+  app->stat.n_species_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
   gkyl_array_reduce_range(species->omegaCfl_ptr, species->cflrate, GKYL_MAX, &species->local);
 

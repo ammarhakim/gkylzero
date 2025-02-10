@@ -579,7 +579,7 @@ main(int argc, char **argv)
   
   gkyl_pkpm_app_cout(app, stdout, "Updates took %g secs\n", stat.total_tm);
   
-  gkyl_pkpm_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
+  gkyl_pkpm_app_cout(app, stdout, "Number of write calls %ld,\n", stat.n_io);
   gkyl_pkpm_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   gkyl_comm_release(comm);

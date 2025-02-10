@@ -511,6 +511,24 @@ void gkyl_gyrokinetic_multib_app_write_species_source_integrated_mom(gkyl_gyroki
 void gkyl_gyrokinetic_multib_app_write_neut_species_source_integrated_mom(gkyl_gyrokinetic_multib_app *app, int sidx);
 
 /**
+ * Write species integrated correct Maxwellian status of the to file. 
+ * Correct Maxwellian status is appended to the same file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to write.
+ */
+void gkyl_gyrokinetic_multib_app_write_species_lte_max_corr_status(gkyl_gyrokinetic_multib_app *app, int sidx);
+
+/**
+ * Write neutral species integrated correct Maxwellian status of the to file. 
+ * Correct Maxwellian status is appended to the same file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to write.
+ */
+void gkyl_gyrokinetic_multib_app_write_neut_species_lte_max_corr_status(gkyl_gyrokinetic_multib_app *app, int sidx);
+
+/**
  * Write LBO collisional moments for species to file.
  * 
  * @param app App object.
@@ -521,13 +539,14 @@ void gkyl_gyrokinetic_multib_app_write_neut_species_source_integrated_mom(gkyl_g
 void gkyl_gyrokinetic_multib_app_write_species_lbo_mom(gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame);
 
 /**
- * Write integrated correct Maxwellian status of the species BGK distribution function
- * to file. Correct Maxwellian status is appended to the same file.
+ * Write BGK cross moments for species to file.
  * 
  * @param app App object.
  * @param sidx Index of species to write.
+ * @param tm Time-stamp
+ * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write_species_bgk_max_corr_status(gkyl_gyrokinetic_multib_app *app, int sidx);
+void gkyl_gyrokinetic_multib_app_write_species_bgk_cross_mom(gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame);
 
 /**
  * Write radiation drag coefficients for species to file.

@@ -570,7 +570,7 @@ pkpm_species_rhs(gkyl_pkpm_app *app, struct pkpm_species *species,
       species->qmem, species->pkpm_moms.marr, fluidin, rhs_fluid);        
   }
 
-  app->stat.nspecies_omega_cfl +=1;
+  app->stat.n_species_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
   gkyl_array_reduce_range(species->omegaCfl_ptr_dist, species->cflrate_f, GKYL_MAX, &species->local);
   gkyl_array_reduce_range(species->omegaCfl_ptr_fluid, species->cflrate_fluid, GKYL_MAX, &app->local);
