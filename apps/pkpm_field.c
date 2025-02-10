@@ -347,7 +347,7 @@ pkpm_field_rhs(gkyl_pkpm_app *app, struct pkpm_field *field,
     
     gkyl_array_reduce_range(field->omegaCfl_ptr, field->cflrate, GKYL_MAX, &app->local);
 
-    app->stat.nfield_omega_cfl += 1;
+    app->stat.n_field_omega_cfl += 1;
     struct timespec tm = gkyl_wall_clock();
     
     double omegaCfl_ho[1];

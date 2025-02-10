@@ -105,8 +105,7 @@ enum gkyl_te_min_model {
 };
 
 // Identifiers for different ion reaction types
-enum gkyl_ion_type
-{
+enum gkyl_ion_type {
   GKYL_ION_H = 0,  // Hydrogen ions
   GKYL_ION_D = 1,  // Deuterium ions (for CX)
   GKYL_ION_HE = 2, // Helium ions
