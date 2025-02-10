@@ -72,7 +72,7 @@ struct gyrokinetic_species_lw {
   bool has_perp_temp_init_func; // Is there a perpendicular temperature initialization function?
   struct lua_func_ctx perp_temp_init_func_ref; // Lua registry reference to perpendicular temperature initialization function.
 
-  bool correct_all_moms; // Are we correcting all moments in projection, or only density?
+  bool proj_correct_all_moms; // Are we correcting all moments in projection, or only density?
 
   enum gkyl_collision_id collision_id; // Collision type.
   
@@ -89,10 +89,10 @@ struct gyrokinetic_species_lw {
   double collision_eps0; // Vacuum permittivity for calculating collision frequency.
   double collision_eV; // Elementary charge for calculating collision frequency.
 
-  bool collision_correct_all_moms; // Are we correcting all moments in collisions, or only density?
-  double collision_iter_eps; // Error tolerance for moment fixes in collisions (density is always exact).
-  int collision_max_iter; // Maximum number of iterations for moment fixes in collisions.
-  bool collision_use_last_converged; // Use last iteration value in collisions regardless of convergence?
+  bool correct_all_moms; // Are we correcting all moments in collisions, or only density?
+  double iter_eps; // Error tolerance for moment fixes in collisions (density is always exact).
+  int max_iter; // Maximum number of iterations for moment fixes in collisions.
+  bool use_last_converged; // Use last iteration value in collisions regardless of convergence?
 
   enum gkyl_source_id source_id; // Source type.
 
@@ -263,7 +263,7 @@ gyrokinetic_species_lw_new(lua_State *L)
   bool has_perp_temp_init_func = false;
   int perp_temp_init_func_ref = LUA_NOREF;
 
-  bool correct_all_moms = false;
+  bool proj_correct_all_moms = false;
 
   with_lua_tbl_tbl(L, "projection") {
     proj_id = glua_tbl_get_integer(L, "projectionID", 0);
@@ -298,7 +298,7 @@ gyrokinetic_species_lw_new(lua_State *L)
       has_perp_temp_init_func = true;
     }
 
-    correct_all_moms = glua_tbl_get_bool(L, "correctAllMoments", false);
+    proj_correct_all_moms = glua_tbl_get_bool(L, "correctAllMoments", false);
   }
 
   enum gkyl_collision_id collision_id = GKYL_NO_COLLISIONS;
@@ -316,10 +316,16 @@ gyrokinetic_species_lw_new(lua_State *L)
   double collision_eps0 = 0.0;
   double collision_eV = 0.0;
 
-  bool collision_correct_all_moms = false;
-  double collision_iter_eps = pow(10.0, -12.0);
-  int collision_max_iter = 100;
-  bool collision_use_last_converged = true;
+  bool correct_all_moms = false;
+  double iter_eps = 0.0;
+  int max_iter = 0; 
+  bool use_last_converged = true; 
+  with_lua_tbl_tbl(L, "correct") {
+    correct_all_moms = glua_tbl_get_bool(L, "correctAllMoments", false);
+    iter_eps = glua_tbl_get_number(L, "iterationEpsilon", 0.0);
+    max_iter = glua_tbl_get_integer(L, "maxIterations", 0);
+    use_last_converged = glua_tbl_get_bool(L, "useLastConverged", true);
+  }
 
   with_lua_tbl_tbl(L, "collisions") {
     collision_id = glua_tbl_get_integer(L, "collisionID", 0);
@@ -343,11 +349,6 @@ gyrokinetic_species_lw_new(lua_State *L)
     collision_hbar = glua_tbl_get_number(L, "hbar", 0.0);
     collision_eps0 = glua_tbl_get_number(L, "epsilon0", 0.0);
     collision_eV = glua_tbl_get_number(L, "eV", 0.0);
-
-    collision_correct_all_moms = glua_tbl_get_bool(L, "correctAllMoments", false);
-    collision_iter_eps = glua_tbl_get_number(L, "iterationEpsilon", 0.0);
-    collision_max_iter = glua_tbl_get_integer(L, "maxIterations", 0);
-    collision_use_last_converged = glua_tbl_get_bool(L, "useLastConverged", false);
   }
 
   enum gkyl_source_id source_id = GKYL_NO_SOURCE;
@@ -613,7 +614,7 @@ gyrokinetic_species_lw_new(lua_State *L)
     .L = L,
   };
 
-  gks_lw->correct_all_moms = correct_all_moms;
+  gks_lw->proj_correct_all_moms = proj_correct_all_moms;
 
   gks_lw->source_id = source_id;
   gks_lw->num_sources = num_sources;
@@ -654,6 +655,11 @@ gyrokinetic_species_lw_new(lua_State *L)
     };
   }
 
+  gks_lw->correct_all_moms = correct_all_moms;
+  gks_lw->iter_eps = iter_eps;
+  gks_lw->max_iter = max_iter;
+  gks_lw->use_last_converged = use_last_converged;
+
   gks_lw->collision_id = collision_id;
 
   gks_lw->has_self_nu_func = has_self_nu_func;
@@ -675,11 +681,6 @@ gyrokinetic_species_lw_new(lua_State *L)
   gks_lw->collision_hbar = collision_hbar;
   gks_lw->collision_eps0 = collision_eps0;
   gks_lw->collision_eV = collision_eV;
-
-  gks_lw->collision_correct_all_moms = collision_correct_all_moms;
-  gks_lw->collision_iter_eps = collision_iter_eps;
-  gks_lw->collision_max_iter = collision_max_iter;
-  gks_lw->collision_use_last_converged = collision_use_last_converged;
 
   gks_lw->radiation_id = radiation_id;
 
@@ -1043,7 +1044,7 @@ struct gyrokinetic_app_lw {
   bool has_perp_temp_init_func[GKYL_MAX_SPECIES]; // Is there a perpendicular temperature initialization function?
   struct lua_func_ctx perp_temp_init_func_ctx[GKYL_MAX_SPECIES]; // Context for perpendicular temperature initialization function.
 
-  bool correct_all_moms[GKYL_MAX_SPECIES]; // Are we correcting all moments in projection, or only density?
+  bool proj_correct_all_moms[GKYL_MAX_SPECIES]; // Are we correcting all moments in projection, or only density?
 
   enum gkyl_collision_id collision_id[GKYL_MAX_SPECIES]; // Collision type.
 
@@ -1060,10 +1061,10 @@ struct gyrokinetic_app_lw {
   double collision_eps0[GKYL_MAX_SPECIES]; // Vacuum permittivity for calculating collision frequency.
   double collision_eV[GKYL_MAX_SPECIES]; // Elementary charge for calculating collision frequency.
 
-  bool collision_correct_all_moms[GKYL_MAX_SPECIES]; // Are we correcting all moments in collisions, or only density?
-  double collision_iter_eps[GKYL_MAX_SPECIES]; // Error tolerance for moment fixes in collision (density is always exact).
-  int collision_max_iter[GKYL_MAX_SPECIES]; // Maximum number of iterations for moment fixes in collisions.
-  bool collision_use_last_converged[GKYL_MAX_SPECIES]; // Use last iteration value in collisions regardless of convergence?
+  bool correct_all_moms[GKYL_MAX_SPECIES]; // Are we correcting all moments in collisions, or only density?
+  double iter_eps[GKYL_MAX_SPECIES]; // Error tolerance for moment fixes in collision (density is always exact).
+  int max_iter[GKYL_MAX_SPECIES]; // Maximum number of iterations for moment fixes in collisions.
+  bool use_last_converged[GKYL_MAX_SPECIES]; // Use last iteration value in collisions regardless of convergence?
 
   enum gkyl_source_id source_id[GKYL_MAX_SPECIES]; // Source type.
 
@@ -1585,7 +1586,7 @@ gk_app_new(lua_State *L)
     app_lw->has_perp_temp_init_func[s] = species[s]->has_perp_temp_init_func;
     app_lw->perp_temp_init_func_ctx[s] = species[s]->perp_temp_init_func_ref;
 
-    app_lw->correct_all_moms[s] = species[s]->correct_all_moms;
+    app_lw->proj_correct_all_moms[s] = species[s]->proj_correct_all_moms;
 
     if (species[s]->has_mapc2p_mapping_func) {
       gk.species[s].mapc2p.mapping = gkyl_lw_eval_cb;
@@ -1624,7 +1625,17 @@ gk_app_new(lua_State *L)
       gk.species[s].projection.ctx_tempperp = &app_lw->perp_temp_init_func_ctx[s];
     }
 
-    gk.species[s].projection.correct_all_moms = app_lw->correct_all_moms[s];
+    gk.species[s].projection.correct_all_moms = app_lw->proj_correct_all_moms[s];
+
+    app_lw->correct_all_moms[s] = species[s]->correct_all_moms;
+    app_lw->iter_eps[s] = species[s]->iter_eps;
+    app_lw->max_iter[s] = species[s]->max_iter;
+    app_lw->use_last_converged[s] = species[s]->use_last_converged;
+
+    gk.species[s].correct.correct_all_moms = app_lw->correct_all_moms[s];
+    gk.species[s].correct.iter_eps = app_lw->iter_eps[s];
+    gk.species[s].correct.max_iter = app_lw->max_iter[s];
+    gk.species[s].correct.use_last_converged = app_lw->use_last_converged[s];
 
     app_lw->collision_id[s] = species[s]->collision_id;
 
@@ -1642,11 +1653,6 @@ gk_app_new(lua_State *L)
     app_lw->collision_hbar[s] = species[s]->collision_hbar;
     app_lw->collision_eps0[s] = species[s]->collision_eps0;
     app_lw->collision_eV[s] = species[s]->collision_eV;
-
-    app_lw->collision_correct_all_moms[s] = species[s]->collision_correct_all_moms;
-    app_lw->collision_iter_eps[s] = species[s]->collision_iter_eps;
-    app_lw->collision_max_iter[s] = species[s]->collision_max_iter;
-    app_lw->collision_use_last_converged[s] = species[s]->collision_use_last_converged;
 
     gk.species[s].collisions.collision_id = app_lw->collision_id[s];
 
@@ -1666,11 +1672,6 @@ gk_app_new(lua_State *L)
     gk.species[s].collisions.hbar = app_lw->collision_hbar[s];
     gk.species[s].collisions.eps0 = app_lw->collision_eps0[s];
     gk.species[s].collisions.eV = app_lw->collision_eV[s];
-
-    gk.species[s].collisions.correct_all_moms = app_lw->collision_correct_all_moms[s];
-    gk.species[s].collisions.iter_eps = app_lw->collision_iter_eps[s];
-    gk.species[s].collisions.max_iter = app_lw->collision_max_iter[s];
-    gk.species[s].collisions.use_last_converged = app_lw->collision_use_last_converged[s];
 
     app_lw->source_id[s] = species[s]->source_id;
 
@@ -2383,14 +2384,59 @@ gk_app_run(lua_State *L)
     gkyl_gyrokinetic_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
   }  
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
+  // Plasma species timers. 
+  gkyl_gyrokinetic_app_cout(app, stdout, "Species initial conditions took %lg secs\n", stat.init_species_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Species RHS calc took %lg secs\n", stat.species_rhs_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Species LTE computation, including corrections, took %lg secs\n", stat.species_lte_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Species collisional moments took %lg secs\n", stat.species_coll_mom_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Species collisions RHS calc took %lg secs\n", stat.species_coll_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Species radiation moments took %lg secs\n", stat.species_rad_mom_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Species radiation RHS calc took %lg secs\n", stat.species_rad_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Species reaction moments took %lg secs\n", stat.species_react_mom_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Species reaction RHS calc took %lg secs\n", stat.species_react_tm);
 
-  gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld\n", stat.nio);
-  gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Species BCs, including parallel communication, took %lg secs\n", stat.species_bc_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of species CFL reduction calls %ld\n", stat.n_species_omega_cfl);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Reducing species CFL took %lg secs\n", stat.species_omega_cfl_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of moment updater calls %ld\n", stat.n_mom);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of diagnostics computed %ld\n", stat.n_diag);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Computing diagnostics too %lg secs\n", stat.diag_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls for phase space fields %ld\n", stat.n_io);
+  gkyl_gyrokinetic_app_cout(app, stdout, "IO time for phase space fields took %lg secs \n", stat.io_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls for configuration space fields %ld\n", stat.n_diag_io);
+  gkyl_gyrokinetic_app_cout(app, stdout, "IO time for configuration space fields took %lg secs \n", stat.diag_io_tm);
+  // Neutral species timers. 
+  if (app->num_neut_species > 0) {
+    gkyl_gyrokinetic_app_cout(app, stdout, "Neutral species initial conditions took %lg secs\n", stat.init_neut_species_tm);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Neutral species RHS calc took %lg secs\n", stat.neut_species_rhs_tm);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Neutral species LTE computation, including corrections, took %lg secs\n", stat.neut_species_lte_tm);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Neutral species collisional moments took %lg secs\n", stat.neut_species_coll_mom_tm);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Neutral species collisions RHS calc took %lg secs\n", stat.neut_species_coll_tm);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Neutral species reaction moments took %lg secs\n", stat.neut_species_react_mom_tm);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Neutral species reaction RHS calc took %lg secs\n", stat.neut_species_react_tm);
+  
+    gkyl_gyrokinetic_app_cout(app, stdout, "Neutral species BCs, including parallel communication, took %lg secs\n", stat.neut_species_bc_tm);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Number of neutral species CFL reduction calls %ld\n", stat.n_neut_species_omega_cfl);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Reducing neutral species CFL took %lg secs\n", stat.neut_species_omega_cfl_tm);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Number of neutral moment updater calls %ld\n", stat.n_neut_mom);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Number of neutral diagnostics computed %ld\n", stat.n_neut_diag);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Computing neutral diagnostics too %lg secs\n", stat.neut_diag_tm);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls for neutrals' phase space fields %ld\n", stat.n_neut_io);
+    gkyl_gyrokinetic_app_cout(app, stdout, "IO time for neutrals' phase space fields took %lg secs \n", stat.neut_io_tm);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls for neutrals' configuration space fields %ld\n", stat.n_neut_diag_io);
+    gkyl_gyrokinetic_app_cout(app, stdout, "IO time for neutrals' configuration space fields took %lg secs \n", stat.neut_diag_io_tm);    
+  }
+  // Field timers. 
+  if (app->field->update_field > 0) {
+    gkyl_gyrokinetic_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Number of field diagnostics computed %ld\n", stat.n_diag);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Computing field diagnostics too %lg secs\n", stat.diag_tm);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls for fields %ld\n", stat.n_field_io);
+    gkyl_gyrokinetic_app_cout(app, stdout, "IO time for fields took %lg secs \n", stat.field_io_tm);
+    gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls for fields' diagnostics %ld\n", stat.n_field_diag_io);
+    gkyl_gyrokinetic_app_cout(app, stdout, "IO time for fields' diagonstics took %lg secs \n", stat.field_diag_io_tm);
+  }
+  gkyl_gyrokinetic_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
 freeresources:
 

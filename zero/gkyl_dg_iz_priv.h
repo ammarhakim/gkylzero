@@ -15,11 +15,9 @@ struct gkyl_dg_iz {
   const struct gkyl_range *conf_rng_ext; // Configuration-space extended range
   const struct gkyl_range *phase_rng; // Phase-space range
   bool use_gpu;
-  bool all_gk; 
   
   double elem_charge; // elementary charge value
   double mass_elc; // mass of the electron
-  double mass_ion; 
 
   int resM0;
   int resTe;
@@ -38,9 +36,6 @@ struct gkyl_dg_iz {
   struct gkyl_range adas_rng;
   struct gkyl_basis adas_basis;
   struct gkyl_basis *basis_on_dev;
-  
-  struct gkyl_dg_prim_vars_type *calc_prim_vars_donor;
-  struct gkyl_dg_prim_vars_type *calc_prim_vars_elc;
 
   struct gkyl_dg_iz *on_dev; // pointer to itself or device data
 };

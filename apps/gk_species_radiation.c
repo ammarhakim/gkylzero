@@ -131,16 +131,16 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
 
       double Te_min_eV;
       if (s->info.radiation.te_min_model == GKYL_CONST_TE && s->info.radiation.Te_min) {
-	// Turn off radiation below a constant temperature
-	Te_min_eV = s->info.radiation.Te_min / GKYL_ELEMENTARY_CHARGE;
+        // Turn off radiation below a constant temperature
+        Te_min_eV = s->info.radiation.Te_min / GKYL_ELEMENTARY_CHARGE;
       }
       else if (s->info.radiation.te_min_model == GKYL_VARY_TE_AGGRESSIVE) {
-	// Turn off radiation below 10^-4*max(Lz)
-	Te_min_eV = 0.1372 * pow(rad_fit_v0[n], 1.867);
+        // Turn off radiation below 10^-4*max(Lz)
+        Te_min_eV = 0.1372 * pow(rad_fit_v0[n], 1.867);
       }
       else {
-	// (s->info.radiation.te_min_model == GKYL_VARY_TE_CONSERVATIVE) i.e. Turn off radiation below 3.16*10^-3*max(Lz)
-	Te_min_eV = 0.2815 * pow(rad_fit_v0[n], 1.768);
+        // (s->info.radiation.te_min_model == GKYL_VARY_TE_CONSERVATIVE) i.e. Turn off radiation below 3.16*10^-3*max(Lz)
+        Te_min_eV = 0.2815 * pow(rad_fit_v0[n], 1.768);
       }
       double *vtsq_min_host_d = (double*) gkyl_array_fetch(vtsq_min_host, n);
       vtsq_min_host_d[0] = Te_min_eV * fabs(s->info.charge)/s->info.mass * pow(sqrt(2.0), cdim);
@@ -211,6 +211,7 @@ void
 gk_species_radiation_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   struct gk_rad_drag *rad, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[])
 {
+  struct timespec wst = gkyl_wall_clock(); 
 
   // compute needed Maxwellian moments (n, u_par, T/m) (Jacobian factors already eliminated)
   gk_species_moment_calc(&rad->prim_moms, species->local, app->local, species->f);
@@ -225,11 +226,13 @@ gk_species_radiation_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
 
   for (int i=0; i<rad->num_cross_collisions; ++i) {
     // compute needed moments
-    if (rad->is_neut_species[i])
+    if (rad->is_neut_species[i]) {
       gk_neut_species_moment_calc(&rad->moms[i], rad->collide_with_neut[i]->local,
         app->local, fin_neut[rad->collide_with_idx[i]]);
-    else
+    }
+    else {
       gk_species_moment_calc(&rad->moms[i], rad->collide_with[i]->local, app->local, fin[rad->collide_with_idx[i]]);
+    }
     // divide out Jacobian from ion density before computation of final drag coefficient
     gkyl_dg_div_op_range(rad->moms[i].mem_geo, app->confBasis, 0, rad->moms[i].marr, 0,
       rad->moms[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
@@ -240,16 +243,22 @@ gk_species_radiation_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
       rad->nvnu_surf, rad->nvnu, rad->nvsqnu_surf, rad->nvsqnu,
       rad->vtsq_min_per_species[i], rad->vtsq);					   
   }
+
+  app->stat.species_rad_mom_tm += gkyl_time_diff_now_sec(wst);
 }
 
 void
 gk_species_radiation_integrated_moms(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  struct gk_rad_drag *rad, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[])
+	struct gk_rad_drag *rad, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[])
 {
+  struct timespec wst = gkyl_wall_clock(); 
+
   gkyl_array_clear(rad->emissivity_rhs, 0.0);
   gkyl_dg_updater_rad_gyrokinetic_advance(rad->drag_slvr, &species->local,
     species->f, species->cflrate, rad->emissivity_rhs);
   gk_species_moment_calc(&rad->integ_moms, species->local, app->local, rad->emissivity_rhs);
+
+  app->stat.species_rad_mom_tm += gkyl_time_diff_now_sec(wst);  
 }
 
 // computes emissivity
@@ -257,6 +266,7 @@ void
 gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gk_rad_drag *rad, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[])
 {
+  struct timespec wst = gkyl_wall_clock(); 
 
   // compute needed Maxwellian moments (n, u_par, T/m) (Jacobian factors already eliminated)
   gk_species_moment_calc(&rad->prim_moms, species->local, app->local, species->f);
@@ -300,6 +310,7 @@ gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app, struct gk_species *sp
 
     rad->emissivity[i] = gkyl_array_scale(rad->emissivity[i], -species->info.mass/2.0);
   }  
+  app->stat.species_rad_mom_tm += gkyl_time_diff_now_sec(wst);
 }
 
 // updates the collision terms in the rhs
@@ -308,11 +319,12 @@ gk_species_radiation_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *spe
   struct gk_rad_drag *rad, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
   struct timespec wst = gkyl_wall_clock();
+  
   // accumulate update due to collisions onto rhs
   gkyl_dg_updater_rad_gyrokinetic_advance(rad->drag_slvr, &species->local,
     fin, species->cflrate, rhs);
   
-  app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.species_rad_tm += gkyl_time_diff_now_sec(wst);
 }
 
 // write functions
@@ -320,7 +332,6 @@ void
 gk_species_radiation_write_drag(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
   if (gks->rad.radiation_id == GKYL_GK_RADIATION) {
-    struct timespec wst = gkyl_wall_clock();
     struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
         .frame = frame,
         .stime = tm,
@@ -353,10 +364,12 @@ gk_species_radiation_write_drag(gkyl_gyrokinetic_app* app, struct gk_species *gk
     // Compute radiation drag coefficients
     const struct gkyl_array *fin_neut[app->num_neut_species];
     const struct gkyl_array *fin[app->num_species];
-    for (int i=0; i<app->num_species; ++i) 
+    for (int i=0; i<app->num_species; ++i) {
       fin[i] = app->species[i].f;
-    for (int i=0; i<app->num_neut_species; ++i)
+    }
+    for (int i=0; i<app->num_neut_species; ++i) {
       fin_neut[i] = app->neut_species[i].f;
+    }
 
     gk_species_radiation_moms(app, gks, &gks->rad, fin, fin_neut);
 
@@ -373,12 +386,10 @@ gk_species_radiation_write_drag(gkyl_gyrokinetic_app* app, struct gk_species *gk
     gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt, gks->rad.nvnu_host, fileNm_nvnu);
     gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt, gks->rad.nvsqnu_surf_host, fileNm_nvsqnu_surf);
     gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt, gks->rad.nvsqnu_host, fileNm_nvsqnu);
-    app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
-    app->stat.nio += 4;
+    app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
+    app->stat.n_diag_io += 4;
 
     gk_array_meta_release(mt);   
-    app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-    app->stat.ndiag += 1;
   }
 }
 
@@ -386,7 +397,6 @@ void
 gk_species_radiation_write_emissivity(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
   if (gks->rad.radiation_id == GKYL_GK_RADIATION) {
-    struct timespec wst = gkyl_wall_clock();
     struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
         .frame = frame,
         .stime = tm,
@@ -397,10 +407,12 @@ gk_species_radiation_write_emissivity(gkyl_gyrokinetic_app* app, struct gk_speci
     
     const struct gkyl_array *fin_neut[app->num_neut_species];
     const struct gkyl_array *fin[app->num_species];
-    for (int i=0; i<app->num_species; ++i) 
+    for (int i=0; i<app->num_species; ++i) {
       fin[i] = app->species[i].f;
-    for (int i=0; i<app->num_neut_species; ++i)
+    }
+    for (int i=0; i<app->num_neut_species; ++i) {
       fin_neut[i] = app->neut_species[i].f;
+    }
 
     gk_species_radiation_emissivity(app, gks, &gks->rad, fin, fin_neut);
     for (int i=0; i<gks->rad.num_cross_collisions; i++) {
@@ -416,25 +428,26 @@ gk_species_radiation_write_emissivity(gkyl_gyrokinetic_app* app, struct gk_speci
         char fileNm_emissivity[sz_emissivity+1]; // ensures no buffer overflow
         snprintf(fileNm_emissivity, sizeof fileNm_emissivity, fmt_emissivity, app->name,
           gks->info.name, app->neut_species[gks->rad.collide_with_idx[i]].info.name, frame);
+
         struct timespec wtm = gkyl_wall_clock();
         gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gks->rad.emissivity_host[i], fileNm_emissivity);
-        app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
-      } else {
+        app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
+      } 
+      else {
         int sz_emissivity = gkyl_calc_strlen(fmt_emissivity, app->name, gks->info.name,
           app->species[gks->rad.collide_with_idx[i]].info.name, frame);
         char fileNm_emissivity[sz_emissivity+1]; // ensures no buffer overflow
         snprintf(fileNm_emissivity, sizeof fileNm_emissivity, fmt_emissivity, app->name,
           gks->info.name, app->species[gks->rad.collide_with_idx[i]].info.name, frame);
+
         struct timespec wtm = gkyl_wall_clock();
         gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gks->rad.emissivity_host[i], fileNm_emissivity);
-        app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
+        app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
       }  
-      app->stat.nio += 1;
+      app->stat.n_diag_io += 1;
     }
 
-    gk_array_meta_release(mt);   
-    app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-    app->stat.ndiag += 1;
+    gk_array_meta_release(mt); 
   }
 }
 
@@ -442,18 +455,18 @@ void
 gk_species_radiation_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm)
 {
   if (gks->rad.radiation_id == GKYL_GK_RADIATION) {
-    struct timespec wst = gkyl_wall_clock();
-
     int vdim = app->vdim;
     double avals_global[2+vdim];
 
     // Compute radiation drag coefficients
     const struct gkyl_array *fin_neut[app->num_neut_species];
     const struct gkyl_array *fin[app->num_species];
-    for (int i=0; i<app->num_species; ++i) 
+    for (int i=0; i<app->num_species; ++i)  {
       fin[i] = app->species[i].f;
-    for (int i=0; i<app->num_neut_species; ++i)
+    }
+    for (int i=0; i<app->num_neut_species; ++i) {
       fin_neut[i] = app->neut_species[i].f;
+    }
     gk_species_radiation_moms(app, gks, &gks->rad, fin, fin_neut);
     gk_species_radiation_integrated_moms(app, gks, &gks->rad, fin, fin_neut);
   
@@ -468,9 +481,6 @@ gk_species_radiation_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_sp
       memcpy(avals_global, gks->rad.red_integ_diag_global, sizeof(double[2+vdim]));
     }
     gkyl_dynvec_append(gks->rad.integ_diag, tm, avals_global);
-
-    app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-    app->stat.ndiag += 1;
   }
 }
 
@@ -479,7 +489,7 @@ gk_species_radiation_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_s
 {
   if (gks->rad.radiation_id == GKYL_GK_RADIATION) {
     struct timespec wst = gkyl_wall_clock();
-    // Write from rank 0
+
     int rank;
     gkyl_comm_get_rank(app->comm, &rank);
     if (rank == 0) {
@@ -489,7 +499,6 @@ gk_species_radiation_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_s
       char fileNm[sz+1]; // ensures no buffer overflow
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "integrated_moms");
 
-      struct timespec wtm = gkyl_wall_clock();
       if (gks->rad.is_first_integ_write_call) {
         gkyl_dynvec_write(gks->rad.integ_diag, fileNm);
         gks->rad.is_first_integ_write_call = false;
@@ -497,12 +506,11 @@ gk_species_radiation_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_s
       else {
         gkyl_dynvec_awrite(gks->rad.integ_diag, fileNm);
       }
-      app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
-      app->stat.nio += 1;
     }
     gkyl_dynvec_clear(gks->rad.integ_diag);
-    app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-    app->stat.ndiag += 1;
+
+    app->stat.diag_io_tm += gkyl_time_diff_now_sec(wst);
+    app->stat.n_diag_io += 1;
   }
 }
   
@@ -547,4 +555,4 @@ gk_species_radiation_release(const struct gkyl_gyrokinetic_app *app, const struc
   gkyl_array_release(rad->nvsqnu_surf_host);
   gkyl_array_release(rad->nvsqnu_host);    
   gkyl_dg_updater_rad_gyrokinetic_release(rad->drag_slvr);
- }
+}

@@ -98,11 +98,9 @@ gk_species_source_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
     struct timespec wtm = gkyl_wall_clock();
     gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt, gks->src.source_host, fileNm);
     app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
-    app->stat.nio += 1;
+    app->stat.n_io += 1;
 
-    gk_array_meta_release(mt);   
-    app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-    app->stat.ndiag += 1;
+    gk_array_meta_release(mt); 
   }
 }
 
@@ -111,6 +109,7 @@ gk_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, d
 {
   if (gks->src.source_id && (gks->src.evolve || frame == 0)) {
     struct timespec wst = gkyl_wall_clock();
+
     struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
         .frame = frame,
         .stime = tm,
@@ -121,7 +120,7 @@ gk_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, d
 
     for (int m=0; m<gks->info.num_diag_moments; ++m) {
       gk_species_moment_calc(&gks->src.moms[m], gks->local, app->local, gks->src.source);
-      app->stat.nmom += 1;
+      app->stat.n_mom += 1;
 
       const char *fmt = "%s-%s_source_%s_%d.gkyl";
       int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name,
@@ -130,12 +129,12 @@ gk_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, d
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name,
         gks->info.diag_moments[m], frame);
 
-      if (!gks->src.moms[m].is_bimaxwellian_moms && !gks->src.moms[m].is_maxwellian_moms) {
-        // Rescale moment by inverse of Jacobian
-        gkyl_dg_div_op_range(gks->moms[m].mem_geo, app->confBasis, 
-          0, gks->src.moms[m].marr, 0, gks->src.moms[m].marr, 0, 
-          app->gk_geom->jacobgeo, &app->local);      
-      }
+      // Rescale moment by inverse of Jacobian. 
+      // For Maxwellian and bi-Maxwellian moments, we only need to re-scale
+      // the density (the 0th component).
+      gkyl_dg_div_op_range(gks->moms[m].mem_geo, app->confBasis, 
+        0, gks->src.moms[m].marr, 0, gks->src.moms[m].marr, 0, 
+        app->gk_geom->jacobgeo, &app->local);      
 
       if (app->use_gpu) {
         gkyl_array_copy(gks->src.moms[m].marr_host, gks->src.moms[m].marr);
@@ -144,13 +143,13 @@ gk_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, d
       struct timespec wtm = gkyl_wall_clock();
       gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
         gks->src.moms[m].marr_host, fileNm);
-      app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
-      app->stat.nio += 1;
+      app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
+      app->stat.n_diag_io += 1;
     }
+    gk_array_meta_release(mt); 
 
-    gk_array_meta_release(mt);   
     app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-    app->stat.ndiag += 1;
+    app->stat.n_diag += 1;
   }
 }
 
@@ -162,8 +161,9 @@ gk_species_source_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_speci
 
     int vdim = app->vdim;
     double avals_global[2+vdim];
-
     gk_species_moment_calc(&gks->src.integ_moms, gks->local, app->local, gks->src.source); 
+    app->stat.n_mom += 1;
+
     // reduce to compute sum over whole domain, append to diagnostics
     gkyl_array_reduce_range(gks->src.red_integ_diag, gks->src.integ_moms.marr, GKYL_SUM, &app->local);
     gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, 
@@ -175,8 +175,9 @@ gk_species_source_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_speci
       memcpy(avals_global, gks->src.red_integ_diag_global, sizeof(double[2+vdim]));
     }
     gkyl_dynvec_append(gks->src.integ_diag, tm, avals_global);
+
     app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-    app->stat.ndiag += 1;
+    app->stat.n_diag += 1;
   }
 }
 
@@ -195,7 +196,6 @@ gk_species_source_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_spec
       char fileNm[sz+1]; // ensures no buffer overflow
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "integrated_moms");
 
-      struct timespec wtm = gkyl_wall_clock();
       if (gks->src.is_first_integ_write_call) {
         gkyl_dynvec_write(gks->src.integ_diag, fileNm);
         gks->src.is_first_integ_write_call = false;
@@ -203,12 +203,11 @@ gk_species_source_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_spec
       else {
         gkyl_dynvec_awrite(gks->src.integ_diag, fileNm);
       }
-      app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
-      app->stat.nio += 1;
     }
     gkyl_dynvec_clear(gks->src.integ_diag);
-    app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-    app->stat.ndiag += 1;
+
+    app->stat.diag_io_tm += gkyl_time_diff_now_sec(wst);
+    app->stat.n_diag_io += 1;
   }
 }
 

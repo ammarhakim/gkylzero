@@ -15,7 +15,8 @@ static struct { int vdim[4]; } cv_index[] = {
   {-1, -1, -1,  5}, // 3x kernel indices  
 };
 
-typedef double (*dg_cx_react_ratef_t)(const double a, const double b, double vt_sq_ion_min, double vt_sq_neut_min, const double *m0, const double *prim_vars_ion, const double *prim_vars_neut, double* GKYL_RESTRICT v_sigma_cx) ;
+typedef double (*dg_cx_react_ratef_t)(const double a, const double b, double vt_sq_ion_min, double vt_sq_neut_min, 
+  const double *prim_vars_ion, const double *prim_vars_neut, const double *u_ion, double* GKYL_RESTRICT v_sigma_cx) ;
 
 // for use in kernel tables
 typedef struct { dg_cx_react_ratef_t kernels[3]; } gkyl_cx_react_rate_kern_list;
@@ -32,7 +33,7 @@ static const gkyl_cx_react_rate_kern_list ser_cx_react_rate_kernels[] = {
   { NULL, sigma_cx_1x3v_ser_p1, sigma_cx_1x3v_ser_p2 }, // 2
   { NULL, sigma_cx_2x2v_ser_p1, sigma_cx_2x2v_ser_p2 }, // 3
   { NULL, sigma_cx_2x3v_ser_p1, sigma_cx_2x3v_ser_p2 }, // 4
-  { NULL, sigma_cx_3x3v_ser_p1, sigma_cx_3x3v_ser_p2 }, // 5
+  { NULL, sigma_cx_3x3v_ser_p1, NULL }, // 5
 };
 
 struct gkyl_dg_cx_kernels {
@@ -61,10 +62,6 @@ struct gkyl_dg_cx {
   
   enum gkyl_ion_type type_ion;
   enum gkyl_react_self_type type_self;
-
-  struct gkyl_dg_prim_vars_type *calc_prim_vars_ion;
-  struct gkyl_dg_prim_vars_type *calc_prim_vars_neut;
-  struct gkyl_dg_prim_vars_type *calc_prim_vars_neut_gk;
 
   bool use_gpu;
   struct gkyl_dg_cx *on_dev; // pointer to itself or device data

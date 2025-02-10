@@ -135,7 +135,7 @@ vm_species_source_release(const struct gkyl_vlasov_app *app, const struct vm_sou
     } 
     else {
       gkyl_free(src->scale_ptr);
-    }  
+    }
   }
 
   for (int k=0; k<src->num_sources; k++) {
