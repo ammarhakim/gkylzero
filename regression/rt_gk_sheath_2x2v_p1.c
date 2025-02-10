@@ -143,7 +143,7 @@ create_ctx(void)
   double vpar_max_ion = 4.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
   double mu_max_ion = (3.0 / 2.0) * 0.5 * mass_ion * pow(4.0 * vti, 2.0) / (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
   int poly_order = 1; // Polynomial order.
-  double cfl_frac = 0.4; // CFL coefficient.
+  double cfl_frac = 1.0; // CFL coefficient.
 
   double t_end = 6.0e-6; // Final simulation time.
   int num_frames = 1; // Number of output frames.
@@ -520,7 +520,7 @@ bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, 
 void
 write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr, bool force_write)
 {
-  if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
     int frame = iot->curr - 1;
     if (force_write) {
       frame = iot->curr;
@@ -534,17 +534,17 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr
 }
 
 void
-calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_gyrokinetic_app* app, double t_curr)
+calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_gyrokinetic_app* app, double t_curr, bool force_calc)
 {
-  if (gkyl_tm_trigger_check_and_bump(fet, t_curr)) {
+  if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
     gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
   }
 }
 
 void
-calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_gyrokinetic_app* app, double t_curr)
+calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_gyrokinetic_app* app, double t_curr, bool force_calc)
 {
-  if (gkyl_tm_trigger_check_and_bump(imt, t_curr)) {
+  if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
     gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
     gkyl_gyrokinetic_app_calc_L2norm(app, t_curr);
   }
@@ -840,13 +840,13 @@ main(int argc, char **argv)
   int field_energy_calcs = ctx.field_energy_calcs;
   struct gkyl_tm_trigger fe_trig = { .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr };
 
-  calc_field_energy(&fe_trig, app, t_curr);
+  calc_field_energy(&fe_trig, app, t_curr, false);
 
   // Create trigger for integrated moments.
   int integrated_mom_calcs = ctx.integrated_mom_calcs;
   struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr };
 
-  calc_integrated_mom(&im_trig, app, t_curr);
+  calc_integrated_mom(&im_trig, app, t_curr, false);
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
@@ -875,8 +875,8 @@ main(int argc, char **argv)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
-    calc_field_energy(&fe_trig, app, t_curr);
-    calc_integrated_mom(&im_trig, app, t_curr);
+    calc_field_energy(&fe_trig, app, t_curr, false);
+    calc_integrated_mom(&im_trig, app, t_curr, false);
     write_data(&io_trig, app, t_curr, false);
 
     if (dt_init < 0.0) {
@@ -891,6 +891,11 @@ main(int argc, char **argv)
       if (num_failures >= num_failures_max) {
         gkyl_gyrokinetic_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_gyrokinetic_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+
+        calc_field_energy(&fe_trig, app, t_curr, true);
+        calc_integrated_mom(&im_trig, app, t_curr, true);
+        write_data(&io_trig, app, t_curr, true);
+
         break;
       }
     }
@@ -901,8 +906,8 @@ main(int argc, char **argv)
     step += 1;
   }
   
-  calc_field_energy(&fe_trig, app, t_curr);
-  calc_integrated_mom(&im_trig, app, t_curr);
+  calc_field_energy(&fe_trig, app, t_curr, false);
+  calc_integrated_mom(&im_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
   gkyl_gyrokinetic_app_stat_write(app);
   
@@ -923,7 +928,7 @@ main(int argc, char **argv)
   gkyl_gyrokinetic_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
   gkyl_gyrokinetic_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
-  gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld\n", stat.nio);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
   gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
 freeresources:

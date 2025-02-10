@@ -175,19 +175,19 @@ struct gkyl_pkpm_stat {
   double field_em_vars_tm; // time to compute EM auxiliary variables (e.g., bvar and E x B)
   double current_tm; // time to compute currents and accumulation
 
-  long nspecies_omega_cfl; // number of times CFL-omega all-reduce is called
+  long n_species_omega_cfl; // number of times CFL-omega all-reduce is called
   double species_omega_cfl_tm; // time spent in all-reduce for omega-cfl
 
-  long nfield_omega_cfl; // number of times CFL-omega for field all-reduce is called
+  long n_field_omega_cfl; // number of times CFL-omega for field all-reduce is called
   double field_omega_cfl_tm; // time spent in all-reduce for omega-cfl for field
 
-  long nmom; // calls to moment calculation
+  long n_mom; // calls to moment calculation
   double mom_tm; // time to compute moments
 
-  long ndiag; // calls to diagnostics
+  long n_diag; // calls to diagnostics
   double diag_tm; // time to compute diagnostics
 
-  long nio; // number of calls to IO
+  long n_io; // number of calls to IO
   double io_tm; // time to perform IO
 };
 

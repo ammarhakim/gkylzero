@@ -1,2 +1,2 @@
 : "${PREFIX:=$HOME/gkylsoft}"
-./configure CC=nvcc --prefix=$PREFIX
+./configure CC=nvcc --prefix=$PREFIX --use-lua=yes

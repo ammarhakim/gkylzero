@@ -138,7 +138,7 @@ test_1x1v(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
 
-  // proj_maxwellian expects all the moments in a single array.
+  // Projection routine expects all the moments in a single array.
   gkyl_array_set_offset(moms, 1., m0, 0);
   gkyl_array_set_offset(moms, 1., m1i, confBasis.num_basis);
   gkyl_array_set_offset(moms, 1., m2, (vdim+1)*confBasis.num_basis);

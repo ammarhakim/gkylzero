@@ -5,6 +5,35 @@
 
 typedef struct gkyl_gyrokinetic_multib_app gkyl_gyrokinetic_multib_app;
 
+// Boundary conditions on fields and particles
+enum gkyl_gyrokinetic_bc_type {
+  GKYL_BC_GK_SKIP, // Do not apply any BCs 
+  GKYL_BC_GK_SPECIES_REFLECT, // perfect reflector
+  GKYL_BC_GK_SPECIES_ABSORB, // Absorbing BCs
+  GKYL_BC_GK_SPECIES_FUNC, // Function boundary conditions
+  GKYL_BC_GK_SPECIES_FIXED_FUNC, // Fixed function, time-independent, boundary conditions
+  GKYL_BC_GK_SPECIES_EMISSION, // Emission spectrum BCs
+  GKYL_BC_GK_SPECIES_ZERO_FLUX, // Zero flux BCs; must be applied on both lower and upper BC
+  GKYL_BC_GK_SPECIES_GK_SHEATH, // Gyrokinetic sheath BCs
+  GKYL_BC_GK_SPECIES_RECYCLE, // Recycling BCs
+  GKYL_BC_GK_SPECIES_GK_IWL, // Gyrokinetic inner wall limited.
+
+  GKYL_BC_GK_FIELD_DIRICHLET, // Dirichlet boundary conditions
+  GKYL_BC_GK_FIELD_NEUMANN, // Nemann boundary conditions
+};
+
+// BC for blocks
+struct gkyl_gyrokinetic_block_physical_bcs {
+  int bidx; // block index
+  int dir;  // direction in which BC is specified
+  enum gkyl_edge_loc edge; // which edge this BC is for
+  enum gkyl_gyrokinetic_bc_type bc_type; // BC type flag.
+  void (*aux_profile)(double t, const double *xn, double *fout, void *ctx); // Auxiliary function (e.g. wall potential).
+  void *aux_ctx; // Context for aux_profile.
+  double aux_parameter; // Parameter for aux_profile (maybe redundant).
+  struct gkyl_gyrokinetic_projection projection; // Projection object input (e.g. for FIXED_FUNC).
+};
+
 // Species input per block
 struct gkyl_gyrokinetic_multib_species_pb {
   int block_id; // block ID
@@ -58,7 +87,7 @@ struct gkyl_gyrokinetic_multib_species {
 
   // Physical boundary conditions
   int num_physical_bcs;
-  const struct gkyl_block_physical_bcs *bcs;
+  const struct gkyl_gyrokinetic_block_physical_bcs *bcs;
 };
 
 // Neutral species input per block
@@ -96,7 +125,7 @@ struct gkyl_gyrokinetic_multib_neut_species {
 
   // Physical boundary conditions
   int num_physical_bcs;
-  const struct gkyl_block_physical_bcs *bcs;
+  const struct gkyl_gyrokinetic_block_physical_bcs *bcs;
 };
 
 // Field input per block 
@@ -134,7 +163,7 @@ struct gkyl_gyrokinetic_multib_field {
 
   // Physical boundary conditions
   int num_physical_bcs;
-  const struct gkyl_block_physical_bcs *bcs;
+  const struct gkyl_gyrokinetic_block_physical_bcs *bcs;
 };
 
 // Top-level app parameters: this
@@ -482,6 +511,24 @@ void gkyl_gyrokinetic_multib_app_write_species_source_integrated_mom(gkyl_gyroki
 void gkyl_gyrokinetic_multib_app_write_neut_species_source_integrated_mom(gkyl_gyrokinetic_multib_app *app, int sidx);
 
 /**
+ * Write species integrated correct Maxwellian status of the to file. 
+ * Correct Maxwellian status is appended to the same file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to write.
+ */
+void gkyl_gyrokinetic_multib_app_write_species_lte_max_corr_status(gkyl_gyrokinetic_multib_app *app, int sidx);
+
+/**
+ * Write neutral species integrated correct Maxwellian status of the to file. 
+ * Correct Maxwellian status is appended to the same file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to write.
+ */
+void gkyl_gyrokinetic_multib_app_write_neut_species_lte_max_corr_status(gkyl_gyrokinetic_multib_app *app, int sidx);
+
+/**
  * Write LBO collisional moments for species to file.
  * 
  * @param app App object.
@@ -492,13 +539,14 @@ void gkyl_gyrokinetic_multib_app_write_neut_species_source_integrated_mom(gkyl_g
 void gkyl_gyrokinetic_multib_app_write_species_lbo_mom(gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame);
 
 /**
- * Write integrated correct Maxwellian status of the species BGK distribution function
- * to file. Correct Maxwellian status is appended to the same file.
+ * Write BGK cross moments for species to file.
  * 
  * @param app App object.
  * @param sidx Index of species to write.
+ * @param tm Time-stamp
+ * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write_species_bgk_max_corr_status(gkyl_gyrokinetic_multib_app *app, int sidx);
+void gkyl_gyrokinetic_multib_app_write_species_bgk_cross_mom(gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame);
 
 /**
  * Write radiation drag coefficients for species to file.
