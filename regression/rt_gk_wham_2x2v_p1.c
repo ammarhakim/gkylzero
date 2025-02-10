@@ -764,6 +764,7 @@ int main(int argc, char **argv)
     },
 
     .projection = ion_ic,
+    .scale_with_polarization = true,
 
     .collisions = {
       .collision_id = GKYL_LBO_COLLISIONS,
