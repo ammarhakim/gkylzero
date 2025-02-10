@@ -293,7 +293,7 @@ void test_1x1v(int poly_order, bool use_gpu)
   struct gkyl_array *moms_corr_ho;
   if (use_gpu) { 
     gkyl_gk_maxwellian_moments_advance(max_moms, &local, &confLocal, distf_cu, moms_corr);
-    moms_corr_ho = mkarr(3*confBasis.num_basis, confLocal_ext.volume, false);
+    moms_corr_ho = mkarr(false, 3*confBasis.num_basis, confLocal_ext.volume);
     gkyl_array_copy(moms_corr_ho, moms_corr); 
   } 
   else {
@@ -548,7 +548,7 @@ void test_1x2v(int poly_order, bool use_gpu)
   struct gkyl_array *moms_corr_ho;
   if (use_gpu) { 
     gkyl_gk_maxwellian_moments_advance(max_moms, &local, &confLocal, distf_cu, moms_corr);
-    moms_corr_ho = mkarr(3*confBasis.num_basis, confLocal_ext.volume, false);
+    moms_corr_ho = mkarr(false, 3*confBasis.num_basis, confLocal_ext.volume);
     gkyl_array_copy(moms_corr_ho, moms_corr); 
   } 
   else {
@@ -803,7 +803,7 @@ void test_2x2v(int poly_order, bool use_gpu)
   struct gkyl_array *moms_corr_ho;
   if (use_gpu) { 
     gkyl_gk_maxwellian_moments_advance(max_moms, &local, &confLocal, distf_cu, moms_corr);
-    moms_corr_ho = mkarr(3*confBasis.num_basis, confLocal_ext.volume, false);
+    moms_corr_ho = mkarr(false, 3*confBasis.num_basis, confLocal_ext.volume);
     gkyl_array_copy(moms_corr_ho, moms_corr); 
   } 
   else {
