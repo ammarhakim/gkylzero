@@ -10,6 +10,7 @@ extern "C" {
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_dg_calc_canonical_pb_fluid_vars.h>
 #include <gkyl_dg_calc_canonical_pb_fluid_vars_priv.h>
+#include <gkyl_wv_canonical_pb_fluid.h>
 #include <gkyl_util.h>
 }
 
@@ -65,7 +66,7 @@ gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf_cu_kernel(struct gkyl_dg_calc_ca
 void 
 gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf_cu(struct gkyl_dg_calc_canonical_pb_fluid_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *conf_ext_range, 
-  struct gkyl_array *phi,
+  const struct gkyl_array *phi,
   struct gkyl_array* alpha_surf, struct gkyl_array* sgn_alpha_surf, struct gkyl_array* const_sgn_alpha)
 {
   int nblocks = conf_range->nblocks;
@@ -81,7 +82,6 @@ gkyl_canonical_pb_fluid_vars_source_cu_kernel(struct gkyl_dg_calc_canonical_pb_f
   const struct gkyl_array *background_n_gradient, const struct gkyl_array *phi, 
   const struct gkyl_array *fluid, struct gkyl_array *rhs)
 {
-  int cdim = up->cdim;
   int idx[GKYL_MAX_DIM];
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
       linc1 < conf_range.volume;
@@ -159,13 +159,11 @@ gkyl_dg_calc_canonical_pb_fluid_vars_cu_dev_new(const struct gkyl_rect_grid *con
 
   if (wv_eqn->type == GKYL_EQN_CAN_PB_HASEGAWA_MIMA) {
     up->kappa = gkyl_wv_can_pb_hasegawa_mima_kappa(wv_eqn); 
-    up->canonical_pb_fluid_source = choose_canonical_pb_fluid_hasegawa_mima_source_kern(conf_basis->b_type, cdim, poly_order);
   }
   else if (wv_eqn->type == GKYL_EQN_CAN_PB_HASEGAWA_WAKATANI) {
     up->alpha = gkyl_wv_can_pb_hasegawa_wakatani_alpha(wv_eqn); 
     up->kappa = gkyl_wv_can_pb_hasegawa_wakatani_kappa(wv_eqn); 
     up->is_modified = gkyl_wv_can_pb_hasegawa_wakatani_is_modified(wv_eqn); 
-    up->canonical_pb_fluid_source = choose_canonical_pb_fluid_hasegawa_wakatani_source_kern(conf_basis->b_type, cdim, poly_order);
   }
 
   up->flags = 0;

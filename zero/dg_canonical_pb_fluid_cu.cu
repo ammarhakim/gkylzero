@@ -120,7 +120,7 @@ gkyl_dg_canonical_pb_fluid_cu_dev_new(const struct gkyl_basis* cbasis,
 
   // copy the host struct to device struct
   struct dg_canonical_pb_fluid *can_pb_fluid_cu = (struct dg_canonical_pb_fluid*) gkyl_cu_malloc(sizeof(struct dg_canonical_pb_fluid));
-  gkyl_cu_memcpy(can_pb_fluid_cu, canonical_pb_fluid, sizeof(struct dg_canonical_pb_fluid), GKYL_CU_MEMCPY_H2D);
+  gkyl_cu_memcpy(can_pb_fluid_cu, can_pb_fluid, sizeof(struct dg_canonical_pb_fluid), GKYL_CU_MEMCPY_H2D);
 
   dg_canonical_pb_fluid_set_cu_dev_ptrs<<<1,1>>>(can_pb_fluid_cu, cbasis->b_type, cdim, poly_order, num_equations);
 

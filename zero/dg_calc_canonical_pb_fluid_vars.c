@@ -115,7 +115,7 @@ void gkyl_canonical_pb_fluid_vars_source(struct gkyl_dg_calc_canonical_pb_fluid_
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(rhs)) {
-    return gkyl_canonical_pb_fluid_vars_source_cu(up, conf_range, phi, fluid, rhs);
+    return gkyl_canonical_pb_fluid_vars_source_cu(up, conf_range, background_n_gradient, phi, fluid, rhs);
   }
 #endif
   int cdim = up->cdim; 
