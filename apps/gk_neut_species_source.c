@@ -75,7 +75,7 @@ gk_neut_species_source_rhs(gkyl_gyrokinetic_app *app, const struct gk_neut_speci
 void
 gk_neut_species_source_write(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm, int frame)
 {
-    if (gkns->src.source_id && (gkns->src.evolve || frame == 0)) {
+  if (gkns->src.source_id && (gkns->src.evolve || frame == 0)) {
     struct timespec wst = gkyl_wall_clock();
     struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
         .frame = frame,
@@ -98,12 +98,10 @@ gk_neut_species_source_write(gkyl_gyrokinetic_app* app, struct gk_neut_species *
 
     struct timespec wtm = gkyl_wall_clock();
     gkyl_comm_array_write(gkns->comm, &gkns->grid, &gkns->local, mt, gkns->src.source_host, fileNm);
-    app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
-    app->stat.nio += 1;
+    app->stat.neut_io_tm += gkyl_time_diff_now_sec(wtm);
+    app->stat.n_neut_io += 1;
 
     gk_array_meta_release(mt);   
-    app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-    app->stat.ndiag += 1;
   }
 }
 
@@ -123,7 +121,7 @@ gk_neut_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_neut_speci
 
     for (int m=0; m<gkns->info.num_diag_moments; ++m) {
       gk_neut_species_moment_calc(&gkns->src.moms[m], gkns->local, app->local, gkns->src.source);
-      app->stat.nmom += 1;
+      app->stat.n_neut_mom += 1;
 
       const char *fmt = "%s-%s_source_%s_%d.gkyl";
       int sz = gkyl_calc_strlen(fmt, app->name, gkns->info.name,
@@ -132,7 +130,9 @@ gk_neut_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_neut_speci
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gkns->info.name,
         gkns->info.diag_moments[m], frame);
 
-      // Rescale moment by inverse of Jacobian
+      // Rescale moment by inverse of Jacobian. 
+      // For LTE (Maxwellian) moments, we only need to re-scale
+      // the density (the 0th component).
       gkyl_dg_div_op_range(gkns->moms[m].mem_geo, app->confBasis, 
         0, gkns->src.moms[m].marr, 0, gkns->src.moms[m].marr, 0, 
         app->gk_geom->jacobgeo, &app->local);      
@@ -144,13 +144,13 @@ gk_neut_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_neut_speci
       struct timespec wtm = gkyl_wall_clock();
       gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
         gkns->src.moms[m].marr_host, fileNm);
-      app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
-      app->stat.nio += 1;
+      app->stat.neut_diag_io_tm += gkyl_time_diff_now_sec(wtm);
+      app->stat.n_neut_diag_io += 1;
     }
+    gk_array_meta_release(mt); 
 
-    gk_array_meta_release(mt);   
-    app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-    app->stat.ndiag += 1;
+    app->stat.neut_diag_tm += gkyl_time_diff_now_sec(wst);
+    app->stat.n_neut_diag += 1;
   }
 }
 
@@ -163,8 +163,9 @@ gk_neut_species_source_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_
     int vdim = app->vdim+1; // Neutrals are always 3V
     int num_mom = gkns->src.integ_moms.num_mom;
     double avals_global[num_mom];
+    gk_neut_species_moment_calc(&gkns->src.integ_moms, gkns->local, app->local, gkns->src.source);
+    app->stat.n_neut_mom += 1; 
 
-    gk_neut_species_moment_calc(&gkns->src.integ_moms, gkns->local, app->local, gkns->src.source); 
     // reduce to compute sum over whole domain, append to diagnostics
     gkyl_array_reduce_range(gkns->src.red_integ_diag, gkns->src.integ_moms.marr, GKYL_SUM, &app->local);
     gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
@@ -176,8 +177,9 @@ gk_neut_species_source_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_
       memcpy(avals_global, gkns->src.red_integ_diag_global, sizeof(double[num_mom]));
     }
     gkyl_dynvec_append(gkns->src.integ_diag, tm, avals_global);
-    app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-    app->stat.ndiag += 1;
+
+    app->stat.neut_diag_tm += gkyl_time_diff_now_sec(wst);
+    app->stat.n_neut_diag += 1;
   }
 }
 
@@ -196,7 +198,6 @@ gk_neut_species_source_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk
       char fileNm[sz+1]; // ensures no buffer overflow
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gkns->info.name, "integrated_moms");
 
-      struct timespec wtm = gkyl_wall_clock();
       if (gkns->src.is_first_integ_write_call) {
         gkyl_dynvec_write(gkns->src.integ_diag, fileNm);
         gkns->src.is_first_integ_write_call = false;
@@ -204,12 +205,11 @@ gk_neut_species_source_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk
       else {
         gkyl_dynvec_awrite(gkns->src.integ_diag, fileNm);
       }
-      app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
-      app->stat.nio += 1;
     }
     gkyl_dynvec_clear(gkns->src.integ_diag);
-    app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-    app->stat.ndiag += 1;
+
+    app->stat.neut_diag_io_tm += gkyl_time_diff_now_sec(wst);
+    app->stat.n_neut_diag_io += 1;
   }
 }
 

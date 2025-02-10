@@ -30,7 +30,7 @@ gk_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   else {
     // Create moment operator.
     if (sm->is_maxwellian_moms || sm->is_bimaxwellian_moms) {
-      struct gkyl_gyrokinetic_maxwellian_moments_inp inp_mom = {
+      struct gkyl_gk_maxwellian_moments_inp inp_mom = {
         .phase_grid = &s->grid,
         .conf_basis = &app->confBasis,
         .phase_basis = &app->basis,
@@ -38,11 +38,11 @@ gk_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
         .conf_range_ext = &app->local_ext,
         .gk_geom = app->gk_geom,
         .vel_map = s->vel_map,
-        .divide_jacobgeo = true,
+        .divide_jacobgeo = false, 
         .mass = s->info.mass,
         .use_gpu = app->use_gpu,
       };
-      sm->gyrokinetic_maxwellian_moms = gkyl_gyrokinetic_maxwellian_moments_inew(  &inp_mom  );
+      sm->gyrokinetic_maxwellian_moms = gkyl_gk_maxwellian_moments_inew(  &inp_mom  );
       if (sm->is_maxwellian_moms) {
         sm->num_mom = 3; // (n, u_par, T/m)
       }
@@ -85,11 +85,11 @@ gk_species_moment_calc(const struct gk_species_moment *sm,
   }
   else {
     if (sm->is_maxwellian_moms) {
-      gkyl_gyrokinetic_maxwellian_moments_advance(sm->gyrokinetic_maxwellian_moms, 
+      gkyl_gk_maxwellian_moments_advance(sm->gyrokinetic_maxwellian_moms, 
         &phase_rng, &conf_rng, fin, sm->marr);
     }
     else if (sm->is_bimaxwellian_moms) {
-      gkyl_gyrokinetic_bimaxwellian_moments_advance(sm->gyrokinetic_maxwellian_moms, 
+      gkyl_gk_bimaxwellian_moments_advance(sm->gyrokinetic_maxwellian_moms, 
         &phase_rng, &conf_rng, fin, sm->marr);
     } 
     else {
@@ -111,7 +111,7 @@ gk_species_moment_release(const struct gkyl_gyrokinetic_app *app, const struct g
   }
   else {
     if (sm->is_maxwellian_moms || sm->is_bimaxwellian_moms) {
-      gkyl_gyrokinetic_maxwellian_moments_release(sm->gyrokinetic_maxwellian_moms);
+      gkyl_gk_maxwellian_moments_release(sm->gyrokinetic_maxwellian_moms);
     }
     else {
       gkyl_dg_updater_moment_gyrokinetic_release(sm->mcalc);

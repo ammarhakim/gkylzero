@@ -266,4 +266,3 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
 
   return st;
 }
-

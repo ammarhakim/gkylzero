@@ -306,8 +306,8 @@ gk_species_bflux_write_boundary_flux_integrated_mom_dynamic(gkyl_gyrokinetic_app
           gkyl_dynvec_awrite(bflux->intmom_cumm[2*d+e], fileNm1);
         }
 
-        app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
-        app->stat.nio += 1;
+        app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
+        app->stat.n_diag_io += 1;
 
         gkyl_dynvec_clear(bflux->intmom[2*d+e]);
         gkyl_dynvec_clear(bflux->intmom_cumm[2*d+e]);
