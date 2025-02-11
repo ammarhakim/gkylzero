@@ -24,40 +24,6 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   // to pass it to the deflated FEM solver
   f->info.poisson_bcs.xLCFS = f->info.xLCFS;
 
-  // Add a updater to compute the flux surface average
-  if (app->cdim == 3 && f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
-    gkyl_rect_grid_init(&f->grid_x, 1, &app->grid.lower[0], &app->grid.upper[0], &app->grid.cells[0]);
-    gkyl_cart_modal_serendip(&f->confBasis_x, 1, app->poly_order);
-    int ghost_x[] = {1};
-    gkyl_create_grid_ranges(&f->grid_x, ghost_x, &f->local_x_ext, &f->local_x);
-    int dim_fs_avg[] = {0,1,1};
-    struct gkyl_array_average_inp input_fs_avg = {
-      .grid = &app->grid,
-      .basis = app->confBasis,
-      .basis_avg = f->confBasis_x,
-      .local = &app->local,
-      .local_avg = &f->local_x,
-      .local_avg_ext = &f->local_x_ext,
-      .weight = app->gk_geom->jacobgeo,
-      .avg_dim = dim_fs_avg,
-      .use_gpu = app->use_gpu
-    };
-    f->up_fs_avg = gkyl_array_average_new(&input_fs_avg);
-    f->fs_avg = mkarr(app->use_gpu, f->confBasis_x.num_basis, f->local_x_ext.volume);
-    // gkyl_comm_allreduce
-    // // Do a MPI sum reduction of the weight to have correct average when multi MPI proc
-    // struct gkyl_array *Intw, *Intw_global;
-    // // Get a pointer to the averaged weights
-    // Intw = gkyl_array_average_acquire_weight_avg(f->up_fs_avg);
-    // // Get the averaging volume
-    // double avg_volume = gkyl_array_average_get_avg_volume(f->up_fs_avg);
-    // // Multiply the averaged weights by the averaging volume
-    // gkyl_array_scale_range(Intw, avg_volume, *f->local_x);
-    // gkyl_array_accumulate()
-
-    // gkyl_array_release(Intw);
-
-  }
   // allocate an array to store the temperature (used in target corner bias)
   f->temp_elc = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
@@ -106,8 +72,8 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   // Create global subrange we'll copy the field solver solution from (into local).
   int intersect = gkyl_sub_range_intersect(&f->global_sub_range, &app->global, &app->local);
 
-  // detect if this process contains an edge in the z dimension by comparing the local and global indices
-  // for target corner BC
+  // Detect if this process contains an edge in the z dimension by comparing the local and global indices.
+  // This is used for target corner boundary condition in clopen simulations.
   int ndim = app->grid.ndim;
   f->info.poisson_bcs.contains_lower_z_edge = f->global_sub_range.lower[ndim-1] == app->global.lower[ndim-1];
   f->info.poisson_bcs.contains_upper_z_edge = f->global_sub_range.upper[ndim-1] == app->global.upper[ndim-1];
@@ -289,17 +255,17 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       gkyl_array_copy(f->phi_wall_up, f->phi_wall_up_host);
   }
 
-  if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
-    // twist-and-shift boundary condition for phi and skin surface from ghost to impose phi periodicity at |z|=pi
+    // twist-and-shift boundary condition for phi and skin surface from ghost to impose phi periodicity at z=-pi
+  if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL)
     gk_field_add_TSBC_and_SSFG_updaters(app,f);
-  }
+
   return f;
 }
 
 void
 gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
-  // We take the first species to copy the function for the TS BC
+  // We take the first species to copy the function for the TSBC
   struct gk_species *gks = &app->species[0];
   // Get the z BC info from the first species in our app
   const struct gkyl_gyrokinetic_bcs *bcz = &gks->info.bcz;
@@ -310,10 +276,8 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
   int ghost[] = {1, 1, 1};
   gkyl_create_ranges(&app->local, ghost, &f->local_ext, &f->local);
 
-  //-------- Define sub range of ghost and skin cells that spans only the core
-  double xLCFS = f->info.xLCFS;
   // Index of the cell that abuts the xLCFS from below.
-  int idxLCFS_m = (xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
+  int idxLCFS_m = (f->info.xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
 
   // Create a core local range, extended in the BC dir.
   int ndim = app->cdim;
@@ -327,13 +291,12 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
   upper_bcdir_ext[zdir] = f->local_ext.upper[zdir];
   gkyl_sub_range_init(&f->local_par_ext_core, &f->local_ext, lower_bcdir_ext, upper_bcdir_ext);
 
-  // TSBC updaters
   if (app->cdim == 3){
-    //TS BC updater for up to low TS for the lower edge
-    //this sets ghost_L = T_LU(ghost_L)
+    // Add an updater to force the potential to be equal to be twist-and-shift periodic at the lower end of the z domain
+    // It is only needed in 3x2v simulations with open field lines.
     struct gkyl_bc_twistshift_inp T_LU_lo = {
       .bc_dir = zdir,
-      .shift_dir = 1, // y shift.
+      .shift_dir = 1, // shift is in y direction.
       .shear_dir = 0, // shift varies with x.
       .edge = GKYL_LOWER_EDGE,
       .cdim = app->cdim,
@@ -345,90 +308,22 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
       .shift_func_ctx = bcz->lower.aux_ctx,
       .use_gpu = app->use_gpu,
     };
-
-    //TS BC updater for up to low TS for the lower edge
-    //this sets ghost_L = T_UL(ghost_L)
-    struct gkyl_bc_twistshift_inp T_UL_lo = {
-      .bc_dir = zdir,
-      .shift_dir = 1, // y shift.
-      .shear_dir = 0, // shift varies with x.
-      .edge = GKYL_LOWER_EDGE,
-      .cdim = app->cdim,
-      .bcdir_ext_update_r = f->local_par_ext_core,
-      .num_ghost = ghost,
-      .basis = app->confBasis,
-      .grid = app->grid,
-      .shift_func = bcz->upper.aux_profile,
-      .shift_func_ctx = bcz->upper.aux_ctx,
-      .use_gpu = app->use_gpu,
-    };
-
-    //TS BC updater for low to up TS for the upper edge
-    //this sets ghost_U = T_UL(ghost_U)
-    struct gkyl_bc_twistshift_inp T_UL_up = {
-      .bc_dir = zdir,
-      .shift_dir = 1, // y shift.
-      .shear_dir = 0, // shift varies with x.
-      .edge = GKYL_UPPER_EDGE,
-      .cdim = app->cdim,
-      .bcdir_ext_update_r = f->local_par_ext_core,
-      .num_ghost = ghost,
-      .basis = app->confBasis,
-      .grid = app->grid,
-      .shift_func = bcz->upper.aux_profile,
-      .shift_func_ctx = bcz->upper.aux_ctx,
-      .use_gpu = app->use_gpu,
-    };
-
-    //TS BC updater for up to low TS for the lower edge
-    //this sets ghost_U = T_LU(ghost_U)
-    struct gkyl_bc_twistshift_inp T_LU_up = {
-      .bc_dir = zdir,
-      .shift_dir = 1, // y shift.
-      .shear_dir = 0, // shift varies with x.
-      .edge = GKYL_UPPER_EDGE,
-      .cdim = app->cdim,
-      .bcdir_ext_update_r = f->local_par_ext_core,
-      .num_ghost = ghost,
-      .basis = app->confBasis,
-      .grid = app->grid,
-      .shift_func = bcz->lower.aux_profile,
-      .shift_func_ctx = bcz->lower.aux_ctx,
-      .use_gpu = app->use_gpu,
-    };
-
-    // Add the forward TS updater to f
     f->bc_T_LU_lo = gkyl_bc_twistshift_new(&T_LU_lo);
-    f->bc_T_UL_up = gkyl_bc_twistshift_new(&T_UL_up);
-    // Add the backward TS updater to f
-    f->bc_T_UL_lo = gkyl_bc_twistshift_new(&T_UL_lo);
-    f->bc_T_LU_up = gkyl_bc_twistshift_new(&T_LU_up);
   }
 
-  // SSFG updaters
+  // skin surface from ghost updaters, enforce periodicity (2x2v) or twist-and-shift periodicity (3x2v)
+  // at the lower end of the z domain.
   int ghost_par[] = {0, 0, 0};
   ghost_par[zdir] = 1;
   // create lower and upper skin and ghost ranges for the z BC in the core region
   gkyl_skin_ghost_ranges( &f->lower_skin_core, &f->lower_ghost_core, zdir, 
                           GKYL_LOWER_EDGE, &f->local_par_ext_core, ghost_par);
-  gkyl_skin_ghost_ranges( &f->upper_skin_core, &f->upper_ghost_core, zdir, 
-                          GKYL_UPPER_EDGE, &f->local_par_ext_core, ghost_par);
   // add the SSFG updater for lower and upper application
   f->ssfg_lo = gkyl_skin_surf_from_ghost_new(zdir,GKYL_LOWER_EDGE,
                 app->confBasis,&f->lower_skin_core,&f->lower_ghost_core,app->use_gpu);
-  f->ssfg_up = gkyl_skin_surf_from_ghost_new(zdir,GKYL_UPPER_EDGE,
-                app->confBasis,&f->upper_skin_core,&f->upper_ghost_core,app->use_gpu);
 
-  //We allocate the array to store the ghost values of phi_smooth but switching upper and lower
-  f->aux_array = mkarr(app->use_gpu, f->phi_smooth->ncomp, f->phi_smooth->size);
-
-  // Create a BC_REFLECT updater.
-  f->bc_reflect_lo = gkyl_bc_basic_new(zdir, GKYL_LOWER_EDGE, GKYL_BC_REFLECT, app->basis_on_dev.confBasis,
-      &f->lower_skin_core, &f->lower_ghost_core, f->aux_array->ncomp, app->cdim, app->use_gpu);
-  f->bc_reflect_up = gkyl_bc_basic_new(zdir, GKYL_UPPER_EDGE, GKYL_BC_REFLECT, app->basis_on_dev.confBasis,
-      &f->upper_skin_core, &f->upper_ghost_core, f->aux_array->ncomp, app->cdim, app->use_gpu);
   // These bc_basic updaters need a buffer, allocate it.
-  long buff_sz = GKYL_MAX2(f->lower_skin_core.volume, f->upper_skin_core.volume);
+  long buff_sz = f->lower_skin_core.volume;
   f->bc_buffer = mkarr(app->use_gpu, app->confBasis.num_basis, buff_sz);
 
   // Finally we need a config space communicator to sync the inner cell data and
@@ -499,85 +394,6 @@ gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *f
   } 
 }
 
-void 
-gk_field_calc_target_corner_bias(gkyl_gyrokinetic_app *app, struct gk_field *field, const struct gkyl_array *fin[]){
-  
-  // Static Dirichlet target corner boundary condition
-  if (field->info.poisson_bcs.tcbc_type == GKYL_POISSON_TCBC_DIRICHLET) {
-
-    field->target_corner_bias = field->info.poisson_bcs.tc_bias;
-
-  } else { // Dynamical target corner boundary conditions
-
-    double coeff = 1.0; // multiplicative that will be lambda/e for GKYL_POISSON_TCBC_FS_LTE
-    // Compute the flux surface average first
-    if (field->info.poisson_bcs.tcbc_type == GKYL_POISSON_TCBC_FS_PHI) {
-      gkyl_array_average_advance(field->up_fs_avg, field->phi_smooth, field->fs_avg);
-      coeff = 1.0;
-
-    } else if (field->info.poisson_bcs.tcbc_type == GKYL_POISSON_TCBC_FS_LTE) {
-      // find the index of the electron species
-      struct gk_species *s_elc, *s_ion;
-      int elc_idx = 0;
-      int ion_idx = 0;
-      for (int i=0; i<app->num_species; ++i){
-        if (strcmp("elc", app->species[i].info.name) == 0){
-          s_elc = &app->species[i];
-          elc_idx = i;
-        }
-        if (strcmp("ion", app->species[i].info.name) == 0){
-          s_ion = &app->species[i];
-          ion_idx = i;
-        }
-      }
-      // get the flux-surface averaged temp at the LCFS interface
-      gk_species_moment_calc(&s_elc->maxwellian_moments, s_elc->local, app->local, fin[elc_idx]);
-      gkyl_array_set_offset(field->temp_elc, s_elc->info.mass, s_elc->maxwellian_moments.marr, 2*app->confBasis.num_basis);
-      gkyl_array_average_advance(field->up_fs_avg, field->temp_elc, field->fs_avg);
-
-      // For the temperature method we compute now lambda Te/e
-      // double me = s_elc->info.mass;
-      // double qe = s_elc->info.charge;
-      // double mi = s_ion->info.mass;
-      // double qi = s_ion->info.charge;
-      // double Ti0 = 100*qe;//100 eV (this is hard encoded)
-      // double Te0 = 100*qe;//100 eV
-      // double lambda = sqrt(log(qi*mi/(qe*me) / (2.*M_PI*(1. + Ti0/Te0))));
-      // We hard encode it for now
-      double lambda = 2.2325777683556205;
-      coeff = lambda / 1.602176634e-19; // this is lambda Te / e
-    }
-
-    // Get the avg value on host (for now we take the average of the cell right to the LCFS)
-    struct gkyl_range_iter iter;
-    gkyl_range_iter_init(&iter, &field->local_x);
-    // Index of the cell that abuts the xLCFS from below.
-    int idxLCFS_m = (field->info.xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
-    while (gkyl_range_iter_next(&iter)) {
-      long lidx_avg = gkyl_range_idx(&field->local_x, iter.idx);
-      if (iter.idx[0] == idxLCFS_m) {
-        const double *avg_value = gkyl_array_cfetch(field->fs_avg, lidx_avg);
-        if (app->use_gpu)
-          gkyl_cu_memcpy(&field->fs_avg_LCFS, avg_value, sizeof(double), GKYL_CU_MEMCPY_D2H);
-        else
-          memcpy(&field->fs_avg_LCFS, avg_value, sizeof(double));
-        // Multiply by sqrt(2)/2 to get the average value of the cell from the 0th DG coeffitient
-        field->fs_avg_LCFS = sqrt(2.0)/2.0 * field->fs_avg_LCFS;
-      }
-    }
-    // Reduce the avg over all MPI processes
-    int err_check = gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &field->fs_avg_LCFS, &field->fs_LCFS_global);
-    assert(err_check == false);
-    int nproc;
-    err_check = gkyl_comm_get_size(app->comm, &nproc);
-    assert(err_check == false);
-    field->fs_LCFS_global /= nproc;
-    
-    // add the coeff to get lambda Te_fs/e or phi_fs 
-    field->target_corner_bias = coeff * field->fs_LCFS_global;
-  }
-}
-
 // Compute the electrostatic potential
 void
 gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
@@ -617,18 +433,11 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
         gkyl_fem_parproj_solve(field->fem_parproj, field->rho_c_global_smooth);
       }
 
-      gk_field_calc_target_corner_bias(app, field, NULL);
-      gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth, field->target_corner_bias);
+      gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth);
 
-      /*
-      * If we are in a 3x simulation with IWL we apply TS BC to the upper and lower edges
-      * so that we can enforce that the surface value of the global skin cells are matching the
-      * twist-and-shift BC exactly. (this should enforce periodicity of y-avg phi)
-      * For 2x simulations, we only apply periodicity
-      */
-      if (field->gkfield_id == GKYL_GK_FIELD_ES_IWL){
-        gk_field_apply_bc(app, field, field->phi_smooth);
-      }   
+      // enforce twist-and-shift or periodic phi BC
+      if (field->gkfield_id == GKYL_GK_FIELD_ES_IWL)
+        gk_field_enforce_zbc(app, field, field->phi_smooth);
 
     }
   }
@@ -636,39 +445,24 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
 }
 
 void
-gk_field_apply_bc(const gkyl_gyrokinetic_app *app, const struct gk_field *field, struct gkyl_array *finout)
+gk_field_enforce_zbc(const gkyl_gyrokinetic_app *app, const struct gk_field *field, struct gkyl_array *finout)
 {
-  //1. Apply the periodicity to fill the ghost cells
+  // Apply the periodicity to fill the ghost cells
   int num_periodic_dir = 1; // we need only periodicity in z
-  int zdir = app->cdim - 1; // z direction
+  int zdir = app->cdim - 1;
   int periodic_dirs[] = {zdir};
   gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
     num_periodic_dir, periodic_dirs, finout); 
-  // finout ghost cells: | f_up | ----- | f_lo |
-
-  //2. call the TS BC updater to update the z ghosts with TS (only for 3x)
+  
+  // Update the lower z ghosts with twist-and-shift if we are in 3x2v
   if(app->cdim == 3)
     gkyl_bc_twistshift_advance(field->bc_T_LU_lo, finout, finout);
-  // finout is now | T_LU(f_up) | ----- | f_lo |
 
-  //3. Synchronize the array between the MPI processes
+  // Synchronize the array between the MPI processes to erase inner ghosts modification (handle multi GPU case)
   gkyl_comm_array_sync(field->comm_conf, &field->local, &field->local_ext, finout);
- /* Note:
-  * Here the TS BC has been applied blindly i.e. regardless if the process is at the 
-  * border of the domain. Technically, only the processes with the global skin cells 
-  * should apply it. We resolve this with an array sync so that the ghost
-  * cells of inner skin cells are overwritten by the neighbor process skin value.
-  * This method creates a lighter code and is the same to the one used for the TS BC
-  * of the distribution function in gk_species.c
-  */
 
-  //4. Copy the ghost surface value to the skin surface value (SSFG)
+  // Force the lower skin surface value to match the ghost cell at the node position.
   gkyl_skin_surf_from_ghost_advance(field->ssfg_lo, finout);
-  // finout is now | T_LU(f_up) | \---- | f_lo |
-  /* Note:
-   * "\" denotes that the skin cell has been adapted to the edge (only the lower).
-   * The upper skin cell remains unchanged.
-   */
 }
 
 void
@@ -731,21 +525,12 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   }
 
   // Release TS BS and SSFG updater
-  if (app->cdim == 3 && f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
-    gkyl_bc_twistshift_release(f->bc_T_UL_up);
-    gkyl_bc_twistshift_release(f->bc_T_UL_lo);
-    gkyl_bc_twistshift_release(f->bc_T_LU_up);
-    gkyl_bc_twistshift_release(f->bc_T_LU_lo);
-    gkyl_skin_surf_from_ghost_release(f->ssfg_up);
+  if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
     gkyl_skin_surf_from_ghost_release(f->ssfg_lo);
     gkyl_comm_release(f->comm_conf);
-    gkyl_array_release(f->aux_array);
     gkyl_array_release(f->bc_buffer);
-    gkyl_bc_basic_release(f->bc_reflect_lo);
-    gkyl_bc_basic_release(f->bc_reflect_up);
-    gkyl_array_average_release(f->up_fs_avg);
-    gkyl_array_release(f->fs_avg);
-    gkyl_array_release(f->temp_elc);
+    if (app->cdim == 3)
+      gkyl_bc_twistshift_release(f->bc_T_LU_lo);
   }
 
   gkyl_dynvec_release(f->integ_energy);

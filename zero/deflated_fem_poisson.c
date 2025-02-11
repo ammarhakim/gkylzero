@@ -2,7 +2,6 @@
 
 #include <gkyl_deflated_fem_poisson.h>
 #include <gkyl_deflated_fem_poisson_priv.h>
-#include <gkyl_array_average.h>
 
 struct gkyl_deflated_fem_poisson* 
 gkyl_deflated_fem_poisson_new(struct gkyl_rect_grid grid, 
@@ -105,14 +104,13 @@ gkyl_deflated_fem_poisson_new(struct gkyl_rect_grid grid,
     else 
       gkyl_deflate_zsurf_advance(up->deflator_lo, zidx, &up->local, &up->deflated_local, epsilon, up->d_fem_data[ctr].deflated_epsilon, 2*up->deflated_grid.ndim-1);
     
-    /// Here is the implementation of the target corner BC
-    //---- check if we are at an extremal global index of z to apply target corner BC
-    // get the global index of the z plane
+    // Enforce the target corner BC.
+    // Check if we are at an extremal global index of z to apply target corner BC.
     int global_zidx = zidx + up->global_sub_range.lower[up->cdim-1]; 
-    // check if the global index is equal to the lower or upper limit of the z grid
+    // Check if the global index is equal to the lower or upper limit of the z grid.
     bool is_lower_z_edge = (zidx == up->local.lower[up->cdim-1])   && up->poisson_bc.contains_lower_z_edge;
     bool is_upper_z_edge = (zidx == up->local.upper[up->cdim-1]+1) && up->poisson_bc.contains_upper_z_edge;
-    // store it in pisson_bc to pass it to gkyl_fem_poisson_new
+    // Store it in pisson_bc to pass it to gkyl_fem_poisson_new.
     up->poisson_bc.is_z_edge = is_upper_z_edge || is_lower_z_edge;
 
     up->d_fem_data[ctr].fem_poisson = gkyl_fem_poisson_new(&up->deflated_local, &up->deflated_grid, up->deflated_basis, &up->poisson_bc, up->d_fem_data[ctr].deflated_epsilon, 0, false, use_gpu);
@@ -123,7 +121,7 @@ gkyl_deflated_fem_poisson_new(struct gkyl_rect_grid grid,
 }
 
 void 
-gkyl_deflated_fem_poisson_advance(struct gkyl_deflated_fem_poisson *up, struct gkyl_array *field, struct gkyl_array* phi, double target_corner_bias)
+gkyl_deflated_fem_poisson_advance(struct gkyl_deflated_fem_poisson *up, struct gkyl_array *field, struct gkyl_array* phi)
 {
   int ctr = 0;
   int local_range_ctr = up->local.lower[up->cdim-1];
@@ -132,7 +130,7 @@ gkyl_deflated_fem_poisson_advance(struct gkyl_deflated_fem_poisson *up, struct g
     gkyl_deflate_zsurf_advance(up->deflator_lo, zidx, 
       &up->global_sub_range, &up->deflated_local, field, up->d_fem_data[ctr].deflated_field, 1);
     // Do the poisson solve 
-    gkyl_fem_poisson_set_rhs(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_field, target_corner_bias);
+    gkyl_fem_poisson_set_rhs(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_field);
     gkyl_fem_poisson_solve(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_phi);
     // Modal to Nodal in 1d -> Store the result in the 2d nodal field
     gkyl_nodal_ops_m2n_deflated(up->n2m_deflated, up->deflated_basis_on_dev, 
@@ -145,7 +143,7 @@ gkyl_deflated_fem_poisson_advance(struct gkyl_deflated_fem_poisson *up, struct g
       gkyl_deflate_zsurf_advance(up->deflator_up, zidx, 
         &up->global_sub_range, &up->deflated_local, field, up->d_fem_data[ctr].deflated_field, 1);
       // Do the poisson solve 
-      gkyl_fem_poisson_set_rhs(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_field, target_corner_bias);
+      gkyl_fem_poisson_set_rhs(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_field);
       gkyl_fem_poisson_solve(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_phi);
       // Modal to Nodal in 1d -> Store the result in the 2d nodal field
       gkyl_nodal_ops_m2n_deflated(up->n2m_deflated, up->deflated_basis_on_dev, 

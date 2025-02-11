@@ -141,7 +141,7 @@ vp_field_solve(gkyl_vlasov_app *app, struct vm_field *field)
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, field->rho_c, field->rho_c_global);
 
   // Solve the Poisson problem.
-  gkyl_fem_poisson_set_rhs(field->fem_poisson, field->rho_c_global, 0);
+  gkyl_fem_poisson_set_rhs(field->fem_poisson, field->rho_c_global);
   gkyl_fem_poisson_solve(field->fem_poisson, field->phi_global);
 
   // Copy the portion of global potential corresponding to this MPI pcross to the local potential.
