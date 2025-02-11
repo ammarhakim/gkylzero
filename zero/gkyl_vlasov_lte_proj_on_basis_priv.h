@@ -16,7 +16,7 @@
 
 GKYL_CU_DH
 static inline void
-log_to_comp(int ndim, const double *eta,
+comp_to_phys(int ndim, const double *eta,
   const double * GKYL_RESTRICT dx, const double * GKYL_RESTRICT xc,
   double* GKYL_RESTRICT xout)
 {

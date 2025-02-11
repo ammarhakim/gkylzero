@@ -29,7 +29,7 @@ gkyl_eval_offset_fd_new(const struct gkyl_eval_offset_fd_inp *inp)
 }
 
 static inline void
-log_to_comp(int ndim, const double *eta,
+comp_to_phys(int ndim, const double *eta,
   const double * GKYL_RESTRICT dx, const double * GKYL_RESTRICT xc,
   double* GKYL_RESTRICT xout)
 {
@@ -62,7 +62,7 @@ gkyl_eval_offset_fd_advance(const gkyl_eval_offset_fd *up,
       // each can be on a different location in the cell. This is not
       // too efficient, but likely does not matter.
       double xout[GKYL_MAX_DIM];
-      log_to_comp(up->grid.ndim, up->offsets[c].od_off, up->grid.dx, xc, xout);
+      comp_to_phys(up->grid.ndim, up->offsets[c].od_off, up->grid.dx, xc, xout);
 
       up->eval(tm, xout, fvals, up->ctx);
       out_p[c] = fvals[c];

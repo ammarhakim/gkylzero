@@ -43,7 +43,7 @@
 //   - ts_sign: return the sign of a double.
 //   - ts_ts_donor_target_offset: offset between donor and target cells.
 //   - ts_find_intersect: finds the intersection of yTar-S and yDo.
-//   - ts_log_to_comp: transform a computational to a physical coord.
+//   - ts_comp_to_phys: transform a computational to a physical coord.
 //   - ts_nod2mod_proj_1d: evaluate a 1D function at nodes and do a n2m transform
 //                         to get the coefficients of the DG representation.
 //   - ts_integral_xlimdg: subcell integral with variable x limits.
@@ -475,7 +475,7 @@ struct ts_val_found {
 };
 
 static inline void
-ts_log_to_comp(int ndim, const double *eta,
+ts_comp_to_phys(int ndim, const double *eta,
   const double * GKYL_RESTRICT dx, const double * GKYL_RESTRICT xc,
   double* GKYL_RESTRICT xout)
 {
@@ -494,7 +494,7 @@ ts_nod2mod_proj_1d(struct gkyl_bc_twistshift *up, evalf_t func, void *func_ctx, 
   ts_interval_dx_and_xc(interval, dx, xc);
 
   for (int i=0; i<up->shift_b.num_basis; ++i) {
-    ts_log_to_comp(1, gkyl_eval_on_nodes_fetch_node(up->ev_on_nod1d, i),
+    ts_comp_to_phys(1, gkyl_eval_on_nodes_fetch_node(up->ev_on_nod1d, i),
       dx, xc, xmu);
     func(0.0, xmu, (double *)gkyl_array_fetch(up->func_nod1d,i), func_ctx);
   }
