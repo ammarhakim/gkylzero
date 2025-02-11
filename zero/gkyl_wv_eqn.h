@@ -80,8 +80,9 @@ struct gkyl_wv_eqn {
   wv_cons_to_riem cons_to_riem; // function to convert cons to Riemann vars
   wv_cons_to_riem riem_to_cons; // function to convert Riemann vars to cons
 
-  wv_bc_func_t wall_bc_func; // function to apply wall BC
-  wv_bc_func_t no_slip_bc_func; // function to apply no-slip BC
+  wv_bc_func_t wall_bc_func; // function to apply wall (zero normal flows) BC
+  wv_bc_func_t line_tied_bc_func; // function to apply line-tied (zero tangential flows) BC
+  wv_bc_func_t no_slip_bc_func; // function to apply no-slip (all flows zero) BC
 
   wv_cons_to_diag cons_to_diag; // function for diagnostic variables
 

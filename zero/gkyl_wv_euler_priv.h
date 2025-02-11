@@ -123,6 +123,21 @@ euler_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin, 
   ghost[3] = skin[3];
 }
 
+// Euler line-tied wall (zero tangential flows)
+GKYL_CU_DH
+static void
+euler_line_tied(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
+{
+  // copy density and pressure
+  ghost[0] = skin[0];
+  ghost[4] = skin[4];
+
+  // zero-normal for momentum
+  ghost[1] = skin[1];
+  ghost[2] = -skin[2];
+  ghost[3] = -skin[3];
+}
+
 // Euler no-slip wall
 GKYL_CU_DH
 static void

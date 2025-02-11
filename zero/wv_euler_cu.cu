@@ -47,6 +47,7 @@ wv_euler_set_cu_dev_ptrs(enum gkyl_wv_euler_rp rp_type, struct wv_euler *euler)
   euler->eqn.rotate_to_global_func = rot_to_global;
 
   euler->eqn.wall_bc_func = euler_wall;
+  euler->eqn.line_tied_bc_func = euler_line_tied;
   euler->eqn.no_slip_bc_func = euler_no_slip;
 
   euler->eqn.cons_to_riem = cons_to_riem;

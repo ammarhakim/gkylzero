@@ -202,6 +202,12 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
             mom_sp->equation->wall_bc_func, 0);
           break;
 
+          case GKYL_SPECIES_LINE_TIED:
+          sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
+            mom_sp->equation->line_tied_bc_func, 0);
+          break;
+
         case GKYL_SPECIES_NO_SLIP:
           sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
             &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
@@ -238,6 +244,12 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
           sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
             &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
             mom_sp->equation->wall_bc_func, 0);
+          break;
+
+          case GKYL_SPECIES_LINE_TIED:      
+          sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
+            mom_sp->equation->line_tied_bc_func, 0);
           break;
 
         case GKYL_SPECIES_NO_SLIP:      
