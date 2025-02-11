@@ -301,6 +301,7 @@ struct gkyl_gyrokinetic_field {
   struct gkyl_poisson_bc poisson_bcs;
 
   // Initial potential used to compute the total polarization density.
+  // Be careful because this takes xn as computational coordinates, not position mapped field aligned coordinates.
   void (*polarization_potential)(double t, const double *xn, double *out, void *ctx);
   void *polarization_potential_ctx;
 

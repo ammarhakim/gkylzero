@@ -51,7 +51,8 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     f->phi_pol = mkarr(app->use_gpu, phi_pol_basis.num_basis, app->local_ext.volume);
     struct gkyl_array *phi_pol_ho = app->use_gpu? mkarr(false, f->phi_pol->ncomp, f->phi_pol->size)
                                             : gkyl_array_acquire(f->phi_pol);
-
+    // Be careful: This takes input of computational coodinates, 
+    // not position mapped field aligned coordinates
     struct gkyl_eval_on_nodes *phi_pol_proj = gkyl_eval_on_nodes_new(&app->grid, &phi_pol_basis,
       1, f->info.polarization_potential, f->info.polarization_potential_ctx);
     gkyl_eval_on_nodes_advance(phi_pol_proj, 0.0, &app->local, phi_pol_ho);
