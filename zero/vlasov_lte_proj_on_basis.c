@@ -490,7 +490,7 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
 
         const double *xcomp_d = gkyl_array_cfetch(up->ordinates, pqidx);
 
-        comp_to_phys(pdim, xcomp_d, up->phase_grid.dx, xc, xmu);
+        log_to_comp(pdim, xcomp_d, up->phase_grid.dx, xc, xmu);
 
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
         fq[0] = f_floor;

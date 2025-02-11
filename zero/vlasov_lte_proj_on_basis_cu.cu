@@ -174,7 +174,7 @@ gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker(struct gkyl_rect_grid phase_grid,
     double *fq = (double*) gkyl_array_fetch(f_lte_quad, lidx);
 
     int cqidx = p2c_qidx[linc2];
-    comp_to_phys(pdim, (const double*) gkyl_array_cfetch(phase_ordinates, linc2),
+    log_to_comp(pdim, (const double*) gkyl_array_cfetch(phase_ordinates, linc2),
       phase_grid.dx, xc, &xmu[0]);
 
     fq[linc2] = f_floor;
