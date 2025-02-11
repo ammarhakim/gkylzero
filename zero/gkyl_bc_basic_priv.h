@@ -24,14 +24,16 @@ struct gkyl_bc_basic {
  * CUDA device function to set up function to apply boundary conditions.
 
  * @param dir Direction in which to apply BC .
+ * @param edge Lower or upper edge at which to apply BC (see gkyl_edge_loc).
  * @param cdim Number of configuration space dimensions.
  * @param bctype Type of BC .
  * @param basis Basis in which to expand coefficients in array we apply BC to.
  * @param num_comp Number of components (DOFs) within a cell.
  * @return Pointer to array_copy_func which can be passed to array_copy_fn methods.
  */
-struct gkyl_array_copy_func* gkyl_bc_basic_create_arr_copy_func_cu(int dir, int cdim,
-  enum gkyl_bc_basic_type bctype, const struct gkyl_basis *basis, int num_comp);
+struct gkyl_array_copy_func* gkyl_bc_basic_create_arr_copy_func_cu(int dir,
+  enum gkyl_edge_loc edge, int cdim, enum gkyl_bc_basic_type bctype,
+  const struct gkyl_basis *basis, int num_comp);
 
 #endif
 

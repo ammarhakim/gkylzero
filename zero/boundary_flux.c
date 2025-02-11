@@ -16,7 +16,7 @@ gkyl_boundary_flux_new(int dir, enum gkyl_edge_loc edge,
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    return gkyl_boundary_flux_cu_dev_new(dir, edge, grid, skin_r, ghost_r, equation);
+    return gkyl_boundary_flux_cu_dev_new(dir, edge, grid, skin_r, ghost_r, equation, use_boundary_surf);
   } 
 #endif
 

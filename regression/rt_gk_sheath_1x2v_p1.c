@@ -590,7 +590,8 @@ main(int argc, char **argv)
 
     .num_diag_moments = 6,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "MaxwellianMoments" },
-//    .boundary_flux_diagnostics = true,
+    .boundary_flux_diagnostics = true,
+    .integrated_hamiltonian_moments = true,
   };
 
   // Ions.
@@ -641,7 +642,8 @@ main(int argc, char **argv)
     
     .num_diag_moments = 6,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "MaxwellianMoments" },
-//    .boundary_flux_diagnostics = true,
+    .boundary_flux_diagnostics = true,
+    .integrated_hamiltonian_moments = true,
   };
 
   // Field.
@@ -662,7 +664,7 @@ main(int argc, char **argv)
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
-//    .fdot_diagnostics = true,
+    .fdot_diagnostics = true,
 
     .geometry = {
       .geometry_id = GKYL_MAPC2P,

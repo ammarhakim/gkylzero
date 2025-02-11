@@ -84,7 +84,6 @@ gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel(struct gkyl_dg_calc_gk_rad_vars
   struct gkyl_array* vtsq_min_normalized, struct gkyl_array* vtsq)
 {
   int cdim = up->cdim;
-  double xc[GKYL_MAX_DIM] = {0.0};
   int idx[GKYL_MAX_DIM];
   
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;

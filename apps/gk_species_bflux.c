@@ -165,11 +165,12 @@ gk_species_bflux_rhs_diag(gkyl_gyrokinetic_app *app, const struct gk_species *sp
         // Apply BC to phi so it is defined in the ghost cell.
         // Fill the ghost with the skin evaluated at the boundary.
         gkyl_bc_basic_advance(app->bc_op[2*d+e], app->bc_buffer, app->field->phi_smooth);
+
+        // Scale phi by 0.5 in the ghost cell so that the Hamiltonian moment
+        // becomes the 0.5*m*v^2+0.5*q*phi moment. Only this way does the energy
+        // balance come out reasonable.
+        gkyl_array_scale_range(app->field->phi_smooth, 0.5, e==0? &app->lower_ghost[d] : &app->upper_ghost[d]);
       }
-      // Scale phi by 0.5 in the ghost cell so that the Hamiltonian moment
-      // becomes the 0.5*m*v^2+0.5*q*phi moment. Only this way does the energy
-      // balance come out reasonable.
-      gkyl_array_scale_range(app->field->phi_smooth, 0.5, e==0? &app->lower_ghost[d] : &app->upper_ghost[d]);
 
       // Ghost cells of the rhs array are filled with the bflux
       // This is overwritten by the boundary conditions and is not being stored,

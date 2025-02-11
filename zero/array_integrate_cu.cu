@@ -78,7 +78,7 @@ gkyl_array_integrate_cu_dev_new(const struct gkyl_rect_grid *grid, const struct 
 template <unsigned int BLOCKSIZE>
 __global__ void
 array_integrate_blockRedAtomic_cub(struct gkyl_array_integrate *up, const struct gkyl_array *inp,
-  double factor, const struct gkyl_array *weight, const struct gkyl_range range, const struct gkyl_range weight_range, double *out)
+  double factor, const struct gkyl_array *weight, const struct gkyl_range range, struct gkyl_range weight_range, double *out)
 {
   unsigned long linc = blockIdx.x*blockDim.x + threadIdx.x;
 
@@ -125,9 +125,14 @@ void gkyl_array_integrate_advance_cu(gkyl_array_integrate *up, const struct gkyl
 
   const int nthreads = GKYL_DEFAULT_NUM_THREADS;
   int nblocks = gkyl_int_div_up(range->volume, nthreads);
-  struct gkyl_array *weight_on_dev = weight? weight->on_dev : NULL;
+  struct gkyl_array *weight_on_dev = NULL;
+  struct gkyl_range weight_range_copy;
+  if (weight) {
+    weight_on_dev = weight->on_dev;
+    weight_range_copy = *weight_range;
+  }
   array_integrate_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(up->on_dev, fin->on_dev, factor, 
-    weight_on_dev, *range, *weight_range, out);
+    weight_on_dev, *range, weight_range_copy, out);
   // device synchronize required because out may be host pinned memory
   cudaDeviceSynchronize();
 }

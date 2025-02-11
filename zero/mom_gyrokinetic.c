@@ -178,7 +178,7 @@ gkyl_int_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_
 
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu)
-    return gkyl_int_mom_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, mass, vel_map, gk_geom);
+    return gkyl_int_mom_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, mass, charge, vel_map, gk_geom, phi, mom);
 #endif
 
   struct mom_type_gyrokinetic *mom_gk = gkyl_malloc(sizeof(struct mom_type_gyrokinetic));

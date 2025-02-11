@@ -309,8 +309,8 @@ set_int_cu_ptrs(struct mom_type_gyrokinetic* momt, int mom_id,
 
 struct gkyl_mom_type*
 gkyl_int_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, double mass, const struct gkyl_velocity_map* vel_map,
-  const struct gk_geometry *gk_geom)
+  const struct gkyl_range* conf_range, double mass, double charge, const struct gkyl_velocity_map* vel_map,
+  const struct gk_geometry *gk_geom, struct gkyl_array *phi, const char *mom)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
