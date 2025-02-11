@@ -228,6 +228,11 @@ gkyl_superlu_solve(struct gkyl_superlu_prob *prob)
 
     prob->options.Fact = FACTORED; // LU decomp done.
   }
+
+  for (size_t k=0; k<prob->nprob; k++) {
+    if (prob->assigned_rhs)
+      Destroy_SuperMatrix_Store(prob->B[k]);
+  }
 }
 
 double
@@ -259,9 +264,6 @@ gkyl_superlu_prob_release(struct gkyl_superlu_prob *prob)
     SUPERLU_FREE (prob->perm_r[k]);
     Destroy_CompCol_Matrix(prob->A[k]);
     gkyl_free(prob->A[k]);
-
-    if (prob->assigned_rhs)
-      Destroy_SuperMatrix_Store(prob->B[k]);
 
     if (prob->options.Fact==FACTORED) {
       Destroy_SuperNode_Matrix(prob->L[k]);

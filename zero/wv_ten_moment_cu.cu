@@ -31,11 +31,12 @@ wv_ten_moment_set_cu_dev_ptrs(struct wv_ten_moment *ten_moment)
 }
 
 struct gkyl_wv_eqn*
-gkyl_wv_ten_moment_cu_dev_new(double k0)
+gkyl_wv_ten_moment_cu_dev_new(double k0, bool use_grad_closure)
 {
   struct wv_ten_moment *ten_moment = (struct wv_ten_moment*) gkyl_malloc(sizeof(struct wv_ten_moment));
 
   ten_moment->k0 = k0;
+  ten_moment->use_grad_closure = use_grad_closure;
 
   ten_moment->eqn.type = GKYL_EQN_TEN_MOMENT;
   ten_moment->eqn.num_equations = 10;

@@ -33,16 +33,16 @@ void gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim,
 /**
  * Find cell indices of point
  *
- * @param grid Grid object
- * @param point The point to find the cell indices at
- * @param pick_lower If point on cell boundary, pick lower cell if true, and upper if false
- * @param known_index Any known indices of where the point is
- * @param cell_index Pointer to cell indices
+ * @param grid Grid object.
+ * @param point The point to find the cell indices at.
+ * @param pick_lower If point on cell boundary, pick lower cell if true, and upper if false.
+ * @param known_index Any known indices of where the point is (<0 if not known).
+ * @param cell_index Pointer to cell indices.
  * Asserts: point lies within cell(s) specified by knownIdx (if specified). 
  */
 GKYL_CU_DH
 void gkyl_rect_grid_find_cell(const struct gkyl_rect_grid *grid, const double *point,
-			      bool pick_lower, const int *known_index, int *cell_index);
+  bool pick_lower, const int *known_index, int *cell_index);
 
 /**
  * Get cell-center coordinates. Note that idx is a 1-based cell index,
@@ -110,6 +110,15 @@ gkyl_rect_grid_coord_idx(const struct gkyl_rect_grid *grid,
     idx[d] = ext[0] + (int) floor((xn[d]-xlower)/dx);
   }
 }
+
+/**
+ * Compare grids
+ *
+ * @param grid1 Grid object to compare
+ * @param grid2 Grid object to compare
+ * @return true if the grids are the same, false otherwise
+ */
+bool gkyl_rect_grid_cmp(const struct gkyl_rect_grid *grid1, struct gkyl_rect_grid *grid2);
 
 /**
  * Write grid data to file. File must be opened by caller of this

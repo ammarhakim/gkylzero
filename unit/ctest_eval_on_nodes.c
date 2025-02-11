@@ -50,7 +50,7 @@ void test_1x(int poly_order, int test_func_op)
 
   // project distribution function on basis
   gkyl_eval_on_nodes_advance(evup, 0.0, &arr_range, distf);
-  gkyl_grid_sub_array_write(&grid, &arr_range, distf, "ctest_eval_on_nodes_distf.gkyl");
+  gkyl_grid_sub_array_write(&grid, &arr_range, 0, distf, "ctest_eval_on_nodes_distf.gkyl");
 
   double *dfl = gkyl_array_fetch(distf, 0);  // left cell
   double *dfr = gkyl_array_fetch(distf, 1);  // right cell
@@ -129,7 +129,7 @@ void test_2x(int poly_order, int test_func_op)
 
   // project distribution function on basis
   gkyl_eval_on_nodes_advance(evup, 0.0, &arr_range, distf);
-  gkyl_grid_sub_array_write(&grid, &arr_range, distf, "ctest_eval_on_nodes_distf.gkyl");
+  gkyl_grid_sub_array_write(&grid, &arr_range, 0, distf, "ctest_eval_on_nodes_distf.gkyl");
 
   double *dfll = gkyl_array_fetch(distf, 0);  // left, low cell
   double *dflu = gkyl_array_fetch(distf, 1);  // left, up cell
@@ -275,7 +275,7 @@ void test_1x1v_hyb(int poly_order, int test_func_op)
 
   // project distribution function on basis
   gkyl_eval_on_nodes_advance(evup, 0.0, &arr_range, distf);
-  gkyl_grid_sub_array_write(&grid, &arr_range, distf, "ctest_eval_on_nodes_distf_hyb.gkyl");
+  gkyl_grid_sub_array_write(&grid, &arr_range, 0, distf, "ctest_eval_on_nodes_distf_hyb.gkyl");
 
   double *dfll = gkyl_array_fetch(distf, 0);  // left, low cell
   double *dflu = gkyl_array_fetch(distf, 1);  // left, up cell
@@ -384,7 +384,7 @@ void test_3x(int poly_order, int test_func_op)
   // project distribution function on basis
   gkyl_eval_on_nodes_advance(evup, 0.0, &arr_range, distf);
 
-      gkyl_grid_sub_array_write(&grid, &arr_range, distf, "ctest_eval_on_nodes_distf.gkyl");
+  gkyl_grid_sub_array_write(&grid, &arr_range, 0, distf, "ctest_eval_on_nodes_distf.gkyl");
 
   double *dfllf = gkyl_array_fetch(distf, 0);  // left, low, front cell
   double *dfllb = gkyl_array_fetch(distf, 1);  // left, low, back cell
@@ -563,7 +563,7 @@ void test_4x(int poly_order, int test_func_op)
 
   // project distribution function on basis
   gkyl_eval_on_nodes_advance(evup, 0.0, &arr_range, distf);
-  gkyl_grid_sub_array_write(&grid, &arr_range, distf, "ctest_eval_on_nodes_distf.gkyl");
+  gkyl_grid_sub_array_write(&grid, &arr_range, 0, distf, "ctest_eval_on_nodes_distf.gkyl");
 
   if (poly_order == 1) {
     if (test_func_op==0) {
@@ -1149,7 +1149,7 @@ void test_2x2v_hyb(int poly_order, int test_func_op)
 
   // project distribution function on basis
   gkyl_eval_on_nodes_advance(evup, 0.0, &arr_range, distf);
-  gkyl_grid_sub_array_write(&grid, &arr_range, distf, "ctest_eval_on_nodes_distf_hyb.gkyl");
+  gkyl_grid_sub_array_write(&grid, &arr_range, 0, distf, "ctest_eval_on_nodes_distf_hyb.gkyl");
 
   if (poly_order == 1) {
     if (test_func_op==0) {

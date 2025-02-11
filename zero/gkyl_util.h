@@ -34,6 +34,11 @@
 # define GKYL_MAX_CDIM 3
 #endif
 
+// Maximum velocity-space dimensions supported
+#ifndef GKYL_MAX_VDIM
+# define GKYL_MAX_VDIM 3
+#endif
+
 // Maximum dimensions supported
 #ifndef GKYL_MAX_DIM
 # define GKYL_MAX_DIM 7
@@ -41,7 +46,27 @@
 
 // Maximum number of supported species
 #ifndef GKYL_MAX_SPECIES
-# define GKYL_MAX_SPECIES 8
+# define GKYL_MAX_SPECIES 16
+#endif
+
+// Maximum number of supported species
+#ifndef GKYL_MAX_REACT
+# define GKYL_MAX_REACT 3*GKYL_MAX_SPECIES
+#endif
+
+// Maximum number of supported sources
+#ifndef GKYL_MAX_SOURCES
+# define GKYL_MAX_SOURCES 4
+#endif
+
+// Maximum number of supported charge states
+#ifndef GKYL_MAX_CHARGE_STATE
+# define GKYL_MAX_CHARGE_STATE 18
+#endif
+
+// Maximum number of supported densities for radiation
+#ifndef GKYL_MAX_RAD_DENSITIES
+# define GKYL_MAX_RAD_DENSITIES 26
 #endif
 
 // Maximum number of supported projection objects
@@ -161,14 +186,44 @@ struct gkyl_kern_op_count {
   size_t num_prod; // number of * and / operations
 };
 
+// String, integer pairs
+struct gkyl_str_int_pair {
+  const char *str;
+  int val;
+};
+
+/**
+ * Search @a pairs list for @a str and return the corresponding int
+ * value. Return @a def if not found. The pair table must be NULL
+ * terminated.
+ *
+ * @param pairs Pair list to search from. Final entry must be { 0, 0 }
+ * @param str String to search for
+ * @param def Default value to return
+ * @return value corresponding to @a str, or @a def.
+ */
+int gkyl_search_str_int_pair_by_str(const struct gkyl_str_int_pair pairs[], const char *str, int def);
+
+/**
+ * Search @a pairs list for @a val and return the corresponding string
+ * value. Return @a def if not found. The pair table must be NULL
+ * terminated.
+ *
+ * @param pairs Pair list to search from. Final entry must be { 0, 0 }
+ * @param val Value to search for
+ * @param def Default value to return
+ * @return value corresponding to @a val, or @a def.
+ */
+const char* gkyl_search_str_int_pair_by_int(const struct gkyl_str_int_pair pairs[], int val, const char *def);
+
 /**
  * Time-trigger. Typical initialization is:
  * 
  * struct gkyl_tm_trigger tmt = { .dt = tend/nframe };
  */
 struct gkyl_tm_trigger {
-  int curr; // current counter
-  double dt, tcurr; // Time-interval, current time
+  int curr; // Current counter.
+  double dt, tcurr; // Time-interval, current time.
 };
 
 /**
@@ -391,5 +446,44 @@ int64_t gkyl_file_size(const char *fname);
  * @return Data in file as a char array.
  */
 char* gkyl_load_file(const char *fname, int64_t *sz);
+
+/**
+ * Structure to store msgpack data
+ */
+struct gkyl_msgpack_data {
+  size_t meta_sz; // size of data in bytes
+  char *meta; // data pointer (pointer to bytes. NOT a NULL terminated string!)
+};
+
+// Msgpack element type
+enum gkyl_msgpack_elem_type { GKYL_MP_INT, GKYL_MP_DOUBLE, GKYL_MP_STRING };
+
+// Entry type into msgpack map
+struct gkyl_msgpack_map_elem {
+  char *key; // name of element
+  enum gkyl_msgpack_elem_type elem_type; // type of element
+  union {
+    // depending on elem_type one of following should be set    
+    int ival;
+    double dval;
+    char *cval; // null terminated string managed by caller
+  };
+};
+
+/**
+ * Create a new msgpack data from list of map elements.
+ *
+ * @param nvals Number of values in the elist array
+ * @param elist List of elements to insert into map
+ * @return New msgpack_data object. Free using the release method
+ */
+struct gkyl_msgpack_data* gkyl_msgpack_create(int nvals, const struct gkyl_msgpack_map_elem *elist);
+
+/**
+ * Release data created by the gkyl_msgpack_create method.
+ *
+ * @param mdata Data object to free
+ */
+void gkyl_msgpack_data_release(struct gkyl_msgpack_data *mdata);
 
 EXTERN_C_END

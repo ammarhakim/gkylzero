@@ -58,6 +58,15 @@
 // Definitions of private structs and APIs attached to these objects
 // for use in PKPM app.
 
+// Meta-data for IO
+struct pkpm_output_meta {
+  int frame; // frame number
+  double stime; // output time
+  int poly_order; // polynomial order
+  const char *basis_type; // name of basis functions
+  char basis_type_nm[64]; // used during read
+};
+
 // data for moments
 struct pkpm_species_moment {
   struct gkyl_dg_updater_moment *mcalc; // moment update
@@ -112,7 +121,6 @@ struct pkpm_species {
   struct gkyl_rect_grid grid;
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   struct gkyl_range global, global_ext; // global, global-ext conf-space ranges    
-  struct app_skin_ghost_ranges skin_ghost; // conf-space skin/ghost
 
   struct gkyl_comm *comm;   // communicator object for phase-space arrays
   int nghost[GKYL_MAX_DIM]; // number of ghost-cells in each direction
@@ -327,6 +335,7 @@ struct gkyl_pkpm_app {
 
   struct gkyl_basis basis, confBasis, velBasis; // phase-space, conf-space basis, vel-space basis
 
+  struct gkyl_rect_decomp *decomp; // decomposition object
   struct gkyl_comm *comm;   // communicator object for conf-space arrays
 
   bool has_mapc2p; // flag to indicate if we have mapc2p

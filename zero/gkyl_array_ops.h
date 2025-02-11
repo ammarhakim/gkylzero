@@ -1,13 +1,14 @@
 #pragma once
 
 #include <gkyl_array.h>
+#include <gkyl_basis.h>
 #include <gkyl_elem_type.h>
 #include <gkyl_evalf_def.h>
 #include <gkyl_range.h>
 
 GKYL_CU_DH
 static inline void*
-flat_fetch(void *data, size_t loc)
+gkyl_flat_fetch(void *data, size_t loc)
 {
   return ((char*) data) + loc;
 }
@@ -22,6 +23,17 @@ struct gkyl_array_copy_func {
   void *ctx_on_dev; // pointer to on-device context (or itself)
   struct gkyl_array_copy_func *on_dev; // pointer to itself or device data
 };
+
+// To return diff of two arrays
+struct gkyl_array_diff {
+  bool is_compatible; // are arrays compatible
+
+  // the following make sense only if is_compatible = true
+  double max_abs_diff; // maximum absolute difference
+  double min_abs_diff; // minmum absolute difference
+  double max_rel_diff; // maximum relative difference
+  double min_rel_diff; // minmum relative difference
+};  
 
 /**
  * Check if array_copy_func is on device.
@@ -168,6 +180,20 @@ struct gkyl_array* gkyl_array_set_range(struct gkyl_array *out,
   double a, const struct gkyl_array *inp, const struct gkyl_range *range);
 
 /**
+ * Set out = a*inp over specified ranges. Returns out.
+ * input and output ranges must have the same volume.
+ *
+ * @param out Output array
+ * @param a Factor to multiply input array
+ * @param inp Input array
+ * @return out array
+ * @param out_range Range specifying region of out to set
+ * @param inp_range Range specifying region of inp to use
+ */
+struct gkyl_array* gkyl_array_set_range_to_range(struct gkyl_array *out, double a,
+  const struct gkyl_array *inp, struct gkyl_range *out_range, struct gkyl_range *inp_range);
+
+/**
  * Set out = a*inp[coff] where coff is a component-offset if
  * out->ncomp < inp->ncomp, or out[coff] = a*inp if
  * out->ncomp > inp->ncomp, over a range of indices. Returns out.
@@ -227,28 +253,61 @@ struct gkyl_array* gkyl_array_copy_range(struct gkyl_array *out,
  * @return out array
  */
 struct gkyl_array* gkyl_array_copy_range_to_range(struct gkyl_array *out,
-  const struct gkyl_array *inp, struct gkyl_range *out_range, struct gkyl_range *inp_range);
+  const struct gkyl_array *inp, const struct gkyl_range *out_range, const struct gkyl_range *inp_range);
 
 /**
  * Perform an "reduce" operation of data in the array.
  *
- * @param res On output, reduces values (ncomp size)
+ * @param res On output, reduces values (ncomp size).
  * @param arr Array to perform reduction on.
- * @param op Reduction operators
+ * @param op Reduction operators.
  */
 void gkyl_array_reduce(double *res, const struct gkyl_array *arr, enum gkyl_array_op op);
+
+/**
+ * Perform a "reduce" operation of data in the array accounting for the DG
+ * representation within the array. It evaluates the DG field at Gauss-Legendre
+ * nodes in each cell, and reduces them before reducing over cells. It allows
+ * specification of the vector component for arrays that contain multiple
+ * scalar DG fields.
+ *
+ * @param out Reduced output value (size 1).
+ * @param arr Array to perform reduction on.
+ * @param comp Vector component in arr to reduce.
+ * @param op Reduction operators.
+ * @param basis Basis DG coefficients are expanded in (device pointer if use_gpu=true).
+ */
+void gkyl_array_reducec_dg(double *out, const struct gkyl_array *arr, int comp,
+  enum gkyl_array_op op, const struct gkyl_basis *basis);
 
 /**
  * Perform an "reduce" operation of data in the array. Data is reduced
  * component-wise.
  *
- * @param res On output, reduced values (ncomp size)
+ * @param res On output, reduced values (ncomp size).
  * @param arr Array to perform reduction on.
- * @param op Reduction operators
- * @param range Range specifying region
+ * @param op Reduction operators.
+ * @param range Range specifying region.
  */
 void gkyl_array_reduce_range(double *res,
   const struct gkyl_array *arr, enum gkyl_array_op op, const struct gkyl_range *range);
+
+/**
+ * Perform a "reduce" operation of data in the array accounting for the DG
+ * representation within the array. It evaluates the DG field at Gauss-Legendre
+ * nodes in each cell, and reduces them before reducing over cells. It allows
+ * specification of the vector component for arrays that contain multiple
+ * scalar DG fields.
+ *
+ * @param out Reduced output value (size 1).
+ * @param arr Array to perform reduction on.
+ * @param comp Vector component in arr to reduce.
+ * @param op Reduction operators.
+ * @param basis Basis DG coefficients are expanded in (device pointer if use_gpu=true).
+ * @param range Range specifying region.
+ */
+void gkyl_array_reducec_dg_range(double *out, const struct gkyl_array *arr, int comp,
+  enum gkyl_array_op op, const struct gkyl_basis *basis, const struct gkyl_range *range);
 
 /**
  * Copy region of array into a buffer. The buffer must be preallocated
@@ -301,6 +360,17 @@ void gkyl_array_flip_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
   int dir, const struct gkyl_range *range, struct gkyl_array_copy_func *cf);
 
 /**
+ * Return difference between two arrays. Mostly useful for testing.
+ *
+ * @param arr1 First array to compare
+ * @param arr2 Second array to compare
+ * @param range Range to compare over
+ * @return diff between arrays
+ */
+struct gkyl_array_diff gkyl_array_diff(const struct gkyl_array *arr1,
+  const struct gkyl_array *arr2, const struct gkyl_range *range);
+
+/**
  * Host-side wrappers for array operations
  */
 void gkyl_array_clear_cu(struct gkyl_array* out, double val);
@@ -335,6 +405,9 @@ void gkyl_array_accumulate_offset_range_cu(struct gkyl_array *out,
 void gkyl_array_set_range_cu(struct gkyl_array *out,
   double a, const struct gkyl_array* inp, const struct gkyl_range *range);
 
+void gkyl_array_set_range_to_range_cu(struct gkyl_array *out, double a,
+  const struct gkyl_array *inp, struct gkyl_range *out_range, struct gkyl_range *inp_range);
+
 void gkyl_array_set_offset_range_cu(struct gkyl_array *out,
   double a, const struct gkyl_array* inp, int coff, const struct gkyl_range *range);
 
@@ -345,7 +418,7 @@ void gkyl_array_copy_range_cu(struct gkyl_array *out, const struct gkyl_array* i
   const struct gkyl_range *range);
 
 void gkyl_array_copy_range_to_range_cu(struct gkyl_array *out, const struct gkyl_array* inp,
-  struct gkyl_range *out_range, struct gkyl_range *inp_range);
+  const struct gkyl_range *out_range, const struct gkyl_range *inp_range);
 
 void gkyl_array_copy_to_buffer_cu(void *data, const struct gkyl_array *arr, 
   const struct gkyl_range *range);

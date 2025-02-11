@@ -12,24 +12,25 @@
 struct gkyl_dg_eqn*
 gkyl_dg_updater_gyrokinetic_acquire_eqn(const gkyl_dg_updater_gyrokinetic* gyrokinetic)
 {
-  return gkyl_dg_eqn_acquire(gyrokinetic->dgeqn);
+  return gkyl_dg_eqn_acquire(gyrokinetic->eqn_gyrokinetic);
 }
 
 struct gkyl_dg_updater_gyrokinetic*
 gkyl_dg_updater_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
-  const struct gkyl_range *conf_range, const bool *is_zero_flux_dir,
-  enum gkyl_gkeqn_id eqn_id, double charge, double mass, bool use_gpu)
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+  const bool *is_zero_flux_bc, double charge, double mass, enum gkyl_gkmodel_id gkmodel_id,
+  const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, void *aux_inp, bool use_gpu)
 {
   struct gkyl_dg_updater_gyrokinetic *up = gkyl_malloc(sizeof(struct gkyl_dg_updater_gyrokinetic));
 
   up->use_gpu = use_gpu;
 
-  up->eqn_id = eqn_id;
-  if (eqn_id == GKYL_GK_DEFAULT)
-    up->dgeqn = gkyl_dg_gyrokinetic_new(cbasis, pbasis, conf_range, charge, mass, use_gpu);
-//  else if (eqn_id == GKYL_GK_SOFTMIRROR)
-//    up->dgeqn = gkyl_dg_gyrokinetic_softmirror_new(cbasis, pbasis, conf_range, charge, mass, use_gpu);
+  up->eqn_gyrokinetic = gkyl_dg_gyrokinetic_new(cbasis, pbasis, conf_range, phase_range, 
+    charge, mass, gkmodel_id, gk_geom, vel_map, up->use_gpu);
+
+  struct gkyl_dg_gyrokinetic_auxfields *gk_inp = aux_inp;
+  gkyl_gyrokinetic_set_auxfields(up->eqn_gyrokinetic, *gk_inp);
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim;
   int vdim = pdim-cdim;
@@ -37,47 +38,44 @@ gkyl_dg_updater_gyrokinetic_new(const struct gkyl_rect_grid *grid,
   int num_up_dirs = cdim+1;
   for (int d=0; d<num_up_dirs; ++d) up_dirs[d] = d;
 
-  int zero_flux_flags[GKYL_MAX_DIM] = {0};
-  for (int d=0; d<cdim; ++d)
-    zero_flux_flags[d] = is_zero_flux_dir[d]? 1 : 0;
+  int zero_flux_flags[2*GKYL_MAX_DIM] = {0};
+  for (int d=0; d<cdim; ++d) {
+    zero_flux_flags[d] = is_zero_flux_bc[d]? 1 : 0;
+    zero_flux_flags[d+pdim] = is_zero_flux_bc[d+pdim]? 1 : 0;
+  }
   for (int d=cdim; d<pdim; ++d)
-    zero_flux_flags[d] = 1; // zero-flux BCs in vel-space
+    zero_flux_flags[d] = zero_flux_flags[d+pdim] = 1; // zero-flux BCs in vel-space
 
-  up->hyperdg = gkyl_hyper_dg_new(grid, pbasis, up->dgeqn,
-    num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);
+  up->up_gyrokinetic = gkyl_hyper_dg_new(grid, pbasis, up->eqn_gyrokinetic,
+    num_up_dirs, up_dirs, zero_flux_flags, 1, up->use_gpu);
 
+  up->gyrokinetic_tm = 0.0;
+  
   return up;
 }
 
 void
-gkyl_dg_updater_gyrokinetic_advance(struct gkyl_dg_updater_gyrokinetic *up,
-  const struct gkyl_range *update_rng,
-  const struct gkyl_array *bmag, const struct gkyl_array *jacobtot_inv,
-  const struct gkyl_array *cmag, const struct gkyl_array *b_i,
-  const struct gkyl_array *phi, const struct gkyl_array *apar,
-  const struct gkyl_array *apardot, const struct gkyl_array* GKYL_RESTRICT fIn,
+gkyl_dg_updater_gyrokinetic_advance(struct gkyl_dg_updater_gyrokinetic *gyrokinetic,
+  const struct gkyl_range *update_rng, const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
-  // Set arrays needed.
-  if (up->eqn_id == GKYL_GK_DEFAULT)
-    gkyl_gyrokinetic_set_auxfields(up->dgeqn, 
-      (struct gkyl_dg_gyrokinetic_auxfields) { .bmag = bmag, .jacobtot_inv = jacobtot_inv,
-        .cmag = cmag, .b_i = b_i, .phi = phi, .apar = apar, .apardot = apardot });
+  struct timespec wst = gkyl_wall_clock();
+  gkyl_hyper_dg_advance(gyrokinetic->up_gyrokinetic, update_rng, fIn, cflrate, rhs);
+  gyrokinetic->gyrokinetic_tm += gkyl_time_diff_now_sec(wst);
+}
 
-#ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu)
-    gkyl_hyper_dg_advance_cu(up->hyperdg, update_rng, fIn, cflrate, rhs);
-  else
-    gkyl_hyper_dg_advance(up->hyperdg, update_rng, fIn, cflrate, rhs);
-#else
-  gkyl_hyper_dg_advance(up->hyperdg, update_rng, fIn, cflrate, rhs);
-#endif
+struct gkyl_dg_updater_gyrokinetic_tm
+gkyl_dg_updater_gyrokinetic_get_tm(const gkyl_dg_updater_gyrokinetic *gyrokinetic)
+{
+  return (struct gkyl_dg_updater_gyrokinetic_tm) {
+    .gyrokinetic_tm = gyrokinetic->gyrokinetic_tm,
+  };
 }
 
 void
-gkyl_dg_updater_gyrokinetic_release(struct gkyl_dg_updater_gyrokinetic* up)
+gkyl_dg_updater_gyrokinetic_release(struct gkyl_dg_updater_gyrokinetic* gyrokinetic)
 {
-  gkyl_dg_eqn_release(up->dgeqn);
-  gkyl_hyper_dg_release(up->hyperdg);
-  gkyl_free(up);
+  gkyl_dg_eqn_release(gyrokinetic->eqn_gyrokinetic);
+  gkyl_hyper_dg_release(gyrokinetic->up_gyrokinetic);
+  gkyl_free(gyrokinetic);
 }

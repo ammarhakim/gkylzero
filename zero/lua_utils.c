@@ -60,6 +60,28 @@ glua_tbl_iget_integer(lua_State *L, long key, long def)
   return out;
 }
 
+int
+glua_tbl_get_bool(lua_State *L, const char *key, int def)
+{
+  int out = def;
+  lua_getfield(L, -1, key);
+  if (!lua_isnil(L, -1) && lua_isboolean(L, -1))
+    out = lua_toboolean(L, -1);
+  lua_pop(L, 1);  
+  return out;
+}
+
+int
+glua_tbl_iget_bool(lua_State *L, long key, int def)
+{
+  int out = def;
+  glua_getfield_int(L, key);
+  if (!lua_isnil(L, -1) && lua_isboolean(L, -1))
+    out = lua_toboolean(L, -1);
+  lua_pop(L, 1);
+  return out;  
+}
+
 const char *
 glua_tbl_get_string(lua_State *L, const char *key, const char *def)
 {
@@ -87,11 +109,25 @@ glua_tbl_get_tbl(lua_State *L, const char *key)
   lua_getfield(L, -1, key);
   return !lua_isnil(L, -1) && lua_istable(L, -1);
 }
+bool
+glua_tbl_iget_tbl(lua_State *L, long key)
+{
+  glua_getfield_int(L, key);
+  return !lua_isnil(L, -1) && lua_istable(L, -1);
+}
 
 bool
 glua_tbl_get_func(lua_State *L, const char *key)
 {
   lua_getfield(L, -1, key);
+  bool has_func = !lua_isnil(L, -1) && lua_isfunction(L, -1);
+  if (!has_func) lua_pop(L, 1);
+  return has_func;
+}
+bool
+glua_tbl_iget_func(lua_State *L, long key)
+{
+  glua_getfield_int(L, key);
   bool has_func = !lua_isnil(L, -1) && lua_isfunction(L, -1);
   if (!has_func) lua_pop(L, 1);
   return has_func;

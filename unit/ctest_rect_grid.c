@@ -46,6 +46,15 @@ void test_grid_2d()
   xn[1] = grid.lower[1] + 1.5*grid.dx[1];
   gkyl_rect_grid_coord_idx(&grid, xn, idx);
   TEST_CHECK( (idx[0] == 2) && (idx[1] == 2) );
+
+  TEST_CHECK( gkyl_rect_grid_cmp(&grid, &grid) == true );
+
+  double lower2[] = {1.0, 0.5}, upper2[] = {2.5, 5.0};
+  int cells2[] = {20, 19};
+  struct gkyl_rect_grid grid2;
+  gkyl_rect_grid_init(&grid2, 2, lower2, upper2, cells2);
+
+  TEST_CHECK( gkyl_rect_grid_cmp(&grid, &grid2) == false );
 }
 
 /* Test rect_grid find cell in 1D

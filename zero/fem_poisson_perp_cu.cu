@@ -139,9 +139,12 @@ gkyl_fem_poisson_perp_set_rhs_kernel(struct gkyl_array *epsilon, const double *d
 void
 gkyl_fem_poisson_perp_set_rhs_cu(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsin)
 {
-  gkyl_cusolver_clear_rhs(up->prob_cu, 0);
-  double *rhs_cu = gkyl_cusolver_get_rhs_ptr(up->prob_cu, 0);
-  gkyl_fem_poisson_perp_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(up->epsilon->on_dev, up->dx_cu, rhs_cu, rhsin->on_dev, *up->solve_range, up->par_range1d, up->bcvals_cu, up->kernels_cu, up->numnodes_global);
+  gkyl_culinsolver_clear_rhs(up->prob_cu, 0);
+  double *rhs_cu = gkyl_culinsolver_get_rhs_ptr(up->prob_cu, 0);
+
+  gkyl_fem_poisson_perp_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(up->epsilon->on_dev,
+    up->dx_cu, rhs_cu, rhsin->on_dev, *up->solve_range, up->par_range1d, up->bcvals_cu,
+    up->kernels_cu, up->numnodes_global);
 }
 
 __global__ void
@@ -182,10 +185,9 @@ gkyl_fem_poisson_perp_get_sol_kernel(struct gkyl_array *x_local, const double *x
 void
 gkyl_fem_poisson_perp_solve_cu(struct gkyl_fem_poisson_perp *up, struct gkyl_array *phiout)
 {
-  // Do linear solve with cusolver.
-  gkyl_cusolver_solve(up->prob_cu);
+  gkyl_culinsolver_solve(up->prob_cu);
+  double *x_cu = gkyl_culinsolver_get_sol_ptr(up->prob_cu, 0);
 
-  double *x_cu = gkyl_cusolver_get_sol_ptr(up->prob_cu, 0);
-
-  gkyl_fem_poisson_perp_get_sol_kernel<<<phiout->nblocks, phiout->nthreads>>>(phiout->on_dev, x_cu, *up->solve_range, up->par_range1d, up->kernels_cu, up->numnodes_global);
+  gkyl_fem_poisson_perp_get_sol_kernel<<<phiout->nblocks, phiout->nthreads>>>(phiout->on_dev,
+    x_cu, *up->solve_range, up->par_range1d, up->kernels_cu, up->numnodes_global);
 }

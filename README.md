@@ -80,6 +80,10 @@ installed. Likewise, SuperLU **requires you to have cmake** installed.
 in mind that on Apple Macs you do not need to do anything special to use
 LAPACK/BLAS as it comes with the developer tools.
 
+At this step, you can download ADAS data for neutral interactions by adding
+the flag ```--use-adas=yes``` after the other dependencies to be
+installed.
+
 ### Configuring
 
 The (optional) configure step is used when we need to specify the use of
@@ -184,7 +188,23 @@ Automatic regression testing
 
 There is also an automatic regression testing system implemented within GkeyllZero,
 included as part of our larger automatic CI framework, which can be built in serial
-(for instance, for the moment app) with:
+(for instance, for the gyrokinetics system) with:
+```
+make build/ci/gk_regression
+```
+or, in parallel, with:
+```
+make build/ci/gk_regression_parallel
+```
+and then run with:
+```
+./build/ci/gk_regression
+```
+or:
+```
+./build/ci/gk_regression_parallel
+```
+or (for instance, for the moment app) with:
 ```
 make build/ci/moment_regression
 ```
@@ -208,6 +228,7 @@ regression test, 4 to view a specific regression result, 5 to (re)generate
 all accepted results, and 6 to (re)generate a specific accepted result).
 However, these options can also be passed in as command line arguments, so that:
 ```
+./build/ci/gk_regression 3 4
 ./build/ci/moment_regression 3 4
 ```
 will specifically run regression test number 4 in serial, with no additional

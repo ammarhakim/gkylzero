@@ -1,6 +1,6 @@
 #include <gkyl_fem_parproj_kernels.h> 
  
-void fem_parproj_lhs_stencil_noweight_1x_ser_p1_inx_nondirichletx(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_noweight_1x_ser_p1_inx_nondirichletx(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -13,7 +13,7 @@ void fem_parproj_lhs_stencil_noweight_1x_ser_p1_inx_nondirichletx(const double *
 
 }
 
-void fem_parproj_lhs_stencil_noweight_1x_ser_p2_inx_nondirichletx(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_noweight_1x_ser_p2_inx_nondirichletx(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -31,7 +31,7 @@ void fem_parproj_lhs_stencil_noweight_1x_ser_p2_inx_nondirichletx(const double *
 
 }
 
-void fem_parproj_lhs_stencil_noweight_1x_ser_p1_lox_nondirichletx(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_noweight_1x_ser_p1_lox_nondirichletx(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -44,7 +44,7 @@ void fem_parproj_lhs_stencil_noweight_1x_ser_p1_lox_nondirichletx(const double *
 
 }
 
-void fem_parproj_lhs_stencil_noweight_1x_ser_p2_lox_nondirichletx(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_noweight_1x_ser_p2_lox_nondirichletx(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -62,7 +62,7 @@ void fem_parproj_lhs_stencil_noweight_1x_ser_p2_lox_nondirichletx(const double *
 
 }
 
-void fem_parproj_lhs_stencil_noweight_1x_ser_p1_lox_dirichletx(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_noweight_1x_ser_p1_lox_dirichletx(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -75,7 +75,7 @@ void fem_parproj_lhs_stencil_noweight_1x_ser_p1_lox_dirichletx(const double *wei
 
 }
 
-void fem_parproj_lhs_stencil_noweight_1x_ser_p2_lox_dirichletx(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_noweight_1x_ser_p2_lox_dirichletx(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -93,7 +93,7 @@ void fem_parproj_lhs_stencil_noweight_1x_ser_p2_lox_dirichletx(const double *wei
 
 }
 
-void fem_parproj_lhs_stencil_noweight_1x_ser_p1_upx_nondirichletx(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_noweight_1x_ser_p1_upx_nondirichletx(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -106,7 +106,7 @@ void fem_parproj_lhs_stencil_noweight_1x_ser_p1_upx_nondirichletx(const double *
 
 }
 
-void fem_parproj_lhs_stencil_noweight_1x_ser_p2_upx_nondirichletx(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_noweight_1x_ser_p2_upx_nondirichletx(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -124,7 +124,7 @@ void fem_parproj_lhs_stencil_noweight_1x_ser_p2_upx_nondirichletx(const double *
 
 }
 
-void fem_parproj_lhs_stencil_noweight_1x_ser_p1_upx_dirichletx(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_noweight_1x_ser_p1_upx_dirichletx(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -137,7 +137,7 @@ void fem_parproj_lhs_stencil_noweight_1x_ser_p1_upx_dirichletx(const double *wei
 
 }
 
-void fem_parproj_lhs_stencil_noweight_1x_ser_p2_upx_dirichletx(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_noweight_1x_ser_p2_upx_dirichletx(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -155,7 +155,7 @@ void fem_parproj_lhs_stencil_noweight_1x_ser_p2_upx_dirichletx(const double *wei
 
 }
 
-void fem_parproj_lhs_stencil_weighted_1x_ser_p1_inx_nondirichletx(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_weighted_1x_ser_p1_inx_nondirichletx(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -168,7 +168,7 @@ void fem_parproj_lhs_stencil_weighted_1x_ser_p1_inx_nondirichletx(const double *
 
 }
 
-void fem_parproj_lhs_stencil_weighted_1x_ser_p2_inx_nondirichletx(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_weighted_1x_ser_p2_inx_nondirichletx(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -186,7 +186,7 @@ void fem_parproj_lhs_stencil_weighted_1x_ser_p2_inx_nondirichletx(const double *
 
 }
 
-void fem_parproj_lhs_stencil_weighted_1x_ser_p1_lox_nondirichletx(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_weighted_1x_ser_p1_lox_nondirichletx(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -199,7 +199,7 @@ void fem_parproj_lhs_stencil_weighted_1x_ser_p1_lox_nondirichletx(const double *
 
 }
 
-void fem_parproj_lhs_stencil_weighted_1x_ser_p2_lox_nondirichletx(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_weighted_1x_ser_p2_lox_nondirichletx(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -217,7 +217,7 @@ void fem_parproj_lhs_stencil_weighted_1x_ser_p2_lox_nondirichletx(const double *
 
 }
 
-void fem_parproj_lhs_stencil_weighted_1x_ser_p1_lox_dirichletx(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_weighted_1x_ser_p1_lox_dirichletx(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -230,7 +230,7 @@ void fem_parproj_lhs_stencil_weighted_1x_ser_p1_lox_dirichletx(const double *wei
 
 }
 
-void fem_parproj_lhs_stencil_weighted_1x_ser_p2_lox_dirichletx(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_weighted_1x_ser_p2_lox_dirichletx(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -248,7 +248,7 @@ void fem_parproj_lhs_stencil_weighted_1x_ser_p2_lox_dirichletx(const double *wei
 
 }
 
-void fem_parproj_lhs_stencil_weighted_1x_ser_p1_upx_nondirichletx(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_weighted_1x_ser_p1_upx_nondirichletx(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -261,7 +261,7 @@ void fem_parproj_lhs_stencil_weighted_1x_ser_p1_upx_nondirichletx(const double *
 
 }
 
-void fem_parproj_lhs_stencil_weighted_1x_ser_p2_upx_nondirichletx(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_weighted_1x_ser_p2_upx_nondirichletx(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -279,7 +279,7 @@ void fem_parproj_lhs_stencil_weighted_1x_ser_p2_upx_nondirichletx(const double *
 
 }
 
-void fem_parproj_lhs_stencil_weighted_1x_ser_p1_upx_dirichletx(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_weighted_1x_ser_p1_upx_dirichletx(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -292,7 +292,7 @@ void fem_parproj_lhs_stencil_weighted_1x_ser_p1_upx_dirichletx(const double *wei
 
 }
 
-void fem_parproj_lhs_stencil_weighted_1x_ser_p2_upx_dirichletx(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_weighted_1x_ser_p2_upx_dirichletx(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -310,7 +310,987 @@ void fem_parproj_lhs_stencil_weighted_1x_ser_p2_upx_dirichletx(const double *wei
 
 }
 
-void fem_parproj_lhs_stencil_noweight_3x_ser_p1_inz_nondirichletz(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_noweight_2x_ser_p1_iny_nondirichlety(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
+{ 
+  // weight: multiplicative weight (a DG field).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // tri: triples object (i,j,val), i.e. contribute val to i,j element of the global matrix.
+
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], 0.1111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], 0.1111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], 0.1111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], 0.1111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], 0.4444444444444444);
+
+}
+
+void fem_parproj_lhs_stencil_noweight_2x_ser_p2_iny_nondirichlety(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
+{ 
+  // weight: multiplicative weight (a DG field).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // tri: triples object (i,j,val), i.e. contribute val to i,j element of the global matrix.
+
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[4], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[6], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[7], 0.06666666666666667);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], 0.7111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[4], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[5], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[6], 0.3555555555555556);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[7], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], 0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], 0.06666666666666667);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[6], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], 0.7111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[4], 0.3555555555555556);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[5], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[6], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[7], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[0], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[1], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[2], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[3], 0.3555555555555556);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[4], 0.7111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[5], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[6], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[1], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], 0.06666666666666667);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[4], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], 0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[0], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[1], 0.3555555555555556);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[2], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[3], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[4], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[5], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[6], 0.7111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[0], 0.06666666666666667);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[1], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[3], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], 0.1333333333333333);
+
+}
+
+void fem_parproj_lhs_stencil_noweight_2x_ser_p1_loy_nondirichlety(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
+{ 
+  // weight: multiplicative weight (a DG field).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // tri: triples object (i,j,val), i.e. contribute val to i,j element of the global matrix.
+
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], 0.1111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], 0.1111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], 0.1111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], 0.1111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], 0.4444444444444444);
+
+}
+
+void fem_parproj_lhs_stencil_noweight_2x_ser_p2_loy_nondirichlety(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
+{ 
+  // weight: multiplicative weight (a DG field).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // tri: triples object (i,j,val), i.e. contribute val to i,j element of the global matrix.
+
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[4], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[6], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[7], 0.06666666666666667);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], 0.7111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[4], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[5], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[6], 0.3555555555555556);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[7], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], 0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], 0.06666666666666667);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[6], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], 0.7111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[4], 0.3555555555555556);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[5], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[6], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[7], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[0], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[1], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[2], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[3], 0.3555555555555556);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[4], 0.7111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[5], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[6], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[1], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], 0.06666666666666667);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[4], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], 0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[0], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[1], 0.3555555555555556);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[2], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[3], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[4], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[5], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[6], 0.7111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[0], 0.06666666666666667);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[1], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[3], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], 0.1333333333333333);
+
+}
+
+void fem_parproj_lhs_stencil_noweight_2x_ser_p1_loy_dirichlety(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
+{ 
+  // weight: multiplicative weight (a DG field).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // tri: triples object (i,j,val), i.e. contribute val to i,j element of the global matrix.
+
+  gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[0], 1.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[1], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[2], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[3], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[1], globalIdxs[0], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[1], globalIdxs[1], 1.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[1], globalIdxs[2], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[1], globalIdxs[3], 0.0);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], 0.1111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], 0.1111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], 0.4444444444444444);
+
+}
+
+void fem_parproj_lhs_stencil_noweight_2x_ser_p2_loy_dirichlety(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
+{ 
+  // weight: multiplicative weight (a DG field).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // tri: triples object (i,j,val), i.e. contribute val to i,j element of the global matrix.
+
+  gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[0], 1.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[1], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[2], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[3], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[4], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[5], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[6], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[7], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[1], globalIdxs[0], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[1], globalIdxs[1], 1.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[1], globalIdxs[2], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[1], globalIdxs[3], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[1], globalIdxs[4], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[1], globalIdxs[5], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[1], globalIdxs[6], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[1], globalIdxs[7], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[0], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[1], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[2], 1.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[3], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[4], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[5], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[6], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[7], 0.0);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], 0.7111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[4], 0.3555555555555556);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[5], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[6], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[7], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[0], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[1], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[2], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[3], 0.3555555555555556);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[4], 0.7111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[5], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[6], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[1], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], 0.06666666666666667);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[4], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], 0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[0], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[1], 0.3555555555555556);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[2], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[3], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[4], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[5], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[6], 0.7111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[0], 0.06666666666666667);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[1], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[3], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], 0.1333333333333333);
+
+}
+
+void fem_parproj_lhs_stencil_noweight_2x_ser_p1_upy_nondirichlety(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
+{ 
+  // weight: multiplicative weight (a DG field).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // tri: triples object (i,j,val), i.e. contribute val to i,j element of the global matrix.
+
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], 0.1111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], 0.1111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], 0.1111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], 0.1111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], 0.4444444444444444);
+
+}
+
+void fem_parproj_lhs_stencil_noweight_2x_ser_p2_upy_nondirichlety(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
+{ 
+  // weight: multiplicative weight (a DG field).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // tri: triples object (i,j,val), i.e. contribute val to i,j element of the global matrix.
+
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[4], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[6], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[7], 0.06666666666666667);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], 0.7111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[4], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[5], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[6], 0.3555555555555556);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[7], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], 0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], 0.06666666666666667);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[6], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], 0.7111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[4], 0.3555555555555556);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[5], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[6], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[7], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[0], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[1], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[2], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[3], 0.3555555555555556);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[4], 0.7111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[5], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[6], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[1], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], 0.06666666666666667);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[4], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], 0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[0], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[1], 0.3555555555555556);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[2], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[3], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[4], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[5], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[6], 0.7111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[0], 0.06666666666666667);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[1], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[3], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], 0.1333333333333333);
+
+}
+
+void fem_parproj_lhs_stencil_noweight_2x_ser_p1_upy_dirichlety(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
+{ 
+  // weight: multiplicative weight (a DG field).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // tri: triples object (i,j,val), i.e. contribute val to i,j element of the global matrix.
+
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], 0.1111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], 0.2222222222222222);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], 0.1111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], 0.2222222222222222);
+  gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[0], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[1], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[2], 1.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[3], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[3], globalIdxs[0], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[3], globalIdxs[1], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[3], globalIdxs[2], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[3], globalIdxs[3], 1.0);
+
+}
+
+void fem_parproj_lhs_stencil_noweight_2x_ser_p2_upy_dirichlety(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
+{ 
+  // weight: multiplicative weight (a DG field).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // tri: triples object (i,j,val), i.e. contribute val to i,j element of the global matrix.
+
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[4], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[6], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[7], 0.06666666666666667);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], 0.7111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[4], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[5], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[6], 0.3555555555555556);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[7], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], 0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], 0.06666666666666667);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[6], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], 0.04444444444444445);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], 0.7111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[4], 0.3555555555555556);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[5], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[6], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[7], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[0], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[1], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[2], -0.1333333333333333);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[3], 0.3555555555555556);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[4], 0.7111111111111111);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[5], -0.1777777777777778);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[6], 0.4444444444444444);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], -0.1333333333333333);
+  gkyl_mat_triples_insert(tri, globalIdxs[5], globalIdxs[0], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[5], globalIdxs[1], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[5], globalIdxs[2], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[5], globalIdxs[3], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[5], globalIdxs[4], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[5], globalIdxs[5], 1.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[5], globalIdxs[6], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[5], globalIdxs[7], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[6], globalIdxs[0], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[6], globalIdxs[1], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[6], globalIdxs[2], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[6], globalIdxs[3], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[6], globalIdxs[4], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[6], globalIdxs[5], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[6], globalIdxs[6], 1.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[6], globalIdxs[7], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[7], globalIdxs[0], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[7], globalIdxs[1], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[7], globalIdxs[2], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[7], globalIdxs[3], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[7], globalIdxs[4], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[7], globalIdxs[5], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[7], globalIdxs[6], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[7], globalIdxs[7], 1.0);
+
+}
+
+void fem_parproj_lhs_stencil_weighted_2x_ser_p1_iny_nondirichlety(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
+{ 
+  // weight: multiplicative weight (a DG field).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // tri: triples object (i,j,val), i.e. contribute val to i,j element of the global matrix.
+
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.1666666666666667*weight[3]-0.1924500897298752*weight[2]-0.1924500897298752*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1111111111111111*weight[0]-0.09622504486493762*weight[2]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], 0.1111111111111111*weight[0]-0.09622504486493762*weight[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], 0.05555555555555555*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], 0.1111111111111111*weight[0]-0.09622504486493762*weight[2]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (-0.1666666666666667*weight[3])-0.1924500897298752*weight[2]+0.1924500897298752*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], 0.05555555555555555*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], 0.09622504486493762*weight[1]+0.1111111111111111*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], 0.1111111111111111*weight[0]-0.09622504486493762*weight[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], 0.05555555555555555*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (-0.1666666666666667*weight[3])+0.1924500897298752*weight[2]-0.1924500897298752*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], 0.09622504486493762*weight[2]+0.1111111111111111*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], 0.05555555555555555*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.09622504486493762*weight[1]+0.1111111111111111*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], 0.09622504486493762*weight[2]+0.1111111111111111*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], 0.1666666666666667*weight[3]+0.1924500897298752*weight[2]+0.1924500897298752*weight[1]+0.2222222222222222*weight[0]);
+
+}
+
+void fem_parproj_lhs_stencil_weighted_2x_ser_p2_iny_nondirichlety(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
+{ 
+  // weight: multiplicative weight (a DG field).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // tri: triples object (i,j,val), i.e. contribute val to i,j element of the global matrix.
+
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (-0.04549218533640458*weight[7])-0.04549218533640458*weight[6]+0.0127775312999988*weight[5]+0.0127775312999988*weight[4]+0.04666666666666667*weight[3]-0.03849001794597505*weight[2]-0.03849001794597505*weight[1]+0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (-0.03442651863295482*weight[7])-0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]+0.05333333333333333*weight[3]-0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], 0.006147592613027645*weight[6]-0.03336355394999686*weight[5]-0.02697478829999747*weight[4]+0.01924500897298752*weight[2]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], (-0.0295084445425327*weight[7])-0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]+0.05333333333333333*weight[3]-0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[4], 0.01721325931647741*weight[7]+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]+0.01333333333333333*weight[3]-0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], 0.006147592613027645*weight[7]-0.02697478829999747*weight[5]-0.03336355394999686*weight[4]+0.01924500897298752*weight[1]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[6], 0.01721325931647741*weight[6]+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]+0.01333333333333333*weight[3]-0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[7], (-0.0234254740499978*weight[5])-0.0234254740499978*weight[4]-0.01333333333333333*weight[3]+0.03333333333333333*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (-0.03442651863295482*weight[7])-0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]+0.05333333333333333*weight[3]-0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], 0.1967229636168847*weight[6]+0.07950463919999252*weight[5]-0.2271561119999787*weight[4]-0.3079201435678004*weight[2]+0.3555555555555556*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], 0.03442651863295482*weight[7]-0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]-0.05333333333333333*weight[3]+0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], 0.03442651863295482*weight[7]+0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]+0.02666666666666666*weight[3]-0.0769800358919501*weight[2]-0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[4], (-0.03442651863295482*weight[7])+0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]-0.02666666666666666*weight[3]-0.0769800358919501*weight[2]+0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[5], (-0.01721325931647741*weight[6])+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]-0.01333333333333333*weight[3]+0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[6], (-0.07950463919999252*weight[5])-0.1135780559999893*weight[4]+0.1777777777777778*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[7], (-0.01721325931647741*weight[6])+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]+0.01333333333333333*weight[3]+0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], 0.006147592613027645*weight[6]-0.03336355394999686*weight[5]-0.02697478829999747*weight[4]+0.01924500897298752*weight[2]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], 0.03442651863295482*weight[7]-0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]-0.05333333333333333*weight[3]+0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], 0.04549218533640458*weight[7]-0.04549218533640458*weight[6]+0.0127775312999988*weight[5]+0.0127775312999988*weight[4]-0.04666666666666667*weight[3]-0.03849001794597505*weight[2]+0.03849001794597505*weight[1]+0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], (-0.01721325931647741*weight[7])+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]-0.01333333333333333*weight[3]+0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], 0.0295084445425327*weight[7]-0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]-0.05333333333333333*weight[3]-0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], (-0.0234254740499978*weight[5])-0.0234254740499978*weight[4]+0.01333333333333333*weight[3]+0.03333333333333333*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[6], 0.01721325931647741*weight[6]+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]-0.01333333333333333*weight[3]-0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], (-0.006147592613027645*weight[7])-0.02697478829999747*weight[5]-0.03336355394999686*weight[4]-0.01924500897298752*weight[1]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], (-0.0295084445425327*weight[7])-0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]+0.05333333333333333*weight[3]-0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.03442651863295482*weight[7]+0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]+0.02666666666666666*weight[3]-0.0769800358919501*weight[2]-0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], (-0.01721325931647741*weight[7])+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]-0.01333333333333333*weight[3]+0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], 0.1967229636168847*weight[7]-0.2271561119999787*weight[5]+0.07950463919999252*weight[4]-0.3079201435678004*weight[1]+0.3555555555555556*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[4], (-0.1135780559999893*weight[5])-0.07950463919999252*weight[4]+0.1777777777777778*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[5], (-0.0295084445425327*weight[7])+0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]-0.05333333333333333*weight[3]+0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[6], 0.03442651863295482*weight[7]-0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]-0.02666666666666666*weight[3]+0.0769800358919501*weight[2]-0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[7], (-0.01721325931647741*weight[7])+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]+0.01333333333333333*weight[3]+0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[0], 0.01721325931647741*weight[7]+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]+0.01333333333333333*weight[3]-0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[1], (-0.03442651863295482*weight[7])+0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]-0.02666666666666666*weight[3]-0.0769800358919501*weight[2]+0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[2], 0.0295084445425327*weight[7]-0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]-0.05333333333333333*weight[3]-0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[3], (-0.1135780559999893*weight[5])-0.07950463919999252*weight[4]+0.1777777777777778*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[4], (-0.1967229636168847*weight[7])-0.2271561119999787*weight[5]+0.07950463919999252*weight[4]+0.3079201435678004*weight[1]+0.3555555555555556*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[5], 0.01721325931647741*weight[7]+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]-0.01333333333333333*weight[3]-0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[6], (-0.03442651863295482*weight[7])-0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]+0.02666666666666666*weight[3]+0.0769800358919501*weight[2]+0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], 0.0295084445425327*weight[7]+0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]+0.05333333333333333*weight[3]+0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], 0.006147592613027645*weight[7]-0.02697478829999747*weight[5]-0.03336355394999686*weight[4]+0.01924500897298752*weight[1]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[1], (-0.01721325931647741*weight[6])+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]-0.01333333333333333*weight[3]+0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], (-0.0234254740499978*weight[5])-0.0234254740499978*weight[4]+0.01333333333333333*weight[3]+0.03333333333333333*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], (-0.0295084445425327*weight[7])+0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]-0.05333333333333333*weight[3]+0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[4], 0.01721325931647741*weight[7]+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]-0.01333333333333333*weight[3]-0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (-0.04549218533640458*weight[7])+0.04549218533640458*weight[6]+0.0127775312999988*weight[5]+0.0127775312999988*weight[4]-0.04666666666666667*weight[3]+0.03849001794597505*weight[2]-0.03849001794597505*weight[1]+0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], (-0.03442651863295482*weight[7])+0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]-0.05333333333333333*weight[3]-0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], (-0.006147592613027645*weight[6])-0.03336355394999686*weight[5]-0.02697478829999747*weight[4]-0.01924500897298752*weight[2]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[0], 0.01721325931647741*weight[6]+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]+0.01333333333333333*weight[3]-0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[1], (-0.07950463919999252*weight[5])-0.1135780559999893*weight[4]+0.1777777777777778*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[2], 0.01721325931647741*weight[6]+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]-0.01333333333333333*weight[3]-0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[3], 0.03442651863295482*weight[7]-0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]-0.02666666666666666*weight[3]+0.0769800358919501*weight[2]-0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[4], (-0.03442651863295482*weight[7])-0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]+0.02666666666666666*weight[3]+0.0769800358919501*weight[2]+0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[5], (-0.03442651863295482*weight[7])+0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]-0.05333333333333333*weight[3]-0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[6], (-0.1967229636168847*weight[6])+0.07950463919999252*weight[5]-0.2271561119999787*weight[4]+0.3079201435678004*weight[2]+0.3555555555555556*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], 0.03442651863295482*weight[7]+0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]+0.05333333333333333*weight[3]+0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[0], (-0.0234254740499978*weight[5])-0.0234254740499978*weight[4]-0.01333333333333333*weight[3]+0.03333333333333333*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[1], (-0.01721325931647741*weight[6])+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]+0.01333333333333333*weight[3]+0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], (-0.006147592613027645*weight[7])-0.02697478829999747*weight[5]-0.03336355394999686*weight[4]-0.01924500897298752*weight[1]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[3], (-0.01721325931647741*weight[7])+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]+0.01333333333333333*weight[3]+0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], 0.0295084445425327*weight[7]+0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]+0.05333333333333333*weight[3]+0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], (-0.006147592613027645*weight[6])-0.03336355394999686*weight[5]-0.02697478829999747*weight[4]-0.01924500897298752*weight[2]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], 0.03442651863295482*weight[7]+0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]+0.05333333333333333*weight[3]+0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], 0.04549218533640458*weight[7]+0.04549218533640458*weight[6]+0.0127775312999988*weight[5]+0.0127775312999988*weight[4]+0.04666666666666667*weight[3]+0.03849001794597505*weight[2]+0.03849001794597505*weight[1]+0.06666666666666667*weight[0]);
+
+}
+
+void fem_parproj_lhs_stencil_weighted_2x_ser_p1_loy_nondirichlety(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
+{ 
+  // weight: multiplicative weight (a DG field).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // tri: triples object (i,j,val), i.e. contribute val to i,j element of the global matrix.
+
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.1666666666666667*weight[3]-0.1924500897298752*weight[2]-0.1924500897298752*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1111111111111111*weight[0]-0.09622504486493762*weight[2]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], 0.1111111111111111*weight[0]-0.09622504486493762*weight[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], 0.05555555555555555*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], 0.1111111111111111*weight[0]-0.09622504486493762*weight[2]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (-0.1666666666666667*weight[3])-0.1924500897298752*weight[2]+0.1924500897298752*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], 0.05555555555555555*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], 0.09622504486493762*weight[1]+0.1111111111111111*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], 0.1111111111111111*weight[0]-0.09622504486493762*weight[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], 0.05555555555555555*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (-0.1666666666666667*weight[3])+0.1924500897298752*weight[2]-0.1924500897298752*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], 0.09622504486493762*weight[2]+0.1111111111111111*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], 0.05555555555555555*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.09622504486493762*weight[1]+0.1111111111111111*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], 0.09622504486493762*weight[2]+0.1111111111111111*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], 0.1666666666666667*weight[3]+0.1924500897298752*weight[2]+0.1924500897298752*weight[1]+0.2222222222222222*weight[0]);
+
+}
+
+void fem_parproj_lhs_stencil_weighted_2x_ser_p2_loy_nondirichlety(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
+{ 
+  // weight: multiplicative weight (a DG field).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // tri: triples object (i,j,val), i.e. contribute val to i,j element of the global matrix.
+
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (-0.04549218533640458*weight[7])-0.04549218533640458*weight[6]+0.0127775312999988*weight[5]+0.0127775312999988*weight[4]+0.04666666666666667*weight[3]-0.03849001794597505*weight[2]-0.03849001794597505*weight[1]+0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (-0.03442651863295482*weight[7])-0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]+0.05333333333333333*weight[3]-0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], 0.006147592613027645*weight[6]-0.03336355394999686*weight[5]-0.02697478829999747*weight[4]+0.01924500897298752*weight[2]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], (-0.0295084445425327*weight[7])-0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]+0.05333333333333333*weight[3]-0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[4], 0.01721325931647741*weight[7]+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]+0.01333333333333333*weight[3]-0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], 0.006147592613027645*weight[7]-0.02697478829999747*weight[5]-0.03336355394999686*weight[4]+0.01924500897298752*weight[1]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[6], 0.01721325931647741*weight[6]+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]+0.01333333333333333*weight[3]-0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[7], (-0.0234254740499978*weight[5])-0.0234254740499978*weight[4]-0.01333333333333333*weight[3]+0.03333333333333333*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (-0.03442651863295482*weight[7])-0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]+0.05333333333333333*weight[3]-0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], 0.1967229636168847*weight[6]+0.07950463919999252*weight[5]-0.2271561119999787*weight[4]-0.3079201435678004*weight[2]+0.3555555555555556*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], 0.03442651863295482*weight[7]-0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]-0.05333333333333333*weight[3]+0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], 0.03442651863295482*weight[7]+0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]+0.02666666666666666*weight[3]-0.0769800358919501*weight[2]-0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[4], (-0.03442651863295482*weight[7])+0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]-0.02666666666666666*weight[3]-0.0769800358919501*weight[2]+0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[5], (-0.01721325931647741*weight[6])+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]-0.01333333333333333*weight[3]+0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[6], (-0.07950463919999252*weight[5])-0.1135780559999893*weight[4]+0.1777777777777778*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[7], (-0.01721325931647741*weight[6])+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]+0.01333333333333333*weight[3]+0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], 0.006147592613027645*weight[6]-0.03336355394999686*weight[5]-0.02697478829999747*weight[4]+0.01924500897298752*weight[2]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], 0.03442651863295482*weight[7]-0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]-0.05333333333333333*weight[3]+0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], 0.04549218533640458*weight[7]-0.04549218533640458*weight[6]+0.0127775312999988*weight[5]+0.0127775312999988*weight[4]-0.04666666666666667*weight[3]-0.03849001794597505*weight[2]+0.03849001794597505*weight[1]+0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], (-0.01721325931647741*weight[7])+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]-0.01333333333333333*weight[3]+0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], 0.0295084445425327*weight[7]-0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]-0.05333333333333333*weight[3]-0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], (-0.0234254740499978*weight[5])-0.0234254740499978*weight[4]+0.01333333333333333*weight[3]+0.03333333333333333*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[6], 0.01721325931647741*weight[6]+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]-0.01333333333333333*weight[3]-0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], (-0.006147592613027645*weight[7])-0.02697478829999747*weight[5]-0.03336355394999686*weight[4]-0.01924500897298752*weight[1]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], (-0.0295084445425327*weight[7])-0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]+0.05333333333333333*weight[3]-0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.03442651863295482*weight[7]+0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]+0.02666666666666666*weight[3]-0.0769800358919501*weight[2]-0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], (-0.01721325931647741*weight[7])+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]-0.01333333333333333*weight[3]+0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], 0.1967229636168847*weight[7]-0.2271561119999787*weight[5]+0.07950463919999252*weight[4]-0.3079201435678004*weight[1]+0.3555555555555556*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[4], (-0.1135780559999893*weight[5])-0.07950463919999252*weight[4]+0.1777777777777778*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[5], (-0.0295084445425327*weight[7])+0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]-0.05333333333333333*weight[3]+0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[6], 0.03442651863295482*weight[7]-0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]-0.02666666666666666*weight[3]+0.0769800358919501*weight[2]-0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[7], (-0.01721325931647741*weight[7])+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]+0.01333333333333333*weight[3]+0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[0], 0.01721325931647741*weight[7]+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]+0.01333333333333333*weight[3]-0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[1], (-0.03442651863295482*weight[7])+0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]-0.02666666666666666*weight[3]-0.0769800358919501*weight[2]+0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[2], 0.0295084445425327*weight[7]-0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]-0.05333333333333333*weight[3]-0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[3], (-0.1135780559999893*weight[5])-0.07950463919999252*weight[4]+0.1777777777777778*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[4], (-0.1967229636168847*weight[7])-0.2271561119999787*weight[5]+0.07950463919999252*weight[4]+0.3079201435678004*weight[1]+0.3555555555555556*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[5], 0.01721325931647741*weight[7]+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]-0.01333333333333333*weight[3]-0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[6], (-0.03442651863295482*weight[7])-0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]+0.02666666666666666*weight[3]+0.0769800358919501*weight[2]+0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], 0.0295084445425327*weight[7]+0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]+0.05333333333333333*weight[3]+0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], 0.006147592613027645*weight[7]-0.02697478829999747*weight[5]-0.03336355394999686*weight[4]+0.01924500897298752*weight[1]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[1], (-0.01721325931647741*weight[6])+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]-0.01333333333333333*weight[3]+0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], (-0.0234254740499978*weight[5])-0.0234254740499978*weight[4]+0.01333333333333333*weight[3]+0.03333333333333333*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], (-0.0295084445425327*weight[7])+0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]-0.05333333333333333*weight[3]+0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[4], 0.01721325931647741*weight[7]+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]-0.01333333333333333*weight[3]-0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (-0.04549218533640458*weight[7])+0.04549218533640458*weight[6]+0.0127775312999988*weight[5]+0.0127775312999988*weight[4]-0.04666666666666667*weight[3]+0.03849001794597505*weight[2]-0.03849001794597505*weight[1]+0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], (-0.03442651863295482*weight[7])+0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]-0.05333333333333333*weight[3]-0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], (-0.006147592613027645*weight[6])-0.03336355394999686*weight[5]-0.02697478829999747*weight[4]-0.01924500897298752*weight[2]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[0], 0.01721325931647741*weight[6]+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]+0.01333333333333333*weight[3]-0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[1], (-0.07950463919999252*weight[5])-0.1135780559999893*weight[4]+0.1777777777777778*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[2], 0.01721325931647741*weight[6]+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]-0.01333333333333333*weight[3]-0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[3], 0.03442651863295482*weight[7]-0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]-0.02666666666666666*weight[3]+0.0769800358919501*weight[2]-0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[4], (-0.03442651863295482*weight[7])-0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]+0.02666666666666666*weight[3]+0.0769800358919501*weight[2]+0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[5], (-0.03442651863295482*weight[7])+0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]-0.05333333333333333*weight[3]-0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[6], (-0.1967229636168847*weight[6])+0.07950463919999252*weight[5]-0.2271561119999787*weight[4]+0.3079201435678004*weight[2]+0.3555555555555556*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], 0.03442651863295482*weight[7]+0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]+0.05333333333333333*weight[3]+0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[0], (-0.0234254740499978*weight[5])-0.0234254740499978*weight[4]-0.01333333333333333*weight[3]+0.03333333333333333*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[1], (-0.01721325931647741*weight[6])+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]+0.01333333333333333*weight[3]+0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], (-0.006147592613027645*weight[7])-0.02697478829999747*weight[5]-0.03336355394999686*weight[4]-0.01924500897298752*weight[1]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[3], (-0.01721325931647741*weight[7])+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]+0.01333333333333333*weight[3]+0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], 0.0295084445425327*weight[7]+0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]+0.05333333333333333*weight[3]+0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], (-0.006147592613027645*weight[6])-0.03336355394999686*weight[5]-0.02697478829999747*weight[4]-0.01924500897298752*weight[2]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], 0.03442651863295482*weight[7]+0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]+0.05333333333333333*weight[3]+0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], 0.04549218533640458*weight[7]+0.04549218533640458*weight[6]+0.0127775312999988*weight[5]+0.0127775312999988*weight[4]+0.04666666666666667*weight[3]+0.03849001794597505*weight[2]+0.03849001794597505*weight[1]+0.06666666666666667*weight[0]);
+
+}
+
+void fem_parproj_lhs_stencil_weighted_2x_ser_p1_loy_dirichlety(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
+{ 
+  // weight: multiplicative weight (a DG field).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // tri: triples object (i,j,val), i.e. contribute val to i,j element of the global matrix.
+
+  gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[0], 1.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[1], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[2], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[3], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[1], globalIdxs[0], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[1], globalIdxs[1], 1.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[1], globalIdxs[2], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[1], globalIdxs[3], 0.0);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], 0.1111111111111111*weight[0]-0.09622504486493762*weight[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], 0.05555555555555555*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (-0.1666666666666667*weight[3])+0.1924500897298752*weight[2]-0.1924500897298752*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], 0.09622504486493762*weight[2]+0.1111111111111111*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], 0.05555555555555555*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.09622504486493762*weight[1]+0.1111111111111111*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], 0.09622504486493762*weight[2]+0.1111111111111111*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], 0.1666666666666667*weight[3]+0.1924500897298752*weight[2]+0.1924500897298752*weight[1]+0.2222222222222222*weight[0]);
+
+}
+
+void fem_parproj_lhs_stencil_weighted_2x_ser_p2_loy_dirichlety(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
+{ 
+  // weight: multiplicative weight (a DG field).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // tri: triples object (i,j,val), i.e. contribute val to i,j element of the global matrix.
+
+  gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[0], 1.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[1], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[2], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[3], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[4], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[5], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[6], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[0], globalIdxs[7], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[1], globalIdxs[0], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[1], globalIdxs[1], 1.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[1], globalIdxs[2], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[1], globalIdxs[3], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[1], globalIdxs[4], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[1], globalIdxs[5], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[1], globalIdxs[6], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[1], globalIdxs[7], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[0], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[1], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[2], 1.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[3], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[4], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[5], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[6], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[7], 0.0);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], (-0.0295084445425327*weight[7])-0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]+0.05333333333333333*weight[3]-0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.03442651863295482*weight[7]+0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]+0.02666666666666666*weight[3]-0.0769800358919501*weight[2]-0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], (-0.01721325931647741*weight[7])+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]-0.01333333333333333*weight[3]+0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], 0.1967229636168847*weight[7]-0.2271561119999787*weight[5]+0.07950463919999252*weight[4]-0.3079201435678004*weight[1]+0.3555555555555556*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[4], (-0.1135780559999893*weight[5])-0.07950463919999252*weight[4]+0.1777777777777778*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[5], (-0.0295084445425327*weight[7])+0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]-0.05333333333333333*weight[3]+0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[6], 0.03442651863295482*weight[7]-0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]-0.02666666666666666*weight[3]+0.0769800358919501*weight[2]-0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[7], (-0.01721325931647741*weight[7])+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]+0.01333333333333333*weight[3]+0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[0], 0.01721325931647741*weight[7]+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]+0.01333333333333333*weight[3]-0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[1], (-0.03442651863295482*weight[7])+0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]-0.02666666666666666*weight[3]-0.0769800358919501*weight[2]+0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[2], 0.0295084445425327*weight[7]-0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]-0.05333333333333333*weight[3]-0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[3], (-0.1135780559999893*weight[5])-0.07950463919999252*weight[4]+0.1777777777777778*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[4], (-0.1967229636168847*weight[7])-0.2271561119999787*weight[5]+0.07950463919999252*weight[4]+0.3079201435678004*weight[1]+0.3555555555555556*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[5], 0.01721325931647741*weight[7]+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]-0.01333333333333333*weight[3]-0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[6], (-0.03442651863295482*weight[7])-0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]+0.02666666666666666*weight[3]+0.0769800358919501*weight[2]+0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], 0.0295084445425327*weight[7]+0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]+0.05333333333333333*weight[3]+0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], 0.006147592613027645*weight[7]-0.02697478829999747*weight[5]-0.03336355394999686*weight[4]+0.01924500897298752*weight[1]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[1], (-0.01721325931647741*weight[6])+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]-0.01333333333333333*weight[3]+0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], (-0.0234254740499978*weight[5])-0.0234254740499978*weight[4]+0.01333333333333333*weight[3]+0.03333333333333333*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], (-0.0295084445425327*weight[7])+0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]-0.05333333333333333*weight[3]+0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[4], 0.01721325931647741*weight[7]+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]-0.01333333333333333*weight[3]-0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (-0.04549218533640458*weight[7])+0.04549218533640458*weight[6]+0.0127775312999988*weight[5]+0.0127775312999988*weight[4]-0.04666666666666667*weight[3]+0.03849001794597505*weight[2]-0.03849001794597505*weight[1]+0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], (-0.03442651863295482*weight[7])+0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]-0.05333333333333333*weight[3]-0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], (-0.006147592613027645*weight[6])-0.03336355394999686*weight[5]-0.02697478829999747*weight[4]-0.01924500897298752*weight[2]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[0], 0.01721325931647741*weight[6]+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]+0.01333333333333333*weight[3]-0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[1], (-0.07950463919999252*weight[5])-0.1135780559999893*weight[4]+0.1777777777777778*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[2], 0.01721325931647741*weight[6]+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]-0.01333333333333333*weight[3]-0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[3], 0.03442651863295482*weight[7]-0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]-0.02666666666666666*weight[3]+0.0769800358919501*weight[2]-0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[4], (-0.03442651863295482*weight[7])-0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]+0.02666666666666666*weight[3]+0.0769800358919501*weight[2]+0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[5], (-0.03442651863295482*weight[7])+0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]-0.05333333333333333*weight[3]-0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[6], (-0.1967229636168847*weight[6])+0.07950463919999252*weight[5]-0.2271561119999787*weight[4]+0.3079201435678004*weight[2]+0.3555555555555556*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], 0.03442651863295482*weight[7]+0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]+0.05333333333333333*weight[3]+0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[0], (-0.0234254740499978*weight[5])-0.0234254740499978*weight[4]-0.01333333333333333*weight[3]+0.03333333333333333*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[1], (-0.01721325931647741*weight[6])+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]+0.01333333333333333*weight[3]+0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], (-0.006147592613027645*weight[7])-0.02697478829999747*weight[5]-0.03336355394999686*weight[4]-0.01924500897298752*weight[1]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[3], (-0.01721325931647741*weight[7])+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]+0.01333333333333333*weight[3]+0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], 0.0295084445425327*weight[7]+0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]+0.05333333333333333*weight[3]+0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], (-0.006147592613027645*weight[6])-0.03336355394999686*weight[5]-0.02697478829999747*weight[4]-0.01924500897298752*weight[2]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], 0.03442651863295482*weight[7]+0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]+0.05333333333333333*weight[3]+0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], 0.04549218533640458*weight[7]+0.04549218533640458*weight[6]+0.0127775312999988*weight[5]+0.0127775312999988*weight[4]+0.04666666666666667*weight[3]+0.03849001794597505*weight[2]+0.03849001794597505*weight[1]+0.06666666666666667*weight[0]);
+
+}
+
+void fem_parproj_lhs_stencil_weighted_2x_ser_p1_upy_nondirichlety(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
+{ 
+  // weight: multiplicative weight (a DG field).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // tri: triples object (i,j,val), i.e. contribute val to i,j element of the global matrix.
+
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.1666666666666667*weight[3]-0.1924500897298752*weight[2]-0.1924500897298752*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1111111111111111*weight[0]-0.09622504486493762*weight[2]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], 0.1111111111111111*weight[0]-0.09622504486493762*weight[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], 0.05555555555555555*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], 0.1111111111111111*weight[0]-0.09622504486493762*weight[2]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (-0.1666666666666667*weight[3])-0.1924500897298752*weight[2]+0.1924500897298752*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], 0.05555555555555555*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], 0.09622504486493762*weight[1]+0.1111111111111111*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], 0.1111111111111111*weight[0]-0.09622504486493762*weight[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], 0.05555555555555555*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], (-0.1666666666666667*weight[3])+0.1924500897298752*weight[2]-0.1924500897298752*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], 0.09622504486493762*weight[2]+0.1111111111111111*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], 0.05555555555555555*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.09622504486493762*weight[1]+0.1111111111111111*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], 0.09622504486493762*weight[2]+0.1111111111111111*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], 0.1666666666666667*weight[3]+0.1924500897298752*weight[2]+0.1924500897298752*weight[1]+0.2222222222222222*weight[0]);
+
+}
+
+void fem_parproj_lhs_stencil_weighted_2x_ser_p2_upy_nondirichlety(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
+{ 
+  // weight: multiplicative weight (a DG field).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // tri: triples object (i,j,val), i.e. contribute val to i,j element of the global matrix.
+
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (-0.04549218533640458*weight[7])-0.04549218533640458*weight[6]+0.0127775312999988*weight[5]+0.0127775312999988*weight[4]+0.04666666666666667*weight[3]-0.03849001794597505*weight[2]-0.03849001794597505*weight[1]+0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (-0.03442651863295482*weight[7])-0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]+0.05333333333333333*weight[3]-0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], 0.006147592613027645*weight[6]-0.03336355394999686*weight[5]-0.02697478829999747*weight[4]+0.01924500897298752*weight[2]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], (-0.0295084445425327*weight[7])-0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]+0.05333333333333333*weight[3]-0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[4], 0.01721325931647741*weight[7]+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]+0.01333333333333333*weight[3]-0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], 0.006147592613027645*weight[7]-0.02697478829999747*weight[5]-0.03336355394999686*weight[4]+0.01924500897298752*weight[1]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[6], 0.01721325931647741*weight[6]+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]+0.01333333333333333*weight[3]-0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[7], (-0.0234254740499978*weight[5])-0.0234254740499978*weight[4]-0.01333333333333333*weight[3]+0.03333333333333333*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (-0.03442651863295482*weight[7])-0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]+0.05333333333333333*weight[3]-0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], 0.1967229636168847*weight[6]+0.07950463919999252*weight[5]-0.2271561119999787*weight[4]-0.3079201435678004*weight[2]+0.3555555555555556*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], 0.03442651863295482*weight[7]-0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]-0.05333333333333333*weight[3]+0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], 0.03442651863295482*weight[7]+0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]+0.02666666666666666*weight[3]-0.0769800358919501*weight[2]-0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[4], (-0.03442651863295482*weight[7])+0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]-0.02666666666666666*weight[3]-0.0769800358919501*weight[2]+0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[5], (-0.01721325931647741*weight[6])+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]-0.01333333333333333*weight[3]+0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[6], (-0.07950463919999252*weight[5])-0.1135780559999893*weight[4]+0.1777777777777778*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[7], (-0.01721325931647741*weight[6])+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]+0.01333333333333333*weight[3]+0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], 0.006147592613027645*weight[6]-0.03336355394999686*weight[5]-0.02697478829999747*weight[4]+0.01924500897298752*weight[2]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], 0.03442651863295482*weight[7]-0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]-0.05333333333333333*weight[3]+0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], 0.04549218533640458*weight[7]-0.04549218533640458*weight[6]+0.0127775312999988*weight[5]+0.0127775312999988*weight[4]-0.04666666666666667*weight[3]-0.03849001794597505*weight[2]+0.03849001794597505*weight[1]+0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], (-0.01721325931647741*weight[7])+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]-0.01333333333333333*weight[3]+0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], 0.0295084445425327*weight[7]-0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]-0.05333333333333333*weight[3]-0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], (-0.0234254740499978*weight[5])-0.0234254740499978*weight[4]+0.01333333333333333*weight[3]+0.03333333333333333*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[6], 0.01721325931647741*weight[6]+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]-0.01333333333333333*weight[3]-0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], (-0.006147592613027645*weight[7])-0.02697478829999747*weight[5]-0.03336355394999686*weight[4]-0.01924500897298752*weight[1]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], (-0.0295084445425327*weight[7])-0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]+0.05333333333333333*weight[3]-0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.03442651863295482*weight[7]+0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]+0.02666666666666666*weight[3]-0.0769800358919501*weight[2]-0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], (-0.01721325931647741*weight[7])+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]-0.01333333333333333*weight[3]+0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], 0.1967229636168847*weight[7]-0.2271561119999787*weight[5]+0.07950463919999252*weight[4]-0.3079201435678004*weight[1]+0.3555555555555556*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[4], (-0.1135780559999893*weight[5])-0.07950463919999252*weight[4]+0.1777777777777778*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[5], (-0.0295084445425327*weight[7])+0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]-0.05333333333333333*weight[3]+0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[6], 0.03442651863295482*weight[7]-0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]-0.02666666666666666*weight[3]+0.0769800358919501*weight[2]-0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[7], (-0.01721325931647741*weight[7])+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]+0.01333333333333333*weight[3]+0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[0], 0.01721325931647741*weight[7]+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]+0.01333333333333333*weight[3]-0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[1], (-0.03442651863295482*weight[7])+0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]-0.02666666666666666*weight[3]-0.0769800358919501*weight[2]+0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[2], 0.0295084445425327*weight[7]-0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]-0.05333333333333333*weight[3]-0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[3], (-0.1135780559999893*weight[5])-0.07950463919999252*weight[4]+0.1777777777777778*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[4], (-0.1967229636168847*weight[7])-0.2271561119999787*weight[5]+0.07950463919999252*weight[4]+0.3079201435678004*weight[1]+0.3555555555555556*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[5], 0.01721325931647741*weight[7]+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]-0.01333333333333333*weight[3]-0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[6], (-0.03442651863295482*weight[7])-0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]+0.02666666666666666*weight[3]+0.0769800358919501*weight[2]+0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], 0.0295084445425327*weight[7]+0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]+0.05333333333333333*weight[3]+0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[0], 0.006147592613027645*weight[7]-0.02697478829999747*weight[5]-0.03336355394999686*weight[4]+0.01924500897298752*weight[1]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[1], (-0.01721325931647741*weight[6])+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]-0.01333333333333333*weight[3]+0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[2], (-0.0234254740499978*weight[5])-0.0234254740499978*weight[4]+0.01333333333333333*weight[3]+0.03333333333333333*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[3], (-0.0295084445425327*weight[7])+0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]-0.05333333333333333*weight[3]+0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[4], 0.01721325931647741*weight[7]+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]-0.01333333333333333*weight[3]-0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[5], (-0.04549218533640458*weight[7])+0.04549218533640458*weight[6]+0.0127775312999988*weight[5]+0.0127775312999988*weight[4]-0.04666666666666667*weight[3]+0.03849001794597505*weight[2]-0.03849001794597505*weight[1]+0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[6], (-0.03442651863295482*weight[7])+0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]-0.05333333333333333*weight[3]-0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[5], globalIdxs[7], (-0.006147592613027645*weight[6])-0.03336355394999686*weight[5]-0.02697478829999747*weight[4]-0.01924500897298752*weight[2]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[0], 0.01721325931647741*weight[6]+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]+0.01333333333333333*weight[3]-0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[1], (-0.07950463919999252*weight[5])-0.1135780559999893*weight[4]+0.1777777777777778*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[2], 0.01721325931647741*weight[6]+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]-0.01333333333333333*weight[3]-0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[3], 0.03442651863295482*weight[7]-0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]-0.02666666666666666*weight[3]+0.0769800358919501*weight[2]-0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[4], (-0.03442651863295482*weight[7])-0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]+0.02666666666666666*weight[3]+0.0769800358919501*weight[2]+0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[5], (-0.03442651863295482*weight[7])+0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]-0.05333333333333333*weight[3]-0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[6], (-0.1967229636168847*weight[6])+0.07950463919999252*weight[5]-0.2271561119999787*weight[4]+0.3079201435678004*weight[2]+0.3555555555555556*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[6], globalIdxs[7], 0.03442651863295482*weight[7]+0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]+0.05333333333333333*weight[3]+0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[0], (-0.0234254740499978*weight[5])-0.0234254740499978*weight[4]-0.01333333333333333*weight[3]+0.03333333333333333*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[1], (-0.01721325931647741*weight[6])+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]+0.01333333333333333*weight[3]+0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[2], (-0.006147592613027645*weight[7])-0.02697478829999747*weight[5]-0.03336355394999686*weight[4]-0.01924500897298752*weight[1]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[3], (-0.01721325931647741*weight[7])+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]+0.01333333333333333*weight[3]+0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[4], 0.0295084445425327*weight[7]+0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]+0.05333333333333333*weight[3]+0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[5], (-0.006147592613027645*weight[6])-0.03336355394999686*weight[5]-0.02697478829999747*weight[4]-0.01924500897298752*weight[2]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[6], 0.03442651863295482*weight[7]+0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]+0.05333333333333333*weight[3]+0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[7], globalIdxs[7], 0.04549218533640458*weight[7]+0.04549218533640458*weight[6]+0.0127775312999988*weight[5]+0.0127775312999988*weight[4]+0.04666666666666667*weight[3]+0.03849001794597505*weight[2]+0.03849001794597505*weight[1]+0.06666666666666667*weight[0]);
+
+}
+
+void fem_parproj_lhs_stencil_weighted_2x_ser_p1_upy_dirichlety(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
+{ 
+  // weight: multiplicative weight (a DG field).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // tri: triples object (i,j,val), i.e. contribute val to i,j element of the global matrix.
+
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], 0.1666666666666667*weight[3]-0.1924500897298752*weight[2]-0.1924500897298752*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], 0.1111111111111111*weight[0]-0.09622504486493762*weight[2]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], 0.1111111111111111*weight[0]-0.09622504486493762*weight[1]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], 0.05555555555555555*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], 0.1111111111111111*weight[0]-0.09622504486493762*weight[2]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], (-0.1666666666666667*weight[3])-0.1924500897298752*weight[2]+0.1924500897298752*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], 0.05555555555555555*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], 0.09622504486493762*weight[1]+0.1111111111111111*weight[0]);
+  gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[0], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[1], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[2], 1.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[2], globalIdxs[3], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[3], globalIdxs[0], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[3], globalIdxs[1], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[3], globalIdxs[2], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[3], globalIdxs[3], 1.0);
+
+}
+
+void fem_parproj_lhs_stencil_weighted_2x_ser_p2_upy_dirichlety(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
+{ 
+  // weight: multiplicative weight (a DG field).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // tri: triples object (i,j,val), i.e. contribute val to i,j element of the global matrix.
+
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[0], (-0.04549218533640458*weight[7])-0.04549218533640458*weight[6]+0.0127775312999988*weight[5]+0.0127775312999988*weight[4]+0.04666666666666667*weight[3]-0.03849001794597505*weight[2]-0.03849001794597505*weight[1]+0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[1], (-0.03442651863295482*weight[7])-0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]+0.05333333333333333*weight[3]-0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[2], 0.006147592613027645*weight[6]-0.03336355394999686*weight[5]-0.02697478829999747*weight[4]+0.01924500897298752*weight[2]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[3], (-0.0295084445425327*weight[7])-0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]+0.05333333333333333*weight[3]-0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[4], 0.01721325931647741*weight[7]+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]+0.01333333333333333*weight[3]-0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[5], 0.006147592613027645*weight[7]-0.02697478829999747*weight[5]-0.03336355394999686*weight[4]+0.01924500897298752*weight[1]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[6], 0.01721325931647741*weight[6]+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]+0.01333333333333333*weight[3]-0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[0], globalIdxs[7], (-0.0234254740499978*weight[5])-0.0234254740499978*weight[4]-0.01333333333333333*weight[3]+0.03333333333333333*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[0], (-0.03442651863295482*weight[7])-0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]+0.05333333333333333*weight[3]-0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[1], 0.1967229636168847*weight[6]+0.07950463919999252*weight[5]-0.2271561119999787*weight[4]-0.3079201435678004*weight[2]+0.3555555555555556*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[2], 0.03442651863295482*weight[7]-0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]-0.05333333333333333*weight[3]+0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[3], 0.03442651863295482*weight[7]+0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]+0.02666666666666666*weight[3]-0.0769800358919501*weight[2]-0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[4], (-0.03442651863295482*weight[7])+0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]-0.02666666666666666*weight[3]-0.0769800358919501*weight[2]+0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[5], (-0.01721325931647741*weight[6])+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]-0.01333333333333333*weight[3]+0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[6], (-0.07950463919999252*weight[5])-0.1135780559999893*weight[4]+0.1777777777777778*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[1], globalIdxs[7], (-0.01721325931647741*weight[6])+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]+0.01333333333333333*weight[3]+0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[0], 0.006147592613027645*weight[6]-0.03336355394999686*weight[5]-0.02697478829999747*weight[4]+0.01924500897298752*weight[2]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[1], 0.03442651863295482*weight[7]-0.0295084445425327*weight[6]+0.05962847939999439*weight[5]+0.063887656499994*weight[4]-0.05333333333333333*weight[3]+0.03849001794597505*weight[1]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[2], 0.04549218533640458*weight[7]-0.04549218533640458*weight[6]+0.0127775312999988*weight[5]+0.0127775312999988*weight[4]-0.04666666666666667*weight[3]-0.03849001794597505*weight[2]+0.03849001794597505*weight[1]+0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[3], (-0.01721325931647741*weight[7])+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]-0.01333333333333333*weight[3]+0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[4], 0.0295084445425327*weight[7]-0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]-0.05333333333333333*weight[3]-0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[5], (-0.0234254740499978*weight[5])-0.0234254740499978*weight[4]+0.01333333333333333*weight[3]+0.03333333333333333*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[6], 0.01721325931647741*weight[6]+0.03975231959999626*weight[5]+0.05678902799999467*weight[4]-0.01333333333333333*weight[3]-0.03849001794597505*weight[2]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[2], globalIdxs[7], (-0.006147592613027645*weight[7])-0.02697478829999747*weight[5]-0.03336355394999686*weight[4]-0.01924500897298752*weight[1]+0.02222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[0], (-0.0295084445425327*weight[7])-0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]+0.05333333333333333*weight[3]-0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[1], 0.03442651863295482*weight[7]+0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]+0.02666666666666666*weight[3]-0.0769800358919501*weight[2]-0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[2], (-0.01721325931647741*weight[7])+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]-0.01333333333333333*weight[3]+0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[3], 0.1967229636168847*weight[7]-0.2271561119999787*weight[5]+0.07950463919999252*weight[4]-0.3079201435678004*weight[1]+0.3555555555555556*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[4], (-0.1135780559999893*weight[5])-0.07950463919999252*weight[4]+0.1777777777777778*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[5], (-0.0295084445425327*weight[7])+0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]-0.05333333333333333*weight[3]+0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[6], 0.03442651863295482*weight[7]-0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]-0.02666666666666666*weight[3]+0.0769800358919501*weight[2]-0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[3], globalIdxs[7], (-0.01721325931647741*weight[7])+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]+0.01333333333333333*weight[3]+0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[0], 0.01721325931647741*weight[7]+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]+0.01333333333333333*weight[3]-0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[1], (-0.03442651863295482*weight[7])+0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]-0.02666666666666666*weight[3]-0.0769800358919501*weight[2]+0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[2], 0.0295084445425327*weight[7]-0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]-0.05333333333333333*weight[3]-0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[3], (-0.1135780559999893*weight[5])-0.07950463919999252*weight[4]+0.1777777777777778*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[4], (-0.1967229636168847*weight[7])-0.2271561119999787*weight[5]+0.07950463919999252*weight[4]+0.3079201435678004*weight[1]+0.3555555555555556*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[5], 0.01721325931647741*weight[7]+0.05678902799999467*weight[5]+0.03975231959999626*weight[4]-0.01333333333333333*weight[3]-0.03849001794597505*weight[1]-0.08888888888888889*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[6], (-0.03442651863295482*weight[7])-0.03442651863295482*weight[6]-0.09938079899999068*weight[5]-0.09938079899999068*weight[4]+0.02666666666666666*weight[3]+0.0769800358919501*weight[2]+0.0769800358919501*weight[1]+0.2222222222222222*weight[0]);
+  gkyl_mat_triples_accum(tri, globalIdxs[4], globalIdxs[7], 0.0295084445425327*weight[7]+0.03442651863295482*weight[6]+0.063887656499994*weight[5]+0.05962847939999439*weight[4]+0.05333333333333333*weight[3]+0.03849001794597505*weight[2]-0.06666666666666667*weight[0]);
+  gkyl_mat_triples_insert(tri, globalIdxs[5], globalIdxs[0], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[5], globalIdxs[1], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[5], globalIdxs[2], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[5], globalIdxs[3], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[5], globalIdxs[4], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[5], globalIdxs[5], 1.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[5], globalIdxs[6], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[5], globalIdxs[7], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[6], globalIdxs[0], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[6], globalIdxs[1], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[6], globalIdxs[2], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[6], globalIdxs[3], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[6], globalIdxs[4], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[6], globalIdxs[5], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[6], globalIdxs[6], 1.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[6], globalIdxs[7], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[7], globalIdxs[0], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[7], globalIdxs[1], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[7], globalIdxs[2], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[7], globalIdxs[3], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[7], globalIdxs[4], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[7], globalIdxs[5], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[7], globalIdxs[6], 0.0);
+  gkyl_mat_triples_insert(tri, globalIdxs[7], globalIdxs[7], 1.0);
+
+}
+
+void fem_parproj_lhs_stencil_noweight_3x_ser_p1_inz_nondirichletz(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -383,7 +1363,7 @@ void fem_parproj_lhs_stencil_noweight_3x_ser_p1_inz_nondirichletz(const double *
 
 }
 
-void fem_parproj_lhs_stencil_noweight_3x_ser_p2_inz_nondirichletz(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_noweight_3x_ser_p2_inz_nondirichletz(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -792,7 +1772,7 @@ void fem_parproj_lhs_stencil_noweight_3x_ser_p2_inz_nondirichletz(const double *
 
 }
 
-void fem_parproj_lhs_stencil_noweight_3x_ser_p1_loz_nondirichletz(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_noweight_3x_ser_p1_loz_nondirichletz(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -865,7 +1845,7 @@ void fem_parproj_lhs_stencil_noweight_3x_ser_p1_loz_nondirichletz(const double *
 
 }
 
-void fem_parproj_lhs_stencil_noweight_3x_ser_p2_loz_nondirichletz(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_noweight_3x_ser_p2_loz_nondirichletz(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -1274,7 +2254,7 @@ void fem_parproj_lhs_stencil_noweight_3x_ser_p2_loz_nondirichletz(const double *
 
 }
 
-void fem_parproj_lhs_stencil_noweight_3x_ser_p1_loz_dirichletz(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_noweight_3x_ser_p1_loz_dirichletz(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -1347,7 +2327,7 @@ void fem_parproj_lhs_stencil_noweight_3x_ser_p1_loz_dirichletz(const double *wei
 
 }
 
-void fem_parproj_lhs_stencil_noweight_3x_ser_p2_loz_dirichletz(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_noweight_3x_ser_p2_loz_dirichletz(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -1756,7 +2736,7 @@ void fem_parproj_lhs_stencil_noweight_3x_ser_p2_loz_dirichletz(const double *wei
 
 }
 
-void fem_parproj_lhs_stencil_noweight_3x_ser_p1_upz_nondirichletz(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_noweight_3x_ser_p1_upz_nondirichletz(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -1829,7 +2809,7 @@ void fem_parproj_lhs_stencil_noweight_3x_ser_p1_upz_nondirichletz(const double *
 
 }
 
-void fem_parproj_lhs_stencil_noweight_3x_ser_p2_upz_nondirichletz(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_noweight_3x_ser_p2_upz_nondirichletz(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -2238,7 +3218,7 @@ void fem_parproj_lhs_stencil_noweight_3x_ser_p2_upz_nondirichletz(const double *
 
 }
 
-void fem_parproj_lhs_stencil_noweight_3x_ser_p1_upz_dirichletz(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_noweight_3x_ser_p1_upz_dirichletz(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -2311,7 +3291,7 @@ void fem_parproj_lhs_stencil_noweight_3x_ser_p1_upz_dirichletz(const double *wei
 
 }
 
-void fem_parproj_lhs_stencil_noweight_3x_ser_p2_upz_dirichletz(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_noweight_3x_ser_p2_upz_dirichletz(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -2720,7 +3700,7 @@ void fem_parproj_lhs_stencil_noweight_3x_ser_p2_upz_dirichletz(const double *wei
 
 }
 
-void fem_parproj_lhs_stencil_weighted_3x_ser_p1_inz_nondirichletz(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_weighted_3x_ser_p1_inz_nondirichletz(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -2793,7 +3773,7 @@ void fem_parproj_lhs_stencil_weighted_3x_ser_p1_inz_nondirichletz(const double *
 
 }
 
-void fem_parproj_lhs_stencil_weighted_3x_ser_p2_inz_nondirichletz(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_weighted_3x_ser_p2_inz_nondirichletz(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -3202,7 +4182,7 @@ void fem_parproj_lhs_stencil_weighted_3x_ser_p2_inz_nondirichletz(const double *
 
 }
 
-void fem_parproj_lhs_stencil_weighted_3x_ser_p1_loz_nondirichletz(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_weighted_3x_ser_p1_loz_nondirichletz(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -3275,7 +4255,7 @@ void fem_parproj_lhs_stencil_weighted_3x_ser_p1_loz_nondirichletz(const double *
 
 }
 
-void fem_parproj_lhs_stencil_weighted_3x_ser_p2_loz_nondirichletz(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_weighted_3x_ser_p2_loz_nondirichletz(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -3684,7 +4664,7 @@ void fem_parproj_lhs_stencil_weighted_3x_ser_p2_loz_nondirichletz(const double *
 
 }
 
-void fem_parproj_lhs_stencil_weighted_3x_ser_p1_loz_dirichletz(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_weighted_3x_ser_p1_loz_dirichletz(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -3757,7 +4737,7 @@ void fem_parproj_lhs_stencil_weighted_3x_ser_p1_loz_dirichletz(const double *wei
 
 }
 
-void fem_parproj_lhs_stencil_weighted_3x_ser_p2_loz_dirichletz(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_weighted_3x_ser_p2_loz_dirichletz(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -4166,7 +5146,7 @@ void fem_parproj_lhs_stencil_weighted_3x_ser_p2_loz_dirichletz(const double *wei
 
 }
 
-void fem_parproj_lhs_stencil_weighted_3x_ser_p1_upz_nondirichletz(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_weighted_3x_ser_p1_upz_nondirichletz(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -4239,7 +5219,7 @@ void fem_parproj_lhs_stencil_weighted_3x_ser_p1_upz_nondirichletz(const double *
 
 }
 
-void fem_parproj_lhs_stencil_weighted_3x_ser_p2_upz_nondirichletz(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_weighted_3x_ser_p2_upz_nondirichletz(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -4648,7 +5628,7 @@ void fem_parproj_lhs_stencil_weighted_3x_ser_p2_upz_nondirichletz(const double *
 
 }
 
-void fem_parproj_lhs_stencil_weighted_3x_ser_p1_upz_dirichletz(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_weighted_3x_ser_p1_upz_dirichletz(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.
@@ -4721,7 +5701,7 @@ void fem_parproj_lhs_stencil_weighted_3x_ser_p1_upz_dirichletz(const double *wei
 
 }
 
-void fem_parproj_lhs_stencil_weighted_3x_ser_p2_upz_dirichletz(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri) 
+void fem_parproj_lhs_stencil_weighted_3x_ser_p2_upz_dirichletz(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri) 
 { 
   // weight: multiplicative weight (a DG field).
   // globalIdxs: global linear index of each basis function/node in current cell.

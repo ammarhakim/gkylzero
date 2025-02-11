@@ -255,29 +255,29 @@ test_2x2v(int poly_order)
   // Write the output
   char fname[1024];
   sprintf(fname, "ctest_can_pb_eq_2x2v_p%d.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
+  gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
 
-  // Write the output (moments)
-  sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_n_corr.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&confGrid,&confLocal,m0_corr,fname);
-  sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_vb_corr.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&confGrid,&confLocal,m1i_corr,fname);
-  sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_T_corr.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&confGrid,&confLocal,m2_corr,fname);
+  // // Write the output (moments)
+  // sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_n_corr.gkyl", poly_order);
+  // gkyl_grid_sub_array_write(&confGrid,&confLocal,0,m0_corr,fname);
+  // sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_vb_corr.gkyl", poly_order);
+  // gkyl_grid_sub_array_write(&confGrid,&confLocal,0,m1i_corr,fname);
+  // sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_T_corr.gkyl", poly_order);
+  // gkyl_grid_sub_array_write(&confGrid,&confLocal,0,m2_corr,fname);
 
-  // Write the output (moments)
-  sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_n.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&confGrid,&confLocal,m0,fname);
-  sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_vb.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&confGrid,&confLocal,m1i,fname);
-  sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_T.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&confGrid,&confLocal,m2,fname);
+  // // Write the output (moments)
+  // sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_n.gkyl", poly_order);
+  // gkyl_grid_sub_array_write(&confGrid,&confLocal,0,m0,fname);
+  // sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_vb.gkyl", poly_order);
+  // gkyl_grid_sub_array_write(&confGrid,&confLocal,0,m1i,fname);
+  // sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_T.gkyl", poly_order);
+  // gkyl_grid_sub_array_write(&confGrid,&confLocal,0,m2,fname);
 
   // // Write the h^{ij}, det(h_ij)
   // sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_h_ij_inv.gkyl", poly_order);
-  // gkyl_grid_sub_array_write(&confGrid,&confLocal,h_ij_inv,fname);
+  // gkyl_grid_sub_array_write(&confGrid,&confLocal,0,h_ij_inv,fname);
   // sprintf(fname, "ctest_can_pb_eq_2x2v_p%d_det_h.gkyl", poly_order);
-  // gkyl_grid_sub_array_write(&confGrid,&confLocal,det_h,fname);
+  // gkyl_grid_sub_array_write(&confGrid,&confLocal,0,det_h,fname);
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]

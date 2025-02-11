@@ -9,6 +9,7 @@
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_diffusion_gyrokinetic_auxfields { 
   const struct gkyl_array *D;
+  const struct gkyl_array *jacobgeo_inv;
 };
 
 /**

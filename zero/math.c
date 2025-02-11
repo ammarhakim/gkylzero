@@ -636,10 +636,10 @@ minus_euclidean_division_rem(double *p0, double *p1, int p0_deg, double *res)
 
   // Initialize the problem 
   double r[4];
-  for (int i=0; i<=3; ++i)  r[i] = p0[i];
-  int r_deg;
+  for (int i=0; i<=3; ++i) r[i] = p0[i];
+  int r_deg = p0_deg;
   double rmax;
-  if (p0_deg < 4){
+  if (p0_deg < 4) {
     r_deg = deg_modified(r);
     rmax = r[r_deg];
   } else if (p0_deg == 4) {
@@ -654,21 +654,22 @@ minus_euclidean_division_rem(double *p0, double *p1, int p0_deg, double *res)
   int iter = 0;
 
   // Iterate while the degree is still higher the the divisor
-  while(r_deg >= p1_deg){
+  while(r_deg >= p1_deg) {
 
     // compute the quotient
     q[iter_max - iter] = rmax/p1[p1_deg];
  
     // Multiply p1 by q
-    for (int i=0; i<=p1_deg; ++i){
+    for (int i=0; i<=p1_deg; ++i) {
         p1g[i+(iter_max - iter)] = p1[i]*q[iter_max - iter];
     }
 
     // Subtract p1g from r
-    for (int i=0; i<=fmin(r_deg,3); ++i){
-      if (i != r_deg){
+    for (int i=0; i<=fmin(r_deg,3); ++i) {
+      if (i != r_deg) {
         r[i] = r[i] - p1g[i];
-      } else {
+      }
+      else {
         r[i] = 0.0;
       }
     } 

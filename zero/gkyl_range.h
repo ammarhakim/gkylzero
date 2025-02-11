@@ -32,7 +32,13 @@
 #define gkyl_ridxn(r, idx) gkyl_range_idx(&(r), idx)
 
 // Constants to represent lower/upper edges
-enum gkyl_edge_loc { GKYL_LOWER_EDGE = 0, GKYL_UPPER_EDGE = 1 };
+enum gkyl_edge_loc { GKYL_LOWER_EDGE = 0, GKYL_UPPER_EDGE, GKYL_NO_EDGE };
+
+// Direction and location of range
+struct gkyl_range_dir_edge {
+  int dir;
+  enum gkyl_edge_loc eloc;
+};  
 
 /**
  * Range object, representing an N-dimensional integer index
@@ -101,6 +107,18 @@ void gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim,
   const int *shape);
 
 /**
+ * Create new range object from specified shape. This sets the lower
+ * indices to [1,...] and upper indices to [shape[0], ...].
+ *
+ * @param rng Range object to initialize
+ * @param ndim Dimensiom of range to create.
+ * @param shape Shape of region
+ */
+
+void gkyl_range_init_from_shape1(struct gkyl_range *rng, int ndim,
+  const int *shape);
+
+/**
  * Create a new range which is a tensor product of @a a and @a b input
  * ranges.
  *
@@ -121,6 +139,17 @@ void gkyl_range_ten_prod(struct gkyl_range *rng, const struct gkyl_range *a,
  */
 void gkyl_range_shift(struct gkyl_range *rng, const struct gkyl_range *inp,
   const int *delta);
+
+/**
+ * Create a new range that is the same shape as inp range, but lower
+ * indices are reset to the specified ones.
+ *
+ * @param rng On output new reset range
+ * @param inp Input range to reset
+ * @param lower New lower indices
+ */
+void gkyl_range_reset_lower(struct gkyl_range *rng, const struct gkyl_range *inp,
+  const int *lower);
 
 /**
  * Shape in direction dir
@@ -240,7 +269,22 @@ void gkyl_range_shorten_from_below(struct gkyl_range *rng,
  * @param elo Lower in dir is reduced by elo[dir]
  * @param eup Upper in dir is increased by eup[dir]
  */
-void gkyl_range_extend(struct gkyl_range *erng,
+void gkyl_range_extend(struct gkyl_range *erng, const struct gkyl_range *rng,
+  const int *elo, const int *eup);
+
+/**
+ * Return a new range that is an extension of the input range. The
+ * lower index in dir is reduced by elo[dir] and upper index increased
+ * by eup[dir]. This method only extends the range in the directions
+ * other than the input @a dir.
+ *
+ * @param erng Extended range
+ * @param dir Direction to skip extension
+ * @param rng Range to extend
+ * @param elo Lower in dir is reduced by elo[dir]
+ * @param eup Upper in dir is increased by eup[dir]
+ */
+void gkyl_range_perp_extend(struct gkyl_range *erng, int dir,
   const struct gkyl_range* rng, const int *elo, const int *eup);
 
 /**
@@ -270,9 +314,36 @@ void gkyl_range_upper_skin(struct gkyl_range* srng,
   const struct gkyl_range* range, int dir, int nskin);
 
 /**
- * Create ghost and skin sub-ranges given parent range. The skin and
- * ghost ranges are sub-ranges of the parent range and DO NOT include
- * corners.
+ * Create ghost and skin sub-ranges given parent *extended* range. The
+ * skin and ghost ranges are sub-ranges of the parent range and DO NOT
+ * include corners. For 2D, dir=1 and nghost = { 1, 1} skin and ghost
+ * are the cells marked below ("S"kin, "G"ghost)
+ *
+ * Lower-edge:
+ * +--+--+--+
+ * |  |  |  |
+ * +--+--+--+
+ * |G |S |  |
+ * +--+--+--+
+ * |G |S |  |
+ * +--+--+--+
+ * |G |S |  |
+ * +--+--+--+
+ * |  |  |  |
+ * +--+--+--+
+ *
+ * Upper-edge:
+ * +--+--+--+
+ * |  |  |  |
+ * +--+--+--+
+ * |  |S |G |
+ * +--+--+--+
+ * |  |S |G |
+ * +--+--+--+
+ * |  |S |G |
+ * +--+--+--+
+ * |  |  |  |
+ * +--+--+--+
  *
  * @param skin On output, skin range
  * @param ghost On outout, ghost range
@@ -282,6 +353,48 @@ void gkyl_range_upper_skin(struct gkyl_range* srng,
  * @param nghost Number of ghost cells in 'dir' are nghost[dir]
  */
 void gkyl_skin_ghost_ranges(struct gkyl_range *skin, struct gkyl_range *ghost,
+  int dir, enum gkyl_edge_loc edge, const struct gkyl_range *parent, const int *nghost);
+
+/**
+ * Create ghost and skin sub-ranges given parent *extended* range. The
+ * skin and ghost ranges are sub-ranges of the parent range. The
+ * ranges include the corners.  For 2D, dir=1 and nghost = { 1, 1}
+ * skin and ghost are the cells marked below ("S"kin, "G"ghost)
+ *
+ * Lower-edge:
+ * +--+--+--+
+ * |G |S |  |
+ * +--+--+--+
+ * |G |S |  |
+ * +--+--+--+
+ * |G |S |  |
+ * +--+--+--+
+ * |G |S |  |
+ * +--+--+--+
+ * |G |S |  |
+ * +--+--+--+
+ *
+ * Upper-edge:
+ * +--+--+--+
+ * |  |S |G |
+ * +--+--+--+
+ * |  |S |G |
+ * +--+--+--+
+ * |  |S |G |
+ * +--+--+--+
+ * |  |S |G |
+ * +--+--+--+
+ * |  |S |G |
+ * +--+--+--+
+ *
+ * @param skin On output, skin range
+ * @param ghost On outout, ghost range
+ * @param dir Direction in which skin/ghost are computed
+ * @param edge Edge on which skin/ghost are computed
+ * @param parent Range for which skin/ghost are computed
+ * @param nghost Number of ghost cells in 'dir' are nghost[dir]
+ */
+void gkyl_skin_ghost_with_corners_ranges(struct gkyl_range *skin, struct gkyl_range *ghost,
   int dir, enum gkyl_edge_loc edge, const struct gkyl_range *parent, const int *nghost);
 
 /**
@@ -332,6 +445,19 @@ bool gkyl_range_is_on_lower_edge(int dir, const struct gkyl_range *range,
 bool gkyl_range_is_on_upper_edge(int dir, const struct gkyl_range *range,
   const struct gkyl_range *parent);
 
+/**
+ * Check if @a targ range shares an edge with the @a base range. The
+ * edges do not be fully shared but any edge overlap will be
+ * checked.
+ *
+ * @param base Base range wrt which edge overlap is checked
+ * @param targ Target range to check
+ * @return direction and edge. Returned struct eloc is set
+ *   to GKYL_NO_EDGE if ranges dont match.
+ */
+struct gkyl_range_dir_edge gkyl_range_edge_match(const struct gkyl_range *base,
+  const struct gkyl_range *targ);
+                                                     
 /**
  * General indexing function. Returns linear index into the index
  * range mapped by 'range'.
@@ -480,3 +606,13 @@ void gkyl_range_skip_iter_init(struct gkyl_range_skip_iter *iter,
  * @param fp File object to print range information
  */
 void gkyl_print_range(const struct gkyl_range* range, const char *nm, FILE *fp);
+
+/**
+ * Compares two ranges: ranges are the same if they have the same
+ * dimensions and lower and upper indices.
+ *
+ * @param r1 Range 1 to compare
+ * @param r2 Range 2 to compare
+ * @return true if ranges are same, false otherwise
+ */
+bool gkyl_range_compare(const struct gkyl_range* r1, const struct gkyl_range* r2);
