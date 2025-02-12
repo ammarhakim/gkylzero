@@ -10,7 +10,7 @@
 #include <float.h>
 #include <time.h>
 
-void
+static void
 eval_on_nodes_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
 {
   struct gkyl_position_map *gpm = ctx;
