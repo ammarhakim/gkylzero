@@ -7,8 +7,8 @@ gk_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
 {
   int cdim = app->cdim, vdim = app->vdim;
 
-  // allocate moments needed for Maxwellian (LTE=local thermodynamic equilibrium) update
-  gk_species_moment_init(app, s, &lte->moms, "MaxwellianMoments");
+  // Allocate moments needed for Maxwellian (LTE=local thermodynamic equilibrium) update.
+  gk_species_moment_init(app, s, &lte->moms, "MaxwellianMoments", false);
 
   struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = {
     .phase_grid = &s->grid,

@@ -223,6 +223,10 @@ struct gkyl_gyrokinetic_species {
 
   int num_diag_moments; // number of diagnostic moments
   char diag_moments[24][24]; // list of diagnostic moments
+  bool integrated_hamiltonian_moments; // Use Hamiltonian instead of Four
+                                       // moments for integrated moments.
+  bool boundary_flux_diagnostics; // Outputs moments of the boundary fluxes
+                                  // through non-periodic boundaries.
 
   // Input quantities used by LTE (local thermodynamic equilibrium, or Maxwellian) projection
   // This projection operator is used by BGK collisions and all reactions.
@@ -304,6 +308,13 @@ struct gkyl_gyrokinetic_field {
   void (*polarization_potential)(double t, const double *xn, double *out, void *ctx);
   void *polarization_potential_ctx;
 
+  // Interface to read a potential from file.
+  struct gkyl_gyrokinetic_ic_import init_from_file;
+
+  // Profile for the field at t=0.
+  void (*init_field_profile)(double t, const double *xn, double *out, void *ctx);
+  void *init_field_profile_ctx;
+
   void *phi_wall_lo_ctx; // context for biased wall potential on lower wall
   // pointer to biased wall potential on lower wall function
   void (*phi_wall_lo)(double t, const double *xn, double *phi_wall_lo_out, void *ctx);
@@ -331,6 +342,7 @@ struct gkyl_gk {
   double cfl_frac_omegaH; // CFL fraction used for the omega_H dt (default 1.0).
 
   bool enforce_positivity; // Positivity enforcement via shift in f.
+  bool fdot_diagnostics; // Outputs moments of fdot=(f_new - f_old)/dt.
 
   int num_periodic_dir; // Number of periodic directions.
   int periodic_dirs[3]; // List of periodic directions.
@@ -905,6 +917,24 @@ void gkyl_gyrokinetic_app_write(gkyl_gyrokinetic_app* app, double tm, int frame)
  * @param app App object.
  */
 void gkyl_gyrokinetic_app_stat_write(gkyl_gyrokinetic_app* app);
+
+/**
+ * Record the time step (in private dynvector).
+ *
+ * @param app App object.
+ * @param tm Time stamp.
+ * @param dt Time step to record (e.g. provided by app's status object).
+ */
+void
+gkyl_gyrokinetic_app_save_dt(gkyl_gyrokinetic_app* app, double tm, double dt);
+
+/**
+ * Write the time step over time.
+ *
+ * @param app App object.
+ */
+void
+gkyl_gyrokinetic_app_write_dt(gkyl_gyrokinetic_app* app);
 
 /**
  * Read geometry file.

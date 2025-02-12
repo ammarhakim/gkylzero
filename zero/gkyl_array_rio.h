@@ -38,8 +38,8 @@ struct gkyl_array_header_info {
 };
 
 /**
- * Read grid and array data header data from file. Note that only
- * HEADER is read and NOT the array data itself. If the header has
+ * Read grid and array data header data from file. Note that only the
+ * header is read and NOT the array data itself. If the header has
  * meta-data (meta_size > 0) then the meta char array must be freed
  * using gkyl_free.
  *

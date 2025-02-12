@@ -1,5 +1,97 @@
 #include <gkyl_fem_poisson_perp_kernels.h> 
  
+GKYL_CU_DH void fem_poisson_perp_local_to_global_2x_ser_p1_inx_periodicx(const int *numCells, const int *idx, long *globalIdxs) 
+{ 
+  // numCells:   number of cells in each direction.
+  // idx:        multi-dimensional index of current cell.
+  // globalIdxs: global linear index of each basis function/node in current cell.
+
+    globalIdxs[0] = 2*idx[0]; 
+
+   if ((idx[0]+1==numCells[0]-1)) {
+    globalIdxs[1] = 2*idx[0]+2; 
+
+  }  else {
+    globalIdxs[1] = 2*idx[0]+2; 
+
+  }
+
+    globalIdxs[2] = 2*idx[0]+1; 
+
+   if ((idx[0]+1==numCells[0]-1)) {
+    globalIdxs[3] = 2*idx[0]+3; 
+
+  }  else {
+    globalIdxs[3] = 2*idx[0]+3; 
+
+  }
+
+
+}
+
+GKYL_CU_DH void fem_poisson_perp_local_to_global_2x_ser_p1_inx_nonperiodicx(const int *numCells, const int *idx, long *globalIdxs) 
+{ 
+  // numCells:   number of cells in each direction.
+  // idx:        multi-dimensional index of current cell.
+  // globalIdxs: global linear index of each basis function/node in current cell.
+
+    globalIdxs[0] = 2*idx[0]; 
+
+   if ((idx[0]+1==numCells[0]-1)) {
+    globalIdxs[1] = 2*idx[0]+2; 
+
+  }  else {
+    globalIdxs[1] = 2*idx[0]+2; 
+
+  }
+
+    globalIdxs[2] = 2*idx[0]+1; 
+
+   if ((idx[0]+1==numCells[0]-1)) {
+    globalIdxs[3] = 2*idx[0]+4; 
+
+  }  else {
+    globalIdxs[3] = 2*idx[0]+3; 
+
+  }
+
+
+}
+
+GKYL_CU_DH void fem_poisson_perp_local_to_global_2x_ser_p1_upx_periodicx(const int *numCells, const int *idx, long *globalIdxs) 
+{ 
+  // numCells:   number of cells in each direction.
+  // idx:        multi-dimensional index of current cell.
+  // globalIdxs: global linear index of each basis function/node in current cell.
+
+    globalIdxs[0] = 2*idx[0]; 
+
+    globalIdxs[1] = 0; 
+
+    globalIdxs[2] = 2*idx[0]+1; 
+
+    globalIdxs[3] = 1; 
+
+
+}
+
+GKYL_CU_DH void fem_poisson_perp_local_to_global_2x_ser_p1_upx_nonperiodicx(const int *numCells, const int *idx, long *globalIdxs) 
+{ 
+  // numCells:   number of cells in each direction.
+  // idx:        multi-dimensional index of current cell.
+  // globalIdxs: global linear index of each basis function/node in current cell.
+
+    globalIdxs[0] = 2*idx[0]; 
+
+    globalIdxs[1] = 2*idx[0]+1; 
+
+    globalIdxs[2] = 2*idx[0]+2; 
+
+    globalIdxs[3] = 2*idx[0]+3; 
+
+
+}
+
 GKYL_CU_DH void fem_poisson_perp_local_to_global_3x_ser_p1_inx_periodicx_iny_periodicy(const int *numCells, const int *idx, long *globalIdxs) 
 { 
   // numCells:   number of cells in each direction.

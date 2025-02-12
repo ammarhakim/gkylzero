@@ -11,18 +11,41 @@
 # define GKYL_IPOW(a,e) (int)(pow(a,e)+0.5)
 #endif
 
-#define PERP_DIM 2
+#define PERP_DIM_MAX 2
 
 // Function pointer type for local-to-global mapping.
 typedef void (*local2global_t)(const int *numCells, const int *idx,
   long *globalIdxs);
 
 // For use in kernel tables.
+typedef struct { local2global_t kernels[2]; } local2global_kern_loc_list_2x;
+typedef struct { local2global_kern_loc_list_2x list[3]; } local2global_kern_bcx_list_2x;
+
 typedef struct { local2global_t kernels[4]; } local2global_kern_loc_list_3x;
 typedef struct { local2global_kern_loc_list_3x list[3]; } local2global_kern_bcy_list_3x;
 typedef struct { local2global_kern_bcy_list_3x list[2]; } local2global_kern_bcx_list_3x;
 
 // Serendipity local-to-global kernels.
+GKYL_CU_D
+static const local2global_kern_bcx_list_2x ser_loc2glob_list_2x[] = {
+  // periodicx
+  { .list =
+   {
+     {NULL, NULL},
+     {fem_poisson_perp_local_to_global_2x_ser_p1_inx_periodicx, fem_poisson_perp_local_to_global_2x_ser_p1_upx_periodicx},
+     {NULL, NULL},
+   },
+  },
+  // nonperiodicx
+  { .list =
+    { 
+      {NULL, NULL},
+      {fem_poisson_perp_local_to_global_2x_ser_p1_inx_nonperiodicx, fem_poisson_perp_local_to_global_2x_ser_p1_upx_nonperiodicx},
+      {NULL, NULL},
+    },
+  },
+};
+
 GKYL_CU_D
 static const local2global_kern_bcx_list_3x ser_loc2glob_list_3x[] = {
   // periodicx
@@ -62,11 +85,49 @@ typedef void (*lhsstencil_t)(const double *epsilon, const double *kSq, const dou
   const long *globalIdxs, gkyl_mat_triples *tri);
 
 // For use in kernel tables.
+typedef struct { lhsstencil_t kernels[3]; } lhsstencil_kern_loc_list_2x;
+typedef struct { lhsstencil_kern_loc_list_2x list[3]; } lhsstencil_kern_bcx_list_2x;
+
 typedef struct { lhsstencil_t kernels[9]; } lhsstencil_kern_loc_list_3x;
 typedef struct { lhsstencil_kern_loc_list_3x list[3]; } lhsstencil_kern_bcy_list_3x;
 typedef struct { lhsstencil_kern_bcy_list_3x list[9]; } lhsstencil_kern_bcx_list_3x;
 
 // Serendipity lhs kernels.
+static const lhsstencil_kern_bcx_list_2x ser_lhsstencil_list_2x[] = {
+  // periodicx
+  { .list =
+    {
+      {NULL, NULL, NULL},
+      {fem_poisson_perp_lhs_stencil_2x_ser_p1_inx_periodicx, fem_poisson_perp_lhs_stencil_2x_ser_p1_lox_periodicx, fem_poisson_perp_lhs_stencil_2x_ser_p1_upx_periodicx},
+      {NULL, NULL, NULL},
+    },
+  },
+  // dirichletx-dirichletx
+  { .list =
+    {
+      {NULL, NULL, NULL},
+      {fem_poisson_perp_lhs_stencil_2x_ser_p1_inx_periodicx, fem_poisson_perp_lhs_stencil_2x_ser_p1_lox_dirichletx, fem_poisson_perp_lhs_stencil_2x_ser_p1_upx_dirichletx},
+      {NULL, NULL, NULL},
+    },
+  },
+  // dirichletx-neumannx
+  { .list = 
+    {
+      {NULL, NULL, NULL},
+      {fem_poisson_perp_lhs_stencil_2x_ser_p1_inx_periodicx, fem_poisson_perp_lhs_stencil_2x_ser_p1_lox_dirichletx, fem_poisson_perp_lhs_stencil_2x_ser_p1_upx_neumannx},
+      {NULL, NULL, NULL},
+    },
+  },
+  // neumannx-dirichletx
+  { .list =
+    {
+      {NULL, NULL, NULL},
+      {fem_poisson_perp_lhs_stencil_2x_ser_p1_inx_periodicx, fem_poisson_perp_lhs_stencil_2x_ser_p1_lox_neumannx, fem_poisson_perp_lhs_stencil_2x_ser_p1_upx_dirichletx},
+      {NULL, NULL, NULL},
+    }
+  },
+};
+
 static const lhsstencil_kern_bcx_list_3x ser_lhsstencil_list_3x[] = {
   // periodicx
   { .list = {
@@ -187,11 +248,50 @@ typedef void (*srcstencil_t)(const double *epsilon, const double *dx, const doub
   double *bsrc);
 
 // For use in kernel tables.
+typedef struct { srcstencil_t kernels[3]; } srcstencil_kern_loc_list_2x;
+typedef struct { srcstencil_kern_loc_list_2x list[3]; } srcstencil_kern_bcx_list_2x;
+
 typedef struct { srcstencil_t kernels[9]; } srcstencil_kern_loc_list_3x;
 typedef struct { srcstencil_kern_loc_list_3x list[3]; } srcstencil_kern_bcy_list_3x;
 typedef struct { srcstencil_kern_bcy_list_3x list[9]; } srcstencil_kern_bcx_list_3x;
 
 // Serendipity src kernels.
+GKYL_CU_D
+static const srcstencil_kern_bcx_list_2x ser_srcstencil_list_2x[] = {
+  // periodicx
+  { .list =
+    {
+      {NULL, NULL, NULL},
+      {fem_poisson_perp_src_stencil_2x_ser_p1_inx_periodicx, fem_poisson_perp_src_stencil_2x_ser_p1_lox_periodicx, fem_poisson_perp_src_stencil_2x_ser_p1_upx_periodicx},
+      {NULL, NULL, NULL},
+    },
+  },
+  // dirichletx-dirichletx
+  { .list = 
+    {
+      {NULL, NULL, NULL},
+      {fem_poisson_perp_src_stencil_2x_ser_p1_inx_periodicx, fem_poisson_perp_src_stencil_2x_ser_p1_lox_dirichletx, fem_poisson_perp_src_stencil_2x_ser_p1_upx_dirichletx},
+      {NULL, NULL, NULL},
+    },
+  },
+  // dirichletx-neumannx
+  { .list = 
+    {
+      {NULL, NULL, NULL},
+      {fem_poisson_perp_src_stencil_2x_ser_p1_inx_periodicx, fem_poisson_perp_src_stencil_2x_ser_p1_lox_dirichletx, fem_poisson_perp_src_stencil_2x_ser_p1_upx_neumannx},
+      {NULL, NULL, NULL},
+    },
+  },
+  // neumannx-dirichletx
+  { .list = 
+    {
+      {NULL, NULL, NULL},
+      {fem_poisson_perp_src_stencil_2x_ser_p1_inx_periodicx, fem_poisson_perp_src_stencil_2x_ser_p1_lox_neumannx, fem_poisson_perp_src_stencil_2x_ser_p1_upx_dirichletx},
+      {NULL, NULL, NULL},
+    },
+  },
+};
+
 GKYL_CU_D
 static const srcstencil_kern_bcx_list_3x ser_srcstencil_list_3x[] = {
   // periodicx
@@ -319,13 +419,14 @@ static const solstencil_kern_list ser_solstencil_list[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   // 2x kernels
-  { NULL, NULL, NULL }, // 1
+  { NULL, fem_poisson_perp_sol_stencil_2x_ser_p1, NULL }, // 1
   // 3x kernels
   { NULL, fem_poisson_perp_sol_stencil_3x_ser_p1, NULL }, // 2
 };
 
 // "Choose Kernel" based on polyorder, stencil location and BCs.
-#define CK(lst,poly_order,loc,bcx,bcy) lst[bcx].list[bcy].list[poly_order].kernels[loc]
+#define CK2x(lst,poly_order,loc,bcx) lst[bcx].list[poly_order].kernels[loc]
+#define CK3x(lst,poly_order,loc,bcx,bcy) lst[bcx].list[bcy].list[poly_order].kernels[loc]
 
 // Struct containing pointers to the various kernels. Needed to create a similar struct on the GPU.
 struct gkyl_fem_poisson_perp_kernels { 
@@ -346,6 +447,7 @@ struct gkyl_fem_poisson_perp {
   void *ctx; // Evaluation context.
   struct gkyl_rect_grid grid;
   int ndim; // Grid's number of dimensions.
+  int ndim_perp; // Grid's number of perpendicular dimensions.
   int num_basis; // Number of basis functions.
   enum gkyl_basis_type basis_type;
   int poly_order;
@@ -366,7 +468,7 @@ struct gkyl_fem_poisson_perp {
   double *rhs_avg, mavgfac;
   double *rhs_avg_cu;
 
-  double bcvals[PERP_DIM*2*3]; // BC values, bc[0]*phi+bc[1]*d(phi)/dx=phi[3] at each boundary.
+  double bcvals[PERP_DIM_MAX*2*3]; // BC values, bc[0]*phi+bc[1]*d(phi)/dx=phi[3] at each boundary.
   double *bcvals_cu; // BC values, bc[0]*phi+bc[1]*d(phi)/dx=phi[3] at each boundary.
 
   const struct gkyl_range *solve_range;
@@ -399,17 +501,28 @@ void
 fem_poisson_perp_choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_poisson_bc* bcs, const bool *isdirperiodic, struct gkyl_fem_poisson_perp_kernels *kers);
 
 static long
-gkyl_fem_poisson_perp_global_num_nodes(const int poly_order, const int basis_type, const int *num_cells, bool *isdirperiodic)
+gkyl_fem_poisson_perp_global_num_nodes(int ndim, int poly_order, int basis_type, const int *num_cells, bool *isdirperiodic)
 {
-  if (poly_order == 1) {
-    if (isdirperiodic[0] && isdirperiodic[1]) {
-      return fem_poisson_perp_num_nodes_global_3x_ser_p1_periodicx_periodicy(num_cells);
-    } else if (!isdirperiodic[0] && isdirperiodic[1]) {
-      return fem_poisson_perp_num_nodes_global_3x_ser_p1_nonperiodicx_periodicy(num_cells);
-    } else if (isdirperiodic[0] && !isdirperiodic[1]) {
-      return fem_poisson_perp_num_nodes_global_3x_ser_p1_periodicx_nonperiodicy(num_cells);
-    } else {
-      return fem_poisson_perp_num_nodes_global_3x_ser_p1_nonperiodicx_nonperiodicy(num_cells);
+  if (ndim == 2) {
+    if (poly_order == 1) {
+      if (isdirperiodic[0]) {
+        return fem_poisson_perp_num_nodes_global_2x_ser_p1_periodicx(num_cells);
+      } else if (!isdirperiodic[0]) {
+        return fem_poisson_perp_num_nodes_global_2x_ser_p1_nonperiodicx(num_cells);
+      }
+    }
+  }
+  else {
+    if (poly_order == 1) {
+      if (isdirperiodic[0] && isdirperiodic[1]) {
+        return fem_poisson_perp_num_nodes_global_3x_ser_p1_periodicx_periodicy(num_cells);
+      } else if (!isdirperiodic[0] && isdirperiodic[1]) {
+        return fem_poisson_perp_num_nodes_global_3x_ser_p1_nonperiodicx_periodicy(num_cells);
+      } else if (isdirperiodic[0] && !isdirperiodic[1]) {
+        return fem_poisson_perp_num_nodes_global_3x_ser_p1_periodicx_nonperiodicy(num_cells);
+      } else {
+        return fem_poisson_perp_num_nodes_global_3x_ser_p1_nonperiodicx_nonperiodicy(num_cells);
+      }
     }
   }
   assert(false);  // Other dimensionalities not supported.
@@ -421,14 +534,17 @@ static void
 fem_poisson_perp_choose_local2global_kernels(const struct gkyl_basis* basis, const bool *isdirperiodic, local2global_t *l2gout)
 {
   int poly_order = basis->poly_order;
+  int ndim = basis->ndim;
+  int ndim_perp = ndim-1;
 
   int bckey[GKYL_MAX_CDIM] = {-1};
-  for (int d=0; d<PERP_DIM; d++) bckey[d] = isdirperiodic[d] ? 0 : 1;
+  for (int d=0; d<ndim_perp; d++) bckey[d] = isdirperiodic[d] ? 0 : 1;
 
   switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      for (int k=0; k<GKYL_IPOW(2,PERP_DIM); k++)
-        l2gout[k] = CK(ser_loc2glob_list_3x, poly_order, k, bckey[0], bckey[1]);
+      for (int k=0; k<GKYL_IPOW(2,ndim_perp); k++)
+        l2gout[k] = ndim == 2? CK2x(ser_loc2glob_list_2x, poly_order, k, bckey[0])
+                             : CK3x(ser_loc2glob_list_3x, poly_order, k, bckey[0], bckey[1]);
       break;
 //    case GKYL_BASIS_MODAL_TENSOR:
 //      break;
@@ -443,9 +559,11 @@ static void
 fem_poisson_perp_choose_lhs_kernels(const struct gkyl_basis* basis, const struct gkyl_poisson_bc *bcs, lhsstencil_t *lhsout)
 {
   int poly_order = basis->poly_order;
+  int ndim = basis->ndim;
+  int ndim_perp = ndim-1;
 
   int bckey[GKYL_MAX_CDIM] = {-1, -1, -1};
-  for (int d=0; d<PERP_DIM; d++) {
+  for (int d=0; d<ndim_perp; d++) {
          if (bcs->lo_type[d]==GKYL_POISSON_PERIODIC  && bcs->up_type[d]==GKYL_POISSON_PERIODIC ) { bckey[d] = 0; }
     else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET && bcs->up_type[d]==GKYL_POISSON_DIRICHLET) { bckey[d] = 1; }
     else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET && bcs->up_type[d]==GKYL_POISSON_NEUMANN  ) { bckey[d] = 2; }
@@ -455,8 +573,9 @@ fem_poisson_perp_choose_lhs_kernels(const struct gkyl_basis* basis, const struct
 
   switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      for (int k=0; k<GKYL_IPOW(3,PERP_DIM); k++)
-        lhsout[k] = CK(ser_lhsstencil_list_3x, poly_order, k, bckey[0], bckey[1]);
+      for (int k=0; k<GKYL_IPOW(3,ndim_perp); k++)
+        lhsout[k] = ndim == 2? CK2x(ser_lhsstencil_list_2x, poly_order, k, bckey[0])
+                             : CK3x(ser_lhsstencil_list_3x, poly_order, k, bckey[0], bckey[1]);
       break;
 //    case GKYL_BASIS_MODAL_TENSOR:
 //      break;
@@ -471,9 +590,11 @@ static void
 fem_poisson_perp_choose_src_kernels(const struct gkyl_basis* basis, const struct gkyl_poisson_bc *bcs, srcstencil_t *srcout)
 {
   int poly_order = basis->poly_order;
+  int ndim = basis->ndim;
+  int ndim_perp = ndim-1;
 
   int bckey[GKYL_MAX_CDIM] = {-1, -1, -1};
-  for (int d=0; d<PERP_DIM; d++) {
+  for (int d=0; d<ndim_perp; d++) {
          if (bcs->lo_type[d]==GKYL_POISSON_PERIODIC  && bcs->up_type[d]==GKYL_POISSON_PERIODIC ) { bckey[d] = 0; }
     else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET && bcs->up_type[d]==GKYL_POISSON_DIRICHLET) { bckey[d] = 1; }
     else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET && bcs->up_type[d]==GKYL_POISSON_NEUMANN  ) { bckey[d] = 2; }
@@ -483,8 +604,9 @@ fem_poisson_perp_choose_src_kernels(const struct gkyl_basis* basis, const struct
 
   switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      for (int k=0; k<GKYL_IPOW(3,PERP_DIM); k++)
-        srcout[k] = CK(ser_srcstencil_list_3x, poly_order, k, bckey[0], bckey[1]);
+      for (int k=0; k<GKYL_IPOW(3,ndim_perp); k++)
+        srcout[k] = ndim == 2? CK2x(ser_srcstencil_list_2x, poly_order, k, bckey[0])
+                             : CK3x(ser_srcstencil_list_3x, poly_order, k, bckey[0], bckey[1]);
       break;
 //    case GKYL_BASIS_MODAL_TENSOR:
 //      break;
