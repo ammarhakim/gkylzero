@@ -9,6 +9,30 @@
 // Object type
 typedef struct gkyl_eval_on_nodes gkyl_eval_on_nodes;
 
+typedef void (*eval_on_nodes_c2p_t)(const double *xcomp, double *xphys, void *ctx);
+
+struct gkyl_eval_on_nodes_inp {
+  const struct gkyl_rect_grid *grid; // Grid to project on
+  const struct gkyl_basis *basis; // Basis functions
+  int num_ret_vals; // Number of values 'eval' sets
+  evalf_t eval; // Function to project.
+  void *ctx; // Context for function evaluation. Can be NULL.
+
+  eval_on_nodes_c2p_t c2p_func; // Function that transforms a set of ndim
+                                // computational coordinates to physical ones.
+  void *c2p_func_ctx; // Context for c2p_func.
+};
+
+/**
+ * Create new updater to compute function on nodes and calculate its
+ * expansion on basis functions. Free using gkyl_eval_on_nodes_release
+ * method.
+ * 
+ * @param inp Input parameters
+ * @return New updater pointer.
+ */
+gkyl_eval_on_nodes* gkyl_eval_on_nodes_inew(const struct gkyl_eval_on_nodes_inp *inp);
+
 /**
  * Create new updater to compute function on nodes and calculate its
  * expansion on basis functions. Free using gkyl_eval_on_nodes_release
