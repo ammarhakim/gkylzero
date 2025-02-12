@@ -15,9 +15,9 @@ extern "C" {
 // CUDA kernel to set device pointers to kernels.
 __global__ static void
 gkyl_dg_cx_set_cu_dev_ptrs(struct gkyl_dg_cx *up, 
-  enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order)
+  enum gkyl_basis_type b_type, int tblidx, int poly_order)
 {
-  up->react_rate = choose_kern(b_type, cdim, vdim, poly_order);
+  up->react_rate = choose_kern(b_type, tblidx, poly_order);
 };
 
 __global__ static void
