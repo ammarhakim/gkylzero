@@ -176,8 +176,7 @@ test_zdep_nd_nxnz(int nx, int ny){
 #endif
 
   //smooth it
-  struct gkyl_array *weight=0;
-  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &local_ext, &basis, GKYL_FEM_PARPROJ_DIRICHLET, weight, use_gpu);
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &basis, GKYL_FEM_PARPROJ_DIRICHLET, 0, 0, use_gpu);
   gkyl_fem_parproj_set_rhs(parproj, field_discont_dev, field_discont_dev);
   gkyl_fem_parproj_solve(parproj, field_dev);
 
@@ -278,8 +277,7 @@ test_simplez_dd_nxnz(int nx, int ny){
   struct gkyl_array *field_discont_dev = field_discont;
 #endif
 
-  struct gkyl_array *weight=0;
-  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &local_ext, &basis, GKYL_FEM_PARPROJ_DIRICHLET, weight, use_gpu);
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &basis, GKYL_FEM_PARPROJ_DIRICHLET, 0, 0, use_gpu);
   gkyl_fem_parproj_set_rhs(parproj, field_discont_dev, field_discont_dev);
   gkyl_fem_parproj_solve(parproj, field_dev);
 
@@ -468,8 +466,7 @@ test_zind_dd_nxnz(int nx, int ny){
   struct gkyl_array *field_discont_dev = field_discont;
 #endif
 
-  struct gkyl_array *weight=0;
-  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &local_ext, &basis, GKYL_FEM_PARPROJ_DIRICHLET, weight, use_gpu);
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &basis, GKYL_FEM_PARPROJ_DIRICHLET, 0, 0, use_gpu);
   gkyl_fem_parproj_set_rhs(parproj, field_discont_dev, field_discont_dev);
   gkyl_fem_parproj_solve(parproj, field_dev);
 
@@ -572,8 +569,7 @@ test_3x_dd_dd_nxnynz(int nx, int ny, int nz){
 #endif
 
   //smooth it
-  struct gkyl_array *weight=0;
-  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &local_ext, &basis, GKYL_FEM_PARPROJ_DIRICHLET, weight, use_gpu);
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &basis, GKYL_FEM_PARPROJ_DIRICHLET, 0, 0, use_gpu);
   gkyl_fem_parproj_set_rhs(parproj, field_discont_dev, field_discont_dev);
   gkyl_fem_parproj_solve(parproj, field_dev);
 

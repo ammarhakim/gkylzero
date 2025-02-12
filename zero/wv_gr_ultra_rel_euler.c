@@ -918,7 +918,7 @@ max_speed(const struct gkyl_wv_eqn* eqn, const double* q)
 static inline void
 gr_ultra_rel_euler_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* diag)
 {
-  for (int i = 0; i < 27; i++) {
+  for (int i = 0; i < 4; i++) {
     diag[i] = qin[i];
   }
 }
@@ -1067,7 +1067,7 @@ gkyl_wv_gr_ultra_rel_euler_inew(const struct gkyl_wv_gr_ultra_rel_euler_inp* inp
 
   gr_ultra_rel_euler->eqn.type = GKYL_EQN_GR_ULTRA_REL_EULER;
   gr_ultra_rel_euler->eqn.num_equations = 27;
-  gr_ultra_rel_euler->eqn.num_diag = 5;
+  gr_ultra_rel_euler->eqn.num_diag = 4;
 
   gr_ultra_rel_euler->gas_gamma = inp->gas_gamma;
   gr_ultra_rel_euler->spacetime = inp->spacetime;

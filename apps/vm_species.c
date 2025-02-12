@@ -149,10 +149,10 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     }
 
     // Allocate arrays for specified metric inverse
-    s->h_ij_inv = mkarr(app->use_gpu, app->confBasis.num_basis*cdim*(cdim+1)/2, app->local_ext.volume);
+    s->h_ij_inv = mkarr(app->use_gpu, app->confBasis.num_basis*vdim*(vdim+1)/2, app->local_ext.volume);
     s->h_ij_inv_host = s->h_ij_inv;
     if (app->use_gpu){
-      s->h_ij_inv_host = mkarr(false, app->confBasis.num_basis*cdim*(cdim+1)/2, app->local_ext.volume);
+      s->h_ij_inv_host = mkarr(false, app->confBasis.num_basis*vdim*(vdim+1)/2, app->local_ext.volume);
     }
 
     // Allocate arrays for specified metric determinant
@@ -171,7 +171,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     gkyl_eval_on_nodes_release(hamil_proj);
 
     // Evaluate specified inverse metric function at nodes to insure continuity of the inverse 
-    struct gkyl_eval_on_nodes* h_ij_inv_proj = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis, cdim*(cdim+1)/2, s->info.h_ij_inv, s->info.h_ij_inv_ctx);
+    struct gkyl_eval_on_nodes* h_ij_inv_proj = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis, vdim*(vdim+1)/2, s->info.h_ij_inv, s->info.h_ij_inv_ctx);
     gkyl_eval_on_nodes_advance(h_ij_inv_proj, 0.0, &app->local, s->h_ij_inv_host);
     if (app->use_gpu){
       gkyl_array_copy(s->h_ij_inv, s->h_ij_inv_host);
@@ -199,9 +199,8 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       gkyl_cart_modal_tensor(&surf_quad_basis, pdim-1, app->poly_order);
     }
 
-    // always 2*cdim
-    int alpha_surf_sz = (2*cdim)*surf_basis.num_basis; 
-    int sgn_alpha_surf_sz = (2*cdim)*surf_quad_basis.num_basis; // sign(alpha) is store at quadrature points
+    int alpha_surf_sz = (cdim + vdim)*surf_basis.num_basis; 
+    int sgn_alpha_surf_sz = (cdim + vdim)*surf_quad_basis.num_basis; // sign(alpha) is store at quadrature points
 
     // allocate arrays to store fields: 
     // 1. alpha_surf (surface phase space velocity)
@@ -209,7 +208,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     // 3. const_sgn_alpha (boolean for if sign(alpha_surf) is a constant, either +1 or -1)
     s->alpha_surf = mkarr(app->use_gpu, alpha_surf_sz, s->local_ext.volume);
     s->sgn_alpha_surf = mkarr(app->use_gpu, sgn_alpha_surf_sz, s->local_ext.volume);
-    s->const_sgn_alpha = mk_int_arr(app->use_gpu, (2*cdim), s->local_ext.volume);
+    s->const_sgn_alpha = mk_int_arr(app->use_gpu, (cdim + vdim), s->local_ext.volume);
 
     // Pre-compute alpha_surf, sgn_alpha_surf, const_sgn_alpha, and cot_vec since they are time-independent
     struct gkyl_dg_calc_canonical_pb_vars *calc_vars = gkyl_dg_calc_canonical_pb_vars_new(&s->grid, 
@@ -308,8 +307,8 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   
   // determine collision type to use in vlasov update
   s->collision_id = s->info.collisions.collision_id;
-  // initialize empty collision structs so inputs of structs are set to 0
   s->lte = (struct vm_lte) { };
+  // initialize empty collision structs so inputs of structs are set to 0
   s->lbo = (struct vm_lbo_collisions) { };
   s->bgk = (struct vm_bgk_collisions) { };
   if (s->info.output_f_lte){
@@ -507,7 +506,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
     vm_species_radiation_rhs(app, species, &species->rad, fin, rhs);
   }
   
-  app->stat.nspecies_omega_cfl +=1;
+  app->stat.n_species_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
   gkyl_array_reduce_range(species->omegaCfl_ptr, species->cflrate, GKYL_MAX, &species->local);
 
@@ -542,7 +541,7 @@ vm_species_rhs_implicit(gkyl_vlasov_app *app, struct vm_species *species,
     vm_species_bflux_rhs(app, species, &species->bflux, fin, rhs);
   }
   
-  app->stat.nspecies_omega_cfl +=1;
+  app->stat.n_species_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
   gkyl_array_reduce_range(species->omegaCfl_ptr, species->cflrate, GKYL_MAX, &species->local);
 

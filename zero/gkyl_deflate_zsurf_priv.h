@@ -2,7 +2,7 @@
 #pragma once
 
 #include <math.h>
-#include <gkyl_deflate_zsurf_kernels.h>
+#include <gkyl_deflate_surf_kernels.h>
 #include <assert.h>
 
 typedef void (*deflate_zsurf_kernel)(const double *fld, double* deflated_fld);
@@ -23,13 +23,13 @@ static const deflate_zsurf_kernel_dim_list ser_deflate_zsurf_kernel_dim_list[] =
     }
   },
   { .list = {
-      {NULL, deflate_zsurf_lo_2x_ser_p1_remy, deflate_zsurf_lo_2x_ser_p2_remy},
-      {NULL, deflate_zsurf_up_2x_ser_p1_remy, deflate_zsurf_up_2x_ser_p2_remy},
+      {NULL, deflate_surfy_lower_2x_ser_p1, deflate_surfy_lower_2x_ser_p2},
+      {NULL, deflate_surfy_upper_2x_ser_p1, deflate_surfy_upper_2x_ser_p2},
     }
   },
   { .list = {
-      {NULL, deflate_zsurf_lo_3x_ser_p1_remz, deflate_zsurf_lo_3x_ser_p2_remz},
-      {NULL, deflate_zsurf_up_3x_ser_p1_remz, deflate_zsurf_up_3x_ser_p2_remz},
+      {NULL, deflate_surfz_lower_3x_ser_p1, deflate_surfz_lower_3x_ser_p2},
+      {NULL, deflate_surfz_upper_3x_ser_p1, deflate_surfz_upper_3x_ser_p2},
     }
   },
 };
@@ -58,6 +58,10 @@ deflate_zsurf_choose_kernel(enum gkyl_basis_type basis_type, int dim, int edge, 
   }
 }
 
-
-
-
+/**
+ * Create new updater deflate a 2d (x,z)  or 3d (x,y,z) modal expansion to a 1d (x) modal expansion or 2d (x,y)
+ * NV-GPU. See new() method for documentation.
+ */
+struct gkyl_deflate_zsurf* 
+gkyl_deflate_zsurf_cu_dev_new(const struct gkyl_basis *cbasis, 
+  const struct gkyl_basis *deflated_cbasis, int edge);

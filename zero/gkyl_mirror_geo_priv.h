@@ -291,7 +291,7 @@ R_psiZ(const struct gkyl_mirror_geo *geo, double psi, double Z, int nmaxroots,
   }
 
   // Try again if we didn't find any
-  if (sidx==0 && !geo->exact_roots) {
+  if (sidx==0 && geo->inexact_roots) {
     gkyl_range_iter_init(&riter, &rangeR);
     while (gkyl_range_iter_next(&riter) && sidx<=nmaxroots) {
       long loc = gkyl_range_idx(&rangeR, riter.idx);
@@ -612,4 +612,3 @@ void mirror_find_endpoints(struct gkyl_mirror_geo_grid_inp* inp, struct gkyl_mir
  * Used to set arc_ctx attributes before using ridders to find z
 */
 void mirror_set_ridders(struct gkyl_mirror_geo_grid_inp* inp, struct arc_length_ctx* arc_ctx, double psi_curr, double arcL, double arcL_curr, double zmin, double zmax, double* rclose, double *ridders_min, double* ridders_max);
-

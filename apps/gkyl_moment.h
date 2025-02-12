@@ -90,6 +90,7 @@ struct gkyl_moment_field {
   // pointer to external fields
   void (*ext_em_func)(double t, const double *xn, double *fout, void *ctx);
   double t_ramp_E; // linear ramp for turning on external E field
+
   bool use_explicit_em_coupling; // flag to indicate if using explicit em-coupling
 
   bool has_volume_sources; // Run with volume-based geometrical sources.
@@ -272,6 +273,15 @@ struct gkyl_app_restart_status gkyl_moment_app_from_frame_field(gkyl_moment_app 
  */
 struct gkyl_app_restart_status gkyl_moment_app_from_frame_species(gkyl_moment_app *app,
   int sidx, int frame);
+
+/**
+ * Initialize the Moment app from a specific frame.
+ *
+ * @param app App object.
+ * @param frame Frame to read.
+ */
+struct gkyl_app_restart_status
+gkyl_moment_app_read_from_frame(gkyl_moment_app *app, int frame);
 
 /**
  * Write output to console: this is mainly for diagnostic messages the

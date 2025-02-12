@@ -23,6 +23,7 @@ gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu_kernel(struct gkyl_dg_calc_canonica
 {
   int pdim = up->pdim;
   int cdim = up->cdim;
+  int vdim = pdim - cdim;
   int idx[GKYL_MAX_DIM], idx_edge[GKYL_MAX_DIM];
   double xc[GKYL_MAX_DIM];
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
@@ -39,14 +40,13 @@ gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu_kernel(struct gkyl_dg_calc_canonica
     double* alpha_surf_d = (double*) gkyl_array_fetch(alpha_surf, loc_phase);
     double* sgn_alpha_surf_d = (double*) gkyl_array_fetch(sgn_alpha_surf, loc_phase);
     int* const_sgn_alpha_d = (int*) gkyl_array_fetch(const_sgn_alpha, loc_phase);
-    for (int dir = 0; dir<cdim; ++dir) {
-      const double *hamil_local =  (const double*) gkyl_array_fetch(hamil, loc_phase);
-      
-      const_sgn_alpha_d[dir] = up->alpha_surf[dir](xc, up->phase_grid.dx, 
+    for (int dir = 0; dir<vdim; ++dir) {
+      const_sgn_alpha_d[dir+cdim] = up->alpha_surf[dir+cdim](xc, up->phase_grid.dx, 
         (const double*) gkyl_array_cfetch(hamil, loc_phase),
         alpha_surf_d, sgn_alpha_surf_d);
-
-      const_sgn_alpha_d[dir+cdim] = up->alpha_surf[dir+cdim](xc, up->phase_grid.dx, 
+    }
+    for (int dir = 0; dir<cdim; ++dir) {
+      const_sgn_alpha_d[dir] = up->alpha_surf[dir](xc, up->phase_grid.dx, 
         (const double*) gkyl_array_cfetch(hamil, loc_phase),
         alpha_surf_d, sgn_alpha_surf_d);
 
@@ -135,13 +135,15 @@ gkyl_canonical_pb_pressure_cu(struct gkyl_dg_calc_canonical_pb_vars *up, const s
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void 
   dg_calc_canoncial_pb_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_canonical_pb_vars *up,
-  enum gkyl_basis_type b_type, int cdim, int poly_order)
+  enum gkyl_basis_type b_type, int cv_index, int cdim, int vdim, int poly_order)
 {
-  up->canonical_pb_pressure = choose_canonical_pb_pressure_kern(b_type, cdim, poly_order);
+  up->canonical_pb_pressure = choose_canonical_pb_pressure_kern(b_type, cv_index, cdim, poly_order);
   for (int d=0; d<cdim; ++d) {  
-    up->alpha_surf[d] = choose_canonical_pb_alpha_surf_kern(b_type, d, cdim, poly_order);
-    up->alpha_surf[d+cdim] = choose_canonical_pb_alpha_surf_v_kern(b_type, d, cdim, poly_order);
-    up->alpha_edge_surf[d] = choose_canonical_pb_alpha_edge_surf_kern(b_type, d, cdim, poly_order);
+    up->alpha_surf[d] = choose_canonical_pb_alpha_surf_kern(b_type, d, cv_index, cdim, vdim, poly_order);
+    up->alpha_edge_surf[d] = choose_canonical_pb_alpha_edge_surf_kern(b_type, d, cv_index, cdim, vdim, poly_order);
+  }
+  for (int d=0; d<vdim; ++d) {  
+    up->alpha_surf[d+cdim] = choose_canonical_pb_alpha_surf_v_kern(b_type, d, cv_index, cdim, vdim, poly_order);
   }
 }
 
@@ -155,6 +157,7 @@ gkyl_dg_calc_canonical_pb_vars_cu_dev_new(const struct gkyl_rect_grid *phase_gri
   up->phase_grid = *phase_grid;
   int cdim = conf_basis->ndim;
   int pdim = phase_basis->ndim;
+  int vdim = pdim - cdim;
   int poly_order = phase_basis->poly_order;
   up->cdim = cdim;
   up->pdim = pdim;
@@ -165,7 +168,7 @@ gkyl_dg_calc_canonical_pb_vars_cu_dev_new(const struct gkyl_rect_grid *phase_gri
   struct gkyl_dg_calc_canonical_pb_vars *up_cu = (struct gkyl_dg_calc_canonical_pb_vars *) gkyl_cu_malloc(sizeof(gkyl_dg_calc_canonical_pb_vars));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_calc_canonical_pb_vars), GKYL_CU_MEMCPY_H2D);
 
-  dg_calc_canoncial_pb_vars_set_cu_dev_ptrs<<<1,1>>>(up_cu, conf_basis->b_type, cdim, poly_order);
+  dg_calc_canoncial_pb_vars_set_cu_dev_ptrs<<<1,1>>>(up_cu, phase_basis->b_type, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order);
 
   // set parent on_dev pointer
   up->on_dev = up_cu;

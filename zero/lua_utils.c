@@ -109,11 +109,25 @@ glua_tbl_get_tbl(lua_State *L, const char *key)
   lua_getfield(L, -1, key);
   return !lua_isnil(L, -1) && lua_istable(L, -1);
 }
+bool
+glua_tbl_iget_tbl(lua_State *L, long key)
+{
+  glua_getfield_int(L, key);
+  return !lua_isnil(L, -1) && lua_istable(L, -1);
+}
 
 bool
 glua_tbl_get_func(lua_State *L, const char *key)
 {
   lua_getfield(L, -1, key);
+  bool has_func = !lua_isnil(L, -1) && lua_isfunction(L, -1);
+  if (!has_func) lua_pop(L, 1);
+  return has_func;
+}
+bool
+glua_tbl_iget_func(lua_State *L, long key)
+{
+  glua_getfield_int(L, key);
   bool has_func = !lua_isnil(L, -1) && lua_isfunction(L, -1);
   if (!has_func) lua_pop(L, 1);
   return has_func;

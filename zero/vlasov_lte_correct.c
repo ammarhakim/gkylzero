@@ -20,8 +20,9 @@ gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
   gkyl_vlasov_lte_correct *up = gkyl_malloc(sizeof(*up));
 
   up->vel_map = 0;
-  if (inp->vel_map != 0)
+  if (inp->vel_map != 0) {
     up->vel_map = gkyl_velocity_map_acquire(inp->vel_map);
+  }
 
   up->eps = inp->eps;
   up->max_iter = inp->max_iter;

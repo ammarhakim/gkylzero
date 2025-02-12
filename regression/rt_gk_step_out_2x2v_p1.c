@@ -92,7 +92,7 @@ eval_density_ar(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
 }
 
 void
-eval_density_arion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+eval_density_Ar1(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 1.0e5;
 }
@@ -538,7 +538,7 @@ main(int argc, char **argv)
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
       .ctx_density = &ctx,
-      .density = eval_density_arion,
+      .density = eval_density_Ar1,
       .ctx_upar = &ctx,
       .upar= eval_upar,
       .ctx_temp = &ctx,
@@ -653,13 +653,13 @@ main(int argc, char **argv)
   };
 
   struct gkyl_tok_geo_grid_inp grid_inp = {
-      .ftype = GKYL_SOL_DN_OUT_MID, // type of geometry
-      .rclose = 6.2,                // closest R to region of interest
-      .rright= 6.2,                 // Closest R to outboard SOL
-      .rleft= 2.0,                  // closest R to inboard SOL
-      .rmin = 1.1,                  // smallest R in machine
-      .rmax = 6.2,                  // largest R in machine
-      .use_cubics = false,          // Whether to use cubic representation of psi(R,Z) for field line tracing
+    .ftype = GKYL_SOL_DN_OUT_MID, // type of geometry
+    .rclose = 6.2,                // closest R to region of interest
+    .rright = 6.2,                // Closest R to outboard SOL
+    .rleft = 2.0,                 // closest R to inboard SOL
+    .rmin = 1.1,                  // smallest R in machine
+    .rmax = 6.2,                  // largest R in machine
+    .use_cubics = false,          // Whether to use cubic representation of psi(R,Z) for field line tracing
   };
 
   // GK app
@@ -799,7 +799,7 @@ main(int argc, char **argv)
   gkyl_gyrokinetic_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
   gkyl_gyrokinetic_app_cout(app, stdout, "Updates took %g secs\n", stat.total_tm);
 
-  gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld,\n", stat.n_io);
   gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   freeresources:

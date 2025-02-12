@@ -2,19 +2,22 @@
 
 # Type make help to see help for this Makefile
 
-# Obtain the git commit ID.
-GIT_COMMIT_HASH := "$(shell git describe --dirty=+ --always --tags)"
+# determine date of build
+BUILD_DATE = $(shell date)
+GIT_TIP = $(shell git describe --abbrev=12 --always --dirty=+)
 
 ARCH_FLAGS ?= -march=native
 CUDA_ARCH ?= 70
 # Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
-CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_COMMIT_HASH)\"
+CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE="${BUILD_DATE}" -DGKYL_GIT_CHANGESET="${GIT_TIP}"
+SQL_CFLAGS ?= -fPIC
 LDFLAGS = 
 PREFIX ?= ${HOME}/gkylsoft
 INSTALL_PREFIX ?= ${PREFIX}
 
 # determine OS we are running on
 UNAME = $(shell uname)
+
 
 # Default lapack include and libraries: we prefer linking to static library
 LAPACK_INC = $(PREFIX)/OpenBLAS/include
@@ -45,7 +48,7 @@ NVCC_FLAGS =
 CUDA_LIBS =
 ifeq ($(CC), nvcc)
        USING_NVCC = yes
-       CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -ffast-math -MMD -MP -fPIC -DGIT_COMMIT_ID=\"$(GIT_COMMIT_HASH)\"
+       CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -ffast-math -MMD -MP -fPIC -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE="${BUILD_DATE}" -DGKYL_GIT_CHANGESET="${GIT_TIP}"
        NVCC_FLAGS = -x cu -dc -arch=sm_${CUDA_ARCH} --compiler-options="-fPIC"
        LDFLAGS += -arch=sm_${CUDA_ARCH}
        ifdef CUDAMATH_LIBDIR
@@ -54,6 +57,7 @@ ifeq ($(CC), nvcc)
               CUDA_LIBS =
        endif
        CUDA_LIBS += -lcublas -lcusparse -lcusolver
+       SQL_CFLAGS = --forward-unknown-to-host-compiler -fPIC
 endif
 
 # Directory for storing shared data, like ADAS reaction rates and radiation fits
@@ -119,7 +123,11 @@ ifeq (${USE_LUA}, 1)
 	USING_LUA = yes
 	LUA_INC_DIR = ${CONF_LUA_INC_DIR}
 	LUA_LIB_DIR = ${CONF_LUA_LIB_DIR}
+ifdef USING_NVCC
+	LUA_RPATH = -Xlinker "-rpath,${CONF_LUA_LIB_DIR}"
+else
 	LUA_RPATH = -Wl,-rpath,${CONF_LUA_LIB_DIR}
+endif
 	LUA_LIBS = -l${CONF_LUA_LIB}
 	CFLAGS += -DGKYL_HAVE_LUA
 endif
@@ -168,7 +176,7 @@ INSTALL_HEADERS += $(shell ls minus/*.h)
 INCLUDES = -Iminus -Iminus/STC/include -Izero -Iapps -Iamr -Iregression -I${BUILD_DIR} ${KERN_INCLUDES} -I${LAPACK_INC} -I${SUPERLU_INC} -I${MPI_INC_DIR} -I${NCCL_INC_DIR} -I${CUDSS_INC_DIR} -I${LUA_INC_DIR}
 
 # Directories containing source code
-SRC_DIRS := minus zero apps amr kernels data/adas
+SRC_DIRS := minus zero apps amr kernels lua/Comm lua/Tool data/adas
 
 # List of regression and unit test
 REGS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard regression/rt_*.c))
@@ -202,9 +210,14 @@ EXEC_LIBS = ${BUILD_DIR}/libgkylzero.so ${EXEC_EXT_LIBS}
 EXEC_INSTALLED_LIBS = ${G0_RPATH} -lgkylzero ${EXEC_EXT_LIBS}
 EXEC_RPATH = 
 
-# Rpath for use in glua exectuable
+# Rpath for use in gkyl exectuable
 G0_LIB_DIR = ${INSTALL_PREFIX}/gkylzero/lib
-G0_RPATH = -Wl,-rpath,${G0_LIB_DIR}
+ifdef USING_NVCC
+	G0_RPATH = -Xlinker "-rpath,${G0_LIB_DIR}"
+else
+	G0_RPATH = -Wl,-rpath,${G0_LIB_DIR}
+endif
+
 
 # Build commands for C source
 $(BUILD_DIR)/%.c.o: %.c
@@ -231,18 +244,23 @@ ${BUILD_DIR}/amr_regression/%: amr_regression/%.c ${BUILD_DIR}/libgkylzero.so$
 	${MKDIR_P} ${BUILD_DIR}/amr_regression
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
 
+# SQLIGHT needs special flags
+$(BUILD_DIR)/minus/sqlite3.c.o: minus/sqlite3.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(SQL_CFLAGS) -c $< -o $@
+
 # Automated regression system
 ${BUILD_DIR}/ci/%: ci/%.c ${BUILD_DIR}/libgkylzero.so
 	$(MKDIR_P) ${BUILD_DIR}/ci
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
 
 # Lua interpreter for testing Lua regression tests
-${BUILD_DIR}/glua: regression/glua.c ${BUILD_DIR}/libgkylzero.so
+${BUILD_DIR}/gkyl: regression/gkyl.c ${BUILD_DIR}/libgkylzero.so
 	$(MKDIR_P) ${BUILD_DIR}
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
 
 # Lua interpreter for testing Lua regression tests
-${BUILD_DIR}/glua-install: regression/glua.c ${BUILD_DIR}/libgkylzero.so
+${BUILD_DIR}/gkyl-install: regression/gkyl.c ${BUILD_DIR}/libgkylzero.so
 	$(MKDIR_P) ${BUILD_DIR}
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_INSTALLED_LIBS} 
 
@@ -358,7 +376,11 @@ $(BUILD_DIR)/kernels/array_integrate/%.c.o : kernels/array_integrate/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
-$(BUILD_DIR)/kernels/deflate_zsurf/%.c.o : kernels/deflate_zsurf/%.c
+$(BUILD_DIR)/kernels/deflate_surf/%.c.o : kernels/deflate_surf/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
+$(BUILD_DIR)/kernels/inflate_surf/%.c.o : kernels/inflate_surf/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
@@ -366,7 +388,19 @@ $(BUILD_DIR)/kernels/positivity_shift/%.c.o : kernels/positivity_shift/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
+$(BUILD_DIR)/kernels/dg_interpolate/%.c.o : kernels/dg_interpolate/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
 $(BUILD_DIR)/kernels/translate_dim/%.c.o : kernels/translate_dim/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
+$(BUILD_DIR)/kernels/skin_surf_from_ghost/%.c.o : kernels/skin_surf_from_ghost/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
+$(BUILD_DIR)/kernels/array_average/%.c.o : kernels/array_average/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
@@ -397,10 +431,10 @@ endef
 
 OPT_FROM_FILE :=
 ifdef USING_NVCC
-	# Note there should be a blank space following --options-file.
+# Note there should be a blank space following --options-file.
         OPT_FROM_FILE += --options-file 
 else
-	# There should be no blank space follow @.
+# There should be no blank space follow @.
         OPT_FROM_FILE += @
 endif
 
@@ -429,16 +463,16 @@ $(ZERO_SH_INSTALL_LIB): $(ZERO_SH_INSTALL_LIB).in $(OBJS)
 ## All libraries build targets completed at this point
 
 .PHONY: all
-all: ${BUILD_DIR}/gkylzero.h ${ZERO_SH_LIB} ## Build libraries and amalgamated header
+all: ${BUILD_DIR}/gkylzero.h ${ZERO_SH_LIB} ${BUILD_DIR}/gkyl ## Build libraries and amalgamated header
 	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/share/adas
 	cp ./data/adas/radiation_fit_parameters.txt ${INSTALL_PREFIX}/gkylzero/share/adas
 
 # Explicit targets to build unit and regression tests
 unit: ${ZERO_SH_LIB} ${UNITS} ${MPI_UNITS} ${LUA_UNITS} ## Build unit tests
-regression: ${ZERO_SH_LIB} ${REGS} regression/rt_arg_parse.h ${BUILD_DIR}/glua ## Build regression tests
+regression: ${ZERO_SH_LIB} ${REGS} regression/rt_arg_parse.h ${BUILD_DIR}/gkyl ## Build regression tests
 amr_regression: ${ZERO_SH_LIB} ${AMR_REGS} ## Build AMR regression tests
 ci: ${ZERO_SH_LIB} ${CI} ## Build automated regression system
-glua: ${BUILD_DIR}/glua ## Build Lua interpreter
+gkyl: ${BUILD_DIR}/gkyl ## Build Lua interpreter
 
 .PHONY: check mpicheck
 # Run all unit tests
@@ -453,8 +487,8 @@ mpicheck: ${MPI_UNITS} ## Build (if needed) and run all unit tests needing MPI
 G0_SHARE_INSTALL_PREFIX=${INSTALL_PREFIX}/gkylzero/share
 SED_REPS_STR=s,G0_SHARE_INSTALL_PREFIX_TAG,${G0_SHARE_INSTALL_PREFIX},g
 
-install: all $(ZERO_SH_INSTALL_LIB) ${BUILD_DIR}/glua ## Install library and headers
-# Construct install directories
+install: all $(ZERO_SH_INSTALL_LIB) ${BUILD_DIR}/gkyl-install ## Install library and headers
+# Construct install 
 	$(MKDIR_P) ${INSTALL_PREFIX}/gkylzero/include
 	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/lib
 	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin
@@ -471,11 +505,32 @@ install: all $(ZERO_SH_INSTALL_LIB) ${BUILD_DIR}/glua ## Install library and hea
 	sed ${SED_REPS_STR} Makefile.sample > ${INSTALL_PREFIX}/gkylzero/share/Makefile
 	cp -f regression/rt_arg_parse.h ${INSTALL_PREFIX}/gkylzero/include/rt_arg_parse.h
 	cp -f regression/rt_vlasov_twostream_p2.c ${INSTALL_PREFIX}/gkylzero/share/rt_vlasov_twostream_p2.c
-
-install-glua: install ${BUILD_DIR}/glua-install ## Install the glua exectuable
-# glua executable
-	cp -f ${BUILD_DIR}/glua-install ${INSTALL_PREFIX}/gkylzero/bin/glua
-
+# gkyl executable
+	cp -f ${BUILD_DIR}/gkyl-install ${INSTALL_PREFIX}/gkylzero/bin/gkyl
+# Copy Lua code from various directories
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/xsys
+	find lua/xsys -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/gkylzero/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/sci
+	find lua/sci -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/gkylzero/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/sqlite3
+	find lua/sqlite3 -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/gkylzero/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/Tool
+	find lua/Tool -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/gkylzero/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/Lib
+	find lua/Lib -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/gkylzero/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/Grid
+	find lua/Grid -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/gkylzero/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/DataStruct
+	find lua/DataStruct -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/gkylzero/bin
+#
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin/lua/Comm
+	find lua/Comm -name '*.lua' | xargs -I {} rsync -R {} ${INSTALL_PREFIX}/gkylzero/bin
 
 .PHONY: clean
 clean: ## Clean build output
@@ -483,7 +538,7 @@ clean: ## Clean build output
 
 .PHONY: cleanur
 cleanur: ## Delete the unit and regression test executables
-	rm -rf ${BUILD_DIR}/unit ${BUILD_DIR}/regression ${BUILD_DIR}/amr_regression {BUILD_DIR}/ci ${BUILD_DIR}/glua
+	rm -rf ${BUILD_DIR}/unit ${BUILD_DIR}/regression ${BUILD_DIR}/amr_regression {BUILD_DIR}/ci ${BUILD_DIR}/gkyl
 
 .PHONY: cleanr
 cleanr: ## Delete the regression test executables

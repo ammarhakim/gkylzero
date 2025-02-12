@@ -1,4 +1,3 @@
-#include "gkyl_eqn_type.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,12 +5,12 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_const.h>
+#include <gkyl_eqn_type.h>
 #include <gkyl_fem_parproj.h>
 #include <gkyl_gyrokinetic.h>
+#include <gkyl_null_comm.h>
 #include <gkyl_util.h>
 #include <gkyl_tok_geo.h>
-
-#include <gkyl_null_comm.h>
 
 #ifdef GKYL_HAVE_MPI
 #include <mpi.h>
@@ -22,7 +21,6 @@
 #endif
 
 #include <rt_arg_parse.h>
-
 struct sheath_ctx
 {
   int cdim, vdim; // Dimensionality.
@@ -487,7 +485,6 @@ main(int argc, char **argv)
       },
     }, 
 
-
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
   };
@@ -531,7 +528,6 @@ main(int argc, char **argv)
       }, 
     },
 
-    
     .react_neut = {
       .num_react = 3,
       .react_type = {
@@ -592,7 +588,6 @@ main(int argc, char **argv)
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2"}, //, "M2par", "M2perp" },
   };
-
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
@@ -740,7 +735,7 @@ main(int argc, char **argv)
   gkyl_gyrokinetic_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
   gkyl_gyrokinetic_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
-  gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld,\n", stat.n_io);
   gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   freeresources:

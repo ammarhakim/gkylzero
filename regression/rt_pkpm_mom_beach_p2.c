@@ -38,6 +38,7 @@ struct mom_beach_ctx
   double charge_elc; // Electron charge.
   double vt_elc; // Electron thermal velocity.
   double nu_elc; // Electron-electron collision frequency. 
+  double density_floor; // Electron density floor to avoid negative density in low-density region. 
 
   double J0; // Reference current density (Amps / m^3).
   
@@ -76,6 +77,7 @@ create_ctx(void)
   double charge_elc = -1.602176487e-19; // Electron charge.
   double T_elc = -charge_elc; // Electron temperature. 
   double vt_elc = sqrt(T_elc/mass_elc); // Electron thermal velocity. 
+  double density_floor = 1.0e1; // Electron density floor to avoid negative density in low-density region. 
 
   double J0 = 1.0e-12; // Reference current density (Amps / m^3).
   
@@ -113,6 +115,7 @@ create_ctx(void)
     .mu0 = mu0,
     .mass_elc = mass_elc,
     .charge_elc = charge_elc,
+    .density_floor = density_floor, 
     .J0 = J0,
     .vt_elc = vt_elc, 
     .nu_elc = nu_elc, 
@@ -152,6 +155,7 @@ evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   double epsilon0 = app->epsilon0;
   double mass_elc = app->mass_elc;
   double charge_elc = app->charge_elc;
+  double density_floor = app->density_floor; 
 
   double light_speed = app->light_speed;
 
@@ -160,7 +164,7 @@ evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   double factor = app ->factor;
 
   double omegaPdt = 25.0 * (1.0 - x) * (1.0 - x) * (1.0 - x) * (1.0 - x) * (1.0 - x); // Plasma frequency profile.
-  double ne = omegaPdt * omegaPdt / factor + 1.0; // Electron number density (with a floor for avoiding negative density).
+  double ne = omegaPdt * omegaPdt / factor + density_floor; // Electron number density (with a floor for avoiding negative density).
   double vt_elc = app->vt_elc; // Electron thermal velocity. 
 
   fout[0] = maxwellian(ne, v, vt_elc);
@@ -476,7 +480,7 @@ main(int argc, char **argv)
   
   gkyl_pkpm_app_cout(app, stdout, "Updates took %g secs\n", stat.total_tm);
   
-  gkyl_pkpm_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
+  gkyl_pkpm_app_cout(app, stdout, "Number of write calls %ld,\n", stat.n_io);
   gkyl_pkpm_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   gkyl_comm_release(comm);
