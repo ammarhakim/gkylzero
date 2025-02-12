@@ -13,6 +13,11 @@
 gkyl_dg_cx*
 gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu)
 {
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_dg_cx_new_cu(inp);
+  } 
+#endif  
   gkyl_dg_cx *up = gkyl_malloc(sizeof(struct gkyl_dg_cx));
 
   up->cbasis = inp->cbasis;
@@ -30,10 +35,8 @@ gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu)
 
   int cdim = up->cbasis->ndim;
   int poly_order = up->cbasis->poly_order;
-  up->cdim = cdim;
-  up->use_gpu = use_gpu;
-  up->vdim_gk = up->pbasis_gk->ndim - cdim; 
-  up->vdim_vl = up->pbasis_vl->ndim - cdim; 
+  int vdim_vl = up->pbasis_vl->ndim - cdim;
+  enum gkyl_basis_type b_type = up->pbasis_vl->b_type;
 
   if (up->type_ion == GKYL_ION_H) {
     up->a = 1.12e-18;
@@ -51,22 +54,12 @@ gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu)
     up->a = 7.95e-19;
     up->b = 5.65e-20;
   }
-  
-  //up->on_dev = up; // CPU eqn obj points to itself
-  
-  //up->react_rate = ser_cx_react_rate_kernels[cv_index[cdim].vdim[up->vdim_vl]].kernels[poly_order];
 
-  if (!use_gpu) {
-    up->kernels = gkyl_malloc(sizeof(struct gkyl_dg_cx_kernels));
-  }
-#ifdef GKYL_HAVE_CUDA
-  if (use_gpu) {
-    up->kernels = gkyl_cu_malloc(sizeof(struct gkyl_dg_cx_kernels));
-  }
-#endif
+  up->react_rate = choose_kern(b_type, cdim, vdim_vl, poly_order);
 
-  dg_cx_choose_kernel(up->kernels, *up->pbasis_vl, *up->cbasis, use_gpu);
-  //assert(up->react_rate);
+  up->flags = 0;
+  GKYL_CLEAR_CU_ALLOC(up->flags);
+  up->on_dev = up;
   
   return up;
 }
@@ -95,7 +88,7 @@ void gkyl_dg_cx_coll(const struct gkyl_dg_cx *up,
 
     double *coef_cx_d = gkyl_array_fetch(coef_cx, loc);
     
-    double cflr = up->kernels->react_rate(up->a, up->b, up->vt_sq_ion_min, up->vt_sq_neut_min,
+    double cflr = up->react_rate(up->a, up->b, up->vt_sq_ion_min, up->vt_sq_neut_min,
       prim_vars_ion_d, prim_vars_neut_d, upar_b_i_d, coef_cx_d);
     
     /* gkyl_range_deflate(&vel_rng, up->phase_rng, rem_dir, conf_iter.idx); */

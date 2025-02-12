@@ -37,7 +37,7 @@ struct gkyl_dg_cx* gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu);
  * Create new ionization updater type object on NV-GPU: 
  * see new() method above for documentation.
  */
-struct gkyl_dg_cx* gkyl_dg_cx_cu_dev_new(struct gkyl_dg_cx_inp *inp);
+struct gkyl_dg_cx* gkyl_dg_cx_new_cu(struct gkyl_dg_cx_inp *inp);
 
 
 /**
