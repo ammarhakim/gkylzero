@@ -87,7 +87,9 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
 
   // Wave equation object for upwinding fluid equations
   // We use the 10 moment system since PKPM model generates a full pressure tensor
-  s->equation = gkyl_wv_ten_moment_new(0.0, app->use_gpu); // k0 = 0.0 because we do not need a closure
+  // k0 = 0.0 and use_grad_closure = false because we do not need a closure 
+  // (the kinetic equations are the closure)
+  s->equation = gkyl_wv_ten_moment_new(0.0, false, app->use_gpu); 
 
   // Distribution function arrays for coupling different Laguerre moments
   // g_dist_source has two components: 
@@ -568,7 +570,7 @@ pkpm_species_rhs(gkyl_pkpm_app *app, struct pkpm_species *species,
       species->qmem, species->pkpm_moms.marr, fluidin, rhs_fluid);        
   }
 
-  app->stat.nspecies_omega_cfl +=1;
+  app->stat.n_species_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
   gkyl_array_reduce_range(species->omegaCfl_ptr_dist, species->cflrate_f, GKYL_MAX, &species->local);
   gkyl_array_reduce_range(species->omegaCfl_ptr_fluid, species->cflrate_fluid, GKYL_MAX, &app->local);
@@ -725,7 +727,7 @@ pkpm_species_calc_L2(gkyl_pkpm_app *app, double tm, const struct pkpm_species *s
     gkyl_array_reduce_range(L2, species->L2_f, GKYL_SUM, &species->local);
   }
   double L2_global[1] = { 0.0 };
-  gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, L2, L2_global);
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, L2, L2_global);
   
   gkyl_dynvec_append(species->integ_L2_f, tm, L2_global);  
 }

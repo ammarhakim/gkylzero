@@ -274,7 +274,9 @@ main(int argc, char **argv)
     .species = { elc },
     .field = field,
 
-    .use_gpu = inp.use_gpu,
+    .parallelism = {
+      .use_gpu = inp.use_gpu,
+    },
   };
 
   // create app object

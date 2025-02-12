@@ -13,23 +13,25 @@ extern "C" {
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
-gkyl_dg_diffusion_gyrokinetic_set_auxfields_cu_kernel(const struct gkyl_dg_eqn* eqn, const struct gkyl_array* D)
+gkyl_dg_diffusion_gyrokinetic_set_auxfields_cu_kernel(const struct gkyl_dg_eqn* eqn, const struct gkyl_array* D, const struct gkyl_array* jacobgeo_inv)
 {
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
   diffusion->auxfields.D = D;
+  diffusion->auxfields.jacobgeo_inv = jacobgeo_inv;
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
 void
 gkyl_dg_diffusion_gyrokinetic_set_auxfields_cu(const struct gkyl_dg_eqn* eqn, struct gkyl_dg_diffusion_gyrokinetic_auxfields auxin)
 {
-  gkyl_dg_diffusion_gyrokinetic_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.D->on_dev);
+  gkyl_dg_diffusion_gyrokinetic_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.D->on_dev, auxin.jacobgeo_inv->on_dev);
 }
 
 __global__ void static
 dg_diffusion_gyrokinetic_set_cu_dev_ptrs(struct dg_diffusion_gyrokinetic *diffusion, enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order, int diff_order, int diffdirs_linidx)
 {
   diffusion->auxfields.D = 0; 
+  diffusion->auxfields.jacobgeo_inv = 0; 
 
   const gkyl_dg_diffusion_gyrokinetic_vol_kern_list *vol_kernels;
   const gkyl_dg_diffusion_gyrokinetic_surf_kern_list *surfx_kernels;

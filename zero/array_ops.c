@@ -223,6 +223,72 @@ gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_array_op 
   }
 }
 
+void 
+gkyl_array_reducec_dg(double *out, const struct gkyl_array *arr, int comp,
+  enum gkyl_array_op op, const struct gkyl_basis *basis)
+{
+  assert(arr->type == GKYL_DOUBLE);
+
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(arr)) {
+    switch (op) {
+      case GKYL_MAX:
+        gkyl_array_reducec_dg_max_cu(out, arr, comp, basis);
+        break;                                            
+      case GKYL_MIN:                                      
+        gkyl_array_reducec_dg_min_cu(out, arr, comp, basis);
+        break;                                            
+      case GKYL_SUM:                                      
+        gkyl_array_reducec_dg_sum_cu(out, arr, comp, basis);
+        break;
+    }
+    return;
+  }
+#endif
+
+  double *arr_d = arr->data;
+
+  int num_nodes = pow(basis->poly_order+1,basis->ndim);
+
+  switch (op) {
+    case GKYL_MIN:
+      out[0] = DBL_MAX;
+      for (size_t i=0; i<arr->size; ++i) {
+        const double *d = gkyl_array_cfetch(arr, i);
+        double arr_nodal[num_nodes];
+        for (int k=0; k<num_nodes; ++k) {
+          basis->modal_to_quad_nodal(&d[comp*basis->num_basis], arr_nodal, k);
+          out[0] = fmin(out[0], arr_nodal[k]);
+        }
+      }
+      break;
+
+    case GKYL_MAX:
+      out[0] = -DBL_MAX;
+      for (size_t i=0; i<arr->size; ++i) {
+        const double *d = gkyl_array_cfetch(arr, i);
+        double arr_nodal[num_nodes];
+        for (int k=0; k<num_nodes; ++k) {
+          basis->modal_to_quad_nodal(&d[comp*basis->num_basis], arr_nodal, k);
+          out[0] = fmax(out[0], arr_nodal[k]);
+        }
+      }
+      break;
+
+    case GKYL_SUM:
+      out[0] = 0;
+      for (size_t i=0; i<arr->size; ++i) {
+        const double *d = gkyl_array_cfetch(arr, i);
+        double arr_nodal[num_nodes];
+        for (int k=0; k<num_nodes; ++k) {
+          basis->modal_to_quad_nodal(&d[comp*basis->num_basis], arr_nodal, k);
+          out[0] += arr_nodal[k];
+        }
+      }
+      break;
+  }
+}
+
 // range based methods
 struct gkyl_array*
 gkyl_array_clear_range(struct gkyl_array *out, double val, const struct gkyl_range *range)
@@ -333,6 +399,44 @@ gkyl_array_set_range(struct gkyl_array *out,
     long start = gkyl_range_idx(range, iter.idx);
     array_set1(n,
       gkyl_array_fetch(out, start), a, gkyl_array_cfetch(inp, start));
+  }
+
+  return out;
+}
+
+struct gkyl_array*
+gkyl_array_set_range_to_range(struct gkyl_array *out, double a,
+  const struct gkyl_array *inp, struct gkyl_range *out_range, struct gkyl_range *inp_range)
+{
+  assert(out->elemsz == inp->elemsz);
+  assert((inp_range->volume < 1) || (out_range->volume == inp_range->volume));
+
+#ifdef GKYL_HAVE_CUDA
+  assert(gkyl_array_is_cu_dev(out)==gkyl_array_is_cu_dev(inp));
+  if (gkyl_array_is_cu_dev(out)) { gkyl_array_set_range_to_range_cu(out, a, inp, out_range, inp_range); return out; }
+#endif
+
+  long outnc = NCOM(out), inpnc = NCOM(inp);
+  long n = outnc<inpnc ? outnc : inpnc;
+
+  // Setup linear counter offset for output range/array.
+  int iloLocal_out[GKYL_MAX_DIM], iloLocal_inp[GKYL_MAX_DIM];
+  for (int d=0; d<out_range->ndim; ++d){
+    iloLocal_out[d] = out_range->lower[d];
+    iloLocal_inp[d] = inp_range->lower[d];
+  }
+
+  int idx_out[GKYL_MAX_DIM];
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, inp_range);
+  while (gkyl_range_iter_next(&iter)) {
+    for (int d=0; d<out_range->ndim; ++d)
+      idx_out[d] = iloLocal_out[d] + (iter.idx[d] - iloLocal_inp[d]);
+
+    long linidx_inp = gkyl_range_idx(inp_range, iter.idx);
+    long linidx_out = gkyl_range_idx(out_range, idx_out);
+    array_set1(n,
+      gkyl_array_fetch(out, linidx_out), a, gkyl_array_cfetch(inp, linidx_inp));
   }
 
   return out;
@@ -467,6 +571,79 @@ gkyl_array_reduce_range(double *res,
   }
 }
 
+void 
+gkyl_array_reducec_dg_range(double *out, const struct gkyl_array *arr, int comp,
+  enum gkyl_array_op op, const struct gkyl_basis *basis, const struct gkyl_range *range)
+{
+  assert(arr->type == GKYL_DOUBLE);
+
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(arr)) {
+    switch (op) {
+      case GKYL_MAX:
+        gkyl_array_reducec_dg_range_max_cu(out, arr, comp, basis, range);
+        break;
+      case GKYL_MIN:
+        gkyl_array_reducec_dg_range_min_cu(out, arr, comp, basis, range);
+        break;
+      case GKYL_SUM:
+        gkyl_array_reducec_dg_range_sum_cu(out, arr, comp, basis, range);
+        break;
+    }
+    return;
+  }
+#endif
+
+  double *arr_d = arr->data;
+
+  int num_nodes = pow(basis->poly_order+1,basis->ndim);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, range);
+
+  switch (op) {
+    case GKYL_MIN:
+      out[0] = DBL_MAX;
+      while (gkyl_range_iter_next(&iter)) {
+        long start = gkyl_range_idx(range, iter.idx);
+        const double *d = gkyl_array_cfetch(arr, start);
+        double arr_nodal[num_nodes];
+        for (int k=0; k<num_nodes; ++k) {
+          basis->modal_to_quad_nodal(&d[comp*basis->num_basis], arr_nodal, k);
+          out[0] = fmin(out[0], arr_nodal[k]);
+        }
+      }
+      break;
+
+    case GKYL_MAX:
+      out[0] = -DBL_MAX;
+      while (gkyl_range_iter_next(&iter)) {
+        long start = gkyl_range_idx(range, iter.idx);
+        const double *d = gkyl_array_cfetch(arr, start);
+        double arr_nodal[num_nodes];
+        for (int k=0; k<num_nodes; ++k) {
+          basis->modal_to_quad_nodal(&d[comp*basis->num_basis], arr_nodal, k);
+          out[0] = fmax(out[0], arr_nodal[k]);
+        }
+      }
+      break;
+
+    case GKYL_SUM:
+      out[0] = 0;
+      while (gkyl_range_iter_next(&iter)) {
+        long start = gkyl_range_idx(range, iter.idx);
+        const double *d = gkyl_array_cfetch(arr, start);
+        double arr_nodal[num_nodes];
+        for (int k=0; k<num_nodes; ++k) {
+          basis->modal_to_quad_nodal(&d[comp*basis->num_basis], arr_nodal, k);
+          out[0] += arr_nodal[k];
+        }
+      }
+      break;
+  }
+}
+
+
 struct gkyl_array*
 gkyl_array_copy_range(struct gkyl_array *out,
   const struct gkyl_array *inp, const struct gkyl_range *range)
@@ -490,7 +667,7 @@ gkyl_array_copy_range(struct gkyl_array *out,
 
 struct gkyl_array*
 gkyl_array_copy_range_to_range(struct gkyl_array *out,
-  const struct gkyl_array *inp, struct gkyl_range *out_range, struct gkyl_range *inp_range)
+  const struct gkyl_array *inp, const struct gkyl_range *out_range, const struct gkyl_range *inp_range)
 {
   assert(out->elemsz == inp->elemsz);
   assert((inp_range->volume < 1) || (out_range->volume == inp_range->volume));
@@ -581,7 +758,7 @@ gkyl_array_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
     long loc = gkyl_range_idx(range, iter.idx);
 
     const double *inp = gkyl_array_cfetch(arr, loc);
-    double *out = flat_fetch(data, arr->esznc*count);
+    double *out = gkyl_flat_fetch(data, arr->esznc*count);
     cf->func(NCOM(arr), out, inp, cf->ctx);
     count += 1;
   }
@@ -615,7 +792,73 @@ gkyl_array_flip_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
     long count = gkyl_range_idx(&buff_range, fidx);
 
     const double *inp = gkyl_array_cfetch(arr, loc);
-    double *out = flat_fetch(data, arr->esznc*count);
+    double *out = gkyl_flat_fetch(data, arr->esznc*count);
     cf->func(NCOM(arr), out, inp, cf->ctx);
-  }  
+  }
+}
+
+static double
+calc_rel_diff(double a, double b)
+{
+  if (isnan(a) || isnan(b)) return DBL_MAX;
+  
+  double absa = fabs(a), absb = fabs(b), diff = fabs(a-b);
+  if (a == b) return 0;
+  if (a == 0 || b == 0 || (absa+absb < DBL_MIN)) return diff;
+  return diff/fmin(absa+absb, DBL_MAX);
+}
+
+struct gkyl_array_diff
+gkyl_array_diff(const struct gkyl_array *arr1, const struct gkyl_array *arr2, const struct gkyl_range *range)
+{
+  struct gkyl_array_diff incompat = {
+    .is_compatible = false,
+    .max_abs_diff = DBL_MAX,
+    .min_abs_diff = DBL_MAX,
+    .max_rel_diff = DBL_MAX,
+    .min_rel_diff = DBL_MAX
+  };
+
+  if ((arr1->type != GKYL_DOUBLE) && (arr2->type != GKYL_DOUBLE))
+    return incompat;
+
+  if (gkyl_array_is_cu_dev(arr1) || gkyl_array_is_cu_dev(arr2))
+    return incompat;    
+
+  if (arr1->elemsz != arr2->elemsz)
+    return incompat;    
+
+  if (arr1->ncomp != arr2->ncomp)
+    return incompat;
+
+  if (arr1->size != arr2->size)
+    return incompat;
+
+  double max_abs_diff = -DBL_MAX, max_rel_diff = -DBL_MAX;
+  double min_abs_diff = DBL_MAX, min_rel_diff = DBL_MAX;
+  
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, range);
+  while (gkyl_range_iter_next(&iter)) {
+    
+    long loc = gkyl_range_idx(range, iter.idx);
+    const double *a1 = gkyl_array_cfetch(arr1, loc);
+    const double *a2 = gkyl_array_cfetch(arr2, loc);
+
+    for (int c=0; c<arr1->ncomp; ++c) {
+      max_abs_diff = fmax(max_abs_diff, a1[c]-a2[c]);
+      min_abs_diff = fmin(min_abs_diff, a1[c]-a2[c]);
+      double rel_diff = calc_rel_diff(a1[c], a2[c]);
+      max_rel_diff = fmax(max_rel_diff, rel_diff);
+      min_rel_diff = fmin(min_rel_diff, rel_diff);
+    }
+  }
+
+  return (struct gkyl_array_diff) {
+    .is_compatible = true,
+    .max_abs_diff = max_abs_diff,
+    .min_abs_diff = min_abs_diff,
+    .max_rel_diff = max_rel_diff,
+    .min_rel_diff = min_rel_diff
+  };
 }

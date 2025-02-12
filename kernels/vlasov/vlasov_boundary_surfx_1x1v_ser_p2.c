@@ -1,12 +1,22 @@
 #include <gkyl_vlasov_kernels.h> 
-GKYL_CU_DH double vlasov_boundary_surfx_1x1v_ser_p2(const double *w, const double *dxv, const double *alpha_geo, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_boundary_surfx_1x1v_ser_p2(const double *w, const double *dxv, 
+  const double *alpha_surf_edge, const double *alpha_surf_skin, 
+  const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
+  const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, 
+  const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out) 
 { 
-  // w[NDIM]:     Cell-center coordinates.
-  // dxv[NDIM]:   Cell spacing.
-  // alpha_geo:   Fields used only for general geometry.
-  // edge:        Determines if the update is for the left edge (-1) or right edge (+1).
-  // fSkin/fEdge: Input Distribution function in skin cell/last edge cell 
-  // out:         Incremented distribution function in center cell.
+  // w[NDIM]: cell-center.
+  // dxv[NDIM]: cell length.
+  // alpha_surf_edge: Surface expansion of phase space flux on the lower edges of the edge cell (used by general geometry version).
+  // alpha_surf_skin: Surface expansion of phase space flux on the lower edges of the skin cell (used by general geometry version).
+  // sgn_alpha_surf_edge: sign(alpha_surf_edge) at quadrature points (used by general geometry version).
+  // sgn_alpha_surf_skin: sign(alpha_surf_skin) at quadrature points (used by general geometry version).
+  // const_sgn_alpha_edge: Boolean array true if sign(alpha_surf_edge) is only one sign, either +1 or -1 (used by general geometry version).
+  // const_sgn_alpha_skin: Boolean array true if sign(alpha_surf_skin) is only one sign, either +1 or -1 (used by general geometry version).
+  // edge: determines if the update is for the left edge (-1) or right edge (+1).
+  // fskin,fedge: distribution function in skin cell/last edge cell.
+  // out: output increment in center cell.
+
   const double dx10 = 2/dxv[0]; 
   const double dv = dxv[1], wv = w[1]; 
   double Ghat[3]; 
@@ -15,15 +25,15 @@ GKYL_CU_DH double vlasov_boundary_surfx_1x1v_ser_p2(const double *w, const doubl
 
   if (wv>0) { 
 
-  Ghat[0] = (1.58113883008419*fSkin[4]+1.224744871391589*fSkin[1]+0.7071067811865475*fSkin[0])*wv+(0.4564354645876384*fSkin[6]+0.3535533905932737*fSkin[3]+0.2041241452319315*fSkin[2])*dv; 
-  Ghat[1] = (1.58113883008419*fSkin[6]+1.224744871391589*fSkin[3]+0.7071067811865475*fSkin[2])*wv+(0.3162277660168379*fSkin[7]+0.1825741858350554*fSkin[5]+0.4564354645876384*fSkin[4]+0.3535533905932737*fSkin[1]+0.2041241452319315*fSkin[0])*dv; 
-  Ghat[2] = (1.224744871391589*fSkin[7]+0.7071067811865475*fSkin[5])*wv+(0.408248290463863*fSkin[6]+0.3162277660168379*fSkin[3]+0.1825741858350554*fSkin[2])*dv; 
+  Ghat[0] = (1.58113883008419*fskin[4]+1.224744871391589*fskin[1]+0.7071067811865475*fskin[0])*wv+(0.4564354645876384*fskin[6]+0.3535533905932737*fskin[3]+0.2041241452319315*fskin[2])*dv; 
+  Ghat[1] = (1.58113883008419*fskin[6]+1.224744871391589*fskin[3]+0.7071067811865475*fskin[2])*wv+(0.3162277660168379*fskin[7]+0.1825741858350554*fskin[5]+0.4564354645876384*fskin[4]+0.3535533905932737*fskin[1]+0.2041241452319315*fskin[0])*dv; 
+  Ghat[2] = (1.224744871391589*fskin[7]+0.7071067811865475*fskin[5])*wv+(0.408248290463863*fskin[6]+0.3162277660168379*fskin[3]+0.1825741858350554*fskin[2])*dv; 
 
   } else { 
 
-  Ghat[0] = 1.58113883008419*fEdge[4]*wv-1.224744871391589*fEdge[1]*wv+0.7071067811865475*fEdge[0]*wv+0.4564354645876383*fEdge[6]*dv-0.3535533905932737*fEdge[3]*dv+0.2041241452319315*fEdge[2]*dv; 
-  Ghat[1] = 1.58113883008419*fEdge[6]*wv-1.224744871391589*fEdge[3]*wv+0.7071067811865475*fEdge[2]*wv-0.3162277660168379*fEdge[7]*dv+0.1825741858350554*fEdge[5]*dv+0.4564354645876384*fEdge[4]*dv-0.3535533905932737*fEdge[1]*dv+0.2041241452319315*fEdge[0]*dv; 
-  Ghat[2] = (-1.224744871391589*fEdge[7]*wv)+0.7071067811865475*fEdge[5]*wv+0.408248290463863*fEdge[6]*dv-0.3162277660168379*fEdge[3]*dv+0.1825741858350554*fEdge[2]*dv; 
+  Ghat[0] = (1.58113883008419*fedge[4]-1.224744871391589*fedge[1]+0.7071067811865475*fedge[0])*wv+(0.4564354645876384*fedge[6]-0.3535533905932737*fedge[3]+0.2041241452319315*fedge[2])*dv; 
+  Ghat[1] = (1.58113883008419*fedge[6]-1.224744871391589*fedge[3]+0.7071067811865475*fedge[2])*wv+((-0.3162277660168379*fedge[7])+0.1825741858350554*fedge[5]+0.4564354645876384*fedge[4]-0.3535533905932737*fedge[1]+0.2041241452319315*fedge[0])*dv; 
+  Ghat[2] = (0.7071067811865475*fedge[5]-1.224744871391589*fedge[7])*wv+(0.408248290463863*fedge[6]-0.3162277660168379*fedge[3]+0.1825741858350554*fedge[2])*dv; 
 
   } 
 
@@ -40,15 +50,15 @@ GKYL_CU_DH double vlasov_boundary_surfx_1x1v_ser_p2(const double *w, const doubl
 
   if (wv>0) { 
 
-  Ghat[0] = (1.58113883008419*fEdge[4]+1.224744871391589*fEdge[1]+0.7071067811865475*fEdge[0])*wv+(0.4564354645876384*fEdge[6]+0.3535533905932737*fEdge[3]+0.2041241452319315*fEdge[2])*dv; 
-  Ghat[1] = (1.58113883008419*fEdge[6]+1.224744871391589*fEdge[3]+0.7071067811865475*fEdge[2])*wv+(0.3162277660168379*fEdge[7]+0.1825741858350554*fEdge[5]+0.4564354645876384*fEdge[4]+0.3535533905932737*fEdge[1]+0.2041241452319315*fEdge[0])*dv; 
-  Ghat[2] = (1.224744871391589*fEdge[7]+0.7071067811865475*fEdge[5])*wv+(0.408248290463863*fEdge[6]+0.3162277660168379*fEdge[3]+0.1825741858350554*fEdge[2])*dv; 
+  Ghat[0] = (1.58113883008419*fedge[4]+1.224744871391589*fedge[1]+0.7071067811865475*fedge[0])*wv+(0.4564354645876384*fedge[6]+0.3535533905932737*fedge[3]+0.2041241452319315*fedge[2])*dv; 
+  Ghat[1] = (1.58113883008419*fedge[6]+1.224744871391589*fedge[3]+0.7071067811865475*fedge[2])*wv+(0.3162277660168379*fedge[7]+0.1825741858350554*fedge[5]+0.4564354645876384*fedge[4]+0.3535533905932737*fedge[1]+0.2041241452319315*fedge[0])*dv; 
+  Ghat[2] = (1.224744871391589*fedge[7]+0.7071067811865475*fedge[5])*wv+(0.408248290463863*fedge[6]+0.3162277660168379*fedge[3]+0.1825741858350554*fedge[2])*dv; 
 
   } else { 
 
-  Ghat[0] = 1.58113883008419*fSkin[4]*wv-1.224744871391589*fSkin[1]*wv+0.7071067811865475*fSkin[0]*wv+0.4564354645876383*fSkin[6]*dv-0.3535533905932737*fSkin[3]*dv+0.2041241452319315*fSkin[2]*dv; 
-  Ghat[1] = 1.58113883008419*fSkin[6]*wv-1.224744871391589*fSkin[3]*wv+0.7071067811865475*fSkin[2]*wv-0.3162277660168379*fSkin[7]*dv+0.1825741858350554*fSkin[5]*dv+0.4564354645876384*fSkin[4]*dv-0.3535533905932737*fSkin[1]*dv+0.2041241452319315*fSkin[0]*dv; 
-  Ghat[2] = (-1.224744871391589*fSkin[7]*wv)+0.7071067811865475*fSkin[5]*wv+0.408248290463863*fSkin[6]*dv-0.3162277660168379*fSkin[3]*dv+0.1825741858350554*fSkin[2]*dv; 
+  Ghat[0] = (1.58113883008419*fskin[4]-1.224744871391589*fskin[1]+0.7071067811865475*fskin[0])*wv+(0.4564354645876384*fskin[6]-0.3535533905932737*fskin[3]+0.2041241452319315*fskin[2])*dv; 
+  Ghat[1] = (1.58113883008419*fskin[6]-1.224744871391589*fskin[3]+0.7071067811865475*fskin[2])*wv+((-0.3162277660168379*fskin[7])+0.1825741858350554*fskin[5]+0.4564354645876384*fskin[4]-0.3535533905932737*fskin[1]+0.2041241452319315*fskin[0])*dv; 
+  Ghat[2] = (0.7071067811865475*fskin[5]-1.224744871391589*fskin[7])*wv+(0.408248290463863*fskin[6]-0.3162277660168379*fskin[3]+0.1825741858350554*fskin[2])*dv; 
 
   } 
 

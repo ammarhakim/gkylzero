@@ -247,11 +247,9 @@ main(int argc, char **argv)
   for(int n=0; n<nrep; n++) {
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
-    gkyl_vlasov_set_auxfields(eqn, (struct gkyl_dg_vlasov_auxfields) { .field = qmem, .cot_vec = 0, .alpha_geo = 0 }); // must set EM fields to use
-    if (use_gpu) 
-      gkyl_hyper_dg_advance_cu(slvr, &phaseRange, fin, cflrate, rhs);
-    else
-      gkyl_hyper_dg_advance(slvr, &phaseRange, fin, cflrate, rhs);
+    gkyl_vlasov_set_auxfields(eqn, (struct gkyl_dg_vlasov_auxfields) {.field = qmem, .cot_vec = 0, 
+      .alpha_surf = 0, .sgn_alpha_surf = 0, .const_sgn_alpha = 0 }); // must set EM fields to use
+    gkyl_hyper_dg_advance(slvr, &phaseRange, fin, cflrate, rhs);
   }
 
 #ifdef GKYL_HAVE_CUDA

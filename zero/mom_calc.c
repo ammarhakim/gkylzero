@@ -69,7 +69,7 @@ gkyl_mom_calc_advance(const struct gkyl_mom_calc* calc,
 
       gkyl_mom_type_calc(calc->momt, xc, calc->grid.dx, pidx,
         gkyl_array_cfetch(fin, fidx), gkyl_array_fetch(mout, midx), 0
-        );
+      );
     }
   }
 }

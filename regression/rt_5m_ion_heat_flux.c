@@ -282,9 +282,8 @@ main(int argc, char **argv)
     .type_brag = GKYL_BRAG_UNMAG_FULL,
 
     .bcx = { GKYL_SPECIES_FUNC, GKYL_SPECIES_FUNC },  
-    .bcx_lower_func = evalIonLowerBC,
-    .bcx_upper_func = evalIonUpperBC,
-  }; 
+    .bcx_func = { evalIonLowerBC, evalIonUpperBC}, 
+  };  
 
   // Field.
   struct gkyl_moment_field field = {
@@ -391,11 +390,11 @@ main(int argc, char **argv)
 
     .field = field,
 
-    .has_low_inp = true,
-    .low_inp = {
-      .local_range = decomp->ranges[my_rank],
-      .comm = comm
-    }
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0] },
+      .comm = comm,
+    },
   };
 
   // Create app object.

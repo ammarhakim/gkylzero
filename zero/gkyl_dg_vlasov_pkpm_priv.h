@@ -8,7 +8,6 @@
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 #include <gkyl_vlasov_pkpm_kernels.h>
-#include <gkyl_vlasov.h>
 
 // Types for various kernels
 typedef double (*vlasov_pkpm_stream_surf_t)(const double *w, const double *dxv, 

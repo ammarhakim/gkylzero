@@ -32,7 +32,7 @@ vlasov_update_implicit_coll(gkyl_vlasov_app* app, double dt0)
   // complete update of distribution function
   for (int i=0; i<app->num_species; ++i) {
     gkyl_array_accumulate(gkyl_array_scale(fout[i], dt0), 1.0, fin[i]);
-    vm_species_apply_bc(app, &app->species[i], fout[i]);
+    vm_species_apply_bc(app, &app->species[i], fout[i], app->tcurr);
   }
   
   for (int i=0; i<ns; ++i) {

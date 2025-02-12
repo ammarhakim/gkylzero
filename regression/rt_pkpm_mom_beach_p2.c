@@ -12,13 +12,15 @@
 #include <gkyl_alloc.h>
 #include <gkyl_pkpm.h>
 #include <gkyl_util.h>
-#include <gkyl_wv_euler.h>
 
 #include <gkyl_null_comm.h>
 
 #ifdef GKYL_HAVE_MPI
 #include <mpi.h>
 #include <gkyl_mpi_comm.h>
+#ifdef GKYL_HAVE_NCCL
+#include <gkyl_nccl_comm.h>
+#endif
 #endif
 
 #include <rt_arg_parse.h>
@@ -36,6 +38,7 @@ struct mom_beach_ctx
   double charge_elc; // Electron charge.
   double vt_elc; // Electron thermal velocity.
   double nu_elc; // Electron-electron collision frequency. 
+  double density_floor; // Electron density floor to avoid negative density in low-density region. 
 
   double J0; // Reference current density (Amps / m^3).
   
@@ -74,6 +77,7 @@ create_ctx(void)
   double charge_elc = -1.602176487e-19; // Electron charge.
   double T_elc = -charge_elc; // Electron temperature. 
   double vt_elc = sqrt(T_elc/mass_elc); // Electron thermal velocity. 
+  double density_floor = 1.0e1; // Electron density floor to avoid negative density in low-density region. 
 
   double J0 = 1.0e-12; // Reference current density (Amps / m^3).
   
@@ -111,6 +115,7 @@ create_ctx(void)
     .mu0 = mu0,
     .mass_elc = mass_elc,
     .charge_elc = charge_elc,
+    .density_floor = density_floor, 
     .J0 = J0,
     .vt_elc = vt_elc, 
     .nu_elc = nu_elc, 
@@ -150,6 +155,7 @@ evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   double epsilon0 = app->epsilon0;
   double mass_elc = app->mass_elc;
   double charge_elc = app->charge_elc;
+  double density_floor = app->density_floor; 
 
   double light_speed = app->light_speed;
 
@@ -158,7 +164,7 @@ evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   double factor = app ->factor;
 
   double omegaPdt = 25.0 * (1.0 - x) * (1.0 - x) * (1.0 - x) * (1.0 - x) * (1.0 - x); // Plasma frequency profile.
-  double ne = omegaPdt * omegaPdt / factor + 1.0; // Electron number density (with a floor for avoiding negative density).
+  double ne = omegaPdt * omegaPdt / factor + density_floor; // Electron number density (with a floor for avoiding negative density).
   double vt_elc = app->vt_elc; // Electron thermal velocity. 
 
   fout[0] = maxwellian(ne, v, vt_elc);
@@ -310,51 +316,34 @@ main(int argc, char **argv)
   }
 #endif
 
-  // Create global range.
-  int cells[] = { NX };
-  int dim = sizeof(cells) / sizeof(cells[0]);
-  struct gkyl_range global_r;
-  gkyl_create_global_range(dim, cells, &global_r);
-
-  // Create decomposition.
-  int cuts[dim];
-#ifdef GKYL_HAVE_MPI
-  for (int d = 0; d < dim; d++) {
-    if (app_args.use_mpi) {
-      cuts[d] = app_args.cuts[d];
-    }
-    else {
-      cuts[d] = 1;
-    }
-  }
-#else
-  for (int d = 0; d < dim; d++) {
-    cuts[d] = 1;
-  }
-#endif
-
-  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(dim, cuts, &global_r);
-
   // Construct communicator for use in app.
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi) {
+  if (app_args.use_gpu && app_args.use_mpi) {
+#ifdef GKYL_HAVE_NCCL
+    comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+      }
+    );
+#else
+    printf(" Using -g and -M together requires NCCL.\n");
+    assert(0 == 1);
+#endif
+  }
+  else if (app_args.use_mpi) {
     comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
       }
     );
   }
   else {
     comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .decomp = decomp,
         .use_gpu = app_args.use_gpu
       }
     );
   }
 #else
   comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = decomp,
       .use_gpu = app_args.use_gpu
     }
   );
@@ -365,9 +354,11 @@ main(int argc, char **argv)
   int comm_size;
   gkyl_comm_get_size(comm, &comm_size);
 
+  int ccells[] = { NX };
+  int cdim = sizeof(ccells) / sizeof(ccells[0]);
   int ncuts = 1;
-  for (int d = 0; d < dim; d++) {
-    ncuts *= cuts[d];
+  for (int d = 0; d < cdim; d++) {
+    ncuts *= app_args.cuts[d];
   }
 
   if (ncuts != comm_size) {
@@ -396,13 +387,11 @@ main(int argc, char **argv)
     .species = { elc },
     .field = field,
 
-    .use_gpu = app_args.use_gpu,
-
-    .has_low_inp = true,
-    .low_inp = {
-      .local_range = decomp -> ranges[my_rank],
-      .comm = comm
-    }
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0] },
+      .comm = comm,
+    },
   };
 
   // create app object
@@ -491,10 +480,9 @@ main(int argc, char **argv)
   
   gkyl_pkpm_app_cout(app, stdout, "Updates took %g secs\n", stat.total_tm);
   
-  gkyl_pkpm_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
+  gkyl_pkpm_app_cout(app, stdout, "Number of write calls %ld,\n", stat.n_io);
   gkyl_pkpm_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
-  gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
 
   // simulation complete, free app

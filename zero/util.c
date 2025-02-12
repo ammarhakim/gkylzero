@@ -3,11 +3,34 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <unistd.h>
+#include <string.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include <gkyl_util.h>
 #include <gkyl_alloc.h>
+
+#include <mpack.h>
+
+int
+gkyl_search_str_int_pair_by_str(const struct gkyl_str_int_pair pairs[], const char *str, int def)
+{
+  for (int i=0; pairs[i].str != 0; ++i) {
+    if (strcmp(pairs[i].str, str) == 0)
+      return pairs[i].val;
+  }
+  return def;  
+}
+
+const char *
+gkyl_search_str_int_pair_by_int(const struct gkyl_str_int_pair pairs[], int val, const char *def)
+{
+  for (int i=0; pairs[i].str != 0; ++i) {
+    if (pairs[i].val == val)
+      return pairs[i].str;
+  }
+  return def;  
+}
 
 int
 gkyl_tm_trigger_check_and_bump(struct gkyl_tm_trigger *tmt, double tcurr)
@@ -197,3 +220,55 @@ gkyl_load_file(const char *fname, int64_t *sz)
   fclose(fp);
   return buff;
 }
+
+struct gkyl_msgpack_data *
+gkyl_msgpack_create(int nvals, const struct gkyl_msgpack_map_elem *elist)
+{
+  struct gkyl_msgpack_data *mdata = gkyl_malloc(sizeof *mdata);
+  mdata->meta_sz = 0;
+  mdata->meta = 0;
+
+  mpack_writer_t writer;
+  mpack_writer_init_growable(&writer, &mdata->meta, &mdata->meta_sz);
+
+  mpack_build_map(&writer);  
+  for (int i=0; i<nvals; ++i) {
+    mpack_write_cstr(&writer, elist[i].key);
+
+    switch (elist[i].elem_type) {
+      case GKYL_MP_INT:
+        mpack_write_i64(&writer, elist[i].ival);
+        break;
+
+      case GKYL_MP_DOUBLE:
+        mpack_write_double(&writer, elist[i].dval);
+        break;
+
+      case GKYL_MP_STRING:
+        mpack_write_cstr(&writer, elist[i].cval);
+        break;
+    }
+  }
+
+  mpack_complete_map(&writer);
+
+  int status = mpack_writer_destroy(&writer);
+
+  if (status != mpack_ok) {
+    MPACK_FREE(mdata->meta); // we need to use free here as mpack does its own malloc
+    gkyl_free(mdata);
+    mdata = 0;
+  }
+
+  return mdata;
+}
+
+void
+gkyl_msgpack_data_release(struct gkyl_msgpack_data *mdata)
+{
+  if (!mdata) return;
+  if (mdata->meta_sz > 0)
+    MPACK_FREE(mdata->meta);
+  gkyl_free(mdata);
+}
+

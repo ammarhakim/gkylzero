@@ -51,10 +51,24 @@ gkyl_mom_calc_bcorr_advance(const struct gkyl_mom_calc_bcorr *bcorr,
   struct gkyl_range vel_rng;
   struct gkyl_range_iter conf_iter, vel_iter;
   
-  int pidx[GKYL_MAX_DIM], viter_idx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
+  int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
   enum gkyl_vel_edge edge;
+
+  int pdim = phase_rng->ndim;
+  int cdim = conf_rng->ndim;
+  int vdim = pdim - cdim;
   
-  for (int d=0; d<conf_rng->ndim; ++d) rem_dir[d] = 1;
+  for (int d=0; d<cdim; ++d) rem_dir[d] = 1;
+
+  int defl_vdims[GKYL_MAX_VDIM*(GKYL_MAX_VDIM-1)] = { 0 };
+  for (int d=0; d<vdim; ++d) {
+    int c = 0;
+    for (int i=0; i<vdim; ++i) {
+      if (i != d)
+        defl_vdims[d*(GKYL_MAX_VDIM-1)+c++] = i;
+    }
+  }
+
   gkyl_array_clear_range(out, 0.0, conf_rng);
 
   // outer loop is over configuration space cells; for each
@@ -64,20 +78,22 @@ gkyl_mom_calc_bcorr_advance(const struct gkyl_mom_calc_bcorr *bcorr,
   while (gkyl_range_iter_next(&conf_iter)) {
     long midx = gkyl_range_idx(conf_rng, conf_iter.idx);
     
-    for (int d=0; d<conf_rng->ndim; ++d)
-      viter_idx[d] = conf_iter.idx[d];
+    for (int d=0; d<cdim; ++d)
+      pidx[d] = conf_iter.idx[d];
     
-    for (int d=0; d<phase_rng->ndim - conf_rng->ndim; ++d) {
-      rem_dir[conf_rng->ndim + d] = 1;
+    for (int d=0; d<vdim; ++d) {
+      rem_dir[cdim + d] = 1;
       
       // loop over upper edge of velocity space
       edge = d + GKYL_MAX_CDIM;
-      viter_idx[conf_rng->ndim + d] = phase_rng->upper[conf_rng->ndim + d];
-      gkyl_range_deflate(&vel_rng, phase_rng, rem_dir, viter_idx);
+      pidx[cdim + d] = phase_rng->upper[cdim + d];
+      gkyl_range_deflate(&vel_rng, phase_rng, rem_dir, pidx);
       gkyl_range_iter_no_split_init(&vel_iter, &vel_rng);
       
       while (gkyl_range_iter_next(&vel_iter)) {
-        copy_idx_arrays(conf_rng->ndim, phase_rng->ndim, conf_iter.idx, vel_iter.idx, pidx);
+        for (int i=0; i<vel_rng.ndim; ++i)
+          pidx[cdim+defl_vdims[d*(GKYL_MAX_VDIM-1)+i]] = vel_iter.idx[i];
+
         gkyl_rect_grid_cell_center(&bcorr->grid, pidx, xc);
       
         long fidx = gkyl_range_idx(&vel_rng, vel_iter.idx);
@@ -88,12 +104,13 @@ gkyl_mom_calc_bcorr_advance(const struct gkyl_mom_calc_bcorr *bcorr,
       
       // loop over lower edge of velocity space
       edge = d;
-      viter_idx[conf_rng->ndim + d] = phase_rng->lower[conf_rng->ndim + d];
-      gkyl_range_deflate(&vel_rng, phase_rng, rem_dir, viter_idx);
+      pidx[cdim + d] = phase_rng->lower[cdim + d];
+      gkyl_range_deflate(&vel_rng, phase_rng, rem_dir, pidx);
       gkyl_range_iter_no_split_init(&vel_iter, &vel_rng);
       
       while (gkyl_range_iter_next(&vel_iter)) {
-        copy_idx_arrays(conf_rng->ndim, phase_rng->ndim, conf_iter.idx, vel_iter.idx, pidx);
+        for (int i=0; i<vel_rng.ndim; ++i)
+          pidx[cdim+defl_vdims[d*(GKYL_MAX_VDIM-1)+i]] = vel_iter.idx[i];
   
         gkyl_rect_grid_cell_center(&bcorr->grid, pidx, xc);
       
@@ -102,8 +119,8 @@ gkyl_mom_calc_bcorr_advance(const struct gkyl_mom_calc_bcorr *bcorr,
           gkyl_array_cfetch(fIn, fidx), gkyl_array_fetch(out, midx), &edge
         );
       }
-      rem_dir[conf_rng->ndim + d] = 0;
-      viter_idx[conf_rng->ndim + d] = 0;
+      rem_dir[cdim + d] = 0;
+      pidx[cdim + d] = 0;
     }
   }
 }
@@ -149,10 +166,10 @@ gkyl_mom_calc_bcorr_lbo_pkpm_new(const struct gkyl_rect_grid *grid,
 struct gkyl_mom_calc_bcorr*
 gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const double* vBoundary, double mass, bool use_gpu)
+  double mass, const struct gkyl_velocity_map *vel_map, bool use_gpu)
 {
   struct gkyl_mom_type *bcorr_type; // LBO boundary corrections moment type
-  bcorr_type = gkyl_mom_bcorr_lbo_gyrokinetic_new(cbasis, pbasis, vBoundary, mass, use_gpu);
+  bcorr_type = gkyl_mom_bcorr_lbo_gyrokinetic_new(cbasis, pbasis, mass, vel_map, use_gpu);
   struct gkyl_mom_calc_bcorr* calc = gkyl_mom_calc_bcorr_new(grid, bcorr_type, use_gpu);
   // Since calc now has pointer to specific type, decrease reference counter of type
   // so that eventual gkyl_mom_calc_bcorr_release method on calculator deallocates specific type data

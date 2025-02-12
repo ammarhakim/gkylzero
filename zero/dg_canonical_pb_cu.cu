@@ -40,7 +40,7 @@ gkyl_canonical_pb_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg
 // CUDA kernel to set device pointers to range object and canonical_pb kernel function
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void 
-dg_canonical_pb_set_cu_dev_ptrs(struct dg_canonical_pb *canonical_pb, enum gkyl_basis_type b_type,
+dg_canonical_pb_set_cu_dev_ptrs(struct dg_canonical_pb *canonical_pb, enum gkyl_basis_type b_type, int cv_index,
   int cdim, int vdim, int poly_order)
 {
 
@@ -55,11 +55,15 @@ dg_canonical_pb_set_cu_dev_ptrs(struct dg_canonical_pb *canonical_pb, enum gkyl_
   const gkyl_dg_canonical_pb_vol_kern_list *vol_kernels;
   const gkyl_dg_canonical_pb_stream_surf_kern_list *stream_surf_x_kernels, *stream_surf_y_kernels, *stream_surf_z_kernels;
   const gkyl_dg_canonical_pb_accel_surf_kern_list *accel_surf_vx_kernels, *accel_surf_vy_kernels, *accel_surf_vz_kernels;
+  const gkyl_dg_canonical_pb_stream_boundary_surf_kern_list *stream_boundary_surf_x_kernels, *stream_boundary_surf_y_kernels,
+    *stream_boundary_surf_z_kernels;
   const gkyl_dg_canonical_pb_accel_boundary_surf_kern_list *accel_boundary_surf_vx_kernels, *accel_boundary_surf_vy_kernels,
     *accel_boundary_surf_vz_kernels;
   
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
+      // Verify that the poly-order is 2 for ser case
+      assert(poly_order == 2);
       vol_kernels = ser_vol_kernels;
       stream_surf_x_kernels = ser_stream_surf_x_kernels;
       stream_surf_y_kernels = ser_stream_surf_y_kernels;
@@ -67,6 +71,27 @@ dg_canonical_pb_set_cu_dev_ptrs(struct dg_canonical_pb *canonical_pb, enum gkyl_
       accel_surf_vx_kernels = ser_accel_surf_vx_kernels;
       accel_surf_vy_kernels = ser_accel_surf_vy_kernels;
       accel_surf_vz_kernels = ser_accel_surf_vz_kernels;
+      stream_boundary_surf_x_kernels = ser_stream_boundary_surf_x_kernels;
+      stream_boundary_surf_y_kernels = ser_stream_boundary_surf_y_kernels;
+      stream_boundary_surf_z_kernels = ser_stream_boundary_surf_z_kernels;
+      accel_boundary_surf_vx_kernels = ser_accel_boundary_surf_vx_kernels;
+      accel_boundary_surf_vy_kernels = ser_accel_boundary_surf_vy_kernels;
+      accel_boundary_surf_vz_kernels = ser_accel_boundary_surf_vz_kernels;
+      break;
+
+    case GKYL_BASIS_MODAL_HYBRID:
+      // Verify that the poly-order is 1 for hybrid case
+      assert(poly_order == 1);
+      vol_kernels = ser_vol_kernels;
+      stream_surf_x_kernels = ser_stream_surf_x_kernels;
+      stream_surf_y_kernels = ser_stream_surf_y_kernels;
+      stream_surf_z_kernels = ser_stream_surf_z_kernels;
+      accel_surf_vx_kernels = ser_accel_surf_vx_kernels;
+      accel_surf_vy_kernels = ser_accel_surf_vy_kernels;
+      accel_surf_vz_kernels = ser_accel_surf_vz_kernels;
+      stream_boundary_surf_x_kernels = ser_stream_boundary_surf_x_kernels;
+      stream_boundary_surf_y_kernels = ser_stream_boundary_surf_y_kernels;
+      stream_boundary_surf_z_kernels = ser_stream_boundary_surf_z_kernels;
       accel_boundary_surf_vx_kernels = ser_accel_boundary_surf_vx_kernels;
       accel_boundary_surf_vy_kernels = ser_accel_boundary_surf_vy_kernels;
       accel_boundary_surf_vz_kernels = ser_accel_boundary_surf_vz_kernels;
@@ -80,6 +105,9 @@ dg_canonical_pb_set_cu_dev_ptrs(struct dg_canonical_pb *canonical_pb, enum gkyl_
       accel_surf_vx_kernels = tensor_accel_surf_vx_kernels;
       accel_surf_vy_kernels = tensor_accel_surf_vy_kernels;
       accel_surf_vz_kernels = tensor_accel_surf_vz_kernels;
+      stream_boundary_surf_x_kernels = tensor_stream_boundary_surf_x_kernels;
+      stream_boundary_surf_y_kernels = tensor_stream_boundary_surf_y_kernels;
+      stream_boundary_surf_z_kernels = tensor_stream_boundary_surf_z_kernels;
       accel_boundary_surf_vx_kernels = tensor_accel_boundary_surf_vx_kernels;
       accel_boundary_surf_vy_kernels = tensor_accel_boundary_surf_vy_kernels;
       accel_boundary_surf_vz_kernels = tensor_accel_boundary_surf_vz_kernels;
@@ -90,25 +118,31 @@ dg_canonical_pb_set_cu_dev_ptrs(struct dg_canonical_pb *canonical_pb, enum gkyl_
       break;    
   }  
 
-  canonical_pb->eqn.vol_term = CK(vol_kernels,cdim,poly_order);
+  canonical_pb->eqn.vol_term = CK(vol_kernels,cv_index,poly_order);
 
-  canonical_pb->stream_surf[0] = CK(stream_surf_x_kernels,cdim,poly_order);
+  canonical_pb->stream_surf[0] = CK(stream_surf_x_kernels,cv_index,poly_order);
   if (cdim>1)
-    canonical_pb->stream_surf[1] = CK(stream_surf_y_kernels,cdim,poly_order);
+    canonical_pb->stream_surf[1] = CK(stream_surf_y_kernels,cv_index,poly_order);
   if (cdim>2)
-    canonical_pb->stream_surf[2] = CK(stream_surf_z_kernels,cdim,poly_order);
+    canonical_pb->stream_surf[2] = CK(stream_surf_z_kernels,cv_index,poly_order);
 
-  canonical_pb->accel_surf[0] = CK(accel_surf_vx_kernels,cdim,poly_order);
+  canonical_pb->accel_surf[0] = CK(accel_surf_vx_kernels,cv_index,poly_order);
   if (vdim>1)
-    canonical_pb->accel_surf[1] = CK(accel_surf_vy_kernels,cdim,poly_order);
+    canonical_pb->accel_surf[1] = CK(accel_surf_vy_kernels,cv_index,poly_order);
   if (vdim>2)
-    canonical_pb->accel_surf[2] = CK(accel_surf_vz_kernels,cdim,poly_order);
+    canonical_pb->accel_surf[2] = CK(accel_surf_vz_kernels,cv_index,poly_order);
 
-  canonical_pb->accel_boundary_surf[0] = CK(accel_boundary_surf_vx_kernels,cdim,poly_order);
+  canonical_pb->stream_boundary_surf[0] = CK(stream_boundary_surf_x_kernels,cv_index,poly_order);
+  if (cdim>1)
+    canonical_pb->stream_boundary_surf[1] = CK(stream_boundary_surf_y_kernels,cv_index,poly_order);
+  if (cdim>2)
+    canonical_pb->stream_boundary_surf[2] = CK(stream_boundary_surf_z_kernels,cv_index,poly_order);
+
+  canonical_pb->accel_boundary_surf[0] = CK(accel_boundary_surf_vx_kernels,cv_index,poly_order);
   if (vdim>1)
-    canonical_pb->accel_boundary_surf[1] = CK(accel_boundary_surf_vy_kernels,cdim,poly_order);
+    canonical_pb->accel_boundary_surf[1] = CK(accel_boundary_surf_vy_kernels,cv_index,poly_order);
   if (vdim>2)
-    canonical_pb->accel_boundary_surf[2] = CK(accel_boundary_surf_vz_kernels,cdim,poly_order);
+    canonical_pb->accel_boundary_surf[2] = CK(accel_boundary_surf_vz_kernels,cv_index,poly_order);
 }
 
 
@@ -137,7 +171,7 @@ gkyl_dg_canonical_pb_cu_dev_new(const struct gkyl_basis* cbasis, const struct gk
   struct dg_canonical_pb *canonical_pb_cu = (struct dg_canonical_pb*) gkyl_cu_malloc(sizeof(struct dg_canonical_pb));
   gkyl_cu_memcpy(canonical_pb_cu, canonical_pb, sizeof(struct dg_canonical_pb), GKYL_CU_MEMCPY_H2D);
 
-  dg_canonical_pb_set_cu_dev_ptrs<<<1,1>>>(canonical_pb_cu, cbasis->b_type, cdim, vdim, poly_order);
+  dg_canonical_pb_set_cu_dev_ptrs<<<1,1>>>(canonical_pb_cu, pbasis->b_type, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order);
 
   // set parent on_dev pointer
   canonical_pb->eqn.on_dev = &canonical_pb_cu->eqn;

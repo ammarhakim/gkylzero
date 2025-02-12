@@ -969,7 +969,7 @@ max_speed(const struct gkyl_wv_eqn* eqn, const double* q)
 static inline void
 gr_euler_tetrad_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* diag)
 {
-  for (int i = 0; i < 28; i++) {
+  for (int i = 0; i < 5; i++) {
     diag[i] = qin[i];
   }
 }
