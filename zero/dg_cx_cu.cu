@@ -100,7 +100,6 @@ gkyl_dg_cx_new_cu(struct gkyl_dg_cx_inp *inp)
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_cx), GKYL_CU_MEMCPY_H2D);
 
   int tblidx = cv_index[cdim].vdim[vdim_vl]
-  assert(tblidx != -1);
   gkyl_dg_cx_set_cu_dev_ptrs<<<1,1>>>(up_cu, b_type, tblidx, poly_order);
 
   // set parent on_dev pointer
