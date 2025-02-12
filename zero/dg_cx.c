@@ -55,7 +55,9 @@ gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu)
     up->b = 5.65e-20;
   }
 
-  up->react_rate = choose_kern(b_type, cdim, vdim_vl, poly_order);
+  int tblidx = cv_index[cdim].vdim[vdim_vl]
+  assert(tblidx != -1);
+  up->react_rate = choose_kern(b_type, tblidx, poly_order);
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
