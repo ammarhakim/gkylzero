@@ -843,8 +843,6 @@ struct gk_field {
   // communicator object for config-space
   struct gkyl_comm *comm_conf;   
 
-  // Bias applied to the target corner
-  double target_corner_bias;
 };
 
 // gyrokinetic object: used as opaque pointer in user code

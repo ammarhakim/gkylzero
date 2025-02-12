@@ -55,7 +55,7 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 
   // Create Poisson solver.
   vpf->fem_poisson = gkyl_fem_poisson_new(&app->global, &app->grid, app->confBasis,
-    &vpf->info.poisson_bcs, NULL, vpf->epsilon, NULL, true, app->use_gpu);
+    &vpf->info.poisson_bcs, NULL, vpf->epsilon, true, app->use_gpu);
 
   vpf->field_id = GKYL_FIELD_PHI;
 

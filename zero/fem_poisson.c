@@ -44,7 +44,7 @@ fem_poisson_bias_src(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
 
 struct gkyl_fem_poisson*
 gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
-  struct gkyl_poisson_bc *bcs, struct gkyl_poisson_bias_plane_list *bias, struct gkyl_array *epsilon,
+  struct gkyl_poisson_bc *bcs, struct gkyl_array *epsilon,
   struct gkyl_array *kSq, bool is_epsilon_const, bool use_gpu)
 {
 
@@ -201,6 +201,8 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
   // Select sol kernel:
   up->kernels->solker = fem_poisson_choose_sol_kernels(&basis);
 
+  // Copy the biasing planes contained in the Poisson BC (interface) to the Poisson updater
+  struct gkyl_poisson_bias_plane_list *bias = bcs->bias_plane_list;
   up->num_bias_plane = 0;
   if (bias) {
     if (bias->num_bias_plane > 0) {
@@ -260,7 +262,7 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
     up->kernels->lhsker[keri](eps_p, kSq_p, up->dx, up->bcvals, up->globalidx, tri[0]);
   }
 
-  if (up->num_bias_plane > 0) {
+ if (up->num_bias_plane > 0) {
     // If biased planes are specified, replace the corresponding equation in the
     // linear system so it only has a 1.
     gkyl_range_iter_init(&up->solve_iter, up->solve_range);
@@ -289,7 +291,7 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
   else {
     up->bias_plane_src = fem_poisson_bias_src_none;
   }
-
+  
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     gkyl_culinsolver_amat_from_triples(up->prob_cu, tri);

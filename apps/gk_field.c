@@ -39,13 +39,6 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
 
   f->gkfield_id = f->info.gkfield_id ? f->info.gkfield_id : GKYL_GK_FIELD_ES;
 
-  // We add the position of the lcfs in the poisson BC structure
-  // to pass it to the deflated FEM solver
-  f->info.poisson_bcs.xLCFS = f->info.xLCFS;
-
-  // allocate an array to store the temperature (used in target corner bias)
-  f->temp_elc = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-
   f->calc_init_field = !f->info.zero_init_field;
   f->update_field = !f->info.is_static;
   // The combination update_field=true, calc_init_field=false is not allowed.
@@ -98,12 +91,6 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
 
   // Create global subrange we'll copy the field solver solution from (into local).
   int intersect = gkyl_sub_range_intersect(&f->global_sub_range, &app->global, &app->local);
-
-  // Detect if this process contains an edge in the z dimension by comparing the local and global indices.
-  // This is used for target corner boundary condition in clopen simulations.
-  int ndim = app->grid.ndim;
-  f->info.poisson_bcs.contains_lower_z_edge = f->global_sub_range.lower[ndim-1] == app->global.lower[ndim-1];
-  f->info.poisson_bcs.contains_upper_z_edge = f->global_sub_range.upper[ndim-1] == app->global.upper[ndim-1];
 
   if (f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || f->gkfield_id == GKYL_GK_FIELD_ADIABATIC)
     assert(app->cdim == 1); // Not yet implemented for cdim>1.

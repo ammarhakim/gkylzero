@@ -16,14 +16,6 @@ enum gkyl_poisson_bc_type {
 // Robin uses 3, and periodic ignores the value.
 struct gkyl_poisson_bc_value { double v[3]; };
 
-struct gkyl_poisson_bc {
-  enum gkyl_poisson_bc_type lo_type[GKYL_MAX_CDIM], up_type[GKYL_MAX_CDIM];
-  struct gkyl_poisson_bc_value lo_value[GKYL_MAX_CDIM], up_value[GKYL_MAX_CDIM];
-  // Function specifying a spatially varying BC.
-  void (*bc_value_func)(double t, const double *xn, double *phi_wall_up_out, void *ctx);
-  void *bc_value_func_ctx;
-};
-
 struct gkyl_poisson_bias_plane {
   int dir; // Direction perpendicular to the plane.
   double loc; // Location of the plane in the 'dir' dimension.
@@ -33,6 +25,16 @@ struct gkyl_poisson_bias_plane {
 struct gkyl_poisson_bias_plane_list {
   int num_bias_plane; // Number of bias planes.
   struct gkyl_poisson_bias_plane *bp;
+};
+
+struct gkyl_poisson_bc {
+  enum gkyl_poisson_bc_type lo_type[GKYL_MAX_CDIM], up_type[GKYL_MAX_CDIM];
+  struct gkyl_poisson_bc_value lo_value[GKYL_MAX_CDIM], up_value[GKYL_MAX_CDIM];
+  // Function specifying a spatially varying BC.
+  void (*bc_value_func)(double t, const double *xn, double *phi_wall_up_out, void *ctx);
+  void *bc_value_func_ctx;
+
+  struct gkyl_poisson_bias_plane_list *bias_plane_list;
 };
 
 GKYL_CU_DH
