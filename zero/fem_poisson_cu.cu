@@ -229,7 +229,7 @@ gkyl_fem_poisson_get_sol_kernel(struct gkyl_array *x_local, const double *x_glob
 }
 
 void 
-gkyl_fem_poisson_set_rhs_cu(gkyl_fem_poisson *up, struct gkyl_array *rhsin, double target_corner_bias)
+gkyl_fem_poisson_set_rhs_cu(gkyl_fem_poisson *up, struct gkyl_array *rhsin)
 {
   gkyl_culinsolver_clear_rhs(up->prob_cu, 0);
   double *rhs_cu = gkyl_culinsolver_get_rhs_ptr(up->prob_cu, 0);
@@ -238,7 +238,7 @@ gkyl_fem_poisson_set_rhs_cu(gkyl_fem_poisson *up, struct gkyl_array *rhsin, doub
     rhs_cu, rhsin->on_dev, *up->solve_range, up->bcvals_cu, up->kernels_cu); 
 
   gkyl_fem_poisson_apply_target_bias_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(rhs_cu, *up->solve_range, 
-   up->is_z_edge, up->idxLCFS_m, target_corner_bias, up->kernels_cu);
+   up->is_z_edge, up->idxLCFS_m, up->target_corner_bias, up->kernels_cu);
 }	
 
 void
