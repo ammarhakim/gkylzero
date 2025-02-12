@@ -158,9 +158,9 @@ void test_1x3v(int poly_order, int NV)
   int sz = gkyl_calc_strlen(fmt_drag, NV);
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof(fileNm), fmt_drag, poly_order, NV);
-  gkyl_grid_sub_array_write(&phase_grid, &phase_range, drag_coeff, fileNm);
+  gkyl_grid_sub_array_write(&phase_grid, &phase_range, 0, drag_coeff, fileNm);
   snprintf(fileNm, sizeof(fileNm), fmt_diff, poly_order, NV);
-  gkyl_grid_sub_array_write(&phase_grid, &phase_range, diff_coeff, fileNm);
+  gkyl_grid_sub_array_write(&phase_grid, &phase_range, 0, diff_coeff, fileNm);
 
   // Compare values in corner cell and interior cell (of velocity space)
   // Checking first five components of a_x, a_y, D_xx, D_xy, and D_yx
