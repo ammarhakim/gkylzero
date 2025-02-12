@@ -1,9 +1,51 @@
 #include <gkyl_fem_poisson.h>
 #include <gkyl_fem_poisson_priv.h>
 
+void
+fem_poisson_bias_src_none(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
+{
+}
+
+void
+fem_poisson_bias_src(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    assert(gkyl_array_is_cu_dev(rhsin));
+
+    gkyl_fem_poisson_bias_src_cu(up, rhsin);
+    return;
+  }
+#endif
+
+  gkyl_range_iter_init(&up->solve_iter, up->solve_range);
+  int idx0[GKYL_MAX_CDIM];
+  double *brhs_p = gkyl_array_fetch(up->brhs, 0);
+  while (gkyl_range_iter_next(&up->solve_iter)) {
+    long linidx = gkyl_range_idx(up->solve_range, up->solve_iter.idx);
+
+    int keri = idx_to_inup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
+    for (size_t d=0; d<up->ndim; d++) idx0[d] = up->solve_iter.idx[d]-1;
+    up->kernels->l2g[keri](up->num_cells, idx0, up->globalidx);
+
+    for (int i=0; i<up->num_bias_plane; i++) {
+      // Index of the cell that abuts the plane from below.
+      struct gkyl_poisson_bias_plane *bp = &up->bias_planes[i];
+      double dx = up->grid.dx[bp->dir];
+      int bp_idx_m = (bp->loc-1e-3*dx - up->grid.lower[bp->dir])/dx+1;
+      
+      if (up->solve_iter.idx[bp->dir] == bp_idx_m || up->solve_iter.idx[bp->dir] == bp_idx_m+1) {
+        up->kernels->bias_src_ker[keri](-1+2*((bp_idx_m+1)-up->solve_iter.idx[bp->dir]),
+          bp->dir, bp->val, up->globalidx, brhs_p);
+      }
+    }
+  }
+}
+
 struct gkyl_fem_poisson*
 gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
-  struct gkyl_poisson_bc *bcs, struct gkyl_array *epsilon, struct gkyl_array *kSq, bool is_epsilon_const, bool use_gpu)
+  struct gkyl_poisson_bc *bcs, struct gkyl_poisson_bias_plane_list *bias, struct gkyl_array *epsilon,
+  struct gkyl_array *kSq, bool is_epsilon_const, bool use_gpu)
 {
 
   struct gkyl_fem_poisson *up = gkyl_malloc(sizeof(struct gkyl_fem_poisson));
@@ -127,6 +169,11 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
     gkyl_cu_memcpy(up->bcvals_cu, up->bcvals, sizeof(double[GKYL_MAX_CDIM*3*2]), GKYL_CU_MEMCPY_H2D);
   }
 #endif
+  
+  // Check if one of the boundaries needs a spatially varying Dirichlet BC.
+  up->isdirichletvar = false;
+  for (int d=0; d<up->ndim; d++) up->isdirichletvar = up->isdirichletvar ||
+    (bcs->lo_type[d] == GKYL_POISSON_DIRICHLET_VARYING || bcs->up_type[d] == GKYL_POISSON_DIRICHLET_VARYING);
 
   // Compute the number of local and global nodes.
   up->numnodes_local = up->num_basis;
@@ -153,6 +200,26 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
 
   // Select sol kernel:
   up->kernels->solker = fem_poisson_choose_sol_kernels(&basis);
+
+  up->num_bias_plane = 0;
+  if (bias) {
+    if (bias->num_bias_plane > 0) {
+      // Select biasing kernels:
+      fem_poisson_choose_bias_lhs_kernels(&basis, up->isdirperiodic, up->kernels->bias_lhs_ker);
+      fem_poisson_choose_bias_src_kernels(&basis, up->isdirperiodic, up->kernels->bias_src_ker);
+      // Copy biased planes' info into updater.
+      up->num_bias_plane = bias->num_bias_plane;
+      size_t bp_sz = bias->num_bias_plane * sizeof(struct gkyl_poisson_bias_plane);
+      if (up->use_gpu) {
+        up->bias_planes = gkyl_cu_malloc(bias->num_bias_plane * sizeof(struct gkyl_poisson_bias_plane));
+        gkyl_cu_memcpy(up->bias_planes, bias->bp, bp_sz, GKYL_CU_MEMCPY_H2D);
+      }
+      else {
+        up->bias_planes = gkyl_malloc(bias->num_bias_plane * sizeof(struct gkyl_poisson_bias_plane));
+        memcpy(up->bias_planes, bias->bp, bp_sz);
+      }
+    }
+  }
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
@@ -193,29 +260,34 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
     up->kernels->lhsker[keri](eps_p, kSq_p, up->dx, up->bcvals, up->globalidx, tri[0]);
   }
 
-  // Target corner treatment 
-  // We modify the lines of the matrix that correspond to x=xLCFS and z=+/-pi by 0 ... 0 1 0 ... 0
-  // where the 1 sits at the diagonal index. The same lines will be set to zero in the rhs.
-  // idxLCFS_m and is_z_edge indicates if we are at x=xLCFS and z=+/-pi, respectively.
-  up->idxLCFS_m = (bcs->xLCFS-1e-8 - up->grid.lower[0])/up->grid.dx[0]+1;
-  up->is_z_edge = bcs->is_z_edge;
+  if (up->num_bias_plane > 0) {
+    // If biased planes are specified, replace the corresponding equation in the
+    // linear system so it only has a 1.
+    gkyl_range_iter_init(&up->solve_iter, up->solve_range);
+    while (gkyl_range_iter_next(&up->solve_iter)) {
+      long linidx = gkyl_range_idx(up->solve_range, up->solve_iter.idx);
 
-  if (bcs->is_z_edge) {
-    gkyl_mat_triples_iter *iter = gkyl_mat_triples_iter_new(tri[0]);
-    for (size_t i=0; i<gkyl_mat_triples_size(tri[0]); ++i) {
-      gkyl_mat_triples_iter_next(iter); // bump iterator.
-      struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter);
-      size_t idx[2] = { mt.row, mt.col };
-      int ix = grid->ndim == 2? idx[0] / grid->cells[1] : idx[0]; // get node x-index
-      // Detect if we are currently at an equation row for the LCFS
-      if (ix == up->idxLCFS_m) {
-        if (idx[0] == idx[1]) // Set up 1 at the diag element
-          gkyl_mat_triples_insert(tri[0], idx[0],idx[1], 1.0);
-        else // 0 everywhere else on this line
-          gkyl_mat_triples_insert(tri[0], idx[0],idx[1], 0.0);
+      int keri = idx_to_inup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
+      for (size_t d=0; d<up->ndim; d++) idx0[d] = up->solve_iter.idx[d]-1;
+      up->kernels->l2g[keri](up->num_cells, idx0, up->globalidx);
+
+      for (int i=0; i<bias->num_bias_plane; i++) {
+        // Index of the cell that abuts the plane from below.
+        struct gkyl_poisson_bias_plane *bp = &bias->bp[i];
+        double dx = up->grid.dx[bp->dir];
+        int bp_idx_m = (bp->loc-1e-3*dx - up->grid.lower[bp->dir])/dx+1;
+        
+        if (up->solve_iter.idx[bp->dir] == bp_idx_m || up->solve_iter.idx[bp->dir] == bp_idx_m+1) {
+          up->kernels->bias_lhs_ker[keri](-1+2*((bp_idx_m+1)-up->solve_iter.idx[bp->dir]),
+            bp->dir, up->globalidx, tri[0]);
+        }
       }
     }
-    gkyl_mat_triples_iter_release(iter);
+
+    up->bias_plane_src = fem_poisson_bias_src;
+  }
+  else {
+    up->bias_plane_src = fem_poisson_bias_src_none;
   }
 
 #ifdef GKYL_HAVE_CUDA
@@ -237,7 +309,7 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
 }
 
 void
-gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
+gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin, const struct gkyl_array *phibc)
 {
 
   if (up->isdomperiodic && !(up->ishelmholtz)) {
@@ -261,9 +333,10 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     assert(gkyl_array_is_cu_dev(rhsin));
+    if (phibc)
+      assert(gkyl_array_is_cu_dev(phibc));
 
-    gkyl_fem_poisson_set_rhs_cu(up, rhsin);
-
+    gkyl_fem_poisson_set_rhs_cu(up, rhsin, phibc);
     return;
   }
 #endif
@@ -278,6 +351,7 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
 
     double *eps_p = up->isvareps? gkyl_array_fetch(up->epsilon, linidx) : gkyl_array_fetch(up->epsilon,0);
     double *rhsin_p = gkyl_array_fetch(rhsin, linidx);
+    const double *phibc_p = up->isdirichletvar? gkyl_array_cfetch(phibc, linidx) : NULL;
 
     int keri = idx_to_inup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
     for (size_t d=0; d<up->ndim; d++) idx0[d] = up->solve_iter.idx[d]-1;
@@ -286,21 +360,11 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
     // Apply the RHS source stencil. It's mostly the mass matrix times a
     // modal-to-nodal operator times the source, modified by BCs in skin cells.
     keri = idx_to_inloup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
-    up->kernels->srcker[keri](eps_p, up->dx, rhsin_p, up->bcvals, up->globalidx, brhs_p);
+    up->kernels->srcker[keri](eps_p, up->dx, rhsin_p, up->bcvals, phibc_p, up->globalidx, brhs_p);
   }
 
-  // Application of the BC at the target corner
-  // If we are located at the edge of the z domain (This is temporary and should be generalized)
-  if (up->is_z_edge) {
-    int idxLCFS_m = (up->xLCFS-1e-8 - up->grid.lower[0])/up->grid.dx[0]+1;
-    // apply new BC on the RHS vector
-    gkyl_range_iter_init(&up->solve_iter, up->solve_range);
-    for (size_t i=0; i<up->numnodes_global; ++i) {
-      int ix = up->grid.ndim == 2? i / up->grid.cells[1] : i; // get node x-index
-      if(ix == idxLCFS_m)
-        brhs_p[i] = up->target_corner_bias;
-    }
-  }
+  // Set the corresponding entries to the biasing potential.
+  up->bias_plane_src(up, rhsin);
 
   gkyl_superlu_brhs_from_array(up->prob, brhs_p);
 
@@ -354,11 +418,19 @@ void gkyl_fem_poisson_release(gkyl_fem_poisson *up)
     if (up->isdomperiodic) gkyl_cu_free(up->rhs_avg_cu);
     gkyl_cu_free(up->bcvals_cu);
     gkyl_culinsolver_prob_release(up->prob_cu);
+
+    if (up->num_bias_plane > 0)
+      gkyl_cu_free(up->bias_planes);
   } else {
     gkyl_superlu_prob_release(up->prob);
+
+    if (up->num_bias_plane > 0)
+      gkyl_free(up->bias_planes);
   }
 #else
   gkyl_superlu_prob_release(up->prob);
+  if (up->num_bias_plane > 0)
+    gkyl_free(up->bias_planes);
 #endif
 
   gkyl_free(up->globalidx);

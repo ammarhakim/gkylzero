@@ -779,6 +779,7 @@ int main(int argc, char **argv)
     },
 
     .polarization_density = ctx.n0,
+    .scale_with_polarization = true,
 
     .projection = ion_ic,
 

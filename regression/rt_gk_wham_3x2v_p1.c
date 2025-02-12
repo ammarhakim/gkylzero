@@ -761,6 +761,7 @@ int main(int argc, char **argv)
     .cells = { cells_v[0], cells_v[1] },
 
     .polarization_density = ctx.n0,
+    .scale_with_polarization = true,
 
     .mapc2p = {
       .mapping = mapc2p_vel_ion,
