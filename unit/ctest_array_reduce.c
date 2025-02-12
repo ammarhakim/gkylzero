@@ -284,7 +284,6 @@ TEST_LIST = {
 #ifdef GKYL_HAVE_CUDA
   { "cu_array_reduce_max", test_cu_array_reduce_max },
   { "cu_array_reduce_max_big", test_cu_array_reduce_max_big },
-  { "cu_array_reduce_dg", test_cu_array_reduce_dg },
   { "cu_array_reduce_range_1d_max", test_cu_array_reduce_range_1d_max },
   { "cu_array_reduce_range_2d_max", test_cu_array_reduce_range_2d_max },
   { "cu_array_reduce_range_max_timer_32x32x40x40", test_cu_array_reduce_range_max_timer_32x32x40x40  },

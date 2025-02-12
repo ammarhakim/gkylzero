@@ -432,13 +432,13 @@ struct vm_species {
   struct gkyl_array *app_accel_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *app_accel_proj; // projector for acceleration
 
-  bool calc_bflux; // are we computing boundary fluxes?
-  struct vm_boundary_fluxes bflux; // boundary flux object
-
   int num_init; // Number of initial condition functions.
   struct vm_proj proj_init[GKYL_MAX_PROJ]; // projectors for initial conditions
   struct gkyl_array *f_tmp; // temporary array for accumulating initial conditions
   
+  bool calc_bflux; // are we computing boundary fluxes?
+  struct vm_boundary_fluxes bflux; // boundary flux object
+
   enum gkyl_source_id source_id; // type of source
   struct vm_source src; // applied source
 

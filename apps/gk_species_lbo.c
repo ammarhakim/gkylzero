@@ -289,8 +289,6 @@ void
 gk_species_lbo_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
   if (gks->lbo.collision_id == GKYL_LBO_COLLISIONS && gks->lbo.write_diagnostics) {
-    struct timespec wst = gkyl_wall_clock();
-
     struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
         .frame = frame,
         .stime = tm,
@@ -316,8 +314,8 @@ gk_species_lbo_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, doub
 
     struct timespec wtm = gkyl_wall_clock();
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gks->lbo.prim_moms_host, fileNm_prim);
-    app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
-    app->stat.nio += 1;
+    app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
+    app->stat.n_diag_io += 1;   
 
     // Uncomment the following to write out nu_sum and nu_prim_moms
     /*const char *fmt = "%s-%s_nu_sum_%d.gkyl";
@@ -343,8 +341,6 @@ gk_species_lbo_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, doub
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gks->lbo.nu_prim_moms_host, fileNm_nu_prim);*/
 
     gk_array_meta_release(mt); 
-    app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-    app->stat.ndiag += 1;
   }
 }
 

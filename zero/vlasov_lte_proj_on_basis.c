@@ -565,7 +565,7 @@ gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis* up)
   if (up->vel_map != 0) {
     gkyl_velocity_map_release(up->vel_map);
   }
-  
+
   gkyl_array_release(up->ordinates);
   gkyl_array_release(up->weights);
   gkyl_array_release(up->basis_at_ords);
