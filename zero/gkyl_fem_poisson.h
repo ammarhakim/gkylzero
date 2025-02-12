@@ -37,7 +37,7 @@ typedef struct gkyl_fem_poisson gkyl_fem_poisson;
  */
 struct gkyl_fem_poisson* gkyl_fem_poisson_new(
   const struct gkyl_range *solve_range, const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
-  struct gkyl_poisson_bc *bcs, struct gkyl_array *epsilon_var,
+  struct gkyl_poisson_bc *bcs, struct gkyl_poisson_bias_plane_list* bias_plane_list, struct gkyl_array *epsilon_var,
   struct gkyl_array *kSq, bool is_epsilon_const, bool use_gpu);
 
 /**

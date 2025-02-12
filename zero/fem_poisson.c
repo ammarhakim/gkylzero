@@ -44,7 +44,7 @@ fem_poisson_bias_src(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
 
 struct gkyl_fem_poisson*
 gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
-  struct gkyl_poisson_bc *bcs, struct gkyl_array *epsilon,
+  struct gkyl_poisson_bc *bcs, struct gkyl_poisson_bias_plane_list *bias_planes, struct gkyl_array *epsilon,
   struct gkyl_array *kSq, bool is_epsilon_const, bool use_gpu)
 {
 
@@ -201,24 +201,23 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
   // Select sol kernel:
   up->kernels->solker = fem_poisson_choose_sol_kernels(&basis);
 
-  // Copy the biasing planes contained in the Poisson BC (interface) to the Poisson updater
-  struct gkyl_poisson_bias_plane_list *bias = bcs->bias_plane_list;
+  // Copy the biasing plane list (bias_planes) to the Poisson updater
   up->num_bias_plane = 0;
-  if (bias) {
-    if (bias->num_bias_plane > 0) {
+  if (bias_planes) {
+    if (bias_planes->num_bias_plane > 0) {
       // Select biasing kernels:
       fem_poisson_choose_bias_lhs_kernels(&basis, up->isdirperiodic, up->kernels->bias_lhs_ker);
       fem_poisson_choose_bias_src_kernels(&basis, up->isdirperiodic, up->kernels->bias_src_ker);
       // Copy biased planes' info into updater.
-      up->num_bias_plane = bias->num_bias_plane;
-      size_t bp_sz = bias->num_bias_plane * sizeof(struct gkyl_poisson_bias_plane);
+      up->num_bias_plane = bias_planes->num_bias_plane;
+      size_t bp_sz = bias_planes->num_bias_plane * sizeof(struct gkyl_poisson_bias_plane);
       if (up->use_gpu) {
-        up->bias_planes = gkyl_cu_malloc(bias->num_bias_plane * sizeof(struct gkyl_poisson_bias_plane));
-        gkyl_cu_memcpy(up->bias_planes, bias->bp, bp_sz, GKYL_CU_MEMCPY_H2D);
+        up->bias_planes = gkyl_cu_malloc(bias_planes->num_bias_plane * sizeof(struct gkyl_poisson_bias_plane));
+        gkyl_cu_memcpy(up->bias_planes, bias_planes->bp, bp_sz, GKYL_CU_MEMCPY_H2D);
       }
       else {
-        up->bias_planes = gkyl_malloc(bias->num_bias_plane * sizeof(struct gkyl_poisson_bias_plane));
-        memcpy(up->bias_planes, bias->bp, bp_sz);
+        up->bias_planes = gkyl_malloc(bias_planes->num_bias_plane * sizeof(struct gkyl_poisson_bias_plane));
+        memcpy(up->bias_planes, bias_planes->bp, bp_sz);
       }
     }
   }
@@ -273,9 +272,9 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
       for (size_t d=0; d<up->ndim; d++) idx0[d] = up->solve_iter.idx[d]-1;
       up->kernels->l2g[keri](up->num_cells, idx0, up->globalidx);
 
-      for (int i=0; i<bias->num_bias_plane; i++) {
+      for (int i=0; i<bias_planes->num_bias_plane; i++) {
         // Index of the cell that abuts the plane from below.
-        struct gkyl_poisson_bias_plane *bp = &bias->bp[i];
+        struct gkyl_poisson_bias_plane *bp = &bias_planes->bp[i];
         double dx = up->grid.dx[bp->dir];
         int bp_idx_m = (bp->loc-1e-3*dx - up->grid.lower[bp->dir])/dx+1;
         
