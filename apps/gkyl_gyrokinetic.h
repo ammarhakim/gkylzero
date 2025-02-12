@@ -218,6 +218,9 @@ struct gkyl_gyrokinetic_species {
               // These more computationally efficient kernels are for slab or mirror 
               // calculations where there is no toroidal field. 
 
+  // Whether to scale the density using a polarization solve
+  bool scale_with_polarization;
+
   int num_diag_moments; // number of diagnostic moments
   char diag_moments[24][24]; // list of diagnostic moments
 
