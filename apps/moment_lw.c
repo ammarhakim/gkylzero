@@ -2424,7 +2424,7 @@ mom_app_new(lua_State *L)
 
           app_lw->field_ext_em_ctx = momf->ext_em_ctx;
           mom.field.ext_em_func = gkyl_lw_eval_cb;
-          mom.field.ext_em_ctx = &app_lw->field_app_current_ctx;
+          mom.field.ext_em_ctx = &app_lw->field_ext_em_ctx;
         }
       }
     }
