@@ -76,23 +76,8 @@ gkyl_dg_cx_new_cu(struct gkyl_dg_cx_inp *inp)
   int vdim_vl = up->pbasis_vl->ndim - cdim;
   enum gkyl_basis_type b_type = up->pbasis_vl->b_type;
 
-  if (up->type_ion == GKYL_ION_H) {
-    up->a = 1.12e-18;
-    up->b = 7.15e-20;
-  }
-  else if (up->type_ion == GKYL_ION_D) {
-    up->a = 1.09e-18;
-    up->b = 7.15e-20;
-  }
-  else if (up->type_ion == GKYL_ION_HE) {
-    up->a = 6.484e-19;
-    up->b = 4.350e-20;
-  } 
-  else if (up->type_ion == GKYL_ION_NE) {
-    up->a = 7.95e-19;
-    up->b = 5.65e-20;
-  }
-
+  fit_param(up->type_ion, up->a, up->b);
+  
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
 
