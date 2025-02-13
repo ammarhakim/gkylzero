@@ -78,7 +78,6 @@ choose_kern(enum gkyl_basis_type b_type, int tblidx, int poly_order)
   }
 }
 
-GKYL_CU_D
 static void
 fit_param(enum gkyl_ion_type type_ion, double *a, double *b)
 {
