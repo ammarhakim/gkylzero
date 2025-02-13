@@ -17,8 +17,14 @@
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_nodal_ops.h>
+#include <gkyl_position_map.h>
 
 #include <gkyl_comm.h>
+
+
+// Only used for printing the geometry
+#include <gkyl_gyrokinetic.h>
+#include <gkyl_gyrokinetic_priv.h>
 
 // Functions for this test
 void mapc2p(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
@@ -286,8 +292,213 @@ test_3x_p1_geometry_quantities()
   gkyl_gk_geometry_release(gk_geom);
 }
 
+void
+mapz(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double Lz = 1.8049e+01;
+  double a = -Lz/2;
+  fout[0] = -1/(2*a) * pow(a - xn[0], 2) + a;
+}
+
+void
+jacob_mapz(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double Lz = 1.8049e+01;
+  double a = -Lz/2;
+  fout[0] = 1 - xn[0]/a;
+}
+
+void
+test_3x_p1_geometry_quantities_position_map()
+{  
+  enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
+  struct gkyl_basis basis;
+  int poly_order = 1;
+  int cdim = 3;
+  gkyl_cart_modal_serendip(&basis, cdim, poly_order);
+  
+  double Lz = 1.8049e+01;
+  double Lx = 1.2534e+00;
+  double Rmax = Lx/2;
+  double Rmin = 0.05*Rmax;
+  int Nz = 10;
+
+  double lower[3] = {Rmin, -M_PI, -Lz/2};
+  double upper[3] = {Rmax,  M_PI,  Lz/2};
+  int cells[3] = { 18, 18, Nz };
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, cdim, lower, upper, cells);
+  
+  struct gkyl_range ext_range, range;
+  int nghost[3] = { 1,1,1};
+  gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
+
+  struct gkyl_position_map_inp pos_map_inp = {
+    .maps = {0, 0, mapz},
+    .ctxs = {0, 0, 0},
+  };
+
+  // Configuration space geometry initialization
+  struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp, grid, range, 
+    ext_range, range, ext_range, basis);
+
+  // Initialize geometry
+  struct gkyl_gk_geometry_inp geometry_input = {
+    .geometry_id = GKYL_MAPC2P,
+    .mapc2p = mapc2p, // mapping of computational to physical space
+    .c2p_ctx = 0,
+    .bmag_func = bmag_func, // magnetic field magnitude
+    .bmag_ctx =0 ,
+    .grid = grid,
+    .local = range,
+    .local_ext = ext_range,
+    .global = range,
+    .global_ext = ext_range,
+    .basis = basis,
+    .geo_grid = grid,
+    .geo_local = range,
+    .geo_local_ext = ext_range,
+    .geo_global = range,
+    .geo_global_ext = ext_range,
+    .geo_basis = basis,
+    .position_map = pos_map,
+  };
+
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&geometry_input);
+  
+  gkyl_position_map_set(pos_map, gk_geom->mc2nu_pos);
+
+  // gyrokinetic app is made to make the geometry write convinient
+  // Can remove include <gky_gyrokinetic.h> and <gkyl_gyrokinetic_priv.h> if not needed
+  struct gkyl_gyrokinetic_app app = {
+    .name = "ctest_gk_geometry",
+    .gk_geom = gk_geom,
+    .grid = grid,
+    .basis = basis,
+    .poly_order = poly_order,
+    .cdim = cdim,
+    .local = range,
+    .local_ext = ext_range,
+    .global = range,
+    .global_ext = ext_range,
+    .confBasis = basis,
+    .use_gpu = false,
+  };
+  int cuts[3] = { 1, 1, 1 };
+  app.decomp = gkyl_rect_decomp_new_from_cuts(cdim, cuts, &app.global);
+  app.comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+      .decomp = app.decomp,
+      .use_gpu = app.use_gpu
+    }
+  );
+  gkyl_gyrokinetic_app_write_geometry(&app);
+
+  // Define the nodes for the script to calculate values at
+  int cidx[3];
+  int nodes[] = { 1, 1, 1 };
+  for (int d=0; d<grid.ndim; ++d)
+    nodes[d] = grid.cells[d] + 1;
+  struct gkyl_range nrange;
+  gkyl_range_init_from_shape(&nrange, grid.ndim, nodes);
+   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&basis, &grid, false);
+
+  // Check that Jacobgeo is what it should be. J = R in cylindrical coordinates
+  // We have a contribution from the position map too, given as dZ/dz
+  struct gkyl_array* jacobgeo_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
+  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, jacobgeo_nodal, gk_geom->jacobgeo);
+  struct gkyl_array* mapc2p_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
+  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 3, mapc2p_nodal, gk_geom->mc2p);
+  for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
+    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+      for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
+        cidx[PSI_IDX] = ip;
+        cidx[AL_IDX] = ia;
+        cidx[TH_IDX] = it;
+        double psi = grid.lower[PSI_IDX] + ip*(grid.upper[PSI_IDX]-grid.lower[PSI_IDX])/grid.cells[PSI_IDX];
+        double alpha = grid.lower[AL_IDX] + ia*(grid.upper[AL_IDX]-grid.lower[AL_IDX])/grid.cells[AL_IDX];
+        double theta = grid.lower[TH_IDX] + it*(grid.upper[TH_IDX]-grid.lower[TH_IDX])/grid.cells[TH_IDX];
+        double *jacobgeo_n = gkyl_array_fetch(jacobgeo_nodal, gkyl_range_idx(&nrange, cidx));
+        // mapc2p_n[0] = x, mapc2p_n[1] = y, mapc2p_n[2] = z
+        double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nrange, cidx));
+        double radius = sqrt(mapc2p_n[0]*mapc2p_n[0] + mapc2p_n[1]*mapc2p_n[1]);
+        double fout[1];
+        jacob_mapz(0.0, &theta, fout, 0);
+        double jacob_anal = radius * fout[0];
+        TEST_CHECK( gkyl_compare( jacobgeo_n[0], jacob_anal, 1e-8) );
+      }
+    }
+  }
+
+  // Check bmag is what it should be
+  struct gkyl_array* bmag_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
+  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, bmag_nodal, gk_geom->bmag);
+  for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
+    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+      for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
+        cidx[PSI_IDX] = ip;
+        cidx[AL_IDX] = ia;
+        cidx[TH_IDX] = it;
+        double psi = grid.lower[PSI_IDX] + ip*(grid.upper[PSI_IDX]-grid.lower[PSI_IDX])/grid.cells[PSI_IDX];
+        double alpha = grid.lower[AL_IDX] + ia*(grid.upper[AL_IDX]-grid.lower[AL_IDX])/grid.cells[AL_IDX];
+        double theta = grid.lower[TH_IDX] + it*(grid.upper[TH_IDX]-grid.lower[TH_IDX])/grid.cells[TH_IDX];
+        mapz(0.0, &theta, &theta, 0);
+        double xn[3] = {psi, alpha, theta};
+        double *bmag_n = gkyl_array_fetch(bmag_nodal, gkyl_range_idx(&nrange, cidx));
+        double bmag_anal[1];
+        bmag_func(0, xn, bmag_anal, 0);
+        TEST_CHECK( gkyl_compare( bmag_n[0], bmag_anal[0], 1e-8) );
+      }
+    }
+  }
+
+  // // Check gij
+  // struct gkyl_array* gij_nodal = gkyl_array_new(GKYL_DOUBLE, 6, nrange.volume);
+  // gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 6, gij_nodal, gk_geom->g_ij);
+  // for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
+  //   for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+  //     for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
+  //       cidx[PSI_IDX] = ip;
+  //       cidx[AL_IDX] = ia;
+  //       cidx[TH_IDX] = it;
+  //       double *gij_n = gkyl_array_fetch(gij_nodal, gkyl_range_idx(&nrange, cidx));
+  //       double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nrange, cidx));
+  //       double r = sqrt(mapc2p_n[0]*mapc2p_n[0] + mapc2p_n[1]*mapc2p_n[1]);
+  //       double xn[3] = {r, 0.0, 0.0};
+  //       double fout[6];
+  //       exact_gij(0.0, xn, fout, 0);
+  //       for (int i=0; i<6; ++i)
+  //         TEST_CHECK( gkyl_compare( gij_n[i], fout[i], 1e-8) );
+  //     }
+  //   }
+  // }
+
+  // Check mapc2p
+  for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
+    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+      for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
+        cidx[PSI_IDX] = ip;
+        cidx[AL_IDX] = ia;
+        cidx[TH_IDX] = it;
+        double psi = grid.lower[PSI_IDX] + ip*(grid.upper[PSI_IDX]-grid.lower[PSI_IDX])/grid.cells[PSI_IDX];
+        double alpha = grid.lower[AL_IDX] + ia*(grid.upper[AL_IDX]-grid.lower[AL_IDX])/grid.cells[AL_IDX];
+        double theta = grid.lower[TH_IDX] + it*(grid.upper[TH_IDX]-grid.lower[TH_IDX])/grid.cells[TH_IDX]; 
+        // mapc2p_n[0] = x, mapc2p_n[1] = y, mapc2p_n[2] = z
+        double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nrange, cidx));
+        mapz(0.0, &theta, &theta, 0);
+        double xn[3] = {psi, alpha, theta};
+        double fout[3];
+        mapc2p(0.0, xn, fout, 0);
+        for (int i=0; i<3; ++i)
+          TEST_CHECK( gkyl_compare( mapc2p_n[i], fout[i], 1e-8) );
+      }
+    }
+  }
+  gkyl_gk_geometry_release(gk_geom);
+}
+
 TEST_LIST = {
   { "test_3x_p1", test_3x_p1},
   { "test_3x_p1_geometry_quantities", test_3x_p1_geometry_quantities},
+  { "test_3x_p1_geometry_quantities_position_map", test_3x_p1_geometry_quantities_position_map},
   { NULL, NULL },
 };
