@@ -829,12 +829,9 @@ struct gk_field {
   // GK IWL sims need a core range extended in z, and a TS BC updater.
   struct gkyl_range local_par_ext_core;
   // Forward TS updater
-  struct gkyl_bc_twistshift *bc_T_LU_lo, *bc_T_UL_up;
-  // Backward TS updater
-  struct gkyl_bc_twistshift *bc_T_UL_lo, *bc_T_LU_up;
+  struct gkyl_bc_twistshift *bc_T_LU_lo;
   // will store the ghost values of phi_smooth for the TSBC SSFG
   struct gkyl_array *aux_array;
-  struct gkyl_bc_basic *bc_reflect_lo, *bc_reflect_up;
   struct gkyl_array *bc_buffer;
 
   // Additional attributes for setting skin surface to ghost surface (SSFG)
@@ -842,7 +839,7 @@ struct gk_field {
   struct gkyl_range lower_skin_core, lower_ghost_core;
   struct gkyl_range upper_skin_core, upper_ghost_core;
   // Updater for skin surf ghost copy
-  struct gkyl_skin_surf_from_ghost *ssfg_lo, *ssfg_up;
+  struct gkyl_skin_surf_from_ghost *ssfg_lo;
   // communicator object for config-space
   struct gkyl_comm *comm_conf;   
 

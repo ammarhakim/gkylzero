@@ -362,10 +362,13 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
   int ghost[] = {1, 1, 1};
   gkyl_create_ranges(&app->local, ghost, &f->local_ext, &f->local);
 
-  //-------- Define sub range of ghost and skin cells that spans only the core
+  // Define sub range of ghost and skin cells that spans only the core
   double xLCFS = f->info.xLCFS;
   // Index of the cell that abuts the xLCFS from below.
   int idxLCFS_m = (xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
+
+  // check that idxLCFS_m is within the local range
+  assert(idxLCFS_m >= f->local.lower[0] && idxLCFS_m <= f->local.upper[0]);
 
   // Create a core local range, extended in the BC dir.
   int ndim = app->cdim;
@@ -380,7 +383,7 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
   gkyl_sub_range_init(&f->local_par_ext_core, &f->local_ext, lower_bcdir_ext, upper_bcdir_ext);
 
   // TSBC updaters
-  if (app->cdim == 3){
+  if (app->cdim == 3) {
     //TS BC updater for up to low TS for the lower edge
     //this sets ghost_L = T_LU(ghost_L)
     struct gkyl_bc_twistshift_inp T_LU_lo = {
@@ -397,64 +400,8 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
       .shift_func_ctx = bcz->lower.aux_ctx,
       .use_gpu = app->use_gpu,
     };
-
-    //TS BC updater for up to low TS for the lower edge
-    //this sets ghost_L = T_UL(ghost_L)
-    struct gkyl_bc_twistshift_inp T_UL_lo = {
-      .bc_dir = zdir,
-      .shift_dir = 1, // y shift.
-      .shear_dir = 0, // shift varies with x.
-      .edge = GKYL_LOWER_EDGE,
-      .cdim = app->cdim,
-      .bcdir_ext_update_r = f->local_par_ext_core,
-      .num_ghost = ghost,
-      .basis = app->confBasis,
-      .grid = app->grid,
-      .shift_func = bcz->upper.aux_profile,
-      .shift_func_ctx = bcz->upper.aux_ctx,
-      .use_gpu = app->use_gpu,
-    };
-
-    //TS BC updater for low to up TS for the upper edge
-    //this sets ghost_U = T_UL(ghost_U)
-    struct gkyl_bc_twistshift_inp T_UL_up = {
-      .bc_dir = zdir,
-      .shift_dir = 1, // y shift.
-      .shear_dir = 0, // shift varies with x.
-      .edge = GKYL_UPPER_EDGE,
-      .cdim = app->cdim,
-      .bcdir_ext_update_r = f->local_par_ext_core,
-      .num_ghost = ghost,
-      .basis = app->confBasis,
-      .grid = app->grid,
-      .shift_func = bcz->upper.aux_profile,
-      .shift_func_ctx = bcz->upper.aux_ctx,
-      .use_gpu = app->use_gpu,
-    };
-
-    //TS BC updater for up to low TS for the lower edge
-    //this sets ghost_U = T_LU(ghost_U)
-    struct gkyl_bc_twistshift_inp T_LU_up = {
-      .bc_dir = zdir,
-      .shift_dir = 1, // y shift.
-      .shear_dir = 0, // shift varies with x.
-      .edge = GKYL_UPPER_EDGE,
-      .cdim = app->cdim,
-      .bcdir_ext_update_r = f->local_par_ext_core,
-      .num_ghost = ghost,
-      .basis = app->confBasis,
-      .grid = app->grid,
-      .shift_func = bcz->lower.aux_profile,
-      .shift_func_ctx = bcz->lower.aux_ctx,
-      .use_gpu = app->use_gpu,
-    };
-
     // Add the forward TS updater to f
     f->bc_T_LU_lo = gkyl_bc_twistshift_new(&T_LU_lo);
-    f->bc_T_UL_up = gkyl_bc_twistshift_new(&T_UL_up);
-    // Add the backward TS updater to f
-    f->bc_T_UL_lo = gkyl_bc_twistshift_new(&T_UL_lo);
-    f->bc_T_LU_up = gkyl_bc_twistshift_new(&T_LU_up);
   }
 
   // SSFG updaters
@@ -468,17 +415,10 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
   // add the SSFG updater for lower and upper application
   f->ssfg_lo = gkyl_skin_surf_from_ghost_new(zdir,GKYL_LOWER_EDGE,
                 app->confBasis,&f->lower_skin_core,&f->lower_ghost_core,app->use_gpu);
-  f->ssfg_up = gkyl_skin_surf_from_ghost_new(zdir,GKYL_UPPER_EDGE,
-                app->confBasis,&f->upper_skin_core,&f->upper_ghost_core,app->use_gpu);
 
   //We allocate the array to store the ghost values of phi_smooth but switching upper and lower
   f->aux_array = mkarr(app->use_gpu, f->phi_smooth->ncomp, f->phi_smooth->size);
 
-  // Create a BC_REFLECT updater.
-  f->bc_reflect_lo = gkyl_bc_basic_new(zdir, GKYL_LOWER_EDGE, GKYL_BC_REFLECT, app->basis_on_dev.confBasis,
-      &f->lower_skin_core, &f->lower_ghost_core, f->aux_array->ncomp, app->cdim, app->use_gpu);
-  f->bc_reflect_up = gkyl_bc_basic_new(zdir, GKYL_UPPER_EDGE, GKYL_BC_REFLECT, app->basis_on_dev.confBasis,
-      &f->upper_skin_core, &f->upper_ghost_core, f->aux_array->ncomp, app->cdim, app->use_gpu);
   // These bc_basic updaters need a buffer, allocate it.
   long buff_sz = GKYL_MAX2(f->lower_skin_core.volume, f->upper_skin_core.volume);
   f->bc_buffer = mkarr(app->use_gpu, app->confBasis.num_basis, buff_sz);
@@ -695,17 +635,11 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
     if(app->cdim == 3) {
       gkyl_bc_twistshift_release(f->bc_T_UL_up);
-      gkyl_bc_twistshift_release(f->bc_T_UL_lo);
-      gkyl_bc_twistshift_release(f->bc_T_LU_up);
-      gkyl_bc_twistshift_release(f->bc_T_LU_lo);
     }
-    gkyl_skin_surf_from_ghost_release(f->ssfg_up);
     gkyl_skin_surf_from_ghost_release(f->ssfg_lo);
     gkyl_comm_release(f->comm_conf);
     gkyl_array_release(f->aux_array);
     gkyl_array_release(f->bc_buffer);
-    gkyl_bc_basic_release(f->bc_reflect_lo);
-    gkyl_bc_basic_release(f->bc_reflect_up);
   }
 
   gkyl_dynvec_release(f->integ_energy);
