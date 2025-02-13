@@ -397,6 +397,21 @@ gk_neut_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk
     gk_neut_species_react_release(app, &s->react_neut);
   }
 
+  // Release integrated mom data.
+  gk_neut_species_moment_release(app, &s->integ_moms); 
+
+  // Release integrated mom diag data.
+  gkyl_dynvec_release(s->integ_diag);
+  
+  if (app->use_gpu) {
+    gkyl_cu_free(s->red_integ_diag);
+    gkyl_cu_free(s->red_integ_diag_global);
+  }
+  else {
+    gkyl_free(s->red_integ_diag);
+    gkyl_free(s->red_integ_diag_global);
+  }
+  
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
     if (s->lower_bc[d].type == GKYL_SPECIES_RECYCLE) 
@@ -463,6 +478,22 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
     s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
   gkyl_dg_calc_vlasov_gen_geo_vars_cot_vec(calc_vars, &app->local, s->cot_vec);
   gkyl_dg_calc_vlasov_gen_geo_vars_release(calc_vars);
+
+  // Allocate data for integrated moments.
+  gk_neut_species_moment_init(app, s, &s->integ_moms, "Integrated");
+
+  // Allocate data for integrated diagnostics.
+  if (app->use_gpu) {
+    s->red_integ_diag = gkyl_cu_malloc(sizeof(double[vdim+2]));
+    s->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[vdim+2]));
+  } 
+  else {
+    s->red_integ_diag = gkyl_malloc(sizeof(double[vdim+2]));
+    s->red_integ_diag_global = gkyl_malloc(sizeof(double[vdim+2]));
+  }
+  // allocate dynamic-vector to store all-reduced integrated moments 
+  s->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
+  s->is_first_integ_write_call = true;
 
   // by default, we do not have zero-flux boundary conditions in any direction
   bool is_zero_flux[2*GKYL_MAX_DIM] = {false};
@@ -753,8 +784,6 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
 
   // allocate data for density 
   gk_neut_species_moment_init(app, s, &s->m0, "M0");
-  // allocate data for integrated moments
-  gk_neut_species_moment_init(app, s, &s->integ_moms, "Integrated");
 
   // allocate data for diagnostic moments
   int ndm = s->info.num_diag_moments;
@@ -762,18 +791,6 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   for (int m=0; m<ndm; ++m) {
     gk_neut_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m]);
   }
-
-  if (app->use_gpu) {
-    s->red_integ_diag = gkyl_cu_malloc(sizeof(double[vdim+2]));
-    s->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[vdim+2]));
-  } 
-  else {
-    s->red_integ_diag = gkyl_malloc(sizeof(double[vdim+2]));
-    s->red_integ_diag_global = gkyl_malloc(sizeof(double[vdim+2]));
-  }
-  // allocate dynamic-vector to store all-reduced integrated moments 
-  s->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
-  s->is_first_integ_write_call = true;
 
   // initialize projection routine for initial conditions
   gk_neut_species_projection_init(app, s, s->info.projection, &s->proj_init);
@@ -940,17 +957,6 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
     gk_neut_species_moment_release(app, &s->moms[i]);
   }
   gkyl_free(s->moms);
-  gk_neut_species_moment_release(app, &s->integ_moms); 
-  gkyl_dynvec_release(s->integ_diag);
-  
-  if (app->use_gpu) {
-    gkyl_cu_free(s->red_integ_diag);
-    gkyl_cu_free(s->red_integ_diag_global);
-  }
-  else {
-    gkyl_free(s->red_integ_diag);
-    gkyl_free(s->red_integ_diag_global);
-  }
 
   gk_neut_species_lte_release(app, &s->lte);
 
