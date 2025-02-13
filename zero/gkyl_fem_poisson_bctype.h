@@ -33,6 +33,9 @@ struct gkyl_poisson_bc {
   // Function specifying a spatially varying BC.
   void (*bc_value_func)(double t, const double *xn, double *phi_wall_up_out, void *ctx);
   void *bc_value_func_ctx;
+
+  // Additional attributes to apply a different BC according to the edge planes in the z direction.
+  bool contains_lower_z_edge, contains_upper_z_edge;
 };
 
 GKYL_CU_DH

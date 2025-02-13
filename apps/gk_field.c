@@ -92,6 +92,12 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   // Create global subrange we'll copy the field solver solution from (into local).
   int intersect = gkyl_sub_range_intersect(&f->global_sub_range, &app->global, &app->local);
 
+  // detect if this process contains an edge in the z dimension by comparing the local and global indices
+  // for target corner BC
+  int ndim = app->grid.ndim;
+  f->info.poisson_bcs.contains_lower_z_edge = f->global_sub_range.lower[ndim-1] == app->global.lower[ndim-1];
+  f->info.poisson_bcs.contains_upper_z_edge = f->global_sub_range.upper[ndim-1] == app->global.upper[ndim-1];
+
   if (f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || f->gkfield_id == GKYL_GK_FIELD_ADIABATIC)
     assert(app->cdim == 1); // Not yet implemented for cdim>1.
 
@@ -156,7 +162,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       // deflated Poisson solve is performed on range assuming decomposition is *only* in z right now
       // need sub range of global range corresponding to where we are in z to properly index global charge density
       f->deflated_fem_poisson = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev.confBasis, app->confBasis,
-        app->local, f->global_sub_range, f->epsilon, 0, f->info.poisson_bcs, &f->info.bias_plane_list, app->use_gpu);
+        app->local, f->global_sub_range, f->epsilon, 0, f->info.poisson_bcs, f->info.bias_plane_list, app->use_gpu);
 
       f->phi_bc = 0;
       f->is_dirichletvar = false;
@@ -518,6 +524,11 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
         field->phi_bc, field->phi_smooth);
 
       field->invert_flr(app, field, field->phi_smooth);
+
+      // Enforce the twist-and-shift BCs to the potential
+      if (field->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
+        gk_field_enforce_zbc(app, field, field->phi_smooth);
+      }   
     }
   }
   app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
