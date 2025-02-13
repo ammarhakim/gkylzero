@@ -33,8 +33,6 @@ struct gkyl_poisson_bc {
   // Function specifying a spatially varying BC.
   void (*bc_value_func)(double t, const double *xn, double *phi_wall_up_out, void *ctx);
   void *bc_value_func_ctx;
-
-  struct gkyl_poisson_bias_plane_list *bias_plane_list;
 };
 
 GKYL_CU_DH
