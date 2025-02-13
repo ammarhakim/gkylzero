@@ -72,13 +72,7 @@ kernel_mom_bcorr_fpo_vlasov_1x3v_ser_p1(const struct gkyl_mom_type *momt, const 
 
   long linc = gkyl_range_idx(&mom_fpo_vlasov->phase_range, fidx);
 
-  mom_bcorr_fpo_vlasov_1x3v_ser_p1_vx(w, fidx, edge, mom_fpo_vlasov->vBoundary, dx,
-    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, linc), 
-    f, out);
-  mom_bcorr_fpo_vlasov_1x3v_ser_p1_vy(w, fidx, edge, mom_fpo_vlasov->vBoundary, dx,
-    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, linc), 
-    f, out);
-  return mom_bcorr_fpo_vlasov_1x3v_ser_p1_vz(w, fidx, edge, mom_fpo_vlasov->vBoundary, dx,
+  return mom_bcorr_fpo_vlasov_1x3v_ser_p1(w, fidx, edge, mom_fpo_vlasov->vBoundary, dx,
     (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, linc), 
     f, out);
 }
@@ -118,13 +112,7 @@ kernel_mom_bcorr_fpo_vlasov_1x3v_ser_p2(const struct gkyl_mom_type *momt, const 
 
   long linc = gkyl_range_idx(&mom_fpo_vlasov->phase_range, fidx);
 
-  mom_bcorr_fpo_vlasov_1x3v_ser_p2_vx(w, fidx, edge, mom_fpo_vlasov->vBoundary, dx,
-    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, linc), 
-    f, out);
-  mom_bcorr_fpo_vlasov_1x3v_ser_p2_vy(w, fidx, edge, mom_fpo_vlasov->vBoundary, dx,
-    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, linc), 
-    f, out);
-  return mom_bcorr_fpo_vlasov_1x3v_ser_p2_vz(w, fidx, edge, mom_fpo_vlasov->vBoundary, dx,
+  return mom_bcorr_fpo_vlasov_1x3v_ser_p2(w, fidx, edge, mom_fpo_vlasov->vBoundary, dx,
     (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, linc), 
     f, out);
 }
@@ -158,13 +146,7 @@ kernel_mom_bcorr_fpo_vlasov_2x3v_ser_p1(const struct gkyl_mom_type *momt, const 
 
   long linc = gkyl_range_idx(&mom_fpo_vlasov->phase_range, fidx);
 
-  mom_bcorr_fpo_vlasov_2x3v_ser_p1_vx(w, fidx, edge, mom_fpo_vlasov->vBoundary, dx,
-    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, linc), 
-    f, out);
-  mom_bcorr_fpo_vlasov_2x3v_ser_p1_vy(w, fidx, edge, mom_fpo_vlasov->vBoundary, dx,
-    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, linc), 
-    f, out);
-  return mom_bcorr_fpo_vlasov_2x3v_ser_p1_vz(w, fidx, edge, mom_fpo_vlasov->vBoundary, dx,
+  return mom_bcorr_fpo_vlasov_2x3v_ser_p1(w, fidx, edge, mom_fpo_vlasov->vBoundary, dx,
     (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, linc), 
     f, out);
 }
@@ -177,11 +159,11 @@ kernel_mom_bcorr_fpo_vlasov_2x3v_ser_p1(const struct gkyl_mom_type *momt, const 
 GKYL_CU_D
 static const gkyl_mom_bcorr_fpo_vlasov_kern_list ser_mom_bcorr_fpo_vlasov_kernels[] = {
   // 1x kernels
-  { NULL, kernel_mom_bcorr_fpo_vlasov_1x3v_ser_p1, kernel_mom_bcorr_fpo_vlasov_1x3v_ser_p2 },
+  { NULL, kernel_mom_bcorr_fpo_vlasov_1x3v_ser_p1, kernel_mom_bcorr_fpo_vlasov_1x3v_ser_p2 }, // 0
   // 2x kernels
-  { NULL, kernel_mom_bcorr_fpo_vlasov_2x3v_ser_p1, NULL },
+  { NULL, kernel_mom_bcorr_fpo_vlasov_2x3v_ser_p1, NULL }, // 1
   // 3x kernels
-  { NULL, NULL, NULL },
+  { NULL, NULL, NULL }, // 2
 };
 
 /**
