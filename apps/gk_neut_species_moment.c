@@ -15,8 +15,8 @@ gk_neut_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spe
     struct gkyl_vlasov_lte_moments_inp inp_mom = {
       .phase_grid = &s->grid,
       .vel_grid = &s->grid_vel, 
-      .conf_basis = &app->confBasis,
-      .phase_basis = &app->neut_basis,
+      .conf_basis = &app->basis,
+      .phase_basis = &s->basis,
       .conf_range =  &app->local,
       .conf_range_ext = &app->local_ext,
       .vel_range = &s->local_vel,
@@ -27,8 +27,8 @@ gk_neut_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spe
     sm->num_mom = 5; 
   }
   else {
-    sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->confBasis, 
-      &app->neut_basis, &app->local, &s->local_vel, &s->local, s->model_id, 0,
+    sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->basis, 
+      &s->basis, &app->local, &s->local_vel, &s->local, s->model_id, 0,
       nm, sm->is_integrated, app->use_gpu);    
 
     sm->num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc);
@@ -42,16 +42,16 @@ gk_neut_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spe
     }
   }
   else {
-    sm->marr = mkarr(app->use_gpu, sm->num_mom*app->confBasis.num_basis, app->local_ext.volume);
+    sm->marr = mkarr(app->use_gpu, sm->num_mom*app->basis.num_basis, app->local_ext.volume);
     sm->marr_host = sm->marr;
     if (app->use_gpu)
-      sm->marr_host = mkarr(false, sm->num_mom*app->confBasis.num_basis, app->local_ext.volume);
+      sm->marr_host = mkarr(false, sm->num_mom*app->basis.num_basis, app->local_ext.volume);
     // Bin Op memory for rescaling moment by inverse of Jacobian
     if (app->use_gpu) {
-      sm->mem_geo = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis);
+      sm->mem_geo = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->basis.num_basis);
     }
     else {
-      sm->mem_geo = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
+      sm->mem_geo = gkyl_dg_bin_op_mem_new(app->local.volume, app->basis.num_basis);
     }
   }
 }

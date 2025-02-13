@@ -798,11 +798,11 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
     struct gkyl_gyrokinetic_app *sbapp0 = mbapp->singleb_apps[0];
     for (int d=0; d<cdim; d++) {
       for (int e=0; e<2; e++) {
-        mbapp->jf_rescale_charged[d*2+e] = gkyl_rescale_ghost_jacf_new(d,e,&sbapp0->confBasis,
+        mbapp->jf_rescale_charged[d*2+e] = gkyl_rescale_ghost_jacf_new(d,e,&sbapp0->basis,
           &sbapp0->basis, mbapp->use_gpu);
         if ((mbapp->num_neut_species > 0) && (!sbapp0->neut_species[0].info.is_static)) {
-          mbapp->jf_rescale_neut[d*2+e] = gkyl_rescale_ghost_jacf_new(d,e,&sbapp0->confBasis,
-            &sbapp0->neut_basis, mbapp->use_gpu);
+          mbapp->jf_rescale_neut[d*2+e] = gkyl_rescale_ghost_jacf_new(d,e,&sbapp0->basis,
+            &sbapp0->neut_species[0].basis, mbapp->use_gpu);
         }
       }
     }

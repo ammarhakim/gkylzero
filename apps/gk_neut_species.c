@@ -249,7 +249,7 @@ gk_neut_species_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_spec
       .frame = frame,
       .stime = tm,
       .poly_order = app->poly_order,
-      .basis_type = app->confBasis.id
+      .basis_type = app->basis.id
     }
   );
 
@@ -267,7 +267,7 @@ gk_neut_species_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_spec
     // Rescale moment by inverse of Jacobian. 
     // For LTE (Maxwellian) moments, we only need to re-scale
     // the density (the 0th component).
-    gkyl_dg_div_op_range(gkns->moms[m].mem_geo, app->confBasis, 
+    gkyl_dg_div_op_range(gkns->moms[m].mem_geo, app->basis, 
       0, gkns->moms[m].marr, 0, gkns->moms[m].marr, 0, 
       app->gk_geom->jacobgeo, &app->local);      
 
@@ -424,8 +424,8 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
   int pdim = cdim+vdim;
   
   // allocate additional distribution function arrays for time stepping
-  s->f1 = mkarr(app->use_gpu, app->neut_basis.num_basis, s->local_ext.volume);
-  s->fnew = mkarr(app->use_gpu, app->neut_basis.num_basis, s->local_ext.volume);
+  s->f1 = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
+  s->fnew = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
   
   // Allocate cflrate (scalar array).
   s->cflrate = mkarr(app->use_gpu, 1, s->local_ext.volume);
@@ -454,11 +454,11 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
   s->sgn_alpha_surf = mkarr(app->use_gpu, sgn_alpha_surf_sz, s->local_ext.volume);
   s->const_sgn_alpha = mk_int_arr(app->use_gpu, 3, s->local_ext.volume);
   // 4. cotangent vectors e^i = g^ij e_j 
-  s->cot_vec = mkarr(app->use_gpu, 9*app->confBasis.num_basis, app->local_ext.volume);
+  s->cot_vec = mkarr(app->use_gpu, 9*app->basis.num_basis, app->local_ext.volume);
   
   // Pre-compute alpha_surf, sgn_alpha_surf, const_sgn_alpha, and cot_vec since they are time-independent
   struct gkyl_dg_calc_vlasov_gen_geo_vars *calc_vars = gkyl_dg_calc_vlasov_gen_geo_vars_new(&s->grid, 
-    &app->confBasis, &app->neut_basis, app->gk_geom, app->use_gpu);
+    &app->basis, &s->basis, app->gk_geom, app->use_gpu);
   gkyl_dg_calc_vlasov_gen_geo_vars_alpha_surf(calc_vars, &app->local, &s->local, &s->local_ext, 
     s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
   gkyl_dg_calc_vlasov_gen_geo_vars_cot_vec(calc_vars, &app->local, s->cot_vec);
@@ -512,7 +512,7 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
     .alpha_surf = s->alpha_surf, .sgn_alpha_surf = s->sgn_alpha_surf, .const_sgn_alpha = s->const_sgn_alpha };
   // Set field type and model id for neutral species in GK system and create solver
   s->field_id = GKYL_FIELD_NULL;
-  s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->neut_basis, 
+  s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->basis, &s->basis, 
     &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
 
   // acquire equation object
@@ -533,10 +533,10 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
     long vol = GKYL_MAX2(s->lower_skin[dir].volume, s->upper_skin[dir].volume);
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
-  s->bc_buffer = mkarr(app->use_gpu, app->neut_basis.num_basis, buff_sz);
+  s->bc_buffer = mkarr(app->use_gpu, s->basis.num_basis, buff_sz);
   // buffer arrays for fixed function boundary conditions on distribution function
-  s->bc_buffer_lo_fixed = mkarr(app->use_gpu, app->neut_basis.num_basis, buff_sz);
-  s->bc_buffer_up_fixed = mkarr(app->use_gpu, app->neut_basis.num_basis, buff_sz);
+  s->bc_buffer_lo_fixed = mkarr(app->use_gpu, s->basis.num_basis, buff_sz);
+  s->bc_buffer_up_fixed = mkarr(app->use_gpu, s->basis.num_basis, buff_sz);
 
   for (int d=0; d<cdim; ++d) {
     // Copy BCs by default.
@@ -558,7 +558,7 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
         bctype = GKYL_BC_FIXED_FUNC;
       }
 
-      s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.neut_basis,
+      s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, s->basis_on_dev,
         &s->lower_skin[d], &s->lower_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
 
       if (s->lower_bc[d].type == GKYL_SPECIES_FIXED_FUNC) {
@@ -590,7 +590,7 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
         bctype = GKYL_BC_FIXED_FUNC;
       }
 
-      s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.neut_basis,
+      s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, s->basis_on_dev,
         &s->upper_skin[d], &s->upper_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
 
       if (s->upper_bc[d].type == GKYL_SPECIES_FIXED_FUNC) {
@@ -671,6 +671,33 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     upper_vel[d] = s->info.upper[d];
     ghost_vel[d] = 0; // no ghost-cells in velocity space
   }
+
+  // Define phase basis
+  if (app->use_gpu) {
+    // allocate device basis if we are using GPUs
+    s->basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
+  }
+  else {
+    s->basis_on_dev = &app->basis;
+  }
+
+  // Basis is tensor for p=1 and ser for p>1
+  if (app->poly_order > 1) {
+    gkyl_cart_modal_serendip(&s->basis, pdim, app->poly_order);
+  }
+  else if (app->poly_order == 1) {
+    gkyl_cart_modal_tensor(&s->basis, pdim, app->poly_order);
+  }
+
+  if (app->use_gpu) {
+    if (app->poly_order > 1) {
+      gkyl_cart_modal_serendip_cu_dev(s->basis_on_dev, pdim, app->poly_order);
+    }
+    else if (app->poly_order == 1) {
+      gkyl_cart_modal_tensor_cu_dev(s->basis_on_dev, pdim, app->poly_order);
+    }
+  }
+  
   // full phase space grid
   gkyl_rect_grid_init(&s->grid, pdim, lower, upper, cells);
   gkyl_create_grid_ranges(&s->grid, ghost, &s->global_ext, &s->global);
@@ -693,11 +720,11 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   s->vel_map = gkyl_velocity_map_new(s->info.mapc2p, s->grid, s->grid_vel,
     s->local, s->local_ext, s->local_vel, s->local_ext_vel, app->use_gpu);
   // allocate distribution function array for initialization and I/O
-  s->f = mkarr(app->use_gpu, app->neut_basis.num_basis, s->local_ext.volume);
+  s->f = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
 
   s->f_host = s->f;
   if (app->use_gpu) {
-    s->f_host = mkarr(false, app->neut_basis.num_basis, s->local_ext.volume);
+    s->f_host = mkarr(false, s->basis.num_basis, s->local_ext.volume);
   }
 
   // Create skin/ghost ranges fir applying BCs. Only used for dynamic neutrals but included here to avoid
@@ -900,6 +927,7 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
 
   if (app->use_gpu) {
     gkyl_array_release(s->f_host);
+    gkyl_cu_free(app->basis_on_dev);
   }
 
   gkyl_velocity_map_release(s->vel_map);
