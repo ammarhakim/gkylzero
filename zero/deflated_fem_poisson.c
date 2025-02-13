@@ -15,7 +15,7 @@ mkarr(bool use_gpu, long nc, long size)
 struct gkyl_deflated_fem_poisson* 
 gkyl_deflated_fem_poisson_new(struct gkyl_rect_grid grid, struct gkyl_basis *basis_on_dev, struct gkyl_basis basis, 
   struct gkyl_range local, struct gkyl_range global_sub_range, struct gkyl_array *epsilon, struct gkyl_array *kSq,
-  struct gkyl_poisson_bc poisson_bc, struct gkyl_poisson_bias_plane_list* bias_plane_list, bool use_gpu)
+  struct gkyl_poisson_bc poisson_bc, struct gkyl_poisson_bias_plane_list *bias_plane_list, bool use_gpu)
 {
   struct gkyl_deflated_fem_poisson *up = gkyl_malloc(sizeof(*up));
   up->use_gpu = use_gpu;
@@ -133,7 +133,7 @@ gkyl_deflated_fem_poisson_new(struct gkyl_rect_grid grid, struct gkyl_basis *bas
     }
 
     up->d_fem_data[ctr].fem_poisson = gkyl_fem_poisson_new(&up->deflated_local, &up->deflated_grid,
-      up->deflated_basis, &up->poisson_bc, &up->bias_plane_list, up->d_fem_data[ctr].deflated_epsilon,
+      up->deflated_basis, &up->poisson_bc, up->bias_plane_list, up->d_fem_data[ctr].deflated_epsilon,
       up->d_fem_data[ctr].deflated_kSq, false, use_gpu);
     ctr += 1;
   }

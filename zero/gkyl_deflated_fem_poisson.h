@@ -43,7 +43,7 @@ typedef struct gkyl_deflated_fem_poisson gkyl_deflated_fem_poisson;
 struct gkyl_deflated_fem_poisson* gkyl_deflated_fem_poisson_new(struct gkyl_rect_grid grid, 
   struct gkyl_basis *basis_on_dev, struct gkyl_basis basis, struct gkyl_range local, 
   struct gkyl_range global_sub_range, struct gkyl_array *epsilon, struct gkyl_array *kSq,
-  struct gkyl_poisson_bc poisson_bc, struct gkyl_poisson_bias_plane_list *bias, bool use_gpu);
+  struct gkyl_poisson_bc poisson_bc, struct gkyl_poisson_bias_plane_list *bias_plane_list, bool use_gpu);
 
 /**
  * Solve the poisson equation for the given charge density
