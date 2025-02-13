@@ -287,8 +287,7 @@ test_3x_p1_geometry_quantities()
 }
 
 TEST_LIST = {
-  // { "test_3x_p1", test_3x_p1},
-  //{ "test_3x_p2", test_3x_p2},
+  { "test_3x_p1", test_3x_p1},
   { "test_3x_p1_geometry_quantities", test_3x_p1_geometry_quantities},
   { NULL, NULL },
 };
