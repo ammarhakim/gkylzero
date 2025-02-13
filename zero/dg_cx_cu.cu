@@ -76,7 +76,7 @@ gkyl_dg_cx_new_cu(struct gkyl_dg_cx_inp *inp)
   int vdim_vl = up->pbasis_vl->ndim - cdim;
   enum gkyl_basis_type b_type = up->pbasis_vl->b_type;
 
-  fit_param(up->type_ion, up->a, up->b);
+  fit_param(up->type_ion, &up->a, &up->b);
   
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
