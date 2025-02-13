@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <gkyl_mom_canonical_pb.h>
 #include <gkyl_vlasov_priv.h>
 
 // initialize species moment object
@@ -22,6 +23,7 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
       .conf_range =  &app->local,
       .conf_range_ext = &app->local_ext,
       .vel_range = &s->local_vel,
+      .phase_range = &s->local,
       .use_vmap = s->use_vmap, 
       .vmap = s->vmap, 
       .jacob_vel_inv = s->jacob_vel_inv, 
@@ -29,6 +31,7 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
       .gamma_inv = s->gamma_inv,
       .h_ij_inv = s->h_ij_inv,
       .det_h = s->det_h,
+      .hamil = s->hamil,
       .model_id = s->model_id,
       .use_gpu = app->use_gpu,
     };
@@ -41,15 +44,23 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
       struct gkyl_mom_vlasov_sr_auxfields sr_inp = { .gamma = s->gamma, 
         .vmap = s->vmap, .jacob_vel_inv = s->jacob_vel_inv };
       sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->confBasis, 
-        &app->basis, &app->local, &s->local_vel, 
+        &app->basis, &app->local, &s->local_vel, &s->local,
         s->model_id, s->use_vmap, &sr_inp, 
         nm, is_integrated, app->use_gpu);
       num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc);
-    }
+    } 
+    else if (s->model_id == GKYL_MODEL_CANONICAL_PB && (strcmp(nm, "MEnergy") == 0 || strcmp(nm, "Integrated") == 0)) {
+      struct gkyl_mom_canonical_pb_auxfields can_pb_inp = {.hamil = s->hamil};
+      sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->confBasis, 
+        &app->basis, &app->local, &s->local_vel, &s->local, 
+        s->model_id, s->use_vmap, &can_pb_inp, 
+        nm, is_integrated, app->use_gpu);
+      num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc);
+    }  
     else {
       // No auxiliary fields for moments if not SR 
       sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->confBasis, 
-        &app->basis, &app->local, &s->local_vel, 
+        &app->basis, &app->local, &s->local_vel, &s->local,
         s->model_id, s->use_vmap, 0, 
         nm, is_integrated, app->use_gpu);   
       num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc); 

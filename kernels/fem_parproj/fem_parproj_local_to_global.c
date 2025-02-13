@@ -116,6 +116,184 @@ GKYL_CU_DH void fem_parproj_local_to_global_1x_ser_p2_upx_nonperiodicx(int numCe
 
 }
 
+GKYL_CU_DH void fem_parproj_local_to_global_2x_ser_p1_iny_periodicy(int numCellsPar, int parIdx, long *globalIdxs) 
+{ 
+  // numCellsPar: number of cells in parallel direction.
+  // parIdx:     index of current cell in parallel direction.
+  // globalIdxs: global linear index of each basis function/node in current cell.
+
+    globalIdxs[0] = 2*parIdx; 
+
+    globalIdxs[1] = 2*parIdx+1; 
+
+    globalIdxs[2] = 2*parIdx+2; 
+
+
+    globalIdxs[3] = 2*parIdx+3; 
+
+
+
+}
+
+GKYL_CU_DH void fem_parproj_local_to_global_2x_ser_p2_iny_periodicy(int numCellsPar, int parIdx, long *globalIdxs) 
+{ 
+  // numCellsPar: number of cells in parallel direction.
+  // parIdx:     index of current cell in parallel direction.
+  // globalIdxs: global linear index of each basis function/node in current cell.
+
+    globalIdxs[0] = 5*parIdx; 
+
+    globalIdxs[1] = 5*parIdx+1; 
+
+    globalIdxs[2] = 5*parIdx+2; 
+
+    globalIdxs[3] = 5*parIdx+3; 
+
+    globalIdxs[4] = 5*parIdx+4; 
+
+    globalIdxs[5] = 5*parIdx+5; 
+
+
+    globalIdxs[6] = 5*parIdx+6; 
+
+
+    globalIdxs[7] = 5*parIdx+7; 
+
+
+
+}
+
+GKYL_CU_DH void fem_parproj_local_to_global_2x_ser_p1_iny_nonperiodicy(int numCellsPar, int parIdx, long *globalIdxs) 
+{ 
+  // numCellsPar: number of cells in parallel direction.
+  // parIdx:     index of current cell in parallel direction.
+  // globalIdxs: global linear index of each basis function/node in current cell.
+
+    globalIdxs[0] = 2*parIdx; 
+
+    globalIdxs[1] = 2*parIdx+1; 
+
+    globalIdxs[2] = 2*parIdx+2; 
+
+
+    globalIdxs[3] = 2*parIdx+3; 
+
+
+
+}
+
+GKYL_CU_DH void fem_parproj_local_to_global_2x_ser_p2_iny_nonperiodicy(int numCellsPar, int parIdx, long *globalIdxs) 
+{ 
+  // numCellsPar: number of cells in parallel direction.
+  // parIdx:     index of current cell in parallel direction.
+  // globalIdxs: global linear index of each basis function/node in current cell.
+
+    globalIdxs[0] = 5*parIdx; 
+
+    globalIdxs[1] = 5*parIdx+1; 
+
+    globalIdxs[2] = 5*parIdx+2; 
+
+    globalIdxs[3] = 5*parIdx+3; 
+
+    globalIdxs[4] = 5*parIdx+4; 
+
+    globalIdxs[5] = 5*parIdx+5; 
+
+
+    globalIdxs[6] = 5*parIdx+6; 
+
+
+    globalIdxs[7] = 5*parIdx+7; 
+
+
+
+}
+
+GKYL_CU_DH void fem_parproj_local_to_global_2x_ser_p1_upy_periodicy(int numCellsPar, int parIdx, long *globalIdxs) 
+{ 
+  // numCellsPar: number of cells in parallel direction.
+  // parIdx:     index of current cell in parallel direction.
+  // globalIdxs: global linear index of each basis function/node in current cell.
+
+    globalIdxs[0] = 2*parIdx; 
+
+    globalIdxs[1] = 2*parIdx+1; 
+
+    globalIdxs[2] = 0; 
+
+    globalIdxs[3] = 1; 
+
+
+}
+
+GKYL_CU_DH void fem_parproj_local_to_global_2x_ser_p2_upy_periodicy(int numCellsPar, int parIdx, long *globalIdxs) 
+{ 
+  // numCellsPar: number of cells in parallel direction.
+  // parIdx:     index of current cell in parallel direction.
+  // globalIdxs: global linear index of each basis function/node in current cell.
+
+    globalIdxs[0] = 5*parIdx; 
+
+    globalIdxs[1] = 5*parIdx+1; 
+
+    globalIdxs[2] = 5*parIdx+2; 
+
+    globalIdxs[3] = 5*parIdx+3; 
+
+    globalIdxs[4] = 5*parIdx+4; 
+
+    globalIdxs[5] = 0; 
+
+    globalIdxs[6] = 1; 
+
+    globalIdxs[7] = 2; 
+
+
+}
+
+GKYL_CU_DH void fem_parproj_local_to_global_2x_ser_p1_upy_nonperiodicy(int numCellsPar, int parIdx, long *globalIdxs) 
+{ 
+  // numCellsPar: number of cells in parallel direction.
+  // parIdx:     index of current cell in parallel direction.
+  // globalIdxs: global linear index of each basis function/node in current cell.
+
+    globalIdxs[0] = 2*parIdx; 
+
+    globalIdxs[1] = 2*parIdx+1; 
+
+    globalIdxs[2] = 2*parIdx+2; 
+
+    globalIdxs[3] = 2*parIdx+3; 
+
+
+}
+
+GKYL_CU_DH void fem_parproj_local_to_global_2x_ser_p2_upy_nonperiodicy(int numCellsPar, int parIdx, long *globalIdxs) 
+{ 
+  // numCellsPar: number of cells in parallel direction.
+  // parIdx:     index of current cell in parallel direction.
+  // globalIdxs: global linear index of each basis function/node in current cell.
+
+    globalIdxs[0] = 5*parIdx; 
+
+    globalIdxs[1] = 5*parIdx+1; 
+
+    globalIdxs[2] = 5*parIdx+2; 
+
+    globalIdxs[3] = 5*parIdx+3; 
+
+    globalIdxs[4] = 5*parIdx+4; 
+
+    globalIdxs[5] = 5*parIdx+5; 
+
+    globalIdxs[6] = 5*parIdx+6; 
+
+    globalIdxs[7] = 5*parIdx+7; 
+
+
+}
+
 GKYL_CU_DH void fem_parproj_local_to_global_3x_ser_p1_inz_periodicz(int numCellsPar, int parIdx, long *globalIdxs) 
 { 
   // numCellsPar: number of cells in parallel direction.

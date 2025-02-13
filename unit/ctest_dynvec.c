@@ -1,6 +1,6 @@
-#include "gkyl_vlasov_priv.h"
-#include <gkyl_dynvec.h>
 #include <acutest.h>
+#include <gkyl_array_rio_format_desc.h>
+#include <gkyl_dynvec.h>
 
 #include <math.h>
 
@@ -8,6 +8,9 @@ void
 test_1()
 {
   gkyl_dynvec dv = gkyl_dynvec_new(GKYL_DOUBLE, 3);
+
+  TEST_CHECK( gkyl_dynvec_elem_type(dv) == GKYL_DOUBLE );
+  TEST_CHECK( gkyl_dynvec_ncomp(dv) == 3 );
 
   double out[3];
   TEST_CHECK( gkyl_dynvec_size(dv) == 0 );
@@ -208,9 +211,14 @@ test_io()
   gkyl_dynvec_write(dv, "ctest_dynvec_test_io_1.gkyl");
   gkyl_dynvec_clear(dv);
 
-  int nc = gkyl_dynvec_read_ncomp("ctest_dynvec_test_io_1.gkyl");
-  TEST_CHECK( nc == 3 );
+  struct gkyl_dynvec_etype_ncomp enc = { };
+  enc = gkyl_dynvec_read_ncomp("ctest_dynvec_test_io_1.gkyl");
+  TEST_CHECK( enc.ncomp == 3 );
+  TEST_CHECK( enc.type == GKYL_DOUBLE );
 
+  int file_type = gkyl_get_gkyl_file_type("ctest_dynvec_test_io_1.gkyl");
+  TEST_CHECK( 2 == file_type );  
+  
   bool res = gkyl_dynvec_read(dv, "ctest_dynvec_test_io_1.gkyl");
   TEST_CHECK( res );
 

@@ -395,6 +395,100 @@ test_1d(int poly_order, bool use_gpu)
   }
 }
 
+void
+test_inv_1d(int poly_order, bool use_gpu)
+{
+  double lower[] = {0.0}, upper[] = {1.0};
+  int cells[] = {2};
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+
+  // Basis functions.
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+
+  // Project fields.
+  gkyl_proj_on_basis *projf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_1d, NULL);
+
+  // Create array range.
+  int nghost[GKYL_MAX_DIM] = { 0 };
+  struct gkyl_range local, local_ext;
+  gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);  
+
+  // Create field arrays.
+  struct gkyl_array *ffld, *ffld_inv;
+  struct gkyl_array *ffld_ho, *ffld_inv_ho;
+  ffld_ho = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local.volume);
+  ffld_inv_ho = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local.volume);
+  if (use_gpu) {
+    ffld = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local.volume);
+    ffld_inv = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local.volume);
+  } else {
+    ffld = ffld_ho;
+    ffld_inv = ffld_inv_ho;
+  }
+
+  // Project the field onto basis.
+  gkyl_proj_on_basis_advance(projf, 0.0, &local, ffld_ho);
+  gkyl_array_copy(ffld, ffld_ho);
+
+  // Invert the field and check its results.
+  gkyl_dg_inv_op(basis, 0, ffld_inv, 0, ffld);
+  gkyl_array_copy(ffld_inv_ho, ffld_inv);
+
+  for (size_t i=0; i<local.volume; ++i) {
+    const double *A = gkyl_array_cfetch(ffld_ho, i);
+    const double *A_inv = gkyl_array_cfetch(ffld_inv_ho, i);
+
+    const double A0R2 = pow(A[0],2);
+    const double A1R2 = pow(A[1],2);
+    double det = -0.5*(A1R2-1.0*A0R2);
+  
+    double A_inv_expected[basis.num_basis];
+    A_inv_expected[0] = A[0]/det;
+    A_inv_expected[1] = -(1.0*A[1])/det;
+
+    for (int k=0; k<basis.num_basis; ++k) {
+      TEST_CHECK( gkyl_compare(A_inv_expected[k], A_inv[k], 1e-12) );
+    }
+  }
+
+  // Test the range method.
+  gkyl_array_clear(ffld_inv, 0.0);
+  gkyl_dg_inv_op_range(basis, 0, ffld_inv, 0, ffld, &local);
+  gkyl_array_copy(ffld_inv_ho, ffld_inv);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &local);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&local, iter.idx);
+
+    const double *A = gkyl_array_cfetch(ffld_ho, loc);
+    const double *A_inv = gkyl_array_cfetch(ffld_inv_ho, loc);
+
+    const double A0R2 = pow(A[0],2);
+    const double A1R2 = pow(A[1],2);
+    double det = -0.5*(A1R2-1.0*A0R2);
+  
+    double A_inv_expected[basis.num_basis];
+    A_inv_expected[0] = A[0]/det;
+    A_inv_expected[1] = -(1.0*A[1])/det;
+
+    for (int k=0; k<basis.num_basis; ++k) {
+      TEST_CHECK( gkyl_compare(A_inv_expected[k], A_inv[k], 1e-12) );
+    }
+  }
+
+  gkyl_proj_on_basis_release(projf);
+  gkyl_array_release(ffld);
+  gkyl_array_release(ffld_inv);
+  if (use_gpu) {
+    gkyl_array_release(ffld_ho);
+    gkyl_array_release(ffld_inv_ho);
+  }
+}
+
 void f_1d2d(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
@@ -845,6 +939,143 @@ test_2d(int poly_order, bool use_gpu)
     gkyl_array_release(fvdgv3_cu);
   } else {
     gkyl_array_release(h);
+  }
+}
+
+void
+test_inv_2d(int poly_order, bool use_gpu)
+{
+  double lower[] = {0.0, 0.0}, upper[] = {1.0, 1.0};
+  int cells[] = {2, 2};
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+
+  // Basis functions.
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+
+  // Project fields.
+  gkyl_proj_on_basis *projf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_2d, NULL);
+
+  // Create array range.
+  int nghost[GKYL_MAX_DIM] = { 0 };
+  struct gkyl_range local, local_ext;
+  gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);  
+
+  // Create field arrays.
+  struct gkyl_array *ffld, *ffld_inv;
+  struct gkyl_array *ffld_ho, *ffld_inv_ho;
+  ffld_ho = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local.volume);
+  ffld_inv_ho = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local.volume);
+  if (use_gpu) {
+    ffld = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local.volume);
+    ffld_inv = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local.volume);
+  } else {
+    ffld = ffld_ho;
+    ffld_inv = ffld_inv_ho;
+  }
+
+  // Project the field onto basis.
+  gkyl_proj_on_basis_advance(projf, 0.0, &local, ffld_ho);
+  gkyl_array_copy(ffld, ffld_ho);
+
+  // Invert the field and check its results.
+  gkyl_dg_inv_op(basis, 0, ffld_inv, 0, ffld);
+  gkyl_array_copy(ffld_inv_ho, ffld_inv);
+
+  for (size_t i=0; i<local.volume; ++i) {
+    const double *A = gkyl_array_cfetch(ffld_ho, i);
+    const double *A_inv = gkyl_array_cfetch(ffld_inv_ho, i);
+
+    double A_inv_expected[basis.num_basis];
+
+    const double A0R2 = pow(A[0],2);
+    const double A0R3 = pow(A[0],3);
+    const double A0R4 = pow(A[0],4);
+    const double A1R2 = pow(A[1],2);
+    const double A1R3 = pow(A[1],3);
+    const double A1R4 = pow(A[1],4);
+    const double A2R2 = pow(A[2],2);
+    const double A2R3 = pow(A[2],3);
+    const double A2R4 = pow(A[2],4);
+    const double A3R2 = pow(A[3],2);
+    const double A3R3 = pow(A[3],3);
+    const double A3R4 = pow(A[3],4);
+  
+    double det = 0.0625*(A3R4+((-2.0*A2R2)-2.0*A1R2-2.0*A0R2)*A3R2+8.0*A[0]*A[1]*A[2]*A[3]+A2R4+((-2.0*A1R2)-2.0*A0R2)*A2R2+A1R4-2.0*A0R2*A1R2+A0R4);
+  
+    A_inv_expected[0] = -(0.25*(A[0]*A3R2-2.0*A[1]*A[2]*A[3]+A[0]*A2R2+A[0]*A1R2-1.0*A0R3))/det;
+    A_inv_expected[1] = -(0.25*(A[1]*A3R2-2.0*A[0]*A[2]*A[3]+A[1]*A2R2-1.0*A1R3+A0R2*A[1]))/det;
+    A_inv_expected[2] = -(0.25*(A[2]*A3R2-2.0*A[0]*A[1]*A[3]-1.0*A2R3+(A1R2+A0R2)*A[2]))/det;
+    A_inv_expected[3] = (0.25*(A3R3+((-1.0*A2R2)-1.0*A1R2-1.0*A0R2)*A[3]+2.0*A[0]*A[1]*A[2]))/det;
+
+    for (int k=0; k<basis.num_basis; ++k) {
+      TEST_CHECK( gkyl_compare(A_inv_expected[k], A_inv[k], 1e-12) );
+    }
+  }
+
+  // Test the range method.
+  gkyl_array_clear(ffld_inv, 0.0);
+  gkyl_dg_inv_op_range(basis, 0, ffld_inv, 0, ffld, &local);
+  gkyl_array_copy(ffld_inv_ho, ffld_inv);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &local);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&local, iter.idx);
+
+    const double *A = gkyl_array_cfetch(ffld_ho, loc);
+    const double *A_inv = gkyl_array_cfetch(ffld_inv_ho, loc);
+
+    double A_inv_expected[basis.num_basis];
+
+    const double A0R2 = pow(A[0],2);
+    const double A0R3 = pow(A[0],3);
+    const double A0R4 = pow(A[0],4);
+    const double A1R2 = pow(A[1],2);
+    const double A1R3 = pow(A[1],3);
+    const double A1R4 = pow(A[1],4);
+    const double A2R2 = pow(A[2],2);
+    const double A2R3 = pow(A[2],3);
+    const double A2R4 = pow(A[2],4);
+    const double A3R2 = pow(A[3],2);
+    const double A3R3 = pow(A[3],3);
+    const double A3R4 = pow(A[3],4);
+  
+    double det = 0.0625*(A3R4+((-2.0*A2R2)-2.0*A1R2-2.0*A0R2)*A3R2+8.0*A[0]*A[1]*A[2]*A[3]+A2R4+((-2.0*A1R2)-2.0*A0R2)*A2R2+A1R4-2.0*A0R2*A1R2+A0R4);
+  
+    A_inv_expected[0] = -(0.25*(A[0]*A3R2-2.0*A[1]*A[2]*A[3]+A[0]*A2R2+A[0]*A1R2-1.0*A0R3))/det;
+    A_inv_expected[1] = -(0.25*(A[1]*A3R2-2.0*A[0]*A[2]*A[3]+A[1]*A2R2-1.0*A1R3+A0R2*A[1]))/det;
+    A_inv_expected[2] = -(0.25*(A[2]*A3R2-2.0*A[0]*A[1]*A[3]-1.0*A2R3+(A1R2+A0R2)*A[2]))/det;
+    A_inv_expected[3] = (0.25*(A3R3+((-1.0*A2R2)-1.0*A1R2-1.0*A0R2)*A[3]+2.0*A[0]*A[1]*A[2]))/det;
+
+    for (int k=0; k<basis.num_basis; ++k) {
+      TEST_CHECK( gkyl_compare(A_inv_expected[k], A_inv[k], 1e-12) );
+    }
+  }
+
+  // Check if A.A_inv = 1.
+  struct gkyl_array *iden = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local.volume);
+  gkyl_dg_mul_op_range(basis, 0, iden, 0, ffld, 0, ffld_inv, &local);
+  gkyl_range_iter_init(&iter, &local);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&local, iter.idx);
+
+    const double *iden_c = gkyl_array_cfetch(iden, loc);
+    TEST_CHECK( gkyl_compare(pow(sqrt(2.0),ndim), iden_c[0], 1e-12) );
+    for (int k=1; k<basis.num_basis; ++k) {
+      TEST_CHECK( gkyl_compare(0.0, iden_c[k], 1e-12) );
+    }
+  }
+  gkyl_array_release(iden);
+
+  gkyl_proj_on_basis_release(projf);
+  gkyl_array_release(ffld);
+  gkyl_array_release(ffld_inv);
+  if (use_gpu) {
+    gkyl_array_release(ffld_ho);
+    gkyl_array_release(ffld_inv_ho);
   }
 }
 
@@ -1471,9 +1702,13 @@ void test_1d_p1(){ test_1d(1, false); }
 void test_1d_p2(){ test_1d(2, false); }
 void test_1d_p3(){ test_1d(3, false); }
 
+void test_inv_1d_p1(){ test_inv_1d(1, false); }
+
 void test_2d_p1(){ test_2d(1, false); }
 void test_2d_p2(){ test_2d(2, false); }
 void test_2d_p3(){ test_2d(3, false); }
+
+void test_inv_2d_p1(){ test_inv_2d(1, false); }
 
 void test_3d_p1(){ test_3d(1, false); }
 void test_3d_p2(){ test_3d(2, false); }
@@ -1601,9 +1836,13 @@ void test_1d_p1_cu(){ test_1d(1, true); }
 void test_1d_p2_cu(){ test_1d(2, true); }
 void test_1d_p3_cu(){ test_1d(3, true); }
 
+void test_inv_1d_p1_cu(){ test_inv_1d(1, true); }
+
 void test_2d_p1_cu(){ test_2d(1, true); }
 void test_2d_p2_cu(){ test_2d(2, true); }
 void test_2d_p3_cu(){ test_2d(3, true); }
+
+void test_inv_2d_p1_cu(){ test_inv_2d(1, true); }
 
 void test_3d_p1_cu(){ test_3d(1, true); }
 void test_3d_p2_cu(){ test_3d(2, true); }
@@ -1730,9 +1969,11 @@ test_3d_p3_cu()
 
 TEST_LIST = {
   { "test_1d_p1", test_1d_p1 },
+  { "test_inv_1d_p1", test_inv_1d_p1 },
   { "test_1d_p2", test_1d_p2 },
   { "test_1d_p3", test_1d_p3 },
   { "test_2d_p1", test_2d_p1 },
+  { "test_inv_2d_p1", test_inv_2d_p1 },
   { "test_2d_p2", test_2d_p2 },
   { "test_2d_p3", test_2d_p3 },
   { "test_3d_p1", test_3d_p1 },
@@ -1742,9 +1983,11 @@ TEST_LIST = {
   { "test_4d_p2", test_4d_p2 },
 #ifdef GKYL_HAVE_CUDA
   { "test_1d_p1_cu", test_1d_p1_cu },
+  { "test_inv_1d_p1_cu", test_inv_1d_p1_cu },
   { "test_1d_p2_cu", test_1d_p2_cu },
   { "test_1d_p3_cu", test_1d_p3_cu },
   { "test_2d_p1_cu", test_2d_p1_cu },
+  { "test_inv_2d_p1_cu", test_inv_2d_p1_cu },
   { "test_2d_p2_cu", test_2d_p2_cu },
   { "test_2d_p3_cu", test_2d_p3_cu },
   { "test_3d_p1_cu", test_3d_p1_cu },

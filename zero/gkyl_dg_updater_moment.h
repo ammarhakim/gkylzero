@@ -21,6 +21,7 @@ typedef struct gkyl_dg_updater_moment_tm gkyl_dg_updater_moment_tm;
  * @param pbasis Phase-space basis function
  * @param conf_range Config space range
  * @param vel_range Velocity space range
+ * @param phase_range Phase space range
  * @param model_id Enum identifier for model type (e.g., SR, see gkyl_eqn_type.h)
  * @param use_vmap bool to determine if we are using mapped velocity grid kernels
  * @param aux_inp Void pointer to auxiliary fields. Void to be flexible to different auxfields structs
@@ -33,7 +34,7 @@ typedef struct gkyl_dg_updater_moment_tm gkyl_dg_updater_moment_tm;
 struct gkyl_dg_updater_moment*
 gkyl_dg_updater_moment_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
+  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,   const struct gkyl_range *phase_range,
   enum gkyl_model_id model_id, bool use_vmap, void *aux_inp, 
   const char *mom, bool is_integrated, bool use_gpu);
 

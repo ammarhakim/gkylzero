@@ -109,23 +109,22 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
         bc = mom_fld->bcy;
       else
         bc = mom_fld->bcz;
-
-      void (*bc_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+      
+      wv_bc_func_t bc_lower_func;
       if (dir == 0)
-        bc_lower_func = mom_fld->bcx_lower_func;
+        bc_lower_func = mom_fld->bcx_func[0];
       else if (dir == 1)
-        bc_lower_func = mom_fld->bcy_lower_func;
+        bc_lower_func = mom_fld->bcy_func[0];
       else
-        bc_lower_func = mom_fld->bcz_lower_func;
+        bc_lower_func = mom_fld->bcz_func[0];
 
-      void (*bc_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+      wv_bc_func_t bc_upper_func;
       if (dir == 0)
-        bc_upper_func = mom_fld->bcx_upper_func;
+        bc_upper_func = mom_fld->bcx_func[0];
       else if (dir == 1)
-        bc_upper_func = mom_fld->bcy_upper_func;
+        bc_upper_func = mom_fld->bcy_func[0];
       else
-        bc_upper_func = mom_fld->bcz_upper_func;
-
+        bc_upper_func = mom_fld->bcz_func[0];
 
       fld->lower_bct[dir] = bc[0];
       fld->upper_bct[dir] = bc[1];
@@ -133,7 +132,8 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
       switch (bc[0]) {
         case GKYL_FIELD_PEC_WALL:
           fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
-            &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost, maxwell->wall_bc_func, 0);
+            &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost,
+            maxwell->wall_bc_func, 0);
           break;
 
         case GKYL_FIELD_FUNC:
@@ -144,7 +144,14 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
         case GKYL_FIELD_COPY:
         case GKYL_FIELD_WEDGE:
           fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
-            &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost, bc_copy, 0);
+            &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost,
+            bc_copy, 0);
+          break;
+
+        case GKYL_FIELD_SKIP:
+          fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost,
+            bc_skip, 0);
           break;
 
         default:
@@ -155,7 +162,8 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
       switch (bc[1]) {
         case GKYL_FIELD_PEC_WALL:
           fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
-            &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost, maxwell->wall_bc_func, 0);
+            &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost,
+            maxwell->wall_bc_func, 0);
           break;
 
         case GKYL_FIELD_FUNC:
@@ -167,8 +175,15 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
         case GKYL_FIELD_COPY:
         case GKYL_FIELD_WEDGE:
           fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
-            &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_copy, 0);
+            &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE,
+            nghost, bc_copy, 0);
           break;
+
+        case GKYL_FIELD_SKIP:
+          fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE,
+            nghost, bc_skip, 0);
+          break;          
           
         default:
           assert(false);
@@ -181,8 +196,13 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
   fld->app_current = mkarr(false, 3, app->local_ext.volume);
   fld->t_ramp_curr = mom_fld->t_ramp_curr ? mom_fld->t_ramp_curr : 0.0;
   fld->proj_app_current = 0;
-  if (mom_fld->app_current_func)
-    fld->proj_app_current = gkyl_fv_proj_new(&app->grid, 2, 3, mom_fld->app_current_func, fld->ctx);
+  if (mom_fld->app_current_func) {
+    void *ctx = fld->ctx;
+    if (mom_fld->app_current_ctx)
+      ctx = mom_fld->app_current_ctx;
+    fld->proj_app_current = gkyl_fv_proj_new(&app->grid, 2, GKYL_MOM_APP_NUM_APPLIED_CURRENT,
+      mom_fld->app_current_func, ctx);
+  }
   
   fld->ext_em = mkarr(false, 6, app->local_ext.volume);
   fld->is_ext_em_static = mom_fld->is_ext_em_static;
@@ -200,8 +220,13 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
 
   fld->t_ramp_E = mom_fld->t_ramp_E ? mom_fld->t_ramp_E : 0.0;
   fld->proj_ext_em = 0;
-  if (mom_fld->ext_em_func)
-    fld->proj_ext_em = gkyl_fv_proj_new(&app->grid, 2, 6, mom_fld->ext_em_func, fld->ctx);
+  if (mom_fld->ext_em_func) {
+    void *ctx = fld->ctx;
+    if (mom_fld->ext_em_ctx)
+      ctx = mom_fld->ext_em_ctx;
+    fld->proj_ext_em = gkyl_fv_proj_new(&app->grid, 2, GKYL_MOM_APP_NUM_EXT_EM,
+      mom_fld->ext_em_func, ctx);
+  }
 
   // allocate buffer for applying BCs (used for periodic BCs)
   long buff_sz = 0;
@@ -226,8 +251,6 @@ moment_field_apply_bc(gkyl_moment_app *app, double tcurr,
   struct timespec wst = gkyl_wall_clock();
   
   int num_periodic_dir = app->num_periodic_dir, ndim = app->ndim, is_non_periodic[3] = {1, 1, 1};
-  gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext, num_periodic_dir,
-    app->periodic_dirs, f);
   
   for (int d=0; d<num_periodic_dir; ++d)
     is_non_periodic[app->periodic_dirs[d]] = 0;
@@ -246,7 +269,11 @@ moment_field_apply_bc(gkyl_moment_app *app, double tcurr,
           field->bc_buffer, d, field->lower_bc[d], field->upper_bc[d], f);
     }
 
+  // sync interior ghost cells
   gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, f);
+  // sync periodic ghost cells
+  gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext, num_periodic_dir,
+    app->periodic_dirs, f);
 
   app->stat.field_bc_tm += gkyl_time_diff_now_sec(wst);  
 }

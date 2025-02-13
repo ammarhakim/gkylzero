@@ -5,14 +5,10 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_dg_updater_vlasov_timers.h>
 
 // Object type
 typedef struct gkyl_dg_updater_vlasov gkyl_dg_updater_vlasov;
-
-// return type for vlasov timers
-struct gkyl_dg_updater_vlasov_tm {
-  double vlasov_tm; // time for vlasov updates
-};
 
 /**
  * Create new updater to update vlasov equations using hyper dg.
@@ -25,7 +21,7 @@ struct gkyl_dg_updater_vlasov_tm {
  * @param conf_range Configuration space range
  * @param vel_range Velocity space range
  * @param phase_range Phase space range
- * @param is_zero_flux_dir True in directions with (lower and upper) zero flux BCs.
+ * @param is_zero_flux_bc True for zero flux boundaries.
  * @param model_id Enum identifier for model type (e.g., SR, General Geometry, see gkyl_eqn_type.h)
  * @param field_id Enum identifier for field type (e.g., Maxwell's, Poisson, see gkyl_eqn_type.h)
  * @param use_vmap bool to determine if we are using mapped velocity grid kernels
@@ -37,7 +33,7 @@ struct gkyl_dg_updater_vlasov_tm {
 gkyl_dg_updater_vlasov* gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *vel_range, const struct gkyl_range *phase_range,
-  const bool *is_zero_flux_dir, enum gkyl_model_id model_id, enum gkyl_field_id field_id, 
+  const bool *is_zero_flux_bc, enum gkyl_model_id model_id, enum gkyl_field_id field_id, 
   bool use_vmap, void *aux_inp, bool use_gpu);
 
 /**

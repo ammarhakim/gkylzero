@@ -82,6 +82,25 @@ void gkyl_dg_mul_conf_phase_op_range(struct gkyl_basis *cbasis,
   const struct gkyl_range *crange, const struct gkyl_range *prange);
 
 /**
+ * Compute pout += a*cop*pop on specified range (sub-range of range
+ * containing the DG fields), where pout and pop are phase-space
+ * operands, and cop is a conf-space operand. 
+ *
+ * @param cbasis Configuration space basis functions used in expansions.
+ * @param pbasis Phase space basis functions used in expansions.
+ * @param pout Output phase-space DG field.
+ * @param a Factor to multiply accumulated output by (e.g., a = -1.0 for decrementing)
+ * @param cop Conf-space operand DG field.
+ * @param pop Phase-space operand DG field.
+ * @param crange Conf-space range to apply multiplication operator.
+ * @param prange Phase-space range to apply multiplication operator.
+ */
+void gkyl_dg_mul_conf_phase_op_accumulate_range(struct gkyl_basis *cbasis,
+  struct gkyl_basis *pbasis, struct gkyl_array* pout, double a, 
+  const struct gkyl_array* cop, const struct gkyl_array* pop,
+  const struct gkyl_range *crange, const struct gkyl_range *prange);
+
+/**
  * Compute out = lop . rop, where lop and rop are vector fields.
  * If these vector fields only have one component the result is the
  * same as using dg_mul_op with c_oop=c_lop=c_rop=0.
@@ -149,6 +168,37 @@ void gkyl_dg_div_op_range(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
   int c_rop, const struct gkyl_array* rop, const struct gkyl_range *range);
 
 /**
+ * Compute out = 1/iop. The c_oop and c_iop are the
+ * components into the DG fields to use (in case the fields are
+ * vector fields). For scalar fields c_oop = c_iop = 0, for
+ * example.
+ *
+ * @param basis Basis functions used in expansions.
+ * @param c_oop Component of output field in which to store product.
+ * @param out Output DG field.
+ * @param c_iop Component of input operand.
+ * @param iop Input operand DG field.
+ */
+void gkyl_dg_inv_op(struct gkyl_basis basis,
+  int c_oop, struct gkyl_array* out, int c_iop, const struct gkyl_array* iop);
+
+/**
+ * Compute out = 1/iop on specified range. The c_oop and c_iop are
+ * the components into the DG fields to use (in case the fields are
+ * vector fields). For scalar fields c_oop = c_iop = 0, for
+ * example.
+ *
+ * @param basis Basis functions used in expansions.
+ * @param c_oop Component of output field in which to store product.
+ * @param out Output DG field.
+ * @param c_iop Component of input operand.
+ * @param iop Input operand DG field.
+ */
+void gkyl_dg_inv_op_range(struct gkyl_basis basis,
+  int c_oop, struct gkyl_array* out, int c_iop, const struct gkyl_array* iop,
+  const struct gkyl_range *range);
+
+/**
  * Compute the cell-average of input array iop and store it in out
  * array.
  *
@@ -193,8 +243,15 @@ gkyl_dg_mul_op_range_cu(struct gkyl_basis basis,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop, const struct gkyl_range *range);
 
-void gkyl_dg_mul_conf_phase_op_range_cu(struct gkyl_basis *cbasis,
+void 
+gkyl_dg_mul_conf_phase_op_range_cu(struct gkyl_basis *cbasis,
   struct gkyl_basis *pbasis, struct gkyl_array* pout,
+  const struct gkyl_array* cop, const struct gkyl_array* pop,
+  const struct gkyl_range *crange, const struct gkyl_range *prange);
+
+void 
+gkyl_dg_mul_conf_phase_op_accumulate_range_cu(struct gkyl_basis *cbasis,
+  struct gkyl_basis *pbasis, struct gkyl_array* pout, double a, 
   const struct gkyl_array* cop, const struct gkyl_array* pop,
   const struct gkyl_range *crange, const struct gkyl_range *prange);
 
@@ -221,3 +278,13 @@ gkyl_dg_div_op_range_cu(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
   int c_oop, struct gkyl_array* out,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop, const struct gkyl_range *range);
+
+void
+gkyl_dg_inv_op_cu(struct gkyl_basis basis,
+  int c_oop, struct gkyl_array* out,
+  int c_iop, const struct gkyl_array* iop);
+
+void
+gkyl_dg_inv_op_range_cu(struct gkyl_basis basis,
+  int c_oop, struct gkyl_array* out,
+  int c_iop, const struct gkyl_array* iop, const struct gkyl_range *range);

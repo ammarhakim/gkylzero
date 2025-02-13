@@ -5,7 +5,7 @@ void
 vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_lbo_collisions *lbo)
 {
   int cdim = app->cdim, vdim = app->vdim;
-  double v_bounds[2*GKYL_MAX_DIM];
+  double v_bounds[2*GKYL_MAX_DIM] = { 0.0 };
   for (int d=0; d<vdim; ++d) {
     v_bounds[d] = s->info.lower[d];
     v_bounds[d + vdim] = s->info.upper[d];
@@ -98,11 +98,11 @@ vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s, str
     lbo->greene_factor[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     
     if (lbo->other_m[i] > s->info.mass) {
-      gkyl_array_set(lbo->cross_nu[i], sqrt(2), lbo->self_nu);
-      gkyl_array_set(lbo->other_nu[i], (s->info.mass)/(lbo->other_m[i]), lbo->self_nu);
+      gkyl_array_set(lbo->cross_nu[i], sqrt(2.0), lbo->self_nu);
+      gkyl_array_set(lbo->other_nu[i], sqrt(2.0)*(s->info.mass)/(lbo->other_m[i]), lbo->self_nu);
     } else {
-      gkyl_array_set(lbo->cross_nu[i], (lbo->other_m[i])/(s->info.mass), lbo->collide_with[i]->lbo.self_nu);
-      gkyl_array_set(lbo->other_nu[i], sqrt(2), lbo->collide_with[i]->lbo.self_nu);
+      gkyl_array_set(lbo->cross_nu[i], sqrt(2.0)*(lbo->other_m[i])/(s->info.mass), lbo->collide_with[i]->lbo.self_nu);
+      gkyl_array_set(lbo->other_nu[i], sqrt(2.0), lbo->collide_with[i]->lbo.self_nu);
     }
     
     gkyl_array_accumulate(lbo->nu_sum, 1.0, lbo->cross_nu[i]);

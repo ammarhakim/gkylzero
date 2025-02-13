@@ -47,6 +47,7 @@ vm_species_projection_init(struct gkyl_vlasov_app *app, struct vm_species *s,
       .conf_range =  &app->local,
       .conf_range_ext = &app->local_ext,
       .vel_range = &s->local_vel,
+      .phase_range = &s->local,
       .use_vmap = s->use_vmap, 
       .vmap = s->vmap, 
       .jacob_vel_inv = s->jacob_vel_inv, 
@@ -55,8 +56,10 @@ vm_species_projection_init(struct gkyl_vlasov_app *app, struct vm_species *s,
       .gamma_inv = s->gamma_inv,
       .h_ij_inv = s->h_ij_inv, 
       .det_h = s->det_h,
+      .hamil = s->hamil,
       .model_id = s->model_id,
       .use_gpu = app->use_gpu,
+      .quad_type = inp.quad_type
     };
     proj->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew( &inp_proj );
 
@@ -77,6 +80,7 @@ vm_species_projection_init(struct gkyl_vlasov_app *app, struct vm_species *s,
         .conf_range =  &app->local,
         .conf_range_ext = &app->local_ext,
         .vel_range = &s->local_vel,
+        .phase_range = &s->local,
         .use_vmap = s->use_vmap, 
         .vmap = s->vmap, 
         .jacob_vel_inv = s->jacob_vel_inv, 
@@ -85,8 +89,10 @@ vm_species_projection_init(struct gkyl_vlasov_app *app, struct vm_species *s,
         .gamma_inv = s->gamma_inv,
         .h_ij_inv = s->h_ij_inv,
         .det_h = s->det_h,
+        .hamil = s->hamil,
         .model_id = s->model_id,
         .use_gpu = app->use_gpu,
+        .quad_type = inp.quad_type,
         .max_iter = max_iter,
         .eps = iter_eps,
         .use_last_converged = use_last_converged, 
@@ -122,6 +128,7 @@ vm_species_projection_init(struct gkyl_vlasov_app *app, struct vm_species *s,
       .conf_range =  &app->local,
       .conf_range_ext = &app->local_ext,
       .vel_range = &s->local_vel,
+      .phase_range = &s->local,
       .use_vmap = s->use_vmap, 
       .vmap = s->vmap, 
       .jacob_vel_inv = s->jacob_vel_inv, 
@@ -173,8 +180,8 @@ vm_species_projection_calc(gkyl_vlasov_app *app, const struct vm_species *s,
 
     // Correct all the moments of the projected LTE distribution function.
     if (proj->correct_all_moms) {
-      gkyl_vlasov_lte_correct_all_moments(proj->corr_lte, f, proj->vlasov_lte_moms, 
-        &s->local, &app->local);
+      struct gkyl_vlasov_lte_correct_status status_corr = gkyl_vlasov_lte_correct_all_moments(proj->corr_lte, 
+        f, proj->vlasov_lte_moms, &s->local, &app->local);
     } 
   }
   else if (proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {

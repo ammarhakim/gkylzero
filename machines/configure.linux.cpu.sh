@@ -1,2 +1,3 @@
 : "${PREFIX:=$HOME/gkylsoft}"
-./configure CC=cc --prefix=$PREFIX
+: "${MPI_HOME:=$HOME/gkylsoft/openmpi}"
+./configure CC=clang --prefix=$PREFIX --use-lua=yes

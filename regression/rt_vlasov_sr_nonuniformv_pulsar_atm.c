@@ -366,7 +366,10 @@ main(int argc, char **argv)
     .app_accel = evalAccelFunc,
     .app_accel_ctx = &ctx,
 
-    .bcx = { GKYL_SPECIES_FIXED_FUNC, GKYL_SPECIES_COPY },
+    .bcx = {
+      .lower = { .type = GKYL_SPECIES_FIXED_FUNC, },
+      .upper = { .type = GKYL_SPECIES_COPY, },
+    },
 
     .num_diag_moments = 2,
     .diag_moments = { "M0", "M1i" },
@@ -401,7 +404,10 @@ main(int argc, char **argv)
     .app_accel = evalAccelFunc,
     .app_accel_ctx = &ctx,
 
-    .bcx = { GKYL_SPECIES_FIXED_FUNC, GKYL_SPECIES_COPY },
+    .bcx = {
+      .lower = { .type = GKYL_SPECIES_FIXED_FUNC, },
+      .upper = { .type = GKYL_SPECIES_COPY, },
+    },
 
     .num_diag_moments = 2,
     .diag_moments = { "M0", "M1i" },
@@ -441,13 +447,11 @@ main(int argc, char **argv)
 
     .field = field,
 
-    .use_gpu = app_args.use_gpu,
-
-    .has_low_inp = true,
-    .low_inp = {
-      .local_range = decomp->ranges[my_rank],
-      .comm = comm
-    }
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0] },
+      .comm = comm,
+    },
   };
   
   // Create app object.
@@ -534,7 +538,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
   gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
-  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.nio);
+  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
   gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   // Free resources after simulation completion.

@@ -12,16 +12,40 @@ enum gkyl_eqn_type {
   GKYL_EQN_MHD,  // Ideal MHD equations
   GKYL_EQN_BURGERS, // Burgers equations
   GKYL_EQN_ADVECTION, // Scalar advection equation
-  GKYL_EQN_GR_EULER, // General relativistic Euler equations.
+  GKYL_EQN_GR_EULER, // General relativistic Euler equations with ideal gas equation of state.
+  GKYL_EQN_GR_EULER_TETRAD, // General relativistic Euler equations in the tetrad basis with ideal gas equation of state.
+  GKYL_EQN_GR_ULTRA_REL_EULER, // General relativistic Euler equations with ultra-relativistic equation of state.
+  GKYL_EQN_GR_ULTRA_REL_EULER_TETRAD, // General relativistic Euler equations in the tetrad basis with ultra-relativistic equation of state.
+  GKYL_EQN_GR_MAXWELL, // General relativistic Maxwell equations.
+  GKYL_EQN_GR_MAXWELL_TETRAD, // General relativistic Maxwell equations in the tetrad basis.
+  GKYL_EQN_GR_MEDIUM, // Coupled fluid-Einstein equations in plane-symmetric spacetimes.
   GKYL_EQN_REACTIVE_EULER, // Reactive Euler equations.
+  GKYL_EQN_EULER_MIXTURE, // Euler mixture equations.
+  GKYL_EQN_ISO_EULER_MIXTURE, // Isothermal Euler mixture equations.
+};
+
+// Identifiers for specific gyrokinetic model types
+enum gkyl_gkmodel_id {
+  GKYL_GK_MODEL_GEN_GEO = 0, // General geometry GK. This is default
+  GKYL_GK_MODEL_NO_BY = 1, // General geometry GK, but no toroidal field (by = 0)
+};
+
+// Identifiers for specific gyrokinetic field object types
+enum gkyl_gkfield_id {
+  GKYL_GK_FIELD_ES = 0, // Electrostatic GK. This is default
+  GKYL_GK_FIELD_BOLTZMANN = 1, // GK Boltzmann, isothermal electrons, phi = phi_sheath + (T_e/e)*ln(n_i/n_is)
+  GKYL_GK_FIELD_ADIABATIC = 2, // GK field with an adiabatic species.
+  GKYL_GK_FIELD_ES_IWL = 3, // Inner-wall limited ES.
+  GKYL_GK_FIELD_EM = 4, // Electromagnetic GK
 };
 
 // Identifiers for specific field object types
 enum gkyl_field_id {
   GKYL_FIELD_E_B = 0, // Maxwell (E, B). This is default
   GKYL_FIELD_PHI = 1, // Poisson (only phi)
-  GKYL_FIELD_PHI_A = 2, // Poisson with static B = curl(A) (phi, A)
-  GKYL_FIELD_NULL = 3, // no field is present
+  GKYL_FIELD_PHI_EXT_POTENTIALS = 2, // Poisson + external potentials (phi_ext, A_ext).
+  GKYL_FIELD_PHI_EXT_FIELDS = 3, // Poisson + external fields (E_ext, B_ext).
+  GKYL_FIELD_NULL = 4, // no field is present
 };
 
 // Identifiers for subsidary models
@@ -66,10 +90,61 @@ enum gkyl_radiation_id {
   GKYL_VM_COMPTON_RADIATION, // Vlasov simple Compton radiation model. 
 };
 
+// Identifiers for specific reaction object types
+enum gkyl_react_id {
+  GKYL_NO_REACT = 0, // No reactions. This is default
+  GKYL_REACT_IZ, // Ionization.
+  GKYL_REACT_CX, // Charge exchange.
+  GKYL_REACT_RECOMB, // Recombination.
+};
+
+enum gkyl_te_min_model {
+  GKYL_VARY_TE_CONSERVATIVE = 0,  // Minimum temperature depends on V0, turns off at (relatively) high Te, so low chance of negative emissivity. This is default
+  GKYL_VARY_TE_AGGRESSIVE,  // Minimum temperature depends on V0, turns off at (relatively) low Te, so higher chance of negative emissivity
+  GKYL_CONST_TE,  // A constant minimum temperature, below which radiation is turned off
+};
+
+// Identifiers for different ion reaction types
+enum gkyl_ion_type {
+  GKYL_ION_H = 0,  // Hydrogen ions
+  GKYL_ION_D = 1,  // Deuterium ions (for CX)
+  GKYL_ION_HE = 2, // Helium ions
+  GKYL_ION_LI = 3, // Lithium ions
+  GKYL_ION_BE = 4, // Beryllium ions
+  GKYL_ION_B = 5,  // Boron ions
+  GKYL_ION_C = 6,  // Carbon ions
+  GKYL_ION_N = 7,  // Nitrogen ions
+  GKYL_ION_O = 8,  // Oxygen ions
+  GKYL_ION_NE = 9, // Neon ions
+  GKYL_ION_AR = 10,  // Argon ions
+};
+
+// Identifiers for different self in reaction
+//  - For IZ: GKYL_SELF_ELC, GKYL_SELF_ION, GKYL_SELF_DONOR.
+//  - For CX: GKYL_SELF_ION, GKYL_SELF_PARTNER.
+//  - For RECOMB: GKYL_SELF_ELC, GKYL_SELF_ION, GKYL_SELF_RECVR.
+enum gkyl_react_self_type
+{
+  GKYL_SELF_ELC = 0, // Electron species in reaction
+  GKYL_SELF_ION = 1, // Ion species in reaction 
+  GKYL_SELF_DONOR = 2, // Donating species in reaction (giving up electron)
+  GKYL_SELF_RECVR = 3, // Receiving species in reaction (receiving electron)
+  GKYL_SELF_PARTNER = 4, // Neutral species in CX
+};
+
+// Identifiers for specific geometry types
+enum gkyl_geometry_id {
+  GKYL_TOKAMAK, // Tokamak Geometry from Efit
+  GKYL_MIRROR, // Mirror Geometry from Efit
+  GKYL_MAPC2P, // General geometry from user provided mapc2p
+  GKYL_GEOMETRY_FROMFILE, // Geometry from file
+};
+
 // type of quadrature to use
 enum gkyl_quad_type {
-  GKYL_GAUSS_QUAD = 0, // Gauss-Legendre quadrature
+  GKYL_GAUSS_QUAD = 0,     // Gauss-Legendre quadrature
   GKYL_GAUSS_LOBATTO_QUAD, // Gauss-Lobatto quadrature
+  GKYL_POSITIVITY_QUAD // Positivity quadrature nodes
 };
 
 /** Flags for indicating acting edge of velocity space */

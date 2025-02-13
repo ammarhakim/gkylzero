@@ -68,9 +68,9 @@ test_sr_euler_prim1()
 
   double q_local[5], flux_local[5], flux[5];
   for (int d=1; d<2; ++d) {
-    sr_euler->rotate_to_local_func(tau1[d], tau2[d], norm[d], q, q_local);
+    sr_euler->rotate_to_local_func(sr_euler, tau1[d], tau2[d], norm[d], q, q_local);
     gkyl_sr_euler_flux(gas_gamma, q_local, flux_local);
-    sr_euler->rotate_to_global_func(tau1[d], tau2[d], norm[d], flux_local, flux);
+    sr_euler->rotate_to_global_func(sr_euler, tau1[d], tau2[d], norm[d], flux_local, flux);
     
     for (int m=0; m<5; ++m)
       TEST_CHECK( gkyl_compare(flux[m], fluxes[d][m], 1e-10) );

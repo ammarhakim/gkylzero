@@ -177,6 +177,7 @@ test_1x1v_no_drift(int poly_order)
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
+    .phase_range = &local,
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
@@ -205,7 +206,7 @@ test_1x1v_no_drift(int poly_order)
   // write distribution function to file
   char fname[1024];
   sprintf(fname, "ctest_proj_mj_on_basis_test_1x1v_p%d_no_drift.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
+  gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
 
   // release memory for moment data object
   gkyl_array_release(m0);
@@ -307,6 +308,7 @@ test_1x1v(int poly_order)
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
+    .phase_range = &local,
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
@@ -325,6 +327,7 @@ test_1x1v(int poly_order)
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
+    .phase_range = &local,
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
@@ -353,7 +356,7 @@ test_1x1v(int poly_order)
   // write distribution function to file
   char fname[1024];
   sprintf(fname, "ctest_proj_mj_on_basis_test_1x1v_p%d.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
+  gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
 
   // release memory for moment data object
   gkyl_vlasov_lte_moments_release(lte_moms);
@@ -458,6 +461,7 @@ test_1x2v(int poly_order)
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
+    .phase_range = &local,
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
@@ -487,7 +491,7 @@ test_1x2v(int poly_order)
   // write distribution function to file
   char fname[1024];
   sprintf(fname, "ctest_proj_mj_on_basis_test_1x2v_p%d.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
+  gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
 
   // release memory for moment data object
   gkyl_array_release(m0);
@@ -590,6 +594,7 @@ test_1x3v(int poly_order)
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
+    .phase_range = &local,
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
@@ -628,7 +633,7 @@ test_1x3v(int poly_order)
   // write distribution function to file
   char fname[1024];
   sprintf(fname, "ctest_proj_mj_on_basis_test_1x3v_p%d.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
+  gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
 
   // release memory for moment data object
   gkyl_array_release(m0);

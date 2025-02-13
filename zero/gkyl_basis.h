@@ -8,6 +8,9 @@ enum gkyl_basis_type {
   GKYL_BASIS_MODAL_GKHYBRID,
 };
 
+typedef void (*nodal_to_modal_quad_surf_t)(const double *fnodal, double *fmodal);
+typedef void (*node_quad_surf_list_t)(double *node_coords);
+
 /**
  * Basis function object
  */
@@ -85,6 +88,25 @@ struct gkyl_basis {
  * @param fmodal On output, coefficients of modal expansion
  */
   void (*nodal_to_modal)(const double *fnodal, double *fmodal);
+
+/**
+ * Given expansion coefficients on nodes at the surface in one direction,
+ * and Gauss-Legendre nodes in the other, compute modal expansion coefficients.
+ *
+ * @param fnodal Coefficients of nodal expansion
+ * @param fmodal On output, coefficients of modal expansion
+ */
+  nodal_to_modal_quad_surf_t nodal_to_modal_quad_surf[3];
+
+/**
+ * Construct list of nodes that are on the surface in one direction
+ * and on Gauss-Legendre coordinates in the other. The nodes
+ * coordinates are in the unit cell [-1,1]^ndim and stored such that
+ * the coodinates of a node are contiguous, starting at index ndim*n,
+ * n = 0, ... num_basis-1. The node_coords array must be pre-allocated
+ * by the caller.
+ */
+  node_quad_surf_list_t node_quad_surf_list[3];
 
 /**
  * Given expansion coefficients on nodal basis defined by Gauss-Legendre

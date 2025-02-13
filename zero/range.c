@@ -116,6 +116,17 @@ gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim, const int *shape)
 }
 
 void
+gkyl_range_init_from_shape1(struct gkyl_range *rng, int ndim, const int *shape)
+{
+  int lo[GKYL_MAX_DIM], up[GKYL_MAX_DIM];
+  for (int i=0; i<ndim; ++i) {
+    lo[i] = 1; // lower-left corner has index (1,1,...)
+    up[i] = shape[i];
+  }
+  gkyl_range_init(rng, ndim, lo, up);
+}
+
+void
 gkyl_range_ten_prod(struct gkyl_range *rng, const struct gkyl_range *a, const struct gkyl_range *b)
 {
   int adim = a->ndim, bdim = b->ndim;
@@ -143,6 +154,19 @@ gkyl_range_shift(struct gkyl_range *rng, const struct gkyl_range *inp,
     upper[d] = inp->upper[d] + delta[d];
   }
   gkyl_range_init(rng, inp->ndim, lower, upper);
+}
+
+void
+gkyl_range_reset_lower(struct gkyl_range *rng, const struct gkyl_range *inp,
+  const int *new_lower)
+{
+  int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+
+  for (int d=0; d<inp->ndim; ++d) {
+    lower[d] = new_lower[d];
+    upper[d] = new_lower[d] + gkyl_range_shape(inp, d) - 1;
+  }
+  gkyl_range_init(rng, inp->ndim, lower, upper);  
 }
 
 int
@@ -316,6 +340,20 @@ gkyl_range_extend(struct gkyl_range *erng,
 }
 
 void
+gkyl_range_perp_extend(struct gkyl_range *erng, int dir,
+  const struct gkyl_range* rng, const int *elo, const int *eup)
+{
+  int ndim = rng->ndim;
+  int elo_p[GKYL_MAX_DIM] = {0}, eup_p[GKYL_MAX_DIM] = {0};
+  for (int i=0; i<ndim; ++i) {
+    elo_p[i] = elo[i];
+    eup_p[i] = eup[i];
+  }
+  elo_p[dir] = 0; eup_p[dir] = 0;
+  gkyl_range_extend(erng, rng, elo_p, eup_p);
+}
+
+void
 gkyl_range_lower_skin(struct gkyl_range *rng,
   const struct gkyl_range* range, int dir, int nskin)
 {
@@ -400,6 +438,41 @@ gkyl_skin_ghost_ranges(struct gkyl_range *skin, struct gkyl_range *ghost,
   }
 }
 
+void
+gkyl_skin_ghost_with_corners_ranges(struct gkyl_range *skin, struct gkyl_range *ghost,
+  int dir, enum gkyl_edge_loc edge, const struct gkyl_range *parent, const int *nghost)
+{
+  int ndim = parent->ndim;
+  int lo[GKYL_MAX_DIM] = {0}, up[GKYL_MAX_DIM] = {0};
+
+  for (int i=0; i<ndim; ++i) {
+    lo[i] = parent->lower[i];
+    up[i] = parent->upper[i];
+  }
+
+  if (edge == GKYL_LOWER_EDGE) {
+
+    lo[dir] = parent->lower[dir]+nghost[dir];
+    up[dir] = lo[dir]+nghost[dir]-1;
+    gkyl_sub_range_init(skin, parent, lo, up);    
+
+    lo[dir] = parent->lower[dir];
+    up[dir] = lo[dir]+nghost[dir]-1;
+    gkyl_sub_range_init(ghost, parent, lo, up);
+
+  }
+  else {
+
+    up[dir] = parent->upper[dir]-nghost[dir];
+    lo[dir] = up[dir]-nghost[dir]+1;
+    gkyl_sub_range_init(skin, parent, lo, up);
+
+    up[dir] = parent->upper[dir];
+    lo[dir] = up[dir]-nghost[dir]+1;
+    gkyl_sub_range_init(ghost, parent, lo, up);
+  }
+}
+
 int
 gkyl_range_intersect(struct gkyl_range* irng,
   const struct gkyl_range *r1, const struct gkyl_range *r2)
@@ -451,7 +524,50 @@ gkyl_range_is_on_upper_edge(int dir, const struct gkyl_range *range,
     return true;
   return false;  
 }
-    
+
+struct gkyl_range_dir_edge
+gkyl_range_edge_match(const struct gkyl_range *base,
+  const struct gkyl_range *targ)
+{
+  struct gkyl_range_dir_edge no_dir_ed = {
+    .dir = 0,
+    .eloc = GKYL_NO_EDGE
+  };
+
+  if (base->ndim != targ->ndim)
+    return no_dir_ed; // different dimensions do not count
+
+  struct gkyl_range irng;
+  if (gkyl_range_intersect(&irng, base, targ))
+    return no_dir_ed; // overlapping ranges do not count
+
+  for (int d=0; d<base->ndim; ++d) {
+
+    do {
+      int elo[GKYL_MAX_DIM] = { 0 }, eup[GKYL_MAX_DIM] = { 0 };
+
+      // check lower-edge overlap
+      elo[d] = 1;
+      struct gkyl_range erng;
+      gkyl_range_extend(&erng, base, elo, eup);
+      if (gkyl_range_intersect(&irng, &erng, targ))
+        return (struct gkyl_range_dir_edge) { .dir = d, .eloc = GKYL_LOWER_EDGE };
+    } while (0);
+
+    do {
+      int elo[GKYL_MAX_DIM] = { 0 }, eup[GKYL_MAX_DIM] = { 0 };    
+      // check upper-edge overlap
+      eup[d] = 1;
+      struct gkyl_range erng;
+      gkyl_range_extend(&erng, base, elo, eup);
+      if (gkyl_range_intersect(&irng, &erng, targ))
+        return (struct gkyl_range_dir_edge) { .dir = d, .eloc = GKYL_UPPER_EDGE };
+    } while (0);
+  }
+
+  return no_dir_ed;
+}
+
 void
 gkyl_range_iter_init(struct gkyl_range_iter *iter,
   const struct gkyl_range* range)
@@ -511,7 +627,7 @@ gkyl_range_skip_iter_init(struct gkyl_range_skip_iter *iter,
 void
 gkyl_print_range(const struct gkyl_range* range, const char *nm, FILE *fp)
 {
-  fprintf(fp, "%s = { ", nm);
+  fprintf(fp, "%s = { ndim = %d, ", nm, range->ndim);
 
   fprintf(fp, " lower = { ");
   for (int d=0; d<range->ndim; ++d)
@@ -528,4 +644,18 @@ gkyl_print_range(const struct gkyl_range* range, const char *nm, FILE *fp)
   
   fprintf(fp, " }\n");
   fflush(fp);
+}
+
+bool
+gkyl_range_compare(const struct gkyl_range* r1, const struct gkyl_range* r2)
+{
+  if (r1->ndim != r2->ndim)
+    return false;
+  for (int i=0; i<r1->ndim; ++i) {
+    if (r1->lower[i] != r2->lower[i])
+      return false;
+    if (r1->upper[i] != r2->upper[i])
+      return false;    
+  }
+  return true;
 }

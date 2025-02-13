@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <math.h>
 
 /**
  * Array object. This is an untype, undimensioned, reference counted
@@ -41,6 +42,20 @@ struct gkyl_array {
  * @return Pointer to newly allocated array.
  */
 struct gkyl_array* gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t size);
+
+/**
+ * Create new array from per-allocated memory. You must ensure that
+ * the memory is sufficiently large for use in the array. Delete using
+ * gkyl_array_release method.
+ *
+ * @param type Type of data in array
+ * @param ncomp Number of components at each index
+ * @param size Number of indices
+ * @param buff Buffer to use for array data
+ * @return Pointer to newly allocated array.
+ */
+struct gkyl_array *gkyl_array_new_from_buff(
+  enum gkyl_elem_type type, size_t ncomp, size_t size, void *buff);
 
 /**
  * Create new array with data on NV-GPU. Delete using
@@ -78,11 +93,19 @@ struct gkyl_array* gkyl_array_cu_host_new(enum gkyl_elem_type type, size_t ncomp
 bool gkyl_array_is_cu_dev(const struct gkyl_array *arr);
 
 /**
+ * Returns true if array uses external buffer for storage.
+ *
+ * @param arr Array to check
+ * @return true if array uses external buffer for storage
+ */
+bool gkyl_array_is_using_buffer(const struct gkyl_array *arr);
+
+/**
  * Copy into array: pointer to dest array is returned. 'dest' and
  * 'src' must not point to same data.
  *
  * @param dest Destination for copy.
- * @param src Srouce to copy from.
+ * @param src Source to copy from.
  * @return dest is returned
  */
 struct gkyl_array* gkyl_array_copy(struct gkyl_array* dest,
@@ -93,7 +116,7 @@ struct gkyl_array* gkyl_array_copy(struct gkyl_array* dest,
  * 'src' must not point to same data.
  *
  * @param dest Destination for copy.
- * @param src Srouce to copy from.
+ * @param src Source to copy from.
  * @return dest is returned
  */
 struct gkyl_array* gkyl_array_copy_async(struct gkyl_array* dest,
@@ -107,6 +130,7 @@ struct gkyl_array* gkyl_array_copy_async(struct gkyl_array* dest,
  */
 struct gkyl_array* gkyl_array_clone(const struct gkyl_array* arr);
 
+
 /**
  * Fetches a pointer to the element stored at the index 'loc'.
  *
@@ -114,6 +138,7 @@ struct gkyl_array* gkyl_array_clone(const struct gkyl_array* arr);
  * @param loc Element to fetch
  * @return Element at location 'loc'
  */
+
 GKYL_CU_DH
 static inline void*
 gkyl_array_fetch(struct gkyl_array* arr, long loc)

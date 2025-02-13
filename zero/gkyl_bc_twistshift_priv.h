@@ -6,6 +6,9 @@
 #include <gkyl_bc_twistshift_gyrokinetic_kernels.h>
 #include <assert.h>
 #include <gkyl_mat.h>
+#include <gkyl_math.h>
+#include <gkyl_eval_on_nodes.h>
+#include <string.h> // memcpy
 
 // Function pointer type for twistshift kernels.
 typedef void (*twistshift_xlimdg_t)(double sFac, const double *xLimLo,
@@ -58,72 +61,69 @@ struct gkyl_bc_twistshift_kernels {
 
 // Primary struct in this updater.
 struct gkyl_bc_twistshift {
-  int dir;
-  int do_dir;
-  int shift_dir;
-  enum gkyl_edge_loc edge;
-  const struct gkyl_basis *basis;
-  bool use_gpu;
-  struct gkyl_bc_twistshift_kernels *kernels;  // kernels.
-  struct gkyl_bc_twistshift_kernels *kernels_cu;  // device copy.
-  const struct gkyl_rect_grid *grid;
-  const int *ndonors;
-  int *ndonors_cum_cu;
-  const int *cells_do; // y indices of donor cells for each x and y
-  int *remDir;
-  int *locDir;
-  int *remDir_do;
-  int *locDir_do;
-  long *locs;
-  long *locs_cu;
-  long *tar_locs;
-  long *tar_locs_cu;
-  const struct gkyl_range *local_range_ext;
-  const struct gkyl_range *local_range_update;
-  struct gkyl_range *yrange;
-  struct gkyl_range *xrange;
-  struct gkyl_nmat *matsdo;
-  struct gkyl_nmat *matsdo_ho;
-  struct gkyl_nmat *vecsdo;
-  struct gkyl_nmat *vecstar;
+  int bc_dir; // Direction of the BC is applied in.
+  int shift_dir; // Direction of the shift.
+  int shear_dir; // Direction the shift varies in (shear).
+  enum gkyl_edge_loc edge; // Indicates if BC is for lowe/upper edge.
+  struct gkyl_basis basis; // Basis the shifted field is defined with.
+  struct gkyl_range local_bcdir_ext_r; // Local range.
+  struct gkyl_rect_grid grid; // Grid the shifted field is defined in.
+  evalf_t shift_func; // Function defining the shift.
+  void *shift_func_ctx; // Context for shift_func.
+  bool use_gpu; // Whether to apply the BC on the GPU.
+
+  struct gkyl_rect_grid shift_grid; // 1D grid in the direction of the shift.
+  struct gkyl_range shift_r; // 1D range in the direction of the shift.
+
+  struct gkyl_rect_grid shear_grid; // 1D grid in the direction of the shear.
+  struct gkyl_range shear_r; // 1D range in the direction of the shear.
+
+  struct gkyl_rect_grid ts_grid; // Grid the shift twistshift takes place in.
+  struct gkyl_range ts_r; // Range the twistshift takes place in.
+  int shift_dir_in_ts_grid; // Dimension the shift is in, in the TS grid.
+  int shear_dir_in_ts_grid; // Dimension the shear is in, in the TS grid.
+
+  int shift_poly_order; // Poly order of the DG representation of the shift.
+  struct gkyl_basis shift_b; // 1D Basis for the DG shift.
+  struct gkyl_array *shift; // DG shift.
+
+  int *num_do; // Number of donors at each cell in shear_dir;
+  int *shift_dir_idx_do; // Indices of donor cells, in the direction of the
+                         // shift, for each cell in the TS grid.
+
+  struct gkyl_bc_twistshift_kernels *kernels;  // kernels for sub-cell integrals.
+
+  // Projection object used in constructing the matrices.
+  struct gkyl_eval_on_nodes *ev_on_nod1d;
+  // Evaluations of a function at 1D nodes.
+  struct gkyl_array *func_nod1d;
+
+  struct gkyl_nmat *scimat; // Subcell integral matrices.
+  struct gkyl_nmat *fmat; // Distribution function matrices.
+  struct gkyl_nmat *mm_contr; // Contribution resulting from a mat-mat mult.
+
+  long *num_numcol_fidx_do; // 1D indexer, from a index identitying the num-numcol
+                            // plane (in the num-numcol-num_basis space), to a
+                            // linear index into the donor distribution function f.
+
+  long *num_numcol_fidx_tar; // 1D indexer, from a index identitying the num-numcol
+                             // plane (in the num-numcol-num_basis space), to a
+                             // linear index into the target distribution function f.
+
+  int *num_do_cum; // Cumulative number of donors up to a give cell in shear_dir;
+  struct gkyl_range permutted_ghost_r; // Ghost range to populate in the target
+                                       // field, with some dimensions permutted.
+  struct gkyl_range ghost_r; // Ghost range this BC fills.
 };
 
-void gkyl_bc_twistshift_choose_kernels_cu(const struct gkyl_basis *basis, int cdim,
-  struct gkyl_bc_twistshift_kernels *kers)
-{
-  int dim = basis->ndim;
-  int vdim = dim - cdim;
-  enum gkyl_basis_type basis_type = basis->b_type;
-  int poly_order = basis->poly_order;
-  switch (basis_type) {
-    case GKYL_BASIS_MODAL_GKHYBRID:
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-      kers->xlimdg   = vdim==0?   ser_twistshift_xlimdg_list_0v[cdim-2].kernels[poly_order] :   ser_twistshift_xlimdg_list_2v[cdim-2].kernels[poly_order];
-      kers->ylimdg   = vdim==0?   ser_twistshift_ylimdg_list_0v[cdim-2].kernels[poly_order] :   ser_twistshift_ylimdg_list_2v[cdim-2].kernels[poly_order];
-      kers->fullcell = vdim==0? ser_twistshift_fullcell_list_0v[cdim-2].kernels[poly_order] : ser_twistshift_fullcell_list_2v[cdim-2].kernels[poly_order];
-      return;
-    default:
-      assert(false);
-      break;
-  }
-}
-
-void gkyl_bc_twistshift_choose_kernels(const struct gkyl_basis *basis, int cdim,
-  struct gkyl_bc_twistshift_kernels *kers)
-{
-  int dim = basis->ndim;
-  int vdim = dim - cdim;
-  enum gkyl_basis_type basis_type = basis->b_type;
-  int poly_order = basis->poly_order;
-  switch (basis_type) {
-    case GKYL_BASIS_MODAL_GKHYBRID:
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-      kers->xlimdg   = vdim==0?   ser_twistshift_xlimdg_list_0v[cdim-2].kernels[poly_order] :   ser_twistshift_xlimdg_list_2v[cdim-2].kernels[poly_order];
-      kers->ylimdg   = vdim==0?   ser_twistshift_ylimdg_list_0v[cdim-2].kernels[poly_order] :   ser_twistshift_ylimdg_list_2v[cdim-2].kernels[poly_order];
-      kers->fullcell = vdim==0? ser_twistshift_fullcell_list_0v[cdim-2].kernels[poly_order] : ser_twistshift_fullcell_list_2v[cdim-2].kernels[poly_order];
-      return;
-    default:
-      assert(false);
-      break;
-  }
-}
+#ifdef GKYL_HAVE_CUDA
+/**
+ * Apply the twist-shift on the NVIDIA GPU. It assumes that periodicity along bc_dir has been
+ * applied to the donor field. Can be used in-place.
+ *
+ * @param up Twist-shift BC updater object.
+ * @param fdo Donor field.
+ * @param ftar Target field.
+ */
+void gkyl_bc_twistshift_advance_cu(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar);
+#endif

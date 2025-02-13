@@ -140,13 +140,13 @@ void* gkyl_cu_malloc_host_(const char *file, int line, const char *func, size_t 
 void gkyl_cu_free_host_(const char *file, int line, const char *func, void *ptr);
 
 /** Copy data between host/device */
-void gkyl_cu_memcpy(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind);
+void gkyl_cu_memcpy(void *dst, const void *src, size_t count, enum gkyl_cu_memcpy_kind kind);
 
 /** Copy data between host/device */
 #ifdef GKYL_HAVE_CUDA
-void gkyl_cu_memcpy_async(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind, cudaStream_t stream);
+void gkyl_cu_memcpy_async(void *dst, const void *src, size_t count, enum gkyl_cu_memcpy_kind kind, cudaStream_t stream);
 #else
-void gkyl_cu_memcpy_async(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind, int stream);
+void gkyl_cu_memcpy_async(void *dst, const void *src, size_t count, enum gkyl_cu_memcpy_kind kind, int stream);
 #endif
 
 /** Set memory on device */

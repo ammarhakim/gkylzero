@@ -1,4 +1,5 @@
 #include <gkyl_amr_block_priv.h>
+#include <gkyl_wv_euler_mixture_priv.h>
 
 void
 skin_ghost_ranges_init_block(struct skin_ghost_ranges_block* sgr, const struct gkyl_range* parent, const int* ghost)
@@ -12,7 +13,40 @@ skin_ghost_ranges_init_block(struct skin_ghost_ranges_block* sgr, const struct g
 }
 
 void
-euler_copy_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+euler_wall_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+{
+  for (int i = 0; i < 5; i++) {
+    ghost[i] = skin[i];
+  }
+
+  ghost[1] = -ghost[1];
+}
+
+void
+gr_euler_wall_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+{
+  for (int i = 0; i < 29; i++) {
+    ghost[i] = skin[i];
+  }
+
+  ghost[1] = -ghost[1];
+}
+
+void
+euler_mixture_wall_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+{
+  const struct wv_euler_mixture *euler_mixture = container_of(eqn, struct wv_euler_mixture, eqn);
+  int num_species = euler_mixture->num_species;
+
+  for (int i = 0; i < 4 + (2 * num_species); i++) {
+    ghost[i] = skin[i];
+  }
+
+  ghost[1] = -ghost[1];
+}
+
+void
+euler_copy_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
   for (int i = 0; i < 5; i++) {
     ghost[i] = skin[i];
@@ -20,7 +54,7 @@ euler_copy_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_R
 }
 
 void
-gr_euler_copy_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+gr_euler_copy_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
   for (int i = 0; i < 29; i++) {
     ghost[i] = skin[i];
@@ -28,24 +62,54 @@ gr_euler_copy_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKY
 }
 
 void
-euler_block_bc_updaters_init(struct euler_block_data* bdata, const struct gkyl_block_connections* conn)
+euler_mixture_copy_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+{
+  const struct wv_euler_mixture *euler_mixture = container_of(eqn, struct wv_euler_mixture, eqn);
+  int num_species = euler_mixture->num_species;
+
+  for (int i = 0; i < 4 + (2 * num_species); i++) {
+    ghost[i] = skin[i];
+  }
+}
+
+void
+euler_block_bc_updaters_init(const struct gkyl_wv_eqn* eqn, struct euler_block_data* bdata, const struct gkyl_block_connections* conn)
 {
   int nghost[9];
   for (int i = 0; i < 9; i++) {
     nghost[i] = 2;
   }
 
+  bool wall_x = bdata->wall_x;
+  bool wall_y = bdata->wall_y;
+
+  bool copy_x = bdata->copy_x;
+  bool copy_y = bdata->copy_y;
+
   for (int d = 0; d < 2; d++) {
     bdata->lower_bc[d] = bdata->upper_bc[d] = 0;
 
-    if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
-      bdata->lower_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-        euler_copy_bc, 0);
-    }
+    if ((d == 0 && wall_x) || (d == 1 && wall_y)) {
+      if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
+        bdata->lower_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          euler_wall_bc, 0);
+      }
 
-    if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
-      bdata->upper_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-        euler_copy_bc, 0);
+      if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
+        bdata->upper_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          euler_wall_bc, 0);
+      }
+    }
+    else if ((d == 0 && copy_x) || (d == 1 && copy_y)) {
+      if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
+        bdata->lower_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          euler_copy_bc, 0);
+      }
+
+      if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
+        bdata->upper_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          euler_copy_bc, 0);
+      }
     }
   }
 
@@ -64,24 +128,43 @@ euler_block_bc_updaters_init(struct euler_block_data* bdata, const struct gkyl_b
 }
 
 void
-euler_nested_block_bc_updaters_init(struct euler_block_data* bdata, const struct gkyl_block_connections* conn)
+euler_nested_block_bc_updaters_init(const struct gkyl_wv_eqn* eqn, struct euler_block_data* bdata, const struct gkyl_block_connections* conn)
 {
   int nghost[25];
   for (int i = 0; i < 25; i++) {
     nghost[i] = 2;
   }
 
+  bool wall_x = bdata->wall_x;
+  bool wall_y = bdata->wall_y;
+
+  bool copy_x = bdata->copy_x;
+  bool copy_y = bdata->copy_y;
+
   for (int d = 0; d < 2; d++) {
     bdata->lower_bc[d] = bdata->upper_bc[d] = 0;
 
-    if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
-      bdata->lower_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-        euler_copy_bc, 0);
-    }
+    if ((d == 0 && wall_x) || (d == 1 && wall_y)) {
+      if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
+        bdata->lower_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          euler_wall_bc, 0);
+      }
 
-    if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
-      bdata->upper_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-        euler_copy_bc, 0);
+      if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
+        bdata->upper_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          euler_wall_bc, 0);
+      }
+    }
+    else if ((d == 0 && copy_x) || (d == 1 && copy_y)) {
+      if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
+        bdata->lower_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          euler_copy_bc, 0);
+      }
+
+      if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
+        bdata->upper_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          euler_copy_bc, 0);
+      }
     }
   }
 
@@ -100,24 +183,43 @@ euler_nested_block_bc_updaters_init(struct euler_block_data* bdata, const struct
 }
 
 void
-gr_euler_block_bc_updaters_init(struct euler_block_data* bdata, const struct gkyl_block_connections* conn)
+gr_euler_block_bc_updaters_init(const struct gkyl_wv_eqn* eqn, struct euler_block_data* bdata, const struct gkyl_block_connections* conn)
 {
   int nghost[9];
   for (int i = 0; i < 9; i++) {
     nghost[i] = 2;
   }
 
+  bool wall_x = bdata->wall_x;
+  bool wall_y = bdata->wall_y;
+
+  bool copy_x = bdata->copy_x;
+  bool copy_y = bdata->copy_y;
+
   for (int d = 0; d < 2; d++) {
     bdata->lower_bc[d] = bdata->upper_bc[d] = 0;
 
-    if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
-      bdata->lower_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-        gr_euler_copy_bc, 0);
-    }
+    if ((d == 0 && wall_x) || (d == 1 && wall_y)) {
+      if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
+        bdata->lower_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          gr_euler_wall_bc, 0);
+      }
 
-    if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
-      bdata->upper_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-        gr_euler_copy_bc, 0);
+      if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
+        bdata->upper_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          gr_euler_wall_bc, 0);
+      }
+    }
+    else if ((d == 0 && copy_x) || (d == 1 && copy_y)) {
+      if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
+        bdata->lower_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          gr_euler_copy_bc, 0);
+      }
+
+      if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
+        bdata->upper_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          gr_euler_copy_bc, 0);
+      }
     }
   }
 
@@ -136,24 +238,43 @@ gr_euler_block_bc_updaters_init(struct euler_block_data* bdata, const struct gky
 }
 
 void
-gr_euler_nested_block_bc_updaters_init(struct euler_block_data* bdata, const struct gkyl_block_connections* conn)
+gr_euler_nested_block_bc_updaters_init(const struct gkyl_wv_eqn* eqn, struct euler_block_data* bdata, const struct gkyl_block_connections* conn)
 {
   int nghost[25];
   for (int i = 0; i < 25; i++) {
     nghost[i] = 2;
   }
 
+  bool wall_x = bdata->wall_x;
+  bool wall_y = bdata->wall_y;
+
+  bool copy_x = bdata->copy_x;
+  bool copy_y = bdata->copy_y;
+
   for (int d = 0; d < 2; d++) {
     bdata->lower_bc[d] = bdata->upper_bc[d] = 0;
 
-    if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
-      bdata->lower_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-        gr_euler_copy_bc, 0);
-    }
+    if ((d == 0 && wall_x) || (d == 1 && wall_y)) {
+      if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
+        bdata->lower_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          gr_euler_wall_bc, 0);
+      }
 
-    if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
-      bdata->upper_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-        gr_euler_copy_bc, 0);
+      if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
+        bdata->upper_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          gr_euler_wall_bc, 0);
+      }
+    }
+    else if ((d == 0 && copy_x) || (d == 1 && copy_y)) {
+      if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
+        bdata->lower_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          gr_euler_copy_bc, 0);
+      }
+
+      if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
+        bdata->upper_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          gr_euler_copy_bc, 0);
+      }
     }
   }
 
@@ -169,6 +290,122 @@ gr_euler_nested_block_bc_updaters_init(struct euler_block_data* bdata, const str
   }
 
   bdata->bc_buffer = gkyl_array_new(GKYL_DOUBLE, 29, buff_sz);
+}
+
+void
+euler_mixture_block_bc_updaters_init(const struct gkyl_wv_eqn* eqn, struct euler_block_data* bdata, const struct gkyl_block_connections* conn)
+{
+  const struct wv_euler_mixture *euler_mixture = container_of(eqn, struct wv_euler_mixture, eqn);
+  int num_species = euler_mixture->num_species;
+
+  int nghost[9];
+  for (int i = 0; i < 9; i++) {
+    nghost[i] = 2;
+  }
+
+  bool wall_x = bdata->wall_x;
+  bool wall_y = bdata->wall_y;
+
+  bool copy_x = bdata->copy_x;
+  bool copy_y = bdata->copy_y;
+
+  for (int d = 0; d < 2; d++) {
+    bdata->lower_bc[d] = bdata->upper_bc[d] = 0;
+
+    if ((d == 0 && wall_x) || (d == 1 && wall_y)) {
+      if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
+        bdata->lower_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          euler_mixture_wall_bc, 0);
+      }
+
+      if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
+        bdata->upper_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          euler_mixture_wall_bc, 0);
+      }
+    }
+    else if ((d == 0 && copy_x) || (d == 1 && copy_y)) {
+      if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
+        bdata->lower_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          euler_mixture_copy_bc, 0);
+      }
+
+      if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
+        bdata->upper_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          euler_mixture_copy_bc, 0);
+      }
+    }
+  }
+
+  skin_ghost_ranges_init_block(&bdata->skin_ghost, &bdata->ext_range, nghost);
+  long buff_sz = 0;
+
+  for (int d = 0; d < 2; d++) {
+    long vol = bdata->skin_ghost.lower_skin[d].volume;
+
+    if (buff_sz <= vol) {
+      buff_sz = vol;
+    }
+  }
+
+  bdata->bc_buffer = gkyl_array_new(GKYL_DOUBLE, 4 + (2 * num_species), buff_sz);
+}
+
+void
+euler_mixture_nested_block_bc_updaters_init(const struct gkyl_wv_eqn* eqn, struct euler_block_data* bdata, const struct gkyl_block_connections* conn)
+{
+  const struct wv_euler_mixture *euler_mixture = container_of(eqn, struct wv_euler_mixture, eqn);
+  int num_species = euler_mixture->num_species;
+
+  int nghost[25];
+  for (int i = 0; i < 25; i++) {
+    nghost[i] = 2;
+  }
+
+  bool wall_x = bdata->wall_x;
+  bool wall_y = bdata->wall_y;
+
+  bool copy_x = bdata->copy_x;
+  bool copy_y = bdata->copy_y;
+
+  for (int d = 0; d < 2; d++) {
+    bdata->lower_bc[d] = bdata->upper_bc[d] = 0;
+
+    if ((d == 0 && wall_x) || (d == 1 && wall_y)) {
+      if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
+        bdata->lower_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          euler_mixture_wall_bc, 0);
+      }
+
+      if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
+        bdata->upper_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          euler_mixture_wall_bc, 0);
+      }
+    }
+    else if ((d == 0 && copy_x) || (d == 1 && copy_y)) {
+      if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
+        bdata->lower_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          euler_mixture_copy_bc, 0);
+      }
+
+      if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
+        bdata->upper_bc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          euler_mixture_copy_bc, 0);
+      }
+    }
+  }
+
+  skin_ghost_ranges_init_block(&bdata->skin_ghost, &bdata->ext_range, nghost);
+  long buff_sz = 0;
+
+  for (int d = 0; d < 2; d++) {
+    long vol = bdata->skin_ghost.lower_skin[d].volume;
+
+    if (buff_sz <= vol) {
+      buff_sz = vol;
+    }
+  }
+
+  bdata->bc_buffer = gkyl_array_new(GKYL_DOUBLE, 4 + (2 * num_species), buff_sz);
 }
 
 void
@@ -481,7 +718,7 @@ euler_sync_blocks(const struct gkyl_block_topo* btopo, const struct euler_block_
 void
 euler_block_data_write(const char* file_nm, const struct euler_block_data* bdata)
 {
-  gkyl_grid_sub_array_write(&bdata->grid, &bdata->range, bdata->f[0], file_nm);
+  gkyl_grid_sub_array_write(&bdata->grid, &bdata->range, 0, bdata->f[0], file_nm);
 }
 
 double

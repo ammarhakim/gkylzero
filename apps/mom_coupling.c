@@ -97,6 +97,18 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       }
     }
   }
+  
+  src_inp.has_einstein_medium_sources = false;
+  for (int i = 0; i < app->num_species; i++) {
+    if (app->species[i].has_einstein_medium) {
+      src_inp.has_einstein_medium_sources = true;
+
+      if (app->species[i].medium_gas_gamma != 0.0 || app->species[i].medium_kappa != 0.0) {
+        src_inp.medium_gas_gamma = app->species[i].medium_gas_gamma;
+        src_inp.medium_kappa = app->species[i].medium_kappa;
+      }
+    }
+  }
 
   // save the use-rel bool
   src_inp.use_rel = use_rel;
@@ -181,8 +193,16 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   for (int i=0; i<app->num_species; ++i) {
     fluids[i] = app->species[i].f[sidx[nstrang]];
 
-    if (app->species[i].proj_app_accel)
-      gkyl_fv_proj_advance(app->species[i].proj_app_accel, tcurr, &app->local, app->species[i].app_accel);
+    if (app->species[i].proj_app_accel) {
+      
+      if (!app->species[i].was_app_accel_computed)
+        gkyl_fv_proj_advance(app->species[i].proj_app_accel, tcurr, &app->local, app->species[i].app_accel);
+      
+      if (app->species[i].is_app_accel_static)
+        app->species[i].was_app_accel_computed = true;
+      else
+        app->species[i].was_app_accel_computed = false;
+    }
     app_accels[i] = app->species[i].app_accel;
 
     if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_grad_closure) {
@@ -250,10 +270,12 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
       app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em, 
       nT_sources);
 
-  for (int i=0; i<app->num_species; ++i)
+  for (int i=0; i<app->num_species; ++i) {
     moment_species_apply_bc(app, tcurr, &app->species[i], fluids[i]);
-
-  moment_field_apply_bc(app, tcurr, &app->field, app->field.f[sidx[nstrang]]);
+  }
+  if (app->has_field) {
+    moment_field_apply_bc(app, tcurr, &app->field, app->field.f[sidx[nstrang]]);
+  }
 }
 
 // free sources

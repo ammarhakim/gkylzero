@@ -1,81 +1,64 @@
 #include <gkyl_gyrokinetic_kernels.h>
-#include <gkyl_basis_gkhyb_1x1v_p1_surfx2_eval_quad.h> 
 #include <gkyl_basis_gkhyb_1x1v_p1_upwind_quad_to_modal.h> 
-GKYL_CU_DH double gyrokinetic_boundary_surfvpar_1x1v_ser_p1(const double *w, const double *dxv, const double q_, const double m_, const double *bmag, const double *jacobtot_inv, const double *cmag, const double *b_i, const double *phi, const double *apar, const double *apardot, const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double gyrokinetic_boundary_surfvpar_1x1v_ser_p1(const double *w, const double *dxv,
+    const double *vmap_prime_edge, const double *vmap_prime_skin,
+    const double *alpha_surf_edge, const double *alpha_surf_skin, 
+    const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
+    const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, 
+    const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
-  // q_,m_: species charge and mass.
-  // bmag: magnetic field amplitude.
-  // jacobtot_inv: reciprocal of the conf-space jacobian time the guiding center coordinate Jacobian.
-  // cmag: coefficient multiplying parallel gradient.
-  // b_i: covariant components of the field aligned unit vector.
-  // phi: electrostatic potential .
-  // apar: parallel component of magnetic vector potential.
-  // apardot: time derivative of Apar.
+  // vmap_prime_edge,vmap_prime_skin: velocity space mapping derivative in edge and skin cells.
+  // alpha_surf_edge: Surface expansion of phase space flux on the lower edges of the edge cell.
+  // alpha_surf_skin: Surface expansion of phase space flux on the lower edges of the skin cell.
+  // sgn_alpha_surf_edge: sign(alpha_surf_edge) at quadrature points.
+  // sgn_alpha_surf_skin: sign(alpha_surf_skin) at quadrature points.
+  // const_sgn_alpha_edge: Boolean array true if sign(alpha_surf_edge) is only one sign, either +1 or -1.
+  // const_sgn_alpha_skin: Boolean array true if sign(alpha_surf_skin) is only one sign, either +1 or -1.
   // edge: determines if the update is for the left edge (-1) or right edge (+1).
   // fskin,fedge: distribution function in skin cell/last edge cell.
   // out: output increment in center cell.
 
-  double wx = w[0];
-  double rdx2 = 2.0/dxv[0];
-  double wvpar = w[1];
   double rdvpar2 = 2.0/dxv[1];
 
-  double wxSq = w[0]*w[0];
-  double rdx2Sq = rdx2*rdx2;
-  double wvparSq = w[1]*w[1];
-  double rdvpar2Sq = rdvpar2*rdvpar2;
-
-  const double *b_x = &b_i[0];
-  const double *b_y = &b_i[2];
-  const double *b_z = &b_i[4];
-
-  double hamil[6] = {0.}; 
-  hamil[0] = (0.3333333333333333*(3.0*rdvpar2Sq*(m_*wvparSq+1.414213562373095*phi[0]*q_)+m_))/rdvpar2Sq; 
-  hamil[1] = 1.414213562373095*phi[1]*q_; 
-  hamil[2] = (1.154700538379252*m_*wvpar)/rdvpar2; 
-  hamil[4] = (0.2981423969999719*m_)/rdvpar2Sq; 
-
-  double BstarZdBmag[6] = {0.}; 
-  BstarZdBmag[0] = (1.732050807568877*jacobtot_inv[0]*b_y[1]*m_*rdx2*wvpar+(cmag[1]*jacobtot_inv[1]+cmag[0]*jacobtot_inv[0])*q_)/q_; 
-  BstarZdBmag[1] = (1.732050807568877*b_y[1]*jacobtot_inv[1]*m_*rdx2*wvpar+(cmag[0]*jacobtot_inv[1]+jacobtot_inv[0]*cmag[1])*q_)/q_; 
-  BstarZdBmag[2] = (jacobtot_inv[0]*b_y[1]*m_*rdx2)/(q_*rdvpar2); 
-  BstarZdBmag[3] = (b_y[1]*jacobtot_inv[1]*m_*rdx2)/(q_*rdvpar2); 
-
-  double cflFreq = 0.0;
+  const double *alphaL = &alpha_surf_skin[3];
+  const double *alphaR = &alpha_surf_edge[3];
+  const double *sgn_alpha_surfL = &sgn_alpha_surf_skin[3];
+  const double *sgn_alpha_surfR = &sgn_alpha_surf_edge[3];
+  const int *const_sgn_alphaL = &const_sgn_alpha_skin[1];
+  const int *const_sgn_alphaR = &const_sgn_alpha_edge[1];
 
   if (edge == -1) { 
 
-  double alphaR[2] = {0.}; 
-  alphaR[0] = -(0.3535533905932737*(hamil[1]*(3.0*BstarZdBmag[2]+1.732050807568877*BstarZdBmag[0])*rdx2+2.828427124746191*apardot[0]*q_))/m_; 
-  alphaR[1] = -(0.3535533905932737*(hamil[1]*(3.0*BstarZdBmag[3]+1.732050807568877*BstarZdBmag[1])*rdx2+2.828427124746191*apardot[1]*q_))/m_; 
-
-  double fUpOrdR[2] = {0.};
-  double alphaR_n = 0.;
-
-  alphaR_n = 0.7071067811865468*alphaR[0]-0.7071067811865468*alphaR[1];
-  if (alphaR_n > 0.) {
-    fUpOrdR[0] = gkhyb_1x1v_p1_surfx2_eval_quad_node_0_r(fskin); 
-  } else { 
-    fUpOrdR[0] = gkhyb_1x1v_p1_surfx2_eval_quad_node_0_l(fedge); 
-  } 
-  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
-  alphaR_n = 0.7071067811865468*alphaR[1]+0.7071067811865468*alphaR[0];
-  if (alphaR_n > 0.) {
-    fUpOrdR[1] = gkhyb_1x1v_p1_surfx2_eval_quad_node_1_r(fskin); 
-  } else { 
-    fUpOrdR[1] = gkhyb_1x1v_p1_surfx2_eval_quad_node_1_l(fedge); 
-  } 
-  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
-
-  // Project tensor nodal quadrature basis back onto modal basis. 
   double fUpR[2] = {0.};
-  gkhyb_1x1v_p1_vpardir_upwind_quad_to_modal(fUpOrdR, fUpR); 
+  if (const_sgn_alphaR[0] == 1) {  
+    if (sgn_alpha_surfR[0] == 1.0) {  
+  fUpR[0] = (1.58113883008419*fskin[4]+1.224744871391589*fskin[2]+0.7071067811865475*fskin[0])/vmap_prime_skin[0]; 
+  fUpR[1] = (1.58113883008419*fskin[5]+1.224744871391589*fskin[3]+0.7071067811865475*fskin[1])/vmap_prime_skin[0]; 
+    } else { 
+  fUpR[0] = (1.58113883008419*fedge[4]-1.224744871391589*fedge[2]+0.7071067811865475*fedge[0])/vmap_prime_edge[0]; 
+  fUpR[1] = (1.58113883008419*fedge[5]-1.224744871391589*fedge[3]+0.7071067811865475*fedge[1])/vmap_prime_edge[0]; 
+    } 
+  } else { 
+  double f_cr[2] = {0.};
+  double f_rl[2] = {0.};
+  double sgn_alphaUpR[2] = {0.};
+  gkhyb_1x1v_p1_vpardir_upwind_quad_to_modal(sgn_alpha_surfR, sgn_alphaUpR); 
 
-  double GhatR[2] = {0.}; 
-  GhatR[0] = 0.7071067811865475*alphaR[1]*fUpR[1]+0.7071067811865475*alphaR[0]*fUpR[0]; 
-  GhatR[1] = 0.7071067811865475*alphaR[0]*fUpR[1]+0.7071067811865475*fUpR[0]*alphaR[1]; 
+  f_cr[0] = (1.58113883008419*fskin[4]+1.224744871391589*fskin[2]+0.7071067811865475*fskin[0])/vmap_prime_skin[0]; 
+  f_cr[1] = (1.58113883008419*fskin[5]+1.224744871391589*fskin[3]+0.7071067811865475*fskin[1])/vmap_prime_skin[0]; 
+
+  f_rl[0] = (1.58113883008419*fedge[4]-1.224744871391589*fedge[2]+0.7071067811865475*fedge[0])/vmap_prime_edge[0]; 
+  f_rl[1] = (1.58113883008419*fedge[5]-1.224744871391589*fedge[3]+0.7071067811865475*fedge[1])/vmap_prime_edge[0]; 
+
+  fUpR[0] = (0.3535533905932737*f_cr[1]-0.3535533905932737*f_rl[1])*sgn_alphaUpR[1]+(0.3535533905932737*f_cr[0]-0.3535533905932737*f_rl[0])*sgn_alphaUpR[0]+0.5*(f_rl[0]+f_cr[0]); 
+  fUpR[1] = (0.3535533905932737*f_cr[0]-0.3535533905932737*f_rl[0])*sgn_alphaUpR[1]+(0.5-0.3535533905932737*sgn_alphaUpR[0])*f_rl[1]+(0.3535533905932737*sgn_alphaUpR[0]+0.5)*f_cr[1]; 
+
+  } 
+  double GhatR[2] = {0.};
+  GhatR[0] = 0.7071067811865475*(alphaR[1]*fUpR[1]+alphaR[0]*fUpR[0]); 
+  GhatR[1] = 0.7071067811865475*(alphaR[0]*fUpR[1]+fUpR[0]*alphaR[1]); 
 
   out[0] += -0.7071067811865475*GhatR[0]*rdvpar2; 
   out[1] += -0.7071067811865475*GhatR[1]*rdvpar2; 
@@ -86,35 +69,34 @@ GKYL_CU_DH double gyrokinetic_boundary_surfvpar_1x1v_ser_p1(const double *w, con
 
   } else { 
 
-  double alphaL[2] = {0.}; 
-  alphaL[0] = (0.3535533905932737*(hamil[1]*(3.0*BstarZdBmag[2]-1.732050807568877*BstarZdBmag[0])*rdx2-2.828427124746191*apardot[0]*q_))/m_; 
-  alphaL[1] = (0.3535533905932737*(hamil[1]*(3.0*BstarZdBmag[3]-1.732050807568877*BstarZdBmag[1])*rdx2-2.828427124746191*apardot[1]*q_))/m_; 
-
-  double fUpOrdL[2] = {0.};
-  double alphaL_n = 0.;
-
-  alphaL_n = 0.7071067811865468*alphaL[0]-0.7071067811865468*alphaL[1];
-  if (alphaL_n > 0.) {
-    fUpOrdL[0] = gkhyb_1x1v_p1_surfx2_eval_quad_node_0_r(fedge); 
-  } else { 
-    fUpOrdL[0] = gkhyb_1x1v_p1_surfx2_eval_quad_node_0_l(fskin); 
-  } 
-  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
-  alphaL_n = 0.7071067811865468*alphaL[1]+0.7071067811865468*alphaL[0];
-  if (alphaL_n > 0.) {
-    fUpOrdL[1] = gkhyb_1x1v_p1_surfx2_eval_quad_node_1_r(fedge); 
-  } else { 
-    fUpOrdL[1] = gkhyb_1x1v_p1_surfx2_eval_quad_node_1_l(fskin); 
-  } 
-  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
-
-  // Project tensor nodal quadrature basis back onto modal basis. 
   double fUpL[2] = {0.};
-  gkhyb_1x1v_p1_vpardir_upwind_quad_to_modal(fUpOrdL, fUpL); 
+  if (const_sgn_alphaL[0] == 1) {  
+    if (sgn_alpha_surfL[0] == 1.0) {  
+  fUpL[0] = (1.58113883008419*fedge[4]+1.224744871391589*fedge[2]+0.7071067811865475*fedge[0])/vmap_prime_edge[0]; 
+  fUpL[1] = (1.58113883008419*fedge[5]+1.224744871391589*fedge[3]+0.7071067811865475*fedge[1])/vmap_prime_edge[0]; 
+    } else { 
+  fUpL[0] = (1.58113883008419*fskin[4]-1.224744871391589*fskin[2]+0.7071067811865475*fskin[0])/vmap_prime_skin[0]; 
+  fUpL[1] = (1.58113883008419*fskin[5]-1.224744871391589*fskin[3]+0.7071067811865475*fskin[1])/vmap_prime_skin[0]; 
+    } 
+  } else { 
+  double f_lr[2] = {0.};
+  double f_cl[2] = {0.};
+  double sgn_alphaUpL[2] = {0.};
+  gkhyb_1x1v_p1_vpardir_upwind_quad_to_modal(sgn_alpha_surfL, sgn_alphaUpL); 
 
-  double GhatL[2] = {0.}; 
-  GhatL[0] = 0.7071067811865475*alphaL[1]*fUpL[1]+0.7071067811865475*alphaL[0]*fUpL[0]; 
-  GhatL[1] = 0.7071067811865475*alphaL[0]*fUpL[1]+0.7071067811865475*fUpL[0]*alphaL[1]; 
+  f_lr[0] = (1.58113883008419*fedge[4]+1.224744871391589*fedge[2]+0.7071067811865475*fedge[0])/vmap_prime_edge[0]; 
+  f_lr[1] = (1.58113883008419*fedge[5]+1.224744871391589*fedge[3]+0.7071067811865475*fedge[1])/vmap_prime_edge[0]; 
+
+  f_cl[0] = (1.58113883008419*fskin[4]-1.224744871391589*fskin[2]+0.7071067811865475*fskin[0])/vmap_prime_skin[0]; 
+  f_cl[1] = (1.58113883008419*fskin[5]-1.224744871391589*fskin[3]+0.7071067811865475*fskin[1])/vmap_prime_skin[0]; 
+
+  fUpL[0] = (0.3535533905932737*f_lr[1]-0.3535533905932737*f_cl[1])*sgn_alphaUpL[1]+(0.3535533905932737*f_lr[0]-0.3535533905932737*f_cl[0])*sgn_alphaUpL[0]+0.5*(f_lr[0]+f_cl[0]); 
+  fUpL[1] = (0.3535533905932737*f_lr[0]-0.3535533905932737*f_cl[0])*sgn_alphaUpL[1]+(0.3535533905932737*sgn_alphaUpL[0]+0.5)*f_lr[1]+(0.5-0.3535533905932737*sgn_alphaUpL[0])*f_cl[1]; 
+
+  } 
+  double GhatL[2] = {0.};
+  GhatL[0] = 0.7071067811865475*(alphaL[1]*fUpL[1]+alphaL[0]*fUpL[0]); 
+  GhatL[1] = 0.7071067811865475*(alphaL[0]*fUpL[1]+fUpL[0]*alphaL[1]); 
 
   out[0] += 0.7071067811865475*GhatL[0]*rdvpar2; 
   out[1] += 0.7071067811865475*GhatL[1]*rdvpar2; 
@@ -125,6 +107,8 @@ GKYL_CU_DH double gyrokinetic_boundary_surfvpar_1x1v_ser_p1(const double *w, con
 
   } 
 
-  return 5.0*rdvpar2*cflFreq; 
+  double vmap_prime_min = fmin(fabs(vmap_prime_edge[0]),fabs(vmap_prime_skin[0]));
+  double cflFreq = fmax(fabs(alphaL[0]/vmap_prime_min), fabs(alphaR[0]/vmap_prime_min)); 
+  return 1.767766952966369*rdvpar2*cflFreq; 
 
 } 

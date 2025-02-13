@@ -1,7 +1,7 @@
 #include <gkyl_amr_block_coupled_priv.h>
 
 void
-five_moment_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+five_moment_wall_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
   for (int i = 0; i < 5; i++) {
     ghost[i] = skin[i];
@@ -11,7 +11,7 @@ five_moment_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* 
 }
 
 void
-ten_moment_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+ten_moment_wall_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
   for (int i = 0; i < 10; i++) {
     if (i == 1 || i == 5 || i == 6) {
@@ -24,7 +24,7 @@ ten_moment_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* G
 }
 
 void
-maxwell_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+maxwell_wall_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
   for (int i = 0; i < 8; i++) {
     if (i == 1 || i == 2 || i == 3 || i == 6) {
@@ -37,7 +37,7 @@ maxwell_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL
 }
 
 void
-five_moment_copy_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+five_moment_copy_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
   for (int i = 0; i < 5; i++) {
     ghost[i] = skin[i];
@@ -45,7 +45,7 @@ five_moment_copy_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* 
 }
 
 void
-ten_moment_copy_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+ten_moment_copy_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
   for (int i = 0; i < 10; i++) {
     ghost[i] = skin[i];
@@ -53,7 +53,7 @@ ten_moment_copy_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* G
 }
 
 void
-maxwell_copy_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+maxwell_copy_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
   for (int i = 0; i < 8; i++) {
     ghost[i] = skin[i];
@@ -802,9 +802,9 @@ five_moment_sync_blocks(const struct gkyl_block_topo* btopo, const struct five_m
 void
 five_moment_block_data_write(const char* file_nm_elc, const char* file_nm_ion, const char* file_nm_maxwell, const struct five_moment_block_data* bdata)
 {
-  gkyl_grid_sub_array_write(&bdata->grid, &bdata->range, bdata->f_elc[0], file_nm_elc);
-  gkyl_grid_sub_array_write(&bdata->grid, &bdata->range, bdata->f_ion[0], file_nm_ion);
-  gkyl_grid_sub_array_write(&bdata->grid, &bdata->range, bdata->f_maxwell[0], file_nm_maxwell);
+  gkyl_grid_sub_array_write(&bdata->grid, &bdata->range, 0, bdata->f_elc[0], file_nm_elc);
+  gkyl_grid_sub_array_write(&bdata->grid, &bdata->range, 0, bdata->f_ion[0], file_nm_ion);
+  gkyl_grid_sub_array_write(&bdata->grid, &bdata->range, 0, bdata->f_maxwell[0], file_nm_maxwell);
 }
 
 double

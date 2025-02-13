@@ -98,6 +98,55 @@ static struct { void (*n2m[4])(const double *fnodal, double *fmodal); } n2m_list
   { NULL, nodal_to_modal_6d_ser_p1, NULL, NULL },
 };
 
+// Nodal -> modal conversion functions for nodes on a surface in one direction
+// and Gauss-Legendre in the others: ev_list[ndim].ev[poly_order].indir[dir]
+GKYL_CU_D
+static struct { void (*n2m[4])(const double *fnodal, double *fmodal); } n2m_quad_surf_list_x[] = {
+  { NULL, NULL, NULL, NULL }, // No 0D basis functions
+  { NULL, NULL, NULL, NULL }, // No 1D basis functions
+  { NULL, nodal_to_modal_quad_surfx_2d_ser_p1, nodal_to_modal_quad_surfx_2d_ser_p2, NULL },
+  { NULL, nodal_to_modal_quad_surfx_3d_ser_p1, nodal_to_modal_quad_surfx_3d_ser_p2, NULL },
+};
+GKYL_CU_D
+static struct { void (*n2m[4])(const double *fnodal, double *fmodal); } n2m_quad_surf_list_y[] = {
+  { NULL, NULL, NULL, NULL }, // No 0D basis functions
+  { NULL, NULL, NULL, NULL }, // No 1D basis functions
+  { NULL, nodal_to_modal_quad_surfy_2d_ser_p1, nodal_to_modal_quad_surfy_2d_ser_p2, NULL },
+  { NULL, nodal_to_modal_quad_surfy_3d_ser_p1, nodal_to_modal_quad_surfy_3d_ser_p2, NULL },
+};
+GKYL_CU_D
+static struct { void (*n2m[4])(const double *fnodal, double *fmodal); } n2m_quad_surf_list_z[] = {
+  { NULL, NULL, NULL, NULL }, // No 0D basis functions
+  { NULL, NULL, NULL, NULL }, // No 1D basis functions
+  { NULL, NULL, NULL, NULL }, // No 2D basis functions
+  { NULL, nodal_to_modal_quad_surfz_3d_ser_p1, nodal_to_modal_quad_surfz_3d_ser_p2, NULL },
+};
+
+// Node list function: 
+// List of nodes on a surface in one direction
+// and Gauss-Legendre in the others: ev_list[ndim].ev[poly_order]
+GKYL_CU_D
+static struct { void (*nl[4])(double * node_list); } nl_quad_surf_list_x[] = {
+  { NULL, NULL, NULL, NULL }, // No 0D basis functions
+  { NULL, NULL, NULL, NULL }, // No 1D basis functions
+  { NULL, node_coords_quad_surfx_2d_ser_p1, node_coords_quad_surfx_2d_ser_p2, NULL },
+  { NULL, node_coords_quad_surfx_3d_ser_p1, node_coords_quad_surfx_3d_ser_p2, NULL },
+};
+GKYL_CU_D
+static struct { void (*nl[4])(double * node_list); } nl_quad_surf_list_y[] = {
+  { NULL, NULL, NULL, NULL }, // No 0D basis functions
+  { NULL, NULL, NULL, NULL }, // No 1D basis functions
+  { NULL, node_coords_quad_surfy_2d_ser_p1, node_coords_quad_surfy_2d_ser_p2, NULL },
+  { NULL, node_coords_quad_surfy_3d_ser_p1, node_coords_quad_surfy_3d_ser_p2, NULL },
+};
+GKYL_CU_D
+static struct { void (*nl[4])(double * node_list); } nl_quad_surf_list_z[] = {
+  { NULL, NULL, NULL, NULL }, // No 0D basis functions
+  { NULL, NULL, NULL, NULL }, // No 1D basis functions
+  { NULL, NULL, NULL, NULL }, // No 2D basis functions
+  { NULL, node_coords_quad_surfz_3d_ser_p1, node_coords_quad_surfz_3d_ser_p2, NULL },
+};
+
 // Gauss-Legendre quadrature nodes nodal basis -> modal basis conversion functions: ev_list[ndim].ev[poly_order]
 GKYL_CU_D
 static struct { void (*n2m[4])(const double *fquad, double *fmodal, long linc2); } qn2m_list[] = {

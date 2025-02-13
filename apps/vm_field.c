@@ -16,6 +16,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   struct vm_field *f = gkyl_malloc(sizeof(struct vm_field));
 
   f->info = vm->field;
+  f->field_id = f->info.field_id;
 
   // allocate EM arrays
   f->em = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
@@ -61,6 +62,9 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       6, f->info.ext_em, f->info.ext_em_ctx);
   }
 
+  // Vlasov-Maxwell doesn't presently use external potentials.
+  f->has_ext_pot = f->ext_pot_evolve = false;
+
   // Initialize applied currents (always used by implicit fluid sources, so always initialize) 
   f->app_current = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
   gkyl_array_clear(f->app_current, 0.0);
@@ -95,7 +99,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   struct gkyl_dg_eqn *eqn;
   eqn = gkyl_dg_maxwell_new(&app->confBasis, c, ef, mf, app->use_gpu);
 
-  int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 0};
+  int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[2*GKYL_MAX_DIM] = {0, 0, 0, 0, 0, 0};
 
   // Maxwell solver
   f->slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, eqn,
@@ -276,14 +280,11 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
   gkyl_array_clear(rhs, 0.0);
 
   if (!field->info.is_static) {
-    if (app->use_gpu)
-      gkyl_hyper_dg_advance_cu(field->slvr, &app->local, em, field->cflrate, rhs);
-    else
-      gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
+    gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
     
     gkyl_array_reduce_range(field->omegaCfl_ptr, field->cflrate, GKYL_MAX, &app->local);
 
-    app->stat.nfield_omega_cfl += 1;
+    app->stat.n_field_omega_cfl += 1;
     struct timespec tm = gkyl_wall_clock();
     
     double omegaCfl_ho[1];
@@ -367,7 +368,7 @@ vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *fie
   }
 
   double energy_global[6] = { 0.0 };
-  gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 6, energy, energy_global);
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 6, energy, energy_global);
   
   gkyl_dynvec_append(field->integ_energy, tm, energy_global);
 }

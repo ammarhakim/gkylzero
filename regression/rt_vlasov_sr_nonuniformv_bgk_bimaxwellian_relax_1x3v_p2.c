@@ -354,32 +354,30 @@ main(int argc, char **argv)
 
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
-   .name = "vlasov_sr_nonuniformv_bgk_bimaxwellian_relax_1x3v_p2",
+    .name = "vlasov_sr_nonuniformv_bgk_bimaxwellian_relax_1x3v_p2",
 
-   .cdim = 1, .vdim = 3, 
-   .lower = { 0.0 },
-   .upper = { ctx.Lx },
-   .cells = { NX },
+    .cdim = 1, .vdim = 3, 
+    .lower = { 0.0 },
+    .upper = { ctx.Lx },
+    .cells = { NX },
 
-   .poly_order = ctx.poly_order,
-   .basis_type = app_args.basis_type,
-   .cfl_frac = ctx.cfl_frac,
+    .poly_order = ctx.poly_order,
+    .basis_type = app_args.basis_type,
+    .cfl_frac = ctx.cfl_frac,
 
-   .num_periodic_dir = 1,
-   .periodic_dirs = { 0 },
+    .num_periodic_dir = 1,
+    .periodic_dirs = { 0 },
 
-   .num_species = 1,
-   .species = { neut },
+    .num_species = 1,
+    .species = { neut },
 
-   .skip_field = true,
+    .skip_field = true,
 
-   .use_gpu = app_args.use_gpu,
-
-   .has_low_inp = true,
-   .low_inp = {
-     .local_range = decomp->ranges[my_rank],
-     .comm = comm
-   }
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0] },
+      .comm = comm,
+    },
   };
 
   // Create app object.
@@ -462,7 +460,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
   gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
-  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.nio);
+  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
   gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   // Free resources after simulation completion.
