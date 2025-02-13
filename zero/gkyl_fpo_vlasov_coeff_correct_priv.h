@@ -51,8 +51,8 @@ GKYL_CU_D
 static const gkyl_fpo_coeff_correct_mat_set_kern_list ser_fpo_coeff_correct_mat_set_kernels[] = {
   {NULL, NULL, NULL },
   { NULL, mom_fpo_vlasov_coeff_correct_mat_1x3v_ser_p1, mom_fpo_vlasov_coeff_correct_mat_1x3v_ser_p2 },
-  { NULL, mom_fpo_vlasov_coeff_correct_mat_2x3v_ser_p1, mom_fpo_vlasov_coeff_correct_mat_2x3v_ser_p2 },
-  { NULL, mom_fpo_vlasov_coeff_correct_mat_3x3v_ser_p1, NULL }
+  { NULL, mom_fpo_vlasov_coeff_correct_mat_2x3v_ser_p1, NULL },
+  { NULL, NULL, NULL }
 };
 
 GKYL_CU_D
@@ -60,6 +60,6 @@ static const gkyl_fpo_coeff_correct_accum_kern_list ser_fpo_coeff_correct_accum_
 {
   { NULL, NULL, NULL },
   { NULL, mom_fpo_vlasov_coeff_correct_accum_1x3v_ser_p1, mom_fpo_vlasov_coeff_correct_accum_1x3v_ser_p2 },
-  { NULL, mom_fpo_vlasov_coeff_correct_accum_2x3v_ser_p1, mom_fpo_vlasov_coeff_correct_accum_2x3v_ser_p2 },
-  { NULL, mom_fpo_vlasov_coeff_correct_accum_3x3v_ser_p1, NULL }
+  { NULL, mom_fpo_vlasov_coeff_correct_accum_2x3v_ser_p1, NULL },
+  { NULL, NULL, NULL }
 };
