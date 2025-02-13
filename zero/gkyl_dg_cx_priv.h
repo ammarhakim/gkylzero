@@ -77,3 +77,26 @@ choose_kern(enum gkyl_basis_type b_type, int tblidx, int poly_order)
       break; 
   }
 }
+
+GKYL_CU_D void
+fit_param(enum gkyl_ion_type type_ion, double *a, double *b)
+{
+  // These values are from E. Meier's PhD Thesis
+  if (type_ion == GKYL_ION_H) {
+    a[0] = 1.12e-18;
+    b[0] = 7.15e-20;
+  }
+  else if (type_ion == GKYL_ION_D) {
+    a[0] = 1.09e-18;
+    b[0] = 7.15e-20;
+  }
+  else if (type_ion == GKYL_ION_HE) {
+    a[0] = 6.484e-19;
+    b[0] = 4.350e-20;
+  } 
+  else if (type_ion == GKYL_ION_NE) {
+    a[0] = 7.95e-19;
+    b[0] = 5.65e-20;
+  }
+}
+
