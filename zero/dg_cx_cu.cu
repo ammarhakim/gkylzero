@@ -54,7 +54,7 @@ void gkyl_dg_cx_coll_cu(const struct gkyl_dg_cx *up,
 }
 
 gkyl_dg_cx*
-gkyl_dg_cx_new_cu(struct gkyl_dg_cx_inp *inp)
+gkyl_dg_cx_cu_dev_new(struct gkyl_dg_cx_inp *inp)
 {
   gkyl_dg_cx *up = (struct gkyl_dg_cx*) gkyl_malloc(sizeof(*up));
 

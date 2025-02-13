@@ -15,7 +15,7 @@ gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_dg_cx_new_cu(inp);
+    return gkyl_dg_cx_cu_dev_new(inp);
   } 
 #endif  
   gkyl_dg_cx *up = gkyl_malloc(sizeof(struct gkyl_dg_cx));
