@@ -1,9 +1,9 @@
-#include <gkyl_gk_neut_hamil_kernels.h> 
-GKYL_CU_DH void gk_neut_hamil_3x3v_tensor_p1(const double *w, const double *dxv, const double *mass, const double *gij, double* GKYL_RESTRICT hamil) 
+#include <gkyl_dg_gk_neut_hamil_kernels.h> 
+GKYL_CU_DH
+void gk_neut_hamil_3x3v_tensor_p1(const double *w, const double *dxv, const double *gij, double* GKYL_RESTRICT hamil) 
 { 
   // w:        Cell-center coordinates.
   // dxv:      Cell spacing.
-  // mass:     Particle mass.
   // gij[48]:  Contravariant components of metric tensor.
   // hamil:    Gk neut species Hamiltonian.
  

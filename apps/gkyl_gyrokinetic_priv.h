@@ -25,8 +25,11 @@
 #include <gkyl_boundary_flux.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
+#include <gkyl_dg_calc_canonical_pb_vars.h>
+#include <gkyl_dg_calc_gk_neut_hamil.h>
 #include <gkyl_dg_calc_gk_rad_vars.h>
 #include <gkyl_dg_calc_gyrokinetic_vars.h>
+#include <gkyl_dg_canonical_pb.h>
 #include <gkyl_dg_cx.h>
 #include <gkyl_dg_gyrokinetic.h>
 #include <gkyl_dg_iz.h>
@@ -665,8 +668,10 @@ struct gk_neut_species {
   struct gkyl_array *f_host; // host copy for use IO and initialization
 
   enum gkyl_field_id field_id; // type of field equation (always GKYL_FIELD_NULL)
-  enum gkyl_model_id model_id; // type of Vlasov equation (always GKYL_MODEL_GEN_GEO)
+  enum gkyl_model_id model_id; // type of Vlasov equation (always GKYL_MODEL_CANONICAL_PB)
 
+  struct gkyl_array *hamil; // Specified hamiltonian function for canonical poisson bracket
+  struct gkyl_array *hamil_host; // Host side hamiltonian array for intial projection
   struct gkyl_array *alpha_surf; // array for surface phase space flux (v^i = v . e^i)
   struct gkyl_array *sgn_alpha_surf; // array for the sign of the surface phase space flux at quadrature points
                                      // utilized for numerical flux function
@@ -675,7 +680,6 @@ struct gk_neut_species {
                                       // if true, numerical flux function inside kernels simplifies to
                                       // F = alpha_surf*f^- (if sign_alpha_surf = 1), 
                                       // F = alpha_surf*f^+ (if sign_alpha_surf = -1)
-  struct gkyl_array *cot_vec; // array for cotangent vectors
 
   struct gk_species_moment m0; // for computing density
   struct gk_species_moment integ_moms; // integrated moments
