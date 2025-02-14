@@ -730,8 +730,7 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     gkyl_cart_modal_serendip(&s->basis, pdim, app->poly_order);
   }
   else if (app->poly_order == 1) {
-    gkyl_cart_modal_hybrid(&s->basis, cdim, vdim); // p=2 in v for neutral species
-    // gkyl_cart_modal_tensor(&s->basis, pdim, app->poly_order); // for canonical PB
+    gkyl_cart_modal_tensor(&s->basis, pdim, app->poly_order); // for canonical PB
   }
 
   if (app->use_gpu) {
@@ -739,8 +738,7 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
       gkyl_cart_modal_serendip_cu_dev(s->basis_on_dev, pdim, app->poly_order);
     }
     else if (app->poly_order == 1) {
-      gkyl_cart_modal_hybrid_cu_dev(s->basis_on_dev, cdim, vdim); // p=2 in v for neutral species
-      // gkyl_cart_modal_tensor_cu_dev(s->basis_on_dev, pdim, app->poly_order); // for canonical PB
+      gkyl_cart_modal_tensor_cu_dev(s->basis_on_dev, pdim, app->poly_order); // for canonical PB
     }
   }
   
