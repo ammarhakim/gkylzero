@@ -634,7 +634,7 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   // Release TS BS and SSFG updater
   if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
     if(app->cdim == 3) {
-      gkyl_bc_twistshift_release(f->bc_T_UL_up);
+      gkyl_bc_twistshift_release(f->bc_T_LU_lo);
     }
     gkyl_skin_surf_from_ghost_release(f->ssfg_lo);
     gkyl_comm_release(f->comm_conf);
