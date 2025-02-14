@@ -2,7 +2,7 @@
 #include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_util.h>
 
-void
+static void
 proj_on_basis_c2p_phase_func(const double *xcomp, double *xphys, void *ctx)
 {
   struct gk_proj_on_basis_c2p_func_ctx *c2p_ctx = ctx;
@@ -11,7 +11,7 @@ proj_on_basis_c2p_phase_func(const double *xcomp, double *xphys, void *ctx)
   gkyl_velocity_map_eval_c2p(c2p_ctx->vel_map, &xcomp[cdim], &xphys[cdim]);
 }
 
-void
+static void
 proj_on_basis_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
 {
   struct gk_proj_on_basis_c2p_func_ctx *c2p_ctx = ctx;
