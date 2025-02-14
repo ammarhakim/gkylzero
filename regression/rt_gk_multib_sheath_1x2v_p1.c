@@ -419,12 +419,12 @@ create_block_geom(void *ctx)
    x  
    ^  
    |
-   1  +------------------+------------------+------------------+
-   |  |b0                |b1                |b2                |
-   |  |lower SOL         |middle            |upper             |
-   |  |                  |                  |                  |
-   0  +------------------+------------------+------------------+
-      0 -----------------1------------------2-------------------3> z
+   1  +------------------+------------------+
+   |  |b0                |b1                |
+   |  |lower SOL         |upper             |
+   |  |                  |                  |
+   0  +------------------+------------------+
+      0 -----------------1------------------2----> z
 
       Edges that touch coincide are physically connected unless
       otherwise indicated by a special symbol. Edges with a special
@@ -745,7 +745,7 @@ main(int argc, char **argv)
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
       gkyl_gyrokinetic_multib_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
-      gkyl_array_rio_status_msg(status.io_status));
+        gkyl_array_rio_status_msg(status.io_status));
       goto freeresources;
     }
 
