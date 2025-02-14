@@ -34,7 +34,7 @@ struct gkyl_poisson_bc {
   void (*bc_value_func)(double t, const double *xn, double *phi_wall_up_out, void *ctx);
   void *bc_value_func_ctx;
 
-  // Additional attributes to apply a different BC according to the edge planes in the z direction.
+  // Additional attributes to apply a bias plane at the extremal z values only.
   bool contains_lower_z_edge, contains_upper_z_edge;
 };
 

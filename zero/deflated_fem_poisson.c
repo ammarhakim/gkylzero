@@ -132,9 +132,7 @@ gkyl_deflated_fem_poisson_new(struct gkyl_rect_grid grid, struct gkyl_basis *bas
           kSq, up->d_fem_data[ctr].deflated_kSq, 2*up->deflated_grid.ndim-1);
     }
 
-    /// Here is the implementation of the target corner BC
-    // we check if we are at an extremal global index of z to apply target corner BC
-    // to get the global index of the z plane
+    // we check if we are at an extremal global index of z to apply the bias plane at extremal z values only
     int global_zidx = zidx + up->global_sub_range.lower[up->cdim-1]; 
     // check if the global index is equal to the lower or upper limit of the z grid
     bool is_lower_z_edge = (zidx == up->local.lower[up->cdim-1])   && up->poisson_bc.contains_lower_z_edge;
