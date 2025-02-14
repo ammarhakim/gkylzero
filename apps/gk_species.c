@@ -1269,7 +1269,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     gks->basis_on_dev = &gks->basis;
   }
 
-  enum gkyl_basis_type b_type = gks->basis.b_type;
+  enum gkyl_basis_type b_type = app->basis.b_type;
 
   // basis functions
   switch (b_type) {
