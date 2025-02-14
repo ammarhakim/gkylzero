@@ -451,27 +451,6 @@ test_3x_p1_geometry_quantities_position_map()
     }
   }
 
-  // // Check gij
-  // struct gkyl_array* gij_nodal = gkyl_array_new(GKYL_DOUBLE, 6, nrange.volume);
-  // gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 6, gij_nodal, gk_geom->g_ij);
-  // for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-  //   for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
-  //     for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
-  //       cidx[PSI_IDX] = ip;
-  //       cidx[AL_IDX] = ia;
-  //       cidx[TH_IDX] = it;
-  //       double *gij_n = gkyl_array_fetch(gij_nodal, gkyl_range_idx(&nrange, cidx));
-  //       double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nrange, cidx));
-  //       double r = sqrt(mapc2p_n[0]*mapc2p_n[0] + mapc2p_n[1]*mapc2p_n[1]);
-  //       double xn[3] = {r, 0.0, 0.0};
-  //       double fout[6];
-  //       exact_gij(0.0, xn, fout, 0);
-  //       for (int i=0; i<6; ++i)
-  //         TEST_CHECK( gkyl_compare( gij_n[i], fout[i], 1e-8) );
-  //     }
-  //   }
-  // }
-
   // Check mapc2p
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
     for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
