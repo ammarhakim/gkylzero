@@ -490,11 +490,11 @@ struct gkyl_comm *comm = 0;
   };
 
 
-  struct gkyl_block_physical_bcs elc_phys_bcs[] = {
+  struct gkyl_gyrokinetic_block_physical_bcs elc_phys_bcs[] = {
     // block 0 BCs
 
-    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
-    { .bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH }
+    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH},
+    { .bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH }
   };
 
   struct gkyl_gyrokinetic_multib_species elc = {
@@ -562,10 +562,10 @@ struct gkyl_comm *comm = 0;
 
   };
 
-  struct gkyl_block_physical_bcs ion_phys_bcs[] = {
+  struct gkyl_gyrokinetic_block_physical_bcs ion_phys_bcs[] = {
     // block 0 BCs
-    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH},
-    { .bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_GK_SHEATH }
+    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH},
+    { .bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_BC_GK_SPECIES_GK_SHEATH }
   };
 
   struct gkyl_gyrokinetic_multib_species ion = {
@@ -605,7 +605,7 @@ struct gkyl_comm *comm = 0;
     .kperpSq = ctx.k_perp*ctx.k_perp,
   };
 
-  struct gkyl_block_physical_bcs field_phys_bcs[] = {
+  struct gkyl_gyrokinetic_block_physical_bcs field_phys_bcs[] = {
   };
 
   struct gkyl_gyrokinetic_multib_field field = {
@@ -739,7 +739,7 @@ struct gkyl_comm *comm = 0;
   gkyl_gyrokinetic_multib_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
   gkyl_gyrokinetic_multib_app_cout(app, stdout, "Updates took %g secs\n", stat.total_tm);
 
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
+  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of write calls %ld,\n", stat.n_io);
   gkyl_gyrokinetic_multib_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   freeresources:
