@@ -256,7 +256,7 @@ create_ctx(void)
   int Nvpar = 16;
   int Nmu = 8;
 
-  double t_end = 2*5.0e-7; 
+  double t_end = 4*5.0e-7; 
   double num_frames = 1;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -313,12 +313,12 @@ create_ctx(void)
 void
 calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr, double dt, bool force_calc)
 {
-  if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc) {
+//  if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc) {
     gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
     gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
     if ( !(dt < 0.0) )
       gkyl_gyrokinetic_app_save_dt(app, t_curr, dt);
-  }
+//  }
 }
 
 void
@@ -460,8 +460,12 @@ main(int argc, char **argv)
     
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
-//    .integrated_hamiltonian_moments = true,
-//    .boundary_flux_diagnostics = true,
+    .integrated_hamiltonian_moments = true,
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { "HamiltonianMoments" },
+      .time_integrated = true,
+    }
   };
 
   // Ions.
@@ -525,8 +529,13 @@ main(int argc, char **argv)
     
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
-//    .integrated_hamiltonian_moments = true,
-//    .boundary_flux_diagnostics = true,
+    .integrated_hamiltonian_moments = true,
+    .boundary_flux_diagnostics = {
+      .num_diag_moments = 0,
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { "HamiltonianMoments" },
+      .time_integrated = true,
+    }
   };
 
 //  // Ar1+ ions.
@@ -676,8 +685,8 @@ main(int argc, char **argv)
     .poly_order = 1,
     .basis_type = app_args.basis_type,
     .cfl_frac = 0.5,
-//    .cfl_frac_omegaH = 1e10,
-//    .fdot_diagnostics = true,
+    .cfl_frac_omegaH = 1e10,
+    .fdot_diagnostics = true,
 
     .geometry = {
       .world = {0.0},
