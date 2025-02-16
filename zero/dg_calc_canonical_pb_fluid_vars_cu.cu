@@ -77,10 +77,39 @@ gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf_cu(struct gkyl_dg_calc_canonical
 }
 
 __global__ void
+gkyl_canonical_pb_fluid_vars_subtract_zonal_cu_kernel(struct gkyl_dg_calc_canonical_pb_fluid_vars *up, 
+  struct gkyl_range conf_range, struct gkyl_range x_range, 
+  const struct gkyl_array *phi_zonal, const struct gkyl_array *n_zonal, 
+  struct gkyl_array *adiabatic_coupling_phi_n)
+{
+  int idx[GKYL_MAX_DIM];
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < conf_range.volume;
+      linc1 += gridDim.x*blockDim.x)
+  {
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&conf_range, linc1, idx);
+
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long loc = gkyl_range_idx(&conf_range, idx);
+    long loc_1d = gkyl_range_idx(&x_range, idx);  
+
+    const double *phi_zonal_d = (const double*) gkyl_array_cfetch(phi_zonal, loc_1d);
+    const double *n_zonal_d = (const double*) gkyl_array_cfetch(n_zonal, loc_1d);
+
+    double *adiabatic_coupling_phi_n_d = (double*) gkyl_array_fetch(adiabatic_coupling_phi_n, loc); 
+    up->subtract_zonal(phi_zonal_d, n_zonal_d, adiabatic_coupling_phi_n_d); 
+  }
+}
+
+__global__ void
 gkyl_canonical_pb_fluid_vars_source_cu_kernel(struct gkyl_dg_calc_canonical_pb_fluid_vars *up, 
   struct gkyl_range conf_range, 
   const struct gkyl_array *background_n_gradient, const struct gkyl_array *phi, 
-  const struct gkyl_array *fluid, struct gkyl_array *rhs)
+  const struct gkyl_array *adiabatic_coupling_phi_n, struct gkyl_array *rhs)
 {
   int idx[GKYL_MAX_DIM];
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
@@ -98,14 +127,15 @@ gkyl_canonical_pb_fluid_vars_source_cu_kernel(struct gkyl_dg_calc_canonical_pb_f
 
     const double *background_n_gradient_d = (const double*) gkyl_array_cfetch(background_n_gradient, loc);
     const double *phi_d = (const double*) gkyl_array_cfetch(phi, loc);
-    const double *fluid_d = (const double*) gkyl_array_cfetch(fluid, loc);
 
     double* rhs_d = (double*) gkyl_array_fetch(rhs, loc);
-
     up->canonical_pb_fluid_source(up->conf_grid.dx, up->alpha, up->kappa, 
-      background_n_gradient_d, phi_d, fluid_d, rhs_d);
+      background_n_gradient_d, phi_d, 
+      adiabatic_coupling_phi_n ? (const double*) gkyl_array_cfetch(up->adiabatic_coupling_phi_n, loc) : 0, 
+      rhs_d);
   }
 }
+
 // Host-side wrapper for source update of canonical PB fluid systems.
 void 
 gkyl_canonical_pb_fluid_vars_source_cu(struct gkyl_dg_calc_canonical_pb_fluid_vars *up, 
@@ -115,8 +145,30 @@ gkyl_canonical_pb_fluid_vars_source_cu(struct gkyl_dg_calc_canonical_pb_fluid_va
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
+
+  // If alpha is specified, we are solving Hasegawa-Wakatani and need to check 
+  // whether we are solving the modified version of Hasegawa-Wakatani which 
+  // requires computing the zonal components of phi, n: f_zonal = 1/Ly int f dy
+  // and subtracting the zonal components off the adiabatic coupling, f_tilde = f - f_zonal. 
+  // Otherwise, we just copy n and phi into a temporary array for use in the updater.
+  if (up->alpha > 0.0) {
+    gkyl_array_set_offset(up->n, 1.0, fluid, up->conf_basis.num_basis);
+    gkyl_array_set_offset(up->adiabatic_coupling_phi_n, 1.0, phi, 0);
+    gkyl_array_set_offset(up->adiabatic_coupling_phi_n, 1.0, up->n, up->conf_basis.num_basis);
+    if (up->is_modified) {
+      // Compute the zonal components of phi and n. 
+      gkyl_array_average_advance(up->int_y, phi, up->phi_zonal);
+      gkyl_array_average_advance(up->int_y, up->n, up->n_zonal);
+      gkyl_canonical_pb_fluid_vars_subtract_zonal_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, 
+        *conf_range, up->x_local, up->phi_zonal->on_dev, up->n_zonal->on_dev, 
+        up->adiabatic_coupling_phi_n->on_dev);
+    }
+  }
+
   gkyl_canonical_pb_fluid_vars_source_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, 
-    *conf_range, background_n_gradient->on_dev, phi->on_dev, fluid->on_dev, rhs->on_dev);
+    *conf_range, background_n_gradient->on_dev, phi->on_dev, 
+    up->adiabatic_coupling_phi_n ? up->adiabatic_coupling_phi_n->on_dev : 0, 
+    rhs->on_dev);
 }
 
 
@@ -124,13 +176,16 @@ gkyl_canonical_pb_fluid_vars_source_cu(struct gkyl_dg_calc_canonical_pb_fluid_va
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void 
   dg_calc_canoncial_pb_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_canonical_pb_fluid_vars *up,
-  enum gkyl_basis_type b_type, int cdim, int poly_order, enum gkyl_eqn_type eqn_type)
+  enum gkyl_basis_type b_type, int cdim, int poly_order, enum gkyl_eqn_type eqn_type, bool is_modified)
 {
   if (eqn_type == GKYL_EQN_CAN_PB_HASEGAWA_MIMA) {
     up->canonical_pb_fluid_source = choose_canonical_pb_fluid_hasegawa_mima_source_kern(b_type, cdim, poly_order);
   }
   else if (eqn_type == GKYL_EQN_CAN_PB_HASEGAWA_WAKATANI) {
     up->canonical_pb_fluid_source = choose_canonical_pb_fluid_hasegawa_wakatani_source_kern(b_type, cdim, poly_order);
+    if (is_modified) {
+      up->subtract_zonal = choose_canonical_pb_fluid_subtract_zonal_kern(conf_basis->b_type, cdim, poly_order);
+    }
   }
   else {
     // Default source kernel; immediately returns and does not do anything. 
@@ -145,11 +200,13 @@ __global__ static void
 
 gkyl_dg_calc_canonical_pb_fluid_vars*
 gkyl_dg_calc_canonical_pb_fluid_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid, 
-  const struct gkyl_basis *conf_basis, const struct gkyl_wv_eqn *wv_eqn)
+  const struct gkyl_basis *conf_basis, const struct gkyl_range *conf_range, const struct gkyl_range *conf_ext_range, 
+  const struct gkyl_wv_eqn *wv_eqn)
 {   
   struct gkyl_dg_calc_canonical_pb_fluid_vars *up = (struct gkyl_dg_calc_canonical_pb_fluid_vars *) gkyl_malloc(sizeof(gkyl_dg_calc_canonical_pb_fluid_vars));
 
   up->conf_grid = *conf_grid;
+  up->conf_basis = *conf_basis; 
   int cdim = conf_basis->ndim;
   int poly_order = conf_basis->poly_order;
   up->cdim = cdim;
@@ -164,6 +221,39 @@ gkyl_dg_calc_canonical_pb_fluid_vars_cu_dev_new(const struct gkyl_rect_grid *con
     up->alpha = gkyl_wv_can_pb_hasegawa_wakatani_alpha(wv_eqn); 
     up->kappa = gkyl_wv_can_pb_hasegawa_wakatani_kappa(wv_eqn); 
     up->is_modified = gkyl_wv_can_pb_hasegawa_wakatani_is_modified(wv_eqn); 
+
+    // Temporary array for holding the density and combined potential and density for computing the adiabatic coupling.
+    // These are stored separately from the input phi and fluid arrays in case we are solving the
+    // modified Hasegawa-Wakatani system and need to subtract the zonal components. 
+    up->n = gkyl_array_cu_dev_new(GKYL_DOUBLE, conf_basis->num_basis, conf_ext_range->volume);
+    // Component 0 is n, Component 1 is phi. 
+    up->adiabatic_coupling_phi_n = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*conf_basis->num_basis, conf_ext_range->volume);
+
+    // Set up the array averaging to correctly subtact the zonal component of fluctuations
+    // Currently assumes that updater has *no decomposition* in y and thus owns the whole y range.
+    if (up->is_modified) {
+      // Make the one-dimensional x basis, and ranges for constructing the average. 
+      struct gkyl_basis basis_x;
+      gkyl_cart_modal_serendip(&basis_x, 1, poly_order);
+      gkyl_range_init(&up->x_local, 1, &conf_range->lower[0], &conf_range->upper[0]);
+      gkyl_range_init(&up->x_local_ext, 1, &conf_ext_range->lower[0], &conf_ext_range->upper[0]);
+      // Integration over y only, (x,y) to (x).
+      int int_dim_y[] = {0,1,0};
+      struct gkyl_array_average_inp inp_int_y = {
+        .grid = &up->conf_grid,
+        .basis = up->conf_basis,
+        .basis_avg = basis_x,
+        .local = conf_range,
+        .local_avg = &up->x_local,
+        .local_avg_ext = &up->x_local_ext,
+        .weight = NULL,
+        .avg_dim = int_dim_y,
+        .use_gpu = true, // We will perform the average on GPUs
+      };
+      up->int_y = gkyl_array_average_new(&inp_int_y);
+      up->phi_zonal = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis_x.num_basis, up->x_local_ext.volume);
+      up->n_zonal = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis_x.num_basis, up->x_local_ext.volume);
+    }    
   }
 
   up->flags = 0;
@@ -172,7 +262,7 @@ gkyl_dg_calc_canonical_pb_fluid_vars_cu_dev_new(const struct gkyl_rect_grid *con
   struct gkyl_dg_calc_canonical_pb_fluid_vars *up_cu = (struct gkyl_dg_calc_canonical_pb_fluid_vars *) gkyl_cu_malloc(sizeof(gkyl_dg_calc_canonical_pb_fluid_vars));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_calc_canonical_pb_fluid_vars), GKYL_CU_MEMCPY_H2D);
 
-  dg_calc_canoncial_pb_vars_set_cu_dev_ptrs<<<1,1>>>(up_cu, conf_basis->b_type, cdim, poly_order, wv_eqn->type);
+  dg_calc_canoncial_pb_vars_set_cu_dev_ptrs<<<1,1>>>(up_cu, conf_basis->b_type, cdim, poly_order, wv_eqn->type, up->is_modified);
 
   // set parent on_dev pointer
   up->on_dev = up_cu;
