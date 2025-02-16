@@ -184,7 +184,7 @@ __global__ static void
   else if (eqn_type == GKYL_EQN_CAN_PB_HASEGAWA_WAKATANI) {
     up->canonical_pb_fluid_source = choose_canonical_pb_fluid_hasegawa_wakatani_source_kern(b_type, cdim, poly_order);
     if (is_modified) {
-      up->subtract_zonal = choose_canonical_pb_fluid_subtract_zonal_kern(conf_basis->b_type, cdim, poly_order);
+      up->subtract_zonal = choose_canonical_pb_fluid_subtract_zonal_kern(b_type, cdim, poly_order);
     }
   }
   else {

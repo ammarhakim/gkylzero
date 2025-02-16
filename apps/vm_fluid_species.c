@@ -103,7 +103,7 @@ vm_fluid_species_euler_write(gkyl_vlasov_app *app, struct vm_fluid_species *f,
     gkyl_array_copy(f->prim_vars_host, f->prim_vars);
   }
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
-    mt, f->prim_vars_host, fileNm); 
+    mt, f->prim_vars_host, fileNm_prim); 
 
   vlasov_array_meta_release(mt);       
 }
