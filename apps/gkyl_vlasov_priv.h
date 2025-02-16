@@ -584,8 +584,11 @@ struct vm_fluid_species {
     struct {
       // For isothermal Euler, u : (ux, uy, uz), p : (vth*rho)
       // For Euler, u : (ux, uy, uz, T/m), p : (gamma - 1)*(E - 1/2 rho u^2)
+      // Also a prim_vars and prim_vars_host array for I/O of (u,p)
       struct gkyl_array *u; 
       struct gkyl_array *p; 
+      struct gkyl_array *prim_vars; 
+      struct gkyl_array *prim_vars_host; 
       struct gkyl_array *cell_avg_prim; // Integer array for whether e.g., rho *only* uses cell averages for weak division
                                         // Determined when constructing the matrix if rho < 0.0 at control points
 
@@ -646,8 +649,6 @@ struct vm_fluid_species {
   double *red_integ_diag; // for reduction on GPU
   gkyl_dynvec integ_diag; // Integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for int-moments dynvec written first time
-  // Function pointer to specific integrated quantity calculator
-  void (*calc_integrated_mom_func)(gkyl_vlasov_app* app, struct vm_fluid_species *f, double tm); 
 
   bool has_app_accel; // flag to indicate there is applied acceleration
   bool app_accel_evolve; // flag to indicate applied acceleration is time dependent
@@ -660,6 +661,13 @@ struct vm_fluid_species {
   struct vm_fluid_source src; // applied source
 
   double* omegaCfl_ptr;
+
+  // Function pointers for computing primitive/auxiliary variables, 
+  // and also write method, release method, and method for calculating integrated quantities. 
+  void (*prim_vars_func)(gkyl_vlasov_app *app, struct vm_fluid_species *f, const struct gkyl_array *fluid); 
+  void (*calc_integrated_mom_func)(gkyl_vlasov_app* app, struct vm_fluid_species *f, double tm); 
+  void (*write_func)(gkyl_vlasov_app *app, struct vm_fluid_species *f, double tm, int frame); 
+  void (*release_func)(const gkyl_vlasov_app *app, struct vm_fluid_species *f);   
 };
 
 // fluid-EM coupling data
@@ -760,6 +768,33 @@ struct gkyl_update_status vlasov_poisson_update_ssp_rk3(gkyl_vlasov_app *app,
   double dt0);
 
 /** gkyl_vlasov_app private API */
+
+/**
+ * Create a new array metadata object. It must be freed using
+ * vlasov_array_meta_release.
+ *
+ * @param meta Vlasov metadata object.
+ * @return Array metadata object.
+ */
+struct gkyl_msgpack_data*
+vlasov_array_meta_new(struct vlasov_output_meta meta);
+
+/**
+ * Free memory for array metadata object.
+ *
+ * @param mt Array metadata object.
+ */
+void
+vlasov_array_meta_release(struct gkyl_msgpack_data *mt);
+
+/**
+ * Return the metadata for outputing vlasov data.
+ *
+ * @param mt Array metadata object.
+ * @return A vlasov metadata object.
+ */
+struct vlasov_output_meta
+vlasov_meta_from_mpack(struct gkyl_msgpack_data *mt);
 
 /**
  * Apply BCs to kinetic species, fluid species and EM fields.
@@ -1641,6 +1676,16 @@ void vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_speci
  * @param tm Time integrated quantities are being computed at. 
  */
 void vm_fluid_species_calc_integrated_mom(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double tm);
+
+/**
+ * Write out the evolved fluid species and other potential primitive/auxiliary variables.
+ *
+ * @param app Vlasov app object
+ * @param fluid_species Pointer to fluid species
+ * @param tm Time fluid quantities are being written at.
+ * @param frame Frame number for I/O.  
+ */
+void vm_fluid_species_write(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double tm, int frame);
 
 /**
  * Release resources allocated by fluid species

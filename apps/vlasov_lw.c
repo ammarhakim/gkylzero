@@ -187,7 +187,7 @@ eqn_hasegawa_wakatani_lw_new(lua_State *L)
 
   double alpha = glua_tbl_get_number(L, "alpha", 1.0);
   double kappa = glua_tbl_get_number(L, "kappa", 1.0);
-  bool is_modified = glua_tbl_get_integer(L, "is_modified", false);  
+  bool is_modified = glua_tbl_get_bool(L, "is_modified", false);  
 
   hasegawa_wakatani_lw->magic = VLASOV_EQN_DEFAULT;
   hasegawa_wakatani_lw->eqn = gkyl_wv_can_pb_hasegawa_wakatani_new(alpha, kappa, is_modified);
@@ -343,7 +343,7 @@ vlasov_species_lw_new(lua_State *L)
     }
   }
 
-  bool evolve = glua_tbl_get_integer(L, "evolve", true);
+  bool evolve = glua_tbl_get_bool(L, "evolve", true);
 
   with_lua_tbl_tbl(L, "diagnostics") {
     int num_diag_moments = glua_objlen(L);
@@ -897,7 +897,7 @@ vlasov_field_lw_new(lua_State *L)
 
   vm_field.is_static = glua_tbl_get_bool(L, "isStatic", false);
 
-  bool evolve = glua_tbl_get_integer(L, "evolve", true);
+  bool evolve = glua_tbl_get_bool(L, "evolve", true);
 
   int init_ref = LUA_NOREF;
   if (glua_tbl_get_func(L, "init")) {

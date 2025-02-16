@@ -11,17 +11,19 @@
 
 gkyl_dg_calc_canonical_pb_fluid_vars*
 gkyl_dg_calc_canonical_pb_fluid_vars_new(const struct gkyl_rect_grid *conf_grid, 
-  const struct gkyl_basis *conf_basis, const struct gkyl_wv_eqn *wv_eqn, bool use_gpu)
+  const struct gkyl_basis *conf_basis, const struct gkyl_range *conf_range, const struct gkyl_range *conf_ext_range, 
+  const struct gkyl_wv_eqn *wv_eqn, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
     return gkyl_dg_calc_canonical_pb_fluid_vars_cu_dev_new(conf_grid, 
-      conf_basis, wv_eqn);
+      conf_basis, conf_range, conf_ext_range, wv_eqn);
   } 
 #endif     
   gkyl_dg_calc_canonical_pb_fluid_vars *up = gkyl_malloc(sizeof(gkyl_dg_calc_canonical_pb_fluid_vars));
 
   up->conf_grid = *conf_grid;
+  up->conf_basis = *conf_basis; 
   int cdim = conf_basis->ndim;
   int poly_order = conf_basis->poly_order;
   up->cdim = cdim;
@@ -37,6 +39,40 @@ gkyl_dg_calc_canonical_pb_fluid_vars_new(const struct gkyl_rect_grid *conf_grid,
     up->alpha = gkyl_wv_can_pb_hasegawa_wakatani_alpha(wv_eqn); 
     up->kappa = gkyl_wv_can_pb_hasegawa_wakatani_kappa(wv_eqn); 
     up->is_modified = gkyl_wv_can_pb_hasegawa_wakatani_is_modified(wv_eqn); 
+
+    // Temporary array for holding the density and combined potential and density for computing the adiabatic coupling.
+    // These are stored separately from the input phi and fluid arrays in case we are solving the
+    // modified Hasegawa-Wakatani system and need to subtract the zonal components. 
+    up->n = gkyl_array_new(GKYL_DOUBLE, conf_basis->num_basis, conf_ext_range->volume);
+    // Component 0 is n, Component 1 is phi. 
+    up->adiabatic_coupling_phi_n = gkyl_array_new(GKYL_DOUBLE, 2*conf_basis->num_basis, conf_ext_range->volume);
+
+    // Set up the array averaging to correctly subtact the zonal component of fluctuations
+    // Currently assumes that updater has *no decomposition* in y and thus owns the whole y range.
+    if (up->is_modified) {
+      // Make the one-dimensional x basis, and ranges for constructing the average. 
+      struct gkyl_basis basis_x;
+      gkyl_cart_modal_serendip(&basis_x, 1, poly_order);
+      gkyl_range_init(&up->x_local, 1, &conf_range->lower[0], &conf_range->upper[0]);
+      gkyl_range_init(&up->x_local_ext, 1, &conf_ext_range->lower[0], &conf_ext_range->upper[0]);
+      // Integration over y only, (x,y) to (x).
+      int int_dim_y[] = {0,1,0};
+      struct gkyl_array_average_inp inp_int_y = {
+        .grid = &up->conf_grid,
+        .basis = up->conf_basis,
+        .basis_avg = basis_x,
+        .local = conf_range,
+        .local_avg = &up->x_local,
+        .local_avg_ext = &up->x_local_ext,
+        .weight = NULL,
+        .avg_dim = int_dim_y,
+        .use_gpu = use_gpu
+      };
+      up->int_y = gkyl_array_average_new(&inp_int_y);
+      up->phi_zonal = gkyl_array_new(GKYL_DOUBLE, basis_x.num_basis, up->x_local_ext.volume);
+      up->n_zonal = gkyl_array_new(GKYL_DOUBLE, basis_x.num_basis, up->x_local_ext.volume);
+      up->subtract_zonal = choose_canonical_pb_fluid_subtract_zonal_kern(conf_basis->b_type, cdim, poly_order);
+    }
     up->canonical_pb_fluid_source = choose_canonical_pb_fluid_hasegawa_wakatani_source_kern(conf_basis->b_type, cdim, poly_order);
   }
   else {
@@ -118,7 +154,40 @@ void gkyl_canonical_pb_fluid_vars_source(struct gkyl_dg_calc_canonical_pb_fluid_
     return gkyl_canonical_pb_fluid_vars_source_cu(up, conf_range, background_n_gradient, phi, fluid, rhs);
   }
 #endif
-  int cdim = up->cdim; 
+  // If alpha is specified, we are solving Hasegawa-Wakatani and need to check 
+  // whether we are solving the modified version of Hasegawa-Wakatani which 
+  // requires computing the zonal components of phi, n: f_zonal = 1/Ly int f dy
+  // and subtracting the zonal components off the adiabatic coupling, f_tilde = f - f_zonal. 
+  // Otherwise, we just copy n and phi into a temporary array for use in the updater.
+  if (up->alpha > 0.0) {
+    gkyl_array_set_offset(up->n, 1.0, fluid, up->conf_basis.num_basis);
+    gkyl_array_set_offset(up->adiabatic_coupling_phi_n, 1.0, phi, 0);
+    gkyl_array_set_offset(up->adiabatic_coupling_phi_n, 1.0, up->n, up->conf_basis.num_basis);
+    if (up->is_modified) {
+      // Compute the zonal components of phi and n. 
+      gkyl_array_average_advance(up->int_y, phi, up->phi_zonal);
+      gkyl_array_average_advance(up->int_y, up->n, up->n_zonal);
+      // Iterate over the 2D grid and subtract off the 1D zonal component
+      struct gkyl_range_iter iter;
+      gkyl_range_iter_init(&iter, conf_range);
+      while (gkyl_range_iter_next(&iter)) {
+        long loc = gkyl_range_idx(conf_range, iter.idx);  
+        long loc_1d = gkyl_range_idx(&up->x_local, iter.idx);  
+
+        const double *phi_zonal_d = gkyl_array_cfetch(up->phi_zonal, loc_1d);
+        const double *n_zonal_d = gkyl_array_cfetch(up->n_zonal, loc_1d);
+
+        double *adiabatic_coupling_phi_n_d = gkyl_array_fetch(up->adiabatic_coupling_phi_n, loc); 
+        up->subtract_zonal(phi_zonal_d, n_zonal_d, adiabatic_coupling_phi_n_d);   
+      }
+    }
+  }
+
+  // Loop over the grid and compute the source update. 
+  // For equation systems such as incompressible Euler, this function returns immediately (no sources).
+  // For Hasegawa-Mima, computes {phi, background_n_gradient} where {., .} is the canonical Poisson bracket.
+  // For Hasegawa-Wakatani, computes alpha*(phi - n) + {phi, background_n_gradient}, where the first
+  // term potentially has the zonal components subtracted off if we are solving modified Hasegawa-Wakatani. 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, conf_range);
   while (gkyl_range_iter_next(&iter)) {
@@ -126,18 +195,32 @@ void gkyl_canonical_pb_fluid_vars_source(struct gkyl_dg_calc_canonical_pb_fluid_
 
     const double *background_n_gradient_d = gkyl_array_cfetch(background_n_gradient, loc);
     const double *phi_d = gkyl_array_cfetch(phi, loc);
-    const double *fluid_d = gkyl_array_cfetch(fluid, loc);
 
     double* rhs_d = gkyl_array_fetch(rhs, loc);
 
     up->canonical_pb_fluid_source(up->conf_grid.dx, up->alpha, up->kappa, 
-      background_n_gradient_d, phi_d, fluid_d, rhs_d);
+      background_n_gradient_d, phi_d, 
+      up->adiabatic_coupling_phi_n ? (const double*) gkyl_array_cfetch(up->adiabatic_coupling_phi_n, loc) : 0, 
+      rhs_d);
   }
 }
 
 void gkyl_dg_calc_canonical_pb_fluid_vars_release(gkyl_dg_calc_canonical_pb_fluid_vars *up)
 {
-  if (GKYL_IS_CU_ALLOC(up->flags))
+  // If alpha was specified, we were solving Hasegawa-Wakatani
+  // and need to free specific Hasegawa-Wakatani allocated memory. 
+  if (up->alpha > 0.0) {
+    gkyl_array_release(up->n); 
+    gkyl_array_release(up->adiabatic_coupling_phi_n); 
+    if (up->is_modified) {
+      gkyl_array_release(up->phi_zonal); 
+      gkyl_array_release(up->n_zonal); 
+      gkyl_array_average_release(up->int_y); 
+    }
+  }
+
+  if (GKYL_IS_CU_ALLOC(up->flags)) {
     gkyl_cu_free(up->on_dev);
+  }
   gkyl_free(up);
 }

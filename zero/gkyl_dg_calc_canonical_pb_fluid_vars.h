@@ -17,12 +17,14 @@ typedef struct gkyl_dg_calc_canonical_pb_fluid_vars gkyl_dg_calc_canonical_pb_fl
  * where phi is the potential given by a Poisson solve on (one of the) evolved quantit(ies)
  * such as in incompressible Euler, where phi is given by grad^2 phi = zeta, zeta is the vorticity. 
  * 2. source updates for different fluid systems, such as the adiabatic coupling and turbulence drive
- * in Hasegawa-Wakatani, source = alpha*(phi - n) - kappa*dphi/dy, with the option to eliminate the
- * zonal components of the adiabatic coupling with an average in y of phi and n and thus solve the
- * modified Hasegawa-Wakatani system of equations. 
+ * in Hasegawa-Wakatani, source = alpha*(phi - n) + {phi, n0}, where n0 is the background density driving the turbulence, 
+ * with the option to eliminate the zonal components of the adiabatic coupling with an average in y of phi and n 
+ * and thus solve the modified Hasegawa-Wakatani system of equations. 
  * 
- * @param conf_grid Configuration space grid (for getting cell spacing and cell center)
- * @param conf_basis Configuration space basis functions
+ * @param conf_grid Configuration-space grid (for getting cell spacing and cell center)
+ * @param conf_basis Configuration-space basis functions
+ * @param conf_range Configuration-space range. 
+ * @param conf_ext_range Configuration-space extended range. 
  * @param wv_eqn Wave equation object which contains information about specific fluid system.
  *               For example, how many equations are we solving (1 for Hasegawa-Mima, 2 for Hasegawa-Wakatani), 
  *               and what the form of the source updates are for that fluid system. 
@@ -31,7 +33,8 @@ typedef struct gkyl_dg_calc_canonical_pb_fluid_vars gkyl_dg_calc_canonical_pb_fl
  */
 struct gkyl_dg_calc_canonical_pb_fluid_vars* 
 gkyl_dg_calc_canonical_pb_fluid_vars_new(const struct gkyl_rect_grid *conf_grid, 
-  const struct gkyl_basis *conf_basis, const struct gkyl_wv_eqn *wv_eqn,  bool use_gpu);
+  const struct gkyl_basis *conf_basis, const struct gkyl_range *conf_range, const struct gkyl_range *conf_ext_range, 
+  const struct gkyl_wv_eqn *wv_eqn,  bool use_gpu);
 
 /**
  * Create new updater to compute canonical_pb general geometry variables on
@@ -39,7 +42,8 @@ gkyl_dg_calc_canonical_pb_fluid_vars_new(const struct gkyl_rect_grid *conf_grid,
  */
 struct gkyl_dg_calc_canonical_pb_fluid_vars* 
 gkyl_dg_calc_canonical_pb_fluid_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid, 
-  const struct gkyl_basis *conf_basis, const struct gkyl_wv_eqn *wv_eqn);
+  const struct gkyl_basis *conf_basis, const struct gkyl_range *conf_range, const struct gkyl_range *conf_ext_range, 
+  const struct gkyl_wv_eqn *wv_eqn);
 
 /**
  * Compute surface expansion of configuration space flux alpha = {z, phi}

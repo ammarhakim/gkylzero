@@ -15,7 +15,7 @@
 #include <mpack.h>
 
 // returned gkyl_array_meta must be freed using vlasov_array_meta_release
-static struct gkyl_msgpack_data*
+struct gkyl_msgpack_data*
 vlasov_array_meta_new(struct vlasov_output_meta meta)
 {
   struct gkyl_msgpack_data *mt = gkyl_malloc(sizeof(*mt));
@@ -52,7 +52,7 @@ vlasov_array_meta_new(struct vlasov_output_meta meta)
   return mt;
 }
 
-static void
+void
 vlasov_array_meta_release(struct gkyl_msgpack_data *mt)
 {
   if (!mt) return;
@@ -60,7 +60,7 @@ vlasov_array_meta_release(struct gkyl_msgpack_data *mt)
   gkyl_free(mt);
 }
 
-static struct vlasov_output_meta
+struct vlasov_output_meta
 vlasov_meta_from_mpack(struct gkyl_msgpack_data *mt)
 {
   struct vlasov_output_meta meta = { .frame = 0, .stime = 0.0 };
@@ -769,58 +769,8 @@ gkyl_vlasov_app_write_species_lte(gkyl_vlasov_app* app, int sidx, double tm, int
 void
 gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, int frame)
 {
-  struct gkyl_msgpack_data *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
-      .frame = frame,
-      .stime = tm,
-      .poly_order = app->poly_order,
-      .basis_type = app->confBasis.id
-    }
-  );
-
   struct vm_fluid_species *vm_fs = &app->fluid_species[sidx];
-
-  const char *fmt = "%s-%s_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, vm_fs->info.name, frame);
-  char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, vm_fs->info.name, frame);
-
-  // copy data from device to host before writing it out
-  if (app->use_gpu) {
-    gkyl_array_copy(vm_fs->fluid_host, vm_fs->fluid);
-  }
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
-    mt, vm_fs->fluid_host, fileNm);
-
-  // If fluid species is a canonical PB fluid and we are also solving a
-  // Poisson equation, also write out phi, the potential. 
-  if (vm_fs->has_poisson) {
-    const char *fmt_phi = "%s-phi_%d.gkyl";
-    int sz_phi = gkyl_calc_strlen(fmt_phi, app->name, frame);
-    char fileNm_phi[sz_phi+1]; // ensures no buffer overflow
-    snprintf(fileNm_phi, sizeof fileNm_phi, fmt_phi, app->name, frame);
-
-    // Solve Poisson equation for the potential before writing. 
-    // Gather RHS of Poisson solve into global array.
-    gkyl_comm_array_allgather(app->comm, &app->local, &app->global, 
-      vm_fs->fluid, vm_fs->poisson_rhs_global);
-
-    // Solve the Poisson problem.
-    gkyl_fem_poisson_set_rhs(vm_fs->fem_poisson, vm_fs->poisson_rhs_global);
-    gkyl_fem_poisson_solve(vm_fs->fem_poisson, vm_fs->phi_global);
-
-    // Copy the portion of global potential corresponding to this MPI process to the local potential.
-    gkyl_array_copy_range_to_range(vm_fs->phi, vm_fs->phi_global, 
-      &app->local, &vm_fs->global_sub_range);
-
-    // copy data from device to host before writing it out
-    if (app->use_gpu) {
-      gkyl_array_copy(vm_fs->phi_host, vm_fs->phi);
-    }
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
-      mt, vm_fs->phi_host, fileNm_phi);    
-  }
-
-  vlasov_array_meta_release(mt);    
+  vm_fluid_species_write(app, vm_fs, tm, frame);    
 }
 
 void
