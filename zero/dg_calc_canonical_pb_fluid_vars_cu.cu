@@ -131,7 +131,7 @@ gkyl_canonical_pb_fluid_vars_source_cu_kernel(struct gkyl_dg_calc_canonical_pb_f
     double* rhs_d = (double*) gkyl_array_fetch(rhs, loc);
     up->canonical_pb_fluid_source(up->conf_grid.dx, up->alpha, up->kappa, 
       background_n_gradient_d, phi_d, 
-      adiabatic_coupling_phi_n ? (const double*) gkyl_array_cfetch(up->adiabatic_coupling_phi_n, loc) : 0, 
+      adiabatic_coupling_phi_n ? (const double*) gkyl_array_cfetch(adiabatic_coupling_phi_n, loc) : 0, 
       rhs_d);
   }
 }
