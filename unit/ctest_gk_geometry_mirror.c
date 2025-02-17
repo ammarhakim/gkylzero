@@ -240,6 +240,18 @@ void exact_gij(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx
   fout[5] = 1/(M_PI*M_PI); // g_33
 }
 
+void exact_g_contra_ij(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double r = xn[0], theta = xn[1], phi = xn[2];
+  double psi = r*r/4;
+  fout[0] = r*r/4; // g_11
+  fout[1] = 0.0; // g_12
+  fout[2] = 0.0; // g_13
+  fout[3] = 1/psi/4; // g_22
+  fout[4] = 0.0; // g_23
+  fout[5] = (M_PI*M_PI); // g_33
+}
+
 void bmag_func(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx){
   fout[0] = 0.5;
 }
@@ -440,93 +452,93 @@ test_3x_p1_straight_cylinder()
   // What is this?
   struct gkyl_array* eps2_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, eps2_nodal, gk_geom->eps2);
-  // for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-  //   for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
-  //     for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
-  //       cidx[PSI_IDX] = ip;
-  //       cidx[AL_IDX] = ia;
-  //       cidx[TH_IDX] = it;
-  //       double *eps2_n = gkyl_array_fetch(eps2_nodal, gkyl_range_idx(&nrange, cidx));
-  //       TEST_CHECK( gkyl_compare( eps2_n[0], 1.0, 1e-8) );
-  //     }
-  //   }
-  // }
+  for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
+    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+      for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
+        cidx[PSI_IDX] = ip;
+        cidx[AL_IDX] = ia;
+        cidx[TH_IDX] = it;
+        double *eps2_n = gkyl_array_fetch(eps2_nodal, gkyl_range_idx(&nrange, cidx));
+        TEST_CHECK( gkyl_compare( eps2_n[0], 0.0, 1e-8) );
+      }
+    }
+  }
 
   // Check g_ij
   struct gkyl_array* gij_nodal = gkyl_array_new(GKYL_DOUBLE, 6, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 6, gij_nodal, gk_geom->g_ij);
-//   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-//     for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
-//       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
-//         cidx[PSI_IDX] = ip;
-//         cidx[AL_IDX] = ia;
-//         cidx[TH_IDX] = it;
-//         double *gij_n = gkyl_array_fetch(gij_nodal, gkyl_range_idx(&nrange, cidx));
-//         double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nrange, cidx));
-//         double r = mapc2p_n[0];
-//         double xn[3] = {r, 0.0, 0.0};
-//         double fout[6];
-//         exact_gij(0.0, xn, fout, 0);
-//         for (int i=0; i<6; ++i)
-//           TEST_CHECK( gkyl_compare( gij_n[i], fout[i], 1e-8) );
-//       }
-//     }
-//   }
+  for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
+    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+      for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
+        cidx[PSI_IDX] = ip;
+        cidx[AL_IDX] = ia;
+        cidx[TH_IDX] = it;
+        double *gij_n = gkyl_array_fetch(gij_nodal, gkyl_range_idx(&nrange, cidx));
+        double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nrange, cidx));
+        double r = mapc2p_n[0];
+        double xn[3] = {r, 0.0, 0.0};
+        double fout[6];
+        exact_gij(0.0, xn, fout, 0);
+        for (int i=0; i<6; ++i)
+          TEST_CHECK( gkyl_compare( gij_n[i], fout[i], 1e-6) );
+      }
+    }
+  }
 
   // Check g^ij
   struct gkyl_array* gij_contra_nodal = gkyl_array_new(GKYL_DOUBLE, 6, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 6, gij_contra_nodal, gk_geom->gij);
-  // for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-  //   for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
-  //     for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
-  //       cidx[PSI_IDX] = ip;
-  //       cidx[AL_IDX] = ia;
-  //       cidx[TH_IDX] = it;
-  //       double *gij_contra_n = gkyl_array_fetch(gij_contra_nodal, gkyl_range_idx(&nrange, cidx));
-  //       double *gij_n = gkyl_array_fetch(gij_nodal, gkyl_range_idx(&nrange, cidx));
-  //       for (int i=0; i<6; ++i)
-  //         TEST_CHECK( gkyl_compare( gij_contra_n[i], gij_n[i], 1e-8) );
-  //     }
-  //   }
-  // }
+  for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
+    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+      for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
+        cidx[PSI_IDX] = ip;
+        cidx[AL_IDX] = ia;
+        cidx[TH_IDX] = it;
+        double *gij_contra_n = gkyl_array_fetch(gij_contra_nodal, gkyl_range_idx(&nrange, cidx));
+        double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nrange, cidx));
+        double r = mapc2p_n[0];
+        double xn[3] = {r, 0.0, 0.0};
+        double fout[6];
+        exact_g_contra_ij(0.0, xn, fout, 0);
+        for (int i=0; i<6; ++i)
+          TEST_CHECK( gkyl_compare( gij_contra_n[i], fout[i], 1e-6) );
+      }
+    }
+  }
 
-  // Check that Jacobgeo is what it should be. J = 1/B in gyrokinetics
-  // 0.5829, given B=0.5, I'm not sure where this is comming from
-  // There seems to be some extra 
+  // Check that Jacobgeo is what it should be. This is the Jacobian for the problem
   struct gkyl_array* jacobgeo_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, jacobgeo_nodal, gk_geom->jacobgeo);
-  // for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-  //   for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
-  //     for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
-  //       cidx[PSI_IDX] = ip;
-  //       cidx[AL_IDX] = ia;
-  //       cidx[TH_IDX] = it;
-  //       double *jacobgeo_n = gkyl_array_fetch(jacobgeo_nodal, gkyl_range_idx(&nrange, cidx));
-  //       // mapc2p_n[0] = x, mapc2p_n[1] = y, mapc2p_n[2] = z
-  //       double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nrange, cidx));
-  //       double radius = mapc2p_n[0];
-  //       TEST_CHECK( gkyl_compare( jacobgeo_n[0], radius, 1e-8) );
-  //     }
-  //   }
-  // }
+  for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
+    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+      for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
+        cidx[PSI_IDX] = ip;
+        cidx[AL_IDX] = ia;
+        cidx[TH_IDX] = it;
+        double *jacobgeo_n = gkyl_array_fetch(jacobgeo_nodal, gkyl_range_idx(&nrange, cidx));
+        double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nrange, cidx));
+        double jacobian_analytic = 2/M_PI;
+        TEST_CHECK( gkyl_compare( jacobgeo_n[0], jacobian_analytic, 1e-6) );
+      }
+    }
+  }
 
   // Check jacobgeo_inv
   struct gkyl_array* jacobgeo_inv_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, jacobgeo_inv_nodal, gk_geom->jacobgeo_inv);
-  // for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-  //   for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
-  //     for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
-  //       cidx[PSI_IDX] = ip;
-  //       cidx[AL_IDX] = ia;
-  //       cidx[TH_IDX] = it;
-  //       double *jacobgeo_inv_n = gkyl_array_fetch(jacobgeo_inv_nodal, gkyl_range_idx(&nrange, cidx));
-  //       // mapc2p_n[0] = x, mapc2p_n[1] = y, mapc2p_n[2] = z
-  //       double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nrange, cidx));
-  //       double radius = mapc2p_n[0];
-  //       TEST_CHECK( gkyl_compare( jacobgeo_inv_n[0], 1/radius, 1e-8) );
-  //     }
-  //   }
-  // }
+  for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
+    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+      for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
+        cidx[PSI_IDX] = ip;
+        cidx[AL_IDX] = ia;
+        cidx[TH_IDX] = it;
+        double *jacobgeo_inv_n = gkyl_array_fetch(jacobgeo_inv_nodal, gkyl_range_idx(&nrange, cidx));
+        double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nrange, cidx));
+        double jacobian_analytic = 2/M_PI;
+        TEST_CHECK( gkyl_compare( jacobgeo_inv_n[0], 1/jacobian_analytic, 1e-6) );
+      }
+    }
+  }
 
   // Check jacobtot
   struct gkyl_array* jacobtot_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
