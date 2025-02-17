@@ -22,30 +22,30 @@ gkyl_tok_calc_derived_geo_new(const struct gkyl_basis *cbasis, const struct gkyl
 
 
 void
-gkyl_tok_calc_derived_geo_advance(const gkyl_tok_calc_derived_geo *up, const struct gkyl_range *crange, struct gkyl_array *gFld, struct gkyl_array *bmagFld, struct gkyl_array *jFld, struct gkyl_array *jinvFld, struct gkyl_array *grFld, struct gkyl_array *biFld, struct gkyl_array *cmagFld, struct gkyl_array *jtotFld, struct gkyl_array *jtotinvFld, struct gkyl_array *bmaginvFld, struct gkyl_array *bmaginvsqFld, struct gkyl_array *gxxJFld,  struct gkyl_array *gxyJFld, struct gkyl_array *gyyJFld, struct gkyl_array *gxzJFld, struct gkyl_array *eps2Fld)
+gkyl_tok_calc_derived_geo_advance(const gkyl_tok_calc_derived_geo *up, const struct gkyl_range *crange, struct gkyl_array *g_ij, struct gkyl_array *bmag, struct gkyl_array *jacobgeo, struct gkyl_array *jacobgeo_inv, struct gkyl_array *gij, struct gkyl_array *b_i, struct gkyl_array *cmag, struct gkyl_array *jacobtot, struct gkyl_array *jacobtot_inv, struct gkyl_array *bmag_inv, struct gkyl_array *bmag_inv_sq, struct gkyl_array *gxxj,  struct gkyl_array *gxyj, struct gkyl_array *gyyj, struct gkyl_array *gxzj, struct gkyl_array *eps2)
 {
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, crange);
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(crange, iter.idx);
-    const double *gij = gkyl_array_cfetch(gFld, loc);
-    const double *bmag_i = gkyl_array_cfetch(bmagFld, loc);
-    const double *j_i = gkyl_array_cfetch(jFld, loc);
-    double *jinv_i = gkyl_array_fetch(jinvFld, loc);
-    double *grij = gkyl_array_fetch(grFld, loc);
-    double *bi_i = gkyl_array_fetch(biFld, loc);
-    double *cmag_i = gkyl_array_fetch(cmagFld, loc);
-    double *jtot_i = gkyl_array_fetch(jtotFld, loc);
-    double *jtotinv_i = gkyl_array_fetch(jtotinvFld, loc);
-    double *gxxJ_i= gkyl_array_fetch(gxxJFld, loc);
-    double *gxyJ_i= gkyl_array_fetch(gxyJFld, loc);
-    double *gyyJ_i= gkyl_array_fetch(gyyJFld, loc);
-    double *gxzJ_i= gkyl_array_fetch(gxzJFld, loc);
-    double *eps2_i= gkyl_array_fetch(eps2Fld, loc);
-    up->kernel(gij, bmag_i, j_i, jinv_i, grij, bi_i, cmag_i, jtot_i, jtotinv_i, gxxJ_i, gxyJ_i, gyyJ_i, gxzJ_i, eps2_i);
+    const double *g_ij_i = gkyl_array_cfetch(g_ij, loc);
+    const double *bmag_i = gkyl_array_cfetch(bmag, loc);
+    const double *jacobgeo_i = gkyl_array_cfetch(jacobgeo, loc);
+    double *jacobgeo_inv_i = gkyl_array_fetch(jacobgeo_inv, loc);
+    double *gij_i = gkyl_array_fetch(gij, loc);
+    double *bi_i = gkyl_array_fetch(b_i, loc);
+    double *cmag_i = gkyl_array_fetch(cmag, loc);
+    double *jacobtot_i = gkyl_array_fetch(jacobtot, loc);
+    double *jacobtot_inv = gkyl_array_fetch(jacobtot_inv, loc);
+    double *gxxj_i= gkyl_array_fetch(gxxj, loc);
+    double *gxyj_i= gkyl_array_fetch(gxyj, loc);
+    double *gyyj_i= gkyl_array_fetch(gyyj, loc);
+    double *gxzj_i= gkyl_array_fetch(gxzj, loc);
+    double *eps2_i= gkyl_array_fetch(eps2, loc);
+    up->kernel(g_ij_i, bmag_i, jacobgeo_i, jacobgeo_inv_i, gij_i, bi_i, cmag_i, jacobtot_i, jacobtot_inv, gxxj_i, gxyj_i, gyyj_i, gxzj_i, eps2_i);
   }
-  gkyl_dg_inv_op_range(up->cbasis, 0, bmaginvFld, 0, bmagFld, crange);
-  gkyl_dg_mul_op_range(up->cbasis, 0, bmaginvsqFld, 0, bmaginvFld, 0, bmaginvFld, crange);
+  gkyl_dg_inv_op_range(up->cbasis, 0, bmag_inv, 0, bmag, crange);
+  gkyl_dg_mul_op_range(up->cbasis, 0, bmag_inv_sq, 0, bmag_inv, 0, bmag_inv, crange);
 }
 
 void
