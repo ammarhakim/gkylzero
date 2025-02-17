@@ -9,12 +9,6 @@
 #include <gkyl_util.h>
 #include <gkyl_vlasov_priv.h>
 
-static void
-evalBackgroundDensityGradient(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-  fout[0] = xn[0]; // linear gradient in x
-}
-
 // Euler and isothermal Euler function pointers for primitive/auxiliary variables, 
 // including computing the flow velocity, u, from rhou and rho with weak division, and 
 // p, the pressure, from the energy in Euler (and just vth*rho in isothermal Euler),
@@ -291,14 +285,15 @@ static void
 vm_fluid_species_advect_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_fluid_species *f)
 {
   // setup FEM representation of applied advection 
-  f->app_advect = mkarr(app->use_gpu, app->cdim*app->confBasis.num_basis, app->local_ext.volume);
+  // 
+  f->app_advect = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
   f->app_advect_host = f->app_advect;
   if (app->use_gpu) {
-    f->app_advect_host = mkarr(false, app->cdim*app->confBasis.num_basis, app->local_ext.volume);
+    f->app_advect_host = mkarr(false, 3*app->confBasis.num_basis, app->local_ext.volume);
   }
 
   // Evaluate specified advection function at nodes to insure continuity of advection velocity
-  struct gkyl_eval_on_nodes* app_advect_proj = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis, app->cdim, 
+  struct gkyl_eval_on_nodes* app_advect_proj = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis, 3, 
     f->info.advection.velocity, f->info.advection.velocity_ctx);
   gkyl_eval_on_nodes_advance(app_advect_proj, 0.0, &app->local_ext, f->app_advect_host);
   if (app->use_gpu) {
@@ -456,7 +451,7 @@ vm_fluid_species_can_pb_fluid_release(const gkyl_vlasov_app *app, struct vm_flui
   gkyl_array_release(f->phi_global);
   gkyl_array_release(f->phi_host);
   gkyl_array_release(f->poisson_rhs_global);
-  gkyl_array_release(f->background_n_gradient); 
+  gkyl_array_release(f->can_pb_n0); 
   gkyl_array_release(f->epsilon);
   if (f->eqn_type == GKYL_EQN_CAN_PB_HASEGAWA_MIMA) {
     gkyl_array_release(f->kSq);
@@ -501,15 +496,17 @@ vm_fluid_species_can_pb_fluid_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *a
   // Initialize background gradient which drives turbulence in some fluid systems such as
   // Hasegawa-Mima and Hasegawa-Wakatani. This background is included as a source via 
   // the Poisson bracket: source = {phi, n0} where {., .} is the canonical bracket.
-  f->background_n_gradient = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  struct gkyl_array* background_n_gradient_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
-  // Evaluate specified background gradient function at nodes to insure continuity of gradient
-  struct gkyl_eval_on_nodes* background_n_gradient_proj = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis, 1, 
-    evalBackgroundDensityGradient, 0);
-  gkyl_eval_on_nodes_advance(background_n_gradient_proj, 0.0, &app->local_ext, background_n_gradient_host);
-  gkyl_array_copy(f->background_n_gradient, background_n_gradient_host);
-  gkyl_eval_on_nodes_release(background_n_gradient_proj); 
-  gkyl_array_release(background_n_gradient_host); 
+  f->can_pb_n0 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  if (f->eqn_type == GKYL_EQN_CAN_PB_HASEGAWA_MIMA || f->eqn_type == GKYL_EQN_CAN_PB_HASEGAWA_WAKATANI) {
+    struct gkyl_array* can_pb_n0_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+    // Evaluate specified background gradient function at nodes to insure continuity of gradient
+    struct gkyl_eval_on_nodes* can_pb_n0_proj = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis, 1, 
+      f->info.can_pb_n0, f->info.can_pb_n0_ctx);
+    gkyl_eval_on_nodes_advance(can_pb_n0_proj, 0.0, &app->local_ext, can_pb_n0_host);
+    gkyl_array_copy(f->can_pb_n0, can_pb_n0_host);
+    gkyl_eval_on_nodes_release(can_pb_n0_proj); 
+    gkyl_array_release(can_pb_n0_host); 
+  }
 
   // Create global subrange we'll copy the field solver solution from (into local).
   int intersect = gkyl_sub_range_intersect(&f->global_sub_range, &app->global, &app->local);
@@ -892,7 +889,7 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
 
     // Increment the source contribution for certain canonical PB fluids onto the RHS. 
     gkyl_canonical_pb_fluid_vars_source(fluid_species->calc_can_pb_fluid_vars, 
-      &app->local, fluid_species->background_n_gradient, fluid_species->phi, fluid, rhs); 
+      &app->local, fluid_species->phi, fluid_species->can_pb_n0, fluid, rhs); 
 
     app->stat.fluid_species_vars_tm += gkyl_time_diff_now_sec(tm); 
   }

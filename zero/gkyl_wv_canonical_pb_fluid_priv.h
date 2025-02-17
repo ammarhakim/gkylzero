@@ -22,7 +22,6 @@ void gkyl_wv_can_pb_incompress_euler_free(const struct gkyl_ref_count *ref);
 
 struct wv_can_pb_hasegawa_mima {
   struct gkyl_wv_eqn eqn; // base object
-  double kappa; // Constant density gradient scale length (for turbulence drive). 
 };
 
 /**
@@ -35,7 +34,6 @@ void gkyl_wv_can_pb_hasegawa_mima_free(const struct gkyl_ref_count *ref);
 struct wv_can_pb_hasegawa_wakatani {
   struct gkyl_wv_eqn eqn; // base object
   double alpha; // Adiabaticity parameter for adiabatic coupling of vorticity and density.
-  double kappa; // Constant density gradient scale length (for turbulence drive). 
   bool is_modified; // is_modified Boolean parameter for if we are doing the modified Hasegawa-Wakatani
 };
 

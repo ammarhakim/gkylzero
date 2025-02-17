@@ -53,7 +53,13 @@ vlasovApp = Vlasov.App.new {
   
   -- Fluid.
   fluid = Vlasov.FluidSpecies.new {
-    equation = HasegawaWakatani.new { alpha = alpha, kappa = kappa, is_modified = true },
+    equation = HasegawaWakatani.new { alpha = alpha, is_modified = true },
+
+    -- Background (linear) density gradient for driving turbulence. 
+    n0 = function(t, xn)
+      local x, y = xn[1], xn[2]
+      return x
+    end, 
     
     -- Initial conditions function.
     init = function (t, xn)

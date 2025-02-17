@@ -108,7 +108,7 @@ gkyl_canonical_pb_fluid_vars_subtract_zonal_cu_kernel(struct gkyl_dg_calc_canoni
 __global__ void
 gkyl_canonical_pb_fluid_vars_source_cu_kernel(struct gkyl_dg_calc_canonical_pb_fluid_vars *up, 
   struct gkyl_range conf_range, 
-  const struct gkyl_array *background_n_gradient, const struct gkyl_array *phi, 
+  const struct gkyl_array *phi, const struct gkyl_array *n0, 
   const struct gkyl_array *adiabatic_coupling_phi_n, struct gkyl_array *rhs)
 {
   int idx[GKYL_MAX_DIM];
@@ -125,12 +125,11 @@ gkyl_canonical_pb_fluid_vars_source_cu_kernel(struct gkyl_dg_calc_canonical_pb_f
     // linc will have jumps in it to jump over ghost cells
     long loc = gkyl_range_idx(&conf_range, idx);
 
-    const double *background_n_gradient_d = (const double*) gkyl_array_cfetch(background_n_gradient, loc);
     const double *phi_d = (const double*) gkyl_array_cfetch(phi, loc);
+    const double *n0_d = (const double*) gkyl_array_cfetch(n0, loc);
 
     double* rhs_d = (double*) gkyl_array_fetch(rhs, loc);
-    up->canonical_pb_fluid_source(up->conf_grid.dx, up->alpha, up->kappa, 
-      background_n_gradient_d, phi_d, 
+    up->canonical_pb_fluid_source(up->conf_grid.dx, up->alpha, phi_d, n0_d, 
       adiabatic_coupling_phi_n ? (const double*) gkyl_array_cfetch(adiabatic_coupling_phi_n, loc) : 0, 
       rhs_d);
   }
@@ -140,7 +139,7 @@ gkyl_canonical_pb_fluid_vars_source_cu_kernel(struct gkyl_dg_calc_canonical_pb_f
 void 
 gkyl_canonical_pb_fluid_vars_source_cu(struct gkyl_dg_calc_canonical_pb_fluid_vars *up, 
   const struct gkyl_range *conf_range, 
-  const struct gkyl_array *background_n_gradient, const struct gkyl_array *phi, 
+  const struct gkyl_array *phi, const struct gkyl_array *n0, 
   const struct gkyl_array *fluid, struct gkyl_array *rhs)
 {
   int nblocks = conf_range->nblocks;
@@ -166,7 +165,7 @@ gkyl_canonical_pb_fluid_vars_source_cu(struct gkyl_dg_calc_canonical_pb_fluid_va
   }
 
   gkyl_canonical_pb_fluid_vars_source_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, 
-    *conf_range, background_n_gradient->on_dev, phi->on_dev, 
+    *conf_range, phi->on_dev, n0->on_dev, 
     up->adiabatic_coupling_phi_n ? up->adiabatic_coupling_phi_n->on_dev : 0, 
     rhs->on_dev);
 }
@@ -175,7 +174,7 @@ gkyl_canonical_pb_fluid_vars_source_cu(struct gkyl_dg_calc_canonical_pb_fluid_va
 // CUDA kernel to set device pointers to canonical pb vars kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void 
-  dg_calc_canoncial_pb_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_canonical_pb_fluid_vars *up,
+dg_calc_canoncial_pb_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_canonical_pb_fluid_vars *up,
   enum gkyl_basis_type b_type, int cdim, int poly_order, enum gkyl_eqn_type eqn_type, bool is_modified)
 {
   if (eqn_type == GKYL_EQN_CAN_PB_HASEGAWA_MIMA) {

@@ -39,13 +39,12 @@ gkyl_wv_can_pb_hasegawa_mima_free(const struct gkyl_ref_count *ref)
 }
 
 struct gkyl_wv_eqn*
-gkyl_wv_can_pb_hasegawa_mima_new(double kappa)
+gkyl_wv_can_pb_hasegawa_mima_new()
 {  
   struct wv_can_pb_hasegawa_mima *can_pb_hasegawa_mima = gkyl_malloc(sizeof(struct wv_can_pb_hasegawa_mima));
 
   can_pb_hasegawa_mima->eqn.type = GKYL_EQN_CAN_PB_HASEGAWA_MIMA;
   can_pb_hasegawa_mima->eqn.num_equations = 1; 
-  can_pb_hasegawa_mima->kappa = kappa; 
 
   can_pb_hasegawa_mima->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(can_pb_hasegawa_mima->eqn.flags);
@@ -53,13 +52,6 @@ gkyl_wv_can_pb_hasegawa_mima_new(double kappa)
   can_pb_hasegawa_mima->eqn.on_dev = &can_pb_hasegawa_mima->eqn; // CPU eqn obj points to itself
 
   return &can_pb_hasegawa_mima->eqn;
-}
-
-double
-gkyl_wv_can_pb_hasegawa_mima_kappa(const struct gkyl_wv_eqn* eqn)
-{
-  const struct wv_can_pb_hasegawa_mima *can_pb_hasegawa_mima = container_of(eqn, struct wv_can_pb_hasegawa_mima, eqn);  
-  return can_pb_hasegawa_mima->kappa;
 }
 
 void
@@ -71,14 +63,13 @@ gkyl_wv_can_pb_hasegawa_wakatani_free(const struct gkyl_ref_count *ref)
 }
 
 struct gkyl_wv_eqn*
-gkyl_wv_can_pb_hasegawa_wakatani_new(double alpha, double kappa, bool is_modified)
+gkyl_wv_can_pb_hasegawa_wakatani_new(double alpha, bool is_modified)
 {  
   struct wv_can_pb_hasegawa_wakatani *can_pb_hasegawa_wakatani = gkyl_malloc(sizeof(struct wv_can_pb_hasegawa_wakatani));
 
   can_pb_hasegawa_wakatani->eqn.type = GKYL_EQN_CAN_PB_HASEGAWA_WAKATANI;
   can_pb_hasegawa_wakatani->eqn.num_equations = 2; 
   can_pb_hasegawa_wakatani->alpha = alpha; 
-  can_pb_hasegawa_wakatani->kappa = kappa; 
   can_pb_hasegawa_wakatani->is_modified = is_modified; 
 
   can_pb_hasegawa_wakatani->eqn.flags = 0;
@@ -94,13 +85,6 @@ gkyl_wv_can_pb_hasegawa_wakatani_alpha(const struct gkyl_wv_eqn* eqn)
 {
   const struct wv_can_pb_hasegawa_wakatani *can_pb_hasegawa_wakatani = container_of(eqn, struct wv_can_pb_hasegawa_wakatani, eqn);  
   return can_pb_hasegawa_wakatani->alpha;
-}
-
-double
-gkyl_wv_can_pb_hasegawa_wakatani_kappa(const struct gkyl_wv_eqn* eqn)
-{
-  const struct wv_can_pb_hasegawa_wakatani *can_pb_hasegawa_wakatani = container_of(eqn, struct wv_can_pb_hasegawa_wakatani, eqn);
-  return can_pb_hasegawa_wakatani->kappa;
 }
 
 bool

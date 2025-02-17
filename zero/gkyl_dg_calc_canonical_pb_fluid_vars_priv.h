@@ -13,8 +13,8 @@
 
 typedef int (*canonical_pb_fluid_alpha_surf_t)(const double *w, const double *dxv, const double *phi,
   double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
-typedef void (*canonical_pb_fluid_source_t)(const double *dxv, double alpha, double kappa, 
-  const double *background_n_gradient, const double *phi, 
+typedef void (*canonical_pb_fluid_source_t)(const double *dxv, double alpha, 
+  const double *phi, const double *n0, 
   const double *adiabatic_coupling_phi_n, double* GKYL_RESTRICT rhs); 
 typedef void (*canonical_pb_fluid_subtract_zonal_t)(const double *phi_zonal, const double *n_zonal, 
   double* GKYL_RESTRICT adiabatic_coupling_phi_n); 

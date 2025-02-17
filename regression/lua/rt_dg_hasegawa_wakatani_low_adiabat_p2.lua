@@ -6,7 +6,6 @@ local Vlasov = G0.Vlasov
 local HasegawaWakatani = G0.Vlasov.Eq.HasegawaWakatani
 
 alpha = 0.1 -- Adiabatic coupling constant
-kappa = 1.0 -- Constant density gradient scale length (for turbulence drive).
 s = 2.0 -- width of the initial Gaussian density
 
 -- Simulation parameters.
@@ -53,7 +52,13 @@ vlasovApp = Vlasov.App.new {
   
   -- Fluid.
   fluid = Vlasov.FluidSpecies.new {
-    equation = HasegawaWakatani.new { alpha = alpha, kappa = kappa, is_modified = false },
+    equation = HasegawaWakatani.new { alpha = alpha, is_modified = false },
+
+    -- Background (linear) density gradient for driving turbulence. 
+    n0 = function(t, xn)
+      local x, y = xn[1], xn[2]
+      return x
+    end, 
     
     -- Initial conditions function.
     init = function (t, xn)

@@ -145,16 +145,14 @@ static struct luaL_Reg eqn_incompress_euler_ctor[] = {
 /* Hasegawa-Mima Equations */
 /* *********************** */
 
-// HasegawaMima.new { kappa = 1.0 }
+// HasegawaMima.new { }
 static int
 eqn_hasegawa_mima_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *hasegawa_mima_lw = gkyl_malloc(sizeof(*hasegawa_mima_lw));
 
-  double kappa = glua_tbl_get_number(L, "kappa", 1.0);
-
   hasegawa_mima_lw->magic = VLASOV_EQN_DEFAULT;
-  hasegawa_mima_lw->eqn = gkyl_wv_can_pb_hasegawa_mima_new(kappa);
+  hasegawa_mima_lw->eqn = gkyl_wv_can_pb_hasegawa_mima_new();
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_hasegawa_mima_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -177,7 +175,7 @@ static struct luaL_Reg eqn_hasegawa_mima_ctor[] = {
 /* Hasegawa-Wakatani Equations */
 /* *************************** */
 
-// HasegawaWakatani.new { alpha = 1.0, kappa = 1.0, is_modified = false }
+// HasegawaWakatani.new { alpha = 1.0, is_modified = false }
 // Set is_modified=true to utilized modified Hasegawa-Wakatani system which
 // subtracts off zonal component of adiabatic coupling term. 
 static int
@@ -186,11 +184,10 @@ eqn_hasegawa_wakatani_lw_new(lua_State *L)
   struct wv_eqn_lw *hasegawa_wakatani_lw = gkyl_malloc(sizeof(*hasegawa_wakatani_lw));
 
   double alpha = glua_tbl_get_number(L, "alpha", 1.0);
-  double kappa = glua_tbl_get_number(L, "kappa", 1.0);
   bool is_modified = glua_tbl_get_bool(L, "is_modified", false);  
 
   hasegawa_wakatani_lw->magic = VLASOV_EQN_DEFAULT;
-  hasegawa_wakatani_lw->eqn = gkyl_wv_can_pb_hasegawa_wakatani_new(alpha, kappa, is_modified);
+  hasegawa_wakatani_lw->eqn = gkyl_wv_can_pb_hasegawa_wakatani_new(alpha, is_modified);
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_hasegawa_wakatani_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -761,6 +758,12 @@ struct vlasov_fluid_species_lw {
   
   struct gkyl_vlasov_fluid_species vlasov_fluid_species; // Input struct to construct fluid species.
   struct lua_func_ctx init_ctx; // Lua registry reference to initialization function.
+
+  bool has_app_advect_func; // Is there an applied advection function?
+  struct lua_func_ctx app_advect_func_ref; // Lua registry reference to applied advection function. 
+
+  bool has_n0_func; // Is there a background density function?
+  struct lua_func_ctx n0_func_ref; // Lua registry reference to background density function.     
 };
 
 static int
@@ -805,6 +808,22 @@ vlasov_fluid_species_lw_new(lua_State *L)
     return luaL_error(L, "Fluid species must have an \"init\" function for initial conditions!");
   }
 
+  bool has_app_advect_func = false;
+  int app_advect_func_ref = LUA_NOREF;
+
+  if (glua_tbl_get_func(L, "appAdvect")) {
+    app_advect_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_app_advect_func = true;
+  }
+
+  bool has_n0_func = false;
+  int n0_func_ref = LUA_NOREF;
+
+  if (glua_tbl_get_func(L, "n0")) {
+    n0_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_n0_func = true;
+  }
+
   with_lua_tbl_tbl(L, "bcx") {
     int nbc = glua_objlen(L);
 
@@ -837,6 +856,22 @@ vlasov_fluid_species_lw_new(lua_State *L)
     .func_ref = init_ref,
     .ndim = 0, // This will be set later.
     .nret = vm_fluid_species.equation->num_equations,
+    .L = L,
+  };
+
+  vmfs_lw->has_app_advect_func = has_app_advect_func;
+  vmfs_lw->app_advect_func_ref = (struct lua_func_ctx) {
+    .func_ref = app_advect_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = 3,
+    .L = L,
+  };
+
+  vmfs_lw->has_n0_func = has_n0_func;
+  vmfs_lw->n0_func_ref = (struct lua_func_ctx) {
+    .func_ref = n0_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = 1,
     .L = L,
   };
   
@@ -1138,6 +1173,9 @@ struct vlasov_app_lw {
   bool source_use_last_converged[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Use last iteration value in projection regardless of convergence in source?
 
   struct lua_func_ctx fluid_species_init_ctx[GKYL_MAX_SPECIES]; // Function context for fluid species initial conditions.
+
+  struct lua_func_ctx app_advect_func_ctx[GKYL_MAX_SPECIES]; // Function context for fluid species applied advection.
+  struct lua_func_ctx n0_func_ctx[GKYL_MAX_SPECIES]; // Function context for fluid species background density.
 
   struct lua_func_ctx field_func_ctx; // Function context for field.
   struct lua_func_ctx external_potential_func_ctx; // Function context for external potential.
@@ -1677,10 +1715,25 @@ vm_app_new(lua_State *L)
   
   for (int s = 0; s < vm.num_fluid_species; s++) {
     vm.fluid_species[s] = fluid_species[s]->vlasov_fluid_species;
-    
+
+    fluid_species[s]->init_ctx.ndim = cdim; 
     app_lw->fluid_species_init_ctx[s] = fluid_species[s]->init_ctx;
     vm.fluid_species[s].init = gkyl_lw_eval_cb;
     vm.fluid_species[s].ctx = &app_lw->fluid_species_init_ctx[s];
+
+    if (fluid_species[s]->has_app_advect_func) {
+      fluid_species[s]->app_advect_func_ref.ndim = cdim; 
+      app_lw->app_advect_func_ctx[s] = fluid_species[s]->app_advect_func_ref;
+      vm.fluid_species[s].advection.velocity = gkyl_lw_eval_cb;
+      vm.fluid_species[s].advection.velocity_ctx = &app_lw->app_advect_func_ctx[s];
+    }
+
+    if (fluid_species[s]->has_n0_func) {
+      fluid_species[s]->n0_func_ref.ndim = cdim; 
+      app_lw->n0_func_ctx[s] = fluid_species[s]->n0_func_ref;
+      vm.fluid_species[s].can_pb_n0 = gkyl_lw_eval_cb;
+      vm.fluid_species[s].can_pb_n0_ctx = &app_lw->n0_func_ctx[s];
+    }
   }
 
   // Set field input.

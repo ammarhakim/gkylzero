@@ -28,16 +28,13 @@ gkyl_dg_calc_canonical_pb_fluid_vars_new(const struct gkyl_rect_grid *conf_grid,
   int poly_order = conf_basis->poly_order;
   up->cdim = cdim;
   up->alpha = 0.0;
-  up->kappa = 0.0;
   up->is_modified = 0; 
 
   if (wv_eqn->type == GKYL_EQN_CAN_PB_HASEGAWA_MIMA) {
-    up->kappa = gkyl_wv_can_pb_hasegawa_mima_kappa(wv_eqn); 
     up->canonical_pb_fluid_source = choose_canonical_pb_fluid_hasegawa_mima_source_kern(conf_basis->b_type, cdim, poly_order);
   }
   else if (wv_eqn->type == GKYL_EQN_CAN_PB_HASEGAWA_WAKATANI) {
     up->alpha = gkyl_wv_can_pb_hasegawa_wakatani_alpha(wv_eqn); 
-    up->kappa = gkyl_wv_can_pb_hasegawa_wakatani_kappa(wv_eqn); 
     up->is_modified = gkyl_wv_can_pb_hasegawa_wakatani_is_modified(wv_eqn); 
 
     // Temporary array for holding the density and combined potential and density for computing the adiabatic coupling.
@@ -146,12 +143,12 @@ void gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf(struct gkyl_dg_calc_canonic
 
 void gkyl_canonical_pb_fluid_vars_source(struct gkyl_dg_calc_canonical_pb_fluid_vars *up, 
   const struct gkyl_range *conf_range, 
-  const struct gkyl_array *background_n_gradient, const struct gkyl_array *phi, 
+  const struct gkyl_array *phi, const struct gkyl_array *n0, 
   const struct gkyl_array *fluid, struct gkyl_array *rhs)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(rhs)) {
-    return gkyl_canonical_pb_fluid_vars_source_cu(up, conf_range, background_n_gradient, phi, fluid, rhs);
+    return gkyl_canonical_pb_fluid_vars_source_cu(up, conf_range, phi, n0, fluid, rhs);
   }
 #endif
   // If alpha is specified, we are solving Hasegawa-Wakatani and need to check 
@@ -185,21 +182,20 @@ void gkyl_canonical_pb_fluid_vars_source(struct gkyl_dg_calc_canonical_pb_fluid_
 
   // Loop over the grid and compute the source update. 
   // For equation systems such as incompressible Euler, this function returns immediately (no sources).
-  // For Hasegawa-Mima, computes {phi, background_n_gradient} where {., .} is the canonical Poisson bracket.
-  // For Hasegawa-Wakatani, computes alpha*(phi - n) + {phi, background_n_gradient}, where the first
+  // For Hasegawa-Mima, computes {phi, n0} where {., .} is the canonical Poisson bracket.
+  // For Hasegawa-Wakatani, computes alpha*(phi - n) + {phi, n0}, where the first
   // term potentially has the zonal components subtracted off if we are solving modified Hasegawa-Wakatani. 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, conf_range);
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(conf_range, iter.idx);
 
-    const double *background_n_gradient_d = gkyl_array_cfetch(background_n_gradient, loc);
     const double *phi_d = gkyl_array_cfetch(phi, loc);
+    const double *n0_d = gkyl_array_cfetch(n0, loc);
 
     double* rhs_d = gkyl_array_fetch(rhs, loc);
 
-    up->canonical_pb_fluid_source(up->conf_grid.dx, up->alpha, up->kappa, 
-      background_n_gradient_d, phi_d, 
+    up->canonical_pb_fluid_source(up->conf_grid.dx, up->alpha, phi_d, n0_d, 
       up->adiabatic_coupling_phi_n ? (const double*) gkyl_array_cfetch(up->adiabatic_coupling_phi_n, loc) : 0, 
       rhs_d);
   }

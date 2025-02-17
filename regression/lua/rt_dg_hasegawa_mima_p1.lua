@@ -5,7 +5,6 @@
 local Vlasov = G0.Vlasov
 local HasegawaMima = G0.Vlasov.Eq.HasegawaMima
 
-kappa = 1.0 -- Constant density gradient scale length (for turbulence drive).
 s = 2.0 -- width of the initial Gaussian density
 
 -- Simulation parameters.
@@ -52,7 +51,13 @@ vlasovApp = Vlasov.App.new {
   
   -- Fluid.
   fluid = Vlasov.FluidSpecies.new {
-    equation = HasegawaMima.new { kappa = kappa },
+    equation = HasegawaMima.new { },
+
+    -- Background (linear) density gradient for driving turbulence. 
+    n0 = function(t, xn)
+      local x, y = xn[1], xn[2]
+      return x
+    end, 
     
     -- Initial conditions function.
     init = function (t, xn)

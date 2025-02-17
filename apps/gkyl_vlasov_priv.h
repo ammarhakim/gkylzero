@@ -610,7 +610,7 @@ struct vm_fluid_species {
       struct gkyl_array *phi_global; // potential determined by canonical PB Poisson equation on global range given by Poisson solver
       struct gkyl_array *poisson_rhs_global; // global RHS of Poisson equation, simply an all-gather of, e.g., the vorticity
       struct gkyl_array *phi_host; // host copy for use IO
-      struct gkyl_array *background_n_gradient; // background density gradient for driving turbulence in some fluid systems. 
+      struct gkyl_array *can_pb_n0; // background density gradient for driving turbulence in some fluid systems. 
       struct gkyl_array *epsilon; // Permittivity in Poisson equation, set to -1.0 for canonical PB Poisson equations. 
       struct gkyl_array *kSq; // k^2 factor in Helmholtz equation needed for Hasegawa-Mima where we solve (grad^2 - 1) phi = RHS
 
