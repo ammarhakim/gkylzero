@@ -1469,7 +1469,7 @@ void
 gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *gks_self, double t0)
 {
   // IC setup step that depends on the IC of other species.
-  if (app->field->init_phi_pol && gks_self->info.charge > 0.0) {
+  if (app->field->init_phi_pol && gks_self->info.scale_with_polarization) {
     // Scale the distribution function so its guiding center density is computed
     // given the polarization density and the guiding center density of other species.
 
