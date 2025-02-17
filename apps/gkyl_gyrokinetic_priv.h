@@ -510,7 +510,7 @@ struct gk_species {
                                       // F = alpha_surf*f^- (if sign_alpha_surf = 1), 
                                       // F = alpha_surf*f^+ (if sign_alpha_surf = -1)
   
-  struct gkyl_array *phi; // array for electrostatic potential
+  struct gkyl_array *gyro_phi; // Gyroaveraged electrostatic potential.
   // organization of the different equation objects and the required data and solvers
   union {
     // EM GK model

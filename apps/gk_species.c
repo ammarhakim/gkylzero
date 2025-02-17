@@ -60,7 +60,7 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
   // Gyroaverage the potential if needed.
-  species->gyroaverage(app, species, app->field->phi_smooth, species->phi);
+  species->gyroaverage(app, species, app->field->phi_smooth, species->gyro_phi);
 
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
@@ -74,7 +74,7 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   
   gkyl_dg_calc_gyrokinetic_vars_alpha_surf(species->calc_gk_vars, 
     &app->local, &species->local, &species->local_ext, 
-    species->phi, species->alpha_surf, species->sgn_alpha_surf, species->const_sgn_alpha);
+    species->gyro_phi, species->alpha_surf, species->sgn_alpha_surf, species->const_sgn_alpha);
 
   gkyl_dg_updater_gyrokinetic_advance(species->slvr, &species->local, 
     fin, species->cflrate, rhs);
@@ -1303,7 +1303,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->sgn_alpha_surf = mkarr(app->use_gpu, sgn_alpha_surf_sz, gks->local_ext.volume);
   gks->const_sgn_alpha = mk_int_arr(app->use_gpu, (cdim+1), gks->local_ext.volume);
   // 4. EM fields: phi and (if EM GK) Apar and d/dt Apar  
-  gks->phi = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  gks->gyro_phi = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   gks->apar = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   gks->apardot = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);    
 
@@ -1360,7 +1360,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
 
   struct gkyl_dg_gyrokinetic_auxfields aux_inp = { .alpha_surf = gks->alpha_surf, 
     .sgn_alpha_surf = gks->sgn_alpha_surf, .const_sgn_alpha = gks->const_sgn_alpha, 
-    .phi = gks->phi, .apar = gks->apar, .apardot = gks->apardot };
+    .phi = gks->gyro_phi, .apar = gks->apar, .apardot = gks->apardot };
   // Create collisionless solver.
   gks->slvr = gkyl_dg_updater_gyrokinetic_new(&gks->grid, &app->confBasis, &app->basis, 
     &app->local, &gks->local, is_zero_flux, gks->info.charge, gks->info.mass,
@@ -1521,7 +1521,7 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *gks, double t0
   gk_species_source_calc(app, gks, &gks->src, t0);
 
   gkyl_dg_calc_gyrokinetic_vars_alpha_surf(gks->calc_gk_vars, 
-    &app->local, &gks->local, &gks->local_ext, gks->phi,
+    &app->local, &gks->local, &gks->local_ext, gks->gyro_phi,
     gks->alpha_surf, gks->sgn_alpha_surf, gks->const_sgn_alpha);
   gk_species_bflux_rhs(app, gks, &gks->bflux, gks->f, gks->f);
 }
@@ -1719,7 +1719,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   gkyl_array_release(s->alpha_surf);
   gkyl_array_release(s->sgn_alpha_surf);
   gkyl_array_release(s->const_sgn_alpha);
-  gkyl_array_release(s->phi);
+  gkyl_array_release(s->gyro_phi);
   gkyl_array_release(s->apar);
   gkyl_array_release(s->apardot);
 
