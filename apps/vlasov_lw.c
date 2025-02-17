@@ -112,6 +112,38 @@ static struct luaL_Reg eqn_euler_ctor[] = {
 };
 
 /* ****************************** */
+/* Advection Equation */
+/* ****************************** */
+
+// Advect.new { }
+static int
+eqn_advect_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *advect_lw = gkyl_malloc(sizeof(*advect_lw));
+
+  advect_lw->magic = VLASOV_EQN_DEFAULT;
+  // Set a constant speed of 1.0; Advection velocity in DG advection equation
+  // is handled by the app_advect function initialized in the FluidSpecies table. 
+  advect_lw->eqn = gkyl_wv_advect_new(1.0);
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_advect_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_advect_lw = advect_lw; // Point userdata to the equation object.
+  
+  // Set metatable.
+  luaL_getmetatable(L, VLASOV_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_advect_ctor[] = {
+  { "new", eqn_advect_lw_new },
+  { 0, 0 }
+};
+
+/* ****************************** */
 /* incompressible Euler Equations */
 /* ****************************** */
 
@@ -217,6 +249,7 @@ eqn_openlibs(lua_State *L)
   lua_settable(L, -3);
 
   luaL_register(L, "G0.Vlasov.Eq.Euler", eqn_euler_ctor);
+  luaL_register(L, "G0.Vlasov.Eq.Advect", eqn_advect_ctor);
   luaL_register(L, "G0.Vlasov.Eq.IncompressEuler", eqn_incompress_euler_ctor);
   luaL_register(L, "G0.Vlasov.Eq.HasegawaMima", eqn_hasegawa_mima_ctor);
   luaL_register(L, "G0.Vlasov.Eq.HasegawaWakatani", eqn_hasegawa_wakatani_ctor);
