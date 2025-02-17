@@ -21,11 +21,6 @@
 
 #include <gkyl_comm.h>
 
-
-// Only used for printing the geometry
-#include <gkyl_gyrokinetic.h>
-#include <gkyl_gyrokinetic_priv.h>
-
 // Functions for this test
 void mapc2p(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 {
@@ -143,75 +138,10 @@ test_3x_p1()
     }
   }
 
-  gkyl_array_release(bhat_nodal);
-  gkyl_array_release(dualmag_nodal);
-  gkyl_array_release(mapc2p_nodal);
-  gkyl_nodal_ops_release(n2m);
-  gkyl_gk_geometry_release(gk_geom);
-}
-
-void
-test_3x_p1_geometry_quantities()
-{  
-  enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
-  struct gkyl_basis basis;
-  int poly_order = 1;
-  int cdim = 3;
-  gkyl_cart_modal_serendip(&basis, cdim, poly_order);
-  
-  double Lz = 1.8049e+01;
-  double Lx = 1.2534e+00;
-  double Rmax = Lx/2;
-  double Rmin = 0.05*Rmax;
-  int Nz = 10;
-
-  double lower[3] = {Rmin, -M_PI, -Lz/2};
-  double upper[3] = {Rmax,  M_PI,  Lz/2};
-  int cells[3] = { 18, 18, Nz };
-  struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, cdim, lower, upper, cells);
-  
-  struct gkyl_range ext_range, range;
-  int nghost[3] = { 1,1,1};
-  gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
-
-  // Initialize geometry
-  struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_MAPC2P,
-    .mapc2p = mapc2p, // mapping of computational to physical space
-    .c2p_ctx = 0,
-    .bmag_func = bmag_func, // magnetic field magnitude
-    .bmag_ctx =0 ,
-    .grid = grid,
-    .local = range,
-    .local_ext = ext_range,
-    .global = range,
-    .global_ext = ext_range,
-    .basis = basis,
-    .geo_grid = grid,
-    .geo_local = range,
-    .geo_local_ext = ext_range,
-    .geo_global = range,
-    .geo_global_ext = ext_range,
-    .geo_basis = basis,
-  };
-
-  struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&geometry_input);
-
-  // Define the nodes for the script to calculate values at
-  int cidx[3];
-  int nodes[] = { 1, 1, 1 };
-  for (int d=0; d<grid.ndim; ++d)
-    nodes[d] = grid.cells[d] + 1;
-  struct gkyl_range nrange;
-  gkyl_range_init_from_shape(&nrange, grid.ndim, nodes);
-   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&basis, &grid, false);
 
   // Check that Jacobgeo is what it should be. J = R in cylindrical coordinates
   struct gkyl_array* jacobgeo_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, jacobgeo_nodal, gk_geom->jacobgeo);
-  struct gkyl_array* mapc2p_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 3, mapc2p_nodal, gk_geom->mc2p);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
     for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
@@ -289,6 +219,14 @@ test_3x_p1_geometry_quantities()
       }
     }
   }
+
+  gkyl_array_release(bhat_nodal);
+  gkyl_array_release(dualmag_nodal);
+  gkyl_array_release(mapc2p_nodal);
+  gkyl_array_release(jacobgeo_nodal);
+  gkyl_array_release(bmag_nodal);
+  gkyl_array_release(gij_nodal);
+  gkyl_nodal_ops_release(n2m);
   gkyl_gk_geometry_release(gk_geom);
 }
 
@@ -309,7 +247,7 @@ jacob_mapz(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 }
 
 void
-test_3x_p1_geometry_quantities_position_map()
+test_3x_p1_pmap()
 {  
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   struct gkyl_basis basis;
@@ -367,31 +305,6 @@ test_3x_p1_geometry_quantities_position_map()
   struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&geometry_input);
   
   gkyl_position_map_set(pos_map, gk_geom->mc2nu_pos);
-
-  // gyrokinetic app is made to make the geometry write convinient
-  // Can remove include <gky_gyrokinetic.h> and <gkyl_gyrokinetic_priv.h> if not needed
-  struct gkyl_gyrokinetic_app app = {
-    .name = "ctest_gk_geometry",
-    .gk_geom = gk_geom,
-    .grid = grid,
-    .basis = basis,
-    .poly_order = poly_order,
-    .cdim = cdim,
-    .local = range,
-    .local_ext = ext_range,
-    .global = range,
-    .global_ext = ext_range,
-    .confBasis = basis,
-    .use_gpu = false,
-  };
-  int cuts[3] = { 1, 1, 1 };
-  app.decomp = gkyl_rect_decomp_new_from_cuts(cdim, cuts, &app.global);
-  app.comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = app.decomp,
-      .use_gpu = app.use_gpu
-    }
-  );
-  gkyl_gyrokinetic_app_write_geometry(&app);
 
   // Define the nodes for the script to calculate values at
   int cidx[3];
@@ -477,7 +390,6 @@ test_3x_p1_geometry_quantities_position_map()
 
 TEST_LIST = {
   { "test_3x_p1", test_3x_p1},
-  { "test_3x_p1_geometry_quantities", test_3x_p1_geometry_quantities},
-  { "test_3x_p1_geometry_quantities_position_map", test_3x_p1_geometry_quantities_position_map},
+  { "test_3x_p1_pmap", test_3x_p1_pmap},
   { NULL, NULL },
 };

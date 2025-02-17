@@ -36,13 +36,13 @@ gkyl_tok_calc_derived_geo_advance(const gkyl_tok_calc_derived_geo *up, const str
     double *bi_i = gkyl_array_fetch(b_i, loc);
     double *cmag_i = gkyl_array_fetch(cmag, loc);
     double *jacobtot_i = gkyl_array_fetch(jacobtot, loc);
-    double *jacobtot_inv = gkyl_array_fetch(jacobtot_inv, loc);
+    double *jacobtot_inv_i = gkyl_array_fetch(jacobtot_inv, loc);
     double *gxxj_i= gkyl_array_fetch(gxxj, loc);
     double *gxyj_i= gkyl_array_fetch(gxyj, loc);
     double *gyyj_i= gkyl_array_fetch(gyyj, loc);
     double *gxzj_i= gkyl_array_fetch(gxzj, loc);
     double *eps2_i= gkyl_array_fetch(eps2, loc);
-    up->kernel(g_ij_i, bmag_i, jacobgeo_i, jacobgeo_inv_i, gij_i, bi_i, cmag_i, jacobtot_i, jacobtot_inv, gxxj_i, gxyj_i, gyyj_i, gxzj_i, eps2_i);
+    up->kernel(g_ij_i, bmag_i, jacobgeo_i, jacobgeo_inv_i, gij_i, bi_i, cmag_i, jacobtot_i, jacobtot_inv_i, gxxj_i, gxyj_i, gyyj_i, gxzj_i, eps2_i);
   }
   gkyl_dg_inv_op_range(up->cbasis, 0, bmag_inv, 0, bmag, crange);
   gkyl_dg_mul_op_range(up->cbasis, 0, bmag_inv_sq, 0, bmag_inv, 0, bmag_inv, crange);
