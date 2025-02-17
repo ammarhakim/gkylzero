@@ -210,15 +210,10 @@ gkyl_dg_calc_canonical_pb_fluid_vars_cu_dev_new(const struct gkyl_rect_grid *con
   int poly_order = conf_basis->poly_order;
   up->cdim = cdim;
   up->alpha = 0.0;
-  up->kappa = 0.0;
   up->is_modified = 0; 
 
-  if (wv_eqn->type == GKYL_EQN_CAN_PB_HASEGAWA_MIMA) {
-    up->kappa = gkyl_wv_can_pb_hasegawa_mima_kappa(wv_eqn); 
-  }
-  else if (wv_eqn->type == GKYL_EQN_CAN_PB_HASEGAWA_WAKATANI) {
+  if (wv_eqn->type == GKYL_EQN_CAN_PB_HASEGAWA_WAKATANI) {
     up->alpha = gkyl_wv_can_pb_hasegawa_wakatani_alpha(wv_eqn); 
-    up->kappa = gkyl_wv_can_pb_hasegawa_wakatani_kappa(wv_eqn); 
     up->is_modified = gkyl_wv_can_pb_hasegawa_wakatani_is_modified(wv_eqn); 
 
     // Temporary array for holding the density and combined potential and density for computing the adiabatic coupling.
