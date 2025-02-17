@@ -84,6 +84,8 @@ gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
     react->vt_sq_iz1[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     react->vt_sq_iz2[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
+    react->u_i_dot_b_i[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+
     // J*n for use in final update formulae of reactions
     react->Jm0_elc[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     react->Jm0_partner[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
@@ -190,11 +192,11 @@ gk_neut_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_neut
         app->gk_geom->jacobgeo, &app->local);
 
       // Construct ion vector velocity upar b_i
-      for (int j = 0; j < 3; ++j) {
-        gkyl_dg_mul_op_range(app->basis, 
-          j, react->upar_ion[i], 1, gks_ion->lte.moms.marr, j, 
-          app->gk_geom->bcart, &app->local); 
-      } 
+      // if cdim = 1, u0 = upar, if cdim = 2, u1 = upar, if cdim = 3, u2 = upar
+      gkyl_array_clear(react->upar_ion[i], 0.0);
+      gkyl_array_set_offset(react->u_i_dot_b_i[i], 1.0, gks_ion->lte.moms.marr, 1*app->basis.num_basis);
+      gkyl_array_set_offset(react->upar_ion[i], 1.0, react->u_i_dot_b_i[i], (app->cdim-1)*app->basis.num_basis);
+      gkyl_array_clear(react->u_i_dot_b_i[i], 0.0);
 
       // Copy vt^2 = T/m of the ions
       gkyl_array_set_offset(react->vt_sq_ion[i], 1.0, gks_ion->lte.moms.marr, 2*app->basis.num_basis);
@@ -214,11 +216,11 @@ gk_neut_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_neut
         app->gk_geom->jacobgeo, &app->local); 
 
       // Construct ion vector velocity upar b_i
-      for (int j = 0; j < 3; ++j) {
-        gkyl_dg_mul_op_range(app->basis, 
-          j, react->upar_ion[i], 1, gks_ion->lte.moms.marr, j, 
-          app->gk_geom->bcart, &app->local); 
-      } 
+      // if cdim = 1, u0 = upar, if cdim = 2, u1 = upar, if cdim = 3, u2 = upar
+      gkyl_array_clear(react->upar_ion[i], 0.0);
+      gkyl_array_set_offset(react->u_i_dot_b_i[i], 1.0, gks_ion->lte.moms.marr, 1*app->basis.num_basis);
+      gkyl_array_set_offset(react->upar_ion[i], 1.0, react->u_i_dot_b_i[i], (app->cdim-1)*app->basis.num_basis);
+      gkyl_array_clear(react->u_i_dot_b_i[i], 0.0);
 
       // Copy vt^2 = T/m of the ions (partner of the neutrals)
       gkyl_array_set_offset(react->vt_sq_ion[i], 1.0, gks_ion->lte.moms.marr, 2*app->basis.num_basis);
