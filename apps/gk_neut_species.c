@@ -703,32 +703,26 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     ghost_vel[d] = 0; // no ghost-cells in velocity space
   }
 
-  // Define phase basis
-  if (app->use_gpu) {
-    // allocate device basis if we are using GPUs
-    s->basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
-  }
-  else {
-    s->basis_on_dev = &app->basis;
-  }
-
   // Basis is tensor for p=1 and ser for p>1
   if (app->poly_order > 1) {
     gkyl_cart_modal_serendip(&s->basis, pdim, app->poly_order);
   }
   else if (app->poly_order == 1) {
     gkyl_cart_modal_hybrid(&s->basis, cdim, vdim); // p=2 in v for neutral species
-    // gkyl_cart_modal_tensor(&s->basis, pdim, app->poly_order); // for canonical PB
   }
 
   if (app->use_gpu) {
+    // allocate device basis if we are using GPUs
+    s->basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
     if (app->poly_order > 1) {
       gkyl_cart_modal_serendip_cu_dev(s->basis_on_dev, pdim, app->poly_order);
     }
     else if (app->poly_order == 1) {
       gkyl_cart_modal_hybrid_cu_dev(s->basis_on_dev, cdim, vdim); // p=2 in v for neutral species
-      // gkyl_cart_modal_tensor_cu_dev(s->basis_on_dev, pdim, app->poly_order); // for canonical PB
     }
+  }
+  else {
+    s->basis_on_dev = &app->basis;
   }
   
   // full phase space grid
