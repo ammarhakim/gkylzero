@@ -491,6 +491,29 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
           arcL_curr = arcL_lo + it*darcL + modifiers[it_delta]*delta_theta*(arc_ctx.arcL_tot/2/M_PI);
           double theta_curr = arcL_curr*(2*M_PI/arc_ctx.arcL_tot) - M_PI ; 
 
+          // Calculate derivatives using finite difference for ddtheta
+          double psi_curr_lo = psi_curr - delta_psi;
+          double psi_curr_hi = psi_curr + delta_psi;
+          double Psi_lo, Psi_hi;
+          position_map->maps[0](0.0, &psi_curr_lo, &Psi_lo, position_map->ctxs[0]);
+          position_map->maps[0](0.0, &psi_curr_hi, &Psi_hi, position_map->ctxs[0]);
+          double dPsi_dpsi = (Psi_hi - Psi_lo)/(2.0*delta_psi);
+
+          double alpha_curr_lo = alpha_curr - delta_alpha;
+          double alpha_curr_hi = alpha_curr + delta_alpha;
+          double Alpha_lo, Alpha_hi;
+          position_map->maps[1](0.0, &alpha_curr_lo, &Alpha_lo, position_map->ctxs[1]);
+          position_map->maps[1](0.0, &alpha_curr_hi, &Alpha_hi, position_map->ctxs[1]);
+          double dAlpha_dalpha = (Alpha_hi - Alpha_lo)/(2.0*delta_alpha);
+
+          double theta_curr_lo = theta_curr - delta_theta;
+          double theta_curr_hi = theta_curr + delta_theta;
+          double Theta_lo, Theta_hi;
+          position_map->maps[2](0.0, &theta_curr_lo, &Theta_lo, position_map->ctxs[2]);
+          position_map->maps[2](0.0, &theta_curr_hi, &Theta_hi, position_map->ctxs[2]);
+          double dTheta_dtheta = (Theta_hi - Theta_lo)/(2.0*delta_theta);
+
+          // Map computational coordinate to non-uniform field-aligned value
           position_map->maps[0](0.0, &psi_curr,   &psi_curr,   position_map->ctxs[0]);
           position_map->maps[1](0.0, &alpha_curr, &alpha_curr, position_map->ctxs[1]);
           position_map->maps[2](0.0, &theta_curr, &theta_curr, position_map->ctxs[2]);
@@ -634,9 +657,9 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
             mc2nu_n[X_IDX] = psi_curr;
             mc2nu_n[Y_IDX] = -alpha_curr;
             mc2nu_n[Z_IDX] = theta_curr;
-            ddtheta_n[0] = dphidtheta_func(z_curr, &arc_ctx);
-            ddtheta_n[1] = sin(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI;
-            ddtheta_n[2] = cos(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI;
+            ddtheta_n[0] = dphidtheta_func(z_curr, &arc_ctx) * dPsi_dpsi;
+            ddtheta_n[1] = sin(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI * dAlpha_dalpha;
+            ddtheta_n[2] = cos(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI * dTheta_dtheta;
           }
         }
       }
