@@ -394,7 +394,7 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
       .cdim = app->cdim,
       .bcdir_ext_update_r = f->local_par_ext_core,
       .num_ghost = ghost, // one ghost per config direction
-      .basis = app->confBasis,
+      .basis = app->basis,
       .grid = app->grid,
       .shift_func = bcz->lower.aux_profile,
       .shift_func_ctx = bcz->lower.aux_ctx,
@@ -414,14 +414,14 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
                           GKYL_UPPER_EDGE, &f->local_par_ext_core, ghost_par);
   // add the SSFG updater for lower and upper application
   f->ssfg_lo = gkyl_skin_surf_from_ghost_new(zdir,GKYL_LOWER_EDGE,
-                app->confBasis,&f->lower_skin_core,&f->lower_ghost_core,app->use_gpu);
+                app->basis,&f->lower_skin_core,&f->lower_ghost_core,app->use_gpu);
 
   //We allocate the array to store the ghost values of phi_smooth but switching upper and lower
   f->aux_array = mkarr(app->use_gpu, f->phi_smooth->ncomp, f->phi_smooth->size);
 
   // These bc_basic updaters need a buffer, allocate it.
   long buff_sz = GKYL_MAX2(f->lower_skin_core.volume, f->upper_skin_core.volume);
-  f->bc_buffer = mkarr(app->use_gpu, app->confBasis.num_basis, buff_sz);
+  f->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
 
   // Finally we need a config space communicator to sync the inner cell data and
   // avoid applying TS BC inside the domain
