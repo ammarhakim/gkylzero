@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
 
-void 
+void
 gk_neut_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_lte *lte, 
   struct correct_all_moms_inp corr_inp)
 {
@@ -13,8 +13,8 @@ gk_neut_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_specie
   struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = {
     .phase_grid = &s->grid,
     .vel_grid = &s->grid_vel, 
-    .conf_basis = &app->confBasis,
-    .phase_basis = &app->neut_basis,
+    .conf_basis = &app->basis,
+    .phase_basis = &s->basis,
     .conf_range =  &app->local,
     .conf_range_ext = &app->local_ext,
     .vel_range = &s->local_vel,
@@ -31,8 +31,8 @@ gk_neut_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_specie
     struct gkyl_vlasov_lte_correct_inp inp_corr = {
       .phase_grid = &s->grid,
       .vel_grid = &s->grid_vel, 
-      .conf_basis = &app->confBasis,
-      .phase_basis = &app->neut_basis,
+      .conf_basis = &app->basis,
+      .phase_basis = &s->basis,
       .conf_range =  &app->local,
       .conf_range_ext = &app->local_ext,
       .vel_range = &s->local_vel,
@@ -48,7 +48,7 @@ gk_neut_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_specie
     lte->is_first_corr_status_write_call = true;
   }
 
-  lte->f_lte = mkarr(app->use_gpu, app->neut_basis.num_basis, s->local_ext.volume);
+  lte->f_lte = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
 }
 
 // Compute f_lte from input LTE moments
@@ -94,7 +94,7 @@ gk_neut_species_lte(gkyl_gyrokinetic_app *app, const struct gk_neut_species *spe
   gk_neut_species_moment_calc(&lte->moms, species->local, app->local, fin);
 
   // divide out the Jacobian from the density
-  gkyl_dg_div_op_range(lte->moms.mem_geo, app->confBasis, 
+  gkyl_dg_div_op_range(lte->moms.mem_geo, app->basis, 
     0, lte->moms.marr, 0, lte->moms.marr, 0, 
     app->gk_geom->jacobgeo, &app->local);  
 
