@@ -257,25 +257,49 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
           arcL_curr = arcL_lo + it*darcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
           double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ; 
 
-          // Calculate derivatives using finite difference for ddtheta
-          double alpha_curr_lo = alpha_curr - delta_alpha;
-          double alpha_curr_hi = alpha_curr + delta_alpha;
-          double Alpha_lo, Alpha_hi;
-          position_map->maps[1](0.0, &alpha_curr_lo, &Alpha_lo, position_map->ctxs[1]);
-          position_map->maps[1](0.0, &alpha_curr_hi, &Alpha_hi, position_map->ctxs[1]);
-          double dAlpha_dalpha = (Alpha_hi - Alpha_lo)/(2.0*delta_alpha);
+          // Calculate derivatives using finite difference for ddtheta,
+          // as well as transform the computational coordiante to the non-uniform field-aligned value
 
-          double theta_curr_lo = theta_curr - delta_theta;
-          double theta_curr_hi = theta_curr + delta_theta;
-          double Theta_lo, Theta_hi;
-          position_map->maps[2](0.0, &theta_curr_lo, &Theta_lo, position_map->ctxs[2]);
-          position_map->maps[2](0.0, &theta_curr_hi, &Theta_hi, position_map->ctxs[2]);
-          double dTheta_dtheta = (Theta_hi - Theta_lo)/(2.0*delta_theta);
+          // Non-uniform psi. Finite differences are calculated elsewhere.
+          position_map->maps[0](0.0, &psi_curr,  &psi_curr,  position_map->ctxs[0]);
 
-          // Map computational coordinate to non-uniform field-aligned value
-          position_map->maps[0](0.0, &psi_curr,   &psi_curr,   position_map->ctxs[0]);
-          position_map->maps[1](0.0, &alpha_curr, &alpha_curr, position_map->ctxs[1]);
-          position_map->maps[2](0.0, &theta_curr, &theta_curr, position_map->ctxs[2]);
+          // Non-uniform alpha
+          double alpha_left = alpha_curr - delta_alpha;
+          double alpha_right = alpha_curr + delta_alpha;
+          double Alpha_left, Alpha_curr, Alpha_right;
+          position_map->maps[1](0.0, &alpha_left,  &Alpha_left,  position_map->ctxs[1]);
+          position_map->maps[1](0.0, &alpha_curr,  &Alpha_curr,  position_map->ctxs[1]);
+          position_map->maps[1](0.0, &alpha_right, &Alpha_right, position_map->ctxs[1]);
+          double dAlpha_dalpha;
+          if (ia == nrange->lower[AL_IDX]){
+            dAlpha_dalpha = (Alpha_right - Alpha_curr)/(delta_alpha);
+          }
+          else if (ia == nrange->upper[AL_IDX]){
+            dAlpha_dalpha = (Alpha_curr - Alpha_left)/(delta_alpha);
+          }
+          else{
+            dAlpha_dalpha = (Alpha_right - Alpha_left)/(2.0*delta_alpha);
+          }
+          alpha_curr = Alpha_curr;
+
+          // Non-uniform theta
+          double theta_left  = theta_curr - delta_theta;
+          double theta_right = theta_curr + delta_theta;
+          double Theta_left, Theta_curr, Theta_right;
+          position_map->maps[2](0.0, &theta_left,  &Theta_left,  position_map->ctxs[2]);
+          position_map->maps[2](0.0, &theta_curr,  &Theta_curr,  position_map->ctxs[2]);
+          position_map->maps[2](0.0, &theta_right, &Theta_right, position_map->ctxs[2]);
+          double dTheta_dtheta;
+          if (it == nrange->lower[TH_IDX]){
+            dTheta_dtheta = (Theta_right - Theta_curr)/(delta_theta);
+          }
+          else if (it == nrange->upper[TH_IDX]){
+            dTheta_dtheta = (Theta_curr - Theta_left)/(delta_theta);
+          }
+          else{
+            dTheta_dtheta = (Theta_right - Theta_left)/(2.0*delta_theta);
+          }
+          theta_curr = Theta_curr;
           arcL_curr = (theta_curr + M_PI) / (2*M_PI/arc_ctx.arcL_tot);
 
           mirror_set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr, zmin, zmax, &rclose, &ridders_min, &ridders_max);

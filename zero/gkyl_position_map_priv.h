@@ -462,7 +462,7 @@ refine_B_field_extrema(struct gkyl_position_map *gpm)
   {
     B_total_change += fabs(gpm->constB_ctx->bmag_extrema[i] - gpm->constB_ctx->bmag_extrema[i-1]);
   }
-  gpm->constB_ctx->dB_cell = B_total_change / (gpm->constB_ctx->N_theta_boundaries-1);
+  gpm->constB_ctx->dB_cell = B_total_change / (gpm->constB_ctx->N_theta_boundaries);
 }
 
 /**
@@ -519,17 +519,25 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
   double theta_dxi = theta_range / num_boundaries;
   double theta = xn[0];
   double dB_cell = gpm->constB_ctx->dB_cell;
-  int it = (theta - theta_lo) / theta_dxi;
+  double it = (theta - theta_lo) / theta_dxi;
 
-  if (it == 0 || it == num_boundaries-1)
+  // Set strict floor and ceiling limits for theta
+  // This is to prevent the root finding algorithm from going out of bounds
+  // Not fout[0] = theta because of the finite differences and can lead to jumps
+  if (it <=0)
   {
-    fout[0] = theta;
+    fout[0] = theta_lo;
+    return;
+  }
+  if (it >= num_boundaries)
+  {
+    fout[0] = theta_hi;
     return;
   }
 
   // Determine which region theta is in
   // Regions start at 0 and count up to num_extrema-1
-  // Not accurate because the theta_extrema are not Theta_extrema
+  // Initial guess is not accurate because the theta_extrema are not Theta_extrema
   // We use itteration to further refine this, but it's a good initial guess
   int region = 0;
   for (int i = 1; i <= num_extrema-2; i++)
@@ -582,7 +590,7 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
         region--;
         if (region < 0) {
           // If we can't move down any regions and leave the simulation domain, we are likely on the lower limit of the domain and should just return the input theta
-          fout[0] = theta;
+          fout[0] = theta_lo;
           return;
         }
       }
@@ -591,7 +599,7 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
         region++;
         if (region > num_extrema-2) {
           // If we can't move up any regions and leave the simulation domain, we are likely on the upper limit of the domain and should just return the input theta
-          fout[0] = theta;
+          fout[0] = theta_hi;
           return;
         }
       }
