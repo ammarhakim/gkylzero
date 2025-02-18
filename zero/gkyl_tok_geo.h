@@ -229,6 +229,18 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
   struct gkyl_array *mc2nu_nodal, struct gkyl_array *mc2nu_pos,
   struct gkyl_position_map *position_map);
 
+
+/*
+ * Get grid extents for a block type based on a global normalization factor
+ * and a cut at the arc length of the X-point on the separatrix
+ * @param inp grid input
+ * @param geo tokamak geometry object
+ * @param theta_lo on output the lower grid extent
+ * @param theta_up on output the upper grid extent
+ * */
+void
+gkyl_tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, double *theta_lo, double *theta_up);
+
 /**
  * Return cumulative statistics from geometry computations
  *
