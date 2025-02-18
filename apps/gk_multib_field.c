@@ -274,6 +274,7 @@ gk_multib_field_release(struct gk_multib_field *mbf)
   for (int bI= 0; bI<mbf->num_local_blocks; bI++) {
     gkyl_free(mbf->multibz_ranges[bI]);
     gkyl_free(mbf->multibz_ranges_ext[bI]);
+    gkyl_free(mbf->parent_subrangesz[bI]);
     gkyl_free(mbf->block_subrangesz[bI]);
     gkyl_array_release(mbf->phi_local[bI]);
     gkyl_array_release(mbf->phi_multibz_dg[bI]);
@@ -292,6 +293,7 @@ gk_multib_field_release(struct gk_multib_field *mbf)
 
   gkyl_free(mbf->multibz_ranges);
   gkyl_free(mbf->multibz_ranges_ext);
+  gkyl_free(mbf->parent_subrangesz);
   gkyl_free(mbf->block_subrangesz);
   gkyl_free(mbf->phi_local);
   gkyl_free(mbf->phi_multibz_dg);
