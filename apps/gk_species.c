@@ -1762,7 +1762,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 
   if (app->use_gpu) {
     gkyl_array_release(s->f_host);
-    gkyl_cu_free(app->basis_on_dev);
+    gkyl_cu_free(s->basis_on_dev);
   }
 
   gkyl_velocity_map_release(s->vel_map);
