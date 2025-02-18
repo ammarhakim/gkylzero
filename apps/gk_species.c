@@ -1509,6 +1509,51 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->react = (struct gk_react) { };
   gks->react_neut = (struct gk_react) { };
   gks->rad = (struct gk_rad_drag) { };
+
+  if (gks->info.flr.type) {
+    // Create operator needed for FLR effects.
+    assert(app->cdim > 1);
+    // Pointer to function performing the gyroaverage.
+    gks->gyroaverage = gk_species_gyroaverage;
+    // gyroaveraged M0.
+    gks->m0_gyroavg = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+
+    double gyroradius_bmag = gks->info.flr.bmag ? gks->info.flr.bmag : app->bmag_ref;
+
+    double flr_weight = gks->info.flr.Tperp*gks->info.mass/(pow(gks->info.charge*gyroradius_bmag,2.0));
+    // Initialize the weight in the Laplacian operator.
+    gks->flr_rhoSqD2 = mkarr(app->use_gpu, (2*(app->cdim-1)-1)*app->basis.num_basis, app->local_ext.volume);
+    gkyl_array_set_offset(gks->flr_rhoSqD2, flr_weight, app->gk_geom->gxxj, 0*app->basis.num_basis);
+    if (app->cdim > 2) {
+      gkyl_array_set_offset(gks->flr_rhoSqD2, flr_weight, app->gk_geom->gxyj, 1*app->basis.num_basis);
+      gkyl_array_set_offset(gks->flr_rhoSqD2, flr_weight, app->gk_geom->gyyj, 2*app->basis.num_basis);
+    }
+    // Initialize the factor multiplying the field in the FLR operator.
+    gks->flr_kSq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gkyl_array_shiftc(gks->flr_kSq, -pow(sqrt(2.0),app->cdim), 0); // Sets kSq=-1.
+
+    // If domain is not periodic use Dirichlet BCs.
+    struct gkyl_poisson_bc flr_bc;
+    for (int d=0; d<app->cdim-1; d++) {
+      flr_bc.lo_type[d] = app->field->info.poisson_bcs.lo_type[d];
+      flr_bc.lo_value[d] = app->field->info.poisson_bcs.lo_value[d];
+      if (flr_bc.lo_type[d] != GKYL_POISSON_PERIODIC)
+        flr_bc.lo_type[d] = GKYL_POISSON_DIRICHLET_VARYING;
+
+      flr_bc.up_type[d] = app->field->info.poisson_bcs.up_type[d];
+      flr_bc.up_value[d] = app->field->info.poisson_bcs.up_value[d];
+      if (flr_bc.up_type[d] != GKYL_POISSON_PERIODIC)
+        flr_bc.up_type[d] = GKYL_POISSON_DIRICHLET_VARYING;
+    }
+    // Deflated Poisson solve is performed on range assuming decomposition is *only* in z.
+    gks->flr_op = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev, app->basis,
+      app->local, app->local, gks->flr_rhoSqD2, gks->flr_kSq, flr_bc, app->use_gpu);
+  }
+  else {
+    gks->gyroaverage = gk_species_gyroaverage_none;
+    gks->m0_gyroavg = gkyl_array_acquire(gks->m0.marr);
+  }
+
   if (!gks->info.is_static) {
     gk_species_new_dynamic(gk_app_inp, app, gks);
   }
@@ -1792,6 +1837,13 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   gk_species_bflux_release(app, &s->bflux);
 
   gk_species_lte_release(app, &s->lte);
+
+  gkyl_array_release(s->m0_gyroavg);
+  if (s->info.flr.type) {
+    gkyl_array_release(s->flr_rhoSqD2);
+    gkyl_array_release(s->flr_kSq);
+    gkyl_deflated_fem_poisson_release(s->flr_op);
+  }
 
   s->release_func(app, s);
 }
