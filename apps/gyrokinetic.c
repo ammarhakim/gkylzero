@@ -660,9 +660,17 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
   app->tcurr = t0;
   for (int i=0; i<app->num_species; ++i)
     gkyl_gyrokinetic_app_apply_ic_species(app, i, t0);
-  for (int i=0; i<app->num_neut_species; ++i)
+  for (int i=0; i<app->num_neut_species; ++i) {
+    struct gk_neut_species *gkns = &app->neut_species[i];
     gkyl_gyrokinetic_app_apply_ic_neut_species(app, i, t0);
-
+    gk_neut_species_bflux_rhs(app, gkns, &gkns->bflux, gkns->f, gkns->f);
+    // initialize species wall emission terms: these rely
+    // on other species which must be allocated in the previous step
+    if (app->neut_species[i].recyc_lo)
+      gk_neut_species_recycle_cross_init(app, gkns, &gkns->bc_recycle_lo);
+    if (app->neut_species[i].recyc_up)
+      gk_neut_species_recycle_cross_init(app, gkns, &gkns->bc_recycle_up);
+  }
   for (int i=0; i<app->num_species; ++i)
     gkyl_gyrokinetic_app_apply_ic_cross_species(app, i, t0);
 

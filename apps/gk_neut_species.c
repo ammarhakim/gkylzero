@@ -112,7 +112,7 @@ gk_neut_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_neut
 
       switch (species->lower_bc[d].type) {
         case GKYL_SPECIES_RECYCLE:
-          ;
+          gk_neut_species_recycle_apply_bc(app, &species->bc_recycle_lo, species, f);
           break;
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_REFLECT:
@@ -130,7 +130,7 @@ gk_neut_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_neut
 
       switch (species->upper_bc[d].type) {
         case GKYL_SPECIES_RECYCLE:
-          ;
+          gk_neut_species_recycle_apply_bc(app, &species->bc_recycle_up, species, f);
           break;
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_REFLECT:
@@ -416,15 +416,22 @@ gk_neut_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk
   
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
-    if (s->lower_bc[d].type == GKYL_SPECIES_RECYCLE) 
-      ;
-    else 
+    if (s->lower_bc[d].type == GKYL_SPECIES_RECYCLE) {
+      gk_neut_species_recycle_release(&s->bc_recycle_lo);
       gkyl_bc_basic_release(s->bc_lo[d]);
-    
-    if (s->upper_bc[d].type == GKYL_SPECIES_RECYCLE) 
-      ;
-    else 
+      gkyl_array_release(s->bc_buffer_lo_recyc);
+    }
+    else { 
+      gkyl_bc_basic_release(s->bc_lo[d]);
+    }
+    if (s->upper_bc[d].type == GKYL_SPECIES_RECYCLE) {
+      gk_neut_species_recycle_release(&s->bc_recycle_up);
       gkyl_bc_basic_release(s->bc_up[d]);
+      gkyl_array_release(s->bc_buffer_up_recyc);
+    }
+    else {
+      gkyl_bc_basic_release(s->bc_up[d]);
+    }
   }
 }
 
@@ -571,6 +578,11 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
     gk_neut_species_react_init(app, s, s->info.react_neut, &s->react_neut);
   }
 
+  // initialize boundary fluxes for diagnostics and bcs
+  //if (!s->info.is_static) 
+  s->bflux = (struct gk_boundary_fluxes) { };
+  gk_neut_species_bflux_init(app, s, &s->bflux); 
+  
   // Allocate buffer needed for BCs.
   long buff_sz = 0;
   for (int dir=0; dir<cdim; ++dir) {
@@ -581,12 +593,26 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
   // buffer arrays for fixed function boundary conditions on distribution function
   s->bc_buffer_lo_fixed = mkarr(app->use_gpu, s->basis.num_basis, buff_sz);
   s->bc_buffer_up_fixed = mkarr(app->use_gpu, s->basis.num_basis, buff_sz);
-
+  s->recyc_lo = false;
+  s->recyc_up = false;
+  
   for (int d=0; d<cdim; ++d) {
     // Copy BCs by default.
     enum gkyl_bc_basic_type bctype = GKYL_BC_COPY;
     if (s->lower_bc[d].type == GKYL_SPECIES_RECYCLE) {
-      ;
+      s->recyc_lo = true;
+      // proj hack
+      s->bc_buffer_lo_recyc = mkarr(app->use_gpu, s->basis.num_basis, s->lower_skin[d].volume);
+      s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, GKYL_BC_FIXED_FUNC, s->basis_on_dev,
+        &s->lower_skin[d], &s->lower_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
+      struct gk_proj gk_proj_bc_lo;
+      gk_neut_species_projection_init(app, s, s->lower_bc[d].projection, &gk_proj_bc_lo);
+      gk_neut_species_projection_calc(app, s, &gk_proj_bc_lo, s->f1, 0.0); // Temporarily use f1.
+          
+      gk_neut_species_recycle_init(app, &s->bc_recycle_lo, d, GKYL_LOWER_EDGE, s->lower_bc[d].aux_ctx, s->f1, s, app->use_gpu);
+      gkyl_bc_basic_buffer_fixed_func(s->bc_lo[d], s->bc_buffer_lo_recyc, s->f1);
+      gkyl_array_clear(s->f1, 0.0);
+      gk_neut_species_projection_release(app, &gk_proj_bc_lo);
     }
     else { 
       if (s->lower_bc[d].type == GKYL_SPECIES_COPY) {
@@ -617,7 +643,18 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
     }
 
     if (s->upper_bc[d].type == GKYL_SPECIES_RECYCLE) {
-      ;
+      s->recyc_up = true;
+      // proj hack
+      s->bc_buffer_up_recyc = mkarr(app->use_gpu, s->basis.num_basis, s->upper_skin[d].volume);
+      s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, GKYL_BC_FIXED_FUNC, s->basis_on_dev,
+        &s->upper_skin[d], &s->upper_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
+      struct gk_proj gk_proj_bc_up;
+      gk_neut_species_projection_init(app, s, s->upper_bc[d].projection, &gk_proj_bc_up);
+      gk_neut_species_projection_calc(app, s, &gk_proj_bc_up, s->f1, 0.0); // Temporarily use f1.
+      gk_neut_species_recycle_init(app, &s->bc_recycle_up, d, GKYL_UPPER_EDGE, s->upper_bc[d].aux_ctx, s->f1, s, app->use_gpu);
+      gkyl_bc_basic_buffer_fixed_func(s->bc_up[d], s->bc_buffer_up_recyc, s->f1);
+      gkyl_array_clear(s->f1, 0.0);
+      gk_neut_species_projection_release(app, &gk_proj_bc_up);
     }
     else {
       // Upper BC updater. Copy BCs by default.
