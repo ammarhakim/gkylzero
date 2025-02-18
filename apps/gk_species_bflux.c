@@ -25,7 +25,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, st
       lower[0] = e==0? s->grid.lower[d] : s->grid.upper[d] - s->grid.dx[d];
       upper[0] = e==0? s->grid.lower[d] + s->grid.dx[d] : s->grid.upper[d];
 
-      bflux->flux_arr[2*d+e] = mkarr(app->use_gpu, app->basis.num_basis, ghost_r->volume);
+      bflux->flux_arr[2*d+e] = mkarr(app->use_gpu, s->basis.num_basis, ghost_r->volume);
       gkyl_range_init(&bflux->flux_r[2*d+e], ndim, ghost_r->lower, ghost_r->upper);
       gkyl_range_init(&bflux->conf_r[2*d+e], app->cdim, ghost_r->lower,
         ghost_r->upper);
