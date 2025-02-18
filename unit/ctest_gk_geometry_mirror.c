@@ -1196,6 +1196,7 @@ test_3x_p1_pmap_straight_cylinder()
   gkyl_array_release(mc2nu_pos_nodal);
   gkyl_array_release(normals_nodal);
   gkyl_nodal_ops_release(n2m);
+  gkyl_position_map_release(pos_map);
   gkyl_gk_geometry_release(gk_geom);
 }
 
