@@ -70,6 +70,9 @@ create_block_geom(void)
 
   double ntheta_middle = 8;
 
+  // Note that for tokamak multi-block simulations, 
+  // these theta limits are just placeholders and will be 
+  // reset in the multi-block app.
   double Lz = (M_PI-1e-14)*2.0;
   double theta_lo = -Lz/2.0, theta_up = Lz/2.0;
 
