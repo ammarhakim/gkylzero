@@ -69,7 +69,7 @@ choose_kern(enum gkyl_basis_type b_type, int tblidx, int poly_order)
 {
   switch (b_type) {
     case GKYL_BASIS_MODAL_HYBRID:
-    case GKYL_BASIS_MODAL_SERENDIPITY:
+    case GKYL_BASIS_MODAL_TENSOR:
       return ser_cx_react_rate_kernels[tblidx].kernels[poly_order];
       break;
     default:

@@ -7,7 +7,6 @@
 #include <gkyl_gyrokinetic_multib_priv.h>
 #include <gkyl_multib_conn.h>
 #include <gkyl_rrobin_decomp.h>
-
 #include <assert.h>
 #include <float.h>
 #include <time.h>
@@ -80,9 +79,9 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
     struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
     mbf->phi_local[bI] = gkyl_array_acquire(sbapp->field->phi_smooth);
     mbf->phi_multibz_dg[bI] = mkarr(mbapp->use_gpu, 
-        sbapp->confBasis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
+        sbapp->basis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
     mbf->phi_multibz_smooth[bI] = mkarr(mbapp->use_gpu, 
-        sbapp->confBasis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
+        sbapp->basis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
   }
 
   // Construct the comm_conns for the allgather
@@ -131,7 +130,7 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
   for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
     int bid = local_blocks[bI];
     struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
-    mbf->fem_parproj[bI] = gkyl_fem_parproj_new(mbf->multibz_ranges[bI], &sbapp->confBasis, 
+    mbf->fem_parproj[bI] = gkyl_fem_parproj_new(mbf->multibz_ranges[bI], &sbapp->basis, 
       mbf->info.blocks[bid].fem_parbc, 0, 0, mbapp->use_gpu);
   }
 

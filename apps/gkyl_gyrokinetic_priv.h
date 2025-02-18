@@ -480,6 +480,12 @@ struct gk_species {
 
   enum gkyl_gkmodel_id gkmodel_id;
   enum gkyl_gkfield_id gkfield_id;
+
+  struct gkyl_basis basis; // phase-space basis
+
+  // pointer to basis on device
+  // (points to host structs if not on GPU)
+  struct gkyl_basis *basis_on_dev; 
   
   struct gkyl_job_pool *job_pool; // Job pool
   struct gkyl_rect_grid grid;
@@ -641,6 +647,12 @@ struct gk_species {
 // neutral species data
 struct gk_neut_species {
   struct gkyl_gyrokinetic_neut_species info; // data for neutral species
+
+  struct gkyl_basis basis; // phase-space basis
+
+  // pointer to basis on device
+  // (points to host structs if not on GPU)
+  struct gkyl_basis *basis_on_dev; 
   
   struct gkyl_job_pool *job_pool; // Job pool
   struct gkyl_rect_grid grid;
@@ -856,17 +868,14 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_range global_upper_skin[GKYL_MAX_DIM];
   struct gkyl_range global_upper_ghost[GKYL_MAX_DIM];
 
-  struct gkyl_basis basis, neut_basis; // phase-space and phase-space basis for neutrals
-  struct gkyl_basis confBasis; // conf-space basis
+  struct gkyl_basis basis; // conf-space basis
   
   struct gkyl_rect_decomp *decomp; // Decomposition object.
   struct gkyl_comm *comm; // communicator object for conf-space arrays
 
-  // pointers to basis on device (these point to host structs if not
-  // on GPU)
-  struct {
-    struct gkyl_basis *basis, *neut_basis, *confBasis;
-  } basis_on_dev;
+  // pointer to basis on device
+  // (points to host structs if not on GPU)
+  struct gkyl_basis *basis_on_dev; 
 
   struct gk_geometry *gk_geom;
   struct gkyl_array *jacobtot_inv_weak; // 1/(J.B) computed via weak mul and div.
