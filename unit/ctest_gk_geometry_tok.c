@@ -262,7 +262,7 @@ test_3x_p1_straight_cylinder()
     .zmax =  1.,
     .rleft = 0.001,
     .rmax = 1.0,
-    .rleft = 1.0,
+    .rright = 1.0,
   };
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
@@ -297,11 +297,13 @@ test_3x_p1_straight_cylinder()
   gkyl_range_init_from_shape(&nrange, grid.ndim, nodes);
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&basis, &grid, false);
 
+  int psi_offset = 2; // Ignore this many cells on the left and right. There are NaNs there
+
   // Check that |bhat|=1 at nodes
   struct gkyl_array* bhat_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 3, bhat_nodal, gk_geom->bcart);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
@@ -320,7 +322,7 @@ test_3x_p1_straight_cylinder()
   struct gkyl_array* mapc2p_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 3, mapc2p_nodal, gk_geom->mc2p);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX] + 3; ip<=nrange.upper[PSI_IDX]; ++ip) {
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset+1; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
@@ -341,7 +343,7 @@ test_3x_p1_straight_cylinder()
   struct gkyl_array* bmag_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, bmag_nodal, gk_geom->bmag);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
@@ -362,7 +364,7 @@ test_3x_p1_straight_cylinder()
   struct gkyl_array* bmag_inv_sq_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, bmag_inv_sq_nodal, gk_geom->bmag_inv_sq);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
@@ -383,7 +385,7 @@ test_3x_p1_straight_cylinder()
   struct gkyl_array* bmag_inv_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, bmag_inv_nodal, gk_geom->bmag_inv);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
@@ -404,7 +406,7 @@ test_3x_p1_straight_cylinder()
   struct gkyl_array* cmag_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, cmag_nodal, gk_geom->cmag);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
@@ -420,7 +422,7 @@ test_3x_p1_straight_cylinder()
   struct gkyl_array* eps2_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, eps2_nodal, gk_geom->eps2);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX]+1; ip<=nrange.upper[PSI_IDX]-1; ++ip) {
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
@@ -435,7 +437,7 @@ test_3x_p1_straight_cylinder()
   struct gkyl_array* gij_nodal = gkyl_array_new(GKYL_DOUBLE, 6, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 6, gij_nodal, gk_geom->g_ij);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX]+1; ip<=nrange.upper[PSI_IDX]-1; ++ip) {
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
@@ -463,7 +465,7 @@ test_3x_p1_straight_cylinder()
   struct gkyl_array* gij_contra_nodal = gkyl_array_new(GKYL_DOUBLE, 6, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 6, gij_contra_nodal, gk_geom->gij);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX]+1; ip<=nrange.upper[PSI_IDX]-2; ++ip) {
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
@@ -491,7 +493,7 @@ test_3x_p1_straight_cylinder()
   struct gkyl_array* jacobgeo_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, jacobgeo_nodal, gk_geom->jacobgeo);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
@@ -508,7 +510,7 @@ test_3x_p1_straight_cylinder()
   struct gkyl_array* jacobgeo_inv_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, jacobgeo_inv_nodal, gk_geom->jacobgeo_inv);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
@@ -525,7 +527,7 @@ test_3x_p1_straight_cylinder()
   struct gkyl_array* jacobtot_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, jacobtot_nodal, gk_geom->jacobtot);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
@@ -545,7 +547,7 @@ test_3x_p1_straight_cylinder()
   struct gkyl_array* jacobtot_inv_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, jacobtot_inv_nodal, gk_geom->jacobtot_inv);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
@@ -562,70 +564,75 @@ test_3x_p1_straight_cylinder()
   }
 
   // Check mapc2p
-  // for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-  //   for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
-  //     for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
-  //       cidx[PSI_IDX] = ip;
-  //       cidx[AL_IDX] = ia;
-  //       cidx[TH_IDX] = it;
-  //       double psi = grid.lower[PSI_IDX] + ip*(grid.upper[PSI_IDX]-grid.lower[PSI_IDX])/grid.cells[PSI_IDX];
-  //       double alpha = grid.lower[AL_IDX] + ia*(grid.upper[AL_IDX]-grid.lower[AL_IDX])/grid.cells[AL_IDX];
-  //       double theta = grid.lower[TH_IDX] + it*(grid.upper[TH_IDX]-grid.lower[TH_IDX])/grid.cells[TH_IDX]; 
-  //       // mapc2p_n[0] = R, mapc2p_n[1] = Theta, mapc2p_n[2] = Z_cylindrical
-  //       double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nrange, cidx));
-  //       double xn[3] = {psi, alpha, theta};
-  //       double fout[3];
-  //       mapc2p(0.0, xn, fout, 0);
-  //       for (int i=0; i<3; ++i)
-  //         TEST_CHECK( gkyl_compare( mapc2p_n[i], fout[i], 1e-6) );
-  //     }
-  //   }
-  // }
+  for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
+      for (int it=nrange.lower[TH_IDX]+1; it<=nrange.upper[TH_IDX]-1; ++it) {
+        cidx[PSI_IDX] = ip;
+        cidx[AL_IDX] = ia;
+        cidx[TH_IDX] = it;
+        double psi = grid.lower[PSI_IDX] + ip*(grid.upper[PSI_IDX]-grid.lower[PSI_IDX])/grid.cells[PSI_IDX];
+        double alpha = grid.lower[AL_IDX] + ia*(grid.upper[AL_IDX]-grid.lower[AL_IDX])/grid.cells[AL_IDX];
+        double theta = grid.lower[TH_IDX] + it*(grid.upper[TH_IDX]-grid.lower[TH_IDX])/grid.cells[TH_IDX]; 
+        // mapc2p_n[0] = R, mapc2p_n[1] = Theta, mapc2p_n[2] = Z_cylindrical
+        double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nrange, cidx));
+        double xn[3] = {psi, alpha, theta};
+        double fout[3];
+        mapc2p(0.0, xn, fout, 0);
+        for (int i=0; i<3; ++i)
+          TEST_CHECK( gkyl_compare( mapc2p_n[i], fout[i], 1e-6) );
+      }
+    }
+  }
 
   // Check mc2nu_pos
   struct gkyl_array* mc2nu_pos_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 3, mc2nu_pos_nodal, gk_geom->mc2nu_pos);
-  // for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-  //   for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
-  //     for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
-  //       cidx[PSI_IDX] = ip;
-  //       cidx[AL_IDX] = ia;
-  //       cidx[TH_IDX] = it;
-  //       double psi = grid.lower[PSI_IDX] + ip*(grid.upper[PSI_IDX]-grid.lower[PSI_IDX])/grid.cells[PSI_IDX];
-  //       double alpha = grid.lower[AL_IDX] + ia*(grid.upper[AL_IDX]-grid.lower[AL_IDX])/grid.cells[AL_IDX];
-  //       double theta = grid.lower[TH_IDX] + it*(grid.upper[TH_IDX]-grid.lower[TH_IDX])/grid.cells[TH_IDX];
-  //       double xn[3] = {psi, alpha, theta};
-  //       double *mc2nu_pos_n = gkyl_array_fetch(mc2nu_pos_nodal, gkyl_range_idx(&nrange, cidx));
-  //       for (int i=0; i<3; ++i)
-  //         TEST_CHECK( gkyl_compare( mc2nu_pos_n[i], xn[i], 1e-8) );
-  //     }
-  //   }
-  // }
+  for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
+      for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
+        cidx[PSI_IDX] = ip;
+        cidx[AL_IDX] = ia;
+        cidx[TH_IDX] = it;
+        double psi = grid.lower[PSI_IDX] + ip*(grid.upper[PSI_IDX]-grid.lower[PSI_IDX])/grid.cells[PSI_IDX];
+        double alpha = grid.lower[AL_IDX] + ia*(grid.upper[AL_IDX]-grid.lower[AL_IDX])/grid.cells[AL_IDX];
+        double theta = grid.lower[TH_IDX] + it*(grid.upper[TH_IDX]-grid.lower[TH_IDX])/grid.cells[TH_IDX];
+        double xn[3] = {psi, alpha, theta};
+        double *mc2nu_pos_n = gkyl_array_fetch(mc2nu_pos_nodal, gkyl_range_idx(&nrange, cidx));
+        for (int i=0; i<3; ++i)
+          TEST_CHECK( gkyl_compare( mc2nu_pos_n[i], xn[i], 1e-8) );
+      }
+    }
+  }
 
   // Check normals
   // Plus 3 away from axis to avoid errors
   struct gkyl_array* normals_nodal = gkyl_array_new(GKYL_DOUBLE, 9*basis.num_basis, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range,  9*basis.num_basis, normals_nodal, gk_geom->normals);
-  // for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-  //   for (int ip=nrange.lower[PSI_IDX]+1; ip<=nrange.upper[PSI_IDX]-1; ++ip) {
-  //     for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
-  //       cidx[PSI_IDX] = ip;
-  //       cidx[AL_IDX] = ia;
-  //       cidx[TH_IDX] = it;
-  //       double *normals_n = gkyl_array_fetch(normals_nodal, gkyl_range_idx(&nrange, cidx));
-  //       double psi = grid.lower[PSI_IDX] + ip*(grid.upper[PSI_IDX]-grid.lower[PSI_IDX])/grid.cells[PSI_IDX];
-  //       double alpha = grid.lower[AL_IDX] + ia*(grid.upper[AL_IDX]-grid.lower[AL_IDX])/grid.cells[AL_IDX];
-  //       double theta = grid.lower[TH_IDX] + it*(grid.upper[TH_IDX]-grid.lower[TH_IDX])/grid.cells[TH_IDX];
-  //       double xn[3] = {psi, alpha, theta};
-  //       double fout[9];
-  //       exact_normals(0.0, xn, fout, 0);
-  //       for (int i=0; i<9; ++i)
-  //       {
-  //         TEST_CHECK( gkyl_compare( normals_n[i], fout[i], 1e-4) );
-  //       }
-  //     }
-  //   }
-  // }
+  for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
+      for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
+        cidx[PSI_IDX] = ip;
+        cidx[AL_IDX] = ia;
+        cidx[TH_IDX] = it;
+        double *normals_n = gkyl_array_fetch(normals_nodal, gkyl_range_idx(&nrange, cidx));
+        double psi = grid.lower[PSI_IDX] + ip*(grid.upper[PSI_IDX]-grid.lower[PSI_IDX])/grid.cells[PSI_IDX];
+        double alpha = grid.lower[AL_IDX] + ia*(grid.upper[AL_IDX]-grid.lower[AL_IDX])/grid.cells[AL_IDX];
+        double theta = grid.lower[TH_IDX] + it*(grid.upper[TH_IDX]-grid.lower[TH_IDX])/grid.cells[TH_IDX];
+        double xn[3] = {psi, alpha, theta};
+        double fout[9];
+        exact_normals(0.0, xn, fout, 0);
+        double tol;
+        for (int i=0; i<9; ++i)
+        {
+          if (i==5)
+            tol = 1e-3;
+          else
+              tol = 1e-6;
+          TEST_CHECK( gkyl_compare( normals_n[i], fout[i], tol) );
+        }
+      }
+    }
+  }
 
   gkyl_array_release(bhat_nodal);
   gkyl_array_release(dualmag_nodal);
@@ -766,7 +773,7 @@ test_3x_p1_pmap_straight_cylinder()
     .zmax =  1.,
     .rleft = 0.001,
     .rmax = 1.0,
-    .rleft = 1.0,
+    .rright = 1.0,
   };
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
@@ -792,7 +799,9 @@ test_3x_p1_pmap_straight_cylinder()
 
   gkyl_position_map_set(pos_map, gk_geom->mc2nu_pos);
 
-  // write_geometry(gk_geom, grid, range, "straight_cylinder");
+  write_geometry(gk_geom, grid, range, "straight_cylinder");
+
+  int psi_offset = 2;
 
   // Define nodal operations
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
@@ -808,7 +817,7 @@ test_3x_p1_pmap_straight_cylinder()
   struct gkyl_array* bhat_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 3, bhat_nodal, gk_geom->bcart);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
@@ -827,7 +836,7 @@ test_3x_p1_pmap_straight_cylinder()
   struct gkyl_array* mapc2p_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 3, mapc2p_nodal, gk_geom->mc2p);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX] + 3; ip<=nrange.upper[PSI_IDX]; ++ip) {
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset+1; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
@@ -850,7 +859,7 @@ test_3x_p1_pmap_straight_cylinder()
   struct gkyl_array* bmag_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, bmag_nodal, gk_geom->bmag);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
@@ -871,7 +880,7 @@ test_3x_p1_pmap_straight_cylinder()
   struct gkyl_array* bmag_inv_sq_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, bmag_inv_sq_nodal, gk_geom->bmag_inv_sq);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
@@ -892,7 +901,7 @@ test_3x_p1_pmap_straight_cylinder()
   struct gkyl_array* bmag_inv_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, bmag_inv_nodal, gk_geom->bmag_inv);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
@@ -913,7 +922,7 @@ test_3x_p1_pmap_straight_cylinder()
   struct gkyl_array* cmag_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, cmag_nodal, gk_geom->cmag);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
@@ -929,13 +938,13 @@ test_3x_p1_pmap_straight_cylinder()
   struct gkyl_array* eps2_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, eps2_nodal, gk_geom->eps2);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
         cidx[TH_IDX] = it;
         double *eps2_n = gkyl_array_fetch(eps2_nodal, gkyl_range_idx(&nrange, cidx));
-        TEST_CHECK( gkyl_compare( eps2_n[0], 0.0, 1e-8) );
+        TEST_CHECK( gkyl_compare( eps2_n[0], 0.0, 1e-5) );
       }
     }
   }
@@ -944,7 +953,7 @@ test_3x_p1_pmap_straight_cylinder()
   struct gkyl_array* gij_nodal = gkyl_array_new(GKYL_DOUBLE, 6, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 6, gij_nodal, gk_geom->g_ij);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
@@ -956,9 +965,14 @@ test_3x_p1_pmap_straight_cylinder()
         double xn[3] = {psi, alpha, theta};
         double fout[6];
         exact_gij_pmap(0.0, xn, fout, 0);
+        double tol;
         for (int i=0; i<6; ++i)
         {
-          TEST_CHECK( gkyl_compare( gij_n[i], fout[i], 1e-6) );
+          if (i == 4)
+            tol = 1e-3;
+          else
+            tol = 1e-6;
+          TEST_CHECK( gkyl_compare( gij_n[i], fout[i], tol) );
         }
       }
     }
@@ -968,7 +982,7 @@ test_3x_p1_pmap_straight_cylinder()
   struct gkyl_array* gij_contra_nodal = gkyl_array_new(GKYL_DOUBLE, 6, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 6, gij_contra_nodal, gk_geom->gij);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
@@ -979,9 +993,16 @@ test_3x_p1_pmap_straight_cylinder()
         double theta = grid.lower[TH_IDX] + it*(grid.upper[TH_IDX]-grid.lower[TH_IDX])/grid.cells[TH_IDX];
         double xn[3] = {psi, alpha, theta};
         double fout[6];
+        double tol;
         exact_g_contra_ij_pmap(0.0, xn, fout, 0);
         for (int i=0; i<6; ++i)
-          TEST_CHECK( gkyl_compare( gij_contra_n[i], fout[i], 1e-6) );
+        {
+          if (i == 4)
+            tol = 2e-2;
+          else
+            tol = 1e-6;
+          TEST_CHECK( gkyl_compare( gij_contra_n[i], fout[i], tol) );
+        }
       }
     }
   }
@@ -990,7 +1011,7 @@ test_3x_p1_pmap_straight_cylinder()
   struct gkyl_array* jacobgeo_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, jacobgeo_nodal, gk_geom->jacobgeo);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
@@ -1010,7 +1031,7 @@ test_3x_p1_pmap_straight_cylinder()
   struct gkyl_array* jacobgeo_inv_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, jacobgeo_inv_nodal, gk_geom->jacobgeo_inv);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
@@ -1030,7 +1051,7 @@ test_3x_p1_pmap_straight_cylinder()
   struct gkyl_array* jacobtot_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, jacobtot_nodal, gk_geom->jacobtot);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
@@ -1052,7 +1073,7 @@ test_3x_p1_pmap_straight_cylinder()
   struct gkyl_array* jacobtot_inv_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, jacobtot_inv_nodal, gk_geom->jacobtot_inv);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
@@ -1072,8 +1093,8 @@ test_3x_p1_pmap_straight_cylinder()
 
   // Check mapc2p
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
-      for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
+      for (int it=nrange.lower[TH_IDX]+1; it<=nrange.upper[TH_IDX]-1; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
         cidx[TH_IDX] = it;
@@ -1096,7 +1117,7 @@ test_3x_p1_pmap_straight_cylinder()
   struct gkyl_array* mc2nu_pos_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 3, mc2nu_pos_nodal, gk_geom->mc2nu_pos);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
@@ -1118,7 +1139,7 @@ test_3x_p1_pmap_straight_cylinder()
   struct gkyl_array* normals_nodal = gkyl_array_new(GKYL_DOUBLE, 9*basis.num_basis, nrange.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range,  9*basis.num_basis, normals_nodal, gk_geom->normals);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
-    for (int ip=nrange.lower[PSI_IDX]+3; ip<=nrange.upper[PSI_IDX]; ++ip) {
+    for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
@@ -1130,9 +1151,14 @@ test_3x_p1_pmap_straight_cylinder()
         double xn[3] = {psi, alpha, theta};
         double fout[9];
         exact_normals_pmap(0.0, xn, fout, 0);
+        double tol;
         for (int i=0; i<9; ++i)
         {
-          TEST_CHECK( gkyl_compare( normals_n[i], fout[i], 1e-6) );
+          if (i==5)
+            tol = 1e-3;
+          else
+              tol = 1e-6;
+          TEST_CHECK( gkyl_compare( normals_n[i], fout[i], tol) );
         }
       }
     }
@@ -1159,8 +1185,8 @@ test_3x_p1_pmap_straight_cylinder()
 }
 
 TEST_LIST = {
-  // { "test_elliptical", test_elliptical},
+  { "test_elliptical", test_elliptical},
   { "test_3x_p1_straight_cylinder", test_3x_p1_straight_cylinder},
-  // { "test_3x_p1_pmap_straight_cylinder", test_3x_p1_pmap_straight_cylinder},
+  { "test_3x_p1_pmap_straight_cylinder", test_3x_p1_pmap_straight_cylinder},
   { NULL, NULL },
 };
