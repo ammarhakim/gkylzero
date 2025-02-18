@@ -55,7 +55,7 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 
   // Create Poisson solver.
   vpf->fem_poisson = gkyl_fem_poisson_new(&app->global, &app->grid, app->confBasis,
-    &vpf->info.poisson_bcs, vpf->epsilon, NULL, true, app->use_gpu);
+    &vpf->info.poisson_bcs, NULL, vpf->epsilon, NULL, true, app->use_gpu);
 
   vpf->field_id = GKYL_FIELD_PHI;
 
@@ -141,7 +141,7 @@ vp_field_solve(gkyl_vlasov_app *app, struct vm_field *field)
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, field->rho_c, field->rho_c_global);
 
   // Solve the Poisson problem.
-  gkyl_fem_poisson_set_rhs(field->fem_poisson, field->rho_c_global);
+  gkyl_fem_poisson_set_rhs(field->fem_poisson, field->rho_c_global, NULL);
   gkyl_fem_poisson_solve(field->fem_poisson, field->phi_global);
 
   // Copy the portion of global potential corresponding to this MPI pcross to the local potential.
