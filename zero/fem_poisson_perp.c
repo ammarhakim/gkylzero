@@ -19,7 +19,7 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
   up->pardir = grid->ndim-1; // Assume parallel direction is always the last.
   up->basis = basis;
   up->use_gpu = use_gpu;
-  up->epsilon = epsilon;
+  up->epsilon = gkyl_array_acquire(epsilon);
 
   assert(up->ndim > 1);
   assert(up->epsilon->ncomp == (2*(up->ndim-1)-1)*basis.num_basis);
@@ -374,5 +374,6 @@ void gkyl_fem_poisson_perp_release(struct gkyl_fem_poisson_perp *up)
   gkyl_free(up->kernels);
   gkyl_free(up->perp_range);
   gkyl_free(up->globalidx);
+  gkyl_array_release(up->epsilon);
   gkyl_free(up);
 }

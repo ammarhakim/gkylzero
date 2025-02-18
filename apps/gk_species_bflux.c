@@ -164,7 +164,7 @@ gk_species_bflux_rhs_diag(gkyl_gyrokinetic_app *app, const struct gk_species *sp
       if (species->info.integrated_hamiltonian_moments) {
         // Apply BC to phi so it is defined in the ghost cell.
         // Fill the ghost with the skin evaluated at the boundary.
-        gkyl_bc_basic_advance(app->bc_op[2*d+e], app->bc_buffer, app->field->phi_smooth);
+        gkyl_bc_basic_advance(app->gfss_bc_op[2*d+e], app->bc_buffer, app->field->phi_smooth);
 
         // Scale phi by 0.5 in the ghost cell so that the Hamiltonian moment
         // becomes the 0.5*m*v^2+0.5*q*phi moment. Only this way does the energy
