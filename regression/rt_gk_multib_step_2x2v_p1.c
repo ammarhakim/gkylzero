@@ -99,6 +99,9 @@ create_block_geom(void)
   double ntheta_middle = 8;
   double ntheta_upper  = 8;
 
+  // Note that for tokamak multi-block simulations, 
+  // these theta limits are just placeholders and will be 
+  // reset in the multi-block app.
   double theta_lo = -M_PI + 1e-14, theta_up = M_PI - 1e-14;
 
   // block 0. Lower outer PF region.
