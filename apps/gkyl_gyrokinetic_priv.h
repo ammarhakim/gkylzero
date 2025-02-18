@@ -1568,7 +1568,7 @@ gk_species_bflux_calc_integrated_mom(gkyl_gyrokinetic_app* app, const struct gk_
  * @param tm Current simulation time.
  */
 void
-gk_species_bflux_calc_integrated_mom_time_integrated(gkyl_gyrokinetic_app* app,
+gk_species_bflux_calc_voltime_integrated_mom(gkyl_gyrokinetic_app* app,
   const struct gk_species *gk_s, struct gk_boundary_fluxes *bflux, double tm);
 
 /**

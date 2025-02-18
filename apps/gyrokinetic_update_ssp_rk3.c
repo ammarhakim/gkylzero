@@ -196,7 +196,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
               1.0/3.0, gks->bflux_diag.f, 2.0/3.0, gks->bflux_diag.fnew, &app->local_ext);
             gk_species_bflux_copy_range(app, gks, &gks->bflux_diag,
               gks->bflux_diag.f, gks->bflux_diag.f1, &app->local_ext);
-            gk_species_bflux_calc_integrated_mom_time_integrated(app, gks, &gks->bflux_diag, tcurr);
+            gk_species_bflux_calc_voltime_integrated_mom(app, gks, &gks->bflux_diag, tcurr);
             gk_species_bflux_scale(app, &gks->bflux_diag, gks->bflux_diag.f, 1.0/dt);
           }
           for (int i=0; i<app->num_neut_species; ++i) {
