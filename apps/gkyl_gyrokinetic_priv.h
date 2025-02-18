@@ -373,13 +373,13 @@ struct gk_boundary_fluxes {
     struct gkyl_array **fout, double fac1, struct gkyl_array **fin1, double fac2, struct gkyl_array **fin2, struct gkyl_range *range);
   void (*bflux_copy_range_func)(gkyl_gyrokinetic_app *app, struct gk_species *gk_s, struct gk_boundary_fluxes *bflux,
     struct gkyl_array **fout, struct gkyl_array **fin, struct gkyl_range *range);
-  void (*calc_bflux_int_mom_time_integrate_func)(gkyl_gyrokinetic_app* app, const struct gk_species *gk_s,
+  void (*bflux_calc_int_mom_time_integrate_func)(gkyl_gyrokinetic_app* app, const struct gk_species *gk_s,
     struct gk_boundary_fluxes *bflux, double tm);
   void (*bflux_rhs_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_boundary_fluxes *bflux,
     const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
-  void (*calc_boundary_flux_integrated_mom_func)(gkyl_gyrokinetic_app* app, const struct gk_species *gk_s,
+  void (*bflux_calc_integrated_mom_func)(gkyl_gyrokinetic_app* app, const struct gk_species *gk_s,
     struct gk_boundary_fluxes *bflux, double tm);
-  void (*write_boundary_flux_integrated_mom_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+  void (*bflux_write_integrated_mom_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
     struct gk_boundary_fluxes *bflux);
 };
 
@@ -1556,7 +1556,7 @@ gk_species_bflux_copy_range(gkyl_gyrokinetic_app *app, struct gk_species *gks, s
  * @param tm Current simulation time.
  */
 void
-gk_species_bflux_calc_boundary_flux_integrated_mom(gkyl_gyrokinetic_app* app, const struct gk_species *gk_s,
+gk_species_bflux_calc_integrated_mom(gkyl_gyrokinetic_app* app, const struct gk_species *gk_s,
   struct gk_boundary_fluxes *bflux, double tm);
 
 /**
@@ -1568,7 +1568,7 @@ gk_species_bflux_calc_boundary_flux_integrated_mom(gkyl_gyrokinetic_app* app, co
  * @param tm Current simulation time.
  */
 void
-gk_species_bflux_calc_boundary_flux_integrated_mom_time_integrated(gkyl_gyrokinetic_app* app,
+gk_species_bflux_calc_integrated_mom_time_integrated(gkyl_gyrokinetic_app* app,
   const struct gk_species *gk_s, struct gk_boundary_fluxes *bflux, double tm);
 
 /**
@@ -1578,7 +1578,7 @@ gk_species_bflux_calc_boundary_flux_integrated_mom_time_integrated(gkyl_gyrokine
  * @param gks Species object.
  */
 void
-gk_species_bflux_write_boundary_flux_integrated_mom(gkyl_gyrokinetic_app *app,
+gk_species_bflux_write_integrated_mom(gkyl_gyrokinetic_app *app,
   const struct gk_species *gks, struct gk_boundary_fluxes *bflux);
 
 /**

@@ -216,7 +216,7 @@ gk_species_bflux_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species
 }
 
 void
-gk_species_bflux_calc_boundary_flux_integrated_mom_dynamic(gkyl_gyrokinetic_app* app,
+gk_species_bflux_calc_integrated_mom_dynamic(gkyl_gyrokinetic_app* app,
   const struct gk_species *gk_s, struct gk_boundary_fluxes *bflux, double tm)
 {
   int vdim = app->vdim;
@@ -244,7 +244,7 @@ gk_species_bflux_calc_boundary_flux_integrated_mom_dynamic(gkyl_gyrokinetic_app*
 }
 
 static void
-gk_species_bflux_calc_boundary_flux_integrated_mom_time_integrated_dynamic(gkyl_gyrokinetic_app* app,
+gk_species_bflux_calc_integrated_mom_time_integrated_dynamic(gkyl_gyrokinetic_app* app,
   const struct gk_species *gk_s, struct gk_boundary_fluxes *bflux, double tm)
 {
   int vdim = app->vdim;
@@ -274,16 +274,16 @@ gk_species_bflux_calc_boundary_flux_integrated_mom_time_integrated_dynamic(gkyl_
 }
 
 static void
-gk_species_bflux_calc_boundary_flux_integrated_mom_time_integrated_static(gkyl_gyrokinetic_app* app,
+gk_species_bflux_calc_integrated_mom_time_integrated_static(gkyl_gyrokinetic_app* app,
   const struct gk_species *gk_s, struct gk_boundary_fluxes *bflux, double tm)
 {
 }
 
 void
-gk_species_bflux_calc_boundary_flux_integrated_mom_time_integrated(gkyl_gyrokinetic_app* app,
+gk_species_bflux_calc_integrated_mom_time_integrated(gkyl_gyrokinetic_app* app,
   const struct gk_species *gk_s, struct gk_boundary_fluxes *bflux, double tm)
 {
-  bflux->calc_bflux_int_mom_time_integrate_func(app, gk_s, bflux, tm);
+  bflux->bflux_calc_int_mom_time_integrate_func(app, gk_s, bflux, tm);
 }
 
 static void
@@ -301,20 +301,20 @@ gk_species_bflux_append_boundary_flux_integrated_mom(gkyl_gyrokinetic_app* app,
 }
 
 static void
-gk_species_bflux_calc_boundary_flux_integrated_mom_static(gkyl_gyrokinetic_app* app,
+gk_species_bflux_calc_integrated_mom_static(gkyl_gyrokinetic_app* app,
   const struct gk_species *gk_s, struct gk_boundary_fluxes *bflux, double tm)
 {
 }
 
 void
-gk_species_bflux_calc_boundary_flux_integrated_mom(gkyl_gyrokinetic_app* app,
+gk_species_bflux_calc_integrated_mom(gkyl_gyrokinetic_app* app,
   const struct gk_species *gk_s, struct gk_boundary_fluxes *bflux, double tm)
 {
-  bflux->calc_boundary_flux_integrated_mom_func(app, gk_s, bflux, tm);
+  bflux->bflux_calc_integrated_mom_func(app, gk_s, bflux, tm);
 }
   
 static void
-gk_species_bflux_write_boundary_flux_integrated_mom_dynamic(gkyl_gyrokinetic_app *app,
+gk_species_bflux_write_integrated_mom_dynamic(gkyl_gyrokinetic_app *app,
   const struct gk_species *gks, struct gk_boundary_fluxes *bflux)
 {
   int rank;
@@ -353,16 +353,16 @@ gk_species_bflux_write_boundary_flux_integrated_mom_dynamic(gkyl_gyrokinetic_app
 }
 
 static void
-gk_species_bflux_write_boundary_flux_integrated_mom_static(gkyl_gyrokinetic_app *app,
+gk_species_bflux_write_integrated_mom_static(gkyl_gyrokinetic_app *app,
   const struct gk_species *gks, struct gk_boundary_fluxes *bflux)
 {
 }
 
 void
-gk_species_bflux_write_boundary_flux_integrated_mom(gkyl_gyrokinetic_app *app,
+gk_species_bflux_write_integrated_mom(gkyl_gyrokinetic_app *app,
   const struct gk_species *gks, struct gk_boundary_fluxes *bflux)
 {
-  bflux->write_boundary_flux_integrated_mom_func(app, gks, bflux);
+  bflux->bflux_write_integrated_mom_func(app, gks, bflux);
 }
 
 void 
@@ -375,9 +375,9 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
   bflux->bflux_combine_range_func = gk_species_bflux_combine_range_static;
   bflux->bflux_copy_range_func = gk_species_bflux_copy_range_static;
   bflux->bflux_rhs_func = gk_species_bflux_rhs_static; 
-  bflux->calc_boundary_flux_integrated_mom_func = gk_species_bflux_calc_boundary_flux_integrated_mom_static;
-  bflux->write_boundary_flux_integrated_mom_func = gk_species_bflux_write_boundary_flux_integrated_mom_static;
-  bflux->calc_bflux_int_mom_time_integrate_func = gk_species_bflux_calc_boundary_flux_integrated_mom_time_integrated_static;
+  bflux->bflux_calc_integrated_mom_func = gk_species_bflux_calc_integrated_mom_static;
+  bflux->bflux_write_integrated_mom_func = gk_species_bflux_write_integrated_mom_static;
+  bflux->bflux_calc_int_mom_time_integrate_func = gk_species_bflux_calc_integrated_mom_time_integrated_static;
   bflux->allocated_diagnostic = false;
   bflux->allocated_solver = false;
 
@@ -393,12 +393,12 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
     bflux->bflux_copy_range_func = gk_species_bflux_copy_range_dynamic;
     bflux->bflux_rhs_func = gk_species_bflux_rhs_diag; 
     if (gk_s->info.boundary_flux_diagnostics.time_integrated) {
-      bflux->calc_boundary_flux_integrated_mom_func = gk_species_bflux_append_boundary_flux_integrated_mom;
-      bflux->calc_bflux_int_mom_time_integrate_func = gk_species_bflux_calc_boundary_flux_integrated_mom_time_integrated_dynamic;
+      bflux->bflux_calc_integrated_mom_func = gk_species_bflux_append_boundary_flux_integrated_mom;
+      bflux->bflux_calc_int_mom_time_integrate_func = gk_species_bflux_calc_integrated_mom_time_integrated_dynamic;
     }
     else
-      bflux->calc_boundary_flux_integrated_mom_func = gk_species_bflux_calc_boundary_flux_integrated_mom_dynamic;
-    bflux->write_boundary_flux_integrated_mom_func = gk_species_bflux_write_boundary_flux_integrated_mom_dynamic;
+      bflux->bflux_calc_integrated_mom_func = gk_species_bflux_calc_integrated_mom_dynamic;
+    bflux->bflux_write_integrated_mom_func = gk_species_bflux_write_integrated_mom_dynamic;
 
     // Object computing moments of the boundary flux.
     assert(gk_s->info.boundary_flux_diagnostics.num_diag_moments == 0); // Moments NYI.

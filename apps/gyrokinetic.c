@@ -1060,7 +1060,7 @@ void
 gkyl_gyrokinetic_app_calc_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_app* app, int sidx, double tm)
 {
   struct gk_species *gks = &app->species[sidx];
-  gk_species_bflux_calc_boundary_flux_integrated_mom(app, gks, &gks->bflux_diag, tm);
+  gk_species_bflux_calc_integrated_mom(app, gks, &gks->bflux_diag, tm);
 }
 
 void
@@ -1095,7 +1095,7 @@ void
 gkyl_gyrokinetic_app_write_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_app *app, int sidx)
 {
   struct gk_species *gks = &app->species[sidx];
-  gk_species_bflux_write_boundary_flux_integrated_mom(app, gks, &gks->bflux_diag);
+  gk_species_bflux_write_integrated_mom(app, gks, &gks->bflux_diag);
 }
 
 //
