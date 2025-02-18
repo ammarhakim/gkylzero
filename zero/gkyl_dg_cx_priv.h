@@ -36,16 +36,9 @@ static const gkyl_cx_react_rate_kern_list ser_cx_react_rate_kernels[] = {
   { NULL, sigma_cx_3x3v_ser_p1, NULL }, // 5
 };
 
-struct gkyl_dg_cx_kernels {
-  dg_cx_react_ratef_t react_rate;
-};
-
 struct gkyl_dg_cx {
   const struct gkyl_rect_grid *grid; // grid object
-  int cdim; // number of configuration space dimensions
-  int vdim_vl;
-  int vdim_gk;
-  int poly_order; // polynomial order of DG basis
+
   struct gkyl_basis *cbasis;
   struct gkyl_basis *pbasis_gk;
   struct gkyl_basis *pbasis_vl;
@@ -63,41 +56,47 @@ struct gkyl_dg_cx {
   enum gkyl_ion_type type_ion;
   enum gkyl_react_self_type type_self;
 
-  bool use_gpu;
+  uint32_t flags;
+  dg_cx_react_ratef_t react_rate; // pointer to reaction rate kernel
+
   struct gkyl_dg_cx *on_dev; // pointer to itself or device data
 
-  struct gkyl_dg_cx_kernels *kernels;
-  //dg_cx_react_ratef_t react_rate; // pointer to reaction rate kernel
 };
 
-void
-dg_cx_choose_kernel_cu(struct gkyl_dg_cx_kernels *kernels,
-  struct gkyl_basis pbasis_vl, struct gkyl_basis cbasis);
-
 GKYL_CU_D
-static void dg_cx_choose_kernel(struct gkyl_dg_cx_kernels *kernels,
-  struct gkyl_basis pbasis_vl, struct gkyl_basis cbasis, bool use_gpu)
+static dg_cx_react_ratef_t
+choose_kern(enum gkyl_basis_type b_type, int tblidx, int poly_order)
 {
-#ifdef GKYL_HAVE_CUDA
-  if (use_gpu) {
-    dg_cx_choose_kernel_cu(kernels, pbasis_vl, cbasis);
-    return;
-  }
-#endif
-
-  enum gkyl_basis_type basis_type = pbasis_vl.b_type;
-  int pdim = pbasis_vl.ndim;
-  int cdim = cbasis.ndim;
-  int vdim = pdim - cdim;
-  int poly_order = pbasis_vl.poly_order;
-
-  switch (basis_type) {
+  switch (b_type) {
     case GKYL_BASIS_MODAL_HYBRID:
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      kernels->react_rate = ser_cx_react_rate_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      return ser_cx_react_rate_kernels[tblidx].kernels[poly_order];
       break;
     default:
       assert(false);
-      break;
+      break; 
   }
 }
+
+static void
+fit_param(enum gkyl_ion_type type_ion, double *a, double *b)
+{
+  // These values are from E. Meier's PhD Thesis
+  if (type_ion == GKYL_ION_H) {
+    a[0] = 1.12e-18;
+    b[0] = 7.15e-20;
+  }
+  else if (type_ion == GKYL_ION_D) {
+    a[0] = 1.09e-18;
+    b[0] = 7.15e-20;
+  }
+  else if (type_ion == GKYL_ION_HE) {
+    a[0] = 6.484e-19;
+    b[0] = 4.350e-20;
+  } 
+  else if (type_ion == GKYL_ION_NE) {
+    a[0] = 7.95e-19;
+    b[0] = 5.65e-20;
+  }
+}
+
