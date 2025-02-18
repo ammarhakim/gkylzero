@@ -722,7 +722,7 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     }
   }
   else {
-    s->basis_on_dev = &app->basis;
+    s->basis_on_dev = &s->basis;
   }
   
   // full phase space grid
@@ -940,7 +940,7 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
 
   if (app->use_gpu) {
     gkyl_array_release(s->f_host);
-    gkyl_cu_free(app->basis_on_dev);
+    gkyl_cu_free(s->basis_on_dev);
   }
 
   gkyl_velocity_map_release(s->vel_map);
