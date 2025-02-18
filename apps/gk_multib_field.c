@@ -7,7 +7,6 @@
 #include <gkyl_gyrokinetic_multib_priv.h>
 #include <gkyl_multib_conn.h>
 #include <gkyl_rrobin_decomp.h>
-
 #include <assert.h>
 #include <float.h>
 #include <time.h>
@@ -89,30 +88,30 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
     struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
     mbf->phi_local[bI] = gkyl_array_acquire(sbapp->field->phi_smooth);
     mbf->phi_multibz_dg[bI] = mkarr(mbapp->use_gpu, 
-        sbapp->confBasis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
+        sbapp->basis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
     mbf->phi_multibz_smooth[bI] = mkarr(mbapp->use_gpu, 
-        sbapp->confBasis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
+        sbapp->basis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
 
     mbf->rho_c_local[bI] = gkyl_array_acquire(sbapp->field->rho_c);
     mbf->rho_c_multibz_dg[bI] = mkarr(mbapp->use_gpu, 
-        sbapp->confBasis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
+        sbapp->basis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
     mbf->rho_c_multibz_smooth[bI] = mkarr(mbapp->use_gpu, 
-        sbapp->confBasis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
+        sbapp->basis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
 
-    mbf->rhs_weight_local[bI] = mkarr(mbapp->use_gpu, sbapp->confBasis.num_basis, sbapp->local_ext.volume);
+    mbf->rhs_weight_local[bI] = mkarr(mbapp->use_gpu, sbapp->basis.num_basis, sbapp->local_ext.volume);
     gkyl_array_shiftc(mbf->rhs_weight_local[bI], sqrt(pow(2,mbf->cdim)), 0); // Sets weight=1.
     mbf->rhs_weight_multibz[bI] = mkarr(mbapp->use_gpu, 
-      sbapp->confBasis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
+      sbapp->basis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
     if (mbf->cdim == 1) {
       mbf->lhs_weight_local[bI] = gkyl_array_acquire(sbapp->field->epsilon);
       mbf->lhs_weight_multibz[bI] = mkarr(mbapp->use_gpu, 
-        sbapp->confBasis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
+        sbapp->basis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
     }
     else {
-      mbf->lhs_weight_local[bI] = mkarr(mbapp->use_gpu, sbapp->confBasis.num_basis, sbapp->local_ext.volume);
+      mbf->lhs_weight_local[bI] = mkarr(mbapp->use_gpu, sbapp->basis.num_basis, sbapp->local_ext.volume);
       gkyl_array_shiftc(mbf->lhs_weight_local[bI], sqrt(pow(2,mbf->cdim)), 0); // Sets weight=1.
       mbf->lhs_weight_multibz[bI] = mkarr(mbapp->use_gpu, 
-        sbapp->confBasis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
+        sbapp->basis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
     }
   }
 
@@ -173,7 +172,7 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
     struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
     enum gkyl_fem_parproj_bc_type fem_parbc = mbf->info.duplicate_across_blocks? mbf->info.blocks[0].fem_parbc : mbf->info.blocks[bid].fem_parbc;
     mbf->fem_parproj[bI] = gkyl_fem_parproj_new(mbf->multibz_ranges[bI],
-        &sbapp->confBasis, fem_parbc, mbf->lhs_weight_multibz[bI], mbf->rhs_weight_multibz[bI], mbapp->use_gpu);
+        &sbapp->basis, fem_parbc, mbf->lhs_weight_multibz[bI], mbf->rhs_weight_multibz[bI], mbapp->use_gpu);
   }
   
   // Set intersects for copying local rho back out after smoothing

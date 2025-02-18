@@ -10,10 +10,10 @@ gk_neut_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spe
   if (src->source_id) {
     int vdim = app->vdim+1;
     // we need to ensure source has same shape as distribution function
-    src->source = mkarr(app->use_gpu, app->neut_basis.num_basis, s->local_ext.volume);
+    src->source = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
     src->source_host = src->source;
     if (app->use_gpu) {
-      src->source_host = mkarr(false, app->neut_basis.num_basis, s->local_ext.volume);
+      src->source_host = mkarr(false, s->basis.num_basis, s->local_ext.volume);
     }
 
     src->evolve = s->info.source.evolve; // Whether the source is time dependent.
@@ -51,7 +51,7 @@ gk_neut_species_source_calc(gkyl_gyrokinetic_app *app, const struct gk_neut_spec
   struct gk_source *src, double tm)
 {
   if (src->source_id) {
-    struct gkyl_array *source_tmp = mkarr(app->use_gpu, app->neut_basis.num_basis, s->local_ext.volume);
+    struct gkyl_array *source_tmp = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
     for (int k=0; k<s->info.source.num_sources; k++) {
       gk_neut_species_projection_calc(app, s, &src->proj_source[k], source_tmp, tm);
       gkyl_array_accumulate(src->source, 1., source_tmp);
@@ -114,7 +114,7 @@ gk_neut_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_neut_speci
         .frame = frame,
         .stime = tm,
         .poly_order = app->poly_order,
-        .basis_type = app->confBasis.id
+        .basis_type = app->basis.id
       }
     );
 
@@ -132,7 +132,7 @@ gk_neut_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_neut_speci
       // Rescale moment by inverse of Jacobian. 
       // For LTE (Maxwellian) moments, we only need to re-scale
       // the density (the 0th component).
-      gkyl_dg_div_op_range(gkns->moms[m].mem_geo, app->confBasis, 
+      gkyl_dg_div_op_range(gkns->moms[m].mem_geo, app->basis, 
         0, gkns->src.moms[m].marr, 0, gkns->src.moms[m].marr, 0, 
         app->gk_geom->jacobgeo, &app->local);      
 

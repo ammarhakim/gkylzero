@@ -173,39 +173,18 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
   if (app->use_gpu) {
     // allocate device basis if we are using GPUs
-    app->basis_on_dev.basis = gkyl_cu_malloc(sizeof(struct gkyl_basis));
-    app->basis_on_dev.neut_basis = gkyl_cu_malloc(sizeof(struct gkyl_basis));
-    app->basis_on_dev.confBasis = gkyl_cu_malloc(sizeof(struct gkyl_basis));
+    app->basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
   }
   else {
-    app->basis_on_dev.basis = &app->basis;
-    app->basis_on_dev.neut_basis = &app->neut_basis;
-    app->basis_on_dev.confBasis = &app->confBasis;
+    app->basis_on_dev = &app->basis;
   }
 
   // basis functions
   switch (gk->basis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      gkyl_cart_modal_serendip(&app->confBasis, cdim, poly_order);
-      if (poly_order > 1) {
-        gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
-        gkyl_cart_modal_serendip(&app->neut_basis, pdim+1, poly_order); // neutral species are 3v
-      }
-      else if (poly_order == 1) {
-        gkyl_cart_modal_gkhybrid(&app->basis, cdim, vdim); // p=2 in vparallel
-        gkyl_cart_modal_hybrid(&app->neut_basis, cdim, vdim+1); // p=2 in v for neutral species
-      }
-
+      gkyl_cart_modal_serendip(&app->basis, cdim, poly_order);
       if (app->use_gpu) {
-        gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.confBasis, cdim, poly_order);
-        if (poly_order > 1) {
-          gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.basis, pdim, poly_order);
-          gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.neut_basis, pdim+1, poly_order); // neutral species are 3v
-        }
-        else if (poly_order == 1) {
-          gkyl_cart_modal_gkhybrid_cu_dev(app->basis_on_dev.basis, cdim, vdim); // p=2 in vparallel
-          gkyl_cart_modal_hybrid_cu_dev(app->basis_on_dev.neut_basis, cdim, vdim+1); // p=2 in v for neutral species
-        }
+        gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev, cdim, poly_order);
       }
       break;
     default:
@@ -270,7 +249,7 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
   // Configuration space geometry initialization
   app->position_map = gkyl_position_map_new(gk->geometry.position_map_info, app->grid, app->local, 
-      app->local_ext, app->global, app->global_ext, app->confBasis);
+      app->local_ext, app->global, app->global_ext, app->basis);
 
   // Initialize the input struct from user side input struct
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -288,7 +267,7 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     .local_ext = app->local_ext,
     .global = app->global,
     .global_ext = app->global_ext,
-    .basis = app->confBasis,
+    .basis = app->basis,
     .comm = app->comm,
   };
   for(int i = 0; i<3; i++)
@@ -323,7 +302,7 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     geometry_inp.geo_local_ext = app->local_ext;
     geometry_inp.geo_global = app->global;
     geometry_inp.geo_global_ext = app->global_ext;
-    geometry_inp.geo_basis = app->confBasis;
+    geometry_inp.geo_basis = app->basis;
   }
 
   struct gk_geometry* gk_geom_3d;
@@ -379,10 +358,10 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   gkyl_gyrokinetic_app_write_geometry(app);
 
   // Allocate 1/(J.B) using weak mul/div.
-  struct gkyl_array *tmp = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  app->jacobtot_inv_weak = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  gkyl_dg_mul_op_range(app->confBasis, 0, tmp, 0, app->gk_geom->bmag, 0, app->gk_geom->jacobgeo, &app->local); 
-  gkyl_dg_inv_op_range(app->confBasis, 0, app->jacobtot_inv_weak, 0, tmp, &app->local); 
+  struct gkyl_array *tmp = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  app->jacobtot_inv_weak = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  gkyl_dg_mul_op_range(app->basis, 0, tmp, 0, app->gk_geom->bmag, 0, app->gk_geom->jacobgeo, &app->local); 
+  gkyl_dg_inv_op_range(app->basis, 0, app->jacobtot_inv_weak, 0, tmp, &app->local); 
   gkyl_array_release(tmp);
 
   return app;
@@ -433,34 +412,34 @@ gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
 
   if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || app->field->gkfield_id == GKYL_GK_FIELD_ADIABATIC)) {
     // Compute parfac = (cmag/(jacobgeo*B^_\parallel))*kpar_max.
-    struct gkyl_array *parfac = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    gkyl_dg_mul_op_range(app->confBasis, 0, parfac, 0, app->gk_geom->cmag, 0, app->gk_geom->jacobtot_inv, &app->local); 
+    struct gkyl_array *parfac = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gkyl_dg_mul_op_range(app->basis, 0, parfac, 0, app->gk_geom->cmag, 0, app->gk_geom->jacobtot_inv, &app->local); 
     double kpar_max = M_PI*(app->poly_order+1)/app->grid.dx[app->cdim-1];
     gkyl_array_scale_range(parfac, kpar_max, &app->local);
 
     // Compute perpfac_inv = 1/sqrt(k_x^2*eps_xx+k_x*k_y*eps_xy+k_y^2*eps_yy+)).
-    struct gkyl_array *perpfac = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    struct gkyl_array *perpfac_inv = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    struct gkyl_array *perpfac = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    struct gkyl_array *perpfac_inv = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     double kx_min = M_PI/(app->grid.upper[0]-app->grid.lower[0]);
     double kx_sq = app->cdim == 1? 1.0 : pow(kx_min,2); // kperp_sq included in epsilon for cdim=1.
-    gkyl_array_accumulate_offset_range(perpfac, kx_sq, app->field->epsilon, 0*app->confBasis.num_basis, &app->local);
+    gkyl_array_accumulate_offset_range(perpfac, kx_sq, app->field->epsilon, 0*app->basis.num_basis, &app->local);
     if (app->cdim > 2) {
       double ky_min = M_PI/(app->grid.upper[1]-app->grid.lower[1]);
-      gkyl_array_accumulate_offset_range(perpfac, kx_min*ky_min, app->field->epsilon, 1*app->confBasis.num_basis, &app->local);
-      gkyl_array_accumulate_offset_range(perpfac, pow(ky_min,2), app->field->epsilon, 2*app->confBasis.num_basis, &app->local);
+      gkyl_array_accumulate_offset_range(perpfac, kx_min*ky_min, app->field->epsilon, 1*app->basis.num_basis, &app->local);
+      gkyl_array_accumulate_offset_range(perpfac, pow(ky_min,2), app->field->epsilon, 2*app->basis.num_basis, &app->local);
     }
-    gkyl_proj_powsqrt_on_basis* proj_sqrt = gkyl_proj_powsqrt_on_basis_new(&app->confBasis, app->poly_order+1, app->use_gpu);
+    gkyl_proj_powsqrt_on_basis* proj_sqrt = gkyl_proj_powsqrt_on_basis_new(&app->basis, app->poly_order+1, app->use_gpu);
     gkyl_proj_powsqrt_on_basis_advance(proj_sqrt, &app->local, -1.0, perpfac, perpfac_inv);
     gkyl_proj_powsqrt_on_basis_release(proj_sqrt);
 
     // Compute max(parfac*perpfac_inv) (using cell centers).
-    struct gkyl_array *omegaH_gf_grid = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    gkyl_dg_mul_op_range(app->confBasis, 0, omegaH_gf_grid, 0, parfac, 0, perpfac_inv, &app->local); 
+    struct gkyl_array *omegaH_gf_grid = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gkyl_dg_mul_op_range(app->basis, 0, omegaH_gf_grid, 0, parfac, 0, perpfac_inv, &app->local); 
     double *omegaH_gf_red;
     if (app->use_gpu)
-      omegaH_gf_red = gkyl_cu_malloc(app->confBasis.num_basis*sizeof(double));
+      omegaH_gf_red = gkyl_cu_malloc(app->basis.num_basis*sizeof(double));
     else 
-      omegaH_gf_red = gkyl_malloc(app->confBasis.num_basis*sizeof(double));
+      omegaH_gf_red = gkyl_malloc(app->basis.num_basis*sizeof(double));
 
     gkyl_array_reduce_range(omegaH_gf_red, omegaH_gf_grid, GKYL_MAX, &app->local);
 
@@ -513,8 +492,8 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
   if (app->enforce_positivity) {
     // Number of density of the positivity shift added over all the ions.
     // Needed before species_init because species store pointers to these.
-    app->ps_delta_m0_ions = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    app->ps_delta_m0_elcs = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    app->ps_delta_m0_ions = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    app->ps_delta_m0_elcs = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   }
 
   // initialize each species
@@ -792,15 +771,15 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
       .frame = 0,
       .stime = 0,
       .poly_order = app->poly_order,
-      .basis_type = app->confBasis.id
+      .basis_type = app->basis.id
     }
   );
 
   // Gather geo into a global array
-  struct gkyl_array* arr_ho1 = mkarr(false,   app->confBasis.num_basis, app->local_ext.volume);
-  struct gkyl_array* arr_ho3 = mkarr(false, 3*app->confBasis.num_basis, app->local_ext.volume);
-  struct gkyl_array* arr_ho6 = mkarr(false, 6*app->confBasis.num_basis, app->local_ext.volume);
-  struct gkyl_array* arr_ho9 = mkarr(false, 9*app->confBasis.num_basis, app->local_ext.volume);
+  struct gkyl_array* arr_ho1 = mkarr(false,   app->basis.num_basis, app->local_ext.volume);
+  struct gkyl_array* arr_ho3 = mkarr(false, 3*app->basis.num_basis, app->local_ext.volume);
+  struct gkyl_array* arr_ho6 = mkarr(false, 6*app->basis.num_basis, app->local_ext.volume);
+  struct gkyl_array* arr_ho9 = mkarr(false, 9*app->basis.num_basis, app->local_ext.volume);
 
   struct timespec wtm = gkyl_wall_clock();
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->mc2p        , arr_ho3, "mapc2p", mt);
@@ -841,8 +820,8 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
     struct gkyl_range nrange;
     gkyl_gk_geometry_init_nodal_range(&nrange, &app->global, app->poly_order);
     struct gkyl_array* mc2p_nodal = mkarr(false, 3, nrange.volume);
-    struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&app->confBasis, &app->grid, false);
-    gkyl_nodal_ops_m2n(n2m, &app->confBasis, &app->grid, &nrange, &app->global, 3, mc2p_nodal, mc2p_global_ho);
+    struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&app->basis, &app->grid, false);
+    gkyl_nodal_ops_m2n(n2m, &app->basis, &app->grid, &nrange, &app->global, 3, mc2p_nodal, mc2p_global_ho);
     struct gkyl_rect_grid ngrid;
     gkyl_gk_geometry_init_nodal_grid(&ngrid, &app->grid, &nrange);
 
@@ -887,7 +866,7 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
         .frame = frame,
         .stime = tm,
         .poly_order = app->poly_order,
-        .basis_type = app->confBasis.id
+        .basis_type = app->basis.id
       }
     );
 
@@ -1848,10 +1827,10 @@ gyrokinetic_app_geometry_read_and_copy(gkyl_gyrokinetic_app* app, struct gkyl_ar
 void
 gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
 {
-  struct gkyl_array* arr_ho1 = mkarr(false,   app->confBasis.num_basis, app->local_ext.volume);
-  struct gkyl_array* arr_ho3 = mkarr(false, 3*app->confBasis.num_basis, app->local_ext.volume);
-  struct gkyl_array* arr_ho6 = mkarr(false, 6*app->confBasis.num_basis, app->local_ext.volume);
-  struct gkyl_array* arr_ho9 = mkarr(false, 9*app->confBasis.num_basis, app->local_ext.volume);
+  struct gkyl_array* arr_ho1 = mkarr(false,   app->basis.num_basis, app->local_ext.volume);
+  struct gkyl_array* arr_ho3 = mkarr(false, 3*app->basis.num_basis, app->local_ext.volume);
+  struct gkyl_array* arr_ho6 = mkarr(false, 6*app->basis.num_basis, app->local_ext.volume);
+  struct gkyl_array* arr_ho9 = mkarr(false, 9*app->basis.num_basis, app->local_ext.volume);
 
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->mc2p        , arr_ho3, "mapc2p");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->mc2nu_pos   , arr_ho3, "mc2nu_pos");
@@ -2120,8 +2099,7 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
   gkyl_rect_decomp_release(app->decomp);
 
   if (app->use_gpu) {
-    gkyl_cu_free(app->basis_on_dev.basis);
-    gkyl_cu_free(app->basis_on_dev.confBasis);
+    gkyl_cu_free(app->basis_on_dev);
   }
 
   gkyl_free(app);
