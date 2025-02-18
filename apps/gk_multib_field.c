@@ -260,7 +260,7 @@ gk_multib_field_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *
     for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
       struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
       gkyl_deflated_fem_poisson_advance(sbapp->field->deflated_fem_poisson, 
-        sbapp->field->rho_c_global_smooth, sbapp->field->phi_smooth);
+        sbapp->field->rho_c_global_smooth, 0, sbapp->field->phi_smooth);
     }
   }
 
