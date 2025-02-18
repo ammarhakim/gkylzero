@@ -162,7 +162,7 @@ void check_bc_2x(struct gkyl_rect_grid grid, struct gkyl_range range,
 }
 
 void
-test_1x(int poly_order, const bool isperiodic, bool use_gpu, bool on_ghosts)
+test_1x(int poly_order, const bool isperiodic, bool use_gpu)
 {
   double lower[] = {-0.5}, upper[] = {0.5};
   int cells[] = {4};
@@ -218,7 +218,7 @@ test_1x(int poly_order, const bool isperiodic, bool use_gpu, bool on_ghosts)
 //  gkyl_grid_sub_array_write(&grid, &localRange, 0, phi_ho, "ctest_fem_parproj_1x_p2_phi_1.gkyl");
 
   if (poly_order == 1) {
-    if (!isperiodic && !on_ghosts) {
+    if (!isperiodic) {
       // Solution (checked visually, also checked that phi is actually continuous,
       // and checked that visually looks like results in g2):
       const double sol[8] = {-0.9089542445638024, -0.4554124667453318,
@@ -267,7 +267,7 @@ test_1x(int poly_order, const bool isperiodic, bool use_gpu, bool on_ghosts)
       TEST_CHECK( gkyl_compare(sol[1], phi_p[1], 1e-14) );
     }
   } if (poly_order == 2) {
-    if (!isperiodic && !on_ghosts) {
+    if (!isperiodic) {
       // Solution (checked visually against g2):
       const double sol[12] = {-0.9010465429057769, -0.4272439810948228,  0.0875367707148495,
                               -0.9039382020247494,  0.4172269800703625,  0.08107082435707  ,
@@ -334,7 +334,7 @@ test_1x(int poly_order, const bool isperiodic, bool use_gpu, bool on_ghosts)
 }
 
 void
-test_2x(int poly_order, const bool isperiodic, bool use_gpu, bool on_ghosts)
+test_2x(int poly_order, const bool isperiodic, bool use_gpu)
 {
   double lower[] = {-2., -0.5}, upper[] = {2., 0.5};
   int cells[] = {3, 4};
@@ -390,7 +390,7 @@ test_2x(int poly_order, const bool isperiodic, bool use_gpu, bool on_ghosts)
 //  gkyl_grid_sub_array_write(&grid, &localRange, 0, phi_ho, "ctest_fem_parproj_2x_p1_phi_1.gkyl");
 
   if (poly_order == 1) {
-    if (!isperiodic && !on_ghosts) {
+    if (!isperiodic) {
       // Solution (checked continuity manually):
       const double sol[48] = {
         // idx = [0,:]
@@ -514,7 +514,7 @@ test_2x(int poly_order, const bool isperiodic, bool use_gpu, bool on_ghosts)
       }
     }
   } if (poly_order == 2) {
-    if (!isperiodic && !on_ghosts) {
+    if (!isperiodic) {
       // Solution (checked continuity manually):
       const double sol[96] = {
         // idx = [0,:]
@@ -893,7 +893,7 @@ test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
 //  gkyl_grid_sub_array_write(&grid, &localRange, 0, phi_ho, "ctest_fem_parproj_3x_p1_phi_1.gkyl");
 
   if (poly_order == 1) {
-    if (!isperiodic && !on_ghosts) {
+    if (!isperiodic) {
       // Solution (checked visually, also checked that phi is actually continuous,
       // and checked that visually looks like results in g2):
       const double sol[96] = {
@@ -1066,7 +1066,7 @@ test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
       }
     }
   } if (poly_order == 2) {
-    if (!isperiodic && !on_ghosts) {
+    if (!isperiodic) {
       // Solution (checked visually against g2):
       const double sol[240] = {
         // idx = [0,1,:]
@@ -1237,12 +1237,11 @@ test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
 void test_1x_p1_nonperiodic() {test_1x(1, false, false);}
 void test_1x_p1_periodic() {test_1x(1, true, false);}
 
-void test_1x_p2_nonperiodic() {test_1x(2, false, false, false);}
-void test_1x_p2_periodic() {test_1x(2, true, false, false);}
-void test_1x_p2_nonperiodic_ghost() {test_1x(2, false, false, true);}
+void test_1x_p2_nonperiodic() {test_1x(2, false, false);}
+void test_1x_p2_periodic() {test_1x(2, true, false);}
 
-void test_2x_p1_nonperiodic() {test_2x(1, false, false, false);}
-void test_2x_p1_periodic() {test_2x(1, true, false, false);}
+void test_2x_p1_nonperiodic() {test_2x(1, false, false);}
+void test_2x_p1_periodic() {test_2x(1, true, false);}
 
 void test_2x_p2_nonperiodic() {test_2x(2, false, false);}
 void test_2x_p2_periodic() {test_2x(2, true, false);}
@@ -1258,9 +1257,8 @@ void test_2x_p1_weighted() {test_2x_weighted(1, false, false);}
 
 #ifdef GKYL_HAVE_CUDA
 // ......... GPU tests ............ //
-void gpu_test_1x_p1_nonperiodic() {test_1x(1, false, true, false);}
-void gpu_test_1x_p1_periodic() {test_1x(1, true, true, false);}
-void gpu_test_1x_p1_nonperiodic_ghost() {test_1x(1, false, true, true);}
+void gpu_test_1x_p1_nonperiodic() {test_1x(1, false, true);}
+void gpu_test_1x_p1_periodic() {test_1x(1, true, true);}
 
 void gpu_test_1x_p2_nonperiodic() {test_1x(2, false, true);}
 void gpu_test_1x_p2_periodic() {test_1x(2, true, true);}
@@ -1279,33 +1277,25 @@ void gpu_test_2x_p1_weighted() {test_2x_weighted(1, false, true);}
 TEST_LIST = {
   { "test_1x_p1_nonperiodic", test_1x_p1_nonperiodic },
   { "test_1x_p1_periodic", test_1x_p1_periodic },
-  { "test_1x_p1_nonperiodic_ghost", test_1x_p1_nonperiodic_ghost },
   { "test_1x_p2_nonperiodic", test_1x_p2_nonperiodic },
   { "test_1x_p2_periodic", test_1x_p2_periodic },
-  { "test_1x_p2_nonperiodic_ghost", test_1x_p2_nonperiodic_ghost },
   { "test_2x_p1_nonperiodic", test_2x_p1_nonperiodic },
   { "test_2x_p1_periodic", test_2x_p1_periodic },
-  { "test_2x_p1_dirichlet", test_2x_p1_dirichlet},
   { "test_2x_p2_nonperiodic", test_2x_p2_nonperiodic },
   { "test_2x_p2_periodic", test_2x_p2_periodic },
   { "test_2x_p1_dirichlet", test_2x_p1_dirichlet},
   { "test_2x_p1_weighted", test_2x_p1_weighted},
   { "test_3x_p1_nonperiodic", test_3x_p1_nonperiodic },
   { "test_3x_p1_periodic", test_3x_p1_periodic },
-  { "test_3x_p1_nonperiodic_ghost", test_3x_p1_nonperiodic_ghost },
   { "test_3x_p2_nonperiodic", test_3x_p2_nonperiodic },
   { "test_3x_p2_periodic", test_3x_p2_periodic },
 #ifdef GKYL_HAVE_CUDA
   { "gpu_test_1x_p1_nonperiodic", gpu_test_1x_p1_nonperiodic },
   { "gpu_test_1x_p1_periodic", gpu_test_1x_p1_periodic },
-  { "gpu_test_1x_p1_nonperiodic_ghost", gpu_test_1x_p1_nonperiodic_ghost },
   { "gpu_test_1x_p2_nonperiodic", gpu_test_1x_p2_nonperiodic },
   { "gpu_test_1x_p2_periodic", gpu_test_1x_p2_periodic },
-  { "gpu_test_1x_p2_nonperiodic_ghost", gpu_test_1x_p2_nonperiodic_ghost },
-  { "gpu_test_2x_p1_dirichlet", gpu_test_2x_p1_dirichlet},
   { "gpu_test_3x_p1_nonperiodic", gpu_test_3x_p1_nonperiodic },
   { "gpu_test_3x_p1_periodic", gpu_test_3x_p1_periodic },
-  { "gpu_test_3x_p1_nonperiodic_ghost", gpu_test_3x_p1_nonperiodic_ghost },
   { "gpu_test_3x_p2_nonperiodic", gpu_test_3x_p2_nonperiodic },
   { "gpu_test_3x_p2_periodic", gpu_test_3x_p2_periodic },
   { "gpu_test_2x_p1_dirichlet", gpu_test_2x_p1_dirichlet},
