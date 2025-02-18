@@ -608,7 +608,7 @@ gk_species_write_L2norm_static(gkyl_gyrokinetic_app* app, struct gk_species *gks
 static void
 gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 {
-    // release various arrays and species objects
+  // Release various arrays and objects for a dynamic species.
   gkyl_array_release(s->f1);
   gkyl_array_release(s->fnew);
   gkyl_array_release(s->cflrate);
@@ -1688,11 +1688,10 @@ gk_species_write_L2norm(gkyl_gyrokinetic_app* app, struct gk_species *gks)
   gks->write_L2norm_func(app, gks);
 }
 
-// release resources for species
 void
 gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 {
-  // release various arrays and species objects
+  // Release various arrays and species objects.
   gkyl_array_release(s->f);
 
   if (s->info.init_from_file.type == 0) {
