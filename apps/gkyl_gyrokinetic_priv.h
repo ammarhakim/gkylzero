@@ -883,8 +883,8 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_basis basis, neut_basis; // phase-space and phase-space basis for neutrals
   struct gkyl_basis confBasis; // conf-space basis
   
-  struct gkyl_rect_decomp *decomp; // Decomposition object.
-  struct gkyl_comm *comm; // communicator object for conf-space arrays
+  struct gkyl_rect_decomp *decomp; // Volume decomposition object.
+  struct gkyl_comm *comm; // Volume communicator object for conf-space arrays.
 
   // pointers to basis on device (these point to host structs if not
   // on GPU)
@@ -920,8 +920,8 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_gyrokinetic_stat stat; // statistics
 
   bool fdot_diagnostics; // Whether to output df/dt diagnostics.
-  struct gkyl_bc_basic *bc_op[2*GKYL_MAX_CDIM]; // Applies BCs to bmag and phi.
-  struct gkyl_array *bc_buffer; // Buffer used by bc_op;
+  struct gkyl_bc_basic *gfss_bc_op[2*GKYL_MAX_CDIM]; // Applies BCs to bmag and phi.
+  struct gkyl_array *bc_buffer; // Buffer used by gfss_bc_op;
   gkyl_dynvec dts; // Record time step over time.
   bool is_first_dt_write_call; // flag for integrated moments dynvec written first time
 };
