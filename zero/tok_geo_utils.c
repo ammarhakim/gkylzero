@@ -460,6 +460,9 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
 
   }
 
+  gkyl_free(arc_memo);
+  gkyl_free(arc_memo_left);
+  gkyl_free(arc_memo_right);
 
 }
 
