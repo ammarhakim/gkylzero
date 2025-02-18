@@ -3,8 +3,15 @@
 
 void 
 gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_boundary_fluxes *bflux)
-{ 
+{
+  int cdim = app->cdim;
+  int ndim = app->cdim + app->vdim;
+  int cells[GKYL_MAX_DIM];
+  double lower[1], upper[1]; 
   for (int d=0; d<app->cdim; ++d) {
+    for (int i=0; i<cdim; ++i) 
+      cells[i] = s->grid.cells[i]; // reset cell values
+    cells[d] = 1;
     for (int e=0; e<2; ++e) {
       // Allocate solver.
       struct gkyl_range *skin_r = e==0? &s->lower_skin[d] : &s->upper_skin[d];
@@ -13,6 +20,18 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, st
 
       // Initialize moment solver.
       gk_species_moment_init(app, s, &bflux->gammai[2*d+e], "M0");
+
+      // Allocate arrays and ranges for recycling
+      lower[0] = e==0? s->grid.lower[d] : s->grid.upper[d] - s->grid.dx[d];
+      upper[0] = e==0? s->grid.lower[d] + s->grid.dx[d] : s->grid.upper[d];
+
+      bflux->flux_arr[2*d+e] = mkarr(app->use_gpu, app->basis.num_basis, ghost_r->volume);
+      gkyl_range_init(&bflux->flux_r[2*d+e], ndim, ghost_r->lower, ghost_r->upper);
+      gkyl_range_init(&bflux->conf_r[2*d+e], app->cdim, ghost_r->lower,
+        ghost_r->upper);
+
+      gkyl_rect_grid_init(&bflux->boundary_grid[2*d+e], ndim, lower, upper, cells);
+      gkyl_rect_grid_init(&bflux->conf_boundary_grid[2*d+e], cdim, lower, upper, cells);
     }
   }
 }
