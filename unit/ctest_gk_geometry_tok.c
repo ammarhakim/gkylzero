@@ -801,7 +801,13 @@ test_3x_p1_pmap_straight_cylinder()
 
   write_geometry(gk_geom, grid, range, "straight_cylinder");
 
-  int psi_offset = 2;
+  int psi_offset = 2; // Things near the axis are very wrong because there
+  // is no toroidal field in this unit test.
+
+  int theta_shift = 1; // Because of the forward/backward difference 
+  // used to calculate derivatives of the map, the edge values of the map
+  // have a linear order error so the derivatives are not accurate and the 
+  // Jacobian will be a little wrong there.
 
   // Define nodal operations
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
@@ -837,7 +843,7 @@ test_3x_p1_pmap_straight_cylinder()
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 3, mapc2p_nodal, gk_geom->mc2p);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
     for (int ip=nrange.lower[PSI_IDX]+psi_offset+1; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
-      for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
+      for (int it=nrange.lower[TH_IDX] + theta_shift; it<=nrange.upper[TH_IDX] - theta_shift; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
         cidx[TH_IDX] = it;
@@ -954,7 +960,7 @@ test_3x_p1_pmap_straight_cylinder()
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 6, gij_nodal, gk_geom->g_ij);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
     for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
-      for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
+      for (int it=nrange.lower[TH_IDX] + theta_shift; it<=nrange.upper[TH_IDX] - theta_shift; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
         cidx[TH_IDX] = it;
@@ -983,7 +989,7 @@ test_3x_p1_pmap_straight_cylinder()
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 6, gij_contra_nodal, gk_geom->gij);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
     for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
-      for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
+      for (int it=nrange.lower[TH_IDX] + theta_shift; it<=nrange.upper[TH_IDX] - theta_shift; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
         cidx[TH_IDX] = it;
@@ -1012,7 +1018,7 @@ test_3x_p1_pmap_straight_cylinder()
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, jacobgeo_nodal, gk_geom->jacobgeo);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
     for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
-      for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
+      for (int it=nrange.lower[TH_IDX] + theta_shift; it<=nrange.upper[TH_IDX] - theta_shift; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
         cidx[TH_IDX] = it;
@@ -1032,7 +1038,7 @@ test_3x_p1_pmap_straight_cylinder()
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, jacobgeo_inv_nodal, gk_geom->jacobgeo_inv);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
     for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
-      for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
+      for (int it=nrange.lower[TH_IDX] + theta_shift; it<=nrange.upper[TH_IDX] - theta_shift; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
         cidx[TH_IDX] = it;
@@ -1052,7 +1058,7 @@ test_3x_p1_pmap_straight_cylinder()
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, jacobtot_nodal, gk_geom->jacobtot);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
     for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
-      for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
+      for (int it=nrange.lower[TH_IDX] + theta_shift; it<=nrange.upper[TH_IDX] - theta_shift; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
         cidx[TH_IDX] = it;
@@ -1074,7 +1080,7 @@ test_3x_p1_pmap_straight_cylinder()
   gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 1, jacobtot_inv_nodal, gk_geom->jacobtot_inv);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
     for (int ip=nrange.lower[PSI_IDX]+psi_offset; ip<=nrange.upper[PSI_IDX]-psi_offset; ++ip) {
-      for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
+      for (int it=nrange.lower[TH_IDX] + theta_shift; it<=nrange.upper[TH_IDX] - theta_shift; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
         cidx[TH_IDX] = it;
