@@ -885,6 +885,9 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_rect_decomp *decomp; // Volume decomposition object.
   struct gkyl_comm *comm; // Volume communicator object for conf-space arrays.
 
+  struct gkyl_rect_decomp *decomp_plane[GKYL_MAX_CDIM]; // Volume decomposition object.
+  struct gkyl_comm *comm_plane[GKYL_MAX_CDIM]; // Volume communicator object for conf-space arrays.
+
   // pointers to basis on device (these point to host structs if not
   // on GPU)
   struct {

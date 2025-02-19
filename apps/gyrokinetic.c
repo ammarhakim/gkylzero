@@ -248,6 +248,48 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     gkyl_create_ranges(&app->decomp->ranges[rank], ghost, &app->local_ext, &app->local);
   }
 
+  // Create plane communicators.
+  if (app->cdim == 1) {
+    app->decomp_plane[0] = gkyl_rect_decomp_acquire(app->decomp);
+    app->comm_plane[0] = gkyl_comm_acquire(app->comm);
+  }
+  else {
+    for (int dir=0; dir<app->cdim; ++dir) {
+      // Identify ranks on the same plane as this one.
+      int num_ranks_plane = 0;
+      int ranks_plane[app->decomp->ndecomp]; 
+      for (int i=0; i<app->decomp->ndecomp; i++) {
+        if (app->decomp->ranges[i].lower[dir] == app->local.lower[dir]) {
+          ranks_plane[num_ranks_plane] = i;
+          num_ranks_plane++;
+        }
+      }
+      // Create a range tangentially global, and local in perp direction.
+      int lower_plane[app->cdim], upper_plane[app->cdim];
+      for (int d=0; d<app->cdim; ++d) {
+        lower_plane[d] = app->global.lower[d];
+        upper_plane[d] = app->global.upper[d];
+      }
+      lower_plane[dir] = app->local.lower[dir];
+      upper_plane[dir] = app->local.upper[dir];
+      struct gkyl_range range_plane;
+      gkyl_range_init(&range_plane, app->cdim, lower_plane, upper_plane);
+  
+      // Create decomp.
+      int cuts_plane[GKYL_MAX_CDIM];
+      for (int d=0; d<app->cdim; ++d)
+        cuts_plane[d] = gk->parallelism.cuts[d];
+      cuts_plane[dir] = 1;
+      app->decomp_plane[dir] = gkyl_rect_decomp_new_from_cuts(app->cdim, cuts_plane, &range_plane);
+  
+      // Create a new communicator with ranks on plane.
+      bool is_comm_valid;
+      app->comm_plane[dir] = gkyl_comm_create_comm_from_ranks(app->comm, num_ranks_plane,
+        ranks_plane, app->decomp_plane[dir], &is_comm_valid);
+      assert(is_comm_valid);
+    }
+  }
+
   // Local skin and ghost ranges for configuration space fields.
   for (int dir=0; dir<cdim; ++dir) {
     gkyl_skin_ghost_ranges(&app->lower_skin[dir], &app->lower_ghost[dir], dir, GKYL_LOWER_EDGE, &app->local_ext, ghost); 
@@ -2232,6 +2274,10 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
   if (app->num_neut_species > 0)
     gkyl_free(app->neut_species);
 
+  for (int dir=0; dir<app->cdim; ++dir) {
+    gkyl_rect_decomp_release(app->decomp_plane[dir]);
+    gkyl_comm_release(app->comm_plane[dir]);
+  }
   gkyl_comm_release(app->comm);
   gkyl_rect_decomp_release(app->decomp);
 
