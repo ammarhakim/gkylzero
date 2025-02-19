@@ -69,6 +69,7 @@ struct gk_multib_field {
   struct gkyl_gyrokinetic_multib_field info; // data for field
   enum gkyl_gkfield_id gkfield_id; // type of field
   int num_local_blocks; // total number of blocks on current rank
+  int cdim; // number of configuration space dimensions
 
   struct gkyl_multib_comm_conn **mbcc_allgatherz_send; // comm object for allgather sends
   struct gkyl_multib_comm_conn **mbcc_allgatherz_recv; // comm object for allgather receives
@@ -76,11 +77,25 @@ struct gk_multib_field {
   struct gkyl_range **multibz_ranges_ext; // extended ranges for smoothing along z
   struct gkyl_range **block_subrangesz; // ranges for copying smooth phi density
                                        // back to single block apps
+  struct gkyl_range **parent_subrangesz; // ranges for copying smooth charge density
 
   // arrays for connected-along-z phi and smoothed (in z) phi
   struct gkyl_array **phi_local;
   struct gkyl_array **phi_multibz_dg;
   struct gkyl_array **phi_multibz_smooth;
+
+  // Arrays for connected-along z charge density
+  struct gkyl_array **rho_c_local;
+  struct gkyl_array **rho_c_multibz_dg;
+  struct gkyl_array **rho_c_multibz_smooth;
+
+
+  // Weights for smoothing
+  struct gkyl_array **lhs_weight_local;
+  struct gkyl_array **lhs_weight_multibz;
+  struct gkyl_array **rhs_weight_local;
+  struct gkyl_array **rhs_weight_multibz;
+
 
   struct gkyl_fem_parproj **fem_parproj; // FEM smoothers for projecting DG functions onto continuous FEM basis
                                         // weight*phi_{fem} = phi_{dg} 

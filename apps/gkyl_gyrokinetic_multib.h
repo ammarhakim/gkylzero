@@ -132,7 +132,8 @@ struct gkyl_gyrokinetic_multib_neut_species {
 struct gkyl_gyrokinetic_multib_field_pb {
   int block_id; // block ID
 
-  double polarization_bmag; 
+  double polarization_bmag; // B  to use in linearized polarization weight
+  double kperpSq; // kperp^2 parameter for 1D field equations
   enum gkyl_fem_parproj_bc_type fem_parbc;
 
   void *phi_wall_lo_ctx; // context for biased wall potential on lower wall
