@@ -491,43 +491,12 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
           // Calculate derivatives using finite difference for ddtheta,
           // as well as transform the computational coordiante to the non-uniform field-aligned value
 
-          // Non-uniform psi. Finite differences are calculated elsewhere.
-          double psi_left = psi_curr - delta_psi;
-          double psi_right = psi_curr + delta_psi;
-          double Psi_left, Psi_curr, Psi_right;
-          position_map->maps[0](0.0, &psi_left,  &Psi_left,  position_map->ctxs[0]);
+          // Non-uniform psi. Finite differences are calculated in calc_metric.c
+          double Psi_curr;
           position_map->maps[0](0.0, &psi_curr,  &Psi_curr,  position_map->ctxs[0]);
-          position_map->maps[0](0.0, &psi_right, &Psi_right, position_map->ctxs[0]);
-          double dPsi_dpsi;
-          if (ip == nrange->lower[PSI_IDX]){
-            dPsi_dpsi = (Psi_right - Psi_curr)/(delta_psi);
-          }
-          else if (ip == nrange->upper[PSI_IDX]){
-            dPsi_dpsi = (Psi_curr - Psi_left)/(delta_psi);
-          }
-          else{
-            dPsi_dpsi = (Psi_right - Psi_left)/(2.0*delta_psi);
-          }
           psi_curr = Psi_curr;
 
-          // Non-uniform alpha
-          double alpha_left = alpha_curr - delta_alpha;
-          double alpha_right = alpha_curr + delta_alpha;
-          double Alpha_left, Alpha_curr, Alpha_right;
-          position_map->maps[1](0.0, &alpha_left,  &Alpha_left,  position_map->ctxs[1]);
-          position_map->maps[1](0.0, &alpha_curr,  &Alpha_curr,  position_map->ctxs[1]);
-          position_map->maps[1](0.0, &alpha_right, &Alpha_right, position_map->ctxs[1]);
-          double dAlpha_dalpha;
-          if (ia == nrange->lower[AL_IDX]){
-            dAlpha_dalpha = (Alpha_right - Alpha_curr)/(delta_alpha);
-          }
-          else if (ia == nrange->upper[AL_IDX]){
-            dAlpha_dalpha = (Alpha_curr - Alpha_left)/(delta_alpha);
-          }
-          else{
-            dAlpha_dalpha = (Alpha_right - Alpha_left)/(2.0*delta_alpha);
-          }
-          alpha_curr = Alpha_curr;
+          // We cannot do non-uniform alpha. It would break our Poisson solver
 
           // Non-uniform theta
           double theta_left  = theta_curr - delta_theta;

@@ -260,27 +260,10 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
           // Calculate derivatives using finite difference for ddtheta,
           // as well as transform the computational coordiante to the non-uniform field-aligned value
 
-          // Non-uniform psi. Finite differences are calculated elsewhere.
+          // Non-uniform psi. Finite differences are calculated in calc_metric.c
           position_map->maps[0](0.0, &psi_curr,  &psi_curr,  position_map->ctxs[0]);
 
-          // Non-uniform alpha
-          double alpha_left = alpha_curr - delta_alpha;
-          double alpha_right = alpha_curr + delta_alpha;
-          double Alpha_left, Alpha_curr, Alpha_right;
-          position_map->maps[1](0.0, &alpha_left,  &Alpha_left,  position_map->ctxs[1]);
-          position_map->maps[1](0.0, &alpha_curr,  &Alpha_curr,  position_map->ctxs[1]);
-          position_map->maps[1](0.0, &alpha_right, &Alpha_right, position_map->ctxs[1]);
-          double dAlpha_dalpha;
-          if (ia == nrange->lower[AL_IDX]){
-            dAlpha_dalpha = (Alpha_right - Alpha_curr)/(delta_alpha);
-          }
-          else if (ia == nrange->upper[AL_IDX]){
-            dAlpha_dalpha = (Alpha_curr - Alpha_left)/(delta_alpha);
-          }
-          else{
-            dAlpha_dalpha = (Alpha_right - Alpha_left)/(2.0*delta_alpha);
-          }
-          alpha_curr = Alpha_curr;
+          // We cannot do non-uniform alpha because of the Poisson solver
 
           // Non-uniform theta
           double theta_left  = theta_curr - delta_theta;
@@ -349,7 +332,7 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
             mc2nu_n[X_IDX] = psi_curr;
             mc2nu_n[Y_IDX] = -alpha_curr;
             mc2nu_n[Z_IDX] = theta_curr;
-            ddtheta_n[0] = sin(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI * dAlpha_dalpha; // dR/dtheta
+            ddtheta_n[0] = sin(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI * dTheta_dtheta; // dR/dtheta
             ddtheta_n[1] = cos(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI * dTheta_dtheta; // dZ/dtheta
             ddtheta_n[2] = 0.0; // dphi/dtheta
           }
