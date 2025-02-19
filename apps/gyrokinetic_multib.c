@@ -1,3 +1,4 @@
+#include "gkyl_block_geom.h"
 #include <gkyl_array_rio_priv.h>
 #include <gkyl_elem_type_priv.h>
 #include <gkyl_gyrokinetic_multib.h>
@@ -198,6 +199,13 @@ singleb_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     app_inp.upper[i] = bgi->upper[i];
     app_inp.cells[i] = bgi->cells[i];
   }
+
+  // Set z dir grid extents based on tokamak global normalization
+  if(bgi->geometry.geometry_id == GKYL_TOKAMAK) {
+    gkyl_gk_geometry_tok_set_grid_extents(bgi->geometry.efit_info, bgi->geometry.tok_grid_info, &app_inp.lower[cdim-1], &app_inp.upper[cdim-1]);
+    gkyl_block_geom_reset_block_extents(mbapp->block_geom, bid, app_inp.lower, app_inp.upper);
+  }
+
   app_inp.geometry = bgi->geometry;
   int vdim = app_inp.vdim = mbinp->vdim;
   int num_species = app_inp.num_species = mbinp->num_species;
@@ -530,6 +538,7 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   }
 
   field_inp.polarization_bmag = fld_pb->polarization_bmag ? fld_pb->polarization_bmag : mbapp->bmag_ref;
+  field_inp.kperpSq = fld_pb->kperpSq;
 
   field_inp.phi_wall_lo_ctx = fld_pb->phi_wall_lo_ctx; 
   field_inp.phi_wall_lo = fld_pb->phi_wall_lo; 
@@ -1050,7 +1059,6 @@ gkyl_gyrokinetic_multib_app_read_from_frame(gkyl_gyrokinetic_multib_app *app, in
     gyrokinetic_multib_calc_field_and_apply_bc(app, rstat.stime, distf, distf_neut);
   }
 
-  assert(app->num_local_blocks == 1);
   struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[0];
   sbapp->field->is_first_energy_write_call = false; // Append to existing diagnostic.
 
