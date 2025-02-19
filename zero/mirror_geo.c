@@ -156,8 +156,8 @@ gkyl_mirror_geo_R_psiZ(const struct gkyl_mirror_geo *geo, double psi, double Z, 
 
 void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
   struct gkyl_mirror_geo *geo, struct gkyl_mirror_geo_grid_inp *inp,
-  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, struct gkyl_array *ddalpha_nodal,
-  struct gkyl_array *ddtheta_nodal, struct gkyl_array *mc2nu_pos_nodal, struct gkyl_array *mc2nu_pos,
+  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, struct gkyl_array *ddtheta_nodal,
+  struct gkyl_array *mc2nu_pos_nodal, struct gkyl_array *mc2nu_pos,
   struct gkyl_position_map *position_map)
 {
 
@@ -260,7 +260,7 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
           // Calculate derivatives using finite difference for ddtheta,
           // as well as transform the computational coordiante to the non-uniform field-aligned value
 
-          // Non-uniform psi. Finite differences are calculated in calc_metric.
+          // Non-uniform psi. Finite differences are calculated elsewhere.
           position_map->maps[0](0.0, &psi_curr,  &psi_curr,  position_map->ctxs[0]);
 
           // Non-uniform alpha
@@ -336,7 +336,6 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
           double *mc2p_fd_n = gkyl_array_fetch(mc2p_nodal_fd, gkyl_range_idx(nrange, cidx));
           double *mc2p_n = gkyl_array_fetch(mc2p_nodal, gkyl_range_idx(nrange, cidx));
           double *mc2nu_n = gkyl_array_fetch(mc2nu_pos_nodal, gkyl_range_idx(nrange, cidx));
-          double *ddalpha_n = gkyl_array_fetch(ddalpha_nodal, gkyl_range_idx(nrange, cidx));
           double *ddtheta_n = gkyl_array_fetch(ddtheta_nodal, gkyl_range_idx(nrange, cidx));
 
           mc2p_fd_n[lidx+X_IDX] = r_curr;
@@ -350,12 +349,9 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
             mc2nu_n[X_IDX] = psi_curr;
             mc2nu_n[Y_IDX] = -alpha_curr;
             mc2nu_n[Z_IDX] = theta_curr;
-            ddalpha_n[0] = 0.0; // dR/dalpha
-            ddalpha_n[1] = 0.0; // dZ/dalpha
-            ddalpha_n[2] = -1.0 * dAlpha_dalpha; // dphi/dalpha
-            ddtheta_n[0] = sin(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI * dTheta_dtheta; // dR/dtheta
-            ddtheta_n[1] = cos(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI * dTheta_dtheta; // dZ/dtheta
-            ddtheta_n[2] = 0.0; // dphi/dtheta. Calculated using finite difference when geometry is generated
+            ddtheta_n[0] = 0.0; // Calculated using finite difference when geometry is generated
+            ddtheta_n[1] = sin(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI * dAlpha_dalpha;
+            ddtheta_n[2] = cos(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI * dTheta_dtheta;
           }
         }
       }

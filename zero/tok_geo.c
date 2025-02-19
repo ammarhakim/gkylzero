@@ -360,7 +360,7 @@ gkyl_tok_geo_R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nm
 
 void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], struct gkyl_tok_geo *geo, 
   struct gkyl_tok_geo_grid_inp *inp, struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, 
-  struct gkyl_array *mc2p, struct gkyl_array *ddalpha_nodal, struct gkyl_array *ddtheta_nodal,
+  struct gkyl_array *mc2p, struct gkyl_array *ddtheta_nodal,
   struct gkyl_array *mc2nu_nodal, struct gkyl_array *mc2nu_pos,
   struct gkyl_position_map *position_map)
 {
@@ -491,9 +491,23 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
           // Calculate derivatives using finite difference for ddtheta,
           // as well as transform the computational coordiante to the non-uniform field-aligned value
 
-          // Non-uniform psi. Finite differences are calculated in calc_metric.
-          double Psi_curr;
+          // Non-uniform psi. Finite differences are calculated elsewhere.
+          double psi_left = psi_curr - delta_psi;
+          double psi_right = psi_curr + delta_psi;
+          double Psi_left, Psi_curr, Psi_right;
+          position_map->maps[0](0.0, &psi_left,  &Psi_left,  position_map->ctxs[0]);
           position_map->maps[0](0.0, &psi_curr,  &Psi_curr,  position_map->ctxs[0]);
+          position_map->maps[0](0.0, &psi_right, &Psi_right, position_map->ctxs[0]);
+          double dPsi_dpsi;
+          if (ip == nrange->lower[PSI_IDX]){
+            dPsi_dpsi = (Psi_right - Psi_curr)/(delta_psi);
+          }
+          else if (ip == nrange->upper[PSI_IDX]){
+            dPsi_dpsi = (Psi_curr - Psi_left)/(delta_psi);
+          }
+          else{
+            dPsi_dpsi = (Psi_right - Psi_left)/(2.0*delta_psi);
+          }
           psi_curr = Psi_curr;
 
           // Non-uniform alpha
@@ -596,7 +610,6 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
           double *mc2p_fd_n = gkyl_array_fetch(mc2p_nodal_fd, gkyl_range_idx(nrange, cidx));
           double *mc2p_n = gkyl_array_fetch(mc2p_nodal, gkyl_range_idx(nrange, cidx));
           double *mc2nu_n = gkyl_array_fetch(mc2nu_nodal, gkyl_range_idx(nrange, cidx));
-          double *ddalpha_n = gkyl_array_fetch(ddalpha_nodal, gkyl_range_idx(nrange, cidx));
           double *ddtheta_n = gkyl_array_fetch(ddtheta_nodal, gkyl_range_idx(nrange, cidx));
 
           mc2p_fd_n[lidx+X_IDX] = r_curr;
@@ -610,12 +623,9 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
             mc2nu_n[X_IDX] = psi_curr;
             mc2nu_n[Y_IDX] = -alpha_curr;
             mc2nu_n[Z_IDX] = theta_curr;
-            ddalpha_n[0] = 0.0; // dR/dalpha
-            ddalpha_n[1] = 0.0; // dZ/dalpha
-            ddalpha_n[2] = -1.0 * dAlpha_dalpha; // dphi/dalpha
-            ddtheta_n[0] = sin(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI * dTheta_dtheta; // dR/dtheta
-            ddtheta_n[1] = cos(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI * dTheta_dtheta; // dZ/dtheta
-            ddtheta_n[2] = dphidtheta_func(z_curr, &arc_ctx) * dTheta_dtheta; // dphi/dtheta
+            ddtheta_n[0] = dphidtheta_func(z_curr, &arc_ctx) * dPsi_dpsi;
+            ddtheta_n[1] = sin(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI * dAlpha_dalpha;
+            ddtheta_n[2] = cos(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI * dTheta_dtheta;
           }
         }
       }
