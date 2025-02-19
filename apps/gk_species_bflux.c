@@ -7,10 +7,13 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, st
   int cdim = app->cdim;
   int ndim = app->cdim + app->vdim;
   int cells[GKYL_MAX_DIM];
-  double lower[1], upper[1]; 
+  double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
   for (int d=0; d<app->cdim; ++d) {
-    for (int i=0; i<cdim; ++i) 
+    for (int i=0; i<cdim; ++i) {
       cells[i] = s->grid.cells[i]; // reset cell values
+      lower[i] = s->grid.lower[i];
+      upper[i] = s->grid.upper[i];
+    }
     cells[d] = 1;
     for (int e=0; e<2; ++e) {
       // Allocate solver.
