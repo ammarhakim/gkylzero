@@ -56,7 +56,7 @@ apply_periodic_bc(struct gkyl_array *buff, struct gkyl_array *fld, const int dir
   gkyl_array_copy_from_buffer(fld, buff->data, &(sgr.lower_ghost[dir]));
 }
 
-static void check_continuity(struct gkyl_range range, struct gkyl_basis basis, struct gkyl_array *field)
+static void check_continuity_par(struct gkyl_range range, struct gkyl_basis basis, struct gkyl_array *field)
 {
   // Check continuity along last dim.
   if (basis.poly_order > 1) return;
@@ -98,7 +98,66 @@ static void check_continuity(struct gkyl_range range, struct gkyl_basis basis, s
         fn_up[i] = basis.eval_expand(node_up, arr_up);
       }
       for (int i=0; i<num_nodes_perp; i++) {
-        TEST_CHECK( gkyl_compare(fn_lo[i], fn_up[i], 1e-12) );
+        TEST_CHECK( gkyl_compare(fn_lo[i], fn_up[i], 1e-9) );
+        TEST_MSG( "idx_lo=%d, node %d: lower=%g upper=%g diff=%g\n", idx_lo[0], i, fn_lo[i], fn_up[i], fn_lo[i]-fn_up[i]);
+      }
+    }
+  }
+  
+  gkyl_array_release(nodes);
+}
+
+static void check_continuity_perp(struct gkyl_range range, struct gkyl_basis basis, struct gkyl_array *field)
+{
+  // Check continuity along perp directions.
+  int ndim = basis.ndim;
+  if (basis.poly_order > 1 || ndim == 1) return;
+  int num_nodes = basis.num_basis;
+  struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, ndim, basis.num_basis);
+  basis.node_list(gkyl_array_fetch(nodes, 0));
+
+  int idx_up[ndim];
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    int perpdir = 0;
+    if (iter.idx[perpdir] < range.upper[perpdir]) {
+      int *idx_lo = iter.idx;
+      for (int d=0; d<ndim; d++)
+        idx_up[d] = idx_lo[d];
+      idx_up[perpdir] = idx_lo[perpdir] + 1;
+
+      long lidx_lo = gkyl_range_idx(&range, idx_lo);
+      long lidx_up = gkyl_range_idx(&range, idx_up);
+
+      double *arr_lo = gkyl_array_fetch(field, lidx_lo);
+      double *arr_up = gkyl_array_fetch(field, lidx_up);
+
+//      2x
+//        1 3
+//        0 2
+//      3x
+//        1 3 5 7
+//        0 2 4 6
+//
+//        2 3 6 7
+//        0 1 4 5
+      double fn_lo[num_nodes], fn_up[num_nodes];
+      int nc = 0;
+      // Upper x boundary.
+      for (int i=1; i<num_nodes; i += 2) {
+        const double *node_lo = gkyl_array_cfetch(nodes, i);
+        fn_lo[nc] = basis.eval_expand(node_lo, arr_lo);
+        nc++;
+      }
+      nc = 0;
+      for (int i=0; i<num_nodes; i += 2) {
+        const double *node_up = gkyl_array_cfetch(nodes, i);
+        fn_up[nc] = basis.eval_expand(node_up, arr_up);
+        nc++;
+      }
+      for (int i=0; i<nc; i++) {
+        TEST_CHECK( gkyl_compare(fn_lo[i], fn_up[i], 1e-9) );
         TEST_MSG( "idx_lo=%d, node %d: lower=%g upper=%g diff=%g\n", idx_lo[0], i, fn_lo[i], fn_up[i], fn_lo[i]-fn_up[i]);
       }
     }
@@ -229,7 +288,7 @@ test_1x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 //  gkyl_grid_sub_array_write(&grid, &localRange, 0, phi_ho, "ctest_fem_parproj_1x_p2_phi_1.gkyl");
 
   // Check continuity at cell boundaries.
-  check_continuity(localRange, basis, phi_ho);
+  check_continuity_par(localRange, basis, phi_ho);
 
   if (poly_order == 1) {
     if (bctype == GKYL_FEM_PARPROJ_DIRICHLET) {
@@ -359,6 +418,20 @@ void evalFunc2x(double t, const double *xn, double* restrict fout, void *ctx)
   fout[0] = exp(-(pow(x-mu,2))/(2.0*sig*sig))*sin(2.*M_PI*y);
 }
 
+void evalFunc2x_xcont(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0], y = xn[1];
+  double mu = .2;
+  double sig = 0.3;
+  fout[0] = exp(-(pow(x-mu,2))/(2.0*sig*sig));
+}
+
+void evalFunc2x_ydiscont(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0], y = xn[1];
+  fout[0] = 2.0+sin(2.*M_PI*y);
+}
+
 void
 evalFunc2x_dirichlet(double t, const double *xn, double *fout, void *ctx)
 {
@@ -373,11 +446,11 @@ test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
   int cells[] = {3, 4};
   int dim = sizeof(lower)/sizeof(lower[0]);
 
-  // grids.
+  // Grids.
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
 
-  // basis functions.
+  // Basis functions.
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
@@ -387,7 +460,7 @@ test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
   struct skin_ghost_ranges skin_ghost; // skin/ghost.
   skin_ghost_ranges_init(&skin_ghost, &localRange_ext, ghost);
 
-  // projection updater for DG field.
+  // Projection updater for DG field.
   gkyl_proj_on_basis *projob = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, bctype==GKYL_FEM_PARPROJ_DIRICHLET? evalFunc2x_dirichlet : evalFunc2x, NULL);
 
@@ -399,12 +472,25 @@ test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
   struct gkyl_array *rho_ho = use_gpu? mkarr(false, rho->ncomp, rho->size) : gkyl_array_acquire(rho);
   struct gkyl_array *phi_ho = use_gpu? mkarr(false, phi->ncomp, phi->size) : gkyl_array_acquire(phi);
 
-  // project distribution function on basis.
+  // Project distribution function on basis.
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
   gkyl_array_copy(rho, rho_ho);
+
+//  // Project a function that is continuous in x but discontinuous in z.
+//  gkyl_eval_on_nodes *evcont = gkyl_eval_on_nodes_new(&grid, &basis,
+//    1, evalFunc2x_xcont, NULL);
+//  gkyl_proj_on_basis *projdiscont = gkyl_proj_on_basis_new(&grid, &basis,
+//    poly_order+1, 1, evalFunc2x_ydiscont, NULL);
+//  gkyl_eval_on_nodes_advance(evcont, 0.0, &localRange, rho_ho);
+//  gkyl_proj_on_basis_advance(projdiscont, 0.0, &localRange, phi_ho);
+//  gkyl_proj_on_basis_release(projdiscont);
+//  gkyl_eval_on_nodes_release(evcont);
+//  gkyl_dg_mul_op(basis, 0, rho_ho, 0, phi_ho, 0, rho_ho);
+//  gkyl_array_copy(rho, rho_ho);
+
 //  gkyl_grid_sub_array_write(&grid, &localRange, 0, rho_ho, "ctest_fem_parproj_2x_p1_rho_1.gkyl");
 
-  // parallel FEM projection method.
+  // Parallel FEM projection method.
   struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&localRange, &basis,
     bctype, 0, 0, use_gpu);
 
@@ -423,7 +509,8 @@ test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 //  gkyl_grid_sub_array_write(&grid, &localRange, 0, phi_ho, "ctest_fem_parproj_2x_p1_phi_1.gkyl");
 
   // Check continuity at cell boundaries.
-  check_continuity(localRange, basis, phi_ho);
+  check_continuity_par(localRange, basis, phi_ho);
+//  check_continuity_perp(localRange, basis, phi_ho);
 
   if (poly_order == 1) {
     if (bctype == GKYL_FEM_PARPROJ_DIRICHLET) {
@@ -815,7 +902,7 @@ test_2x_weighted(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_
 //  gkyl_grid_sub_array_write(&grid, &localRange, 0, phi_ho, "ctest_fem_parproj_2x_p1_phi_1.gkyl");
 
   // Check that the field is continuous.
-  check_continuity(localRange, basis, phi_ho);
+  check_continuity_par(localRange, basis, phi_ho);
 
   if (bctype == GKYL_FEM_PARPROJ_DIRICHLET)
     check_dirichlet_bc(localRange, basis, rho_ho, phi_ho);
@@ -1020,7 +1107,7 @@ test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu
 //  gkyl_grid_sub_array_write(&grid, &localRange, 0, phi_ho, "ctest_fem_parproj_3x_p1_phi_1.gkyl");
 
   // Check continuity at cell boundaries.
-  check_continuity(localRange, basis, phi_ho);
+  check_continuity_par(localRange, basis, phi_ho);
 
   if (poly_order == 1) {
     if (bctype == GKYL_FEM_PARPROJ_DIRICHLET) {

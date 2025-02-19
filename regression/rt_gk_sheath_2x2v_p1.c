@@ -501,8 +501,8 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
   double Z = y;
 
   // Set physical coordinates (X, Y, Z) from computational coordinates (x, y, z).
-  xp[0] = X; xp[1] = Y; xp[2] = Z;
-//  xp[0] = x; xp[1] = y; xp[2] = z;
+//  xp[0] = X; xp[1] = Y; xp[2] = Z;
+  xp[0] = x; xp[1] = y; xp[2] = z;
 }
 
 void
@@ -515,8 +515,8 @@ bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, 
   double R = app->R;
 
   // Set magnetic field strength.
-  fout[0] = B0 * R / x;
-//  fout[0] = B0;
+//  fout[0] = B0 * R / x;
+  fout[0] = B0;
 }
 
 void
@@ -673,7 +673,7 @@ main(int argc, char **argv)
     .upper = { ctx.vpar_max_elc, ctx.mu_max_elc },
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
-    .no_by = true,
+//    .no_by = true,
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
@@ -685,13 +685,13 @@ main(int argc, char **argv)
       .ctx_upar = &ctx,
     },
 
-    .collisions = {
-      .collision_id = GKYL_LBO_COLLISIONS,
-      .self_nu = evalElcNu,
-      .ctx = &ctx,
-      .num_cross_collisions = 1,
-      .collide_with = { "ion" },
-    },
+//    .collisions = {
+//      .collision_id = GKYL_LBO_COLLISIONS,
+//      .self_nu = evalElcNu,
+//      .ctx = &ctx,
+//      .num_cross_collisions = 1,
+//      .collide_with = { "ion" },
+//    },
 
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
@@ -731,7 +731,7 @@ main(int argc, char **argv)
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion },
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0, 
-    .no_by = true,
+//    .no_by = true,
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -743,13 +743,13 @@ main(int argc, char **argv)
       .ctx_upar = &ctx,
     },
 
-    .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
-      .self_nu = evalIonNu,
-      .ctx = &ctx,
-      .num_cross_collisions = 1,
-      .collide_with = { "elc" },
-    },
+//    .collisions =  {
+//      .collision_id = GKYL_LBO_COLLISIONS,
+//      .self_nu = evalIonNu,
+//      .ctx = &ctx,
+//      .num_cross_collisions = 1,
+//      .collide_with = { "elc" },
+//    },
 
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
