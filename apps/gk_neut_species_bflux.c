@@ -10,43 +10,32 @@ gk_neut_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spec
   bflux->ghost_flux_slvr = gkyl_ghost_surf_calc_new(&s->grid, s->eqn_vlasov, app->cdim, app->use_gpu);
   int cdim = app->cdim;
   int ndim = app->cdim + app->vdim + 1;
-  int cells[GKYL_MAX_DIM], ghost[GKYL_MAX_DIM];
+  int cells[GKYL_MAX_DIM];
   double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
-  for (int d=0; d<ndim; ++d) {
-    cells[d] = s->grid.cells[d];
-    lower[d] = s->grid.lower[d];
-    upper[d] = s->grid.upper[d];
-    ghost[d] = 0;
-  }
 
   // initialize moment solver
-  for (int i=0; i<app->cdim; ++i) {
-    for (int d=0; d<cdim; ++d) {
-      cells[d] = s->grid.cells[d];
+  for (int d=0; d<app->cdim; ++d) {
+    for (int i=0; i<ndim; ++i) {
+      cells[i] = s->grid.cells[i];
+      lower[i] = s->grid.lower[i];
+      upper[i] = s->grid.upper[i];
     }
-    cells[i] = 1; 
-    
-    bflux->flux_arr[2*i] = mkarr(app->use_gpu, s->basis.num_basis, s->lower_ghost[i].volume);
-    bflux->flux_arr[2*i+1] = mkarr(app->use_gpu, s->basis.num_basis, s->upper_ghost[i].volume);
+    cells[d] = 1;
+    for (int e=0; e<2; ++e) {
+      // Allocate arrays and ranges for recycling
+      struct gkyl_range *skin_r = e==0? &s->lower_skin[d] : &s->upper_skin[d];
+      struct gkyl_range *ghost_r = e==0? &s->lower_ghost[d] : &s->upper_ghost[d];
+      
+      lower[d] = e==0? s->grid.lower[d] : (s->grid.upper[d] - s->grid.dx[d]);
+      upper[d] = e==0? (s->grid.lower[d] + s->grid.dx[d]) : s->grid.upper[d];
 
-    gkyl_range_init(&bflux->flux_r[2*i], ndim, s->lower_ghost[i].lower, s->lower_ghost[i].upper);
-    gkyl_range_init(&bflux->flux_r[2*i+1], ndim, s->upper_ghost[i].lower, s->upper_ghost[i].upper);
+      bflux->flux_arr[2*d+e] = mkarr(app->use_gpu, s->basis.num_basis, ghost_r->volume);
+      gkyl_range_init(&bflux->flux_r[2*d+e], ndim, ghost_r->lower, ghost_r->upper);
+      gkyl_range_init(&bflux->conf_r[2*d+e], cdim, ghost_r->lower, ghost_r->upper);
 
-    gkyl_range_init(&bflux->conf_r[2*i], app->cdim, s->lower_ghost[i].lower,
-      s->lower_ghost[i].upper);
-    gkyl_range_init(&bflux->conf_r[2*i+1], app->cdim, s->upper_ghost[i].lower,
-      s->upper_ghost[i].upper);
-
-    upper[i] = s->grid.lower[i] + s->grid.dx[i];
-
-    gkyl_rect_grid_init(&bflux->boundary_grid[2*i], ndim, lower, upper, cells);
-    gkyl_rect_grid_init(&bflux->conf_boundary_grid[2*i], cdim, lower, upper, cells);
-
-    upper[i] = s->grid.upper[i];
-    lower[i] = s->grid.upper[i] - s->grid.dx[i];
-
-    gkyl_rect_grid_init(&bflux->boundary_grid[2*i+1], ndim, lower, upper, cells);
-    gkyl_rect_grid_init(&bflux->conf_boundary_grid[2*i+1], cdim, lower, upper, cells);
+      gkyl_rect_grid_init(&bflux->boundary_grid[2*d+e], ndim, lower, upper, cells);
+      gkyl_rect_grid_init(&bflux->conf_boundary_grid[2*d+e], cdim, lower, upper, cells);
+    }
   }
 }
 

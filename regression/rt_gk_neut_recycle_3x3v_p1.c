@@ -582,7 +582,7 @@ main(int argc, char **argv)
 
   // GK app.
   struct gkyl_gk app_inp = {
-    .name = "gk_neut_recycle_3x2v_p1",
+    .name = "gk_neut_recycle_3x3v_p1",
 
     //.cfl_frac = 0.1,
 
