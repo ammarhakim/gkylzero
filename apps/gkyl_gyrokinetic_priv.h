@@ -2255,15 +2255,6 @@ void gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_ne
 struct gk_field* gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app);
 
 /**
- * Add to the field structure the twist-and-shift and the skin surface from ghost updaters.
- * (This function needs a species to be initialized to work)
- * 
- * @param app gyrokinetic app object
- * @param f  the field structure to be updated
- */
-void gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field *f);
-
-/**
  * Compute biased wall potentials 
  *
  * @param app gyrokinetic app object

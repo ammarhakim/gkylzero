@@ -348,7 +348,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   return f;
 }
 
-void
+static void
 gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   // We take the first species to copy the function for the TS BC
