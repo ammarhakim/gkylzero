@@ -531,7 +531,7 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
   s->hamil_host = s->hamil;
     
   // Call updater to evaluate hamiltonian
-  struct gkyl_dg_calc_gk_neut_hamil* hamil_calc = gkyl_dg_calc_gk_neut_hamil_new(&s->grid, &s->basis, app->use_gpu);
+  struct gkyl_dg_calc_gk_neut_hamil* hamil_calc = gkyl_dg_calc_gk_neut_hamil_new(&s->grid, &s->basis, app->cdim, app->use_gpu);
   gkyl_dg_calc_gk_neut_hamil_calc(hamil_calc, &app->local, &s->local, app->gk_geom->gij, s->hamil);
     
   if (app->use_gpu) {

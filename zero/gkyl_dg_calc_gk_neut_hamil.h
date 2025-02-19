@@ -18,11 +18,12 @@ typedef struct gkyl_dg_calc_gk_neut_hamil gkyl_dg_calc_gk_neut_hamil;
  * @param conf_basis Configuration-space basis functions
  * @param vel_basis  Momentum (four-velocity)-space basis functions
  * @param use_gpu bool to determine if on GPU
+ * @param cdim Configuration space dimension
  * @return New updater pointer.
  */
 struct gkyl_dg_calc_gk_neut_hamil* 
 gkyl_dg_calc_gk_neut_hamil_new(const struct gkyl_rect_grid *phase_grid,
-  const struct gkyl_basis *basis, bool use_gpu);
+  const struct gkyl_basis *basis, int cdim, bool use_gpu);
 
 /**
  * Create new updater to compute relativistic variables on

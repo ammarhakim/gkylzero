@@ -10,7 +10,7 @@
 
 gkyl_dg_calc_gk_neut_hamil*
 gkyl_dg_calc_gk_neut_hamil_new(const struct gkyl_rect_grid *phase_grid,
-  const struct gkyl_basis *basis, bool use_gpu)
+  const struct gkyl_basis *basis, int cdim, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
@@ -21,8 +21,7 @@ gkyl_dg_calc_gk_neut_hamil_new(const struct gkyl_rect_grid *phase_grid,
   gkyl_dg_calc_gk_neut_hamil *up = gkyl_malloc(sizeof(*up));
 
   up->phase_grid = *phase_grid;
-  int cdim = 3; //conf_basis->ndim;
-  int vdim = 3; //cdim; // same as cdim for gk_neut species 
+  int vdim = 3; //conf_basis->ndim;
   int poly_order = basis->poly_order;
   enum gkyl_basis_type b_type = basis->b_type;
 

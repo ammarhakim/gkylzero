@@ -121,18 +121,21 @@ gkyl_int_mom_canonical_pb_new(const struct gkyl_basis* cbasis, const struct gkyl
   // set kernel pointer
   switch (pbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      int_mom_kernels = ser_int_mom_kernels;
-      break;
-
+      assert(poly_order == 2);
+        int_mom_kernels = ser_int_mom_kernels;
+        break;
+    case GKYL_BASIS_MODAL_HYBRID:
+      assert(poly_order == 1);
+        int_mom_kernels = ser_int_mom_kernels;
+        break;
     case GKYL_BASIS_MODAL_TENSOR:
       int_mom_kernels = tensor_int_mom_kernels;
       break;
-
     default:
       assert(false);
       break;    
   }
-
+  
   assert(cv_index[cdim].vdim[vdim] != -1);
   assert(NULL != int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
   mom_can_pb->momt.kernel = int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];

@@ -84,7 +84,7 @@ create_ctx(void)
   // Mathematical constants (dimensionless).
   double pi = M_PI;
 
-  int cdim = 3, vdim = 2; // Dimensionality.
+  int cdim = 1, vdim = 2; // Dimensionality.
 
   // Physical constants (using non-normalized physical units).
   double epsilon0 = GKYL_EPSILON0; // Permittivity of free space.
@@ -185,7 +185,7 @@ create_ctx(void)
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
-    .cells = {1, 1, Nz, Nvpar, Nmu},
+    .cells = {Nz, Nvpar, Nmu},
     .Lz = Lz,
     .vmax_neut = vmax_neut,
     .vpar_max_elc = vpar_max_elc,
@@ -206,7 +206,7 @@ void
 evalSourceDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct sheath_ctx *app = ctx;
-  double z = xn[2];
+  double z = xn[0];
 
   double n_src = app->n0;
   double Lz = app->Lz;
@@ -239,7 +239,7 @@ void
 evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct sheath_ctx *app = ctx;
-  double z = xn[2];
+  double z = xn[0];
 
   double n_peak = app->n_peak;
   double Lz = app->Lz;
@@ -252,7 +252,7 @@ void
 evalDensityNeutInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct sheath_ctx *app = ctx;
-  double z = xn[2];
+  double z = xn[0];
   double n0 = app->n0;
   double Lz = app->Lz;
   double n = 0.0;
@@ -279,7 +279,7 @@ evalUparInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
 {
   // Set parallel velocity.
   struct sheath_ctx *app = ctx;
-  double z = xn[2]; 
+  double z = xn[0]; 
   fout[0] = app->c_s*z/(app->Lz/2.);
 }
 
@@ -538,32 +538,32 @@ main(int argc, char **argv)
       },
     },
 
-    .bcz = {
+    .bcx = {
       .lower = {
         .type = GKYL_SPECIES_RECYCLE,
-        .aux_ctx = bc_ctx,
+    	.aux_ctx = bc_ctx,
     	.projection = {
-	  .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
-	  .ctx_density = &ctx,
-	  .density = evalUnitDensity,
-	  .ctx_upar = &ctx,
-	  .udrift= evalUdriftInit,
-	  .ctx_temp = &ctx,
-	  .temp = evalTempNeutInit,      
-	},
+          .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+    	  .ctx_density = &ctx,
+    	  .density = evalUnitDensity,
+    	  .ctx_upar = &ctx,
+    	  .udrift= evalUdriftInit,
+    	  .ctx_temp = &ctx,
+    	  .temp = evalTempNeutInit,
+    	},
       },
       .upper = {
         .type = GKYL_SPECIES_RECYCLE,
-	.aux_ctx = bc_ctx,
-	.projection = {
-	  .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
-	  .ctx_density = &ctx,
-	  .density = evalUnitDensity,
-	  .ctx_upar = &ctx,
-	  .udrift= evalUdriftInit,
-	  .ctx_temp = &ctx,
-	  .temp = evalTempNeutInit,      
-	},
+    	.aux_ctx = bc_ctx,
+    	.projection = {
+          .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+    	  .ctx_density = &ctx,
+    	  .density = evalUnitDensity,
+    	  .ctx_upar = &ctx,
+    	  .udrift= evalUdriftInit,
+    	  .ctx_temp = &ctx,
+    	  .temp = evalTempNeutInit,
+        },
       },
     },
     
@@ -574,37 +574,34 @@ main(int argc, char **argv)
   // Field.
   struct gkyl_gyrokinetic_field field = {
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
-    .poisson_bcs = {
-      .lo_type = { GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC },
-      .up_type = { GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC },
-      .lo_value = { 0.0 }, .up_value = { 0.0 }
-    },
+    .kperpSq = ctx.k_perp * ctx.k_perp,
     .is_static = true,
   };
-
   // GK app.
   struct gkyl_gk app_inp = {
-    .name = "gk_neut_recycle_3x3v_p1",
+    .name = "gk_neut_recycle_1x3v_p1",
 
-    //.cfl_frac = 0.1,
+    .cfl_frac = 0.1,
 
-    .cdim = 3, .vdim = 2,
-    .lower = { -0.5, -0.5, -0.5 * ctx.Lz},
-    .upper = { 0.5, 0.5, 0.5 * ctx.Lz},
-    .cells = { cells_x[0], cells_x[1], cells_x[2] },
+    .cdim = 1, .vdim = 2,
+    .lower = { -0.5 * ctx.Lz},
+    .upper = { 0.5 * ctx.Lz},
+    .cells = { cells_x[0] },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
 
     .geometry = {
       .geometry_id = GKYL_MAPC2P,
+      .world = {0.0, 0.0},
+      
       .mapc2p = mapc2p,
       .c2p_ctx = &ctx,
       .bmag_func = bmag_func,
       .bmag_ctx = &ctx
     },
 
-    .num_periodic_dir = 2,
-    .periodic_dirs = {0,1},
+    .num_periodic_dir = 0,
+    .periodic_dirs = { },
 
     .num_species = 2,
     .species = { elc, ion, },
@@ -614,7 +611,7 @@ main(int argc, char **argv)
 
     .parallelism = {
       .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0], app_args.cuts[1], app_args.cuts[2] },
+      .cuts = { app_args.cuts[0] },
       .comm = comm,
     },
   };
