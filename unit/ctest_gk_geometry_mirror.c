@@ -147,7 +147,6 @@ test_lores()
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("total time = %g\n", cpu_time_used);
 }
 
 void
@@ -212,7 +211,6 @@ struct gkyl_mirror_geo_grid_inp ginp = {
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("total time = %g\n", cpu_time_used);
 }
 
 // def psi_f(R, Z):
