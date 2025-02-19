@@ -26,8 +26,8 @@ gk_neut_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spec
       struct gkyl_range *skin_r = e==0? &s->lower_skin[d] : &s->upper_skin[d];
       struct gkyl_range *ghost_r = e==0? &s->lower_ghost[d] : &s->upper_ghost[d];
       
-      lower[d] = e==0? s->grid.lower[d] : (s->grid.upper[d] - s->grid.dx[d]);
-      upper[d] = e==0? (s->grid.lower[d] + s->grid.dx[d]) : s->grid.upper[d];
+      lower[d] = e==0? s->grid.lower[d] - s->grid.dx[d] : s->grid.upper[d];
+      upper[d] = e==0? s->grid.lower[d] : s->grid.upper[d] + s->grid.dx[d];
 
       bflux->flux_arr[2*d+e] = mkarr(app->use_gpu, s->basis.num_basis, ghost_r->volume);
       gkyl_range_init(&bflux->flux_r[2*d+e], ndim, ghost_r->lower, ghost_r->upper);

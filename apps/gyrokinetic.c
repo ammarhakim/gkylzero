@@ -1388,8 +1388,7 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
 
     // Compute and store (in the ghost cell of of out) the boundary fluxes.
     // NOTE: this overwrites ghost cells that may be used for sourcing.
-    if (app->field->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
-      gk_species_bflux_rhs(app, s, &s->bflux, fin[i], fout[i]);
+    gk_species_bflux_rhs(app, s, &s->bflux, fin[i], fout[i]);
   }
 
   // Compute RHS of neutrals.

@@ -147,19 +147,27 @@ gk_neut_species_recycle_apply_bc(struct gkyl_gyrokinetic_app *app, const struct 
     gkyl_dg_updater_moment_gyrokinetic_advance(recyc->flux_slvr[i], &recyc->impact_normal_r[i],
       recyc->emit_cbuff_r, recyc->bflux_arr[i], recyc->flux[i]);
 
-    // failing here??
+    /* const char *fmt = "recyc_flux_edge_%d.gkyl"; */
+    /* int sz = gkyl_calc_strlen(fmt, recyc->edge); */
+    /* char fileNm[sz+1]; // ensures no buffer overflow */
+    /* snprintf(fileNm, sizeof fileNm, fmt, recyc->edge); */
+    /* gkyl_grid_sub_array_write(recyc->impact_conf_grid[i], recyc->emit_cbuff_r, 0, recyc->flux[i], fileNm); */
+
+    gkyl_array_set_range_to_range(fout, t_scale, recyc->f_emit, recyc->emit_ghost_r,
+      recyc->emit_buff_r);
+
     gkyl_dg_div_op_range(recyc->mem_geo, app->basis, 0, recyc->flux[i], 0, recyc->flux[i],
-			 0, recyc->init_flux, recyc->emit_cbuff_r);
+    			 0, recyc->init_flux, recyc->emit_cbuff_r);
 
     gkyl_dg_mul_conf_phase_op_accumulate_range(&app->basis, &s->basis, recyc->f_emit, 1.0,
      recyc->flux[i], recyc->spectrum[i], recyc->impact_cbuff_r[i], recyc->emit_buff_r);
     
   }
-  /* const char *fmt = "recyc_f_emit_edge_%d.gkyl"; */
-  /* int sz = gkyl_calc_strlen(fmt, recyc->edge); */
-  /* char fileNm[sz+1]; // ensures no buffer overflow */
-  /* snprintf(fileNm, sizeof fileNm, fmt, recyc->edge); */
-  /* gkyl_grid_sub_array_write(recyc->emit_grid, recyc->emit_buff_r, 0, recyc->f_emit, fileNm); */
+  const char *fmt = "recyc_f_emit_edge_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, recyc->edge);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, recyc->edge);
+  gkyl_grid_sub_array_write(recyc->emit_grid, recyc->emit_buff_r, 0, recyc->f_emit, fileNm);
 
   gkyl_array_set_range_to_range(fout, t_scale, recyc->f_emit, recyc->emit_ghost_r,
     recyc->emit_buff_r);
