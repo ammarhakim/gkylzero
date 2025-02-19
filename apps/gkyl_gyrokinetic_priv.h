@@ -360,6 +360,7 @@ struct gk_boundary_fluxes {
   int num_boundaries; // Number of boundaries to compute bfluxes at.
   int boundaries_dir[2*GKYL_MAX_CDIM]; // Direction of bflux boundaries.
   enum gkyl_edge_loc boundaries_edge[2*GKYL_MAX_CDIM]; // Edge of bflux boundaries.
+  struct gkyl_range *boundaries_conf_ghost[2*GKYL_MAX_CDIM]; // Ghost range of bflux boundaries.
   struct gkyl_bc_basic *gfss_bc_op[2*GKYL_MAX_CDIM]; // Applies BCs to bmag and phi.
   struct gkyl_array *bc_buffer; // Buffer used by gfss_bc_op;
   struct gkyl_array **f, **f1, **fnew; // Boundary flux through each boundary (one for each RK stage).
@@ -374,10 +375,10 @@ struct gk_boundary_fluxes {
   void (*bflux_scale_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fin, double val);
   void (*bflux_step_f_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fout,
     double dt, const struct gkyl_array **fin);
-  void (*bflux_combine_range_func)(gkyl_gyrokinetic_app *app, struct gk_species *gk_s, struct gk_boundary_fluxes *bflux,
-    struct gkyl_array **fout, double fac1, struct gkyl_array **fin1, double fac2, struct gkyl_array **fin2, struct gkyl_range *range);
-  void (*bflux_copy_range_func)(gkyl_gyrokinetic_app *app, struct gk_species *gk_s, struct gk_boundary_fluxes *bflux,
-    struct gkyl_array **fout, struct gkyl_array **fin, struct gkyl_range *range);
+  void (*bflux_combine_func)(gkyl_gyrokinetic_app *app, struct gk_species *gk_s, struct gk_boundary_fluxes *bflux,
+    struct gkyl_array **fout, double fac1, struct gkyl_array **fin1, double fac2, struct gkyl_array **fin2);
+  void (*bflux_copy_func)(gkyl_gyrokinetic_app *app, struct gk_species *gk_s, struct gk_boundary_fluxes *bflux,
+    struct gkyl_array **fout, struct gkyl_array **fin);
   void (*bflux_calc_int_mom_time_integrate_func)(gkyl_gyrokinetic_app* app, const struct gk_species *gk_s,
     struct gk_boundary_fluxes *bflux, double tm);
   void (*bflux_rhs_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_boundary_fluxes *bflux,
@@ -1534,11 +1535,10 @@ gk_species_bflux_step_f(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bf
  * @param bflux_in1 Array of input boundary fluxes.
  * @param fac2 Factor to multiply bflux_in2 by.
  * @param bflux_in2 Array of input boundary fluxes.
- * @param range Range to perform operation in.
  */
 void
-gk_species_bflux_combine_range(gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_boundary_fluxes *bflux,
-  struct gkyl_array **fout, double fac1, struct gkyl_array **fin1, double fac2, struct gkyl_array **fin2, struct gkyl_range *range);
+gk_species_bflux_combine(gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_boundary_fluxes *bflux,
+  struct gkyl_array **fout, double fac1, struct gkyl_array **fin1, double fac2, struct gkyl_array **fin2);
 
 /**
  * Copy diagnotic boundary fluxes.
@@ -1548,11 +1548,10 @@ gk_species_bflux_combine_range(gkyl_gyrokinetic_app *app, struct gk_species *gks
  * @param bflux Species boundary flux object.
  * @param bflux_out Array of output boundary fluxes.
  * @param bflux_in Array of input boundary fluxes.
- * @param range Range to perform operation in.
  */
 void
-gk_species_bflux_copy_range(gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_boundary_fluxes *bflux,
-  struct gkyl_array **bflux_fout, struct gkyl_array **bflux_in, struct gkyl_range *range);
+gk_species_bflux_copy(gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_boundary_fluxes *bflux,
+  struct gkyl_array **bflux_fout, struct gkyl_array **bflux_in);
 
 /**
  * Calculate the integrated moments of the diagnostic boundary fluxes.
