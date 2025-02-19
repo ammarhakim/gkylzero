@@ -720,7 +720,11 @@ main(int argc, char **argv)
     .num_diag_moments = 5,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
     .integrated_hamiltonian_moments = true,
-    .boundary_flux_diagnostics = true,
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { "HamiltonianMoments" },
+      .time_integrated = true,
+    }
   };
 
   // Ions.
@@ -778,7 +782,11 @@ main(int argc, char **argv)
     .num_diag_moments = 5,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
     .integrated_hamiltonian_moments = true,
-    .boundary_flux_diagnostics = true,
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { "HamiltonianMoments" },
+      .time_integrated = true,
+    }
   };
 
   // Field.

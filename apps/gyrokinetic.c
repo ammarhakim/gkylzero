@@ -1101,7 +1101,7 @@ void
 gkyl_gyrokinetic_app_calc_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_app* app, int sidx, double tm)
 {
   struct gk_species *gks = &app->species[sidx];
-  gk_species_bflux_calc_boundary_flux_integrated_mom(app, gks, &gks->bflux_diag, tm);
+  gk_species_bflux_calc_integrated_mom(app, gks, &gks->bflux_diag, tm);
 }
 
 void
@@ -1136,7 +1136,7 @@ void
 gkyl_gyrokinetic_app_write_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_app *app, int sidx)
 {
   struct gk_species *gks = &app->species[sidx];
-  gk_species_bflux_write_boundary_flux_integrated_mom(app, gks, &gks->bflux_diag);
+  gk_species_bflux_write_integrated_mom(app, gks, &gks->bflux_diag);
 }
 
 //
@@ -2119,6 +2119,7 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
   app->is_first_dt_write_call = false;
   gk_s->is_first_integ_write_call = false;
   gk_s->is_first_L2norm_write_call = false;
+  gk_s->bflux_diag.is_first_intmom_write_call = false;
   if (app->fdot_diagnostics)
     gk_s->is_first_fdot_integ_write_call = false;
   if (app->enforce_positivity)
@@ -2127,8 +2128,6 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
     gk_s->rad.is_first_integ_write_call = false;
   if (gk_s->src.source_id)
     gk_s->src.is_first_integ_write_call = false;
-  if (gk_s->info.boundary_flux_diagnostics)
-    gk_s->bflux_diag.is_first_intmom_write_call = false;
   if (gk_s->lte.correct_all_moms)
     gk_s->lte.is_first_corr_status_write_call = false;
 

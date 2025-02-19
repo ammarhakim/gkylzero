@@ -194,6 +194,14 @@ struct gkyl_gyrokinetic_correct_inp {
                            // *even if* the scheme fails to converge.   
 };
 
+struct gkyl_phase_diagnostics_inp {
+  int num_diag_moments; // Number of diagnostic moments.
+  char diag_moments[24][24]; // List of diagnostic moments.
+  int num_integrated_diag_moments; // Number of integrated diagnostic moments.
+  char integrated_diag_moments[24][24]; // List of integrated diagnostic moments.
+  bool time_integrated; // Whether to use time integrated diags.
+};
+
 // Parameters for gk species.
 struct gkyl_gyrokinetic_species {
   char name[128]; // Species name.
@@ -225,8 +233,9 @@ struct gkyl_gyrokinetic_species {
   char diag_moments[24][24]; // list of diagnostic moments
   bool integrated_hamiltonian_moments; // Use Hamiltonian instead of Four
                                        // moments for integrated moments.
-  bool boundary_flux_diagnostics; // Outputs moments of the boundary fluxes
-                                  // through non-periodic boundaries.
+
+  // Diagnostics of the fluxes of f at position-space boundaries.
+  struct gkyl_phase_diagnostics_inp boundary_flux_diagnostics;
 
   // Input quantities used by LTE (local thermodynamic equilibrium, or Maxwellian) projection
   // This projection operator is used by BGK collisions and all reactions.
