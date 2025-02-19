@@ -29,6 +29,79 @@ eval_on_nodes_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
   gkyl_position_map_eval_mc2nu(gpm, xcomp, xphys);
 }
 
+static void
+gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+{
+  // We take the first species to copy the function for the TS BC
+  struct gk_species *gks = &app->species[0];
+  // Get the z BC info from the first species in our app
+  const struct gkyl_gyrokinetic_bcs *bcz = &gks->info.bcz;
+  // define the parallel direction index (handle 2x and 3x cases)
+  int zdir = app->cdim - 1;
+
+  // Define sub range of ghost and skin cells that spans only the core
+  double xLCFS = f->info.xLCFS;
+  // Index of the cell that abuts the xLCFS from below.
+  int idxLCFS_m = (xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
+
+  // check that idxLCFS_m is within the local range
+  assert(idxLCFS_m >= app->local.lower[0] && idxLCFS_m <= app->local.upper[0]);
+
+  // Create a core local range, extended in the BC dir.
+  int ndim = app->cdim;
+  int lower_bcdir_ext[ndim], upper_bcdir_ext[ndim];
+  for (int i=0; i<ndim; i++) {
+    lower_bcdir_ext[i] = app->local.lower[i];
+    upper_bcdir_ext[i] = app->local.upper[i];
+  }
+  upper_bcdir_ext[0] = idxLCFS_m;
+  lower_bcdir_ext[zdir] = app->local_ext.lower[zdir];
+  upper_bcdir_ext[zdir] = app->local_ext.upper[zdir];
+  gkyl_sub_range_init(&f->local_par_ext_core, &app->local_ext, lower_bcdir_ext, upper_bcdir_ext);
+
+  // TSBC updaters
+  int ghost[] = {1, 1, 1};
+  if (app->cdim == 3) {
+    //TS BC updater for up to low TS for the lower edge
+    //this sets ghost_L = T_LU(ghost_L)
+    struct gkyl_bc_twistshift_inp T_LU_lo = {
+      .bc_dir = zdir,
+      .shift_dir = 1, // y shift.
+      .shear_dir = 0, // shift varies with x.
+      .edge = GKYL_LOWER_EDGE,
+      .cdim = app->cdim,
+      .bcdir_ext_update_r = f->local_par_ext_core,
+      .num_ghost = ghost, // one ghost per config direction
+      .basis = app->basis,
+      .grid = app->grid,
+      .shift_func = bcz->lower.aux_profile,
+      .shift_func_ctx = bcz->lower.aux_ctx,
+      .use_gpu = app->use_gpu,
+    };
+    // Add the forward TS updater to f
+    f->bc_T_LU_lo = gkyl_bc_twistshift_new(&T_LU_lo);
+  }
+
+  // SSFG updaters
+  int ghost_par[] = {0, 0, 0};
+  ghost_par[zdir] = 1;
+  // create lower and upper skin and ghost ranges for the z BC in the core region
+  gkyl_skin_ghost_ranges( &f->lower_skin_core, &f->lower_ghost_core, zdir, 
+                          GKYL_LOWER_EDGE, &f->local_par_ext_core, ghost_par);
+  gkyl_skin_ghost_ranges( &f->upper_skin_core, &f->upper_ghost_core, zdir, 
+                          GKYL_UPPER_EDGE, &f->local_par_ext_core, ghost_par);
+  // add the SSFG updater for lower and upper application
+  f->ssfg_lo = gkyl_skin_surf_from_ghost_new(zdir,GKYL_LOWER_EDGE,
+                app->basis,&f->lower_skin_core,&f->lower_ghost_core,app->use_gpu);
+
+  //We allocate the array to store the ghost values of phi_smooth but switching upper and lower
+  f->aux_array = mkarr(app->use_gpu, f->phi_smooth->ncomp, f->phi_smooth->size);
+
+  // These bc_basic updaters need a buffer, allocate it.
+  long buff_sz = GKYL_MAX2(f->lower_skin_core.volume, f->upper_skin_core.volume);
+  f->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
+}
+
 // initialize field object
 struct gk_field* 
 gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
@@ -346,79 +419,6 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   }
   
   return f;
-}
-
-static void
-gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
-{
-  // We take the first species to copy the function for the TS BC
-  struct gk_species *gks = &app->species[0];
-  // Get the z BC info from the first species in our app
-  const struct gkyl_gyrokinetic_bcs *bcz = &gks->info.bcz;
-  // define the parallel direction index (handle 2x and 3x cases)
-  int zdir = app->cdim - 1;
-
-  // Define sub range of ghost and skin cells that spans only the core
-  double xLCFS = f->info.xLCFS;
-  // Index of the cell that abuts the xLCFS from below.
-  int idxLCFS_m = (xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
-
-  // check that idxLCFS_m is within the local range
-  assert(idxLCFS_m >= app->local.lower[0] && idxLCFS_m <= app->local.upper[0]);
-
-  // Create a core local range, extended in the BC dir.
-  int ndim = app->cdim;
-  int lower_bcdir_ext[ndim], upper_bcdir_ext[ndim];
-  for (int i=0; i<ndim; i++) {
-    lower_bcdir_ext[i] = app->local.lower[i];
-    upper_bcdir_ext[i] = app->local.upper[i];
-  }
-  upper_bcdir_ext[0] = idxLCFS_m;
-  lower_bcdir_ext[zdir] = app->local_ext.lower[zdir];
-  upper_bcdir_ext[zdir] = app->local_ext.upper[zdir];
-  gkyl_sub_range_init(&f->local_par_ext_core, &app->local_ext, lower_bcdir_ext, upper_bcdir_ext);
-
-  // TSBC updaters
-  int ghost[] = {1, 1, 1};
-  if (app->cdim == 3) {
-    //TS BC updater for up to low TS for the lower edge
-    //this sets ghost_L = T_LU(ghost_L)
-    struct gkyl_bc_twistshift_inp T_LU_lo = {
-      .bc_dir = zdir,
-      .shift_dir = 1, // y shift.
-      .shear_dir = 0, // shift varies with x.
-      .edge = GKYL_LOWER_EDGE,
-      .cdim = app->cdim,
-      .bcdir_ext_update_r = f->local_par_ext_core,
-      .num_ghost = ghost, // one ghost per config direction
-      .basis = app->basis,
-      .grid = app->grid,
-      .shift_func = bcz->lower.aux_profile,
-      .shift_func_ctx = bcz->lower.aux_ctx,
-      .use_gpu = app->use_gpu,
-    };
-    // Add the forward TS updater to f
-    f->bc_T_LU_lo = gkyl_bc_twistshift_new(&T_LU_lo);
-  }
-
-  // SSFG updaters
-  int ghost_par[] = {0, 0, 0};
-  ghost_par[zdir] = 1;
-  // create lower and upper skin and ghost ranges for the z BC in the core region
-  gkyl_skin_ghost_ranges( &f->lower_skin_core, &f->lower_ghost_core, zdir, 
-                          GKYL_LOWER_EDGE, &f->local_par_ext_core, ghost_par);
-  gkyl_skin_ghost_ranges( &f->upper_skin_core, &f->upper_ghost_core, zdir, 
-                          GKYL_UPPER_EDGE, &f->local_par_ext_core, ghost_par);
-  // add the SSFG updater for lower and upper application
-  f->ssfg_lo = gkyl_skin_surf_from_ghost_new(zdir,GKYL_LOWER_EDGE,
-                app->basis,&f->lower_skin_core,&f->lower_ghost_core,app->use_gpu);
-
-  //We allocate the array to store the ghost values of phi_smooth but switching upper and lower
-  f->aux_array = mkarr(app->use_gpu, f->phi_smooth->ncomp, f->phi_smooth->size);
-
-  // These bc_basic updaters need a buffer, allocate it.
-  long buff_sz = GKYL_MAX2(f->lower_skin_core.volume, f->upper_skin_core.volume);
-  f->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
 }
 
 void
