@@ -154,8 +154,27 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       }
       // deflated Poisson solve is performed on range assuming decomposition is *only* in z right now
       // need sub range of global range corresponding to where we are in z to properly index global charge density
-      f->deflated_fem_poisson = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev, app->basis,
-        app->local, f->global_sub_range, f->epsilon, f->info.poisson_bcs, app->use_gpu);
+      f->deflated_fem_poisson = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev.confBasis, app->confBasis,
+        app->local, f->global_sub_range, f->epsilon, 0, f->info.poisson_bcs, app->use_gpu);
+
+      f->phi_bc = 0;
+      f->is_dirichletvar = false;
+      for (int d=0; d<app->cdim; d++) f->is_dirichletvar = f->is_dirichletvar ||
+        (f->info.poisson_bcs.lo_type[d] == GKYL_POISSON_DIRICHLET_VARYING ||
+         f->info.poisson_bcs.up_type[d] == GKYL_POISSON_DIRICHLET_VARYING);
+      if (f->is_dirichletvar) {
+        // Project the spatially varying BC if the user specifies it.
+        f->phi_bc = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
+        struct gkyl_array *phi_bc_ho = mkarr(false, f->phi_bc->ncomp, f->phi_bc->size);
+
+        gkyl_eval_on_nodes *phibc_proj = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis, 
+          1, f->info.poisson_bcs.bc_value_func, f->info.poisson_bcs.bc_value_func_ctx);
+        gkyl_eval_on_nodes_advance(phibc_proj, 0.0, &app->global, phi_bc_ho);
+        gkyl_array_copy(f->phi_bc, phi_bc_ho);
+
+        gkyl_eval_on_nodes_release(phibc_proj);
+        gkyl_array_release(phi_bc_ho);
+      }
     }
   }
 
@@ -286,14 +305,14 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       flr_weight += s->info.flr.Tperp*s->info.mass/(pow(s->info.charge*gyroradius_bmag,2.0));
     }
     // Initialize the weight in the Laplacian operator.
-    f->flr_rhoSq_sum = mkarr(app->use_gpu, (2*(app->cdim-1)-1)*app->confBasis.num_basis, app->local_ext.volume);
-    gkyl_array_set_offset(f->flr_rhoSq_sum, flr_weight, app->gk_geom->gxxj, 0*app->confBasis.num_basis);
+    f->flr_rhoSq_sum = mkarr(app->use_gpu, (2*(app->cdim-1)-1)*app->basis.num_basis, app->local_ext.volume);
+    gkyl_array_set_offset(f->flr_rhoSq_sum, flr_weight, app->gk_geom->gxxj, 0*app->basis.num_basis);
     if (app->cdim > 2) {
-      gkyl_array_set_offset(f->flr_rhoSq_sum, flr_weight, app->gk_geom->gxyj, 1*app->confBasis.num_basis);
-      gkyl_array_set_offset(f->flr_rhoSq_sum, flr_weight, app->gk_geom->gyyj, 2*app->confBasis.num_basis);
+      gkyl_array_set_offset(f->flr_rhoSq_sum, flr_weight, app->gk_geom->gxyj, 1*app->basis.num_basis);
+      gkyl_array_set_offset(f->flr_rhoSq_sum, flr_weight, app->gk_geom->gyyj, 2*app->basis.num_basis);
     }
     // Initialize the factor multiplying the field in the FLR operator.
-    f->flr_kSq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    f->flr_kSq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     gkyl_array_shiftc(f->flr_kSq, -pow(sqrt(2.0),app->cdim), 0); // Sets kSq=-1.
 
     // If domain is not periodic use Dirichlet BCs.
@@ -310,7 +329,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
         flr_bc.up_type[d] = GKYL_POISSON_DIRICHLET_VARYING;
     }
     // Deflated Poisson solve is performed on range assuming decomposition is *only* in z.
-    f->flr_op = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev.confBasis, app->confBasis,
+    f->flr_op = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev, app->basis,
       app->local, app->local, f->flr_rhoSq_sum, f->flr_kSq, flr_bc, app->use_gpu);
   }
 

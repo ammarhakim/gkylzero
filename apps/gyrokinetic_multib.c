@@ -812,8 +812,6 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
         if ((mbapp->num_neut_species > 0) && (!sbapp0->neut_species[0].info.is_static)) {
           mbapp->jf_rescale_neut[d*2+e] = gkyl_rescale_ghost_jacf_new(d,e,&sbapp0->basis,
             &sbapp0->neut_species[0].basis, mbapp->use_gpu);
-          mbapp->jf_rescale_neut[d*2+e] = gkyl_rescale_ghost_jacf_new(d,e,&sbapp0->basis,
-            &sbapp0->neut_species[0].basis, mbapp->use_gpu);
         }
       }
     }

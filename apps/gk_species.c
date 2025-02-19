@@ -17,6 +17,22 @@
 #include <assert.h>
 #include <time.h>
 
+void
+gk_species_gyroaverage_none(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gkyl_array *field_in, struct gkyl_array *field_gyroavg)
+{
+  // Don't perform gyroaveraging, just copy over.
+  gkyl_array_set(field_gyroavg, 1.0, field_in);
+}
+
+void
+gk_species_gyroaverage(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gkyl_array *field_in, struct gkyl_array *field_gyroavg)
+{
+  // Gyroaverage input field.
+  gkyl_deflated_fem_poisson_advance(species->flr_op, field_in, field_in, field_gyroavg);
+}
+
 // Begin static function definitions.
 static double
 gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin)
@@ -300,7 +316,6 @@ gk_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, doub
       .frame = frame,
       .stime = tm,
       .poly_order = app->poly_order,
-      .basis_type = gks->basis.id
       .basis_type = gks->basis.id
     }
   );
@@ -651,20 +666,6 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
   else {
     gkyl_free(s->omega_cfl);
     gkyl_free(s->m0_max);
-  }
-
-  // Release integrated moment memory.
-  gk_species_moment_release(app, &s->integ_moms); 
-
-  // Release integrated diag memory.
-  gkyl_dynvec_release(s->integ_diag);
-  if (app->use_gpu) {
-    gkyl_cu_free(s->red_integ_diag);
-    gkyl_cu_free(s->red_integ_diag_global);
-  }
-  else {
-    gkyl_free(s->red_integ_diag);
-    gkyl_free(s->red_integ_diag_global);
   }
 
   // Release integrated moment memory.
@@ -1055,22 +1056,6 @@ gk_species_new_static(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *a
 // End static function definitions.
 
 void
-gk_species_gyroaverage_none(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  struct gkyl_array *field_in, struct gkyl_array *field_gyroavg)
-{
-  // Don't perform gyroaveraging, just copy over.
-  gkyl_array_set(field_gyroavg, 1.0, field_in);
-}
-
-void
-gk_species_gyroaverage(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  struct gkyl_array *field_in, struct gkyl_array *field_gyroavg)
-{
-  // Gyroaverage input field.
-  gkyl_deflated_fem_poisson_advance(species->flr_op, field_in, field_in, field_gyroavg);
-}
-
-void
 gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, 
   struct gkyl_gyrokinetic_ic_import inp)
 {
@@ -1395,7 +1380,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->sgn_alpha_surf = mkarr(app->use_gpu, sgn_alpha_surf_sz, gks->local_ext.volume);
   gks->const_sgn_alpha = mk_int_arr(app->use_gpu, (cdim+1), gks->local_ext.volume);
   // 4. EM fields: phi and (if EM GK) Apar and d/dt Apar  
-  gks->phi = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  gks->gyro_phi = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   gks->apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   gks->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);    
 
@@ -1574,50 +1559,6 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   }
   else {
     gk_species_new_static(gk_app_inp, app, gks);
-  }
-
-  if (gks->info.flr.type) {
-    // Create operator needed for FLR effects.
-    assert(app->cdim > 1);
-    // Pointer to function performing the gyroaverage.
-    gks->gyroaverage = gk_species_gyroaverage;
-    // gyroaveraged M0.
-    gks->m0_gyroavg = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-
-    double gyroradius_bmag = gks->info.flr.bmag ? gks->info.flr.bmag : app->bmag_ref;
-
-    double flr_weight = gks->info.flr.Tperp*gks->info.mass/(pow(gks->info.charge*gyroradius_bmag,2.0));
-    // Initialize the weight in the Laplacian operator.
-    gks->flr_rhoSqD2 = mkarr(app->use_gpu, (2*(app->cdim-1)-1)*app->confBasis.num_basis, app->local_ext.volume);
-    gkyl_array_set_offset(gks->flr_rhoSqD2, flr_weight, app->gk_geom->gxxj, 0*app->confBasis.num_basis);
-    if (app->cdim > 2) {
-      gkyl_array_set_offset(gks->flr_rhoSqD2, flr_weight, app->gk_geom->gxyj, 1*app->confBasis.num_basis);
-      gkyl_array_set_offset(gks->flr_rhoSqD2, flr_weight, app->gk_geom->gyyj, 2*app->confBasis.num_basis);
-    }
-    // Initialize the factor multiplying the field in the FLR operator.
-    gks->flr_kSq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    gkyl_array_shiftc(gks->flr_kSq, -pow(sqrt(2.0),app->cdim), 0); // Sets kSq=-1.
-
-    // If domain is not periodic use Dirichlet BCs.
-    struct gkyl_poisson_bc flr_bc;
-    for (int d=0; d<app->cdim-1; d++) {
-      flr_bc.lo_type[d] = app->field->info.poisson_bcs.lo_type[d];
-      flr_bc.lo_value[d] = app->field->info.poisson_bcs.lo_value[d];
-      if (flr_bc.lo_type[d] != GKYL_POISSON_PERIODIC)
-        flr_bc.lo_type[d] = GKYL_POISSON_DIRICHLET_VARYING;
-
-      flr_bc.up_type[d] = app->field->info.poisson_bcs.up_type[d];
-      flr_bc.up_value[d] = app->field->info.poisson_bcs.up_value[d];
-      if (flr_bc.up_type[d] != GKYL_POISSON_PERIODIC)
-        flr_bc.up_type[d] = GKYL_POISSON_DIRICHLET_VARYING;
-    }
-    // Deflated Poisson solve is performed on range assuming decomposition is *only* in z.
-    gks->flr_op = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev.confBasis, app->confBasis,
-      app->local, app->local, gks->flr_rhoSqD2, gks->flr_kSq, flr_bc, app->use_gpu);
-  }
-  else {
-    gks->gyroaverage = gk_species_gyroaverage_none;
-    gks->m0_gyroavg = gkyl_array_acquire(gks->m0.marr);
   }
 }
 

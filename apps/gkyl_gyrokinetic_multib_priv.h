@@ -78,7 +78,6 @@ struct gk_multib_field {
   struct gkyl_range **block_subrangesz; // ranges for copying smooth phi density
                                        // back to single block apps
   struct gkyl_range **parent_subrangesz; // ranges for copying smooth charge density
-  struct gkyl_range **parent_subrangesz; // ranges for copying smooth charge density
 
   // arrays for connected-along-z phi and smoothed (in z) phi
   struct gkyl_array **phi_local;

@@ -250,7 +250,6 @@ gk_neut_species_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_spec
       .stime = tm,
       .poly_order = app->poly_order,
       .basis_type = app->basis.id
-      .basis_type = app->basis.id
     }
   );
 
