@@ -102,6 +102,33 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
   f->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
 }
 
+static void
+gk_field_enforce_zbc(const gkyl_gyrokinetic_app *app, const struct gk_field *field, struct gkyl_array *finout)
+{
+  // Apply the periodicity to fill the ghost cells
+  int num_periodic_dir = 1; // we need only periodicity in z
+  int zdir = app->cdim - 1;
+  int periodic_dirs[] = {zdir};
+  gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
+    num_periodic_dir, periodic_dirs, finout); 
+  
+  // // Update the lower z ghosts with twist-and-shift if we are in 3x2v
+  if(app->cdim == 3) {
+    gkyl_bc_twistshift_advance(field->bc_T_LU_lo, finout, finout);
+  }
+
+  // Synchronize the array between the MPI processes to erase inner ghosts modification (handle multi GPU case)
+  gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, finout);
+
+  // Force the lower skin surface value to match the ghost cell at the node position.
+  gkyl_skin_surf_from_ghost_advance(field->ssfg_lo, finout);
+}
+
+static void
+gk_field_enforce_zbc_none(const gkyl_gyrokinetic_app *app, const struct gk_field *field, struct gkyl_array *finout){
+
+}
+
 // initialize field object
 struct gk_field* 
 gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
@@ -416,6 +443,9 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     // twist-and-shift boundary condition for phi and skin surface from ghost to impose phi periodicity at z=-pi
   if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL){
     gk_field_add_TSBC_and_SSFG_updaters(app,f);
+    f->enforce_zbc = gk_field_enforce_zbc;
+  } else {
+    f->enforce_zbc = gk_field_enforce_zbc_none;
   }
   
   return f;
@@ -528,38 +558,13 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
       gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth,
         field->phi_bc, field->phi_smooth);
 
-      // Enforce the twist-and-shift BCs to the potential
-      if (field->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
-        gk_field_enforce_zbc(app, field, field->phi_smooth);
-      }   
+      field->enforce_zbc(app, field, field->phi_smooth);
       
       field->invert_flr(app, field, field->phi_smooth);
 
     }
   }
   app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
-}
-
-void
-gk_field_enforce_zbc(const gkyl_gyrokinetic_app *app, const struct gk_field *field, struct gkyl_array *finout)
-{
-  // Apply the periodicity to fill the ghost cells
-  int num_periodic_dir = 1; // we need only periodicity in z
-  int zdir = app->cdim - 1;
-  int periodic_dirs[] = {zdir};
-  gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
-    num_periodic_dir, periodic_dirs, finout); 
-  
-  // // Update the lower z ghosts with twist-and-shift if we are in 3x2v
-  if(app->cdim == 3) {
-    gkyl_bc_twistshift_advance(field->bc_T_LU_lo, finout, finout);
-  }
-
-  // Synchronize the array between the MPI processes to erase inner ghosts modification (handle multi GPU case)
-  gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, finout);
-
-  // Force the lower skin surface value to match the ghost cell at the node position.
-  gkyl_skin_surf_from_ghost_advance(field->ssfg_lo, finout);
 }
 
 void

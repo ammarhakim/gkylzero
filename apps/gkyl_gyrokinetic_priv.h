@@ -846,6 +846,11 @@ struct gk_field {
   struct gkyl_range lower_skin_core, lower_ghost_core;
   struct gkyl_range upper_skin_core, upper_ghost_core;
   struct gkyl_skin_surf_from_ghost *ssfg_lo;
+
+  
+  // pointer to function for the twist-and-shift BCs 
+  // (points to a none function if we are not in clopen simulation)
+  void (*enforce_zbc) (const gkyl_gyrokinetic_app *app, const struct gk_field *field, struct gkyl_array *finout);
 };
 
 // gyrokinetic object: used as opaque pointer in user code
@@ -2291,14 +2296,6 @@ void gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_fie
  * @param em Output field
  */
 void gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field);
-
-/**
- * Apply twist-and-shift BC and ensure that the skin surface values matches it
- * 
- * @param app gk app object
- * @param field pointer to the field (modified)
- */
-void gk_field_enforce_zbc(const gkyl_gyrokinetic_app *app, const struct gk_field *field, struct gkyl_array *finout);
 
 /**
  * Compute field energy diagnostic
