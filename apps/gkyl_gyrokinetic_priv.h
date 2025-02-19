@@ -835,26 +835,17 @@ struct gk_field {
   // Core and SOL ranges for IWL sims.
   struct gkyl_range global_core, global_ext_core, global_sol, global_ext_sol;
 
-  // Additional attributes for TS BC
-  struct gkyl_range local, local_ext; // local, local-ext conf-space ranges
-  // Core and SOL ranges for IWL sims. 
-  // GK IWL sims need a core range extended in z, and a TS BC updater.
+  // Additional attributes for twist and shift boundary condition (TSBC).
   struct gkyl_range local_par_ext_core;
-  // Forward TS updater
   struct gkyl_bc_twistshift *bc_T_LU_lo;
-  // will store the ghost values of phi_smooth for the TSBC SSFG
+  // will store the ghost values of phi_smooth for the TSBC SSFG.
   struct gkyl_array *aux_array;
   struct gkyl_array *bc_buffer;
 
-  // Additional attributes for setting skin surface to ghost surface (SSFG)
-  // Global skin and ghost ranges to apply skin surf from ghost 
+  // Additional attributes for setting skin surface to ghost surface (SSFG).
   struct gkyl_range lower_skin_core, lower_ghost_core;
   struct gkyl_range upper_skin_core, upper_ghost_core;
-  // Updater for skin surf ghost copy
   struct gkyl_skin_surf_from_ghost *ssfg_lo;
-  // communicator object for config-space
-  struct gkyl_comm *comm_conf;   
-
 };
 
 // gyrokinetic object: used as opaque pointer in user code

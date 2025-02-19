@@ -358,31 +358,28 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
   // define the parallel direction index (handle 2x and 3x cases)
   int zdir = app->cdim - 1;
 
-  // Create local and local_ext from app local range with ghosts
-  int ghost[] = {1, 1, 1};
-  gkyl_create_ranges(&app->local, ghost, &f->local_ext, &f->local);
-
   // Define sub range of ghost and skin cells that spans only the core
   double xLCFS = f->info.xLCFS;
   // Index of the cell that abuts the xLCFS from below.
   int idxLCFS_m = (xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
 
   // check that idxLCFS_m is within the local range
-  assert(idxLCFS_m >= f->local.lower[0] && idxLCFS_m <= f->local.upper[0]);
+  assert(idxLCFS_m >= app->local.lower[0] && idxLCFS_m <= app->local.upper[0]);
 
   // Create a core local range, extended in the BC dir.
   int ndim = app->cdim;
   int lower_bcdir_ext[ndim], upper_bcdir_ext[ndim];
   for (int i=0; i<ndim; i++) {
-    lower_bcdir_ext[i] = f->local.lower[i];
-    upper_bcdir_ext[i] = f->local.upper[i];
+    lower_bcdir_ext[i] = app->local.lower[i];
+    upper_bcdir_ext[i] = app->local.upper[i];
   }
   upper_bcdir_ext[0] = idxLCFS_m;
-  lower_bcdir_ext[zdir] = f->local_ext.lower[zdir];
-  upper_bcdir_ext[zdir] = f->local_ext.upper[zdir];
-  gkyl_sub_range_init(&f->local_par_ext_core, &f->local_ext, lower_bcdir_ext, upper_bcdir_ext);
+  lower_bcdir_ext[zdir] = app->local_ext.lower[zdir];
+  upper_bcdir_ext[zdir] = app->local_ext.upper[zdir];
+  gkyl_sub_range_init(&f->local_par_ext_core, &app->local_ext, lower_bcdir_ext, upper_bcdir_ext);
 
   // TSBC updaters
+  int ghost[] = {1, 1, 1};
   if (app->cdim == 3) {
     //TS BC updater for up to low TS for the lower edge
     //this sets ghost_L = T_LU(ghost_L)
@@ -422,10 +419,6 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
   // These bc_basic updaters need a buffer, allocate it.
   long buff_sz = GKYL_MAX2(f->lower_skin_core.volume, f->upper_skin_core.volume);
   f->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
-
-  // Finally we need a config space communicator to sync the inner cell data and
-  // avoid applying TS BC inside the domain
-  f->comm_conf = gkyl_comm_extend_comm(app->comm, &f->local);
 }
 
 void
@@ -563,7 +556,7 @@ gk_field_enforce_zbc(const gkyl_gyrokinetic_app *app, const struct gk_field *fie
   }
 
   // Synchronize the array between the MPI processes to erase inner ghosts modification (handle multi GPU case)
-  gkyl_comm_array_sync(field->comm_conf, &field->local, &field->local_ext, finout);
+  gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, finout);
 
   // Force the lower skin surface value to match the ghost cell at the node position.
   gkyl_skin_surf_from_ghost_advance(field->ssfg_lo, finout);
@@ -637,7 +630,6 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
       gkyl_bc_twistshift_release(f->bc_T_LU_lo);
     }
     gkyl_skin_surf_from_ghost_release(f->ssfg_lo);
-    gkyl_comm_release(f->comm_conf);
     gkyl_array_release(f->aux_array);
     gkyl_array_release(f->bc_buffer);
   }
