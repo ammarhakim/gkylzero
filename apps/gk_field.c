@@ -154,7 +154,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       }
       // deflated Poisson solve is performed on range assuming decomposition is *only* in z right now
       // need sub range of global range corresponding to where we are in z to properly index global charge density
-      f->deflated_fem_poisson = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev.confBasis, app->confBasis,
+      f->deflated_fem_poisson = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev, app->basis,
         app->local, f->global_sub_range, f->epsilon, 0, f->info.poisson_bcs, app->use_gpu);
 
       f->phi_bc = 0;
@@ -164,10 +164,10 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
          f->info.poisson_bcs.up_type[d] == GKYL_POISSON_DIRICHLET_VARYING);
       if (f->is_dirichletvar) {
         // Project the spatially varying BC if the user specifies it.
-        f->phi_bc = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
+        f->phi_bc = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
         struct gkyl_array *phi_bc_ho = mkarr(false, f->phi_bc->ncomp, f->phi_bc->size);
 
-        gkyl_eval_on_nodes *phibc_proj = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis, 
+        gkyl_eval_on_nodes *phibc_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis, 
           1, f->info.poisson_bcs.bc_value_func, f->info.poisson_bcs.bc_value_func_ctx);
         gkyl_eval_on_nodes_advance(phibc_proj, 0.0, &app->global, phi_bc_ho);
         gkyl_array_copy(f->phi_bc, phi_bc_ho);
