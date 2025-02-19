@@ -723,7 +723,7 @@ main(int argc, char **argv)
     .boundary_flux_diagnostics = {
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { "HamiltonianMoments" },
-      .time_integrated = true,
+//      .time_integrated = true,
     }
   };
 
@@ -785,7 +785,7 @@ main(int argc, char **argv)
     .boundary_flux_diagnostics = {
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { "HamiltonianMoments" },
-      .time_integrated = true,
+//      .time_integrated = true,
     }
   };
 

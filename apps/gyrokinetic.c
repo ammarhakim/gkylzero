@@ -428,25 +428,6 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   gkyl_dg_inv_op_range(app->confBasis, 0, app->jacobtot_inv_weak, 0, tmp, &app->local); 
   gkyl_array_release(tmp);
 
-  // Ghost from skin surf (gfss): Fill the global ghost cells the field evaluated at the boundary.
-  long buff_sz = 0;
-  for (int dir=0; dir<app->cdim; dir++) {
-    for (int e=0; e<2; e++) {
-      app->gfss_bc_op[2*dir+e] = gkyl_bc_basic_new(dir, e==0? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE, GKYL_BC_CONF_BOUNDARY_VALUE,
-        &app->confBasis, e==0? &app->global_lower_skin[dir] : &app->global_upper_skin[dir],
-        e==0? &app->global_lower_ghost[dir] : &app->global_upper_ghost[dir], 1, app->cdim, app->use_gpu);
-    }
-    long vol = GKYL_MAX2(app->global_lower_skin[dir].volume, app->global_upper_skin[dir].volume);
-    buff_sz = buff_sz > vol ? buff_sz : vol;
-  }
-  app->bc_buffer = mkarr(app->use_gpu, app->confBasis.num_basis, buff_sz);
-
-  for (int dir=0; dir<app->cdim; dir++) {
-    for (int e=0; e<2; e++) {
-      gkyl_bc_basic_advance(app->gfss_bc_op[2*dir+e], app->bc_buffer, app->gk_geom->bmag);
-    }
-  }
-
   return app;
 }
 
@@ -2285,12 +2266,6 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
     gkyl_cu_free(app->basis_on_dev.confBasis);
   }
 
-  gkyl_array_release(app->bc_buffer);
-  for (int dir=0; dir<app->cdim; dir++) {
-    for (int e=0; e<2; e++) {
-      gkyl_bc_basic_release(app->gfss_bc_op[2*dir+e]);
-    }
-  }
   gkyl_dynvec_release(app->dts);
 
   gkyl_free(app);
