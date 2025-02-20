@@ -57,16 +57,18 @@ gkyl_mom_canonical_pb_new(const struct gkyl_basis* cbasis, const struct gkyl_bas
 
   switch (pbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
+      assert(poly_order == 2);
       menergy_kernels = ser_menergy_kernels;
       break;
-
+    case GKYL_BASIS_MODAL_HYBRID:
+      assert(poly_order == 1);
+      menergy_kernels = ser_menergy_kernels;
+      break;
     case GKYL_BASIS_MODAL_TENSOR:
       menergy_kernels = tensor_menergy_kernels;
       break;
-
     default:
       assert(false);
-      break;    
   }
 
   if (strcmp(mom, "MEnergy") == 0) { // Energy int( f*H ) 
