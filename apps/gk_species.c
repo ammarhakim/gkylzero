@@ -404,6 +404,26 @@ gk_species_write_mom_static(gkyl_gyrokinetic_app* app, struct gk_species *gks, d
 }
 
 static void
+gk_species_calc_int_mom_dt_active(gkyl_gyrokinetic_app* app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom)
+{
+  // Compute moment of f_new to compute moment of df/dt.
+  // Need to do it after the fields are updated.
+  gk_species_moment_calc(&gks->integ_moms, gks->local, app->local, gks->f); 
+  gkyl_array_set(fdot_int_mom, 1.0/dt, gks->integ_moms.marr);
+}
+
+static void
+gk_species_calc_int_mom_dt_none(gkyl_gyrokinetic_app* app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom)
+{
+}
+
+void
+gk_species_calc_int_mom_dt(gkyl_gyrokinetic_app* app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom)
+{
+  gks->calc_int_mom_dt_func(app, gks, dt, fdot_int_mom);
+}
+
+static void
 gk_species_calc_integrated_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm)
 {
   struct timespec wst = gkyl_wall_clock();
@@ -429,6 +449,7 @@ gk_species_calc_integrated_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_spec
 
   if (gks->info.time_rate_diagnostics) {
     // Reduce (sum) over whole domain, append to diagnostics.
+    gkyl_array_accumulate(gks->fdot_mom_new, -1.0, gks->fdot_mom_old);
     gkyl_array_reduce_range(gks->red_integ_diag, gks->fdot_mom_new, GKYL_SUM, &app->local);
     gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom,
       gks->red_integ_diag, gks->red_integ_diag_global);
@@ -1005,7 +1026,7 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
     gks->is_first_ps_integ_write_call = true;
   }
 
-  // set function pointers
+  // Set function pointers.
   gks->rhs_func = gk_species_rhs_dynamic;
   gks->rhs_implicit_func = gk_species_rhs_implicit_dynamic;
   gks->bc_func = gk_species_apply_bc_dynamic;
@@ -1019,9 +1040,13 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
   gks->write_integrated_mom_func = gk_species_write_integrated_mom_dynamic;
   gks->calc_L2norm_func = gk_species_calc_L2norm_dynamic;
   gks->write_L2norm_func = gk_species_write_L2norm_dynamic;
+  if (gks->info.time_rate_diagnostics)
+    gks->calc_int_mom_dt_func = gk_species_calc_int_mom_dt_active;
+  else
+    gks->calc_int_mom_dt_func = gk_species_calc_int_mom_dt_none;
 }
 
-// initialize static species object
+// Initialize static species object.
 static void
 gk_species_new_static(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
@@ -1029,7 +1054,7 @@ gk_species_new_static(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *a
   gks->f1 = gks->f;
   gks->fnew = gks->f;
 
-  // set function pointers
+  // Set function pointers.
   gks->rhs_func = gk_species_rhs_static;
   gks->rhs_implicit_func = gk_species_rhs_implicit_static;
   gks->bc_func = gk_species_apply_bc_static;
@@ -1043,6 +1068,7 @@ gk_species_new_static(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *a
   gks->write_integrated_mom_func = gk_species_write_integrated_mom_static;
   gks->calc_L2norm_func = gk_species_calc_L2norm_static;
   gks->write_L2norm_func = gk_species_write_L2norm_static;
+  gks->calc_int_mom_dt_func = gk_species_calc_int_mom_dt_none;
 }
 
 // End static function definitions.

@@ -19,6 +19,24 @@ eval_on_nodes_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
   gkyl_position_map_eval_mc2nu(gpm, xcomp, xphys);
 }
 
+static void
+gk_field_calc_energy_dt_active(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced)
+{
+  gkyl_array_integrate_advance(field->calc_em_energy, field->phi_smooth, 
+    1.0/dt, field->es_energy_fac, &app->local, &app->local, energy_reduced);
+}
+
+static void
+gk_field_calc_energy_dt_none(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced)
+{
+}
+
+void
+gk_field_calc_energy_dt(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced)
+{
+  field->calc_energy_dt_func(app, field, dt, energy_reduced);
+}
+
 // initialize field object
 struct gk_field* 
 gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
@@ -213,7 +231,9 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       1, GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ, app->use_gpu);
   }
 
+  f->calc_energy_dt_func = gk_field_calc_energy_dt_none;
   if (f->info.time_rate_diagnostics) {
+    f->calc_energy_dt_func = gk_field_calc_energy_dt_active;
     if (app->use_gpu) {
       f->em_energy_red_new = gkyl_cu_malloc(sizeof(double[1]));
       f->em_energy_red_old = gkyl_cu_malloc(sizeof(double[1]));

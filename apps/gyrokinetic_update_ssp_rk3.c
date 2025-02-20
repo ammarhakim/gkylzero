@@ -73,18 +73,13 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
 
         for (int i=0; i<app->num_species; ++i) {
           struct gk_species *gk_s = &app->species[i];
-          if (gk_s->info.time_rate_diagnostics) {
-            // Compute moment of f_old to later compute moment of df/dt.
-            // Do it before the fields are updated, but after dt is calculated.
-            gk_species_moment_calc(&gk_s->integ_moms, gk_s->local, app->local, gk_s->f); 
-            gkyl_array_copy(gk_s->fdot_mom_old, gk_s->integ_moms.marr);
-          }
+          // Compute moment of f_old to later compute moment of df/dt.
+          // Do it before the fields are updated, but after dt is calculated.
+          gk_species_calc_int_mom_dt(app, gk_s, dt, gk_s->fdot_mom_old);
         }
 
-        if (app->field->info.time_rate_diagnostics) {
-          gkyl_array_integrate_advance(app->field->calc_em_energy, app->field->phi_smooth, 
-            1.0/dt, app->field->es_energy_fac, &app->local, &app->local, app->field->em_energy_red_old);
-        }
+        // Compute field energy divided by dt for energy balance diagnostics.
+        gk_field_calc_energy_dt(app, app->field, dt, app->field->em_energy_red_old);
 
         // Compute the fields and apply BCs.
         gyrokinetic_calc_field_and_apply_bc(app, tcurr, fout, fout_neut);
@@ -115,7 +110,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
             fin[i] = app->species[i].f;
           gyrokinetic_calc_field(app, tcurr, fin);
 
-          // collect stats
+          // Collect stats.
           double dt_rel_diff = (dt-st.dt_actual)/st.dt_actual;
           app->stat.stage_2_dt_diff[0] = fmin(app->stat.stage_2_dt_diff[0],
             dt_rel_diff);
@@ -124,7 +119,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           app->stat.nstage_2_fail += 1;
 
           dt = st.dt_actual;
-          state = RK_STAGE_1; // restart from stage 1
+          state = RK_STAGE_1; // Restart from stage 1.
 
         } 
         else {
@@ -174,7 +169,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
             fin[i] = app->species[i].f;
           gyrokinetic_calc_field(app, tcurr, fin);
 
-          // collect stats
+          // Collect stats.
           double dt_rel_diff = (dt-st.dt_actual)/st.dt_actual;
           app->stat.stage_3_dt_diff[0] = fmin(app->stat.stage_3_dt_diff[0],
             dt_rel_diff);
@@ -183,7 +178,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           app->stat.nstage_3_fail += 1;
 
           dt = st.dt_actual;
-          state = RK_STAGE_1; // restart from stage 1
+          state = RK_STAGE_1; // Restart from stage 1.
 
           app->stat.nstage_2_fail += 1;
         }
@@ -246,19 +241,13 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
 
 	  for (int i=0; i<app->num_species; ++i) {
             struct gk_species *gk_s = &app->species[i];
-            if (gk_s->info.time_rate_diagnostics) {
-              // Compute moment of f_new to compute moment of df/dt.
-              // Need to do it after the fields are updated.
-              gk_species_moment_calc(&gk_s->integ_moms, gk_s->local, app->local, gk_s->f); 
-              gkyl_array_set(gk_s->fdot_mom_new, 1.0/dt, gk_s->integ_moms.marr);
-              gkyl_array_accumulate(gk_s->fdot_mom_new, -1.0/dt, gk_s->fdot_mom_old);
-            }
+            // Compute moment of f_new to compute moment of df/dt.
+            // Need to do it after the fields are updated.
+            gk_species_calc_int_mom_dt(app, gk_s, dt, gk_s->fdot_mom_new);
           }
 
-          if (app->field->info.time_rate_diagnostics) {
-            gkyl_array_integrate_advance(app->field->calc_em_energy, app->field->phi_smooth, 
-              1.0/dt, app->field->es_energy_fac, &app->local, &app->local, app->field->em_energy_red_new);
-          }
+          // Compute field energy divided by dt for energy balance diagnostics.
+          gk_field_calc_energy_dt(app, app->field, dt, app->field->em_energy_red_new);
 
           state = RK_COMPLETE;
         }
