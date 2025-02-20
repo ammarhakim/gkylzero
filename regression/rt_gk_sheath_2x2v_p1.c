@@ -143,7 +143,7 @@ create_ctx(void)
   double vpar_max_ion = 4.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
   double mu_max_ion = (3.0 / 2.0) * 0.5 * mass_ion * pow(4.0 * vti, 2.0) / (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
   int poly_order = 1; // Polynomial order.
-  double cfl_frac = 0.5; // CFL coefficient.
+  double cfl_frac = 1.0; // CFL coefficient.
 
   double t_end = 6.0e-6; // Final simulation time.
   int num_frames = 1; // Number of output frames.
@@ -673,7 +673,6 @@ main(int argc, char **argv)
     .upper = { ctx.vpar_max_elc, ctx.mu_max_elc },
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
-//    .no_by = true,
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
@@ -685,13 +684,13 @@ main(int argc, char **argv)
       .ctx_upar = &ctx,
     },
 
-//    .collisions = {
-//      .collision_id = GKYL_LBO_COLLISIONS,
-//      .self_nu = evalElcNu,
-//      .ctx = &ctx,
-//      .num_cross_collisions = 1,
-//      .collide_with = { "ion" },
-//    },
+    .collisions = {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .self_nu = evalElcNu,
+      .ctx = &ctx,
+      .num_cross_collisions = 1,
+      .collide_with = { "ion" },
+    },
 
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
@@ -746,7 +745,6 @@ main(int argc, char **argv)
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion },
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0, 
-//    .no_by = true,
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -758,13 +756,13 @@ main(int argc, char **argv)
       .ctx_upar = &ctx,
     },
 
-//    .collisions =  {
-//      .collision_id = GKYL_LBO_COLLISIONS,
-//      .self_nu = evalIonNu,
-//      .ctx = &ctx,
-//      .num_cross_collisions = 1,
-//      .collide_with = { "elc" },
-//    },
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .self_nu = evalIonNu,
+      .ctx = &ctx,
+      .num_cross_collisions = 1,
+      .collide_with = { "elc" },
+    },
 
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
@@ -813,7 +811,6 @@ main(int argc, char **argv)
   // Field.
   struct gkyl_gyrokinetic_field field = {
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
-//    .fem_parbc = GKYL_FEM_PARPROJ_DIRICHLET,
     .poisson_bcs = {
       .lo_type = { GKYL_POISSON_DIRICHLET },
       .up_type = { GKYL_POISSON_DIRICHLET },
@@ -822,14 +819,6 @@ main(int argc, char **argv)
       .up_value = { 0.0 },
     },
     .time_rate_diagnostics = true,
-//    .is_static = true,
-//    .zero_init_field = true,
-//    .init_from_file = {
-//      .file_name = "gk_sheath_2x2v_p1_cfl0p5-field_1.gkyl",
-//      .type = GKYL_IC_IMPORT_F,
-//    },
-//    .init_field_profile = init_field,
-//    .init_field_profile_ctx = &ctx,
   };
 
   // Gyrokinetic app.

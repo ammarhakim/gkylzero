@@ -23,15 +23,17 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     }
 
     // Allocate data and updaters for diagnostic moments.
-    int src_num_diag_moms = s->info.source.diagnostics.num_diag_moments;
-    src->num_diag_moments = src_num_diag_moms;
-    if (src->num_diag_moments == 0)
+    src->num_diag_moments = s->info.source.diagnostics.num_diag_moments;
+    if (src->num_diag_moments == 0) {
       src->num_diag_moments = s->info.num_diag_moments;
+      for (int m=0; m<src->num_diag_moments; ++m) {
+        strcpy(s->info.source.diagnostics.diag_moments[m], s->info.diag_moments[m]);
+      }
+    }
 
     s->src.moms = gkyl_malloc(sizeof(struct gk_species_moment[src->num_diag_moments]));
     for (int m=0; m<src->num_diag_moments; ++m) {
-      gk_species_moment_init(app, s, &s->src.moms[m],
-        src_num_diag_moms == 0? s->info.diag_moments[m] : s->info.source.diagnostics.diag_moments[m], false);
+      gk_species_moment_init(app, s, &s->src.moms[m], s->info.source.diagnostics.diag_moments[m], false);
     }
 
     // Allocate data and updaters for integrated moments.
@@ -126,16 +128,16 @@ gk_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, d
       }
     );
 
-    for (int m=0; m<gks->info.num_diag_moments; ++m) {
+    for (int m=0; m<gks->src.num_diag_moments; ++m) {
       gk_species_moment_calc(&gks->src.moms[m], gks->local, app->local, gks->src.source);
       app->stat.n_mom += 1;
 
       const char *fmt = "%s-%s_source_%s_%d.gkyl";
       int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name,
-        gks->info.diag_moments[m], frame);
+        gks->info.source.diagnostics.diag_moments[m], frame);
       char fileNm[sz+1]; // Ensures no buffer overflow.
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name,
-        gks->info.diag_moments[m], frame);
+        gks->info.source.diagnostics.diag_moments[m], frame);
 
       // Rescale moment by inverse of Jacobian. 
       // For Maxwellian and bi-Maxwellian moments, we only need to re-scale

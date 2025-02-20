@@ -581,6 +581,13 @@ main(int argc, char **argv)
         .upar = evalElcSourceUparInit,
         .ctx_upar = &ctx,
       }, 
+      .diagnostics = {
+        .num_diag_moments = 5,
+        .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { "HamiltonianMoments" },
+//        .time_integrated = true,
+      }
     },
     
     .bcx = {
@@ -590,8 +597,15 @@ main(int argc, char **argv)
 
     .num_diag_moments = 6,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "MaxwellianMoments" },
-    .boundary_flux_diagnostics = true,
-    .integrated_hamiltonian_moments = true,
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { "HamiltonianMoments" },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { "HamiltonianMoments" },
+//      .time_integrated = true,
+    }
   };
 
   // Ions.
@@ -633,6 +647,13 @@ main(int argc, char **argv)
         .upar = evalIonSourceUparInit,
         .ctx_upar = &ctx,
       }, 
+      .diagnostics = {
+        .num_diag_moments = 5,
+        .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { "HamiltonianMoments" },
+//        .time_integrated = true,
+      }
     },
 
     .bcx = {
@@ -642,14 +663,22 @@ main(int argc, char **argv)
     
     .num_diag_moments = 6,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "MaxwellianMoments" },
-    .boundary_flux_diagnostics = true,
-    .integrated_hamiltonian_moments = true,
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { "HamiltonianMoments" },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { "HamiltonianMoments" },
+//      .time_integrated = true,
+    }
   };
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
     .kperpSq = ctx.k_perp * ctx.k_perp,
+    .time_rate_diagnostics = true,
   };
 
   // Gyrokinetic app.
@@ -664,7 +693,6 @@ main(int argc, char **argv)
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
-    .fdot_diagnostics = true,
 
     .geometry = {
       .geometry_id = GKYL_MAPC2P,
