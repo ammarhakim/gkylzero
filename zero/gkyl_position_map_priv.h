@@ -651,8 +651,6 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
     double right_straight_line_value = max_slope * theta + (1-max_slope) * Theta_right;
     double left_straight_line_value  = max_slope * theta + (1-max_slope) * Theta_left;
 
-    printf("theta = %f, Theta = %f, Theta_left = %f, Theta_right = %f, right_straight_line_value = %f, left_straight_line_value = %f\n", theta, Theta, Theta_left, Theta_right, right_straight_line_value, left_straight_line_value);
-
     if (fout[0] < right_straight_line_value){
       fout[0] = right_straight_line_value;
     }
