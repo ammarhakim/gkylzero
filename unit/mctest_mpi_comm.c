@@ -1290,49 +1290,6 @@ mpi_n4_create_comm_from_ranks_2()
 }
 
 static void
-mpi_n4_dir_comms()
-{
-  int m_sz;
-  MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
-  if (m_sz != 4) return;
-
-  int rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-  // Create global range
-  int cells[] = { 10, 36 };
-  int ndim = sizeof(cells)/sizeof(cells[0]);
-  struct gkyl_range global;
-  gkyl_create_global_range(ndim, cells, &global);
-
-  int cuts[] = { 2, 2 };
-  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(ndim, cuts, &global);  
-  
-  struct gkyl_comm *comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
-      .mpi_comm = MPI_COMM_WORLD,
-      .decomp = decomp,
-    }
-  );
-
-  int nghost[] = { 1, 1 };
-  struct gkyl_range local, local_ext;
-  gkyl_create_ranges(&decomp->ranges[rank], nghost, &local_ext, &local);
-
-  // Create a communicator connecting ranks along x.
-  // Compress range in other directions.
-
-
-  struct gkyl_comm *comm_x =
-    gkyl_comm_create_comm_from_ranks(comm, branks[0], rb1, 0, &status);
-
-
-
-  gkyl_rrobin_decomp_release(rrd);
-  gkyl_comm_release(comm);
-  gkyl_comm_release(comm_b1);
-}
-
-static void
 mpi_bcast_1d()
 {
   int bcast_rank = 1;
@@ -1646,7 +1603,6 @@ TEST_LIST = {
   /* {"mpi_n4_split_comm_2d", mpi_n4_split_comm_2d }, */
   {"mpi_n4_create_comm_from_ranks_1", mpi_n4_create_comm_from_ranks_1 },
   {"mpi_n4_create_comm_from_ranks_2", mpi_n4_create_comm_from_ranks_2 },
-  {"mpi_n4_dir_comms", mpi_n4_dir_comms },
   
   {"mpi_bcast_1d", mpi_bcast_1d},
   {"mpi_bcast_2d", mpi_bcast_2d},
