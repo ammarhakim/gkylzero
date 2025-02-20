@@ -369,7 +369,8 @@ struct gk_boundary_fluxes {
   double *int_moms_local, *int_moms_global; // Integrated moments in this time step.
   gkyl_dynvec intmom[2*GKYL_MAX_CDIM]; // Integrated moments of the boundary fluxes.
   double *intmom_cumm_buff; // Cummulative (in time) integrated moments of the boundary fluxes.
-  bool is_first_intmom_write_call; // Flag 1st writing of blux_intmom.
+  bool is_first_intmom_write_call[2*GKYL_MAX_CDIM]; // Flag 1st writing of blux_intmom.
+  bool is_not_first_restart_write_call; // False at first write after restart.
   // Function pointers to various methods.
   void (*bflux_clear_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fin, double val);
   void (*bflux_scale_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fin, double val);
@@ -379,7 +380,7 @@ struct gk_boundary_fluxes {
     struct gkyl_array **fout, double fac1, struct gkyl_array **fin1, double fac2, struct gkyl_array **fin2);
   void (*bflux_copy_func)(gkyl_gyrokinetic_app *app, struct gk_species *gk_s, struct gk_boundary_fluxes *bflux,
     struct gkyl_array **fout, struct gkyl_array **fin);
-  void (*bflux_calc_int_mom_time_integrate_func)(gkyl_gyrokinetic_app* app, const struct gk_species *gk_s,
+  void (*bflux_calc_voltime_int_mom_func)(gkyl_gyrokinetic_app* app, const struct gk_species *gk_s,
     struct gk_boundary_fluxes *bflux, double tm);
   void (*bflux_rhs_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_boundary_fluxes *bflux,
     const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);

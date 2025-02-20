@@ -256,8 +256,8 @@ create_ctx(void)
   int Nvpar = 16;
   int Nmu = 8;
 
-  double t_end = 4*5.0e-7; 
-  double num_frames = 1;
+  double t_end = 1*1.0e-6; 
+  double num_frames = 1*1;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
@@ -450,8 +450,8 @@ main(int argc, char **argv)
 //    }, 
 
     .bcx = {
-      .lower={.type = GKYL_SPECIES_ZERO_FLUX,},
-      .upper={.type = GKYL_SPECIES_ZERO_FLUX,},
+      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
+      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
     },
     .bcy = {
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
@@ -519,8 +519,8 @@ main(int argc, char **argv)
 //    }, 
 
     .bcx = {
-      .lower={.type = GKYL_SPECIES_ZERO_FLUX,},
-      .upper={.type = GKYL_SPECIES_ZERO_FLUX,},
+      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
+      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
     },
     .bcy = {
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},

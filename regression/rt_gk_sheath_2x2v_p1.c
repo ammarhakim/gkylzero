@@ -145,8 +145,8 @@ create_ctx(void)
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 0.5; // CFL coefficient.
 
-  double t_end = 6.0e-6; // Final simulation time.
-  int num_frames = 1; // Number of output frames.
+  double t_end = 2*6.0e-6; // Final simulation time.
+  int num_frames = 2*1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -723,7 +723,7 @@ main(int argc, char **argv)
     .boundary_flux_diagnostics = {
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { "HamiltonianMoments" },
-//      .time_integrated = true,
+      .time_integrated = true,
     }
   };
 
@@ -785,7 +785,7 @@ main(int argc, char **argv)
     .boundary_flux_diagnostics = {
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { "HamiltonianMoments" },
-//      .time_integrated = true,
+      .time_integrated = true,
     }
   };
 

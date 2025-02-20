@@ -212,27 +212,30 @@ void
 gk_species_bflux_calc_integrated_mom_dynamic(gkyl_gyrokinetic_app* app,
   const struct gk_species *gk_s, struct gk_boundary_fluxes *bflux, double tm)
 {
-  int vdim = app->vdim;
-  int num_mom = bflux->moms_op.num_mom; 
-  double avals_global[num_mom];
+  if (bflux->is_not_first_restart_write_call) {
+    int vdim = app->vdim;
+    int num_mom = bflux->moms_op.num_mom; 
+    double avals_global[num_mom];
 
-  for (int b=0; b<bflux->num_boundaries; ++b) {
-    // Integrated moment of the boundary flux.
-    int dir = bflux->boundaries_dir[b];
-    gkyl_array_integrate_advance(bflux->integ_op, bflux->f[b], 1., 0,
-      bflux->boundaries_edge[b]==GKYL_LOWER_EDGE? &app->lower_ghost[dir] : &app->upper_ghost[dir], 0, bflux->int_moms_local);
+    for (int b=0; b<bflux->num_boundaries; ++b) {
+      // Integrated moment of the boundary flux.
+      int dir = bflux->boundaries_dir[b];
+      gkyl_array_integrate_advance(bflux->integ_op, bflux->f[b], 1., 0,
+        bflux->boundaries_edge[b]==GKYL_LOWER_EDGE? &app->lower_ghost[dir] : &app->upper_ghost[dir],
+        0, bflux->int_moms_local);
 
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
-      bflux->int_moms_local, bflux->int_moms_global);
-    if (app->use_gpu) {
-      gkyl_cu_memcpy(avals_global, bflux->int_moms_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
-    }
-    else {
-      memcpy(avals_global, bflux->int_moms_global, sizeof(double[num_mom]));
-    }
+      gkyl_comm_allreduce(app->comm_plane[dir], GKYL_DOUBLE, GKYL_SUM, num_mom, 
+        bflux->int_moms_local, bflux->int_moms_global);
+      if (app->use_gpu) {
+        gkyl_cu_memcpy(avals_global, bflux->int_moms_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
+      }
+      else {
+        memcpy(avals_global, bflux->int_moms_global, sizeof(double[num_mom]));
+      }
 
-    gkyl_dynvec_append(bflux->intmom[b], tm, avals_global);
-    
+      gkyl_dynvec_append(bflux->intmom[b], tm, avals_global);
+      
+    } 
   } 
 }
 
@@ -240,27 +243,29 @@ static void
 gk_species_bflux_calc_voltime_integrated_mom_dynamic(gkyl_gyrokinetic_app* app,
   const struct gk_species *gk_s, struct gk_boundary_fluxes *bflux, double tm)
 {
-  int vdim = app->vdim;
-  int num_mom = bflux->moms_op.num_mom; 
-  double avals_global[num_mom];
+  if (bflux->is_not_first_restart_write_call) {
+    int vdim = app->vdim;
+    int num_mom = bflux->moms_op.num_mom; 
+    double avals_global[num_mom];
 
-  for (int b=0; b<bflux->num_boundaries; ++b) {
-    // Integrated moment of the boundary flux.
-    int dir = bflux->boundaries_dir[b];
-    gkyl_array_integrate_advance(bflux->integ_op, bflux->f[b], 1., 0,
-      bflux->boundaries_edge[b]==GKYL_LOWER_EDGE? &app->lower_ghost[dir] : &app->upper_ghost[dir], 0, bflux->int_moms_local);
+    for (int b=0; b<bflux->num_boundaries; ++b) {
+      // Integrated moment of the boundary flux.
+      int dir = bflux->boundaries_dir[b];
+      gkyl_array_integrate_advance(bflux->integ_op, bflux->f[b], 1., 0,
+        bflux->boundaries_edge[b]==GKYL_LOWER_EDGE? &app->lower_ghost[dir] : &app->upper_ghost[dir], 0, bflux->int_moms_local);
 
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
-      bflux->int_moms_local, bflux->int_moms_global);
-    if (app->use_gpu) {
-      gkyl_cu_memcpy(avals_global, bflux->int_moms_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
-    }
-    else {
-      memcpy(avals_global, bflux->int_moms_global, sizeof(double[num_mom]));
-    }
+      gkyl_comm_allreduce(app->comm_plane[dir], GKYL_DOUBLE, GKYL_SUM, num_mom, 
+        bflux->int_moms_local, bflux->int_moms_global);
+      if (app->use_gpu) {
+        gkyl_cu_memcpy(avals_global, bflux->int_moms_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
+      }
+      else {
+        memcpy(avals_global, bflux->int_moms_global, sizeof(double[num_mom]));
+      }
 
-    for (int k=0; k<num_mom; k++) {
-      bflux->intmom_cumm_buff[b*num_mom+k] += avals_global[k];
+      for (int k=0; k<num_mom; k++) {
+        bflux->intmom_cumm_buff[b*num_mom+k] += avals_global[k];
+      }
     }
   }
 }
@@ -275,7 +280,7 @@ void
 gk_species_bflux_calc_voltime_integrated_mom(gkyl_gyrokinetic_app* app,
   const struct gk_species *gk_s, struct gk_boundary_fluxes *bflux, double tm)
 {
-  bflux->bflux_calc_int_mom_time_integrate_func(app, gk_s, bflux, tm);
+  bflux->bflux_calc_voltime_int_mom_func(app, gk_s, bflux, tm);
 }
 
 static void
@@ -306,26 +311,46 @@ static void
 gk_species_bflux_write_integrated_mom_dynamic(gkyl_gyrokinetic_app *app,
   const struct gk_species *gks, struct gk_boundary_fluxes *bflux)
 {
-  int rank;
+  int rank, comm_size;
   gkyl_comm_get_rank(app->comm, &rank);
+  gkyl_comm_get_size(app->comm, &comm_size);
 
   const char *vars[] = {"x","y","z"};
   const char *edge[] = {"lower","upper"};
 
-  if (rank == 0) {
-    for (int b=0; b<bflux->num_boundaries; ++b) {
+  for (int b=0; b<bflux->num_boundaries; ++b) {
+    int dir = bflux->boundaries_dir[b];
+    int edi = bflux->boundaries_edge[b]==GKYL_LOWER_EDGE? 0 : 1;
+
+    if ((edi == 0 && rank == 0) || (edi == 1 && rank == comm_size-1)) {
       // Write integrated moments of the boundary fluxes.
       const char *fmt = "%s-%s_bflux_%s%s_%s.gkyl";
-
-      int dir = bflux->boundaries_dir[b];
-      int edi = bflux->boundaries_edge[b]==GKYL_LOWER_EDGE? 0 : 1;
 
       int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, vars[dir], edge[edi], "integrated_moms");
       char fileNm[sz+1]; // ensures no buffer overflow
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, vars[dir], edge[edi], "integrated_moms");
 
+      if (!bflux->is_not_first_restart_write_call) {
+        // We didn't calculate int_mom at restart, so read the value from the previous sim
+        // and append it. This is the best solution given the flow in present input files.
+        bool res = gkyl_dynvec_read(bflux->intmom[b], fileNm);
+        int num_mom = gkyl_dynvec_ncomp(bflux->intmom[b]);
+
+        double vals_prev[num_mom];
+        gkyl_dynvec_getlast(bflux->intmom[b], vals_prev);
+        double tm = gkyl_dynvec_getlast_tm(bflux->intmom[b]);
+        gkyl_dynvec_clear(bflux->intmom[b]);
+
+        if (gks->info.boundary_flux_diagnostics.time_integrated) {
+          for (int k=0; k<num_mom; k++)
+            bflux->intmom_cumm_buff[b*num_mom+k] += vals_prev[k];
+        }
+
+        gkyl_dynvec_append(bflux->intmom[b], tm, vals_prev);
+      }
+
       struct timespec wtm = gkyl_wall_clock();
-      if (bflux->is_first_intmom_write_call) {
+      if (bflux->is_first_intmom_write_call[b]) {
         gkyl_dynvec_write(bflux->intmom[b], fileNm);
       }
       else {
@@ -336,11 +361,14 @@ gk_species_bflux_write_integrated_mom_dynamic(gkyl_gyrokinetic_app *app,
       app->stat.n_diag_io += 1;
 
       gkyl_dynvec_clear(bflux->intmom[b]);
-    }
     
-    if (bflux->is_first_intmom_write_call)
-      bflux->is_first_intmom_write_call = false;
+      if (bflux->is_first_intmom_write_call[b])
+        bflux->is_first_intmom_write_call[b] = false;
+    }
   }
+
+  if (!bflux->is_not_first_restart_write_call)
+    bflux->is_not_first_restart_write_call = true;
 }
 
 static void
@@ -368,7 +396,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
   bflux->bflux_rhs_func = gk_species_bflux_rhs_static; 
   bflux->bflux_calc_integrated_mom_func = gk_species_bflux_calc_integrated_mom_static;
   bflux->bflux_write_integrated_mom_func = gk_species_bflux_write_integrated_mom_static;
-  bflux->bflux_calc_int_mom_time_integrate_func = gk_species_bflux_calc_voltime_integrated_mom_static;
+  bflux->bflux_calc_voltime_int_mom_func = gk_species_bflux_calc_voltime_integrated_mom_static;
   bflux->allocated_diagnostic = false;
   bflux->allocated_solver = false;
 
@@ -385,7 +413,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
     bflux->bflux_rhs_func = gk_species_bflux_rhs_diag; 
     if (gk_s->info.boundary_flux_diagnostics.time_integrated) {
       bflux->bflux_calc_integrated_mom_func = gk_species_bflux_append_integrated_mom;
-      bflux->bflux_calc_int_mom_time_integrate_func = gk_species_bflux_calc_voltime_integrated_mom_dynamic;
+      bflux->bflux_calc_voltime_int_mom_func = gk_species_bflux_calc_voltime_integrated_mom_dynamic;
     }
     else
       bflux->bflux_calc_integrated_mom_func = gk_species_bflux_calc_integrated_mom_dynamic;
@@ -467,8 +495,11 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
       bflux->int_moms_global = gkyl_malloc(num_mom*sizeof(double));
     }
 
-    for (int b=0; b<bflux->num_boundaries; ++b)
+    for (int b=0; b<bflux->num_boundaries; ++b) {
       bflux->intmom[b] = gkyl_dynvec_new(GKYL_DOUBLE, num_mom);
+      bflux->is_first_intmom_write_call[b] = true;
+    }
+    bflux->is_not_first_restart_write_call = true;
 
     // Cummulative integrated moments of boundary fluxes.
     bflux->intmom_cumm_buff = gkyl_malloc(bflux->num_boundaries*num_mom*sizeof(double));
@@ -477,7 +508,6 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
         bflux->intmom_cumm_buff[b*num_mom+k] = 0.0;
     }
   
-    bflux->is_first_intmom_write_call = true;
   }
 
   if (!is_diagnostic) {

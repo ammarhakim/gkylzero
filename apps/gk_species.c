@@ -1510,11 +1510,6 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *gks, double t0
 
   // We are pre-computing source for now as it is time-independent.
   gk_species_source_calc(app, gks, &gks->src, t0);
-
-  gkyl_dg_calc_gyrokinetic_vars_alpha_surf(gks->calc_gk_vars, 
-    &app->local, &gks->local, &gks->local_ext, gks->phi,
-    gks->alpha_surf, gks->sgn_alpha_surf, gks->const_sgn_alpha);
-  gk_species_bflux_rhs(app, gks, &gks->bflux_solver, gks->f, gks->f, 0);
 }
 
 void

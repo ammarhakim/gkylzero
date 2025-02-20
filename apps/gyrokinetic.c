@@ -2100,7 +2100,9 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
   app->is_first_dt_write_call = false;
   gk_s->is_first_integ_write_call = false;
   gk_s->is_first_L2norm_write_call = false;
-  gk_s->bflux_diag.is_first_intmom_write_call = false;
+  for (int b=0; b<gk_s->bflux_diag.num_boundaries; ++b)
+    gk_s->bflux_diag.is_first_intmom_write_call[b] = false;
+  gk_s->bflux_diag.is_not_first_restart_write_call = false;
   if (app->fdot_diagnostics)
     gk_s->is_first_fdot_integ_write_call = false;
   if (app->enforce_positivity)
@@ -2192,6 +2194,20 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
     else
       // Read the t=0 field.
       gkyl_gyrokinetic_app_from_frame_field(app, 0);
+
+    // Compute boundary fluxes, for recycling and diagnostics.
+    for (int i=0; i<app->num_species; ++i) {
+      struct gk_species *s = &app->species[i];
+
+      // Compute advection speeds so we can compute the initial boundary flux.
+      gkyl_dg_calc_gyrokinetic_vars_alpha_surf(s->calc_gk_vars, 
+        &app->local, &s->local, &s->local_ext, app->field->phi_smooth,
+        s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
+
+      // Compute and store (in the ghost cell of of out) the boundary fluxes.
+      // NOTE: this overwrites ghost cells that may be used for sourcing.
+      gk_species_bflux_rhs(app, s, &s->bflux_solver, distf[i], distf[i], 0);
+    }
 
     // Apply boundary conditions.
     for (int i=0; i<app->num_species; ++i) {
