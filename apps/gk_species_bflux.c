@@ -8,6 +8,8 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, st
   int ndim = app->cdim + app->vdim;
   int cells[GKYL_MAX_DIM];
   double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+  bflux->ghost_flux_slvr = gkyl_ghost_surf_calc_new(&s->grid, s->eqn_gyrokinetic, app->cdim, app->use_gpu);
+  
   for (int d=0; d<app->cdim; ++d) {
     for (int i=0; i<ndim; ++i) {
       cells[i] = s->grid.cells[i]; // reset cell values
@@ -50,17 +52,6 @@ gk_species_bflux_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species
     gkyl_array_clear_range(rhs, 0.0, &species->lower_ghost[d]);
     gkyl_array_clear_range(rhs, 0.0, &species->upper_ghost[d]);
   }
-  int ndim = app->cdim + app->vdim;
-  int cells[GKYL_MAX_DIM];
-  double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
-  for (int i=0; i<ndim; ++i) {
-    cells[i] = species->grid.cells[i] + (i<app->cdim? 2 : 0); // reset cell values
-    lower[i] = species->grid.lower[i] - (i<app->cdim? species->grid.dx[i] : 0);
-    upper[i] = species->grid.upper[i] + (i<app->cdim? species->grid.dx[i] : 0);
-  }
-  struct gkyl_rect_grid local_ext_grid; 
-  gkyl_rect_grid_init(&local_ext_grid, ndim, lower, upper, cells);
-  gkyl_grid_sub_array_write(&local_ext_grid, &species->local_ext, 0, rhs, "bflux_rhs_before.gkyl");
   // Only calculating density for use in ambipotential solve.
   for (int d=0; d<app->cdim; ++d) {
     for (int e=0; e<2; ++e) {
@@ -69,17 +60,16 @@ gk_species_bflux_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species
       // it is only currently used to calculate moments for other applications.
       gkyl_boundary_flux_advance(bflux->flux_slvr[2*d+e], fin, rhs);
     }
-    gkyl_grid_sub_array_write(&local_ext_grid, &species->local_ext, 0, rhs, "bflux_rhs_after.gkyl");
+    /* if (app->use_gpu) { */
+    /*   gkyl_ghost_surf_calc_advance_cu(bflux->ghost_flux_slvr, &species->local_ext, fin, rhs); */
+    /* } else { */
+    /*   gkyl_ghost_surf_calc_advance(bflux->ghost_flux_slvr, &species->local_ext, fin, rhs); */
+    /* } */
 
     gkyl_array_copy_range_to_range(bflux->flux_arr[2*d+0], rhs, &bflux->flux_r[2*d+0],
       &species->lower_ghost[d]);
     gkyl_array_copy_range_to_range(bflux->flux_arr[2*d+1], rhs, &bflux->flux_r[2*d+1],
       &species->upper_ghost[d]);
-
-    gkyl_grid_sub_array_write(&bflux->boundary_grid[2*d+0], &bflux->flux_r[2*d+0], 0, bflux->flux_arr[2*d+0],
-			      "gk_bflux_arr_edge_0.gkyl");
-    gkyl_grid_sub_array_write(&bflux->boundary_grid[2*d+1], &bflux->flux_r[2*d+1], 0, bflux->flux_arr[2*d+1],
-			      "gk_bflux_arr_edge_1.gkyl");
     
     gk_species_moment_calc(&bflux->gammai[2*d+0], species->lower_ghost[d], app->lower_ghost[d], rhs);
     gk_species_moment_calc(&bflux->gammai[2*d+1], species->upper_ghost[d], app->upper_ghost[d], rhs);

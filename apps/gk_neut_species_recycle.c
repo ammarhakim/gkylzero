@@ -163,11 +163,11 @@ gk_neut_species_recycle_apply_bc(struct gkyl_gyrokinetic_app *app, const struct 
      recyc->flux[i], recyc->spectrum[i], recyc->impact_cbuff_r[i], recyc->emit_buff_r);
     
   }
-  const char *fmt = "recyc_f_emit_edge_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, recyc->edge);
-  char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, recyc->edge);
-  gkyl_grid_sub_array_write(recyc->emit_grid, recyc->emit_buff_r, 0, recyc->f_emit, fileNm);
+  /* const char *fmt = "recyc_f_emit_edge_%d.gkyl"; */
+  /* int sz = gkyl_calc_strlen(fmt, recyc->edge); */
+  /* char fileNm[sz+1]; // ensures no buffer overflow */
+  /* snprintf(fileNm, sizeof fileNm, fmt, recyc->edge); */
+  /* gkyl_grid_sub_array_write(recyc->emit_grid, recyc->emit_buff_r, 0, recyc->f_emit, fileNm); */
 
   gkyl_array_set_range_to_range(fout, t_scale, recyc->f_emit, recyc->emit_ghost_r,
     recyc->emit_buff_r);

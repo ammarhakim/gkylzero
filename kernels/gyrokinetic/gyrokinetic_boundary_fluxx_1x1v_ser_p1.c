@@ -63,6 +63,9 @@ GKYL_CU_DH double gyrokinetic_boundary_fluxx_1x1v_ser_p1(const double *w, const 
 
   } 
   double GhatR[3] = {0.};
+  GhatR[0] = (0.5*dualmag[0]-0.8660254037844386*dualmag[1])*(alphaR[1]*fUpR[1]+alphaR[0]*fUpR[0]); 
+  GhatR[1] = alphaR[1]*(0.4472135954999579*dualmag[0]-0.7745966692414833*dualmag[1])*fUpR[2]+(0.5*dualmag[0]-0.8660254037844386*dualmag[1])*(alphaR[0]*fUpR[1]+fUpR[0]*alphaR[1]); 
+  GhatR[2] = alphaR[0]*(0.5*dualmag[0]-0.8660254037844386*dualmag[1])*fUpR[2]+alphaR[1]*(0.4472135954999579*dualmag[0]-0.7745966692414833*dualmag[1])*fUpR[1]; 
 
   out[0] += -(0.7071067811865475*GhatR[0]*rdx2); 
   out[1] += -(1.224744871391589*GhatR[0]*rdx2); 
@@ -104,6 +107,9 @@ GKYL_CU_DH double gyrokinetic_boundary_fluxx_1x1v_ser_p1(const double *w, const 
 
   } 
   double GhatL[3] = {0.};
+  GhatL[0] = (0.8660254037844386*dualmag[1]+0.5*dualmag[0])*(alphaL[1]*fUpL[1]+alphaL[0]*fUpL[0]); 
+  GhatL[1] = alphaL[1]*(0.7745966692414833*dualmag[1]+0.4472135954999579*dualmag[0])*fUpL[2]+(0.8660254037844386*dualmag[1]+0.5*dualmag[0])*(alphaL[0]*fUpL[1]+fUpL[0]*alphaL[1]); 
+  GhatL[2] = alphaL[0]*(0.8660254037844386*dualmag[1]+0.5*dualmag[0])*fUpL[2]+alphaL[1]*(0.7745966692414833*dualmag[1]+0.4472135954999579*dualmag[0])*fUpL[1]; 
 
   out[0] += 0.7071067811865475*GhatL[0]*rdx2; 
   out[1] += -(1.224744871391589*GhatL[0]*rdx2); 
