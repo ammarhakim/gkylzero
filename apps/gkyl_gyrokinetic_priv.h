@@ -507,7 +507,6 @@ struct gk_source {
   struct gk_species_moment integ_moms; // integrated moments
   double *red_integ_diag, *red_integ_diag_global; // for reduction of integrated moments
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
-  gkyl_dynvec integ_diag_cumm; // Cummulative (in time) integrated moments.
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
 };
 

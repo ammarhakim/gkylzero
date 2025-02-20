@@ -51,6 +51,14 @@ struct gkyl_gyrokinetic_projection {
   };
 };
 
+struct gkyl_phase_diagnostics_inp {
+  int num_diag_moments; // Number of diagnostic moments.
+  char diag_moments[24][24]; // List of diagnostic moments.
+  int num_integrated_diag_moments; // Number of integrated diagnostic moments.
+  char integrated_diag_moments[24][24]; // List of integrated diagnostic moments.
+  bool time_integrated; // Whether to use time integrated diags.
+};
+
 // Parameters for species collisions
 struct gkyl_gyrokinetic_collisions {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
@@ -92,6 +100,8 @@ struct gkyl_gyrokinetic_source {
 
   // sources using projection routine
   struct gkyl_gyrokinetic_projection projection[GKYL_MAX_SOURCES];
+
+  struct gkyl_phase_diagnostics_inp diagnostics;
 };
 
 // Parameters for boundary conditions
@@ -192,14 +202,6 @@ struct gkyl_gyrokinetic_correct_inp {
   int max_iter; // maximum number of iteration
   bool use_last_converged; // Boolean for if we are using the results of the iterative scheme
                            // *even if* the scheme fails to converge.   
-};
-
-struct gkyl_phase_diagnostics_inp {
-  int num_diag_moments; // Number of diagnostic moments.
-  char diag_moments[24][24]; // List of diagnostic moments.
-  int num_integrated_diag_moments; // Number of integrated diagnostic moments.
-  char integrated_diag_moments[24][24]; // List of integrated diagnostic moments.
-  bool time_integrated; // Whether to use time integrated diags.
 };
 
 // Parameters for gk species.

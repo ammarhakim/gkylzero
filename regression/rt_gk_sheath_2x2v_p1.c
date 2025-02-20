@@ -706,6 +706,14 @@ main(int argc, char **argv)
         .upar = evalElcSourceUparInit,
         .ctx_upar = &ctx,
       }, 
+
+      .diagnostics = {
+        .num_diag_moments = 5,
+        .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { "HamiltonianMoments" },
+        .time_integrated = true,
+      }
     },
     
     .bcx = {
@@ -768,6 +776,13 @@ main(int argc, char **argv)
         .upar = evalIonSourceUparInit,
         .ctx_upar = &ctx,
       }, 
+      .diagnostics = {
+        .num_diag_moments = 5,
+        .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { "HamiltonianMoments" },
+        .time_integrated = true,
+      }
     },
 
     .bcx = {

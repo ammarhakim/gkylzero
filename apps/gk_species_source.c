@@ -23,15 +23,22 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     }
 
     // Allocate data and updaters for diagnostic moments.
-    src->num_diag_moments = s->info.num_diag_moments;
+    int src_num_diag_moms = s->info.source.diagnostics.num_diag_moments;
+    src->num_diag_moments = src_num_diag_moms;
+    if (src->num_diag_moments == 0)
+      src->num_diag_moments = s->info.num_diag_moments;
+
     s->src.moms = gkyl_malloc(sizeof(struct gk_species_moment[src->num_diag_moments]));
     for (int m=0; m<src->num_diag_moments; ++m) {
-      gk_species_moment_init(app, s, &s->src.moms[m], s->info.diag_moments[m], false);
+      gk_species_moment_init(app, s, &s->src.moms[m],
+        src_num_diag_moms == 0? s->info.diag_moments[m] : s->info.source.diagnostics.diag_moments[m], false);
     }
 
     // Allocate data and updaters for integrated moments.
+    int src_num_diag_int_moms = s->info.source.diagnostics.num_integrated_diag_moments;
+    assert(src_num_diag_int_moms < 2); // 1 int moment allowed now.
     gk_species_moment_init(app, s, &s->src.integ_moms,
-      s->info.integrated_hamiltonian_moments? "HamiltonianMoments" : "FourMoments", true);
+      src_num_diag_int_moms == 0? "FourMoments" : s->info.source.diagnostics.integrated_diag_moments[0], true);
     int num_mom = s->src.integ_moms.num_mom;
     if (app->use_gpu) {
       s->src.red_integ_diag = gkyl_cu_malloc(sizeof(double[num_mom]));
@@ -41,12 +48,9 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
       s->src.red_integ_diag = gkyl_malloc(sizeof(double[num_mom]));
       s->src.red_integ_diag_global = gkyl_malloc(sizeof(double[num_mom]));
     }
-    // allocate dynamic-vector to store all-reduced integrated moments 
+    // Allocate dynamic-vector to store all-reduced integrated moments.
     s->src.integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, num_mom);
     s->src.is_first_integ_write_call = true;
-
-    // Time and volume integrated moments.
-    src->integ_diag_cumm = gkyl_dynvec_new(GKYL_DOUBLE, num_mom);
   }
 }
 
@@ -94,7 +98,7 @@ gk_species_source_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
     char fileNm[sz+1]; // ensures no buffer overflow
     snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, frame);
 
-    // copy data from device to host before writing it out
+    // Copy data from device to host before writing it out.
     if (app->use_gpu) {
       gkyl_array_copy(gks->src.source_host, gks->src.source);
     }
@@ -129,7 +133,7 @@ gk_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, d
       const char *fmt = "%s-%s_source_%s_%d.gkyl";
       int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name,
         gks->info.diag_moments[m], frame);
-      char fileNm[sz+1]; // ensures no buffer overflow
+      char fileNm[sz+1]; // Ensures no buffer overflow.
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name,
         gks->info.diag_moments[m], frame);
 
@@ -172,7 +176,7 @@ gk_species_source_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_speci
     gk_species_moment_calc(&gks->src.integ_moms, gks->local, app->local, gks->src.source); 
     app->stat.n_mom += 1;
 
-    // reduce to compute sum over whole domain, append to diagnostics
+    // Reduce to compute sum over whole domain, append to diagnostics
     gkyl_array_reduce_range(gks->src.red_integ_diag, gks->src.integ_moms.marr, GKYL_SUM, &app->local);
     gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
       gks->src.red_integ_diag, gks->src.red_integ_diag_global);
@@ -182,19 +186,21 @@ gk_species_source_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_speci
     else {
       memcpy(avals_global, gks->src.red_integ_diag_global, sizeof(double[num_mom]));
     }
+
+    if (gks->info.source.diagnostics.time_integrated) {
+      // This assumes time-independent sources. For time dependent ones
+      // step the source contributions in RK3 like we do for boundary fluxes.
+      double avals_global_prev[num_mom];
+      for (int k=0; k<num_mom; k++)
+        avals_global_prev[k] = 0.0;
+      gkyl_dynvec_getlast(gks->src.integ_diag, avals_global_prev);
+  
+      double tau = tm - tm_prev;
+      for (int k=0; k<num_mom; k++)
+        avals_global[k] = avals_global_prev[k] + tau*avals_global[k];
+    }
+
     gkyl_dynvec_append(gks->src.integ_diag, tm, avals_global);
-
-    // This assumes time-independent sources. For time dependent ones
-    // step the source contributions in RK3 like we do for boundary fluxes.
-    double avals_global_prev[num_mom];
-    for (int k=0; k<num_mom; k++)
-      avals_global_prev[k] = 0.0;
-    gkyl_dynvec_getlast(gks->src.integ_diag_cumm, avals_global_prev);
-
-    double tau = tm - tm_prev;
-    for (int k=0; k<num_mom; k++)
-      avals_global[k] = avals_global_prev[k] + tau*avals_global[k];
-    gkyl_dynvec_append(gks->src.integ_diag_cumm, tm, avals_global);
 
     app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
     app->stat.n_diag += 1;
@@ -210,29 +216,22 @@ gk_species_source_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_spec
     int rank;
     gkyl_comm_get_rank(app->comm, &rank);
     if (rank == 0) {
-      // write out integrated diagnostic moments
+      // Write out integrated diagnostic moments.
       const char *fmt = "%s-%s_source_%s.gkyl";
 
-      int sz0 = gkyl_calc_strlen(fmt, app->name, gks->info.name, "integrated_moms");
-      char fileNm0[sz0+1]; // ensures no buffer overflow
-      snprintf(fileNm0, sizeof fileNm0, fmt, app->name, gks->info.name, "integrated_moms");
-
-      int sz1 = gkyl_calc_strlen(fmt, app->name, gks->info.name, "integrated_moms_time_integrated");
-      char fileNm1[sz1+1]; // ensures no buffer overflow
-      snprintf(fileNm1, sizeof fileNm1, fmt, app->name, gks->info.name, "integrated_moms_time_integrated");
+      int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, "integrated_moms");
+      char fileNm[sz+1]; // Ensures no buffer overflow.
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "integrated_moms");
 
       if (gks->src.is_first_integ_write_call) {
-        gkyl_dynvec_write(gks->src.integ_diag, fileNm0);
-        gkyl_dynvec_write(gks->src.integ_diag_cumm, fileNm1);
+        gkyl_dynvec_write(gks->src.integ_diag, fileNm);
         gks->src.is_first_integ_write_call = false;
       }
       else {
-        gkyl_dynvec_awrite(gks->src.integ_diag, fileNm0);
-        gkyl_dynvec_awrite(gks->src.integ_diag_cumm, fileNm1);
+        gkyl_dynvec_awrite(gks->src.integ_diag, fileNm);
       }
     }
     gkyl_dynvec_clear(gks->src.integ_diag);
-    gkyl_dynvec_clear(gks->src.integ_diag_cumm);
 
     app->stat.diag_io_tm += gkyl_time_diff_now_sec(wst);
     app->stat.n_diag_io += 1;
@@ -266,6 +265,5 @@ gk_species_source_release(const struct gkyl_gyrokinetic_app *app, const struct g
       gkyl_free(src->red_integ_diag_global);
     }  
     gkyl_dynvec_release(src->integ_diag);
-    gkyl_dynvec_release(src->integ_diag_cumm);
   }
 }
