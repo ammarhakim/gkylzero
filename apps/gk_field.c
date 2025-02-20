@@ -173,8 +173,8 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       }
 
       // Initialize the Poisson solver.
-//      f->deflated_fem_poisson = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev, app->basis,
-//        app->local, f->global_sub_range, f->epsilon, 0, f->info.poisson_bcs, app->use_gpu);
+      f->deflated_fem_poisson = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev, app->basis,
+        app->local, f->global_sub_range, f->epsilon, 0, f->info.poisson_bcs, app->use_gpu);
       f->fem_poisson = gkyl_fem_poisson_perp_new(&app->local, &app->grid, app->basis,
         &f->info.poisson_bcs, f->epsilon, NULL, app->use_gpu);
 
@@ -407,7 +407,7 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
         // Add the background (electron) charge density.
         double n_s0 = field->info.electron_density;
         double q_s = field->info.electron_charge;
-        gkyl_array_shiftc_range(field->rho_c, q_s*n_s0*sqrt(2.), 0, &app->local);
+        gkyl_array_shiftc_range(field->rho_c, q_s*n_s0*sqrt(2.0), 0, &app->local);
       }
     }
   } 
@@ -437,40 +437,43 @@ gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *f
   } 
 }
 
+static void
+gk_field_fem_projection_par(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *arr_dg, struct gkyl_array *arr_fem)
+{
+  // Project a DG field onto the parallel FEM basis to make it
+  // continuous along z (or to solve a Poisson equation in 1x).
+
+  // Gather the DG array into a global (in z) array.
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
+
+  // Smooth the the DG array.
+  gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
+  gkyl_fem_parproj_solve(field->fem_parproj, field->phi_fem);
+
+  // Copy global, continuous FEM array to a local array.
+  gkyl_array_copy_range_to_range(arr_fem, field->phi_fem, &app->local, &field->global_sub_range);
+}
+
 void
 gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
-  // Compute the electrostatic potential
+  // Compute the electrostatic potential.
   struct timespec wst = gkyl_wall_clock();
   if (field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) { 
     // Solve phi = phi_s + (Te/e)*ln(n_i/n_i,s).
     gkyl_ambi_bolt_potential_phi_calc(field->ambi_pot, &app->local, &app->local_ext,
       app->gk_geom->jacobgeo_inv, field->rho_c, field->sheath_vals[0], field->phi_smooth);
 
-    // Gather potential into global array for smoothing in z.
-    gkyl_comm_array_allgather(app->comm, &app->local, &app->global, field->phi_smooth, field->rho_c_global_dg);
-
-    // Smooth phi.
-    gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
-    gkyl_fem_parproj_solve(field->fem_parproj, field->phi_fem);
-
-    // Copy globally smoothed potential to local potential.
-    gkyl_array_copy_range_to_range(field->phi_smooth, field->phi_fem, &app->local, &field->global_sub_range);
+    // Smooth the potential along z.
+    gk_field_fem_projection_par(app, field, field->phi_smooth, field->phi_smooth);
   }
   else {
     if (app->cdim == 1) {
-      // Gather charge density into global array.
-      gkyl_comm_array_allgather(app->comm, &app->local, &app->global, field->rho_c, field->rho_c_global_dg);
-
-      // Solve Poisson globaly.
-      gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
-      gkyl_fem_parproj_solve(field->fem_parproj, field->phi_fem);
-
-      // Copy global, continuous potential to local potential.
-      gkyl_array_copy_range_to_range(field->phi_smooth, field->phi_fem, &app->local, &field->global_sub_range);
+      // Solve the Poisson equation in 1x with the parallel FEM projection.
+      gk_field_fem_projection_par(app, field, field->rho_c, field->phi_smooth);
     }
     else if (app->cdim > 1) {
-//      // Gather charge density into global array.
+      // Gather charge density into global array.
 //      gkyl_comm_array_allgather(app->comm, &app->local, &app->global, field->rho_c, field->rho_c_global_dg);
 //      // Smooth the charge density. Input is rho_c_global_dg, globally smoothed in z,
 //      // and then output should be in *local* phi_smooth.
@@ -486,21 +489,17 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
 //      }
 //      gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth,
 //        field->phi_bc, field->phi_smooth);
+      // Smooth the charge density along z.
+      gk_field_fem_projection_par(app, field, field->rho_c, field->rho_c);
 
       // Solve the Poisson equation.
       gkyl_fem_poisson_perp_set_rhs(field->fem_poisson, field->rho_c);
       gkyl_fem_poisson_perp_solve(field->fem_poisson, field->phi_smooth);
 
-      // Gather charge density into global array.
-      gkyl_comm_array_allgather(app->comm, &app->local, &app->global, field->phi_smooth, field->rho_c_global_dg);
+      // Smooth the potential along z.
+      gk_field_fem_projection_par(app, field, field->phi_smooth, field->phi_smooth);
 
-      // Smooth the potential.
-      gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
-      gkyl_fem_parproj_solve(field->fem_parproj, field->phi_fem);
-
-      // Copy global, continuous potential to local potential.
-      gkyl_array_copy_range_to_range(field->phi_smooth, field->phi_fem, &app->local, &field->global_sub_range);
-
+      // Finish the Poisson solve with FLR efffects.
       field->invert_flr(app, field, field->phi_smooth);
     }
   }
@@ -638,7 +637,7 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   else {
     gkyl_array_release(f->epsilon);
     if (app->cdim > 1) {
-//      gkyl_deflated_fem_poisson_release(f->deflated_fem_poisson);
+      gkyl_deflated_fem_poisson_release(f->deflated_fem_poisson);
       gkyl_fem_poisson_perp_release(f->fem_poisson);
       if (f->is_dirichletvar) {
         gkyl_array_release(f->phi_bc);

@@ -256,7 +256,7 @@ create_ctx(void)
   int Nvpar = 16;
   int Nmu = 8;
 
-  double t_end = 1*1.0e-6; 
+  double t_end = 2*1.0e-6; 
   double num_frames = 1*1;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -381,17 +381,17 @@ main(int argc, char **argv)
       .temp = eval_temp_elc,
     },
 
-//    .collisions =  {
-//      .collision_id = GKYL_LBO_COLLISIONS,
-//      .normNu = true,
-//      .nuFrac = ctx.nuFrac,
-//      .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
-//      .T_ref = ctx.Te, // Temperature used to calculate coulomb logarithm
-//      .ctx = &ctx,
-//      .self_nu = evalNuElc,
-//      .num_cross_collisions = 2,
-//      .collide_with = { "ion", "Ar1" },
-//    },
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .normNu = true,
+      .nuFrac = ctx.nuFrac,
+      .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
+      .T_ref = ctx.Te, // Temperature used to calculate coulomb logarithm
+      .ctx = &ctx,
+      .self_nu = evalNuElc,
+      .num_cross_collisions = 2,
+      .collide_with = { "ion", "Ar1" },
+    },
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,
@@ -413,48 +413,47 @@ main(int argc, char **argv)
       }
     },
 
-//    .radiation = {
-//      .radiation_id = GKYL_GK_RADIATION, 
-//      .num_cross_collisions = 1, 
-//      .collide_with = { "Ar1" },
-//      .z = 18,
-//      .charge_state = 1,
-//      .num_of_densities = 1, // Must be 1 for now
-//    },
-//
-//    .react_neut = {
-//      .num_react = 2,
-//      .react_type = {
-//        { .react_id = GKYL_REACT_IZ,
-//          .type_self = GKYL_SELF_ELC,
-//          .ion_id = GKYL_ION_AR,
-//          .elc_nm = "elc",
-//          .ion_nm = "Ar1", // ion is always the higher charge state
-//          .donor_nm = "Ar0", // interacts with elc to give up charge
-//          .charge_state = 0, // corresponds to lower charge state (donor)
-//          .ion_mass = ctx.massAr,
-//          .elc_mass = ctx.massElc,
-//        },
-//        { .react_id = GKYL_REACT_RECOMB,
-//          .type_self = GKYL_SELF_ELC,
-//          .ion_id = GKYL_ION_AR,
-//          .elc_nm = "elc",
-//          .ion_nm = "Ar1",
-//          .recvr_nm = "Ar0",
-//          .charge_state = 0,
-//          .ion_mass = ctx.massAr,
-//          .elc_mass = ctx.massElc,
-//        },
-//      },
-//    }, 
-//
-//
-//    .diffusion = {
-//      .num_diff_dir = 1, 
-//      .diff_dirs = { 0 },
-//      .D = { 0.03 }, 
-//      .order = 2, 
-//    }, 
+    .radiation = {
+      .radiation_id = GKYL_GK_RADIATION, 
+      .num_cross_collisions = 1, 
+      .collide_with = { "Ar1" },
+      .z = 18,
+      .charge_state = 1,
+      .num_of_densities = 1, // Must be 1 for now
+    },
+
+    .react_neut = {
+      .num_react = 2,
+      .react_type = {
+        { .react_id = GKYL_REACT_IZ,
+          .type_self = GKYL_SELF_ELC,
+          .ion_id = GKYL_ION_AR,
+          .elc_nm = "elc",
+          .ion_nm = "Ar1", // ion is always the higher charge state
+          .donor_nm = "Ar0", // interacts with elc to give up charge
+          .charge_state = 0, // corresponds to lower charge state (donor)
+          .ion_mass = ctx.massAr,
+          .elc_mass = ctx.massElc,
+        },
+        { .react_id = GKYL_REACT_RECOMB,
+          .type_self = GKYL_SELF_ELC,
+          .ion_id = GKYL_ION_AR,
+          .elc_nm = "elc",
+          .ion_nm = "Ar1",
+          .recvr_nm = "Ar0",
+          .charge_state = 0,
+          .ion_mass = ctx.massAr,
+          .elc_mass = ctx.massElc,
+        },
+      },
+    }, 
+
+    .diffusion = {
+      .num_diff_dir = 1, 
+      .diff_dirs = { 0 },
+      .D = { 0.03 }, 
+      .order = 2, 
+    }, 
 
     .bcx = {
       .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
@@ -497,17 +496,17 @@ main(int argc, char **argv)
       .temp = eval_temp_ion,      
     },
 
-//    .collisions =  {
-//      .collision_id = GKYL_LBO_COLLISIONS,
-//      .ctx = &ctx,
-//      .normNu = true,
-//      .nuFrac = ctx.nuFrac,
-//      .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
-//      .T_ref = ctx.Ti, // Temperature used to calculate coulomb logarithm
-//      .self_nu = evalNuIon,
-//      .num_cross_collisions = 2,
-//      .collide_with = { "elc", "Ar1" },
-//    },
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .ctx = &ctx,
+      .normNu = true,
+      .nuFrac = ctx.nuFrac,
+      .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
+      .T_ref = ctx.Ti, // Temperature used to calculate coulomb logarithm
+      .self_nu = evalNuIon,
+      .num_cross_collisions = 2,
+      .collide_with = { "elc", "Ar1" },
+    },
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,
@@ -528,12 +527,12 @@ main(int argc, char **argv)
 //        .time_integrated = true,
       }
     },
-//    .diffusion = {
-//      .num_diff_dir = 1, 
-//      .diff_dirs = { 0 },
-//      .D = { 0.03 }, 
-//      .order = 2, 
-//    }, 
+    .diffusion = {
+      .num_diff_dir = 1, 
+      .diff_dirs = { 0 },
+      .D = { 0.03 }, 
+      .order = 2, 
+    }, 
 
     .bcx = {
       .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
@@ -558,114 +557,114 @@ main(int argc, char **argv)
     }
   };
 
-//  // Ar1+ ions.
-//  struct gkyl_gyrokinetic_species Ar1 = {
-//    .name = "Ar1",
-//    .charge = ctx.chargeIon, .mass = ctx.massAr,
-//    .lower = { -ctx.vpar_max_Ar, 0.0},
-//    .upper = {  ctx.vpar_max_Ar, ctx.mu_max_Ar}, 
-//    .cells = { cells_v[0], cells_v[1] },
-//    .polarization_density = ctx.n0Ar,
-//
-//    .projection = {
-//      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
-//      .ctx_density = &ctx,
-//      .density = eval_density_Ar1,
-//      .ctx_upar = &ctx,
-//      .upar= eval_upar,
-//      .ctx_temp = &ctx,
-//      .temp = eval_temp_ar,      
-//    },
-//
-//    .collisions =  {
-//      .collision_id = GKYL_LBO_COLLISIONS,
-//      .normNu = true,
-//      .nuFrac = ctx.nuFrac,
-//      .n_ref = ctx.n0Ar, // Density used to calculate coulomb logarithm
-//      .T_ref = ctx.TAr, // Temperature used to calculate coulomb logarithm
-//      .ctx = &ctx,
-//      .self_nu = evalNuIon,
-//      .num_cross_collisions = 2,
-//      .collide_with = { "elc", "ion"},
-//    },
-//
-//    .react_neut = {
-//      .num_react = 2,
-//      .react_type = {
-//        { .react_id = GKYL_REACT_IZ,
-//          .type_self = GKYL_SELF_ION,
-//          .ion_id = GKYL_ION_AR,
-//          .elc_nm = "elc",
-//          .ion_nm = "Ar1",
-//          .donor_nm = "Ar0",
-//          .charge_state = 0,
-//          .ion_mass = ctx.massAr,
-//          .elc_mass = ctx.massElc,
-//        },
-//        { .react_id = GKYL_REACT_RECOMB,
-//          .type_self = GKYL_SELF_ION,
-//          .ion_id = GKYL_ION_AR,
-//          .elc_nm = "elc",
-//          .ion_nm = "Ar1",
-//          .recvr_nm = "Ar0",
-//          .charge_state = 0,
-//          .ion_mass = ctx.massAr,
-//          .elc_mass = ctx.massElc,
-//        },
-//      },
-//    },
-//
-//    .diffusion = {
-//      .num_diff_dir = 1, 
-//      .diff_dirs = { 0 },
-//      .D = { 0.03 }, 
-//      .order = 2, 
-//    }, 
-//
-//    .bcx = {
-//      .lower={.type = GKYL_SPECIES_ABSORB,},
-//      .upper={.type = GKYL_SPECIES_ABSORB,},
-//    },
-//    .bcy = {
-//      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
-//      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
-//    },
-//    
-//    .num_diag_moments = 5,
-//    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
-//  };
-//
-//
-//  // Neutral Ar.
-//  struct gkyl_gyrokinetic_neut_species Ar0 = {
-//    .name = "Ar0", .mass = ctx.massAr,
-//    .lower = { -ctx.vpar_max_Ar, -ctx.vpar_max_Ar, -ctx.vpar_max_Ar},
-//    .upper = {  ctx.vpar_max_Ar,  ctx.vpar_max_Ar,  ctx.vpar_max_Ar },
-//    .cells = { cells_v[0], cells_v[0], cells_v[0] },
-//    .is_static = true,
-//
-//    .projection = {
-//      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
-//      .ctx_density = &ctx,
-//      .density = eval_density_ar,
-//      .ctx_upar = &ctx,
-//      .udrift= eval_udrift,
-//      .ctx_temp = &ctx,
-//      .temp = eval_temp_ar,      
-//    },
-//
-//    .bcx = { 
-//      .lower = { .type = GKYL_SPECIES_ABSORB },
-//      .upper = { .type = GKYL_SPECIES_ZERO_FLUX },
-//    },
-//    .bcy = { 
-//      .lower = { .type = GKYL_SPECIES_ZERO_FLUX },
-//      .upper = { .type = GKYL_SPECIES_ZERO_FLUX },
-//    },
-//    
-//    .num_diag_moments = 3,
-//    .diag_moments = { "M0", "M1i", "M2"},
-//  };
+  // Ar1+ ions.
+  struct gkyl_gyrokinetic_species Ar1 = {
+    .name = "Ar1",
+    .charge = ctx.chargeIon, .mass = ctx.massAr,
+    .lower = { -ctx.vpar_max_Ar, 0.0},
+    .upper = {  ctx.vpar_max_Ar, ctx.mu_max_Ar}, 
+    .cells = { cells_v[0], cells_v[1] },
+    .polarization_density = ctx.n0Ar,
+
+    .projection = {
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
+      .ctx_density = &ctx,
+      .density = eval_density_Ar1,
+      .ctx_upar = &ctx,
+      .upar= eval_upar,
+      .ctx_temp = &ctx,
+      .temp = eval_temp_ar,      
+    },
+
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .normNu = true,
+      .nuFrac = ctx.nuFrac,
+      .n_ref = ctx.n0Ar, // Density used to calculate coulomb logarithm
+      .T_ref = ctx.TAr, // Temperature used to calculate coulomb logarithm
+      .ctx = &ctx,
+      .self_nu = evalNuIon,
+      .num_cross_collisions = 2,
+      .collide_with = { "elc", "ion"},
+    },
+
+    .react_neut = {
+      .num_react = 2,
+      .react_type = {
+        { .react_id = GKYL_REACT_IZ,
+          .type_self = GKYL_SELF_ION,
+          .ion_id = GKYL_ION_AR,
+          .elc_nm = "elc",
+          .ion_nm = "Ar1",
+          .donor_nm = "Ar0",
+          .charge_state = 0,
+          .ion_mass = ctx.massAr,
+          .elc_mass = ctx.massElc,
+        },
+        { .react_id = GKYL_REACT_RECOMB,
+          .type_self = GKYL_SELF_ION,
+          .ion_id = GKYL_ION_AR,
+          .elc_nm = "elc",
+          .ion_nm = "Ar1",
+          .recvr_nm = "Ar0",
+          .charge_state = 0,
+          .ion_mass = ctx.massAr,
+          .elc_mass = ctx.massElc,
+        },
+      },
+    },
+
+    .diffusion = {
+      .num_diff_dir = 1, 
+      .diff_dirs = { 0 },
+      .D = { 0.03 }, 
+      .order = 2, 
+    }, 
+
+    .bcx = {
+      .lower={.type = GKYL_SPECIES_ABSORB,},
+      .upper={.type = GKYL_SPECIES_ABSORB,},
+    },
+    .bcy = {
+      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
+      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+    },
+    
+    .num_diag_moments = 5,
+    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+  };
+
+
+  // Neutral Ar.
+  struct gkyl_gyrokinetic_neut_species Ar0 = {
+    .name = "Ar0", .mass = ctx.massAr,
+    .lower = { -ctx.vpar_max_Ar, -ctx.vpar_max_Ar, -ctx.vpar_max_Ar},
+    .upper = {  ctx.vpar_max_Ar,  ctx.vpar_max_Ar,  ctx.vpar_max_Ar },
+    .cells = { cells_v[0], cells_v[0], cells_v[0] },
+    .is_static = true,
+
+    .projection = {
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
+      .ctx_density = &ctx,
+      .density = eval_density_ar,
+      .ctx_upar = &ctx,
+      .udrift= eval_udrift,
+      .ctx_temp = &ctx,
+      .temp = eval_temp_ar,      
+    },
+
+    .bcx = { 
+      .lower = { .type = GKYL_SPECIES_ABSORB },
+      .upper = { .type = GKYL_SPECIES_ZERO_FLUX },
+    },
+    .bcy = { 
+      .lower = { .type = GKYL_SPECIES_ZERO_FLUX },
+      .upper = { .type = GKYL_SPECIES_ZERO_FLUX },
+    },
+    
+    .num_diag_moments = 3,
+    .diag_moments = { "M0", "M1i", "M2"},
+  };
 
 
   // Field.
@@ -708,7 +707,7 @@ main(int argc, char **argv)
     .poly_order = 1,
     .basis_type = app_args.basis_type,
     .cfl_frac = 0.5,
-//    .cfl_frac_omegaH = 1e10,
+    .cfl_frac_omegaH = 1e10,
 
     .geometry = {
       .world = {0.0},
@@ -720,13 +719,11 @@ main(int argc, char **argv)
     .num_periodic_dir = 0,
     .periodic_dirs = {  },
 
-//    .num_species = 3,
-//    .species = { elc, ion, Ar1 },
-//
-//    .num_neut_species = 1,
-//    .neut_species = { Ar0 },
-    .num_species = 2,
-    .species = { elc, ion },
+    .num_species = 3,
+    .species = { elc, ion, Ar1 },
+
+    .num_neut_species = 1,
+    .neut_species = { Ar0 },
 
     .field = field,
 
