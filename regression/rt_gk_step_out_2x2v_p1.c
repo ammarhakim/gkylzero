@@ -404,6 +404,13 @@ main(int argc, char **argv)
         .ctx_temp = &ctx,
         .temp = eval_temp_source,      
       }, 
+      .diagnostics = {
+        .num_diag_moments = 5,
+        .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { "HamiltonianMoments" },
+//        .time_integrated = true,
+      }
     },
 
 //    .radiation = {
@@ -460,11 +467,14 @@ main(int argc, char **argv)
     
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
-    .integrated_hamiltonian_moments = true,
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { "HamiltonianMoments" },
+    .time_rate_diagnostics = true,
+
     .boundary_flux_diagnostics = {
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { "HamiltonianMoments" },
-      .time_integrated = true,
+//      .time_integrated = true,
     }
   };
 
@@ -510,6 +520,13 @@ main(int argc, char **argv)
         .ctx_temp = &ctx,
         .temp = eval_temp_source,      
       }, 
+      .diagnostics = {
+        .num_diag_moments = 5,
+        .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { "HamiltonianMoments" },
+//        .time_integrated = true,
+      }
     },
 //    .diffusion = {
 //      .num_diff_dir = 1, 
@@ -529,12 +546,15 @@ main(int argc, char **argv)
     
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
-    .integrated_hamiltonian_moments = true,
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { "HamiltonianMoments" },
+    .time_rate_diagnostics = true,
+
     .boundary_flux_diagnostics = {
       .num_diag_moments = 0,
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { "HamiltonianMoments" },
-      .time_integrated = true,
+//      .time_integrated = true,
     }
   };
 
@@ -654,6 +674,7 @@ main(int argc, char **argv)
     .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET}, 
                     .up_type = {GKYL_POISSON_DIRICHLET}, 
                     .lo_value = {0.0}, .up_value = {0.0}}, 
+    .time_rate_diagnostics = true,
   };
 
   struct gkyl_efit_inp efit_inp = {
@@ -685,8 +706,7 @@ main(int argc, char **argv)
     .poly_order = 1,
     .basis_type = app_args.basis_type,
     .cfl_frac = 0.5,
-    .cfl_frac_omegaH = 1e10,
-    .fdot_diagnostics = true,
+//    .cfl_frac_omegaH = 1e10,
 
     .geometry = {
       .world = {0.0},

@@ -678,13 +678,13 @@ main(int argc, char **argv)
       .upar = evalElcUparInit,
       .ctx_upar = &ctx,
     },
-//    .collisions =  {
-//      .collision_id = GKYL_LBO_COLLISIONS,
-//      .self_nu = evalElcNu,
-//      .ctx = &ctx,
-//      .num_cross_collisions = 1,
-//      .collide_with = { "ion" },
-//    },
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .self_nu = evalElcNu,
+      .ctx = &ctx,
+      .num_cross_collisions = 1,
+      .collide_with = { "ion" },
+    },
 
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
@@ -699,6 +699,13 @@ main(int argc, char **argv)
         .upar = evalElcSourceUparInit,
         .ctx_upar = &ctx,
       }, 
+      .diagnostics = {
+        .num_diag_moments = 1,
+        .diag_moments = { "FourMoments" },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { "HamiltonianMoments" },
+//        .time_integrated = true,
+      }
     },
     
     .bcx = {
@@ -712,8 +719,15 @@ main(int argc, char **argv)
 
     .num_diag_moments = 5,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
-    .integrated_hamiltonian_moments = true,
-    .boundary_flux_diagnostics = true,
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { "HamiltonianMoments" },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { "HamiltonianMoments" },
+//      .time_integrated = true,
+    }
   };
 
   // Ions.
@@ -734,13 +748,13 @@ main(int argc, char **argv)
       .upar = evalIonUparInit,
       .ctx_upar = &ctx,
     },
-//    .collisions =  {
-//      .collision_id = GKYL_LBO_COLLISIONS,
-//      .self_nu = evalIonNu,
-//      .ctx = &ctx,
-//      .num_cross_collisions = 1,
-//      .collide_with = { "elc" },
-//    },
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .self_nu = evalIonNu,
+      .ctx = &ctx,
+      .num_cross_collisions = 1,
+      .collide_with = { "elc" },
+    },
 
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
@@ -755,6 +769,13 @@ main(int argc, char **argv)
         .upar = evalIonSourceUparInit,
         .ctx_upar = &ctx,
       }, 
+      .diagnostics = {
+        .num_diag_moments = 1,
+        .diag_moments = { "FourMoments" },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { "HamiltonianMoments" },
+//        .time_integrated = true,
+      }
     },
 
     .bcx = {
@@ -768,8 +789,15 @@ main(int argc, char **argv)
     
     .num_diag_moments = 1,
     .diag_moments = { "FourMoments" },
-    .integrated_hamiltonian_moments = true,
-    .boundary_flux_diagnostics = true,
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { "HamiltonianMoments" },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { "HamiltonianMoments" },
+//      .time_integrated = true,
+    }
   };
 
   // Field.
@@ -783,6 +811,7 @@ main(int argc, char **argv)
       .lo_value = { 0.0 },
       .up_value = { 0.0 },
     },
+    .time_rate_diagnostics = true,
   };
 
   // Gyrokinetic app.
@@ -797,8 +826,7 @@ main(int argc, char **argv)
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
-    .cfl_frac_omegaH = 1e10,
-    .fdot_diagnostics = true,
+//    .cfl_frac_omegaH = 1e10,
 
     .geometry = {
       .geometry_id = GKYL_MAPC2P,
