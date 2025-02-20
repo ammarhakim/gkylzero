@@ -776,6 +776,16 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
 
   }
 
+  // Compute the phase-space advection speeds and boundary fluxes as t=0
+  // diagnostics and emission BCs may need them.
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *gks = &app->species[i];
+    gkyl_dg_calc_gyrokinetic_vars_alpha_surf(gks->calc_gk_vars,
+      &app->local, &gks->local, &gks->local_ext, gks->phi,
+      gks->alpha_surf, gks->sgn_alpha_surf, gks->const_sgn_alpha);
+    gk_species_bflux_rhs(app, gks, &gks->bflux_solver, gks->f, gks->f, 0);
+  }
+
   // Apply boundary conditions.
   for (int i=0; i<app->num_species; ++i) {
     gk_species_apply_bc(app, &app->species[i], distf[i]);
