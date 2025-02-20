@@ -70,6 +70,11 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
         }
       }
       gpm->constB_ctx->map_strength = pmap_info.map_strength;
+      if (&pmap_info.maximum_slope == 0)
+      { gpm->constB_ctx->enable_maximum_slope_limits = false;  }
+      else
+      { gpm->constB_ctx->enable_maximum_slope_limits = true; }
+      gpm->constB_ctx->maximum_slope = pmap_info.maximum_slope;
   }
 
   gpm->grid = grid;

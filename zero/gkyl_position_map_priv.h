@@ -369,6 +369,35 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
     gpm->constB_ctx->theta_extrema[i] = theta_extrema[i];
     gpm->constB_ctx->bmag_extrema[i] = bmag_extrema[i];
   }
+
+  // Identify 1 for maxima, 0 for minima
+
+  // Left edge
+  if (bmag_extrema[0] > bmag_extrema[1])
+  {    gpm->constB_ctx->min_or_max[0] = 1;  }
+  else if (bmag_extrema[0] < bmag_extrema[1])
+  {    gpm->constB_ctx->min_or_max[0] = 0;  }
+  else
+  {    printf("Error: Extrema is not an extrema. Position_map optimization failed\n");  }
+
+  // Middle points
+  for (int i = 1; i < extrema - 1; i++)
+  {
+    if (bmag_extrema[i] > bmag_extrema[i-1] && bmag_extrema[i] > bmag_extrema[i+1])
+    {      gpm->constB_ctx->min_or_max[i] = 1;    }
+    else if (bmag_extrema[i] < bmag_extrema[i-1] && bmag_extrema[i] < bmag_extrema[i+1])
+    {      gpm->constB_ctx->min_or_max[i] = 0;    }
+    else
+    {      printf("Error: Extrema is not an extrema. Position_map optimization failed\n");  }
+  }
+
+  // Right edge
+  if (bmag_extrema[extrema-1] > bmag_extrema[extrema-2])
+  {    gpm->constB_ctx->min_or_max[extrema-1] = 1;  }
+  else if (bmag_extrema[extrema-1] < bmag_extrema[extrema-2])
+  {    gpm->constB_ctx->min_or_max[extrema-1] = 0;  }
+  else  
+  {    printf("Error: Extrema is not an extrema. Position_map optimization failed\n");  }
 }
 
 /**
@@ -558,11 +587,11 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
     .gpm = gpm,
     .bmag_ctx = gpm->bmag_ctx,
   };
+  dB_target = dB_cell * it;
 
   bool outside_region = true; // Asuume that we identified the region incorrectly
   while (outside_region)
   {
-    dB_target = dB_cell * it;
     dB_global_lower = 0.0;
     for (int i = 0; i < region; i++)
     {
@@ -609,5 +638,26 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
   struct gkyl_qr_res res = gkyl_ridders(position_map_numeric_optimization_function, &ridders_ctx,
     interval_lower, interval_upper, interval_lower_eval, interval_upper_eval, 10, 1e-6);
   double Theta = res.res;
-  fout[0] = Theta*gpm->constB_ctx->map_strength + theta*(1-gpm->constB_ctx->map_strength);  
+  fout[0] = Theta*gpm->constB_ctx->map_strength + theta*(1-gpm->constB_ctx->map_strength); 
+
+  if (gpm->constB_ctx->enable_maximum_slope_limits)
+  {
+    // Set a minimum cell size on the edges
+    // Assume that at inflection points, Theta = theta. This should be true
+    double Theta_left  = interval_lower;
+    double Theta_right = interval_upper;
+
+    double max_slope = gpm->constB_ctx->maximum_slope;
+    double right_straight_line_value = max_slope * theta + (1-max_slope) * Theta_right;
+    double left_straight_line_value  = max_slope * theta + (1-max_slope) * Theta_left;
+
+    printf("theta = %f, Theta = %f, Theta_left = %f, Theta_right = %f, right_straight_line_value = %f, left_straight_line_value = %f\n", theta, Theta, Theta_left, Theta_right, right_straight_line_value, left_straight_line_value);
+
+    if (fout[0] < right_straight_line_value){
+      fout[0] = right_straight_line_value;
+    }
+    if (fout[0] > left_straight_line_value){
+      fout[0] = left_straight_line_value;
+    }
+  }
 }
