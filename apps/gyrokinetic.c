@@ -527,8 +527,6 @@ gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
 void
 gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
 {
-  app->fdot_diagnostics = gk->fdot_diagnostics;
-
   int ns = app->num_species = gk->num_species;
   int neuts = app->num_neut_species = gk->num_neut_species;
 
@@ -1013,7 +1011,7 @@ gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app)
     }
     gkyl_dynvec_clear(app->field->integ_energy);
 
-    if (app->fdot_diagnostics) {
+    if (app->field->info.time_rate_diagnostics) {
       // Write out the time rate of change of the field energy.
       const char *fmt = "%s-field_energy_dot.gkyl";
       int sz = gkyl_calc_strlen(fmt, app->name);
@@ -2113,7 +2111,7 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
   for (int b=0; b<gk_s->bflux_diag.num_boundaries; ++b)
     gk_s->bflux_diag.is_first_intmom_write_call[b] = false;
   gk_s->bflux_diag.is_not_first_restart_write_call = false;
-  if (app->fdot_diagnostics)
+  if (gk_s->info.time_rate_diagnostics)
     gk_s->is_first_fdot_integ_write_call = false;
   if (app->enforce_positivity)
     gk_s->is_first_ps_integ_write_call = false;

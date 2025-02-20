@@ -361,6 +361,7 @@ struct gk_boundary_fluxes {
   int boundaries_dir[2*GKYL_MAX_CDIM]; // Direction of bflux boundaries.
   enum gkyl_edge_loc boundaries_edge[2*GKYL_MAX_CDIM]; // Edge of bflux boundaries.
   struct gkyl_range *boundaries_conf_ghost[2*GKYL_MAX_CDIM]; // Ghost range of bflux boundaries.
+  bool is_hamiltonian_intmom; // True if need Hamiltonian integrated moments.
   struct gkyl_bc_basic *gfss_bc_op[2*GKYL_MAX_CDIM]; // Applies BCs to bmag and phi.
   struct gkyl_array *bc_buffer; // Buffer used by gfss_bc_op;
   struct gkyl_array **f, **f1, **fnew; // Boundary flux through each boundary (one for each RK stage).
@@ -928,7 +929,6 @@ struct gkyl_gyrokinetic_app {
 
   struct gkyl_gyrokinetic_stat stat; // statistics
 
-  bool fdot_diagnostics; // Whether to output df/dt diagnostics.
   gkyl_dynvec dts; // Record time step over time.
   bool is_first_dt_write_call; // flag for integrated moments dynvec written first time
 };

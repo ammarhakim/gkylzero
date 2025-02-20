@@ -145,8 +145,8 @@ create_ctx(void)
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 0.5; // CFL coefficient.
 
-  double t_end = 2*6.0e-6; // Final simulation time.
-  int num_frames = 2*1; // Number of output frames.
+  double t_end = 6.0e-6; // Final simulation time.
+  int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -712,7 +712,7 @@ main(int argc, char **argv)
         .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
         .num_integrated_diag_moments = 1,
         .integrated_diag_moments = { "HamiltonianMoments" },
-        .time_integrated = true,
+//        .time_integrated = true,
       }
     },
     
@@ -727,11 +727,14 @@ main(int argc, char **argv)
 
     .num_diag_moments = 5,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
-    .integrated_hamiltonian_moments = true,
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { "HamiltonianMoments" },
+    .time_rate_diagnostics = true,
+
     .boundary_flux_diagnostics = {
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { "HamiltonianMoments" },
-      .time_integrated = true,
+//      .time_integrated = true,
     }
   };
 
@@ -781,7 +784,7 @@ main(int argc, char **argv)
         .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
         .num_integrated_diag_moments = 1,
         .integrated_diag_moments = { "HamiltonianMoments" },
-        .time_integrated = true,
+//        .time_integrated = true,
       }
     },
 
@@ -796,11 +799,14 @@ main(int argc, char **argv)
     
     .num_diag_moments = 5,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
-    .integrated_hamiltonian_moments = true,
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { "HamiltonianMoments" },
+    .time_rate_diagnostics = true,
+
     .boundary_flux_diagnostics = {
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { "HamiltonianMoments" },
-      .time_integrated = true,
+//      .time_integrated = true,
     }
   };
 
@@ -815,6 +821,7 @@ main(int argc, char **argv)
       .lo_value = { 0.0 },
       .up_value = { 0.0 },
     },
+    .time_rate_diagnostics = true,
 //    .is_static = true,
 //    .zero_init_field = true,
 //    .init_from_file = {
@@ -838,7 +845,6 @@ main(int argc, char **argv)
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
 //    .cfl_frac_omegaH = 1e10,
-    .fdot_diagnostics = true,
 
     .geometry = {
       .geometry_id = GKYL_MAPC2P,

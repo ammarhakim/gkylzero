@@ -233,8 +233,9 @@ struct gkyl_gyrokinetic_species {
 
   int num_diag_moments; // number of diagnostic moments
   char diag_moments[24][24]; // list of diagnostic moments
-  bool integrated_hamiltonian_moments; // Use Hamiltonian instead of Four
-                                       // moments for integrated moments.
+  int num_integrated_diag_moments; // Number of integrated diagnostic moments.
+  char integrated_diag_moments[24][24]; // List of integrated diagnostic moments.
+  bool time_rate_diagnostics;
 
   // Diagnostics of the fluxes of f at position-space boundaries.
   struct gkyl_phase_diagnostics_inp boundary_flux_diagnostics;
@@ -315,6 +316,8 @@ struct gkyl_gyrokinetic_field {
   enum gkyl_fem_parproj_bc_type fem_parbc;
   struct gkyl_poisson_bc poisson_bcs;
 
+  bool time_rate_diagnostics; // Writes the time rate of change of field energy.
+
   // Initial potential used to compute the total polarization density.
   void (*polarization_potential)(double t, const double *xn, double *out, void *ctx);
   void *polarization_potential_ctx;
@@ -353,7 +356,6 @@ struct gkyl_gk {
   double cfl_frac_omegaH; // CFL fraction used for the omega_H dt (default 1.0).
 
   bool enforce_positivity; // Positivity enforcement via shift in f.
-  bool fdot_diagnostics; // Outputs moments of fdot=(f_new - f_old)/dt.
 
   int num_periodic_dir; // Number of periodic directions.
   int periodic_dirs[3]; // List of periodic directions.

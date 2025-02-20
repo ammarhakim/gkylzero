@@ -427,7 +427,7 @@ gk_species_calc_integrated_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_spec
   }
   gkyl_dynvec_append(gks->integ_diag, tm, avals_global);
 
-  if (app->fdot_diagnostics) {
+  if (gks->info.time_rate_diagnostics) {
     // Reduce (sum) over whole domain, append to diagnostics.
     gkyl_array_reduce_range(gks->red_integ_diag, gks->fdot_mom_new, GKYL_SUM, &app->local);
     gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom,
@@ -494,7 +494,7 @@ gk_species_write_integrated_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_spe
   gkyl_dynvec_clear(gks->integ_diag);
   app->stat.n_diag_io += 1;
   
-  if (app->fdot_diagnostics) {
+  if (gks->info.time_rate_diagnostics) {
     if (rank == 0) {
       // Write integrated diagnostic moments.
       const char *fmt = "%s-%s_fdot_%s.gkyl";
@@ -701,7 +701,7 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
   // Free boundary flux diagnostics memory.
   gk_species_bflux_release(app, &s->bflux_diag);
 
-  if (app->fdot_diagnostics) {
+  if (s->info.time_rate_diagnostics) {
     // Free df/dt diagnostics memory.
     gkyl_array_release(s->fdot_mom_old);
     gkyl_array_release(s->fdot_mom_new);
@@ -1405,8 +1405,10 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     gk_species_moment_init(app, gks, &gks->moms[m], gks->info.diag_moments[m], false);
 
   // Allocate data for integrated moments.
+  int num_diag_int_moms = gks->info.num_integrated_diag_moments;
+  assert(num_diag_int_moms < 2); // 1 int moment allowed now.
   gk_species_moment_init(app, gks, &gks->integ_moms,
-    gks->info.integrated_hamiltonian_moments? "HamiltonianMoments" : "FourMoments", true);
+    num_diag_int_moms == 0? "FourMoments" : gks->info.integrated_diag_moments[0], true);
 
   if (app->use_gpu) {
     gks->red_integ_diag = gkyl_cu_malloc(sizeof(double[gks->integ_moms.num_mom]));
@@ -1420,7 +1422,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->is_first_integ_write_call = true;
 
   // Allocate dynamic-vector to store Delta f integrated moments.
-  if (app->fdot_diagnostics) {
+  if (gks->info.time_rate_diagnostics) {
     gks->fdot_mom_old = mkarr(app->use_gpu, gks->integ_moms.marr->ncomp, gks->integ_moms.marr->size);
     gks->fdot_mom_new = mkarr(app->use_gpu, gks->integ_moms.marr->ncomp, gks->integ_moms.marr->size);
     gks->fdot_integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, gks->integ_moms.num_mom);

@@ -156,7 +156,7 @@ gk_species_bflux_rhs_diag(gkyl_gyrokinetic_app *app, const struct gk_species *sp
 
     gkyl_array_clear_range(rhs, 0.0, conf_ghost_r);
 
-    if (species->info.integrated_hamiltonian_moments) {
+    if (bflux->is_hamiltonian_intmom) {
       // Apply BC to phi so it is defined in the ghost cell.
       // Fill the ghost with the skin evaluated at the boundary.
       gkyl_bc_basic_advance(bflux->gfss_bc_op[b], bflux->bc_buffer, app->field->phi_smooth);
@@ -422,6 +422,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
     // Object computing moments of the boundary flux.
     assert(gk_s->info.boundary_flux_diagnostics.num_diag_moments == 0); // Moments NYI.
     assert(gk_s->info.boundary_flux_diagnostics.num_integrated_diag_moments == 1); // 1 int moment allowed now.
+    bflux->is_hamiltonian_intmom = strcmp("HamiltonianMoments", gk_s->info.boundary_flux_diagnostics.integrated_diag_moments[0]) == 0;
     gk_species_moment_init(app, gk_s, &bflux->moms_op,
       gk_s->info.boundary_flux_diagnostics.integrated_diag_moments[0], false);
   

@@ -213,7 +213,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       1, GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ, app->use_gpu);
   }
 
-  if (app->fdot_diagnostics) {
+  if (f->info.time_rate_diagnostics) {
     if (app->use_gpu) {
       f->em_energy_red_new = gkyl_cu_malloc(sizeof(double[1]));
       f->em_energy_red_old = gkyl_cu_malloc(sizeof(double[1]));
@@ -479,7 +479,7 @@ gk_field_calc_energy(gkyl_gyrokinetic_app *app, double tm, const struct gk_field
 
   gkyl_dynvec_append(field->integ_energy, tm, energy_global);
 
-  if (app->fdot_diagnostics) {
+  if (field->info.time_rate_diagnostics) {
     gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->em_energy_red_old, field->em_energy_red_global);
     double energy_dot_global_old[1] = { 0.0 };
     if (app->use_gpu)
@@ -556,7 +556,7 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
     gkyl_free(f->em_energy_red_global);
   }
 
-  if (app->fdot_diagnostics) {
+  if (f->info.time_rate_diagnostics) {
     gkyl_dynvec_release(f->integ_energy_dot);
     if (app->use_gpu) {
       gkyl_cu_free(f->em_energy_red_new);

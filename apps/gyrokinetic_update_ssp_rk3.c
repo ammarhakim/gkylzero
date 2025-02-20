@@ -71,15 +71,17 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         gyrokinetic_forward_euler(app, tcurr, dt, fin, fout, bflux_in, bflux_out, fin_neut, fout_neut, &st);
         dt = st.dt_actual;
 
-        if (app->fdot_diagnostics) {
-          for (int i=0; i<app->num_species; ++i) {
-            struct gk_species *gk_s = &app->species[i];
+        for (int i=0; i<app->num_species; ++i) {
+          struct gk_species *gk_s = &app->species[i];
+          if (gk_s->info.time_rate_diagnostics) {
             // Compute moment of f_old to later compute moment of df/dt.
             // Do it before the fields are updated, but after dt is calculated.
             gk_species_moment_calc(&gk_s->integ_moms, gk_s->local, app->local, gk_s->f); 
             gkyl_array_copy(gk_s->fdot_mom_old, gk_s->integ_moms.marr);
           }
+        }
 
+        if (app->field->info.time_rate_diagnostics) {
           gkyl_array_integrate_advance(app->field->calc_em_energy, app->field->phi_smooth, 
             1.0/dt, app->field->es_energy_fac, &app->local, &app->local, app->field->em_energy_red_old);
         }
@@ -242,16 +244,18 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           }
           gyrokinetic_calc_field_and_apply_bc(app, tcurr, fout, fout_neut);
 
-          if (app->fdot_diagnostics) {
-	    for (int i=0; i<app->num_species; ++i) {
-              struct gk_species *gk_s = &app->species[i];
+	  for (int i=0; i<app->num_species; ++i) {
+            struct gk_species *gk_s = &app->species[i];
+            if (gk_s->info.time_rate_diagnostics) {
               // Compute moment of f_new to compute moment of df/dt.
               // Need to do it after the fields are updated.
               gk_species_moment_calc(&gk_s->integ_moms, gk_s->local, app->local, gk_s->f); 
               gkyl_array_set(gk_s->fdot_mom_new, 1.0/dt, gk_s->integ_moms.marr);
               gkyl_array_accumulate(gk_s->fdot_mom_new, -1.0/dt, gk_s->fdot_mom_old);
             }
+          }
 
+          if (app->field->info.time_rate_diagnostics) {
             gkyl_array_integrate_advance(app->field->calc_em_energy, app->field->phi_smooth, 
               1.0/dt, app->field->es_energy_fac, &app->local, &app->local, app->field->em_energy_red_new);
           }
