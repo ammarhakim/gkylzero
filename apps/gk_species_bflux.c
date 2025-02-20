@@ -456,12 +456,12 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
                                                                              : &app->global_upper_ghost[dir];
 
       bflux->gfss_bc_op[b] = gkyl_bc_basic_new(bflux->boundaries_dir[b], bflux->boundaries_edge[b], GKYL_BC_CONF_BOUNDARY_VALUE,
-        &app->confBasis, skin_r, ghost_r, 1, app->cdim, app->use_gpu);
+        &app->basis, skin_r, ghost_r, 1, app->cdim, app->use_gpu);
       
       long vol = skin_r->volume;
       buff_sz = buff_sz > vol ? buff_sz : vol;
     }
-    bflux->bc_buffer = mkarr(app->use_gpu, app->confBasis.num_basis, buff_sz);
+    bflux->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
 
     // Fill ghost cell of bmag.
     for (int b=0; b<bflux->num_boundaries; ++b)
@@ -472,9 +472,9 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
     bflux->fnew = gkyl_malloc(bflux->num_boundaries*sizeof(struct gkyl_array *));
     for (int b=0; b<bflux->num_boundaries; ++b) {
       // Allocate arrays storing moments of the boundary flux.
-      bflux->f[b] = mkarr(app->use_gpu, num_mom*app->confBasis.num_basis, app->local_ext.volume);
-      bflux->f1[b] = mkarr(app->use_gpu, num_mom*app->confBasis.num_basis, app->local_ext.volume);
-      bflux->fnew[b] = mkarr(app->use_gpu, num_mom*app->confBasis.num_basis, app->local_ext.volume);
+      bflux->f[b] = mkarr(app->use_gpu, num_mom*app->basis.num_basis, app->local_ext.volume);
+      bflux->f1[b] = mkarr(app->use_gpu, num_mom*app->basis.num_basis, app->local_ext.volume);
+      bflux->fnew[b] = mkarr(app->use_gpu, num_mom*app->basis.num_basis, app->local_ext.volume);
   
       // Allocate solver.
       int dir = bflux->boundaries_dir[b];
@@ -485,7 +485,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
     }
   
     // Updater to compute the volume integral of the boundary flux moments.
-    bflux->integ_op = gkyl_array_integrate_new(&app->grid, &app->confBasis,
+    bflux->integ_op = gkyl_array_integrate_new(&app->grid, &app->basis,
       num_mom, GKYL_ARRAY_INTEGRATE_OP_NONE, app->use_gpu);
     if (app->use_gpu) {
       bflux->int_moms_local = gkyl_cu_malloc(num_mom*sizeof(double));

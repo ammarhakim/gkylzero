@@ -62,6 +62,16 @@ gkyl_block_geom_set_block(struct gkyl_block_geom *bgeom, int bidx,
       bgeom->btopo->conn[bidx].connections[i][e] = info->connections[i][e];  
 }
 
+void
+gkyl_block_geom_reset_block_extents(struct gkyl_block_geom *bgeom, int bidx, double *lower, double *upper)
+{
+  struct gkyl_block_geom_info *bgi = &bgeom->blocks[bidx];
+  for (int i = 0; i < bgeom->ndim; ++i) {
+    bgi->lower[i] = lower[i];
+    bgi->upper[i] = upper[i];
+  }
+}
+
 const struct gkyl_block_geom_info*
 gkyl_block_geom_get_block(const struct gkyl_block_geom *bgeom, int bidx)
 {

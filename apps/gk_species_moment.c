@@ -14,8 +14,8 @@ gk_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
 
   if (sm->is_integrated) {
     // Create moment operator.
-    sm->mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&s->grid, &app->confBasis, 
-      &app->basis, &app->local_ext, s->info.mass, s->info.charge, s->vel_map, app->gk_geom,
+    sm->mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&s->grid, &app->basis, 
+      &s->basis, &app->local_ext, s->info.mass, s->info.charge, s->vel_map, app->gk_geom,
       app->field->phi_smooth, nm, sm->is_integrated, app->use_gpu);    
 
     sm->num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(sm->mcalc);
@@ -32,8 +32,8 @@ gk_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     if (sm->is_maxwellian_moms || sm->is_bimaxwellian_moms) {
       struct gkyl_gk_maxwellian_moments_inp inp_mom = {
         .phase_grid = &s->grid,
-        .conf_basis = &app->confBasis,
-        .phase_basis = &app->basis,
+        .conf_basis = &app->basis,
+        .phase_basis = &s->basis,
         .conf_range =  &app->local,
         .conf_range_ext = &app->local_ext,
         .gk_geom = app->gk_geom,
@@ -51,25 +51,25 @@ gk_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
       }  
     }
     else {
-      sm->mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&s->grid, &app->confBasis, 
-        &app->basis, &app->local_ext, s->info.mass, s->info.charge, s->vel_map, app->gk_geom,
+      sm->mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&s->grid, &app->basis, 
+        &s->basis, &app->local_ext, s->info.mass, s->info.charge, s->vel_map, app->gk_geom,
         app->field->phi_smooth, nm, sm->is_integrated, app->use_gpu);    
 
       sm->num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(sm->mcalc);
     }
 
     // Allocate arrays to hold moments.
-    sm->marr = mkarr(app->use_gpu, sm->num_mom*app->confBasis.num_basis, app->local_ext.volume);
+    sm->marr = mkarr(app->use_gpu, sm->num_mom*app->basis.num_basis, app->local_ext.volume);
     sm->marr_host = sm->marr;
     if (app->use_gpu) {
-      sm->marr_host = mkarr(false, sm->num_mom*app->confBasis.num_basis, app->local_ext.volume);
+      sm->marr_host = mkarr(false, sm->num_mom*app->basis.num_basis, app->local_ext.volume);
     }
     // Bin Op memory for rescaling moment by inverse of Jacobian
     if (app->use_gpu) {
-      sm->mem_geo = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis);
+      sm->mem_geo = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->basis.num_basis);
     }
     else {
-      sm->mem_geo = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
+      sm->mem_geo = gkyl_dg_bin_op_mem_new(app->local.volume, app->basis.num_basis);
     }
   }
 }

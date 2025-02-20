@@ -9,10 +9,10 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
 
   if (src->source_id) {
     // Allocate source array.
-    src->source = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
+    src->source = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
     src->source_host = src->source;
     if (app->use_gpu) {
-      src->source_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
+      src->source_host = mkarr(false, src->source->ncomp, src->source->size); 
     }
 
     src->evolve = s->info.source.evolve; // Whether the source is time dependent.
@@ -59,7 +59,7 @@ gk_species_source_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s,
   struct gk_source *src, double tm)
 {
   if (src->source_id) {
-    struct gkyl_array *source_tmp = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
+    struct gkyl_array *source_tmp = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
     for (int k=0; k<s->info.source.num_sources; k++) {
       gk_species_projection_calc(app, s, &src->proj_source[k], source_tmp, tm);
       gkyl_array_accumulate(src->source, 1., source_tmp);
@@ -88,7 +88,7 @@ gk_species_source_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
         .frame = frame,
         .stime = tm,
         .poly_order = app->poly_order,
-        .basis_type = app->basis.id
+        .basis_type = gks->basis.id
       }
     );
 
@@ -122,7 +122,7 @@ gk_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, d
         .frame = frame,
         .stime = tm,
         .poly_order = app->poly_order,
-        .basis_type = app->confBasis.id
+        .basis_type = app->basis.id
       }
     );
 
@@ -140,7 +140,7 @@ gk_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, d
       // Rescale moment by inverse of Jacobian. 
       // For Maxwellian and bi-Maxwellian moments, we only need to re-scale
       // the density (the 0th component).
-      gkyl_dg_div_op_range(gks->moms[m].mem_geo, app->confBasis, 
+      gkyl_dg_div_op_range(gks->moms[m].mem_geo, app->basis, 
         0, gks->src.moms[m].marr, 0, gks->src.moms[m].marr, 0, 
         app->gk_geom->jacobgeo, &app->local);      
 
@@ -169,7 +169,6 @@ gk_species_source_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_speci
 
     double tm_prev = gkyl_dynvec_getlast_tm(gks->src.integ_diag);
 
-    int vdim = app->vdim;
     int num_mom = gks->src.integ_moms.num_mom;
     double avals_global[num_mom];
 
