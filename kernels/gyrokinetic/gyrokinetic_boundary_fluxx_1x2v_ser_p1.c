@@ -78,6 +78,12 @@ GKYL_CU_DH double gyrokinetic_boundary_fluxx_1x2v_ser_p1(const double *w, const 
 
   } 
   double GhatR[6] = {0.};
+  GhatR[0] = (alphaR[1]*fUpR[1]+alphaR[0]*fUpR[0])*(0.3535533905932737*dualmag[4]-0.6123724356957944*dualmag[5]); 
+  GhatR[1] = (-(0.5477225575051661*alphaR[1]*fUpR[4])-0.6123724356957944*(alphaR[0]*fUpR[1]+fUpR[0]*alphaR[1]))*dualmag[5]+dualmag[4]*(0.3162277660168379*alphaR[1]*fUpR[4]+0.3535533905932737*(alphaR[0]*fUpR[1]+fUpR[0]*alphaR[1])); 
+  GhatR[2] = (alphaR[1]*fUpR[3]+alphaR[0]*fUpR[2])*(0.3535533905932737*dualmag[4]-0.6123724356957944*dualmag[5]); 
+  GhatR[3] = alphaR[1]*(0.31622776601683794*dualmag[4]-0.5477225575051661*dualmag[5])*fUpR[5]+(alphaR[0]*fUpR[3]+alphaR[1]*fUpR[2])*(0.3535533905932737*dualmag[4]-0.6123724356957944*dualmag[5]); 
+  GhatR[4] = (-(0.6123724356957944*alphaR[0]*fUpR[4])-0.5477225575051661*alphaR[1]*fUpR[1])*dualmag[5]+dualmag[4]*(0.3535533905932737*alphaR[0]*fUpR[4]+0.3162277660168379*alphaR[1]*fUpR[1]); 
+  GhatR[5] = alphaR[0]*(0.3535533905932737*dualmag[4]-0.6123724356957944*dualmag[5])*fUpR[5]+alphaR[1]*fUpR[3]*(0.31622776601683794*dualmag[4]-0.5477225575051661*dualmag[5]); 
 
   out[0] += -(0.7071067811865475*GhatR[0]*rdx2); 
   out[1] += -(1.224744871391589*GhatR[0]*rdx2); 
@@ -140,6 +146,12 @@ GKYL_CU_DH double gyrokinetic_boundary_fluxx_1x2v_ser_p1(const double *w, const 
 
   } 
   double GhatL[6] = {0.};
+  GhatL[0] = (alphaL[1]*fUpL[1]+alphaL[0]*fUpL[0])*(0.6123724356957944*dualmag[5]+0.3535533905932737*dualmag[4]); 
+  GhatL[1] = (0.5477225575051661*alphaL[1]*fUpL[4]+0.6123724356957944*(alphaL[0]*fUpL[1]+fUpL[0]*alphaL[1]))*dualmag[5]+dualmag[4]*(0.3162277660168379*alphaL[1]*fUpL[4]+0.3535533905932737*(alphaL[0]*fUpL[1]+fUpL[0]*alphaL[1])); 
+  GhatL[2] = (alphaL[1]*fUpL[3]+alphaL[0]*fUpL[2])*(0.6123724356957944*dualmag[5]+0.3535533905932737*dualmag[4]); 
+  GhatL[3] = alphaL[1]*(0.5477225575051661*dualmag[5]+0.31622776601683794*dualmag[4])*fUpL[5]+(alphaL[0]*fUpL[3]+alphaL[1]*fUpL[2])*(0.6123724356957944*dualmag[5]+0.3535533905932737*dualmag[4]); 
+  GhatL[4] = (0.6123724356957944*alphaL[0]*fUpL[4]+0.5477225575051661*alphaL[1]*fUpL[1])*dualmag[5]+dualmag[4]*(0.3535533905932737*alphaL[0]*fUpL[4]+0.3162277660168379*alphaL[1]*fUpL[1]); 
+  GhatL[5] = alphaL[0]*(0.6123724356957944*dualmag[5]+0.3535533905932737*dualmag[4])*fUpL[5]+alphaL[1]*fUpL[3]*(0.5477225575051661*dualmag[5]+0.31622776601683794*dualmag[4]); 
 
   out[0] += 0.7071067811865475*GhatL[0]*rdx2; 
   out[1] += -(1.224744871391589*GhatL[0]*rdx2); 
