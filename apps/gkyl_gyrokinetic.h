@@ -323,7 +323,6 @@ struct gkyl_gyrokinetic_field {
   // parameters for adiabatic electrons simulations
   double electron_mass, electron_charge, electron_density, electron_temp;
 
-  enum gkyl_fem_parproj_bc_type fem_parbc;
   struct gkyl_poisson_bc poisson_bcs;
 
   bool time_rate_diagnostics; // Writes the time rate of change of field energy.

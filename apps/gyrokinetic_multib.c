@@ -519,13 +519,9 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     for (int i=0; i<num_blocks; ++i) {
       if (bid == fld->blocks[i].block_id) {
         const struct gkyl_gyrokinetic_multib_field_pb *fld_pb = &fld->blocks[i];
-        field_inp.fem_parbc = fld_pb->fem_parbc;
         break;
       }
     }
-  }
-  else {
-    field_inp.fem_parbc = fld_pb->fem_parbc;
   }
 
   if (!fld->duplicate_across_blocks) {

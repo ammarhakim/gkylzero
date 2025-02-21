@@ -699,7 +699,6 @@ main(int argc, char **argv)
   // Field object
   struct gkyl_gyrokinetic_multib_field_pb field_blocks[1];
   field_blocks[0] = (struct gkyl_gyrokinetic_multib_field_pb) {
-    .fem_parbc = GKYL_FEM_PARPROJ_NONE,
     .polarization_bmag = ctx.B0,
     .kperpSq = ctx.k_perp * ctx.k_perp,
   };

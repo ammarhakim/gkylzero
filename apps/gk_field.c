@@ -206,7 +206,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       fem_parproj_bc_core = GKYL_FEM_PARPROJ_PERIODIC;
       fem_parproj_bc_sol = GKYL_FEM_PARPROJ_NONE;
     } else {
-      fem_parproj_bc_core = GKYL_FEM_PARPROJ_DIRICHLET;
+      fem_parproj_bc_core = GKYL_FEM_PARPROJ_NONE;
       fem_parproj_bc_sol = GKYL_FEM_PARPROJ_NONE;
     }
     // construct core and SOL ranges.
@@ -224,8 +224,12 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       fem_parproj_bc_sol, 0, 0, app->use_gpu);
   } 
   else {
+    enum gkyl_fem_parproj_bc_type fem_parproj_bc = GKYL_FEM_PARPROJ_NONE;
+    for (int d=0; d<app->num_periodic_dir; ++d)
+      if (app->periodic_dirs[d] == app->cdim-1) fem_parproj_bc = GKYL_FEM_PARPROJ_PERIODIC;
+
     f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->basis,
-      f->info.fem_parbc, epsilon_global, 0, app->use_gpu);
+      fem_parproj_bc, epsilon_global, 0, app->use_gpu);
   }
 
   if (epsilon_global)
