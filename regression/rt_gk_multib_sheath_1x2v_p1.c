@@ -464,7 +464,7 @@ create_block_geom(void *ctx)
       .lower = { -Lz/4.0},
       .upper = { Lz/4.0},
       .cells = { nz/2},
-      .cuts = { 2 },
+      .cuts = { 1 },
       .geometry = {
         .geometry_id = GKYL_MAPC2P,
         .world = { 0.0, 0.0 },
