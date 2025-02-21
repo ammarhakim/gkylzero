@@ -23,7 +23,8 @@ struct gkyl_position_map_inp {
   double map_strength; // Zero is uniform mapping, one is fully nonuniform mapping. How strong the nonuniformity is
   // Call map_strength = s, xc computational coordinate, and xnu the nonuniform coordinate
   // xnu' = xnu * s + xc * (1-s)
-  double maximum_slope; // The maximum slope of the mapping. A number > 1. Hard limits on cell sizes
+  double maximum_slope_at_min_B; // The maximum slope of the mapping at a magnetic field minimum. A number > 1. Hard limits on cell sizes
+  double maximum_slope_at_max_B; // The maximum slope of the mapping at a magnetic field maximum. A number > 1. Hard limits on cell sizes
 };
 
 struct gkyl_position_map {
@@ -54,8 +55,10 @@ struct gkyl_position_map_const_B_ctx {
   double alpha_min, alpha_max; // The max and min alpha values for the simulation
   double theta_min, theta_max; // The max and min theta values for the simulation
   double map_strength; // Zero is uniform mapping, one is fully nonuniform mapping. How strong the nonuniformity is
-  bool enable_maximum_slope_limits; // Whether to enable hard limits on cell sizes
-  double maximum_slope; // The maximum slope of the mapping
+  bool enable_maximum_slope_limits_at_min_B; // Whether to enable the maximum slope limits at a magnetic field minimum
+  bool enable_maximum_slope_limits_at_max_B; // Whether to enable the maximum slope limits at a magnetic field maximum
+  double maximum_slope_at_min_B; // The maximum slope of the mapping at a magnetic field minimum
+  double maximum_slope_at_max_B; // The maximum slope of the mapping at a magnetic field maximum
 
   // Polynomial-based mapping
   double theta_throat, Bmag_throat; // The theta and Bmag values at the throat of the magnetic field

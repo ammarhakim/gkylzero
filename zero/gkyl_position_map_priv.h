@@ -374,9 +374,9 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
 
   // Left edge
   if (bmag_extrema[0] > bmag_extrema[1])
-  {    gpm->constB_ctx->min_or_max[0] = 1;  }
+  {    gpm->constB_ctx->min_or_max[0] = 1;  } // Maximum
   else if (bmag_extrema[0] < bmag_extrema[1])
-  {    gpm->constB_ctx->min_or_max[0] = 0;  }
+  {    gpm->constB_ctx->min_or_max[0] = 0;  } // Minimum
   else
   {    printf("Error: Extrema is not an extrema. Position_map optimization failed\n");  }
 
@@ -384,18 +384,18 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
   for (int i = 1; i < extrema - 1; i++)
   {
     if (bmag_extrema[i] > bmag_extrema[i-1] && bmag_extrema[i] > bmag_extrema[i+1])
-    {      gpm->constB_ctx->min_or_max[i] = 1;    }
+    {      gpm->constB_ctx->min_or_max[i] = 1;    } // Maximum
     else if (bmag_extrema[i] < bmag_extrema[i-1] && bmag_extrema[i] < bmag_extrema[i+1])
-    {      gpm->constB_ctx->min_or_max[i] = 0;    }
+    {      gpm->constB_ctx->min_or_max[i] = 0;    } // Minimum
     else
     {      printf("Error: Extrema is not an extrema. Position_map optimization failed\n");  }
   }
 
   // Right edge
   if (bmag_extrema[extrema-1] > bmag_extrema[extrema-2])
-  {    gpm->constB_ctx->min_or_max[extrema-1] = 1;  }
+  {    gpm->constB_ctx->min_or_max[extrema-1] = 1; } // Maximum
   else if (bmag_extrema[extrema-1] < bmag_extrema[extrema-2])
-  {    gpm->constB_ctx->min_or_max[extrema-1] = 0;  }
+  {    gpm->constB_ctx->min_or_max[extrema-1] = 0; } // Minimum
   else  
   {    printf("Error: Extrema is not an extrema. Position_map optimization failed\n");  }
 }
@@ -640,21 +640,58 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
   double Theta = res.res;
   fout[0] = Theta*gpm->constB_ctx->map_strength + theta*(1-gpm->constB_ctx->map_strength); 
 
-  if (gpm->constB_ctx->enable_maximum_slope_limits)
+  bool enable_limits_min_B = gpm->constB_ctx->enable_maximum_slope_limits_at_min_B;
+  bool enable_limits_max_B = gpm->constB_ctx->enable_maximum_slope_limits_at_max_B;
+
+  if (enable_limits_min_B || enable_limits_max_B)
   {
     // Set a minimum cell size on the edges
     // Assume that at inflection points, Theta = theta. This should be true
     double Theta_left  = interval_lower;
     double Theta_right = interval_upper;
+    double theta_middle = 0.5 * (interval_lower + interval_upper);
 
-    double max_slope = gpm->constB_ctx->maximum_slope;
-    double right_straight_line_value = max_slope * theta + (1-max_slope) * Theta_right;
-    double left_straight_line_value  = max_slope * theta + (1-max_slope) * Theta_left;
+    bool left_is_maximum = gpm->constB_ctx->min_or_max[region];
+    bool right_is_maximum = gpm->constB_ctx->min_or_max[region+1];
 
-    if (fout[0] < right_straight_line_value){
+    if (theta > theta_middle && left_is_maximum)
+    {
+      enable_limits_max_B = false;
+    }
+    if (theta < theta_middle && right_is_maximum)
+    {
+      enable_limits_max_B = false;
+    }
+
+    double max_slope_min_B = gpm->constB_ctx->maximum_slope_at_min_B;
+    double max_slope_max_B = gpm->constB_ctx->maximum_slope_at_max_B;
+
+    double right_straight_line_value, left_straight_line_value;
+    if (left_is_maximum){
+      left_straight_line_value = max_slope_max_B * theta + (1-max_slope_max_B) * Theta_left;
+    }
+    else {
+      left_straight_line_value = max_slope_min_B * theta + (1-max_slope_min_B) * Theta_left;
+    }
+
+    if (right_is_maximum){
+      right_straight_line_value = max_slope_max_B * theta + (1-max_slope_max_B) * Theta_right;
+    }
+    else {
+      right_straight_line_value = max_slope_min_B * theta + (1-max_slope_min_B) * Theta_right;
+    }
+
+    if ( fout[0] < right_straight_line_value && 
+      ((right_is_maximum && enable_limits_max_B) || 
+      ((!right_is_maximum) && enable_limits_min_B))) 
+    {
       fout[0] = right_straight_line_value;
     }
-    if (fout[0] > left_straight_line_value){
+
+    if (fout[0] > left_straight_line_value && 
+      ((left_is_maximum && enable_limits_max_B) ||
+      ((!left_is_maximum) && enable_limits_min_B))) 
+    {
       fout[0] = left_straight_line_value;
     }
   }
