@@ -1,5 +1,4 @@
 /* -*- c++ -*- */
-
 #include <math.h>
 #include <time.h>
 

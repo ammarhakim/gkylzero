@@ -30,8 +30,8 @@ gkyl_dg_calc_gk_neut_hamil_new(const struct gkyl_rect_grid *phase_grid,
  * NV-GPU. See new() method for documentation.
  */
 struct gkyl_dg_calc_gk_neut_hamil* 
-gkyl_dg_calc_gk_neut_hamil_new_cu(const struct gkyl_rect_grid *phase_grid,
-  const struct gkyl_basis *basis);
+gkyl_dg_calc_gk_neut_hamil_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
+  const struct gkyl_basis *basis, int cdim);
 
 /**
  * Compute the Hamiltonian
