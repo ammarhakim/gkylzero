@@ -43,6 +43,7 @@ struct gkyl_deflated_fem_poisson {
   struct gkyl_range deflated_nrange; // nodal range corresponding to
                                      // deflated local range
   struct gkyl_poisson_bc poisson_bc; // Boundary conditions
+  struct gkyl_poisson_bias_plane_list *bias_plane_list; // Biased planes
   struct deflated_fem_data *d_fem_data; // Array of deflated_dem_data
                                         // to be used for individual surface solves
   struct gkyl_array *nodal_fld; // Nodal field which holds solution

@@ -1547,7 +1547,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     }
     // Deflated Poisson solve is performed on range assuming decomposition is *only* in z.
     gks->flr_op = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev, app->basis,
-      app->local, app->local, gks->flr_rhoSqD2, gks->flr_kSq, flr_bc, app->use_gpu);
+      app->local, app->local, gks->flr_rhoSqD2, gks->flr_kSq, flr_bc, NULL, app->use_gpu);
   }
   else {
     gks->gyroaverage = gk_species_gyroaverage_none;

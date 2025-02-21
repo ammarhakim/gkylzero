@@ -33,11 +33,13 @@ test_bc_sheath_gyrokinetic(bool use_gpu)
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
   // Basis functions.
-  struct gkyl_basis basis;
+  struct gkyl_basis *basis;
   if (poly_order == 1)  // Force gkhybrid for p=1.
-    gkyl_cart_modal_gkhybrid(&basis, cdim, vdim);
+    basis = use_gpu? gkyl_cart_modal_gkhybrid_cu_dev_new(cdim, vdim)
+                   : gkyl_cart_modal_gkhybrid_new(cdim, vdim);
   else
-    gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+    basis = use_gpu? gkyl_cart_modal_serendip_cu_dev_new(ndim, poly_order)
+                   : gkyl_cart_modal_serendip_new(ndim, poly_order);
 
   int ghost[] = { 1, 0, 0 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
@@ -77,10 +79,14 @@ test_bc_sheath_gyrokinetic(bool use_gpu)
   double q2Dm = 2.*charge/mass;
 
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(dir, edge,
-    &basis, &skin_r, &ghost_r, gvm, cdim, q2Dm, use_gpu);
+    basis, &skin_r, &ghost_r, gvm, cdim, q2Dm, use_gpu);
 
   gkyl_velocity_map_release(gvm);
   gkyl_bc_sheath_gyrokinetic_release(bcsheath);
+  if (use_gpu)
+    gkyl_cart_modal_basis_release_cu(basis);
+  else
+    gkyl_cart_modal_basis_release(basis);
 }
 
 void test_bc_gksheath(){ test_bc_sheath_gyrokinetic(false); }

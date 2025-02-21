@@ -68,6 +68,7 @@ struct gkyl_array_average_inp {
  */
 struct gkyl_array_average*
 gkyl_array_average_new(const struct gkyl_array_average_inp *inp);
+
 /**
  * Compute the array average. Note: the weight is linked to the updater.
  *
@@ -80,7 +81,6 @@ void gkyl_array_average_advance(const struct gkyl_array_average *up,
 
 /**
  * Release memory associated with this updater.
- *
  * @param up array_average updater.
  */
 void gkyl_array_average_release(struct gkyl_array_average *up);

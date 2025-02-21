@@ -119,8 +119,8 @@ void test_1x(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(projw);
 
   // compute weighted average
-    int avg_dim_x[] = {1,0,0};
-    struct gkyl_array_average_inp inp_avg_full = {
+  int avg_dim_x[] = {1,0,0};
+  struct gkyl_array_average_inp inp_avg_full = {
     .grid = &grid,
     .basis = basis,
     .basis_avg = red_basis,
