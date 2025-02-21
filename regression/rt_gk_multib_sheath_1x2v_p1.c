@@ -508,11 +508,13 @@ create_block_geom(void *ctx)
 }
 
 void
-calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_multib_app* app, double t_curr, bool force_calc)
+calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_multib_app* app, double t_curr, double dt, bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc) {
     gkyl_gyrokinetic_multib_app_calc_field_energy(app, t_curr);
     gkyl_gyrokinetic_multib_app_calc_integrated_mom(app, t_curr);
+    if ( !(dt < 0.0) )
+      gkyl_gyrokinetic_multib_app_save_dt(app, t_curr, dt);
   }
 }
 
@@ -524,12 +526,9 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_multib_app* app, double
     int frame = (!trig_now) && force_write? iot->curr : iot->curr-1;
 
     gkyl_gyrokinetic_multib_app_write(app, t_curr, frame);
-
-    gkyl_gyrokinetic_multib_app_calc_field_energy(app, t_curr);
     gkyl_gyrokinetic_multib_app_write_field_energy(app);
-
-    gkyl_gyrokinetic_multib_app_calc_integrated_mom(app, t_curr);
     gkyl_gyrokinetic_multib_app_write_integrated_mom(app);
+    gkyl_gyrokinetic_multib_app_write_dt(app);
   }
 }
 int
@@ -594,6 +593,13 @@ main(int argc, char **argv)
         .upar = evalElcSourceUparInit,
         .ctx_upar = &ctx,
       }, 
+      .diagnostics = {
+        .num_diag_moments = 5,
+        .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { "HamiltonianMoments" },
+//        .time_integrated = true,
+      }
     },
 
 
@@ -612,8 +618,17 @@ main(int argc, char **argv)
     .lower = { -ctx.vpar_max_elc, 0.0},
     .upper = {  ctx.vpar_max_elc, ctx.mu_max_elc}, 
     .cells = { cells_v[0], cells_v[1] },
+
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { "HamiltonianMoments" },
+    .time_rate_diagnostics = true,
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { "HamiltonianMoments" },
+//      .time_integrated = true,
+    },
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
@@ -661,6 +676,13 @@ main(int argc, char **argv)
         .upar = evalIonSourceUparInit,
         .ctx_upar = &ctx,
       }, 
+      .diagnostics = {
+        .num_diag_moments = 5,
+        .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { "HamiltonianMoments" },
+//        .time_integrated = true,
+      }
     },
 
   };
@@ -677,8 +699,17 @@ main(int argc, char **argv)
     .lower = { -ctx.vpar_max_ion, 0.0},
     .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion}, 
     .cells = { cells_v[0], cells_v[1] },
+
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { "HamiltonianMoments" },
+    .time_rate_diagnostics = true,
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { "HamiltonianMoments" },
+//      .time_integrated = true,
+    },
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
@@ -701,6 +732,7 @@ main(int argc, char **argv)
   field_blocks[0] = (struct gkyl_gyrokinetic_multib_field_pb) {
     .polarization_bmag = ctx.B0,
     .kperpSq = ctx.k_perp * ctx.k_perp,
+    .time_rate_diagnostics = true,
   };
 
   struct gkyl_gyrokinetic_block_physical_bcs field_phys_bcs[] = {
@@ -765,7 +797,7 @@ main(int argc, char **argv)
     .tcurr = t_curr, .curr = frame_curr };
 
   // Write out ICs (if restart, it overwrites the restart frame).
-  calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, false);
+  calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, -1.0, false);
   write_data(&trig_write, app, t_curr, false);
 
   double dt = t_end-t_curr; // Initial time step.
@@ -786,7 +818,7 @@ main(int argc, char **argv)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
-    calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, t_curr > t_end);
+    calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, status.dt_actual, t_curr > t_end);
     write_data(&trig_write, app, t_curr, t_curr > t_end);
 
     if (dt_init < 0.0) {
@@ -801,7 +833,7 @@ main(int argc, char **argv)
       if (num_failures >= num_failures_max) {
         gkyl_gyrokinetic_multib_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_gyrokinetic_multib_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
-        calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, true);
+        calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, status.dt_actual, true);
         write_data(&trig_write, app, t_curr, true);
         break;
       }

@@ -474,7 +474,7 @@ main(int argc, char **argv)
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { "HamiltonianMoments" },
 //      .time_integrated = true,
-    }
+    },
   };
 
   // Ions.
@@ -554,7 +554,7 @@ main(int argc, char **argv)
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { "HamiltonianMoments" },
 //      .time_integrated = true,
-    }
+    },
   };
 
   // Ar1+ ions.

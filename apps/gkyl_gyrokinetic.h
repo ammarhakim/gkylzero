@@ -245,7 +245,7 @@ struct gkyl_gyrokinetic_species {
   char diag_moments[24][24]; // list of diagnostic moments
   int num_integrated_diag_moments; // Number of integrated diagnostic moments.
   char integrated_diag_moments[24][24]; // List of integrated diagnostic moments.
-  bool time_rate_diagnostics;
+  bool time_rate_diagnostics; // Whether to ouput df/dt diagnostics.
 
   // Diagnostics of the fluxes of f at position-space boundaries.
   struct gkyl_phase_diagnostics_inp boundary_flux_diagnostics;
@@ -604,6 +604,15 @@ void gkyl_gyrokinetic_app_calc_neut_species_integrated_mom(gkyl_gyrokinetic_app*
 void gkyl_gyrokinetic_app_calc_species_L2norm(gkyl_gyrokinetic_app* app, int sidx, double tm);
 
 /**
+ * Calculate integrated diagnostic moments of the boundary fluxes for a plasma species.
+ *
+ * @param app App object.
+ * @param sidx Index of species whose integrated moments to compute.
+ * @param tm Time at which integrated diagnostics are to be computed
+ */
+void gkyl_gyrokinetic_app_calc_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_app* app, int sidx, double tm);
+
+/**
  * Write integrated diagnostic moments for charged species to file. Integrated
  * moments are appended to the same file.
  * 
@@ -629,6 +638,15 @@ void gkyl_gyrokinetic_app_write_neut_species_integrated_mom(gkyl_gyrokinetic_app
  * @param sidx Index of species whose L2 norm to write out.
  */
 void gkyl_gyrokinetic_app_write_species_L2norm(gkyl_gyrokinetic_app *app, int sidx);
+
+/**
+ * Write integrated diagnostic moments of the boundary fluxes for charged
+ * species to file. Integrated moments are appended to the same file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species whose integrated moments to write.
+ */
+void gkyl_gyrokinetic_app_write_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_app *app, int sidx);
 
 /**
  * Write species source to file.
