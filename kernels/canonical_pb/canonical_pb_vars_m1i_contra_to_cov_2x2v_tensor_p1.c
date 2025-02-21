@@ -31,7 +31,7 @@ GKYL_CU_DH void canonical_pb_vars_m1i_contra_to_cov_2x2v_tensor_p1(const double 
   const double *Hxy = &h_ij[4]; 
   const double *Hyy = &h_ij[8]; 
 
-  // h^{ij}v^j 
+  // h_{ij}v^j 
   double Hxx_Vx[4] = {0.0}; 
   binop_mul_2d_ser_p1(Hxx, Vx, Hxx_Vx); 
  
@@ -44,7 +44,7 @@ GKYL_CU_DH void canonical_pb_vars_m1i_contra_to_cov_2x2v_tensor_p1(const double 
   double Hyy_Vy[4] = {0.0}; 
   binop_mul_2d_ser_p1(Hyy, Vy, Hyy_Vy); 
  
-  // h^{ij}Jnv^j 
+  // h_{ij}Jnv^j 
   double Hxx_NVx[4] = {0.0}; 
   binop_mul_2d_ser_p1(Hxx, NVx, Hxx_NVx); 
  
@@ -57,7 +57,7 @@ GKYL_CU_DH void canonical_pb_vars_m1i_contra_to_cov_2x2v_tensor_p1(const double 
   double Hyy_NVy[4] = {0.0}; 
   binop_mul_2d_ser_p1(Hyy, NVy, Hyy_NVy); 
  
-  // u_i_cov = h^{ij}v^j 
+  // u_i_cov = h_{ij}v^j 
   Vx_cov[0] = Hxx_Vx[0]; 
   Vx_cov[0] += Hxy_Vy[0]; 
   Vy_cov[0] = Hxy_Vx[0]; 
@@ -75,7 +75,7 @@ GKYL_CU_DH void canonical_pb_vars_m1i_contra_to_cov_2x2v_tensor_p1(const double 
   Vy_cov[3] = Hxy_Vx[3]; 
   Vy_cov[3] += Hyy_Vy[3]; 
  
-  // Jnu_i_cov = h^{ij}Jnv^j 
+  // Jnu_i_cov = h_{ij}Jnv^j 
   NVx_cov[0] = Hxx_NVx[0]; 
   NVx_cov[0] += Hxy_NVy[0]; 
   NVy_cov[0] = Hxy_NVx[0]; 

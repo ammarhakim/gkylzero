@@ -25,19 +25,19 @@ GKYL_CU_DH void canonical_pb_vars_m1i_contra_to_cov_1x1v_ser_p1(const double *h_
 
   const double *Hxx = &h_ij[0]; 
 
-  // h^{ij}v^j 
+  // h_{ij}v^j 
   double Hxx_Vx[2] = {0.0}; 
   binop_mul_1d_ser_p1(Hxx, Vx, Hxx_Vx); 
  
-  // h^{ij}Jnv^j 
+  // h_{ij}Jnv^j 
   double Hxx_NVx[2] = {0.0}; 
   binop_mul_1d_ser_p1(Hxx, NVx, Hxx_NVx); 
  
-  // u_i_cov = h^{ij}v^j 
+  // u_i_cov = h_{ij}v^j 
   Vx_cov[0] = Hxx_Vx[0]; 
   Vx_cov[1] = Hxx_Vx[1]; 
  
-  // Jnu_i_cov = h^{ij}Jnv^j 
+  // Jnu_i_cov = h_{ij}Jnv^j 
   NVx_cov[0] = Hxx_NVx[0]; 
   NVx_cov[1] = Hxx_NVx[1]; 
  

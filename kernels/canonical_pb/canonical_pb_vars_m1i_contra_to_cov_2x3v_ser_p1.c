@@ -38,7 +38,7 @@ GKYL_CU_DH void canonical_pb_vars_m1i_contra_to_cov_2x3v_ser_p1(const double *h_
   const double *Hyz = &h_ij[16]; 
   const double *Hzz = &h_ij[20]; 
 
-  // h^{ij}v^j 
+  // h_{ij}v^j 
   double Hxx_Vx[4] = {0.0}; 
   binop_mul_2d_ser_p1(Hxx, Vx, Hxx_Vx); 
  
@@ -66,7 +66,7 @@ GKYL_CU_DH void canonical_pb_vars_m1i_contra_to_cov_2x3v_ser_p1(const double *h_
   double Hzz_Vz[4] = {0.0}; 
   binop_mul_2d_ser_p1(Hzz, Vz, Hzz_Vz); 
  
-  // h^{ij}Jnv^j 
+  // h_{ij}Jnv^j 
   double Hxx_NVx[4] = {0.0}; 
   binop_mul_2d_ser_p1(Hxx, NVx, Hxx_NVx); 
  
@@ -94,7 +94,7 @@ GKYL_CU_DH void canonical_pb_vars_m1i_contra_to_cov_2x3v_ser_p1(const double *h_
   double Hzz_NVz[4] = {0.0}; 
   binop_mul_2d_ser_p1(Hzz, NVz, Hzz_NVz); 
  
-  // u_i_cov = h^{ij}v^j 
+  // u_i_cov = h_{ij}v^j 
   Vx_cov[0] = Hxx_Vx[0]; 
   Vx_cov[0] += Hxy_Vy[0]; 
   Vy_cov[0] = Hxy_Vx[0]; 
@@ -132,7 +132,7 @@ GKYL_CU_DH void canonical_pb_vars_m1i_contra_to_cov_2x3v_ser_p1(const double *h_
   Vz_cov[3] += Hyz_Vy[3]; 
   Vz_cov[3] += Hzz_Vz[3]; 
  
-  // Jnu_i_cov = h^{ij}Jnv^j 
+  // Jnu_i_cov = h_{ij}Jnv^j 
   NVx_cov[0] = Hxx_NVx[0]; 
   NVx_cov[0] += Hxy_NVy[0]; 
   NVy_cov[0] = Hxy_NVx[0]; 

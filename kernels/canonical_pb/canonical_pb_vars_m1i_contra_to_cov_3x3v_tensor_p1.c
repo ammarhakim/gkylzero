@@ -38,7 +38,7 @@ GKYL_CU_DH void canonical_pb_vars_m1i_contra_to_cov_3x3v_tensor_p1(const double 
   const double *Hyz = &h_ij[32]; 
   const double *Hzz = &h_ij[40]; 
 
-  // h^{ij}v^j 
+  // h_{ij}v^j 
   double Hxx_Vx[8] = {0.0}; 
   binop_mul_3d_ser_p1(Hxx, Vx, Hxx_Vx); 
  
@@ -66,7 +66,7 @@ GKYL_CU_DH void canonical_pb_vars_m1i_contra_to_cov_3x3v_tensor_p1(const double 
   double Hzz_Vz[8] = {0.0}; 
   binop_mul_3d_ser_p1(Hzz, Vz, Hzz_Vz); 
  
-  // h^{ij}Jnv^j 
+  // h_{ij}Jnv^j 
   double Hxx_NVx[8] = {0.0}; 
   binop_mul_3d_ser_p1(Hxx, NVx, Hxx_NVx); 
  
@@ -94,7 +94,7 @@ GKYL_CU_DH void canonical_pb_vars_m1i_contra_to_cov_3x3v_tensor_p1(const double 
   double Hzz_NVz[8] = {0.0}; 
   binop_mul_3d_ser_p1(Hzz, NVz, Hzz_NVz); 
  
-  // u_i_cov = h^{ij}v^j 
+  // u_i_cov = h_{ij}v^j 
   Vx_cov[0] = Hxx_Vx[0]; 
   Vx_cov[0] += Hxy_Vy[0]; 
   Vy_cov[0] = Hxy_Vx[0]; 
@@ -168,7 +168,7 @@ GKYL_CU_DH void canonical_pb_vars_m1i_contra_to_cov_3x3v_tensor_p1(const double 
   Vz_cov[7] += Hyz_Vy[7]; 
   Vz_cov[7] += Hzz_Vz[7]; 
  
-  // Jnu_i_cov = h^{ij}Jnv^j 
+  // Jnu_i_cov = h_{ij}Jnv^j 
   NVx_cov[0] = Hxx_NVx[0]; 
   NVx_cov[0] += Hxy_NVy[0]; 
   NVy_cov[0] = Hxy_NVx[0]; 
