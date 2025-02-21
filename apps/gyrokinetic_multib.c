@@ -505,11 +505,17 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   // support passing a value yet.
   for (int d=0; d<cdim-1; d++) {
     for (int k=0; k<fld->num_physical_bcs; k++) { 
-      int bc_type = choose_field_bc_type(fld->bcs[k].bc_type);
-      if (fld->bcs[k].edge == GKYL_LOWER_EDGE)
-        field_inp.poisson_bcs.lo_type[d] = bc_type;
-      if (fld->bcs[k].edge == GKYL_UPPER_EDGE)
-        field_inp.poisson_bcs.up_type[d] = bc_type;
+      if (bid == fld->bcs[k].bidx) {
+        int bc_type = choose_field_bc_type(fld->bcs[k].bc_type);
+        if (fld->bcs[k].edge == GKYL_LOWER_EDGE) {
+          field_inp.poisson_bcs.lo_type[d] = bc_type;
+          field_inp.poisson_bcs.lo_value[d].v[0] = 0.0;
+        }
+        if (fld->bcs[k].edge == GKYL_UPPER_EDGE) {
+          field_inp.poisson_bcs.up_type[d] = bc_type;
+          field_inp.poisson_bcs.up_value[d].v[0] = 0.0;
+        }
+      }
     }
   }
 

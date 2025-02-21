@@ -172,6 +172,10 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
     struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
     enum gkyl_fem_parproj_bc_type fem_parbc = GKYL_FEM_PARPROJ_NONE;
     // NEED TO RESET fem_parbc if this is a core block and in 2x (leave as none for 3x).
+    const struct gkyl_block_geom_info *bgi = gkyl_block_geom_get_block(mbapp->block_geom, bid);
+    enum gkyl_tok_geo_type ftype = bgi->geometry.tok_grid_info.ftype;
+    if(mbf->cdim == 2 && (ftype == GKYL_CORE_R || ftype == GKYL_CORE_L))
+      fem_parbc = GKYL_FEM_PARPROJ_PERIODIC;
     mbf->fem_parproj[bI] = gkyl_fem_parproj_new(mbf->multibz_ranges[bI],
         &sbapp->basis, fem_parbc, mbf->lhs_weight_multibz[bI], mbf->rhs_weight_multibz[bI], mbapp->use_gpu);
   }
