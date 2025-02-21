@@ -299,19 +299,21 @@ gk_neut_species_calc_integrated_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk
   struct timespec wst = gkyl_wall_clock();
 
   int vdim = app->vdim+1; // Neutrals are always 3V
-  double avals_global[2+vdim];
+  int num_mom = gkns->integ_moms.num_mom;
+  double avals_global[num_mom];
+  
   gk_neut_species_moment_calc(&gkns->integ_moms, gkns->local, app->local, gkns->f); 
   app->stat.n_neut_mom += 1;
 
   // reduce to compute sum over whole domain, append to diagnostics
   gkyl_array_reduce_range(gkns->red_integ_diag, gkns->integ_moms.marr, GKYL_SUM, &app->local);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, 
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
     gkns->red_integ_diag, gkns->red_integ_diag_global);
   if (app->use_gpu) {
-    gkyl_cu_memcpy(avals_global, gkns->red_integ_diag_global, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
+    gkyl_cu_memcpy(avals_global, gkns->red_integ_diag_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
   }
   else {
-    memcpy(avals_global, gkns->red_integ_diag_global, sizeof(double[2+vdim]));
+    memcpy(avals_global, gkns->red_integ_diag_global, sizeof(double[num_mom]));
   }
   gkyl_dynvec_append(gkns->integ_diag, tm, avals_global);
 
@@ -484,18 +486,17 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
 
   // Allocate data for integrated diagnostics.
   if (app->use_gpu) {
-    s->red_integ_diag = gkyl_cu_malloc(sizeof(double[vdim+2]));
-    s->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[vdim+2]));
-  } 
-  else {
-    s->red_integ_diag = gkyl_malloc(sizeof(double[vdim+2]));
-    s->red_integ_diag_global = gkyl_malloc(sizeof(double[vdim+2]));
+    s->red_integ_diag = gkyl_cu_malloc(sizeof(double[s->integ_moms.num_mom]));
+    s->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[s->integ_moms.num_mom]));
+  } else {
+    s->red_integ_diag = gkyl_malloc(sizeof(double[s->integ_moms.num_mom]));
+    s->red_integ_diag_global = gkyl_malloc(sizeof(double[s->integ_moms.num_mom]));
   }
-  // allocate dynamic-vector to store all-reduced integrated moments 
-  s->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
+  // Allocate dynamic-vector to store all-reduced integrated moments.
+  s->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, s->integ_moms.num_mom);
   s->is_first_integ_write_call = true;
 
-  // by default, we do not have zero-flux boundary conditions in any direction
+  // By default, we do not have zero-flux boundary conditions in any direction.
   bool is_zero_flux[2*GKYL_MAX_DIM] = {false};
 
   // Determine which directions are not periodic. If any BCs are zero-flux,
@@ -546,7 +547,7 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
   s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->basis, &s->basis, 
     &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
 
-  // acquire equation object
+  // Acquire equation object.
   s->eqn_vlasov = gkyl_dg_updater_vlasov_acquire_eqn(s->slvr);
   
   // Determine collision type and initialize it.
@@ -565,7 +566,7 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
   s->bc_buffer = mkarr(app->use_gpu, s->basis.num_basis, buff_sz);
-  // buffer arrays for fixed function boundary conditions on distribution function
+  // Buffer arrays for fixed function boundary conditions on distribution function.
   s->bc_buffer_lo_fixed = mkarr(app->use_gpu, s->basis.num_basis, buff_sz);
   s->bc_buffer_up_fixed = mkarr(app->use_gpu, s->basis.num_basis, buff_sz);
 
@@ -653,7 +654,7 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
 static void
 gk_neut_species_new_static(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s)
 {
-  // set pointers for RK methods
+  // Set pointers for RK methods.
   s->f1 = s->f;
   s->fnew = s->f;
 

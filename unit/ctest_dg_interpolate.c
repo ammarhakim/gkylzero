@@ -850,11 +850,11 @@ static struct gk_geometry* init_gk_geo(int poly_order, struct gkyl_rect_grid con
 }
 
 static void calc_moms_gk(struct gkyl_rect_grid *grid, struct gkyl_basis *confBasis, struct gkyl_basis *basis,
-  struct gkyl_range *confLocal, struct gkyl_range *local, double mass, struct gkyl_velocity_map *gvm,
+  struct gkyl_range *confLocal, struct gkyl_range *local, double mass, double charge, struct gkyl_velocity_map *gvm,
   struct gk_geometry *gk_geom, bool use_gpu, struct gkyl_array *distf, struct gkyl_array *moms)
 {
   struct gkyl_dg_updater_moment* mom_op = gkyl_dg_updater_moment_gyrokinetic_new(grid, confBasis,
-    basis, confLocal, mass, gvm, gk_geom, "ThreeMoments", false, use_gpu);
+    basis, confLocal, mass, charge, gvm, gk_geom, 0, "ThreeMoments", false, use_gpu);
   gkyl_dg_updater_moment_gyrokinetic_advance(mom_op, local, confLocal, distf, moms);
   gkyl_dg_updater_moment_gyrokinetic_release(mom_op);
 }
@@ -869,6 +869,7 @@ test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   double vpar_max =  6.0;
   double lower[] = {x_min, vpar_min}, upper[] = {x_max, vpar_max};
   double mass = 1.0;
+  double charge = 1.0;
 
   const int ndim = sizeof(lower)/sizeof(lower[0]);
   const int vdim = ndim-cdim;
@@ -961,7 +962,7 @@ test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   struct gkyl_array *moms = mkarr(use_gpu, num_mom*confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *moms_ho = use_gpu? mkarr(false, moms->ncomp, moms->size)
                                       : gkyl_array_acquire(moms);
-  calc_moms_gk(&grid, &confBasis, &basis, &confLocal, &local, mass, gvm, gk_geom, use_gpu, distf, moms);
+  calc_moms_gk(&grid, &confBasis, &basis, &confLocal, &local, mass, charge, gvm, gk_geom, use_gpu, distf, moms);
   gkyl_array_copy(moms_ho, moms);
 
   // Calculate the integrated moments.
@@ -1029,7 +1030,7 @@ test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   struct gkyl_array *moms_tar_ho = use_gpu? mkarr(false, moms_tar->ncomp, moms_tar->size)
                                           : gkyl_array_acquire(moms_tar);
   calc_moms_gk(&grid_tar, &confBasis, &basis, &confLocal_tar, &local_tar,
-    mass, gvm_tar, gk_geom_tar, use_gpu, distf_tar, moms_tar);
+    mass, charge, gvm_tar, gk_geom_tar, use_gpu, distf_tar, moms_tar);
   gkyl_array_copy(moms_tar_ho, moms_tar);
 
   // Calculate the integrated moments of the target.
@@ -1140,6 +1141,7 @@ test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   double mu_max =  0.5;
   double lower[] = {x_min, vpar_min, 0.0}, upper[] = {x_max, vpar_max, mu_max};
   double mass = 1.0;
+  double charge = 1.0;
 
   const int ndim = sizeof(lower)/sizeof(lower[0]);
   const int vdim = ndim-cdim;
@@ -1233,7 +1235,7 @@ test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   struct gkyl_array *moms = mkarr(use_gpu, num_mom*confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *moms_ho = use_gpu? mkarr(false, moms->ncomp, moms->size)
                                       : gkyl_array_acquire(moms);
-  calc_moms_gk(&grid, &confBasis, &basis, &confLocal, &local, mass, gvm, gk_geom, use_gpu, distf, moms);
+  calc_moms_gk(&grid, &confBasis, &basis, &confLocal, &local, mass, charge, gvm, gk_geom, use_gpu, distf, moms);
   gkyl_array_copy(moms_ho, moms);
 
   // Calculate the integrated moments.
@@ -1301,7 +1303,7 @@ test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   struct gkyl_array *moms_tar_ho = use_gpu? mkarr(false, moms_tar->ncomp, moms_tar->size)
                                           : gkyl_array_acquire(moms_tar);
   calc_moms_gk(&grid_tar, &confBasis, &basis, &confLocal_tar, &local_tar,
-    mass, gvm_tar, gk_geom_tar, use_gpu, distf_tar, moms_tar);
+    mass, charge, gvm_tar, gk_geom_tar, use_gpu, distf_tar, moms_tar);
   gkyl_array_copy(moms_tar_ho, moms_tar);
 
   // Calculate the integrated moments of the target.

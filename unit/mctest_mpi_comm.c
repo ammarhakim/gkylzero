@@ -1596,7 +1596,6 @@ TEST_LIST = {
   {"mpi_n4_per_sync_corner_3d", mpi_n4_per_sync_corner_3d },
   {"mpi_n8_per_sync_corner_3d", mpi_n8_per_sync_corner_3d },
   {"mpi_n27_per_sync_corner_3d", mpi_n27_per_sync_corner_3d },
-
   
   /* {"mpi_n2_array_send_irecv_1d", mpi_n2_array_send_irecv_1d }, */
   /* {"mpi_n2_array_isend_irecv_2d", mpi_n2_array_isend_irecv_2d }, */
@@ -1610,6 +1609,7 @@ TEST_LIST = {
 
   {"mpi_bcast_1d_host", mpi_bcast_1d_host },
   {"mpi_bcast_2d_host", mpi_bcast_2d_host },
+
   {NULL, NULL},
 };
 

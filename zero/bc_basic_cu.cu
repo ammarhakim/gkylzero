@@ -8,10 +8,11 @@ extern "C" {
 }
 
 __global__ static void
-gkyl_bc_basic_create_set_cu_dev_ptrs(int dir, int cdim, enum gkyl_bc_basic_type bctype,
+gkyl_bc_basic_create_set_cu_dev_ptrs(int dir, enum gkyl_edge_loc edge, int cdim, enum gkyl_bc_basic_type bctype,
   const struct gkyl_basis* basis, int ncomp, struct dg_bc_ctx *ctx, struct gkyl_array_copy_func *fout)
 {
   ctx->dir = dir;
+  ctx->edge = edge;
   ctx->cdim = cdim;
   ctx->basis = basis;
   ctx->ncomp = ncomp;
@@ -72,6 +73,11 @@ gkyl_bc_basic_create_set_cu_dev_ptrs(int dir, int cdim, enum gkyl_bc_basic_type 
       fout->func = euler_no_slip_bc;
       break;  
 
+
+    case GKYL_BC_CONF_BOUNDARY_VALUE:
+      fout->func = conf_boundary_value_bc;
+      break;
+
     default:
       assert(false);
       break;
@@ -80,7 +86,7 @@ gkyl_bc_basic_create_set_cu_dev_ptrs(int dir, int cdim, enum gkyl_bc_basic_type 
 }
 
 struct gkyl_array_copy_func*
-gkyl_bc_basic_create_arr_copy_func_cu(int dir, int cdim, enum gkyl_bc_basic_type bctype,
+gkyl_bc_basic_create_arr_copy_func_cu(int dir, enum gkyl_edge_loc edge, int cdim, enum gkyl_bc_basic_type bctype,
   const struct gkyl_basis *basis, int ncomp)
 {
   // create host context and bc func structs
@@ -100,7 +106,7 @@ gkyl_bc_basic_create_arr_copy_func_cu(int dir, int cdim, enum gkyl_bc_basic_type
 
   fout->ctx_on_dev = ctx_cu;
 
-  gkyl_bc_basic_create_set_cu_dev_ptrs<<<1,1>>>(dir, cdim, bctype, basis, ncomp, ctx_cu, fout_cu);
+  gkyl_bc_basic_create_set_cu_dev_ptrs<<<1,1>>>(dir, edge, cdim, bctype, basis, ncomp, ctx_cu, fout_cu);
 
   // set parent on_dev pointer
   fout->on_dev = fout_cu;

@@ -108,7 +108,7 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
       rad->collide_with[i] = gk_find_species(app, s->info.radiation.collide_with[i]);
       rad->is_neut_species[i] = false;
       // allocate density calculation needed for radiation update
-      gk_species_moment_init(app, rad->collide_with[i], &rad->moms[i], "M0");
+      gk_species_moment_init(app, rad->collide_with[i], &rad->moms[i], "M0", false);
     }
 
     if (status == 1) {
@@ -161,8 +161,9 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   rad->nvsqnu_surf = mkarr(app->use_gpu, surf_mu_basis.num_basis, s->local_ext.volume);
   rad->nvsqnu = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
 
-  // allocate moments needed for temperature update
-  gk_species_moment_init(app, s, &rad->prim_moms, "MaxwellianMoments");
+  // Allocate moments needed for temperature update.
+  gk_species_moment_init(app, s, &rad->prim_moms, "MaxwellianMoments", false);
+
   rad->vtsq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   rad->m0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   
@@ -180,24 +181,25 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   }
 
   // Allocate data and updaters for integrated moments.
-  gk_species_moment_init(app, s, &rad->integ_moms, "Integrated");
+  gk_species_moment_init(app, s, &rad->integ_moms, "FourMoments", true);
+  int num_mom = rad->integ_moms.num_mom;
   if (app->use_gpu) {
-    rad->red_integ_diag = gkyl_cu_malloc(sizeof(double[vdim+2]));
-    rad->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[vdim+2]));
+    rad->red_integ_diag = gkyl_cu_malloc(sizeof(double[num_mom]));
+    rad->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[num_mom]));
   } 
   else {
-    rad->red_integ_diag = gkyl_malloc(sizeof(double[vdim+2]));
-    rad->red_integ_diag_global = gkyl_malloc(sizeof(double[vdim+2]));
+    rad->red_integ_diag = gkyl_malloc(sizeof(double[num_mom]));
+    rad->red_integ_diag_global = gkyl_malloc(sizeof(double[num_mom]));
   }
   // allocate dynamic-vector to store all-reduced integrated moments 
-  rad->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
+  rad->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, num_mom);
   rad->is_first_integ_write_call = true;
 
   // Arrays for emissivity
   rad->emissivity_rhs = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
   rad->emissivity_denominator = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   // allocate M2 for emissivity
-  gk_species_moment_init(app, s, &rad->m2, "M2");
+  gk_species_moment_init(app, s, &rad->m2, "M2", false);
 
   // Radiation updater
   struct gkyl_dg_rad_gyrokinetic_auxfields drag_inp = { .nvnu_surf = rad->nvnu_surf, .nvnu = rad->nvnu,
@@ -456,7 +458,8 @@ gk_species_radiation_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_sp
 {
   if (gks->rad.radiation_id == GKYL_GK_RADIATION) {
     int vdim = app->vdim;
-    double avals_global[2+vdim];
+    int num_mom = gks->rad.integ_moms.num_mom;
+    double avals_global[num_mom];
 
     // Compute radiation drag coefficients
     const struct gkyl_array *fin_neut[app->num_neut_species];
@@ -472,13 +475,13 @@ gk_species_radiation_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_sp
   
     // reduce to compute sum over whole domain, append to diagnostics
     gkyl_array_reduce_range(gks->rad.red_integ_diag, gks->rad.integ_moms.marr, GKYL_SUM, &app->local);
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, 
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
       gks->rad.red_integ_diag, gks->rad.red_integ_diag_global);
     if (app->use_gpu) {
-      gkyl_cu_memcpy(avals_global, gks->rad.red_integ_diag_global, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
+      gkyl_cu_memcpy(avals_global, gks->rad.red_integ_diag_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
     }
     else {
-      memcpy(avals_global, gks->rad.red_integ_diag_global, sizeof(double[2+vdim]));
+      memcpy(avals_global, gks->rad.red_integ_diag_global, sizeof(double[num_mom]));
     }
     gkyl_dynvec_append(gks->rad.integ_diag, tm, avals_global);
   }
