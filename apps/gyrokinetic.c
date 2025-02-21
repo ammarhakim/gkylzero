@@ -537,9 +537,16 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
 
   // initialize neutral species cross-species reactions with plasma species
   for (int i=0; i<neuts; ++i) {
-    if (app->neut_species[i].react_neut.num_react) {
-      gk_neut_species_react_cross_init(app, &app->neut_species[i], &app->neut_species[i].react_neut);
+    struct gk_neut_species *gkns = &app->neut_species[i]; 
+    if (gkns->react_neut.num_react) {
+      gk_neut_species_react_cross_init(app, gkns, &gkns->react_neut);
     }
+    // initialize species wall emission terms: these rely
+    // on other species which must be allocated in the previous step
+    if (gkns->recyc_lo)
+      gk_neut_species_recycle_cross_init(app, gkns, &gkns->bc_recycle_lo);
+    if (gkns->recyc_up)
+      gk_neut_species_recycle_cross_init(app, gkns, &gkns->bc_recycle_up);
   }
 
   // initialize each plasma species and neutral species source terms
@@ -663,13 +670,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
   for (int i=0; i<app->num_neut_species; ++i) {
     struct gk_neut_species *gkns = &app->neut_species[i];
     gkyl_gyrokinetic_app_apply_ic_neut_species(app, i, t0);
-    gk_neut_species_bflux_rhs(app, gkns, &gkns->bflux, gkns->f, gkns->f);
-    // initialize species wall emission terms: these rely
-    // on other species which must be allocated in the previous step
-    if (app->neut_species[i].recyc_lo)
-      gk_neut_species_recycle_cross_init(app, gkns, &gkns->bc_recycle_lo);
-    if (app->neut_species[i].recyc_up)
-      gk_neut_species_recycle_cross_init(app, gkns, &gkns->bc_recycle_up);
+    //gk_neut_species_bflux_rhs(app, gkns, &gkns->bflux, gkns->f, gkns->f); // TNB not needed
   }
   for (int i=0; i<app->num_species; ++i)
     gkyl_gyrokinetic_app_apply_ic_cross_species(app, i, t0);
@@ -2047,9 +2048,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
       gk_species_apply_bc(app, &app->species[i], distf[i]);
     }
     for (int i=0; i<app->num_neut_species; ++i) {
-      if (!app->neut_species[i].info.is_static) {
-        gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
-      }
+      gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
     }
   }
   app->field->is_first_energy_write_call = false; // Append to existing diagnostic.

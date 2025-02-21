@@ -579,7 +579,6 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
   }
 
   // initialize boundary fluxes for diagnostics and bcs
-  //if (!s->info.is_static) 
   s->bflux = (struct gk_boundary_fluxes) { };
   gk_neut_species_bflux_init(app, s, &s->bflux); 
   

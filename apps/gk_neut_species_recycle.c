@@ -93,26 +93,27 @@ gk_neut_species_recycle_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
 
   // Initialize inelastic emission spectrums
   for (int i=0; i<recyc->num_species; ++i) {
-
+    
+    recyc->impact_species[i] = gk_find_species(app, recyc->params->in_species[i]);
+    struct gk_species *gks = recyc->impact_species[i];
     const struct gkyl_emission_yield_constant *model = container_of(recyc->params->yield_model[i],
       struct gkyl_emission_yield_constant, yield);
     recyc->delta[i] = model->delta;
     recyc->spectrum[i] = mkarr(app->use_gpu, s->basis.num_basis, recyc->emit_buff_r->volume);
-    
-    recyc->impact_species[i] = gk_find_species(app, recyc->params->in_species[i]);
-    recyc->impact_grid[i] = &recyc->impact_species[i]->bflux.boundary_grid[bdir];
-    recyc->impact_conf_grid[i] = &recyc->impact_species[i]->bflux.conf_boundary_grid[bdir];
-    recyc->impact_skin_r[i] = (recyc->edge == GKYL_LOWER_EDGE) ? &recyc->impact_species[i]->lower_skin[recyc->dir] : &recyc->impact_species[i]->upper_skin[recyc->dir];
-    recyc->impact_ghost_r[i] = (recyc->edge == GKYL_LOWER_EDGE) ? &recyc->impact_species[i]->lower_ghost[recyc->dir] : &recyc->impact_species[i]->upper_ghost[recyc->dir];
-    recyc->impact_buff_r[i] = &recyc->impact_species[i]->bflux.flux_r[bdir];
-    recyc->impact_cbuff_r[i] = &recyc->impact_species[i]->bflux.conf_r[bdir];
+
+    recyc->impact_grid[i] = &gks->bflux.boundary_grid[bdir];
+    recyc->impact_conf_grid[i] = &gks->bflux.conf_boundary_grid[bdir];
+    recyc->impact_skin_r[i] = (recyc->edge == GKYL_LOWER_EDGE) ? &gks->lower_skin[recyc->dir] : &gks->upper_skin[recyc->dir];
+    recyc->impact_ghost_r[i] = (recyc->edge == GKYL_LOWER_EDGE) ? &gks->lower_ghost[recyc->dir] :&gks->upper_ghost[recyc->dir];
+    recyc->impact_buff_r[i] = &gks->bflux.flux_r[bdir];
+    recyc->impact_cbuff_r[i] = &gks->bflux.conf_r[bdir];
 
     recyc->flux_slvr[i] = gkyl_dg_updater_moment_gyrokinetic_new(recyc->impact_grid[i], &app->basis,
-      &recyc->impact_species[i]->basis, recyc->emit_cbuff_r, recyc->impact_species[i]->info.mass, recyc->impact_species[i]->vel_map,
+      &gks->basis, recyc->emit_cbuff_r, gks->info.mass, gks->vel_map,
       app->gk_geom, "M0", 0, app->use_gpu);
     
     recyc->flux[i] = mkarr(app->use_gpu, app->basis.num_basis, recyc->impact_cbuff_r[i]->volume);
-    recyc->bflux_arr[i] = recyc->impact_species[i]->bflux.flux_arr[bdir];
+    recyc->bflux_arr[i] = gks->bflux.flux_arr[bdir];
 
     gkyl_bc_emission_flux_ranges(&recyc->impact_normal_r[i], recyc->dir + cdim, recyc->impact_buff_r[i],
       ghost, recyc->edge);
