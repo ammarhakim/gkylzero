@@ -838,9 +838,6 @@ struct gk_field {
   // Additional attributes for twist and shift boundary condition (TSBC).
   struct gkyl_range local_par_ext_core;
   struct gkyl_bc_twistshift *bc_T_LU_lo;
-  // will store the ghost values of phi_smooth for the TSBC SSFG.
-  struct gkyl_array *aux_array;
-  struct gkyl_array *bc_buffer;
 
   // Additional attributes for setting skin surface to ghost surface (SSFG).
   struct gkyl_range lower_skin_core, lower_ghost_core;
