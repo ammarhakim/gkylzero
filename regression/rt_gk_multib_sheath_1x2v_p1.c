@@ -714,7 +714,7 @@ main(int argc, char **argv)
   };
 
   struct gkyl_gyrokinetic_multib app_inp = {
-    .name = "multib_sheath_1x2v_p1",
+    .name = "gk_multib_sheath_1x2v_p1",
 
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .poly_order = 1,

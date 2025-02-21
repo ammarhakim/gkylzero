@@ -620,7 +620,7 @@ struct gkyl_comm *comm = 0;
 
 
   struct gkyl_gyrokinetic_multib app_inp = {
-    .name = "multib_step_sol_plasma_1x2v_p1",
+    .name = "gk_multib_step_sol_1x2v_p1",
 
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .poly_order = 1,
