@@ -134,8 +134,8 @@ gkyl_dg_mul_conf_phase_op_range_cu_kernel(struct gkyl_basis cbasis,
 
 // Host-side wrapper for range-based dg conf*phase multiplication.
 void
-gkyl_dg_mul_conf_phase_op_range_cu(struct gkyl_basis *cbasis,
-  struct gkyl_basis *pbasis, struct gkyl_array* pout,
+gkyl_dg_mul_conf_phase_op_range_cu(const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, struct gkyl_array* pout,
   const struct gkyl_array* cop, const struct gkyl_array* pop,
   const struct gkyl_range *crange, const struct gkyl_range *prange)
 {
@@ -198,8 +198,8 @@ gkyl_dg_mul_conf_phase_op_accumulate_range_cu_kernel(struct gkyl_basis cbasis,
 
 // Host-side wrapper for range-based dg conf*phase multiplication with accumulation to output.
 void
-gkyl_dg_mul_conf_phase_op_accumulate_range_cu(struct gkyl_basis *cbasis,
-  struct gkyl_basis *pbasis, struct gkyl_array* pout, double a, 
+gkyl_dg_mul_conf_phase_op_accumulate_range_cu(const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, struct gkyl_array* pout, double a, 
   const struct gkyl_array* cop, const struct gkyl_array* pop,
   const struct gkyl_range *crange, const struct gkyl_range *prange)
 {

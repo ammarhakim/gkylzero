@@ -452,7 +452,7 @@ create_ctx(void)
   double floor_src = 1e-2;
 
   // Grid parameters
-  int Nx = 18;
+  int Nx = 8;
   int Nz = 8;
   int Nvpar = 8;
   int Nmu = 4;
@@ -463,8 +463,8 @@ create_ctx(void)
   double vpar_max_ion = 4.*vti;
   double mu_max_ion = mi*pow(4*vti,2)/(2*B0);
 
-  double t_end = 5.e-6;
-  int num_frames = 1;
+  double t_end = 1.e-6;
+  int num_frames = 10;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
@@ -733,6 +733,9 @@ main(int argc, char **argv)
   // GK app
   struct gkyl_gk gk = {
     .name = "gk_d3d_iwl_2x2v_p1",
+
+    .cfl_frac_omegaH = 1.0,
+    .cfl_frac = 1.0,
 
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { ctx.x_min, ctx.z_min },
