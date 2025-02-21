@@ -109,7 +109,7 @@ advect_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
 struct gkyl_wv_eqn *gkyl_wv_advect_new(double c) {
   struct wv_advect *advect = gkyl_malloc(sizeof(struct wv_advect));
 
-  advect->eqn.type = GKYL_EQN_MAXWELL;
+  advect->eqn.type = GKYL_EQN_ADVECTION;
   advect->eqn.num_equations = 1;
   advect->eqn.num_waves = 1;
   advect->eqn.num_diag = 1;
