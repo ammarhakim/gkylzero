@@ -8,25 +8,6 @@ typedef void (*tok_derived_geo_kernel)(const double *gij, const double *bmag, co
 typedef struct { tok_derived_geo_kernel kernels[3]; } tok_derived_geo_kernel_list;  // For use in kernel tables.
 typedef struct { tok_derived_geo_kernel_list list[4]; } tok_derived_geo_node_list;  // For use in kernel tables.
 
-
-//GKYL_CU_DH
-//static const tok_derived_geo_kernel_list ser_tok_derived_geo_kernel_list[] = {
-//  { NULL, NULL, NULL }, // 0x No 0D basis functions
-//  { NULL, NULL, NULL}, // 1x Not tested yet
-//  { NULL, NULL, NULL}, // 2x Not tested yet
-//  { NULL, tok_derived_geo_3x_Ser_p1, tok_derived_geo_3x_Ser_p2}
-//};
-//
-//
-//GKYL_CU_DH
-//static const tok_derived_geo_kernel_list ser_tok_derived_geo_quad_kernel_list[] = {
-//  { NULL, NULL, NULL }, // 0x No 0D basis functions
-//  { NULL, NULL, NULL}, // 1x Not tested yet
-//  { NULL, NULL, NULL}, // 2x Not tested yet
-//  { NULL, tok_derived_geo_quad_3x_Ser_p1, NULL}
-//};
-
-
 GKYL_CU_DH
 static const tok_derived_geo_node_list ser_tok_derived_geo_kernel_list[] = {
   { .list =  {
