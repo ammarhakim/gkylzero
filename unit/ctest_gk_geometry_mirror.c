@@ -135,7 +135,7 @@ struct gkyl_mirror_geo_grid_inp ginp = {
     gkyl_gk_geometry_init_nodal_range(&nrange, &clocal, cpoly_order);
     struct gkyl_array* mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, 3, nrange.volume);
     struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&cbasis, &cgrid, false);
-    gkyl_nodal_ops_m2n(n2m, &cbasis, &cgrid, &nrange, &clocal, 3, mc2p_nodal, up->mc2p);
+    gkyl_nodal_ops_m2n(n2m, &cbasis, &cgrid, &nrange, &clocal, 3, mc2p_nodal, up->mc2p, false);
     gkyl_nodal_ops_release(n2m);
     struct gkyl_rect_grid ngrid;
     gkyl_gk_geometry_init_nodal_grid(&ngrid, &cgrid, &nrange);

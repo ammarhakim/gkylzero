@@ -887,7 +887,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
     gkyl_gk_geometry_init_nodal_range(&nrange, &app->global, app->poly_order);
     struct gkyl_array* mc2p_nodal = mkarr(false, 3, nrange.volume);
     struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&app->basis, &app->grid, false);
-    gkyl_nodal_ops_m2n(n2m, &app->basis, &app->grid, &nrange, &app->global, 3, mc2p_nodal, mc2p_global_ho);
+    gkyl_nodal_ops_m2n(n2m, &app->basis, &app->grid, &nrange, &app->global, 3, mc2p_nodal, mc2p_global_ho, false);
     struct gkyl_rect_grid ngrid;
     gkyl_gk_geometry_init_nodal_grid(&ngrid, &app->grid, &nrange);
 

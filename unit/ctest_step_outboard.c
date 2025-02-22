@@ -207,7 +207,7 @@ test_fixed_z()
   gkyl_range_init_from_shape(&nrange, cgrid.ndim, nodes);
   struct gkyl_array* bhat_nodal_fld = gkyl_array_new(GKYL_DOUBLE, cgrid.ndim, nrange.volume);
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&cbasis, &cgrid, false);
-  gkyl_nodal_ops_m2n(n2m, &cbasis, &cgrid, &nrange, &clocal, 3, bhat_nodal_fld, up->bcart);
+  gkyl_nodal_ops_m2n(n2m, &cbasis, &cgrid, &nrange, &clocal, 3, bhat_nodal_fld, up->bcart, false);
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   int cidx[3];
   for(int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){

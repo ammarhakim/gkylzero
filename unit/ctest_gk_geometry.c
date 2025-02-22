@@ -115,7 +115,7 @@ test_3x_p1()
   gkyl_range_init_from_shape(&nrange, grid.ndim, nodes);
   struct gkyl_array* bhat_nodal_fld = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&basis, &grid, false);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 3, bhat_nodal_fld, gk_geom->bcart);
+  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 3, bhat_nodal_fld, gk_geom->bcart, false);
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   int cidx[3];
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
@@ -133,9 +133,9 @@ test_3x_p1()
 
   // Check that the duals are what they should be
   struct gkyl_array* dualmag_nodal_fld = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 3, dualmag_nodal_fld, gk_geom->dualmag);
+  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 3, dualmag_nodal_fld, gk_geom->dualmag, false);
   struct gkyl_array* mapc2p_nodal_fld = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 3, mapc2p_nodal_fld, gk_geom->mc2p);
+  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &range, 3, mapc2p_nodal_fld, gk_geom->mc2p, false);
   for (int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
     for (int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
       for (int it=nrange.lower[TH_IDX]; it<=nrange.upper[TH_IDX]; ++it) {
