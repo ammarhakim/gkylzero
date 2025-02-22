@@ -209,7 +209,7 @@ main(int argc, char **argv)
   struct gkyl_moment_species fluid = {
     .name = "reactive_euler",
     .equation = reactive_euler,
-    .evolve = true,
+    
     .init = evalReactiveEulerInit,
     .ctx = &ctx,
 

@@ -1,10 +1,3 @@
-// Smooth traveling wave problem for the 5-moment (Euler) equations.
-// Input parameters match the initial conditions found in entry JE22 of Ammar's Simulation Journal (https://ammar-hakim.org/sj/je/je22/je22-euler-2d.html#smooth-periodic-problem),
-// adapted from Section 4.1, from the article:
-// R. Liska and B. Wendroff (2003), "Comparison of Several Difference Schemes on 1D and 2D Test Problems for the Euler Equations",
-// SIAM Journal on Scientific Computing, Volume 25 (3): 995-1017.
-// https://epubs.siam.org/doi/10.1137/S1064827502402120
-
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,79 +13,94 @@
 #ifdef GKYL_HAVE_MPI
 #include <mpi.h>
 #include <gkyl_mpi_comm.h>
+#ifdef GKYL_HAVE_NCCL
+#include <gkyl_nccl_comm.h>
+#endif
 #endif
 
 #include <rt_arg_parse.h>
 
-struct euler_wave_2d_ctx
+struct em_advect_ctx
 {
   // Mathematical constants (dimensionless).
-  double pi; 
+  double pi;
 
   // Physical constants (using normalized code units).
   double gas_gamma; // Adiabatic index.
+  double epsilon0; // Permittivity of free space.
+  double mu0; // Permeability of free space.
+  double mass_elc; // Electron mass.
+  double charge_elc; // Electron charge.
 
-  double u; // Fluid x-velocity.
-  double v; // Fluid y-velocity.
-  double p; // Fluid pressure.
+  double vt; // Thermal velocity.
+  double n0; // Reference number density.
+  double B0; // Reference magnetic field strength.
+  double omega; // Magnetic field frequency.
 
   // Simulation parameters.
-  int Nx; // Cell count (x-direction).
-  int Ny; // Cell count (y-direction).
-  double Lx; // Domain size (x-direction).
-  double Ly; // Domain size (y-direction).
+  int Nx; // Cell count (configuration space: x-direction).
+  double Lx; // Domain size (configuration space: x-direction).
   double cfl_frac; // CFL coefficient.
 
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
   int field_energy_calcs; // Number of times to calculate field energy.
   int integrated_mom_calcs; // Number of times to calculate integrated moments.
+  int integrated_L2_f_calcs; // Number of times to calculate integrated L2 norm of distribution function.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct euler_wave_2d_ctx
+struct em_advect_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
 
   // Physical constants (using normalized code units).
-  double gas_gamma = 1.4; // Adiabatic index.
+  double gas_gamma = 5.0 / 3.0; // Adiabatic index.
+  double epsilon0 = 1.0; // Permittivity of free space.
+  double mu0 = 1.0; // Permeability of free space.
+  double mass_elc = 1.0; // Electron mass.
+  double charge_elc = -1.0; // Electron charge.
 
-  double u = 1.0; // Fluid x-velocity.
-  double v = -0.5; // Fluid y-velocity;
-  double p = 1.0; // Fluid pressure.
+  double vt = 1.0; // Thermal velocity.
+  double n0 = 1.0; // Reference number density.
+  double B0 = 1.0; // Reference magnetic field strength.
+  double omega = 0.5; // Magnetic field frequency.
 
   // Simulation parameters.
-  int Nx = 50; // Cell count (x-direction).
-  int Ny = 50; // Cell count (y-direction).
-  double Lx = 2.0; // Domain size (x-direction).
-  double Ly = 2.0; // Domain size (y-direction).
-  double cfl_frac = 0.9; // CFL coefficient.
+  int Nx = 2; // Cell count (configuration space: x-direction).
+  double Lx = 4.0 * pi; // Domain size (configuration space: x-direction).
+  double cfl_frac = 0.001; // CFL coefficient. Set to be small to compare with analytic result. 
 
-  double t_end = 4.0; // Final simulation time.
+  double t_end = 100.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
+  int integrated_L2_f_calcs = INT_MAX; // Number of times to calculate integrated L2 norm of distribution function.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct euler_wave_2d_ctx ctx = {
+  struct em_advect_ctx ctx = {
     .pi = pi,
     .gas_gamma = gas_gamma,
-    .u = u,
-    .v = v,
-    .p = p,
+    .epsilon0 = epsilon0,
+    .mu0 = mu0,
+    .mass_elc = mass_elc,
+    .charge_elc = charge_elc,
+    .vt = vt,
+    .n0 = n0,    
+    .B0 = B0,
+    .omega = omega,
     .Nx = Nx,
-    .Ny = Ny,
     .Lx = Lx,
-    .Ly = Ly,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
     .num_frames = num_frames,
     .field_energy_calcs = field_energy_calcs,
     .integrated_mom_calcs = integrated_mom_calcs,
+    .integrated_L2_f_calcs = integrated_L2_f_calcs,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
   };
@@ -101,61 +109,82 @@ create_ctx(void)
 }
 
 void
-evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double x = xn[0], y = xn[1];
-  struct euler_wave_2d_ctx *app = ctx;
+  struct em_advect_ctx *app = ctx;
 
-  double pi = app->pi;
   double gas_gamma = app->gas_gamma;
+  double n0 = app->n0;
+  double mass_elc = app->mass_elc;
+  double vt = app->vt;
+  double T = vt*vt*mass_elc; 
 
-  double u = app->u;
-  double v = app->v;
-  double p = app->p;
+  double rho_elc = n0*mass_elc; // Total electron mass density. 
+  double mom_x = 0.0; // Total momentum density (x-direction).
+  double mom_y = 0.0; // Total momentum density (y-direction).
+  double mom_z = 0.0; // Total momentum density (z-direction).
+  double E_elc = n0 * T / (gas_gamma - 1.0); // Total electron energy density. 
 
-  double rho = 1.0 + 0.2 * sin(pi * (x + y)); // Fluid mass density.
 
-  double mom_x = rho * u; // Fluid momentum density (x-direction).
-  double mom_y = rho * v; // Fluid momentum density (y-direction).
-  double mom_z = 0.0; // Fluid momentum density (z-direction).
-  double Etot = (p / (gas_gamma - 1.0)) + (0.5 * rho * (u * u + v * v)); // Fluid total energy density.
-
-  // Set fluid mass density.
-  fout[0] = rho;
-  // Set fluid momentum density.
+  // Set electron mass density.
+  fout[0] = rho_elc;
+  // Set electron momentum density.
   fout[1] = mom_x; fout[2] = mom_y; fout[3] = mom_z;
-  // Set fluid total energy density.
-  fout[4] = Etot;
+  // Set electron total energy density.
+  fout[4] = E_elc;
+}
+
+void
+evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  double Ex = 0.0; // Total electric field (x-direction).
+  double Ey = 0.0; // Total electric field (y-direction).
+  double Ez = 0.0; // Total electric field (z-direction).
+
+  double Bx = 0.0; // Total magnetic field (x-direction).
+  double By = 0.0; // Total magnetic field (y-direction).
+  double Bz = 0.0; // Total magnetic field (z-direction).
+  
+  // Set electric field.
+  fout[0] = Ex; fout[1] = Ey, fout[2] = Ez;
+  // Set magnetic field.
+  fout[3] = Bx; fout[4] = By; fout[5] = Bz;
+  // Set correction potentials.
+  fout[6] = 0.0; fout[7] = 0.0;
+}
+
+void
+evalExternalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct em_advect_ctx *app = ctx;
+
+  double B0 = app->B0;
+  double omega = app->omega;
+
+  double Ex = 0.0; // External electric field (x-direction).
+  double Ey = 0.0; // External electric field (y-direction).
+  double Ez = cos(omega * t); // External electric field (z-direction).
+
+  double Bx = B0; // External magnetic field (x-direction).
+  double By = 0.0; // External magnetic field (y-direction).
+  double Bz = 0.0; // External magnetic field (z-direction).
+
+  // Set external electric field.
+  fout[0] = Ex; fout[1] = Ey; fout[2] = Ez;
+  // Set external magnetic field.
+  fout[3] = Bx; fout[4] = By; fout[5] = Bz;
 }
 
 void
 write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr, bool force_write)
 {
-  if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
     int frame = iot->curr - 1;
     if (force_write) {
       frame = iot->curr;
     }
 
     gkyl_moment_app_write(app, t_curr, frame);
-    gkyl_moment_app_write_field_energy(app);
-    gkyl_moment_app_write_integrated_mom(app);
-  }
-}
-
-void
-calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_moment_app* app, double t_curr, bool force_calc)
-{
-  if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
-    gkyl_moment_app_calc_field_energy(app, t_curr);
-  }
-}
-
-void
-calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_moment_app* app, double t_curr, bool force_calc)
-{
-  if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
-    gkyl_moment_app_calc_integrated_mom(app, t_curr);
   }
 }
 
@@ -175,35 +204,23 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct euler_wave_2d_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct em_advect_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
-  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
-  // Fluid equations.
-  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
-
-  struct gkyl_moment_species fluid = {
-    .name = "euler",
-    .equation = euler,
-    
-    .init = evalEulerInit,
-    .ctx = &ctx,
-  };
-
-  int nrank = 1; // Number of processes in simulation.
+  int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
     MPI_Comm_size(MPI_COMM_WORLD, &nrank);
   }
-#endif
+#endif  
 
-  int cells[] = { NX, NY };
-  int dim = sizeof(cells) / sizeof(cells[0]);
+  int ccells[] = { NX };
+  int cdim = sizeof(ccells) / sizeof(ccells[0]);
 
-  int cuts[dim];
-#ifdef GKYL_HAVE_MPI
-  for (int d = 0; d < dim; d++) {
+  int cuts[cdim];
+#ifdef GKYL_HAVE_MPI  
+  for (int d = 0; d < cdim; d++) {
     if (app_args.use_mpi) {
       cuts[d] = app_args.cuts[d];
     }
@@ -212,15 +229,26 @@ main(int argc, char **argv)
     }
   }
 #else
-  for (int d = 0; d < dim; d++) {
+  for (int d = 0; d < cdim; d++) {
     cuts[d] = 1;
   }
-#endif
-
+#endif  
+    
   // Construct communicator for use in app.
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi) {
+  if (app_args.use_gpu && app_args.use_mpi) {
+#ifdef GKYL_HAVE_NCCL
+    comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+      }
+    );
+#else
+    printf(" Using -g and -M together requires NCCL.\n");
+    assert(0 == 1);
+#endif
+  }
+  else if (app_args.use_mpi) {
     comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
       }
@@ -245,7 +273,7 @@ main(int argc, char **argv)
   gkyl_comm_get_size(comm, &comm_size);
 
   int ncuts = 1;
-  for (int d = 0; d < dim; d++) {
+  for (int d = 0; d < cdim; d++) {
     ncuts *= cuts[d];
   }
 
@@ -256,26 +284,54 @@ main(int argc, char **argv)
     goto mpifinalize;
   }
 
+  // Electron/ion equations.
+  struct gkyl_wv_eqn *elc_euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
+
+  struct gkyl_moment_species elc = {
+    .name = "elc",
+    .charge = ctx.charge_elc, .mass = ctx.mass_elc,
+    .equation = elc_euler,
+    
+    .init = evalElcInit,
+    .ctx = &ctx,
+  };
+
+  // Field.
+  struct gkyl_moment_field field = {
+    .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
+    .mag_error_speed_fact = 1.0,
+
+    .is_static = true, 
+
+    .init = evalFieldInit,
+    .ctx = &ctx,
+
+    .ext_em = evalExternalFieldInit,
+    .ext_em_ctx = &ctx, 
+    .ext_em_evolve = true, 
+  };
+
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "euler_wave_2d_wv",
+    .name = "5m_em_advect",
 
-    .ndim = 2,
-    .lower = { 0.0, 0.0 },
-    .upper = { ctx.Lx, ctx.Ly },
-    .cells = { NX, NY },
+    .ndim = 1,
+    .lower = { 0.0 },
+    .upper = { ctx.Lx },
+    .cells = { NX },
 
+    .num_periodic_dir = 1,
+    .periodic_dirs = { 0 },
     .cfl_frac = ctx.cfl_frac,
 
-    .num_periodic_dir = 2,
-    .periodic_dirs = { 0, 1 },
-
     .num_species = 1,
-    .species = { fluid },
+    .species = { elc },
+
+    .field = field,
 
     .parallelism = {
       .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0], app_args.cuts[1] },
+      .cuts = { app_args.cuts[0] },
       .comm = comm,
     },
   };
@@ -286,46 +342,16 @@ main(int argc, char **argv)
   // Initial and final simulation times.
   double t_curr = 0.0, t_end = ctx.t_end;
 
-  // Initialize simulation.
-  int frame_curr = 0;
-  if (app_args.is_restart) {
-    struct gkyl_app_restart_status status = gkyl_moment_app_read_from_frame(app, app_args.restart_frame);
-
-    if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
-      gkyl_moment_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n", gkyl_array_rio_status_msg(status.io_status));
-      goto freeresources;
-    }
-
-    frame_curr = status.frame;
-    t_curr = status.stime;
-
-    gkyl_moment_app_cout(app, stdout, "Restarting from frame %d", frame_curr);
-    gkyl_moment_app_cout(app, stdout, " at time = %g\n", t_curr);
-  }
-  else {
-    gkyl_moment_app_apply_ic(app, t_curr);
-  }
-
-  // Create trigger for field energy.
-  int field_energy_calcs = ctx.field_energy_calcs;
-  struct gkyl_tm_trigger fe_trig = { .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr };
-
-  calc_field_energy(&fe_trig, app, t_curr, false);
-
-  // Create trigger for integrated moments.
-  int integrated_mom_calcs = ctx.integrated_mom_calcs;
-  struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr };
-
-  calc_integrated_mom(&im_trig, app, t_curr, false);
-
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
 
+  // Initialize simulation.
+  gkyl_moment_app_apply_ic(app, t_curr);
   write_data(&io_trig, app, t_curr, false);
 
-  // Compute initial guess of maximum stable time-step.
-  double dt = t_end - t_curr;
+  // Compute estimate of maximum stable time-step.
+  double dt = gkyl_moment_app_max_dt(app);
 
   // Initialize small time-step check.
   double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
@@ -345,8 +371,6 @@ main(int argc, char **argv)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
-    calc_field_energy(&fe_trig, app, t_curr, false);
-    calc_integrated_mom(&im_trig, app, t_curr, false);
     write_data(&io_trig, app, t_curr, false);
 
     if (dt_init < 0.0) {
@@ -361,11 +385,6 @@ main(int argc, char **argv)
       if (num_failures >= num_failures_max) {
         gkyl_moment_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_moment_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
-
-        calc_field_energy(&fe_trig, app, t_curr, true);
-        calc_integrated_mom(&im_trig, app, t_curr, true);
-        write_data(&io_trig, app, t_curr, true);
-
         break;
       }
     }
@@ -376,8 +395,6 @@ main(int argc, char **argv)
     step += 1;
   }
 
-  calc_field_energy(&fe_trig, app, t_curr, false);
-  calc_integrated_mom(&im_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
   gkyl_moment_app_stat_write(app);
 
@@ -391,9 +408,8 @@ main(int argc, char **argv)
   gkyl_moment_app_cout(app, stdout, "Source updates took %g secs\n", stat.sources_tm);
   gkyl_moment_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
-freeresources:
   // Free resources after simulation completion.
-  gkyl_wv_eqn_release(euler);
+  gkyl_wv_eqn_release(elc_euler);
   gkyl_comm_release(comm);
   gkyl_moment_app_release(app);  
   
@@ -403,6 +419,6 @@ mpifinalize:
     MPI_Finalize();
   }
 #endif
-
+  
   return 0;
 }

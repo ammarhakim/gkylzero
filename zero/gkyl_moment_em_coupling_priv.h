@@ -15,6 +15,7 @@ struct gkyl_moment_em_coupling {
   double epsilon0; // Permittivity of free space.
   double mu0; // Permeability of free space.
 
+  bool static_field; // Is the plasma field static? If true, only J is updated to new time step. 
   bool ramp_app_E; // Use a linear ramp function for initializing external electric fields.
   double t_ramp_E; // Ramp-up time for the linear ramp function for initializing external electric fields.
   bool ramp_app_curr; // Use a linear ramp function for initializing applied currents.

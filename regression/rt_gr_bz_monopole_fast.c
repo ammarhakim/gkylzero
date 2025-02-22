@@ -273,7 +273,7 @@ main(int argc, char **argv)
   struct gkyl_moment_species field = {
     .name = "field",
     .equation = gr_maxwell,
-    .evolve = true,
+    
     .init = evalGRMaxwellInit,
     .force_low_order_flux = true, // Use Lax fluxes.
     .ctx = &ctx,

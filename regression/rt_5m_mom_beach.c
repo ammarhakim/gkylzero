@@ -253,7 +253,7 @@ main(int argc, char **argv)
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
     .equation = elc_euler,
-    .evolve = true,
+    
     .init = evalElcInit,
     .ctx = &ctx,
 
@@ -264,11 +264,11 @@ main(int argc, char **argv)
   struct gkyl_moment_field field = {
     .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
     
-    .evolve = true,
     .init = evalFieldInit,
     .ctx = &ctx,
-    .app_current_func = evalAppCurrent,
+    .app_current = evalAppCurrent,
     .app_current_ctx = &ctx,
+    .app_current_evolve = true, 
 
     .bcx = { GKYL_FIELD_COPY, GKYL_FIELD_COPY },
   };

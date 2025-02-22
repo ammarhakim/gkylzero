@@ -309,7 +309,7 @@ main(int argc, char **argv)
   struct gkyl_moment_species fluid = {
     .name = "gr_ultra_rel_euler_tetrad",
     .equation = gr_ultra_rel_euler_tetrad,
-    .evolve = true,
+    
     .init = evalGREulerInit,
     .force_low_order_flux = true, // Use Lax fluxes.
     .ctx = &ctx,
