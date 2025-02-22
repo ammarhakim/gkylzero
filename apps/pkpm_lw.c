@@ -54,6 +54,10 @@ struct pkpm_species_lw {
   bool has_fluid_init_func; // Is there a fluid initialization function?
   struct lua_func_ctx fluid_init_func_ref; // Lua registry reference to fluid initialization function.
 
+  bool has_applied_acceleration_func; // Is there an applied acceleration initialization function?
+  struct lua_func_ctx applied_acceleration_func_ref; // Lua registry reference to applied acceleration initialization function.
+  bool evolve_applied_acceleration; // Is the applied acceleration evolved?
+
   enum gkyl_collision_id collision_id; // Collision type.
   
   bool has_self_nu_func; // Is there a self-collision frequency function?
@@ -136,6 +140,17 @@ pkpm_species_lw_new(lua_State *L)
     has_fluid_init_func = true;
   }
 
+  bool has_applied_acceleration_func = false;
+  int applied_acceleration_func_ref = LUA_NOREF;
+  bool evolve_applied_acceleration = false;
+
+  if (glua_tbl_get_func(L, "appliedAcceleration")) {
+    applied_acceleration_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_applied_acceleration_func = true;
+
+    evolve_applied_acceleration = glua_tbl_get_bool(L, "evolveAppliedAcceleration", false);
+  }
+
   enum gkyl_collision_id collision_id = GKYL_NO_COLLISIONS;
 
   bool has_self_nu_func = false;
@@ -182,6 +197,15 @@ pkpm_species_lw_new(lua_State *L)
     .nret = 3,
     .L = L,
   };
+
+  pkpm_s_lw->has_applied_acceleration_func = has_applied_acceleration_func;
+  pkpm_s_lw->applied_acceleration_func_ref = (struct lua_func_ctx) {
+    .func_ref = applied_acceleration_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = 3,
+    .L = L,
+  };
+  pkpm_s_lw->evolve_applied_acceleration = evolve_applied_acceleration;
 
   pkpm_s_lw->collision_id = collision_id;
 
@@ -248,9 +272,8 @@ pkpm_field_lw_new(lua_State *L)
   pkpm_field.elcErrorSpeedFactor = glua_tbl_get_number(L, "elcErrorSpeedFactor", 0.0);
   pkpm_field.mgnErrorSpeedFactor = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
 
-  pkpm_field.is_static = glua_tbl_get_bool(L, "isStatic", false);
-
-  bool evolve = glua_tbl_get_integer(L, "evolve", true);
+  bool evolve = glua_tbl_get_bool(L, "evolve", true);
+  pkpm_field.is_static = !evolve;
 
   int init_ref = LUA_NOREF;
   if (glua_tbl_get_func(L, "init")) {
@@ -358,15 +381,12 @@ static struct luaL_Reg pkpm_field_ctor[] = {
 struct pkpm_app_lw {
   gkyl_pkpm_app *app; // PKPM app object.
 
-  bool has_dist_init_func[GKYL_MAX_SPECIES]; // Is there a distribution initialization function?
   struct lua_func_ctx dist_init_func_ctx[GKYL_MAX_SPECIES]; // Context for distribution initialization function.
-
-  bool has_fluid_init_func[GKYL_MAX_SPECIES]; // Is there a fluid initialization function?
   struct lua_func_ctx fluid_init_func_ctx[GKYL_MAX_SPECIES]; // Context for fluid initialization function.
+  struct lua_func_ctx applied_acceleration_func_ctx[GKYL_MAX_SPECIES]; // Context for applied acceleration function.
 
   enum gkyl_collision_id collision_id[GKYL_MAX_SPECIES]; // Collision type.
 
-  bool has_self_nu_func[GKYL_MAX_SPECIES]; // Is there a self-collision frequency function?
   struct lua_func_ctx self_nu_func_ctx[GKYL_MAX_SPECIES]; // Context for self-collision frequency function.
 
   int num_cross_collisions[GKYL_MAX_SPECIES]; // Number of species that we cross-collide with.
@@ -407,6 +427,10 @@ get_species_inp(lua_State *L, int cdim, struct pkpm_species_lw *species[GKYL_MAX
 
         if(pkpm_s->has_fluid_init_func) {
           pkpm_s->fluid_init_func_ref.ndim = cdim;
+        }
+
+        if(pkpm_s->has_applied_acceleration_func) {
+          pkpm_s->applied_acceleration_func_ref.ndim = cdim;
         }
 
         if (pkpm_s->has_self_nu_func) {
@@ -639,37 +663,36 @@ pkpm_app_new(lua_State *L)
     pkpm.species[s] = species[s]->pkpm_species;
     pkpm.vdim = species[s]->vdim;
 
-    app_lw->has_dist_init_func[s] = species[s]->has_dist_init_func;
     app_lw->dist_init_func_ctx[s] = species[s]->dist_init_func_ref;
-
-    app_lw->has_fluid_init_func[s] = species[s]->has_fluid_init_func;
     app_lw->fluid_init_func_ctx[s] = species[s]->fluid_init_func_ref;
-
     if (species[s]->has_dist_init_func) {
       pkpm.species[s].init_dist = gkyl_lw_eval_cb;
       pkpm.species[s].ctx_dist = &app_lw->dist_init_func_ctx[s];
     }
-
     if (species[s]->has_fluid_init_func) {
       pkpm.species[s].init_fluid = gkyl_lw_eval_cb;
       pkpm.species[s].ctx_fluid = &app_lw->fluid_init_func_ctx[s];
     }
 
-    app_lw->collision_id[s] = species[s]->collision_id;
+    app_lw->applied_acceleration_func_ctx[s] = species[s]->applied_acceleration_func_ref;
+    if (species[s]->has_applied_acceleration_func) {
+      pkpm.species[s].app_accel = gkyl_lw_eval_cb;
+      pkpm.species[s].app_accel_ctx = &app_lw->applied_acceleration_func_ctx[s];
+      pkpm.species[s].app_accel_evolve = species[s]->evolve_applied_acceleration;
+    }
 
-    app_lw->has_self_nu_func[s] = species[s]->has_self_nu_func;
+    app_lw->collision_id[s] = species[s]->collision_id;
+    pkpm.species[s].collisions.collision_id = app_lw->collision_id[s];
+
     app_lw->self_nu_func_ctx[s] = species[s]->self_nu_func_ref;
+    if (species[s]->has_self_nu_func) {
+      pkpm.species[s].collisions.self_nu = gkyl_lw_eval_cb;
+      pkpm.species[s].collisions.ctx = &app_lw->self_nu_func_ctx[s];
+    }
 
     app_lw->num_cross_collisions[s] = species[s]->num_cross_collisions;
     for (int i = 0; i < app_lw->num_cross_collisions[s]; i++) {
       strcpy(app_lw->collide_with[s][i], species[s]->collide_with[i]);
-    }
-
-    pkpm.species[s].collisions.collision_id = app_lw->collision_id[s];
-
-    if (species[s]->has_self_nu_func) {
-      pkpm.species[s].collisions.self_nu = gkyl_lw_eval_cb;
-      pkpm.species[s].collisions.ctx = &app_lw->self_nu_func_ctx[s];
     }
 
     pkpm.species[s].collisions.num_cross_collisions = app_lw->num_cross_collisions[s];

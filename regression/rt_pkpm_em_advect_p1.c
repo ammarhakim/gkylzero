@@ -357,11 +357,14 @@ main(int argc, char **argv)
     .elcErrorSpeedFactor = 0.0,
     .mgnErrorSpeedFactor = 0.0,
 
+    .is_static = true, 
+
     .init = evalFieldInit,
     .ctx = &ctx,
 
     .ext_em = evalExternalFieldInit,
     .ext_em_ctx = &ctx,
+    .ext_em_evolve = true, 
   };
 
   // PKPM app.

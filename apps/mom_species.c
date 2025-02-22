@@ -11,6 +11,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   strcpy(sp->name, mom_sp->name);
   sp->charge = mom_sp->charge;
   sp->mass = mom_sp->mass;
+  sp->is_static = mom_sp->is_static; 
   sp->ctx = mom_sp->ctx;
   sp->init = mom_sp->init;
 
@@ -286,18 +287,16 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
   // allocate array for applied acceleration/forces for each species
   sp->app_accel = mkarr(false, 3, app->local_ext.volume);
-  sp->was_app_accel_computed = false;
-  sp->is_app_accel_static = mom_sp->is_app_accel_static;
-  sp->proj_app_accel = 0;
-  if (mom_sp->app_accel_func) {
-    void *ctx = sp->ctx;
-
-    if (mom_sp->app_accel_ctx) {
-      ctx = mom_sp->app_accel_ctx;
+  gkyl_array_clear(sp->app_accel, 0.0);
+  sp->has_app_accel = false;
+  sp->app_accel_evolve = false;
+  if (mom_sp->app_accel) {
+    sp->has_app_accel = true;
+    if (mom_sp->app_accel_evolve) {
+      sp->app_accel_evolve = mom_sp->app_accel_evolve;
     }
-
-    sp->proj_app_accel = gkyl_fv_proj_new(&app->grid, 2, GKYL_MOM_APP_NUM_APPLIED_ACCELERATION, 
-      mom_sp->app_accel_func, ctx);
+    sp->app_accel_proj = gkyl_fv_proj_new(&app->grid, 2, GKYL_MOM_APP_NUM_APPLIED_ACCELERATION,
+      mom_sp->app_accel, mom_sp->app_accel_ctx);  
   }
 
   sp->nT_source = mkarr(false, 2, app->local_ext.volume);
@@ -491,12 +490,14 @@ moment_species_release(const struct moment_species *sp)
   }
 
   gkyl_array_release(sp->app_accel);
-  if (sp->proj_app_accel)
-    gkyl_fv_proj_release(sp->proj_app_accel);
+  if (sp->has_app_accel) {
+    gkyl_fv_proj_release(sp->app_accel_proj);
+  }
 
   gkyl_array_release(sp->nT_source);
-  if (sp->proj_nT_source)
+  if (sp->proj_nT_source) {
     gkyl_fv_proj_release(sp->proj_nT_source);
+  }
 
   gkyl_array_release(sp->bc_buffer);
 
@@ -537,8 +538,8 @@ mhd_src_update(gkyl_moment_app *app, struct mhd_src *src, int nstrang,
   int i = 0; // mhd has only one 'species'
   struct gkyl_array *fluid = app->species[i].f[sidx[nstrang]];
 
-  if (app->species[i].proj_app_accel)
-    gkyl_fv_proj_advance(app->species[i].proj_app_accel, tcurr, &app->local,
+  if (app->species[i].app_accel_proj)
+    gkyl_fv_proj_advance(app->species[i].app_accel_proj, tcurr, &app->local,
                          app->species[i].app_accel);
 
   // FIXME presently needed for computing divB etc

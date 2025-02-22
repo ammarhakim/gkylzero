@@ -152,7 +152,7 @@ main(int argc, char **argv)
   struct gkyl_moment_species fluid = {
     .name = "q",
     .equation = advect,
-    .evolve = true,
+    
     .init = evalInit,
     .ctx = &ctx,
   };

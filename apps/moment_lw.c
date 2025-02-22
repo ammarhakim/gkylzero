@@ -1875,8 +1875,9 @@ struct moment_species_lw {
 
   struct lua_func_ctx init_ctx; // Lua registry reference to initialization function.
 
-  bool has_app_accel; // Is there an applied acceleration function?
-  struct lua_func_ctx app_accel_func_ctx; // Lua registry reference to applied acceleration function.
+  bool has_applied_acceleration_func; // Is there an applied acceleration initialization function?
+  struct lua_func_ctx applied_acceleration_func_ref; // Lua registry reference to applied acceleration initialization function.
+  bool evolve_applied_acceleration; // Is the applied acceleration evolved?
 
   bool has_nT_source; // Is there a temperature source function?
   struct lua_func_ctx nT_source_func_ctx; // Lua registry reference to temperature source function.
@@ -1921,7 +1922,8 @@ moment_species_lw_new(lua_State *L)
   const char *split_str = glua_tbl_get_string(L, "splitType", "qwave");
   mom_species.split_type = gkyl_search_str_int_pair_by_str(wave_split_type, split_str, GKYL_WAVE_QWAVE);
 
-  bool evolve = mom_species.evolve = glua_tbl_get_bool(L, "evolve", true);
+  bool evolve = glua_tbl_get_bool(L, "evolve", true);
+  mom_species.is_static = !evolve; 
   mom_species.force_low_order_flux = glua_tbl_get_bool(L, "forceLowOrderFlux", false);
 
   int init_ref = LUA_NOREF;
@@ -1956,13 +1958,16 @@ moment_species_lw_new(lua_State *L)
     }
   }
 
-  bool has_app_accel = false;
-  int app_accel_ref = LUA_NOREF;
+  bool has_applied_acceleration_func = false;
+  int applied_acceleration_func_ref = LUA_NOREF;
+  bool evolve_applied_acceleration = false;
+
   if (glua_tbl_get_func(L, "appliedAcceleration")) {
-    has_app_accel = true;
-    app_accel_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    applied_acceleration_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_applied_acceleration_func = true;
+
+    evolve_applied_acceleration = glua_tbl_get_bool(L, "evolveAppliedAcceleration", false);
   }
-  mom_species.is_app_accel_static = glua_tbl_get_bool(L, "isAppliedAccelerationStatic", false);
 
   bool has_nT_source = false;
   int nT_source_ref = LUA_NOREF;
@@ -2008,13 +2013,14 @@ moment_species_lw_new(lua_State *L)
     .L = L,
   };
 
-  moms_lw->has_app_accel = has_app_accel;
-  moms_lw->app_accel_func_ctx = (struct lua_func_ctx) {
-    .func_ref = app_accel_ref,
+  moms_lw->has_applied_acceleration_func = has_applied_acceleration_func;
+  moms_lw->applied_acceleration_func_ref = (struct lua_func_ctx) {
+    .func_ref = applied_acceleration_func_ref,
     .ndim = 0, // This will be set later.
-    .nret = GKYL_MOM_APP_NUM_APPLIED_ACCELERATION,
+    .nret = 3,
     .L = L,
   };
+  moms_lw->evolve_applied_acceleration = evolve_applied_acceleration;
 
   moms_lw->has_nT_source = has_nT_source;
   moms_lw->nT_source_func_ctx = (struct lua_func_ctx) {
@@ -2053,11 +2059,15 @@ struct moment_field_lw {
   
   struct lua_func_ctx init_ctx; // Lua registry reference to initialization function.
 
-  bool has_app_current; // Is there an applied current function?
-  struct lua_func_ctx app_current_ctx; // Lua registry reference to applied current function.
+  bool has_external_field_func; // Is there an external field initialization function?
+  struct lua_func_ctx external_field_func_ref; // Lua registry reference to external field initialization function.
+  bool evolve_external_field; // Is the external field evolved?
+  double external_field_ramp_time; // Linear ramp for turning on external field without re-projecting. 
 
-  bool has_ext_em; // Is there an external field function?
-  struct lua_func_ctx ext_em_ctx; // Lua registry reference to external EM function.
+  bool has_applied_current_func; // Is there an applied current initialization function?
+  struct lua_func_ctx applied_current_func_ref; // Lua registry reference to applied current initialization function.
+  bool evolve_applied_current; // Is the applied current evolved?
+  double applied_current_ramp_time; // Linear ramp for turning on applied current without re-projecting. 
 };
 
 static int
@@ -2073,7 +2083,9 @@ moment_field_lw_new(lua_State *L)
 
   mom_field.limiter = glua_tbl_get_integer(L, "limiter", GKYL_MONOTONIZED_CENTERED);
   
-  bool evolve = glua_tbl_get_integer(L, "evolve", true);
+  bool evolve = glua_tbl_get_bool(L, "evolve", true);
+  mom_field.is_static = !evolve; 
+  mom_field.use_explicit_em_coupling = glua_tbl_get_bool(L, "useExplicitEmCoupling", false);
 
   int init_ref = LUA_NOREF;
   if (glua_tbl_get_func(L, "init")) {
@@ -2107,24 +2119,31 @@ moment_field_lw_new(lua_State *L)
     }
   }
 
-  bool has_app_current = false;
-  int app_current_ref = LUA_NOREF;
+  bool has_external_field_func = false;
+  int external_field_func_ref = LUA_NOREF;
+  bool evolve_external_field = false;
+  double external_field_ramp_time = 0.0; 
+
+  if (glua_tbl_get_func(L, "externalFieldInit")) {
+    external_field_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_external_field_func = true;
+
+    evolve_external_field = glua_tbl_get_bool(L, "evolveExternalField", false);
+    external_field_ramp_time = glua_tbl_get_number(L, "externalFieldRampTime", 0.0);
+  }
+
+  bool has_applied_current_func = false;
+  int applied_current_func_ref = LUA_NOREF;
+  bool evolve_applied_current = false;
+  double applied_current_ramp_time = 0.0; 
+
   if (glua_tbl_get_func(L, "appliedCurrent")) {
-    has_app_current = true;
-    app_current_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-  }
-  mom_field.t_ramp_curr = glua_tbl_get_number(L, "currentRampTime", 0.0);
+    applied_current_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_applied_current_func = true;
 
-  bool has_ext_em = false;
-  int ext_em_ref = LUA_NOREF;
-  if (glua_tbl_get_func(L, "externalEm")) {
-    has_ext_em = true;
-    ext_em_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    evolve_applied_current = glua_tbl_get_bool(L, "evolveAppliedCurrent", false);
+    applied_current_ramp_time = glua_tbl_get_number(L, "appliedCurrentRampTime", 0.0);
   }
-  mom_field.t_ramp_E = glua_tbl_get_number(L, "externalEmRampTime", 0.0);
-  mom_field.is_ext_em_static = glua_tbl_get_bool(L, "isExternalEmStatic", false);
-
-  mom_field.use_explicit_em_coupling = glua_tbl_get_bool(L, "useExplicitEmCoupling", false);
 
   struct moment_field_lw *momf_lw = lua_newuserdata(L, sizeof(*momf_lw));
 
@@ -2139,21 +2158,25 @@ moment_field_lw_new(lua_State *L)
     .L = L,
   };  
 
-  momf_lw->has_app_current = has_app_current;
-  momf_lw->app_current_ctx = (struct lua_func_ctx) {
-    .func_ref = app_current_ref,
+  momf_lw->has_external_field_func = has_external_field_func;
+  momf_lw->external_field_func_ref = (struct lua_func_ctx) {
+    .func_ref = external_field_func_ref,
     .ndim = 0, // This will be set later.
-    .nret = GKYL_MOM_APP_NUM_APPLIED_CURRENT,
+    .nret = 6,
     .L = L,
   };
+  momf_lw->evolve_external_field = evolve_external_field;
+  momf_lw->external_field_ramp_time = external_field_ramp_time;
 
-  momf_lw->has_ext_em = has_ext_em;
-  momf_lw->ext_em_ctx = (struct lua_func_ctx) {
-    .func_ref = ext_em_ref,
+  momf_lw->has_applied_current_func = has_applied_current_func;
+  momf_lw->applied_current_func_ref = (struct lua_func_ctx) {
+    .func_ref = applied_current_func_ref,
     .ndim = 0, // This will be set later.
-    .nret = GKYL_MOM_APP_NUM_EXT_EM,
+    .nret = 3,
     .L = L,
-  };  
+  };
+  momf_lw->evolve_applied_current = evolve_applied_current;
+  momf_lw->applied_current_ramp_time = applied_current_ramp_time;
   
   // Set metatable.
   luaL_getmetatable(L, MOMENT_FIELD_METATABLE_NM);
@@ -2182,12 +2205,12 @@ struct moment_app_lw {
   struct lua_func_ctx mapc2p_ctx; // Function context for mapc2p.
 
   struct lua_func_ctx species_init_ctx[GKYL_MAX_SPECIES]; // Function context for species initial conditions.
-  struct lua_func_ctx species_app_accel_func_ctx[GKYL_MAX_SPECIES]; // Function context for applied acceleration.
+  struct lua_func_ctx applied_acceleration_func_ctx[GKYL_MAX_SPECIES]; // Function context for applied acceleration.
   struct lua_func_ctx species_nT_source_func_ctx[GKYL_MAX_SPECIES]; // Function context for temperature sources.
 
   struct lua_func_ctx field_init_ctx; // Function context for field initial conditions.
-  struct lua_func_ctx field_app_current_ctx; // Function context for applied current.
-  struct lua_func_ctx field_ext_em_ctx; // Function context for external EM field.
+  struct lua_func_ctx external_field_func_ctx; // Function context for external field.
+  struct lua_func_ctx applied_current_func_ctx; // Function context for applied current.
   
   double t_start, t_end; // Start and end times of simulation.
   int num_frames; // Number of data frames to write.
@@ -2227,7 +2250,7 @@ get_species_inp(lua_State *L, int cdim, struct moment_species_lw *species[GKYL_M
       if (vms->magic == MOMENT_SPECIES_DEFAULT) {
         
         vms->init_ctx.ndim = cdim;
-        vms->app_accel_func_ctx.ndim = cdim;
+        vms->applied_acceleration_func_ref.ndim = cdim;
         vms->nT_source_func_ctx.ndim = cdim;
         
         if (lua_type(L,TKEY) == LUA_TSTRING) {
@@ -2371,10 +2394,11 @@ mom_app_new(lua_State *L)
     mom.species[s].init = gkyl_lw_eval_cb;
     mom.species[s].ctx = &app_lw->species_init_ctx[s];
 
-    if (species[s]->has_app_accel) {
-      app_lw->species_app_accel_func_ctx[s] = species[s]->app_accel_func_ctx;
-      mom.species[s].app_accel_func = gkyl_lw_eval_cb;
-      mom.species[s].app_accel_ctx = &app_lw->species_app_accel_func_ctx[s];
+    app_lw->applied_acceleration_func_ctx[s] = species[s]->applied_acceleration_func_ref;
+    if (species[s]->has_applied_acceleration_func) {
+      mom.species[s].app_accel = gkyl_lw_eval_cb;
+      mom.species[s].app_accel_ctx = &app_lw->applied_acceleration_func_ctx[s];
+      mom.species[s].app_accel_evolve = species[s]->evolve_applied_acceleration;
     }
 
     if (species[s]->has_nT_source) {
@@ -2411,20 +2435,26 @@ mom_app_new(lua_State *L)
         mom.field.init = gkyl_lw_eval_cb;
         mom.field.ctx = &app_lw->field_init_ctx;
 
-        if (momf->has_app_current) {
-          momf->app_current_ctx.ndim = cdim;
+        if (momf->has_external_field_func) {
+          momf->external_field_func_ref.ndim = cdim;
 
-          app_lw->field_app_current_ctx = momf->app_current_ctx;
-          mom.field.app_current_func = gkyl_lw_eval_cb;
-          mom.field.app_current_ctx = &app_lw->field_app_current_ctx;
+          app_lw->external_field_func_ctx = momf->external_field_func_ref;
+          mom.field.ext_em = gkyl_lw_eval_cb;
+          mom.field.ext_em_ctx = &app_lw->external_field_func_ctx;
+
+          mom.field.ext_em_evolve = momf->evolve_external_field;
+          mom.field.t_ramp_E = momf->external_field_ramp_time;
         }
 
-        if (momf->has_ext_em) {
-          momf->ext_em_ctx.ndim = cdim;
+        if (momf->has_applied_current_func) {
+          momf->applied_current_func_ref.ndim = cdim;
 
-          app_lw->field_ext_em_ctx = momf->ext_em_ctx;
-          mom.field.ext_em_func = gkyl_lw_eval_cb;
-          mom.field.ext_em_ctx = &app_lw->field_ext_em_ctx;
+          app_lw->applied_current_func_ctx = momf->applied_current_func_ref;
+          mom.field.app_current = gkyl_lw_eval_cb;
+          mom.field.app_current_ctx = &app_lw->applied_current_func_ctx;
+
+          mom.field.app_current_evolve = momf->evolve_applied_current;
+          mom.field.t_ramp_curr = momf->applied_current_ramp_time;
         }
       }
     }

@@ -11,6 +11,8 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     // if there is a field, need to update electric field too, otherwise just updating fluid
     .epsilon0 = app->field.epsilon0 ? app->field.epsilon0 : 0.0, 
     .mu0 = app->field.mu0 ? app->field.mu0 : 0.0, 
+    // is the field static?
+    .static_field = app->field.is_static, 
     // linear ramping function for slowing turning on applied accelerations, E fields, or currents
     .t_ramp_E = app->field.t_ramp_E ? app->field.t_ramp_E : 0.0,
     .t_ramp_curr = app->field.t_ramp_curr ? app->field.t_ramp_curr : 0.0,
@@ -193,15 +195,8 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   for (int i=0; i<app->num_species; ++i) {
     fluids[i] = app->species[i].f[sidx[nstrang]];
 
-    if (app->species[i].proj_app_accel) {
-      
-      if (!app->species[i].was_app_accel_computed)
-        gkyl_fv_proj_advance(app->species[i].proj_app_accel, tcurr, &app->local, app->species[i].app_accel);
-      
-      if (app->species[i].is_app_accel_static)
-        app->species[i].was_app_accel_computed = true;
-      else
-        app->species[i].was_app_accel_computed = false;
+    if (app->species[i].app_accel_evolve) {
+      gkyl_fv_proj_advance(app->species[i].app_accel_proj, tcurr+dt, &app->local, app->species[i].app_accel);
     }
     app_accels[i] = app->species[i].app_accel;
 
@@ -222,23 +217,19 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
       src->non_ideal_cflrate, src->non_ideal_vars, src->pr_rhs);
   }
 
-  if (app->field.proj_app_current)
-    gkyl_fv_proj_advance(app->field.proj_app_current, tcurr, &app->local, app->field.app_current);
-  if ((app->field.proj_app_current) && (app->field.use_explicit_em_coupling)){
-    // TEMP: 2x on dt
-    gkyl_fv_proj_advance(app->field.proj_app_current, tcurr + dt*2, &app->local, app->field.app_current1);
-    gkyl_fv_proj_advance(app->field.proj_app_current, tcurr + 2*dt/2.0, &app->local, app->field.app_current2);
+  if (app->field.ext_em_evolve) {
+    gkyl_fv_proj_advance(app->field.ext_em_proj, tcurr+dt, &app->local, app->field.ext_em);
   }
 
-  if (app->field.proj_ext_em) {
-
-    if (!app->field.was_ext_em_computed)
-      gkyl_fv_proj_advance(app->field.proj_ext_em, tcurr, &app->local, app->field.ext_em);
-
-    if (app->field.is_ext_em_static)
-      app->field.was_ext_em_computed = true;
-    else
-      app->field.was_ext_em_computed = false;
+  if (app->field.app_current_evolve) {
+    if (app->field.use_explicit_em_coupling) {
+      gkyl_fv_proj_advance(app->field.app_current_proj, tcurr, &app->local, app->field.app_current);
+      gkyl_fv_proj_advance(app->field.app_current_proj, tcurr + dt*2, &app->local, app->field.app_current1);
+      gkyl_fv_proj_advance(app->field.app_current_proj, tcurr + 2*dt/2.0, &app->local, app->field.app_current2);
+    }
+    else {
+      gkyl_fv_proj_advance(app->field.app_current_proj, tcurr+dt, &app->local, app->field.app_current);
+    }
   }
 
   // Get the RHS pointer for accumulation during source update
@@ -263,7 +254,7 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
       fluids, app_accels, pr_rhs_const, 
       app->field.f[sidx[nstrang]], app->field.app_current, app->field.app_current1,
       app->field.app_current2, app->field.ext_em, 
-      nT_sources, app->field.proj_app_current,nstrang);
+      nT_sources, app->field.app_current_proj,nstrang);
   else
     gkyl_moment_em_coupling_implicit_advance(src->slvr, tcurr, dt, &app->local,
       fluids, app_accels, pr_rhs_const, 

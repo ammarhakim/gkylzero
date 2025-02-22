@@ -128,7 +128,8 @@ pkpmApp = PKPM.App.new {
       return Ex, Ey, Ez, Bx, By, Bz
     end,
 
-    evolve = true, -- Evolve field?
+    evolve = false, -- Evolve field?
+    evolveExternalField = true, 
     elcErrorSpeedFactor = 0.0,
     mgnErrorSpeedFactor = 0.0
   }
