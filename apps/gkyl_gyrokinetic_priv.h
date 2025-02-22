@@ -77,6 +77,7 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_spitzer_coll_freq.h>
+#include <gkyl_skin_surf_from_ghost.h>
 #include <gkyl_tok_geo.h>
 #include <gkyl_positivity_shift_gyrokinetic.h>
 #include <gkyl_vlasov_lte_correct.h>
@@ -831,8 +832,22 @@ struct gk_field {
   struct gkyl_array *phi_wall_up_host; // host copy for use in IO and projecting
   gkyl_eval_on_nodes *phi_wall_up_proj; // projector for biased wall potential on upper wall 
 
-  // Core and SOL ranges for IWL sims. 
+  // Core and SOL ranges for IWL sims.
   struct gkyl_range global_core, global_ext_core, global_sol, global_ext_sol;
+
+  // Additional attributes for twist and shift boundary condition (TSBC).
+  struct gkyl_range local_par_ext_core;
+  struct gkyl_bc_twistshift *bc_T_LU_lo;
+
+  // Additional attributes for setting skin surface to ghost surface (SSFG).
+  struct gkyl_range lower_skin_core, lower_ghost_core;
+  struct gkyl_range upper_skin_core, upper_ghost_core;
+  struct gkyl_skin_surf_from_ghost *ssfg_lo;
+
+  
+  // pointer to function for the twist-and-shift BCs 
+  // (points to a none function if we are not in clopen simulation)
+  void (*enforce_zbc) (const gkyl_gyrokinetic_app *app, const struct gk_field *field, struct gkyl_array *finout);
 };
 
 // gyrokinetic object: used as opaque pointer in user code
