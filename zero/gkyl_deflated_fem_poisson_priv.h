@@ -10,15 +10,20 @@
 // surface which is constant in the last coordinate
 // of the configuration space grid
 struct deflated_fem_data {
-  struct gkyl_array *deflated_field;
+  struct gkyl_array *deflated_rhs;
+  struct gkyl_array *deflated_phibc;
   struct gkyl_array *deflated_phi;
   struct gkyl_array *deflated_epsilon;
+  struct gkyl_array *deflated_kSq;
   struct gkyl_array *deflated_nodal_fld;
   struct gkyl_fem_poisson *fem_poisson;
 };
 
 // Updater type
 struct gkyl_deflated_fem_poisson {
+  bool isdirichletvar; // True if using a spatially varying Dirichlet BC.
+  bool ishelmholtz; // if solving Helmholtz equation (kSq is not zero/NULL).
+
   struct gkyl_rect_grid grid; // Conf space grid
   struct gkyl_rect_grid deflated_grid; // Conf space grid with last
                                        // dimension removed
@@ -38,6 +43,7 @@ struct gkyl_deflated_fem_poisson {
   struct gkyl_range deflated_nrange; // nodal range corresponding to
                                      // deflated local range
   struct gkyl_poisson_bc poisson_bc; // Boundary conditions
+  struct gkyl_poisson_bias_plane_list *bias_plane_list; // Biased planes
   struct deflated_fem_data *d_fem_data; // Array of deflated_dem_data
                                         // to be used for individual surface solves
   struct gkyl_array *nodal_fld; // Nodal field which holds solution

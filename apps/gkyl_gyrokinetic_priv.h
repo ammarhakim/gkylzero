@@ -77,6 +77,7 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_spitzer_coll_freq.h>
+#include <gkyl_skin_surf_from_ghost.h>
 #include <gkyl_tok_geo.h>
 #include <gkyl_positivity_shift_gyrokinetic.h>
 #include <gkyl_vlasov_lte_correct.h>
@@ -480,6 +481,12 @@ struct gk_species {
 
   enum gkyl_gkmodel_id gkmodel_id;
   enum gkyl_gkfield_id gkfield_id;
+
+  struct gkyl_basis basis; // phase-space basis
+
+  // pointer to basis on device
+  // (points to host structs if not on GPU)
+  struct gkyl_basis *basis_on_dev; 
   
   struct gkyl_job_pool *job_pool; // Job pool
   struct gkyl_rect_grid grid;
@@ -510,7 +517,7 @@ struct gk_species {
                                       // F = alpha_surf*f^- (if sign_alpha_surf = 1), 
                                       // F = alpha_surf*f^+ (if sign_alpha_surf = -1)
   
-  struct gkyl_array *phi; // array for electrostatic potential
+  struct gkyl_array *gyro_phi; // Gyroaveraged electrostatic potential.
   // organization of the different equation objects and the required data and solvers
   union {
     // EM GK model
@@ -625,6 +632,15 @@ struct gk_species {
   void (*calc_L2norm_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm);
   void (*write_L2norm_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks);
 
+  // Quantities used for FLR model:
+  struct gkyl_array *m0_gyroavg; // Gyroaveraged particle density.
+  struct gkyl_array *flr_rhoSqD2; // Laplacian weight in FLR operator.
+  struct gkyl_array *flr_kSq; // Field multiplying phi in FLR operator.
+  struct gkyl_deflated_fem_poisson *flr_op; // Helmholtz solver to invert FLR operator.
+  // Pointer to function that performs the gyroaverage.
+  void (*gyroaverage)(gkyl_gyrokinetic_app *app, struct gk_species *species,
+    struct gkyl_array *field_in, struct gkyl_array *field_gyroavg);
+
   double *omega_cfl; // Maximum Omega_CFL in this MPI process.
   double *m0_max; // Maximum number density in this MPI process.
 };
@@ -632,6 +648,12 @@ struct gk_species {
 // neutral species data
 struct gk_neut_species {
   struct gkyl_gyrokinetic_neut_species info; // data for neutral species
+
+  struct gkyl_basis basis; // phase-space basis
+
+  // pointer to basis on device
+  // (points to host structs if not on GPU)
+  struct gkyl_basis *basis_on_dev; 
   
   struct gkyl_job_pool *job_pool; // Job pool
   struct gkyl_rect_grid grid;
@@ -772,7 +794,9 @@ struct gk_field {
 
   double es_energy_fac_1d; 
   struct gkyl_array *es_energy_fac; 
-  struct gkyl_array *epsilon; // Polarization weight including geometric factors (and kperp^2 for cdim=1).
+  bool is_dirichletvar; // Whether user provided spatially varying phi BCs.
+  struct gkyl_array *phi_bc; // Spatially varying BC.
+  struct gkyl_array *epsilon; // Polarization weight including geometric factors.
   struct gkyl_array *kSq; 
 
   struct gkyl_fem_parproj *fem_parproj; // FEM smoother for projecting DG functions onto continuous FEM basis
@@ -782,6 +806,13 @@ struct gk_field {
 
   struct gkyl_deflated_fem_poisson *deflated_fem_poisson; // poisson solver which solves on lines in x or planes in xy
                                                           // - nabla . (epsilon * nabla phi) - kSq * phi = rho
+
+  // Objects needed for FLR effects.
+  bool use_flr;
+  void (*invert_flr)(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi);
+  struct gkyl_array *flr_rhoSq_sum; // Laplacian weight in FLR operator.
+  struct gkyl_array *flr_kSq; // Field multiplying phi in FLR operator.
+  struct gkyl_deflated_fem_poisson *flr_op; // Helmholtz solver to invert FLR operator.
 
   struct gkyl_array_integrate *calc_em_energy;
   double *em_energy_red, *em_energy_red_global; // memory for use in GPU reduction of EM energy
@@ -801,8 +832,22 @@ struct gk_field {
   struct gkyl_array *phi_wall_up_host; // host copy for use in IO and projecting
   gkyl_eval_on_nodes *phi_wall_up_proj; // projector for biased wall potential on upper wall 
 
-  // Core and SOL ranges for IWL sims. 
+  // Core and SOL ranges for IWL sims.
   struct gkyl_range global_core, global_ext_core, global_sol, global_ext_sol;
+
+  // Additional attributes for twist and shift boundary condition (TSBC).
+  struct gkyl_range local_par_ext_core;
+  struct gkyl_bc_twistshift *bc_T_LU_lo;
+
+  // Additional attributes for setting skin surface to ghost surface (SSFG).
+  struct gkyl_range lower_skin_core, lower_ghost_core;
+  struct gkyl_range upper_skin_core, upper_ghost_core;
+  struct gkyl_skin_surf_from_ghost *ssfg_lo;
+
+  
+  // pointer to function for the twist-and-shift BCs 
+  // (points to a none function if we are not in clopen simulation)
+  void (*enforce_zbc) (const gkyl_gyrokinetic_app *app, const struct gk_field *field, struct gkyl_array *finout);
 };
 
 // gyrokinetic object: used as opaque pointer in user code
@@ -838,17 +883,14 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_range global_upper_skin[GKYL_MAX_DIM];
   struct gkyl_range global_upper_ghost[GKYL_MAX_DIM];
 
-  struct gkyl_basis basis, neut_basis; // phase-space and phase-space basis for neutrals
-  struct gkyl_basis confBasis; // conf-space basis
+  struct gkyl_basis basis; // conf-space basis
   
   struct gkyl_rect_decomp *decomp; // Decomposition object.
   struct gkyl_comm *comm; // communicator object for conf-space arrays
 
-  // pointers to basis on device (these point to host structs if not
-  // on GPU)
-  struct {
-    struct gkyl_basis *basis, *neut_basis, *confBasis;
-  } basis_on_dev;
+  // pointer to basis on device
+  // (points to host structs if not on GPU)
+  struct gkyl_basis *basis_on_dev; 
 
   struct gk_geometry *gk_geom;
   struct gkyl_array *jacobtot_inv_weak; // 1/(J.B) computed via weak mul and div.
