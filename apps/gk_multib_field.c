@@ -246,10 +246,10 @@ gk_multib_field_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *
     gk_field_accumulate_rho_c(sbapp, sbapp->field, fin_local_block);
   }
 
-  // Do the allgather of rho along the magnetic field.
+  // Gather the charge density along the magnetic field.
   int stat = gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbf->num_local_blocks, mbapp->local_blocks,
     mbf->mbcc_allgatherz_send, mbf->mbcc_allgatherz_recv, mbf->rho_c_local, mbf->rho_c_multibz_dg);
-  // Do the rho smoothing on the multibz range.
+  // Make charge density continuous on the multibz range.
   for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
     gkyl_fem_parproj_set_rhs(mbf->fem_parproj[bI], mbf->rho_c_multibz_dg[bI], mbf->rho_c_multibz_dg[bI]);
     gkyl_fem_parproj_solve(mbf->fem_parproj[bI], mbf->rho_c_multibz_smooth[bI]);
