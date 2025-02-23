@@ -267,6 +267,7 @@ gkyl_vlasov_lte_moments_release(gkyl_vlasov_lte_moments *lte_moms)
   }
   else if (lte_moms->model_id == GKYL_MODEL_CANONICAL_PB 
         || lte_moms->model_id == GKYL_MODEL_CANONICAL_PB_GR) {
+    gkyl_array_release(lte_moms->h_ij);
     gkyl_array_release(lte_moms->h_ij_inv);
     gkyl_array_release(lte_moms->det_h);
     gkyl_array_release(lte_moms->energy_moment);
