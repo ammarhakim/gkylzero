@@ -235,8 +235,6 @@ struct gk_step_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-
-
 struct gk_step_ctx
 create_ctx(void)
 {
@@ -280,15 +278,14 @@ create_ctx(void)
   double vpar_max_ion = 6.0*vtIon;
   double mu_max_ion = 12*mi*vtIon*vtIon/(2.0*B0);
 
-
   // Number of cells.
   int Nx = 4;
   int Nz = 4;
   int Nvpar = 12;
   int Nmu = 8;
 
-  double t_end = 1.0e-4; 
-  double num_frames = 10;
+  double t_end = 2.0e-6; 
+  double num_frames = 1;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
@@ -332,11 +329,13 @@ create_ctx(void)
 }
 
 void
-calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_multib_app* app, double t_curr, bool force_calc)
+calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_multib_app* app, double t_curr, double dt, bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc) {
     gkyl_gyrokinetic_multib_app_calc_field_energy(app, t_curr);
     gkyl_gyrokinetic_multib_app_calc_integrated_mom(app, t_curr);
+    if ( !(dt < 0.0) )
+      gkyl_gyrokinetic_multib_app_save_dt(app, t_curr, dt);
   }
 }
 
@@ -350,7 +349,9 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_multib_app* app,
       frame = iot->curr;
     }
     gkyl_gyrokinetic_multib_app_write(app, t_curr, frame);
-    gkyl_gyrokinetic_multib_app_write_mom(app, t_curr, frame);
+    gkyl_gyrokinetic_multib_app_write_field_energy(app);
+    gkyl_gyrokinetic_multib_app_write_integrated_mom(app);
+    gkyl_gyrokinetic_multib_app_write_dt(app);
   }
 }
 
@@ -385,7 +386,6 @@ sourceDensity(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
     n = nsource*1e-3;
   fout[0] = n;
 }
-
 
 void
 initTempElc(double t, const double *xn, double* restrict fout, void *ctx)
@@ -430,7 +430,6 @@ evalNuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
   struct gk_step_ctx *input = ctx;
   fout[0] = input->nuIon;
 }
-
 
 int
 main(int argc, char **argv)
@@ -496,10 +495,16 @@ struct gkyl_comm *comm = 0;
         .ctx_temp = &ctx,
         .temp = sourceTemp,      
       }, 
+      .diagnostics = {
+        .num_diag_moments = 5,
+        .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { "HamiltonianMoments" },
+//        .time_integrated = true,
+      }
     },
 
   };
-
 
   struct gkyl_gyrokinetic_block_physical_bcs elc_phys_bcs[] = {
     // block 0 BCs
@@ -521,9 +526,18 @@ struct gkyl_comm *comm = 0;
     .lower = { -ctx.vpar_max_elc, 0.0},
     .upper = {  ctx.vpar_max_elc, ctx.mu_max_elc}, 
     .cells = { cells_v[0], cells_v[1] },
+
     .no_by = true,
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { "HamiltonianMoments" },
+    .time_rate_diagnostics = true,
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { "HamiltonianMoments" },
+//      .time_integrated = true,
+    },
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
@@ -538,19 +552,18 @@ struct gkyl_comm *comm = 0;
       .collide_with = { "ion" },
     },
 
-    .diffusion = {
-      .num_diff_dir = 1, 
-      .diff_dirs = { 0 },
-      .D = { 0.03 }, 
-      .order = 2, 
-    }, 
+//    .diffusion = {
+//      .num_diff_dir = 1, 
+//      .diff_dirs = { 0 },
+//      .D = { 0.03 }, 
+//      .order = 2, 
+//    }, 
 
     .duplicate_across_blocks = true,
     .blocks = elc_blocks,
     .num_physical_bcs = 8,
     .bcs = elc_phys_bcs,
   };
-
 
   // Ion Species
   // all data is common across blocks
@@ -583,6 +596,13 @@ struct gkyl_comm *comm = 0;
         .ctx_temp = &ctx,
         .temp = sourceTemp,      
       }, 
+      .diagnostics = {
+        .num_diag_moments = 5,
+        .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { "HamiltonianMoments" },
+//        .time_integrated = true,
+      }
     },
 
   };
@@ -608,8 +628,17 @@ struct gkyl_comm *comm = 0;
     .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion}, 
     .cells = { cells_v[0], cells_v[1] },
     .no_by = true,
+
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { "HamiltonianMoments" },
+    .time_rate_diagnostics = true,
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { "HamiltonianMoments" },
+//      .time_integrated = true,
+    },
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
@@ -624,12 +653,12 @@ struct gkyl_comm *comm = 0;
       .collide_with = { "elc"},
     },
 
-    .diffusion = {
-      .num_diff_dir = 1, 
-      .diff_dirs = { 0 },
-      .D = { 0.03 }, 
-      .order = 2, 
-    }, 
+//    .diffusion = {
+//      .num_diff_dir = 1, 
+//      .diff_dirs = { 0 },
+//      .D = { 0.03 }, 
+//      .order = 2, 
+//    }, 
   
     .duplicate_across_blocks = true,
     .blocks = ion_blocks,
@@ -641,6 +670,7 @@ struct gkyl_comm *comm = 0;
   struct gkyl_gyrokinetic_multib_field_pb field_blocks[1];
   field_blocks[0] = (struct gkyl_gyrokinetic_multib_field_pb) {
     .polarization_bmag = 2.51,
+    .time_rate_diagnostics = true,
   };
 
   struct gkyl_gyrokinetic_block_physical_bcs field_phys_bcs[] = {
@@ -662,8 +692,6 @@ struct gkyl_comm *comm = 0;
     .bcs = field_phys_bcs,
   };
 
-
-
   struct gkyl_gyrokinetic_multib app_inp = {
     .name = "gk_multib_step_sol_2x2v_p1",
 
@@ -673,7 +701,7 @@ struct gkyl_comm *comm = 0;
     .use_gpu = app_args.use_gpu,
 
     .block_geom = bgeom,
-    .cfl_frac = 0.9,
+    .cfl_frac = 0.5,
     
     .enforce_positivity = false,
 
@@ -717,7 +745,7 @@ struct gkyl_comm *comm = 0;
     .tcurr = t_curr, .curr = frame_curr };
 
   // Write out ICs (if restart, it overwrites the restart frame).
-  calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, false);
+  calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, -1.0, false);
   write_data(&trig_write, app, t_curr, false);
 
   double dt = t_end-t_curr; // Initial time step.
@@ -738,7 +766,7 @@ struct gkyl_comm *comm = 0;
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
-    calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, t_curr > t_end);
+    calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, status.dt_actual, t_curr > t_end);
     write_data(&trig_write, app, t_curr, t_curr > t_end);
 
     if (dt_init < 0.0) {
@@ -753,7 +781,7 @@ struct gkyl_comm *comm = 0;
       if (num_failures >= num_failures_max) {
         gkyl_gyrokinetic_multib_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_gyrokinetic_multib_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
-        calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, true);
+        calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, status.dt_actual, true);
         write_data(&trig_write, app, t_curr, true);
         break;
       }
