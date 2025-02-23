@@ -587,6 +587,7 @@ gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis* up)
   gkyl_dg_bin_op_mem_release(up->mem);
 
   if (up->is_canonical_pb) {
+    gkyl_array_release(up->h_ij_quad);
     gkyl_array_release(up->h_ij_inv_quad);
     gkyl_array_release(up->det_h_quad);
   }
