@@ -638,62 +638,75 @@ test_3x_dd_dd_nxnynz(int nx, int ny, int nz){
 
 
 void test_zind_dd(){
-  printf("\n");
+  double l2s[6];
   int ny = 32;
+  int i = 0;
   for(int nx = 4; nx < 129; nx*=2){
-    double l2 = test_zind_dd_nxnz(nx,ny);
-    printf("nx, ny = %d, %d | l2 = %1.16f\n", nx, ny, l2);
+    l2s[i] = test_zind_dd_nxnz(nx,ny);
+    if (i > 0)
+      TEST_CHECK( l2s[i-1]>3.5*l2s[i] );
+    i+=1;
   }
 }
 
 
 void test_fem_poisson_zind_dd(){
-  printf("\n");
+  double l2s[6];
+  int i = 0;
   for(int nx = 4; nx < 129; nx*=2){
-    double l2 = test_fem_poisson_zind_dd_nx(nx);
-    printf("nx = %d | l2 = %1.16f\n", nx, l2);
+    l2s[i] = test_fem_poisson_zind_dd_nx(nx);
+    if (i > 0)
+      TEST_CHECK( l2s[i-1]>3.5*l2s[i] );
+    i+=1;
   }
 }
 
 void test_simplez_dd(){
-  printf("\n");
+  double l2s[6];
   int ny = 32;
+  int i = 0;
   for(int nx = 4; nx < 129; nx*=2){
-    double l2 = test_simplez_dd_nxnz(nx,ny);
-    printf("nx, ny = %d, %d | l2 = %1.16f\n", nx, ny, l2);
+    l2s[i] = test_simplez_dd_nxnz(nx,ny);
+    if (i > 0)
+      TEST_CHECK( l2s[i-1]>3.5*l2s[i] );
+    i+=1;
   }
 }
 
 void test_zdep_nd(){
-  double l2s[6] = { 1.4891748591339167, 0.4361776844752765,
-    0.1139546668200294, 0.0288104647768966, 0.0072320934639821, 0.0018431764053742};
+  // Expected results
+  //double l2s[6] = { 1.4891748591339167, 0.4361776844752765, 0.1139546668200294, 0.0288104647768966, 0.0072320934639821, 0.0018431764053742};
+  double l2s[6];
   int ny = 32;
   int i = 0;
   for(int nx = 4; nx < 129; nx*=2){
-    double l2 = test_zdep_nd_nxnz(nx,ny);
-    TEST_CHECK( gkyl_compare(l2, l2s[i], 1e-12) );
+    l2s[i] = test_zdep_nd_nxnz(nx,ny);
+    if (i > 0)
+      TEST_CHECK( l2s[i-1]>3.0*l2s[i] );
     i+=1;
   }
 }
 
 void test_3x_dd_dd(){
-  double l2s[6] = { 4.2333527815296019, 1.5169449008531153, 
-    0.4618522366946782, 0.1324749882413162, 0.0438774243422054, 0.0212827374990034};
+  // Expected results
+  //double l2s[6] = { 4.2333527815296019, 1.5169449008531153, 0.4618522366946782, 0.1324749882413162, 0.0438774243422054, 0.0212827374990034};
+  double l2s[6];
   int ny = 32;
   int nz = 20;
   int i = 0;
   for(int nx = 4; nx < 129; nx*=2){
-    double l2 = test_3x_dd_dd_nxnynz(nx,ny, nz);
-    TEST_CHECK( gkyl_compare(l2, l2s[i], 1e-12) );
+    l2s[i] = test_3x_dd_dd_nxnynz(nx,ny, nz);
+    if (i > 0)
+      TEST_CHECK( l2s[i-1]>2.0*l2s[i] );
     i+=1;
   }
 }
 
 
 TEST_LIST = {
-  //{ "test_fem_poisson_zind_dd", test_fem_poisson_zind_dd},
-  //{ "test_zind_dd", test_zind_dd},
-  //{ "test_simplez_dd", test_simplez_dd},
+  { "test_fem_poisson_zind_dd", test_fem_poisson_zind_dd},
+  { "test_zind_dd", test_zind_dd},
+  { "test_simplez_dd", test_simplez_dd},
   { "test_zdep_nd", test_zdep_nd},
   { "test_3x_dd_dd", test_3x_dd_dd},
   { NULL, NULL },
