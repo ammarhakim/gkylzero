@@ -140,6 +140,9 @@ struct vlasov_species_lw {
   bool has_hamiltonian_func; // Is there a Hamiltonian function?
   struct lua_func_ctx hamiltonian_func_ref; // Lua registry reference to Hamiltonian function.
 
+  bool has_metric_func; // Is there an metric tensor function?
+  struct lua_func_ctx metric_func_ref; // Lua registry reference to metric tensor function.
+
   bool has_inverse_metric_func; // Is there an inverse metric tensor function?
   struct lua_func_ctx inverse_metric_func_ref; // Lua registry reference to inverse metric tensor function.
 
@@ -290,6 +293,9 @@ vlasov_species_lw_new(lua_State *L)
   bool has_hamiltonian_func = false;
   int hamiltonian_func_ref = LUA_NOREF;
 
+  bool has_metric_func = false;
+  int metric_func_ref = LUA_NOREF;
+
   bool has_inverse_metric_func = false;
   int inverse_metric_func_ref = LUA_NOREF;
 
@@ -299,6 +305,11 @@ vlasov_species_lw_new(lua_State *L)
   if (glua_tbl_get_func(L, "hamiltonian")) {
     hamiltonian_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
     has_hamiltonian_func = true;
+  }
+
+  if (glua_tbl_get_func(L, "metric")) {
+    metric_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_metric_func = true;
   }
 
   if (glua_tbl_get_func(L, "inverseMetric")) {
@@ -507,6 +518,15 @@ vlasov_species_lw_new(lua_State *L)
     .nret = 1,
     .L = L,
   };
+
+  vms_lw->has_metric_func = has_metric_func;
+  vms_lw->metric_func_ref = (struct lua_func_ctx) {
+    .func_ref = metric_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = (vdim * (vdim + 1)) / 2,
+    .L = L,
+  };
+
 
   vms_lw->has_inverse_metric_func = has_inverse_metric_func;
   vms_lw->inverse_metric_func_ref = (struct lua_func_ctx) {
@@ -966,6 +986,9 @@ struct vlasov_app_lw {
   bool has_hamiltonian_func[GKYL_MAX_SPECIES]; // Is there a Hamiltonian function?
   struct lua_func_ctx hamiltonian_func_ctx[GKYL_MAX_SPECIES]; // Lua registry reference to Hamiltonian function.
 
+  bool has_metric_func[GKYL_MAX_SPECIES]; // Is there an inverse metric tensor function?
+  struct lua_func_ctx metric_func_ctx[GKYL_MAX_SPECIES]; // Lua registry reference to inverse metric tensor function.
+
   bool has_inverse_metric_func[GKYL_MAX_SPECIES]; // Is there an inverse metric tensor function?
   struct lua_func_ctx inverse_metric_func_ctx[GKYL_MAX_SPECIES]; // Lua registry reference to inverse metric tensor function.
 
@@ -1068,6 +1091,10 @@ get_species_inp(lua_State *L, int cdim, struct vlasov_species_lw *species[GKYL_M
       if (vms->magic == VLASOV_SPECIES_DEFAULT) {
         if (vms->has_hamiltonian_func) {
           vms->hamiltonian_func_ref.ndim = cdim + vms->vdim;
+        }
+
+        if (vms->has_metric_func) {
+          vms->metric_func_ref.ndim = cdim;
         }
 
         if (vms->has_inverse_metric_func) {
@@ -1386,6 +1413,9 @@ vm_app_new(lua_State *L)
     app_lw->has_hamiltonian_func[s] = species[s]->has_hamiltonian_func;
     app_lw->hamiltonian_func_ctx[s] = species[s]->hamiltonian_func_ref;
 
+    app_lw->has_metric_func[s] = species[s]->has_metric_func;
+    app_lw->metric_func_ctx[s] = species[s]->metric_func_ref;
+
     app_lw->has_inverse_metric_func[s] = species[s]->has_inverse_metric_func;
     app_lw->inverse_metric_func_ctx[s] = species[s]->inverse_metric_func_ref;
 
@@ -1395,6 +1425,11 @@ vm_app_new(lua_State *L)
     if (species[s]->has_hamiltonian_func) {
       vm.species[s].hamil = gkyl_lw_eval_cb;
       vm.species[s].hamil_ctx = &app_lw->hamiltonian_func_ctx[s];
+    }
+
+    if (species[s]->has_metric_func) {
+      vm.species[s].h_ij = gkyl_lw_eval_cb;
+      vm.species[s].h_ij_ctx = &app_lw->metric_func_ctx[s];
     }
 
     if (species[s]->has_inverse_metric_func) {

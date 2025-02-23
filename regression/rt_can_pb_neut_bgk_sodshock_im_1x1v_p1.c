@@ -70,7 +70,7 @@ create_ctx(void)
   double Vx_drift_r = 0.0; // Right drift velocity (x-direction).
 
   double vt = 1.0; // Thermal velocity.
-  double nu = 15000.0; // Collision frequency.
+  double nu = 0.0; // Collision frequency.
 
   // Simulation parameters.
   int Nx = 128; // Cell count (configuration space: x-direction).
