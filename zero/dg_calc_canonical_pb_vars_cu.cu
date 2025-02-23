@@ -111,7 +111,7 @@ gkyl_canonical_pb_contra_to_covariant_m1i_cu_kernel(struct gkyl_dg_calc_canonica
     double *v_i_cov_d = (double*) gkyl_array_fetch(V_drift_cov, loc);
     double *nv_i_cov_d = (double*) gkyl_array_fetch(M1i_cov, loc);
 
-    up->canonical_pb_covariant_u_i(h_ij_d, v_i_d, nv_i_d, v_i_cov_d, nv_i_cov_d);
+    up->canonical_pb_covariant_u_i(h_ij_d, v_j_d, nv_i_d, v_i_cov_d, nv_i_cov_d);
   }
 }
 // Host-side wrapper

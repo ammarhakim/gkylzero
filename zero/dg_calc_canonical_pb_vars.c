@@ -115,7 +115,7 @@ void gkyl_canonical_pb_contra_to_covariant_m1i(struct gkyl_dg_calc_canonical_pb_
   struct gkyl_array *V_drift_cov, struct gkyl_array *M1i_cov)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(v_i_cov_d)) {
+  if (gkyl_array_is_cu_dev(V_drift_cov)) {
     return gkyl_canonical_pb_contra_to_covariant_m1i_cu(up, conf_range, h_ij, V_drift, M1i, V_drift_cov, M1i_cov);
   }
 #endif
