@@ -83,7 +83,7 @@ test_deflate_inflate(bool use_gpu)
   gkyl_eval_on_nodes *proj = gkyl_eval_on_nodes_new(&grid, &basis, 1, &proj_func, 0);
   gkyl_eval_on_nodes_advance(proj, 0.0, &local, field);
   gkyl_eval_on_nodes_release(proj);
-  gkyl_grid_sub_array_write(&grid, &local, 0, field, "in_field.gkyl");
+  //gkyl_grid_sub_array_write(&grid, &local, 0, field, "in_field.gkyl");
   struct gkyl_array *field_dev = use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume)
 	                                 : gkyl_array_acquire(field);
   gkyl_array_copy(field_dev, field);
@@ -170,7 +170,7 @@ test_deflate_inflate(bool use_gpu)
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&basis, &grid, use_gpu);
   gkyl_nodal_ops_n2m(n2m, basis_on_dev, &grid, &nrange, &local, 1, nodal_fld_dev, out_field_dev);
   gkyl_array_copy(out_field, out_field_dev);
-  gkyl_grid_sub_array_write(&grid, &local, 0, out_field, "out_field.gkyl");
+  //gkyl_grid_sub_array_write(&grid, &local, 0, out_field, "out_field.gkyl");
 
   check_same(local, basis, field, out_field);
 
@@ -219,7 +219,7 @@ test_poisson_slices()
   gkyl_eval_on_nodes *proj = gkyl_eval_on_nodes_new(&grid, &basis, 1, &proj_func, 0);
   gkyl_eval_on_nodes_advance(proj, 0.0, &local, field);
   gkyl_eval_on_nodes_release(proj);
-  gkyl_grid_sub_array_write(&grid, &local, 0, field, "in_field.gkyl");
+  //gkyl_grid_sub_array_write(&grid, &local, 0, field, "in_field.gkyl");
 
   // Create deflated 1d grid, ranges, basis, and field.
   // Create xz grid.
@@ -254,15 +254,8 @@ test_poisson_slices()
       nodes[d] = 2*(grid.cells[d]) + 1;
   }
 
-  printf("\n");
-  for(int d=0; d<grid.ndim; d++){
-    printf("\nd[%d] = %d\n", d, nodes[d]);
-  }
-
   struct gkyl_range nrange;
   gkyl_range_init_from_shape(&nrange, grid.ndim, nodes);
-  printf("nrange lower = %d %d\n", nrange.lower[0], nrange.lower[1]);
-  printf("nrange upper = %d %d\n", nrange.upper[0], nrange.upper[1]);
   struct gkyl_array* nodal_fld = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
 
   // Create the deflated nodal range and 1d array that will be used as an intermediate.
@@ -277,17 +270,10 @@ test_poisson_slices()
       deflated_nodes[d] = 2*(deflated_grid.cells[d]) + 1;
   }
 
-  for(int d=0; d<grid.ndim; d++){
-    printf("deflated d[%d] = %d\n", d, nodes[d]);
-  }
-
   struct gkyl_range deflated_nrange;
   gkyl_range_init_from_shape(&deflated_nrange, deflated_grid.ndim, deflated_nodes);
-  printf("deflated_nrange lower = %d\n", deflated_nrange.lower[0]);
-  printf("deflated_nrange upper = %d\n", deflated_nrange.upper[0]);
   struct gkyl_array* deflated_nodal_fld = gkyl_array_new(GKYL_DOUBLE, deflated_grid.ndim, deflated_nrange.volume);
 
-  printf("nrange.volume = %ld\n", nrange.volume);
   // Now for each z slice we want to deflate
   // and then to a m2n to give us a nodal array at that z slice
   // Then fill the correct nodes in the 2d nodal array
@@ -351,7 +337,7 @@ test_poisson_slices()
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&basis, &grid, false);
   gkyl_nodal_ops_n2m(n2m, &basis, &grid, &nrange, &local, 1, nodal_fld, out_field);
   gkyl_nodal_ops_release(n2m);
-  gkyl_grid_sub_array_write(&grid, &local, 0, out_field, "out_field.gkyl");
+  //gkyl_grid_sub_array_write(&grid, &local, 0, out_field, "out_field.gkyl");
 
 }
 
