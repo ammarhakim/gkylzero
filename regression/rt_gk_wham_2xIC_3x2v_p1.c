@@ -929,17 +929,18 @@ int main(int argc, char **argv)
     .name = "elc",
     .charge = ctx.qe,
     .mass = ctx.me,
-    .lower = {-ctx.vpar_max_elc, 0.0},
-    .upper = { ctx.vpar_max_elc, ctx.mu_max_elc},
+    .lower = {-1.0, 0.0},
+    .upper = { 1.0, 1.0},
     .cells = { cells_v[0], cells_v[1] },
-
     .polarization_density = ctx.n0,
-
+    .mapc2p = {
+      .mapping = mapc2p_vel_elc,
+      .ctx = &ctx,
+    },
     .init_from_file = {
       .type = GKYL_IC_IMPORT_F,
       .file_name = "gk_wham_2x2v_p1-elc_0.gkyl",
     },
-
     .collisions = {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -947,7 +948,6 @@ int main(int argc, char **argv)
       .num_cross_collisions = 1, // Not sure
       .collide_with = {"ion"},
     },
-
     .bcx = {
       .lower = {
         .type = GKYL_SPECIES_FIXED_FUNC,
@@ -962,30 +962,33 @@ int main(int argc, char **argv)
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
     },
-    .num_diag_moments = 1,
-    .diag_moments = {"BiMaxwellianMoments"},
+    .num_diag_moments = 8,
+    .diag_moments = {"BiMaxwellianMoments", "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
   };
 
   struct gkyl_gyrokinetic_species ion3d = {
     .name = "ion",
     .charge = ctx.qi,
     .mass = ctx.mi,
-    .lower = {-ctx.vpar_max_ion, 0.0},
-    .upper = { ctx.vpar_max_ion, ctx.mu_max_ion},
+    .lower = {-1.0, 0.0},
+    .upper = { 1.0, 1.0},
     .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
-
+    .mapc2p = {
+      .mapping = mapc2p_vel_ion,
+      .ctx = &ctx,
+    },
     .init_from_file = {
       .type = GKYL_IC_IMPORT_F,
       .file_name = "gk_wham_2x2v_p1-ion_0.gkyl",
     },
-
     .collisions = {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
       .self_nu = evalNuIon,
+      .num_cross_collisions = 1,
+      .collide_with = { "elc" },
     },
-
     .bcx = {
       .lower = {
         .type = GKYL_SPECIES_FIXED_FUNC,
@@ -1000,8 +1003,8 @@ int main(int argc, char **argv)
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
     },
-    .num_diag_moments = 1,
-    .diag_moments = {"BiMaxwellianMoments"},
+    .num_diag_moments = 8,
+    .diag_moments = {"BiMaxwellianMoments", "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
   };
 
   struct gkyl_gyrokinetic_field field3d =
@@ -1018,29 +1021,23 @@ int main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk app_inp3d = {
-    .name = "gk_wham_3x2v_p1",
-
+    .name = "gk_wham_2xIC_3x2v_p1",
     .cdim = ctx.cdim+1, .vdim = ctx.vdim,
     .lower = {ctx.psi_min, - M_PI, ctx.z_min},
     .upper = {ctx.psi_max,   M_PI, ctx.z_max},
     .cells = { cells_x[0], 4, cells_x[1] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
-
     .geometry = {
       .geometry_id = GKYL_MIRROR,
       .efit_info = efit_inp,
       .mirror_grid_info = grid_inp,
     },
-
     .num_periodic_dir = 1,
     .periodic_dirs = {1},
-
     .num_species = 2,
     .species = {elc3d, ion3d},
-
     .field = field3d,
-
     .parallelism = {
       .use_gpu = app_args.use_gpu,
       .cuts = { app_args.cuts[0], app_args.cuts[0], app_args.cuts[1] },
