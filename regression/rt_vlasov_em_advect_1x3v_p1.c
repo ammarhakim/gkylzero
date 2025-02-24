@@ -83,7 +83,7 @@ create_ctx(void)
   int Nvx = 16; // Cell count (velocity space: vx-direction).
   int Nvy = 16; // Cell count (velocity space: vy-direction).
   int Nvz = 16; // Cell count (velocity space: vz-direction).
-  double Lx = 1.0; // Domain size (configuration space: x-direction).
+  double Lx = 4.0 * pi; // Domain size (configuration space: x-direction).
   double vx_max = 8.0 * vt; // Domain boundary (velocity space: vx-direction).
   double vy_max = 8.0 * vt; // Domain boundary (velocity space: vy-direction).
   double vz_max = 8.0 * vt; // Domain boundary (velocity space: vz-direction).

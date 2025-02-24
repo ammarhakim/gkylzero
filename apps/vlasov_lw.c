@@ -240,7 +240,7 @@ vlasov_species_lw_new(lua_State *L)
     }
   }
 
-  bool evolve = glua_tbl_get_integer(L, "evolve", true);
+  bool evolve = glua_tbl_get_bool(L, "evolve", true);
 
   with_lua_tbl_tbl(L, "diagnostics") {
     int num_diag_moments = glua_objlen(L);
@@ -792,9 +792,8 @@ vlasov_field_lw_new(lua_State *L)
   vm_field.mgnErrorSpeedFactor = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
   vm_field.limit_em = glua_tbl_get_bool(L, "limitField", false);
 
-  vm_field.is_static = glua_tbl_get_bool(L, "isStatic", false);
-
-  bool evolve = glua_tbl_get_integer(L, "evolve", true);
+  bool evolve = glua_tbl_get_bool(L, "evolve", true);
+  vm_field.is_static = !evolve;
 
   int init_ref = LUA_NOREF;
   if (glua_tbl_get_func(L, "init")) {
@@ -929,6 +928,7 @@ vlasov_field_lw_new(lua_State *L)
     .nret = 6,
     .L = L,
   };
+  vmf_lw->evolve_external_field = evolve_external_field;
 
   vmf_lw->has_applied_current_func = has_applied_current_func;
   vmf_lw->applied_current_func_ref = (struct lua_func_ctx) {
@@ -1592,7 +1592,6 @@ vm_app_new(lua_State *L)
         vmf->init_ref.ndim = cdim;
 
         vm.field = vmf->vm_field;
-        vm.skip_field = !vmf->evolve;
 
         app_lw->field_func_ctx = vmf->init_ref;
         vm.field.init = gkyl_lw_eval_cb;
