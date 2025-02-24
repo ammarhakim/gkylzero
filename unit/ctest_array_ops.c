@@ -1783,9 +1783,6 @@ void test_array_shiftc_range_dev() {
   test_array_shiftc_range(true);
 }
 
-void test_array_shiftc_range_dev() {
-  test_array_shiftc_range(true);
-}
 #endif
 
 TEST_LIST = {
