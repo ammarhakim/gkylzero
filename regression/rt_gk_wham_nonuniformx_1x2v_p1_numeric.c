@@ -833,7 +833,9 @@ int main(int argc, char **argv)
       .mirror_grid_info = grid_inp,
       .position_map_info = {
         .id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
-        .map_strength = 0.9999,
+        .map_strength = 0.666,
+        .maximum_slope_at_max_B = 0.6,
+        .maximum_slope_at_min_B = 4,
       },
     },
 

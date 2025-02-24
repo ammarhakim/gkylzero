@@ -82,10 +82,6 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
       else
       { gpm->constB_ctx->enable_maximum_slope_limits_at_max_B = true; }
       gpm->constB_ctx->maximum_slope_at_max_B = pmap_info.maximum_slope_at_max_B;
-      printf("Maximum slope at min B: %f\n", gpm->constB_ctx->maximum_slope_at_min_B);
-      printf("Maximum slope at max B: %f\n", gpm->constB_ctx->maximum_slope_at_max_B);
-      printf("Enable limits at min B: %d\n", gpm->constB_ctx->enable_maximum_slope_limits_at_min_B);
-      printf("Enable limits at max B: %d\n", gpm->constB_ctx->enable_maximum_slope_limits_at_max_B);
   }
 
   gpm->grid = grid;
