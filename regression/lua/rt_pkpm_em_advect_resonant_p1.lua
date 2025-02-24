@@ -1,3 +1,7 @@
+-- Advection in specified electromagnetic fields for the PKPM system of equations.
+-- Input parameters match the initial conditions found in entry JE8 of Ammar's Simulation Journal (https://ammar-hakim.org/sj/je/je32/je32-vlasov-test-ptcl.html)
+-- Solution is given by the resonant case, omega = Omega_c where Omega_c = q B/m is the cyclotron frequency. 
+
 local PKPM = G0.PKPM
 
 -- Mathematical constants (dimensionless).

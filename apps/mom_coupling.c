@@ -196,7 +196,7 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
     fluids[i] = app->species[i].f[sidx[nstrang]];
 
     if (app->species[i].app_accel_evolve) {
-      gkyl_fv_proj_advance(app->species[i].app_accel_proj, tcurr+dt, &app->local, app->species[i].app_accel);
+      gkyl_fv_proj_advance(app->species[i].app_accel_proj, tcurr, &app->local, app->species[i].app_accel);
     }
     app_accels[i] = app->species[i].app_accel;
 
@@ -218,7 +218,7 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   }
 
   if (app->field.ext_em_evolve) {
-    gkyl_fv_proj_advance(app->field.ext_em_proj, tcurr+dt, &app->local, app->field.ext_em);
+    gkyl_fv_proj_advance(app->field.ext_em_proj, tcurr, &app->local, app->field.ext_em);
   }
 
   if (app->field.app_current_evolve) {
@@ -228,7 +228,7 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
       gkyl_fv_proj_advance(app->field.app_current_proj, tcurr + 2*dt/2.0, &app->local, app->field.app_current2);
     }
     else {
-      gkyl_fv_proj_advance(app->field.app_current_proj, tcurr+dt, &app->local, app->field.app_current);
+      gkyl_fv_proj_advance(app->field.app_current_proj, tcurr, &app->local, app->field.app_current);
     }
   }
 
