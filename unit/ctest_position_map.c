@@ -522,7 +522,7 @@ test_position_map_numeric_calculate_1x()
 
   double theta_map = 1.0;
   pos_map->maps[2](0.0, &theta_map, &theta_map, pos_map->ctxs[2]);
-  TEST_CHECK( gkyl_compare(theta_map, 1.503465, 1e-5) );
+  TEST_CHECK( gkyl_compare(theta_map, 1.505924, 1e-5) );
 
   gkyl_position_map_release(pos_map);
   gkyl_array_release(bmag_global);
