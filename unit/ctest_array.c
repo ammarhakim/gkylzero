@@ -12,6 +12,13 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 
+static void set_array_to_zero_ho(struct gkyl_array *arr)
+{
+  double *arr_d  = arr->data;
+  for (unsigned i=0; i<arr->size; ++i)
+    arr_d[i] = 0.0;
+}
+
 void test_array_0()
 {
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, 200);
@@ -136,7 +143,7 @@ test_grid_sub_array_read_1()
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 2, ext_range.volume);
-  gkyl_array_clear(arr, 0.0);
+  set_array_to_zero_ho(arr);
 
   // set some values in array
   struct gkyl_range_iter iter;
@@ -152,7 +159,7 @@ test_grid_sub_array_read_1()
   gkyl_grid_sub_array_write(&grid, &range, 0, arr, "ctest_grid_sub_array_1.gkyl");
 
   struct gkyl_array *arr2 = gkyl_array_new(GKYL_DOUBLE, 2, ext_range.volume);
-  gkyl_array_clear(arr2, 0.0);
+  set_array_to_zero_ho(arr2);
 
   struct gkyl_rect_grid grid2;
 
@@ -234,7 +241,7 @@ test_grid_sub_array_read_2()
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 2, ext_range.volume);
-  gkyl_array_clear(arr, 0.0);
+  set_array_to_zero_ho(arr);
 
   // set some values in array
   struct gkyl_range_iter iter;
@@ -255,7 +262,7 @@ test_grid_sub_array_read_2()
   gkyl_range_init(&srange, grid.ndim, (int[]) { 5, 5 }, (int[]) { 10, 15 });
 
   struct gkyl_array *arr2 = gkyl_array_new(GKYL_DOUBLE, 2, srange.volume);
-  gkyl_array_clear(arr2, 0.0);
+  set_array_to_zero_ho(arr2);
 
   // read back the grid and the array
   int err =
@@ -300,7 +307,7 @@ test_grid_array_new_from_file_1()
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 2, ext_range.volume);
-  gkyl_array_clear(arr, 0.0);
+  set_array_to_zero_ho(arr);
 
   // set some values in array
   struct gkyl_range_iter iter;
@@ -502,7 +509,7 @@ test_array_from_buff(void)
 
   TEST_CHECK( gkyl_array_is_cu_dev(arr) == false );
 
-  gkyl_array_clear(arr, 0.0);
+  set_array_to_zero_ho(arr);
   
   double *arrData  = arr->data;
   for (unsigned i=0; i<arr->size; ++i){
@@ -613,7 +620,7 @@ void test_cu_array_dev_kernel()
   TEST_CHECK( gkyl_array_is_cu_dev(arr_cu) == true );
 
   // create host array and initialize it
-  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, 20);
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, arr_cu->ncomp, arr_cu->size);
 
   double *arrData  = arr->data;
   for (unsigned i=0; i<arr->size; ++i)
@@ -645,15 +652,15 @@ void test_cu_array_dev_kernel()
 
   // copy arr_cu_cl back to host and check
   // zero out arr first (no cheating)
-  gkyl_array_clear(arr, 0.);
+  set_array_to_zero_ho(arr);
   gkyl_array_copy(arr, arr_cu_cl);
   for (unsigned i=0; i<arr->size; ++i)
     TEST_CHECK( arrData[i] == -(i+0.5)*0.1);  
 
   // release all data
+  gkyl_array_release(arr_cu_cl);  
   gkyl_array_release(arr);
   gkyl_array_release(arr_cu);  
-  gkyl_array_release(arr_cu_cl);  
 }
 
 #endif
