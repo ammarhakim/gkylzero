@@ -340,14 +340,12 @@ calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_multib
 }
 
 static void
-write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_multib_app* app,
-  double t_curr, bool force_write)
+write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_multib_app* app, double t_curr, bool force_write)
 {
-  if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
-    int frame = iot->curr - 1;
-    if (force_write) {
-      frame = iot->curr;
-    }
+  bool trig_now = gkyl_tm_trigger_check_and_bump(iot, t_curr);
+  if (trig_now || force_write) {
+    int frame = (!trig_now) && force_write? iot->curr : iot->curr-1;
+
     gkyl_gyrokinetic_multib_app_write(app, t_curr, frame);
     gkyl_gyrokinetic_multib_app_write_field_energy(app);
     gkyl_gyrokinetic_multib_app_write_integrated_mom(app);
@@ -496,8 +494,8 @@ struct gkyl_comm *comm = 0;
         .temp = sourceTemp,      
       }, 
       .diagnostics = {
-        .num_diag_moments = 5,
-        .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+        .num_diag_moments = 4,
+        .diag_moments = { "M0", "M1", "M2par", "M2perp" },
         .num_integrated_diag_moments = 1,
         .integrated_diag_moments = { "HamiltonianMoments" },
 //        .time_integrated = true,
@@ -597,8 +595,8 @@ struct gkyl_comm *comm = 0;
         .temp = sourceTemp,      
       }, 
       .diagnostics = {
-        .num_diag_moments = 5,
-        .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+        .num_diag_moments = 4,
+        .diag_moments = { "M0", "M1", "M2par", "M2perp" },
         .num_integrated_diag_moments = 1,
         .integrated_diag_moments = { "HamiltonianMoments" },
 //        .time_integrated = true,
