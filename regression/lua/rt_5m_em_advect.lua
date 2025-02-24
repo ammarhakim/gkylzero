@@ -1,5 +1,6 @@
 -- Advection in specified electromagnetic fields for the 5-moment equations.
--- Input parameters match the initial conditions found in entry JE8 of Ammar's Simulation Journal (https://ammar-hakim.org/sj/je/je32/je32-vlasov-test-ptcl.html)
+-- Input parameters match the initial conditions found in entry JE32 of Ammar's Simulation Journal (https://ammar-hakim.org/sj/je/je32/je32-vlasov-test-ptcl.html)
+-- but with a rotation so that the oscillating electric field is in the z_hat direction and the background magnetic field in the x_hat direction. 
 -- Solution is given by the non-resonant case, omega = 0.5*Omega_c where Omega_c = q B/m is the cyclotron frequency. 
 
 local Moments = G0.Moments
@@ -20,8 +21,8 @@ n0 = 1.0 -- Reference density.
 vt = 1.0 -- Reference thermal velocity. 
 
 -- External EM field parameters.
-omega = 0.5 -- Frequency of driven electric field. 
-B0 = 1.0 -- Background magnetic field magnitude. 
+omega = 0.5 -- Oscillating electric field frequency normalized to cyclotron frequency.
+B0 = 1.0 -- Reference magnetic field strength.
 
 -- Derived physical quantities (using non-normalized physical units).
 light_speed = 1.0 / math.sqrt(mu0 * epsilon0) -- Speed of light.

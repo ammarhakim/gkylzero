@@ -1,4 +1,4 @@
-// Advection in specified electromagnetic fields for the PKPM system of equations.
+// Advection in specified electromagnetic fields for the Vlasov-Maxwell system of equations.
 // Input parameters match the initial conditions found in entry JE32 of Ammar's Simulation Journal (https://ammar-hakim.org/sj/je/je32/je32-vlasov-test-ptcl.html)
 // but with a rotation so that the oscillating electric field is in the z_hat direction and the background magnetic field in the x_hat direction. 
 // Solution is given by the non-resonant case, omega = 0.5*Omega_c where Omega_c = q B/m is the cyclotron frequency. 
@@ -9,7 +9,7 @@
 #include <time.h>
 
 #include <gkyl_alloc.h>
-#include <gkyl_pkpm.h>
+#include <gkyl_vlasov.h>
 #include <gkyl_util.h>
 
 #include <gkyl_null_comm.h>
@@ -24,7 +24,7 @@
 
 #include <rt_arg_parse.h>
 
-struct em_advect_ctx
+struct em_advect_resonant_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
@@ -36,15 +36,19 @@ struct em_advect_ctx
   double charge_elc; // Electron charge.
 
   double vt; // Thermal velocity.
+  double n0; // Reference number density.
   double B0; // Reference magnetic field strength.
   double omega; // Oscillating field frequency normalized to cyclotron frequency.
-  double nu; // Collision frequency.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
   int Nvx; // Cell count (velocity space: vx-direction).
+  int Nvy; // Cell count (velocity space: vy-direction).
+  int Nvz; // Cell count (velocity space: vz-direction).
   double Lx; // Domain size (configuration space: x-direction).
   double vx_max; // Domain boundary (velocity space: vx-direction).
+  double vy_max; // Domain boundary (velocity space: vy-direction).
+  double vz_max; // Domain boundary (velocity space: vz-direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
@@ -57,7 +61,7 @@ struct em_advect_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct em_advect_ctx
+struct em_advect_resonant_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
@@ -70,19 +74,23 @@ create_ctx(void)
   double charge_elc = -1.0; // Electron charge.
 
   double vt = 1.0; // Thermal velocity.
+  double n0 = 1.0; // Reference number density.
   double B0 = 1.0; // Reference magnetic field strength.
-  double omega = 0.5; // Oscillating field frequency normalized to cyclotron frequency.
-  double nu = 1.0e-4; // Collision frequency.
+  double omega = 1.0; // Oscillating field frequency normalized to cyclotron frequency.
 
   // Simulation parameters.
   int Nx = 2; // Cell count (configuration space: x-direction).
   int Nvx = 16; // Cell count (velocity space: vx-direction).
-  double Lx = 4.0 * pi; // Domain size (configuration space: x-direction).
+  int Nvy = 16; // Cell count (velocity space: vy-direction).
+  int Nvz = 16; // Cell count (velocity space: vz-direction).
+  double Lx = 1.0; // Domain size (configuration space: x-direction).
   double vx_max = 8.0 * vt; // Domain boundary (velocity space: vx-direction).
+  double vy_max = 8.0 * vt; // Domain boundary (velocity space: vy-direction).
+  double vz_max = 8.0 * vt; // Domain boundary (velocity space: vz-direction).
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 100.0; // Final simulation time.
+  double t_end = 10.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
@@ -90,20 +98,24 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct em_advect_ctx ctx = {
+  struct em_advect_resonant_ctx ctx = {
     .pi = pi,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
     .mass_elc = mass_elc,
     .charge_elc = charge_elc,
     .vt = vt,
+    .n0 = n0,    
     .B0 = B0,
     .omega = omega,
-    .nu = nu,
     .Nx = Nx,
     .Nvx = Nvx,
+    .Nvy = Nvy,
+    .Nvz = Nvz,
     .Lx = Lx,
     .vx_max = vx_max,
+    .vy_max = vy_max,
+    .vz_max = vz_max,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -119,31 +131,44 @@ create_ctx(void)
 }
 
 void
-evalElcDistInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct em_advect_ctx *app = ctx;
-  double vx = xn[1];
+  struct em_advect_resonant_ctx *app = ctx;
+  double x = xn[0];
 
-  double pi = app->pi;
-  double vt = app->vt;
+  double n = app->n0;
 
-  double F0 = (1.0 / sqrt(2.0 * pi * vt * vt)) * (exp(-(vx * vx) / (2.0 * vt * vt))); // Distribution function (F0).
-  double G = (vt * vt) * F0; // Distribution function (G).
-
-  // Set distribution function.
-  fout[0] = F0; fout[1] = G;
+  // Set total number density.
+  fout[0] = n;
 }
 
 void
-evalElcFluidInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double mom_x = 0.0; // Total momentum density (x-direction).
-  double mom_y = 0.0; // Total momentum density (y-direction).
-  double mom_z = 0.0; // Total momentum density (z-direction).
+  struct em_advect_resonant_ctx *app = ctx;
+  double x = xn[0];
 
-  // Set total momentum density.
-  fout[0] = mom_x; fout[1] = mom_y; fout[2] = mom_z;
+  double mass_elc = app->mass_elc;
+  double vt = app->vt;
+  double T = vt*vt*mass_elc; 
+
+  // Set isotropic temperature.
+  fout[0] = T;
 }
+
+void
+evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct em_advect_resonant_ctx *app = ctx;
+
+  double Vx_drift = 0.0;
+  double Vy_drift = 0.0;
+  double Vz_drift = 0.0;
+
+  // Set total drift velocity.
+  fout[0] = Vx_drift; fout[1] = Vy_drift; fout[2] = Vz_drift;
+}
+
 
 void
 evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
@@ -167,7 +192,7 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 void
 evalExternalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct em_advect_ctx *app = ctx;
+  struct em_advect_resonant_ctx *app = ctx;
 
   double B0 = app->B0;
   double omega = app->omega;
@@ -187,18 +212,7 @@ evalExternalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RES
 }
 
 void
-evalNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-  struct em_advect_ctx *app = ctx;
-
-  double nu = app->nu;
-
-  // Set collision frequency.
-  fout[0] = nu;
-}
-
-void
-write_data(struct gkyl_tm_trigger* iot, gkyl_pkpm_app* app, double t_curr, bool force_write)
+write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
     int frame = iot->curr - 1;
@@ -206,34 +220,37 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_pkpm_app* app, double t_curr, bool 
       frame = iot->curr;
     }
 
-    gkyl_pkpm_app_write(app, t_curr, frame);
-    gkyl_pkpm_app_write_field_energy(app);
-    gkyl_pkpm_app_write_integrated_mom(app);
-    gkyl_pkpm_app_write_integrated_L2_f(app);
+    gkyl_vlasov_app_write(app, t_curr, frame);
+    gkyl_vlasov_app_write_field_energy(app);
+    gkyl_vlasov_app_write_integrated_mom(app);
+    gkyl_vlasov_app_write_integrated_L2_f(app);
+
+    gkyl_vlasov_app_calc_mom(app);
+    gkyl_vlasov_app_write_mom(app, t_curr, frame);
   }
 }
 
 void
-calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_pkpm_app* app, double t_curr, bool force_calc)
+calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_vlasov_app* app, double t_curr, bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
-    gkyl_pkpm_app_calc_field_energy(app, t_curr);
+    gkyl_vlasov_app_calc_field_energy(app, t_curr);
   }
 }
 
 void
-calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_pkpm_app* app, double t_curr, bool force_calc)
+calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_vlasov_app* app, double t_curr, bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
-    gkyl_pkpm_app_calc_integrated_mom(app, t_curr);
+    gkyl_vlasov_app_calc_integrated_mom(app, t_curr);
   }
 }
 
 void
-calc_integrated_L2_f(struct gkyl_tm_trigger* l2t, gkyl_pkpm_app* app, double t_curr, bool force_calc)
+calc_integrated_L2_f(struct gkyl_tm_trigger* l2t, gkyl_vlasov_app* app, double t_curr, bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(l2t, t_curr) || force_calc) {
-    gkyl_pkpm_app_calc_integrated_L2_f(app, t_curr);
+    gkyl_vlasov_app_calc_integrated_L2_f(app, t_curr);
   }
 }
 
@@ -253,10 +270,12 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct em_advect_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct em_advect_resonant_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NVX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvx);
+  int NVY = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nvy);
+  int NVZ = APP_ARGS_CHOOSE(app_args.vcells[2], ctx.Nvz);
 
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -335,27 +354,31 @@ main(int argc, char **argv)
   }
 
   // Electrons.
-  struct gkyl_pkpm_species elc = {
+  struct gkyl_vlasov_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
-    .lower = { -ctx.vx_max },
-    .upper = { ctx.vx_max }, 
-    .cells = { NVX },
+    .lower = { -ctx.vx_max, -ctx.vy_max, -ctx.vz_max },
+    .upper = { ctx.vx_max, ctx.vy_max, ctx.vz_max }, 
+    .cells = { NVX, NVY, NVZ },
 
-    .init_dist = evalElcDistInit,
-    .ctx_dist = &ctx,
-    .init_fluid = evalElcFluidInit,
-    .ctx_fluid = &ctx,
-
-    .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
-      .self_nu = evalNu,
-      .ctx = &ctx,
+    .num_init = 1, 
+    .projection[0] = {
+      .proj_id = GKYL_PROJ_VLASOV_LTE,
+      .density = evalDensityInit,
+      .ctx_density = &ctx,
+      .temp = evalTempInit,
+      .ctx_temp = &ctx,
+      .V_drift = evalVDriftInit,
+      .ctx_V_drift = &ctx,
+      .correct_all_moms = true,
     },
+
+    .num_diag_moments = 3,
+    .diag_moments = { "M0", "M1i", "LTEMoments" },    
   };
 
   // Field.
-  struct gkyl_pkpm_field field = {
+  struct gkyl_vlasov_field field = {
     .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
     .elcErrorSpeedFactor = 0.0,
     .mgnErrorSpeedFactor = 0.0,
@@ -370,11 +393,11 @@ main(int argc, char **argv)
     .ext_em_evolve = true, 
   };
 
-  // PKPM app.
-  struct gkyl_pkpm app_inp = {
-    .name = "pkpm_em_advect_p1",
+  // Vlasov app.
+  struct gkyl_vm app_inp = {
+    .name = "vlasov_em_advect_resonant_1x3v_p1",
 
-    .cdim = 1, .vdim = 1,
+    .cdim = 1, .vdim = 3,
     .lower = { -0.5 * ctx.Lx },
     .upper = { 0.5 * ctx.Lx },
     .cells = { NX },
@@ -399,7 +422,7 @@ main(int argc, char **argv)
   };
 
   // Create app object.
-  gkyl_pkpm_app *app = gkyl_pkpm_app_new(&app_inp);
+  gkyl_vlasov_app *app = gkyl_vlasov_app_new(&app_inp);
 
   // Initial and final simulation times.
   double t_curr = 0.0, t_end = ctx.t_end;
@@ -407,21 +430,21 @@ main(int argc, char **argv)
   // Initialize simulation.
   int frame_curr = 0;
   if (app_args.is_restart) {
-    struct gkyl_app_restart_status status = gkyl_pkpm_app_read_from_frame(app, app_args.restart_frame);
+    struct gkyl_app_restart_status status = gkyl_vlasov_app_read_from_frame(app, app_args.restart_frame);
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
-      gkyl_pkpm_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n", gkyl_array_rio_status_msg(status.io_status));
+      gkyl_vlasov_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n", gkyl_array_rio_status_msg(status.io_status));
       goto freeresources;
     }
 
     frame_curr = status.frame;
     t_curr = status.stime;
 
-    gkyl_pkpm_app_cout(app, stdout, "Restarting from frame %d", frame_curr);
-    gkyl_pkpm_app_cout(app, stdout, " at time = %g\n", t_curr);
+    gkyl_vlasov_app_cout(app, stdout, "Restarting from frame %d", frame_curr);
+    gkyl_vlasov_app_cout(app, stdout, " at time = %g\n", t_curr);
   }
   else {
-    gkyl_pkpm_app_apply_ic(app, t_curr);
+    gkyl_vlasov_app_apply_ic(app, t_curr);
   }
 
   // Create trigger for field energy.
@@ -457,12 +480,12 @@ main(int argc, char **argv)
 
   long step = 1;
   while ((t_curr < t_end) && (step <= app_args.num_steps)) {
-    gkyl_pkpm_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
-    struct gkyl_update_status status = gkyl_pkpm_update(app, dt);
-    gkyl_pkpm_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
+    gkyl_vlasov_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
+    struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
+    gkyl_vlasov_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
     
     if (!status.success) {
-      gkyl_pkpm_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
+      gkyl_vlasov_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
       break;
     }
 
@@ -480,12 +503,12 @@ main(int argc, char **argv)
     else if (status.dt_actual < dt_failure_tol * dt_init) {
       num_failures += 1;
 
-      gkyl_pkpm_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
-      gkyl_pkpm_app_cout(app, stdout, " is below %g*dt_init ...", dt_failure_tol);
-      gkyl_pkpm_app_cout(app, stdout, " num_failures = %d\n", num_failures);
+      gkyl_vlasov_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
+      gkyl_vlasov_app_cout(app, stdout, " is below %g*dt_init ...", dt_failure_tol);
+      gkyl_vlasov_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
-        gkyl_pkpm_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_pkpm_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+        gkyl_vlasov_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
+        gkyl_vlasov_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
 
         calc_field_energy(&fe_trig, app, t_curr, true);
         calc_integrated_mom(&im_trig, app, t_curr, true);
@@ -506,36 +529,34 @@ main(int argc, char **argv)
   calc_integrated_mom(&im_trig, app, t_curr, false);
   calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
-  gkyl_pkpm_app_stat_write(app);
+  gkyl_vlasov_app_stat_write(app);
 
-  struct gkyl_pkpm_stat stat = gkyl_pkpm_app_stat(app);
+  struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
 
-  gkyl_pkpm_app_cout(app, stdout, "\n");
-  gkyl_pkpm_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
-  gkyl_pkpm_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
-  gkyl_pkpm_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
+  gkyl_vlasov_app_cout(app, stdout, "\n");
+  gkyl_vlasov_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
+  gkyl_vlasov_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
+  gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
   if (stat.nstage_2_fail > 0) {
-    gkyl_pkpm_app_cout(app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
-    gkyl_pkpm_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
+    gkyl_vlasov_app_cout(app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
+    gkyl_vlasov_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
   }  
-  gkyl_pkpm_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  gkyl_pkpm_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  gkyl_pkpm_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
-  gkyl_pkpm_app_cout(app, stdout, "Fluid species RHD calc took %g secs\n", stat.fluid_species_rhs_tm);
-  gkyl_pkpm_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  gkyl_pkpm_app_cout(app, stdout, "Species PKPM vars took %g secs\n", stat.species_pkpm_vars_tm);
-  gkyl_pkpm_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
-  gkyl_pkpm_app_cout(app, stdout, "EM variables (bvar) calc took %g secs\n", stat.field_em_vars_tm);
-  gkyl_pkpm_app_cout(app, stdout, "Current evaluation and accumulate took %g secs\n", stat.current_tm);
-  gkyl_pkpm_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
+  gkyl_vlasov_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Fluid species RHD calc took %g secs\n", stat.fluid_species_rhs_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Current evaluation and accumulate took %g secs\n", stat.current_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
-  gkyl_pkpm_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
-  gkyl_pkpm_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
+  gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
 freeresources:
   // Free resources after simulation completion.
   gkyl_comm_release(comm);
-  gkyl_pkpm_app_release(app);
+  gkyl_vlasov_app_release(app);
 
 mpifinalize:
 #ifdef GKYL_HAVE_MPI
