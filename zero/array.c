@@ -221,6 +221,9 @@ gkyl_array_clone(const struct gkyl_array* src)
   if (GKYL_IS_CU_ALLOC(src->flags)) {
     arr->nthreads = src->nthreads;
     arr->nblocks = src->nblocks;
+
+    cudaStreamCreate(&arr->iostream);
+
     arr->data = gkyl_cu_malloc(arr->size*arr->esznc);
     arr->on_dev = gkyl_cu_malloc(sizeof(struct gkyl_array));
     gkyl_cu_memcpy(arr->data, src->data, arr->size*arr->esznc, GKYL_CU_MEMCPY_D2D);

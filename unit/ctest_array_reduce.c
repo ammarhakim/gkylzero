@@ -5,11 +5,101 @@
 #include <gkyl_array_reduce.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_rect_decomp.h>
+#include <gkyl_gauss_quad_data.h>
 #include <gkyl_util.h>
 #include <time.h>
 
 void test_dummy()
 {
+}
+
+void test_reduce()
+{
+  int ncomp = 3, ncells = 200;
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, ncomp, ncells);
+
+  for (size_t i=0; i<arr->size; ++i) {
+    double *d = gkyl_array_fetch(arr, i);
+    for (size_t c=0; c<ncomp; ++c)
+      d[c] = 0.5*i + 0.1*c;
+  }
+  
+  double amin[ncomp], amax[ncomp];
+  gkyl_array_reduce(&amin[0], arr, GKYL_MIN);
+  gkyl_array_reduce(&amax[0], arr, GKYL_MAX);
+
+  for (size_t c=0; c<ncomp; ++c) {
+    TEST_CHECK( amin[c] == 0.1*c );
+    TEST_CHECK( amax[c] == 0.5*(ncells-1) + 0.1*c );
+  }
+
+  gkyl_array_release(arr);
+}
+
+void test_reduce_range()
+{
+  int shape[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, shape);
+  
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 3, range.volume);
+
+  int count = -1000;
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&range, iter.idx);
+    double *d = gkyl_array_fetch(arr, loc);
+    d[0] = count+0.5;
+    d[1] = count+1.5;
+    d[2] = count+2.5;
+
+    count += 1;
+  }
+
+  double amin[3], amax[3];
+  gkyl_array_reduce_range(amin, arr, GKYL_MIN, &range);
+
+  TEST_CHECK( amin[0] == -999.5 );
+  TEST_CHECK( amin[1] == -998.5 );
+  TEST_CHECK( amin[2] == -997.5 );
+
+  gkyl_array_reduce_range(amax, arr, GKYL_MAX, &range);
+  
+  TEST_CHECK( amax[0] == -800.5 );
+  TEST_CHECK( amax[1] == -799.5 );
+  TEST_CHECK( amax[2] == -798.5 );
+
+  gkyl_array_release(arr);
+}
+
+void test_sum_reduce_range()
+{
+  int shape[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, shape);
+  
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 3, range.volume);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&range, iter.idx);
+    double *d = gkyl_array_fetch(arr, loc);
+    d[0] = 0.5;
+    d[1] = 1.5;
+    d[2] = 2.5;
+  }
+
+  double asum[3];
+  gkyl_array_reduce_range(asum, arr, GKYL_SUM, &range);
+
+  TEST_CHECK( asum[0] == 0.5*range.volume );
+  TEST_CHECK( asum[1] == 1.5*range.volume );
+  TEST_CHECK( asum[2] == 2.5*range.volume );
+
+  gkyl_array_release(arr);
 }
 
 // CUDA specific tests
@@ -281,6 +371,9 @@ test_cu_array_reduce_range_max_timer_32x32x32x32()
 
 TEST_LIST = {
   { "dummy", test_dummy },
+  { "array_reduce", test_reduce },
+  { "array_reduce_range", test_reduce_range },
+  { "array_reduce_sum_range", test_sum_reduce_range },
 #ifdef GKYL_HAVE_CUDA
   { "cu_array_reduce_max", test_cu_array_reduce_max },
   { "cu_array_reduce_max_big", test_cu_array_reduce_max_big },

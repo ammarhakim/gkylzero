@@ -9,6 +9,7 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_fem_poisson_perp.h>
+#include <gkyl_array_reduce.h>
 
 #define PERP_DIM 2
 
