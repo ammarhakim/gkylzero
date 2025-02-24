@@ -1565,8 +1565,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     gkyl_sub_range_intersect(&gks->global_upper_ghost[dir], &gks->local_ext, &gks->global_upper_ghost[dir]);
   }
 
-  // Initialize boundary fluxes for diagnostics and/or neut recycle bcs 
-  // Initialize boundary fluxes for the ambipolar potential solve (after skin ghost ranges are created). 
+  // Initialize boundary fluxes for emission BCs or Boltzmann elc.
   gks->bflux_solver = (struct gk_boundary_fluxes) { };
   gk_species_bflux_init(app, gks, &gks->bflux_solver, false);
 
