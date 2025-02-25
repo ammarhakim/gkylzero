@@ -12,15 +12,18 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-enum { MEnergy, BAD };
+enum { MEnergy, M1i_from_H, BAD };
 
 static int
 get_mom_id(const char *mom)
 {
   int mom_idx = BAD;
 
-  if (strcmp(mom, "MEnergy") == 0) { // total energy = integral(hamil*f) velocity moment
+  if (strcmp(mom, "MEnergy") == 0) { // total energy = integral(hamil*f) 
     mom_idx = MEnergy;
+  }
+  else if (strcmp(mom, "M1i_from_H") == 0) { // Jnu^i = integral(\alpha^i*f) velocity moment
+    mom_idx = M1i_from_H;
   }
   else {
     mom_idx = BAD;
@@ -38,6 +41,10 @@ v_num_mom(int vdim, int mom_id)
     case MEnergy:
       num_mom = 1;
       break;    
+
+    case M1i_from_H:
+      num_mom = vdim;
+      break;   
 
     default: // can't happen
       break;
@@ -74,14 +81,17 @@ set_cu_ptrs(struct mom_type_canonical_pb* mom_can_pb, int mom_id, enum gkyl_basi
   
   // choose kernel tables based on basis-function type
   const gkyl_canonical_pb_mom_kern_list *menergy_kernels;
+  const gkyl_canonical_pb_mom_kern_list *m1i_from_h_kernels;
 
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       menergy_kernels = ser_menergy_kernels;
+      m1i_from_h_kernels = ser_m1i_from_h_kernels;
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
       menergy_kernels = tensor_menergy_kernels;
+      m1i_from_h_kernels = tensor_m1i_from_h_kernels;
       break;
 
     default:
@@ -93,6 +103,11 @@ set_cu_ptrs(struct mom_type_canonical_pb* mom_can_pb, int mom_id, enum gkyl_basi
     case MEnergy:
       mom_can_pb->momt.kernel = menergy_kernels[tblidx].kernels[poly_order];
       mom_can_pb->momt.num_mom = 1;
+      break;
+
+    case M1i_from_H:
+      mom_can_pb->momt.kernel = m1i_from_h_kernels[tblidx].kernels[poly_order];
+      mom_can_pb->momt.num_mom = vdim;
       break;
 
     default: // can't happen
@@ -210,3 +225,4 @@ gkyl_int_mom_canonical_pb_cu_dev_new(const struct gkyl_basis* cbasis, const stru
   
   return &mom_can_pb->momt;
 }
+

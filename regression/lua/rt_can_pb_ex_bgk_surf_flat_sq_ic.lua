@@ -82,6 +82,13 @@ vlasovApp = Vlasov.App.new {
 
       return inv_metric_x_x, inv_metric_x_y, inv_metric_y_y
     end,
+    metric = function (t, xn)
+      local metric_x_x = 1.0 -- Metric tensor (x-x component).
+      local metric_x_y = 0.0 -- Metric tensor (x-y component).
+      local metric_y_y = 1.0 -- Metric tensor (y-y component).
+
+      return metric_x_x, metric_x_y, metric_y_y
+    end,
     metricDeterminant = function (t, xn)
       local metric_det = 1.0 -- Metric tensor determinant.
 

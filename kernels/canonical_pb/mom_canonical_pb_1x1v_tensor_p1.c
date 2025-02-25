@@ -1,4 +1,12 @@
 #include <gkyl_mom_canonical_pb_kernels.h> 
+GKYL_CU_DH void canonical_pb_M1i_from_H_1x1v_tensor_p1(const double *dxv, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+{ 
+  const double volFact = dxv[1]/2; 
+  const double rdvx2 = 2.0/dxv[1];
+
+  out[0] += (1.224744871391589*f[1]*hamil[3]*rdvx2+1.224744871391589*f[0]*hamil[2]*rdvx2)*volFact; 
+  out[1] += (1.224744871391589*f[0]*hamil[3]*rdvx2+1.224744871391589*f[1]*hamil[2]*rdvx2)*volFact; 
+} 
 GKYL_CU_DH void canonical_pb_MEnergy_1x1v_tensor_p1(const double *dxv, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 
   const double volFact = dxv[1]/2; 

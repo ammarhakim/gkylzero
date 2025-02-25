@@ -72,7 +72,8 @@ struct gkyl_vlasov_lte_proj_on_basis {
                                     // at configuration-space quadrature nodes
   struct gkyl_array *expamp_quad; // Array keeping exponential pre-factor 
                                   // at configuration-space quadrature nodes
-  struct gkyl_array *h_ij_inv_quad; // metric inverse at configuration-space quadrature nodes
+  struct gkyl_array *h_ij_quad; // metric configuration-space quadrature nodes, covariant components
+  struct gkyl_array *h_ij_inv_quad; // metric inverse at configuration-space quadrature nodes, contravariant components
   struct gkyl_array *det_h_quad; // metric determinant at configuration-space quadrature nodes
 
   struct gkyl_vlasov_lte_moments *moments_up; // LTE moment calculation routine for computing density

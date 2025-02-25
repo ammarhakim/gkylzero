@@ -289,6 +289,6 @@ GKYL_CU_DH double canonical_pb_surfy_2x2v_ser_p1(const double *w, const double *
   out[31] += ((-1.224744871391589*GhatR[15])-1.224744871391589*GhatL[15])*rdy2; 
 
   double cflFreq = fmax(fabs(alphaL[0]), fabs(alphaR[0])); 
-  return 0.8838834764831842*rdy2*cflFreq; 
+  return 0.5303300858899105*rdy2*cflFreq; 
 
 } 

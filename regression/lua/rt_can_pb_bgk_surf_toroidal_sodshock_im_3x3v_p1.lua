@@ -96,6 +96,18 @@ vlasovApp = Vlasov.App.new {
 
       return hamiltonian
     end,
+    metric = function (t, xn)
+      local q_r, q_theta = xn[1], xn[2]
+
+      local metric_r_r = 1.0 -- Metric tensor (radial-radial component).
+      local metric_r_theta = 0.0 -- Metric tensor (radial-polar component).
+      local metric_r_phi = 0.0 -- Metric tensor (radial-azimuthal component).
+      local metric_theta_theta = q_r * q_r -- Metric tensor (polar-polar component).
+      local metric_theta_phi = 0.0 -- Metric tensor (polar-azimuthal component).
+      local metric_phi_phi = (R + (q_r * math.cos(q_theta))) * (R + (q_r * math.cos(q_theta))) -- Metric tensor (azimuthal-azimuthal component).
+
+      return metric_r_r, metric_r_theta, metric_r_phi, metric_theta_theta, metric_theta_phi, metric_phi_phi
+    end,
     inverseMetric = function (t, xn)
       local q_r, q_theta = xn[1], xn[2]
 

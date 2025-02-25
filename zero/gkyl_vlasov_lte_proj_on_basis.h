@@ -24,7 +24,8 @@ struct gkyl_vlasov_lte_proj_on_basis_inp {
   const struct gkyl_array *gamma; // SR quantitiy: gamma = sqrt(1 + p^2)
   const struct gkyl_array *gamma_inv; // SR quantitiy: 1/gamma = 1/sqrt(1 + p^2)
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
-  const struct gkyl_array *h_ij_inv; // (Can-bp quantity) inverse of the metric tensor
+  const struct gkyl_array *h_ij; // (Can-bp quantity) metric tensor (covariant components)
+  const struct gkyl_array *h_ij_inv; // (Can-bp quantity) inverse of the metric tensor (contravariant components)
   const struct gkyl_array *det_h; // (Can-bp quantity) determinant of the metric tensor
   const struct gkyl_array *hamil; // (Can-bp quantity) Hamiltonian
   enum gkyl_model_id model_id; // Enum identifier for model type (e.g., SR, see gkyl_eqn_type.h)
@@ -70,7 +71,7 @@ void gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
  * Host-side wrapper for initial canonical-pb vars
  */
 void gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu(gkyl_vlasov_lte_proj_on_basis *up, 
-  const struct gkyl_range *conf_range, 
+  const struct gkyl_range *conf_range, const struct gkyl_array *h_ij,
   const struct gkyl_array *h_ij_inv, const struct gkyl_array *det_h);
 
 /**

@@ -26,6 +26,7 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
       .phase_range = &s->local,
       .gamma = s->gamma,
       .gamma_inv = s->gamma_inv,
+      .h_ij = s->h_ij,
       .h_ij_inv = s->h_ij_inv,
       .det_h = s->det_h,
       .hamil = s->hamil,
@@ -43,7 +44,8 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
         &app->basis, &app->local, &s->local_vel, &s->local, s->model_id, &sr_inp, 
         nm, is_integrated, app->use_gpu);
       num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc);
-    } else if (s->model_id == GKYL_MODEL_CANONICAL_PB && (strcmp(nm, "MEnergy") == 0 || strcmp(nm, "Integrated") == 0)) {
+    } else if ((s->model_id == GKYL_MODEL_CANONICAL_PB || s->model_id == GKYL_MODEL_CANONICAL_PB_GR)
+      && (strcmp(nm, "M1i_from_H") == 0 || strcmp(nm, "MEnergy") == 0 || strcmp(nm, "Integrated") == 0)) {
       struct gkyl_mom_canonical_pb_auxfields can_pb_inp = {.hamil = s->hamil};
       sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->confBasis, 
         &app->basis, &app->local, &s->local_vel, &s->local, s->model_id, &can_pb_inp, 

@@ -96,6 +96,15 @@ vlasovApp = Vlasov.App.new {
 
       return inv_metric_theta_theta, inv_metric_theta_phi, inv_metric_phi_phi
     end,
+    metric = function (t, xn)
+      local q_theta = xn[1]
+
+      local metric_theta_theta = R * R -- Metric tensor (polar-polar component).
+      local metric_theta_phi = 0.0 -- Metric tensor (polar-azimuthal component).
+      local metric_phi_phi = (R * math.sin(q_theta)) * (R * math.sin(q_theta)) -- Metric tensor (azimuthal-azimuthal component).
+
+      return metric_theta_theta, metric_theta_phi, metric_phi_phi
+    end,
     metricDeterminant = function (t, xn)
       local q_theta = xn[1]
 

@@ -30,6 +30,7 @@ gkyl_dg_calc_canonical_pb_vars_new(const struct gkyl_rect_grid *phase_grid,
   up->pdim = pdim;
 
   up->canonical_pb_pressure = choose_canonical_pb_pressure_kern(phase_basis->b_type, cv_index[cdim].vdim[vdim], cdim, poly_order);
+  up->canonical_pb_covariant_u_i = choose_canonical_pb_m1i_contra_to_cov_kern(phase_basis->b_type, cv_index[cdim].vdim[vdim], cdim, poly_order);
   for (int d=0; d<cdim; ++d) {
     up->alpha_surf[d] = choose_canonical_pb_alpha_surf_kern(phase_basis->b_type, d, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order);
     up->alpha_edge_surf[d] = choose_canonical_pb_alpha_edge_surf_kern(phase_basis->b_type, d, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order);
@@ -105,6 +106,33 @@ void gkyl_dg_calc_canonical_pb_vars_alpha_surf(struct gkyl_dg_calc_canonical_pb_
           alpha_surf_ext_d, sgn_alpha_surf_ext_d);
       }  
     }
+  }
+}
+
+
+void gkyl_canonical_pb_contra_to_covariant_m1i(struct gkyl_dg_calc_canonical_pb_vars *up, const struct gkyl_range *conf_range,
+ const struct gkyl_array *h_ij, const struct gkyl_array *V_drift, const struct gkyl_array *M1i,
+  struct gkyl_array *V_drift_cov, struct gkyl_array *M1i_cov)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(V_drift_cov)) {
+    return gkyl_canonical_pb_contra_to_covariant_m1i_cu(up, conf_range, h_ij, V_drift, M1i, V_drift_cov, M1i_cov);
+  }
+#endif
+  int cdim = up->cdim;
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, conf_range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(conf_range, iter.idx);
+
+    const double *h_ij_d = gkyl_array_cfetch(h_ij, loc);
+    const double *v_i_d = gkyl_array_cfetch(V_drift, loc);
+    const double *nv_i_d = gkyl_array_cfetch(M1i, loc);
+   
+    double *v_i_cov_d = gkyl_array_fetch(V_drift_cov, loc);
+    double *nv_i_cov_d = gkyl_array_fetch(M1i_cov, loc);
+
+    up->canonical_pb_covariant_u_i(h_ij_d, v_i_d, nv_i_d, v_i_cov_d, nv_i_cov_d);
   }
 }
 

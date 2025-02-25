@@ -170,8 +170,12 @@ struct gkyl_vlasov_species {
   // pointer to hamilonian function
   void (*hamil)(double t, const double *xn, double *aout, void *ctx);
 
-  void *h_ij_inv_ctx; // context for spatial metric function
-  // pointer to metric inverse function
+  void *h_ij_ctx; // context for spatial metric function (covariant)
+  // pointer to metric (covariant components) function
+  void (*h_ij)(double t, const double *xn, double *aout, void *ctx);
+
+  void *h_ij_inv_ctx; // context for spatial metric function (contravariant)
+  // pointer to metric (contravaraint components) function
   void (*h_ij_inv)(double t, const double *xn, double *aout, void *ctx);
 
   void *det_h_ctx; // context for determinant of the spatial metric
