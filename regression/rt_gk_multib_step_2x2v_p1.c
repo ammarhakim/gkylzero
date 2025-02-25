@@ -1747,7 +1747,6 @@ struct gkyl_comm *comm = 0;
   struct gkyl_gyrokinetic_multib_field_pb field_blocks[1];
   field_blocks[0] = (struct gkyl_gyrokinetic_multib_field_pb) {
     // No block specific field info for this simulation
-    .fem_parbc = GKYL_FEM_PARPROJ_NONE,
   };
 
   struct gkyl_gyrokinetic_block_physical_bcs field_phys_bcs[] = {
