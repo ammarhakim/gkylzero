@@ -15,6 +15,7 @@ gkyl_array_integrate_new(const struct gkyl_rect_grid *grid, const struct gkyl_ba
   // Allocate space for new updater.
   struct gkyl_array_integrate *up = gkyl_malloc(sizeof(struct gkyl_array_integrate));
 
+  up->op = op;
   up->num_basis = basis->num_basis;
   up->num_comp = num_comp;
   up->use_gpu = use_gpu;
@@ -45,7 +46,7 @@ void gkyl_array_integrate_advance(gkyl_array_integrate *up, const struct gkyl_ar
 #endif
 
   int widx[GKYL_MAX_DIM];
-  for (int d=0; d<weight_range->ndim; d++) widx[d] = -1;
+  for (int d=0; d<GKYL_MAX_DIM; d++) widx[d] = -1;
 
   for (int k=0; k<up->num_comp; k++) out[k] = 0;
 
@@ -56,9 +57,12 @@ void gkyl_array_integrate_advance(gkyl_array_integrate *up, const struct gkyl_ar
     long linidx = gkyl_range_idx(range, iter.idx);
     const double *fin_d = gkyl_array_cfetch(fin, linidx);
 
-    for (int d=0; d<weight_range->ndim; d++) widx[d] = iter.idx[d]; 
-    long linidx_w = gkyl_range_idx(weight_range, widx);
-    const double *wei_d = gkyl_array_cfetch(weight, linidx_w);
+    const double *wei_d = 0;
+    if (weight) {
+      for (int d=0; d<weight_range->ndim; d++) widx[d] = iter.idx[d]; 
+      long linidx_w = gkyl_range_idx(weight_range, widx);
+      wei_d = gkyl_array_cfetch(weight, linidx_w);
+    }
 
     up->kernel(up->dxSq, up->vol, up->num_comp, up->num_basis, wei_d, fin_d, out);
   }

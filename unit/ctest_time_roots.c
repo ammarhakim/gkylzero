@@ -231,14 +231,14 @@ compare_quad_and_cub(void)
   nr = getR(efit->rzlocal, efit->rzgrid, efit->psizr, psi0, Z, nmaxroots, R, dR);
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("Quadratic total time = %g\n", cpu_time_used);
+  //printf("Quadratic total time = %g\n", cpu_time_used);
   double quad_time = cpu_time_used;
 
-  printf("Quadratic: nr = %d, R = ", nr);
-  for(int i=0; i<nr; i++) printf(" %g ", R[i]);
-  printf(" | dRdZ = ");
-  for(int i=0; i<nr; i++) printf(" %g ", dR[i]);
-  printf("\n");
+  //printf("Quadratic: nr = %d, R = ", nr);
+  //for(int i=0; i<nr; i++) printf(" %g ", R[i]);
+  //printf(" | dRdZ = ");
+  //for(int i=0; i<nr; i++) printf(" %g ", dR[i]);
+  //printf("\n");
 
   for(int i = 0; i<nmaxroots; i++){
     R[i] = 0.0;
@@ -250,17 +250,17 @@ compare_quad_and_cub(void)
   nr = getRcub(local, grid, psi_cubic_DG, psi0, Z, nmaxroots, R, dR);
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("Cubic total time = %g\n", cpu_time_used);
+  //printf("Cubic total time = %g\n", cpu_time_used);
   double cubic_time = cpu_time_used;
 
-  printf("Cubic: nr = %d, R = ", nr);
-  for(int i=0; i<nr; i++) printf(" %g ", R[i]);
-  printf(" | dRdZ = ");
-  for(int i=0; i<nr; i++) printf(" %g ", dR[i]);
-  printf("\n");
+  //printf("Cubic: nr = %d, R = ", nr);
+  //for(int i=0; i<nr; i++) printf(" %g ", R[i]);
+  //printf(" | dRdZ = ");
+  //for(int i=0; i<nr; i++) printf(" %g ", dR[i]);
+  //printf("\n");
 
   double ratio = cubic_time/quad_time;
-  printf("Ratio of cubic to quadratic time = %g\n", ratio);
+  //printf("Ratio of cubic to quadratic time = %g\n", ratio);
 
   gkyl_array_release(psi_cubic_DG);
   gkyl_efit_release(efit);

@@ -825,7 +825,6 @@ int main(int argc, char **argv)
   struct gkyl_gyrokinetic_field field =
   {
     .polarization_bmag = ctx.B_p,
-    .fem_parbc = GKYL_FEM_PARPROJ_NONE,
     .poisson_bcs = {
       .lo_type = {GKYL_POISSON_NEUMANN, GKYL_POISSON_PERIODIC},
       .up_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC},
