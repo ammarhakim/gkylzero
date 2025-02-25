@@ -1069,7 +1069,6 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
   }
 
   // Create boundary flux diagnostics if requested.
-  gks->bflux_diag = (struct gk_boundary_fluxes) { };
   gk_species_bflux_init(app, gks, &gks->bflux_diag, true);
 
   if (app->enforce_positivity) {
@@ -1568,7 +1567,9 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   // Initialize boundary fluxes for emission BCs or Boltzmann elc.
   gks->bflux_solver = (struct gk_boundary_fluxes) { };
   gk_species_bflux_init(app, gks, &gks->bflux_solver, false);
-
+  gks->bflux_diag = (struct gk_boundary_fluxes) { };
+  gk_species_bflux_init(app, gks, &gks->bflux_diag, false);
+  
   // Initialize a Maxwellian/LTE (local thermodynamic equilibrium) projection routine
   // Projection routine optionally corrects all the Maxwellian/LTE moments
   // This routine is utilized by both reactions and BGK collisions
