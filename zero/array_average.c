@@ -9,7 +9,7 @@
 struct gkyl_array_average*
 gkyl_array_average_new(const struct gkyl_array_average_inp *inp)
 {
-  // works for p = 1 only
+  // works for p <=2 only due to the gkyl_dg_div_op_range call in advance
   assert(inp->basis.poly_order <= 2); 
 
   // allocate space for new updater.
