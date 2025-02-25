@@ -144,8 +144,8 @@ create_ctx(void)
   double vpar_max_ion = 4.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
   double mu_max_ion = (3.0 / 2.0) * 0.5 * mass_ion * pow(4.0 * vti,2) / (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
  
-  double t_end = 1e-6; // Final simulation time.
-  int num_frames = 1; // Number of output frames.
+  double t_end = 10e-6; // Final simulation time.
+  int num_frames = 10; // Number of output frames.
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
@@ -577,47 +577,53 @@ main(int argc, char **argv)
     .kperpSq = ctx.k_perp * ctx.k_perp,
     .is_static = true,
   };
-  // GK app.
-  struct gkyl_gk app_inp = {
-    .name = "gk_neut_recycle_1x3v_p1",
 
-    .cfl_frac = 0.1,
-
-    .cdim = 1, .vdim = 2,
-    .lower = { -0.5 * ctx.Lz},
-    .upper = { 0.5 * ctx.Lz},
-    .cells = { cells_x[0] },
-    .poly_order = 1,
-    .basis_type = app_args.basis_type,
-
-    .geometry = {
+  struct gkyl_gyrokinetic_geometry geometry = {
       .geometry_id = GKYL_MAPC2P,
       .world = {0.0, 0.0},
-      
       .mapc2p = mapc2p,
       .c2p_ctx = &ctx,
       .bmag_func = bmag_func,
       .bmag_ctx = &ctx
-    },
-
-    .num_periodic_dir = 0,
-    .periodic_dirs = { },
-
-    .num_species = 2,
-    .species = { elc, ion, },
-    .num_neut_species = 1,
-    .neut_species = { neut, },
-    .field = field,
-
-    .parallelism = {
-      .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0] },
-      .comm = comm,
-    },
   };
 
+  struct gkyl_app_parallelism_inp parallelism = {
+    .use_gpu = app_args.use_gpu,
+    .cuts = { app_args.cuts[0], app_args.cuts[1] },
+    .comm = comm,
+  };
+
+  // GK app
+  struct gkyl_gk *gk = gkyl_malloc(sizeof *gk);
+  memset(gk, 0, sizeof(*gk));
+
+  strcpy(gk->name, "gk_neut_recycle_1x3v_p1");
+  gk->cfl_frac = 1.0;
+
+  gk->cdim = ctx.cdim;
+  gk->vdim = ctx.vdim;
+  gk->lower[0] = -0.5*ctx.Lz;
+  gk->upper[0] =  0.5*ctx.Lz;
+
+  gk->cells[0] = cells_x[0];
+  gk->poly_order = 1;
+  gk->basis_type = app_args.basis_type;
+
+  gk->geometry = geometry;
+
+  gk->num_periodic_dir = 0;
+
+  gk->num_species = 2;
+  gk->species[0] = elc;
+  gk->species[1] = ion;
+  gk->num_neut_species = 1;
+  gk->neut_species[0] = neut;
+  gk->field = field;
+
+  gk->parallelism = parallelism;
+
   // Create app object.
-  gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&app_inp);
+  gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(gk);
 
   // Initial and final simulation times.
   int frame_curr = 0;
@@ -724,6 +730,7 @@ main(int argc, char **argv)
 
   freeresources:
   // Free resources after simulation completion.
+  gkyl_free(gk);
   gkyl_gyrokinetic_app_release(app);
   gkyl_gyrokinetic_comms_release(comm);
   gkyl_bc_emission_release(bc_ctx);
