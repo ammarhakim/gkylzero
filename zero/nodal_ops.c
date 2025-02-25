@@ -139,6 +139,69 @@ gkyl_nodal_ops_n2m_interior(const struct gkyl_nodal_ops *nodal_ops,
   }
 }
 
+void 
+gkyl_nodal_ops_n2m_surface(const struct gkyl_nodal_ops *nodal_ops, 
+  const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid, 
+  const struct gkyl_range *nrange, const struct gkyl_range *update_range, int num_comp, 
+  const struct gkyl_array *nodal_fld, struct gkyl_array *modal_fld, int dir) 
+{
+
+  int num_basis = cbasis->num_basis;
+  int cpoly_order = cbasis->poly_order;
+  double fnodal[num_basis]; // to store nodal function values
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, update_range);
+  int nidx[3];
+  long lin_nidx[num_basis];
+  
+  while (gkyl_range_iter_next(&iter)) {
+    for (int i=0; i<num_basis; ++i) {
+      const double *temp  = gkyl_array_cfetch(nodal_ops->nodes,i);
+      for( int j = 0; j < grid->ndim; j++) {
+          if (j !=dir) {
+            if (j < grid->ndim-1) {
+              if (dir == 0)
+                nidx[j] = (iter.idx[j]-update_range->lower[j])*2 + i/((int) pow(2,grid->ndim-1-j));
+              else
+                nidx[j] = (iter.idx[j]-update_range->lower[j])*2 + i/((int) pow(2,grid->ndim-2+j));
+            }
+            else
+              nidx[j] = (iter.idx[j]-update_range->lower[j])*2 + i%2 ;
+          }
+          else {
+            nidx[j] = (iter.idx[j]-update_range->lower[j]) ;
+          }
+      }
+      lin_nidx[i] = gkyl_range_idx(nrange, nidx);
+
+    }
+
+    long lidx = gkyl_range_idx(update_range, iter.idx);
+    double *arr_p = gkyl_array_fetch(modal_fld, lidx);
+    double fao[num_basis*num_comp];
+  
+    for (int i=0; i<num_basis; ++i) {
+      const double *temp = gkyl_array_cfetch(nodal_fld, lin_nidx[i]);
+      for (int j=0; j<num_comp; ++j) {
+        fao[i*num_comp + j] = temp[j];
+      }
+    }
+
+    for (int i=0; i<num_comp; ++i) {
+      // copy so nodal values for each return value are contiguous
+      // (recall that function can have more than one return value)
+      for (int k=0; k<num_basis; ++k) {
+        fnodal[k] = fao[num_comp*k+i];
+      }
+      // transform to modal expansion
+      for (int k=0; k<num_basis; ++k)
+        cbasis->quad_nodal_to_modal(fnodal, &arr_p[num_basis*i],k);
+    }
+  }
+}
+
+
 
 
 void 

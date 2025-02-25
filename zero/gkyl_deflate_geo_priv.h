@@ -3,6 +3,7 @@
 #include <assert.h>
 
 #include <gkyl_deflate_geo_kernels.h>
+#include <gkyl_deflate_geo_surf_kernels.h>
 
 typedef void (*deflate_geo_kernel)(const double *fld, double* deflated_fld);
 
@@ -12,6 +13,12 @@ typedef struct { deflate_geo_kernel_list list[4]; } deflate_geo_kernel_remy_list
 typedef struct { deflate_geo_kernel_remy_list list[2]; } deflate_geo_kernel_remx_list;
 
 
+GKYL_CU_DH
+static const deflate_geo_kernel_list ser_deflate_geo_kernel_surf_list[] = {
+  {NULL, deflate_geo_surfx_2x_ser_p1, NULL},
+  {NULL, deflate_geo_surfy_2x_ser_p1, NULL },
+  {NULL, NULL, NULL},
+};
 
 GKYL_CU_DH
 static const deflate_geo_kernel_remx_list ser_deflate_geo_kernel_rem_list[] = {
@@ -76,6 +83,17 @@ struct gkyl_deflate_geo{
   bool use_gpu;
 };
 
+struct gkyl_deflate_geo_surf{
+  const struct gkyl_basis *basis;
+  const struct gkyl_basis *deflated_basis;
+  const struct gkyl_rect_grid* grid;
+  const struct gkyl_rect_grid* deflated_grid;
+  deflate_geo_kernel kernel;
+  int *rem_dirs;
+  int dir;
+  bool use_gpu;
+};
+
 GKYL_CU_DH
 static deflate_geo_kernel
 deflate_geo_choose_kernel(const int *rem_dirs, const int cdim, const int basis_type, const int poly_order)
@@ -89,6 +107,21 @@ deflate_geo_choose_kernel(const int *rem_dirs, const int cdim, const int basis_t
       break;
   }
 }
+
+GKYL_CU_DH
+static deflate_geo_kernel
+deflate_geo_surf_choose_kernel(const int dir, const int cdim, const int basis_type, const int poly_order)
+{
+  switch (basis_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_deflate_geo_kernel_surf_list[dir].kernels[poly_order];
+
+    default:
+      assert(false);
+      break;
+  }
+}
+
 
 
 

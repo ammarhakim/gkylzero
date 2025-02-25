@@ -273,6 +273,66 @@ dphidtheta_func(double Z, void *ctx)
   return integrand;
 }
 
+static double
+bmag_func(double r_curr, double Z, void *ctx)
+{
+  struct arc_length_ctx *actx = ctx;
+  double *arc_memo = actx->arc_memo;
+  double psi = actx->psi, rclose = actx->rclose, zmin = actx->zmin, arcL = actx->arcL, zmax = actx->zmax;
+  // Calculate fpol
+  double psi_fpol = psi;
+  if ( (psi_fpol < actx->geo->fgrid.lower[0]) || (psi_fpol > actx->geo->fgrid.upper[0]) ) // F = F(psi_sep) in the SOL.
+    psi_fpol = actx->geo->sibry;
+  int idx = fmin(actx->geo->frange.lower[0] + (int) floor((psi_fpol - actx->geo->fgrid.lower[0])/actx->geo->fgrid.dx[0]), actx->geo->frange.upper[0]);
+  long loc = gkyl_range_idx(&actx->geo->frange, &idx);
+  const double *coeffs = gkyl_array_cfetch(actx->geo->fpoldg,loc);
+  double fxc;
+  gkyl_rect_grid_cell_center(&actx->geo->fgrid, &idx, &fxc);
+  double fx = (psi_fpol-fxc)/(actx->geo->fgrid.dx[0]*0.5);
+  double fpol = actx->geo->fbasis.eval_expand(&fx, coeffs);
+
+  //if (actx->geo->use_cubics) {
+    double xn[2] = {r_curr, Z};
+    double fout[3];
+    actx->geo->efit->evf->eval_cubic_wgrad(0.0, xn, fout, actx->geo->efit->evf->ctx);
+    double dpsidR = fout[1]*2.0/actx->geo->rzgrid_cubic.dx[0];
+    double dpsidZ = fout[2]*2.0/actx->geo->rzgrid_cubic.dx[1];
+  //  double grad_psi_mag = sqrt(dpsidR*dpsidR + dpsidZ*dpsidZ);
+  //  double result  = (1/r_curr/grad_psi_mag);
+  //}
+  //else {
+  //  int rzidx[2];
+  //  int idxtemp = actx->geo->rzlocal.lower[0] + (int) floor((r_curr - actx->geo->rzgrid.lower[0])/actx->geo->rzgrid.dx[0]);
+  //  idxtemp = GKYL_MIN2(idxtemp, actx->geo->rzlocal.upper[0]);
+  //  idxtemp = GKYL_MAX2(idxtemp, actx->geo->rzlocal.lower[0]);
+  //  rzidx[0] = idxtemp;
+  //  idxtemp = actx->geo->rzlocal.lower[1] + (int) floor((Z - actx->geo->rzgrid.lower[1])/actx->geo->rzgrid.dx[1]);
+  //  idxtemp = GKYL_MIN2(idxtemp, actx->geo->rzlocal.upper[1]);
+  //  idxtemp = GKYL_MAX2(idxtemp, actx->geo->rzlocal.lower[1]);
+  //  rzidx[1] = idxtemp;
+
+  //  long loc = gkyl_range_idx((&actx->geo->rzlocal), rzidx);
+  //  const double *psih = gkyl_array_cfetch(actx->geo->psiRZ, loc);
+
+  //  double xc[2];
+  //  gkyl_rect_grid_cell_center((&actx->geo->rzgrid), rzidx, xc);
+  //  double x = (r_curr-xc[0])/(actx->geo->rzgrid.dx[0]*0.5);
+  //  double y = (Z-xc[1])/(actx->geo->rzgrid.dx[1]*0.5);
+
+  //  double eta[2] = {x,y};
+  //  double grad_psi_mag = actx->geo->calc_grad_psi(psih, eta, actx->geo->rzgrid.dx);
+  //  double result  = (1/r_curr/grad_psi_mag);
+  //}
+
+
+  double Br = 1.0/r_curr*dpsidZ;
+  double Bz = -1.0/r_curr*dpsidR;
+  double Bphi = fpol/r_curr;
+  double bmag = sqrt(Br*Br+Bz*Bz+Bphi*Bphi);
+  return bmag;
+}
+
+
 
 
 
@@ -723,6 +783,205 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
   gkyl_free(arc_memo_left);
   gkyl_free(arc_memo_right);
 }
+
+double calc_running_surf_coord(double coord_lo, int i, double dx) {
+  double dels[3] = {(1.0-1.0/sqrt(3))/2.0, 1.0/sqrt(3), (1.0-1.0/sqrt(3))/2.0 };
+  double coord = coord_lo;
+  for(int j = 0; j < i; j++)
+    coord+=dels[j%3]*dx;
+  return coord;
+}
+
+void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_range *nrange, double dzc[3], 
+    struct gkyl_tok_geo *geo, struct gkyl_tok_geo_grid_inp *inp, 
+    struct gkyl_array *mc2p_nodal_quad, struct gkyl_array *mc2p_nodal_fd,
+    struct gkyl_array *ddtheta_nodal, struct gkyl_array *bmag_nodal, struct gkyl_position_map *position_map)
+{
+
+  geo->rleft = inp->rleft;
+  geo->rright = inp->rright;
+
+  geo->inexact_roots = inp->inexact_roots;
+
+  geo->rmax = inp->rmax;
+  geo->rmin = inp->rmin;
+
+  enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
+  enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
+  
+  double dtheta = inp->cgrid.dx[TH_IDX],
+    dpsi = inp->cgrid.dx[PSI_IDX],
+    dalpha = inp->cgrid.dx[AL_IDX];
+  
+  double theta_lo = up->grid.lower[TH_IDX] + (up->local.lower[TH_IDX] - up->global.lower[TH_IDX])*up->grid.dx[TH_IDX],
+    psi_lo = up->grid.lower[PSI_IDX] + (up->local.lower[PSI_IDX] - up->global.lower[PSI_IDX])*up->grid.dx[PSI_IDX],
+    alpha_lo = up->grid.lower[AL_IDX] + (up->local.lower[AL_IDX] - up->global.lower[AL_IDX])*up->grid.dx[AL_IDX];
+
+  double dels[2] = {1.0/sqrt(3), 1.0-1.0/sqrt(3) };
+  theta_lo += dir == 2 ? 0.0 : dels[1]*dtheta/2.0;
+  psi_lo += dir == 0 ? 0.0 : dels[1]*dpsi/2.0;
+  alpha_lo += dir == 1 ? 0. : dels[1]*dalpha/2.0;
+
+    
+  double dx_fact = up->basis.poly_order == 1.0/up->basis.poly_order;
+  dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
+
+  // used for finite differences 
+  double delta_alpha = dalpha*1e-2;
+  double delta_psi = dpsi*1e-2;
+  double delta_theta = dtheta*1e-2;
+  dzc[0] = delta_psi;
+  dzc[1] = delta_alpha;
+  dzc[2] = delta_theta;
+  int modifiers[5] = {0, -1, 1, -2, 2};
+
+  double rclose = inp->rclose;
+  double rright = inp->rright;
+  double rleft = inp->rleft;
+
+
+  int nzcells;
+  if(geo->use_cubics)
+    nzcells = geo->rzgrid_cubic.cells[1];
+  else
+    nzcells = geo->rzgrid.cells[1];
+  double *arc_memo = gkyl_malloc(sizeof(double[nzcells]));
+  double *arc_memo_left = gkyl_malloc(sizeof(double[nzcells]));
+  double *arc_memo_right = gkyl_malloc(sizeof(double[nzcells]));
+
+  struct arc_length_ctx arc_ctx = {
+    .geo = geo,
+    .arc_memo = arc_memo,
+    .arc_memo_right = arc_memo_right,
+    .arc_memo_left = arc_memo_left,
+    .ftype = inp->ftype,
+    .zmaxis = geo->zmaxis
+  };
+  struct plate_ctx pctx = {
+    .geo = geo
+  };
+
+  position_map->constB_ctx->psi_max   = up->grid.upper[PSI_IDX];
+  position_map->constB_ctx->psi_min   = up->grid.lower[PSI_IDX];
+  position_map->constB_ctx->alpha_max = up->grid.upper[AL_IDX];
+  position_map->constB_ctx->alpha_min = up->grid.lower[AL_IDX];
+  position_map->constB_ctx->theta_max = up->grid.upper[TH_IDX];
+  position_map->constB_ctx->theta_min = up->grid.lower[TH_IDX];
+  position_map->constB_ctx->N_theta_boundaries = up->global.upper[TH_IDX] - up->global.lower[TH_IDX];
+  gkyl_position_map_optimize(position_map);
+
+  int cidx[3] = { 0 };
+  for(int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia){
+    cidx[AL_IDX] = ia;
+    double alpha_curr = dir==1 ? alpha_lo + ia*dalpha : calc_running_coord(alpha_lo, ia-nrange->lower[AL_IDX], dalpha);
+    // This is the convention described in Noah Mandell's Thesis Eq 5.104. comp coord y = -alpha.
+    alpha_curr*=-1.0;
+
+    for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
+      int ip_delta_max = 5;
+      for(int ip_delta = 0; ip_delta < ip_delta_max; ip_delta++){
+        if((ip == nrange->lower[PSI_IDX]) && (up->local.lower[PSI_IDX]== up->global.lower[PSI_IDX]) && dir==0){
+          if(ip_delta == 1 || ip_delta == 3)
+            continue; // one sided stencils at edge
+        }
+        else if((ip == nrange->upper[PSI_IDX]) && (up->local.upper[PSI_IDX]== up->global.upper[PSI_IDX]) && dir==0){
+          if(ip_delta == 2 || ip_delta == 4)
+            continue; // one sided stencils at edge
+        }
+        else{ // interior 
+          if( ip_delta == 3 || ip_delta == 4)
+            continue;
+        }
+
+        double psi_curr = dir == 0 ? psi_lo + ip*dpsi : calc_running_coord(psi_lo, ip-nrange->lower[PSI_IDX], dpsi) ;
+        psi_curr += modifiers[ip_delta]*delta_psi;
+        
+        double darcL, arcL_curr, arcL_lo;
+
+        // For double null blocks this should set arc_ctx :
+        // zmin, zmax, rclose, arcL_tot for all blocks. No left and right
+        // For a full core case:
+        // also set phi_right and arcL_right
+        // For a single null case:
+        // also set zmin_left and zmin_right 
+        tok_find_endpoints(inp, geo, &arc_ctx, &pctx, psi_curr, alpha_curr, arc_memo, arc_memo_left, arc_memo_right);
+
+        darcL = arc_ctx.arcL_tot/(up->basis.poly_order*inp->cgrid.cells[TH_IDX]) * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;
+        // at the beginning of each theta loop we need to reset things
+        cidx[PSI_IDX] = ip;
+        arcL_curr = 0.0;
+        arcL_lo = (theta_lo + M_PI)/2/M_PI*arc_ctx.arcL_tot;
+        double ridders_min, ridders_max;
+
+        for (int it=nrange->lower[TH_IDX]; it<=nrange->upper[TH_IDX]; ++it) {
+          arcL_curr = dir==2 ? arcL_lo + it*darcL: calc_running_coord(arcL_lo, it-nrange->lower[TH_IDX], darcL);
+          double theta_curr = arcL_curr*(2*M_PI/arc_ctx.arcL_tot) - M_PI ; 
+
+          position_map->maps[0](0.0, &psi_curr,   &psi_curr,   position_map->ctxs[0]);
+          position_map->maps[1](0.0, &alpha_curr, &alpha_curr, position_map->ctxs[1]);
+          position_map->maps[2](0.0, &theta_curr, &theta_curr, position_map->ctxs[2]);
+          arcL_curr = (theta_curr + M_PI) / (2*M_PI/arc_ctx.arcL_tot);
+
+          tok_set_ridders(inp, &arc_ctx, psi_curr, arcL_curr, &rclose, &ridders_min, &ridders_max);
+
+          struct gkyl_qr_res res = gkyl_ridders(arc_length_func, &arc_ctx,
+            arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max,
+            geo->root_param.max_iter, 1e-10);
+          double z_curr = res.res;
+          ((struct gkyl_tok_geo *)geo)->stat.nroot_cont_calls += res.nevals;
+
+          double R[4] = { 0 }, dR[4] = { 0 };
+          int nr = gkyl_tok_geo_R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
+          double r_curr = choose_closest(rclose, R, R, nr);
+          double dr_curr = choose_closest(rclose, R, dR, nr);
+
+          if (psi_curr==geo->psisep && ip_delta==0) {
+            if (z_curr == geo->efit->Zxpt[0]) {
+              nr = 1;
+              r_curr = geo->efit->Rxpt[0];
+            }
+            if (z_curr == geo->efit->Zxpt[1]) {
+              nr = 1;
+              r_curr = geo->efit->Rxpt[1];
+            }
+          }
+
+          if(nr==0){
+            printf("ip = %d, it = %d, ia = %d, ip_delta = %d\n", ip, it, ia, ip_delta);
+            printf("Block Type = %d | Failed to find a root at psi = %g, Z = %1.16f\n", inp->ftype, psi_curr, z_curr);
+            assert(false);
+          }
+
+          cidx[TH_IDX] = it;
+          int lidx = 0;
+          if (ip_delta != 0)
+            lidx = 3 + 3*(ip_delta-1);
+
+          double phi_curr = phi_func(alpha_curr, z_curr, &arc_ctx);
+          double *mc2p_fd_n = gkyl_array_fetch(mc2p_nodal_fd, gkyl_range_idx(nrange, cidx));
+          double *ddtheta_n = gkyl_array_fetch(ddtheta_nodal, gkyl_range_idx(nrange, cidx));
+          double *bmag_n = gkyl_array_fetch(bmag_nodal, gkyl_range_idx(nrange, cidx));
+
+          mc2p_fd_n[lidx+X_IDX] = r_curr;
+          mc2p_fd_n[lidx+Y_IDX] = z_curr;
+          mc2p_fd_n[lidx+Z_IDX] = phi_curr;
+
+          if(ip_delta==0){
+            ddtheta_n[0] = dphidtheta_func(z_curr, &arc_ctx);
+            ddtheta_n[1] = sin(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI;
+            ddtheta_n[2] = cos(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI;
+            bmag_n[0] = bmag_func(r_curr, z_curr, &arc_ctx);
+          }
+        }
+      }
+    }
+  }
+
+  gkyl_free(arc_memo);
+  gkyl_free(arc_memo_left);
+  gkyl_free(arc_memo_right);
+}
+
 
 
 void

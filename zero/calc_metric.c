@@ -376,6 +376,97 @@ void gkyl_calc_metric_advance_rz_interior(
   gkyl_array_release(normFld_nodal);
 }
 
+void gkyl_calc_metric_advance_rz_surface(
+  gkyl_calc_metric *up, int dir, struct gkyl_range *nrange,
+  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *ddtheta_nodal,
+  struct gkyl_array *bmag_nodal, double *dzc,
+  struct gkyl_array *jFld_nodal,
+  struct gkyl_array *biFld_nodal,
+  struct gkyl_array *cmagFld_nodal,
+  struct gkyl_array *jtotinvFld_nodal,
+  const struct gkyl_range *update_range)
+{
+  struct gkyl_array* gFld_nodal = gkyl_array_new(GKYL_DOUBLE, 6, nrange->volume);
+  enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
+  enum { R_IDX, Z_IDX, PHI_IDX }; // arrangement of cartesian coordinates
+  int cidx[3];
+  for(int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia){
+      for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
+        for (int it=nrange->lower[TH_IDX]; it<=nrange->upper[TH_IDX]; ++it) {
+            cidx[PSI_IDX] = ip;
+            cidx[AL_IDX] = ia;
+            cidx[TH_IDX] = it;
+            const double *mc2p_n = gkyl_array_cfetch(mc2p_nodal_fd, gkyl_range_idx(nrange, cidx));
+            double dxdz[3][3];
+
+            if((ip == nrange->lower[PSI_IDX]) && (up->local.lower[PSI_IDX]== up->global.lower[PSI_IDX]) && dir==0) {
+              dxdz[0][0] = (-3*mc2p_n[R_IDX] + 4*mc2p_n[6+R_IDX] - mc2p_n[12+R_IDX] )/dzc[0]/2;
+              dxdz[1][0] = (-3*mc2p_n[Z_IDX] + 4*mc2p_n[6+Z_IDX] - mc2p_n[12+Z_IDX] )/dzc[0]/2;
+              dxdz[2][0] = (-3*mc2p_n[PHI_IDX] + 4*mc2p_n[6+PHI_IDX] - mc2p_n[12+PHI_IDX] )/dzc[0]/2;
+            }
+            else if((ip == nrange->upper[PSI_IDX]) && (up->local.upper[PSI_IDX]== up->global.upper[PSI_IDX]) && dir==0) {
+              dxdz[0][0] = (3*mc2p_n[R_IDX] - 4*mc2p_n[3+R_IDX] + mc2p_n[9+R_IDX] )/dzc[0]/2;
+              dxdz[1][0] = (3*mc2p_n[Z_IDX] - 4*mc2p_n[3+Z_IDX] + mc2p_n[9+Z_IDX] )/dzc[0]/2;
+              dxdz[2][0] = (3*mc2p_n[PHI_IDX] - 4*mc2p_n[3+PHI_IDX] + mc2p_n[9+PHI_IDX] )/dzc[0]/2;
+            }
+            else {
+              dxdz[0][0] = -(mc2p_n[3 +R_IDX] -   mc2p_n[6+R_IDX])/2/dzc[0];
+              dxdz[1][0] = -(mc2p_n[3 +Z_IDX] -   mc2p_n[6+Z_IDX])/2/dzc[0];
+              dxdz[2][0] = -(mc2p_n[3 +PHI_IDX] -   mc2p_n[6+PHI_IDX])/2/dzc[0];
+            }
+
+            // Use exact expressions for dR/dtheta and dZ/dtheta
+            double *ddtheta_n = gkyl_array_fetch(ddtheta_nodal, gkyl_range_idx(nrange, cidx));
+            dxdz[0][2] = ddtheta_n[1];
+            dxdz[1][2] = ddtheta_n[2];
+
+            // use exact expressions for d/dalpha
+            dxdz[0][1] = 0.0;
+            dxdz[1][1] = 0.0;
+            dxdz[2][1] = -1.0;
+
+            // dxdz is in cylindrical coords, calculate J as
+            // J = R(dR/dpsi*dZ/dtheta - dR/dtheta*dZ/dpsi)
+            double *jFld_n= gkyl_array_fetch(jFld_nodal, gkyl_range_idx(nrange, cidx));
+            double R = mc2p_n[R_IDX];
+            jFld_n[0] = sqrt(R*R*(dxdz[0][0]*dxdz[0][0]*dxdz[1][2]*dxdz[1][2] + dxdz[0][2]*dxdz[0][2]*dxdz[1][0]*dxdz[1][0] - 2*dxdz[0][0]*dxdz[0][2]*dxdz[1][0]*dxdz[1][2])) ;
+
+            // Calculate dphi/dtheta based on the divergence free condition
+            // on B: 1 = J*B/sqrt(g_33)
+            //double *bmag_n = gkyl_array_fetch(bmag_nodal, gkyl_range_idx(nrange, cidx));
+            //double dphidtheta = (jFld_n[0]*jFld_n[0]*bmag_n[0]*bmag_n[0] - dxdz[0][2]*dxdz[0][2] - dxdz[1][2]*dxdz[1][2])/R/R;
+            //dphidtheta = sqrt(dphidtheta);
+
+            // AS 2/22/25 It seems that now that we are using interior points,
+            // cmag comes out fine without directtly enforcing the condition
+            double dphidtheta = ddtheta_n[0];
+
+            double *gFld_n= gkyl_array_fetch(gFld_nodal, gkyl_range_idx(nrange, cidx));
+            gFld_n[0] = dxdz[0][0]*dxdz[0][0] + R*R*dxdz[2][0]*dxdz[2][0] + dxdz[1][0]*dxdz[1][0]; 
+            gFld_n[1] = R*R*dxdz[2][0]; 
+            gFld_n[2] = dxdz[0][0]*dxdz[0][2] + R*R*dxdz[2][0]*dphidtheta + dxdz[1][0]*dxdz[1][2];
+            gFld_n[3] = R*R; 
+            gFld_n[4] = R*R*dphidtheta;
+            gFld_n[5] = dxdz[0][2]*dxdz[0][2] + R*R*dphidtheta*dphidtheta + dxdz[1][2]*dxdz[1][2]; 
+
+            // Calculate cmag, bi, and jtot_inv
+            double *biFld_n= gkyl_array_fetch(biFld_nodal, gkyl_range_idx(nrange, cidx));
+            biFld_n[0] = gFld_n[0]/sqrt(gFld_n[5]);
+            biFld_n[1] = gFld_n[1]/sqrt(gFld_n[5]);
+            biFld_n[2] = gFld_n[2]/sqrt(gFld_n[5]);
+
+            double *cmagFld_n= gkyl_array_fetch(cmagFld_nodal, gkyl_range_idx(nrange, cidx));
+            double *bmag_n= gkyl_array_fetch(bmag_nodal, gkyl_range_idx(nrange, cidx));
+            cmagFld_n[0] = jFld_n[0]*bmag_n[0]/sqrt(gFld_n[5]);
+            double *jtotinvFld_n= gkyl_array_fetch(jtotinvFld_nodal, gkyl_range_idx(nrange, cidx));
+            jtotinvFld_n[0] = 1.0/(jFld_n[0]*bmag_n[0]);
+      }
+    }
+  }
+  gkyl_array_release(gFld_nodal);
+}
+
+
 
 void gkyl_calc_metric_advance_mirror(
   gkyl_calc_metric *up, struct gkyl_range *nrange,

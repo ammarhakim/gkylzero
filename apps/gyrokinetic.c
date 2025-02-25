@@ -830,6 +830,20 @@ gyrokinetic_app_geometry_copy_and_write(gkyl_gyrokinetic_app* app, struct gkyl_a
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, arr_host, fileNm);
 }
 
+static void
+gyrokinetic_app_geometry_copy_and_write_surf(gkyl_gyrokinetic_app* app, struct gkyl_array *arr,
+  struct gkyl_array *arr_host, char *varNm, int dir, struct gkyl_msgpack_data *mt)
+{
+  gkyl_array_copy(arr_host, arr);
+
+  const char *fmt = "%s-%s_dir_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, varNm, dir);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, varNm, dir);
+
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, arr_host, fileNm);
+}
+
 void
 gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
 {
@@ -846,6 +860,10 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
   struct gkyl_array* arr_ho3 = mkarr(false, 3*app->basis.num_basis, app->local_ext.volume);
   struct gkyl_array* arr_ho6 = mkarr(false, 6*app->basis.num_basis, app->local_ext.volume);
   struct gkyl_array* arr_ho9 = mkarr(false, 9*app->basis.num_basis, app->local_ext.volume);
+
+
+  struct gkyl_array* arr_surf_ho1 = mkarr(false,   app->gk_geom->surf_basis.num_basis, app->local_ext.volume);
+  struct gkyl_array* arr_surf_ho3 = mkarr(false, 3*app->gk_geom->surf_basis.num_basis, app->local_ext.volume);
 
   struct timespec wtm = gkyl_wall_clock();
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->mc2p        , arr_ho3, "mapc2p", mt);
@@ -872,6 +890,18 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->eps2        , arr_ho1, "eps2", mt);
   app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
   app->stat.n_diag_io += 22;
+
+
+  // Write surface quantities
+  for( int dir = 0; dir<3; dir++ ) {
+    gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir]->jacobgeo       , arr_surf_ho1, "jacobgeo", dir, mt);
+    gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir]->jacobtot_inv   , arr_surf_ho1, "jacobtot_inv", dir, mt);
+    gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir]->b_i            , arr_surf_ho3, "b_i", dir, mt);
+    gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir]->cmag           , arr_surf_ho1, "cmag", dir, mt);
+    gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir]->bmag           , arr_surf_ho1, "bmag", dir, mt);
+    app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
+    app->stat.n_diag_io += 5;
+  }
 
   // Write out nodes. This has to be done from rank 0 so we need to gather mc2p.
   struct gkyl_array *mc2p_global = mkarr(app->use_gpu, app->gk_geom->mc2p->ncomp, app->global_ext.volume);
@@ -911,6 +941,8 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
   gkyl_array_release(arr_ho3);
   gkyl_array_release(arr_ho6);
   gkyl_array_release(arr_ho9);
+  gkyl_array_release(arr_surf_ho1);
+  gkyl_array_release(arr_surf_ho3);
 
   gk_array_meta_release(mt);
 }

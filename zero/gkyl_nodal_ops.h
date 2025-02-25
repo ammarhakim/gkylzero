@@ -42,6 +42,27 @@ void gkyl_nodal_ops_n2m(const struct gkyl_nodal_ops *nodal_ops,
   const struct gkyl_array *nodal_fld, struct gkyl_array *modal_fld, bool use_quad);
 
 /**
+ * Transform nodal representation to modal representation
+ * at surface quadraure points
+ *
+ * @param nodal_ops Nodal operations struct
+ * @param cbasis Configuration-space basis
+ * @param grid Configuration-space grid
+ * @param nrange Nodal range
+ * @param update_range Configuration-space range on which we are operating
+ * @param num_comp Number of components
+ * @param nodal_fld Input nodal representation
+ * @param modal_fld Output modal representation
+ * @param dir direction of surfaces
+ * if false, serendipity nodes are used
+ */
+void 
+gkyl_nodal_ops_n2m_surface(const struct gkyl_nodal_ops *nodal_ops, 
+  const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid, 
+  const struct gkyl_range *nrange, const struct gkyl_range *update_range, int num_comp, 
+  const struct gkyl_array *nodal_fld, struct gkyl_array *modal_fld, int dir) ;
+
+/**
  * Transform modal representation to nodal representation
  *
  * @param nodal_ops Nodal operations struct

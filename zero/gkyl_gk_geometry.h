@@ -14,6 +14,26 @@
 
 typedef struct gk_geometry gk_geometry;
 
+struct gk_geom_surf {
+
+  struct gkyl_array* jacobgeo; // 1 component. Configuration space jacobian J
+  struct gkyl_array* bmag; // 1 component. B Magnitude of magnetic field
+  struct gkyl_array* b_i; // 3 components. Contravariant components of magnetic field vector b_1, b_2, b_3.
+  struct gkyl_array* cmag; // 1 component. C = JB/sqrt(g_33)
+  struct gkyl_array* jacobtot_inv; // 1 component. 1/(JB)
+
+  // Arrays below are just for computation of arrays above
+  struct gkyl_array* mc2p_nodal_fd; // 3 components. Cartesian X,Y, and Z at surf quad nodes and nodes epsilon away
+  struct gkyl_array* mc2p_nodal; // 3 components. Cartesian X,Y, and Z at surf  quad nodes
+  struct gkyl_array* bmag_nodal; // 1 component. B Magnitude of magnetic field
+  struct gkyl_array* jacobgeo_nodal; // 1 component. Configuration space jacobian J
+  struct gkyl_array* b_i_nodal; // 3 components. Contravariant components of magnetic field vector b_1, b_2, b_3.
+  struct gkyl_array* cmag_nodal; // 1 component. C = JB/sqrt(g_33)
+  struct gkyl_array* jacobtot_inv_nodal; // 1 component. 1/(JB)
+  struct gkyl_array* ddtheta_nodal;   // dphi/dtheta, dR/dtheta, dz/dtheta at surf quad nodes
+
+};
+
 struct gk_geometry {
   // stuff for mapc2p and finite differences array
   struct gkyl_range local;
@@ -21,7 +41,10 @@ struct gk_geometry {
   struct gkyl_range global;
   struct gkyl_range global_ext;
   struct gkyl_basis basis;
+  struct gkyl_basis surf_basis;
   struct gkyl_rect_grid grid;
+
+  struct gk_geom_surf *geo_surf[3];
 
   // These 21 DG fields contain the geometric quantities needed to solve the
   // GK Equation and Poisson Equation and to apply certain BC's

@@ -230,6 +230,19 @@ gkyl_gk_geometry_init_nodal_grid(struct gkyl_rect_grid *ngrid, struct gkyl_rect_
     gkyl_rect_grid_init(ngrid, nrange->ndim, lower, upper, cells);
 }
 
+struct gk_geom_surf*
+gk_geometry_surf_alloc(struct gk_geometry* up)
+{
+
+  struct gk_geom_surf *up_surf = gkyl_malloc(sizeof(struct gk_geom_surf));
+  up_surf->bmag = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
+  up_surf->jacobgeo = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
+  up_surf->b_i = gkyl_array_new(GKYL_DOUBLE, 3*up->surf_basis.num_basis, up->local_ext.volume);
+  up_surf->cmag = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
+  up_surf->jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
+  return up_surf;
+}
+
 struct gk_geometry*
 gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometry_inp *geometry_inp)
 {
@@ -238,6 +251,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   up->local = geometry_inp->local;
   up->local_ext = geometry_inp->local_ext;
   up->grid = geometry_inp->grid;
+  gkyl_cart_modal_serendip(&up->surf_basis, up->grid.ndim-1, up->basis.poly_order);
 
   // bmag, metrics and derived geo quantities
   up->mc2p = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
@@ -263,6 +277,10 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   up->gyyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->gxzj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->eps2= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+
+  for (int dir=0; dir<3; ++dir) {
+    up->geo_surf[dir] = gk_geometry_surf_alloc(up);
+  }
 
   // Now fill the arrays by deflation
   int rem_dirs[3] = {0};
@@ -301,6 +319,21 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   // Done deflating
   gkyl_deflate_geo_release(deflator);
 
+  // Deflate surface geo
+  int  count = 0;
+  for (int dir = 0; dir < 3; dir++) {
+    if(rem_dirs[dir] == 0) {
+      struct gkyl_deflate_geo_surf* deflator_surf = gkyl_deflate_geo_surf_new(&up_3d->surf_basis, &up->surf_basis, &up_3d->grid, &up->grid, rem_dirs, count, false);
+      gkyl_deflate_geo_surf_advance(deflator_surf, &up_3d->local, &up->local, up_3d->geo_surf[dir]->bmag, up->geo_surf[dir]->bmag, 1);
+      gkyl_deflate_geo_surf_advance(deflator_surf, &up_3d->local, &up->local, up_3d->geo_surf[dir]->jacobgeo, up->geo_surf[dir]->jacobgeo, 1);
+      gkyl_deflate_geo_surf_advance(deflator_surf, &up_3d->local, &up->local, up_3d->geo_surf[dir]->jacobtot_inv, up->geo_surf[dir]->jacobtot_inv, 1);
+      gkyl_deflate_geo_surf_advance(deflator_surf, &up_3d->local, &up->local, up_3d->geo_surf[dir]->b_i, up->geo_surf[dir]->b_i, 3);
+      gkyl_deflate_geo_surf_advance(deflator_surf, &up_3d->local, &up->local, up_3d->geo_surf[dir]->cmag, up->geo_surf[dir]->cmag, 1);
+      count+=1;
+      gkyl_deflate_geo_surf_release(deflator_surf);
+    }
+  }
+
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->ref_count = gkyl_ref_count_init(gkyl_gk_geometry_free);
@@ -336,6 +369,22 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(up->gyyj);
   gkyl_array_release(up->gxzj);
   gkyl_array_release(up->eps2);
+
+  for(int dir = 0; dir < 3; dir++) {
+    gkyl_array_release(up->geo_surf[dir]->jacobgeo);
+    gkyl_array_release(up->geo_surf[dir]->bmag);
+    gkyl_array_release(up->geo_surf[dir]->b_i);
+    gkyl_array_release(up->geo_surf[dir]->cmag);
+    gkyl_array_release(up->geo_surf[dir]->jacobtot_inv);
+    gkyl_array_release(up->geo_surf[dir]->jacobgeo_nodal);
+    gkyl_array_release(up->geo_surf[dir]->bmag_nodal);
+    gkyl_array_release(up->geo_surf[dir]->b_i_nodal);
+    gkyl_array_release(up->geo_surf[dir]->cmag_nodal);
+    gkyl_array_release(up->geo_surf[dir]->jacobtot_inv_nodal);
+    gkyl_array_release(up->geo_surf[dir]->mc2p_nodal_fd);
+    gkyl_array_release(up->geo_surf[dir]->mc2p_nodal);
+    gkyl_array_release(up->geo_surf[dir]->ddtheta_nodal);
+  }
   if (gkyl_gk_geometry_is_cu_dev(up)) 
     gkyl_cu_free(up->on_dev); 
 
