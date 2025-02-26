@@ -451,9 +451,9 @@ void gkyl_calc_metric_advance_rz_surface(
 
             // Calculate cmag, bi, and jtot_inv
             double *biFld_n= gkyl_array_fetch(biFld_nodal, gkyl_range_idx(nrange, cidx));
-            biFld_n[0] = gFld_n[0]/sqrt(gFld_n[5]);
-            biFld_n[1] = gFld_n[1]/sqrt(gFld_n[5]);
-            biFld_n[2] = gFld_n[2]/sqrt(gFld_n[5]);
+            biFld_n[0] = gFld_n[2]/sqrt(gFld_n[5]);
+            biFld_n[1] = gFld_n[4]/sqrt(gFld_n[5]);
+            biFld_n[2] = gFld_n[5]/sqrt(gFld_n[5]);
 
             double *cmagFld_n= gkyl_array_fetch(cmagFld_nodal, gkyl_range_idx(nrange, cidx));
             double *bmag_n= gkyl_array_fetch(bmag_nodal, gkyl_range_idx(nrange, cidx));
