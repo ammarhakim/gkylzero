@@ -939,7 +939,6 @@ gyrokinetic_field_lw_new(lua_State *L)
   gk_field.electron_density = glua_tbl_get_number(L, "electronDensity", 0.0);
   gk_field.electron_temp = glua_tbl_get_number(L, "electronTemperature", 0.0);
 
-  gk_field.fem_parbc = glua_tbl_get_integer(L, "femParBc", 0);
   gk_field.kperpSq = glua_tbl_get_number(L, "kPerpSq", 0.0);
 
   gk_field.zero_init_field = glua_tbl_get_bool(L, "zeroInitField", false);

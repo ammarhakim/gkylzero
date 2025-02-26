@@ -409,6 +409,25 @@ bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, 
 }
 
 void
+calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_gyrokinetic_app* app, double t_curr, bool force_calc)
+{
+  if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
+    gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
+  }
+}
+
+void
+calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_gyrokinetic_app* app, double t_curr, double dt, bool force_calc)
+{
+  if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
+    gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
+
+    if ( !(dt < 0.0) )
+      gkyl_gyrokinetic_app_save_dt(app, t_curr, dt);
+  }
+}
+
+void
 write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
@@ -420,22 +439,7 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr
     gkyl_gyrokinetic_app_write(app, t_curr, frame);
     gkyl_gyrokinetic_app_write_field_energy(app);
     gkyl_gyrokinetic_app_write_integrated_mom(app);
-  }
-}
-
-void
-calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_gyrokinetic_app* app, double t_curr, bool force_calc)
-{
-  if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
-    gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
-  }
-}
-
-void
-calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_gyrokinetic_app* app, double t_curr, bool force_calc)
-{
-  if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
-    gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
+    gkyl_gyrokinetic_app_write_dt(app);
   }
 }
 
@@ -555,6 +559,7 @@ main(int argc, char **argv)
       .upar = evalElcUparInit,
       .ctx_upar = &ctx,
     },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalElcNu,
@@ -576,6 +581,13 @@ main(int argc, char **argv)
         .upar = evalElcSourceUparInit,
         .ctx_upar = &ctx,
       }, 
+      .diagnostics = {
+        .num_diag_moments = 5,
+        .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { "HamiltonianMoments" },
+//        .time_integrated = true,
+      }
     },
     
     .bcx = {
@@ -583,8 +595,17 @@ main(int argc, char **argv)
       .upper = { .type = GKYL_SPECIES_GK_SHEATH, },
     },
 
-    .num_diag_moments = 5,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+    .num_diag_moments = 6,
+    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "MaxwellianMoments" },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { "HamiltonianMoments" },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { "HamiltonianMoments" },
+//      .time_integrated = true,
+    },
   };
 
   // Ions.
@@ -605,6 +626,7 @@ main(int argc, char **argv)
       .upar = evalIonUparInit,
       .ctx_upar = &ctx,
     },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalIonNu,
@@ -625,6 +647,13 @@ main(int argc, char **argv)
         .upar = evalIonSourceUparInit,
         .ctx_upar = &ctx,
       }, 
+      .diagnostics = {
+        .num_diag_moments = 5,
+        .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { "HamiltonianMoments" },
+//        .time_integrated = true,
+      },
     },
 
     .bcx = {
@@ -632,14 +661,23 @@ main(int argc, char **argv)
       .upper = { .type = GKYL_SPECIES_GK_SHEATH, },
     },
     
-    .num_diag_moments = 5,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+    .num_diag_moments = 6,
+    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "MaxwellianMoments" },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { "HamiltonianMoments" },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { "HamiltonianMoments" },
+//      .time_integrated = true,
+    }
   };
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
-    .fem_parbc = GKYL_FEM_PARPROJ_NONE,
     .kperpSq = ctx.k_perp * ctx.k_perp,
+    .time_rate_diagnostics = true,
   };
 
   // Gyrokinetic app.
@@ -716,7 +754,7 @@ main(int argc, char **argv)
   int integrated_mom_calcs = ctx.integrated_mom_calcs;
   struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr };
 
-  calc_integrated_mom(&im_trig, app, t_curr, false);
+  calc_integrated_mom(&im_trig, app, t_curr, -1.0, false);
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
@@ -746,7 +784,7 @@ main(int argc, char **argv)
     dt = status.dt_suggested;
 
     calc_field_energy(&fe_trig, app, t_curr, false);
-    calc_integrated_mom(&im_trig, app, t_curr, false);
+    calc_integrated_mom(&im_trig, app, t_curr, status.dt_actual, false);
     write_data(&io_trig, app, t_curr, false);
 
     if (dt_init < 0.0) {
@@ -761,11 +799,9 @@ main(int argc, char **argv)
       if (num_failures >= num_failures_max) {
         gkyl_gyrokinetic_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_gyrokinetic_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
-
         calc_field_energy(&fe_trig, app, t_curr, true);
-        calc_integrated_mom(&im_trig, app, t_curr, true);
+        calc_integrated_mom(&im_trig, app, t_curr, status.dt_actual, true);
         write_data(&io_trig, app, t_curr, true);
-
         break;
       }
     }
@@ -777,8 +813,9 @@ main(int argc, char **argv)
   }
   
   calc_field_energy(&fe_trig, app, t_curr, false);
-  calc_integrated_mom(&im_trig, app, t_curr, false);
+  calc_integrated_mom(&im_trig, app, t_curr, -1.0, false);
   write_data(&io_trig, app, t_curr, false);
+
   gkyl_gyrokinetic_app_stat_write(app);
   
   struct gkyl_gyrokinetic_stat stat = gkyl_gyrokinetic_app_stat(app);

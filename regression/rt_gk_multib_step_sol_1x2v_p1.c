@@ -603,7 +603,6 @@ struct gkyl_comm *comm = 0;
   // Field object
   struct gkyl_gyrokinetic_multib_field_pb field_blocks[1];
   field_blocks[0] = (struct gkyl_gyrokinetic_multib_field_pb) {
-    .fem_parbc = GKYL_FEM_PARPROJ_NONE,
     .polarization_bmag = 2.51,
     .kperpSq = ctx.k_perp*ctx.k_perp,
   };
@@ -621,7 +620,7 @@ struct gkyl_comm *comm = 0;
 
 
   struct gkyl_gyrokinetic_multib app_inp = {
-    .name = "multib_step_sol_plasma_1x2v_p1",
+    .name = "gk_multib_step_sol_1x2v_p1",
 
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .poly_order = 1,

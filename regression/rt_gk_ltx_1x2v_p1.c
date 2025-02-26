@@ -589,7 +589,6 @@ int main(int argc, char **argv)
   // field
   struct gkyl_gyrokinetic_field field = {
     .kperpSq = ctx.kperp * ctx.kperp,
-    .fem_parbc = GKYL_FEM_PARPROJ_NONE,
   };
 
   // GK app
