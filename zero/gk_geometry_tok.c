@@ -201,13 +201,6 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   // Calculate surface expansions
   for (int dir = 0; dir <up->grid.ndim; dir++)
     gk_geometry_surf_calc_expansions(up, dir, nrange_quad_surf[dir]);
-  gkyl_grid_sub_array_write(&up->grid, &up->local, 0, up->geo_surf[0]->jacobgeo, "jsurf0.gkyl" );
-  gkyl_grid_sub_array_write(&up->grid, &up->local, 0, up->geo_surf[1]->jacobgeo, "jsurf1.gkyl" );
-  gkyl_grid_sub_array_write(&up->grid, &up->local, 0, up->geo_surf[2]->jacobgeo, "jsurf2.gkyl" );
-  gkyl_grid_sub_array_write(&up->grid, &up->local, 0, up->geo_surf[0]->bmag, "bsurf0.gkyl" );
-  gkyl_grid_sub_array_write(&up->grid, &up->local, 0, up->geo_surf[1]->bmag, "bsurf1.gkyl" );
-  gkyl_grid_sub_array_write(&up->grid, &up->local, 0, up->geo_surf[2]->bmag, "bsurf2.gkyl" );
-
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
