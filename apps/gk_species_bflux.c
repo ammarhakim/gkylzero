@@ -424,8 +424,9 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
       bflux->bflux_calc_integrated_mom_func = gk_species_bflux_append_integrated_mom;
       bflux->bflux_calc_voltime_int_mom_func = gk_species_bflux_calc_voltime_integrated_mom_dynamic;
     }
-    else
+    else {
       bflux->bflux_calc_integrated_mom_func = gk_species_bflux_calc_integrated_mom_dynamic;
+    }
     bflux->bflux_write_integrated_mom_func = gk_species_bflux_write_integrated_mom_dynamic;
 
     // Object computing moments of the boundary flux.
