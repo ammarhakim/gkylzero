@@ -1123,6 +1123,8 @@ gk_species_new_static(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *a
   gks->f1 = gks->f;
   gks->fnew = gks->f;
 
+  gk_species_bflux_init(app, gks, &gks->bflux_diag, false);
+  
   // Set function pointers.
   gks->rhs_func = gk_species_rhs_static;
   gks->rhs_implicit_func = gk_species_rhs_implicit_static;
@@ -1568,7 +1570,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->bflux_solver = (struct gk_boundary_fluxes) { };
   gk_species_bflux_init(app, gks, &gks->bflux_solver, false);
   gks->bflux_diag = (struct gk_boundary_fluxes) { };
-  gk_species_bflux_init(app, gks, &gks->bflux_diag, false);
+  
   
   // Initialize a Maxwellian/LTE (local thermodynamic equilibrium) projection routine
   // Projection routine optionally corrects all the Maxwellian/LTE moments
