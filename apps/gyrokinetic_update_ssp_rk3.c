@@ -54,14 +54,14 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
     switch (state) {
       case RK_STAGE_1:
         for (int i=0; i<app->num_species; ++i) {
-          struct gk_species *gk_s = &app->species[i];
-          fin[i] = gk_s->f;
-          fout[i] = gk_s->f1;
+          struct gk_species *gks = &app->species[i];
+          fin[i] = gks->f;
+          fout[i] = gks->f1;
           // Boundary fluxes for diagnostics.
-          gk_species_bflux_clear(app, &gk_s->bflux_diag, gk_s->bflux_diag.f, 0.0);
-          gk_species_bflux_clear(app, &gk_s->bflux_diag, gk_s->bflux_diag.f1, 0.0);
-          bflux_in[i] = (const struct gkyl_array **)gk_s->bflux_diag.f;
-          bflux_out[i] = gk_s->bflux_diag.f1;
+          gk_species_bflux_clear(app, &gks->bflux_diag, gks->bflux_diag.f, 0.0);
+          gk_species_bflux_clear(app, &gks->bflux_diag, gks->bflux_diag.f1, 0.0);
+          bflux_in[i] = (const struct gkyl_array **)gks->bflux_diag.f;
+          bflux_out[i] = gks->bflux_diag.f1;
         }
         for (int i=0; i<app->num_neut_species; ++i) {
           fin_neut[i] = app->neut_species[i].f;
@@ -72,10 +72,10 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         dt = st.dt_actual;
 
         for (int i=0; i<app->num_species; ++i) {
-          struct gk_species *gk_s = &app->species[i];
+          struct gk_species *gks = &app->species[i];
           // Compute moment of f_old to later compute moment of df/dt.
           // Do it before the fields are updated, but after dt is calculated.
-          gk_species_calc_int_mom_dt(app, gk_s, dt, gk_s->fdot_mom_old);
+          gk_species_calc_int_mom_dt(app, gks, dt, gks->fdot_mom_old);
         }
 
         // Compute field energy divided by dt for energy balance diagnostics.
@@ -89,12 +89,12 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
 
       case RK_STAGE_2:
         for (int i=0; i<app->num_species; ++i) {
-          struct gk_species *gk_s = &app->species[i];
-          fin[i] = gk_s->f1;
-          fout[i] = gk_s->fnew;
+          struct gk_species *gks = &app->species[i];
+          fin[i] = gks->f1;
+          fout[i] = gks->fnew;
           // Boundary fluxes for diagnostics.
-          bflux_in[i] = (const struct gkyl_array **)gk_s->bflux_diag.f1;
-          bflux_out[i] = gk_s->bflux_diag.fnew;
+          bflux_in[i] = (const struct gkyl_array **)gks->bflux_diag.f1;
+          bflux_out[i] = gks->bflux_diag.fnew;
         }
         for (int i=0; i<app->num_neut_species; ++i) {
 	  fin_neut[i] = app->neut_species[i].f1;
@@ -149,12 +149,12 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
 
       case RK_STAGE_3:
         for (int i=0; i<app->num_species; ++i) {
-          struct gk_species *gk_s = &app->species[i];
-          fin[i] = gk_s->f1;
-          fout[i] = gk_s->fnew;
+          struct gk_species *gks = &app->species[i];
+          fin[i] = gks->f1;
+          fout[i] = gks->fnew;
           // Boundary fluxes for diagnostics.
-          bflux_in[i] = (const struct gkyl_array **)gk_s->bflux_diag.f1;
-          bflux_out[i] = gk_s->bflux_diag.fnew;
+          bflux_in[i] = (const struct gkyl_array **)gks->bflux_diag.f1;
+          bflux_out[i] = gks->bflux_diag.fnew;
         }
         for (int i=0; i<app->num_neut_species; ++i) {
 	  fin_neut[i] = app->neut_species[i].f1;
@@ -240,10 +240,10 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           gyrokinetic_calc_field_and_apply_bc(app, tcurr, fout, fout_neut);
 
 	  for (int i=0; i<app->num_species; ++i) {
-            struct gk_species *gk_s = &app->species[i];
+            struct gk_species *gks = &app->species[i];
             // Compute moment of f_new to compute moment of df/dt.
             // Need to do it after the fields are updated.
-            gk_species_calc_int_mom_dt(app, gk_s, dt, gk_s->fdot_mom_new);
+            gk_species_calc_int_mom_dt(app, gks, dt, gks->fdot_mom_new);
           }
 
           // Compute field energy divided by dt for energy balance diagnostics.

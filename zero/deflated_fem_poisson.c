@@ -15,7 +15,7 @@ mkarr(bool use_gpu, long nc, long size)
 struct gkyl_deflated_fem_poisson* 
 gkyl_deflated_fem_poisson_new(struct gkyl_rect_grid grid, struct gkyl_basis *basis_on_dev, struct gkyl_basis basis, 
   struct gkyl_range local, struct gkyl_range global_sub_range, struct gkyl_array *epsilon, struct gkyl_array *kSq,
-  struct gkyl_poisson_bc poisson_bc, bool use_gpu)
+  struct gkyl_poisson_bc poisson_bc, struct gkyl_poisson_bias_plane_list *bias_plane_list, bool use_gpu)
 {
   struct gkyl_deflated_fem_poisson *up = gkyl_malloc(sizeof(*up));
   up->use_gpu = use_gpu;
@@ -30,6 +30,7 @@ gkyl_deflated_fem_poisson_new(struct gkyl_rect_grid grid, struct gkyl_basis *bas
   assert(up->local.volume == up->global_sub_range.volume);
 
   up->poisson_bc = poisson_bc;
+  up->bias_plane_list = bias_plane_list;
   up->cdim = grid.ndim;
   up->num_solves_z = up->local.upper[up->cdim-1] - up->local.lower[up->cdim-1] + 2;
   up->d_fem_data = gkyl_malloc(sizeof(struct deflated_fem_data[up->num_solves_z]));
@@ -131,8 +132,21 @@ gkyl_deflated_fem_poisson_new(struct gkyl_rect_grid grid, struct gkyl_basis *bas
           kSq, up->d_fem_data[ctr].deflated_kSq, 2*up->deflated_grid.ndim-1);
     }
 
+    // we check if we are at an extremal global index of z to apply the bias plane at extremal z values only
+    int global_zidx = zidx + up->global_sub_range.lower[up->cdim-1]; 
+    // check if the global index is equal to the lower or upper limit of the z grid
+    bool is_lower_z_edge = (zidx == up->local.lower[up->cdim-1])   && up->poisson_bc.contains_lower_z_edge;
+    bool is_upper_z_edge = (zidx == up->local.upper[up->cdim-1]+1) && up->poisson_bc.contains_upper_z_edge;
+    // store it in pisson_bc to pass it to gkyl_fem_poisson_new
+    struct gkyl_poisson_bias_plane_list *bias_plane_list;
+    if (is_upper_z_edge || is_lower_z_edge) {
+      bias_plane_list = up->bias_plane_list;
+    } else {
+      bias_plane_list = NULL;
+    }
+
     up->d_fem_data[ctr].fem_poisson = gkyl_fem_poisson_new(&up->deflated_local, &up->deflated_grid,
-      up->deflated_basis, &up->poisson_bc, NULL, up->d_fem_data[ctr].deflated_epsilon,
+      up->deflated_basis, &up->poisson_bc, bias_plane_list, up->d_fem_data[ctr].deflated_epsilon,
       up->d_fem_data[ctr].deflated_kSq, false, use_gpu);
     ctr += 1;
   }

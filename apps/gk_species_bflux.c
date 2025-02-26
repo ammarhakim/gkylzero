@@ -437,7 +437,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
           if (gk_s->lower_bc[d].type != GKYL_SPECIES_ZERO_FLUX || gk_s->upper_bc[d].type != GKYL_SPECIES_ZERO_FLUX) {
             bflux->boundaries_dir[bflux->num_boundaries] = d;
             bflux->boundaries_edge[bflux->num_boundaries] = e==0? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
-            bflux->boundaries_conf_ghost[bflux->num_boundaries] = e==0? &app->lower_ghost[d] : &app->global_upper_ghost[d];
+            bflux->boundaries_conf_ghost[bflux->num_boundaries] = e==0? &app->lower_ghost[d] : &app->upper_ghost[d];
             bflux->num_boundaries++;
           }
         }
@@ -450,10 +450,10 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
     long buff_sz = 0;
     for (int b=0; b<bflux->num_boundaries; ++b) {
       int dir = bflux->boundaries_dir[b];
-      struct gkyl_range *skin_r = bflux->boundaries_edge[b]==GKYL_LOWER_EDGE? &app->global_lower_skin[dir]
-                                                                            : &app->global_upper_skin[dir];
-      struct gkyl_range *ghost_r = bflux->boundaries_edge[b]==GKYL_LOWER_EDGE? &app->global_lower_ghost[dir]
-                                                                             : &app->global_upper_ghost[dir];
+      struct gkyl_range *skin_r = bflux->boundaries_edge[b]==GKYL_LOWER_EDGE? &app->lower_skin[dir]
+                                                                            : &app->upper_skin[dir];
+      struct gkyl_range *ghost_r = bflux->boundaries_edge[b]==GKYL_LOWER_EDGE? &app->lower_ghost[dir]
+                                                                             : &app->upper_ghost[dir];
 
       bflux->gfss_bc_op[b] = gkyl_bc_basic_new(bflux->boundaries_dir[b], bflux->boundaries_edge[b], GKYL_BC_CONF_BOUNDARY_VALUE,
         &app->basis, skin_r, ghost_r, 1, app->cdim, app->use_gpu);

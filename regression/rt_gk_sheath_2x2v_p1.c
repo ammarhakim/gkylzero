@@ -734,7 +734,7 @@ main(int argc, char **argv)
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { "HamiltonianMoments" },
 //      .time_integrated = true,
-    }
+    },
   };
 
   // Ions.
@@ -805,12 +805,11 @@ main(int argc, char **argv)
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { "HamiltonianMoments" },
 //      .time_integrated = true,
-    }
+    },
   };
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
-    .fem_parbc = GKYL_FEM_PARPROJ_NONE,
     .poisson_bcs = {
       .lo_type = { GKYL_POISSON_DIRICHLET },
       .up_type = { GKYL_POISSON_DIRICHLET },

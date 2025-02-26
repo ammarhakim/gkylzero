@@ -1565,8 +1565,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     gkyl_sub_range_intersect(&gks->global_upper_ghost[dir], &gks->local_ext, &gks->global_upper_ghost[dir]);
   }
 
-  // Initialize boundary fluxes for diagnostics and/or neut recycle bcs 
-  // Initialize boundary fluxes for the ambipolar potential solve (after skin ghost ranges are created). 
+  // Initialize boundary fluxes for emission BCs or Boltzmann elc.
   gks->bflux_solver = (struct gk_boundary_fluxes) { };
   gk_species_bflux_init(app, gks, &gks->bflux_solver, false);
 
@@ -1628,7 +1627,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     }
     // Deflated Poisson solve is performed on range assuming decomposition is *only* in z.
     gks->flr_op = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev, app->basis,
-      app->local, app->local, gks->flr_rhoSqD2, gks->flr_kSq, flr_bc, app->use_gpu);
+      app->local, app->local, gks->flr_rhoSqD2, gks->flr_kSq, flr_bc, NULL, app->use_gpu);
   }
   else {
     gks->gyroaverage = gk_species_gyroaverage_none;

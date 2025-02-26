@@ -732,7 +732,6 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
           s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
 
         // Compute and store (in the ghost cell of of out) the boundary fluxes.
-        // NOTE: this overwrites ghost cells that may be used for sourcing.
         gk_species_bflux_rhs(app, s, &s->bflux_solver, distf[i], distf[i], 0);
       }
     }
@@ -1519,11 +1518,9 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     dtmin = fmin(dtmin, dt1);
 
     // Compute and store (in the ghost cell of of out) the boundary fluxes.
-    // NOTE: this overwrites ghost cells that may be used for sourcing.
     gk_species_bflux_rhs(app, s, &s->bflux_solver, fin[i], fout[i], 0);
 
     // Compute the boundary fluxes and their moments for diagnostics.
-    // NOTE: this overwrites ghost cells that may be used for sourcing.
     gk_species_bflux_rhs(app, s, &s->bflux_diag, fin[i], fout[i], bflux_out[i]);
   }
 
@@ -2200,7 +2197,6 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
             s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
 
           // Compute and store (in the ghost cell of of out) the boundary fluxes.
-          // NOTE: this overwrites ghost cells that may be used for sourcing.
           gk_species_bflux_rhs(app, s, &s->bflux_solver, distf[i], distf[i], 0);
         }
       }
@@ -2224,7 +2220,6 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
         s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
 
       // Compute and store (in the ghost cell of of out) the boundary fluxes.
-      // NOTE: this overwrites ghost cells that may be used for sourcing.
       gk_species_bflux_rhs(app, s, &s->bflux_solver, distf[i], distf[i], 0);
     }
 

@@ -803,7 +803,6 @@ int main(int argc, char **argv)
     .electron_charge = ctx.qe,
     .electron_temp = ctx.Te0,
     .polarization_bmag = ctx.B_p, // Issue here. B0 from soloviev, so not sure what to do. Ours is not constant
-    .fem_parbc = GKYL_FEM_PARPROJ_NONE,
   };
 
   // GK app

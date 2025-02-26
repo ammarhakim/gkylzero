@@ -166,7 +166,7 @@ gk_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, d
 void
 gk_species_source_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm)
 {
-  if (gks->src.source_id) { // && gks->src.evolve) { // MF 2025/02/04: commenting this out for some testing.
+  if (gks->src.source_id && gks->src.evolve) { // MF 2025/02/04: commenting this out for some testing.
     struct timespec wst = gkyl_wall_clock();
 
     double tm_prev = gkyl_dynvec_getlast_tm(gks->src.integ_diag);
@@ -211,7 +211,7 @@ gk_species_source_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_speci
 void
 gk_species_source_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks)
 {
-  if (gks->src.source_id) { // && gks->src.evolve) { // MF 2025/02/04: commenting this out for some testing.
+  if (gks->src.source_id && gks->src.evolve) { // MF 2025/02/04: commenting this out for some testing.
     struct timespec wst = gkyl_wall_clock();
 
     int rank;

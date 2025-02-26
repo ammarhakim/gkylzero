@@ -237,8 +237,7 @@ create_ctx(void)
 
   // Simulation box size (m).
   double lower_x = 0.934;
-  double upper_x = 1.5093065418975686;
-  //double upper_x = 1.4688;
+  double upper_x = 1.4688;
   double Lx = upper_x - lower_x;
   double Lz = (M_PI-1e-14)*2.0;
 
@@ -257,8 +256,8 @@ create_ctx(void)
   int Nvpar = 16;
   int Nmu = 8;
 
-  double t_end = 2*1.0e-6; 
-  double num_frames = 1*1;
+  double t_end = 2.0e-6; 
+  double num_frames = 1;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
@@ -371,6 +370,7 @@ main(int argc, char **argv)
     .upper = {  ctx.vpar_max_elc, ctx.mu_max_elc}, 
     .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
+    .no_by = false,
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -422,8 +422,8 @@ main(int argc, char **argv)
     }, 
 
     .bcx = {
-      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
-      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
+      .lower={.type = GKYL_SPECIES_ABSORB,},
+      .upper={.type = GKYL_SPECIES_ABSORB,},
     },
     .bcy = {
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
@@ -440,7 +440,7 @@ main(int argc, char **argv)
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { "HamiltonianMoments" },
 //      .time_integrated = true,
-    }
+    },
   };
 
   // Ions.
@@ -451,6 +451,7 @@ main(int argc, char **argv)
     .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion}, 
     .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
+    .no_by = false,
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -501,8 +502,8 @@ main(int argc, char **argv)
     }, 
 
     .bcx = {
-      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
-      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
+      .lower={.type = GKYL_SPECIES_ABSORB,},
+      .upper={.type = GKYL_SPECIES_ABSORB,},
     },
     .bcy = {
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
@@ -520,13 +521,11 @@ main(int argc, char **argv)
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { "HamiltonianMoments" },
 //      .time_integrated = true,
-    }
+    },
   };
-
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
-    .fem_parbc = GKYL_FEM_PARPROJ_NONE, 
     .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET}, 
                     .up_type = {GKYL_POISSON_DIRICHLET}, 
                     .lo_value = {0.0}, .up_value = {0.0}}, 
@@ -542,14 +541,14 @@ main(int argc, char **argv)
   };
 
   struct gkyl_tok_geo_grid_inp grid_inp = {
-    .ftype = GKYL_SOL_DN_OUT, // type of geometry
+    .ftype = GKYL_SOL_DN_OUT,     // type of geometry
     .rclose = 6.2,                // closest R to region of interest
     .rright = 6.2,                // Closest R to outboard SOL
     .rleft = 2.0,                 // closest R to inboard SOL
     .rmin = 1.1,                  // smallest R in machine
     .rmax = 6.2,                  // largest R in machine
-    .zmin = -6.1672666854902927,                 // Z of upper plate
-    .zmax = 6.1672666854902927,                  // Z of lower plate
+    .zmin = -8.3,                 // Z of upper plate
+    .zmax = 8.3,                  // Z of lower plate
     .use_cubics = false,          // Whether to use cubic representation of psi(R,Z) for field line tracing
   };
 

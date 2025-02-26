@@ -78,6 +78,7 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_spitzer_coll_freq.h>
+#include <gkyl_skin_surf_from_ghost.h>
 #include <gkyl_tok_geo.h>
 #include <gkyl_positivity_shift_gyrokinetic.h>
 #include <gkyl_vlasov_lte_correct.h>
@@ -881,11 +882,23 @@ struct gk_field {
   struct gkyl_array *phi_wall_up_host; // host copy for use in IO and projecting
   gkyl_eval_on_nodes *phi_wall_up_proj; // projector for biased wall potential on upper wall 
 
-  // Core and SOL ranges for IWL sims. 
+  // Core and SOL ranges for IWL sims.
   struct gkyl_range global_core, global_ext_core, global_sol, global_ext_sol;
 
 
+  // Pointer to function that computes the time rate of change of the energy.
   void (*calc_energy_dt_func)(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced);
+
+  // Objects used in IWL simulations and TS BCs.
+  struct gkyl_range local_par_ext_core; // Core range extended in parallel direction
+  struct gkyl_bc_twistshift *bc_T_LU_lo; // TS BC updater.
+  // Objects used by the skin surface to ghost (SSFG) operator.
+  struct gkyl_range lower_skin_core, lower_ghost_core;
+  struct gkyl_range upper_skin_core, upper_ghost_core;
+  struct gkyl_skin_surf_from_ghost *ssfg_lo;
+  
+  // Pointer to function for the twist-and-shift BCs.
+  void (*enforce_zbc) (const gkyl_gyrokinetic_app *app, const struct gk_field *field, struct gkyl_array *finout);
 };
 
 // Gyrokinetic object: used as opaque pointer in user code.
