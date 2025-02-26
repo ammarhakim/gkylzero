@@ -673,12 +673,27 @@ gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
       snprintf(fileNm_ext_em, sizeof fileNm_ext_em, fmt_ext_em, app->name, frame);
 
       // External EM field computed with project on basis, so just use host copy 
-      app->field_calc_ext_em(app, app->field, tm);
+      vm_field_calc_ext_em(app, app->field, tm);
 
       gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
         mt, app->field->ext_em_host, fileNm_ext_em);
     }
   }
+  if (app->field->has_app_current) {
+    // Only write out external fields at t=0 or if they are time-dependent
+    if (frame == 0 || app->field->app_current_evolve) {
+      const char *fmt_app_current = "%s-field_app_current_%d.gkyl";
+      int sz_app_current = gkyl_calc_strlen(fmt_app_current, app->name, frame);
+      char fileNm_app_current[sz_app_current+1]; // ensures no buffer overflow
+      snprintf(fileNm_app_current, sizeof fileNm_app_current, fmt_app_current, app->name, frame);
+
+      // External EM field computed with project on basis, so just use host copy 
+      vm_field_calc_app_current(app, app->field, tm);
+
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
+        mt, app->field->app_current_host, fileNm_app_current);
+    }
+  }  
   if (app->field->has_ext_pot) {
     if (frame == 0 || app->field->ext_pot_evolve) {
       const char *fmt_ext_pot = "%s-field_ext_pot_%d.gkyl";
