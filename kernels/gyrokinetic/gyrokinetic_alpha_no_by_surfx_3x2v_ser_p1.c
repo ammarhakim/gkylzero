@@ -38,25 +38,19 @@ GKYL_CU_DH int gyrokinetic_alpha_no_by_surfx_3x2v_ser_p1(const double *w, const 
   const double *b_z_surf = &b_i_surf[16];
 
   double hamil[24] = {0.}; 
-  hamil[0] = -(2.4494897427831783*phi[1]*q_)+1.4142135623730951*(phi[0]*q_+vmapSq[0]*m_)+0.7071067811865475*(vmap[3]*bmag_surf[4]+bmag_surf[0]*vmap[2]); 
+  hamil[0] = 1.4142135623730951*(phi[0]*q_+vmapSq[0]*m_+bmag_surf[0]*vmap[2])-2.4494897427831783*phi[1]*q_; 
   hamil[1] = (1.4142135623730951*phi[2]-2.4494897427831783*phi[4])*q_; 
-  hamil[2] = (1.4142135623730951*phi[3]-2.4494897427831783*phi[5])*q_+0.7071067811865475*(vmap[3]*bmag_surf[9]+bmag_surf[2]*vmap[2]); 
-  hamil[3] = 1.4142135623730951*vmapSq[1]*m_+0.7071067811865475*(vmap[3]*bmag_surf[10]+vmap[2]*bmag_surf[3]); 
-  hamil[4] = 0.7071067811865475*(vmap[2]*bmag_surf[4]+bmag_surf[0]*vmap[3]); 
+  hamil[2] = 1.4142135623730951*(phi[3]*q_+bmag_surf[2]*vmap[2])-2.4494897427831783*phi[5]*q_; 
+  hamil[3] = 1.4142135623730951*vmapSq[1]*m_; 
+  hamil[4] = 1.4142135623730951*bmag_surf[0]*vmap[3]; 
   hamil[5] = (1.4142135623730951*phi[6]-2.4494897427831783*phi[7])*q_; 
-  hamil[7] = 0.7071067811865475*(vmap[3]*bmag_surf[14]+vmap[2]*bmag_surf[7]); 
-  hamil[9] = 0.7071067811865475*(vmap[2]*bmag_surf[9]+bmag_surf[2]*vmap[3]); 
-  hamil[10] = 0.7071067811865475*(vmap[2]*bmag_surf[10]+bmag_surf[3]*vmap[3]); 
-  hamil[14] = 0.7071067811865475*(vmap[2]*bmag_surf[14]+vmap[3]*bmag_surf[7]); 
-  hamil[16] = 1.4142135623730951*vmapSq[2]*m_+0.7071067811865475*(vmap[3]*bmag_surf[19]+vmap[2]*bmag_surf[16]); 
-  hamil[18] = 0.7071067811865475*(vmap[3]*bmag_surf[22]+vmap[2]*bmag_surf[18]); 
-  hamil[19] = 0.7071067811865475*(vmap[2]*bmag_surf[19]+vmap[3]*bmag_surf[16]); 
-  hamil[22] = 0.7071067811865475*(vmap[2]*bmag_surf[22]+vmap[3]*bmag_surf[18]); 
+  hamil[9] = 1.4142135623730951*bmag_surf[2]*vmap[3]; 
+  hamil[16] = 1.4142135623730951*vmapSq[2]*m_; 
 
   double *alphaL = &alpha_surf[0];
   double *sgn_alpha_surfL = &sgn_alpha_surf[0];
-  alphaL[0] = -((1.7320508075688772*hamil[1]*inFlds_e[9]*inFlds_e[10]*rdy2)/q_); 
-  alphaL[2] = -((1.7320508075688772*hamil[5]*inFlds_e[9]*inFlds_e[10]*rdy2)/q_); 
+  alphaL[0] = ((-(0.4330127018922193*b_z_surf[0]*jacobtot_inv_surf[2]*hamil[5])-0.4330127018922193*jacobtot_inv_surf[0]*b_z_surf[2]*hamil[5]-0.4330127018922193*hamil[1]*b_z_surf[2]*jacobtot_inv_surf[2]-0.4330127018922193*b_z_surf[0]*jacobtot_inv_surf[0]*hamil[1])*rdy2)/q_; 
+  alphaL[2] = ((-(0.7794228634059945*b_z_surf[2]*jacobtot_inv_surf[2]*hamil[5])-0.4330127018922193*b_z_surf[0]*jacobtot_inv_surf[0]*hamil[5]-0.4330127018922193*b_z_surf[0]*hamil[1]*jacobtot_inv_surf[2]-0.4330127018922193*jacobtot_inv_surf[0]*hamil[1]*b_z_surf[2])*rdy2)/q_; 
 
   int const_sgn_alpha_surf = 1;  
   

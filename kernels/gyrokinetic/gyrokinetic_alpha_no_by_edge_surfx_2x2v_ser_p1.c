@@ -37,18 +37,12 @@ GKYL_CU_DH int gyrokinetic_alpha_no_by_edge_surfx_2x2v_ser_p1(const double *w, c
   const double *b_z_surf = &b_i_surf[8];
 
   double hamil[12] = {0.}; 
-  hamil[0] = (2.4494897427831783*phi[1]+1.4142135623730951*phi[0])*q_+vmapSq[0]*m_+0.7071067811865475*(bmag_surf[3]*vmap[3]+bmag_surf[0]*vmap[2]); 
-  hamil[1] = (2.4494897427831783*phi[3]+1.4142135623730951*phi[2])*q_+0.7071067811865475*(vmap[3]*bmag_surf[5]+bmag_surf[1]*vmap[2]); 
-  hamil[2] = vmapSq[1]*m_+0.7071067811865475*(vmap[3]*bmag_surf[6]+bmag_surf[2]*vmap[2]); 
-  hamil[3] = 0.7071067811865475*(bmag_surf[0]*vmap[3]+vmap[2]*bmag_surf[3]); 
-  hamil[4] = 0.7071067811865475*(vmap[3]*bmag_surf[7]+vmap[2]*bmag_surf[4]); 
-  hamil[5] = 0.7071067811865475*(vmap[2]*bmag_surf[5]+bmag_surf[1]*vmap[3]); 
-  hamil[6] = 0.7071067811865475*(vmap[2]*bmag_surf[6]+bmag_surf[2]*vmap[3]); 
-  hamil[7] = 0.7071067811865475*(vmap[2]*bmag_surf[7]+vmap[3]*bmag_surf[4]); 
-  hamil[8] = vmapSq[2]*m_+0.7071067811865475*(vmap[3]*bmag_surf[10]+vmap[2]*bmag_surf[8]); 
-  hamil[9] = 0.7071067811865475*(vmap[3]*bmag_surf[11]+vmap[2]*bmag_surf[9]); 
-  hamil[10] = 0.7071067811865475*(vmap[2]*bmag_surf[10]+vmap[3]*bmag_surf[8]); 
-  hamil[11] = 0.7071067811865475*(vmap[2]*bmag_surf[11]+vmap[3]*bmag_surf[9]); 
+  hamil[0] = (2.4494897427831783*phi[1]+1.4142135623730951*phi[0])*q_+vmapSq[0]*m_+1.4142135623730951*bmag_surf[0]*vmap[2]; 
+  hamil[1] = 2.4494897427831783*phi[3]*q_+1.4142135623730951*(phi[2]*q_+bmag_surf[1]*vmap[2]); 
+  hamil[2] = vmapSq[1]*m_; 
+  hamil[3] = 1.4142135623730951*bmag_surf[0]*vmap[3]; 
+  hamil[5] = 1.4142135623730951*bmag_surf[1]*vmap[3]; 
+  hamil[8] = vmapSq[2]*m_; 
 
   double *alphaR = &alpha_surf[0];
   double *sgn_alpha_surfR = &sgn_alpha_surf[0];

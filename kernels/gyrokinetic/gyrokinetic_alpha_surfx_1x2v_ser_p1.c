@@ -36,28 +36,23 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_1x2v_ser_p1(const double *w, const double
   const double *b_z_surf = &b_i_surf[4];
 
   double hamil[6] = {0.}; 
-  hamil[0] = (1.4142135623730951*phi[0]-2.4494897427831783*phi[1])*q_+0.7071067811865475*(vmapSq[0]*m_+bmag_surf[2]*vmap[3]+bmag_surf[0]*vmap[2]); 
-  hamil[1] = 0.7071067811865475*(vmapSq[1]*m_+bmag_surf[3]*vmap[3]+bmag_surf[1]*vmap[2]); 
-  hamil[2] = 0.7071067811865475*(bmag_surf[0]*vmap[3]+bmag_surf[2]*vmap[2]); 
-  hamil[3] = 0.7071067811865475*(bmag_surf[1]*vmap[3]+vmap[2]*bmag_surf[3]); 
-  hamil[4] = 0.7071067811865475*(vmapSq[2]*m_+vmap[3]*bmag_surf[5]+vmap[2]*bmag_surf[4]); 
-  hamil[5] = 0.7071067811865475*(vmap[2]*bmag_surf[5]+vmap[3]*bmag_surf[4]); 
+  hamil[0] = (1.4142135623730951*phi[0]-2.4494897427831783*phi[1])*q_+0.7071067811865475*vmapSq[0]*m_; 
+  hamil[1] = 0.7071067811865475*vmapSq[1]*m_; 
+  hamil[4] = 0.7071067811865475*vmapSq[2]*m_; 
 
   double *alphaL = &alpha_surf[0];
   double *sgn_alpha_surfL = &sgn_alpha_surf[0];
-  alphaL[0] = (((2.5980762113533156*cmag[1]*hamil[1]*jacobtot_inv[1])/inFlds_e[13][1]-(1.5*cmag[0]*hamil[1]*jacobtot_inv[1])/inFlds_e[13][1]-(1.5*jacobtot_inv[0]*cmag[1]*hamil[1])/inFlds_e[13][1]+(0.8660254037844386*cmag[0]*jacobtot_inv[0]*hamil[1])/inFlds_e[13][1])*rdvpar2)/m_; 
-  alphaL[1] = (((5.809475019311125*cmag[1]*jacobtot_inv[1]*hamil[4])/inFlds_e[13][1]-(3.3541019662496847*cmag[0]*jacobtot_inv[1]*hamil[4])/inFlds_e[13][1]-(3.3541019662496847*jacobtot_inv[0]*cmag[1]*hamil[4])/inFlds_e[13][1]+(1.9364916731037085*cmag[0]*jacobtot_inv[0]*hamil[4])/inFlds_e[13][1])*rdvpar2)/m_; 
-  alphaL[2] = (((2.5980762113533156*cmag[1]*jacobtot_inv[1]*hamil[3])/inFlds_e[13][1]-(1.5*cmag[0]*jacobtot_inv[1]*hamil[3])/inFlds_e[13][1]-(1.5*jacobtot_inv[0]*cmag[1]*hamil[3])/inFlds_e[13][1]+(0.8660254037844386*cmag[0]*jacobtot_inv[0]*hamil[3])/inFlds_e[13][1])*rdvpar2)/m_; 
-  alphaL[3] = (((5.809475019311126*cmag[1]*jacobtot_inv[1]*hamil[5])/inFlds_e[13][1]-(3.3541019662496843*cmag[0]*jacobtot_inv[1]*hamil[5])/inFlds_e[13][1]-(3.3541019662496843*jacobtot_inv[0]*cmag[1]*hamil[5])/inFlds_e[13][1]+(1.9364916731037085*cmag[0]*jacobtot_inv[0]*hamil[5])/inFlds_e[13][1])*rdvpar2)/m_; 
+  alphaL[0] = (2.1213203435596424*cmag[1]*hamil[1]*jacobtot_inv[1]-1.224744871391589*cmag[0]*hamil[1]*jacobtot_inv[1]-1.224744871391589*jacobtot_inv[0]*cmag[1]*hamil[1]+0.7071067811865475*cmag[0]*jacobtot_inv[0]*hamil[1])/(vmap[1]*m_); 
+  alphaL[1] = (4.743416490252569*cmag[1]*jacobtot_inv[1]*hamil[4]-2.7386127875258306*cmag[0]*jacobtot_inv[1]*hamil[4]-2.7386127875258306*jacobtot_inv[0]*cmag[1]*hamil[4]+1.5811388300841895*cmag[0]*jacobtot_inv[0]*hamil[4])/(vmap[1]*m_); 
 
   int const_sgn_alpha_surf = 1;  
   
-  if (0.6708203932499357*alphaL[3]-0.5*alphaL[2]-0.6708203932499357*alphaL[1]+0.5*alphaL[0] > 0.) 
+  if (0.5*alphaL[0]-0.6708203932499357*alphaL[1] > 0.) 
     sgn_alpha_surfL[0] = 1.0; 
   else  
     sgn_alpha_surfL[0] = -1.0; 
   
-  if (0.5*alphaL[0]-0.5*alphaL[2] > 0.) 
+  if (0.5*alphaL[0] > 0.) 
     sgn_alpha_surfL[1] = 1.0; 
   else  
     sgn_alpha_surfL[1] = -1.0; 
@@ -67,7 +62,7 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_1x2v_ser_p1(const double *w, const double
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (-(0.6708203932499357*alphaL[3])-0.5*alphaL[2]+0.6708203932499357*alphaL[1]+0.5*alphaL[0] > 0.) 
+  if (0.6708203932499357*alphaL[1]+0.5*alphaL[0] > 0.) 
     sgn_alpha_surfL[2] = 1.0; 
   else  
     sgn_alpha_surfL[2] = -1.0; 
@@ -77,7 +72,7 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_1x2v_ser_p1(const double *w, const double
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (-(0.6708203932499357*alphaL[3])+0.5*alphaL[2]-0.6708203932499357*alphaL[1]+0.5*alphaL[0] > 0.) 
+  if (0.5*alphaL[0]-0.6708203932499357*alphaL[1] > 0.) 
     sgn_alpha_surfL[3] = 1.0; 
   else  
     sgn_alpha_surfL[3] = -1.0; 
@@ -87,7 +82,7 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_1x2v_ser_p1(const double *w, const double
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.5*(alphaL[2]+alphaL[0]) > 0.) 
+  if (0.5*alphaL[0] > 0.) 
     sgn_alpha_surfL[4] = 1.0; 
   else  
     sgn_alpha_surfL[4] = -1.0; 
@@ -97,7 +92,7 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_1x2v_ser_p1(const double *w, const double
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.6708203932499357*alphaL[3]+0.5*alphaL[2]+0.6708203932499357*alphaL[1]+0.5*alphaL[0] > 0.) 
+  if (0.6708203932499357*alphaL[1]+0.5*alphaL[0] > 0.) 
     sgn_alpha_surfL[5] = 1.0; 
   else  
     sgn_alpha_surfL[5] = -1.0; 
