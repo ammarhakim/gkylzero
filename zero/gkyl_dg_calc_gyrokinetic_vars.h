@@ -43,6 +43,7 @@ gkyl_dg_calc_gyrokinetic_vars_new(const struct gkyl_rect_grid *phase_grid,
  * @param up Updater for computing gyrokinetic variables 
  * @param conf_range Configuration space range (should only be local range because geometry only defined on local range)
  * @param phase_range Phase space range 
+ * @param conf_ext_range Extended configuration space range (so we obtain geo quantities at all the needed surfaces).
  * @param phase_ext_range Extended Phase space range (so we obtain alpha_surf at all the needed surfaces)
  * @param phi Electrostatic potential
  * @param alpha_surf Output surface expansion in a cell on the *lower* edge in each direction 
@@ -52,7 +53,7 @@ gkyl_dg_calc_gyrokinetic_vars_new(const struct gkyl_rect_grid *phase_grid,
  */
 void gkyl_dg_calc_gyrokinetic_vars_alpha_surf(struct gkyl_dg_calc_gyrokinetic_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
+  const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
   struct gkyl_array* alpha_surf, struct gkyl_array* sgn_alpha_surf, struct gkyl_array* const_sgn_alpha);
 
 /**
