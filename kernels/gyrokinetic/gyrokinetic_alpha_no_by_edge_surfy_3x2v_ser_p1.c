@@ -33,9 +33,9 @@ GKYL_CU_DH int gyrokinetic_alpha_no_by_edge_surfy_3x2v_ser_p1(const double *w, c
   const double *b_x = &b_i[0];
   const double *b_x_surf = &b_i_surf[0];
   const double *b_y = &b_i[8];
-  const double *b_y_surf = &b_i_surf[8];
+  const double *b_y_surf = &b_i_surf[4];
   const double *b_z = &b_i[16];
-  const double *b_z_surf = &b_i_surf[16];
+  const double *b_z_surf = &b_i_surf[8];
 
   double hamil[24] = {0.}; 
   hamil[0] = 2.4494897427831783*phi[2]*q_+1.4142135623730951*(phi[0]*q_+vmapSq[0]*m_+bmag_surf[0]*vmap[2]); 
