@@ -13,6 +13,7 @@
 typedef int (*gyrokinetic_alpha_surf_t)(const double *w, const double *dxv, 
   const double *vmap, const double *vmapSq, const double q_, const double m_, 
   const double *bmag, const double *jacobtot_inv, const double *cmag, const double *b_i, 
+  const double *bmag_surf, const double *jacobtot_inv_surf, const double *cmag_surf, const double *b_i_surf, 
   const double *phi, double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
