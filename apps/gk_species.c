@@ -750,9 +750,6 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
     gkyl_free(s->L2norm_global);
   }
 
-  // Free boundary flux diagnostics memory.
-  gk_species_bflux_release(app, &s->bflux_diag);
-
   if (s->info.time_rate_diagnostics) {
     // Free df/dt diagnostics memory.
     gkyl_array_release(s->fdot_mom_old);
@@ -1566,7 +1563,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gk_species_bflux_init(app, gks, &gks->bflux_solver, false);
   // Create boundary flux diagnostics if requested.
   gks->bflux_diag = (struct gk_boundary_fluxes) { };
-  gk_species_bflux_init(app, gks, &gks->bflux_solver, !gks->info.is_static);
+  gk_species_bflux_init(app, gks, &gks->bflux_diag, !gks->info.is_static);
   
   // Initialize a Maxwellian/LTE (local thermodynamic equilibrium) projection routine
   // Projection routine optionally corrects all the Maxwellian/LTE moments
@@ -1864,8 +1861,11 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 
   gk_species_source_release(app, &s->src);
 
+  // Free boundary flux solver memory.
   gk_species_bflux_release(app, &s->bflux_solver);
-
+  // Free boundary flux diagnostics memory.
+  gk_species_bflux_release(app, &s->bflux_diag);
+  
   gk_species_lte_release(app, &s->lte);
 
   gkyl_array_release(s->m0_gyroavg);
