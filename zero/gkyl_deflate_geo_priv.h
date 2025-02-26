@@ -12,12 +12,28 @@ typedef struct { deflate_geo_kernel kernels[3]; } deflate_geo_kernel_list;
 typedef struct { deflate_geo_kernel_list list[4]; } deflate_geo_kernel_remy_list;
 typedef struct { deflate_geo_kernel_remy_list list[2]; } deflate_geo_kernel_remx_list;
 
+typedef struct { deflate_geo_kernel_list list[3]; } deflate_geo_surf_kernel_dim_list;
 
-GKYL_CU_DH
-static const deflate_geo_kernel_list ser_deflate_geo_kernel_surf_list[] = {
-  {NULL, deflate_geo_surfx_2x_ser_p1, NULL},
-  {NULL, deflate_geo_surfy_2x_ser_p1, NULL },
-  {NULL, NULL, NULL},
+
+static const deflate_geo_surf_kernel_dim_list ser_deflate_surf_geo_kernel_list[] = {
+  { .list = {
+      {NULL, NULL, NULL},
+      {NULL, NULL, NULL },
+      {NULL, NULL, NULL},
+    }
+  },
+  { .list = {
+      {NULL, deflate_geo_surfx_1x_ser_p1, NULL},
+      {NULL, NULL, NULL },
+      {NULL, NULL, NULL},
+    }
+  },
+  { .list = {
+      {NULL, deflate_geo_surfx_2x_ser_p1, NULL},
+      {NULL, deflate_geo_surfy_2x_ser_p1, NULL },
+      {NULL, NULL, NULL},
+    }
+  },
 };
 
 GKYL_CU_DH
@@ -114,7 +130,7 @@ deflate_geo_surf_choose_kernel(const int dir, const int cdim, const int basis_ty
 {
   switch (basis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      return ser_deflate_geo_kernel_surf_list[dir].kernels[poly_order];
+      return ser_deflate_surf_geo_kernel_list[cdim].list[dir].kernels[poly_order];
 
     default:
       assert(false);
