@@ -755,15 +755,19 @@ gkyl_moment_app_from_file_field(gkyl_moment_app *app, const char *fname)
   if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
     rstat.io_status =
       gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->field.fcurr, fname);
-    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status)
+    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
       moment_field_apply_bc(app, rstat.stime, &app->field, app->field.fcurr);
+    }
   }
 
-  // Re-project the background EM fields and applied currents if we are restarting. 
-  if (app->field.ext_em_proj) {
+  // Compute external EM field and applied current if present
+  // Computation necessary in case external EM field or applied current
+  // are time-independent and not computed in the time-stepping loop
+  // since they are not read-in as part of restarts. 
+  if (app->field.has_ext_em) {
     gkyl_fv_proj_advance(app->field.ext_em_proj, rstat.stime, &app->local, app->field.ext_em);
   }
-  if (app->field.app_current_proj) {
+  if (app->field.has_app_current) {
     gkyl_fv_proj_advance(app->field.app_current_proj, rstat.stime, &app->local, app->field.ext_em);
   }  
 
@@ -779,9 +783,18 @@ gkyl_moment_app_from_file_species(gkyl_moment_app *app, int sidx,
   if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
     rstat.io_status =
       gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->species[sidx].fcurr, fname);
-    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status)
+    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
       moment_species_apply_bc(app, rstat.stime, &app->species[sidx], app->species[sidx].fcurr);
+    }
   }
+
+  // Compute applied acceleration if present.
+  // Computation necessary in case applied acceleration
+  // is time-independent and not computed in the time-stepping loop
+  // since it is not read-in as part of restarts. 
+  if (app->species[sidx].has_app_accel) {
+    gkyl_fv_proj_advance(app->species[sidx].app_accel_proj, rstat.stime, &app->local, app->species[sidx].app_accel);
+  }  
 
   return rstat;
 }
