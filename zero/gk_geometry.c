@@ -323,12 +323,28 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   int  count = 0;
   for (int dir = 0; dir < 3; dir++) {
     if(rem_dirs[dir] == 0) {
+      struct gkyl_range local_ext_in_dir_3d;
+      int lower_3d[3] = {up_3d->local.lower[0], up_3d->local.lower[1], up_3d->local.lower[2]};
+      int upper_3d[3] = {up_3d->local.upper[0], up_3d->local.upper[1], up_3d->local.upper[2]};
+      upper_3d[dir]+=1;
+      gkyl_sub_range_init(&local_ext_in_dir_3d, &up_3d->local_ext, lower_3d, upper_3d);
+
+      struct gkyl_range local_ext_in_dir;
+      int lower[up->grid.ndim];
+      int upper[up->grid.ndim];
+      for(int j=0; j<up->grid.ndim; j++) {
+        lower[j] = up->local.lower[j];
+        upper[j] = up->local.upper[j];
+      }
+      upper[count]+=1;
+      gkyl_sub_range_init(&local_ext_in_dir, &up->local_ext, lower, upper);
+
       struct gkyl_deflate_geo_surf* deflator_surf = gkyl_deflate_geo_surf_new(&up_3d->surf_basis, &up->surf_basis, &up_3d->grid, &up->grid, rem_dirs, count, false);
-      gkyl_deflate_geo_surf_advance(deflator_surf, &up_3d->local, &up->local, up_3d->geo_surf[dir]->bmag, up->geo_surf[dir]->bmag, 1);
-      gkyl_deflate_geo_surf_advance(deflator_surf, &up_3d->local, &up->local, up_3d->geo_surf[dir]->jacobgeo, up->geo_surf[dir]->jacobgeo, 1);
-      gkyl_deflate_geo_surf_advance(deflator_surf, &up_3d->local, &up->local, up_3d->geo_surf[dir]->jacobtot_inv, up->geo_surf[dir]->jacobtot_inv, 1);
-      gkyl_deflate_geo_surf_advance(deflator_surf, &up_3d->local, &up->local, up_3d->geo_surf[dir]->b_i, up->geo_surf[dir]->b_i, 3);
-      gkyl_deflate_geo_surf_advance(deflator_surf, &up_3d->local, &up->local, up_3d->geo_surf[dir]->cmag, up->geo_surf[dir]->cmag, 1);
+      gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir]->bmag, up->geo_surf[dir]->bmag, 1);
+      gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir]->jacobgeo, up->geo_surf[dir]->jacobgeo, 1);
+      gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir]->jacobtot_inv, up->geo_surf[dir]->jacobtot_inv, 1);
+      gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir]->b_i, up->geo_surf[dir]->b_i, 3);
+      gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir]->cmag, up->geo_surf[dir]->cmag, 1);
       count+=1;
       gkyl_deflate_geo_surf_release(deflator_surf);
     }
