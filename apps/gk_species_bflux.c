@@ -308,7 +308,6 @@ static void
 gk_species_bflux_calc_integrated_mom_static(gkyl_gyrokinetic_app* app,
   const struct gk_species *gk_s, struct gk_boundary_fluxes *bflux, double tm)
 {
-  printf("static int mom calc\n");
 }
 
 void
@@ -398,7 +397,6 @@ gk_species_bflux_write_integrated_mom(gkyl_gyrokinetic_app *app,
 void 
 gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s, struct gk_boundary_fluxes *bflux, bool is_diagnostic)
 {
-  printf("bflux init\n");
   // Set methods for time-stepping boundary fluxes.
   bflux->bflux_clear_func = gk_species_bflux_clear_static;
   bflux->bflux_scale_func = gk_species_bflux_scale_static;
