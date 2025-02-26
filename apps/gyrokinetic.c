@@ -330,16 +330,16 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     int ghost[] = { 1, 1, 1 };
     gkyl_create_grid_ranges(&geometry_inp.geo_grid, ghost, &geometry_inp.geo_global_ext, &geometry_inp.geo_global);
     if (comm_sz > 1) {
-      // create local and local_ext from user-supplied local range
+      // Create local and local_ext from user-supplied local range.
       gkyl_gk_geometry_augment_local(&app->local, ghost, &geometry_inp.geo_local_ext, &geometry_inp.geo_local);
     }
     else {
-      // global and local ranges are same, and so just copy
+      // Global and local ranges are same, and so just copy.
       memcpy(&geometry_inp.geo_local, &geometry_inp.geo_global, sizeof(struct gkyl_range));
       memcpy(&geometry_inp.geo_local_ext, &geometry_inp.geo_global_ext, sizeof(struct gkyl_range));
     }
   }
-  else{
+  else {
     geometry_inp.geo_grid = app->grid;
     geometry_inp.geo_local = app->local;
     geometry_inp.geo_local_ext = app->local_ext;
@@ -364,9 +364,9 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
       break;
   }
 
-  // deflate geometry if necessary
+  // Deflate geometry if necessary.
   if (geometry_inp.geometry_id != GKYL_GEOMETRY_FROMFILE) {
-    if(app->cdim < 3)
+    if (app->cdim < 3)
       app->gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_inp);
     else
       app->gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
@@ -376,7 +376,7 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     gkyl_gyrokinetic_app_read_geometry(app);
   }
 
-  gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
+  gkyl_gk_geometry_release(gk_geom_3d); // Release temporary 3d geometry.
 
   double bmag_min_local, bmag_min_global;
   bmag_min_local = gkyl_gk_geometry_reduce_bmag(app->gk_geom, GKYL_MIN);
@@ -390,7 +390,7 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
   gkyl_position_map_set(app->position_map, app->gk_geom->mc2nu_pos);
 
-  // If we are on the gpu, copy from host
+  // If we are on the gpu, copy from host.
   if (app->use_gpu) {
     struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_new(app->gk_geom, &geometry_inp, app->use_gpu);
     gkyl_gk_geometry_release(app->gk_geom);
@@ -835,7 +835,7 @@ gyrokinetic_app_geometry_copy_and_write_surf(gkyl_gyrokinetic_app* app, struct g
 {
   gkyl_array_copy(arr_host, arr);
 
-  const char *fmt = "%s-%s_dir_%d.gkyl";
+  const char *fmt = "%s-%s_dir%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, varNm, dir);
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, varNm, dir);
@@ -861,12 +861,9 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
   struct gkyl_array* arr_ho9 = mkarr(false, 9*app->basis.num_basis, app->local_ext.volume);
 
 
-  struct gkyl_array* arr_surf_ho1 = mkarr(false,   app->gk_geom->surf_basis.num_basis, app->local_ext.volume);
-  struct gkyl_array* arr_surf_ho3 = mkarr(false, 3*app->gk_geom->surf_basis.num_basis, app->local_ext.volume);
-
   struct timespec wtm = gkyl_wall_clock();
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->mc2p        , arr_ho3, "mapc2p", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->mc2nu_pos        , arr_ho3, "mc2nu_pos", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->mc2nu_pos   , arr_ho3, "mc2nu_pos", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->bmag        , arr_ho1, "bmag", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->g_ij        , arr_ho6, "g_ij", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->dxdz        , arr_ho9, "dxdz", mt);
@@ -892,7 +889,9 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
 
 
   // Write surface quantities
-  for( int dir = 0; dir<3; dir++ ) {
+  struct gkyl_array* arr_surf_ho1 = mkarr(false,   app->gk_geom->surf_basis.num_basis, app->local_ext.volume);
+  struct gkyl_array* arr_surf_ho3 = mkarr(false, 3*app->gk_geom->surf_basis.num_basis, app->local_ext.volume);
+  for (int dir = 0; dir<3; dir++ ) {
     gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir]->jacobgeo       , arr_surf_ho1, "jacobgeo", dir, mt);
     gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir]->jacobtot_inv   , arr_surf_ho1, "jacobtot_inv", dir, mt);
     gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir]->b_i            , arr_surf_ho3, "b_i", dir, mt);
