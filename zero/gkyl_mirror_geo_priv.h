@@ -407,7 +407,7 @@ contour_func(double Z, void *ctx)
   c->ncall += 1;
   double R[4] = { 0 }, dR[4] = { 0 };
   
-  int nr = R_psiZ(c->geo, c->psi, Z, 4, R, dR);
+  int nr = gkyl_mirror_geo_R_psiZ(c->geo, c->psi, Z, 4, R, dR);
   double dRdZ = nr == 1 ? dR[0] : choose_closest(c->last_R, R, dR,nr);
   
   return nr>0 ? sqrt(1+dRdZ*dRdZ) : 0.0;
@@ -420,7 +420,7 @@ phi_contour_func(double Z, void *ctx)
   c->ncall += 1;
   double R[4] = { 0 }, dR[4] = { 0 };
   
-  int nr = R_psiZ(c->geo, c->psi, Z, 4, R, dR);
+  int nr = gkyl_mirror_geo_R_psiZ(c->geo, c->psi, Z, 4, R, dR);
   double dRdZ = nr == 1 ? dR[0] : choose_closest(c->last_R, R, dR, nr);
   double r_curr = nr == 1 ? R[0] : choose_closest(c->last_R, R, R, nr);
 
