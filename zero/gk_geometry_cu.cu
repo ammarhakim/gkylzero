@@ -9,6 +9,19 @@ extern "C" {
 #include <gkyl_util.h>
 #include <gkyl_gk_geometry.h>
 }
+
+struct gk_geom_surf*
+gk_geometry_surf_cu_dev_alloc(struct gk_geom_surf* up_surf_host, struct gk_geometry* up_dev)
+{
+  struct gk_geom_surf *up_surf = (struct gk_geom_surf*) gkyl_malloc(sizeof(struct gk_geom_surf));
+  up_surf->bmag = gkyl_array_new(up_surf_host->bmag->type, up_surf_host->bmag->ncomp, up_surf_host->bmag->size);
+  up_surf->jacobgeo = gkyl_array_new(up_surf_host->jacobgeo->type, up_surf_host->jacobgeo->ncomp, up_surf_host->jacobgeo->size);
+  up_surf->b_i = gkyl_array_new(up_surf_host->b_i->type, up_surf_host->b_i->ncomp, up_surf_host->b_i->size);
+  up_surf->cmag = gkyl_array_new(up_surf_host->cmag->type, up_surf_host->cmag->ncomp, up_surf_host->cmag->size);
+  up_surf->jacobtot_inv = gkyl_array_new(up_surf_host->jacobtot_inv->type, up_surf_host->jacobtot_inv->ncomp, up_surf_host->jacobtot_inv->size);
+  return up_surf;
+}
+
 // CPU interface to create and track a GPU object
 struct gk_geometry* 
 gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *geometry_inp)
@@ -47,6 +60,9 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
   struct gkyl_array *gxzj_dev = gkyl_array_cu_dev_new(geo_host->gxzj->type, geo_host->gxzj->ncomp, geo_host->gxzj->size);
   struct gkyl_array *eps2_dev = gkyl_array_cu_dev_new(geo_host->eps2->type, geo_host->eps2->ncomp, geo_host->eps2->size);
 
+  for (int dir=0; dir<up->grid.ndim; ++dir)
+    up->geo_surf[dir] = gk_geometry_surf_cu_dev_alloc(geo_host->geo_surf[dir], up);
+
   gkyl_array_copy(mc2p_dev, geo_host->mc2p);
   gkyl_array_copy(mc2nu_pos_dev, geo_host->mc2nu_pos);
   gkyl_array_copy(bmag_dev, geo_host->bmag);
@@ -70,6 +86,13 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
   gkyl_array_copy(gyyj_dev, geo_host->gyyj);
   gkyl_array_copy(gxzj_dev, geo_host->gxzj);
   gkyl_array_copy(eps2_dev, geo_host->eps2);
+  for (int dir=0; dir<up->grid.ndim; ++dir) {
+   gkyl_array_copy(up->geo_surf[dir]->bmag, geo_host->geo_surf[dir]->bmag);
+   gkyl_array_copy(up->geo_surf[dir]->jacobgeo, geo_host->geo_surf[dir]->jacobgeo);
+   gkyl_array_copy(up->geo_surf[dir]->b_i, geo_host->geo_surf[dir]->b_i);
+   gkyl_array_copy(up->geo_surf[dir]->cmag, geo_host->geo_surf[dir]->cmag);
+   gkyl_array_copy(up->geo_surf[dir]->jacobtot_inv, geo_host->geo_surf[dir]->jacobtot_inv);
+  }
 
   // this is for the memcpy below
   up->mc2p  = mc2p_dev->on_dev;
@@ -95,6 +118,13 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
   up->gyyj  = gyyj_dev->on_dev;
   up->gxzj  = gxzj_dev->on_dev;
   up->eps2  = eps2_dev->on_dev;
+  for (int dir=0; dir<up->grid.ndim; ++dir) {
+   up->geo_surf[dir]->bmag = up->geo_surf[dir]->bmag->on_dev;
+   up->geo_surf[dir]->jacobgeo = up->geo_surf[dir]->jacobgeo->on_dev;
+   up->geo_surf[dir]->b_i = up->geo_surf[dir]->b_i->on_dev;
+   up->geo_surf[dir]->cmag = up->geo_surf[dir]->cmag->on_dev;
+   up->geo_surf[dir]->jacobtot_inv = up->geo_surf[dir]->jacobtot_inv->on_dev;
+  }
 
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
@@ -129,6 +159,13 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
   up->gyyj  = gyyj_dev;
   up->gxzj  = gxzj_dev;
   up->eps2  = eps2_dev;
+  for (int dir=0; dir<up->grid.ndim; ++dir) {
+   up->geo_surf[dir]->bmag = up->geo_surf[dir]->bmag;
+   up->geo_surf[dir]->jacobgeo = up->geo_surf[dir]->jacobgeo;
+   up->geo_surf[dir]->b_i = up->geo_surf[dir]->b_i;
+   up->geo_surf[dir]->cmag = up->geo_surf[dir]->cmag;
+   up->geo_surf[dir]->jacobtot_inv = up->geo_surf[dir]->jacobtot_inv;
+  }
   
   return up;
 }
