@@ -12,6 +12,18 @@
 #include <assert.h>
 #include <float.h>
 
+struct gk_geom_surf*
+gk_geometry_surf_alloc(struct gk_geometry* up)
+{
+  struct gk_geom_surf *up_surf = gkyl_malloc(sizeof(struct gk_geom_surf));
+  up_surf->bmag = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
+  up_surf->jacobgeo = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
+  up_surf->b_i = gkyl_array_new(GKYL_DOUBLE, 3*up->surf_basis.num_basis, up->local_ext.volume);
+  up_surf->cmag = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
+  up_surf->jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
+  return up_surf;
+}
+
 struct gk_geometry*
 gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *geometry_inp, bool use_gpu)
 {
@@ -29,6 +41,7 @@ gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *
   up->global = geometry_inp->global;
   up->global_ext = geometry_inp->global_ext;
   up->grid = geometry_inp->grid;
+  gkyl_cart_modal_serendip(&up->surf_basis, up->grid.ndim-1, up->basis.poly_order);
 
   // bmag, metrics and derived geo quantities
   up->mc2p = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
@@ -54,6 +67,9 @@ gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *
   up->gyyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->gxzj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->eps2= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+
+  for (int dir=0; dir<up->grid.ndim; ++dir)
+    up->geo_surf[dir] = gk_geometry_surf_alloc(up);
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
@@ -230,19 +246,6 @@ gkyl_gk_geometry_init_nodal_grid(struct gkyl_rect_grid *ngrid, struct gkyl_rect_
     gkyl_rect_grid_init(ngrid, nrange->ndim, lower, upper, cells);
 }
 
-struct gk_geom_surf*
-gk_geometry_surf_alloc(struct gk_geometry* up)
-{
-
-  struct gk_geom_surf *up_surf = gkyl_malloc(sizeof(struct gk_geom_surf));
-  up_surf->bmag = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
-  up_surf->jacobgeo = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
-  up_surf->b_i = gkyl_array_new(GKYL_DOUBLE, 3*up->surf_basis.num_basis, up->local_ext.volume);
-  up_surf->cmag = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
-  up_surf->jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
-  return up_surf;
-}
-
 struct gk_geometry*
 gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometry_inp *geometry_inp)
 {
@@ -278,9 +281,8 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   up->gxzj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->eps2= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
 
-  for (int dir=0; dir<up->grid.ndim; ++dir) {
+  for (int dir=0; dir<up->grid.ndim; ++dir)
     up->geo_surf[dir] = gk_geometry_surf_alloc(up);
-  }
 
   // Now fill the arrays by deflation
   int rem_dirs[3] = {0};
