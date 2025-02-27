@@ -250,7 +250,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange,
 void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
   struct gkyl_tok_geo* geo, struct gkyl_tok_geo_grid_inp *inp, 
   struct gkyl_array *mc2p_nodal_quad, struct gkyl_array *mc2p_quad, struct gkyl_array *mc2p_nodal_fd,
-  struct gkyl_array *ddtheta_nodal,
+  struct gkyl_array *ddtheta_nodal, struct gkyl_array *bmag_nodal,
   struct gkyl_position_map *position_map);
 
 /**
