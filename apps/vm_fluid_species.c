@@ -497,6 +497,7 @@ vm_fluid_species_can_pb_fluid_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *a
   // Hasegawa-Mima and Hasegawa-Wakatani. This background is included as a source via 
   // the Poisson bracket: source = {phi, n0} where {., .} is the canonical bracket.
   f->can_pb_n0 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  gkyl_array_clear(f->can_pb_n0, 0.0); 
   if (f->eqn_type == GKYL_EQN_CAN_PB_HASEGAWA_MIMA || f->eqn_type == GKYL_EQN_CAN_PB_HASEGAWA_WAKATANI) {
     struct gkyl_array* can_pb_n0_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     // Evaluate specified background gradient function at nodes to insure continuity of gradient
