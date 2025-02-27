@@ -891,7 +891,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
   // Write surface quantities
   struct gkyl_array* arr_surf_ho1 = mkarr(false,   app->gk_geom->surf_basis.num_basis, app->local_ext.volume);
   struct gkyl_array* arr_surf_ho3 = mkarr(false, 3*app->gk_geom->surf_basis.num_basis, app->local_ext.volume);
-  for (int dir = 0; dir<3; dir++ ) {
+  for (int dir = 0; dir<app->cdim; dir++ ) {
     gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir]->jacobgeo       , arr_surf_ho1, "jacobgeo", dir, mt);
     gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir]->jacobtot_inv   , arr_surf_ho1, "jacobtot_inv", dir, mt);
     gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir]->b_i            , arr_surf_ho3, "b_i", dir, mt);
