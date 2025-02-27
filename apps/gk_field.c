@@ -615,7 +615,7 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
         gk_field_fem_projection_par(app, field, field->phi_smooth, field->phi_smooth);
       }
 
-      // Finish the Poisson solve with FLR efffects.
+      // Finish the Poisson solve with FLR effects.
       field->invert_flr(app, field, field->phi_smooth);
 
       // Enforce a BC of the field in the parallel direction.
