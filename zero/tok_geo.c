@@ -603,7 +603,7 @@ double calc_running_coord(double coord_lo, int i, double dx) {
 void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
     struct gkyl_tok_geo *geo, struct gkyl_tok_geo_grid_inp *inp, 
     struct gkyl_array *mc2p_nodal_quad, struct gkyl_array *mc2p_quad, struct gkyl_array *mc2p_nodal_fd,
-    struct gkyl_array *ddtheta_nodal, struct gkyl_array *bmag_nodal, struct gkyl_position_map *position_map)
+    struct gkyl_array *ddtheta_nodal, struct gkyl_position_map *position_map)
 {
 
   geo->rleft = inp->rleft;
@@ -758,7 +758,6 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
           double *mc2p_fd_n = gkyl_array_fetch(mc2p_nodal_fd, gkyl_range_idx(nrange, cidx));
           double *ddtheta_n = gkyl_array_fetch(ddtheta_nodal, gkyl_range_idx(nrange, cidx));
           double *mc2p_quad_n = gkyl_array_fetch(mc2p_nodal_quad, gkyl_range_idx(nrange, cidx));
-          double *bmag_n = gkyl_array_fetch(bmag_nodal, gkyl_range_idx(nrange, cidx));
 
           mc2p_fd_n[lidx+X_IDX] = r_curr;
           mc2p_fd_n[lidx+Y_IDX] = z_curr;
@@ -768,7 +767,6 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
             ddtheta_n[0] = dphidtheta_func(z_curr, &arc_ctx);
             ddtheta_n[1] = sin(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI;
             ddtheta_n[2] = cos(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI;
-            bmag_n[0] = bmag_func(r_curr, z_curr, &arc_ctx);
             mc2p_quad_n[lidx+X_IDX] = r_curr;
             mc2p_quad_n[lidx+Y_IDX] = z_curr;
             mc2p_quad_n[lidx+Z_IDX] = phi_curr;

@@ -182,16 +182,20 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   // calculate mapc2p in cylindrical coords at interior nodes for
   // calculating geo quantity volume expansions 
   gkyl_tok_geo_calc_interior(up, &nrange_quad, dzc, geo, &ginp, mc2p_nodal_quad, mc2p_quad, mc2p_nodal_fd, 
-    ddtheta_nodal, bmag_nodal, geometry_inp->position_map);
+    ddtheta_nodal, geometry_inp->position_map);
   // calculate mapc2p in cylindrical coords at surfaces
   for (int dir = 0; dir <up->grid.ndim; dir++) {
     gkyl_tok_geo_calc_surface(up, dir, &nrange_quad_surf[dir], dzc, geo, &ginp, up->geo_surf[dir]->mc2p_nodal,
       up->geo_surf[dir]->mc2p_nodal_fd, up->geo_surf[dir]->ddtheta_nodal, up->geo_surf[dir]->bmag_nodal, geometry_inp->position_map);
   }
 
-  // Convert bmag to modal
+  // calculate bmag at interior nodes
+  gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &up->grid, &geo->rzgrid, false);
+  gkyl_calc_bmag_advance(bcalculator, &up->local, &up->local_ext, &up->global, &geo->rzlocal, &geo->rzlocal_ext, geo->efit->bmagzr, up->bmag, mc2p_quad, true);
+  gkyl_calc_bmag_release(bcalculator);
+  // Convert bmag to nodal so we can use it to calculate dphidtheta
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->basis, &up->grid, false);
-  gkyl_nodal_ops_n2m(n2m, &up->basis, &up->grid, &nrange, &up->local, 1, bmag_nodal, up->bmag, true);
+  gkyl_nodal_ops_m2n(n2m, &up->basis, &up->grid, &nrange, &up->local, 1, bmag_nodal, up->bmag, true);
   gkyl_nodal_ops_release(n2m);
 
   // Now calculate the metrics
