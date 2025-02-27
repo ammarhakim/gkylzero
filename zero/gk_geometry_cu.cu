@@ -121,6 +121,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
   up->gxzj  = gxzj_dev->on_dev;
   up->eps2  = eps2_dev->on_dev;
   for (int dir=0; dir<up->grid.ndim; ++dir) {
+   up->geo_surf[dir] = (struct gk_geom_surf*) gkyl_malloc(sizeof(struct gk_geom_surf));
    up->geo_surf[dir]->bmag = geo_surf_dev[dir]->bmag->on_dev;
    up->geo_surf[dir]->jacobgeo = geo_surf_dev[dir]->jacobgeo->on_dev;
    up->geo_surf[dir]->b_i = geo_surf_dev[dir]->b_i->on_dev;
