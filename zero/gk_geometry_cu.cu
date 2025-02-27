@@ -14,11 +14,11 @@ struct gk_geom_surf*
 gk_geometry_surf_cu_dev_alloc(struct gk_geom_surf* up_surf_host, struct gk_geometry* up_dev)
 {
   struct gk_geom_surf *up_surf = (struct gk_geom_surf*) gkyl_malloc(sizeof(struct gk_geom_surf));
-  up_surf->bmag = gkyl_array_new(up_surf_host->bmag->type, up_surf_host->bmag->ncomp, up_surf_host->bmag->size);
-  up_surf->jacobgeo = gkyl_array_new(up_surf_host->jacobgeo->type, up_surf_host->jacobgeo->ncomp, up_surf_host->jacobgeo->size);
-  up_surf->b_i = gkyl_array_new(up_surf_host->b_i->type, up_surf_host->b_i->ncomp, up_surf_host->b_i->size);
-  up_surf->cmag = gkyl_array_new(up_surf_host->cmag->type, up_surf_host->cmag->ncomp, up_surf_host->cmag->size);
-  up_surf->jacobtot_inv = gkyl_array_new(up_surf_host->jacobtot_inv->type, up_surf_host->jacobtot_inv->ncomp, up_surf_host->jacobtot_inv->size);
+  up_surf->bmag = gkyl_array_cu_dev_new(up_surf_host->bmag->type, up_surf_host->bmag->ncomp, up_surf_host->bmag->size);
+  up_surf->jacobgeo = gkyl_array_cu_dev_new(up_surf_host->jacobgeo->type, up_surf_host->jacobgeo->ncomp, up_surf_host->jacobgeo->size);
+  up_surf->b_i = gkyl_array_cu_dev_new(up_surf_host->b_i->type, up_surf_host->b_i->ncomp, up_surf_host->b_i->size);
+  up_surf->cmag = gkyl_array_cu_dev_new(up_surf_host->cmag->type, up_surf_host->cmag->ncomp, up_surf_host->cmag->size);
+  up_surf->jacobtot_inv = gkyl_array_cu_dev_new(up_surf_host->jacobtot_inv->type, up_surf_host->jacobtot_inv->ncomp, up_surf_host->jacobtot_inv->size);
   return up_surf;
 }
 
