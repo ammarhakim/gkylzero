@@ -336,7 +336,7 @@ vm_fluid_species_can_pb_fluid_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_sp
     fluid, f->poisson_rhs_global);
 
   // Solve the Poisson problem.
-  gkyl_fem_poisson_set_rhs(f->fem_poisson, f->poisson_rhs_global);
+  gkyl_fem_poisson_set_rhs(f->fem_poisson, f->poisson_rhs_global, 0);
   gkyl_fem_poisson_solve(f->fem_poisson, f->phi_global);
 
   // Copy the portion of global potential corresponding to this MPI process to the local potential.
@@ -531,11 +531,11 @@ vm_fluid_species_can_pb_fluid_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *a
     gkyl_array_clear(f->kSq, 0.0);
     gkyl_array_shiftc(f->kSq, pow(sqrt(2.0),app->cdim), 0);
     f->fem_poisson = gkyl_fem_poisson_new(&app->global, &app->grid, app->confBasis,
-      &poisson_bcs, f->epsilon, f->kSq, true, app->use_gpu);
+      &poisson_bcs, 0, f->epsilon, f->kSq, true, app->use_gpu);
   }
   else {
     f->fem_poisson = gkyl_fem_poisson_new(&app->global, &app->grid, app->confBasis,
-      &poisson_bcs, f->epsilon, NULL, true, app->use_gpu);      
+      &poisson_bcs, 0, f->epsilon, NULL, true, app->use_gpu);      
   }
   f->has_poisson = true; 
 
