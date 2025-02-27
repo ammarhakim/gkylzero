@@ -44,6 +44,21 @@ gk_geometry_tok_surf_alloc(struct gk_geometry* gk_geom, int dir, struct gkyl_ran
   return up_surf;
 }
 
+
+void
+gk_geometry_tok_surf_release_nodal(struct gk_geometry* gk_geom, int dir)
+{
+  struct gk_geom_surf *up_surf = gk_geom->geo_surf[dir];
+  gkyl_array_release(up_surf->mc2p_nodal_fd);
+  gkyl_array_release(up_surf->mc2p_nodal);
+  gkyl_array_release(up_surf->bmag_nodal);
+  gkyl_array_release(up_surf->ddtheta_nodal);
+  gkyl_array_release(up_surf->jacobgeo_nodal);
+  gkyl_array_release(up_surf->b_i_nodal);
+  gkyl_array_release(up_surf->cmag_nodal);
+  gkyl_array_release(up_surf->jacobtot_inv_nodal);
+}
+
 void
 gk_geometry_surf_calc_expansions(struct gk_geometry* gk_geom, int dir, 
   struct gkyl_range nrange_quad_surf)
@@ -208,6 +223,7 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   up->on_dev = up; // CPU eqn obj points to itself
 
   gkyl_tok_geo_release(geo);
+  // Release interior nodal data
   gkyl_array_release(map_mc2nu_nodal);
   gkyl_array_release(mc2p_nodal_fd);
   gkyl_array_release(mc2p_nodal);
@@ -215,6 +231,9 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   gkyl_array_release(mc2p_quad);
   gkyl_array_release(ddtheta_nodal);
   gkyl_array_release(bmag_nodal);
+  // Release surface nodal data
+  for (int dir=0; dir<up->grid.ndim; ++dir)
+    gk_geometry_tok_surf_release_nodal(up, dir);
 
   return up;
 }
