@@ -11,6 +11,7 @@ struct arc_length_ctx {
   double psi, rclose, zmin, arcL;
   double rleft, rright, zmax;
   double zmin_left, zmin_right; // for single null full SOL only
+  double zmax_left, zmax_right; // for PF UP region (or upper SN, not yet implemented)
   double arcL_right; // this is for when we need to switch sides
   double arcL_left; // this is for when we need to switch sides
   double arcL_tot; // total arc length
@@ -681,6 +682,11 @@ double tok_plate_psi_func(double s, void *ctx);
  * Used to set zmin and zmax and attributes of arc_ctx before looping over arc length
 */
 void tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, struct plate_ctx* pctx, double psi_curr, double alpha_curr, double* arc_memo, double* arc_memo_left, double* arc_memo_right);
+
+/*
+ * Used to set theta extents when using a global normalization factor
+ * */
+void tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, double *theta_lo, double *theta_up);
 
 
 /*

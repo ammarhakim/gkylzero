@@ -12,7 +12,7 @@
 
 enum gkyl_positivity_shift_type {
   GKYL_POSITIVITY_SHIFT_TYPE_SHIFT_ONLY = 0,
-  GKYL_POSITIVITY_SHIFT_TYPE_MRS_LIMITER,
+  GKYL_POSITIVITY_SHIFT_TYPE_MRS_LIMITER, // Moe-Rossmanith-Seal limiter.
 };
 
 // Function pointer type for sheath reflection kernels.

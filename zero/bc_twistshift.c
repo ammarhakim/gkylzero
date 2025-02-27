@@ -1747,7 +1747,7 @@ gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
   int num_do_cum_ho[num_do_cum_sz];
   for (int i=0; i<num_do_cum_sz; i++)
     num_do_cum_ho[i] = 0;
-  for (int i=up->shear_r.lower[0]; i<num_do_cum_sz; i++)
+  for (int i=up->shear_r.lower[0]; i<up->shear_r.upper[0]+1; i++)
     num_do_cum_ho[i] = num_do_cum_ho[i-1] + up->num_do[i-up->shear_r.lower[0]];
 
   if (!up->use_gpu) {
