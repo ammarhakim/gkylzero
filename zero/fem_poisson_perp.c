@@ -11,6 +11,7 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
 
   up->solve_range = solve_range;
   up->ndim = grid->ndim;
+  up->ndim_perp = up->ndim-1;
   up->grid = *grid;
   up->num_basis =  basis.num_basis;
   up->basis_type = basis.b_type;
@@ -18,10 +19,10 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
   up->pardir = grid->ndim-1; // Assume parallel direction is always the last.
   up->basis = basis;
   up->use_gpu = use_gpu;
-  up->epsilon = epsilon;
+  up->epsilon = gkyl_array_acquire(epsilon);
 
-  assert(up->ndim == 3);
-  assert(up->epsilon->ncomp == 3*basis.num_basis);
+  assert(up->ndim > 1);
+  assert(up->epsilon->ncomp == (2*(up->ndim-1)-1)*basis.num_basis);
 
   // We assume epsilon and kSq live on the device, and we create a host-side
   // copies temporarily to compute the LHS matrix. This also works for CPU solves.
@@ -43,7 +44,7 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
   for (int d=0; d<up->ndim; d++) up->num_cells[d] = up->solve_range->upper[d]-up->solve_range->lower[d]+1;
 
   // 2D range of perpendicular cells.
-  gkyl_range_init(&up->perp_range2d, PERP_DIM, up->solve_range->lower, up->solve_range->upper);
+  gkyl_range_init(&up->perp_range2d, up->ndim_perp, up->solve_range->lower, up->solve_range->upper);
   // 1D range of parallel cells.
   int lower1d[] = {up->solve_range->lower[up->pardir]}, upper1d[] = {up->solve_range->upper[up->pardir]};
   gkyl_range_init(&up->par_range1d, 1, lower1d, upper1d);
@@ -53,7 +54,9 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
   gkyl_range_iter_init(&up->par_iter1d, &up->par_range1d);
   while (gkyl_range_iter_next(&up->par_iter1d)) {
     long paridx = gkyl_range_idx(&up->par_range1d, up->par_iter1d.idx);
-    int removeDim[] = {0,0,1},  loc[] = {0,0,paridx};
+    int removeDim[] = {0,0,0},  loc[] = {0,0,0};
+    removeDim[up->pardir] = 1;
+    loc[up->pardir] = paridx;
     gkyl_range_deflate(&up->perp_range[paridx], up->solve_range, removeDim, loc);
   }
   // Range of parallel cells.
@@ -66,18 +69,18 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
   gkyl_sub_range_init(&up->par_range, up->solve_range, sublower, subupper);
 
   // Prepare for periodic domain case.
-  for (int d=0; d<PERP_DIM; d++) {
+  for (int d=0; d<up->ndim_perp; d++) {
     // Sanity check.
     if ((bcs->lo_type[d] == GKYL_POISSON_PERIODIC && bcs->up_type[d] != GKYL_POISSON_PERIODIC) ||
         (bcs->lo_type[d] != GKYL_POISSON_PERIODIC && bcs->up_type[d] == GKYL_POISSON_PERIODIC))
       assert(false);
   }
-  for (int d=0; d<PERP_DIM; d++) up->isdirperiodic[d] = bcs->lo_type[d] == GKYL_POISSON_PERIODIC;
+  for (int d=0; d<up->ndim_perp; d++) up->isdirperiodic[d] = bcs->lo_type[d] == GKYL_POISSON_PERIODIC;
   up->isdomperiodic = true;
-  for (int d=0; d<PERP_DIM; d++) up->isdomperiodic = up->isdomperiodic && up->isdirperiodic[d];
-  assert(up->isdomperiodic == false);  // MF 2023/06/29: there's an error in
-                                       // the periodic domain case I have not
-                                       // solved.
+  for (int d=0; d<up->ndim_perp; d++) up->isdomperiodic = up->isdomperiodic && up->isdirperiodic[d];
+//  assert(up->isdomperiodic == false);  // MF 2023/06/29: there's an error in
+//                                       // the periodic domain case I have not
+//                                       // solved.
 
   if (up->isdomperiodic) {
 #ifdef GKYL_HAVE_CUDA
@@ -98,7 +101,7 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
   }
 
   // Pack BC values into a single array for easier use in kernels.
-  for (int d=0; d<PERP_DIM; d++) {
+  for (int d=0; d<up->ndim_perp; d++) {
     for (int k=0; k<6; k++) up->bcvals[d*2*3+k] = 0.0; // default. Not used in some cases (e.g. periodic).
     if (bcs->lo_type[d] != GKYL_POISSON_PERIODIC) {
       int vnum, voff;
@@ -113,14 +116,14 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
   }
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    up->bcvals_cu = (double *) gkyl_cu_malloc(sizeof(double[PERP_DIM*3*2]));
-    gkyl_cu_memcpy(up->bcvals_cu, up->bcvals, sizeof(double[PERP_DIM*3*2]), GKYL_CU_MEMCPY_H2D);
+    up->bcvals_cu = (double *) gkyl_cu_malloc(sizeof(double[PERP_DIM_MAX*3*2]));
+    gkyl_cu_memcpy(up->bcvals_cu, up->bcvals, sizeof(double[PERP_DIM_MAX*3*2]), GKYL_CU_MEMCPY_H2D);
   }
 #endif
 
   // Compute the number of local and global nodes.
   up->numnodes_local = up->num_basis;
-  up->numnodes_global = gkyl_fem_poisson_perp_global_num_nodes(up->poly_order, basis.b_type, up->num_cells, up->isdirperiodic);
+  up->numnodes_global = gkyl_fem_poisson_perp_global_num_nodes(up->ndim, up->poly_order, basis.b_type, up->num_cells, up->isdirperiodic);
 
   for (int d=0; d<up->ndim; d++) up->dx[d] = up->grid.dx[d];  // Cell lengths.
 #ifdef GKYL_HAVE_CUDA
@@ -191,7 +194,7 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
     while (gkyl_range_iter_next(&up->perp_iter2d)) {
       long perpidx = gkyl_range_idx(&up->perp_range2d, up->perp_iter2d.idx);
 
-      for (size_t d=0; d<PERP_DIM; d++) idx1[d] = up->perp_iter2d.idx[d];
+      for (size_t d=0; d<up->ndim_perp; d++) idx1[d] = up->perp_iter2d.idx[d];
       idx1[up->pardir] = up->par_iter1d.idx[0];
 
       long linidx = gkyl_range_idx(up->solve_range, idx1);
@@ -199,12 +202,12 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
       double *eps_p = gkyl_array_fetch(epsilon_ho, linidx);
       double *kSq_p = up->ishelmholtz? gkyl_array_fetch(kSq_ho, linidx) : gkyl_array_fetch(kSq_ho,0);
 
-      int keri = idx_to_inup_ker(PERP_DIM, up->num_cells, up->perp_iter2d.idx);
+      int keri = idx_to_inup_ker(up->ndim_perp, up->num_cells, up->perp_iter2d.idx);
       for (size_t d=0; d<up->ndim; d++) idx0[d] = idx1[d] - 1;
       up->kernels->l2g[keri](up->num_cells, idx0, up->globalidx);
 
       // Apply the -nabla . (epsilon*nabla_perp)-kSq stencil.
-      keri = idx_to_inloup_ker(PERP_DIM, up->num_cells, idx1);
+      keri = idx_to_inloup_ker(up->ndim_perp, up->num_cells, idx1);
       up->kernels->lhsker[keri](eps_p, kSq_p, up->dx, up->bcvals, up->globalidx, tri[paridx]);
     }
   }
@@ -277,7 +280,7 @@ gkyl_fem_poisson_perp_set_rhs(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsi
     while (gkyl_range_iter_next(&up->perp_iter2d)) {
       long perpidx = gkyl_range_idx(&up->perp_range2d, up->perp_iter2d.idx);
 
-      for (size_t d=0; d<PERP_DIM; d++) idx1[d] = up->perp_iter2d.idx[d];
+      for (size_t d=0; d<up->ndim_perp; d++) idx1[d] = up->perp_iter2d.idx[d];
       idx1[up->pardir] = up->par_iter1d.idx[0];
 
       long linidx = gkyl_range_idx(up->solve_range, idx1);
@@ -285,13 +288,13 @@ gkyl_fem_poisson_perp_set_rhs(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsi
       double *eps_p = gkyl_array_fetch(up->epsilon, linidx);
       double *rhsin_p = gkyl_array_fetch(rhsin, linidx);
 
-      int keri = idx_to_inup_ker(PERP_DIM, up->num_cells, up->perp_iter2d.idx);
+      int keri = idx_to_inup_ker(up->ndim_perp, up->num_cells, up->perp_iter2d.idx);
       for (size_t d=0; d<up->ndim; d++) idx0[d] = idx1[d] - 1;
       up->kernels->l2g[keri](up->num_cells, idx0, up->globalidx);
 
       // Apply the RHS source stencil. It's mostly the mass matrix times a
       // modal-to-nodal operator times the source, modified by BCs in skin cells.
-      keri = idx_to_inloup_ker(PERP_DIM, up->num_cells, idx1);
+      keri = idx_to_inloup_ker(up->ndim_perp, up->num_cells, idx1);
 
       long parProbOff = paridx*up->numnodes_global;
 
@@ -327,14 +330,14 @@ gkyl_fem_poisson_perp_solve(gkyl_fem_poisson_perp *up, struct gkyl_array *phiout
     while (gkyl_range_iter_next(&up->perp_iter2d)) {
       long perpidx = gkyl_range_idx(&up->perp_range2d, up->perp_iter2d.idx);
 
-      for (size_t d=0; d<PERP_DIM; d++) idx1[d] = up->perp_iter2d.idx[d];
+      for (size_t d=0; d<up->ndim_perp; d++) idx1[d] = up->perp_iter2d.idx[d];
       idx1[up->pardir] = up->par_iter1d.idx[0];
 
       long linidx = gkyl_range_idx(up->solve_range, idx1);
 
       double *phiout_p = gkyl_array_fetch(phiout, linidx);
 
-      int keri = idx_to_inup_ker(PERP_DIM, up->num_cells, up->perp_iter2d.idx);
+      int keri = idx_to_inup_ker(up->ndim_perp, up->num_cells, up->perp_iter2d.idx);
       for (size_t d=0; d<up->ndim; d++) idx0[d] = idx1[d]-1;
       up->kernels->l2g[keri](up->num_cells, idx0, up->globalidx);
 
@@ -371,5 +374,6 @@ void gkyl_fem_poisson_perp_release(struct gkyl_fem_poisson_perp *up)
   gkyl_free(up->kernels);
   gkyl_free(up->perp_range);
   gkyl_free(up->globalidx);
+  gkyl_array_release(up->epsilon);
   gkyl_free(up);
 }

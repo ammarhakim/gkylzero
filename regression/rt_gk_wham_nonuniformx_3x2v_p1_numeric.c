@@ -764,10 +764,9 @@ int main(int argc, char **argv)
     .num_diag_moments = 8,
     .diag_moments = {"BiMaxwellianMoments", "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
   };
-
-  struct gkyl_gyrokinetic_field field = {
-    .polarization_bmag = ctx.B_p, 
-    .fem_parbc = GKYL_FEM_PARPROJ_NONE,
+  struct gkyl_gyrokinetic_field field =
+  {
+    .polarization_bmag = ctx.B_p,
     .poisson_bcs = {
       .lo_type = {GKYL_POISSON_NEUMANN, GKYL_POISSON_PERIODIC},
       .up_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC},
