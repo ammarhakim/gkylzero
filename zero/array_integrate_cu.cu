@@ -50,6 +50,7 @@ gkyl_array_integrate_cu_dev_new(const struct gkyl_rect_grid *grid, const struct 
   // Allocate space for new updater.
   struct gkyl_array_integrate *up = (struct gkyl_array_integrate*) gkyl_malloc(sizeof(struct gkyl_array_integrate));
 
+  up->op = op;
   up->num_basis = basis->num_basis;
   up->num_comp = num_comp;
   up->use_gpu = true;
@@ -77,7 +78,7 @@ gkyl_array_integrate_cu_dev_new(const struct gkyl_rect_grid *grid, const struct 
 template <unsigned int BLOCKSIZE>
 __global__ void
 array_integrate_blockRedAtomic_cub(struct gkyl_array_integrate *up, const struct gkyl_array *inp,
-  double factor, const struct gkyl_array *weight, const struct gkyl_range range, const struct gkyl_range weight_range, double *out)
+  double factor, const struct gkyl_array *weight, const struct gkyl_range range, struct gkyl_range weight_range, double *out)
 {
   unsigned long linc = blockIdx.x*blockDim.x + threadIdx.x;
 
@@ -92,10 +93,13 @@ array_integrate_blockRedAtomic_cub(struct gkyl_array_integrate *up, const struct
   long start = gkyl_range_idx(&range, idx);
   const double *fptr = (const double*) gkyl_array_cfetch(inp, start);
 
-  int widx[GKYL_MAX_DIM];
-  for (int d=0; d<weight_range.ndim; d++) widx[d] = idx[d]; 
-  long linidx_w = gkyl_range_idx(&weight_range, widx);
-  const double *wptr = (const double*) gkyl_array_cfetch(weight, linidx_w);
+  const double *wptr = 0;
+  if (weight) {
+    int widx[GKYL_MAX_DIM];
+    for (int d=0; d<weight_range.ndim; d++) widx[d] = idx[d]; 
+    long linidx_w = gkyl_range_idx(&weight_range, widx);
+    wptr = (const double*) gkyl_array_cfetch(weight, linidx_w);
+  }
 
   double outLocal[10]; // Set to max of 10 (e.g. heat flux tensor).
   for (unsigned int k=0; k<up->num_comp; ++k)
@@ -121,8 +125,14 @@ void gkyl_array_integrate_advance_cu(gkyl_array_integrate *up, const struct gkyl
 
   const int nthreads = GKYL_DEFAULT_NUM_THREADS;
   int nblocks = gkyl_int_div_up(range->volume, nthreads);
+  struct gkyl_array *weight_on_dev = NULL;
+  struct gkyl_range weight_range_copy;
+  if (weight) {
+    weight_on_dev = weight->on_dev;
+    weight_range_copy = *weight_range;
+  }
   array_integrate_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(up->on_dev, fin->on_dev, factor, 
-    weight->on_dev, *range, *weight_range, out);
+    weight_on_dev, *range, weight_range_copy, out);
   // device synchronize required because out may be host pinned memory
   cudaDeviceSynchronize();
 }

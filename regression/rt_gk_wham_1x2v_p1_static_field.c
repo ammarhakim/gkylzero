@@ -863,7 +863,6 @@ int main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_field field = {
     .polarization_bmag = ctx.B_p, 
-    .fem_parbc = GKYL_FEM_PARPROJ_NONE,
     .kperpSq = pow(ctx.kperp, 2.),
     .is_static = true, // Don't update the field in time.
   };

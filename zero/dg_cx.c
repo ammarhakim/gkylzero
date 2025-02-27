@@ -13,6 +13,11 @@
 gkyl_dg_cx*
 gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu)
 {
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_dg_cx_cu_dev_new(inp);
+  } 
+#endif  
   gkyl_dg_cx *up = gkyl_malloc(sizeof(struct gkyl_dg_cx));
 
   up->cbasis = inp->cbasis;
@@ -30,43 +35,19 @@ gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu)
 
   int cdim = up->cbasis->ndim;
   int poly_order = up->cbasis->poly_order;
-  up->cdim = cdim;
-  up->use_gpu = use_gpu;
-  up->vdim_gk = up->pbasis_gk->ndim - cdim; 
-  up->vdim_vl = up->pbasis_vl->ndim - cdim; 
+  int vdim_vl = up->pbasis_vl->ndim - cdim;
+  enum gkyl_basis_type b_type = up->pbasis_vl->b_type;
 
-  if (up->type_ion == GKYL_ION_H) {
-    up->a = 1.12e-18;
-    up->b = 7.15e-20;
-  }
-  else if (up->type_ion == GKYL_ION_D) {
-    up->a = 1.09e-18;
-    up->b = 7.15e-20;
-  }
-  else if (up->type_ion == GKYL_ION_HE) {
-    up->a = 6.484e-19;
-    up->b = 4.350e-20;
-  } 
-  else if (up->type_ion == GKYL_ION_NE) {
-    up->a = 7.95e-19;
-    up->b = 5.65e-20;
-  }
-  
-  //up->on_dev = up; // CPU eqn obj points to itself
-  
-  //up->react_rate = ser_cx_react_rate_kernels[cv_index[cdim].vdim[up->vdim_vl]].kernels[poly_order];
+  // get parameters for fitting function
+  fit_param(up->type_ion, &up->a, &up->b);
 
-  if (!use_gpu) {
-    up->kernels = gkyl_malloc(sizeof(struct gkyl_dg_cx_kernels));
-  }
-#ifdef GKYL_HAVE_CUDA
-  if (use_gpu) {
-    up->kernels = gkyl_cu_malloc(sizeof(struct gkyl_dg_cx_kernels));
-  }
-#endif
+  int tblidx = cv_index[cdim].vdim[vdim_vl];
+  assert(tblidx != -1);
+  up->react_rate = choose_kern(b_type, tblidx, poly_order);
 
-  dg_cx_choose_kernel(up->kernels, *up->pbasis_vl, *up->cbasis, use_gpu);
-  //assert(up->react_rate);
+  up->flags = 0;
+  GKYL_CLEAR_CU_ALLOC(up->flags);
+  up->on_dev = up;
   
   return up;
 }
@@ -95,19 +76,8 @@ void gkyl_dg_cx_coll(const struct gkyl_dg_cx *up,
 
     double *coef_cx_d = gkyl_array_fetch(coef_cx, loc);
     
-    double cflr = up->kernels->react_rate(up->a, up->b, up->vt_sq_ion_min, up->vt_sq_neut_min,
+    double cflr = up->react_rate(up->a, up->b, up->vt_sq_ion_min, up->vt_sq_neut_min,
       prim_vars_ion_d, prim_vars_neut_d, upar_b_i_d, coef_cx_d);
-    
-    /* gkyl_range_deflate(&vel_rng, up->phase_rng, rem_dir, conf_iter.idx); */
-    /* gkyl_range_iter_no_split_init(&vel_iter, &vel_rng); */
-    /* // cfl associated with reaction is a *phase space* cfl */
-    /* // Need to loop over velocity space for each configuration space cell */
-    /* // to get total cfl rate in each phase space cell */
-    /* while (gkyl_range_iter_next(&vel_iter)) { */
-    /*   long cfl_idx = gkyl_range_idx(&vel_rng, vel_iter.idx); */
-    /*   double *cflrate_d = gkyl_array_fetch(cflrate, cfl_idx); */
-    /*   cflrate_d[0] += cflr; // frequencies are additive */
-    /* } */
   }
 }
 

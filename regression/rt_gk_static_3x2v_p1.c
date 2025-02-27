@@ -534,8 +534,16 @@ main(int argc, char **argv)
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
-    .fem_parbc = GKYL_FEM_PARPROJ_NONE,
+    .zero_init_field = true,
     .is_static = true,
+
+    .poisson_bcs = {
+      .lo_type = { GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC },
+      .up_type = { GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC },
+
+      .lo_value = { 0.0 },
+      .up_value = { 0.0 },
+    },
   };
 
   // GK app.
