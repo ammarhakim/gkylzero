@@ -262,6 +262,6 @@ gkyl_dg_calc_gyrokinetic_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid
  */
 void gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu(struct gkyl_dg_calc_gyrokinetic_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
+  const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
   struct gkyl_array* alpha_surf, struct gkyl_array* sgn_alpha_surf, struct gkyl_array* const_sgn_alpha);
 #endif

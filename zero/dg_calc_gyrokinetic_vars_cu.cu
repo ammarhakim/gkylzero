@@ -27,7 +27,7 @@ gkyl_parallelize_components_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gk
 __global__ void
 gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu_kernel(struct gkyl_dg_calc_gyrokinetic_vars *up, 
   struct gkyl_range conf_range, struct gkyl_range phase_range,
-  struct gkyl_range phase_ext_range, const struct gkyl_array *phi, 
+  struct gkyl_range conf_ext_range, struct gkyl_range phase_ext_range, const struct gkyl_array *phi, 
   struct gkyl_array* alpha_surf, struct gkyl_array* sgn_alpha_surf, struct gkyl_array* const_sgn_alpha)
 { 
   int pdim = up->pdim;
@@ -73,11 +73,10 @@ gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu_kernel(struct gkyl_dg_calc_gyrokinet
       if (linc2 == dir) {
         const double *bmag_surf_d, *jacobtot_inv_surf_d, *cmag_surf_d, *b_i_surf_d;
         if (dir < cdim) {
-          int surf_dir = dir == cdim-1? 2 : dir;
-          bmag_surf_d = (const double*) gkyl_array_cfetch(up->gk_geom->geo_surf[surf_dir]->bmag, loc_conf);
-          jacobtot_inv_surf_d = (const double*) gkyl_array_cfetch(up->gk_geom->geo_surf[surf_dir]->jacobtot_inv, loc_conf);
-          cmag_surf_d = (const double*) gkyl_array_cfetch(up->gk_geom->geo_surf[surf_dir]->cmag, loc_conf);
-          b_i_surf_d = (const double*) gkyl_array_cfetch(up->gk_geom->geo_surf[surf_dir]->b_i, loc_conf);
+          bmag_surf_d = (const double*) gkyl_array_cfetch(up->gk_geom->geo_surf[dir]->bmag, loc_conf);
+          jacobtot_inv_surf_d = (const double*) gkyl_array_cfetch(up->gk_geom->geo_surf[dir]->jacobtot_inv, loc_conf);
+          cmag_surf_d = (const double*) gkyl_array_cfetch(up->gk_geom->geo_surf[dir]->cmag, loc_conf);
+          b_i_surf_d = (const double*) gkyl_array_cfetch(up->gk_geom->geo_surf[dir]->b_i, loc_conf);
         }
         const_sgn_alpha_d[dir] = up->alpha_surf[dir](xc, up->phase_grid.dx, 
           vmap_d, vmapSq_d, up->charge, up->mass,
@@ -93,7 +92,13 @@ gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu_kernel(struct gkyl_dg_calc_gyrokinet
         if (dir < cdim && idx[dir] == conf_range.upper[dir]) {
           gkyl_copy_int_arr(pdim, idx, idx_edge);
           idx_edge[dir] = idx_edge[dir]+1;
+          long loc_conf_ext = gkyl_range_idx(&conf_ext_range, idx_edge);
           long loc_phase_ext = gkyl_range_idx(&phase_ext_range, idx_edge);
+
+          bmag_surf_d = (const double*) gkyl_array_cfetch(up->gk_geom->geo_surf[dir]->bmag, loc_conf_ext);
+          jacobtot_inv_surf_d = (const double*) gkyl_array_cfetch(up->gk_geom->geo_surf[dir]->jacobtot_inv, loc_conf_ext);
+          cmag_surf_d = (const double*) gkyl_array_cfetch(up->gk_geom->geo_surf[dir]->cmag, loc_conf_ext);
+          b_i_surf_d = (const double*) gkyl_array_cfetch(up->gk_geom->geo_surf[dir]->b_i, loc_conf_ext);
 
           double* alpha_surf_ext_d = (double*) gkyl_array_fetch(alpha_surf, loc_phase_ext);
           double* sgn_alpha_surf_ext_d = (double*) gkyl_array_fetch(sgn_alpha_surf, loc_phase_ext);
@@ -112,13 +117,13 @@ gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu_kernel(struct gkyl_dg_calc_gyrokinet
 // Host-side wrapper for gyrokinetic surface alpha calculation
 void gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu(struct gkyl_dg_calc_gyrokinetic_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
+  const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
   struct gkyl_array* alpha_surf, struct gkyl_array* sgn_alpha_surf, struct gkyl_array* const_sgn_alpha)
 {
   dim3 dimGrid, dimBlock;
   gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, up->cdim+1);
   gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu_kernel<<<dimGrid, dimBlock>>>(up->on_dev, 
-    *conf_range, *phase_range, *phase_ext_range, phi->on_dev,
+    *conf_range, *phase_range, *conf_ext_range, *phase_ext_range, phi->on_dev,
     alpha_surf->on_dev, sgn_alpha_surf->on_dev, const_sgn_alpha->on_dev);
 }
 

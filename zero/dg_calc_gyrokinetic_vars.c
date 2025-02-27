@@ -66,7 +66,7 @@ void gkyl_dg_calc_gyrokinetic_vars_alpha_surf(struct gkyl_dg_calc_gyrokinetic_va
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(alpha_surf)) {
     return gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu(up, conf_range, phase_range,
-      phase_ext_range, phi, alpha_surf, sgn_alpha_surf, const_sgn_alpha);
+      conf_ext_range, phase_ext_range, phi, alpha_surf, sgn_alpha_surf, const_sgn_alpha);
   }
 #endif
   int pdim = up->pdim;
@@ -103,11 +103,10 @@ void gkyl_dg_calc_gyrokinetic_vars_alpha_surf(struct gkyl_dg_calc_gyrokinetic_va
     for (int dir = 0; dir<cdim+1; ++dir) {
       const double *bmag_surf_d, *jacobtot_inv_surf_d, *cmag_surf_d, *b_i_surf_d;
       if (dir < cdim) {
-        int surf_dir = dir;
-        bmag_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[surf_dir]->bmag, loc_conf);
-        jacobtot_inv_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[surf_dir]->jacobtot_inv, loc_conf);
-        cmag_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[surf_dir]->cmag, loc_conf);
-        b_i_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[surf_dir]->b_i, loc_conf);
+        bmag_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[dir]->bmag, loc_conf);
+        jacobtot_inv_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[dir]->jacobtot_inv, loc_conf);
+        cmag_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[dir]->cmag, loc_conf);
+        b_i_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[dir]->b_i, loc_conf);
       }
 
       const_sgn_alpha_d[dir] = up->alpha_surf[dir](xc, up->phase_grid.dx, 
@@ -127,11 +126,10 @@ void gkyl_dg_calc_gyrokinetic_vars_alpha_surf(struct gkyl_dg_calc_gyrokinetic_va
         long loc_conf_ext = gkyl_range_idx(conf_ext_range, idx_edge);
         long loc_phase_ext = gkyl_range_idx(phase_ext_range, idx_edge);
 
-        int surf_dir = dir;
-        bmag_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[surf_dir]->bmag, loc_conf_ext);
-        jacobtot_inv_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[surf_dir]->jacobtot_inv, loc_conf_ext);
-        cmag_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[surf_dir]->cmag, loc_conf_ext);
-        b_i_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[surf_dir]->b_i, loc_conf_ext);
+        bmag_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[dir]->bmag, loc_conf_ext);
+        jacobtot_inv_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[dir]->jacobtot_inv, loc_conf_ext);
+        cmag_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[dir]->cmag, loc_conf_ext);
+        b_i_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[dir]->b_i, loc_conf_ext);
 
         double* alpha_surf_ext_d = gkyl_array_fetch(alpha_surf, loc_phase_ext);
         double* sgn_alpha_surf_ext_d = gkyl_array_fetch(sgn_alpha_surf, loc_phase_ext);
