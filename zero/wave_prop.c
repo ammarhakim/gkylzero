@@ -62,8 +62,11 @@ limiter_function(double r, enum gkyl_wave_limiter limiter)
       theta = 1.0;
       break;
     
+    // ** Fully formally-verified implementation of the minmod flux limiter **
+    // ** Proof of symmetry (equivalent action on forward and backward gradients): ../proofs/proof_limiter_minmod_symmetry.rkt **
+    // ** Proof of second-order TVD (total variation diminishing): ../proofs/proof_limiter_minmod_tvd.rkt **
     case GKYL_MIN_MOD:
-      theta = fmax(0, fmin(1, r));
+      theta = fmax(0.0, fmin(1.0, r));
       break;
 
     case GKYL_SUPERBEE:
