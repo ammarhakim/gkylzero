@@ -878,7 +878,7 @@ gyrokinetic_multib_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcur
     gkyl_multib_comm_conn_array_transfer(app->comm, app->num_local_blocks, app->local_blocks,
       app->mbcc_sync_charged[i].send, app->mbcc_sync_charged[i].recv, fs, fs);
 
-    // Divide and multiply by the appropriate jacobians.
+    // Divide and multiply by the appropriate jacobians if not at a z boundary.
     for (int b=0; b<app->num_local_blocks; ++b) {
       struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
       int bid = app->local_blocks[b];
@@ -893,7 +893,7 @@ gyrokinetic_multib_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcur
               e==0? &sbapp->global_lower_skin[dir] : &sbapp->global_upper_skin[dir],
               e==0? &sbapp->global_lower_ghost[dir] : &sbapp->global_upper_ghost[dir],
               e==0? &gks->global_lower_ghost[dir] : &gks->global_upper_ghost[dir],
-              sbapp->gk_geom->jacobgeo, distf[li_charged+i]);
+              sbapp->gk_geom->geo_surf[dir]->jacobgeo_sync, distf[li_charged+i]);
           }
         }
       }
@@ -925,7 +925,7 @@ gyrokinetic_multib_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcur
                 e==0? &sbapp->global_lower_skin[dir] : &sbapp->global_upper_skin[dir],
                 e==0? &sbapp->global_lower_ghost[dir] : &sbapp->global_upper_ghost[dir],
                 e==0? &gkns->global_lower_ghost[dir] : &gkns->global_upper_ghost[dir],
-                sbapp->gk_geom->jacobgeo, distf_neut[li_neut+i]);
+                sbapp->gk_geom->geo_surf[dir]->jacobgeo_sync, distf_neut[li_neut+i]);
             }
           }
         }
