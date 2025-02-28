@@ -6,6 +6,7 @@
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_dg_advection.h>
+#include <gkyl_dg_canonical_pb_fluid.h>
 #include <gkyl_dg_euler.h>
 #include <gkyl_dg_updater_fluid.h>
 #include <gkyl_dg_updater_fluid_priv.h>
@@ -35,6 +36,11 @@ gkyl_dg_updater_fluid_new(const struct gkyl_rect_grid *grid,
     up->eqn_fluid = gkyl_dg_euler_new(cbasis, conf_range, wv_eqn, geom, up->use_gpu);
     struct gkyl_dg_euler_auxfields *euler_inp = aux_inp;
     gkyl_euler_set_auxfields(up->eqn_fluid, *euler_inp);
+  } 
+  else {
+    up->eqn_fluid = gkyl_dg_canonical_pb_fluid_new(cbasis, conf_range, wv_eqn, up->use_gpu);
+    struct gkyl_dg_canonical_pb_fluid_auxfields *dg_can_pb_fluid_inp = aux_inp;
+    gkyl_canonical_pb_fluid_set_auxfields(up->eqn_fluid, *dg_can_pb_fluid_inp);    
   }
 
   int cdim = cbasis->ndim;

@@ -25,12 +25,14 @@
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_canonical_pb_vars.h>
+#include <gkyl_dg_calc_canonical_pb_fluid_vars.h>
 #include <gkyl_dg_calc_em_vars.h>
 #include <gkyl_dg_calc_prim_vars.h>
 #include <gkyl_dg_calc_fluid_vars.h>
 #include <gkyl_dg_calc_fluid_em_coupling.h>
 #include <gkyl_dg_calc_sr_vars.h>
 #include <gkyl_dg_canonical_pb.h>
+#include <gkyl_dg_canonical_pb_fluid.h>
 #include <gkyl_dg_euler.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_updater_fluid.h>
@@ -570,6 +572,7 @@ struct vm_fluid_species {
   enum gkyl_eqn_type eqn_type;  // type ID of equation
   int num_equations;            // number of equations in species
   struct gkyl_wv_eqn *equation; // equation object
+  bool has_poisson;
   // organization of the different equation objects and the required data and solvers
   union {
     // Applied advection
@@ -581,8 +584,11 @@ struct vm_fluid_species {
     struct {
       // For isothermal Euler, u : (ux, uy, uz), p : (vth*rho)
       // For Euler, u : (ux, uy, uz, T/m), p : (gamma - 1)*(E - 1/2 rho u^2)
+      // Also a prim_vars and prim_vars_host array for I/O of (u,p)
       struct gkyl_array *u; 
       struct gkyl_array *p; 
+      struct gkyl_array *prim_vars; 
+      struct gkyl_array *prim_vars_host; 
       struct gkyl_array *cell_avg_prim; // Integer array for whether e.g., rho *only* uses cell averages for weak division
                                         // Determined when constructing the matrix if rho < 0.0 at control points
 
@@ -597,6 +603,29 @@ struct vm_fluid_species {
       struct gkyl_dg_calc_fluid_vars *calc_fluid_vars; // Updater to compute fluid variables (flow velocity and pressure)
       struct gkyl_dg_calc_fluid_vars *calc_fluid_vars_ext; // Updater to compute fluid variables (flow velocity and pressure)
                                                            // over extended range (used when BCs are not absorbing to minimize apply BCs calls) 
+    };
+    // Canonical PB Fluid such as incompressible Euler or Hasegawa-Wakatani
+    struct {
+      struct gkyl_array *phi; // potential determined by canonical PB Poisson equation on local range used by updater
+      struct gkyl_array *phi_global; // potential determined by canonical PB Poisson equation on global range given by Poisson solver
+      struct gkyl_array *poisson_rhs_global; // global RHS of Poisson equation, simply an all-gather of, e.g., the vorticity
+      struct gkyl_array *phi_host; // host copy for use IO
+      struct gkyl_array *can_pb_n0; // background density gradient for driving turbulence in some fluid systems. 
+      struct gkyl_array *epsilon; // Permittivity in Poisson equation, set to -1.0 for canonical PB Poisson equations. 
+      struct gkyl_array *kSq; // k^2 factor in Helmholtz equation needed for Hasegawa-Mima where we solve (grad^2 - 1) phi = RHS
+
+      struct gkyl_range global_sub_range; // sub range of intersection of global range and local range
+                                          // for solving Poisson equation on each MPI process in parallel
+    
+      struct gkyl_fem_poisson *fem_poisson; // Poisson solver for - nabla . (epsilon * nabla phi) - kSq * phi = rho.
+
+      struct gkyl_array *alpha_surf; // Surface configuration space velocity (derivatives of potential, phi)
+      struct gkyl_array *sgn_alpha_surf; // sign(alpha_surf) at quadrature points
+      struct gkyl_array *const_sgn_alpha; // boolean for if sign(alpha_surf) is a constant, either +1 or -1
+      struct gkyl_dg_calc_canonical_pb_fluid_vars *calc_can_pb_fluid_vars; // Updater for computing surface alpha and sources. 
+      struct gkyl_array *can_pb_energy_fac; // Factor in calculation of canonical PB energy diagnostic.
+      struct gkyl_array_integrate *calc_can_pb_energy;
+      double *red_can_pb_energy, *red_can_pb_energy_global; // Memory for use in GPU reduction of canonical PB energy.
     };
   };
 
@@ -632,6 +661,13 @@ struct vm_fluid_species {
   struct vm_fluid_source src; // applied source
 
   double* omegaCfl_ptr;
+
+  // Function pointers for computing primitive/auxiliary variables, 
+  // and also write method, release method, and method for calculating integrated quantities. 
+  void (*prim_vars_func)(gkyl_vlasov_app *app, struct vm_fluid_species *f, const struct gkyl_array *fluid); 
+  void (*calc_integrated_mom_func)(gkyl_vlasov_app* app, struct vm_fluid_species *f, double tm); 
+  void (*write_func)(gkyl_vlasov_app *app, struct vm_fluid_species *f, double tm, int frame); 
+  void (*release_func)(const gkyl_vlasov_app *app, struct vm_fluid_species *f);   
 };
 
 // fluid-EM coupling data
@@ -732,6 +768,33 @@ struct gkyl_update_status vlasov_poisson_update_ssp_rk3(gkyl_vlasov_app *app,
   double dt0);
 
 /** gkyl_vlasov_app private API */
+
+/**
+ * Create a new array metadata object. It must be freed using
+ * vlasov_array_meta_release.
+ *
+ * @param meta Vlasov metadata object.
+ * @return Array metadata object.
+ */
+struct gkyl_msgpack_data*
+vlasov_array_meta_new(struct vlasov_output_meta meta);
+
+/**
+ * Free memory for array metadata object.
+ *
+ * @param mt Array metadata object.
+ */
+void
+vlasov_array_meta_release(struct gkyl_msgpack_data *mt);
+
+/**
+ * Return the metadata for outputing vlasov data.
+ *
+ * @param mt Array metadata object.
+ * @return A vlasov metadata object.
+ */
+struct vlasov_output_meta
+vlasov_meta_from_mpack(struct gkyl_msgpack_data *mt);
 
 /**
  * Apply BCs to kinetic species, fluid species and EM fields.
@@ -1604,6 +1667,25 @@ double vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid
  * @param f Fluid Species to apply BCs
  */
 void vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species, struct gkyl_array *f);
+
+/**
+ * Computed the integrated quantities for the fluid system.
+ *
+ * @param app Vlasov app object
+ * @param fluid_species Pointer to fluid species
+ * @param tm Time integrated quantities are being computed at. 
+ */
+void vm_fluid_species_calc_integrated_mom(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double tm);
+
+/**
+ * Write out the evolved fluid species and other potential primitive/auxiliary variables.
+ *
+ * @param app Vlasov app object
+ * @param fluid_species Pointer to fluid species
+ * @param tm Time fluid quantities are being written at.
+ * @param frame Frame number for I/O.  
+ */
+void vm_fluid_species_write(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double tm, int frame);
 
 /**
  * Release resources allocated by fluid species
