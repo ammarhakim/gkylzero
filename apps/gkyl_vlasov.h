@@ -122,7 +122,6 @@ struct gkyl_vlasov_fluid_advection {
   void *velocity_ctx; // context for applied advection function
   // pointer to applied advection velocity function
   void (*velocity)(double t, const double *xn, double *aout, void *ctx);
-  enum gkyl_quad_type qtype; // quadrature to use
 };
 
 // Parameters for fluid species diffusion
@@ -250,6 +249,10 @@ struct gkyl_vlasov_fluid_species {
   
   // diffusion coupling to include
   struct gkyl_vlasov_fluid_diffusion diffusion;
+
+  void *can_pb_n0_ctx; // context for background density function in canonical PB fluid systems
+  // pointer to background density function in canonical PB fluid systems
+  void (*can_pb_n0)(double t, const double *xn, double *aout, void *ctx);
 
   void *app_accel_ctx; // context for applied acceleration function
   // pointer to applied acceleration function
@@ -568,6 +571,14 @@ void gkyl_vlasov_app_write_mom(gkyl_vlasov_app *app, double tm, int frame);
  * @param app App object.
  */
 void gkyl_vlasov_app_write_integrated_mom(gkyl_vlasov_app *app);
+
+/**
+ * Write integrated diagnostic quantities for fluid species to file. Integrated
+ * quantities are appended to the same file.
+ * 
+ * @param app App object.
+ */
+void gkyl_vlasov_app_write_fluid_integrated_mom(gkyl_vlasov_app *app);
 
 /**
  * Write integrated L2 norm of the species distribution function to file. Integrated
