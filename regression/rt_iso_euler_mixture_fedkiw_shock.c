@@ -235,7 +235,7 @@ main(int argc, char **argv)
   struct gkyl_moment_species fluid = {
     .name = "iso_euler_mixture",
     .equation = iso_euler_mixture,
-    .evolve = true,
+    
     .init = evalIsoEulerMixtureInit,
     .ctx = &ctx,
 

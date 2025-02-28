@@ -963,9 +963,8 @@ vlasov_field_lw_new(lua_State *L)
   vm_field.mgnErrorSpeedFactor = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
   vm_field.limit_em = glua_tbl_get_bool(L, "limitField", false);
 
-  vm_field.is_static = glua_tbl_get_bool(L, "isStatic", false);
-
   bool evolve = glua_tbl_get_bool(L, "evolve", true);
+  vm_field.is_static = !evolve;
 
   int init_ref = LUA_NOREF;
   if (glua_tbl_get_func(L, "init")) {
@@ -1100,6 +1099,7 @@ vlasov_field_lw_new(lua_State *L)
     .nret = 6,
     .L = L,
   };
+  vmf_lw->evolve_external_field = evolve_external_field;
 
   vmf_lw->has_applied_current_func = has_applied_current_func;
   vmf_lw->applied_current_func_ref = (struct lua_func_ctx) {
@@ -1781,7 +1781,6 @@ vm_app_new(lua_State *L)
         vmf->init_ref.ndim = cdim;
 
         vm.field = vmf->vm_field;
-        vm.skip_field = !vmf->evolve;
 
         app_lw->field_func_ctx = vmf->init_ref;
         vm.field.init = gkyl_lw_eval_cb;
@@ -2334,10 +2333,10 @@ vm_app_run(lua_State *L)
 
   struct step_message_trigs m_trig = {
     .log_count = 0,
-    .tenth = t_curr > 0.0 ? 0.0 : (int) floor(t_curr / t_end * 10.0),
-    .p1c = t_curr > 0.0 ? 0.0 : (int) floor(t_curr / t_end * 100.0) % 10,
-    .log_trig = { .dt = (t_end - t_curr) / 10.0 },
-    .log_trig_1p = { .dt = (t_end - t_curr) / 100.0 },
+    .tenth = t_curr > 0.0 ?  (int) floor(t_curr / t_end * 10.0) : 0.0,
+    .p1c = t_curr > 0.0 ?  (int) floor(t_curr / t_end * 100.0) % 10 : 0.0,
+    .log_trig = { .dt = t_end / 10.0, .tcurr = t_curr },
+    .log_trig_1p = { .dt = t_end / 100.0, .tcurr = t_curr },
   };
 
   struct timespec tm_ic0 = gkyl_wall_clock();

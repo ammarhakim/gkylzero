@@ -656,12 +656,27 @@ gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
       snprintf(fileNm_ext_em, sizeof fileNm_ext_em, fmt_ext_em, app->name, frame);
 
       // External EM field computed with project on basis, so just use host copy 
-      app->field_calc_ext_em(app, app->field, tm);
+      vm_field_calc_ext_em(app, app->field, tm);
 
       gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
         mt, app->field->ext_em_host, fileNm_ext_em);
     }
   }
+  if (app->field->has_app_current) {
+    // Only write out external fields at t=0 or if they are time-dependent
+    if (frame == 0 || app->field->app_current_evolve) {
+      const char *fmt_app_current = "%s-field_app_current_%d.gkyl";
+      int sz_app_current = gkyl_calc_strlen(fmt_app_current, app->name, frame);
+      char fileNm_app_current[sz_app_current+1]; // ensures no buffer overflow
+      snprintf(fileNm_app_current, sizeof fileNm_app_current, fmt_app_current, app->name, frame);
+
+      // External EM field computed with project on basis, so just use host copy 
+      vm_field_calc_app_current(app, app->field, tm);
+
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
+        mt, app->field->app_current_host, fileNm_app_current);
+    }
+  }  
   if (app->field->has_ext_pot) {
     if (frame == 0 || app->field->ext_pot_evolve) {
       const char *fmt_ext_pot = "%s-field_ext_pot_%d.gkyl";
@@ -1333,7 +1348,14 @@ gkyl_vlasov_app_from_file_field(gkyl_vlasov_app *app, const char *fname)
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status)
       vm_field_apply_bc(app, app->field, app->field->em);
   }
-  
+
+  // Compute external EM field and applied current if present
+  // Computation necessary in case external EM field or applied current
+  // are time-independent and not computed in the time-stepping loop
+  // since they are not read-in as part of restarts. 
+  vm_field_calc_ext_em(app, app->field, rstat.stime);
+  vm_field_calc_app_current(app, app->field, rstat.stime);  
+
   return rstat;
 }
 
@@ -1348,15 +1370,31 @@ gkyl_vlasov_app_from_file_species(gkyl_vlasov_app *app, int sidx,
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
     rstat.io_status =
       gkyl_comm_array_read(vm_s->comm, &vm_s->grid, &vm_s->local, vm_s->f_host, fname);
-    if (app->use_gpu)
+    if (app->use_gpu) {
       gkyl_array_copy(vm_s->f, vm_s->f_host);
-    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
-      if (vm_s->calc_bflux)                                                                
-        vm_species_bflux_rhs(app, vm_s, &vm_s->bflux, vm_s->f, vm_s->f);
-      vm_species_apply_bc(app, vm_s, vm_s->f, rstat.stime);
-      if (vm_s->source_id)
-        vm_species_source_calc(app, vm_s, &vm_s->src, 0.0);
     }
+    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+      if (vm_s->calc_bflux) {                                                                
+        vm_species_bflux_rhs(app, vm_s, &vm_s->bflux, vm_s->f, vm_s->f);
+      }
+      vm_species_apply_bc(app, vm_s, vm_s->f, rstat.stime);
+      if (vm_s->source_id) {
+        vm_species_source_calc(app, vm_s, &vm_s->src, 0.0);
+      }
+    }
+  }
+
+  // Compute applied acceleration if present.
+  // Computation necessary in case applied acceleration
+  // is time-independent and not computed in the time-stepping loop
+  // since it is not read-in as part of restarts. 
+  vm_species_calc_app_accel(app, vm_s, rstat.stime);
+
+  // Optional runtime configuration to use BGK collisions but with fixed input 
+  // temperature relaxation based on the initial temperature value. 
+  // Need to reinitialize the fixed temperature at restarts. 
+  if (vm_s->bgk.fixed_temp_relax) {
+    vm_species_bgk_moms_fixed_temp(app, vm_s, &vm_s->bgk, vm_s->f);
   }
 
   return rstat;
@@ -1373,14 +1411,22 @@ gkyl_vlasov_app_from_file_fluid_species(gkyl_vlasov_app *app, int sidx,
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
     rstat.io_status =
       gkyl_comm_array_read(app->comm, &app->grid, &app->local, vm_fs->fluid_host, fname);
-    if (app->use_gpu)
+    if (app->use_gpu) {
       gkyl_array_copy(vm_fs->fluid, vm_fs->fluid_host);
+    }
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
       vm_fluid_species_apply_bc(app, vm_fs, vm_fs->fluid);
-      if (vm_fs->source_id)
+      if (vm_fs->source_id) {
         vm_fluid_species_source_calc(app, vm_fs, 0.0);
+      }
     }
   }
+
+  // Compute applied acceleration if present.
+  // Computation necessary in case applied acceleration
+  // is time-independent and not computed in the time-stepping loop
+  // since it is not read-in as part of restarts. 
+  vm_fluid_species_calc_app_accel(app, vm_fs, rstat.stime);
 
   return rstat;
 }
