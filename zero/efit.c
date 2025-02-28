@@ -29,7 +29,7 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
 
   FILE *ptr = fopen(up->filepath,"r");
   if (ptr == NULL) {
-    printf(" Failed to open the eqdsk file: %s\n",up->filepath);
+    fprintf(stderr, " Failed to open the eqdsk file: %s\n",up->filepath);
     assert(false);
   }
 
