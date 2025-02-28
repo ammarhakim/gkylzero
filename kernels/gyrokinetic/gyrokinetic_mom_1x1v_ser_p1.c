@@ -83,7 +83,7 @@ GKYL_CU_DH void gyrokinetic_hamiltonian_moments_1x1v_ser_p1(const double *dxv, c
   out[1] += 1.4142135623730951*f[1]*volFact; 
   out[2] += (vmap[1]*f[2]+f[0]*vmap[0])*m_*volFact; 
   out[3] += (vmap[1]*f[3]+vmap[0]*f[1])*m_*volFact; 
-  out[4] += (2.0*f[1]*phi[1]+2.0*f[0]*phi[0])*q_*volFact+(0.3162277660168379*vmap1R2*f[4]+0.7071067811865475*vmap[0]*vmap[1]*f[2]+0.3535533905932737*f[0]*vmap1R2+0.3535533905932737*f[0]*vmap0R2)*m_*volFact; 
-  out[5] += (2.0*f[0]*phi[1]+2.0*phi[0]*f[1])*q_*volFact+(0.31622776601683794*vmap1R2*f[5]+0.7071067811865475*vmap[0]*vmap[1]*f[3]+0.3535533905932737*f[1]*vmap1R2+0.3535533905932737*vmap0R2*f[1])*m_*volFact; 
+  out[4] += (f[1]*phi[1]+f[0]*phi[0])*q_*volFact+(0.3162277660168379*vmap1R2*f[4]+0.7071067811865475*vmap[0]*vmap[1]*f[2]+0.3535533905932737*f[0]*vmap1R2+0.3535533905932737*f[0]*vmap0R2)*m_*volFact; 
+  out[5] += (f[0]*phi[1]+phi[0]*f[1])*q_*volFact+(0.31622776601683794*vmap1R2*f[5]+0.7071067811865475*vmap[0]*vmap[1]*f[3]+0.3535533905932737*f[1]*vmap1R2+0.3535533905932737*vmap0R2*f[1])*m_*volFact; 
 } 
 
