@@ -104,6 +104,7 @@ static const char *const valid_moment_names[] = {
                 // of the LTE (local thermodynamic equilibrium) distribution
                 // Note: in relativity V_drift is the bulk four-velocity (GammaV, GammaV*V_drift)
   "Integrated", // this is an internal flag, not for passing to moment type
+  "M1i_from_H", // this is for the canonical-pb species only**
   "MEnergy", // this is for the canonical-pb species only**
 };
 
@@ -386,6 +387,8 @@ struct vm_species {
     struct {
       struct gkyl_array *hamil; // Specified hamiltonian function for canonical poisson bracket
       struct gkyl_array *hamil_host; // Host side hamiltonian array for intial projection
+      struct gkyl_array *h_ij; // Specified metric inverse for canonical poisson bracket
+      struct gkyl_array *h_ij_host; // Host side metric inverse array for intial projection
       struct gkyl_array *h_ij_inv; // Specified metric inverse for canonical poisson bracket
       struct gkyl_array *h_ij_inv_host; // Host side metric inverse array for intial projection
       struct gkyl_array *det_h; // Specified metric determinant
