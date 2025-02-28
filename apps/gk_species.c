@@ -1514,7 +1514,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     .phi = gks->gyro_phi, .apar = gks->apar, .apardot = gks->apardot };
   // Create collisionless solver.
   gks->slvr = gkyl_dg_updater_gyrokinetic_new(&gks->grid, &app->basis, &gks->basis, 
-    &app->local_ext, &gks->local_ext, is_zero_flux, gks->info.charge, gks->info.mass,
+    &app->local, &gks->local, is_zero_flux, gks->info.charge, gks->info.mass,
     gks->gkmodel_id, app->gk_geom, gks->vel_map, &aux_inp, app->use_gpu);
 
   // Acquire equation object.
