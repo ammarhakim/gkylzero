@@ -221,6 +221,10 @@ struct gkyl_vlasov_field {
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
 
+  void *sigma_ctx; // context for resistive layer to damp EM fields
+  // pointer to resistive layer function to damp EM fields
+  void (*sigma)(double t, const double *xn, double *fout, void *ctx);
+
   void *ext_em_ctx; // context for external electromagnetic fields function
   // pointer to external electromagnetic fields function
   void (*ext_em)(double t, const double *xn, double *ext_em_out, void *ctx);

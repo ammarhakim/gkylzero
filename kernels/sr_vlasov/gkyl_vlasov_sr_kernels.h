@@ -99,6 +99,34 @@ GKYL_CU_DH double vlasov_sr_vmap_boundary_surfvy_1x3v_ser_p2(const double *w, co
 GKYL_CU_DH double vlasov_sr_vmap_surfvz_1x3v_ser_p2(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *qmem, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_sr_vmap_boundary_surfvz_1x3v_ser_p2(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *qmem, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
 
+GKYL_CU_DH double vlasov_sr_stream_vol_2x1v_ser_p1(const double *w, const double *dxv, const double *gamma, const double *qmem, const double *f, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_vol_2x1v_ser_p1(const double *w, const double *dxv, const double *gamma, const double *qmem, const double *f, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_surfx_2x1v_ser_p1(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_surfy_2x1v_ser_p1(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_surfvx_2x1v_ser_p1(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *qmem, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_boundary_surfvx_2x1v_ser_p1(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *qmem, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
+
+GKYL_CU_DH double vlasov_sr_vmap_stream_vol_2x1v_ser_p1(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *qmem, const double *f, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_vmap_vol_2x1v_ser_p1(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *qmem, const double *f, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_vmap_surfx_2x1v_ser_p1(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_vmap_surfy_2x1v_ser_p1(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_vmap_surfvx_2x1v_ser_p1(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *qmem, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_vmap_boundary_surfvx_2x1v_ser_p1(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *qmem, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
+
+GKYL_CU_DH double vlasov_sr_stream_vol_2x1v_ser_p2(const double *w, const double *dxv, const double *gamma, const double *qmem, const double *f, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_vol_2x1v_ser_p2(const double *w, const double *dxv, const double *gamma, const double *qmem, const double *f, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_surfx_2x1v_ser_p2(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_surfy_2x1v_ser_p2(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_surfvx_2x1v_ser_p2(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *qmem, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_boundary_surfvx_2x1v_ser_p2(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *qmem, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
+
+GKYL_CU_DH double vlasov_sr_vmap_stream_vol_2x1v_ser_p2(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *qmem, const double *f, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_vmap_vol_2x1v_ser_p2(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *qmem, const double *f, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_vmap_surfx_2x1v_ser_p2(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_vmap_surfy_2x1v_ser_p2(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_vmap_surfvx_2x1v_ser_p2(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *qmem, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_vmap_boundary_surfvx_2x1v_ser_p2(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *qmem, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
+
 GKYL_CU_DH double vlasov_sr_stream_vol_2x2v_ser_p1(const double *w, const double *dxv, const double *gamma, const double *qmem, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_sr_vol_2x2v_ser_p1(const double *w, const double *dxv, const double *gamma, const double *qmem, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_sr_surfx_2x2v_ser_p1(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
@@ -250,6 +278,20 @@ GKYL_CU_DH double vlasov_sr_vmap_surfvy_1x3v_tensor_p2(const double *w, const do
 GKYL_CU_DH double vlasov_sr_vmap_boundary_surfvy_1x3v_tensor_p2(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *qmem, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_sr_vmap_surfvz_1x3v_tensor_p2(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *qmem, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_sr_vmap_boundary_surfvz_1x3v_tensor_p2(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *qmem, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
+
+GKYL_CU_DH double vlasov_sr_stream_vol_2x1v_tensor_p2(const double *w, const double *dxv, const double *gamma, const double *qmem, const double *f, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_vol_2x1v_tensor_p2(const double *w, const double *dxv, const double *gamma, const double *qmem, const double *f, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_surfx_2x1v_tensor_p2(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_surfy_2x1v_tensor_p2(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_surfvx_2x1v_tensor_p2(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *qmem, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_boundary_surfvx_2x1v_tensor_p2(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *qmem, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
+
+GKYL_CU_DH double vlasov_sr_vmap_stream_vol_2x1v_tensor_p2(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *qmem, const double *f, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_vmap_vol_2x1v_tensor_p2(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *qmem, const double *f, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_vmap_surfx_2x1v_tensor_p2(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_vmap_surfy_2x1v_tensor_p2(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_vmap_surfvx_2x1v_tensor_p2(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *qmem, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_sr_vmap_boundary_surfvx_2x1v_tensor_p2(const double *w, const double *dxv, const double *jacob_vel_inv, const double *gamma, const double *qmem, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
 
 GKYL_CU_DH double vlasov_sr_stream_vol_2x2v_tensor_p2(const double *w, const double *dxv, const double *gamma, const double *qmem, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_sr_vol_2x2v_tensor_p2(const double *w, const double *dxv, const double *gamma, const double *qmem, const double *f, double* GKYL_RESTRICT out); 

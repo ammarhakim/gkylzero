@@ -499,6 +499,10 @@ struct vm_field {
       // we must restore the old solution before restarting the time step
       struct gkyl_array *em_dup;  
 
+      bool has_sigma; // flag to indicate there is a resistive layer
+      struct gkyl_array *sigma; // resistive layer for damping EM fields
+      struct gkyl_array *sigmaEM; // resistivity*E/B for incrementing onto RHS
+
       bool has_ext_em; // flag to indicate there is external electromagnetic field
       bool ext_em_evolve; // flag to indicate external electromagnetic field is time dependent
       struct gkyl_array *ext_em; // external electromagnetic field

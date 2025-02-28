@@ -22,8 +22,8 @@ struct mom_type_vlasov_sr {
 static struct { int vdim[4]; } cv_index[] = {
   {-1, -1, -1, -1}, // 0x makes no sense
   {-1,  0,  1,  2}, // 1x kernel indices
-  {-1, -1,  3,  4}, // 2x kernel indices
-  {-1, -1, -1,  5}, // 3x kernel indices  
+  {-1,  3,  4,  5}, // 2x kernel indices
+  {-1, -1, -1,  6}, // 3x kernel indices  
 };
 
 // for use in kernel tables
@@ -77,6 +77,22 @@ kernel_vlasov_sr_M0_1x3v_ser_p2(const struct gkyl_mom_type *momt, const double *
   const int *idx, const double *f, double* out, void *param)
 {
   return vlasov_sr_M0_1x3v_ser_p2(xc, dx, idx, f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_M0_2x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  return vlasov_sr_M0_2x1v_ser_p1(xc, dx, idx, f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_M0_2x1v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  return vlasov_sr_M0_2x1v_ser_p2(xc, dx, idx, f, out);  
 }
 
 GKYL_CU_DH
@@ -235,6 +251,46 @@ kernel_vlasov_sr_M1i_1x3v_ser_p2(const struct gkyl_mom_type *momt, const double 
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_M1i_1x3v_ser_p2(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
+    f, out);
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_M1i_2x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_M1i_2x1v_ser_p1(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
+    f, out);
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_M1i_2x1v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_M1i_2x1v_ser_p2(xc, dx, idx, 
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
@@ -461,6 +517,46 @@ kernel_vlasov_sr_M2_1x3v_ser_p2(const struct gkyl_mom_type *momt, const double *
 
 GKYL_CU_DH
 static void
+kernel_vlasov_sr_M2_2x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_M2_2x1v_ser_p1(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
+    f, out);
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_M2_2x1v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_M2_2x1v_ser_p2(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
+    f, out);
+}
+
+GKYL_CU_DH
+static void
 kernel_vlasov_sr_M2_2x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
@@ -605,6 +701,22 @@ kernel_vlasov_sr_M3i_1x3v_ser_p2(const struct gkyl_mom_type *momt, const double 
   const int *idx, const double *f, double* out, void *param)
 {
   return vlasov_sr_M3i_1x3v_ser_p2(xc, dx, idx, f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_M3i_2x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  return vlasov_sr_M3i_2x1v_ser_p1(xc, dx, idx, f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_M3i_2x1v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  return vlasov_sr_M3i_2x1v_ser_p2(xc, dx, idx, f, out);  
 }
 
 GKYL_CU_DH
@@ -763,6 +875,46 @@ kernel_vlasov_sr_Ni_1x3v_ser_p2(const struct gkyl_mom_type *momt, const double *
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_Ni_1x3v_ser_p2(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
+    f, out);
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_Ni_2x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_Ni_2x1v_ser_p1(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
+    f, out);
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_Ni_2x1v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_Ni_2x1v_ser_p2(xc, dx, idx, 
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }
@@ -989,6 +1141,46 @@ kernel_vlasov_sr_Tij_1x3v_ser_p2(const struct gkyl_mom_type *momt, const double 
 
 GKYL_CU_DH
 static void
+kernel_vlasov_sr_Tij_2x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_Tij_2x1v_ser_p1(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
+    f, out);
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_Tij_2x1v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_Tij_2x1v_ser_p2(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
+    f, out);
+}
+
+GKYL_CU_DH
+static void
 kernel_vlasov_sr_Tij_2x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
@@ -1209,6 +1401,46 @@ kernel_vlasov_sr_int_mom_1x3v_ser_p2(const struct gkyl_mom_type *momt, const dou
 
 GKYL_CU_DH
 static void
+kernel_vlasov_sr_int_mom_2x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_int_mom_2x1v_ser_p1(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
+    f, out);
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_int_mom_2x1v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_int_mom_2x1v_ser_p2(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
+    f, out);
+}
+
+GKYL_CU_DH
+static void
 kernel_vlasov_sr_int_mom_2x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
@@ -1319,10 +1551,11 @@ static const gkyl_vlasov_sr_mom_kern_list ser_m0_kernels[] = {
   { NULL, kernel_vlasov_sr_M0_1x2v_ser_p1, kernel_vlasov_sr_M0_1x2v_ser_p2 }, // 1
   { NULL, kernel_vlasov_sr_M0_1x3v_ser_p1, kernel_vlasov_sr_M0_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, kernel_vlasov_sr_M0_2x2v_ser_p1, kernel_vlasov_sr_M0_2x2v_ser_p2 }, // 3
-  { NULL, kernel_vlasov_sr_M0_2x3v_ser_p1, kernel_vlasov_sr_M0_2x3v_ser_p2 }, // 4
+  { NULL, kernel_vlasov_sr_M0_2x1v_ser_p1, kernel_vlasov_sr_M0_2x1v_ser_p2 }, // 3  
+  { NULL, kernel_vlasov_sr_M0_2x2v_ser_p1, kernel_vlasov_sr_M0_2x2v_ser_p2 }, // 4
+  { NULL, kernel_vlasov_sr_M0_2x3v_ser_p1, kernel_vlasov_sr_M0_2x3v_ser_p2 }, // 5
   // 3x kernels
-  { NULL, kernel_vlasov_sr_M0_3x3v_ser_p1, NULL                            }, // 5
+  { NULL, kernel_vlasov_sr_M0_3x3v_ser_p1, NULL                            }, // 6
 };
 
 // M1i kernel list
@@ -1333,10 +1566,11 @@ static const gkyl_vlasov_sr_mom_kern_list ser_m1i_kernels[] = {
   { NULL, kernel_vlasov_sr_M1i_1x2v_ser_p1, kernel_vlasov_sr_M1i_1x2v_ser_p2 }, // 1
   { NULL, kernel_vlasov_sr_M1i_1x3v_ser_p1, kernel_vlasov_sr_M1i_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, kernel_vlasov_sr_M1i_2x2v_ser_p1, kernel_vlasov_sr_M1i_2x2v_ser_p2 }, // 3
-  { NULL, kernel_vlasov_sr_M1i_2x3v_ser_p1, kernel_vlasov_sr_M1i_2x3v_ser_p2 }, // 4
+  { NULL, kernel_vlasov_sr_M1i_2x1v_ser_p1, kernel_vlasov_sr_M1i_2x1v_ser_p2 }, // 3
+  { NULL, kernel_vlasov_sr_M1i_2x2v_ser_p1, kernel_vlasov_sr_M1i_2x2v_ser_p2 }, // 4
+  { NULL, kernel_vlasov_sr_M1i_2x3v_ser_p1, kernel_vlasov_sr_M1i_2x3v_ser_p2 }, // 5
   // 3x kernels
-  { NULL, kernel_vlasov_sr_M1i_3x3v_ser_p1, NULL                             }, // 5
+  { NULL, kernel_vlasov_sr_M1i_3x3v_ser_p1, NULL                             }, // 6
 };
 
 // M2 kernel list
@@ -1347,10 +1581,11 @@ static const gkyl_vlasov_sr_mom_kern_list ser_m2_kernels[] = {
   { NULL, kernel_vlasov_sr_M2_1x2v_ser_p1, kernel_vlasov_sr_M2_1x2v_ser_p2 }, // 1
   { NULL, kernel_vlasov_sr_M2_1x3v_ser_p1, kernel_vlasov_sr_M2_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, kernel_vlasov_sr_M2_2x2v_ser_p1, kernel_vlasov_sr_M2_2x2v_ser_p2 }, // 3
-  { NULL, kernel_vlasov_sr_M2_2x3v_ser_p1, kernel_vlasov_sr_M2_2x3v_ser_p2 }, // 4
+  { NULL, kernel_vlasov_sr_M2_2x1v_ser_p1, kernel_vlasov_sr_M2_2x1v_ser_p2 }, // 3
+  { NULL, kernel_vlasov_sr_M2_2x2v_ser_p1, kernel_vlasov_sr_M2_2x2v_ser_p2 }, // 4
+  { NULL, kernel_vlasov_sr_M2_2x3v_ser_p1, kernel_vlasov_sr_M2_2x3v_ser_p2 }, // 5
   // 3x kernels
-  { NULL, kernel_vlasov_sr_M2_3x3v_ser_p1, NULL                                }, // 5
+  { NULL, kernel_vlasov_sr_M2_3x3v_ser_p1, NULL                            }, // 6
 };
 
 // M3i kernel list
@@ -1361,10 +1596,11 @@ static const gkyl_vlasov_sr_mom_kern_list ser_m3i_kernels[] = {
   { NULL, kernel_vlasov_sr_M3i_1x2v_ser_p1, kernel_vlasov_sr_M3i_1x2v_ser_p2 }, // 1
   { NULL, kernel_vlasov_sr_M3i_1x3v_ser_p1, kernel_vlasov_sr_M3i_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, kernel_vlasov_sr_M3i_2x2v_ser_p1, kernel_vlasov_sr_M3i_2x2v_ser_p2 }, // 3
-  { NULL, kernel_vlasov_sr_M3i_2x3v_ser_p1, kernel_vlasov_sr_M3i_2x3v_ser_p2 }, // 4
+  { NULL, kernel_vlasov_sr_M3i_2x1v_ser_p1, kernel_vlasov_sr_M3i_2x1v_ser_p2 }, // 3
+  { NULL, kernel_vlasov_sr_M3i_2x2v_ser_p1, kernel_vlasov_sr_M3i_2x2v_ser_p2 }, // 4
+  { NULL, kernel_vlasov_sr_M3i_2x3v_ser_p1, kernel_vlasov_sr_M3i_2x3v_ser_p2 }, // 5
   // 3x kernels
-  { NULL, kernel_vlasov_sr_M3i_3x3v_ser_p1, NULL                            }, // 5
+  { NULL, kernel_vlasov_sr_M3i_3x3v_ser_p1, NULL                             }, // 6
 };
 
 // Ni = (M0, M1i) kernel list
@@ -1375,10 +1611,11 @@ static const gkyl_vlasov_sr_mom_kern_list ser_Ni_kernels[] = {
   { NULL, kernel_vlasov_sr_Ni_1x2v_ser_p1, kernel_vlasov_sr_Ni_1x2v_ser_p2 }, // 1
   { NULL, kernel_vlasov_sr_Ni_1x3v_ser_p1, kernel_vlasov_sr_Ni_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, kernel_vlasov_sr_Ni_2x2v_ser_p1, kernel_vlasov_sr_Ni_2x2v_ser_p2 }, // 3
-  { NULL, kernel_vlasov_sr_Ni_2x3v_ser_p1, kernel_vlasov_sr_Ni_2x3v_ser_p2 }, // 4
+  { NULL, kernel_vlasov_sr_Ni_2x1v_ser_p1, kernel_vlasov_sr_Ni_2x1v_ser_p2 }, // 3
+  { NULL, kernel_vlasov_sr_Ni_2x2v_ser_p1, kernel_vlasov_sr_Ni_2x2v_ser_p2 }, // 4
+  { NULL, kernel_vlasov_sr_Ni_2x3v_ser_p1, kernel_vlasov_sr_Ni_2x3v_ser_p2 }, // 5
   // 3x kernels
-  { NULL, kernel_vlasov_sr_Ni_3x3v_ser_p1, NULL                            }, // 5
+  { NULL, kernel_vlasov_sr_Ni_3x3v_ser_p1, NULL                            }, // 6
 };
 
 // Tij = (M2, M3i (vdim components), Stress tensor (vdim*(vdim+1))/2 components)) kernel list
@@ -1389,10 +1626,11 @@ static const gkyl_vlasov_sr_mom_kern_list ser_Tij_kernels[] = {
   { NULL, kernel_vlasov_sr_Tij_1x2v_ser_p1, kernel_vlasov_sr_Tij_1x2v_ser_p2 }, // 1
   { NULL, kernel_vlasov_sr_Tij_1x3v_ser_p1, kernel_vlasov_sr_Tij_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, kernel_vlasov_sr_Tij_2x2v_ser_p1, kernel_vlasov_sr_Tij_2x2v_ser_p2 }, // 3
-  { NULL, kernel_vlasov_sr_Tij_2x3v_ser_p1, kernel_vlasov_sr_Tij_2x3v_ser_p2 }, // 4
+  { NULL, kernel_vlasov_sr_Tij_2x1v_ser_p1, kernel_vlasov_sr_Tij_2x1v_ser_p2 }, // 3
+  { NULL, kernel_vlasov_sr_Tij_2x2v_ser_p1, kernel_vlasov_sr_Tij_2x2v_ser_p2 }, // 4
+  { NULL, kernel_vlasov_sr_Tij_2x3v_ser_p1, kernel_vlasov_sr_Tij_2x3v_ser_p2 }, // 5
   // 3x kernels
-  { NULL, kernel_vlasov_sr_Tij_3x3v_ser_p1, NULL                             }, // 5
+  { NULL, kernel_vlasov_sr_Tij_3x3v_ser_p1, NULL                             }, // 6
 };
 
 // Integrated moment kernel list
@@ -1403,10 +1641,11 @@ static const gkyl_vlasov_sr_mom_kern_list ser_int_mom_kernels[] = {
   { NULL, kernel_vlasov_sr_int_mom_1x2v_ser_p1, kernel_vlasov_sr_int_mom_1x2v_ser_p2 }, // 1
   { NULL, kernel_vlasov_sr_int_mom_1x3v_ser_p1, kernel_vlasov_sr_int_mom_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, kernel_vlasov_sr_int_mom_2x2v_ser_p1, kernel_vlasov_sr_int_mom_2x2v_ser_p2 }, // 3
-  { NULL, kernel_vlasov_sr_int_mom_2x3v_ser_p1, kernel_vlasov_sr_int_mom_2x3v_ser_p2 }, // 4
+  { NULL, kernel_vlasov_sr_int_mom_2x1v_ser_p1, kernel_vlasov_sr_int_mom_2x1v_ser_p2 }, // 3
+  { NULL, kernel_vlasov_sr_int_mom_2x2v_ser_p1, kernel_vlasov_sr_int_mom_2x2v_ser_p2 }, // 4
+  { NULL, kernel_vlasov_sr_int_mom_2x3v_ser_p1, kernel_vlasov_sr_int_mom_2x3v_ser_p2 }, // 5
   // 3x kernels
-  { NULL, kernel_vlasov_sr_int_mom_3x3v_ser_p1, NULL                                 }, // 5
+  { NULL, kernel_vlasov_sr_int_mom_3x3v_ser_p1, NULL                                 }, // 6
 };
 
 GKYL_CU_DH
@@ -2103,10 +2342,11 @@ static const gkyl_vlasov_sr_mom_kern_list ser_vmap_m1i_kernels[] = {
   { NULL, kernel_vlasov_sr_vmap_M1i_1x2v_ser_p1, kernel_vlasov_sr_vmap_M1i_1x2v_ser_p2 }, // 1
   { NULL, kernel_vlasov_sr_vmap_M1i_1x3v_ser_p1, kernel_vlasov_sr_vmap_M1i_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, kernel_vlasov_sr_vmap_M1i_2x2v_ser_p1, kernel_vlasov_sr_vmap_M1i_2x2v_ser_p2 }, // 3
-  { NULL, kernel_vlasov_sr_vmap_M1i_2x3v_ser_p1, kernel_vlasov_sr_vmap_M1i_2x3v_ser_p2 }, // 4
+  { NULL, NULL, NULL                             }, // 3
+  { NULL, kernel_vlasov_sr_vmap_M1i_2x2v_ser_p1, kernel_vlasov_sr_vmap_M1i_2x2v_ser_p2 }, // 4
+  { NULL, kernel_vlasov_sr_vmap_M1i_2x3v_ser_p1, kernel_vlasov_sr_vmap_M1i_2x3v_ser_p2 }, // 5
   // 3x kernels
-  { NULL, kernel_vlasov_sr_vmap_M1i_3x3v_ser_p1, NULL                             }, // 5
+  { NULL, kernel_vlasov_sr_vmap_M1i_3x3v_ser_p1, NULL                                  }, // 6
 };
 
 // M3i kernel list
@@ -2117,10 +2357,11 @@ static const gkyl_vlasov_sr_mom_kern_list ser_vmap_m3i_kernels[] = {
   { NULL, kernel_vlasov_sr_vmap_M3i_1x2v_ser_p1, kernel_vlasov_sr_vmap_M3i_1x2v_ser_p2 }, // 1
   { NULL, kernel_vlasov_sr_vmap_M3i_1x3v_ser_p1, kernel_vlasov_sr_vmap_M3i_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, kernel_vlasov_sr_vmap_M3i_2x2v_ser_p1, kernel_vlasov_sr_vmap_M3i_2x2v_ser_p2 }, // 3
-  { NULL, kernel_vlasov_sr_vmap_M3i_2x3v_ser_p1, kernel_vlasov_sr_vmap_M3i_2x3v_ser_p2 }, // 4
+  { NULL, NULL, NULL                             }, // 3
+  { NULL, kernel_vlasov_sr_vmap_M3i_2x2v_ser_p1, kernel_vlasov_sr_vmap_M3i_2x2v_ser_p2 }, // 4
+  { NULL, kernel_vlasov_sr_vmap_M3i_2x3v_ser_p1, kernel_vlasov_sr_vmap_M3i_2x3v_ser_p2 }, // 5
   // 3x kernels
-  { NULL, kernel_vlasov_sr_vmap_M3i_3x3v_ser_p1, NULL                            }, // 5
+  { NULL, kernel_vlasov_sr_vmap_M3i_3x3v_ser_p1, NULL                                  }, // 6
 };
 
 // Integrated moment kernel list
@@ -2131,10 +2372,11 @@ static const gkyl_vlasov_sr_mom_kern_list ser_vmap_int_mom_kernels[] = {
   { NULL, kernel_vlasov_sr_vmap_int_mom_1x2v_ser_p1, kernel_vlasov_sr_vmap_int_mom_1x2v_ser_p2 }, // 1
   { NULL, kernel_vlasov_sr_vmap_int_mom_1x3v_ser_p1, kernel_vlasov_sr_vmap_int_mom_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, kernel_vlasov_sr_vmap_int_mom_2x2v_ser_p1, kernel_vlasov_sr_vmap_int_mom_2x2v_ser_p2 }, // 3
-  { NULL, kernel_vlasov_sr_vmap_int_mom_2x3v_ser_p1, kernel_vlasov_sr_vmap_int_mom_2x3v_ser_p2 }, // 4
+  { NULL, NULL, NULL                             }, // 3
+  { NULL, kernel_vlasov_sr_vmap_int_mom_2x2v_ser_p1, kernel_vlasov_sr_vmap_int_mom_2x2v_ser_p2 }, // 4
+  { NULL, kernel_vlasov_sr_vmap_int_mom_2x3v_ser_p1, kernel_vlasov_sr_vmap_int_mom_2x3v_ser_p2 }, // 5
   // 3x kernels
-  { NULL, kernel_vlasov_sr_vmap_int_mom_3x3v_ser_p1, NULL                                 }, // 5
+  { NULL, kernel_vlasov_sr_vmap_int_mom_3x3v_ser_p1, NULL                                      }, // 6
 };
 
 //
@@ -2734,10 +2976,11 @@ static const gkyl_vlasov_sr_mom_kern_list tensor_m0_kernels[] = {
   { NULL, NULL, kernel_vlasov_sr_M0_1x2v_tensor_p2 }, // 1
   { NULL, NULL, kernel_vlasov_sr_M0_1x3v_tensor_p2 }, // 2
   // 2x kernels
-  { NULL, NULL, kernel_vlasov_sr_M0_2x2v_tensor_p2 }, // 3
-  { NULL, NULL, kernel_vlasov_sr_M0_2x3v_tensor_p2 }, // 4
+  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, kernel_vlasov_sr_M0_2x2v_tensor_p2 }, // 4
+  { NULL, NULL, kernel_vlasov_sr_M0_2x3v_tensor_p2 }, // 5
   // 3x kernels
-  { NULL, NULL, NULL }, // 5
+  { NULL, NULL, NULL }, // 6
 };
 
 // M1i kernel list
@@ -2748,10 +2991,11 @@ static const gkyl_vlasov_sr_mom_kern_list tensor_m1i_kernels[] = {
   { NULL, NULL, kernel_vlasov_sr_M1i_1x2v_tensor_p2 }, // 1
   { NULL, NULL, kernel_vlasov_sr_M1i_1x3v_tensor_p2 }, // 2
   // 2x kernels
-  { NULL, NULL, kernel_vlasov_sr_M1i_2x2v_tensor_p2 }, // 3
-  { NULL, NULL, kernel_vlasov_sr_M1i_2x3v_tensor_p2 }, // 4
+  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, kernel_vlasov_sr_M1i_2x2v_tensor_p2 }, // 4
+  { NULL, NULL, kernel_vlasov_sr_M1i_2x3v_tensor_p2 }, // 5
   // 3x kernels
-  { NULL, NULL, NULL }, // 5
+  { NULL, NULL, NULL }, // 6
 };
 
 // M2 kernel list
@@ -2762,10 +3006,11 @@ static const gkyl_vlasov_sr_mom_kern_list tensor_m2_kernels[] = {
   { NULL, NULL, kernel_vlasov_sr_M2_1x2v_tensor_p2 }, // 1
   { NULL, NULL, kernel_vlasov_sr_M2_1x3v_tensor_p2 }, // 2
   // 2x kernels
-  { NULL, NULL, kernel_vlasov_sr_M2_2x2v_tensor_p2 }, // 3
-  { NULL, NULL, kernel_vlasov_sr_M2_2x3v_tensor_p2 }, // 4
+  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, kernel_vlasov_sr_M2_2x2v_tensor_p2 }, // 4
+  { NULL, NULL, kernel_vlasov_sr_M2_2x3v_tensor_p2 }, // 5
   // 3x kernels
-  { NULL, NULL, NULL }, // 5
+  { NULL, NULL, NULL }, // 6
 };
 
 // M3i kernel list
@@ -2776,10 +3021,11 @@ static const gkyl_vlasov_sr_mom_kern_list tensor_m3i_kernels[] = {
   { NULL, NULL, kernel_vlasov_sr_M3i_1x2v_tensor_p2 }, // 1
   { NULL, NULL, kernel_vlasov_sr_M3i_1x3v_tensor_p2 }, // 2
   // 2x kernels
-  { NULL, NULL, kernel_vlasov_sr_M3i_2x2v_tensor_p2 }, // 3
-  { NULL, NULL, kernel_vlasov_sr_M3i_2x3v_tensor_p2 }, // 4
+  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, kernel_vlasov_sr_M3i_2x2v_tensor_p2 }, // 4
+  { NULL, NULL, kernel_vlasov_sr_M3i_2x3v_tensor_p2 }, // 5
   // 3x kernels
-  { NULL, NULL, NULL }, // 5
+  { NULL, NULL, NULL }, // 6
 };
 
 // Ni = (M0, M1i) kernel list
@@ -2790,10 +3036,11 @@ static const gkyl_vlasov_sr_mom_kern_list tensor_Ni_kernels[] = {
   { NULL, NULL, kernel_vlasov_sr_Ni_1x2v_tensor_p2 }, // 1
   { NULL, NULL, kernel_vlasov_sr_Ni_1x3v_tensor_p2 }, // 2
   // 2x kernels
-  { NULL, NULL, kernel_vlasov_sr_Ni_2x2v_tensor_p2 }, // 3
-  { NULL, NULL, kernel_vlasov_sr_Ni_2x3v_tensor_p2 }, // 4
+  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, kernel_vlasov_sr_Ni_2x2v_tensor_p2 }, // 4
+  { NULL, NULL, kernel_vlasov_sr_Ni_2x3v_tensor_p2 }, // 5
   // 3x kernels
-  { NULL, NULL, NULL }, // 5
+  { NULL, NULL, NULL }, // 6
 };
 
 // Tij = (M2, M3i (vdim components), Stress tensor (vdim*(vdim+1))/2 components)) kernel list
@@ -2804,10 +3051,11 @@ static const gkyl_vlasov_sr_mom_kern_list tensor_Tij_kernels[] = {
   { NULL, NULL, kernel_vlasov_sr_Tij_1x2v_tensor_p2 }, // 1
   { NULL, NULL, kernel_vlasov_sr_Tij_1x3v_tensor_p2 }, // 2
   // 2x kernels
-  { NULL, NULL, kernel_vlasov_sr_Tij_2x2v_tensor_p2 }, // 3
-  { NULL, NULL, kernel_vlasov_sr_Tij_2x3v_tensor_p2 }, // 4
+  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, kernel_vlasov_sr_Tij_2x2v_tensor_p2 }, // 4
+  { NULL, NULL, kernel_vlasov_sr_Tij_2x3v_tensor_p2 }, // 5
   // 3x kernels
-  { NULL, NULL, NULL }, // 5
+  { NULL, NULL, NULL }, // 6
 };
 
 // Integrated moment kernel list
@@ -2818,10 +3066,11 @@ static const gkyl_vlasov_sr_mom_kern_list tensor_int_mom_kernels[] = {
   { NULL, NULL, kernel_vlasov_sr_int_mom_1x2v_tensor_p2 }, // 1
   { NULL, NULL, kernel_vlasov_sr_int_mom_1x3v_tensor_p2 }, // 2
   // 2x kernels
-  { NULL, NULL, kernel_vlasov_sr_int_mom_2x2v_tensor_p2 }, // 3
-  { NULL, NULL, kernel_vlasov_sr_int_mom_2x3v_tensor_p2 }, // 4
+  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, kernel_vlasov_sr_int_mom_2x2v_tensor_p2 }, // 4
+  { NULL, NULL, kernel_vlasov_sr_int_mom_2x3v_tensor_p2 }, // 5
   // 3x kernels
-  { NULL, NULL, NULL }, // 5
+  { NULL, NULL, NULL }, // 6
 };
 
 //
@@ -3151,10 +3400,11 @@ static const gkyl_vlasov_sr_mom_kern_list tensor_vmap_m1i_kernels[] = {
   { NULL, NULL, kernel_vlasov_sr_vmap_M1i_1x2v_tensor_p2 }, // 1
   { NULL, NULL, kernel_vlasov_sr_vmap_M1i_1x3v_tensor_p2 }, // 2
   // 2x kernels
-  { NULL, NULL, kernel_vlasov_sr_vmap_M1i_2x2v_tensor_p2 }, // 3
-  { NULL, NULL, kernel_vlasov_sr_vmap_M1i_2x3v_tensor_p2 }, // 4
+  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, kernel_vlasov_sr_vmap_M1i_2x2v_tensor_p2 }, // 4
+  { NULL, NULL, kernel_vlasov_sr_vmap_M1i_2x3v_tensor_p2 }, // 5
   // 3x kernels
-  { NULL, NULL, NULL }, // 5
+  { NULL, NULL, NULL }, // 6
 };
 
 // M3i kernel list
@@ -3165,10 +3415,11 @@ static const gkyl_vlasov_sr_mom_kern_list tensor_vmap_m3i_kernels[] = {
   { NULL, NULL, kernel_vlasov_sr_vmap_M3i_1x2v_tensor_p2 }, // 1
   { NULL, NULL, kernel_vlasov_sr_vmap_M3i_1x3v_tensor_p2 }, // 2
   // 2x kernels
-  { NULL, NULL, kernel_vlasov_sr_vmap_M3i_2x2v_tensor_p2 }, // 3
-  { NULL, NULL, kernel_vlasov_sr_vmap_M3i_2x3v_tensor_p2 }, // 4
+  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, kernel_vlasov_sr_vmap_M3i_2x2v_tensor_p2 }, // 4
+  { NULL, NULL, kernel_vlasov_sr_vmap_M3i_2x3v_tensor_p2 }, // 5
   // 3x kernels
-  { NULL, NULL, NULL }, // 5
+  { NULL, NULL, NULL }, // 6
 };
 
 // Integrated moment kernel list
@@ -3179,10 +3430,11 @@ static const gkyl_vlasov_sr_mom_kern_list tensor_vmap_int_mom_kernels[] = {
   { NULL, NULL, kernel_vlasov_sr_vmap_int_mom_1x2v_tensor_p2 }, // 1
   { NULL, NULL, kernel_vlasov_sr_vmap_int_mom_1x3v_tensor_p2 }, // 2
   // 2x kernels
-  { NULL, NULL, kernel_vlasov_sr_vmap_int_mom_2x2v_tensor_p2 }, // 3
-  { NULL, NULL, kernel_vlasov_sr_vmap_int_mom_2x3v_tensor_p2 }, // 4
+  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, kernel_vlasov_sr_vmap_int_mom_2x2v_tensor_p2 }, // 4
+  { NULL, NULL, kernel_vlasov_sr_vmap_int_mom_2x3v_tensor_p2 }, // 5
   // 3x kernels
-  { NULL, NULL, NULL }, // 5
+  { NULL, NULL, NULL }, // 6
 };
 
 /**
