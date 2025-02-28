@@ -803,14 +803,17 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
 
   // Sync the conf-space Jacobian needed for syncing quantities that include a
   // jacobgeo factor in them.
-  struct gkyl_array *jacs[mbapp->num_local_blocks];
-  for (int b=0; b<mbapp->num_local_blocks; ++b) {
-    struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
-    jacs[b] = sbapp->gk_geom->jacobgeo;
+  for(int d = 0; d<cdim; d++) {
+    struct gkyl_array *jacs[mbapp->num_local_blocks];
+    for (int b=0; b<mbapp->num_local_blocks; ++b) {
+      struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
+      jacs[b] = sbapp->gk_geom->geo_surf[d]->jacobgeo_sync;
+      gkyl_array_copy_range_to_range(jacs[b], jacs[b], &sbapp->upper_skin[d], &sbapp->upper_ghost[d]);
+    }
+    // Sync across blocks.
+    gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks,
+      mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, jacs, jacs);
   }
-  // Sync across blocks.
-  gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks,
-    mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, jacs, jacs);
 
   // Allocate updaters to rescale jac*f by the jacobians in the skin/ghost cells.
   while (true) {

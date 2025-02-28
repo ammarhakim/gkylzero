@@ -18,6 +18,7 @@ gk_geometry_surf_alloc(struct gk_geometry* up)
   struct gk_geom_surf *up_surf = gkyl_malloc(sizeof(struct gk_geom_surf));
   up_surf->bmag = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
   up_surf->jacobgeo = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
+  up_surf->jacobgeo_sync = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
   up_surf->b_i = gkyl_array_new(GKYL_DOUBLE, 3*up->surf_basis.num_basis, up->local_ext.volume);
   up_surf->cmag = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
   up_surf->jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
@@ -344,6 +345,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
       struct gkyl_deflate_geo_surf* deflator_surf = gkyl_deflate_geo_surf_new(&up_3d->surf_basis, &up->surf_basis, &up_3d->grid, &up->grid, rem_dirs, count, false);
       gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir]->bmag, up->geo_surf[count]->bmag, 1);
       gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir]->jacobgeo, up->geo_surf[count]->jacobgeo, 1);
+      gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir]->jacobgeo_sync, up->geo_surf[count]->jacobgeo_sync, 1);
       gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir]->jacobtot_inv, up->geo_surf[count]->jacobtot_inv, 1);
       gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir]->b_i, up->geo_surf[count]->b_i, 3);
       gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir]->cmag, up->geo_surf[count]->cmag, 1);
@@ -390,6 +392,7 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
 
   for(int dir = 0; dir < up->grid.ndim; dir++) {
     gkyl_array_release(up->geo_surf[dir]->jacobgeo);
+    gkyl_array_release(up->geo_surf[dir]->jacobgeo_sync);
     gkyl_array_release(up->geo_surf[dir]->bmag);
     gkyl_array_release(up->geo_surf[dir]->b_i);
     gkyl_array_release(up->geo_surf[dir]->cmag);
