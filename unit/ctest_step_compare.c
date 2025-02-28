@@ -76,7 +76,7 @@ write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_basis ba
   gkyl_gk_geometry_init_nodal_range(&nrange, &local, 1);
   struct gkyl_array* mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, 3, nrange.volume);
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&basis, &grid, false);
-  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &local, 3, mc2p_nodal, up->mc2p);
+  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &local, 3, mc2p_nodal, up->mc2p, false);
   gkyl_nodal_ops_release(n2m);
   struct gkyl_rect_grid ngrid;
   gkyl_gk_geometry_init_nodal_grid(&ngrid, &grid, &nrange);
@@ -330,7 +330,7 @@ test_outer()
   int ccells[] = { 2,1,2 };
 
   struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_SOL_DN_OUT_MID,
+    .ftype = GKYL_DN_SOL_OUT_MID,
     .rright = 6.2,
     .rleft = 1.1,
     .rmin = 2.1,
@@ -383,7 +383,7 @@ test_upper()
   int ccells[] = { 2,1,2 };
 
   struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_SOL_DN_OUT_UP,
+    .ftype = GKYL_DN_SOL_OUT_UP,
     .rright = 6.2,
     .rleft = 1.1,
     .rmin = 2.1,
@@ -437,7 +437,7 @@ test_lower()
   int ccells[] = { 2,1,2 };
 
   struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_SOL_DN_OUT_LO,
+    .ftype = GKYL_DN_SOL_OUT_LO,
     .rright = 6.2,
     .rleft = 1.1,
     .rmin = 2.1,
@@ -708,7 +708,7 @@ test_inner_upper()
   int ccells[] = { 2,1,2 };
 
   struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_SOL_DN_IN_UP,
+    .ftype = GKYL_DN_SOL_IN_UP,
     .rleft = 2.0,
     .rright= 6.2,
     .rmin = 1.3,
@@ -762,7 +762,7 @@ test_inner_middle()
   int ccells[] = { 2,1,2 };
 
   struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_SOL_DN_IN_MID,
+    .ftype = GKYL_DN_SOL_IN_MID,
     .rleft = 2.0,
     .rright= 6.2,
     .rmin = 1.3,
@@ -815,7 +815,7 @@ test_inner_lower()
   int ccells[] = { 2,1,2 };
 
   struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_SOL_DN_IN_LO,
+    .ftype = GKYL_DN_SOL_IN_LO,
     .rleft = 2.0,
     .rright= 6.2,
     .rmin = 1.3,
