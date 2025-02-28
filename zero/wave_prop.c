@@ -63,8 +63,8 @@ limiter_function(double r, enum gkyl_wave_limiter limiter)
       break;
     
     // ** Fully formally-verified implementation of the minmod flux limiter **
-    // ** Proof of symmetry (equivalent action on forward and backward gradients): ../proofs/proof_limiter_minmod_symmetry.rkt **
-    // ** Proof of second-order TVD (total variation diminishing): ../proofs/proof_limiter_minmod_tvd.rkt **
+    // ** Proof of symmetry (equivalent action on forward and backward gradients): ../proofs/finite_volume/proof_limiter_minmod_symmetry.rkt **
+    // ** Proof of second-order TVD (total variation diminishing): ../proofs/finite_volume/proof_limiter_minmod_tvd.rkt **
     case GKYL_MIN_MOD:
       theta = fmax(0.0, fmin(1.0, r));
       break;
@@ -77,8 +77,11 @@ limiter_function(double r, enum gkyl_wave_limiter limiter)
       theta = (r+fabs(r))/(1+fabs(r));
       break;
 
+    // ** Fully formally-verified implementation of the monotonized-centered flux limiter **
+    // ** Proof of symmetry (equivalent action on forward and backward gradients): ../proofs/finite_volume/proof_limiter_monotonized_centered_symmetry.rkt **
+    // ** Proof of second-order TVD (total variation diminishing): ../proofs/finite_volume/proof_limiter_monotonized_centered_tvd.rkt **
     case GKYL_MONOTONIZED_CENTERED:
-      theta = fmax(0.0, fmin3((1.0+r)/2, 2, 2*r));
+      theta = fmax(0.0, fmin3((2.0 * r), ((1.0 + r) / 2.0), 2.0));
       break;
 
     case GKYL_BEAM_WARMING:
