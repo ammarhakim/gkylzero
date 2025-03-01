@@ -116,7 +116,7 @@ main(int argc, char **argv)
     .name = "sr_euler",
 
     .equation = sr_euler,
-    .evolve = 1,
+
     .ctx = &ctx,
     .init = evalSREulerInit,
 

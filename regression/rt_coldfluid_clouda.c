@@ -149,7 +149,7 @@ main(int argc, char **argv)
   struct gkyl_moment_species fluid = {
     .name = "cold",
     .equation = coldf,
-    .evolve = true,
+    
     .init = evalColdInit,
     .split_type = GKYL_WAVE_FWAVE,
     .ctx = &ctx,

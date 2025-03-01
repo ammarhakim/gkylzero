@@ -62,7 +62,7 @@ void gkyl_mom_type_release(const struct gkyl_mom_type* momt);
  */
 void gkyl_mom_type_calc(const struct gkyl_mom_type* momt,
   const double *xc, const double *dx, const int *idx,
-  const double *f, double* out, void *param);
+  const double *f, double* GKYL_RESTRICT out, void *param);
 
 /**
  * Get number of moments specified by mom_type object

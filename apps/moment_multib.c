@@ -162,7 +162,7 @@ singleb_app_new(const struct gkyl_moment_multib *mbinp, int bid,
     species_inp.limiter = sp->limiter;
     species_inp.split_type = sp->split_type;
 
-    species_inp.evolve = sp->evolve;
+    species_inp.is_static = sp->is_static;
     species_inp.force_low_order_flux = sp->force_low_order_flux;
 
     // choose proper block-specific species input
@@ -178,9 +178,9 @@ singleb_app_new(const struct gkyl_moment_multib *mbinp, int bid,
     species_inp.ctx = sp_pb->ctx;
     species_inp.init = sp_pb->init;
 
-    species_inp.is_app_accel_static = sp_pb->is_app_accel_static;
     species_inp.app_accel_ctx = sp_pb->app_accel_ctx;
-    species_inp.app_accel_func = sp_pb->app_accel_func;
+    species_inp.app_accel = sp_pb->app_accel;
+    species_inp.app_accel_evolve = sp_pb->app_accel_evolve;
 
     species_inp.nT_source_ctx = sp_pb->nT_source_ctx;
     species_inp.nT_source_func = sp_pb->nT_source_func;
@@ -225,7 +225,7 @@ singleb_app_new(const struct gkyl_moment_multib *mbinp, int bid,
     field_inp.mag_error_speed_fact = fld->mag_error_speed_fact;
 
     field_inp.limiter = fld->limiter;
-    field_inp.evolve = fld->evolve;
+    field_inp.is_static = fld->is_static;
 
     // choose proper block-specific field input
     const struct gkyl_moment_multib_field_pb *fld_pb = &fld->blocks[0];
@@ -241,12 +241,13 @@ singleb_app_new(const struct gkyl_moment_multib *mbinp, int bid,
     field_inp.init = fld_pb->init;
 
     field_inp.app_current_ctx = fld_pb->app_current_ctx;
-    field_inp.app_current_func = fld_pb->app_current_func;
+    field_inp.app_current = fld_pb->app_current;
+    field_inp.app_current_evolve = fld_pb->app_current_evolve;
     field_inp.t_ramp_curr = fld_pb->t_ramp_curr;
 
-    field_inp.is_ext_em_static = fld_pb->is_ext_em_static;
     field_inp.ext_em_ctx = fld_pb->ext_em_ctx;
-    field_inp.ext_em_func = fld_pb->ext_em_func;
+    field_inp.ext_em = fld_pb->ext_em;
+    field_inp.ext_em_evolve = fld_pb->ext_em_evolve;
     field_inp.t_ramp_E = fld_pb->t_ramp_E;
 
     field_inp.use_explicit_em_coupling = fld_pb->use_explicit_em_coupling;
