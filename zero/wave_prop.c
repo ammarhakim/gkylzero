@@ -69,13 +69,16 @@ limiter_function(double r, enum gkyl_wave_limiter limiter)
       theta = fmax(0.0, fmin(1.0, r));
       break;
 
+    // ** Partially formally-verified implementation of the superbee flux limiter **
+    // ** Proof of symmetry (equivalent action on forward and backward gradients): NOT PROVEN **
+    // ** Proof of second-order TVD (total variation diminishing): ../proofs/finite_volume/proof_limiter_superbee_tvd.rkt **
     case GKYL_SUPERBEE:
-      theta = fmax3(0.0, fmin(1, 2*r), fmin(2.0, r));
+      theta = fmax3(0.0, fmin((2.0 * r), 1.0), fmin(r, 2.0));
       break;
 
     // ** Partially formally-verified implementation of the van Leer flux limiter **
     // ** Proof of symmetry (equivalent action on forward and backward gradients): ../proofs/finite_volume/proof_limiter_van_leer_symmetry.rkt **
-    // ** Proof of second-order TVD (total variation diminishing): NOT PROVEN
+    // ** Proof of second-order TVD (total variation diminishing): NOT PROVEN **
     case GKYL_VAN_LEER:
       theta = ((r + fabs(r)) / (1.0 + fabs(r)));
       break;
