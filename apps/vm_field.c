@@ -305,7 +305,7 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
     if (app->field->has_sigma) {
       for (int i = 0; i < 6; ++i) {
         gkyl_dg_mul_op_range(app->confBasis, i, field->sigmaEM, 0,
-          app->field->sigma, 0, em, &app->local);
+          app->field->sigma, i, em, &app->local);
       }
       gkyl_array_accumulate_range(rhs, -1.0, field->sigmaEM, &app->local); 
     }    
