@@ -27,6 +27,7 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
     }
   }
 
+  mom_em->static_field = inp.static_field; 
   mom_em->t_ramp_E = inp.t_ramp_E;
   if (mom_em->t_ramp_E != 0.0) {
     mom_em->ramp_app_E = true;

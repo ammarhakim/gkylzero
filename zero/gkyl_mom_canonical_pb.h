@@ -12,6 +12,7 @@ struct gkyl_mom_canonical_pb_auxfields {
 /**
  * Create new canonical-pb moment type object. 
  * Valid 'mom' strings are "MEnergy" which is the integral(hamil*f) 
+ *   and "M1i_from_H" which is integral(alpha^i*f) 
  *
  * @param cbasis Configuration-space basis-functions
  * @param pbasis Phase-space basis-functions

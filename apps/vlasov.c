@@ -15,7 +15,7 @@
 #include <mpack.h>
 
 // returned gkyl_array_meta must be freed using vlasov_array_meta_release
-static struct gkyl_msgpack_data*
+struct gkyl_msgpack_data*
 vlasov_array_meta_new(struct vlasov_output_meta meta)
 {
   struct gkyl_msgpack_data *mt = gkyl_malloc(sizeof(*mt));
@@ -52,7 +52,7 @@ vlasov_array_meta_new(struct vlasov_output_meta meta)
   return mt;
 }
 
-static void
+void
 vlasov_array_meta_release(struct gkyl_msgpack_data *mt)
 {
   if (!mt) return;
@@ -60,7 +60,7 @@ vlasov_array_meta_release(struct gkyl_msgpack_data *mt)
   gkyl_free(mt);
 }
 
-static struct vlasov_output_meta
+struct vlasov_output_meta
 vlasov_meta_from_mpack(struct gkyl_msgpack_data *mt)
 {
   struct vlasov_output_meta meta = { .frame = 0, .stime = 0.0 };
@@ -565,26 +565,9 @@ gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
     app->stat.n_mom += 1;
   }
 
-  double avals_fluid[6], avals_fluid_global[6];
   for (int i=0; i<app->num_fluid_species; ++i) {
     struct vm_fluid_species *f = &app->fluid_species[i];
-
-    gkyl_array_clear(f->integ_mom, 0.0);
-
-    vm_fluid_species_prim_vars(app, f, f->fluid);
-    gkyl_dg_calc_fluid_integrated_vars(f->calc_fluid_vars, &app->local, 
-      f->fluid, f->u, f->p, f->integ_mom);
-    gkyl_array_scale_range(f->integ_mom, app->grid.cellVolume, &app->local);
-    if (app->use_gpu) {
-      gkyl_array_reduce_range(f->red_integ_diag, f->integ_mom, GKYL_SUM, &app->local);
-      gkyl_cu_memcpy(avals_fluid, f->red_integ_diag, sizeof(double[6]), GKYL_CU_MEMCPY_D2H);
-    }
-    else { 
-      gkyl_array_reduce_range(avals_fluid, f->integ_mom, GKYL_SUM, &app->local);
-    }
-
-    gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 5, avals_fluid, avals_fluid_global);
-    gkyl_dynvec_append(f->integ_diag, tm, avals_fluid_global);
+    vm_fluid_species_calc_integrated_mom(app, f, tm); 
   }
 
   app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
@@ -673,12 +656,27 @@ gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
       snprintf(fileNm_ext_em, sizeof fileNm_ext_em, fmt_ext_em, app->name, frame);
 
       // External EM field computed with project on basis, so just use host copy 
-      app->field_calc_ext_em(app, app->field, tm);
+      vm_field_calc_ext_em(app, app->field, tm);
 
       gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
         mt, app->field->ext_em_host, fileNm_ext_em);
     }
   }
+  if (app->field->has_app_current) {
+    // Only write out external fields at t=0 or if they are time-dependent
+    if (frame == 0 || app->field->app_current_evolve) {
+      const char *fmt_app_current = "%s-field_app_current_%d.gkyl";
+      int sz_app_current = gkyl_calc_strlen(fmt_app_current, app->name, frame);
+      char fileNm_app_current[sz_app_current+1]; // ensures no buffer overflow
+      snprintf(fileNm_app_current, sizeof fileNm_app_current, fmt_app_current, app->name, frame);
+
+      // External EM field computed with project on basis, so just use host copy 
+      vm_field_calc_app_current(app, app->field, tm);
+
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
+        mt, app->field->app_current_host, fileNm_app_current);
+    }
+  }  
   if (app->field->has_ext_pot) {
     if (frame == 0 || app->field->ext_pot_evolve) {
       const char *fmt_ext_pot = "%s-field_ext_pot_%d.gkyl";
@@ -815,29 +813,8 @@ gkyl_vlasov_app_write_species_lte(gkyl_vlasov_app* app, int sidx, double tm, int
 void
 gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, int frame)
 {
-  struct gkyl_msgpack_data *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
-      .frame = frame,
-      .stime = tm,
-      .poly_order = app->poly_order,
-      .basis_type = app->confBasis.id
-    }
-  );
-
   struct vm_fluid_species *vm_fs = &app->fluid_species[sidx];
-
-  const char *fmt = "%s-%s_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, vm_fs->info.name, frame);
-  char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, vm_fs->info.name, frame);
-
-  // copy data from device to host before writing it out
-  if (app->use_gpu) {
-    gkyl_array_copy(vm_fs->fluid_host, vm_fs->fluid);
-  }
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
-    mt, vm_fs->fluid_host, fileNm);
-
-  vlasov_array_meta_release(mt); 
+  vm_fluid_species_write(app, vm_fs, tm, frame);    
 }
 
 void
@@ -942,6 +919,35 @@ gkyl_vlasov_app_write_integrated_mom(gkyl_vlasov_app *app)
         gkyl_dynvec_clear(vm_s->src.integ_diag);
       }
     }
+  }
+}
+
+void
+gkyl_vlasov_app_write_fluid_integrated_mom(gkyl_vlasov_app *app)
+{
+  for (int i=0; i<app->num_fluid_species; ++i) {
+    struct vm_fluid_species *vm_fs = &app->fluid_species[i];
+
+    int rank;
+    gkyl_comm_get_rank(app->comm, &rank);
+    if (rank == 0) {
+      // write out integrated diagnostic moments
+      const char *fmt = "%s-%s-%s.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, vm_fs->info.name,
+        "imom");
+      char fileNm[sz+1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, vm_fs->info.name,
+        "imom");
+
+      if (vm_fs->is_first_integ_write_call) {
+        gkyl_dynvec_write(vm_fs->integ_diag, fileNm);
+        vm_fs->is_first_integ_write_call = false;
+      }
+      else {
+        gkyl_dynvec_awrite(vm_fs->integ_diag, fileNm);
+      }     
+    }
+    gkyl_dynvec_clear(vm_fs->integ_diag);
   }
 }
 
@@ -1371,7 +1377,14 @@ gkyl_vlasov_app_from_file_field(gkyl_vlasov_app *app, const char *fname)
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status)
       vm_field_apply_bc(app, app->field, app->field->em);
   }
-  
+
+  // Compute external EM field and applied current if present
+  // Computation necessary in case external EM field or applied current
+  // are time-independent and not computed in the time-stepping loop
+  // since they are not read-in as part of restarts. 
+  vm_field_calc_ext_em(app, app->field, rstat.stime);
+  vm_field_calc_app_current(app, app->field, rstat.stime);  
+
   return rstat;
 }
 
@@ -1386,15 +1399,31 @@ gkyl_vlasov_app_from_file_species(gkyl_vlasov_app *app, int sidx,
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
     rstat.io_status =
       gkyl_comm_array_read(vm_s->comm, &vm_s->grid, &vm_s->local, vm_s->f_host, fname);
-    if (app->use_gpu)
+    if (app->use_gpu) {
       gkyl_array_copy(vm_s->f, vm_s->f_host);
-    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
-      if (vm_s->calc_bflux)                                                                
-        vm_species_bflux_rhs(app, vm_s, &vm_s->bflux, vm_s->f, vm_s->f);
-      vm_species_apply_bc(app, vm_s, vm_s->f, rstat.stime);
-      if (vm_s->source_id)
-        vm_species_source_calc(app, vm_s, &vm_s->src, 0.0);
     }
+    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+      if (vm_s->calc_bflux) {                                                                
+        vm_species_bflux_rhs(app, vm_s, &vm_s->bflux, vm_s->f, vm_s->f);
+      }
+      vm_species_apply_bc(app, vm_s, vm_s->f, rstat.stime);
+      if (vm_s->source_id) {
+        vm_species_source_calc(app, vm_s, &vm_s->src, 0.0);
+      }
+    }
+  }
+
+  // Compute applied acceleration if present.
+  // Computation necessary in case applied acceleration
+  // is time-independent and not computed in the time-stepping loop
+  // since it is not read-in as part of restarts. 
+  vm_species_calc_app_accel(app, vm_s, rstat.stime);
+
+  // Optional runtime configuration to use BGK collisions but with fixed input 
+  // temperature relaxation based on the initial temperature value. 
+  // Need to reinitialize the fixed temperature at restarts. 
+  if (vm_s->bgk.fixed_temp_relax) {
+    vm_species_bgk_moms_fixed_temp(app, vm_s, &vm_s->bgk, vm_s->f);
   }
 
   return rstat;
@@ -1411,14 +1440,22 @@ gkyl_vlasov_app_from_file_fluid_species(gkyl_vlasov_app *app, int sidx,
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
     rstat.io_status =
       gkyl_comm_array_read(app->comm, &app->grid, &app->local, vm_fs->fluid_host, fname);
-    if (app->use_gpu)
+    if (app->use_gpu) {
       gkyl_array_copy(vm_fs->fluid, vm_fs->fluid_host);
+    }
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
       vm_fluid_species_apply_bc(app, vm_fs, vm_fs->fluid);
-      if (vm_fs->source_id)
+      if (vm_fs->source_id) {
         vm_fluid_species_source_calc(app, vm_fs, 0.0);
+      }
     }
   }
+
+  // Compute applied acceleration if present.
+  // Computation necessary in case applied acceleration
+  // is time-independent and not computed in the time-stepping loop
+  // since it is not read-in as part of restarts. 
+  vm_fluid_species_calc_app_accel(app, vm_fs, rstat.stime);
 
   return rstat;
 }

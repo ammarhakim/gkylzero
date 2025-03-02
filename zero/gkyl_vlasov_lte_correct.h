@@ -27,7 +27,8 @@ struct gkyl_vlasov_lte_correct_inp {
   const struct gkyl_array *jacob_vel_gauss; // Total Jacobian for mapped velocity-space grids at Gauss-Legendre quadrature points
   const struct gkyl_array *gamma; // SR quantitiy: gamma = sqrt(1 + p^2)
   const struct gkyl_array *gamma_inv; // SR quantitiy: 1/gamma = 1/sqrt(1 + p^2)
-  const struct gkyl_array *h_ij_inv; // (Can-pb quantitiy) inverse metric tensor 
+  const struct gkyl_array *h_ij; // (Can-pb quantitiy) metric tensor (covariant components)
+  const struct gkyl_array *h_ij_inv; // (Can-pb quantitiy) inverse metric tensor (contravariant components) 
   const struct gkyl_array *det_h; // (Can-pb quantitiy) determinant of the metric tensor 
   const struct gkyl_array *hamil; // (Can-pb quantitiy) Hamiltonian
   enum gkyl_model_id model_id; // Enum identifier for model type (e.g., SR, see gkyl_eqn_type.h)

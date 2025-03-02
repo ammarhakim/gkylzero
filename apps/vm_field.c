@@ -233,8 +233,8 @@ vm_field_calc_ext_em(gkyl_vlasov_app *app, struct vm_field *field, double tm)
 {
   if (field->has_ext_em) {
     gkyl_proj_on_basis_advance(field->ext_em_proj, tm, &app->local_ext, field->ext_em_host);
-    // note: ext_em_host is same as ext_em when not on GPUs
     if (app->use_gpu) {
+      // note: ext_em_host is same as ext_em when not on GPUs
       gkyl_array_copy(field->ext_em, field->ext_em_host);
     }
   }
@@ -245,8 +245,8 @@ vm_field_calc_app_current(gkyl_vlasov_app *app, struct vm_field *field, double t
 {
   if (field->has_app_current) {
     gkyl_proj_on_basis_advance(field->app_current_proj, tm, &app->local_ext, field->app_current_host);
-    // note: app_current_host is same as app_current when not on GPUs
     if (app->use_gpu) {
+      // note: app_current_host is same as app_current when not on GPUs
       gkyl_array_copy(field->app_current, field->app_current_host);
     }
   }

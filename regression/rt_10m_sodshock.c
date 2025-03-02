@@ -201,7 +201,7 @@ main(int argc, char **argv)
   struct gkyl_moment_species fluid = {
     .name = "10m",
     .equation = ten_moment,
-    .evolve = true,
+    
     .init = eval10mInit,
     .ctx = &ctx,
 

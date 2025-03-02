@@ -226,7 +226,7 @@ main(int argc, char **argv)
   struct gkyl_moment_species fluid = {
     .name = "mhd",
     .equation = mhd,
-    .evolve = true,
+    
     .init = evalMHDInit,
     .ctx = &ctx,
 
