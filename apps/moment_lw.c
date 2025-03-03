@@ -844,7 +844,7 @@ eqn_advect_lw_new(lua_State *L)
   double c = glua_tbl_get_number(L, "advectionSpeed", 1.0);
 
   advect_lw->magic = MOMENT_EQN_DEFAULT;
-  advect_lw->eqn = gkyl_wv_advect_new(c);
+  advect_lw->eqn = gkyl_wv_advect_new(c, false);
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_advect_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));

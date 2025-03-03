@@ -1,11 +1,41 @@
 #pragma once
 
+// ** Fully formally-verified solvers for the linear advection equation **
+// ** Lax-Friedrichs Solver: **
+// ** Proof of hyperbolicity preservation: ../proofs/finite_volume/proof_linear_advection_lax_hyperbolicity.rkt **
+// ** Proof of CFL stability: ../proofs/finite_volume/proof_linear_advection_lax_cfl_stability.rkt **
+// ** Proof of local Lipschitz continuity of discrete flux function: ../proofs/finite_volume/proof_linear_advection_local_lipschitz.rkt **
+
 #include <gkyl_wv_eqn.h>
 
+// Type of Riemann-solver to use:
+enum gkyl_wv_advect_rp {
+  WV_ADVECT_RP_LAX = 0, // Default (Lax fluxes).
+};
+
+// Input context, packaged as a struct.
+struct gkyl_wv_advect_inp {
+  double a; // Advection speed.
+
+  enum gkyl_wv_advect_rp rp_type; // Type of Riemann-solver to use.
+  bool use_gpu; // Whether the wave equation object is on the host (false) or the device (true).
+};
+
 /**
- * Create a new advection equation object.
- * 
- * @param c advection speed
- * @return Pointer to Burgers equation object.
- */
-struct gkyl_wv_eqn* gkyl_wv_advect_new(double c);
+* Create a new linear advection equation object.
+*
+* @param a Advection speed.
+* @param use_gpu Whether the wave equation object is on the host (false) or the device (true).
+* @return Pointer to the linear advection equation object.
+*/
+struct gkyl_wv_eqn*
+gkyl_wv_advect_new(double a, bool use_gpu);
+
+/**
+* Create a new linear advection equation object, from an input context struct.
+*
+* @param inp Input context struct.
+* @return Pointer to the linear advection equation object.
+*/
+struct gkyl_wv_eqn*
+gkyl_wv_advect_inew(const struct gkyl_wv_advect_inp* inp);
