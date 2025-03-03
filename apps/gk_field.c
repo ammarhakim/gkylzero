@@ -530,21 +530,22 @@ gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *f
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
 
+    int ix_z = app->cdim-1;
     // Assumes symmetric sheath BCs for now only in 1D
     gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_LOWER_EDGE, 
-      &app->lower_skin[0], &app->lower_ghost[0], app->gk_geom->jacobgeo_inv, 
-      s->bflux_solver.gammai[0].marr, field->rho_c, field->sheath_vals[0]);
+      &app->lower_skin[ix_z], &app->lower_ghost[ix_z], app->gk_geom->jacobgeo_inv, 
+      s->bflux_solver.gammai[2*ix_z].marr, field->rho_c, field->sheath_vals[2*ix_z]);
     gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_UPPER_EDGE, 
-      &app->upper_skin[0], &app->upper_ghost[0], app->gk_geom->jacobgeo_inv, 
-      s->bflux_solver.gammai[1].marr, field->rho_c, field->sheath_vals[1]);
+      &app->upper_skin[ix_z], &app->upper_ghost[ix_z], app->gk_geom->jacobgeo_inv, 
+      s->bflux_solver.gammai[2*ix_z+1].marr, field->rho_c, field->sheath_vals[2*ix_z+1]);
 
     // Broadcast the sheath values from skin processes to other processes.
     int comm_sz[1];
     gkyl_comm_get_size(app->comm, comm_sz);
-    gkyl_comm_array_bcast(app->comm, field->sheath_vals[0], field->sheath_vals[0], 0);
-    gkyl_comm_array_bcast(app->comm, field->sheath_vals[1], field->sheath_vals[1], comm_sz[0]-1);
-    gkyl_array_accumulate(field->sheath_vals[0], 1., field->sheath_vals[1]);
-    gkyl_array_scale(field->sheath_vals[0], 0.5);
+    gkyl_comm_array_bcast(app->comm, field->sheath_vals[2*ix_z]  , field->sheath_vals[2*ix_z], 0);
+    gkyl_comm_array_bcast(app->comm, field->sheath_vals[2*ix_z+1], field->sheath_vals[2*ix_z+1], comm_sz[0]-1);
+    gkyl_array_accumulate(field->sheath_vals[2*ix_z], 1., field->sheath_vals[2*ix_z+1]);
+    gkyl_array_scale(field->sheath_vals[2*ix_z], 0.5);
   } 
 }
 
@@ -573,7 +574,7 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
   if (field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) { 
     // Solve phi = phi_s + (Te/e)*ln(n_i/n_i,s).
     gkyl_ambi_bolt_potential_phi_calc(field->ambi_pot, &app->local, &app->local_ext,
-      app->gk_geom->jacobgeo_inv, field->rho_c, field->sheath_vals[0], field->phi_smooth);
+      app->gk_geom->jacobgeo_inv, field->rho_c, field->sheath_vals[2*(app->cdim-1)], field->phi_smooth);
 
     // Smooth the potential along z.
     gk_field_fem_projection_par(app, field, field->phi_smooth, field->phi_smooth);
