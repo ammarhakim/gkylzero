@@ -6,12 +6,16 @@
 // ** Proof of hyperbolicity preservation: ../proofs/finite_volume/proof_inviscid_burgers_lax_hyperbolicity.rkt **
 // ** Proof of CFL stability: ../proofs/finite_volume/proof_inviscid_burgers_lax_cfl_stability.rkt **
 // ** Proof of local Lipschitz continuity of discrete flux function: ../proofs/finite_volume/proof_inviscid_burgers_local_lipschitz.rkt **
+// ** Roe Solver: **
+// ** Proof of hyperbolicity preservation: ../proofs/finite_volume/proof_inviscid_burgers_roe_hyperbolicity.rkt **
+// ** Proof of flux conservation (jump continuity): ../proofs/finite_volume/proof_inviscid_burgers_roe_flux_conservation.rkt **
 
 #include <gkyl_wv_eqn.h>
 
 // Type of Riemann-solver to use:
 enum gkyl_wv_burgers_rp {
-  WV_BURGERS_RP_LAX = 0, // Default (Lax fluxes).
+  WV_BURGERS_RP_ROE = 0, // Default (Roe fluxes).
+  WV_BURGERS_RP_LAX
 };
 
 // Input context, packaged as a struct.
