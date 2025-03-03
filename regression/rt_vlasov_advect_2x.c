@@ -47,7 +47,7 @@ main(int argc, char **argv)
 
   // equation object
   double c = 1.0;
-  struct gkyl_wv_eqn *advect = gkyl_wv_advect_new(c);
+  struct gkyl_wv_eqn *advect = gkyl_wv_advect_new(c, false);
 
   // f
   struct gkyl_vlasov_fluid_species f = {

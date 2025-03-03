@@ -136,7 +136,7 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
   // Linear advection equation.
-  struct gkyl_wv_eqn *advect = gkyl_wv_advect_new(ctx.v_advect);
+  struct gkyl_wv_eqn *advect = gkyl_wv_advect_new(ctx.v_advect, false);
 
   struct gkyl_vlasov_fluid_species fluid = {
     .name = "q",

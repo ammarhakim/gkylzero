@@ -5,6 +5,9 @@
 // ** Proof of hyperbolicity preservation: ../proofs/finite_volume/proof_linear_advection_lax_hyperbolicity.rkt **
 // ** Proof of CFL stability: ../proofs/finite_volume/proof_linear_advection_lax_cfl_stability.rkt **
 // ** Proof of local Lipschitz continuity of discrete flux function: ../proofs/finite_volume/proof_linear_advection_local_lipschitz.rkt **
+// ** Roe Solver: **
+// ** Proof of hyperbolicity preservation: ../proofs/finite_volume/proof_linear_advection_roe_hyperbolicity.rkt **
+// ** Proof of flux conservation (jump continuity): ../proofs/finite_volume/proof_linear_advection_roe_flux_conservation.rkt **
 
 // Private header, not for direct use in user-facing code.
 
@@ -41,6 +44,17 @@ gkyl_advect_max_abs_speed(double a, const double* q);
 GKYL_CU_D
 void
 gkyl_advect_flux(double a, const double* q, double* flux);
+
+/**
+* Compute eigenvalues of the flux Jacobian. Assumes rotation to local coordinate system.
+*
+* @param a Additional simulation parameter.
+* @param q Conserved variable vector.
+* @param flux_deriv Flux Jacobian eigenvalues in direction 'dir' (output).
+*/
+GKYL_CU_D
+void
+gkyl_advect_flux_deriv(double a, const double* q, double* flux_deriv);
 
 /**
 * Compute Riemann variables given the conserved variables.
@@ -185,6 +199,69 @@ wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const dou
 GKYL_CU_D
 static void
 qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
+  double* amdq, double* apdq);
+
+/**
+* Compute waves and speeds using Roe fluxes.
+*
+* @param eqn Base equation object.
+* @param delta Jump across interface to split.
+* @param ql Conserved variables on the left of the interface.
+* @param qr Conserved variables on the right of the interface.
+* @param waves Waves (output).
+* @param s Wave speeds (output).
+* @return Maximum wave speed.
+*/
+GKYL_CU_D
+static double
+wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s);
+
+/**
+* Compute fluctuations using Roe fluxes.
+*
+* @param eqn Base equation object.
+* @param ql Conserved variable vector on the left of the interface.
+* @param qr Conserved variable vector on the right of the interface.
+* @param waves Waves (input).
+* @param s Wave speeds (input).
+* @param amdq Left-moving fluctuations (output).
+* @param apdq Right-moving fluctuations (output).
+*/
+GKYL_CU_D
+static void
+qfluct_roe(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq);
+
+/**
+* Compute waves and speeds using Roe fluxes (with potential fallback).
+*
+* @param eqn Base equation object.
+* @param type Type of Riemann-solver flux to use.
+* @param delta Jump across interface to split.
+* @param ql Conserved variables on the left of the interface.
+* @param qr Conserved variables on the right of the interface.
+* @param waves Waves (output).
+* @param s Wave speeds (output).
+* @return Maximum wave speed.
+*/
+GKYL_CU_D
+static double
+wave(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s);
+
+/**
+* Compute fluctuations using Roe fluxes (with potential fallback),
+*
+* @param eqn Base equation object.
+* @param type Type of Riemann-solver flux to use.
+* @param ql Conserved variable vector on the left of the interface.
+* @param qr Conserved variable vector on the right of the interface.
+* @param waves Waves (input).
+* @param s Wave speeds (input).
+* @param amdq Left-moving fluctuations (output).
+* @param apdq Right-moving fluctuations (output).
+*/
+GKYL_CU_D
+static void
+qfluct(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
   double* amdq, double* apdq);
 
 /**

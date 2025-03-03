@@ -3,6 +3,9 @@
 // ** Proof of hyperbolicity preservation: ../proofs/finite_volume/proof_linear_advection_lax_hyperbolicity.rkt **
 // ** Proof of CFL stability: ../proofs/finite_volume/proof_linear_advection_lax_cfl_stability.rkt **
 // ** Proof of local Lipschitz continuity of discrete flux function: ../proofs/finite_volume/proof_linear_advection_local_lipschitz.rkt **
+// ** Roe Solver: **
+// ** Proof of hyperbolicity preservation: ../proofs/finite_volume/proof_linear_advection_roe_hyperbolicity.rkt **
+// ** Proof of flux conservation (jump continuity): ../proofs/finite_volume/proof_linear_advection_roe_flux_conservation.rkt **
 
 #include <assert.h>
 #include <math.h>
@@ -22,6 +25,12 @@ void
 gkyl_advect_flux(double a, const double* q, double* flux)
 {
   flux[0] = (a * q[0]);
+}
+
+void
+gkyl_advect_flux_deriv(double a, const double* q, double* flux_deriv)
+{
+  flux_deriv[0] = a;
 }
 
 static inline void
@@ -117,6 +126,58 @@ qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const d
 }
 
 static double
+wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+{
+  const struct wv_advect *advect = container_of(eqn, struct wv_advect, eqn);
+  double a = advect->a; // Additional simulation parameter.
+
+  double *fl_deriv = gkyl_malloc(sizeof(double));
+  double *fr_deriv = gkyl_malloc(sizeof(double));
+  gkyl_advect_flux_deriv(a, ql, fl_deriv);
+  gkyl_advect_flux_deriv(a, qr, fr_deriv);
+
+  double a_roe = 0.5 * (fl_deriv[0] + fr_deriv[0]);
+
+  double *w0 = &waves[0];
+  w0[0] = delta[0];
+
+  s[0] = a_roe;
+
+  gkyl_free(fl_deriv);
+  gkyl_free(fr_deriv);
+
+  return s[0];
+}
+
+static void
+qfluct_roe(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
+{
+  const double *w0 = &waves[0];
+
+  if (s[0] < 0.0) {
+    amdq[0] = s[0] * w0[0];
+    apdq[0] = 0.0;
+  }
+  else {
+    amdq[0] = 0.0;
+    apdq[0] = s[0] * w0[0];
+  }
+}
+
+static double
+wave(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+{
+  return wave_roe(eqn, delta, ql, qr, waves, s);
+}
+
+static void
+qfluct(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
+  double* amdq, double* apdq)
+{
+  return qfluct_roe(eqn, ql, qr, waves, s, amdq, apdq);
+}
+
+static double
 flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump)
 {
   const struct wv_advect *advect = container_of(eqn, struct wv_advect, eqn);
@@ -202,7 +263,12 @@ gkyl_wv_advect_inew(const struct gkyl_wv_advect_inp* inp)
 
   advect->a = inp->a;
 
-  if (inp->rp_type == WV_ADVECT_RP_LAX) {
+  if (inp->rp_type == WV_ADVECT_RP_ROE) {
+    advect->eqn.num_waves = 1;
+    advect->eqn.waves_func = wave;
+    advect->eqn.qfluct_func = qfluct;
+  }
+  else if (inp->rp_type == WV_ADVECT_RP_LAX) {
     advect->eqn.num_waves = 2;
     advect->eqn.waves_func = wave_lax_l;
     advect->eqn.qfluct_func = qfluct_lax_l;
