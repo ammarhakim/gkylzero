@@ -491,7 +491,6 @@ int main(int argc, char **argv)
     .electron_mass = ctx.me,
     .electron_charge = ctx.qe,
     .electron_temp = ctx.Te0,
-    .fem_parbc = GKYL_FEM_PARPROJ_NONE,
   };
 
   // GK app

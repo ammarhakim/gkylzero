@@ -1,4 +1,15 @@
 #include <gkyl_mom_canonical_pb_kernels.h> 
+GKYL_CU_DH void canonical_pb_M1i_from_H_1x2v_ser_p1(const double *dxv, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+{ 
+  const double volFact = dxv[1]*dxv[2]/4; 
+  const double rdvx2 = 2.0/dxv[1];
+  const double rdvy2 = 2.0/dxv[2];
+
+  out[0] += (1.224744871391589*f[13]*hamil[15]*rdvx2+1.224744871391589*f[12]*hamil[14]*rdvx2+2.738612787525831*f[7]*hamil[11]*rdvx2+2.738612787525831*f[6]*hamil[10]*rdvx2+2.738612787525831*f[4]*hamil[9]*rdvx2+2.738612787525831*f[2]*hamil[8]*rdvx2+1.224744871391589*f[5]*hamil[7]*rdvx2+1.224744871391589*f[3]*hamil[6]*rdvx2+1.224744871391589*f[1]*hamil[4]*rdvx2+1.224744871391589*f[0]*hamil[2]*rdvx2)*volFact; 
+  out[1] += (1.224744871391589*f[12]*hamil[15]*rdvx2+1.224744871391589*f[13]*hamil[14]*rdvx2+2.738612787525831*f[6]*hamil[11]*rdvx2+2.738612787525831*f[7]*hamil[10]*rdvx2+2.738612787525831*f[2]*hamil[9]*rdvx2+2.738612787525831*f[4]*hamil[8]*rdvx2+1.224744871391589*f[3]*hamil[7]*rdvx2+1.224744871391589*f[5]*hamil[6]*rdvx2+1.224744871391589*f[0]*hamil[4]*rdvx2+1.224744871391589*f[1]*hamil[2]*rdvx2)*volFact; 
+  out[2] += (2.738612787525831*f[7]*hamil[15]*rdvy2+2.738612787525831*f[6]*hamil[14]*rdvy2+2.738612787525831*f[5]*hamil[13]*rdvy2+2.738612787525831*f[3]*hamil[12]*rdvy2+1.224744871391589*f[9]*hamil[11]*rdvy2+1.224744871391589*f[8]*hamil[10]*rdvy2+1.224744871391589*f[4]*hamil[7]*rdvy2+1.224744871391589*f[2]*hamil[6]*rdvy2+1.224744871391589*f[1]*hamil[5]*rdvy2+1.224744871391589*f[0]*hamil[3]*rdvy2)*volFact; 
+  out[3] += (2.738612787525831*f[6]*hamil[15]*rdvy2+2.738612787525831*f[7]*hamil[14]*rdvy2+2.738612787525831*f[3]*hamil[13]*rdvy2+2.738612787525831*f[5]*hamil[12]*rdvy2+1.224744871391589*f[8]*hamil[11]*rdvy2+1.224744871391589*f[9]*hamil[10]*rdvy2+1.224744871391589*f[2]*hamil[7]*rdvy2+1.224744871391589*f[4]*hamil[6]*rdvy2+1.224744871391589*f[0]*hamil[5]*rdvy2+1.224744871391589*f[1]*hamil[3]*rdvy2)*volFact; 
+} 
 GKYL_CU_DH void canonical_pb_MEnergy_1x2v_ser_p1(const double *dxv, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 
   const double volFact = dxv[1]*dxv[2]/4; 

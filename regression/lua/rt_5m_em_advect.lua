@@ -1,5 +1,7 @@
--- Advection in specified EM fields for the 5-moment equations.
+-- Advection in specified electromagnetic fields for the 5-moment equations.
 -- Input parameters match the initial conditions found in entry JE32 of Ammar's Simulation Journal (https://ammar-hakim.org/sj/je/je32/je32-vlasov-test-ptcl.html)
+-- but with a rotation so that the oscillating electric field is in the z_hat direction and the background magnetic field in the x_hat direction. 
+-- Solution is given by the non-resonant case, omega = 0.5*Omega_c where Omega_c = q B/m is the cyclotron frequency. 
 
 local Moments = G0.Moments
 local Euler = G0.Moments.Eq.Euler
@@ -19,8 +21,8 @@ n0 = 1.0 -- Reference density.
 vt = 1.0 -- Reference thermal velocity. 
 
 -- External EM field parameters.
-omega = 0.5 -- Frequency of driven electric field. 
-B0 = 1.0 -- Background magnetic field magnitude. 
+omega = 0.5 -- Oscillating electric field frequency normalized to cyclotron frequency.
+B0 = 1.0 -- Reference magnetic field strength.
 
 -- Derived physical quantities (using non-normalized physical units).
 light_speed = 1.0 / math.sqrt(mu0 * epsilon0) -- Speed of light.
@@ -30,7 +32,7 @@ Nx = 2 -- Cell count (x-direction).
 Lx = 4.0 * math.pi -- Domain size (x-direction).
 cfl_frac = 0.001 -- CFL coefficient. Set to be small to compare with analytic result. 
 t_end = 100.0 -- Final simulation time.
-num_frames = 100 -- Number of output frames.
+num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
 dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.

@@ -119,6 +119,7 @@ static const struct gkyl_str_int_pair model_type[] = {
   { "SR", GKYL_MODEL_SR },
   { "GeneralGeometry", GKYL_MODEL_GEN_GEO },
   { "CanonicalPB", GKYL_MODEL_CANONICAL_PB },
+  { "CanonicalPBGR", GKYL_MODEL_CANONICAL_PB_GR },
   { 0, 0 }
 };
 

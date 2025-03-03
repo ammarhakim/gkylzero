@@ -1,3 +1,8 @@
+// Advection in specified electromagnetic fields for the 5-moment equations.
+// Input parameters match the initial conditions found in entry JE32 of Ammar's Simulation Journal (https://ammar-hakim.org/sj/je/je32/je32-vlasov-test-ptcl.html)
+// but with a rotation so that the oscillating electric field is in the z_hat direction and the background magnetic field in the x_hat direction. 
+// Solution is given by the non-resonant case, omega = 0.5*Omega_c where Omega_c = q B/m is the cyclotron frequency. 
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,7 +40,7 @@ struct em_advect_ctx
   double vt; // Thermal velocity.
   double n0; // Reference number density.
   double B0; // Reference magnetic field strength.
-  double omega; // Magnetic field frequency.
+  double omega; // Oscillating field frequency normalized to cyclotron frequency.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
@@ -67,7 +72,7 @@ create_ctx(void)
   double vt = 1.0; // Thermal velocity.
   double n0 = 1.0; // Reference number density.
   double B0 = 1.0; // Reference magnetic field strength.
-  double omega = 0.5; // Magnetic field frequency.
+  double omega = 0.5; // Oscillating field frequency normalized to cyclotron frequency.
 
   // Simulation parameters.
   int Nx = 2; // Cell count (configuration space: x-direction).

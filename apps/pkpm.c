@@ -1020,6 +1020,12 @@ gkyl_pkpm_app_from_file_species(gkyl_pkpm_app *app, int sidx,
     }
   }
 
+  // Compute applied acceleration if present.
+  // Computation necessary in case applied acceleration
+  // is time-independent and not computed in the time-stepping loop
+  // since it is not read-in as part of restarts. 
+  pkpm_species_calc_app_accel(app, s, rstat.stime);
+
   return rstat;
 }
 

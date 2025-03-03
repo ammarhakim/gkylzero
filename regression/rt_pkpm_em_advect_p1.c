@@ -1,3 +1,8 @@
+// Advection in specified electromagnetic fields for the PKPM system of equations.
+// Input parameters match the initial conditions found in entry JE32 of Ammar's Simulation Journal (https://ammar-hakim.org/sj/je/je32/je32-vlasov-test-ptcl.html)
+// but with a rotation so that the oscillating electric field is in the z_hat direction and the background magnetic field in the x_hat direction. 
+// Solution is given by the non-resonant case, omega = 0.5*Omega_c where Omega_c = q B/m is the cyclotron frequency. 
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,10 +36,9 @@ struct em_advect_ctx
   double charge_elc; // Electron charge.
 
   double vt; // Thermal velocity.
-  double nu; // Collision frequency.
-
   double B0; // Reference magnetic field strength.
-  double omega; // Magnetic field frequency.
+  double omega; // Oscillating field frequency normalized to cyclotron frequency.
+  double nu; // Collision frequency.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
@@ -66,16 +70,15 @@ create_ctx(void)
   double charge_elc = -1.0; // Electron charge.
 
   double vt = 1.0; // Thermal velocity.
-  double nu = 1.0e-4; // Collision frequency.
-
   double B0 = 1.0; // Reference magnetic field strength.
-  double omega = 0.5; // Magnetic field frequency.
+  double omega = 0.5; // Oscillating field frequency normalized to cyclotron frequency.
+  double nu = 1.0e-4; // Collision frequency.
 
   // Simulation parameters.
   int Nx = 2; // Cell count (configuration space: x-direction).
-  int Nvx = 32; // Cell count (velocity space: vx-direction).
+  int Nvx = 16; // Cell count (velocity space: vx-direction).
   double Lx = 4.0 * pi; // Domain size (configuration space: x-direction).
-  double vx_max = 6.0 * vt; // Domain boundary (velocity space: vx-direction).
+  double vx_max = 8.0 * vt; // Domain boundary (velocity space: vx-direction).
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
@@ -94,9 +97,9 @@ create_ctx(void)
     .mass_elc = mass_elc,
     .charge_elc = charge_elc,
     .vt = vt,
-    .nu = nu,
     .B0 = B0,
     .omega = omega,
+    .nu = nu,
     .Nx = Nx,
     .Nvx = Nvx,
     .Lx = Lx,

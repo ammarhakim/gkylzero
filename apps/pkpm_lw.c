@@ -58,6 +58,10 @@ struct pkpm_species_lw {
   struct lua_func_ctx applied_acceleration_func_ref; // Lua registry reference to applied acceleration initialization function.
   bool evolve_applied_acceleration; // Is the applied acceleration evolved?
 
+  bool has_diffusion; // Is there a diffusion operator? 
+  double D; // Diffusion coefficient. 
+  double order; // Diffusion order (e.g., grad^2, grad^4, grad^6). 
+
   enum gkyl_collision_id collision_id; // Collision type.
   
   bool has_self_nu_func; // Is there a self-collision frequency function?
@@ -98,7 +102,7 @@ pkpm_species_lw_new(lua_State *L)
     }
   }
 
-  bool evolve = glua_tbl_get_integer(L, "evolve", true);
+  bool evolve = glua_tbl_get_bool(L, "evolve", true);
 
   with_lua_tbl_tbl(L, "bcx") {
     int nbc = glua_objlen(L);
@@ -149,6 +153,15 @@ pkpm_species_lw_new(lua_State *L)
     has_applied_acceleration_func = true;
 
     evolve_applied_acceleration = glua_tbl_get_bool(L, "evolveAppliedAcceleration", false);
+  }
+
+  bool has_diffusion = false; 
+  double D = 0.0; 
+  int order = 0; 
+  with_lua_tbl_tbl(L, "diffusion") {
+    has_diffusion = true; 
+    D = glua_tbl_get_number(L, "D", 0.0);
+    order = glua_tbl_get_integer(L, "order", 0);
   }
 
   enum gkyl_collision_id collision_id = GKYL_NO_COLLISIONS;
@@ -206,6 +219,10 @@ pkpm_species_lw_new(lua_State *L)
     .L = L,
   };
   pkpm_s_lw->evolve_applied_acceleration = evolve_applied_acceleration;
+
+  pkpm_s_lw->has_diffusion = has_diffusion; 
+  pkpm_s_lw->D = D; 
+  pkpm_s_lw->order = order; 
 
   pkpm_s_lw->collision_id = collision_id;
 
@@ -679,6 +696,11 @@ pkpm_app_new(lua_State *L)
       pkpm.species[s].app_accel = gkyl_lw_eval_cb;
       pkpm.species[s].app_accel_ctx = &app_lw->applied_acceleration_func_ctx[s];
       pkpm.species[s].app_accel_evolve = species[s]->evolve_applied_acceleration;
+    }
+
+    if (species[s]->has_diffusion) {
+      pkpm.species[s].diffusion.D = species[s]->D; 
+      pkpm.species[s].diffusion.order = species[s]->order; 
     }
 
     app_lw->collision_id[s] = species[s]->collision_id;
@@ -1201,10 +1223,10 @@ pkpm_app_run(lua_State *L)
 
   struct step_message_trigs m_trig = {
     .log_count = 0,
-    .tenth = t_curr > 0.0 ? 0.0 : (int) floor(t_curr / t_end * 10.0),
-    .p1c = t_curr > 0.0 ? 0.0 : (int) floor(t_curr / t_end * 100.0) % 10,
-    .log_trig = { .dt = (t_end - t_curr) / 10.0 },
-    .log_trig_1p = { .dt = (t_end - t_curr) / 100.0 },
+    .tenth = t_curr > 0.0 ?  (int) floor(t_curr / t_end * 10.0) : 0.0,
+    .p1c = t_curr > 0.0 ?  (int) floor(t_curr / t_end * 100.0) % 10 : 0.0,
+    .log_trig = { .dt = t_end / 10.0, .tcurr = t_curr },
+    .log_trig_1p = { .dt = t_end / 100.0, .tcurr = t_curr },
   };
 
   struct timespec tm_ic0 = gkyl_wall_clock();

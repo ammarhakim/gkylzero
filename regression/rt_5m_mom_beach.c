@@ -257,7 +257,7 @@ main(int argc, char **argv)
     .init = evalElcInit,
     .ctx = &ctx,
 
-    .bcy = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
 
   // Field.
