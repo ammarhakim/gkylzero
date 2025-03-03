@@ -1039,7 +1039,7 @@ main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk gk = {
-    .name = "gk_d3d_iwl_3x2v_p1",
+    .name = "gk_neut_d3d_2x2v_p1",
 
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { ctx.x_min, ctx.z_min },
