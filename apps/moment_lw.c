@@ -874,7 +874,7 @@ eqn_burgers_lw_new(lua_State *L)
   struct wv_eqn_lw *burgers_lw = gkyl_malloc(sizeof(*burgers_lw));
 
   burgers_lw->magic = MOMENT_EQN_DEFAULT;
-  burgers_lw->eqn = gkyl_wv_burgers_new();
+  burgers_lw->eqn = gkyl_wv_burgers_new(false);
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_burgers_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
