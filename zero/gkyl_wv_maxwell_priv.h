@@ -1,6 +1,25 @@
 #pragma once
 
-// Private header, not for direct use in user code
+// ** Fully formally-verified solvers for the perfectly hyperbolic Maxwell equations **
+// ** Lax-Friedrichs Solver: **
+// ** Proof of hyperbolicity preservation (Ex and phi components): ../proofs/finite_volume/proof_maxwell_1d_Ex_phi_lax_hyperbolicity.rkt **
+// ** Proof of hyperbolicity preservation (Ey and Bz components): ../proofs/finite_volume/proof_maxwell_1d_Ey_Bz_lax_hyperbolicity.rkt **
+// ** Proof of hyperbolicity preservation (Ez and By components): ../proofs/finite_volume/proof_maxwell_1d_Ez_By_lax_hyperbolicity.rkt **
+// ** Proof of hyperbolicity preservation (Bx and psi components): ../proofs/finite_volume/proof_maxwell_1d_Bx_psi_lax_hyperbolicity.rkt **
+// ** Proof of strict hyperbolicity preservation (Ex and phi components): ../proofs/finite_volume/proof_maxwell_1d_Ex_phi_lax_strict_hyperbolicity.rkt **
+// ** Proof of strict hyperbolicity preservation (Ey and Bz components): ../proofs/finite_volume/proof_maxwell_1d_Ey_Bz_lax_strict_hyperbolicity.rkt **
+// ** Proof of strict hyperbolicity preservation (Ez and By components): ../proofs/finite_volume/proof_maxwell_1d_Ez_By_lax_strict_hyperbolicity.rkt **
+// ** Proof of strict hyperbolicity preservation (Bx and psi components): ../proofs/finite_volume/proof_maxwell_1d_Bx_psi_lax_strict_hyperbolicity.rkt **
+// ** Proof of CFL stability (Ex and phi components): ../proofs/finite_volume/proof_maxwell_1d_Ex_phi_lax_cfl_stability.rkt **
+// ** Proof of CFL stability (Ey and Bz components): ../proofs/finite_volume/proof_maxwell_1d_Ey_Bz_lax_cfl_stability.rkt **
+// ** Proof of CFL stability (Ez and By components): ../proofs/finite_volume/proof_maxwell_1d_Ez_By_lax_cfl_stability.rkt **
+// ** Proof of CFL stability (Bx and psi components): ../proofs/finite_volume/proof_maxwell_1d_Bx_psi_lax_cfl_stability.rkt **
+// ** Proof of local Lipschitz continuity of discrete flux function (Ex and phi components): ../proofs/finite_volume/proof_maxwell_1d_Ex_phi_local_lipschitz.rkt **
+// ** Proof of local Lipschitz continuity of discrete flux function (Ey and Bz components): ../proofs/finite_volume/proof_maxwell_1d_Ey_Bz_local_lipschitz.rkt **
+// ** Proof of local Lipschitz continuity of discrete flux function (Ez and By components): ../proofs/finite_volume/proof_maxwell_1d_Ez_By_local_lipschitz.rkt **
+// ** Proof of local Lipschitz continuity of discrete flux function (Bx and psi components): ../proofs/finite_volume/proof_maxwell_1d_Bx_psi_local_lipschitz.rkt **
+
+// Private header, not for direct use in user-facing code.
 
 #include <math.h>
 #include <gkyl_array.h>
@@ -9,292 +28,417 @@
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 
+#include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
+
 struct wv_maxwell {
-  struct gkyl_wv_eqn eqn; // base object
-  double c; // light speed
-  double e_fact, b_fact; // electric and magnetic correction factors
+  struct gkyl_wv_eqn eqn; // Base equation object.
+  double c; // Speed of light.
+  double e_fact; // Factor of speed of light for electric field correction.
+  double b_fact; // Factor of speed of light for magnetic field correction.
 };
 
 /**
- * Free Maxwell eqn object.
- *
- * @param ref Reference counter for Maxwell eqn
- */
-void gkyl_wv_maxwell_free(const struct gkyl_ref_count *ref);
+* Free Maxwell equations object.
+*
+* @param ref Reference counter for Maxwell equations.
+*/
+void gkyl_wv_maxwell_free(const struct gkyl_ref_count* ref);
 
 /**
- * Compute maximum absolute speed.
- * 
- * @param c Speed of light
- * @param e_fact Correction speed for div(E) correction
- * @param b_fact Correction speed for div(B) correction
- * @param q Conserved variables
- * @return Maximum absolute speed for given q
- */
+* Compute maximum absolute wave speed.
+*
+* @param c Speed of light.
+* @param e_fact Factor of speed of light for electric field correction.
+* @param b_fact Factor of speed of light for magnetic field correction.
+* @param q Conserved variable vector.
+* @return Maximum absolute wave speed for a given q.
+*/
 GKYL_CU_DH
 static inline double
-gkyl_maxwell_max_abs_speed(double c, double e_fact, double b_fact, const double q[8])
+gkyl_maxwell_max_abs_speed(double c, double e_fact, double b_fact, const double* q)
 {
-  return c;
+  return fmax(fmax(fabs((c * e_fact)), fabs(c)), fabs((b_fact * c)));
 }
 
 /**
- * Compute flux.
- * 
- * @param c Speed of light
- * @param e_fact Correction speed for div(E) correction
- * @param b_fact Correction speed for div(B) correction
- * @param Conserved variables
- * @param flux On output, the flux in direction 'dir'
- */
+* Compute flux vector. Assumes rotation to local coordinate system.
+*
+* @param c Speed of light.
+* @param e_fact Factor of speed of light for electric field correction.
+* @param b_fact Factor of speed of light for magnetic field correction.
+* @param q Conserved variable vector.
+* @param flux Flux vector in direction 'dir' (output).
+*/
 GKYL_CU_DH
 static inline void
-gkyl_maxwell_flux(double c, double e_fact, double b_fact, const double q[8], double flux[8])
+gkyl_maxwell_flux(double c, double e_fact, double b_fact, const double* q, double* flux)
 {
-  double c2 = c*c;
-
-  flux[0] = e_fact*c2*q[6]; // e_fact*c^2*phi
-  flux[1] = c2*q[5]; // c^2*Bz
-  flux[2] = -c2*q[4]; // -c^2*By
-  flux[3] = b_fact*q[7]; // b_fact*psi
-  flux[4] = -q[2]; // -Ez
-  flux[5] = q[1]; // Ey
-  flux[6] = e_fact*q[0]; // e_fact*Ex
-  flux[7] = b_fact*c2*q[3]; // b_fact*c^2*Bx
+  flux[0] = (e_fact * ((c * c) * q[6]));
+  flux[1] = ((c * c) * q[5]);
+  flux[2] = (-1.0 * ((c * c) * q[4]));
+  flux[3] = (b_fact * q[7]);
+  flux[4] = (-1.0 * q[2]);
+  flux[5] = q[1];
+  flux[6] = (e_fact * q[0]);
+  flux[7] = (b_fact * ((c * c) * q[3]));
 }
 
+/**
+* Compute Riemann variables given the conserved variables.
+*
+* @param eqn Base equation object.
+* @param qstate Current state vector.
+* @param qin Conserved variable vector (input).
+* @param wout Riemann variable vector (output).
+*/
 GKYL_CU_DH
 static inline void
-cons_to_riem(const struct gkyl_wv_eqn *eqn,
-  const double *qstate, const double *qin, double *wout)
+cons_to_riem(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* qin, double* wout)
 {
-  // TODO: this should use proper L matrix
-  for (int i=0; i<8; ++i)
+  // TODO: This should use a proper L matrix.
+  for (int i = 0; i < 8; i++) {
     wout[i] = qin[i];
+  }
 }
 
+/**
+* Compute conserved variables given the Riemann variables.
+*
+* @param eqn Base equation object.
+* @param qstate Current state vector.
+* @param win Riemann variable vector (input).
+* @param qout Conserved variable vector (output).
+*/
 GKYL_CU_DH
 static inline void
-riem_to_cons(const struct gkyl_wv_eqn *eqn,
-  const double *qstate, const double *win, double *qout)
+riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* win, double *qout)
 {
-  // TODO: this should use proper L matrix
-  for (int i=0; i<8; ++i)
+  // TODO: This should use a proper L matrix.
+  for (int i = 0; i < 8; i++) {
     qout[i] = win[i];
+  }
 }
 
+/**
+* Boundary condition function for applying wall boundary conditions for the Maxwell equations.
+*
+* @param eqn Base equation object.
+* @param t Current simulation time.
+* @param nc Number of boundary cells to which to apply wall boundary conditions.
+* @param skin Skin cells in boundary region (from which values are copied).
+* @param ghost Ghost cells in boundary region (to which values are copied).
+* @param ctx Context to pass to the function.
+*/
 GKYL_CU_DH
 static void
-maxwell_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
+maxwell_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
-  // zero-tangent for E field
+  // Zero tangent for electric field.
   ghost[0] = skin[0];
   ghost[1] = -skin[1];
   ghost[2] = -skin[2];
 
-  // zero-normal for B field
+  // Zero normal for magnetic field.
   ghost[3] = -skin[3];
   ghost[4] = skin[4];
   ghost[5] = skin[5];
 
-  // correction potential
+  // Correction potentials.
   ghost[6] = -skin[6];
   ghost[7] = skin[7];
 }
 
+/**
+* Boundary condition function for applying no-slip boundary conditions for the Maxwell equations.
+*
+* @param eqn Base equation object.
+* @param t Current simulation time.
+* @param nc Number of boundary cells to which to apply no-slip boundary conditions.
+* @param skin Skin cells in boundary region (from which values are copied).
+* @param ghost Ghost cells in boundary region (to which values are copied).
+* @param ctx Context to pass to the function.
+*/
+GKYL_CU_DH
+static void
+maxwell_no_slip(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
+{
+  // Zero tangent for the electric field.
+  ghost[0] = skin[0];
+  ghost[1] = -skin[1];
+  ghost[2] = -skin[2];
+
+  // Zero normal for the magnetic field.
+  ghost[3] = -skin[3];
+  ghost[4] = skin[4];
+  ghost[5] = skin[5];
+
+  // Correction potentials.
+  ghost[6] = -skin[6];
+  ghost[7] = skin[7];
+}
+
+/**
+* Rotate state vector from global to local coordinate frame.
+*
+* @param eqn Base equation object.
+* @param tau1 First tangent vector of the coordinate frame.
+* @param tau2 Second tangent vector of the coordinate frame.
+* @param norm Normal vector of the coordinate frame.
+* @param qglobal State vector in global coordinate frame (input).
+* @param qlocal State vector in local coordinate frame (output).
+*/
 GKYL_CU_DH
 static inline void
-rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm,
-  const double* GKYL_RESTRICT qglobal, double* GKYL_RESTRICT qlocal)
+rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qglobal,
+  double* GKYL_RESTRICT qlocal)
 {
-  // Rotate E to local coordinates
-  qlocal[0] = qglobal[0]*norm[0] + qglobal[1]*norm[1] + qglobal[2]*norm[2];
-  qlocal[1] = qglobal[0]*tau1[0] + qglobal[1]*tau1[1] + qglobal[2]*tau1[2];
-  qlocal[2] = qglobal[0]*tau2[0] + qglobal[1]*tau2[1] + qglobal[2]*tau2[2];
-  // Rotate B to local coordinates
-  qlocal[3] = qglobal[3]*norm[0] + qglobal[4]*norm[1] + qglobal[5]*norm[2];
-  qlocal[4] = qglobal[3]*tau1[0] + qglobal[4]*tau1[1] + qglobal[5]*tau1[2];
-  qlocal[5] = qglobal[3]*tau2[0] + qglobal[4]*tau2[1] + qglobal[5]*tau2[2];
-  // Correction potentials are scalars and unchanged
+  // Rotate electric field vector to local coordinates.
+  qlocal[0] = (qglobal[0] * norm[0]) + (qglobal[1] * norm[1]) + (qglobal[2] * norm[2]);
+  qlocal[1] = (qglobal[0] * tau1[0]) + (qglobal[1] * tau1[1]) + (qglobal[2] * tau1[2]);
+  qlocal[2] = (qglobal[0] * tau2[0]) + (qglobal[1] * tau2[1]) + (qglobal[2] * tau2[2]);
+  
+  // Rotate magnetic field vector to local coordinates.
+  qlocal[3] = (qglobal[3] * norm[0]) + (qglobal[4] * norm[1]) + (qglobal[5] * norm[2]);
+  qlocal[4] = (qglobal[3] * tau1[0]) + (qglobal[4] * tau1[1]) + (qglobal[5] * tau1[2]);
+  qlocal[5] = (qglobal[3] * tau2[0]) + (qglobal[4] * tau2[1]) + (qglobal[5] * tau2[2]);
+  
+  // Correction potentials are scalars (so remain unchanged).
   qlocal[6] = qglobal[6];
   qlocal[7] = qglobal[7];
 }
 
+/**
+* Rotate state vector from local to global coordinate frame.
+*
+* @param eqn Base equation object.
+* @param tau1 First tangent vector of the coordinate frame.
+* @param tau2 Second tangent vector of the coordinate frame.
+* @param norm Normal vector of the coordinate frame.
+* @param qlocal State vector in local coordinate frame (input).
+* @param qglobal State vector in global coordinate frame (output).
+*/
 GKYL_CU_DH
 static inline void
-rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm,
-  const double* GKYL_RESTRICT qlocal, double* GKYL_RESTRICT qglobal)
+rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qlocal,
+  double* GKYL_RESTRICT qglobal)
 {
-  // Rotate E back to global coordinates
-  qglobal[0] = qlocal[0]*norm[0] + qlocal[1]*tau1[0] + qlocal[2]*tau2[0];
-  qglobal[1] = qlocal[0]*norm[1] + qlocal[1]*tau1[1] + qlocal[2]*tau2[1];
-  qglobal[2] = qlocal[0]*norm[2] + qlocal[1]*tau1[2] + qlocal[2]*tau2[2];
-  // Rotate B back to global coordinates
-  qglobal[3] = qlocal[3]*norm[0] + qlocal[4]*tau1[0] + qlocal[5]*tau2[0];
-  qglobal[4] = qlocal[3]*norm[1] + qlocal[4]*tau1[1] + qlocal[5]*tau2[1];
-  qglobal[5] = qlocal[3]*norm[2] + qlocal[4]*tau1[2] + qlocal[5]*tau2[2];
-  // Correction potentials are scalars and unchanged
+  // Rotate electric field vector to global coordinates.
+  qglobal[0] = (qlocal[0] * norm[0]) + (qlocal[1] * tau1[0]) + (qlocal[2] * tau2[0]);
+  qglobal[1] = (qlocal[0] * norm[1]) + (qlocal[1] * tau1[1]) + (qlocal[2] * tau2[1]);
+  qglobal[2] = (qlocal[0] * norm[2]) + (qlocal[1] * tau1[2]) + (qlocal[2] * tau2[2]);
+
+  // Rotate magnetic field vector to global coordinates.
+  qglobal[3] = (qlocal[3] * norm[0]) + (qlocal[4] * tau1[0]) + (qlocal[5] * tau2[0]);
+  qglobal[4] = (qlocal[3] * norm[1]) + (qlocal[4] * tau1[1]) + (qlocal[5] * tau2[1]);
+  qglobal[5] = (qlocal[3] * norm[2]) + (qlocal[4] * tau1[2]) + (qlocal[5] * tau2[2]);
+
+  // Correction potentials are scalars (so remain unchanged).
   qglobal[6] = qlocal[6];
   qglobal[7] = qlocal[7];
 }
 
-// Waves and speeds using Roe averaging
+
+/**
+* Compute waves and speeds using Lax fluxes.
+*
+* @param eqn Base equation object.
+* @param delta Jump across interface to split.
+* @param ql Conserved variables on the left of the interface.
+* @param qr Conserved variables on the right of the interface.
+* @param waves Waves (output).
+* @param s Wave speeds (output).
+* @return Maximum wave speed.
+*/
 GKYL_CU_DH
 static double
-wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, 
-  double *waves, double *s)
+wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
 {
   const struct wv_maxwell *maxwell = container_of(eqn, struct wv_maxwell, eqn);
+  double c = maxwell->c; // Speed of light.
+  double e_fact = maxwell->e_fact; // Factor of speed of light for electric field correction.
+  double b_fact = maxwell->b_fact; // Factor of speed of light for magnetic field correction.
 
-  double c = maxwell->c, c1 = 1/c;
-  double e_fact = maxwell->e_fact, b_fact = maxwell->b_fact;
-    
-  // compute projections of jump
-  double a1 = 0.5*(delta[3]-delta[7]*c1);
-  double a2 = 0.5*(delta[3]+delta[7]*c1);
-  double a3 = 0.5*(delta[0]-delta[6]*c);
-  double a4 = 0.5*(delta[0]+delta[6]*c);
-  double a5 = 0.5*(delta[1]-delta[5]*c);
-  double a6 = 0.5*(delta[4]*c+delta[2]);
-  double a7 = 0.5*(delta[5]*c+delta[1]);
-  double a8 = 0.5*(delta[2]-delta[4]*c);
+  double sl = gkyl_maxwell_max_abs_speed(c, e_fact, b_fact, ql);
+  double sr = gkyl_maxwell_max_abs_speed(c, e_fact, b_fact, qr);
+  double amax = fmax(sl, sr);
 
-  // set waves to 0.0 as most entries vanish
-  for (int i=0; i<8*6; ++i) waves[i] = 0.0;
-
-  double *w = 0;
-
-  // wave 1:
-  w = &waves[0*8];
-  w[3] = a1;
-  w[7] = -a1*c;
-  s[0] = -c*b_fact;
-
-  // wave 2:
-  w = &waves[1*8];
-  w[3] = a2;
-  w[7] = a2*c;
-  s[1] = c*b_fact;
-
-  // wave 3:
-  w = &waves[2*8];
-  w[0] = a3;
-  w[6] = -a3*c1;
-  s[2] = -c*e_fact;
-
-  // wave 4:
-  w = &waves[3*8];
-  w[0] = a4;
-  w[6] = a4*c1;
-  s[3] = c*e_fact;
-
-  // wave 5: (two waves with EV -c, -c lumped into one)
-  w = &waves[4*8];
-  w[1] = a5;
-  w[2] = a6;
-  w[4] = a6*c1;
-  w[5] = -a5*c1;
-  s[4] = -c;
-
-  // wave 6: (two waves with EV c, c lumped into one)
-  w = &waves[5*8];
-  w[1] = a7;
-  w[2] = a8;
-  w[4] = -a8*c1;
-  w[5] = a7*c1;
-  s[5] = c;
-  
-  return c;
-}
-
-GKYL_CU_DH
-static void
-qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *ql, const double *qr, const double *waves, const double *s,
-  double *amdq, double *apdq)
-{
-  const double *w0 = &waves[0*8], *w1 = &waves[1*8], *w2 = &waves[2*8];
-  const double *w3 = &waves[3*8], *w4 = &waves[4*8], *w5 = &waves[5*8];
-  
-  double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]), s2m = fmin(0.0, s[2]);
-  double s3m = fmin(0.0, s[3]), s4m = fmin(0.0, s[4]), s5m = fmin(0.0, s[5]);
-  
-  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]), s2p = fmax(0.0, s[2]);
-  double s3p = fmax(0.0, s[3]), s4p = fmax(0.0, s[4]), s5p = fmax(0.0, s[5]);
-
-  for (int i=0; i<8; ++i) {
-    amdq[i] = s0m*w0[i] + s1m*w1[i] + s2m*w2[i] + s3m*w3[i] + s4m*w4[i] + s5m*w5[i];
-    apdq[i] = s0p*w0[i] + s1p*w1[i] + s2p*w2[i] + s3p*w3[i] + s4p*w4[i] + s5p*w5[i];
-  }
-
-  // AH: For some reason, the code commented out below does not
-  // work. Need to figure out why! For now, MP-XX Maxwell WILL NOT
-  // WORK!
-  
-  /* const struct wv_maxwell *maxwell = container_of(eqn, struct wv_maxwell, eqn); */
-
-  /* double c = maxwell->c, c2 = c*c; */
-  /* double e_fact = maxwell->e_fact, b_fact = maxwell->b_fact; */
-
-  /* // auto-generated from Maxima */
-  /* apdq[0] = c*(((qr[6]-ql[6])*c)/2+(qr[0]-ql[0])/2)*e_fact; */
-  /* apdq[1] = c*(((qr[5]-ql[5])*c)/2+(qr[1]-ql[1])/2); */
-  /* apdq[2] = c*((qr[2]-ql[2])/2-((qr[4]-ql[4])*c)/2); */
-  /* apdq[3] = ((qr[7]-ql[7])/(2*c)+(qr[3]-ql[3])/2)*c*b_fact; */
-  /* apdq[4] = ((qr[4]-ql[4])*c)/2-(qr[2]-ql[2])/2; */
-  /* apdq[5] = ((qr[5]-ql[5])*c)/2+(qr[1]-ql[1])/2; */
-  /* apdq[6] = (((qr[6]-ql[6])*c)/2+(qr[0]-ql[0])/2)*e_fact; */
-  /* apdq[7] = ((qr[7]-ql[7])/(2*c)+(qr[3]-ql[3])/2)*c2*b_fact; */
-  
-  /* amdq[0] = -c*((qr[0]-ql[0])/2-((qr[6]-ql[6])*c)/2)*e_fact; */
-  /* amdq[1] = -c*((qr[1]-ql[1])/2-((qr[5]-ql[5])*c)/2); */
-  /* amdq[2] = -c*(((qr[4]-ql[4])*c)/2+(qr[2]-ql[2])/2); */
-  /* amdq[3] = -((qr[3]-ql[3])/2-(qr[7]-ql[7])/(2*c))*c*b_fact; */
-  /* amdq[4] = (-((qr[4]-ql[4])*c)/2)-(qr[2]-ql[2])/2; */
-  /* amdq[5] = (qr[1]-ql[1])/2-((qr[5]-ql[5])*c)/2; */
-  /* amdq[6] = ((qr[0]-ql[0])/2-((qr[6]-ql[6])*c)/2)*e_fact; */
-  /* amdq[7] = ((qr[3]-ql[3])/2-(qr[7]-ql[7])/(2*c))*c2*b_fact; */
-}
-
-GKYL_CU_DH
-static double
-flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
-{
-  const struct wv_maxwell *maxwell = container_of(eqn, struct wv_maxwell, eqn);
-
-  double c = maxwell->c;
-  double e_fact = maxwell->e_fact, b_fact = maxwell->b_fact;
-
-  double fr[8], fl[8];
+  double *fl = gkyl_malloc(sizeof(double) * 8);
+  double *fr = gkyl_malloc(sizeof(double) * 8);
   gkyl_maxwell_flux(c, e_fact, b_fact, ql, fl);
   gkyl_maxwell_flux(c, e_fact, b_fact, qr, fr);
 
-  for (int m=0; m<8; ++m) flux_jump[m] = fr[m]-fl[m];
+  double *w0 = &waves[0], *w1 = &waves[8];
+  for (int i = 0; i < 8; i++) {
+    w0[i] = 0.5 * ((qr[i] - ql[i]) - (fr[i] - fl[i]) / amax);
+    w1[i] = 0.5 * ((qr[i] - ql[i]) + (fr[i] - fl[i]) / amax);
+  }
 
-  return c;
+  s[0] = -amax;
+  s[1] = amax;
+
+  gkyl_free(fl);
+  gkyl_free(fr);
+
+  return s[1];
 }
 
+/**
+* Compute fluctuations using Lax fluxes.
+*
+* @param eqn Base equation object.
+* @param ql Conserved variable vector on the left of the interface.
+* @param qr Conserved variable vector on the right of the interface.
+* @param waves Waves (input).
+* @param s Wave speeds (input).
+* @param amdq Left-moving fluctuations (output).
+* @param apdq Right-moving fluctuations (output).
+*/
 GKYL_CU_DH
-static bool
-check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
+static void
+qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
 {
-  return true; // no negative states in Maxwell
+  const double *w0 = &waves[0], *w1 = &waves[8];
+  double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
+  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]);
+
+  for (int i = 0; i < 8; i++) {
+    amdq[i] = (s0m * w0[i]) + (s1m * w1[i]);
+    apdq[i] = (s0p * w0[i]) + (s1p * w1[i]);
+  }
 }
 
+/**
+* Compute waves and speeds using Lax fluxes (with potential fallback).
+*
+* @param eqn Base equation object.
+* @param type Type of Riemann-solver flux to use.
+* @param delta Jump across interface to split.
+* @param ql Conserved variables on the left of the interface.
+* @param qr Conserved variables on the right of the interface.
+* @param waves Waves (output).
+* @param s Wave speeds (output).
+* @return Maximum wave speed.
+*/
 GKYL_CU_DH
 static double
-max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
+wave(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s)
 {
-  const struct wv_maxwell *maxwell = container_of(eqn, struct wv_maxwell, eqn);
-  return maxwell->c;
+  return wave_lax(eqn, delta, ql, qr, waves, s);
 }
 
+/**
+* Compute fluctuations using Lax fluxes (with potential fallback),
+*
+* @param eqn Base equation object.
+* @param type Type of Riemann-solver flux to use.
+* @param ql Conserved variable vector on the left of the interface.
+* @param qr Conserved variable vector on the right of the interface.
+* @param waves Waves (input).
+* @param s Wave speeds (input).
+* @param amdq Left-moving fluctuations (output).
+* @param apdq Right-moving fluctuations (output).
+*/
+GKYL_CU_DH
+static void
+qfluct(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
+  double* amdq, double* apdq)
+{
+  return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
+}
+
+/**
+* Compute jump in flux given two conserved variable states.
+*
+* @param eqn Base equation object.
+* @param ql Conserved variable vector on the left of the interface (input).
+* @param qr Conserved variable vector on the right of the interface (input).
+* @param flux_jump Jump in flux vector (output).
+* @return Maximum wave speeds for states ql and qr.
+*/
+GKYL_CU_DH
+static double
+flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump)
+{
+  const struct wv_maxwell *maxwell = container_of(eqn, struct wv_maxwell, eqn);
+  double c = maxwell->c; // Speed of light.
+  double e_fact = maxwell->e_fact; // Factor of speed of light for electric field correction.
+  double b_fact = maxwell->b_fact; // Factor of speed of light for magnetic field correction.
+
+  double *fr = gkyl_malloc(sizeof(double) * 8);
+  double *fl = gkyl_malloc(sizeof(double) * 8);
+  gkyl_maxwell_flux(c, e_fact, b_fact, ql, fl);
+  gkyl_maxwell_flux(c, e_fact, b_fact, qr, fr);
+
+  for (int i = 0; i < 8; i++) {
+    flux_jump[i] = fr[i] - fl[i];
+  }
+
+  double amaxl = gkyl_maxwell_max_abs_speed(c, e_fact, b_fact, ql);
+  double amaxr = gkyl_maxwell_max_abs_speed(c, e_fact, b_fact, qr);
+  
+  gkyl_free(fr);
+  gkyl_free(fl);
+
+  return fmax(amaxl, amaxr);
+}
+
+/**
+* Determine whether invariant domain of the Maxwell equations is satisfied.
+*
+* @param eqn Base equation object.
+* @param q Conserved variable vector.
+* @return Whether the invariant domain is satisfied.
+*/
+GKYL_CU_DH
+static bool
+check_inv(const struct gkyl_wv_eqn* eqn, const double* q)
+{
+  return true; // All states are assumed to be valid.
+}
+
+/**
+* Compute maximum wave speed from a conserved variable vector.
+*
+* @param eqn Base equation object.
+* @param q Conserved variable vector.
+* @return Maximum absolute wave speed.
+*/
+GKYL_CU_DH
+static double
+max_speed(const struct gkyl_wv_eqn* eqn, const double* q)
+{
+  const struct wv_maxwell *maxwell = container_of(eqn, struct wv_maxwell, eqn);
+  double c = maxwell->c; // Speed of light.
+  double e_fact = maxwell->e_fact; // Factor of speed of light for electric field correction.
+  double b_fact = maxwell->b_fact; // Factor of speed of light for magnetic field correction.
+
+  return gkyl_maxwell_max_abs_speed(c, e_fact, b_fact, q);
+}
+
+/**
+* Convert conserved variables to diagnostic variables.
+*
+* @param eqn Base equation object.
+* @param qin Conserved variable vector (input).
+* @param diag Diagnostic variable vector (output).
+*/
 GKYL_CU_DH
 static inline void
-maxwell_cons_to_diag(const struct gkyl_wv_eqn *eqn,
-  const double *qin, double *diag)
+maxwell_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* diag)
 {
-  // components of EM energy
-  for (int i=0; i<6; ++i) diag[i] = qin[i]*qin[i];
+  for (int i = 0; i < 6; i++) {
+    diag[i] = qin[i] * qin[i];
+  }
 }
+
+/**
+* Compute forcing/source term vector from conserved variable vector.
+*
+* @param eqn Base equation object.
+* @param qin Conserved variable vector (input).
+* @param sout Forcing/source term vector (output).
+*/
+GKYL_CU_DH
+static inline void
+maxwell_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout);
