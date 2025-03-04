@@ -133,7 +133,7 @@ create_L_domain_block_geom(int **cuts)
 }
 
 static struct gkyl_block_geom *
-create_CORE_domain_block_geom(int **cuts)
+create_cyclic_domain_block_geom(int **cuts)
 {
   // 2D with 2 blocks
   struct gkyl_block_geom *bgeom = gkyl_block_geom_new(2, 2);
@@ -158,7 +158,7 @@ create_CORE_domain_block_geom(int **cuts)
   gkyl_block_geom_set_block(bgeom, 0, &(struct gkyl_block_geom_info) {
       .lower = { 0, 0 },
       .upper = { 1, 1 },
-      .cells = { 4, 8},
+      .cells = { 4, 8 },
       .cuts = { cuts0[0], cuts0[1] },
       
       .connections[0] = { // x-direction connections
@@ -177,7 +177,7 @@ create_CORE_domain_block_geom(int **cuts)
   gkyl_block_geom_set_block(bgeom, 1, &(struct gkyl_block_geom_info) {
       .lower = { 0, 0 },
       .upper = { 1, 1 },
-      .cells = { 4, 8},
+      .cells = { 4, 6 },
       .cuts = { cuts1[0], cuts1[1] },
       
       .connections[0] = { // x-direction connections
@@ -453,7 +453,7 @@ test_L_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
 }
 
 static void
-test_CORE_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
+test_cyclic_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
 {
   // Create world comm.
   struct gkyl_comm* comm = comm_new(use_mpi, use_gpu, stderr);
@@ -464,7 +464,7 @@ test_CORE_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
 
   int ndim = 2;
 
-  struct gkyl_block_geom *geom = create_CORE_domain_block_geom(cuts);
+  struct gkyl_block_geom *geom = create_cyclic_domain_block_geom(cuts);
   struct gkyl_block_topo *topo = gkyl_block_geom_topo(geom);
 
   int num_blocks = topo->num_blocks;
@@ -670,7 +670,7 @@ test_CORE_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
 }
 
 static void
-test_CORE_domain_sync_ser(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
+test_cyclic_domain_sync_ser(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
 {
   // Create world comm.
   struct gkyl_comm* comm = comm_new(use_mpi, use_gpu, stderr);
@@ -681,7 +681,7 @@ test_CORE_domain_sync_ser(bool use_gpu, bool use_mpi, int **cuts, int poly_order
 
   int ndim = 2;
 
-  struct gkyl_block_geom *geom = create_CORE_domain_block_geom(cuts);
+  struct gkyl_block_geom *geom = create_cyclic_domain_block_geom(cuts);
   struct gkyl_block_topo *topo = gkyl_block_geom_topo(geom);
 
   int num_blocks = topo->num_blocks;
@@ -958,9 +958,9 @@ test_L_domain_sync_ho(void)
 }
 
 static void
-test_CORE_domain_sync_ho(void)
+test_cyclic_domain_sync_ho(void)
 {
-  int num_blocks = 2; // CORE-shaped example.
+  int num_blocks = 2; // cyclic-shaped example.
   int ndim = 2;
 
   int cuts_flat1[] = {
@@ -968,14 +968,14 @@ test_CORE_domain_sync_ho(void)
     1, 2, // Block 1.
   };
   int **cuts1 = cuts_array_new(num_blocks, ndim, cuts_flat1);
-  test_CORE_domain_sync(false, true, cuts1, 1);
+  test_cyclic_domain_sync(false, true, cuts1, 1);
   cuts_array_release(num_blocks, cuts1);
 }
 
 static void
-test_CORE_domain_sync_ser_ho(void)
+test_cyclic_domain_sync_ser_ho(void)
 {
-  int num_blocks = 2; // CORE-shaped example.
+  int num_blocks = 2; // cyclic-shaped example.
   int ndim = 2;
 
   int cuts_flat1[] = {
@@ -984,9 +984,9 @@ test_CORE_domain_sync_ser_ho(void)
   };
   int **cuts1 = cuts_array_new(num_blocks, ndim, cuts_flat1);
   // Test using MPI
-  test_CORE_domain_sync_ser(false, true, cuts1, 1);
+  test_cyclic_domain_sync_ser(false, true, cuts1, 1);
   // Test without MPI
-  test_CORE_domain_sync_ser(false, false, cuts1, 1);
+  test_cyclic_domain_sync_ser(false, false, cuts1, 1);
   cuts_array_release(num_blocks, cuts1);
 }
 
@@ -1013,11 +1013,11 @@ test_L_domain_sync_dev(void)
 }
 
 static void
-test_CORE_domain_sync_dev(void)
+test_cyclic_domain_sync_dev(void)
 {
   bool use_mpi = GKYL_HAVE_NCCL;
 
-  int num_blocks = 2; // CORE-shaped example.
+  int num_blocks = 2; // cyclic-shaped example.
   int ndim = 2;
 
   int cuts_flat0[] = {
@@ -1025,15 +1025,16 @@ test_CORE_domain_sync_dev(void)
     1, 2, // Block 1.
   };
   int **cuts0 = cuts_array_new(num_blocks, ndim, cuts_flat0);
-  test_CORE_domain_sync(true, use_mpi, cuts0, 1);
+  test_cyclic_domain_sync(true, use_mpi, cuts0, 1);
   cuts_array_release(num_blocks, cuts0);
 }
+
 static void
-test_CORE_domain_sync_ser_dev(void)
+test_cyclic_domain_sync_ser_dev(void)
 {
   bool use_mpi = GKYL_HAVE_NCCL;
 
-  int num_blocks = 2; // CORE-shaped example.
+  int num_blocks = 2; // cyclic-shaped example.
   int ndim = 2;
 
   int cuts_flat0[] = {
@@ -1041,19 +1042,19 @@ test_CORE_domain_sync_ser_dev(void)
     1, 2, // Block 1.
   };
   int **cuts0 = cuts_array_new(num_blocks, ndim, cuts_flat0);
-  test_CORE_domain_sync_ser(true, use_mpi, cuts0, 1);
+  test_cyclic_domain_sync_ser(true, use_mpi, cuts0, 1);
   cuts_array_release(num_blocks, cuts0);
 }
 #endif
 
 TEST_LIST = {
   { "test_L_domain_sync_ho" , test_L_domain_sync_ho },
-  { "test_CORE_domain_sync_ho" , test_CORE_domain_sync_ho },
-  { "test_CORE_domain_sync_ser_ho" , test_CORE_domain_sync_ser_ho },
+  { "test_cyclic_domain_sync_ho" , test_cyclic_domain_sync_ho },
+  { "test_cyclic_domain_sync_ser_ho" , test_cyclic_domain_sync_ser_ho },
 #ifdef GKYL_HAVE_CUDA
   { "test_L_domain_sync_dev", test_L_domain_sync_dev },
-  { "test_CORE_domain_sync_dev", test_CORE_domain_sync_dev },
-  { "test_CORE_domain_sync_ser_dev", test_CORE_domain_sync_ser_dev },
+  { "test_cyclic_domain_sync_dev", test_cyclic_domain_sync_dev },
+  { "test_cyclic_domain_sync_ser_dev", test_cyclic_domain_sync_ser_dev },
 #endif
   { NULL, NULL },
 };
