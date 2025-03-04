@@ -5,6 +5,7 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_dg_updater_moment_gyrokinetic.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_array_reduce.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_velocity_map.h>
