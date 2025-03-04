@@ -567,9 +567,27 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     arc_ctx->arcL_right = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rright,
       true, true, arc_memo_right);
     arc_ctx->right = false;
-    double arcL_l = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rleft,
+    arc_ctx->arcL_left = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rleft,
       true, true, arc_memo_left);
-    arc_ctx->arcL_tot = arcL_l + arc_ctx->arcL_right;
+    arc_ctx->arcL_tot = arc_ctx->arcL_left + arc_ctx->arcL_right;
+
+
+    // Adjust the starting point (theta=0) so that the core blocks
+    // are up-down symmetric
+    if (inp->ftype == GKYL_CORE_R) {
+      double theta_extent = inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX];
+      double arcL_extent = theta_extent/(2.0*M_PI)*arc_ctx->arcL_tot;
+      double extra_arcL = arcL_extent - arc_ctx->arcL_right;
+      arc_ctx->arcL_start = extra_arcL/2.0;
+    }
+    else if (inp->ftype == GKYL_CORE_L){
+      double theta_extent = 2.0*M_PI - (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX]);
+      double arcL_extent = theta_extent/(2.0*M_PI)*arc_ctx->arcL_tot;
+      double extra_arcL = arcL_extent - arc_ctx->arcL_right;
+      arc_ctx->arcL_start = extra_arcL/2.0;
+    }
+
+
 
     arc_ctx->right = true;
     arc_ctx->phi_right = 0.0;
@@ -813,7 +831,7 @@ void
 tok_set_ridders(struct gkyl_tok_geo_grid_inp* inp, struct arc_length_ctx* arc_ctx, double psi_curr, double arcL_curr,double* rclose, double *ridders_min, double* ridders_max){
 
 
-  if(inp->ftype==GKYL_CORE || inp->ftype==GKYL_CORE_R || inp->ftype==GKYL_CORE_L){
+  if(inp->ftype==GKYL_CORE){
     if(arcL_curr <= arc_ctx->arcL_right){
       *rclose = arc_ctx->rright;
       arc_ctx->right = true;
@@ -825,6 +843,30 @@ tok_set_ridders(struct gkyl_tok_geo_grid_inp* inp, struct arc_length_ctx* arc_ct
       arc_ctx->right = false;
       *ridders_min = arc_ctx->arcL_tot - arcL_curr;
       *ridders_max = -arcL_curr + arc_ctx->arcL_right;
+    }
+  }
+
+  if(inp->ftype==GKYL_CORE_R || inp->ftype==GKYL_CORE_L){
+    if(arcL_curr <= arc_ctx->arcL_start){
+      *rclose = arc_ctx->rleft;
+      arc_ctx->right = false;
+      arc_ctx->pre= true;
+      *ridders_min = arc_ctx->arcL_start-arcL_curr;
+      *ridders_max = arc_ctx->arcL_start - arc_ctx->arcL_left - arcL_curr;
+    }
+    else if(arcL_curr <= arc_ctx->arcL_right + arc_ctx->arcL_start){
+      *rclose = arc_ctx->rright;
+      arc_ctx->right = true;
+      arc_ctx->pre= false;
+      *ridders_min = arc_ctx->arcL_start -arcL_curr;
+      *ridders_max = arc_ctx->arcL_right + arc_ctx->arcL_start - arcL_curr;
+    }
+    else{
+      *rclose = arc_ctx->rleft;
+      arc_ctx->right = false;
+      arc_ctx->pre= false;
+      *ridders_min = arc_ctx->arcL_tot + arc_ctx->arcL_start - arcL_curr;
+      *ridders_max = -arcL_curr + arc_ctx->arcL_right+arc_ctx->arcL_start;
     }
   }
 

@@ -66,7 +66,7 @@ arc_length_func(double Z, void *ctx)
   double zmax = actx->zmax;
   double ival = 0.0;
 
-  if(actx->ftype==GKYL_CORE || actx->ftype==GKYL_CORE_L || actx->ftype==GKYL_CORE_R){
+  if(actx->ftype==GKYL_CORE){
     if(actx->right==true){
       double *arc_memo = actx->arc_memo_right;
       ival = integrate_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, true, false, arc_memo) - arcL;
@@ -74,6 +74,20 @@ arc_length_func(double Z, void *ctx)
     else{
       double *arc_memo = actx->arc_memo_left;
       ival = integrate_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, true, false, arc_memo)  - arcL + actx->arcL_right;
+    }
+  }
+
+  else if(actx->ftype==GKYL_CORE_L || actx->ftype==GKYL_CORE_R){
+    if(actx->pre==true){
+      ival = actx->arcL_start - integrate_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo) - arcL ;
+    }
+    else if(actx->right==true){
+      double *arc_memo = actx->arc_memo_right;
+      ival = integrate_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, true, false, arc_memo) - arcL + actx->arcL_start;
+    }
+    else{
+      double *arc_memo = actx->arc_memo_left;
+      ival = integrate_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, true, false, arc_memo)  - arcL + actx->arcL_right + actx->arcL_start;
     }
   }
 
