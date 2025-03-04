@@ -146,7 +146,7 @@ main(int argc, char **argv)
   struct gkyl_moment_species fluid = {
     .name = "burgers",
     .equation = burgers,
-    .evolve = true,
+    
     .init = evalInit,
     .ctx = &ctx,
 

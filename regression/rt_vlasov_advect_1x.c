@@ -89,7 +89,7 @@ evalInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, v
 }
 
 void
-evalVelInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+eval_advect_vel(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct advect_ctx *app = ctx;
 
@@ -97,6 +97,8 @@ evalVelInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
 
   // Set advection velocity.
   fout[0] = v_advect;
+  fout[1] = 0.0; 
+  fout[2] = 0.0; 
 }
 
 void
@@ -135,8 +137,10 @@ main(int argc, char **argv)
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
-  // Linear advection equation.
-  struct gkyl_wv_eqn *advect = gkyl_wv_advect_new(ctx.v_advect, false);
+  // Equation object for getting equation type, 
+  // advection velocity is set by eval_advect_vel function. 
+  double c = 1.0;
+  struct gkyl_wv_eqn *advect = gkyl_wv_advect_new(c, false);
 
   struct gkyl_vlasov_fluid_species fluid = {
     .name = "q",
@@ -147,7 +151,7 @@ main(int argc, char **argv)
 
     .equation = advect,
     .advection = {
-      .velocity = evalVelInit,
+      .velocity = eval_advect_vel,
       .velocity_ctx = &ctx,
     },
   };
@@ -352,6 +356,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   // Free resources after simulation completion.
+  gkyl_wv_eqn_release(advect);
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   gkyl_vlasov_app_release(app);

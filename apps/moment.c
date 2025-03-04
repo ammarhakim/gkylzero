@@ -186,14 +186,9 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   int ns = app->num_species = mom->num_species;
   // allocate space to store species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct moment_species[ns])) : 0;
-  // create species grid & ranges
-  app->has_app_accel = 0;
+  // create species
   for (int i=0; i<ns; ++i) {
     moment_species_init(mom, &mom->species[i], app, &app->species[i]);
-    // Check if any species have an applied acceleration
-    if (app->species[i].proj_app_accel) {
-      app->has_app_accel = 1;
-    }
   }
 
   // specify collision parameters in the exposed app
@@ -274,14 +269,11 @@ gkyl_moment_app_apply_ic_field(gkyl_moment_app* app, double t0)
   gkyl_fv_proj_advance(proj, t0, &app->local, app->field.fcurr);
   gkyl_fv_proj_release(proj);
 
-  if (app->field.proj_ext_em) {
-    gkyl_fv_proj_advance(
-        app->field.proj_ext_em, t0, &app->local, app->field.ext_em);
-
-    if (app->field.is_ext_em_static)
-      app->field.was_ext_em_computed = true;
-    else
-      app->field.was_ext_em_computed = false;
+  if (app->field.has_ext_em) {
+    gkyl_fv_proj_advance(app->field.ext_em_proj, t0, &app->local, app->field.ext_em);
+  }
+  if (app->field.has_app_current) {
+    gkyl_fv_proj_advance(app->field.app_current_proj, t0, &app->local, app->field.ext_em);
   }
 
   moment_field_apply_bc(app, t0, &app->field, app->field.fcurr);
@@ -299,6 +291,10 @@ gkyl_moment_app_apply_ic_species(gkyl_moment_app* app, int sidx, double t0)
   
   gkyl_fv_proj_advance(proj, t0, &app->local, app->species[sidx].fcurr);
   gkyl_fv_proj_release(proj);
+
+  if (app->species[sidx].has_app_accel) {
+    gkyl_fv_proj_advance(app->species[sidx].app_accel_proj, t0, &app->local, app->species[sidx].app_accel);
+  }
 
   moment_species_apply_bc(app, t0, &app->species[sidx], app->species[sidx].fcurr);
 }
@@ -327,10 +323,21 @@ gkyl_moment_app_write_field(const gkyl_moment_app* app, double tm, int frame)
   cstr_drop(&fileNm);
 
   // write external EM field if it is present
-  if (app->field.ext_em) {
-    cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "ext_em_field", frame);
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field.ext_em, fileNm.str);
-    cstr_drop(&fileNm);
+  if (app->field.ext_em_proj) {
+    if (app->field.ext_em_evolve || frame == 0) {
+      cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "ext_em", frame);
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field.ext_em, fileNm.str);
+      cstr_drop(&fileNm);
+    }
+  }
+
+  // write applied currents if it is present
+  if (app->field.app_current_proj) {
+    if (app->field.app_current_evolve || frame == 0) {
+      cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "app_current", frame);
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field.app_current, fileNm.str);
+      cstr_drop(&fileNm);
+    }
   }
 
   moment_array_meta_release(mt);
@@ -402,6 +409,14 @@ gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, i
     cstr fileNm = cstr_from_fmt("%s-%s-alpha_%d.gkyl", app->name, app->species[sidx].name, frame);
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->species[sidx].alpha, fileNm.str);
     cstr_drop(&fileNm);
+  }
+
+  if (app->species[sidx].has_app_accel) {
+    if (app->species[sidx].app_accel_evolve || frame == 0) {
+      cstr fileNm = cstr_from_fmt("%s-%s-app_accel_%d.gkyl", app->name, app->species[sidx].name, frame);
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->species[sidx].app_accel, fileNm.str);
+      cstr_drop(&fileNm);      
+    }
   }
 
   moment_array_meta_release(mt);
@@ -740,10 +755,22 @@ gkyl_moment_app_from_file_field(gkyl_moment_app *app, const char *fname)
   if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
     rstat.io_status =
       gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->field.fcurr, fname);
-    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status)
+    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
       moment_field_apply_bc(app, rstat.stime, &app->field, app->field.fcurr);
+    }
   }
-  
+
+  // Compute external EM field and applied current if present
+  // Computation necessary in case external EM field or applied current
+  // are time-independent and not computed in the time-stepping loop
+  // since they are not read-in as part of restarts. 
+  if (app->field.has_ext_em) {
+    gkyl_fv_proj_advance(app->field.ext_em_proj, rstat.stime, &app->local, app->field.ext_em);
+  }
+  if (app->field.has_app_current) {
+    gkyl_fv_proj_advance(app->field.app_current_proj, rstat.stime, &app->local, app->field.ext_em);
+  }  
+
   return rstat;
 }
 
@@ -756,9 +783,18 @@ gkyl_moment_app_from_file_species(gkyl_moment_app *app, int sidx,
   if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
     rstat.io_status =
       gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->species[sidx].fcurr, fname);
-    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status)
+    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
       moment_species_apply_bc(app, rstat.stime, &app->species[sidx], app->species[sidx].fcurr);
+    }
   }
+
+  // Compute applied acceleration if present.
+  // Computation necessary in case applied acceleration
+  // is time-independent and not computed in the time-stepping loop
+  // since it is not read-in as part of restarts. 
+  if (app->species[sidx].has_app_accel) {
+    gkyl_fv_proj_advance(app->species[sidx].app_accel_proj, rstat.stime, &app->local, app->species[sidx].app_accel);
+  }  
 
   return rstat;
 }

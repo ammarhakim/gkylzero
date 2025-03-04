@@ -30,6 +30,7 @@ eval_advect_vel(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double x = xn[0], y = xn[1];
   fout[0] = -y+0.5;
   fout[1] = x-0.5;
+  fout[2] = 0.0; 
 }
 
 int
@@ -45,7 +46,8 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 16);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[0], 16);  
 
-  // equation object
+  // Equation object for getting equation type, 
+  // advection velocity is set by eval_advect_vel function. 
   double c = 1.0;
   struct gkyl_wv_eqn *advect = gkyl_wv_advect_new(c, false);
 
@@ -59,7 +61,6 @@ main(int argc, char **argv)
     .equation = advect,
     .advection = {
       .velocity = eval_advect_vel,
-      .qtype = GKYL_GAUSS_LOBATTO_QUAD,
       .velocity_ctx = 0,
     },
   };
@@ -96,7 +97,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 3*M_PI/2;
+  double tcurr = 0.0, tend = 2.0*M_PI;
   double dt = tend-tcurr;
 
   // initialize simulation

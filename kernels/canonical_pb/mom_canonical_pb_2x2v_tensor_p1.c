@@ -1,4 +1,19 @@
 #include <gkyl_mom_canonical_pb_kernels.h> 
+GKYL_CU_DH void canonical_pb_M1i_from_H_2x2v_tensor_p1(const double *dxv, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+{ 
+  const double volFact = dxv[2]*dxv[3]/4; 
+  const double rdvx2 = 2.0/dxv[2];
+  const double rdvy2 = 2.0/dxv[3];
+
+  out[0] += (0.8660254037844386*f[12]*hamil[15]*rdvx2+0.8660254037844386*f[9]*hamil[14]*rdvx2+0.8660254037844386*f[8]*hamil[13]*rdvx2+0.8660254037844386*f[5]*hamil[11]*rdvx2+0.8660254037844386*f[4]*hamil[10]*rdvx2+0.8660254037844386*f[2]*hamil[7]*rdvx2+0.8660254037844386*f[1]*hamil[6]*rdvx2+0.8660254037844386*f[0]*hamil[3]*rdvx2)*volFact; 
+  out[1] += (0.8660254037844386*f[9]*hamil[15]*rdvx2+0.8660254037844386*f[12]*hamil[14]*rdvx2+0.8660254037844386*f[4]*hamil[13]*rdvx2+0.8660254037844386*f[2]*hamil[11]*rdvx2+0.8660254037844386*f[8]*hamil[10]*rdvx2+0.8660254037844386*f[5]*hamil[7]*rdvx2+0.8660254037844386*f[0]*hamil[6]*rdvx2+0.8660254037844386*f[1]*hamil[3]*rdvx2)*volFact; 
+  out[2] += (0.8660254037844386*f[8]*hamil[15]*rdvx2+0.8660254037844386*f[4]*hamil[14]*rdvx2+0.8660254037844386*f[12]*hamil[13]*rdvx2+0.8660254037844386*f[1]*hamil[11]*rdvx2+0.8660254037844386*f[9]*hamil[10]*rdvx2+0.8660254037844386*f[0]*hamil[7]*rdvx2+0.8660254037844386*f[5]*hamil[6]*rdvx2+0.8660254037844386*f[2]*hamil[3]*rdvx2)*volFact; 
+  out[3] += (0.8660254037844386*f[4]*hamil[15]*rdvx2+0.8660254037844386*f[8]*hamil[14]*rdvx2+0.8660254037844386*f[9]*hamil[13]*rdvx2+0.8660254037844386*hamil[10]*f[12]*rdvx2+0.8660254037844386*f[0]*hamil[11]*rdvx2+0.8660254037844386*f[1]*hamil[7]*rdvx2+0.8660254037844386*f[2]*hamil[6]*rdvx2+0.8660254037844386*hamil[3]*f[5]*rdvx2)*volFact; 
+  out[4] += (0.8660254037844386*f[11]*hamil[15]*rdvy2+0.8660254037844386*f[7]*hamil[14]*rdvy2+0.8660254037844386*f[6]*hamil[13]*rdvy2+0.8660254037844386*f[5]*hamil[12]*rdvy2+0.8660254037844386*f[3]*hamil[10]*rdvy2+0.8660254037844386*f[2]*hamil[9]*rdvy2+0.8660254037844386*f[1]*hamil[8]*rdvy2+0.8660254037844386*f[0]*hamil[4]*rdvy2)*volFact; 
+  out[5] += (0.8660254037844386*f[7]*hamil[15]*rdvy2+0.8660254037844386*f[11]*hamil[14]*rdvy2+0.8660254037844386*f[3]*hamil[13]*rdvy2+0.8660254037844386*f[2]*hamil[12]*rdvy2+0.8660254037844386*f[6]*hamil[10]*rdvy2+0.8660254037844386*f[5]*hamil[9]*rdvy2+0.8660254037844386*f[0]*hamil[8]*rdvy2+0.8660254037844386*f[1]*hamil[4]*rdvy2)*volFact; 
+  out[6] += (0.8660254037844386*f[6]*hamil[15]*rdvy2+0.8660254037844386*f[3]*hamil[14]*rdvy2+0.8660254037844386*f[11]*hamil[13]*rdvy2+0.8660254037844386*f[1]*hamil[12]*rdvy2+0.8660254037844386*f[7]*hamil[10]*rdvy2+0.8660254037844386*f[0]*hamil[9]*rdvy2+0.8660254037844386*f[5]*hamil[8]*rdvy2+0.8660254037844386*f[2]*hamil[4]*rdvy2)*volFact; 
+  out[7] += (0.8660254037844386*f[3]*hamil[15]*rdvy2+0.8660254037844386*f[6]*hamil[14]*rdvy2+0.8660254037844386*f[7]*hamil[13]*rdvy2+0.8660254037844386*f[0]*hamil[12]*rdvy2+0.8660254037844386*hamil[10]*f[11]*rdvy2+0.8660254037844386*f[1]*hamil[9]*rdvy2+0.8660254037844386*f[2]*hamil[8]*rdvy2+0.8660254037844386*hamil[4]*f[5]*rdvy2)*volFact; 
+} 
 GKYL_CU_DH void canonical_pb_MEnergy_2x2v_tensor_p1(const double *dxv, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 
   const double volFact = dxv[2]*dxv[3]/4; 

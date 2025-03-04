@@ -219,12 +219,11 @@ main(int argc, char **argv)
   struct gkyl_moment_species fluid = {
     .name = "euler",
     .equation = euler,
-    .evolve = true,
+    
     .init = evalEulerInit,
     .ctx = &ctx,
 
-    .is_app_accel_static = true,
-    .app_accel_func = evalAppAccel,
+    .app_accel = evalAppAccel,
     .app_accel_ctx = &ctx,
 
     .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
