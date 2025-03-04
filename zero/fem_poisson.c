@@ -1,5 +1,6 @@
 #include <gkyl_fem_poisson.h>
 #include <gkyl_fem_poisson_priv.h>
+#include <gkyl_array_reduce.h>
 
 void
 fem_poisson_bias_src_none(gkyl_fem_poisson* up, struct gkyl_array *rhsin)

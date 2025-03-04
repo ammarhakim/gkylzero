@@ -1,5 +1,6 @@
 #include <gkyl_fem_poisson_perp.h>
 #include <gkyl_fem_poisson_perp_priv.h>
+#include <gkyl_array_reduce.h>
 
 struct gkyl_fem_poisson_perp*
 gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gkyl_rect_grid *grid,
