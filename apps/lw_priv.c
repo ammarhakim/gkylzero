@@ -3,6 +3,7 @@
 #include <gkyl_app.h>
 #include <gkyl_moment.h>
 #include <gkyl_wv_euler.h>
+#include <gkyl_wv_mhd.h>
 #include <gkyl_vlasov.h>
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_lw_priv.h>
@@ -75,6 +76,22 @@ static const struct gkyl_str_int_pair euler_rp_type[] = {
   { 0, 0 }
 };
 
+// MHD Riemann problem -> enum map.
+static const struct gkyl_str_int_pair mhd_rp_type[] = {
+  { "Roe", WV_MHD_RP_ROE },
+  { "HLLD", WV_MHD_RP_HLLD },
+  { "Lax", WV_MHD_RP_LAX },
+  { 0, 0 }
+};
+
+// MHD divergence correction -> enum map.
+static const struct gkyl_str_int_pair mhd_divb_type[] = {
+  { "None", GKYL_MHD_DIVB_NONE },
+  { "GLM", GKYL_MHD_DIVB_GLM },
+  { "EightWaves", GKYL_MHD_DIVB_EIGHT_WAVES },
+  { 0, 0 }
+};
+
 // Braginskii type -> enum map.
 static const struct gkyl_str_int_pair braginskii_type[] = {
   { "Mag", GKYL_BRAG_MAG },
@@ -101,6 +118,7 @@ static const struct gkyl_str_int_pair model_type[] = {
   { "SR", GKYL_MODEL_SR },
   { "GeneralGeometry", GKYL_MODEL_GEN_GEO },
   { "CanonicalPB", GKYL_MODEL_CANONICAL_PB },
+  { "CanonicalPBGR", GKYL_MODEL_CANONICAL_PB_GR },
   { 0, 0 }
 };
 
@@ -139,6 +157,14 @@ static const struct gkyl_str_int_pair geometry_type[] = {
   { 0, 0 }
 };
 
+// Gyrokinetic position map type -> enum map.
+static const struct gkyl_str_int_pair position_map_type[] = {
+  { "UserInput", GKYL_PMAP_USER_INPUT },
+  { "ConstantPolynomial", GKYL_PMAP_CONSTANT_DB_POLYNOMIAL },
+  { "ConstantNumeric", GKYL_PMAP_CONSTANT_DB_NUMERIC },
+  { 0, 0 }
+};
+
 // Gyrokinetic field type -> enum map.
 static const struct gkyl_str_int_pair gk_field_type[] = {
   { "Electrostatic", GKYL_GK_FIELD_ES },
@@ -162,6 +188,41 @@ static const struct gkyl_str_int_pair gk_radiation_te_type[] = {
   { "Conservative", GKYL_VARY_TE_CONSERVATIVE },
   { "Aggressive", GKYL_VARY_TE_AGGRESSIVE },
   { "Const", GKYL_CONST_TE },
+  { 0, 0 }
+};
+
+// Gyrokinetic reaction type -> enum map.
+static const struct gkyl_str_int_pair gk_react_type[] = {
+  { "None", GKYL_NO_REACT },
+  { "Ionization", GKYL_REACT_IZ },
+  { "ChargeExchange", GKYL_REACT_CX },
+  { "Recombination", GKYL_REACT_RECOMB },
+  { 0, 0 }
+};
+
+// Gyrokinetic ion type -> enum map.
+static const struct gkyl_str_int_pair gk_ion_type[] = {
+  { "Hydrogen", GKYL_ION_H },
+  { "Deuterium", GKYL_ION_D },
+  { "Helium", GKYL_ION_HE },
+  { "Lithium", GKYL_ION_LI },
+  { "Beryllium", GKYL_ION_BE },
+  { "Boron", GKYL_ION_B },
+  { "Carbon", GKYL_ION_C },
+  { "Nitrogen", GKYL_ION_N },
+  { "Oxygen", GKYL_ION_O },
+  { "Neon", GKYL_ION_NE },
+  { "Argon", GKYL_ION_AR },
+  { 0, 0 }
+};
+
+// Gyrokinetic self-reaction type -> enum map.
+static const struct gkyl_str_int_pair gk_react_self_type[] = {
+  { "Electron", GKYL_SELF_ELC },
+  { "Ion", GKYL_SELF_ION },
+  { "Donor", GKYL_SELF_DONOR },
+  { "Receiver", GKYL_SELF_RECVR },
+  { "Partner", GKYL_SELF_PARTNER },
   { 0, 0 }
 };
 
@@ -218,6 +279,18 @@ gkyl_register_euler_rp_types(lua_State *L)
 }
 
 void
+gkyl_register_mhd_rp_types(lua_State *L)
+{
+  register_types(L, mhd_rp_type, "MHDRP");
+}
+
+void
+gkyl_register_mhd_divb_types(lua_State *L)
+{
+  register_types(L, mhd_divb_type, "DivB");
+}
+
+void
 gkyl_register_braginskii_types(lua_State *L)
 {
   register_types(L, braginskii_type, "Braginskii");
@@ -260,6 +333,12 @@ gkyl_register_gyrokinetic_geometry_types(lua_State *L)
 }
 
 void
+gkyl_register_gyrokinetic_position_map_types(lua_State *L)
+{
+  register_types(L, position_map_type, "PositionMap");
+}
+
+void
 gkyl_register_gyrokinetic_field_types(lua_State *L)
 {
   register_types(L, gk_field_type, "GKField");
@@ -275,6 +354,24 @@ void
 gkyl_register_gyrokinetic_radiation_Te_types(lua_State *L)
 {
   register_types(L, gk_radiation_te_type, "TeMinModel");
+}
+
+void
+gkyl_register_gyrokinetic_reaction_types(lua_State *L)
+{
+  register_types(L, gk_react_type, "Reaction");
+}
+
+void
+gkyl_register_gyrokinetic_ion_types(lua_State *L)
+{
+  register_types(L, gk_ion_type, "Ion");
+}
+
+void
+gkyl_register_gyrokinetic_self_reaction_types(lua_State *L)
+{
+  register_types(L, gk_react_self_type, "Self");
 }
 
 void

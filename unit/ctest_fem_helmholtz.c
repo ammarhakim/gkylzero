@@ -174,13 +174,13 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   gkyl_array_shiftc(kSqFld, kSq*dg0norm, 0);
 
   // FEM poisson solver.
-  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&localRange, &grid, basis, &bcs, eps, kSqFld, false, use_gpu);
+  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&localRange, &grid, basis, &bcs, NULL, eps, kSqFld, false, use_gpu);
 
   // Set the RHS source.
   if (use_gpu)
-    gkyl_fem_poisson_set_rhs(poisson, rho_cu);
+    gkyl_fem_poisson_set_rhs(poisson, rho_cu, NULL);
   else
-    gkyl_fem_poisson_set_rhs(poisson, rho);
+    gkyl_fem_poisson_set_rhs(poisson, rho, NULL);
 
   // Solve the problem.
   if (use_gpu) {

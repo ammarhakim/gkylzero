@@ -376,7 +376,7 @@ gkyl_pkpm_app_calc_integrated_mom(gkyl_pkpm_app* app, double tm)
   }
 
   app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-  app->stat.ndiag += app->num_species;
+  app->stat.n_diag += app->num_species;
 }
 
 void
@@ -388,7 +388,7 @@ gkyl_pkpm_app_calc_integrated_L2_f(gkyl_pkpm_app* app, double tm)
     pkpm_species_calc_L2(app, tm, s);
   }
   app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-  app->stat.ndiag += app->num_species;
+  app->stat.n_diag += app->num_species;
 }
 
 void
@@ -397,13 +397,13 @@ gkyl_pkpm_app_calc_field_energy(gkyl_pkpm_app* app, double tm)
   struct timespec wst = gkyl_wall_clock();
   pkpm_field_calc_energy(app, tm, app->field);
   app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-  app->stat.ndiag += 1;
+  app->stat.n_diag += 1;
 }
 
 void
 gkyl_pkpm_app_write(gkyl_pkpm_app* app, double tm, int frame)
 {
-  app->stat.nio += 1;
+  app->stat.n_io += 1;
   struct timespec wtm = gkyl_wall_clock();
   
   gkyl_pkpm_app_write_field(app, tm, frame);
@@ -851,16 +851,16 @@ gkyl_pkpm_app_stat_write(gkyl_pkpm_app* app)
     gkyl_pkpm_app_cout(app, fp, " current_tm : %lg,\n", stat.current_tm);
   }
 
-  gkyl_pkpm_app_cout(app, fp, " ndiag : %ld,\n", stat.ndiag);
+  gkyl_pkpm_app_cout(app, fp, " ndiag : %ld,\n", stat.n_diag);
   gkyl_pkpm_app_cout(app, fp, " diag_tm : %lg\n", stat.diag_tm);
   
-  gkyl_pkpm_app_cout(app, fp, " nspecies_omega_cfl : %ld,\n", stat.nspecies_omega_cfl);
+  gkyl_pkpm_app_cout(app, fp, " nspecies_omega_cfl : %ld,\n", stat.n_species_omega_cfl);
   gkyl_pkpm_app_cout(app, fp, " species_omega_cfl_tm : %lg\n", stat.species_omega_cfl_tm);
 
-  gkyl_pkpm_app_cout(app, fp, " nfield_omega_cfl : %ld,\n", stat.nfield_omega_cfl);
+  gkyl_pkpm_app_cout(app, fp, " nfield_omega_cfl : %ld,\n", stat.n_field_omega_cfl);
   gkyl_pkpm_app_cout(app, fp, " field_omega_cfl_tm : %lg\n", stat.field_omega_cfl_tm);
 
-  gkyl_pkpm_app_cout(app, fp, " nio : %ld,\n", stat.nio);
+  gkyl_pkpm_app_cout(app, fp, " nio : %ld,\n", stat.n_io);
   gkyl_pkpm_app_cout(app, fp, " io_tm : %lg\n", stat.io_tm);
   
   gkyl_pkpm_app_cout(app, fp, "}\n");
@@ -946,6 +946,12 @@ gkyl_pkpm_app_from_file_species(gkyl_pkpm_app *app, int sidx,
       pkpm_species_apply_bc(app, s, s->f);
     }
   }
+
+  // Compute applied acceleration if present.
+  // Computation necessary in case applied acceleration
+  // is time-independent and not computed in the time-stepping loop
+  // since it is not read-in as part of restarts. 
+  pkpm_species_calc_app_accel(app, s, rstat.stime);
 
   return rstat;
 }

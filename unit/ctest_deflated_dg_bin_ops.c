@@ -126,13 +126,13 @@ test_bop(bool use_gpu)
   gkyl_eval_on_nodes_advance(eon, 0.0, &local, jac);
   gkyl_eval_on_nodes_release(eon);
 
-  gkyl_grid_sub_array_write(&grid, &local, 0, rho, "rho.gkyl");
-  gkyl_grid_sub_array_write(&grid, &local, 0, jac, "jac.gkyl");
+  //gkyl_grid_sub_array_write(&grid, &local, 0, rho, "rho.gkyl");
+  //gkyl_grid_sub_array_write(&grid, &local, 0, jac, "jac.gkyl");
 
   // Get C = rho.J
   struct gkyl_array *Cxz = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_dg_mul_op(basis, 0, Cxz, 0,rho, 0, jac);
-  gkyl_grid_sub_array_write(&grid, &local, 0, Cxz, "Cxz.gkyl");
+  //gkyl_grid_sub_array_write(&grid, &local, 0, Cxz, "Cxz.gkyl");
 
   struct gkyl_array *Cxz_dev =  use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume) : gkyl_array_acquire(Cxz);
   gkyl_array_copy(Cxz_dev, Cxz);
@@ -156,7 +156,7 @@ test_bop(bool use_gpu)
   gkyl_deflated_dg_bin_ops_div(operator, c_oop, Exz_dev, c_lop, Cxz_dev, c_rop, jac_dev);
 
   gkyl_array_copy(Exz, Exz_dev);
-  gkyl_grid_sub_array_write(&grid, &local, 0, Exz, "Exz.gkyl");
+  //gkyl_grid_sub_array_write(&grid, &local, 0, Exz, "Exz.gkyl");
 
   // Smooth E
   struct gkyl_fem_parproj *fem_parproj = gkyl_fem_parproj_new(&local, &basis, GKYL_FEM_PARPROJ_NONE, 0, 0, use_gpu);
@@ -165,13 +165,13 @@ test_bop(bool use_gpu)
   gkyl_fem_parproj_release(fem_parproj);
 
   gkyl_array_copy(Exz_smooth, Exz_smooth_dev);
-  gkyl_grid_sub_array_write(&grid, &local, 0, Exz_smooth, "Exz_smooth.gkyl");
+  //gkyl_grid_sub_array_write(&grid, &local, 0, Exz_smooth, "Exz_smooth.gkyl");
 
   // Multiply
   gkyl_deflated_dg_bin_ops_mul(operator, c_oop, Fxz_dev, c_lop, Exz_smooth_dev, c_rop, jac_dev);
   
   gkyl_array_copy(Fxz, Fxz_dev);
-  gkyl_grid_sub_array_write(&grid, &local, 0, Fxz, "Fxz.gkyl");
+  //gkyl_grid_sub_array_write(&grid, &local, 0, Fxz, "Fxz.gkyl");
 
   check_continuity_2x(grid, local, basis, Fxz);
   

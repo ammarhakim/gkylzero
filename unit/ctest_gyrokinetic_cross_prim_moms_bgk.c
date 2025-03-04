@@ -6,7 +6,6 @@
 #include <gkyl_mom_calc.h>
 #include <gkyl_gyrokinetic_cross_prim_moms_bgk.h>
 #include <gkyl_mom_gyrokinetic.h>
-#include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>

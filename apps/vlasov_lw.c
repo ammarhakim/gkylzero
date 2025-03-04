@@ -8,6 +8,8 @@
 #include <gkyl_vlasov.h>
 #include <gkyl_vlasov_lw.h>
 #include <gkyl_vlasov_priv.h>
+#include <gkyl_wv_advect.h>
+#include <gkyl_wv_canonical_pb_fluid.h>
 #include <gkyl_wv_euler.h>
 #include <gkyl_zero_lw.h>
 
@@ -23,6 +25,9 @@
 #ifdef GKYL_HAVE_MPI
 #include <mpi.h>
 #include <gkyl_mpi_comm.h>
+#ifdef GKYL_HAVE_NCCL
+#include <gkyl_nccl_comm.h>
+#endif
 #endif
 
 // Magic IDs for use in distinguishing various species and field types.
@@ -106,6 +111,133 @@ static struct luaL_Reg eqn_euler_ctor[] = {
   { 0, 0 }
 };
 
+/* ****************************** */
+/* Advection Equation */
+/* ****************************** */
+
+// Advect.new { }
+static int
+eqn_advect_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *advect_lw = gkyl_malloc(sizeof(*advect_lw));
+
+  advect_lw->magic = VLASOV_EQN_DEFAULT;
+  // Set a constant speed of 1.0; Advection velocity in DG advection equation
+  // is handled by the app_advect function initialized in the FluidSpecies table. 
+  advect_lw->eqn = gkyl_wv_advect_new(1.0);
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_advect_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_advect_lw = advect_lw; // Point userdata to the equation object.
+  
+  // Set metatable.
+  luaL_getmetatable(L, VLASOV_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_advect_ctor[] = {
+  { "new", eqn_advect_lw_new },
+  { 0, 0 }
+};
+
+/* ****************************** */
+/* incompressible Euler Equations */
+/* ****************************** */
+
+// IncompressEuler.new { }
+static int
+eqn_incompress_euler_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *incompress_euler_lw = gkyl_malloc(sizeof(*incompress_euler_lw));
+
+  incompress_euler_lw->magic = VLASOV_EQN_DEFAULT;
+  incompress_euler_lw->eqn = gkyl_wv_can_pb_incompress_euler_new();
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_incompress_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_incompress_euler_lw = incompress_euler_lw; // Point userdata to the equation object.
+  
+  // Set metatable.
+  luaL_getmetatable(L, VLASOV_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_incompress_euler_ctor[] = {
+  { "new", eqn_incompress_euler_lw_new },
+  { 0, 0 }
+};
+
+/* *********************** */
+/* Hasegawa-Mima Equations */
+/* *********************** */
+
+// HasegawaMima.new { }
+static int
+eqn_hasegawa_mima_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *hasegawa_mima_lw = gkyl_malloc(sizeof(*hasegawa_mima_lw));
+
+  hasegawa_mima_lw->magic = VLASOV_EQN_DEFAULT;
+  hasegawa_mima_lw->eqn = gkyl_wv_can_pb_hasegawa_mima_new();
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_hasegawa_mima_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_hasegawa_mima_lw = hasegawa_mima_lw; // Point userdata to the equation object.
+  
+  // Set metatable.
+  luaL_getmetatable(L, VLASOV_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_hasegawa_mima_ctor[] = {
+  { "new", eqn_hasegawa_mima_lw_new },
+  { 0, 0 }
+};
+
+/* *************************** */
+/* Hasegawa-Wakatani Equations */
+/* *************************** */
+
+// HasegawaWakatani.new { alpha = 1.0, is_modified = false }
+// Set is_modified=true to utilized modified Hasegawa-Wakatani system which
+// subtracts off zonal component of adiabatic coupling term. 
+static int
+eqn_hasegawa_wakatani_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *hasegawa_wakatani_lw = gkyl_malloc(sizeof(*hasegawa_wakatani_lw));
+
+  double alpha = glua_tbl_get_number(L, "alpha", 1.0);
+  bool is_modified = glua_tbl_get_bool(L, "is_modified", false);  
+
+  hasegawa_wakatani_lw->magic = VLASOV_EQN_DEFAULT;
+  hasegawa_wakatani_lw->eqn = gkyl_wv_can_pb_hasegawa_wakatani_new(alpha, is_modified);
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_hasegawa_wakatani_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_hasegawa_wakatani_lw = hasegawa_wakatani_lw; // Point userdata to the equation object.
+  
+  // Set metatable.
+  luaL_getmetatable(L, VLASOV_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_hasegawa_wakatani_ctor[] = {
+  { "new", eqn_hasegawa_wakatani_lw_new },
+  { 0, 0 }
+};
+
 // Register and load all wave equation objects.
 static void
 eqn_openlibs(lua_State *L)
@@ -117,6 +249,10 @@ eqn_openlibs(lua_State *L)
   lua_settable(L, -3);
 
   luaL_register(L, "G0.Vlasov.Eq.Euler", eqn_euler_ctor);
+  luaL_register(L, "G0.Vlasov.Eq.Advect", eqn_advect_ctor);
+  luaL_register(L, "G0.Vlasov.Eq.IncompressEuler", eqn_incompress_euler_ctor);
+  luaL_register(L, "G0.Vlasov.Eq.HasegawaMima", eqn_hasegawa_mima_ctor);
+  luaL_register(L, "G0.Vlasov.Eq.HasegawaWakatani", eqn_hasegawa_wakatani_ctor);
 }
 
 /* *************** */
@@ -136,6 +272,9 @@ struct vlasov_species_lw {
 
   bool has_hamiltonian_func; // Is there a Hamiltonian function?
   struct lua_func_ctx hamiltonian_func_ref; // Lua registry reference to Hamiltonian function.
+
+  bool has_metric_func; // Is there an metric tensor function?
+  struct lua_func_ctx metric_func_ref; // Lua registry reference to metric tensor function.
 
   bool has_inverse_metric_func; // Is there an inverse metric tensor function?
   struct lua_func_ctx inverse_metric_func_ref; // Lua registry reference to inverse metric tensor function.
@@ -237,7 +376,7 @@ vlasov_species_lw_new(lua_State *L)
     }
   }
 
-  bool evolve = glua_tbl_get_integer(L, "evolve", true);
+  bool evolve = glua_tbl_get_bool(L, "evolve", true);
 
   with_lua_tbl_tbl(L, "diagnostics") {
     int num_diag_moments = glua_objlen(L);
@@ -287,6 +426,9 @@ vlasov_species_lw_new(lua_State *L)
   bool has_hamiltonian_func = false;
   int hamiltonian_func_ref = LUA_NOREF;
 
+  bool has_metric_func = false;
+  int metric_func_ref = LUA_NOREF;
+
   bool has_inverse_metric_func = false;
   int inverse_metric_func_ref = LUA_NOREF;
 
@@ -296,6 +438,11 @@ vlasov_species_lw_new(lua_State *L)
   if (glua_tbl_get_func(L, "hamiltonian")) {
     hamiltonian_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
     has_hamiltonian_func = true;
+  }
+
+  if (glua_tbl_get_func(L, "metric")) {
+    metric_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_metric_func = true;
   }
 
   if (glua_tbl_get_func(L, "inverseMetric")) {
@@ -505,6 +652,15 @@ vlasov_species_lw_new(lua_State *L)
     .L = L,
   };
 
+  vms_lw->has_metric_func = has_metric_func;
+  vms_lw->metric_func_ref = (struct lua_func_ctx) {
+    .func_ref = metric_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = (vdim * (vdim + 1)) / 2,
+    .L = L,
+  };
+
+
   vms_lw->has_inverse_metric_func = has_inverse_metric_func;
   vms_lw->inverse_metric_func_ref = (struct lua_func_ctx) {
     .func_ref = inverse_metric_func_ref,
@@ -655,6 +811,12 @@ struct vlasov_fluid_species_lw {
   
   struct gkyl_vlasov_fluid_species vlasov_fluid_species; // Input struct to construct fluid species.
   struct lua_func_ctx init_ctx; // Lua registry reference to initialization function.
+
+  bool has_app_advect_func; // Is there an applied advection function?
+  struct lua_func_ctx app_advect_func_ref; // Lua registry reference to applied advection function. 
+
+  bool has_n0_func; // Is there a background density function?
+  struct lua_func_ctx n0_func_ref; // Lua registry reference to background density function.     
 };
 
 static int
@@ -699,6 +861,22 @@ vlasov_fluid_species_lw_new(lua_State *L)
     return luaL_error(L, "Fluid species must have an \"init\" function for initial conditions!");
   }
 
+  bool has_app_advect_func = false;
+  int app_advect_func_ref = LUA_NOREF;
+
+  if (glua_tbl_get_func(L, "appAdvect")) {
+    app_advect_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_app_advect_func = true;
+  }
+
+  bool has_n0_func = false;
+  int n0_func_ref = LUA_NOREF;
+
+  if (glua_tbl_get_func(L, "n0")) {
+    n0_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_n0_func = true;
+  }
+
   with_lua_tbl_tbl(L, "bcx") {
     int nbc = glua_objlen(L);
 
@@ -731,6 +909,22 @@ vlasov_fluid_species_lw_new(lua_State *L)
     .func_ref = init_ref,
     .ndim = 0, // This will be set later.
     .nret = vm_fluid_species.equation->num_equations,
+    .L = L,
+  };
+
+  vmfs_lw->has_app_advect_func = has_app_advect_func;
+  vmfs_lw->app_advect_func_ref = (struct lua_func_ctx) {
+    .func_ref = app_advect_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = 3,
+    .L = L,
+  };
+
+  vmfs_lw->has_n0_func = has_n0_func;
+  vmfs_lw->n0_func_ref = (struct lua_func_ctx) {
+    .func_ref = n0_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = 1,
     .L = L,
   };
   
@@ -789,9 +983,8 @@ vlasov_field_lw_new(lua_State *L)
   vm_field.mgnErrorSpeedFactor = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
   vm_field.limit_em = glua_tbl_get_bool(L, "limitField", false);
 
-  vm_field.is_static = glua_tbl_get_bool(L, "isStatic", false);
-
-  bool evolve = glua_tbl_get_integer(L, "evolve", true);
+  bool evolve = glua_tbl_get_bool(L, "evolve", true);
+  vm_field.is_static = !evolve;
 
   int init_ref = LUA_NOREF;
   if (glua_tbl_get_func(L, "init")) {
@@ -926,6 +1119,7 @@ vlasov_field_lw_new(lua_State *L)
     .nret = 6,
     .L = L,
   };
+  vmf_lw->evolve_external_field = evolve_external_field;
 
   vmf_lw->has_applied_current_func = has_applied_current_func;
   vmf_lw->applied_current_func_ref = (struct lua_func_ctx) {
@@ -962,6 +1156,9 @@ struct vlasov_app_lw {
 
   bool has_hamiltonian_func[GKYL_MAX_SPECIES]; // Is there a Hamiltonian function?
   struct lua_func_ctx hamiltonian_func_ctx[GKYL_MAX_SPECIES]; // Lua registry reference to Hamiltonian function.
+
+  bool has_metric_func[GKYL_MAX_SPECIES]; // Is there an inverse metric tensor function?
+  struct lua_func_ctx metric_func_ctx[GKYL_MAX_SPECIES]; // Lua registry reference to inverse metric tensor function.
 
   bool has_inverse_metric_func[GKYL_MAX_SPECIES]; // Is there an inverse metric tensor function?
   struct lua_func_ctx inverse_metric_func_ctx[GKYL_MAX_SPECIES]; // Lua registry reference to inverse metric tensor function.
@@ -1033,6 +1230,9 @@ struct vlasov_app_lw {
 
   struct lua_func_ctx fluid_species_init_ctx[GKYL_MAX_SPECIES]; // Function context for fluid species initial conditions.
 
+  struct lua_func_ctx app_advect_func_ctx[GKYL_MAX_SPECIES]; // Function context for fluid species applied advection.
+  struct lua_func_ctx n0_func_ctx[GKYL_MAX_SPECIES]; // Function context for fluid species background density.
+
   struct lua_func_ctx field_func_ctx; // Function context for field.
   struct lua_func_ctx external_potential_func_ctx; // Function context for external potential.
   struct lua_func_ctx external_field_func_ctx; // Function context for external field.
@@ -1065,6 +1265,10 @@ get_species_inp(lua_State *L, int cdim, struct vlasov_species_lw *species[GKYL_M
       if (vms->magic == VLASOV_SPECIES_DEFAULT) {
         if (vms->has_hamiltonian_func) {
           vms->hamiltonian_func_ref.ndim = cdim + vms->vdim;
+        }
+
+        if (vms->has_metric_func) {
+          vms->metric_func_ref.ndim = cdim;
         }
 
         if (vms->has_inverse_metric_func) {
@@ -1178,6 +1382,110 @@ fluid_species_compare_func(const void *a, const void *b)
   return strcmp((*spa)->vlasov_fluid_species.name, (*spb)->vlasov_fluid_species.name);
 }
 
+static struct gkyl_tool_args *
+tool_args_from_argv(int optind, int argc, char *const*argv)
+{
+  struct gkyl_tool_args *targs = gkyl_malloc(sizeof *targs);
+  
+  targs->argc = argc-optind;
+  targs->argv = 0;
+
+  if (targs->argc > 0) {
+    targs->argv = gkyl_malloc(targs->argc*sizeof(char *));
+      for (int i = optind, j = 0; i < argc; ++i, ++j) {
+        targs->argv[j] = gkyl_malloc(strlen(argv[i])+1);
+        strcpy(targs->argv[j], argv[i]);
+      }
+  }
+
+  return targs;
+}
+
+// CLI parser for main script.
+struct script_cli {
+  bool help; // Show help.
+  bool step_mode; // Run for fixed number of steps? (for valgrind/cuda-memcheck)
+  int num_steps; // Number of steps.
+  bool use_mpi; // Should we use MPI?
+  bool use_gpu; // Should this be run on GPU?
+  bool trace_mem; // Should we trace memory allocation/deallocation?
+  bool use_verbose; // Should we use verbose output?
+  bool is_restart; // Is this a restarted simulation?
+  int restart_frame; // Which frame to restart simulation from.
+  
+  struct gkyl_tool_args *rest;
+};
+
+static struct script_cli
+vm_parse_script_cli(struct gkyl_tool_args *acv)
+{
+  struct script_cli cli = {
+    .help =- false,
+    .step_mode = false,
+    .num_steps = INT_MAX,
+    .use_mpi = false,
+    .use_gpu = false,
+    .trace_mem = false,
+    .use_verbose = false,
+    .is_restart = false,
+    .restart_frame = 0,
+  };
+
+#ifdef GKYL_HAVE_MPI
+  cli.use_mpi = true;
+#endif
+#ifdef GKYL_HAVE_CUDA
+  cli.use_gpu = true;
+#endif
+  
+  coption_long longopts[] = {
+    { 0 }
+  };
+  const char* shortopts = "+hVs:SGmr:";
+
+  coption opt = coption_init();
+  int c;
+  while ((c = coption_get(&opt, acv->argc, acv->argv, shortopts, longopts)) != -1) {
+    switch (c) {
+      case 'h':
+        cli.help = true;
+        break;
+
+      case 's':
+        cli.num_steps = atoi(opt.arg);
+        break;
+      
+      case 'S':
+        cli.use_mpi = false;
+        break;
+      
+      case 'G':
+        cli.use_gpu = false;
+        break;
+      
+      case 'm':
+        cli.trace_mem = true;
+        break;
+      
+      case 'V':
+        cli.use_verbose = true;
+        break;
+      
+      case 'r':
+        cli.is_restart = true;
+        cli.restart_frame = atoi(opt.arg);
+        break;        
+        
+      case '?':
+        break;
+    }
+  }
+
+  cli.rest = tool_args_from_argv(opt.ind, acv->argc, acv->argv);
+  
+  return cli;
+}
+
 // Create top-level App object.
 static int
 vm_app_new(lua_State *L)
@@ -1279,6 +1587,9 @@ vm_app_new(lua_State *L)
     app_lw->has_hamiltonian_func[s] = species[s]->has_hamiltonian_func;
     app_lw->hamiltonian_func_ctx[s] = species[s]->hamiltonian_func_ref;
 
+    app_lw->has_metric_func[s] = species[s]->has_metric_func;
+    app_lw->metric_func_ctx[s] = species[s]->metric_func_ref;
+
     app_lw->has_inverse_metric_func[s] = species[s]->has_inverse_metric_func;
     app_lw->inverse_metric_func_ctx[s] = species[s]->inverse_metric_func_ref;
 
@@ -1288,6 +1599,11 @@ vm_app_new(lua_State *L)
     if (species[s]->has_hamiltonian_func) {
       vm.species[s].hamil = gkyl_lw_eval_cb;
       vm.species[s].hamil_ctx = &app_lw->hamiltonian_func_ctx[s];
+    }
+
+    if (species[s]->has_metric_func) {
+      vm.species[s].h_ij = gkyl_lw_eval_cb;
+      vm.species[s].h_ij_ctx = &app_lw->metric_func_ctx[s];
     }
 
     if (species[s]->has_inverse_metric_func) {
@@ -1467,10 +1783,25 @@ vm_app_new(lua_State *L)
   
   for (int s = 0; s < vm.num_fluid_species; s++) {
     vm.fluid_species[s] = fluid_species[s]->vlasov_fluid_species;
-    
+
+    fluid_species[s]->init_ctx.ndim = cdim; 
     app_lw->fluid_species_init_ctx[s] = fluid_species[s]->init_ctx;
     vm.fluid_species[s].init = gkyl_lw_eval_cb;
     vm.fluid_species[s].ctx = &app_lw->fluid_species_init_ctx[s];
+
+    if (fluid_species[s]->has_app_advect_func) {
+      fluid_species[s]->app_advect_func_ref.ndim = cdim; 
+      app_lw->app_advect_func_ctx[s] = fluid_species[s]->app_advect_func_ref;
+      vm.fluid_species[s].advection.velocity = gkyl_lw_eval_cb;
+      vm.fluid_species[s].advection.velocity_ctx = &app_lw->app_advect_func_ctx[s];
+    }
+
+    if (fluid_species[s]->has_n0_func) {
+      fluid_species[s]->n0_func_ref.ndim = cdim; 
+      app_lw->n0_func_ctx[s] = fluid_species[s]->n0_func_ref;
+      vm.fluid_species[s].can_pb_n0 = gkyl_lw_eval_cb;
+      vm.fluid_species[s].can_pb_n0_ctx = &app_lw->n0_func_ctx[s];
+    }
   }
 
   // Set field input.
@@ -1485,7 +1816,6 @@ vm_app_new(lua_State *L)
         vmf->init_ref.ndim = cdim;
 
         vm.field = vmf->vm_field;
-        vm.skip_field = !vmf->evolve;
 
         app_lw->field_func_ctx = vmf->init_ref;
         vm.field.init = gkyl_lw_eval_cb;
@@ -1526,32 +1856,67 @@ vm_app_new(lua_State *L)
 
   // Create parallelism.
   struct gkyl_comm *comm = 0;
-  bool has_mpi = false;
 
   for (int d = 0; d < cdim; d++) {
     vm.parallelism.cuts[d] = cuts[d]; 
   }
 
-#ifdef GKYL_HAVE_MPI
-  with_lua_global(L, "GKYL_MPI_COMM") {
-    if (lua_islightuserdata(L, -1)) {
-      has_mpi = true;
-      MPI_Comm mpi_comm = lua_touserdata(L, -1);
-      comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
-          .mpi_comm = mpi_comm,
-        }
-      );
+  struct gkyl_tool_args *args = gkyl_tool_args_new(L);
+  struct script_cli script_cli = vm_parse_script_cli(args);
 
+#ifdef GKYL_HAVE_MPI
+  if (script_cli.use_gpu && script_cli.use_mpi) {
+#ifdef GKYL_HAVE_NCCL
+    with_lua_global(L, "GKYL_MPI_COMM") {
+      if (lua_islightuserdata(L, -1)) {
+        struct { MPI_Comm comm; } *lw_mpi_comm_world = lua_touserdata(L, -1);
+        MPI_Comm mpi_comm = lw_mpi_comm_world->comm;
+
+        int nrank = 1; // Number of processors in simulation.
+        MPI_Comm_size(mpi_comm, &nrank);
+
+        comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
+            .mpi_comm = mpi_comm,
+          }
+        );
+      }
+    }
+#else
+    printf("Using CUDA and MPI together requires NCCL.\n");
+    assert(0 == 1);
+#endif
+  }
+  else if (script_cli.use_mpi) {
+    with_lua_global(L, "GKYL_MPI_COMM") {
+      if (lua_islightuserdata(L, -1)) {
+        struct { MPI_Comm comm; } *lw_mpi_comm_world = lua_touserdata(L, -1);
+        MPI_Comm mpi_comm = lw_mpi_comm_world->comm;
+
+        int nrank = 1; // Number of processors in simulation.
+        MPI_Comm_size(mpi_comm, &nrank);
+
+        comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+            .mpi_comm = mpi_comm,
+          }
+        );
+      }
     }
   }
+  else {
+    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+        .use_gpu = script_cli.use_gpu,
+      }
+    );
+  }
+#else
+  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+      .use_gpu = script_cli.use_gpu,
+    }
+  );
 #endif
 
-  if (!has_mpi) {
-    // If there is no proper MPI_Comm specifed, the assume we are a
-    // serial sim.
-    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {} );
-  }
   vm.parallelism.comm = comm;
+  vm.parallelism.use_gpu = script_cli.use_gpu;
 
   int rank;
   gkyl_comm_get_rank(comm, &rank);
@@ -1781,6 +2146,21 @@ vm_app_write_integrated_mom(lua_State *L)
   return 1;
 }
 
+// Write integrated fluid moments to file () -> bool.
+static int
+vm_app_write_fluid_integrated_mom(lua_State *L)
+{
+  bool status = true;
+
+  struct vlasov_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw *app_lw = *l_app_lw;
+
+  gkyl_vlasov_app_write_fluid_integrated_mom(app_lw->app);
+
+  lua_pushboolean(L, status);  
+  return 1;
+}
+
 // Write integrated L2 norm of f to file () -> bool.
 static int
 vm_app_write_integrated_L2_f(lua_State *L)
@@ -1830,7 +2210,7 @@ vm_app_stat_write(lua_State *L)
 static void
 write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, bool force_write)
 {
-  if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
     int frame = iot->curr - 1;
     if (force_write) {
       frame = iot->curr;
@@ -1839,6 +2219,7 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, boo
     gkyl_vlasov_app_write(app, t_curr, frame);
     gkyl_vlasov_app_write_field_energy(app);
     gkyl_vlasov_app_write_integrated_mom(app);
+    gkyl_vlasov_app_write_fluid_integrated_mom(app);
     gkyl_vlasov_app_write_integrated_L2_f(app);
 
     gkyl_vlasov_app_calc_mom(app);
@@ -1848,27 +2229,27 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, boo
 
 // Calculate and append field energy to dynvector.
 static void
-calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_vlasov_app* app, double t_curr)
+calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_vlasov_app* app, double t_curr, bool force_calc)
 {
-  if (gkyl_tm_trigger_check_and_bump(fet, t_curr)) {
+  if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
     gkyl_vlasov_app_calc_field_energy(app, t_curr);
   }
 }
 
 // Calculate and append integrated moments to dynvector.
 static void
-calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_vlasov_app* app, double t_curr)
+calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_vlasov_app* app, double t_curr, bool force_calc)
 {
-  if (gkyl_tm_trigger_check_and_bump(imt, t_curr)) {
+  if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
     gkyl_vlasov_app_calc_integrated_mom(app, t_curr);
   }
 }
 
 // Calculate and append integrated L2 norm of distribution function to dynvector.
 static void
-calc_integrated_L2_f(struct gkyl_tm_trigger* l2t, gkyl_vlasov_app* app, double t_curr)
+calc_integrated_L2_f(struct gkyl_tm_trigger* l2t, gkyl_vlasov_app* app, double t_curr, bool force_calc)
 {
-  if (gkyl_tm_trigger_check_and_bump(l2t, t_curr)) {
+  if (gkyl_tm_trigger_check_and_bump(l2t, t_curr) || force_calc) {
     gkyl_vlasov_app_calc_integrated_L2_f(app, t_curr);
   }
 }
@@ -1906,90 +2287,14 @@ show_help(const struct gkyl_vlasov_app *app)
 {
   gkyl_vlasov_app_cout(app, stdout, "Vlasov script takes the following arguments:\n");
   gkyl_vlasov_app_cout(app, stdout, " -h   Print this help message and exit\n");
+  gkyl_vlasov_app_cout(app, stdout, " -sN  Only run N steps of simulation\n");
+  gkyl_vlasov_app_cout(app, stdout, " -S   Do not initialize MPI\n");
+  gkyl_vlasov_app_cout(app, stdout, " -G   Do not initialize CUDA\n");
+  gkyl_vlasov_app_cout(app, stdout, " -m   Run memory tracer\n");
   gkyl_vlasov_app_cout(app, stdout, " -V   Show verbose output\n");
   gkyl_vlasov_app_cout(app, stdout, " -rN  Restart simulation from frame N\n");
-  gkyl_vlasov_app_cout(app, stdout, " -sN  Only run N steps of simulation\n");
 
   gkyl_vlasov_app_cout(app, stdout, "\n");
-}
-
-static struct gkyl_tool_args *
-tool_args_from_argv(int optind, int argc, char *const*argv)
-{
-  struct gkyl_tool_args *targs = gkyl_malloc(sizeof *targs);
-  
-  targs->argc = argc-optind;
-  targs->argv = 0;
-
-  if (targs->argc > 0) {
-    targs->argv = gkyl_malloc(targs->argc*sizeof(char *));
-      for (int i = optind, j = 0; i < argc; ++i, ++j) {
-        targs->argv[j] = gkyl_malloc(strlen(argv[i])+1);
-        strcpy(targs->argv[j], argv[i]);
-      }
-  }
-
-  return targs;
-}
-
-// CLI parser for main script
-struct script_cli {
-  bool help; // show help
-  bool step_mode; // run for fixed number of steps? (for valgrind/cuda-memcheck)
-  int num_steps; // number of steps
-  bool use_verbose; // Should we use verbose output?
-  bool is_restart; // Is this a restarted simulation?
-  int restart_frame; // Which frame to restart simulation from.  
-  
-  struct gkyl_tool_args *rest;
-};
-
-static struct script_cli
-vm_parse_script_cli(struct gkyl_tool_args *acv)
-{
-  struct script_cli cli = {
-    .help =- false,
-    .step_mode = false,
-    .num_steps = INT_MAX,
-    .use_verbose = false,
-    .is_restart = false,
-    .restart_frame = 0,
-  };
-  
-  coption_long longopts[] = {
-    {0}
-  };
-  const char* shortopts = "+hVs:r:";
-
-  coption opt = coption_init();
-  int c;
-  while ((c = coption_get(&opt, acv->argc, acv->argv, shortopts, longopts)) != -1) {
-    switch (c) {
-      case 'h':
-        cli.help = true;
-        break;
-        
-      case 'V':
-        cli.use_verbose = true;
-        break;
-
-      case 's':
-        cli.num_steps = atoi(opt.arg);
-        break;
-      
-      case 'r':
-        cli.is_restart = true;
-        cli.restart_frame = atoi(opt.arg);
-        break;        
-        
-      case '?':
-        break;
-    }
-  }
-
-  cli.rest = tool_args_from_argv(opt.ind, acv->argc, acv->argv);
-  
-  return cli;
 }
 
 // Run simulation. (num_steps) -> bool. num_steps is optional.
@@ -2023,6 +2328,11 @@ vm_app_run(lua_State *L)
 
   gkyl_vlasov_app_cout(app, stdout, "Initializing Vlasov Simulation ...\n");
 
+  if (script_cli.trace_mem) {
+    gkyl_cu_dev_mem_debug_set(true);
+    gkyl_mem_debug_set(true);
+  }
+
   // Initialize simulation.
   bool is_restart = script_cli.is_restart;
   int restart_frame = script_cli.restart_frame;
@@ -2051,24 +2361,24 @@ vm_app_run(lua_State *L)
   int integrated_mom_calcs = app_lw->integrated_mom_calcs;
   int integrated_L2_f_calcs = app_lw->integrated_L2_f_calcs;
   // Triggers for IO and logging.
-  struct gkyl_tm_trigger io_trig = { .dt = (t_end - t_curr) / num_frames, .tcurr = t_curr, .curr = frame_curr };
-  struct gkyl_tm_trigger fe_trig = { .dt = (t_end - t_curr) / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr };
-  struct gkyl_tm_trigger im_trig = { .dt = (t_end - t_curr) / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr };
-  struct gkyl_tm_trigger l2f_trig = { .dt = (t_end - t_curr) / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger fe_trig = { .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger l2f_trig = { .dt = t_end / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr };
 
   struct step_message_trigs m_trig = {
     .log_count = 0,
-    .tenth = t_curr > 0.0 ? 0.0 : (int) floor(t_curr / t_end * 10.0),
-    .p1c = t_curr > 0.0 ? 0.0 : (int) floor(t_curr / t_end * 100.0) % 10,
-    .log_trig = { .dt = (t_end - t_curr) / 10.0 },
-    .log_trig_1p = { .dt = (t_end - t_curr) / 100.0 },
+    .tenth = t_curr > 0.0 ?  (int) floor(t_curr / t_end * 10.0) : 0.0,
+    .p1c = t_curr > 0.0 ?  (int) floor(t_curr / t_end * 100.0) % 10 : 0.0,
+    .log_trig = { .dt = t_end / 10.0, .tcurr = t_curr },
+    .log_trig_1p = { .dt = t_end / 100.0, .tcurr = t_curr },
   };
 
   struct timespec tm_ic0 = gkyl_wall_clock();
   // Initialize simulation.
-  calc_field_energy(&fe_trig, app, t_curr);
-  calc_integrated_mom(&im_trig, app, t_curr);
-  calc_integrated_L2_f(&l2f_trig, app, t_curr);
+  calc_field_energy(&fe_trig, app, t_curr, false);
+  calc_integrated_mom(&im_trig, app, t_curr, false);
+  calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
 
   gkyl_vlasov_app_cout(app, stdout, "Initialization completed in %g sec\n\n", gkyl_time_diff_now_sec(tm_ic0));
@@ -2100,9 +2410,9 @@ vm_app_run(lua_State *L)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
-    calc_field_energy(&fe_trig, app, t_curr);
-    calc_integrated_mom(&im_trig, app, t_curr);
-    calc_integrated_L2_f(&l2f_trig, app, t_curr);
+    calc_field_energy(&fe_trig, app, t_curr, false);
+    calc_integrated_mom(&im_trig, app, t_curr, false);
+    calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
     write_data(&io_trig, app, t_curr, false);
 
     if (dt_init < 0.0) {
@@ -2117,6 +2427,12 @@ vm_app_run(lua_State *L)
       if (num_failures >= num_failures_max) {
         gkyl_vlasov_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_vlasov_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+
+        calc_field_energy(&fe_trig, app, t_curr, true);
+        calc_integrated_mom(&im_trig, app, t_curr, true);
+        calc_integrated_L2_f(&l2f_trig, app, t_curr, true);
+        write_data(&io_trig, app, t_curr, true);
+
         break;
       }
     }
@@ -2131,9 +2447,9 @@ vm_app_run(lua_State *L)
     step += 1;
   }
 
-  calc_field_energy(&fe_trig, app, t_curr);
-  calc_integrated_mom(&im_trig, app, t_curr);
-  calc_integrated_L2_f(&l2f_trig, app, t_curr);
+  calc_field_energy(&fe_trig, app, t_curr, false);
+  calc_integrated_mom(&im_trig, app, t_curr, false);
+  calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
   gkyl_vlasov_app_stat_write(app);
 
@@ -2154,7 +2470,7 @@ vm_app_run(lua_State *L)
   gkyl_vlasov_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
   gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
-  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.nio);
+  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
   gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
 freeresources:

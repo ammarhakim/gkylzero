@@ -125,24 +125,24 @@ gyrokineticApp = Gyrokinetic.App.new {
       correctAllMoments = true
     },
 
+    correct = {
+      correctAllMoments = true,
+      iterationEpsilon = 1.0e-12,
+      maxIterations = 10,
+      useLastConverged = true
+    }, 
+
     collisions = {
       collisionID = G0.Collisions.BGK,
 
       selfNu = function (t, xn)
         return nu
-      end,
-
-      correctAllMoments = true,
-      iterationEpsilon = 1.0e-12,
-      maxIterations = 10,
-      useLastConverged = true
+      end
     },
 
     evolve = true, -- Evolve species?
     diagnostics = { "M0", "M1", "M2", "M2par", "M2perp", "MaxwellianMoments" }
   },
-
-  skipField = true,
   
   -- Field.
   field = Gyrokinetic.Field.new {
@@ -151,7 +151,10 @@ gyrokineticApp = Gyrokinetic.App.new {
     electronMass = mass,
     electronCharge = charge,
     electronTemperature = vt,
-    femParBc = G0.ParProjBc.None
+    femParBc = G0.ParProjBc.None,
+
+    zeroInitField = true, -- Don't compute the field at t = 0.
+    isStatic = true -- Don't evolve the field in time.
   }
 }
 

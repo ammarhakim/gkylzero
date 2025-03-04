@@ -16,6 +16,8 @@ struct gkyl_moment_species {
   char name[128]; // species name
   double charge, mass; // charge and mass
  
+  bool is_static; // set to true if moment species does not change in time
+
   struct gkyl_wv_eqn *equation; // equation object
   enum gkyl_wave_limiter limiter; // limiter to use
   enum gkyl_wave_split_type split_type; // edge splitting to use
@@ -44,17 +46,16 @@ struct gkyl_moment_species {
   double medium_gas_gamma; // Adiabatic index for coupled fluid-Einstein sources in plane-symmetric spacetimes.
   double medium_kappa; // Stress-energy prefactor for coupled fluid-Einstein sources in plane-symmetric spacetimes.
 
-  int evolve; // evolve species? 1-yes, 0-no
   bool force_low_order_flux; // should  we force low-order flux?
 
   void *ctx; // context for initial condition init function (and potentially other functions)
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
 
-  bool is_app_accel_static; // flag to indicate if applied acceleration is static
-  void *app_accel_ctx; // context for applied acceleration
-  // pointer to applied acceleration/forces function
-  void (*app_accel_func)(double t, const double *xn, double *fout, void *ctx);
+  void *app_accel_ctx; // context for applied acceleration function
+  // pointer to applied acceleration function
+  void (*app_accel)(double t, const double *xn, double *app_accel_out, void *ctx);
+  bool app_accel_evolve; // set to true if applied acceleration function is time dependent
 
   void *nT_source_ctx; // context for nT source
   // pointer to user-defined number density and temperature sources
@@ -69,27 +70,29 @@ struct gkyl_moment_species {
 
 // Parameter for EM field
 struct gkyl_moment_field {
+  bool is_static; // set to true if field does not change in time
+
   double epsilon0, mu0;
   double elc_error_speed_fact, mag_error_speed_fact;
 
   enum gkyl_wave_limiter limiter; // limiter to use
 
-  int evolve; // evolve field? 1-yes, 0-no
-
   void *ctx; // context for initial condition init function (and potentially other functions)
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
 
-  void *app_current_ctx; // context for applied current
-  // pointer to applied current function
-  void (*app_current_func)(double t, const double *xn, double *fout, void *ctx);
+  void *ext_em_ctx; // context for external electromagnetic fields function
+  // pointer to external electromagnetic fields function
+  void (*ext_em)(double t, const double *xn, double *ext_em_out, void *ctx);
+  bool ext_em_evolve; // set to true if external electromagnetic field function is time dependent
+  double t_ramp_E; // linear ramp for turning on external E field
+  
+  void *app_current_ctx; // context for external electromagnetic fields function
+  // pointer to external electromagnetic fields function
+  void (*app_current)(double t, const double *xn, double *app_current_out, void *ctx);
+  bool app_current_evolve; // set to true if applied current function is time dependent
   double t_ramp_curr; // linear ramp for turning on applied currents
 
-  bool is_ext_em_static; // flag to indicate if external field is time-independent
-  void *ext_em_ctx; // context for applied current
-  // pointer to external fields
-  void (*ext_em_func)(double t, const double *xn, double *fout, void *ctx);
-  double t_ramp_E; // linear ramp for turning on external E field
   bool use_explicit_em_coupling; // flag to indicate if using explicit em-coupling
 
   bool has_volume_sources; // Run with volume-based geometrical sources.

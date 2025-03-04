@@ -204,8 +204,6 @@ gyrokineticApp = Gyrokinetic.App.new {
     diagnostics = { "M0", "M1", "M2", "M2par", "M2perp" }
   },
 
-  skipField = true,
-
   -- Field.
   field = Gyrokinetic.Field.new {
     fieldID = G0.GKField.Boltzmann,
@@ -213,7 +211,10 @@ gyrokineticApp = Gyrokinetic.App.new {
     electronMass = mass_elc,
     electronCharge = charge_elc,
     electronTemperature = Te,
-    femParBc = G0.ParProjBc.None
+    femParBc = G0.ParProjBc.None,
+
+    zeroInitField = true, -- Don't compute the field at t = 0.
+    isStatic = true -- Don't evolve the field in time.
   }
 }
 
