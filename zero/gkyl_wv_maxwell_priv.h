@@ -402,46 +402,41 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   double e_fact = maxwell->e_fact; // Factor of speed of light for electric field correction.
   double b_fact = maxwell->b_fact; // Factor of speed of light for magnetic field correction.
 
-  double *fl = gkyl_malloc(sizeof(double) * 8);
-  double *fr = gkyl_malloc(sizeof(double) * 8);
-  gkyl_maxwell_flux(c, e_fact, b_fact, ql, fl);
-  gkyl_maxwell_flux(c, e_fact, b_fact, qr, fr);
-
-  double *fl_deriv = gkyl_malloc(sizeof(double) * 8);
-  double *fr_deriv = gkyl_malloc(sizeof(double) * 8);
-  gkyl_maxwell_flux_deriv(c, e_fact, b_fact, ql, fl_deriv);
-  gkyl_maxwell_flux_deriv(c, e_fact, b_fact, qr, fr_deriv);
-
-  double *a_roe = gkyl_malloc(sizeof(double) * 8);
-  for (int i = 0; i < 8; i++) {
-    a_roe[i] = 0.5 * (fl_deriv[i] + fr_deriv[i]);
-  }
+  double a1 = 0.5 * (delta[3] - ((1.0 / c) * delta[7]));
+  double a2 = 0.5 * (delta[3] + ((1.0 / c) * delta[7]));
+  double a3 = 0.5 * (delta[0] - (c * delta[6]));
+  double a4 = 0.5 * (delta[0] + (c * delta[6]));
+  double a5 = 0.5 * (delta[1] - (c * delta[5]));
+  double a6 = 0.5 * (delta[1] + (c * delta[5]));
+  double a7 = 0.5 * (delta[2] - (c * delta[4]));
+  double a8 = 0.5 * (delta[2] + (c * delta[4]));
 
   double *w0 = &waves[0 * 8], *w1 = &waves[1 * 8], *w2 = &waves[2 * 8], *w3 = &waves[3 * 8], *w4 = &waves[4 * 8], *w5 = &waves[5 * 8];
   for (int i = 0; i < 8; i++) {
-    w0[i] = 0.5 * ((qr[i] - ql[i]) - (fr[i] - fl[i]) / fmax(a_roe[1], a_roe[2]));
-    w1[i] = 0.5 * ((qr[i] - ql[i]) + (fr[i] - fl[i]) / fmax(a_roe[1], a_roe[2]));
-    s[0] = a_roe[1];
-    s[1] = a_roe[2];
-
-    w2[i] = 0.5 * ((qr[i] - ql[i]) - (fr[i] - fl[i]) / fmax(a_roe[0], a_roe[6]));
-    w3[i] = 0.5 * ((qr[i] - ql[i]) + (fr[i] - fl[i]) / fmax(a_roe[0], a_roe[6]));
-    s[2] = a_roe[0];
-    s[3] = a_roe[6];
-
-    w4[i] = 0.5 * ((qr[i] - ql[i]) - (fr[i] - fl[i]) / fmax(a_roe[3], a_roe[7]));
-    w5[i] = 0.5 * ((qr[i] - ql[i]) + (fr[i] - fl[i]) / fmax(a_roe[3], a_roe[7]));
-    s[4] = a_roe[3];
-    s[5] = a_roe[7];
+    w0[i] = 0.0; w1[i] = 0.0; w2[i] = 0.0; w3[i] = 0.0; w4[i] = 0.0; w5[i] = 0.0;
   }
 
-  gkyl_free(fl);
-  gkyl_free(fr);
-  
-  gkyl_free(fl_deriv);
-  gkyl_free(fr_deriv);
+  w0[3] = a1; w0[7] = -c * a1;
+  s[0] = -c * b_fact;
 
-  return fmax(fmax(fmax(fmax(fmax(s[0], s[1]), s[2]), s[3]), s[4]), s[5]);
+  w1[3] = a2; w1[7] = c * a2;
+  s[1] = c * b_fact;
+
+  w2[0] = a3; w2[6] = -(1.0 / c) * a3;
+  s[2] = -c * e_fact;
+
+  w3[0] = a4; w3[6] = (1.0 / c) * a4;
+  s[3] = c * e_fact;
+
+  w4[1] = a5; w4[2] = a8;
+  w4[4] = (1.0 / c) * a8; w4[5] = -(1.0 / c) * a5;
+  s[4] = -c;
+
+  w5[1] = a6; w5[2] = a7;
+  w5[4] = -(1.0 / c) * a7; w5[5] = (1.0 / c) * a6;
+  s[5] = c;
+
+  return c;
 }
 
 /**

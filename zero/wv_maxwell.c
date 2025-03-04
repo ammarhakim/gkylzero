@@ -68,7 +68,7 @@ gkyl_wv_maxwell_new(double c, double e_fact, double b_fact, bool use_gpu)
       .c = c,
       .e_fact = e_fact,
       .b_fact = b_fact,
-      .rp_type = WV_MAXWELL_RP_LAX,
+      .rp_type = WV_MAXWELL_RP_ROE,
       .use_gpu = use_gpu,
     }
   );
