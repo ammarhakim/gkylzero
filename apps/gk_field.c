@@ -223,7 +223,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     f->ambi_pot = gkyl_ambi_bolt_potential_new(&app->grid, &app->basis, 
       f->info.electron_mass, f->info.electron_charge, f->info.electron_temp, app->use_gpu);
     for (int j=0; j<app->cdim; ++j) {
-      f->sheath_vals[2*j] = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
+      f->sheath_vals[2*j]   = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
       f->sheath_vals[2*j+1] = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
     }
   } else {
@@ -530,22 +530,23 @@ gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *f
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
 
-    int ix_z = app->cdim-1;
+    int index_parallel = app->cdim-1;
+
     // Assumes symmetric sheath BCs for now only in 1D
     gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_LOWER_EDGE, 
-      &app->lower_skin[ix_z], &app->lower_ghost[ix_z], app->gk_geom->jacobgeo_inv, 
-      s->bflux_solver.gammai[2*ix_z].marr, field->rho_c, field->sheath_vals[2*ix_z]);
+      &app->lower_skin[index_parallel], &app->lower_ghost[index_parallel], app->gk_geom->jacobgeo_inv, 
+      s->bflux_solver.gammai[2*index_parallel].marr, field->rho_c, field->sheath_vals[2*index_parallel]);
     gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_UPPER_EDGE, 
-      &app->upper_skin[ix_z], &app->upper_ghost[ix_z], app->gk_geom->jacobgeo_inv, 
-      s->bflux_solver.gammai[2*ix_z+1].marr, field->rho_c, field->sheath_vals[2*ix_z+1]);
+      &app->upper_skin[index_parallel], &app->upper_ghost[index_parallel], app->gk_geom->jacobgeo_inv, 
+      s->bflux_solver.gammai[2*index_parallel+1].marr, field->rho_c, field->sheath_vals[2*index_parallel+1]);
 
     // Broadcast the sheath values from skin processes to other processes.
     int comm_sz[1];
     gkyl_comm_get_size(app->comm, comm_sz);
-    gkyl_comm_array_bcast(app->comm, field->sheath_vals[2*ix_z]  , field->sheath_vals[2*ix_z], 0);
-    gkyl_comm_array_bcast(app->comm, field->sheath_vals[2*ix_z+1], field->sheath_vals[2*ix_z+1], comm_sz[0]-1);
-    gkyl_array_accumulate(field->sheath_vals[2*ix_z], 1., field->sheath_vals[2*ix_z+1]);
-    gkyl_array_scale(field->sheath_vals[2*ix_z], 0.5);
+    gkyl_comm_array_bcast(app->comm, field->sheath_vals[2*index_parallel]  , field->sheath_vals[2*index_parallel], 0);
+    gkyl_comm_array_bcast(app->comm, field->sheath_vals[2*index_parallel+1], field->sheath_vals[2*index_parallel+1], comm_sz[0]-1);
+    gkyl_array_accumulate(field->sheath_vals[2*index_parallel], 1., field->sheath_vals[2*index_parallel+1]);
+    gkyl_array_scale(field->sheath_vals[2*index_parallel], 0.5);
   } 
 }
 
