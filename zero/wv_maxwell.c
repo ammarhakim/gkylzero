@@ -16,6 +16,19 @@
 // ** Proof of local Lipschitz continuity of discrete flux function (Ey and Bz components): ../proofs/finite_volume/proof_maxwell_1d_Ey_Bz_local_lipschitz.rkt **
 // ** Proof of local Lipschitz continuity of discrete flux function (Ez and By components): ../proofs/finite_volume/proof_maxwell_1d_Ez_By_local_lipschitz.rkt **
 // ** Proof of local Lipschitz continuity of discrete flux function (Bx and psi components): ../proofs/finite_volume/proof_maxwell_1d_Bx_psi_local_lipschitz.rkt **
+// ** Roe Solver: **
+// ** Proof of hyperbolicity preservation (Ex and phi components): ../proofs/finite_volume/proof_maxwell_1d_Ex_phi_roe_hyperbolicity.rkt **
+// ** Proof of hyperbolicity preservation (Ey and Bz components): ../proofs/finite_volume/proof_maxwell_1d_Ey_Bz_roe_hyperbolicity.rkt **
+// ** Proof of hyperbolicity preservation (Ez and By components): ../proofs/finite_volume/proof_maxwell_1d_Ez_By_roe_hyperbolicity.rkt **
+// ** Proof of hyperbolicity preservation (Bx and psi components): ../proofs/finite_volume/proof_maxwell_1d_Bx_psi_roe_hyperbolicity.rkt **
+// ** Proof of strict hyperbolicity preservation (Ex and phi components): ../proofs/finite_volume/proof_maxwell_1d_Ex_phi_roe_strict_hyperbolicity.rkt **
+// ** Proof of strict hyperbolicity preservation (Ey and Bz components): ../proofs/finite_volume/proof_maxwell_1d_Ey_Bz_roe_strict_hyperbolicity.rkt **
+// ** Proof of strict hyperbolicity preservation (Ez and By components): ../proofs/finite_volume/proof_maxwell_1d_Ez_By_roe_strict_hyperbolicity.rkt **
+// ** Proof of strict hyperbolicity preservation (Bx and psi components): ../proofs/finite_volume/proof_maxwell_1d_Bx_psi_roe_strict_hyperbolicity.rkt **
+// ** Proof of flux conservation (jump continuity, Ex and phi components): ../proofs/finite_volume/proof_maxwell_1d_Ex_phi_roe_flux_conservation.rkt **
+// ** Proof of flux conservation (jump continuity, Ey and Bz components): ../proofs/finite_volume/proof_maxwell_1d_Ey_Bz_roe_flux_conservation.rkt **
+// ** Proof of flux conservation (jump continuity, Ez and By components): ../proofs/finite_volume/proof_maxwell_1d_Ez_By_roe_flux_conservation.rkt **
+// ** Proof of flux conservation (jump continuity, Bx and psi components): ../proofs/finite_volume/proof_maxwell_1d_Bx_psi_roe_flux_conservation.rkt **
 
 #include <assert.h>
 #include <math.h>
@@ -74,10 +87,15 @@ gkyl_wv_maxwell_inew(const struct gkyl_wv_maxwell_inp* inp)
   maxwell->e_fact = inp->e_fact;
   maxwell->b_fact = inp->b_fact;
 
-  if (inp->rp_type == WV_MAXWELL_RP_LAX) {
-    maxwell->eqn.num_waves = 2;
+  if (inp->rp_type == WV_MAXWELL_RP_ROE) {
+    maxwell->eqn.num_waves = 6;
     maxwell->eqn.waves_func = wave;
     maxwell->eqn.qfluct_func = qfluct;
+  }
+  else if (inp->rp_type == WV_MAXWELL_RP_LAX) {
+    maxwell->eqn.num_waves = 2;
+    maxwell->eqn.waves_func = wave_lax_l;
+    maxwell->eqn.qfluct_func = qfluct_lax_l;
   }
 
   maxwell->eqn.flux_jump = flux_jump;

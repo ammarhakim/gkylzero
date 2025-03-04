@@ -18,6 +18,19 @@
 // ** Proof of local Lipschitz continuity of discrete flux function (Ey and Bz components): ../proofs/finite_volume/proof_maxwell_1d_Ey_Bz_local_lipschitz.rkt **
 // ** Proof of local Lipschitz continuity of discrete flux function (Ez and By components): ../proofs/finite_volume/proof_maxwell_1d_Ez_By_local_lipschitz.rkt **
 // ** Proof of local Lipschitz continuity of discrete flux function (Bx and psi components): ../proofs/finite_volume/proof_maxwell_1d_Bx_psi_local_lipschitz.rkt **
+// ** Roe Solver: **
+// ** Proof of hyperbolicity preservation (Ex and phi components): ../proofs/finite_volume/proof_maxwell_1d_Ex_phi_roe_hyperbolicity.rkt **
+// ** Proof of hyperbolicity preservation (Ey and Bz components): ../proofs/finite_volume/proof_maxwell_1d_Ey_Bz_roe_hyperbolicity.rkt **
+// ** Proof of hyperbolicity preservation (Ez and By components): ../proofs/finite_volume/proof_maxwell_1d_Ez_By_roe_hyperbolicity.rkt **
+// ** Proof of hyperbolicity preservation (Bx and psi components): ../proofs/finite_volume/proof_maxwell_1d_Bx_psi_roe_hyperbolicity.rkt **
+// ** Proof of strict hyperbolicity preservation (Ex and phi components): ../proofs/finite_volume/proof_maxwell_1d_Ex_phi_roe_strict_hyperbolicity.rkt **
+// ** Proof of strict hyperbolicity preservation (Ey and Bz components): ../proofs/finite_volume/proof_maxwell_1d_Ey_Bz_roe_strict_hyperbolicity.rkt **
+// ** Proof of strict hyperbolicity preservation (Ez and By components): ../proofs/finite_volume/proof_maxwell_1d_Ez_By_roe_strict_hyperbolicity.rkt **
+// ** Proof of strict hyperbolicity preservation (Bx and psi components): ../proofs/finite_volume/proof_maxwell_1d_Bx_psi_roe_strict_hyperbolicity.rkt **
+// ** Proof of flux conservation (jump continuity, Ex and phi components): ../proofs/finite_volume/proof_maxwell_1d_Ex_phi_roe_flux_conservation.rkt **
+// ** Proof of flux conservation (jump continuity, Ey and Bz components): ../proofs/finite_volume/proof_maxwell_1d_Ey_Bz_roe_flux_conservation.rkt **
+// ** Proof of flux conservation (jump continuity, Ez and By components): ../proofs/finite_volume/proof_maxwell_1d_Ez_By_roe_flux_conservation.rkt **
+// ** Proof of flux conservation (jump continuity, Bx and psi components): ../proofs/finite_volume/proof_maxwell_1d_Bx_psi_roe_flux_conservation.rkt **
 
 // Private header, not for direct use in user-facing code.
 
@@ -82,6 +95,29 @@ gkyl_maxwell_flux(double c, double e_fact, double b_fact, const double* q, doubl
   flux[5] = q[1];
   flux[6] = (e_fact * q[0]);
   flux[7] = (b_fact * ((c * c) * q[3]));
+}
+
+/**
+* Compute eigenvalues of the flux Jacobian. Assumes rotation to local coordinate system.
+*
+* @param c Speed of light.
+* @param e_fact Factor of speed of light for electric field correction.
+* @param b_fact Factor of speed of light for magnetic field correction.
+* @param q Conserved variable vector.
+* @param flux_deriv Flux Jacobian eigenvalues in direction 'dir' (output).
+*/
+GKYL_CU_DH
+static inline void
+gkyl_maxwell_flux_deriv(double c, double e_fact, double b_fact, const double* q, double* flux_deriv)
+{
+  flux_deriv[0] = (-1.0 * (c * e_fact));
+  flux_deriv[1] = (-1.0 * c);
+  flux_deriv[2] = c;
+  flux_deriv[3] = (-1.0 * (b_fact * c));
+  flux_deriv[4] = (-1.0 * c);
+  flux_deriv[5] = c;
+  flux_deriv[6] = (c * e_fact);
+  flux_deriv[7] = (b_fact * c);
 }
 
 /**
@@ -238,7 +274,6 @@ rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* t
   qglobal[7] = qlocal[7];
 }
 
-
 /**
 * Compute waves and speeds using Lax fluxes.
 *
@@ -322,7 +357,7 @@ qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
 */
 GKYL_CU_DH
 static double
-wave(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s)
 {
   return wave_lax(eqn, delta, ql, qr, waves, s);
 }
@@ -341,10 +376,136 @@ wave(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* d
 */
 GKYL_CU_DH
 static void
-qfluct(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
+qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
   double* amdq, double* apdq)
 {
   return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
+}
+
+/**
+* Compute waves and speeds using Roe fluxes.
+*
+* @param eqn Base equation object.
+* @param delta Jump across interface to split.
+* @param ql Conserved variables on the left of the interface.
+* @param qr Conserved variables on the right of the interface.
+* @param waves Waves (output).
+* @param s Wave speeds (output).
+* @return Maximum wave speed.
+*/
+GKYL_CU_DH
+static double
+wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+{
+  const struct wv_maxwell *maxwell = container_of(eqn, struct wv_maxwell, eqn);
+  double c = maxwell->c; // Speed of light.
+  double e_fact = maxwell->e_fact; // Factor of speed of light for electric field correction.
+  double b_fact = maxwell->b_fact; // Factor of speed of light for magnetic field correction.
+
+  double *fl = gkyl_malloc(sizeof(double) * 8);
+  double *fr = gkyl_malloc(sizeof(double) * 8);
+  gkyl_maxwell_flux(c, e_fact, b_fact, ql, fl);
+  gkyl_maxwell_flux(c, e_fact, b_fact, qr, fr);
+
+  double *fl_deriv = gkyl_malloc(sizeof(double) * 8);
+  double *fr_deriv = gkyl_malloc(sizeof(double) * 8);
+  gkyl_maxwell_flux_deriv(c, e_fact, b_fact, ql, fl_deriv);
+  gkyl_maxwell_flux_deriv(c, e_fact, b_fact, qr, fr_deriv);
+
+  double *a_roe = gkyl_malloc(sizeof(double) * 8);
+  for (int i = 0; i < 8; i++) {
+    a_roe[i] = 0.5 * (fl_deriv[i] + fr_deriv[i]);
+  }
+
+  double *w0 = &waves[0 * 8], *w1 = &waves[1 * 8], *w2 = &waves[2 * 8], *w3 = &waves[3 * 8], *w4 = &waves[4 * 8], *w5 = &waves[5 * 8];
+  for (int i = 0; i < 8; i++) {
+    w0[i] = 0.5 * ((qr[i] - ql[i]) - (fr[i] - fl[i]) / fmax(a_roe[1], a_roe[2]));
+    w1[i] = 0.5 * ((qr[i] - ql[i]) + (fr[i] - fl[i]) / fmax(a_roe[1], a_roe[2]));
+    s[0] = a_roe[1];
+    s[1] = a_roe[2];
+
+    w2[i] = 0.5 * ((qr[i] - ql[i]) - (fr[i] - fl[i]) / fmax(a_roe[0], a_roe[6]));
+    w3[i] = 0.5 * ((qr[i] - ql[i]) + (fr[i] - fl[i]) / fmax(a_roe[0], a_roe[6]));
+    s[2] = a_roe[0];
+    s[3] = a_roe[6];
+
+    w4[i] = 0.5 * ((qr[i] - ql[i]) - (fr[i] - fl[i]) / fmax(a_roe[3], a_roe[7]));
+    w5[i] = 0.5 * ((qr[i] - ql[i]) + (fr[i] - fl[i]) / fmax(a_roe[3], a_roe[7]));
+    s[4] = a_roe[3];
+    s[5] = a_roe[7];
+  }
+
+  gkyl_free(fl);
+  gkyl_free(fr);
+  
+  gkyl_free(fl_deriv);
+  gkyl_free(fr_deriv);
+
+  return fmax(fmax(fmax(fmax(fmax(s[0], s[1]), s[2]), s[3]), s[4]), s[5]);
+}
+
+/**
+* Compute fluctuations using Roe fluxes.
+*
+* @param eqn Base equation object.
+* @param ql Conserved variable vector on the left of the interface.
+* @param qr Conserved variable vector on the right of the interface.
+* @param waves Waves (input).
+* @param s Wave speeds (input).
+* @param amdq Left-moving fluctuations (output).
+* @param apdq Right-moving fluctuations (output).
+*/
+GKYL_CU_DH
+static void
+qfluct_roe(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
+{
+  const double *w0 = &waves[0 * 8], *w1 = &waves[1 * 8], *w2 = &waves[2 * 8], *w3 = &waves[3 * 8], *w4 = &waves[4 * 8], *w5 = &waves[5 * 8];
+  double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]), s2m = fmin(0.0, s[2]), s3m = fmin(0.0, s[3]), s4m = fmin(0.0, s[4]), s5m = fmin(0.0, s[5]);
+  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]), s2p = fmax(0.0, s[2]), s3p = fmax(0.0, s[3]), s4p = fmax(0.0, s[4]), s5p = fmax(0.0, s[5]);
+
+  for (int i = 0; i < 8; i++) {
+    amdq[i] = (s0m * w0[i]) + (s1m * w1[i]) + (s2m * w2[i]) + (s3m * w3[i]) + (s4m * w4[i]) + (s5m * w5[i]);
+    apdq[i] = (s0p * w0[i]) + (s1p * w1[i]) + (s2p * w2[i]) + (s3p * w3[i]) + (s4p * w4[i]) + (s5p * w5[i]);
+  }
+}
+
+/**
+* Compute waves and speeds using Roe fluxes (with potential fallback).
+*
+* @param eqn Base equation object.
+* @param type Type of Riemann-solver flux to use.
+* @param delta Jump across interface to split.
+* @param ql Conserved variables on the left of the interface.
+* @param qr Conserved variables on the right of the interface.
+* @param waves Waves (output).
+* @param s Wave speeds (output).
+* @return Maximum wave speed.
+*/
+GKYL_CU_DH
+static double
+wave(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+{
+  return wave_roe(eqn, delta, ql, qr, waves, s);
+}
+
+/**
+* Compute fluctuations using Roe fluxes (with potential fallback),
+*
+* @param eqn Base equation object.
+* @param type Type of Riemann-solver flux to use.
+* @param ql Conserved variable vector on the left of the interface.
+* @param qr Conserved variable vector on the right of the interface.
+* @param waves Waves (input).
+* @param s Wave speeds (input).
+* @param amdq Left-moving fluctuations (output).
+* @param apdq Right-moving fluctuations (output).
+*/
+GKYL_CU_DH
+static void
+qfluct(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
+  double* amdq, double* apdq)
+{
+  return qfluct_roe(eqn, ql, qr, waves, s, amdq, apdq);
 }
 
 /**
