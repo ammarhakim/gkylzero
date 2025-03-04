@@ -16,6 +16,7 @@ gk_geometry_surf_cu_dev_alloc(struct gk_geom_surf* up_surf_host, struct gk_geome
   struct gk_geom_surf *up_surf = (struct gk_geom_surf*) gkyl_malloc(sizeof(struct gk_geom_surf));
   up_surf->bmag = gkyl_array_cu_dev_new(up_surf_host->bmag->type, up_surf_host->bmag->ncomp, up_surf_host->bmag->size);
   up_surf->jacobgeo = gkyl_array_cu_dev_new(up_surf_host->jacobgeo->type, up_surf_host->jacobgeo->ncomp, up_surf_host->jacobgeo->size);
+  up_surf->jacobgeo_sync = gkyl_array_cu_dev_new(up_surf_host->jacobgeo_sync->type, up_surf_host->jacobgeo_sync->ncomp, up_surf_host->jacobgeo_sync->size);
   up_surf->b_i = gkyl_array_cu_dev_new(up_surf_host->b_i->type, up_surf_host->b_i->ncomp, up_surf_host->b_i->size);
   up_surf->cmag = gkyl_array_cu_dev_new(up_surf_host->cmag->type, up_surf_host->cmag->ncomp, up_surf_host->cmag->size);
   up_surf->jacobtot_inv = gkyl_array_cu_dev_new(up_surf_host->jacobtot_inv->type, up_surf_host->jacobtot_inv->ncomp, up_surf_host->jacobtot_inv->size);
@@ -91,6 +92,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
   for (int dir=0; dir<up->grid.ndim; ++dir) {
    gkyl_array_copy(geo_surf_dev[dir]->bmag, geo_host->geo_surf[dir]->bmag);
    gkyl_array_copy(geo_surf_dev[dir]->jacobgeo, geo_host->geo_surf[dir]->jacobgeo);
+   gkyl_array_copy(geo_surf_dev[dir]->jacobgeo_sync, geo_host->geo_surf[dir]->jacobgeo_sync);
    gkyl_array_copy(geo_surf_dev[dir]->b_i, geo_host->geo_surf[dir]->b_i);
    gkyl_array_copy(geo_surf_dev[dir]->cmag, geo_host->geo_surf[dir]->cmag);
    gkyl_array_copy(geo_surf_dev[dir]->jacobtot_inv, geo_host->geo_surf[dir]->jacobtot_inv);
@@ -124,6 +126,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
    up->geo_surf[dir] = (struct gk_geom_surf*) gkyl_malloc(sizeof(struct gk_geom_surf));
    up->geo_surf[dir]->bmag = geo_surf_dev[dir]->bmag->on_dev;
    up->geo_surf[dir]->jacobgeo = geo_surf_dev[dir]->jacobgeo->on_dev;
+   up->geo_surf[dir]->jacobgeo_sync = geo_surf_dev[dir]->jacobgeo_sync->on_dev;
    up->geo_surf[dir]->b_i = geo_surf_dev[dir]->b_i->on_dev;
    up->geo_surf[dir]->cmag = geo_surf_dev[dir]->cmag->on_dev;
    up->geo_surf[dir]->jacobtot_inv = geo_surf_dev[dir]->jacobtot_inv->on_dev;
@@ -165,6 +168,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
   for (int dir=0; dir<up->grid.ndim; ++dir) {
    up->geo_surf[dir]->bmag = geo_surf_dev[dir]->bmag;
    up->geo_surf[dir]->jacobgeo = geo_surf_dev[dir]->jacobgeo;
+   up->geo_surf[dir]->jacobgeo_sync = geo_surf_dev[dir]->jacobgeo_sync;
    up->geo_surf[dir]->b_i = geo_surf_dev[dir]->b_i;
    up->geo_surf[dir]->cmag = geo_surf_dev[dir]->cmag;
    up->geo_surf[dir]->jacobtot_inv = geo_surf_dev[dir]->jacobtot_inv;
