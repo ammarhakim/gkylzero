@@ -51,6 +51,14 @@ struct gkyl_gyrokinetic_projection {
   };
 };
 
+struct gkyl_phase_diagnostics_inp {
+  int num_diag_moments; // Number of diagnostic moments.
+  char diag_moments[24][24]; // List of diagnostic moments.
+  int num_integrated_diag_moments; // Number of integrated diagnostic moments.
+  char integrated_diag_moments[24][24]; // List of integrated diagnostic moments.
+  bool time_integrated; // Whether to use time integrated diags.
+};
+
 // Parameters for species collisions
 struct gkyl_gyrokinetic_collisions {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
@@ -92,6 +100,8 @@ struct gkyl_gyrokinetic_source {
 
   // sources using projection routine
   struct gkyl_gyrokinetic_projection projection[GKYL_MAX_SOURCES];
+
+  struct gkyl_phase_diagnostics_inp diagnostics;
 };
 
 // Parameters for boundary conditions
@@ -233,6 +243,12 @@ struct gkyl_gyrokinetic_species {
 
   int num_diag_moments; // number of diagnostic moments
   char diag_moments[24][24]; // list of diagnostic moments
+  int num_integrated_diag_moments; // Number of integrated diagnostic moments.
+  char integrated_diag_moments[24][24]; // List of integrated diagnostic moments.
+  bool time_rate_diagnostics; // Whether to ouput df/dt diagnostics.
+
+  // Diagnostics of the fluxes of f at position-space boundaries.
+  struct gkyl_phase_diagnostics_inp boundary_flux_diagnostics;
 
   // Input quantities used by LTE (local thermodynamic equilibrium, or Maxwellian) projection
   // This projection operator is used by BGK collisions and all reactions.
@@ -307,12 +323,20 @@ struct gkyl_gyrokinetic_field {
   // parameters for adiabatic electrons simulations
   double electron_mass, electron_charge, electron_density, electron_temp;
 
-  enum gkyl_fem_parproj_bc_type fem_parbc;
   struct gkyl_poisson_bc poisson_bcs;
+
+  bool time_rate_diagnostics; // Writes the time rate of change of field energy.
 
   // Initial potential used to compute the total polarization density.
   void (*polarization_potential)(double t, const double *xn, double *out, void *ctx);
   void *polarization_potential_ctx;
+
+  // Interface to read a potential from file.
+  struct gkyl_gyrokinetic_ic_import init_from_file;
+
+  // Profile for the field at t=0.
+  void (*init_field_profile)(double t, const double *xn, double *out, void *ctx);
+  void *init_field_profile_ctx;
 
   void *phi_wall_lo_ctx; // context for biased wall potential on lower wall
   // pointer to biased wall potential on lower wall function
@@ -582,6 +606,15 @@ void gkyl_gyrokinetic_app_calc_neut_species_integrated_mom(gkyl_gyrokinetic_app*
 void gkyl_gyrokinetic_app_calc_species_L2norm(gkyl_gyrokinetic_app* app, int sidx, double tm);
 
 /**
+ * Calculate integrated diagnostic moments of the boundary fluxes for a plasma species.
+ *
+ * @param app App object.
+ * @param sidx Index of species whose integrated moments to compute.
+ * @param tm Time at which integrated diagnostics are to be computed
+ */
+void gkyl_gyrokinetic_app_calc_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_app* app, int sidx, double tm);
+
+/**
  * Write integrated diagnostic moments for charged species to file. Integrated
  * moments are appended to the same file.
  * 
@@ -607,6 +640,15 @@ void gkyl_gyrokinetic_app_write_neut_species_integrated_mom(gkyl_gyrokinetic_app
  * @param sidx Index of species whose L2 norm to write out.
  */
 void gkyl_gyrokinetic_app_write_species_L2norm(gkyl_gyrokinetic_app *app, int sidx);
+
+/**
+ * Write integrated diagnostic moments of the boundary fluxes for charged
+ * species to file. Integrated moments are appended to the same file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species whose integrated moments to write.
+ */
+void gkyl_gyrokinetic_app_write_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_app *app, int sidx);
 
 /**
  * Write species source to file.
@@ -917,6 +959,24 @@ void gkyl_gyrokinetic_app_write(gkyl_gyrokinetic_app* app, double tm, int frame)
  * @param app App object.
  */
 void gkyl_gyrokinetic_app_stat_write(gkyl_gyrokinetic_app* app);
+
+/**
+ * Record the time step (in private dynvector).
+ *
+ * @param app App object.
+ * @param tm Time stamp.
+ * @param dt Time step to record (e.g. provided by app's status object).
+ */
+void
+gkyl_gyrokinetic_app_save_dt(gkyl_gyrokinetic_app* app, double tm, double dt);
+
+/**
+ * Write the time step over time.
+ *
+ * @param app App object.
+ */
+void
+gkyl_gyrokinetic_app_write_dt(gkyl_gyrokinetic_app* app);
 
 /**
  * Read geometry file.

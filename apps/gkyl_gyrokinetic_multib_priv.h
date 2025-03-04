@@ -54,6 +54,9 @@ struct gkyl_gyrokinetic_multib_app {
   double tcurr; // current time
   
   struct gkyl_gyrokinetic_stat stat; // statistics
+
+  gkyl_dynvec dts; // Record time step over time.
+  bool is_first_dt_write_call; // flag for integrated moments dynvec written first time
 };
 
 // Meta-data for IO

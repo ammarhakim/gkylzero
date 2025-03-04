@@ -252,6 +252,19 @@ evalInvMetric(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 }
 
 void
+evalMetric(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  double q_r = xn[0];
+
+  double metric_r_r = 1.0; // mMtric tensor (radial-radial component).
+  double metric_r_theta = 0.0; // Metric tensor (radial-angular component).
+  double metric_theta_theta = q_r * q_r; // Metric tensor (angular-angular component).
+  
+  // Set metric tensor.
+  fout[0] = metric_r_r; fout[1] = metric_r_theta; fout[2] = metric_theta_theta;
+}
+
+void
 evalMetricDet(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double q_r = xn[0];
@@ -414,6 +427,8 @@ main(int argc, char **argv)
 
     .hamil = evalHamiltonian,
     .hamil_ctx = &ctx,
+    .h_ij = evalMetric,
+    .h_ij_ctx = &ctx,
     .h_ij_inv = evalInvMetric,
     .h_ij_inv_ctx = &ctx,
     .det_h = evalMetricDet,

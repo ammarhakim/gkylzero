@@ -218,6 +218,11 @@ gkyl_array_clone(const struct gkyl_array* src)
 
   GKYL_CLEAR_ALLOC_EXTERN(arr->flags);
 
+  if (!GKYL_IS_CU_ALLOC(src->flags)) {
+    arr->data = g_array_alloc(arr->size, arr->esznc);
+    memcpy(arr->data, src->data, arr->size*arr->esznc);
+  }
+#ifdef GKYL_HAVE_CUDA
   if (GKYL_IS_CU_ALLOC(src->flags)) {
     arr->nthreads = src->nthreads;
     arr->nblocks = src->nblocks;
@@ -230,10 +235,7 @@ gkyl_array_clone(const struct gkyl_array* src)
     gkyl_cu_memcpy(arr->on_dev, src->on_dev, sizeof(struct gkyl_array), GKYL_CU_MEMCPY_D2D);
     gkyl_cu_memcpy(&((arr->on_dev)->data), &arr->data, sizeof(void*), GKYL_CU_MEMCPY_H2D);
   }
-  else {
-    arr->data = g_array_alloc(arr->size, arr->esznc);
-    memcpy(arr->data, src->data, arr->size*arr->esznc);
-  }
+#endif
   
   arr->ref_count = gkyl_ref_count_init(array_free);
   

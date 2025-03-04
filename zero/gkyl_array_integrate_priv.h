@@ -80,6 +80,7 @@ static const array_integrate_epsgradperpsq_kern_list gkyl_array_integrate_epsgra
 
 // Primary struct in this updater.
 struct gkyl_array_integrate {
+  enum gkyl_array_integrate_op op; // Operator type.
   int num_basis, num_comp;
   bool use_gpu;
   double dxSq[GKYL_MAX_DIM];

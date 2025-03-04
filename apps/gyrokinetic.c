@@ -8,6 +8,7 @@
 #include <gkyl_dflt.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_null_comm.h>
+#include <gkyl_nodal_ops.h>
 
 #include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_app_priv.h>
@@ -224,6 +225,48 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     int rank;
     gkyl_comm_get_rank(app->comm, &rank);
     gkyl_create_ranges(&app->decomp->ranges[rank], ghost, &app->local_ext, &app->local);
+  }
+
+  // Create plane communicators.
+  if (app->cdim == 1) {
+    app->decomp_plane[0] = gkyl_rect_decomp_acquire(app->decomp);
+    app->comm_plane[0] = gkyl_comm_acquire(app->comm);
+  }
+  else {
+    for (int dir=0; dir<app->cdim; ++dir) {
+      // Identify ranks on the same plane as this one.
+      int num_ranks_plane = 0;
+      int ranks_plane[app->decomp->ndecomp]; 
+      for (int i=0; i<app->decomp->ndecomp; i++) {
+        if (app->decomp->ranges[i].lower[dir] == app->local.lower[dir]) {
+          ranks_plane[num_ranks_plane] = i;
+          num_ranks_plane++;
+        }
+      }
+      // Create a range tangentially global, and local in perp direction.
+      int lower_plane[app->cdim], upper_plane[app->cdim];
+      for (int d=0; d<app->cdim; ++d) {
+        lower_plane[d] = app->global.lower[d];
+        upper_plane[d] = app->global.upper[d];
+      }
+      lower_plane[dir] = app->local.lower[dir];
+      upper_plane[dir] = app->local.upper[dir];
+      struct gkyl_range range_plane;
+      gkyl_range_init(&range_plane, app->cdim, lower_plane, upper_plane);
+  
+      // Create decomp.
+      int cuts_plane[GKYL_MAX_CDIM];
+      for (int d=0; d<app->cdim; ++d)
+        cuts_plane[d] = gk->parallelism.cuts[d];
+      cuts_plane[dir] = 1;
+      app->decomp_plane[dir] = gkyl_rect_decomp_new_from_cuts(app->cdim, cuts_plane, &range_plane);
+  
+      // Create a new communicator with ranks on plane.
+      bool is_comm_valid;
+      app->comm_plane[dir] = gkyl_comm_create_comm_from_ranks(app->comm, num_ranks_plane,
+        ranks_plane, app->decomp_plane[dir], &is_comm_valid);
+      assert(is_comm_valid);
+    }
   }
 
   // Local skin and ghost ranges for configuration space fields.
@@ -580,6 +623,9 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     .stage_2_dt_diff = { DBL_MAX, 0.0 },
     .stage_3_dt_diff = { DBL_MAX, 0.0 },
   };
+
+  app->dts = gkyl_dynvec_new(GKYL_DOUBLE, 1); // Dynvector to store time steps.
+  app->is_first_dt_write_call = true;
 }
 
 
@@ -686,15 +732,34 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
           s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
 
         // Compute and store (in the ghost cell of of out) the boundary fluxes.
-        // NOTE: this overwrites ghost cells that may be used for sourcing.
-        gk_species_bflux_rhs(app, s, &s->bflux, distf[i], distf[i]);
+        gk_species_bflux_rhs(app, s, &s->bflux_solver, distf[i], distf[i], 0);
       }
     }
 
-    // Compute the field.
-    // MF 2024/09/27/: Need the cast here for consistency. Fixing
-    // this may require removing 'const' from a lot of places.
-    gyrokinetic_calc_field_update(app, t0, (const struct gkyl_array **) distf);
+    if (app->field->info.init_from_file.type == 0 && app->field->info.init_field_profile == 0)
+      // Compute the field.
+      // MF 2024/09/27/: Need the cast here for consistency. Fixing
+      // this may require removing 'const' from a lot of places.
+      gyrokinetic_calc_field_update(app, t0, (const struct gkyl_array **) distf);
+    else {
+      if (app->field->info.init_field_profile == 0)
+        // Read the field.
+        gk_field_file_import_init(app, app->field->info.init_from_file);
+      else
+        // Project the field.
+        gk_field_project_init(app);
+    }
+
+  }
+
+  // Compute the phase-space advection speeds and boundary fluxes as t=0
+  // diagnostics and emission BCs may need them.
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *gks = &app->species[i];
+    gkyl_dg_calc_gyrokinetic_vars_alpha_surf(gks->calc_gk_vars,
+      &app->local, &gks->local, &gks->local_ext, gks->gyro_phi,
+      gks->alpha_surf, gks->sgn_alpha_surf, gks->const_sgn_alpha);
+    gk_species_bflux_rhs(app, gks, &gks->bflux_solver, gks->f, gks->f, 0);
   }
 
   // Apply boundary conditions.
@@ -899,8 +964,7 @@ void
 gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app)
 {
   if (app->field->update_field) {
-    struct timespec wst = gkyl_wall_clock();
-    // write out diagnostic moments
+    // Write out the field energy.
     const char *fmt = "%s-field_energy.gkyl";
     int sz = gkyl_calc_strlen(fmt, app->name);
     char fileNm[sz+1]; // ensures no buffer overflow
@@ -924,6 +988,34 @@ gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app)
       app->stat.n_field_diag_io += 1;
     }
     gkyl_dynvec_clear(app->field->integ_energy);
+
+    if (app->field->info.time_rate_diagnostics) {
+      // Write out the time rate of change of the field energy.
+      const char *fmt = "%s-field_energy_dot.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name);
+      char fileNm[sz+1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name);
+
+      int rank;
+      gkyl_comm_get_rank(app->comm, &rank);
+
+      if (rank == 0) {
+        struct timespec wtm = gkyl_wall_clock();
+        if (app->field->is_first_energy_dot_write_call) {
+          // write to a new file (this ensure previous output is removed)
+          gkyl_dynvec_write(app->field->integ_energy_dot, fileNm);
+          app->field->is_first_energy_dot_write_call = false;
+        }
+        else {
+          // append to existing file
+          gkyl_dynvec_awrite(app->field->integ_energy_dot, fileNm);
+        }
+        app->stat.field_diag_io_tm += gkyl_time_diff_now_sec(wtm);
+        app->stat.n_field_diag_io += 1;
+      }
+      gkyl_dynvec_clear(app->field->integ_energy_dot);
+    }
+
   }
 }
 
@@ -973,6 +1065,13 @@ gkyl_gyrokinetic_app_calc_neut_species_integrated_mom(gkyl_gyrokinetic_app* app,
 }
 
 void
+gkyl_gyrokinetic_app_calc_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_app* app, int sidx, double tm)
+{
+  struct gk_species *gks = &app->species[sidx];
+  gk_species_bflux_calc_integrated_mom(app, gks, &gks->bflux_diag, tm);
+}
+
+void
 gkyl_gyrokinetic_app_write_species_integrated_mom(gkyl_gyrokinetic_app *app, int sidx)
 {
   struct gk_species *gks = &app->species[sidx];
@@ -998,6 +1097,13 @@ gkyl_gyrokinetic_app_write_species_L2norm(gkyl_gyrokinetic_app *app, int sidx)
 {
   struct gk_species *gks = &app->species[sidx];
   gk_species_write_L2norm(app, gks);
+}
+
+void
+gkyl_gyrokinetic_app_write_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_app *app, int sidx)
+{
+  struct gk_species *gks = &app->species[sidx];
+  gk_species_bflux_write_integrated_mom(app, gks, &gks->bflux_diag);
 }
 
 //
@@ -1036,7 +1142,6 @@ gkyl_gyrokinetic_app_calc_species_source_integrated_mom(gkyl_gyrokinetic_app* ap
 {
   struct gk_species *gks = &app->species[sidx];
   gk_species_source_calc_integrated_mom(app, gks, tm);
-
 }
 
 void
@@ -1233,6 +1338,7 @@ gkyl_gyrokinetic_app_calc_integrated_mom(gkyl_gyrokinetic_app* app, double tm)
     gkyl_gyrokinetic_app_calc_species_integrated_mom(app, i, tm);
     gkyl_gyrokinetic_app_calc_species_source_integrated_mom(app, i, tm);
     gkyl_gyrokinetic_app_calc_species_rad_integrated_mom(app, i, tm);
+    gkyl_gyrokinetic_app_calc_species_boundary_flux_integrated_mom(app, i, tm);
   }
 
   for (int i=0; i<app->num_neut_species; ++i) {
@@ -1257,6 +1363,7 @@ gkyl_gyrokinetic_app_write_integrated_mom(gkyl_gyrokinetic_app *app)
     gkyl_gyrokinetic_app_write_species_source_integrated_mom(app, i);
     gkyl_gyrokinetic_app_write_species_lte_max_corr_status(app, i);
     gkyl_gyrokinetic_app_write_species_rad_integrated_mom(app, i);
+    gkyl_gyrokinetic_app_write_species_boundary_flux_integrated_mom(app, i);
   }
 
   for (int i=0; i<app->num_neut_species; ++i) {
@@ -1313,7 +1420,7 @@ gkyl_gyrokinetic_app_write(gkyl_gyrokinetic_app* app, double tm, int frame)
 
 void
 gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
-  const struct gkyl_array *fin[], struct gkyl_array *fout[], 
+  const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
   const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], 
   struct gkyl_update_status *st)
 {
@@ -1379,9 +1486,10 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     dtmin = fmin(dtmin, dt1);
 
     // Compute and store (in the ghost cell of of out) the boundary fluxes.
-    // NOTE: this overwrites ghost cells that may be used for sourcing.
-    if (app->field->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
-      gk_species_bflux_rhs(app, s, &s->bflux, fin[i], fout[i]);
+    gk_species_bflux_rhs(app, s, &s->bflux_solver, fin[i], fout[i], 0);
+
+    // Compute the boundary fluxes and their moments for diagnostics.
+    gk_species_bflux_rhs(app, s, &s->bflux_diag, fin[i], fout[i], bflux_out[i]);
   }
 
   // Compute RHS of neutrals.
@@ -1769,6 +1877,39 @@ gkyl_gyrokinetic_app_stat_write(gkyl_gyrokinetic_app* app)
 
 }
 
+void
+gkyl_gyrokinetic_app_save_dt(gkyl_gyrokinetic_app* app, double tm, double dt)
+{
+  gkyl_dynvec_append(app->dts, tm, &dt);
+}
+
+void
+gkyl_gyrokinetic_app_write_dt(gkyl_gyrokinetic_app* app)
+{
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+
+  if (rank == 0) {
+    // Write integrated diagnostic moments.
+    const char *fmt = "%s-%s.gkyl";
+    int sz = gkyl_calc_strlen(fmt, app->name, "dt");
+    char fileNm[sz+1]; // ensures no buffer overflow
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, "dt");
+
+    struct timespec wtm = gkyl_wall_clock();
+    if (app->is_first_dt_write_call) {
+      gkyl_dynvec_write(app->dts, fileNm);
+      app->is_first_dt_write_call = false;
+    }
+    else {
+      gkyl_dynvec_awrite(app->dts, fileNm);
+    }
+    app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
+    app->stat.n_diag_io += 1;
+  }
+  gkyl_dynvec_clear(app->dts);
+}
+
 static struct gkyl_app_restart_status
 header_from_file(gkyl_gyrokinetic_app *app, const char *fname)
 {
@@ -1924,6 +2065,7 @@ gkyl_gyrokinetic_app_from_frame_field(gkyl_gyrokinetic_app *app, int frame)
   cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
   struct gkyl_app_restart_status rstat = gkyl_gyrokinetic_app_from_file_field(app, fileNm.str);
   app->field->is_first_energy_write_call = false; // Append to existing diagnostic.
+  app->field->is_first_energy_dot_write_call = false; // Append to existing diagnostic.
   cstr_drop(&fileNm);
   
   return rstat;
@@ -1939,20 +2081,22 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
   cstr_drop(&fileNm);
 
   // Append to existing integrated diagnostics.
+  app->is_first_dt_write_call = false;
   gk_s->is_first_integ_write_call = false;
   gk_s->is_first_L2norm_write_call = false;
-  if (app->enforce_positivity) {
+  for (int b=0; b<gk_s->bflux_diag.num_boundaries; ++b)
+    gk_s->bflux_diag.is_first_intmom_write_call[b] = false;
+  gk_s->bflux_diag.is_not_first_restart_write_call = false;
+  if (gk_s->info.time_rate_diagnostics)
+    gk_s->is_first_fdot_integ_write_call = false;
+  if (app->enforce_positivity)
     gk_s->is_first_ps_integ_write_call = false;
-  }
-  if (gk_s->rad.radiation_id == GKYL_GK_RADIATION) {
+  if (gk_s->rad.radiation_id == GKYL_GK_RADIATION)
     gk_s->rad.is_first_integ_write_call = false;
-  }
-  if (gk_s->src.source_id) {
+  if (gk_s->src.source_id)
     gk_s->src.is_first_integ_write_call = false;
-  }
-  if (gk_s->lte.correct_all_moms) {
+  if (gk_s->lte.correct_all_moms)
     gk_s->lte.is_first_corr_status_write_call = false;
-  }
 
   return rstat;
 }
@@ -2021,8 +2165,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
             s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
 
           // Compute and store (in the ghost cell of of out) the boundary fluxes.
-          // NOTE: this overwrites ghost cells that may be used for sourcing.
-          gk_species_bflux_rhs(app, s, &s->bflux, distf[i], distf[i]);
+          gk_species_bflux_rhs(app, s, &s->bflux_solver, distf[i], distf[i], 0);
         }
       }
 
@@ -2035,6 +2178,19 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
       // Read the t=0 field.
       gkyl_gyrokinetic_app_from_frame_field(app, 0);
 
+    // Compute boundary fluxes, for recycling and diagnostics.
+    for (int i=0; i<app->num_species; ++i) {
+      struct gk_species *s = &app->species[i];
+
+      // Compute advection speeds so we can compute the initial boundary flux.
+      gkyl_dg_calc_gyrokinetic_vars_alpha_surf(s->calc_gk_vars, 
+        &app->local, &s->local, &s->local_ext, app->field->phi_smooth,
+        s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
+
+      // Compute and store (in the ghost cell of of out) the boundary fluxes.
+      gk_species_bflux_rhs(app, s, &s->bflux_solver, distf[i], distf[i], 0);
+    }
+
     // Apply boundary conditions.
     for (int i=0; i<app->num_species; ++i) {
       gk_species_apply_bc(app, &app->species[i], distf[i]);
@@ -2046,6 +2202,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
     }
   }
   app->field->is_first_energy_write_call = false; // Append to existing diagnostic.
+  app->field->is_first_energy_dot_write_call = false; // Append to existing diagnostic.
 
   return rstat;
 }
@@ -2095,12 +2252,18 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
   if (app->num_neut_species > 0)
     gkyl_free(app->neut_species);
 
+  for (int dir=0; dir<app->cdim; ++dir) {
+    gkyl_rect_decomp_release(app->decomp_plane[dir]);
+    gkyl_comm_release(app->comm_plane[dir]);
+  }
   gkyl_comm_release(app->comm);
   gkyl_rect_decomp_release(app->decomp);
 
   if (app->use_gpu) {
     gkyl_cu_free(app->basis_on_dev);
   }
+
+  gkyl_dynvec_release(app->dts);
 
   gkyl_free(app);
 }

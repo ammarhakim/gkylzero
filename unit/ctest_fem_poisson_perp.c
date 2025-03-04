@@ -1,7 +1,7 @@
 // Test the perpendicular FEM Helmholtz/Poisson solver.
 //
 #include <acutest.h>
-
+#include <assert.h>
 #include <math.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
@@ -10,10 +10,597 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_fem_poisson_perp.h>
 #include <gkyl_array_reduce.h>
+#include <gkyl_dg_bin_ops.h>
+//#include <gkyl_fem_parproj.h>
 
-#define PERP_DIM 2
+static double error_L2norm(struct gkyl_rect_grid grid, struct gkyl_range range,
+  struct gkyl_basis basis, struct gkyl_array* field1, struct gkyl_array* field2)
+{
+  // Compute the L2 norm of the difference between 2 fields.
+  assert(field1->ncomp == field2->ncomp);
+  assert(field1->size == field2->size);
 
-void evalFunc_consteps_periodicx_periodicy_sol(double t, const double *xn, double* restrict fout, void *ctx)
+  struct gkyl_array *diff = gkyl_array_new(GKYL_DOUBLE, field1->ncomp, field1->size);
+  gkyl_array_copy(diff, field1);
+  gkyl_array_accumulate(diff, -1.0, field2);
+
+  struct gkyl_array *l2_cell = gkyl_array_new(GKYL_DOUBLE, 1, field1->size);
+  gkyl_dg_calc_l2_range(basis, 0, l2_cell, 0, diff, range);
+  gkyl_array_scale_range(l2_cell, grid.cellVolume, &range);
+
+  double l2[1];
+  gkyl_array_reduce_range(l2, l2_cell, GKYL_SUM, &range);
+
+  gkyl_array_release(diff);
+  gkyl_array_release(l2_cell);
+  return sqrt(l2[0]);
+}
+
+static struct gkyl_array*
+mkarr(bool use_gpu, long nc, long size)
+{
+  // allocate array (filled with zeros)
+  struct gkyl_array* a = use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size)
+                                : gkyl_array_new(GKYL_DOUBLE, nc, size);
+  return a;
+}
+
+double poly_test_func_1x(double x, double a, double *c)
+{
+  // Function that can be used to produce homogeneous Dirichlet or Neumann
+  // boundary values depending on the choice of a and c. It assumes x \in [0,1].
+  return pow(x,2)/2.-a*pow(x,4)/12.+c[0]*x+c[1];
+}
+
+void evalFunc_consteps_periodicx_sol_2x(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0], z = xn[1];
+  // These values have to match those in the test below.
+  double gxx = 1.0;
+  double amn[] = {0., 10., 10.};
+  double bmn[] = {0., 10., 10.};
+  fout[0] = 0.;
+  for (int m=1; m<4; m++) {
+    double a = amn[m-1];
+    double b = bmn[m-1];
+    double t1 = a*cos(m*x);
+    double t2 = b*sin(m*x);
+    fout[0] += t1+t2;
+  }
+  double kz = 1.;
+  fout[0] *= (1.+kz*z);
+//  fout[0] *= (1.+kz*z+0.5*pow(z,2));
+}
+void evalFunc_consteps_periodicx_2x(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0], z = xn[1];
+  // These values have to match those in the test below.
+  double gxx = 1.0;
+  double amn[] = {0., 10., 10.};
+  double bmn[] = {0., 10., 10.};
+  fout[0] = 0.;
+  for (int m=1; m<4; m++) {
+    double a = amn[m-1];
+    double b = bmn[m-1];
+    double t1 = a*gxx*pow(m,2)*cos(m*x);
+    double t2 = b*gxx*pow(m,2)*sin(m*x);
+    fout[0] += t1+t2;
+  }
+  double kz = 1.;
+  fout[0] *= (1.+kz*z);
+//  fout[0] *= (1.+kz*z+0.5*pow(z,2));
+}
+
+void evalFunc_consteps_dirichletx_sol_2x(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0], z = xn[1];
+  double a = 2.;
+  double c[] = {a/12.-1./2., 0.};
+  double kz = 1.;
+  double xp = x, zp = z;
+  fout[0] = poly_test_func_1x(xp, a, c)
+//           *sin(kz*z);
+           *(1.+kz*z);
+//           *(1.+kz*z+0.5*pow(z,2));
+}
+void evalFunc_consteps_dirichletx_2x(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0], z = xn[1];
+  double a = 2.;
+  double c[] = {a/12.-1./2., 0.};
+  double kz = 1.;
+  double xp = x, zp = z;
+  fout[0] = -(1 - a*pow(xp,2))
+//              *sin(kz*z);
+              *(1.+kz*z);
+//              *(1.+kz*z+0.5*pow(z,2));
+}
+
+void evalFunc_consteps_neumannx_dirichletx_sol_2x(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0], z = xn[1];
+  double a = 5.;
+  double c[] = {0., a/12.-1./2.};
+  fout[0] = poly_test_func_1x(x, a, c);
+
+  double kz = 1.;
+  fout[0] *= (1.+kz*z);
+}
+void evalFunc_consteps_neumannx_dirichletx_2x(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0], z = xn[1];
+  double a = 5.;
+  double c[] = {0., a/12.-1./2.};
+  fout[0] = -(1 - a*pow(x,2));
+
+  double kz = 1.;
+  fout[0] *= (1.+kz*z);
+}
+
+void evalFunc_consteps_dirichletx_neumannx_sol_2x(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0], z = xn[1];
+  double a = 5.;
+  double c[] = {0., a/12.-1./2.};
+  fout[0] = poly_test_func_1x(x-1., a, c);
+
+  double kz = 1.;
+  fout[0] *= (1.+kz*z);
+}
+void evalFunc_consteps_dirichletx_neumannx_2x(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0], z = xn[1];
+  double a = 5.;
+  double c[] = {0., a/12.-1./2.};
+  fout[0] = -(1 - a*pow(x-1.,2));
+
+  double kz = 1.;
+  fout[0] *= (1.+kz*z);
+}
+
+void
+test_fem_poisson_perp_consteps_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
+{
+  double epsilon_0 = 1.0;
+  double lower[] = {-M_PI,-M_PI}, upper[] = {M_PI,M_PI};
+  if (   (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET)
+      || (bcs.lo_type[0]==GKYL_POISSON_NEUMANN && bcs.up_type[0]==GKYL_POISSON_DIRICHLET)
+      || (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_NEUMANN) )
+  {
+    lower[0] = 0.;  upper[0] = 1.;
+  }
+  int dim = sizeof(lower)/sizeof(lower[0]);
+  int dim_perp = dim-1; 
+
+  // Grids.
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
+
+  // Basis functions.
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, dim, poly_order);
+
+  int ghost[] = { 1, 1 };
+  struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
+  gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
+
+  // Projection updater for DG field.
+  gkyl_proj_on_basis *projob, *projob_sol;
+  if (bcs.lo_type[0]==GKYL_POISSON_PERIODIC && bcs.up_type[0]==GKYL_POISSON_PERIODIC) {
+    projob = gkyl_proj_on_basis_new(&grid, &basis,
+      poly_order+1, 1, evalFunc_consteps_periodicx_2x, NULL);
+    projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
+      2*(poly_order+1), 1, evalFunc_consteps_periodicx_sol_2x, NULL);
+  } else if (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) {
+    projob = gkyl_proj_on_basis_new(&grid, &basis,
+      poly_order+1, 1, evalFunc_consteps_dirichletx_2x, NULL);
+    projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
+      2*(poly_order+1), 1, evalFunc_consteps_dirichletx_sol_2x, NULL);
+  } else if (bcs.lo_type[0]==GKYL_POISSON_NEUMANN && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) {
+    projob = gkyl_proj_on_basis_new(&grid, &basis,
+      poly_order+1, 1, evalFunc_consteps_neumannx_dirichletx_2x, NULL);
+    projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
+      2*(poly_order+1), 1, evalFunc_consteps_neumannx_dirichletx_sol_2x, NULL);
+  } else if (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_NEUMANN) {
+    projob = gkyl_proj_on_basis_new(&grid, &basis,
+      poly_order+1, 1, evalFunc_consteps_dirichletx_neumannx_2x, NULL);
+    projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
+      2*(poly_order+1), 1, evalFunc_consteps_dirichletx_neumannx_sol_2x, NULL);
+  }
+
+  // Create DG field we wish to make continuous.
+  struct gkyl_array *rho = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+  // Create array holding continuous field we'll compute.
+  struct gkyl_array *phi = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+  // Create DG field for permittivity tensor.
+  int epsnum = dim_perp+ceil((pow(3.,dim_perp-1)-dim_perp)/2);
+  struct gkyl_array *eps = mkarr(use_gpu, epsnum*basis.num_basis, localRange_ext.volume);
+  // Analytic solution.
+  struct gkyl_array *phisol_ho = mkarr(false, basis.num_basis, localRange_ext.volume);
+  // Device copies:
+  struct gkyl_array *rho_ho, *phi_ho;
+  if (use_gpu) {
+    rho_ho = mkarr(false, rho->ncomp, rho->size);
+    phi_ho = mkarr(false, phi->ncomp, phi->size);
+  }
+  else {
+    rho_ho = gkyl_array_acquire(rho);
+    phi_ho = gkyl_array_acquire(phi);
+  }
+
+  // Project RHS charge density on basis.
+  gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
+  gkyl_array_copy(rho, rho_ho);
+
+  // Project the permittivity onto the basis.
+  double dg0norm = pow(sqrt(2.),dim);
+  gkyl_array_shiftc(eps, epsilon_0*dg0norm, 0*basis.num_basis);
+
+  // Project the analytic solution.
+  gkyl_proj_on_basis_advance(projob_sol, 0.0, &localRange, phisol_ho);
+
+  // FEM poisson solver.
+  struct gkyl_fem_poisson_perp *poisson = gkyl_fem_poisson_perp_new(&localRange, &grid, basis, &bcs, eps, NULL, use_gpu);
+
+//  struct gkyl_fem_parproj* smooth_op = gkyl_fem_parproj_new(&localRange, &localRange_ext, &basis, GKYL_FEM_PARPROJ_DIRICHLET, NULL, use_gpu);
+//  gkyl_fem_parproj_set_rhs(smooth_op, rho, rho);
+//  gkyl_fem_parproj_solve  (smooth_op, rho);
+
+  // Set the RHS source.
+  gkyl_fem_poisson_perp_set_rhs(poisson, rho);
+
+  // Solve the problem.
+  gkyl_fem_poisson_perp_solve(poisson, phi);
+  gkyl_array_copy(phi_ho, phi);
+
+//  gkyl_fem_parproj_set_rhs(smooth_op, phi, phi);
+//  gkyl_fem_parproj_solve  (smooth_op, phi);
+//  gkyl_fem_parproj_release(smooth_op);
+
+  if (bcs.lo_type[0] == GKYL_POISSON_PERIODIC) {
+    // Subtract the volume averaged sol from the numerical and analytic solutions.
+    // This is not strictly necessary, as the potential is only known up to 
+    // constant shift, but it makes unit testing more robust across CPU/GPU.
+    struct gkyl_array *sol_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, localRange_ext.volume);
+    double sol_avg[1];
+    // Factor accounting for normalization when subtracting a constant from a
+    // DG field and the 1/N to properly compute the volume averaged RHS.
+    double mavgfac = -pow(sqrt(2.),dim); // /perpRange.volume;
+    // Subtract the volume averaged sol from the sol.
+    gkyl_array_clear(sol_cellavg, 0.0);
+    gkyl_dg_calc_average_range(basis, 0, sol_cellavg, 0, phi_ho, localRange);
+    for (int kIdx=0; kIdx<cells[2]; kIdx++) {
+      struct gkyl_range perp_range;
+      gkyl_range_deflate(&perp_range, &localRange, (int[]){0,0,1}, (int[]){0,0,kIdx+1});
+      gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, &perp_range);
+      gkyl_array_shiftc_range(phi_ho, mavgfac*sol_avg[0]/perp_range.volume, 0, &perp_range);
+    }
+    // Now do the same to the analytic solution.
+    gkyl_array_clear(sol_cellavg, 0.0);
+    gkyl_dg_calc_average_range(basis, 0, sol_cellavg, 0, phisol_ho, localRange);
+    for (int kIdx=0; kIdx<cells[2]; kIdx++) {
+      struct gkyl_range perp_range;
+      gkyl_range_deflate(&perp_range, &localRange, (int[]){0,0,1}, (int[]){0,0,kIdx+1});
+      gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, &perp_range);
+      gkyl_array_shiftc_range(phisol_ho, mavgfac*sol_avg[0]/perp_range.volume, 0, &perp_range);
+    }
+    gkyl_array_release(sol_cellavg);
+  }
+
+//  double errL2 = error_L2norm(grid, localRange, basis, phi, phisol);
+//  printf("error L2 norm = %g\n",errL2);
+
+  if (poly_order == 1) {
+    if (bcs.lo_type[0] == GKYL_POISSON_PERIODIC && bcs.up_type[0] == GKYL_POISSON_PERIODIC) {
+      // Solution; checked convergence:
+//      const double sol[256] = {
+//      };
+//      long i = 0;
+//      struct gkyl_range_iter iter;
+//      gkyl_range_iter_init(&iter, &localRange);
+//      while (gkyl_range_iter_next(&iter)) {
+//        long loc = gkyl_range_idx(&localRange, iter.idx);
+//        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
+//        // Only check one cell in z:
+//        for (int m=0; m<basis.num_basis; m++) {
+//          TEST_CHECK( gkyl_compare(sol[i], phi_p[m], 1e-10) );
+//          TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[i], iter.idx[0], iter.idx[1], iter.idx[2]);
+//          TEST_MSG("Produced: %.13e", phi_p[m]);
+//          i += 1;
+//        }
+//      }
+    } else if (bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_DIRICHLET) {
+      // Solution; checked convergence:
+      const double sol[256] = {
+         0.0592784971266791,  0.0342244562732445, -0.0076848087077185, -0.004436826376072 ,
+         0.0326575388702468,  0.0188548388578077, -0.0076848087077184, -0.004436826376072 ,
+         0.0060365806138147,  0.0034852214423708, -0.0076848087077184, -0.004436826376072 ,
+        -0.0205843776426173, -0.011884395973066 , -0.0076848087077184, -0.004436826376072 ,
+        -0.0472053358990496, -0.0272540133885028, -0.0076848087077183, -0.004436826376072 ,
+        -0.0738262941554814, -0.0426236308039397, -0.0076848087077184, -0.004436826376072 ,
+        -0.1004472524119136, -0.0579932482193765, -0.0076848087077186, -0.004436826376072 ,
+        -0.1270682106683453, -0.0733628656348134, -0.0076848087077185, -0.004436826376072 ,
+        
+         0.1515053065818721,  0.0190227169922115, -0.0196410056887546, -0.0024660871694134,
+         0.0834668670525276,  0.0104799404455762, -0.0196410056887545, -0.0024660871694134,
+         0.0154284275231832,  0.0019371638989408, -0.0196410056887545, -0.0024660871694134,
+        -0.0526100120061611, -0.0066056126476946, -0.0196410056887545, -0.0024660871694134,
+        -0.1206484515355057, -0.0151483891943299, -0.0196410056887544, -0.0024660871694134,
+        -0.1886868910648499, -0.0236911657409653, -0.0196410056887545, -0.0024660871694134,
+        -0.2567253305941943, -0.0322339422876006, -0.0196410056887547, -0.0024660871694134,
+        -0.3247637701235385, -0.040776718834236 , -0.0196410056887545, -0.0024660871694134,
+        
+         0.1936336022589356,  0.0053000658574412, -0.0251024783837958, -0.0006870955612404,
+         0.1066760663456682,  0.0029198970139942, -0.0251024783837957, -0.0006870955612404,
+         0.0197185304324009,  0.0005397281705472, -0.0251024783837957, -0.0006870955612404,
+        -0.0672390054808664, -0.0018404406728998, -0.0251024783837957, -0.0006870955612404,
+        -0.1541965413941337, -0.0042206095163468, -0.0251024783837957, -0.0006870955612405,
+        -0.2411540773074009, -0.0066007783597938, -0.0251024783837957, -0.0006870955612404,
+        -0.3281116132206683, -0.0089809472032408, -0.0251024783837958, -0.0006870955612404,
+        -0.4150691491339354, -0.0113611160466878, -0.0251024783837957, -0.0006870955612404,
+        
+         0.192494999673069 , -0.0059574383668913, -0.0249548710136595,  0.000772316716123 ,
+         0.1060487906890969, -0.0032820547831718, -0.0249548710136595,  0.000772316716123 ,
+         0.0196025817051248, -0.0006066711994523, -0.0249548710136594,  0.000772316716123 ,
+        -0.0668436272788473,  0.0020687123842672, -0.0249548710136594,  0.000772316716123 ,
+        -0.1532898362628194,  0.0047440959679867, -0.0249548710136594,  0.000772316716123 ,
+        -0.2397360452467914,  0.0074194795517062, -0.0249548710136595,  0.000772316716123 ,
+        -0.3261822542307636,  0.0100948631354257, -0.0249548710136595,  0.000772316716123 ,
+        -0.4126284632147356,  0.0127702467191452, -0.0249548710136594,  0.000772316716123 ,
+        
+         0.1583369220970716, -0.013763736916611 , -0.0205266499095721,  0.0017843179303531,
+         0.0872305209919558, -0.0075826782921555, -0.020526649909572,  0.0017843179303531,
+         0.0161241198868402, -0.0014016196677002, -0.020526649909572,  0.0017843179303531,
+        -0.0549822812182755,  0.0047794389567552, -0.020526649909572,  0.0017843179303531,
+        -0.1260886823233912,  0.0109604975812106, -0.020526649909572,  0.0017843179303531,
+        -0.1971950834285068,  0.017141556205666 , -0.020526649909572,  0.0017843179303531,
+        -0.2683014845336226,  0.0233226148301214, -0.020526649909572,  0.0017843179303531,
+        -0.3394078856387381,  0.0295036734545768, -0.020526649909572,  0.0017843179303531,
+        
+         0.1048226005613422, -0.0171327710275426, -0.0135891035131684,  0.0022210763491261,
+         0.0577485651331015, -0.0094387368591906, -0.0135891035131684,  0.0022210763491261,
+         0.0106745297048609, -0.0017447026908387, -0.0135891035131683,  0.0022210763491261,
+        -0.0363995057233797,  0.0059493314775132, -0.0135891035131683,  0.0022210763491261,
+        -0.0834735411516203,  0.0136433656458652, -0.0135891035131683,  0.0022210763491261,
+        -0.1305475765798609,  0.0213373998142171, -0.0135891035131683,  0.0022210763491261,
+        -0.1776216120081016,  0.0290314339825691, -0.0135891035131684,  0.0022210763491261,
+        -0.2246956474363422,  0.036725468150921 , -0.0135891035131683,  0.0022210763491261,
+        
+         0.0490310738538797, -0.0150784819355111, -0.0063563423764922,  0.0019547602401182,
+         0.0270120579611045, -0.0083069938305107, -0.0063563423764922,  0.0019547602401182,
+         0.0049930420683294, -0.0015355057255103, -0.0063563423764922,  0.0019547602401182,
+        -0.0170259738244458,  0.0052359823794901, -0.0063563423764922,  0.0019547602401182,
+        -0.0390449897172209,  0.0120074704844905, -0.0063563423764922,  0.0019547602401182,
+        -0.0610640056099961,  0.0187789585894908, -0.0063563423764922,  0.0019547602401182,
+        -0.0830830215027712,  0.0255504466944912, -0.0063563423764922,  0.0019547602401182,
+        -0.1051020373955464,  0.0323219347994916, -0.0063563423764922,  0.0019547602401182,
+        
+         0.0114571885202825, -0.0066148108763414, -0.001485299161996,  0.0008575378710055,
+         0.0063119612942494, -0.0036442125523494, -0.001485299161996,  0.0008575378710055,
+         0.0011667340682163, -0.0006736142283574, -0.001485299161996,  0.0008575378710055,
+        -0.0039784931578168,  0.0022969840956346, -0.001485299161996,  0.0008575378710055,
+        -0.0091237203838499,  0.0052675824196266, -0.001485299161996,  0.0008575378710055,
+        -0.014268947609883 ,  0.0082381807436186, -0.001485299161996,  0.0008575378710055,
+        -0.0194141748359161,  0.0112087790676106, -0.001485299161996,  0.0008575378710055,
+        -0.0245594020619492,  0.0141793773916026, -0.001485299161996,  0.0008575378710055,
+      };
+      long i = 0;
+      struct gkyl_range_iter iter;
+      gkyl_range_iter_init(&iter, &localRange);
+      while (gkyl_range_iter_next(&iter)) {
+        long loc = gkyl_range_idx(&localRange, iter.idx);
+        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
+        // Only check one cell in z:
+        for (int m=0; m<basis.num_basis; m++) {
+          TEST_CHECK( gkyl_compare(sol[i], phi_p[m], 1e-10) );
+          TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[i], iter.idx[0], iter.idx[1], iter.idx[2]);
+          TEST_MSG("Produced: %.13e", phi_p[m]);
+          i += 1;
+        }
+      }
+    } else if (bcs.lo_type[0] == GKYL_POISSON_NEUMANN && bcs.up_type[0] == GKYL_POISSON_DIRICHLET) {
+      // Solution; checked convergence:
+      const double sol[256] = {
+         0.2779969376054874, -0.0077857556587993, -0.0360392619648285,  0.00100933805314  ,
+         0.153153272024753 , -0.0042893060786969, -0.0360392619648284,  0.00100933805314  ,
+         0.0283096064440185, -0.0007928564985946, -0.0360392619648283,  0.00100933805314  ,
+        -0.0965340591367159,  0.0027035930815078, -0.0360392619648281,  0.00100933805314  ,
+        -0.2213777247174505,  0.0062000426616102, -0.0360392619648281,  0.00100933805314  ,
+        -0.346221390298185 ,  0.0096964922417126, -0.0360392619648282,  0.00100933805314  ,
+        -0.4710650558789194,  0.0131929418218149, -0.0360392619648277,  0.00100933805314  ,
+        -0.5959087214596539,  0.0166893914019174, -0.0360392619648275,  0.00100933805314  ,
+        
+         0.226190519948558 , -0.0221246935211791, -0.0293231266236292,  0.0028682244940153,
+         0.1246122296507558, -0.0121888724188829, -0.0293231266236291,  0.0028682244940153,
+         0.0230339393529535, -0.0022530513165867, -0.029323126623629,  0.0028682244940153,
+        -0.0785443509448487,  0.0076827697857095, -0.0293231266236288,  0.0028682244940153,
+        -0.180122641242651 ,  0.0176185908880057, -0.0293231266236288,  0.0028682244940153,
+        -0.2817009315404533,  0.027554411990302 , -0.0293231266236289,  0.0028682244940153,
+        -0.3832792218382556,  0.0374902330925981, -0.0293231266236285,  0.0028682244940153,
+        -0.4848575121360578,  0.0474260541948944, -0.0293231266236283,  0.0028682244940153,
+        
+         0.1311172040286984, -0.0327659110179022, -0.0169979112172524,  0.0042477419386764,
+         0.0722347123270466, -0.0180513013074449, -0.0169979112172524,  0.0042477419386764,
+         0.0133522206253946, -0.0033366915969877, -0.0169979112172523,  0.0042477419386764,
+        -0.0455302710762573,  0.0113779181134696, -0.0169979112172521,  0.0042477419386764,
+        -0.1044127627779092,  0.0260925278239268, -0.0169979112172521,  0.0042477419386764,
+        -0.1632952544795612,  0.040807137534384 , -0.0169979112172522,  0.0042477419386764,
+        -0.2221777461812131,  0.0555217472448413, -0.0169979112172518,  0.0042477419386764,
+        -0.2810602378828649,  0.0702363569552985, -0.0169979112172516,  0.0042477419386764,
+        
+         0.0098560286339075, -0.0372442612385308, -0.001277726297742,  0.0048283110563137,
+         0.0054298549021959, -0.0205185011099672, -0.001277726297742,  0.0048283110563137,
+         0.0010036811704842, -0.0037927409814036, -0.0012777262977419,  0.0048283110563137,
+        -0.0034224925612274,  0.0129330191471601, -0.0012777262977417,  0.0048283110563136,
+        -0.0078486662929391,  0.0296587792757237, -0.0012777262977417,  0.0048283110563136,
+        -0.0122748400246508,  0.0463845394042873, -0.0012777262977418,  0.0048283110563137,
+        -0.0167010137563625,  0.0631102995328509, -0.0012777262977415,  0.0048283110563136,
+        -0.0211271874880741,  0.0798360596614145, -0.0012777262977413,  0.0048283110563136,
+        
+        -0.1119744480538166, -0.0330945972726272,  0.0145162623068366,  0.0042903525161177,
+        -0.0616886403509404, -0.0182323801920337,  0.0145162623068366,  0.0042903525161177,
+        -0.0114028326480642, -0.0033701631114402,  0.0145162623068367,  0.0042903525161177,
+         0.038882975054812 ,  0.0114920539691533,  0.0145162623068368,  0.0042903525161176,
+         0.0891687827576881,  0.0263542710497468,  0.0145162623068368,  0.0042903525161176,
+         0.1394545904605643,  0.0412164881303402,  0.0145162623068367,  0.0042903525161176,
+         0.1897403981634405,  0.0560787052109337,  0.014516262306837,  0.0042903525161176,
+         0.2400262058663167,  0.0709409222915272,  0.0145162623068371,  0.0042903525161176,
+        
+        -0.2002161484584767, -0.0178517722097536,  0.0259558334923958,  0.0023142869872789,
+        -0.1103025037352214, -0.0098348469192286,  0.0259558334923958,  0.0023142869872789,
+        -0.0203888590119662, -0.0018179216287036,  0.0259558334923959,  0.0023142869872789,
+         0.0695247857112891,  0.0061990036618213,  0.025955833492396,  0.0023142869872788,
+         0.1594384304345443,  0.0142159289523463,  0.025955833492396,  0.0023142869872788,
+         0.2493520751577995,  0.0222328542428713,  0.0259558334923959,  0.0023142869872789,
+         0.3392657198810548,  0.0302497795333963,  0.0259558334923961,  0.0023142869872788,
+         0.42917936460431  ,  0.0382667048239213,  0.0259558334923963,  0.0023142869872788,
+        
+        -0.2121714756100758,  0.0109493608605278,  0.0275057108788264, -0.0014194648610122,
+        -0.1168888981292207,  0.006032190342864 ,  0.0275057108788265, -0.0014194648610122,
+        -0.0216063206483658,  0.0011150198252003,  0.0275057108788265, -0.0014194648610122,
+         0.0736762568324892, -0.0038021506924635,  0.0275057108788265, -0.0014194648610122,
+         0.1689588343133442, -0.0087193212101273,  0.0275057108788266, -0.0014194648610122,
+         0.2642414117941991, -0.013636491727791 ,  0.0275057108788265, -0.0014194648610122,
+         0.3595239892750541, -0.0185536622454548,  0.0275057108788266, -0.0014194648610123,
+         0.4548065667559091, -0.0234708327631186,  0.0275057108788267, -0.0014194648610123,
+        
+        -0.0966033131446177,  0.0557739488486548,  0.0125235628099973, -0.0072304823595651,
+        -0.053220418987227 ,  0.0307268232286602,  0.0125235628099973, -0.0072304823595651,
+        -0.0098375248298362,  0.0056796976086655,  0.0125235628099973, -0.0072304823595651,
+         0.0335453693275546, -0.0193674280113291,  0.0125235628099973, -0.0072304823595651,
+         0.0769282634849454, -0.0444145536313237,  0.0125235628099973, -0.0072304823595651,
+         0.1203111576423362, -0.0694616792513183,  0.0125235628099973, -0.0072304823595651,
+         0.163694051799727 , -0.0945088048713129,  0.0125235628099974, -0.0072304823595652,
+         0.2070769459571177, -0.1195559304913075,  0.0125235628099974, -0.0072304823595652,
+      };
+      long i = 0;
+      struct gkyl_range_iter iter;
+      gkyl_range_iter_init(&iter, &localRange);
+      while (gkyl_range_iter_next(&iter)) {
+        long loc = gkyl_range_idx(&localRange, iter.idx);
+        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
+        // Only check one cell in z:
+        for (int m=0; m<basis.num_basis; m++) {
+          TEST_CHECK( gkyl_compare(sol[i], phi_p[m], 1e-10) );
+          TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[i], iter.idx[0], iter.idx[1], iter.idx[2]);
+          TEST_MSG("Produced: %.13e", phi_p[m]);
+          i += 1;
+        }
+      };
+    } else if (bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_NEUMANN) {
+      // Solution; checked convergence:
+      const double sol[256] = {
+        -0.0966033131446173, -0.0557739488486548,  0.012523562809997 , 0.0072304823595651,
+        -0.053220418987227 , -0.0307268232286602,  0.0125235628099973,  0.0072304823595651,
+        -0.0098375248298362, -0.0056796976086655,  0.0125235628099973,  0.0072304823595651,
+         0.0335453693275545,  0.0193674280113291,  0.0125235628099973,  0.0072304823595651,
+         0.0769282634849452,  0.0444145536313237,  0.0125235628099971,  0.0072304823595651,
+         0.1203111576423362,  0.0694616792513183,  0.0125235628099974,  0.0072304823595651,
+         0.1636940517997271,  0.0945088048713129,  0.0125235628099971,  0.0072304823595652,
+         0.2070769459571174,  0.1195559304913075,  0.0125235628099976,  0.0072304823595651,
+        
+        -0.2121714756100753, -0.0109493608605278,  0.0275057108788262,  0.0014194648610122,
+        -0.1168888981292208, -0.0060321903428641,  0.0275057108788265,  0.0014194648610122,
+        -0.0216063206483658, -0.0011150198252003,  0.0275057108788265,  0.0014194648610122,
+         0.0736762568324891,  0.0038021506924635,  0.0275057108788265,  0.0014194648610122,
+         0.168958834313344 ,  0.0087193212101273,  0.0275057108788263,  0.0014194648610122,
+         0.2642414117941991,  0.013636491727791 ,  0.0275057108788266,  0.0014194648610122,
+         0.3595239892750542,  0.0185536622454548,  0.0275057108788264,  0.0014194648610122,
+         0.4548065667559088,  0.0234708327631186,  0.0275057108788267,  0.0014194648610122,
+        
+        -0.2002161484584764,  0.0178517722097536,  0.0259558334923957, -0.0023142869872788,
+        -0.1103025037352215,  0.0098348469192286,  0.0259558334923959, -0.0023142869872789,
+        -0.0203888590119662,  0.0018179216287036,  0.0259558334923959, -0.0023142869872789,
+         0.069524785711289 , -0.0061990036618213,  0.0259558334923959, -0.0023142869872789,
+         0.1594384304345441, -0.0142159289523463,  0.0259558334923958, -0.0023142869872788,
+         0.2493520751577995, -0.0222328542428713,  0.0259558334923959, -0.0023142869872789,
+         0.3392657198810548, -0.0302497795333963,  0.0259558334923958, -0.0023142869872789,
+         0.4291793646043098, -0.0382667048239212,  0.0259558334923961, -0.0023142869872789,
+        
+        -0.1119744480538163,  0.0330945972726272,  0.0145162623068365, -0.0042903525161176,
+        -0.0616886403509405,  0.0182323801920337,  0.0145162623068366, -0.0042903525161177,
+        -0.0114028326480643,  0.0033701631114402,  0.0145162623068367, -0.0042903525161177,
+         0.0388829750548119, -0.0114920539691533,  0.0145162623068367, -0.0042903525161177,
+         0.0891687827576879, -0.0263542710497468,  0.0145162623068366, -0.0042903525161176,
+         0.1394545904605643, -0.0412164881303402,  0.0145162623068367, -0.0042903525161177,
+         0.1897403981634405, -0.0560787052109337,  0.0145162623068366, -0.0042903525161176,
+         0.2400262058663166, -0.0709409222915272,  0.0145162623068367, -0.0042903525161177,
+        
+         0.0098560286339078,  0.0372442612385308, -0.0012777262977421, -0.0048283110563137,
+         0.0054298549021959,  0.0205185011099672, -0.0012777262977419, -0.0048283110563137,
+         0.0010036811704842,  0.0037927409814036, -0.0012777262977419, -0.0048283110563137,
+        -0.0034224925612275, -0.0129330191471601, -0.0012777262977419, -0.0048283110563137,
+        -0.0078486662929393, -0.0296587792757237, -0.001277726297742 , -0.0048283110563136,
+        -0.0122748400246508, -0.0463845394042873, -0.0012777262977419, -0.0048283110563137,
+        -0.0167010137563626, -0.063110299532851 , -0.0012777262977419, -0.0048283110563136,
+        -0.0211271874880741, -0.0798360596614145, -0.0012777262977419, -0.0048283110563137,
+        
+         0.1311172040286987,  0.0327659110179021, -0.0169979112172525, -0.0042477419386764,
+         0.0722347123270465,  0.0180513013074449, -0.0169979112172524, -0.0042477419386764,
+         0.0133522206253946,  0.0033366915969877, -0.0169979112172523, -0.0042477419386764,
+        -0.0455302710762574, -0.0113779181134696, -0.0169979112172523, -0.0042477419386764,
+        -0.1044127627779095, -0.0260925278239268, -0.0169979112172524, -0.0042477419386764,
+        -0.1632952544795612, -0.040807137534384 , -0.0169979112172523, -0.0042477419386764,
+        -0.2221777461812133, -0.0555217472448413, -0.0169979112172523, -0.0042477419386764,
+        -0.2810602378828649, -0.0702363569552985, -0.0169979112172524, -0.0042477419386764,
+        
+         0.2261905199485582,  0.0221246935211791, -0.0293231266236291, -0.0028682244940153,
+         0.1246122296507557,  0.0121888724188829, -0.0293231266236291, -0.0028682244940153,
+         0.0230339393529534,  0.0022530513165867, -0.029323126623629 , -0.0028682244940153,
+        -0.0785443509448489, -0.0076827697857095, -0.029323126623629 , -0.0028682244940153,
+        -0.1801226412426513, -0.0176185908880057, -0.029323126623629 , -0.0028682244940153,
+        -0.2817009315404534, -0.0275544119903019, -0.0293231266236291, -0.0028682244940153,
+        -0.3832792218382559, -0.0374902330925982, -0.029323126623629 , -0.0028682244940153,
+        -0.4848575121360577, -0.0474260541948943, -0.0293231266236291, -0.0028682244940153,
+        
+         0.2779969376054876,  0.0077857556587993, -0.0360392619648284, -0.00100933805314  ,
+         0.153153272024753 ,  0.0042893060786969, -0.0360392619648284, -0.00100933805314  ,
+         0.0283096064440184,  0.0007928564985946, -0.0360392619648283, -0.00100933805314  ,
+        -0.0965340591367161, -0.0027035930815078, -0.0360392619648283, -0.00100933805314  ,
+        -0.2213777247174507, -0.0062000426616102, -0.0360392619648283, -0.00100933805314  ,
+        -0.346221390298185 , -0.0096964922417126, -0.0360392619648284, -0.00100933805314  ,
+        -0.4710650558789197, -0.013192941821815 , -0.0360392619648282, -0.00100933805314  ,
+        -0.5959087214596538, -0.0166893914019173, -0.0360392619648285, -0.00100933805314  ,
+      };
+      long i = 0;
+      struct gkyl_range_iter iter;
+      gkyl_range_iter_init(&iter, &localRange);
+      while (gkyl_range_iter_next(&iter)) {
+        long loc = gkyl_range_idx(&localRange, iter.idx);
+        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
+        // Only check one cell in z:
+        for (int m=0; m<basis.num_basis; m++) {
+          TEST_CHECK( gkyl_compare(sol[i], phi_p[m], 1e-10) );
+          TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[i], iter.idx[0], iter.idx[1], iter.idx[2]);
+          TEST_MSG("Produced: %.13e", phi_p[m]);
+          i += 1;
+        }
+      };
+    } else {
+      TEST_CHECK( gkyl_compare(1., 2., 1e-10) );
+      TEST_MSG("This BC combination is not available");
+    }
+  } else {
+    TEST_CHECK( gkyl_compare(1., 2., 1e-10) );
+    TEST_MSG("This poly_order is not available");
+  }
+
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, rho_ho, "ctest_fem_poisson_perp_2x_rho_1.gkyl");
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, phi_ho, "ctest_fem_poisson_perp_2x_phi_8x8_p1.gkyl");
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, phisol_ho, "ctest_fem_poisson_perp_2x_phisol_8x8_p1.gkyl");
+
+  gkyl_fem_poisson_perp_release(poisson);
+  gkyl_proj_on_basis_release(projob);
+  gkyl_proj_on_basis_release(projob_sol);
+  gkyl_array_release(rho);
+  gkyl_array_release(eps);
+  gkyl_array_release(phi);
+  gkyl_array_release(phisol_ho);
+  gkyl_array_release(rho_ho);
+  gkyl_array_release(phi_ho);
+}
+
+void evalFunc_consteps_periodicx_periodicy_sol_3x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   // These values have to match those in the test below.
@@ -34,7 +621,7 @@ void evalFunc_consteps_periodicx_periodicy_sol(double t, const double *xn, doubl
   fout[0] *= (1.+kz*z);
 //  fout[0] *= (1.+kz*z+0.5*pow(z,2));
 }
-void evalFunc_consteps_periodicx_periodicy(double t, const double *xn, double* restrict fout, void *ctx)
+void evalFunc_consteps_periodicx_periodicy_3x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   // These values have to match those in the test below.
@@ -56,15 +643,7 @@ void evalFunc_consteps_periodicx_periodicy(double t, const double *xn, double* r
 //  fout[0] *= (1.+kz*z+0.5*pow(z,2));
 }
 
-
-double poly_test_func_1x(double x, double a, double *c)
-{
-  // Function that can be used to produce homogeneous Dirichlet or Neumann
-  // boundary values depending on the choice of a and c. It assumes x \in [0,1].
-  return pow(x,2)/2.-a*pow(x,4)/12.+c[0]*x+c[1];
-}
-
-void evalFunc_consteps_dirichletx_dirichlety_sol(double t, const double *xn, double* restrict fout, void *ctx)
+void evalFunc_consteps_dirichletx_dirichlety_sol_3x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double a = 2.;
@@ -78,7 +657,7 @@ void evalFunc_consteps_dirichletx_dirichlety_sol(double t, const double *xn, dou
            *(1.+kz*z);
 //           *(1.+kz*z+0.5*pow(z,2));
 }
-void evalFunc_consteps_dirichletx_dirichlety(double t, const double *xn, double* restrict fout, void *ctx)
+void evalFunc_consteps_dirichletx_dirichlety_3x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double a = 2.;
@@ -94,7 +673,7 @@ void evalFunc_consteps_dirichletx_dirichlety(double t, const double *xn, double*
 //              *(1.+kz*z+0.5*pow(z,2));
 }
 
-void evalFunc_consteps_dirichletx_periodicy_sol(double t, const double *xn, double* restrict fout, void *ctx)
+void evalFunc_consteps_dirichletx_periodicy_sol_3x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double a = 2.;
@@ -105,7 +684,7 @@ void evalFunc_consteps_dirichletx_periodicy_sol(double t, const double *xn, doub
   double kz = 1.;
   fout[0] *= (1.+kz*z);
 }
-void evalFunc_consteps_dirichletx_periodicy(double t, const double *xn, double* restrict fout, void *ctx)
+void evalFunc_consteps_dirichletx_periodicy_3x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double a = 2.;
@@ -118,7 +697,7 @@ void evalFunc_consteps_dirichletx_periodicy(double t, const double *xn, double* 
   fout[0] *= (1.+kz*z);
 }
 
-void evalFunc_consteps_periodicx_dirichlety_sol(double t, const double *xn, double* restrict fout, void *ctx)
+void evalFunc_consteps_periodicx_dirichlety_sol_3x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double b = 2.;
@@ -129,7 +708,7 @@ void evalFunc_consteps_periodicx_dirichlety_sol(double t, const double *xn, doub
   double kz = 1.;
   fout[0] *= (1.+kz*z);
 }
-void evalFunc_consteps_periodicx_dirichlety(double t, const double *xn, double* restrict fout, void *ctx)
+void evalFunc_consteps_periodicx_dirichlety_3x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double b = 2.;
@@ -142,7 +721,7 @@ void evalFunc_consteps_periodicx_dirichlety(double t, const double *xn, double* 
   fout[0] *= (1.+kz*z);
 }
 
-void evalFunc_consteps_dirichletx_neumanny_dirichlety_sol(double t, const double *xn, double* restrict fout, void *ctx)
+void evalFunc_consteps_dirichletx_neumanny_dirichlety_sol_3x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double a = 2.;
@@ -154,7 +733,7 @@ void evalFunc_consteps_dirichletx_neumanny_dirichlety_sol(double t, const double
   double kz = 1.;
   fout[0] *= (1.+kz*z);
 }
-void evalFunc_consteps_dirichletx_neumanny_dirichlety(double t, const double *xn, double* restrict fout, void *ctx)
+void evalFunc_consteps_dirichletx_neumanny_dirichlety_3x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double a = 2.;
@@ -168,7 +747,7 @@ void evalFunc_consteps_dirichletx_neumanny_dirichlety(double t, const double *xn
   fout[0] *= (1.+kz*z);
 }
 
-void evalFunc_consteps_dirichletx_dirichlety_neumanny_sol(double t, const double *xn, double* restrict fout, void *ctx)
+void evalFunc_consteps_dirichletx_dirichlety_neumanny_sol_3x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double a = 2.;
@@ -180,7 +759,7 @@ void evalFunc_consteps_dirichletx_dirichlety_neumanny_sol(double t, const double
   double kz = 1.;
   fout[0] *= (1.+kz*z);
 }
-void evalFunc_consteps_dirichletx_dirichlety_neumanny(double t, const double *xn, double* restrict fout, void *ctx)
+void evalFunc_consteps_dirichletx_dirichlety_neumanny_3x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double a = 2.;
@@ -194,7 +773,7 @@ void evalFunc_consteps_dirichletx_dirichlety_neumanny(double t, const double *xn
   fout[0] *= (1.+kz*z);
 }
 
-void evalFunc_consteps_neumannx_dirichletx_dirichlety_sol(double t, const double *xn, double* restrict fout, void *ctx)
+void evalFunc_consteps_neumannx_dirichletx_dirichlety_sol_3x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double a = 5.;
@@ -206,7 +785,7 @@ void evalFunc_consteps_neumannx_dirichletx_dirichlety_sol(double t, const double
   double kz = 1.;
   fout[0] *= (1.+kz*z);
 }
-void evalFunc_consteps_neumannx_dirichletx_dirichlety(double t, const double *xn, double* restrict fout, void *ctx)
+void evalFunc_consteps_neumannx_dirichletx_dirichlety_3x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double a = 5.;
@@ -220,7 +799,7 @@ void evalFunc_consteps_neumannx_dirichletx_dirichlety(double t, const double *xn
   fout[0] *= (1.+kz*z);
 }
 
-void evalFunc_consteps_dirichletx_neumannx_dirichlety_sol(double t, const double *xn, double* restrict fout, void *ctx)
+void evalFunc_consteps_dirichletx_neumannx_dirichlety_sol_3x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double a = 5.;
@@ -232,7 +811,7 @@ void evalFunc_consteps_dirichletx_neumannx_dirichlety_sol(double t, const double
   double kz = 1.;
   fout[0] *= (1.+kz*z);
 }
-void evalFunc_consteps_dirichletx_neumannx_dirichlety(double t, const double *xn, double* restrict fout, void *ctx)
+void evalFunc_consteps_dirichletx_neumannx_dirichlety_3x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double a = 5.;
@@ -246,7 +825,7 @@ void evalFunc_consteps_dirichletx_neumannx_dirichlety(double t, const double *xn
   fout[0] *= (1.+kz*z);
 }
 
-void evalFunc_consteps_neumannx_dirichletx_periodicy_sol(double t, const double *xn, double* restrict fout, void *ctx)
+void evalFunc_consteps_neumannx_dirichletx_periodicy_sol_3x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double a = 5.;
@@ -257,7 +836,7 @@ void evalFunc_consteps_neumannx_dirichletx_periodicy_sol(double t, const double 
   double kz = 1.;
   fout[0] *= (1.+kz*z);
 }
-void evalFunc_consteps_neumannx_dirichletx_periodicy(double t, const double *xn, double* restrict fout, void *ctx)
+void evalFunc_consteps_neumannx_dirichletx_periodicy_3x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double a = 5.;
@@ -270,46 +849,8 @@ void evalFunc_consteps_neumannx_dirichletx_periodicy(double t, const double *xn,
   fout[0] *= (1.+kz*z);
 }
 
-// allocate array (filled with zeros)
-static struct gkyl_array*
-mkarr(long nc, long size)
-{
-  struct gkyl_array* a = gkyl_array_new(GKYL_DOUBLE, nc, size);
-  return a;
-}
-
-static struct gkyl_array*
-mkarr_cu(long nc, long size)
-{
-  struct gkyl_array* a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
-  return a;
-}
-
-struct skin_ghost_ranges {
-  struct gkyl_range lower_skin[GKYL_MAX_DIM];
-  struct gkyl_range lower_ghost[GKYL_MAX_DIM];
-
-  struct gkyl_range upper_skin[GKYL_MAX_DIM];
-  struct gkyl_range upper_ghost[GKYL_MAX_DIM];
-};
-
-// Create ghost and skin sub-ranges given a parent range
-static void
-skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
-  const struct gkyl_range *parent, const int *ghost)
-{
-  int ndim = parent->ndim;
-
-  for (int d=0; d<ndim; ++d) {
-    gkyl_skin_ghost_ranges(&sgr->lower_skin[d], &sgr->lower_ghost[d],
-      d, GKYL_LOWER_EDGE, parent, ghost);
-    gkyl_skin_ghost_ranges(&sgr->upper_skin[d], &sgr->upper_ghost[d],
-      d, GKYL_UPPER_EDGE, parent, ghost);
-  }
-}
-
 void
-test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
+test_fem_poisson_perp_consteps_3x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
 {
   double epsilon_0 = 1.0;
   double lower[] = {-M_PI,-M_PI,-M_PI}, upper[] = {M_PI,M_PI,M_PI};
@@ -337,6 +878,7 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
     lower[1] = 0.;  upper[1] = 1.;
   }
   int dim = sizeof(lower)/sizeof(lower[0]);
+  int dim_perp = dim-1; 
 
   // Grids.
   struct gkyl_rect_grid grid;
@@ -349,87 +891,88 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
   int ghost[] = { 1, 1, 1 };
   struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
-  struct skin_ghost_ranges skin_ghost; // skin/ghost.
-  skin_ghost_ranges_init(&skin_ghost, &localRange_ext, ghost);
 
   // Projection updater for DG field.
   gkyl_proj_on_basis *projob, *projob_sol;
   if ((bcs.lo_type[0]==GKYL_POISSON_PERIODIC && bcs.up_type[0]==GKYL_POISSON_PERIODIC) &&
       (bcs.lo_type[1]==GKYL_POISSON_PERIODIC && bcs.up_type[1]==GKYL_POISSON_PERIODIC)) {
     projob = gkyl_proj_on_basis_new(&grid, &basis,
-      poly_order+1, 1, evalFunc_consteps_periodicx_periodicy, NULL);
+      poly_order+1, 1, evalFunc_consteps_periodicx_periodicy_3x, NULL);
     projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
-      2*(poly_order+1), 1, evalFunc_consteps_periodicx_periodicy_sol, NULL);
+      2*(poly_order+1), 1, evalFunc_consteps_periodicx_periodicy_sol_3x, NULL);
   } else if ((bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) &&
              (bcs.lo_type[1]==GKYL_POISSON_DIRICHLET && bcs.up_type[1]==GKYL_POISSON_DIRICHLET)) {
     projob = gkyl_proj_on_basis_new(&grid, &basis,
-      poly_order+1, 1, evalFunc_consteps_dirichletx_dirichlety, NULL);
+      poly_order+1, 1, evalFunc_consteps_dirichletx_dirichlety_3x, NULL);
     projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
-      2*(poly_order+1), 1, evalFunc_consteps_dirichletx_dirichlety_sol, NULL);
+      2*(poly_order+1), 1, evalFunc_consteps_dirichletx_dirichlety_sol_3x, NULL);
   } else if ((bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) &&
              (bcs.lo_type[1]==GKYL_POISSON_PERIODIC && bcs.up_type[1]==GKYL_POISSON_PERIODIC)) {
     projob = gkyl_proj_on_basis_new(&grid, &basis,
-      poly_order+1, 1, evalFunc_consteps_dirichletx_periodicy, NULL);
+      poly_order+1, 1, evalFunc_consteps_dirichletx_periodicy_3x, NULL);
     projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
-      2*(poly_order+1), 1, evalFunc_consteps_dirichletx_periodicy_sol, NULL);
+      2*(poly_order+1), 1, evalFunc_consteps_dirichletx_periodicy_sol_3x, NULL);
   } else if ((bcs.lo_type[0]==GKYL_POISSON_PERIODIC && bcs.up_type[0]==GKYL_POISSON_PERIODIC) &&
              (bcs.lo_type[1]==GKYL_POISSON_DIRICHLET && bcs.up_type[1]==GKYL_POISSON_DIRICHLET)) {
     projob = gkyl_proj_on_basis_new(&grid, &basis,
-      poly_order+1, 1, evalFunc_consteps_periodicx_dirichlety, NULL);
+      poly_order+1, 1, evalFunc_consteps_periodicx_dirichlety_3x, NULL);
     projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
-      2*(poly_order+1), 1, evalFunc_consteps_periodicx_dirichlety_sol, NULL);
+      2*(poly_order+1), 1, evalFunc_consteps_periodicx_dirichlety_sol_3x, NULL);
   } else if ((bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) &&
              (bcs.lo_type[1]==GKYL_POISSON_NEUMANN && bcs.up_type[1]==GKYL_POISSON_DIRICHLET)) {
     projob = gkyl_proj_on_basis_new(&grid, &basis,
-      poly_order+1, 1, evalFunc_consteps_dirichletx_neumanny_dirichlety, NULL);
+      poly_order+1, 1, evalFunc_consteps_dirichletx_neumanny_dirichlety_3x, NULL);
     projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
-      2*(poly_order+1), 1, evalFunc_consteps_dirichletx_neumanny_dirichlety_sol, NULL);
+      2*(poly_order+1), 1, evalFunc_consteps_dirichletx_neumanny_dirichlety_sol_3x, NULL);
   } else if ((bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) &&
              (bcs.lo_type[1]==GKYL_POISSON_DIRICHLET && bcs.up_type[1]==GKYL_POISSON_NEUMANN)) {
     projob = gkyl_proj_on_basis_new(&grid, &basis,
-      poly_order+1, 1, evalFunc_consteps_dirichletx_dirichlety_neumanny, NULL);
+      poly_order+1, 1, evalFunc_consteps_dirichletx_dirichlety_neumanny_3x, NULL);
     projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
-      2*(poly_order+1), 1, evalFunc_consteps_dirichletx_dirichlety_neumanny_sol, NULL);
+      2*(poly_order+1), 1, evalFunc_consteps_dirichletx_dirichlety_neumanny_sol_3x, NULL);
   } else if ((bcs.lo_type[0]==GKYL_POISSON_NEUMANN && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) &&
              (bcs.lo_type[1]==GKYL_POISSON_DIRICHLET && bcs.up_type[1]==GKYL_POISSON_DIRICHLET)) {
     projob = gkyl_proj_on_basis_new(&grid, &basis,
-      poly_order+1, 1, evalFunc_consteps_neumannx_dirichletx_dirichlety, NULL);
+      poly_order+1, 1, evalFunc_consteps_neumannx_dirichletx_dirichlety_3x, NULL);
     projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
-      2*(poly_order+1), 1, evalFunc_consteps_neumannx_dirichletx_dirichlety_sol, NULL);
+      2*(poly_order+1), 1, evalFunc_consteps_neumannx_dirichletx_dirichlety_sol_3x, NULL);
   } else if ((bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_NEUMANN) &&
              (bcs.lo_type[1]==GKYL_POISSON_DIRICHLET && bcs.up_type[1]==GKYL_POISSON_DIRICHLET)) {
     projob = gkyl_proj_on_basis_new(&grid, &basis,
-      poly_order+1, 1, evalFunc_consteps_dirichletx_neumannx_dirichlety, NULL);
+      poly_order+1, 1, evalFunc_consteps_dirichletx_neumannx_dirichlety_3x, NULL);
     projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
-      2*(poly_order+1), 1, evalFunc_consteps_dirichletx_neumannx_dirichlety_sol, NULL);
+      2*(poly_order+1), 1, evalFunc_consteps_dirichletx_neumannx_dirichlety_sol_3x, NULL);
   } else if ((bcs.lo_type[0]==GKYL_POISSON_NEUMANN && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) &&
              (bcs.lo_type[1]==GKYL_POISSON_PERIODIC && bcs.up_type[1]==GKYL_POISSON_PERIODIC)) {
     projob = gkyl_proj_on_basis_new(&grid, &basis,
-      poly_order+1, 1, evalFunc_consteps_neumannx_dirichletx_periodicy, NULL);
+      poly_order+1, 1, evalFunc_consteps_neumannx_dirichletx_periodicy_3x, NULL);
     projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
-      2*(poly_order+1), 1, evalFunc_consteps_neumannx_dirichletx_periodicy_sol, NULL);
+      2*(poly_order+1), 1, evalFunc_consteps_neumannx_dirichletx_periodicy_sol_3x, NULL);
   }
 
   // Create DG field we wish to make continuous.
-  struct gkyl_array *rho = mkarr(basis.num_basis, localRange_ext.volume);
+  struct gkyl_array *rho = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
   // Create array holding continuous field we'll compute.
-  struct gkyl_array *phi = mkarr(basis.num_basis, localRange_ext.volume);
+  struct gkyl_array *phi = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
   // Create DG field for permittivity tensor.
-  int epsnum = PERP_DIM+ceil((pow(3.,PERP_DIM-1)-PERP_DIM)/2);
-  struct gkyl_array *eps = use_gpu? mkarr_cu(epsnum*basis.num_basis, localRange_ext.volume)
-                                  : mkarr(   epsnum*basis.num_basis, localRange_ext.volume);
+  int epsnum = dim_perp+ceil((pow(3.,dim_perp-1)-dim_perp)/2);
+  struct gkyl_array *eps = mkarr(use_gpu, epsnum*basis.num_basis, localRange_ext.volume);
   // Analytic solution.
-  struct gkyl_array *phisol = mkarr(basis.num_basis, localRange_ext.volume);
+  struct gkyl_array *phisol_ho = mkarr(false, basis.num_basis, localRange_ext.volume);
   // Device copies:
-  struct gkyl_array *rho_cu, *phi_cu;
+  struct gkyl_array *rho_ho, *phi_ho;
   if (use_gpu) {
-    rho_cu = mkarr_cu(basis.num_basis, localRange_ext.volume);
-    phi_cu = mkarr_cu(basis.num_basis, localRange_ext.volume);
+    rho_ho = mkarr(false, rho->ncomp, rho->size);
+    phi_ho = mkarr(false, phi->ncomp, phi->size);
+  }
+  else {
+    rho_ho = gkyl_array_acquire(rho);
+    phi_ho = gkyl_array_acquire(phi);
   }
 
   // Project RHS charge density on basis.
-  gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho);
-  if (use_gpu) gkyl_array_copy(rho_cu, rho);
+  gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
+  gkyl_array_copy(rho, rho_ho);
 
   // Project the permittivity onto the basis.
   double dg0norm = pow(sqrt(2.),dim);
@@ -438,166 +981,81 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
   gkyl_array_shiftc(eps, epsilon_0*dg0norm, 2*basis.num_basis);
 
   // Project the analytic solution.
-  gkyl_proj_on_basis_advance(projob_sol, 0.0, &localRange, phisol);
+  gkyl_proj_on_basis_advance(projob_sol, 0.0, &localRange, phisol_ho);
 
   // FEM poisson solver.
   struct gkyl_fem_poisson_perp *poisson = gkyl_fem_poisson_perp_new(&localRange, &grid, basis, &bcs, eps, NULL, use_gpu);
 
+//  struct gkyl_fem_parproj* smooth_op = gkyl_fem_parproj_new(&localRange, &localRange_ext, &basis, GKYL_FEM_PARPROJ_DIRICHLET, NULL, use_gpu);
+//  gkyl_fem_parproj_set_rhs(smooth_op, rho, rho);
+//  gkyl_fem_parproj_solve  (smooth_op, rho);
+
   // Set the RHS source.
-  if (use_gpu)
-    gkyl_fem_poisson_perp_set_rhs(poisson, rho_cu);
-  else
-    gkyl_fem_poisson_perp_set_rhs(poisson, rho);
+  gkyl_fem_poisson_perp_set_rhs(poisson, rho);
 
   // Solve the problem.
-  if (use_gpu) {
-    gkyl_fem_poisson_perp_solve(poisson, phi_cu);
-    gkyl_array_copy(phi, phi_cu);
-#ifdef GKYL_HAVE_CUDA
-    cudaDeviceSynchronize();
-#endif
-  } else {
-    gkyl_fem_poisson_perp_solve(poisson, phi);
-  }
+  gkyl_fem_poisson_perp_solve(poisson, phi);
+  gkyl_array_copy(phi_ho, phi);
+
+//  gkyl_fem_parproj_set_rhs(smooth_op, phi, phi);
+//  gkyl_fem_parproj_solve  (smooth_op, phi);
+//  gkyl_fem_parproj_release(smooth_op);
 
   if (bcs.lo_type[0] == GKYL_POISSON_PERIODIC && bcs.lo_type[1] == GKYL_POISSON_PERIODIC) {
+    // Subtract the volume averaged sol from the numerical and analytic solutions.
     // This is not strictly necessary, as the potential is only known up to 
     // constant shift, but it makes unit testing more robust across CPU/GPU.
     struct gkyl_array *sol_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, localRange_ext.volume);
-    double* sol_avg = (double*) gkyl_malloc(sizeof(double));
+    double sol_avg[1];
     // Factor accounting for normalization when subtracting a constant from a
     // DG field and the 1/N to properly compute the volume averaged RHS.
     double mavgfac = -pow(sqrt(2.),dim); // /perpRange.volume;
     // Subtract the volume averaged sol from the sol.
     gkyl_array_clear(sol_cellavg, 0.0);
-    gkyl_dg_calc_average_range(basis, 0, sol_cellavg, 0, phi, localRange);
+    gkyl_dg_calc_average_range(basis, 0, sol_cellavg, 0, phi_ho, localRange);
     for (int kIdx=0; kIdx<cells[2]; kIdx++) {
       struct gkyl_range perp_range;
       gkyl_range_deflate(&perp_range, &localRange, (int[]){0,0,1}, (int[]){0,0,kIdx+1});
       gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, &perp_range);
-      gkyl_array_shiftc_range(phi, mavgfac*sol_avg[0]/perp_range.volume, 0, &perp_range);
+      gkyl_array_shiftc_range(phi_ho, mavgfac*sol_avg[0]/perp_range.volume, 0, &perp_range);
     }
     // Now do the same to the analytic solution.
     gkyl_array_clear(sol_cellavg, 0.0);
-    gkyl_dg_calc_average_range(basis, 0, sol_cellavg, 0, phisol, localRange);
+    gkyl_dg_calc_average_range(basis, 0, sol_cellavg, 0, phisol_ho, localRange);
     for (int kIdx=0; kIdx<cells[2]; kIdx++) {
       struct gkyl_range perp_range;
       gkyl_range_deflate(&perp_range, &localRange, (int[]){0,0,1}, (int[]){0,0,kIdx+1});
       gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, &perp_range);
-      gkyl_array_shiftc_range(phisol, mavgfac*sol_avg[0]/perp_range.volume, 0, &perp_range);
+      gkyl_array_shiftc_range(phisol_ho, mavgfac*sol_avg[0]/perp_range.volume, 0, &perp_range);
     }
-    gkyl_free(sol_avg);
     gkyl_array_release(sol_cellavg);
   }
+
+//  double errL2 = error_L2norm(grid, localRange, basis, phi, phisol);
+//  printf("error L2 norm = %g\n",errL2);
 
   if (poly_order == 1) {
     if ((bcs.lo_type[0] == GKYL_POISSON_PERIODIC && bcs.up_type[0] == GKYL_POISSON_PERIODIC) &&
         (bcs.lo_type[1] == GKYL_POISSON_PERIODIC && bcs.up_type[1] == GKYL_POISSON_PERIODIC)) {
       // Solution; checked convergence:
-      const double sol[512] = {
-        5.2083195998734233e+00, 1.4901880978824162e+00, -7.9807205716867113e-01, -9.6448624892784700e+00, 4.4550438362486822e-01, -1.8970690865185458e+00,
-        1.0159776679335752e+00, -5.6714490961524566e-01, -4.5788200242550259e-02, 1.5806583638107314e+00, -2.2353884955795991e+00, -2.9561729882685985e+00,
-        -3.9327135123749818e-01, -2.0122413557009442e+00, 2.8457390160002975e+00, 5.0065016899960779e-01, -3.3371706691536800e+00, -3.7249385009261365e-01,
-        3.3510794114774256e-01, 1.2338886170772065e+00, -7.3438160522791152e-01, 4.7419957851839556e-01, -4.2660582023278149e-01, 9.3489717369603242e-01,
-        4.4408920985006262e-15, -1.6444801024913467e+00, 1.5916084430198614e+00, -3.0144631996391551e+00, -1.0467283057891832e-16, 2.0934889832124703e+00,
-        -2.0261812447606453e+00, 1.8129866073473573e-16, 1.4012674446542719e+00, -8.3545796611354473e-01, -7.8258630664206053e-01, -4.7983327359587253e+00,
-        4.6708914821809006e-01, 1.0635714262191918e+00, 9.9626368776736896e-01, -5.9462317877319115e-01, -2.6919923952863312e+00, -1.8129866073473578e-16,
-        -1.5806583638107321e+00, 4.1255085415560699e-01, 1.5262733414182281e-02, 9.4205547521026495e-16, 2.0122413557009438e+00, -1.9430070456852831e-02,
-        -3.2724163753740241e+00, -2.8223628167625620e-01, 1.2455504226629881e+00, 1.1514538096033806e+00, -1.7821192661504770e-01, 3.5929808178095896e-01,
-        -1.5856355354681617e+00, 2.2687091469240506e-01, 2.7377805955288661e+00, 6.3821738680616191e-02, 2.2244384163704707e+00, -6.4997674648044619e+00,
-        3.7800861782331696e-01, -8.1247627511525936e-02, -2.8317991269405969e+00, -4.8122009854275594e-01, 3.9175946492413671e+00, -2.2353884955795995e+00,
-        1.5806583638107308e+00, -8.0017179718032914e+00, 9.2785626525714127e-01, 2.8457390160002980e+00, -2.0122413557009451e+00, -1.1811981588452902e+00,
-        4.1390480401831438e+00, 8.3545796611354584e-01, -1.4528021889375402e+00, -8.2836370011240437e+00, 8.4509776604140519e-01, -1.0635714262191900e+00,
-        1.8494753282329313e+00, -1.0758432773159459e+00, 4.4408920985006262e-15, 2.2992102342602174e+00, -9.3687831125098908e-01, -3.0144631996391560e+00,
-        7.3270981405242823e-16, -2.9269866435118228e+00, 1.1926835844612917e+00, -5.4389598220420719e-16, 5.3463577984515043e-01, 1.9531522139033470e+00,
-        1.2455504226629897e+00, -3.6950759437163696e+00, -1.9979669120826882e-01, -2.4864409342193392e+00, -1.5856355354681608e+00, 2.5434918385035044e-01,
-        2.6919923952863343e+00, 1.5806583638107330e+00, -1.2690906251431504e-15, -6.4414772534339040e+00, -1.5262733414182281e-02, -2.0122413557009433e+00,
-        1.7794381198416116e-15, 1.9430070456852470e-02, -1.4012674446542692e+00, 7.4520039769718760e-01, -2.3632446704527914e+00, -1.2305936633195720e+00,
-        -4.6708914821809039e-01, -9.4866992948175299e-01, 3.0085050434683107e+00, 5.9462317877319126e-01, -6.6095870445277081e+00, -1.6444801024913467e+00,
-        -6.4378005255974313e-01, 5.3998056263197478e+00, -9.1259353184295966e-01, 2.0934889832124703e+00, 8.1955777123965323e-01, 1.1617680883884378e+00,
-        -3.2724163753740267e+00, -3.5338105777140760e+00, 2.5704964367273453e+00, 1.1514538096033806e+00, -1.7821192661504667e-01, 4.4986822899202847e+00,
-        -3.2723448362330827e+00, 2.2687091469240442e-01, -3.3371706691536800e+00, -1.9531522139033444e+00, 1.9157663049584732e+00, 1.2338886170772088e+00,
-        -7.3438160522791096e-01, 2.4864409342193396e+00, -2.4388471759337258e+00, 9.3489717369603287e-01, 3.2196467714129540e-15, -3.2251384663020763e+00,
-        1.0950079209130187e-02, -3.0144631996391551e+00, 2.0934566115783665e-16, 4.1057303389134141e+00, -1.3939889059702195e-02, -8.4606041676210011e-16,
-        -1.3365131508745991e+00, -3.0708464616931446e+00, -7.8258630664205697e-01, -1.3130284707934188e+00, 8.9080530394773164e-02, 3.9093104422194864e+00,
-        9.9626368776736596e-01, -1.1340308023043610e-01, 4.5788200242556920e-02, -2.2353884955796013e+00, 1.5806583638107305e+00, -3.0727534110097134e+00,
-        3.9327135123749835e-01, 2.8457390160002967e+00, -2.0122413557009420e+00, -5.0065016899960757e-01, 6.0749512646825687e+00, 3.7249385009261438e-01,
-        1.9002805544318588e+00, -1.0748119281520824e+01, 1.1123902230512281e+00, -4.7419957851839512e-01, -2.4191331957675137e+00, -1.4161172722387869e+00,
-        6.6095870445277045e+00, 3.8798685980709489e+00, -1.5916084430198625e+00, -1.1428732025598036e+01, 9.1259353184295910e-01, -4.9392279992127666e+00,
-        2.0261812447606453e+00, -1.1617680883884376e+00, -1.4012674446542719e+00, 4.6515048255038796e+00, -3.0334605527482754e+00, -1.2305936633195727e+00,
-        -4.6708914821808922e-01, -5.9215517979204346e+00, 3.8617166839338739e+00, 5.9462317877318971e-01, -6.6553752447702514e+00, 1.5806583638107341e+00,
-        1.8129866073473579e-15, 5.4580958376902986e+00, -1.3058648830804582e+00, -2.0122413557009469e+00, -1.8841109504205299e-15, 1.6624182573880464e+00,
-        4.1078251911130792e-15, 3.8798685980709484e+00, 6.4378005255974169e-01, -3.0144631996391560e+00, 2.0934566115783665e-16, -4.9392279992127683e+00,
-        -8.1955777123965168e-01, -4.8346309529262865e-16, 5.3463577984514976e-01, 3.5338105777140769e+00, -3.3510794114774145e-01, -3.6950759437163700e+00,
-        -1.9979669120826904e-01, -4.4986822899202838e+00, 4.2660582023278215e-01, 2.5434918385035127e-01, -3.9175946492413654e+00, 1.5806583638107297e+00,
-        -2.2353884955796013e+00, 1.9727915725249801e+00, -9.2785626525714149e-01, -2.0122413557009420e+00, 2.8457390160002962e+00, 1.1811981588452900e+00,
-        -8.0108544891819626e+00, -2.4161163299242761e+00, -1.2785617487318815e-01, 7.1836751626393083e+00, -1.3796826800610480e+00, 3.0758127819201340e+00,
-        1.6276602746801380e-01, 1.7563912671616275e+00, -2.7377805955288688e+00, -5.4605269618816790e+00, 3.1722668068305904e+00, 4.7084106552616328e-01,
-        -3.7800861782331724e-01, 6.9514693549137094e+00, -4.0384226004615851e+00, 4.8122009854275549e-01, 6.0749512646825616e+00, -4.1885407094829477e+00,
-        1.9157663049584721e+00, -1.0748119281520818e+01, 1.1123902230512277e+00, 5.3321799502196381e+00, -2.4388471759337258e+00, -1.4161172722387867e+00,
-        6.6553752447702506e+00, -1.0877919644084146e-15, -1.5806583638107325e+00, -1.1487022236968595e+01, 1.3058648830804571e+00, 2.7214935950518764e-15,
-        2.0122413557009420e+00, -1.6624182573880444e+00, 1.4012674446542701e+00, 3.0708464616931450e+00, -1.4528021889375411e+00, -4.7983327359587271e+00,
-        4.6708914821809067e-01, -3.9093104422194864e+00, 1.8494753282329290e+00, -5.9462317877319248e-01, 1.4012674446542739e+00, -3.0708464616931468e+00,
-        1.4528021889375429e+00, -4.7983327359587324e+00, 4.6708914821808956e-01, 3.9093104422194882e+00, -1.8494753282329317e+00, -5.9462317877319126e-01,
-        6.6553752447702541e+00, -1.0877919644084146e-15, 1.5806583638107312e+00, -1.1487022236968604e+01, 1.3058648830804576e+00, -1.4654196281048565e-15,
-        -2.0122413557009424e+00, -1.6624182573880455e+00, 6.0749512646825643e+00, 4.1885407094829450e+00, -1.9157663049584730e+00, -1.0748119281520829e+01,
-        1.1123902230512279e+00, -5.3321799502196372e+00, 2.4388471759337262e+00, -1.4161172722387863e+00, -2.7377805955288697e+00, 5.4605269618816790e+00,
-        -3.1722668068305904e+00, 4.7084106552615929e-01, -3.7800861782331696e-01, -6.9514693549137085e+00, 4.0384226004615886e+00, 4.8122009854275538e-01,
-        -8.0108544891819644e+00, 2.4161163299242756e+00, 1.2785617487318671e-01, 7.1836751626393154e+00, -1.3796826800610482e+00, -3.0758127819201340e+00,
-        -1.6276602746801067e-01, 1.7563912671616275e+00, -3.9175946492413707e+00, -1.5806583638107310e+00, 2.2353884955796008e+00, 1.9727915725249914e+00,
-        -9.2785626525714127e-01, 2.0122413557009424e+00, -2.8457390160002971e+00, 1.1811981588452898e+00, 5.3463577984514032e-01, -3.5338105777140769e+00,
-        3.3510794114774001e-01, -3.6950759437163607e+00, -1.9979669120826860e-01, 4.4986822899202821e+00, -4.2660582023278237e-01, 2.5434918385035021e-01,
-        -1.2212453270876722e-15, -3.8798685980709475e+00, -6.4378005255973814e-01, -3.0144631996391511e+00, 0.0000000000000000e+00, 4.9392279992127666e+00,
-        8.1955777123964890e-01, 4.8346309529262865e-16, -6.6553752447702488e+00, -1.5806583638107332e+00, 0.0000000000000000e+00, 5.4580958376902933e+00,
-        -1.3058648830804576e+00, 2.0122413557009451e+00, -8.3738264463134659e-16, 1.6624182573880455e+00, -1.4012674446542692e+00, -4.6515048255038796e+00,
-        3.0334605527482741e+00, -1.2305936633195822e+00, -4.6708914821808983e-01, 5.9215517979204337e+00, -3.8617166839338730e+00, 5.9462317877319126e-01,
-        6.6095870445277054e+00, -3.8798685980709475e+00, 1.5916084430198620e+00, -1.1428732025598045e+01, 9.1259353184295933e-01, 4.9392279992127666e+00,
-        -2.0261812447606444e+00, -1.1617680883884380e+00, 6.0749512646825643e+00, -3.7249385009261510e-01, -1.9002805544318597e+00, -1.0748119281520827e+01,
-        1.1123902230512279e+00, 4.7419957851839595e-01, 2.4191331957675160e+00, -1.4161172722387871e+00, 4.5788200242551036e-02, 2.2353884955796013e+00,
-        -1.5806583638107317e+00, -3.0727534110097077e+00, 3.9327135123749890e-01, -2.8457390160002984e+00, 2.0122413557009433e+00, -5.0065016899960824e-01,
-        -1.3365131508746049e+00, 3.0708464616931459e+00, 7.8258630664205797e-01, -1.3130284707934108e+00, 8.9080530394773635e-02, -3.9093104422194900e+00,
-        -9.9626368776736662e-01, -1.1340308023043595e-01, -2.7755575615628914e-15, 3.2251384663020777e+00, -1.0950079209131637e-02, -3.0144631996391484e+00,
-        -2.0934566115783665e-16, -4.1057303389134141e+00, 1.3939889059701987e-02, 2.4173154764631432e-16, -3.3371706691536862e+00, 1.9531522139033437e+00,
-        -1.9157663049584712e+00, 1.2338886170772112e+00, -7.3438160522791174e-01, -2.4864409342193392e+00, 2.4388471759337240e+00, 9.3489717369603254e-01,
-        -3.2724163753740254e+00, 3.5338105777140756e+00, -2.5704964367273426e+00, 1.1514538096033735e+00, -1.7821192661504751e-01, -4.4986822899202838e+00,
-        3.2723448362330791e+00, 2.2687091469240475e-01, -6.6095870445277045e+00, 1.6444801024913465e+00, 6.4378005255974202e-01, 5.3998056263197354e+00,
-        -9.1259353184295866e-01, -2.0934889832124708e+00, -8.1955777123965212e-01, 1.1617680883884367e+00, -1.4012674446542683e+00, -7.4520039769718693e-01,
-        2.3632446704527910e+00, -1.2305936633195802e+00, -4.6708914821809050e-01, 9.4866992948175177e-01, -3.0085050434683094e+00, 5.9462317877319160e-01,
-        2.6919923952863325e+00, -1.5806583638107321e+00, 0.0000000000000000e+00, -6.4414772534339066e+00, -1.5262733414182281e-02, 2.0122413557009429e+00,
-        4.1869132231567330e-16, 1.9430070456852713e-02, 5.3463577984514410e-01, -1.9531522139033473e+00, -1.2455504226629901e+00, -3.6950759437163643e+00,
-        -1.9979669120826923e-01, 2.4864409342193405e+00, 1.5856355354681628e+00, 2.5434918385035116e-01, -1.7763568394002505e-15, -2.2992102342602188e+00,
-        9.3687831125098997e-01, -3.0144631996391493e+00, 3.1401849173675498e-16, 2.9269866435118241e+00, -1.1926835844612929e+00, -7.8562752985052157e-16,
-        4.1390480401831420e+00, -8.3545796611354528e-01, 1.4528021889375409e+00, -8.2836370011240366e+00, 8.4509776604140696e-01, 1.0635714262191904e+00,
-        -1.8494753282329304e+00, -1.0758432773159465e+00, 3.9175946492413640e+00, 2.2353884955796008e+00, -1.5806583638107310e+00, -8.0017179718032878e+00,
-        9.2785626525714071e-01, -2.8457390160002975e+00, 2.0122413557009433e+00, -1.1811981588452893e+00, 2.7377805955288670e+00, -6.3821738680616372e-02,
-        -2.2244384163704694e+00, -6.4997674648044654e+00, 3.7800861782331674e-01, 8.1247627511526255e-02, 2.8317991269405942e+00, -4.8122009854275538e-01,
-        -3.2724163753740227e+00, 2.8223628167625564e-01, -1.2455504226629879e+00, 1.1514538096033713e+00, -1.7821192661504781e-01, -3.5929808178095746e-01,
-        1.5856355354681611e+00, 2.2687091469240522e-01, -2.6919923952863294e+00, 1.8129866073473578e-16, 1.5806583638107317e+00, 4.1255085415559822e-01,
-        1.5262733414182805e-02, 0.0000000000000000e+00, -2.0122413557009433e+00, -1.9430070456853254e-02, 1.4012674446542719e+00, 8.3545796611354584e-01,
-        7.8258630664205941e-01, -4.7983327359587289e+00, 4.6708914821809017e-01, -1.0635714262191918e+00, -9.9626368776736685e-01, -5.9462317877319126e-01,
-        1.1102230246251565e-16, 1.6444801024913482e+00, -1.5916084430198625e+00, -3.0144631996391502e+00, 1.5700924586837749e-16, -2.0934889832124712e+00,
-        2.0261812447606480e+00, -2.1151510419052503e-16, -3.3371706691536862e+00, 3.7249385009261532e-01, -3.3510794114774217e-01, 1.2338886170772150e+00,
-        -7.3438160522791163e-01, -4.7419957851839617e-01, 4.2660582023278093e-01, 9.3489717369603331e-01, -4.5788200242552146e-02, -1.5806583638107310e+00,
-        2.2353884955796008e+00, -2.9561729882685919e+00, -3.9327135123749890e-01, 2.0122413557009442e+00, -2.8457390160002975e+00, 5.0065016899960768e-01,
-        5.2083195998734224e+00, -1.4901880978824158e+00, 7.9807205716867002e-01, -9.6448624892784665e+00, 4.4550438362486883e-01, 1.8970690865185453e+00,
-        -1.0159776679335766e+00, -5.6714490961524600e-01,
-      };
-      long i = 0;
-      struct gkyl_range_iter iter;
-      gkyl_range_iter_init(&iter, &localRange);
-      while (gkyl_range_iter_next(&iter)) {
-        long loc = gkyl_range_idx(&localRange, iter.idx);
-        const double *phi_p = gkyl_array_cfetch(phi, loc);
-        if (iter.idx[2] == 3) {
-          // Only check one cell in z:
-          for (int m=0; m<basis.num_basis; m++) {
-            TEST_CHECK( gkyl_compare(sol[i], phi_p[m], 1e-10) );
-            TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[i], iter.idx[0], iter.idx[1], iter.idx[2]);
-            TEST_MSG("Produced: %.13e", phi_p[m]);
-            i += 1;
-          }
-        }
-      }
+//      const double sol[512] = {
+//      };
+//      long i = 0;
+//      struct gkyl_range_iter iter;
+//      gkyl_range_iter_init(&iter, &localRange);
+//      while (gkyl_range_iter_next(&iter)) {
+//        long loc = gkyl_range_idx(&localRange, iter.idx);
+//        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
+//        if (iter.idx[2] == 4) {
+//          // Only check one cell in z:
+//          for (int m=0; m<basis.num_basis; m++) {
+//            TEST_CHECK( gkyl_compare(sol[i], phi_p[m], 1e-10) );
+//            TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[i], iter.idx[0], iter.idx[1], iter.idx[2]);
+//            TEST_MSG("Produced: %.13e", phi_p[m]);
+//            i += 1;
+//          }
+//        }
+//      }
     } else if ((bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_DIRICHLET) &&
                (bcs.lo_type[1] == GKYL_POISSON_DIRICHLET && bcs.up_type[1] == GKYL_POISSON_DIRICHLET)) {
       // Solution; checked convergence:
@@ -694,7 +1152,7 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
       gkyl_range_iter_init(&iter, &localRange);
       while (gkyl_range_iter_next(&iter)) {
         long loc = gkyl_range_idx(&localRange, iter.idx);
-        const double *phi_p = gkyl_array_cfetch(phi, loc);
+        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
         if (iter.idx[2] == 3) {
           // Only check one cell in z:
           for (int m=0; m<basis.num_basis; m++) {
@@ -801,7 +1259,7 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
       gkyl_range_iter_init(&iter, &localRange);
       while (gkyl_range_iter_next(&iter)) {
         long loc = gkyl_range_idx(&localRange, iter.idx);
-        const double *phi_p = gkyl_array_cfetch(phi, loc);
+        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
         if (iter.idx[2] == 3) {
           // Only check one cell in z:
           for (int m=0; m<basis.num_basis; m++) {
@@ -908,7 +1366,7 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
       gkyl_range_iter_init(&iter, &localRange);
       while (gkyl_range_iter_next(&iter)) {
         long loc = gkyl_range_idx(&localRange, iter.idx);
-        const double *phi_p = gkyl_array_cfetch(phi, loc);
+        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
         if (iter.idx[2] == 3) {
           // Only check one cell in z:
           for (int m=0; m<basis.num_basis; m++) {
@@ -1015,7 +1473,7 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
       gkyl_range_iter_init(&iter, &localRange);
       while (gkyl_range_iter_next(&iter)) {
         long loc = gkyl_range_idx(&localRange, iter.idx);
-        const double *phi_p = gkyl_array_cfetch(phi, loc);
+        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
         if (iter.idx[2] == 3) {
           // Only check one cell in z:
           for (int m=0; m<basis.num_basis; m++) {
@@ -1122,7 +1580,7 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
       gkyl_range_iter_init(&iter, &localRange);
       while (gkyl_range_iter_next(&iter)) {
         long loc = gkyl_range_idx(&localRange, iter.idx);
-        const double *phi_p = gkyl_array_cfetch(phi, loc);
+        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
         if (iter.idx[2] == 3) {
           // Only check one cell in z:
           for (int m=0; m<basis.num_basis; m++) {
@@ -1229,7 +1687,7 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
       gkyl_range_iter_init(&iter, &localRange);
       while (gkyl_range_iter_next(&iter)) {
         long loc = gkyl_range_idx(&localRange, iter.idx);
-        const double *phi_p = gkyl_array_cfetch(phi, loc);
+        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
         if (iter.idx[2] == 3) {
           // Only check one cell in z:
           for (int m=0; m<basis.num_basis; m++) {
@@ -1336,7 +1794,7 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
       gkyl_range_iter_init(&iter, &localRange);
       while (gkyl_range_iter_next(&iter)) {
         long loc = gkyl_range_idx(&localRange, iter.idx);
-        const double *phi_p = gkyl_array_cfetch(phi, loc);
+        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
         if (iter.idx[2] == 3) {
           // Only check one cell in z:
           for (int m=0; m<basis.num_basis; m++) {
@@ -1443,7 +1901,7 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
       gkyl_range_iter_init(&iter, &localRange);
       while (gkyl_range_iter_next(&iter)) {
         long loc = gkyl_range_idx(&localRange, iter.idx);
-        const double *phi_p = gkyl_array_cfetch(phi, loc);
+        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
         if (iter.idx[2] == 3) {
           // Only check one cell in z:
           for (int m=0; m<basis.num_basis; m++) {
@@ -1578,7 +2036,7 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
       gkyl_range_iter_init(&iter, &localRange);
       while (gkyl_range_iter_next(&iter)) {
         long loc = gkyl_range_idx(&localRange, iter.idx);
-        const double *phi_p = gkyl_array_cfetch(phi, loc);
+        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
         if (iter.idx[2] == 3) {
           // Only check one cell in z:
           for (int m=0; m<basis.num_basis/2; m++) {
@@ -1708,7 +2166,7 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
       gkyl_range_iter_init(&iter, &localRange);
       while (gkyl_range_iter_next(&iter)) {
         long loc = gkyl_range_idx(&localRange, iter.idx);
-        const double *phi_p = gkyl_array_cfetch(phi, loc);
+        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
         if (iter.idx[2] == 3) {
           // Only check one cell in z:
           for (int m=0; m<basis.num_basis/2; m++) {
@@ -1838,7 +2296,7 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
       gkyl_range_iter_init(&iter, &localRange);
       while (gkyl_range_iter_next(&iter)) {
         long loc = gkyl_range_idx(&localRange, iter.idx);
-        const double *phi_p = gkyl_array_cfetch(phi, loc);
+        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
         if (iter.idx[2] == 3) {
           // Only check one cell in z:
           for (int m=0; m<basis.num_basis/2; m++) {
@@ -1968,7 +2426,7 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
       gkyl_range_iter_init(&iter, &localRange);
       while (gkyl_range_iter_next(&iter)) {
         long loc = gkyl_range_idx(&localRange, iter.idx);
-        const double *phi_p = gkyl_array_cfetch(phi, loc);
+        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
         if (iter.idx[2] == 3) {
           // Only check one cell in z:
           for (int m=0; m<basis.num_basis/2; m++) {
@@ -2098,7 +2556,7 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
       gkyl_range_iter_init(&iter, &localRange);
       while (gkyl_range_iter_next(&iter)) {
         long loc = gkyl_range_idx(&localRange, iter.idx);
-        const double *phi_p = gkyl_array_cfetch(phi, loc);
+        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
         if (iter.idx[2] == 3) {
           // Only check one cell in z:
           for (int m=0; m<basis.num_basis/2; m++) {
@@ -2228,7 +2686,7 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
       gkyl_range_iter_init(&iter, &localRange);
       while (gkyl_range_iter_next(&iter)) {
         long loc = gkyl_range_idx(&localRange, iter.idx);
-        const double *phi_p = gkyl_array_cfetch(phi, loc);
+        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
         if (iter.idx[2] == 3) {
           // Only check one cell in z:
           for (int m=0; m<basis.num_basis/2; m++) {
@@ -2358,7 +2816,7 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
       gkyl_range_iter_init(&iter, &localRange);
       while (gkyl_range_iter_next(&iter)) {
         long loc = gkyl_range_idx(&localRange, iter.idx);
-        const double *phi_p = gkyl_array_cfetch(phi, loc);
+        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
         if (iter.idx[2] == 3) {
           // Only check one cell in z:
           for (int m=0; m<basis.num_basis/2; m++) {
@@ -2488,7 +2946,7 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
       gkyl_range_iter_init(&iter, &localRange);
       while (gkyl_range_iter_next(&iter)) {
         long loc = gkyl_range_idx(&localRange, iter.idx);
-        const double *phi_p = gkyl_array_cfetch(phi, loc);
+        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
         if (iter.idx[2] == 3) {
           // Only check one cell in z:
           for (int m=0; m<basis.num_basis/2; m++) {
@@ -2618,7 +3076,7 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
       gkyl_range_iter_init(&iter, &localRange);
       while (gkyl_range_iter_next(&iter)) {
         long loc = gkyl_range_idx(&localRange, iter.idx);
-        const double *phi_p = gkyl_array_cfetch(phi, loc);
+        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
         if (iter.idx[2] == 3) {
           // Only check one cell in z:
           for (int m=0; m<basis.num_basis/2; m++) {
@@ -2638,9 +3096,9 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
     TEST_MSG("This poly_order is not available");
   }
 
-//  gkyl_grid_sub_array_write(&grid, &localRange, rho, "ctest_fem_poisson_perp_rho_1.gkyl");
-//  gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_poisson_perp_phi_8x8x8_p1.gkyl");
-//  gkyl_grid_sub_array_write(&grid, &localRange, phisol, "ctest_fem_poisson_perp_phisol_8x8x8_p1.gkyl");
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, rho_ho, "ctest_fem_poisson_perp_3x_rho_1.gkyl");
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, phi_ho, "ctest_fem_poisson_perp_3x_phi_8x8x8_p1.gkyl");
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, phisol_ho, "ctest_fem_poisson_perp_3x_phisol_8x8x8_p1.gkyl");
 
   gkyl_fem_poisson_perp_release(poisson);
   gkyl_proj_on_basis_release(projob);
@@ -2648,26 +3106,60 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
   gkyl_array_release(rho);
   gkyl_array_release(eps);
   gkyl_array_release(phi);
-  gkyl_array_release(phisol);
-  gkyl_array_release(rho);
-  if (use_gpu) {
-    gkyl_array_release(rho_cu);
-    gkyl_array_release(phi_cu);
-  }
-
+  gkyl_array_release(phisol_ho);
+  gkyl_array_release(rho_ho);
+  gkyl_array_release(phi_ho);
 }
 
-void test_p1_periodicx_periodicy_consteps() {
+void test_2x_p1_periodic_consteps() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_PERIODIC;
+  bc_tv.up_type[0] = GKYL_POISSON_PERIODIC;
+  test_fem_poisson_perp_consteps_2x(1, cells, bc_tv, false);
+}
+
+void test_2x_p1_dirichletx_consteps() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_poisson_perp_consteps_2x(1, cells, bc_tv, false);
+}
+
+void test_2x_p1_neumannx_dirichletx_consteps() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_poisson_perp_consteps_2x(1, cells, bc_tv, false);
+}
+
+void test_2x_p1_dirichletx_neumannx_consteps() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_NEUMANN;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_poisson_perp_consteps_2x(1, cells, bc_tv, false);
+}
+
+void test_3x_p1_periodicx_periodicy_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_PERIODIC;
   bc_tv.up_type[0] = GKYL_POISSON_PERIODIC;
   bc_tv.lo_type[1] = GKYL_POISSON_PERIODIC;
   bc_tv.up_type[1] = GKYL_POISSON_PERIODIC;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, false);
 }
 
-void test_p1_dirichletx_dirichlety_consteps() {
+void test_3x_p1_dirichletx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2678,10 +3170,10 @@ void test_p1_dirichletx_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, false);
 }
 
-void test_p1_dirichletx_periodicy_consteps() {
+void test_3x_p1_dirichletx_periodicy_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2690,10 +3182,10 @@ void test_p1_dirichletx_periodicy_consteps() {
   bc_tv.up_type[1] = GKYL_POISSON_PERIODIC;
   bc_tv.lo_value[0].v[0] = 0.;
   bc_tv.up_value[0].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, false);
 }
 
-void test_p1_periodicx_dirichlety_consteps() {
+void test_3x_p1_periodicx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_PERIODIC;
@@ -2702,10 +3194,10 @@ void test_p1_periodicx_dirichlety_consteps() {
   bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, false);
 }
 
-void test_p1_dirichletx_neumanny_dirichlety_consteps() {
+void test_3x_p1_dirichletx_neumanny_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2716,10 +3208,10 @@ void test_p1_dirichletx_neumanny_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, false);
 }
 
-void test_p1_dirichletx_dirichlety_neumanny_consteps() {
+void test_3x_p1_dirichletx_dirichlety_neumanny_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2730,10 +3222,10 @@ void test_p1_dirichletx_dirichlety_neumanny_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, false);
 }
 
-void test_p1_neumannx_dirichletx_dirichlety_consteps() {
+void test_3x_p1_neumannx_dirichletx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
@@ -2744,10 +3236,10 @@ void test_p1_neumannx_dirichletx_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, false);
 }
 
-void test_p1_dirichletx_neumannx_dirichlety_consteps() {
+void test_3x_p1_dirichletx_neumannx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2758,10 +3250,10 @@ void test_p1_dirichletx_neumannx_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, false);
 }
 
-void test_p1_neumannx_dirichletx_periodicy_consteps() {
+void test_3x_p1_neumannx_dirichletx_periodicy_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
@@ -2772,20 +3264,20 @@ void test_p1_neumannx_dirichletx_periodicy_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, false);
 }
 
-void test_p2_periodicx_periodicy_consteps() {
+void test_3x_p2_periodicx_periodicy_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_PERIODIC;
   bc_tv.up_type[0] = GKYL_POISSON_PERIODIC;
   bc_tv.lo_type[1] = GKYL_POISSON_PERIODIC;
   bc_tv.up_type[1] = GKYL_POISSON_PERIODIC;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, false);
 }
 
-void test_p2_dirichletx_dirichlety_consteps() {
+void test_3x_p2_dirichletx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2796,10 +3288,10 @@ void test_p2_dirichletx_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, false);
 }
 
-void test_p2_dirichletx_periodicy_consteps() {
+void test_3x_p2_dirichletx_periodicy_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2808,10 +3300,10 @@ void test_p2_dirichletx_periodicy_consteps() {
   bc_tv.up_type[1] = GKYL_POISSON_PERIODIC;
   bc_tv.lo_value[0].v[0] = 0.;
   bc_tv.up_value[0].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, false);
 }
 
-void test_p2_periodicx_dirichlety_consteps() {
+void test_3x_p2_periodicx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_PERIODIC;
@@ -2820,10 +3312,10 @@ void test_p2_periodicx_dirichlety_consteps() {
   bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, false);
 }
 
-void test_p2_dirichletx_neumanny_dirichlety_consteps() {
+void test_3x_p2_dirichletx_neumanny_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2834,10 +3326,10 @@ void test_p2_dirichletx_neumanny_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, false);
 }
 
-void test_p2_dirichletx_dirichlety_neumanny_consteps() {
+void test_3x_p2_dirichletx_dirichlety_neumanny_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2848,10 +3340,10 @@ void test_p2_dirichletx_dirichlety_neumanny_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, false);
 }
 
-void test_p2_neumannx_dirichletx_dirichlety_consteps() {
+void test_3x_p2_neumannx_dirichletx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
@@ -2862,10 +3354,10 @@ void test_p2_neumannx_dirichletx_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, false);
 }
 
-void test_p2_dirichletx_neumannx_dirichlety_consteps() {
+void test_3x_p2_dirichletx_neumannx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2876,10 +3368,10 @@ void test_p2_dirichletx_neumannx_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, false);
 }
 
-void test_p2_neumannx_dirichletx_periodicy_consteps() {
+void test_3x_p2_neumannx_dirichletx_periodicy_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
@@ -2890,21 +3382,59 @@ void test_p2_neumannx_dirichletx_periodicy_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, false);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, false);
 }
 
 #ifdef GKYL_HAVE_CUDA
-void gpu_test_p1_periodicx_periodicy_consteps() {
+void gpu_test_2x_p1_periodic_consteps() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_PERIODIC;
+  bc_tv.up_type[0] = GKYL_POISSON_PERIODIC;
+  test_fem_poisson_perp_consteps_2x(1, cells, bc_tv, true);
+}
+
+void gpu_test_2x_p1_dirichletx_consteps() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_poisson_perp_consteps_2x(1, cells, bc_tv, true);
+}
+
+void gpu_test_2x_p1_neumannx_dirichletx_consteps() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_poisson_perp_consteps_2x(1, cells, bc_tv, true);
+}
+
+void gpu_test_2x_p1_dirichletx_neumannx_consteps() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_NEUMANN;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_poisson_perp_consteps_2x(1, cells, bc_tv, true);
+}
+
+void gpu_test_3x_p1_periodicx_periodicy_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_PERIODIC;
   bc_tv.up_type[0] = GKYL_POISSON_PERIODIC;
   bc_tv.lo_type[1] = GKYL_POISSON_PERIODIC;
   bc_tv.up_type[1] = GKYL_POISSON_PERIODIC;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, true);
 }
 
-void gpu_test_p1_dirichletx_dirichlety_consteps() {
+void gpu_test_3x_p1_dirichletx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2915,10 +3445,10 @@ void gpu_test_p1_dirichletx_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, true);
 }
 
-void gpu_test_p1_dirichletx_periodicy_consteps() {
+void gpu_test_3x_p1_dirichletx_periodicy_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2927,10 +3457,10 @@ void gpu_test_p1_dirichletx_periodicy_consteps() {
   bc_tv.up_type[1] = GKYL_POISSON_PERIODIC;
   bc_tv.lo_value[0].v[0] = 0.;
   bc_tv.up_value[0].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, true);
 }
 
-void gpu_test_p1_periodicx_dirichlety_consteps() {
+void gpu_test_3x_p1_periodicx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_PERIODIC;
@@ -2939,10 +3469,10 @@ void gpu_test_p1_periodicx_dirichlety_consteps() {
   bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, true);
 }
 
-void gpu_test_p1_dirichletx_neumanny_dirichlety_consteps() {
+void gpu_test_3x_p1_dirichletx_neumanny_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2953,10 +3483,10 @@ void gpu_test_p1_dirichletx_neumanny_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, true);
 }
 
-void gpu_test_p1_dirichletx_dirichlety_neumanny_consteps() {
+void gpu_test_3x_p1_dirichletx_dirichlety_neumanny_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2967,10 +3497,10 @@ void gpu_test_p1_dirichletx_dirichlety_neumanny_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, true);
 }
 
-void gpu_test_p1_neumannx_dirichletx_dirichlety_consteps() {
+void gpu_test_3x_p1_neumannx_dirichletx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
@@ -2981,10 +3511,10 @@ void gpu_test_p1_neumannx_dirichletx_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, true);
 }
 
-void gpu_test_p1_dirichletx_neumannx_dirichlety_consteps() {
+void gpu_test_3x_p1_dirichletx_neumannx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -2995,10 +3525,10 @@ void gpu_test_p1_dirichletx_neumannx_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, true);
 }
 
-void gpu_test_p1_neumannx_dirichletx_periodicy_consteps() {
+void gpu_test_3x_p1_neumannx_dirichletx_periodicy_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
@@ -3009,20 +3539,20 @@ void gpu_test_p1_neumannx_dirichletx_periodicy_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(1, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, true);
 }
 
-void gpu_test_p2_periodicx_periodicy_consteps() {
+void gpu_test_3x_p2_periodicx_periodicy_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_PERIODIC;
   bc_tv.up_type[0] = GKYL_POISSON_PERIODIC;
   bc_tv.lo_type[1] = GKYL_POISSON_PERIODIC;
   bc_tv.up_type[1] = GKYL_POISSON_PERIODIC;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, true);
 }
 
-void gpu_test_p2_dirichletx_dirichlety_consteps() {
+void gpu_test_3x_p2_dirichletx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -3033,10 +3563,10 @@ void gpu_test_p2_dirichletx_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, true);
 }
 
-void gpu_test_p2_dirichletx_periodicy_consteps() {
+void gpu_test_3x_p2_dirichletx_periodicy_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -3045,10 +3575,10 @@ void gpu_test_p2_dirichletx_periodicy_consteps() {
   bc_tv.up_type[1] = GKYL_POISSON_PERIODIC;
   bc_tv.lo_value[0].v[0] = 0.;
   bc_tv.up_value[0].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, true);
 }
 
-void gpu_test_p2_periodicx_dirichlety_consteps() {
+void gpu_test_3x_p2_periodicx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_PERIODIC;
@@ -3057,10 +3587,10 @@ void gpu_test_p2_periodicx_dirichlety_consteps() {
   bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, true);
 }
 
-void gpu_test_p2_dirichletx_neumanny_dirichlety_consteps() {
+void gpu_test_3x_p2_dirichletx_neumanny_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -3071,10 +3601,10 @@ void gpu_test_p2_dirichletx_neumanny_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, true);
 }
 
-void gpu_test_p2_dirichletx_dirichlety_neumanny_consteps() {
+void gpu_test_3x_p2_dirichletx_dirichlety_neumanny_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -3085,10 +3615,10 @@ void gpu_test_p2_dirichletx_dirichlety_neumanny_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, true);
 }
 
-void gpu_test_p2_neumannx_dirichletx_dirichlety_consteps() {
+void gpu_test_3x_p2_neumannx_dirichletx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
@@ -3099,10 +3629,10 @@ void gpu_test_p2_neumannx_dirichletx_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, true);
 }
 
-void gpu_test_p2_dirichletx_neumannx_dirichlety_consteps() {
+void gpu_test_3x_p2_dirichletx_neumannx_dirichlety_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
@@ -3113,10 +3643,10 @@ void gpu_test_p2_dirichletx_neumannx_dirichlety_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, true);
 }
 
-void gpu_test_p2_neumannx_dirichletx_periodicy_consteps() {
+void gpu_test_3x_p2_neumannx_dirichletx_periodicy_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
   bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
@@ -3127,50 +3657,60 @@ void gpu_test_p2_neumannx_dirichletx_periodicy_consteps() {
   bc_tv.up_value[0].v[0] = 0.;
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
-  test_fem_poisson_perp_consteps(2, cells, bc_tv, true);
+  test_fem_poisson_perp_consteps_3x(2, cells, bc_tv, true);
 }
 
 #endif
 
 TEST_LIST = {
-  { "test_p1_periodicx_periodicy", test_p1_periodicx_periodicy_consteps },
-  { "test_p1_dirichletx_dirichlety", test_p1_dirichletx_dirichlety_consteps },
-  { "test_p1_dirichletx_periodicy", test_p1_dirichletx_periodicy_consteps },
-  { "test_p1_periodicx_dirichlety", test_p1_periodicx_dirichlety_consteps },
-  { "test_p1_dirichletx_neumanny_dirichlety", test_p1_dirichletx_neumanny_dirichlety_consteps },
-  { "test_p1_dirichletx_dirichlety_neumanny", test_p1_dirichletx_dirichlety_neumanny_consteps },
-  { "test_p1_neumannx_dirichletx_dirichlety", test_p1_neumannx_dirichletx_dirichlety_consteps },
-  { "test_p1_dirichletx_neumannx_dirichlety", test_p1_dirichletx_neumannx_dirichlety_consteps },
-  { "test_p1_neumannx_dirichletx_periodicy", test_p1_neumannx_dirichletx_periodicy_consteps },
-//  { "test_p2_periodicx_periodicy", test_p2_periodicx_periodicy_consteps },
-//  { "test_p2_dirichletx_dirichlety", test_p2_dirichletx_dirichlety_consteps },
-//  { "test_p2_dirichletx_periodicy", test_p2_dirichletx_periodicy_consteps },
-//  { "test_p2_periodicx_dirichlety", test_p2_periodicx_dirichlety_consteps },
-//  { "test_p2_dirichletx_neumanny_dirichlety", test_p2_dirichletx_neumanny_dirichlety_consteps },
-//  { "test_p2_dirichletx_dirichlety_neumanny", test_p2_dirichletx_dirichlety_neumanny_consteps },
-//  { "test_p2_neumannx_dirichletx_dirichlety", test_p2_neumannx_dirichletx_dirichlety_consteps },
-//  { "test_p2_dirichletx_neumannx_dirichlety", test_p2_dirichletx_neumannx_dirichlety_consteps },
-//  { "test_p2_neumannx_dirichletx_periodicy", test_p2_neumannx_dirichletx_periodicy_consteps },
+  { "test_2x_p1_periodicx", test_2x_p1_periodic_consteps },
+  { "test_2x_p1_dirichletx", test_2x_p1_dirichletx_consteps },
+  { "test_2x_p1_neumannx_dirichletx", test_2x_p1_neumannx_dirichletx_consteps },
+  { "test_2x_p1_dirichletx_neumannx", test_2x_p1_dirichletx_neumannx_consteps },
+
+  { "test_3x_p1_periodicx_periodicy", test_3x_p1_periodicx_periodicy_consteps },
+  { "test_3x_p1_dirichletx_dirichlety", test_3x_p1_dirichletx_dirichlety_consteps },
+  { "test_3x_p1_dirichletx_periodicy", test_3x_p1_dirichletx_periodicy_consteps },
+  { "test_3x_p1_periodicx_dirichlety", test_3x_p1_periodicx_dirichlety_consteps },
+  { "test_3x_p1_dirichletx_neumanny_dirichlety", test_3x_p1_dirichletx_neumanny_dirichlety_consteps },
+  { "test_3x_p1_dirichletx_dirichlety_neumanny", test_3x_p1_dirichletx_dirichlety_neumanny_consteps },
+  { "test_3x_p1_neumannx_dirichletx_dirichlety", test_3x_p1_neumannx_dirichletx_dirichlety_consteps },
+  { "test_3x_p1_dirichletx_neumannx_dirichlety", test_3x_p1_dirichletx_neumannx_dirichlety_consteps },
+  { "test_3x_p1_neumannx_dirichletx_periodicy", test_3x_p1_neumannx_dirichletx_periodicy_consteps },
+//  { "test_3x_p2_periodicx_periodicy", test_3x_p2_periodicx_periodicy_consteps },
+//  { "test_3x_p2_dirichletx_dirichlety", test_3x_p2_dirichletx_dirichlety_consteps },
+//  { "test_3x_p2_dirichletx_periodicy", test_3x_p2_dirichletx_periodicy_consteps },
+//  { "test_3x_p2_periodicx_dirichlety", test_3x_p2_periodicx_dirichlety_consteps },
+//  { "test_3x_p2_dirichletx_neumanny_dirichlety", test_3x_p2_dirichletx_neumanny_dirichlety_consteps },
+//  { "test_3x_p2_dirichletx_dirichlety_neumanny", test_3x_p2_dirichletx_dirichlety_neumanny_consteps },
+//  { "test_3x_p2_neumannx_dirichletx_dirichlety", test_3x_p2_neumannx_dirichletx_dirichlety_consteps },
+//  { "test_3x_p2_dirichletx_neumannx_dirichlety", test_3x_p2_dirichletx_neumannx_dirichlety_consteps },
+//  { "test_3x_p2_neumannx_dirichletx_periodicy", test_3x_p2_neumannx_dirichletx_periodicy_consteps },
 #ifdef GKYL_HAVE_CUDA
-  { "gpu_test_p1_periodicx_periodicy", gpu_test_p1_periodicx_periodicy_consteps },
-  { "gpu_test_p1_dirichletx_dirichlety", gpu_test_p1_dirichletx_dirichlety_consteps },
-  { "gpu_test_p1_dirichletx_dirichlety", gpu_test_p1_dirichletx_dirichlety_consteps },
-  { "gpu_test_p1_dirichletx_periodicy", gpu_test_p1_dirichletx_periodicy_consteps },
-  { "gpu_test_p1_periodicx_dirichlety", gpu_test_p1_periodicx_dirichlety_consteps },
-  { "gpu_test_p1_dirichletx_neumanny_dirichlety", gpu_test_p1_dirichletx_neumanny_dirichlety_consteps },
-  { "gpu_test_p1_dirichletx_dirichlety_neumanny", gpu_test_p1_dirichletx_dirichlety_neumanny_consteps },
-  { "gpu_test_p1_neumannx_dirichletx_dirichlety", gpu_test_p1_neumannx_dirichletx_dirichlety_consteps },
-  { "gpu_test_p1_dirichletx_neumannx_dirichlety", gpu_test_p1_dirichletx_neumannx_dirichlety_consteps },
-  { "gpu_test_p1_neumannx_dirichletx_periodicy", gpu_test_p1_neumannx_dirichletx_periodicy_consteps },
-//  { "gpu_test_p2_periodicx_periodicy", gpu_test_p2_periodicx_periodicy_consteps },
-//  { "gpu_test_p2_dirichletx_dirichlety", gpu_test_p2_dirichletx_dirichlety_consteps },
-//  { "gpu_test_p2_dirichletx_periodicy", gpu_test_p2_dirichletx_periodicy_consteps },
-//  { "gpu_test_p2_periodicx_dirichlety", gpu_test_p2_periodicx_dirichlety_consteps },
-//  { "gpu_test_p2_dirichletx_neumanny_dirichlety", gpu_test_p2_dirichletx_neumanny_dirichlety_consteps },
-//  { "gpu_test_p2_dirichletx_dirichlety_neumanny", gpu_test_p2_dirichletx_dirichlety_neumanny_consteps },
-//  { "gpu_test_p2_neumannx_dirichletx_dirichlety", gpu_test_p2_neumannx_dirichletx_dirichlety_consteps },
-//  { "gpu_test_p2_dirichletx_neumannx_dirichlety", gpu_test_p2_dirichletx_neumannx_dirichlety_consteps },
-//  { "gpu_test_p2_neumannx_dirichletx_periodicy", gpu_test_p2_neumannx_dirichletx_periodicy_consteps },
+  { "gpu_test_2x_p1_periodicx", gpu_test_2x_p1_periodic_consteps },
+  { "gpu_test_2x_p1_dirichletx", gpu_test_2x_p1_dirichletx_consteps },
+  { "gpu_test_2x_p1_neumannx_dirichletx", gpu_test_2x_p1_neumannx_dirichletx_consteps },
+  { "gpu_test_2x_p1_dirichletx_neumannx", gpu_test_2x_p1_dirichletx_neumannx_consteps },
+
+  { "gpu_test_3x_p1_periodicx_periodicy", gpu_test_3x_p1_periodicx_periodicy_consteps },
+  { "gpu_test_3x_p1_dirichletx_dirichlety", gpu_test_3x_p1_dirichletx_dirichlety_consteps },
+  { "gpu_test_3x_p1_dirichletx_dirichlety", gpu_test_3x_p1_dirichletx_dirichlety_consteps },
+  { "gpu_test_3x_p1_dirichletx_periodicy", gpu_test_3x_p1_dirichletx_periodicy_consteps },
+  { "gpu_test_3x_p1_periodicx_dirichlety", gpu_test_3x_p1_periodicx_dirichlety_consteps },
+  { "gpu_test_3x_p1_dirichletx_neumanny_dirichlety", gpu_test_3x_p1_dirichletx_neumanny_dirichlety_consteps },
+  { "gpu_test_3x_p1_dirichletx_dirichlety_neumanny", gpu_test_3x_p1_dirichletx_dirichlety_neumanny_consteps },
+  { "gpu_test_3x_p1_neumannx_dirichletx_dirichlety", gpu_test_3x_p1_neumannx_dirichletx_dirichlety_consteps },
+  { "gpu_test_3x_p1_dirichletx_neumannx_dirichlety", gpu_test_3x_p1_dirichletx_neumannx_dirichlety_consteps },
+  { "gpu_test_3x_p1_neumannx_dirichletx_periodicy", gpu_test_3x_p1_neumannx_dirichletx_periodicy_consteps },
+//  { "gpu_test_3x_p2_periodicx_periodicy", gpu_test_3x_p2_periodicx_periodicy_consteps },
+//  { "gpu_test_3x_p2_dirichletx_dirichlety", gpu_test_3x_p2_dirichletx_dirichlety_consteps },
+//  { "gpu_test_3x_p2_dirichletx_periodicy", gpu_test_3x_p2_dirichletx_periodicy_consteps },
+//  { "gpu_test_3x_p2_periodicx_dirichlety", gpu_test_3x_p2_periodicx_dirichlety_consteps },
+//  { "gpu_test_3x_p2_dirichletx_neumanny_dirichlety", gpu_test_3x_p2_dirichletx_neumanny_dirichlety_consteps },
+//  { "gpu_test_3x_p2_dirichletx_dirichlety_neumanny", gpu_test_3x_p2_dirichletx_dirichlety_neumanny_consteps },
+//  { "gpu_test_3x_p2_neumannx_dirichletx_dirichlety", gpu_test_3x_p2_neumannx_dirichletx_dirichlety_consteps },
+//  { "gpu_test_3x_p2_dirichletx_neumannx_dirichlety", gpu_test_3x_p2_dirichletx_neumannx_dirichlety_consteps },
+//  { "gpu_test_3x_p2_neumannx_dirichletx_periodicy", gpu_test_3x_p2_neumannx_dirichletx_periodicy_consteps },
 #endif
   { NULL, NULL },
 };

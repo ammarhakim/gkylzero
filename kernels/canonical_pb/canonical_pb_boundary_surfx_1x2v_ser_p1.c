@@ -201,6 +201,6 @@ GKYL_CU_DH double canonical_pb_boundary_surfx_1x2v_ser_p1(const double *w, const
   } 
 
   double cflFreq = fmax(fabs(alphaL[0]), fabs(alphaR[0])); 
-  return 1.25*rdx2*cflFreq; 
+  return 0.75*rdx2*cflFreq; 
 
 } 

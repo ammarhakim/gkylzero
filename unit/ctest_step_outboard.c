@@ -16,20 +16,17 @@
 #include <gkyl_util.h>
 #include <gkyl_basis.h>
 #include <gkyl_nodal_ops.h>
-
 #include <gkyl_efit.h>
 #include <gkyl_calc_bmag.h>
 #include <gkyl_tok_geo.h>
-
-
 #include <gkyl_calc_metric.h>
 #include <gkyl_calc_derived_geo.h>
-
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_tok.h>
+#include <gkyl_nodal_ops.h>
 
 void
-write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_range local, const char *name)
+write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_basis basis, struct gkyl_range local, const char *name)
 {
   const char *fmt = "%s-%s.gkyl";
   int sz = gkyl_calc_strlen(fmt, name, "jacobtot_inv");
@@ -75,6 +72,19 @@ write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_range lo
   gkyl_grid_sub_array_write(&grid, &local, 0,  up->gxzj, fileNm);
   sprintf(fileNm, fmt, name, "eps2");
   gkyl_grid_sub_array_write(&grid, &local, 0,  up->eps2, fileNm);
+
+  // Write Nodal Coordinates
+  struct gkyl_range nrange;
+  gkyl_gk_geometry_init_nodal_range(&nrange, &local, 1);
+  struct gkyl_array* mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, 3, nrange.volume);
+  struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&basis, &grid, false);
+  gkyl_nodal_ops_m2n(n2m, &basis, &grid, &nrange, &local, 3, mc2p_nodal, up->mc2p);
+  gkyl_nodal_ops_release(n2m);
+  struct gkyl_rect_grid ngrid;
+  gkyl_gk_geometry_init_nodal_grid(&ngrid, &grid, &nrange);
+  sprintf(fileNm, fmt, name, "nodes");
+  gkyl_grid_sub_array_write(&ngrid, &nrange, 0,  mc2p_nodal, fileNm);
+  gkyl_array_release(mc2p_nodal);
 }
 
 
@@ -158,16 +168,11 @@ test_fixed_z()
 
   int ccells[] = { 1, 1, 8 };
 
-
-
   struct gkyl_rect_grid cgrid;
-  gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
   struct gkyl_range clocal, clocal_ext;
   int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
-  gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
   int cpoly_order = 1;
   struct gkyl_basis cbasis;
-  gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_OUT,
@@ -178,6 +183,11 @@ test_fixed_z()
     .rmin = 1.1,
     .rmax = 6.2,
   }; 
+
+  gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
+  gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
+  gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
+
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
     .efit_info = efit_inp,
@@ -197,7 +207,7 @@ test_fixed_z()
   };
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
-  //write_geometry(up, cgrid, clocal, "step_outboard_fixed_z");
+  //write_geometry(up, cgrid, cbasis, clocal, "step_outboard_fixed_z");
 
   // Check that |bhat|=1 at nodes
   int nodes[] = { 1, 1, 1 };
@@ -229,7 +239,6 @@ test_fixed_z()
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("total time = %g\n", cpu_time_used);
 }
 
 void
@@ -256,13 +265,10 @@ test_horizontal_plate()
 
 
   struct gkyl_rect_grid cgrid;
-  gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
   struct gkyl_range clocal, clocal_ext;
   int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
-  gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
   int cpoly_order = 1;
   struct gkyl_basis cbasis;
-  gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_OUT,
@@ -274,6 +280,10 @@ test_horizontal_plate()
     .plate_func_lower = horizontal_pfunc_lower,
     .plate_func_upper = horizontal_pfunc_upper,
   }; 
+
+  gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
+  gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
+  gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
@@ -301,7 +311,6 @@ test_horizontal_plate()
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("total time = %g\n", cpu_time_used);
 }
 
 void
@@ -328,13 +337,10 @@ test_vertical_plate()
 
 
   struct gkyl_rect_grid cgrid;
-  gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
   struct gkyl_range clocal, clocal_ext;
   int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
-  gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
   int cpoly_order = 1;
   struct gkyl_basis cbasis;
-  gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_OUT,
@@ -346,6 +352,11 @@ test_vertical_plate()
     .plate_func_lower = vertical_pfunc_lower,
     .plate_func_upper = vertical_pfunc_upper,
   }; 
+
+  gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
+  gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
+  gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
+
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
     .efit_info = efit_inp,
@@ -371,7 +382,6 @@ test_vertical_plate()
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("total time = %g\n", cpu_time_used);
 }
 
 void
@@ -400,13 +410,10 @@ test_shaped_plate()
 
 
   struct gkyl_rect_grid cgrid;
-  gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
   struct gkyl_range clocal, clocal_ext;
   int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
-  gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
   int cpoly_order = 1;
   struct gkyl_basis cbasis;
-  gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_OUT,
@@ -418,6 +425,10 @@ test_shaped_plate()
     .plate_func_lower = shaped_pfunc_lower,
     .plate_func_upper = shaped_pfunc_upper,
   }; 
+
+  gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
+  gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
+  gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
@@ -443,7 +454,6 @@ test_shaped_plate()
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("total time = %g\n", cpu_time_used);
 }
 
 TEST_LIST = {

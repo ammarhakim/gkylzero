@@ -226,7 +226,6 @@ arraySum_blockRedAtomic_cub(const struct gkyl_array* inp, double* out)
   const double *inp_d = (const double*) inp->data;
 
   for (size_t k = 0; k < nComp; ++k) {
-    out[k] = 0;
     double f = 0;
     if (linc < nCells) f = inp_d[linc*nComp+k];
     double bResult = 0;
@@ -255,7 +254,6 @@ arraySum_range_blockRedAtomic_cub(const struct gkyl_array* inp, const struct gky
   int idx[GKYL_MAX_DIM];
 
   for (size_t k = 0; k < nComp; ++k) {
-    out[k] = 0;
     gkyl_sub_range_inv_idx(&range, linc, idx);
     long start = gkyl_range_idx(&range, idx);
     const double* fptr = (const double*) gkyl_array_cfetch(inp, start);
@@ -272,6 +270,8 @@ arraySum_range_blockRedAtomic_cub(const struct gkyl_array* inp, const struct gky
 void
 gkyl_array_reduce_sum_cu(double *out_d, const struct gkyl_array* inp)
 {
+  gkyl_cu_memset(out_d, 0, inp->ncomp*sizeof(double));
+  
   const int nthreads = GKYL_DEFAULT_NUM_THREADS;  
   int nblocks = gkyl_int_div_up(inp->size, nthreads);
   arraySum_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_dev, out_d);
@@ -282,6 +282,8 @@ gkyl_array_reduce_sum_cu(double *out_d, const struct gkyl_array* inp)
 void
 gkyl_array_reduce_range_sum_cu(double *out_d, const struct gkyl_array* inp, const struct gkyl_range *range)
 {
+  gkyl_cu_memset(out_d, 0, inp->ncomp*sizeof(double));
+  
   const int nthreads = GKYL_DEFAULT_NUM_THREADS;
   int nblocks = gkyl_int_div_up(range->volume, nthreads);
   arraySum_range_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_dev, *range, out_d);
