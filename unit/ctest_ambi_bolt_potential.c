@@ -110,12 +110,33 @@ test_ambi_bolt_sheath_calc_1x()
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
     &upper_skin[0], &upper_ghost[0], jacobgeo_inv, gamma_i, M0, sheath_vals[1]);
 
+  // Serendipity 1x basis is [1/sqrt(2), sqrt(3/2)x].
+  // sheath_vals stores both the ion density and sheath value
+  // Ion density is the first 2 components. Should be 1
+  // Sheath potential is the second part. 
+  // phi_s = Te/e * log(ni (Te/me) / (sqrt(2*pi) gamma_i J dz/2))
+  // phi_s = log(1/(sqrt(2*pi) 0.5 * 1/4))
   double *sheath_lower_c = ((double *) gkyl_array_cfetch(sheath_vals[0], 0));
   double *sheath_upper_c = ((double *) gkyl_array_cfetch(sheath_vals[1], 9));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c[0], sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c[1], 0, 1e-12));
+  TEST_CHECK(gkyl_compare_double(sheath_lower_c[2], log(1/(sqrt(2*M_PI)*0.5*1/4)), 1e-12));
+  TEST_CHECK(gkyl_compare_double(sheath_lower_c[3], 0, 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_upper_c[0], sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_upper_c[1], 0, 1e-12));
+  TEST_CHECK(gkyl_compare_double(sheath_upper_c[2], log(1/(sqrt(2*M_PI)*0.5*1/4)), 1e-12));
+  TEST_CHECK(gkyl_compare_double(sheath_upper_c[3], 0, 1e-12));
+
+  // This operation happens after the sheaths are determined in the app, so we should test this
+  gkyl_array_accumulate(sheath_vals[0], 1., sheath_vals[1]);
+  gkyl_array_scale(sheath_vals[0], 0.5);
+
+  double *sheath_lower_c_avg = ((double *) gkyl_array_cfetch(sheath_vals[0], 0));
+  TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[0], sqrt(2)/2, 1e-12));
+  TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[1], 0, 1e-12));
+  double *sheath_upper_c_avg = ((double *) gkyl_array_cfetch(sheath_vals[0], 9));
+  TEST_CHECK(gkyl_compare_double(sheath_upper_c_avg[0], sqrt(2)/2, 1e-12));
+  TEST_CHECK(gkyl_compare_double(sheath_upper_c_avg[1], 0, 1e-12));
 
   gkyl_ambi_bolt_potential_release(ambi);
   gkyl_proj_on_basis_release(proj_one);
