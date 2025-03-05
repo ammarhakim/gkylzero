@@ -259,6 +259,10 @@ gk_neut_species_recycle_release(const struct gk_recycle_wall *recyc)
   gkyl_dg_updater_moment_release(recyc->init_flux_slvr);
   gkyl_dg_bin_op_mem_release(recyc->mem_geo);
   gkyl_ghost_surf_calc_release(recyc->f0_flux_slvr);
+
+  if (app->use_gpu) {
+    gkyl_array_release(recyc->emit_flux_ho);
+  }
   
   if (recyc->elastic) {
     gkyl_array_release(recyc->elastic_yield);
@@ -268,5 +272,8 @@ gk_neut_species_recycle_release(const struct gk_recycle_wall *recyc)
     gkyl_array_release(recyc->spectrum[i]);
     gkyl_array_release(recyc->flux[i]);
     gkyl_dg_updater_moment_release(recyc->flux_slvr[i]);
+    if (app->use_gpu) {
+      gkyl_array_release(recyc->flux_ho[i]);
+    }
   }
 }
