@@ -214,7 +214,6 @@ gk_neut_species_recycle_write_flux(struct gkyl_gyrokinetic_app *app, struct gk_n
     gkyl_comm_array_write(app->comm, recyc->impact_conf_grid[i], recyc->emit_cbuff_r,
       mt, recyc->flux_ho[i], fileNm);
     app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
-    app->stat.n_diag_io += 1;
   }
 
   const char *fmt = "%s-%s_recyc_flux_%s_%d.gkyl";
@@ -246,6 +245,8 @@ gk_neut_species_recycle_write_flux(struct gkyl_gyrokinetic_app *app, struct gk_n
       mt, recyc->emit_flux_ho, fileNm);
   app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
   app->stat.n_diag_io += 1;
+
+  gk_array_meta_release(mt); 
 }
 
 void
