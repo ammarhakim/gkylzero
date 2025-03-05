@@ -546,7 +546,6 @@ gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *f
     gkyl_comm_array_bcast(app->comm, field->sheath_vals[2*index_parallel]  , field->sheath_vals[2*index_parallel], 0);
     gkyl_comm_array_bcast(app->comm, field->sheath_vals[2*index_parallel+1], field->sheath_vals[2*index_parallel+1], comm_sz[0]-1);
     gkyl_array_accumulate(field->sheath_vals[2*index_parallel], 1., field->sheath_vals[2*index_parallel+1]);
-    gkyl_array_scale(field->sheath_vals[2*index_parallel], 0.5);
   } 
 }
 
