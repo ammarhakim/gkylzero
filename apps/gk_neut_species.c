@@ -419,7 +419,7 @@ gk_neut_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
     if (s->lower_bc[d].type == GKYL_SPECIES_RECYCLE) {
-      gk_neut_species_recycle_release(&s->bc_recycle_lo);
+      gk_neut_species_recycle_release(app, &s->bc_recycle_lo);
       gkyl_bc_basic_release(s->bc_lo[d]);
       gkyl_array_release(s->bc_buffer_lo_recyc);
     }
@@ -427,7 +427,7 @@ gk_neut_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk
       gkyl_bc_basic_release(s->bc_lo[d]);
     }
     if (s->upper_bc[d].type == GKYL_SPECIES_RECYCLE) {
-      gk_neut_species_recycle_release(&s->bc_recycle_up);
+      gk_neut_species_recycle_release(app, &s->bc_recycle_up);
       gkyl_bc_basic_release(s->bc_up[d]);
       gkyl_array_release(s->bc_buffer_up_recyc);
     }

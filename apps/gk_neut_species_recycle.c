@@ -249,7 +249,7 @@ gk_neut_species_recycle_write_flux(struct gkyl_gyrokinetic_app *app, struct gk_n
 }
 
 void
-gk_neut_species_recycle_release(const struct gk_recycle_wall *recyc)
+gk_neut_species_recycle_release(struct gkyl_gyrokinetic_app *app, const struct gk_recycle_wall *recyc)
 {
   gkyl_array_release(recyc->f_emit);
   gkyl_array_release(recyc->init_flux);
