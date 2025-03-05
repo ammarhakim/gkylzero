@@ -14,7 +14,6 @@
 #include <gkyl_ambi_bolt_potential_priv.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_util.h>
-#include <gkyl_null_comm.h>
 
 void eval_one(double t, const double *xn, double* restrict fout, void *ctx)
 {
@@ -133,19 +132,7 @@ test_ambi_bolt_sheath_calc_1x()
   TEST_CHECK(gkyl_compare_double(sheath_upper_c[2], log(1/(sqrt(2*M_PI)*0.5*1/4))*sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_upper_c[3], 0, 1e-12));
 
-  int cuts[] = { 1 };
-  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(local.ndim, cuts, &local);
-
-  struct gkyl_comm *comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = decomp
-    }
-  );
-
   // This operation happens after the sheaths are determined in the app, so we should test this
-  int comm_sz[1];
-  gkyl_comm_get_size(comm, comm_sz);
-  gkyl_comm_array_bcast(comm, sheath_vals[0], sheath_vals[0], 0);
-  gkyl_comm_array_bcast(comm, sheath_vals[1], sheath_vals[1], comm_sz[0]-1);
   gkyl_array_accumulate(sheath_vals[0], 1., sheath_vals[1]);
 
   double *sheath_lower_c_avg = ((double *) gkyl_array_cfetch(sheath_vals[0], 0));
@@ -217,17 +204,6 @@ test_ambi_bolt_phi_calc_1x()
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
     &upper_skin[0], &upper_ghost[0], jacobgeo_inv, gamma_i, M0, sheath_vals[1]);
 
-  int cuts[] = { 1 };
-  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(local.ndim, cuts, &local);
-
-  struct gkyl_comm *comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = decomp
-    }
-  );
-  int comm_sz[1];
-  gkyl_comm_get_size(comm, comm_sz);
-  gkyl_comm_array_bcast(comm, sheath_vals[0], sheath_vals[0], 0);
-  gkyl_comm_array_bcast(comm, sheath_vals[1], sheath_vals[1], comm_sz[0]-1);
   gkyl_array_accumulate(sheath_vals[0], 1., sheath_vals[1]);
 
   struct gkyl_array *phi = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
@@ -321,19 +297,7 @@ test_ambi_bolt_sheath_calc_1x_hat()
   TEST_CHECK(gkyl_compare_double(sheath_upper_c[2], log(1/(sqrt(2*M_PI)*0.5*1/4))*sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_upper_c[3], 0, 1e-12));
 
-  int cuts[] = { 1 };
-  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(local.ndim, cuts, &local);
-
-  struct gkyl_comm *comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = decomp
-    }
-  );
-
   // This operation happens after the sheaths are determined in the app, so we should test this
-  int comm_sz[1];
-  gkyl_comm_get_size(comm, comm_sz);
-  gkyl_comm_array_bcast(comm, sheath_vals[0], sheath_vals[0], 0);
-  gkyl_comm_array_bcast(comm, sheath_vals[1], sheath_vals[1], comm_sz[0]-1);
   gkyl_array_accumulate(sheath_vals[0], 1., sheath_vals[1]);
 
   double *sheath_lower_c_avg = ((double *) gkyl_array_cfetch(sheath_vals[0], 0));
@@ -408,17 +372,6 @@ test_ambi_bolt_phi_calc_1x_hat()
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
     &upper_skin[0], &upper_ghost[0], jacobgeo_inv, gamma_i, M0, sheath_vals[1]);
 
-  int cuts[] = { 1 };
-  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(local.ndim, cuts, &local);
-
-  struct gkyl_comm *comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = decomp
-    }
-  );
-  int comm_sz[1];
-  gkyl_comm_get_size(comm, comm_sz);
-  gkyl_comm_array_bcast(comm, sheath_vals[0], sheath_vals[0], 0);
-  gkyl_comm_array_bcast(comm, sheath_vals[1], sheath_vals[1], comm_sz[0]-1);
   gkyl_array_accumulate(sheath_vals[0], 1., sheath_vals[1]);
 
   struct gkyl_array *phi = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
@@ -428,12 +381,12 @@ test_ambi_bolt_phi_calc_1x_hat()
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &local);
-  double phi_sheath = log(1/(sqrt(2*M_PI)*0.5*1/4))*sqrt(2);
+  double phi_sheath = log(1/(sqrt(2*M_PI)*0.5*1/4));
   while (gkyl_range_iter_next(&iter)) {
     double *phi_c = ((double *) gkyl_array_cfetch(phi, iter.idx[0]));
     double *ni_c  = ((double *) gkyl_array_cfetch(M0, iter.idx[0]));
     double ni = ni_c[0]/sqrt(2);
-    TEST_CHECK(gkyl_compare_double(phi_c[0], phi_sheath + log(ni)*sqrt(2), 1e-3));
+    TEST_CHECK(gkyl_compare_double(phi_c[0]/sqrt(2), phi_sheath + log(ni), 1e-3));
   }
 
   gkyl_ambi_bolt_potential_release(ambi);
