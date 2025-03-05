@@ -436,12 +436,14 @@ struct gk_recycle_wall {
   struct gkyl_array *init_flux;
   struct gkyl_array *init_bflux_arr;
   struct gkyl_array *emit_flux;
+  struct gkyl_array *emit_flux_ho;
   struct gkyl_array *buffer;
   struct gkyl_array *elastic_yield;
   struct gkyl_array *yield[GKYL_MAX_SPECIES]; // projected secondary electron yield
   struct gkyl_array *spectrum[GKYL_MAX_SPECIES]; // projected secondary electron spectrum
   struct gkyl_array *weight[GKYL_MAX_SPECIES];
   struct gkyl_array *flux[GKYL_MAX_SPECIES];
+  struct gkyl_array *flux_ho[GKYL_MAX_SPECIES];
   struct gkyl_array *bflux_arr[GKYL_MAX_SPECIES];
   struct gkyl_array *k[GKYL_MAX_SPECIES];
   struct gk_species *impact_species[GKYL_MAX_SPECIES]; // pointers to impacting species

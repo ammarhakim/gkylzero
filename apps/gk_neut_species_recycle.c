@@ -67,6 +67,11 @@ gk_neut_species_recycle_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
 
   recyc->init_flux = mkarr(app->use_gpu, app->basis.num_basis, recyc->emit_cbuff_r->volume);
   recyc->emit_flux = mkarr(app->use_gpu, app->basis.num_basis, recyc->emit_cbuff_r->volume);
+  recyc->emit_flux_ho = recyc->emit_flux;
+  if(app->use_gpu) {
+    recyc->emit_flux_ho = mkarr(false, app->basis.num_basis, recyc->emit_cbuff_r->volume);
+  }  
+  
   recyc->init_conf_grid = &s->bflux.conf_boundary_grid[bdir];
   
   struct gkyl_mom_canonical_pb_auxfields can_pb_inp = {.hamil = s->hamil};
@@ -115,6 +120,11 @@ gk_neut_species_recycle_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
       app->gk_geom, app->field->phi_smooth, "M0", 0, app->use_gpu);
     
     recyc->flux[i] = mkarr(app->use_gpu, app->basis.num_basis, recyc->impact_cbuff_r[i]->volume);
+    recyc->flux_ho[i] = recyc->flux[i];
+    if(app->use_gpu) {
+      recyc->flux_ho[i] = mkarr(false, app->basis.num_basis, recyc->impact_cbuff_r[i]->volume);
+    }
+    
     recyc->bflux_arr[i] = gks->bflux_solver.flux_arr[bdir];
 
     gkyl_bc_emission_flux_ranges(&recyc->impact_normal_r[i], recyc->dir + cdim, recyc->impact_buff_r[i],
@@ -196,10 +206,13 @@ gk_neut_species_recycle_write_flux(struct gkyl_gyrokinetic_app *app, struct gk_n
     
     gkyl_dg_updater_moment_gyrokinetic_advance(recyc->flux_slvr[i], &recyc->impact_normal_r[i],
       recyc->emit_cbuff_r, recyc->bflux_arr[i], recyc->flux[i]);
+    if (app->use_gpu) {
+      gkyl_array_copy(recyc->flux_ho[i], recyc->flux[i]);
+    }
 
     struct timespec wtm = gkyl_wall_clock();
     gkyl_comm_array_write(app->comm, recyc->impact_conf_grid[i], recyc->emit_cbuff_r,
-      mt, recyc->flux[i], fileNm);
+      mt, recyc->flux_ho[i], fileNm);
     app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
     app->stat.n_diag_io += 1;
   }
@@ -224,11 +237,13 @@ gk_neut_species_recycle_write_flux(struct gkyl_gyrokinetic_app *app, struct gk_n
     recyc->emit_ghost_r);
   gkyl_dg_updater_moment_advance(recyc->init_flux_slvr, &recyc->emit_normal_r, recyc->emit_cbuff_r, recyc->init_bflux_arr,
   				 recyc->emit_flux);
+  if (app->use_gpu) {
+    gkyl_array_copy(recyc->emit_flux_ho, recyc->emit_flux);
+  }
   
   struct timespec wtm = gkyl_wall_clock();
   gkyl_comm_array_write(app->comm, recyc->init_conf_grid, recyc->emit_cbuff_r,
-      mt, recyc->emit_flux, fileNm);
-
+      mt, recyc->emit_flux_ho, fileNm);
   app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
   app->stat.n_diag_io += 1;
 }
