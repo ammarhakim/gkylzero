@@ -2262,7 +2262,7 @@ gk_neut_species_recycle_write_flux(struct gkyl_gyrokinetic_app *app, struct gk_n
  * @param app Gyrokinetic app object
  * @param recyc Recycling bc object
  */
-void gk_neut_species_recycle_release(struct gkyl_gyrokinetic_app *app, const struct gk_recycle_wall *recyc);
+void gk_neut_species_recycle_release(const struct gkyl_gyrokinetic_app *app, const struct gk_recycle_wall *recyc);
 
 /** gk_neut_species_react API */
 
