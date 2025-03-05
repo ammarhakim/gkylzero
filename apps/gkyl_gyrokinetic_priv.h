@@ -432,6 +432,7 @@ struct gk_recycle_wall {
   struct gkyl_bc_emission_elastic *elastic_update;
   struct gkyl_rect_grid *init_conf_grid;
   struct gkyl_array *f_emit;
+  struct gkyl_array *f_diag;
   struct gkyl_array *init_flux;
   struct gkyl_array *init_bflux_arr;
   struct gkyl_array *emit_flux;

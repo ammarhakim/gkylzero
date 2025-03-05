@@ -57,12 +57,13 @@ gk_neut_species_recycle_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
   recyc->buffer = (recyc->edge == GKYL_LOWER_EDGE) ? s->bc_buffer_lo_recyc : s->bc_buffer_up_recyc;
   
   recyc->f_emit = mkarr(app->use_gpu, s->basis.num_basis, recyc->emit_buff_r->volume);
+  recyc->f_diag = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
 
   struct gkyl_array *proj_buffer = mkarr(false, s->basis.num_basis, recyc->emit_buff_r->volume);
 
   // Calculate the flux
   gkyl_bc_emission_flux_ranges(&recyc->emit_normal_r, recyc->dir + cdim, recyc->emit_buff_r,
-    ghost, recyc->edge);
+    ghost, recyc->edge); 
 
   recyc->init_flux = mkarr(app->use_gpu, app->basis.num_basis, recyc->emit_cbuff_r->volume);
   recyc->emit_flux = mkarr(app->use_gpu, app->basis.num_basis, recyc->emit_cbuff_r->volume);
@@ -149,12 +150,6 @@ gk_neut_species_recycle_apply_bc(struct gkyl_gyrokinetic_app *app, const struct 
     gkyl_dg_updater_moment_gyrokinetic_advance(recyc->flux_slvr[i], &recyc->impact_normal_r[i],
       recyc->emit_cbuff_r, recyc->bflux_arr[i], recyc->flux[i]);
 
-    /* const char *fmt = "recyc_flux_edge_%d.gkyl"; */
-    /* int sz = gkyl_calc_strlen(fmt, recyc->edge); */
-    /* char fileNm[sz+1]; // ensures no buffer overflow */
-    /* snprintf(fileNm, sizeof fileNm, fmt, recyc->edge); */
-    /* gkyl_grid_sub_array_write(recyc->impact_conf_grid[i], recyc->emit_cbuff_r, 0, recyc->flux[i], fileNm); */
-
     gkyl_array_set_range_to_range(fout, t_scale, recyc->f_emit, recyc->emit_ghost_r,
       recyc->emit_buff_r);
 
@@ -189,7 +184,6 @@ gk_neut_species_recycle_write_flux(struct gkyl_gyrokinetic_app *app, struct gk_n
   );
 
   const char *edge = (recyc->edge == GKYL_LOWER_EDGE)? "lower" : "upper";
-  gk_neut_species_recycle_apply_bc(app, recyc, s,
   
   for (int i=0; i<recyc->num_species; ++i) {
     
@@ -204,34 +198,39 @@ gk_neut_species_recycle_write_flux(struct gkyl_gyrokinetic_app *app, struct gk_n
       recyc->emit_cbuff_r, recyc->bflux_arr[i], recyc->flux[i]);
 
     struct timespec wtm = gkyl_wall_clock();
-    gkyl_comm_array_write(app->comm, recyc->impact_conf_grid[i],recyc->impact_cbuff_r[i],
+    gkyl_comm_array_write(app->comm, recyc->impact_conf_grid[i], recyc->emit_cbuff_r,
       mt, recyc->flux[i], fileNm);
     app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
     app->stat.n_diag_io += 1;
   }
 
-  /* const char *fmt = "%s-%s_recyc_flux_%s_%d.gkyl"; */
-  /* int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, */
-  /*   edge, frame); */
-  /* char fileNm[sz+1]; // ensures no buffer overflow */
-  /* snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name, */
-  /*   edge, frame); */
+  const char *fmt = "%s-%s_recyc_flux_%s_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, s->info.name,
+    edge, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name,
+    edge, frame);
   
-  /* // calc neut moment */
-  /* if (app->use_gpu) { */
-  /*   gkyl_ghost_surf_calc_advance_cu(recyc->f0_flux_slvr, &s->local_ext, recyc->f_emit, recyc->f_emit); */
-  /* } else { */
-  /*   gkyl_ghost_surf_calc_advance(recyc->f0_flux_slvr, &s->local_ext, recyc->f_emit, recyc->f_emit); */
-  /* } */
-  /* gkyl_array_copy_range_to_range(recyc->init_bflux_arr, recyc->f_emit, recyc->emit_buff_r, */
-  /*   recyc->emit_ghost_r); */
-  /* gkyl_dg_updater_moment_advance(recyc->init_flux_slvr, &recyc->emit_normal_r, recyc->emit_cbuff_r, recyc->init_bflux_arr, */
-  /* 				 recyc->emit_flux); */
-  /* struct timespec wtm = gkyl_wall_clock(); */
-  /* gkyl_comm_array_write(app->comm, recyc->init_conf_grid, recyc->emit_cbuff_r, */
-  /*     mt, recyc->emit_flux, fileNm); */
-  /* app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm); */
-  /* app->stat.n_diag_io += 1; */
+  // calc neut moment
+  gkyl_array_clear(recyc->f_diag, 0.0);
+  gkyl_array_copy_range_to_range(recyc->f_diag, recyc->f_emit, recyc->emit_skin_r,
+    recyc->emit_buff_r);
+  if (app->use_gpu) {
+    gkyl_ghost_surf_calc_advance_cu(recyc->f0_flux_slvr, &s->local_ext, recyc->f_diag, recyc->f_diag);
+  } else {
+    gkyl_ghost_surf_calc_advance(recyc->f0_flux_slvr, &s->local_ext, recyc->f_diag, recyc->f_diag);
+  }
+  gkyl_array_copy_range_to_range(recyc->init_bflux_arr, recyc->f_diag, recyc->emit_buff_r,
+    recyc->emit_ghost_r);
+  gkyl_dg_updater_moment_advance(recyc->init_flux_slvr, &recyc->emit_normal_r, recyc->emit_cbuff_r, recyc->init_bflux_arr,
+  				 recyc->emit_flux);
+  
+  struct timespec wtm = gkyl_wall_clock();
+  gkyl_comm_array_write(app->comm, recyc->init_conf_grid, recyc->emit_cbuff_r,
+      mt, recyc->emit_flux, fileNm);
+
+  app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
+  app->stat.n_diag_io += 1;
 }
 
 void
@@ -240,6 +239,8 @@ gk_neut_species_recycle_release(const struct gk_recycle_wall *recyc)
   gkyl_array_release(recyc->f_emit);
   gkyl_array_release(recyc->init_flux);
   gkyl_array_release(recyc->init_bflux_arr);
+  gkyl_array_release(recyc->f_diag);
+  gkyl_array_release(recyc->emit_flux);
   gkyl_dg_updater_moment_release(recyc->init_flux_slvr);
   gkyl_dg_bin_op_mem_release(recyc->mem_geo);
   gkyl_ghost_surf_calc_release(recyc->f0_flux_slvr);
