@@ -222,10 +222,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     polarization_weight = 1.0; 
     f->ambi_pot = gkyl_ambi_bolt_potential_new(&app->grid, &app->basis, 
       f->info.electron_mass, f->info.electron_charge, f->info.electron_temp, app->use_gpu);
-    // sheath_vals contains both the ion density and the phi_sheath values, which is why it's 2* the size
-    // The first componenets are the ion density and the second are the sheath values.
-    // We have 2 arrays for each cdim direction because first index is the lower sheath and the higher
-    // index is the upper sheath
+    // Sheath_vals contains both the density and potential sheath values.
     for (int j=0; j<app->cdim; ++j) {
       f->sheath_vals[2*j]   = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
       f->sheath_vals[2*j+1] = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
@@ -531,25 +528,32 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
 void
 gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
+  int idx_par = app->cdim-1;
+  int off = 2*idx_par;
+
+  int comm_sz;
+  gkyl_comm_get_size(app->comm, &comm_sz);
+
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
 
-    int index_parallel = app->cdim-1;
-
     // Assumes symmetric sheath BCs for now only in 1D
     gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_LOWER_EDGE, 
-      &app->lower_skin[index_parallel], &app->lower_ghost[index_parallel], app->gk_geom->jacobgeo_inv, 
-      s->bflux_solver.gammai[2*index_parallel].marr, field->rho_c, field->sheath_vals[2*index_parallel]);
+      &app->lower_skin[idx_par], &app->lower_ghost[idx_par], app->gk_geom->jacobgeo_inv, 
+      s->bflux_solver.gammai[off].marr, field->rho_c, field->sheath_vals[off]);
     gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_UPPER_EDGE, 
-      &app->upper_skin[index_parallel], &app->upper_ghost[index_parallel], app->gk_geom->jacobgeo_inv, 
-      s->bflux_solver.gammai[2*index_parallel+1].marr, field->rho_c, field->sheath_vals[2*index_parallel+1]);
+      &app->upper_skin[idx_par], &app->upper_ghost[idx_par], app->gk_geom->jacobgeo_inv, 
+      s->bflux_solver.gammai[off+1].marr, field->rho_c, field->sheath_vals[off+1]);
 
     // Broadcast the sheath values from skin processes to other processes.
-    int comm_sz[1];
-    gkyl_comm_get_size(app->comm, comm_sz);
-    gkyl_comm_array_bcast(app->comm, field->sheath_vals[2*index_parallel]  , field->sheath_vals[2*index_parallel], 0);
-    gkyl_comm_array_bcast(app->comm, field->sheath_vals[2*index_parallel+1], field->sheath_vals[2*index_parallel+1], comm_sz[0]-1);
-    gkyl_array_accumulate(field->sheath_vals[2*index_parallel], 1., field->sheath_vals[2*index_parallel+1]);
+    gkyl_comm_array_bcast(app->comm, field->sheath_vals[off]  , field->sheath_vals[off], 0);
+    gkyl_comm_array_bcast(app->comm, field->sheath_vals[off+1], field->sheath_vals[off+1], comm_sz-1);
+
+    // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
+    gkyl_array_copy_range_to_range(field->sheath_vals[off+1], field->sheath_vals[off+1],
+      &app->lower_ghost[idx_par], &app->upper_ghost[idx_par]);
+    gkyl_array_accumulate(field->sheath_vals[off], 1., field->sheath_vals[off+1]);
+    gkyl_array_scale(field->sheath_vals[off], 0.5);
   } 
 }
 
