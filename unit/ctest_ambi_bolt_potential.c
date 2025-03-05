@@ -441,11 +441,162 @@ test_ambi_bolt_phi_calc_1x_hat()
   gkyl_proj_on_basis_release(proj_hat);
 }
 
+void
+test_ambi_bolt_init_2x()
+{
+  int poly_order = 1;
+  double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
+  int cells[] = {8, 16};
+  int cdim = sizeof(lower)/sizeof(lower[0]);
+
+  // Grid.
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, cdim, lower, upper, cells);
+
+  // Basis functions.
+  struct gkyl_basis *basis;
+  basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
+
+  int ghost[] = { 1, 1 };
+  struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+
+  double mass_e = 1.0, charge_e = -1.0, temp_e = 1.0;
+  bool use_gpu = false;
+
+  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, mass_e, charge_e, temp_e, use_gpu);
+
+  TEST_CHECK( ambi->cdim == 2);
+  TEST_CHECK( ambi->num_basis == basis->num_basis);
+  TEST_CHECK( ambi->use_gpu == use_gpu);
+  TEST_CHECK( gkyl_compare_double(ambi->dz, 2./16., 1e-12)); // Second direction is field line length
+  TEST_CHECK( gkyl_compare_double(ambi->mass_e, mass_e, 1e-12));
+  TEST_CHECK( gkyl_compare_double(ambi->charge_e, charge_e, 1e-12));
+  TEST_CHECK( gkyl_compare_double(ambi->temp_e, temp_e, 1e-12));
+
+  gkyl_ambi_bolt_potential_release(ambi);
+}
+
+void
+test_ambi_bolt_sheath_calc_2x_one()
+{
+  int poly_order = 1;
+  double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
+  int cells[] = {8, 16};
+  int cdim = sizeof(lower)/sizeof(lower[0]);
+
+  // Grid.
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, cdim, lower, upper, cells);
+
+  // Basis functions.
+  struct gkyl_basis *basis;
+  basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
+
+  int ghost[] = { 1, 1 };
+  struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+
+  double mass_e = 1.0, charge_e = -1.0, temp_e = 1.0;
+  bool use_gpu = false;
+
+  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, mass_e, charge_e, temp_e, use_gpu);
+
+  struct gkyl_array *sheath_vals[2*cdim];
+  for (int j=0; j<cdim; ++j) {
+    sheath_vals[2*j]   = gkyl_array_new(GKYL_DOUBLE, 2*basis->num_basis, local_ext.volume);
+    sheath_vals[2*j+1] = gkyl_array_new(GKYL_DOUBLE, 2*basis->num_basis, local_ext.volume);
+    gkyl_array_clear(sheath_vals[2*j],   0.0);
+    gkyl_array_clear(sheath_vals[2*j+1], 0.0);
+  }
+
+  // Local skin and ghost ranges for configuration space fields.
+  struct gkyl_range lower_skin[cdim], lower_ghost[cdim], upper_skin[cdim], upper_ghost[cdim];
+  for (int dir=0; dir<cdim; ++dir) {
+    gkyl_skin_ghost_ranges(&lower_skin[dir], &lower_ghost[dir], dir, GKYL_LOWER_EDGE, &local_ext, ghost); 
+    gkyl_skin_ghost_ranges(&upper_skin[dir], &upper_ghost[dir], dir, GKYL_UPPER_EDGE, &local_ext, ghost);
+  }
+
+  struct gkyl_array *jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
+  struct gkyl_array *M0 = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
+  struct gkyl_array *gamma_i = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
+
+  gkyl_proj_on_basis *proj_one = gkyl_proj_on_basis_new(&grid, basis, poly_order+1, 1, eval_one, NULL); 
+
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, jacobgeo_inv);
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, M0);
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
+
+  int index_parallel = cdim-1;
+
+  gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, 
+    &lower_skin[index_parallel], &lower_ghost[index_parallel], jacobgeo_inv, gamma_i, M0, sheath_vals[index_parallel*2]);
+  gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
+    &upper_skin[index_parallel], &upper_ghost[index_parallel], jacobgeo_inv, gamma_i, M0, sheath_vals[index_parallel*2+1]);
+
+  gkyl_array_accumulate(sheath_vals[index_parallel*2], 1., sheath_vals[index_parallel*2+1]);
+
+  // Serendipity 2x basis is [1/2,(sqrt(3)*x)/2,(sqrt(3)*y)/2,(3*x*y)/2].
+  // sheath_vals stores both the ion density and sheath value
+  // Ion density is the first 2 components. Should be 1
+  // Sheath potential is the second part. 
+  // phi_s = Te/e * log(ni (Te/me) / (sqrt(2*pi) gamma_i J dz/2))
+  // phi_s = log(1/(sqrt(2*pi) 0.5 * 1/4))
+  for (int ix_cdim = 0; ix_cdim < cdim; ix_cdim++)
+  {
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &lower_ghost[ix_cdim]);
+    double phi_sheath = log(1/(sqrt(2*M_PI)*0.5*1/4));
+    while (gkyl_range_iter_next(&iter)) {
+      long lidx = gkyl_range_idx(&lower_ghost[ix_cdim], iter.idx);
+      double *sheath_lower_c = ((double *) gkyl_array_cfetch(sheath_vals[index_parallel*2], lidx));
+      printf("idx[0] = %d, idx[1] = %d\n", iter.idx[0], iter.idx[1]);
+      printf("lidx = %ld\n", lidx);
+      printf("phi_sheath = %f\n", phi_sheath);
+      printf("sheath_lower_c[0] = %f \n", sheath_lower_c[0]);
+      printf("sheath_lower_c[1] = %f \n", sheath_lower_c[1]);
+      printf("sheath_lower_c[2] = %f \n", sheath_lower_c[2]);
+      printf("sheath_lower_c[3] = %f \n", sheath_lower_c[3]);
+      printf("sheath_lower_c[4] = %f \n", sheath_lower_c[4]);
+      printf("sheath_lower_c[5] = %f \n", sheath_lower_c[5]);
+      printf("sheath_lower_c[6] = %f \n", sheath_lower_c[6]);
+      printf("sheath_lower_c[7] = %f \n", sheath_lower_c[7]);
+
+      // TEST_CHECK(gkyl_compare_double(sheath_lower_c[0], 2, 1e-12));
+      // TEST_CHECK(gkyl_compare_double(sheath_lower_c[1], 0, 1e-12));
+      // TEST_CHECK(gkyl_compare_double(sheath_lower_c[2], 0, 1e-12));
+      // TEST_CHECK(gkyl_compare_double(sheath_lower_c[3], 0, 1e-12));
+      // TEST_CHECK(gkyl_compare_double(sheath_lower_c[4], phi_sheath*2, 1e-12));
+      // TEST_CHECK(gkyl_compare_double(sheath_lower_c[5], 0, 1e-12));
+      // TEST_CHECK(gkyl_compare_double(sheath_lower_c[6], 0, 1e-12));
+      // TEST_CHECK(gkyl_compare_double(sheath_lower_c[7], 0, 1e-12));
+    }
+    // gkyl_range_iter_init(&iter, &upper_ghost[ix_cdim]);
+    // double phi_sheath = log(1/(sqrt(2*M_PI)*0.5*1/4));
+    // while (gkyl_range_iter_next(&iter)) {\
+    //   double *sheath_upper_c = ((double *) gkyl_array_cfetch(sheath_vals[index_parallel*2], iter.idx));
+    //   TEST_CHECK(gkyl_compare_double(sheath_upper_c[0], 2, 1e-12));
+    //   TEST_CHECK(gkyl_compare_double(sheath_upper_c[1], 0, 1e-12));
+    //   TEST_CHECK(gkyl_compare_double(sheath_upper_c[2], 0, 1e-12));
+    //   TEST_CHECK(gkyl_compare_double(sheath_upper_c[3], 0, 1e-12));
+    //   TEST_CHECK(gkyl_compare_double(sheath_upper_c[4], phi_sheath*2, 1e-12));
+    //   TEST_CHECK(gkyl_compare_double(sheath_upper_c[5], 0, 1e-12));
+    //   TEST_CHECK(gkyl_compare_double(sheath_upper_c[6], 0, 1e-12));
+    //   TEST_CHECK(gkyl_compare_double(sheath_upper_c[7], 0, 1e-12));
+    // }
+  }
+  
+  gkyl_ambi_bolt_potential_release(ambi);
+  gkyl_proj_on_basis_release(proj_one);
+}
+
 TEST_LIST = {
   { "test_ambi_bolt_init_1x", test_ambi_bolt_init_1x },
   { "test_ambi_bolt_sheath_calc_1x", test_ambi_bolt_sheath_calc_1x },
   { "test_ambi_bolt_phi_calc_1x", test_ambi_bolt_phi_calc_1x },
   { "test_ambi_bolt_sheath_calc_1x_hat", test_ambi_bolt_sheath_calc_1x_hat },
   { "test_ambi_bolt_phi_calc_1x_hat", test_ambi_bolt_phi_calc_1x_hat },
+  { "test_ambi_bolt_init_2x", test_ambi_bolt_init_2x },
+  { "test_ambi_bolt_sheath_calc_2x_one", test_ambi_bolt_sheath_calc_2x_one },
   { NULL, NULL },
 };
