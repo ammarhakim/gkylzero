@@ -397,6 +397,7 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
     gkyl_array_release(up->geo_surf[dir]->b_i);
     gkyl_array_release(up->geo_surf[dir]->cmag);
     gkyl_array_release(up->geo_surf[dir]->jacobtot_inv);
+    gkyl_free(up->geo_surf[dir]);
   }
   if (gkyl_gk_geometry_is_cu_dev(up)) 
     gkyl_cu_free(up->on_dev); 

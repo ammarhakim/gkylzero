@@ -209,12 +209,12 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
     up->jacobgeo, up->jacobgeo_inv, up->gij, up->b_i, up->cmag, up->jacobtot, up->jacobtot_inv, 
     up->bmag_inv, up->bmag_inv_sq, up->gxxj, up->gxyj, up->gyyj, up->gxzj, up->eps2);
   gkyl_tok_calc_derived_geo_release(jcalculator);
-  gkyl_calc_metric_release(mcalc);
   // Calculate metrics/derived geo quantities at surface
   for (int dir = 0; dir <up->grid.ndim; dir++) {
     gkyl_calc_metric_advance_rz_surface(mcalc, dir, &nrange_quad_surf[dir], up->geo_surf[dir]->mc2p_nodal_fd, up->geo_surf[dir]->ddtheta_nodal, up->geo_surf[dir]->bmag_nodal, dzc,
       up->geo_surf[dir]->jacobgeo_nodal, up->geo_surf[dir]->b_i_nodal, up->geo_surf[dir]->cmag_nodal, up->geo_surf[dir]->jacobtot_inv_nodal, &up->local);
   }
+  gkyl_calc_metric_release(mcalc);
   // Calculate surface expansions
   for (int dir = 0; dir <up->grid.ndim; dir++)
     gk_geometry_surf_calc_expansions(up, dir, nrange_quad_surf[dir]);
