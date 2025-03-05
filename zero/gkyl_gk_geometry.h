@@ -45,7 +45,7 @@ struct gk_geometry {
   struct gkyl_basis surf_basis;
   struct gkyl_rect_grid grid;
 
-  struct gk_geom_surf *geo_surf[3];
+  struct gk_geom_surf geo_surf[3];
 
   // These 21 DG fields contain the geometric quantities needed to solve the
   // GK Equation and Poisson Equation and to apply certain BC's

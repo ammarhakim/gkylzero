@@ -17,54 +17,52 @@
 #include <gkyl_calc_metric.h>
 #include <gkyl_calc_bmag.h>
 
-struct gk_geom_surf*
+void
 gk_geometry_tok_surf_alloc(struct gk_geometry* gk_geom, int dir, struct gkyl_range nrange)
 {
 
-  struct gk_geom_surf *up_surf = gkyl_malloc(sizeof(struct gk_geom_surf));
-  //struct gk_geom_surf up_surf = gk_geom->geo_surf[dir];
-  int num_surf_quad = 4; // AS 2/24/25  hardcoded for now to p1
+  struct gk_geom_surf up_surf = gk_geom->geo_surf[dir];
+  int num_surf_quad = gk_geom->surf_basis.num_basis;
   // mapc2p for calculations of tangents
   int num_fd_nodes = 13;
-  up_surf->mc2p_nodal_fd = gkyl_array_new(GKYL_DOUBLE, gk_geom->grid.ndim*num_fd_nodes, nrange.volume);
-  up_surf->mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, gk_geom->grid.ndim, nrange.volume);
-  // bmag, metrics and derived geo quantities
-  up_surf->bmag_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
-  up_surf->ddtheta_nodal = gkyl_array_new(GKYL_DOUBLE, 3, nrange.volume);
-  up_surf->jacobgeo_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
-  up_surf->b_i_nodal = gkyl_array_new(GKYL_DOUBLE, 3, nrange.volume);
-  up_surf->cmag_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
-  up_surf->jacobtot_inv_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
+  up_surf.mc2p_nodal_fd = gkyl_array_new(GKYL_DOUBLE, gk_geom->grid.ndim*num_fd_nodes, nrange.volume);
+  up_surf.mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, gk_geom->grid.ndim, nrange.volume);
+  // bmag.metrics and derived geo quantities
+  up_surf.bmag_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
+  up_surf.ddtheta_nodal = gkyl_array_new(GKYL_DOUBLE, 3, nrange.volume);
+  up_surf.jacobgeo_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
+  up_surf.b_i_nodal = gkyl_array_new(GKYL_DOUBLE, 3, nrange.volume);
+  up_surf.cmag_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
+  up_surf.jacobtot_inv_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
 
-  up_surf->bmag = gkyl_array_new(GKYL_DOUBLE, 1*num_surf_quad, gk_geom->local_ext.volume);
-  up_surf->jacobgeo = gkyl_array_new(GKYL_DOUBLE, 1*num_surf_quad, gk_geom->local_ext.volume);
-  up_surf->jacobgeo_sync = gkyl_array_new(GKYL_DOUBLE, 1*num_surf_quad, gk_geom->local_ext.volume);
-  up_surf->b_i = gkyl_array_new(GKYL_DOUBLE, 3*num_surf_quad, gk_geom->local_ext.volume);
-  up_surf->cmag = gkyl_array_new(GKYL_DOUBLE, 1*num_surf_quad, gk_geom->local_ext.volume);
-  up_surf->jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, 1*num_surf_quad, gk_geom->local_ext.volume);
-  return up_surf;
+  up_surf.bmag = gkyl_array_new(GKYL_DOUBLE, 1*num_surf_quad, gk_geom->local_ext.volume);
+  up_surf.jacobgeo = gkyl_array_new(GKYL_DOUBLE, 1*num_surf_quad, gk_geom->local_ext.volume);
+  up_surf.jacobgeo_sync = gkyl_array_new(GKYL_DOUBLE, 1*num_surf_quad, gk_geom->local_ext.volume);
+  up_surf.b_i = gkyl_array_new(GKYL_DOUBLE, 3*num_surf_quad, gk_geom->local_ext.volume);
+  up_surf.cmag = gkyl_array_new(GKYL_DOUBLE, 1*num_surf_quad, gk_geom->local_ext.volume);
+  up_surf.jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, 1*num_surf_quad, gk_geom->local_ext.volume);
 }
 
 
 void
 gk_geometry_tok_surf_release_nodal(struct gk_geometry* gk_geom, int dir)
 {
-  struct gk_geom_surf *up_surf = gk_geom->geo_surf[dir];
-  gkyl_array_release(up_surf->mc2p_nodal_fd);
-  gkyl_array_release(up_surf->mc2p_nodal);
-  gkyl_array_release(up_surf->bmag_nodal);
-  gkyl_array_release(up_surf->ddtheta_nodal);
-  gkyl_array_release(up_surf->jacobgeo_nodal);
-  gkyl_array_release(up_surf->b_i_nodal);
-  gkyl_array_release(up_surf->cmag_nodal);
-  gkyl_array_release(up_surf->jacobtot_inv_nodal);
+  struct gk_geom_surf up_surf = gk_geom->geo_surf[dir];
+  gkyl_array_release(up_surf.mc2p_nodal_fd);
+  gkyl_array_release(up_surf.mc2p_nodal);
+  gkyl_array_release(up_surf.bmag_nodal);
+  gkyl_array_release(up_surf.ddtheta_nodal);
+  gkyl_array_release(up_surf.jacobgeo_nodal);
+  gkyl_array_release(up_surf.b_i_nodal);
+  gkyl_array_release(up_surf.cmag_nodal);
+  gkyl_array_release(up_surf.jacobtot_inv_nodal);
 }
 
 void
 gk_geometry_surf_calc_expansions(struct gk_geometry* gk_geom, int dir, 
   struct gkyl_range nrange_quad_surf)
 {
-  struct gk_geom_surf *up_surf = gk_geom->geo_surf[dir];
+  struct gk_geom_surf up_surf = gk_geom->geo_surf[dir];
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&gk_geom->basis, &gk_geom->grid, false);
 
   struct gkyl_range local_ext_in_dir;
@@ -74,12 +72,12 @@ gk_geometry_surf_calc_expansions(struct gk_geometry* gk_geom, int dir,
   gkyl_sub_range_init(&local_ext_in_dir, &gk_geom->local_ext, lower, upper);
 
 
-  gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 1, up_surf->bmag_nodal, up_surf->bmag, dir);
-  gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 1, up_surf->jacobgeo_nodal, up_surf->jacobgeo, dir);
-  gkyl_array_copy(up_surf->jacobgeo_sync, up_surf->jacobgeo);
-  gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 3, up_surf->b_i_nodal, up_surf->b_i, dir);
-  gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 1, up_surf->cmag_nodal, up_surf->cmag, dir);
-  gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 1, up_surf->jacobtot_inv_nodal, up_surf->jacobtot_inv, dir);
+  gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 1, up_surf.bmag_nodal, up_surf.bmag, dir);
+  gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 1, up_surf.jacobgeo_nodal, up_surf.jacobgeo, dir);
+  gkyl_array_copy(up_surf.jacobgeo_sync, up_surf.jacobgeo);
+  gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 3, up_surf.b_i_nodal, up_surf.b_i, dir);
+  gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 1, up_surf.cmag_nodal, up_surf.cmag, dir);
+  gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 1, up_surf.jacobtot_inv_nodal, up_surf.jacobtot_inv, dir);
   gkyl_nodal_ops_release(n2m);
 }
 
@@ -132,7 +130,7 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   // Initialize surface basis abd allocate surface geo
   gkyl_cart_modal_serendip(&up->surf_basis, up->grid.ndim-1, poly_order);
   for (int dir=0; dir<up->grid.ndim; ++dir) {
-    up->geo_surf[dir] = gk_geometry_tok_surf_alloc(up, dir, nrange_quad_surf[dir]);
+    gk_geometry_tok_surf_alloc(up, dir, nrange_quad_surf[dir]);
   }
 
   int num_fd_nodes = 13;
@@ -187,8 +185,8 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
     ddtheta_nodal, geometry_inp->position_map);
   // calculate mapc2p in cylindrical coords at surfaces
   for (int dir = 0; dir <up->grid.ndim; dir++) {
-    gkyl_tok_geo_calc_surface(up, dir, &nrange_quad_surf[dir], dzc, geo, &ginp, up->geo_surf[dir]->mc2p_nodal,
-      up->geo_surf[dir]->mc2p_nodal_fd, up->geo_surf[dir]->ddtheta_nodal, up->geo_surf[dir]->bmag_nodal, geometry_inp->position_map);
+    gkyl_tok_geo_calc_surface(up, dir, &nrange_quad_surf[dir], dzc, geo, &ginp, up->geo_surf[dir].mc2p_nodal,
+      up->geo_surf[dir].mc2p_nodal_fd, up->geo_surf[dir].ddtheta_nodal, up->geo_surf[dir].bmag_nodal, geometry_inp->position_map);
   }
 
   // calculate bmag at interior nodes
@@ -212,8 +210,8 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   gkyl_calc_metric_release(mcalc);
   // Calculate metrics/derived geo quantities at surface
   for (int dir = 0; dir <up->grid.ndim; dir++) {
-    gkyl_calc_metric_advance_rz_surface(mcalc, dir, &nrange_quad_surf[dir], up->geo_surf[dir]->mc2p_nodal_fd, up->geo_surf[dir]->ddtheta_nodal, up->geo_surf[dir]->bmag_nodal, dzc,
-      up->geo_surf[dir]->jacobgeo_nodal, up->geo_surf[dir]->b_i_nodal, up->geo_surf[dir]->cmag_nodal, up->geo_surf[dir]->jacobtot_inv_nodal, &up->local);
+    gkyl_calc_metric_advance_rz_surface(mcalc, dir, &nrange_quad_surf[dir], up->geo_surf[dir].mc2p_nodal_fd, up->geo_surf[dir].ddtheta_nodal, up->geo_surf[dir].bmag_nodal, dzc,
+      up->geo_surf[dir].jacobgeo_nodal, up->geo_surf[dir].b_i_nodal, up->geo_surf[dir].cmag_nodal, up->geo_surf[dir].jacobtot_inv_nodal, &up->local);
   }
   // Calculate surface expansions
   for (int dir = 0; dir <up->grid.ndim; dir++)
