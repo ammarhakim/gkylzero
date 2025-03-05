@@ -120,23 +120,26 @@ test_ambi_bolt_sheath_calc_1x()
   double *sheath_upper_c = ((double *) gkyl_array_cfetch(sheath_vals[1], 9));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c[0], sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c[1], 0, 1e-12));
-  TEST_CHECK(gkyl_compare_double(sheath_lower_c[2], log(1/(sqrt(2*M_PI)*0.5*1/4)), 1e-12));
+  TEST_CHECK(gkyl_compare_double(sheath_lower_c[2], log(1/(sqrt(2*M_PI)*0.5*1/4))*sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c[3], 0, 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_upper_c[0], sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_upper_c[1], 0, 1e-12));
-  TEST_CHECK(gkyl_compare_double(sheath_upper_c[2], log(1/(sqrt(2*M_PI)*0.5*1/4)), 1e-12));
+  TEST_CHECK(gkyl_compare_double(sheath_upper_c[2], log(1/(sqrt(2*M_PI)*0.5*1/4))*sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_upper_c[3], 0, 1e-12));
 
   // This operation happens after the sheaths are determined in the app, so we should test this
   gkyl_array_accumulate(sheath_vals[0], 1., sheath_vals[1]);
-  gkyl_array_scale(sheath_vals[0], 0.5);
 
   double *sheath_lower_c_avg = ((double *) gkyl_array_cfetch(sheath_vals[0], 0));
-  TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[0], sqrt(2)/2, 1e-12));
+  TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[0], sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[1], 0, 1e-12));
+  TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[2], log(1/(sqrt(2*M_PI)*0.5*1/4))*sqrt(2), 1e-12));
+  TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[3], 0, 1e-12));
   double *sheath_upper_c_avg = ((double *) gkyl_array_cfetch(sheath_vals[0], 9));
-  TEST_CHECK(gkyl_compare_double(sheath_upper_c_avg[0], sqrt(2)/2, 1e-12));
+  TEST_CHECK(gkyl_compare_double(sheath_upper_c_avg[0], sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_upper_c_avg[1], 0, 1e-12));
+  TEST_CHECK(gkyl_compare_double(sheath_upper_c_avg[2], log(1/(sqrt(2*M_PI)*0.5*1/4))*sqrt(2), 1e-12));
+  TEST_CHECK(gkyl_compare_double(sheath_upper_c_avg[3], 0, 1e-12));
 
   gkyl_ambi_bolt_potential_release(ambi);
   gkyl_proj_on_basis_release(proj_one);

@@ -222,6 +222,10 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     polarization_weight = 1.0; 
     f->ambi_pot = gkyl_ambi_bolt_potential_new(&app->grid, &app->basis, 
       f->info.electron_mass, f->info.electron_charge, f->info.electron_temp, app->use_gpu);
+    // sheath_vals contains both the ion density and the phi_sheath values, which is why it's 2* the size
+    // The first componenets are the ion density and the second are the sheath values.
+    // We have 2 arrays for each cdim direction because first index is the lower sheath and the higher
+    // index is the upper sheath
     for (int j=0; j<app->cdim; ++j) {
       f->sheath_vals[2*j]   = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
       f->sheath_vals[2*j+1] = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
