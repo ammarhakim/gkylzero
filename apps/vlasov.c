@@ -690,6 +690,19 @@ gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
         mt, app->field->ext_pot_host, fileNm_ext_pot);
     }
   }
+  // Also write out gravitational potential if present. 
+  if (app->field->alpha_g > 0.0) {
+    const char *fmt_grav = "%s-field_grav_%d.gkyl";
+    int sz_grav = gkyl_calc_strlen(fmt_grav, app->name, frame);
+    char fileNm_grav[sz_grav+1]; // ensures no buffer overflow
+    snprintf(fileNm_grav, sizeof fileNm_grav, fmt_grav, app->name, frame);
+    if (app->use_gpu) {
+      // copy data from device before writing it.
+      gkyl_array_copy(app->field->phi_g_host, app->field->phi_g); 
+    }
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
+      mt, app->field->phi_g_host, fileNm_grav);
+  }
 
   vlasov_array_meta_release(mt); 
 }
@@ -978,6 +991,26 @@ gkyl_vlasov_app_write_field_energy(gkyl_vlasov_app* app)
       }
     }
     gkyl_dynvec_clear(app->field->integ_energy);
+
+    // Write out gravitational energy if present
+    if (app->field->alpha_g > 0.0) {
+      const char *fmt_grav = "%s-field-grav-energy.gkyl";
+      int sz_grav = gkyl_calc_strlen(fmt_grav, app->name);
+      char fileNm_grav[sz_grav+1]; // ensures no buffer overflow
+      snprintf(fileNm_grav, sizeof fileNm_grav, fmt_grav, app->name);
+      if (rank == 0) {
+        if (app->field->is_first_grav_energy_write_call) {
+          // write to a new file (this ensure previous output is removed)
+          gkyl_dynvec_write(app->field->integ_grav_energy, fileNm_grav);
+          app->field->is_first_grav_energy_write_call = false;
+        }
+        else {
+          // append to existing file
+          gkyl_dynvec_awrite(app->field->integ_grav_energy, fileNm_grav);
+        }
+      }
+      gkyl_dynvec_clear(app->field->integ_grav_energy);  
+    }  
   }
 }
 
@@ -1444,6 +1477,9 @@ gkyl_vlasov_app_from_frame_field(gkyl_vlasov_app *app, int frame)
   }
 
   app->field->is_first_energy_write_call = false; // append to existing diagnostic
+  if (app->field->alpha_g > 0.0) {
+    app->field->is_first_grav_energy_write_call = false; // append to existing diagnostic
+  }
   
   return rstat;
 }

@@ -502,6 +502,10 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
         gkyl_array_set_range(species->qmem_ext, species->qbym, app->field->ext_em, &app->local);
       }
     }
+    // If including gravity, accumulate gravitational potential onto self-consistent potential. 
+    if (app->field->alpha_g > 0.0) {
+      gkyl_array_accumulate_range(species->qmem, species->info.mass, app->field->phi_g, &app->local); 
+    }
 
     gkyl_dg_updater_vlasov_poisson_advance(species->slvr, &species->local,
       fin, species->cflrate, rhs);

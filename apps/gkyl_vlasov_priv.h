@@ -540,6 +540,25 @@ struct vm_field {
       struct gkyl_array *es_energy_fac; // Factor in calculation of ES energy diagnostic.
       struct gkyl_array_integrate *calc_es_energy;
       double *es_energy_red, *es_energy_red_global; // Memory for use in GPU reduction of ES energy.
+
+      // Gravity solve arrays and updaters
+      double alpha_g; // Normalized ratio of strength of gravity compared to electromagnetic interactions. 
+      struct gkyl_array *epsilon_g;  // Permittivity in self-gravity Poisson equation.
+    
+      struct gkyl_array *rho_m, *rho_m_global; // Local and global mass density.
+      struct gkyl_array *phi_g, *phi_g_global; // Local and global gravitational potential.
+    
+      struct gkyl_array *phi_g_host;  // host copy for use IO and initialization
+
+      // Poisson solver for - nabla . (epsilon * nabla phi) - kSq * phi = rho.  
+      // For gravity, this simplifies to nabla^2 phi = alpha_g*rho_m 
+      // where alpha_g is the normalized ratio of the strength of gravity compared
+      // to the strength of electromagnetic interactions, alpha_g = 4 pi G epsilon0 m^2/q^2
+      struct gkyl_fem_poisson *fem_poisson_grav; 
+
+      double *grav_energy_red, *grav_energy_red_global; // Memory for use in GPU reduction of gravitational energy.   
+      bool is_first_grav_energy_write_call; // flag for gravitational energy dynvec written first time
+      gkyl_dynvec integ_grav_energy; // integrated energy components   
     };
   };
 

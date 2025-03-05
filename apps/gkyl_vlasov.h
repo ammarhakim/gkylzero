@@ -198,6 +198,9 @@ struct gkyl_vlasov_field {
 
   double epsilon0, mu0;
   double elcErrorSpeedFactor, mgnErrorSpeedFactor;
+  // normalized ratio of the strength of gravity compared to electromagnetism
+  // alpha_g = 4 pi G epsilon0 m^2/q^2; assumes epsilon0 = 1.0
+  double alpha_g; 
 
   void *ctx; // context for initial condition init function
   // pointer to initialization function

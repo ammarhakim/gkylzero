@@ -981,6 +981,7 @@ vlasov_field_lw_new(lua_State *L)
   vm_field.mu0 = glua_tbl_get_number(L, "mu0", 1.0);
   vm_field.elcErrorSpeedFactor = glua_tbl_get_number(L, "elcErrorSpeedFactor", 0.0);
   vm_field.mgnErrorSpeedFactor = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
+  vm_field.alpha_g = glua_tbl_get_number(L, "alphaG", 0.0);
   vm_field.limit_em = glua_tbl_get_bool(L, "limitField", false);
 
   bool evolve = glua_tbl_get_bool(L, "evolve", true);

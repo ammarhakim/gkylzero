@@ -9,6 +9,46 @@
 #include <float.h>
 #include <time.h>
 
+static void
+vp_grav_field_new(struct gkyl_vlasov_app *app, struct vm_field *field)
+{
+  field->alpha_g = field->info.alpha_g; 
+  // Allocate arrays for mass density.
+  field->rho_m  = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  field->rho_m_global = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
+
+  // Allocate arrays for gravitational potential.
+  field->phi_g = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  field->phi_g_global = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
+
+  // Host potential for  I/O.
+  field->phi_g_host = app->use_gpu ? mkarr(false, app->confBasis.num_basis, app->local_ext.volume)
+                              : gkyl_array_acquire(field->phi_g); 
+
+  // Set the permittivity in the Poisson equation.
+  // Since this is a gravity solve, 
+  field->epsilon_g = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
+  gkyl_array_clear(field->epsilon_g, 0.0);
+  gkyl_array_shiftc(field->epsilon_g, -1.0*pow(sqrt(2.0),app->cdim), 0);
+
+  // Create Poisson solver for gravity.
+  field->fem_poisson_grav = gkyl_fem_poisson_new(&app->global, &app->grid, app->confBasis,
+    &field->info.poisson_bcs, NULL, field->epsilon_g, NULL, true, app->use_gpu);  
+
+  // Initialize arrays for finding the gravitational potential energy. 
+  if (app->use_gpu) {
+    field->grav_energy_red = gkyl_cu_malloc(sizeof(double[1]));
+    field->grav_energy_red_global = gkyl_cu_malloc(sizeof(double[1]));
+  } 
+  else {
+    field->grav_energy_red = gkyl_malloc(sizeof(double[1]));
+    field->grav_energy_red_global = gkyl_malloc(sizeof(double[1]));
+  }
+
+  field->integ_grav_energy = gkyl_dynvec_new(GKYL_DOUBLE, 1); 
+  field->is_first_grav_energy_write_call = true;   
+}
+
 void
 vp_field_calc_ext_pot(gkyl_vlasov_app *app, struct vm_field *field, double tm)
 {
@@ -111,6 +151,15 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     1, GKYL_ARRAY_INTEGRATE_OP_GRAD_SQ, app->use_gpu);
   vpf->is_first_energy_write_call = true;
 
+  vpf->alpha_g = 0.0; 
+  // Also initialize the needed arrays and updaters for a gravity solve if the 
+  // user asks for gravity via the alpha_g parameter. 
+  // alpha_g = 4 pi G epsilon0 m^2/q^2 gives the normalized ratio of the 
+  // strength of gravity compared to the strength of electromagnetic interactions. 
+  if (vpf->info.alpha_g > 0.0) {
+    vp_grav_field_new(app, vpf); 
+  }
+
   return vpf;
 }
 
@@ -118,9 +167,11 @@ void
 vp_field_accumulate_charge_dens(gkyl_vlasov_app *app, struct vm_field *field,
   const struct gkyl_array *fin[])
 {
-  // Calcualte the charge density.
-
+  // Calculate the charge density and potentially the mass density (if there is gravity).
   gkyl_array_clear(field->rho_c, 0.0);
+  if (field->alpha_g > 0.0) {
+    gkyl_array_clear(field->rho_m, 0.0);
+  }
 
   for (int i=0; i<app->num_species; ++i) {
     struct vm_species *s = &app->species[i];
@@ -128,6 +179,10 @@ vp_field_accumulate_charge_dens(gkyl_vlasov_app *app, struct vm_field *field,
     vm_species_moment_calc(&s->m0, s->local, app->local, fin[i]);
 
     gkyl_array_accumulate_range(field->rho_c, s->info.charge, s->m0.marr, &app->local);
+    // If there is gravity, also accumulate the mass density 
+    if (field->alpha_g > 0.0) { 
+      gkyl_array_accumulate_range(field->rho_m, field->alpha_g, s->m0.marr, &app->local);
+    }
   }
 }
 
@@ -146,7 +201,20 @@ vp_field_solve(gkyl_vlasov_app *app, struct vm_field *field)
 
   // Copy the portion of global potential corresponding to this MPI pcross to the local potential.
   gkyl_array_copy_range_to_range(field->phi, field->phi_global, &app->local, &field->global_sub_range);
-  
+
+  // If there is gravity, also solve for the gravitational potential 
+  if (field->alpha_g > 0.0) {
+    // Gather mass density into global array.
+    gkyl_comm_array_allgather(app->comm, &app->local, &app->global, field->rho_m, field->rho_m_global);
+
+    // Solve the Poisson problem for the gravitational potential.
+    gkyl_fem_poisson_set_rhs(field->fem_poisson_grav, field->rho_m_global, NULL);
+    gkyl_fem_poisson_solve(field->fem_poisson_grav, field->phi_g_global);
+
+    // Copy the portion of global gravitational potential corresponding to this MPI pcross to the local potential.
+    gkyl_array_copy_range_to_range(field->phi_g, field->phi_g_global, &app->local, &field->global_sub_range);
+  }
+
   app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -190,6 +258,21 @@ vp_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *fie
     energy_global[0] = field->es_energy_red_global[0];
 
   gkyl_dynvec_append(field->integ_energy, tm, energy_global);
+
+  if (field->alpha_g > 0.0) {
+    gkyl_array_integrate_advance(field->calc_es_energy, field->phi_g,
+      app->grid.cellVolume, field->es_energy_fac, &app->local, &app->local, field->grav_energy_red);
+  
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->grav_energy_red, field->grav_energy_red_global);
+  
+    double energy_grav_global[1] = { 0.0 };
+    if (app->use_gpu)
+      gkyl_cu_memcpy(energy_grav_global, field->grav_energy_red_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
+    else
+      energy_grav_global[0] = field->grav_energy_red_global[0];
+  
+    gkyl_dynvec_append(field->integ_grav_energy, tm, energy_grav_global);    
+  }
 }
  
 void
@@ -231,6 +314,28 @@ vp_field_release(const gkyl_vlasov_app* app, struct vm_field *vpf)
 
   gkyl_array_release(vpf->rho_c_global);
   gkyl_array_release(vpf->rho_c);
+
+  if (vpf->alpha_g > 0.0) {
+    gkyl_dynvec_release(vpf->integ_grav_energy);
+    if (app->use_gpu) {
+      gkyl_cu_free(vpf->grav_energy_red);
+      gkyl_cu_free(vpf->grav_energy_red_global);
+    } 
+    else {
+      gkyl_free(vpf->grav_energy_red);
+      gkyl_free(vpf->grav_energy_red_global);
+    }
+  
+    gkyl_fem_poisson_release(vpf->fem_poisson_grav);
+    gkyl_array_release(vpf->epsilon_g);  
+
+    gkyl_array_release(vpf->phi_g_host);
+    gkyl_array_release(vpf->phi_g);
+    gkyl_array_release(vpf->phi_g_global);
+  
+    gkyl_array_release(vpf->rho_m_global);
+    gkyl_array_release(vpf->rho_m);  
+  }
 
   free(vpf);
 }
