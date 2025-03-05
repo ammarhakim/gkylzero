@@ -434,6 +434,7 @@ struct gk_recycle_wall {
   struct gkyl_array *f_emit;
   struct gkyl_array *init_flux;
   struct gkyl_array *init_bflux_arr;
+  struct gkyl_array *emit_flux;
   struct gkyl_array *buffer;
   struct gkyl_array *elastic_yield;
   struct gkyl_array *yield[GKYL_MAX_SPECIES]; // projected secondary electron yield
@@ -2237,6 +2238,20 @@ void gk_neut_species_recycle_cross_init(struct gkyl_gyrokinetic_app *app, struct
  */
 void gk_neut_species_recycle_apply_bc(struct gkyl_gyrokinetic_app *app, const struct gk_recycle_wall *recyc,
   const struct gk_neut_species *s, struct gkyl_array *fout);
+
+
+/**
+ * Write recycle flux diagnostics.
+ *
+ * @param app Gyrokinetic app object
+ * @param s Gk_neut_species to apply BCs for
+ * @param recyc Recycling bc object
+ * @param tm Simulation time 
+ * @param frame Simulation frame
+ */
+void
+gk_neut_species_recycle_write_flux(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
+  struct gk_recycle_wall *recyc, double tm, int frame);
 
 /**
  * Release recycle BC object.

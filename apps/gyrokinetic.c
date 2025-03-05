@@ -1115,6 +1115,18 @@ gkyl_gyrokinetic_app_write_species_boundary_flux_integrated_mom(gkyl_gyrokinetic
   gk_species_bflux_write_integrated_mom(app, gks, &gks->bflux_diag);
 }
 
+void
+gkyl_gyrokinetic_app_write_neut_species_recycle_flux(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame)
+{
+  struct gk_neut_species *gkns = &app->neut_species[sidx];
+  if (gkns->recyc_lo) {
+    gk_neut_species_recycle_write_flux(app, gkns, &gkns->bc_recycle_lo, tm, frame);
+  }
+  if (gkns->recyc_up) {
+    gk_neut_species_recycle_write_flux(app, gkns, &gkns->bc_recycle_up, tm, frame);
+  }
+}
+
 //
 // ............. Source outputs ............... //
 // 
@@ -1316,6 +1328,8 @@ gkyl_gyrokinetic_app_write_neut_species_conf(gkyl_gyrokinetic_app* app, int sidx
   gkyl_gyrokinetic_app_write_neut_species_source_mom(app, sidx, tm, frame);
 
   struct gk_neut_species *gkns = &app->neut_species[sidx];
+
+  gkyl_gyrokinetic_app_write_neut_species_recycle_flux(app, sidx, tm, frame);
   for (int j=0; j<gkns->react_neut.num_react; ++j) {
     gkyl_gyrokinetic_app_write_neut_species_react_neut(app, sidx, j, tm, frame);
   }
