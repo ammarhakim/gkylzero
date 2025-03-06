@@ -67,10 +67,9 @@ gk_neut_species_recycle_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
 
   recyc->init_flux = mkarr(app->use_gpu, app->basis.num_basis, recyc->emit_cbuff_r->volume);
   recyc->emit_flux = mkarr(app->use_gpu, app->basis.num_basis, recyc->emit_cbuff_r->volume);
-  recyc->emit_flux_ho = recyc->emit_flux;
-  if(app->use_gpu) {
-    recyc->emit_flux_ho = mkarr(false, app->basis.num_basis, recyc->emit_cbuff_r->volume);
-  }  
+
+  // For writing diagnostics
+  recyc->diag_out = mkarr(false, app->basis.num_basis, app->local.volume);
   
   recyc->init_conf_grid = &s->bflux.conf_boundary_grid[bdir];
   
@@ -119,12 +118,7 @@ gk_neut_species_recycle_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
       &gks->basis, recyc->emit_cbuff_r, gks->info.mass, gks->info.charge, gks->vel_map,
       app->gk_geom, app->field->phi_smooth, "M0", 0, app->use_gpu);
     
-    recyc->flux[i] = mkarr(app->use_gpu, app->basis.num_basis, recyc->impact_cbuff_r[i]->volume);
-    recyc->flux_ho[i] = recyc->flux[i];
-    if(app->use_gpu) {
-      recyc->flux_ho[i] = mkarr(false, app->basis.num_basis, recyc->impact_cbuff_r[i]->volume);
-    }
-    
+    recyc->flux[i] = mkarr(app->use_gpu, app->basis.num_basis, recyc->impact_cbuff_r[i]->volume);    
     recyc->bflux_arr[i] = gks->bflux_solver.flux_arr[bdir];
 
     gkyl_bc_emission_flux_ranges(&recyc->impact_normal_r[i], recyc->dir + cdim, recyc->impact_buff_r[i],
@@ -196,7 +190,7 @@ gk_neut_species_recycle_write_flux(struct gkyl_gyrokinetic_app *app, struct gk_n
   const char *edge = (recyc->edge == GKYL_LOWER_EDGE)? "lower" : "upper";
   
   for (int i=0; i<recyc->num_species; ++i) {
-    
+
     const char *fmt = "%s-%s_recyc_flux_%s_%d.gkyl";
     int sz = gkyl_calc_strlen(fmt, app->name, recyc->impact_species[i]->info.name,
       edge, frame);
@@ -206,13 +200,13 @@ gk_neut_species_recycle_write_flux(struct gkyl_gyrokinetic_app *app, struct gk_n
     
     gkyl_dg_updater_moment_gyrokinetic_advance(recyc->flux_slvr[i], &recyc->impact_normal_r[i],
       recyc->emit_cbuff_r, recyc->bflux_arr[i], recyc->flux[i]);
-    if (app->use_gpu) {
-      gkyl_array_copy(recyc->flux_ho[i], recyc->flux[i]);
-    }
+    gkyl_array_clear(recyc->diag_out, 0.0);
+    gkyl_array_copy_range_to_range(recyc->diag_out, recyc->flux[i], recyc->emit_buff_r,
+      recyc->emit_skin_r);
 
     struct timespec wtm = gkyl_wall_clock();
     gkyl_comm_array_write(app->comm, recyc->impact_conf_grid[i], recyc->emit_cbuff_r,
-      mt, recyc->flux_ho[i], fileNm);
+      mt, recyc->diag_out, fileNm);
     app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
   }
 
@@ -236,13 +230,14 @@ gk_neut_species_recycle_write_flux(struct gkyl_gyrokinetic_app *app, struct gk_n
     recyc->emit_ghost_r);
   gkyl_dg_updater_moment_advance(recyc->init_flux_slvr, &recyc->emit_normal_r, recyc->emit_cbuff_r, recyc->init_bflux_arr,
   				 recyc->emit_flux);
-  if (app->use_gpu) {
-    gkyl_array_copy(recyc->emit_flux_ho, recyc->emit_flux);
-  }
+
+  gkyl_array_clear(recyc->diag_out, 0.0);
+  gkyl_array_copy_range_to_range(recyc->diag_out, recyc->emit_flux, recyc->emit_buff_r,
+    recyc->emit_skin_r);
   
   struct timespec wtm = gkyl_wall_clock();
   gkyl_comm_array_write(app->comm, recyc->init_conf_grid, recyc->emit_cbuff_r,
-      mt, recyc->emit_flux_ho, fileNm);
+      mt, recyc->diag_out, fileNm);
   app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
   app->stat.n_diag_io += 1;
 
@@ -257,13 +252,10 @@ gk_neut_species_recycle_release(const struct gkyl_gyrokinetic_app *app, const st
   gkyl_array_release(recyc->init_bflux_arr);
   gkyl_array_release(recyc->f_diag);
   gkyl_array_release(recyc->emit_flux);
+  gkyl_array_release(recyc->diag_out);
   gkyl_dg_updater_moment_release(recyc->init_flux_slvr);
   gkyl_dg_bin_op_mem_release(recyc->mem_geo);
   gkyl_ghost_surf_calc_release(recyc->f0_flux_slvr);
-
-  if (app->use_gpu) {
-    gkyl_array_release(recyc->emit_flux_ho);
-  }
   
   if (recyc->elastic) {
     gkyl_array_release(recyc->elastic_yield);
@@ -273,8 +265,5 @@ gk_neut_species_recycle_release(const struct gkyl_gyrokinetic_app *app, const st
     gkyl_array_release(recyc->spectrum[i]);
     gkyl_array_release(recyc->flux[i]);
     gkyl_dg_updater_moment_release(recyc->flux_slvr[i]);
-    if (app->use_gpu) {
-      gkyl_array_release(recyc->flux_ho[i]);
-    }
   }
 }
