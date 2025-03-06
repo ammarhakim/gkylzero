@@ -537,7 +537,7 @@ gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *f
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
 
-    // Assumes symmetric sheath BCs for now only in 1D
+    // Assumes symmetric sheath BCs
     gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_LOWER_EDGE, 
       &app->lower_skin[idx_par], &app->lower_ghost[idx_par], app->gk_geom->jacobgeo_inv, 
       s->bflux_solver.gammai[off].marr, field->rho_c, field->sheath_vals[off]);
