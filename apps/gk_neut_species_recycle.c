@@ -188,6 +188,7 @@ gk_neut_species_recycle_write_flux(struct gkyl_gyrokinetic_app *app, struct gk_n
   );
 
   const char *edge = (recyc->edge == GKYL_LOWER_EDGE)? "lower" : "upper";
+  struct gkyl_range *cskin_r = (recyc->edge == GKYL_LOWER_EDGE) ? &app->lower_skin[recyc->dir] : &app->upper_skin[recyc->dir];
   
   for (int i=0; i<recyc->num_species; ++i) {
 
@@ -201,11 +202,11 @@ gk_neut_species_recycle_write_flux(struct gkyl_gyrokinetic_app *app, struct gk_n
     gkyl_dg_updater_moment_gyrokinetic_advance(recyc->flux_slvr[i], &recyc->impact_normal_r[i],
       recyc->emit_cbuff_r, recyc->bflux_arr[i], recyc->flux[i]);
     gkyl_array_clear(recyc->diag_out, 0.0);
-    gkyl_array_copy_range_to_range(recyc->diag_out, recyc->flux[i], recyc->emit_buff_r,
-      recyc->emit_skin_r);
+    gkyl_array_copy_range_to_range(recyc->diag_out, recyc->flux[i], cskin_r,
+      recyc->emit_cbuff_r);
 
     struct timespec wtm = gkyl_wall_clock();
-    gkyl_comm_array_write(app->comm, recyc->impact_conf_grid[i], recyc->emit_cbuff_r,
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local,
       mt, recyc->diag_out, fileNm);
     app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
   }
@@ -232,11 +233,11 @@ gk_neut_species_recycle_write_flux(struct gkyl_gyrokinetic_app *app, struct gk_n
   				 recyc->emit_flux);
 
   gkyl_array_clear(recyc->diag_out, 0.0);
-  gkyl_array_copy_range_to_range(recyc->diag_out, recyc->emit_flux, recyc->emit_buff_r,
-    recyc->emit_skin_r);
+  gkyl_array_copy_range_to_range(recyc->diag_out, recyc->emit_flux, cskin_r,
+    recyc->emit_cbuff_r);
   
   struct timespec wtm = gkyl_wall_clock();
-  gkyl_comm_array_write(app->comm, recyc->init_conf_grid, recyc->emit_cbuff_r,
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local,
       mt, recyc->diag_out, fileNm);
   app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
   app->stat.n_diag_io += 1;
