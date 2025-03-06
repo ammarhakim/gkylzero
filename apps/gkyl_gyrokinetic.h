@@ -104,6 +104,13 @@ struct gkyl_gyrokinetic_source {
   struct gkyl_phase_diagnostics_inp diagnostics;
 };
 
+//
+struct gkyl_gyrokinetic_emission_inp {
+  int num_species;
+  char in_species[GKYL_MAX_SPECIES][128];
+  double rec_frac; // recycling coefficient.
+};
+
 // Parameters for boundary conditions
 struct gkyl_gyrokinetic_bc {
   enum gkyl_species_bc_type type; // BC type flag.
@@ -111,6 +118,7 @@ struct gkyl_gyrokinetic_bc {
   void *aux_ctx; // Context for aux_profile.
   double aux_parameter; // Parameter for aux_profile (maybe redundant).
   struct gkyl_gyrokinetic_projection projection; // Projection object input (e.g. for FIXED_FUNC).
+  struct gkyl_gyrokinetic_emission_inp emission; 
 };
 
 struct gkyl_gyrokinetic_bcs {

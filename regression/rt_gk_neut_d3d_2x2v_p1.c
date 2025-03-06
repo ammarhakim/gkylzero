@@ -574,8 +574,8 @@ create_ctx(void)
   double floor_src = 1e-2;
 
   // Grid parameters
-  int Nx = 16;
-  int Nz = 32;
+  int Nx = 8;
+  int Nz = 8;
   int Nvpar = 8;
   int Nmu = 6;
   int poly_order = 1;
@@ -587,7 +587,7 @@ create_ctx(void)
   double vmax_neut = 4.*vtn; 
 
   double write_phase_freq = 1; //0.1;
-  double t_end = 1.e-6;
+  double t_end = 1e-7;
   int num_frames = 1;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -729,8 +729,9 @@ main(int argc, char **argv)
     .upper = {  1.0/sqrt(2.0), 1.0},
     .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
-    .is_static = true,
-
+    //.is_static = true,
+    //.static_from_frame = true,
+    
     .mapc2p = {
       .mapping = mapc2p_vel_elc,
       .ctx = &ctx,
@@ -746,82 +747,82 @@ main(int argc, char **argv)
       .temp = temp_elc,
     },
 
-    /* .collisions =  { */
-    /*   .collision_id = GKYL_LBO_COLLISIONS, */
-    /*   .ctx = &ctx, */
-    /*   .self_nu = nuElc, */
-    /*   .num_cross_collisions = 1, */
-    /*   .collide_with = { "ion" }, */
-    /* }, */
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .ctx = &ctx,
+      .self_nu = nuElc,
+      .num_cross_collisions = 1,
+      .collide_with = { "ion" },
+    },
 
-    /* .source = { */
-    /*   .source_id = GKYL_PROJ_SOURCE, */
-    /*   .num_sources = 1, */
-    /*   .projection[0] = { */
-    /*     .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, */
-    /*     .ctx_density = &ctx, */
-    /*     .ctx_upar = &ctx, */
-    /*     .ctx_temp = &ctx, */
-    /*     .density = density_srcOMP, */
-    /*     .upar = zero_func, */
-    /*     .temp = temp_elc_srcOMP, */
-    /*   }, */
-    /*   .projection[1] = { */
-    /*     .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, */
-    /*     .ctx_density = &ctx, */
-    /*     .ctx_upar = &ctx, */
-    /*     .ctx_temp = &ctx, */
-    /*     .density = density_elc_srcGB, */
-    /*     .upar = zero_func, */
-    /*     .temp = temp_elc_srcGB, */
-    /*   }, */
-    /* }, */
+    .source = {
+      .source_id = GKYL_PROJ_SOURCE,
+      .num_sources = 1,
+      .projection[0] = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+        .ctx_density = &ctx,
+        .ctx_upar = &ctx,
+        .ctx_temp = &ctx,
+        .density = density_srcOMP,
+        .upar = zero_func,
+        .temp = temp_elc_srcOMP,
+      },
+      .projection[1] = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+        .ctx_density = &ctx,
+        .ctx_upar = &ctx,
+        .ctx_temp = &ctx,
+        .density = density_elc_srcGB,
+        .upar = zero_func,
+        .temp = temp_elc_srcGB,
+      },
+    },
 
-    /* .react_neut = { */
-    /*   .num_react = 3, */
-    /*   .react_type = { */
-    /*     { .react_id = GKYL_REACT_IZ, */
-    /*       .type_self = GKYL_SELF_ELC, */
-    /*       .ion_id = GKYL_ION_H, */
-    /* 	  .elc_nm = "elc", */
-    /*       .ion_nm = "ion", */
-    /*       .donor_nm = "D0", */
-    /* 	  .charge_state = 0, */
-    /*       .ion_mass = ctx.mi, */
-    /*       .elc_mass = ctx.me, */
-    /*     }, */
-    /* 	{ .react_id = GKYL_REACT_RECOMB, */
-    /*       .type_self = GKYL_SELF_ELC, */
-    /*       .ion_id = GKYL_ION_H, */
-    /* 	  .elc_nm = "elc", */
-    /*       .ion_nm = "ion", */
-    /*       .donor_nm = "D0", */
-    /* 	  .charge_state = 0, */
-    /*       .ion_mass = ctx.mi, */
-    /*       .elc_mass = ctx.me, */
-    /*     }, */
-    /* 	{ .react_id = GKYL_REACT_CX, */
-    /*       .type_self = GKYL_SELF_ELC, */
-    /*       .ion_id = GKYL_ION_H, */
-    /* 	  .elc_nm = "elc", // gets called for other rxn. fix this? */
-    /*       .ion_nm = "ion", */
-    /*       .partner_nm = "D0", */
-    /*       .ion_mass = ctx.mi, */
-    /*       .partner_mass = ctx.mi, */
-    /*     }, */
-    /*   }, */
-    /* }, */
+    .react_neut = {
+      .num_react = 3,
+      .react_type = {
+        { .react_id = GKYL_REACT_IZ,
+          .type_self = GKYL_SELF_ELC,
+          .ion_id = GKYL_ION_H,
+    	  .elc_nm = "elc",
+          .ion_nm = "ion",
+          .donor_nm = "D0",
+    	  .charge_state = 0,
+          .ion_mass = ctx.mi,
+          .elc_mass = ctx.me,
+        },
+    	{ .react_id = GKYL_REACT_RECOMB,
+          .type_self = GKYL_SELF_ELC,
+          .ion_id = GKYL_ION_H,
+    	  .elc_nm = "elc",
+          .ion_nm = "ion",
+          .donor_nm = "D0",
+    	  .charge_state = 0,
+          .ion_mass = ctx.mi,
+          .elc_mass = ctx.me,
+        },
+    	{ .react_id = GKYL_REACT_CX,
+          .type_self = GKYL_SELF_ELC,
+          .ion_id = GKYL_ION_H,
+    	  .elc_nm = "elc", // gets called for other rxn. fix this?
+          .ion_nm = "ion",
+          .partner_nm = "D0",
+          .ion_mass = ctx.mi,
+          .partner_mass = ctx.mi,
+        },
+      },
+    },
 
-    /* .bcx = { */
-    /*   .lower={.type = GKYL_SPECIES_ABSORB,}, */
-    /*   .upper={.type = GKYL_SPECIES_ABSORB,}, */
-    /* }, */
-    /* .bcz = { */
-    /*   .lower={.type = GKYL_SPECIES_GK_SHEATH, */
-    /*   }, */
-    /*   .upper={.type = GKYL_SPECIES_GK_SHEATH, */
-    /*   }, */
-    /* }, */
+    .bcx = {
+      .lower={.type = GKYL_SPECIES_ABSORB,},
+      .upper={.type = GKYL_SPECIES_ABSORB,},
+    },
+    .bcz = {
+      .lower={.type = GKYL_SPECIES_GK_SHEATH,
+      },
+      .upper={.type = GKYL_SPECIES_GK_SHEATH,
+      },
+    },
 
     .num_diag_moments = 1,
     .diag_moments = { "MaxwellianMoments" },
@@ -835,8 +836,9 @@ main(int argc, char **argv)
     .upper = {  1.0/sqrt(2.0), 1.0},
     .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
-    .is_static = true,
-
+    //.is_static = true,
+    //.static_from_frame = true,
+    
     .mapc2p = {
       .mapping = mapc2p_vel_ion,
       .ctx = &ctx,
@@ -852,82 +854,82 @@ main(int argc, char **argv)
       .temp = temp_ion,
     },
 
-    /* .collisions =  { */
-    /*   .collision_id = GKYL_LBO_COLLISIONS, */
-    /*   .ctx = &ctx, */
-    /*   .self_nu = nuIon, */
-    /*   .num_cross_collisions = 1, */
-    /*   .collide_with = { "elc" }, */
-    /* }, */
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .ctx = &ctx,
+      .self_nu = nuIon,
+      .num_cross_collisions = 1,
+      .collide_with = { "elc" },
+    },
 
-    /* .source = { */
-    /*   .source_id = GKYL_PROJ_SOURCE, */
-    /*   .num_sources = 1, */
-    /*   .projection[0] = { */
-    /*     .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, */
-    /*     .ctx_density = &ctx, */
-    /*     .ctx_upar = &ctx, */
-    /*     .ctx_temp = &ctx, */
-    /*     .density = density_srcOMP, */
-    /*     .upar = zero_func, */
-    /*     .temp = temp_ion_srcOMP, */
-    /*   }, */
-    /*   .projection[1] = { */
-    /*     .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, */
-    /*     .ctx_density = &ctx, */
-    /*     .ctx_upar = &ctx, */
-    /*     .ctx_temp = &ctx, */
-    /*     .density = density_ion_srcGB, */
-    /*     .upar = zero_func, */
-    /*     .temp = temp_ion_srcGB, */
-    /*   }, */
-    /* }, */
+    .source = {
+      .source_id = GKYL_PROJ_SOURCE,
+      .num_sources = 1,
+      .projection[0] = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+        .ctx_density = &ctx,
+        .ctx_upar = &ctx,
+        .ctx_temp = &ctx,
+        .density = density_srcOMP,
+        .upar = zero_func,
+        .temp = temp_ion_srcOMP,
+      },
+      .projection[1] = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+        .ctx_density = &ctx,
+        .ctx_upar = &ctx,
+        .ctx_temp = &ctx,
+        .density = density_ion_srcGB,
+        .upar = zero_func,
+        .temp = temp_ion_srcGB,
+      },
+    },
 
-    /* .react_neut = { */
-    /*   .num_react = 3, */
-    /*   .react_type = { */
-    /*     { .react_id = GKYL_REACT_IZ, */
-    /*       .type_self = GKYL_SELF_ION, */
-    /*       .ion_id = GKYL_ION_H, */
-    /* 	  .elc_nm = "elc", */
-    /*       .ion_nm = "ion", */
-    /*       .donor_nm = "D0", */
-    /* 	  .charge_state = 0, */
-    /*       .ion_mass = ctx.mi, */
-    /*       .elc_mass = ctx.me, */
-    /*     }, */
-    /* 	{ .react_id = GKYL_REACT_RECOMB, */
-    /*       .type_self = GKYL_SELF_ION, */
-    /*       .ion_id = GKYL_ION_H, */
-    /* 	  .elc_nm = "elc", */
-    /*       .ion_nm = "ion", */
-    /*       .donor_nm = "D0", */
-    /* 	  .charge_state = 0, */
-    /*       .ion_mass = ctx.mi, */
-    /*       .elc_mass = ctx.me, */
-    /*     }, */
-    /* 	{ .react_id = GKYL_REACT_CX, */
-    /*       .type_self = GKYL_SELF_ION, */
-    /*       .ion_id = GKYL_ION_H, */
-    /* 	  .elc_nm = "elc", // gets called for other rxn. fix this? */
-    /*       .ion_nm = "ion", */
-    /*       .partner_nm = "D0", */
-    /*       .ion_mass = ctx.mi, */
-    /*       .partner_mass = ctx.mi, */
-    /*     }, */
-    /*   }, */
-    /* }, */
+    .react_neut = {
+      .num_react = 3,
+      .react_type = {
+        { .react_id = GKYL_REACT_IZ,
+          .type_self = GKYL_SELF_ION,
+          .ion_id = GKYL_ION_H,
+    	  .elc_nm = "elc",
+          .ion_nm = "ion",
+          .donor_nm = "D0",
+    	  .charge_state = 0,
+          .ion_mass = ctx.mi,
+          .elc_mass = ctx.me,
+        },
+    	{ .react_id = GKYL_REACT_RECOMB,
+          .type_self = GKYL_SELF_ION,
+          .ion_id = GKYL_ION_H,
+    	  .elc_nm = "elc",
+          .ion_nm = "ion",
+          .donor_nm = "D0",
+    	  .charge_state = 0,
+          .ion_mass = ctx.mi,
+          .elc_mass = ctx.me,
+        },
+    	{ .react_id = GKYL_REACT_CX,
+          .type_self = GKYL_SELF_ION,
+          .ion_id = GKYL_ION_H,
+    	  .elc_nm = "elc", // gets called for other rxn. fix this?
+          .ion_nm = "ion",
+          .partner_nm = "D0",
+          .ion_mass = ctx.mi,
+          .partner_mass = ctx.mi,
+        },
+      },
+    },
 
-    /* .bcx = { */
-    /*   .lower={.type = GKYL_SPECIES_ABSORB,}, */
-    /*   .upper={.type = GKYL_SPECIES_ABSORB,}, */
-    /* }, */
-    /* .bcz = { */
-    /*   .lower={.type = GKYL_SPECIES_GK_SHEATH, */
-    /*   }, */
-    /*   .upper={.type = GKYL_SPECIES_GK_SHEATH, */
-    /*   }, */
-    /* }, */
+    .bcx = {
+      .lower={.type = GKYL_SPECIES_ABSORB,},
+      .upper={.type = GKYL_SPECIES_ABSORB,},
+    },
+    .bcz = {
+      .lower={.type = GKYL_SPECIES_GK_SHEATH,
+      },
+      .upper={.type = GKYL_SPECIES_GK_SHEATH,
+      },
+    },
 
     .num_diag_moments = 1,
     .diag_moments = { "MaxwellianMoments" },
@@ -988,11 +990,6 @@ main(int argc, char **argv)
       .lower={.type = GKYL_SPECIES_ABSORB,},
       .upper={.type = GKYL_SPECIES_ABSORB,},
     },
-    /* .bcz = { */
-    /*   .lower={.type = GKYL_SPECIES_ABSORB,}, */
-    /*   .upper={.type = GKYL_SPECIES_ABSORB,}, */
-    /* }, */
-
     .bcy = {
       .lower = { .type = GKYL_SPECIES_RECYCLE,
         .aux_ctx = bc_ctx,
@@ -1034,47 +1031,57 @@ main(int argc, char **argv)
       .up_value = { 0.0 },
     },
     //.time_rate_diagnostics = true,
-    .is_static = true,
+    //.is_static = true,
+  };
+
+  struct gkyl_gyrokinetic_geometry geometry = {
+      .geometry_id = GKYL_MAPC2P,
+      .world = {0.0},
+      .mapc2p = mapc2p,
+      .c2p_ctx = &ctx,
+      .bmag_func = bmag_func,
+      .bmag_ctx = &ctx
+  };
+
+  struct gkyl_app_parallelism_inp parallelism = {
+    .use_gpu = app_args.use_gpu,
+    .cuts = { app_args.cuts[0], app_args.cuts[1] },
+    .comm = comm,
   };
 
   // GK app
-  struct gkyl_gk gk = {
-    .name = "gk_neut_d3d_2x2v_p1",
+  struct gkyl_gk *gk = gkyl_malloc(sizeof *gk);
+  memset(gk, 0, sizeof(*gk));
 
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
-    .lower = { ctx.x_min, ctx.z_min },
-    .upper = { ctx.x_max, ctx.z_max },
-    .cells = { cells_x[0], cells_x[1] },
-    .poly_order = ctx.poly_order,
-    .basis_type = app_args.basis_type,
+  strcpy(gk->name, "gk_neut_d3d_2x2v_p1");
+  gk->cfl_frac = 1.0;
 
-    .geometry = {
-      .geometry_id = GKYL_MAPC2P,
-      .mapc2p = mapc2p, // mapping of computational to physical space
-      .c2p_ctx = &ctx,
-      .bmag_func = bmag_func, // magnetic field magnitude
-      .bmag_ctx = &ctx
-    },
+  gk->cdim = ctx.cdim;
+  gk->vdim = ctx.vdim;
+  gk->lower[0] = ctx.x_min;
+  gk->upper[0] =  ctx.x_max;
+  gk->lower[1] = ctx.z_min;
+  gk->upper[1] =  ctx.z_max;
+  gk->cells[0] = cells_x[0];
+  gk->cells[1] = cells_x[1];  
+  gk->poly_order = ctx.poly_order;
+  gk->basis_type = app_args.basis_type;
 
-    .num_periodic_dir = 0,
-    .periodic_dirs = { },
+  gk->geometry = geometry;
 
-    .num_species = 2,
-    .species = { elc, ion },
-    .num_neut_species = 1,
-    .neut_species = { D0, },
-    .field = field,
+  gk->num_periodic_dir = 0;
 
-    .parallelism = {
-      .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0], app_args.cuts[1], app_args.cuts[2] },
-      .comm = comm
-    }
-  };
+  gk->num_species = 2;
+  gk->species[0] = elc;
+  gk->species[1] = ion;
+  gk->num_neut_species = 1;
+  gk->neut_species[0] = D0;
+  gk->field = field;
 
+  gk->parallelism = parallelism;
 
   // Create app object.
-  gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&gk);
+  gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(gk);
 
   // Initial and final simulation times.
   int frame_curr = 0;
@@ -1185,6 +1192,7 @@ main(int argc, char **argv)
 
   freeresources:
   // simulation complete, free app
+  gkyl_free(gk);
   gkyl_gyrokinetic_app_release(app);
   gkyl_gyrokinetic_comms_release(comm);
   gkyl_bc_emission_release(bc_ctx);
