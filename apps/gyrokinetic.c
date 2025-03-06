@@ -1118,13 +1118,12 @@ gkyl_gyrokinetic_app_write_species_boundary_flux_integrated_mom(gkyl_gyrokinetic
 void
 gkyl_gyrokinetic_app_write_neut_species_recycle_flux(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame)
 {
-  // Commenting out diagnostics since we need a new comm for ghost write-outs.
   struct gk_neut_species *gkns = &app->neut_species[sidx];
   if (gkns->recyc_lo) {
-    // gk_neut_species_recycle_write_flux(app, gkns, &gkns->bc_recycle_lo, tm, frame);
+    gk_neut_species_recycle_write_flux(app, gkns, &gkns->bc_recycle_lo, tm, frame);
   }
   if (gkns->recyc_up) {
-    // gk_neut_species_recycle_write_flux(app, gkns, &gkns->bc_recycle_up, tm, frame);
+    gk_neut_species_recycle_write_flux(app, gkns, &gkns->bc_recycle_up, tm, frame);
   }
 }
 
