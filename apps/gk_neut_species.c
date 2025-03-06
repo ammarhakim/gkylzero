@@ -415,6 +415,8 @@ gk_neut_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk
     gkyl_free(s->red_integ_diag);
     gkyl_free(s->red_integ_diag_global);
   }
+
+  gk_neut_species_bflux_release(app,&s->bflux);
   
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {

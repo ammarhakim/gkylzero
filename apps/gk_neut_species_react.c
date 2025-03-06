@@ -396,7 +396,8 @@ gk_neut_species_react_release(const struct gkyl_gyrokinetic_app *app, const stru
     gkyl_array_release(react->Jm0_elc[i]);
     gkyl_array_release(react->Jm0_partner[i]);
     gkyl_array_release(react->upar_ion[i]); 
-    gkyl_array_release(react->vt_sq_ion[i]); 
+    gkyl_array_release(react->vt_sq_ion[i]);
+    gkyl_array_release(react->u_i_dot_b_i[i]);
 
     if (react->react_id[i] == GKYL_REACT_IZ) {
       gkyl_dg_iz_release(react->iz[i]);

@@ -210,7 +210,7 @@ gk_neut_species_recycle_write_flux(struct gkyl_gyrokinetic_app *app, struct gk_n
       recyc->emit_cbuff_r);
 
     if (app->use_gpu) {
-      gkyl_array_clear(recyc->diag_out, 0.0);
+      gkyl_array_clear(recyc->diag_out_ho, 0.0);
       gkyl_array_copy(recyc->diag_out_ho, recyc->diag_out);
     }
 
@@ -246,7 +246,7 @@ gk_neut_species_recycle_write_flux(struct gkyl_gyrokinetic_app *app, struct gk_n
     recyc->emit_cbuff_r);
 
   if (app->use_gpu) {
-    gkyl_array_clear(recyc->diag_out, 0.0);
+    gkyl_array_clear(recyc->diag_out_ho, 0.0);
     gkyl_array_copy(recyc->diag_out_ho, recyc->diag_out);
   }
   
