@@ -108,10 +108,17 @@ implicit_em_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, 
   double Fz_bar = (1.0 / (1.0 + (w0_sq / 4.0) + (Delta_sq / 64.0))) * (Fz_K + ((((Delta_sq / 64.0) - (gam_sq / 16.0)) /
     (1.0 + (w0_sq / 4.0) + (gam_sq / 16.0))) * bz * ((bx * Fx_K) + (by * Fy_K) + (bz * Fz_K))) + (((delta / 8.0) /
     (1.0 + (w0_sq / 4.0))) * ((bx * Fy_K) - (by * Fx_K))));
-  
-  em[0] = ((2.0 * Fx_bar) - Fx_old) / epsilon0;
-  em[1] = ((2.0 * Fy_bar) - Fy_old) / epsilon0;
-  em[2] = ((2.0 * Fz_bar) - Fz_old) / epsilon0;
+
+  if (mom_em->static_field) {
+    em[0] = Fx_old / epsilon0;
+    em[1] = Fy_old / epsilon0;
+    em[2] = Fz_old / epsilon0;
+  }  
+  else {
+    em[0] = ((2.0 * Fx_bar) - Fx_old) / epsilon0;
+    em[1] = ((2.0 * Fy_bar) - Fy_old) / epsilon0;
+    em[2] = ((2.0 * Fz_bar) - Fz_old) / epsilon0;
+  }
 
   for (int i = 0; i < nfluids; i++) {
     double *f = fluid_s[i];

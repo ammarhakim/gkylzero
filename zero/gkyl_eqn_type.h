@@ -22,6 +22,9 @@ enum gkyl_eqn_type {
   GKYL_EQN_REACTIVE_EULER, // Reactive Euler equations.
   GKYL_EQN_EULER_MIXTURE, // Euler mixture equations.
   GKYL_EQN_ISO_EULER_MIXTURE, // Isothermal Euler mixture equations.
+  GKYL_EQN_CAN_PB_INCOMPRESS_EULER, // Canonical Poisson Bracket form of incompressible Euler.
+  GKYL_EQN_CAN_PB_HASEGAWA_MIMA, // Canonical Poisson Bracket form of Hasegawa-Mima.
+  GKYL_EQN_CAN_PB_HASEGAWA_WAKATANI, // Canonical Poisson Bracket form of Hasegawa-Wakatani.
 };
 
 // Identifiers for specific gyrokinetic model types
@@ -55,6 +58,7 @@ enum gkyl_model_id {
   GKYL_MODEL_SR = 1,
   GKYL_MODEL_GEN_GEO = 2,
   GKYL_MODEL_CANONICAL_PB = 3,
+  GKYL_MODEL_CANONICAL_PB_GR = 4,
 };
 
 // Identifiers for specific collision object types
