@@ -23,20 +23,10 @@
     (symbolic-simp-rule '(* a 1.0))
     '(* 1.0 a)
    '(+ 0.0 (* 1.0 a))
-   (symbolic-simp-rule '(+ (* 0.0 u) (* a 1.0)))
-    (symbolic-simp-rule '(* 0.0 u))
-    0.0
-    (symbolic-simp-rule '(* a 1.0))
-    '(* 1.0 a)
-   '(+ 0.0 (* 1.0 a))
   (symbolic-simp '(+ 0.0 (* 1.0 a)))
    (symbolic-simp-rule '(+ 0.0 (* 1.0 a)))
    '(* 1.0 a)
-   (symbolic-simp-rule '(+ 0.0 (* 1.0 a)))
-   '(* 1.0 a)
   (symbolic-simp '(* 1.0 a))
-   (symbolic-simp-rule '(* 1.0 a))
-   'a
    (symbolic-simp-rule '(* 1.0 a))
    'a
   (symbolic-simp 'a)
