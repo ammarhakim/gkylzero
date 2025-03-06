@@ -807,7 +807,7 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
     struct gkyl_array *jacs[mbapp->num_local_blocks];
     for (int b=0; b<mbapp->num_local_blocks; ++b) {
       struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
-      jacs[b] = sbapp->gk_geom->geo_surf[d]->jacobgeo_sync;
+      jacs[b] = sbapp->gk_geom->geo_surf[d].jacobgeo_sync;
       gkyl_array_copy_range_to_range(jacs[b], jacs[b], &sbapp->upper_skin[d], &sbapp->upper_ghost[d]);
     }
     // Sync across blocks.
@@ -896,7 +896,7 @@ gyrokinetic_multib_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcur
               e==0? &sbapp->global_lower_skin[dir] : &sbapp->global_upper_skin[dir],
               e==0? &sbapp->global_lower_ghost[dir] : &sbapp->global_upper_ghost[dir],
               e==0? &gks->global_lower_ghost[dir] : &gks->global_upper_ghost[dir],
-              sbapp->gk_geom->geo_surf[dir]->jacobgeo_sync, distf[li_charged+i]);
+              sbapp->gk_geom->geo_surf[dir].jacobgeo_sync, distf[li_charged+i]);
           }
         }
       }
@@ -928,7 +928,7 @@ gyrokinetic_multib_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcur
                 e==0? &sbapp->global_lower_skin[dir] : &sbapp->global_upper_skin[dir],
                 e==0? &sbapp->global_lower_ghost[dir] : &sbapp->global_upper_ghost[dir],
                 e==0? &gkns->global_lower_ghost[dir] : &gkns->global_upper_ghost[dir],
-                sbapp->gk_geom->geo_surf[dir]->jacobgeo_sync, distf_neut[li_neut+i]);
+                sbapp->gk_geom->geo_surf[dir].jacobgeo_sync, distf_neut[li_neut+i]);
             }
           }
         }

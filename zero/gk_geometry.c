@@ -15,13 +15,12 @@
 void
 gk_geometry_surf_alloc(struct gk_geometry* up, int dir)
 {
-  struct gk_geom_surf up_surf = up->geo_surf[dir];
-  up_surf.bmag = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
-  up_surf.jacobgeo = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
-  up_surf.jacobgeo_sync = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
-  up_surf.b_i = gkyl_array_new(GKYL_DOUBLE, 3*up->surf_basis.num_basis, up->local_ext.volume);
-  up_surf.cmag = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
-  up_surf.jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
+  up->geo_surf[dir].bmag = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
+  up->geo_surf[dir].jacobgeo = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
+  up->geo_surf[dir].jacobgeo_sync = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
+  up->geo_surf[dir].b_i = gkyl_array_new(GKYL_DOUBLE, 3*up->surf_basis.num_basis, up->local_ext.volume);
+  up->geo_surf[dir].cmag = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
+  up->geo_surf[dir].jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
 }
 
 struct gk_geometry*
