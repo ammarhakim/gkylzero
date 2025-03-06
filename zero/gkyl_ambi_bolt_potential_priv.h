@@ -39,9 +39,9 @@ static const phi_calc_kern_list ser_phi_calc_list[] = {
   // 1x kernels
   { ambi_bolt_potential_phi_calc_1x_ser_p1, ambi_bolt_potential_phi_calc_1x_ser_p2 },
   // 2x kernels
-  { ambi_bolt_potential_phi_calc_1x_ser_p1, ambi_bolt_potential_phi_calc_1x_ser_p2 },
+  { ambi_bolt_potential_phi_calc_2x_ser_p1, ambi_bolt_potential_phi_calc_2x_ser_p2 },
   // 3x kernels
-//  { ambi_bolt_potential_phi_calc_3x_ser_p1, ambi_bolt_potential_phi_calc_3x_ser_p2 },
+  { ambi_bolt_potential_phi_calc_3x_ser_p1, ambi_bolt_potential_phi_calc_3x_ser_p2 },
 };
 
 // Struct containing pointers to the various kernels. Needed to create a similar struct on the GPU.
