@@ -486,29 +486,13 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
           // as well as transform the computational coordiante to the non-uniform field-aligned value
 
           // Non-uniform psi. Finite differences are calculated in calc_metric.c
-          double Psi_curr;
-          position_map->maps[0](0.0, &psi_curr,  &Psi_curr,  position_map->ctxs[0]);
-          psi_curr = Psi_curr;
-
+          position_map->maps[0](0.0, &psi_curr,  &psi_curr,  position_map->ctxs[0]);
           // We cannot do non-uniform alpha because we are modeling axisymmetric systems
-
           // Non-uniform theta
-          double theta_left  = theta_curr - delta_theta;
-          double theta_right = theta_curr + delta_theta;
-          double Theta_left, Theta_curr, Theta_right;
-          position_map->maps[2](0.0, &theta_left,  &Theta_left,  position_map->ctxs[2]);
+          double Theta_curr;
           position_map->maps[2](0.0, &theta_curr,  &Theta_curr,  position_map->ctxs[2]);
-          position_map->maps[2](0.0, &theta_right, &Theta_right, position_map->ctxs[2]);
-          double dTheta_dtheta;
-          if (it == nrange->lower[TH_IDX]){
-            dTheta_dtheta = (Theta_right - Theta_curr)/(delta_theta);
-          }
-          else if (it == nrange->upper[TH_IDX]){
-            dTheta_dtheta = (Theta_curr - Theta_left)/(delta_theta);
-          }
-          else{
-            dTheta_dtheta = (Theta_right - Theta_left)/(2.0*delta_theta);
-          }
+          double dTheta_dtheta = gkyl_position_map_slope(position_map, 2, theta_curr,\
+            delta_theta, it, nrange);
           theta_curr = Theta_curr;
           arcL_curr = (theta_curr + M_PI) / (2*M_PI/arc_ctx.arcL_tot);
 

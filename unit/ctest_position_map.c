@@ -29,11 +29,25 @@ test_nonuniform_position_map(double t, const double *GKYL_RESTRICT xn, double *G
 }
 
 void
+test_nonuniform_position_map_slope(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  double poly_order = 2;
+  double z = xn[0];
+  double left = 0.25;
+  double right = 0.75;
+  if (z < -left)
+    fout[0] = 1.0;
+  else if (z < right)
+    fout[0] = - poly_order * pow(z - right, poly_order-1)/fabs(pow(left-right, poly_order-1));
+  else
+    fout[0] = 1.0;
+}
+
+void
 test_identity_position_map(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = xn[0];
 }
-
 
 void
 test_nonuniform_position_map_3x(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
@@ -326,6 +340,71 @@ test_gkyl_position_map_eval_mc2nu()
   gkyl_position_map_release(pos_map);
 }
 
+
+void
+test_gkyl_position_map_slope()
+{
+  int cells[] = {8, 8, 8};
+  int poly_order = 2;
+  double lower[] = {0.0, 0.0, 0.0}, upper[] = {1.0, 1.0, 1.0};
+  int dim = sizeof(lower)/sizeof(lower[0]);
+  // Grids.
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
+  // Ranges
+  int ghost[] = { 1, 1, 1};
+  struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
+  gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
+  
+  // Basis functions.
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, dim, poly_order);
+  
+  struct gkyl_position_map_inp pos_map_inp = {
+    .maps = {test_nonuniform_position_map, test_nonuniform_position_map, test_nonuniform_position_map},
+    .ctxs = {0, 0, 0},
+  };
+
+  struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp, \
+    grid, localRange, localRange_ext, localRange, localRange_ext, basis);
+
+  struct gkyl_array *pmap_arr_set = gkyl_array_new(GKYL_DOUBLE, \
+    3*pos_map->basis.num_basis, pos_map->local_ext.volume);
+
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
+    poly_order+1, 3, test_nonuniform_position_map_3x, 0);
+  gkyl_proj_on_basis_advance(projDistf, 0.0, &localRange, pmap_arr_set);
+  gkyl_proj_on_basis_release(projDistf);
+
+  gkyl_position_map_set(pos_map, pmap_arr_set);
+
+  for (int i=0; i<8; i++) {
+    for (int j=0; j<8; j++) {
+      for (int k=0; k<8; k++) {
+        double x[3] = {i/8.0, j/8.0, k/8.0};
+        if (x[0] == 0.25 || x[0] == 0.75)
+          continue;
+        if (x[1] == 0.25 || x[1] == 0.75)
+          continue;
+        if (x[2] == 0.25 || x[2] == 0.75)
+          continue;
+        double x_analytic[3];
+        test_nonuniform_position_map_slope(0.0, &x[0], &x_analytic[0], 0);
+        test_nonuniform_position_map_slope(0.0, &x[1], &x_analytic[1], 0);
+        test_nonuniform_position_map_slope(0.0, &x[2], &x_analytic[2], 0);
+        double slope[3], finite_diff_slope;
+        slope[0] = gkyl_position_map_slope(pos_map, 0, x[0], 1e-6, i, &localRange);
+        slope[1] = gkyl_position_map_slope(pos_map, 1, x[1], 1e-6, j, &localRange);
+        slope[2] = gkyl_position_map_slope(pos_map, 2, x[2], 1e-6, k, &localRange);
+        for (int d=0; d<3; ++d)
+          TEST_CHECK( gkyl_compare(slope[d], x_analytic[d], 1e-6) );
+      }
+    }
+  }
+  gkyl_array_release(pmap_arr_set);
+  gkyl_position_map_release(pos_map);
+}
+
 void
 test_position_polynomial_map_optimize_1x()
 {
@@ -535,6 +614,7 @@ TEST_LIST = {
   { "test_position_map_init_3x", test_position_map_init_3x },
   { "test_position_map_set", test_position_map_set },
   { "test_gkyl_position_map_eval_mc2nu", test_gkyl_position_map_eval_mc2nu }, 
+  { "test_gkyl_position_map_slope", test_gkyl_position_map_slope },
   { "test_position_polynomial_map_optimize_1x", test_position_polynomial_map_optimize_1x },
   { "test_position_map_numeric_optimize_1x", test_position_map_numeric_optimize_1x },
   { "test_position_map_numeric_calculate_1x", test_position_map_numeric_calculate_1x },
