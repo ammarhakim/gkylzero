@@ -60,7 +60,7 @@ struct gkyl_pkpm_species {
 
   void *app_accel_ctx; // context for applied acceleration function
   // pointer to applied acceleration function
-  void (*app_accel)(double t, const double *xn, double *aout, void *ctx);
+  void (*app_accel)(double t, const double *xn, double *app_accel_out, void *ctx);
   bool app_accel_evolve; // set to true if applied acceleration function is time dependent
 
   double limiter_fac; // Optional input parameter for adjusting diffusion in slope limiter

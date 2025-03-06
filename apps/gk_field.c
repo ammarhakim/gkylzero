@@ -222,8 +222,9 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     polarization_weight = 1.0; 
     f->ambi_pot = gkyl_ambi_bolt_potential_new(&app->grid, &app->basis, 
       f->info.electron_mass, f->info.electron_charge, f->info.electron_temp, app->use_gpu);
+    // Sheath_vals contains both the density and potential sheath values.
     for (int j=0; j<app->cdim; ++j) {
-      f->sheath_vals[2*j] = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
+      f->sheath_vals[2*j]   = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
       f->sheath_vals[2*j+1] = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
     }
   } else {
@@ -527,24 +528,32 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
 void
 gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
+  int idx_par = app->cdim-1;
+  int off = 2*idx_par;
+
+  int comm_sz;
+  gkyl_comm_get_size(app->comm, &comm_sz);
+
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
 
     // Assumes symmetric sheath BCs for now only in 1D
     gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_LOWER_EDGE, 
-      &app->lower_skin[0], &app->lower_ghost[0], app->gk_geom->jacobgeo_inv, 
-      s->bflux_solver.gammai[0].marr, field->rho_c, field->sheath_vals[0]);
+      &app->lower_skin[idx_par], &app->lower_ghost[idx_par], app->gk_geom->jacobgeo_inv, 
+      s->bflux_solver.gammai[off].marr, field->rho_c, field->sheath_vals[off]);
     gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_UPPER_EDGE, 
-      &app->upper_skin[0], &app->upper_ghost[0], app->gk_geom->jacobgeo_inv, 
-      s->bflux_solver.gammai[1].marr, field->rho_c, field->sheath_vals[1]);
+      &app->upper_skin[idx_par], &app->upper_ghost[idx_par], app->gk_geom->jacobgeo_inv, 
+      s->bflux_solver.gammai[off+1].marr, field->rho_c, field->sheath_vals[off+1]);
 
     // Broadcast the sheath values from skin processes to other processes.
-    int comm_sz[1];
-    gkyl_comm_get_size(app->comm, comm_sz);
-    gkyl_comm_array_bcast(app->comm, field->sheath_vals[0], field->sheath_vals[0], 0);
-    gkyl_comm_array_bcast(app->comm, field->sheath_vals[1], field->sheath_vals[1], comm_sz[0]-1);
-    gkyl_array_accumulate(field->sheath_vals[0], 1., field->sheath_vals[1]);
-    gkyl_array_scale(field->sheath_vals[0], 0.5);
+    gkyl_comm_array_bcast(app->comm, field->sheath_vals[off]  , field->sheath_vals[off], 0);
+    gkyl_comm_array_bcast(app->comm, field->sheath_vals[off+1], field->sheath_vals[off+1], comm_sz-1);
+
+    // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
+    gkyl_array_copy_range_to_range(field->sheath_vals[off+1], field->sheath_vals[off+1],
+      &app->lower_ghost[idx_par], &app->upper_ghost[idx_par]);
+    gkyl_array_accumulate(field->sheath_vals[off], 1., field->sheath_vals[off+1]);
+    gkyl_array_scale(field->sheath_vals[off], 0.5);
   } 
 }
 
@@ -573,7 +582,7 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
   if (field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) { 
     // Solve phi = phi_s + (Te/e)*ln(n_i/n_i,s).
     gkyl_ambi_bolt_potential_phi_calc(field->ambi_pot, &app->local, &app->local_ext,
-      app->gk_geom->jacobgeo_inv, field->rho_c, field->sheath_vals[0], field->phi_smooth);
+      app->gk_geom->jacobgeo_inv, field->rho_c, field->sheath_vals[2*(app->cdim-1)], field->phi_smooth);
 
     // Smooth the potential along z.
     gk_field_fem_projection_par(app, field, field->phi_smooth, field->phi_smooth);
