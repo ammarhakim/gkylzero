@@ -113,6 +113,7 @@ momentApp = Moments.App.new {
 
       return app_x, app_y, app_z
     end,
+    evolveAppliedCurrent = true, -- Evolve applied current.
 
     evolve = true, -- Evolve field?
     bcx = { G0.FieldBc.bcCopy, G0.FieldBc.bcCopy } -- Copy boundary conditions (x-direction).

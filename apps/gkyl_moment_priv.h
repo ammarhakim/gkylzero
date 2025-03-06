@@ -56,6 +56,8 @@ struct moment_species {
   char name[128]; // species name
   double charge, mass;
 
+  bool is_static; // is the fluid static?
+
   double k0; // closure parameter (default is 0.0, used by 10 moment)
   bool has_grad_closure; // has gradient-based closure (only for 10 moment)
   enum gkyl_braginskii_type type_brag; // which Braginskii equations
@@ -82,17 +84,14 @@ struct moment_species {
   double medium_gas_gamma; // Adiabatic index for coupled fluid-Einstein sources in plane-symmetric spacetimes.
   double medium_kappa; // Stress-energy prefactor for coupled fluid-Einstein sources in plane-symmetric spacetimes.
 
-  int evolve; // evolve species? 1-yes, 0-no
-
   void *ctx; // context for initial condition init function
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
 
-  bool is_app_accel_static; // flag to indicate if applied acceleration is static  
-  struct gkyl_array *app_accel; // array for applied acceleration/forces
-  // pointer to projection operator for applied acceleration/forces function
-  gkyl_fv_proj *proj_app_accel;
-  bool was_app_accel_computed; // flag to indicate if we already computed acceleration
+  bool has_app_accel; // flag to indicate there is applied acceleration
+  bool app_accel_evolve; // flag to indicate applied acceleration is time-dependent
+  struct gkyl_array *app_accel; // applied acceleration
+  gkyl_fv_proj *app_accel_proj; // projector for acceleration
 
   struct gkyl_array *nT_source; // array for num density and temperature sources
   // projection func for num density and temperature sources
@@ -140,8 +139,7 @@ struct moment_species {
 struct moment_field {
   int ndim;
   double epsilon0, mu0;
-
-  int evolve; // evolve species? 1-yes, 0-no
+  bool is_static; // is the field static?
 
   void *ctx; // context for initial condition init function
   // pointer to initialization function
@@ -149,20 +147,21 @@ struct moment_field {
 
   struct gkyl_wv_eqn *maxwell; // pointer to Maxwell eqn obj
 
-  struct gkyl_array *app_current; // arrays for applied currents
-  double t_ramp_curr; // linear ramp for turning on applied currents
-  // pointer to projection operator for applied current function
-  gkyl_fv_proj *proj_app_current;
-
-  bool is_ext_em_static; // flag to indicate if external field is time-independent
-  struct gkyl_array *ext_em; // array external fields
+  bool has_ext_em; // flag to indicate there is external electromagnetic field
+  bool ext_em_evolve; // flag to indicate external electromagnetic field is time dependent
+  struct gkyl_array *ext_em; // external electromagnetic field
+  gkyl_fv_proj *ext_em_proj; // projector for external electromagnetic field 
   double t_ramp_E; // linear ramp for turning on external E field
-  gkyl_fv_proj *proj_ext_em; // pointer to projection operator for external fields
-  bool was_ext_em_computed; // flag to indicate if we already computed external EM field
+
+  bool has_app_current; // flag to indicate there is an applied current 
+  bool app_current_evolve; // flag to indicate applied current is time dependent  
+  struct gkyl_array *app_current; // applied current
+  gkyl_fv_proj *app_current_proj;  // projector for applied current 
+  double t_ramp_curr; // linear ramp for turning on applied currents
 
   bool use_explicit_em_coupling; // flag to indicate if em coupling should be explicit, defaults implicit
-  struct gkyl_array *app_current1; // arrays for applied currents (for use_explicit_em_coupling stages)
-  struct gkyl_array *app_current2; // arrays for applied currents (for use_explicit_em_coupling stages)
+  struct gkyl_array *app_current1; // additional array for applied currents (for use_explicit_em_coupling stages)
+  struct gkyl_array *app_current2; // additional array for applied currents (for use_explicit_em_coupling stages)
 
   bool has_volume_sources; // Run with volume-based geometrical sources.
   double volume_gas_gamma; // Adiabatic index for volume-based geometrical sources.
@@ -272,8 +271,6 @@ struct gkyl_moment_app {
 
   // species data
   int num_species;
-  int has_app_accel; // flag to indicate if we have an applied acceleration
-                     // needed if we are doing neutral fluids with an applied acceleration
   struct moment_species *species; // species data
 
   // work arrays for use in the KEP and MP scheme: these are stored
