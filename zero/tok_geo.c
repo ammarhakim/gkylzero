@@ -793,6 +793,7 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
 
   struct gkyl_nodal_ops *n2m =  gkyl_nodal_ops_new(&inp->cbasis, &inp->cgrid, false);
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, mc2p_nodal_quad, mc2p_quad, true);
+  gkyl_nodal_ops_release(n2m);
 
   gkyl_free(arc_memo);
   gkyl_free(arc_memo_left);
