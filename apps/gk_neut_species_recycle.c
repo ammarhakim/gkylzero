@@ -69,7 +69,11 @@ gk_neut_species_recycle_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
   recyc->emit_flux = mkarr(app->use_gpu, app->basis.num_basis, recyc->emit_cbuff_r->volume);
 
   // For writing diagnostics
-  recyc->diag_out = mkarr(false, app->basis.num_basis, app->local.volume);
+  recyc->diag_out = mkarr(app->use_gpu, app->basis.num_basis, app->local.volume);
+  recyc->diag_out_ho = recyc->diag_out;
+  if (app->use_gpu) {
+    recyc->diag_out_ho = mkarr(false, app->basis.num_basis, app->local.volume);
+  }
   
   recyc->init_conf_grid = &s->bflux.conf_boundary_grid[bdir];
   
@@ -205,9 +209,14 @@ gk_neut_species_recycle_write_flux(struct gkyl_gyrokinetic_app *app, struct gk_n
     gkyl_array_copy_range_to_range(recyc->diag_out, recyc->flux[i], cskin_r,
       recyc->emit_cbuff_r);
 
+    if (app->use_gpu) {
+      gkyl_array_clear(recyc->diag_out, 0.0);
+      gkyl_array_copy(recyc->diag_out_ho, recyc->diag_out);
+    }
+
     struct timespec wtm = gkyl_wall_clock();
     gkyl_comm_array_write(app->comm, &app->grid, &app->local,
-      mt, recyc->diag_out, fileNm);
+      mt, recyc->diag_out_ho, fileNm);
     app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
   }
 
@@ -235,10 +244,15 @@ gk_neut_species_recycle_write_flux(struct gkyl_gyrokinetic_app *app, struct gk_n
   gkyl_array_clear(recyc->diag_out, 0.0);
   gkyl_array_copy_range_to_range(recyc->diag_out, recyc->emit_flux, cskin_r,
     recyc->emit_cbuff_r);
+
+  if (app->use_gpu) {
+    gkyl_array_clear(recyc->diag_out, 0.0);
+    gkyl_array_copy(recyc->diag_out_ho, recyc->diag_out);
+  }
   
   struct timespec wtm = gkyl_wall_clock();
   gkyl_comm_array_write(app->comm, &app->grid, &app->local,
-      mt, recyc->diag_out, fileNm);
+      mt, recyc->diag_out_ho, fileNm);
   app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
   app->stat.n_diag_io += 1;
 
@@ -257,6 +271,8 @@ gk_neut_species_recycle_release(const struct gkyl_gyrokinetic_app *app, const st
   gkyl_dg_updater_moment_release(recyc->init_flux_slvr);
   gkyl_dg_bin_op_mem_release(recyc->mem_geo);
   gkyl_ghost_surf_calc_release(recyc->f0_flux_slvr);
+  if (app->use_gpu)
+    gkyl_array_release(recyc->diag_out_ho);
   
   if (recyc->elastic) {
     gkyl_array_release(recyc->elastic_yield);

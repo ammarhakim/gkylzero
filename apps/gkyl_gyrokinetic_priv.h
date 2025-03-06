@@ -437,6 +437,7 @@ struct gk_recycle_wall {
   struct gkyl_array *init_bflux_arr;
   struct gkyl_array *emit_flux;
   struct gkyl_array *diag_out;
+  struct gkyl_array *diag_out_ho;
   struct gkyl_array *buffer;
   struct gkyl_array *elastic_yield;
   struct gkyl_array *yield[GKYL_MAX_SPECIES]; // projected secondary electron yield
