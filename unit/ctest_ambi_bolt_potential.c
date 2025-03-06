@@ -133,18 +133,19 @@ test_ambi_bolt_sheath_calc_1x()
   TEST_CHECK(gkyl_compare_double(sheath_upper_c[3], 0, 1e-12));
 
   // This operation happens after the sheaths are determined in the app, so we should test this
-  gkyl_array_accumulate(sheath_vals[0], 1., sheath_vals[1]);
+  // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
+  int idx_par = cdim-1, off = 2*idx_par;
+  gkyl_array_copy_range_to_range(sheath_vals[off+1], sheath_vals[off+1],
+    &lower_ghost[idx_par], &upper_ghost[idx_par]);
+  gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off+1]);
+  gkyl_array_scale(sheath_vals[off], 0.5);
 
+  // Only the lower sheath values are used for computing the field
   double *sheath_lower_c_avg = ((double *) gkyl_array_cfetch(sheath_vals[0], 0));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[0], sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[1], 0, 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[2], log(1/(sqrt(2*M_PI)*0.5*1/4))*sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[3], 0, 1e-12));
-  double *sheath_upper_c_avg = ((double *) gkyl_array_cfetch(sheath_vals[0], 9));
-  TEST_CHECK(gkyl_compare_double(sheath_upper_c_avg[0], sqrt(2), 1e-12));
-  TEST_CHECK(gkyl_compare_double(sheath_upper_c_avg[1], 0, 1e-12));
-  TEST_CHECK(gkyl_compare_double(sheath_upper_c_avg[2], log(1/(sqrt(2*M_PI)*0.5*1/4))*sqrt(2), 1e-12));
-  TEST_CHECK(gkyl_compare_double(sheath_upper_c_avg[3], 0, 1e-12));
 
   gkyl_ambi_bolt_potential_release(ambi);
   gkyl_proj_on_basis_release(proj_one);
@@ -204,7 +205,12 @@ test_ambi_bolt_phi_calc_1x()
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
     &upper_skin[0], &upper_ghost[0], jacobgeo_inv, gamma_i, M0, sheath_vals[1]);
 
-  gkyl_array_accumulate(sheath_vals[0], 1., sheath_vals[1]);
+  // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
+  int idx_par = cdim-1, off = 2*idx_par;
+  gkyl_array_copy_range_to_range(sheath_vals[off+1], sheath_vals[off+1],
+    &lower_ghost[idx_par], &upper_ghost[idx_par]);
+  gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off+1]);
+  gkyl_array_scale(sheath_vals[off], 0.5);
 
   struct gkyl_array *phi = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
 
@@ -297,19 +303,19 @@ test_ambi_bolt_sheath_calc_1x_hat()
   TEST_CHECK(gkyl_compare_double(sheath_upper_c[2], log(1/(sqrt(2*M_PI)*0.5*1/4))*sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_upper_c[3], 0, 1e-12));
 
-  // This operation happens after the sheaths are determined in the app, so we should test this
-  gkyl_array_accumulate(sheath_vals[0], 1., sheath_vals[1]);
+  // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
+  int idx_par = cdim-1, off = 2*idx_par;
+  gkyl_array_copy_range_to_range(sheath_vals[off+1], sheath_vals[off+1],
+    &lower_ghost[idx_par], &upper_ghost[idx_par]);
+  gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off+1]);
+  gkyl_array_scale(sheath_vals[off], 0.5);
 
+  // Only the lower sheath values are used for calculations
   double *sheath_lower_c_avg = ((double *) gkyl_array_cfetch(sheath_vals[0], 0));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[0], sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[1], 0, 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[2], log(1/(sqrt(2*M_PI)*0.5*1/4))*sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[3], 0, 1e-12));
-  double *sheath_upper_c_avg = ((double *) gkyl_array_cfetch(sheath_vals[0], 9));
-  TEST_CHECK(gkyl_compare_double(sheath_upper_c_avg[0], sqrt(2), 1e-12));
-  TEST_CHECK(gkyl_compare_double(sheath_upper_c_avg[1], 0, 1e-12));
-  TEST_CHECK(gkyl_compare_double(sheath_upper_c_avg[2], log(1/(sqrt(2*M_PI)*0.5*1/4))*sqrt(2), 1e-12));
-  TEST_CHECK(gkyl_compare_double(sheath_upper_c_avg[3], 0, 1e-12));
 
   gkyl_ambi_bolt_potential_release(ambi);
   gkyl_proj_on_basis_release(proj_one);
@@ -372,7 +378,12 @@ test_ambi_bolt_phi_calc_1x_hat()
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
     &upper_skin[0], &upper_ghost[0], jacobgeo_inv, gamma_i, M0, sheath_vals[1]);
 
-  gkyl_array_accumulate(sheath_vals[0], 1., sheath_vals[1]);
+  // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
+  int idx_par = cdim-1, off = 2*idx_par;
+  gkyl_array_copy_range_to_range(sheath_vals[off+1], sheath_vals[off+1],
+    &lower_ghost[idx_par], &upper_ghost[idx_par]);
+  gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off+1]);
+  gkyl_array_scale(sheath_vals[off], 0.5);
 
   struct gkyl_array *phi = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
 
@@ -480,14 +491,17 @@ test_ambi_bolt_sheath_calc_2x_one()
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
-  int index_parallel = cdim-1;
-
+  int idx_par = cdim-1, off = 2*idx_par;
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, 
-    &lower_skin[index_parallel], &lower_ghost[index_parallel], jacobgeo_inv, gamma_i, M0, sheath_vals[index_parallel*2]);
+    &lower_skin[idx_par], &lower_ghost[idx_par], jacobgeo_inv, gamma_i, M0, sheath_vals[off]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
-    &upper_skin[index_parallel], &upper_ghost[index_parallel], jacobgeo_inv, gamma_i, M0, sheath_vals[index_parallel*2+1]);
+    &upper_skin[idx_par], &upper_ghost[idx_par], jacobgeo_inv, gamma_i, M0, sheath_vals[off+1]);
 
-  gkyl_array_accumulate(sheath_vals[index_parallel*2], 1., sheath_vals[index_parallel*2+1]);
+  // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
+  gkyl_array_copy_range_to_range(sheath_vals[off+1], sheath_vals[off+1],
+    &lower_ghost[idx_par], &upper_ghost[idx_par]);
+  gkyl_array_accumulate(sheath_vals[off], 1., sheath_vals[off+1]);
+  gkyl_array_scale(sheath_vals[off], 0.5);
 
   // Serendipity 2x basis is [1/2,(sqrt(3)*x)/2,(sqrt(3)*y)/2,(3*x*y)/2].
   // sheath_vals stores both the ion density and sheath value
@@ -495,48 +509,26 @@ test_ambi_bolt_sheath_calc_2x_one()
   // Sheath potential is the second part. 
   // phi_s = Te/e * log(ni (Te/me) / (sqrt(2*pi) gamma_i J dz/2))
   // phi_s = log(1/(sqrt(2*pi) 0.5 * 1/4))
+  double phi_sheath = log(1/(sqrt(2*M_PI)*ambi->dz/2));
+  struct gkyl_range_iter iter;
   for (int ix_cdim = 0; ix_cdim < cdim; ix_cdim++)
   {
-    struct gkyl_range_iter iter;
+    // Only the lower cells are used to calculate the field
     gkyl_range_iter_init(&iter, &lower_ghost[ix_cdim]);
-    double phi_sheath = log(1/(sqrt(2*M_PI)*0.5*1/4));
     while (gkyl_range_iter_next(&iter)) {
       long lidx = gkyl_range_idx(&lower_ghost[ix_cdim], iter.idx);
-      double *sheath_lower_c = ((double *) gkyl_array_cfetch(sheath_vals[index_parallel*2], lidx));
-      printf("idx[0] = %d, idx[1] = %d\n", iter.idx[0], iter.idx[1]);
-      printf("lidx = %ld\n", lidx);
-      printf("phi_sheath = %f\n", phi_sheath);
-      printf("sheath_lower_c[0] = %f \n", sheath_lower_c[0]);
-      printf("sheath_lower_c[1] = %f \n", sheath_lower_c[1]);
-      printf("sheath_lower_c[2] = %f \n", sheath_lower_c[2]);
-      printf("sheath_lower_c[3] = %f \n", sheath_lower_c[3]);
-      printf("sheath_lower_c[4] = %f \n", sheath_lower_c[4]);
-      printf("sheath_lower_c[5] = %f \n", sheath_lower_c[5]);
-      printf("sheath_lower_c[6] = %f \n", sheath_lower_c[6]);
-      printf("sheath_lower_c[7] = %f \n", sheath_lower_c[7]);
-
-      // TEST_CHECK(gkyl_compare_double(sheath_lower_c[0], 2, 1e-12));
-      // TEST_CHECK(gkyl_compare_double(sheath_lower_c[1], 0, 1e-12));
-      // TEST_CHECK(gkyl_compare_double(sheath_lower_c[2], 0, 1e-12));
-      // TEST_CHECK(gkyl_compare_double(sheath_lower_c[3], 0, 1e-12));
-      // TEST_CHECK(gkyl_compare_double(sheath_lower_c[4], phi_sheath*2, 1e-12));
-      // TEST_CHECK(gkyl_compare_double(sheath_lower_c[5], 0, 1e-12));
-      // TEST_CHECK(gkyl_compare_double(sheath_lower_c[6], 0, 1e-12));
-      // TEST_CHECK(gkyl_compare_double(sheath_lower_c[7], 0, 1e-12));
+      double *sheath_lower_c = ((double *) gkyl_array_cfetch(sheath_vals[off], lidx));
+      if (ix_cdim == 1) TEST_CHECK(gkyl_compare_double(sheath_lower_c[0], 2, 1e-12));
+      else              TEST_CHECK(gkyl_compare_double(sheath_lower_c[0], 0, 1e-12));
+                        TEST_CHECK(gkyl_compare_double(sheath_lower_c[1], 0, 1e-12));
+                        TEST_CHECK(gkyl_compare_double(sheath_lower_c[2], 0, 1e-12));
+                        TEST_CHECK(gkyl_compare_double(sheath_lower_c[3], 0, 1e-12));
+      if (ix_cdim == 1) TEST_CHECK(gkyl_compare_double(sheath_lower_c[4], phi_sheath*2, 1e-12));
+      else              TEST_CHECK(gkyl_compare_double(sheath_lower_c[4], 0, 1e-12));
+                        TEST_CHECK(gkyl_compare_double(sheath_lower_c[5], 0, 1e-12));
+                        TEST_CHECK(gkyl_compare_double(sheath_lower_c[6], 0, 1e-12));
+                        TEST_CHECK(gkyl_compare_double(sheath_lower_c[7], 0, 1e-12));
     }
-    // gkyl_range_iter_init(&iter, &upper_ghost[ix_cdim]);
-    // double phi_sheath = log(1/(sqrt(2*M_PI)*0.5*1/4));
-    // while (gkyl_range_iter_next(&iter)) {\
-    //   double *sheath_upper_c = ((double *) gkyl_array_cfetch(sheath_vals[index_parallel*2], iter.idx));
-    //   TEST_CHECK(gkyl_compare_double(sheath_upper_c[0], 2, 1e-12));
-    //   TEST_CHECK(gkyl_compare_double(sheath_upper_c[1], 0, 1e-12));
-    //   TEST_CHECK(gkyl_compare_double(sheath_upper_c[2], 0, 1e-12));
-    //   TEST_CHECK(gkyl_compare_double(sheath_upper_c[3], 0, 1e-12));
-    //   TEST_CHECK(gkyl_compare_double(sheath_upper_c[4], phi_sheath*2, 1e-12));
-    //   TEST_CHECK(gkyl_compare_double(sheath_upper_c[5], 0, 1e-12));
-    //   TEST_CHECK(gkyl_compare_double(sheath_upper_c[6], 0, 1e-12));
-    //   TEST_CHECK(gkyl_compare_double(sheath_upper_c[7], 0, 1e-12));
-    // }
   }
   
   gkyl_ambi_bolt_potential_release(ambi);
