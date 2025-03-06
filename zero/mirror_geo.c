@@ -263,7 +263,7 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
           // Non-uniform psi. Finite differences are calculated in calc_metric.c
           position_map->maps[0](0.0, &psi_curr,  &psi_curr,  position_map->ctxs[0]);
 
-          // We cannot do non-uniform alpha because of the Poisson solver
+          // We cannot do non-uniform alpha because we are modeling axisymmetric systems
 
           // Non-uniform theta
           double theta_left  = theta_curr - delta_theta;

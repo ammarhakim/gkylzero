@@ -490,7 +490,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
           position_map->maps[0](0.0, &psi_curr,  &Psi_curr,  position_map->ctxs[0]);
           psi_curr = Psi_curr;
 
-          // We cannot do non-uniform alpha. It would break our Poisson solver
+          // We cannot do non-uniform alpha because we are modeling axisymmetric systems
 
           // Non-uniform theta
           double theta_left  = theta_curr - delta_theta;
