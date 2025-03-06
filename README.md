@@ -257,3 +257,7 @@ clean". Pay attention to all compiler warnings.
 Most importantly, **please internalize and follow** the programming
 philosophy outlined in the document ["A Minimalist Approach to
 Software"](https://www.ammar-hakim.org/sj/pn/pn0/pn0-minimalism.html).
+
+When contributing code to the project, we suggest using a template 
+in our documentation to promote adherence to our community standards.
+[Suggested templates](https://github.com/ammarhakim/gkyl-doc/blob/templates/source/dev/suggested-templates.rst).
