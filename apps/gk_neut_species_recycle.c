@@ -17,22 +17,23 @@ gk_neut_species_recycle_init(struct gkyl_gyrokinetic_app *app, struct gk_recycle
   recyc->f0 = f0;
 
   int bdir = (recyc->edge == GKYL_LOWER_EDGE) ? 2*recyc->dir : 2*recyc->dir+1;
+  int d = recyc->dir;
+  int e = (recyc->edge == GKYL_LOWER_EDGE) ? 0 : 1;
+  struct gkyl_range *skin_r = e==0? &s->lower_skin[d] : &s->upper_skin[d];
+  struct gkyl_range *ghost_r = e==0? &s->lower_ghost[d] : &s->upper_ghost[d];
 
   recyc->emit_buff_r = &s->bflux.flux_r[bdir];
-  recyc->emit_ghost_r = (recyc->edge == GKYL_LOWER_EDGE) ? &s->lower_ghost[recyc->dir] : &s->upper_ghost[recyc->dir];
+  recyc->emit_ghost_r = (recyc->edge == GKYL_LOWER_EDGE) ? &s->lower_ghost[d] : &s->upper_ghost[d];
 
-  recyc->f0_flux_slvr = gkyl_ghost_surf_calc_new(&s->grid, s->eqn_vlasov, app->cdim, app->use_gpu);
+  recyc->f0_flux_slvr[bdir] = gkyl_boundary_flux_new(recyc->dir, e, &s->grid,
+    skin_r, ghost_r, s->eqn_vlasov, true, app->use_gpu);
+  
   recyc->init_bflux_arr = mkarr(app->use_gpu, s->basis.num_basis, recyc->emit_buff_r->volume);
 
-  if (app->use_gpu) {
-    gkyl_ghost_surf_calc_advance_cu(recyc->f0_flux_slvr, &s->local_ext, recyc->f0, recyc->f0);
-  } else {
-    gkyl_ghost_surf_calc_advance(recyc->f0_flux_slvr, &s->local_ext, recyc->f0, recyc->f0);
-  }
+  gkyl_boundary_flux_advance(recyc->f0_flux_slvr[bdir], recyc->f0, recyc->f0);
+  
   gkyl_array_copy_range_to_range(recyc->init_bflux_arr, recyc->f0, recyc->emit_buff_r,
     recyc->emit_ghost_r);
-
-  //gkyl_ghost_surf_calc_release(recyc->f0_flux_slvr);
 }
 
 void
@@ -193,6 +194,7 @@ gk_neut_species_recycle_write_flux(struct gkyl_gyrokinetic_app *app, struct gk_n
 
   const char *edge = (recyc->edge == GKYL_LOWER_EDGE)? "lower" : "upper";
   struct gkyl_range *cskin_r = (recyc->edge == GKYL_LOWER_EDGE) ? &app->lower_skin[recyc->dir] : &app->upper_skin[recyc->dir];
+  int bdir = (recyc->edge == GKYL_LOWER_EDGE) ? 2*recyc->dir : 2*recyc->dir+1;
   
   for (int i=0; i<recyc->num_species; ++i) {
 
@@ -231,11 +233,7 @@ gk_neut_species_recycle_write_flux(struct gkyl_gyrokinetic_app *app, struct gk_n
   gkyl_array_clear(recyc->f_diag, 0.0);
   gkyl_array_copy_range_to_range(recyc->f_diag, recyc->f_emit, recyc->emit_skin_r,
     recyc->emit_buff_r);
-  if (app->use_gpu) {
-    gkyl_ghost_surf_calc_advance_cu(recyc->f0_flux_slvr, &s->local_ext, recyc->f_diag, recyc->f_diag);
-  } else {
-    gkyl_ghost_surf_calc_advance(recyc->f0_flux_slvr, &s->local_ext, recyc->f_diag, recyc->f_diag);
-  }
+  gkyl_boundary_flux_advance(recyc->f0_flux_slvr[bdir], recyc->f_diag, recyc->f_diag);
   gkyl_array_copy_range_to_range(recyc->init_bflux_arr, recyc->f_diag, recyc->emit_buff_r,
     recyc->emit_ghost_r);
   gkyl_dg_updater_moment_advance(recyc->init_flux_slvr, &recyc->emit_normal_r, recyc->emit_cbuff_r, recyc->init_bflux_arr,
@@ -262,6 +260,7 @@ gk_neut_species_recycle_write_flux(struct gkyl_gyrokinetic_app *app, struct gk_n
 void
 gk_neut_species_recycle_release(const struct gkyl_gyrokinetic_app *app, const struct gk_recycle_wall *recyc)
 {
+  int bdir = (recyc->edge == GKYL_LOWER_EDGE) ? 2*recyc->dir : 2*recyc->dir+1;
   gkyl_array_release(recyc->f_emit);
   gkyl_array_release(recyc->init_flux);
   gkyl_array_release(recyc->init_bflux_arr);
@@ -270,10 +269,11 @@ gk_neut_species_recycle_release(const struct gkyl_gyrokinetic_app *app, const st
   gkyl_array_release(recyc->diag_out);
   gkyl_dg_updater_moment_release(recyc->init_flux_slvr);
   gkyl_dg_bin_op_mem_release(recyc->mem_geo);
-  gkyl_ghost_surf_calc_release(recyc->f0_flux_slvr);
-  if (app->use_gpu)
+  gkyl_boundary_flux_release(recyc->f0_flux_slvr[bdir]);
+
+  if (app->use_gpu) {
     gkyl_array_release(recyc->diag_out_ho);
-  
+  }
   if (recyc->elastic) {
     gkyl_array_release(recyc->elastic_yield);
     gkyl_bc_emission_elastic_release(recyc->elastic_update);

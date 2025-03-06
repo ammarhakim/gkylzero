@@ -421,7 +421,7 @@ struct gk_recycle_wall {
   struct gkyl_array *f0;
   double delta[GKYL_MAX_SPECIES]; // recycling fraction
   
-  gkyl_ghost_surf_calc *f0_flux_slvr;
+  gkyl_boundary_flux *f0_flux_slvr[2*GKYL_MAX_CDIM];
   struct gkyl_dg_bin_op_mem *mem_geo; // memory needed in dividing moments by Jacobian
   struct gkyl_spectrum_model *spectrum_model[GKYL_MAX_SPECIES];
   struct gkyl_yield_model *yield_model[GKYL_MAX_SPECIES];
