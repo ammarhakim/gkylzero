@@ -71,6 +71,8 @@ struct burch_ctx
 
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
+  int field_energy_calcs; // Number of times to calculate field energy.
+  int integrated_mom_calcs; // Number of times to calculate integrated moments.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
@@ -125,6 +127,8 @@ create_ctx(void)
 
   double t_end = 250.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
+  int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
+  int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
   
@@ -165,6 +169,8 @@ create_ctx(void)
     .cfl_frac = cfl_frac,
     .t_end = t_end,
     .num_frames = num_frames,
+    .field_energy_calcs = field_energy_calcs,
+    .integrated_mom_calcs = integrated_mom_calcs,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
   };
@@ -229,23 +235,23 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
     - (1.0 / cosh((y - Ly * 0.75) / omega0)) * (1.0 / cosh((y - Ly * 0.75) / omega0)) 
     + (1.0 / cosh((y - Ly * 1.25) / omega0)) * (1.0 / cosh((y - Ly * 1.25) / omega0)) 
     - (1.0 / cosh((y + Ly * 0.25) / omega0)) * (1.0 / cosh((y + Ly * 0.25) / omega0))) 
-    - psi0 * sin(2.0 * pi * x / Lx) * ((2.0 * pi / Lx) * (2.0 * pi / Lx) * (1.0 - cos(4.0 * pi * y / Ly)) +
-      (4.0 * pi / Ly) * (4.0 * pi / Ly) * cos(4.0 * pi * y / Ly)); // Total current density (z-direction).
+    - psi0 * sin(2.0 * pi * x / Lx) * ((2.0 * pi / Lx) * (2.0 * pi / Lx) * (1.0 - cos(4.0 * pi * y / Ly))
+    + (4.0 * pi / Ly) * (4.0 * pi / Ly) * cos(4.0 * pi * y / Ly)); // Total current density (z-direction).
    
   double Jxe = Jx * Te_frac; // Electron current density (x-direction).
   double Jye = Jy * Te_frac; // Electron current density (y-direction).
   double Jze = Jz * Te_frac; // Electron current density (z-direction).
 
   double rhoe = mass_elc * n; // Electron mass density.
-  double momxe = (mass_elc / charge_elc) * Jxe; // Electron momentum density (x-direction).
-  double momye = (mass_elc / charge_elc) * Jye; // Electron momentum density (y-direction).
-  double momze = (mass_elc / charge_elc) * Jze; // Electron momentum density (z-direction).
-  double Ee_tot = n * Te_tot / (gas_gamma - 1.0) + 0.5 * (momxe * momxe + momye * momye + momze * momze) / rhoe; // Electron total energy density.
+  double mome_x = (mass_elc / charge_elc) * Jxe; // Electron momentum density (x-direction).
+  double mome_y = (mass_elc / charge_elc) * Jye; // Electron momentum density (y-direction).
+  double mome_z = (mass_elc / charge_elc) * Jze; // Electron momentum density (z-direction).
+  double Ee_tot = n * Te_tot / (gas_gamma - 1.0) + 0.5 * ((mome_x * mome_x) + (mome_y * mome_y) + (mome_z * mome_z)) / rhoe; // Electron total energy density.
 
   // Set electron mass density.
   fout[0] = rhoe;
   // Set electron momentum density.
-  fout[1] = momxe; fout[2] = momye; fout[3] = momze;
+  fout[1] = mome_x; fout[2] = mome_y; fout[3] = mome_z;
   // Set electron total energy density.
   fout[4] = Ee_tot;
 }
@@ -307,23 +313,23 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
     - (1.0 / cosh((y - Ly * 0.75) / omega0)) * (1.0 / cosh((y - Ly * 0.75) / omega0)) 
     + (1.0 / cosh((y - Ly * 1.25) / omega0)) * (1.0 / cosh((y - Ly * 1.25) / omega0)) 
     - (1.0 / cosh((y + Ly * 0.25) / omega0)) * (1.0 / cosh((y + Ly * 0.25) / omega0))) 
-    - psi0 * sin(2.0 * pi * x / Lx) * ((2.0 * pi / Lx) * (2.0 * pi / Lx) * (1.0 - cos(4.0 * pi * y / Ly)) +
-      (4.0 * pi / Ly) * (4.0 * pi / Ly) * cos(4.0 * pi * y / Ly)); // Total current density (z-direction).
+    - psi0 * sin(2.0 * pi * x / Lx) * ((2.0 * pi / Lx) * (2.0 * pi / Lx) * (1.0 - cos(4.0 * pi * y / Ly))
+    + (4.0 * pi / Ly) * (4.0 * pi / Ly) * cos(4.0 * pi * y / Ly)); // Total current density (z-direction).
    
   double Jxi = Jx * Ti_frac; // Ion current density (x-direction).
   double Jyi = Jy * Ti_frac; // Ion current density (y-direction).
   double Jzi = Jz * Ti_frac; // Ion current density (z-direction).
 
   double rhoi = mass_ion * n; // Ion mass density.
-  double momxi = (mass_ion / charge_ion) * Jxi; // Ion momentum density (x-direction).
-  double momyi = (mass_ion / charge_ion) * Jyi; // Ion momentum density (y-direction).
-  double momzi = (mass_ion / charge_ion) * Jzi; // Ion momentum density (z-direction).
-  double Ei_tot = n * Ti_tot / (gas_gamma - 1.0) + 0.5 * (momxi * momxi + momyi * momyi + momzi * momzi) / rhoi; // Ion total energy density.
+  double momi_x = (mass_ion / charge_ion) * Jxi; // Ion momentum density (x-direction).
+  double momi_y = (mass_ion / charge_ion) * Jyi; // Ion momentum density (y-direction).
+  double momi_z = (mass_ion / charge_ion) * Jzi; // Ion momentum density (z-direction).
+  double Ei_tot = n * Ti_tot / (gas_gamma - 1.0) + 0.5 * ((momi_x * momi_x) + (momi_y * momi_y) + (momi_z * momi_z)) / rhoi; // Ion total energy density.
 
   // Set ion mass density,
   fout[0] = rhoi;
   // Set ion momentum density.
-  fout[1] = momxi; fout[2] = momyi; fout[3] = momzi;
+  fout[1] = momi_x; fout[2] = momi_y; fout[3] = momi_z;
   // Set ion total energy density.
   fout[4] = Ei_tot;
 }
@@ -365,12 +371,16 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
     + tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) + 0.5 * (Te2 + Te1); // Total electron temperature.
   double n = (0.5 * (b1 * b1 - b1x * b1x) + 0.5 * (guide1 * guide1 - b1z * b1z) + n1 * (Ti1 + Te1)) / (Ti_tot + Te_tot); // Total number density.
 
+  double Ex = 0.0; // Total electric field (x-direction).
+  double Ey = 0.0; // Total electric field (y-direction).
+  double Ez = 0.0; // Total electric field (z-direction).
+
   double Bx = b1x - psi0 * 4.0 * pi / Ly * sin(2.0 * pi * x / Lx) * sin(4.0 * pi * y / Ly); // Total magnetic field (x-direction).
   double By = b1y + psi0 * 2.0 * pi / Lx * cos(2.0 * pi * x / Lx) * (1.0 - cos(4.0 * pi * y / Ly)); // Total magnetic field (y-direction).
   double Bz = b1z; // Total magnetic field (z-direction).
 
   // Set electric field.
-  fout[0] = 0.0, fout[1] = 0.0; fout[2] = 0.0;
+  fout[0] = Ex, fout[1] = Ey; fout[2] = Ez;
   // Set magnetic field.
   fout[3] = Bx, fout[4] = By; fout[5] = Bz;
   // Set correction potentials.
@@ -380,13 +390,31 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 void
 write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr, bool force_write)
 {
-  if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
     int frame = iot->curr - 1;
     if (force_write) {
       frame = iot->curr;
     }
 
     gkyl_moment_app_write(app, t_curr, frame);
+    gkyl_moment_app_write_field_energy(app);
+    gkyl_moment_app_write_integrated_mom(app);
+  }
+}
+
+void
+calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_moment_app* app, double t_curr, bool force_calc)
+{
+  if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
+    gkyl_moment_app_calc_field_energy(app, t_curr);
+  }
+}
+
+void
+calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_moment_app* app, double t_curr, bool force_calc)
+{
+  if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
+    gkyl_moment_app_calc_integrated_mom(app, t_curr);
   }
 }
 
@@ -419,7 +447,7 @@ main(int argc, char **argv)
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
     .equation = elc_euler,
-    .evolve = true,
+    
     .init = evalElcInit,
     .ctx = &ctx,
   };
@@ -428,7 +456,7 @@ main(int argc, char **argv)
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
     .equation = ion_euler,
-    .evolve = true,
+    
     .init = evalIonInit,
     .ctx = &ctx,
   };
@@ -438,7 +466,6 @@ main(int argc, char **argv)
     .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
     .mag_error_speed_fact = 1.0,
       
-    .evolve = true,
     .init = evalFieldInit,
     .ctx = &ctx,
   };
@@ -450,13 +477,9 @@ main(int argc, char **argv)
   }
 #endif
 
-  // Create global range.
   int cells[] = { NX, NY };
   int dim = sizeof(cells) / sizeof(cells[0]);
-  struct gkyl_range global_r;
-  gkyl_create_global_range(dim, cells, &global_r);
 
-  // Create decomposition.
   int cuts[dim];
 #ifdef GKYL_HAVE_MPI
   for (int d = 0; d < dim; d++) {
@@ -473,28 +496,23 @@ main(int argc, char **argv)
   }
 #endif
 
-  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(dim, cuts, &global_r);
-
   // Construct communicator for use in app.
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
     comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
       }
     );
   }
   else {
     comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .decomp = decomp,
         .use_gpu = app_args.use_gpu
       }
     );
   }
 #else
   comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = decomp,
       .use_gpu = app_args.use_gpu
     }
   );
@@ -535,11 +553,11 @@ main(int argc, char **argv)
 
     .field = field,
 
-    .has_low_inp = true,
-    .low_inp = {
-      .local_range = decomp->ranges[my_rank],
-      .comm = comm
-    }
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0], app_args.cuts[1] },
+      .comm = comm,
+    },
   };
 
   // Create app object.
@@ -548,16 +566,46 @@ main(int argc, char **argv)
   // Initial and final simulation times.
   double t_curr = 0.0, t_end = ctx.t_end;
 
+  // Initialize simulation.
+  int frame_curr = 0;
+  if (app_args.is_restart) {
+    struct gkyl_app_restart_status status = gkyl_moment_app_read_from_frame(app, app_args.restart_frame);
+
+    if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
+      gkyl_moment_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n", gkyl_array_rio_status_msg(status.io_status));
+      goto freeresources;
+    }
+
+    frame_curr = status.frame;
+    t_curr = status.stime;
+
+    gkyl_moment_app_cout(app, stdout, "Restarting from frame %d", frame_curr);
+    gkyl_moment_app_cout(app, stdout, " at time = %g\n", t_curr);
+  }
+  else {
+    gkyl_moment_app_apply_ic(app, t_curr);
+  }
+
+  // Create trigger for field energy.
+  int field_energy_calcs = ctx.field_energy_calcs;
+  struct gkyl_tm_trigger fe_trig = { .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr };
+
+  calc_field_energy(&fe_trig, app, t_curr, false);
+
+  // Create trigger for integrated moments.
+  int integrated_mom_calcs = ctx.integrated_mom_calcs;
+  struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr };
+
+  calc_integrated_mom(&im_trig, app, t_curr, false);
+
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = t_curr, .curr = frame_curr };
 
-  // Initialize simulation.
-  gkyl_moment_app_apply_ic(app, t_curr);
   write_data(&io_trig, app, t_curr, false);
 
-  // Compute estimate of maximum stable time-step.
-  double dt = gkyl_moment_app_max_dt(app);
+  // Compute initial guess of maximum stable time-step.
+  double dt = t_end - t_curr;
 
   // Initialize small time-step check.
   double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
@@ -577,6 +625,8 @@ main(int argc, char **argv)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
+    calc_field_energy(&fe_trig, app, t_curr, false);
+    calc_integrated_mom(&im_trig, app, t_curr, false);
     write_data(&io_trig, app, t_curr, false);
 
     if (dt_init < 0.0) {
@@ -591,6 +641,11 @@ main(int argc, char **argv)
       if (num_failures >= num_failures_max) {
         gkyl_moment_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_moment_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+
+        calc_field_energy(&fe_trig, app, t_curr, true);
+        calc_integrated_mom(&im_trig, app, t_curr, true);
+        write_data(&io_trig, app, t_curr, true);
+
         break;
       }
     }
@@ -601,6 +656,8 @@ main(int argc, char **argv)
     step += 1;
   }
 
+  calc_field_energy(&fe_trig, app, t_curr, false);
+  calc_integrated_mom(&im_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
   gkyl_moment_app_stat_write(app);
 
@@ -614,10 +671,10 @@ main(int argc, char **argv)
   gkyl_moment_app_cout(app, stdout, "Source updates took %g secs\n", stat.sources_tm);
   gkyl_moment_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
+freeresources:
   // Free resources after simulation completion.
   gkyl_wv_eqn_release(elc_euler);
   gkyl_wv_eqn_release(ion_euler);
-  gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   gkyl_moment_app_release(app);
   

@@ -11,104 +11,74 @@
 #include <gkyl_hyper_dg.h>
 #include <gkyl_util.h>
 
-struct gkyl_dg_updater_collisions*
-gkyl_dg_updater_lbo_gyrokinetic_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range, double mass, bool use_gpu)
+struct gkyl_dg_updater_collisions* 
+gkyl_dg_updater_lbo_gyrokinetic_new(const struct gkyl_rect_grid *phase_grid,
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, const struct gkyl_range *conf_range, 
+  struct gkyl_dg_lbo_gyrokinetic_drag_auxfields *drag_inp, struct gkyl_dg_lbo_gyrokinetic_diff_auxfields *diff_inp, 
+  double mass, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map,
+  bool use_gpu)
 {
   struct gkyl_dg_updater_collisions *up = gkyl_malloc(sizeof(gkyl_dg_updater_collisions));
 
-  up->coll_drag = gkyl_dg_lbo_gyrokinetic_drag_new(cbasis, pbasis, conf_range, grid, mass, use_gpu);
-  up->coll_diff = gkyl_dg_lbo_gyrokinetic_diff_new(cbasis, pbasis, conf_range, grid, mass, use_gpu);
+  up->use_gpu = use_gpu;
 
-  int cdim = cbasis->ndim, pdim = pbasis->ndim;
+  up->coll_drag = gkyl_dg_lbo_gyrokinetic_drag_new(conf_basis, phase_basis, conf_range,
+    phase_grid, mass, gk_geom, vel_map, up->use_gpu);
+  gkyl_lbo_gyrokinetic_drag_set_auxfields(up->coll_drag, *drag_inp);
+
+  up->coll_diff = gkyl_dg_lbo_gyrokinetic_diff_new(conf_basis, phase_basis, conf_range,
+    phase_grid, mass, gk_geom, vel_map, up->use_gpu); 
+  gkyl_lbo_gyrokinetic_diff_set_auxfields(up->coll_diff, *diff_inp);
+
+  int cdim = conf_basis->ndim, pdim = phase_basis->ndim;
   int vdim = pdim-cdim;
   int num_up_dirs = vdim;
   int up_dirs[GKYL_MAX_DIM] = { 0 };
   for (int d=0; d<vdim; ++d)
-    up_dirs[d] = d + pbasis->ndim - vdim;
+    up_dirs[d] = d + phase_basis->ndim - vdim;
 
-  int zero_flux_flags[GKYL_MAX_DIM] = { 0 };
+  int zero_flux_flags[2*GKYL_MAX_DIM] = { 0 };
   for (int d=cdim; d<pdim; ++d)
-    zero_flux_flags[d] = 1;
+    zero_flux_flags[d] = zero_flux_flags[d+pdim] = 1;
   
-  up->diff = gkyl_hyper_dg_new(grid, pbasis, up->coll_diff, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);
-  up->drag = gkyl_hyper_dg_new(grid, pbasis, up->coll_drag, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);
+  up->drag = gkyl_hyper_dg_new(phase_grid, phase_basis, up->coll_drag, num_up_dirs, up_dirs, zero_flux_flags, 1, up->use_gpu);
+  up->diff = gkyl_hyper_dg_new(phase_grid, phase_basis, up->coll_diff, num_up_dirs, up_dirs, zero_flux_flags, 1, up->use_gpu);
+
+  up->diff_tm = 0.0; 
+  up->drag_tm = 0.0;
   
   return up;
 }
 
 void
 gkyl_dg_updater_lbo_gyrokinetic_advance(struct gkyl_dg_updater_collisions *lbo,
-  const struct gkyl_range *update_rng,
-  const struct gkyl_array *bmag_inv,
-  const struct gkyl_array *nu_sum, const struct gkyl_array *nu_prim_moms,
-  const struct gkyl_array *m2self, 
-  const struct gkyl_array* GKYL_RESTRICT fIn,
+  const struct gkyl_range *update_rng, const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
-  // Set arrays needed
-  gkyl_lbo_gyrokinetic_drag_set_auxfields(lbo->coll_drag,
-    (struct gkyl_dg_lbo_gyrokinetic_drag_auxfields) { .bmag_inv = bmag_inv, .nuSum = nu_sum, .nuPrimMomsSum = nu_prim_moms, .m2self = m2self });
-  gkyl_lbo_gyrokinetic_diff_set_auxfields(lbo->coll_diff,
-    (struct gkyl_dg_lbo_gyrokinetic_diff_auxfields) { .bmag_inv = bmag_inv, .nuSum = nu_sum, .nuPrimMomsSum = nu_prim_moms, .m2self = m2self });
-  
-  gkyl_hyper_dg_advance(lbo->diff, update_rng, fIn, cflrate, rhs);
+  struct timespec wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance(lbo->drag, update_rng, fIn, cflrate, rhs);
+  lbo->drag_tm += gkyl_time_diff_now_sec(wst);
+
+  wst = gkyl_wall_clock();
+  gkyl_hyper_dg_advance(lbo->diff, update_rng, fIn, cflrate, rhs);
+  lbo->diff_tm += gkyl_time_diff_now_sec(wst);
 }
 
 struct gkyl_dg_updater_lbo_gyrokinetic_tm
-gkyl_dg_updater_lbo_gyrokinetic_get_tm(const struct gkyl_dg_updater_collisions *coll)
+gkyl_dg_updater_lbo_gyrokinetic_get_tm(const gkyl_dg_updater_collisions *coll)
 {
   return (struct gkyl_dg_updater_lbo_gyrokinetic_tm) {
-    .diff_tm = coll->diff_tm,
-    .drag_tm = coll->drag_tm
+    .drag_tm = coll->drag_tm,
+    .diff_tm = coll->diff_tm
   };
 }
 
 void
-gkyl_dg_updater_lbo_gyrokinetic_release(struct gkyl_dg_updater_collisions* coll)
+gkyl_dg_updater_lbo_gyrokinetic_release(gkyl_dg_updater_collisions* coll)
 {
-  gkyl_dg_eqn_release(coll->coll_diff);
   gkyl_dg_eqn_release(coll->coll_drag);
+  gkyl_dg_eqn_release(coll->coll_diff);
   gkyl_hyper_dg_release(coll->drag);
   gkyl_hyper_dg_release(coll->diff);
   gkyl_free(coll);
 }
-
-#ifdef GKYL_HAVE_CUDA
-
-void
-gkyl_dg_updater_lbo_gyrokinetic_advance_cu(struct gkyl_dg_updater_collisions *lbo,
-  const struct gkyl_range *update_rng,
-  const struct gkyl_array *bmag_inv,
-  const struct gkyl_array *nu_sum, const struct gkyl_array *nu_prim_moms,
-  const struct gkyl_array *m2self, 
-  const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
-  struct gkyl_array* GKYL_RESTRICT rhs)
-{
-  // Set arrays needed
-  gkyl_lbo_gyrokinetic_drag_set_auxfields(lbo->coll_drag,
-    (struct gkyl_dg_lbo_gyrokinetic_drag_auxfields) { .bmag_inv = bmag_inv, .nuSum = nu_sum, .nuPrimMomsSum = nu_prim_moms, .m2self = m2self });
-  gkyl_lbo_gyrokinetic_diff_set_auxfields(lbo->coll_diff,
-    (struct gkyl_dg_lbo_gyrokinetic_diff_auxfields) { .bmag_inv = bmag_inv, .nuSum = nu_sum, .nuPrimMomsSum = nu_prim_moms, .m2self = m2self });
-
-  gkyl_hyper_dg_advance_cu(lbo->diff, update_rng, fIn, cflrate, rhs);
-  gkyl_hyper_dg_advance_cu(lbo->drag, update_rng, fIn, cflrate, rhs);
-}
-
-#endif
-
-#ifndef GKYL_HAVE_CUDA
-
-void
-gkyl_dg_updater_lbo_gyrokinetic_advance_cu(struct gkyl_dg_updater_collisions *lbo,
-  const struct gkyl_range *update_rng,
-  const struct gkyl_array *bmag_inv,
-  const struct gkyl_array *nu_sum, const struct gkyl_array *nu_prim_moms, 
-  const struct gkyl_array *m2self, 
-  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs)
-{
-  assert(false);
-}
-
-#endif

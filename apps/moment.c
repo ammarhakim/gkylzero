@@ -1,10 +1,68 @@
+#include <gkyl_array_rio_priv.h>
 #include <gkyl_moment_priv.h>
 #include <gkyl_null_comm.h>
+#include <gkyl_util.h>
 
-static inline int
-int_max(int a, int b)
+#include <mpack.h>
+
+static inline int int_max(int a, int b) { return a > b ? a : b; }
+
+struct gkyl_msgpack_data*
+moment_array_meta_new(struct moment_output_meta meta)
 {
-  return a>b ? a : b;
+  struct gkyl_msgpack_data *mt = gkyl_malloc(sizeof(*mt));
+
+  mt->meta_sz = 0;
+  mpack_writer_t writer;
+  mpack_writer_init_growable(&writer, &mt->meta, &mt->meta_sz);
+
+  // add some data to mpack
+  mpack_build_map(&writer);
+  
+  mpack_write_cstr(&writer, "time");
+  mpack_write_double(&writer, meta.stime);
+
+  mpack_write_cstr(&writer, "frame");
+  mpack_write_i64(&writer, meta.frame);
+
+  mpack_complete_map(&writer);
+
+  int status = mpack_writer_destroy(&writer);
+
+  if (status != mpack_ok) {
+    free(mt->meta); // we need to use free here as mpack does its own malloc
+    gkyl_free(mt);
+    mt = 0;
+  }
+
+  return mt;
+}
+
+void
+moment_array_meta_release(struct gkyl_msgpack_data *mt)
+{
+  if (!mt) return;
+  MPACK_FREE(mt->meta);
+  gkyl_free(mt);
+}
+
+struct moment_output_meta
+moment_meta_from_mpack(struct gkyl_msgpack_data *mt)
+{
+  struct moment_output_meta meta = { .frame = 0, .stime = 0.0 };
+
+  if (mt->meta_sz > 0) {
+    mpack_tree_t tree;
+    mpack_tree_init_data(&tree, mt->meta, mt->meta_sz);
+    mpack_tree_parse(&tree);
+    mpack_node_t root = mpack_tree_root(&tree);
+    mpack_node_t tm_node = mpack_node_map_cstr(root, "time");
+    meta.stime = mpack_node_double(tm_node);
+    mpack_node_t fr_node = mpack_node_map_cstr(root, "frame");
+    meta.frame = mpack_node_i64(fr_node);
+    mpack_tree_destroy(&tree);
+  }
+  return meta;
 }
 
 gkyl_moment_app*
@@ -39,40 +97,31 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   gkyl_rect_grid_init(&app->grid, ndim, mom->lower, mom->upper, mom->cells);
   gkyl_create_grid_ranges(&app->grid, ghost, &app->global_ext, &app->global);
 
-  if (mom->has_low_inp) {
-    // create local and local_ext from user-supplied local range
-    gkyl_create_ranges(&mom->low_inp.local_range, ghost, &app->local_ext, &app->local);
-    
-    if (mom->low_inp.comm)
-      app->comm = gkyl_comm_acquire(mom->low_inp.comm);
-    else {
-      int cuts[] = { 1, 1, 1 };
-      struct gkyl_rect_decomp *rect_decomp =
-        gkyl_rect_decomp_new_from_cuts(ndim, cuts, &app->global);
-      
-      app->comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-          .decomp = rect_decomp
-        }
-      );
-
-      gkyl_rect_decomp_release(rect_decomp);
-    }
-  }
-  else {
-    // global and local ranges are same, and so just copy
-    memcpy(&app->local, &app->global, sizeof(struct gkyl_range));
-    memcpy(&app->local_ext, &app->global_ext, sizeof(struct gkyl_range));
-
-    int cuts[] = { 1, 1, 1 };
-    struct gkyl_rect_decomp *rect_decomp =
-      gkyl_rect_decomp_new_from_cuts(ndim, cuts, &app->global);
+  if (mom->parallelism.comm == 0) {
+    int cuts[3] = { 1, 1, 1 };
+    app->decomp = gkyl_rect_decomp_new_from_cuts(app->ndim, cuts, &app->global);
     
     app->comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .decomp = rect_decomp
+        .decomp = app->decomp,
+        .sync_corners = true, // If no communicator, since some moment apps need corner syncs, turn on corner syncs. 
       }
     );
     
-    gkyl_rect_decomp_release(rect_decomp);
+    // Global and local ranges are same, and so just copy them.
+    memcpy(&app->local, &app->global, sizeof(struct gkyl_range));
+    memcpy(&app->local_ext, &app->global_ext, sizeof(struct gkyl_range));
+  }
+  else {
+    // Create decomp.
+    app->decomp = gkyl_rect_decomp_new_from_cuts(app->ndim, mom->parallelism.cuts, &app->global);
+
+    // Create a new communicator with the decomposition in it.
+    app->comm = gkyl_comm_split_comm(mom->parallelism.comm, 0, app->decomp);
+
+    // Create local and local_ext.
+    int rank;
+    gkyl_comm_get_rank(app->comm, &rank);
+    gkyl_create_ranges(&app->decomp->ranges[rank], ghost, &app->local_ext, &app->local);
   }
 
   skin_ghost_ranges_init(&app->skin_ghost, &app->global_ext, ghost);  
@@ -96,7 +145,7 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
 
     // write DG projection of mapc2p to file
     cstr fileNm = cstr_from_fmt("%s-mapc2p.gkyl", app->name);
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, c2p, fileNm.str);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, c2p, fileNm.str);
     cstr_drop(&fileNm);
 
     gkyl_array_release(c2p);
@@ -137,9 +186,10 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   int ns = app->num_species = mom->num_species;
   // allocate space to store species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct moment_species[ns])) : 0;
-  // create species grid & ranges
-  for (int i=0; i<ns; ++i)
+  // create species
+  for (int i=0; i<ns; ++i) {
     moment_species_init(mom, &mom->species[i], app, &app->species[i]);
+  }
 
   // specify collision parameters in the exposed app
   app->has_collision = mom->has_collision;
@@ -193,7 +243,7 @@ gkyl_moment_app_max_dt(gkyl_moment_app* app)
     max_dt = fmin(max_dt, moment_field_max_dt(app, &app->field));
 
   double max_dt_global;
-  gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &max_dt, &max_dt_global);
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &max_dt, &max_dt_global);
 
   return max_dt_global;
 }
@@ -219,14 +269,11 @@ gkyl_moment_app_apply_ic_field(gkyl_moment_app* app, double t0)
   gkyl_fv_proj_advance(proj, t0, &app->local, app->field.fcurr);
   gkyl_fv_proj_release(proj);
 
-  if (app->field.proj_ext_em) {
-    gkyl_fv_proj_advance(
-        app->field.proj_ext_em, t0, &app->local, app->field.ext_em);
-
-    if (app->field.is_ext_em_static)
-      app->field.was_ext_em_computed = true;
-    else
-      app->field.was_ext_em_computed = false;
+  if (app->field.has_ext_em) {
+    gkyl_fv_proj_advance(app->field.ext_em_proj, t0, &app->local, app->field.ext_em);
+  }
+  if (app->field.has_app_current) {
+    gkyl_fv_proj_advance(app->field.app_current_proj, t0, &app->local, app->field.ext_em);
   }
 
   moment_field_apply_bc(app, t0, &app->field, app->field.fcurr);
@@ -245,6 +292,10 @@ gkyl_moment_app_apply_ic_species(gkyl_moment_app* app, int sidx, double t0)
   gkyl_fv_proj_advance(proj, t0, &app->local, app->species[sidx].fcurr);
   gkyl_fv_proj_release(proj);
 
+  if (app->species[sidx].has_app_accel) {
+    gkyl_fv_proj_advance(app->species[sidx].app_accel_proj, t0, &app->local, app->species[sidx].app_accel);
+  }
+
   moment_species_apply_bc(app, t0, &app->species[sidx], app->species[sidx].fcurr);
 }
 
@@ -261,16 +312,35 @@ gkyl_moment_app_write_field(const gkyl_moment_app* app, double tm, int frame)
 {
   if (app->has_field != 1) return;
 
+  struct gkyl_msgpack_data *mt = moment_array_meta_new( (struct moment_output_meta) {
+      .frame = frame,
+      .stime= tm
+    }
+  );
+
   cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->field.fcurr, fileNm.str);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field.fcurr, fileNm.str);
   cstr_drop(&fileNm);
 
   // write external EM field if it is present
-  if (app->field.ext_em) {
-    cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "ext_em_field", frame);
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->field.ext_em, fileNm.str);
-    cstr_drop(&fileNm);
+  if (app->field.ext_em_proj) {
+    if (app->field.ext_em_evolve || frame == 0) {
+      cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "ext_em", frame);
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field.ext_em, fileNm.str);
+      cstr_drop(&fileNm);
+    }
   }
+
+  // write applied currents if it is present
+  if (app->field.app_current_proj) {
+    if (app->field.app_current_evolve || frame == 0) {
+      cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "app_current", frame);
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field.app_current, fileNm.str);
+      cstr_drop(&fileNm);
+    }
+  }
+
+  moment_array_meta_release(mt);
 }
 
 void
@@ -325,15 +395,31 @@ gkyl_moment_app_write_integrated_mom(gkyl_moment_app *app)
 void
 gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, int frame)
 {
+  struct gkyl_msgpack_data *mt = moment_array_meta_new( (struct moment_output_meta) {
+      .frame = frame,
+      .stime = tm
+    }
+  );
+  
   cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->species[sidx].name, frame);
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->species[sidx].fcurr, fileNm.str);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->species[sidx].fcurr, fileNm.str);
   cstr_drop(&fileNm);
 
   if (app->scheme_type == GKYL_MOMENT_KEP) {
     cstr fileNm = cstr_from_fmt("%s-%s-alpha_%d.gkyl", app->name, app->species[sidx].name, frame);
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->species[sidx].alpha, fileNm.str);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->species[sidx].alpha, fileNm.str);
     cstr_drop(&fileNm);
   }
+
+  if (app->species[sidx].has_app_accel) {
+    if (app->species[sidx].app_accel_evolve || frame == 0) {
+      cstr fileNm = cstr_from_fmt("%s-%s-app_accel_%d.gkyl", app->name, app->species[sidx].name, frame);
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->species[sidx].app_accel, fileNm.str);
+      cstr_drop(&fileNm);      
+    }
+  }
+
+  moment_array_meta_release(mt);
 }
 
 struct gkyl_update_status
@@ -352,17 +438,35 @@ gkyl_moment_update(gkyl_moment_app* app, double dt)
   return status;
 }
 
+int
+gkyl_moment_app_field_energy_ndiag(gkyl_moment_app *app)
+{
+  return 6;
+}
+
+void
+gkyl_moment_app_get_field_energy(gkyl_moment_app *app, double *vals)
+{
+  double energy_global[6] = { 0.0 };
+  if (app->has_field) {
+    double energy[6];
+    calc_integ_quant(app->field.maxwell, app->grid.cellVolume, app->field.fcurr, app->geom,
+      app->local, energy);
+    
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 6, energy, energy_global);
+  }
+  for (int i=0; i<6; ++i)
+    vals[i] = energy_global[i];
+}
+
 void
 gkyl_moment_app_calc_field_energy(gkyl_moment_app* app, double tm)
 {
   if (app->has_field) {
     double energy[6] = { 0.0 };
-    calc_integ_quant(app->field.maxwell, app->grid.cellVolume, app->field.fcurr, app->geom,
-      app->local, energy);
-    
-    double energy_global[6];
-    gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 6, energy, energy_global);
-    gkyl_dynvec_append(app->field.integ_energy, tm, energy_global);
+    gkyl_moment_app_get_field_energy(app, energy);
+    gkyl_dynvec_append(app->field.integ_energy, tm, energy);
+
   }
 }
 
@@ -378,9 +482,31 @@ gkyl_moment_app_calc_integrated_mom(gkyl_moment_app *app, double tm)
       app->local, q_integ);
 
     double q_integ_global[num_diag];
-    gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_diag, q_integ, q_integ_global);
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_diag, q_integ, q_integ_global);
     gkyl_dynvec_append(app->species[sidx].integ_q, tm, q_integ_global);
   }
+}
+
+void
+gkyl_moment_app_nghost(gkyl_moment_app *app, int nghost[3])
+{
+  for (int i=0; i<app->ndim; ++i)
+    nghost[i] = app->nghost[i];
+}
+
+struct gkyl_array*
+gkyl_moment_app_get_write_array_species(const gkyl_moment_app* app, int sidx)
+{
+  // this needs to be consistent with the write_species method
+  return app->species[sidx].fcurr;
+}
+
+struct gkyl_array*
+gkyl_moment_app_get_write_array_field(const gkyl_moment_app* app)
+{
+  if (app->has_field != 1) return 0;
+// this needs to be consistent with the write_field method
+  return app->field.fcurr;
 }
 
 struct gkyl_moment_stat
@@ -391,7 +517,8 @@ gkyl_moment_app_stat(gkyl_moment_app* app)
 
 // ensure stats across processors are made consistent
 static void
-comm_reduce_app_stat(const gkyl_moment_app* app, const struct gkyl_moment_stat *local, struct gkyl_moment_stat *global)
+comm_reduce_app_stat(const gkyl_moment_app* app, const struct gkyl_moment_stat *local,
+  struct gkyl_moment_stat *global)
 {
   int comm_sz;
   gkyl_comm_get_size(app->comm, &comm_sz);
@@ -410,7 +537,7 @@ comm_reduce_app_stat(const gkyl_moment_app* app, const struct gkyl_moment_stat *
   };
 
   int64_t l_red_global[L_END];
-  gkyl_comm_all_reduce(app->comm, GKYL_INT_64, GKYL_MAX, L_END, l_red, l_red_global);
+  gkyl_comm_allreduce(app->comm, GKYL_INT_64, GKYL_MAX, L_END, l_red, l_red_global);
 
   global->nup = l_red_global[NUP];
   global->nfail = l_red_global[NFAIL];
@@ -437,7 +564,7 @@ comm_reduce_app_stat(const gkyl_moment_app* app, const struct gkyl_moment_stat *
   };
 
   double_t d_red_global[D_END];
-  gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_MAX, D_END, d_red, d_red_global);
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, D_END, d_red, d_red_global);
 
   global->total_tm = d_red_global[TOTAL_TM];
   global->species_tm = d_red_global[SPECIES_TM];
@@ -470,7 +597,7 @@ comm_reduce_wave_prop_stats(const gkyl_moment_app* app, const struct gkyl_wave_p
   };
 
   int64_t l_red_global[L_END];
-  gkyl_comm_all_reduce(app->comm, GKYL_INT_64, GKYL_MAX, L_END, l_red, l_red_global); 
+  gkyl_comm_allreduce(app->comm, GKYL_INT_64, GKYL_MAX, L_END, l_red, l_red_global); 
 
   global->n_calls = l_red_global[N_CALLS];
   global->n_bad_advance_calls = l_red_global[N_BAD_ADVANCE_CALLS];
@@ -478,7 +605,7 @@ comm_reduce_wave_prop_stats(const gkyl_moment_app* app, const struct gkyl_wave_p
 
   int64_t n_bad_cells_local = local->n_bad_cells, n_bad_cells = 0;
   
-  gkyl_comm_all_reduce(app->comm, GKYL_INT_64, GKYL_SUM, 1, &n_bad_cells_local, &n_bad_cells);
+  gkyl_comm_allreduce(app->comm, GKYL_INT_64, GKYL_SUM, 1, &n_bad_cells_local, &n_bad_cells);
   global->n_bad_cells = n_bad_cells;
 }
 
@@ -579,14 +706,145 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
   cstr_drop(&fileNm);
 }
 
+static struct gkyl_app_restart_status
+header_from_file(gkyl_moment_app *app, const char *fname)
+{
+  struct gkyl_app_restart_status rstat = { .io_status = 0 };
+  
+  FILE *fp = 0;
+  with_file(fp, fname, "r") {
+    struct gkyl_rect_grid grid;
+    struct gkyl_array_header_info hdr;
+    rstat.io_status = gkyl_grid_sub_array_header_read_fp(&grid, &hdr, fp);
+
+    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+      if (!gkyl_rect_grid_cmp(&app->grid, &grid))
+        rstat.io_status = GKYL_ARRAY_RIO_DATA_MISMATCH;
+      if (hdr.etype != GKYL_DOUBLE)
+        rstat.io_status = GKYL_ARRAY_RIO_DATA_MISMATCH;
+    }
+
+    struct moment_output_meta meta =
+      moment_meta_from_mpack( &(struct gkyl_msgpack_data) {
+          .meta = hdr.meta,
+          .meta_sz = hdr.meta_size
+        }
+      );
+
+    rstat.frame = meta.frame;
+    rstat.stime = meta.stime;
+
+    gkyl_grid_sub_array_header_release(&hdr);
+  }
+  
+  return rstat;
+}
+
+struct gkyl_app_restart_status
+gkyl_moment_app_from_file_field(gkyl_moment_app *app, const char *fname)
+{
+  if (app->has_field != 1)
+    return (struct gkyl_app_restart_status) {
+      .io_status = GKYL_ARRAY_RIO_SUCCESS,
+      .frame = 0,
+      .stime = 0.0
+    };
+
+  struct gkyl_app_restart_status rstat = header_from_file(app, fname);
+
+  if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+    rstat.io_status =
+      gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->field.fcurr, fname);
+    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+      moment_field_apply_bc(app, rstat.stime, &app->field, app->field.fcurr);
+    }
+  }
+
+  // Compute external EM field and applied current if present
+  // Computation necessary in case external EM field or applied current
+  // are time-independent and not computed in the time-stepping loop
+  // since they are not read-in as part of restarts. 
+  if (app->field.has_ext_em) {
+    gkyl_fv_proj_advance(app->field.ext_em_proj, rstat.stime, &app->local, app->field.ext_em);
+  }
+  if (app->field.has_app_current) {
+    gkyl_fv_proj_advance(app->field.app_current_proj, rstat.stime, &app->local, app->field.ext_em);
+  }  
+
+  return rstat;
+}
+
+struct gkyl_app_restart_status 
+gkyl_moment_app_from_file_species(gkyl_moment_app *app, int sidx,
+  const char *fname)
+{
+  struct gkyl_app_restart_status rstat = header_from_file(app, fname);
+  
+  if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+    rstat.io_status =
+      gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->species[sidx].fcurr, fname);
+    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+      moment_species_apply_bc(app, rstat.stime, &app->species[sidx], app->species[sidx].fcurr);
+    }
+  }
+
+  // Compute applied acceleration if present.
+  // Computation necessary in case applied acceleration
+  // is time-independent and not computed in the time-stepping loop
+  // since it is not read-in as part of restarts. 
+  if (app->species[sidx].has_app_accel) {
+    gkyl_fv_proj_advance(app->species[sidx].app_accel_proj, rstat.stime, &app->local, app->species[sidx].app_accel);
+  }  
+
+  return rstat;
+}
+
+struct gkyl_app_restart_status
+gkyl_moment_app_from_frame_field(gkyl_moment_app *app, int frame)
+{
+  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
+  struct gkyl_app_restart_status rstat = gkyl_moment_app_from_file_field(app, fileNm.str);
+  app->field.is_first_energy_write_call = false; // append to existing diagnostic
+  cstr_drop(&fileNm);
+  
+  return rstat;
+}
+
+struct gkyl_app_restart_status
+gkyl_moment_app_from_frame_species(gkyl_moment_app *app, int sidx, int frame)
+{
+  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->species[sidx].name, frame);
+  struct gkyl_app_restart_status rstat = gkyl_moment_app_from_file_species(app, sidx, fileNm.str);
+  app->species[sidx].is_first_q_write_call = false; // append to existing diagnostic
+  cstr_drop(&fileNm);
+  
+  return rstat;
+}
+
+struct gkyl_app_restart_status
+gkyl_moment_app_read_from_frame(gkyl_moment_app *app, int frame)
+{
+  struct gkyl_app_restart_status rstat;
+
+  rstat = gkyl_moment_app_from_frame_field(app, frame);
+
+  for (int i = 0; i < app->num_species; i++) {
+    rstat = gkyl_moment_app_from_frame_species(app, i, frame);
+  }
+
+  return rstat;
+}
+
 // private function to handle variable argument list for printing
 static void
 v_moment_app_cout(const gkyl_moment_app* app, FILE *fp, const char *fmt, va_list argp)
 {
-  int rank, r = 0;
+  int rank;
   gkyl_comm_get_rank(app->comm, &rank);
-  if ((rank == 0) && fp)
+  if ((rank == 0) && fp) {
     vfprintf(fp, fmt, argp);
+    fflush(fp);
+  }
 }
 
 void
@@ -605,13 +863,13 @@ gkyl_moment_app_release(gkyl_moment_app* app)
     moment_coupling_release(app, &app->sources);
 
   gkyl_comm_release(app->comm);
+  gkyl_rect_decomp_release(app->decomp);
   
   for (int i=0; i<app->num_species; ++i)
     moment_species_release(&app->species[i]);
   gkyl_free(app->species);
 
-  if (app->has_field)
-    moment_field_release(&app->field);
+  moment_field_release(&app->field);
 
   if (app->update_mhd_source)
     mhd_src_release(&app->mhd_source);

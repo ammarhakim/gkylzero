@@ -16,6 +16,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_comm.h>
+#include <gkyl_comm_io.h>
 #include <gkyl_dflt.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_elem_type.h>
@@ -41,11 +42,21 @@
 #include <gkyl_wv_mhd.h>
 #include <gkyl_wv_ten_moment.h>
 
+// number of components that various applied functions should return
+enum {
+  GKYL_MOM_APP_NUM_APPLIED_CURRENT = 3,
+  GKYL_MOM_APP_NUM_EXT_EM = 6,
+  GKYL_MOM_APP_NUM_APPLIED_ACCELERATION = 3,
+  GKYL_MOM_APP_NUM_NT_SOURCE = 2
+};
+
 // Species data
 struct moment_species {
   int ndim;
   char name[128]; // species name
   double charge, mass;
+
+  bool is_static; // is the fluid static?
 
   double k0; // closure parameter (default is 0.0, used by 10 moment)
   bool has_grad_closure; // has gradient-based closure (only for 10 moment)
@@ -73,15 +84,14 @@ struct moment_species {
   double medium_gas_gamma; // Adiabatic index for coupled fluid-Einstein sources in plane-symmetric spacetimes.
   double medium_kappa; // Stress-energy prefactor for coupled fluid-Einstein sources in plane-symmetric spacetimes.
 
-  int evolve; // evolve species? 1-yes, 0-no
-
   void *ctx; // context for initial condition init function
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
 
-  struct gkyl_array *app_accel; // array for applied acceleration/forces
-  // pointer to projection operator for applied acceleration/forces function
-  gkyl_fv_proj *proj_app_accel;
+  bool has_app_accel; // flag to indicate there is applied acceleration
+  bool app_accel_evolve; // flag to indicate applied acceleration is time-dependent
+  struct gkyl_array *app_accel; // applied acceleration
+  gkyl_fv_proj *app_accel_proj; // projector for acceleration
 
   struct gkyl_array *nT_source; // array for num density and temperature sources
   // projection func for num density and temperature sources
@@ -121,7 +131,7 @@ struct moment_species {
   // boundary condition solvers on lower/upper edges in each direction
   gkyl_wv_apply_bc *lower_bc[3], *upper_bc[3];
 
-  gkyl_dynvec integ_q;        // integrated conserved quantities
+  gkyl_dynvec integ_q; // integrated conserved quantities
   bool is_first_q_write_call; // flag for dynvec written first time
 };
 
@@ -129,8 +139,7 @@ struct moment_species {
 struct moment_field {
   int ndim;
   double epsilon0, mu0;
-
-  int evolve; // evolve species? 1-yes, 0-no
+  bool is_static; // is the field static?
 
   void *ctx; // context for initial condition init function
   // pointer to initialization function
@@ -138,19 +147,21 @@ struct moment_field {
 
   struct gkyl_wv_eqn *maxwell; // pointer to Maxwell eqn obj
 
-  struct gkyl_array *app_current; // arrays for applied currents
-  double t_ramp_curr; // linear ramp for turning on applied currents
-  // pointer to projection operator for applied current function
-  gkyl_fv_proj *proj_app_current;
-
-  bool is_ext_em_static; // flag to indicate if external field is time-independent
-  struct gkyl_array *ext_em; // array external fields
+  bool has_ext_em; // flag to indicate there is external electromagnetic field
+  bool ext_em_evolve; // flag to indicate external electromagnetic field is time dependent
+  struct gkyl_array *ext_em; // external electromagnetic field
+  gkyl_fv_proj *ext_em_proj; // projector for external electromagnetic field 
   double t_ramp_E; // linear ramp for turning on external E field
-  gkyl_fv_proj *proj_ext_em; // pointer to projection operator for external fields
-  bool was_ext_em_computed; // flag to indicate if we already computed external EM field
+
+  bool has_app_current; // flag to indicate there is an applied current 
+  bool app_current_evolve; // flag to indicate applied current is time dependent  
+  struct gkyl_array *app_current; // applied current
+  gkyl_fv_proj *app_current_proj;  // projector for applied current 
+  double t_ramp_curr; // linear ramp for turning on applied currents
+
   bool use_explicit_em_coupling; // flag to indicate if em coupling should be explicit, defaults implicit
-  struct gkyl_array *app_current1; // arrays for applied currents (for use_explicit_em_coupling stages)
-  struct gkyl_array *app_current2; // arrays for applied currents (for use_explicit_em_coupling stages)
+  struct gkyl_array *app_current1; // additional array for applied currents (for use_explicit_em_coupling stages)
+  struct gkyl_array *app_current2; // additional array for applied currents (for use_explicit_em_coupling stages)
 
   bool has_volume_sources; // Run with volume-based geometrical sources.
   double volume_gas_gamma; // Adiabatic index for volume-based geometrical sources.
@@ -243,6 +254,7 @@ struct gkyl_moment_app {
   struct gkyl_range local, local_ext; // local, local-ext ranges
   struct gkyl_range global, global_ext; // global, global-ext ranges
 
+  struct gkyl_rect_decomp *decomp; // decomposition object
   struct gkyl_comm *comm;   // communicator object
 
   bool has_mapc2p; // flag to indicate if we have mapc2p
@@ -285,6 +297,12 @@ struct gkyl_moment_app {
   double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
 };
 
+// Meta-data for IO
+struct moment_output_meta {
+  int frame; // frame number
+  double stime; // output time
+};
+
 /** Some common functions to species and fields */
 
 // functions for use in integrated quantities calculation
@@ -310,6 +328,13 @@ bc_copy(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin,
     ghost[c] = skin[c];
 }
 
+// function for skip BCs
+static inline void
+bc_skip(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin,
+  double *GKYL_RESTRICT ghost, void *ctx)
+{
+}
+
 // Compute integrated quantities specified by i_func
 void calc_integ_quant(const struct gkyl_wv_eqn *eqn, double vol,
   const struct gkyl_array *q,
@@ -318,11 +343,6 @@ void calc_integ_quant(const struct gkyl_wv_eqn *eqn, double vol,
 
 // Check array "q" for nans
 bool check_for_nans(const struct gkyl_array *q, struct gkyl_range update_rng);
-
-// Apply periodic BCs to array "f" in direction "dir"
-void moment_apply_periodic_bc(const gkyl_moment_app *app,
-  struct gkyl_array *bc_buffer, int dir,
-  struct gkyl_array *f);
 
 // Apply periodic BCs to corner cells of "f" (ONLY WORKS IN 2D)
 void moment_apply_periodic_corner_sync_2d(const gkyl_moment_app *app,
@@ -335,6 +355,15 @@ void moment_apply_wedge_bc(const gkyl_moment_app *app, double tcurr,
   const struct gkyl_wv_apply_bc *lo,
   const struct gkyl_wv_apply_bc *up,
   struct gkyl_array *f);
+
+/**
+ * Return ghost cell layout for grid.
+ *
+ * @param app App object.
+ * @param nghost On output, ghost-cells used for grid.
+ *
+ */
+void gkyl_moment_app_nghost(gkyl_moment_app *app, int nghost[3]);
 
 /** moment_species API */
 
@@ -430,3 +459,27 @@ struct gkyl_update_status moment_update_one_step(gkyl_moment_app *app,
 // Take a single time-step using a SSP-RK3 stepper
 struct gkyl_update_status moment_update_ssp_rk3(gkyl_moment_app *app,
   double dt0);
+
+/**
+ * Create new array meta header from input struct. Free returned
+ * object with moment_array_meta_release.
+ *
+ * @param meta Meta-data for output.
+ * @return New meta object to pass to write method.
+ */
+struct gkyl_msgpack_data* moment_array_meta_new(struct moment_output_meta meta);
+
+/**
+ * Release meta struct
+ *
+ * @param mt Meta object to free
+ */
+void moment_array_meta_release(struct gkyl_msgpack_data *mt);
+
+/**
+ * Read meta-data from mpack formated binary input
+ *
+ * @param mt Mpack encoded meta-data
+ * @return Meta-data for simulation
+ */
+struct moment_output_meta moment_meta_from_mpack(struct gkyl_msgpack_data *mt);

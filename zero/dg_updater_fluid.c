@@ -6,6 +6,7 @@
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_dg_advection.h>
+#include <gkyl_dg_canonical_pb_fluid.h>
 #include <gkyl_dg_euler.h>
 #include <gkyl_dg_updater_fluid.h>
 #include <gkyl_dg_updater_fluid_priv.h>
@@ -35,13 +36,18 @@ gkyl_dg_updater_fluid_new(const struct gkyl_rect_grid *grid,
     up->eqn_fluid = gkyl_dg_euler_new(cbasis, conf_range, wv_eqn, geom, up->use_gpu);
     struct gkyl_dg_euler_auxfields *euler_inp = aux_inp;
     gkyl_euler_set_auxfields(up->eqn_fluid, *euler_inp);
+  } 
+  else {
+    up->eqn_fluid = gkyl_dg_canonical_pb_fluid_new(cbasis, conf_range, wv_eqn, up->use_gpu);
+    struct gkyl_dg_canonical_pb_fluid_auxfields *dg_can_pb_fluid_inp = aux_inp;
+    gkyl_canonical_pb_fluid_set_auxfields(up->eqn_fluid, *dg_can_pb_fluid_inp);    
   }
 
   int cdim = cbasis->ndim;
-  int up_dirs[GKYL_MAX_DIM], zero_flux_flags[GKYL_MAX_DIM];
+  int up_dirs[GKYL_MAX_DIM], zero_flux_flags[2*GKYL_MAX_DIM];
   for (int d=0; d<cdim; ++d) {
     up_dirs[d] = d;
-    zero_flux_flags[d] = 0;
+    zero_flux_flags[d] = zero_flux_flags[d+cdim] = 0;
   }
   int num_up_dirs = cdim;
 
@@ -58,10 +64,7 @@ gkyl_dg_updater_fluid_advance(gkyl_dg_updater_fluid *fluid,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
   struct timespec wst = gkyl_wall_clock();
-  if (fluid->use_gpu)
-    gkyl_hyper_dg_advance_cu(fluid->up_fluid, update_rng, fluidIn, cflrate, rhs);
-  else
-    gkyl_hyper_dg_advance(fluid->up_fluid, update_rng, fluidIn, cflrate, rhs);
+  gkyl_hyper_dg_advance(fluid->up_fluid, update_rng, fluidIn, cflrate, rhs);
   fluid->fluid_tm += gkyl_time_diff_now_sec(wst);
 }
 

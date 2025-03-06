@@ -54,14 +54,17 @@ gkyl_mom_canonical_pb_new(const struct gkyl_basis* cbasis, const struct gkyl_bas
 
   // choose kernel tables based on basis-function type
   const gkyl_canonical_pb_mom_kern_list *menergy_kernels;
+  const gkyl_canonical_pb_mom_kern_list *m1i_from_h_kernels;
 
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       menergy_kernels = ser_menergy_kernels;
+      m1i_from_h_kernels = ser_m1i_from_h_kernels;
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
       menergy_kernels = tensor_menergy_kernels;
+      m1i_from_h_kernels = tensor_m1i_from_h_kernels;
       break;
 
     default:
@@ -70,12 +73,18 @@ gkyl_mom_canonical_pb_new(const struct gkyl_basis* cbasis, const struct gkyl_bas
   }
 
   if (strcmp(mom, "MEnergy") == 0) { // Energy int( f*H ) 
-      assert(cdim == vdim); // Can-pb needs equal vdim and cdim
       assert(cv_index[cdim].vdim[vdim] != -1);
       assert(NULL != menergy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
       
       mom_can_pb->momt.kernel = menergy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       mom_can_pb->momt.num_mom = 1;
+  }
+  else if (strcmp(mom, "M1i_from_H") == 0) {
+      assert(cv_index[cdim].vdim[vdim] != -1);
+      assert(NULL != m1i_from_h_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+      
+      mom_can_pb->momt.kernel = m1i_from_h_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      mom_can_pb->momt.num_mom = vdim;
   }
   else {
     // string not recognized
@@ -99,6 +108,7 @@ struct gkyl_mom_type*
 gkyl_int_mom_canonical_pb_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
   const struct gkyl_range* phase_range, bool use_gpu)
 {
+  // Integrates all moments [ mM0, M1i_from_H, MEnergy ]
   assert(cbasis->poly_order == pbasis->poly_order);
 
 #ifdef GKYL_HAVE_CUDA

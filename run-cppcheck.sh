@@ -1,12 +1,17 @@
-# This assumes cppcheck is in the PATH
 #
-# On Linux use apt install to get cppchecl. If needed, download latest
-# from http://cppcheck.sourceforge.net and use cmake to build it:
+# Get cppcheck from github and build it as instructed there. In brief
+# do:
 #
-# cmake -DCMAKE_INSTALL_PREFIX=$HOME/gkylsoft/cppcheck -DCMAKE_BUILD_TYPE=Release .
-# make -j4 install
+# git clone https://github.com/danmar/cppcheck.git
+# cd cppcheck
+# mkdir build; cd build
+# cmake -DCMAKE_INSTALL_PREFIX=$HOME/gkylsoft/cppcheck -DCMAKE_BUILD_TYPE=Release ..
+# make install -j
+#
+# You may need sudo permissions to install. Please use the "Release"
+# build type as the non-optimized version of cppcheck is very slow.
 #
 # Errors are written to cppcheck-err.txt. Please ensure all code is
 # "cppcheck clean"
 
-cppcheck --suppressions-list=cppcheck-suppress.txt -Izero -Iminus -Iapps  --enable=warning,performance,portability,information zero apps 2>cppcheck-err.txt
+$HOME/gkylsoft/cppcheck/bin/cppcheck -j8 --template='cppcheck1' --suppressions-list=cppcheck-suppress.txt -Izero -Iminus -Iapps  --enable=warning,performance,portability zero apps --output-file=cppcheck-err.txt

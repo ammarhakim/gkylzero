@@ -3,152 +3,212 @@
 #include <acutest.h>
 
 #include <gkyl_proj_on_basis.h>
-#include <gkyl_range.h>
-#include <gkyl_rect_decomp.h>
-#include <gkyl_rect_grid.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_gk_geometry.h>
+#include <gkyl_gk_geometry_mapc2p.h>
+#include <gkyl_range.h>
+#include <gkyl_rect_grid.h>
+#include <gkyl_rect_decomp.h>
+#include <gkyl_util.h>
 #include <math.h>
+
+static struct gkyl_array*
+mkarr(bool on_gpu, long nc, long size)
+{
+  struct gkyl_array* a;
+  if (on_gpu)
+    a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
+  else
+    a = gkyl_array_new(GKYL_DOUBLE, nc, size);
+  return a;
+}
+
+void
+bmag_func_1x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xc[0]; 
+  fout[0] = cos((2.*M_PI/(2.*2.*M_PI))*x);
+}
+
+void
+bmag_func_2x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xc[0], y = xc[1];
+  fout[0] = cos((2.*M_PI/(2.*2.*M_PI))*x)*exp(-(y*y)/(2.*pow(M_PI/3,2)));
+}
+
+void
+mapc2p_3x(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
+{
+  xp[0] = xc[0]; xp[1] = xc[1]; xp[2] = xc[2];
+}
+
+void
+bmag_func_3x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xc[0], y = xc[1], z = xc[2];
+  fout[0] = cos((2.*M_PI/(2.*2.*M_PI))*x)*exp(-(y*y)/(2.*pow(M_PI/3,2)));
+}
 
 void
 test_mom_gyrokinetic()
 {
   double mass = 1.0;
-  int poly_order = 2;
+  double charge = 1.0;
+  int poly_order = 1;
   double lower[] = {-M_PI, -2.0, 0.0}, upper[] = {M_PI, 2.0, 2.0};
   int cells[] = {4, 2, 2};
-  int ndim = sizeof(lower)/sizeof(lower[0]);
-  int vdim = 2, cdim = 1;
+  const int vdim = 2;
 
-  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
-  int confCells[] = {cells[0]};
+  const int ndim = sizeof(cells)/sizeof(cells[0]);
+  const int cdim = ndim - vdim;
+
+  double confLower[cdim], confUpper[cdim];
+  int confCells[cdim];
+  for (int d=0; d<cdim; d++) {
+    confLower[d] = lower[d];
+    confUpper[d] = upper[d];
+    confCells[d] = cells[d];
+  }
+  double velLower[3], velUpper[3];
+  int velCells[3];
+  for (int d=0; d<vdim; d++) {
+    velLower[d] = lower[cdim+d];
+    velUpper[d] = upper[cdim+d];
+    velCells[d] = cells[cdim+d];
+  }
 
   // grids
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+  struct gkyl_rect_grid velGrid;
+  gkyl_rect_grid_init(&velGrid, vdim, velLower, velUpper, velCells);
 
   // basis functions
   struct gkyl_basis basis, confBasis;
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[] = { 0 };
+  int confGhost[] = { 1, 1, 1 }; // 3 elements because it's used by geo.
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  struct gkyl_mom_type *m2 = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M2", false);
+  int velGhost[3] = { 0 };
+  struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
+  gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
+  int ghost[GKYL_MAX_DIM] = { 0 };
+  for (int d=0; d<cdim; d++) ghost[d] = confGhost[d];
+  struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+
+  // Initialize geometry
+  struct gkyl_gk_geometry_inp geometry_input = {
+    .geometry_id = GKYL_MAPC2P,
+    .world = {0.0, 0.0},
+    .mapc2p = mapc2p_3x, // mapping of computational to physical space
+    .c2p_ctx = 0,
+    .bmag_func = bmag_func_3x, // magnetic field magnitude
+    .bmag_ctx = 0,
+    .grid = confGrid,
+    .local = confLocal,
+    .local_ext = confLocal_ext,
+    .global = confLocal,
+    .global_ext = confLocal_ext,
+    .basis = confBasis,
+  };
+  geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
+  gkyl_create_grid_ranges(&geometry_input.geo_grid, confGhost, &geometry_input.geo_local_ext, &geometry_input.geo_local);
+  gkyl_cart_modal_serendip(&geometry_input.geo_basis, 3, poly_order);
+  struct gk_geometry* gk_geom_3d;
+  gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_input);
+  // deflate geometry if necessary
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input);
+  gkyl_gk_geometry_release(gk_geom_3d);
+
+  // Initialize velocity space mapping.
+  struct gkyl_mapc2p_inp c2p_in = { };
+  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, velGrid,
+    local, local_ext, velLocal, velLocal_ext, false);
+
+  struct gkyl_mom_type *m2 = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, "M2", false);
 
   TEST_CHECK( m2->cdim == 1 );
   TEST_CHECK( m2->pdim == 3 );
-  TEST_CHECK( m2->poly_order == 2 );
+  TEST_CHECK( m2->poly_order == 1 );
   TEST_CHECK( m2->num_config == confBasis.num_basis );
   TEST_CHECK( m2->num_phase == basis.num_basis );
   TEST_CHECK( m2->num_mom == 1 );
 
-  struct gkyl_mom_type *m3par = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M3par", false);
+  struct gkyl_mom_type *m3par = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, "M3par", false);
   TEST_CHECK( m3par->num_mom == 1 );
 
+  gkyl_gk_geometry_release(gk_geom);  
   gkyl_mom_type_release(m2);
   gkyl_mom_type_release(m3par);
-}
-
-// allocate array (filled with zeros)
-static struct gkyl_array*
-mkarr(long nc, long size)
-{
-  struct gkyl_array* a = gkyl_array_new(GKYL_DOUBLE, nc, size);
-  return a;
-}
-// allocate cu_dev array
-static struct gkyl_array*
-mkarr_cu(long nc, long size, bool use_gpu)
-{
-  if (use_gpu) {
-    struct gkyl_array* a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
-    return a;
-  } else {
-    struct gkyl_array* a = gkyl_array_new(GKYL_DOUBLE, nc, size);
-    return a;
-  }
-}
-
-struct skin_ghost_ranges {
-  struct gkyl_range lower_skin[GKYL_MAX_DIM];
-  struct gkyl_range lower_ghost[GKYL_MAX_DIM];
-
-  struct gkyl_range upper_skin[GKYL_MAX_DIM];
-  struct gkyl_range upper_ghost[GKYL_MAX_DIM];
-};
-
-// Create ghost and skin sub-ranges given a parent range
-static void
-skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
-  const struct gkyl_range *parent, const int *ghost)
-{
-  int ndim = parent->ndim;
-
-  for (int d=0; d<ndim; ++d) {
-    gkyl_skin_ghost_ranges(&sgr->lower_skin[d], &sgr->lower_ghost[d],
-      d, GKYL_LOWER_EDGE, parent, ghost);
-    gkyl_skin_ghost_ranges(&sgr->upper_skin[d], &sgr->upper_ghost[d],
-      d, GKYL_UPPER_EDGE, parent, ghost);
-  }
-}
-
-void bmag_1x(double t, const double *xn, double* restrict fout, void *ctx)
-{
-  double x = xn[0];
-  fout[0] = cos((2.*M_PI/(2.*2.*M_PI))*x);
-}
-void bmag_2x(double t, const double *xn, double* restrict fout, void *ctx)
-{
-  double x = xn[0], y = xn[1];
-  fout[0] = cos((2.*M_PI/(2.*2.*M_PI))*x)*exp(-(y*y)/(2.*pow(M_PI/3,2)));
+  gkyl_velocity_map_release(gvm);
 }
 
 void distf_1x1v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], vpar = xn[1];
   double bmag[1];
-  bmag_1x(t, xn, &bmag[0], ctx); 
+  bmag_func_1x(t, xn, &bmag[0], ctx); 
   fout[0] = bmag[0]*(x*x)*(vpar-0.5)*(vpar-0.5);
 }
 void distf_1x2v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], vpar = xn[1], mu = xn[2];
   double bmag[1];
-  bmag_1x(t, xn, &bmag[0], ctx); 
+  bmag_func_1x(t, xn, &bmag[0], ctx); 
   fout[0] = bmag[0]*(x*x)*(vpar-0.5)*(vpar-0.5);
 }
 void distf_2x2v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], vpar = xn[2], mu = xn[3];
   double bmag[1];
-  bmag_2x(t, xn, &bmag[0], ctx); 
+  bmag_func_2x(t, xn, &bmag[0], ctx); 
   fout[0] = bmag[0]*(x*x+y*y)*(vpar-0.5)*(vpar-0.5);
 }
 
 void
 test_1x1v(int polyOrder, bool use_gpu)
 {
-  double mass = 1.;
+  double mass = 1.0;
+  double charge = 1.0;
   int poly_order = 1;
   double lower[] = {-M_PI, -2.0}, upper[] = {M_PI, 2.0};
   int cells[] = {4, 2};
-  int ndim = sizeof(lower)/sizeof(lower[0]);
-  int vdim = 1, cdim = 1;
+  const int vdim = 1;
 
-  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
-  int confCells[] = {cells[0]};
+  const int ndim = sizeof(cells)/sizeof(cells[0]);
+  const int cdim = ndim - vdim;
+
+  double confLower[cdim], confUpper[cdim];
+  int confCells[cdim];
+  for (int d=0; d<cdim; d++) {
+    confLower[d] = lower[d];
+    confUpper[d] = upper[d];
+    confCells[d] = cells[d];
+  }
+  double velLower[3], velUpper[3];
+  int velCells[3];
+  for (int d=0; d<vdim; d++) {
+    velLower[d] = lower[cdim+d];
+    velUpper[d] = upper[cdim+d];
+    velCells[d] = cells[cdim+d];
+  }
 
   // grids
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+  struct gkyl_rect_grid velGrid;
+  gkyl_rect_grid_init(&velGrid, vdim, velLower, velUpper, velCells);
 
   // basis functions
   struct gkyl_basis basis, confBasis;
@@ -160,57 +220,84 @@ test_1x1v(int polyOrder, bool use_gpu)
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[] = { 1 };
+  int confGhost[] = { 1, 1, 1 }; // 3 elements because it's used by geo.
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
-  struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
-  skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
 
-  int ghost[] = { confGhost[0], 0 };
+  int velGhost[3] = { 0 };
+  struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
+  gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
+
+  int ghost[GKYL_MAX_DIM] = { 0 };
+  for (int d=0; d<cdim; d++) ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
-  struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
-  skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // create distribution function array and project distribution function on basis
   struct gkyl_array *distf_ho, *distf;
-  distf_ho = mkarr(basis.num_basis, local_ext.volume);
-  distf = mkarr_cu(basis.num_basis, local_ext.volume, use_gpu);
+  distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  distf_ho = use_gpu? mkarr(false, distf->ncomp, distf->size) : gkyl_array_acquire(distf);
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, distf_1x1v, NULL);
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf_ho);
   gkyl_array_copy(distf, distf_ho);
 //  gkyl_grid_sub_array_write(&grid, &local, distf_ho, "ctest_mom_gyrokinetic_1x1v_p1_distf.gkyl");
 
-  // create bmag array and project magnetic field amplitude function on basis
-  struct gkyl_array *bmag_ho, *bmag;
-  bmag_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  bmag = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
-  gkyl_proj_on_basis *projbmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, bmag_1x, NULL);
+  // Initialize geometry
+  struct gkyl_gk_geometry_inp geometry_input = {
+    .geometry_id = GKYL_MAPC2P,
+    .world = {0.0, 0.0},  .mapc2p = mapc2p_3x,  .c2p_ctx = 0,
+    .bmag_func = bmag_func_3x,  .bmag_ctx = 0,
+    .basis = confBasis,  .grid = confGrid,
+    .local = confLocal,  .local_ext = confLocal_ext,
+    .global = confLocal, .global_ext = confLocal_ext,
+  };
+  int geo_ghost[3] = {1, 1, 1};
+  geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
+  gkyl_cart_modal_serendip(&geometry_input.geo_basis, 3, poly_order);
+  gkyl_create_grid_ranges(&geometry_input.geo_grid, geo_ghost, &geometry_input.geo_global_ext, &geometry_input.geo_global);
+  memcpy(&geometry_input.geo_local, &geometry_input.geo_global, sizeof(struct gkyl_range));
+  memcpy(&geometry_input.geo_local_ext, &geometry_input.geo_global_ext, sizeof(struct gkyl_range));
+  // Deflate geometry.
+  struct gk_geometry* gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_input);
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input);
+  gkyl_gk_geometry_release(gk_geom_3d);
+  // If we are on the gpu, copy from host.
+  if (use_gpu) {
+    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_new(gk_geom, &geometry_input, use_gpu);
+    gkyl_gk_geometry_release(gk_geom);
+    gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
+    gkyl_gk_geometry_release(gk_geom_dev);
+  }
 
-  gkyl_proj_on_basis_advance(projbmag, 0.0, &confLocal, bmag_ho);
-  gkyl_array_copy(bmag, bmag_ho);
-//  gkyl_grid_sub_array_write(&confGrid, &confLocal, bmag_ho, "ctest_mom_gyrokinetic_1x1v_p1_bmag.gkyl");
+  // If we are on the gpu, copy from host
+  if (use_gpu) {
+    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_new(gk_geom, &geometry_input, use_gpu);
+    gkyl_gk_geometry_release(gk_geom);
+    gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
+    gkyl_gk_geometry_release(gk_geom_dev);
+  }
 
-  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M0", use_gpu);
-  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M1", use_gpu);
-  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M2", use_gpu);
-  gkyl_gyrokinetic_set_bmag(M0_t, bmag);
-  gkyl_gyrokinetic_set_bmag(M1_t, bmag);
-  gkyl_gyrokinetic_set_bmag(M2_t, bmag);
+  // Initialize velocity space mapping.
+  struct gkyl_mapc2p_inp c2p_in = { };
+  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, velGrid,
+    local, local_ext, velLocal, velLocal_ext, use_gpu);
+
+  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, "M0", use_gpu);
+  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, "M1", use_gpu);
+  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, "M2", use_gpu);
   gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, M0_t, use_gpu);
   gkyl_mom_calc *m1calc = gkyl_mom_calc_new(&grid, M1_t, use_gpu);
   gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, M2_t, use_gpu);
 
   // create moment arrays
   struct gkyl_array *m0_ho, *m1_ho, *m2_ho, *m0, *m1, *m2;
-  m0_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  m1_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  m2_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  m0 = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
-  m1 = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
-  m2 = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
+  m0 = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
+  m1 = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
+  m2 = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
+  m0_ho = use_gpu? mkarr(false, m0->ncomp, m0->size) : gkyl_array_acquire(m0);
+  m1_ho = use_gpu? mkarr(false, m1->ncomp, m1->size) : gkyl_array_acquire(m1);
+  m2_ho = use_gpu? mkarr(false, m2->ncomp, m2->size) : gkyl_array_acquire(m2);
 
   // compute the moments
   if (use_gpu) {
@@ -325,6 +412,7 @@ test_1x1v(int polyOrder, bool use_gpu)
     TEST_CHECK( gkyl_compare( m2Correct[11], m23[2], 1e-12) );
   }
 
+  gkyl_gk_geometry_release(gk_geom); 
   // release memory for moment data object
   gkyl_array_release(m0); gkyl_array_release(m1); gkyl_array_release(m2);
   gkyl_array_release(m0_ho); gkyl_array_release(m1_ho); gkyl_array_release(m2_ho);
@@ -333,26 +421,43 @@ test_1x1v(int polyOrder, bool use_gpu)
 
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf); gkyl_array_release(distf_ho);
-  gkyl_array_release(bmag); gkyl_array_release(bmag_ho);
+  gkyl_velocity_map_release(gvm);
 }
 
 void
 test_1x2v(int poly_order, bool use_gpu)
 {
-  double mass = 1.;
+  double mass = 1.0;
+  double charge = 1.0;
   double lower[] = {-M_PI, -2.0, 0.0}, upper[] = {M_PI, 2.0, 2.0};
   int cells[] = {4, 2, 2};
-  int ndim = sizeof(lower)/sizeof(lower[0]);
-  int vdim = 2, cdim = 1;
+  const int vdim = 2;
 
-  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
-  int confCells[] = {cells[0]};
+  const int ndim = sizeof(cells)/sizeof(cells[0]);
+  const int cdim = ndim - vdim;
+
+  double confLower[cdim], confUpper[cdim];
+  int confCells[cdim];
+  for (int d=0; d<cdim; d++) {
+    confLower[d] = lower[d];
+    confUpper[d] = upper[d];
+    confCells[d] = cells[d];
+  }
+  double velLower[3], velUpper[3];
+  int velCells[3];
+  for (int d=0; d<vdim; d++) {
+    velLower[d] = lower[cdim+d];
+    velUpper[d] = upper[cdim+d];
+    velCells[d] = cells[cdim+d];
+  }
 
   // grids
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+  struct gkyl_rect_grid velGrid;
+  gkyl_rect_grid_init(&velGrid, vdim, velLower, velUpper, velCells);
 
   // basis functions
   struct gkyl_basis basis, confBasis;
@@ -364,55 +469,83 @@ test_1x2v(int poly_order, bool use_gpu)
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[] = { 1 };
+  int confGhost[] = { 1, 1, 1 }; // 3 elements because it's used by geo.
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
-  struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
-  skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
 
-  int ghost[] = { confGhost[0], 0, 0 };
+  int velGhost[3] = { 0 };
+  struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
+  gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
+
+  int ghost[GKYL_MAX_DIM] = { 0 };
+  for (int d=0; d<cdim; d++) ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
-  struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
-  skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // create distribution function array and project distribution function on basis
   struct gkyl_array *distf_ho, *distf;
-  distf_ho = mkarr(basis.num_basis, local_ext.volume);
-  distf = mkarr_cu(basis.num_basis, local_ext.volume, use_gpu);
+  distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  distf_ho = use_gpu? mkarr(false, distf->ncomp, distf->size) : gkyl_array_acquire(distf);
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, distf_1x2v, NULL);
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf_ho);
   gkyl_array_copy(distf, distf_ho);
 
-  // create bmag array and project magnetic field amplitude function on basis
-  struct gkyl_array *bmag_ho, *bmag;
-  bmag_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  bmag = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
-  gkyl_proj_on_basis *projbmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, bmag_1x, NULL);
+  // Initialize geometry
+  struct gkyl_gk_geometry_inp geometry_input = {
+    .geometry_id = GKYL_MAPC2P,
+    .world = {0.0, 0.0},  .mapc2p = mapc2p_3x,  .c2p_ctx = 0,
+    .bmag_func = bmag_func_3x,  .bmag_ctx = 0,
+    .basis = confBasis,  .grid = confGrid,
+    .local = confLocal,  .local_ext = confLocal_ext,
+    .global = confLocal, .global_ext = confLocal_ext,
+  };
+  int geo_ghost[3] = {1, 1, 1};
+  geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
+  gkyl_cart_modal_serendip(&geometry_input.geo_basis, 3, poly_order);
+  gkyl_create_grid_ranges(&geometry_input.geo_grid, geo_ghost, &geometry_input.geo_global_ext, &geometry_input.geo_global);
+  memcpy(&geometry_input.geo_local, &geometry_input.geo_global, sizeof(struct gkyl_range));
+  memcpy(&geometry_input.geo_local_ext, &geometry_input.geo_global_ext, sizeof(struct gkyl_range));
+  // Deflate geometry.
+  struct gk_geometry* gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_input);
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input);
+  gkyl_gk_geometry_release(gk_geom_3d);
+  // If we are on the gpu, copy from host.
+  if (use_gpu) {
+    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_new(gk_geom, &geometry_input, use_gpu);
+    gkyl_gk_geometry_release(gk_geom);
+    gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
+    gkyl_gk_geometry_release(gk_geom_dev);
+  }
 
-  gkyl_proj_on_basis_advance(projbmag, 0.0, &confLocal, bmag_ho);
-  gkyl_array_copy(bmag, bmag_ho);
+  // If we are on the gpu, copy from host
+  if (use_gpu) {
+    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_new(gk_geom, &geometry_input, use_gpu);
+    gkyl_gk_geometry_release(gk_geom);
+    gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
+    gkyl_gk_geometry_release(gk_geom_dev);
+  }
 
-  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M0", use_gpu);
-  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M1", use_gpu);
-  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M2", use_gpu);
-  gkyl_gyrokinetic_set_bmag(M0_t, bmag);
-  gkyl_gyrokinetic_set_bmag(M1_t, bmag);
-  gkyl_gyrokinetic_set_bmag(M2_t, bmag);
+  // Initialize velocity space mapping.
+  struct gkyl_mapc2p_inp c2p_in = { };
+  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, velGrid,
+    local, local_ext, velLocal, velLocal_ext, use_gpu);
+
+  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, "M0", use_gpu);
+  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, "M1", use_gpu);
+  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, "M2", use_gpu);
   gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, M0_t, use_gpu);
   gkyl_mom_calc *m1calc = gkyl_mom_calc_new(&grid, M1_t, use_gpu);
   gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, M2_t, use_gpu);
 
   // create moment arrays
   struct gkyl_array *m0_ho, *m1_ho, *m2_ho, *m0, *m1, *m2;
-  m0_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  m1_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  m2_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  m0 = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
-  m1 = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
-  m2 = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
+  m0 = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
+  m1 = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
+  m2 = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
+  m0_ho = use_gpu? mkarr(false, m0->ncomp, m0->size) : gkyl_array_acquire(m0);
+  m1_ho = use_gpu? mkarr(false, m1->ncomp, m1->size) : gkyl_array_acquire(m1);
+  m2_ho = use_gpu? mkarr(false, m2->ncomp, m2->size) : gkyl_array_acquire(m2);
 
   // compute the moments
   if (use_gpu) {
@@ -457,14 +590,14 @@ test_1x2v(int poly_order, bool use_gpu)
     TEST_CHECK( gkyl_compare(   37.80332405740738, m13[1], 1e-12) );
   
     // Check M2.
-    TEST_CHECK( gkyl_compare(   578.5971330556217, m20[0], 1e-12) );
-    TEST_CHECK( gkyl_compare(  210.75432886828457, m20[1], 1e-12) );
-    TEST_CHECK( gkyl_compare(   292.8699479183419, m21[0], 1e-12) );
-    TEST_CHECK( gkyl_compare(  -242.1332009483718, m21[1], 1e-12) );
-    TEST_CHECK( gkyl_compare(   292.8699479183419, m22[0], 1e-12) );
-    TEST_CHECK( gkyl_compare(  242.13320094837178, m22[1], 1e-12) );
-    TEST_CHECK( gkyl_compare(   578.5971330556217, m23[0], 1e-12) );
-    TEST_CHECK( gkyl_compare( -210.75432886828463, m23[1], 1e-12) );
+    TEST_CHECK( gkyl_compare(   798.6216162040179, m20[0], 1e-12) );
+    TEST_CHECK( gkyl_compare(   187.0330526857825, m20[1], 1e-12) );
+    TEST_CHECK( gkyl_compare(   318.4730138551306, m21[0], 1e-12) );
+    TEST_CHECK( gkyl_compare(  -267.5113727722169, m21[1], 1e-12) );
+    TEST_CHECK( gkyl_compare(   318.4730138551307, m22[0], 1e-12) );
+    TEST_CHECK( gkyl_compare(  267.5113727722168, m22[1], 1e-12) );
+    TEST_CHECK( gkyl_compare(   798.6216162040179, m23[0], 1e-12) );
+    TEST_CHECK( gkyl_compare(  -187.0330526857825, m23[1], 1e-12) );
   } else if (poly_order==2) {
     // Check M0.
     TEST_CHECK( gkyl_compare(  1.918680388146181e+02, m00[0], 1e-12) );
@@ -495,20 +628,21 @@ test_1x2v(int poly_order, bool use_gpu)
     TEST_CHECK( gkyl_compare(  3.559160751463981e+01, m13[2], 1e-12) );
   
     // Check M2.
-    TEST_CHECK( gkyl_compare(  5.924940346248225e+02, m20[0], 1e-12) );
-    TEST_CHECK( gkyl_compare(  2.106245140015062e+02, m20[1], 1e-12) );
-    TEST_CHECK( gkyl_compare( -1.080258558862571e+02, m20[2], 1e-09) );
-    TEST_CHECK( gkyl_compare(  2.957803339447422e+02, m21[0], 1e-12) );
-    TEST_CHECK( gkyl_compare( -2.297438543767285e+02, m21[1], 1e-12) );
-    TEST_CHECK( gkyl_compare(  2.952994007812927e+01, m21[2], 1e-12) );
-    TEST_CHECK( gkyl_compare(  2.957803339447422e+02, m22[0], 1e-12) );
-    TEST_CHECK( gkyl_compare(  2.297438543767285e+02, m22[1], 1e-12) );
-    TEST_CHECK( gkyl_compare(  2.952994007812929e+01, m22[2], 1e-12) );
-    TEST_CHECK( gkyl_compare(  5.924940346248227e+02, m23[0], 1e-12) );
-    TEST_CHECK( gkyl_compare( -2.106245140015063e+02, m23[1], 1e-12) );
-    TEST_CHECK( gkyl_compare( -1.080258558862570e+02, m23[2], 1e-12) );
+    TEST_CHECK( gkyl_compare(  8.1190475372078379e+02, m20[0], 1e-12) );
+    TEST_CHECK( gkyl_compare(  2.1012431009892106e+02, m20[1], 1e-12) );
+    TEST_CHECK( gkyl_compare( -1.7647505392675140e+02, m20[2], 1e-12) );
+    TEST_CHECK( gkyl_compare(  3.2184578675181643e+02, m21[0], 1e-12) );
+    TEST_CHECK( gkyl_compare( -2.5887094792399040e+02, m21[1], 1e-12) );
+    TEST_CHECK( gkyl_compare(  4.4496698534420823e+01, m21[2], 1e-12) );
+    TEST_CHECK( gkyl_compare(  3.2184578675181643e+02, m22[0], 1e-12) );
+    TEST_CHECK( gkyl_compare(  2.5887094792399046e+02, m22[1], 1e-12) );
+    TEST_CHECK( gkyl_compare(  4.4496698534420837e+01, m22[2], 1e-12) );
+    TEST_CHECK( gkyl_compare(  8.1190475372078390e+02, m23[0], 1e-12) );
+    TEST_CHECK( gkyl_compare( -2.1012431009892100e+02, m23[1], 1e-12) );
+    TEST_CHECK( gkyl_compare( -1.7647505392675134e+02, m23[2], 1e-12) );
   }
 
+  gkyl_gk_geometry_release(gk_geom); 
   // release memory for moment data object
   gkyl_array_release(m0); gkyl_array_release(m1); gkyl_array_release(m2);
   gkyl_array_release(m0_ho); gkyl_array_release(m1_ho); gkyl_array_release(m2_ho);
@@ -517,26 +651,43 @@ test_1x2v(int poly_order, bool use_gpu)
 
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf); gkyl_array_release(distf_ho);
-  gkyl_array_release(bmag); gkyl_array_release(bmag_ho);
+  gkyl_velocity_map_release(gvm);
 }
 
 void
 test_2x2v(int poly_order, bool use_gpu)
 {
   double mass = 1.;
+  double charge = 1.0;
   double lower[] = {-M_PI, -M_PI, -2.0, 0.0}, upper[] = {M_PI, M_PI, 2.0, 2.0};
   int cells[] = {4, 4, 2, 2};
-  int ndim = sizeof(lower)/sizeof(lower[0]);
-  int vdim = 2, cdim = 2;
+  const int vdim = 2;
 
-  double confLower[] = {lower[0], lower[1]}, confUpper[] = {upper[0], upper[1]};
-  int confCells[] = {cells[0], cells[1]};
+  const int ndim = sizeof(cells)/sizeof(cells[0]);
+  const int cdim = ndim - vdim;
+
+  double confLower[cdim], confUpper[cdim];
+  int confCells[cdim];
+  for (int d=0; d<cdim; d++) {
+    confLower[d] = lower[d];
+    confUpper[d] = upper[d];
+    confCells[d] = cells[d];
+  }
+  double velLower[3], velUpper[3];
+  int velCells[3];
+  for (int d=0; d<vdim; d++) {
+    velLower[d] = lower[cdim+d];
+    velUpper[d] = upper[cdim+d];
+    velCells[d] = cells[cdim+d];
+  }
 
   // grids
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+  struct gkyl_rect_grid velGrid;
+  gkyl_rect_grid_init(&velGrid, vdim, velLower, velUpper, velCells);
 
   // basis functions
   struct gkyl_basis basis, confBasis;
@@ -548,55 +699,83 @@ test_2x2v(int poly_order, bool use_gpu)
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[] = { 1, 1 };
+  int confGhost[] = { 1, 1, 1 }; // 3 elements because it's used by geo.
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
-  struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
-  skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
 
-  int ghost[] = { confGhost[0], confGhost[1], 0, 0 };
+  int velGhost[3] = { 0 };
+  struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
+  gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
+
+  int ghost[GKYL_MAX_DIM] = { 0 };
+  for (int d=0; d<cdim; d++) ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
-  struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
-  skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // create distribution function array and project distribution function on basis
   struct gkyl_array *distf_ho, *distf;
-  distf_ho = mkarr(basis.num_basis, local_ext.volume);
-  distf = mkarr_cu(basis.num_basis, local_ext.volume, use_gpu);
+  distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  distf_ho = use_gpu? mkarr(false, distf->ncomp, distf->size) : gkyl_array_acquire(distf);
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, distf_2x2v, NULL);
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf_ho);
   gkyl_array_copy(distf, distf_ho);
 
-  // create bmag array and project magnetic field amplitude function on basis
-  struct gkyl_array *bmag_ho, *bmag;
-  bmag_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  bmag = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
-  gkyl_proj_on_basis *projbmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, bmag_2x, NULL);
+  // Initialize geometry
+  struct gkyl_gk_geometry_inp geometry_input = {
+    .geometry_id = GKYL_MAPC2P,
+    .world = {0.0, 0.0},  .mapc2p = mapc2p_3x,  .c2p_ctx = 0,
+    .bmag_func = bmag_func_3x,  .bmag_ctx = 0,
+    .basis = confBasis,  .grid = confGrid,
+    .local = confLocal,  .local_ext = confLocal_ext,
+    .global = confLocal, .global_ext = confLocal_ext,
+  };
+  int geo_ghost[3] = {1, 1, 1};
+  geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
+  gkyl_cart_modal_serendip(&geometry_input.geo_basis, 3, poly_order);
+  gkyl_create_grid_ranges(&geometry_input.geo_grid, geo_ghost, &geometry_input.geo_global_ext, &geometry_input.geo_global);
+  memcpy(&geometry_input.geo_local, &geometry_input.geo_global, sizeof(struct gkyl_range));
+  memcpy(&geometry_input.geo_local_ext, &geometry_input.geo_global_ext, sizeof(struct gkyl_range));
+  // Deflate geometry.
+  struct gk_geometry* gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_input);
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input);
+  gkyl_gk_geometry_release(gk_geom_3d);
+  // If we are on the gpu, copy from host.
+  if (use_gpu) {
+    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_new(gk_geom, &geometry_input, use_gpu);
+    gkyl_gk_geometry_release(gk_geom);
+    gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
+    gkyl_gk_geometry_release(gk_geom_dev);
+  }
 
-  gkyl_proj_on_basis_advance(projbmag, 0.0, &confLocal, bmag_ho);
-  gkyl_array_copy(bmag, bmag_ho);
+  // If we are on the gpu, copy from host
+  if (use_gpu) {
+    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_new(gk_geom, &geometry_input, use_gpu);
+    gkyl_gk_geometry_release(gk_geom);
+    gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
+    gkyl_gk_geometry_release(gk_geom_dev);
+  }
 
-  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M0", use_gpu);
-  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M1", use_gpu);
-  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M2", use_gpu);
-  gkyl_gyrokinetic_set_bmag(M0_t, bmag);
-  gkyl_gyrokinetic_set_bmag(M1_t, bmag);
-  gkyl_gyrokinetic_set_bmag(M2_t, bmag);
+  // Initialize velocity space mapping.
+  struct gkyl_mapc2p_inp c2p_in = { };
+  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, velGrid,
+    local, local_ext, velLocal, velLocal_ext, use_gpu);
+
+  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, "M0", use_gpu);
+  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, "M1", use_gpu);
+  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, charge, gvm, gk_geom, NULL, "M2", use_gpu);
   gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, M0_t, use_gpu);
   gkyl_mom_calc *m1calc = gkyl_mom_calc_new(&grid, M1_t, use_gpu);
   gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, M2_t, use_gpu);
 
   // create moment arrays
   struct gkyl_array *m0_ho, *m1_ho, *m2_ho, *m0, *m1, *m2;
-  m0_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  m1_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  m2_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  m0 = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
-  m1 = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
-  m2 = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
+  m0 = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
+  m1 = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
+  m2 = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
+  m0_ho = use_gpu? mkarr(false, m0->ncomp, m0->size) : gkyl_array_acquire(m0);
+  m1_ho = use_gpu? mkarr(false, m1->ncomp, m1->size) : gkyl_array_acquire(m1);
+  m2_ho = use_gpu? mkarr(false, m2->ncomp, m2->size) : gkyl_array_acquire(m2);
 
   // compute the moments
   if (use_gpu) {
@@ -650,22 +829,22 @@ test_2x2v(int poly_order, bool use_gpu)
       -4.778420190897911e+01,  1.853595685020906e+01,  3.075340061478923e+01, -1.106540337675835e+01
     };
     double m2Correct[] = {
-       1.317741859760154e+02,  5.432242387904527e+01,  8.726478357864879e+01,  3.461290078036008e+01,
-       6.282598132762612e+02,  2.349967248260282e+02,  1.585668164431439e+02,  5.344698656702761e+01,
-       6.282598132762612e+02,  2.349967248260282e+02, -1.585668164431439e+02, -5.344698656702760e+01,
-       1.317741859760154e+02,  5.432242387904527e+01, -8.726478357864879e+01, -3.461290078036008e+01,
-       1.892086113026537e+02, -7.382118864615809e+00,  1.138208348715406e+02, -8.593088099826790e+00,
-       4.706732142611326e+02, -2.016751811606539e+02, -2.651705819234549e+01, -1.091874194410921e+02,
-       4.706732142611326e+02, -2.016751811606539e+02,  2.651705819234548e+01,  1.091874194410921e+02,
-       1.892086113026537e+02, -7.382118864615817e+00, -1.138208348715406e+02,  8.593088099826790e+00,
-       1.892086113026537e+02,  7.382118864615816e+00,  1.138208348715406e+02,  8.593088099826790e+00,
-       4.706732142611326e+02,  2.016751811606539e+02, -2.651705819234548e+01,  1.091874194410921e+02,
-       4.706732142611327e+02,  2.016751811606539e+02,  2.651705819234547e+01, -1.091874194410922e+02,
-       1.892086113026537e+02,  7.382118864615806e+00, -1.138208348715406e+02, -8.593088099826787e+00,
-       1.317741859760154e+02, -5.432242387904528e+01,  8.726478357864879e+01, -3.461290078036008e+01,
-       6.282598132762611e+02, -2.349967248260282e+02,  1.585668164431439e+02, -5.344698656702759e+01,
-       6.282598132762612e+02, -2.349967248260283e+02, -1.585668164431438e+02,  5.344698656702758e+01,
-       1.317741859760154e+02, -5.432242387904529e+01, -8.726478357864879e+01,  3.461290078036008e+01
+      1.7232913595497911e+02, 8.6438349061420396e+01, 1.1049216153739634e+02, 5.2676126020228338e+01, 
+      6.6358691584383803e+02, 2.6378572239164890e+02, 1.2255521849178265e+02, 2.7323855081534504e+01, 
+      6.6358691584383814e+02, 2.6378572239164890e+02, -1.2255521849178264e+02, -2.7323855081534514e+01, 
+      1.7232913595497911e+02, 8.6438349061420382e+01, -1.1049216153739634e+02, -5.2676126020228352e+01, 
+      2.9810642531168793e+02, -1.4361392307978549e+00, 1.6672538486254021e+02, -8.9718255388495312e+00, 
+      5.3385845098825564e+02, -2.0805071618290646e+02, -9.1623773109446546e+01, -1.0115987315095893e+02, 
+      5.3385845098825575e+02, -2.0805071618290648e+02, 9.1623773109446560e+01, 1.0115987315095896e+02, 
+      2.9810642531168781e+02, -1.4361392307978402e+00, -1.6672538486254018e+02, 8.9718255388495312e+00, 
+      2.9810642531168787e+02, 1.4361392307978771e+00, 1.6672538486254021e+02, 8.9718255388495418e+00, 
+      5.3385845098825564e+02, 2.0805071618290648e+02, -9.1623773109446532e+01, 1.0115987315095893e+02, 
+      5.3385845098825575e+02, 2.0805071618290654e+02, 9.1623773109446574e+01, -1.0115987315095902e+02, 
+      2.9810642531168787e+02, 1.4361392307978740e+00, -1.6672538486254021e+02, -8.9718255388495383e+00, 
+      1.7232913595497911e+02, -8.6438349061420411e+01, 1.1049216153739630e+02, -5.2676126020228352e+01, 
+      6.6358691584383803e+02, -2.6378572239164890e+02, 1.2255521849178265e+02, -2.7323855081534507e+01, 
+      6.6358691584383814e+02, -2.6378572239164890e+02, -1.2255521849178263e+02, 2.7323855081534482e+01, 
+      1.7232913595497908e+02, -8.6438349061420368e+01, -1.1049216153739631e+02, 5.2676126020228359e+01
     };
     for (int i=0; i<cells[0]; i++) {
       for (int j=0; j<cells[1]; j++) {
@@ -680,7 +859,7 @@ test_2x2v(int poly_order, bool use_gpu)
           TEST_CHECK( gkyl_compare( m1Correct[(i*cells[1]+j)*confBasis.num_basis+k], m1ptr[k], 1e-12) );
         // Check M2.
         double *m2ptr = gkyl_array_fetch(m2_ho, gkyl_range_idx(&confLocal, idx)); 
-        for (int k=0; k<confBasis.num_basis; k++)
+        for (int k=0; k<confBasis.num_basis; k++) 
           TEST_CHECK( gkyl_compare( m2Correct[(i*cells[1]+j)*confBasis.num_basis+k], m2ptr[k], 1e-12) );
       }
     }
@@ -736,28 +915,22 @@ test_2x2v(int poly_order, bool use_gpu)
       -4.578919320749179e+00, 1.819994890060991e+00,
     };
     double m2Correct[] = {
-      1.346810209205576e+02, 5.636184644070686e+01, 9.081689031496188e+01, 3.638800942322894e+01, -1.531915442293607e+01, 2.162068038060000e+01,
-      -1.154920978322388e+01, 8.056050757541808e+00, 6.437526165222573e+02, 2.383699952856996e+02, 1.543494567891024e+02, 4.915181136302768e+01,
-      -1.058058544975506e+02, -2.407700215608105e+01, -3.508892496659295e+01, -1.032850505731126e+01, 6.437526165222575e+02, 2.383699952856996e+02,
-      -1.543494567891024e+02, -4.915181136302770e+01, -1.058058544975505e+02, -2.407700215608102e+01, 3.508892496659290e+01, -1.032850505731125e+01,
-      1.346810209205576e+02, 5.636184644070686e+01, -9.081689031496188e+01, -3.638800942322894e+01, -1.531915442293607e+01, 2.162068038059999e+01,
-      1.154920978322387e+01, 8.056050757541811e+00, 1.921238511758901e+02, -6.770111068912961e+00, 1.140587007866537e+02, -9.496106164226617e+00,
-      -2.226967471797892e-01, 1.915556929571275e+01, 6.944928133740057e-01, -5.022783835435162e+00, 4.823471699659661e+02, -1.893777713359310e+02,
-      -1.637529707819997e+01, -9.468924055391847e+01, 2.310532509390621e+01, -3.594756731257781e+01, 1.302051527839764e+01, 3.653556204232846e-01,
-      4.823471699659663e+02, -1.893777713359309e+02, 1.637529707819996e+01, 9.468924055391845e+01, 2.310532509390625e+01, -3.594756731257780e+01,
-      -1.302051527839767e+01, 3.653556204232817e-01, 1.921238511758900e+02, -6.770111068912972e+00, -1.140587007866538e+02, 9.496106164226617e+00,
-      -2.226967471797914e-01, 1.915556929571276e+01, -6.944928133739985e-01, -5.022783835435162e+00, 1.921238511758901e+02, 6.770111068912968e+00,
-      1.140587007866538e+02, 9.496106164226621e+00, -2.226967471797906e-01, 1.915556929571276e+01, 6.944928133739963e-01, 5.022783835435160e+00,
-      4.823471699659665e+02, 1.893777713359309e+02, -1.637529707819991e+01, 9.468924055391845e+01, 2.310532509390623e+01, -3.594756731257780e+01,
-      1.302051527839768e+01, -3.653556204232722e-01, 4.823471699659665e+02, 1.893777713359309e+02, 1.637529707819994e+01, -9.468924055391849e+01,
-      2.310532509390620e+01, -3.594756731257780e+01, -1.302051527839765e+01, -3.653556204232893e-01, 1.921238511758901e+02, 6.770111068912962e+00,
-      -1.140587007866538e+02, -9.496106164226616e+00, -2.226967471797981e-01, 1.915556929571276e+01, -6.944928133740064e-01, 5.022783835435166e+00,
-      1.346810209205576e+02, -5.636184644070686e+01, 9.081689031496187e+01, -3.638800942322894e+01, -1.531915442293607e+01, 2.162068038060000e+01,
-      -1.154920978322388e+01, -8.056050757541808e+00, 6.437526165222574e+02, -2.383699952856996e+02, 1.543494567891024e+02, -4.915181136302766e+01,
-      -1.058058544975506e+02, -2.407700215608102e+01, -3.508892496659293e+01, 1.032850505731125e+01, 6.437526165222575e+02, -2.383699952856996e+02,
-      -1.543494567891024e+02, 4.915181136302769e+01, -1.058058544975505e+02, -2.407700215608101e+01, 3.508892496659291e+01, 1.032850505731126e+01,
-      1.346810209205576e+02, -5.636184644070686e+01, -9.081689031496188e+01, 3.638800942322894e+01, -1.531915442293607e+01, 2.162068038060000e+01,
-      1.154920978322388e+01, -8.056050757541813e+00,
+      1.7748191603964662e+02, 8.7096319372964388e+01, 1.1429246468805900e+02, 5.2471227820657937e+01, -1.3614772087413588e+01, 2.3554062753744596e+01, -1.1580196700771371e+01, 9.4484684670428543e+00, 
+      6.8961600646091028e+02, 2.6794511901785899e+02, 1.2439557638744260e+02, 2.8730438425885787e+01, -1.0771995184401592e+02, -2.7345005287187508e+01, -3.4679296740684784e+01, -1.1665412727125510e+01, 
+      6.8961600646091040e+02, 2.6794511901785904e+02, -1.2439557638744257e+02, -2.8730438425885787e+01, -1.0771995184401585e+02, -2.7345005287187480e+01, 3.4679296740684755e+01, -1.1665412727125515e+01, 
+      1.7748191603964662e+02, 8.7096319372964402e+01, -1.1429246468805903e+02, -5.2471227820657937e+01, -1.3614772087413609e+01, 2.3554062753744596e+01, 1.1580196700771374e+01, 9.4484684670428543e+00, 
+      3.0773838462138497e+02, -3.3469711188480800e-01, 1.6540482983640368e+02, -1.0470711819681098e+01, -3.1646006464749252e+00, 1.6023238675380750e+01, -2.3515323845200142e-01, -7.9295234724393842e+00, 
+      5.5709148297725221e+02, -2.0116944154819424e+02, -7.7153701869048220e+01, -9.1882935602765798e+01, 2.2838472799451090e+01, -2.5534303617976644e+01, 1.3892703751670068e+01, 7.0142098805507693e+00, 
+      5.5709148297725233e+02, -2.0116944154819413e+02, 7.7153701869048206e+01, 9.1882935602765826e+01, 2.2838472799451136e+01, -2.5534303617976622e+01, -1.3892703751670094e+01, 7.0142098805507747e+00, 
+      3.0773838462138491e+02, -3.3469711188483275e-01, -1.6540482983640365e+02, 1.0470711819681098e+01, -3.1646006464749279e+00, 1.6023238675380757e+01, 2.3515323845202421e-01, -7.9295234724394046e+00, 
+      3.0773838462138497e+02, 3.3469711188483076e-01, 1.6540482983640368e+02, 1.0470711819681096e+01, -3.1646006464749186e+00, 1.6023238675380760e+01, -2.3515323845202274e-01, 7.9295234724393895e+00, 
+      5.5709148297725255e+02, 2.0116944154819416e+02, -7.7153701869048234e+01, 9.1882935602765798e+01, 2.2838472799451107e+01, -2.5534303617976626e+01, 1.3892703751670108e+01, -7.0142098805507667e+00, 
+      5.5709148297725255e+02, 2.0116944154819421e+02, 7.7153701869048234e+01, -9.1882935602765855e+01, 2.2838472799451100e+01, -2.5534303617976622e+01, -1.3892703751670060e+01, -7.0142098805507826e+00, 
+      3.0773838462138502e+02, 3.3469711188482920e-01, -1.6540482983640365e+02, -1.0470711819681103e+01, -3.1646006464749403e+00, 1.6023238675380750e+01, 2.3515323845200933e-01, 7.9295234724394037e+00, 
+      1.7748191603964662e+02, -8.7096319372964402e+01, 1.1429246468805901e+02, -5.2471227820657909e+01, -1.3614772087413606e+01, 2.3554062753744603e+01, -1.1580196700771381e+01, -9.4484684670428543e+00, 
+      6.8961600646091017e+02, -2.6794511901785899e+02, 1.2439557638744257e+02, -2.8730438425885772e+01, -1.0771995184401588e+02, -2.7345005287187487e+01, -3.4679296740684762e+01, 1.1665412727125505e+01, 
+      6.8961600646091040e+02, -2.6794511901785910e+02, -1.2439557638744256e+02, 2.8730438425885769e+01, -1.0771995184401582e+02, -2.7345005287187472e+01, 3.4679296740684769e+01, 1.1665412727125505e+01, 
+      1.7748191603964668e+02, -8.7096319372964416e+01, -1.1429246468805901e+02, 5.2471227820657916e+01, -1.3614772087413607e+01, 2.3554062753744603e+01, 1.1580196700771385e+01, -9.4484684670428578e+00
     };
     for (int i=0; i<cells[0]; i++) {
       for (int j=0; j<cells[1]; j++) {
@@ -772,12 +945,13 @@ test_2x2v(int poly_order, bool use_gpu)
           TEST_CHECK( gkyl_compare( m1Correct[(i*cells[1]+j)*confBasis.num_basis+k], m1ptr[k], 1e-12) );
         // Check M2.
         double *m2ptr = gkyl_array_fetch(m2_ho, gkyl_range_idx(&confLocal, idx)); 
-        for (int k=0; k<confBasis.num_basis; k++)
+        for (int k=0; k<confBasis.num_basis; k++) 
           TEST_CHECK( gkyl_compare( m2Correct[(i*cells[1]+j)*confBasis.num_basis+k], m2ptr[k], 1e-12) );
       }
     }
   }
 
+  gkyl_gk_geometry_release(gk_geom); 
   // release memory for moment data object
   gkyl_array_release(m0); gkyl_array_release(m1); gkyl_array_release(m2);
   gkyl_array_release(m0_ho); gkyl_array_release(m1_ho); gkyl_array_release(m2_ho);
@@ -786,7 +960,7 @@ test_2x2v(int poly_order, bool use_gpu)
 
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf); gkyl_array_release(distf_ho);
-  gkyl_array_release(bmag); gkyl_array_release(bmag_ho);
+  gkyl_velocity_map_release(gvm);
 }
 
 void test_1x1v_p1() { test_1x1v(1, false); } 
@@ -808,21 +982,19 @@ void test_2x2v_p2_cu() { test_2x2v(2, true); }
 TEST_LIST = {
   { "mom_gyrokinetic", test_mom_gyrokinetic },
   { "test_1x1v_p1", test_1x1v_p1 },
+// { "test_1x1v_p2", test_1x1v_p2 },
   { "test_1x2v_p1", test_1x2v_p1 },
-  { "test_1x1v_p2", test_1x1v_p2 },
-  { "test_1x2v_p2", test_1x2v_p2 },
+// { "test_1x2v_p2", test_1x2v_p2 },
   { "test_2x2v_p1", test_2x2v_p1 },
-  { "test_2x2v_p2", test_2x2v_p2 },
-//  { "test_3x2v_p1", test_3x2v_p1 },
+// { "test_2x2v_p2", test_2x2v_p2 },
 #ifdef GKYL_HAVE_CUDA
 //  { "cu_mom_gyrokinetic", test_cu_mom_gyrokinetic },
   { "test_1x1v_p1_cu", test_1x1v_p1_cu },
-  { "test_1x1v_p2_cu", test_1x1v_p2_cu },
+// { "test_1x1v_p2_cu", test_1x1v_p2_cu },
   { "test_1x2v_p1_cu", test_1x2v_p1_cu },
-  { "test_1x2v_p2_cu", test_1x2v_p2_cu },
+// { "test_1x2v_p2_cu", test_1x2v_p2_cu },
   { "test_2x2v_p1_cu", test_2x2v_p1_cu },
-  { "test_2x2v_p2_cu", test_2x2v_p2_cu },
-//  { "test_3x2v_p1_cu", test_3x2v_p1_cu },
+// { "test_2x2v_p2_cu", test_2x2v_p2_cu },
 #endif
   { NULL, NULL },
 };

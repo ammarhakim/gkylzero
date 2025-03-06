@@ -8,6 +8,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
   fld->ndim = mom->ndim;
   double epsilon0 = fld->epsilon0 = mom_fld->epsilon0;
   double mu0 = fld->mu0 = mom_fld->mu0;
+  bool is_static = fld->is_static = mom_fld->is_static; 
 
   fld->ctx = mom_fld->ctx;
   fld->init = mom_fld->init;
@@ -109,23 +110,22 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
         bc = mom_fld->bcy;
       else
         bc = mom_fld->bcz;
-
-      void (*bc_lower_func)(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+      
+      wv_bc_func_t bc_lower_func;
       if (dir == 0)
-        bc_lower_func = mom_fld->bcx_lower_func;
+        bc_lower_func = mom_fld->bcx_func[0];
       else if (dir == 1)
-        bc_lower_func = mom_fld->bcy_lower_func;
+        bc_lower_func = mom_fld->bcy_func[0];
       else
-        bc_lower_func = mom_fld->bcz_lower_func;
+        bc_lower_func = mom_fld->bcz_func[0];
 
-      void (*bc_upper_func)(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+      wv_bc_func_t bc_upper_func;
       if (dir == 0)
-        bc_upper_func = mom_fld->bcx_upper_func;
+        bc_upper_func = mom_fld->bcx_func[0];
       else if (dir == 1)
-        bc_upper_func = mom_fld->bcy_upper_func;
+        bc_upper_func = mom_fld->bcy_func[0];
       else
-        bc_upper_func = mom_fld->bcz_upper_func;
-
+        bc_upper_func = mom_fld->bcz_func[0];
 
       fld->lower_bct[dir] = bc[0];
       fld->upper_bct[dir] = bc[1];
@@ -133,7 +133,8 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
       switch (bc[0]) {
         case GKYL_FIELD_PEC_WALL:
           fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
-            &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost, maxwell->wall_bc_func, 0);
+            &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost,
+            maxwell->wall_bc_func, 0);
           break;
 
         case GKYL_FIELD_FUNC:
@@ -144,7 +145,14 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
         case GKYL_FIELD_COPY:
         case GKYL_FIELD_WEDGE:
           fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
-            &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost, bc_copy, 0);
+            &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost,
+            bc_copy, 0);
+          break;
+
+        case GKYL_FIELD_SKIP:
+          fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost,
+            bc_skip, 0);
           break;
 
         default:
@@ -155,7 +163,8 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
       switch (bc[1]) {
         case GKYL_FIELD_PEC_WALL:
           fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
-            &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost, maxwell->wall_bc_func, 0);
+            &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost,
+            maxwell->wall_bc_func, 0);
           break;
 
         case GKYL_FIELD_FUNC:
@@ -167,8 +176,15 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
         case GKYL_FIELD_COPY:
         case GKYL_FIELD_WEDGE:
           fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
-            &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE, nghost, bc_copy, 0);
+            &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE,
+            nghost, bc_copy, 0);
           break;
+
+        case GKYL_FIELD_SKIP:
+          fld->upper_bc[dir] = gkyl_wv_apply_bc_new(
+            &app->grid, maxwell, app->geom, dir, GKYL_UPPER_EDGE,
+            nghost, bc_skip, 0);
+          break;          
           
         default:
           assert(false);
@@ -177,31 +193,54 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
     }
   }
 
-  // allocate arrays for applied current/external fields
-  fld->app_current = mkarr(false, 3, app->local_ext.volume);
-  fld->t_ramp_curr = mom_fld->t_ramp_curr ? mom_fld->t_ramp_curr : 0.0;
-  fld->proj_app_current = 0;
-  if (mom_fld->app_current_func)
-    fld->proj_app_current = gkyl_fv_proj_new(&app->grid, 2, 3, mom_fld->app_current_func, fld->ctx);
-  
-  fld->ext_em = mkarr(false, 6, app->local_ext.volume);
-  fld->is_ext_em_static = mom_fld->is_ext_em_static;
   fld->use_explicit_em_coupling = mom_fld->use_explicit_em_coupling;
-  fld->was_ext_em_computed = false;
+
+  fld->ext_em = mkarr(false, 6, app->local_ext.volume);
+  gkyl_array_clear(fld->ext_em, 0.0);
+  fld->has_ext_em = false;
+  fld->ext_em_evolve = false;
+  fld->t_ramp_E = mom_fld->t_ramp_E ? mom_fld->t_ramp_E : 0.0;
+  // setup external electromagnetic field
+  if (mom_fld->ext_em) {
+    fld->has_ext_em = true;
+    // Only set the external field to evolve if a user asks for 
+    // dynamic external field and t_ramp_E = 0.0, otherwise
+    // we project the external field once and any variation
+    // in time is encoded linearly in t_ramp_E. 
+    if (mom_fld->ext_em_evolve && mom_fld->t_ramp_E == 0.0) {
+      fld->ext_em_evolve = mom_fld->ext_em_evolve;
+    }
+    fld->ext_em_proj = gkyl_fv_proj_new(&app->grid, 2, GKYL_MOM_APP_NUM_EXT_EM,
+      mom_fld->ext_em, mom_fld->ext_em_ctx);    
+  }  
+
+  fld->app_current = mkarr(false, 3, app->local_ext.volume);
+  gkyl_array_clear(fld->app_current, 0.0);
   if(mom_fld->use_explicit_em_coupling){
     fld->app_current1 = mkarr(false, 3, app->local_ext.volume);
+    gkyl_array_clear(fld->app_current1, 0.0);
     fld->app_current2 = mkarr(false, 3, app->local_ext.volume);
+    gkyl_array_clear(fld->app_current2, 0.0);
+  }
+  fld->has_app_current = false;
+  fld->app_current_evolve = false;
+  if (mom_fld->app_current) {
+    fld->has_app_current = true;
+    // Only set the applied current to evolve if a user asks for 
+    // dynamic applied current and t_ramp_curr = 0.0, otherwise
+    // we project the applied current once and any variation
+    // in time is encoded linearly in t_ramp_curr. 
+    if (mom_fld->app_current_evolve &&  mom_fld->t_ramp_curr == 0.0) {
+      fld->app_current_evolve = mom_fld->app_current_evolve;
+    }
+    fld->app_current_proj = gkyl_fv_proj_new(&app->grid, 2, GKYL_MOM_APP_NUM_APPLIED_CURRENT,
+      mom_fld->app_current, mom_fld->app_current_ctx);  
   }
 
   fld->has_volume_sources = mom_fld->has_volume_sources;
   fld->volume_gas_gamma = mom_fld->volume_gas_gamma;
   fld->volume_U0 = mom_fld->volume_U0;
   fld->volume_R0 = mom_fld->volume_R0;
-
-  fld->t_ramp_E = mom_fld->t_ramp_E ? mom_fld->t_ramp_E : 0.0;
-  fld->proj_ext_em = 0;
-  if (mom_fld->ext_em_func)
-    fld->proj_ext_em = gkyl_fv_proj_new(&app->grid, 2, 6, mom_fld->ext_em_func, fld->ctx);
 
   // allocate buffer for applying BCs (used for periodic BCs)
   long buff_sz = 0;
@@ -226,8 +265,6 @@ moment_field_apply_bc(gkyl_moment_app *app, double tcurr,
   struct timespec wst = gkyl_wall_clock();
   
   int num_periodic_dir = app->num_periodic_dir, ndim = app->ndim, is_non_periodic[3] = {1, 1, 1};
-  gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext, num_periodic_dir,
-    app->periodic_dirs, f);
   
   for (int d=0; d<num_periodic_dir; ++d)
     is_non_periodic[app->periodic_dirs[d]] = 0;
@@ -246,7 +283,11 @@ moment_field_apply_bc(gkyl_moment_app *app, double tcurr,
           field->bc_buffer, d, field->lower_bc[d], field->upper_bc[d], f);
     }
 
+  // sync interior ghost cells
   gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, f);
+  // sync periodic ghost cells
+  gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext, num_periodic_dir,
+    app->periodic_dirs, f);
 
   app->stat.field_bc_tm += gkyl_time_diff_now_sec(wst);  
 }
@@ -274,17 +315,19 @@ moment_field_update(gkyl_moment_app *app,
   int ndim = fld->ndim;
   struct gkyl_wave_prop_status stat = { true, DBL_MAX };
 
-  for (int d=0; d<ndim; ++d) {
-    // update solution
-    stat = gkyl_wave_prop_advance(fld->slvr[d], tcurr, dt, &app->local, fld->f[d], fld->f[d+1]);
+  if (!fld->is_static) {
+    for (int d=0; d<ndim; ++d) {
+      // update solution
+      stat = gkyl_wave_prop_advance(fld->slvr[d], tcurr, dt, &app->local, fld->f[d], fld->f[d+1]);
 
-    if (!stat.success)
-      return (struct gkyl_update_status) {
-        .success = false,
-        .dt_suggested = stat.dt_suggested
-      };
-    // apply BC
-    moment_field_apply_bc(app, tcurr, fld, fld->f[d+1]);
+      if (!stat.success)
+        return (struct gkyl_update_status) {
+          .success = false,
+          .dt_suggested = stat.dt_suggested
+        };
+      // apply BC
+      moment_field_apply_bc(app, tcurr, fld, fld->f[d+1]);
+    }
   }
 
   return (struct gkyl_update_status) {
@@ -343,18 +386,20 @@ moment_field_release(const struct moment_field *fld)
     gkyl_array_release(fld->fnew);
     gkyl_array_release(fld->cflrate);
   }
-    
-  gkyl_array_release(fld->app_current);
-  if (fld->proj_app_current)
-    gkyl_fv_proj_release(fld->proj_app_current);
-  if(fld->use_explicit_em_coupling)
-    gkyl_array_release(fld->app_current1);
-  if(fld->use_explicit_em_coupling)
-    gkyl_array_release(fld->app_current2);
-  
+
   gkyl_array_release(fld->ext_em);
-  if (fld->proj_ext_em)
-    gkyl_fv_proj_release(fld->proj_ext_em);
+  if (fld->has_ext_em) {
+    gkyl_fv_proj_release(fld->ext_em_proj);
+  }  
+
+  gkyl_array_release(fld->app_current);
+  if(fld->use_explicit_em_coupling) {
+    gkyl_array_release(fld->app_current1);
+    gkyl_array_release(fld->app_current2);
+  }
+  if (fld->has_app_current) {
+    gkyl_fv_proj_release(fld->app_current_proj);
+  }
 
   gkyl_dynvec_release(fld->integ_energy);
   gkyl_array_release(fld->bc_buffer);

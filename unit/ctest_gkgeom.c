@@ -43,9 +43,9 @@ ellip_unit(void)
   gkyl_create_grid_ranges(&rzgrid, nghost, &rzlocal_ext, &rzlocal);
 
   // RZ basis function
-  int rzpoly_order = 2;
+  int rz_poly_order = 2;
   struct gkyl_basis rzbasis;
-  gkyl_cart_modal_serendip(&rzbasis, 2, rzpoly_order);
+  gkyl_cart_modal_serendip(&rzbasis, 2, rz_poly_order);
 
   // allocate psiRZ array, initialize and write it to file
   struct gkyl_array *psiRZ = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
@@ -55,7 +55,7 @@ ellip_unit(void)
   gkyl_eval_on_nodes_advance(eon, 0.0, &rzlocal, psiRZ);
   gkyl_eval_on_nodes_release(eon);
 
-  gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psiRZ, "ellip_psi.gkyl");
+  gkyl_grid_sub_array_write(&rzgrid, &rzlocal, 0, psiRZ, "ellip_psi.gkyl");
 
   gkyl_gkgeom *geo = gkyl_gkgeom_new(&(struct gkyl_gkgeom_inp) {
       // psiRZ and related inputs
@@ -64,7 +64,6 @@ ellip_unit(void)
       .psiRZ = psiRZ,
       .rzlocal = &rzlocal,
 
-      .quad_param = {  .eps = 1e-12 }
     }
   );
 

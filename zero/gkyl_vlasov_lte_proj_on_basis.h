@@ -5,6 +5,7 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_velocity_map.h>
 
 // Object type
 typedef struct gkyl_vlasov_lte_proj_on_basis gkyl_vlasov_lte_proj_on_basis;
@@ -22,12 +23,16 @@ struct gkyl_vlasov_lte_proj_on_basis_inp {
   const struct gkyl_range *phase_range; // phase space range
   const struct gkyl_array *gamma; // SR quantitiy: gamma = sqrt(1 + p^2)
   const struct gkyl_array *gamma_inv; // SR quantitiy: 1/gamma = 1/sqrt(1 + p^2)
-  const struct gkyl_array *h_ij_inv; // (Can-bp quantity) inverse of the metric tensor
+  const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
+  const struct gkyl_array *h_ij; // (Can-bp quantity) metric tensor (covariant components)
+  const struct gkyl_array *h_ij_inv; // (Can-bp quantity) inverse of the metric tensor (contravariant components)
   const struct gkyl_array *det_h; // (Can-bp quantity) determinant of the metric tensor
   const struct gkyl_array *hamil; // (Can-bp quantity) Hamiltonian
   enum gkyl_model_id model_id; // Enum identifier for model type (e.g., SR, see gkyl_eqn_type.h)
-  double mass; // Mass factor 
+  double mass; // Mass factor
   bool use_gpu; // bool for gpu useage
+
+  enum gkyl_quad_type quad_type;
 };
 
 /**
@@ -66,7 +71,7 @@ void gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
  * Host-side wrapper for initial canonical-pb vars
  */
 void gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu(gkyl_vlasov_lte_proj_on_basis *up, 
-  const struct gkyl_range *conf_range, 
+  const struct gkyl_range *conf_range, const struct gkyl_array *h_ij,
   const struct gkyl_array *h_ij_inv, const struct gkyl_array *det_h);
 
 /**

@@ -8,17 +8,6 @@
 
 #include <stdbool.h>
 
-// Lower-level inputs: in general this does not need to be set by the
-// user. It is needed when the App is being created on a sub-range of
-// the global range, and is meant for use in higher-level drivers that
-// use MPI or other parallel mechanism.
-struct gkyl_pkpm_low_inp {
-  // local range over which App operates
-  struct gkyl_range local_range;
-  // communicator to used
-  struct gkyl_comm *comm;
-};
-
 // Parameters for species collisions
 struct gkyl_pkpm_collisions {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
@@ -71,7 +60,7 @@ struct gkyl_pkpm_species {
 
   void *app_accel_ctx; // context for applied acceleration function
   // pointer to applied acceleration function
-  void (*app_accel)(double t, const double *xn, double *aout, void *ctx);
+  void (*app_accel)(double t, const double *xn, double *app_accel_out, void *ctx);
   bool app_accel_evolve; // set to true if applied acceleration function is time dependent
 
   double limiter_fac; // Optional input parameter for adjusting diffusion in slope limiter
@@ -129,8 +118,6 @@ struct gkyl_pkpm {
 
   double cfl_frac; // CFL fraction to use (default 1.0)
 
-  bool use_gpu; // Flag to indicate if solver should use GPUs
-
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
 
@@ -143,10 +130,7 @@ struct gkyl_pkpm {
                             // Default is a first-order operator split with 
                             // implicit fluid-EM coupling.
 
-  // this should not be set by typical user-facing code but only by
-  // higher-level drivers
-  bool has_low_inp; // should one use low-level inputs?
-  struct gkyl_pkpm_low_inp low_inp; // low-level inputs  
+  struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
 };
 
 // Simulation statistics
@@ -191,19 +175,19 @@ struct gkyl_pkpm_stat {
   double field_em_vars_tm; // time to compute EM auxiliary variables (e.g., bvar and E x B)
   double current_tm; // time to compute currents and accumulation
 
-  long nspecies_omega_cfl; // number of times CFL-omega all-reduce is called
+  long n_species_omega_cfl; // number of times CFL-omega all-reduce is called
   double species_omega_cfl_tm; // time spent in all-reduce for omega-cfl
 
-  long nfield_omega_cfl; // number of times CFL-omega for field all-reduce is called
+  long n_field_omega_cfl; // number of times CFL-omega for field all-reduce is called
   double field_omega_cfl_tm; // time spent in all-reduce for omega-cfl for field
 
-  long nmom; // calls to moment calculation
+  long n_mom; // calls to moment calculation
   double mom_tm; // time to compute moments
 
-  long ndiag; // calls to diagnostics
+  long n_diag; // calls to diagnostics
   double diag_tm; // time to compute diagnostics
 
-  long nio; // number of calls to IO
+  long n_io; // number of calls to IO
   double io_tm; // time to perform IO
 };
 
@@ -347,6 +331,65 @@ void gkyl_pkpm_app_write_field_energy(gkyl_pkpm_app* app);
  * @param app App object.
  */
 void gkyl_pkpm_app_stat_write(gkyl_pkpm_app* app);
+
+/**
+ * Initialize field from file
+ *
+ * @param app App object
+ * @param fname file to read
+ */
+struct gkyl_app_restart_status
+gkyl_pkpm_app_from_file_field(gkyl_pkpm_app *app, const char *fname);
+
+/**
+ * Initialize pkpm species from file
+ *
+ * @param app App object
+ * @param sidx gk species index
+ * @param fname file to read
+ */
+struct gkyl_app_restart_status 
+gkyl_pkpm_app_from_file_species(gkyl_pkpm_app *app, int sidx,
+  const char *fname);
+
+/**
+ * Initialize pkpm fluid species from file
+ *
+ * @param app App object
+ * @param sidx gk species index
+ * @param fname file to read
+ */
+struct gkyl_app_restart_status 
+gkyl_pkpm_app_from_file_fluid_species(gkyl_pkpm_app *app, int sidx,
+  const char *fname);
+
+/**
+ * Initialize field from frame
+ *
+ * @param app App object
+ * @param frame frame to read
+ */
+struct gkyl_app_restart_status
+gkyl_pkpm_app_from_frame_field(gkyl_pkpm_app *app, int frame);
+
+/**
+ * Initialize pkpm species and fluid species from frame
+ *
+ * @param app App object
+ * @param sidx gk species index
+ * @param frame frame to read
+ */
+struct gkyl_app_restart_status
+gkyl_pkpm_app_from_frame_species(gkyl_pkpm_app *app, int sidx, int frame);
+
+/**
+ * Initialize the pkpm app from a specific frame.
+ *
+ * @param app App object
+ * @param frame frame to read
+ */
+struct gkyl_app_restart_status
+gkyl_pkpm_app_read_from_frame(gkyl_pkpm_app *app, int frame);
 
 /**
  * Write output to console: this is mainly for diagnostic messages the

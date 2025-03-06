@@ -236,7 +236,7 @@ gkyl_cu_free_host_(const char *file, int line, const char *func, void *ptr)
 }
 
 void
-gkyl_cu_memcpy(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind)
+gkyl_cu_memcpy(void *dst, const void *src, size_t count, enum gkyl_cu_memcpy_kind kind)
 {
   cudaError_t err = cudaMemcpy(dst, src, count, kind);
   if (err != cudaSuccess) {
@@ -247,7 +247,7 @@ gkyl_cu_memcpy(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind
 }
 
 void
-gkyl_cu_memcpy_async(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind, cudaStream_t stream)
+gkyl_cu_memcpy_async(void *dst, const void *src, size_t count, enum gkyl_cu_memcpy_kind kind, cudaStream_t stream)
 {
   cudaError_t err = cudaMemcpyAsync(dst, src, count, kind, stream);
   if (err != cudaSuccess) {
@@ -297,13 +297,13 @@ gkyl_cu_free_host_(const char *file, int line, const char *func, void *ptr)
 }
 
 void
-gkyl_cu_memcpy(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind)
+gkyl_cu_memcpy(void *dst, const void *src, size_t count, enum gkyl_cu_memcpy_kind kind)
 {
   assert(false);  
 }
 
 void
-gkyl_cu_memcpy_async(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind, int stream)
+gkyl_cu_memcpy_async(void *dst, const void *src, size_t count, enum gkyl_cu_memcpy_kind kind, int stream)
 {
   assert(false);  
 }

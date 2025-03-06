@@ -138,7 +138,7 @@ test_1x1v(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
 
-  // proj_maxwellian expects all the moments in a single array.
+  // Projection routine expects all the moments in a single array.
   gkyl_array_set_offset(moms, 1., m0, 0);
   gkyl_array_set_offset(moms, 1., m1i, confBasis.num_basis);
   gkyl_array_set_offset(moms, 1., m2, (vdim+1)*confBasis.num_basis);
@@ -203,7 +203,7 @@ test_1x1v(int poly_order, bool use_gpu)
  // write distribution function to file
   char fname[1024];
   sprintf(fname, "ctest_correct_maxwellian_test_1x1v_p%d_corr_m0.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
+  gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
 
   // Moments computed from *only* density-corrected LTE distribution function
   gkyl_vlasov_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms_diag);
@@ -230,8 +230,8 @@ test_1x1v(int poly_order, bool use_gpu)
 
    // write distribution function to file
   sprintf(fname, "ctest_correct_maxwellian_test_1x1v_p%d_corr_all_moms.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
-
+  gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
+  
   // Compare m0 to the computed m0 (density correction only)
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &confLocal);

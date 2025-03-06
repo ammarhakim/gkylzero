@@ -73,6 +73,30 @@
 
   Note: the global range in Gkeyll, of which each range is a part,
   is 1-indexed.
+
+  * For file_type = 4 (block topology) there is no additional
+    data. The topology is store in mpack format in the following way.
+
+    {
+      ndim = dimension of topology,
+      num_blocks = number of blocks,
+      connections = array of connection data
+    }
+
+    The array of connection data is a list of integers with bid, dir
+    and edge (in this order) for each block, in each direction and
+    lower and upper edges (in this order). See struct gkyl_block_topo
+    and btopo_create_mpack in file block_topo.c file for details.
+
+  * For file_type = 5 is written out for multi-block simulations and
+    has no additional data. The information is all in the mpack format:
+
+    {
+      frame = fname number,
+      stime = simulation time,
+      topo_file_name = file in which topology is stored
+    }
+
  */
 
 #include <stdio.h>
@@ -82,6 +106,16 @@
 
 size_t gkyl_base_hdr_size(size_t meta_sz);
 size_t gkyl_file_type_1_hrd_size(int ndim);
+size_t gkyl_file_type_1_partial_hrd_size(int ndim);
 size_t gkyl_file_type_2_hrd_size(void);
 size_t gkyl_file_type_3_hrd_size(int ndim);
 size_t gkyl_file_type_3_range_hrd_size(int ndim);
+
+/**
+ * Return .gkyl file type. Returns -1 if file does not exist or is not
+ * a gkyl file.
+ *
+ * @param fname File name
+ * @param file type.
+ */
+int gkyl_get_gkyl_file_type(const char *fname);

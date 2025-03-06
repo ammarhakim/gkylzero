@@ -12,6 +12,7 @@
 struct wv_ten_moment {
   struct gkyl_wv_eqn eqn; // base object
   double k0; // closure parameter
+  bool use_grad_closure; // should we use gradient based closure?
 };
 
 /**

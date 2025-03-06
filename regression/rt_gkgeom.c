@@ -50,9 +50,9 @@ cerforn_rt(void)
   gkyl_create_grid_ranges(&rzgrid, nghost, &rzlocal_ext, &rzlocal);
 
   // RZ basis function
-  int rzpoly_order = 2;
+  int rz_poly_order = 2;
   struct gkyl_basis rzbasis;
-  gkyl_cart_modal_serendip(&rzbasis, 2, rzpoly_order);
+  gkyl_cart_modal_serendip(&rzbasis, 2, rz_poly_order);
 
   // allocate psiRZ array, initialize and write it to file
   struct gkyl_array *psiRZ = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
@@ -62,7 +62,7 @@ cerforn_rt(void)
   gkyl_eval_on_nodes_advance(eon, 0.0, &rzlocal, psiRZ);
   gkyl_eval_on_nodes_release(eon);
 
-  gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psiRZ, "cerfon_psi.gkyl");
+  gkyl_grid_sub_array_write(&rzgrid, &rzlocal, 0, psiRZ, "cerfon_psi.gkyl");
 
   gkyl_gkgeom *geo = gkyl_gkgeom_new(&(struct gkyl_gkgeom_inp) {
       // psiRZ and related inputs
@@ -145,7 +145,7 @@ cerforn_rt(void)
     struct gkyl_gkgeom_geo_inp ginp = {
       .cgrid = &cgrid,
       .cbasis = &cbasis,
-      .ftype = GKYL_SOL_DN,
+      .ftype = GKYL_GEOM_SOL_DN,
       .rclose = upper[0],
       .zmin = lower[1],
       .zmax = upper[1],
@@ -190,7 +190,7 @@ cerforn_rt(void)
     struct gkyl_gkgeom_geo_inp ginp = {
       .cgrid = &cgrid,
       .cbasis = &cbasis,
-      .ftype = GKYL_SOL_DN,
+      .ftype = GKYL_GEOM_SOL_DN,
       .rclose = lower[0],
       .zmin = lower[1],
       .zmax = upper[1],
@@ -260,9 +260,9 @@ wham_2l_rt(void)
   gkyl_create_grid_ranges(&rzgrid, nghost, &rzlocal_ext, &rzlocal);
 
   // RZ basis function
-  int rzpoly_order = 2;
+  int rz_poly_order = 2;
   struct gkyl_basis rzbasis;
-  gkyl_cart_modal_serendip(&rzbasis, 2, rzpoly_order);
+  gkyl_cart_modal_serendip(&rzbasis, 2, rz_poly_order);
 
   // allocate psiRZ array, initialize and write it to file
   struct gkyl_array *psiRZ = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
@@ -272,7 +272,7 @@ wham_2l_rt(void)
   gkyl_eval_on_nodes_advance(eon, 0.0, &rzlocal, psiRZ);
   gkyl_eval_on_nodes_release(eon);
 
-  gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psiRZ, "wham_psi.gkyl");
+  gkyl_grid_sub_array_write(&rzgrid, &rzlocal, 0, psiRZ, "wham_psi.gkyl");
 
   gkyl_gkgeom *geo = gkyl_gkgeom_new(&(struct gkyl_gkgeom_inp) {
       // psiRZ and related inputs
@@ -313,7 +313,7 @@ wham_2l_rt(void)
     struct gkyl_gkgeom_geo_inp ginp = {
       .cgrid = &cgrid,
       .cbasis = &cbasis,
-      .ftype = GKYL_SOL_DN,
+      .ftype = GKYL_GEOM_SOL_DN,
       .rclose = upper[0],
       .zmin = lower[1],
       .zmax = upper[1],
@@ -350,9 +350,9 @@ wham_beta0_rt(void)
   gkyl_create_grid_ranges(&rzgrid, nghost, &rzlocal_ext, &rzlocal);  
   
   // RZ basis function
-  int rzpoly_order = 2;
+  int rz_poly_order = 2;
   struct gkyl_basis rzbasis;
-  gkyl_cart_modal_serendip(&rzbasis, 2, rzpoly_order);  
+  gkyl_cart_modal_serendip(&rzbasis, 2, rz_poly_order);  
   
   gkyl_gkgeom *geo = gkyl_gkgeom_new(&(struct gkyl_gkgeom_inp) {
       // psiRZ and related inputs
@@ -394,7 +394,7 @@ wham_beta0_rt(void)
     struct gkyl_gkgeom_geo_inp ginp = {
       .cgrid = &cgrid,
       .cbasis = &cbasis,
-      .ftype = GKYL_SOL_DN,
+      .ftype = GKYL_GEOM_SOL_DN,
       .rclose = rzgrid.upper[0],
       .zmin = -2.0, //rzgrid.lower[1],
       .zmax = 2.0, //rzgrid.upper[1],

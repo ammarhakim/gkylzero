@@ -6,24 +6,16 @@
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_eqn.h>
+#include <gkyl_fem_poisson_bctype.h>
+#include <gkyl_vlasov_comms.h>
 
 #include <stdbool.h>
-
-// Lower-level inputs: in general this does not need to be set by the
-// user. It is needed when the App is being created on a sub-range of
-// the global range, and is meant for use in higher-level drivers that
-// use MPI or other parallel mechanism.
-struct gkyl_vm_low_inp {
-  // local range over which App operates
-  struct gkyl_range local_range;
-  // communicator to used
-  struct gkyl_comm *comm;
-};
 
 // Parameters for projection
 struct gkyl_vlasov_projection {
   enum gkyl_projection_id proj_id; // type of projection (see gkyl_eqn_type.h)
-
+  enum gkyl_quad_type quad_type; // quadrature scheme to use: defaults to Gaussian
+  
   union {
     struct {
       // pointer and context to initialization function 
@@ -65,7 +57,8 @@ struct gkyl_vlasov_collisions {
   // BGK collisions specific inputs
   bool correct_all_moms; // boolean if we are correcting all the moments or only density
   double iter_eps; // error tolerance for moment fixes (density is always exact)
-  int max_iter; // maximum number of iterations
+  int max_iter; // maximum number of iteration
+  bool fixed_temp_relax; // Are BGK collisions relaxing to a fixed input temperature?
   bool use_last_converged; // use last iteration value regardless of convergence?
 
   // Boolean for using implicit BGK collisions (replaces rk3)   
@@ -103,6 +96,18 @@ struct gkyl_vlasov_source {
   struct gkyl_vlasov_projection projection[GKYL_MAX_PROJ];
 };
 
+// Parameters for boundary conditions
+struct gkyl_vlasov_bc {
+  enum gkyl_species_bc_type type;
+  void *aux_ctx;
+  void (*aux_profile)(double t, const double *xn, double *fout, void *ctx);  
+  double aux_parameter;
+};
+
+struct gkyl_vlasov_bcs {
+  struct gkyl_vlasov_bc lower, upper;
+};
+
 // Parameters for fluid species source
 struct gkyl_vlasov_fluid_source {
   enum gkyl_source_id source_id; // type of source
@@ -117,7 +122,6 @@ struct gkyl_vlasov_fluid_advection {
   void *velocity_ctx; // context for applied advection function
   // pointer to applied advection velocity function
   void (*velocity)(double t, const double *xn, double *aout, void *ctx);
-  enum gkyl_quad_type qtype; // quadrature to use
 };
 
 // Parameters for fluid species diffusion
@@ -165,8 +169,12 @@ struct gkyl_vlasov_species {
   // pointer to hamilonian function
   void (*hamil)(double t, const double *xn, double *aout, void *ctx);
 
-  void *h_ij_inv_ctx; // context for spatial metric function
-  // pointer to metric inverse function
+  void *h_ij_ctx; // context for spatial metric function (covariant)
+  // pointer to metric (covariant components) function
+  void (*h_ij)(double t, const double *xn, double *aout, void *ctx);
+
+  void *h_ij_inv_ctx; // context for spatial metric function (contravariant)
+  // pointer to metric (contravaraint components) function
   void (*h_ij_inv)(double t, const double *xn, double *aout, void *ctx);
 
   void *det_h_ctx; // context for determinant of the spatial metric
@@ -179,7 +187,7 @@ struct gkyl_vlasov_species {
   bool use_last_converged; // use last iteration value regardless of convergence for f_lte?
 
   // boundary conditions
-  enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
+  struct gkyl_vlasov_bcs bcx, bcy, bcz;
 };
 
 // Parameter for EM field
@@ -210,6 +218,14 @@ struct gkyl_vlasov_field {
   
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
+
+  // Options for Vlasov-Poisson.
+  struct gkyl_poisson_bc poisson_bcs; // Boundary conditions for Poisson eqn.
+
+  void *external_potentials_ctx; // Context for external (phi,A) potentials.
+  // Pointer to function defining external potentials (phi,A).
+  void (*external_potentials)(double t, const double *xn, double *ext_pot, void *ctx);
+  bool external_potentials_evolve; // True if external potentials are time dependent.
 };
 
 // Parameter for Vlasov fluid species
@@ -238,6 +254,10 @@ struct gkyl_vlasov_fluid_species {
   // diffusion coupling to include
   struct gkyl_vlasov_fluid_diffusion diffusion;
 
+  void *can_pb_n0_ctx; // context for background density function in canonical PB fluid systems
+  // pointer to background density function in canonical PB fluid systems
+  void (*can_pb_n0)(double t, const double *xn, double *aout, void *ctx);
+
   void *app_accel_ctx; // context for applied acceleration function
   // pointer to applied acceleration function
   void (*app_accel)(double t, const double *xn, double *aout, void *ctx);
@@ -265,8 +285,6 @@ struct gkyl_vm {
 
   double cfl_frac; // CFL fraction to use (default 1.0)
 
-  bool use_gpu; // Flag to indicate if solver should use GPUs
-
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
 
@@ -278,11 +296,9 @@ struct gkyl_vm {
   
   bool skip_field; // Skip field update or no field specified
   struct gkyl_vlasov_field field; // field object
+  bool is_electrostatic; // Indicate whether to use Vlasov-Poisson.
 
-  // this should not be set by typical user-facing code but only by
-  // higher-level drivers
-  bool has_low_inp; // should one use low-level inputs?
-  struct gkyl_vm_low_inp low_inp; // low-level inputs  
+  struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
 };
 
 // Simulation statistics
@@ -327,19 +343,19 @@ struct gkyl_vlasov_stat {
   double field_rhs_tm; // time to compute field RHS
   double current_tm; // time to compute currents and accumulation
 
-  long nspecies_omega_cfl; // number of times CFL-omega all-reduce is called
+  long n_species_omega_cfl; // number of times CFL-omega all-reduce is called
   double species_omega_cfl_tm; // time spent in all-reduce for omega-cfl
 
-  long nfield_omega_cfl; // number of times CFL-omega for field all-reduce is called
+  long n_field_omega_cfl; // number of times CFL-omega for field all-reduce is called
   double field_omega_cfl_tm; // time spent in all-reduce for omega-cfl for field
 
-  long nmom; // calls to moment calculation
+  long n_mom; // calls to moment calculation
   double mom_tm; // time to compute moments
 
-  long ndiag; // calls to diagnostics
+  long n_diag; // calls to diagnostics
   double diag_tm; // time to compute diagnostics
 
-  long nio; // number of calls to IO
+  long n_io; // number of calls to IO
   double io_tm; // time to perform IO
 };
 
@@ -394,6 +410,75 @@ void gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app* app, int sidx, double t0)
  * @param t0 Time for initial conditions
  */
 void gkyl_vlasov_app_apply_ic_fluid_species(gkyl_vlasov_app* app, int sidx, double t0);
+
+/**
+ * Initialize field from file
+ *
+ * @param app App object
+ * @param fname file to read
+ */
+struct gkyl_app_restart_status
+gkyl_vlasov_app_from_file_field(gkyl_vlasov_app *app, const char *fname);
+
+/**
+ * Initialize Vlasov species from file
+ *
+ * @param app App object
+ * @param sidx gk species index
+ * @param fname file to read
+ */
+struct gkyl_app_restart_status 
+gkyl_vlasov_app_from_file_species(gkyl_vlasov_app *app, int sidx,
+  const char *fname);
+
+/**
+ * Initialize fluid species from file
+ *
+ * @param app App object
+ * @param sidx gk species index
+ * @param fname file to read
+ */
+struct gkyl_app_restart_status 
+gkyl_vlasov_app_from_file_fluid_species(gkyl_vlasov_app *app, int sidx,
+  const char *fname);
+
+/**
+ * Initialize field from frame
+ *
+ * @param app App object
+ * @param frame frame to read
+ */
+struct gkyl_app_restart_status
+gkyl_vlasov_app_from_frame_field(gkyl_vlasov_app *app, int frame);
+
+/**
+ * Initialize Vlasov species from frame
+ *
+ * @param app App object
+ * @param sidx gk species index
+ * @param frame frame to read
+ */
+struct gkyl_app_restart_status
+gkyl_vlasov_app_from_frame_species(gkyl_vlasov_app *app, int sidx, int frame);
+
+/**
+ * Initialize fluid species from frame
+ *
+ * @param app App object
+ * @param sidx gk species index
+ * @param frame frame to read
+ */
+struct gkyl_app_restart_status
+gkyl_vlasov_app_from_frame_fluid_species(gkyl_vlasov_app *app, int sidx, int frame);
+
+/**
+ * Initialize the Vlasov app from a specific frame.
+ *
+ * @param app App object
+ * @param frame frame to read
+ */
+struct gkyl_app_restart_status
+gkyl_vlasov_app_read_from_frame(gkyl_vlasov_app *app, int frame);
 
 /**
  * Calculate diagnostic moments.
@@ -490,6 +575,14 @@ void gkyl_vlasov_app_write_mom(gkyl_vlasov_app *app, double tm, int frame);
  * @param app App object.
  */
 void gkyl_vlasov_app_write_integrated_mom(gkyl_vlasov_app *app);
+
+/**
+ * Write integrated diagnostic quantities for fluid species to file. Integrated
+ * quantities are appended to the same file.
+ * 
+ * @param app App object.
+ */
+void gkyl_vlasov_app_write_fluid_integrated_mom(gkyl_vlasov_app *app);
 
 /**
  * Write integrated L2 norm of the species distribution function to file. Integrated

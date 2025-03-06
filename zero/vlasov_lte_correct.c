@@ -18,6 +18,12 @@ struct gkyl_vlasov_lte_correct*
 gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
 {
   gkyl_vlasov_lte_correct *up = gkyl_malloc(sizeof(*up));
+
+  up->vel_map = 0;
+  if (inp->vel_map != 0) {
+    up->vel_map = gkyl_velocity_map_acquire(inp->vel_map);
+  }
+
   up->eps = inp->eps;
   up->max_iter = inp->max_iter;
   up->use_gpu = inp->use_gpu;
@@ -64,6 +70,7 @@ gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
     .phase_range = inp->phase_range,
     .gamma = inp->gamma,
     .gamma_inv = inp->gamma_inv,
+    .h_ij = inp->h_ij,
     .h_ij_inv = inp->h_ij_inv,
     .det_h = inp->det_h,
     .hamil = inp->hamil,
@@ -81,12 +88,14 @@ gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
     .conf_basis = inp->conf_basis,
     .vel_basis = inp->vel_basis,
     .phase_basis = inp->phase_basis,
-    .conf_range =  inp->conf_range,
+    .conf_range = inp->conf_range,
     .conf_range_ext = inp->conf_range_ext,
     .vel_range = inp->vel_range,
     .phase_range = inp->phase_range,
     .gamma = inp->gamma,
     .gamma_inv = inp->gamma_inv,
+    .quad_type = inp->quad_type,
+    .h_ij = inp->h_ij,
     .h_ij_inv = inp->h_ij_inv,  
     .det_h = inp->det_h,
     .hamil = inp->hamil,
@@ -277,6 +286,10 @@ gkyl_vlasov_lte_correct_all_moments(gkyl_vlasov_lte_correct *up,
 void 
 gkyl_vlasov_lte_correct_release(gkyl_vlasov_lte_correct *up)
 {
+  if (up->vel_map != 0) {
+    gkyl_velocity_map_release(up->vel_map);
+  }
+
   gkyl_array_release(up->moms_iter);
   gkyl_array_release(up->d_moms);
   gkyl_array_release(up->dd_moms);
