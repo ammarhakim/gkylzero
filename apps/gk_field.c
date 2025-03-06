@@ -124,8 +124,8 @@ gk_field_enforce_zbc(const gkyl_gyrokinetic_app *app, const struct gk_field *fie
   gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
     num_periodic_dir, periodic_dirs, finout); 
   
-  // // Update the lower z ghosts with twist-and-shift if we are in 3x2v
-  if(app->cdim == 3) {
+  // Update the lower z ghosts with twist-and-shift if we are in 3x2v
+  if (app->cdim == 3) {
     gkyl_bc_twistshift_advance(field->bc_T_LU_lo, finout, finout);
   }
 

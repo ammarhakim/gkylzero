@@ -68,364 +68,112 @@ typedef struct { gkyl_dg_diffusion_gyrokinetic_boundary_surf_kernels_polyOrder l
 // Need to be separated like this for GPU build
 
 // 1x 2nd order diffusion.
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_1x_ser_p1_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
+GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_1x1v_ser_p1_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_1x_ser_p1_constcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
+  return dg_diffusion_gyrokinetic_order2_vol_1x1v_ser_p1_constcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
 }
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_1x_ser_p2_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
+GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_1x2v_ser_p1_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_1x_ser_p2_constcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
+  return dg_diffusion_gyrokinetic_order2_vol_1x2v_ser_p1_constcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
 }
 // 1x 4th order diffusion.
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order4_vol_1x_ser_p1_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
+GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order4_vol_1x1v_ser_p1_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order4_vol_1x_ser_p1_constcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
+  return dg_diffusion_gyrokinetic_order4_vol_1x1v_ser_p1_constcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
 }
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order4_vol_1x_ser_p2_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
+GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order4_vol_1x2v_ser_p1_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order4_vol_1x_ser_p2_constcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
+  return dg_diffusion_gyrokinetic_order4_vol_1x2v_ser_p1_constcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
 }
 // 1x 6th order diffusion.
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order6_vol_1x_ser_p2_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order6_vol_1x_ser_p2_constcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
 // 2x 2nd order diffusion.
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_2x_ser_p1_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
+GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_2x2v_ser_p1_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_2x_ser_p1_constcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
+  return dg_diffusion_gyrokinetic_order2_vol_2x2v_ser_p1_constcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
 }
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_2x_ser_p1_constcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
+GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_2x2v_ser_p1_constcoeff_diffdirsz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_2x_ser_p1_constcoeff_diffdirsy(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
+  return dg_diffusion_gyrokinetic_order2_vol_2x2v_ser_p1_constcoeff_diffdirsz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
 }
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_2x_ser_p1_constcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
+GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_2x2v_ser_p1_constcoeff_diffdirsxz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_2x_ser_p1_constcoeff_diffdirsxy(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_2x_ser_p2_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_2x_ser_p2_constcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_2x_ser_p2_constcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_2x_ser_p2_constcoeff_diffdirsy(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_2x_ser_p2_constcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_2x_ser_p2_constcoeff_diffdirsxy(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
+  return dg_diffusion_gyrokinetic_order2_vol_2x2v_ser_p1_constcoeff_diffdirsxz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
 }
 // 2x 4th order diffusion.
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order4_vol_2x_ser_p1_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
+GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order4_vol_2x2v_ser_p1_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order4_vol_2x_ser_p1_constcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
+  return dg_diffusion_gyrokinetic_order4_vol_2x2v_ser_p1_constcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
 }
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order4_vol_2x_ser_p1_constcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
+GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order4_vol_2x2v_ser_p1_constcoeff_diffdirsz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order4_vol_2x_ser_p1_constcoeff_diffdirsy(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
+  return dg_diffusion_gyrokinetic_order4_vol_2x2v_ser_p1_constcoeff_diffdirsz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
 }
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order4_vol_2x_ser_p1_constcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
+GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order4_vol_2x2v_ser_p1_constcoeff_diffdirsxz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order4_vol_2x_ser_p1_constcoeff_diffdirsxy(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
+  return dg_diffusion_gyrokinetic_order4_vol_2x2v_ser_p1_constcoeff_diffdirsxz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
 }
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order4_vol_2x_ser_p2_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order4_vol_2x_ser_p2_constcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order4_vol_2x_ser_p2_constcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order4_vol_2x_ser_p2_constcoeff_diffdirsy(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order4_vol_2x_ser_p2_constcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order4_vol_2x_ser_p2_constcoeff_diffdirsxy(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-// 2x 6th order diffusion.
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order6_vol_2x_ser_p2_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order6_vol_2x_ser_p2_constcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order6_vol_2x_ser_p2_constcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order6_vol_2x_ser_p2_constcoeff_diffdirsy(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order6_vol_2x_ser_p2_constcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order6_vol_2x_ser_p2_constcoeff_diffdirsxy(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
+// 2x2v 6th order diffusion.
 // 3x 2nd order diffusion.
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_constcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_constcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_constcoeff_diffdirsy(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_constcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_constcoeff_diffdirsxy(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_constcoeff_diffdirsz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_constcoeff_diffdirsz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_constcoeff_diffdirsxz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_constcoeff_diffdirsxz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_constcoeff_diffdirsyz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_constcoeff_diffdirsyz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_constcoeff_diffdirsxyz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_constcoeff_diffdirsxyz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_constcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_constcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_constcoeff_diffdirsy(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_constcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_constcoeff_diffdirsxy(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_constcoeff_diffdirsz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_constcoeff_diffdirsz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_constcoeff_diffdirsxz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_constcoeff_diffdirsxz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_constcoeff_diffdirsyz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_constcoeff_diffdirsyz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_constcoeff_diffdirsxyz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_constcoeff_diffdirsxyz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-// 3x 4th order diffusion.
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order4_vol_3x_ser_p1_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order4_vol_3x_ser_p1_constcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order4_vol_3x_ser_p1_constcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order4_vol_3x_ser_p1_constcoeff_diffdirsy(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order4_vol_3x_ser_p1_constcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order4_vol_3x_ser_p1_constcoeff_diffdirsxy(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order4_vol_3x_ser_p1_constcoeff_diffdirsz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order4_vol_3x_ser_p1_constcoeff_diffdirsz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order4_vol_3x_ser_p1_constcoeff_diffdirsxz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order4_vol_3x_ser_p1_constcoeff_diffdirsxz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order4_vol_3x_ser_p1_constcoeff_diffdirsyz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order4_vol_3x_ser_p1_constcoeff_diffdirsyz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order4_vol_3x_ser_p1_constcoeff_diffdirsxyz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order4_vol_3x_ser_p1_constcoeff_diffdirsxyz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order4_vol_3x_ser_p2_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order4_vol_3x_ser_p2_constcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order4_vol_3x_ser_p2_constcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order4_vol_3x_ser_p2_constcoeff_diffdirsy(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order4_vol_3x_ser_p2_constcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order4_vol_3x_ser_p2_constcoeff_diffdirsxy(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order4_vol_3x_ser_p2_constcoeff_diffdirsz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order4_vol_3x_ser_p2_constcoeff_diffdirsz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order4_vol_3x_ser_p2_constcoeff_diffdirsxz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order4_vol_3x_ser_p2_constcoeff_diffdirsxz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order4_vol_3x_ser_p2_constcoeff_diffdirsyz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order4_vol_3x_ser_p2_constcoeff_diffdirsyz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order4_vol_3x_ser_p2_constcoeff_diffdirsxyz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order4_vol_3x_ser_p2_constcoeff_diffdirsxyz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
+// 3x2v 4th order diffusion.
 // 3x 6th order diffusion.
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order6_vol_3x_ser_p2_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order6_vol_3x_ser_p2_constcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order6_vol_3x_ser_p2_constcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order6_vol_3x_ser_p2_constcoeff_diffdirsy(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order6_vol_3x_ser_p2_constcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order6_vol_3x_ser_p2_constcoeff_diffdirsxy(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order6_vol_3x_ser_p2_constcoeff_diffdirsz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order6_vol_3x_ser_p2_constcoeff_diffdirsz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order6_vol_3x_ser_p2_constcoeff_diffdirsxz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order6_vol_3x_ser_p2_constcoeff_diffdirsxz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order6_vol_3x_ser_p2_constcoeff_diffdirsyz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order6_vol_3x_ser_p2_constcoeff_diffdirsyz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order6_vol_3x_ser_p2_constcoeff_diffdirsxyz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order6_vol_3x_ser_p2_constcoeff_diffdirsxyz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
 
 // Volume kernel list.
 GKYL_CU_D
 static const gkyl_dg_diffusion_gyrokinetic_vol_kern_list ser_vol_kernels_constcoeff[] = {
-  // 1x
+  // 1x1v
   {.list={
       // 2nd order diffusion.
       {.list={
-          {ker_dg_diffusion_gyrokinetic_order2_vol_1x_ser_p1_constcoeff_diffdirsx,NULL,NULL,NULL,NULL,NULL,NULL},
-          {ker_dg_diffusion_gyrokinetic_order2_vol_1x_ser_p2_constcoeff_diffdirsx,NULL,NULL,NULL,NULL,NULL,NULL},},
+          {ker_dg_diffusion_gyrokinetic_order2_vol_1x1v_ser_p1_constcoeff_diffdirsx,NULL,NULL,NULL,NULL,NULL,NULL},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},},
       },
       // 4th order diffusion.
       {.list={
-          {ker_dg_diffusion_gyrokinetic_order4_vol_1x_ser_p1_constcoeff_diffdirsx,NULL,NULL,NULL,NULL,NULL,NULL},
-          {ker_dg_diffusion_gyrokinetic_order4_vol_1x_ser_p2_constcoeff_diffdirsx,NULL,NULL,NULL,NULL,NULL,NULL},},
+          {ker_dg_diffusion_gyrokinetic_order4_vol_1x1v_ser_p1_constcoeff_diffdirsx,NULL,NULL,NULL,NULL,NULL,NULL},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},},
       },
       // 6th order diffusion.
       {.list={
           {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
-          {ker_dg_diffusion_gyrokinetic_order6_vol_1x_ser_p2_constcoeff_diffdirsx,NULL,NULL,NULL,NULL,NULL,NULL},},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},},
+      },
+    },
+  },
+  {.list={
+      // 2nd order diffusion.
+      {.list={
+          {ker_dg_diffusion_gyrokinetic_order2_vol_1x2v_ser_p1_constcoeff_diffdirsx,NULL,NULL,NULL,NULL,NULL,NULL},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},},
+      },
+      // 4th order diffusion.
+      {.list={
+          {ker_dg_diffusion_gyrokinetic_order4_vol_1x2v_ser_p1_constcoeff_diffdirsx,NULL,NULL,NULL,NULL,NULL,NULL},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},},
+      },
+      // 6th order diffusion.
+      {.list={
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},},
       },
     },
   },
@@ -433,18 +181,20 @@ static const gkyl_dg_diffusion_gyrokinetic_vol_kern_list ser_vol_kernels_constco
   {.list={
       // 2nd order diffusion.
       {.list={
-          {ker_dg_diffusion_gyrokinetic_order2_vol_2x_ser_p1_constcoeff_diffdirsx,ker_dg_diffusion_gyrokinetic_order2_vol_2x_ser_p1_constcoeff_diffdirsy,ker_dg_diffusion_gyrokinetic_order2_vol_2x_ser_p1_constcoeff_diffdirsxy,NULL,NULL,NULL,NULL},
-          {ker_dg_diffusion_gyrokinetic_order2_vol_2x_ser_p2_constcoeff_diffdirsx,ker_dg_diffusion_gyrokinetic_order2_vol_2x_ser_p2_constcoeff_diffdirsy,ker_dg_diffusion_gyrokinetic_order2_vol_2x_ser_p2_constcoeff_diffdirsxy,NULL,NULL,NULL,NULL},},
+          {ker_dg_diffusion_gyrokinetic_order2_vol_2x2v_ser_p1_constcoeff_diffdirsx,ker_dg_diffusion_gyrokinetic_order2_vol_2x2v_ser_p1_constcoeff_diffdirsz,ker_dg_diffusion_gyrokinetic_order2_vol_2x2v_ser_p1_constcoeff_diffdirsxz,NULL,NULL,NULL,NULL},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},},
       },
       // 4th order diffusion.
       {.list={
-          {ker_dg_diffusion_gyrokinetic_order4_vol_2x_ser_p1_constcoeff_diffdirsx,ker_dg_diffusion_gyrokinetic_order4_vol_2x_ser_p1_constcoeff_diffdirsy,ker_dg_diffusion_gyrokinetic_order4_vol_2x_ser_p1_constcoeff_diffdirsxy,NULL,NULL,NULL,NULL},
-          {ker_dg_diffusion_gyrokinetic_order4_vol_2x_ser_p2_constcoeff_diffdirsx,ker_dg_diffusion_gyrokinetic_order4_vol_2x_ser_p2_constcoeff_diffdirsy,ker_dg_diffusion_gyrokinetic_order4_vol_2x_ser_p2_constcoeff_diffdirsxy,NULL,NULL,NULL,NULL},},
+          {ker_dg_diffusion_gyrokinetic_order4_vol_2x2v_ser_p1_constcoeff_diffdirsx,ker_dg_diffusion_gyrokinetic_order4_vol_2x2v_ser_p1_constcoeff_diffdirsz,ker_dg_diffusion_gyrokinetic_order4_vol_2x2v_ser_p1_constcoeff_diffdirsxz,NULL,NULL,NULL,NULL},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
+        },
       },
       // 6th order diffusion.
       {.list={
           {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
-          {ker_dg_diffusion_gyrokinetic_order6_vol_2x_ser_p2_constcoeff_diffdirsx,ker_dg_diffusion_gyrokinetic_order6_vol_2x_ser_p2_constcoeff_diffdirsy,ker_dg_diffusion_gyrokinetic_order6_vol_2x_ser_p2_constcoeff_diffdirsxy,NULL,NULL,NULL,NULL},},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
+        },
       },
     },
   },
@@ -452,18 +202,21 @@ static const gkyl_dg_diffusion_gyrokinetic_vol_kern_list ser_vol_kernels_constco
   {.list={
       // 2nd order diffusion.
       {.list={
-          {ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_constcoeff_diffdirsx,ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_constcoeff_diffdirsy,ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_constcoeff_diffdirsxy,ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_constcoeff_diffdirsz,ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_constcoeff_diffdirsxz,ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_constcoeff_diffdirsyz,ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_constcoeff_diffdirsxyz},
-          {ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_constcoeff_diffdirsx,ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_constcoeff_diffdirsy,ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_constcoeff_diffdirsxy,ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_constcoeff_diffdirsz,ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_constcoeff_diffdirsxz,ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_constcoeff_diffdirsyz,ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_constcoeff_diffdirsxyz},},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
+        },
       },
       // 4th order diffusion.
       {.list={
-          {ker_dg_diffusion_gyrokinetic_order4_vol_3x_ser_p1_constcoeff_diffdirsx,ker_dg_diffusion_gyrokinetic_order4_vol_3x_ser_p1_constcoeff_diffdirsy,ker_dg_diffusion_gyrokinetic_order4_vol_3x_ser_p1_constcoeff_diffdirsxy,ker_dg_diffusion_gyrokinetic_order4_vol_3x_ser_p1_constcoeff_diffdirsz,ker_dg_diffusion_gyrokinetic_order4_vol_3x_ser_p1_constcoeff_diffdirsxz,ker_dg_diffusion_gyrokinetic_order4_vol_3x_ser_p1_constcoeff_diffdirsyz,ker_dg_diffusion_gyrokinetic_order4_vol_3x_ser_p1_constcoeff_diffdirsxyz},
-          {ker_dg_diffusion_gyrokinetic_order4_vol_3x_ser_p2_constcoeff_diffdirsx,ker_dg_diffusion_gyrokinetic_order4_vol_3x_ser_p2_constcoeff_diffdirsy,ker_dg_diffusion_gyrokinetic_order4_vol_3x_ser_p2_constcoeff_diffdirsxy,ker_dg_diffusion_gyrokinetic_order4_vol_3x_ser_p2_constcoeff_diffdirsz,ker_dg_diffusion_gyrokinetic_order4_vol_3x_ser_p2_constcoeff_diffdirsxz,ker_dg_diffusion_gyrokinetic_order4_vol_3x_ser_p2_constcoeff_diffdirsyz,ker_dg_diffusion_gyrokinetic_order4_vol_3x_ser_p2_constcoeff_diffdirsxyz},},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
+        },
       },
       // 6th order diffusion.
       {.list={
           {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
-          {ker_dg_diffusion_gyrokinetic_order6_vol_3x_ser_p2_constcoeff_diffdirsx,ker_dg_diffusion_gyrokinetic_order6_vol_3x_ser_p2_constcoeff_diffdirsy,ker_dg_diffusion_gyrokinetic_order6_vol_3x_ser_p2_constcoeff_diffdirsxy,ker_dg_diffusion_gyrokinetic_order6_vol_3x_ser_p2_constcoeff_diffdirsz,ker_dg_diffusion_gyrokinetic_order6_vol_3x_ser_p2_constcoeff_diffdirsxz,ker_dg_diffusion_gyrokinetic_order6_vol_3x_ser_p2_constcoeff_diffdirsyz,ker_dg_diffusion_gyrokinetic_order6_vol_3x_ser_p2_constcoeff_diffdirsxyz},},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
+        },
       },
     },
   },
@@ -473,30 +226,32 @@ static const gkyl_dg_diffusion_gyrokinetic_vol_kern_list ser_vol_kernels_constco
 GKYL_CU_D static const gkyl_dg_diffusion_gyrokinetic_surf_kern_list ser_gyrokinetic_surfx_kernels_constcoeff[] = {
   // 2nd order diffusion.
   {.list= {
-      { dg_diffusion_gyrokinetic_order2_surfx_1x1v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order2_surfx_1x1v_ser_p2_constcoeff },
-      { dg_diffusion_gyrokinetic_order2_surfx_1x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order2_surfx_1x2v_ser_p2_constcoeff },
+      { dg_diffusion_gyrokinetic_order2_surfx_1x1v_ser_p1_constcoeff, NULL },
+      { dg_diffusion_gyrokinetic_order2_surfx_1x2v_ser_p1_constcoeff, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order2_surfx_2x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order2_surfx_2x2v_ser_p2_constcoeff },
+      { dg_diffusion_gyrokinetic_order2_surfx_2x2v_ser_p1_constcoeff, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order2_surfx_3x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order2_surfx_3x2v_ser_p2_constcoeff },},
+      { NULL, NULL },
+    },
   },
   // 4th order diffusion.
   {.list= {
-      { dg_diffusion_gyrokinetic_order4_surfx_1x1v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order4_surfx_1x1v_ser_p2_constcoeff },
-      { dg_diffusion_gyrokinetic_order4_surfx_1x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order4_surfx_1x2v_ser_p2_constcoeff },
+      { dg_diffusion_gyrokinetic_order4_surfx_1x1v_ser_p1_constcoeff, NULL },
+      { dg_diffusion_gyrokinetic_order4_surfx_1x2v_ser_p1_constcoeff, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order4_surfx_2x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order4_surfx_2x2v_ser_p2_constcoeff },
+      { dg_diffusion_gyrokinetic_order4_surfx_2x2v_ser_p1_constcoeff, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order4_surfx_3x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order4_surfx_3x2v_ser_p2_constcoeff },},
+      { NULL, NULL },
+    },
   },
   // 6th order diffusion.
   {.list= {
-      { NULL, dg_diffusion_gyrokinetic_order6_surfx_1x1v_ser_p2_constcoeff },
-      { NULL, dg_diffusion_gyrokinetic_order6_surfx_1x2v_ser_p2_constcoeff },
       { NULL, NULL },
-      { NULL, dg_diffusion_gyrokinetic_order6_surfx_2x2v_ser_p2_constcoeff },
       { NULL, NULL },
-      { NULL, dg_diffusion_gyrokinetic_order6_surfx_3x2v_ser_p2_constcoeff },},
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },},
   },
 };
 // Surface kernel list: y-direction
@@ -506,27 +261,29 @@ GKYL_CU_D static const gkyl_dg_diffusion_gyrokinetic_surf_kern_list ser_gyrokine
       { NULL, NULL },
       { NULL, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order2_surfy_2x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order2_surfy_2x2v_ser_p2_constcoeff },
+      { dg_diffusion_gyrokinetic_order2_surfy_2x2v_ser_p1_constcoeff, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order2_surfy_3x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order2_surfy_3x2v_ser_p2_constcoeff },},
+      { NULL, NULL },
+    },
   },
   // 4th order diffusion.
   {.list= {
       { NULL, NULL },
       { NULL, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order4_surfy_2x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order4_surfy_2x2v_ser_p2_constcoeff },
+      { dg_diffusion_gyrokinetic_order4_surfy_2x2v_ser_p1_constcoeff, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order4_surfy_3x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order4_surfy_3x2v_ser_p2_constcoeff },},
+      { NULL, NULL },
+    },
   },
   // 6th order diffusion.
   {.list= {
       { NULL, NULL },
       { NULL, NULL },
       { NULL, NULL },
-      { NULL, dg_diffusion_gyrokinetic_order6_surfy_2x2v_ser_p2_constcoeff },
       { NULL, NULL },
-      { NULL, dg_diffusion_gyrokinetic_order6_surfy_3x2v_ser_p2_constcoeff },},
+      { NULL, NULL },
+      { NULL, NULL },},
   },
 };
 // Surface kernel list: z-direction
@@ -538,7 +295,8 @@ GKYL_CU_D static const gkyl_dg_diffusion_gyrokinetic_surf_kern_list ser_gyrokine
       { NULL, NULL },
       { NULL, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order2_surfz_3x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order2_surfz_3x2v_ser_p2_constcoeff },},
+      { NULL, NULL },
+    },
   },
   // 4th order diffusion.
   {.list= {
@@ -547,7 +305,8 @@ GKYL_CU_D static const gkyl_dg_diffusion_gyrokinetic_surf_kern_list ser_gyrokine
       { NULL, NULL },
       { NULL, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order4_surfz_3x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order4_surfz_3x2v_ser_p2_constcoeff },},
+      { NULL, NULL },
+    },
   },
   // 6th order diffusion.
   {.list= {
@@ -556,7 +315,7 @@ GKYL_CU_D static const gkyl_dg_diffusion_gyrokinetic_surf_kern_list ser_gyrokine
       { NULL, NULL },
       { NULL, NULL },
       { NULL, NULL },
-      { NULL, dg_diffusion_gyrokinetic_order6_surfz_3x2v_ser_p2_constcoeff },},
+      { NULL, NULL },},
   },
 };
 
@@ -564,30 +323,32 @@ GKYL_CU_D static const gkyl_dg_diffusion_gyrokinetic_surf_kern_list ser_gyrokine
 GKYL_CU_D static const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list ser_gyrokinetic_boundary_surfx_kernels_constcoeff[] = {
   // 2nd order diffusion.
   {.list= {
-      { dg_diffusion_gyrokinetic_order2_boundary_surfx_1x1v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order2_boundary_surfx_1x1v_ser_p2_constcoeff },
-      { dg_diffusion_gyrokinetic_order2_boundary_surfx_1x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order2_boundary_surfx_1x2v_ser_p2_constcoeff },
+      { dg_diffusion_gyrokinetic_order2_boundary_surfx_1x1v_ser_p1_constcoeff, NULL },
+      { dg_diffusion_gyrokinetic_order2_boundary_surfx_1x2v_ser_p1_constcoeff, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order2_boundary_surfx_2x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order2_boundary_surfx_2x2v_ser_p2_constcoeff },
+      { dg_diffusion_gyrokinetic_order2_boundary_surfx_2x2v_ser_p1_constcoeff, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order2_boundary_surfx_3x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order2_boundary_surfx_3x2v_ser_p2_constcoeff },},
+      { NULL, NULL },
+    },
   },
   // 4th order diffusion.
   {.list= {
-      { dg_diffusion_gyrokinetic_order4_boundary_surfx_1x1v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order4_boundary_surfx_1x1v_ser_p2_constcoeff },
-      { dg_diffusion_gyrokinetic_order4_boundary_surfx_1x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order4_boundary_surfx_1x2v_ser_p2_constcoeff },
+      { dg_diffusion_gyrokinetic_order4_boundary_surfx_1x1v_ser_p1_constcoeff, NULL },
+      { dg_diffusion_gyrokinetic_order4_boundary_surfx_1x2v_ser_p1_constcoeff, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order4_boundary_surfx_2x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order4_boundary_surfx_2x2v_ser_p2_constcoeff },
+      { dg_diffusion_gyrokinetic_order4_boundary_surfx_2x2v_ser_p1_constcoeff, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order4_boundary_surfx_3x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order4_boundary_surfx_3x2v_ser_p2_constcoeff },},
+      { NULL, NULL },
+    },
   },
   // 6th order diffusion.
   {.list= {
-      { NULL, dg_diffusion_gyrokinetic_order6_boundary_surfx_1x1v_ser_p2_constcoeff },
-      { NULL, dg_diffusion_gyrokinetic_order6_boundary_surfx_1x2v_ser_p2_constcoeff },
       { NULL, NULL },
-      { NULL, dg_diffusion_gyrokinetic_order6_boundary_surfx_2x2v_ser_p2_constcoeff },
       { NULL, NULL },
-      { NULL, dg_diffusion_gyrokinetic_order6_boundary_surfx_3x2v_ser_p2_constcoeff },},
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },},
   },
 };
 // Boundary surface kernel list: y-direction
@@ -597,27 +358,29 @@ GKYL_CU_D static const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list ser
       { NULL, NULL },
       { NULL, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order2_boundary_surfy_2x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order2_boundary_surfy_2x2v_ser_p2_constcoeff },
+      { dg_diffusion_gyrokinetic_order2_boundary_surfy_2x2v_ser_p1_constcoeff, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order2_boundary_surfy_3x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order2_boundary_surfy_3x2v_ser_p2_constcoeff },},
+      { NULL, NULL },
+    },
   },
   // 4th order diffusion.
   {.list= {
       { NULL, NULL },
       { NULL, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order4_boundary_surfy_2x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order4_boundary_surfy_2x2v_ser_p2_constcoeff },
+      { dg_diffusion_gyrokinetic_order4_boundary_surfy_2x2v_ser_p1_constcoeff, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order4_boundary_surfy_3x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order4_boundary_surfy_3x2v_ser_p2_constcoeff },},
+      { NULL, NULL },
+    },
   },
   // 6th order diffusion.
   {.list= {
       { NULL, NULL },
       { NULL, NULL },
       { NULL, NULL },
-      { NULL, dg_diffusion_gyrokinetic_order6_boundary_surfy_2x2v_ser_p2_constcoeff },
       { NULL, NULL },
-      { NULL, dg_diffusion_gyrokinetic_order6_boundary_surfy_3x2v_ser_p2_constcoeff },},
+      { NULL, NULL },
+      { NULL, NULL },},
   },
 };
 // Boundary surface kernel list: z-direction
@@ -629,7 +392,8 @@ GKYL_CU_D static const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list ser
       { NULL, NULL },
       { NULL, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order2_boundary_surfz_3x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order2_boundary_surfz_3x2v_ser_p2_constcoeff },},
+      { NULL, NULL },
+    },
   },
   // 4th order diffusion.
   {.list= {
@@ -638,7 +402,8 @@ GKYL_CU_D static const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list ser
       { NULL, NULL },
       { NULL, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order4_boundary_surfz_3x2v_ser_p1_constcoeff, dg_diffusion_gyrokinetic_order4_boundary_surfz_3x2v_ser_p2_constcoeff },},
+      { NULL, NULL },
+    },
   },
   // 6th order diffusion.
   {.list= {
@@ -647,7 +412,7 @@ GKYL_CU_D static const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list ser
       { NULL, NULL },
       { NULL, NULL },
       { NULL, NULL },
-      { NULL, dg_diffusion_gyrokinetic_order6_boundary_surfz_3x2v_ser_p2_constcoeff },},
+      { NULL, NULL },},
   },
 };
 
@@ -657,140 +422,38 @@ GKYL_CU_D static const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list ser
 // Need to be separated like this for GPU build
 
 // 1x 2nd order diffusion.
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_1x_ser_p1_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
+GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_1x1v_ser_p1_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_1x_ser_p1_varcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
+  return dg_diffusion_gyrokinetic_order2_vol_1x1v_ser_p1_varcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
 }
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_1x_ser_p2_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
+GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_1x2v_ser_p1_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_1x_ser_p2_varcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
+  return dg_diffusion_gyrokinetic_order2_vol_1x2v_ser_p1_varcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
 }
 // 2x 2nd order diffusion.
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_2x_ser_p1_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
+GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_2x2v_ser_p1_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_2x_ser_p1_varcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
+  return dg_diffusion_gyrokinetic_order2_vol_2x2v_ser_p1_varcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
 }
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_2x_ser_p1_varcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
+GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_2x2v_ser_p1_varcoeff_diffdirsz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_2x_ser_p1_varcoeff_diffdirsy(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
+  return dg_diffusion_gyrokinetic_order2_vol_2x2v_ser_p1_varcoeff_diffdirsz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
 }
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_2x_ser_p1_varcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
+GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_2x2v_ser_p1_varcoeff_diffdirsxz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_2x_ser_p1_varcoeff_diffdirsxy(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_2x_ser_p2_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_2x_ser_p2_varcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_2x_ser_p2_varcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_2x_ser_p2_varcoeff_diffdirsy(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_2x_ser_p2_varcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_2x_ser_p2_varcoeff_diffdirsxy(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
+  return dg_diffusion_gyrokinetic_order2_vol_2x2v_ser_p1_varcoeff_diffdirsxz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
 }
 // 3x 2nd order diffusion.
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_varcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_varcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_varcoeff_diffdirsy(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_varcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_varcoeff_diffdirsxy(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_varcoeff_diffdirsz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_varcoeff_diffdirsz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_varcoeff_diffdirsxz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_varcoeff_diffdirsxz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_varcoeff_diffdirsyz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_varcoeff_diffdirsyz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_varcoeff_diffdirsxyz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_varcoeff_diffdirsxyz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_varcoeff_diffdirsx(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_varcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_varcoeff_diffdirsy(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_varcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_varcoeff_diffdirsxy(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_varcoeff_diffdirsz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_varcoeff_diffdirsz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_varcoeff_diffdirsxz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_varcoeff_diffdirsxz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_varcoeff_diffdirsyz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_varcoeff_diffdirsyz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_varcoeff_diffdirsxyz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
-  return dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_varcoeff_diffdirsxyz(xc, dx, _cfD(idx), _cfJacInv(idx), qIn, qRhsOut);
-}
 
 // Volume kernel list.
 GKYL_CU_D
@@ -799,18 +462,42 @@ static const gkyl_dg_diffusion_gyrokinetic_vol_kern_list ser_vol_kernels_varcoef
   {.list={
       // 2nd order diffusion.
       {.list={
-          {ker_dg_diffusion_gyrokinetic_order2_vol_1x_ser_p1_varcoeff_diffdirsx,NULL,NULL,NULL,NULL,NULL,NULL},
-          {ker_dg_diffusion_gyrokinetic_order2_vol_1x_ser_p2_varcoeff_diffdirsx,NULL,NULL,NULL,NULL,NULL,NULL},},
+          {ker_dg_diffusion_gyrokinetic_order2_vol_1x1v_ser_p1_varcoeff_diffdirsx,NULL,NULL,NULL,NULL,NULL,NULL},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
+        },
       },
       // 4th order diffusion.
       {.list={
           {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
-          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
+        },
       },
       // 6th order diffusion.
       {.list={
           {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
-          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
+        },
+      },
+    },
+  },
+  {.list={
+      // 2nd order diffusion.
+      {.list={
+          {ker_dg_diffusion_gyrokinetic_order2_vol_1x2v_ser_p1_varcoeff_diffdirsx,NULL,NULL,NULL,NULL,NULL,NULL},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
+        },
+      },
+      // 4th order diffusion.
+      {.list={
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
+        },
+      },
+      // 6th order diffusion.
+      {.list={
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
+        },
       },
     },
   },
@@ -818,18 +505,21 @@ static const gkyl_dg_diffusion_gyrokinetic_vol_kern_list ser_vol_kernels_varcoef
   {.list={
       // 2nd order diffusion.
       {.list={
-          {ker_dg_diffusion_gyrokinetic_order2_vol_2x_ser_p1_varcoeff_diffdirsx,ker_dg_diffusion_gyrokinetic_order2_vol_2x_ser_p1_varcoeff_diffdirsy,ker_dg_diffusion_gyrokinetic_order2_vol_2x_ser_p1_varcoeff_diffdirsxy,NULL,NULL,NULL,NULL},
-          {ker_dg_diffusion_gyrokinetic_order2_vol_2x_ser_p2_varcoeff_diffdirsx,ker_dg_diffusion_gyrokinetic_order2_vol_2x_ser_p2_varcoeff_diffdirsy,ker_dg_diffusion_gyrokinetic_order2_vol_2x_ser_p2_varcoeff_diffdirsxy,NULL,NULL,NULL,NULL},},
+          {ker_dg_diffusion_gyrokinetic_order2_vol_2x2v_ser_p1_varcoeff_diffdirsx,ker_dg_diffusion_gyrokinetic_order2_vol_2x2v_ser_p1_varcoeff_diffdirsz,ker_dg_diffusion_gyrokinetic_order2_vol_2x2v_ser_p1_varcoeff_diffdirsxz,NULL,NULL,NULL,NULL},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
+        },
       },
       // 4th order diffusion.
       {.list={
           {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
-          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
+        },
       },
       // 6th order diffusion.
       {.list={
           {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
-          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
+        },
       },
     },
   },
@@ -837,18 +527,21 @@ static const gkyl_dg_diffusion_gyrokinetic_vol_kern_list ser_vol_kernels_varcoef
   {.list={
       // 2nd order diffusion.
       {.list={
-          {ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_varcoeff_diffdirsx,ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_varcoeff_diffdirsy,ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_varcoeff_diffdirsxy,ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_varcoeff_diffdirsz,ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_varcoeff_diffdirsxz,ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_varcoeff_diffdirsyz,ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p1_varcoeff_diffdirsxyz},
-          {ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_varcoeff_diffdirsx,ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_varcoeff_diffdirsy,ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_varcoeff_diffdirsxy,ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_varcoeff_diffdirsz,ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_varcoeff_diffdirsxz,ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_varcoeff_diffdirsyz,ker_dg_diffusion_gyrokinetic_order2_vol_3x_ser_p2_varcoeff_diffdirsxyz},},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
+        },
       },
       // 4th order diffusion.
       {.list={
           {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
-          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
+        },
       },
       // 6th order diffusion.
       {.list={
           {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
-          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
+        },
       },
     },
   },
@@ -858,12 +551,13 @@ static const gkyl_dg_diffusion_gyrokinetic_vol_kern_list ser_vol_kernels_varcoef
 GKYL_CU_D static const gkyl_dg_diffusion_gyrokinetic_surf_kern_list ser_gyrokinetic_surfx_kernels_varcoeff[] = {
   // 2nd order diffusion.
   {.list= {
-      { dg_diffusion_gyrokinetic_order2_surfx_1x1v_ser_p1_varcoeff, dg_diffusion_gyrokinetic_order2_surfx_1x1v_ser_p2_varcoeff },
-      { dg_diffusion_gyrokinetic_order2_surfx_1x2v_ser_p1_varcoeff, dg_diffusion_gyrokinetic_order2_surfx_1x2v_ser_p2_varcoeff },
+      { dg_diffusion_gyrokinetic_order2_surfx_1x1v_ser_p1_varcoeff, NULL },
+      { dg_diffusion_gyrokinetic_order2_surfx_1x2v_ser_p1_varcoeff, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order2_surfx_2x2v_ser_p1_varcoeff, dg_diffusion_gyrokinetic_order2_surfx_2x2v_ser_p2_varcoeff },
+      { dg_diffusion_gyrokinetic_order2_surfx_2x2v_ser_p1_varcoeff, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order2_surfx_3x2v_ser_p1_varcoeff, dg_diffusion_gyrokinetic_order2_surfx_3x2v_ser_p2_varcoeff },},
+      { NULL, NULL },
+    },
   },
   // 4th order diffusion.
   {.list= {
@@ -891,9 +585,10 @@ GKYL_CU_D static const gkyl_dg_diffusion_gyrokinetic_surf_kern_list ser_gyrokine
       { NULL, NULL },
       { NULL, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order2_surfy_2x2v_ser_p1_varcoeff, dg_diffusion_gyrokinetic_order2_surfy_2x2v_ser_p2_varcoeff },
+      { dg_diffusion_gyrokinetic_order2_surfy_2x2v_ser_p1_varcoeff, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order2_surfy_3x2v_ser_p1_varcoeff, dg_diffusion_gyrokinetic_order2_surfy_3x2v_ser_p2_varcoeff },},
+      { NULL, NULL },
+    },
   },
   // 4th order diffusion.
   {.list= {
@@ -923,7 +618,8 @@ GKYL_CU_D static const gkyl_dg_diffusion_gyrokinetic_surf_kern_list ser_gyrokine
       { NULL, NULL },
       { NULL, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order2_surfz_3x2v_ser_p1_varcoeff, dg_diffusion_gyrokinetic_order2_surfz_3x2v_ser_p2_varcoeff },},
+      { NULL, NULL },
+    },
   },
   // 4th order diffusion.
   {.list= {
@@ -949,12 +645,13 @@ GKYL_CU_D static const gkyl_dg_diffusion_gyrokinetic_surf_kern_list ser_gyrokine
 GKYL_CU_D static const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list ser_gyrokinetic_boundary_surfx_kernels_varcoeff[] = {
   // 2nd order diffusion.
   {.list= {
-      { dg_diffusion_gyrokinetic_order2_boundary_surfx_1x1v_ser_p1_varcoeff, dg_diffusion_gyrokinetic_order2_boundary_surfx_1x1v_ser_p2_varcoeff },
-      { dg_diffusion_gyrokinetic_order2_boundary_surfx_1x2v_ser_p1_varcoeff, dg_diffusion_gyrokinetic_order2_boundary_surfx_1x2v_ser_p2_varcoeff },
+      { dg_diffusion_gyrokinetic_order2_boundary_surfx_1x1v_ser_p1_varcoeff, NULL },
+      { dg_diffusion_gyrokinetic_order2_boundary_surfx_1x2v_ser_p1_varcoeff, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order2_boundary_surfx_2x2v_ser_p1_varcoeff, dg_diffusion_gyrokinetic_order2_boundary_surfx_2x2v_ser_p2_varcoeff },
+      { dg_diffusion_gyrokinetic_order2_boundary_surfx_2x2v_ser_p1_varcoeff, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order2_boundary_surfx_3x2v_ser_p1_varcoeff, dg_diffusion_gyrokinetic_order2_boundary_surfx_3x2v_ser_p2_varcoeff },},
+      { NULL, NULL },
+    },
   },
   // 4th order diffusion.
   {.list= {
@@ -982,9 +679,10 @@ GKYL_CU_D static const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list ser
       { NULL, NULL },
       { NULL, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order2_boundary_surfy_2x2v_ser_p1_varcoeff, dg_diffusion_gyrokinetic_order2_boundary_surfy_2x2v_ser_p2_varcoeff },
+      { dg_diffusion_gyrokinetic_order2_boundary_surfy_2x2v_ser_p1_varcoeff, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order2_boundary_surfy_3x2v_ser_p1_varcoeff, dg_diffusion_gyrokinetic_order2_boundary_surfy_3x2v_ser_p2_varcoeff },},
+      { NULL, NULL },
+    },
   },
   // 4th order diffusion.
   {.list= {
@@ -1014,7 +712,8 @@ GKYL_CU_D static const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list ser
       { NULL, NULL },
       { NULL, NULL },
       { NULL, NULL },
-      { dg_diffusion_gyrokinetic_order2_boundary_surfz_3x2v_ser_p1_varcoeff, dg_diffusion_gyrokinetic_order2_boundary_surfz_3x2v_ser_p2_varcoeff },},
+      { NULL, NULL },
+    },
   },
   // 4th order diffusion.
   {.list= {
@@ -1039,7 +738,7 @@ GKYL_CU_D static const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list ser
 #define SURFKERIDX(cdim,vdim) (cdim-1+vdim-1)*2-(vdim-1)
 
 // Macro for choosing volume and surface kernels.
-#define CKVOL(lst,cdim,diff_order,poly_order,diffdir_linidx) lst[cdim-1].list[diff_order/2-1].list[poly_order-1].kernels[diffdir_linidx]
+#define CKVOL(lst,cdim,vdim,diff_order,poly_order,diffdir_linidx) lst[cdim+vdim-1].list[diff_order/2-1].list[poly_order-1].kernels[diffdir_linidx]
 #define CKSURF(lst,diff_order,cdim,vdim,poly_order) lst[diff_order/2-1].list[SURFKERIDX(cdim,vdim)].kernels[poly_order-1]
 
 GKYL_CU_D static double surf(const struct gkyl_dg_eqn* eqn, int dir,

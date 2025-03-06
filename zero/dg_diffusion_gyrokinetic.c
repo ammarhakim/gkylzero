@@ -88,7 +88,7 @@ gkyl_dg_diffusion_gyrokinetic_new(const struct gkyl_basis *basis,
   diffusion->eqn.surf_term = surf;
   diffusion->eqn.boundary_surf_term = boundary_surf;
 
-  diffusion->eqn.vol_term = CKVOL(vol_kernels, cdim, diff_order, poly_order, dirs_linidx);
+  diffusion->eqn.vol_term = CKVOL(vol_kernels, cdim, vdim, diff_order, poly_order, dirs_linidx);
 
   diffusion->surf[0] = CKSURF(surfx_kernels, diff_order, cdim, vdim, poly_order);
   if (cdim>1)
