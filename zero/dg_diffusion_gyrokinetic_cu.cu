@@ -28,7 +28,8 @@ gkyl_dg_diffusion_gyrokinetic_set_auxfields_cu(const struct gkyl_dg_eqn* eqn, st
 }
 
 __global__ void static
-dg_diffusion_gyrokinetic_set_cu_dev_ptrs(struct dg_diffusion_gyrokinetic *diffusion, enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order, int diff_order, int diffdirs_linidx)
+dg_diffusion_gyrokinetic_set_cu_dev_ptrs(struct dg_diffusion_gyrokinetic *diffusion, enum gkyl_basis_type b_type,
+  int cdim, int vdim, int poly_order, int diff_order, int diffdirs_linidx)
 {
   diffusion->auxfields.D = 0; 
   diffusion->auxfields.jacobgeo_inv = 0; 
@@ -61,7 +62,7 @@ dg_diffusion_gyrokinetic_set_cu_dev_ptrs(struct dg_diffusion_gyrokinetic *diffus
   diffusion->eqn.surf_term = surf;
   diffusion->eqn.boundary_surf_term = boundary_surf;
 
-  diffusion->eqn.vol_term = CKVOL(vol_kernels, cdim, diff_order, poly_order, diffdirs_linidx);
+  diffusion->eqn.vol_term = CKVOL(vol_kernels, cdim, vdim, diff_order, poly_order, diffdirs_linidx);
 
   diffusion->surf[0] = CKSURF(surfx_kernels, diff_order, cdim, vdim, poly_order);
   if (cdim>1)

@@ -2,6 +2,7 @@
 
 #include <gkyl_dg_diffusion_gyrokinetic_proj_coeff.h>
 #include <gkyl_dg_diffusion_gyrokinetic_proj_coeff_kernels.h>
+#include <gkyl_util.h>
 #include <assert.h>
 
 // Types for various kernels
@@ -20,7 +21,7 @@ struct gkyl_dg_diffusion_gyrokinetic_proj_coeff {
   struct gkyl_rect_grid *grid; // Grid object.
   double mass; // Species mass.
   double vtsq_min; // Minimum thermal speed squared supported by the grid.
-  double nu[3], xi[3]; // Coefficients in the model.
+  double *nu, *xi; // Coefficients in the model.
   struct gkyl_dg_diffusion_gyrokinetic_proj_coeff_kernels *kernels;
 };
 
@@ -61,9 +62,6 @@ static const diff_proj_coeff_kern_list_pOrder ser_diff_proj_coeff_kernels[] = {
   },
 };
 
-// Macro for choosing kernels.
-#define CKVOL(lst,cdim,vdim,poly_order,diffdir_linidx) lst[cdim+vdim-2].list[poly_order-1].kernels[diffdir_linidx]
-
 static inline int dg_diff_gk_projC_diffdirs_linidx(const bool *isdirdiff, int cdim) {
   // Compute the linear index into the array of volume kernels (one
   // kernel for each combination of diffusive directions).
@@ -82,6 +80,20 @@ static inline int dg_diff_gk_projC_diffdirs_linidx(const bool *isdirdiff, int cd
   dirs_linidx -= 1;
   return dirs_linidx;
 }
+
+#ifdef GKYL_HAVE_CUDA
+// Declaration of cuda device functions.
+void
+dg_diff_gk_projC_choose_kernel_cu(struct gkyl_dg_diffusion_gyrokinetic_proj_coeff_kernels *kernels,
+  int cdim, struct gkyl_basis pbasis, const bool *diff_in_dir);
+
+void
+gkyl_dg_diffusion_gyrokinetic_proj_coeff_advance_cu(gkyl_dg_diffusion_gyrokinetic_proj_coeff* up,
+  const struct gkyl_range *conf_rng, const struct gkyl_range *vel_rng, const struct gkyl_range *phase_rng,
+  const struct gkyl_array *GKYL_RESTRICT gijJ, struct gkyl_array *GKYL_RESTRICT vmap,
+  struct gkyl_array *GKYL_RESTRICT vmapSq, struct gkyl_array *GKYL_RESTRICT bmag, struct gkyl_array *GKYL_RESTRICT vtsq,
+  struct gkyl_array *GKYL_RESTRICT out);
+#endif
 
 GKYL_CU_D
 static void dg_diff_gk_projC_choose_kernel(struct gkyl_dg_diffusion_gyrokinetic_proj_coeff_kernels *kernels,

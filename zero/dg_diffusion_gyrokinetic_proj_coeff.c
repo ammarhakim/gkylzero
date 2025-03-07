@@ -1,6 +1,7 @@
 #include <gkyl_dg_diffusion_gyrokinetic_proj_coeff.h>
 #include <gkyl_dg_diffusion_gyrokinetic_proj_coeff_priv.h>
 #include <gkyl_alloc.h>
+#include <string.h>
 
 struct gkyl_dg_diffusion_gyrokinetic_proj_coeff*
 gkyl_dg_diffusion_gyrokinetic_proj_coeff_new(int cdim, struct gkyl_basis pbasis, struct gkyl_rect_grid *grid,
@@ -18,16 +19,29 @@ gkyl_dg_diffusion_gyrokinetic_proj_coeff_new(int cdim, struct gkyl_basis pbasis,
 
   // Set nu and chi to give the requested D and chi in the d/dx(D*dn/dx)
   // and d/dx(chi*n*dT/dx) terms.
+  double nu[3], xi[3];
   for (int d=0; d<cdim; d++) {
-    up->nu[d] = (3.0*D[d] - chi[d])/3.0;
-    up->xi[d] = chi[d]/(9.0 * up->nu[d]);
+    nu[d] = (3.0*D[d] - chi[d])/3.0;
+    xi[d] = chi[d]/(9.0 * up->nu[d]);
   }
 
-  if (!use_gpu)
+  if (!use_gpu) {
+    up->nu = gkyl_malloc(cdim*sizeof(double)); 
+    up->xi = gkyl_malloc(cdim*sizeof(double)); 
+    memcpy(up->nu, nu, cdim*sizeof(double)); 
+    memcpy(up->xi, xi, cdim*sizeof(double)); 
+
     up->kernels = gkyl_malloc(sizeof(struct gkyl_dg_diffusion_gyrokinetic_proj_coeff_kernels));
+  }
 #ifdef GKYL_HAVE_CUDA
-  if (use_gpu)
+  if (use_gpu) {
+    up->nu = gkyl_cu_malloc(cdim*sizeof(double)); 
+    up->xi = gkyl_cu_malloc(cdim*sizeof(double)); 
+    gkyl_cu_memcpy(up->nu, nu, cdim*sizeof(double), GKYL_CU_MEMCPY_H2D); 
+    gkyl_cu_memcpy(up->xi, xi, cdim*sizeof(double), GKYL_CU_MEMCPY_H2D); 
+
     up->kernels = gkyl_cu_malloc(sizeof(struct gkyl_dg_diffusion_gyrokinetic_proj_coeff_kernels));
+  }
 #endif
 
   // Choose kernels that translates the DG coefficients.
@@ -45,7 +59,7 @@ gkyl_dg_diffusion_gyrokinetic_proj_coeff_advance(gkyl_dg_diffusion_gyrokinetic_p
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    gkyl_dg_diffusion_gyrokinetic_proj_coeff_advance_cu(up, conf_rng, vel_rng, phase_rng, gijJ, vmapSq, bmag, vtsq, out);
+    gkyl_dg_diffusion_gyrokinetic_proj_coeff_advance_cu(up, conf_rng, vel_rng, phase_rng, gijJ, vmap, vmapSq, bmag, vtsq, out);
     return;
   }
 #endif
@@ -83,11 +97,17 @@ void
 gkyl_dg_diffusion_gyrokinetic_proj_coeff_release(gkyl_dg_diffusion_gyrokinetic_proj_coeff* up)
 {
   // Release memory associated with this updater.
-  if (!up->use_gpu)
+  if (!up->use_gpu) {
+    gkyl_free(up->nu); 
+    gkyl_free(up->xi); 
     gkyl_free(up->kernels);
+  }
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu)
+  if (up->use_gpu) {
+    gkyl_cu_free(up->nu); 
+    gkyl_cu_free(up->xi); 
     gkyl_cu_free(up->kernels);
+  }
 #endif
   gkyl_free(up);
 }
