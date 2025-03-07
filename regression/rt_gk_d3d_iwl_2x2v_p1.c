@@ -9,6 +9,7 @@
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_math.h>
+#include <gkyl_alloc.h>
 
 #include <rt_arg_parse.h>
 
@@ -582,7 +583,7 @@ main(int argc, char **argv)
     .name = "elc",
     .charge = ctx.qe, .mass = ctx.me,
     .lower = { -ctx.vpar_max_elc, 0.0},
-    .upper = {  ctx.vpar_max_elc, ctx.mu_max_elc}, 
+    .upper = {  ctx.vpar_max_elc, ctx.mu_max_elc},
     .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
 
@@ -654,7 +655,7 @@ main(int argc, char **argv)
     .name = "ion",
     .charge = ctx.qi, .mass = ctx.mi,
     .lower = { -ctx.vpar_max_ion, 0.0},
-    .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion}, 
+    .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion},
     .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
 
@@ -730,46 +731,58 @@ main(int argc, char **argv)
                     .lo_value = {0.0}, .up_value = {0.0}},
   };
 
-  // GK app
-  struct gkyl_gk gk = {
-    .name = "gk_d3d_iwl_2x2v_p1",
-
-    .cfl_frac_omegaH = 1.0,
-    .cfl_frac = 1.0,
-
-    .cdim = ctx.cdim, .vdim = ctx.vdim,
-    .lower = { ctx.x_min, ctx.z_min },
-    .upper = { ctx.x_max, ctx.z_max },
-    .cells = { cells_x[0], cells_x[1] },
-    .poly_order = ctx.poly_order,
-    .basis_type = app_args.basis_type,
-
-    .geometry = {
-      .geometry_id = GKYL_MAPC2P,
-      .world = {0.},
-      .mapc2p = mapc2p, // mapping of computational to physical space
-      .c2p_ctx = &ctx,
-      .bmag_func = bmag_func, // magnetic field magnitude
-      .bmag_ctx = &ctx
-    },
-
-    .num_periodic_dir = 0,
-    .periodic_dirs = { },
-
-    .num_species = 2,
-    .species = { elc, ion },
-    .field = field,
-
-    .parallelism = {
-      .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0], app_args.cuts[1] },
-      .comm = comm,
-    },
+  struct gkyl_gyrokinetic_geometry geometry = {
+    .geometry_id = GKYL_MAPC2P,
+    .world = {0.},
+    .mapc2p = mapc2p, // mapping of computational to physical space
+    .c2p_ctx = &ctx,
+    .bmag_func = bmag_func, // magnetic field magnitude
+    .bmag_ctx = &ctx
   };
 
+  struct gkyl_app_parallelism_inp parallelism = {
+    .use_gpu = app_args.use_gpu,
+    .cuts = { app_args.cuts[0], app_args.cuts[1] },
+    .comm = comm,
+    
+  };
+
+  // GK app
+  struct gkyl_gk *gk = gkyl_malloc(sizeof *gk);
+  memset(gk, 0, sizeof(*gk));
+
+  strcpy(gk->name, "gk_d3d_iwl_2x2v_p1");
+        
+  gk->cfl_frac_omegaH = 1.0;
+  gk->cfl_frac = 1.0;
+
+  gk->cdim = ctx.cdim;
+  gk->vdim = ctx.vdim;
+  gk->lower[0] = ctx.x_min;
+  gk->lower[1] = ctx.z_min;
+  
+  gk->upper[0] = ctx.x_max;
+  gk->upper[1] = ctx.z_max;
+  
+  gk->cells[0] = cells_x[0];
+  gk->cells[1] = cells_x[1];
+  
+  gk->poly_order = ctx.poly_order;
+  gk->basis_type = app_args.basis_type;
+
+  gk->geometry = geometry;
+  
+  gk->num_periodic_dir = 0;
+
+  gk->num_species = 2;
+  gk->species[0] = elc;
+  gk->species[1] = ion;
+  gk->field = field;
+
+  gk->parallelism = parallelism;
 
   // Create app object.
-  gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&gk);
+  gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(gk);
 
   // Initial and final simulation times.
   int frame_curr = 0;
@@ -792,7 +805,7 @@ main(int argc, char **argv)
   }
   else {
     gkyl_gyrokinetic_app_apply_ic(app, t_curr);
-  }  
+  }
 
   // Create triggers for IO.
   int num_frames = ctx.num_frames, num_int_diag_calc = ctx.int_diag_calc_num;
@@ -866,7 +879,7 @@ main(int argc, char **argv)
   if (stat.nstage_2_fail > 0) {
     gkyl_gyrokinetic_app_cout(app, stdout, "Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
     gkyl_gyrokinetic_app_cout(app, stdout, "Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
-  }  
+  }
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   gkyl_gyrokinetic_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
   gkyl_gyrokinetic_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
@@ -879,6 +892,7 @@ main(int argc, char **argv)
 
   freeresources:
   // simulation complete, free app
+  gkyl_free(gk);
   gkyl_gyrokinetic_app_release(app);
   gkyl_gyrokinetic_comms_release(comm);
 
