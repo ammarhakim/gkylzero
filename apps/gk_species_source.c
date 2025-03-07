@@ -134,7 +134,7 @@ gk_species_source_adapt(gkyl_gyrokinetic_app *app, const struct gk_species *s,
   //   fprintf(stderr, "Final power: %g [MW]\n", final_power_MW);
   // } else {
   //   fprintf(stderr, "Initial power is zero, skipping scaling\n");
-  // }
+  }
 }
 
 // Compute rhs of the source.
