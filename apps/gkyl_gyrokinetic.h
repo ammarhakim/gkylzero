@@ -59,17 +59,17 @@ struct gkyl_phase_diagnostics_inp {
   bool time_integrated; // Whether to use time integrated diags.
 };
 
-// Parameters for species collisions
+// Parameters for species collisions.
 struct gkyl_gyrokinetic_collisions {
-  enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
-  enum gkyl_radiation_id radiation_id; // type of radiation
+  enum gkyl_collision_id collision_id; // Type of collisions (see gkyl_eqn_type.h).
+  enum gkyl_radiation_id radiation_id; // Type of radiation.
   bool write_diagnostics; // Whether to write diagnostics out.
 
-  void *ctx; // context for collision function
-  // function for computing self-collision frequency
+  void *ctx; // Context for collision function.
+  // Function for computing self-collision frequency.
   void (*self_nu)(double t, const double *xn, double *fout, void *ctx);
 
-  // inputs for Spitzer collisionality
+  // Inputs for Spitzer collisionality.
   bool normNu; // Set to true if you want to rescale collision frequency
   double n_ref; // Density used to calculate coulomb logarithm
   double T_ref; // Temperature used to calculate coulomb logarithm
@@ -80,31 +80,32 @@ struct gkyl_gyrokinetic_collisions {
   // Boolean for using implicit BGK collisions (replaces rk3)   
   bool has_implicit_coll_scheme; 
 
-  int num_cross_collisions; // number of species to cross-collide with
-  char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
+  int num_cross_collisions; // Number of species to cross-collide with.
+  char collide_with[GKYL_MAX_SPECIES][128]; // Names of species to cross collide with.
 };
 
-// Parameters for species diffusion
+// Parameters for species diffusion.
 struct gkyl_gyrokinetic_diffusion {
-  int num_diff_dir; // number of diffusion directions
-  int diff_dirs[3]; // list of diffusion directions
-  double D[3]; // constant diffusion coefficient in each direction
-  int order; // integer for order of the diffusion (4 for grad^4, 6 for grad^6, default is grad^2)
+  int num_diff_dir; // Number of diffusion directions.
+  int diff_dirs[3]; // List of diffusion directions.
+  double D[3]; // Diffusion coefficient in each direction.
+  double chi[3]; // Heat diffusivity coefficient in each direction.
+  int order; // Integer for order of the diffusion (4 for grad^4, 6 for grad^6, default is grad^2).
 };
 
-// Parameters for species source
+// Parameters for species source.
 struct gkyl_gyrokinetic_source {
-  enum gkyl_source_id source_id; // type of source
+  enum gkyl_source_id source_id; // Type of source.
   int num_sources;
   bool evolve; // Whether the source is time dependent.
 
-  // sources using projection routine
+  // Sources using projection routine.
   struct gkyl_gyrokinetic_projection projection[GKYL_MAX_SOURCES];
 
   struct gkyl_phase_diagnostics_inp diagnostics;
 };
 
-// Parameters for boundary conditions
+// Parameters for boundary conditions.
 struct gkyl_gyrokinetic_bc {
   enum gkyl_species_bc_type type; // BC type flag.
   void (*aux_profile)(double t, const double *xn, double *fout, void *ctx); // Auxiliary function (e.g. wall potential).

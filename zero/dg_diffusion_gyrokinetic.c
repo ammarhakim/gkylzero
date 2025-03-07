@@ -36,6 +36,7 @@ gkyl_dg_diffusion_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struc
   struct dg_diffusion_gyrokinetic *diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
   diffusion->auxfields.D = auxin.D;
   diffusion->auxfields.jacobgeo_inv = auxin.jacobgeo_inv;
+  diffusion->auxfields.phase_range = auxin.phase_range;
 }
 
 struct gkyl_dg_eqn*
@@ -107,6 +108,7 @@ gkyl_dg_diffusion_gyrokinetic_new(const struct gkyl_basis *basis,
 
   diffusion->auxfields.D = 0;
   diffusion->auxfields.jacobgeo_inv = 0;
+  diffusion->auxfields.phase_range = 0;
   diffusion->diff_range = *diff_range;
 
   diffusion->eqn.flags = 0;

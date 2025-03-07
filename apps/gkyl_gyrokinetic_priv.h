@@ -33,6 +33,7 @@
 #include <gkyl_dg_iz.h>
 #include <gkyl_dg_rad_gyrokinetic_drag.h>
 #include <gkyl_dg_recomb.h>
+#include <gkyl_dg_diffusion_gyrokinetic_proj_coeff.h>
 #include <gkyl_dg_updater_diffusion_gyrokinetic.h>
 #include <gkyl_dg_updater_gyrokinetic.h>
 #include <gkyl_dg_updater_lbo_gyrokinetic.h>
@@ -644,6 +645,9 @@ struct gk_species {
   // Gyrokinetic diffusion.
   bool has_diffusion; // Flag to indicate there is applied diffusion.
   struct gkyl_array *diffD; // Array for diffusion tensor.
+  struct gkyl_array *vtsq; // Thermal speed squared.
+  struct gk_species_moment maxwellian_moms; // Maxwellian moments.
+  struct gkyl_dg_diffusion_gyrokinetic_proj_coeff *proj_diffD; // Update to project diffD.
   struct gkyl_dg_updater_diffusion_gyrokinetic *diff_slvr; // Gyrokinetic diffusion equation solver.
 
   // Updater that enforces positivity by shifting f.

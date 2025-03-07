@@ -103,6 +103,12 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   }
   
   if (species->has_diffusion) {
+    // Compute needed vtsq=T/m.
+    gk_species_moment_calc(&species->maxwellian_moms, species->local, app->local, species->f);
+    gkyl_array_set_offset(species->vtsq, 1.0, species->maxwellian_moms.marr, 2*app->basis.num_basis);
+
+    gkyl_dg_diffusion_gyrokinetic_proj_coeff_advance(species->proj_diffD, &app->local, &species->vel_map->local_vel, &species->local,
+      app->gk_geom->gxxj, species->vel_map->vmap, species->vel_map->vmap_sq, app->gk_geom->bmag, species->vtsq, species->diffD); 
     gkyl_dg_updater_diffusion_gyrokinetic_advance(species->diff_slvr, &species->local, 
       species->diffD, app->gk_geom->jacobgeo_inv, fin, species->cflrate, rhs);
   }
@@ -674,6 +680,9 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
 
   if (s->has_diffusion) {
     gkyl_array_release(s->diffD);
+    gkyl_array_release(s->vtsq);
+    gk_species_moment_release(app, &s->maxwellian_moms);
+    gkyl_dg_diffusion_gyrokinetic_proj_coeff_release(s->proj_diffD);
     gkyl_dg_updater_diffusion_gyrokinetic_release(s->diff_slvr);
   }
 
@@ -874,8 +883,8 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
     gks->has_diffusion = true;
     int diffusion_order = gks->info.diffusion.order ? gks->info.diffusion.order : 2;
 
-    int szD = cdim*app->basis.num_basis;
-    gks->diffD = mkarr(app->use_gpu, szD, app->local_ext.volume);
+    int szD = cdim*gks->basis.num_basis;
+    gks->diffD = mkarr(app->use_gpu, szD, gks->local_ext.volume);
     bool diff_dir[GKYL_MAX_CDIM] = {false};
 
     int num_diff_dir = gks->info.diffusion.num_diff_dir ? gks->info.diffusion.num_diff_dir : app->cdim;
@@ -885,10 +894,20 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
     for (int d=0; d<num_diff_dir; ++d) {
       int dir = gks->info.diffusion.diff_dirs[d]; 
       diff_dir[dir] = 1; 
-      gkyl_array_shiftc(gks->diffD, gks->info.diffusion.D[d]*pow(sqrt(2),app->cdim), dir);
     }
-    // Multiply diffD by g^xx*jacobgeo.
-    gkyl_dg_mul_op(app->basis, 0, gks->diffD, 0, app->gk_geom->gxxj, 0, gks->diffD);
+
+    // Compute a minimum representable temperature based on the smallest dv in the grid.
+    double dv_min[app->vdim];
+    gkyl_velocity_map_reduce_dv_range(gks->vel_map, GKYL_MIN, dv_min, gks->vel_map->local_vel);
+    double tpar_min = (gks->info.mass/6.0)*pow(dv_min[0],2);
+    double tperp_min = app->vdim>1 ? (app->bmag_ref/3.0)*dv_min[1] : tpar_min;
+    double vtsq_min = (tpar_min + 2.0*tperp_min)/(3.0*gks->info.mass);
+    
+    // Create the updater which projects the diffusion coefficient.
+    gk_species_moment_init(app, gks, &gks->maxwellian_moms, "MaxwellianMoments", false);
+    gks->vtsq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gks->proj_diffD = gkyl_dg_diffusion_gyrokinetic_proj_coeff_new(app->cdim, gks->basis, &gks->grid,
+      gks->info.diffusion.D, gks->info.diffusion.chi, gks->info.mass, vtsq_min, diff_dir, app->use_gpu);
 
     // By default, we do not have zero-flux boundary conditions in any direction
     // Determine which directions are zero-flux.

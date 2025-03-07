@@ -10,6 +10,7 @@
 struct gkyl_dg_diffusion_gyrokinetic_auxfields { 
   const struct gkyl_array *D;
   const struct gkyl_array *jacobgeo_inv;
+  const struct gkyl_range *phase_range;
 };
 
 /**

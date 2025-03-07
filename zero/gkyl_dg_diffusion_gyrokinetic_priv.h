@@ -46,7 +46,7 @@ struct dg_diffusion_gyrokinetic {
   int num_basis;
 };
 
-#define _cfD(idx) diffusion->const_coeff? (const double *) gkyl_array_cfetch(diffusion->auxfields.D, 0) : (const double *) gkyl_array_cfetch(diffusion->auxfields.D, gkyl_range_idx(&diffusion->diff_range, idx))
+#define _cfD(idx) diffusion->const_coeff? (const double *) gkyl_array_cfetch(diffusion->auxfields.D, 0) : (const double *) gkyl_array_cfetch(diffusion->auxfields.D, gkyl_range_idx(diffusion->auxfields.phase_range, idx))
 
 #define _cfJacInv(idx) (const double *) gkyl_array_cfetch(diffusion->auxfields.jacobgeo_inv, gkyl_range_idx(&diffusion->diff_range, idx))
 
@@ -738,7 +738,7 @@ GKYL_CU_D static const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list ser
 #define SURFKERIDX(cdim,vdim) (cdim-1+vdim-1)*2-(vdim-1)
 
 // Macro for choosing volume and surface kernels.
-#define CKVOL(lst,cdim,vdim,diff_order,poly_order,diffdir_linidx) lst[cdim+vdim-1].list[diff_order/2-1].list[poly_order-1].kernels[diffdir_linidx]
+#define CKVOL(lst,cdim,vdim,diff_order,poly_order,diffdir_linidx) lst[cdim+vdim-2].list[diff_order/2-1].list[poly_order-1].kernels[diffdir_linidx]
 #define CKSURF(lst,diff_order,cdim,vdim,poly_order) lst[diff_order/2-1].list[SURFKERIDX(cdim,vdim)].kernels[poly_order-1]
 
 GKYL_CU_D static double surf(const struct gkyl_dg_eqn* eqn, int dir,
