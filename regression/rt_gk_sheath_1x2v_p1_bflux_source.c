@@ -264,7 +264,7 @@ evalElcSourceDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_
   double n = 0.0;
 
   if (fabs(z) <= Ls / 2.0) {
-    n =  2./M_PI*(1.0 - fabs(z)/(Ls/2.0)); // Ion total number density (left).
+    n = 2.0 /sqrt(2*M_PI) * (1.0 - fabs(z)/(Ls/2.0)); // Ion total number density (left).
   }
   else {
     n = 0; // Electron total number density (right).
@@ -332,7 +332,6 @@ evalIonUparInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   fout[0] = 0.0;
 }
 
-
 void
 evalIonSourceDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
@@ -345,8 +344,15 @@ evalIonSourceDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_
 
   double n = 0.0;
 
+  // slope up 0.90
+  // slope down 0.87 final val 1.4977111
+  // SLope down 0.88 final val 1.4983447
+  // desired value 1.4987393
+  // source int M0 dt = 1.994711e-1
+  // J = 1
+
   if (fabs(z) <= Ls / 2.0) {
-    n = 2./M_PI*(1.0 - fabs(z)/(Ls/2.0)); // Ion total number density (left).
+    n =  2.0 /sqrt(2*M_PI) * 0.8862279040404033 * (1.0 - fabs(z)/(Ls/2.0)); // Ion total number density (left).
   }
   else {
     n = 0; // Ion total number density (right).

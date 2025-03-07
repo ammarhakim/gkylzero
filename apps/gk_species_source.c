@@ -123,6 +123,7 @@ gk_species_source_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
         gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, red_mom, red_mom_global);
         src->scale_factor += red_mom_global[0];
       }
+      // In GK, the fluxes are computed a sqrt(2*pi) J * Gamma * dz/2
       src->scale_factor = src->scale_factor/src->source_length;
     }
     gkyl_array_accumulate(rhs[species_idx], src->scale_factor, src->source);
