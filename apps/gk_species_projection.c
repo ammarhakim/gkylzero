@@ -23,6 +23,7 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
   struct gkyl_gyrokinetic_projection inp, struct gk_proj *proj)
 {
   proj->proj_id = inp.proj_id;
+  proj->power = inp.power;
   // Context for c2p function passed to proj_on_basis.
   proj->proj_on_basis_c2p_ctx.cdim = app->cdim;
   proj->proj_on_basis_c2p_ctx.vdim = s->local_vel.ndim;
