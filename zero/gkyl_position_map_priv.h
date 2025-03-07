@@ -324,6 +324,7 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
     xp[Z_IDX] = theta;
     gkyl_calc_bmag_global(0.0, xp, &bmag_vals[i], bmag_ctx);
     dbmag_vals[i] = calc_bmag_global_derivative(theta, gpm);
+    if (i==0) continue;
 
     // Minima
     if (dbmag_vals[i] > 0 && dbmag_vals[i-1] < 0){
