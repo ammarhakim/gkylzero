@@ -82,6 +82,7 @@ test_ambi_bolt_init_1x()
   TEST_CHECK( gkyl_compare_double(ambi->charge_e, charge_e, 1e-12));
   TEST_CHECK( gkyl_compare_double(ambi->temp_e, temp_e, 1e-12));
 
+  gkyl_free(basis);
   gkyl_ambi_bolt_potential_release(ambi);
 }
 
@@ -171,6 +172,14 @@ test_ambi_bolt_sheath_calc_1x()
   TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[2], log(1/(sqrt(2*M_PI)*ambi->dz/2))*sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[3], 0, 1e-12));
 
+  gkyl_free(basis);
+  for (int j=0; j<cdim; ++j) {
+    gkyl_array_release(sheath_vals[2*j]);
+    gkyl_array_release(sheath_vals[2*j+1]);
+  }
+  gkyl_array_release(jacobgeo_inv);
+  gkyl_array_release(M0);
+  gkyl_array_release(gamma_i);
   gkyl_ambi_bolt_potential_release(ambi);
   gkyl_proj_on_basis_release(proj_one);
 }
@@ -250,6 +259,15 @@ test_ambi_bolt_phi_calc_1x()
     TEST_CHECK(gkyl_compare_double(phi_c[1], 0.0, 1e-12));
   }
 
+  gkyl_free(basis);
+  for (int j=0; j<cdim; ++j) {
+    gkyl_array_release(sheath_vals[2*j]);
+    gkyl_array_release(sheath_vals[2*j+1]);
+  }
+  gkyl_array_release(jacobgeo_inv);
+  gkyl_array_release(M0);
+  gkyl_array_release(gamma_i);
+  gkyl_array_release(phi);
   gkyl_ambi_bolt_potential_release(ambi);
   gkyl_proj_on_basis_release(proj_one);
 }
@@ -341,6 +359,14 @@ test_ambi_bolt_sheath_calc_1x_hat()
   TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[2], log(1/(sqrt(2*M_PI)*ambi->dz/2))*sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c_avg[3], 0, 1e-12));
 
+  gkyl_free(basis);
+  for (int j=0; j<cdim; ++j) {
+    gkyl_array_release(sheath_vals[2*j]);
+    gkyl_array_release(sheath_vals[2*j+1]);
+  }
+  gkyl_array_release(jacobgeo_inv);
+  gkyl_array_release(M0);
+  gkyl_array_release(gamma_i);
   gkyl_ambi_bolt_potential_release(ambi);
   gkyl_proj_on_basis_release(proj_one);
   gkyl_proj_on_basis_release(proj_hat);
@@ -424,6 +450,15 @@ test_ambi_bolt_phi_calc_1x_hat()
     TEST_CHECK(gkyl_compare_double(phi_c[0]/sqrt(2), phi_sheath + log(ni), 2e-4));
   }
 
+  gkyl_free(basis);
+  for (int j=0; j<cdim; ++j) {
+    gkyl_array_release(sheath_vals[2*j]);
+    gkyl_array_release(sheath_vals[2*j+1]);
+  }
+  gkyl_array_release(jacobgeo_inv);
+  gkyl_array_release(M0);
+  gkyl_array_release(gamma_i);
+  gkyl_array_release(phi);
   gkyl_ambi_bolt_potential_release(ambi);
   gkyl_proj_on_basis_release(proj_one);
   gkyl_proj_on_basis_release(proj_hat);
@@ -462,6 +497,7 @@ test_ambi_bolt_init_2x()
   TEST_CHECK( gkyl_compare_double(ambi->charge_e, charge_e, 1e-12));
   TEST_CHECK( gkyl_compare_double(ambi->temp_e, temp_e, 1e-12));
 
+  gkyl_free(basis);
   gkyl_ambi_bolt_potential_release(ambi);
 }
 
@@ -555,6 +591,14 @@ test_ambi_bolt_sheath_calc_2x_one()
     }
   }
   
+  gkyl_free(basis);
+  for (int j=0; j<cdim; ++j) {
+    gkyl_array_release(sheath_vals[2*j]);
+    gkyl_array_release(sheath_vals[2*j+1]);
+  }
+  gkyl_array_release(jacobgeo_inv);
+  gkyl_array_release(M0);
+  gkyl_array_release(gamma_i);
   gkyl_ambi_bolt_potential_release(ambi);
   gkyl_proj_on_basis_release(proj_one);
 }
@@ -650,6 +694,14 @@ test_ambi_bolt_sheath_calc_2x_hat()
     }
   }
   
+  gkyl_free(basis);
+  for (int j=0; j<cdim; ++j) {
+    gkyl_array_release(sheath_vals[2*j]);
+    gkyl_array_release(sheath_vals[2*j+1]);
+  }
+  gkyl_array_release(jacobgeo_inv);
+  gkyl_array_release(M0);
+  gkyl_array_release(gamma_i);
   gkyl_ambi_bolt_potential_release(ambi);
   gkyl_proj_on_basis_release(proj_one);
   gkyl_proj_on_basis_release(proj_hat);
@@ -746,6 +798,14 @@ test_ambi_bolt_sheath_calc_2x_ramp_sheath()
     }
   }
   
+  gkyl_free(basis);
+  for (int j=0; j<cdim; ++j) {
+    gkyl_array_release(sheath_vals[2*j]);
+    gkyl_array_release(sheath_vals[2*j+1]);
+  }
+  gkyl_array_release(jacobgeo_inv);
+  gkyl_array_release(M0);
+  gkyl_array_release(gamma_i);
   gkyl_ambi_bolt_potential_release(ambi);
   gkyl_proj_on_basis_release(proj_one);
   gkyl_proj_on_basis_release(proj_ramp);
@@ -830,6 +890,15 @@ test_ambi_bolt_phi_calc_2x_one()
     TEST_CHECK(gkyl_compare_double(phi_c[3], 0.0, 1e-12));
   }
 
+  gkyl_free(basis);
+  for (int j=0; j<cdim; ++j) {
+    gkyl_array_release(sheath_vals[2*j]);
+    gkyl_array_release(sheath_vals[2*j+1]);
+  }
+  gkyl_array_release(jacobgeo_inv);
+  gkyl_array_release(M0);
+  gkyl_array_release(gamma_i);
+  gkyl_array_release(phi);
   gkyl_ambi_bolt_potential_release(ambi);
   gkyl_proj_on_basis_release(proj_one);
 }
@@ -913,6 +982,15 @@ test_ambi_bolt_phi_calc_2x_hat()
     TEST_CHECK(gkyl_compare_double(phi_c[0]/2, phi_sheath + log(ni), 1e-3));
   }
 
+  gkyl_free(basis);
+  for (int j=0; j<cdim; ++j) {
+    gkyl_array_release(sheath_vals[2*j]);
+    gkyl_array_release(sheath_vals[2*j+1]);
+  }
+  gkyl_array_release(jacobgeo_inv);
+  gkyl_array_release(M0);
+  gkyl_array_release(gamma_i);
+  gkyl_array_release(phi);
   gkyl_ambi_bolt_potential_release(ambi);
   gkyl_proj_on_basis_release(proj_one);
   gkyl_proj_on_basis_release(proj_hat);
@@ -997,6 +1075,15 @@ test_ambi_bolt_phi_calc_2x_ramp()
     TEST_CHECK(gkyl_compare_double(phi_c[0]/2, phi_sheath + log(ni), 1e-3));
   }
 
+  gkyl_free(basis);
+  for (int j=0; j<cdim; ++j) {
+    gkyl_array_release(sheath_vals[2*j]);
+    gkyl_array_release(sheath_vals[2*j+1]);
+  }
+  gkyl_array_release(jacobgeo_inv);
+  gkyl_array_release(M0);
+  gkyl_array_release(gamma_i);
+  gkyl_array_release(phi);
   gkyl_ambi_bolt_potential_release(ambi);
   gkyl_proj_on_basis_release(proj_one);
   gkyl_proj_on_basis_release(proj_ramp);
@@ -1087,6 +1174,15 @@ test_ambi_bolt_phi_calc_2x_parabola()
     TEST_CHECK(gkyl_compare_double(phi_c[0]/2, phi_sheath + log(ni/ni_sheath), 1e-6));
   }
 
+  gkyl_free(basis);
+  for (int j=0; j<cdim; ++j) {
+    gkyl_array_release(sheath_vals[2*j]);
+    gkyl_array_release(sheath_vals[2*j+1]);
+  }
+  gkyl_array_release(jacobgeo_inv);
+  gkyl_array_release(M0);
+  gkyl_array_release(gamma_i);
+  gkyl_array_release(phi);
   gkyl_ambi_bolt_potential_release(ambi);
   gkyl_proj_on_basis_release(proj_one);
   gkyl_proj_on_basis_release(proj_func);
@@ -1180,6 +1276,15 @@ test_ambi_bolt_phi_calc_3x_one()
     TEST_CHECK(gkyl_compare_double(phi_c[0]/pow(2.,3./2.), phi_sheath + log(ni/ni_sheath), 1e-12));
   }
 
+  gkyl_free(basis);
+  for (int j=0; j<cdim; ++j) {
+    gkyl_array_release(sheath_vals[2*j]);
+    gkyl_array_release(sheath_vals[2*j+1]);
+  }
+  gkyl_array_release(jacobgeo_inv);
+  gkyl_array_release(M0);
+  gkyl_array_release(gamma_i);
+  gkyl_array_release(phi);
   gkyl_ambi_bolt_potential_release(ambi);
   gkyl_proj_on_basis_release(proj_one);
   gkyl_proj_on_basis_release(proj_func);
@@ -1270,6 +1375,15 @@ test_ambi_bolt_phi_calc_3x_parabola()
     TEST_CHECK(gkyl_compare_double(phi_c[0]/pow(2.,3./2.), phi_sheath + log(ni/ni_sheath), 1e-5));
   }
 
+  gkyl_free(basis);
+  for (int j=0; j<cdim; ++j) {
+    gkyl_array_release(sheath_vals[2*j]);
+    gkyl_array_release(sheath_vals[2*j+1]);
+  }
+  gkyl_array_release(jacobgeo_inv);
+  gkyl_array_release(M0);
+  gkyl_array_release(gamma_i);
+  gkyl_array_release(phi);
   gkyl_ambi_bolt_potential_release(ambi);
   gkyl_proj_on_basis_release(proj_one);
   gkyl_proj_on_basis_release(proj_func);
