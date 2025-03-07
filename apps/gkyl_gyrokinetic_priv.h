@@ -499,6 +499,14 @@ struct gk_proj {
 struct gk_source {
   enum gkyl_source_id source_id; // type of source
   bool evolve; // Whether the source is time dependent.
+
+  bool calc_bflux; // boolean for if we are using boundary fluxes to rescale sources
+  double scale_factor; // factor to scale source function
+  double source_length; // length used to scale the source function
+  double *scale_ptr;
+  struct gk_species *source_species; // species to use for the source
+  int source_species_idx; // index of source species
+
   struct gkyl_array *source; // applied source
   struct gkyl_array *source_host; // host copy for use in IO and projecting
   struct gk_proj proj_source[GKYL_MAX_SOURCES]; // projector for source
@@ -1703,7 +1711,7 @@ void gk_species_source_calc(gkyl_gyrokinetic_app *app, const struct gk_species *
  * @param rhs On output, the distribution function.
  */
 void gk_species_source_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
-  struct gk_source *src, const struct gkyl_array *fin, struct gkyl_array *rhs);
+  struct gk_source *src, const struct gkyl_array *fin[], struct gkyl_array *rhs[]);
 
 /**
  * Write source diagnostics.

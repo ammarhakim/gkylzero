@@ -102,6 +102,10 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
     gk_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
   }
   
+  if (species->src.calc_bflux) {
+    gk_species_bflux_rhs(app, species, &species->bflux_solver, fin, rhs, 0);
+  }
+
   if (species->has_diffusion) {
     gkyl_dg_updater_diffusion_gyrokinetic_advance(species->diff_slvr, &species->local, 
       species->diffD, app->gk_geom->jacobgeo_inv, fin, species->cflrate, rhs);
@@ -1646,6 +1650,10 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *gks, double t0
 
   // We are pre-computing source for now as it is time-independent.
   gk_species_source_calc(app, gks, &gks->src, t0);
+
+  if (gks->src.calc_bflux) {
+    gk_species_bflux_rhs(app, gks, &gks->bflux_solver, gks->f, gks->f, 0);
+  }
 }
 
 void

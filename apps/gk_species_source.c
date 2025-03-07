@@ -8,12 +8,30 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   src->source_id = s->info.source.source_id;
 
   if (src->source_id) {
+    int vdim = app->vdim;  
+    src->calc_bflux = false;
+    if (src->source_id == GKYL_BFLUX_SOURCE) {
+      src->calc_bflux = true;
+      assert(s->info.source.source_length);
+      assert(s->info.source.source_species);
+      src->source_length = s->info.source.source_length;
+      src->source_species = gk_find_species(app, s->info.source.source_species);
+      src->source_species_idx = gk_find_species_idx(app, s->info.source.source_species);
+      if (app->use_gpu) {
+        src->scale_ptr = gkyl_cu_malloc((vdim+2)*sizeof(double));
+      }
+      else {
+        src->scale_ptr = gkyl_malloc((vdim+2)*sizeof(double));
+      }
+    }
+
     // Allocate source array.
     src->source = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
     src->source_host = src->source;
     if (app->use_gpu) {
       src->source_host = mkarr(false, src->source->ncomp, src->source->size); 
     }
+    src->scale_factor = 1.0;
 
     src->evolve = s->info.source.evolve; // Whether the source is time dependent.
 
@@ -73,10 +91,41 @@ gk_species_source_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s,
 // Compute rhs of the source.
 void
 gk_species_source_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
-  struct gk_source *src, const struct gkyl_array *fin, struct gkyl_array *rhs)
+  struct gk_source *src, const struct gkyl_array *fin[], struct gkyl_array *rhs[])
 {
   if (src->source_id) {
-    gkyl_array_accumulate(rhs, 1.0, src->source);
+    int species_idx;
+    species_idx = gk_find_species_idx(app, s->info.name);
+    // use boundary fluxes to scale source profile
+    if (src->calc_bflux) {
+      src->scale_factor = 0.0;
+      double z[app->basis.num_basis];
+      double red_mom[1] = { 0.0 };
+
+      for (int d=0; d<app->cdim; ++d) {
+        gkyl_array_reduce(src->scale_ptr, src->source_species->bflux_solver.gammai[2*d].marr, GKYL_SUM);
+        if (app->use_gpu) {
+          gkyl_cu_memcpy(red_mom, src->scale_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
+        }
+        else {
+          red_mom[0] = src->scale_ptr[0];
+        }
+        double red_mom_global[1] = { 0.0 };
+        gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, red_mom, red_mom_global);
+        src->scale_factor += red_mom_global[0];
+        gkyl_array_reduce(src->scale_ptr, src->source_species->bflux_solver.gammai[2*d+1].marr, GKYL_SUM);
+        if (app->use_gpu) {
+          gkyl_cu_memcpy(red_mom, src->scale_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
+        }
+        else {
+          red_mom[0] = src->scale_ptr[0];
+        }
+        gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, red_mom, red_mom_global);
+        src->scale_factor += red_mom_global[0];
+      }
+      src->scale_factor = src->scale_factor/src->source_length;
+    }
+    gkyl_array_accumulate(rhs[species_idx], src->scale_factor, src->source);
   }
 }
 
@@ -247,6 +296,16 @@ gk_species_source_release(const struct gkyl_gyrokinetic_app *app, const struct g
     if (app->use_gpu) {
       gkyl_array_release(src->source_host);
     }
+
+    if (src->calc_bflux) {
+      if (app->use_gpu) {
+        gkyl_cu_free(src->scale_ptr);
+      } 
+      else {
+        gkyl_free(src->scale_ptr);
+      }
+    }
+
     for (int k=0; k<src->num_sources; k++) {
       gk_species_projection_release(app, &src->proj_source[k]);
     }
