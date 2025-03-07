@@ -47,6 +47,9 @@ struct gkyl_gyrokinetic_projection {
       double iter_eps; // error tolerance for moment fixes (density is always exact)
       int max_iter; // maximum number of iteration
       bool use_last_converged; // use last iteration value regardless of convergence?
+
+      // optional power to adapt the source to
+      double power;
     };
   };
 };
