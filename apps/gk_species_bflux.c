@@ -228,7 +228,7 @@ gk_species_bflux_calc_integrated_mom_dynamic(gkyl_gyrokinetic_app* app,
       }
 
       gkyl_dynvec_append(bflux->intmom[b], tm, avals_global);
-      
+
     } 
   } 
 }
@@ -509,7 +509,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
   if (!is_diagnostic) {
     bflux->allocated_solver = true;
 
-    if (app->field->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN )
+    if (app->field->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
       bflux->bflux_rhs_func = gk_species_bflux_rhs_solver; 
     else
       bflux->bflux_rhs_func = gk_species_bflux_rhs_solver_init; 

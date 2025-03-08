@@ -583,7 +583,6 @@ main(int argc, char **argv)
 
     .source = {
       .source_id = GKYL_BFLUX_SOURCE,
-      .source_length = ctx.Ls,
       .source_species = "ion",
       .evolve = true,
 
@@ -653,7 +652,6 @@ main(int argc, char **argv)
 
     .source = {
       .source_id = GKYL_BFLUX_SOURCE,
-      .source_length = ctx.Ls,
       .source_species = "ion",
       .evolve = true,
 

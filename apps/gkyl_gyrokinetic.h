@@ -98,8 +98,7 @@ struct gkyl_gyrokinetic_source {
   int num_sources;
   bool evolve; // Whether the source is time dependent.
 
-  double source_length; // required for boundary flux source
-  char source_species[128];
+  char source_species[128]; // required for boundary flux source
 
   // sources using projection routine
   struct gkyl_gyrokinetic_projection projection[GKYL_MAX_SOURCES];

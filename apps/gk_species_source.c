@@ -23,7 +23,6 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     if (app->use_gpu) {
       src->source_host = mkarr(false, src->source->ncomp, src->source->size); 
     }
-    src->scale_factor = 1.0;
 
     src->evolve = s->info.source.evolve; // Whether the source is time dependent.
 
@@ -88,6 +87,7 @@ gk_species_source_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
   if (src->source_id) {
     int species_idx;
     species_idx = gk_find_species_idx(app, s->info.name);
+    double scale_factor = 1.0;
     // use boundary fluxes to scale source profile
     if (src->calc_bflux) {
       double total_outgoing_flux = 0.0;
@@ -116,10 +116,10 @@ gk_species_source_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
         restoring_force = 0.0;
       }
       // printf("restoring_force = %.17g\n", restoring_force);
-      src->scale_factor = total_outgoing_flux/total_source_flux*(1.0 + restoring_force);
+      scale_factor = total_outgoing_flux/total_source_flux*(1.0 + restoring_force);
       // printf("scale_factor = %.17g\n", src->scale_factor);
     }
-    gkyl_array_accumulate(rhs[species_idx], src->scale_factor, src->source);
+    gkyl_array_accumulate(rhs[species_idx], scale_factor, src->source);
   }
 }
 
@@ -290,7 +290,6 @@ gk_species_source_release(const struct gkyl_gyrokinetic_app *app, const struct g
     if (app->use_gpu) {
       gkyl_array_release(src->source_host);
     }
-
     for (int k=0; k<src->num_sources; k++) {
       gk_species_projection_release(app, &src->proj_source[k]);
     }
