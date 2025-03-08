@@ -687,7 +687,10 @@ main(int argc, char **argv)
     },
 
     .source = {
-      .source_id = GKYL_PROJ_SOURCE,
+      .source_id = GKYL_BFLUX_SOURCE,
+      .source_species = "ion",
+      .evolve = true,
+      .M0_feedback_strength = 1e3,
 
       .num_sources = 1,
       .projection[0] = {
@@ -757,7 +760,10 @@ main(int argc, char **argv)
     },
 
     .source = {
-      .source_id = GKYL_PROJ_SOURCE,
+      .source_id = GKYL_BFLUX_SOURCE,
+      .source_species = "ion",
+      .evolve = true,
+      .M0_feedback_strength = 1e3,
 
       .num_sources = 1,
       .projection[0] = {
