@@ -99,7 +99,14 @@ gk_species_source_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
         gkyl_dynvec_getlast(src->source_species->bflux_diag.intmom[b], intmom_vals);
         total_outgoing_flux += intmom_vals[0];
       }
-      double total_source_flux = src->red_integ_diag_global[0];
+
+      double total_source_flux;
+      if (app->use_gpu) {
+        gkyl_cu_memcpy(&total_source_flux, &src->red_integ_diag_global[0], sizeof(double), GKYL_CU_MEMCPY_D2H);
+      } 
+      else {
+        total_source_flux = src->red_integ_diag_global[0];
+      }
       double init_s_diag_data[8];
       gkyl_dynvec_get(src->source_species->integ_diag, 0, init_s_diag_data);
       double initial_intM0 = init_s_diag_data[0];
