@@ -501,6 +501,7 @@ struct gk_source {
   bool evolve; // Whether the source is time dependent.
 
   bool calc_bflux; // boolean for if we are using boundary fluxes to rescale sources
+  double M0_feedback_strength; // factor to multiply source by to restore initial total M0
   struct gk_species *source_species; // species to use for the source
   int source_species_idx; // index of source species
 

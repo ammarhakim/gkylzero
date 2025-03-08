@@ -12,6 +12,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     src->calc_bflux = false;
     if (src->source_id == GKYL_BFLUX_SOURCE) {
       src->calc_bflux = true;
+      src->M0_feedback_strength = s->info.source.M0_feedback_strength ? s->info.source.M0_feedback_strength : 0;
       assert(s->info.source.source_species);
       src->source_species = gk_find_species(app, s->info.source.source_species);
       src->source_species_idx = gk_find_species_idx(app, s->info.source.source_species);
@@ -106,7 +107,7 @@ gk_species_source_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
       double current_intM0 = init_s_diag_data[0];
       double restoring_force;
       if (current_intM0 != 0.0) {
-        restoring_force = -1e3*(current_intM0 - initial_intM0)/initial_intM0;
+        restoring_force = -src->M0_feedback_strength*(current_intM0 - initial_intM0)/initial_intM0;
       } else {
         restoring_force = 0.0;
       }

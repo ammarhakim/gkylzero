@@ -151,7 +151,7 @@ create_ctx(void)
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 6.0e-5; // Final simulation time.
+  double t_end = 6.0e-6; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
@@ -585,6 +585,7 @@ main(int argc, char **argv)
       .source_id = GKYL_BFLUX_SOURCE,
       .source_species = "ion",
       .evolve = true,
+      .M0_feedback_strength = 1e3,
 
       .num_sources = 1,
       .projection[0] = {
@@ -597,11 +598,8 @@ main(int argc, char **argv)
         .ctx_upar = &ctx,
       },
       .diagnostics = {
-        .num_diag_moments = 5,
-        .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
-        .num_integrated_diag_moments = 1,
-        .integrated_diag_moments = { "HamiltonianMoments" },
-//        .time_integrated = true,
+        .num_diag_moments = 1,
+        .diag_moments = { "M0"},
       },
     },
     
@@ -654,6 +652,7 @@ main(int argc, char **argv)
       .source_id = GKYL_BFLUX_SOURCE,
       .source_species = "ion",
       .evolve = true,
+      .M0_feedback_strength = 1e3,
 
       .num_sources = 1, 
       .projection[0] = {
@@ -666,11 +665,8 @@ main(int argc, char **argv)
         .ctx_upar = &ctx,
       },
       .diagnostics = {
-        .num_diag_moments = 5,
-        .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
-        .num_integrated_diag_moments = 1,
-        .integrated_diag_moments = { "HamiltonianMoments" },
-//        .time_integrated = true,
+        .num_diag_moments = 1,
+        .diag_moments = { "M0"},
       },
     },
 
