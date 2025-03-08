@@ -5,7 +5,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_const.h>
 #include <gkyl_eqn_type.h>
-#include <gkyl_bc_emission.h>
 #include <gkyl_fem_parproj.h>
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_gyrokinetic.h>
@@ -714,12 +713,11 @@ main(int argc, char **argv)
   // Construct communicator for use in app.
   struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
-  char in_species[1][128] = { "ion" };
-  struct gkyl_emission_spectrum_model *spectrum_model[1];
-  spectrum_model[0] = gkyl_emission_spectrum_maxwellian_new(0.0, ctx.vtn, app_args.use_gpu);
-  struct gkyl_emission_yield_model *yield_model[1];
-  yield_model[0] = gkyl_emission_yield_constant_new(0.0, ctx.rec_frac, app_args.use_gpu);
-  struct gkyl_bc_emission_ctx *bc_ctx = gkyl_bc_emission_new(1, 0.0, false, spectrum_model, yield_model, NULL, in_species);
+  struct gkyl_gyrokinetic_emission_inp neut_bc = {
+    .num_species = 1,
+    .in_species = { "ion" },
+    .rec_frac = ctx.rec_frac,
+  };
 
   // electrons
   struct gkyl_gyrokinetic_species elc = {
@@ -991,8 +989,9 @@ main(int argc, char **argv)
       .upper={.type = GKYL_SPECIES_ABSORB,},
     },
     .bcy = {
-      .lower = { .type = GKYL_SPECIES_RECYCLE,
-        .aux_ctx = bc_ctx,
+      .lower = {
+        .type = GKYL_SPECIES_RECYCLE,
+	.emission = neut_bc,
 	.projection = {
 	  .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
 	  .ctx_density = &ctx,
@@ -1003,8 +1002,9 @@ main(int argc, char **argv)
 	  .temp = temp_neut,
 	},
       },
-      .upper = { .type = GKYL_SPECIES_RECYCLE,
-        .aux_ctx = bc_ctx,
+      .upper = {
+	  .type = GKYL_SPECIES_RECYCLE,
+          .emission = neut_bc,
           .projection = {
 	    .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
 	    .ctx_density = &ctx,
@@ -1195,9 +1195,6 @@ main(int argc, char **argv)
   gkyl_free(gk);
   gkyl_gyrokinetic_app_release(app);
   gkyl_gyrokinetic_comms_release(comm);
-  gkyl_bc_emission_release(bc_ctx);
-  gkyl_emission_spectrum_model_release(spectrum_model[0]);
-  gkyl_emission_yield_model_release(yield_model[0]);
 
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {

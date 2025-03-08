@@ -611,7 +611,7 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
       gk_neut_species_projection_init(app, s, s->lower_bc[d].projection, &gk_proj_bc_lo);
       gk_neut_species_projection_calc(app, s, &gk_proj_bc_lo, s->f1, 0.0); // Temporarily use f1.
           
-      gk_neut_species_recycle_init(app, &s->bc_recycle_lo, d, GKYL_LOWER_EDGE, s->lower_bc[d].aux_ctx, s->f1, s, app->use_gpu);
+      gk_neut_species_recycle_init(app, &s->bc_recycle_lo, d, GKYL_LOWER_EDGE, &s->lower_bc[d].emission, s->f1, s, app->use_gpu);
       gkyl_bc_basic_buffer_fixed_func(s->bc_lo[d], s->bc_buffer_lo_recyc, s->f1);
       gkyl_array_clear(s->f1, 0.0);
       gk_neut_species_projection_release(app, &gk_proj_bc_lo);
@@ -653,7 +653,7 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
       struct gk_proj gk_proj_bc_up;
       gk_neut_species_projection_init(app, s, s->upper_bc[d].projection, &gk_proj_bc_up);
       gk_neut_species_projection_calc(app, s, &gk_proj_bc_up, s->f1, 0.0); // Temporarily use f1.
-      gk_neut_species_recycle_init(app, &s->bc_recycle_up, d, GKYL_UPPER_EDGE, s->upper_bc[d].aux_ctx, s->f1, s, app->use_gpu);
+      gk_neut_species_recycle_init(app, &s->bc_recycle_up, d, GKYL_UPPER_EDGE, &s->upper_bc[d].emission, s->f1, s, app->use_gpu);
       gkyl_bc_basic_buffer_fixed_func(s->bc_up[d], s->bc_buffer_up_recyc, s->f1);
       gkyl_array_clear(s->f1, 0.0);
       gk_neut_species_projection_release(app, &gk_proj_bc_up);

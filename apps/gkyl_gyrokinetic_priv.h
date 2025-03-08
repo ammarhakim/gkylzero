@@ -418,19 +418,19 @@ struct gk_recycle_wall {
   double *scale_ptr;
   double t_bound;
   bool elastic;
-  struct gkyl_array *f0;
-  double delta[GKYL_MAX_SPECIES]; // recycling fraction
+  double frac; // recycling fraction coefficient
   
   gkyl_boundary_flux *f0_flux_slvr[2*GKYL_MAX_CDIM];
   struct gkyl_dg_bin_op_mem *mem_geo; // memory needed in dividing moments by Jacobian
   struct gkyl_spectrum_model *spectrum_model[GKYL_MAX_SPECIES];
   struct gkyl_yield_model *yield_model[GKYL_MAX_SPECIES];
   struct gkyl_elastic_model *elastic_model;
-  struct gkyl_bc_emission_ctx *params;
+  struct gkyl_gyrokinetic_emission_inp *params;
 
   struct gkyl_bc_emission_spectrum *update[GKYL_MAX_SPECIES];
   struct gkyl_bc_emission_elastic *elastic_update;
   struct gkyl_rect_grid *init_conf_grid;
+  struct gkyl_array *f0;
   struct gkyl_array *f_emit;
   struct gkyl_array *f_diag;
   struct gkyl_array *init_flux;
@@ -2213,13 +2213,14 @@ void gk_neut_species_bflux_release(const struct gkyl_gyrokinetic_app *app, const
  * @param recyc Recycling bc object
  * @param dir Direction for BC (x, y, or z)
  * @param edge Edge for BC (lower/upper)
- * @param ctx Input params for recycling BCs
+ * @param params Input params for recycling BCs
  * @param f0 Maxwellian distf to scale in ghost
  * @param s Gk_neut_species to apply BCs for
  * @param use_gpu Boolean for using GPUs
  */
 void gk_neut_species_recycle_init(struct gkyl_gyrokinetic_app *app, struct gk_recycle_wall *recyc,
-  int dir, enum gkyl_edge_loc edge, void *ctx, struct gkyl_array *f0, struct gk_neut_species *s, bool use_gpu);
+  int dir, enum gkyl_edge_loc edge, struct gkyl_gyrokinetic_emission_inp *params, struct gkyl_array *f0,
+  struct gk_neut_species *s, bool use_gpu);
 
 /**
  * Initialize recycling cross moments.
