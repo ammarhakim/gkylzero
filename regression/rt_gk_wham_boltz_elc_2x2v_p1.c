@@ -549,7 +549,7 @@ int main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk app_inp = {
-    .name = "gk_wham_2x2v_p1",
+    .name = "gk_wham_boltz_elc_2x2v_p1",
 
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = {ctx.psi_min, ctx.z_min},
