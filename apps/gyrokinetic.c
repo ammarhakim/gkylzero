@@ -1329,7 +1329,6 @@ gkyl_gyrokinetic_app_write_neut_species_conf(gkyl_gyrokinetic_app* app, int sidx
 
   struct gk_neut_species *gkns = &app->neut_species[sidx];
 
-  gkyl_gyrokinetic_app_write_neut_species_recycle_flux(app, sidx, tm, frame);
   for (int j=0; j<gkns->react_neut.num_react; ++j) {
     gkyl_gyrokinetic_app_write_neut_species_react_neut(app, sidx, j, tm, frame);
   }
