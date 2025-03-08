@@ -12,17 +12,9 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     src->calc_bflux = false;
     if (src->source_id == GKYL_BFLUX_SOURCE) {
       src->calc_bflux = true;
-      assert(s->info.source.source_length);
       assert(s->info.source.source_species);
-      src->source_length = s->info.source.source_length;
       src->source_species = gk_find_species(app, s->info.source.source_species);
       src->source_species_idx = gk_find_species_idx(app, s->info.source.source_species);
-      if (app->use_gpu) {
-        src->scale_ptr = gkyl_cu_malloc((vdim+2)*sizeof(double));
-      }
-      else {
-        src->scale_ptr = gkyl_malloc((vdim+2)*sizeof(double));
-      }
     }
 
     // Allocate source array.
@@ -297,15 +289,6 @@ gk_species_source_release(const struct gkyl_gyrokinetic_app *app, const struct g
     gkyl_array_release(src->source);
     if (app->use_gpu) {
       gkyl_array_release(src->source_host);
-    }
-
-    if (src->calc_bflux) {
-      if (app->use_gpu) {
-        gkyl_cu_free(src->scale_ptr);
-      } 
-      else {
-        gkyl_free(src->scale_ptr);
-      }
     }
 
     for (int k=0; k<src->num_sources; k++) {
