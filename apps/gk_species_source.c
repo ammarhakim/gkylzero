@@ -102,40 +102,30 @@ gk_species_source_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
       double z[app->basis.num_basis];
       double red_mom[1] = { 0.0 };
 
-      for (int d=0; d<app->cdim; ++d) {
-        gkyl_array_reduce(src->scale_ptr, src->source_species->bflux_solver.gammai[2*d].marr, GKYL_SUM);
-        if (app->use_gpu) {
-          gkyl_cu_memcpy(red_mom, src->scale_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
-        }
-        else {
-          red_mom[0] = src->scale_ptr[0];
-        }
-        double red_mom_global[1] = { 0.0 };
-        gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, red_mom, red_mom_global);
-        total_outgoing_flux += red_mom_global[0];
-        gkyl_array_reduce(src->scale_ptr, src->source_species->bflux_solver.gammai[2*d+1].marr, GKYL_SUM);
-        if (app->use_gpu) {
-          gkyl_cu_memcpy(red_mom, src->scale_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
-        }
-        else {
-          red_mom[0] = src->scale_ptr[0];
-        }
-        gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, red_mom, red_mom_global);
-        total_outgoing_flux += red_mom_global[0];
+      int num_mom = src->source_species->bflux_diag.moms_op.num_mom; 
+      double intmom_vals[num_mom];
+      for (int b=0; b < src->source_species->bflux_diag.num_boundaries; ++b) {
+        gkyl_dynvec_getlast(src->source_species->bflux_diag.intmom[b], intmom_vals);
+        total_outgoing_flux += intmom_vals[0];
       }
+
       double total_source_flux = src->red_integ_diag_global[0];
-      src->scale_factor = total_outgoing_flux/total_source_flux/sqrt(32);
-      // Nz = 8 has sqrt(8) denominator
-      // Nz = 16 has 2*sqrt(8) denominator
-      // There is a dz/2 factor. Jacobian is sqrt(2)
-      // I thought I got rid of these scalings by reading the integrated diagnostic.
-
-      printf("total_source_flux = %g, total_outgoing_flux = %g\n", total_source_flux, total_outgoing_flux);
-
-      // 1/4 gave a final value of 1.482257335
-      // 1/PI gave a final value of 1.4931353
-      // Aiming for 1.49873932
-      // 0.35350120812421626 predicted from linear root
+      double init_s_diag_data[8];
+      gkyl_dynvec_get(src->source_species->integ_diag, 0, init_s_diag_data);
+      double initial_intM0 = init_s_diag_data[0];
+      gkyl_dynvec_getlast(src->source_species->integ_diag, init_s_diag_data);
+      double current_intM0 = init_s_diag_data[0];
+      printf("initial_intM0 = %.17g\n", initial_intM0);
+      printf("current_intM0 = %.17g\n", current_intM0);
+      double restoring_force;
+      if (current_intM0 != 0.0) {
+        restoring_force = -(current_intM0 - initial_intM0)/initial_intM0;
+      } else {
+        restoring_force = 0.0;
+      }
+      // printf("restoring_force = %.17g\n", restoring_force);
+      src->scale_factor = total_outgoing_flux/total_source_flux*(1.0 + restoring_force);
+      // printf("scale_factor = %.17g\n", src->scale_factor);
     }
     gkyl_array_accumulate(rhs[species_idx], src->scale_factor, src->source);
   }

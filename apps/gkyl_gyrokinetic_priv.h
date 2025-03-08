@@ -1611,6 +1611,7 @@ gk_species_bflux_copy(gkyl_gyrokinetic_app *app, struct gk_species *gks, struct 
  *
  * @param app Gyrokinetic app object
  * @param gk_s Species object.
+ * @param bflux Species boundary flux object
  * @param tm Current simulation time.
  */
 void
