@@ -99,7 +99,18 @@ gk_species_source_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
         total_outgoing_flux += intmom_vals[0];
       }
       double total_source_flux = src->red_integ_diag_global[0];
-      scale_factor = total_outgoing_flux/total_source_flux;
+      double init_s_diag_data[8];
+      gkyl_dynvec_get(src->source_species->integ_diag, 0, init_s_diag_data);
+      double initial_intM0 = init_s_diag_data[0];
+      gkyl_dynvec_getlast(src->source_species->integ_diag, init_s_diag_data);
+      double current_intM0 = init_s_diag_data[0];
+      double restoring_force;
+      if (current_intM0 != 0.0) {
+        restoring_force = -1e3*(current_intM0 - initial_intM0)/initial_intM0;
+      } else {
+        restoring_force = 0.0;
+      }
+      scale_factor = total_outgoing_flux/total_source_flux*(1.0 + restoring_force);
     }
     gkyl_array_accumulate(rhs[species_idx], scale_factor, src->source);
   }
