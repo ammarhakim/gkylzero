@@ -139,7 +139,7 @@ create_ctx(void)
   double n_peak = 4.0 * sqrt(5.0) / 3.0 / c_s_src * 0.5 * n_src; // Peak number density.
 
   // Simulation parameters.
-  int Nz = 8; // Cell count (configuration space: z-direction).
+  int Nz = 16; // Cell count (configuration space: z-direction).
   int Nvpar = 6; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 4; // Cell count (velocity space: magnetic moment direction).
   double Lz = 4.0; // Domain size (configuration space: z-direction).
@@ -264,7 +264,7 @@ evalElcSourceDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_
   double n = 0.0;
 
   if (fabs(z) <= Ls / 2.0) {
-    n = 2.0 /sqrt(2*M_PI) * (1.0 - fabs(z)/(Ls/2.0)); // Ion total number density (left).
+    n = (1.0 - fabs(z)/(Ls/2.0)); // Ion total number density (left).
   }
   else {
     n = 0; // Electron total number density (right).
@@ -352,7 +352,7 @@ evalIonSourceDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_
   // J = 1
 
   if (fabs(z) <= Ls / 2.0) {
-    n =  2.0 /sqrt(2*M_PI) * 0.8862279040404033 * (1.0 - fabs(z)/(Ls/2.0)); // Ion total number density (left).
+    n = (1.0 - fabs(z)/(Ls/2.0)); // Ion total number density (left).
   }
   else {
     n = 0; // Ion total number density (right).
@@ -585,6 +585,7 @@ main(int argc, char **argv)
       .source_id = GKYL_BFLUX_SOURCE,
       .source_length = ctx.Ls,
       .source_species = "ion",
+      .evolve = true,
 
       .num_sources = 1,
       .projection[0] = {
@@ -602,7 +603,7 @@ main(int argc, char **argv)
         .num_integrated_diag_moments = 1,
         .integrated_diag_moments = { "HamiltonianMoments" },
 //        .time_integrated = true,
-      }
+      },
     },
     
     .bcx = {
@@ -654,6 +655,7 @@ main(int argc, char **argv)
       .source_id = GKYL_BFLUX_SOURCE,
       .source_length = ctx.Ls,
       .source_species = "ion",
+      .evolve = true,
 
       .num_sources = 1, 
       .projection[0] = {

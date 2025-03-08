@@ -98,7 +98,7 @@ gk_species_source_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
     species_idx = gk_find_species_idx(app, s->info.name);
     // use boundary fluxes to scale source profile
     if (src->calc_bflux) {
-      src->scale_factor = 0.0;
+      double total_outgoing_flux = 0.0;
       double z[app->basis.num_basis];
       double red_mom[1] = { 0.0 };
 
@@ -112,7 +112,7 @@ gk_species_source_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
         }
         double red_mom_global[1] = { 0.0 };
         gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, red_mom, red_mom_global);
-        src->scale_factor += red_mom_global[0];
+        total_outgoing_flux += red_mom_global[0];
         gkyl_array_reduce(src->scale_ptr, src->source_species->bflux_solver.gammai[2*d+1].marr, GKYL_SUM);
         if (app->use_gpu) {
           gkyl_cu_memcpy(red_mom, src->scale_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
@@ -121,10 +121,21 @@ gk_species_source_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
           red_mom[0] = src->scale_ptr[0];
         }
         gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, red_mom, red_mom_global);
-        src->scale_factor += red_mom_global[0];
+        total_outgoing_flux += red_mom_global[0];
       }
-      // In GK, the fluxes are computed a sqrt(2*pi) J * Gamma * dz/2
-      src->scale_factor = src->scale_factor/src->source_length;
+      double total_source_flux = src->red_integ_diag_global[0];
+      src->scale_factor = total_outgoing_flux/total_source_flux/sqrt(32);
+      // Nz = 8 has sqrt(8) denominator
+      // Nz = 16 has 2*sqrt(8) denominator
+      // There is a dz/2 factor. Jacobian is sqrt(2)
+      // I thought I got rid of these scalings by reading the integrated diagnostic.
+
+      printf("total_source_flux = %g, total_outgoing_flux = %g\n", total_source_flux, total_outgoing_flux);
+
+      // 1/4 gave a final value of 1.482257335
+      // 1/PI gave a final value of 1.4931353
+      // Aiming for 1.49873932
+      // 0.35350120812421626 predicted from linear root
     }
     gkyl_array_accumulate(rhs[species_idx], src->scale_factor, src->source);
   }

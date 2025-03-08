@@ -503,6 +503,7 @@ struct gk_source {
   bool calc_bflux; // boolean for if we are using boundary fluxes to rescale sources
   double scale_factor; // factor to scale source function
   double source_length; // length used to scale the source function
+  double total_source_flux; // total flux of source function
   double *scale_ptr;
   struct gk_species *source_species; // species to use for the source
   int source_species_idx; // index of source species
