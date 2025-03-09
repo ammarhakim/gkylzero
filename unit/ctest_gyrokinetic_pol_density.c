@@ -104,9 +104,8 @@ void test_1x_flat( bool use_gpu )
   while (gkyl_range_iter_next(&conf_iter)) {
     long linidx = gkyl_range_idx(&localRange, conf_iter.idx);
     double *npol_d = gkyl_array_fetch(npol_ho, linidx);
-    for (int i=0; i<basis.num_basis; ++i) {
-      TEST_CHECK( npol_d[i] == 0.0 );
-    }
+    TEST_CHECK( gkyl_compare(npol_d[0], sqrt(2), 1e-14) );
+    TEST_CHECK( gkyl_compare(npol_d[1], 0.0, 1e-12) );
   }
   gkyl_array_release(npol_ho);
   gkyl_array_release(npol);
@@ -182,8 +181,32 @@ void test_1x_quad( bool use_gpu )
   while (gkyl_range_iter_next(&conf_iter)) {
     long linidx = gkyl_range_idx(&localRange, conf_iter.idx);
     double *npol_d = gkyl_array_fetch(npol_ho, linidx);
-    TEST_CHECK( gkyl_compare(npol_d[0], 2.8284271247462, 1e-14) );
-    TEST_CHECK( gkyl_compare(npol_d[1], 0.0, 1e-12) );
+    double tol = 1e-12;
+    if (conf_iter.idx[1] == 1) {
+      TEST_CHECK( gkyl_compare(npol_d[0], 1.141683, tol) );
+      TEST_CHECK( gkyl_compare(npol_d[1], 0.044652, tol) );
+    } else if (conf_iter.idx[1] == 2) {
+      TEST_CHECK( gkyl_compare(npol_d[0], 1.274265, tol) );
+      TEST_CHECK( gkyl_compare(npol_d[1], 0.031894, tol) );
+    } else if (conf_iter.idx[1] == 3) {
+      TEST_CHECK( gkyl_compare(npol_d[0], 1.362654, tol) );
+      TEST_CHECK( gkyl_compare(npol_d[1], 0.019137, tol) );
+    } else if (conf_iter.idx[1] == 4) {
+      TEST_CHECK( gkyl_compare(npol_d[0], 1.406848, tol) );
+      TEST_CHECK( gkyl_compare(npol_d[1], 0.006379, tol) );
+    } else if (conf_iter.idx[1] == 5) {
+      TEST_CHECK( gkyl_compare(npol_d[0], 1.406848, tol) );
+      TEST_CHECK( gkyl_compare(npol_d[1], -0.006379, tol) );
+    } else if (conf_iter.idx[1] == 6) {
+      TEST_CHECK( gkyl_compare(npol_d[0], 1.362654, tol) );
+      TEST_CHECK( gkyl_compare(npol_d[1], -0.019137, tol) );
+    } else if (conf_iter.idx[1] == 7) {
+      TEST_CHECK( gkyl_compare(npol_d[0], 1.274265, tol) );
+      TEST_CHECK( gkyl_compare(npol_d[1], -0.031894, tol) );
+    } else if (conf_iter.idx[1] == 8) {
+      TEST_CHECK( gkyl_compare(npol_d[0], 1.141683, tol) );
+      TEST_CHECK( gkyl_compare(npol_d[1], -0.044652, tol) );
+    }
   }
 
   gkyl_array_release(npol_ho);
