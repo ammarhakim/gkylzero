@@ -8,6 +8,16 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   src->source_id = s->info.source.source_id;
 
   if (src->source_id) {
+    int vdim = app->vdim;  
+    src->calc_bflux = false;
+    if (src->source_id == GKYL_BFLUX_SOURCE) {
+      src->calc_bflux = true;
+      src->M0_feedback_strength = s->info.source.M0_feedback_strength ? s->info.source.M0_feedback_strength : 0;
+      assert(s->info.source.source_species);
+      src->source_species = gk_find_species(app, s->info.source.source_species);
+      src->source_species_idx = gk_find_species_idx(app, s->info.source.source_species);
+    }
+
     // Allocate source array.
     src->source = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
     src->source_host = src->source;
@@ -73,10 +83,44 @@ gk_species_source_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s,
 // Compute rhs of the source.
 void
 gk_species_source_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
-  struct gk_source *src, const struct gkyl_array *fin, struct gkyl_array *rhs)
+  struct gk_source *src, const struct gkyl_array *fin[], struct gkyl_array *rhs[])
 {
   if (src->source_id) {
-    gkyl_array_accumulate(rhs, 1.0, src->source);
+    int species_idx;
+    species_idx = gk_find_species_idx(app, s->info.name);
+    double scale_factor = 1.0;
+    // use boundary fluxes to scale source profile
+    if (src->calc_bflux) {
+      double total_outgoing_flux = 0.0;
+      int num_mom         = src->source_species->bflux_diag.moms_op.num_mom; 
+      int num_bonundaries = src->source_species->bflux_diag.num_boundaries;
+      double intmom_vals[num_mom];
+      for (int b=0; b < num_bonundaries; ++b) {
+        gkyl_dynvec_getlast(src->source_species->bflux_diag.intmom[b], intmom_vals);
+        total_outgoing_flux += intmom_vals[0];
+      }
+
+      double total_source_flux;
+      if (app->use_gpu) {
+        gkyl_cu_memcpy(&total_source_flux, &src->red_integ_diag_global[0], sizeof(double), GKYL_CU_MEMCPY_D2H);
+      } 
+      else {
+        total_source_flux = src->red_integ_diag_global[0];
+      }
+      double init_s_diag_data[8];
+      gkyl_dynvec_get(src->source_species->integ_diag, 0, init_s_diag_data);
+      double initial_intM0 = init_s_diag_data[0];
+      gkyl_dynvec_getlast(src->source_species->integ_diag, init_s_diag_data);
+      double current_intM0 = init_s_diag_data[0];
+      double restoring_force;
+      if (current_intM0 != 0.0) {
+        restoring_force = -src->M0_feedback_strength*(current_intM0 - initial_intM0)/initial_intM0;
+      } else {
+        restoring_force = 0.0;
+      }
+      scale_factor = total_outgoing_flux/total_source_flux*(1.0 + restoring_force);
+    }
+    gkyl_array_accumulate(rhs[species_idx], scale_factor, src->source);
   }
 }
 
