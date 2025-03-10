@@ -310,6 +310,8 @@ int comp, const struct gkyl_basis *basis, struct gkyl_range range)
 void
 gkyl_array_dg_reducec_sum_cu(double *out_d, const struct gkyl_array* inp, int comp, const struct gkyl_basis *basis)
 {
+  gkyl_cu_memset(out_d, 0, sizeof(double));
+
   const int nthreads = GKYL_DEFAULT_NUM_THREADS;  
   int nblocks = gkyl_int_div_up(inp->size, nthreads);
   dg_arraySum_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_dev, out_d, comp, basis);
@@ -321,6 +323,8 @@ void
 gkyl_array_dg_reducec_range_sum_cu(double *out_d, const struct gkyl_array* inp,
   int comp, const struct gkyl_basis *basis, const struct gkyl_range *range)
 {
+  gkyl_cu_memset(out_d, 0, sizeof(double));
+
   const int nthreads = GKYL_DEFAULT_NUM_THREADS;  
   int nblocks = gkyl_int_div_up(range->volume, nthreads);
   dg_arraySum_range_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_dev, out_d, comp, basis, *range);
