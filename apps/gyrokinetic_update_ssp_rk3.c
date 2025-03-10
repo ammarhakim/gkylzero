@@ -239,7 +239,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           }
           gyrokinetic_calc_field_and_apply_bc(app, tcurr, fout, fout_neut);
 
-	  for (int i=0; i<app->num_species; ++i) {
+          for (int i=0; i<app->num_species; ++i) {
             struct gk_species *gks = &app->species[i];
             // Compute moment of f_new to compute moment of df/dt.
             // Need to do it after the fields are updated.
