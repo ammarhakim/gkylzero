@@ -26,6 +26,7 @@ jobs:
       run: cd install-deps; ./mkdeps.sh --build-superlu=yes; cd ..
     - name: make (with retry)
       run: |
+        set +e
         attempt=1
         until make CC=clang -j LAPACK_INC=/usr/include/x86_64-linux-gnu/openblas-pthread \
           LAPACK_LIB="/usr/lib/x86_64-linux-gnu/liblapacke.a /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblas.a /usr/lib/x86_64-linux-gnu/openblas-pthread/liblapack.a" -j; do
@@ -37,6 +38,7 @@ jobs:
           attempt=$((attempt+1))
           sleep 2
         done
+        set -e
     - name: make check
       run: make CC=clang check -j LAPACK_INC=/usr/include/x86_64-linux-gnu/openblas-pthread LAPACK_LIB="/usr/lib/x86_64-linux-gnu/liblapacke.a"
     - name: make regression
