@@ -20,36 +20,27 @@ calc_cuts(int ndim, const int *cuts)
   return tc;
 }
 
-// Initialize multib field object
-struct gk_multib_field* 
-gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyrokinetic_multib_app *mbapp)
+static struct gkyl_array**
+gk_multib_field_mkarr(bool on_gpu, long nc, struct gkyl_range **ranges, int num_arr)
 {
-
-  struct gk_multib_field *mbf = gkyl_malloc(sizeof(struct gk_multib_field));
-
-  mbf->info = mbinp->field;
-  mbf->gkfield_id = mbf->info.gkfield_id ? mbf->info.gkfield_id : GKYL_GK_FIELD_ES;
-
-  int my_rank, num_ranks;
-  gkyl_comm_get_rank(mbapp->comm, &my_rank);
-  gkyl_comm_get_size(mbapp->comm, &num_ranks);
-  int rank_list[num_ranks];
-
-  int num_blocks = mbapp->block_topo->num_blocks;
-  mbf->num_local_blocks = mbapp->num_local_blocks;
-  int *local_blocks = mbapp->local_blocks;
-  mbf->cdim = mbapp->block_topo->ndim;
-
-  // Get branks (number of cuts per block)
-  int *branks = gkyl_malloc(sizeof(int[num_blocks]));
-  for (int i=0; i<num_blocks; ++i) {
-    const struct gkyl_block_geom_info *bgi = gkyl_block_geom_get_block(mbapp->block_geom, i);
-    branks[i] = calc_cuts(mbf->cdim, bgi->cuts);
+  // Allocate an array of double arrays (filled with zeros), each array with the
+  // same number of components, but possibly a different size given by the volume
+  // of a range.
+  struct gkyl_array** arr = gkyl_malloc(num_arr * sizeof(struct gkyl_array*));;
+  for (int i=0; i<num_arr; i++) {
+    if (on_gpu)
+      arr[i] = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, ranges[i]->volume);
+    else
+      arr[i] = gkyl_array_new(GKYL_DOUBLE, nc, ranges[i]->volume);
   }
-  
-  // Get connected blocks
-  int dir = mbf->cdim-1;
-  int nconnected[num_blocks];
+  return arr;
+}
+
+static int**
+gk_multib_field_new_connected_list(struct gkyl_gyrokinetic_multib_app *mbapp, int dir, int *nconnected)
+{
+  // Get blocks connected along the specified direction.
+  int num_blocks = mbapp->block_topo->num_blocks;
   int **block_list = gkyl_malloc(num_blocks*sizeof(int*));
   for (int bidx=0; bidx<num_blocks; ++bidx) {
     nconnected[bidx] = gkyl_multib_conn_get_num_connected(mbapp->block_topo, bidx, dir, 0, GKYL_CONN_ALL);
@@ -57,69 +48,73 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
     gkyl_multib_conn_get_connection(mbapp->block_topo, bidx, dir, 0, GKYL_CONN_ALL, block_list[bidx]);
   }
 
-  // Construct the local and global ranges for the allgather
-  mbf->multibz_ranges = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_range *));
-  mbf->multibz_ranges_ext = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_range *));
+  return block_list;
+}
 
-  int nghost[] = { 1, 1 ,1};
+static void
+gk_multib_field_release_connected_list(struct gkyl_gyrokinetic_multib_app *mbapp, int **block_list)
+{
+  // Release the list of connected blocks.
+  int num_blocks = mbapp->block_topo->num_blocks;
+  for (int bidx=0; bidx<num_blocks; ++bidx)
+    gkyl_free(block_list[bidx]);
+  gkyl_free(block_list);
+}
+
+static void 
+gk_multib_field_new_allgather_ranges(struct gk_multib_field *mbf, struct gkyl_gyrokinetic_multib_app *mbapp, int dir,
+  struct gkyl_range **multibz_ranges, struct gkyl_range **multibz_ranges_ext)
+{
+  // Construct the local and global ranges for the allgather along a given
+  // direction 'dir'. This function allocates 'multib_ranges' and
+  // 'multib_ranges_ext', which must be freed when releasing mbf.
+
+  // Get blocks connected along the specified direction.
+  int nconnected[mbapp->block_topo->num_blocks];
+  int **block_list = gk_multib_field_new_connected_list(mbapp, dir, nconnected);
+
+  // Construct the local and global ranges for the allgather
+  int nghost[] = {1, 1 ,1};
+  int *local_blocks = mbapp->local_blocks;
   for (int bI= 0; bI<mbf->num_local_blocks; bI++) {
     int bid = local_blocks[bI];
-    mbf->multibz_ranges[bI] = gkyl_malloc( sizeof(struct gkyl_range));
-    mbf->multibz_ranges_ext[bI] = gkyl_malloc( sizeof(struct gkyl_range));
-    gkyl_multib_comm_conn_create_multib_ranges_in_dir(mbf->multibz_ranges_ext[bI],
-        mbf->multibz_ranges[bI], nghost, nconnected[bid], block_list[bid], dir, mbapp->decomp);
+    multibz_ranges[bI] = gkyl_malloc( sizeof(struct gkyl_range));
+    multibz_ranges_ext[bI] = gkyl_malloc( sizeof(struct gkyl_range));
+    gkyl_multib_comm_conn_create_multib_ranges_in_dir(multibz_ranges_ext[bI],
+      multibz_ranges[bI], nghost, nconnected[bid], block_list[bid], dir, mbapp->decomp);
   }
 
-  // Allocate local and global arrays for charge density
-  mbf->phi_local = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
-  mbf->phi_multibz_dg = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
-  mbf->phi_multibz_smooth = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
+  gk_multib_field_release_connected_list(mbapp, block_list);
+}
 
-  mbf->rho_c_local = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
-  mbf->rho_c_multibz_dg = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
-  mbf->rho_c_multibz_smooth = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
+static void
+gk_multib_field_new_allgather_comm_conns(struct gk_multib_field *mbf, struct gkyl_gyrokinetic_multib_app *mbapp, int dir)
+{
+  // Construct the comm_conns for the allgather in a given direction.
 
-  mbf->lhs_weight_local = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
-  mbf->lhs_weight_multibz = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
-  mbf->rhs_weight_local = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
-  mbf->rhs_weight_multibz = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
+  int my_rank, num_ranks;
+  gkyl_comm_get_rank(mbapp->comm, &my_rank);
+  gkyl_comm_get_size(mbapp->comm, &num_ranks);
 
-  for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
-    struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
-    mbf->phi_local[bI] = gkyl_array_acquire(sbapp->field->phi_smooth);
-    mbf->phi_multibz_dg[bI] = mkarr(mbapp->use_gpu, 
-        sbapp->basis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
-    mbf->phi_multibz_smooth[bI] = mkarr(mbapp->use_gpu, 
-        sbapp->basis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
-
-    mbf->rho_c_local[bI] = gkyl_array_acquire(sbapp->field->rho_c);
-    mbf->rho_c_multibz_dg[bI] = mkarr(mbapp->use_gpu, 
-        sbapp->basis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
-    mbf->rho_c_multibz_smooth[bI] = mkarr(mbapp->use_gpu, 
-        sbapp->basis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
-
-    mbf->rhs_weight_local[bI] = mkarr(mbapp->use_gpu, sbapp->basis.num_basis, sbapp->local_ext.volume);
-    gkyl_array_shiftc(mbf->rhs_weight_local[bI], sqrt(pow(2,mbf->cdim)), 0); // Sets weight=1.
-    mbf->rhs_weight_multibz[bI] = mkarr(mbapp->use_gpu, 
-      sbapp->basis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
-    if (mbf->cdim == 1) {
-      mbf->lhs_weight_local[bI] = gkyl_array_acquire(sbapp->field->epsilon);
-      mbf->lhs_weight_multibz[bI] = mkarr(mbapp->use_gpu, 
-        sbapp->basis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
-    }
-    else {
-      mbf->lhs_weight_local[bI] = mkarr(mbapp->use_gpu, sbapp->basis.num_basis, sbapp->local_ext.volume);
-      gkyl_array_shiftc(mbf->lhs_weight_local[bI], sqrt(pow(2,mbf->cdim)), 0); // Sets weight=1.
-      mbf->lhs_weight_multibz[bI] = mkarr(mbapp->use_gpu, 
-        sbapp->basis.num_basis, mbf->multibz_ranges_ext[bI]->volume);
-    }
+  // Get branks (number of cuts per block)
+  int num_blocks = mbapp->block_topo->num_blocks;
+  int *branks = gkyl_malloc(sizeof(int[num_blocks]));
+  for (int i=0; i<num_blocks; ++i) {
+    const struct gkyl_block_geom_info *bgi = gkyl_block_geom_get_block(mbapp->block_geom, i);
+    branks[i] = calc_cuts(mbf->cdim, bgi->cuts);
   }
+  
+  // Get blocks connected along the specified direction.
+  int nconnected[num_blocks];
+  int **block_list = gk_multib_field_new_connected_list(mbapp, dir, nconnected);
 
   // Construct the comm_conns for the allgather
+  int nghost[] = {1, 1 ,1};
+  int rank_list[num_ranks];
   mbf->mbcc_allgatherz_send = gkyl_malloc(mbf->num_local_blocks * sizeof(struct gkyl_multib_comm_conn *));
   mbf->mbcc_allgatherz_recv = gkyl_malloc(mbf->num_local_blocks * sizeof(struct gkyl_multib_comm_conn *));
   for (int bI= 0; bI<mbf->num_local_blocks; bI++) {
-    int bid = local_blocks[bI];
+    int bid = mbapp->local_blocks[bI];
     gkyl_rrobin_decomp_getranks(mbapp->round_robin, bid, rank_list);
     int brank = -1;
     for (int i=0; i<branks[bid]; ++i)
@@ -131,21 +126,21 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
       nghost, nconnected[bid], block_list[bid], dir, mbapp->decomp);
 
     for (int ns=0; ns<mbf->mbcc_allgatherz_send[bI]->num_comm_conn; ++ns) {
-      // need to get the actual rank that owns this cut
+      // Need to get the actual rank that owns this cut.
       int rank_idx = mbf->mbcc_allgatherz_send[bI]->comm_conn[ns].rank;
       gkyl_rrobin_decomp_getranks(mbapp->round_robin, 
         mbf->mbcc_allgatherz_send[bI]->comm_conn[ns].block_id, rank_list);
       mbf->mbcc_allgatherz_send[bI]->comm_conn[ns].rank = rank_list[rank_idx];
-      // Make range the local range (a subrange of local_ext)
+      // Make range the local range (a subrange of local_ext).
       mbf->mbcc_allgatherz_send[bI]->comm_conn[ns].range = mbapp->singleb_apps[bI]->local;
     }
     for (int nr=0; nr<mbf->mbcc_allgatherz_recv[bI]->num_comm_conn; ++nr) {
-      // need to get the actual rank that owns this cut
+      // Need to get the actual rank that owns this cut.
       int rank_idx = mbf->mbcc_allgatherz_recv[bI]->comm_conn[nr].rank;
       gkyl_rrobin_decomp_getranks(mbapp->round_robin, 
         mbf->mbcc_allgatherz_recv[bI]->comm_conn[nr].block_id, rank_list);
       mbf->mbcc_allgatherz_recv[bI]->comm_conn[nr].rank = rank_list[rank_idx];
-      // Make range a subrange
+      // Make range a subrange.
       gkyl_sub_range_init(&mbf->mbcc_allgatherz_recv[bI]->comm_conn[nr].range,
         mbf->multibz_ranges_ext[bI], mbf->mbcc_allgatherz_recv[bI]->comm_conn[nr].range.lower,
         mbf->mbcc_allgatherz_recv[bI]->comm_conn[nr].range.upper);
@@ -156,36 +151,23 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
     gkyl_multib_comm_conn_sort(mbf->mbcc_allgatherz_recv[bI]);
   }
 
-  // Gather the weight along the magnetic field.
-  int stat = gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbf->num_local_blocks, 
-    mbapp->local_blocks, mbf->mbcc_allgatherz_send, mbf->mbcc_allgatherz_recv, mbf->lhs_weight_local, 
-    mbf->lhs_weight_multibz);
-  stat = gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbf->num_local_blocks, 
-    mbapp->local_blocks, mbf->mbcc_allgatherz_send, mbf->mbcc_allgatherz_recv, mbf->rhs_weight_local, 
-    mbf->rhs_weight_multibz);
+  gk_multib_field_release_connected_list(mbapp, block_list);
+  gkyl_free(branks);
+}
 
-  mbf->fem_parproj = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_fem_parproj*));
-  // Make the parallel smoother.
+static struct gkyl_range **
+gk_multib_field_new_multib_to_global_ranges(struct gk_multib_field *mbf,
+  struct gkyl_gyrokinetic_multib_app *mbapp, int dir, struct gkyl_range **multib_ranges)
+{
+  // Create ranges for copying smoothed quantity from multib to global after smoothing.
+
+  // Get blocks connected along the specified direction.
+  int nconnected[mbapp->block_topo->num_blocks];
+  int **block_list = gk_multib_field_new_connected_list(mbapp, dir, nconnected);
+
+  struct gkyl_range **parent_subranges = gkyl_malloc(mbf->num_local_blocks * sizeof(struct gkyl_range *));
   for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
-    int bid = local_blocks[bI];
-    struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
-
-    // Choose no BC for the parallel smoother, unless we are in the core in 2x
-    // in which case periodic BCs are needed.
-    enum gkyl_fem_parproj_bc_type fem_parbc = GKYL_FEM_PARPROJ_NONE;
-    const struct gkyl_block_geom_info *bgi = gkyl_block_geom_get_block(mbapp->block_geom, bid);
-    enum gkyl_tok_geo_type ftype = bgi->geometry.tok_grid_info.ftype;
-    if (mbf->cdim == 2 && (ftype == GKYL_CORE_R || ftype == GKYL_CORE_L))
-      fem_parbc = GKYL_FEM_PARPROJ_PERIODIC;
-
-    mbf->fem_parproj[bI] = gkyl_fem_parproj_new(mbf->multibz_ranges[bI],
-        &sbapp->basis, fem_parbc, mbf->lhs_weight_multibz[bI], mbf->rhs_weight_multibz[bI], mbapp->use_gpu);
-  }
-  
-  // Set intersects for copying local rho back out after smoothing.
-  mbf->parent_subrangesz = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_range *));
-  for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
-    int bid = local_blocks[bI];
+    int bid = mbapp->local_blocks[bI];
     int shift[GKYL_MAX_DIM] = {0};
     for (int i=0; i<nconnected[bid]; i++) {
       if (block_list[bid][i] == bid)
@@ -195,16 +177,29 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
     }
     struct gkyl_range shifted_parent_range;
     gkyl_range_shift(&shifted_parent_range, &mbapp->singleb_apps[bI]->global, shift);
-    mbf->parent_subrangesz[bI] = gkyl_malloc(sizeof(struct gkyl_range));
-    int inter = gkyl_sub_range_intersect(mbf->parent_subrangesz[bI],
-        mbf->multibz_ranges[bI], &shifted_parent_range);
+    parent_subranges[bI] = gkyl_malloc(sizeof(struct gkyl_range));
+    int inter = gkyl_sub_range_intersect(parent_subranges[bI],
+      multib_ranges[bI], &shifted_parent_range);
   }
 
-  // Last initialization step should be to set intersects for copying local
-  // info back out after smoothing.
-  mbf->block_subrangesz = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_range *));
+  gk_multib_field_release_connected_list(mbapp, block_list);
+
+  return parent_subranges;
+}
+
+static struct gkyl_range **
+gk_multib_field_new_multib_to_local_ranges(struct gk_multib_field *mbf,
+  struct gkyl_gyrokinetic_multib_app *mbapp, int dir, struct gkyl_range **multib_ranges)
+{
+  // Create ranges for copying smoothed quantity from multib to local after smoothing.
+
+  // Get blocks connected along the specified direction.
+  int nconnected[mbapp->block_topo->num_blocks];
+  int **block_list = gk_multib_field_new_connected_list(mbapp, dir, nconnected);
+
+  struct gkyl_range **block_subranges = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_range *));
   for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
-    int bid = local_blocks[bI];
+    int bid = mbapp->local_blocks[bI];
     int shift[GKYL_MAX_DIM] = {0};
     for (int i=0; i<nconnected[bid]; i++) {
       if (block_list[bid][i] == bid)
@@ -214,17 +209,101 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
     }
     struct gkyl_range shifted_block_range;
     gkyl_range_shift(&shifted_block_range, &mbapp->singleb_apps[bI]->local, shift);
-    mbf->block_subrangesz[bI] = gkyl_malloc(sizeof(struct gkyl_range));
-    int inter = gkyl_sub_range_intersect(mbf->block_subrangesz[bI],
-        mbf->multibz_ranges[bI], &shifted_block_range);
+    block_subranges[bI] = gkyl_malloc(sizeof(struct gkyl_range));
+    int inter = gkyl_sub_range_intersect(block_subranges[bI],
+      multib_ranges[bI], &shifted_block_range);
   }
 
-  // Free temporary memory.
-  gkyl_free(branks);
-  for (int bidx=0; bidx<num_blocks; ++bidx) {
-    gkyl_free(block_list[bidx]);
+  gk_multib_field_release_connected_list(mbapp, block_list);
+
+  return block_subranges; 
+}
+
+// Initialize multib field object
+struct gk_multib_field* 
+gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyrokinetic_multib_app *mbapp)
+{
+  struct gk_multib_field *mbf = gkyl_malloc(sizeof(struct gk_multib_field));
+
+  mbf->info = mbinp->field;
+  mbf->gkfield_id = mbf->info.gkfield_id ? mbf->info.gkfield_id : GKYL_GK_FIELD_ES;
+  mbf->num_local_blocks = mbapp->num_local_blocks;
+  mbf->cdim = mbapp->block_topo->ndim;
+
+  // Construct the local and global ranges for the allgather along z.
+  mbf->multibz_ranges = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_range *));
+  mbf->multibz_ranges_ext = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_range *));
+  gk_multib_field_new_allgather_ranges(mbf, mbapp, mbf->cdim-1, mbf->multibz_ranges, mbf->multibz_ranges_ext);
+
+  // Allocate local arrays for charge density and potential.
+  mbf->phi_local = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
+  mbf->rho_c_local = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
+  mbf->lhs_weight_local = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
+  mbf->rhs_weight_local = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
+  for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
+    struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
+    mbf->phi_local[bI] = gkyl_array_acquire(sbapp->field->phi_smooth);
+    mbf->rho_c_local[bI] = gkyl_array_acquire(sbapp->field->rho_c);
+    mbf->rhs_weight_local[bI] = mkarr(mbapp->use_gpu, sbapp->basis.num_basis, sbapp->local_ext.volume);
+    if (mbf->cdim == 1) {
+      mbf->lhs_weight_local[bI] = gkyl_array_acquire(sbapp->field->epsilon);
+    }
+    else {
+      mbf->lhs_weight_local[bI] = mkarr(mbapp->use_gpu, sbapp->basis.num_basis, sbapp->local_ext.volume);
+    }
   }
-  gkyl_free(block_list);
+
+  // Allocate global-in-z arrays for charge density and potential.
+  int num_basis = mbapp->singleb_apps[0]->basis.num_basis;
+  mbf->phi_multibz_dg = gk_multib_field_mkarr(mbapp->use_gpu, num_basis, mbf->multibz_ranges_ext, mbf->num_local_blocks);
+  mbf->phi_multibz_smooth = gk_multib_field_mkarr(mbapp->use_gpu, num_basis, mbf->multibz_ranges_ext, mbf->num_local_blocks);
+  mbf->rho_c_multibz_dg = gk_multib_field_mkarr(mbapp->use_gpu, num_basis, mbf->multibz_ranges_ext, mbf->num_local_blocks);
+  mbf->rho_c_multibz_smooth = gk_multib_field_mkarr(mbapp->use_gpu, num_basis, mbf->multibz_ranges_ext, mbf->num_local_blocks);
+  mbf->lhs_weight_multibz = gk_multib_field_mkarr(mbapp->use_gpu, num_basis, mbf->multibz_ranges_ext, mbf->num_local_blocks);
+  mbf->rhs_weight_multibz = gk_multib_field_mkarr(mbapp->use_gpu, num_basis, mbf->multibz_ranges_ext, mbf->num_local_blocks);
+
+  // Construct the comm_conns for the allgather along z.
+  gk_multib_field_new_allgather_comm_conns(mbf, mbapp, mbf->cdim-1);
+
+  // Set the smoothing local RHS weight to 1, and the LHS wright to 1 if cdim>1,
+  // and gather them along the magnetic field.
+  for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
+    struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
+    gkyl_array_shiftc(mbf->rhs_weight_local[bI], sqrt(pow(2,mbf->cdim)), 0);
+    if (mbf->cdim > 1)
+      gkyl_array_shiftc(mbf->lhs_weight_local[bI], sqrt(pow(2,mbf->cdim)), 0);
+  }
+  int stat;
+  stat = gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbf->num_local_blocks, 
+    mbapp->local_blocks, mbf->mbcc_allgatherz_send, mbf->mbcc_allgatherz_recv, mbf->lhs_weight_local, 
+    mbf->lhs_weight_multibz);
+  stat = gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbf->num_local_blocks, 
+    mbapp->local_blocks, mbf->mbcc_allgatherz_send, mbf->mbcc_allgatherz_recv, mbf->rhs_weight_local, 
+    mbf->rhs_weight_multibz);
+
+  // Create the parallel smoother.
+  mbf->fem_parproj = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_fem_parproj*));
+  for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
+    int bid = mbapp->local_blocks[bI];
+    struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
+
+    // Choose no BC for the parallel smoother, unless we are in the core in 2x
+    // in which case periodic BCs are needed.
+    enum gkyl_fem_parproj_bc_type fem_parbc = GKYL_FEM_PARPROJ_NONE;
+    const struct gkyl_block_geom_info *bgi = gkyl_block_geom_get_block(mbapp->block_geom, bid);
+    enum gkyl_tok_geo_type ftype = bgi->geometry.tok_grid_info.ftype;
+    if (mbf->cdim == 2 && (ftype == GKYL_CORE || ftype == GKYL_CORE_R || ftype == GKYL_CORE_L))
+      fem_parbc = GKYL_FEM_PARPROJ_PERIODIC;
+
+    mbf->fem_parproj[bI] = gkyl_fem_parproj_new(mbf->multibz_ranges[bI],
+      &sbapp->basis, fem_parbc, mbf->lhs_weight_multibz[bI], mbf->rhs_weight_multibz[bI], mbapp->use_gpu);
+  }
+  
+  // Create ranges for copying smoothed quantity from multib to global after smoothing.
+  mbf->parent_subrangesz = gk_multib_field_new_multib_to_global_ranges(mbf, mbapp, mbf->cdim-1, mbf->multibz_ranges);
+
+  // Create ranges for copying smoothed quantity from multib to local after smoothing.
+  mbf->block_subrangesz = gk_multib_field_new_multib_to_local_ranges(mbf, mbapp, mbf->cdim-1, mbf->multibz_ranges);
 
   return mbf;
 }
