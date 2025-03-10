@@ -760,7 +760,11 @@ int main(int argc, char **argv)
     },
 
     .source = {
-      .source_id = GKYL_PROJ_SOURCE,
+      .source_id = GKYL_BFLUX_SOURCE,
+      .source_species = "ion",
+      .evolve = true,
+      .M0_feedback_strength = 1e3,
+      
       .num_sources = 1,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -771,6 +775,10 @@ int main(int argc, char **argv)
         .ctx_temp = &ctx,
         .temp = eval_temp_ion_source,      
       }, 
+      .diagnostics = {
+        .num_diag_moments = 1,
+        .diag_moments = { "M0"},
+      },
     },
 
     .bcx = {
