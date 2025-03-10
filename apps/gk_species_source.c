@@ -84,6 +84,11 @@ double
 gk_species_source_bflux_scale(gkyl_gyrokinetic_app *app, const struct gk_species *s,
   struct gk_source *src)
 {
+  if (gkyl_dynvec_size(src->integ_diag) == 0 
+   || gkyl_dynvec_size(src->source_species->integ_diag) == 0 
+   || gkyl_dynvec_size(src->source_species->bflux_diag.intmom[0]) == 0)
+    return 1.0;
+  
   double total_outgoing_flux = 0.0;
   int num_mom         = src->source_species->bflux_diag.moms_op.num_mom; 
   int num_bonundaries = src->source_species->bflux_diag.num_boundaries;
@@ -100,20 +105,8 @@ gk_species_source_bflux_scale(gkyl_gyrokinetic_app *app, const struct gk_species
   gkyl_dynvec_getlast(src->source_species->integ_diag, init_s_diag_data);
   double current_intM0 = init_s_diag_data[0];
 
-  printf("total_source_flux = %g, initial_intM0 = %g, current_intM0 = %g\n", total_source_flux, initial_intM0, current_intM0);
-
   double restoring_force;
   restoring_force = -src->M0_feedback_strength*(current_intM0 - initial_intM0)/initial_intM0;
-  if (current_intM0 != 0.0) {
-    restoring_force = -src->M0_feedback_strength*(current_intM0 - initial_intM0)/initial_intM0;
-  } else {
-    restoring_force = 0.0;
-    total_source_flux = 1.0;
-    total_outgoing_flux = 1.0;
-  }
-
-  printf("total_source_flux = %g from integ_diag\n", total_source_flux);
-  printf("Deviation = %g\n", (current_intM0 - initial_intM0)/initial_intM0);
   return total_outgoing_flux/total_source_flux*(1.0 + restoring_force);
 }
 
@@ -229,7 +222,6 @@ gk_species_source_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_speci
 
     if (gks->src.calc_bflux) {
       double scale_factor = gk_species_source_bflux_scale(app, gks, &gks->src);
-      printf("integrated moments writing scale factor of %g\n", scale_factor);
       gkyl_array_scale(gks->src.source, scale_factor);
     }
 
