@@ -182,7 +182,7 @@ main(int argc, char **argv)
   struct gkyl_moment_species fluid = {
     .name = "iso_euler",
     .equation = iso_euler,
-    .evolve = true,
+    
     .init = evalEulerInit,
     .force_low_order_flux = true, // Use Lax fluxes.
     .ctx = &ctx,

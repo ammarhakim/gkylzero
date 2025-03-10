@@ -819,7 +819,6 @@ int main(int argc, char **argv)
   struct gkyl_gyrokinetic_field field =
   {
     .polarization_bmag = ctx.B_p, // Issue here. B0 from soloviev, so not sure what to do. Ours is not constant
-    .fem_parbc = GKYL_FEM_PARPROJ_NONE,
     .kperpSq = pow(ctx.kperp, 2.),
   };
 

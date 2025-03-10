@@ -501,7 +501,6 @@ main(int argc, char **argv)
 
   // field
   struct gkyl_gyrokinetic_field field = {
-    .fem_parbc = GKYL_FEM_PARPROJ_NONE, 
     .poisson_bcs = {
       .lo_type = { GKYL_POISSON_DIRICHLET, GKYL_POISSON_DIRICHLET },
       .up_type = { GKYL_POISSON_DIRICHLET, GKYL_POISSON_DIRICHLET },

@@ -8,6 +8,7 @@ struct gkyl_boundary_flux {
   struct gkyl_rect_grid grid; // Phase-space grid object.
   struct gkyl_range skin_r, ghost_r; // Skin and ghost ranges.
   const struct gkyl_dg_eqn *equation; // Equation object.
+  bool use_boundary_surf; // Use boundary_surf instead of boundary_flux terms.
   bool use_gpu; // Whether to run on GPU.
 
   uint32_t flags;
@@ -30,7 +31,7 @@ struct gkyl_boundary_flux {
 gkyl_boundary_flux*
 gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  const struct gkyl_dg_eqn *equation);
+  const struct gkyl_dg_eqn *equation, bool use_boundary_surf);
 
 /**
  * Compute the boundary flux on the GPU.

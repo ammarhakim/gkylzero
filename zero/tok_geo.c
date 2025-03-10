@@ -469,12 +469,6 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
         // For a single null case:
         // also set zmin_left and zmin_right 
         tok_find_endpoints(inp, geo, &arc_ctx, &pctx, psi_curr, alpha_curr, arc_memo, arc_memo_left, arc_memo_right);
-        if(ip==0 && ia==0 && ip_delta==0 && ia_delta==0){
-          if(inp->ftype==GKYL_CORE_R) 
-            printf("In right core block, bottom xpt at z = %1.16f, top at z = %1.16f\n", arc_ctx.zmin, arc_ctx.zmax);
-          if(inp->ftype==GKYL_CORE_L) 
-            printf("In left core block, bottom xpt at z = %1.16f, top at z = %1.16f\n", arc_ctx.zmin, arc_ctx.zmax);
-        }
 
         darcL = arc_ctx.arcL_tot/(up->basis.poly_order*inp->cgrid.cells[TH_IDX]) * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;
         // at the beginning of each theta loop we need to reset things

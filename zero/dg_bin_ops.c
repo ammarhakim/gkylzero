@@ -237,8 +237,8 @@ void gkyl_dg_dot_product_op_range(struct gkyl_basis basis,
 }
 
 // conf*phase multiplication.
-void gkyl_dg_mul_conf_phase_op_range(struct gkyl_basis *cbasis,
-  struct gkyl_basis *pbasis, struct gkyl_array* pout,
+void gkyl_dg_mul_conf_phase_op_range(const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, struct gkyl_array* pout,
   const struct gkyl_array* cop, const struct gkyl_array* pop,
   const struct gkyl_range *crange, const struct gkyl_range *prange)
 {
@@ -275,8 +275,8 @@ void gkyl_dg_mul_conf_phase_op_range(struct gkyl_basis *cbasis,
 }
 
 // conf*phase multiplication with accumulation to output.
-void gkyl_dg_mul_conf_phase_op_accumulate_range(struct gkyl_basis *cbasis,
-  struct gkyl_basis *pbasis, struct gkyl_array* pout, double a, 
+void gkyl_dg_mul_conf_phase_op_accumulate_range(const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, struct gkyl_array* pout, double a, 
   const struct gkyl_array* cop, const struct gkyl_array* pop,
   const struct gkyl_range *crange, const struct gkyl_range *prange)
 {
