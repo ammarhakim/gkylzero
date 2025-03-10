@@ -37,7 +37,7 @@ GKYL_CU_DH void gyrokinetic_cross_prim_moms_bgk_1x2v_ser_p2(const double betaGre
   double T2[3] = {0.0}; 
   double T3[3] = {0.0}; 
   double cVtsq[3] = {0.0}; 
-  double prod = 1.0; 
+  bool flag = false; 
 
   binop_mul_1d_ser_p2(n_s, nu_sr, msNsNusr); 
   binop_mul_1d_ser_p2(n_r, nu_rs, mrNrNurs); 
@@ -86,9 +86,9 @@ GKYL_CU_DH void gyrokinetic_cross_prim_moms_bgk_1x2v_ser_p2(const double betaGre
   vtsq_sr[2] = vtsq_s[2] + cVtsq[2]/dv; 
  
   // If vtsq_sr is negative at a corner, turn off collisions.
-  prod *= 0.7071067811865475*(2.23606797749979*vtsq_sr[2]-1.732050807568877*vtsq_sr[1]+vtsq_sr[0]); 
-  prod *= 0.7071067811865475*(2.23606797749979*vtsq_sr[2]+1.732050807568877*vtsq_sr[1]+vtsq_sr[0]); 
-  if (prod <= 0) { 
+  if (0.7071067811865475*(2.23606797749979*vtsq_sr[2]-1.732050807568877*vtsq_sr[1]+vtsq_sr[0]) < 0.0) flag = true; 
+  if (0.7071067811865475*(2.23606797749979*vtsq_sr[2]+1.732050807568877*vtsq_sr[1]+vtsq_sr[0]) < 0.0) flag = true; 
+  if (flag) { 
     upar_sr[0] = upar_s[0]; 
     vtsq_sr[0] = vtsq_s[0]; 
     upar_sr[1] = upar_s[1]; 
