@@ -198,12 +198,12 @@ gkyl_int_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_
   // set kernel pointer
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      int_three_moments_kernels = ser_int_three_moments_kernels;
-      int_four_moments_kernels = ser_int_four_moments_kernels;
-      int_hamiltonian_moments_kernels = ser_int_hamiltonian_moments_kernels;
       int_M0_kernels = ser_int_M0_kernels;
       int_M1_kernels = ser_int_M1_kernels;
       int_M2_kernels = ser_int_M2_kernels;
+      int_three_moments_kernels = ser_int_three_moments_kernels;
+      int_four_moments_kernels = ser_int_four_moments_kernels;
+      int_hamiltonian_moments_kernels = ser_int_hamiltonian_moments_kernels;
       break;
 
     default:
