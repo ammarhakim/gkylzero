@@ -253,7 +253,6 @@ dg_arraySum_blockRedAtomic_cub(const struct gkyl_array* inp, double* out, int co
 
   const double *inp_d = (const double*) inp->data;
 
-  out[0] = 0.0;
   double f = 0;
   if (linc < nCells) {
     double arr_nodal[num_nodes_max];
@@ -291,7 +290,6 @@ int comp, const struct gkyl_basis *basis, struct gkyl_range range)
   long start = gkyl_range_idx(&range, idx);
   const double* inp_d = (const double*) gkyl_array_cfetch(inp, start);
 
-  out[0] = 0.0;
   double f = 0;
   if (linc < nCells) {
     double arr_nodal[num_nodes_max];
