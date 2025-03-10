@@ -100,6 +100,8 @@ gk_species_source_bflux_scale(gkyl_gyrokinetic_app *app, const struct gk_species
   gkyl_dynvec_getlast(src->source_species->integ_diag, init_s_diag_data);
   double current_intM0 = init_s_diag_data[0];
 
+  printf("total_source_flux = %g, initial_intM0 = %g, current_intM0 = %g\n", total_source_flux, initial_intM0, current_intM0);
+
   double restoring_force;
   restoring_force = -src->M0_feedback_strength*(current_intM0 - initial_intM0)/initial_intM0;
   if (current_intM0 != 0.0) {
@@ -224,6 +226,12 @@ gk_species_source_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_speci
 
     int num_mom = gks->src.integ_moms.num_mom;
     double avals_global[num_mom];
+
+    if (gks->src.calc_bflux) {
+      double scale_factor = gk_species_source_bflux_scale(app, gks, &gks->src);
+      printf("integrated moments writing scale factor of %g\n", scale_factor);
+      gkyl_array_scale(gks->src.source, scale_factor);
+    }
 
     gk_species_moment_calc(&gks->src.integ_moms, gks->local, app->local, gks->src.source); 
     app->stat.n_mom += 1;
