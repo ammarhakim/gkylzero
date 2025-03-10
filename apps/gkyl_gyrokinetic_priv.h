@@ -1710,7 +1710,7 @@ void gk_species_source_calc(gkyl_gyrokinetic_app *app, const struct gk_species *
  * @param rhs On output, the distribution function.
  */
 void gk_species_source_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
-  struct gk_source *src, const struct gkyl_array *fin[], struct gkyl_array *rhs[]);
+  struct gk_source *src, const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
  * Write source diagnostics.

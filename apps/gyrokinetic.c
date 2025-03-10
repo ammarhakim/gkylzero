@@ -1503,7 +1503,7 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   // in case we are using boundary fluxes as a component of our source function
   for (int i=0; i<app->num_species; ++i) {
     gk_species_source_rhs(app, &app->species[i], 
-      &app->species[i].src, fin, fout);
+      &app->species[i].src, fin[i], fout[i]);
   }
 
   // Compute neutral source term.

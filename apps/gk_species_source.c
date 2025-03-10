@@ -119,16 +119,10 @@ gk_species_source_bflux_scale(gkyl_gyrokinetic_app *app, const struct gk_species
 // Compute rhs of the source.
 void
 gk_species_source_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
-  struct gk_source *src, const struct gkyl_array *fin[], struct gkyl_array *rhs[])
+  struct gk_source *src, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
   if (src->source_id) {
-    int species_idx;
-    species_idx = gk_find_species_idx(app, s->info.name);
-    double scale_factor = 1.0;
-    if (src->calc_bflux) {
-      scale_factor = gk_species_source_bflux_scale(app, s, src);
-    }
-    gkyl_array_accumulate(rhs[species_idx], scale_factor, src->source);
+    gkyl_array_accumulate(rhs, 1.0, src->source);
   }
 }
 
@@ -226,11 +220,6 @@ gk_species_source_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_speci
     int num_mom = gks->src.integ_moms.num_mom;
     double avals_global[num_mom];
 
-    if (gks->src.calc_bflux) {
-      double scale_factor = gk_species_source_bflux_scale(app, gks, &gks->src);
-      gkyl_array_scale(gks->src.source, scale_factor);
-    }
-
     gk_species_moment_calc(&gks->src.integ_moms, gks->local, app->local, gks->src.source); 
     app->stat.n_mom += 1;
 
@@ -262,6 +251,11 @@ gk_species_source_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_speci
 
     app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
     app->stat.n_diag += 1;
+
+    if (gks->src.calc_bflux) {
+      double scale_factor = gk_species_source_bflux_scale(app, gks, &gks->src);
+      gkyl_array_scale(gks->src.source, scale_factor);
+    }
   }
 }
 
