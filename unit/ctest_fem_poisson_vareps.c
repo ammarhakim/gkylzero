@@ -8,6 +8,7 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_array_reduce.h>
 #include <gkyl_fem_poisson.h>
 
 void evalFunc2x_periodicx_periodicy_sol(double t, const double *xn, double* restrict fout, void *ctx)
