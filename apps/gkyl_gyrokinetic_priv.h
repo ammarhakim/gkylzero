@@ -107,11 +107,11 @@ static const char *const valid_moment_names[] = {
   "M2perp",
   "M3par",
   "M3perp",
-  "ThreeMoments",
-  "FourMoments",
+  "ThreeMoments", // (M0, M1, M2)
+  "FourMoments", // (M0, M1, M2par, M2perp)
   "MaxwellianMoments", // internal flag for whether we are computing (n, u_par, T/m)
   "BiMaxwellianMoments", // internal flag for whether we are computing (n, u_par, T_par/m, T_perp/m)
-  "HamiltonianMoments", // Compute the H moment of f.
+  "HamiltonianMoments", // Compute the H moment of f. (M0, M1, H moment)
   "Integrated", // this is an internal flag, not for passing to moment type
 };
 
@@ -134,7 +134,7 @@ static const char *const valid_neut_moment_names[] = {
   "M2",
   "M3i",
   "M3ijk",
-  "FiveMoments",
+  "FiveMoments", // (M0, M1x, M1y, M1z, M2)
   "LTEMoments", // this is an internal flag for computing moments (n, V_drift, T/m)
                 // of the LTE (local thermodynamic equilibrium) distribution
   "Integrated", // this is an internal flag, not for passing to moment type
