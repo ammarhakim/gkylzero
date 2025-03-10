@@ -37,7 +37,7 @@ GKYL_CU_DH void gyrokinetic_cross_prim_moms_bgk_3x2v_ser_p1(const double betaGre
   double T2[8] = {0.0}; 
   double T3[8] = {0.0}; 
   double cVtsq[8] = {0.0}; 
-  bool flag = false; 
+  bool negative_cross_temp = false; 
 
   binop_mul_3d_ser_p1(n_s, nu_sr, msNsNusr); 
   binop_mul_3d_ser_p1(n_r, nu_rs, mrNrNurs); 
@@ -136,15 +136,15 @@ GKYL_CU_DH void gyrokinetic_cross_prim_moms_bgk_3x2v_ser_p1(const double betaGre
   vtsq_sr[7] = vtsq_s[7] + cVtsq[7]/dv; 
  
   // If vtsq_sr is negative at a corner, turn off collisions.
-  if (-0.25*(7.348469228349534*vtsq_sr[7]-4.242640687119286*(vtsq_sr[6]+vtsq_sr[5]+vtsq_sr[4])+2.449489742783178*(vtsq_sr[3]+vtsq_sr[2]+vtsq_sr[1])-1.414213562373095*vtsq_sr[0]) < 0.0) flag = true; 
-  if (0.25*(7.348469228349534*vtsq_sr[7]+4.242640687119286*vtsq_sr[6]-4.242640687119286*(vtsq_sr[5]+vtsq_sr[4])-2.449489742783178*(vtsq_sr[3]+vtsq_sr[2])+2.449489742783178*vtsq_sr[1]+1.414213562373095*vtsq_sr[0]) < 0.0) flag = true; 
-  if (0.25*(7.348469228349534*vtsq_sr[7]-4.242640687119286*vtsq_sr[6]+4.242640687119286*vtsq_sr[5]-4.242640687119286*vtsq_sr[4]-2.449489742783178*vtsq_sr[3]+2.449489742783178*vtsq_sr[2]-2.449489742783178*vtsq_sr[1]+1.414213562373095*vtsq_sr[0]) < 0.0) flag = true; 
-  if (-0.25*(7.348469228349534*vtsq_sr[7]+4.242640687119286*(vtsq_sr[6]+vtsq_sr[5])-4.242640687119286*vtsq_sr[4]+2.449489742783178*vtsq_sr[3]-2.449489742783178*(vtsq_sr[2]+vtsq_sr[1])-1.414213562373095*vtsq_sr[0]) < 0.0) flag = true; 
-  if (0.25*(7.348469228349534*vtsq_sr[7]-4.242640687119286*(vtsq_sr[6]+vtsq_sr[5])+4.242640687119286*vtsq_sr[4]+2.449489742783178*vtsq_sr[3]-2.449489742783178*(vtsq_sr[2]+vtsq_sr[1])+1.414213562373095*vtsq_sr[0]) < 0.0) flag = true; 
-  if (-0.25*(7.348469228349534*vtsq_sr[7]+4.242640687119286*vtsq_sr[6]-4.242640687119286*vtsq_sr[5]+4.242640687119286*vtsq_sr[4]-2.449489742783178*vtsq_sr[3]+2.449489742783178*vtsq_sr[2]-2.449489742783178*vtsq_sr[1]-1.414213562373095*vtsq_sr[0]) < 0.0) flag = true; 
-  if (-0.25*(7.348469228349534*vtsq_sr[7]-4.242640687119286*vtsq_sr[6]+4.242640687119286*(vtsq_sr[5]+vtsq_sr[4])-2.449489742783178*(vtsq_sr[3]+vtsq_sr[2])+2.449489742783178*vtsq_sr[1]-1.414213562373095*vtsq_sr[0]) < 0.0) flag = true; 
-  if (0.25*(7.348469228349534*vtsq_sr[7]+4.242640687119286*(vtsq_sr[6]+vtsq_sr[5]+vtsq_sr[4])+2.449489742783178*(vtsq_sr[3]+vtsq_sr[2]+vtsq_sr[1])+1.414213562373095*vtsq_sr[0]) < 0.0) flag = true; 
-  if (flag) { 
+  if (-0.25*(7.348469228349534*vtsq_sr[7]-4.242640687119286*(vtsq_sr[6]+vtsq_sr[5]+vtsq_sr[4])+2.449489742783178*(vtsq_sr[3]+vtsq_sr[2]+vtsq_sr[1])-1.414213562373095*vtsq_sr[0]) < 0.0) negative_cross_temp = true; 
+  if (0.25*(7.348469228349534*vtsq_sr[7]+4.242640687119286*vtsq_sr[6]-4.242640687119286*(vtsq_sr[5]+vtsq_sr[4])-2.449489742783178*(vtsq_sr[3]+vtsq_sr[2])+2.449489742783178*vtsq_sr[1]+1.414213562373095*vtsq_sr[0]) < 0.0) negative_cross_temp = true; 
+  if (0.25*(7.348469228349534*vtsq_sr[7]-4.242640687119286*vtsq_sr[6]+4.242640687119286*vtsq_sr[5]-4.242640687119286*vtsq_sr[4]-2.449489742783178*vtsq_sr[3]+2.449489742783178*vtsq_sr[2]-2.449489742783178*vtsq_sr[1]+1.414213562373095*vtsq_sr[0]) < 0.0) negative_cross_temp = true; 
+  if (-0.25*(7.348469228349534*vtsq_sr[7]+4.242640687119286*(vtsq_sr[6]+vtsq_sr[5])-4.242640687119286*vtsq_sr[4]+2.449489742783178*vtsq_sr[3]-2.449489742783178*(vtsq_sr[2]+vtsq_sr[1])-1.414213562373095*vtsq_sr[0]) < 0.0) negative_cross_temp = true; 
+  if (0.25*(7.348469228349534*vtsq_sr[7]-4.242640687119286*(vtsq_sr[6]+vtsq_sr[5])+4.242640687119286*vtsq_sr[4]+2.449489742783178*vtsq_sr[3]-2.449489742783178*(vtsq_sr[2]+vtsq_sr[1])+1.414213562373095*vtsq_sr[0]) < 0.0) negative_cross_temp = true; 
+  if (-0.25*(7.348469228349534*vtsq_sr[7]+4.242640687119286*vtsq_sr[6]-4.242640687119286*vtsq_sr[5]+4.242640687119286*vtsq_sr[4]-2.449489742783178*vtsq_sr[3]+2.449489742783178*vtsq_sr[2]-2.449489742783178*vtsq_sr[1]-1.414213562373095*vtsq_sr[0]) < 0.0) negative_cross_temp = true; 
+  if (-0.25*(7.348469228349534*vtsq_sr[7]-4.242640687119286*vtsq_sr[6]+4.242640687119286*(vtsq_sr[5]+vtsq_sr[4])-2.449489742783178*(vtsq_sr[3]+vtsq_sr[2])+2.449489742783178*vtsq_sr[1]-1.414213562373095*vtsq_sr[0]) < 0.0) negative_cross_temp = true; 
+  if (0.25*(7.348469228349534*vtsq_sr[7]+4.242640687119286*(vtsq_sr[6]+vtsq_sr[5]+vtsq_sr[4])+2.449489742783178*(vtsq_sr[3]+vtsq_sr[2]+vtsq_sr[1])+1.414213562373095*vtsq_sr[0]) < 0.0) negative_cross_temp = true; 
+  if (negative_cross_temp) { 
     upar_sr[0] = upar_s[0]; 
     vtsq_sr[0] = vtsq_s[0]; 
     upar_sr[1] = upar_s[1]; 

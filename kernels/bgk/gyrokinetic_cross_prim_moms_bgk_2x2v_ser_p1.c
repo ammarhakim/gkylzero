@@ -37,7 +37,7 @@ GKYL_CU_DH void gyrokinetic_cross_prim_moms_bgk_2x2v_ser_p1(const double betaGre
   double T2[4] = {0.0}; 
   double T3[4] = {0.0}; 
   double cVtsq[4] = {0.0}; 
-  bool flag = false; 
+  bool negative_cross_temp = false; 
 
   binop_mul_2d_ser_p1(n_s, nu_sr, msNsNusr); 
   binop_mul_2d_ser_p1(n_r, nu_rs, mrNrNurs); 
@@ -96,11 +96,11 @@ GKYL_CU_DH void gyrokinetic_cross_prim_moms_bgk_2x2v_ser_p1(const double betaGre
   vtsq_sr[3] = vtsq_s[3] + cVtsq[3]/dv; 
  
   // If vtsq_sr is negative at a corner, turn off collisions.
-  if (0.5*(3.0*vtsq_sr[3]-1.732050807568877*(vtsq_sr[2]+vtsq_sr[1])+vtsq_sr[0]) < 0.0) flag = true; 
-  if (-0.5*(3.0*vtsq_sr[3]+1.732050807568877*vtsq_sr[2]-1.732050807568877*vtsq_sr[1]-1.0*vtsq_sr[0]) < 0.0) flag = true; 
-  if (-0.5*(3.0*vtsq_sr[3]-1.732050807568877*vtsq_sr[2]+1.732050807568877*vtsq_sr[1]-1.0*vtsq_sr[0]) < 0.0) flag = true; 
-  if (0.5*(3.0*vtsq_sr[3]+1.732050807568877*(vtsq_sr[2]+vtsq_sr[1])+vtsq_sr[0]) < 0.0) flag = true; 
-  if (flag) { 
+  if (0.5*(3.0*vtsq_sr[3]-1.732050807568877*(vtsq_sr[2]+vtsq_sr[1])+vtsq_sr[0]) < 0.0) negative_cross_temp = true; 
+  if (-0.5*(3.0*vtsq_sr[3]+1.732050807568877*vtsq_sr[2]-1.732050807568877*vtsq_sr[1]-1.0*vtsq_sr[0]) < 0.0) negative_cross_temp = true; 
+  if (-0.5*(3.0*vtsq_sr[3]-1.732050807568877*vtsq_sr[2]+1.732050807568877*vtsq_sr[1]-1.0*vtsq_sr[0]) < 0.0) negative_cross_temp = true; 
+  if (0.5*(3.0*vtsq_sr[3]+1.732050807568877*(vtsq_sr[2]+vtsq_sr[1])+vtsq_sr[0]) < 0.0) negative_cross_temp = true; 
+  if (negative_cross_temp) { 
     upar_sr[0] = upar_s[0]; 
     vtsq_sr[0] = vtsq_s[0]; 
     upar_sr[1] = upar_s[1]; 
