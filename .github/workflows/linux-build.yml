@@ -5,11 +5,11 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, ready_for_review]
 
 jobs:
   build:
-
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
 
     steps:
@@ -24,12 +24,20 @@ jobs:
       run: dpkg -L liblapacke-dev    
     - name: install-deps
       run: cd install-deps; ./mkdeps.sh --build-superlu=yes; cd ..
-    - name: make
-      run: |
-        make CC=clang -j LAPACK_INC=/usr/include/x86_64-linux-gnu/openblas-pthread LAPACK_LIB="/usr/lib/x86_64-linux-gnu/liblapacke.a /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblas.a /usr/lib/x86_64-linux-gnu/openblas-pthread/liblapack.a" -j || make CC=clang -j LAPACK_INC=/usr/include/x86_64-linux-gnu/openblas-pthread LAPACK_LIB="/usr/lib/x86_64-linux-gnu/liblapacke.a /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblas.a /usr/lib/x86_64-linux-gnu/openblas-pthread/liblapack.a" -j
     - name: make (with retry)
       run: |
-        make CC=clang -j LAPACK_INC=/usr/include/x86_64-linux-gnu/openblas-pthread LAPACK_LIB="/usr/lib/x86_64-linux-gnu/liblapacke.a /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblas.a /usr/lib/x86_64-linux-gnu/openblas-pthread/liblapack.a" -j || \
-        (echo "Retrying make..." && sleep 2 && make CC=clang -j LAPACK_INC=/usr/include/x86_64-linux-gnu/openblas-pthread LAPACK_LIB="/usr/lib/x86_64-linux-gnu/liblapacke.a /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblas.a /usr/lib/x86_64-linux-gnu/openblas-pthread/liblapack.a" -j)
+        attempt=1
+        until make CC=clang -j LAPACK_INC=/usr/include/x86_64-linux-gnu/openblas-pthread \
+          LAPACK_LIB="/usr/lib/x86_64-linux-gnu/liblapacke.a /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblas.a /usr/lib/x86_64-linux-gnu/openblas-pthread/liblapack.a" -j; do
+          if [ $attempt -ge 2 ]; then
+            echo "Make failed after 2 attempts."
+            exit 1
+          fi
+          echo "Retrying make... (Attempt $((attempt+1)))"
+          attempt=$((attempt+1))
+          sleep 2
+        done
     - name: make check
       run: make CC=clang check -j LAPACK_INC=/usr/include/x86_64-linux-gnu/openblas-pthread LAPACK_LIB="/usr/lib/x86_64-linux-gnu/liblapacke.a"
+    - name: make regression
+      run: make CC=clang regression -j LAPACK_INC=/usr/include/x86_64-linux-gnu/openblas-pthread LAPACK_LIB="/usr/lib/x86_64-linux-gnu/liblapacke.a"
