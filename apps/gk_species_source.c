@@ -53,11 +53,11 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
       src_num_diag_int_moms == 0? "FourMoments" : s->info.source.diagnostics.integrated_diag_moments[0], true);
     int num_mom = s->src.integ_moms.num_mom;
     if (app->use_gpu) {
-      s->src.red_integ_diag = gkyl_cu_malloc(sizeof(double[num_mom]));
+      s->src.red_integ_diag        = gkyl_cu_malloc(sizeof(double[num_mom]));
       s->src.red_integ_diag_global = gkyl_cu_malloc(sizeof(double[num_mom]));
     } 
     else {
-      s->src.red_integ_diag = gkyl_malloc(sizeof(double[num_mom]));
+      s->src.red_integ_diag        = gkyl_malloc(sizeof(double[num_mom]));
       s->src.red_integ_diag_global = gkyl_malloc(sizeof(double[num_mom]));
     }
     // Allocate dynamic-vector to store all-reduced integrated moments.
@@ -84,11 +84,13 @@ double
 gk_species_source_bflux_scale(gkyl_gyrokinetic_app *app, const struct gk_species *s,
   struct gk_source *src)
 {
-  if (gkyl_dynvec_size(src->integ_diag) == 0 
-   || gkyl_dynvec_size(src->source_species->integ_diag) == 0 
-   || gkyl_dynvec_size(src->source_species->bflux_diag.intmom[0]) == 0)
+  int sz_integ_diag =     gkyl_dynvec_size(src->integ_diag);
+  int sz_src_integ_diag = gkyl_dynvec_size(src->source_species->integ_diag);
+  int sz_src_bflux_diag = gkyl_dynvec_size(src->source_species->bflux_diag.intmom[0]);
+
+  if (sz_integ_diag == 0 || sz_src_integ_diag == 0 || sz_src_bflux_diag == 0)
     return 1.0;
-  
+
   double total_outgoing_flux = 0.0;
   int num_mom         = src->source_species->bflux_diag.moms_op.num_mom; 
   int num_bonundaries = src->source_species->bflux_diag.num_boundaries;
@@ -97,9 +99,11 @@ gk_species_source_bflux_scale(gkyl_gyrokinetic_app *app, const struct gk_species
     gkyl_dynvec_getlast(src->source_species->bflux_diag.intmom[b], intmom_vals);
     total_outgoing_flux += intmom_vals[0];
   }
+  if (total_outgoing_flux == 0.0) return 1.0;
   double init_s_diag_data[8];
   gkyl_dynvec_getlast(src->integ_diag, init_s_diag_data);
   double total_source_flux = init_s_diag_data[0];
+  if (total_source_flux == 0.0) return 1.0; 
   gkyl_dynvec_get(src->source_species->integ_diag, 0, init_s_diag_data);
   double initial_intM0 = init_s_diag_data[0];
   gkyl_dynvec_getlast(src->source_species->integ_diag, init_s_diag_data);
@@ -107,7 +111,9 @@ gk_species_source_bflux_scale(gkyl_gyrokinetic_app *app, const struct gk_species
 
   double restoring_force;
   restoring_force = -src->M0_feedback_strength*(current_intM0 - initial_intM0)/initial_intM0;
-  return total_outgoing_flux/total_source_flux*(1.0 + restoring_force);
+
+  double scale_factor = total_outgoing_flux/total_source_flux*(1.0 + restoring_force);
+  return scale_factor;
 }
 
 // Compute rhs of the source.

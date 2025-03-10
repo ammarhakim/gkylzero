@@ -703,7 +703,11 @@ int main(int argc, char **argv)
     },
 
     .source = {
-      .source_id = GKYL_PROJ_SOURCE,
+      .source_id = GKYL_BFLUX_SOURCE,
+      .source_species = "ion",
+      .evolve = true,
+      .M0_feedback_strength = 1e3,
+      
       .num_sources = 1,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -714,6 +718,10 @@ int main(int argc, char **argv)
         .ctx_temp = &ctx,
         .temp = eval_temp_elc_source,      
       }, 
+      .diagnostics = {
+        .num_diag_moments = 1,
+        .diag_moments = { "M0"},
+      },
     },
 
     .bcx = {
@@ -722,6 +730,11 @@ int main(int argc, char **argv)
     },
     .num_diag_moments = 8,
     .diag_moments = {"BiMaxwellianMoments", "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { "FourMoments" },
+    },
   };
 
   struct gkyl_gyrokinetic_species ion = {
@@ -787,6 +800,11 @@ int main(int argc, char **argv)
     },
     .num_diag_moments = 8,
     .diag_moments = {"BiMaxwellianMoments", "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { "FourMoments" },
+    },
   };
 
   struct gkyl_gyrokinetic_field field = {
@@ -805,7 +823,7 @@ int main(int argc, char **argv)
     .rclose = 0.2, // closest R to region of interest
     .zmin = -2.0,  // Z of lower boundary
     .zmax =  2.0,  // Z of upper boundary 
-    .use_cubics = true, // use cubic splines for interpolation
+    // .use_cubics = true, // use cubic splines for interpolation
   };
 
   // GK app
