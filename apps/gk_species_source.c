@@ -105,35 +105,31 @@ gk_species_source_adapt(gkyl_gyrokinetic_app *app, const struct gk_species *s,
     memcpy(&pow_src, s->src.red_integ_m2_global, sizeof(double));
   }
   
-  fprintf(stderr, "Target power: %g\n", power);
-  double power_src_MW = pow_src*1e-6*s->info.mass;
-  fprintf(stderr, "Initial power: %g [MW]\n", power_src_MW);
-  
   // Compute the scaling factor and apply it only if initial power is nonzero.
   if (pow_src != 0.0) {
-    // first change power units from W to W/kg
+    // First change power units from W to W/kg.
     power = power/s->info.mass;
     scale_fact = power/pow_src;
     
-    // Scale the source
+    // Scale the source.
     gkyl_array_scale(source_tmp, scale_fact);
     
-  //   // Verify the final power.
-  //   gk_species_moment_calc(&s->src.integ_m2, s->local, app->local, source_tmp);
-  //   gkyl_array_reduce_range(s->src.red_integ_m2, s->src.integ_m2.marr, GKYL_SUM, &app->local);
-  //   gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, s->src.red_integ_m2, s->src.red_integ_m2_global);
+    // Verify the final power (to be removed later).
+    gk_species_moment_calc(&s->src.integ_m2, s->local, app->local, source_tmp);
+    gkyl_array_reduce_range(s->src.red_integ_m2, s->src.integ_m2.marr, GKYL_SUM, &app->local);
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, s->src.red_integ_m2, s->src.red_integ_m2_global);
     
-  //   double final_power = 0.0;
-  //   if (app->use_gpu) {
-  //     gkyl_cu_memcpy(&final_power, s->src.red_integ_m2_global, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  //   }
-  //   else {
-  //     memcpy(&final_power, s->src.red_integ_m2_global, sizeof(double));
-  //   }
-  //   double final_power_MW = final_power*1e-6*s->info.mass;
-  //   fprintf(stderr, "Final power: %g [MW]\n", final_power_MW);
-  // } else {
-  //   fprintf(stderr, "Initial power is zero, skipping scaling\n");
+    double final_power = 0.0;
+    if (app->use_gpu) {
+      gkyl_cu_memcpy(&final_power, s->src.red_integ_m2_global, sizeof(double), GKYL_CU_MEMCPY_D2H);
+    }
+    else {
+      memcpy(&final_power, s->src.red_integ_m2_global, sizeof(double));
+    }
+    double initial_power_MW = pow_src*1e-6*s->info.mass;
+    fprintf(stderr, "Initial power: %g [MW]\n", initial_power_MW);
+    double final_power_MW = final_power*1e-6*s->info.mass;
+    fprintf(stderr, "Final power: %g [MW]\n", final_power_MW);
   }
 }
 
