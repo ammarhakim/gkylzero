@@ -208,7 +208,7 @@ main(int argc, char **argv)
   struct gkyl_moment_species fluid = {
     .name = "euler",
     .equation = euler,
-    .evolve = true,
+    
     .init = evalEulerInit,
     .ctx = &ctx,
 
@@ -222,7 +222,6 @@ main(int argc, char **argv)
   struct gkyl_moment_field field = {
     .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
     
-    .evolve = true,
     .init = evalFieldInit,
     .ctx = &ctx,
   };

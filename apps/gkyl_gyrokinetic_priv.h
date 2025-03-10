@@ -1156,8 +1156,8 @@ int gk_find_neut_species_idx(const gkyl_gyrokinetic_app *app, const char *nm);
  * @param app gyrokinetic app object
  * @param s Species object 
  * @param sm Species moment object
- * @param is_integrated Whether to compute the volume integrated moment.
  * @param nm Name string indicating moment type
+ * @param is_integrated Whether to compute the volume integrated moment.
  */
 void gk_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   struct gk_species_moment *sm, const char *nm, bool is_integrated);

@@ -155,7 +155,7 @@ gk_species_bflux_rhs_diag(gkyl_gyrokinetic_app *app, const struct gk_species *sp
   for (int b=0; b<bflux->num_boundaries; ++b) {
     const struct gkyl_range *phase_ghost_r, *conf_ghost_r;
     int dir = bflux->boundaries_dir[b];
-    if (bflux->boundaries_edge[b]==GKYL_LOWER_EDGE) {
+    if (bflux->boundaries_edge[b] == GKYL_LOWER_EDGE) {
       phase_ghost_r = &species->lower_ghost[dir];
       conf_ghost_r = &app->lower_ghost[dir];
     }
@@ -164,22 +164,16 @@ gk_species_bflux_rhs_diag(gkyl_gyrokinetic_app *app, const struct gk_species *sp
       conf_ghost_r = &app->upper_ghost[dir];
     }
 
-    gkyl_array_clear_range(rhs, 0.0, conf_ghost_r);
-
     if (bflux->is_hamiltonian_intmom) {
       // Apply BC to phi so it is defined in the ghost cell.
       // Fill the ghost with the skin evaluated at the boundary.
       gkyl_bc_basic_advance(bflux->gfss_bc_op[b], bflux->bc_buffer, app->field->phi_smooth);
-
-      // Scale phi by 0.5 in the ghost cell so that the Hamiltonian moment
-      // becomes the 0.5*m*v^2+0.5*q*phi moment. Only this way does the energy
-      // balance come out reasonable.
-      gkyl_array_scale_range(app->field->phi_smooth, 0.5, conf_ghost_r);
     }
 
     // Ghost cells of the rhs array are filled with the bflux
     // This is overwritten by the boundary conditions and is not being stored,
     // it is only currently used to calculate moments for other applications.
+    gkyl_array_clear_range(rhs, 0.0, phase_ghost_r);
     gkyl_boundary_flux_advance(bflux->flux_slvr[b], fin, rhs);
 
     // Compute moments of boundary fluxes.

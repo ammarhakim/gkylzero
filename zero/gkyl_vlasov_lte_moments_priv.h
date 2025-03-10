@@ -39,9 +39,12 @@ struct gkyl_vlasov_lte_moments
     // canonical-pb model
     struct {
       struct gkyl_array *energy_moment;
+      struct gkyl_array *h_ij;
       struct gkyl_array *h_ij_inv;
       struct gkyl_array *det_h;
       struct gkyl_dg_calc_canonical_pb_vars *can_pb_vars;
+      struct gkyl_array *M1i_cov;  
+      struct gkyl_array *V_drift_cov;
     };
   };
 

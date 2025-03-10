@@ -8,6 +8,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
   fld->ndim = mom->ndim;
   double epsilon0 = fld->epsilon0 = mom_fld->epsilon0;
   double mu0 = fld->mu0 = mom_fld->mu0;
+  bool is_static = fld->is_static = mom_fld->is_static; 
 
   fld->ctx = mom_fld->ctx;
   fld->init = mom_fld->init;
@@ -192,41 +193,54 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
     }
   }
 
-  // allocate arrays for applied current/external fields
-  fld->app_current = mkarr(false, 3, app->local_ext.volume);
-  fld->t_ramp_curr = mom_fld->t_ramp_curr ? mom_fld->t_ramp_curr : 0.0;
-  fld->proj_app_current = 0;
-  if (mom_fld->app_current_func) {
-    void *ctx = fld->ctx;
-    if (mom_fld->app_current_ctx)
-      ctx = mom_fld->app_current_ctx;
-    fld->proj_app_current = gkyl_fv_proj_new(&app->grid, 2, GKYL_MOM_APP_NUM_APPLIED_CURRENT,
-      mom_fld->app_current_func, ctx);
-  }
-  
-  fld->ext_em = mkarr(false, 6, app->local_ext.volume);
-  fld->is_ext_em_static = mom_fld->is_ext_em_static;
   fld->use_explicit_em_coupling = mom_fld->use_explicit_em_coupling;
-  fld->was_ext_em_computed = false;
+
+  fld->ext_em = mkarr(false, 6, app->local_ext.volume);
+  gkyl_array_clear(fld->ext_em, 0.0);
+  fld->has_ext_em = false;
+  fld->ext_em_evolve = false;
+  fld->t_ramp_E = mom_fld->t_ramp_E ? mom_fld->t_ramp_E : 0.0;
+  // setup external electromagnetic field
+  if (mom_fld->ext_em) {
+    fld->has_ext_em = true;
+    // Only set the external field to evolve if a user asks for 
+    // dynamic external field and t_ramp_E = 0.0, otherwise
+    // we project the external field once and any variation
+    // in time is encoded linearly in t_ramp_E. 
+    if (mom_fld->ext_em_evolve && mom_fld->t_ramp_E == 0.0) {
+      fld->ext_em_evolve = mom_fld->ext_em_evolve;
+    }
+    fld->ext_em_proj = gkyl_fv_proj_new(&app->grid, 2, GKYL_MOM_APP_NUM_EXT_EM,
+      mom_fld->ext_em, mom_fld->ext_em_ctx);    
+  }  
+
+  fld->app_current = mkarr(false, 3, app->local_ext.volume);
+  gkyl_array_clear(fld->app_current, 0.0);
   if(mom_fld->use_explicit_em_coupling){
     fld->app_current1 = mkarr(false, 3, app->local_ext.volume);
+    gkyl_array_clear(fld->app_current1, 0.0);
     fld->app_current2 = mkarr(false, 3, app->local_ext.volume);
+    gkyl_array_clear(fld->app_current2, 0.0);
+  }
+  fld->has_app_current = false;
+  fld->app_current_evolve = false;
+  if (mom_fld->app_current) {
+    fld->has_app_current = true;
+    // Only set the applied current to evolve if a user asks for 
+    // dynamic applied current and t_ramp_curr = 0.0, otherwise
+    // we project the applied current once and any variation
+    // in time is encoded linearly in t_ramp_curr. 
+    if (mom_fld->app_current_evolve &&  mom_fld->t_ramp_curr == 0.0) {
+      fld->app_current_evolve = mom_fld->app_current_evolve;
+    }
+    fld->app_current_proj = gkyl_fv_proj_new(&app->grid, 2, GKYL_MOM_APP_NUM_APPLIED_CURRENT,
+      mom_fld->app_current, mom_fld->app_current_ctx);  
   }
 
   fld->has_volume_sources = mom_fld->has_volume_sources;
   fld->volume_gas_gamma = mom_fld->volume_gas_gamma;
   fld->volume_U0 = mom_fld->volume_U0;
   fld->volume_R0 = mom_fld->volume_R0;
-
-  fld->t_ramp_E = mom_fld->t_ramp_E ? mom_fld->t_ramp_E : 0.0;
-  fld->proj_ext_em = 0;
-  if (mom_fld->ext_em_func) {
-    void *ctx = fld->ctx;
-    if (mom_fld->ext_em_ctx)
-      ctx = mom_fld->ext_em_ctx;
-    fld->proj_ext_em = gkyl_fv_proj_new(&app->grid, 2, GKYL_MOM_APP_NUM_EXT_EM,
-      mom_fld->ext_em_func, ctx);
-  }
 
   // allocate buffer for applying BCs (used for periodic BCs)
   long buff_sz = 0;
@@ -301,17 +315,19 @@ moment_field_update(gkyl_moment_app *app,
   int ndim = fld->ndim;
   struct gkyl_wave_prop_status stat = { true, DBL_MAX };
 
-  for (int d=0; d<ndim; ++d) {
-    // update solution
-    stat = gkyl_wave_prop_advance(fld->slvr[d], tcurr, dt, &app->local, fld->f[d], fld->f[d+1]);
+  if (!fld->is_static) {
+    for (int d=0; d<ndim; ++d) {
+      // update solution
+      stat = gkyl_wave_prop_advance(fld->slvr[d], tcurr, dt, &app->local, fld->f[d], fld->f[d+1]);
 
-    if (!stat.success)
-      return (struct gkyl_update_status) {
-        .success = false,
-        .dt_suggested = stat.dt_suggested
-      };
-    // apply BC
-    moment_field_apply_bc(app, tcurr, fld, fld->f[d+1]);
+      if (!stat.success)
+        return (struct gkyl_update_status) {
+          .success = false,
+          .dt_suggested = stat.dt_suggested
+        };
+      // apply BC
+      moment_field_apply_bc(app, tcurr, fld, fld->f[d+1]);
+    }
   }
 
   return (struct gkyl_update_status) {
@@ -370,18 +386,20 @@ moment_field_release(const struct moment_field *fld)
     gkyl_array_release(fld->fnew);
     gkyl_array_release(fld->cflrate);
   }
-    
-  gkyl_array_release(fld->app_current);
-  if (fld->proj_app_current)
-    gkyl_fv_proj_release(fld->proj_app_current);
-  if(fld->use_explicit_em_coupling)
-    gkyl_array_release(fld->app_current1);
-  if(fld->use_explicit_em_coupling)
-    gkyl_array_release(fld->app_current2);
-  
+
   gkyl_array_release(fld->ext_em);
-  if (fld->proj_ext_em)
-    gkyl_fv_proj_release(fld->proj_ext_em);
+  if (fld->has_ext_em) {
+    gkyl_fv_proj_release(fld->ext_em_proj);
+  }  
+
+  gkyl_array_release(fld->app_current);
+  if(fld->use_explicit_em_coupling) {
+    gkyl_array_release(fld->app_current1);
+    gkyl_array_release(fld->app_current2);
+  }
+  if (fld->has_app_current) {
+    gkyl_fv_proj_release(fld->app_current_proj);
+  }
 
   gkyl_dynvec_release(fld->integ_energy);
   gkyl_array_release(fld->bc_buffer);
