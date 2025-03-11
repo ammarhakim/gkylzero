@@ -78,8 +78,8 @@ gk_multib_field_new_allgather_ranges(struct gk_multib_field *mbf, struct gkyl_gy
   int *local_blocks = mbapp->local_blocks;
   for (int bI= 0; bI<mbf->num_local_blocks; bI++) {
     int bid = local_blocks[bI];
-    multibz_ranges[bI] = gkyl_malloc( sizeof(struct gkyl_range));
-    multibz_ranges_ext[bI] = gkyl_malloc( sizeof(struct gkyl_range));
+    multibz_ranges[bI] = gkyl_malloc(sizeof(struct gkyl_range));
+    multibz_ranges_ext[bI] = gkyl_malloc(sizeof(struct gkyl_range));
     gkyl_multib_comm_conn_create_multib_ranges_in_dir(multibz_ranges_ext[bI],
       multibz_ranges[bI], nghost, nconnected[bid], block_list[bid], dir, mbapp->decomp);
   }
@@ -89,7 +89,8 @@ gk_multib_field_new_allgather_ranges(struct gk_multib_field *mbf, struct gkyl_gy
 
 static void
 gk_multib_field_new_allgather_comm_conns(struct gk_multib_field *mbf, struct gkyl_gyrokinetic_multib_app *mbapp, int dir,
-  struct gkyl_multib_comm_conn **mbcc_allgather_send, struct gkyl_multib_comm_conn **mbcc_allgather_recv)
+  struct gkyl_range **multib_ranges_ext, struct gkyl_multib_comm_conn **mbcc_allgather_send,
+  struct gkyl_multib_comm_conn **mbcc_allgather_recv)
 {
   // Construct the comm_conns for the allgather in a given direction.
 
@@ -141,7 +142,7 @@ gk_multib_field_new_allgather_comm_conns(struct gk_multib_field *mbf, struct gky
       mbcc_allgather_recv[bI]->comm_conn[nr].rank = rank_list[rank_idx];
       // Make range a subrange.
       gkyl_sub_range_init(&mbcc_allgather_recv[bI]->comm_conn[nr].range,
-        mbf->multibz_ranges_ext[bI], mbcc_allgather_recv[bI]->comm_conn[nr].range.lower,
+        multib_ranges_ext[bI], mbcc_allgather_recv[bI]->comm_conn[nr].range.lower,
         mbcc_allgather_recv[bI]->comm_conn[nr].range.upper);
     }
 
@@ -240,7 +241,8 @@ gk_multib_field_new_par_smooth(const struct gkyl_gyrokinetic_multib *mbinp,
   // Construct the comm_conns for the allgather along z.
   mbf->mbcc_allgatherz_send = gkyl_malloc(mbf->num_local_blocks * sizeof(struct gkyl_multib_comm_conn *));
   mbf->mbcc_allgatherz_recv = gkyl_malloc(mbf->num_local_blocks * sizeof(struct gkyl_multib_comm_conn *));
-  gk_multib_field_new_allgather_comm_conns(mbf, mbapp, dir, mbf->mbcc_allgatherz_send, mbf->mbcc_allgatherz_recv);
+  gk_multib_field_new_allgather_comm_conns(mbf, mbapp, dir, mbf->multibz_ranges_ext,
+    mbf->mbcc_allgatherz_send, mbf->mbcc_allgatherz_recv);
   
   // Create ranges for copying smoothed quantity from multib to global after smoothing.
   mbf->parent_subrangesz = gk_multib_field_new_multib_to_global_ranges(mbf, mbapp, dir, mbf->multibz_ranges);
@@ -371,7 +373,8 @@ gk_multib_field_new_perp_solve(const struct gkyl_gyrokinetic_multib *mbinp,
   // Construct the comm_conns for the allgather along z.
   mbf->mbcc_allgather_perp_send = gkyl_malloc(mbf->num_local_blocks * sizeof(struct gkyl_multib_comm_conn *));
   mbf->mbcc_allgather_perp_recv = gkyl_malloc(mbf->num_local_blocks * sizeof(struct gkyl_multib_comm_conn *));
-  gk_multib_field_new_allgather_comm_conns(mbf, mbapp, dir, mbf->mbcc_allgather_perp_send, mbf->mbcc_allgather_perp_recv);
+  gk_multib_field_new_allgather_comm_conns(mbf, mbapp, dir, mbf->multib_perp_ranges_ext,
+    mbf->mbcc_allgather_perp_send, mbf->mbcc_allgather_perp_recv);
   
   // Create ranges for copying smoothed quantity from multib to global.
   mbf->parent_subranges_perp = gk_multib_field_new_multib_to_global_ranges(mbf, mbapp, dir, mbf->multib_perp_ranges);
@@ -385,9 +388,9 @@ gk_multib_field_new_perp_solve(const struct gkyl_gyrokinetic_multib *mbinp,
     struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
     epsilon_local[bI] = gkyl_array_acquire(sbapp->field->epsilon);
   }
-  int stat;
-  mbf->epsilon_multib_perp = gk_multib_field_mkarr(mbapp->use_gpu, num_basis, mbf->multib_perp_ranges_ext, mbf->num_local_blocks);
-  stat = gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbf->num_local_blocks, 
+  mbf->epsilon_multib_perp = gk_multib_field_mkarr(mbapp->use_gpu, mbapp->singleb_apps[0]->field->epsilon->ncomp,
+    mbf->multib_perp_ranges_ext, mbf->num_local_blocks);
+  int stat = gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbf->num_local_blocks, 
     mbapp->local_blocks, mbf->mbcc_allgather_perp_send, mbf->mbcc_allgather_perp_recv, epsilon_local, 
     mbf->epsilon_multib_perp);
   for (int bI= 0; bI<mbf->num_local_blocks; bI++)
