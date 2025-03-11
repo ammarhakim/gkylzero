@@ -246,31 +246,43 @@ vp_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field,
 void
 vp_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *field)
 {
+  // First compute the potentials at the current time
+  const struct gkyl_array *distf[app->num_species];
+  for (int i=0; i<app->num_species; ++i) {
+    distf[i] = app->species[i].f;
+  }
+  vp_field_accumulate_charge_dens(app, app->field, distf);
+  vp_field_solve(app, app->field);  
+
   gkyl_array_integrate_advance(field->calc_es_energy, field->phi,
-    app->grid.cellVolume, field->es_energy_fac, &app->local, &app->local, field->es_energy_red);
+    1.0, field->es_energy_fac, &app->local, &app->local, field->es_energy_red);
 
   gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->es_energy_red, field->es_energy_red_global);
 
   double energy_global[1] = { 0.0 };
-  if (app->use_gpu)
+  if (app->use_gpu) {
     gkyl_cu_memcpy(energy_global, field->es_energy_red_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
-  else
+  }
+  else {
     energy_global[0] = field->es_energy_red_global[0];
-
+  }
   gkyl_dynvec_append(field->integ_energy, tm, energy_global);
 
   if (field->alpha_g > 0.0) {
     gkyl_array_integrate_advance(field->calc_es_energy, field->phi_g,
-      app->grid.cellVolume, field->es_energy_fac, &app->local, &app->local, field->grav_energy_red);
+      1.0, field->es_energy_fac, &app->local, &app->local, field->grav_energy_red);
   
     gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->grav_energy_red, field->grav_energy_red_global);
   
     double energy_grav_global[1] = { 0.0 };
-    if (app->use_gpu)
+    if (app->use_gpu) {
       gkyl_cu_memcpy(energy_grav_global, field->grav_energy_red_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
-    else
+    }
+    else {
       energy_grav_global[0] = field->grav_energy_red_global[0];
-  
+    }
+    // Scale gravitational energy by 1/alpha_g
+    energy_grav_global[0] *= 1.0/field->alpha_g; 
     gkyl_dynvec_append(field->integ_grav_energy, tm, energy_grav_global);    
   }
 }
