@@ -1336,9 +1336,9 @@ gkyl_gyrokinetic_app_calc_integrated_mom(gkyl_gyrokinetic_app* app, double tm)
 {
   for (int i=0; i<app->num_species; ++i) {
     gkyl_gyrokinetic_app_calc_species_integrated_mom(app, i, tm);
-    gkyl_gyrokinetic_app_calc_species_source_integrated_mom(app, i, tm);
     gkyl_gyrokinetic_app_calc_species_rad_integrated_mom(app, i, tm);
     gkyl_gyrokinetic_app_calc_species_boundary_flux_integrated_mom(app, i, tm);
+    gkyl_gyrokinetic_app_calc_species_source_integrated_mom(app, i, tm);
   }
 
   for (int i=0; i<app->num_neut_species; ++i) {
