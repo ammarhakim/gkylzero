@@ -10,6 +10,9 @@ gk_neut_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_specie
   // allocate moments needed for lte update
   gk_neut_species_moment_init(app, s, &lte->moms, "LTEMoments");
 
+  struct gkyl_array *g_ij = app->cdim < 3 ? app->gk_geom->g_ij_neut : app->gk_geom->g_ij; 
+  struct gkyl_array *gij = app->cdim < 3 ? app->gk_geom->gij_neut : app->gk_geom->gij; 
+
   struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = {
     .phase_grid = &s->grid,
     .vel_grid = &s->grid_vel, 
@@ -19,8 +22,8 @@ gk_neut_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_specie
     .conf_range_ext = &app->local_ext,
     .vel_range = &s->local_vel,
     .phase_range = &s->local,
-    .h_ij = app->gk_geom->g_ij,
-    .h_ij_inv = app->gk_geom->gij,
+    .h_ij = g_ij,
+    .h_ij_inv = gij,
     .det_h = app->gk_geom->jacobgeo,
     .hamil = s->hamil,
     .model_id = s->model_id,
@@ -43,8 +46,8 @@ gk_neut_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_specie
       .conf_range_ext = &app->local_ext,
       .vel_range = &s->local_vel,
       .phase_range = &s->local,
-      .h_ij = app->gk_geom->g_ij,
-      .h_ij_inv = app->gk_geom->gij,
+      .h_ij = g_ij,
+      .h_ij_inv = gij,
       .det_h = app->gk_geom->jacobgeo,
       .hamil = s->hamil,
       .model_id = s->model_id,
