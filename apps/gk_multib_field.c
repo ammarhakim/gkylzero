@@ -449,8 +449,10 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
   // Initialize objects needed for the multiblock parallel smoothing.
   gk_multib_field_new_par_smooth(mbinp, mbapp, mbf);
 
-  // Initialize objects needed for the multiblock perpendicular solve.
-  gk_multib_field_new_perp_solve(mbinp, mbapp, mbf);
+  if (mbf->cdim > 1) {
+    // Initialize objects needed for the multiblock perpendicular solve.
+    gk_multib_field_new_perp_solve(mbinp, mbapp, mbf);
+  }
 
   return mbf;
 }
@@ -592,29 +594,31 @@ gk_multib_field_release(struct gk_multib_field *mbf)
   gkyl_free(mbf->rhs_weight_multibz);
   gkyl_free(mbf->fem_parproj);
 
-  // Free memory allocated for perp solve.
-  for (int bI= 0; bI<mbf->num_local_blocks; bI++) {
-    gkyl_free(mbf->multib_perp_ranges[bI]);
-    gkyl_free(mbf->multib_perp_ranges_ext[bI]);
-    gkyl_free(mbf->parent_subranges_perp[bI]);
-    gkyl_free(mbf->block_subranges_perp[bI]);
-    gkyl_multib_comm_conn_release(mbf->mbcc_allgather_perp_send[bI]);
-    gkyl_multib_comm_conn_release(mbf->mbcc_allgather_perp_recv[bI]);
-    gkyl_array_release(mbf->phi_multib_perp[bI]);
-    gkyl_array_release(mbf->rho_c_multib_perp[bI]);
-    gkyl_array_release(mbf->epsilon_multib_perp[bI]);
-    gkyl_fem_poisson_perp_release(mbf->fem_poisson[bI]);
+  if (mbf->cdim > 1) {
+    // Free memory allocated for perp solve.
+    for (int bI= 0; bI<mbf->num_local_blocks; bI++) {
+      gkyl_free(mbf->multib_perp_ranges[bI]);
+      gkyl_free(mbf->multib_perp_ranges_ext[bI]);
+      gkyl_free(mbf->parent_subranges_perp[bI]);
+      gkyl_free(mbf->block_subranges_perp[bI]);
+      gkyl_multib_comm_conn_release(mbf->mbcc_allgather_perp_send[bI]);
+      gkyl_multib_comm_conn_release(mbf->mbcc_allgather_perp_recv[bI]);
+      gkyl_array_release(mbf->phi_multib_perp[bI]);
+      gkyl_array_release(mbf->rho_c_multib_perp[bI]);
+      gkyl_array_release(mbf->epsilon_multib_perp[bI]);
+      gkyl_fem_poisson_perp_release(mbf->fem_poisson[bI]);
+    }
+    gkyl_free(mbf->multib_perp_ranges);
+    gkyl_free(mbf->multib_perp_ranges_ext);
+    gkyl_free(mbf->parent_subranges_perp);
+    gkyl_free(mbf->block_subranges_perp);
+    gkyl_free(mbf->mbcc_allgather_perp_send);
+    gkyl_free(mbf->mbcc_allgather_perp_recv);
+    gkyl_free(mbf->phi_multib_perp);
+    gkyl_free(mbf->rho_c_multib_perp);
+    gkyl_free(mbf->epsilon_multib_perp);
+    gkyl_free(mbf->fem_poisson);
   }
-  gkyl_free(mbf->multib_perp_ranges);
-  gkyl_free(mbf->multib_perp_ranges_ext);
-  gkyl_free(mbf->parent_subranges_perp);
-  gkyl_free(mbf->block_subranges_perp);
-  gkyl_free(mbf->mbcc_allgather_perp_send);
-  gkyl_free(mbf->mbcc_allgather_perp_recv);
-  gkyl_free(mbf->phi_multib_perp);
-  gkyl_free(mbf->rho_c_multib_perp);
-  gkyl_free(mbf->epsilon_multib_perp);
-  gkyl_free(mbf->fem_poisson);
 
   gkyl_free(mbf);
 }
