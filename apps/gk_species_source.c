@@ -53,11 +53,11 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
       src_num_diag_int_moms == 0? "FourMoments" : s->info.source.diagnostics.integrated_diag_moments[0], true);
     int num_mom = s->src.integ_moms.num_mom;
     if (app->use_gpu) {
-      s->src.red_integ_diag        = gkyl_cu_malloc(sizeof(double[num_mom]));
+      s->src.red_integ_diag = gkyl_cu_malloc(sizeof(double[num_mom]));
       s->src.red_integ_diag_global = gkyl_cu_malloc(sizeof(double[num_mom]));
     } 
     else {
-      s->src.red_integ_diag        = gkyl_malloc(sizeof(double[num_mom]));
+      s->src.red_integ_diag = gkyl_malloc(sizeof(double[num_mom]));
       s->src.red_integ_diag_global = gkyl_malloc(sizeof(double[num_mom]));
     }
     // Allocate dynamic-vector to store all-reduced integrated moments.

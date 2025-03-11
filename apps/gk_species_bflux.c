@@ -228,7 +228,6 @@ gk_species_bflux_calc_integrated_mom_dynamic(gkyl_gyrokinetic_app* app,
       }
 
       gkyl_dynvec_append(bflux->intmom[b], tm, avals_global);
-
     } 
   } 
 }
