@@ -47,9 +47,6 @@ struct gkyl_gyrokinetic_projection {
       double iter_eps; // error tolerance for moment fixes (density is always exact)
       int max_iter; // maximum number of iteration
       bool use_last_converged; // use last iteration value regardless of convergence?
-
-      // optional power to adapt the source to
-      double power;
     };
   };
 };
@@ -100,6 +97,7 @@ struct gkyl_gyrokinetic_source {
   enum gkyl_source_id source_id; // type of source
   int num_sources;
   bool evolve; // Whether the source is time dependent.
+  double power; // power target of the source
 
   // sources using projection routine
   struct gkyl_gyrokinetic_projection projection[GKYL_MAX_SOURCES];

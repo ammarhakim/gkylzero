@@ -731,7 +731,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
           &app->local, &s->local, &s->local_ext, app->field->phi_smooth,
           s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
 
-        // Compute and store (in the ghost cell of of out) the boundary fluxes.
+        // Compute and store (in the ghost cell of out) the boundary fluxes.
         gk_species_bflux_rhs(app, s, &s->bflux_solver, distf[i], distf[i], 0);
       }
     }

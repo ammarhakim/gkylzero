@@ -6,6 +6,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   struct gk_source *src)
 {
   src->source_id = s->info.source.source_id;
+  src->power = s->info.source.power;
 
   if (src->source_id) {
     // Allocate source array.
@@ -55,15 +56,15 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     s->src.is_first_integ_write_call = true;
 
     // Allocate data and moment updaters for adaptive source.
-    gk_species_moment_init(app, s, &s->src.integ_m2, "M2", true);
-    num_mom = s->src.integ_m2.num_mom;
+    gk_species_moment_init(app, s, &s->src.integ_pow, "M2", true);
+    num_mom = s->src.integ_pow.num_mom;
     if (app->use_gpu){
-      s->src.red_integ_m2 = gkyl_cu_malloc(sizeof(double[num_mom]));
-      s->src.red_integ_m2_global = gkyl_cu_malloc(sizeof(double[num_mom]));
+      s->src.red_integ_pow = gkyl_cu_malloc(sizeof(double[num_mom]));
+      s->src.red_integ_pow_global = gkyl_cu_malloc(sizeof(double[num_mom]));
     }
     else {
-      s->src.red_integ_m2 = gkyl_malloc(sizeof(double[num_mom]));
-      s->src.red_integ_m2_global = gkyl_malloc(sizeof(double[num_mom]));
+      s->src.red_integ_pow = gkyl_malloc(sizeof(double[num_mom]));
+      s->src.red_integ_pow_global = gkyl_malloc(sizeof(double[num_mom]));
     }
   }
 }
@@ -76,60 +77,87 @@ gk_species_source_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s,
     struct gkyl_array *source_tmp = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
     for (int k=0; k<s->info.source.num_sources; k++) {
       gk_species_projection_calc(app, s, &src->proj_source[k], source_tmp, tm);
-      if (src->proj_source[k].power > 0.0) {
-        gk_species_source_adapt(app, s, src, source_tmp, src->proj_source[k].power);
-      }
       gkyl_array_accumulate(src->source, 1., source_tmp);
     }
     gkyl_array_release(source_tmp);
+    // if (src->power > 0.0) {
+    //   gk_species_source_adapt(app, s, src, src->power, tm);
+    // }
   }
 }
 
 void
-gk_species_source_adapt(gkyl_gyrokinetic_app *app, const struct gk_species *s,
-  struct gk_source *src, struct gkyl_array *source_tmp, double power){
+gk_species_source_adapt(gkyl_gyrokinetic_app *app){
+
+  // Compute the power loss over all species.
+  double total_power_loss = 0.0;
+  double tbflux;
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *s = &app->species[i];
+
+    double power_loss = 0.0;
+    int num_mom = s->bflux_diag.moms_op.num_mom;
+    for (int b = 0; b < s->bflux_diag.num_boundaries; ++b) {
+      if(s->bflux_diag.boundaries_dir[b] == 0 && s->bflux_diag.boundaries_edge[b] == GKYL_LOWER_EDGE) {
+        // Get the last integrated diagnostic from the boundary flux.
+        double intmom[num_mom];
+        gkyl_dynvec_getlast(s->bflux_diag.intmom[b], intmom);
+        tbflux = gkyl_dynvec_getlast_tm(s->bflux_diag.intmom[b]);
+        // Get the last element which is the energy loss (either M2 or Hamiltonian).
+        power_loss += intmom[num_mom-1];
+      }
+    }
+    total_power_loss += power_loss*s->info.mass; // Convert to W.
+  }
+  
+  // Scale the source, splitting the power loss among all species.
+  double power_loss_per_species = total_power_loss/app->num_species;
   double scale_fact = 1.0;
   double pow_src = 0.0;
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *s = &app->species[i];
+    struct gk_source *src = &s->src;
 
-  // Compute the energy input of the source with the M2 moment.
-  gk_species_moment_calc(&s->src.integ_m2, s->local, app->local, source_tmp);
-
-  // Reduce to compute sum over whole domain.
-  gkyl_array_reduce_range(s->src.red_integ_m2, s->src.integ_m2.marr, GKYL_SUM, &app->local);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, s->src.red_integ_m2, s->src.red_integ_m2_global);
-  
-  if (app->use_gpu) {
-    gkyl_cu_memcpy(&pow_src, s->src.red_integ_m2_global, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  }
-  else {
-    memcpy(&pow_src, s->src.red_integ_m2_global, sizeof(double));
-  }
-  
-  // Compute the scaling factor and apply it only if initial power is nonzero.
-  if (pow_src != 0.0) {
-    // First change power units from W to W/kg.
-    power = power/s->info.mass;
-    scale_fact = power/pow_src;
+    double target_power = s->info.source.power + power_loss_per_species;
+    // Compute the energy input of the source with the M2 moment.
+    gk_species_moment_calc(&src->integ_pow, s->local, app->local, src->source);
+    // Reduce to compute sum over whole domain.
+    gkyl_array_reduce_range(src->red_integ_pow, s->src.integ_pow.marr, GKYL_SUM, &app->local);
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, src->red_integ_pow, src->red_integ_pow_global);
     
-    // Scale the source.
-    gkyl_array_scale(source_tmp, scale_fact);
-    
-    // Verify the final power (to be removed later).
-    gk_species_moment_calc(&s->src.integ_m2, s->local, app->local, source_tmp);
-    gkyl_array_reduce_range(s->src.red_integ_m2, s->src.integ_m2.marr, GKYL_SUM, &app->local);
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, s->src.red_integ_m2, s->src.red_integ_m2_global);
-    
-    double final_power = 0.0;
     if (app->use_gpu) {
-      gkyl_cu_memcpy(&final_power, s->src.red_integ_m2_global, sizeof(double), GKYL_CU_MEMCPY_D2H);
+      gkyl_cu_memcpy(&pow_src, src->red_integ_pow_global, sizeof(double), GKYL_CU_MEMCPY_D2H);
     }
     else {
-      memcpy(&final_power, s->src.red_integ_m2_global, sizeof(double));
+      memcpy(&pow_src, src->red_integ_pow_global, sizeof(double));
     }
-    double initial_power_MW = pow_src*1e-6*s->info.mass;
-    fprintf(stderr, "Initial power: %g [MW]\n", initial_power_MW);
-    double final_power_MW = final_power*1e-6*s->info.mass;
-    fprintf(stderr, "Final power: %g [MW]\n", final_power_MW);
+    // Compute the scaling factor and apply it only if initial power is nonzero.
+    if (pow_src != 0.0) {
+      // First change power units from W to W/kg.
+      target_power = target_power/s->info.mass;
+      scale_fact = target_power/pow_src;
+      
+      // Scale the source.
+      gkyl_array_scale(src->source, scale_fact);
+      
+      // // Verify the final power (to be removed later).
+      // gk_species_moment_calc(&src->integ_pow, s->local, app->local, src->source);
+      // gkyl_array_reduce_range(src->red_integ_pow, src->integ_pow.marr, GKYL_SUM, &app->local);
+      // gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, src->red_integ_pow, src->red_integ_pow_global);
+      
+      // double final_power = 0.0;
+      // if (app->use_gpu) {
+      //   gkyl_cu_memcpy(&final_power, src->red_integ_pow_global, sizeof(double), GKYL_CU_MEMCPY_D2H);
+      // }
+      // else {
+      //   memcpy(&final_power, src->red_integ_pow_global, sizeof(double));
+      // }
+      // double initial_power_MW = pow_src*1e-6*s->info.mass;
+      // double final_power_MW = final_power*1e-6*s->info.mass;
+      // double total_power_loss_MW = total_power_loss*1e-6;
+      // fprintf(stderr, "s%d: Pow. loss (t=%.4f) %.4f [MW], Init. pow. %.4f [MW], Adapt. pow. %.4f [MW]\n", 
+      //   i, tbflux, total_power_loss_MW, initial_power_MW, final_power_MW);
+    }
   }
 }
 
@@ -268,6 +296,11 @@ gk_species_source_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_speci
 
     app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
     app->stat.n_diag += 1;
+
+    // Adapt the source.
+    if (gks->info.source.power > 0.0) {
+      gk_species_source_adapt(app);
+    }
   }
 }
 
@@ -329,14 +362,14 @@ gk_species_source_release(const struct gkyl_gyrokinetic_app *app, const struct g
       gkyl_free(src->red_integ_diag_global);
     }  
     gkyl_dynvec_release(src->integ_diag);
-    gk_species_moment_release(app, &src->integ_m2); 
+    gk_species_moment_release(app, &src->integ_pow); 
     if (app->use_gpu) {
-      gkyl_cu_free(src->red_integ_m2);
-      gkyl_cu_free(src->red_integ_m2_global);
+      gkyl_cu_free(src->red_integ_pow);
+      gkyl_cu_free(src->red_integ_pow_global);
     }
     else {
-      gkyl_free(src->red_integ_m2);
-      gkyl_free(src->red_integ_m2_global);
+      gkyl_free(src->red_integ_pow);
+      gkyl_free(src->red_integ_pow_global);
     }
   }
 }

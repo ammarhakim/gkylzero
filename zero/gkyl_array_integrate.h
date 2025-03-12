@@ -41,7 +41,7 @@ gkyl_array_integrate_new(const struct gkyl_rect_grid* grid, const struct gkyl_ba
  * @param weight Weight field we multiply by inside the integral.
  * @param range Range we'll integrate over.
  * @param weight_range Range of the weight.
- * @return out Output integral result(s). On device memory if use_gpu=true.
+ * @param out Output integral result(s). On device memory if use_gpu=true.
  */
 void gkyl_array_integrate_advance(gkyl_array_integrate *up, const struct gkyl_array *fin,
   double factor, const struct gkyl_array *weight, const struct gkyl_range *range,

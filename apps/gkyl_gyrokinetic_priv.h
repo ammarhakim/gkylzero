@@ -353,7 +353,7 @@ struct gk_bgk_collisions {
 };
 
 struct gk_boundary_fluxes {
-  struct gk_species_moment gammai[2*GKYL_MAX_CDIM]; // integrated moments
+  struct gk_species_moment gammai[2*GKYL_MAX_CDIM]; // integrated moments for particle flux
   gkyl_boundary_flux *flux_slvr[2*GKYL_MAX_CDIM]; // boundary flux solver
   // Objects used for boundary flux diagnostics.
   bool allocated_diagnostic; // Signal diagnostic objects were allocated.
@@ -366,13 +366,19 @@ struct gk_boundary_fluxes {
   struct gkyl_bc_basic *gfss_bc_op[2*GKYL_MAX_CDIM]; // Applies BCs to bmag and phi.
   struct gkyl_array *bc_buffer; // Buffer used by gfss_bc_op;
   struct gkyl_array **f, **f1, **fnew; // Boundary flux through each boundary (one for each RK stage).
-  struct gk_species_moment moms_op; // Moments calculator.
+  
+  struct gk_species_moment moms_op; // Generic moment calculator.
   struct gkyl_array_integrate *integ_op; // Operator that integrates over volume.
   double *int_moms_local, *int_moms_global; // Integrated moments in this time step.
   gkyl_dynvec intmom[2*GKYL_MAX_CDIM]; // Integrated moments of the boundary fluxes.
   double *intmom_cumm_buff; // Cummulative (in time) integrated moments of the boundary fluxes.
   bool is_first_intmom_write_call[2*GKYL_MAX_CDIM]; // Flag 1st writing of blux_intmom.
   bool is_not_first_restart_write_call; // False at first write after restart.
+  
+  // struct gk_species_moment m2_op; // M2 moment calculator.
+  // struct gkyl_array_integrate *int_m2_op; // Operator that integrates M2 over volume.
+  // double int_m2_local, int_m2_global; // Integrated M2 moments in this time step.
+
   // Function pointers to various methods.
   void (*bflux_clear_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fin, double val);
   void (*bflux_scale_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fin, double val);
@@ -512,8 +518,9 @@ struct gk_source {
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
   
-  struct gk_species_moment integ_m2; // integrated m2 for source power adaptation
-  double *red_integ_m2, *red_integ_m2_global; // for reduction of integrated m2
+  double power; // target power of the source function
+  struct gk_species_moment integ_pow; // integrated Hamiltonian for source power adaptation
+  double *red_integ_pow, *red_integ_pow_global; // for reduction of integrated Hamiltonian
 };
 
 // species data
@@ -1694,7 +1701,7 @@ void gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
  * @param src Species source object.
  * @param tm Time for use in source.
  */
-void gk_species_source_calc(gkyl_gyrokinetic_app *app, const struct gk_species *species, 
+void gk_species_source_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s, 
   struct gk_source *src, double tm);
 
 /**
@@ -1705,10 +1712,10 @@ void gk_species_source_calc(gkyl_gyrokinetic_app *app, const struct gk_species *
  * @param src Species source object.
  * @param source Source array to adapt.
  * @param power Power to adapt source the to.
+ * @param tm Time for use in source.
  */
 void
-gk_species_source_adapt(gkyl_gyrokinetic_app *app, const struct gk_species *s,
-  struct gk_source *src, struct gkyl_array *source, double power);
+gk_species_source_adapt(gkyl_gyrokinetic_app *app);
 
 /**
  * Compute RHS contribution from source.
