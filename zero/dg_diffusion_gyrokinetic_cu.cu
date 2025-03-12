@@ -79,7 +79,8 @@ dg_diffusion_gyrokinetic_set_cu_dev_ptrs(struct dg_diffusion_gyrokinetic *diffus
 
 struct gkyl_dg_eqn*
 gkyl_dg_diffusion_gyrokinetic_cu_dev_new(const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
-  bool is_diff_const, const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range)
+  bool is_diff_const, const bool *diff_in_dir, int diff_order, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range)
 {
   struct dg_diffusion_gyrokinetic* diffusion = (struct dg_diffusion_gyrokinetic*) gkyl_malloc(sizeof(struct dg_diffusion_gyrokinetic));
 
@@ -93,7 +94,8 @@ gkyl_dg_diffusion_gyrokinetic_cu_dev_new(const struct gkyl_basis *basis, const s
 
   int dirs_linidx = diffdirs_linidx(diff_in_dir, cdim);
 
-  diffusion->diff_range = *diff_range;
+  diffusion->conf_range = *conf_range;
+  diffusion->phase_range = *phase_range;
 
   diffusion->eqn.flags = 0;
   GKYL_SET_CU_ALLOC(diffusion->eqn.flags);

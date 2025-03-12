@@ -23,14 +23,16 @@ struct gkyl_dg_updater_diffusion_gyrokinetic_tm {
  * @param is_diff_constant If diffusion coefficient constant or spatially constant.
  * @param diff_in_dir Whether to apply diffusion in each direction.
  * @param diff_order Diffusion order.
- * @param diff_range Range object to index the diffusion coefficient.
+ * @param conf_range Configuration space range object.
+ * @param phase_range Phase space range object.
  * @param is_zero_flux_bc True for boundaries with zero flux BCs.
  * @param use_gpu Whether to run on host or device.
  * @return New diff updater object
  */
 struct gkyl_dg_updater_diffusion_gyrokinetic* gkyl_dg_updater_diffusion_gyrokinetic_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_basis *cbasis, bool is_diff_const, const bool *diff_in_dir,
-  int diff_order, const struct gkyl_range *diff_range, const bool *is_zero_flux_bc, bool use_gpu);
+  int diff_order, const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, const bool *is_zero_flux_bc,
+  bool use_gpu);
 
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the

@@ -922,7 +922,7 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
     }
 
     gks->diff_slvr = gkyl_dg_updater_diffusion_gyrokinetic_new(&gks->grid, &gks->basis, &app->basis, 
-      false, diff_dir, diffusion_order, &app->local, is_zero_flux, app->use_gpu);
+      false, diff_dir, diffusion_order, &app->local, &gks->local, is_zero_flux, app->use_gpu);
   }
   
   // Allocate buffer needed for BCs.

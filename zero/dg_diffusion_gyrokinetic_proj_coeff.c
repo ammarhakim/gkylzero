@@ -21,8 +21,8 @@ gkyl_dg_diffusion_gyrokinetic_proj_coeff_new(int cdim, struct gkyl_basis pbasis,
   // and d/dx(chi*n*dT/dx) terms.
   double nu[3], xi[3];
   for (int d=0; d<cdim; d++) {
-    nu[d] = (3.0*D[d] - chi[d])/3.0;
-    xi[d] = chi[d]/(9.0 * up->nu[d]);
+    nu[d] = (2.0/7.0)*(5.0*D[d] - chi[d]);
+    xi[d] = (2.0/7.0)*(2.0*chi[d] - 3.0*D[d])/(6.0*nu[d]);
   }
 
   if (!use_gpu) {

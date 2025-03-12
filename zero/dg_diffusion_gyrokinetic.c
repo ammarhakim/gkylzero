@@ -36,17 +36,16 @@ gkyl_dg_diffusion_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struc
   struct dg_diffusion_gyrokinetic *diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
   diffusion->auxfields.D = auxin.D;
   diffusion->auxfields.jacobgeo_inv = auxin.jacobgeo_inv;
-  diffusion->auxfields.phase_range = auxin.phase_range;
 }
 
 struct gkyl_dg_eqn*
 gkyl_dg_diffusion_gyrokinetic_new(const struct gkyl_basis *basis,
   const struct gkyl_basis *cbasis, bool is_diff_const, const bool *diff_in_dir,
-  int diff_order, const struct gkyl_range *diff_range, bool use_gpu)
+  int diff_order, const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_dg_diffusion_gyrokinetic_cu_dev_new(basis, cbasis, is_diff_const, diff_in_dir, diff_order, diff_range);
+    return gkyl_dg_diffusion_gyrokinetic_cu_dev_new(basis, cbasis, is_diff_const, diff_in_dir, diff_order, conf_range, phase_range);
 #endif
   
   struct dg_diffusion_gyrokinetic *diffusion = gkyl_malloc(sizeof(struct dg_diffusion_gyrokinetic));
@@ -108,8 +107,8 @@ gkyl_dg_diffusion_gyrokinetic_new(const struct gkyl_basis *basis,
 
   diffusion->auxfields.D = 0;
   diffusion->auxfields.jacobgeo_inv = 0;
-  diffusion->auxfields.phase_range = 0;
-  diffusion->diff_range = *diff_range;
+  diffusion->conf_range = *conf_range;
+  diffusion->phase_range = *phase_range;
 
   diffusion->eqn.flags = 0;
   diffusion->eqn.ref_count = gkyl_ref_count_init(gkyl_dg_diffusion_gyrokinetic_free);

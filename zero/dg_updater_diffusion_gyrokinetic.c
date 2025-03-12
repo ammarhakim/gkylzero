@@ -19,8 +19,8 @@ gkyl_dg_updater_diffusion_gyrokinetic_acquire_eqn(const struct gkyl_dg_updater_d
 struct gkyl_dg_updater_diffusion_gyrokinetic*
 gkyl_dg_updater_diffusion_gyrokinetic_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_basis *cbasis, bool is_diff_const, 
-  const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range,
-  const bool *is_zero_flux_bc, bool use_gpu)
+  const bool *diff_in_dir, int diff_order, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range, const bool *is_zero_flux_bc, bool use_gpu)
 {
   struct gkyl_dg_updater_diffusion_gyrokinetic *up = gkyl_malloc(sizeof(struct gkyl_dg_updater_diffusion_gyrokinetic));
 
@@ -31,7 +31,7 @@ gkyl_dg_updater_diffusion_gyrokinetic_new(const struct gkyl_rect_grid *grid,
   for (int d=0; d<cdim; d++) is_dir_diffusive[d] = diff_in_dir==NULL? true : diff_in_dir[d];
 
   up->dgeqn = gkyl_dg_diffusion_gyrokinetic_new(basis, cbasis, is_diff_const, is_dir_diffusive,
-                                                diff_order, diff_range, up->use_gpu);
+    diff_order, conf_range, phase_range, up->use_gpu);
 
   int num_up_dirs = 0;
   for (int d=0; d<cdim; d++) num_up_dirs += is_dir_diffusive[d]? 1 : 0;
@@ -61,7 +61,7 @@ gkyl_dg_updater_diffusion_gyrokinetic_advance(struct gkyl_dg_updater_diffusion_g
   struct timespec wst = gkyl_wall_clock();
   // Set arrays needed and call the specific advance method required
   gkyl_dg_diffusion_gyrokinetic_set_auxfields(up->dgeqn, (struct gkyl_dg_diffusion_gyrokinetic_auxfields) {
-    .D = coeff, .jacobgeo_inv = jacobgeo_inv, .phase_range = update_rng });
+    .D = coeff, .jacobgeo_inv = jacobgeo_inv});
   gkyl_hyper_dg_advance(up->hyperdg, update_rng, fIn, cflrate, rhs);
   up->diffusion_tm += gkyl_time_diff_now_sec(wst);
 }

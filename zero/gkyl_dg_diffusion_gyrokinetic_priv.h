@@ -39,16 +39,16 @@ struct dg_diffusion_gyrokinetic {
   struct gkyl_dg_eqn eqn;
   diffusion_surf_t surf[GKYL_MAX_CDIM];
   diffusion_boundary_surf_t boundary_surf[GKYL_MAX_CDIM];
-  struct gkyl_range diff_range;
+  struct gkyl_range conf_range, phase_range;
   struct gkyl_dg_diffusion_gyrokinetic_auxfields auxfields;
   bool const_coeff;
   bool diff_in_dir[GKYL_MAX_CDIM];
   int num_basis;
 };
 
-#define _cfD(idx) diffusion->const_coeff? (const double *) gkyl_array_cfetch(diffusion->auxfields.D, 0) : (const double *) gkyl_array_cfetch(diffusion->auxfields.D, gkyl_range_idx(diffusion->auxfields.phase_range, idx))
+#define _cfD(idx) diffusion->const_coeff? (const double *) gkyl_array_cfetch(diffusion->auxfields.D, 0) : (const double *) gkyl_array_cfetch(diffusion->auxfields.D, gkyl_range_idx(&diffusion->phase_range, idx))
 
-#define _cfJacInv(idx) (const double *) gkyl_array_cfetch(diffusion->auxfields.jacobgeo_inv, gkyl_range_idx(&diffusion->diff_range, idx))
+#define _cfJacInv(idx) (const double *) gkyl_array_cfetch(diffusion->auxfields.jacobgeo_inv, gkyl_range_idx(&diffusion->conf_range, idx))
 
 // for use in kernel tables
 typedef struct { vol_termf_t kernels[7]; } gkyl_dg_diffusion_gyrokinetic_vol_kern_list_diffdir;
@@ -788,11 +788,13 @@ void gkyl_dg_diffusion_gyrokinetic_free(const struct gkyl_ref_count* ref);
  * @param is_diff_constant If diffusion coefficient spatially constant.
  * @param diff_in_dir Whether to apply diffusion in each direction.
  * @param diff_order Diffusion order.
- * @param diff_range Range object to index the diffusion coefficient.
+ * @param conf_range Configuration space range object.
+ * @param phase_range Phase space range object.
  * @param use_gpu Whether to run on host or device.
  * @return Pointer to diffusion equation object
  */
 struct gkyl_dg_eqn*
 gkyl_dg_diffusion_gyrokinetic_cu_dev_new(const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
-  bool is_diff_const, const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range);
+  bool is_diff_const, const bool *diff_in_dir, int diff_order, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range);
 #endif
