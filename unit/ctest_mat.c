@@ -414,6 +414,10 @@ void test_mat_mv()
   for (size_t j=0; j<y->nc; ++j)
     for (size_t i=0; i<y->nr; ++i)
       TEST_CHECK ( 8 == gkyl_mat_get(y, i, j) );
+
+  gkyl_mat_release(A);
+  gkyl_mat_release(x);
+  gkyl_mat_release(y);
 }
 
 void test_nmat_mv()
@@ -465,7 +469,9 @@ void test_nmat_mv()
         TEST_CHECK ( expected == gkyl_mat_get(&y, i, j) );
   }
 
-
+  gkyl_nmat_release(nmat_A);
+  gkyl_nmat_release(nmat_x);
+  gkyl_nmat_release(nmat_y);
 }
 
 void test_nmat_mm()
@@ -516,6 +522,10 @@ void test_nmat_mm()
       for (size_t i=0; i<y.nr; ++i)
         TEST_CHECK ( expected == gkyl_mat_get(&y, i, j) );
   }
+
+  gkyl_nmat_release(nmat_A);
+  gkyl_nmat_release(nmat_x);
+  gkyl_nmat_release(nmat_y);  
 }
 
 
@@ -570,6 +580,7 @@ void test_mat_mm_arrays()
       TEST_CHECK ( expected == actual );
     }
   }
+
   gkyl_array_release(array_x);
   gkyl_array_release(array_y);
   gkyl_mat_mm_array_mem_release(ctest_prob_mem);
