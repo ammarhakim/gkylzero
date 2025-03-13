@@ -84,7 +84,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         // Compute the fields and apply BCs.
         gyrokinetic_calc_field_and_apply_bc(app, tcurr, fout, fout_neut);
 
-        state = RK_STAGE_2;
+        state = RK_COMPLETE;
         break;
 
       case RK_STAGE_2:

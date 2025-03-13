@@ -13,9 +13,14 @@ GKYL_CU_DH void ambi_bolt_potential_sheath_calc_lower_1x_ser_p1(double sheathDir
 
   double GammaJacIonB[1];
   GammaJacIonB[0] = 0.6123724356957944*GammaJac_i[1]*sheathDirDx+0.3535533905932737*GammaJac_i[0]*sheathDirDx; 
+  double jacInvSurf = jacInv[0]/sqrt(2.0)-jacInv[1]*sqrt(3.0/2.0);
+  printf("jacInv = %.9e\n",jacInvSurf);
+  printf("GammaJacIonB = %.9e\n",GammaJacIonB[0]/2.0);
+  printf("GammaIonB = %.9e\n",(GammaJacIonB[0]/2.0) * jacInvSurf);
 
   double m0JacIonB[1];
   m0JacIonB[0] = 0.7071067811865475*m0JacIon[0]-1.224744871391589*m0JacIon[1]; 
+  printf("m0JacIonB = %.9e\n",m0JacIonB[0]);
 
   // Particle number density evaluate at the sheath entrance
   out[0] = 0.5*((1.414213562373095*jacInv[1]-2.449489742783178*jacInv[0])*m0JacIon[1]+m0JacIon[0]*(1.414213562373095*jacInv[0]-2.449489742783178*jacInv[1])); 
@@ -29,6 +34,7 @@ GKYL_CU_DH void ambi_bolt_potential_sheath_calc_lower_1x_ser_p1(double sheathDir
 
   // Sheath potential
   out[2] = 1.414213562373095*phiS_qp[0]; 
+  printf("phi_s = %.9e\n",out[2]);
 
 }
 
