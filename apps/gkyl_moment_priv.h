@@ -14,6 +14,7 @@
 #include <gkyl_app_priv.h>
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_comm.h>
 #include <gkyl_comm_io.h>
