@@ -200,32 +200,40 @@ void temp_ion_src(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRI
 // Ion initial conditions
 void density_init(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
+  double z = xn[0];
+
   struct gk_app_ctx *app = ctx;
   double Lz = app->Lz;
   double mi = app->mi;
 
-  double z = xn[0];
-  double Ls = Lz/4.;
-  double xn0[] = {0.};
-  double n_src0[1];
-  density_src(t,xn0,n_src0,ctx);
-  double effSrc  = n_src0[0];
-  double eV = GKYL_ELEMENTARY_CHARGE;
-  double Te_src  = 410*eV;
-  double c_ss    = sqrt(5./3.*Te_src/mi);
-  double nPeak   = 89.*sqrt(5.)/3./c_ss*Ls*effSrc/2.;
-  double perturb = 0.;
-  if (fabs(z) <= Ls) {
-    fout[0] = nPeak*(1.+sqrt(1.-pow(z/Ls,2)))/2.*(1.+perturb);
-  } else {
-    fout[0] = nPeak/2.*(1.+perturb);
-  }
+//  double Ls = Lz/4.;
+//  double xn0[] = {0.};
+//  double n_src0[1];
+//  density_src(t,xn0,n_src0,ctx);
+//  double effSrc  = n_src0[0];
+//  double eV = GKYL_ELEMENTARY_CHARGE;
+//  double Te_src  = 410*eV;
+//  double c_ss    = sqrt(5./3.*Te_src/mi);
+//  double nPeak   = 89.*sqrt(5.)/3./c_ss*Ls*effSrc/2.;
+//  double perturb = 0.;
+//  if (fabs(z) <= Ls) {
+//    fout[0] = nPeak*(1.+sqrt(1.-pow(z/Ls,2)))/2.*(1.+perturb);
+//  } else {
+//    fout[0] = nPeak/2.*(1.+perturb);
+//  }
+  fout[0] = app->n0;
 }
 void upar_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct gk_app_ctx *app = ctx;
   double z = xn[0];
-  fout[0] = 0.0;
+
+  struct gk_app_ctx *app = ctx;
+  double mi = app->mi;
+  double Ti0 = app->Ti0;
+  double Te0 = app->Te0;
+  double c_s = sqrt(Te0/mi);
+  double Lz = app->Lz;
+  fout[0] = c_s*z/(Lz/2.0);
 }
 void temp_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
@@ -326,6 +334,15 @@ create_ctx(void)
   double omega_ci = fabs(qi*B0/mi);
   double rho_s = c_s/omega_ci;
 
+  printf("n0 = %.9e\n",n0);
+  printf("c_s = %.9e\n",c_s);
+  printf("n0*c_s = %.9e\n",n0*c_s);
+  printf("dualmag at lower boundary = %.9e\n",9.816700996177508/sqrt(2.0)-0.0174597545908838*sqrt(3.0/2.0));
+  double n_lo = 2.517300141024113e+18/sqrt(2.0)-(-4.389301581069399e+01)*sqrt(3.0/2.0);
+  double upar_lo = -179348.1959113112 /sqrt(2.0)-     1580.214288459291*sqrt(3.0/2.0);
+  printf("n at lower boundary = %.9e\n",n_lo);
+  printf("upar at lower boundary = %.9e\n",upar_lo);
+  printf("n*upar at lower boundary = %.9e\n",n_lo*upar_lo);
   // Source parameters
   double n_src = 1.95e22;
   double Ti_src = 40*eV;
@@ -339,7 +356,7 @@ create_ctx(void)
   double vpar_max_ion = 4.*vti;
   double mu_max_ion = mi*pow(1.5*4*vti,2)/(2*B0);
 
-  double t_end = 8.0e-6;
+  double t_end = 2.83391e-08; //8.0e-6;
   int num_frames = 1;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -481,8 +498,8 @@ int main(int argc, char **argv)
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
     },
 
-    .num_diag_moments = 5,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+    .num_diag_moments = 6,
+    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "MaxwellianMoments" },
   };
 
   // field
