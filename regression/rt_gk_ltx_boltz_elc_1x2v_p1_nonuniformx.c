@@ -274,6 +274,15 @@ void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
   xp[0] = X; xp[1] = Y; xp[2] = Z;
 }
 
+
+static inline void
+nonuniform_position_map_z(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void* ctx)
+{
+  struct gk_app_ctx *app = ctx;
+  double z = zc[0];
+  xp[0] = z + 0.6 * sin(z * M_PI/(app->Lz/2));
+}
+
 void bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
@@ -337,10 +346,10 @@ create_ctx(void)
   printf("n0 = %.9e\n",n0);
   printf("c_s = %.9e\n",c_s);
   printf("n0*c_s = %.9e\n",n0*c_s);
-  double dualmag_lower_boundary = 9.816700996177508/sqrt(2.0)-(0.0174597545908838)*sqrt(3.0/2.0);
+  double dualmag_lower_boundary = 2.8428357571403791e+02/sqrt(2.0)-(-1.1025433383729581e+01)*sqrt(3.0/2.0);
   printf("dualmag at lower boundary = %.9e\n",dualmag_lower_boundary);
-  double n_lo = 2.517300141024113e+18/sqrt(2.0)-(-61.562467584685216)*sqrt(3.0/2.0);
-  double upar_lo = -179348.1959113112 /sqrt(2.0)-     1580.214288459291*sqrt(3.0/2.0);
+  double n_lo = (2.5173001410241147e+18)/sqrt(2.0)-(-209.69156679963035)*sqrt(3.0/2.0);
+  double upar_lo = (-181990.34406614758)/sqrt(2.0)-(53.283723595557646)*sqrt(3.0/2.0);
   printf("n at lower boundary = %.9e\n",n_lo);
   printf("upar at lower boundary = %.9e\n",upar_lo);
   printf("Expected flux at lower boundary = %.9e\n",n_lo*upar_lo);
@@ -514,7 +523,7 @@ int main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk gk = {
-    .name = "gk_ltx_boltz_elc_1x2v_p1",
+    .name = "gk_ltx_boltz_elc_1x2v_p1_nonuniformx",
 
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { ctx.z_min },
@@ -529,7 +538,11 @@ int main(int argc, char **argv)
       .mapc2p = mapc2p, // mapping of computational to physical space
       .c2p_ctx = &ctx,
       .bmag_func = bmag_func, // magnetic field magnitude
-      .bmag_ctx = &ctx
+      .bmag_ctx = &ctx,
+      .position_map_info = {
+        .maps[2] = nonuniform_position_map_z,
+        .ctxs[2] = &ctx,
+      },
     },
 
     .num_periodic_dir = 0,
