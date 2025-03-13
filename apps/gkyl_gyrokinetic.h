@@ -99,6 +99,7 @@ struct gkyl_gyrokinetic_source {
   bool evolve; // Whether the source is time dependent.
 
   // Boundary flux source terms
+  double M0_target;
   double M0_feedback_strength;
   char source_species[128];
 

@@ -16,6 +16,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
       assert(s->info.source.source_species);
       src->source_species = gk_find_species(app, s->info.source.source_species);
       src->source_species_idx = gk_find_species_idx(app, s->info.source.source_species);
+      src->source_species->M0_target = s->info.source.M0_target ? s->info.source.M0_target : 0;
     }
 
     // Allocate source array.
@@ -84,33 +85,29 @@ double
 gk_species_source_bflux_scale(gkyl_gyrokinetic_app *app, const struct gk_species *s,
   struct gk_source *src)
 {
-  int sz_integ_diag =     gkyl_dynvec_size(src->integ_diag);
-  int sz_src_integ_diag = gkyl_dynvec_size(src->source_species->integ_diag);
-  int sz_src_bflux_diag = gkyl_dynvec_size(src->source_species->bflux_diag.intmom[0]);
-
-  if (sz_integ_diag == 0 || sz_src_integ_diag == 0 || sz_src_bflux_diag == 0)
-    return 1.0;
-
+  bool has_data = true;
   double total_outgoing_flux = 0.0;
   int num_mom         = src->source_species->bflux_diag.moms_op.num_mom; 
   int num_bonundaries = src->source_species->bflux_diag.num_boundaries;
   double intmom_vals[num_mom];
   for (int b=0; b < num_bonundaries; ++b) {
-    gkyl_dynvec_getlast(src->source_species->bflux_diag.intmom[b], intmom_vals);
+    has_data = gkyl_dynvec_getlast(src->source_species->bflux_diag.intmom[b], intmom_vals);
+    if (!has_data) return 1.0;
     total_outgoing_flux += intmom_vals[0];
   }
   if (total_outgoing_flux == 0.0) return 1.0;
   double init_s_diag_data[8];
-  gkyl_dynvec_getlast(src->integ_diag, init_s_diag_data);
+  has_data = gkyl_dynvec_getlast(src->integ_diag, init_s_diag_data);
+  if (!has_data) return 1.0;
   double total_source_flux = init_s_diag_data[0];
-  if (total_source_flux == 0.0) return 1.0; 
-  gkyl_dynvec_get(src->source_species->integ_diag, 0, init_s_diag_data);
-  double initial_intM0 = init_s_diag_data[0];
-  gkyl_dynvec_getlast(src->source_species->integ_diag, init_s_diag_data);
+  
+  double target_M0 = src->source_species->M0_target;
+  has_data = gkyl_dynvec_getlast(src->source_species->integ_diag, init_s_diag_data);
+  if (!has_data) return 1.0;
   double current_intM0 = init_s_diag_data[0];
 
   double restoring_force;
-  restoring_force = -src->M0_feedback_strength*(current_intM0 - initial_intM0)/initial_intM0;
+  restoring_force = -src->M0_feedback_strength*(current_intM0 - target_M0)/target_M0;
 
   double scale_factor = total_outgoing_flux/total_source_flux*(1.0 + restoring_force);
   return scale_factor;
