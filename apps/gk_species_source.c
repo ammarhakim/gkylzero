@@ -56,7 +56,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     s->src.is_first_integ_write_call = true;
 
     // Allocate data and moment updaters for adaptive source.
-    gk_species_moment_init(app, s, &s->src.integ_pow, "M2", true);
+    gk_species_moment_init(app, s, &s->src.integ_pow, "HamiltonianMoments", true);
     num_mom = s->src.integ_pow.num_mom;
     if (app->use_gpu){
       s->src.red_integ_pow = gkyl_cu_malloc(sizeof(double[num_mom]));
@@ -117,20 +117,22 @@ gk_species_source_adapt(gkyl_gyrokinetic_app *app){
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
     struct gk_source *src = &s->src;
-
+    int num_mom = src->integ_pow.num_mom;
+    double avals_global[num_mom];
     double target_power = s->info.source.power + power_loss_per_species;
-    // Compute the energy input of the source with the M2 moment.
+    // Compute the energy input of the source with the Hamiltonian moment.
     gk_species_moment_calc(&src->integ_pow, s->local, app->local, src->source);
     // Reduce to compute sum over whole domain.
     gkyl_array_reduce_range(src->red_integ_pow, s->src.integ_pow.marr, GKYL_SUM, &app->local);
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, src->red_integ_pow, src->red_integ_pow_global);
-    
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
+      src->red_integ_pow, src->red_integ_pow_global);
     if (app->use_gpu) {
-      gkyl_cu_memcpy(&pow_src, src->red_integ_pow_global, sizeof(double), GKYL_CU_MEMCPY_D2H);
+      gkyl_cu_memcpy(avals_global, src->red_integ_pow_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
     }
     else {
-      memcpy(&pow_src, src->red_integ_pow_global, sizeof(double));
+      memcpy(avals_global, src->red_integ_pow_global, sizeof(double[num_mom]));
     }
+    pow_src = avals_global[num_mom-1]; // take the last moment, M2 or Hamiltonian.
     // Compute the scaling factor and apply it only if initial power is nonzero.
     if (pow_src != 0.0) {
       // First change power units from W to W/kg.
