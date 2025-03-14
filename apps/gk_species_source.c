@@ -8,6 +8,17 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   src->source_id = s->info.source.source_id;
 
   if (src->source_id) {
+    int vdim = app->vdim;  
+    src->calc_bflux = false;
+    if (src->source_id == GKYL_BFLUX_SOURCE) {
+      src->calc_bflux = true;
+      src->M0_feedback_strength = s->info.source.M0_feedback_strength ? s->info.source.M0_feedback_strength : 0;
+      assert(s->info.source.source_species);
+      src->source_species = gk_find_species(app, s->info.source.source_species);
+      src->source_species_idx = gk_find_species_idx(app, s->info.source.source_species);
+      src->source_species->M0_target = s->info.source.M0_target ? s->info.source.M0_target : 0;
+    }
+
     // Allocate source array.
     src->source = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
     src->source_host = src->source;
@@ -68,6 +79,38 @@ gk_species_source_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s,
     }
     gkyl_array_release(source_tmp);
   }
+}
+
+double
+gk_species_source_bflux_scale(gkyl_gyrokinetic_app *app, const struct gk_species *s,
+  struct gk_source *src)
+{
+  bool has_data = true;
+  double total_outgoing_flux = 0.0;
+  int num_mom         = src->source_species->bflux_diag.moms_op.num_mom; 
+  int num_bonundaries = src->source_species->bflux_diag.num_boundaries;
+  double intmom_vals[num_mom];
+  for (int b=0; b < num_bonundaries; ++b) {
+    has_data = gkyl_dynvec_getlast(src->source_species->bflux_diag.intmom[b], intmom_vals);
+    if (!has_data) return 1.0;
+    total_outgoing_flux += intmom_vals[0];
+  }
+  if (total_outgoing_flux == 0.0) return 1.0;
+  double init_s_diag_data[8];
+  has_data = gkyl_dynvec_getlast(src->integ_diag, init_s_diag_data);
+  if (!has_data) return 1.0;
+  double total_source_flux = init_s_diag_data[0];
+  
+  double target_M0 = src->source_species->M0_target;
+  has_data = gkyl_dynvec_getlast(src->source_species->integ_diag, init_s_diag_data);
+  if (!has_data) return 1.0;
+  double current_intM0 = init_s_diag_data[0];
+
+  double restoring_force;
+  restoring_force = -src->M0_feedback_strength*(current_intM0 - target_M0)/target_M0;
+
+  double scale_factor = total_outgoing_flux/total_source_flux*(1.0 + restoring_force);
+  return scale_factor;
 }
 
 // Compute rhs of the source.
@@ -205,6 +248,11 @@ gk_species_source_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_speci
 
     app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
     app->stat.n_diag += 1;
+
+    if (gks->src.calc_bflux) {
+      double scale_factor = gk_species_source_bflux_scale(app, gks, &gks->src);
+      gkyl_array_scale(gks->src.source, scale_factor);
+    }
   }
 }
 
