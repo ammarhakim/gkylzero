@@ -90,76 +90,82 @@ void
 gk_species_source_adapt(gkyl_gyrokinetic_app *app){
 
   // Compute the power loss over all species.
-  double total_power_loss = 0.0;
-  double tbflux;
+  double power_loss = 0.0;
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
-
-    double power_loss = 0.0;
     int num_mom = s->bflux_diag.moms_op.num_mom;
+    
+    double power_loss_s = 0.0;
     for (int b = 0; b < s->bflux_diag.num_boundaries; ++b) {
       if(s->bflux_diag.boundaries_dir[b] == 0 && s->bflux_diag.boundaries_edge[b] == GKYL_LOWER_EDGE) {
-        // Get the last integrated diagnostic from the boundary flux.
         double intmom[num_mom];
+        // We do not want to do that (diag freq dependent)
         gkyl_dynvec_getlast(s->bflux_diag.intmom[b], intmom);
-        tbflux = gkyl_dynvec_getlast_tm(s->bflux_diag.intmom[b]);
         // Get the last element which is the energy loss (either M2 or Hamiltonian).
-        power_loss += intmom[num_mom-1];
+        power_loss_s += intmom[num_mom-1];
+        }
       }
-    }
-    total_power_loss += power_loss*s->info.mass; // Convert to W.
+    power_loss += num_mom == 1? power_loss_s * s->info.mass : power_loss_s; // need conversion for M2 moment
   }
   
-  // Scale the source, splitting the power loss among all species.
-  double power_loss_per_species = total_power_loss/app->num_species;
+  // Compute the current total source power
+  double power_src_s[app->num_species];
+  double power_input = 0.0;
+  double power_src = 0.0;
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *s = &app->species[i];
+    struct gk_source *src_s = &s->src;
+
+    int num_mom = src_s->integ_pow.num_mom;
+    double avals_global[num_mom];
+    
+    gk_species_moment_calc(&src_s->integ_pow, s->local, app->local, src_s->source);
+    app->stat.n_mom += 1;
+    
+    // Reduce to compute sum over whole domain.
+    gkyl_array_reduce_range(src_s->red_integ_pow, src_s->integ_pow.marr, GKYL_SUM, &app->local);
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
+      src_s->red_integ_pow, src_s->red_integ_pow_global);
+      if (app->use_gpu) {
+        gkyl_cu_memcpy(avals_global, src_s->red_integ_pow_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
+      }
+      else {
+        memcpy(avals_global, src_s->red_integ_pow_global, sizeof(double[num_mom]));
+      }
+    power_src_s[i] = avals_global[num_mom-1]; // take the last moment, M2 or Hamiltonian.
+    power_src += power_src_s[i];
+    power_input += src_s->power;
+  }
+  
+  // Adapt the sources equally by splitting the load
+  double power_target = (power_input + power_loss)/app->num_species;
   double scale_fact = 1.0;
-  double pow_src = 0.0;
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
     struct gk_source *src = &s->src;
-    int num_mom = src->integ_pow.num_mom;
-    double avals_global[num_mom];
-    double target_power = s->info.source.power + power_loss_per_species;
-    // Compute the energy input of the source with the Hamiltonian moment.
-    gk_species_moment_calc(&src->integ_pow, s->local, app->local, src->source);
-    // Reduce to compute sum over whole domain.
-    gkyl_array_reduce_range(src->red_integ_pow, s->src.integ_pow.marr, GKYL_SUM, &app->local);
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
-      src->red_integ_pow, src->red_integ_pow_global);
-    if (app->use_gpu) {
-      gkyl_cu_memcpy(avals_global, src->red_integ_pow_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
-    }
-    else {
-      memcpy(avals_global, src->red_integ_pow_global, sizeof(double[num_mom]));
-    }
-    pow_src = avals_global[num_mom-1]; // take the last moment, M2 or Hamiltonian.
-    // Compute the scaling factor and apply it only if initial power is nonzero.
-    if (pow_src != 0.0) {
-      // First change power units from W to W/kg.
-      target_power = target_power/s->info.mass;
-      scale_fact = target_power/pow_src;
-      
-      // Scale the source.
-      gkyl_array_scale(src->source, scale_fact);
-      
-      // // Verify the final power (to be removed later).
-      // gk_species_moment_calc(&src->integ_pow, s->local, app->local, src->source);
-      // gkyl_array_reduce_range(src->red_integ_pow, src->integ_pow.marr, GKYL_SUM, &app->local);
-      // gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, src->red_integ_pow, src->red_integ_pow_global);
-      
-      // double final_power = 0.0;
-      // if (app->use_gpu) {
-      //   gkyl_cu_memcpy(&final_power, src->red_integ_pow_global, sizeof(double), GKYL_CU_MEMCPY_D2H);
-      // }
-      // else {
-      //   memcpy(&final_power, src->red_integ_pow_global, sizeof(double));
-      // }
-      // double initial_power_MW = pow_src*1e-6*s->info.mass;
-      // double final_power_MW = final_power*1e-6*s->info.mass;
-      // double total_power_loss_MW = total_power_loss*1e-6;
-      // fprintf(stderr, "s%d: Pow. loss (t=%.4f) %.4f [MW], Init. pow. %.4f [MW], Adapt. pow. %.4f [MW]\n", 
-      //   i, tbflux, total_power_loss_MW, initial_power_MW, final_power_MW);
-    }
+
+    scale_fact = power_target/power_src_s[0];
+    
+    // Scale the source.
+    gkyl_array_scale(src->source, scale_fact);
+    
+    // // Verify the final power (to be removed later).
+    // gk_species_moment_calc(&src->integ_pow, s->local, app->local, src->source);
+    // gkyl_array_reduce_range(src->red_integ_pow, src->integ_pow.marr, GKYL_SUM, &app->local);
+    // gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, src->red_integ_pow, src->red_integ_pow_global);
+    
+    // double final_power = 0.0;
+    // if (app->use_gpu) {
+    //   gkyl_cu_memcpy(&final_power, src->red_integ_pow_global, sizeof(double), GKYL_CU_MEMCPY_D2H);
+    // }
+    // else {
+    //   memcpy(&final_power, src->red_integ_pow_global, sizeof(double));
+    // }
+    // double initial_power_MW = pow_src*1e-6*s->info.mass;
+    // double final_power_MW = final_power*1e-6*s->info.mass;
+    // double total_power_loss_MW = power_loss_tot*1e-6;
+    // fprintf(stderr, "s%d: Pow. loss (t=%.4f) %.4f [MW], Init. pow. %.4f [MW], Adapt. pow. %.4f [MW]\n", 
+    //   i, tbflux, total_power_loss_MW, initial_power_MW, final_power_MW);
   }
 }
 
