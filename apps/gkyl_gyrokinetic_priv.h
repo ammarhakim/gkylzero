@@ -891,11 +891,11 @@ struct gk_field {
 
   // Objects used in IWL simulations and TS BCs.
   struct gkyl_range local_par_ext_core; // Core range extended in parallel direction
-  struct gkyl_bc_twistshift *bc_T_LU_lo; // TS BC updater.
+  struct gkyl_bc_twistshift *bc_T_LU_lo, *bc_T_UL_up; // TS BC updater.
   // Objects used by the skin surface to ghost (SSFG) operator.
   struct gkyl_range lower_skin_core, lower_ghost_core;
   struct gkyl_range upper_skin_core, upper_ghost_core;
-  struct gkyl_skin_surf_from_ghost *ssfg_lo;
+  struct gkyl_skin_surf_from_ghost *ssfg_lo, *ssfg_up;
   
   // Pointer to function for the twist-and-shift BCs.
   void (*enforce_zbc) (const gkyl_gyrokinetic_app *app, const struct gk_field *field, struct gkyl_array *finout);
