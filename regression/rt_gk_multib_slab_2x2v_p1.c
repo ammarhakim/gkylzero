@@ -205,13 +205,13 @@ void bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT f
   fout[0] = B0;
 }
 
-struct gkyl_block_geom*
+struct gkyl_gk_block_geom*
 create_block_geom(void *ctx)
 {
 
   struct slab_ctx *app = ctx;
 
-  struct gkyl_block_geom *bgeom = gkyl_block_geom_new(2, 3);
+  struct gkyl_gk_block_geom *bgeom = gkyl_gk_block_geom_new(2, 3);
 
   /* Block layout and coordinates
 
@@ -240,7 +240,7 @@ create_block_geom(void *ctx)
   double Lx = 0.06;
 
   // block 0. Lower SOL.
-  gkyl_block_geom_set_block(bgeom, 0, &(struct gkyl_block_geom_info) {
+  gkyl_gk_block_geom_set_block(bgeom, 0, &(struct gkyl_gk_block_geom_info) {
       .lower = { 0.0, -Lz/2.0 },
       .upper = { Lx, -Lz/6.0 },
       .cells = { nx, nz},
@@ -266,7 +266,7 @@ create_block_geom(void *ctx)
   );
 
   // block 1. Middle SOL.
-  gkyl_block_geom_set_block(bgeom, 1, &(struct gkyl_block_geom_info) {
+  gkyl_gk_block_geom_set_block(bgeom, 1, &(struct gkyl_gk_block_geom_info) {
       .lower = { 0.0, -Lz/6.0},
       .upper = { Lx, Lz/6.0},
       .cells = { nx, nz},
@@ -293,7 +293,7 @@ create_block_geom(void *ctx)
   );
 
   // block 2. Upper SOL.
-  gkyl_block_geom_set_block(bgeom, 2, &(struct gkyl_block_geom_info) {
+  gkyl_gk_block_geom_set_block(bgeom, 2, &(struct gkyl_gk_block_geom_info) {
       .lower = { 0.0, Lz/6.0},
       .upper = { Lx, Lz/2.0},
       .cells = { nx, nz},
@@ -472,8 +472,8 @@ main(int argc, char **argv)
 
   struct slab_ctx ctx = create_ctx(); // Context for init functions.
   // Construct block geometry.
-  struct gkyl_block_geom *bgeom = create_block_geom(&ctx);
-  int nblocks = gkyl_block_geom_num_blocks(bgeom);
+  struct gkyl_gk_block_geom *bgeom = create_block_geom(&ctx);
+  int nblocks = gkyl_gk_block_geom_num_blocks(bgeom);
 
 
   int cells_x[ctx.cdim], cells_v[ctx.vdim];
@@ -805,7 +805,7 @@ main(int argc, char **argv)
   freeresources:
   // Free resources after simulation completion.
   gkyl_gyrokinetic_multib_app_release(app);
-  gkyl_block_geom_release(bgeom);
+  gkyl_gk_block_geom_release(bgeom);
   gkyl_gyrokinetic_comms_release(comm);
 
 #ifdef GKYL_HAVE_MPI

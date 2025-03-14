@@ -33,10 +33,10 @@ void shaped_pfunc_lower_inner(double s, double* RZ){
     RZ[1] = -(6.33 + (6.777 - 6.33)*s);
 }
 
-struct gkyl_block_geom*
+struct gkyl_gk_block_geom*
 create_block_geom(void)
 {
-  struct gkyl_block_geom *bgeom = gkyl_block_geom_new(1, 3);
+  struct gkyl_gk_block_geom *bgeom = gkyl_gk_block_geom_new(1, 3);
 
   /* Block layout and coordinates
 
@@ -88,7 +88,7 @@ create_block_geom(void)
   double theta_lo = -M_PI + 1e-14, theta_up = M_PI - 1e-14;
 
   // block 0. Lower outer SOL.
-  gkyl_block_geom_set_block(bgeom, 0, &(struct gkyl_block_geom_info) {
+  gkyl_gk_block_geom_set_block(bgeom, 0, &(struct gkyl_gk_block_geom_info) {
       .lower = { theta_lo },
       .upper = { theta_up },
       .cells = { ntheta_lower},
@@ -119,7 +119,7 @@ create_block_geom(void)
   );
 
   // block 1. Middle outer SOL.
-  gkyl_block_geom_set_block(bgeom, 1, &(struct gkyl_block_geom_info) {
+  gkyl_gk_block_geom_set_block(bgeom, 1, &(struct gkyl_gk_block_geom_info) {
       .lower = { theta_lo },
       .upper = { theta_up },
       .cells = { ntheta_middle},
@@ -150,7 +150,7 @@ create_block_geom(void)
   );
 
   // block 2. Upper outer SOL.
-  gkyl_block_geom_set_block(bgeom, 2, &(struct gkyl_block_geom_info) {
+  gkyl_gk_block_geom_set_block(bgeom, 2, &(struct gkyl_gk_block_geom_info) {
       .lower = { theta_lo },
       .upper = { theta_up },
       .cells = { ntheta_upper},
@@ -448,8 +448,8 @@ struct gkyl_comm *comm = 0;
   }
   
   // construct block geometry
-  struct gkyl_block_geom *bgeom = create_block_geom();
-  int nblocks = gkyl_block_geom_num_blocks(bgeom);
+  struct gkyl_gk_block_geom *bgeom = create_block_geom();
+  int nblocks = gkyl_gk_block_geom_num_blocks(bgeom);
 
 
   struct gk_step_ctx ctx = create_ctx(); // Context for init functions.
@@ -747,7 +747,7 @@ struct gkyl_comm *comm = 0;
   freeresources:
   // Free resources after simulation completion.
   gkyl_gyrokinetic_multib_app_release(app);
-  gkyl_block_geom_release(bgeom);
+  gkyl_gk_block_geom_release(bgeom);
   gkyl_gyrokinetic_comms_release(comm);
 
 #ifdef GKYL_HAVE_MPI

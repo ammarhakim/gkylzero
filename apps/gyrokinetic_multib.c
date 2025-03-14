@@ -1,4 +1,4 @@
-#include "gkyl_block_geom.h"
+#include "gkyl_gk_block_geom.h"
 #include <gkyl_array_rio_priv.h>
 #include <gkyl_elem_type_priv.h>
 #include <gkyl_gyrokinetic_multib.h>
@@ -27,14 +27,14 @@ has_int(int n, int val, const int *lst)
 
 // Compute total and maximum number of cuts.
 static void
-calc_tot_and_max_cuts(const struct gkyl_block_geom *block_geom, int tot_max[2])
+calc_tot_and_max_cuts(const struct gkyl_gk_block_geom *block_geom, int tot_max[2])
 {
-  int ndim = gkyl_block_geom_ndim(block_geom);
-  int num_blocks = gkyl_block_geom_num_blocks(block_geom);
+  int ndim = gkyl_gk_block_geom_ndim(block_geom);
+  int num_blocks = gkyl_gk_block_geom_num_blocks(block_geom);
 
   int max_cuts = 0, tot_cuts = 0;
   for (int i=0; i<num_blocks; ++i) {
-    const struct gkyl_block_geom_info *bgi = gkyl_block_geom_get_block(block_geom, i);
+    const struct gkyl_gk_block_geom_info *bgi = gkyl_gk_block_geom_get_block(block_geom, i);
     int ncuts = calc_cuts(ndim, bgi->cuts);
     max_cuts = ncuts > max_cuts ? ncuts : max_cuts;
     tot_cuts += ncuts;
@@ -176,11 +176,11 @@ singleb_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   const struct gkyl_gyrokinetic_multib_app *mbapp)
 {
   // For kinetic simulations, block dimension defined configuration-space dimensionality.
-  int cdim = gkyl_block_geom_ndim(mbapp->block_geom);
-  int num_blocks = gkyl_block_geom_num_blocks(mbapp->block_geom);
+  int cdim = gkyl_gk_block_geom_ndim(mbapp->block_geom);
+  int num_blocks = gkyl_gk_block_geom_num_blocks(mbapp->block_geom);
 
-  const struct gkyl_block_geom_info *bgi =
-    gkyl_block_geom_get_block(mbapp->block_geom, bid);
+  const struct gkyl_gk_block_geom_info *bgi =
+    gkyl_gk_block_geom_get_block(mbapp->block_geom, bid);
 
   // Construct top-level single-block input struct.
   struct gkyl_gk app_inp = { };
@@ -203,7 +203,7 @@ singleb_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   // Set z dir grid extents based on tokamak global normalization
   if(bgi->geometry.geometry_id == GKYL_TOKAMAK) {
     gkyl_gk_geometry_tok_set_grid_extents(bgi->geometry.efit_info, bgi->geometry.tok_grid_info, &app_inp.lower[cdim-1], &app_inp.upper[cdim-1]);
-    gkyl_block_geom_reset_block_extents(mbapp->block_geom, bid, app_inp.lower, app_inp.upper);
+    gkyl_gk_block_geom_reset_block_extents(mbapp->block_geom, bid, app_inp.lower, app_inp.upper);
   }
 
   app_inp.geometry = bgi->geometry;
@@ -233,11 +233,11 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   const struct gkyl_gyrokinetic_multib_app *mbapp, struct gkyl_gyrokinetic_app *app)
 {
   // For kinetic simulations, block dimension defined configuration-space dimensionality.
-  int cdim = gkyl_block_geom_ndim(mbapp->block_geom);
-  int num_blocks = gkyl_block_geom_num_blocks(mbapp->block_geom);
+  int cdim = gkyl_gk_block_geom_ndim(mbapp->block_geom);
+  int num_blocks = gkyl_gk_block_geom_num_blocks(mbapp->block_geom);
 
-  const struct gkyl_block_geom_info *bgi =
-    gkyl_block_geom_get_block(mbapp->block_geom, bid);
+  const struct gkyl_gk_block_geom_info *bgi =
+    gkyl_gk_block_geom_get_block(mbapp->block_geom, bid);
 
   // Construct top-level single-block input struct.
   struct gkyl_gk app_inp = { };
@@ -584,16 +584,16 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
   mbapp->comm = gkyl_comm_acquire(mbinp->comm);  
   mbapp->use_gpu = mbinp->use_gpu;
   
-  mbapp->block_geom = gkyl_block_geom_acquire(mbinp->block_geom);
-  mbapp->block_topo = gkyl_block_geom_topo(mbinp->block_geom);
+  mbapp->block_geom = gkyl_gk_block_geom_acquire(mbinp->block_geom);
+  mbapp->block_topo = gkyl_gk_block_geom_topo(mbinp->block_geom);
   
-  int cdim = gkyl_block_geom_ndim(mbapp->block_geom);
-  int num_blocks = gkyl_block_geom_num_blocks(mbapp->block_geom);
+  int cdim = gkyl_gk_block_geom_ndim(mbapp->block_geom);
+  int num_blocks = gkyl_gk_block_geom_num_blocks(mbapp->block_geom);
 
   // Construct round-robin decomposition.
   int *branks = gkyl_malloc(sizeof(int[num_blocks]));
   for (int i=0; i<num_blocks; ++i) {
-    const struct gkyl_block_geom_info *bgi = gkyl_block_geom_get_block(mbapp->block_geom, i);
+    const struct gkyl_gk_block_geom_info *bgi = gkyl_gk_block_geom_get_block(mbapp->block_geom, i);
     branks[i] = calc_cuts(cdim, bgi->cuts);
   }
   mbapp->round_robin = gkyl_rrobin_decomp_new(num_ranks, num_blocks, branks);
@@ -621,7 +621,7 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
       num_local_blocks += 1;      
     }
 
-    const struct gkyl_block_geom_info *bgi = gkyl_block_geom_get_block(mbapp->block_geom, i);
+    const struct gkyl_gk_block_geom_info *bgi = gkyl_gk_block_geom_get_block(mbapp->block_geom, i);
     struct gkyl_range block_global_range;
     gkyl_create_global_range(cdim, bgi->cells, &block_global_range);
 
@@ -867,7 +867,7 @@ gyrokinetic_multib_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcur
   }
 
   // Sync blocks.
-  int cdim = gkyl_block_geom_ndim(app->block_geom);
+  int cdim = gkyl_gk_block_geom_ndim(app->block_geom);
   for (int i=0; i<app->num_species; ++i) {
     // Sync charged species.
     struct gkyl_array *fs[app->num_local_blocks];
@@ -1813,7 +1813,7 @@ void gkyl_gyrokinetic_multib_app_release(gkyl_gyrokinetic_multib_app* mbapp)
 
   gk_multib_field_release(mbapp->field);
 
-  int num_blocks = gkyl_block_geom_num_blocks(mbapp->block_geom);
+  int num_blocks = gkyl_gk_block_geom_num_blocks(mbapp->block_geom);
 
   for (int i=0; i<num_blocks; ++i)
     gkyl_comm_release(mbapp->block_comms[i]);
@@ -1827,7 +1827,7 @@ void gkyl_gyrokinetic_multib_app_release(gkyl_gyrokinetic_multib_app* mbapp)
 
   gkyl_rrobin_decomp_release(mbapp->round_robin);
   
-  gkyl_block_geom_release(mbapp->block_geom);
+  gkyl_gk_block_geom_release(mbapp->block_geom);
   gkyl_block_topo_release(mbapp->block_topo);
   
   gkyl_comm_release(mbapp->comm);

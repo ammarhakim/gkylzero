@@ -43,7 +43,7 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
   // Get branks (number of cuts per block)
   int *branks = gkyl_malloc(sizeof(int[num_blocks]));
   for (int i=0; i<num_blocks; ++i) {
-    const struct gkyl_block_geom_info *bgi = gkyl_block_geom_get_block(mbapp->block_geom, i);
+    const struct gkyl_gk_block_geom_info *bgi = gkyl_gk_block_geom_get_block(mbapp->block_geom, i);
     branks[i] = calc_cuts(mbf->cdim, bgi->cuts);
   }
   
@@ -173,7 +173,7 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
     // Choose no BC for the parallel smoother, unless we are in the core in 2x
     // in which case periodic BCs are needed.
     enum gkyl_fem_parproj_bc_type fem_parbc = GKYL_FEM_PARPROJ_NONE;
-    const struct gkyl_block_geom_info *bgi = gkyl_block_geom_get_block(mbapp->block_geom, bid);
+    const struct gkyl_gk_block_geom_info *bgi = gkyl_gk_block_geom_get_block(mbapp->block_geom, bid);
     enum gkyl_tok_geo_type ftype = bgi->geometry.tok_grid_info.ftype;
     if (mbf->cdim == 2 && (ftype == GKYL_CORE_R || ftype == GKYL_CORE_L))
       fem_parbc = GKYL_FEM_PARPROJ_PERIODIC;

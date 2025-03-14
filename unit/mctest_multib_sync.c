@@ -1,7 +1,10 @@
 #include <acutest.h>
 
+#include <assert.h>
+
 #include <gkyl_block_geom.h>
 #include <gkyl_multib_comm_conn.h>
+#include <gkyl_null_comm.h>
 #include <gkyl_rrobin_decomp.h>
 
 #ifdef GKYL_HAVE_MPI
