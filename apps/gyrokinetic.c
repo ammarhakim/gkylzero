@@ -2178,7 +2178,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
     else {
       rstat = gkyl_gyrokinetic_app_from_frame_species(app, i, frame);
     }
-    if (app->species[i].src.evolve == TRUE) {
+    if (app->species[i].src.evolve) {
       rstat = gkyl_gyrokinetic_app_from_frame_source(app, i, frame);
     }
 
