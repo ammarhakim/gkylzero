@@ -1060,6 +1060,16 @@ struct gkyl_app_restart_status
 gkyl_gyrokinetic_app_from_frame_neut_species(gkyl_gyrokinetic_app *app, int sidx, int frame);
 
 /**
+ * Initialize gyrokinetic source from file
+ *
+ * @param app App object
+ * @param sidx gk species index which the source belongs to
+ * @param frame frame to read
+ */
+struct gkyl_app_restart_status
+gkyl_gyrokinetic_app_from_frame_source(gkyl_gyrokinetic_app *app, int sidx, int frame);
+
+/**
  * Write output to console: this is mainly for diagnostic messages the
  * driver code wants to write to console. It accounts for parallel
  * output by not messing up the console with messages from each rank.

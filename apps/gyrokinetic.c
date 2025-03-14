@@ -2063,6 +2063,24 @@ gkyl_gyrokinetic_app_from_file_neut_species(gkyl_gyrokinetic_app *app, int sidx,
   return rstat;
 }
 
+struct gkyl_app_restart_status 
+gkyl_gyrokinetic_app_from_file_source(gkyl_gyrokinetic_app *app, int sidx,
+  const char *fname)
+{
+  struct gkyl_app_restart_status rstat = header_from_file(app, fname);
+
+  struct gk_species *gk_s = &app->species[sidx];
+  struct gk_source *gk_src = &gk_s->src;
+  
+  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+    rstat.io_status = gkyl_comm_array_read(gk_s->comm, &gk_s->grid, &gk_s->local, gk_src->source, fname);
+    if (app->use_gpu)
+      gkyl_array_copy(gk_src->source, gk_src->source_host);
+  }
+
+  return rstat;
+}
+
 struct gkyl_app_restart_status
 gkyl_gyrokinetic_app_from_frame_field(gkyl_gyrokinetic_app *app, int frame)
 {
@@ -2128,6 +2146,20 @@ gkyl_gyrokinetic_app_from_frame_neut_species(gkyl_gyrokinetic_app *app, int sidx
 }
 
 struct gkyl_app_restart_status
+gkyl_gyrokinetic_app_from_frame_source(gkyl_gyrokinetic_app *app, int sidx, int frame)
+{
+  struct gk_species *gk_s = &app->species[sidx];
+
+  cstr fileNm = cstr_from_fmt("%s-%s_source_%d.gkyl", app->name, gk_s->info.name, frame);
+  printf("Reading source file: %s\n", fileNm.str);
+  // %s-elc_source_5.gkyl
+  struct gkyl_app_restart_status rstat = gkyl_gyrokinetic_app_from_file_source(app, sidx, fileNm.str);
+  cstr_drop(&fileNm);
+
+  return rstat;
+}
+
+struct gkyl_app_restart_status
 gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
 {
   struct gkyl_app_restart_status rstat;
@@ -2146,6 +2178,10 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
     else {
       rstat = gkyl_gyrokinetic_app_from_frame_species(app, i, frame);
     }
+    if (app->species[i].src.evolve == TRUE) {
+      rstat = gkyl_gyrokinetic_app_from_frame_source(app, i, frame);
+    }
+
   }
   
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
