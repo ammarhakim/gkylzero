@@ -29,10 +29,11 @@
 #include <gkyl_lua_utils.h>
 #include <gkyl_util.h>
 
-#include <gkyl_moment_lw.h>
-#include <gkyl_vlasov_lw.h>
-#include <gkyl_pkpm_lw.h>
 #include <gkyl_gyrokinetic_lw.h>
+#include <gkyl_lw_priv.h>
+#include <gkyl_moment_lw.h>
+#include <gkyl_pkpm_lw.h>
+#include <gkyl_vlasov_lw.h>
 #include <gkyl_zero_lw.h>
 
 #ifdef GKYL_HAVE_MPI
@@ -41,6 +42,8 @@
 
 #define STRINGIFY_(x)  #x
 #define STRINGIFY(x)   STRINGIFY_(x)
+
+
 
 // Tool description struct
 struct tool_description {

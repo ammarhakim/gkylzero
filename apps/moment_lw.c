@@ -3465,6 +3465,16 @@ app_openlibs(lua_State *L)
 void
 gkyl_moment_lw_openlibs(lua_State *L)
 {
+  // Register types for moment reconstruction and wave limiter schemes.
+  gkyl_register_moment_scheme_types(L);
+  gkyl_register_wave_limiter_types(L);
+
+  // Register types for Riemann solvers and Braginskii types.
+  gkyl_register_euler_rp_types(L);
+  gkyl_register_mhd_rp_types(L);
+  gkyl_register_mhd_divb_types(L);
+  gkyl_register_braginskii_types(L);
+  
   eqn_openlibs(L);
   spacetime_openlibs(L);
   app_openlibs(L);

@@ -144,34 +144,6 @@ gkyl_zero_lw_openlibs(lua_State *L)
   // Register types for species, field, and Poisson solver boundary conditions.
   gkyl_register_species_bc_types(L);
   gkyl_register_field_bc_types(L);
-  gkyl_register_poisson_bc_types(L);
-
-  // Register types for moment reconstruction and wave limiter schemes.
-  gkyl_register_moment_scheme_types(L);
-  gkyl_register_wave_limiter_types(L);
-
-  // Register types for Riemann solvers and Braginskii types.
-  gkyl_register_euler_rp_types(L);
-  gkyl_register_mhd_rp_types(L);
-  gkyl_register_mhd_divb_types(L);
-  gkyl_register_braginskii_types(L);
-
-  // Register types for Vlasov projection, model ID, collision ID, and source ID initialization.
-  gkyl_register_vlasov_projection_types(L);
-  gkyl_register_vlasov_model_types(L);
-  gkyl_register_vlasov_collision_types(L);
-  gkyl_register_vlasov_source_types(L);
-
-  // Register types for gyrokinetic FEM boundary conditions, geometry type, position map type, field ID, radiation ID, Te min model type, reaction type, ion type, and self-reaction type.
-  gkyl_register_gyrokinetic_fem_bc_types(L);
-  gkyl_register_gyrokinetic_geometry_types(L);
-  gkyl_register_gyrokinetic_position_map_types(L);
-  gkyl_register_gyrokinetic_field_types(L);
-  gkyl_register_gyrokinetic_radiation_types(L);
-  gkyl_register_gyrokinetic_radiation_Te_types(L);
-  gkyl_register_gyrokinetic_reaction_types(L);
-  gkyl_register_gyrokinetic_ion_types(L);
-  gkyl_register_gyrokinetic_self_reaction_types(L);
 }
 
 #endif

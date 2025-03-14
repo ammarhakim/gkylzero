@@ -2649,6 +2649,14 @@ app_openlibs(lua_State *L)
 void
 gkyl_vlasov_lw_openlibs(lua_State *L)
 {
+  gkyl_register_poisson_bc_types(L);
+
+  // Register types for Vlasov projection, model ID, collision ID, and source ID initialization.
+  gkyl_register_vlasov_projection_types(L);
+  gkyl_register_vlasov_model_types(L);
+  gkyl_register_vlasov_collision_types(L);
+  gkyl_register_vlasov_source_types(L);  
+  
   eqn_openlibs(L);
   app_openlibs(L);
 }
