@@ -103,7 +103,7 @@ gkyl_get_gkyl_file_type(const char *fname)
     }
     
     uint64_t file_type_u64;
-    frr = fread(&file_type, sizeof(uint64_t), 1, fp);
+    frr = fread(&file_type_u64, sizeof(uint64_t), 1, fp);
     if (1 != frr) {
       file_type = -1;
       goto finish_with_file;      
