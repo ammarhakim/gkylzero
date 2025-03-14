@@ -27,6 +27,149 @@
 #endif
 #endif
 
+
+
+// Gyrokinetic FEM boundary conditions -> enum map.
+static const struct gkyl_str_int_pair parproj_type[] = {
+  { "None", GKYL_FEM_PARPROJ_NONE },
+  { "Periodic", GKYL_FEM_PARPROJ_PERIODIC },
+  { "Dirichlet", GKYL_FEM_PARPROJ_DIRICHLET },
+  { 0, 0 }
+};
+
+// Gyrokinetic geometry type -> enum map.
+static const struct gkyl_str_int_pair geometry_type[] = {
+  { "Tokamak", GKYL_TOKAMAK },
+  { "Mirror", GKYL_MIRROR },
+  { "MapC2P", GKYL_MAPC2P },
+  { "FromFile", GKYL_GEOMETRY_FROMFILE },
+  { 0, 0 }
+};
+
+// Gyrokinetic position map type -> enum map.
+static const struct gkyl_str_int_pair position_map_type[] = {
+  { "UserInput", GKYL_PMAP_USER_INPUT },
+  { "ConstantPolynomial", GKYL_PMAP_CONSTANT_DB_POLYNOMIAL },
+  { "ConstantNumeric", GKYL_PMAP_CONSTANT_DB_NUMERIC },
+  { 0, 0 }
+};
+
+// Gyrokinetic field type -> enum map.
+static const struct gkyl_str_int_pair gk_field_type[] = {
+  { "Electrostatic", GKYL_GK_FIELD_ES },
+  { "Boltzmann", GKYL_GK_FIELD_BOLTZMANN },
+  { "Adiabatic", GKYL_GK_FIELD_ADIABATIC },
+  { "ElectrostaticIWL", GKYL_GK_FIELD_ES_IWL },
+  { "Electromagnetic", GKYL_GK_FIELD_EM },
+  { 0, 0 }
+};
+
+// Gyrokinetic radiation type -> enum map.
+static const struct gkyl_str_int_pair gk_radiation_type[] = {
+  { "None", GKYL_NO_RADIATION },
+  { "GKRadiation", GKYL_GK_RADIATION },
+  { "VMComptonRadiation", GKYL_VM_COMPTON_RADIATION },
+  { 0, 0 }
+};
+
+// Gyrokinetic radiation Te model type -> enum map.
+static const struct gkyl_str_int_pair gk_radiation_te_type[] = {
+  { "Conservative", GKYL_VARY_TE_CONSERVATIVE },
+  { "Aggressive", GKYL_VARY_TE_AGGRESSIVE },
+  { "Const", GKYL_CONST_TE },
+  { 0, 0 }
+};
+
+// Gyrokinetic reaction type -> enum map.
+static const struct gkyl_str_int_pair gk_react_type[] = {
+  { "None", GKYL_NO_REACT },
+  { "Ionization", GKYL_REACT_IZ },
+  { "ChargeExchange", GKYL_REACT_CX },
+  { "Recombination", GKYL_REACT_RECOMB },
+  { 0, 0 }
+};
+
+// Gyrokinetic ion type -> enum map.
+static const struct gkyl_str_int_pair gk_ion_type[] = {
+  { "Hydrogen", GKYL_ION_H },
+  { "Deuterium", GKYL_ION_D },
+  { "Helium", GKYL_ION_HE },
+  { "Lithium", GKYL_ION_LI },
+  { "Beryllium", GKYL_ION_BE },
+  { "Boron", GKYL_ION_B },
+  { "Carbon", GKYL_ION_C },
+  { "Nitrogen", GKYL_ION_N },
+  { "Oxygen", GKYL_ION_O },
+  { "Neon", GKYL_ION_NE },
+  { "Argon", GKYL_ION_AR },
+  { 0, 0 }
+};
+
+// Gyrokinetic self-reaction type -> enum map.
+static const struct gkyl_str_int_pair gk_react_self_type[] = {
+  { "Electron", GKYL_SELF_ELC },
+  { "Ion", GKYL_SELF_ION },
+  { "Donor", GKYL_SELF_DONOR },
+  { "Receiver", GKYL_SELF_RECVR },
+  { "Partner", GKYL_SELF_PARTNER },
+  { 0, 0 }
+};
+
+void
+gkyl_register_gyrokinetic_fem_bc_types(lua_State *L)
+{
+  register_types(L, parproj_type, "ParProjBc");
+}
+
+void
+gkyl_register_gyrokinetic_geometry_types(lua_State *L)
+{
+  register_types(L, geometry_type, "Geometry");
+}
+
+void
+gkyl_register_gyrokinetic_position_map_types(lua_State *L)
+{
+  register_types(L, position_map_type, "PositionMap");
+}
+
+void
+gkyl_register_gyrokinetic_field_types(lua_State *L)
+{
+  register_types(L, gk_field_type, "GKField");
+}
+
+void
+gkyl_register_gyrokinetic_radiation_types(lua_State *L)
+{
+  register_types(L, gk_radiation_type, "Radiation");
+}
+
+void
+gkyl_register_gyrokinetic_radiation_Te_types(lua_State *L)
+{
+  register_types(L, gk_radiation_te_type, "TeMinModel");
+}
+
+void
+gkyl_register_gyrokinetic_reaction_types(lua_State *L)
+{
+  register_types(L, gk_react_type, "Reaction");
+}
+
+void
+gkyl_register_gyrokinetic_ion_types(lua_State *L)
+{
+  register_types(L, gk_ion_type, "Ion");
+}
+
+void
+gkyl_register_gyrokinetic_self_reaction_types(lua_State *L)
+{
+  register_types(L, gk_react_self_type, "Self");
+}
+
+
 // Magic IDs for use in distinguishing various species and field types.
 enum gyrokinetic_magic_ids {
   GYROKINETIC_SPECIES_DEFAULT = 100, // Standard gyrokinetic species.

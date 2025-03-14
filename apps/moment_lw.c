@@ -48,6 +48,97 @@
 #include <gkyl_mpi_comm.h>
 #endif
 
+// Moment scheme type -> enum map.
+static const struct gkyl_str_int_pair moment_scheme_type[] = {
+  { "WaveProp", GKYL_MOMENT_WAVE_PROP },
+  { "MP", GKYL_MOMENT_MP },
+  { "KEP", GKYL_MOMENT_KEP },
+  { 0, 0 }
+};
+
+// Wave limiter -> enum map.
+static const struct gkyl_str_int_pair wave_limiter[] = {
+  { "NoLimiter", GKYL_NO_LIMITER },
+  { "MonotonizedCentered", GKYL_MONOTONIZED_CENTERED },
+  { "MinMod", GKYL_MIN_MOD },
+  { "SuperBee", GKYL_SUPERBEE },
+  { "VanLeer", GKYL_VAN_LEER },
+  { "BeamWarming", GKYL_BEAM_WARMING },
+  { "Zero", GKYL_ZERO },
+  { 0, 0 }
+};
+
+// Euler Riemann problem -> enum map.
+static const struct gkyl_str_int_pair euler_rp_type[] = {
+  { "Roe", WV_EULER_RP_ROE },
+  { "HLLC", WV_EULER_RP_HLLC },
+  { "Lax", WV_EULER_RP_LAX },
+  { "HLL", WV_EULER_RP_HLL },
+  { 0, 0 }
+};
+
+// MHD Riemann problem -> enum map.
+static const struct gkyl_str_int_pair mhd_rp_type[] = {
+  { "Roe", WV_MHD_RP_ROE },
+  { "HLLD", WV_MHD_RP_HLLD },
+  { "Lax", WV_MHD_RP_LAX },
+  { 0, 0 }
+};
+
+// MHD divergence correction -> enum map.
+static const struct gkyl_str_int_pair mhd_divb_type[] = {
+  { "None", GKYL_MHD_DIVB_NONE },
+  { "GLM", GKYL_MHD_DIVB_GLM },
+  { "EightWaves", GKYL_MHD_DIVB_EIGHT_WAVES },
+  { 0, 0 }
+};
+
+// Braginskii type -> enum map.
+static const struct gkyl_str_int_pair braginskii_type[] = {
+  { "Mag", GKYL_BRAG_MAG },
+  { "Visc", GKYL_BRAG_VISC },
+  { "HeatFlux", GKYL_BRAG_HEATFLUX },
+  { "UnmagFull", GKYL_BRAG_UNMAG_FULL },
+  { "MagFull", GKYL_BRAG_MAG_FULL },
+  { 0, 0 }
+};
+
+void
+gkyl_register_moment_scheme_types(lua_State *L)
+{
+  register_types(L, moment_scheme_type, "SchemeType");
+}
+
+void
+gkyl_register_wave_limiter_types(lua_State *L)
+{
+  register_types(L, wave_limiter, "WaveLimiter");
+}
+
+void
+gkyl_register_euler_rp_types(lua_State *L)
+{
+  register_types(L, euler_rp_type, "EulerRP");
+}
+
+void
+gkyl_register_mhd_rp_types(lua_State *L)
+{
+  register_types(L, mhd_rp_type, "MHDRP");
+}
+
+void
+gkyl_register_mhd_divb_types(lua_State *L)
+{
+  register_types(L, mhd_divb_type, "DivB");
+}
+
+void
+gkyl_register_braginskii_types(lua_State *L)
+{
+  register_types(L, braginskii_type, "Braginskii");
+}
+
 // Magic IDs for use in distinguishing various species and field types.
 enum moment_magic_ids {
   MOMENT_SPECIES_DEFAULT = 100, // Fluid species.

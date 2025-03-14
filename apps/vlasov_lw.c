@@ -30,6 +30,83 @@
 #endif
 #endif
 
+// Poisson boundary conditions -> enum map.
+static const struct gkyl_str_int_pair poisson_bcs[] = {
+  { "bcPeriodic", GKYL_POISSON_PERIODIC },
+  { "bcDirichlet", GKYL_POISSON_DIRICHLET },
+  { "bcNeumann", GKYL_POISSON_NEUMANN },
+  { "bcRobin", GKYL_POISSON_ROBIN },
+  { 0, 0 }
+};
+
+// Vlasov projection type -> enum map.
+static const struct gkyl_str_int_pair projection_type[] = {
+  { "Func", GKYL_PROJ_FUNC },
+  { "MaxwellianPrimitive", GKYL_PROJ_MAXWELLIAN_PRIM },
+  { "MaxwellianLab", GKYL_PROJ_MAXWELLIAN_LAB },
+  { "BiMaxwellian", GKYL_PROJ_BIMAXWELLIAN },
+  { "LTE", GKYL_PROJ_VLASOV_LTE },
+  { 0, 0 }
+};
+
+// Vlasov model type -> enum map.
+static const struct gkyl_str_int_pair model_type[] = {
+  { "Default", GKYL_MODEL_DEFAULT },
+  { "SR", GKYL_MODEL_SR },
+  { "GeneralGeometry", GKYL_MODEL_GEN_GEO },
+  { "CanonicalPB", GKYL_MODEL_CANONICAL_PB },
+  { "CanonicalPBGR", GKYL_MODEL_CANONICAL_PB_GR },
+  { 0, 0 }
+};
+
+// Vlasov collision type -> enum map.
+static const struct gkyl_str_int_pair collision_type[] = {
+  { "None", GKYL_NO_COLLISIONS },
+  { "BGK", GKYL_BGK_COLLISIONS },
+  { "LBO", GKYL_LBO_COLLISIONS },
+  { "FPO", GKYL_FPO_COLLISIONS },
+  { 0, 0 }
+};
+
+// Vlasov source type -> enum map.
+static const struct gkyl_str_int_pair source_type[] = {
+  { "None", GKYL_NO_SOURCE },
+  { "Func", GKYL_FUNC_SOURCE },
+  { "Proj", GKYL_PROJ_SOURCE },
+  { "BoundaryFlux", GKYL_BFLUX_SOURCE },
+  { 0, 0 }
+};
+
+void
+gkyl_register_poisson_bc_types(lua_State *L)
+{
+  register_types(L, poisson_bcs, "PoissonBc");
+}
+
+void
+gkyl_register_vlasov_projection_types(lua_State *L)
+{
+  register_types(L, projection_type, "Projection");
+}
+
+void
+gkyl_register_vlasov_model_types(lua_State *L)
+{
+  register_types(L, model_type, "Model");
+}
+
+void
+gkyl_register_vlasov_collision_types(lua_State *L)
+{
+  register_types(L, collision_type, "Collisions");
+}
+
+void
+gkyl_register_vlasov_source_types(lua_State *L)
+{
+  register_types(L, source_type, "Source");
+}
+
 // Magic IDs for use in distinguishing various species and field types.
 enum vlasov_magic_ids {
   VLASOV_SPECIES_DEFAULT = 100, // Non-relativistic kinetic species.
