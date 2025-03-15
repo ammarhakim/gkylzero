@@ -121,6 +121,14 @@ blackhole_kerrschildvector_der(const struct gkyl_gr_spacetime* spacetime, const 
     kerrschild_vector_der[2][i] = (1.0 / dz) * (kerrschild_vector_z_forward[i] - kerrschild_vector_z_backward[i]);
   }
 
+  gkyl_free(kerrschild_vector_x_forward);
+  gkyl_free(kerrschild_vector_y_forward);
+  gkyl_free(kerrschild_vector_z_forward);
+
+  gkyl_free(kerrschild_vector_x_backward);
+  gkyl_free(kerrschild_vector_y_backward);
+  gkyl_free(kerrschild_vector_z_backward);
+
   return kerrschild_vector_der;
 }
 
@@ -482,6 +490,13 @@ blackhole_extrinsic_curvature_tensor(const struct gkyl_gr_spacetime* spacetime, 
       }
     }
   }
+
+  gkyl_free(kerrschild_vector);
+  gkyl_free(kerrschild_scalar_der);
+
+  for (int i = 0; i < 3; i++)
+    gkyl_free(kerrschild_vector_der[i]);
+  gkyl_free(kerrschild_vector_der);
 }
 
 static void
