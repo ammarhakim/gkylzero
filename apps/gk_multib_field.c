@@ -531,6 +531,7 @@ gk_multib_field_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *
     // Copy continuous potential back to apps.
     for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
       struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
+      // Copy from multib to block global.
       gkyl_array_copy_range_to_range(sbapp->field->rho_c_global_smooth,
         mbf->phi_multibz_smooth[bI], &sbapp->global, mbf->parent_subrangesz[bI]);
       // Copy from block-global to block local.

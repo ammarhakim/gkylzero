@@ -498,7 +498,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
   gkyl_position_map_optimize(position_map);
 
   int cidx[3] = { 0 };
-  for(int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia){
+  for (int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia){
     cidx[AL_IDX] = ia;
     double alpha_curr = alpha_lo + ia*dalpha;
     // This is the convention described in Noah Mandell's Thesis Eq 5.104. comp coord y = -alpha.
@@ -545,15 +545,19 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
 
         if (psi_curr == geo->psisep) {
           if (it == nrange->upper[TH_IDX] && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX])) {
-            if(inp->ftype == GKYL_PF_UP_L || inp->ftype == GKYL_CORE_R || inp->ftype == GKYL_DN_SOL_OUT_MID || inp->ftype == GKYL_DN_SOL_IN_UP)
+            if (inp->ftype == GKYL_PF_UP_L || inp->ftype == GKYL_CORE_R || inp->ftype == GKYL_DN_SOL_OUT_MID || inp->ftype == GKYL_DN_SOL_IN_UP)
               z_curr = geo->efit->Zxpt[1];
-            else if(inp->ftype == GKYL_PF_LO_R || inp->ftype == GKYL_CORE_L || inp->ftype == GKYL_DN_SOL_OUT_LO|| inp->ftype == GKYL_DN_SOL_IN_MID)
+            else if (inp->ftype == GKYL_PF_LO_R || inp->ftype == GKYL_CORE_L || inp->ftype == GKYL_DN_SOL_OUT_LO|| inp->ftype == GKYL_DN_SOL_IN_MID)
+              z_curr = geo->efit->Zxpt[0];
+            else if (inp->ftype == GKYL_LSN_SOL_LO || inp->ftype == GKYL_LSN_SOL_MID || inp->ftype == GKYL_CORE)
               z_curr = geo->efit->Zxpt[0];
           }
           if (it == nrange->lower[TH_IDX] && (up->local.lower[TH_IDX]== up->global.lower[TH_IDX])) {
-            if(inp->ftype == GKYL_PF_UP_R || inp->ftype == GKYL_CORE_L || inp->ftype == GKYL_DN_SOL_OUT_UP|| inp->ftype == GKYL_DN_SOL_IN_MID)
+            if (inp->ftype == GKYL_PF_UP_R || inp->ftype == GKYL_CORE_L || inp->ftype == GKYL_DN_SOL_OUT_UP|| inp->ftype == GKYL_DN_SOL_IN_MID)
               z_curr = geo->efit->Zxpt[1];
-            else if(inp->ftype == GKYL_PF_LO_L || inp->ftype == GKYL_CORE_R || inp->ftype == GKYL_DN_SOL_OUT_MID|| inp->ftype == GKYL_DN_SOL_IN_LO)
+            else if (inp->ftype == GKYL_PF_LO_L || inp->ftype == GKYL_CORE_R || inp->ftype == GKYL_DN_SOL_OUT_MID|| inp->ftype == GKYL_DN_SOL_IN_LO)
+              z_curr = geo->efit->Zxpt[0];
+            else if (inp->ftype == GKYL_LSN_SOL_UP || inp->ftype == GKYL_LSN_SOL_MID || inp->ftype == GKYL_CORE)
               z_curr = geo->efit->Zxpt[0];
           }
         }
@@ -574,7 +578,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
           }
         }
 
-        if(nr==0){
+        if (nr==0) {
           printf(" ip = %d, it = %d, ia = %d\n", ip, it, ia);
           printf("Block Type = %d | Failed to find a root at psi = %g, Z = %1.16f\n", inp->ftype, psi_curr, z_curr);
           assert(false);
