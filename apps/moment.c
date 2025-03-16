@@ -70,7 +70,7 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
 {
   disable_denorm_float();
   
-  struct gkyl_moment_app *app = gkyl_malloc(sizeof(gkyl_moment_app));
+  struct gkyl_moment_app *app = gkyl_calloc(1, sizeof(*app));
 
   int ndim = app->ndim = mom->ndim;
   strcpy(app->name, mom->name);
