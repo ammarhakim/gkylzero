@@ -281,5 +281,7 @@ moment_coupling_release(const struct gkyl_moment_app *app, const struct moment_c
     if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_grad_closure)
       gkyl_ten_moment_grad_closure_release(src->grad_closure_slvr[i]);
   }
+  if (app->has_braginskii)
+    gkyl_moment_braginskii_release(src->brag_slvr);
 }
 
