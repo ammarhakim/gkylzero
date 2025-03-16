@@ -185,7 +185,7 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
 
   int ns = app->num_species = mom->num_species;
   // allocate space to store species objects
-  app->species = ns>0 ? gkyl_malloc(sizeof(struct moment_species[ns])) : 0;
+  app->species = ns>0 ? gkyl_calloc(ns, sizeof(struct moment_species)) : 0;
   // create species
   for (int i=0; i<ns; ++i) {
     moment_species_init(mom, &mom->species[i], app, &app->species[i]);
