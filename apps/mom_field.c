@@ -379,7 +379,7 @@ moment_field_release(const struct moment_field *fld)
     for (int d=0; d<fld->ndim+1; ++d)
       gkyl_array_release(fld->f[d]);
   }
-  else if (fld->scheme_type == GKYL_MOMENT_MP) {
+  else if (fld->scheme_type == GKYL_MOMENT_MP || fld->scheme_type == GKYL_MOMENT_KEP) {
     gkyl_mp_scheme_release(fld->mp_slvr);
     gkyl_array_release(fld->f0);
     gkyl_array_release(fld->f1);
