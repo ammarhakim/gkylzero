@@ -198,12 +198,26 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     for (int r=0; r<app->num_species; ++r)
       app->nu_base[s][r] = mom->nu_base[s][r];
 
-  // Right now we integrate sources by default, since there are so many scenarios in which the source solver is required
+  // There are a significant number of options which necessitate the source solve in fluids
   // (e.g. applied acceleration, geometric sources, multi-species transport, electromagnetic coupling, etc.).
-  // moment_em_coupling explicitly checks for each of these cases individually, so the performance hit of initializing by
-  // default is negligible, although we may wish to streamline this in the future. --JG 08/20/24.
-  app->update_sources = 1;
-  moment_coupling_init(app, &app->sources);
+  // To facilitate these options, each fluid species stores a boolean for whether or not it will require a 
+  // a source update and sets the value to true if any input parameter would necessitate a source, from
+  // app->has_field (because the field couples to the fluid via sources) to whether an applied accerleation
+  // pointer is set to various closure-related input parameters. 
+  // We also check if there are sources in EM-only simulations, such as volume expansion or applied current
+  // simulations. 
+  app->update_sources = false;
+  if (app->field.has_volume_sources || app->field.has_app_current) {
+    app->update_sources = true; 
+  }
+  for (int s=0; s<app->num_species; ++s) {
+    if (app->species[s].update_sources) {
+      app->update_sources = true; 
+    }
+  }
+  if (app->update_sources) {
+    moment_coupling_init(app, &app->sources);
+  }
 
   app->update_mhd_source = false;
   if (ns==1 && mom->species[0].equation->type==GKYL_EQN_MHD) {

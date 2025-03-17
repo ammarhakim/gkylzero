@@ -1,6 +1,8 @@
 #include <gkyl_block_geom.h>
 #include <gkyl_alloc.h>
 
+#include <string.h>
+
 // Geometry info for all blocks in simulation
 struct gkyl_block_geom {
   int ndim; // dimension

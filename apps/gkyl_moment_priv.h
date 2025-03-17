@@ -59,6 +59,13 @@ struct moment_species {
 
   bool is_static; // is the fluid static?
 
+  // Does this fluid require source terms?
+  // Set to true if any term which requires source terms is detected 
+  // including app->has_field (because the fluids couple to EM fields via sources)
+  // and various moment_species inputs such as has_friction, has_volume_sources, 
+  // has_reactivity, has_app_accel, etc. 
+  bool update_sources; 
+
   double k0; // closure parameter (default is 0.0, used by 10 moment)
   bool has_grad_closure; // has gradient-based closure (only for 10 moment)
   enum gkyl_braginskii_type type_brag; // which Braginskii equations

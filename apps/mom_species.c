@@ -19,19 +19,30 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   sp->num_equations = mom_sp->equation->num_equations;
   sp->equation = gkyl_wv_eqn_acquire(mom_sp->equation);
 
+  // Do we need to update source terms for this fluid?
+  // Sources can be electromagnetic fields, closure-related, applied accelerations
+  // volume expansion, friction, reactivity, etc. 
+  sp->update_sources = false; 
+  if (app->has_field) {
+    sp->update_sources = true; 
+  }
+
   sp->k0 = 0.0;
   sp->has_grad_closure = false;
   if (mom_sp->equation->type == GKYL_EQN_TEN_MOMENT) {
+    sp->update_sources = true; 
     sp->k0 = gkyl_wv_ten_moment_k0(mom_sp->equation);
     sp->has_grad_closure = gkyl_wv_ten_moment_use_grad_closure(mom_sp->equation);
   }
 
   // check if we are running with Braginskii transport and fetch Braginskii type
   if (app->has_braginskii) {
+    sp->update_sources = true; 
     sp->type_brag = mom_sp->type_brag;
   }
 
   if (mom_sp->has_friction) {
+    sp->update_sources = true; 
     sp->has_friction = true;
     sp->use_explicit_friction = mom_sp->use_explicit_friction;
 
@@ -46,6 +57,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
   sp->has_volume_sources = false;
   if (mom_sp->has_volume_sources) {
+    sp->update_sources = true; 
     sp->has_volume_sources = true;
 
     sp->volume_gas_gamma = mom_sp->volume_gas_gamma;
@@ -55,6 +67,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
   sp->has_reactivity = false;
   if (mom_sp->has_reactivity) {
+    sp->update_sources = true; 
     sp->has_reactivity = true;
 
     sp->reactivity_gas_gamma = mom_sp->reactivity_gas_gamma;
@@ -66,6 +79,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
   sp->has_einstein_medium = false;
   if (mom_sp->has_einstein_medium) {
+    sp->update_sources = true; 
     sp->has_einstein_medium = true;
 
     sp->medium_gas_gamma = mom_sp->medium_gas_gamma;
@@ -279,6 +293,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   sp->has_app_accel = false;
   sp->app_accel_evolve = false;
   if (mom_sp->app_accel) {
+    sp->update_sources = true; 
     sp->has_app_accel = true;
     if (mom_sp->app_accel_evolve) {
       sp->app_accel_evolve = mom_sp->app_accel_evolve;
@@ -291,6 +306,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   sp->nT_source_is_set = false;
   sp->proj_nT_source = 0;
   if (mom_sp->nT_source_func) {
+    sp->update_sources = true; 
     void *ctx = sp->ctx;
     if (mom_sp->nT_source_ctx)
       ctx = mom_sp->nT_source_ctx;
