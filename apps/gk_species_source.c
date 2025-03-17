@@ -8,6 +8,17 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   src->source_id = s->info.source.source_id;
 
   if (src->source_id) {
+    int vdim = app->vdim;  
+    src->calc_bflux = false;
+    if (src->source_id == GKYL_BFLUX_SOURCE) {
+      src->calc_bflux = true;
+      src->M0_feedback_strength = s->info.source.M0_feedback_strength ? s->info.source.M0_feedback_strength : 0;
+      assert(s->info.source.source_species);
+      src->source_species = gk_find_species(app, s->info.source.source_species);
+      src->source_species_idx = gk_find_species_idx(app, s->info.source.source_species);
+      src->source_species->M0_target = s->info.source.M0_target ? s->info.source.M0_target : 0;
+    }
+
     // Allocate source array.
     src->source = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
     src->source_host = src->source;
@@ -68,6 +79,91 @@ gk_species_source_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s,
     }
     gkyl_array_release(source_tmp);
   }
+}
+
+double
+gk_species_source_bflux_scale(gkyl_gyrokinetic_app *app, const struct gk_species *s,
+  struct gk_source *src)
+{
+  // Here, we calculate the boundary flux and integrated diagnostics independently
+  // so that information we use in the source adaptation does not rely on
+  // the write rate of the diagnostics.
+
+  bool has_data = true;
+  double total_outgoing_flux = 0.0;
+
+  // Compute the integrated moments for the species to get integrated M0
+  // based on gk_species_calc_integrated_mom_dynamic
+  int vdim = app->vdim;
+  int num_mom = src->source_species->integ_moms.num_mom;
+  double avals_global[num_mom];
+  
+  gk_species_moment_calc(&src->source_species->integ_moms, src->source_species->local, app->local, src->source_species->f); 
+  app->stat.n_mom += 1;
+
+  // Reduce (sum) over whole domain
+  gkyl_array_reduce_range(src->source_species->red_integ_diag, src->source_species->integ_moms.marr, GKYL_SUM, &app->local);
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
+    src->source_species->red_integ_diag, src->source_species->red_integ_diag_global);
+  if (app->use_gpu) {
+    gkyl_cu_memcpy(avals_global, src->source_species->red_integ_diag_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
+  }
+  else {
+    memcpy(avals_global, src->source_species->red_integ_diag_global, sizeof(double[num_mom]));
+  }
+  double current_intM0 = avals_global[0];
+
+  // Calculate integrated moments of the source
+  // Very similar to gk_species_source_calc_integrated_mom
+  num_mom = src->integ_moms.num_mom;
+  double avals_global_src[num_mom];
+
+  gk_species_moment_calc(&src->integ_moms, s->local, app->local, src->source); 
+  app->stat.n_mom += 1;
+
+  // Reduce to compute sum over whole domain
+  gkyl_array_reduce_range(src->red_integ_diag, s->src.integ_moms.marr, GKYL_SUM, &app->local);
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
+    src->red_integ_diag, src->red_integ_diag_global);
+  if (app->use_gpu) {
+    gkyl_cu_memcpy(avals_global_src, src->red_integ_diag_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
+  }
+  else {
+    memcpy(avals_global_src, src->red_integ_diag_global, sizeof(double[num_mom]));
+  }
+  double total_source_flux = avals_global_src[0];
+
+  // Compute integrated diagnostics for the boundary fluxes.
+  // Largely coppied from gk_species_bflux_calc_integrated_mom_dynamic
+  vdim = app->vdim;
+  num_mom = src->source_species->bflux_diag.moms_op.num_mom; 
+  double avals_global_bflux[num_mom];
+
+  for (int b=0; b<src->source_species->bflux_diag.num_boundaries; ++b) {
+    // Integrated moment of the boundary flux.
+    int dir = src->source_species->bflux_diag.boundaries_dir[b];
+    gkyl_array_integrate_advance(src->source_species->bflux_diag.integ_op, src->source_species->bflux_diag.f[b], 1., 0,
+      src->source_species->bflux_diag.boundaries_edge[b]==GKYL_LOWER_EDGE? &app->lower_ghost[dir] : &app->upper_ghost[dir],
+      0, src->source_species->bflux_diag.int_moms_local);
+
+    gkyl_comm_allreduce(app->comm_plane[dir], GKYL_DOUBLE, GKYL_SUM, num_mom, 
+      src->source_species->bflux_diag.int_moms_local, src->source_species->bflux_diag.int_moms_global);
+    if (app->use_gpu) {
+      gkyl_cu_memcpy(avals_global_bflux, src->source_species->bflux_diag.int_moms_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
+    }
+    else {
+      memcpy(avals_global_bflux, src->source_species->bflux_diag.int_moms_global, sizeof(double[num_mom]));
+    }
+    total_outgoing_flux += avals_global_bflux[0];
+  } 
+  if (total_outgoing_flux == 0.0) return 1.0;
+
+  double target_M0 = src->source_species->M0_target;
+  double restoring_force;
+  restoring_force = -src->M0_feedback_strength*(current_intM0 - target_M0)/target_M0;
+
+  double scale_factor = total_outgoing_flux/total_source_flux*(1.0 + restoring_force);
+  return scale_factor;
 }
 
 // Compute rhs of the source.
@@ -205,6 +301,11 @@ gk_species_source_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_speci
 
     app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
     app->stat.n_diag += 1;
+
+    if (gks->src.calc_bflux) {
+      double scale_factor = gk_species_source_bflux_scale(app, gks, &gks->src);
+      gkyl_array_scale(gks->src.source, scale_factor);
+    }
   }
 }
 
