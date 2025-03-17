@@ -199,9 +199,9 @@ evalIsoEulerMixtureInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_R
   // Set fluid mixture total momentum density.
   fout[1] = momx_total; fout[2] = momy_total; fout[3] = momz_total;
   // Set fluid mixture weighted volume fraction (first species).
-  fout[5] = vol_frac1;
+  fout[4] = vol_frac1;
   // Set fluid mixture volume-weighted mass densities (first and second species).
-  fout[6] = mass_frac1; fout[7] = mass_frac2;
+  fout[5] = mass_frac1; fout[6] = mass_frac2;
 }
 
 void
