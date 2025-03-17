@@ -526,8 +526,9 @@ init_field(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
   double x = xn[0], z = xn[1];
 
   double Lx = app->Lx;
+  double Te0 = app->Te;
 
-  fout[0] = 140; //-1.4*cos((M_PI/Lx)*x+M_PI);
+  fout[0] = 1.4*(Te0/GKYL_ELEMENTARY_CHARGE); //*cos((M_PI/Lx)*x+M_PI);
 }
 
 void

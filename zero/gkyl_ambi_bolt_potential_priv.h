@@ -26,8 +26,8 @@ static const sheath_calc_kern_edge_list ser_sheath_calc_list[] = {
   { .list = {{ambi_bolt_potential_sheath_calc_lower_1x_ser_p1, ambi_bolt_potential_sheath_calc_upper_1x_ser_p1},
              {ambi_bolt_potential_sheath_calc_lower_1x_ser_p2, ambi_bolt_potential_sheath_calc_upper_1x_ser_p2}}, },
   // 2x
-  { .list = {{NULL, NULL},
-             {NULL, NULL}}, },
+  { .list = {{ambi_bolt_potential_sheath_calc_lower_1x_ser_p1, ambi_bolt_potential_sheath_calc_upper_1x_ser_p1},
+             {ambi_bolt_potential_sheath_calc_lower_1x_ser_p2, ambi_bolt_potential_sheath_calc_upper_1x_ser_p2}}, },
 //  // 3x
 //  { .list = {{ambi_bolt_potential_sheath_calc_lower_3x_ser_p1, ambi_bolt_potential_sheath_calc_upper_3x_ser_p1},
 //             {ambi_bolt_potential_sheath_calc_lower_3x_ser_p2, ambi_bolt_potential_sheath_calc_upper_3x_ser_p2}}, },
@@ -39,7 +39,7 @@ static const phi_calc_kern_list ser_phi_calc_list[] = {
   // 1x kernels
   { ambi_bolt_potential_phi_calc_1x_ser_p1, ambi_bolt_potential_phi_calc_1x_ser_p2 },
   // 2x kernels
-  { NULL, NULL },
+  { ambi_bolt_potential_phi_calc_1x_ser_p1, ambi_bolt_potential_phi_calc_1x_ser_p2 },
   // 3x kernels
 //  { ambi_bolt_potential_phi_calc_3x_ser_p1, ambi_bolt_potential_phi_calc_3x_ser_p2 },
 };
@@ -56,7 +56,7 @@ struct gkyl_ambi_bolt_potential_kernels {
 
 // Primary struct in this updater.
 struct gkyl_ambi_bolt_potential {
-  int ndim;
+  int cdim;
   double num_basis;
   bool use_gpu;
   double dz;

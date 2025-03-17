@@ -212,6 +212,7 @@ gkyl_dg_calc_canonical_pb_fluid_vars_cu_dev_new(const struct gkyl_rect_grid *con
   up->alpha = 0.0;
   up->is_modified = 0; 
 
+  up->adiabatic_coupling_phi_n = 0;
   if (wv_eqn->type == GKYL_EQN_CAN_PB_HASEGAWA_WAKATANI) {
     up->alpha = gkyl_wv_can_pb_hasegawa_wakatani_alpha(wv_eqn); 
     up->is_modified = gkyl_wv_can_pb_hasegawa_wakatani_is_modified(wv_eqn); 
