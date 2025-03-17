@@ -2073,7 +2073,7 @@ gkyl_gyrokinetic_app_from_file_source(gkyl_gyrokinetic_app *app, int sidx,
   struct gk_source *gk_src = &gk_s->src;
   
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
-    rstat.io_status = gkyl_comm_array_read(gk_s->comm, &gk_s->grid, &gk_s->local, gk_src->source, fname);
+    rstat.io_status = gkyl_comm_array_read(gk_s->comm, &gk_s->grid, &gk_s->local, gk_src->source_host, fname);
     if (app->use_gpu)
       gkyl_array_copy(gk_src->source, gk_src->source_host);
   }
