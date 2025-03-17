@@ -73,7 +73,7 @@ gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const st
 
 static double
 gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  const struct gkyl_array *fin, struct gkyl_array *rhs)
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
 {
   // Gyroaverage the potential if needed.
   species->gyroaverage(app, species, app->field->phi_smooth, species->gyro_phi);
@@ -117,7 +117,14 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   if (species->react_neut.num_react) {
     gk_species_react_rhs(app, species, &species->react_neut, fin, rhs);
   }
+
+  // Compute and store (in the ghost cell of of out) the boundary fluxes.
+  gk_species_bflux_rhs(app, species, &species->bflux, fin, rhs);
+
+  // Compute diagnostic moments of the boundar fluxes.
+  gk_species_bflux_calc_moms(app, species, &species->bflux, rhs, bflux_moms);
   
+  // Reduce the CFL frequency anc compute stable dt needed by this species.
   app->stat.n_species_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
   gkyl_array_reduce_range(species->omega_cfl, species->cflrate, GKYL_MAX, &species->local);
@@ -172,7 +179,7 @@ gk_species_rhs_implicit_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *sp
 
 static double
 gk_species_rhs_static(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  const struct gkyl_array *fin, struct gkyl_array *rhs)
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
 {
   double omega_cfl = 1/DBL_MAX;
   return app->cfl/omega_cfl;
@@ -1558,12 +1565,26 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     gkyl_sub_range_intersect(&gks->global_upper_ghost[dir], &gks->local_ext, &gks->global_upper_ghost[dir]);
   }
 
-  // Initialize boundary fluxes for emission BCs or Boltzmann elc.
-  gks->bflux_solver = (struct gk_boundary_fluxes) { };
-  gk_species_bflux_init(app, gks, &gks->bflux_solver, false);
-  // Create boundary flux diagnostics if requested.
-  gks->bflux_diag = (struct gk_boundary_fluxes) { };
-  gk_species_bflux_init(app, gks, &gks->bflux_diag, !gks->info.is_static);
+  // Initialize boundary fluxes.
+  gks->bflux = (struct gk_boundary_fluxes) { };
+  // Additional bflux moments to step in time.
+  struct gkyl_phase_diagnostics_inp add_bflux_moms_inp = (struct gkyl_phase_diagnostics_inp) { };
+  // Set the operation type for the bflux app.
+  enum gkyl_species_bflux_type bflux_type = GK_SPECIES_BFLUX_NONE;
+  if (gks->info.boundary_flux_diagnostics.num_diag_moments > 0 ||
+      gks->info.boundary_flux_diagnostics.num_integrated_diag_moments > 0) {
+    bflux_type = GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS_DIAGS;
+  }
+  else {
+    // Set bflux_type to 
+    //   - GK_SPECIES_BFLUX_CALC_FLUX to only put bfluxes in ghost cells of rhs.
+    //   - GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS to calc bfluxes and step its moments.
+    // The latter also requires that you place the moment you desire in add_bflux_moms_inp below.
+    if (app->field->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
+      bflux_type = GK_SPECIES_BFLUX_CALC_FLUX;
+  }
+  // Introduce new moments into moms_inp if needed.
+  gk_species_bflux_init(app, gks, &gks->bflux, bflux_type, add_bflux_moms_inp);
   
   // Initialize a Maxwellian/LTE (local thermodynamic equilibrium) projection routine
   // Projection routine optionally corrects all the Maxwellian/LTE moments
@@ -1693,9 +1714,9 @@ gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *gks_self
 // time-step.
 double
 gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  const struct gkyl_array *fin, struct gkyl_array *rhs)
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
 {
-  return species->rhs_func(app, species, fin, rhs);
+  return species->rhs_func(app, species, fin, rhs, bflux_moms);
 }
 
 // Compute the implicit RHS for species update, returning maximum stable
@@ -1862,9 +1883,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   gk_species_source_release(app, &s->src);
 
   // Free boundary flux solver memory.
-  gk_species_bflux_release(app, &s->bflux_solver);
-  // Free boundary flux diagnostics memory.
-  gk_species_bflux_release(app, &s->bflux_diag);
+  gk_species_bflux_release(app, s, &s->bflux);
   
   gk_species_lte_release(app, &s->lte);
 

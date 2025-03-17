@@ -416,13 +416,6 @@ gyrokinetic_calc_field_update(gkyl_gyrokinetic_app* app, double tcurr, const str
   // Compute electrostatic potential from gyrokinetic Poisson's equation.
   gk_field_accumulate_rho_c(app, app->field, fin);
 
-  // Compute ambipolar potential sheath values if using adiabatic electrons
-  // done here as the RHS update for all species should be complete before
-  // boundary fluxes are computed (ion fluxes needed for sheath values) 
-  // and these boundary fluxes are stored temporarily in ghost cells of RHS
-  if (app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
-    gk_field_calc_ambi_pot_sheath_vals(app, app->field);
-
   // Compute biased wall potential if present and time-dependent.
   // Note: biased wall potential use eval_on_nodes. 
   // so does copy to GPU every call if app->use_gpu = true.
@@ -732,7 +725,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
           s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
 
         // Compute and store (in the ghost cell of of out) the boundary fluxes.
-        gk_species_bflux_rhs(app, s, &s->bflux_solver, distf[i], distf[i], 0);
+        gk_species_bflux_rhs(app, s, &s->bflux, distf[i], distf[i]);
       }
     }
 
@@ -759,7 +752,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
     gkyl_dg_calc_gyrokinetic_vars_alpha_surf(gks->calc_gk_vars,
       &app->local, &gks->local, &gks->local_ext, gks->gyro_phi,
       gks->alpha_surf, gks->sgn_alpha_surf, gks->const_sgn_alpha);
-    gk_species_bflux_rhs(app, gks, &gks->bflux_solver, gks->f, gks->f, 0);
+    gk_species_bflux_rhs(app, gks, &gks->bflux, gks->f, gks->f);
   }
 
   // Apply boundary conditions.
@@ -1068,7 +1061,7 @@ void
 gkyl_gyrokinetic_app_calc_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_app* app, int sidx, double tm)
 {
   struct gk_species *gks = &app->species[sidx];
-  gk_species_bflux_calc_integrated_mom(app, gks, &gks->bflux_diag, tm);
+  gk_species_bflux_calc_integrated_mom(app, gks, &gks->bflux, tm);
 }
 
 void
@@ -1103,7 +1096,7 @@ void
 gkyl_gyrokinetic_app_write_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_app *app, int sidx)
 {
   struct gk_species *gks = &app->species[sidx];
-  gk_species_bflux_write_integrated_mom(app, gks, &gks->bflux_diag);
+  gk_species_bflux_write_integrated_mom(app, gks, &gks->bflux);
 }
 
 //
@@ -1482,14 +1475,8 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   // Compute RHS of Gyrokinetic equation.
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
-    double dt1 = gk_species_rhs(app, s, fin[i], fout[i]);
+    double dt1 = gk_species_rhs(app, s, fin[i], fout[i], bflux_out[i]);
     dtmin = fmin(dtmin, dt1);
-
-    // Compute and store (in the ghost cell of of out) the boundary fluxes.
-    gk_species_bflux_rhs(app, s, &s->bflux_solver, fin[i], fout[i], 0);
-
-    // Compute the boundary fluxes and their moments for diagnostics.
-    gk_species_bflux_rhs(app, s, &s->bflux_diag, fin[i], fout[i], bflux_out[i]);
   }
 
   // Compute RHS of neutrals.
@@ -2084,9 +2071,9 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
   app->is_first_dt_write_call = false;
   gk_s->is_first_integ_write_call = false;
   gk_s->is_first_L2norm_write_call = false;
-  for (int b=0; b<gk_s->bflux_diag.num_boundaries; ++b)
-    gk_s->bflux_diag.is_first_intmom_write_call[b] = false;
-  gk_s->bflux_diag.is_not_first_restart_write_call = false;
+  for (int b=0; b<gk_s->bflux.num_boundaries; ++b)
+    gk_s->bflux.is_first_intmom_write_call[b] = false;
+  gk_s->bflux.is_not_first_restart_write_call = false;
   if (gk_s->info.time_rate_diagnostics)
     gk_s->is_first_fdot_integ_write_call = false;
   if (app->enforce_positivity)
@@ -2165,7 +2152,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
             s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
 
           // Compute and store (in the ghost cell of of out) the boundary fluxes.
-          gk_species_bflux_rhs(app, s, &s->bflux_solver, distf[i], distf[i], 0);
+          gk_species_bflux_rhs(app, s, &s->bflux, distf[i], distf[i]);
         }
       }
 
@@ -2188,7 +2175,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
         s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
 
       // Compute and store (in the ghost cell of of out) the boundary fluxes.
-      gk_species_bflux_rhs(app, s, &s->bflux_solver, distf[i], distf[i], 0);
+      gk_species_bflux_rhs(app, s, &s->bflux, distf[i], distf[i]);
     }
 
     // Apply boundary conditions.
