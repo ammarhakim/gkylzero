@@ -368,7 +368,9 @@ struct gk_boundary_fluxes {
   struct gkyl_range *boundaries_conf_skin[2*GKYL_MAX_CDIM]; // Conf-space ghost range of boundaries.
   struct gkyl_range *boundaries_conf_ghost[2*GKYL_MAX_CDIM]; // Conf-space ghost range of boundaries.
   struct gkyl_range *boundaries_phase_ghost[2*GKYL_MAX_CDIM]; // Phase-space ghost range of boundaries.
+  struct gkyl_range *boundaries_phase_ghost_nosub; // Not a sub range of local_ext.
   gkyl_boundary_flux *flux_slvr[2*GKYL_MAX_CDIM]; // boundary flux solver
+  struct gkyl_array **flux; // Array storing boundary fluxes.
   // Objects used for calculating moments.
   int num_calc_moms; // Number of moments of boundary fluxes to compute.
   bool *is_hamiltonian_mom; // True if need Hamiltonian moments.
@@ -392,6 +394,7 @@ struct gk_boundary_fluxes {
     const struct gkyl_array *fin, struct gkyl_array *rhs);
   void (*bflux_calc_moms_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_boundary_fluxes *bflux,
     const struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
+  void (*bflux_get_flux_func)(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge, struct gkyl_array *out);
   void (*bflux_clear_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fin, double val);
   void (*bflux_scale_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fin, double val);
   void (*bflux_step_f_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fout,
@@ -1551,6 +1554,19 @@ void gk_species_bflux_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *sp
  */
 void gk_species_bflux_rhs_calc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   struct gk_boundary_fluxes *bflux, const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Get the boundary fluxes, storing them in the ghost cells of a given
+ * phase-space array.
+ *
+ * @param bflux Species boundary flux object.
+ * @param dir Direction of the boundary.
+ * @param edge Edge of the boundary.
+ * @param out On output, the boundary fluxes stored in the ghost cells of rhs.
+ */
+void
+gk_species_bflux_get_flux(struct gk_boundary_fluxes *bflux, int dir,
+  enum gkyl_edge_loc edge, struct gkyl_array *out);
 
 /**
  * Compute moments of the boundary fluxes.

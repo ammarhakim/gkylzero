@@ -512,7 +512,10 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
       gkyl_array_accumulate_range(field->rho_c, 1.0, s->m0.marr, &app->local);
       // We also need the M0 flux of the boundary flux through the z
       // boundaries, which is currently stored in the ghost cells of fin.
+      gk_species_bflux_get_flux(&s->bflux, app->cdim-1, GKYL_LOWER_EDGE, fin[i]);
       gk_species_moment_calc(&s->m0, s->lower_ghost[app->cdim-1], app->lower_ghost[app->cdim-1], fin[i]);
+
+      gk_species_bflux_get_flux(&s->bflux, app->cdim-1, GKYL_UPPER_EDGE, fin[i]);
       gk_species_moment_calc(&s->m0, s->upper_ghost[app->cdim-1], app->upper_ghost[app->cdim-1], fin[i]);
     } else {
       // Gyroaverage the density if needed.
