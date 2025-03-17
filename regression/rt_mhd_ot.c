@@ -127,8 +127,6 @@ evalMHDInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   fout[4] = Etot;
   // Set magnetic field.
   fout[5] = Bx; fout[6] = By; fout[7] = Bz;
-  // Set correction potential.
-  fout[8] = 0.0;
 }
 
 void
