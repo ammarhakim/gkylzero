@@ -5,7 +5,7 @@
 // ** Lax-Friedrichs Solver: **
 // ** Proof of hyperbolicity preservation: ../proofs/finite_volume/proof_inviscid_burgers_lax_hyperbolicity.rkt **
 // ** Proof of CFL stability: ../proofs/finite_volume/proof_inviscid_burgers_lax_cfl_stability.rkt **
-// ** Proof of local Lipschitz continuity of discrete flux function: ../proofs/finite_volume/proof_inviscid_burgers_local_lipschitz.rkt **
+// ** Proof of local Lipschitz continuity of discrete flux function: ../proofs/finite_volume/proof_inviscid_burgers_lax_local_lipschitz.rkt **
 // ** Roe Solver: **
 // ** Proof of hyperbolicity preservation: ../proofs/finite_volume/proof_inviscid_burgers_roe_hyperbolicity.rkt **
 // ** Proof of flux conservation (jump continuity): ../proofs/finite_volume/proof_inviscid_burgers_roe_flux_conservation.rkt **
@@ -323,4 +323,5 @@ burgers_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout);
 *
 * @param ref Reference counter for inviscid Burgers' equation.
 */
-void gkyl_burgers_free(const struct gkyl_ref_count* ref);
+void
+gkyl_burgers_free(const struct gkyl_ref_count* ref);

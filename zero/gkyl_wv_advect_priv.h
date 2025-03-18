@@ -4,7 +4,7 @@
 // ** Lax-Friedrichs Solver: **
 // ** Proof of hyperbolicity preservation: ../proofs/finite_volume/proof_linear_advection_lax_hyperbolicity.rkt **
 // ** Proof of CFL stability: ../proofs/finite_volume/proof_linear_advection_lax_cfl_stability.rkt **
-// ** Proof of local Lipschitz continuity of discrete flux function: ../proofs/finite_volume/proof_linear_advection_local_lipschitz.rkt **
+// ** Proof of local Lipschitz continuity of discrete flux function: ../proofs/finite_volume/proof_linear_advection_lax_local_lipschitz.rkt **
 // ** Roe Solver: **
 // ** Proof of hyperbolicity preservation: ../proofs/finite_volume/proof_linear_advection_roe_hyperbolicity.rkt **
 // ** Proof of flux conservation (jump continuity): ../proofs/finite_volume/proof_linear_advection_roe_flux_conservation.rkt **
@@ -326,4 +326,5 @@ advect_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout);
 *
 * @param ref Reference counter for linear advection equation.
 */
-void gkyl_advect_free(const struct gkyl_ref_count* ref);
+void
+gkyl_advect_free(const struct gkyl_ref_count* ref);

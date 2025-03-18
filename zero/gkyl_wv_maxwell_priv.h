@@ -14,10 +14,10 @@
 // ** Proof of CFL stability (Ey and Bz components): ../proofs/finite_volume/proof_maxwell_1d_Ey_Bz_lax_cfl_stability.rkt **
 // ** Proof of CFL stability (Ez and By components): ../proofs/finite_volume/proof_maxwell_1d_Ez_By_lax_cfl_stability.rkt **
 // ** Proof of CFL stability (Bx and psi components): ../proofs/finite_volume/proof_maxwell_1d_Bx_psi_lax_cfl_stability.rkt **
-// ** Proof of local Lipschitz continuity of discrete flux function (Ex and phi components): ../proofs/finite_volume/proof_maxwell_1d_Ex_phi_local_lipschitz.rkt **
-// ** Proof of local Lipschitz continuity of discrete flux function (Ey and Bz components): ../proofs/finite_volume/proof_maxwell_1d_Ey_Bz_local_lipschitz.rkt **
-// ** Proof of local Lipschitz continuity of discrete flux function (Ez and By components): ../proofs/finite_volume/proof_maxwell_1d_Ez_By_local_lipschitz.rkt **
-// ** Proof of local Lipschitz continuity of discrete flux function (Bx and psi components): ../proofs/finite_volume/proof_maxwell_1d_Bx_psi_local_lipschitz.rkt **
+// ** Proof of local Lipschitz continuity of discrete flux function (Ex and phi components): ../proofs/finite_volume/proof_maxwell_1d_Ex_phi_lax_local_lipschitz.rkt **
+// ** Proof of local Lipschitz continuity of discrete flux function (Ey and Bz components): ../proofs/finite_volume/proof_maxwell_1d_Ey_Bz_lax_local_lipschitz.rkt **
+// ** Proof of local Lipschitz continuity of discrete flux function (Ez and By components): ../proofs/finite_volume/proof_maxwell_1d_Ez_By_lax_local_lipschitz.rkt **
+// ** Proof of local Lipschitz continuity of discrete flux function (Bx and psi components): ../proofs/finite_volume/proof_maxwell_1d_Bx_psi_lax_local_lipschitz.rkt **
 // ** Roe Solver: **
 // ** Proof of hyperbolicity preservation (Ex and phi components): ../proofs/finite_volume/proof_maxwell_1d_Ex_phi_roe_hyperbolicity.rkt **
 // ** Proof of hyperbolicity preservation (Ey and Bz components): ../proofs/finite_volume/proof_maxwell_1d_Ey_Bz_roe_hyperbolicity.rkt **
@@ -56,7 +56,8 @@ struct wv_maxwell {
 *
 * @param ref Reference counter for Maxwell equations.
 */
-void gkyl_wv_maxwell_free(const struct gkyl_ref_count* ref);
+void
+gkyl_wv_maxwell_free(const struct gkyl_ref_count* ref);
 
 /**
 * Compute maximum absolute wave speed.
