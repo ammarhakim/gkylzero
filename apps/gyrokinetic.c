@@ -1099,6 +1099,13 @@ gkyl_gyrokinetic_app_write_species_boundary_flux_integrated_mom(gkyl_gyrokinetic
   gk_species_bflux_write_integrated_mom(app, gks, &gks->bflux);
 }
 
+void
+gkyl_gyrokinetic_app_write_species_boundary_flux_mom(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame)
+{
+  struct gk_species *gks = &app->species[sidx];
+  gk_species_bflux_write_mom(app, gks, &gks->bflux, tm, frame);
+}
+
 //
 // ............. Source outputs ............... //
 // 
@@ -1290,6 +1297,8 @@ gkyl_gyrokinetic_app_write_species_conf(gkyl_gyrokinetic_app* app, int sidx, dou
   for (int j=0; j<gks->react_neut.num_react; ++j) {
     gkyl_gyrokinetic_app_write_species_react_neut(app, sidx, j, tm, frame);
   }
+
+  gkyl_gyrokinetic_app_write_species_boundary_flux_mom(app, sidx, tm, frame);
 }
 
 void
@@ -1316,6 +1325,7 @@ gkyl_gyrokinetic_app_write_mom(gkyl_gyrokinetic_app* app, double tm, int frame)
     gkyl_gyrokinetic_app_write_species_source_mom(app, i, tm, frame);
     gkyl_gyrokinetic_app_write_species_lbo_mom(app, i, tm, frame);
     gkyl_gyrokinetic_app_write_species_rad_emissivity(app, i, tm, frame);
+    gkyl_gyrokinetic_app_write_species_boundary_flux_mom(app, i, tm, frame);
   }
 
   for (int i=0; i<app->num_neut_species; ++i) {

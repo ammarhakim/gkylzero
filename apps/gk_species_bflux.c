@@ -402,7 +402,7 @@ gk_species_bflux_write_integrated_mom(gkyl_gyrokinetic_app *app,
 }
 
 static void
-gk_species_bflux_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+gk_species_bflux_write_mom_dynamic(gkyl_gyrokinetic_app* app, const struct gk_species *gks,
   struct gk_boundary_fluxes *bflux, double tm, int frame)
 {
   struct timespec wst = gkyl_wall_clock();
@@ -434,29 +434,43 @@ gk_species_bflux_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_species 
         char fileNm[sz+1]; // ensures no buffer overflow
         snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, vars[dir], edge[edi], mom_name, frame);
         
+        // For now copy the moment to the skin ghost and write it out.
+        int mom_idx = bflux->diag_int_mom_idx[m];
+        gkyl_array_copy_range_to_range(bflux->moms_op[mom_idx].marr, bflux->moms_op[mom_idx].marr,
+          bflux->boundaries_conf_skin[b], bflux->boundaries_conf_ghost[b]);
+
         // Rescale moment by inverse of Jacobian. 
         // For Maxwellian and bi-Maxwellian moments, we only need to re-scale
         // the density (the 0th component).
-        gkyl_dg_div_op_range(bflux->moms_op[m].mem_geo, app->basis, 
-          0, bflux->moms_op[m].marr, 0, bflux->moms_op[m].marr, 0, 
-          app->gk_geom->jacobgeo, bflux->boundaries_conf_ghost[b]);  
+        gkyl_dg_div_op_range(bflux->moms_op[mom_idx].mem_geo, app->basis, 
+          0, bflux->moms_op[mom_idx].marr, 0, bflux->moms_op[mom_idx].marr, 0, 
+          app->gk_geom->jacobgeo, &app->local);  // It fails if one uses the skin range here.
           
         if (app->use_gpu) {
-          gkyl_array_copy(bflux->moms_op[m].marr_host, bflux->moms_op[m].marr);
+          gkyl_array_copy(bflux->moms_op[mom_idx].marr_host, bflux->moms_op[mom_idx].marr);
         }
-
-        // For now copy the moment to the skin ghost and write it out.
-        gkyl_array_copy_range_to_range(bflux->moms_op[m].marr_host, bflux->moms_op[m].marr_host,
-          bflux->boundaries_conf_skin[b], bflux->boundaries_conf_ghost[b]);
 
         struct timespec wtm = gkyl_wall_clock();
         gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
-          bflux->moms_op[m].marr_host, fileNm);
+          bflux->moms_op[mom_idx].marr_host, fileNm);
         app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
         app->stat.n_diag_io += 1;
       }
     }
   }
+}
+
+static void
+gk_species_bflux_write_mom_none(gkyl_gyrokinetic_app* app, const struct gk_species *gks,
+  struct gk_boundary_fluxes *bflux, double tm, int frame)
+{
+}
+
+void
+gk_species_bflux_write_mom(gkyl_gyrokinetic_app* app, const struct gk_species *gks,
+  struct gk_boundary_fluxes *bflux, double tm, int frame)
+{
+  bflux->bflux_write_mom_func(app, gks, bflux, tm, frame);
 }
 
 static int *
@@ -509,6 +523,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
   bflux->bflux_calc_integrated_mom_func = gk_species_bflux_calc_integrated_mom_none;
   bflux->bflux_write_integrated_mom_func = gk_species_bflux_write_integrated_mom_none;
   bflux->bflux_calc_voltime_int_mom_func = gk_species_bflux_calc_voltime_integrated_mom_none;
+  bflux->bflux_write_mom_func = gk_species_bflux_write_mom_none;
 
   if (bflux_type != GK_SPECIES_BFLUX_NONE) {
     bflux->allocated_solver = true;
@@ -661,6 +676,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
       bflux->bflux_calc_integrated_mom_func = gk_species_bflux_calc_integrated_mom_dynamic;
     }
     bflux->bflux_write_integrated_mom_func = gk_species_bflux_write_integrated_mom_dynamic;
+    bflux->bflux_write_mom_func = gk_species_bflux_write_mom_dynamic;
   
     // Object to integrate moments of the bflux and dynvectors to store them.
     int num_diag_int_mom = gk_s->info.boundary_flux_diagnostics.num_integrated_diag_moments;

@@ -409,6 +409,8 @@ struct gk_boundary_fluxes {
     struct gk_boundary_fluxes *bflux, double tm);
   void (*bflux_write_integrated_mom_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
     struct gk_boundary_fluxes *bflux);
+  void (*bflux_write_mom_func)(gkyl_gyrokinetic_app* app, const struct gk_species *gks,
+    struct gk_boundary_fluxes *bflux, double tm, int frame);
 };
 
 struct gk_react {
@@ -1681,6 +1683,18 @@ gk_species_bflux_calc_voltime_integrated_mom(gkyl_gyrokinetic_app* app,
 void
 gk_species_bflux_write_integrated_mom(gkyl_gyrokinetic_app *app,
   const struct gk_species *gks, struct gk_boundary_fluxes *bflux);
+
+/**
+ * Write the moments of the diagnostic boundary fluxes.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species object.
+ * @param tm Current simulation time.
+ * @param frame Current frame.
+ */
+void
+gk_species_bflux_write_mom(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+  struct gk_boundary_fluxes *bflux, double tm, int frame);
 
 /**
  * Release species boundary flux object.
