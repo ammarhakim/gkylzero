@@ -595,8 +595,6 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
   // Buffer arrays for fixed function boundary conditions on distribution function.
   s->bc_buffer_lo_fixed = mkarr(app->use_gpu, s->basis.num_basis, buff_sz);
   s->bc_buffer_up_fixed = mkarr(app->use_gpu, s->basis.num_basis, buff_sz);
-  s->recyc_lo = false;
-  s->recyc_up = false;
   
   for (int d=0; d<cdim; ++d) {
     // Copy BCs by default.
@@ -853,6 +851,9 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     .max_iter = max_iter, .iter_eps = iter_eps, 
     .use_last_converged = use_last_converged };
   gk_neut_species_lte_init(app, s, &s->lte, corr_inp);
+
+  s->recyc_lo = false;
+  s->recyc_up = false;
 
   // Initialize empty structs. New methods will fill them if specified.
   s->src = (struct gk_source) { };
