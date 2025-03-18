@@ -8,6 +8,13 @@
 // ** Proof of CFL stability (mom_y and mom_z components): ../proofs/finite_volume/proof_isothermal_euler_mom_yz_lax_cfl_stability.rkt **
 // ** Proof of local Lipschitz continuity of discrete flux function (rho and mom_x components): NOT PROVEN **
 // ** Proof of local Lipschitz continuity of discrete flux function (mom_y and mom_z components): ../proofs/finite_volume/proof_isothermal_euler_mom_yz_lax_local_lipschitz.rkt **
+// ** Roe Solver: **
+// ** Proof of hyperbolicity preservation (rho and mom_x components): NOT PROVEN **
+// ** Proof of hyperbolicity preservation (mom_y and mom_z components): ../proofs/finite_volume/proof_isothermal_euler_mom_yz_roe_hyperbolicity.rkt **
+// ** Proof of strict hyperbolicity preservation (rho and mom_x components): NOT PROVEN **
+// ** Proof of strict hyperbolicity preservation (mom_y and mom_z components): NOT PROVEN **
+// ** Proof of flux conservation (jump continuity, rho and mom_x components): NOT PROVEN **
+// ** Proof of flux conservation (jump continuity, mom_y and mom_z components): ../proofs/finite_volume/proof_isothermal_euler_mom_yz_roe_flux_conservation.rkt **
 
 #include <assert.h>
 #include <math.h>
@@ -157,6 +164,69 @@ qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const d
 }
 
 static double
+wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+{
+  const struct wv_iso_euler *iso_euler = container_of(eqn, struct wv_iso_euler, eqn);
+  double vt = iso_euler->vt; // Thermal velocity.
+
+  double a0 = (delta[0] * (vt + ((ql[1] * (1.0 / sqrt(ql[0]))) + (qr[1] * (1.0 / sqrt(qr[0])))) * (1.0 / (sqrt(ql[0]) + sqrt(qr[0])))) / vt / 2.0) - (delta[1] / vt / 2.0);
+  double a1 = delta[2] - (delta[0] * ((ql[2] * (1.0 / sqrt(ql[0]))) + (qr[2] * (1.0 / sqrt(qr[0])))) * (1.0 / (sqrt(ql[0]) + sqrt(qr[0]))));
+  double a2 = delta[3] - (delta[0] * ((ql[3] * (1.0 / sqrt(ql[0]))) + (qr[3] * (1.0 / sqrt(qr[0])))) * (1.0 / (sqrt(ql[0]) + sqrt(qr[0]))));
+  double a3 = (delta[0] * (vt - ((ql[1] * (1.0 / sqrt(ql[0]))) + (qr[1] * (1.0 / sqrt(qr[0])))) * (1.0 / (sqrt(ql[0]) + sqrt(qr[0])))) / vt / 2.0) + (delta[1] / vt / 2.0);
+
+  double *w0 = &waves[0 * 4], *w1 = &waves[1 * 4], *w2 = &waves[2 * 4];
+  for (int i = 0; i < 4; i++) {
+    w0[i] = 0.0; w1[i] = 0.0; w2[i] = 0.0;
+  }
+
+  w0[0] = a0;
+  w0[1] = a0 * (((ql[1] * (1.0 / sqrt(ql[0]))) + (qr[1] * (1.0 / sqrt(qr[0])))) * (1.0 / (sqrt(ql[0]) + sqrt(qr[0]))) - vt);
+  w0[2] = a0 * ((ql[2] * (1.0 / sqrt(ql[0]))) + (qr[2] * (1.0 / sqrt(qr[0])))) * (1.0 / (sqrt(ql[0]) + sqrt(qr[0])));
+  w0[3] = a0 * ((ql[3] * (1.0 / sqrt(ql[0]))) + (qr[3] * (1.0 / sqrt(qr[0])))) * (1.0 / (sqrt(ql[0]) + sqrt(qr[0])));
+  s[0] = ((ql[1] * (1.0 / sqrt(ql[0]))) + (qr[1] * (1.0 / sqrt(qr[0])))) * (1.0 / (sqrt(ql[0]) + sqrt(qr[0]))) - vt;
+
+  w1[0] = 0.0;
+  w1[1] = 0.0;
+  w1[2] = a1;
+  w1[3] = a2;
+  s[1] = ((ql[1] * (1.0 / sqrt(ql[0]))) + (qr[1] * (1.0 / sqrt(qr[0])))) * (1.0 / (sqrt(ql[0]) + sqrt(qr[0])));
+
+  w2[0] = a3;
+  w2[1] = a3 * (((ql[1] * (1.0 / sqrt(ql[0]))) + (qr[1] * (1.0 / sqrt(qr[0])))) * (1.0 / (sqrt(ql[0]) + sqrt(qr[0]))) + vt);
+  w2[2] = a3 * ((ql[2] * (1.0 / sqrt(ql[0]))) + (qr[2] * (1.0 / sqrt(qr[0])))) * (1.0 / (sqrt(ql[0]) + sqrt(qr[0])));
+  w2[3] = a3 * ((ql[3] * (1.0 / sqrt(ql[0]))) + (qr[3] * (1.0 / sqrt(qr[0])))) * (1.0 / (sqrt(ql[0]) + sqrt(qr[0])));
+  s[2] = ((ql[1] * (1.0 / sqrt(ql[0]))) + (qr[1] * (1.0 / sqrt(qr[0])))) * (1.0 / (sqrt(ql[0]) + sqrt(qr[0]))) + vt;
+
+  return fabs(((ql[1] * (1.0 / sqrt(ql[0]))) + (qr[1] * (1.0 / sqrt(qr[0])))) * (1.0 / (sqrt(ql[0]) + sqrt(qr[0])))) + vt;
+}
+
+static void
+qfluct_roe(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
+{
+  const double *w0 = &waves[0 * 4], *w1 = &waves[1 * 4], *w2 = &waves[2 * 4];
+  double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]), s2m = fmin(0.0, s[2]);
+  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]), s2p = fmax(0.0, s[2]);
+
+  for (int i = 0; i < 4; i++) {
+    amdq[i] = (s0m * w0[i]) + (s1m * w1[i]) + (s2m * w2[i]);
+    apdq[i] = (s0p * w0[i]) + (s1p * w1[i]) + (s2p * w2[i]);
+  }
+}
+
+static double
+wave_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+{
+  return wave_roe(eqn, delta, ql, qr, waves, s);
+}
+
+static void
+qfluct_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
+  double* amdq, double* apdq)
+{
+  return qfluct_roe(eqn, ql, qr, waves, s, amdq, apdq);
+}
+
+static double
 flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump)
 {
   const struct wv_iso_euler *iso_euler = container_of(eqn, struct wv_iso_euler, eqn);
@@ -231,7 +301,7 @@ gkyl_wv_iso_euler_new(double vt, bool use_gpu)
 {
   return gkyl_wv_iso_euler_inew(&(struct gkyl_wv_iso_euler_inp) {
       .vt = vt,
-      .rp_type = WV_ISO_EULER_RP_LAX,
+      .rp_type = WV_ISO_EULER_RP_ROE,
       .use_gpu = use_gpu,
     }
   );
@@ -252,6 +322,11 @@ gkyl_wv_iso_euler_inew(const struct gkyl_wv_iso_euler_inp* inp)
     iso_euler->eqn.num_waves = 2;
     iso_euler->eqn.waves_func = wave_lax_l;
     iso_euler->eqn.qfluct_func = qfluct_lax_l;
+  }
+  else if (inp->rp_type == WV_ISO_EULER_RP_ROE) {
+    iso_euler->eqn.num_waves = 3;
+    iso_euler->eqn.waves_func = wave_roe_l;
+    iso_euler->eqn.qfluct_func = qfluct_roe_l;
   }
 
   iso_euler->eqn.flux_jump = flux_jump;

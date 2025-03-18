@@ -10,6 +10,13 @@
 // ** Proof of CFL stability (mom_y and mom_z components): ../proofs/finite_volume/proof_isothermal_euler_mom_yz_lax_cfl_stability.rkt **
 // ** Proof of local Lipschitz continuity of discrete flux function (rho and mom_x components): NOT PROVEN **
 // ** Proof of local Lipschitz continuity of discrete flux function (mom_y and mom_z components): ../proofs/finite_volume/proof_isothermal_euler_mom_yz_lax_local_lipschitz.rkt **
+// ** Roe Solver: **
+// ** Proof of hyperbolicity preservation (rho and mom_x components): NOT PROVEN **
+// ** Proof of hyperbolicity preservation (mom_y and mom_z components): ../proofs/finite_volume/proof_isothermal_euler_mom_yz_roe_hyperbolicity.rkt **
+// ** Proof of strict hyperbolicity preservation (rho and mom_x components): NOT PROVEN **
+// ** Proof of strict hyperbolicity preservation (mom_y and mom_z components): NOT PROVEN **
+// ** Proof of flux conservation (jump continuity, rho and mom_x components): NOT PROVEN **
+// ** Proof of flux conservation (jump continuity, mom_y and mom_z components): ../proofs/finite_volume/proof_isothermal_euler_mom_yz_roe_flux_conservation.rkt **
 
 #include <gkyl_wv_eqn.h>
 
