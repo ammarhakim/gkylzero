@@ -396,6 +396,8 @@ struct gk_boundary_fluxes {
     struct gk_boundary_fluxes *bflux, double tm);
   void (*bflux_write_integrated_mom_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
     struct gk_boundary_fluxes *bflux);
+  void (*bflux_get_integrated_H)(gkyl_gyrokinetic_app* app,
+    const struct gk_species *gk_s, struct gk_boundary_fluxes *bflux, double *avals_global);
 };
 
 struct gk_react {
@@ -518,9 +520,14 @@ struct gk_source {
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
   
+  double power_init, density_init; // Initial power and density of the source 
+
   double power; // target power of the source function
-  struct gk_species_moment integ_pow; // integrated Hamiltonian for source power adaptation
-  double *red_integ_pow, *red_integ_pow_global; // for reduction of integrated Hamiltonian
+  struct gk_species_moment integ_H; // integrated Hamiltonian for source power adaptation
+  double *red_integ_H, *red_integ_H_global; // for reduction of integrated Hamiltonian
+
+  bool compensate_particle_loss; // if we want to compensate directly the particle loss in the inner x BC  
+  bool compensate_power_loss; // if we want to compensate directly the particle loss in the inner x BC  
 };
 
 // species data

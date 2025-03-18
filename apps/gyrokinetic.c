@@ -2146,6 +2146,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
       rstat = gkyl_gyrokinetic_app_from_frame_species(app, i, frame);
     }
   }
+  gk_species_source_adapt(app);
   
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
     // Compute the fields and apply BCs.

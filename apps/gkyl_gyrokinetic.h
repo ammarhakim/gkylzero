@@ -98,6 +98,8 @@ struct gkyl_gyrokinetic_source {
   int num_sources;
   bool evolve; // Whether the source is time dependent.
   double power; // power target of the source
+  bool compensate_particle_loss;
+  bool compensate_power_loss;
 
   // sources using projection routine
   struct gkyl_gyrokinetic_projection projection[GKYL_MAX_SOURCES];

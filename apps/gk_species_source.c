@@ -7,6 +7,8 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
 {
   src->source_id = s->info.source.source_id;
   src->power = s->info.source.power;
+  src->compensate_particle_loss = s->info.source.compensate_particle_loss;
+  src->compensate_power_loss = s->info.source.compensate_power_loss;
 
   if (src->source_id) {
     // Allocate source array.
@@ -56,15 +58,15 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     s->src.is_first_integ_write_call = true;
 
     // Allocate data and moment updaters for adaptive source.
-    gk_species_moment_init(app, s, &s->src.integ_pow, "HamiltonianMoments", true);
-    num_mom = s->src.integ_pow.num_mom;
+    gk_species_moment_init(app, s, &s->src.integ_H, "HamiltonianMoments", true);
+    num_mom = s->src.integ_H.num_mom;
     if (app->use_gpu){
-      s->src.red_integ_pow = gkyl_cu_malloc(sizeof(double[num_mom]));
-      s->src.red_integ_pow_global = gkyl_cu_malloc(sizeof(double[num_mom]));
+      s->src.red_integ_H = gkyl_cu_malloc(sizeof(double[num_mom]));
+      s->src.red_integ_H_global = gkyl_cu_malloc(sizeof(double[num_mom]));
     }
     else {
-      s->src.red_integ_pow = gkyl_malloc(sizeof(double[num_mom]));
-      s->src.red_integ_pow_global = gkyl_malloc(sizeof(double[num_mom]));
+      s->src.red_integ_H = gkyl_malloc(sizeof(double[num_mom]));
+      s->src.red_integ_H_global = gkyl_malloc(sizeof(double[num_mom]));
     }
   }
 }
@@ -80,93 +82,132 @@ gk_species_source_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s,
       gkyl_array_accumulate(src->source, 1., source_tmp);
     }
     gkyl_array_release(source_tmp);
-    // if (src->power > 0.0) {
-    //   gk_species_source_adapt(app, s, src, src->power, tm);
-    // }
+
+    // Compute initial density and power.
+    gk_species_moment_calc(&src->integ_H, s->local, app->local, src->source);
+    app->stat.n_mom += 1;
+    // Reduction over possible mpi decomp
+    int num_mom = src->integ_H.num_mom;
+    double red_H_global[num_mom];
+    gkyl_array_reduce_range(src->red_integ_H, src->integ_H.marr, GKYL_SUM, &app->local);
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
+      src->red_integ_H, src->red_integ_H_global);
+      if (app->use_gpu) {
+        gkyl_cu_memcpy(red_H_global, src->red_integ_H_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
+      }
+      else {
+        memcpy(red_H_global, src->red_integ_H_global, sizeof(double[num_mom]));
+      }
+    src->density_init = red_H_global[0];
+    src->power_init = red_H_global[num_mom-1];
   }
 }
 
 void
-gk_species_source_adapt(gkyl_gyrokinetic_app *app){
-
-  // Compute the power loss over all species.
-  double power_loss = 0.0;
+gk_species_source_adapt(gkyl_gyrokinetic_app *app) {
+  // Create a global boolean over all species for density adaptation
+  bool is_density_compensated = true;
   for (int i=0; i<app->num_species; ++i) {
-    struct gk_species *s = &app->species[i];
-    int num_mom = s->bflux_diag.moms_op.num_mom;
-    
-    double power_loss_s = 0.0;
-    for (int b = 0; b < s->bflux_diag.num_boundaries; ++b) {
-      if(s->bflux_diag.boundaries_dir[b] == 0 && s->bflux_diag.boundaries_edge[b] == GKYL_LOWER_EDGE) {
-        double intmom[num_mom];
-        // We do not want to do that (diag freq dependent)
-        gkyl_dynvec_getlast(s->bflux_diag.intmom[b], intmom);
-        // Get the last element which is the energy loss (either M2 or Hamiltonian).
-        power_loss_s += intmom[num_mom-1];
+    is_density_compensated = is_density_compensated && app->species[i].src.compensate_particle_loss;
+  }
+  // Create a global boolean over all species for power adaptation
+  bool is_power_compensated = true;
+  for (int i=0; i<app->num_species; ++i) {
+    is_power_compensated = is_power_compensated && app->species[i].src.compensate_power_loss;
+  }
+
+  double density_loss = 0.0;
+  double power_loss = 0.0;
+  double density_loss_s[app->num_species];
+  double power_loss_s[app->num_species];
+  if (is_power_compensated || is_density_compensated) {
+    // Compute the total particle and power loss over all species.
+    for (int i=0; i<app->num_species; ++i) {
+      struct gk_species *s = &app->species[i];
+      int num_mom = s->bflux_diag.moms_op.num_mom;
+      
+      for (int b = 0; b < s->bflux_diag.num_boundaries; ++b) {
+        if(s->bflux_diag.boundaries_dir[b] == 0 && s->bflux_diag.boundaries_edge[b] == GKYL_LOWER_EDGE) {
+          double intmom[num_mom];
+          // We do not want to do that (diag freq dependent)
+          gkyl_dynvec_getlast(s->bflux_diag.intmom[b], intmom);
+          // We want something like this
+          // s->bflux_diag.bflux_get_integrated_H(app, s, &s->bflux_diag, intmom);
+          // Get the last element which is loss Hamiltonian.
+          density_loss_s[i] = intmom[0];
+          power_loss_s[i] = intmom[num_mom-1];
         }
       }
-    power_loss += num_mom == 1? power_loss_s * s->info.mass : power_loss_s; // need conversion for M2 moment
+      density_loss += density_loss_s[i];
+      power_loss += power_loss_s[i];
+    }
   }
-  
-  // Compute the current total source power
-  double power_src_s[app->num_species];
+
+  // Compute the current source Hamiltonian moments
   double power_input = 0.0;
+  double density_input = 0.0;
   double power_src = 0.0;
+  double dens_src = 0.0;
+  double dens_src_s[app->num_species];
+  double power_src_s[app->num_species];
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
     struct gk_source *src_s = &s->src;
 
-    int num_mom = src_s->integ_pow.num_mom;
-    double avals_global[num_mom];
+    int num_mom = src_s->integ_H.num_mom;
+    double red_H_global[num_mom];
     
-    gk_species_moment_calc(&src_s->integ_pow, s->local, app->local, src_s->source);
+    gk_species_moment_calc(&src_s->integ_H, s->local, app->local, src_s->source);
     app->stat.n_mom += 1;
     
-    // Reduce to compute sum over whole domain.
-    gkyl_array_reduce_range(src_s->red_integ_pow, src_s->integ_pow.marr, GKYL_SUM, &app->local);
+    // Reduce to compute density and power sum over whole domain.
+    gkyl_array_reduce_range(src_s->red_integ_H, src_s->integ_H.marr, GKYL_SUM, &app->local);
     gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
-      src_s->red_integ_pow, src_s->red_integ_pow_global);
+      src_s->red_integ_H, src_s->red_integ_H_global);
       if (app->use_gpu) {
-        gkyl_cu_memcpy(avals_global, src_s->red_integ_pow_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
+        gkyl_cu_memcpy(red_H_global, src_s->red_integ_H_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
       }
       else {
-        memcpy(avals_global, src_s->red_integ_pow_global, sizeof(double[num_mom]));
+        memcpy(red_H_global, src_s->red_integ_H_global, sizeof(double[num_mom]));
       }
-    power_src_s[i] = avals_global[num_mom-1]; // take the last moment, M2 or Hamiltonian.
+    dens_src_s[i] = red_H_global[0]; // take the first moment M0.
+    power_src_s[i] = red_H_global[num_mom-1]; // take the last moment, Hamiltonian.
     power_src += power_src_s[i];
     power_input += src_s->power;
+    density_input += src_s->density_init;
   }
-  
+
   // Adapt the sources equally by splitting the load
   double power_target = (power_input + power_loss)/app->num_species;
+  double density_target = (density_input + density_loss)/app->num_species;
   double scale_fact = 1.0;
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
     struct gk_source *src = &s->src;
-
-    scale_fact = power_target/power_src_s[0];
-    
-    // Scale the source.
+    if(power_src_s[i] > 0.0) {
+      scale_fact = power_target/power_src_s[i];
+    } else {
+      scale_fact = 1.0;
+    }
     gkyl_array_scale(src->source, scale_fact);
-    
-    // // Verify the final power (to be removed later).
-    // gk_species_moment_calc(&src->integ_pow, s->local, app->local, src->source);
-    // gkyl_array_reduce_range(src->red_integ_pow, src->integ_pow.marr, GKYL_SUM, &app->local);
-    // gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, src->red_integ_pow, src->red_integ_pow_global);
-    
-    // double final_power = 0.0;
-    // if (app->use_gpu) {
-    //   gkyl_cu_memcpy(&final_power, src->red_integ_pow_global, sizeof(double), GKYL_CU_MEMCPY_D2H);
-    // }
-    // else {
-    //   memcpy(&final_power, src->red_integ_pow_global, sizeof(double));
-    // }
-    // double initial_power_MW = pow_src*1e-6*s->info.mass;
-    // double final_power_MW = final_power*1e-6*s->info.mass;
-    // double total_power_loss_MW = power_loss_tot*1e-6;
-    // fprintf(stderr, "s%d: Pow. loss (t=%.4f) %.4f [MW], Init. pow. %.4f [MW], Adapt. pow. %.4f [MW]\n", 
-    //   i, tbflux, total_power_loss_MW, initial_power_MW, final_power_MW);
   }
+      // // Verify the final power (to be removed later).
+      // gk_species_moment_calc(&src->integ_H, s->local, app->local, src->source);
+      // gkyl_array_reduce_range(src->red_integ_H, src->integ_H.marr, GKYL_SUM, &app->local);
+      // gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, src->red_integ_H, src->red_integ_H_global);
+      
+      // double final_power = 0.0;
+      // if (app->use_gpu) {
+      //   gkyl_cu_memcpy(&final_power, src->red_integ_H_global, sizeof(double), GKYL_CU_MEMCPY_D2H);
+      // }
+      // else {
+      //   memcpy(&final_power, src->red_integ_H_global, sizeof(double));
+      // }
+      // double initial_power_MW = pow_src*1e-6*s->info.mass;
+      // double final_power_MW = final_power*1e-6*s->info.mass;
+      // double total_power_loss_MW = power_loss_tot*1e-6;
+      // fprintf(stderr, "s%d: Pow. loss (t=%.4f) %.4f [MW], Init. pow. %.4f [MW], Adapt. pow. %.4f [MW]\n", 
+      //   i, tbflux, total_power_loss_MW, initial_power_MW, final_power_MW);
 }
 
 // Compute rhs of the source.
@@ -370,14 +411,14 @@ gk_species_source_release(const struct gkyl_gyrokinetic_app *app, const struct g
       gkyl_free(src->red_integ_diag_global);
     }  
     gkyl_dynvec_release(src->integ_diag);
-    gk_species_moment_release(app, &src->integ_pow); 
+    gk_species_moment_release(app, &src->integ_H); 
     if (app->use_gpu) {
-      gkyl_cu_free(src->red_integ_pow);
-      gkyl_cu_free(src->red_integ_pow_global);
+      gkyl_cu_free(src->red_integ_H);
+      gkyl_cu_free(src->red_integ_H_global);
     }
     else {
-      gkyl_free(src->red_integ_pow);
-      gkyl_free(src->red_integ_pow_global);
+      gkyl_free(src->red_integ_H);
+      gkyl_free(src->red_integ_H_global);
     }
   }
 }
