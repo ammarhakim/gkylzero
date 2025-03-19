@@ -4,7 +4,7 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_array_ops.h>
-#include <gkyl_translate_dim_gyrokinetic.h>
+#include <gkyl_translate_dim.h>
 #include <gkyl_util.h>
 #include <gkyl_array_rio.h>
 #include <acutest.h>
@@ -189,7 +189,7 @@ test_2x2v(int poly_order, bool use_gpu)
 
 //  // Write distribution function to file.
 //  char fname0[1024];
-//  sprintf(fname0, "ctest_translate_dim_gyrokinetic_2x2v_p%d_low.gkyl", poly_order);
+//  sprintf(fname0, "ctest_translate_dim_2x2v_p%d_low.gkyl", poly_order);
 //  gkyl_grid_sub_array_write(&grid_low, &local_low, NULL, distf_low, fname0);
 
   // Create target distribution function arrays.
@@ -201,14 +201,14 @@ test_2x2v(int poly_order, bool use_gpu)
   // Translate the DG coefficients.
   int cdim_do = confGrid_low.ndim;
   int vdim_do = grid_low.ndim - cdim_do;
-  struct gkyl_translate_dim_gyrokinetic* trans_dim_upd = gkyl_translate_dim_gyrokinetic_new(cdim_do,
-    basis_low, cdim, basis, use_gpu);
-  gkyl_translate_dim_gyrokinetic_advance(trans_dim_upd, &local_low, &local, distf_low, distf);
+  struct gkyl_translate_dim* trans_dim_upd = gkyl_translate_dim_new(cdim_do,
+    basis_low, cdim, basis, 0, use_gpu);
+  gkyl_translate_dim_advance(trans_dim_upd, &local_low, &local, distf_low, 1, distf);
   gkyl_array_copy(distf_ho, distf);
 
 //  // Write distribution function to file.
 //  char fname1[1024];
-//  sprintf(fname1, "ctest_translate_dim_gyrokinetic_2x2v_p%d.gkyl", poly_order);
+//  sprintf(fname1, "ctest_translate_dim_2x2v_p%d.gkyl", poly_order);
 //  gkyl_grid_sub_array_write(&grid, &local, NULL, distf_ho, fname1);
  
   // How DG coefficients of the higher dim field are mapped to those of the
@@ -240,7 +240,7 @@ test_2x2v(int poly_order, bool use_gpu)
     }
   }
 
-  gkyl_translate_dim_gyrokinetic_release(trans_dim_upd);
+  gkyl_translate_dim_release(trans_dim_upd);
   gkyl_array_release(distf);
   gkyl_array_release(distf_ho);
   gkyl_proj_on_basis_release(proj_distf_low);
@@ -348,7 +348,7 @@ test_3x2v(int poly_order, bool use_gpu)
 
 //  // Write distribution function to file.
 //  char fname0[1024];
-//  sprintf(fname0, "ctest_translate_dim_gyrokinetic_3x2v_p%d_low.gkyl", poly_order);
+//  sprintf(fname0, "ctest_translate_dim_3x2v_p%d_low.gkyl", poly_order);
 //  gkyl_grid_sub_array_write(&grid_low, &local_low, NULL, distf_low, fname0);
 
   // Create target distribution function arrays.
@@ -360,14 +360,14 @@ test_3x2v(int poly_order, bool use_gpu)
   // Translate the DG coefficients.
   int cdim_do = confGrid_low.ndim;
   int vdim_do = grid_low.ndim - cdim_do;
-  struct gkyl_translate_dim_gyrokinetic* trans_dim_upd = gkyl_translate_dim_gyrokinetic_new(cdim_do,
-    basis_low, cdim, basis, use_gpu);
-  gkyl_translate_dim_gyrokinetic_advance(trans_dim_upd, &local_low, &local, distf_low, distf);
+  struct gkyl_translate_dim* trans_dim_upd = gkyl_translate_dim_new(cdim_do,
+    basis_low, cdim, basis, 0, use_gpu);
+  gkyl_translate_dim_advance(trans_dim_upd, &local_low, &local, distf_low, 1, distf);
   gkyl_array_copy(distf_ho, distf);
 
 //  // Write distribution function to file.
 //  char fname1[1024];
-//  sprintf(fname1, "ctest_translate_dim_gyrokinetic_3x2v_p%d.gkyl", poly_order);
+//  sprintf(fname1, "ctest_translate_dim_3x2v_p%d.gkyl", poly_order);
 //  gkyl_grid_sub_array_write(&grid, &local, NULL, distf_ho, fname1);
  
   // How DG coefficients of the higher dim field are mapped to those of the
@@ -402,7 +402,7 @@ test_3x2v(int poly_order, bool use_gpu)
     }
   }
 
-  gkyl_translate_dim_gyrokinetic_release(trans_dim_upd);
+  gkyl_translate_dim_release(trans_dim_upd);
   gkyl_array_release(distf);
   gkyl_array_release(distf_ho);
   gkyl_proj_on_basis_release(proj_distf_low);

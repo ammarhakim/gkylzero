@@ -383,6 +383,12 @@ struct gk_boundary_fluxes {
   int *diag_mom_idx; // Index of each diag mom in the array of calc moms.
   int *diag_int_mom_idx; // Index of each diag int mom in the array of calc moms.
   int *add_mom_idx; // Index of each additional mom in the array of calc moms.
+  struct gkyl_translate_dim *transdim[GKYL_MAX_CDIM]; // Updater that projects to lower dim.
+  struct gkyl_rect_decomp *decomp_surf[GKYL_MAX_CDIM]; // Surface decomposition object.
+  struct gkyl_comm *comm_surf[GKYL_MAX_CDIM]; // Surface communicator object.
+  struct gkyl_range surf_local[GKYL_MAX_CDIM], surf_local_ext[GKYL_MAX_CDIM]; // local, local-ext surface ranges.
+  struct gkyl_rect_grid grid_surf[GKYL_MAX_CDIM]; // Surface grid.
+  struct gkyl_array **mom_surf, **mom_surf_ho; // Moments on the surface.
   struct gkyl_array_integrate **integ_op; // Operator that integrates over volume.
   double *int_moms_local, *int_moms_global; // Integrated moments in this time step.
   gkyl_dynvec *intmom; // Integrated moments of the boundary fluxes.
@@ -957,8 +963,8 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_rect_decomp *decomp; // Volume decomposition object.
   struct gkyl_comm *comm; // Volume communicator object for conf-space arrays.
 
-  struct gkyl_rect_decomp *decomp_plane[GKYL_MAX_CDIM]; // Volume decomposition object.
-  struct gkyl_comm *comm_plane[GKYL_MAX_CDIM]; // Volume communicator object for conf-space arrays.
+  struct gkyl_rect_decomp *decomp_plane[GKYL_MAX_CDIM]; // Plane/slab decomposition object.
+  struct gkyl_comm *comm_plane[GKYL_MAX_CDIM]; // Plane/slab communicator object for conf-space arrays.
 
   // pointer to basis on device
   // (points to host structs if not on GPU)
