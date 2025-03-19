@@ -2150,7 +2150,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
 {
   struct gkyl_app_restart_status rstat;
   for (int i=0; i<app->num_neut_species; i++) {
-    if (app->neut_species[i].info.is_static && !app->neut_species[i].info.static_from_frame) {
+    if (app->neut_species[i].info.is_static ) {
       gk_neut_species_apply_ic(app, &app->neut_species[i], 0.0);
     }
     else {
@@ -2158,7 +2158,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
     }
   }
   for (int i=0; i<app->num_species; i++) {
-    if (app->species[i].info.is_static && !app->neut_species[i].info.static_from_frame) {
+    if (app->species[i].info.is_static ) {
       gk_species_apply_ic(app, &app->species[i], 0.0);
     }
     else {

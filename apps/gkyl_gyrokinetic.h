@@ -232,7 +232,6 @@ struct gkyl_gyrokinetic_species {
   struct gkyl_mapc2p_inp mapc2p;
 
   bool is_static; // Set to true if species does not change in time.
-  bool static_from_frame;
   
   // Initial conditions using projection routine.
   struct gkyl_gyrokinetic_projection projection;
@@ -295,7 +294,8 @@ struct gkyl_gyrokinetic_neut_species {
   struct gkyl_mapc2p_inp mapc2p;
 
   bool is_static; // Set to true if neutral species does not change in time.
-  bool static_from_frame;
+
+  struct gkyl_gyrokinetic_ic_import init_from_file;
   
   // Initial conditions using projection routine.
   struct gkyl_gyrokinetic_projection projection;
