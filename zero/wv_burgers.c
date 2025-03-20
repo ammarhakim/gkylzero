@@ -163,14 +163,26 @@ qfluct_roe(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
 static double
 wave_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s)
 {
-  return wave_roe(eqn, delta, ql, qr, waves, s);
+  if (type == GKYL_WV_HIGH_ORDER_FLUX) {
+    return wave_roe(eqn, delta, ql, qr, waves, s);
+  }
+  else {
+    return wave_lax(eqn, delta, ql, qr, waves, s);
+  }
+
+  return 0.0; // Unreachable code.
 }
 
 static void
 qfluct_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
   double* amdq, double* apdq)
 {
-  return qfluct_roe(eqn, ql, qr, waves, s, amdq, apdq);
+  if (type == GKYL_WV_HIGH_ORDER_FLUX) {
+    return qfluct_roe(eqn, ql, qr, waves, s, amdq, apdq);
+  }
+  else {
+    return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
+  }
 }
 
 static double
