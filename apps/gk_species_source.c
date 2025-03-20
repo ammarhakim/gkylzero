@@ -6,9 +6,6 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   struct gk_source *src)
 {
   src->source_id = s->info.source.source_id;
-  src->power = s->info.source.power;
-  src->compensate_particle_loss = s->info.source.compensate_particle_loss;
-  src->compensate_power_loss = s->info.source.compensate_power_loss;
 
   if (src->source_id) {
     // Allocate source array.
@@ -105,39 +102,41 @@ gk_species_source_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s,
 
 void
 gk_species_source_adapt(gkyl_gyrokinetic_app *app) {
-  // Create a global boolean over all species for density adaptation
-  bool is_density_compensated = true;
-  for (int i=0; i<app->num_species; ++i) {
-    is_density_compensated = is_density_compensated && app->species[i].src.compensate_particle_loss;
-  }
-  // Create a global boolean over all species for power adaptation
-  bool is_power_compensated = true;
-  for (int i=0; i<app->num_species; ++i) {
-    is_power_compensated = is_power_compensated && app->species[i].src.compensate_power_loss;
-  }
-
   double density_loss = 0.0;
   double power_loss = 0.0;
   double density_loss_s[app->num_species];
   double power_loss_s[app->num_species];
-  if (is_power_compensated || is_density_compensated) {
+  
+  if (app->adaptive_source) {
     // Compute the total particle and power loss over all species.
     for (int i=0; i<app->num_species; ++i) {
       struct gk_species *s = &app->species[i];
-      int num_mom = s->bflux_diag.moms_op.num_mom;
+      struct gk_source *src_s = &s->src;
+      int num_mom = src_s->integ_H.num_mom;
       
-      for (int b = 0; b < s->bflux_diag.num_boundaries; ++b) {
-        if(s->bflux_diag.boundaries_dir[b] == 0 && s->bflux_diag.boundaries_edge[b] == GKYL_LOWER_EDGE) {
-          double intmom[num_mom];
-          // We do not want to do that (diag freq dependent)
-          gkyl_dynvec_getlast(s->bflux_diag.intmom[b], intmom);
-          // We want something like this
-          // s->bflux_diag.bflux_get_integrated_H(app, s, &s->bflux_diag, intmom);
-          // Get the last element which is loss Hamiltonian.
-          density_loss_s[i] = intmom[0];
-          power_loss_s[i] = intmom[num_mom-1];
+      // We get the inner radial boundary flux and store it in the source ghosts.
+      gk_species_bflux_get_flux(&s->bflux, 0, GKYL_LOWER_EDGE, src_s->source);
+      // Compute the Hamiltonian moments of the bflux
+      gk_species_moment_calc(&src_s->integ_H, s->lower_ghost[0], app->lower_ghost[0], src_s->source);
+      app->stat.n_mom += 1;
+
+      // Reduction over possible mpi decomp
+      double int_H_global[num_mom];
+      gkyl_array_reduce_range(src_s->red_integ_H, src_s->integ_H.marr, GKYL_SUM, &app->lower_ghost[0]);
+      gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
+        src_s->red_integ_H, src_s->red_integ_H_global);
+        if (app->use_gpu) {
+          gkyl_cu_memcpy(int_H_global, src_s->red_integ_H_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
         }
-      }
+        else {
+          memcpy(int_H_global, src_s->red_integ_H_global, sizeof(double[num_mom]));
+        }
+
+      // Sort the Hamlitonian moments
+      density_loss_s[i] = int_H_global[0];
+      power_loss_s[i] = int_H_global[num_mom-1];
+
+      // Cumulate the losses
       density_loss += density_loss_s[i];
       power_loss += power_loss_s[i];
     }
@@ -173,13 +172,12 @@ gk_species_source_adapt(gkyl_gyrokinetic_app *app) {
     dens_src_s[i] = red_H_global[0]; // take the first moment M0.
     power_src_s[i] = red_H_global[num_mom-1]; // take the last moment, Hamiltonian.
     power_src += power_src_s[i];
-    power_input += src_s->power;
+    power_input += src_s->power_init;
     density_input += src_s->density_init;
   }
 
   // Adapt the sources equally by splitting the load
-  double power_target = (power_input + power_loss)/app->num_species;
-  double density_target = (density_input + density_loss)/app->num_species;
+  double power_target = (app->total_input_power + power_loss)/app->num_species;
   double scale_fact = 1.0;
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
@@ -346,10 +344,6 @@ gk_species_source_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_speci
     app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
     app->stat.n_diag += 1;
 
-    // Adapt the source.
-    if (gks->info.source.power > 0.0) {
-      gk_species_source_adapt(app);
-    }
   }
 }
 

@@ -369,6 +369,9 @@ struct gkyl_gk {
   double cfl_frac; // CFL fraction to use (default 1.0).
   double cfl_frac_omegaH; // CFL fraction used for the omega_H dt (default 1.0).
 
+  bool adaptive_source; // Whether the source are dynamically adapted.
+  double total_input_power; // Set the target power to inject for source adaptation.
+
   bool enforce_positivity; // Positivity enforcement via shift in f.
 
   int num_periodic_dir; // Number of periodic directions.

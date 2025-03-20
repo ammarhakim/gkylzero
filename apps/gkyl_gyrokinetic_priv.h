@@ -540,12 +540,8 @@ struct gk_source {
   
   double power_init, density_init; // Initial power and density of the source 
 
-  double power; // target power of the source function
   struct gk_species_moment integ_H; // integrated Hamiltonian for source power adaptation
   double *red_integ_H, *red_integ_H_global; // for reduction of integrated Hamiltonian
-
-  bool compensate_particle_loss; // if we want to compensate directly the particle loss in the inner x BC  
-  bool compensate_power_loss; // if we want to compensate directly the particle loss in the inner x BC  
 };
 
 // species data
@@ -947,6 +943,9 @@ struct gkyl_gyrokinetic_app {
   double bmag_ref; // Reference magnetic field
 
   bool use_gpu; // should we use GPU (if present)
+
+  bool adaptive_source; // Whether the source are dynamically adapted.
+  double total_input_power; // Set the target power to inject for source adaptation.
 
   bool enforce_positivity; // Whether to enforce f>0.
 

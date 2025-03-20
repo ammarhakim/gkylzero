@@ -202,6 +202,11 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
 	    gk_neut_species_copy_range(gkns, gkns->f, gkns->f1, &gkns->local_ext);
           }
 
+          if (app->adaptive_source) {
+            // Adapt the source
+            gk_species_source_adapt(app);
+          }
+
           if (app->enforce_positivity) {
             // Apply positivity shift if requested.
 	    gkyl_array_clear(app->ps_delta_m0_ions, 0.0);
