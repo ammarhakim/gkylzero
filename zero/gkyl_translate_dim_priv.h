@@ -165,7 +165,7 @@ static void trans_dim_choose_kernel(struct gkyl_translate_dim_kernels *kernels, 
       kernels->translate = trans_dim_kern_list_gkhyb[cdim_tar+cdim_do-3].kernels[poly_order-1];
       break;
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      kernels->translate = trans_dim_kern_list_ser[cdim_do-1].list[dir_idx*3+edge].kernels[poly_order-1];
+      kernels->translate = trans_dim_kern_list_ser[cdim_do-1].list[dir_idx*3+edge_idx].kernels[poly_order-1];
       break;
     default:
       assert(false);
@@ -178,9 +178,9 @@ static void trans_dim_choose_kernel(struct gkyl_translate_dim_kernels *kernels, 
     kernels->get_idx_do = translate_dim_get_idx_do_gk;
   }
   else {
-    if (cdim_do < cdim_tar)
-      kernels->get_idx_do = translate_dim_get_idx_do_conf_up;
-    else
+    if (cdim_tar < cdim_do)
       kernels->get_idx_do = translate_dim_get_idx_do_conf_down;
+    else
+      kernels->get_idx_do = translate_dim_get_idx_do_conf_up;
   }
 }

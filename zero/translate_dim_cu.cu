@@ -49,10 +49,10 @@ gkyl_trans_dim_set_cu_ker_ptrs(struct gkyl_translate_dim_kernels *kernels, int c
     kernels->get_idx_do = translate_dim_get_idx_do_gk;
   }
   else {
-    if (cdim_do < cdim_tar)
-      kernels->get_idx_do = translate_dim_get_idx_do_conf_up;
-    else
+    if (cdim_tar < cdim_do)
       kernels->get_idx_do = translate_dim_get_idx_do_conf_down;
+    else
+      kernels->get_idx_do = translate_dim_get_idx_do_conf_up;
   }
 };
 
