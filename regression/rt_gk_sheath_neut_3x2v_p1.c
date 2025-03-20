@@ -1023,48 +1023,58 @@ main(int argc, char **argv)
     .time_rate_diagnostics = true,
   };
 
-  // Gyrokinetic app.
-  struct gkyl_gk app_inp = {
-    .name = "gk_sheath_neut_3x2v_p1",
-
-    .cdim = 3, .vdim = 2,
-    .lower = { ctx.R - (0.5 * ctx.Lx), -0.5 * ctx.Ly, -0.5 * ctx.Lz },
-    .upper = { ctx.R + (0.5 * ctx.Lx), 0.5 * ctx.Ly, 0.5 * ctx.Lz },
-    .cells = { NX, NY, NZ },
-
-    .poly_order = ctx.poly_order,
-    .basis_type = app_args.basis_type,
-    .cfl_frac = ctx.cfl_frac,
-
-    .geometry = {
+  struct gkyl_gyrokinetic_geometry geometry = {
       .geometry_id = GKYL_MAPC2P,
-      .world = { },
-
       .mapc2p = mapc2p,
       .c2p_ctx = &ctx,
       .bmag_func = bmag_func,
       .bmag_ctx = &ctx
-    },
-
-    .num_periodic_dir = 1,
-    .periodic_dirs = { 1 },
-
-    .num_species = 2,
-    .species = { elc, ion },
-    .num_neut_species = 1,
-    .neut_species = { D0 },
-
-    .field = field,
-
-    .parallelism = {
-      .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0], app_args.cuts[1], app_args.cuts[2] },
-      .comm = comm,
-    },
   };
-  
+
+  struct gkyl_app_parallelism_inp parallelism = {
+    .use_gpu = app_args.use_gpu,
+    .cuts = { app_args.cuts[0], app_args.cuts[1], app_args.cuts[2] },
+    .comm = comm,
+  };
+
+  // GK app
+  struct gkyl_gk *gk = gkyl_malloc(sizeof *gk);
+  memset(gk, 0, sizeof(*gk));
+
+  strcpy(gk->name, "gk_sheath_neut_3x2v_p1");
+  gk->cfl_frac = ctx.cfl_frac;
+
+  gk->cdim = 3;
+  gk->vdim = 2;
+  gk->lower[0] = ctx.R - (0.5 * ctx.Lx);
+  gk->upper[0] = ctx.R + (0.5 * ctx.Lx);
+  gk->lower[1] = -0.5 * ctx.Ly;
+  gk->upper[1] =  0.5 * ctx.Ly; 
+  gk->lower[2] = -0.5 * ctx.Lz;
+  gk->upper[2] =  0.5 * ctx.Lz;
+  gk->cells[0] = NX;
+  gk->cells[1] = NY;
+  gk->cells[2] = NZ;
+  gk->poly_order = ctx.poly_order;
+  gk->basis_type = app_args.basis_type;
+
+  gk->geometry = geometry;
+
+  gk->num_periodic_dir = 1;
+  gk->periodic_dirs[0] = 1;
+
+  gk->num_species = 2;
+  gk->species[0] = elc;
+  gk->species[1] = ion;
+  gk->num_neut_species = 1;
+  gk->neut_species[0] = D0;
+  gk->field = field;
+
+  gk->parallelism = parallelism;
+
   // Create app object.
-  gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&app_inp);
+  gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(gk);
+  
 
   // Initial and final simulation times.
   double t_curr = 0.0, t_end = ctx.t_end;
@@ -1186,6 +1196,7 @@ main(int argc, char **argv)
 
 freeresources:
   // Free resources after simulation completion.
+  gkyl_free(gk);
   gkyl_gyrokinetic_app_release(app);
   gkyl_gyrokinetic_comms_release(comm);
 
