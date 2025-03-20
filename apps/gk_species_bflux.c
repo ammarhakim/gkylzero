@@ -606,7 +606,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
       struct gkyl_range *skin_r = bflux->boundaries_edge[b]==GKYL_LOWER_EDGE? &gk_s->lower_skin[dir] : &gk_s->upper_skin[dir];
       struct gkyl_range *ghost_r = bflux->boundaries_edge[b]==GKYL_LOWER_EDGE? &gk_s->lower_ghost[dir] : &gk_s->upper_ghost[dir];
       bflux->flux_slvr[b] = gkyl_boundary_flux_new(dir, bflux->boundaries_edge[b], &gk_s->grid,
-        skin_r, ghost_r, gk_s->eqn_gyrokinetic, false, app->use_gpu);
+        skin_r, ghost_r, gk_s->eqn_gyrokinetic, true, app->use_gpu);
     }
 
     // Create a ghost range that the flux lives on, and allocate the array that stores the flux.
