@@ -2,9 +2,6 @@
 #include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_translate_dim.h>
 
-#define MAX_MOM_NAMES 24
-#define MAX_MOM_NAME_LENGTHS 24
-
 static int
 gk_species_bflux_idx(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge) {
   // Given a direction 'dir' and an edge 'edge' return the boundary index.
@@ -196,6 +193,35 @@ gk_species_bflux_get_flux_dynamic(struct gk_boundary_fluxes *bflux, int dir, enu
 {
   int b = gk_species_bflux_idx(bflux, dir, edge);
   gkyl_array_copy_range_to_range(out, bflux->flux[b], bflux->boundaries_phase_ghost[b], &bflux->boundaries_phase_ghost_nosub[b]);
+}
+
+static void
+gk_species_bflux_get_flux_mom_dynamic(struct gk_boundary_fluxes *bflux, int dir,
+  enum gkyl_edge_loc edge, char *mom_name, struct gkyl_array *out)
+{
+  int b = gk_species_bflux_idx(bflux, dir, edge);
+  int mom_idx = -1;
+  for (int m=0; m<bflux->num_calc_moms; m++) {
+    if (0 == strcmp(bflux->calc_mom_names[m], mom_name)) {
+      mom_idx = m;
+      break;
+    }
+  }
+  gkyl_array_copy_range_to_range(out, bflux->f[b*bflux->num_calc_moms+mom_idx],
+    bflux->boundaries_conf_ghost[b], &bflux->boundaries_conf_ghost[b]);
+}
+
+static void
+gk_species_bflux_get_flux_mom_none(struct gk_boundary_fluxes *bflux, int dir,
+  enum gkyl_edge_loc edge, char *mom_name, struct gkyl_array *out)
+{
+}
+
+void
+gk_species_bflux_get_flux_mom(struct gk_boundary_fluxes *bflux, int dir,
+  enum gkyl_edge_loc edge, char *mom_name, struct gkyl_array *out)
+{
+  bflux->bflux_get_flux_mom_func(bflux, dir, edge, mom_name, out);
 }
 
 static void
@@ -495,8 +521,8 @@ gk_species_bflux_write_mom(gkyl_gyrokinetic_app* app, const struct gk_species *g
 }
 
 static int *
-bflux_unionize_moms(int num_add_moms, char add_moms[MAX_MOM_NAMES][MAX_MOM_NAME_LENGTHS],
-  int *num_moms, char moms[MAX_MOM_NAMES][MAX_MOM_NAME_LENGTHS])
+bflux_unionize_moms(int num_add_moms, char add_moms[BFLUX_MAX_MOM_NAMES][BFLUX_MAX_MOM_NAME_LENGTHS],
+  int *num_moms, char moms[BFLUX_MAX_MOM_NAMES][BFLUX_MAX_MOM_NAME_LENGTHS])
 {
   // Check if each of the num_add_moms moments in add_moms is included in the
   // moms list of num_moms moments. If it's not, include it and increment
@@ -536,6 +562,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
   bflux->bflux_rhs_func = gk_species_bflux_rhs_none;
   bflux->bflux_calc_moms_func = gk_species_bflux_calc_moms_none;
   bflux->bflux_get_flux_func = gk_species_bflux_get_flux_none;
+  bflux->bflux_get_flux_mom_func = gk_species_bflux_get_flux_mom_none;
   bflux->bflux_clear_func = gk_species_bflux_clear_none;
   bflux->bflux_scale_func = gk_species_bflux_scale_none;
   bflux->bflux_step_f_func = gk_species_bflux_step_f_none;
@@ -601,6 +628,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
     bflux->allocated_moms = true;
 
     // Set methods for time-stepping boundary fluxes needed for diagnostics.
+    bflux->bflux_get_flux_mom_func = gk_species_bflux_get_flux_mom_dynamic;
     bflux->bflux_calc_moms_func = gk_species_bflux_calc_moms_dynamic;
     bflux->bflux_clear_func = gk_species_bflux_clear_dynamic;
     bflux->bflux_scale_func = gk_species_bflux_scale_dynamic;
@@ -611,18 +639,17 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
     // Create a union of the diag_moms, int_diag_moms and add_moms lists. Also store
     // the index of each mom in this union list.
     int num_add_mom = add_moms_inp.num_diag_moments;
-    assert(num_add_mom+num_diag_mom+num_diag_int_mom < MAX_MOM_NAMES+1);
+    assert(num_add_mom+num_diag_mom+num_diag_int_mom < BFLUX_MAX_MOM_NAMES+1);
 
-    char moms_needed[MAX_MOM_NAMES][MAX_MOM_NAME_LENGTHS];
     bflux->num_calc_moms = 0;
     bflux->diag_mom_idx = bflux_unionize_moms(num_diag_mom,
-      gk_s->info.boundary_flux_diagnostics.diag_moments, &bflux->num_calc_moms, moms_needed);
+      gk_s->info.boundary_flux_diagnostics.diag_moments, &bflux->num_calc_moms, bflux->calc_mom_names);
 
     bflux->diag_int_mom_idx = bflux_unionize_moms(num_diag_int_mom,
-      gk_s->info.boundary_flux_diagnostics.integrated_diag_moments, &bflux->num_calc_moms, moms_needed);
+      gk_s->info.boundary_flux_diagnostics.integrated_diag_moments, &bflux->num_calc_moms, bflux->calc_mom_names);
 
     bflux->diag_mom_idx = bflux_unionize_moms(num_add_mom,
-      add_moms_inp.diag_moments, &bflux->num_calc_moms, moms_needed);
+      add_moms_inp.diag_moments, &bflux->num_calc_moms, bflux->calc_mom_names);
 
     // Create a moments app for each mom needed.
     bflux->moms_op = gkyl_malloc(sizeof(struct gk_species_moment[bflux->num_calc_moms]));
@@ -630,14 +657,14 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
     bool need_m2perp = false;
     bflux->a_hamiltonian_mom = false;
     for (int m=0; m<bflux->num_calc_moms; m++) {
-      gk_species_moment_init(app, gk_s, &bflux->moms_op[m], moms_needed[m], false);
+      gk_species_moment_init(app, gk_s, &bflux->moms_op[m], bflux->calc_mom_names[m], false);
 
-      need_m2perp = (strcmp("M2perp", moms_needed[m]) == 0)
-        || (strcmp("M2", moms_needed[m]) == 0)
-        || (strcmp("ThreeMoments", moms_needed[m]) == 0)
-        || (strcmp("FourMoments", moms_needed[m]) == 0)
-        || (strcmp("HamiltonianMoments", moms_needed[m]) == 0);
-      bflux->is_hamiltonian_mom[m] = strcmp("HamiltonianMoments", moms_needed[m]) == 0;
+      need_m2perp = (strcmp("M2perp", bflux->calc_mom_names[m]) == 0)
+        || (strcmp("M2", bflux->calc_mom_names[m]) == 0)
+        || (strcmp("ThreeMoments", bflux->calc_mom_names[m]) == 0)
+        || (strcmp("FourMoments", bflux->calc_mom_names[m]) == 0)
+        || (strcmp("HamiltonianMoments", bflux->calc_mom_names[m]) == 0);
+      bflux->is_hamiltonian_mom[m] = strcmp("HamiltonianMoments", bflux->calc_mom_names[m]) == 0;
       bflux->a_hamiltonian_mom = bflux->a_hamiltonian_mom || bflux->is_hamiltonian_mom[m];
     }
 
