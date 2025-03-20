@@ -879,7 +879,8 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
 void
 gk_neut_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species, double t0)
 {
-  gk_neut_species_projection_calc(app, species, &species->proj_init, species->f, t0);
+  if (species->info.init_from_file.type == 0)
+    gk_neut_species_projection_calc(app, species, &species->proj_init, species->f, t0);
 
   // we are pre-computing source for now as it is time-independent
   gk_neut_species_source_calc(app, species, &species->src, t0);
@@ -997,7 +998,9 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
 {
   // release various arrays
   gkyl_array_release(s->f);
-  gk_neut_species_projection_release(app, &s->proj_init);
+  if (s->info.init_from_file.type == 0) {
+    gk_neut_species_projection_release(app, &s->proj_init);
+  }
   gkyl_comm_release(s->comm);
 
   if (app->use_gpu) {

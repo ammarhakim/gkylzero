@@ -91,16 +91,9 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
     // Reaction LTE moments needed for projecting LTE distribution functions
     react->react_lte_moms[i] = mkarr(app->use_gpu, 3*app->basis.num_basis, app->local_ext.volume);
 
+    // Thermal velocities for LTE projection in ionization terms.
     react->vt_sq_iz1[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    react->vt_sq_iz1_host[i] = react->vt_sq_iz1[i];
-    if(app->use_gpu) {
-      react->vt_sq_iz1_host[i] = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-    }
     react->vt_sq_iz2[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    react->vt_sq_iz2_host[i] = react->vt_sq_iz2[i];
-    if(app->use_gpu) {
-      react->vt_sq_iz2_host[i] = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-    }
 
     // J*n for use in final update formulae of reactions
     react->Jm0_elc[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
@@ -473,28 +466,10 @@ gk_species_react_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct
       char fileNm[sz+1]; // ensures no buffer overflow
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gkr->react_type[ridx].ion_nm,
         gkr->react_type[ridx].elc_nm, gkr->react_type[ridx].donor_nm, frame);
-
-      const char *fmt1 = "%s-%s_%s_%s_iz_vtsq1_%d.gkyl";
-      int sz1 = gkyl_calc_strlen(fmt1, app->name, gkr->react_type[ridx].ion_nm,
-        gkr->react_type[ridx].elc_nm, gkr->react_type[ridx].donor_nm, frame);
-      char fileNm1[sz1+1]; // ensures no buffer overflow
-      snprintf(fileNm1, sizeof fileNm1, fmt1, app->name, gkr->react_type[ridx].ion_nm,
-        gkr->react_type[ridx].elc_nm, gkr->react_type[ridx].donor_nm, frame);
-
-      const char *fmt2 = "%s-%s_%s_%s_iz_vtsq2_%d.gkyl";
-      int sz2 = gkyl_calc_strlen(fmt2, app->name, gkr->react_type[ridx].ion_nm,
-        gkr->react_type[ridx].elc_nm, gkr->react_type[ridx].donor_nm, frame);
-      char fileNm2[sz2+1]; // ensures no buffer overflow
-      snprintf(fileNm2, sizeof fileNm2, fmt2, app->name, gkr->react_type[ridx].ion_nm,
-        gkr->react_type[ridx].elc_nm, gkr->react_type[ridx].donor_nm, frame);
       
       struct timespec wtm = gkyl_wall_clock();
       gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, 
         gkr->coeff_react_host[ridx], fileNm);
-      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, 
-        gkr->vt_sq_iz1_host[ridx], fileNm1);
-      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, 
-        gkr->vt_sq_iz2_host[ridx], fileNm2);
       app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
     }
     if (gkr->react_id[ridx] == GKYL_REACT_RECOMB) {
