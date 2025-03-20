@@ -12,7 +12,6 @@ gk_neut_species_recycle_init(struct gkyl_gyrokinetic_app *app, struct gk_recycle
   recyc->edge = edge;
   recyc->dir = dir;
   recyc->elastic = false;
-  /* recyc->t_bound = params->t_bound; */
   recyc->f0 = f0;
 
   int bdir = (recyc->edge == GKYL_LOWER_EDGE) ? 2*recyc->dir : 2*recyc->dir+1;
@@ -92,23 +91,12 @@ gk_neut_species_recycle_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
     recyc->mem_geo = gkyl_dg_bin_op_mem_new(recyc->emit_cbuff_r->volume, app->basis.num_basis);
   }
   
-  // Initialize elastic component of emission
-  // Currently disabled.
-  /* if (recyc->elastic) { */
-  /*   recyc->elastic_yield = mkarr(app->use_gpu, s->basis.num_basis, recyc->emit_buff_r->volume); */
-  /*   recyc->elastic_update = gkyl_bc_emission_elastic_new(recyc->params->elastic_model, */
-  /*     recyc->elastic_yield, recyc->dir, recyc->edge, cdim, vdim, s->info.mass, s->f->ncomp, recyc->emit_grid, */
-  /*     recyc->emit_buff_r, app->poly_order, s->basis_on_dev, &s->basis, proj_buffer, */
-  /*     app->use_gpu); */
-  /* } */
-
   // Initialize inelastic emission spectrums
   for (int i=0; i<recyc->num_species; ++i) {
     
     recyc->impact_species[i] = gk_find_species(app, recyc->params->in_species[i]);
     struct gk_species *gks = recyc->impact_species[i];
-    /* const struct gkyl_emission_yield_constant *model = container_of(recyc->params->yield_model[i], */
-    /*   struct gkyl_emission_yield_constant, yield); */
+
     recyc->frac = recyc->params->rec_frac;
     recyc->spectrum[i] = mkarr(app->use_gpu, s->basis.num_basis, recyc->emit_buff_r->volume);
 
@@ -136,18 +124,8 @@ void
 gk_neut_species_recycle_apply_bc(struct gkyl_gyrokinetic_app *app, const struct gk_recycle_wall *recyc,
   const struct gk_neut_species *s, struct gkyl_array *fout)
 {
-  // Optional scaling of emission with time
-  double t_scale = 1.0;
-  /* if (recyc->t_bound) */
-  /*   t_scale = sin(M_PI*tcurr/(2.0*recyc->t_bound)); */
-
   gkyl_array_clear(recyc->f_emit, 0.0); // Zero emitted distribution before beginning accumulate
 
-  // Elastic emission contribution. Currently disabled.
-  /* if (recyc->elastic) { */
-  /*   gkyl_bc_emission_elastic_advance(recyc->elastic_update, recyc->emit_skin_r, recyc->buffer, fout, */
-  /*     recyc->f_emit, recyc->elastic_yield, &s->basis); */
-  /* } */
   // Inelastic emission contribution
   for (int i=0; i<recyc->num_species; ++i) {
     gkyl_array_clear(recyc->spectrum[i], 0.0);
@@ -159,7 +137,7 @@ gk_neut_species_recycle_apply_bc(struct gkyl_gyrokinetic_app *app, const struct 
     gkyl_dg_updater_moment_gyrokinetic_advance(recyc->flux_slvr[i], &recyc->impact_normal_r[i],
       recyc->emit_cbuff_r, recyc->bflux_arr[i], recyc->flux[i]);
 
-    gkyl_array_set_range_to_range(fout, t_scale, recyc->f_emit, recyc->emit_ghost_r,
+    gkyl_array_set_range_to_range(fout, 1.0, recyc->f_emit, recyc->emit_ghost_r,
       recyc->emit_buff_r);
 
     gkyl_dg_div_op_range(recyc->mem_geo, app->basis, 0, recyc->flux[i], 0, recyc->flux[i],
@@ -169,13 +147,8 @@ gk_neut_species_recycle_apply_bc(struct gkyl_gyrokinetic_app *app, const struct 
      recyc->flux[i], recyc->spectrum[i], recyc->impact_cbuff_r[i], recyc->emit_buff_r);
     
   }
-  /* const char *fmt = "recyc_f_emit_edge_%d.gkyl"; */
-  /* int sz = gkyl_calc_strlen(fmt, recyc->edge); */
-  /* char fileNm[sz+1]; // ensures no buffer overflow */
-  /* snprintf(fileNm, sizeof fileNm, fmt, recyc->edge); */
-  /* gkyl_grid_sub_array_write(recyc->emit_grid, recyc->emit_buff_r, 0, recyc->f_emit, fileNm); */
 
-  gkyl_array_set_range_to_range(fout, t_scale, recyc->f_emit, recyc->emit_ghost_r,
+  gkyl_array_set_range_to_range(fout, 1.0, recyc->f_emit, recyc->emit_ghost_r,
     recyc->emit_buff_r);
 }
 

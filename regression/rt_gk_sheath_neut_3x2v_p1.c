@@ -156,7 +156,7 @@ create_ctx(void)
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 0.50; // CFL coefficient.
 
-  double t_end = 1.e-6; // Final simulation time.
+  double t_end = 1.e-7; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
@@ -742,27 +742,27 @@ main(int argc, char **argv)
       .collide_with = { "ion" },
     },
 
-/*     .source = { */
-/*       .source_id = GKYL_PROJ_SOURCE, */
+    .source = {
+      .source_id = GKYL_PROJ_SOURCE,
 
-/*       .num_sources = 1, */
-/*       .projection[0] = { */
-/*         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,  */
-/*         .density = evalElcSourceDensityInit, */
-/*         .ctx_density = &ctx, */
-/*         .temp = evalElcSourceTempInit, */
-/*         .ctx_temp = &ctx, */
-/*         .upar = evalElcSourceUparInit, */
-/*         .ctx_upar = &ctx, */
-/*       },  */
-/*       .diagnostics = { */
-/*         .num_diag_moments = 1, */
-/*         .diag_moments = { "FourMoments" }, */
-/*         .num_integrated_diag_moments = 1, */
-/*         .integrated_diag_moments = { "HamiltonianMoments" }, */
-/* //        .time_integrated = true, */
-/*       } */
-/*     }, */
+      .num_sources = 1,
+      .projection[0] = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+        .density = evalElcSourceDensityInit,
+        .ctx_density = &ctx,
+        .temp = evalElcSourceTempInit,
+        .ctx_temp = &ctx,
+        .upar = evalElcSourceUparInit,
+        .ctx_upar = &ctx,
+      },
+      .diagnostics = {
+        .num_diag_moments = 1,
+        .diag_moments = { "FourMoments" },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { "HamiltonianMoments" },
+//        .time_integrated = true,
+      }
+    },
 
     .react_neut = {
       .num_react = 2,
@@ -808,7 +808,6 @@ main(int argc, char **argv)
     .boundary_flux_diagnostics = {
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { "HamiltonianMoments" },
-//      .time_integrated = true,
     },
   };
 
@@ -873,27 +872,27 @@ main(int argc, char **argv)
       },
     },
 
-/*     .source = { */
-/*       .source_id = GKYL_PROJ_SOURCE, */
+    .source = {
+      .source_id = GKYL_PROJ_SOURCE,
 
-/*       .num_sources = 1, */
-/*       .projection[0] = { */
-/*         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, */
-/*         .density = evalIonSourceDensityInit, */
-/*         .ctx_density = &ctx, */
-/*         .temp = evalIonSourceTempInit, */
-/*         .ctx_temp = &ctx, */
-/*         .upar = evalIonSourceUparInit, */
-/*         .ctx_upar = &ctx, */
-/*       },  */
-/*       .diagnostics = { */
-/*         .num_diag_moments = 1, */
-/*         .diag_moments = { "FourMoments" }, */
-/*         .num_integrated_diag_moments = 1, */
-/*         .integrated_diag_moments = { "HamiltonianMoments" }, */
-/* //        .time_integrated = true, */
-/*       } */
-/*     }, */
+      .num_sources = 1,
+      .projection[0] = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+        .density = evalIonSourceDensityInit,
+        .ctx_density = &ctx,
+        .temp = evalIonSourceTempInit,
+        .ctx_temp = &ctx,
+        .upar = evalIonSourceUparInit,
+        .ctx_upar = &ctx,
+      },
+      .diagnostics = {
+        .num_diag_moments = 1,
+        .diag_moments = { "FourMoments" },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { "HamiltonianMoments" },
+//        .time_integrated = true,
+      }
+    },
 
     .bcx = {
       .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
@@ -913,7 +912,6 @@ main(int argc, char **argv)
     .boundary_flux_diagnostics = {
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { "HamiltonianMoments" },
-//      .time_integrated = true,
     },
   };
 
@@ -935,78 +933,78 @@ main(int argc, char **argv)
       .temp = temp_neut,      
     },
 
-    .init_from_file = {
-      .type = GKYL_IC_IMPORT_F,
-      .file_name = "D0_restart.gkyl",
+    /* .init_from_file = { */
+    /*   .type = GKYL_IC_IMPORT_F, */
+    /*   .file_name = "D0_restart.gkyl", */
+    /* }, */
+
+    .react_neut = {
+      .num_react = 3,
+      .react_type = {
+        { .react_id = GKYL_REACT_IZ,
+          .type_self = GKYL_SELF_DONOR,
+          .ion_id = GKYL_ION_H,
+    	  .elc_nm = "elc",
+          .ion_nm = "ion",
+          .donor_nm = "D0",
+    	  .charge_state = 0,
+          .ion_mass = ctx.mass_ion,
+          .elc_mass = ctx.mass_elc,
+        },
+    	{ .react_id = GKYL_REACT_RECOMB,
+          .type_self = GKYL_SELF_RECVR,
+          .ion_id = GKYL_ION_H,
+    	  .elc_nm = "elc",
+          .ion_nm = "ion",
+          .donor_nm = "D0",
+    	  .charge_state = 0,
+          .ion_mass = ctx.mass_ion,
+          .elc_mass = ctx.mass_elc,
+        },
+    	{ .react_id = GKYL_REACT_CX,
+          .type_self = GKYL_SELF_PARTNER,
+          .ion_id = GKYL_ION_H,
+    	  .elc_nm = "elc", // gets called for other rxn. fix this?
+          .ion_nm = "ion",
+          .partner_nm = "D0",
+          .ion_mass = ctx.mass_ion,
+          .partner_mass = ctx.mass_elc,
+        },
+      },
     },
 
-    /* .react_neut = { */
-    /*   .num_react = 3, */
-    /*   .react_type = { */
-    /*     { .react_id = GKYL_REACT_IZ, */
-    /*       .type_self = GKYL_SELF_DONOR, */
-    /*       .ion_id = GKYL_ION_H, */
-    /* 	  .elc_nm = "elc", */
-    /*       .ion_nm = "ion", */
-    /*       .donor_nm = "D0", */
-    /* 	  .charge_state = 0, */
-    /*       .ion_mass = ctx.mass_ion, */
-    /*       .elc_mass = ctx.mass_elc, */
-    /*     }, */
-    /* 	{ .react_id = GKYL_REACT_RECOMB, */
-    /*       .type_self = GKYL_SELF_RECVR, */
-    /*       .ion_id = GKYL_ION_H, */
-    /* 	  .elc_nm = "elc", */
-    /*       .ion_nm = "ion", */
-    /*       .donor_nm = "D0", */
-    /* 	  .charge_state = 0, */
-    /*       .ion_mass = ctx.mass_ion, */
-    /*       .elc_mass = ctx.mass_elc, */
-    /*     }, */
-    /* 	{ .react_id = GKYL_REACT_CX, */
-    /*       .type_self = GKYL_SELF_PARTNER, */
-    /*       .ion_id = GKYL_ION_H, */
-    /* 	  .elc_nm = "elc", // gets called for other rxn. fix this? */
-    /*       .ion_nm = "ion", */
-    /*       .partner_nm = "D0", */
-    /*       .ion_mass = ctx.mass_ion, */
-    /*       .partner_mass = ctx.mass_elc, */
-    /*     }, */
-    /*   }, */
-    /* }, */
-
-    /* .bcx = { */
-    /*   .lower={.type = GKYL_SPECIES_ABSORB,}, */
-    /*   .upper={.type = GKYL_SPECIES_ABSORB,}, */
-    /* }, */
-    /* .bcz = { */
-    /*   .lower = { */
-    /*     .type = GKYL_SPECIES_RECYCLE, */
-    /* 	.emission = neut_bc, */
-    /* 	.projection = { */
-    /* 	  .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, */
-    /* 	  .ctx_density = &ctx, */
-    /* 	  .density = unit_density, */
-    /* 	  .ctx_upar = &ctx, */
-    /* 	  .udrift= udrift, */
-    /* 	  .ctx_temp = &ctx, */
-    /* 	  .temp = temp_neut, */
-    /* 	}, */
-    /*   }, */
-    /*   .upper = { */
-    /*     .type = GKYL_SPECIES_RECYCLE, */
-    /*     .emission = neut_bc, */
-    /* 	.projection = { */
-    /* 	  .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, */
-    /* 	  .ctx_density = &ctx, */
-    /* 	  .density = unit_density, */
-    /* 	  .ctx_upar = &ctx, */
-    /* 	  .udrift= udrift, */
-    /* 	  .ctx_temp = &ctx, */
-    /* 	  .temp = temp_neut, */
-    /* 	}, */
-    /*   }, */
-    /* }, */
+    .bcx = {
+      .lower={.type = GKYL_SPECIES_ABSORB,},
+      .upper={.type = GKYL_SPECIES_ABSORB,},
+    },
+    .bcz = {
+      .lower = {
+        .type = GKYL_SPECIES_RECYCLE,
+    	.emission = neut_bc,
+    	.projection = {
+    	  .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+    	  .ctx_density = &ctx,
+    	  .density = unit_density,
+    	  .ctx_upar = &ctx,
+    	  .udrift= udrift,
+    	  .ctx_temp = &ctx,
+    	  .temp = temp_neut,
+    	},
+      },
+      .upper = {
+        .type = GKYL_SPECIES_RECYCLE,
+        .emission = neut_bc,
+    	.projection = {
+    	  .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+    	  .ctx_density = &ctx,
+    	  .density = unit_density,
+    	  .ctx_upar = &ctx,
+    	  .udrift= udrift,
+    	  .ctx_temp = &ctx,
+    	  .temp = temp_neut,
+    	},
+      },
+    },
    
     .num_diag_moments = 4,
     .diag_moments = { "M0", "M1i", "M2", "LTEMoments"},
@@ -1037,7 +1035,6 @@ main(int argc, char **argv)
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
-//    .cfl_frac_omegaH = 1e10,
 
     .geometry = {
       .geometry_id = GKYL_MAPC2P,
