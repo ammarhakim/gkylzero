@@ -2593,6 +2593,20 @@ void gk_neut_species_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_n
  */
 void gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s);
 
+/** Species file import API **/
+/**
+ * Delete resources used in neutral species.
+ *
+ * @param app gyrokinetic app object
+ * @param gks Gk species object
+ * @param gkns Neutral species
+ * @param is_gk Boolean indicating species type
+ * @param inp Input struct
+ */
+void gk_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, 
+  struct gk_neut_species *gkns, bool is_gk, struct gkyl_gyrokinetic_ic_import inp);
+
+
 /** gk_field API */
 
 /**
