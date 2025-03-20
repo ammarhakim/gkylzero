@@ -542,6 +542,12 @@ struct gk_source {
 
   struct gk_species_moment integ_H; // integrated Hamiltonian for source power adaptation
   double *red_integ_H, *red_integ_H_global; // for reduction of integrated Hamiltonian
+
+  struct gk_species_moment integ_M0; // integrated density for source adapt
+  double *red_integ_M0, *red_integ_M0_global; // for reduction of integrated density
+
+  struct gk_species_moment integ_M2; // integrated kinetic energy for source adapt
+  double *red_integ_M2, *red_integ_M2_global; // for reduction of integrated kinetic energy
 };
 
 // species data
