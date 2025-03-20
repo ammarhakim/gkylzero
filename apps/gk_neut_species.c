@@ -604,15 +604,16 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
     // Copy BCs by default.
     enum gkyl_bc_basic_type bctype = GKYL_BC_COPY;
     if (s->lower_bc[d].type == GKYL_SPECIES_RECYCLE) {
-      s->recyc_lo = true;
-      // proj hack
+      // Buffer for scaled Maxwellian in ghost.
       s->bc_buffer_lo_recyc = mkarr(app->use_gpu, s->basis.num_basis, s->lower_skin[d].volume);
+      // Initilize fixed func bc object to project the unit Maxwellian in ghost
       s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, GKYL_BC_FIXED_FUNC, s->basis_on_dev,
         &s->lower_skin[d], &s->lower_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
+      // project unit Maxwellian
       struct gk_proj gk_proj_bc_lo;
       gk_neut_species_projection_init(app, s, s->lower_bc[d].projection, &gk_proj_bc_lo);
       gk_neut_species_projection_calc(app, s, &gk_proj_bc_lo, s->f1, 0.0); // Temporarily use f1.
-          
+      // Initialize recycling object. 
       gk_neut_species_recycle_init(app, &s->bc_recycle_lo, d, GKYL_LOWER_EDGE, &s->lower_bc[d].emission, s->f1, s, app->use_gpu);
       gkyl_bc_basic_buffer_fixed_func(s->bc_lo[d], s->bc_buffer_lo_recyc, s->f1);
       gkyl_array_clear(s->f1, 0.0);
@@ -647,14 +648,16 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
     }
 
     if (s->upper_bc[d].type == GKYL_SPECIES_RECYCLE) {
-      s->recyc_up = true;
-      // proj hack
+      // Buffer for scaled Maxwellian in ghost.
       s->bc_buffer_up_recyc = mkarr(app->use_gpu, s->basis.num_basis, s->upper_skin[d].volume);
+      // Initilize fixed func bc object to project the unit Maxwellian in ghost
       s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, GKYL_BC_FIXED_FUNC, s->basis_on_dev,
         &s->upper_skin[d], &s->upper_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
+      // project unit Maxwellian
       struct gk_proj gk_proj_bc_up;
       gk_neut_species_projection_init(app, s, s->upper_bc[d].projection, &gk_proj_bc_up);
       gk_neut_species_projection_calc(app, s, &gk_proj_bc_up, s->f1, 0.0); // Temporarily use f1.
+      // Initialize recycling object. 
       gk_neut_species_recycle_init(app, &s->bc_recycle_up, d, GKYL_UPPER_EDGE, &s->upper_bc[d].emission, s->f1, s, app->use_gpu);
       gkyl_bc_basic_buffer_fixed_func(s->bc_up[d], s->bc_buffer_up_recyc, s->f1);
       gkyl_array_clear(s->f1, 0.0);
@@ -1042,9 +1045,6 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     .max_iter = max_iter, .iter_eps = iter_eps, 
     .use_last_converged = use_last_converged };
   gk_neut_species_lte_init(app, s, &s->lte, corr_inp);
-
-  s->recyc_lo = false;
-  s->recyc_up = false;
 
   // Initialize empty structs. New methods will fill them if specified.
   s->src = (struct gk_source) { };

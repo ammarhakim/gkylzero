@@ -128,11 +128,6 @@ gk_species_bflux_rhs_solver(gkyl_gyrokinetic_app *app, const struct gk_species *
       // it is only currently used to calculate moments for other applications.
       gkyl_boundary_flux_advance(bflux->flux_slvr[2*d+e], fin, rhs);
     }
-    /* if (app->use_gpu) { */
-    /*   gkyl_ghost_surf_calc_advance_cu(bflux->ghost_flux_slvr, &species->local_ext, fin, rhs); */
-    /* } else { */
-    /*   gkyl_ghost_surf_calc_advance(bflux->ghost_flux_slvr, &species->local_ext, fin, rhs); */
-    /* } */
 
     gkyl_array_copy_range_to_range(bflux->flux_arr[2*d+0], rhs, &bflux->flux_r[2*d+0],
       &species->lower_ghost[d]);

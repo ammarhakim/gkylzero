@@ -11,8 +11,6 @@ gk_neut_species_recycle_init(struct gkyl_gyrokinetic_app *app, struct gk_recycle
   recyc->num_species = params->num_species;
   recyc->edge = edge;
   recyc->dir = dir;
-  recyc->elastic = false;
-  recyc->f0 = f0;
 
   int bdir = (recyc->edge == GKYL_LOWER_EDGE) ? 2*recyc->dir : 2*recyc->dir+1;
   int d = recyc->dir;
@@ -23,14 +21,13 @@ gk_neut_species_recycle_init(struct gkyl_gyrokinetic_app *app, struct gk_recycle
   recyc->emit_buff_r = &s->bflux.flux_r[bdir];
   recyc->emit_ghost_r = (recyc->edge == GKYL_LOWER_EDGE) ? &s->lower_ghost[d] : &s->upper_ghost[d];
 
+  // Calculate flux associated with unit Maxwellian projected in f0.
+  // Store in init_bflux_arr.
   recyc->f0_flux_slvr[bdir] = gkyl_boundary_flux_new(recyc->dir, e, &s->grid,
-    skin_r, ghost_r, s->eqn_vlasov, true, app->use_gpu);
-  
+    skin_r, ghost_r, s->eqn_vlasov, true, app->use_gpu);  
   recyc->init_bflux_arr = mkarr(app->use_gpu, s->basis.num_basis, recyc->emit_buff_r->volume);
-
-  gkyl_boundary_flux_advance(recyc->f0_flux_slvr[bdir], recyc->f0, recyc->f0);
-  
-  gkyl_array_copy_range_to_range(recyc->init_bflux_arr, recyc->f0, recyc->emit_buff_r,
+  gkyl_boundary_flux_advance(recyc->f0_flux_slvr[bdir], f0, f0);
+  gkyl_array_copy_range_to_range(recyc->init_bflux_arr, f0, recyc->emit_buff_r,
     recyc->emit_ghost_r);
 }
 
@@ -50,32 +47,30 @@ gk_neut_species_recycle_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
     ghost[cdim+d] = 0;
   }
 
+  // This buffer contains the projection of the unit Maxwellian.
+  recyc->buffer = (recyc->edge == GKYL_LOWER_EDGE) ? s->bc_buffer_lo_recyc : s->bc_buffer_up_recyc;
+
+  // Define necessary grid, ranges, and array for calculating the desired Maxwellian for ghost.
   recyc->emit_grid = &s->bflux.boundary_grid[bdir];
   recyc->emit_cbuff_r = &s->bflux.conf_r[bdir];
   recyc->emit_skin_r = (recyc->edge == GKYL_LOWER_EDGE) ? &s->lower_skin[recyc->dir] : &s->upper_skin[recyc->dir];
-  recyc->buffer = (recyc->edge == GKYL_LOWER_EDGE) ? s->bc_buffer_lo_recyc : s->bc_buffer_up_recyc;
-  
   recyc->f_emit = mkarr(app->use_gpu, s->basis.num_basis, recyc->emit_buff_r->volume);
+
+  // For writing diagnostics, if needed.
   recyc->f_diag = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
-
-  struct gkyl_array *proj_buffer = mkarr(false, s->basis.num_basis, recyc->emit_buff_r->volume);
-
-  // Calculate the flux
-  gkyl_bc_emission_flux_ranges(&recyc->emit_normal_r, recyc->dir + cdim, recyc->emit_buff_r,
-    ghost, recyc->edge); 
-
-  recyc->init_flux = mkarr(app->use_gpu, app->basis.num_basis, recyc->emit_cbuff_r->volume);
-  recyc->emit_flux = mkarr(app->use_gpu, app->basis.num_basis, recyc->emit_cbuff_r->volume);
-
-  // For writing diagnostics
   recyc->diag_out = mkarr(app->use_gpu, app->basis.num_basis, app->local.volume);
   recyc->diag_out_ho = recyc->diag_out;
   if (app->use_gpu) {
     recyc->diag_out_ho = mkarr(false, app->basis.num_basis, app->local.volume);
   }
+   
+  // Calculate the flux associated with unit-density Maxwellian.
+  gkyl_bc_emission_flux_ranges(&recyc->emit_normal_r, recyc->dir + cdim, recyc->emit_buff_r,
+    ghost, recyc->edge);
   
-  recyc->init_conf_grid = &s->bflux.conf_boundary_grid[bdir];
-  
+  recyc->init_flux = mkarr(app->use_gpu, app->basis.num_basis, recyc->emit_cbuff_r->volume);
+  recyc->emit_flux = mkarr(app->use_gpu, app->basis.num_basis, recyc->emit_cbuff_r->volume);
+
   struct gkyl_mom_canonical_pb_auxfields can_pb_inp = {.hamil = s->hamil};
   recyc->init_flux_slvr = gkyl_dg_updater_moment_new(recyc->emit_grid, &app->basis,
     &s->basis, recyc->emit_cbuff_r, &s->local_vel, recyc->emit_buff_r, s->model_id,
@@ -84,6 +79,7 @@ gk_neut_species_recycle_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
   gkyl_dg_updater_moment_advance(recyc->init_flux_slvr, &recyc->emit_normal_r, recyc->emit_cbuff_r, recyc->init_bflux_arr,
 				 recyc->init_flux);
 
+  // Define memory for div bin op for calculating correct scaling factor.
   if (app->use_gpu) {
     recyc->mem_geo = gkyl_dg_bin_op_mem_cu_dev_new(recyc->emit_cbuff_r->volume, app->basis.num_basis);
   }
@@ -101,9 +97,6 @@ gk_neut_species_recycle_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
     recyc->spectrum[i] = mkarr(app->use_gpu, s->basis.num_basis, recyc->emit_buff_r->volume);
 
     recyc->impact_grid[i] = &gks->bflux_solver.boundary_grid[bdir];
-    recyc->impact_conf_grid[i] = &gks->bflux_solver.conf_boundary_grid[bdir];
-    recyc->impact_skin_r[i] = (recyc->edge == GKYL_LOWER_EDGE) ? &gks->lower_skin[recyc->dir] : &gks->upper_skin[recyc->dir];
-    recyc->impact_ghost_r[i] = (recyc->edge == GKYL_LOWER_EDGE) ? &gks->lower_ghost[recyc->dir] :&gks->upper_ghost[recyc->dir];
     recyc->impact_buff_r[i] = &gks->bflux_solver.flux_r[bdir];
     recyc->impact_cbuff_r[i] = &gks->bflux_solver.conf_r[bdir];
 
@@ -117,7 +110,6 @@ gk_neut_species_recycle_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
     gkyl_bc_emission_flux_ranges(&recyc->impact_normal_r[i], recyc->dir + cdim, recyc->impact_buff_r[i],
       ghost, recyc->edge);
   }
-  gkyl_array_release(proj_buffer);
 }
 
 void
@@ -127,25 +119,26 @@ gk_neut_species_recycle_apply_bc(struct gkyl_gyrokinetic_app *app, const struct 
   gkyl_array_clear(recyc->f_emit, 0.0); // Zero emitted distribution before beginning accumulate
 
   // Inelastic emission contribution
+  // This relies on the calculation of the ion flux (bflux_arr)
+  // from gk_species_bflux_rhs_solver.
   for (int i=0; i<recyc->num_species; ++i) {
+    // Clear array from previous step and copy unit-density Maxwellian from buffer.
     gkyl_array_clear(recyc->spectrum[i], 0.0);
     gkyl_array_accumulate(recyc->spectrum[i], recyc->frac, recyc->buffer);
 
     int species_idx;
     species_idx = gk_find_species_idx(app, recyc->impact_species[i]->info.name);
-    
+
+    // Calculate M0 moment of ion flux.
     gkyl_dg_updater_moment_gyrokinetic_advance(recyc->flux_slvr[i], &recyc->impact_normal_r[i],
       recyc->emit_cbuff_r, recyc->bflux_arr[i], recyc->flux[i]);
 
-    gkyl_array_set_range_to_range(fout, 1.0, recyc->f_emit, recyc->emit_ghost_r,
-      recyc->emit_buff_r);
-
+    // Calculate scaling factor from ratio of ion flux to unit-density flux.
     gkyl_dg_div_op_range(recyc->mem_geo, app->basis, 0, recyc->flux[i], 0, recyc->flux[i],
     			 0, recyc->init_flux, recyc->emit_cbuff_r);
 
     gkyl_dg_mul_conf_phase_op_accumulate_range(&app->basis, &s->basis, recyc->f_emit, 1.0,
-     recyc->flux[i], recyc->spectrum[i], recyc->impact_cbuff_r[i], recyc->emit_buff_r);
-    
+     recyc->flux[i], recyc->spectrum[i], recyc->impact_cbuff_r[i], recyc->emit_buff_r);    
   }
 
   gkyl_array_set_range_to_range(fout, 1.0, recyc->f_emit, recyc->emit_ghost_r,
@@ -246,10 +239,6 @@ gk_neut_species_recycle_release(const struct gkyl_gyrokinetic_app *app, const st
 
   if (app->use_gpu) {
     gkyl_array_release(recyc->diag_out_ho);
-  }
-  if (recyc->elastic) {
-    gkyl_array_release(recyc->elastic_yield);
-    gkyl_bc_emission_elastic_release(recyc->elastic_update);
   }
   for (int i=0; i<recyc->num_species; ++i) {
     gkyl_array_release(recyc->spectrum[i]);
