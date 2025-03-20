@@ -1023,8 +1023,6 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   }
 
   // initialize projection routine for initial conditions
-  gk_neut_species_projection_init(app, s, s->info.projection, &s->proj_init);
-  // initialize projection routine for initial conditions
   if (s->info.init_from_file.type == 0) {
     gk_neut_species_projection_init(app, s, s->info.projection, &s->proj_init);
   }
