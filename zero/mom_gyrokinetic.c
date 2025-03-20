@@ -192,7 +192,8 @@ gkyl_int_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_
   mom_gk->momt.num_phase = pbasis->num_basis;
   
   // choose kernel tables based on basis-function type
-  const gkyl_gyrokinetic_mom_kern_list *int_three_moments_kernels, *int_four_moments_kernels, *int_hamiltonian_moments_kernels;
+  const gkyl_gyrokinetic_mom_kern_list *int_three_moments_kernels, *int_four_moments_kernels, *int_hamiltonian_moments_kernels,
+    *int_M0_kernels, *int_M1_kernels, *int_M2_kernels;
 
   // set kernel pointer
   switch (cbasis->b_type) {
@@ -200,6 +201,9 @@ gkyl_int_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_
       int_three_moments_kernels = ser_int_three_moments_kernels;
       int_four_moments_kernels = ser_int_four_moments_kernels;
       int_hamiltonian_moments_kernels = ser_int_hamiltonian_moments_kernels;
+      int_M0_kernels = ser_int_M0_kernels;
+      int_M1_kernels = ser_int_M1_kernels;
+      int_M2_kernels = ser_int_M2_kernels;
       break;
 
     default:
@@ -207,7 +211,31 @@ gkyl_int_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_
       break;    
   }  
 
-  if (strcmp(mom, "ThreeMoments") == 0) { 
+  if (strcmp(mom, "M0") == 0) {
+    // Density moment only.
+    assert(cv_index[cdim].vdim[vdim] != -1);   
+    assert(NULL != int_M0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+    
+    mom_gk->momt.kernel = int_M0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    mom_gk->momt.num_mom = 1;
+  }
+  else if (strcmp(mom, "M1") == 0) {
+    // Parallel momentum moment only.
+    assert(cv_index[cdim].vdim[vdim] != -1);   
+    assert(NULL != int_M1_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+    
+    mom_gk->momt.kernel = int_M1_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    mom_gk->momt.num_mom = 1;
+  }
+  else if (strcmp(mom, "M2") == 0) {
+    // Kineti energy moment only.
+    assert(cv_index[cdim].vdim[vdim] != -1);   
+    assert(NULL != int_M2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+    
+    mom_gk->momt.kernel = int_M2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    mom_gk->momt.num_mom = 1;
+  }
+  else if (strcmp(mom, "ThreeMoments") == 0) { 
     // Density, parallel momentum, and kinetic energy computed together.
     assert(cv_index[cdim].vdim[vdim] != -1);   
     assert(NULL != int_three_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
