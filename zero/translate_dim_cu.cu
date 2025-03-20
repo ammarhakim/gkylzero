@@ -65,7 +65,7 @@ trans_dim_choose_kernel_cu(struct gkyl_translate_dim_kernels *kernels, int cdim_
 
 __global__ static void
 gkyl_translate_dim_advance_cu_ker(int cdim_do, int cdim_tar, int vdim_do, int vdim_tar,
-  int dir, struct gkyl_translate_dim_kernels *kernels,
+  int num_basis_do, int num_basis_tar, int dir, struct gkyl_translate_dim_kernels *kernels,
   const struct gkyl_range rng_do, const struct gkyl_range rng_tar,
   const struct gkyl_array *GKYL_RESTRICT fdo, int ncomp,
   struct gkyl_array *GKYL_RESTRICT ftar)
@@ -86,8 +86,8 @@ gkyl_translate_dim_advance_cu_ker(int cdim_do, int cdim_tar, int vdim_do, int vd
     const double *fdo_c = (const double *) gkyl_array_cfetch(fdo, linidx_do);
     double *ftar_c = (double *) gkyl_array_fetch(ftar, linidx_tar);
 
-    for (int n=0; n<ncomp; ncomp++) {
-      kernels->translate(&fdo_c[ncomp*up->num_basis_do], &ftar_c[ncomp*up->num_basis_tar]);
+    for (int n=0; n<ncomp; n++) {
+      kernels->translate(&fdo_c[n*num_basis_do], &ftar_c[n*num_basis_tar]);
     }
 
   }
@@ -102,6 +102,6 @@ gkyl_translate_dim_advance_cu(gkyl_translate_dim* up,
   int nblocks = rng_tar->nblocks, nthreads = rng_tar->nthreads;
 
   gkyl_translate_dim_advance_cu_ker<<<nblocks, nthreads>>>
-    (up->cdim_do, up->cdim_tar, up->vdim_do, up->vdim_tar, up->dir, 
-     up->kernels, *rng_do, *rng_tar, fdo->on_dev, ncomp, ftar->on_dev);
+    (up->cdim_do, up->cdim_tar, up->vdim_do, up->vdim_tar, up->num_basis_do, up->num_basis_tar,
+     up->dir, up->kernels, *rng_do, *rng_tar, fdo->on_dev, ncomp, ftar->on_dev);
 }
