@@ -18,6 +18,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_array_rio_priv.h>
 #include <gkyl_bc_basic.h>
 #include <gkyl_bc_emission.h>
 #include <gkyl_bc_emission_spectrum.h>
@@ -35,9 +36,11 @@
 #include <gkyl_dg_canonical_pb.h>
 #include <gkyl_dg_cx.h>
 #include <gkyl_dg_gyrokinetic.h>
+#include <gkyl_dg_interpolate.h>
 #include <gkyl_dg_iz.h>
 #include <gkyl_dg_rad_gyrokinetic_drag.h>
 #include <gkyl_dg_recomb.h>
+#include <gkyl_translate_dim_gyrokinetic.h>
 #include <gkyl_dg_updater_diffusion_gyrokinetic.h>
 #include <gkyl_dg_updater_gyrokinetic.h>
 #include <gkyl_dg_updater_lbo_gyrokinetic.h>

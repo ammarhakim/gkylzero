@@ -1,18 +1,5 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
-#include <gkyl_alloc.h>
-#include <gkyl_app.h>
-#include <gkyl_array.h>
-#include <gkyl_array_ops.h>
-#include <gkyl_bc_basic.h>
-#include <gkyl_dynvec.h>
-#include <gkyl_elem_type.h>
-#include <gkyl_eqn_type.h>
-#include <gkyl_proj_on_basis.h>
-#include <gkyl_array_rio.h>
-#include <gkyl_array_rio_priv.h>
-#include <gkyl_dg_interpolate.h>
-#include <gkyl_translate_dim_gyrokinetic.h>
 
 void
 gk_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, 
