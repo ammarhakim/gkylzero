@@ -228,7 +228,7 @@ gkyl_int_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_
     mom_gk->momt.num_mom = 1;
   }
   else if (strcmp(mom, "M2") == 0) {
-    // Kineti energy moment only.
+    // Kinetic energy moment only.
     assert(cv_index[cdim].vdim[vdim] != -1);   
     assert(NULL != int_M2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
