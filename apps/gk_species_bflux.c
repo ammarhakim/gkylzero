@@ -642,20 +642,26 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
     assert(num_add_mom+num_diag_mom+num_diag_int_mom < BFLUX_MAX_MOM_NAMES+1);
 
     bflux->num_calc_moms = 0;
-    bflux->diag_mom_idx = bflux_unionize_moms(num_diag_mom,
-      gk_s->info.boundary_flux_diagnostics.diag_moments, &bflux->num_calc_moms, bflux->calc_mom_names);
+    if (num_diag_mom > 0)
+      bflux->diag_mom_idx = bflux_unionize_moms(num_diag_mom,
+        gk_s->info.boundary_flux_diagnostics.diag_moments, &bflux->num_calc_moms, bflux->calc_mom_names);
 
-    bflux->diag_int_mom_idx = bflux_unionize_moms(num_diag_int_mom,
-      gk_s->info.boundary_flux_diagnostics.integrated_diag_moments, &bflux->num_calc_moms, bflux->calc_mom_names);
+    if (num_diag_int_mom > 0)
+      bflux->diag_int_mom_idx = bflux_unionize_moms(num_diag_int_mom,
+        gk_s->info.boundary_flux_diagnostics.integrated_diag_moments, &bflux->num_calc_moms, bflux->calc_mom_names);
 
-    bflux->diag_mom_idx = bflux_unionize_moms(num_add_mom,
-      add_moms_inp.diag_moments, &bflux->num_calc_moms, bflux->calc_mom_names);
+    if (num_add_mom > 0) {
+      int *add_mom_idx = bflux_unionize_moms(num_add_mom,
+        add_moms_inp.diag_moments, &bflux->num_calc_moms, bflux->calc_mom_names);
+      gkyl_free(add_mom_idx);
+    }
 
     // Create a moments app for each mom needed.
     bflux->moms_op = gkyl_malloc(sizeof(struct gk_species_moment[bflux->num_calc_moms]));
     bflux->is_hamiltonian_mom = gkyl_malloc(sizeof(bool[bflux->num_calc_moms]));
     bool need_m2perp = false;
     bflux->a_hamiltonian_mom = false;
+    printf("bflux->num_calc_moms = %d\n",bflux->num_calc_moms);
     for (int m=0; m<bflux->num_calc_moms; m++) {
       gk_species_moment_init(app, gk_s, &bflux->moms_op[m], bflux->calc_mom_names[m], false);
 
@@ -819,6 +825,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
         // Allocate a lower dimensional array for each moment.
         bflux->mom_surf = gkyl_malloc(bflux->num_boundaries*num_diag_mom*sizeof(struct gkyl_array *));
         bflux->mom_surf_ho = gkyl_malloc(bflux->num_boundaries*num_diag_mom*sizeof(struct gkyl_array *));
+    printf("num_diag_mom = %d\n",num_diag_mom);
         for (int b=0; b<bflux->num_boundaries; ++b) {
           int dir = bflux->boundaries_dir[b];
           for (int m=0; m<num_diag_mom; m++) {
@@ -892,13 +899,19 @@ gk_species_bflux_release(const struct gkyl_gyrokinetic_app *app, const struct gk
     gkyl_free(bflux->boundaries_phase_ghost_nosub);
   }
 
+  int num_diag_mom = gk_s->info.boundary_flux_diagnostics.num_diag_moments;
+  int num_diag_int_mom = gk_s->info.boundary_flux_diagnostics.num_integrated_diag_moments;
+
   if (bflux->allocated_moms) {
-    gkyl_free(bflux->diag_mom_idx);
-    gkyl_free(bflux->diag_int_mom_idx);
-    gkyl_free(bflux->add_mom_idx);
-    for (int m=0; m<bflux->num_calc_moms; m++) {
+    if (num_diag_mom > 0)
+      gkyl_free(bflux->diag_mom_idx);
+
+    if (num_diag_int_mom > 0)
+      gkyl_free(bflux->diag_int_mom_idx);
+
+    for (int m=0; m<bflux->num_calc_moms; m++)
       gk_species_moment_release(app, &bflux->moms_op[m]); 
-    }
+
     gkyl_free(bflux->moms_op);
     gkyl_free(bflux->is_hamiltonian_mom);
     if (bflux->a_hamiltonian_mom) {
@@ -919,13 +932,12 @@ gk_species_bflux_release(const struct gkyl_gyrokinetic_app *app, const struct gk
   }
 
   if (bflux->allocated_diags) {
-    int num_diag_mom = gk_s->info.boundary_flux_diagnostics.num_diag_moments;
     if (num_diag_mom > 0) {
       if (app->cdim > 1) {
         // Objects needed to output lower dimensional moments.
-        for (int b=0; b<bflux->num_boundaries; ++b) {
+        for (int b=0; b<bflux->num_boundaries; ++b)
           gkyl_translate_dim_release(bflux->transdim[b]);
-        }
+
         gkyl_free(bflux->transdim);
         for (int b=0; b<bflux->num_boundaries; ++b) {
           for (int m=0; m<num_diag_mom; m++) {
@@ -938,7 +950,6 @@ gk_species_bflux_release(const struct gkyl_gyrokinetic_app *app, const struct gk
       }
     }
 
-    int num_diag_int_mom = gk_s->info.boundary_flux_diagnostics.num_integrated_diag_moments;
     for (int m=0; m<num_diag_int_mom; m++) {
       gkyl_array_integrate_release(bflux->integ_op[m]);
       for (int b=0; b<bflux->num_boundaries; ++b)
