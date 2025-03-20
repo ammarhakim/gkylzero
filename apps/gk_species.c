@@ -103,8 +103,11 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   }
   
   if (species->has_diffusion) {
+    // copy fin into local of fghost_vol
+    gkyl_array_copy_range(species->fghost_vol, fin, &species->local);
+    // pass fghost_vol instead of in here:
     gkyl_dg_updater_diffusion_gyrokinetic_advance(species->diff_slvr, &species->local, 
-      species->diffD, app->gk_geom->jacobgeo_inv, fin, species->cflrate, rhs);
+      species->diffD, app->gk_geom->jacobgeo_inv, species->fghost_vol, species->cflrate, rhs);
   }
 
   if (species->rad.radiation_id == GKYL_GK_RADIATION) {
@@ -1428,6 +1431,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
 
   // Allocate distribution function arrays.
   gks->f = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
+  gks->fghost_vol = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
 
   gks->f_host = gks->f;
   if (app->use_gpu) {
@@ -1825,6 +1829,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   // Release resources for species.
 
   gkyl_array_release(s->f);
+  gkyl_array_release(s->fghost_vol);
 
   if (s->info.init_from_file.type == 0) {
     gk_species_projection_release(app, &s->proj_init);

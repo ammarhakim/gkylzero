@@ -52,6 +52,7 @@ gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *
   up->dualmag = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
   up->normals = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->local_ext.volume);
   up->jacobgeo = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+  up->jacobgeo_ghost = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->gij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
   up->b_i = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
@@ -265,6 +266,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   up->dualmag = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
   up->normals = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->local_ext.volume);
   up->jacobgeo = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+  up->jacobgeo_ghost = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->gij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
   up->b_i = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
@@ -303,6 +305,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->dualmag, up->dualmag, 3);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->normals, up->normals, 9);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->jacobgeo, up->jacobgeo, 1);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->jacobgeo_ghost, up->jacobgeo_ghost, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->jacobgeo_inv, up->jacobgeo_inv, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->gij, up->gij, 6);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->b_i, up->b_i, 3);
@@ -369,6 +372,7 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(up->bmag);
   gkyl_array_release(up->g_ij);
   gkyl_array_release(up->jacobgeo);
+  gkyl_array_release(up->jacobgeo_ghost);
   gkyl_array_release(up->jacobgeo_inv);
   gkyl_array_release(up->dxdz);
   gkyl_array_release(up->dzdx);

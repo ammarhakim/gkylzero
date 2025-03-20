@@ -69,6 +69,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
   struct gkyl_array *dualmag_dev = gkyl_array_cu_dev_new(geo_host->dualmag->type, geo_host->dualmag->ncomp, geo_host->dualmag->size);
   struct gkyl_array *normals_dev = gkyl_array_cu_dev_new(geo_host->normals->type, geo_host->normals->ncomp, geo_host->normals->size);
   struct gkyl_array *jacobgeo_dev = gkyl_array_cu_dev_new(geo_host->jacobgeo->type, geo_host->jacobgeo->ncomp, geo_host->jacobgeo->size);
+  struct gkyl_array *jacobgeo_ghost_dev = gkyl_array_cu_dev_new(geo_host->jacobgeo_ghost->type, geo_host->jacobgeo_ghost->ncomp, geo_host->jacobgeo_ghost->size);
   struct gkyl_array *jacobgeo_inv_dev = gkyl_array_cu_dev_new(geo_host->jacobgeo_inv->type, geo_host->jacobgeo_inv->ncomp, geo_host->jacobgeo_inv->size);
   struct gkyl_array *gij_dev = gkyl_array_cu_dev_new(geo_host->gij->type, geo_host->gij->ncomp, geo_host->gij->size);
   struct gkyl_array *b_i_dev = gkyl_array_cu_dev_new(geo_host->b_i->type, geo_host->b_i->ncomp, geo_host->b_i->size);
@@ -97,6 +98,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
   gkyl_array_copy(dualmag_dev, geo_host->dualmag);
   gkyl_array_copy(normals_dev, geo_host->normals);
   gkyl_array_copy(jacobgeo_dev , geo_host->jacobgeo);
+  gkyl_array_copy(jacobgeo_ghost_dev , geo_host->jacobgeo_ghost);
   gkyl_array_copy(jacobgeo_inv_dev, geo_host->jacobgeo_inv);
   gkyl_array_copy(gij_dev, geo_host->gij);
   gkyl_array_copy(b_i_dev, geo_host->b_i);
@@ -130,6 +132,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
   up->dualmag  = dualmag_dev->on_dev;
   up->normals  = normals_dev->on_dev;
   up->jacobgeo  = jacobgeo_dev->on_dev;
+  up->jacobgeo_ghost  = jacobgeo_ghost_dev->on_dev;
   up->jacobgeo_inv = jacobgeo_inv_dev->on_dev;
   up->gij  = gij_dev->on_dev;
   up->b_i  = b_i_dev->on_dev;
@@ -166,6 +169,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
   up->dualmag  = dualmag_dev;
   up->normals  = normals_dev;
   up->jacobgeo  = jacobgeo_dev;
+  up->jacobgeo_ghost  = jacobgeo_ghost_dev;
   up->jacobgeo_inv = jacobgeo_inv_dev;
   up->gij  = gij_dev;
   up->b_i  = b_i_dev;

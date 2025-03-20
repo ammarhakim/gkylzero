@@ -64,6 +64,7 @@ struct gk_geometry {
   struct gkyl_array* normals; // 9 components
                               // Cartesian components of normal vectors in order n^1,, n^2, n^3
   struct gkyl_array* jacobgeo; // 1 component. Configuration space jacobian J
+  struct gkyl_array* jacobgeo_ghost; // 1 component. Configuration space jacobian J
   struct gkyl_array* jacobgeo_inv; // 1 component. 1/J
   struct gkyl_array* gij; // Matric coefficients g^{ij}. See g_ij for order.
   struct gkyl_array* b_i; // 3 components. Contravariant components of magnetic field vector b_1, b_2, b_3.
