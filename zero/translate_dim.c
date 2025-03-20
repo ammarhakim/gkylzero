@@ -3,8 +3,8 @@
 #include <gkyl_alloc.h>
 
 struct gkyl_translate_dim*
-gkyl_translate_dim_new(int cdim_do, struct gkyl_basis basis_do,
-  int cdim_tar, struct gkyl_basis basis_tar, int dir, bool use_gpu)
+gkyl_translate_dim_new(int cdim_do, struct gkyl_basis basis_do, int cdim_tar,
+  struct gkyl_basis basis_tar, int dir, enum gkyl_edge_loc edge, bool use_gpu)
 {
   // Allocate space for new updater.
   struct gkyl_translate_dim *up = gkyl_malloc(sizeof(*up));
@@ -31,7 +31,7 @@ gkyl_translate_dim_new(int cdim_do, struct gkyl_basis basis_do,
 #endif
 
   // Choose kernels that translates the DG coefficients.
-  trans_dim_choose_kernel(up->kernels, cdim_do, basis_do, cdim_tar, basis_tar, dir, use_gpu);
+  trans_dim_choose_kernel(up->kernels, cdim_do, basis_do, cdim_tar, basis_tar, dir, edge, use_gpu);
 
   return up;
 }

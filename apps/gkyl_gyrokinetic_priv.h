@@ -383,7 +383,7 @@ struct gk_boundary_fluxes {
   int *diag_mom_idx; // Index of each diag mom in the array of calc moms.
   int *diag_int_mom_idx; // Index of each diag int mom in the array of calc moms.
   int *add_mom_idx; // Index of each additional mom in the array of calc moms.
-  struct gkyl_translate_dim *transdim[GKYL_MAX_CDIM]; // Updater that projects to lower dim.
+  struct gkyl_translate_dim **transdim; // Updater that projects to lower dim.
   struct gkyl_rect_decomp *decomp_surf[GKYL_MAX_CDIM]; // Surface decomposition object.
   struct gkyl_comm *comm_surf[GKYL_MAX_CDIM]; // Surface communicator object.
   struct gkyl_range surf_local[GKYL_MAX_CDIM], surf_local_ext[GKYL_MAX_CDIM]; // local, local-ext surface ranges.

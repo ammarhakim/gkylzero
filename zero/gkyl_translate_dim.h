@@ -30,12 +30,15 @@ typedef struct gkyl_translate_dim gkyl_translate_dim;
  * @param basis_do Basis of the donor field.
  * @param cdim_tar Configuration space dimension of the target field.
  * @param basis_tar Basis of the target field.
- * @param dir Direction to remove if cdim_tar < cdim_do;
+ * @param dir Direction to remove if cdim_tar < cdim_do.
+ * @param edge Where to evaluate the dimension to be removed within a cell if 
+ *             cdim_tar < cdim_do (lower boundary, center, or upper boundary).
  * @param use_gpu Whether to run it on the GPU or not.
  */
 struct gkyl_translate_dim*
 gkyl_translate_dim_new(int cdim_do, struct gkyl_basis basis_do,
-  int cdim_tar, struct gkyl_basis basis_tar, int dir, bool use_gpu);
+  int cdim_tar, struct gkyl_basis basis_tar, int dir,
+  enum gkyl_edge_loc edge, bool use_gpu);
 
 /**
  * Run the updater that translates the DG coefficients of a lower dimensional

@@ -202,7 +202,7 @@ test_2x2v(int poly_order, bool use_gpu)
   int cdim_do = confGrid_low.ndim;
   int vdim_do = grid_low.ndim - cdim_do;
   struct gkyl_translate_dim* trans_dim_upd = gkyl_translate_dim_new(cdim_do,
-    basis_low, cdim, basis, 0, use_gpu);
+    basis_low, cdim, basis, 0, GKYL_NO_EDGE, use_gpu);
   gkyl_translate_dim_advance(trans_dim_upd, &local_low, &local, distf_low, 1, distf);
   gkyl_array_copy(distf_ho, distf);
 
@@ -361,7 +361,7 @@ test_3x2v(int poly_order, bool use_gpu)
   int cdim_do = confGrid_low.ndim;
   int vdim_do = grid_low.ndim - cdim_do;
   struct gkyl_translate_dim* trans_dim_upd = gkyl_translate_dim_new(cdim_do,
-    basis_low, cdim, basis, 0, use_gpu);
+    basis_low, cdim, basis, 0, GKYL_NO_EDGE, use_gpu);
   gkyl_translate_dim_advance(trans_dim_upd, &local_low, &local, distf_low, 1, distf);
   gkyl_array_copy(distf_ho, distf);
 

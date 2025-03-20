@@ -456,7 +456,7 @@ gk_species_bflux_write_mom_dynamic(gkyl_gyrokinetic_app* app, const struct gk_sp
         if (app->cdim > 1) {
           // Project the moment down to lower dimensions.
           int num_mom_comp = bflux->moms_op[mom_idx].num_mom;
-          gkyl_translate_dim_advance(bflux->transdim[dir], bflux->boundaries_conf_skin[b], &bflux->surf_local[dir],
+          gkyl_translate_dim_advance(bflux->transdim[b], bflux->boundaries_conf_skin[b], &bflux->surf_local[dir],
             bflux->moms_op[mom_idx].marr, num_mom_comp, bflux->mom_surf[b*num_diag_mom+m]);
 
           if (app->use_gpu)
@@ -712,13 +712,16 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
             break;
         }
 
+        bflux->transdim = gkyl_malloc(bflux->num_boundaries*sizeof(struct gkyl_translate_dim *));
         bool diag_in_dir[GKYL_MAX_CDIM] = {0};
         for (int b=0; b<bflux->num_boundaries; ++b) {
           int dir = bflux->boundaries_dir[b];
+          enum gkyl_edge_loc edge = bflux->boundaries_edge[b];
+          // Updater that projects to lower dim.
+          bflux->transdim[b] = gkyl_translate_dim_new(app->cdim, app->basis, app->cdim-1,
+            basis_conf_surf, dir, edge==GKYL_LOWER_EDGE? GKYL_UPPER_EDGE : GKYL_LOWER_EDGE, app->use_gpu);
+
           if (!diag_in_dir[dir]) {
-            // Updater that projects to lower dim.
-            bflux->transdim[dir] = gkyl_translate_dim_new(app->cdim,
-              app->basis, app->cdim-1, basis_conf_surf, dir, app->use_gpu);
 
             // Create a communicator associated with a lower dimensional surface range.
             // Identify ranks on the same plane as this one.
@@ -893,14 +896,10 @@ gk_species_bflux_release(const struct gkyl_gyrokinetic_app *app, const struct gk
     if (num_diag_mom > 0) {
       if (app->cdim > 1) {
         // Objects needed to output lower dimensional moments.
-        bool allocated_in_dir[GKYL_MAX_CDIM] = {0};
         for (int b=0; b<bflux->num_boundaries; ++b) {
-          int dir = bflux->boundaries_dir[b];
-          if (!allocated_in_dir[dir]) {
-            gkyl_translate_dim_release(bflux->transdim[dir]);
-            allocated_in_dir[dir] = true;
-          }
+          gkyl_translate_dim_release(bflux->transdim[b]);
         }
+        gkyl_free(bflux->transdim);
         for (int b=0; b<bflux->num_boundaries; ++b) {
           for (int m=0; m<num_diag_mom; m++) {
             gkyl_array_release(bflux->mom_surf[b*num_diag_mom+m]);

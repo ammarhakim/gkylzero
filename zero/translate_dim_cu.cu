@@ -10,11 +10,26 @@ extern "C" {
 // CUDA kernel to set device pointers to kernels.
 __global__ static void
 gkyl_trans_dim_set_cu_ker_ptrs(struct gkyl_translate_dim_kernels *kernels, int cdim_do,
-  struct gkyl_basis basis_do, int cdim_tar, struct gkyl_basis basis_tar, int dir)
+  struct gkyl_basis basis_do, int cdim_tar, struct gkyl_basis basis_tar, int dir, enum gkyl_edge_loc edge)
 {
   enum gkyl_basis_type basis_type = basis_tar.b_type;
   int poly_order = basis_tar.poly_order;
-  int dir_idx = cdim_do < cdim_tar ? cdim_tar-1 : dir;
+  int dir_idx = cdim_tar-1;
+  int edge_idx = 0;
+  if (cdim_tar < cdim_do) {
+    dir_idx = dir;
+    switch (edge) {
+      case GKYL_LOWER_EDGE:
+        edge_idx = 0;
+        break;
+      case GKYL_NO_EDGE:
+        edge_idx = 1;
+        break;
+      case GKYL_UPPER_EDGE:
+        edge_idx = 2;
+        break;
+    }
+  }
 
   // Choose kernel that translates DG coefficients.
   switch (basis_type) {
@@ -22,7 +37,7 @@ gkyl_trans_dim_set_cu_ker_ptrs(struct gkyl_translate_dim_kernels *kernels, int c
       kernels->translate = trans_dim_kern_list_gkhyb[cdim_tar+cdim_do-3].kernels[poly_order-1];
       break;
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      kernels->translate = trans_dim_kern_list_ser[cdim_do-1].list[dir_idx].kernels[poly_order-1];
+      kernels->translate = trans_dim_kern_list_ser[cdim_do-1].list[dir_idx*3+edge_idx].kernels[poly_order-1];
       break;
     default:
       assert(false);
@@ -43,9 +58,9 @@ gkyl_trans_dim_set_cu_ker_ptrs(struct gkyl_translate_dim_kernels *kernels, int c
 
 void
 trans_dim_choose_kernel_cu(struct gkyl_translate_dim_kernels *kernels, int cdim_do,
-  struct gkyl_basis basis_do, int cdim_tar, struct gkyl_basis basis_tar, int dir)
+  struct gkyl_basis basis_do, int cdim_tar, struct gkyl_basis basis_tar, int dir, enum gkyl_edge_loc edge)
 {
-  gkyl_trans_dim_set_cu_ker_ptrs<<<1,1>>>(kernels, cdim_do, basis_do, cdim_tar, basis_tar, dir);
+  gkyl_trans_dim_set_cu_ker_ptrs<<<1,1>>>(kernels, cdim_do, basis_do, cdim_tar, basis_tar, dir, edge);
 }
 
 __global__ static void

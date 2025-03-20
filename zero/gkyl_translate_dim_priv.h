@@ -11,7 +11,7 @@
 typedef void (*translate_dim_t)(const double *fdo, double *ftar);
 
 typedef struct {translate_dim_t kernels[3];} trans_dim_kern_list;  // For use in kernel tables.
-typedef struct {trans_dim_kern_list list[3];} trans_dim_kern_list_updown;  // For use in kernel tables.
+typedef struct {trans_dim_kern_list list[9];} trans_dim_kern_list_updown;  // For use in kernel tables.
 
 // Serendipity  kernels.
 GKYL_CU_D
@@ -19,22 +19,40 @@ static const trans_dim_kern_list_updown trans_dim_kern_list_ser[] = {
   // 1x
   { .list = {
       {NULL, NULL, NULL },
+      {NULL, NULL, NULL },
+      {NULL, NULL, NULL },
       {translate_dim_1x_ser_p1_to_2x_p1, NULL, NULL },
+      {NULL, NULL, NULL },
+      {NULL, NULL, NULL },
+      {NULL, NULL, NULL },
+      {NULL, NULL, NULL },
       {NULL, NULL, NULL },
     },
   },
   // 2x
   { .list = {
-      { translate_dim_2x_ser_p1_to_1x_p1_dirx, NULL, NULL },
-      { translate_dim_2x_ser_p1_to_1x_p1_diry, NULL, NULL },
+      { translate_dim_2x_ser_p1_to_1x_p1_dirx_lo , NULL, NULL },
+      { translate_dim_2x_ser_p1_to_1x_p1_dirx_mid, NULL, NULL },
+      { translate_dim_2x_ser_p1_to_1x_p1_dirx_up , NULL, NULL },
+      { translate_dim_2x_ser_p1_to_1x_p1_diry_lo , NULL, NULL },
+      { translate_dim_2x_ser_p1_to_1x_p1_diry_mid, NULL, NULL },
+      { translate_dim_2x_ser_p1_to_1x_p1_diry_up , NULL, NULL },
       { translate_dim_2x_ser_p1_to_3x_p1, NULL, NULL },
+      {NULL, NULL, NULL },
+      {NULL, NULL, NULL },
     },
   },
   // 3x
   { .list = {
-      { translate_dim_3x_ser_p1_to_2x_p1_dirx, NULL, NULL },
-      { translate_dim_3x_ser_p1_to_2x_p1_diry, NULL, NULL },
-      { translate_dim_3x_ser_p1_to_2x_p1_dirz, NULL, NULL },
+      { translate_dim_3x_ser_p1_to_2x_p1_dirx_lo , NULL, NULL },
+      { translate_dim_3x_ser_p1_to_2x_p1_dirx_mid, NULL, NULL },
+      { translate_dim_3x_ser_p1_to_2x_p1_dirx_up , NULL, NULL },
+      { translate_dim_3x_ser_p1_to_2x_p1_diry_lo , NULL, NULL },
+      { translate_dim_3x_ser_p1_to_2x_p1_diry_mid, NULL, NULL },
+      { translate_dim_3x_ser_p1_to_2x_p1_diry_up , NULL, NULL },
+      { translate_dim_3x_ser_p1_to_2x_p1_dirz_lo , NULL, NULL },
+      { translate_dim_3x_ser_p1_to_2x_p1_dirz_mid, NULL, NULL },
+      { translate_dim_3x_ser_p1_to_2x_p1_dirz_up , NULL, NULL },
     },
   },
 };
@@ -102,7 +120,8 @@ struct gkyl_translate_dim {
 #ifdef GKYL_HAVE_CUDA
 // Declaration of cuda device functions.
 void trans_dim_choose_kernel_cu(struct gkyl_translate_dim_kernels *kernels,
-  int cdim_do, struct gkyl_basis basis_do, int cdim_tar, struct gkyl_basis basis_tar);
+  int cdim_do, struct gkyl_basis basis_do, int cdim_tar, struct gkyl_basis basis_tar,
+  int dir, enum gkyl_edge_loc edge);
 
 void gkyl_translate_dim_advance_cu(gkyl_translate_dim* up,
   const struct gkyl_range *rng_do, const struct gkyl_range *rng_tar,
@@ -111,19 +130,34 @@ void gkyl_translate_dim_advance_cu(gkyl_translate_dim* up,
 #endif
 
 GKYL_CU_D
-static void trans_dim_choose_kernel(struct gkyl_translate_dim_kernels *kernels,
-  int cdim_do, struct gkyl_basis basis_do, int cdim_tar, struct gkyl_basis basis_tar, int dir, bool use_gpu)
+static void trans_dim_choose_kernel(struct gkyl_translate_dim_kernels *kernels, int cdim_do,
+  struct gkyl_basis basis_do, int cdim_tar, struct gkyl_basis basis_tar, int dir, enum gkyl_edge_loc edge, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    trans_dim_choose_kernel_cu(kernels, cdim_do, basis_do, cdim_tar, basis_tar, dir);
+    trans_dim_choose_kernel_cu(kernels, cdim_do, basis_do, cdim_tar, basis_tar, dir, edge);
     return;
   }
 #endif
 
   enum gkyl_basis_type basis_type = basis_tar.b_type;
   int poly_order = basis_tar.poly_order;
-  int dir_idx = cdim_do < cdim_tar ? cdim_tar-1 : dir;
+  int dir_idx = cdim_tar-1;
+  int edge_idx = 0;
+  if (cdim_tar < cdim_do) {
+    dir_idx = dir;
+    switch (edge) {
+      case GKYL_LOWER_EDGE:
+        edge_idx = 0;
+        break;
+      case GKYL_NO_EDGE:
+        edge_idx = 1;
+        break;
+      case GKYL_UPPER_EDGE:
+        edge_idx = 2;
+        break;
+    }
+  }
 
   // Choose kernel that translates DG coefficients.
   switch (basis_type) {
@@ -131,7 +165,7 @@ static void trans_dim_choose_kernel(struct gkyl_translate_dim_kernels *kernels,
       kernels->translate = trans_dim_kern_list_gkhyb[cdim_tar+cdim_do-3].kernels[poly_order-1];
       break;
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      kernels->translate = trans_dim_kern_list_ser[cdim_do-1].list[dir_idx].kernels[poly_order-1];
+      kernels->translate = trans_dim_kern_list_ser[cdim_do-1].list[dir_idx*3+edge].kernels[poly_order-1];
       break;
     default:
       assert(false);

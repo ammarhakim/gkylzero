@@ -1287,7 +1287,7 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
 
   if (pdim_do == pdim-1) {
     struct gkyl_translate_dim* transdim = gkyl_translate_dim_new(cdim_do,
-      basis_do, cdim, gks->basis, -1, app->use_gpu);
+      basis_do, cdim, gks->basis, -1, GKYL_NO_EDGE, app->use_gpu);
     gkyl_translate_dim_advance(transdim, &local_do, &gks->local, fdo, 1, gks->f);
     gkyl_translate_dim_release(transdim);
   }
