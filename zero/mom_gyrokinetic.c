@@ -193,7 +193,7 @@ gkyl_int_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_
   
   // choose kernel tables based on basis-function type
   const gkyl_gyrokinetic_mom_kern_list *int_three_moments_kernels, *int_four_moments_kernels, *int_hamiltonian_moments_kernels,
-    *int_m0_kernels, *int_m1_kernels, *int_m2_par_kernels, *int_m2_perp_kernels, *int_m2_kernels;
+    *int_m0_kernels, *int_m1_kernels, *int_m2_par_kernels, *int_m2_perp_kernels, *int_m2_kernels, *int_m3_par_kernels, *int_m3_perp_kernels;
 
   // set kernel pointer
   switch (cbasis->b_type) {
@@ -251,6 +251,22 @@ gkyl_int_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_
     assert(NULL != int_m2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     mom_gk->momt.kernel = int_m2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    mom_gk->momt.num_mom = 1;
+  }
+  else if (strcmp(mom, "M3par") == 0){
+    // Parallel heat flux moment only.
+    assert(cv_index[cdim].vdim[vdim] != -1);   
+    assert(NULL != int_m3_par_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+    
+    mom_gk->momt.kernel = int_m3_par_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    mom_gk->momt.num_mom = 1;
+  }
+  else if (strcmp(mom, "M3perp") == 0) {
+    // Perpendicular heat flux moment only.
+    assert(cv_index[cdim].vdim[vdim] != -1);   
+    assert(NULL != int_m3_perp_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+    
+    mom_gk->momt.kernel = int_m3_perp_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_gk->momt.num_mom = 1;
   }
   else if (strcmp(mom, "ThreeMoments") == 0) { 

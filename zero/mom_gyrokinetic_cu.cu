@@ -272,17 +272,18 @@ set_int_cu_ptrs(struct mom_type_gyrokinetic* momt, int mom_id,
   enum gkyl_basis_type b_type, int vdim, int poly_order, int tblidx)
 {
   // choose kernel tables based on basis-function type
-  // const gkyl_gyrokinetic_mom_kern_list *int_three_moments_kernels, *int_four_moments_kernels, *int_hamiltonian_moments_kernels;
-  const gkyl_gyrokinetic_mom_kern_list *int_M0_kernels, *int_M1_kernels, *int_M2_par_kernel, *int_M2_perp_kernel, *int_M2_kernels,
-    *int_three_moments_kernels, *int_four_moments_kernels, *int_hamiltonian_moments_kernels;
+  const gkyl_gyrokinetic_mom_kern_list *int_m0_kernels, *int_m1_kernels, *int_m2_par_kernel, *int_m2_perp_kernel, *int_m2_kernels,
+    *int_m3_par_kernels, *int_m3_perp_kernels, *int_three_moments_kernels, *int_four_moments_kernels, *int_hamiltonian_moments_kernels;
 
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      int_M0_kernels = ser_int_m0_kernels;
-      int_M1_kernels = ser_int_m1_kernels;
-      int_M2_par_kernel = ser_int_m2_par_kernels;
-      int_M2_perp_kernel = ser_int_m2_perp_kernels;
-      int_M2_kernels = ser_int_m2_kernels;
+      int_m0_kernels = ser_int_m0_kernels;
+      int_m1_kernels = ser_int_m1_kernels;
+      int_m2_par_kernel = ser_int_m2_par_kernels;
+      int_m2_perp_kernel = ser_int_m2_perp_kernels;
+      int_m2_kernels = ser_int_m2_kernels;
+      int_m3_par_kernels = ser_int_m3_par_kernels;
+      int_m3_perp_kernels = ser_int_m3_perp_kernels;
       int_three_moments_kernels = ser_int_three_moments_kernels;
       int_four_moments_kernels = ser_int_four_moments_kernels;
       int_hamiltonian_moments_kernels = ser_int_hamiltonian_moments_kernels;
@@ -295,23 +296,31 @@ set_int_cu_ptrs(struct mom_type_gyrokinetic* momt, int mom_id,
   
   switch (mom_id) {
     case M0:
-      momt->momt.kernel = int_M0_kernels[tblidx].kernels[poly_order];
+      momt->momt.kernel = int_m0_kernels[tblidx].kernels[poly_order];
       momt->momt.num_mom = 1;
       break;
     case M1:
-      momt->momt.kernel = int_M1_kernels[tblidx].kernels[poly_order];
+      momt->momt.kernel = int_m1_kernels[tblidx].kernels[poly_order];
       momt->momt.num_mom = 1;
       break;
     case M2par:
-      momt->momt.kernel = int_M2_par_kernel[tblidx].kernels[poly_order];
+      momt->momt.kernel = int_m2_par_kernel[tblidx].kernels[poly_order];
       momt->momt.num_mom = 1;
       break;
     case M2perp:
-      momt->momt.kernel = int_M2_perp_kernel[tblidx].kernels[poly_order];
+      momt->momt.kernel = int_m2_perp_kernel[tblidx].kernels[poly_order];
       momt->momt.num_mom = 1;
       break;
     case M2:
-      momt->momt.kernel = int_M2_kernels[tblidx].kernels[poly_order];
+      momt->momt.kernel = int_m2_kernels[tblidx].kernels[poly_order];
+      momt->momt.num_mom = 1;
+      break;
+    case M3par:
+      momt->momt.kernel = int_m3_par_kernels[tblidx].kernels[poly_order];
+      momt->momt.num_mom = 1;
+      break;
+    case M3perp:
+      momt->momt.kernel = int_m3_perp_kernels[tblidx].kernels[poly_order];
       momt->momt.num_mom = 1;
       break;
     case ThreeMoments:
