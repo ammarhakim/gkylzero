@@ -479,8 +479,6 @@ struct gk_react {
   struct gkyl_array *coeff_react_host[GKYL_MAX_REACT]; // reaction rate
   struct gkyl_array *vt_sq_iz1[GKYL_MAX_REACT]; // ionization temperature
   struct gkyl_array *vt_sq_iz2[GKYL_MAX_REACT]; // ionization temperature
-  struct gkyl_array *vt_sq_iz1_host[GKYL_MAX_REACT]; // ionization temperature
-  struct gkyl_array *vt_sq_iz2_host[GKYL_MAX_REACT]; // ionization temperature
   struct gkyl_array *Jm0_elc[GKYL_MAX_REACT]; // J*electron density
   struct gkyl_array *Jm0_ion[GKYL_MAX_REACT]; // J*ion density
   struct gkyl_array *Jm0_donor[GKYL_MAX_REACT]; // J*donor density

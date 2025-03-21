@@ -455,11 +455,6 @@ gk_species_react_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct
     }
     
     if (gkr->react_id[ridx] == GKYL_REACT_IZ) {
-      if (app->use_gpu) {
-	gkyl_array_copy(gkr->vt_sq_iz1_host[ridx], gkr->vt_sq_iz1[ridx]);
-	gkyl_array_copy(gkr->vt_sq_iz2_host[ridx], gkr->vt_sq_iz2[ridx]);
-      }
-      
       const char *fmt = "%s-%s_%s_%s_iz_react_%d.gkyl";
       int sz = gkyl_calc_strlen(fmt, app->name, gkr->react_type[ridx].ion_nm,
         gkr->react_type[ridx].elc_nm, gkr->react_type[ridx].donor_nm, frame);
