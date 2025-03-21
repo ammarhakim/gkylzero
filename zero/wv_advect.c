@@ -258,7 +258,7 @@ gkyl_wv_advect_new(double a, bool use_gpu)
 {
   return gkyl_wv_advect_inew(&(struct gkyl_wv_advect_inp) {
       .a = a,
-      .rp_type = WV_ADVECT_RP_LAX,
+      .rp_type = WV_ADVECT_RP_ROE,
       .use_gpu = use_gpu,
     }
   );
