@@ -381,9 +381,6 @@ gk_neut_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk
   gkyl_array_release(s->alpha_surf);
   gkyl_array_release(s->sgn_alpha_surf);
   gkyl_array_release(s->const_sgn_alpha);
-  gkyl_array_release(s->hamil);
-  if (app->use_gpu)
-      gkyl_array_release(s->hamil_host);
 
   if (app->use_gpu) {
     gkyl_cu_free(s->omega_cfl);
@@ -532,19 +529,6 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
   gkyl_cart_modal_serendip(&surf_basis, pdim-1, app->poly_order);
   gkyl_cart_modal_tensor(&surf_quad_basis, pdim-1, app->poly_order);
 
-  // Begin canonical pb
-  s->hamil = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
-  s->hamil_host = s->hamil;
-    
-  // Call updater to evaluate hamiltonian
-  struct gkyl_dg_calc_gk_neut_hamil* hamil_calc = gkyl_dg_calc_gk_neut_hamil_new(&s->grid, &s->basis, app->cdim, app->use_gpu);
-  gkyl_dg_calc_gk_neut_hamil_calc(hamil_calc, &app->local, &s->local, app->gk_geom->gij, s->hamil);
-    
-  if (app->use_gpu) {
-    s->hamil_host = mkarr(false, s->basis.num_basis, s->local_ext.volume);
-    gkyl_array_copy(s->hamil_host, s->hamil);
-  }
-
   int alpha_surf_sz = (cdim+vdim)*surf_basis.num_basis; 
   int sgn_alpha_surf_sz = (cdim+vdim)*surf_quad_basis.num_basis; // sign(alpha) is store at quadrature points
 
@@ -562,7 +546,6 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
   gkyl_dg_calc_canonical_pb_vars_alpha_surf(calc_vars, &app->local, &s->local, &s->local_ext, s->hamil,
     s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
   gkyl_dg_calc_canonical_pb_vars_release(calc_vars);
-  gkyl_dg_calc_gk_neut_hamil_release(hamil_calc);
 
   struct gkyl_dg_canonical_pb_auxfields aux_inp = {.hamil = s->hamil, .alpha_surf = s->alpha_surf, 
     .sgn_alpha_surf = s->sgn_alpha_surf, .const_sgn_alpha = s->const_sgn_alpha};
@@ -1016,24 +999,39 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     gkyl_sub_range_intersect(&s->global_upper_ghost[dir], &s->local_ext, &s->global_upper_ghost[dir]);
   }
 
-  // allocate data for density 
+  if (s->info.init_from_file.type == 0) {
+    // Initialize projection routine for initial conditions.
+    gk_neut_species_projection_init(app, s, s->info.projection, &s->proj_init);
+  }
+  else {
+    // Read initial condition from file.
+    gk_neut_species_file_import_init(app, s, s->info.init_from_file);
+  }
+  
+  // Allocate array for the Hamiltonian.
+  s->hamil = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
+    
+  // Call updater to evaluate hamiltonian
+  struct gkyl_dg_calc_gk_neut_hamil* hamil_calc = gkyl_dg_calc_gk_neut_hamil_new(&s->grid, &s->basis, app->cdim, app->use_gpu);
+  gkyl_dg_calc_gk_neut_hamil_calc(hamil_calc, &app->local, &s->local, app->gk_geom->gij, s->hamil);
+  gkyl_dg_calc_gk_neut_hamil_release(hamil_calc);
+    
+  s->hamil_host = s->hamil;
+  if (app->use_gpu) {
+    s->hamil_host = mkarr(false, s->basis.num_basis, s->local_ext.volume);
+    gkyl_array_copy(s->hamil_host, s->hamil);
+  }
+
+  // Allocate object for computing number .density 
   gk_neut_species_moment_init(app, s, &s->m0, "M0");
 
-  // allocate data for diagnostic moments
+  // Allocate objects for computing diagnostic moments.
   int ndm = s->info.num_diag_moments;
   s->moms = gkyl_malloc(sizeof(struct gk_species_moment[ndm]));
   for (int m=0; m<ndm; ++m) {
     gk_neut_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m]);
   }
 
-  // initialize projection routine for initial conditions
-  if (s->info.init_from_file.type == 0) {
-    gk_neut_species_projection_init(app, s, s->info.projection, &s->proj_init);
-  }
-  else {
-    gk_neut_species_file_import_init(app, s, s->info.init_from_file);
-  }
-  
   // Initialize a Maxwellian/LTE (local thermodynamic equilibrium) projection routine
   // Projection routine optionally corrects all the Maxwellian/LTE moments
   // This routine is utilized by both reactions and BGK collisions
@@ -1201,6 +1199,10 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
   gkyl_free(s->moms);
 
   gk_neut_species_lte_release(app, &s->lte);
+
+  gkyl_array_release(s->hamil);
+  if (app->use_gpu)
+    gkyl_array_release(s->hamil_host);
 
   s->release_func(app, s);
 }
