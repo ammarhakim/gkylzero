@@ -586,10 +586,12 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     }
     // initialize species wall emission terms: these rely
     // on other species which must be allocated in the previous step
-    if (gkns->recyc_lo)
-      gk_neut_species_recycle_cross_init(app, gkns, &gkns->bc_recycle_lo);
-    if (gkns->recyc_up)
-      gk_neut_species_recycle_cross_init(app, gkns, &gkns->bc_recycle_up);
+    for (int d=0; d<app->cdim; ++d) {
+      if (gkns->lower_bc[d].type == GKYL_SPECIES_RECYCLE)
+        gk_neut_species_recycle_cross_init(app, gkns, &gkns->bc_recycle_lo);
+      if (gkns->upper_bc[d].type == GKYL_SPECIES_RECYCLE)
+        gk_neut_species_recycle_cross_init(app, gkns, &gkns->bc_recycle_up);
+    }
   }
 
   // initialize each plasma species and neutral species source terms
@@ -716,7 +718,6 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
   for (int i=0; i<app->num_neut_species; ++i) {
     struct gk_neut_species *gkns = &app->neut_species[i];
     gkyl_gyrokinetic_app_apply_ic_neut_species(app, i, t0);
-    //gk_neut_species_bflux_rhs(app, gkns, &gkns->bflux, gkns->f, gkns->f); // TNB not needed
   }
   for (int i=0; i<app->num_species; ++i)
     gkyl_gyrokinetic_app_apply_ic_cross_species(app, i, t0);
@@ -860,12 +861,14 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->mc2nu_pos        , arr_ho3, "mc2nu_pos", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->bmag        , arr_ho1, "bmag", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->g_ij        , arr_ho6, "g_ij", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->g_ij_neut        , arr_ho6, "g_ij_neut", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->dxdz        , arr_ho9, "dxdz", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->dzdx        , arr_ho9, "dzdx", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->normals     , arr_ho9, "normals", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->jacobgeo    , arr_ho1, "jacobgeo", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->jacobgeo_inv, arr_ho1, "jacobgeo_inv", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->gij         , arr_ho6, "gij", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->gij_neut         , arr_ho6, "gij_neut", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->b_i         , arr_ho3, "b_i", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->bcart       , arr_ho3, "bcart", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->cmag        , arr_ho1, "cmag", mt);
@@ -1113,18 +1116,6 @@ gkyl_gyrokinetic_app_write_species_boundary_flux_integrated_mom(gkyl_gyrokinetic
 {
   struct gk_species *gks = &app->species[sidx];
   gk_species_bflux_write_integrated_mom(app, gks, &gks->bflux_diag);
-}
-
-void
-gkyl_gyrokinetic_app_write_neut_species_recycle_flux(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame)
-{
-  struct gk_neut_species *gkns = &app->neut_species[sidx];
-  if (gkns->recyc_lo) {
-    gk_neut_species_recycle_write_flux(app, gkns, &gkns->bc_recycle_lo, tm, frame);
-  }
-  if (gkns->recyc_up) {
-    gk_neut_species_recycle_write_flux(app, gkns, &gkns->bc_recycle_up, tm, frame);
-  }
 }
 
 //
@@ -2150,7 +2141,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
 {
   struct gkyl_app_restart_status rstat;
   for (int i=0; i<app->num_neut_species; i++) {
-    if (app->neut_species[i].info.is_static && !app->neut_species[i].info.static_from_frame) {
+    if (app->neut_species[i].info.is_static) {
       gk_neut_species_apply_ic(app, &app->neut_species[i], 0.0);
     }
     else {
@@ -2158,7 +2149,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
     }
   }
   for (int i=0; i<app->num_species; i++) {
-    if (app->species[i].info.is_static && !app->neut_species[i].info.static_from_frame) {
+    if (app->species[i].info.is_static) {
       gk_species_apply_ic(app, &app->species[i], 0.0);
     }
     else {

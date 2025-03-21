@@ -292,7 +292,7 @@ void gkyl_calc_metric_advance_rz_neut(
               gFld_n[4] = R*R*dphidtheta;
               gFld_n[5] = dxdz[0][2]*dxdz[0][2] + R*R*dphidtheta*dphidtheta + dxdz[1][2]*dxdz[1][2]; 
 
-              double *grFld_n= gkyl_array_fetch(gFld_nodal, gkyl_range_idx(nrange, cidx));
+              double *grFld_n= gkyl_array_fetch(grFld_nodal, gkyl_range_idx(nrange, cidx));
               grFld_n[0] = R*R/jac/jac*(dxdz[1][2]*dxdz[1][2] + dxdz[0][2]*dxdz[0][2] );
               grFld_n[1] = 0.0;
               grFld_n[2] = R*R/jac/jac*(dxdz[0][0]*dxdz[0][2] + dxdz[1][0]*dxdz[1][2] );

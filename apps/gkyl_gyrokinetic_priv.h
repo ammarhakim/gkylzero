@@ -70,6 +70,7 @@
 #include <gkyl_mom_bcorr_lbo_gyrokinetic.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_calc_bcorr.h>
+#include <gkyl_mom_canonical_pb.h>
 #include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_null_pool.h>
 #include <gkyl_position_map.h>
@@ -411,59 +412,47 @@ struct gk_boundary_fluxes {
 };
 
 struct gk_recycle_wall {
-  // recycling wall boundary conditions
-  int num_species;
-  int dir;
-  enum gkyl_edge_loc edge;
-  double *scale_ptr;
-  double t_bound;
-  bool elastic;
-  double frac; // recycling fraction coefficient
-  
-  gkyl_boundary_flux *f0_flux_slvr[2*GKYL_MAX_CDIM];
-  struct gkyl_dg_bin_op_mem *mem_geo; // memory needed in dividing moments by Jacobian
-  struct gkyl_spectrum_model *spectrum_model[GKYL_MAX_SPECIES];
-  struct gkyl_yield_model *yield_model[GKYL_MAX_SPECIES];
-  struct gkyl_elastic_model *elastic_model;
+  // Recycling wall boundary conditions.
+  // Input struct must include number of impact species,
+  // name of the species, and recycling fraction.
   struct gkyl_gyrokinetic_emission_inp *params;
+  int num_species;
+  double frac; // recycling fraction coefficient
 
-  struct gkyl_bc_emission_spectrum *update[GKYL_MAX_SPECIES];
-  struct gkyl_bc_emission_elastic *elastic_update;
-  struct gkyl_rect_grid *init_conf_grid;
-  struct gkyl_array *f0;
-  struct gkyl_array *f_emit;
-  struct gkyl_array *f_diag;
-  struct gkyl_array *init_flux;
-  struct gkyl_array *init_bflux_arr;
-  struct gkyl_array *emit_flux;
-  struct gkyl_array *diag_out;
-  struct gkyl_array *diag_out_ho;
-  struct gkyl_array *buffer;
-  struct gkyl_array *elastic_yield;
-  struct gkyl_array *yield[GKYL_MAX_SPECIES]; // projected secondary electron yield
-  struct gkyl_array *spectrum[GKYL_MAX_SPECIES]; // projected secondary electron spectrum
-  struct gkyl_array *weight[GKYL_MAX_SPECIES];
-  struct gkyl_array *flux[GKYL_MAX_SPECIES];
-  struct gkyl_array *bflux_arr[GKYL_MAX_SPECIES];
-  struct gkyl_array *k[GKYL_MAX_SPECIES];
-  struct gk_species *impact_species[GKYL_MAX_SPECIES]; // pointers to impacting species
-  struct gkyl_range impact_normal_r[GKYL_MAX_SPECIES];
-  struct gkyl_dg_updater_moment *flux_slvr[GKYL_MAX_SPECIES]; // moments
-  struct gkyl_dg_updater_moment *init_flux_slvr; 
+  int dir; // BC direction (currently just parallel to B)
+  enum gkyl_edge_loc edge;
+  gkyl_boundary_flux *f0_flux_slvr[2*GKYL_MAX_CDIM];
+  struct gkyl_dg_bin_op_mem *mem_geo; // memory needed in calculating flux ratio
 
-  struct gkyl_rect_grid *impact_conf_grid[GKYL_MAX_SPECIES];
+  struct gkyl_array *init_flux; // MO moment of unit-density flux.
+  struct gkyl_array *init_bflux_arr; // Unit-density flux.  
+  struct gkyl_array *buffer; // Where unit-density Maxwellian is stored.
+  struct gkyl_dg_updater_moment *init_flux_slvr; // M0 moment solver for unit-density flux.
+  
+  struct gkyl_array *spectrum[GKYL_MAX_SPECIES]; // Unit-density Maxwellian is copied and scaled here.
+  struct gkyl_array *flux[GKYL_MAX_SPECIES]; // M0 moment of ion flux.
+  struct gkyl_array *bflux_arr[GKYL_MAX_SPECIES]; // Ion flux. 
+  struct gk_species *impact_species[GKYL_MAX_SPECIES]; // Pointers to impacting species
+  struct gkyl_range impact_normal_r[GKYL_MAX_SPECIES]; // Selects range for flux calc.
+  struct gkyl_dg_updater_moment *flux_slvr[GKYL_MAX_SPECIES]; // M0 moment solver for ion flux.
+
   struct gkyl_rect_grid *impact_grid[GKYL_MAX_SPECIES];
-  struct gkyl_range *impact_ghost_r[GKYL_MAX_SPECIES];
-  struct gkyl_range *impact_skin_r[GKYL_MAX_SPECIES];
   struct gkyl_range *impact_buff_r[GKYL_MAX_SPECIES];
   struct gkyl_range *impact_cbuff_r[GKYL_MAX_SPECIES];
-  
-  struct gkyl_rect_grid *emit_grid;
+
+  struct gkyl_array *f_emit; // Array to fill neutral ghost cell with scaled Maxwellian distf.
+  struct gkyl_rect_grid *emit_grid; 
   struct gkyl_range *emit_buff_r;
   struct gkyl_range *emit_cbuff_r;
   struct gkyl_range *emit_ghost_r;
   struct gkyl_range *emit_skin_r;
   struct gkyl_range emit_normal_r;
+
+  // Arrays for diagnostics, if used. 
+  struct gkyl_array *f_diag;
+  struct gkyl_array *emit_flux;
+  struct gkyl_array *diag_out; 
+  struct gkyl_array *diag_out_ho;
 };
 
 struct gk_react {
@@ -490,6 +479,8 @@ struct gk_react {
   struct gkyl_array *coeff_react_host[GKYL_MAX_REACT]; // reaction rate
   struct gkyl_array *vt_sq_iz1[GKYL_MAX_REACT]; // ionization temperature
   struct gkyl_array *vt_sq_iz2[GKYL_MAX_REACT]; // ionization temperature
+  struct gkyl_array *vt_sq_iz1_host[GKYL_MAX_REACT]; // ionization temperature
+  struct gkyl_array *vt_sq_iz2_host[GKYL_MAX_REACT]; // ionization temperature
   struct gkyl_array *Jm0_elc[GKYL_MAX_REACT]; // J*electron density
   struct gkyl_array *Jm0_ion[GKYL_MAX_REACT]; // J*ion density
   struct gkyl_array *Jm0_donor[GKYL_MAX_REACT]; // J*donor density
