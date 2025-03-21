@@ -999,15 +999,6 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     gkyl_sub_range_intersect(&s->global_upper_ghost[dir], &s->local_ext, &s->global_upper_ghost[dir]);
   }
 
-  if (s->info.init_from_file.type == 0) {
-    // Initialize projection routine for initial conditions.
-    gk_neut_species_projection_init(app, s, s->info.projection, &s->proj_init);
-  }
-  else {
-    // Read initial condition from file.
-    gk_neut_species_file_import_init(app, s, s->info.init_from_file);
-  }
-  
   // Allocate array for the Hamiltonian.
   s->hamil = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
     
@@ -1022,6 +1013,15 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     gkyl_array_copy(s->hamil_host, s->hamil);
   }
 
+  if (s->info.init_from_file.type == 0) {
+    // Initialize projection routine for initial conditions.
+    gk_neut_species_projection_init(app, s, s->info.projection, &s->proj_init);
+  }
+  else {
+    // Read initial condition from file.
+    gk_neut_species_file_import_init(app, s, s->info.init_from_file);
+  }
+  
   // Allocate object for computing number .density 
   gk_neut_species_moment_init(app, s, &s->m0, "M0");
 
