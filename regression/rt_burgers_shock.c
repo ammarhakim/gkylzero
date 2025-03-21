@@ -138,7 +138,7 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
   // Inviscid Burgers' equation.
-  struct gkyl_wv_eqn *burgers = gkyl_wv_burgers_new();
+  struct gkyl_wv_eqn *burgers = gkyl_wv_burgers_new(false);
 
   struct gkyl_moment_species fluid = {
     .name = "burgers",

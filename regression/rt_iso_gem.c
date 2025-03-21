@@ -296,14 +296,13 @@ main(int argc, char **argv)
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
   // Electron/ion equations.
-  struct gkyl_wv_eqn *elc_iso_euler = gkyl_wv_iso_euler_new( ctx.vte );
-  struct gkyl_wv_eqn *ion_iso_euler = gkyl_wv_iso_euler_new( ctx.vti );
+  struct gkyl_wv_eqn *elc_iso_euler = gkyl_wv_iso_euler_new(ctx.vte, false);
+  struct gkyl_wv_eqn *ion_iso_euler = gkyl_wv_iso_euler_new(ctx.vti, false);
 
   struct gkyl_moment_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
     .equation = elc_iso_euler,
-    
     .init = evalElcInit,
     .ctx = &ctx,
 
@@ -314,7 +313,6 @@ main(int argc, char **argv)
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
     .equation = ion_iso_euler,
-    
     .init = evalIonInit,
     .ctx = &ctx,
 
