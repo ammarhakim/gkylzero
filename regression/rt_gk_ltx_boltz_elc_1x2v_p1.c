@@ -337,13 +337,13 @@ create_ctx(void)
   printf("n0 = %.9e\n",n0);
   printf("c_s = %.9e\n",c_s);
   printf("n0*c_s = %.9e\n",n0*c_s);
-  double dualmag_lower_boundary = 9.816700996177508/sqrt(2.0)-(0.0174597545908838)*sqrt(3.0/2.0);
-  printf("dualmag at lower boundary = %.9e\n",dualmag_lower_boundary);
-  double n_lo = 2.517300141024113e+18/sqrt(2.0)-(-61.562467584685216)*sqrt(3.0/2.0);
-  double upar_lo = -179348.1959113112 /sqrt(2.0)-     1580.214288459291*sqrt(3.0/2.0);
-  printf("n at lower boundary = %.9e\n",n_lo);
-  printf("upar at lower boundary = %.9e\n",upar_lo);
-  printf("Expected flux at lower boundary = %.9e\n",n_lo*upar_lo);
+  // double dualmag_lower_boundary = 9.816700996177508/sqrt(2.0)-(0.0174597545908838)*sqrt(3.0/2.0);
+  // printf("dualmag at lower boundary = %.9e\n",dualmag_lower_boundary);
+  // double n_lo = 2.517300141024113e+18/sqrt(2.0)-(-61.562467584685216)*sqrt(3.0/2.0);
+  // double upar_lo = -179348.1959113112 /sqrt(2.0)-     1580.214288459291*sqrt(3.0/2.0);
+  // printf("n at lower boundary = %.9e\n",n_lo);
+  // printf("upar at lower boundary = %.9e\n",upar_lo);
+  // printf("Expected flux at lower boundary = %.9e\n",n_lo*upar_lo);
 
   // Source parameters
   double n_src = 1.95e22;
