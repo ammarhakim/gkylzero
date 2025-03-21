@@ -527,7 +527,6 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
     }
   }
 
-  s->model_id = GKYL_MODEL_CANONICAL_PB;
   // Need to figure out size of alpha_surf and sgn_alpha_surf by finding size of surface basis set 
   struct gkyl_basis surf_basis, surf_quad_basis;
   gkyl_cart_modal_serendip(&surf_basis, pdim-1, app->poly_order);
@@ -980,6 +979,8 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   // local = conf-local X local_vel
   gkyl_range_ten_prod(&local, &app->local, &s->local_vel);
   gkyl_create_ranges(&local, ghost, &s->local_ext, &s->local);
+
+  s->model_id = GKYL_MODEL_CANONICAL_PB;
 
   // Velocity space mapping.
   assert(s->info.mapc2p.mapping == 0); // mapped v-space not implemented for neutrals yet.
