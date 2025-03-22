@@ -129,6 +129,11 @@ gk_species_bflux_rhs_solver(gkyl_gyrokinetic_app *app, const struct gk_species *
       gkyl_boundary_flux_advance(bflux->flux_slvr[2*d+e], fin, rhs);
     }
 
+    gkyl_array_copy_range_to_range(bflux->flux_arr[2*d+0], rhs, &bflux->flux_r[2*d+0],
+      &species->lower_ghost[d]);
+    gkyl_array_copy_range_to_range(bflux->flux_arr[2*d+1], rhs, &bflux->flux_r[2*d+1],
+      &species->upper_ghost[d]);
+    
     gk_species_moment_calc(&bflux->gammai[2*d+0], species->lower_ghost[d], app->lower_ghost[d], rhs);
     gk_species_moment_calc(&bflux->gammai[2*d+1], species->upper_ghost[d], app->upper_ghost[d], rhs);
   }
@@ -380,7 +385,7 @@ gk_species_bflux_write_integrated_mom(gkyl_gyrokinetic_app *app,
 
 void 
 gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s, struct gk_boundary_fluxes *bflux, bool is_diagnostic)
-{ 
+{
   // Set methods for time-stepping boundary fluxes.
   bflux->bflux_clear_func = gk_species_bflux_clear_static;
   bflux->bflux_scale_func = gk_species_bflux_scale_static;
@@ -398,7 +403,6 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
        (gk_s->info.boundary_flux_diagnostics.num_diag_moments > 0 ||
         gk_s->info.boundary_flux_diagnostics.num_integrated_diag_moments > 0) ) {
     bflux->allocated_diagnostic = true;
-
     bflux->bflux_clear_func = gk_species_bflux_clear_dynamic;
     bflux->bflux_scale_func = gk_species_bflux_scale_dynamic;
     bflux->bflux_step_f_func = gk_species_bflux_step_f_dynamic;
@@ -508,6 +512,10 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
 
   if (!is_diagnostic) {
     bflux->allocated_solver = true;
+    int cdim = app->cdim;
+    int ndim = app->cdim + app->vdim;
+    int cells[GKYL_MAX_DIM];
+    double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
 
     if (app->field->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
       bflux->bflux_rhs_func = gk_species_bflux_rhs_solver; 
@@ -515,15 +523,33 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gk_s,
       bflux->bflux_rhs_func = gk_species_bflux_rhs_solver_init; 
 
     for (int d=0; d<app->cdim; ++d) {
+      for (int i=0; i<ndim; ++i) {
+	cells[i] = gk_s->grid.cells[i]; // reset cell values
+	lower[i] = gk_s->grid.lower[i];
+	upper[i] = gk_s->grid.upper[i];
+      }
+      cells[d] = 1;
       for (int e=0; e<2; ++e) {
         // Allocate solver.
         struct gkyl_range *skin_r = e==0? &gk_s->lower_skin[d] : &gk_s->upper_skin[d];
         struct gkyl_range *ghost_r = e==0? &gk_s->lower_ghost[d] : &gk_s->upper_ghost[d];
         bflux->flux_slvr[2*d+e] = gkyl_boundary_flux_new(d, e, &gk_s->grid,
-          skin_r, ghost_r, gk_s->eqn_gyrokinetic, false, app->use_gpu);
+          skin_r, ghost_r, gk_s->eqn_gyrokinetic, true, app->use_gpu);
 
         // M0 moment calculator to get particle flux.
         gk_species_moment_init(app, gk_s, &bflux->gammai[2*d+e], "M0", false);
+
+	// Allocate boundary grids and ranges.
+	lower[d] = e==0? gk_s->grid.lower[d] - gk_s->grid.dx[d] : gk_s->grid.upper[d];
+	upper[d] = e==0? gk_s->grid.lower[d] : gk_s->grid.upper[d] + gk_s->grid.dx[d];
+	
+	bflux->flux_arr[2*d+e] = mkarr(app->use_gpu, gk_s->basis.num_basis, ghost_r->volume);
+	
+	gkyl_range_init(&bflux->flux_r[2*d+e], ndim, ghost_r->lower, ghost_r->upper);
+	gkyl_range_init(&bflux->conf_r[2*d+e], cdim, ghost_r->lower, ghost_r->upper);
+	
+	gkyl_rect_grid_init(&bflux->boundary_grid[2*d+e], ndim, lower, upper, cells);
+	gkyl_rect_grid_init(&bflux->conf_boundary_grid[2*d+e], cdim, lower, upper, cells);
       }
     }
   }
@@ -570,6 +596,7 @@ gk_species_bflux_release(const struct gkyl_gyrokinetic_app *app, const struct gk
       for (int e=0; e<2; ++e) {
         gkyl_boundary_flux_release(bflux->flux_slvr[2*d+e]);
         gk_species_moment_release(app, &bflux->gammai[2*d+e]);
+	gkyl_array_release(bflux->flux_arr[2*d+e]);
       }
     }
   }

@@ -19,15 +19,20 @@
 #include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_bc_basic.h>
+#include <gkyl_bc_emission.h>
+#include <gkyl_bc_emission_spectrum.h>
+#include <gkyl_bc_emission_elastic.h>
 #include <gkyl_bc_sheath_gyrokinetic.h>
 #include <gkyl_bc_twistshift.h>
 #include <gkyl_bgk_collisions.h>
 #include <gkyl_boundary_flux.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
+#include <gkyl_dg_calc_canonical_pb_vars.h>
+#include <gkyl_dg_calc_gk_neut_hamil.h>
 #include <gkyl_dg_calc_gk_rad_vars.h>
 #include <gkyl_dg_calc_gyrokinetic_vars.h>
-#include <gkyl_dg_calc_vlasov_gen_geo_vars.h>
+#include <gkyl_dg_canonical_pb.h>
 #include <gkyl_dg_cx.h>
 #include <gkyl_dg_gyrokinetic.h>
 #include <gkyl_dg_iz.h>
@@ -48,6 +53,7 @@
 #include <gkyl_fem_parproj.h>
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_deflated_fem_poisson.h>
+#include <gkyl_ghost_surf_calc.h>
 #include <gkyl_fem_poisson_perp.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
@@ -64,6 +70,7 @@
 #include <gkyl_mom_bcorr_lbo_gyrokinetic.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_calc_bcorr.h>
+#include <gkyl_mom_canonical_pb.h>
 #include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_null_pool.h>
 #include <gkyl_position_map.h>
@@ -355,6 +362,7 @@ struct gk_bgk_collisions {
 struct gk_boundary_fluxes {
   struct gk_species_moment gammai[2*GKYL_MAX_CDIM]; // integrated moments
   gkyl_boundary_flux *flux_slvr[2*GKYL_MAX_CDIM]; // boundary flux solver
+
   // Objects used for boundary flux diagnostics.
   bool allocated_diagnostic; // Signal diagnostic objects were allocated.
   bool allocated_solver; // Signal solver objects were allocated.
@@ -390,6 +398,61 @@ struct gk_boundary_fluxes {
     struct gk_boundary_fluxes *bflux, double tm);
   void (*bflux_write_integrated_mom_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
     struct gk_boundary_fluxes *bflux);
+
+  // Additional objects needed for recycle BCs.
+  struct gkyl_rect_grid boundary_grid[2*GKYL_MAX_CDIM];
+  struct gkyl_rect_grid conf_boundary_grid[2*GKYL_MAX_CDIM];
+  struct gkyl_array *flux_arr[2*GKYL_MAX_CDIM];
+  struct gkyl_array *mom_arr[2*GKYL_MAX_CDIM];
+  struct gkyl_range flux_r[2*GKYL_MAX_CDIM];
+  struct gkyl_range conf_r[2*GKYL_MAX_CDIM];
+  struct gkyl_dg_updater_moment *integ_moms[2*GKYL_MAX_CDIM];
+  gkyl_ghost_surf_calc *ghost_flux_slvr; // boundary flux solver for gk_neut_species
+  
+};
+
+struct gk_recycle_wall {
+  // Recycling wall boundary conditions.
+  // Input struct must include number of impact species,
+  // name of the species, and recycling fraction.
+  struct gkyl_gyrokinetic_emission_inp *params;
+  int num_species;
+  double frac; // recycling fraction coefficient
+
+  int dir; // BC direction (currently just parallel to B)
+  enum gkyl_edge_loc edge;
+  gkyl_boundary_flux *f0_flux_slvr[2*GKYL_MAX_CDIM];
+  struct gkyl_dg_bin_op_mem *mem_geo; // memory needed in calculating flux ratio
+
+  struct gkyl_array *init_flux; // MO moment of unit-density flux.
+  struct gkyl_array *init_bflux_arr; // Unit-density flux.  
+  struct gkyl_array *buffer; // Where unit-density Maxwellian is stored.
+  struct gkyl_dg_updater_moment *init_flux_slvr; // M0 moment solver for unit-density flux.
+  
+  struct gkyl_array *spectrum[GKYL_MAX_SPECIES]; // Unit-density Maxwellian is copied and scaled here.
+  struct gkyl_array *flux[GKYL_MAX_SPECIES]; // M0 moment of ion flux.
+  struct gkyl_array *bflux_arr[GKYL_MAX_SPECIES]; // Ion flux. 
+  struct gk_species *impact_species[GKYL_MAX_SPECIES]; // Pointers to impacting species
+  struct gkyl_range impact_normal_r[GKYL_MAX_SPECIES]; // Selects range for flux calc.
+  struct gkyl_dg_updater_moment *flux_slvr[GKYL_MAX_SPECIES]; // M0 moment solver for ion flux.
+
+  struct gkyl_rect_grid *impact_grid[GKYL_MAX_SPECIES];
+  struct gkyl_range *impact_buff_r[GKYL_MAX_SPECIES];
+  struct gkyl_range *impact_cbuff_r[GKYL_MAX_SPECIES];
+
+  struct gkyl_array *f_emit; // Array to fill neutral ghost cell with scaled Maxwellian distf.
+  struct gkyl_rect_grid *emit_grid; 
+  struct gkyl_range *emit_buff_r;
+  struct gkyl_range *emit_cbuff_r;
+  struct gkyl_range *emit_ghost_r;
+  struct gkyl_range *emit_skin_r;
+  struct gkyl_range emit_normal_r;
+
+  // Arrays for diagnostics, if used. 
+  struct gkyl_array *f_diag;
+  struct gkyl_array *emit_flux;
+  struct gkyl_array *diag_out; 
+  struct gkyl_array *diag_out_ho;
 };
 
 struct gk_react {
@@ -717,13 +780,16 @@ struct gk_neut_species {
 
   struct gkyl_array *cflrate; // CFL rate in each cell
   struct gkyl_array *bc_buffer; // buffer for BCs (used by bc_basic)
-  struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // fixed buffers for time independent BCs 
+  struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // fixed buffers for time independent BCs
+  struct gkyl_array *bc_buffer_lo_recyc, *bc_buffer_up_recyc; // fixed buffers for recycle BCs 
 
   struct gkyl_array *f_host; // host copy for use IO and initialization
 
   enum gkyl_field_id field_id; // type of field equation (always GKYL_FIELD_NULL)
-  enum gkyl_model_id model_id; // type of Vlasov equation (always GKYL_MODEL_GEN_GEO)
+  enum gkyl_model_id model_id; // type of Vlasov equation (always GKYL_MODEL_CANONICAL_PB)
 
+  struct gkyl_array *hamil; // Specified hamiltonian function for canonical poisson bracket
+  struct gkyl_array *hamil_host; // Host side hamiltonian array for intial projection
   struct gkyl_array *alpha_surf; // array for surface phase space flux (v^i = v . e^i)
   struct gkyl_array *sgn_alpha_surf; // array for the sign of the surface phase space flux at quadrature points
                                      // utilized for numerical flux function
@@ -732,7 +798,6 @@ struct gk_neut_species {
                                       // if true, numerical flux function inside kernels simplifies to
                                       // F = alpha_surf*f^- (if sign_alpha_surf = 1), 
                                       // F = alpha_surf*f^+ (if sign_alpha_surf = -1)
-  struct gkyl_array *cot_vec; // array for cotangent vectors
 
   struct gk_species_moment m0; // for computing density
   struct gk_species_moment integ_moms; // integrated moments
@@ -743,6 +808,15 @@ struct gk_neut_species {
 
   gkyl_dg_updater_vlasov *slvr; // Vlasov solver 
   struct gkyl_dg_eqn *eqn_vlasov; // Vlasov equation object
+
+  // boundary fluxes
+  struct gk_boundary_fluxes bflux;
+
+  // recycling wall boundary conditions
+  struct gk_recycle_wall bc_recycle_lo;
+  struct gk_recycle_wall bc_recycle_up;
+  bool recyc_lo;
+  bool recyc_up;
   
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
@@ -2083,6 +2157,103 @@ void gk_neut_species_bgk_rhs(gkyl_gyrokinetic_app *app,
  */
 void gk_neut_species_bgk_release(const struct gkyl_gyrokinetic_app *app, const struct gk_bgk_collisions *bgk);
 
+/** gk_neut_species_boundary_fluxes API */
+
+/**
+ * Initialize species boundary flux object.
+ *
+ * @param app Gyrokinetic app object
+ * @param s Species object 
+ * @param bflux Species boundary flux object
+ */
+void gk_neut_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
+  struct gk_boundary_fluxes *bflux);
+
+/**
+ * Compute boundary flux 
+ * Note: stores the boundary flux in the ghost cells of rhs
+ * The ghost cells are overwritten by apply_bc so computations using
+ * boundary fluxes are internal to rhs method (such as integrated flux)
+ *
+ * @param app Gyrokinetic app object
+ * @param species Pointer to species
+ * @param bflux Species boundary flux object
+ * @param fin Input distribution function
+ * @param rhs On output, the boundary fluxes stored in the ghost cells of rhs
+ */
+void gk_neut_species_bflux_rhs(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
+  struct gk_boundary_fluxes *bflux, const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Release species boundary flux object.
+ *
+ * @param app Gyrokinetic app object
+ * @param bflux Species boundary flux object to release
+ */
+void gk_neut_species_bflux_release(const struct gkyl_gyrokinetic_app *app, const struct gk_boundary_fluxes *bflux);
+
+/** gk_neut_species_recycle API **/
+
+
+/**
+ * Initialize recycling object.
+ *
+ * @param app Gyrokinetic app object
+ * @param recyc Recycling bc object
+ * @param dir Direction for BC (x, y, or z)
+ * @param edge Edge for BC (lower/upper)
+ * @param params Input params for recycling BCs
+ * @param f0 Maxwellian distf to scale in ghost
+ * @param s Gk_neut_species to apply BCs for
+ * @param use_gpu Boolean for using GPUs
+ */
+void gk_neut_species_recycle_init(struct gkyl_gyrokinetic_app *app, struct gk_recycle_wall *recyc,
+  int dir, enum gkyl_edge_loc edge, struct gkyl_gyrokinetic_emission_inp *params, struct gkyl_array *f0,
+  struct gk_neut_species *s, bool use_gpu);
+
+/**
+ * Initialize recycling cross moments.
+ *
+ * @param app Gyrokinetic app object
+ * @param s Gk_neut_species to apply BCs for
+ * @param recyc Recycling bc object
+ */
+void gk_neut_species_recycle_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
+  struct gk_recycle_wall *recyc);
+
+/**
+ * Apply recycling BCs.
+ *
+ * @param app Gyrokinetic app object
+ * @param recyc Recycling bc object
+ * @param s Gk_neut_species to apply BCs for
+ * @param fout Gk_neut_species distf
+ */
+void gk_neut_species_recycle_apply_bc(struct gkyl_gyrokinetic_app *app, const struct gk_recycle_wall *recyc,
+  const struct gk_neut_species *s, struct gkyl_array *fout);
+
+
+/**
+ * Write recycle flux diagnostics.
+ *
+ * @param app Gyrokinetic app object
+ * @param s Gk_neut_species to apply BCs for
+ * @param recyc Recycling bc object
+ * @param tm Simulation time 
+ * @param frame Simulation frame
+ */
+void
+gk_neut_species_recycle_write_flux(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
+  struct gk_recycle_wall *recyc, double tm, int frame);
+
+/**
+ * Release recycle BC object.
+ *
+ * @param app Gyrokinetic app object
+ * @param recyc Recycling bc object
+ */
+void gk_neut_species_recycle_release(const struct gkyl_gyrokinetic_app *app, const struct gk_recycle_wall *recyc);
+
 /** gk_neut_species_react API */
 
 /**
@@ -2147,7 +2318,6 @@ void gk_neut_species_react_rhs(gkyl_gyrokinetic_app *app,
  */
 void gk_neut_species_react_write(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, struct gk_react *gkr,
   int ridx, double tm, int frame);
-
 
 /**
  * Release neutral species react object.

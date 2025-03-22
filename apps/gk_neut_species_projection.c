@@ -36,6 +36,10 @@ gk_neut_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
     proj->proj_temp = gkyl_proj_on_basis_new(&app->grid, &app->basis,
       s->basis.poly_order+1, 1, inp.temp, inp.ctx_temp);
 
+
+    struct gkyl_array *g_ij = app->cdim < 3 ? app->gk_geom->g_ij_neut : app->gk_geom->g_ij; 
+    struct gkyl_array *gij = app->cdim < 3 ? app->gk_geom->gij_neut : app->gk_geom->gij; 
+
     struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = {
       .phase_grid = &s->grid,
       .conf_basis = &app->basis,
@@ -44,7 +48,12 @@ gk_neut_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
       .conf_range_ext = &app->local_ext,
       .vel_range = &s->local_vel,
       .vel_map = s->vel_map,
-      .model_id = GKYL_MODEL_DEFAULT, // default model is non-relativistic
+      .phase_range = &s->local,
+      .h_ij = g_ij,
+      .h_ij_inv = gij,
+      .det_h = app->gk_geom->jacobgeo,
+      .hamil = s->hamil,
+      .model_id = s->model_id,
       .use_gpu = app->use_gpu,
     };
     proj->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew( &inp_proj );
@@ -61,7 +70,12 @@ gk_neut_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
         .conf_range_ext = &app->local_ext,
         .vel_range = &s->local_vel,
         .vel_map = s->vel_map,
-        .model_id = GKYL_MODEL_DEFAULT, // default model is non-relativistic
+	      .phase_range = &s->local,
+	      .h_ij = g_ij,
+	      .h_ij_inv = gij,
+	      .det_h = app->gk_geom->jacobgeo,
+	      .hamil = s->hamil,	
+        .model_id = s->model_id,
         .use_gpu = app->use_gpu,
         .max_iter = 100,
         .eps = 1e-12,
