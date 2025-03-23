@@ -44,7 +44,7 @@ gkyl_mom_canonical_pb_new(const struct gkyl_basis* cbasis, const struct gkyl_bas
 #endif  
   struct mom_type_canonical_pb *mom_can_pb = gkyl_malloc(sizeof(struct mom_type_canonical_pb));
   int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
-  int poly_order = cbasis->poly_order;
+  int poly_order = pbasis->poly_order;
 
   mom_can_pb->momt.cdim = cdim;
   mom_can_pb->momt.pdim = pdim;
@@ -56,7 +56,7 @@ gkyl_mom_canonical_pb_new(const struct gkyl_basis* cbasis, const struct gkyl_bas
   const gkyl_canonical_pb_mom_kern_list *menergy_kernels;
   const gkyl_canonical_pb_mom_kern_list *m1i_from_h_kernels;
 
-  switch (cbasis->b_type) {
+  switch (pbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       menergy_kernels = ser_menergy_kernels;
       m1i_from_h_kernels = ser_m1i_from_h_kernels;
