@@ -210,9 +210,6 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   f->info.poisson_bcs.contains_lower_z_edge = f->global_sub_range.lower[ndim-1] == app->global.lower[ndim-1];
   f->info.poisson_bcs.contains_upper_z_edge = f->global_sub_range.upper[ndim-1] == app->global.upper[ndim-1];
 
-  if (f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || f->gkfield_id == GKYL_GK_FIELD_ADIABATIC)
-    assert(app->cdim == 1); // Not yet implemented for cdim>1.
-
   f->epsilon = 0;
   struct gkyl_array *epsilon_global = 0;
   f->kSq = 0;  // not currently used by fem_perp_poisson
@@ -361,7 +358,8 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       1, GKYL_ARRAY_INTEGRATE_OP_SQ, app->use_gpu);
   }
   else {
-    gkyl_array_set(f->es_energy_fac, 0.5, f->epsilon);
+    if (!f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
+      gkyl_array_set(f->es_energy_fac, 0.5, f->epsilon);
 
     f->calc_em_energy = gkyl_array_integrate_new(&app->grid, &app->basis, 
       1, GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ, app->use_gpu);

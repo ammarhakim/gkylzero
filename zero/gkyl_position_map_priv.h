@@ -324,6 +324,7 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
     xp[Z_IDX] = theta;
     gkyl_calc_bmag_global(0.0, xp, &bmag_vals[i], bmag_ctx);
     dbmag_vals[i] = calc_bmag_global_derivative(theta, gpm);
+    if (i==0) continue;
 
     // Minima
     if (dbmag_vals[i] > 0 && dbmag_vals[i-1] < 0){
@@ -369,6 +370,35 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
     gpm->constB_ctx->theta_extrema[i] = theta_extrema[i];
     gpm->constB_ctx->bmag_extrema[i] = bmag_extrema[i];
   }
+
+  // Identify 1 for maxima, 0 for minima
+
+  // Left edge
+  if (bmag_extrema[0] > bmag_extrema[1])
+  {    gpm->constB_ctx->min_or_max[0] = 1;  } // Maximum
+  else if (bmag_extrema[0] < bmag_extrema[1])
+  {    gpm->constB_ctx->min_or_max[0] = 0;  } // Minimum
+  else
+  {    printf("Error: Extrema is not an extrema. Position_map optimization failed\n");  }
+
+  // Middle points
+  for (int i = 1; i < extrema - 1; i++)
+  {
+    if (bmag_extrema[i] > bmag_extrema[i-1] && bmag_extrema[i] > bmag_extrema[i+1])
+    {      gpm->constB_ctx->min_or_max[i] = 1;    } // Maximum
+    else if (bmag_extrema[i] < bmag_extrema[i-1] && bmag_extrema[i] < bmag_extrema[i+1])
+    {      gpm->constB_ctx->min_or_max[i] = 0;    } // Minimum
+    else
+    {      printf("Error: Extrema is not an extrema. Position_map optimization failed\n");  }
+  }
+
+  // Right edge
+  if (bmag_extrema[extrema-1] > bmag_extrema[extrema-2])
+  {    gpm->constB_ctx->min_or_max[extrema-1] = 1; } // Maximum
+  else if (bmag_extrema[extrema-1] < bmag_extrema[extrema-2])
+  {    gpm->constB_ctx->min_or_max[extrema-1] = 0; } // Minimum
+  else  
+  {    printf("Error: Extrema is not an extrema. Position_map optimization failed\n");  }
 }
 
 /**
@@ -462,7 +492,7 @@ refine_B_field_extrema(struct gkyl_position_map *gpm)
   {
     B_total_change += fabs(gpm->constB_ctx->bmag_extrema[i] - gpm->constB_ctx->bmag_extrema[i-1]);
   }
-  gpm->constB_ctx->dB_cell = B_total_change / (gpm->constB_ctx->N_theta_boundaries-1);
+  gpm->constB_ctx->dB_cell = B_total_change / (gpm->constB_ctx->N_theta_boundaries);
 }
 
 /**
@@ -519,17 +549,25 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
   double theta_dxi = theta_range / num_boundaries;
   double theta = xn[0];
   double dB_cell = gpm->constB_ctx->dB_cell;
-  int it = (theta - theta_lo) / theta_dxi;
+  double it = (theta - theta_lo) / theta_dxi;
 
-  if (it == 0 || it == num_boundaries-1)
+  // Set strict floor and ceiling limits for theta
+  // This is to prevent the root finding algorithm from going out of bounds
+  // Not fout[0] = theta because of the finite differences and can lead to jumps
+  if (it <=0)
   {
-    fout[0] = theta;
+    fout[0] = theta_lo;
+    return;
+  }
+  if (it >= num_boundaries)
+  {
+    fout[0] = theta_hi;
     return;
   }
 
   // Determine which region theta is in
   // Regions start at 0 and count up to num_extrema-1
-  // Not accurate because the theta_extrema are not Theta_extrema
+  // Initial guess is not accurate because the theta_extrema are not Theta_extrema
   // We use itteration to further refine this, but it's a good initial guess
   int region = 0;
   for (int i = 1; i <= num_extrema-2; i++)
@@ -550,11 +588,11 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
     .gpm = gpm,
     .bmag_ctx = gpm->bmag_ctx,
   };
+  dB_target = dB_cell * it;
 
   bool outside_region = true; // Asuume that we identified the region incorrectly
   while (outside_region)
   {
-    dB_target = dB_cell * it;
     dB_global_lower = 0.0;
     for (int i = 0; i < region; i++)
     {
@@ -582,7 +620,7 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
         region--;
         if (region < 0) {
           // If we can't move down any regions and leave the simulation domain, we are likely on the lower limit of the domain and should just return the input theta
-          fout[0] = theta;
+          fout[0] = theta_lo;
           return;
         }
       }
@@ -591,7 +629,7 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
         region++;
         if (region > num_extrema-2) {
           // If we can't move up any regions and leave the simulation domain, we are likely on the upper limit of the domain and should just return the input theta
-          fout[0] = theta;
+          fout[0] = theta_hi;
           return;
         }
       }
@@ -601,5 +639,61 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
   struct gkyl_qr_res res = gkyl_ridders(position_map_numeric_optimization_function, &ridders_ctx,
     interval_lower, interval_upper, interval_lower_eval, interval_upper_eval, 10, 1e-6);
   double Theta = res.res;
-  fout[0] = Theta*gpm->constB_ctx->map_strength + theta*(1-gpm->constB_ctx->map_strength);  
+  fout[0] = Theta*gpm->constB_ctx->map_strength + theta*(1-gpm->constB_ctx->map_strength); 
+
+  bool enable_limits_min_B = gpm->constB_ctx->enable_maximum_slope_limits_at_min_B;
+  bool enable_limits_max_B = gpm->constB_ctx->enable_maximum_slope_limits_at_max_B;
+
+  if (enable_limits_min_B || enable_limits_max_B)
+  {
+    // Set a minimum cell size on the edges
+    // Assume that at inflection points, Theta = theta. This should be true
+    double Theta_left  = interval_lower;
+    double Theta_right = interval_upper;
+    double theta_middle = 0.5 * (interval_lower + interval_upper);
+
+    bool left_is_maximum = gpm->constB_ctx->min_or_max[region];
+    bool right_is_maximum = gpm->constB_ctx->min_or_max[region+1];
+
+    if (theta > theta_middle && left_is_maximum)
+    {
+      enable_limits_max_B = false;
+    }
+    if (theta < theta_middle && right_is_maximum)
+    {
+      enable_limits_max_B = false;
+    }
+
+    double max_slope_min_B = gpm->constB_ctx->maximum_slope_at_min_B;
+    double max_slope_max_B = gpm->constB_ctx->maximum_slope_at_max_B;
+
+    double right_straight_line_value, left_straight_line_value;
+    if (left_is_maximum){
+      left_straight_line_value = max_slope_max_B * theta + (1-max_slope_max_B) * Theta_left;
+    }
+    else {
+      left_straight_line_value = max_slope_min_B * theta + (1-max_slope_min_B) * Theta_left;
+    }
+
+    if (right_is_maximum){
+      right_straight_line_value = max_slope_max_B * theta + (1-max_slope_max_B) * Theta_right;
+    }
+    else {
+      right_straight_line_value = max_slope_min_B * theta + (1-max_slope_min_B) * Theta_right;
+    }
+
+    if ( fout[0] < right_straight_line_value && 
+      ((right_is_maximum && enable_limits_max_B) || 
+      ((!right_is_maximum) && enable_limits_min_B))) 
+    {
+      fout[0] = right_straight_line_value;
+    }
+
+    if (fout[0] > left_straight_line_value && 
+      ((left_is_maximum && enable_limits_max_B) ||
+      ((!left_is_maximum) && enable_limits_min_B))) 
+    {
+      fout[0] = left_straight_line_value;
+    }
+  }
 }
