@@ -2,8 +2,9 @@
 
 #include <gkyl_basis.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_gk_geometry.h>
-#include <gkyl_velocity_map.h>
+#include <gkyl_array_ops.h>
+#include <gkyl_rect_decomp.h>
+#include <string.h>
 #include <gkyl_range.h>
 #include <gkyl_array.h>
 
