@@ -58,10 +58,6 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     if (app->adaptive_source) {
       gk_species_moment_init(app, s, &src->adapt_integ_mom, app->adaptive_src_params->mom_type, true);
       num_mom = src->adapt_integ_mom.num_mom;
-      // Convert into moment units if we use M2 (user input is expected in J).
-      if (strcmp(app->adaptive_src_params->mom_type, "M2") == 0) {
-        app->adaptive_src_params->mom_rate_target *= 0.5 * s->info.mass; // Convert to energy loss.
-      }
 
       assert(num_mom == 1); // Only one moment allowed for adaptive source.
       if (app->use_gpu){
@@ -104,35 +100,35 @@ gk_species_source_adapt(gkyl_gyrokinetic_app *app) {
   double int_mom_loss = 0.0; // Total loss of the moment through specified boundaries.
   double int_mom_loss_s[app->num_species]; // Loss of the moment for each species.
   struct gkyl_gyrokinetic_source_adaptive *adapt_params = app->adaptive_src_params;
-  
+
   // Compute the loss over all species.
   for (int i=0; i<app->num_species; ++i) {
-    if (app->adaptive_source){
-      struct gk_species *s = &app->species[i];
-      struct gk_source *src_s = &s->src;
-      
-      for (int j=0; j < adapt_params->num_boundaries; ++j) {
-        // We get the inner radial boundary flux and store it in the source ghosts.
-        gk_species_bflux_get_flux(&s->bflux, adapt_params->dir[j], adapt_params->edge[j], src_s->source);
+    struct gk_species *s = &app->species[i];
+    struct gk_source *src = &s->src;
+    
+    for (int j=0; j < adapt_params->num_boundaries; ++j) {
+      // We get the inner radial boundary flux and store it in the source ghosts.
+      gk_species_bflux_get_flux(&s->bflux, adapt_params->dir[j], adapt_params->edge[j], src->source);
 
-        // Compute the moment of the bflux to get the loss.
-        int num_mom = src_s->adapt_integ_mom.num_mom;
-        gk_species_moment_calc(&src_s->adapt_integ_mom, src_s->adapt_range[j], src_s->adapt_range_conf[j], src_s->source);
-        app->stat.n_mom += 1;
-        
-        // Reduce the moment over the specified range and store it in the global array.
-        double red_mom_global[num_mom];
-        gkyl_array_reduce_range(src_s->red_adapt_integ_mom, src_s->adapt_integ_mom.marr, GKYL_SUM, &src_s->adapt_range_conf[j]);
-        gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, src_s->red_adapt_integ_mom, src_s->red_adapt_integ_mom_global);
-        if (app->use_gpu) {
-          gkyl_cu_memcpy(red_mom_global, src_s->red_adapt_integ_mom_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
-        }
-        else {
-          memcpy(red_mom_global, src_s->red_adapt_integ_mom_global, sizeof(double[num_mom]));
-        }
-        int_mom_loss_s[i] = red_mom_global[0];  
-        int_mom_loss += int_mom_loss_s[i];
+      // Compute the moment of the bflux to get the loss.
+      int num_mom = src->adapt_integ_mom.num_mom;
+      gk_species_moment_calc(&src->adapt_integ_mom, src->adapt_range[j], src->adapt_range_conf[j], src->source);
+      app->stat.n_mom += 1;
+      
+      // Reduce the moment over the specified range and store it in the global array.
+      double red_mom_global[num_mom];
+      gkyl_array_reduce_range(src->red_adapt_integ_mom, src->adapt_integ_mom.marr, GKYL_SUM, &src->adapt_range_conf[j]);
+      gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, src->red_adapt_integ_mom, src->red_adapt_integ_mom_global);
+      if (app->use_gpu) {
+        gkyl_cu_memcpy(red_mom_global, src->red_adapt_integ_mom_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
       }
+      else {
+        memcpy(red_mom_global, src->red_adapt_integ_mom_global, sizeof(double[num_mom]));
+      }
+
+      double units = strcmp(app->adaptive_src_params->mom_type, "M2") == 0 ? 0.5 * s->info.mass : 1.0; // Convert M2 loss in W.
+      int_mom_loss_s[i] = red_mom_global[0] * units;  
+      int_mom_loss += int_mom_loss_s[i];
     }
   }
 
@@ -141,23 +137,24 @@ gk_species_source_adapt(gkyl_gyrokinetic_app *app) {
   double int_mom_src_s[app->num_species];
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
-    struct gk_source *src_s = &s->src;
+    struct gk_source *src = &s->src;
     int num_mom;
 
-    num_mom = src_s->adapt_integ_mom.num_mom;
-    gk_species_moment_calc(&src_s->adapt_integ_mom, s->local, app->local, src_s->source);
+    num_mom = src->adapt_integ_mom.num_mom;
+    gk_species_moment_calc(&src->adapt_integ_mom, s->local, app->local, src->source);
     app->stat.n_mom += 1;
     double red_int_mom_global[num_mom];
-    gkyl_array_reduce_range(src_s->red_adapt_integ_mom, src_s->adapt_integ_mom.marr, GKYL_SUM, &app->local);
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, src_s->red_adapt_integ_mom, src_s->red_adapt_integ_mom_global);
+    gkyl_array_reduce_range(src->red_adapt_integ_mom, src->adapt_integ_mom.marr, GKYL_SUM, &app->local);
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, src->red_adapt_integ_mom, src->red_adapt_integ_mom_global);
     if (app->use_gpu) {
-      gkyl_cu_memcpy(red_int_mom_global, src_s->red_adapt_integ_mom_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
+      gkyl_cu_memcpy(red_int_mom_global, src->red_adapt_integ_mom_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
     }
     else {
-      memcpy(red_int_mom_global, src_s->red_adapt_integ_mom_global, sizeof(double[num_mom]));
-    }      
+      memcpy(red_int_mom_global, src->red_adapt_integ_mom_global, sizeof(double[num_mom]));
+    }
 
-    int_mom_src_s[i] = red_int_mom_global[0];
+    double units = strcmp(app->adaptive_src_params->mom_type, "M2") == 0 ? 0.5 * s->info.mass : 1.0; // Convert M2 loss in W.
+    int_mom_src_s[i] = red_int_mom_global[0] * units;
     int_mom_src += int_mom_src_s[i];
   }
 
@@ -174,23 +171,44 @@ gk_species_source_adapt(gkyl_gyrokinetic_app *app) {
     }
     gkyl_array_scale(src->source, scale_fact);
   }
-      // // Verify the final power (to be removed later).
-      // gk_species_moment_calc(&src->integ_H, s->local, app->local, src->source);
-      // gkyl_array_reduce_range(src->red_integ_H, src->integ_H.marr, GKYL_SUM, &app->local);
-      // gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, src->red_integ_H, src->red_integ_H_global);
-      
-      // double final_power = 0.0;
-      // if (app->use_gpu) {
-      //   gkyl_cu_memcpy(&final_power, src->red_integ_H_global, sizeof(double), GKYL_CU_MEMCPY_D2H);
-      // }
-      // else {
-      //   memcpy(&final_power, src->red_integ_H_global, sizeof(double));
-      // }
-      // double initial_power_MW = pow_src*1e-6*s->info.mass;
-      // double final_power_MW = final_power*1e-6*s->info.mass;
-      // double total_power_loss_MW = power_loss_tot*1e-6;
-      // fprintf(stderr, "s%d: Pow. loss (t=%.4f) %.4f [MW], Init. pow. %.4f [MW], Adapt. pow. %.4f [MW]\n", 
-      //   i, tbflux, total_power_loss_MW, initial_power_MW, final_power_MW);
+
+  if (false) {
+    // Verify the final power (to be removed later).
+    fprintf(stderr, "Init source moment: %.4f [MW] \n", int_mom_src*1e-6);
+    fprintf(stderr, "Loss moment: %.4f [MW] \n", int_mom_loss * 1e-6);
+    fprintf(stderr, "src_old - loss : %.4f [MW] \n", int_mom_src*1e-6 - int_mom_loss * 1e-6);
+    double total_power_loss = 0.0;
+    double total_power_src = 0.0;
+    for (int i=0; i<app->num_species; ++i) {
+      struct gk_species *s = &app->species[i];
+      struct gk_source *src = &s->src;
+
+      int num_mom = src->adapt_integ_mom.num_mom;
+      gk_species_moment_calc(&src->adapt_integ_mom, s->local, app->local, src->source);
+      app->stat.n_mom += 1;
+      double final_power_s[num_mom];
+      gkyl_array_reduce_range(src->red_adapt_integ_mom, src->adapt_integ_mom.marr, GKYL_SUM, &app->local);
+      gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, src->red_adapt_integ_mom, src->red_adapt_integ_mom_global);
+      if (app->use_gpu) {
+        gkyl_cu_memcpy(final_power_s, src->red_adapt_integ_mom_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
+      }
+      else {
+        memcpy(final_power_s, src->red_adapt_integ_mom_global, sizeof(double[num_mom]));
+      }
+      double units = strcmp(app->adaptive_src_params->mom_type, "M2") == 0 ? 0.5 * s->info.mass : 1.0; // Convert M2 loss in W.
+      final_power_s[0] *= units; // Convert to W.
+
+      double power_loss_MW = int_mom_loss_s[i] * 1e-6;
+      double initial_power_MW = int_mom_src_s[i] * 1e-6;
+      double final_power_MW = final_power_s[0] * 1e-6;
+      fprintf(stderr, "s%d: Pow. loss %.4f [MW], Init. pow. %.4f [MW], Adapt. pow. %.4f [MW]\n", 
+        i, power_loss_MW, initial_power_MW, final_power_MW);
+      total_power_src += final_power_MW;
+      total_power_loss += power_loss_MW;
+    }
+    fprintf(stderr, "src_new - loss : %.4f [MW] \n", total_power_src - total_power_loss);
+    fprintf(stderr, "----------------------------------------------------\n");
+  }
 }
 
 // Compute rhs of the source.
