@@ -538,16 +538,11 @@ struct gk_source {
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
   
-  double power_init, density_init; // Initial power and density of the source 
-
-  struct gk_species_moment integ_H; // integrated Hamiltonian for source power adaptation
-  double *red_integ_H, *red_integ_H_global; // for reduction of integrated Hamiltonian
-
-  struct gk_species_moment integ_M0; // integrated density for source adapt
-  double *red_integ_M0, *red_integ_M0_global; // for reduction of integrated density
-
-  struct gk_species_moment integ_M2; // integrated kinetic energy for source adapt
-  double *red_integ_M2, *red_integ_M2_global; // for reduction of integrated kinetic energy
+  // for adaptation
+  double adapt_rate_init;
+  struct gkyl_range *adapt_range, *adapt_range_conf; // Range of integration in each boundary.
+  struct gk_species_moment adapt_integ_mom; // Integrated moment updater.
+  double *red_adapt_integ_mom, *red_adapt_integ_mom_global; // For reduction.
 };
 
 // species data
@@ -951,7 +946,7 @@ struct gkyl_gyrokinetic_app {
   bool use_gpu; // should we use GPU (if present)
 
   bool adaptive_source; // Whether the source are dynamically adapted.
-  double total_input_power; // Set the target power to inject for source adaptation.
+  struct gkyl_gyrokinetic_source_adaptive *adaptive_src_params; // Parameters for adaptive source.
 
   bool enforce_positivity; // Whether to enforce f>0.
 

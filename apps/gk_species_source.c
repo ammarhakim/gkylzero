@@ -15,7 +15,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
       src->source_host = mkarr(false, src->source->ncomp, src->source->size); 
     }
 
-    src->evolve = s->info.source.evolve; // Whether the source is time dependent.
+    src->evolve = s->info.source.evolve || app->adaptive_source; // Whether the source is time dependent.
 
     src->num_sources = s->info.source.num_sources;
     for (int k=0; k<s->info.source.num_sources; k++) {
@@ -54,39 +54,33 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     s->src.integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, num_mom);
     s->src.is_first_integ_write_call = true;
 
-    // Allocate data and moment updaters for adaptive source.
+    // Set up the adaptive source.
+    if (app->adaptive_source) {
+      gk_species_moment_init(app, s, &src->adapt_integ_mom, app->adaptive_src_params->mom_type, true);
+      num_mom = src->adapt_integ_mom.num_mom;
+      // Convert into moment units if we use M2 (user input is expected in J).
+      if (strcmp(app->adaptive_src_params->mom_type, "M2") == 0) {
+        app->adaptive_src_params->mom_rate_target *= 0.5 * s->info.mass; // Convert to energy loss.
+      }
 
-    gk_species_moment_init(app, s, &s->src.integ_M0, "M0", true);
-    num_mom = s->src.integ_M0.num_mom;
-    if (app->use_gpu){
-      s->src.red_integ_M0 = gkyl_cu_malloc(sizeof(double[num_mom]));
-      s->src.red_integ_M0_global = gkyl_cu_malloc(sizeof(double[num_mom]));
-    }
-    else {
-      s->src.red_integ_M0 = gkyl_malloc(sizeof(double[num_mom]));
-      s->src.red_integ_M0_global = gkyl_malloc(sizeof(double[num_mom]));
-    }
-
-    gk_species_moment_init(app, s, &s->src.integ_M2, "M2", true);
-    num_mom = s->src.integ_M2.num_mom;
-    if (app->use_gpu){
-      s->src.red_integ_M2 = gkyl_cu_malloc(sizeof(double[num_mom]));
-      s->src.red_integ_M2_global = gkyl_cu_malloc(sizeof(double[num_mom]));
-    }
-    else {
-      s->src.red_integ_M2 = gkyl_malloc(sizeof(double[num_mom]));
-      s->src.red_integ_M2_global = gkyl_malloc(sizeof(double[num_mom]));
-    }
-
-    gk_species_moment_init(app, s, &s->src.integ_H, "HamiltonianMoments", true);
-    num_mom = s->src.integ_H.num_mom;
-    if (app->use_gpu){
-      s->src.red_integ_H = gkyl_cu_malloc(sizeof(double[num_mom]));
-      s->src.red_integ_H_global = gkyl_cu_malloc(sizeof(double[num_mom]));
-    }
-    else {
-      s->src.red_integ_H = gkyl_malloc(sizeof(double[num_mom]));
-      s->src.red_integ_H_global = gkyl_malloc(sizeof(double[num_mom]));
+      assert(num_mom == 1); // Only one moment allowed for adaptive source.
+      if (app->use_gpu){
+        src->red_adapt_integ_mom = gkyl_cu_malloc(sizeof(double[num_mom]));
+        src->red_adapt_integ_mom_global = gkyl_cu_malloc(sizeof(double[num_mom]));
+      }
+      else {
+        src->red_adapt_integ_mom = gkyl_malloc(sizeof(double[num_mom]));
+        src->red_adapt_integ_mom_global = gkyl_malloc(sizeof(double[num_mom]));
+      }
+      int num_boundaries = app->adaptive_src_params->num_boundaries; 
+      src->adapt_range = gkyl_malloc(sizeof(struct gkyl_range) * num_boundaries);
+      src->adapt_range_conf = gkyl_malloc(sizeof(struct gkyl_range) * num_boundaries);
+      for (int j=0; j < num_boundaries; ++j) {
+        int dir = app->adaptive_src_params->dir[j];
+        int edge = app->adaptive_src_params->edge[j];
+        src->adapt_range[j] = edge == GKYL_LOWER_EDGE ? s->lower_ghost[dir] : s->upper_ghost[dir];
+        src->adapt_range_conf[j] = edge == GKYL_LOWER_EDGE ? app->lower_ghost[dir] : app->upper_ghost[dir];
+      }
     }
   }
 }
@@ -102,208 +96,79 @@ gk_species_source_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s,
       gkyl_array_accumulate(src->source, 1., source_tmp);
     }
     gkyl_array_release(source_tmp);
-
-    // Compute initial density and power.
-    int num_mom;
-    
-    gk_species_moment_calc(&src->integ_M0, s->local, app->local, src->source);
-    app->stat.n_mom += 1;
-    // Reduction over possible mpi decomp
-    num_mom = src->integ_M0.num_mom;
-    double red_M0_global[num_mom];
-    gkyl_array_reduce_range(src->red_integ_M0, src->integ_M0.marr, GKYL_SUM, &app->local);
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
-      src->red_integ_M0, src->red_integ_M0_global);
-    if (app->use_gpu) {
-      gkyl_cu_memcpy(red_M0_global, src->red_integ_M0_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
-    }
-    else {
-      memcpy(red_M0_global, src->red_integ_M0_global, sizeof(double[num_mom]));
-    }    
-
-    gk_species_moment_calc(&src->integ_M2, s->local, app->local, src->source);
-    app->stat.n_mom += 1;
-    // Reduction over possible mpi decomp
-    num_mom = src->integ_M2.num_mom;
-    double red_M2_global[num_mom];
-    gkyl_array_reduce_range(src->red_integ_M2, src->integ_M2.marr, GKYL_SUM, &app->local);
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
-      src->red_integ_M2, src->red_integ_M2_global);
-    if (app->use_gpu) {
-      gkyl_cu_memcpy(red_M2_global, src->red_integ_M2_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
-    }
-    else {
-      memcpy(red_M2_global, src->red_integ_M2_global, sizeof(double[num_mom]));
-    }    
-
-    gk_species_moment_calc(&src->integ_H, s->local, app->local, src->source);
-    app->stat.n_mom += 1;
-    // Reduction over possible mpi decomp
-    num_mom = src->integ_H.num_mom;
-    double red_H_global[num_mom];
-    gkyl_array_reduce_range(src->red_integ_H, src->integ_H.marr, GKYL_SUM, &app->local);
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
-      src->red_integ_H, src->red_integ_H_global);
-    if (app->use_gpu) {
-      gkyl_cu_memcpy(red_H_global, src->red_integ_H_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
-    }
-    else {
-      memcpy(red_H_global, src->red_integ_H_global, sizeof(double[num_mom]));
-    }
-
-    src->density_init = red_M0_global[0]; //red_H_global[0];
-    // Choose which moment we want to adapt on
-    src->power_init = red_M2_global[0] * s->info.mass;
-    // src->power_init = red_H_global[num_mom-1];
   }
 }
 
 void
-gk_species_source_adapt(gkyl_gyrokinetic_app *app) {
-  double density_loss = 0.0;
-  double power_loss = 0.0;
-  double density_loss_s[app->num_species];
-  double power_loss_s[app->num_species];
+gk_species_source_adapt(gkyl_gyrokinetic_app *app) {  
+  double int_mom_loss = 0.0; // Total loss of the moment through specified boundaries.
+  double int_mom_loss_s[app->num_species]; // Loss of the moment for each species.
+  struct gkyl_gyrokinetic_source_adaptive *adapt_params = app->adaptive_src_params;
   
-  if (app->adaptive_source) {
-    // Compute the total particle and power loss over all species.
-    for (int i=0; i<app->num_species; ++i) {
+  // Compute the loss over all species.
+  for (int i=0; i<app->num_species; ++i) {
+    if (app->adaptive_source){
       struct gk_species *s = &app->species[i];
       struct gk_source *src_s = &s->src;
-      int num_mom; 
       
-      // We get the inner radial boundary flux and store it in the source ghosts.
-      gk_species_bflux_get_flux(&s->bflux, 0, GKYL_LOWER_EDGE, src_s->source);
+      for (int j=0; j < adapt_params->num_boundaries; ++j) {
+        // We get the inner radial boundary flux and store it in the source ghosts.
+        gk_species_bflux_get_flux(&s->bflux, adapt_params->dir[j], adapt_params->edge[j], src_s->source);
 
-      // Compute the M0 moment of the bflux
-      num_mom = src_s->integ_M0.num_mom;
-      gk_species_moment_calc(&src_s->integ_M0, s->lower_ghost[0], app->lower_ghost[0], src_s->source);
-      app->stat.n_mom += 1;
-      double red_M0_global[num_mom];
-      gkyl_array_reduce_range(src_s->red_integ_M0, src_s->integ_M0.marr, GKYL_SUM, &app->lower_ghost[0]);
-      gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
-        src_s->red_integ_M0, src_s->red_integ_M0_global);
-      if (app->use_gpu) {
-        gkyl_cu_memcpy(red_M0_global, src_s->red_integ_M0_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
+        // Compute the moment of the bflux to get the loss.
+        int num_mom = src_s->adapt_integ_mom.num_mom;
+        gk_species_moment_calc(&src_s->adapt_integ_mom, src_s->adapt_range[j], src_s->adapt_range_conf[j], src_s->source);
+        app->stat.n_mom += 1;
+        
+        // Reduce the moment over the specified range and store it in the global array.
+        double red_mom_global[num_mom];
+        gkyl_array_reduce_range(src_s->red_adapt_integ_mom, src_s->adapt_integ_mom.marr, GKYL_SUM, &src_s->adapt_range_conf[j]);
+        gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, src_s->red_adapt_integ_mom, src_s->red_adapt_integ_mom_global);
+        if (app->use_gpu) {
+          gkyl_cu_memcpy(red_mom_global, src_s->red_adapt_integ_mom_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
+        }
+        else {
+          memcpy(red_mom_global, src_s->red_adapt_integ_mom_global, sizeof(double[num_mom]));
+        }
+        int_mom_loss_s[i] = red_mom_global[0];  
+        int_mom_loss += int_mom_loss_s[i];
       }
-      else {
-        memcpy(red_M0_global, src_s->red_integ_M0_global, sizeof(double[num_mom]));
-      }      
-
-      // Compute the M2 moment of the bflux
-      num_mom = src_s->integ_M2.num_mom;
-      gk_species_moment_calc(&src_s->integ_M2, s->lower_ghost[0], app->lower_ghost[0], src_s->source);
-      app->stat.n_mom += 1;
-      double red_M2_global[num_mom];
-      gkyl_array_reduce_range(src_s->red_integ_M2, src_s->integ_M2.marr, GKYL_SUM, &app->lower_ghost[0]);
-      gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
-        src_s->red_integ_M2, src_s->red_integ_M2_global);
-      if (app->use_gpu) {
-        gkyl_cu_memcpy(red_M2_global, src_s->red_integ_M2_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
-      }
-      else {
-        memcpy(red_M2_global, src_s->red_integ_M2_global, sizeof(double[num_mom]));
-      }    
-      
-      // Compute the Hamiltonian moments of the bflux
-      num_mom = src_s->integ_H.num_mom;
-      gk_species_moment_calc(&src_s->integ_H, s->lower_ghost[0], app->lower_ghost[0], src_s->source);
-      app->stat.n_mom += 1;
-      double red_H_global[num_mom];
-      gkyl_array_reduce_range(src_s->red_integ_H, src_s->integ_H.marr, GKYL_SUM, &app->lower_ghost[0]);
-      gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
-        src_s->red_integ_H, src_s->red_integ_H_global);
-      if (app->use_gpu) {
-        gkyl_cu_memcpy(red_H_global, src_s->red_integ_H_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
-      }
-      else {
-        memcpy(red_H_global, src_s->red_integ_H_global, sizeof(double[num_mom]));
-      }
-
-      // Sort the moments
-      density_loss_s[i] = red_M0_global[0];
-      power_loss_s[i] = red_M2_global[0] * s->info.mass;      
-      // density_loss_s[i] = red_H_global[0];
-      // power_loss_s[i] = red_H_global[num_mom-1];
-
-      // Cumulate the losses
-      density_loss += density_loss_s[i];
-      power_loss += power_loss_s[i];
     }
   }
 
   // Compute the current source moments
-  double power_input = 0.0;
-  double density_input = 0.0;
-  double power_src = 0.0;
-  double dens_src = 0.0;
-  double dens_src_s[app->num_species];
-  double power_src_s[app->num_species];
+  double int_mom_src = 0.0;
+  double int_mom_src_s[app->num_species];
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
     struct gk_source *src_s = &s->src;
     int num_mom;
 
-    num_mom = src_s->integ_M0.num_mom;
-    gk_species_moment_calc(&src_s->integ_M0, s->lower_ghost[0], app->lower_ghost[0], src_s->source);
+    num_mom = src_s->adapt_integ_mom.num_mom;
+    gk_species_moment_calc(&src_s->adapt_integ_mom, s->local, app->local, src_s->source);
     app->stat.n_mom += 1;
-    double red_M0_global[num_mom];
-    gkyl_array_reduce_range(src_s->red_integ_M0, src_s->integ_M0.marr, GKYL_SUM, &app->lower_ghost[0]);
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
-      src_s->red_integ_M0, src_s->red_integ_M0_global);
+    double red_int_mom_global[num_mom];
+    gkyl_array_reduce_range(src_s->red_adapt_integ_mom, src_s->adapt_integ_mom.marr, GKYL_SUM, &app->local);
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, src_s->red_adapt_integ_mom, src_s->red_adapt_integ_mom_global);
     if (app->use_gpu) {
-      gkyl_cu_memcpy(red_M0_global, src_s->red_integ_M0_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
+      gkyl_cu_memcpy(red_int_mom_global, src_s->red_adapt_integ_mom_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
     }
     else {
-      memcpy(red_M0_global, src_s->red_integ_M0_global, sizeof(double[num_mom]));
+      memcpy(red_int_mom_global, src_s->red_adapt_integ_mom_global, sizeof(double[num_mom]));
     }      
 
-    num_mom = src_s->integ_M2.num_mom;
-    gk_species_moment_calc(&src_s->integ_M2, s->lower_ghost[0], app->lower_ghost[0], src_s->source);
-    app->stat.n_mom += 1;
-    double red_M2_global[num_mom];
-    gkyl_array_reduce_range(src_s->red_integ_M2, src_s->integ_M2.marr, GKYL_SUM, &app->lower_ghost[0]);
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
-      src_s->red_integ_M2, src_s->red_integ_M2_global);
-    if (app->use_gpu) {
-      gkyl_cu_memcpy(red_M2_global, src_s->red_integ_M2_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
-    }
-    else {
-      memcpy(red_M2_global, src_s->red_integ_M2_global, sizeof(double[num_mom]));
-    }    
-
-    num_mom = src_s->integ_H.num_mom;
-    double red_H_global[num_mom];
-    gk_species_moment_calc(&src_s->integ_H, s->local, app->local, src_s->source);
-    app->stat.n_mom += 1;
-    gkyl_array_reduce_range(src_s->red_integ_H, src_s->integ_H.marr, GKYL_SUM, &app->local);
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, 
-      src_s->red_integ_H, src_s->red_integ_H_global);
-    if (app->use_gpu) {
-      gkyl_cu_memcpy(red_H_global, src_s->red_integ_H_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
-    }
-    else {
-      memcpy(red_H_global, src_s->red_integ_H_global, sizeof(double[num_mom]));
-    }
-
-    // dens_src_s[i] = red_H_global[0]; // take the first moment M0.
-    // power_src_s[i] = red_H_global[num_mom-1]; // take the last moment, Hamiltonian.
-    dens_src_s[i] = red_M0_global[0]; // take the first moment M0.
-    power_src_s[i] = red_M2_global[0] * s->info.mass; // take the last moment, Hamiltonian.
-
-    power_src += power_src_s[i];
-    power_input += src_s->power_init;
-    density_input += src_s->density_init;
+    int_mom_src_s[i] = red_int_mom_global[0];
+    int_mom_src += int_mom_src_s[i];
   }
 
   // Adapt the sources equally by splitting the load
-  double power_target = (app->total_input_power + power_loss)/app->num_species;
+  double int_mom_target = (adapt_params->mom_rate_target + int_mom_loss)/app->num_species;
   double scale_fact = 1.0;
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
     struct gk_source *src = &s->src;
-    if(power_src_s[i] > 0.0) {
-      scale_fact = power_target/power_src_s[i];
+    if(int_mom_src_s[i] > 0.0) {
+      scale_fact = int_mom_target/int_mom_src_s[i];
     } else {
       scale_fact = 1.0;
     }
@@ -525,14 +390,16 @@ gk_species_source_release(const struct gkyl_gyrokinetic_app *app, const struct g
       gkyl_free(src->red_integ_diag_global);
     }  
     gkyl_dynvec_release(src->integ_diag);
-    gk_species_moment_release(app, &src->integ_H); 
-    if (app->use_gpu) {
-      gkyl_cu_free(src->red_integ_H);
-      gkyl_cu_free(src->red_integ_H_global);
-    }
-    else {
-      gkyl_free(src->red_integ_H);
-      gkyl_free(src->red_integ_H_global);
+    if (app->adaptive_source) {
+      gk_species_moment_release(app, &src->adapt_integ_mom);
+      if (app->use_gpu) {
+        gkyl_cu_free(src->red_adapt_integ_mom);
+        gkyl_cu_free(src->red_adapt_integ_mom_global);
+      }
+      else {
+        gkyl_free(src->red_adapt_integ_mom);
+        gkyl_free(src->red_adapt_integ_mom_global);
+      }
     }
   }
 }

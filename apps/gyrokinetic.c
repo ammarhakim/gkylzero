@@ -525,7 +525,7 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     app->calc_field_func = gyrokinetic_calc_field_none;
 
   app->adaptive_source = gk->adaptive_source;
-  app->total_input_power = gk->total_input_power;
+  app->adaptive_src_params = &gk->adaptive_src_params;
 
   app->enforce_positivity = gk->enforce_positivity;
   if (app->enforce_positivity) {
@@ -708,7 +708,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
   for (int i=0; i<app->num_species; ++i)
     gkyl_gyrokinetic_app_apply_ic_cross_species(app, i, t0);
 
-  if(app->adaptive_source || app->total_input_power > 0.0)
+  if(app->adaptive_source)
     gk_species_source_adapt(app);
 
   // Compute the fields and apply BCs.
@@ -2211,7 +2211,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
   app->field->is_first_energy_dot_write_call = false; // Append to existing diagnostic.
 
   // Adapt the source
-  if (app->adaptive_source || app->total_input_power > 0) {
+  if (app->adaptive_source > 0) {
     gk_species_source_adapt(app);
   }
 
