@@ -1059,6 +1059,7 @@ vlasov_field_lw_new(lua_State *L)
   vm_field.elcErrorSpeedFactor = glua_tbl_get_number(L, "elcErrorSpeedFactor", 0.0);
   vm_field.mgnErrorSpeedFactor = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
   vm_field.limit_em = glua_tbl_get_bool(L, "limitField", false);
+  vm_field.use_ghost_current = glua_tbl_get_bool(L, "useGhostCurrent", false);
 
   bool evolve = glua_tbl_get_bool(L, "evolve", true);
   vm_field.is_static = !evolve;
