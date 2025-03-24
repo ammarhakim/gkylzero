@@ -73,16 +73,16 @@ create_ctx(void)
   double vti = sqrt(Ti / mass_ion); // Ion thermal velocity.
 
   // Simulation parameters.
-  int Nz = 8; // Cell count (configuration space: z-direction).
-  int Nvpar = 16; // Cell count (velocity space: parallel velocity direction).
-  int Nmu = 16; // Cell count (velocity space: magnetic moment direction).
+  int Nz = 16; // Cell count (configuration space: z-direction).
+  int Nvpar = 32; // Cell count (velocity space: parallel velocity direction).
+  int Nmu = 32; // Cell count (velocity space: magnetic moment direction).
   double Lz = 4.0; // Domain size (configuration space: z-direction).
   double vpar_max_ion = 4.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
   double mu_max_ion = (3.0 / 2.0) * 0.5 * mass_ion * pow(4.0 * vti, 2.0) / (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 100; // Final simulation time.
+  double t_end = 10; // Final simulation time.
   int num_frames = 10; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
@@ -120,7 +120,16 @@ void
 evalIonDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct boundary_ctx *app = ctx;
-  fout[0] = app->n0;
+  double z = xn[0];
+  if (z < app->Lz/4.0) {
+    fout[0] = 1e-10;
+  }
+  else if (z < 3.0*app->Lz/4.0) {
+    fout[0] = app->n0;
+  }
+  else {
+    fout[0] = 1e-10;
+  }
 }
 
 void
@@ -332,6 +341,11 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_field field = {
     .zero_init_field = true, // Don't compute the field at t = 0.
     .is_static = true, // Don't evolve the field in time.
+
+    // .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
+    // .electron_mass = ctx.mass_ion/1836.0,
+    // .electron_charge = ctx.charge_ion,
+    // .electron_temp = 1.0,
   };
 
   // Gyrokinetic app.
@@ -339,7 +353,7 @@ main(int argc, char **argv)
     .name = "gk_boundary_flux_1x2v_p1",
 
     .cdim = 1, .vdim = 2,
-    .lower = { 0 },
+    .lower = { 0.0 },
     .upper = { ctx.Lz },
     .cells = { NZ },
 
@@ -350,7 +364,6 @@ main(int argc, char **argv)
     .geometry = {
       .geometry_id = GKYL_MAPC2P,
       .world = { 0.0, 0.0 },
-
       .mapc2p = mapc2p,
       .c2p_ctx = &ctx,
       .bmag_func = bmag_func,
