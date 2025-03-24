@@ -1,4 +1,3 @@
-#include "gkyl_block_geom.h"
 #include <gkyl_array_rio_priv.h>
 #include <gkyl_elem_type_priv.h>
 #include <gkyl_gyrokinetic_multib.h>

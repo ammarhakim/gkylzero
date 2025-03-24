@@ -257,9 +257,18 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
           arcL_curr = arcL_lo + it*darcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
           double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ; 
 
-          position_map->maps[0](0.0, &psi_curr,   &psi_curr,   position_map->ctxs[0]);
-          position_map->maps[1](0.0, &alpha_curr, &alpha_curr, position_map->ctxs[1]);
-          position_map->maps[2](0.0, &theta_curr, &theta_curr, position_map->ctxs[2]);
+          // Calculate derivatives using finite difference for ddtheta,
+          // as well as transform the computational coordiante to the non-uniform field-aligned value
+
+          // Non-uniform psi. Finite differences are calculated in calc_metric.c
+          position_map->maps[0](0.0, &psi_curr,  &psi_curr,  position_map->ctxs[0]);
+          // We cannot do non-uniform alpha because we are modeling axisymmetric systems
+          // Non-uniform theta
+          double Theta_curr;
+          position_map->maps[2](0.0, &theta_curr,  &Theta_curr,  position_map->ctxs[2]);
+          double dTheta_dtheta = gkyl_position_map_slope(position_map, 2, theta_curr,\
+             delta_theta, it, nrange);
+          theta_curr = Theta_curr;
           arcL_curr = (theta_curr + M_PI) / (2*M_PI/arc_ctx.arcL_tot);
 
           mirror_set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr, zmin, zmax, &rclose, &ridders_min, &ridders_max);
@@ -273,7 +282,6 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
           int nr = gkyl_mirror_geo_R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
           double r_curr = choose_closest(rclose, R, R, nr);
           double dr_curr = choose_closest(rclose, R, dR, nr);
-
 
           if(nr==0){
             printf(" ip = %d, it = %d, ia = %d, ip_delta = %d, it_delta = %d, ia_delta = %d\n", ip, it, ia, ip_delta, it_delta, ia_delta);
@@ -310,9 +318,9 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
             mc2nu_n[X_IDX] = psi_curr;
             mc2nu_n[Y_IDX] = -alpha_curr;
             mc2nu_n[Z_IDX] = theta_curr;
-            ddtheta_n[0] = 0.0;
-            ddtheta_n[1] = sin(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI;
-            ddtheta_n[2] = cos(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI;
+            ddtheta_n[0] = sin(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI * dTheta_dtheta; // dR/dtheta
+            ddtheta_n[1] = cos(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI * dTheta_dtheta; // dZ/dtheta
+            ddtheta_n[2] = 0.0; // dphi/dtheta
           }
         }
       }
