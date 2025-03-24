@@ -508,6 +508,10 @@ struct vm_field {
       struct gkyl_array *em_energy; // EM energy components in each cell
       double *em_energy_red; // memory for use in GPU reduction of EM energy
 
+      bool use_ghost_current; // Are we using ghost currents to correct dE/dt = -J in 1x
+      struct gkyl_array *ghost_current; // Array for storying global average of current density
+      double *red_ghost_current; // memory for use in GPU reduction of average of current density
+
       // boundary conditions on lower/upper edges in each direction  
       enum gkyl_field_bc_type lower_bc[3], upper_bc[3];
       // Pointers to updaters that apply BC.

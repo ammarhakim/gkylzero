@@ -29,11 +29,6 @@ struct gk_mirror_ctx
   double tau;
   double Ti0;
   double kperpRhos;
-  // Parameters controlling initial conditions.
-  double alim;
-  double alphaIC0;
-  double alphaIC1;
-  double nuFrac;
   // Electron-electron collision freq.
   double logLambdaElc;
   double nuElc;
@@ -48,26 +43,10 @@ struct gk_mirror_ctx
   double omega_ci;
   double rho_s;
   double kperp; // Perpendicular wavenumber in SI units.
-  double RatZeq0; // Radius of the field line at Z=0.
   // Axial coordinate Z extents. Endure that Z=0 is not on
-  double Z_min;
-  double Z_max;
   double z_min;
   double z_max;
   double psi_eval;
-  double psi_in;
-  double z_in;
-  // Magnetic equilibrium model.
-  double mcB;
-  double gamma;
-  double Z_m;
-  // Bananna tip info. Hardcoad to avoid dependency on ctx
-  double B_bt;
-  double R_bt;
-  double Z_bt;
-  double z_bt;
-  double R_m;
-  double B_m;
   double z_m;
   // Physics parameters at mirror throat
   double n_m;
@@ -110,11 +89,6 @@ struct gk_mirror_ctx
   int int_diag_calc_num; // Number of integrated diagnostics computations (=INT_MAX for every step).
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
-  // For non-uniform mapping
-  double diff_dz;
-  double psi_in_diff;
-  int mapping_order;
-  double mapping_frac;
 };
 
 
@@ -365,257 +339,6 @@ evalNuIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, 
   fout[0] = app->nuIon;
 }
 
-
-struct gk_mirror_ctx
-create_ctx(void)
-{
-  int cdim = 1, vdim = 2; // Dimensionality.
-
-  // Universal constant parameters.
-  double eps0 = GKYL_EPSILON0;
-  double mu0 = GKYL_MU0; // Not sure if this is right
-  double eV = GKYL_ELEMENTARY_CHARGE;
-  double mp = GKYL_PROTON_MASS; // ion mass
-  double me = GKYL_ELECTRON_MASS;
-  double qi = eV;  // ion charge
-  double qe = -eV; // electron charge
-
-  // Plasma parameters.
-  double mi = 2.014 * mp;
-  double Te0 = 940 * eV;
-  double n0 = 3e19;
-  double B_p = 0.53;
-  double beta = 0.4;
-  double tau = pow(B_p, 2.) * beta / (2.0 * mu0 * n0 * Te0) - 1.;
-  double Ti0 = tau * Te0;
-  double kperpRhos = 0.1;
-
-  // Parameters controlling initial conditions.
-  double alim = 0.125;
-  double alphaIC0 = 2;
-  double alphaIC1 = 10;
-
-  double nuFrac = 1.0;
-  // Electron-electron collision freq.
-  double logLambdaElc = 6.6 - 0.5 * log(n0 / 1e20) + 1.5 * log(Te0 / eV);
-  double nuElc = nuFrac * logLambdaElc * pow(eV, 4.) * n0 /
-                 (6. * sqrt(2.) * pow(M_PI, 3. / 2.) * pow(eps0, 2.) * sqrt(me) * pow(Te0, 3. / 2.));
-  // Ion-ion collision freq.
-  double logLambdaIon = 6.6 - 0.5 * log(n0 / 1e20) + 1.5 * log(Ti0 / eV);
-  double nuIon = nuFrac * logLambdaIon * pow(eV, 4.) * n0 /
-                 (12 * pow(M_PI, 3. / 2.) * pow(eps0, 2.) * sqrt(mi) * pow(Ti0, 3. / 2.));
-
-  // Thermal speeds.
-  double vti = sqrt(Ti0 / mi);
-  double vte = sqrt(Te0 / me);
-  double c_s = sqrt(Te0 / mi);
-
-  // Gyrofrequencies and gyroradii.
-  double omega_ci = eV * B_p / mi;
-  double rho_s = c_s / omega_ci;
-
-  // Perpendicular wavenumber in SI units:
-  double kperp = kperpRhos / rho_s;
-
-  // Geometry parameters.
-  double RatZeq0 = 0.10; // Radius of the field line at Z=0.
-  // Axial coordinate Z extents. Endure that Z=0 is not on
-  // the boundary of a cell (due to AD errors).
-  double z_min = -M_PI + 1e-1;
-  double z_max =  M_PI - 1e-1;
-  double psi_eval = 0.0026530898059565;
-
-  // Parameters controlling the magnetic equilibrium model.
-  double mcB = 6.51292;
-  double gamma = 0.124904;
-  double Z_m = 0.98;
-
-  // Source parameters
-  double NSrcIon = 3.1715e23 / 8.0;
-  double lineLengthSrcIon = 0.0;
-  double sigSrcIon = Z_m / 4.0;
-  double NSrcFloorIon = 0.05 * NSrcIon;
-  double TSrc0Ion = Ti0 * 1.25;
-  double TSrcFloorIon = TSrc0Ion / 8.0;
-  double NSrcElc = NSrcIon;
-  double lineLengthSrcElc = lineLengthSrcIon;
-  double sigSrcElc = sigSrcIon;
-  double NSrcFloorElc = NSrcFloorIon;
-  double TSrc0Elc = TSrc0Ion / tau;
-  double TSrcFloorElc = TSrcFloorIon / tau;
-
-  // Grid parameters
-  double vpar_max_elc = 20 * vte;
-  double mu_max_elc = me * pow(3. * vte, 2.) / (2. * B_p);
-  double vpar_max_ion = 20 * vti;
-  double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
-  int Nz = 64;
-  int Nvpar = 32; // Number of cells in the paralell velocity direction 96
-  int Nmu = 32;  // Number of cells in the mu direction 192
-  int poly_order = 1;
-
-  double t_end = 4.0e-9;
-  int num_frames = 1;
-  int int_diag_calc_num = num_frames*100;
-  double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
-  int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
-
-  // Bananna tip info. Hardcoad to avoid dependency on ctx
-  double B_bt = 1.058278;
-  double R_bt = 0.071022;
-  double Z_bt = 0.467101;
-  double z_bt = 0.468243;
-  double R_m = 0.017845;
-  double B_m = 16.662396;
-  double z_m = 0.982544;
-
-  // Initial conditions parameters
-  double Ti_perp0 = 10000 * eV;
-  double Ti_perp_m = 15000 * eV;
-  double Ti_par0 = 7500 * eV;
-  double Ti_par_m = 1000 * eV;
-
-  double Te_par0 = 1800 * eV;  
-  double Te_par_m = 300 * eV;
-  double Te_perp0 = 2000 * eV;
-  double Te_perp_m = 3000 * eV;
-
-  // Physics parameters at mirror throat
-  double n_m = 1.105617e19;
-  double Te_m = 346.426583 * eV;
-  double Ti_m = 3081.437703 * eV;
-  double cs_m = 4.037740e5;
-
-  // Non-uniform z mapping
-  int mapping_order = 20;  // Order of the polynomial to fit through points for mapc2p
-  double mapping_frac = 0.0;//0.72; // 1 is full mapping, 0 is no mapping
-
-  struct gk_mirror_ctx ctx = {
-    .cdim = cdim,
-    .vdim = vdim,
-    .mi = mi,
-    .qi = qi,
-    .me = me,
-    .qe = qe,
-    .Te0 = Te0,
-    .n0 = n0,
-    .B_p = B_p,
-    .beta = beta,
-    .tau = tau,
-    .Ti0 = Ti0,
-    .kperpRhos = kperpRhos,
-    .alim = alim,
-    .alphaIC0 = alphaIC0,
-    .alphaIC1 = alphaIC1,
-    .nuFrac = nuFrac,
-    .logLambdaElc = logLambdaElc,
-    .nuElc = nuElc,
-    .logLambdaIon = logLambdaIon,
-    .nuIon = nuIon,
-    .vti = vti,
-    .vte = vte,
-    .c_s = c_s,
-    .omega_ci = omega_ci,
-    .rho_s = rho_s,
-    .kperp = kperp, 
-    .RatZeq0 = RatZeq0,
-    .z_min = z_min,
-    .z_max = z_max,
-    .psi_eval = psi_eval,
-    .mcB = mcB,
-    .gamma = gamma,
-    .Z_m = Z_m,
-    .B_bt = B_bt,
-    .R_bt = R_bt,
-    .Z_bt = Z_bt,
-    .z_bt = z_bt,
-    .z_m = Z_m,
-    .n_m = n_m,
-    .Te_m = Te_m,
-    .Ti_m = Ti_m,
-    .Ti_perp0 = Ti_perp0,
-    .Ti_par0 = Ti_par0,
-    .Ti_perp_m = Ti_perp_m,
-    .Ti_par_m = Ti_par_m,
-    .Te_par0 = Te_par0,
-    .Te_par_m = Te_par_m,
-    .Te_perp0 = Te_perp0,
-    .Te_perp_m = Te_perp_m,
-    .cs_m = cs_m,
-    .NSrcIon = NSrcIon,
-    .lineLengthSrcIon = lineLengthSrcIon,
-    .sigSrcIon = sigSrcIon,
-    .NSrcFloorIon = NSrcFloorIon,
-    .TSrc0Ion = TSrc0Ion,
-    .TSrcFloorIon = TSrcFloorIon,
-    .NSrcElc = NSrcElc,
-    .lineLengthSrcElc = lineLengthSrcElc,
-    .sigSrcElc = sigSrcElc,
-    .NSrcFloorElc = NSrcFloorElc,
-    .TSrc0Elc = TSrc0Elc,
-    .TSrcFloorElc = TSrcFloorElc,
-    .vpar_max_ion = vpar_max_ion,
-    .vpar_max_elc = vpar_max_elc,
-    .mu_max_ion = mu_max_ion,
-    .mu_max_elc = mu_max_elc,
-    .Nz = Nz,
-    .Nvpar = Nvpar,
-    .Nmu = Nmu,
-    .cells = {Nz, Nvpar, Nmu},
-    .poly_order = poly_order,
-    .t_end = t_end,
-    .num_frames = num_frames,
-    .int_diag_calc_num = int_diag_calc_num,
-    .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
-    .mapping_order = mapping_order,  // Order of the polynomial to fit through points for mapc2p
-    .mapping_frac = mapping_frac, // 1 is full mapping, 0 is no mapping
-  };
-  return ctx;
-}
-
-void
-calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr, bool force_calc)
-{
-  if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc) {
-    gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
-    gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
-  }
-}
-
-void
-write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr, bool force_write)
-{
-  bool trig_now = gkyl_tm_trigger_check_and_bump(iot, t_curr);
-  if (trig_now || force_write) {
-    int frame = (!trig_now) && force_write? iot->curr : iot->curr-1;
-
-    gkyl_gyrokinetic_app_write(app, t_curr, frame);
-
-    gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
-    gkyl_gyrokinetic_app_write_field_energy(app);
-
-    gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
-    gkyl_gyrokinetic_app_write_integrated_mom(app);
-  }
-}
-
-static void
-nonuniform_position_map(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  double transition = 1.5;
-  double poly_order = 2;
-  double z = xn[2];
-  if (z < -transition)
-    fout[2] = z;
-  else if (z < transition)
-  {
-    fout[2] = - pow(z - transition, poly_order)/pow(2*transition, poly_order-1) + transition;
-  }
-  else
-    fout[2] = z;
-};
-
 void mapc2p_vel_ion(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
@@ -658,6 +381,203 @@ void mapc2p_vel_elc(double t, const double *vc, double* GKYL_RESTRICT vp, void *
   vp[1] = mu_max_elc*pow(cmu,2);
 }
 
+struct gk_mirror_ctx
+create_ctx(void)
+{
+  int cdim = 1, vdim = 2; // Dimensionality.
+
+  // Universal constant parameters.
+  double eps0 = GKYL_EPSILON0;
+  double mu0 = GKYL_MU0; // Not sure if this is right
+  double eV = GKYL_ELEMENTARY_CHARGE;
+  double mp = GKYL_PROTON_MASS; // ion mass
+  double me = GKYL_ELECTRON_MASS;
+  double qi = eV;  // ion charge
+  double qe = -eV; // electron charge
+
+  // Plasma parameters.
+  double mi = 2.014 * mp;
+  double Te0 = 940 * eV;
+  double n0 = 3e19;
+  double B_p = 0.53;
+  double beta = 0.4;
+  double tau = pow(B_p, 2.) * beta / (2.0 * mu0 * n0 * Te0) - 1.;
+  double Ti0 = tau * Te0;
+  double kperpRhos = 0.1;
+
+  double nuFrac = 1.0;
+  // Electron-electron collision freq.
+  double logLambdaElc = 6.6 - 0.5 * log(n0 / 1e20) + 1.5 * log(Te0 / eV);
+  double nuElc = nuFrac * logLambdaElc * pow(eV, 4.) * n0 /
+                 (6. * sqrt(2.) * pow(M_PI, 3. / 2.) * pow(eps0, 2.) * sqrt(me) * pow(Te0, 3. / 2.));
+  // Ion-ion collision freq.
+  double logLambdaIon = 6.6 - 0.5 * log(n0 / 1e20) + 1.5 * log(Ti0 / eV);
+  double nuIon = nuFrac * logLambdaIon * pow(eV, 4.) * n0 /
+                 (12 * pow(M_PI, 3. / 2.) * pow(eps0, 2.) * sqrt(mi) * pow(Ti0, 3. / 2.));
+
+  // Thermal speeds.
+  double vti = sqrt(Ti0 / mi);
+  double vte = sqrt(Te0 / me);
+  double c_s = sqrt(Te0 / mi);
+
+  // Gyrofrequencies and gyroradii.
+  double omega_ci = eV * B_p / mi;
+  double rho_s = c_s / omega_ci;
+
+  // Perpendicular wavenumber in SI units:
+  double kperp = kperpRhos / rho_s;
+
+  // Geometry parameters.
+  // Axial coordinate Z extents. Endure that Z=0 is not on
+  // the boundary of a cell (due to AD errors).
+  double z_min = -M_PI + 1e-1;
+  double z_max =  M_PI - 1e-1;
+  double psi_eval = 0.0026530898059565;
+
+  double z_m = 0.982544;
+
+  // Source parameters
+  double NSrcIon = 3.1715e23 / 8.0;
+  double lineLengthSrcIon = 0.0;
+  double sigSrcIon = z_m / 4.0;
+  double NSrcFloorIon = 0.05 * NSrcIon;
+  double TSrc0Ion = Ti0 * 1.25;
+  double TSrcFloorIon = TSrc0Ion / 8.0;
+  double NSrcElc = NSrcIon;
+  double lineLengthSrcElc = lineLengthSrcIon;
+  double sigSrcElc = sigSrcIon;
+  double NSrcFloorElc = NSrcFloorIon;
+  double TSrc0Elc = TSrc0Ion / tau;
+  double TSrcFloorElc = TSrcFloorIon / tau;
+
+  // Grid parameters
+  double vpar_max_elc = 20 * vte;
+  double mu_max_elc = me * pow(3. * vte, 2.) / (2. * B_p);
+  double vpar_max_ion = 20 * vti;
+  double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
+  int Nz = 128;
+  int Nvpar = 32; // Number of cells in the paralell velocity direction 96
+  int Nmu = 32;  // Number of cells in the mu direction 192
+  int poly_order = 1;
+
+  double t_end = 4.0e-9;
+  int num_frames = 1;
+  int int_diag_calc_num = num_frames*100;
+  double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
+  int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
+  // Initial conditions parameters
+  double Ti_perp0 = 10000 * eV;
+  double Ti_perp_m = 15000 * eV;
+  double Ti_par0 = 7500 * eV;
+  double Ti_par_m = 1000 * eV;
+
+  double Te_par0 = 1800 * eV;  
+  double Te_par_m = 300 * eV;
+  double Te_perp0 = 2000 * eV;
+  double Te_perp_m = 3000 * eV;
+
+  // Physics parameters at mirror throat
+  double n_m = 1.105617e19;
+  double Te_m = 346.426583 * eV;
+  double Ti_m = 3081.437703 * eV;
+  double cs_m = 4.037740e5;
+
+  struct gk_mirror_ctx ctx = {
+    .cdim = cdim,
+    .vdim = vdim,
+    .mi = mi,
+    .qi = qi,
+    .me = me,
+    .qe = qe,
+    .Te0 = Te0,
+    .n0 = n0,
+    .B_p = B_p,
+    .beta = beta,
+    .tau = tau,
+    .Ti0 = Ti0,
+    .kperpRhos = kperpRhos,
+    .logLambdaElc = logLambdaElc,
+    .nuElc = nuElc,
+    .logLambdaIon = logLambdaIon,
+    .nuIon = nuIon,
+    .vti = vti,
+    .vte = vte,
+    .c_s = c_s,
+    .omega_ci = omega_ci,
+    .rho_s = rho_s,
+    .kperp = kperp, 
+    .z_min = z_min,
+    .z_max = z_max,
+    .psi_eval = psi_eval,
+    .z_m = z_m,
+    .n_m = n_m,
+    .Te_m = Te_m,
+    .Ti_m = Ti_m,
+    .Ti_perp0 = Ti_perp0,
+    .Ti_par0 = Ti_par0,
+    .Ti_perp_m = Ti_perp_m,
+    .Ti_par_m = Ti_par_m,
+    .Te_par0 = Te_par0,
+    .Te_par_m = Te_par_m,
+    .Te_perp0 = Te_perp0,
+    .Te_perp_m = Te_perp_m,
+    .cs_m = cs_m,
+    .NSrcIon = NSrcIon,
+    .lineLengthSrcIon = lineLengthSrcIon,
+    .sigSrcIon = sigSrcIon,
+    .NSrcFloorIon = NSrcFloorIon,
+    .TSrc0Ion = TSrc0Ion,
+    .TSrcFloorIon = TSrcFloorIon,
+    .NSrcElc = NSrcElc,
+    .lineLengthSrcElc = lineLengthSrcElc,
+    .sigSrcElc = sigSrcElc,
+    .NSrcFloorElc = NSrcFloorElc,
+    .TSrc0Elc = TSrc0Elc,
+    .TSrcFloorElc = TSrcFloorElc,
+    .vpar_max_ion = vpar_max_ion,
+    .vpar_max_elc = vpar_max_elc,
+    .mu_max_ion = mu_max_ion,
+    .mu_max_elc = mu_max_elc,
+    .Nz = Nz,
+    .Nvpar = Nvpar,
+    .Nmu = Nmu,
+    .cells = {Nz, Nvpar, Nmu},
+    .poly_order = poly_order,
+    .t_end = t_end,
+    .num_frames = num_frames,
+    .int_diag_calc_num = int_diag_calc_num,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max,
+  };
+  return ctx;
+}
+
+void
+calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr, bool force_calc)
+{
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc) {
+    gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
+    gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
+  }
+}
+
+void
+write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr, bool force_write)
+{
+  bool trig_now = gkyl_tm_trigger_check_and_bump(iot, t_curr);
+  if (trig_now || force_write) {
+    int frame = (!trig_now) && force_write? iot->curr : iot->curr-1;
+
+    gkyl_gyrokinetic_app_write(app, t_curr, frame);
+
+    gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
+    gkyl_gyrokinetic_app_write_field_energy(app);
+
+    gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
+    gkyl_gyrokinetic_app_write_integrated_mom(app);
+  }
+}
+
 int main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
@@ -696,7 +616,6 @@ int main(int argc, char **argv)
       .mapping = mapc2p_vel_elc,
       .ctx = &ctx,
     },
-
     .projection = {
       .proj_id = GKYL_PROJ_BIMAXWELLIAN, 
       .ctx_density = &ctx,
@@ -707,9 +626,7 @@ int main(int argc, char **argv)
       .temppar = eval_temp_par_elc,
       .ctx_tempperp = &ctx,
       .tempperp = eval_temp_perp_elc,   
-      // .correct_all_moms = true,   
     },
-
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -717,7 +634,6 @@ int main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
     },
-
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,
@@ -731,7 +647,6 @@ int main(int argc, char **argv)
         .temp = eval_temp_elc_source,      
       }, 
     },
-
     .bcx = {
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
@@ -752,7 +667,6 @@ int main(int argc, char **argv)
       .mapping = mapc2p_vel_ion,
       .ctx = &ctx,
     },
-
     .projection = {
       .proj_id = GKYL_PROJ_BIMAXWELLIAN, 
       .ctx_density = &ctx,
@@ -763,9 +677,7 @@ int main(int argc, char **argv)
       .temppar = eval_temp_par_ion,
       .ctx_tempperp = &ctx,
       .tempperp = eval_temp_perp_ion, 
-      // .correct_all_moms = true, 
     },
-
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -773,7 +685,6 @@ int main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
     },
-
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,
@@ -787,7 +698,6 @@ int main(int argc, char **argv)
         .temp = eval_temp_ion_source,      
       }, 
     },
-
     .bcx = {
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
@@ -802,7 +712,6 @@ int main(int argc, char **argv)
   };
 
   struct gkyl_efit_inp efit_inp = {
-    // psiRZ and related inputs
     .filepath = "./data/eqdsk/wham.geqdsk", // equilibrium to use
     .rz_poly_order = 2,                     // polynomial order for psi(R,Z) used for field line tracing
     .flux_poly_order = 1,                   // polynomial order for fpol(psi)
@@ -817,14 +726,12 @@ int main(int argc, char **argv)
   // GK app
   struct gkyl_gk app_inp = {
     .name = "gk_wham_nonuniformx_1x2v_p1_numeric",
-
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = {ctx.z_min},
     .upper = {ctx.z_max},
     .cells = { cells_x[0] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
-    
     .geometry = {
       .geometry_id = GKYL_MIRROR,
       .world = {ctx.psi_eval, 0.0},
@@ -832,18 +739,16 @@ int main(int argc, char **argv)
       .mirror_grid_info = grid_inp,
       .position_map_info = {
         .id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
-        .map_strength = 0.9999,
+        .map_strength = 0.666,
+        .maximum_slope_at_max_B = 0.6,
+        .maximum_slope_at_min_B = 4,
       },
     },
-
     .num_periodic_dir = 0,
     .periodic_dirs = {},
-
     .num_species = 2,
     .species = {elc, ion},
-
     .field = field,
-
     .parallelism = {
       .use_gpu = app_args.use_gpu,
       .cuts = { app_args.cuts[0] },
