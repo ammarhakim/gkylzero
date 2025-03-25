@@ -105,6 +105,7 @@ gk_species_moment_release(const struct gkyl_gyrokinetic_app *app, const struct g
   if (app->use_gpu) {
     gkyl_array_release(sm->marr_host);
   }
+  gkyl_array_release(sm->marr);
 
   if (sm->is_integrated) {
     gkyl_dg_updater_moment_gyrokinetic_release(sm->mcalc);
@@ -116,7 +117,6 @@ gk_species_moment_release(const struct gkyl_gyrokinetic_app *app, const struct g
     else {
       gkyl_dg_updater_moment_gyrokinetic_release(sm->mcalc);
     }
-    gkyl_array_release(sm->marr);
 
     // Free the weak division memory if not computing integrated moments.
     gkyl_dg_bin_op_mem_release(sm->mem_geo);
