@@ -164,7 +164,7 @@ double gkyl_mirror_geo_integrate_psi_contour(const struct gkyl_mirror_geo *geo, 
  *  and nodes epsilon away to be used for FD
  * @param mc2p_nodal output nodal mapc2p field R,Z,phi)
  * @param mc2p On output, the DG representation of mapc2p ((R,Z,phi)
- * @param ddtheta_nodal output nodal field containing dphi/dtheta = s(psi)/R|grad(psi)|, dR/dtheta and dZ/dtheta
+ * @param ddtheta_nodal output nodal field containing dR/dtheta, dZ/dtheta, and dphi/dtheta = s(psi)/R|grad(psi)|, 
  * @param mc2nu_pos_nodal output nodal field containing the non-uniform mapping
  * @param mc2nu_pos output DG field containing the non-uniform mapping
  * @param position_map position map object
