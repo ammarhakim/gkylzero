@@ -7,11 +7,11 @@ GKYL_CU_DH void gk_neut_hamil_2x3v_tensor_p1(const double *w, const double *dxv,
   // hamil:    Gk neut species Hamiltonian.
  
   const double *g00 = &gij[0]; 
-  const double *g01 = &gij[8]; 
-  const double *g02 = &gij[4]; 
-  const double *g11 = &gij[20]; 
+  const double *g01 = &gij[4]; 
+  const double *g02 = &gij[8]; 
+  const double *g11 = &gij[12]; 
   const double *g12 = &gij[16]; 
-  const double *g22 = &gij[12]; 
+  const double *g22 = &gij[20]; 
 
   const double w0 = w[2]; 
   const double dv0 = dxv[2]; 
