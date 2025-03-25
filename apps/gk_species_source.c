@@ -305,7 +305,7 @@ gk_species_source_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_speci
 void
 gk_species_source_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks)
 {
-  if (gks->src.source_id) { // MF 2025/02/04: commenting this out for some testing.
+  if (gks->src.source_id && gks->src.evolve) {
     struct timespec wst = gkyl_wall_clock();
 
     int rank;

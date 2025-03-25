@@ -2207,8 +2207,10 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
   app->field->is_first_energy_write_call = false; // Append to existing diagnostic.
   app->field->is_first_energy_dot_write_call = false; // Append to existing diagnostic.
 
-  // Adapt the source
-  gk_species_source_adapt(app);
+  if (app->adaptive_source) {
+    // Adapt the source
+    gk_species_source_adapt(app);
+  }
 
   return rstat;
 }

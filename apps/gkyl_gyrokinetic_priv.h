@@ -1779,11 +1779,6 @@ void gk_species_source_calc(gkyl_gyrokinetic_app *app, const struct gk_species *
  * Adapt source to user's defined power keeping particle input rate constant.
  * 
  * @param app gyrokinetic app object.
- * @param s Species object.
- * @param src Species source object.
- * @param source Source array to adapt.
- * @param power Power to adapt source the to.
- * @param tm Time for use in source.
  */
 void
 gk_species_source_adapt(gkyl_gyrokinetic_app *app);
