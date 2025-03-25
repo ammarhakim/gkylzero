@@ -370,6 +370,8 @@ gk_species_source_release(const struct gkyl_gyrokinetic_app *app, const struct g
         gkyl_free(src->red_adapt_integ_mom);
         gkyl_free(src->red_adapt_integ_mom_global);
       }
+    gkyl_free(src->adapt_range);
+    gkyl_free(src->adapt_range_conf);
     }
   }
 }
