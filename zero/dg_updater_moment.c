@@ -6,7 +6,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_mom_type.h>
 #include <gkyl_mom_canonical_pb.h>
-#include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_mom_vlasov.h>
 #include <gkyl_mom_vlasov_sr.h>
 #include <gkyl_dg_updater_moment.h>

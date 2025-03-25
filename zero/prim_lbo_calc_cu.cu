@@ -7,9 +7,6 @@ extern "C" {
 #include <gkyl_prim_lbo_calc.h>
 #include <gkyl_prim_lbo_calc_priv.h>
 #include <gkyl_prim_lbo_kernels.h> 
-#include <gkyl_prim_lbo_gyrokinetic.h>
-#include <gkyl_prim_lbo_pkpm.h>
-#include <gkyl_prim_lbo_vlasov.h>
 #include <gkyl_util.h>
 }
 

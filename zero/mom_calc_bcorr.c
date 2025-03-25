@@ -8,9 +8,6 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_mom_calc_bcorr.h>
 #include <gkyl_mom_calc_bcorr_priv.h>
-#include <gkyl_mom_bcorr_lbo_pkpm.h>
-#include <gkyl_mom_bcorr_lbo_vlasov.h>
-#include <gkyl_mom_bcorr_lbo_gyrokinetic.h>
 #include <gkyl_util.h>
 
 struct gkyl_mom_calc_bcorr*
@@ -131,49 +128,6 @@ gkyl_mom_calc_bcorr_release(gkyl_mom_calc_bcorr* up)
   if (GKYL_IS_CU_ALLOC(up->flags))
     gkyl_cu_free(up->on_dev);
   gkyl_free(up);
-}
-
-// "derived" class constructors
-struct gkyl_mom_calc_bcorr*
-gkyl_mom_calc_bcorr_lbo_vlasov_new(const struct gkyl_rect_grid *grid, 
-  const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const double* vBoundary, bool use_gpu)
-{
-  struct gkyl_mom_type *bcorr_type; // LBO boundary corrections moment type
-  bcorr_type = gkyl_mom_bcorr_lbo_vlasov_new(cbasis, pbasis, vBoundary, use_gpu);  
-  struct gkyl_mom_calc_bcorr* calc = gkyl_mom_calc_bcorr_new(grid, bcorr_type, use_gpu);
-  // Since calc now has pointer to specific type, decrease reference counter of type
-  // so that eventual gkyl_mom_calc_bcorr_release method on calculator deallocates specific type data
-  gkyl_mom_type_release(bcorr_type);
-  return calc;
-}
-
-struct gkyl_mom_calc_bcorr*
-gkyl_mom_calc_bcorr_lbo_pkpm_new(const struct gkyl_rect_grid *grid, 
-  const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const double* vBoundary, double mass, bool use_gpu)
-{
-  struct gkyl_mom_type *bcorr_type; // LBO boundary corrections moment type
-  bcorr_type = gkyl_mom_bcorr_lbo_pkpm_new(cbasis, pbasis, vBoundary, mass, use_gpu);  
-  struct gkyl_mom_calc_bcorr* calc = gkyl_mom_calc_bcorr_new(grid, bcorr_type, use_gpu);
-  // Since calc now has pointer to specific type, decrease reference counter of type
-  // so that eventual gkyl_mom_calc_bcorr_release method on calculator deallocates specific type data
-  gkyl_mom_type_release(bcorr_type);
-  return calc;
-}
-
-struct gkyl_mom_calc_bcorr*
-gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
-  const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  double mass, const struct gkyl_velocity_map *vel_map, bool use_gpu)
-{
-  struct gkyl_mom_type *bcorr_type; // LBO boundary corrections moment type
-  bcorr_type = gkyl_mom_bcorr_lbo_gyrokinetic_new(cbasis, pbasis, mass, vel_map, use_gpu);
-  struct gkyl_mom_calc_bcorr* calc = gkyl_mom_calc_bcorr_new(grid, bcorr_type, use_gpu);
-  // Since calc now has pointer to specific type, decrease reference counter of type
-  // so that eventual gkyl_mom_calc_bcorr_release method on calculator deallocates specific type data
-  gkyl_mom_type_release(bcorr_type);
-  return calc;
 }
 
 #ifndef GKYL_HAVE_CUDA
