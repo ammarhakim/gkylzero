@@ -11,7 +11,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_array_rio_priv.h>
 #include <gkyl_dg_interpolate.h>
-#include <gkyl_translate_dim_gyrokinetic.h>
+#include <gkyl_translate_dim.h>
 #include <gkyl_proj_on_basis.h>
 
 #include <assert.h>
@@ -1286,10 +1286,10 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
   }
 
   if (pdim_do == pdim-1) {
-    struct gkyl_translate_dim_gyrokinetic* transdim = gkyl_translate_dim_gyrokinetic_new(cdim_do,
-      basis_do, cdim, gks->basis, app->use_gpu);
-    gkyl_translate_dim_gyrokinetic_advance(transdim, &local_do, &gks->local, fdo, gks->f);
-    gkyl_translate_dim_gyrokinetic_release(transdim);
+    struct gkyl_translate_dim* transdim = gkyl_translate_dim_new(cdim_do,
+      basis_do, cdim, gks->basis, -1, GKYL_NO_EDGE, app->use_gpu);
+    gkyl_translate_dim_advance(transdim, &local_do, &gks->local, fdo, 1, gks->f);
+    gkyl_translate_dim_release(transdim);
   }
   else {
     if (same_res) {
