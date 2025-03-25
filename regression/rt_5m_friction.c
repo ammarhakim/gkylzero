@@ -35,7 +35,6 @@ struct friction_ctx
   double u_ion; // Ion velocity (x-direction).
 
   double friction_Z; // Ionization number for frictional sources.
-  double friction_T_elc; // Electron temperature for frictional sources.
   double friction_Lambda_ee; // Electron-electron collisional term for frictional sources.
 
   // Derived physical quantities (using normalized code units).
@@ -73,12 +72,13 @@ create_ctx(void)
 
   double n_elc = 1.0; // Electron number density.
   double n_ion = 1.0; // Ion number density.
+  double T_elc = 1.0; // Electron temperature.
+  double T_ion = 1.0; // Ion temperature.
 
   double u_elc = 0.1; // Electron velocity (x-direction).
   double u_ion = -0.1; // Ion velocity (x-direction).
 
   double friction_Z = 1.0; // Ionization number for frictional sources.
-  double friction_T_elc = 1.0; // Electron temperature for frictional sources.
   double friction_Lambda_ee = exp(1.0); // Electron-electron collisional term for frictional sources.
 
   // Derived physical quantities (using normalized code units).
@@ -88,15 +88,15 @@ create_ctx(void)
   double mom_elc = (n_elc * mass_elc) * u_elc; // Electron momentum (x-direction).
   double mom_ion = (n_ion * mass_ion) * u_ion; // Ion momenutm (x-direction).
 
-  double E_elc = ((n_elc * mass_elc) / (gas_gamma - 1.0)) + (0.5 * (n_elc * mass_elc) * (u_elc * u_elc)); // Electron total energy density.
-  double E_ion = ((n_ion * mass_ion) / (gas_gamma - 1.0)) + (0.5 * (n_ion * mass_ion) * (u_ion * u_ion)); // Ion total energy density.
+  double E_elc = ((n_elc * T_elc) / (gas_gamma - 1.0)) + (0.5 * (n_elc * mass_elc) * (u_elc * u_elc)); // Electron total energy density.
+  double E_ion = ((n_ion * T_ion) / (gas_gamma - 1.0)) + (0.5 * (n_ion * mass_ion) * (u_ion * u_ion)); // Ion total energy density.
 
   // Simulation parameters.
   int Nx = 128; // Cell count (x-direction).
   double Lx = 1.0; // Domain size (x-direction).
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 5.0; // Final simulation time.
+  double t_end = 50.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
@@ -114,7 +114,6 @@ create_ctx(void)
     .u_elc = u_elc,
     .u_ion = u_ion,
     .friction_Z = friction_Z,
-    .friction_T_elc = friction_T_elc,
     .friction_Lambda_ee = friction_Lambda_ee,
     .rho_elc = rho_elc,
     .rho_ion = rho_ion,
@@ -229,7 +228,6 @@ main(int argc, char **argv)
     .has_friction = true,
     .use_explicit_friction = true,
     .friction_Z = ctx.friction_Z,
-    .friction_T_elc = ctx.friction_T_elc,
     .friction_Lambda_ee = ctx.friction_Lambda_ee,
   };
 
@@ -244,7 +242,6 @@ main(int argc, char **argv)
     .has_friction = true,
     .use_explicit_friction = true,
     .friction_Z = ctx.friction_Z,
-    .friction_T_elc = ctx.friction_T_elc,
     .friction_Lambda_ee = ctx.friction_Lambda_ee,
   };
 

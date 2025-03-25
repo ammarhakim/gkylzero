@@ -35,7 +35,6 @@ explicit_nT_source_update(const gkyl_moment_em_coupling* mom_em, const double dt
 *
 * @param mom_em Moment-EM coupling object.
 * @param Z Ionization number.
-* @param T_elc Electron temperature.
 * @param Lambda_ee Electron-electron collisional term.
 * @param t_curr Current simulation time.
 * @param dt Current stable time-step.
@@ -45,8 +44,9 @@ explicit_nT_source_update(const gkyl_moment_em_coupling* mom_em, const double dt
 * @param f_ion_new Array of new ion fluid variables (after source update).
 */
 void
-explicit_frictional_source_update_euler(const gkyl_moment_em_coupling* mom_em, const double Z, const double T_elc, const double Lambda_ee,
-  double t_curr, const double dt, double* f_elc_old, double* f_ion_old, double* f_elc_new, double* f_ion_new);
+explicit_frictional_source_update_euler(const gkyl_moment_em_coupling* mom_em, 
+  const double Z, const double Lambda_ee, double t_curr, const double dt, 
+  double* f_elc_old, double* f_ion_old, double* f_elc_new, double* f_ion_new);
 
 /**
 * Integrate the frictional source terms in the multi-fluid equation system within a single cell, using an explicit forcing solver (specifically a

@@ -1999,6 +1999,13 @@ moment_species_lw_new(lua_State *L)
     mom_species.medium_kappa = glua_tbl_get_number(L, "mediumKappa", 8.0 * M_PI);
   }
 
+  mom_species.has_friction = glua_tbl_get_bool(L, "hasFriction", false);
+  if (mom_species.has_friction) {
+    mom_species.use_explicit_friction = glua_tbl_get_bool(L, "useExplicitFriction", false);
+    mom_species.friction_Z = glua_tbl_get_number(L, "frictionZ", 1.0);
+    mom_species.friction_Lambda_ee = glua_tbl_get_number(L, "frictionLambdaee", exp(1.0));
+  }
+
   mom_species.type_brag = glua_tbl_get_integer(L, "braginskiiType", 0);
 
   struct moment_species_lw *moms_lw = lua_newuserdata(L, sizeof(*moms_lw));
@@ -2355,6 +2362,7 @@ mom_app_new(lua_State *L)
 
   mom.has_braginskii = glua_tbl_get_bool(L, "hasBraginskii", false);
   mom.coll_fac = glua_tbl_get_number(L, "collisionFactor", 0.0);
+  mom.no_mag_fit = glua_tbl_get_bool(L, "noMagFit", false);
 
   // mapc2p function.
   mom.c2p_ctx = 0;

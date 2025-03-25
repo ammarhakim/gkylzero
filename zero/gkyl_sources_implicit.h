@@ -55,7 +55,6 @@ implicit_collision_source_update(const gkyl_moment_em_coupling* mom_em, double d
 *
 * @param mom_em Moment-EM coupling object.
 * @param Z Ionization number.
-* @param T_elc Electron temperature.
 * @param Lambda_ee Electron-electron collisional term.
 * @param t_curr Current simulation time.
 * @param dt Current stable time-step.
@@ -70,7 +69,7 @@ implicit_collision_source_update(const gkyl_moment_em_coupling* mom_em, double d
 * @param ext_em External electromagnetic variables (for EM fields coming from external sources, e.g. coils, capacitors, etc.).
 */
 void
-implicit_frictional_source_update_half(const gkyl_moment_em_coupling* mom_em, const double Z, const double T_elc, const double Lambda_ee,
+implicit_frictional_source_update_half(const gkyl_moment_em_coupling* mom_em, const double Z, const double Lambda_ee,
   double t_curr, const double dt, double* f_elc_old, double* f_ion_old, double* f_elc_new, double* f_ion_new,
   const double* app_accel_s[GKYL_MAX_SPECIES], double* em_old, double* em_new, const double* app_current, const double* ext_em);
 

@@ -20,7 +20,6 @@
 struct friction_ctx
 {
   // Physical constants (using normalized code units).
-  double vt; // Thermal velocity.
   double epsilon0; // Permittivity of free space.
   double mu0; // Permeability of free space.
   double mass_ion; // Ion mass.
@@ -30,12 +29,13 @@ struct friction_ctx
 
   double n_elc; // Electron number density.
   double n_ion; // Ion number density.
+  double vt_elc; // Electron thermal velocity.
+  double vt_ion; // Ion thermal velocity.
 
   double u_elc; // Electron velocity (x-direction).
   double u_ion; // Ion velocity (x-direction).
 
   double friction_Z; // Ionization number for frictional sources.
-  double friction_T_elc; // Electron temperature for frictional sources.
   double friction_Lambda_ee; // Electron-electron collisional term for frictional sources.
 
   // Derived physical quantities (using normalized code units).
@@ -60,7 +60,6 @@ struct friction_ctx
 create_ctx(void)
 {
   // Physical constants (using normalized code units).
-  double vt = 1.0; // Thermal velocity.
   double epsilon0 = 1.0; // Permittivity of free space.
   double mu0 = 1.0; // Permeability of free space.
   double mass_ion = 1.0; // Ion mass.
@@ -70,12 +69,15 @@ create_ctx(void)
 
   double n_elc = 1.0; // Electron number density.
   double n_ion = 1.0; // Ion number density.
+  double T_elc = 1.0; // Electron temperature.
+  double T_ion = 1.0; // Ion temperature.
+  double vt_elc = sqrt(T_elc/mass_elc); // Electron thermal velocity. 
+  double vt_ion = sqrt(T_ion/mass_ion); // Electron thermal velocity. 
 
   double u_elc = 0.1; // Electron velocity (x-direction).
   double u_ion = -0.1; // Ion velocity (x-direction).
 
   double friction_Z = 1.0; // Ionization number for frictional sources.
-  double friction_T_elc = 1.0; // Electron temperature for frictional sources.
   double friction_Lambda_ee = exp(1.0); // Electron-electron collisional term for frictional sources.
 
   // Derived physical quantities (using normalized code units).
@@ -90,13 +92,12 @@ create_ctx(void)
   double Lx = 1.0; // Domain size (x-direction).
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 5.0; // Final simulation time.
+  double t_end = 50.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct friction_ctx ctx = {
-    .vt = vt,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
     .mass_ion = mass_ion,
@@ -105,10 +106,11 @@ create_ctx(void)
     .charge_elc = charge_elc,
     .n_elc = n_elc,
     .n_ion = n_ion,
+    .vt_elc = vt_elc,
+    .vt_ion = vt_ion,
     .u_elc = u_elc,
     .u_ion = u_ion,
     .friction_Z = friction_Z,
-    .friction_T_elc = friction_T_elc,
     .friction_Lambda_ee = friction_Lambda_ee,
     .rho_elc = rho_elc,
     .rho_ion = rho_ion,
@@ -201,8 +203,8 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
   // Electron/ion equations.
-  struct gkyl_wv_eqn *elc_iso_euler = gkyl_wv_iso_euler_new(ctx.vt);
-  struct gkyl_wv_eqn *ion_iso_euler = gkyl_wv_iso_euler_new(ctx.vt);
+  struct gkyl_wv_eqn *elc_iso_euler = gkyl_wv_iso_euler_new(ctx.vt_elc);
+  struct gkyl_wv_eqn *ion_iso_euler = gkyl_wv_iso_euler_new(ctx.vt_ion);
 
   struct gkyl_moment_species elc = {
     .name = "elc",
@@ -215,7 +217,6 @@ main(int argc, char **argv)
     .has_friction = true,
     .use_explicit_friction = true,
     .friction_Z = ctx.friction_Z,
-    .friction_T_elc = ctx.friction_T_elc,
     .friction_Lambda_ee = ctx.friction_Lambda_ee,
   };
 
@@ -230,7 +231,6 @@ main(int argc, char **argv)
     .has_friction = true,
     .use_explicit_friction = true,
     .friction_Z = ctx.friction_Z,
-    .friction_T_elc = ctx.friction_T_elc,
     .friction_Lambda_ee = ctx.friction_Lambda_ee,
   };
 

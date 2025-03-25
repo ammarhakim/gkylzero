@@ -16,16 +16,30 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     // linear ramping function for slowing turning on applied accelerations, E fields, or currents
     .t_ramp_E = app->field.t_ramp_E ? app->field.t_ramp_E : 0.0,
     .t_ramp_curr = app->field.t_ramp_curr ? app->field.t_ramp_curr : 0.0,
+    // Check for multiplicative collisionality factor, default is 1.0
+    .coll_fac = app->coll_fac == 0 ? 1.0 : app->coll_fac,
+    .no_mag_fit = app->no_mag_fit, 
   };
 
-  for (int i=0; i<app->num_species; ++i)
+  for (int i=0; i<app->num_species; ++i) {
+    // Friction/resistivity depend on pressure and coefficient to obtain
+    // pressure is different for different equation systems (gasGamma, vt, Tr(P))
+    double p_fac = 1.0;
+    if (app->species[i].eqn_type == GKYL_EQN_EULER) {
+      p_fac =  gkyl_wv_euler_gas_gamma(app->species[i].equation);
+    }
+    else if (app->species[i].eqn_type == GKYL_EQN_ISO_EULER) {
+      p_fac =  gkyl_wv_iso_euler_vt(app->species[i].equation);
+    }
     src_inp.param[i] = (struct gkyl_moment_em_coupling_data) {
       .type = app->species[i].eqn_type,
       .charge = app->species[i].charge,
       .mass = app->species[i].mass,
+      .p_fac = p_fac,
       // If gradient-based closure is present, k0=0.0 in source solve to avoid applying local closure
       .k0 = app->species[i].has_grad_closure ? 0.0 : app->species[i].k0,
     };
+  }
 
   src_inp.has_collision = app->has_collision;
   for (int s=0; s<app->num_species; ++s)
@@ -50,7 +64,6 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
 
       if (app->species[i].friction_Z != 0.0 || app->species[i].friction_T_elc != 0.0 || app->species[i].friction_Lambda_ee != 0.0) {
         src_inp.friction_Z = app->species[i].friction_Z;
-        src_inp.friction_T_elc = app->species[i].friction_T_elc;
         src_inp.friction_Lambda_ee = app->species[i].friction_Lambda_ee;
       }
     }

@@ -69,8 +69,9 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
   if (mom_em->has_frictional_sources) {
     mom_em->use_explicit_friction = inp.use_explicit_friction;
     mom_em->friction_Z = inp.friction_Z;
-    mom_em->friction_T_elc = inp.friction_T_elc;
     mom_em->friction_Lambda_ee = inp.friction_Lambda_ee;
+    mom_em->coll_fac = inp.coll_fac; 
+    mom_em->no_mag_fit = inp.no_mag_fit; 
   }
 
   mom_em->has_volume_sources = inp.has_volume_sources;

@@ -5,6 +5,8 @@
 #include <gkyl_sources_explicit.h>
 #include <gkyl_source_utils.h>
 #include <gkyl_moment_em_coupling_priv.h>
+#include <gkyl_moment_non_ideal_priv.h>
+#include <gkyl_wv_euler_priv.h>
 #include <gkyl_mat.h>
 
 void
@@ -326,22 +328,31 @@ implicit_collision_source_update(const gkyl_moment_em_coupling* mom_em, double d
 }
 
 void
-implicit_frictional_source_update_half(const gkyl_moment_em_coupling* mom_em, const double Z, const double T_elc, const double Lambda_ee,
+implicit_frictional_source_update_half(const gkyl_moment_em_coupling* mom_em, const double Z, const double Lambda_ee,
   double t_curr, const double dt, double* f_elc_old, double* f_ion_old, double* f_elc_new, double* f_ion_new,
   const double* app_accel_s[GKYL_MAX_SPECIES], double* em_old, double* em_new, const double* app_current, const double* ext_em)
 {
   int nfluids = mom_em->nfluids;
   double pi = M_PI;
+  double coll_fac = mom_em->coll_fac; 
+  double alpha_par = 1.0; 
+  if (mom_em->no_mag_fit) {
+    alpha_par = 1.0 - (pow(Z, 2.0 / 3.0) / ((1.46 * pow(Z, 2.0 / 3.0)) - (0.33 * pow (Z, 1.0 / 3.0)) + 0.888));
+  }
 
   if (nfluids == 2) {
-    double mass_elc = mom_em->param[0].mass;
-    double mass_ion = mom_em->param[1].mass;
-    double charge_elc = mom_em->param[0].charge;
-    double charge_ion = mom_em->param[1].charge;
+    // Grab indices of electron and ion fluid arrays
+    int ELC = mom_em->param[0].charge < 0.0 ? 0 : 1;
+    int ION = (ELC + 1) % 2;
+
+    double charge_elc = mom_em->param[ELC].charge;
+    double mass_elc = mom_em->param[ELC].mass;
+    double charge_ion = mom_em->param[ION].charge;
+    double mass_ion = mom_em->param[ION].mass;
     double epsilon0 = mom_em->epsilon0;
 
-    const double *app_accel_elc = app_accel_s[0];
-    const double *app_accel_ion = app_accel_s[1];
+    const double *app_accel_elc = app_accel_s[ELC];
+    const double *app_accel_ion = app_accel_s[ION];
 
     double Ex = em_old[0] + ext_em[0];
     double Ey = em_old[1] + ext_em[1];
@@ -364,9 +375,28 @@ implicit_frictional_source_update_half(const gkyl_moment_em_coupling* mom_em, co
     double s_elc = sigma_elc / rho_elc;
     double s_ion = sigma_ion / rho_ion;
 
-    double tau_ei = (1.0 / Z) * ((3.0 * sqrt(mass_elc) * ((4.0 * pi * epsilon0) * (4.0 * pi * epsilon0)) * pow(T_elc, 3.0 / 2.0)) /
-      (4.0 * sqrt(2.0 * pi) * n_elc * exp(4.0) * log(Lambda_ee)));
-    double alpha_par = 1.0 - (pow(Z, 2.0 / 3.0) / ((1.46 * pow(Z, 2.0 / 3.0)) - (0.33 * pow (Z, 1.0 / 3.0)) + 0.888));
+    // Pressure information is different for each equation type
+    // Euler needs to divide out gas_gamma factor to obtain pressure
+    // isothermal Euler input is vth, pressure = rho*vth^2
+    double p_elc;
+    if (mom_em->param[ELC].type == GKYL_EQN_EULER) {
+      p_elc = gkyl_euler_pressure(mom_em->param[ELC].p_fac, f_elc_old);
+    } 
+    else if (mom_em->param[ELC].type == GKYL_EQN_ISO_EULER) {
+      p_elc = rho_elc * mom_em->param[ELC].p_fac * mom_em->param[ELC].p_fac;     
+    }
+    double p_ion; 
+    if (mom_em->param[ION].type == GKYL_EQN_EULER) {
+      p_ion = gkyl_euler_pressure(mom_em->param[ION].p_fac, f_ion_old);
+    } 
+    else if (mom_em->param[ION].type == GKYL_EQN_ISO_EULER) {
+      p_ion = rho_ion * mom_em->param[ION].p_fac * mom_em->param[ION].p_fac;     
+    }
+
+    double T_elc = p_elc/n_elc; 
+    double T_ion = p_ion/n_ion;
+    double tau_ei = calc_tau(log(Lambda_ee), mom_em->coll_fac, epsilon0, 
+      charge_elc, charge_ion, mass_elc, mass_ion, rho_ion, T_elc); 
 
     double A_ee = 1.0 + ((0.5 * dt) * (1.0 / tau_ei) * alpha_par);
     double A_ei = -(0.5 * dt) * (1.0 / tau_ei) * alpha_par;
@@ -447,7 +477,6 @@ implicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, double 
     double *f_ion = fluid_s[1];
 
     double Z = mom_em->friction_Z;
-    double T_elc = mom_em->friction_T_elc;
     double Lambda_ee = mom_em->friction_Lambda_ee;
 
     double f_elc_stage1[5], f_elc_new[5];
@@ -464,9 +493,11 @@ implicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, double 
       em_old[i] = em[i];
     }
 
-    implicit_frictional_source_update_half(mom_em, Z, T_elc, Lambda_ee, t_curr, dt, f_elc_old, f_ion_old, f_elc_stage1, f_ion_stage1,
+    implicit_frictional_source_update_half(mom_em, Z, Lambda_ee, t_curr, dt, 
+      f_elc_old, f_ion_old, f_elc_stage1, f_ion_stage1,
       app_accel_s, em_old, em_stage1, app_current, ext_em);
-    implicit_frictional_source_update_half(mom_em, Z, T_elc, Lambda_ee, t_curr + (0.5 * dt), dt, f_elc_stage1, f_ion_stage1, f_elc_new, f_ion_new,
+    implicit_frictional_source_update_half(mom_em, Z, Lambda_ee, t_curr + (0.5 * dt), dt, 
+    f_elc_stage1, f_ion_stage1, f_elc_new, f_ion_new,
       app_accel_s, em_stage1, em_new, app_current, ext_em);
 
     for (int i = 0; i < 5; i++) {

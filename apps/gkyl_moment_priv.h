@@ -244,6 +244,7 @@ struct gkyl_moment_app {
 
   bool has_braginskii; // has Braginskii transport
   double coll_fac; // multiplicative collisionality factor for Braginskii  
+  bool no_mag_fit; // Use the fit for the friction coefficient in the unmagnetized limit. 
 
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions

@@ -153,7 +153,8 @@ struct gkyl_moment {
   bool has_nT_sources;
 
   bool has_braginskii; // has Braginskii transport
-  double coll_fac; // multiplicative collisionality factor for Braginskii  
+  double coll_fac; // multiplicative collisionality factor for Braginskii and friction/resistivity.
+  bool no_mag_fit; // Use the fit for the friction coefficient in the unmagnetized limit.  
 
   struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
 };
