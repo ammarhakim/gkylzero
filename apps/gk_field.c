@@ -358,7 +358,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       1, GKYL_ARRAY_INTEGRATE_OP_SQ, app->use_gpu);
   }
   else {
-    if (!f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
+    if ( (!f->gkfield_id) == (GKYL_GK_FIELD_BOLTZMANN) )
       gkyl_array_set(f->es_energy_fac, 0.5, f->epsilon);
 
     f->calc_em_energy = gkyl_array_integrate_new(&app->grid, &app->basis, 
