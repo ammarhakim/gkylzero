@@ -15,20 +15,20 @@ GKYL_CU_DH void ambi_bolt_potential_sheath_calc_lower_1x_ser_p2(double sheathDir
   GammaJacIonB[0] = 0.7905694150420947*GammaJac_i[2]*sheathDirDx+0.6123724356957944*GammaJac_i[1]*sheathDirDx+0.3535533905932737*GammaJac_i[0]*sheathDirDx; 
 
   double m0JacIonB[1];
-  m0JacIonB[0] = 1.58113883008419*m0JacIon[2]-1.224744871391589*m0JacIon[1]+0.7071067811865475*m0JacIon[0]; 
+  m0JacIonB[0] = 1.5811388300841895*m0JacIon[2]-1.224744871391589*m0JacIon[1]+0.7071067811865475*m0JacIon[0]; 
 
   // Particle number density evaluate at the sheath entrance
-  out[0] = 0.031943828249997*((53.75872022286246*jacInv[2]-34.2928563989645*jacInv[1]+49.49747468305833*jacInv[0])*m0JacIon[2]+(49.49747468305833*m0JacIon[0]-34.2928563989645*m0JacIon[1])*jacInv[2]+(66.40783086353598*jacInv[1]-38.34057902536163*jacInv[0])*m0JacIon[1]+m0JacIon[0]*(22.13594362117866*jacInv[0]-38.34057902536163*jacInv[1])); 
+  out[0] = 0.031943828249996996*((53.75872022286246*jacInv[2]-34.292856398964496*jacInv[1]+49.49747468305833*jacInv[0])*m0JacIon[2]+(49.49747468305833*m0JacIon[0]-34.292856398964496*m0JacIon[1])*jacInv[2]+(66.40783086353598*jacInv[1]-38.34057902536163*jacInv[0])*m0JacIon[1]+m0JacIon[0]*(22.135943621178658*jacInv[0]-38.34057902536163*jacInv[1])); 
 
   double phiS_qp[1];
   if ((isfinite(GammaJacIonB[0]/2)) && (GammaJacIonB[0]/2>0.) && (m0JacIonB[0]/2>0.)) {
-    phiS_qp[0] = (T_e*log((2.506628274631001*GammaJacIonB[0])/(m0JacIonB[0]*sqrt(T_e/m_e))))/q_e;
+    phiS_qp[0] = (T_e*log((2.5066282746310007*GammaJacIonB[0])/(m0JacIonB[0]*sqrt(T_e/m_e))))/q_e;
   } else {
     phiS_qp[0] = 0.0;
   }
 
   // Sheath potential
-  out[3] = 1.414213562373095*phiS_qp[0]; 
+  out[3] = 1.4142135623730951*phiS_qp[0]; 
 
 }
 
@@ -47,20 +47,20 @@ GKYL_CU_DH void ambi_bolt_potential_sheath_calc_upper_1x_ser_p2(double sheathDir
   GammaJacIonB[0] = 0.7905694150420947*GammaJac_i[2]*sheathDirDx-0.6123724356957944*GammaJac_i[1]*sheathDirDx+0.3535533905932737*GammaJac_i[0]*sheathDirDx; 
 
   double m0JacIonB[1];
-  m0JacIonB[0] = 1.58113883008419*m0JacIon[2]+1.224744871391589*m0JacIon[1]+0.7071067811865475*m0JacIon[0]; 
+  m0JacIonB[0] = 1.5811388300841895*m0JacIon[2]+1.224744871391589*m0JacIon[1]+0.7071067811865475*m0JacIon[0]; 
 
   // Particle number density evaluate at the sheath entrance
-  out[0] = 0.031943828249997*((53.75872022286246*jacInv[2]+34.2928563989645*jacInv[1]+49.49747468305833*jacInv[0])*m0JacIon[2]+(34.2928563989645*m0JacIon[1]+49.49747468305833*m0JacIon[0])*jacInv[2]+(66.40783086353598*jacInv[1]+38.34057902536163*jacInv[0])*m0JacIon[1]+m0JacIon[0]*(38.34057902536163*jacInv[1]+22.13594362117866*jacInv[0])); 
+  out[0] = 0.031943828249996996*((53.75872022286246*jacInv[2]+34.292856398964496*jacInv[1]+49.49747468305833*jacInv[0])*m0JacIon[2]+(34.292856398964496*m0JacIon[1]+49.49747468305833*m0JacIon[0])*jacInv[2]+(66.40783086353598*jacInv[1]+38.34057902536163*jacInv[0])*m0JacIon[1]+m0JacIon[0]*(38.34057902536163*jacInv[1]+22.135943621178658*jacInv[0])); 
 
   double phiS_qp[1];
   if ((isfinite(GammaJacIonB[0]/2)) && (GammaJacIonB[0]/2>0.) && (m0JacIonB[0]/2>0.)) {
-    phiS_qp[0] = (T_e*log((2.506628274631001*GammaJacIonB[0])/(m0JacIonB[0]*sqrt(T_e/m_e))))/q_e;
+    phiS_qp[0] = (T_e*log((2.5066282746310007*GammaJacIonB[0])/(m0JacIonB[0]*sqrt(T_e/m_e))))/q_e;
   } else {
     phiS_qp[0] = 0.0;
   }
 
   // Sheath potential
-  out[3] = 1.414213562373095*phiS_qp[0]; 
+  out[3] = 1.4142135623730951*phiS_qp[0]; 
 
 }
 
@@ -76,15 +76,15 @@ GKYL_CU_DH void ambi_bolt_potential_phi_calc_1x_ser_p2(double q_e, double T_e, c
   double m0Ion[3];
   m0Ion[0] = 0.7071067811865475*jacInv[2]*m0JacIon[2]+0.7071067811865475*jacInv[1]*m0JacIon[1]+0.7071067811865475*jacInv[0]*m0JacIon[0]; 
   m0Ion[1] = 0.6324555320336759*jacInv[1]*m0JacIon[2]+0.6324555320336759*m0JacIon[1]*jacInv[2]+0.7071067811865475*jacInv[0]*m0JacIon[1]+0.7071067811865475*m0JacIon[0]*jacInv[1]; 
-  m0Ion[2] = 0.4517539514526256*jacInv[2]*m0JacIon[2]+0.7071067811865475*jacInv[0]*m0JacIon[2]+0.7071067811865475*m0JacIon[0]*jacInv[2]+0.6324555320336759*jacInv[1]*m0JacIon[1]; 
+  m0Ion[2] = 0.45175395145262565*jacInv[2]*m0JacIon[2]+0.7071067811865475*jacInv[0]*m0JacIon[2]+0.7071067811865475*m0JacIon[0]*jacInv[2]+0.6324555320336759*jacInv[1]*m0JacIon[1]; 
 
   double phi_qp[3];
-  phi_qp[0] = (-(1.0*log((-(3.0*m0Ion[1])/(2.0*sheathvals[2]-3.0*sheathvals[1]+2.23606797749979*sheathvals[0]))+(1.414213562373095*m0Ion[2])/(1.414213562373095*sheathvals[2]-2.121320343559642*sheathvals[1]+1.58113883008419*sheathvals[0])+m0Ion[0]/(0.8944271909999159*sheathvals[2]-1.341640786499874*sheathvals[1]+sheathvals[0]))*T_e)/q_e)+0.6324555320336759*sheathvals[5]-0.9486832980505137*sheathvals[4]+0.7071067811865475*sheathvals[3]; 
-  phi_qp[1] = (-(1.0*log(m0Ion[0]/(sheathvals[0]-1.118033988749895*sheathvals[2])-(2.23606797749979*m0Ion[2])/(2.0*sheathvals[0]-2.23606797749979*sheathvals[2]))*T_e)/q_e)-0.7905694150420947*sheathvals[5]+0.7071067811865475*sheathvals[3]; 
-  phi_qp[2] = (-(1.0*log((3.0*m0Ion[1])/(2.0*sheathvals[2]+3.0*sheathvals[1]+2.23606797749979*sheathvals[0])+(1.414213562373095*m0Ion[2])/(1.414213562373095*sheathvals[2]+2.121320343559642*sheathvals[1]+1.58113883008419*sheathvals[0])+m0Ion[0]/(0.8944271909999159*sheathvals[2]+1.341640786499874*sheathvals[1]+sheathvals[0]))*T_e)/q_e)+0.6324555320336759*sheathvals[5]+0.9486832980505137*sheathvals[4]+0.7071067811865475*sheathvals[3]; 
+  phi_qp[0] = -((1.0*log(-((3.0*m0Ion[1])/(2.0*sheathvals[2]-3.0*sheathvals[1]+2.23606797749979*sheathvals[0]))+(1.4142135623730951*m0Ion[2])/(1.4142135623730951*sheathvals[2]-2.1213203435596424*sheathvals[1]+1.5811388300841895*sheathvals[0])+m0Ion[0]/(0.8944271909999159*sheathvals[2]-1.3416407864998738*sheathvals[1]+sheathvals[0]))*T_e)/q_e)+0.6324555320336759*sheathvals[5]-0.9486832980505137*sheathvals[4]+0.7071067811865475*sheathvals[3]; 
+  phi_qp[1] = -((1.0*log(m0Ion[0]/(sheathvals[0]-1.118033988749895*sheathvals[2])-(2.23606797749979*m0Ion[2])/(2.0*sheathvals[0]-2.23606797749979*sheathvals[2]))*T_e)/q_e)-0.7905694150420947*sheathvals[5]+0.7071067811865475*sheathvals[3]; 
+  phi_qp[2] = -((1.0*log((3.0*m0Ion[1])/(2.0*sheathvals[2]+3.0*sheathvals[1]+2.23606797749979*sheathvals[0])+(1.4142135623730951*m0Ion[2])/(1.4142135623730951*sheathvals[2]+2.1213203435596424*sheathvals[1]+1.5811388300841895*sheathvals[0])+m0Ion[0]/(0.8944271909999159*sheathvals[2]+1.3416407864998738*sheathvals[1]+sheathvals[0]))*T_e)/q_e)+0.6324555320336759*sheathvals[5]+0.9486832980505137*sheathvals[4]+0.7071067811865475*sheathvals[3]; 
 
-  phi[0] = 0.392837100659193*phi_qp[2]+0.6285393610547091*phi_qp[1]+0.392837100659193*phi_qp[0]; 
+  phi[0] = 0.39283710065919303*phi_qp[2]+0.6285393610547091*phi_qp[1]+0.39283710065919303*phi_qp[0]; 
   phi[1] = 0.5270462766947298*phi_qp[2]-0.5270462766947298*phi_qp[0]; 
-  phi[2] = 0.3513641844631533*phi_qp[2]-0.7027283689263066*phi_qp[1]+0.3513641844631533*phi_qp[0]; 
+  phi[2] = 0.35136418446315326*phi_qp[2]-0.7027283689263066*phi_qp[1]+0.35136418446315326*phi_qp[0]; 
 }
 
