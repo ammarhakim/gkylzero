@@ -32,7 +32,7 @@ struct gk_app_ctx {
     double nuFrac, nuElc, nuIon;
     // Source parameters
     double num_sources;
-    double n_srcOMP, x_srcOMP, Te_srcOMP, Ti_srcOMP, sigma_srcOMP, power_src;
+    double n_srcCORE, x_srcCORE, Te_srcCORE, Ti_srcCORE, sigma_srcCORE, power_src;
     double n_srcRECY, x_srcRECY, Te_srcRECY, Ti_srcRECY, sigmax_srcRECY, sigmaz_srcRECY, floor_src;
     bool adaptive_source;
     char adapt_mom_type [26]; // Type of adaptive moment for the source
@@ -53,9 +53,9 @@ struct gk_app_ctx {
 static double r_x(double x, double a_mid, double x_inner);
 static double qprofile(double r, double R_axis);
 static void zero_func(double t, const double *xn, double *fout, void *ctx);
-static void density_srcOMP(double t, const double *xn, double *fout, void *ctx);
-static void temp_elc_srcOMP(double t, const double *xn, double *fout, void *ctx);
-static void temp_ion_srcOMP(double t, const double *xn, double *fout, void *ctx);
+static void density_srcCORE(double t, const double *xn, double *fout, void *ctx);
+static void temp_elc_srcCORE(double t, const double *xn, double *fout, void *ctx);
+static void temp_ion_srcCORE(double t, const double *xn, double *fout, void *ctx);
 static void density_srcRECY(double t, const double *xn, double *fout, void *ctx);
 static void temp_elc_srcRECY(double t, const double *xn, double *fout, void *ctx);
 static void temp_ion_srcRECY(double t, const double *xn, double *fout, void *ctx);
@@ -143,21 +143,21 @@ struct gk_app_ctx create_ctx(void)
     (12 * pow(M_PI,3./2.) * pow(eps0,2) * sqrt(mi) * pow(Ti0,3./2.));
 
   // Source parameters
-  double num_sources = 1;
+  double num_sources = 1; // We do not activate the recycling source here.
   bool adaptive_source = true;
   char adapt_mom_type [26];
   strcpy(adapt_mom_type, "M2");
-  double adapt_mom_rate_target = 0.5e6; // Input power of the source in W (we put 600kw because the recy source is ~100)
-  // OMP source parameters
-  double n_srcOMP = 0.75*2.4e23;
-  double x_srcOMP = x_min;
-  double Te_srcOMP = 3*Te0;
-  double Ti_srcOMP = 3*Ti0;
-  double sigma_srcOMP = 0.03*Lx;
+  double adapt_mom_rate_target = 0.5e6; // Input power of the source in W.
+  // Core source parameters
+  double n_srcCORE = 2.4e23;
+  double x_srcCORE = x_min;
+  double Te_srcCORE = 3*Te0;
+  double Ti_srcCORE = 3*Ti0;
+  double sigma_srcCORE = 0.03*Lx;
   double floor_src = 1e-2;
   double power_src = 0.5e6;
   // Recycling source parameters
-  double n_srcRECY = 0.99*n_srcOMP;
+  double n_srcRECY = 0.99*n_srcCORE;
   double x_srcRECY = 0.5*x_LCFS;
   double Te_srcRECY = 20*eV;
   double Ti_srcRECY = 20*eV;
@@ -210,11 +210,11 @@ struct gk_app_ctx create_ctx(void)
     .num_sources = num_sources,
     .adaptive_source = adaptive_source,
     .adapt_mom_rate_target = adapt_mom_rate_target,
-    .n_srcOMP     = n_srcOMP    ,
-    .x_srcOMP     = x_srcOMP    ,
-    .Te_srcOMP    = Te_srcOMP   ,
-    .Ti_srcOMP    = Ti_srcOMP   ,
-    .sigma_srcOMP = sigma_srcOMP,
+    .n_srcCORE     = n_srcCORE    ,
+    .x_srcCORE     = x_srcCORE    ,
+    .Te_srcCORE    = Te_srcCORE   ,
+    .Ti_srcCORE    = Ti_srcCORE   ,
+    .sigma_srcCORE = sigma_srcCORE,
     .n_srcRECY     = n_srcRECY    ,
     .x_srcRECY     = x_srcRECY    ,
     .Te_srcRECY    = Te_srcRECY   ,
@@ -285,14 +285,14 @@ main(int argc, char **argv)
       .type = GKYL_GK_FLR_PADE_CONST,
       .Tperp = 2*ctx.Te0 //200eV
     },
-*/
+//*/
 
 /*
     .init_from_file = {
        .type = GKYL_IC_IMPORT_F,
        .file_name = "restart_24x12_1.2ms-elc.gkyl"
     },
-*/  
+//*/  
     .mapc2p = {
       .mapping = mapc2p_vel_elc,
       .ctx = &ctx,
@@ -319,15 +319,14 @@ main(int argc, char **argv)
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = ctx.num_sources,
-      .evolve = true,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
         .ctx_density = &ctx,
         .ctx_upar = &ctx,
         .ctx_temp = &ctx,
-        .density = density_srcOMP,
+        .density = density_srcCORE,
         .upar = zero_func,
-        .temp = temp_elc_srcOMP,
+        .temp = temp_elc_srcCORE,
       },
       .projection[1] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
@@ -384,13 +383,13 @@ main(int argc, char **argv)
       .type = GKYL_GK_FLR_PADE_CONST,
       .Tperp = 2*ctx.Ti0 //200eV
     },
-*/
+//*/
 /*
     .init_from_file = {
        .type = GKYL_IC_IMPORT_F,
        .file_name = "restart_24x12_1.2ms-ion.gkyl"
     },
-*/
+//*/
     .mapc2p = {
       .mapping = mapc2p_vel_ion,
       .ctx = &ctx,
@@ -417,15 +416,14 @@ main(int argc, char **argv)
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = ctx.num_sources,
-      .evolve = true,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
         .ctx_density = &ctx,
         .ctx_upar = &ctx,
         .ctx_temp = &ctx,
-        .density = density_srcOMP,
+        .density = density_srcCORE,
         .upar = zero_func,
-        .temp = temp_ion_srcOMP,
+        .temp = temp_ion_srcCORE,
       },
       .projection[1] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
@@ -498,7 +496,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_geometry geometry = {
     .geometry_id = GKYL_MAPC2P,
     .world = {0.},
-    .mapc2p = mapc2p, // mapping of computational to physical space
+    .mapc2p = mapc2p, // mapping of cCOREutational to physical space
     .c2p_ctx = &ctx,
     .bmag_func = bmag_func, // magnetic field magnitude
     .bmag_ctx = &ctx    
@@ -524,7 +522,7 @@ main(int argc, char **argv)
   struct gkyl_gk *gk = gkyl_malloc(sizeof *gk);
   memset(gk, 0, sizeof(*gk));
 
-  strcpy(gk->name, "rt_gk_tcv_iwl_3x2v_p1");
+  strcpy(gk->name, "rt_gk_tcv_nt_iwl_3x2v_p1");
 
   gk->cfl_frac_omegaH = 1.0e9;
   gk->cfl_frac = 1.0;
@@ -666,7 +664,7 @@ main(int argc, char **argv)
   gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   freeresources:
-  // simulation complete, free app
+  // simulation cCORElete, free app
   gkyl_gyrokinetic_app_release(app);
   gkyl_gyrokinetic_comms_release(comm);
 
@@ -821,46 +819,46 @@ void zero_func(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 }
 
 // Source functions
-void density_srcOMP(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+void density_srcCORE(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], z = xn[2];
 
   struct gk_app_ctx *app = ctx;
-  double n_srcOMP = app->n_srcOMP;
-  double x_srcOMP = app->x_srcOMP;
-  double sigma_srcOMP = app->sigma_srcOMP;
+  double n_srcCORE = app->n_srcCORE;
+  double x_srcCORE = app->x_srcCORE;
+  double sigma_srcCORE = app->sigma_srcCORE;
   double floor_src = app->floor_src;
 
-  fout[0] = n_srcOMP*(exp(-(pow(x-x_srcOMP,2))/(2.*pow(sigma_srcOMP,2)))+floor_src);
+  fout[0] = n_srcCORE*(exp(-(pow(x-x_srcCORE,2))/(2.*pow(sigma_srcCORE,2)))+floor_src);
 }
-void temp_elc_srcOMP(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+void temp_elc_srcCORE(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], z = xn[2];
 
   struct gk_app_ctx *app = ctx;
-  double x_srcOMP = app->x_srcOMP;
-  double sigma_srcOMP = app->sigma_srcOMP;
-  double Te_srcOMP = app->Te_srcOMP;
+  double x_srcCORE = app->x_srcCORE;
+  double sigma_srcCORE = app->sigma_srcCORE;
+  double Te_srcCORE = app->Te_srcCORE;
 
-  if (x < x_srcOMP + 3*sigma_srcOMP) {
-    fout[0] = Te_srcOMP;
+  if (x < x_srcCORE + 3*sigma_srcCORE) {
+    fout[0] = Te_srcCORE;
   } else {
-    fout[0] = Te_srcOMP*3./8.;
+    fout[0] = Te_srcCORE*3./8.;
   }
 }
-void temp_ion_srcOMP(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+void temp_ion_srcCORE(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], z = xn[2];
 
   struct gk_app_ctx *app = ctx;
-  double x_srcOMP = app->x_srcOMP;
-  double sigma_srcOMP = app->sigma_srcOMP;
-  double Ti_srcOMP = app->Ti_srcOMP;
+  double x_srcCORE = app->x_srcCORE;
+  double sigma_srcCORE = app->sigma_srcCORE;
+  double Ti_srcCORE = app->Ti_srcCORE;
 
-  if (x < x_srcOMP + 3*sigma_srcOMP) {
-    fout[0] = Ti_srcOMP;
+  if (x < x_srcCORE + 3*sigma_srcCORE) {
+    fout[0] = Ti_srcCORE;
   } else {
-    fout[0] = Ti_srcOMP*3./8.;
+    fout[0] = Ti_srcCORE*3./8.;
   }
 }
 // Recycling source
