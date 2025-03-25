@@ -135,6 +135,14 @@ evalIonUparInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 }
 
 static inline void
+nonuniform_position_map_z(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void* ctx)
+{
+  struct boundary_ctx *app = ctx;
+  double z = zc[0];
+  xp[0] = z - 0.1 * sin(z * 2 * M_PI/(app->Lz));
+}
+
+static inline void
 mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void* ctx)
 {
   // Set physical coordinates (X, Y, Z) from computational coordinates (x, y, z).
@@ -325,7 +333,7 @@ main(int argc, char **argv)
 
   // Gyrokinetic app.
   struct gkyl_gk app_inp = {
-    .name = "gk_boundary_flux_1x2v_p1",
+    .name = "gk_boundary_flux_1x2v_p1_nux_center",
 
     .cdim = 1, .vdim = 2,
     .lower = { -ctx.Lz/2.0 },
@@ -343,7 +351,12 @@ main(int argc, char **argv)
       .c2p_ctx = &ctx,
       .bmag_func = bmag_func,
       .bmag_ctx = &ctx,
+      .position_map_info = {
+        .maps[2] = nonuniform_position_map_z,
+        .ctxs[2] = &ctx,
+      },
     },
+
 
     .num_periodic_dir = 0,
     .periodic_dirs = { },
