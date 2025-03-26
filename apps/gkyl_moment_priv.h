@@ -243,7 +243,8 @@ struct gkyl_moment_app {
   bool use_hybrid_flux_kep;
 
   bool has_braginskii; // has Braginskii transport
-  double coll_fac; // multiplicative collisionality factor for Braginskii  
+  double coll_fac; // Multiplicative collisionality factor for Braginskii.
+  double T_elc_ref; // Reference electron temperature for normalized collision time computation.   
   bool no_mag_fit; // Use the fit for the friction coefficient in the unmagnetized limit. 
 
   int num_periodic_dir; // number of periodic directions

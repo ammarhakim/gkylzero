@@ -181,9 +181,11 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
 
   // Are we running with Braginskii transport?
   app->has_braginskii = mom->has_braginskii;
-  // Collisionality factor and special fitting parameter for
-  // Braginskii transport and/or friction/resistivity. 
+  // Collisionality factor, reference electron temperature, 
+  // and special fitting parameter for Braginskii transport 
+  // and/or friction/resistivity. 
   app->coll_fac = mom->coll_fac;
+  app->T_elc_ref = mom->T_elc_ref;
   app->no_mag_fit = mom->no_mag_fit; 
 
   int ns = app->num_species = mom->num_species;

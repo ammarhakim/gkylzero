@@ -36,6 +36,7 @@ struct gkyl_moment_em_coupling {
   bool use_explicit_friction; // Use an explicit (SSP-RK3) solver for integrating frictional sources.
   double friction_Z; // Ionization number for frictional sources.
   double friction_Lambda_ee; // Electron-electron collisional terms for frictional sources.
+  double T_elc_ref; // Reference electron temperature for normalized collision time computation. 
   double coll_fac; // Friction scaling factor (needed in normalized units for ratio of collisional time to normalized time).
   bool no_mag_fit; // Use the fit for the friction coefficient in the unmagnetized limit. 
 

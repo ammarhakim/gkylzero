@@ -2362,6 +2362,7 @@ mom_app_new(lua_State *L)
 
   mom.has_braginskii = glua_tbl_get_bool(L, "hasBraginskii", false);
   mom.coll_fac = glua_tbl_get_number(L, "collisionFactor", 0.0);
+  mom.T_elc_ref = glua_tbl_get_number(L, "referenceElcTemp", 0.0);
   mom.no_mag_fit = glua_tbl_get_bool(L, "noMagFit", false);
 
   // mapc2p function.

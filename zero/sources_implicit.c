@@ -395,8 +395,9 @@ implicit_frictional_source_update_half(const gkyl_moment_em_coupling* mom_em, co
 
     double T_elc = p_elc/n_elc; 
     double T_ion = p_ion/n_ion;
+    double T_elc_norm = T_elc/mom_em->T_elc_ref; // Normalize electron temperature to reference value. 
     double tau_ei = calc_tau(log(Lambda_ee), mom_em->coll_fac, epsilon0, 
-      charge_elc, charge_ion, mass_elc, mass_ion, rho_ion, T_elc); 
+      charge_elc, charge_ion, mass_elc, mass_ion, rho_ion, T_elc_norm); 
 
     double A_ee = 1.0 + ((0.5 * dt) * (1.0 / tau_ei) * alpha_par);
     double A_ei = -(0.5 * dt) * (1.0 / tau_ei) * alpha_par;

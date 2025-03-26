@@ -19,6 +19,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     // Check for multiplicative collisionality factor, default is 1.0
     .coll_fac = app->coll_fac == 0 ? 1.0 : app->coll_fac,
     .no_mag_fit = app->no_mag_fit, 
+    .T_elc_ref = app->T_elc_ref == 0 ? 1.0 : app->T_elc_ref,
   };
 
   for (int i=0; i<app->num_species; ++i) {

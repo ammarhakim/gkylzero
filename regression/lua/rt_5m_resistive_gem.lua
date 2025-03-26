@@ -33,7 +33,7 @@ beta = 1.0 -- Plasma beta.
 lambda = 0.5 * di -- Wavelength.
 omega_ci = charge_ion * B0 / mass_ion -- Ion cyclotron frequency. 
 friction_Z = 1.0; -- Ionization number for frictional sources.
-friction_Lambda_ee = 2.0e6; -- Electron-electron plasma parameter for computing Coulomb logarithm.
+friction_Lambda_ee = 1.0e4; -- Electron-electron plasma parameter for computing Coulomb logarithm.
 
 -- Derived physical quantities (using normalized code units).
 psi0 = 0.1 * B0 * di -- Reference magnetic scalar potential.
@@ -69,9 +69,12 @@ momentApp = Moments.App.new {
   cells = { Nx, Ny },
   cflFrac = cfl_frac,
 
-  -- collisional time is Lambda_ee/log(Lambda_ee) bigger 
-  -- than normalized time scale (inverse electron plasma frequency). 
+  -- Collision time is Lambda_ee/log(Lambda_ee) bigger than 
+  -- normalized time scale (inverse electron plasma frequency). 
   collisionFactor = friction_Lambda_ee, 
+  -- Set reference electron temperature to get Te^{3/2} scaling 
+  -- correct for collision time.
+  referenceElcTemp = Te_frac * T_tot, 
 
   -- Boundary conditions for configuration space.
   periodicDirs = { 1 }, -- Periodic directions (x-direction only).
