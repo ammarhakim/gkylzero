@@ -198,7 +198,7 @@ gk_species_bflux_get_flux_dynamic(struct gk_boundary_fluxes *bflux, int dir, enu
 
 static void
 gk_species_bflux_get_flux_mom_dynamic(struct gk_boundary_fluxes *bflux, int dir,
-  enum gkyl_edge_loc edge, char *mom_name, struct gkyl_array *out)
+  enum gkyl_edge_loc edge, const char *mom_name, struct gkyl_array *out)
 {
   int b = gk_species_bflux_idx(bflux, dir, edge);
   int mom_idx = -1;
@@ -214,13 +214,13 @@ gk_species_bflux_get_flux_mom_dynamic(struct gk_boundary_fluxes *bflux, int dir,
 
 static void
 gk_species_bflux_get_flux_mom_none(struct gk_boundary_fluxes *bflux, int dir,
-  enum gkyl_edge_loc edge, char *mom_name, struct gkyl_array *out)
+  enum gkyl_edge_loc edge, const char *mom_name, struct gkyl_array *out)
 {
 }
 
 void
 gk_species_bflux_get_flux_mom(struct gk_boundary_fluxes *bflux, int dir,
-  enum gkyl_edge_loc edge, char *mom_name, struct gkyl_array *out)
+  enum gkyl_edge_loc edge, const char *mom_name, struct gkyl_array *out)
 {
   bflux->bflux_get_flux_mom_func(bflux, dir, edge, mom_name, out);
 }
