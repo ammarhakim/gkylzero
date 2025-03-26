@@ -98,6 +98,11 @@ struct gkyl_gyrokinetic_source {
   int num_sources;
   bool evolve; // Whether the source is time dependent.
 
+  // Boundary flux source terms
+  double M0_target;
+  double M0_feedback_strength;
+  char source_species[128];
+
   // sources using projection routine
   struct gkyl_gyrokinetic_projection projection[GKYL_MAX_SOURCES];
 
@@ -1053,6 +1058,16 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
  */
 struct gkyl_app_restart_status
 gkyl_gyrokinetic_app_from_frame_neut_species(gkyl_gyrokinetic_app *app, int sidx, int frame);
+
+/**
+ * Initialize gyrokinetic source from file
+ *
+ * @param app App object
+ * @param sidx gk species index which the source belongs to
+ * @param frame frame to read
+ */
+struct gkyl_app_restart_status
+gkyl_gyrokinetic_app_from_frame_source(gkyl_gyrokinetic_app *app, int sidx, int frame);
 
 /**
  * Write output to console: this is mainly for diagnostic messages the
