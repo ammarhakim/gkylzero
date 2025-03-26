@@ -135,10 +135,10 @@ gk_neut_species_recycle_apply_bc(struct gkyl_gyrokinetic_app *app, const struct 
 
     // Calculate scaling factor from ratio of ion flux to unit-density flux.
     gkyl_dg_div_op_range(recyc->mem_geo, app->basis, 0, recyc->flux[i], 0, recyc->flux[i],
-    			 0, recyc->init_flux, recyc->emit_cbuff_r);
+      0, recyc->init_flux, recyc->emit_cbuff_r);
 
     gkyl_dg_mul_conf_phase_op_accumulate_range(&app->basis, &s->basis, recyc->f_emit, 1.0,
-     recyc->flux[i], recyc->spectrum[i], recyc->impact_cbuff_r[i], recyc->emit_buff_r);    
+      recyc->flux[i], recyc->spectrum[i], recyc->impact_cbuff_r[i], recyc->emit_buff_r);    
   }
 
   gkyl_array_set_range_to_range(fout, 1.0, recyc->f_emit, recyc->emit_ghost_r,
