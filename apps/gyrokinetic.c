@@ -969,12 +969,12 @@ gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app)
     if (rank == 0) {
       struct timespec wtm = gkyl_wall_clock();
       if (app->field->is_first_energy_write_call) {
-        // write to a new file (this ensure previous output is removed)
+        // Write to a new file (this ensure previous output is removed).
         gkyl_dynvec_write(app->field->integ_energy, fileNm0);
         app->field->is_first_energy_write_call = false;
       }
       else {
-        // append to existing file
+        // Append to existing file.
         gkyl_dynvec_awrite(app->field->integ_energy, fileNm0);
       }
       app->stat.field_diag_io_tm += gkyl_time_diff_now_sec(wtm);
@@ -995,12 +995,12 @@ gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app)
       if (rank == 0) {
         struct timespec wtm = gkyl_wall_clock();
         if (app->field->is_first_energy_dot_write_call) {
-          // write to a new file (this ensure previous output is removed)
+          // Write to a new file (this ensure previous output is removed).
           gkyl_dynvec_write(app->field->integ_energy_dot, fileNm1);
           app->field->is_first_energy_dot_write_call = false;
         }
         else {
-          // append to existing file
+          // Append to existing file.
           gkyl_dynvec_awrite(app->field->integ_energy_dot, fileNm1);
         }
         app->stat.field_diag_io_tm += gkyl_time_diff_now_sec(wtm);
