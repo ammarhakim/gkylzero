@@ -964,7 +964,7 @@ gk_species_bflux_release(const struct gkyl_gyrokinetic_app *app, const struct gk
       }
     }
 
-    if (num_diag_mom > 0) {
+    if (num_diag_int_mom > 0) {
       for (int m=0; m<num_diag_int_mom; m++) {
         gkyl_array_integrate_release(bflux->integ_op[m]);
         for (int b=0; b<bflux->num_boundaries; ++b)

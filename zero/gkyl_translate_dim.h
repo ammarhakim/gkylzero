@@ -10,9 +10,9 @@ typedef struct gkyl_translate_dim gkyl_translate_dim;
 /**
  * Create a new updater that translates the DG coefficients of a
  * donor field to those of a target field with a different
- * dimensionality.
+ * dimensionality by projecting onto the basis of the target field.
  *
- * For now this is meant for translating:
+ * For now this is meant for projecting:
  *   - 1x: x -> x,y
  *   - 2x:
  *       x,y -> x
@@ -25,6 +25,10 @@ typedef struct gkyl_translate_dim gkyl_translate_dim;
  *   - 1x2v z,vpar,mu -> 2x2v x,z,vpar,mu
  *   - 1x2v z,vpar,mu -> 3x2v x,y,z,vpar,mu
  *   - 2x2v x,z,vpar,mu -> 3x2v x,y,z,vpar,mu
+ * In downprojecting cases one must choose which dimension to remove
+ * via the 'dir' argument, in which case the (logical) variable in
+ * that direction is evaluated at -1,0 or 1 within a cell depending
+ * on the value of the 'edge' argument.
  *
  * @param cdim_do Configuration space dimension of the donor field.
  * @param basis_do Basis of the donor field.
@@ -41,8 +45,8 @@ gkyl_translate_dim_new(int cdim_do, struct gkyl_basis basis_do,
   enum gkyl_edge_loc edge, bool use_gpu);
 
 /**
- * Run the updater that translates the DG coefficients of a lower dimensional
- * donor field to those of a higher dimensional target field.
+ * Run the updater that translates the DG coefficients of a donor
+ * field to those of a target field of a different dimensionality.
  *
  * @param up Updater object. 
  * @param rng_do Range of the donor field.
