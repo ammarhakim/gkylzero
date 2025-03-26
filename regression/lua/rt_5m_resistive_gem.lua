@@ -1,6 +1,6 @@
 -- Geospace Environmental Modeling (GEM) magnetic reconnection test for the 5-moment equations.
--- Test includes explicit resistivity with input parameter coll_fac setting the ratio of the
--- collision time, tau_ei, to the inverse ion plasma frequency, omega_pi^{-1}. 
+-- Test includes explicit resistivity with input parameter collisionFactor setting the ratio of the
+-- collision time, tau_ei, to the inverse electron plasma frequency, omega_pe^{-1}. 
 -- Input parameters match the equilibrium and initial conditions in Section 2, from the article:
 -- J. Birn et al. (2001), "Geospace Environmental Modeling (GEM) Magnetic Reconnection Challenge",
 -- Journal of Geophysical Research: Space Physics, Volume 106 (A3): 3715-3719.
@@ -16,22 +16,27 @@ pi = math.pi
 gas_gamma = 5.0 / 3.0 -- Adiabatic index.
 epsilon0 = 1.0 -- Permittivity of free space.
 mu0 = 1.0 -- Permeability of free space.
-mass_ion = 1.0 -- Ion mass.
+light_speed = 1.0/math.sqrt(epsilon0*mu0) -- Speed of light. 
+mass_ion = 25.0 -- Ion mass.
 charge_ion = 1.0 -- Ion charge.
-mass_elc = 1.0 / 25.0 -- Electron mass.
+mass_elc = 1.0 -- Electron mass.
 charge_elc = -1.0 -- Electron charge.
 Ti_over_Te = 5.0 -- Ion temperature / electron temperature.
-lambda = 0.5 -- Wavelength.
 n0 = 1.0 -- Reference number density.
 nb_over_n0 = 0.2 -- Background number density / reference number density.
-B0 = 0.1 -- Reference magnetic field strength.
+wpi = math.sqrt(charge_ion^2 * n0 / (epsilon0 * mass_ion)) -- Ion plasma frequency. 
+wpe = math.sqrt(charge_ion^2 * n0 / (epsilon0 * mass_elc)) -- Electron plasma frequency. 
+di = light_speed/wpi -- Ion inertial length. 
+de = light_speed/wpe -- Electron inertial length. 
+B0 = 0.5 -- Reference magnetic field strength. Sets ratio of vAe/c. 
 beta = 1.0 -- Plasma beta.
+lambda = 0.5 * di -- Wavelength.
+omega_ci = charge_ion * B0 / mass_ion -- Ion cyclotron frequency. 
 friction_Z = 1.0; -- Ionization number for frictional sources.
-friction_Lambda_ee = math.exp(1.0); -- Electron-electron collisional term for frictional sources.
-coll_fac = 1.0e6; -- Ratio of collision time, tau_ei, to inverse ion plasma frequency. 
+friction_Lambda_ee = 2.0e6; -- Electron-electron plasma parameter for computing Coulomb logarithm.
 
 -- Derived physical quantities (using normalized code units).
-psi0 = 0.1 * B0 -- Reference magnetic scalar potential.
+psi0 = 0.1 * B0 * di -- Reference magnetic scalar potential.
 
 Ti_frac = Ti_over_Te / (1.0 + Ti_over_Te) -- Fraction of total temperature from ions.
 Te_frac = 1.0 / (1.0 + Ti_over_Te) -- Fraction of total temperature from electrons.
@@ -40,11 +45,11 @@ T_tot = beta * (B0 * B0) / 2.0 / n0 -- Total temperature.
 -- Simulation parameters.
 Nx = 128 -- Cell count (x-direction).
 Ny = 64 -- Cell count (y-direction).
-Lx = 25.6 -- Domain size (x-direction).
-Ly = 12.8 -- Domain size (y-direction).
+Lx = 25.6 * di -- Domain size (x-direction).
+Ly = 12.8 * di -- Domain size (y-direction).
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 250.0 -- Final simulation time.
+t_end = 25.0/omega_ci -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
@@ -64,7 +69,9 @@ momentApp = Moments.App.new {
   cells = { Nx, Ny },
   cflFrac = cfl_frac,
 
-  collisionFactor = coll_fac, 
+  -- collisional time is Lambda_ee/log(Lambda_ee) bigger 
+  -- than normalized time scale (inverse electron plasma frequency). 
+  collisionFactor = friction_Lambda_ee, 
 
   -- Boundary conditions for configuration space.
   periodicDirs = { 1 }, -- Periodic directions (x-direction only).
