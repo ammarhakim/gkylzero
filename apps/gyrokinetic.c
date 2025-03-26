@@ -989,9 +989,6 @@ gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app)
       char fileNm1[sz1+1]; // ensures no buffer overflow
       snprintf(fileNm1, sizeof fileNm1, fmt1, app->name);
 
-      int rank;
-      gkyl_comm_get_rank(app->comm, &rank);
-
       if (rank == 0) {
         struct timespec wtm = gkyl_wall_clock();
         if (app->field->is_first_energy_dot_write_call) {

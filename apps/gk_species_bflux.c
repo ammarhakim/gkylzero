@@ -189,14 +189,6 @@ gk_species_bflux_calc_moms(gkyl_gyrokinetic_app *app, const struct gk_species *s
 }
 
 static void
-gk_species_bflux_get_flux_dynamic(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge, struct gkyl_array *out)
-{
-  int b = gk_species_bflux_idx(bflux, dir, edge);
-  gkyl_array_copy_range_to_range(out, bflux->flux[b],
-    bflux->boundaries_phase_ghost[b], &bflux->boundaries_phase_ghost_nosub[b]);
-}
-
-static void
 gk_species_bflux_get_flux_mom_dynamic(struct gk_boundary_fluxes *bflux, int dir,
   enum gkyl_edge_loc edge, const char *mom_name, struct gkyl_array *out)
 {
@@ -216,6 +208,14 @@ static void
 gk_species_bflux_get_flux_mom_none(struct gk_boundary_fluxes *bflux, int dir,
   enum gkyl_edge_loc edge, const char *mom_name, struct gkyl_array *out)
 {
+}
+
+static void
+gk_species_bflux_get_flux_dynamic(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge, struct gkyl_array *out)
+{
+  int b = gk_species_bflux_idx(bflux, dir, edge);
+  gkyl_array_copy_range_to_range(out, bflux->flux[b],
+    bflux->boundaries_phase_ghost[b], &bflux->boundaries_phase_ghost_nosub[b]);
 }
 
 void
