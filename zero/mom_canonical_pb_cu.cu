@@ -150,7 +150,7 @@ gkyl_mom_canonical_pb_cu_dev_new(const struct gkyl_basis* cbasis, const struct g
 
   assert(cv_index[cdim].vdim[vdim] != -1);
 
-  set_cu_ptrs<<<1,1>>>(momt_cu, mom_id, cbasis->b_type,
+  set_cu_ptrs<<<1,1>>>(momt_cu, mom_id, pbasis->b_type,
     vdim, poly_order, cv_index[cdim].vdim[vdim]);
 
   mom_can_pb->momt.on_dev = &momt_cu->momt;

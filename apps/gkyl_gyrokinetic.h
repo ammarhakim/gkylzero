@@ -104,6 +104,13 @@ struct gkyl_gyrokinetic_source {
   struct gkyl_phase_diagnostics_inp diagnostics;
 };
 
+//
+struct gkyl_gyrokinetic_emission_inp {
+  int num_species;
+  char in_species[GKYL_MAX_SPECIES][128];
+  double rec_frac; // recycling coefficient.
+};
+
 // Parameters for boundary conditions
 struct gkyl_gyrokinetic_bc {
   enum gkyl_species_bc_type type; // BC type flag.
@@ -111,6 +118,7 @@ struct gkyl_gyrokinetic_bc {
   void *aux_ctx; // Context for aux_profile.
   double aux_parameter; // Parameter for aux_profile (maybe redundant).
   struct gkyl_gyrokinetic_projection projection; // Projection object input (e.g. for FIXED_FUNC).
+  struct gkyl_gyrokinetic_emission_inp emission; 
 };
 
 struct gkyl_gyrokinetic_bcs {
@@ -224,7 +232,7 @@ struct gkyl_gyrokinetic_species {
   struct gkyl_mapc2p_inp mapc2p;
 
   bool is_static; // Set to true if species does not change in time.
-
+  
   // Initial conditions using projection routine.
   struct gkyl_gyrokinetic_projection projection;
   // Initial conditions from a file.
@@ -287,6 +295,8 @@ struct gkyl_gyrokinetic_neut_species {
 
   bool is_static; // Set to true if neutral species does not change in time.
 
+  struct gkyl_gyrokinetic_ic_import init_from_file;
+  
   // Initial conditions using projection routine.
   struct gkyl_gyrokinetic_projection projection;
 
