@@ -102,10 +102,6 @@ gk_neut_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_neut_
     gkyl_proj_on_basis_advance(proj->proj_temp, tm, &app->local, proj->vtsq);
     gkyl_array_scale(proj->vtsq, 1/s->info.mass);
 
-    // Multiply density by the conf-space jacobian.
-    gkyl_dg_mul_op_range(app->basis, 0, proj->dens, 
-      0, app->gk_geom->jacobgeo, 0, proj->dens, &app->local);
-
     // Projection routines expect the LTE moments as a single array.
     gkyl_array_set_offset(proj->prim_moms_host, 1.0, proj->dens, 0*app->basis.num_basis);
     gkyl_array_set_offset(proj->prim_moms_host, 1.0, proj->udrift, 1*app->basis.num_basis);
@@ -113,6 +109,10 @@ gk_neut_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_neut_
 
     // Copy the contents into the array we will use (potentially on GPUs).
     gkyl_array_copy(proj->prim_moms, proj->prim_moms_host);
+
+    // Multiply density by the conf-space jacobian.
+    gkyl_dg_mul_op_range(app->basis, 0, proj->prim_moms, 
+      0, app->gk_geom->jacobgeo, 0, proj->prim_moms, &app->local);
 
     // Project the Maxwellian distribution function.
     // Projection routine also corrects the density of the projected distribution function.
