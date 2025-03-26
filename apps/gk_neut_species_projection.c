@@ -37,9 +37,6 @@ gk_neut_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
       s->basis.poly_order+1, 1, inp.temp, inp.ctx_temp);
 
 
-    struct gkyl_array *g_ij = app->cdim < 3 ? app->gk_geom->g_ij_neut : app->gk_geom->g_ij; 
-    struct gkyl_array *gij = app->cdim < 3 ? app->gk_geom->gij_neut : app->gk_geom->gij; 
-
     struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = {
       .phase_grid = &s->grid,
       .conf_basis = &app->basis,
@@ -49,8 +46,8 @@ gk_neut_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
       .vel_range = &s->local_vel,
       .vel_map = s->vel_map,
       .phase_range = &s->local,
-      .h_ij = g_ij,
-      .h_ij_inv = gij,
+      .h_ij = s->g_ij,
+      .h_ij_inv = s->gij,
       .det_h = app->gk_geom->jacobgeo,
       .hamil = s->hamil,
       .model_id = s->model_id,
@@ -70,11 +67,11 @@ gk_neut_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
         .conf_range_ext = &app->local_ext,
         .vel_range = &s->local_vel,
         .vel_map = s->vel_map,
-	      .phase_range = &s->local,
-	      .h_ij = g_ij,
-	      .h_ij_inv = gij,
-	      .det_h = app->gk_geom->jacobgeo,
-	      .hamil = s->hamil,	
+        .phase_range = &s->local,
+        .h_ij = s->g_ij,
+        .h_ij_inv = s->gij,
+        .det_h = app->gk_geom->jacobgeo,
+        .hamil = s->hamil,	
         .model_id = s->model_id,
         .use_gpu = app->use_gpu,
         .max_iter = 100,
@@ -100,9 +97,9 @@ gk_neut_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_neut_
   }
   else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
     int vdim = app->vdim+1;
-    gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local_ext, proj->dens); 
-    gkyl_proj_on_basis_advance(proj->proj_udrift, tm, &app->local_ext, proj->udrift);
-    gkyl_proj_on_basis_advance(proj->proj_temp, tm, &app->local_ext, proj->vtsq);
+    gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local, proj->dens); 
+    gkyl_proj_on_basis_advance(proj->proj_udrift, tm, &app->local, proj->udrift);
+    gkyl_proj_on_basis_advance(proj->proj_temp, tm, &app->local, proj->vtsq);
     gkyl_array_scale(proj->vtsq, 1/s->info.mass);
 
     // Projection routines expect the LTE moments as a single array.
@@ -112,6 +109,10 @@ gk_neut_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_neut_
 
     // Copy the contents into the array we will use (potentially on GPUs).
     gkyl_array_copy(proj->prim_moms, proj->prim_moms_host);
+
+    // Multiply density by the conf-space jacobian.
+    gkyl_dg_mul_op_range(app->basis, 0, proj->prim_moms, 
+      0, app->gk_geom->jacobgeo, 0, proj->prim_moms, &app->local);
 
     // Project the Maxwellian distribution function.
     // Projection routine also corrects the density of the projected distribution function.
@@ -124,10 +125,6 @@ gk_neut_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_neut_
         f, proj->prim_moms, &s->local, &app->local);
     } 
   }
-
-  // Multiply by the configuration space jacobian.
-  gkyl_dg_mul_conf_phase_op_range(&app->basis, &s->basis, f, 
-    app->gk_geom->jacobgeo, f, &app->local_ext, &s->local_ext);  
 }
 
 void
