@@ -549,9 +549,11 @@ gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *f
     // to calculate the particle flux and place it in the ghost cells of s->m0.marr.
     gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_LOWER_EDGE, 
       &app->lower_skin[idx_par], &app->lower_ghost[idx_par], app->gk_geom->jacobgeo_inv, 
+      app->gk_geom->cmag, app->gk_geom->jacobtot_inv,
       s->m0.marr, field->rho_c, field->sheath_vals[off]);
     gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_UPPER_EDGE, 
       &app->upper_skin[idx_par], &app->upper_ghost[idx_par], app->gk_geom->jacobgeo_inv, 
+      app->gk_geom->cmag, app->gk_geom->jacobtot_inv,
       s->m0.marr, field->rho_c, field->sheath_vals[off+1]);
 
     // Broadcast the sheath values from skin processes to other processes.

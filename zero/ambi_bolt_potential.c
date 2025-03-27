@@ -39,6 +39,7 @@ gkyl_ambi_bolt_potential_new(const struct gkyl_rect_grid *grid, const struct gky
 
 void gkyl_ambi_bolt_potential_sheath_calc(struct gkyl_ambi_bolt_potential *up, enum gkyl_edge_loc edge,
   const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_array *jacob_geo_inv,
+  const struct gkyl_array *cmag, const struct gkyl_array *jacobtot_inv,
   const struct gkyl_array *gammai, const struct gkyl_array *m0i, struct gkyl_array *sheath_vals)
 {
 #ifdef GKYL_HAVE_CUDA
@@ -66,11 +67,14 @@ void gkyl_ambi_bolt_potential_sheath_calc(struct gkyl_ambi_bolt_potential *up, e
     long skin_loc = gkyl_range_idx(skin_r, idx_s);
 
     const double *jacinv_p = (const double*) gkyl_array_cfetch(jacob_geo_inv, skin_loc);
+    const double *cmag_p = (const double*) gkyl_array_cfetch(cmag, skin_loc);
+    const double *jacobtotinv_p = (const double*) gkyl_array_cfetch(jacobtot_inv, skin_loc);
     const double *m0i_p = (const double*) gkyl_array_cfetch(m0i, skin_loc);
     const double *gammai_p = (const double*) gkyl_array_cfetch(gammai, ghost_loc);
     double *out_p = (double*) gkyl_array_cfetch(sheath_vals, ghost_loc);
 
-    up->kernels->sheath_calc[keridx](up->dz, up->charge_e, up->mass_e, up->temp_e, jacinv_p, gammai_p, m0i_p, out_p);
+    up->kernels->sheath_calc[keridx](up->dz, up->charge_e, up->mass_e, up->temp_e,
+      jacinv_p, cmag_p, jacobtotinv_p, gammai_p, m0i_p, out_p);
   }
 }
 

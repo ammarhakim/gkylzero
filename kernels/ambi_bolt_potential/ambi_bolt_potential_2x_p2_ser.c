@@ -1,44 +1,51 @@
 #include <gkyl_ambi_bolt_potential_kernels.h>
 
-GKYL_CU_DH void ambi_bolt_potential_sheath_calc_lower_2x_ser_p2(double sheathDirDx, double q_e, double m_e, double T_e, const double *jacInv, const double *GammaJac_i, const double *m0JacIon, double *out) 
+GKYL_CU_DH void ambi_bolt_potential_sheath_calc_lower_2x_ser_p2(double sheathDirDx, double q_e, double m_e, double T_e, const double *jacInv, const double *cmag, const double *jacobtotInv, const double *GammaJac_i, const double *m0JacIon, double *out) 
 { 
   // sheathDirDx: cell length in direction of the sheath.
   // q_e:         electron change.
   // m_e:         electron mass.
   // T_e:         electron temperature.
   // jacInv:      reciprocal of the geometry Jacobian (1/J).
+  // cmag:        Clebsch function in definition of magnetic field.
+  // jacobtotInv: reciprocal of the phase-space and conf-space Jacobians (1/(J*B)).
   // GammaJac_i:  ion particle flux (times the Jacobian) through sheath entrance.
   // m0JacIon:    ion density (times the geometry Jacobian).
   // out:         ion density and electrostatic potential at the sheath entrance.
 
+  // Particle number density evaluate at the sheath entrance
+  out[0] = 0.03333333333333333*(33.54101966249684*jacInv[1]*m0JacIon[7]-25.98076211353316*jacInv[4]*m0JacIon[6]+33.54101966249685*jacInv[0]*m0JacIon[5]+15.0*jacInv[4]*m0JacIon[4]-25.980762113533157*(jacInv[1]*m0JacIon[3]+jacInv[0]*m0JacIon[2])+15.0*(jacInv[1]*m0JacIon[1]+jacInv[0]*m0JacIon[0])); 
+  out[1] = 0.03333333333333333*((30.000000000000004*jacInv[4]+33.54101966249684*jacInv[0])*m0JacIon[7]+jacInv[1]*(-(23.237900077244504*m0JacIon[6])+33.54101966249685*m0JacIon[5]+13.416407864998739*m0JacIon[4])+(13.416407864998739*m0JacIon[1]-23.2379000772445*m0JacIon[3])*jacInv[4]-25.980762113533157*(jacInv[0]*m0JacIon[3]+jacInv[1]*m0JacIon[2])+15.0*(jacInv[0]*m0JacIon[1]+m0JacIon[0]*jacInv[1])); 
+  out[4] = -(0.014285714285714285*((38.72983346207417*jacInv[4]+60.62177826491071*jacInv[0])*m0JacIon[6]+(-(22.3606797749979*jacInv[4])-35.0*jacInv[0])*m0JacIon[4]+(60.6217782649107*m0JacIon[2]-35.0*m0JacIon[0])*jacInv[4]+jacInv[1]*(54.22176684690384*m0JacIon[3]-31.304951684997057*m0JacIon[1]))); 
+
   double GammaJacIonB[3];
-  GammaJacIonB[0] = 0.7905694150420947*GammaJac_i[5]*sheathDirDx+0.6123724356957944*GammaJac_i[2]*sheathDirDx+0.3535533905932737*GammaJac_i[0]*sheathDirDx; 
-  GammaJacIonB[1] = 0.7905694150420948*GammaJac_i[7]*sheathDirDx+0.6123724356957944*GammaJac_i[3]*sheathDirDx+0.3535533905932737*GammaJac_i[1]*sheathDirDx; 
-  GammaJacIonB[2] = 0.6123724356957944*GammaJac_i[6]*sheathDirDx+0.3535533905932737*GammaJac_i[4]*sheathDirDx; 
+  GammaJacIonB[0] = GammaJacIonB[0]; 
+  GammaJacIonB[1] = GammaJacIonB[1]; 
+  GammaJacIonB[2] = GammaJacIonB[2]; 
+
+  double x3HalfMomJacElcB[3];
+  x3HalfMomJacElcB[0] = x3HalfMomJacElcB[0]; 
+  x3HalfMomJacElcB[1] = x3HalfMomJacElcB[1]; 
+  x3HalfMomJacElcB[2] = x3HalfMomJacElcB[2]; 
 
   double m0JacIonB[3];
-  m0JacIonB[0] = 1.5811388300841895*m0JacIon[5]-1.224744871391589*m0JacIon[2]+0.7071067811865475*m0JacIon[0]; 
-  m0JacIonB[1] = 1.5811388300841898*m0JacIon[7]-1.224744871391589*m0JacIon[3]+0.7071067811865475*m0JacIon[1]; 
-  m0JacIonB[2] = 0.7071067811865475*m0JacIon[4]-1.224744871391589*m0JacIon[6]; 
-
-  // Particle number density evaluate at the sheath entrance
-  out[0] = 0.004761904761904762*((255.0*jacInv[7]-162.6653005407115*jacInv[3]+234.7871376374779*jacInv[1])*m0JacIon[7]+(234.7871376374779*m0JacIon[1]-162.6653005407115*m0JacIon[3])*jacInv[7]+(315.0*jacInv[6]-181.86533479473212*jacInv[4])*m0JacIon[6]-181.86533479473212*m0JacIon[4]*jacInv[6]+(255.0*jacInv[5]-162.66530054071148*jacInv[2]+234.78713763747797*jacInv[0])*m0JacIon[5]+(234.78713763747797*m0JacIon[0]-162.66530054071148*m0JacIon[2])*jacInv[5]+105.0*jacInv[4]*m0JacIon[4]+(315.0*jacInv[3]-181.8653347947321*jacInv[1])*m0JacIon[3]-181.8653347947321*m0JacIon[1]*jacInv[3]+(315.0*jacInv[2]-181.8653347947321*jacInv[0])*m0JacIon[2]-181.8653347947321*m0JacIon[0]*jacInv[2]+105.0*(jacInv[1]*m0JacIon[1]+jacInv[0]*m0JacIon[0])); 
-  out[1] = -(0.004761904761904762*((145.49226783578567*jacInv[6]-255.00000000000003*jacInv[5]-210.00000000000003*jacInv[4]+162.6653005407115*jacInv[2]-234.7871376374779*jacInv[0])*m0JacIon[7]+(145.49226783578567*m0JacIon[6]-255.00000000000003*m0JacIon[5]-210.00000000000003*m0JacIon[4]+162.6653005407115*m0JacIon[2]-234.7871376374779*m0JacIon[0])*jacInv[7]+(162.6653005407115*jacInv[1]-281.74456516497344*jacInv[3])*m0JacIon[6]+(162.6653005407115*m0JacIon[1]-281.74456516497344*m0JacIon[3])*jacInv[6]+(162.66530054071148*jacInv[3]-234.78713763747797*jacInv[1])*m0JacIon[5]+(162.66530054071148*m0JacIon[3]-234.78713763747797*m0JacIon[1])*jacInv[5]+(162.66530054071148*jacInv[3]-93.91485505499116*jacInv[1])*m0JacIon[4]+(162.66530054071148*m0JacIon[3]-93.91485505499116*m0JacIon[1])*jacInv[4]+(181.8653347947321*jacInv[0]-315.0*jacInv[2])*m0JacIon[3]+(181.8653347947321*m0JacIon[0]-315.0*m0JacIon[2])*jacInv[3]+181.8653347947321*(jacInv[1]*m0JacIon[2]+m0JacIon[1]*jacInv[2])-105.0*(jacInv[0]*m0JacIon[1]+m0JacIon[0]*jacInv[1]))); 
-  out[4] = 9.523809523809524e-4*((469.57427527495594*jacInv[7]-727.4613391789285*jacInv[3])*m0JacIon[7]-727.4613391789285*m0JacIon[3]*jacInv[7]+(335.41019662496853*jacInv[6]-813.3265027035576*jacInv[5]-580.9475019311126*jacInv[4]+525.0000000000001*jacInv[2]-909.3266739736608*jacInv[0])*m0JacIon[6]+(-(813.3265027035576*m0JacIon[5])-580.9475019311126*m0JacIon[4]+525.0000000000001*m0JacIon[2]-909.3266739736608*m0JacIon[0])*jacInv[6]+(335.41019662496853*jacInv[4]-909.3266739736605*jacInv[2]+525.0*jacInv[0])*m0JacIon[4]+(525.0*m0JacIon[0]-909.3266739736605*m0JacIon[2])*jacInv[4]+(469.57427527495594*jacInv[3]-813.3265027035576*jacInv[1])*m0JacIon[3]+m0JacIon[1]*(469.57427527495594*jacInv[1]-813.3265027035576*jacInv[3])); 
+  m0JacIonB[0] = m0JacIonB[0]; 
+  m0JacIonB[1] = m0JacIonB[1]; 
+  m0JacIonB[2] = m0JacIonB[2]; 
 
   double phiS_qp[3];
   if ((isfinite(0.6324555320336759*GammaJacIonB[2]-0.9486832980505137*GammaJacIonB[1]+0.7071067811865475*GammaJacIonB[0])) && (0.6324555320336759*GammaJacIonB[2]-0.9486832980505137*GammaJacIonB[1]+0.7071067811865475*GammaJacIonB[0]>0.) && (0.6324555320336759*m0JacIonB[2]-0.9486832980505137*m0JacIonB[1]+0.7071067811865475*m0JacIonB[0]>0.)) {
-    phiS_qp[0] = (T_e*log((3.5449077018110318*GammaJacIonB[2])/(1.4142135623730951*m0JacIonB[2]*sqrt(T_e/m_e)-2.1213203435596424*m0JacIonB[1]*sqrt(T_e/m_e)+1.5811388300841895*m0JacIonB[0]*sqrt(T_e/m_e))-(5.317361552716548*GammaJacIonB[1])/(1.4142135623730951*m0JacIonB[2]*sqrt(T_e/m_e)-2.1213203435596424*m0JacIonB[1]*sqrt(T_e/m_e)+1.5811388300841895*m0JacIonB[0]*sqrt(T_e/m_e))+(1.7724538509055159*GammaJacIonB[0])/(0.6324555320336759*m0JacIonB[2]*sqrt(T_e/m_e)-0.9486832980505137*m0JacIonB[1]*sqrt(T_e/m_e)+0.7071067811865475*m0JacIonB[0]*sqrt(T_e/m_e))))/q_e;
+    phiS_qp[0] = (log(-((3.0*GammaJacIonB[1])/(2.0*x3HalfMomJacElcB[2]-3.0*x3HalfMomJacElcB[1]+2.23606797749979*x3HalfMomJacElcB[0]))+(1.4142135623730951*GammaJacIonB[2])/(1.4142135623730951*x3HalfMomJacElcB[2]-2.1213203435596424*x3HalfMomJacElcB[1]+1.5811388300841895*x3HalfMomJacElcB[0])+GammaJacIonB[0]/(0.8944271909999159*x3HalfMomJacElcB[2]-1.3416407864998738*x3HalfMomJacElcB[1]+x3HalfMomJacElcB[0]))*T_e)/q_e;
   } else {
     phiS_qp[0] = 0.0;
   }
   if ((isfinite(0.7071067811865475*GammaJacIonB[0]-0.7905694150420947*GammaJacIonB[2])) && (0.7071067811865475*GammaJacIonB[0]-0.7905694150420947*GammaJacIonB[2]>0.) && (0.7071067811865475*m0JacIonB[0]-0.7905694150420947*m0JacIonB[2]>0.)) {
-    phiS_qp[1] = (T_e*log((1.7724538509055159*GammaJacIonB[0])/(0.7071067811865475*m0JacIonB[0]*sqrt(T_e/m_e)-0.7905694150420947*m0JacIonB[2]*sqrt(T_e/m_e))-(3.963327297606011*GammaJacIonB[2])/(1.4142135623730951*m0JacIonB[0]*sqrt(T_e/m_e)-1.5811388300841895*m0JacIonB[2]*sqrt(T_e/m_e))))/q_e;
+    phiS_qp[1] = (log(GammaJacIonB[0]/(x3HalfMomJacElcB[0]-1.118033988749895*x3HalfMomJacElcB[2])-(2.23606797749979*GammaJacIonB[2])/(2.0*x3HalfMomJacElcB[0]-2.23606797749979*x3HalfMomJacElcB[2]))*T_e)/q_e;
   } else {
     phiS_qp[1] = 0.0;
   }
   if ((isfinite(0.6324555320336759*GammaJacIonB[2]+0.9486832980505137*GammaJacIonB[1]+0.7071067811865475*GammaJacIonB[0])) && (0.6324555320336759*GammaJacIonB[2]+0.9486832980505137*GammaJacIonB[1]+0.7071067811865475*GammaJacIonB[0]>0.) && (0.6324555320336759*m0JacIonB[2]+0.9486832980505137*m0JacIonB[1]+0.7071067811865475*m0JacIonB[0]>0.)) {
-    phiS_qp[2] = (T_e*log((3.5449077018110318*GammaJacIonB[2])/(1.4142135623730951*m0JacIonB[2]*sqrt(T_e/m_e)+2.1213203435596424*m0JacIonB[1]*sqrt(T_e/m_e)+1.5811388300841895*m0JacIonB[0]*sqrt(T_e/m_e))+(5.317361552716548*GammaJacIonB[1])/(1.4142135623730951*m0JacIonB[2]*sqrt(T_e/m_e)+2.1213203435596424*m0JacIonB[1]*sqrt(T_e/m_e)+1.5811388300841895*m0JacIonB[0]*sqrt(T_e/m_e))+(1.7724538509055159*GammaJacIonB[0])/(0.6324555320336759*m0JacIonB[2]*sqrt(T_e/m_e)+0.9486832980505137*m0JacIonB[1]*sqrt(T_e/m_e)+0.7071067811865475*m0JacIonB[0]*sqrt(T_e/m_e))))/q_e;
+    phiS_qp[2] = (log((3.0*GammaJacIonB[1])/(2.0*x3HalfMomJacElcB[2]+3.0*x3HalfMomJacElcB[1]+2.23606797749979*x3HalfMomJacElcB[0])+(1.4142135623730951*GammaJacIonB[2])/(1.4142135623730951*x3HalfMomJacElcB[2]+2.1213203435596424*x3HalfMomJacElcB[1]+1.5811388300841895*x3HalfMomJacElcB[0])+GammaJacIonB[0]/(0.8944271909999159*x3HalfMomJacElcB[2]+1.3416407864998738*x3HalfMomJacElcB[1]+x3HalfMomJacElcB[0]))*T_e)/q_e;
   } else {
     phiS_qp[2] = 0.0;
   }
@@ -50,45 +57,52 @@ GKYL_CU_DH void ambi_bolt_potential_sheath_calc_lower_2x_ser_p2(double sheathDir
 
 }
 
-GKYL_CU_DH void ambi_bolt_potential_sheath_calc_upper_2x_ser_p2(double sheathDirDx, double q_e, double m_e, double T_e, const double *jacInv, const double *GammaJac_i, const double *m0JacIon, double *out) 
+GKYL_CU_DH void ambi_bolt_potential_sheath_calc_upper_2x_ser_p2(double sheathDirDx, double q_e, double m_e, double T_e, const double *jacInv, const double *cmag, const double *jacobtotInv, const double *GammaJac_i, const double *m0JacIon, double *out) 
 { 
   // sheathDirDx: cell length in direction of the sheath.
   // q_e:         electron change.
   // m_e:         electron mass.
   // T_e:         electron temperature.
   // jacInv:      reciprocal of the geometry Jacobian (1/J).
+  // cmag:        Clebsch function in definition of magnetic field.
+  // jacobtotInv: reciprocal of the phase-space and conf-space Jacobians (1/(J*B)).
   // GammaJac_i:  ion particle flux (times the Jacobian) through sheath entrance.
   // m0JacIon:    ion density (times the geometry Jacobian).
   // out:         ion density and electrostatic potential at the sheath entrance.
 
+  // Particle number density evaluate at the sheath entrance
+  out[0] = 0.03333333333333333*(33.54101966249684*jacInv[1]*m0JacIon[7]+25.98076211353316*jacInv[4]*m0JacIon[6]+33.54101966249685*jacInv[0]*m0JacIon[5]+15.0*jacInv[4]*m0JacIon[4]+25.980762113533157*(jacInv[1]*m0JacIon[3]+jacInv[0]*m0JacIon[2])+15.0*(jacInv[1]*m0JacIon[1]+jacInv[0]*m0JacIon[0])); 
+  out[1] = 0.03333333333333333*((30.000000000000004*jacInv[4]+33.54101966249684*jacInv[0])*m0JacIon[7]+jacInv[1]*(23.237900077244504*m0JacIon[6]+33.54101966249685*m0JacIon[5]+13.416407864998739*m0JacIon[4])+(23.2379000772445*m0JacIon[3]+13.416407864998739*m0JacIon[1])*jacInv[4]+25.980762113533157*(jacInv[0]*m0JacIon[3]+jacInv[1]*m0JacIon[2])+15.0*(jacInv[0]*m0JacIon[1]+m0JacIon[0]*jacInv[1])); 
+  out[4] = 0.014285714285714285*((38.72983346207417*jacInv[4]+60.62177826491071*jacInv[0])*m0JacIon[6]+(22.3606797749979*jacInv[4]+35.0*jacInv[0])*m0JacIon[4]+(60.6217782649107*m0JacIon[2]+35.0*m0JacIon[0])*jacInv[4]+jacInv[1]*(54.22176684690384*m0JacIon[3]+31.304951684997057*m0JacIon[1])); 
+
   double GammaJacIonB[3];
-  GammaJacIonB[0] = 0.7905694150420947*GammaJac_i[5]*sheathDirDx-0.6123724356957944*GammaJac_i[2]*sheathDirDx+0.3535533905932737*GammaJac_i[0]*sheathDirDx; 
-  GammaJacIonB[1] = 0.7905694150420948*GammaJac_i[7]*sheathDirDx-0.6123724356957944*GammaJac_i[3]*sheathDirDx+0.3535533905932737*GammaJac_i[1]*sheathDirDx; 
-  GammaJacIonB[2] = 0.3535533905932737*GammaJac_i[4]*sheathDirDx-0.6123724356957944*GammaJac_i[6]*sheathDirDx; 
+  GammaJacIonB[0] = GammaJacIonB[0]; 
+  GammaJacIonB[1] = GammaJacIonB[1]; 
+  GammaJacIonB[2] = GammaJacIonB[2]; 
+
+  double x3HalfMomJacElcB[3];
+  x3HalfMomJacElcB[0] = x3HalfMomJacElcB[0]; 
+  x3HalfMomJacElcB[1] = x3HalfMomJacElcB[1]; 
+  x3HalfMomJacElcB[2] = x3HalfMomJacElcB[2]; 
 
   double m0JacIonB[3];
-  m0JacIonB[0] = 1.5811388300841895*m0JacIon[5]+1.224744871391589*m0JacIon[2]+0.7071067811865475*m0JacIon[0]; 
-  m0JacIonB[1] = 1.5811388300841898*m0JacIon[7]+1.224744871391589*m0JacIon[3]+0.7071067811865475*m0JacIon[1]; 
-  m0JacIonB[2] = 1.224744871391589*m0JacIon[6]+0.7071067811865475*m0JacIon[4]; 
-
-  // Particle number density evaluate at the sheath entrance
-  out[0] = 0.004761904761904762*((255.0*jacInv[7]+162.6653005407115*jacInv[3]+234.7871376374779*jacInv[1])*m0JacIon[7]+(162.6653005407115*m0JacIon[3]+234.7871376374779*m0JacIon[1])*jacInv[7]+(315.0*jacInv[6]+181.86533479473212*jacInv[4])*m0JacIon[6]+181.86533479473212*m0JacIon[4]*jacInv[6]+(255.0*jacInv[5]+162.66530054071148*jacInv[2]+234.78713763747797*jacInv[0])*m0JacIon[5]+(162.66530054071148*m0JacIon[2]+234.78713763747797*m0JacIon[0])*jacInv[5]+105.0*jacInv[4]*m0JacIon[4]+(315.0*jacInv[3]+181.8653347947321*jacInv[1])*m0JacIon[3]+181.8653347947321*m0JacIon[1]*jacInv[3]+(315.0*jacInv[2]+181.8653347947321*jacInv[0])*m0JacIon[2]+181.8653347947321*m0JacIon[0]*jacInv[2]+105.0*(jacInv[1]*m0JacIon[1]+jacInv[0]*m0JacIon[0])); 
-  out[1] = 0.004761904761904762*((145.49226783578567*jacInv[6]+255.00000000000003*jacInv[5]+210.00000000000003*jacInv[4]+162.6653005407115*jacInv[2]+234.7871376374779*jacInv[0])*m0JacIon[7]+(145.49226783578567*m0JacIon[6]+255.00000000000003*m0JacIon[5]+210.00000000000003*m0JacIon[4]+162.6653005407115*m0JacIon[2]+234.7871376374779*m0JacIon[0])*jacInv[7]+(281.74456516497344*jacInv[3]+162.6653005407115*jacInv[1])*m0JacIon[6]+(281.74456516497344*m0JacIon[3]+162.6653005407115*m0JacIon[1])*jacInv[6]+(162.66530054071148*jacInv[3]+234.78713763747797*jacInv[1])*m0JacIon[5]+(162.66530054071148*m0JacIon[3]+234.78713763747797*m0JacIon[1])*jacInv[5]+(162.66530054071148*jacInv[3]+93.91485505499116*jacInv[1])*m0JacIon[4]+(162.66530054071148*m0JacIon[3]+93.91485505499116*m0JacIon[1])*jacInv[4]+(315.0*jacInv[2]+181.8653347947321*jacInv[0])*m0JacIon[3]+(315.0*m0JacIon[2]+181.8653347947321*m0JacIon[0])*jacInv[3]+181.8653347947321*(jacInv[1]*m0JacIon[2]+m0JacIon[1]*jacInv[2])+105.0*(jacInv[0]*m0JacIon[1]+m0JacIon[0]*jacInv[1])); 
-  out[4] = 9.523809523809524e-4*((469.57427527495594*jacInv[7]+727.4613391789285*jacInv[3])*m0JacIon[7]+727.4613391789285*m0JacIon[3]*jacInv[7]+(335.41019662496853*jacInv[6]+813.3265027035576*jacInv[5]+580.9475019311126*jacInv[4]+525.0000000000001*jacInv[2]+909.3266739736608*jacInv[0])*m0JacIon[6]+(813.3265027035576*m0JacIon[5]+580.9475019311126*m0JacIon[4]+525.0000000000001*m0JacIon[2]+909.3266739736608*m0JacIon[0])*jacInv[6]+(335.41019662496853*jacInv[4]+909.3266739736605*jacInv[2]+525.0*jacInv[0])*m0JacIon[4]+(909.3266739736605*m0JacIon[2]+525.0*m0JacIon[0])*jacInv[4]+(469.57427527495594*jacInv[3]+813.3265027035576*jacInv[1])*m0JacIon[3]+m0JacIon[1]*(813.3265027035576*jacInv[3]+469.57427527495594*jacInv[1])); 
+  m0JacIonB[0] = m0JacIonB[0]; 
+  m0JacIonB[1] = m0JacIonB[1]; 
+  m0JacIonB[2] = m0JacIonB[2]; 
 
   double phiS_qp[3];
   if ((isfinite(0.6324555320336759*GammaJacIonB[2]-0.9486832980505137*GammaJacIonB[1]+0.7071067811865475*GammaJacIonB[0])) && (0.6324555320336759*GammaJacIonB[2]-0.9486832980505137*GammaJacIonB[1]+0.7071067811865475*GammaJacIonB[0]>0.) && (0.6324555320336759*m0JacIonB[2]-0.9486832980505137*m0JacIonB[1]+0.7071067811865475*m0JacIonB[0]>0.)) {
-    phiS_qp[0] = (T_e*log((3.5449077018110318*GammaJacIonB[2])/(1.4142135623730951*m0JacIonB[2]*sqrt(T_e/m_e)-2.1213203435596424*m0JacIonB[1]*sqrt(T_e/m_e)+1.5811388300841895*m0JacIonB[0]*sqrt(T_e/m_e))-(5.317361552716548*GammaJacIonB[1])/(1.4142135623730951*m0JacIonB[2]*sqrt(T_e/m_e)-2.1213203435596424*m0JacIonB[1]*sqrt(T_e/m_e)+1.5811388300841895*m0JacIonB[0]*sqrt(T_e/m_e))+(1.7724538509055159*GammaJacIonB[0])/(0.6324555320336759*m0JacIonB[2]*sqrt(T_e/m_e)-0.9486832980505137*m0JacIonB[1]*sqrt(T_e/m_e)+0.7071067811865475*m0JacIonB[0]*sqrt(T_e/m_e))))/q_e;
+    phiS_qp[0] = (log(-((3.0*GammaJacIonB[1])/(2.0*x3HalfMomJacElcB[2]-3.0*x3HalfMomJacElcB[1]+2.23606797749979*x3HalfMomJacElcB[0]))+(1.4142135623730951*GammaJacIonB[2])/(1.4142135623730951*x3HalfMomJacElcB[2]-2.1213203435596424*x3HalfMomJacElcB[1]+1.5811388300841895*x3HalfMomJacElcB[0])+GammaJacIonB[0]/(0.8944271909999159*x3HalfMomJacElcB[2]-1.3416407864998738*x3HalfMomJacElcB[1]+x3HalfMomJacElcB[0]))*T_e)/q_e;
   } else {
     phiS_qp[0] = 0.0;
   }
   if ((isfinite(0.7071067811865475*GammaJacIonB[0]-0.7905694150420947*GammaJacIonB[2])) && (0.7071067811865475*GammaJacIonB[0]-0.7905694150420947*GammaJacIonB[2]>0.) && (0.7071067811865475*m0JacIonB[0]-0.7905694150420947*m0JacIonB[2]>0.)) {
-    phiS_qp[1] = (T_e*log((1.7724538509055159*GammaJacIonB[0])/(0.7071067811865475*m0JacIonB[0]*sqrt(T_e/m_e)-0.7905694150420947*m0JacIonB[2]*sqrt(T_e/m_e))-(3.963327297606011*GammaJacIonB[2])/(1.4142135623730951*m0JacIonB[0]*sqrt(T_e/m_e)-1.5811388300841895*m0JacIonB[2]*sqrt(T_e/m_e))))/q_e;
+    phiS_qp[1] = (log(GammaJacIonB[0]/(x3HalfMomJacElcB[0]-1.118033988749895*x3HalfMomJacElcB[2])-(2.23606797749979*GammaJacIonB[2])/(2.0*x3HalfMomJacElcB[0]-2.23606797749979*x3HalfMomJacElcB[2]))*T_e)/q_e;
   } else {
     phiS_qp[1] = 0.0;
   }
   if ((isfinite(0.6324555320336759*GammaJacIonB[2]+0.9486832980505137*GammaJacIonB[1]+0.7071067811865475*GammaJacIonB[0])) && (0.6324555320336759*GammaJacIonB[2]+0.9486832980505137*GammaJacIonB[1]+0.7071067811865475*GammaJacIonB[0]>0.) && (0.6324555320336759*m0JacIonB[2]+0.9486832980505137*m0JacIonB[1]+0.7071067811865475*m0JacIonB[0]>0.)) {
-    phiS_qp[2] = (T_e*log((3.5449077018110318*GammaJacIonB[2])/(1.4142135623730951*m0JacIonB[2]*sqrt(T_e/m_e)+2.1213203435596424*m0JacIonB[1]*sqrt(T_e/m_e)+1.5811388300841895*m0JacIonB[0]*sqrt(T_e/m_e))+(5.317361552716548*GammaJacIonB[1])/(1.4142135623730951*m0JacIonB[2]*sqrt(T_e/m_e)+2.1213203435596424*m0JacIonB[1]*sqrt(T_e/m_e)+1.5811388300841895*m0JacIonB[0]*sqrt(T_e/m_e))+(1.7724538509055159*GammaJacIonB[0])/(0.6324555320336759*m0JacIonB[2]*sqrt(T_e/m_e)+0.9486832980505137*m0JacIonB[1]*sqrt(T_e/m_e)+0.7071067811865475*m0JacIonB[0]*sqrt(T_e/m_e))))/q_e;
+    phiS_qp[2] = (log((3.0*GammaJacIonB[1])/(2.0*x3HalfMomJacElcB[2]+3.0*x3HalfMomJacElcB[1]+2.23606797749979*x3HalfMomJacElcB[0])+(1.4142135623730951*GammaJacIonB[2])/(1.4142135623730951*x3HalfMomJacElcB[2]+2.1213203435596424*x3HalfMomJacElcB[1]+1.5811388300841895*x3HalfMomJacElcB[0])+GammaJacIonB[0]/(0.8944271909999159*x3HalfMomJacElcB[2]+1.3416407864998738*x3HalfMomJacElcB[1]+x3HalfMomJacElcB[0]))*T_e)/q_e;
   } else {
     phiS_qp[2] = 0.0;
   }
@@ -110,14 +124,14 @@ GKYL_CU_DH void ambi_bolt_potential_phi_calc_2x_ser_p2(double q_e, double T_e, c
   // phi:        electrostatic potential in domain volume.
 
   double m0Ion[8];
-  m0Ion[0] = 0.5*jacInv[7]*m0JacIon[7]+0.5*jacInv[6]*m0JacIon[6]+0.5*jacInv[5]*m0JacIon[5]+0.5*jacInv[4]*m0JacIon[4]+0.5*jacInv[3]*m0JacIon[3]+0.5*jacInv[2]*m0JacIon[2]+0.5*jacInv[1]*m0JacIon[1]+0.5*jacInv[0]*m0JacIon[0]; 
-  m0Ion[1] = 0.5000000000000001*jacInv[5]*m0JacIon[7]+0.5000000000000001*m0JacIon[5]*jacInv[7]+0.44721359549995804*jacInv[3]*m0JacIon[6]+0.44721359549995804*m0JacIon[3]*jacInv[6]+0.4472135954999579*jacInv[1]*m0JacIon[4]+0.4472135954999579*m0JacIon[1]*jacInv[4]+0.5*jacInv[2]*m0JacIon[3]+0.5*m0JacIon[2]*jacInv[3]+0.5*jacInv[0]*m0JacIon[1]+0.5*m0JacIon[0]*jacInv[1]; 
-  m0Ion[2] = 0.44721359549995804*jacInv[3]*m0JacIon[7]+0.44721359549995804*m0JacIon[3]*jacInv[7]+0.5000000000000001*jacInv[4]*m0JacIon[6]+0.5000000000000001*m0JacIon[4]*jacInv[6]+0.4472135954999579*jacInv[2]*m0JacIon[5]+0.4472135954999579*m0JacIon[2]*jacInv[5]+0.5*jacInv[1]*m0JacIon[3]+0.5*m0JacIon[1]*jacInv[3]+0.5*jacInv[0]*m0JacIon[2]+0.5*m0JacIon[0]*jacInv[2]; 
-  m0Ion[3] = 0.4*jacInv[6]*m0JacIon[7]+0.44721359549995804*jacInv[2]*m0JacIon[7]+0.4*m0JacIon[6]*jacInv[7]+0.44721359549995804*m0JacIon[2]*jacInv[7]+0.44721359549995804*jacInv[1]*m0JacIon[6]+0.44721359549995804*m0JacIon[1]*jacInv[6]+0.4472135954999579*jacInv[3]*m0JacIon[5]+0.4472135954999579*m0JacIon[3]*jacInv[5]+0.4472135954999579*jacInv[3]*m0JacIon[4]+0.4472135954999579*m0JacIon[3]*jacInv[4]+0.5*jacInv[0]*m0JacIon[3]+0.5*m0JacIon[0]*jacInv[3]+0.5*jacInv[1]*m0JacIon[2]+0.5*m0JacIon[1]*jacInv[2]; 
-  m0Ion[4] = 0.4472135954999579*jacInv[7]*m0JacIon[7]+0.31943828249996997*jacInv[6]*m0JacIon[6]+0.5000000000000001*jacInv[2]*m0JacIon[6]+0.5000000000000001*m0JacIon[2]*jacInv[6]+0.31943828249996997*jacInv[4]*m0JacIon[4]+0.5*jacInv[0]*m0JacIon[4]+0.5*m0JacIon[0]*jacInv[4]+0.4472135954999579*jacInv[3]*m0JacIon[3]+0.4472135954999579*jacInv[1]*m0JacIon[1]; 
-  m0Ion[5] = 0.31943828249996997*jacInv[7]*m0JacIon[7]+0.5000000000000001*jacInv[1]*m0JacIon[7]+0.5000000000000001*m0JacIon[1]*jacInv[7]+0.4472135954999579*jacInv[6]*m0JacIon[6]+0.31943828249996997*jacInv[5]*m0JacIon[5]+0.5*jacInv[0]*m0JacIon[5]+0.5*m0JacIon[0]*jacInv[5]+0.4472135954999579*jacInv[3]*m0JacIon[3]+0.4472135954999579*jacInv[2]*m0JacIon[2]; 
-  m0Ion[6] = 0.4*jacInv[3]*m0JacIon[7]+0.4*m0JacIon[3]*jacInv[7]+0.4472135954999579*jacInv[5]*m0JacIon[6]+0.31943828249996997*jacInv[4]*m0JacIon[6]+0.5*jacInv[0]*m0JacIon[6]+0.4472135954999579*m0JacIon[5]*jacInv[6]+0.31943828249996997*m0JacIon[4]*jacInv[6]+0.5*m0JacIon[0]*jacInv[6]+0.5000000000000001*jacInv[2]*m0JacIon[4]+0.5000000000000001*m0JacIon[2]*jacInv[4]+0.44721359549995804*jacInv[1]*m0JacIon[3]+0.44721359549995804*m0JacIon[1]*jacInv[3]; 
-  m0Ion[7] = 0.31943828249996997*jacInv[5]*m0JacIon[7]+0.4472135954999579*jacInv[4]*m0JacIon[7]+0.5*jacInv[0]*m0JacIon[7]+0.31943828249996997*m0JacIon[5]*jacInv[7]+0.4472135954999579*m0JacIon[4]*jacInv[7]+0.5*m0JacIon[0]*jacInv[7]+0.4*jacInv[3]*m0JacIon[6]+0.4*m0JacIon[3]*jacInv[6]+0.5000000000000001*jacInv[1]*m0JacIon[5]+0.5000000000000001*m0JacIon[1]*jacInv[5]+0.44721359549995804*jacInv[2]*m0JacIon[3]+0.44721359549995804*m0JacIon[2]*jacInv[3]; 
+  m0Ion[0] = 0.5*jacInv[4]*m0JacIon[4]+0.5*jacInv[1]*m0JacIon[1]+0.5*jacInv[0]*m0JacIon[0]; 
+  m0Ion[1] = 0.4472135954999579*jacInv[1]*m0JacIon[4]+0.4472135954999579*m0JacIon[1]*jacInv[4]+0.5*jacInv[0]*m0JacIon[1]+0.5*m0JacIon[0]*jacInv[1]; 
+  m0Ion[2] = 0.5000000000000001*jacInv[4]*m0JacIon[6]+0.5*jacInv[1]*m0JacIon[3]+0.5*jacInv[0]*m0JacIon[2]; 
+  m0Ion[3] = 0.44721359549995804*jacInv[1]*m0JacIon[6]+0.4472135954999579*m0JacIon[3]*jacInv[4]+0.5*jacInv[0]*m0JacIon[3]+0.5*jacInv[1]*m0JacIon[2]; 
+  m0Ion[4] = 0.31943828249996997*jacInv[4]*m0JacIon[4]+0.5*jacInv[0]*m0JacIon[4]+0.5*m0JacIon[0]*jacInv[4]+0.4472135954999579*jacInv[1]*m0JacIon[1]; 
+  m0Ion[5] = 0.5000000000000001*jacInv[1]*m0JacIon[7]+0.5*jacInv[0]*m0JacIon[5]; 
+  m0Ion[6] = 0.31943828249996997*jacInv[4]*m0JacIon[6]+0.5*jacInv[0]*m0JacIon[6]+0.5000000000000001*m0JacIon[2]*jacInv[4]+0.44721359549995804*jacInv[1]*m0JacIon[3]; 
+  m0Ion[7] = 0.4472135954999579*jacInv[4]*m0JacIon[7]+0.5*jacInv[0]*m0JacIon[7]+0.5000000000000001*jacInv[1]*m0JacIon[5]; 
 
   double phi_qp[9];
   phi_qp[0] = -((1.0*log(m0Ion[0]/(-(1.1999999999999988*sheathvals[7])-1.1999999999999997*sheathvals[6]+0.8944271909999159*sheathvals[5]+0.8944271909999159*sheathvals[4]+1.8*sheathvals[3]-1.3416407864998738*sheathvals[2]-1.3416407864998738*sheathvals[1]+sheathvals[0])+m0Ion[5]/(-(1.341640786499873*sheathvals[7])-1.3416407864998734*sheathvals[6]+sheathvals[5]+sheathvals[4]+2.0124611797498106*sheathvals[3]-1.5*sheathvals[2]-1.5*sheathvals[1]+1.118033988749895*sheathvals[0])+m0Ion[4]/(-(1.341640786499873*sheathvals[7])-1.3416407864998734*sheathvals[6]+sheathvals[5]+sheathvals[4]+2.0124611797498106*sheathvals[3]-1.5*sheathvals[2]-1.5*sheathvals[1]+1.118033988749895*sheathvals[0])-(3.0*m0Ion[2])/(-(2.683281572999746*sheathvals[7])-2.683281572999747*sheathvals[6]+2.0*sheathvals[5]+2.0*sheathvals[4]+4.024922359499621*sheathvals[3]-3.0*sheathvals[2]-3.0*sheathvals[1]+2.23606797749979*sheathvals[0])-(3.0*m0Ion[1])/(-(2.683281572999746*sheathvals[7])-2.683281572999747*sheathvals[6]+2.0*sheathvals[5]+2.0*sheathvals[4]+4.024922359499621*sheathvals[3]-3.0*sheathvals[2]-3.0*sheathvals[1]+2.23606797749979*sheathvals[0])-(5.196152422706631*m0Ion[6])/(-(5.196152422706629*sheathvals[7])-5.196152422706631*sheathvals[6]+3.872983346207417*sheathvals[5]+3.872983346207417*sheathvals[4]+7.794228634059948*sheathvals[3]-5.809475019311126*sheathvals[2]-5.809475019311126*sheathvals[1]+4.330127018922194*sheathvals[0])+(6.7082039324993685*m0Ion[7])/(-(5.366563145999492*sheathvals[7])-5.366563145999494*sheathvals[6]+4.0*sheathvals[5]+4.0*sheathvals[4]+8.049844718999243*sheathvals[3]-6.0*sheathvals[2]-6.0*sheathvals[1]+4.47213595499958*sheathvals[0])+(9.0*m0Ion[3])/(-(5.999999999999996*sheathvals[7])-5.999999999999999*sheathvals[6]+4.47213595499958*sheathvals[5]+4.47213595499958*sheathvals[4]+9.0*sheathvals[3]-6.708203932499369*sheathvals[2]-6.708203932499369*sheathvals[1]+5.0*sheathvals[0])-(60.37383539249431*m0Ion[7])/(-(26.832815729997463*sheathvals[7])-26.83281572999747*sheathvals[6]+20.0*sheathvals[5]+20.0*sheathvals[4]+40.24922359499622*sheathvals[3]-30.0*sheathvals[2]-30.0*sheathvals[1]+22.3606797749979*sheathvals[0]))*T_e)/q_e)-0.5999999999999994*sheathvals[15]-0.5999999999999999*sheathvals[14]+0.4472135954999579*sheathvals[13]+0.4472135954999579*sheathvals[12]+0.9*sheathvals[11]-0.6708203932499369*sheathvals[10]-0.6708203932499369*sheathvals[9]+0.5*sheathvals[8]; 
