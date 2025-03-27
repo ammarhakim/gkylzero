@@ -75,7 +75,7 @@ create_ctx(void)
   int Nz = 16; // Cell count (configuration space: z-direction).
   int Nvpar = 32; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 32; // Cell count (velocity space: magnetic moment direction).
-  double Lz = 1.0; // Domain size (configuration space: z-direction).
+  double Lz = 1.0/5.0; // Domain size (configuration space: z-direction).
   double vpar_max_ion = 4.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
   double mu_max_ion = (3.0 / 2.0) * 0.5 * mass_ion * pow(4.0 * vti, 2.0) / (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
   double cfl_frac = 1.0; // CFL coefficient.
@@ -135,18 +135,12 @@ evalIonUparInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 }
 
 static inline void
-nonuniform_position_map_z(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void* ctx)
-{
-  struct boundary_ctx *app = ctx;
-  double z = zc[0];
-  xp[0] = z + 0.1 * sin(z * 2 * M_PI/(app->Lz));
-}
-
-static inline void
 mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void* ctx)
 {
   // Set physical coordinates (X, Y, Z) from computational coordinates (x, y, z).
-  xp[0] = zc[0]; xp[1] = zc[1]; xp[2] = zc[2];
+  xp[0] = zc[0]; 
+  xp[1] = zc[1]; 
+  xp[2] = 5*zc[2];
 }
 
 void
@@ -337,7 +331,7 @@ main(int argc, char **argv)
 
   // Gyrokinetic app.
   struct gkyl_gk app_inp = {
-    .name = "gk_boundary_flux_1x2v_p1_nux_edge",
+    .name = "gk_boundary_flux_1x2v_p1_ux_stretch",
 
     .cdim = 1, .vdim = 2,
     .lower = { -ctx.Lz/2.0 },
@@ -355,12 +349,7 @@ main(int argc, char **argv)
       .c2p_ctx = &ctx,
       .bmag_func = bmag_func,
       .bmag_ctx = &ctx,
-      .position_map_info = {
-        .maps[2] = nonuniform_position_map_z,
-        .ctxs[2] = &ctx,
-      },
-    },
-
+    }, 
 
     .num_periodic_dir = 0,
     .periodic_dirs = { },
