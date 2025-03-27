@@ -68,13 +68,13 @@ void gkyl_ambi_bolt_potential_sheath_calc(struct gkyl_ambi_bolt_potential *up, e
 
     const double *jacinv_p = (const double*) gkyl_array_cfetch(jacob_geo_inv, skin_loc);
     const double *cmag_p = (const double*) gkyl_array_cfetch(cmag, skin_loc);
-    const double *jactotinv_p = (const double*) gkyl_array_cfetch(jactot_inv, skin_loc);
+    const double *jacobtotinv_p = (const double*) gkyl_array_cfetch(jacobtot_inv, skin_loc);
     const double *m0i_p = (const double*) gkyl_array_cfetch(m0i, skin_loc);
     const double *gammai_p = (const double*) gkyl_array_cfetch(gammai, ghost_loc);
     double *out_p = (double*) gkyl_array_cfetch(sheath_vals, ghost_loc);
 
     up->kernels->sheath_calc[keridx](up->dz, up->charge_e, up->mass_e, up->temp_e,
-      jacinv_p, cmag_p, jactotinv_p, gammai_p, m0i_p, out_p);
+      jacinv_p, cmag_p, jacobtotinv_p, gammai_p, m0i_p, out_p);
   }
 }
 
