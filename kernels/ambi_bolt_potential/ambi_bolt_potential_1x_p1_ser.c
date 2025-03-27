@@ -17,13 +17,13 @@ GKYL_CU_DH void ambi_bolt_potential_sheath_calc_lower_1x_ser_p1(double sheathDir
   out[0] = 0.5*((1.4142135623730951*jacInv[1]-2.4494897427831783*jacInv[0])*m0JacIon[1]+m0JacIon[0]*(1.4142135623730951*jacInv[0]-2.4494897427831783*jacInv[1])); 
 
   double GammaJacIonB[1];
-  GammaJacIonB[0] = GammaJacIonB[0]; 
+  GammaJacIonB[0] = 0.6123724356957944*GammaJac_i[1]*sheathDirDx+0.3535533905932737*GammaJac_i[0]*sheathDirDx; 
 
   double x3HalfMomJacElcB[1];
-  x3HalfMomJacElcB[0] = x3HalfMomJacElcB[0]; 
+  x3HalfMomJacElcB[0] = -(0.7329037678543797*cmag[1]*jacobtotInv[1]*m0JacIon[1]*sqrt(T_e/m_e))+0.42314218766081724*cmag[0]*jacobtotInv[1]*m0JacIon[1]*sqrt(T_e/m_e)+0.42314218766081724*jacobtotInv[0]*cmag[1]*m0JacIon[1]*sqrt(T_e/m_e)-0.24430125595145993*cmag[0]*jacobtotInv[0]*m0JacIon[1]*sqrt(T_e/m_e)+0.42314218766081724*m0JacIon[0]*cmag[1]*jacobtotInv[1]*sqrt(T_e/m_e)-0.24430125595145993*cmag[0]*m0JacIon[0]*jacobtotInv[1]*sqrt(T_e/m_e)-0.24430125595145993*jacobtotInv[0]*m0JacIon[0]*cmag[1]*sqrt(T_e/m_e)+0.14104739588693907*cmag[0]*jacobtotInv[0]*m0JacIon[0]*sqrt(T_e/m_e); 
 
   double m0JacIonB[1];
-  m0JacIonB[0] = m0JacIonB[0]; 
+  m0JacIonB[0] = 0.7071067811865475*m0JacIon[0]-1.224744871391589*m0JacIon[1]; 
 
   double phiS_qp[1];
   if ((isfinite(GammaJacIonB[0]/2)) && (GammaJacIonB[0]/2>0.) && (m0JacIonB[0]/2>0.)) {
@@ -54,13 +54,13 @@ GKYL_CU_DH void ambi_bolt_potential_sheath_calc_upper_1x_ser_p1(double sheathDir
   out[0] = 0.5*((1.4142135623730951*jacInv[1]+2.4494897427831783*jacInv[0])*m0JacIon[1]+m0JacIon[0]*(2.4494897427831783*jacInv[1]+1.4142135623730951*jacInv[0])); 
 
   double GammaJacIonB[1];
-  GammaJacIonB[0] = GammaJacIonB[0]; 
+  GammaJacIonB[0] = 0.3535533905932737*GammaJac_i[0]*sheathDirDx-0.6123724356957944*GammaJac_i[1]*sheathDirDx; 
 
   double x3HalfMomJacElcB[1];
-  x3HalfMomJacElcB[0] = x3HalfMomJacElcB[0]; 
+  x3HalfMomJacElcB[0] = 0.7329037678543797*cmag[1]*jacobtotInv[1]*m0JacIon[1]*sqrt(T_e/m_e)+0.42314218766081724*cmag[0]*jacobtotInv[1]*m0JacIon[1]*sqrt(T_e/m_e)+0.42314218766081724*jacobtotInv[0]*cmag[1]*m0JacIon[1]*sqrt(T_e/m_e)+0.24430125595145993*cmag[0]*jacobtotInv[0]*m0JacIon[1]*sqrt(T_e/m_e)+0.42314218766081724*m0JacIon[0]*cmag[1]*jacobtotInv[1]*sqrt(T_e/m_e)+0.24430125595145993*cmag[0]*m0JacIon[0]*jacobtotInv[1]*sqrt(T_e/m_e)+0.24430125595145993*jacobtotInv[0]*m0JacIon[0]*cmag[1]*sqrt(T_e/m_e)+0.14104739588693907*cmag[0]*jacobtotInv[0]*m0JacIon[0]*sqrt(T_e/m_e); 
 
   double m0JacIonB[1];
-  m0JacIonB[0] = m0JacIonB[0]; 
+  m0JacIonB[0] = 1.224744871391589*m0JacIon[1]+0.7071067811865475*m0JacIon[0]; 
 
   double phiS_qp[1];
   if ((isfinite(GammaJacIonB[0]/2)) && (GammaJacIonB[0]/2>0.) && (m0JacIonB[0]/2>0.)) {

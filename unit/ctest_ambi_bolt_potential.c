@@ -155,6 +155,7 @@ test_ambi_bolt_sheath_calc_1x()
   TEST_CHECK(gkyl_compare_double(sheath_lower_c[0], sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c[1], 0, 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c[2], log(1/(sqrt(2*M_PI)*ambi->dz/2))*sqrt(2), 1e-12));
+  TEST_MSG(" Got: %.9e | Expected: %.9e\n", sheath_lower_c[2], log(1/(sqrt(2*M_PI)*ambi->dz/2))*sqrt(2));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c[3], 0, 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_upper_c[0], sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_upper_c[1], 0, 1e-12));
