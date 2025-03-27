@@ -37,6 +37,7 @@ __global__ static void
 gkyl_ambi_bolt_potential_sheath_calc_cu_ker(double dz, double charge_e, double mass_e, double temp_e,
   struct gkyl_ambi_bolt_potential_kernels *kers, enum gkyl_edge_loc edge,
   struct gkyl_range skin_r, struct gkyl_range ghost_r, const struct gkyl_array *jacob_geo_inv,
+  const struct gkyl_array *cmag, const struct gkyl_array *jacobtot_inv,
   const struct gkyl_array *gammai, const struct gkyl_array *m0i, struct gkyl_array *sheath_vals)
 {
   unsigned int keridx = (edge == GKYL_LOWER_EDGE) ? 0 : 1;
@@ -61,11 +62,13 @@ gkyl_ambi_bolt_potential_sheath_calc_cu_ker(double dz, double charge_e, double m
     long skin_loc = gkyl_range_idx(&skin_r, idx_s);
 
     const double *jacinv_p = (const double*) gkyl_array_cfetch(jacob_geo_inv, skin_loc);
+    const double *cmag_p = (const double*) gkyl_array_cfetch(cmag, skin_loc);
+    const double *jactotinv_p = (const double*) gkyl_array_cfetch(jacobtot_inv, skin_loc);
     const double *m0i_p = (const double*) gkyl_array_cfetch(m0i, skin_loc);
     const double *gammai_p = (const double*) gkyl_array_cfetch(gammai, ghost_loc);
     double *out_p = (double*) gkyl_array_cfetch(sheath_vals, ghost_loc);
 
-    kers->sheath_calc[keridx](dz, charge_e, mass_e, temp_e, jacinv_p, gammai_p, m0i_p, out_p);
+    kers->sheath_calc[keridx](dz, charge_e, mass_e, temp_e, jacinv_p, cmag_p, jactotinv_p, gammai_p, m0i_p, out_p);
   }
 }
 
@@ -113,12 +116,14 @@ ambi_bolt_potential_choose_kernels_cu(const struct gkyl_basis *basis, struct gky
 void
 gkyl_ambi_bolt_potential_sheath_calc_cu(struct gkyl_ambi_bolt_potential *up, enum gkyl_edge_loc edge,
   const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_array *jacob_geo_inv,
+  const struct gkyl_array *cmag, const struct gkyl_array *jacobtot_inv,
   const struct gkyl_array *gammai, const struct gkyl_array *m0i, struct gkyl_array *sheath_vals)
 {
   int nblocks = ghost_r->nblocks, nthreads = ghost_r->nthreads;
 
   gkyl_ambi_bolt_potential_sheath_calc_cu_ker<<<nblocks, nthreads>>>(up->dz, up->charge_e, up->mass_e, up->temp_e,
-    up->kernels_cu, edge, *skin_r, *ghost_r, jacob_geo_inv->on_dev, gammai->on_dev, m0i->on_dev, sheath_vals->on_dev);
+    up->kernels_cu, edge, *skin_r, *ghost_r, jacob_geo_inv->on_dev, cmag->on_dev, jacobtot_inv->on_dev,
+    gammai->on_dev, m0i->on_dev, sheath_vals->on_dev);
 }
 
 void
