@@ -37,6 +37,8 @@ gkyl_ambi_bolt_potential* gkyl_ambi_bolt_potential_new(const struct gkyl_rect_gr
  * @param skin_r Global skin range along the field line.
  * @param ghost_r Corresponding global ghost range along the field line.
  * @param jacob_geo_inv Reciprocal of the configuration space Jacobian.
+ * @param cmag Clebsch function in definition of the magnetic field.
+ * @param jacobtot_inv Reciprocal of the phase-space and conf-space Jacobians (1/(J*B)).
  * @param gammai Ion particle flux at the sheath entrance times the
  *               conf-space Jacobian.
  * @param m0i Ion number density times the conf-space Jacobian.
@@ -45,11 +47,7 @@ gkyl_ambi_bolt_potential* gkyl_ambi_bolt_potential_new(const struct gkyl_rect_gr
 void
 gkyl_ambi_bolt_potential_sheath_calc(struct gkyl_ambi_bolt_potential *up, enum gkyl_edge_loc edge,
   const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_array *jacob_geo_inv,
-  const struct gkyl_array *gammai, const struct gkyl_array *m0i, struct gkyl_array *sheath_vals);
-
-void
-gkyl_ambi_bolt_potential_sheath_calc_cu(struct gkyl_ambi_bolt_potential *up, enum gkyl_edge_loc edge,
-  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_array *jacob_geo_inv,
+  const struct gkyl_array *cmag, const struct gkyl_array *jacobtot_inv,
   const struct gkyl_array *gammai, const struct gkyl_array *m0i, struct gkyl_array *sheath_vals);
 
 /**
@@ -66,12 +64,6 @@ gkyl_ambi_bolt_potential_sheath_calc_cu(struct gkyl_ambi_bolt_potential *up, enu
  */
 void
 gkyl_ambi_bolt_potential_phi_calc(struct gkyl_ambi_bolt_potential *up,
-  const struct gkyl_range *local_r, const struct gkyl_range *extlocal_r,
-  const struct gkyl_array *jacob_geo_inv, const struct gkyl_array *m0i,
-  const struct gkyl_array *sheath_vals, struct gkyl_array *phi);
-
-void
-gkyl_ambi_bolt_potential_phi_calc_cu(struct gkyl_ambi_bolt_potential *up,
   const struct gkyl_range *local_r, const struct gkyl_range *extlocal_r,
   const struct gkyl_array *jacob_geo_inv, const struct gkyl_array *m0i,
   const struct gkyl_array *sheath_vals, struct gkyl_array *phi);

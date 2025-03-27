@@ -358,7 +358,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       1, GKYL_ARRAY_INTEGRATE_OP_SQ, app->use_gpu);
   }
   else {
-    if (!f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
+    if (f->gkfield_id != GKYL_GK_FIELD_BOLTZMANN)
       gkyl_array_set(f->es_energy_fac, 0.5, f->epsilon);
 
     f->calc_em_energy = gkyl_array_integrate_new(&app->grid, &app->basis, 
@@ -549,9 +549,11 @@ gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *f
     // to calculate the particle flux and place it in the ghost cells of s->m0.marr.
     gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_LOWER_EDGE, 
       &app->lower_skin[idx_par], &app->lower_ghost[idx_par], app->gk_geom->jacobgeo_inv, 
+      app->gk_geom->cmag, app->gk_geom->jacobtot_inv,
       s->m0.marr, field->rho_c, field->sheath_vals[off]);
     gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_UPPER_EDGE, 
       &app->upper_skin[idx_par], &app->upper_ghost[idx_par], app->gk_geom->jacobgeo_inv, 
+      app->gk_geom->cmag, app->gk_geom->jacobtot_inv,
       s->m0.marr, field->rho_c, field->sheath_vals[off+1]);
 
     // Broadcast the sheath values from skin processes to other processes.
