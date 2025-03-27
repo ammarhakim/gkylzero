@@ -318,7 +318,7 @@ gk_species_lbo_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, doub
     app->stat.n_diag_io += 1;   
 
     // Uncomment the following to write out nu_sum and nu_prim_moms
-    /*const char *fmt = "%s-%s_nu_sum_%d.gkyl";
+    const char *fmt = "%s-%s_nu_sum_%d.gkyl";
     int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, frame);
     char fileNm[sz+1]; // ensures no buffer overflow
     snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, frame);
@@ -329,7 +329,7 @@ gk_species_lbo_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, doub
     snprintf(fileNm_nu_prim, sizeof fileNm_nu_prim, fmt_nu_prim, app->name, gks->info.name, frame);
     
     if (gks->lbo.num_cross_collisions)
-      gk_species_lbo_cross_moms(app, gk_s, &gks->lbo, gks->f);
+      gk_species_lbo_cross_moms(app, gks, &gks->lbo, gks->f);
     
     // copy data from device to host before writing it out
     if (app->use_gpu) {
@@ -338,7 +338,7 @@ gk_species_lbo_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, doub
     }
     
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gks->lbo.nu_sum_host, fileNm);
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gks->lbo.nu_prim_moms_host, fileNm_nu_prim);*/
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gks->lbo.nu_prim_moms_host, fileNm_nu_prim);
 
     gk_array_meta_release(mt); 
   }
