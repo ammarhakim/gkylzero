@@ -127,18 +127,22 @@ test_ambi_bolt_sheath_calc_1x()
   }
 
   struct gkyl_array *jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
+  struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
+  struct gkyl_array *cmag = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
   struct gkyl_array *M0 = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
   struct gkyl_array *gamma_i = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
 
   gkyl_proj_on_basis *proj_one = gkyl_proj_on_basis_new(&grid, basis, poly_order+1, 1, eval_one, NULL);  
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, jacobgeo_inv);
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, jacobtot_inv);
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, cmag);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, 
-    &lower_skin[0], &lower_ghost[0], jacobgeo_inv, gamma_i, M0, sheath_vals[0]);
+    &lower_skin[0], &lower_ghost[0], jacobgeo_inv, cmag, jacobtot_inv, gamma_i, M0, sheath_vals[0]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
-    &upper_skin[0], &upper_ghost[0], jacobgeo_inv, gamma_i, M0, sheath_vals[1]);
+    &upper_skin[0], &upper_ghost[0], jacobgeo_inv, cmag, jacobtot_inv, gamma_i, M0, sheath_vals[1]);
 
   // Serendipity 1x basis is [1/sqrt(2), sqrt(3/2)x].
   // sheath_vals stores both the ion density and sheath value
@@ -151,6 +155,7 @@ test_ambi_bolt_sheath_calc_1x()
   TEST_CHECK(gkyl_compare_double(sheath_lower_c[0], sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c[1], 0, 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c[2], log(1/(sqrt(2*M_PI)*ambi->dz/2))*sqrt(2), 1e-12));
+  TEST_MSG(" Got: %.9e | Expected: %.9e\n", sheath_lower_c[2], log(1/(sqrt(2*M_PI)*ambi->dz/2))*sqrt(2));
   TEST_CHECK(gkyl_compare_double(sheath_lower_c[3], 0, 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_upper_c[0], sqrt(2), 1e-12));
   TEST_CHECK(gkyl_compare_double(sheath_upper_c[1], 0, 1e-12));
@@ -178,6 +183,8 @@ test_ambi_bolt_sheath_calc_1x()
     gkyl_array_release(sheath_vals[2*j+1]);
   }
   gkyl_array_release(jacobgeo_inv);
+  gkyl_array_release(cmag);
+  gkyl_array_release(jacobtot_inv);
   gkyl_array_release(M0);
   gkyl_array_release(gamma_i);
   gkyl_ambi_bolt_potential_release(ambi);
@@ -225,18 +232,22 @@ test_ambi_bolt_phi_calc_1x()
   }
 
   struct gkyl_array *jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
+  struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
+  struct gkyl_array *cmag = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
   struct gkyl_array *M0 = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
   struct gkyl_array *gamma_i = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
 
   gkyl_proj_on_basis *proj_one = gkyl_proj_on_basis_new(&grid, basis, poly_order+1, 1, eval_one, NULL);  
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, jacobgeo_inv);
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, jacobtot_inv);
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, cmag);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, 
-    &lower_skin[0], &lower_ghost[0], jacobgeo_inv, gamma_i, M0, sheath_vals[0]);
+    &lower_skin[0], &lower_ghost[0], jacobgeo_inv, cmag, jacobtot_inv, gamma_i, M0, sheath_vals[0]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
-    &upper_skin[0], &upper_ghost[0], jacobgeo_inv, gamma_i, M0, sheath_vals[1]);
+    &upper_skin[0], &upper_ghost[0], jacobgeo_inv, cmag, jacobtot_inv, gamma_i, M0, sheath_vals[1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   int idx_par = cdim-1, off = 2*idx_par;
@@ -265,6 +276,8 @@ test_ambi_bolt_phi_calc_1x()
     gkyl_array_release(sheath_vals[2*j+1]);
   }
   gkyl_array_release(jacobgeo_inv);
+  gkyl_array_release(cmag);
+  gkyl_array_release(jacobtot_inv);
   gkyl_array_release(M0);
   gkyl_array_release(gamma_i);
   gkyl_array_release(phi);
@@ -313,6 +326,8 @@ test_ambi_bolt_sheath_calc_1x_hat()
   }
 
   struct gkyl_array *jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
+  struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
+  struct gkyl_array *cmag = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
   struct gkyl_array *M0 = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
   struct gkyl_array *gamma_i = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
 
@@ -320,13 +335,15 @@ test_ambi_bolt_sheath_calc_1x_hat()
   gkyl_proj_on_basis *proj_hat = gkyl_proj_on_basis_new(&grid, basis, poly_order+1, 1, eval_hat, NULL); 
 
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, jacobgeo_inv);
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, jacobtot_inv);
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, cmag);
   gkyl_proj_on_basis_advance(proj_hat, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, 
-    &lower_skin[0], &lower_ghost[0], jacobgeo_inv, gamma_i, M0, sheath_vals[0]);
+    &lower_skin[0], &lower_ghost[0], jacobgeo_inv, cmag, jacobtot_inv, gamma_i, M0, sheath_vals[0]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
-    &upper_skin[0], &upper_ghost[0], jacobgeo_inv, gamma_i, M0, sheath_vals[1]);
+    &upper_skin[0], &upper_ghost[0], jacobgeo_inv, cmag, jacobtot_inv, gamma_i, M0, sheath_vals[1]);
 
   // Serendipity 1x basis is [1/sqrt(2), sqrt(3/2)x].
   // sheath_vals stores both the ion density and sheath value
@@ -365,6 +382,8 @@ test_ambi_bolt_sheath_calc_1x_hat()
     gkyl_array_release(sheath_vals[2*j+1]);
   }
   gkyl_array_release(jacobgeo_inv);
+  gkyl_array_release(cmag);
+  gkyl_array_release(jacobtot_inv);
   gkyl_array_release(M0);
   gkyl_array_release(gamma_i);
   gkyl_ambi_bolt_potential_release(ambi);
@@ -413,6 +432,8 @@ test_ambi_bolt_phi_calc_1x_hat()
   }
 
   struct gkyl_array *jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
+  struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
+  struct gkyl_array *cmag = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
   struct gkyl_array *M0 = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
   struct gkyl_array *gamma_i = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
 
@@ -420,13 +441,15 @@ test_ambi_bolt_phi_calc_1x_hat()
   gkyl_proj_on_basis *proj_hat = gkyl_proj_on_basis_new(&grid, basis, poly_order+1, 1, eval_hat, NULL); 
 
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, jacobgeo_inv);
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, jacobtot_inv);
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, cmag);
   gkyl_proj_on_basis_advance(proj_hat, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, 
-    &lower_skin[0], &lower_ghost[0], jacobgeo_inv, gamma_i, M0, sheath_vals[0]);
+    &lower_skin[0], &lower_ghost[0], jacobgeo_inv, cmag, jacobtot_inv, gamma_i, M0, sheath_vals[0]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
-    &upper_skin[0], &upper_ghost[0], jacobgeo_inv, gamma_i, M0, sheath_vals[1]);
+    &upper_skin[0], &upper_ghost[0], jacobgeo_inv, cmag, jacobtot_inv, gamma_i, M0, sheath_vals[1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   int idx_par = cdim-1, off = 2*idx_par;
@@ -456,6 +479,8 @@ test_ambi_bolt_phi_calc_1x_hat()
     gkyl_array_release(sheath_vals[2*j+1]);
   }
   gkyl_array_release(jacobgeo_inv);
+  gkyl_array_release(cmag);
+  gkyl_array_release(jacobtot_inv);
   gkyl_array_release(M0);
   gkyl_array_release(gamma_i);
   gkyl_array_release(phi);
@@ -542,20 +567,24 @@ test_ambi_bolt_sheath_calc_2x_one()
   }
 
   struct gkyl_array *jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
+  struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
+  struct gkyl_array *cmag = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
   struct gkyl_array *M0 = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
   struct gkyl_array *gamma_i = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
 
   gkyl_proj_on_basis *proj_one = gkyl_proj_on_basis_new(&grid, basis, poly_order+1, 1, eval_one, NULL); 
 
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, jacobgeo_inv);
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, jacobtot_inv);
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, cmag);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
   int idx_par = cdim-1, off = 2*idx_par;
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, 
-    &lower_skin[idx_par], &lower_ghost[idx_par], jacobgeo_inv, gamma_i, M0, sheath_vals[off]);
+    &lower_skin[idx_par], &lower_ghost[idx_par], jacobgeo_inv, cmag, jacobtot_inv, gamma_i, M0, sheath_vals[off]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
-    &upper_skin[idx_par], &upper_ghost[idx_par], jacobgeo_inv, gamma_i, M0, sheath_vals[off+1]);
+    &upper_skin[idx_par], &upper_ghost[idx_par], jacobgeo_inv, cmag, jacobtot_inv, gamma_i, M0, sheath_vals[off+1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   gkyl_array_copy_range_to_range(sheath_vals[off+1], sheath_vals[off+1],
@@ -597,6 +626,8 @@ test_ambi_bolt_sheath_calc_2x_one()
     gkyl_array_release(sheath_vals[2*j+1]);
   }
   gkyl_array_release(jacobgeo_inv);
+  gkyl_array_release(cmag);
+  gkyl_array_release(jacobtot_inv);
   gkyl_array_release(M0);
   gkyl_array_release(gamma_i);
   gkyl_ambi_bolt_potential_release(ambi);
@@ -644,6 +675,8 @@ test_ambi_bolt_sheath_calc_2x_hat()
   }
 
   struct gkyl_array *jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
+  struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
+  struct gkyl_array *cmag = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
   struct gkyl_array *M0 = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
   struct gkyl_array *gamma_i = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
 
@@ -651,14 +684,16 @@ test_ambi_bolt_sheath_calc_2x_hat()
   gkyl_proj_on_basis *proj_hat = gkyl_proj_on_basis_new(&grid, basis, poly_order+1, 1, eval_hat_2x, NULL);
 
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, jacobgeo_inv);
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, jacobtot_inv);
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, cmag);
   gkyl_proj_on_basis_advance(proj_hat, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
   int idx_par = cdim-1, off = 2*idx_par;
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, 
-    &lower_skin[idx_par], &lower_ghost[idx_par], jacobgeo_inv, gamma_i, M0, sheath_vals[off]);
+    &lower_skin[idx_par], &lower_ghost[idx_par], jacobgeo_inv, cmag, jacobtot_inv, gamma_i, M0, sheath_vals[off]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
-    &upper_skin[idx_par], &upper_ghost[idx_par], jacobgeo_inv, gamma_i, M0, sheath_vals[off+1]);
+    &upper_skin[idx_par], &upper_ghost[idx_par], jacobgeo_inv, cmag, jacobtot_inv, gamma_i, M0, sheath_vals[off+1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   gkyl_array_copy_range_to_range(sheath_vals[off+1], sheath_vals[off+1],
@@ -700,6 +735,8 @@ test_ambi_bolt_sheath_calc_2x_hat()
     gkyl_array_release(sheath_vals[2*j+1]);
   }
   gkyl_array_release(jacobgeo_inv);
+  gkyl_array_release(cmag);
+  gkyl_array_release(jacobtot_inv);
   gkyl_array_release(M0);
   gkyl_array_release(gamma_i);
   gkyl_ambi_bolt_potential_release(ambi);
@@ -748,6 +785,8 @@ test_ambi_bolt_sheath_calc_2x_ramp_sheath()
   }
 
   struct gkyl_array *jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
+  struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
+  struct gkyl_array *cmag = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
   struct gkyl_array *M0 = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
   struct gkyl_array *gamma_i = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
 
@@ -755,14 +794,16 @@ test_ambi_bolt_sheath_calc_2x_ramp_sheath()
   gkyl_proj_on_basis *proj_ramp = gkyl_proj_on_basis_new(&grid, basis, poly_order+1, 1, eval_ramp_sheath_2x, NULL);
 
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, jacobgeo_inv);
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, jacobtot_inv);
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, cmag);
   gkyl_proj_on_basis_advance(proj_ramp, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
   int idx_par = cdim-1, off = 2*idx_par;
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, 
-    &lower_skin[idx_par], &lower_ghost[idx_par], jacobgeo_inv, gamma_i, M0, sheath_vals[off]);
+    &lower_skin[idx_par], &lower_ghost[idx_par], jacobgeo_inv, cmag, jacobtot_inv, gamma_i, M0, sheath_vals[off]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
-    &upper_skin[idx_par], &upper_ghost[idx_par], jacobgeo_inv, gamma_i, M0, sheath_vals[off+1]);
+    &upper_skin[idx_par], &upper_ghost[idx_par], jacobgeo_inv, cmag, jacobtot_inv, gamma_i, M0, sheath_vals[off+1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   gkyl_array_copy_range_to_range(sheath_vals[off+1], sheath_vals[off+1],
@@ -804,6 +845,8 @@ test_ambi_bolt_sheath_calc_2x_ramp_sheath()
     gkyl_array_release(sheath_vals[2*j+1]);
   }
   gkyl_array_release(jacobgeo_inv);
+  gkyl_array_release(cmag);
+  gkyl_array_release(jacobtot_inv);
   gkyl_array_release(M0);
   gkyl_array_release(gamma_i);
   gkyl_ambi_bolt_potential_release(ambi);
@@ -852,20 +895,24 @@ test_ambi_bolt_phi_calc_2x_one()
   }
 
   struct gkyl_array *jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
+  struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
+  struct gkyl_array *cmag = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
   struct gkyl_array *M0 = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
   struct gkyl_array *gamma_i = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
 
   gkyl_proj_on_basis *proj_one = gkyl_proj_on_basis_new(&grid, basis, poly_order+1, 1, eval_one, NULL); 
 
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, jacobgeo_inv);
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, jacobtot_inv);
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, cmag);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
   int idx_par = cdim-1, off = 2*idx_par;
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, 
-    &lower_skin[idx_par], &lower_ghost[idx_par], jacobgeo_inv, gamma_i, M0, sheath_vals[off]);
+    &lower_skin[idx_par], &lower_ghost[idx_par], jacobgeo_inv, cmag, jacobtot_inv, gamma_i, M0, sheath_vals[off]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
-    &upper_skin[idx_par], &upper_ghost[idx_par], jacobgeo_inv, gamma_i, M0, sheath_vals[off+1]);
+    &upper_skin[idx_par], &upper_ghost[idx_par], jacobgeo_inv, cmag, jacobtot_inv, gamma_i, M0, sheath_vals[off+1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   gkyl_array_copy_range_to_range(sheath_vals[off+1], sheath_vals[off+1],
@@ -896,6 +943,8 @@ test_ambi_bolt_phi_calc_2x_one()
     gkyl_array_release(sheath_vals[2*j+1]);
   }
   gkyl_array_release(jacobgeo_inv);
+  gkyl_array_release(cmag);
+  gkyl_array_release(jacobtot_inv);
   gkyl_array_release(M0);
   gkyl_array_release(gamma_i);
   gkyl_array_release(phi);
@@ -944,6 +993,8 @@ test_ambi_bolt_phi_calc_2x_hat()
   }
 
   struct gkyl_array *jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
+  struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
+  struct gkyl_array *cmag = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
   struct gkyl_array *M0 = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
   struct gkyl_array *gamma_i = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
 
@@ -951,14 +1002,16 @@ test_ambi_bolt_phi_calc_2x_hat()
   gkyl_proj_on_basis *proj_hat = gkyl_proj_on_basis_new(&grid, basis, poly_order+1, 1, eval_hat_2x, NULL);
 
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, jacobgeo_inv);
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, jacobtot_inv);
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, cmag);
   gkyl_proj_on_basis_advance(proj_hat, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
   int idx_par = cdim-1, off = 2*idx_par;
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, 
-    &lower_skin[idx_par], &lower_ghost[idx_par], jacobgeo_inv, gamma_i, M0, sheath_vals[off]);
+    &lower_skin[idx_par], &lower_ghost[idx_par], jacobgeo_inv, cmag, jacobtot_inv, gamma_i, M0, sheath_vals[off]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
-    &upper_skin[idx_par], &upper_ghost[idx_par], jacobgeo_inv, gamma_i, M0, sheath_vals[off+1]);
+    &upper_skin[idx_par], &upper_ghost[idx_par], jacobgeo_inv, cmag, jacobtot_inv, gamma_i, M0, sheath_vals[off+1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   gkyl_array_copy_range_to_range(sheath_vals[off+1], sheath_vals[off+1],
@@ -988,6 +1041,8 @@ test_ambi_bolt_phi_calc_2x_hat()
     gkyl_array_release(sheath_vals[2*j+1]);
   }
   gkyl_array_release(jacobgeo_inv);
+  gkyl_array_release(cmag);
+  gkyl_array_release(jacobtot_inv);
   gkyl_array_release(M0);
   gkyl_array_release(gamma_i);
   gkyl_array_release(phi);
@@ -1037,6 +1092,8 @@ test_ambi_bolt_phi_calc_2x_ramp()
   }
 
   struct gkyl_array *jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
+  struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
+  struct gkyl_array *cmag = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
   struct gkyl_array *M0 = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
   struct gkyl_array *gamma_i = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
 
@@ -1044,14 +1101,16 @@ test_ambi_bolt_phi_calc_2x_ramp()
   gkyl_proj_on_basis *proj_ramp = gkyl_proj_on_basis_new(&grid, basis, poly_order+1, 1, eval_ramp_sheath_2x, NULL);
 
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, jacobgeo_inv);
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, jacobtot_inv);
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, cmag);
   gkyl_proj_on_basis_advance(proj_ramp, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
   int idx_par = cdim-1, off = 2*idx_par;
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, 
-    &lower_skin[idx_par], &lower_ghost[idx_par], jacobgeo_inv, gamma_i, M0, sheath_vals[off]);
+    &lower_skin[idx_par], &lower_ghost[idx_par], jacobgeo_inv, cmag, jacobtot_inv, gamma_i, M0, sheath_vals[off]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
-    &upper_skin[idx_par], &upper_ghost[idx_par], jacobgeo_inv, gamma_i, M0, sheath_vals[off+1]);
+    &upper_skin[idx_par], &upper_ghost[idx_par], jacobgeo_inv, cmag, jacobtot_inv, gamma_i, M0, sheath_vals[off+1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   gkyl_array_copy_range_to_range(sheath_vals[off+1], sheath_vals[off+1],
@@ -1081,6 +1140,8 @@ test_ambi_bolt_phi_calc_2x_ramp()
     gkyl_array_release(sheath_vals[2*j+1]);
   }
   gkyl_array_release(jacobgeo_inv);
+  gkyl_array_release(cmag);
+  gkyl_array_release(jacobtot_inv);
   gkyl_array_release(M0);
   gkyl_array_release(gamma_i);
   gkyl_array_release(phi);
@@ -1130,6 +1191,8 @@ test_ambi_bolt_phi_calc_2x_parabola()
   }
 
   struct gkyl_array *jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
+  struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
+  struct gkyl_array *cmag = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
   struct gkyl_array *M0 = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
   struct gkyl_array *gamma_i = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
 
@@ -1137,14 +1200,16 @@ test_ambi_bolt_phi_calc_2x_parabola()
   gkyl_proj_on_basis *proj_func = gkyl_proj_on_basis_new(&grid, basis, poly_order+1, 1, eval_parabola_2x, NULL);
 
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, jacobgeo_inv);
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, jacobtot_inv);
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, cmag);
   gkyl_proj_on_basis_advance(proj_func, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
   int idx_par = cdim-1, off = 2*idx_par;
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, 
-    &lower_skin[idx_par], &lower_ghost[idx_par], jacobgeo_inv, gamma_i, M0, sheath_vals[off]);
+    &lower_skin[idx_par], &lower_ghost[idx_par], jacobgeo_inv, cmag, jacobtot_inv, gamma_i, M0, sheath_vals[off]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
-    &upper_skin[idx_par], &upper_ghost[idx_par], jacobgeo_inv, gamma_i, M0, sheath_vals[off+1]);
+    &upper_skin[idx_par], &upper_ghost[idx_par], jacobgeo_inv, cmag, jacobtot_inv, gamma_i, M0, sheath_vals[off+1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   gkyl_array_copy_range_to_range(sheath_vals[off+1], sheath_vals[off+1],
@@ -1180,6 +1245,8 @@ test_ambi_bolt_phi_calc_2x_parabola()
     gkyl_array_release(sheath_vals[2*j+1]);
   }
   gkyl_array_release(jacobgeo_inv);
+  gkyl_array_release(cmag);
+  gkyl_array_release(jacobtot_inv);
   gkyl_array_release(M0);
   gkyl_array_release(gamma_i);
   gkyl_array_release(phi);
@@ -1229,6 +1296,8 @@ test_ambi_bolt_phi_calc_3x_one()
   }
 
   struct gkyl_array *jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
+  struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
+  struct gkyl_array *cmag = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
   struct gkyl_array *M0 = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
   struct gkyl_array *gamma_i = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
 
@@ -1236,14 +1305,16 @@ test_ambi_bolt_phi_calc_3x_one()
   gkyl_proj_on_basis *proj_func = gkyl_proj_on_basis_new(&grid, basis, poly_order+1, 1, eval_one, NULL);
 
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, jacobgeo_inv);
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, jacobtot_inv);
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, cmag);
   gkyl_proj_on_basis_advance(proj_func, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
   int idx_par = cdim-1, off = 2*idx_par;
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, 
-    &lower_skin[idx_par], &lower_ghost[idx_par], jacobgeo_inv, gamma_i, M0, sheath_vals[off]);
+    &lower_skin[idx_par], &lower_ghost[idx_par], jacobgeo_inv, cmag, jacobtot_inv, gamma_i, M0, sheath_vals[off]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
-    &upper_skin[idx_par], &upper_ghost[idx_par], jacobgeo_inv, gamma_i, M0, sheath_vals[off+1]);
+    &upper_skin[idx_par], &upper_ghost[idx_par], jacobgeo_inv, cmag, jacobtot_inv, gamma_i, M0, sheath_vals[off+1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   gkyl_array_copy_range_to_range(sheath_vals[off+1], sheath_vals[off+1],
@@ -1282,6 +1353,8 @@ test_ambi_bolt_phi_calc_3x_one()
     gkyl_array_release(sheath_vals[2*j+1]);
   }
   gkyl_array_release(jacobgeo_inv);
+  gkyl_array_release(cmag);
+  gkyl_array_release(jacobtot_inv);
   gkyl_array_release(M0);
   gkyl_array_release(gamma_i);
   gkyl_array_release(phi);
@@ -1331,6 +1404,8 @@ test_ambi_bolt_phi_calc_3x_parabola()
   }
 
   struct gkyl_array *jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
+  struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
+  struct gkyl_array *cmag = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
   struct gkyl_array *M0 = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
   struct gkyl_array *gamma_i = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, local_ext.volume);
 
@@ -1338,14 +1413,16 @@ test_ambi_bolt_phi_calc_3x_parabola()
   gkyl_proj_on_basis *proj_func = gkyl_proj_on_basis_new(&grid, basis, poly_order+1, 1, eval_parabola_3x, NULL);
 
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, jacobgeo_inv);
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, jacobtot_inv);
+  gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, cmag);
   gkyl_proj_on_basis_advance(proj_func, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
   int idx_par = cdim-1, off = 2*idx_par;
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, 
-    &lower_skin[idx_par], &lower_ghost[idx_par], jacobgeo_inv, gamma_i, M0, sheath_vals[off]);
+    &lower_skin[idx_par], &lower_ghost[idx_par], jacobgeo_inv, cmag, jacobtot_inv, gamma_i, M0, sheath_vals[off]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
-    &upper_skin[idx_par], &upper_ghost[idx_par], jacobgeo_inv, gamma_i, M0, sheath_vals[off+1]);
+    &upper_skin[idx_par], &upper_ghost[idx_par], jacobgeo_inv, cmag, jacobtot_inv, gamma_i, M0, sheath_vals[off+1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   gkyl_array_copy_range_to_range(sheath_vals[off+1], sheath_vals[off+1],
@@ -1381,6 +1458,8 @@ test_ambi_bolt_phi_calc_3x_parabola()
     gkyl_array_release(sheath_vals[2*j+1]);
   }
   gkyl_array_release(jacobgeo_inv);
+  gkyl_array_release(cmag);
+  gkyl_array_release(jacobtot_inv);
   gkyl_array_release(M0);
   gkyl_array_release(gamma_i);
   gkyl_array_release(phi);

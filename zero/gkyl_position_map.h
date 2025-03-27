@@ -114,6 +114,21 @@ void
 gkyl_position_map_eval_mc2nu(const struct gkyl_position_map* gpm, const double *xc, double *xnu);
 
 /**
+ * Evaluate the slope of the position mapping at a specific computational (position) coordinate.
+ * 
+ * @param gpm Gkyl position map object.
+ * @param ix_map Index of the map to evaluate. Calls gpm->maps[index].
+ * @param x Computational position coordinates.
+ * @param dx Computational position increment.
+ * @param ix_comp Index in the geometry loop of which cell we are discussing
+ * @param nrange Range of the computational coordinates.
+ * @return Slope of the position mapping.
+ */
+double
+gkyl_position_map_slope(const struct gkyl_position_map* gpm, int ix_map,
+  double x, double dx, int ix_comp, struct gkyl_range *nrange);
+
+/**
  * Create a new pointer to the position map object.
  * Release it with gkyl_position_map_release.
  *
