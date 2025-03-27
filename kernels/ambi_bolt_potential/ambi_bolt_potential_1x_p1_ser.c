@@ -49,28 +49,6 @@ GKYL_CU_DH void ambi_bolt_potential_sheath_calc_lower_1x_ser_p1(double sheathDir
   printf("n_s = %.9e\n",out[0]/sqrt(2));
   printf("phi_s = %.9e\n",out[2]/sqrt(2));
 
-
-  /*
-  Uniform
-sheathDirDx = 6.250000000e-02
-jacInv = 1.000000000e+00
-GammaJacIonB = 3.988337141e-01
-GammaIonB = 3.988337140e-01
-m0JacIonB = 1.000000000e+00
-m0IonB = 1.000000000e+00
-n_s = 1.000000000e+00
-phi_s = -6.928750080e-01
-
-Stretched
-sheathDirDx = 1.250000000e-02
-jacInv = 2.000000000e-01
-GammaJacIonB = 3.988337141e-01
-GammaIonB = 3.988337140e-01
-m0JacIonB = 5.000000000e+00
-m0IonB = 1.000000000e+00
-n_s = 1.000000000e+00
-phi_s = -6.928750080e-01
-  */
 }
 
 GKYL_CU_DH void ambi_bolt_potential_sheath_calc_upper_1x_ser_p1(double sheathDirDx, double q_e, double m_e, double T_e, const double *jacInv, const double *cmag, const double *jacobtotInv, const double *GammaJac_i, const double *m0JacIon, double *out) 
