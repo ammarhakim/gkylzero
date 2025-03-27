@@ -35,19 +35,42 @@ GKYL_CU_DH void ambi_bolt_potential_sheath_calc_lower_1x_ser_p1(double sheathDir
   // Sheath potential
   out[2] = 1.4142135623730951*phiS_qp[0]; 
 
-    
   double jacInvSurf = jacInv[0]/sqrt(2.0)-jacInv[1]*sqrt(3.0/2.0);
+
+  printf("sheathDirDx = %.9e\n",sheathDirDx);
   printf("jacInv = %.9e\n",jacInvSurf);
   printf("GammaJacIonB = %.9e\n",GammaJacIonB[0]/2.0);
-  printf("GammaIonB = %.9e\n",(GammaJacIonB[0]/2.0) / jacInvSurf);
+  printf("GammaIonB = %.9e\n",(GammaJacIonB[0]/2.0) * jacInvSurf);
   // Look for something where J != 1
 
   printf("m0JacIonB = %.9e\n",m0JacIonB[0]);
   printf("m0IonB = %.9e\n",m0JacIonB[0] * jacInvSurf);
   
-  printf("n_s = %.9e\n",out[0]);
-  printf("phi_s = %.9e\n",out[2]);
+  printf("n_s = %.9e\n",out[0]/sqrt(2));
+  printf("phi_s = %.9e\n",out[2]/sqrt(2));
 
+
+  /*
+  Uniform
+sheathDirDx = 6.250000000e-02
+jacInv = 1.000000000e+00
+GammaJacIonB = 3.988337141e-01
+GammaIonB = 3.988337140e-01
+m0JacIonB = 1.000000000e+00
+m0IonB = 1.000000000e+00
+n_s = 1.000000000e+00
+phi_s = -6.928750080e-01
+
+Stretched
+sheathDirDx = 1.250000000e-02
+jacInv = 2.000000000e-01
+GammaJacIonB = 3.988337141e-01
+GammaIonB = 3.988337140e-01
+m0JacIonB = 5.000000000e+00
+m0IonB = 1.000000000e+00
+n_s = 1.000000000e+00
+phi_s = -6.928750080e-01
+  */
 }
 
 GKYL_CU_DH void ambi_bolt_potential_sheath_calc_upper_1x_ser_p1(double sheathDirDx, double q_e, double m_e, double T_e, const double *jacInv, const double *cmag, const double *jacobtotInv, const double *GammaJac_i, const double *m0JacIon, double *out) 
