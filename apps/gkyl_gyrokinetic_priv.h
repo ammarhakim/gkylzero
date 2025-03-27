@@ -503,8 +503,7 @@ struct gk_proj {
     // Maxwellian and Bi-Maxwellian projection from primitive moments
     struct {
       struct gkyl_array *dens; // host-side density
-      double power; // target power of the source function
-      
+
       struct gkyl_array *prim_moms_host; // host-side prim_moms for initialization with proj_on_basis
       struct gkyl_array *prim_moms; // prim_moms we pass to Maxwellian projection object (potentially on device)
 
@@ -1768,7 +1767,7 @@ void gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
  * @param f Output distribution function from projection.
  * @param tm Time for use in projection.
  */
-void gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *species, 
+void gk_species_projection_calc(gkyl_gyrokinetic_app *app, struct gk_species *species, 
   struct gk_proj *proj, struct gkyl_array *f, double tm);
 
 /**
@@ -1798,7 +1797,7 @@ void gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
  * @param src Species source object.
  * @param tm Time for use in source.
  */
-void gk_species_source_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s, 
+void gk_species_source_calc(gkyl_gyrokinetic_app *app, struct gk_species *s, 
   struct gk_source *src, double tm);
 
 /**

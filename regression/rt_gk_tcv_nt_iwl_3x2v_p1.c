@@ -34,6 +34,8 @@ struct gk_app_ctx {
     double num_sources;
     double n_srcCORE, x_srcCORE, Te_srcCORE, Ti_srcCORE, sigma_srcCORE, power_src;
     double n_srcRECY, x_srcRECY, Te_srcRECY, Ti_srcRECY, sigmax_srcRECY, sigmaz_srcRECY, floor_src;
+    double dens_gauss, upar_gauss, temp_gauss;
+    double center_gauss[3], sigma_gauss[3];
     bool adaptive_source;
     char adapt_mom_type [26]; // Type of adaptive moment for the source
     double adapt_mom_rate_target;
@@ -146,8 +148,10 @@ struct gk_app_ctx create_ctx(void)
   double num_sources = 1; // We do not activate the recycling source here.
   bool adaptive_source = true;
   char adapt_mom_type [26];
-  strcpy(adapt_mom_type, "M2");
-  double adapt_mom_rate_target = 0.5e6; // Input power of the source in W.
+  // strcpy(adapt_mom_type, "M2");
+  // double adapt_mom_rate_target = 0.5e6; // Input power of the source in W.
+  strcpy(adapt_mom_type, "M0");
+  double adapt_mom_rate_target = 1.0e22; // Input power of the source in W.
   // Core source parameters
   double n_srcCORE = 2.4e23;
   double x_srcCORE = x_min;
@@ -155,7 +159,6 @@ struct gk_app_ctx create_ctx(void)
   double Ti_srcCORE = 3*Ti0;
   double sigma_srcCORE = 0.03*Lx;
   double floor_src = 1e-2;
-  double power_src = 0.5e6;
   // Recycling source parameters
   double n_srcRECY = 0.99*n_srcCORE;
   double x_srcRECY = 0.5*x_LCFS;
@@ -163,6 +166,12 @@ struct gk_app_ctx create_ctx(void)
   double Ti_srcRECY = 20*eV;
   double sigmax_srcRECY = 0.25*x_LCFS;
   double sigmaz_srcRECY = 0.25*Lz;
+  //
+  double dens_gauss = 2.4e23;
+  double upar_gauss = 0.0;
+  double temp_gauss = 3*Te0;
+  double center_gauss[3] = {x_min, 0.0, 0.0};
+  double sigma_gauss[3] = {0.03*Lx, 0.0, 0.0};
   // Grid parameters
   int num_cell_x = 16;
   int num_cell_y = 10;
@@ -320,23 +329,22 @@ main(int argc, char **argv)
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = ctx.num_sources,
       .projection[0] = {
-        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-        .ctx_density = &ctx,
-        .ctx_upar = &ctx,
-        .ctx_temp = &ctx,
-        .density = density_srcCORE,
-        .upar = zero_func,
-        .temp = temp_elc_srcCORE,
+        .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
+        .center_gauss = {0.0, 0.0, 0.0},
+        .sigma_gauss = {ctx.sigma_srcCORE, 0.0, 0.0},
+        .particle = 0.5e22,
+        .energy = 0.3*1e6,
+        .floor = ctx.floor_src,
       },
-      .projection[1] = {
-        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-        .ctx_density = &ctx,
-        .ctx_upar = &ctx,
-        .ctx_temp = &ctx,
-        .density = density_srcRECY,
-        .upar = zero_func,
-        .temp = temp_elc_srcRECY,
-      },
+      // .projection[0] = {
+      //   .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+      //   .ctx_density = &ctx,
+      //   .ctx_upar = &ctx,
+      //   .ctx_temp = &ctx,
+      //   .density = density_srcCORE,
+      //   .upar = zero_func,
+      //   .temp = temp_ion_srcCORE,
+      // },
       .diagnostics = {
         .num_diag_moments = 1,
         .diag_moments = {"HamiltonianMoments"},
@@ -417,23 +425,22 @@ main(int argc, char **argv)
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = ctx.num_sources,
       .projection[0] = {
-        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-        .ctx_density = &ctx,
-        .ctx_upar = &ctx,
-        .ctx_temp = &ctx,
-        .density = density_srcCORE,
-        .upar = zero_func,
-        .temp = temp_ion_srcCORE,
+        .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
+        .center_gauss = {ctx.x_srcCORE, 0.0, 0.0},
+        .sigma_gauss = {ctx.sigma_srcCORE, 0.0, 0.0},
+        .particle = 0.5e22,
+        .energy = 0.3*1e6,
+        .floor = ctx.floor_src,
       },
-      .projection[1] = {
-        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-        .ctx_density = &ctx,
-        .ctx_upar = &ctx,
-        .ctx_temp = &ctx,
-        .density = density_srcRECY,
-        .upar = zero_func,
-        .temp = temp_ion_srcRECY,
-      },
+      // .projection[0] = {
+      //   .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+      //   .ctx_density = &ctx,
+      //   .ctx_upar = &ctx,
+      //   .ctx_temp = &ctx,
+      //   .density = density_srcCORE,
+      //   .upar = zero_func,
+      //   .temp = temp_ion_srcCORE,
+      // },
       .diagnostics = {
         .num_diag_moments = 1,
         .diag_moments = {"HamiltonianMoments"},

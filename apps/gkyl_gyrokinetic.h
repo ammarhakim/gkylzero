@@ -41,6 +41,12 @@ struct gkyl_gyrokinetic_projection {
       void (*temppar)(double t, const double *xn, double *fout, void *ctx);
       void *ctx_tempperp;
       void (*tempperp)(double t, const double *xn, double *fout, void *ctx);
+      // if projection is a Maxwellian + Gaussian in configuration space.
+      double center_gauss[GKYL_MAX_CDIM]; // Center in configuration space.
+      double sigma_gauss[GKYL_MAX_CDIM]; // Sigma in configuration space, function is constant if sigma is 0.
+      double particle; // total integral of the Gaussian Maxwellian distribution.
+      double energy; // total energy of the Gaussian Maxwellian distribution.
+      double floor; // Floor value for the Gaussian Maxwellian distribution.
 
       // boolean if we are correcting all the moments or only density
       bool correct_all_moms; 
