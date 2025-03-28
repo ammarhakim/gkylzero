@@ -115,7 +115,7 @@ ambi_bolt_potential_choose_kernels_cu(const struct gkyl_basis *basis, struct gky
 
 void
 gkyl_ambi_bolt_potential_sheath_calc_cu(struct gkyl_ambi_bolt_potential *up, enum gkyl_edge_loc edge,
-  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_array *jacob_geo_inv,
+  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
   const struct gkyl_array *cmag, const struct gkyl_array *jacobtot_inv,
   const struct gkyl_array *gammai, const struct gkyl_array *m0i, const struct gkyl_array *Jm0i,
   struct gkyl_array *sheath_vals)
