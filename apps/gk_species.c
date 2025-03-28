@@ -1570,18 +1570,20 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   // Additional bflux moments to step in time.
   struct gkyl_phase_diagnostics_inp add_bflux_moms_inp = (struct gkyl_phase_diagnostics_inp) { };
   // Set the operation type for the bflux app.
+  //   - GK_SPECIES_BFLUX_CALC_FLUX to only put bfluxes in ghost cells of rhs.
+  //   - GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS to calc bfluxes and step its moments.
+  // The latter also requires that you place the moment you desire in add_bflux_moms_inp below.
   enum gkyl_species_bflux_type bflux_type = GK_SPECIES_BFLUX_NONE;
   if (gks->info.boundary_flux_diagnostics.num_diag_moments > 0 ||
       gks->info.boundary_flux_diagnostics.num_integrated_diag_moments > 0) {
     bflux_type = GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS_DIAGS;
   }
   else {
-    // Set bflux_type to 
-    //   - GK_SPECIES_BFLUX_CALC_FLUX to only put bfluxes in ghost cells of rhs.
-    //   - GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS to calc bfluxes and step its moments.
-    // The latter also requires that you place the moment you desire in add_bflux_moms_inp below.
-    if (app->field->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
+    // Activate bflux for Boltzmann species or if adaptive source is active.
+    if ((app->field->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
+      || app->adaptive_source) {
       bflux_type = GK_SPECIES_BFLUX_CALC_FLUX;
+    }
   }
   // Introduce new moments into moms_inp if needed.
   gk_species_bflux_init(app, gks, &gks->bflux, bflux_type, add_bflux_moms_inp);
