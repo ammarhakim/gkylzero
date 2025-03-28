@@ -12,6 +12,8 @@
 
 // Elliptical "equilibrium"
 
+
+
 static inline double sq(double x) { return x*x; }
 static inline double cub(double x) { return x*x*x; }
 static inline double qad(double x) { return x*x*x*x; }

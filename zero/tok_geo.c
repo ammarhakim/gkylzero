@@ -306,39 +306,11 @@ bmag_func(double r_curr, double Z, void *ctx)
   double fx = (psi_fpol-fxc)/(actx->geo->fgrid.dx[0]*0.5);
   double fpol = actx->geo->fbasis.eval_expand(&fx, coeffs);
 
-  //if (actx->geo->use_cubics) {
-    double xn[2] = {r_curr, Z};
-    double fout[3];
-    actx->geo->efit->evf->eval_cubic_wgrad(0.0, xn, fout, actx->geo->efit->evf->ctx);
-    double dpsidR = fout[1]*2.0/actx->geo->rzgrid_cubic.dx[0];
-    double dpsidZ = fout[2]*2.0/actx->geo->rzgrid_cubic.dx[1];
-  //  double grad_psi_mag = sqrt(dpsidR*dpsidR + dpsidZ*dpsidZ);
-  //  double result  = (1/r_curr/grad_psi_mag);
-  //}
-  //else {
-  //  int rzidx[2];
-  //  int idxtemp = actx->geo->rzlocal.lower[0] + (int) floor((r_curr - actx->geo->rzgrid.lower[0])/actx->geo->rzgrid.dx[0]);
-  //  idxtemp = GKYL_MIN2(idxtemp, actx->geo->rzlocal.upper[0]);
-  //  idxtemp = GKYL_MAX2(idxtemp, actx->geo->rzlocal.lower[0]);
-  //  rzidx[0] = idxtemp;
-  //  idxtemp = actx->geo->rzlocal.lower[1] + (int) floor((Z - actx->geo->rzgrid.lower[1])/actx->geo->rzgrid.dx[1]);
-  //  idxtemp = GKYL_MIN2(idxtemp, actx->geo->rzlocal.upper[1]);
-  //  idxtemp = GKYL_MAX2(idxtemp, actx->geo->rzlocal.lower[1]);
-  //  rzidx[1] = idxtemp;
-
-  //  long loc = gkyl_range_idx((&actx->geo->rzlocal), rzidx);
-  //  const double *psih = gkyl_array_cfetch(actx->geo->psiRZ, loc);
-
-  //  double xc[2];
-  //  gkyl_rect_grid_cell_center((&actx->geo->rzgrid), rzidx, xc);
-  //  double x = (r_curr-xc[0])/(actx->geo->rzgrid.dx[0]*0.5);
-  //  double y = (Z-xc[1])/(actx->geo->rzgrid.dx[1]*0.5);
-
-  //  double eta[2] = {x,y};
-  //  double grad_psi_mag = actx->geo->calc_grad_psi(psih, eta, actx->geo->rzgrid.dx);
-  //  double result  = (1/r_curr/grad_psi_mag);
-  //}
-
+  double xn[2] = {r_curr, Z};
+  double fout[3];
+  actx->geo->efit->evf->eval_cubic_wgrad(0.0, xn, fout, actx->geo->efit->evf->ctx);
+  double dpsidR = fout[1]*2.0/actx->geo->rzgrid_cubic.dx[0];
+  double dpsidZ = fout[2]*2.0/actx->geo->rzgrid_cubic.dx[1];
 
   double Br = 1.0/r_curr*dpsidZ;
   double Bz = -1.0/r_curr*dpsidR;
@@ -530,9 +502,16 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
         arcL_curr = arcL_lo + it*darcL;
         double theta_curr = arcL_curr*(2*M_PI/arc_ctx.arcL_tot) - M_PI ; 
 
-        position_map->maps[0](0.0, &psi_curr,   &psi_curr,   position_map->ctxs[0]);
-        position_map->maps[1](0.0, &alpha_curr, &alpha_curr, position_map->ctxs[1]);
-        position_map->maps[2](0.0, &theta_curr, &theta_curr, position_map->ctxs[2]);
+        // Calculate derivatives using finite difference for ddtheta,
+        // as well as transform the computational coordiante to the non-uniform field-aligned value
+
+        // Non-uniform psi. Finite differences are calculated in calc_metric.c
+        position_map->maps[0](0.0, &psi_curr,  &psi_curr,  position_map->ctxs[0]);
+        // We cannot do non-uniform alpha because we are modeling axisymmetric systems
+        // Non-uniform theta
+        double Theta_curr;
+        position_map->maps[2](0.0, &theta_curr,  &Theta_curr,  position_map->ctxs[2]);
+        theta_curr = Theta_curr;
         arcL_curr = (theta_curr + M_PI) / (2*M_PI/arc_ctx.arcL_tot);
 
         tok_set_ridders(inp, &arc_ctx, psi_curr, arcL_curr, &rclose, &ridders_min, &ridders_max);
@@ -733,9 +712,18 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
           arcL_curr = calc_running_coord(arcL_lo, it-nrange->lower[TH_IDX], darcL);
           double theta_curr = arcL_curr*(2*M_PI/arc_ctx.arcL_tot) - M_PI ; 
 
-          position_map->maps[0](0.0, &psi_curr,   &psi_curr,   position_map->ctxs[0]);
-          position_map->maps[1](0.0, &alpha_curr, &alpha_curr, position_map->ctxs[1]);
-          position_map->maps[2](0.0, &theta_curr, &theta_curr, position_map->ctxs[2]);
+          // Calculate derivatives using finite difference for ddtheta,
+          // as well as transform the computational coordiante to the non-uniform field-aligned value
+
+          // Non-uniform psi. Finite differences are calculated in calc_metric.c
+          position_map->maps[0](0.0, &psi_curr,  &psi_curr,  position_map->ctxs[0]);
+          // We cannot do non-uniform alpha because we are modeling axisymmetric systems
+          // Non-uniform theta
+          double Theta_curr;
+          position_map->maps[2](0.0, &theta_curr,  &Theta_curr,  position_map->ctxs[2]);
+          double dTheta_dtheta = gkyl_position_map_slope(position_map, 2, theta_curr,\
+            delta_theta, it, nrange);
+          theta_curr = Theta_curr;
           arcL_curr = (theta_curr + M_PI) / (2*M_PI/arc_ctx.arcL_tot);
 
           tok_set_ridders(inp, &arc_ctx, psi_curr, arcL_curr, &rclose, &ridders_min, &ridders_max);
@@ -783,9 +771,9 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
           mc2p_fd_n[lidx+Z_IDX] = phi_curr;
 
           if(ip_delta==0){
-            ddtheta_n[0] = dphidtheta_func(z_curr, &arc_ctx);
-            ddtheta_n[1] = sin(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI;
-            ddtheta_n[2] = cos(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI;
+            ddtheta_n[0] = sin(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI*dTheta_dtheta;
+            ddtheta_n[1] = cos(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI*dTheta_dtheta;
+            ddtheta_n[2] = dphidtheta_func(z_curr, &arc_ctx)*dTheta_dtheta;
             mc2p_quad_n[lidx+X_IDX] = r_curr;
             mc2p_quad_n[lidx+Y_IDX] = z_curr;
             mc2p_quad_n[lidx+Z_IDX] = phi_curr;
@@ -937,9 +925,18 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
           arcL_curr = dir==2 ? arcL_lo + it*darcL: calc_running_coord(arcL_lo, it-nrange->lower[TH_IDX], darcL);
           double theta_curr = arcL_curr*(2*M_PI/arc_ctx.arcL_tot) - M_PI ; 
 
-          position_map->maps[0](0.0, &psi_curr,   &psi_curr,   position_map->ctxs[0]);
-          position_map->maps[1](0.0, &alpha_curr, &alpha_curr, position_map->ctxs[1]);
-          position_map->maps[2](0.0, &theta_curr, &theta_curr, position_map->ctxs[2]);
+          // Calculate derivatives using finite difference for ddtheta,
+          // as well as transform the computational coordiante to the non-uniform field-aligned value
+
+          // Non-uniform psi. Finite differences are calculated in calc_metric.c
+          position_map->maps[0](0.0, &psi_curr,  &psi_curr,  position_map->ctxs[0]);
+          // We cannot do non-uniform alpha because we are modeling axisymmetric systems
+          // Non-uniform theta
+          double Theta_curr;
+          position_map->maps[2](0.0, &theta_curr,  &Theta_curr,  position_map->ctxs[2]);
+          double dTheta_dtheta = gkyl_position_map_slope(position_map, 2, theta_curr,\
+            delta_theta, it, nrange);
+          theta_curr = Theta_curr;
           arcL_curr = (theta_curr + M_PI) / (2*M_PI/arc_ctx.arcL_tot);
 
           tok_set_ridders(inp, &arc_ctx, psi_curr, arcL_curr, &rclose, &ridders_min, &ridders_max);
@@ -987,9 +984,9 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
           mc2p_fd_n[lidx+Z_IDX] = phi_curr;
 
           if(ip_delta==0){
-            ddtheta_n[0] = dphidtheta_func(z_curr, &arc_ctx);
-            ddtheta_n[1] = sin(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI;
-            ddtheta_n[2] = cos(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI;
+            ddtheta_n[0] = sin(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI*dTheta_dtheta;
+            ddtheta_n[1] = cos(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI*dTheta_dtheta;
+            ddtheta_n[2] = dphidtheta_func(z_curr, &arc_ctx)*dTheta_dtheta;
             bmag_n[0] = bmag_func(r_curr, z_curr, &arc_ctx);
           }
         }
@@ -1001,7 +998,6 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
   gkyl_free(arc_memo_left);
   gkyl_free(arc_memo_right);
 }
-
 
 
 void
