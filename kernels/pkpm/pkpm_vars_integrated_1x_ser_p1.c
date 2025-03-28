@@ -20,13 +20,14 @@ GKYL_CU_DH void pkpm_vars_integrated_1x_ser_p1(const double *vlasov_pkpm_moms, c
   const double *uz = &prim[4]; 
 
   // Order of integrated variables is (rho, rhoux, rhouy, rhouz, rho ux^2, rho uy^2, rho uz^2, p_parallel, p_perp) 
-  int_pkpm_vars[0] += 1.414213562373095*rho[0]; 
-  int_pkpm_vars[1] += 1.414213562373095*rhoux[0]; 
-  int_pkpm_vars[2] += 1.414213562373095*rhouy[0]; 
-  int_pkpm_vars[3] += 1.414213562373095*rhouz[0]; 
-  int_pkpm_vars[4] += rhoux[1]*ux[1]+rhoux[0]*ux[0]; 
-  int_pkpm_vars[5] += rhouy[1]*uy[1]+rhouy[0]*uy[0]; 
-  int_pkpm_vars[6] += rhouz[1]*uz[1]+rhouz[0]*uz[0]; 
-  int_pkpm_vars[7] += 1.414213562373095*p_parallel[0]; 
-  int_pkpm_vars[8] += 1.414213562373095*p_perp[0]; 
+  // Note: there is a factor of 1/2^cdim to properly handle the basis function normalization when computing integrated moments 
+  int_pkpm_vars[0] += 0.7071067811865476*rho[0]; 
+  int_pkpm_vars[1] += 0.7071067811865476*rhoux[0]; 
+  int_pkpm_vars[2] += 0.7071067811865476*rhouy[0]; 
+  int_pkpm_vars[3] += 0.7071067811865476*rhouz[0]; 
+  int_pkpm_vars[4] += 0.5*(rhoux[1]*ux[1]+rhoux[0]*ux[0]); 
+  int_pkpm_vars[5] += 0.5*(rhouy[1]*uy[1]+rhouy[0]*uy[0]); 
+  int_pkpm_vars[6] += 0.5*(rhouz[1]*uz[1]+rhouz[0]*uz[0]); 
+  int_pkpm_vars[7] += 0.7071067811865476*p_parallel[0]; 
+  int_pkpm_vars[8] += 0.7071067811865476*p_perp[0]; 
 } 

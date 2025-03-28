@@ -99,6 +99,9 @@ create_block_geom(void)
   double ntheta_middle = 8;
   double ntheta_upper  = 8;
 
+  // Note that for tokamak multi-block simulations, 
+  // these theta limits are just placeholders and will be 
+  // reset in the multi-block app.
   double theta_lo = -M_PI + 1e-14, theta_up = M_PI - 1e-14;
 
   // block 0. Lower outer PF region.
@@ -115,11 +118,13 @@ create_block_geom(void)
           .ftype = GKYL_PF_LO_R,
           .rright = 6.2,
           .rleft = 2.0,
-          .rmin = 2.1,
+          .rmin = 1.6,
           .rmax = 6.2,
-          .zmin = -8.29,
+          .zmin_right = -8.29,
+          .zmin_left = -6.34,
           .plate_spec = true,
           .plate_func_lower = shaped_pfunc_lower_outer,
+          .plate_func_upper = shaped_pfunc_lower_inner,
         }
       },
       
@@ -151,8 +156,10 @@ create_block_geom(void)
           .rmin = 2.1,
           .rmax = 6.2,
           .zmin = -8.29,
+          .zmax = 8.29,
           .plate_spec = true,
           .plate_func_lower = shaped_pfunc_lower_outer,
+          .plate_func_upper = shaped_pfunc_upper_outer,
         }
       },
       
@@ -183,6 +190,8 @@ create_block_geom(void)
           .rleft = 1.1,
           .rmin = 2.1,
           .rmax = 6.2,
+          .zmin = -8.29,
+          .zmax = 8.29,
           .plate_spec = true,
           .plate_func_lower = shaped_pfunc_lower_outer,
           .plate_func_upper = shaped_pfunc_upper_outer,
@@ -216,8 +225,10 @@ create_block_geom(void)
           .rleft = 1.1,
           .rmin = 2.1,
           .rmax = 6.2,
+          .zmin = -8.29,
           .zmax = 8.29,
           .plate_spec = true,
+          .plate_func_lower = shaped_pfunc_lower_outer,
           .plate_func_upper = shaped_pfunc_upper_outer,
         }
       },
@@ -247,10 +258,12 @@ create_block_geom(void)
           .ftype = GKYL_PF_UP_R,
           .rright = 6.2,
           .rleft = 2.0,
-          .rmin = 2.1,
+          .rmin = 1.6,
           .rmax = 6.2,
-          .zmax = 8.29,
+          .zmax_right = 8.29,
+          .zmax_left = 6.34,
           .plate_spec = true,
+          .plate_func_lower = shaped_pfunc_upper_inner,
           .plate_func_upper = shaped_pfunc_upper_outer,
         }
       },
@@ -282,9 +295,11 @@ create_block_geom(void)
           .rleft = 2.0,
           .rmin = 1.6,
           .rmax = 6.2,
-          .zmax = 6.34,
+          .zmax_right = 8.29,
+          .zmax_left = 6.34,
           .plate_spec = true,
-          .plate_func_upper = shaped_pfunc_upper_inner,
+          .plate_func_lower = shaped_pfunc_upper_inner,
+          .plate_func_upper = shaped_pfunc_upper_outer,
         }
       },
       
@@ -315,9 +330,11 @@ create_block_geom(void)
           .rright= 6.2,
           .rmin = 1.3,
           .rmax = 6.2,
+          .zmin = -6.34,  
           .zmax = 6.34,  
           .plate_spec = true,
           .plate_func_upper = shaped_pfunc_upper_inner,
+          .plate_func_lower= shaped_pfunc_lower_inner,
         }
       },
       
@@ -348,9 +365,11 @@ create_block_geom(void)
           .rright= 6.2,
           .rmin = 1.3,
           .rmax = 6.2,
+          .zmin = -6.34,  
+          .zmax = 6.34,  
           .plate_spec = true,
-          .plate_func_lower = shaped_pfunc_lower_inner,
           .plate_func_upper = shaped_pfunc_upper_inner,
+          .plate_func_lower= shaped_pfunc_lower_inner,
         }
       },
       
@@ -381,9 +400,11 @@ create_block_geom(void)
           .rright= 6.2,
           .rmin = 1.3,
           .rmax = 6.2,
-          .zmin = -6.34,
+          .zmin = -6.34,  
+          .zmax = 6.34,  
           .plate_spec = true,
-          .plate_func_lower = shaped_pfunc_lower_inner,
+          .plate_func_upper = shaped_pfunc_upper_inner,
+          .plate_func_lower= shaped_pfunc_lower_inner,
         }
       },
       
@@ -414,9 +435,11 @@ create_block_geom(void)
           .rleft = 2.0,
           .rmin = 1.6,
           .rmax = 6.2,
-          .zmin = -6.34,
+          .zmin_right = -8.29,
+          .zmin_left = -6.34,
           .plate_spec = true,
-          .plate_func_lower = shaped_pfunc_lower_inner,
+          .plate_func_lower = shaped_pfunc_lower_outer,
+          .plate_func_upper = shaped_pfunc_lower_inner,
         }
       },
       
@@ -1724,7 +1747,6 @@ struct gkyl_comm *comm = 0;
   struct gkyl_gyrokinetic_multib_field_pb field_blocks[1];
   field_blocks[0] = (struct gkyl_gyrokinetic_multib_field_pb) {
     // No block specific field info for this simulation
-    .fem_parbc = GKYL_FEM_PARPROJ_NONE,
   };
 
   struct gkyl_gyrokinetic_block_physical_bcs field_phys_bcs[] = {

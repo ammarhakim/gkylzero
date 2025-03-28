@@ -1,8 +1,10 @@
-// Propagation into a plasma wave beach test for the 5-moment equations.
+// Propagation into a plasma wave beach test for the PKPM system of equations.
 // Input parameters match the initial conditions found in entry JE8 of Ammar's Simulation Journal (https://ammar-hakim.org/sj/je/je8/je8-plasmabeach.html), adapted from Section III. A. of the article:
 // D. N. Smithe (2007), "Finite-difference time-domain simulation of fusion plasmas at radiofrequency time scales",
 // Physics of Plasmas, Volume 14 (5): 056104.
 // https://pubs.aip.org/aip/pop/article/14/5/056104/929539/Finite-difference-time-domain-simulation-of-fusion
+// NOTE: This simulation is a magnetized variant of JE8 and the Smithe Physics of Plasmas paper
+// There is an initial Bx that causes the driven Jy to rotate between Jy and Jz. 
 
 #include <math.h>
 #include <stdio.h>

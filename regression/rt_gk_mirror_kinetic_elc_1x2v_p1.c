@@ -121,8 +121,8 @@ R_psiZ(double psiIn, double ZIn, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
   double Rout = sqrt(2.0 * psiIn / (app->mcB * 
-      (1.0 / (M_PI * app->gamma * (1.0 + pow((ZIn - app->Z_m) / app->gamma, 2.))) + 
-       1.0 / (M_PI * app->gamma * (1.0 + pow((ZIn + app->Z_m) / app->gamma, 2.))))));
+    (1.0 / (M_PI * app->gamma * (1.0 + pow((ZIn - app->Z_m) / app->gamma, 2.))) +
+     1.0 / (M_PI * app->gamma * (1.0 + pow((ZIn + app->Z_m) / app->gamma, 2.))))));
   return Rout;
 }
 
@@ -671,7 +671,6 @@ create_ctx(void)
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
   };
-
   return ctx;
 }
 
@@ -700,7 +699,6 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr
     gkyl_gyrokinetic_app_write_integrated_mom(app);
   }
 }
-
 
 int main(int argc, char **argv)
 {
@@ -745,7 +743,6 @@ int main(int argc, char **argv)
       .ctx_temp = &ctx,
       .temp = eval_temp_elc,      
     },
-
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -753,7 +750,6 @@ int main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
     },
-
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,
@@ -767,12 +763,10 @@ int main(int argc, char **argv)
         .temp = eval_temp_elc_source,      
       }, 
     },
-
     .bcx = {
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
     },
-
     .num_diag_moments = 7, // Copied from GKsoloviev, but
     .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
   };
@@ -782,10 +776,9 @@ int main(int argc, char **argv)
     .charge = ctx.qi,
     .mass = ctx.mi,
     .lower = {-ctx.vpar_max_ion, 0.0},
-    .upper = {ctx.vpar_max_ion, ctx.mu_max_ion},
+    .upper = { ctx.vpar_max_ion, ctx.mu_max_ion},
     .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
-
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
       .ctx_density = &ctx,
@@ -795,7 +788,6 @@ int main(int argc, char **argv)
       .ctx_temp = &ctx,
       .temp = eval_temp_ion,      
     },
-
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -803,7 +795,6 @@ int main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
     },
-
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,
@@ -817,12 +808,10 @@ int main(int argc, char **argv)
         .temp = eval_temp_ion_source,      
       }, 
     },
-
     .bcx = {
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
     },
-
     .num_diag_moments = 7,
     .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
   };
@@ -830,21 +819,18 @@ int main(int argc, char **argv)
   struct gkyl_gyrokinetic_field field =
   {
     .polarization_bmag = ctx.B_p, // Issue here. B0 from soloviev, so not sure what to do. Ours is not constant
-    .fem_parbc = GKYL_FEM_PARPROJ_NONE,
     .kperpSq = pow(ctx.kperp, 2.),
   };
 
   // GK app
   struct gkyl_gk gk = { 
     .name = "gk_mirror_kinetic_elc_1x2v_p1",
-
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = {ctx.z_min},
     .upper = {ctx.z_max},
     .cells = { cells_x[0] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
-
     .geometry = {
       .geometry_id = GKYL_MAPC2P,
       .world = {ctx.psi_eval, 0.0},
@@ -853,15 +839,11 @@ int main(int argc, char **argv)
       .bmag_func = bmag_func, // magnetic field magnitude
       .bmag_ctx = &ctx
     },
-
     .num_periodic_dir = 0,
     .periodic_dirs = {},
-
     .num_species = 2,
     .species = {elc, ion},
-
     .field = field,
-
     .parallelism = {
       .use_gpu = app_args.use_gpu,
       .cuts = { app_args.cuts[0] },
@@ -911,7 +893,6 @@ int main(int argc, char **argv)
   double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
   int num_failures = 0, num_failures_max = ctx.num_failures_max;
 
-  printf("Starting main loop ...\n");
   long step = 1, num_steps = app_args.num_steps;
   while ((t_curr < t_end) && (step <= num_steps))
   {
@@ -953,7 +934,6 @@ int main(int argc, char **argv)
 
     step += 1;
   }
-  printf(" ... finished\n");
 
   gkyl_gyrokinetic_app_stat_write(app);
 

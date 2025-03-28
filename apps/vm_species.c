@@ -458,8 +458,10 @@ vm_species_calc_app_accel(gkyl_vlasov_app *app, struct vm_species *species, doub
 {
   if (species->has_app_accel) {
     gkyl_proj_on_basis_advance(species->app_accel_proj, tm, &app->local_ext, species->app_accel_host);
-    if (app->use_gpu) // note: app_accel_host is same as app_accel when not on GPUs
+    if (app->use_gpu) {
+      // note: app_accel_host is same as app_accel when not on GPUs
       gkyl_array_copy(species->app_accel, species->app_accel_host);
+    }
   }
 }
 

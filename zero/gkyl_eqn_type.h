@@ -22,6 +22,9 @@ enum gkyl_eqn_type {
   GKYL_EQN_REACTIVE_EULER, // Reactive Euler equations.
   GKYL_EQN_EULER_MIXTURE, // Euler mixture equations.
   GKYL_EQN_ISO_EULER_MIXTURE, // Isothermal Euler mixture equations.
+  GKYL_EQN_CAN_PB_INCOMPRESS_EULER, // Canonical Poisson Bracket form of incompressible Euler.
+  GKYL_EQN_CAN_PB_HASEGAWA_MIMA, // Canonical Poisson Bracket form of Hasegawa-Mima.
+  GKYL_EQN_CAN_PB_HASEGAWA_WAKATANI, // Canonical Poisson Bracket form of Hasegawa-Wakatani.
 };
 
 // Identifiers for specific gyrokinetic model types
@@ -152,4 +155,10 @@ enum gkyl_quad_type {
 enum gkyl_vel_edge { 
   GKYL_VX_LOWER, GKYL_VY_LOWER, GKYL_VZ_LOWER, 
   GKYL_VX_UPPER, GKYL_VY_UPPER, GKYL_VZ_UPPER 
+};
+
+// Identifiers for FLR models (in gyrokinetics).
+enum gkyl_gk_flr_type {
+  GKYL_GK_FLR_NONE = 0, // No FLR effects.
+  GKYL_GK_FLR_PADE_CONST, // Pade-based approx. w/ const. rho_ts=sqrt(Tperp_s/m_s)
 };

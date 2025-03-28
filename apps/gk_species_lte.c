@@ -7,13 +7,13 @@ gk_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
 {
   int cdim = app->cdim, vdim = app->vdim;
 
-  // allocate moments needed for Maxwellian (LTE=local thermodynamic equilibrium) update
-  gk_species_moment_init(app, s, &lte->moms, "MaxwellianMoments");
+  // Allocate moments needed for Maxwellian (LTE=local thermodynamic equilibrium) update.
+  gk_species_moment_init(app, s, &lte->moms, "MaxwellianMoments", false);
 
   struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = {
     .phase_grid = &s->grid,
-    .conf_basis = &app->confBasis,
-    .phase_basis = &app->basis,
+    .conf_basis = &app->basis,
+    .phase_basis = &s->basis,
     .conf_range =  &app->local,
     .conf_range_ext = &app->local_ext,
     .vel_range = &s->local_vel,
@@ -32,8 +32,8 @@ gk_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
   if (lte->correct_all_moms) {
     struct gkyl_gk_maxwellian_correct_inp inp_corr = {
       .phase_grid = &s->grid,
-      .conf_basis = &app->confBasis,
-      .phase_basis = &app->basis,
+      .conf_basis = &app->basis,
+      .phase_basis = &s->basis,
       .conf_range =  &app->local,
       .conf_range_ext = &app->local_ext,
       .vel_range = &s->local_vel, 
@@ -53,7 +53,7 @@ gk_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
     lte->is_first_corr_status_write_call = true;
   }
 
-  lte->f_lte = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
+  lte->f_lte = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
 }
 
 // Compute f_lte from input Maxwellian (LTE=local thermodynamic equilibrium) moments
@@ -101,7 +101,7 @@ gk_species_lte(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   gk_species_moment_calc(&lte->moms, species->local, app->local, fin);
   
   // divide out the Jacobian from the density
-  gkyl_dg_div_op_range(lte->moms.mem_geo, app->confBasis, 
+  gkyl_dg_div_op_range(lte->moms.mem_geo, app->basis, 
     0, lte->moms.marr, 0, lte->moms.marr, 0, 
     app->gk_geom->jacobgeo, &app->local);  
 

@@ -4,6 +4,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_const.h>
 
@@ -233,7 +234,7 @@ test_2x_option(bool use_gpu)
 
   // Initialize integrated moment calculator
   struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &confBasis, &basis,
-    &confLocal, mi, gvm, gk_geom, "Integrated", true, use_gpu);    
+    &confLocal, mi, qi, gvm, gk_geom, NULL, "Integrated", true, use_gpu);    
 
   int num_mom = 4;
 

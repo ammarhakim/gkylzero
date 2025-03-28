@@ -210,7 +210,7 @@ main(int argc, char **argv)
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
     .equation = elc_cold,
     .split_type = GKYL_WAVE_FWAVE,
-    .evolve = true,
+    
     .init = evalElcInit,
     .ctx = &ctx,
 
@@ -222,10 +222,11 @@ main(int argc, char **argv)
     .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
     .use_explicit_em_coupling = true,
     
-    .evolve = true,
     .init = evalFieldInit,
-    .app_current_func = evalAppCurrent,
     .ctx = &ctx,
+    .app_current = evalAppCurrent,
+    .app_current_ctx = &ctx,
+    .app_current_evolve = true, 
 
     .bcx = { GKYL_FIELD_COPY, GKYL_FIELD_COPY },
   };

@@ -230,33 +230,18 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 }
 
 void
-evalElcAppAccel(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalAppAccel(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct hartmann_ctx *app = ctx;
 
   double grav = app->grav;
 
-  double accele_x = 0.0; // Electron applied acceleration (x-direction).
-  double accele_y = grav; // Electron applied acceleration (y-direction).
-  double accele_z = 0.0; // Electron applied acceleration (z-direction).
+  double accel_x = 0.0; // Applied acceleration (x-direction).
+  double accel_y = grav; // Applied acceleration (y-direction).
+  double accel_z = 0.0; // Applied acceleration (z-direction).
 
-  // Set electron applied acceleration.
-  fout[0] = accele_x; fout[1] = accele_y; fout[2] = accele_z;
-}
-
-void
-evalIonAppAccel(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct hartmann_ctx *app = ctx;
-
-  double grav = app->grav;
-
-  double acceli_x = 0.0; // Ion applied acceleration (x-direction).
-  double acceli_y = grav; // Ion applied acceleration (y-direction).
-  double acceli_z = 0.0; // Ion applied acceleration (z-direction).
-
-  // Set ion applied acceleration.
-  fout[0] = acceli_x; fout[1] = acceli_y; fout[2] = acceli_z;
+  // Set applied acceleration.
+  fout[0] = accel_x; fout[1] = accel_y; fout[2] = accel_z;
 }
 
 void
@@ -318,10 +303,11 @@ main(int argc, char **argv)
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
     .equation = elc_euler,
-    .evolve = true,
+    
     .init = evalElcInit,
     .ctx = &ctx,
-    .app_accel_func = evalElcAppAccel,
+
+    .app_accel = evalAppAccel,
     .app_accel_ctx = &ctx,
 
     .type_brag = GKYL_BRAG_MAG_FULL,
@@ -333,10 +319,11 @@ main(int argc, char **argv)
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
     .equation = ion_euler,
-    .evolve = true,
+    
     .init = evalIonInit,
     .ctx = &ctx,
-    .app_accel_func = evalIonAppAccel,
+
+    .app_accel = evalAppAccel,
     .app_accel_ctx = &ctx,
 
     .type_brag = GKYL_BRAG_MAG_FULL,
@@ -348,7 +335,7 @@ main(int argc, char **argv)
   struct gkyl_moment_field field = {
     .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
     
-    .evolve = false,
+    .is_static = true,
     .init = evalFieldInit,
     .ctx = &ctx,
 

@@ -218,7 +218,7 @@ void gkyl_tok_geo_mapc2p(const struct gkyl_tok_geo *geo, const struct gkyl_tok_g
  *  and nodes epsilon away to be used for FD
  * @param mc2p_nodal output nodal mapc2p field R,Z,phi)
  * @param mc2p On output, the DG representation of mapc2p ((R,Z,phi)
- * @param ddtheta_nodal output nodal field containing dphi/dtheta = s(psi)/R|grad(psi)|, dR/dtheta and dZ/dtheta
+ * @param ddtheta_nodal output nodal field containing dR/dtheta, dZ/dtheta, and dphi/dtheta = s(psi)/R|grad(psi)|
  * @param mc2nu_pos_nodal output nodal field containing the non-uniform mapping
  * @param mc2nu_pos output DG field containing the non-uniform mapping
  * @param position_map position map object
@@ -228,6 +228,18 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
   struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, struct gkyl_array *ddtheta_nodal,
   struct gkyl_array *mc2nu_nodal, struct gkyl_array *mc2nu_pos,
   struct gkyl_position_map *position_map);
+
+
+/*
+ * Get grid extents for a block type based on a global normalization factor
+ * and a cut at the arc length of the X-point on the separatrix
+ * @param inp grid input
+ * @param geo tokamak geometry object
+ * @param theta_lo on output the lower grid extent
+ * @param theta_up on output the upper grid extent
+ * */
+void
+gkyl_tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, double *theta_lo, double *theta_up);
 
 /**
  * Return cumulative statistics from geometry computations
