@@ -525,7 +525,7 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     app->calc_field_func = gyrokinetic_calc_field_none;
 
   app->adaptive_source = gk->adaptive_source;
-  app->adaptive_src_params = &gk->adaptive_src_params;
+  app->adaptive_src_params = gk->adaptive_src_params;
 
   app->enforce_positivity = gk->enforce_positivity;
   if (app->enforce_positivity) {

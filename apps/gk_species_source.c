@@ -56,7 +56,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
 
     // Set up the adaptive source.
     if (app->adaptive_source) {
-      gk_species_moment_init(app, s, &src->adapt_integ_mom, app->adaptive_src_params->mom_type, true);
+      gk_species_moment_init(app, s, &src->adapt_integ_mom, app->adaptive_src_params.mom_type, true);
       num_mom = src->adapt_integ_mom.num_mom;
 
       assert(num_mom == 1); // Only one moment allowed for adaptive source.
@@ -68,14 +68,21 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
         src->red_adapt_integ_mom = gkyl_malloc(sizeof(double[num_mom]));
         src->red_adapt_integ_mom_global = gkyl_malloc(sizeof(double[num_mom]));
       }
-      int num_boundaries = app->adaptive_src_params->num_boundaries; 
+      int num_boundaries = app->adaptive_src_params.num_boundaries; 
       src->adapt_range = gkyl_malloc(sizeof(struct gkyl_range) * num_boundaries);
       src->adapt_range_conf = gkyl_malloc(sizeof(struct gkyl_range) * num_boundaries);
       for (int j=0; j < num_boundaries; ++j) {
-        int dir = app->adaptive_src_params->dir[j];
-        int edge = app->adaptive_src_params->edge[j];
+        int dir = app->adaptive_src_params.dir[j];
+        int edge = app->adaptive_src_params.edge[j];
         src->adapt_range[j] = edge == GKYL_LOWER_EDGE ? s->lower_ghost[dir] : s->upper_ghost[dir];
         src->adapt_range_conf[j] = edge == GKYL_LOWER_EDGE ? app->lower_ghost[dir] : app->upper_ghost[dir];
+        // We check that the boundaries are not set to zero flux (prevents the call of bflux).
+        if (edge == GKYL_LOWER_EDGE) {
+          assert(s->lower_bc[dir].type != GKYL_SPECIES_ZERO_FLUX);
+        }
+        else {
+          assert(s->upper_bc[dir].type != GKYL_SPECIES_ZERO_FLUX);
+        }
       }
     }
   }
@@ -99,16 +106,16 @@ void
 gk_species_source_adapt(gkyl_gyrokinetic_app *app) {  
   double int_mom_loss = 0.0; // Total loss of the moment through specified boundaries.
   double int_mom_loss_s[app->num_species]; // Loss of the moment through specified boundaries for each species.
-  struct gkyl_gyrokinetic_source_adaptive *adapt_params = app->adaptive_src_params;
+  struct gkyl_gyrokinetic_source_adaptive adapt_params = app->adaptive_src_params;
 
   // Compute the loss over all species.
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
     struct gk_source *src = &s->src;
     
-    for (int j=0; j < adapt_params->num_boundaries; ++j) {
+    for (int j=0; j < adapt_params.num_boundaries; ++j) {
       // We get the inner radial boundary flux and store it in the source ghosts.
-      gk_species_bflux_get_flux(&s->bflux, adapt_params->dir[j], adapt_params->edge[j], src->source);
+      gk_species_bflux_get_flux(&s->bflux, adapt_params.dir[j], adapt_params.edge[j], src->source);
 
       // Compute the moment of the bflux to get the loss.
       int num_mom = src->adapt_integ_mom.num_mom;
@@ -126,7 +133,7 @@ gk_species_source_adapt(gkyl_gyrokinetic_app *app) {
         memcpy(red_mom_global, src->red_adapt_integ_mom_global, sizeof(double[num_mom]));
       }
 
-      double units = strcmp(app->adaptive_src_params->mom_type, "M2") == 0 ? 0.5 * s->info.mass : 1.0; // Convert M2 loss in W.
+      double units = strcmp(app->adaptive_src_params.mom_type, "M2") == 0 ? 0.5 * s->info.mass : 1.0; // Convert M2 loss in W.
       int_mom_loss += red_mom_global[0] * units;
       int_mom_loss_s[i] = red_mom_global[0] * units;
     }
@@ -153,13 +160,13 @@ gk_species_source_adapt(gkyl_gyrokinetic_app *app) {
       memcpy(red_int_mom_global, src->red_adapt_integ_mom_global, sizeof(double[num_mom]));
     }
 
-    double units = strcmp(app->adaptive_src_params->mom_type, "M2") == 0 ? 0.5 * s->info.mass : 1.0; // Convert M2 loss in W.
+    double units = strcmp(app->adaptive_src_params.mom_type, "M2") == 0 ? 0.5 * s->info.mass : 1.0; // Convert M2 loss in W.
     int_mom_src_s[i] = red_int_mom_global[0] * units;
     int_mom_src += int_mom_src_s[i];
   }
 
   // Adapt the sources equally by evenly splitting the load among the species.
-  double int_mom_target = (adapt_params->mom_rate_target + int_mom_loss)/app->num_species;
+  double int_mom_target = (adapt_params.mom_rate_target + int_mom_loss)/app->num_species;
   for (int i=0; i<app->num_species; ++i) {
     // We do not scale if the source presents a 0 moment.
     gkyl_array_scale(app->species[i].src.source, fabs(int_mom_src_s[i]) > 0.0 ? int_mom_target/int_mom_src_s[i] : 1.0);
@@ -188,7 +195,7 @@ gk_species_source_adapt(gkyl_gyrokinetic_app *app) {
       else {
         memcpy(final_power_s, src->red_adapt_integ_mom_global, sizeof(double[num_mom]));
       }
-      double units = strcmp(app->adaptive_src_params->mom_type, "M2") == 0 ? 0.5 * s->info.mass : 1.0; // Convert M2 loss in W.
+      double units = strcmp(app->adaptive_src_params.mom_type, "M2") == 0 ? 0.5 * s->info.mass : 1.0; // Convert M2 loss in W.
       final_power_s[0] *= units; // Convert to W.
 
       double power_loss_MW = int_mom_loss_s[i];
