@@ -332,8 +332,8 @@ main(int argc, char **argv)
         .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
         .center_gauss = {0.0, 0.0, 0.0},
         .sigma_gauss = {ctx.sigma_srcCORE, 0.0, 0.0},
-        .particle = 0.5e22,
-        .energy = 0.3*1e6,
+        .particle = 1.0e22,
+        .energy = 0.5*1e6,
         .floor = ctx.floor_src,
       },
       // .projection[0] = {
@@ -428,8 +428,8 @@ main(int argc, char **argv)
         .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
         .center_gauss = {ctx.x_srcCORE, 0.0, 0.0},
         .sigma_gauss = {ctx.sigma_srcCORE, 0.0, 0.0},
-        .particle = 0.5e22,
-        .energy = 0.3*1e6,
+        .particle = 1.0e22,
+        .energy = 0.5*1e6,
         .floor = ctx.floor_src,
       },
       // .projection[0] = {
@@ -517,13 +517,26 @@ main(int argc, char **argv)
   };
 
   // Adaptive source parameters
-  struct gkyl_gyrokinetic_source_adaptive adapt_src_params = {
-    .mom_rate_target = ctx.adapt_mom_rate_target,
+  // struct gkyl_gyrokinetic_source_adaptive adapt_src_params = {
+  //   .mom_rate_target = ctx.adapt_mom_rate_target,
+  //   .num_boundaries = 1,
+  //   .dir = {0},
+  //   .edge = {GKYL_LOWER_EDGE},
+  // };
+  // strcpy(adapt_src_params.mom_type, ctx.adapt_mom_type);
+
+  struct gkyl_gyrokinetic_source_adaptive adapt_src_params ={
     .num_boundaries = 1,
     .dir = {0},
     .edge = {GKYL_LOWER_EDGE},
   };
-  strcpy(adapt_src_params.mom_type, ctx.adapt_mom_type);
+  if (false) {
+    adapt_src_params.mom_rate_target = 5e21;
+    strcpy(adapt_src_params.mom_type, "M0");
+  } else {
+    adapt_src_params.mom_rate_target = 0.5e6;
+    strcpy(adapt_src_params.mom_type, "M2");
+  } 
 
   // GK app
   struct gkyl_gk *gk = gkyl_malloc(sizeof *gk);
