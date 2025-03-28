@@ -35,19 +35,19 @@ GKYL_CU_DH void ambi_bolt_potential_sheath_calc_lower_1x_ser_p1(double sheathDir
   // Sheath potential
   out[2] = 1.4142135623730951*phiS_qp[0]; 
 
-  double jacInvSurf = jacInv[0]/sqrt(2.0)-jacInv[1]*sqrt(3.0/2.0);
+  // double jacInvSurf = jacInv[0]/sqrt(2.0)-jacInv[1]*sqrt(3.0/2.0);
 
-  printf("sheathDirDx = %.9e\n",sheathDirDx);
-  printf("jacInv = %.9e\n",jacInvSurf);
-  printf("GammaJacIonB = %.9e\n",GammaJacIonB[0]/2.0);
-  printf("GammaIonB = %.9e\n",(GammaJacIonB[0]/2.0) * jacInvSurf);
-  // Look for something where J != 1
+  // printf("sheathDirDx = %.9e\n",sheathDirDx);
+  // printf("jacInv = %.9e\n",jacInvSurf);
+  // printf("GammaJacIonB = %.9e\n",GammaJacIonB[0]/2.0);
+  // printf("GammaIonB = %.9e\n",(GammaJacIonB[0]/2.0) * jacInvSurf);
+  // // Look for something where J != 1
 
-  printf("m0JacIonB = %.9e\n",m0JacIonB[0]);
-  printf("m0IonB = %.9e\n",m0JacIonB[0] * jacInvSurf);
+  // printf("m0JacIonB = %.9e\n",m0JacIonB[0]);
+  // printf("m0IonB = %.9e\n",m0JacIonB[0] * jacInvSurf);
   
-  printf("n_s = %.9e\n",out[0]/sqrt(2));
-  printf("phi_s = %.9e\n",out[2]/sqrt(2));
+  // printf("n_s = %.9e\n",out[0]/sqrt(2));
+  // printf("phi_s = %.9e\n",out[2]/sqrt(2));
 
 }
 

@@ -5,6 +5,7 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_const.h>
+#include <gkyl_dynvec.h>
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_util.h>
 
@@ -75,12 +76,12 @@ create_ctx(void)
   int Nz = 16; // Cell count (configuration space: z-direction).
   int Nvpar = 32; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 32; // Cell count (velocity space: magnetic moment direction).
-  double Lz = 1.0/5.0; // Domain size (configuration space: z-direction).
+  double Lz = 1.0; // Domain size (configuration space: z-direction).
   double vpar_max_ion = 4.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
   double mu_max_ion = (3.0 / 2.0) * 0.5 * mass_ion * pow(4.0 * vti, 2.0) / (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 5; // Final simulation time.
+  double t_end = 3.; // Final simulation time.
   int num_frames = 5; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
@@ -114,6 +115,104 @@ create_ctx(void)
   return ctx;
 }
 
+void compareToAnalytics(const struct gkyl_gk *app_inp, void* ctx )
+{
+  struct boundary_ctx *app = ctx;
+  char filename[256];
+  sprintf(filename, "%s-ion_integrated_moms.gkyl", app_inp->name);
+
+  struct gkyl_dynvec_etype_ncomp enc = { };
+  enc = gkyl_dynvec_read_ncomp(filename);
+
+  gkyl_dynvec integrated_moms = gkyl_dynvec_new(enc.type, enc.ncomp);
+  gkyl_dynvec_read(integrated_moms, filename);
+
+  size_t units = gkyl_dynvec_size(integrated_moms);
+
+  for (int i = 0; i < units; i++) {
+    double data[enc.ncomp];
+    gkyl_dynvec_get(integrated_moms, i, data);
+    double time = gkyl_dynvec_get_tm(integrated_moms, i);
+    double N = data[0];
+
+    double vt = sqrt(app->Ti / app->mass_ion);
+    double L = app->Lz;
+    double erf_arg = L / (sqrt(2) * time * vt);
+
+    double N_analytic = 2 * app->n0 / (sqrt(2 * M_PI));
+    N_analytic *= sqrt(M_PI / 2) * L * erf(erf_arg) + time * vt * (exp(-erf_arg*erf_arg) - 1);
+
+    double diff = fabs(N - N_analytic);
+    int check = gkyl_compare_double(N, N_analytic, 1e-2);
+    if (check != 1) {
+      printf("Error: N and N_analytic do not match within tolerance.\n");
+      printf("N - N_analytic: %g\n", N - N_analytic);
+    }
+  }
+
+  sprintf(filename, "%s-ion_bflux_xlower_integrated_HamiltonianMoments.gkyl", app_inp->name);
+  enc = gkyl_dynvec_read_ncomp(filename);
+  gkyl_dynvec bflux_moms = gkyl_dynvec_new(enc.type, enc.ncomp);
+  gkyl_dynvec_read(bflux_moms, filename);
+  units = gkyl_dynvec_size(bflux_moms);
+
+  for (int i = 1; i < units; i++) {
+    double data[enc.ncomp];
+    gkyl_dynvec_get(bflux_moms, i, data);
+    double time = gkyl_dynvec_get_tm(bflux_moms, i);
+    double dNdt = data[0];
+
+    double vt = sqrt(app->Ti / app->mass_ion);
+    double L = app->Lz;
+    double erf_arg = L / (sqrt(2) * time * vt);
+
+    double dNdt_analytic = app->n0 / (sqrt(2 * M_PI));
+    dNdt_analytic *= 1 - exp(-erf_arg*erf_arg);
+
+    // printf("dNdt: %g, dNdt_analytic: %g, difference: %g\n", dNdt, dNdt_analytic, fabs(dNdt - dNdt_analytic));
+
+    double diff = fabs(dNdt - dNdt_analytic);
+    int check = gkyl_compare_double(dNdt, dNdt_analytic, 1e-1);
+    if (check != 1) {
+      printf("Error: dNdt and dNdt_analytic do not match within tolerance.\n");
+      printf("N - N_analytic: %g\n", dNdt - dNdt_analytic);
+    }
+  }
+
+  sprintf(filename, "%s-ion_bflux_xupper_integrated_HamiltonianMoments.gkyl", app_inp->name);
+  enc = gkyl_dynvec_read_ncomp(filename);
+  gkyl_dynvec bflux_moms_upper = gkyl_dynvec_new(enc.type, enc.ncomp);
+  gkyl_dynvec_read(bflux_moms_upper, filename);
+  units = gkyl_dynvec_size(bflux_moms_upper);
+
+  for (int i = 1; i < units; i++) {
+    double data[enc.ncomp];
+    gkyl_dynvec_get(bflux_moms_upper, i, data);
+    double time = gkyl_dynvec_get_tm(bflux_moms_upper, i);
+    double dNdt = data[0];
+
+    double vt = sqrt(app->Ti / app->mass_ion);
+    double L = app->Lz;
+    double erf_arg = L / (sqrt(2) * time * vt);
+
+    double dNdt_analytic = app->n0 / (sqrt(2 * M_PI));
+    dNdt_analytic *= 1 - exp(-erf_arg*erf_arg);
+
+    double diff = fabs(dNdt - dNdt_analytic);
+    int check = gkyl_compare_double(dNdt, dNdt_analytic, 1e-1);
+    if (check != 1) {
+      printf("Error: dNdt and dNdt_analytic do not match within tolerance.\n");
+      printf("N - N_analytic: %g\n", dNdt - dNdt_analytic);
+    }
+  }
+
+  printf("If there are no errors above, then the test passed.\n");
+
+  gkyl_dynvec_release(integrated_moms);
+  gkyl_dynvec_release(bflux_moms);
+  gkyl_dynvec_release(bflux_moms_upper);
+}
+
 void
 evalIonDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
@@ -138,9 +237,9 @@ static inline void
 mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void* ctx)
 {
   // Set physical coordinates (X, Y, Z) from computational coordinates (x, y, z).
-  xp[0] = zc[0]; 
-  xp[1] = zc[1]; 
-  xp[2] = 5*zc[2];
+  xp[0] = zc[0];
+  xp[1] = zc[1];
+  xp[2] = zc[2];
 }
 
 void
@@ -321,17 +420,13 @@ main(int argc, char **argv)
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
-    // .zero_init_field = true, // Don't compute the field at t = 0.
-    // .is_static = true, // Don't evolve the field in time.
-    .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
-    .electron_mass = ctx.mass_ion,
-    .electron_charge = -ctx.charge_ion,
-    .electron_temp = 1.0,
+    .zero_init_field = true, // Don't compute the field at t = 0.
+    .is_static = true, // Don't evolve the field in time.
   };
 
   // Gyrokinetic app.
   struct gkyl_gk app_inp = {
-    .name = "gk_boundary_flux_1x2v_p1_ux_stretch",
+    .name = "gk_leaky_bag_1x2v_p1",
 
     .cdim = 1, .vdim = 2,
     .lower = { -ctx.Lz/2.0 },
@@ -349,7 +444,7 @@ main(int argc, char **argv)
       .c2p_ctx = &ctx,
       .bmag_func = bmag_func,
       .bmag_ctx = &ctx,
-    }, 
+    },
 
     .num_periodic_dir = 0,
     .periodic_dirs = { },
@@ -486,7 +581,9 @@ main(int argc, char **argv)
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
   gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
-freeresources:
+  compareToAnalytics(&app_inp, &ctx);
+
+  freeresources:
   // Free resources after simulation completion.
   gkyl_gyrokinetic_app_release(app);
   gkyl_gyrokinetic_comms_release(comm);
