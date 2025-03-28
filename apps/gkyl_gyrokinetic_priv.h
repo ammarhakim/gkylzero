@@ -411,7 +411,7 @@ struct gk_boundary_fluxes {
     const struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
   void (*bflux_get_flux_func)(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge, struct gkyl_array *out);
   void (*bflux_get_flux_mom_func)(struct gk_boundary_fluxes *bflux, int dir,
-    enum gkyl_edge_loc edge, char *mom_name, struct gkyl_array *out);
+    enum gkyl_edge_loc edge, const char *mom_name, struct gkyl_array *out);
   void (*bflux_clear_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fin, double val);
   void (*bflux_scale_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fin, double val);
   void (*bflux_step_f_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fout,
@@ -1608,7 +1608,7 @@ gk_species_bflux_get_flux(struct gk_boundary_fluxes *bflux, int dir,
  */
 void
 gk_species_bflux_get_flux_mom(struct gk_boundary_fluxes *bflux, int dir,
-  enum gkyl_edge_loc edge, char *mom_name, struct gkyl_array *out);
+  enum gkyl_edge_loc edge, const char *mom_name, struct gkyl_array *out);
 
 /**
  * Compute moments of the boundary fluxes.
