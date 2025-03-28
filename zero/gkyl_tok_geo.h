@@ -50,7 +50,9 @@ enum gkyl_tok_geo_type {
   GKYL_PF_LO_R, // Right half of Private flux region at bottom (outboard lower plate to lower xpt)
 
   GKYL_CORE_L, // Left half of core (lower to upper xpt)
-  GKYL_CORE_R // Right half of core (upper to lower xpt)
+  GKYL_CORE_R, // Right half of core (upper to lower xpt)
+
+  GKYL_IWL, // Inner Wall Limited
 };  
 
 
