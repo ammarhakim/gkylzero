@@ -124,7 +124,7 @@ eqn_advect_lw_new(lua_State *L)
   advect_lw->magic = VLASOV_EQN_DEFAULT;
   // Set a constant speed of 1.0; Advection velocity in DG advection equation
   // is handled by the app_advect function initialized in the FluidSpecies table. 
-  advect_lw->eqn = gkyl_wv_advect_new(1.0);
+  advect_lw->eqn = gkyl_wv_advect_new(1.0, false);
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_advect_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));

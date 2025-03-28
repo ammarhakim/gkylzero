@@ -1,6 +1,6 @@
 #include <acutest.h>
-#include <gkyl_moment_prim_iso_euler.h>
 #include <gkyl_wv_iso_euler.h>
+#include <gkyl_wv_iso_euler_priv.h>
 
 void
 calcq(const double pv[4], double q[4])
@@ -14,7 +14,7 @@ void
 test_iso_euler_basic()
 {
   double vt = 1.0;
-  struct gkyl_wv_eqn *iso_euler = gkyl_wv_iso_euler_new(vt);
+  struct gkyl_wv_eqn *iso_euler = gkyl_wv_iso_euler_new(vt, false);
 
   TEST_CHECK( iso_euler->num_equations == 4 );
   TEST_CHECK( iso_euler->num_waves == 3 );
@@ -99,7 +99,7 @@ void
 test_iso_euler_waves()
 {
   double vt = 1.0;
-  struct gkyl_wv_eqn *iso_euler = gkyl_wv_iso_euler_new(vt);
+  struct gkyl_wv_eqn *iso_euler = gkyl_wv_iso_euler_new(vt, false);
 
   double vl[4] = { 1.0, 0.1, 0.2, 0.3};
   double vr[4] = { 0.1, 1.0, 2.0, 3.0};
@@ -164,7 +164,7 @@ void
 test_iso_euler_waves_2()
 {
   double vt = 10.0;
-  struct gkyl_wv_eqn *iso_euler = gkyl_wv_iso_euler_new(vt);
+  struct gkyl_wv_eqn *iso_euler = gkyl_wv_iso_euler_new(vt, false);
 
   double vl[4] = { 1.0, 0.1, 0.2, 0.3};
   double vr[4] = { 0.01, 1.0, 2.0, 3.0};
