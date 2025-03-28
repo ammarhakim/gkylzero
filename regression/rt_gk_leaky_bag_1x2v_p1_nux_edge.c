@@ -593,7 +593,7 @@ main(int argc, char **argv)
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
   gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
-  compareToAnalytics(app, &ctx);
+  compareToAnalytics(&app_inp, &ctx);
 
 freeresources:
   // Free resources after simulation completion.
