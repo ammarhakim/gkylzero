@@ -135,13 +135,13 @@ bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, 
   fout[0] = B0;
 }
 
-double plasma_frequency(double n, double m)
+double plasma_freq(double n, double m)
 {
   double eps0 = GKYL_EPSILON0;
   double eV = GKYL_ELEMENTARY_CHARGE;
   return sqrt(n*eV*eV/m/eps0);
 }
-double coulomb_log(double ns, double nr, double ms, double mr, double Ts, double Tr, double qs, double qr)
+double coulomb_logarithm(double ns, double nr, double ms, double mr, double Ts, double Tr, double qs, double qr)
 {
 
   double eps0 = GKYL_EPSILON0;
@@ -149,8 +149,8 @@ double coulomb_log(double ns, double nr, double ms, double mr, double Ts, double
   double hbar = GKYL_PLANCKS_CONSTANT_H/2/M_PI;
   double vts = sqrt(Ts/ms);
   double vtr = sqrt(Tr/mr);
-  double wps = plasma_frequency(ns,ms);
-  double wpr = plasma_frequency(nr,mr);
+  double wps = plasma_freq(ns,ms);
+  double wpr = plasma_freq(nr,mr);
   double inner1 = wps*wps/(Ts/ms + 3*Ts/ms) + wpr*wpr/(Tr/mr + 3*Ts/ms);
   double u = 3*(vts*vts + vtr*vtr);
   double msr = ms*mr/(ms+mr);
@@ -163,7 +163,7 @@ double norm_nu_func(double nuFrac, double ns, double nr, double ms, double mr, d
 {
   double eps0 = GKYL_EPSILON0;
   double eV = GKYL_ELEMENTARY_CHARGE;
-  double clog = coulomb_log(ns,nr,ms,mr,Ts, Tr, qs, qr);
+  double clog = coulomb_logarithm(ns,nr,ms,mr,Ts, Tr, qs, qr);
   double vts = sqrt(Ts/ms);
   double vtr = sqrt(Tr/mr);
   return nuFrac/ms*(1/mr+1/ms)*qs*qs*qr*qr*clog/(6*pow(M_PI,1.5)*eps0*eps0);

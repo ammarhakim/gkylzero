@@ -189,7 +189,7 @@ bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
   fout[0] = app->B0;
 }
 
-double plasma_frequency(double n, double m)
+double plasma_freq(double n, double m)
 {
   double eps0 = GKYL_EPSILON0;
   double eV = GKYL_ELEMENTARY_CHARGE;
