@@ -36,19 +36,20 @@ gkyl_ambi_bolt_potential* gkyl_ambi_bolt_potential_new(const struct gkyl_rect_gr
  * @param edge Lower (-1) or upper (1) boundary along the field line.
  * @param skin_r Global skin range along the field line.
  * @param ghost_r Corresponding global ghost range along the field line.
- * @param jacob_geo_inv Reciprocal of the configuration space Jacobian.
  * @param cmag Clebsch function in definition of the magnetic field.
  * @param jacobtot_inv Reciprocal of the phase-space and conf-space Jacobians (1/(J*B)).
  * @param gammai Ion particle flux at the sheath entrance times the
  *               conf-space Jacobian.
- * @param m0i Ion number density times the conf-space Jacobian.
+ * @param m0i Ion number density.
+ * @param Jm0i Ion number density times the conf-space Jacobian.
  * @param sheath_vals Ion number density and potential at the sheath entrance.
  */
 void
 gkyl_ambi_bolt_potential_sheath_calc(struct gkyl_ambi_bolt_potential *up, enum gkyl_edge_loc edge,
-  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_array *jacob_geo_inv,
+  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
   const struct gkyl_array *cmag, const struct gkyl_array *jacobtot_inv,
-  const struct gkyl_array *gammai, const struct gkyl_array *m0i, struct gkyl_array *sheath_vals);
+  const struct gkyl_array *gammai, const struct gkyl_array *m0i, const struct gkyl_array *Jm0i,
+  struct gkyl_array *sheath_vals);
 
 /**
  * Compute the electrostatic potential in the domain as
@@ -65,8 +66,8 @@ gkyl_ambi_bolt_potential_sheath_calc(struct gkyl_ambi_bolt_potential *up, enum g
 void
 gkyl_ambi_bolt_potential_phi_calc(struct gkyl_ambi_bolt_potential *up,
   const struct gkyl_range *local_r, const struct gkyl_range *extlocal_r,
-  const struct gkyl_array *jacob_geo_inv, const struct gkyl_array *m0i,
-  const struct gkyl_array *sheath_vals, struct gkyl_array *phi);
+  const struct gkyl_array *m0i, const struct gkyl_array *sheath_vals,
+  struct gkyl_array *phi);
 
 /**
  * Delete updater.

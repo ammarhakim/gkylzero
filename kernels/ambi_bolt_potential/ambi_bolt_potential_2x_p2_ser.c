@@ -1,22 +1,22 @@
 #include <gkyl_ambi_bolt_potential_kernels.h>
 
-GKYL_CU_DH void ambi_bolt_potential_sheath_calc_lower_2x_ser_p2(double sheathDirDx, double q_e, double m_e, double T_e, const double *jacInv, const double *cmag, const double *jacobtotInv, const double *GammaJac_i, const double *m0JacIon, double *out) 
+GKYL_CU_DH void ambi_bolt_potential_sheath_calc_lower_2x_ser_p2(double sheathDirDx, double q_e, double m_e, double T_e, const double *cmag, const double *jacobtotInv, const double *GammaJac_i, const double *m0Ion, const double *m0JacIon, double *out) 
 { 
   // sheathDirDx: cell length in direction of the sheath.
   // q_e:         electron change.
   // m_e:         electron mass.
   // T_e:         electron temperature.
-  // jacInv:      reciprocal of the geometry Jacobian (1/J).
   // cmag:        Clebsch function in definition of magnetic field.
   // jacobtotInv: reciprocal of the phase-space and conf-space Jacobians (1/(J*B)).
   // GammaJac_i:  ion particle flux (times the Jacobian) through sheath entrance.
+  // m0Ion:       ion density.
   // m0JacIon:    ion density (times the geometry Jacobian).
   // out:         ion density and electrostatic potential at the sheath entrance.
 
   // Particle number density evaluate at the sheath entrance
-  out[0] = 0.03333333333333333*(33.54101966249684*jacInv[1]*m0JacIon[7]-25.98076211353316*jacInv[4]*m0JacIon[6]+33.54101966249685*jacInv[0]*m0JacIon[5]+15.0*jacInv[4]*m0JacIon[4]-25.980762113533157*(jacInv[1]*m0JacIon[3]+jacInv[0]*m0JacIon[2])+15.0*(jacInv[1]*m0JacIon[1]+jacInv[0]*m0JacIon[0])); 
-  out[1] = 0.03333333333333333*((30.000000000000004*jacInv[4]+33.54101966249684*jacInv[0])*m0JacIon[7]+jacInv[1]*(-(23.237900077244504*m0JacIon[6])+33.54101966249685*m0JacIon[5]+13.416407864998739*m0JacIon[4])+(13.416407864998739*m0JacIon[1]-23.2379000772445*m0JacIon[3])*jacInv[4]-25.980762113533157*(jacInv[0]*m0JacIon[3]+jacInv[1]*m0JacIon[2])+15.0*(jacInv[0]*m0JacIon[1]+m0JacIon[0]*jacInv[1])); 
-  out[4] = -(0.014285714285714285*((38.72983346207417*jacInv[4]+60.62177826491071*jacInv[0])*m0JacIon[6]+(-(22.3606797749979*jacInv[4])-35.0*jacInv[0])*m0JacIon[4]+(60.6217782649107*m0JacIon[2]-35.0*m0JacIon[0])*jacInv[4]+jacInv[1]*(54.22176684690384*m0JacIon[3]-31.304951684997057*m0JacIon[1]))); 
+  out[0] = 2.23606797749979*m0Ion[5]-1.7320508075688772*m0Ion[2]+m0Ion[0]; 
+  out[1] = 0.3333333333333333*(6.7082039324993685*m0Ion[7]-5.196152422706631*m0Ion[3]+3.0*m0Ion[1]); 
+  out[4] = -(0.2*(8.660254037844387*m0Ion[6]-5.0*m0Ion[4])); 
 
   double GammaJacIonB[3];
   GammaJacIonB[0] = 0.7905694150420947*GammaJac_i[5]*sheathDirDx+0.6123724356957944*GammaJac_i[2]*sheathDirDx+0.3535533905932737*GammaJac_i[0]*sheathDirDx; 
@@ -57,23 +57,23 @@ GKYL_CU_DH void ambi_bolt_potential_sheath_calc_lower_2x_ser_p2(double sheathDir
 
 }
 
-GKYL_CU_DH void ambi_bolt_potential_sheath_calc_upper_2x_ser_p2(double sheathDirDx, double q_e, double m_e, double T_e, const double *jacInv, const double *cmag, const double *jacobtotInv, const double *GammaJac_i, const double *m0JacIon, double *out) 
+GKYL_CU_DH void ambi_bolt_potential_sheath_calc_upper_2x_ser_p2(double sheathDirDx, double q_e, double m_e, double T_e, const double *cmag, const double *jacobtotInv, const double *GammaJac_i, const double *m0Ion, const double *m0JacIon, double *out) 
 { 
   // sheathDirDx: cell length in direction of the sheath.
   // q_e:         electron change.
   // m_e:         electron mass.
   // T_e:         electron temperature.
-  // jacInv:      reciprocal of the geometry Jacobian (1/J).
   // cmag:        Clebsch function in definition of magnetic field.
   // jacobtotInv: reciprocal of the phase-space and conf-space Jacobians (1/(J*B)).
   // GammaJac_i:  ion particle flux (times the Jacobian) through sheath entrance.
+  // m0Ion:       ion density.
   // m0JacIon:    ion density (times the geometry Jacobian).
   // out:         ion density and electrostatic potential at the sheath entrance.
 
   // Particle number density evaluate at the sheath entrance
-  out[0] = 0.03333333333333333*(33.54101966249684*jacInv[1]*m0JacIon[7]+25.98076211353316*jacInv[4]*m0JacIon[6]+33.54101966249685*jacInv[0]*m0JacIon[5]+15.0*jacInv[4]*m0JacIon[4]+25.980762113533157*(jacInv[1]*m0JacIon[3]+jacInv[0]*m0JacIon[2])+15.0*(jacInv[1]*m0JacIon[1]+jacInv[0]*m0JacIon[0])); 
-  out[1] = 0.03333333333333333*((30.000000000000004*jacInv[4]+33.54101966249684*jacInv[0])*m0JacIon[7]+jacInv[1]*(23.237900077244504*m0JacIon[6]+33.54101966249685*m0JacIon[5]+13.416407864998739*m0JacIon[4])+(23.2379000772445*m0JacIon[3]+13.416407864998739*m0JacIon[1])*jacInv[4]+25.980762113533157*(jacInv[0]*m0JacIon[3]+jacInv[1]*m0JacIon[2])+15.0*(jacInv[0]*m0JacIon[1]+m0JacIon[0]*jacInv[1])); 
-  out[4] = 0.014285714285714285*((38.72983346207417*jacInv[4]+60.62177826491071*jacInv[0])*m0JacIon[6]+(22.3606797749979*jacInv[4]+35.0*jacInv[0])*m0JacIon[4]+(60.6217782649107*m0JacIon[2]+35.0*m0JacIon[0])*jacInv[4]+jacInv[1]*(54.22176684690384*m0JacIon[3]+31.304951684997057*m0JacIon[1])); 
+  out[0] = 2.23606797749979*m0Ion[5]+1.7320508075688772*m0Ion[2]+m0Ion[0]; 
+  out[1] = 0.3333333333333333*(6.7082039324993685*m0Ion[7]+5.196152422706631*m0Ion[3]+3.0*m0Ion[1]); 
+  out[4] = 0.2*(8.660254037844387*m0Ion[6]+5.0*m0Ion[4]); 
 
   double GammaJacIonB[3];
   GammaJacIonB[0] = 0.7905694150420947*GammaJac_i[5]*sheathDirDx-0.6123724356957944*GammaJac_i[2]*sheathDirDx+0.3535533905932737*GammaJac_i[0]*sheathDirDx; 
@@ -114,24 +114,13 @@ GKYL_CU_DH void ambi_bolt_potential_sheath_calc_upper_2x_ser_p2(double sheathDir
 
 }
 
-GKYL_CU_DH void ambi_bolt_potential_phi_calc_2x_ser_p2(double q_e, double T_e, const double *jacInv, const double *m0JacIon, const double *sheathvals, double *phi) 
+GKYL_CU_DH void ambi_bolt_potential_phi_calc_2x_ser_p2(double q_e, double T_e, const double *m0Ion, const double *sheathvals, double *phi) 
 { 
-  // q_e:        electron change.
-  // T_e:        electron temperature.
-  // jacInv:     reciprocal of the geometry Jacobian (1/J).
-  // m0JacIon:   ion density.
+  // q_e: electron change.
+  // T_e: electron temperature.
+  // m0Ion: ion density.
   // sheathvals: ion density and electrostatic potential at the sheath entrance.
-  // phi:        electrostatic potential in domain volume.
-
-  double m0Ion[8];
-  m0Ion[0] = 0.5*jacInv[4]*m0JacIon[4]+0.5*jacInv[1]*m0JacIon[1]+0.5*jacInv[0]*m0JacIon[0]; 
-  m0Ion[1] = 0.4472135954999579*jacInv[1]*m0JacIon[4]+0.4472135954999579*m0JacIon[1]*jacInv[4]+0.5*jacInv[0]*m0JacIon[1]+0.5*m0JacIon[0]*jacInv[1]; 
-  m0Ion[2] = 0.5000000000000001*jacInv[4]*m0JacIon[6]+0.5*jacInv[1]*m0JacIon[3]+0.5*jacInv[0]*m0JacIon[2]; 
-  m0Ion[3] = 0.44721359549995804*jacInv[1]*m0JacIon[6]+0.4472135954999579*m0JacIon[3]*jacInv[4]+0.5*jacInv[0]*m0JacIon[3]+0.5*jacInv[1]*m0JacIon[2]; 
-  m0Ion[4] = 0.31943828249996997*jacInv[4]*m0JacIon[4]+0.5*jacInv[0]*m0JacIon[4]+0.5*m0JacIon[0]*jacInv[4]+0.4472135954999579*jacInv[1]*m0JacIon[1]; 
-  m0Ion[5] = 0.5000000000000001*jacInv[1]*m0JacIon[7]+0.5*jacInv[0]*m0JacIon[5]; 
-  m0Ion[6] = 0.31943828249996997*jacInv[4]*m0JacIon[6]+0.5*jacInv[0]*m0JacIon[6]+0.5000000000000001*m0JacIon[2]*jacInv[4]+0.44721359549995804*jacInv[1]*m0JacIon[3]; 
-  m0Ion[7] = 0.4472135954999579*jacInv[4]*m0JacIon[7]+0.5*jacInv[0]*m0JacIon[7]+0.5000000000000001*jacInv[1]*m0JacIon[5]; 
+  // phi: electrostatic potential in domain volume.
 
   double phi_qp[9];
   phi_qp[0] = -((1.0*log(m0Ion[0]/(-(1.1999999999999988*sheathvals[7])-1.1999999999999997*sheathvals[6]+0.8944271909999159*sheathvals[5]+0.8944271909999159*sheathvals[4]+1.8*sheathvals[3]-1.3416407864998738*sheathvals[2]-1.3416407864998738*sheathvals[1]+sheathvals[0])+m0Ion[5]/(-(1.341640786499873*sheathvals[7])-1.3416407864998734*sheathvals[6]+sheathvals[5]+sheathvals[4]+2.0124611797498106*sheathvals[3]-1.5*sheathvals[2]-1.5*sheathvals[1]+1.118033988749895*sheathvals[0])+m0Ion[4]/(-(1.341640786499873*sheathvals[7])-1.3416407864998734*sheathvals[6]+sheathvals[5]+sheathvals[4]+2.0124611797498106*sheathvals[3]-1.5*sheathvals[2]-1.5*sheathvals[1]+1.118033988749895*sheathvals[0])-(3.0*m0Ion[2])/(-(2.683281572999746*sheathvals[7])-2.683281572999747*sheathvals[6]+2.0*sheathvals[5]+2.0*sheathvals[4]+4.024922359499621*sheathvals[3]-3.0*sheathvals[2]-3.0*sheathvals[1]+2.23606797749979*sheathvals[0])-(3.0*m0Ion[1])/(-(2.683281572999746*sheathvals[7])-2.683281572999747*sheathvals[6]+2.0*sheathvals[5]+2.0*sheathvals[4]+4.024922359499621*sheathvals[3]-3.0*sheathvals[2]-3.0*sheathvals[1]+2.23606797749979*sheathvals[0])-(5.196152422706631*m0Ion[6])/(-(5.196152422706629*sheathvals[7])-5.196152422706631*sheathvals[6]+3.872983346207417*sheathvals[5]+3.872983346207417*sheathvals[4]+7.794228634059948*sheathvals[3]-5.809475019311126*sheathvals[2]-5.809475019311126*sheathvals[1]+4.330127018922194*sheathvals[0])+(6.7082039324993685*m0Ion[7])/(-(5.366563145999492*sheathvals[7])-5.366563145999494*sheathvals[6]+4.0*sheathvals[5]+4.0*sheathvals[4]+8.049844718999243*sheathvals[3]-6.0*sheathvals[2]-6.0*sheathvals[1]+4.47213595499958*sheathvals[0])+(9.0*m0Ion[3])/(-(5.999999999999996*sheathvals[7])-5.999999999999999*sheathvals[6]+4.47213595499958*sheathvals[5]+4.47213595499958*sheathvals[4]+9.0*sheathvals[3]-6.708203932499369*sheathvals[2]-6.708203932499369*sheathvals[1]+5.0*sheathvals[0])-(60.37383539249431*m0Ion[7])/(-(26.832815729997463*sheathvals[7])-26.83281572999747*sheathvals[6]+20.0*sheathvals[5]+20.0*sheathvals[4]+40.24922359499622*sheathvals[3]-30.0*sheathvals[2]-30.0*sheathvals[1]+22.3606797749979*sheathvals[0]))*T_e)/q_e)-0.5999999999999994*sheathvals[15]-0.5999999999999999*sheathvals[14]+0.4472135954999579*sheathvals[13]+0.4472135954999579*sheathvals[12]+0.9*sheathvals[11]-0.6708203932499369*sheathvals[10]-0.6708203932499369*sheathvals[9]+0.5*sheathvals[8]; 

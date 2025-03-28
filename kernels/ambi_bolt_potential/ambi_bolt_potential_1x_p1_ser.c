@@ -1,20 +1,20 @@
 #include <gkyl_ambi_bolt_potential_kernels.h>
 
-GKYL_CU_DH void ambi_bolt_potential_sheath_calc_lower_1x_ser_p1(double sheathDirDx, double q_e, double m_e, double T_e, const double *jacInv, const double *cmag, const double *jacobtotInv, const double *GammaJac_i, const double *m0JacIon, double *out) 
+GKYL_CU_DH void ambi_bolt_potential_sheath_calc_lower_1x_ser_p1(double sheathDirDx, double q_e, double m_e, double T_e, const double *cmag, const double *jacobtotInv, const double *GammaJac_i, const double *m0Ion, const double *m0JacIon, double *out) 
 { 
   // sheathDirDx: cell length in direction of the sheath.
   // q_e:         electron change.
   // m_e:         electron mass.
   // T_e:         electron temperature.
-  // jacInv:      reciprocal of the geometry Jacobian (1/J).
   // cmag:        Clebsch function in definition of magnetic field.
   // jacobtotInv: reciprocal of the phase-space and conf-space Jacobians (1/(J*B)).
   // GammaJac_i:  ion particle flux (times the Jacobian) through sheath entrance.
+  // m0Ion:       ion density.
   // m0JacIon:    ion density (times the geometry Jacobian).
   // out:         ion density and electrostatic potential at the sheath entrance.
 
   // Particle number density evaluate at the sheath entrance
-  out[0] = 0.5*((1.4142135623730951*jacInv[1]-2.4494897427831783*jacInv[0])*m0JacIon[1]+m0JacIon[0]*(1.4142135623730951*jacInv[0]-2.4494897427831783*jacInv[1])); 
+  out[0] = m0Ion[0]-1.7320508075688772*m0Ion[1]; 
 
   double GammaJacIonB[1];
   GammaJacIonB[0] = 0.6123724356957944*GammaJac_i[1]*sheathDirDx+0.3535533905932737*GammaJac_i[0]*sheathDirDx; 
@@ -37,21 +37,21 @@ GKYL_CU_DH void ambi_bolt_potential_sheath_calc_lower_1x_ser_p1(double sheathDir
 
 }
 
-GKYL_CU_DH void ambi_bolt_potential_sheath_calc_upper_1x_ser_p1(double sheathDirDx, double q_e, double m_e, double T_e, const double *jacInv, const double *cmag, const double *jacobtotInv, const double *GammaJac_i, const double *m0JacIon, double *out) 
+GKYL_CU_DH void ambi_bolt_potential_sheath_calc_upper_1x_ser_p1(double sheathDirDx, double q_e, double m_e, double T_e, const double *cmag, const double *jacobtotInv, const double *GammaJac_i, const double *m0Ion, const double *m0JacIon, double *out) 
 { 
   // sheathDirDx: cell length in direction of the sheath.
   // q_e:         electron change.
   // m_e:         electron mass.
   // T_e:         electron temperature.
-  // jacInv:      reciprocal of the geometry Jacobian (1/J).
   // cmag:        Clebsch function in definition of magnetic field.
   // jacobtotInv: reciprocal of the phase-space and conf-space Jacobians (1/(J*B)).
   // GammaJac_i:  ion particle flux (times the Jacobian) through sheath entrance.
+  // m0Ion:       ion density.
   // m0JacIon:    ion density (times the geometry Jacobian).
   // out:         ion density and electrostatic potential at the sheath entrance.
 
   // Particle number density evaluate at the sheath entrance
-  out[0] = 0.5*((1.4142135623730951*jacInv[1]+2.4494897427831783*jacInv[0])*m0JacIon[1]+m0JacIon[0]*(2.4494897427831783*jacInv[1]+1.4142135623730951*jacInv[0])); 
+  out[0] = 1.7320508075688772*m0Ion[1]+m0Ion[0]; 
 
   double GammaJacIonB[1];
   GammaJacIonB[0] = 0.3535533905932737*GammaJac_i[0]*sheathDirDx-0.6123724356957944*GammaJac_i[1]*sheathDirDx; 
@@ -74,18 +74,13 @@ GKYL_CU_DH void ambi_bolt_potential_sheath_calc_upper_1x_ser_p1(double sheathDir
 
 }
 
-GKYL_CU_DH void ambi_bolt_potential_phi_calc_1x_ser_p1(double q_e, double T_e, const double *jacInv, const double *m0JacIon, const double *sheathvals, double *phi) 
+GKYL_CU_DH void ambi_bolt_potential_phi_calc_1x_ser_p1(double q_e, double T_e, const double *m0Ion, const double *sheathvals, double *phi) 
 { 
-  // q_e:        electron change.
-  // T_e:        electron temperature.
-  // jacInv:     reciprocal of the geometry Jacobian (1/J).
-  // m0JacIon:   ion density.
+  // q_e: electron change.
+  // T_e: electron temperature.
+  // m0Ion: ion density.
   // sheathvals: ion density and electrostatic potential at the sheath entrance.
-  // phi:        electrostatic potential in domain volume.
-
-  double m0Ion[2];
-  m0Ion[0] = 0.7071067811865475*jacInv[1]*m0JacIon[1]+0.7071067811865475*jacInv[0]*m0JacIon[0]; 
-  m0Ion[1] = 0.7071067811865475*jacInv[0]*m0JacIon[1]+0.7071067811865475*m0JacIon[0]*jacInv[1]; 
+  // phi: electrostatic potential in domain volume.
 
   double phi_qp[2];
   phi_qp[0] = -((1.0*log(m0Ion[0]/(sheathvals[0]-1.0*sheathvals[1])-(1.0*m0Ion[1])/(sheathvals[0]-1.0*sheathvals[1]))*T_e)/q_e)-0.7071067811865475*sheathvals[3]+0.7071067811865475*sheathvals[2]; 
