@@ -222,8 +222,13 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
     // Scale moments according to initial input values.
     gkyl_array_scale(proj->dens, inp.particle/env_int_ho);
     gkyl_array_scale(proj->upar, 0.0); // no flow.
-    double temp = inp.energy/inp.particle/1.0; // 1 or 3?
+    double temp = inp.energy/inp.particle*2.0/3.0;
     gkyl_array_scale(proj->vtsq, temp/s->info.mass); 
+
+    // A wild Jacobian factor will appear later so we have to compensate it (:.
+    gkyl_dg_bin_op_mem *mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->basis.num_basis);
+    gkyl_dg_div_op_range(mem, app->basis, 0, proj->dens, 0, proj->dens, 0, app->gk_geom->jacobgeo, &app->local);
+    gkyl_dg_bin_op_mem_release(mem);
 
     // Verify that the integral of the density is inp.particle.
     gkyl_array_integrate_advance(int_op, proj->dens, 1.0, app->gk_geom->jacobgeo, &app->local, &app->local, env_int);
