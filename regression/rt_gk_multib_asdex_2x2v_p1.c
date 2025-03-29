@@ -1139,14 +1139,25 @@ main(int argc, char **argv)
 
   // Electrons.
   struct gkyl_gyrokinetic_multib_species_pb elc_blocks[ctx.num_blocks];
+
+  elc_sol.block_id = 0;
   elc_blocks[0] = elc_sol;
+
+  elc_sol.block_id = 1;
   elc_blocks[1] = elc_sol;
+
+  elc_sol.block_id = 2;
   elc_blocks[2] = elc_sol;
+
+  elc_sol.block_id = 3;
   elc_blocks[3] = elc_sol;
+
+  elc_sol.block_id = 4;
   elc_blocks[4] = elc_sol;
 
   elc_blocks[5] = (struct gkyl_gyrokinetic_multib_species_pb) {
 
+    .block_id = 5,
     .polarization_density = ctx.n0,
 
     .projection = elc_ic,
@@ -1163,6 +1174,10 @@ main(int argc, char **argv)
         .ctx_temp = &ctx,
         .temp = init_source_temp_elc,
       }, 
+      .diagnostics = {
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { "FourMoments" },
+      }
     },
 
   };
@@ -1214,7 +1229,7 @@ main(int argc, char **argv)
     .diffusion = {
       .num_diff_dir = 1, 
       .diff_dirs = { 0 },
-      .D = { 0.03 }, 
+      .D = { 0.3 }, 
       .order = 2, 
     }, 
 
@@ -1245,14 +1260,24 @@ main(int argc, char **argv)
   };
 
   struct gkyl_gyrokinetic_multib_species_pb ion_blocks[ctx.num_blocks];
+  ion_sol.block_id = 0;
   ion_blocks[0] = ion_sol;
+
+  ion_sol.block_id = 1;
   ion_blocks[1] = ion_sol;
+
+  ion_sol.block_id = 2;
   ion_blocks[2] = ion_sol;
+
+  ion_sol.block_id = 3;
   ion_blocks[3] = ion_sol;
+
+  ion_sol.block_id = 4;
   ion_blocks[4] = ion_sol;
 
   ion_blocks[5] = (struct gkyl_gyrokinetic_multib_species_pb) {
 
+    .block_id = 5,
     .polarization_density = ctx.n0,
 
     .projection = ion_ic,
@@ -1269,6 +1294,11 @@ main(int argc, char **argv)
         .ctx_temp = &ctx,
         .temp = init_source_temp_ion,
       }, 
+      .diagnostics = {
+        .num_integrated_diag_moments = 1,
+//        .integrated_diag_moments = { "M2" },
+        .integrated_diag_moments = { "FourMoments" },
+      }
     },
 
   };
@@ -1320,7 +1350,7 @@ main(int argc, char **argv)
     .diffusion = {
       .num_diff_dir = 1, 
       .diff_dirs = { 0 },
-      .D = { 0.03 }, 
+      .D = { 0.3 }, 
       .order = 2, 
     }, 
 
@@ -1328,7 +1358,7 @@ main(int argc, char **argv)
     .bcs = ion_phys_bcs,
 
     .blocks = ion_blocks,
-    .duplicate_across_blocks = true,
+    .duplicate_across_blocks = false,
 
     .num_diag_moments = 4,
     .diag_moments = { "M1", "M2par", "M2perp", "BiMaxwellianMoments" },
