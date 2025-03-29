@@ -875,8 +875,8 @@ create_ctx(void)
   double qi = eV; // Ion charge.
   double qe = -eV; // Electron charge.
 
-  double Te = 120.0*eV; // Electron temperature.
-  double Ti = 120.0*eV; // Ion temperature.
+  double Te = 150.0*eV; // Electron temperature.
+  double Ti = 150.0*eV; // Ion temperature.
   double B0 = (1.937854e+00+3.937710e+00)/2.0; // B field amplitude.
   double n0 = 1.0e19; // Particle density.
 
@@ -956,8 +956,8 @@ create_ctx(void)
   double Te_sep = 70.0*eV;
   double cs_sep = sqrt(Te_sep/mi);
   double ndot_src = 2.0*n_sep*cs_sep/Lc_src;
-  double Te_src = 1.5*Te;
-  double Ti_src = 1.5*Ti;
+  double Te_src = 2.*Te;
+  double Ti_src = 2.*Ti;
 
   // Physical velocity space limits
   double vpar_max_elc = 6.0*vt_elc;
