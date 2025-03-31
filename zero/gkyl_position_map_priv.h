@@ -495,6 +495,17 @@ refine_B_field_extrema(struct gkyl_position_map *gpm)
     B_total_change += fabs(gpm->constB_ctx->bmag_extrema[i] - gpm->constB_ctx->bmag_extrema[i-1]);
   }
   gpm->constB_ctx->dB_cell = B_total_change / (gpm->constB_ctx->N_theta_boundaries);
+
+  // Check that all extrema are increasing
+  for (int i = 1; i < gpm->constB_ctx->num_extrema; i++)
+  {
+    if (gpm->constB_ctx->theta_extrema[i] < gpm->constB_ctx->theta_extrema[i-1])
+    {
+      printf("Numerical position map magnetic field extrema finding failed\n");
+      printf("theta_extrema[%d] = %f\n", i, gpm->constB_ctx->theta_extrema[i]);
+      printf("theta_extrema[%d] = %f\n", i-1, gpm->constB_ctx->theta_extrema[i-1]);
+    }
+  }
 }
 
 /**
