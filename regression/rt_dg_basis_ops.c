@@ -3,7 +3,6 @@
 #include <gkyl_basis.h>
 #include <gkyl_dg_basis_ops.h>
 #include <gkyl_eval_on_nodes.h>
-#include <gkyl_gkgeom.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
