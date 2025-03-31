@@ -855,7 +855,7 @@ tok_set_ridders(struct gkyl_tok_geo_grid_inp* inp, struct arc_length_ctx* arc_ct
       arc_ctx->q3 = true;
       *rclose = arc_ctx->rleft;
       arc_ctx->right = false;
-      *ridders_min = arc_ctx->arcL_q1 - arcL_curr;
+      *ridders_min = arc_ctx->arcL_q3 - arcL_curr;
       *ridders_max = -arcL_curr;
       arc_ctx->zmin = arc_ctx->zmin_iwl;
       arc_ctx->zmax = arc_ctx->geo->zmaxis;
