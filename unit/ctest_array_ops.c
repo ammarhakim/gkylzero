@@ -13,6 +13,29 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 
+void test_array_positivity()
+{
+  int ncomp = 2;
+  int size = ncomp*10; 
+  struct gkyl_array *in = gkyl_array_new(GKYL_DOUBLE, ncomp, size);
+  struct gkyl_array *out = gkyl_array_new(GKYL_DOUBLE, ncomp, size);
+
+  double *out_d  = out->data, *in_d = in->data;
+  for (unsigned i=0; i<in->size; ++i) {
+    in_d[i] = -1.0;
+    out_d[i] = -1.0;
+  }
+
+  for (unsigned i=0; i<in->size; ++i) {
+    printf("in, %g ", in_d[i]);
+  }
+  printf("\n");
+  gkyl_array_remove_negative_cell_ave(out, in);
+  for (unsigned i=0; i<out->size; ++i) {
+    printf("out, %g ", out_d[i]);
+  }
+}
+
 void test_array_clear()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
@@ -1786,6 +1809,7 @@ void test_array_shiftc_range_dev() {
 #endif
 
 TEST_LIST = {
+  {"array_pos", test_array_positivity},
   { "array_clear", test_array_clear },
   { "array_clear_range", test_array_clear_range },
   { "array_accumulate", test_array_accumulate },

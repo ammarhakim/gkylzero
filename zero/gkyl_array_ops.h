@@ -132,6 +132,15 @@ struct gkyl_array* gkyl_array_scale_by_cell(struct gkyl_array *out, const struct
 struct gkyl_array* gkyl_array_shiftc(struct gkyl_array *out, double a, unsigned k);
 
 /**
+ * Zero any negative cell averages. Returns out.
+ *
+ * @param out Output array.
+ * @param in Input array.
+ * @return out array.
+ */
+struct gkyl_array* gkyl_array_remove_negative_cell_ave(struct gkyl_array* out, struct gkyl_array* in);
+
+/**
  * Clear out = val. Returns out.
  *
  * @param out Output array
