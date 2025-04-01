@@ -104,7 +104,7 @@ test_ltx_miller()
   start = clock();
 
   double clower[] = { 0.0018, -0.01, -M_PI+1e-14 };
-  double cupper[] = {0.0024, 0.01, M_PI-3e-14 };
+  double cupper[] = {0.0024, 0.01, M_PI-1e-14 };
   int ccells[] = { 2,1,16 };
 
   struct gkyl_tok_geo_grid_inp ginp = {
