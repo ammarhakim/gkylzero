@@ -226,11 +226,14 @@ create_ctx(void)
   double qe = -eV; // electron charge
 
   // Geometry and magnetic field.
-  double a_shift   = 0.6;                // Parameter in Shafranov shift.
-  double Z_axis    = 0.00232616113;      // Magnetic axis height [m].
-  double R_axis    = 1.72068012;         // Magnetic axis major radius [m].
+  /* double a_shift   = 0.6;                // Parameter in Shafranov shift. */
+  /* double Z_axis    = 0.00232616113;      // Magnetic axis height [m]. */
+  /* double R_axis    = 1.72068012;         // Magnetic axis major radius [m]. */
+  double a_shift   = 0.5;                // Parameter in Shafranov shift.
+  double Z_axis    = 0.013055028;        // Magnetic axis height [m].
+  double R_axis    = 1.6;                // Magnetic axis major radius [m].
   double B_axis    = 2.0;                // Magnetic field at the magnetic axis [T].
-  double R_LCFSmid = 2.2801477223421736; // Major radius of the LCFS at the outboard midplane [m].
+  double R_LCFSmid = 2.17; // Major radius of the LCFS at the outboard midplane [m].
   double Rmid_min  = R_LCFSmid - 0.1;    // Minimum midplane major radius of simulation box [m].
   double Rmid_max  = R_LCFSmid + 0.05;   // Maximum midplane major radius of simulation box [m].
   double R0        = 0.5*(Rmid_min+Rmid_max);  // Major radius of the simulation box [m].
@@ -315,8 +318,8 @@ create_ctx(void)
   struct gk_app_ctx ctx = {
     .cdim = cdim,
     .vdim = vdim,
-    .a_shift = a_shift,
-    .R_axis = R_axis,
+    /* .a_shift = a_shift, */
+    /* .R_axis = R_axis, */
     .R0     = R0    ,
     .a_mid  = a_mid ,
     .r0     = r0    ,
@@ -574,7 +577,7 @@ main(int argc, char **argv)
 
   struct gkyl_efit_inp efit_inp = {
     // psiRZ and related inputs
-    .filepath = "./data/eqdsk/g171646.02800", // equilibrium to use
+    .filepath = "./data/eqdsk/g171650.02800", // equilibrium to use
     .rz_poly_order = 2,                       // polynomial order for psi(R,Z) used for field line tracing
     .flux_poly_order = 1,                     // polynomial order for fpol(psi)
     .reflect = true,                          // Reflect lower half of psi(R,Z) for up-down symmetry
