@@ -105,15 +105,15 @@ test_ltx_miller()
 
   double clower[] = { 0.0018, -0.01, -M_PI+1e-14 };
   double cupper[] = {0.0024, 0.01, M_PI-3e-14 };
-  int ccells[] = { 2,1,64 };
+  int ccells[] = { 2,1,16 };
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_IWL,
-    .rclose = 0.7,
-    .rleft= 0.0,
-    .rright= 0.7,
-    .rmin=0.0,
-    .rmax=0.7,
+    .rclose = 0.4,
+    .rleft= 0.2,
+    .rright= 0.45,
+    .rmin=0.1,
+    .rmax=0.65,
     .zmin = -0.3,
     .zmax = 0.3,
   }; 
@@ -141,7 +141,7 @@ test_ltx_miller()
   };
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
-  //write_geometry(up, cgrid, cbasis, clocal, "ltx_miller");
+  write_geometry(up, cgrid, cbasis, clocal, "ltx_miller");
   gkyl_gk_geometry_release(up);
 
   end = clock();

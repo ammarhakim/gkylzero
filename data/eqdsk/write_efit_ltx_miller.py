@@ -1,4 +1,4 @@
-import postgkyl as pg
+#import postgkyl as pg
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
@@ -9,21 +9,15 @@ import scipy.optimize as sco
 import fortranformat as ff
 from datetime import date
 from typing import Any, Generator, Iterable, List, TextIO, Union
+from scipy.interpolate import griddata
 
-scaleFac=1
-
-#Constants
-eV = 1.60217663e-19
-mp=1.672621637e-27
-me=9.10938215e-31
-mu_0 = 12.56637061435917295385057353311801153679e-7
 
 #Geometry and magnetic field.
 R_axis     = 0.406051632        # [m]
 B_axis     = 0.240606108        # [T]
-R_LCFSmid  = 0.61183           # Major radius of the LCFS at the outboard midplane [m].
-Rmid_min   = R_LCFSmid-2*0.05457   # Minimum midplane major radius of simulation box [m].
-Rmid_max   = R_LCFSmid+0.05457   # Maximum midplane major radius of simulation box [m].
+R_LCFSmid  = 0.61183            # Major radius of the LCFS at the outboard midplane [m].
+Rmid_min   = R_axis # Minimum midplane major radius of simulation box [m].
+Rmid_max   = 0.7   # Maximum midplane major radius of simulation box [m].
 R0         = 0.5*(Rmid_min+Rmid_max)    # Major radius of the simulation box [m].
 a_mid      = R_LCFSmid-R_axis   # Minor radius at outboard midplane [m].
 r0         = R0-R_axis          # Minor radius of the simulation box [m].
@@ -41,8 +35,6 @@ def qprofile(r):
 
 q0 = qprofile(r0)
 q_min = qprofile(Rmid_min-R_axis)
-qi,qe = eV,-eV
-mi = mp
 
 #..................... NO MORE USER INPUTS BELOW (maybe) ....................#
 
@@ -81,121 +73,101 @@ def dPsidr_f(r, theta):
 def Bphi_f(R):
     return B0*R0/R
 
-def gradr_f(r, theta):
-   #return R_f(r,theta)/Jr_f(r,theta)*np.sqrt(df(R,2)(r,theta)^2 + df(Z,2)(r,theta)^2)
-   return R_f(r,theta)/Jr_f(r,theta)*np.sqrt(R_f_theta(r,theta)**2 + Z_f_theta(r,theta)**2)
-
-def functheta(theta,R,Z):
-    r = (Z/kappa/np.sin(theta))
-    return R - ( R_axis + r*np.cos(  theta + np.arcsin(delta)*np.sin(theta) ) )
-
-def rtheta(R_i,Z_i):
-    ## #theta version
-    if Z_i >=0:
-        sol = sco.ridder(functheta, 1e-10, np.pi , args = (R_i,Z_i))
-    else:
-        sol = sco.ridder(functheta, -np.pi, -1e-10 , args = (R_i,Z_i))
-    theta_i = sol
-    r_i = Z_i/kappa/np.sin(theta_i)
-    return r_i, theta_i
-
 def psi_fi(r,theta):
     psi_i,_ = integrate.quad(dPsidr_f, 0, r, args=(theta), epsabs=1.e-8)
     return psi_i
 
-def psi_fit(r):
-    a,b,c,d,e = -1.1463112730315916e-02,  3.2553352140788654e+00, -1.6917998161853689e+01, -1.4622473121061603e+00, 3.2671388745728050e-03
-    return a/(b+ np.exp(-c*r + d)) + e
 
-def psiRZ_f(R,Z):
-    r,theta = rtheta(R,Z)
-    psi = psi_fit(r)
-    return psi
-
-
-
-# setup for plotting
-xmin = 0
-xmax = Rmid_max-Rmid_min
-x = np.linspace(0,xmax,96)
-r = Rmid_min-R_axis+x
-#r = np.arange(0,1,step)
-theta=np.linspace(-np.pi,np.pi,65)
-Rm = R_f(r,theta)
-Zm = Z_f(r,theta)
-
-#Try to use psi independent of theta
-psi = psi_fit(r)
-psi_plot = np.repeat(psi,len(theta)).reshape(len(r),len(theta))
-fig, ax = plt.subplots()
-ax.contour(Rm,Zm,psi_plot, levels = np.arange(0,.0035,0.0001))
-plt.xlim(0.1,0.67)
-plt.ylim(-0.34,0.34)
-plt.title("Original Psi")
-#plt.show()
 
 
 
 #RZ box
-NW = 80
-NH = 90
-RMIN,RMAX = Rm.min(), Rm.max()
-ZMIN,ZMAX = Zm.min(), Zm.max()
+NW = 81
+NH = 91
+RMIN,RMAX = 0.1,0.7
+ZMIN,ZMAX = -0.4,0.4
 RDIM = RMAX - RMIN
 ZDIM = ZMAX - ZMIN
 RLEFT=RMIN
 ZMID = (ZMAX+ZMIN)/2.0
 RMAXIS = R_axis
 ZMAXIS = 0.0
-SIMAG = psi_fit(0)
-SIBRY = psi_fi(r[-1], 0.0)
+SIMAG = psi_fi(0.0,0.0)
+SIBRY = psi_fi(Rmid_min - R_axis + x_LCFS, 0.0)
 NPSI = NW #don't write
 RCENTR = R_axis
 BCENTR = B_axis
 CURRENT = 0
 
 
-#Solve GS in RZ coords
+# setup r, theta grids
+xmin = 0
+xmax = Rmid_max-Rmid_min
+x = np.linspace(0,xmax,NW)
+r = Rmid_min-R_axis+x
+theta=np.linspace(-np.pi,np.pi,65)
+Rm = R_f(r,theta)
+Zm = Z_f(r,theta)
+
+#Calculate psi(r,theta)
+psi = np.zeros(len(r))
+for i,ri in enumerate(r):
+    psi[i] = psi_fi(ri,0.0)
+psi_plot = np.repeat(psi,len(theta)).reshape(len(r),len(theta))
+fig, ax = plt.subplots()
+cax = ax.contour(Rm,Zm,psi_plot, cmap = "inferno")
+#cax = ax.pcolor(Rm,Zm,psi_plot, cmap = "inferno")
+plt.title("Original Psi")
+plt.colorbar(cax)
+plt.show()
+
+
+
+
+#Interpolate to get psi in RZ coords
 Rgrid = np.linspace(RMIN,RMAX,NW)
 Zgrid = np.linspace(ZMIN,ZMAX,NH)
+grid_r, grid_z = np.meshgrid(Rgrid,Zgrid)
+flat_points = np.stack((Rm,Zm), axis = -1).reshape(-1, 2)
+flat_psi = psi_plot.flatten()
+psiRZ = griddata(flat_points, psi_plot.flatten(), (grid_r, grid_z), method='cubic').T
 
-#rthetagrid = np.zeros((len(Rgrid),len(Zgrid),2))
-psiRZ = np.zeros((len(Rgrid),len(Zgrid)))
-for i,Ri in enumerate(Rgrid):
-    for j,Zj in enumerate(Zgrid):
-        psiRZ[i,j] = psiRZ_f(Ri,Zj)
-        #r,theta = rtheta(Ri,Zj)
-        #rthetagrid[i,j] = np.r_[r,theta]
-plt.figure()
-plt.contour(Rgrid,Zgrid,psiRZ.T, levels = np.arange(0,.0035,0.0001))
-#plt.xlim(0.1,0.67)
-#plt.ylim(-0.34,0.34)
-plt.title("Psi calculated in RZ coords")
-#plt.show()
+fig, ax = plt.subplots()
+cax = ax.contour(Rgrid,Zgrid, psiRZ.T, cmap = "inferno")
+#cax = ax.pcolor(Rgrid, Zgrid, psiRZ.T, cmap = "inferno")
+plt.title("Interpolated Psi")
+plt.colorbar(cax)
+plt.show()
 
 
 
-def rlossfunc(r, psi0):
-    return psi0 - psi_fit(r)#psi_fi(r,0)
-def rfunc(psi):
-    return sco.ridder(rlossfunc,0, r[-1], args = (psi) )
 
 #PSI quantities
 PSIGRID = np.linspace(SIMAG, SIBRY,NPSI)
 FPOL = np.repeat(B_axis, NPSI)
 FFPRIM = np.repeat(0.0, NPSI)
 PPRIME = np.repeat(-1e-6,NPSI)
-PRES = integrate.cumtrapz(PPRIME,PSIGRID,initial=0)
+PRES = integrate.cumulative_trapezoid(PPRIME,PSIGRID,initial=0)
 PSIZR = psiRZ.T
 
 
+
+#LIMITER and boundary STUFF
+r_LCFS = r_x(x_LCFS)
+RLCFS = R_f(r_LCFS,theta)
+ZLCFS = Z_f(r_LCFS,theta)
+plt.scatter(RLCFS,ZLCFS)
+
+#QPSI = qprofile(r)
+def rlossfunc(r, psi0):
+    return psi0 - psi_fi(r,0)
+def rfunc(psi):
+    return sco.ridder(rlossfunc,0, r_LCFS, args = (psi) )
 QPSI = np.zeros(NPSI)
 for i in range(NPSI):
     QPSI[i] = qprofile(rfunc(PSIGRID[i]))
 
 
-#LIMITER and boundary STUFF
-r_LCFS = r_x(x_LCFS)
 
 NBBBS = 65
 LIMITR = 10
@@ -252,7 +224,7 @@ def write_line(data: Iterable[Any], fh: TextIO, fmt: str) -> None:
 
 
 #Now write the EFIT FILE
-with open('miller_eqdsk_ZR','w',newline='') as f:
+with open('ltx_miller.geqdsk','w',newline='') as f:
     ##NW,NH
     ##for i in range(2):
     ##    f.write('%d '%writeList[i])
@@ -327,20 +299,20 @@ with open('miller_eqdsk_ZR','w',newline='') as f:
                 f.write('\n')
                 count=0
 
-#WRITE the Wall and Limiter stuff for jonathan
-WallCoords = np.c_[RBBBS,ZBBBS]
-with open('miller_wall','w',newline='') as f:
-    for i in range(NBBBS):
-        f.write('%16.9E'%WallCoords[i,0])
-        f.write('%16.9E'%WallCoords[i,1])
-        f.write('\n')
-
-LimCoords = np.c_[RLIM,ZLIM]
-with open('miller_limiter','w',newline='') as f:
-    for i in range(LIMITR):
-        f.write('%16.9E'%LimCoords[i,0])
-        f.write('%16.9E'%LimCoords[i,1])
-        f.write('\n')
+#WRITE the Wall and Limiter if desired.
+#WallCoords = np.c_[RBBBS,ZBBBS]
+#with open('miller_wall','w',newline='') as f:
+#    for i in range(NBBBS):
+#        f.write('%16.9E'%WallCoords[i,0])
+#        f.write('%16.9E'%WallCoords[i,1])
+#        f.write('\n')
+#
+#LimCoords = np.c_[RLIM,ZLIM]
+#with open('miller_limiter','w',newline='') as f:
+#    for i in range(LIMITR):
+#        f.write('%16.9E'%LimCoords[i,0])
+#        f.write('%16.9E'%LimCoords[i,1])
+#        f.write('\n')
 
 
 
