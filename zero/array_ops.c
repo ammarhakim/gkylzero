@@ -170,14 +170,11 @@ gkyl_array_shiftc(struct gkyl_array* out, double a, unsigned k)
 struct gkyl_array*
 gkyl_array_remove_negative_cell_ave(struct gkyl_array* out, struct gkyl_array* in)
 {
-  printf("in func\n");
-  printf("ncom %zu\n", NCOM(out));
   double *in_d = in->data;
   double *out_d = out->data;
   for (size_t i=0; i<out->size; ++i) {
     if (in_d[i*NCOM(in)] < 0) {
-      printf("neg val detected\n");
-      out_d[i*NCOM(in)] = 1e-10;
+      out_d[i*NCOM(in)] = 0.0;
     }
   }
   return out;
