@@ -240,8 +240,14 @@ phi_func(double alpha_curr, double Z, void *ctx)
         ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
     }
     else{
-        ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo) ;
+      if (Z<actx->zmaxis) {
+        ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo) ;
+        phi_ref  = -actx->phi_right;
+      }
+      else {
+        ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo) ;
         phi_ref  = actx->phi_right;
+      }
     }
   }
   // Now multiply by fpol
