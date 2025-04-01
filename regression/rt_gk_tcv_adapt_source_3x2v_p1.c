@@ -32,13 +32,14 @@ struct gk_app_ctx {
     double nuFrac, nuElc, nuIon;
     // Source parameters
     double num_sources;
-    double n_srcCORE, x_srcCORE, Te_srcCORE, Ti_srcCORE, sigma_srcCORE, power_src;
-    double n_srcRECY, x_srcRECY, Te_srcRECY, Ti_srcRECY, sigmax_srcRECY, sigmaz_srcRECY, floor_src;
-    double dens_gauss, upar_gauss, temp_gauss;
-    double center_gauss[3], sigma_gauss[3];
-    bool adaptive_source;
-    char adapt_mom_type [26]; // Type of adaptive moment for the source
-    double adapt_mom_rate_target;
+    bool adapt_energy_srcCORE, adapt_particle_srcCORE; 
+    double center_srcCORE[3], sigma_srcCORE[3];
+    double energy_srcCORE, particle_srcCORE;
+    double floor_srcCORE;
+    bool adapt_energy_srcRECY, adapt_particle_srcRECY;
+    double center_srcRECY[3], sigma_srcRECY[3];
+    double energy_srcRECY, particle_srcRECY;
+    double floor_srcRECY;
     // Grid parameters
     double Lx, Ly, Lz;
     double x_min, x_max, y_min, y_max, z_min, z_max;
@@ -146,44 +147,34 @@ struct gk_app_ctx create_ctx(void)
 
   // Source parameters
   double num_sources = 1; // We do not activate the recycling source here.
-  bool adaptive_source = true;
-  char adapt_mom_type [26];
-  // strcpy(adapt_mom_type, "M2");
-  // double adapt_mom_rate_target = 0.5e6; // Input power of the source in W.
-  strcpy(adapt_mom_type, "M0");
-  double adapt_mom_rate_target = 1.0e22; // Input power of the source in W.
   // Core source parameters
-  double n_srcCORE = 2.4e23;
-  double x_srcCORE = x_min;
-  double Te_srcCORE = 3*Te0;
-  double Ti_srcCORE = 3*Ti0;
-  double sigma_srcCORE = 0.03*Lx;
-  double floor_src = 1e-2;
+  bool adapt_energy_srcCORE = true;
+  bool adapt_particle_srcCORE = true;
+  double energy_srcCORE = 0.5e6; // [W]
+  double particle_srcCORE = 1.00e22; // [1/s]
+  double center_srcCORE[3] = {x_min, 0.0, 0.0};
+  double sigma_srcCORE[3] = {0.03*Lx, 0.0, 0.0};
+  double floor_srcCORE = 1e-2;
   // Recycling source parameters
-  double n_srcRECY = 0.99*n_srcCORE;
-  double x_srcRECY = 0.5*x_LCFS;
-  double Te_srcRECY = 20*eV;
-  double Ti_srcRECY = 20*eV;
-  double sigmax_srcRECY = 0.25*x_LCFS;
-  double sigmaz_srcRECY = 0.25*Lz;
-  //
-  double dens_gauss = 2.4e23;
-  double upar_gauss = 0.0;
-  double temp_gauss = 3*Te0;
-  double center_gauss[3] = {x_min, 0.0, 0.0};
-  double sigma_gauss[3] = {0.03*Lx, 0.0, 0.0};
+  bool adapt_energy_srcRECY = false;
+  bool adapt_particle_srcRECY = true;
+  double energy_srcRECY = 0.5e6; // [W]
+  double particle_srcRECY = 0.01e22; // [1/s]
+  double center_srcRECY[3] = {0.5*x_LCFS, 0.0, 0.0};
+  double sigma_srcRECY[3] = {0.25*x_LCFS, 0.0, 0.25*Lz};
+  double floor_srcRECY = 1e-2;
   // Grid parameters
   int num_cell_x = 16;
   int num_cell_y = 10;
   int num_cell_z = 12;
-  int num_cell_vpar = 8;
-  int num_cell_mu = 4;
+  int num_cell_vpar = 12;
+  int num_cell_mu = 6;
   int poly_order = 1;
   // Velocity box dimensions
-  double vpar_max_elc = 5.*vte;
-  double mu_max_elc   = 1*me*pow(4*vte,2)/(2*B0);
-  double vpar_max_ion = 5.*vti;
-  double mu_max_ion   = 1*mi*pow(4*vti,2)/(2*B0);
+  double vpar_max_elc = 6.*vte;
+  double mu_max_elc   = 1.5*me*pow(4*vte,2)/(2*B0);
+  double vpar_max_ion = 6.*vti;
+  double mu_max_ion   = 1.5*mi*pow(4*vti,2)/(2*B0);
   double final_time = 5.e-8;
   int num_frames = 1;
   double write_phase_freq = 1;
@@ -217,20 +208,18 @@ struct gk_app_ctx create_ctx(void)
     .n0 = n0,  .Te0 = Te0,  .Ti0 = Ti0,
     .nuFrac = nuFrac,  .nuElc = nuElc,  .nuIon = nuIon,
     .num_sources = num_sources,
-    .adaptive_source = adaptive_source,
-    .adapt_mom_rate_target = adapt_mom_rate_target,
-    .n_srcCORE     = n_srcCORE    ,
-    .x_srcCORE     = x_srcCORE    ,
-    .Te_srcCORE    = Te_srcCORE   ,
-    .Ti_srcCORE    = Ti_srcCORE   ,
-    .sigma_srcCORE = sigma_srcCORE,
-    .n_srcRECY     = n_srcRECY    ,
-    .x_srcRECY     = x_srcRECY    ,
-    .Te_srcRECY    = Te_srcRECY   ,
-    .Ti_srcRECY    = Ti_srcRECY   ,
-    .sigmax_srcRECY = sigmax_srcRECY,
-    .sigmaz_srcRECY = sigmaz_srcRECY,
-    .floor_src    = floor_src   ,
+    .adapt_energy_srcCORE = adapt_energy_srcCORE,
+    .adapt_particle_srcCORE = adapt_particle_srcCORE,
+    .center_srcCORE = {center_srcCORE[0], center_srcCORE[1], center_srcCORE[2]},
+    .sigma_srcCORE = {sigma_srcCORE[0], sigma_srcCORE[1], sigma_srcCORE[2]},
+    .energy_srcCORE = energy_srcCORE,  .particle_srcCORE = particle_srcCORE,
+    .floor_srcCORE = floor_srcCORE,
+    .adapt_energy_srcRECY = adapt_energy_srcRECY,
+    .adapt_particle_srcRECY = adapt_particle_srcRECY,
+    .center_srcRECY = {center_srcRECY[0], center_srcRECY[1], center_srcRECY[2]},
+    .sigma_srcRECY = {sigma_srcRECY[0], sigma_srcRECY[1], sigma_srcRECY[2]},
+    .energy_srcRECY = energy_srcRECY,  .particle_srcRECY = particle_srcRECY,
+    .floor_srcRECY = floor_srcRECY,
     .num_cell_x     = num_cell_x,
     .num_cell_y     = num_cell_y,
     .num_cell_z     = num_cell_z,
@@ -246,7 +235,6 @@ struct gk_app_ctx create_ctx(void)
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
   };
-  strcpy(ctx.adapt_mom_type, adapt_mom_type);
   return ctx;
 }
 
@@ -330,21 +318,35 @@ main(int argc, char **argv)
       .num_sources = ctx.num_sources,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
-        .center_gauss = {0.0, 0.0, 0.0},
-        .sigma_gauss = {ctx.sigma_srcCORE, 0.0, 0.0},
-        .particle = 1.0e22,
-        .energy = 0.5*1e6,
-        .floor = ctx.floor_src,
+        .center_gauss = {ctx.center_srcCORE[0], ctx.center_srcCORE[1], ctx.center_srcCORE[2]},
+        .sigma_gauss = {ctx.sigma_srcCORE[0], ctx.sigma_srcCORE[1], ctx.sigma_srcCORE[2]},
+        .particle = ctx.particle_srcCORE,
+        .energy = ctx.energy_srcCORE,
+        .floor = ctx.floor_srcCORE,
       },
-      // .projection[0] = {
-      //   .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-      //   .ctx_density = &ctx,
-      //   .ctx_upar = &ctx,
-      //   .ctx_temp = &ctx,
-      //   .density = density_srcCORE,
-      //   .upar = zero_func,
-      //   .temp = temp_ion_srcCORE,
-      // },
+      .projection[1] = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
+        .center_gauss = {ctx.center_srcRECY[0], ctx.center_srcRECY[1], ctx.center_srcRECY[2]},
+        .sigma_gauss = {ctx.sigma_srcRECY[0], ctx.sigma_srcRECY[1], ctx.sigma_srcRECY[2]},
+        .particle = ctx.particle_srcRECY,
+        .energy = ctx.energy_srcRECY,
+        .floor = ctx.floor_srcRECY,
+      },
+      .num_adapt_sources = ctx.num_sources,
+      .adapt[0] = {
+        .adapt_particle = ctx.adapt_particle_srcCORE,
+        .adapt_energy = ctx.adapt_energy_srcCORE,
+        .num_boundaries = 1,
+        .dir = {0, 0, 2, 2},
+        .edge = {GKYL_LOWER_EDGE, GKYL_UPPER_EDGE, GKYL_LOWER_EDGE, GKYL_UPPER_EDGE},
+      },
+      .adapt[1] = {
+        .adapt_particle = ctx.adapt_particle_srcRECY,
+        .adapt_energy = ctx.adapt_energy_srcRECY,
+        .num_boundaries = 3,
+        .dir = {0, 2, 2},
+        .edge = {GKYL_UPPER_EDGE, GKYL_LOWER_EDGE, GKYL_UPPER_EDGE},
+      },
       .diagnostics = {
         .num_diag_moments = 1,
         .diag_moments = {"HamiltonianMoments"},
@@ -426,21 +428,35 @@ main(int argc, char **argv)
       .num_sources = ctx.num_sources,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
-        .center_gauss = {ctx.x_srcCORE, 0.0, 0.0},
-        .sigma_gauss = {ctx.sigma_srcCORE, 0.0, 0.0},
-        .particle = 1.0e22,
-        .energy = 0.5*1e6,
-        .floor = ctx.floor_src,
+        .center_gauss = {ctx.center_srcCORE[0], ctx.center_srcCORE[1], ctx.center_srcCORE[2]},
+        .sigma_gauss = {ctx.sigma_srcCORE[0], ctx.sigma_srcCORE[1], ctx.sigma_srcCORE[2]},
+        .particle = ctx.particle_srcCORE,
+        .energy = ctx.energy_srcCORE,
+        .floor = ctx.floor_srcCORE,
       },
-      // .projection[0] = {
-      //   .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-      //   .ctx_density = &ctx,
-      //   .ctx_upar = &ctx,
-      //   .ctx_temp = &ctx,
-      //   .density = density_srcCORE,
-      //   .upar = zero_func,
-      //   .temp = temp_ion_srcCORE,
-      // },
+      .projection[1] = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
+        .center_gauss = {ctx.center_srcRECY[0], ctx.center_srcRECY[1], ctx.center_srcRECY[2]},
+        .sigma_gauss = {ctx.sigma_srcRECY[0], ctx.sigma_srcRECY[1], ctx.sigma_srcRECY[2]},
+        .particle = ctx.particle_srcRECY,
+        .energy = ctx.energy_srcRECY,
+        .floor = ctx.floor_srcRECY,
+      },
+      .num_adapt_sources = ctx.num_sources,
+      .adapt[0] = {
+        .adapt_particle = ctx.adapt_particle_srcCORE,
+        .adapt_energy = ctx.adapt_energy_srcCORE,
+        .num_boundaries = 1,
+        .dir = {0, 0, 2, 2},
+        .edge = {GKYL_LOWER_EDGE, GKYL_UPPER_EDGE, GKYL_LOWER_EDGE, GKYL_UPPER_EDGE},
+      },
+      .adapt[1] = {
+        .adapt_particle = ctx.adapt_particle_srcRECY,
+        .adapt_energy = ctx.adapt_energy_srcRECY,
+        .num_boundaries = 3,
+        .dir = {0, 2, 2},
+        .edge = {GKYL_LOWER_EDGE, GKYL_LOWER_EDGE, GKYL_UPPER_EDGE},
+      },
       .diagnostics = {
         .num_diag_moments = 1,
         .diag_moments = {"HamiltonianMoments"},
@@ -516,28 +532,6 @@ main(int argc, char **argv)
     .use_gpu = app_args.use_gpu,
   };
 
-  // Adaptive source parameters
-  // struct gkyl_gyrokinetic_source_adaptive adapt_src_params = {
-  //   .mom_rate_target = ctx.adapt_mom_rate_target,
-  //   .num_boundaries = 1,
-  //   .dir = {0},
-  //   .edge = {GKYL_LOWER_EDGE},
-  // };
-  // strcpy(adapt_src_params.mom_type, ctx.adapt_mom_type);
-
-  struct gkyl_gyrokinetic_source_adaptive adapt_src_params ={
-    .num_boundaries = 1,
-    .dir = {0},
-    .edge = {GKYL_LOWER_EDGE},
-  };
-  if (false) {
-    adapt_src_params.mom_rate_target = 5e21;
-    strcpy(adapt_src_params.mom_type, "M0");
-  } else {
-    adapt_src_params.mom_rate_target = 0.5e6;
-    strcpy(adapt_src_params.mom_type, "M2");
-  } 
-
   // GK app
   struct gkyl_gk *gk = gkyl_malloc(sizeof *gk);
   memset(gk, 0, sizeof(*gk));
@@ -567,8 +561,6 @@ main(int argc, char **argv)
   gk->species[1] = ion;
   gk->field = field;
   gk->parallelism = parallelism;
-  gk->adaptive_source = ctx.adaptive_source;
-  gk->adaptive_src_params = adapt_src_params;
 
   // create app object
   if (my_rank == 0) printf("Creating app object ...\n");
@@ -836,83 +828,6 @@ double gradr(double r, double theta, void *ctx)
 void zero_func(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
-}
-
-// Source functions
-void density_srcCORE(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  double x = xn[0], z = xn[2];
-
-  struct gk_app_ctx *app = ctx;
-  double n_srcCORE = app->n_srcCORE;
-  double x_srcCORE = app->x_srcCORE;
-  double sigma_srcCORE = app->sigma_srcCORE;
-  double floor_src = app->floor_src;
-
-  fout[0] = n_srcCORE*(exp(-(pow(x-x_srcCORE,2))/(2.*pow(sigma_srcCORE,2)))+floor_src);
-}
-void temp_elc_srcCORE(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  double x = xn[0], z = xn[2];
-
-  struct gk_app_ctx *app = ctx;
-  double x_srcCORE = app->x_srcCORE;
-  double sigma_srcCORE = app->sigma_srcCORE;
-  double Te_srcCORE = app->Te_srcCORE;
-
-  if (x < x_srcCORE + 3*sigma_srcCORE) {
-    fout[0] = Te_srcCORE;
-  } else {
-    fout[0] = Te_srcCORE*3./8.;
-  }
-}
-void temp_ion_srcCORE(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  double x = xn[0], z = xn[2];
-
-  struct gk_app_ctx *app = ctx;
-  double x_srcCORE = app->x_srcCORE;
-  double sigma_srcCORE = app->sigma_srcCORE;
-  double Ti_srcCORE = app->Ti_srcCORE;
-
-  if (x < x_srcCORE + 3*sigma_srcCORE) {
-    fout[0] = Ti_srcCORE;
-  } else {
-    fout[0] = Ti_srcCORE*3./8.;
-  }
-}
-// Recycling source
-void density_srcRECY(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  double x = xn[0], z = xn[2];
-
-  struct gk_app_ctx *app = ctx;
-  double n_src = app->n_srcRECY;
-  double x_src = app->x_srcRECY;
-  double sigmax_src = app->sigmax_srcRECY;
-  double sigmaz_src = app->sigmaz_srcRECY;
-  double floor_src = app->floor_src;
-  
-  double z_envelope = exp(-(pow(z + M_PI,2)) / (2.0 * pow(sigmaz_src,2))) + exp(-(pow(z - M_PI,2)) / (2.0 * pow(sigmaz_src,2)));
-  fout[0] = z_envelope * n_src * (exp(-(pow(x - x_src,2)) / (2.0 * pow(sigmax_src,2))) + floor_src);
-}
-void temp_elc_srcRECY(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  double x = xn[0], z = xn[2];
-
-  struct gk_app_ctx *app = ctx;
-  double Te_src = app->Te_srcRECY;
-
-  fout[0] = Te_src*3./8.;
-}
-void temp_ion_srcRECY(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  double x = xn[0], z = xn[2];
-
-  struct gk_app_ctx *app = ctx;
-  double Ti_src = app->Ti_srcRECY;
-
-  fout[0] = Ti_src;
 }
 
 // Density initial condition

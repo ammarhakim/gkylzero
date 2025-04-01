@@ -98,14 +98,13 @@ struct gkyl_gyrokinetic_diffusion {
   int order; // integer for order of the diffusion (4 for grad^4, 6 for grad^6, default is grad^2)
 };
 
-// Parameters for specifying an adaptation method of a source.
-struct gkyl_gyrokinetic_source_adaptive {
-  char mom_type[32]; // Moment type we must compensate the loss from.
-  double mom_rate_target; // Target of injection rate for this moment (integrated).
-
-  int num_boundaries; // Number of boundaries to consider for the source.
-  int dir[6]; // Direction of the boundary for each direction.
-  int edge[6]; // Edge of the boundary (lower or upper) for each direction.
+// Structure to hold parameters for adaptive source
+struct gkyl_gyrokinetic_adapt_source {
+  bool adapt_particle; // Whether to adapt the particle source.
+  bool adapt_energy; // Whether to adapt the energy source.
+  int num_boundaries; // Number of boundaries to adapt.
+  int dir[6]; // Direction to adapt.
+  enum gkyl_edge_loc edge[6]; // Edge to adapt.
 };
 
 // Parameters for species source
@@ -113,7 +112,8 @@ struct gkyl_gyrokinetic_source {
   enum gkyl_source_id source_id; // type of source
   int num_sources;
   bool evolve; // Whether the source is time dependent.
-
+  int num_adapt_sources;
+  struct gkyl_gyrokinetic_adapt_source adapt[GKYL_MAX_SOURCES]; // Adaptive source parameters
   // sources using projection routine
   struct gkyl_gyrokinetic_projection projection[GKYL_MAX_SOURCES];
 
@@ -381,9 +381,6 @@ struct gkyl_gk {
 
   double cfl_frac; // CFL fraction to use (default 1.0).
   double cfl_frac_omegaH; // CFL fraction used for the omega_H dt (default 1.0).
-
-  bool adaptive_source; // Whether the source are dynamically adapted.
-  struct gkyl_gyrokinetic_source_adaptive adaptive_src_params; // Parameters for adaptive source.
 
   bool enforce_positivity; // Positivity enforcement via shift in f.
 

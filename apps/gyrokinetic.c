@@ -524,9 +524,6 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
   else
     app->calc_field_func = gyrokinetic_calc_field_none;
 
-  app->adaptive_source = gk->adaptive_source;
-  app->adaptive_src_params = gk->adaptive_src_params;
-
   app->enforce_positivity = gk->enforce_positivity;
   if (app->enforce_positivity) {
     // Number of density of the positivity shift added over all the ions.
@@ -2204,10 +2201,10 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
   app->field->is_first_energy_write_call = false; // Append to existing diagnostic.
   app->field->is_first_energy_dot_write_call = false; // Append to existing diagnostic.
 
-  if (app->adaptive_source) {
-    // Adapt the source
-    gk_species_source_adapt(app);
-  }
+  // if (app->adaptive_source) {
+  //   // Adapt the source
+  //   gk_species_source_adapt(app);
+  // }
 
   return rstat;
 }

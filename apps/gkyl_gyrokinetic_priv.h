@@ -534,6 +534,22 @@ struct gk_proj {
   };
 };
 
+struct gk_adapt_source {
+  bool adapt_particle, adapt_energy; // Adaptation flags.
+
+  int num_boundaries; // Number of boundaries to adapt to.
+  int dir[GKYL_MAX_CDIM]; // Direction to adapt.
+  enum gkyl_edge_loc edge[GKYL_MAX_CDIM]; // Edge to adapt.
+  struct gkyl_range *range, *range_conf; // Range of integration in each boundary.
+
+  struct gk_species_moment integ_mom; // Integrated moment updater.
+  double *red_integ_mom, *red_integ_mom_global; // For reduction.
+
+  double particle_src_curr, energy_src_curr; // current injection rates of the source.
+  double particle_rate_loss, energy_rate_loss; // Loss rates we adapt to.
+  double temperature_curr; // Current density and temperature.
+};
+
 struct gk_source {
   enum gkyl_source_id source_id; // type of source
   bool evolve; // Whether the source is time dependent.
@@ -549,11 +565,8 @@ struct gk_source {
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
   
-  // for adaptation
-  double adapt_rate_init;
-  struct gkyl_range *adapt_range, *adapt_range_conf; // Range of integration in each boundary.
-  struct gk_species_moment adapt_integ_mom; // Integrated moment updater.
-  double *red_adapt_integ_mom, *red_adapt_integ_mom_global; // For reduction.
+  struct gk_adapt_source adapt[GKYL_MAX_SOURCES]; // Adaptation source.
+  int num_adapt_sources; // Number of adaptive sources.
 };
 
 // species data
@@ -957,7 +970,7 @@ struct gkyl_gyrokinetic_app {
   bool use_gpu; // should we use GPU (if present)
 
   bool adaptive_source; // Whether the sources are dynamically adapted.
-  struct gkyl_gyrokinetic_source_adaptive adaptive_src_params; // Parameters for adaptive source.
+  struct gkyl_gyrokinetic_adapt_source adaptive_src_params; // Parameters for adaptive source.
 
   bool enforce_positivity; // Whether to enforce f>0.
 
@@ -1804,9 +1817,13 @@ void gk_species_source_calc(gkyl_gyrokinetic_app *app, struct gk_species *s,
  * Adapt source to user's defined power keeping particle input rate constant.
  * 
  * @param app gyrokinetic app object.
+ * @param s Species object.
+ * @param src Species source object.
+ * @param tm Time for use in source.
  */
 void
-gk_species_source_adapt(gkyl_gyrokinetic_app *app);
+gk_species_source_adapt(gkyl_gyrokinetic_app *app, struct gk_species *s, 
+  struct gk_source *src, double tm);
 
 /**
  * Compute RHS contribution from source.

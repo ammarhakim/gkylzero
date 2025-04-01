@@ -208,56 +208,32 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
     gkyl_proj_on_basis_advance(proj->proj_upar, 0, &app->local, proj->upar);
     gkyl_proj_on_basis_advance(proj->proj_temp, 0, &app->local, proj->vtsq);
 
-    // Normalize the Gaussian envelope.
+    // proj->dens contains only the Gaussian envelope defined in func_gaussian.
+    // We want that int d^3x J_{xyz} * proj->dens = inp.particle, so we normalize by int d^3x J_{xyz} gauss(x).
+    struct gkyl_array *Jgauss = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gkyl_array_accumulate(Jgauss, 1.0, proj->dens);
+    gkyl_dg_mul_op_range(app->basis, 0, Jgauss, 0, app->gk_geom->jacobgeo, 0, Jgauss, &app->local);
+
     struct gkyl_array_integrate *int_op = gkyl_array_integrate_new(&app->grid, &app->basis, 1, 
       GKYL_ARRAY_INTEGRATE_OP_NONE, app->use_gpu);
-    double *env_int = app->use_gpu? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
-    gkyl_array_integrate_advance(int_op, proj->dens, 1.0, app->gk_geom->jacobgeo, &app->local, &app->local, env_int);
-    double env_int_ho;
-    if (app->use_gpu)
-      gkyl_cu_memcpy(&env_int_ho, env_int, sizeof(double), GKYL_CU_MEMCPY_D2H);
-    else
-      memcpy(&env_int_ho, env_int, sizeof(double));
-    
-    // Scale moments according to initial input values.
-    gkyl_array_scale(proj->dens, inp.particle/env_int_ho);
-    gkyl_array_scale(proj->upar, 0.0); // no flow.
-    double temp = inp.energy/inp.particle*2.0/3.0;
-    gkyl_array_scale(proj->vtsq, temp/s->info.mass); 
-
-    // A wild Jacobian factor will appear later so we have to compensate it (:.
-    gkyl_dg_bin_op_mem *mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->basis.num_basis);
-    gkyl_dg_div_op_range(mem, app->basis, 0, proj->dens, 0, proj->dens, 0, app->gk_geom->jacobgeo, &app->local);
-    gkyl_dg_bin_op_mem_release(mem);
-
-    // Verify that the integral of the density is inp.particle.
-    gkyl_array_integrate_advance(int_op, proj->dens, 1.0, app->gk_geom->jacobgeo, &app->local, &app->local, env_int);
-    if (app->use_gpu)
-      gkyl_cu_memcpy(&env_int_ho, env_int, sizeof(double), GKYL_CU_MEMCPY_D2H);
-    else
-      memcpy(&env_int_ho, env_int, sizeof(double));
-
-    // display information about the source
-    printf("%s source: \n", s->info.name);
-    printf(" center = ");
-    for (int i = 0; i < app->cdim; ++i) {
-      printf("%g ", inp.center_gauss[i]);
+    double *Jgauss_int = app->use_gpu? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
+    gkyl_array_integrate_advance(int_op, Jgauss, 1.0, NULL, &app->local, NULL, Jgauss_int);
+    double Jgauss_int_ho;
+    if (app->use_gpu) {
+      gkyl_cu_memcpy(&Jgauss_int_ho, Jgauss_int, sizeof(double), GKYL_CU_MEMCPY_D2H);
+      gkyl_cu_free(Jgauss_int);
+    } else {
+      memcpy(&Jgauss_int_ho, Jgauss_int, sizeof(double));
+      gkyl_free(Jgauss_int);
     }
-    printf("\n sigma = ");
-    for (int i = 0; i < app->cdim; ++i) {
-      printf("%g ", inp.sigma_gauss[i]);
-    }
-    printf("\n Input> particle rate: %.4g [p/s], power: %.4g [MW], floor: %g\n", inp.particle, inp.energy/1e6, inp.floor);
-    // display the temperature in eV indicating for which species
-    printf(" init. temp. %g eV\n", temp/1.60217662e-19);
-    printf(" density integral: %g\n", env_int_ho);
-    printf("----------------------------------------------------\n");
-
+    gkyl_array_release(Jgauss);
     gkyl_array_integrate_release(int_op);
-    if (app->use_gpu)
-      gkyl_cu_free(env_int);
-    else
-      gkyl_free(env_int);
+
+    // Scale moments according to initial input values.
+    gkyl_array_scale(proj->dens, inp.particle/Jgauss_int_ho);
+    gkyl_array_clear(proj->upar, 0.0); // No source flow.
+    double temp = 2./3. * inp.energy/inp.particle;
+    gkyl_array_scale(proj->vtsq, temp/s->info.mass); // Constant energy.
   }
 }
 
@@ -324,15 +300,6 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, struct gk_species *s,
     // Projection routine also corrects the density of the projected distribution function.
     gk_species_lte_from_moms(app, s, &s->lte, proj->prim_moms);
     gkyl_array_copy(f, s->lte.f_lte);
-
-    // // Verify integrated moments of f
-    // struct gk_species_moment *moment;
-    // gk_species_moment_init(app, s, moment, "M0", true);
-    // gk_species_moment_calc(moment, s->local, app->local, f);
-    // double *int_dens = gkyl_array_fetch(moment->marr, 0);
-    // printf("Integrated density: %g\n", int_dens[0]);
-    // gk_species_moment_release(app, moment);
-    
   }
   
   if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
@@ -345,7 +312,7 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, struct gk_species *s,
   }
   // Multiply by the configuration space jacobian.
   gkyl_dg_mul_conf_phase_op_range(&app->basis, &s->basis, f, 
-    app->gk_geom->jacobgeo, f, &app->local, &s->local);      
+    app->gk_geom->jacobgeo, f, &app->local, &s->local);
 }
 
 void
