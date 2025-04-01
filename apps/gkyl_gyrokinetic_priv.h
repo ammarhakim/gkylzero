@@ -788,6 +788,7 @@ struct gk_neut_species {
   enum gkyl_field_id field_id; // type of field equation (always GKYL_FIELD_NULL)
   enum gkyl_model_id model_id; // type of Vlasov equation (always GKYL_MODEL_CANONICAL_PB)
 
+  struct gkyl_array *g_ij, *gij; // Metric tensor and its conjugate.
   struct gkyl_array *hamil; // Specified hamiltonian function for canonical poisson bracket
   struct gkyl_array *hamil_host; // Host side hamiltonian array for intial projection
   struct gkyl_array *alpha_surf; // array for surface phase space flux (v^i = v . e^i)

@@ -1,6 +1,5 @@
 #include <gkyl_dg_gk_neut_hamil_kernels.h> 
-GKYL_CU_DH
-void gk_neut_hamil_3x3v_tensor_p1(const double *w, const double *dxv, const double *gij, double* GKYL_RESTRICT hamil) 
+GKYL_CU_DH void gk_neut_hamil_3x3v_tensor_p1(const double *w, const double *dxv, const double *gij, double* GKYL_RESTRICT hamil) 
 { 
   // w:        Cell-center coordinates.
   // dxv:      Cell spacing.

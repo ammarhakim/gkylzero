@@ -244,7 +244,7 @@ create_ctx(void)
   double vpar_max_ion = 4.0*vtIon;
   double mu_max_ion = 12*mi*vtIon*vtIon/(2.0*B0);
 
-  double vpar_max_D0 = 8.0*vtD0;
+  double vpar_max_D0 = 4.0*vtD0;
 
 
   // Number of cells.
@@ -591,8 +591,8 @@ main(int argc, char **argv)
     // neutral Deuterium
   struct gkyl_gyrokinetic_neut_species D0 = {
     .name = "D0", .mass = ctx.massIon,
-    .lower = { -ctx.vpar_max_D0, -ctx.vpar_max_D0, -ctx.vpar_max_D0},
-    .upper = { ctx.vpar_max_D0, ctx.vpar_max_D0, ctx.vpar_max_D0 },
+    .lower = { -ctx.vpar_max_D0, -ctx.vpar_max_D0*3.0, -ctx.vpar_max_D0*4.0},
+    .upper = { ctx.vpar_max_D0, ctx.vpar_max_D0*3.0, ctx.vpar_max_D0*4.0 },
     .cells = { cells_v[0], cells_v[0], cells_v[0] },
     .is_static = false,
 
@@ -678,8 +678,8 @@ main(int argc, char **argv)
 	    },
     },
     
-    .num_diag_moments = 3,
-    .diag_moments = { "M0", "M1i", "M2"}, //, "M2par", "M2perp" },
+    .num_diag_moments = 4,
+    .diag_moments = { "M0", "M1i", "M2", "LTEMoments"},
   };
 
 

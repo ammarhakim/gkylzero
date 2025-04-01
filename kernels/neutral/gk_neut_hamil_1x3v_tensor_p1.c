@@ -6,12 +6,12 @@ GKYL_CU_DH void gk_neut_hamil_1x3v_tensor_p1(const double *w, const double *dxv,
   // gij[12]:  Contravariant components of metric tensor.
   // hamil:    Gk neut species Hamiltonian.
  
-  const double *g00 = &gij[10]; 
-  const double *g01 = &gij[4]; 
-  const double *g02 = &gij[8]; 
-  const double *g11 = &gij[0]; 
-  const double *g12 = &gij[2]; 
-  const double *g22 = &gij[6]; 
+  const double *g00 = &gij[0]; 
+  const double *g01 = &gij[2]; 
+  const double *g02 = &gij[4]; 
+  const double *g11 = &gij[6]; 
+  const double *g12 = &gij[8]; 
+  const double *g22 = &gij[10]; 
 
   const double w0 = w[1]; 
   const double dv0 = dxv[1]; 

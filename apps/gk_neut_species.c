@@ -892,6 +892,18 @@ gk_neut_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
   gkyl_array_release(fdo_host);
 }
 
+static void
+gkyl_array_move_comp(struct gkyl_array *out, int cout, struct gkyl_array *in, int cin, struct gkyl_array *tmp)
+{
+  // Move the 'cin' scalar field from the multi-component (multi-scalar field) array
+  // 'in' to 'cin' component of the the multi-component 'out'. This requires a
+  // temporary array 'tmp'. This is really a work around for the fact that some
+  // of our array offset ops don't work as we'd like for multi-component arrays
+  // with the same number of components.
+  gkyl_array_set_offset(tmp, 1.0,  in, cin);
+  gkyl_array_set_offset(out, 1.0, tmp, cout);
+}
+
 void
 gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s)
 {
@@ -999,13 +1011,35 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     gkyl_sub_range_intersect(&s->global_upper_ghost[dir], &s->local_ext, &s->global_upper_ghost[dir]);
   }
 
+  if (app->cdim < 3) {
+    // Reorganize g_ij and gij as done in calculation of Hamiltonian to
+    // compute momentum and temperature.
+    s->gij = mkarr(app->use_gpu, app->gk_geom->gij_neut->ncomp, app->gk_geom->gij_neut->size);
+    s->g_ij = mkarr(app->use_gpu, app->gk_geom->g_ij_neut->ncomp, app->gk_geom->g_ij_neut->size);
+
+    // Reorganize the metric tensor so ignorable coordinates are last.
+    int metric_reorg_idxs_1x[] = {5, 2, 4, 0, 1, 3};
+    int metric_reorg_idxs_2x[] = {0, 2, 1, 5, 4, 3};
+    int *metric_reorg_idxs = app->cdim == 1? metric_reorg_idxs_1x : metric_reorg_idxs_2x;
+    int num_basis_conf = app->basis.num_basis;
+    struct gkyl_array *tmp_arr = mkarr(app->use_gpu, num_basis_conf, app->gk_geom->gij_neut->size);
+    for (int i=0; i<6; i++) {
+      gkyl_array_move_comp(s->gij, i*num_basis_conf, app->gk_geom->gij_neut, metric_reorg_idxs[i]*num_basis_conf, tmp_arr);
+      gkyl_array_move_comp(s->g_ij, i*num_basis_conf, app->gk_geom->g_ij_neut, metric_reorg_idxs[i]*num_basis_conf, tmp_arr);
+    }
+    gkyl_array_release(tmp_arr);
+  }
+  else {
+    s->gij = gkyl_array_acquire(app->gk_geom->gij);
+    s->g_ij = gkyl_array_acquire(app->gk_geom->g_ij);
+  }
+
   // Allocate array for the Hamiltonian.
   s->hamil = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
     
   // Call updater to evaluate hamiltonian
-  struct gkyl_array *gij = app->cdim < 3 ? app->gk_geom->gij_neut : app->gk_geom->gij; 
   struct gkyl_dg_calc_gk_neut_hamil* hamil_calc = gkyl_dg_calc_gk_neut_hamil_new(&s->grid, &s->basis, app->cdim, app->use_gpu);
-  gkyl_dg_calc_gk_neut_hamil_calc(hamil_calc, &app->local, &s->local, gij, s->hamil);
+  gkyl_dg_calc_gk_neut_hamil_calc(hamil_calc, &app->local, &s->local, s->gij, s->hamil);
   gkyl_dg_calc_gk_neut_hamil_release(hamil_calc);
     
   s->hamil_host = s->hamil;
@@ -1200,6 +1234,9 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
   gkyl_free(s->moms);
 
   gk_neut_species_lte_release(app, &s->lte);
+
+  gkyl_array_release(s->gij);
+  gkyl_array_release(s->g_ij);
 
   gkyl_array_release(s->hamil);
   if (app->use_gpu)

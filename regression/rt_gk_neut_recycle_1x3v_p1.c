@@ -69,6 +69,7 @@ struct sheath_ctx
   double mu_max_elc; // Domain boundary (electron velocity space: magnetic moment direction).
   double vpar_max_ion; // Domain boundary (ion velocity space: parallel velocity direction).
   double mu_max_ion; // Domain boundary (ion velocity space: magnetic moment direction).
+  double v_max_neut; // Domain boundary (ion velocity space: parallel velocity direction).
 
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
@@ -142,6 +143,7 @@ create_ctx(void)
   double mu_max_elc = (3.0 / 2.0) * 0.5 * mass_elc * pow(4.0 * vte,2) / (2.0 * B0); // Domain boundary (electron velocity space: magnetic moment direction).
   double vpar_max_ion = 4.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
   double mu_max_ion = (3.0 / 2.0) * 0.5 * mass_ion * pow(4.0 * vti,2) / (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
+  double v_max_neut = 4.0 * vtn; // Domain boundary (ion velocity space: parallel velocity direction).
  
   double t_end = 10e-6; // Final simulation time.
   int num_frames = 1; // Number of output frames.
@@ -191,6 +193,7 @@ create_ctx(void)
     .mu_max_elc = mu_max_elc,
     .vpar_max_ion = vpar_max_ion,
     .mu_max_ion = mu_max_ion,
+    .v_max_neut = v_max_neut,
     .t_end = t_end,
     .num_frames = num_frames,
     .int_diag_calc_num = int_diag_calc_num,
@@ -346,7 +349,9 @@ static inline void
 mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void* ctx)
 {
   // Set physical coordinates (X, Y, Z) from computational coordinates (x, y, z).
-  xp[0] = zc[0]; xp[1] = zc[1]; xp[2] = zc[2];
+  double x = zc[0], y = zc[1], z = zc[2];
+
+  xp[0] = x*cos(y); xp[1] = x*sin(y); xp[2] = z;
 }
 
 void
@@ -477,8 +482,8 @@ main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_neut_species neut = {
     .name = "neut", .mass = ctx.mass_ion,
-    .lower = { -ctx.vpar_max_ion, -ctx.vpar_max_ion, -ctx.vpar_max_ion},
-    .upper = { ctx.vpar_max_ion, ctx.vpar_max_ion, ctx.vpar_max_ion },
+    .lower = { -ctx.v_max_neut, -ctx.v_max_neut, -ctx.v_max_neut/64.0 },
+    .upper = {  ctx.v_max_neut,  ctx.v_max_neut,  ctx.v_max_neut/64.0 },
     .cells = { cells_v[0], cells_v[0], cells_v[0]},
 
     .projection = {
@@ -559,6 +564,7 @@ main(int argc, char **argv)
       },
     },
     
+    
     .num_diag_moments = 4,
     .diag_moments = { "M0", "M1i", "M2", "LTEMoments"},
   };
@@ -571,12 +577,12 @@ main(int argc, char **argv)
   };
 
   struct gkyl_gyrokinetic_geometry geometry = {
-      .geometry_id = GKYL_MAPC2P,
-      .world = {0.0, 0.0},
-      .mapc2p = mapc2p,
-      .c2p_ctx = &ctx,
-      .bmag_func = bmag_func,
-      .bmag_ctx = &ctx
+    .geometry_id = GKYL_MAPC2P,
+    .world = {0.01, 0.0},
+    .mapc2p = mapc2p,
+    .c2p_ctx = &ctx,
+    .bmag_func = bmag_func,
+    .bmag_ctx = &ctx
   };
 
   struct gkyl_app_parallelism_inp parallelism = {

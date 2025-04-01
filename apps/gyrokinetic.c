@@ -366,7 +366,7 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
   // deflate geometry if necessary
   if (geometry_inp.geometry_id != GKYL_GEOMETRY_FROMFILE) {
-    if(app->cdim < 3)
+    if (app->cdim < 3)
       app->gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_inp);
     else
       app->gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
