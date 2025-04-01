@@ -1581,7 +1581,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   else {
     // Activate bflux for Boltzmann species or if adaptive source is active.
     if ((app->field->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
-      || app->adaptive_source) {
+      || (gks->info.source.num_adapt_sources > 0)) {
       bflux_type = GK_SPECIES_BFLUX_CALC_FLUX;
     }
   }

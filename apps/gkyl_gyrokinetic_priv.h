@@ -969,9 +969,6 @@ struct gkyl_gyrokinetic_app {
 
   bool use_gpu; // should we use GPU (if present)
 
-  bool adaptive_source; // Whether the sources are dynamically adapted.
-  struct gkyl_gyrokinetic_adapt_source adaptive_src_params; // Parameters for adaptive source.
-
   bool enforce_positivity; // Whether to enforce f>0.
 
   int num_periodic_dir; // number of periodic directions

@@ -15,7 +15,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
       src->source_host = mkarr(false, src->source->ncomp, src->source->size); 
     }
 
-    src->evolve = s->info.source.evolve || app->adaptive_source; // Whether the source is time dependent.
+    src->evolve = s->info.source.evolve || (s->info.source.num_adapt_sources > 0); // Whether the source is time dependent.
 
     src->num_sources = s->info.source.num_sources;
     for (int k=0; k<s->info.source.num_sources; k++) {
