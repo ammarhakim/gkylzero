@@ -198,15 +198,30 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
     proj->proj_temp = gkyl_proj_on_basis_new(&app->grid, &app->basis, app->poly_order + 1, 1, 
       func_const, NULL);
 
+    // Allocate temporary host arrays to project the moments.
+    struct gkyl_array *dens_ho = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+    struct gkyl_array *upar_ho = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+    struct gkyl_array *vtsq_ho = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+
+    gkyl_proj_on_basis_advance(proj->proj_dens, 0, &app->local, dens_ho);
+    gkyl_proj_on_basis_advance(proj->proj_upar, 0, &app->local, upar_ho);
+    gkyl_proj_on_basis_advance(proj->proj_temp, 0, &app->local, vtsq_ho);
+
+    // Allocate the projection arrays (possibly on device).
     proj->dens = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     proj->upar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     proj->vtsq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     proj->prim_moms = mkarr(app->use_gpu, 3*app->basis.num_basis, app->local_ext.volume);
 
-    // Compute the conf array of the moments once
-    gkyl_proj_on_basis_advance(proj->proj_dens, 0, &app->local, proj->dens);
-    gkyl_proj_on_basis_advance(proj->proj_upar, 0, &app->local, proj->upar);
-    gkyl_proj_on_basis_advance(proj->proj_temp, 0, &app->local, proj->vtsq);
+    // Copy the contents into the array we will use (potentially on GPUs).
+    gkyl_array_copy(proj->dens, dens_ho);
+    gkyl_array_copy(proj->upar, upar_ho);
+    gkyl_array_copy(proj->vtsq, vtsq_ho);
+
+    // Release the temporary arrays.
+    gkyl_array_release(dens_ho);
+    gkyl_array_release(upar_ho);
+    gkyl_array_release(vtsq_ho);
 
     // proj->dens contains only the Gaussian envelope defined in func_gaussian.
     // We want that int d^3x J_{xyz} * proj->dens = inp.particle, so we normalize by int d^3x J_{xyz} gauss(x).

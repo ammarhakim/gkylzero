@@ -251,12 +251,12 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
               total_part_src += part_src;
               total_power_src += power_src;
 
-              // fprintf(stderr, "%s: %.4f [eV], %.4e [1/s], %.4f [MW], -%.4e [1/s], -%.4f [MW]\n",
-              //   gks->info.name, temp_src/1.60217662e-19, part_src, power_src/1e6, part_loss, power_loss/1e6);
+              fprintf(stderr, "%s: %.4f [eV], %.4e [1/s], %.4f [MW], -%.4e [1/s], -%.4f [MW]\n",
+                gks->info.name, temp_src/1.60217662e-19, part_src, power_src/1e6, part_loss, power_loss/1e6);
             }
 
-            // fprintf(stderr, "Bilan: %.4e [1/s], %.4f [MW]\n",
-            //   total_part_src - total_part_loss, total_power_src*1e-6 - total_power_loss*1e-6);
+            fprintf(stderr, "Bilan: %.4e [1/s], %.4f [MW]\n",
+              total_part_src - total_part_loss, total_power_src*1e-6 - total_power_loss*1e-6);
           }
 
           if (app->enforce_positivity) {

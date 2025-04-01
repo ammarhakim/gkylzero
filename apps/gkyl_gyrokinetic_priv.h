@@ -502,7 +502,7 @@ struct gk_proj {
     };
     // Maxwellian and Bi-Maxwellian projection from primitive moments
     struct {
-      struct gkyl_array *dens; // host-side density
+      struct gkyl_array *dens; // density (on device for GK Maxwellian Gaussian).
 
       struct gkyl_array *prim_moms_host; // host-side prim_moms for initialization with proj_on_basis
       struct gkyl_array *prim_moms; // prim_moms we pass to Maxwellian projection object (potentially on device)
@@ -510,7 +510,7 @@ struct gk_proj {
       bool correct_all_moms; // boolean if we are correcting all the moments
 
       struct gkyl_proj_on_basis *proj_dens; // projection operator for density
-      struct gkyl_array *vtsq; // host-side vth^2 = T/m (temperature/mass)
+      struct gkyl_array *vtsq; // vth^2 = T/m (temperature/mass) (on device for GK Maxwellian Gaussian).
       struct gkyl_proj_on_basis *proj_temp; // projection operator for temperature
       struct gkyl_array *vtsqpar; // host-side vth_par^2 = Tpar/m (parallel temperature/mass)
       struct gkyl_array *vtsqperp; // host-side vth_perp^2 = Tperp/m (perpendicular temperature/mass)
@@ -518,7 +518,7 @@ struct gk_proj {
       struct gkyl_proj_on_basis *proj_tempperp; // projection operator for parallel temperature
       union {
         struct { 
-          struct gkyl_array *upar; // host-side upar for GK Maxwellian/Bi-Maxwellian projection
+          struct gkyl_array *upar; // upar for GK Maxwellian/Bi-Maxwellian projection (on device for GK Maxwellian Gaussian)
           struct gkyl_proj_on_basis *proj_upar; // projection operator for upar for GK Maxwellian/Bi-Maxwellian projection
           struct gkyl_gk_maxwellian_proj_on_basis *proj_max; // Maxwellian projection object for GK
           struct gkyl_gk_maxwellian_correct *corr_max; // Maxwellian correction object for GK
