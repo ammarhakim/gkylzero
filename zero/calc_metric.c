@@ -125,13 +125,13 @@ void gkyl_calc_metric_advance_rz(
 
               // Use exact expressions for dR/dtheta and dZ/dtheta
               double *ddtheta_n = gkyl_array_fetch(ddtheta_nodal, gkyl_range_idx(nrange, cidx));
-              dxdz[0][2] = ddtheta_n[1];
-              dxdz[1][2] = ddtheta_n[2];
+              dxdz[0][2] = ddtheta_n[0]; // dR/dtheta
+              dxdz[1][2] = ddtheta_n[1]; // dZ/dtheta
 
               // use exact expressions for d/dalpha
-              dxdz[0][1] = 0.0;
-              dxdz[1][1] = 0.0;
-              dxdz[2][1] = -1.0;
+              dxdz[0][1] = 0.0; // dR/dalpha
+              dxdz[1][1] = 0.0; // dZ/dalpha
+              dxdz[2][1] = -1.0; // dphi/dalpha
 
               // dxdz is in cylindrical coords, calculate J as
               // J = R(dR/dpsi*dZ/dtheta - dR/dtheta*dZ/dpsi)
@@ -389,14 +389,14 @@ void gkyl_calc_metric_advance_mirror(
 
               // Use exact expressions for dphidtheta, dR/dtheta, and dZ/dtheta
               double *ddtheta_n = gkyl_array_fetch(ddtheta_nodal, gkyl_range_idx(nrange, cidx));
-              dxdz[0][2] = ddtheta_n[1];
-              dxdz[1][2] = ddtheta_n[2];
-              dxdz[2][2] = ddtheta_n[0];
+              dxdz[0][2] = ddtheta_n[0]; // dR/dtheta
+              dxdz[1][2] = ddtheta_n[1]; // dZ/dtheta
+              dxdz[2][2] = ddtheta_n[2]; // dphi/dtheta
 
               // use exact expressions for d/dalpha
-              dxdz[0][1] = 0.0;
-              dxdz[1][1] = 0.0;
-              dxdz[2][1] = -1.0;
+              dxdz[0][1] = 0.0; // dR/dalpha
+              dxdz[1][1] = 0.0; // dZ/dalpha
+              dxdz[2][1] = -1.0; // dphi/dalpha
 
               double R = mc2p_n[R_IDX];
               double *bmag_n = gkyl_array_fetch(bmag_nodal, gkyl_range_idx(nrange, cidx));
