@@ -438,7 +438,7 @@ int main(int argc, char **argv)
 
   struct gkyl_efit_inp efit_inp = {
     // psiRZ and related inputs
-    .filepath = "./data/eqdsk/ltx_miller.geqdsk",
+    .filepath = "./data/eqdsk/LTX_103955_03.eqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
     .reflect = true,
@@ -453,6 +453,7 @@ int main(int argc, char **argv)
     .rmax=0.65,
     .zmin = -0.3,
     .zmax = 0.3,
+    .use_cubics = false,
   }; 
 
   // GK app

@@ -162,7 +162,7 @@ void test_mast(){
 
 void test_ltx_miller(){
   struct gkyl_efit_inp inp  = {
-    .filepath = "./data/eqdsk/ltx_miller.geqdsk",
+    .filepath = "./data/eqdsk/LTX_103955_03.eqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
     .reflect =  true,
