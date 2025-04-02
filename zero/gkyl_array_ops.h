@@ -344,6 +344,8 @@ void gkyl_array_scale_by_cell_cu(struct gkyl_array* out, const struct gkyl_array
 
 void gkyl_array_shiftc_cu(struct gkyl_array* out, double a, unsigned k);
 
+void gkyl_array_remove_negative_cell_ave_cu(struct gkyl_array* out, struct gkyl_array* in);
+
 void gkyl_array_shiftc_range_cu(struct gkyl_array *out, double a, unsigned k, const struct gkyl_range *range);
 
 /**

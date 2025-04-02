@@ -111,6 +111,18 @@ gkyl_array_shiftc_cu_kernel(struct gkyl_array* out, double a, unsigned k)
     out_d[linc*out->ncomp+k] = a+out_d[linc*out->ncomp+k];
 } 
 
+__global__ void
+gkyl_array_remove_negative_cell_ave_cu_kernel(struct gkyl_array* out, double a, unsigned k)
+{
+  double *in_d = (double*) in->data;
+  double *out_d = (double*) out->data;
+  for (unsigned long i=0; i<NSIZE(out); ++i) {
+    if (in_d[i*in->ncomp] < 0) {
+      out_d[i*in->ncomp] = 0.0;
+    }
+  }
+}
+
 // Host-side wrappers for array operations
 void
 gkyl_array_clear_cu(struct gkyl_array* out, double val)
@@ -162,6 +174,11 @@ gkyl_array_shiftc_cu(struct gkyl_array* out, double a, unsigned k)
   gkyl_array_shiftc_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, a, k);
 }
 
+void
+gkyl_array_remove_negative_cell_ave_cu(struct gkyl_array *out, struct gkyl_array *in)
+{
+  gkyl_array_remove_negative_cell_ave_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, in->on_dev);
+}
 // Range-based methods
 // Range-based methods need to inverse index from linc to idx.
 // Must use gkyl_sub_range_inv_idx so that linc=0 maps to idxc={1,1,...}
