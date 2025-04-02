@@ -196,9 +196,9 @@ test_1x2v(int poly_order, bool use_gpu)
 
   // Compute the integrated moments of the original f.
   struct gkyl_dg_updater_moment *int_mom_up = gkyl_dg_updater_moment_gyrokinetic_new(
-    &grid, &confBasis, &basis, &confLocal, proj_ctx.mass, 0, gvm, gk_geom, NULL, "Integrated", true, use_gpu);
+    &grid, &confBasis, &basis, &confLocal, proj_ctx.mass, 0, gvm, gk_geom, NULL, "FourMoments", true, use_gpu);
 
-  int num_mom = 2+vdim;
+  int num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(int_mom_up);
   struct gkyl_array *intmom_grid = mkarr(use_gpu, num_mom, confLocal_ext.volume);
   double *red_intmom;
   if (use_gpu)
