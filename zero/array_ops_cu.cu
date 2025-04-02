@@ -112,7 +112,7 @@ gkyl_array_shiftc_cu_kernel(struct gkyl_array* out, double a, unsigned k)
 } 
 
 __global__ void
-gkyl_array_remove_negative_cell_ave_cu_kernel(struct gkyl_array* out, double a, unsigned k)
+gkyl_array_remove_negative_cell_ave_cu_kernel(struct gkyl_array* out, struct gkyl_array* in)
 {
   double *in_d = (double*) in->data;
   double *out_d = (double*) out->data;
