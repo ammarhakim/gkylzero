@@ -12,13 +12,19 @@ struct arc_length_ctx {
   double rleft, rright, zmax;
   double zmin_left, zmin_right; // for single null full SOL only
   double zmax_left, zmax_right; // for PF UP region (or upper SN, not yet implemented)
+  double zmin_iwl, zmax_iwl; // for IWL
   double arcL_right; // this is for when we need to switch sides
   double arcL_left; // this is for when we need to switch sides
   double arcL_tot; // total arc length
+  double arcL_q1; // For IWL, arc length in quadrant 1
+  double arcL_q2; // For IWL, arc length in quadrant 2
+  double arcL_q3; // For IWL, arc length in quadrant 3
+  double arcL_q4; // For IWL, arc length in quadrant 4
   double phi_right; // this is for when we need to switch sides
   double phi_left; // this is for when we need to switch sides
   double phi_bot; // For new way of trying to do core
   bool right;
+  bool q1, q2, q3, q4; // For IWL
   double zmaxis;
   enum gkyl_tok_geo_type ftype; // type of geometry
 };
