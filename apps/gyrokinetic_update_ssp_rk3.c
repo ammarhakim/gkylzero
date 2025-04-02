@@ -200,8 +200,9 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
 	    struct gk_neut_species *gkns = &app->neut_species[i];
 	    gk_neut_species_combine(gkns, gkns->f1, 1.0/3.0, gkns->f, 2.0/3.0, gkns->fnew, &gkns->local_ext);
 	    gk_neut_species_copy_range(gkns, gkns->f, gkns->f1, &gkns->local_ext);
+	    gkyl_array_remove_negative_cell_ave(gkns->f, gkns->f);
           }
-
+	  
           if (app->enforce_positivity) {
             // Apply positivity shift if requested.
 	    gkyl_array_clear(app->ps_delta_m0_ions, 0.0);

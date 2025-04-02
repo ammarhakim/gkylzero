@@ -167,6 +167,19 @@ gkyl_array_shiftc(struct gkyl_array* out, double a, unsigned k)
   return out;
 }
 
+struct gkyl_array*
+gkyl_array_remove_negative_cell_ave(struct gkyl_array* out, struct gkyl_array* in)
+{
+  double *in_d = in->data;
+  double *out_d = out->data;
+  for (size_t i=0; i<out->size; ++i) {
+    if (in_d[i*NCOM(in)] < 0) {
+      out_d[i*NCOM(in)] = 0.0;
+    }
+  }
+  return out;
+}
+
 // range based methods
 struct gkyl_array*
 gkyl_array_clear_range(struct gkyl_array *out, double val, const struct gkyl_range *range)
