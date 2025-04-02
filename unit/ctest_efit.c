@@ -160,7 +160,7 @@ void test_mast(){
 
 }
 
-void test_ltx_miller(){
+void test_ltx(){
   struct gkyl_efit_inp inp  = {
     .filepath = "./data/eqdsk/LTX_103955_03.eqdsk",
     .rz_poly_order = 2,
@@ -170,9 +170,9 @@ void test_ltx_miller(){
   struct gkyl_efit* efit = gkyl_efit_new(&inp);
 
   //printf( "rdim=%g zdim=%g rcentr=%g rleft=%g zmid=%g  rmaxis=%g zmaxis=%g simag=%1.16e sibry=%1.16e bcentr=%g  current=%g simag=%g rmaxis=%g   zmaxis=%g sibry=%g \n", efit->rdim, efit->zdim, efit->rcentr, efit->rleft, efit->zmid, efit->rmaxis, efit->zmaxis, efit->simag, efit->sibry, efit->bcentr, efit-> current, efit->simag, efit->rmaxis, efit-> zmaxis, efit->sibry);
-  gkyl_grid_sub_array_write(&efit->rzgrid, &efit->rzlocal, 0, efit->psizr, "ltx_miller_psi.gkyl");
-  gkyl_grid_sub_array_write(&efit->fluxgrid, &efit->fluxlocal, 0, efit->fpolflux, "ltx_miller_fpol.gkyl");
-  gkyl_grid_sub_array_write(&efit->fluxgrid, &efit->fluxlocal, 0, efit->qflux, "ltx_miller_q.gkyl");
+  gkyl_grid_sub_array_write(&efit->rzgrid, &efit->rzlocal, 0, efit->psizr, "ltx_psi.gkyl");
+  gkyl_grid_sub_array_write(&efit->fluxgrid, &efit->fluxlocal, 0, efit->fpolflux, "ltx_fpol.gkyl");
+  gkyl_grid_sub_array_write(&efit->fluxgrid, &efit->fluxlocal, 0, efit->qflux, "ltx_q.gkyl");
 
   gkyl_efit_release(efit);
 
@@ -187,6 +187,6 @@ TEST_LIST = {
   { "test_wham", test_wham},
   { "test_tcv", test_tcv},
   { "test_mast", test_mast},
-  { "test_ltx_miller", test_ltx_miller},
+  { "test_ltx", test_ltx},
   { NULL, NULL },
 };
