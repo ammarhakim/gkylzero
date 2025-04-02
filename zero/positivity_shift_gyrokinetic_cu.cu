@@ -103,30 +103,54 @@ gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker(
     const double *vmap_c = (const double*) gkyl_array_cfetch(vmap, vlinidx);
     double *distf_c = (double*) gkyl_array_fetch(distf, plinidx);
 
-    double m0Local[num_cbasis];
-
     // Compute the original number density.
+    double m0Local_in[num_cbasis];
     for (unsigned int k=0; k<delta_m0->ncomp; ++k)
-      m0Local[k] = 0.0;
-    kers->m0(grid.dx, vmap_c, mass, bmag_c, distf_c, m0Local);
+      m0Local_in[k] = 0.0;
+    kers->m0(grid.dx, vmap_c, mass, bmag_c, distf_c, m0Local_in);
     double *delta_m0_c = (double*) gkyl_array_fetch(delta_m0, clinidx);
     for (unsigned int k = 0; k < delta_m0->ncomp; ++k) {
        if (tid < phase_range.volume)
-         atomicAdd(&delta_m0_c[k], m0Local[k]);
+         atomicAdd(&delta_m0_c[k], m0Local_in[k]);
     }
 
     // Shift f if needed.
     bool shifted_node = kers->shift(ffloor[0], distf_c);
-    atomicOr(shiftedf_c, shifted_node);
 
-    // Compute the new number density.
+    // Compute the new number density local to this phase-space cell.
+    double m0Local_out[num_cbasis];
     for (unsigned int k=0; k<m0->ncomp; ++k)
-      m0Local[k] = 0.0;
+      m0Local_out[k] = 0.0;
     double *m0_c = (double*) gkyl_array_fetch(m0, clinidx);
-    kers->m0(grid.dx, vmap_c, mass, bmag_c, distf_c, m0Local);
-    for (unsigned int k = 0; k < m0->ncomp; ++k) {
-       if (tid < phase_range.volume)
-         atomicAdd(&m0_c[k], m0Local[k]);
+    kers->m0(grid.dx, vmap_c, mass, bmag_c, distf_c, m0Local_out);
+
+    // If m0phase_in_c was positive but one of the nodes was shifted, rescale
+    // f in this cell so it keeps the same density.
+    if (shifted_node) {
+      if (kers->is_m0_positive(m0Local_in)) {
+        double m0ratio_c[num_cbasis];
+        kers->conf_inv_op(m0Local_out, m0ratio_c);
+        kers->conf_mul_op(m0Local_in, m0ratio_c, m0ratio_c);
+  
+        long plinidx = gkyl_range_idx(&phase_range, pidx);
+        double *distf_c = (double*) gkyl_array_fetch(distf, plinidx);
+        kers->conf_phase_mul_op(m0ratio_c, distf_c, distf_c);
+
+        // Add the old local contribution to the new number density.
+        for (unsigned int k = 0; k < m0->ncomp; ++k) {
+           if (tid < phase_range.volume)
+             atomicAdd(&m0_c[k], m0Local_in[k]);
+        }
+      }
+      else {
+        // Add the new local contribution to the new number density.
+        for (unsigned int k = 0; k < m0->ncomp; ++k) {
+           if (tid < phase_range.volume)
+             atomicAdd(&m0_c[k], m0Local_out[k]);
+        }
+
+        atomicOr(shiftedf_c, shifted_node);
+      }
     }
 
     distf_max = fmax(distf_max, distf_c[0]);
