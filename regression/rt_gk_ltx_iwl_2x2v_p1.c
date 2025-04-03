@@ -309,6 +309,13 @@ int main(int argc, char **argv)
       .collide_with = { "ion" },
     },
 
+    .diffusion = {
+      .num_diff_dir = 1, 
+      .diff_dirs = { 0 },
+      .D = { 0.3 }, 
+      .order = 2, 
+    }, 
+
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,
@@ -365,6 +372,13 @@ int main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
     },
+
+    .diffusion = {
+      .num_diff_dir = 1, 
+      .diff_dirs = { 0 },
+      .D = { 0.3 }, 
+      .order = 2, 
+    }, 
 
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
