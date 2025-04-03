@@ -303,6 +303,9 @@ struct gkyl_gyrokinetic_neut_species {
   int num_diag_moments; // Number of diagnostic moments.
   char diag_moments[16][16]; // List of diagnostic moments.
 
+  // Diagnostics of the fluxes of f at position-space boundaries.
+  struct gkyl_phase_diagnostics_inp boundary_flux_diagnostics;
+
   // Input quantities used by LTE (local thermodynamic equilibrium, or Maxwellian) projection
   // This projection operator is used by BGK collisions and all reactions.
   struct gkyl_gyrokinetic_correct_inp correct; 

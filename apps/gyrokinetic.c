@@ -416,13 +416,6 @@ gyrokinetic_calc_field_update(gkyl_gyrokinetic_app* app, double tcurr, const str
   // Compute electrostatic potential from gyrokinetic Poisson's equation.
   gk_field_accumulate_rho_c(app, app->field, fin);
 
-  // Compute ambipolar potential sheath values if using adiabatic electrons
-  // done here as the RHS update for all species should be complete before
-  // boundary fluxes are computed (ion fluxes needed for sheath values) 
-  // and these boundary fluxes are stored temporarily in ghost cells of RHS
-  if (app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
-    gk_field_calc_ambi_pot_sheath_vals(app, app->field);
-
   // Compute biased wall potential if present and time-dependent.
   // Note: biased wall potential use eval_on_nodes. 
   // so does copy to GPU every call if app->use_gpu = true.
@@ -513,17 +506,14 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
   app->species = ns>0 ? gkyl_malloc(sizeof(struct gk_species[ns])) : 0;
   app->neut_species = neuts>0 ? gkyl_malloc(sizeof(struct gk_neut_species[neuts])) : 0;
 
-  // set info for each species: this needs to be done here as we need
-  // to access species name from gk_species_init
+  // Copy input parameters for each species
   for (int i=0; i<ns; ++i)
     app->species[i].info = gk->species[i];
 
-  // set info for each neutral species: this needs to be done here as we need
-  // to access species name from gk_species_init
   for (int i=0; i<neuts; ++i)
     app->neut_species[i].info = gk->neut_species[i];
 
-  app->field = gk_field_new(gk, app); // initialize field, even if we are skipping field updates
+  app->field = gk_field_new(gk, app); // Initialize field, even if we are  skipping field updates.
 
   // Choose the function that updates the fields in time.
   if (app->field->update_field)
@@ -533,27 +523,24 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
 
   app->enforce_positivity = gk->enforce_positivity;
   if (app->enforce_positivity) {
-    // Number of density of the positivity shift added over all the ions.
+    // Number density of the positivity shift added over all the ions.
     // Needed before species_init because species store pointers to these.
     app->ps_delta_m0_ions = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     app->ps_delta_m0_elcs = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   }
 
-  // initialize each species
+  // Initialize each species.
   for (int i=0; i<ns; ++i)
     gk_species_init(gk, app, &app->species[i]);
 
-  // initialize each neutral species
   for (int i=0; i<neuts; ++i)
     gk_neut_species_init(gk, app, &app->neut_species[i]);
 
-  // initialize each species cross-collisions terms: this has to be done here
-  // as need pointers to colliding species' collision objects
-  // allocated in gk_species_init and gk_neut_species_init
+  // Initialize each species cross-collisions terms.
   for (int i=0; i<ns; ++i) {
     struct gk_species *gk_s = &app->species[i];
 
-    // initialize cross-species collisions (e.g, LBO or BGK)
+    // Initialize cross-species collisions (e.g, LBO or BGK)
     if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS) {
       if (gk_s->lbo.num_cross_collisions) {
         gk_species_lbo_cross_init(app, &app->species[i], &gk_s->lbo);
@@ -564,28 +551,28 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
         gk_species_bgk_cross_init(app, &app->species[i], &gk_s->bgk);
       }
     }
-    // initialize cross-species reactions with plasma species (e.g., ionization, recombination, or charge exchange)
+    // Initialize cross-species reactions with plasma species (e.g., ionization, recombination, or charge exchange)
     if (gk_s->react.num_react) {
       gk_species_react_cross_init(app, &app->species[i], &gk_s->react);
     }
-    // initialize cross-species reactions with neutral species (e.g., ionization, recombination, or charge exchange)
+    // Initialize cross-species reactions with neutral species (e.g., ionization, recombination, or charge exchange)
     if (gk_s->react_neut.num_react) {
       gk_species_react_cross_init(app, &app->species[i], &gk_s->react_neut);
     }
-    // initial radiation (e.g., line radiation from cross-collisions of electrons with ions)
+    // Initial radiation (e.g., line radiation from cross-collisions of electrons with ions)
     if (gk_s->info.radiation.radiation_id == GKYL_GK_RADIATION) {
       gk_species_radiation_init(app, &app->species[i], &gk_s->rad);
     }
   }
 
-  // initialize neutral species cross-species reactions with plasma species
+  // Initialize neutral species cross-species reactions with plasma species.
   for (int i=0; i<neuts; ++i) {
     struct gk_neut_species *gkns = &app->neut_species[i]; 
     if (gkns->react_neut.num_react) {
       gk_neut_species_react_cross_init(app, gkns, &gkns->react_neut);
     }
-    // initialize species wall emission terms: these rely
-    // on other species which must be allocated in the previous step
+    
+    // Initialize wall emission terms.
     for (int d=0; d<app->cdim; ++d) {
       if (gkns->lower_bc[d].type == GKYL_SPECIES_RECYCLE)
         gk_neut_species_recycle_cross_init(app, gkns, &gkns->bc_recycle_lo);
@@ -594,9 +581,8 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     }
   }
 
-  // initialize each plasma species and neutral species source terms
-  // This has to be done here as sources may initialize a boundary 
-  // flux updater for their source species
+  // Initialize source terms. Done here as sources may initialize
+  // a boundary flux updater for their source species.
   for (int i=0; i<ns; ++i) {
     gk_species_source_init(app, &app->species[i], &app->species[i].src);
   }
@@ -742,7 +728,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
           s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
 
         // Compute and store (in the ghost cell of of out) the boundary fluxes.
-        gk_species_bflux_rhs(app, s, &s->bflux_solver, distf[i], distf[i], 0);
+        gk_species_bflux_rhs(app, &s->bflux, distf[i], distf[i]);
       }
     }
 
@@ -769,7 +755,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
     gkyl_dg_calc_gyrokinetic_vars_alpha_surf(gks->calc_gk_vars,
       &app->local, &gks->local, &gks->local_ext, gks->gyro_phi,
       gks->alpha_surf, gks->sgn_alpha_surf, gks->const_sgn_alpha);
-    gk_species_bflux_rhs(app, gks, &gks->bflux_solver, gks->f, gks->f, 0);
+    gk_species_bflux_rhs(app, &gks->bflux, gks->f, gks->f);
   }
 
   // Apply boundary conditions.
@@ -977,10 +963,10 @@ gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app)
 {
   if (app->field->update_field) {
     // Write out the field energy.
-    const char *fmt = "%s-field_energy.gkyl";
-    int sz = gkyl_calc_strlen(fmt, app->name);
-    char fileNm[sz+1]; // ensures no buffer overflow
-    snprintf(fileNm, sizeof fileNm, fmt, app->name);
+    const char *fmt0 = "%s-field_energy.gkyl";
+    int sz0 = gkyl_calc_strlen(fmt0, app->name);
+    char fileNm0[sz0+1]; // ensures no buffer overflow
+    snprintf(fileNm0, sizeof fileNm0, fmt0, app->name);
 
     int rank;
     gkyl_comm_get_rank(app->comm, &rank);
@@ -988,13 +974,13 @@ gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app)
     if (rank == 0) {
       struct timespec wtm = gkyl_wall_clock();
       if (app->field->is_first_energy_write_call) {
-        // write to a new file (this ensure previous output is removed)
-        gkyl_dynvec_write(app->field->integ_energy, fileNm);
+        // Write to a new file (this ensure previous output is removed).
+        gkyl_dynvec_write(app->field->integ_energy, fileNm0);
         app->field->is_first_energy_write_call = false;
       }
       else {
-        // append to existing file
-        gkyl_dynvec_awrite(app->field->integ_energy, fileNm);
+        // Append to existing file.
+        gkyl_dynvec_awrite(app->field->integ_energy, fileNm0);
       }
       app->stat.field_diag_io_tm += gkyl_time_diff_now_sec(wtm);
       app->stat.n_field_diag_io += 1;
@@ -1003,24 +989,21 @@ gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app)
 
     if (app->field->info.time_rate_diagnostics) {
       // Write out the time rate of change of the field energy.
-      const char *fmt = "%s-field_energy_dot.gkyl";
-      int sz = gkyl_calc_strlen(fmt, app->name);
-      char fileNm[sz+1]; // ensures no buffer overflow
-      snprintf(fileNm, sizeof fileNm, fmt, app->name);
-
-      int rank;
-      gkyl_comm_get_rank(app->comm, &rank);
+      const char *fmt1 = "%s-field_energy_dot.gkyl";
+      int sz1 = gkyl_calc_strlen(fmt1, app->name);
+      char fileNm1[sz1+1]; // ensures no buffer overflow
+      snprintf(fileNm1, sizeof fileNm1, fmt1, app->name);
 
       if (rank == 0) {
         struct timespec wtm = gkyl_wall_clock();
         if (app->field->is_first_energy_dot_write_call) {
-          // write to a new file (this ensure previous output is removed)
-          gkyl_dynvec_write(app->field->integ_energy_dot, fileNm);
+          // Write to a new file (this ensure previous output is removed).
+          gkyl_dynvec_write(app->field->integ_energy_dot, fileNm1);
           app->field->is_first_energy_dot_write_call = false;
         }
         else {
-          // append to existing file
-          gkyl_dynvec_awrite(app->field->integ_energy_dot, fileNm);
+          // Append to existing file.
+          gkyl_dynvec_awrite(app->field->integ_energy_dot, fileNm1);
         }
         app->stat.field_diag_io_tm += gkyl_time_diff_now_sec(wtm);
         app->stat.n_field_diag_io += 1;
@@ -1080,7 +1063,7 @@ void
 gkyl_gyrokinetic_app_calc_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_app* app, int sidx, double tm)
 {
   struct gk_species *gks = &app->species[sidx];
-  gk_species_bflux_calc_integrated_mom(app, gks, &gks->bflux_diag, tm);
+  gk_species_bflux_calc_integrated_mom(app, gks, &gks->bflux, tm);
 }
 
 void
@@ -1115,7 +1098,14 @@ void
 gkyl_gyrokinetic_app_write_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_app *app, int sidx)
 {
   struct gk_species *gks = &app->species[sidx];
-  gk_species_bflux_write_integrated_mom(app, gks, &gks->bflux_diag);
+  gk_species_bflux_write_integrated_mom(app, gks, &gks->bflux);
+}
+
+void
+gkyl_gyrokinetic_app_write_species_boundary_flux_mom(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame)
+{
+  struct gk_species *gks = &app->species[sidx];
+  gk_species_bflux_write_mom(app, gks, &gks->bflux, tm, frame);
 }
 
 //
@@ -1309,6 +1299,8 @@ gkyl_gyrokinetic_app_write_species_conf(gkyl_gyrokinetic_app* app, int sidx, dou
   for (int j=0; j<gks->react_neut.num_react; ++j) {
     gkyl_gyrokinetic_app_write_species_react_neut(app, sidx, j, tm, frame);
   }
+
+  gkyl_gyrokinetic_app_write_species_boundary_flux_mom(app, sidx, tm, frame);
 }
 
 void
@@ -1323,6 +1315,7 @@ gkyl_gyrokinetic_app_write_neut_species_conf(gkyl_gyrokinetic_app* app, int sidx
   for (int j=0; j<gkns->react_neut.num_react; ++j) {
     gkyl_gyrokinetic_app_write_neut_species_react_neut(app, sidx, j, tm, frame);
   }
+  gk_neut_species_recycle_write_flux(app, gkns, &gkns->bc_recycle_lo, tm, frame);
 }
 
 //
@@ -1336,6 +1329,7 @@ gkyl_gyrokinetic_app_write_mom(gkyl_gyrokinetic_app* app, double tm, int frame)
     gkyl_gyrokinetic_app_write_species_source_mom(app, i, tm, frame);
     gkyl_gyrokinetic_app_write_species_lbo_mom(app, i, tm, frame);
     gkyl_gyrokinetic_app_write_species_rad_emissivity(app, i, tm, frame);
+    gkyl_gyrokinetic_app_write_species_boundary_flux_mom(app, i, tm, frame);
   }
 
   for (int i=0; i<app->num_neut_species; ++i) {
@@ -1495,14 +1489,8 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   // Compute RHS of Gyrokinetic equation.
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
-    double dt1 = gk_species_rhs(app, s, fin[i], fout[i]);
+    double dt1 = gk_species_rhs(app, s, fin[i], fout[i], bflux_out[i]);
     dtmin = fmin(dtmin, dt1);
-
-    // Compute and store (in the ghost cell of of out) the boundary fluxes.
-    gk_species_bflux_rhs(app, s, &s->bflux_solver, fin[i], fout[i], 0);
-
-    // Compute the boundary fluxes and their moments for diagnostics.
-    gk_species_bflux_rhs(app, s, &s->bflux_diag, fin[i], fout[i], bflux_out[i]);
   }
 
   // Compute RHS of neutrals.
@@ -2097,9 +2085,9 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
   app->is_first_dt_write_call = false;
   gk_s->is_first_integ_write_call = false;
   gk_s->is_first_L2norm_write_call = false;
-  for (int b=0; b<gk_s->bflux_diag.num_boundaries; ++b)
-    gk_s->bflux_diag.is_first_intmom_write_call[b] = false;
-  gk_s->bflux_diag.is_not_first_restart_write_call = false;
+  for (int b=0; b<gk_s->bflux.num_boundaries; ++b)
+    gk_s->bflux.is_first_intmom_write_call[b] = false;
+  gk_s->bflux.is_not_first_restart_write_call = false;
   if (gk_s->info.time_rate_diagnostics)
     gk_s->is_first_fdot_integ_write_call = false;
   if (app->enforce_positivity)
@@ -2178,7 +2166,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
             s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
 
           // Compute and store (in the ghost cell of of out) the boundary fluxes.
-          gk_species_bflux_rhs(app, s, &s->bflux_solver, distf[i], distf[i], 0);
+          gk_species_bflux_rhs(app, &s->bflux, distf[i], distf[i]);
         }
       }
 
@@ -2201,7 +2189,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
         s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
 
       // Compute and store (in the ghost cell of of out) the boundary fluxes.
-      gk_species_bflux_rhs(app, s, &s->bflux_solver, distf[i], distf[i], 0);
+      gk_species_bflux_rhs(app, &s->bflux, distf[i], distf[i]);
     }
 
     // Apply boundary conditions.

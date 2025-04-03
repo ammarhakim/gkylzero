@@ -29,11 +29,6 @@ struct gk_mirror_ctx
   double tau;
   double Ti0;
   double kperpRhos;
-  // Parameters controlling initial conditions.
-  double alim;
-  double alphaIC0;
-  double alphaIC1;
-  double nuFrac;
   // Electron-electron collision freq.
   double logLambdaElc;
   double nuElc;
@@ -48,26 +43,10 @@ struct gk_mirror_ctx
   double omega_ci;
   double rho_s;
   double kperp; // Perpendicular wavenumber in SI units.
-  double RatZeq0; // Radius of the field line at Z=0.
   // Axial coordinate Z extents. Endure that Z=0 is not on
-  double Z_min;
-  double Z_max;
   double z_min;
   double z_max;
   double psi_eval;
-  double psi_in;
-  double z_in;
-  // Magnetic equilibrium model.
-  double mcB;
-  double gamma;
-  double Z_m;
-  // Bananna tip info. Hardcoad to avoid dependency on ctx
-  double B_bt;
-  double R_bt;
-  double Z_bt;
-  double z_bt;
-  double R_m;
-  double B_m;
   double z_m;
   // Physics parameters at mirror throat
   double n_m;
@@ -110,11 +89,6 @@ struct gk_mirror_ctx
   int int_diag_calc_num; // Number of integrated diagnostics computations (=INT_MAX for every step).
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
-  // For non-uniform mapping
-  double diff_dz;
-  double psi_in_diff;
-  int mapping_order;
-  double mapping_frac;
 };
 
 
@@ -431,11 +405,6 @@ create_ctx(void)
   double Ti0 = tau * Te0;
   double kperpRhos = 0.1;
 
-  // Parameters controlling initial conditions.
-  double alim = 0.125;
-  double alphaIC0 = 2;
-  double alphaIC1 = 10;
-
   double nuFrac = 1.0;
   // Electron-electron collision freq.
   double logLambdaElc = 6.6 - 0.5 * log(n0 / 1e20) + 1.5 * log(Te0 / eV);
@@ -459,22 +428,18 @@ create_ctx(void)
   double kperp = kperpRhos / rho_s;
 
   // Geometry parameters.
-  double RatZeq0 = 0.10; // Radius of the field line at Z=0.
   // Axial coordinate Z extents. Endure that Z=0 is not on
   // the boundary of a cell (due to AD errors).
   double z_min = -M_PI + 1e-1;
   double z_max =  M_PI - 1e-1;
   double psi_eval = 0.0026530898059565;
 
-  // Parameters controlling the magnetic equilibrium model.
-  double mcB = 6.51292;
-  double gamma = 0.124904;
-  double Z_m = 0.98;
+  double z_m = 0.982544;
 
   // Source parameters
   double NSrcIon = 3.1715e23 / 8.0;
   double lineLengthSrcIon = 0.0;
-  double sigSrcIon = Z_m / 4.0;
+  double sigSrcIon = z_m / 4.0;
   double NSrcFloorIon = 0.05 * NSrcIon;
   double TSrc0Ion = Ti0 * 1.25;
   double TSrcFloorIon = TSrc0Ion / 8.0;
@@ -500,16 +465,6 @@ create_ctx(void)
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
-
-  // Bananna tip info. Hardcoad to avoid dependency on ctx
-  double B_bt = 1.058278;
-  double R_bt = 0.071022;
-  double Z_bt = 0.467101;
-  double z_bt = 0.468243;
-  double R_m = 0.017845;
-  double B_m = 16.662396;
-  double z_m = 0.982544;
-
   // Initial conditions parameters
   double Ti_perp0 = 10000 * eV;
   double Ti_perp_m = 15000 * eV;
@@ -527,10 +482,6 @@ create_ctx(void)
   double Ti_m = 3081.437703 * eV;
   double cs_m = 4.037740e5;
 
-  // Non-uniform z mapping
-  int mapping_order = 20;  // Order of the polynomial to fit through points for mapc2p
-  double mapping_frac = 0.0;//0.72; // 1 is full mapping, 0 is no mapping
-
   struct gk_mirror_ctx ctx = {
     .cdim = cdim,
     .vdim = vdim,
@@ -545,10 +496,6 @@ create_ctx(void)
     .tau = tau,
     .Ti0 = Ti0,
     .kperpRhos = kperpRhos,
-    .alim = alim,
-    .alphaIC0 = alphaIC0,
-    .alphaIC1 = alphaIC1,
-    .nuFrac = nuFrac,
     .logLambdaElc = logLambdaElc,
     .nuElc = nuElc,
     .logLambdaIon = logLambdaIon,
@@ -559,18 +506,10 @@ create_ctx(void)
     .omega_ci = omega_ci,
     .rho_s = rho_s,
     .kperp = kperp, 
-    .RatZeq0 = RatZeq0,
     .z_min = z_min,
     .z_max = z_max,
     .psi_eval = psi_eval,
-    .mcB = mcB,
-    .gamma = gamma,
-    .Z_m = Z_m,
-    .B_bt = B_bt,
-    .R_bt = R_bt,
-    .Z_bt = Z_bt,
-    .z_bt = z_bt,
-    .z_m = Z_m,
+    .z_m = z_m,
     .n_m = n_m,
     .Te_m = Te_m,
     .Ti_m = Ti_m,
@@ -609,8 +548,6 @@ create_ctx(void)
     .int_diag_calc_num = int_diag_calc_num,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
-    .mapping_order = mapping_order,  // Order of the polynomial to fit through points for mapc2p
-    .mapping_frac = mapping_frac, // 1 is full mapping, 0 is no mapping
   };
   return ctx;
 }
@@ -640,22 +577,6 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr
     gkyl_gyrokinetic_app_write_integrated_mom(app);
   }
 }
-
-static void
-nonuniform_position_map(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  double transition = 1.5;
-  double poly_order = 2;
-  double z = xn[2];
-  if (z < -transition)
-    fout[2] = z;
-  else if (z < transition)
-  {
-    fout[2] = - pow(z - transition, poly_order)/pow(2*transition, poly_order-1) + transition;
-  }
-  else
-    fout[2] = z;
-};
 
 int main(int argc, char **argv)
 {
@@ -691,12 +612,10 @@ int main(int argc, char **argv)
     .upper = { 1.0, 1.0},
     .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
-
     .mapc2p = {
       .mapping = mapc2p_vel_elc,
       .ctx = &ctx,
     },
-
     .projection = {
       .proj_id = GKYL_PROJ_BIMAXWELLIAN, 
       .ctx_density = &ctx,
@@ -707,9 +626,7 @@ int main(int argc, char **argv)
       .temppar = eval_temp_par_elc,
       .ctx_tempperp = &ctx,
       .tempperp = eval_temp_perp_elc,   
-      // .correct_all_moms = true,   
     },
-
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -717,7 +634,6 @@ int main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
     },
-
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,
@@ -731,7 +647,6 @@ int main(int argc, char **argv)
         .temp = eval_temp_elc_source,      
       }, 
     },
-
     .bcx = {
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
@@ -748,12 +663,10 @@ int main(int argc, char **argv)
     .upper = { 1.0, 1.0},
     .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
-
     .mapc2p = {
       .mapping = mapc2p_vel_ion,
       .ctx = &ctx,
     },
-
     .projection = {
       .proj_id = GKYL_PROJ_BIMAXWELLIAN, 
       .ctx_density = &ctx,
@@ -764,9 +677,7 @@ int main(int argc, char **argv)
       .temppar = eval_temp_par_ion,
       .ctx_tempperp = &ctx,
       .tempperp = eval_temp_perp_ion, 
-      // .correct_all_moms = true, 
     },
-
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -774,7 +685,6 @@ int main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
     },
-
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,
@@ -788,7 +698,6 @@ int main(int argc, char **argv)
         .temp = eval_temp_ion_source,      
       }, 
     },
-
     .bcx = {
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
@@ -803,7 +712,6 @@ int main(int argc, char **argv)
   };
 
   struct gkyl_efit_inp efit_inp = {
-    // psiRZ and related inputs
     .filepath = "./data/eqdsk/wham.geqdsk", // equilibrium to use
     .rz_poly_order = 2,                     // polynomial order for psi(R,Z) used for field line tracing
     .flux_poly_order = 1,                   // polynomial order for fpol(psi)
@@ -818,14 +726,12 @@ int main(int argc, char **argv)
   // GK app
   struct gkyl_gk app_inp = {
     .name = "gk_wham_nonuniformx_1x2v_p1_polynomial",
-
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = {ctx.z_min},
     .upper = {ctx.z_max},
     .cells = { cells_x[0] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
-    
     .geometry = {
       .geometry_id = GKYL_MIRROR,
       .world = {ctx.psi_eval, 0.0},
@@ -836,15 +742,11 @@ int main(int argc, char **argv)
         .map_strength = 0.9,
       },
     },
-
     .num_periodic_dir = 0,
     .periodic_dirs = {},
-
     .num_species = 2,
     .species = {elc, ion},
-
     .field = field,
-
     .parallelism = {
       .use_gpu = app_args.use_gpu,
       .cuts = { app_args.cuts[0] },
