@@ -439,7 +439,6 @@ struct gk_recycle_wall {
   // name of the species, and recycling fraction.
   struct gkyl_gyrokinetic_emission_inp *params;
   int num_species;
-  double frac; // recycling fraction coefficient
 
   int dir; // Direction orthogonal to the recycling boundary..
   enum gkyl_edge_loc edge; // Edge of the recycling boundary.
@@ -456,6 +455,7 @@ struct gk_recycle_wall {
   struct gk_species *impact_species[GKYL_MAX_SPECIES]; // Pointers to impacting species
 
   struct gkyl_rect_grid impact_grid[GKYL_MAX_SPECIES]; // Ghost grid of the impacting boundary.
+  struct gkyl_range *impact_ghost_r[GKYL_MAX_SPECIES];  // Ghost range of the impacting boundary (sub of local_ext).
   struct gkyl_range impact_buff_r[GKYL_MAX_SPECIES];  // Ghost range of the impacting boundary.
   struct gkyl_range impact_cbuff_r[GKYL_MAX_SPECIES]; // Conf-space ghost range of the impacting boundary.
 
@@ -469,7 +469,7 @@ struct gk_recycle_wall {
 
   struct gkyl_array *buffer; // Where unit-density Maxwellian is stored.
   struct gkyl_array *spectrum[GKYL_MAX_SPECIES]; // Unit-density Maxwellian is copied and scaled here.
-  struct gkyl_range impact_normal_r[GKYL_MAX_SPECIES]; // Selects range for flux calc.
+  struct gkyl_range impact_normal_r[GKYL_MAX_SPECIES]; // Phase-space range w/ only velocities towards the boundary.
   struct gkyl_array *f_emit; // Array to fill neutral ghost cell with scaled Maxwellian distf.
 
   // Objects used for diagnostics.

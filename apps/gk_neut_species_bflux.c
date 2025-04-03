@@ -192,8 +192,7 @@ gk_neut_species_bflux_get_flux_mom_dynamic(struct gk_boundary_fluxes *bflux, int
       break;
     }
   }
-  gkyl_array_copy_range_to_range(out, bflux->f[b*bflux->num_calc_moms+mom_idx],
-    bflux->boundaries_conf_ghost[b], out_rng);
+  gkyl_array_copy_range_to_range(out, bflux->f[b*bflux->num_calc_moms+mom_idx], out_rng, bflux->boundaries_conf_ghost[b]);
 }
 
 static void
@@ -214,8 +213,7 @@ gk_neut_species_bflux_get_flux_dynamic(struct gk_boundary_fluxes *bflux, int dir
   struct gkyl_array *out, const struct gkyl_range *out_rng)
 {
   int b = gk_neut_species_bflux_idx(bflux, dir, edge);
-  gkyl_array_copy_range_to_range(out, bflux->flux[b],
-    bflux->boundaries_phase_ghost[b], out_rng);
+  gkyl_array_copy_range_to_range(out, bflux->flux[b], out_rng, bflux->boundaries_phase_ghost[b]);
 }
 
 static void

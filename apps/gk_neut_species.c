@@ -583,8 +583,6 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
     //   - GK_SPECIES_BFLUX_CALC_FLUX to only put bfluxes in ghost cells of rhs.
     //   - GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS to calc bfluxes and step its moments.
     // The latter also requires that you place the moment you desire in add_bflux_moms_inp below.
-    if (s->lower_bc[cdim-1].type == GKYL_SPECIES_RECYCLE || s->upper_bc[cdim-1].type == GKYL_SPECIES_RECYCLE)
-      bflux_type = GK_SPECIES_BFLUX_CALC_FLUX;
   }
   // Introduce new moments into moms_inp if needed.
   gk_species_bflux_init(app, s, &s->bflux, bflux_type, add_bflux_moms_inp);

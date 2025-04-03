@@ -506,17 +506,14 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
   app->species = ns>0 ? gkyl_malloc(sizeof(struct gk_species[ns])) : 0;
   app->neut_species = neuts>0 ? gkyl_malloc(sizeof(struct gk_neut_species[neuts])) : 0;
 
-  // set info for each species: this needs to be done here as we need
-  // to access species name from gk_species_init
+  // Copy input parameters for each species
   for (int i=0; i<ns; ++i)
     app->species[i].info = gk->species[i];
 
-  // set info for each neutral species: this needs to be done here as we need
-  // to access species name from gk_species_init
   for (int i=0; i<neuts; ++i)
     app->neut_species[i].info = gk->neut_species[i];
 
-  app->field = gk_field_new(gk, app); // initialize field, even if we are skipping field updates
+  app->field = gk_field_new(gk, app); // Initialize field, even if we are  skipping field updates.
 
   // Choose the function that updates the fields in time.
   if (app->field->update_field)
@@ -526,27 +523,24 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
 
   app->enforce_positivity = gk->enforce_positivity;
   if (app->enforce_positivity) {
-    // Number of density of the positivity shift added over all the ions.
+    // Number density of the positivity shift added over all the ions.
     // Needed before species_init because species store pointers to these.
     app->ps_delta_m0_ions = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     app->ps_delta_m0_elcs = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   }
 
-  // initialize each species
+  // Initialize each species.
   for (int i=0; i<ns; ++i)
     gk_species_init(gk, app, &app->species[i]);
 
-  // initialize each neutral species
   for (int i=0; i<neuts; ++i)
     gk_neut_species_init(gk, app, &app->neut_species[i]);
 
-  // initialize each species cross-collisions terms: this has to be done here
-  // as need pointers to colliding species' collision objects
-  // allocated in gk_species_init and gk_neut_species_init
+  // Initialize each species cross-collisions terms.
   for (int i=0; i<ns; ++i) {
     struct gk_species *gk_s = &app->species[i];
 
-    // initialize cross-species collisions (e.g, LBO or BGK)
+    // Initialize cross-species collisions (e.g, LBO or BGK)
     if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS) {
       if (gk_s->lbo.num_cross_collisions) {
         gk_species_lbo_cross_init(app, &app->species[i], &gk_s->lbo);
@@ -557,28 +551,28 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
         gk_species_bgk_cross_init(app, &app->species[i], &gk_s->bgk);
       }
     }
-    // initialize cross-species reactions with plasma species (e.g., ionization, recombination, or charge exchange)
+    // Initialize cross-species reactions with plasma species (e.g., ionization, recombination, or charge exchange)
     if (gk_s->react.num_react) {
       gk_species_react_cross_init(app, &app->species[i], &gk_s->react);
     }
-    // initialize cross-species reactions with neutral species (e.g., ionization, recombination, or charge exchange)
+    // Initialize cross-species reactions with neutral species (e.g., ionization, recombination, or charge exchange)
     if (gk_s->react_neut.num_react) {
       gk_species_react_cross_init(app, &app->species[i], &gk_s->react_neut);
     }
-    // initial radiation (e.g., line radiation from cross-collisions of electrons with ions)
+    // Initial radiation (e.g., line radiation from cross-collisions of electrons with ions)
     if (gk_s->info.radiation.radiation_id == GKYL_GK_RADIATION) {
       gk_species_radiation_init(app, &app->species[i], &gk_s->rad);
     }
   }
 
-  // initialize neutral species cross-species reactions with plasma species
+  // Initialize neutral species cross-species reactions with plasma species.
   for (int i=0; i<neuts; ++i) {
     struct gk_neut_species *gkns = &app->neut_species[i]; 
     if (gkns->react_neut.num_react) {
       gk_neut_species_react_cross_init(app, gkns, &gkns->react_neut);
     }
-    // initialize species wall emission terms: these rely
-    // on other species which must be allocated in the previous step
+    
+    // Initialize wall emission terms.
     for (int d=0; d<app->cdim; ++d) {
       if (gkns->lower_bc[d].type == GKYL_SPECIES_RECYCLE)
         gk_neut_species_recycle_cross_init(app, gkns, &gkns->bc_recycle_lo);
@@ -587,9 +581,8 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     }
   }
 
-  // initialize each plasma species and neutral species source terms
-  // This has to be done here as sources may initialize a boundary 
-  // flux updater for their source species
+  // Initialize source terms. Done here as sources may initialize
+  // a boundary flux updater for their source species.
   for (int i=0; i<ns; ++i) {
     gk_species_source_init(app, &app->species[i], &app->species[i].src);
   }
@@ -1322,6 +1315,7 @@ gkyl_gyrokinetic_app_write_neut_species_conf(gkyl_gyrokinetic_app* app, int sidx
   for (int j=0; j<gkns->react_neut.num_react; ++j) {
     gkyl_gyrokinetic_app_write_neut_species_react_neut(app, sidx, j, tm, frame);
   }
+  gk_neut_species_recycle_write_flux(app, gkns, &gkns->bc_recycle_lo, tm, frame);
 }
 
 //

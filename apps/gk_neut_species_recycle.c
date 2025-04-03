@@ -17,7 +17,7 @@ gk_neut_species_recycle_init(struct gkyl_gyrokinetic_app *app, struct gk_recycle
 
   int e = recyc->edge == GKYL_LOWER_EDGE? 0 : 1;
 
-  // Allocate boundary grids and ranges.
+  // Create boundary grids and ranges.
   int cells[GKYL_MAX_DIM];
   double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
   for (int i=0; i<ndim; ++i) {
@@ -51,12 +51,6 @@ gk_neut_species_recycle_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
   int cdim = app->cdim;
   int vdim = app->vdim+1; // from gk_neut_species
  
-  int ghost[GKYL_MAX_DIM];
-  for (int d=0; d<cdim; ++d)
-    ghost[d] = 1;
-  for (int d=0; d<vdim; ++d)
-    ghost[cdim+d] = 0;
-
   // This buffer contains the projection of the unit Maxwellian.
   recyc->buffer = recyc->edge == GKYL_LOWER_EDGE? s->bc_buffer_lo_recyc : s->bc_buffer_up_recyc;
 
@@ -70,6 +64,12 @@ gk_neut_species_recycle_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
   if (app->use_gpu)
     recyc->diag_out_ho = mkarr(false, app->basis.num_basis, app->local.volume);
    
+  int ghost[GKYL_MAX_DIM]; // Number of ghost cells in each direction.
+  for (int d=0; d<cdim; ++d)
+    ghost[d] = 1;
+  for (int d=0; d<vdim; ++d)
+    ghost[cdim+d] = 0;
+
   // Calculate the flux associated with unit-density Maxwellian.
   gkyl_bc_emission_flux_ranges(&recyc->emit_normal_r, recyc->dir + cdim, &recyc->emit_buff_r,
     ghost, recyc->edge);
@@ -112,19 +112,20 @@ gk_neut_species_recycle_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
 
     struct gkyl_range *phase_skin_r = e==0? &gks->lower_skin[recyc->dir] : &gks->upper_skin[recyc->dir];
     struct gkyl_range *phase_ghost_r = e==0? &gks->lower_ghost[recyc->dir] : &gks->upper_ghost[recyc->dir];
+    recyc->impact_ghost_r[i] = phase_ghost_r;
     gkyl_range_init(&recyc->impact_buff_r[i], cdim+app->vdim, phase_ghost_r->lower, phase_ghost_r->upper);
     gkyl_range_init(&recyc->impact_cbuff_r[i], cdim, phase_ghost_r->lower, phase_ghost_r->upper);
 
     recyc->phase_flux_gk[i] = mkarr(app->use_gpu, gks->basis.num_basis, phase_ghost_r->volume);
     recyc->m0_flux_gk[i] = mkarr(app->use_gpu, app->basis.num_basis, recyc->impact_cbuff_r[i].volume);    
     
-    recyc->frac = recyc->params->rec_frac;
     recyc->spectrum[i] = mkarr(app->use_gpu, s->basis.num_basis, recyc->emit_buff_r.volume);
 
     recyc->m0op_gk[i] = gkyl_dg_updater_moment_gyrokinetic_new(&recyc->impact_grid[i], &app->basis,
       &gks->basis, &recyc->emit_cbuff_r, gks->info.mass, gks->info.charge, gks->vel_map,
-      app->gk_geom, app->field->phi_smooth, "M0", 0, app->use_gpu);
+      app->gk_geom, 0, "M0", 0, app->use_gpu);
     
+    // Create a phase-space range that only includes velocities towards the boundary.
     gkyl_bc_emission_flux_ranges(&recyc->impact_normal_r[i], recyc->dir + cdim, &recyc->impact_buff_r[i],
       ghost, recyc->edge);
   }
@@ -142,14 +143,14 @@ gk_neut_species_recycle_apply_bc(struct gkyl_gyrokinetic_app *app, const struct 
   // from gk_species_bflux_rhs_solver.
   for (int i=0; i<recyc->num_species; ++i) {
     // Copy unit-density Maxwellian from buffer.
-    gkyl_array_set(recyc->spectrum[i], recyc->frac, recyc->buffer);
+    gkyl_array_set(recyc->spectrum[i], recyc->params->rec_frac, recyc->buffer);
 
     struct gk_species *gks = recyc->impact_species[i];
 
     // Calculate M0 moment of ion flux.
-    gk_species_bflux_get_flux(&gks->bflux, recyc->dir, recyc->edge, recyc->phase_flux_gk[i], &recyc->impact_normal_r[i]);
+    gk_species_bflux_get_flux(&gks->bflux, recyc->dir, recyc->edge, recyc->phase_flux_gk[i], &recyc->impact_buff_r[i]);
     gkyl_dg_updater_moment_gyrokinetic_advance(recyc->m0op_gk[i], &recyc->impact_normal_r[i],
-      &recyc->emit_cbuff_r, recyc->phase_flux_gk[i], recyc->m0_flux_gk[i]);
+      &recyc->impact_cbuff_r[i], recyc->phase_flux_gk[i], recyc->m0_flux_gk[i]);
 
     // Calculate scaling factor from ratio of ion flux to unit-density flux.
     gkyl_dg_div_op_range(recyc->mem_geo, app->basis, 0, recyc->m0_flux_gk[i], 0, recyc->m0_flux_gk[i],
@@ -176,20 +177,22 @@ gk_neut_species_recycle_write_flux(struct gkyl_gyrokinetic_app *app, struct gk_n
     }
   );
 
-  const char *edge = recyc->edge == GKYL_LOWER_EDGE? "lower" : "upper";
+  const char *edge_name = recyc->edge == GKYL_LOWER_EDGE? "lower" : "upper";
   struct gkyl_range *cskin_r = recyc->edge == GKYL_LOWER_EDGE? &app->lower_skin[recyc->dir] : &app->upper_skin[recyc->dir];
   
   for (int i=0; i<recyc->num_species; ++i) {
+    struct gk_species *gks = recyc->impact_species[i];
+
     const char *fmt = "%s-%s_recyc_flux_%s_%d.gkyl";
-    int sz = gkyl_calc_strlen(fmt, app->name, recyc->impact_species[i]->info.name,
-      edge, frame);
+    int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name,
+      edge_name, frame);
     char fileNm[sz+1]; // ensures no buffer overflow
-    snprintf(fileNm, sizeof fileNm, fmt, app->name, recyc->impact_species[i]->info.name,
-      edge, frame);
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name,
+      edge_name, frame);
     
-    gk_species_bflux_get_flux(&s->bflux, recyc->dir, recyc->edge, recyc->phase_flux_gk[i], &recyc->impact_normal_r[i]);
+    gk_species_bflux_get_flux(&gks->bflux, recyc->dir, recyc->edge, recyc->phase_flux_gk[i], &recyc->impact_buff_r[i]);
     gkyl_dg_updater_moment_gyrokinetic_advance(recyc->m0op_gk[i], &recyc->impact_normal_r[i],
-      &recyc->emit_cbuff_r, recyc->phase_flux_gk[i], recyc->m0_flux_gk[i]);
+      &recyc->impact_cbuff_r[i], recyc->phase_flux_gk[i], recyc->m0_flux_gk[i]);
     gkyl_array_clear(recyc->diag_out, 0.0);
     gkyl_array_copy_range_to_range(recyc->diag_out, recyc->m0_flux_gk[i], cskin_r, &recyc->emit_cbuff_r);
 
@@ -205,9 +208,9 @@ gk_neut_species_recycle_write_flux(struct gkyl_gyrokinetic_app *app, struct gk_n
   }
 
   const char *fmt = "%s-%s_recyc_flux_%s_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, edge, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, edge_name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name, edge, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name, edge_name, frame);
   
   // Calc neut moment.
   gkyl_array_clear(recyc->f_diag, 0.0);

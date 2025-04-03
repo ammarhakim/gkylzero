@@ -1333,6 +1333,36 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
   gkyl_array_release(fdo_host);
 }
 
+static bool
+gk_species_do_I_recycle(struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
+{
+  // Check whether one of the neutral species has recycling BCs that depend on
+  // this gyrokinetic species.
+  bool recycling_bcs = false;
+  int neuts = app->num_neut_species;
+  for (int i=0; i<neuts; ++i) {
+    for (int d=0; d<app->cdim; d++) {
+      const struct gkyl_gyrokinetic_bcs *bc;
+      if (d == 0)
+        bc = &app->neut_species[i].info.bcx;
+      else if (d == 1)
+        bc = &app->neut_species[i].info.bcy;
+      else
+        bc = &app->neut_species[i].info.bcz;
+
+      if (bc->lower.type == GKYL_SPECIES_RECYCLE) {
+         for (int j=0; j<bc->lower.emission.num_species; j++)
+           recycling_bcs = recycling_bcs || 0 == strcmp(gks->info.name, bc->lower.emission.in_species[j]);
+      }
+      if (bc->upper.type == GKYL_SPECIES_RECYCLE) {
+         for (int j=0; j<bc->upper.emission.num_species; j++)
+           recycling_bcs = recycling_bcs || 0 == strcmp(gks->info.name, bc->upper.emission.in_species[j]);
+      }
+    }
+  }
+  return recycling_bcs;
+}
+
 void
 gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
@@ -1580,7 +1610,14 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     //   - GK_SPECIES_BFLUX_CALC_FLUX to only put bfluxes in ghost cells of rhs.
     //   - GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS to calc bfluxes and step its moments.
     // The latter also requires that you place the moment you desire in add_bflux_moms_inp below.
-    if (app->field->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
+    
+    // Boltzmann elc model requires the fluxes.
+    bool boltz_elc_field = app->field->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN;
+    // Recycling BCs require the fluxes. Since this depends on other species,
+    // it'll be checked in .
+    bool recycling_bcs = gk_species_do_I_recycle(app, gks);
+   
+    if (boltz_elc_field || recycling_bcs)
       bflux_type = GK_SPECIES_BFLUX_CALC_FLUX;
   }
   // Introduce new moments into moms_inp if needed.
