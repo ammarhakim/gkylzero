@@ -63,7 +63,7 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       proj->proj_host = mkarr(false, s->basis.num_basis, s->local_ext.volume);
     }
   }
-  else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
+  else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
     proj->dens = mkarr(false, app->basis.num_basis, app->local_ext.volume);
     proj->upar = mkarr(false, app->basis.num_basis, app->local_ext.volume);
     proj->proj_dens = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
@@ -339,8 +339,8 @@ gk_species_projection_release(const struct gkyl_gyrokinetic_app *app, const stru
       gkyl_array_release(proj->proj_host);
     }
   }
-  else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN
-    || proj->proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN) { 
+  else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN ||
+      proj->proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN) { 
     gkyl_array_release(proj->dens);
     gkyl_array_release(proj->upar); 
     gkyl_array_release(proj->prim_moms_host);
@@ -348,7 +348,7 @@ gk_species_projection_release(const struct gkyl_gyrokinetic_app *app, const stru
 
     gkyl_proj_on_basis_release(proj->proj_dens);
     gkyl_proj_on_basis_release(proj->proj_upar);
-    if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
+    if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN) {
       gkyl_array_release(proj->vtsq);
       gkyl_proj_on_basis_release(proj->proj_temp);
     }
@@ -357,15 +357,6 @@ gk_species_projection_release(const struct gkyl_gyrokinetic_app *app, const stru
       gkyl_array_release(proj->vtsqperp);
       gkyl_proj_on_basis_release(proj->proj_temppar);
       gkyl_proj_on_basis_release(proj->proj_tempperp);
-    }
-    else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN) {
-      gkyl_proj_on_basis_release(proj->proj_dens);
-      gkyl_proj_on_basis_release(proj->proj_upar);
-      gkyl_proj_on_basis_release(proj->proj_temp);
-      gkyl_array_release(proj->dens);
-      gkyl_array_release(proj->upar);
-      gkyl_array_release(proj->vtsq);
-      gkyl_array_release(proj->prim_moms);
     }
     if (!(proj->proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN)) {
     gkyl_gk_maxwellian_proj_on_basis_release(proj->proj_max);
