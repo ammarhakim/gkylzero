@@ -1781,18 +1781,6 @@ gk_species_bflux_write_mom(gkyl_gyrokinetic_app *app, void *species,
   struct gk_boundary_fluxes *bflux, double tm, int frame);
 
 /**
- * Write the moments of the diagnostic boundary fluxes.
- *
- * @param app Gyrokinetic app object.
- * @param gks Species object.
- * @param tm Current simulation time.
- * @param frame Current frame.
- */
-void
-gk_species_bflux_write_mom(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-  struct gk_boundary_fluxes *bflux, double tm, int frame);
-
-/**
  * Release species boundary flux object.
  *
  * @param app Gyrokinetic app object.
