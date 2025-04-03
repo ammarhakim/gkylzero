@@ -130,7 +130,7 @@ gkyl_int_mom_canonical_pb_new(const struct gkyl_basis* cbasis, const struct gkyl
   const gkyl_canonical_pb_mom_kern_list *int_mom_kernels;  
   
   // set kernel pointer
-  switch (cbasis->b_type) {
+  switch (pbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       int_mom_kernels = ser_int_mom_kernels;
       break;
