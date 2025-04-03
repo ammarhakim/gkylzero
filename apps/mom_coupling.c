@@ -130,7 +130,8 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
   int ghost[3] = { 1, 1, 1 };
   // create non-ideal local extended range from local range
   // has one additional cell in each direction because non-ideal variables are stored at cell vertices
-  gkyl_create_ranges(&app->local, ghost, &src->non_ideal_local_ext, &src->non_ideal_local);
+  gkyl_create_vertex_ranges(&app->local, ghost, &src->non_ideal_local_ext,
+    &src->non_ideal_local);
 
   // In Gradient-closure case, non-ideal variables are 10 heat flux tensor components
   for (int n=0;  n<app->num_species; ++n)
@@ -214,7 +215,7 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
       // non-ideal variables defined on an extended range with one additional "cell" in each direction
       // this additional cell accounts for the fact that non-ideal variables are stored at cell vertices
       stat = gkyl_ten_moment_grad_closure_advance(src->grad_closure_slvr[i],
-        &src->non_ideal_local_ext, &app->local,
+        &src->non_ideal_local, &app->local,
         app->species[i].f[sidx[nstrang]], app->field.f[sidx[nstrang]],
         src->non_ideal_cflrate[i], dt, src->non_ideal_vars[i], src->pr_rhs[i]); 
 
@@ -230,7 +231,7 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
 
   if (app->has_braginskii) {
     gkyl_moment_braginskii_advance(src->brag_slvr,
-      src->non_ideal_local_ext, app->local,
+      src->non_ideal_local, app->local,
       fluids, app->field.f[sidx[nstrang]],
       src->non_ideal_cflrate, src->non_ideal_vars, src->pr_rhs);
   }
