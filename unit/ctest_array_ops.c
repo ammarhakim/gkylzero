@@ -328,6 +328,42 @@ void test_array_set_offset()
   gkyl_array_release(a2);
 }
 
+void test_array_set_offset_comp()
+{
+  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 2, 10);
+  struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 3*a1->ncomp, a1->size);
+
+  double *a1_d = a1->data, *a2_d = a2->data;
+
+  // Assign a component of the vector to the scalar.
+  for (unsigned i=0; i<a1->size; ++i)
+    for (unsigned j=0; j<a1->ncomp; ++j)
+      a1_d[i*a1->ncomp+j] = i*0.2+2*j;
+
+  for (unsigned i=0; i<a2->size; ++i)
+    for (unsigned j=0; j<a2->ncomp/a1->ncomp; ++j)
+      for (unsigned k=0; k<a1->ncomp; ++k)
+        a2_d[i*a2->ncomp+j*a1->ncomp+k] = i*0.1+k+10*j;
+
+  gkyl_array_set_offset_comp(a1, 0.5, a2, 0, 0, a1->ncomp);
+  for (unsigned i=0; i<a1->size; ++i)
+    for (unsigned j=0; j<a1->ncomp; ++j)
+      TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+j], 0.5*(i*0.1+j+10*0), 1e-14) );
+
+  gkyl_array_set_offset_comp(a1, 0.5, a2, 0, 1, a1->ncomp);
+  for (unsigned i=0; i<a1->size; ++i)
+    for (unsigned j=0; j<a1->ncomp; ++j)
+      TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+j], 0.5*(i*0.1+j+10*1), 1e-14) );
+
+  gkyl_array_set_offset_comp(a1, 0.5, a2, 0, 2, a1->ncomp);
+  for (unsigned i=0; i<a1->size; ++i)
+    for (unsigned j=0; j<a1->ncomp; ++j)
+      TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+j], 0.5*(i*0.1+j+10*2), 1e-14) );
+
+  gkyl_array_release(a1);
+  gkyl_array_release(a2);
+}
+
 void test_array_set_offset_range()
 {
   int shape[] = {10, 20};
@@ -1353,6 +1389,54 @@ void test_cu_array_set_offset()
   gkyl_array_release(a2_cu);
 }
 
+void test_cu_array_set_offset_comp()
+{
+  // create host arrays 
+  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 2, 10);
+  struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 3*a1->ncomp, a1->size);
+  // make device copies
+  struct gkyl_array *a1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, a1->ncomp, a1->size);
+  struct gkyl_array *a2_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, a2->ncomp, a2->size);
+
+  // initialize data
+  double *a1_d  = a1->data, *a2_d = a2->data;
+  for (unsigned i=0; i<a1->size; ++i)
+    for (unsigned j=0; j<a1->ncomp; ++j)
+      a1_d[i*a1->ncomp+j] = i*1.0+j;
+
+  for (unsigned i=0; i<a2->size; ++i)
+    for (unsigned j=0; j<a2->ncomp/a1->ncomp; ++j)
+      for (unsigned k=0; k<a1->ncomp; ++k)
+        a2_d[i*a2->ncomp+j*a1->ncomp+k] = i*0.1+k+10*j;
+
+  // copy initialized arrays to device
+  gkyl_array_copy(a1_cu, a1);
+  gkyl_array_copy(a2_cu, a2);
+
+  gkyl_array_set_offset_comp(a1_cu, 0.5, a2_cu, 0, 0, a1->ncomp);
+  gkyl_array_copy(a1, a1_cu);
+  for (unsigned i=0; i<a1->size; ++i)
+    for (unsigned j=0; j<a1->ncomp; ++j)
+      TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+j], 0.5*(i*0.1+j+10*0), 1e-14) );
+
+  gkyl_array_set_offset_comp(a1_cu, 0.5, a2_cu, 0, 1, a1->ncomp);
+  gkyl_array_copy(a1, a1_cu);
+  for (unsigned i=0; i<a1->size; ++i)
+    for (unsigned j=0; j<a1->ncomp; ++j)
+      TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+j], 0.5*(i*0.1+j+10*1), 1e-14) );
+
+  gkyl_array_set_offset_comp(a1_cu, 0.5, a2_cu, 0, 2, a1->ncomp);
+  gkyl_array_copy(a1, a1_cu);
+    for (unsigned i=0; i<a1->size; ++i)
+      for (unsigned j=0; j<a1->ncomp; ++j)
+        TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+j], 0.5*(i*0.1+j+10*2), 1e-14) );
+
+  gkyl_array_release(a1);
+  gkyl_array_release(a2);
+  gkyl_array_release(a1_cu);
+  gkyl_array_release(a2_cu);
+}
+
 void test_cu_array_set_offset_range()
 {
   int shape[] = {10, 20};
@@ -1796,6 +1880,7 @@ TEST_LIST = {
   { "array_set", test_array_set },
   { "array_set_range", test_array_set_range },
   { "array_set_offset", test_array_set_offset },
+  { "array_set_offset_comp", test_array_set_offset_comp},
   { "array_set_offset_range", test_array_set_offset_range },
   { "array_scale", test_array_scale },
   { "array_scale_by_cell", test_array_scale_by_cell },
@@ -1820,6 +1905,7 @@ TEST_LIST = {
   { "cu_array_set", test_cu_array_set },
   { "cu_array_set_range", test_cu_array_set_range },
   { "cu_array_set_offset", test_cu_array_set_offset },
+  { "cu_array_set_offset_comp", test_cu_array_set_offset_comp},
   { "cu_array_set_offset_range", test_cu_array_set_offset_range },
   { "cu_array_scale", test_cu_array_scale },
   { "cu_array_scale_by_cell", test_cu_array_scale_by_cell },

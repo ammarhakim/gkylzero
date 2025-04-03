@@ -93,6 +93,10 @@ struct gkyl_array* gkyl_array_set(struct gkyl_array *out,
  * Set out = a*inp[coff] where coff is a component-offset if
  * out->ncomp < inp->ncomp, or out[coff] = a*inp if
  * out->ncomp > inp->ncomp. Returns out.
+ * 
+ * Sets all components greater than the coeff offset to the output
+ * e.g. out[0,1,2, ...] = a*inp[2,3,4,...]
+ * where the middle indicies are the different components
  *
  * @param out Output array
  * @param a Factor to multiply input array
@@ -102,6 +106,29 @@ struct gkyl_array* gkyl_array_set(struct gkyl_array *out,
  */
 struct gkyl_array* gkyl_array_set_offset(struct gkyl_array *out,
   double a, const struct gkyl_array *inp, int coff);
+
+/*
+ * Component wise set_offset
+ *
+ * Sets only the specified component of out to the specific
+ * component of inp. Returns out.
+ * Set out[component_offset_out] = a*inp[component_offset_inp]
+ * 
+ * e.g. out[3] = a*inp[2]
+ * where the indicies are the different components
+ * 
+ * @param out Output array
+ * @param a Factor to multiply input array
+ * @param inp Input array
+ * @param component_offset_out Component offset of out
+ * @param component_offset_inp Component offset of inp
+ * @param num_basis Number of basis functions per component
+ * @return out array
+*/
+struct gkyl_array* gkyl_array_set_offset_comp(struct gkyl_array* out,
+  double a, const struct gkyl_array* inp, int component_offset_out, 
+  int component_offset_inp, int num_basis);
+
 
 /**
  * Scale out = a*out. Returns out.
