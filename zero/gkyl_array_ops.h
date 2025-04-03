@@ -356,6 +356,9 @@ void gkyl_array_set_cu(struct gkyl_array* out, double a, const struct gkyl_array
 
 void gkyl_array_set_offset_cu(struct gkyl_array* out, double a, const struct gkyl_array* inp, int coff);
 
+void gkyl_array_set_offset_comp_cu(struct gkyl_array* out, double a, const struct gkyl_array* inp,
+   int component_offset_out,  int component_offset_inp, int num_basis);
+
 void gkyl_array_scale_cu(struct gkyl_array* out, double a);
 
 void gkyl_array_scale_by_cell_cu(struct gkyl_array* out, const struct gkyl_array* a);
