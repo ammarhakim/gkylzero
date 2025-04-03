@@ -107,16 +107,20 @@ calc_unmag_heat_flux_1d(const gkyl_ten_moment_grad_closure *gces,
   double alpha = 1.0/gces->k0;
   double vth_avg = sqrt(p_avg/rho_avg);
   
-  heat_flux_d[Q111] = alpha*vth_avg*rho_avg*(dTdx[T11] + dTdx[T11] + dTdx[T11])/3.0;
-  heat_flux_d[Q112] = alpha*vth_avg*rho_avg*(dTdx[T12] + dTdx[T12] + dTdy[T11])/3.0;
-  heat_flux_d[Q113] = alpha*vth_avg*rho_avg*(dTdx[T13] + dTdx[T13] + dTdz[T11])/3.0;
-  heat_flux_d[Q122] = alpha*vth_avg*rho_avg*(dTdx[T22] + dTdy[T12] + dTdy[T12])/3.0;
-  heat_flux_d[Q123] = alpha*vth_avg*rho_avg*(dTdx[T23] + dTdy[T13] + dTdz[T12])/3.0;
-  heat_flux_d[Q133] = alpha*vth_avg*rho_avg*(dTdx[T33] + dTdz[T13] + dTdz[T13])/3.0;
-  heat_flux_d[Q222] = alpha*vth_avg*rho_avg*(dTdy[T22] + dTdy[T22] + dTdy[T22])/3.0;
-  heat_flux_d[Q223] = alpha*vth_avg*rho_avg*(dTdy[T23] + dTdy[T23] + dTdz[T22])/3.0;
-  heat_flux_d[Q233] = alpha*vth_avg*rho_avg*(dTdy[T33] + dTdz[T23] + dTdz[T23])/3.0;
-  heat_flux_d[Q333] = alpha*vth_avg*rho_avg*(dTdz[T33] + dTdz[T33] + dTdz[T33])/3.0;
+  // Temperature is actually T/m due to the formulation of var_setup.
+  // Thus, the mass density rho is used instead of number density n.
+  double chi = alpha*vth_avg*rho_avg;
+
+  heat_flux_d[Q111] = chi*(dTdx[T11] + dTdx[T11] + dTdx[T11])/3.0;
+  heat_flux_d[Q112] = chi*(dTdx[T12] + dTdx[T12] + dTdy[T11])/3.0;
+  heat_flux_d[Q113] = chi*(dTdx[T13] + dTdx[T13] + dTdz[T11])/3.0;
+  heat_flux_d[Q122] = chi*(dTdx[T22] + dTdy[T12] + dTdy[T12])/3.0;
+  heat_flux_d[Q123] = chi*(dTdx[T23] + dTdy[T13] + dTdz[T12])/3.0;
+  heat_flux_d[Q133] = chi*(dTdx[T33] + dTdz[T13] + dTdz[T13])/3.0;
+  heat_flux_d[Q222] = chi*(dTdy[T22] + dTdy[T22] + dTdy[T22])/3.0;
+  heat_flux_d[Q223] = chi*(dTdy[T23] + dTdy[T23] + dTdz[T22])/3.0;
+  heat_flux_d[Q233] = chi*(dTdy[T33] + dTdz[T23] + dTdz[T23])/3.0;
+  heat_flux_d[Q333] = chi*(dTdz[T33] + dTdz[T33] + dTdz[T33])/3.0;
 
   double cfla = dt/(dx*dx);
   return fmax(alpha*vth_avg*cfla, cfl);
@@ -172,16 +176,21 @@ calc_unmag_heat_flux_2d(const gkyl_ten_moment_grad_closure *gces,
 
   double alpha = 1.0/gces->k0;
   double vth_avg = sqrt(p_avg/rho_avg);
-  heat_flux_d[Q111] = alpha*vth_avg*rho_avg*(dTdx[T11] + dTdx[T11] + dTdx[T11])/3.0;
-  heat_flux_d[Q112] = alpha*vth_avg*rho_avg*(dTdx[T12] + dTdx[T12] + dTdy[T11])/3.0;
-  heat_flux_d[Q113] = alpha*vth_avg*rho_avg*(dTdx[T13] + dTdx[T13] + dTdz[T11])/3.0;
-  heat_flux_d[Q122] = alpha*vth_avg*rho_avg*(dTdx[T22] + dTdy[T12] + dTdy[T12])/3.0;
-  heat_flux_d[Q123] = alpha*vth_avg*rho_avg*(dTdx[T23] + dTdy[T13] + dTdz[T12])/3.0;
-  heat_flux_d[Q133] = alpha*vth_avg*rho_avg*(dTdx[T33] + dTdz[T13] + dTdz[T13])/3.0;
-  heat_flux_d[Q222] = alpha*vth_avg*rho_avg*(dTdy[T22] + dTdy[T22] + dTdy[T22])/3.0;
-  heat_flux_d[Q223] = alpha*vth_avg*rho_avg*(dTdy[T23] + dTdy[T23] + dTdz[T22])/3.0;
-  heat_flux_d[Q233] = alpha*vth_avg*rho_avg*(dTdy[T33] + dTdz[T23] + dTdz[T23])/3.0;
-  heat_flux_d[Q333] = alpha*vth_avg*rho_avg*(dTdz[T33] + dTdz[T33] + dTdz[T33])/3.0;
+
+  // Temperature is actually T/m due to the formulation of var_setup.
+  // Thus, the mass density rho is used instead of number density n.
+  double chi = alpha*vth_avg*rho_avg;
+
+  heat_flux_d[Q111] = chi*(dTdx[T11] + dTdx[T11] + dTdx[T11])/3.0;
+  heat_flux_d[Q112] = chi*(dTdx[T12] + dTdx[T12] + dTdy[T11])/3.0;
+  heat_flux_d[Q113] = chi*(dTdx[T13] + dTdx[T13] + dTdz[T11])/3.0;
+  heat_flux_d[Q122] = chi*(dTdx[T22] + dTdy[T12] + dTdy[T12])/3.0;
+  heat_flux_d[Q123] = chi*(dTdx[T23] + dTdy[T13] + dTdz[T12])/3.0;
+  heat_flux_d[Q133] = chi*(dTdx[T33] + dTdz[T13] + dTdz[T13])/3.0;
+  heat_flux_d[Q222] = chi*(dTdy[T22] + dTdy[T22] + dTdy[T22])/3.0;
+  heat_flux_d[Q223] = chi*(dTdy[T23] + dTdy[T23] + dTdz[T22])/3.0;
+  heat_flux_d[Q233] = chi*(dTdy[T33] + dTdz[T23] + dTdz[T23])/3.0;
+  heat_flux_d[Q333] = chi*(dTdz[T33] + dTdz[T33] + dTdz[T33])/3.0;
 
   double da = fmin(dx, dy);
   double cfla = dt/(da*da);
@@ -273,16 +282,21 @@ calc_unmag_heat_flux_3d(const gkyl_ten_moment_grad_closure *gces,
   
   double alpha = 1.0/gces->k0;
   double vth_avg = sqrt(p_avg/rho_avg);
-  heat_flux_d[Q111] = alpha*vth_avg*rho_avg*(dTdx[T11] + dTdx[T11] + dTdx[T11])/3.0;
-  heat_flux_d[Q112] = alpha*vth_avg*rho_avg*(dTdx[T12] + dTdx[T12] + dTdy[T11])/3.0;
-  heat_flux_d[Q113] = alpha*vth_avg*rho_avg*(dTdx[T13] + dTdx[T13] + dTdz[T11])/3.0;
-  heat_flux_d[Q122] = alpha*vth_avg*rho_avg*(dTdx[T22] + dTdy[T12] + dTdy[T12])/3.0;
-  heat_flux_d[Q123] = alpha*vth_avg*rho_avg*(dTdx[T23] + dTdy[T13] + dTdz[T12])/3.0;
-  heat_flux_d[Q133] = alpha*vth_avg*rho_avg*(dTdx[T33] + dTdz[T13] + dTdz[T13])/3.0;
-  heat_flux_d[Q222] = alpha*vth_avg*rho_avg*(dTdy[T22] + dTdy[T22] + dTdy[T22])/3.0;
-  heat_flux_d[Q223] = alpha*vth_avg*rho_avg*(dTdy[T23] + dTdy[T23] + dTdz[T22])/3.0;
-  heat_flux_d[Q233] = alpha*vth_avg*rho_avg*(dTdy[T33] + dTdz[T23] + dTdz[T23])/3.0;
-  heat_flux_d[Q333] = alpha*vth_avg*rho_avg*(dTdz[T33] + dTdz[T33] + dTdz[T33])/3.0;
+
+  // Temperature is actually T/m due to the formulation of var_setup.
+  // Thus, the mass density rho is used instead of number density n.
+  double chi = alpha*vth_avg*rho_avg;
+
+  heat_flux_d[Q111] = chi*(dTdx[T11] + dTdx[T11] + dTdx[T11])/3.0;
+  heat_flux_d[Q112] = chi*(dTdx[T12] + dTdx[T12] + dTdy[T11])/3.0;
+  heat_flux_d[Q113] = chi*(dTdx[T13] + dTdx[T13] + dTdz[T11])/3.0;
+  heat_flux_d[Q122] = chi*(dTdx[T22] + dTdy[T12] + dTdy[T12])/3.0;
+  heat_flux_d[Q123] = chi*(dTdx[T23] + dTdy[T13] + dTdz[T12])/3.0;
+  heat_flux_d[Q133] = chi*(dTdx[T33] + dTdz[T13] + dTdz[T13])/3.0;
+  heat_flux_d[Q222] = chi*(dTdy[T22] + dTdy[T22] + dTdy[T22])/3.0;
+  heat_flux_d[Q223] = chi*(dTdy[T23] + dTdy[T23] + dTdz[T22])/3.0;
+  heat_flux_d[Q233] = chi*(dTdy[T33] + dTdz[T23] + dTdz[T23])/3.0;
+  heat_flux_d[Q333] = chi*(dTdz[T33] + dTdz[T33] + dTdz[T33])/3.0;
 
   double da = fmin(fmin(dx, dy), dz);
   double cfla = dt/(da*da);
