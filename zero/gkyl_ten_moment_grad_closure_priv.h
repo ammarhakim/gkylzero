@@ -1,7 +1,8 @@
 #include <gkyl_moment_non_ideal_priv.h>
 
-typedef void (*heat_flux_calc_t)(const gkyl_ten_moment_grad_closure *gces,
-  const double *fluid_d[], double *cflrate, double *heat_flux_d);
+typedef double (*heat_flux_calc_t)(const gkyl_ten_moment_grad_closure *gces,
+  const double *fluid_d[], double *cflrate, double *heat_flux_d, double cfl,
+  double dt);
 
 typedef void (*update_calc_t)(const gkyl_ten_moment_grad_closure *gces,
   const double *heat_flux_d[], double *rhs);
@@ -10,6 +11,8 @@ struct gkyl_ten_moment_grad_closure {
   struct gkyl_rect_grid grid; // grid object
   int ndim; // number of dimensions
   double k0; // damping coefficient
+  double cfl; // CFL number to use
+  struct gkyl_comm *comm;
 
   heat_flux_calc_t calc_q;
   update_calc_t calc_rhs;
@@ -73,9 +76,10 @@ var_setup(const gkyl_ten_moment_grad_closure *gces,
   }
 }
 
-static void
+double
 calc_unmag_heat_flux_1d(const gkyl_ten_moment_grad_closure *gces,
-  const double *fluid_d[], double *cflrate, double *heat_flux_d)
+  const double *fluid_d[], double *cflrate, double *heat_flux_d,
+  double cfl, double dt)
 {
   const int ndim = gces->ndim;
   double rho_avg = 0.0;
@@ -113,11 +117,15 @@ calc_unmag_heat_flux_1d(const gkyl_ten_moment_grad_closure *gces,
   heat_flux_d[Q223] = alpha*vth_avg*rho_avg*(dTdy[T23] + dTdy[T23] + dTdz[T22])/3.0;
   heat_flux_d[Q233] = alpha*vth_avg*rho_avg*(dTdy[T33] + dTdz[T23] + dTdz[T23])/3.0;
   heat_flux_d[Q333] = alpha*vth_avg*rho_avg*(dTdz[T33] + dTdz[T33] + dTdz[T33])/3.0;
+
+  double cfla = dt/(dx*dx);
+  return fmax(alpha*vth_avg*cfla, cfl);
 }
 
-static void
+double
 calc_unmag_heat_flux_2d(const gkyl_ten_moment_grad_closure *gces,
-  const double *fluid_d[], double *cflrate, double *heat_flux_d)
+  const double *fluid_d[], double *cflrate, double *heat_flux_d,
+  double cfl, double dt)
 {
   const int ndim = gces->ndim;
   double rho_avg = 0.0;
@@ -174,11 +182,16 @@ calc_unmag_heat_flux_2d(const gkyl_ten_moment_grad_closure *gces,
   heat_flux_d[Q223] = alpha*vth_avg*rho_avg*(dTdy[T23] + dTdy[T23] + dTdz[T22])/3.0;
   heat_flux_d[Q233] = alpha*vth_avg*rho_avg*(dTdy[T33] + dTdz[T23] + dTdz[T23])/3.0;
   heat_flux_d[Q333] = alpha*vth_avg*rho_avg*(dTdz[T33] + dTdz[T33] + dTdz[T33])/3.0;
+
+  double da = fmin(dx, dy);
+  double cfla = dt/(da*da);
+  return fmax(alpha*vth_avg*cfla, cfl);
 }
 
-static void
+double
 calc_unmag_heat_flux_3d(const gkyl_ten_moment_grad_closure *gces,
-  const double *fluid_d[], double *cflrate, double *heat_flux_d)
+  const double *fluid_d[], double *cflrate, double *heat_flux_d,
+  double cfl, double dt)
 {
   const int ndim = gces->ndim;
   double rho_avg = 0.0;
@@ -270,6 +283,10 @@ calc_unmag_heat_flux_3d(const gkyl_ten_moment_grad_closure *gces,
   heat_flux_d[Q223] = alpha*vth_avg*rho_avg*(dTdy[T23] + dTdy[T23] + dTdz[T22])/3.0;
   heat_flux_d[Q233] = alpha*vth_avg*rho_avg*(dTdy[T33] + dTdz[T23] + dTdz[T23])/3.0;
   heat_flux_d[Q333] = alpha*vth_avg*rho_avg*(dTdz[T33] + dTdz[T33] + dTdz[T33])/3.0;
+
+  double da = fmin(fmin(dx, dy), dz);
+  double cfla = dt/(da*da);
+  return fmax(alpha*vth_avg*cfla, cfl);
 }
 
 static void

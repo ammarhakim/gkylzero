@@ -142,6 +142,8 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       struct gkyl_ten_moment_grad_closure_inp grad_closure_inp = {
         .grid = &app->grid,
         .k0 = app->species[i].k0,
+        .cfl = app->cfl,
+        .comm = app->comm,
       };
       src->grad_closure_slvr[i] = gkyl_ten_moment_grad_closure_new(grad_closure_inp);
     }
@@ -180,7 +182,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
 
 // update sources: 'nstrang' is 0 for the first Strang step and 1 for
 // the second step
-void
+struct gkyl_update_status
 moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   int nstrang, double tcurr, double dt)
 {
@@ -189,6 +191,9 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   const struct gkyl_array *app_accels[GKYL_MAX_SPECIES];
   const struct gkyl_array *pr_rhs_const[GKYL_MAX_SPECIES];
   const struct gkyl_array *nT_sources[GKYL_MAX_SPECIES];
+
+  double dt_suggested = DBL_MAX;
+  struct gkyl_ten_moment_grad_closure_status stat;
 
   for (int i=0; i<app->num_species; ++i) {
     fluids[i] = app->species[i].f[sidx[nstrang]];
@@ -208,10 +213,18 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
     if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_grad_closure) {
       // non-ideal variables defined on an extended range with one additional "cell" in each direction
       // this additional cell accounts for the fact that non-ideal variables are stored at cell vertices
-      gkyl_ten_moment_grad_closure_advance(src->grad_closure_slvr[i],
+      stat = gkyl_ten_moment_grad_closure_advance(src->grad_closure_slvr[i],
         &src->non_ideal_local_ext, &app->local,
         app->species[i].f[sidx[nstrang]], app->field.f[sidx[nstrang]],
-        src->non_ideal_cflrate[i], src->non_ideal_vars[i], src->pr_rhs[i]);
+        src->non_ideal_cflrate[i], dt, src->non_ideal_vars[i], src->pr_rhs[i]); 
+
+      if (!stat.success)
+        return (struct gkyl_update_status) {
+          .success = false,
+          .dt_suggested = stat.dt_suggested
+        };
+
+      dt_suggested = fmin(dt_suggested, stat.dt_suggested);
     }
   }
 
@@ -276,6 +289,10 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   if (app->has_field) {
     moment_field_apply_bc(app, tcurr, &app->field, app->field.f[sidx[nstrang]]);
   }
+  return (struct gkyl_update_status) {
+    .success = true,
+    .dt_suggested = dt_suggested
+  };
 }
 
 // free sources
