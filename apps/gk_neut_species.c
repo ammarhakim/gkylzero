@@ -11,7 +11,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_array_rio_priv.h>
 #include <gkyl_dg_interpolate.h>
-#include <gkyl_translate_dim_gyrokinetic.h>
+#include <gkyl_translate_dim.h>
 
 #include <assert.h>
 #include <time.h>
@@ -417,7 +417,8 @@ gk_neut_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk
     gkyl_free(s->red_integ_diag_global);
   }
 
-  gk_neut_species_bflux_release(app,&s->bflux);
+  // Free boundary flux memory.
+  gk_neut_species_bflux_release(app, s, &s->bflux);
   
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
@@ -562,14 +563,31 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
   if (s->info.collisions.collision_id == GKYL_BGK_COLLISIONS) {
     gk_neut_species_bgk_init(app, s, &s->bgk);
   }
-  // Determin reaction type(s) and initialize them. 
+  // Determine reaction type(s) and initialize them. 
   if (s->info.react_neut.num_react) {
     gk_neut_species_react_init(app, s, s->info.react_neut, &s->react_neut);
   }
 
-  // initialize boundary fluxes for diagnostics and bcs
+  // Initialize boundary fluxes.
   s->bflux = (struct gk_boundary_fluxes) { };
-  gk_neut_species_bflux_init(app, s, &s->bflux); 
+  // Additional bflux moments to step in time.
+  struct gkyl_phase_diagnostics_inp add_bflux_moms_inp = (struct gkyl_phase_diagnostics_inp) { };
+  // Set the operation type for the bflux app.
+  enum gkyl_species_bflux_type bflux_type = GK_SPECIES_BFLUX_NONE;
+  if (s->info.boundary_flux_diagnostics.num_diag_moments > 0 ||
+      s->info.boundary_flux_diagnostics.num_integrated_diag_moments > 0) {
+    bflux_type = GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS_DIAGS;
+  }
+  else {
+    // Set bflux_type to 
+    //   - GK_SPECIES_BFLUX_CALC_FLUX to only put bfluxes in ghost cells of rhs.
+    //   - GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS to calc bfluxes and step its moments.
+    // The latter also requires that you place the moment you desire in add_bflux_moms_inp below.
+    if (s->lower_bc[cdim-1].type == GKYL_SPECIES_RECYCLE || s->upper_bc[cdim-1].type == GKYL_SPECIES_RECYCLE)
+      bflux_type = GK_SPECIES_BFLUX_CALC_FLUX;
+  }
+  // Introduce new moments into moms_inp if needed.
+  gk_species_bflux_init(app, s, &s->bflux, bflux_type, add_bflux_moms_inp);
   
   // Allocate buffer needed for BCs.
   long buff_sz = 0;
@@ -591,7 +609,7 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
       // Initilize fixed func bc object to project the unit Maxwellian in ghost
       s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, GKYL_BC_FIXED_FUNC, s->basis_on_dev,
         &s->lower_skin[d], &s->lower_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
-      // project unit Maxwellian
+      // Project unit Maxwellian.
       struct gk_proj gk_proj_bc_lo;
       gk_neut_species_projection_init(app, s, s->lower_bc[d].projection, &gk_proj_bc_lo);
       gk_neut_species_projection_calc(app, s, &gk_proj_bc_lo, s->f1, 0.0); // Temporarily use f1.
@@ -609,7 +627,7 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
         bctype = GKYL_BC_ABSORB;
       }
       else if (s->lower_bc[d].type == GKYL_SPECIES_REFLECT) {
-        bctype = GKYL_BC_REFLECT;
+        bctype = GKYL_BC_DISTF_REFLECT;
       }
       else if (s->lower_bc[d].type == GKYL_SPECIES_FIXED_FUNC) {
         bctype = GKYL_BC_FIXED_FUNC;
@@ -654,7 +672,7 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
         bctype = GKYL_BC_ABSORB;
       }
       else if (s->upper_bc[d].type == GKYL_SPECIES_REFLECT) {
-        bctype = GKYL_BC_REFLECT;
+        bctype = GKYL_BC_DISTF_REFLECT;
       }
       else if (s->upper_bc[d].type == GKYL_SPECIES_FIXED_FUNC) {
         bctype = GKYL_BC_FIXED_FUNC;
@@ -845,10 +863,10 @@ gk_neut_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
   }
 
   if (pdim_do == pdim-1) {
-    struct gkyl_translate_dim_gyrokinetic* transdim = gkyl_translate_dim_gyrokinetic_new(cdim_do,
-      basis_do, cdim, s->basis, app->use_gpu);
-    gkyl_translate_dim_gyrokinetic_advance(transdim, &local_do, &s->local, fdo, s->f);
-    gkyl_translate_dim_gyrokinetic_release(transdim);
+    struct gkyl_translate_dim* transdim = gkyl_translate_dim_new(cdim_do,
+      basis_do, cdim, s->basis, -1, GKYL_NO_EDGE, app->use_gpu);
+    gkyl_translate_dim_advance(transdim, &local_do, &s->local, fdo, 1, s->f);
+    gkyl_translate_dim_release(transdim);
   }
   else {
     if (same_res) {
