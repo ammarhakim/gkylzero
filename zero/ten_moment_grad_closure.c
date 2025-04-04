@@ -54,8 +54,7 @@ gkyl_ten_moment_grad_closure_new(struct gkyl_ten_moment_grad_closure_inp inp)
     up->comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) { } );
 
   grad_closure_calc_q_choose(up);
-  grad_closure_calc_rhs_choose(up);
-
+  
   return up;
 }
 
@@ -80,9 +79,7 @@ gkyl_ten_moment_grad_closure_advance(const gkyl_ten_moment_grad_closure *gces,
 
   const double* fluid_d[sz[ndim-1]];
   const double* em_tot_d[sz[ndim-1]];
-  double *heat_flux_d;
-  const double* heat_flux_up[sz[ndim-1]];
-  double *rhs_d;
+  double *rhs_d[sz[ndim-1]];
 
   struct gkyl_range_iter iter_vertex;
   gkyl_range_iter_init(&iter_vertex, heat_flux_range);
@@ -94,31 +91,15 @@ gkyl_ten_moment_grad_closure_advance(const gkyl_ten_moment_grad_closure *gces,
     for (int i=0; i<sz[ndim-1]; ++i) {
       em_tot_d[i] =  gkyl_array_cfetch(em_tot, linc_center + offsets_vertices[i]);
       fluid_d[i] = gkyl_array_cfetch(fluid, linc_center + offsets_vertices[i]);
+      rhs_d[i] = gkyl_array_fetch(rhs, linc_center + offsets_vertices[i]);
     }
 
-    heat_flux_d = gkyl_array_fetch(heat_flux, linc_vertex);
-
     cfla = gces->calc_q(gces, fluid_d, gkyl_array_fetch(cflrate, linc_center),
-      heat_flux_d, cfla, dt);
+      cfla, dt, rhs_d);
   }
 
   if (cfla > cflm)
     is_cfl_violated = 1.0;
-
-  struct gkyl_range_iter iter_center;
-  gkyl_range_iter_init(&iter_center, update_range);
-  while (gkyl_range_iter_next(&iter_center)) {
-
-    long linc_vertex = gkyl_range_idx(heat_flux_range, iter_center.idx);
-    long linc_center = gkyl_range_idx(update_range, iter_center.idx);
-
-    for (int i=0; i<sz[ndim-1]; ++i)
-      heat_flux_up[i] = gkyl_array_fetch(heat_flux, linc_vertex + offsets_centers[i]);
-
-    rhs_d = gkyl_array_fetch(rhs, linc_center);
-
-    gces->calc_rhs(gces, heat_flux_up, rhs_d);
-  }
 
   // compute actual CFL, status & max-speed across all domains
   double red_vars[2] = { cfla, is_cfl_violated };
