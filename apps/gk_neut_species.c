@@ -21,12 +21,13 @@
 
 static double
 gk_neut_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
-  const struct gkyl_array *fin, struct gkyl_array *rhs)
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
 {
   double omega_cfl = 1/DBL_MAX;   
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
   
+  // Collisionless terms.
   gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
     fin, species->cflrate, rhs);
 
@@ -37,6 +38,12 @@ gk_neut_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_species *s
   if (species->react_neut.num_react) {
     gk_neut_species_react_rhs(app, species, &species->react_neut, fin, rhs);
   }
+  
+  // Compute and store (in the ghost cell of rhs) the boundary fluxes.
+  gk_neut_species_bflux_rhs(app, &species->bflux, fin, rhs);
+
+  // Compute diagnostic moments of the boundary fluxes.
+  gk_neut_species_bflux_calc_moms(app, &species->bflux, rhs, bflux_moms);
   
   app->stat.n_neut_species_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
@@ -88,7 +95,7 @@ gk_neut_species_rhs_implicit_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_s
 
 static double
 gk_neut_species_rhs_static(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
-  const struct gkyl_array *fin, struct gkyl_array *rhs)
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
 {
   double omega_cfl = 1/DBL_MAX;
   return app->cfl/omega_cfl;
@@ -585,7 +592,7 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
     // The latter also requires that you place the moment you desire in add_bflux_moms_inp below.
   }
   // Introduce new moments into moms_inp if needed.
-  gk_species_bflux_init(app, s, &s->bflux, bflux_type, add_bflux_moms_inp);
+  gk_neut_species_bflux_init(app, s, &s->bflux, bflux_type, add_bflux_moms_inp);
   
   // Allocate buffer needed for BCs.
   long buff_sz = 0;
@@ -1122,9 +1129,9 @@ gk_neut_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_neut_species *spec
 // time-step.
 double
 gk_neut_species_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
-  const struct gkyl_array *fin, struct gkyl_array *rhs) 
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms) 
 {
-  return species->rhs_func(app, species, fin, rhs);
+  return species->rhs_func(app, species, fin, rhs, bflux_moms);
 }
 
 // Compute the implicit RHS for species update, returning maximum stable

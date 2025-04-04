@@ -1,8 +1,6 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_translate_dim.h>
-// #include <gkyl_mom_canonical_pb.h>
-//#include <gkyl_dg_updater_moment.h>
 
 static int
 gk_neut_species_bflux_idx(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge) {
@@ -465,7 +463,7 @@ gk_neut_species_bflux_write_mom_dynamic(gkyl_gyrokinetic_app* app, void *species
         snprintf(fileNm, sizeof fileNm, fmt, app->name, gkns->info.name, vars[dir], edge[edi], mom_name, frame);
         
         // For now copy the moment to the skin ghost and write it out.
-        int mom_idx = bflux->diag_int_mom_idx[m];
+        int mom_idx = bflux->diag_mom_idx[m];
         gkyl_array_copy_range_to_range(bflux->moms_op[mom_idx].marr, bflux->moms_op[mom_idx].marr,
           bflux->boundaries_conf_skin[b], bflux->boundaries_conf_ghost[b]);
 

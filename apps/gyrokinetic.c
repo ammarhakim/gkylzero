@@ -1067,6 +1067,13 @@ gkyl_gyrokinetic_app_calc_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_
 }
 
 void
+gkyl_gyrokinetic_app_calc_neut_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_app* app, int sidx, double tm)
+{
+  struct gk_neut_species *gkns = &app->neut_species[sidx];
+  gk_neut_species_bflux_calc_integrated_mom(app, gkns, &gkns->bflux, tm);
+}
+
+void
 gkyl_gyrokinetic_app_write_species_integrated_mom(gkyl_gyrokinetic_app *app, int sidx)
 {
   struct gk_species *gks = &app->species[sidx];
@@ -1106,6 +1113,20 @@ gkyl_gyrokinetic_app_write_species_boundary_flux_mom(gkyl_gyrokinetic_app *app, 
 {
   struct gk_species *gks = &app->species[sidx];
   gk_species_bflux_write_mom(app, gks, &gks->bflux, tm, frame);
+}
+
+void
+gkyl_gyrokinetic_app_write_neut_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_app *app, int sidx)
+{
+  struct gk_neut_species *gkns = &app->neut_species[sidx];
+  gk_neut_species_bflux_write_integrated_mom(app, gkns, &gkns->bflux);
+}
+
+void
+gkyl_gyrokinetic_app_write_neut_species_boundary_flux_mom(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame)
+{
+  struct gk_neut_species *gkns = &app->neut_species[sidx];
+  gk_neut_species_bflux_write_mom(app, gkns, &gkns->bflux, tm, frame);
 }
 
 //
@@ -1315,7 +1336,10 @@ gkyl_gyrokinetic_app_write_neut_species_conf(gkyl_gyrokinetic_app* app, int sidx
   for (int j=0; j<gkns->react_neut.num_react; ++j) {
     gkyl_gyrokinetic_app_write_neut_species_react_neut(app, sidx, j, tm, frame);
   }
+
   gk_neut_species_recycle_write_flux(app, gkns, &gkns->bc_recycle_lo, tm, frame);
+
+  gkyl_gyrokinetic_app_write_neut_species_boundary_flux_mom(app, sidx, tm, frame);
 }
 
 //
@@ -1335,6 +1359,7 @@ gkyl_gyrokinetic_app_write_mom(gkyl_gyrokinetic_app* app, double tm, int frame)
   for (int i=0; i<app->num_neut_species; ++i) {
     gkyl_gyrokinetic_app_write_neut_species_mom(app, i, tm, frame);
     gkyl_gyrokinetic_app_write_neut_species_source_mom(app, i, tm, frame);
+    gkyl_gyrokinetic_app_write_neut_species_boundary_flux_mom(app, i, tm, frame);
   }
 }
 
@@ -1351,6 +1376,7 @@ gkyl_gyrokinetic_app_calc_integrated_mom(gkyl_gyrokinetic_app* app, double tm)
   for (int i=0; i<app->num_neut_species; ++i) {
     gkyl_gyrokinetic_app_calc_neut_species_integrated_mom(app, i, tm);
     gkyl_gyrokinetic_app_calc_neut_species_source_integrated_mom(app, i, tm);
+    gkyl_gyrokinetic_app_calc_neut_species_boundary_flux_integrated_mom(app, i, tm);
   }
 }
 
@@ -1377,6 +1403,7 @@ gkyl_gyrokinetic_app_write_integrated_mom(gkyl_gyrokinetic_app *app)
     gkyl_gyrokinetic_app_write_neut_species_integrated_mom(app, i);
     gkyl_gyrokinetic_app_write_neut_species_source_integrated_mom(app, i);
     gkyl_gyrokinetic_app_write_neut_species_lte_max_corr_status(app, i);
+    gkyl_gyrokinetic_app_write_neut_species_boundary_flux_integrated_mom(app, i);
   }
 }
 
@@ -1428,7 +1455,7 @@ gkyl_gyrokinetic_app_write(gkyl_gyrokinetic_app* app, double tm, int frame)
 void
 gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
-  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], 
+  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[], 
   struct gkyl_update_status *st)
 {
   double dtmin = DBL_MAX;
@@ -1486,16 +1513,17 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     }
   }
 
-  // Compute RHS of Gyrokinetic equation.
+  // Compute collisionless terms of charged species.
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
     double dt1 = gk_species_rhs(app, s, fin[i], fout[i], bflux_out[i]);
     dtmin = fmin(dtmin, dt1);
   }
 
-  // Compute RHS of neutrals.
+  // Compute collisionless terms of neutrals.
   for (int i=0; i<app->num_neut_species; ++i) {
-    double dt1 = gk_neut_species_rhs(app, &app->neut_species[i], fin_neut[i], fout_neut[i]);
+    struct gk_neut_species *s = &app->neut_species[i];
+    double dt1 = gk_neut_species_rhs(app, s, fin_neut[i], fout_neut[i], bflux_out_neut[i]);
     dtmin = fmin(dtmin, dt1);
   }
 
@@ -2245,9 +2273,8 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
   if (app->num_species > 0)
     gkyl_free(app->species);
 
-  for (int i=0; i<app->num_neut_species; ++i) {
+  for (int i=0; i<app->num_neut_species; ++i)
     gk_neut_species_release(app, &app->neut_species[i]);
-  }
   if (app->num_neut_species > 0)
     gkyl_free(app->neut_species);
 

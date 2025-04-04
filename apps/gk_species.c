@@ -118,10 +118,10 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
     gk_species_react_rhs(app, species, &species->react_neut, fin, rhs);
   }
 
-  // Compute and store (in the ghost cell of of out) the boundary fluxes.
+  // Compute and store (in the ghost cell of rhs) the boundary fluxes.
   gk_species_bflux_rhs(app, &species->bflux, fin, rhs);
 
-  // Compute diagnostic moments of the boundar fluxes.
+  // Compute diagnostic moments of the boundary fluxes.
   gk_species_bflux_calc_moms(app, &species->bflux, rhs, bflux_moms);
   
   // Reduce the CFL frequency anc compute stable dt needed by this species.
@@ -1629,7 +1629,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->lte = (struct gk_lte) { };
   bool correct_all_moms = gks->info.correct.correct_all_moms;
   int max_iter = gks->info.correct.max_iter > 0 ? gks->info.correct.max_iter : 50;
-  double iter_eps = gks->info.correct.iter_eps > 0 ? gks->info.correct.iter_eps  : 1e-10;
+  double iter_eps = gks->info.correct.iter_eps > 0 ? gks->info.correct.iter_eps : 1e-10;
   bool use_last_converged = gks->info.correct.use_last_converged;
   struct correct_all_moms_inp corr_inp = { .correct_all_moms = correct_all_moms, 
     .max_iter = max_iter, .iter_eps = iter_eps, 

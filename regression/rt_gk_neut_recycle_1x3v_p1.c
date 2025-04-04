@@ -382,11 +382,7 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr
     int frame = (!trig_now) && force_write? iot->curr : iot->curr-1;
 
     gkyl_gyrokinetic_app_write(app, t_curr, frame);
-
-    gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
     gkyl_gyrokinetic_app_write_field_energy(app);
-
-    gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
     gkyl_gyrokinetic_app_write_integrated_mom(app);
   }
 }
@@ -516,17 +512,16 @@ main(int argc, char **argv)
         { .react_id = GKYL_REACT_IZ,
           .type_self = GKYL_SELF_DONOR,
           .ion_id = GKYL_ION_H,
-    	  .elc_nm = "elc",
+          .elc_nm = "elc",
           .ion_nm = "ion",
           .donor_nm = "neut",
-	  .charge_state = 0,
+          .charge_state = 0,
           .ion_mass = ctx.mass_ion,
           .elc_mass = ctx.mass_elc,
         },
 	{ .react_id = GKYL_REACT_CX,
           .type_self = GKYL_SELF_PARTNER,
           .ion_id = GKYL_ION_H,
-    	  .elc_nm = "elc", // gets called for other rxn. fix this?
           .ion_nm = "ion",
           .partner_nm = "neut",
           .ion_mass = ctx.mass_ion,
@@ -565,8 +560,13 @@ main(int argc, char **argv)
     },
     
     
-    .num_diag_moments = 4,
-    .diag_moments = { "M0", "M1i", "M2", "LTEMoments"},
+    .num_diag_moments = 3,
+    .diag_moments = { "M1i_from_H", "MEnergy", "LTEMoments"},
+    .boundary_flux_diagnostics = {
+      .num_diag_moments = 1,
+      .diag_moments = { "MEnergy" },
+//      .time_integrated = true,
+    },
   };
 
   // Field.

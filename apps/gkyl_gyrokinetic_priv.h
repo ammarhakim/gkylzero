@@ -136,14 +136,9 @@ is_moment_name_valid(const char *nm)
 // list of valid moment names for neutrals
 static const char *const valid_neut_moment_names[] = {
   "M0",
-  "M1i",
-  "M2ij",
-  "M2",
-  "M3i",
-  "M3ijk",
-  "FiveMoments",
-  "LTEMoments", // this is an internal flag for computing moments (n, V_drift, T/m)
-                // of the LTE (local thermodynamic equilibrium) distribution
+  "M1i_from_H",
+  "MEnergy",
+  "LTEMoments", // M0, contra_to_cov(M1i_from_H), T/m) of the LTE (local thermodynamic equilibrium) distribution.
   "Integrated", // this is an internal flag, not for passing to moment type
 };
 
@@ -879,7 +874,7 @@ struct gk_neut_species {
 
   // pointer to rhs functions
   double (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
-    const struct gkyl_array *fin, struct gkyl_array *rhs);
+    const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
   double (*rhs_implicit_func)(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
     const struct gkyl_array *fin, struct gkyl_array *rhs, double dt);
   void (*bc_func)(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
@@ -2705,10 +2700,11 @@ void gk_neut_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_neut_species 
  * @param species Pointer to neutral species
  * @param fin Input distribution function
  * @param rhs On output, the RHS from the neutral species object (df/dt)
+ * @param bflux_moms Output boundary flux moments (for diagnostics, stepped in time).
  * @return Maximum stable time-step
  */
 double gk_neut_species_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
-  const struct gkyl_array *fin, struct gkyl_array *rhs);
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
 
 /**
  * Compute the *implicit* RHS from neutral species distribution function
@@ -2945,11 +2941,12 @@ void gyrokinetic_calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr
  * @param bflux_out Output array of charged-species boundary fluxes.
  * @param fin_neut Input array of neutral-species distribution functions.
  * @param fout_neut Output array of neutral-species distribution functions.
+ * @param bflux_out_neut Output array of neutral-species boundary fluxes.
  * @param st Time stepping status object.
  */
 void gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
-  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], 
+  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[],
   struct gkyl_update_status *st); 
 
 /**
