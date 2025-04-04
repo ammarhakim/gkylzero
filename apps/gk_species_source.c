@@ -152,22 +152,6 @@ gk_species_source_adapt(gkyl_gyrokinetic_app *app, struct gk_species *s,
       adapt_src->energy_rate_loss += 0.5 * s->info.mass * red_int_mom_global[num_mom-1]; // 1/2 * m * v^2
     }
 
-    // // Compute the current particle injection rate.
-    // struct gkyl_array_integrate *int_op = gkyl_array_integrate_new(&app->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_NONE, app->use_gpu);
-    // double *dens_int = app->use_gpu? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
-    // gkyl_array_integrate_advance(int_op, src->proj_source[k].dens, 1.0, NULL, &app->local, NULL, dens_int);
-    // double dens_int_ho;
-    // if (app->use_gpu) {
-    //   gkyl_cu_memcpy(&dens_int_ho, dens_int, sizeof(double), GKYL_CU_MEMCPY_D2H);
-    //   gkyl_cu_free(dens_int);
-    // } else {
-    //   memcpy(&dens_int_ho, dens_int, sizeof(double));
-    //   gkyl_free(dens_int);
-    // }
-
-    // adapt_src->particle_src_curr = dens_int_ho;
-    // adapt_src->energy_src_curr = 3./2. * dens_int_ho * adapt_src->temperature_curr;
-    
     // Particle and energy rate update.
     // balance = user target + loss
     double particle_src_new = adapt_src->adapt_particle? 

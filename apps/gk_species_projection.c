@@ -236,14 +236,14 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
 
     // reduce the result through all MPI processes
     double *red_Jgauss_int = app->use_gpu? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, red_Jgauss_int, Jgauss_int);
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, Jgauss_int, red_Jgauss_int);
     
     double red_Jgauss_int_ho[1];
     if (app->use_gpu)
       gkyl_cu_memcpy(red_Jgauss_int_ho, red_Jgauss_int, sizeof(double), GKYL_CU_MEMCPY_D2H);
     else
       memcpy(red_Jgauss_int_ho, red_Jgauss_int, sizeof(double));
-    
+
     // Scale moments according to initial input values.
     gkyl_array_scale(proj->dens, inp.particle/red_Jgauss_int_ho[0]);
     gkyl_array_clear(proj->upar, 0.0); // No source flow.

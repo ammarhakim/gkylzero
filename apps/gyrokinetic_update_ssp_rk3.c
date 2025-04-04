@@ -208,57 +208,6 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
 	    gk_neut_species_copy_range(gkns, gkns->f, gkns->f1, &gkns->local_ext);
           }
 
-          // Verify the final power (to be removed later).
-          if (true) {
-            double total_power_loss = 0.0;
-            double total_part_loss = 0.0;
-            double total_power_src = 0.0;
-            double total_part_src = 0.0;
-            for (int i=0; i<app->num_species; ++i) {     
-              struct gk_species *gks = &app->species[i];
-
-              struct gk_source *src = &gks->src;
-              double power_loss = 0.0;
-              double part_loss = 0.0;
-              for (int k = 0; k < gks->src.num_adapt_sources; ++k) {
-                struct gk_adapt_source *adapt_src = &gks->src.adapt[k];
-                // Compute the energy and particle loss rates.
-                part_loss += adapt_src->particle_rate_loss;
-                power_loss += adapt_src->energy_rate_loss;
-              }
-              total_part_loss += part_loss;
-              total_power_loss += power_loss;
-
-              struct gk_adapt_source *adapt_src = &gks->src.adapt[0];
-              // Compute the energy and particle injection rates after adaptation of the source.
-              int num_mom = adapt_src->integ_mom.num_mom;
-              gk_species_moment_calc(&adapt_src->integ_mom, gks->local, app->local, src->source);
-              app->stat.n_mom += 1;
-
-              double red_int_mom_global[num_mom];
-              gkyl_array_reduce_range(adapt_src->red_integ_mom, adapt_src->integ_mom.marr, GKYL_SUM, &app->local);
-              gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, adapt_src->red_integ_mom, adapt_src->red_integ_mom_global);
-              if (app->use_gpu) {
-                gkyl_cu_memcpy(red_int_mom_global, adapt_src->red_integ_mom_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
-              }
-              else {
-                memcpy(red_int_mom_global, adapt_src->red_integ_mom_global, sizeof(double[num_mom]));
-              }
-              double part_src = red_int_mom_global[0];
-              double power_src = 0.5 * gks->info.mass * red_int_mom_global[num_mom-1];
-              double temp_src = 2./3. * power_src/part_src;
-
-              total_part_src += part_src;
-              total_power_src += power_src;
-
-              fprintf(stderr, "%s: %.4f [eV], %.4e [1/s], %.4f [MW], -%.4e [1/s], -%.4f [MW]\n",
-                gks->info.name, temp_src/1.60217662e-19, part_src, power_src/1e6, part_loss, power_loss/1e6);
-            }
-
-            fprintf(stderr, "Bilan: %.4e [1/s], %.4f [MW]\n",
-              total_part_src - total_part_loss, total_power_src*1e-6 - total_power_loss*1e-6);
-          }
-
           if (app->enforce_positivity) {
             // Apply positivity shift if requested.
 	    gkyl_array_clear(app->ps_delta_m0_ions, 0.0);
