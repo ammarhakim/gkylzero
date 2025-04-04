@@ -901,12 +901,10 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
     // Determine which directions are zero-flux.
     bool is_zero_flux[2*GKYL_MAX_DIM] = {false};
     for (int dir=0; dir<app->cdim; ++dir) {
-      if (gks->lower_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
+      if (gks->lower_bc[dir].type == GKYL_SPECIES_ZERO_FLUX)
         is_zero_flux[dir] = true;
-      }
-      if (gks->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
+      if (gks->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX)
         is_zero_flux[dir+pdim] = true;
-      }
     }
 
     gks->diff_slvr = gkyl_dg_updater_diffusion_gyrokinetic_new(&gks->grid, &gks->basis, &app->basis, 
@@ -1454,6 +1452,43 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   // Write out the velocity space mapping and its Jacobian.
   gkyl_velocity_map_write(gks->vel_map, gks->comm, app->name, gks->info.name);
 
+  // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
+  // modify it in GK_IWL BCs without modifying the app's.
+  gks->num_periodic_dir = app->num_periodic_dir;
+  for (int d=0; d<gks->num_periodic_dir; ++d)
+    gks->periodic_dirs[d] = app->periodic_dirs[d];
+
+  for (int d=0; d<app->cdim; ++d) gks->bc_is_np[d] = true;
+  for (int d=0; d<gks->num_periodic_dir; ++d)
+    gks->bc_is_np[gks->periodic_dirs[d]] = false;
+
+  // Store the BCs from the input file.
+  for (int dir=0; dir<app->cdim; ++dir) {
+    gks->lower_bc[dir].type = gks->upper_bc[dir].type = GKYL_SPECIES_COPY;
+    if (gks->bc_is_np[dir]) {
+      const struct gkyl_gyrokinetic_bcs *bc;
+      if (dir == 0)
+        bc = &gks->info.bcx;
+      else if (dir == 1)
+        bc = &gks->info.bcy;
+      else
+        bc = &gks->info.bcz;
+ 
+      gks->lower_bc[dir] = bc->lower;
+      gks->upper_bc[dir] = bc->upper;
+    }
+  }
+ 
+  // Determine which directions are zero-flux. By default
+  // we do not have zero-flux boundary conditions in any direction.
+  bool is_zero_flux[2*GKYL_MAX_DIM] = {false};
+  for (int dir=0; dir<app->cdim; ++dir) {
+    if (gks->lower_bc[dir].type == GKYL_SPECIES_ZERO_FLUX)
+      is_zero_flux[dir] = true;
+    if (gks->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX)
+      is_zero_flux[dir+pdim] = true;
+  }
+
   // Determine field-type.
   gks->gkfield_id = app->field->gkfield_id;
   if (gks->info.no_by) {
@@ -1504,45 +1539,6 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
 
   gks->calc_gk_vars = gkyl_dg_calc_gyrokinetic_vars_new(&gks->grid, &app->basis, &gks->basis, 
     gks->info.charge, gks->info.mass, gks->gkmodel_id, app->gk_geom, gks->vel_map, app->use_gpu);
-
-  // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
-  // modify it in GK_IWL BCs without modifying the app's.
-  gks->num_periodic_dir = app->num_periodic_dir;
-  for (int d=0; d<gks->num_periodic_dir; ++d)
-    gks->periodic_dirs[d] = app->periodic_dirs[d];
-
-  for (int d=0; d<app->cdim; ++d) gks->bc_is_np[d] = true;
-  for (int d=0; d<gks->num_periodic_dir; ++d)
-    gks->bc_is_np[gks->periodic_dirs[d]] = false;
-
-  bool is_zero_flux[2*GKYL_MAX_DIM] = {false};
-  // Store the BCs from the input file.
-  for (int dir=0; dir<app->cdim; ++dir) {
-    gks->lower_bc[dir].type = gks->upper_bc[dir].type = GKYL_SPECIES_COPY;
-    if (gks->bc_is_np[dir]) {
-      const struct gkyl_gyrokinetic_bcs *bc;
-      if (dir == 0)
-        bc = &gks->info.bcx;
-      else if (dir == 1)
-        bc = &gks->info.bcy;
-      else
-        bc = &gks->info.bcz;
- 
-      gks->lower_bc[dir] = bc->lower;
-      gks->upper_bc[dir] = bc->upper;
-    }
-  }
- 
-  // Determine which directions are zero-flux.  By default
-  // we do not have zero-flux boundary conditions in any direction.
-  for (int dir=0; dir<app->cdim; ++dir) {
-    if (gks->lower_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
-      is_zero_flux[dir] = true;
-    }
-    if (gks->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
-      is_zero_flux[dir+pdim] = true;
-    }
-  }
 
   struct gkyl_dg_gyrokinetic_auxfields aux_inp = { .alpha_surf = gks->alpha_surf, 
     .sgn_alpha_surf = gks->sgn_alpha_surf, .const_sgn_alpha = gks->const_sgn_alpha, 
@@ -1878,7 +1874,7 @@ gk_species_write_L2norm(gkyl_gyrokinetic_app* app, struct gk_species *gks)
 void
 gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 {
-  // Release resources for species.
+  // Release resources for charged species.
 
   gkyl_array_release(s->f);
 

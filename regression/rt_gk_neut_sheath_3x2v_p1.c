@@ -916,7 +916,8 @@ main(int argc, char **argv)
 
 
   struct gkyl_gyrokinetic_neut_species D0 = {
-    .name = "D0", .mass = ctx.mass_ion,
+    .name = "D0",
+    .mass = ctx.mass_ion,
     .lower = { -ctx.vmax_neut, -ctx.vmax_neut, -ctx.vmax_neut},
     .upper = { ctx.vmax_neut, ctx.vmax_neut, ctx.vmax_neut },
     .cells = { NMU, NMU, NMU },
@@ -972,40 +973,48 @@ main(int argc, char **argv)
     },
 
     .bcx = {
-      .lower={.type = GKYL_SPECIES_ABSORB,},
-      .upper={.type = GKYL_SPECIES_ABSORB,},
+      .lower = {.type = GKYL_SPECIES_ABSORB,},
+      .upper = {.type = GKYL_SPECIES_ABSORB,},
     },
     .bcz = {
       .lower = {
-        .type = GKYL_SPECIES_RECYCLE,
-    	.emission = neut_bc,
-    	.projection = {
-    	  .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-    	  .ctx_density = &ctx,
-    	  .density = unit_density,
-    	  .ctx_upar = &ctx,
-    	  .udrift= udrift,
-    	  .ctx_temp = &ctx,
-    	  .temp = temp_neut,
-    	},
+        .type = GKYL_SPECIES_ABSORB,
       },
       .upper = {
-        .type = GKYL_SPECIES_RECYCLE,
-        .emission = neut_bc,
-    	.projection = {
-    	  .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-    	  .ctx_density = &ctx,
-    	  .density = unit_density,
-    	  .ctx_upar = &ctx,
-    	  .udrift= udrift,
-    	  .ctx_temp = &ctx,
-    	  .temp = temp_neut,
-    	},
+        .type = GKYL_SPECIES_ABSORB,
       },
     },
+//    .bcz = {
+//      .lower = {
+//        .type = GKYL_SPECIES_RECYCLE,
+//        .emission = neut_bc,
+//        .projection = {
+//          .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+//          .ctx_density = &ctx,
+//          .density = unit_density,
+//          .ctx_upar = &ctx,
+//          .udrift= udrift,
+//          .ctx_temp = &ctx,
+//          .temp = temp_neut,
+//        },
+//      },
+//      .upper = {
+//        .type = GKYL_SPECIES_RECYCLE,
+//        .emission = neut_bc,
+//        .projection = {
+//          .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+//          .ctx_density = &ctx,
+//          .density = unit_density,
+//          .ctx_upar = &ctx,
+//          .udrift= udrift,
+//          .ctx_temp = &ctx,
+//          .temp = temp_neut,
+//        },
+//      },
+//    },
    
-    .num_diag_moments = 4,
-    .diag_moments = { "M0", "M1i", "M2", "LTEMoments"},
+    .num_diag_moments = 3,
+    .diag_moments = { "M1i_from_H", "MEnergy", "LTEMoments"},
   };
 
 
@@ -1022,11 +1031,11 @@ main(int argc, char **argv)
   };
 
   struct gkyl_gyrokinetic_geometry geometry = {
-      .geometry_id = GKYL_MAPC2P,
-      .mapc2p = mapc2p,
-      .c2p_ctx = &ctx,
-      .bmag_func = bmag_func,
-      .bmag_ctx = &ctx
+    .geometry_id = GKYL_MAPC2P,
+    .mapc2p = mapc2p,
+    .c2p_ctx = &ctx,
+    .bmag_func = bmag_func,
+    .bmag_ctx = &ctx
   };
 
   struct gkyl_app_parallelism_inp parallelism = {

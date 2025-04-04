@@ -534,6 +534,7 @@ main(int argc, char **argv)
       .lower = {
         .type = GKYL_SPECIES_RECYCLE,
     	.emission = neut_bc,
+	.write_diagnostics = true,
     	.projection = {
           .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
     	  .ctx_density = &ctx,
@@ -547,6 +548,7 @@ main(int argc, char **argv)
       .upper = {
         .type = GKYL_SPECIES_RECYCLE,
     	.emission = neut_bc,
+	.write_diagnostics = true,
     	.projection = {
           .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
     	  .ctx_density = &ctx,

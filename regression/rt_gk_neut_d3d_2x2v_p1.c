@@ -1044,11 +1044,11 @@ main(int argc, char **argv)
       },
     },
     
-    .num_diag_moments = 4,
-    .diag_moments = { "M0", "M1i", "M2", "LTEMoments"},
+    .num_diag_moments = 2,
+    .diag_moments = { "M1i_from_H", "MEnergy", "LTEMoments"},
   };
 
-  // field
+  // Field.
   struct gkyl_gyrokinetic_field field = {
     .poisson_bcs = {
       .lo_type = { GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC },

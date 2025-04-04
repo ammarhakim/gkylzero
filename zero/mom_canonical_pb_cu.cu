@@ -218,7 +218,7 @@ gkyl_int_mom_canonical_pb_cu_dev_new(const struct gkyl_basis* cbasis, const stru
     gkyl_cu_malloc(sizeof(struct mom_type_canonical_pb));
   gkyl_cu_memcpy(momt_cu, mom_can_pb, sizeof(struct mom_type_canonical_pb), GKYL_CU_MEMCPY_H2D);
 
-  set_int_cu_ptrs<<<1,1>>>(momt_cu, cbasis->b_type,
+  set_int_cu_ptrs<<<1,1>>>(momt_cu, pbasis->b_type,
     vdim, poly_order, cv_index[cdim].vdim[vdim]);
 
   mom_can_pb->momt.on_dev = &momt_cu->momt;
