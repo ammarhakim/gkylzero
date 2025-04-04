@@ -118,11 +118,11 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
     gk_species_react_rhs(app, species, &species->react_neut, fin, rhs);
   }
 
-  // Compute and store (in the ghost cell of of out) the boundary fluxes.
-  gk_species_bflux_rhs(app, species, &species->bflux, fin, rhs);
+  // Compute and store (in the ghost cell of rhs) the boundary fluxes.
+  gk_species_bflux_rhs(app, &species->bflux, fin, rhs);
 
-  // Compute diagnostic moments of the boundar fluxes.
-  gk_species_bflux_calc_moms(app, species, &species->bflux, rhs, bflux_moms);
+  // Compute diagnostic moments of the boundary fluxes.
+  gk_species_bflux_calc_moms(app, &species->bflux, rhs, bflux_moms);
   
   // Reduce the CFL frequency anc compute stable dt needed by this species.
   app->stat.n_species_omega_cfl +=1;
@@ -901,12 +901,10 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
     // Determine which directions are zero-flux.
     bool is_zero_flux[2*GKYL_MAX_DIM] = {false};
     for (int dir=0; dir<app->cdim; ++dir) {
-      if (gks->lower_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
+      if (gks->lower_bc[dir].type == GKYL_SPECIES_ZERO_FLUX)
         is_zero_flux[dir] = true;
-      }
-      if (gks->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
+      if (gks->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX)
         is_zero_flux[dir+pdim] = true;
-      }
     }
 
     gks->diff_slvr = gkyl_dg_updater_diffusion_gyrokinetic_new(&gks->grid, &gks->basis, &app->basis, 
@@ -985,7 +983,7 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
         bctype = GKYL_BC_ABSORB;
       }
       else if (gks->lower_bc[d].type == GKYL_SPECIES_REFLECT) {
-        bctype = GKYL_BC_REFLECT;
+        bctype = GKYL_BC_DISTF_REFLECT;
       }
       else if (gks->lower_bc[d].type == GKYL_SPECIES_FIXED_FUNC) {
         bctype = GKYL_BC_FIXED_FUNC;
@@ -1051,7 +1049,7 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
         bctype = GKYL_BC_ABSORB;
       }
       else if (gks->upper_bc[d].type == GKYL_SPECIES_REFLECT) {
-        bctype = GKYL_BC_REFLECT;
+        bctype = GKYL_BC_DISTF_REFLECT;
       }
       else if (gks->upper_bc[d].type == GKYL_SPECIES_FIXED_FUNC) {
         bctype = GKYL_BC_FIXED_FUNC;
@@ -1333,6 +1331,36 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
   gkyl_array_release(fdo_host);
 }
 
+static bool
+gk_species_do_I_recycle(struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
+{
+  // Check whether one of the neutral species has recycling BCs that depend on
+  // this gyrokinetic species.
+  bool recycling_bcs = false;
+  int neuts = app->num_neut_species;
+  for (int i=0; i<neuts; ++i) {
+    for (int d=0; d<app->cdim; d++) {
+      const struct gkyl_gyrokinetic_bcs *bc;
+      if (d == 0)
+        bc = &app->neut_species[i].info.bcx;
+      else if (d == 1)
+        bc = &app->neut_species[i].info.bcy;
+      else
+        bc = &app->neut_species[i].info.bcz;
+
+      if (bc->lower.type == GKYL_SPECIES_RECYCLE) {
+         for (int j=0; j<bc->lower.emission.num_species; j++)
+           recycling_bcs = recycling_bcs || 0 == strcmp(gks->info.name, bc->lower.emission.in_species[j]);
+      }
+      if (bc->upper.type == GKYL_SPECIES_RECYCLE) {
+         for (int j=0; j<bc->upper.emission.num_species; j++)
+           recycling_bcs = recycling_bcs || 0 == strcmp(gks->info.name, bc->upper.emission.in_species[j]);
+      }
+    }
+  }
+  return recycling_bcs;
+}
+
 void
 gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
@@ -1424,6 +1452,43 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   // Write out the velocity space mapping and its Jacobian.
   gkyl_velocity_map_write(gks->vel_map, gks->comm, app->name, gks->info.name);
 
+  // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
+  // modify it in GK_IWL BCs without modifying the app's.
+  gks->num_periodic_dir = app->num_periodic_dir;
+  for (int d=0; d<gks->num_periodic_dir; ++d)
+    gks->periodic_dirs[d] = app->periodic_dirs[d];
+
+  for (int d=0; d<app->cdim; ++d) gks->bc_is_np[d] = true;
+  for (int d=0; d<gks->num_periodic_dir; ++d)
+    gks->bc_is_np[gks->periodic_dirs[d]] = false;
+
+  // Store the BCs from the input file.
+  for (int dir=0; dir<app->cdim; ++dir) {
+    gks->lower_bc[dir].type = gks->upper_bc[dir].type = GKYL_SPECIES_COPY;
+    if (gks->bc_is_np[dir]) {
+      const struct gkyl_gyrokinetic_bcs *bc;
+      if (dir == 0)
+        bc = &gks->info.bcx;
+      else if (dir == 1)
+        bc = &gks->info.bcy;
+      else
+        bc = &gks->info.bcz;
+ 
+      gks->lower_bc[dir] = bc->lower;
+      gks->upper_bc[dir] = bc->upper;
+    }
+  }
+ 
+  // Determine which directions are zero-flux. By default
+  // we do not have zero-flux boundary conditions in any direction.
+  bool is_zero_flux[2*GKYL_MAX_DIM] = {false};
+  for (int dir=0; dir<app->cdim; ++dir) {
+    if (gks->lower_bc[dir].type == GKYL_SPECIES_ZERO_FLUX)
+      is_zero_flux[dir] = true;
+    if (gks->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX)
+      is_zero_flux[dir+pdim] = true;
+  }
+
   // Determine field-type.
   gks->gkfield_id = app->field->gkfield_id;
   if (gks->info.no_by) {
@@ -1474,47 +1539,6 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
 
   gks->calc_gk_vars = gkyl_dg_calc_gyrokinetic_vars_new(&gks->grid, &app->basis, &gks->basis, 
     gks->info.charge, gks->info.mass, gks->gkmodel_id, app->gk_geom, gks->vel_map, app->use_gpu);
-
-  // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
-  // modify it in GK_IWL BCs without modifying the app's.
-  gks->num_periodic_dir = app->num_periodic_dir;
-  for (int d=0; d<gks->num_periodic_dir; ++d)
-    gks->periodic_dirs[d] = app->periodic_dirs[d];
-
-  for (int d=0; d<app->cdim; ++d) gks->bc_is_np[d] = true;
-  for (int d=0; d<gks->num_periodic_dir; ++d)
-    gks->bc_is_np[gks->periodic_dirs[d]] = false;
-
-  bool is_zero_flux[2*GKYL_MAX_DIM] = {false};
-  if (!gks->info.is_static) {
-    // Store the BCs from the input file.
-    for (int dir=0; dir<app->cdim; ++dir) {
-      gks->lower_bc[dir].type = gks->upper_bc[dir].type = GKYL_SPECIES_COPY;
-      if (gks->bc_is_np[dir]) {
-        const struct gkyl_gyrokinetic_bcs *bc;
-        if (dir == 0)
-          bc = &gks->info.bcx;
-        else if (dir == 1)
-          bc = &gks->info.bcy;
-        else
-          bc = &gks->info.bcz;
-  
-        gks->lower_bc[dir] = bc->lower;
-        gks->upper_bc[dir] = bc->upper;
-      }
-    }
-  
-    // Determine which directions are zero-flux.  By default
-    // we do not have zero-flux boundary conditions in any direction.
-    for (int dir=0; dir<app->cdim; ++dir) {
-      if (gks->lower_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
-        is_zero_flux[dir] = true;
-      }
-      if (gks->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
-        is_zero_flux[dir+pdim] = true;
-      }
-    }
-  }
 
   struct gkyl_dg_gyrokinetic_auxfields aux_inp = { .alpha_surf = gks->alpha_surf, 
     .sgn_alpha_surf = gks->sgn_alpha_surf, .const_sgn_alpha = gks->const_sgn_alpha, 
@@ -1580,7 +1604,14 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     //   - GK_SPECIES_BFLUX_CALC_FLUX to only put bfluxes in ghost cells of rhs.
     //   - GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS to calc bfluxes and step its moments.
     // The latter also requires that you place the moment you desire in add_bflux_moms_inp below.
-    if (app->field->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
+    
+    // Boltzmann elc model requires the fluxes.
+    bool boltz_elc_field = app->field->update_field && app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN;
+    // Recycling BCs require the fluxes. Since this depends on other species,
+    // it'll be checked in .
+    bool recycling_bcs = gk_species_do_I_recycle(app, gks);
+   
+    if (boltz_elc_field || recycling_bcs)
       bflux_type = GK_SPECIES_BFLUX_CALC_FLUX;
   }
   // Introduce new moments into moms_inp if needed.
@@ -1592,7 +1623,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->lte = (struct gk_lte) { };
   bool correct_all_moms = gks->info.correct.correct_all_moms;
   int max_iter = gks->info.correct.max_iter > 0 ? gks->info.correct.max_iter : 50;
-  double iter_eps = gks->info.correct.iter_eps > 0 ? gks->info.correct.iter_eps  : 1e-10;
+  double iter_eps = gks->info.correct.iter_eps > 0 ? gks->info.correct.iter_eps : 1e-10;
   bool use_last_converged = gks->info.correct.use_last_converged;
   struct correct_all_moms_inp corr_inp = { .correct_all_moms = correct_all_moms, 
     .max_iter = max_iter, .iter_eps = iter_eps, 
@@ -1843,7 +1874,7 @@ gk_species_write_L2norm(gkyl_gyrokinetic_app* app, struct gk_species *gks)
 void
 gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 {
-  // Release resources for species.
+  // Release resources for charged species.
 
   gkyl_array_release(s->f);
 
@@ -1882,7 +1913,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 
   gk_species_source_release(app, &s->src);
 
-  // Free boundary flux solver memory.
+  // Free boundary flux memory.
   gk_species_bflux_release(app, s, &s->bflux);
   
   gk_species_lte_release(app, &s->lte);

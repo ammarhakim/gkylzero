@@ -33,6 +33,10 @@ gkyl_bc_basic_create_arr_copy_func(int dir, enum gkyl_edge_loc edge, int cdim, e
       break;
 
     case GKYL_BC_REFLECT:
+      fout->func = reflect_bc;
+      break;
+
+    case GKYL_BC_DISTF_REFLECT:
       fout->func = species_reflect_bc;
       break;
 
@@ -134,6 +138,7 @@ gkyl_bc_basic_advance(const struct gkyl_bc_basic *up, struct gkyl_array *buff_ar
   switch (up->bctype) {
     case GKYL_BC_COPY:
     case GKYL_BC_ABSORB:
+    case GKYL_BC_REFLECT:
     case GKYL_BC_MAXWELL_PEC:
     case GKYL_BC_MAXWELL_SYM:
     case GKYL_BC_MAXWELL_RESERVOIR:
@@ -145,7 +150,7 @@ gkyl_bc_basic_advance(const struct gkyl_bc_basic *up, struct gkyl_array *buff_ar
                                    up->skin_r, up->array_copy_func->on_dev);
       break;
 
-    case GKYL_BC_REFLECT:
+    case GKYL_BC_DISTF_REFLECT:
     case GKYL_BC_PKPM_SPECIES_REFLECT:
       gkyl_array_flip_copy_to_buffer_fn(buff_arr->data, f_arr, up->dir+up->cdim,
                                         up->skin_r, up->array_copy_func->on_dev);

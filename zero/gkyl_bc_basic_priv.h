@@ -57,6 +57,16 @@ copy_bc(size_t nc, double *out, const double *inp, void *ctx)
 
 GKYL_CU_D
 static void
+reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
+{
+  struct dg_bc_ctx *mc = (struct dg_bc_ctx*) ctx;
+  int dir = mc->dir;
+
+  mc->basis->flip_odd_sign(dir, inp, out);
+}
+
+GKYL_CU_D
+static void
 species_absorb_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   struct dg_bc_ctx *mc = (struct dg_bc_ctx*) ctx;

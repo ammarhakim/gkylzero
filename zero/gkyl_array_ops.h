@@ -191,7 +191,7 @@ struct gkyl_array* gkyl_array_set_range(struct gkyl_array *out,
  * @param inp_range Range specifying region of inp to use
  */
 struct gkyl_array* gkyl_array_set_range_to_range(struct gkyl_array *out, double a,
-  const struct gkyl_array *inp, struct gkyl_range *out_range, struct gkyl_range *inp_range);
+  const struct gkyl_array *inp, const struct gkyl_range *out_range, const struct gkyl_range *inp_range);
 
 /**
  * Set out = a*inp[coff] where coff is a component-offset if
@@ -352,7 +352,7 @@ void gkyl_array_set_range_cu(struct gkyl_array *out,
   double a, const struct gkyl_array* inp, const struct gkyl_range *range);
 
 void gkyl_array_set_range_to_range_cu(struct gkyl_array *out, double a,
-  const struct gkyl_array *inp, struct gkyl_range *out_range, struct gkyl_range *inp_range);
+  const struct gkyl_array *inp, const struct gkyl_range *out_range, const struct gkyl_range *inp_range);
 
 void gkyl_array_set_offset_range_cu(struct gkyl_array *out,
   double a, const struct gkyl_array* inp, int coff, const struct gkyl_range *range);

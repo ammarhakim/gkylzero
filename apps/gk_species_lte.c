@@ -45,8 +45,8 @@ gk_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
       .use_last_converged = use_last_converged, 
       .use_gpu = app->use_gpu,
     };
-    lte->n_iter = 0; // total number of iterations from correcting moments
-    lte->num_corr = 0; // total number of times the correction updater is called
+    lte->n_iter = 0; // Total number of iterations from correcting moments.
+    lte->num_corr = 0; // Total number of times the correction updater is called.
     lte->corr_max = gkyl_gk_maxwellian_correct_inew( &inp_corr );
 
     lte->corr_stat = gkyl_dynvec_new(GKYL_DOUBLE, 5);
@@ -92,15 +92,14 @@ gk_species_lte_from_moms(gkyl_gyrokinetic_app *app, const struct gk_species *spe
   app->stat.species_lte_tm += gkyl_time_diff_now_sec(wst);   
 }
 
-// Compute equivalent f_lte from fin
 void
 gk_species_lte(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   struct gk_lte *lte, const struct gkyl_array *fin)
 {
-// compute needed Maxwellian moments (J*n, u_par, T/m)   
+  // Compute needed Maxwellian moments (J*n, u_par, T/m).
   gk_species_moment_calc(&lte->moms, species->local, app->local, fin);
   
-  // divide out the Jacobian from the density
+  // Divide out the Jacobian from the density.
   gkyl_dg_div_op_range(lte->moms.mem_geo, app->basis, 
     0, lte->moms.marr, 0, lte->moms.marr, 0, 
     app->gk_geom->jacobgeo, &app->local);  
@@ -117,19 +116,19 @@ gk_species_lte_write_max_corr_status(gkyl_gyrokinetic_app* app, struct gk_specie
     int rank;
     gkyl_comm_get_rank(app->comm, &rank);
     if (rank == 0) {
-      // write out correction status 
+      // Write out correction status.
       const char *fmt = "%s-%s-%s.gkyl";
       int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, "corr-max-stat");
       char fileNm[sz+1]; // ensures no buffer overflow
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "corr-max-stat");
 
       if (gks->lte.is_first_corr_status_write_call) {
-        // write to a new file (this ensure previous output is removed)
+        // Write to a new file (this ensure previous output is removed).
         gkyl_dynvec_write(gks->lte.corr_stat, fileNm);
         gks->lte.is_first_corr_status_write_call = false;
       }
       else {
-        // append to existing file
+        // Append to existing file.
         gkyl_dynvec_awrite(gks->lte.corr_stat, fileNm);
       }
     }

@@ -28,6 +28,10 @@ gkyl_bc_basic_create_set_cu_dev_ptrs(int dir, enum gkyl_edge_loc edge, int cdim,
       break;
 
     case GKYL_BC_REFLECT:
+      fout->func = reflect_bc;
+      break;
+
+    case GKYL_BC_DISTF_REFLECT:
       fout->func = species_reflect_bc;
       break;
 
