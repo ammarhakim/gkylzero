@@ -230,11 +230,13 @@ struct gkyl_gyrokinetic_species {
   // Initial conditions from a file.
   struct gkyl_gyrokinetic_ic_import init_from_file;
 
-  double polarization_density;
+  bool no_collisionless_terms; // Set to true to turn off collisionles terms.
 
   bool no_by; // Boolean for whether we are using specialized GK kernels with no b_y.
               // These more computationally efficient kernels are for slab or mirror 
               // calculations where there is no toroidal field. 
+
+  double polarization_density; // Density factor in LHS of quasineutrality eqn.
 
   struct gkyl_gyrokinetic_flr flr; // Options for FLR effects.
 
