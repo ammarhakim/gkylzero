@@ -233,22 +233,33 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       GKYL_ARRAY_INTEGRATE_OP_NONE, app->use_gpu);
     double *Jgauss_int = app->use_gpu? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
     gkyl_array_integrate_advance(int_op, Jgauss, 1.0, NULL, &app->local, NULL, Jgauss_int);
-    double Jgauss_int_ho;
-    if (app->use_gpu) {
-      gkyl_cu_memcpy(&Jgauss_int_ho, Jgauss_int, sizeof(double), GKYL_CU_MEMCPY_D2H);
-      gkyl_cu_free(Jgauss_int);
-    } else {
-      memcpy(&Jgauss_int_ho, Jgauss_int, sizeof(double));
-      gkyl_free(Jgauss_int);
-    }
-    gkyl_array_release(Jgauss);
-    gkyl_array_integrate_release(int_op);
 
+    // reduce the result through all MPI processes
+    double *red_Jgauss_int = app->use_gpu? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, red_Jgauss_int, Jgauss_int);
+    
+    double red_Jgauss_int_ho[1];
+    if (app->use_gpu)
+      gkyl_cu_memcpy(red_Jgauss_int_ho, red_Jgauss_int, sizeof(double), GKYL_CU_MEMCPY_D2H);
+    else
+      memcpy(red_Jgauss_int_ho, red_Jgauss_int, sizeof(double));
+    
     // Scale moments according to initial input values.
-    gkyl_array_scale(proj->dens, inp.particle/Jgauss_int_ho);
+    gkyl_array_scale(proj->dens, inp.particle/red_Jgauss_int_ho[0]);
     gkyl_array_clear(proj->upar, 0.0); // No source flow.
     double temp = 2./3. * inp.energy/inp.particle;
     gkyl_array_scale(proj->vtsq, temp/s->info.mass); // Constant energy.
+
+    // release 
+    if (app->use_gpu) {
+      gkyl_cu_free(Jgauss_int);
+      gkyl_cu_free(red_Jgauss_int);
+    } else {
+      gkyl_free(Jgauss_int);
+      gkyl_free(red_Jgauss_int);
+    }
+    gkyl_array_release(Jgauss);
+    gkyl_array_integrate_release(int_op);
   }
 }
 
@@ -305,7 +316,8 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, struct gk_species *s,
     gkyl_array_copy(proj->prim_moms, proj->prim_moms_host);
     gkyl_gk_maxwellian_proj_on_basis_advance(proj->proj_max,
       &s->local, &app->local, proj->prim_moms, false, f);
-  } else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN) {
+  } 
+  else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN) {
     // LTE projection expects the primitive moments as a single array.
     gkyl_array_set_offset(proj->prim_moms, 1.0, proj->dens, 0*app->basis.num_basis);
     gkyl_array_set_offset(proj->prim_moms, 1.0, proj->upar, 1*app->basis.num_basis);
