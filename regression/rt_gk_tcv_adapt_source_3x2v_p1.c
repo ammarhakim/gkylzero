@@ -835,8 +835,12 @@ void density_init(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRI
 {
   double x = xn[0], z = xn[2];
   struct gk_app_ctx *app = ctx;
-  double n0 = app->n0;
-  fout[0] = n0*(0.5*(1.+tanh(3.*(.1-10.*x)))+0.01);
+  double n0 = 5e19;
+  double x0 = -0.03;
+  double c1 = 0.5;
+  double c2 = 8.0;
+  double c3 = 0.005;
+  fout[0] = n0*(c1*(1.+tanh(c2*(-10*(x+x0))))+c3);
 }
 
 // Electron temperature initial conditions
@@ -844,8 +848,13 @@ void temp_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 {
   double x = xn[0], z = xn[2];
   struct gk_app_ctx *app = ctx;
-  double Te0 = app->Te0;
-  fout[0] = 6.*Te0*(0.5*(1.+tanh(3.*(-.1-10.*x)))+0.01);
+  double T0 = 200 * GKYL_ELEMENTARY_CHARGE;
+  double x0 = -0.03; // position of the transition region
+  double c0 = 1.3; // multiplicative factor
+  double c1 = 0.5; // control the temperature at the core
+  double c2 = 8.0; // control the width of the transition region
+  double c3 = 0.1; // control the temperature at the SOL
+  fout[0] = c0*T0*(c1*(1.+tanh(c2*(-10*(x+x0))))+c3);
 }
 
 // Ion temperature initial conditions
@@ -853,8 +862,13 @@ void temp_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 {
   double x = xn[0], z = xn[2];
   struct gk_app_ctx *app = ctx;
-  double Ti0 = app->Ti0;
-  fout[0] = 6.*Ti0*(0.5*(1.+tanh(3.*(-.1-10.*x)))+0.01);
+  double T0 = 200 * GKYL_ELEMENTARY_CHARGE;
+  double x0 = -0.04; // position of the transition region
+  double c0 = 1.0; // multiplicative factor
+  double c1 = 0.5; // control the temperature at the core
+  double c2 = 3.0; // control the width of the transition region
+  double c3 = 0.2; // control the temperature at the SOL
+  fout[0] = c0*T0*(c1*(1.+tanh(c2*(-10*(x+x0))))+c3);
 }
 
 // Collision frequencies.
