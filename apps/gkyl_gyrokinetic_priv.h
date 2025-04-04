@@ -468,10 +468,14 @@ struct gk_recycle_wall {
   struct gkyl_array *f_emit; // Array to fill neutral ghost cell with scaled Maxwellian distf.
 
   // Objects used for diagnostics.
+  bool write_diagnostics;
   struct gkyl_array *f_diag;
   struct gkyl_array *emit_flux;
   struct gkyl_array *diag_out; 
   struct gkyl_array *diag_out_ho;
+  // Function pointers to diagnostic functions.
+  void (*write_flux_func)(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
+    struct gk_recycle_wall *recyc, double tm, int frame);
 };
 
 struct gk_react {

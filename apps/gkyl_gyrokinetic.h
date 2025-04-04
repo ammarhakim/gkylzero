@@ -119,6 +119,7 @@ struct gkyl_gyrokinetic_bc {
   double aux_parameter; // Parameter for aux_profile (maybe redundant).
   struct gkyl_gyrokinetic_projection projection; // Projection object input (e.g. for FIXED_FUNC).
   struct gkyl_gyrokinetic_emission_inp emission; 
+  bool write_diagnostics; // used to write diagnostics from the BC.
 };
 
 struct gkyl_gyrokinetic_bcs {
