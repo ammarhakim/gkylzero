@@ -496,6 +496,38 @@ gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
   }
 }
 
+static void
+gyrokinetic_pos_shift_quasineutrality_enabled(gkyl_gyrokinetic_app *app)
+{
+  // Enforce quasineutrality after applying positivity shift to charged species.
+  gkyl_array_clear(app->ps_delta_m0_ions, 0.0);
+  gkyl_array_clear(app->ps_delta_m0_elcs, 0.0);
+  for (int i=0; i<app->num_species; ++i) {
+    // Accumulate the shift density of all like-species:
+    struct gk_species *gks = &app->species[i];
+    gkyl_array_accumulate(gks->ps_delta_m0s_tot, 1.0, gks->ps_delta_m0);
+  }
+  // Rescale each species to enforce quasineutrality.
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *gks = &app->species[i];
+    gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gks->pos_shift_op, &app->local, &gks->local,
+      gks->ps_delta_m0, gks->ps_delta_m0s_tot, gks->ps_delta_m0r_tot, gks->m0.marr, gks->f);
+
+    gkyl_array_accumulate(gks->fnew, 1.0, gks->f);
+  }
+}
+
+static void
+gyrokinetic_pos_shift_quasineutrality_disabled(gkyl_gyrokinetic_app *app)
+{
+}
+
+void
+gyrokinetic_pos_shift_quasineutrality(gkyl_gyrokinetic_app *app)
+{
+  app->pos_shift_quasineutrality_func(app);
+}
+
 void
 gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
 {
@@ -522,11 +554,14 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     app->calc_field_func = gyrokinetic_calc_field_none;
 
   app->enforce_positivity = gk->enforce_positivity;
+  app->pos_shift_quasineutrality_func = gyrokinetic_pos_shift_quasineutrality_disabled;
   if (app->enforce_positivity) {
     // Number density of the positivity shift added over all the ions.
     // Needed before species_init because species store pointers to these.
     app->ps_delta_m0_ions = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     app->ps_delta_m0_elcs = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+
+    app->pos_shift_quasineutrality_func = gyrokinetic_pos_shift_quasineutrality_enabled;
   }
 
   // Initialize each species.
@@ -703,10 +738,10 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
   app->tcurr = t0;
   for (int i=0; i<app->num_species; ++i)
     gkyl_gyrokinetic_app_apply_ic_species(app, i, t0);
-  for (int i=0; i<app->num_neut_species; ++i) {
-    struct gk_neut_species *gkns = &app->neut_species[i];
+
+  for (int i=0; i<app->num_neut_species; ++i)
     gkyl_gyrokinetic_app_apply_ic_neut_species(app, i, t0);
-  }
+
   for (int i=0; i<app->num_species; ++i)
     gkyl_gyrokinetic_app_apply_ic_cross_species(app, i, t0);
 
@@ -2123,7 +2158,7 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
   gk_s->bflux.is_not_first_restart_write_call = false;
   if (gk_s->info.time_rate_diagnostics)
     gk_s->is_first_fdot_integ_write_call = false;
-  if (app->enforce_positivity)
+  if (gk_s->enforce_positivity)
     gk_s->is_first_ps_integ_write_call = false;
   if (gk_s->rad.radiation_id == GKYL_GK_RADIATION)
     gk_s->rad.is_first_integ_write_call = false;

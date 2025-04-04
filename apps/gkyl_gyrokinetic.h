@@ -233,6 +233,8 @@ struct gkyl_gyrokinetic_species {
   struct gkyl_mapc2p_inp mapc2p;
 
   bool is_static; // Set to true if species does not change in time.
+
+  bool enforce_positivity; // Positivity enforcement via shift in f.
   
   // Initial conditions using projection routine.
   struct gkyl_gyrokinetic_projection projection;
@@ -296,6 +298,8 @@ struct gkyl_gyrokinetic_neut_species {
 
   bool is_static; // Set to true if neutral species does not change in time.
 
+  bool enforce_positivity; // Positivity enforcement via shift in f.
+  
   struct gkyl_gyrokinetic_ic_import init_from_file;
   
   // Initial conditions using projection routine.
@@ -380,7 +384,8 @@ struct gkyl_gk {
   double cfl_frac; // CFL fraction to use (default 1.0).
   double cfl_frac_omegaH; // CFL fraction used for the omega_H dt (default 1.0).
 
-  bool enforce_positivity; // Positivity enforcement via shift in f.
+  bool enforce_positivity; // Enforce f>=0 for all species and quasineutrality
+                           // of charged species after enforcing f_s>=0.
 
   int num_periodic_dir; // Number of periodic directions.
   int periodic_dirs[3]; // List of periodic directions.

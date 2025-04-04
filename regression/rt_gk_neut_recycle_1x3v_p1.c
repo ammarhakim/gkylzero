@@ -145,7 +145,7 @@ create_ctx(void)
   double mu_max_ion = (3.0 / 2.0) * 0.5 * mass_ion * pow(4.0 * vti,2) / (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
   double v_max_neut = 4.0 * vtn; // Domain boundary (ion velocity space: parallel velocity direction).
  
-  double t_end = 10e-6; // Final simulation time.
+  double t_end = 100e-6; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -482,6 +482,8 @@ main(int argc, char **argv)
     .upper = {  ctx.v_max_neut,  ctx.v_max_neut,  ctx.v_max_neut/64.0 },
     .cells = { cells_v[0], cells_v[0], cells_v[0]},
 
+//    .enforce_positivity = true,
+
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
       .ctx_density = &ctx,
@@ -564,11 +566,11 @@ main(int argc, char **argv)
     
     .num_diag_moments = 3,
     .diag_moments = { "M1i_from_H", "MEnergy", "LTEMoments"},
-    .boundary_flux_diagnostics = {
-      .num_diag_moments = 1,
-      .diag_moments = { "MEnergy" },
-//      .time_integrated = true,
-    },
+//    .boundary_flux_diagnostics = {
+//      .num_diag_moments = 1,
+//      .diag_moments = { "MEnergy" },
+////      .time_integrated = true,
+//    },
   };
 
   // Field.
