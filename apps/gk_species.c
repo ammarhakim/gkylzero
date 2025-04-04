@@ -1516,33 +1516,31 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     gks->bc_is_np[gks->periodic_dirs[d]] = false;
 
   bool is_zero_flux[2*GKYL_MAX_DIM] = {false};
-  if (!gks->info.is_static) {
-    // Store the BCs from the input file.
-    for (int dir=0; dir<app->cdim; ++dir) {
-      gks->lower_bc[dir].type = gks->upper_bc[dir].type = GKYL_SPECIES_COPY;
-      if (gks->bc_is_np[dir]) {
-        const struct gkyl_gyrokinetic_bcs *bc;
-        if (dir == 0)
-          bc = &gks->info.bcx;
-        else if (dir == 1)
-          bc = &gks->info.bcy;
-        else
-          bc = &gks->info.bcz;
-  
-        gks->lower_bc[dir] = bc->lower;
-        gks->upper_bc[dir] = bc->upper;
-      }
+  // Store the BCs from the input file.
+  for (int dir=0; dir<app->cdim; ++dir) {
+    gks->lower_bc[dir].type = gks->upper_bc[dir].type = GKYL_SPECIES_COPY;
+    if (gks->bc_is_np[dir]) {
+      const struct gkyl_gyrokinetic_bcs *bc;
+      if (dir == 0)
+        bc = &gks->info.bcx;
+      else if (dir == 1)
+        bc = &gks->info.bcy;
+      else
+        bc = &gks->info.bcz;
+ 
+      gks->lower_bc[dir] = bc->lower;
+      gks->upper_bc[dir] = bc->upper;
     }
-  
-    // Determine which directions are zero-flux.  By default
-    // we do not have zero-flux boundary conditions in any direction.
-    for (int dir=0; dir<app->cdim; ++dir) {
-      if (gks->lower_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
-        is_zero_flux[dir] = true;
-      }
-      if (gks->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
-        is_zero_flux[dir+pdim] = true;
-      }
+  }
+ 
+  // Determine which directions are zero-flux.  By default
+  // we do not have zero-flux boundary conditions in any direction.
+  for (int dir=0; dir<app->cdim; ++dir) {
+    if (gks->lower_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
+      is_zero_flux[dir] = true;
+    }
+    if (gks->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
+      is_zero_flux[dir+pdim] = true;
     }
   }
 

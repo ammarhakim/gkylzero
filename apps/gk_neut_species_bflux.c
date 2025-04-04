@@ -684,7 +684,7 @@ gk_neut_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
         long vol = skin_r->volume;
         buff_sz = buff_sz > vol ? buff_sz : vol;
       }
-      bflux->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
+      bflux->bc_buffer = mkarr(app->use_gpu, gkns->basis.num_basis, buff_sz);
     
       // Fill ghost cell of H.
       for (int b=0; b<bflux->num_boundaries; ++b)

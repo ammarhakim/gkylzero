@@ -103,10 +103,8 @@ void
 gk_species_moment_release(const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm)
 {
   gkyl_array_release(sm->marr);
-  if (app->use_gpu) {
+  if (app->use_gpu)
     gkyl_array_release(sm->marr_host);
-  }
-  gkyl_array_release(sm->marr);
 
   if (sm->is_integrated) {
     gkyl_dg_updater_moment_gyrokinetic_release(sm->mcalc);

@@ -59,10 +59,10 @@ gk_neut_species_recycle_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
 
   // For writing diagnostics, if needed.
   recyc->f_diag = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
-  recyc->diag_out = mkarr(app->use_gpu, app->basis.num_basis, app->local.volume);
+  recyc->diag_out = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   recyc->diag_out_ho = recyc->diag_out;
   if (app->use_gpu)
-    recyc->diag_out_ho = mkarr(false, app->basis.num_basis, app->local.volume);
+    recyc->diag_out_ho = mkarr(false, app->basis.num_basis, app->local_ext.volume);
    
   int ghost[GKYL_MAX_DIM]; // Number of ghost cells in each direction.
   for (int d=0; d<cdim; ++d)
@@ -177,42 +177,43 @@ gk_neut_species_recycle_write_flux(struct gkyl_gyrokinetic_app *app, struct gk_n
     }
   );
 
-  const char *edge_name = recyc->edge == GKYL_LOWER_EDGE? "lower" : "upper";
-  struct gkyl_range *cskin_r = recyc->edge == GKYL_LOWER_EDGE? &app->lower_skin[recyc->dir] : &app->upper_skin[recyc->dir];
+  const char *vars[] = {"x","y","z"};
+  const char *edge[] = {"lower","upper"};
+
+  int dir = recyc->dir;
+  int edi = recyc->edge == GKYL_LOWER_EDGE? 0 : 1;
+
+  struct gkyl_range *cskin_r = edi ==0 ? &app->lower_skin[recyc->dir] : &app->upper_skin[recyc->dir];
   
   for (int i=0; i<recyc->num_species; ++i) {
+    // Write out the particle flux of the impacting species.
     struct gk_species *gks = recyc->impact_species[i];
 
-    const char *fmt = "%s-%s_recyc_flux_%s_%d.gkyl";
-    int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name,
-      edge_name, frame);
+    const char *fmt = "%s-%s_recycling_%s%s_%s_flux_%d.gkyl";
+    int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, vars[dir], edge[edi], gks->info.name, frame);
     char fileNm[sz+1]; // ensures no buffer overflow
-    snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name,
-      edge_name, frame);
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, vars[dir], edge[edi], gks->info.name, frame);
     
     gk_species_bflux_get_flux(&gks->bflux, recyc->dir, recyc->edge, recyc->phase_flux_gk[i], &recyc->impact_buff_r[i]);
     gkyl_dg_updater_moment_gyrokinetic_advance(recyc->m0op_gk[i], &recyc->impact_normal_r[i],
       &recyc->impact_cbuff_r[i], recyc->phase_flux_gk[i], recyc->m0_flux_gk[i]);
+    // Copy to skin to write it out.
     gkyl_array_clear(recyc->diag_out, 0.0);
-    gkyl_array_copy_range_to_range(recyc->diag_out, recyc->m0_flux_gk[i], cskin_r, &recyc->emit_cbuff_r);
-
-    if (app->use_gpu) {
-      gkyl_array_clear(recyc->diag_out_ho, 0.0);
+    gkyl_array_copy_range_to_range(recyc->diag_out, recyc->m0_flux_gk[i], cskin_r, &recyc->impact_cbuff_r[i]);
+    if (app->use_gpu)
       gkyl_array_copy(recyc->diag_out_ho, recyc->diag_out);
-    }
 
     struct timespec wtm = gkyl_wall_clock();
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local,
-      mt, recyc->diag_out_ho, fileNm);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, recyc->diag_out_ho, fileNm);
     app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
   }
 
-  const char *fmt = "%s-%s_recyc_flux_%s_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, edge_name, frame);
+  // Write out the particle flux of the emitting neutral species.
+  const char *fmt = "%s-%s_recycling_%s%s_%s_flux_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, vars[dir], edge[edi], s->info.name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name, edge_name, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name, vars[dir], edge[edi], s->info.name, frame);
   
-  // Calc neut moment.
   gkyl_array_clear(recyc->f_diag, 0.0);
   gkyl_array_copy_range_to_range(recyc->f_diag, recyc->f_emit, recyc->emit_skin_r, &recyc->emit_buff_r);
   gkyl_boundary_flux_advance(recyc->f0_flux_slvr, recyc->f_diag, recyc->f_diag);
@@ -220,13 +221,11 @@ gk_neut_species_recycle_write_flux(struct gkyl_gyrokinetic_app *app, struct gk_n
   gkyl_dg_updater_moment_advance(recyc->m0op_neut, &recyc->emit_normal_r, &recyc->emit_cbuff_r,
     recyc->unit_phase_flux_neut, recyc->emit_flux);
 
+  // Copy to skin to write it out.
   gkyl_array_clear(recyc->diag_out, 0.0);
   gkyl_array_copy_range_to_range(recyc->diag_out, recyc->emit_flux, cskin_r, &recyc->emit_cbuff_r);
-
-  if (app->use_gpu) {
-    gkyl_array_clear(recyc->diag_out_ho, 0.0);
+  if (app->use_gpu)
     gkyl_array_copy(recyc->diag_out_ho, recyc->diag_out);
-  }
   
   struct timespec wtm = gkyl_wall_clock();
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, recyc->diag_out_ho, fileNm);

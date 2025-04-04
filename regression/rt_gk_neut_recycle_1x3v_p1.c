@@ -447,8 +447,8 @@ main(int argc, char **argv)
       .ctx_temp = &ctx,
     },
 
-    .num_diag_moments = 5,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+    .num_diag_moments = 4,
+    .diag_moments = { "M0", "M1", "M2par", "M2perp" },
   };
 
   // Ion species.
@@ -472,8 +472,8 @@ main(int argc, char **argv)
       .ctx_temp = &ctx,      
     },
 
-    .num_diag_moments = 5,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+    .num_diag_moments = 4,
+    .diag_moments = { "M0", "M1", "M2par", "M2perp" },
   };
 
   struct gkyl_gyrokinetic_neut_species neut = {

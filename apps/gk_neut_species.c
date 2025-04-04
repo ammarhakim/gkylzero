@@ -981,20 +981,20 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     s->basis_on_dev = &s->basis;
   }
   
-  // full phase space grid
+  // Full phase space grid.
   gkyl_rect_grid_init(&s->grid, pdim, lower, upper, cells);
   gkyl_create_grid_ranges(&s->grid, ghost, &s->global_ext, &s->global);
   
-  // velocity space grid
+  // Velocity space grid.
   gkyl_rect_grid_init(&s->grid_vel, vdim, lower_vel, upper_vel, cells_vel);
   gkyl_create_grid_ranges(&s->grid_vel, ghost_vel, &s->local_ext_vel, &s->local_vel);
 
-  // phase-space communicator
+  // Phase-space communicator.
   s->comm = gkyl_comm_extend_comm(app->comm, &s->local_vel);
 
-  // create local and local_ext from app local range
+  // Create local and local_ext from app local range.
   struct gkyl_range local;
-  // local = conf-local X local_vel
+  // local = conf-local X local_vel.
   gkyl_range_ten_prod(&local, &app->local, &s->local_vel);
   gkyl_create_ranges(&local, ghost, &s->local_ext, &s->local);
 
