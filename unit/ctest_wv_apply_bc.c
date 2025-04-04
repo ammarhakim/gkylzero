@@ -46,7 +46,7 @@ test_1()
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
   
   struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &ext_range, nomapc2p, &ndim, false);
-  struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_new();
+  struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_new(false);
 
   gkyl_wv_apply_bc *lbc = gkyl_wv_apply_bc_new(&grid, eqn, wg,
     0, GKYL_LOWER_EDGE, nghost, bc_copy, NULL);
@@ -98,7 +98,7 @@ test_2()
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
   struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &ext_range, nomapc2p, &ndim, false);
-  struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_new();  
+  struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_new(false);  
 
   gkyl_wv_apply_bc *lbc = gkyl_wv_apply_bc_new(&grid, eqn, wg,
     0, GKYL_LOWER_EDGE, nghost, bc_copy, NULL);
@@ -170,7 +170,7 @@ test_3()
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
   struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &ext_range, nomapc2p, &ndim, false);
-  struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_new();
+  struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_new(false);
 
   gkyl_wv_apply_bc *lbc = gkyl_wv_apply_bc_new(&grid, eqn, wg,
     0, GKYL_LOWER_EDGE, nghost, bc_copy, NULL);
