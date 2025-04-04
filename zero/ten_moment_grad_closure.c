@@ -131,5 +131,6 @@ gkyl_ten_moment_grad_closure_advance(const gkyl_ten_moment_grad_closure *gces,
 void
 gkyl_ten_moment_grad_closure_release(gkyl_ten_moment_grad_closure* up)
 {
+  gkyl_comm_release(up->comm);
   free(up);
 }
