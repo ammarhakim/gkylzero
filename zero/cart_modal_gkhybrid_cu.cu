@@ -7,8 +7,6 @@ extern "C" {
     
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
-#include <gkyl_dg_maxwell.h>    
-#include <gkyl_dg_maxwell_priv.h>
 
 #include <gkyl_cart_modal_gkhybrid_priv.h>
 }
