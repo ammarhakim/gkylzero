@@ -210,9 +210,6 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   f->info.poisson_bcs.contains_lower_z_edge = f->global_sub_range.lower[ndim-1] == app->global.lower[ndim-1];
   f->info.poisson_bcs.contains_upper_z_edge = f->global_sub_range.upper[ndim-1] == app->global.upper[ndim-1];
 
-  if (f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || f->gkfield_id == GKYL_GK_FIELD_ADIABATIC)
-    assert(app->cdim == 1); // Not yet implemented for cdim>1.
-
   f->epsilon = 0;
   struct gkyl_array *epsilon_global = 0;
   f->kSq = 0;  // not currently used by fem_perp_poisson
@@ -222,8 +219,9 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     polarization_weight = 1.0; 
     f->ambi_pot = gkyl_ambi_bolt_potential_new(&app->grid, &app->basis, 
       f->info.electron_mass, f->info.electron_charge, f->info.electron_temp, app->use_gpu);
+    // Sheath_vals contains both the density and potential sheath values.
     for (int j=0; j<app->cdim; ++j) {
-      f->sheath_vals[2*j] = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
+      f->sheath_vals[2*j]   = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
       f->sheath_vals[2*j+1] = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
     }
   } else {
@@ -360,7 +358,8 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       1, GKYL_ARRAY_INTEGRATE_OP_SQ, app->use_gpu);
   }
   else {
-    gkyl_array_set(f->es_energy_fac, 0.5, f->epsilon);
+    if (f->gkfield_id != GKYL_GK_FIELD_BOLTZMANN)
+      gkyl_array_set(f->es_energy_fac, 0.5, f->epsilon);
 
     f->calc_em_energy = gkyl_array_integrate_new(&app->grid, &app->basis, 
       1, GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ, app->use_gpu);
@@ -509,6 +508,13 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
     if (field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
       // For Boltzmann electrons, we only need ion density, not charge density.
       gkyl_array_accumulate_range(field->rho_c, 1.0, s->m0.marr, &app->local);
+      // We also need the M0 flux of the boundary flux through the z
+      // boundaries. Put it in the ghost cells of f and take its moment.
+      gk_species_bflux_get_flux(&s->bflux, app->cdim-1, GKYL_LOWER_EDGE, s->f1);
+      gk_species_moment_calc(&s->m0, s->lower_ghost[app->cdim-1], app->lower_ghost[app->cdim-1], s->f1);
+
+      gk_species_bflux_get_flux(&s->bflux, app->cdim-1, GKYL_UPPER_EDGE, s->f1);
+      gk_species_moment_calc(&s->m0, s->upper_ghost[app->cdim-1], app->upper_ghost[app->cdim-1], s->f1);
     } else {
       // Gyroaverage the density if needed.
       s->gyroaverage(app, s, s->m0.marr, s->m0_gyroavg);
@@ -524,27 +530,39 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
   } 
 }
 
-void
+static void
 gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
+  // Note that the M0 moment of boundary fluxes along z should
+  // be stored in the ghost cells of m0.marr at this point.
+  int idx_par = app->cdim-1;
+  int off = 2*idx_par;
+
+  int comm_sz;
+  gkyl_comm_get_size(app->comm, &comm_sz);
+
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
 
     // Assumes symmetric sheath BCs for now only in 1D
+    // NOTE: this relies on the accumulate_rho_c calling gk_species_moment_calc(s->m0)
+    // to calculate the particle flux and place it in the ghost cells of s->m0.marr.
     gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_LOWER_EDGE, 
-      &app->lower_skin[0], &app->lower_ghost[0], app->gk_geom->jacobgeo_inv, 
-      s->bflux_solver.gammai[0].marr, field->rho_c, field->sheath_vals[0]);
+      &app->lower_skin[idx_par], &app->lower_ghost[idx_par], app->gk_geom->jacobgeo_inv, 
+      s->m0.marr, field->rho_c, field->sheath_vals[off]);
     gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_UPPER_EDGE, 
-      &app->upper_skin[0], &app->upper_ghost[0], app->gk_geom->jacobgeo_inv, 
-      s->bflux_solver.gammai[1].marr, field->rho_c, field->sheath_vals[1]);
+      &app->upper_skin[idx_par], &app->upper_ghost[idx_par], app->gk_geom->jacobgeo_inv, 
+      s->m0.marr, field->rho_c, field->sheath_vals[off+1]);
 
     // Broadcast the sheath values from skin processes to other processes.
-    int comm_sz[1];
-    gkyl_comm_get_size(app->comm, comm_sz);
-    gkyl_comm_array_bcast(app->comm, field->sheath_vals[0], field->sheath_vals[0], 0);
-    gkyl_comm_array_bcast(app->comm, field->sheath_vals[1], field->sheath_vals[1], comm_sz[0]-1);
-    gkyl_array_accumulate(field->sheath_vals[0], 1., field->sheath_vals[1]);
-    gkyl_array_scale(field->sheath_vals[0], 0.5);
+    gkyl_comm_array_bcast(app->comm, field->sheath_vals[off]  , field->sheath_vals[off], 0);
+    gkyl_comm_array_bcast(app->comm, field->sheath_vals[off+1], field->sheath_vals[off+1], comm_sz-1);
+
+    // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
+    gkyl_array_copy_range_to_range(field->sheath_vals[off+1], field->sheath_vals[off+1],
+      &app->lower_ghost[idx_par], &app->upper_ghost[idx_par]);
+    gkyl_array_accumulate(field->sheath_vals[off], 1., field->sheath_vals[off+1]);
+    gkyl_array_scale(field->sheath_vals[off], 0.5);
   } 
 }
 
@@ -571,9 +589,12 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
   // Compute the electrostatic potential.
   struct timespec wst = gkyl_wall_clock();
   if (field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) { 
+    // Compute sheath density n_i,s and potential phi_s = (Te/e)*ln(n_i,s*v_te/(sqrt(2*pi)*Gamma_i)).
+    gk_field_calc_ambi_pot_sheath_vals(app, app->field);
+
     // Solve phi = phi_s + (Te/e)*ln(n_i/n_i,s).
     gkyl_ambi_bolt_potential_phi_calc(field->ambi_pot, &app->local, &app->local_ext,
-      app->gk_geom->jacobgeo_inv, field->rho_c, field->sheath_vals[0], field->phi_smooth);
+      app->gk_geom->jacobgeo_inv, field->rho_c, field->sheath_vals[2*(app->cdim-1)], field->phi_smooth);
 
     // Smooth the potential along z.
     gk_field_fem_projection_par(app, field, field->phi_smooth, field->phi_smooth);
@@ -615,7 +636,7 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
         gk_field_fem_projection_par(app, field, field->phi_smooth, field->phi_smooth);
       }
 
-      // Finish the Poisson solve with FLR efffects.
+      // Finish the Poisson solve with FLR effects.
       field->invert_flr(app, field, field->phi_smooth);
 
       // Enforce a BC of the field in the parallel direction.

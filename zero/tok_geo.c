@@ -119,6 +119,26 @@ arc_length_func(double Z, void *ctx)
     }
   }
 
+  else if(actx->ftype==GKYL_IWL){
+    if(actx->q3) {
+      double *arc_memo = actx->arc_memo;
+      ival = integrate_psi_contour_memo(actx->geo, psi, Z, actx->geo->zmaxis, rclose, false, false, arc_memo) - arcL;
+    }
+    else if (actx->q4) {
+      double *arc_memo = actx->arc_memo;
+      ival = integrate_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo)  - arcL + actx->arcL_q3;
+    }
+    else if (actx->q1) {
+      double *arc_memo = actx->arc_memo;
+      ival = integrate_psi_contour_memo(actx->geo, psi, actx->geo->zmaxis, Z, rclose, false, false, arc_memo)  - arcL + actx->arcL_q3 +actx->arcL_q4;
+    }
+    else {
+      double *arc_memo = actx->arc_memo;
+      ival = integrate_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, false, false, arc_memo)  - arcL + actx->arcL_q3 +actx->arcL_q4 + actx->arcL_q1;
+    }
+
+  }
+
   return ival;
 }
 
@@ -210,6 +230,25 @@ phi_func(double alpha_curr, double Z, void *ctx)
   }
   else if(actx->ftype==GKYL_PF_UP_L){
       ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, false, false, arc_memo);// + actx->phi_right;
+  }
+  else if (actx->ftype==GKYL_IWL) {
+    // phi = alpha at outboard midplane
+    if(actx->right==true){
+      if(Z<actx->zmaxis)
+        ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo);
+      else
+        ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
+    }
+    else{
+      if (Z<actx->zmaxis) {
+        ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo) ;
+        phi_ref  = -actx->phi_right;
+      }
+      else {
+        ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo) ;
+        phi_ref  = actx->phi_right;
+      }
+    }
   }
   // Now multiply by fpol
   double R[4] = {0};
@@ -482,9 +521,18 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
           arcL_curr = arcL_lo + it*darcL + modifiers[it_delta]*delta_theta*(arc_ctx.arcL_tot/2/M_PI);
           double theta_curr = arcL_curr*(2*M_PI/arc_ctx.arcL_tot) - M_PI ; 
 
-          position_map->maps[0](0.0, &psi_curr,   &psi_curr,   position_map->ctxs[0]);
-          position_map->maps[1](0.0, &alpha_curr, &alpha_curr, position_map->ctxs[1]);
-          position_map->maps[2](0.0, &theta_curr, &theta_curr, position_map->ctxs[2]);
+          // Calculate derivatives using finite difference for ddtheta,
+          // as well as transform the computational coordiante to the non-uniform field-aligned value
+
+          // Non-uniform psi. Finite differences are calculated in calc_metric.c
+          position_map->maps[0](0.0, &psi_curr,  &psi_curr,  position_map->ctxs[0]);
+          // We cannot do non-uniform alpha because we are modeling axisymmetric systems
+          // Non-uniform theta
+          double Theta_curr;
+          position_map->maps[2](0.0, &theta_curr,  &Theta_curr,  position_map->ctxs[2]);
+          double dTheta_dtheta = gkyl_position_map_slope(position_map, 2, theta_curr,\
+            delta_theta, it, nrange);
+          theta_curr = Theta_curr;
           arcL_curr = (theta_curr + M_PI) / (2*M_PI/arc_ctx.arcL_tot);
 
           tok_set_ridders(inp, &arc_ctx, psi_curr, arcL_curr, &rclose, &ridders_min, &ridders_max);
@@ -561,9 +609,9 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
             mc2nu_n[X_IDX] = psi_curr;
             mc2nu_n[Y_IDX] = -alpha_curr;
             mc2nu_n[Z_IDX] = theta_curr;
-            ddtheta_n[0] = dphidtheta_func(z_curr, &arc_ctx);
-            ddtheta_n[1] = sin(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI;
-            ddtheta_n[2] = cos(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI;
+            ddtheta_n[0] = sin(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI * dTheta_dtheta; // dR_dtheta
+            ddtheta_n[1] = cos(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI * dTheta_dtheta; // dZ_dtheta
+            ddtheta_n[2] = dphidtheta_func(z_curr, &arc_ctx) * dTheta_dtheta; // dphi_dtheta
           }
         }
       }

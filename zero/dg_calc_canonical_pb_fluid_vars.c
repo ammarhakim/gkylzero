@@ -30,6 +30,7 @@ gkyl_dg_calc_canonical_pb_fluid_vars_new(const struct gkyl_rect_grid *conf_grid,
   up->alpha = 0.0;
   up->is_modified = 0; 
 
+  up->adiabatic_coupling_phi_n = 0;
   if (wv_eqn->type == GKYL_EQN_CAN_PB_HASEGAWA_MIMA) {
     up->canonical_pb_fluid_source = choose_canonical_pb_fluid_hasegawa_mima_source_kern(conf_basis->b_type, cdim, poly_order);
   }

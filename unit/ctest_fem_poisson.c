@@ -10,6 +10,7 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_fem_poisson.h>
+#include <gkyl_array_reduce.h>
 
 void evalFunc1x_periodicx(double t, const double *xn, double* restrict fout, void *ctx)
 {
