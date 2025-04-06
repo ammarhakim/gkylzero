@@ -6,8 +6,6 @@
 #include <string.h>
 #include <assert.h>
 
-enum multib_send_recv { GKYL_COMM_CONN_SEND, GKYL_COMM_CONN_RECV };
-
 struct multib_comm_conn {
   struct gkyl_multib_comm_conn mcc;
 };
@@ -130,6 +128,7 @@ multib_comm_conn_new_sr(enum multib_send_recv sr,
               is_inter = gkyl_range_intersect(&irng, &range_ext, &sub_range);
             
             if (is_inter) {
+              comm_conn[comm_conn_idx].sr = sr;
               comm_conn[comm_conn_idx].rank = nn;
               comm_conn[comm_conn_idx].block_id = tar_bid;
               comm_conn[comm_conn_idx].src_edge = src_edge;
@@ -399,6 +398,22 @@ gkyl_multib_comm_conn_sort(struct gkyl_multib_comm_conn *mbcc)
     for (int j=0; j<num_conn-i-1; j++) {
       struct gkyl_comm_conn *cj = &mbcc->comm_conn[j], *cjp1 = &mbcc->comm_conn[j+1];
       if ((cj->rank == cjp1->rank) && (cj->block_id > cjp1->block_id)) {
+        swap_comm_conns(cj, cjp1);
+        swapped = true;
+      }
+    }
+    if (swapped == false)
+      break; // Stop if no swaps happened.
+  }
+
+  // Now sort connections in ascending tar/src edge if receiver/sender
+  for (int i=0; i<num_conn-1; i++) {
+    bool swapped = false;
+    for (int j=0; j<num_conn-i-1; j++) {
+      struct gkyl_comm_conn *cj = &mbcc->comm_conn[j], *cjp1 = &mbcc->comm_conn[j+1];
+      int edge = cj->sr == GKYL_COMM_CONN_SEND ? cj->src_edge : cj->tar_edge;
+      int edgep1 = cjp1->sr == GKYL_COMM_CONN_SEND ? cjp1->src_edge : cjp1->tar_edge;
+      if ((cj->rank == cjp1->rank) && (cj->block_id == cjp1->block_id) && (edge > edgep1) ) {
         swap_comm_conns(cj, cjp1);
         swapped = true;
       }
