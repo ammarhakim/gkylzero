@@ -216,6 +216,28 @@ gk_neut_species_copy_range_static(struct gkyl_array *out,
 }
 
 static void
+gk_neut_species_apply_pos_shift_enabled(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns)
+{
+  // Copy f so we can calculate the moments of the change later. 
+  gkyl_array_set(gkns->fnew, -1.0, gkns->f);
+
+  // Shift each species.
+  gkyl_positivity_shift_vlasov_advance(gkns->pos_shift_op, &app->local, &gkns->local,
+    gkns->f, gkns->m0.marr, gkns->ps_delta_m0);
+}
+
+static void
+gk_neut_species_apply_pos_shift_disabled(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns)
+{
+}
+
+void
+gk_neut_species_apply_pos_shift(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns)
+{
+  gkns->apply_pos_shift_func(app, gkns);
+}
+
+static void
 gk_neut_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm, int frame)
 {
   struct timespec wst = gkyl_wall_clock();
@@ -292,6 +314,31 @@ gk_neut_species_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_spec
     app->stat.neut_diag_io_tm += gkyl_time_diff_now_sec(wtm);
     app->stat.n_neut_diag_io += 1;
   }
+
+  if (gkns->enforce_positivity) {
+    // We placed the change in f from the positivity shift in fnew.
+    gk_neut_species_moment_calc(&gkns->ps_moms, gkns->local, app->local, gkns->fnew);
+    app->stat.n_mom += 1;
+
+    const char *fmt = "%s-%s_positivity_shift_M0_%d.gkyl";
+    int sz = gkyl_calc_strlen(fmt, app->name, gkns->info.name, frame);
+    char fileNm[sz+1]; // ensures no buffer overflow
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, gkns->info.name, frame);
+
+    // Rescale moment by inverse of Jacobian.
+    gkyl_dg_div_op_range(gkns->ps_moms.mem_geo, app->basis,
+      0, gkns->ps_moms.marr, 0, gkns->ps_moms.marr, 0,
+      app->gk_geom->jacobgeo, &app->local);
+    if (app->use_gpu) {
+      gkyl_array_copy(gkns->ps_moms.marr_host, gkns->ps_moms.marr);
+    }
+
+    struct timespec wtm = gkyl_wall_clock();
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
+      gkns->ps_moms.marr_host, fileNm);
+    app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
+    app->stat.n_diag_io += 1;
+  }
   gk_array_meta_release(mt); 
 
   app->stat.neut_diag_tm += gkyl_time_diff_now_sec(wst);
@@ -328,6 +375,24 @@ gk_neut_species_calc_integrated_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk
   }
   gkyl_dynvec_append(gkns->integ_diag, tm, avals_global);
 
+  if (gkns->enforce_positivity) {
+    // The change in f from the positivity shift is in fnew.
+    gk_neut_species_moment_calc(&gkns->integ_moms, gkns->local, app->local, gkns->fnew);
+    app->stat.n_mom += 1;
+
+    // Reduce (sum) over whole domain, append to diagnostics.
+    gkyl_array_reduce_range(gkns->red_integ_diag, gkns->integ_moms.marr, GKYL_SUM, &app->local);
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom,
+      gkns->red_integ_diag, gkns->red_integ_diag_global);
+    if (app->use_gpu) {
+      gkyl_cu_memcpy(avals_global, gkns->red_integ_diag_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H);
+    }
+    else {
+      memcpy(avals_global, gkns->red_integ_diag_global, sizeof(double[num_mom]));
+    }
+    gkyl_dynvec_append(gkns->ps_integ_diag, tm, avals_global);
+  }
+
   app->stat.neut_diag_tm += gkyl_time_diff_now_sec(wst);
   app->stat.n_neut_diag += 1;
 }
@@ -361,9 +426,29 @@ gk_neut_species_write_integrated_mom_dynamic(gkyl_gyrokinetic_app* app, struct g
     }
   }
   gkyl_dynvec_clear(gkns->integ_diag);
+  app->stat.n_neut_diag_io += 1;
+
+  if (gkns->enforce_positivity) {
+    if (rank == 0) {
+      // Write integrated diagnostic moments.
+      const char *fmt = "%s-%s_positivity_shift_%s.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, gkns->info.name, "integrated_moms");
+      char fileNm[sz+1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, gkns->info.name, "integrated_moms");
+
+      if (gkns->is_first_ps_integ_write_call) {
+        gkyl_dynvec_write(gkns->ps_integ_diag, fileNm);
+        gkns->is_first_ps_integ_write_call = false;
+      }
+      else {
+        gkyl_dynvec_awrite(gkns->ps_integ_diag, fileNm);
+      }
+    }
+    gkyl_dynvec_clear(gkns->ps_integ_diag);
+    app->stat.n_diag_io += 1;
+  }
 
   app->stat.neut_diag_io_tm += gkyl_time_diff_now_sec(wst);
-  app->stat.n_neut_diag_io += 1;
 }
 
 static void
@@ -435,6 +520,14 @@ gk_neut_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk
       gkyl_bc_basic_release(s->bc_up[d]);
     }
   }
+
+  if (s->enforce_positivity) {
+    gkyl_array_release(s->ps_delta_m0);
+    gkyl_positivity_shift_vlasov_release(s->pos_shift_op);
+    gk_species_moment_release(app, &s->ps_moms);
+    gkyl_dynvec_release(s->ps_integ_diag);
+  }
+
 }
 
 // empty function for static species
@@ -593,6 +686,23 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
     }
   }
 
+  s->enforce_positivity = false;
+  if (app->enforce_positivity || s->info.enforce_positivity) {
+    s->enforce_positivity = true;
+
+    // Positivity enforcing by shifting f (ps=positivity shift).
+    s->ps_delta_m0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+
+    s->pos_shift_op = gkyl_positivity_shift_vlasov_new(app->basis, s->basis,
+      s->grid, &app->local_ext, app->use_gpu);
+
+    // Allocate data for diagnostic moments
+    gk_neut_species_moment_init(app, s, &s->ps_moms, "M0");
+
+    s->ps_integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, s->integ_moms.num_mom);
+    s->is_first_ps_integ_write_call = true;
+  }
+
   // Set function pointers
   s->rhs_func = gk_neut_species_rhs_dynamic;
   s->rhs_implicit_func = gk_neut_species_rhs_implicit_dynamic;
@@ -601,6 +711,10 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
   s->step_f_func = gk_neut_species_step_f_dynamic;
   s->combine_func = gk_neut_species_combine_dynamic;
   s->copy_func = gk_neut_species_copy_range_dynamic;
+  if (s->enforce_positivity)
+    s->apply_pos_shift_func = gk_neut_species_apply_pos_shift_enabled;
+  else
+    s->apply_pos_shift_func = gk_neut_species_apply_pos_shift_disabled;
   s->write_func = gk_neut_species_write_dynamic;
   s->write_mom_func = gk_neut_species_write_mom_dynamic;
   s->calc_integrated_mom_func = gk_neut_species_calc_integrated_mom_dynamic;
@@ -622,6 +736,7 @@ gk_neut_species_new_static(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
   s->step_f_func = gk_neut_species_step_f_static;
   s->combine_func = gk_neut_species_combine_static;
   s->copy_func = gk_neut_species_copy_range_static;
+  s->apply_pos_shift_func = gk_neut_species_apply_pos_shift_disabled;
   s->write_func = gk_neut_species_write_static;
   s->write_mom_func = gk_neut_species_write_mom_static;
   s->calc_integrated_mom_func = gk_neut_species_calc_integrated_mom_static;

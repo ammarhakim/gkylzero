@@ -231,33 +231,18 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
             gk_neut_species_bflux_scale(app, &gkns->bflux, gkns->bflux.f, 1.0/dt);
           }
 
-          if (app->enforce_positivity) {
-            // Apply positivity shift if requested.
-	    gkyl_array_clear(app->ps_delta_m0_ions, 0.0);
-            gkyl_array_clear(app->ps_delta_m0_elcs, 0.0);
-            for (int i=0; i<app->num_species; ++i) {
-              struct gk_species *gks = &app->species[i];
-
-              // Copy f so we can calculate the moments of the change later. 
-              gkyl_array_set(gks->fnew, -1.0, gks->f);
-
-              // Shift each species.
-              gkyl_positivity_shift_gyrokinetic_advance(gks->pos_shift_op, &app->local, &gks->local,
-                gks->f, gks->m0.marr, gks->ps_delta_m0);
-
-	      // Accumulate the shift density of all like-species:
-              gkyl_array_accumulate(gks->ps_delta_m0s_tot, 1.0, gks->ps_delta_m0);
-            }
-
-            // Rescale each species to enforce quasineutrality.
-	    for (int i=0; i<app->num_species; ++i) {
-              struct gk_species *gks = &app->species[i];
-              gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gks->pos_shift_op, &app->local, &gks->local,
-                gks->ps_delta_m0, gks->ps_delta_m0s_tot, gks->ps_delta_m0r_tot, gks->m0.marr, gks->f);
-
-              gkyl_array_accumulate(gks->fnew, 1.0, gks->f);
-            }
+          // Apply positivity shift if requested.
+          for (int i=0; i<app->num_species; ++i) {
+            struct gk_species *gks = &app->species[i];
+            gk_species_apply_pos_shift(app, gks);
           }
+          for (int i=0; i<app->num_neut_species; ++i) {
+            struct gk_neut_species *gkns = &app->neut_species[i];
+            gk_neut_species_apply_pos_shift(app, gkns);
+          }
+
+          // Enforce quasineutrality of the positivity shifts.
+          gyrokinetic_pos_shift_quasineutrality(app);
 
           // Compute the fields and apply BCs
           for (int i=0; i<app->num_species; ++i) {

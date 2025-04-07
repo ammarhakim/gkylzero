@@ -88,6 +88,7 @@
 #include <gkyl_skin_surf_from_ghost.h>
 #include <gkyl_tok_geo.h>
 #include <gkyl_positivity_shift_gyrokinetic.h>
+#include <gkyl_positivity_shift_vlasov.h>
 #include <gkyl_vlasov_lte_correct.h>
 #include <gkyl_vlasov_lte_moments.h>
 #include <gkyl_vlasov_lte_proj_on_basis.h>
@@ -730,6 +731,7 @@ struct gk_species {
   struct gkyl_dg_updater_diffusion_gyrokinetic *diff_slvr; // Gyrokinetic diffusion equation solver.
 
   // Updater that enforces positivity by shifting f.
+  bool enforce_positivity;
   struct gkyl_positivity_shift_gyrokinetic *pos_shift_op;
   struct gkyl_array *ps_delta_m0; // Number density of the positivity shift.
   struct gkyl_array *ps_delta_m0s_tot; // Density of total positivity shift (like-species).
@@ -752,6 +754,7 @@ struct gk_species {
     const struct gkyl_range *rng);
   void (*copy_func)(struct gkyl_array *out, const struct gkyl_array *inp,
     const struct gkyl_range *range);
+  void (*apply_pos_shift_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks);
   void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
   void (*write_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
   void (*calc_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm);
@@ -859,31 +862,39 @@ struct gk_neut_species {
   struct gkyl_range global_upper_skin[GKYL_MAX_DIM];
   struct gkyl_range global_upper_ghost[GKYL_MAX_DIM];
 
-  struct gk_proj proj_init; // projector for initial conditions
+  struct gk_proj proj_init; // Projector for initial conditions.
 
-  struct gk_source src; // applied source
+  struct gk_source src; // External source.
 
-  struct gk_lte lte; // object needed for the lte equilibrium
+  struct gk_lte lte; // Object needed for the lte equilibrium.
 
-  // collisions
+  // Collisions.
   union {
     struct {
       struct gk_bgk_collisions bgk; // BGK collisions object
     };
   }; 
 
-  struct gk_react react_neut; // reaction object
+  struct gk_react react_neut; // Reaction object.
 
   double *omega_cfl;
 
-  // pointer to rhs functions
+  // Updater that enforces positivity by shifting f.
+  bool enforce_positivity;
+  struct gkyl_positivity_shift_vlasov *pos_shift_op;
+  struct gkyl_array *ps_delta_m0; // Number density of the positivity shift.
+  struct gk_species_moment ps_moms; // Positivity shift diagnostic moments.
+  gkyl_dynvec ps_integ_diag; // Integrated moments of the positivity shift.
+  bool is_first_ps_integ_write_call; // Flag first time writing ps_integ_diag.
+
+  // Pointer to various functions selected at runtime.
   double (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
     const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
   double (*rhs_implicit_func)(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
     const struct gkyl_array *fin, struct gkyl_array *rhs, double dt);
   void (*bc_func)(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
     struct gkyl_array *f);
-  void (*release_func)(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s);
+  void (*apply_pos_shift_func)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns);
   void (*step_f_func)(struct gkyl_array* out, double dt, const struct gkyl_array* inp); 
   void (*combine_func)(struct gkyl_array *out, double c1,
     const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
@@ -894,6 +905,7 @@ struct gk_neut_species {
   void (*write_mom_func)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm, int frame);
   void (*calc_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm);
   void (*write_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns);
+  void (*release_func)(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s);
 };
 
 // field data
@@ -1010,8 +1022,6 @@ struct gkyl_gyrokinetic_app {
 
   bool use_gpu; // should we use GPU (if present)
 
-  bool enforce_positivity; // Whether to enforce f>0.
-
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
     
@@ -1051,18 +1061,20 @@ struct gkyl_gyrokinetic_app {
   // Pointer to function that computes the fields.
   void (*calc_field_func)(gkyl_gyrokinetic_app* app, double tcurr, const struct gkyl_array *fin[]);
 
-  // species data
-  int num_species;
-  struct gk_species *species; // data for each species
-  struct gkyl_array *ps_delta_m0_ions; // Number density of the total ion positivity shift.
-  struct gkyl_array *ps_delta_m0_elcs; // Number density of the total elc positivity shift.
-  
-  // neutral species data
-  int num_neut_species;
-  struct gk_neut_species *neut_species; // data for each species
+  int num_species; // Number of charged species.
+  struct gk_species *species; // Data for each charged species.
+
+  int num_neut_species; // Number of neutral species.
+  struct gk_neut_species *neut_species; // Data for each neutral species.
 
   bool has_implicit_coll_scheme; // Boolean for using implicit bgk scheme (over explicit rk3)
 
+  bool enforce_positivity; // =true enforces positivity for all species and
+                           // enforces quasineutrality of the shift for charged species.
+  struct gkyl_array *ps_delta_m0_ions; // Number density of the total ion positivity shift.
+  struct gkyl_array *ps_delta_m0_elcs; // Number density of the total elc positivity shift.
+  void (*pos_shift_quasineutrality_func)(gkyl_gyrokinetic_app *app);
+  
   // pointer to function that takes a single-step of simulation
   struct gkyl_update_status (*update_func)(gkyl_gyrokinetic_app *app, double dt0);
 
@@ -2192,6 +2204,14 @@ void gk_species_copy_range(struct gk_species *species, struct gkyl_array *out,
   const struct gkyl_array *inp, const struct gkyl_range *range);
 
 /**
+ * Apply the positivity shift (to enforce f>=0) to a charged species.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Gyrokinetic species object.
+ */
+void gk_species_apply_pos_shift(gkyl_gyrokinetic_app* app, struct gk_species *gks);
+
+/**
  * Apply BCs to dynamic species distribution function.
  *
  * @param app gyrokinetic app object.
@@ -2786,6 +2806,14 @@ void gk_neut_species_copy_range(struct gk_neut_species *species, struct gkyl_arr
   const struct gkyl_array *inp, const struct gkyl_range *range);
 
 /**
+ * Apply the positivity shift (to enforce f>=0) to a neutral species.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gkns Neutral species object.
+ */
+void gk_neut_species_apply_pos_shift(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns);
+
+/**
  * Species write function.
  *
  * @param app gyrokinetic app object
@@ -2983,3 +3011,11 @@ void gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app *app,  double dt0);
  * @param dt0 Suggessted time step.
  */
 struct gkyl_update_status gyrokinetic_update_op_split(gkyl_gyrokinetic_app *app,  double dt0);
+
+/**
+ * Enforce quasineutrality of the guiding centers after applying the positivity
+ * shift to enforce f>=0 of each charged species.
+ *
+ * @param app Gyrokinetic app object.
+ */
+void gyrokinetic_pos_shift_quasineutrality(gkyl_gyrokinetic_app *app);
