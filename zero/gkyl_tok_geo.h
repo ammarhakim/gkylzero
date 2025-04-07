@@ -55,7 +55,9 @@ enum gkyl_tok_geo_type {
 
   // Core Block types that can be used with SN or DN configurations in multi-block simulations 
   GKYL_CORE_L, // Left half of core (lower to upper xpt)
-  GKYL_CORE_R // Right half of core (upper to lower xpt)
+  GKYL_CORE_R, // Right half of core (upper to lower xpt)
+
+  GKYL_IWL, // Inner Wall Limited
 };  
 
 

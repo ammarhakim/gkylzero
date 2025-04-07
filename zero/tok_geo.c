@@ -133,6 +133,26 @@ arc_length_func(double Z, void *ctx)
     }
   }
 
+  else if(actx->ftype==GKYL_IWL){
+    if(actx->q3) {
+      double *arc_memo = actx->arc_memo;
+      ival = integrate_psi_contour_memo(actx->geo, psi, Z, actx->geo->zmaxis, rclose, false, false, arc_memo) - arcL;
+    }
+    else if (actx->q4) {
+      double *arc_memo = actx->arc_memo;
+      ival = integrate_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo)  - arcL + actx->arcL_q3;
+    }
+    else if (actx->q1) {
+      double *arc_memo = actx->arc_memo;
+      ival = integrate_psi_contour_memo(actx->geo, psi, actx->geo->zmaxis, Z, rclose, false, false, arc_memo)  - arcL + actx->arcL_q3 +actx->arcL_q4;
+    }
+    else {
+      double *arc_memo = actx->arc_memo;
+      ival = integrate_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, false, false, arc_memo)  - arcL + actx->arcL_q3 +actx->arcL_q4 + actx->arcL_q1;
+    }
+
+  }
+
   return ival;
 }
 
@@ -225,6 +245,25 @@ phi_func(double alpha_curr, double Z, void *ctx)
   }
   else if(actx->ftype==GKYL_PF_UP_L){
       ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, false, false, arc_memo);// + actx->phi_right;
+  }
+  else if (actx->ftype==GKYL_IWL) {
+    // phi = alpha at outboard midplane
+    if(actx->right==true){
+      if(Z<actx->zmaxis)
+        ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo);
+      else
+        ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
+    }
+    else{
+      if (Z<actx->zmaxis) {
+        ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo) ;
+        phi_ref  = -actx->phi_right;
+      }
+      else {
+        ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo) ;
+        phi_ref  = actx->phi_right;
+      }
+    }
   }
   // Now multiply by fpol
   double R[4] = {0};
