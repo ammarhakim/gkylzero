@@ -225,6 +225,14 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     app->apdq = mkarr(false, max_eqn, app->local_ext.volume);
   }
 
+  app->embed_phi = mkarr(false, 1, app->local_ext.volume);
+
+  app->has_embed_geo = mom->embed_geo ? true : false;
+  if (app->has_embed_geo) {
+    app->embed_geo_func = mom->embed_geo;
+    app->embed_ctx = mom->embed_ctx;
+  }
+
   // initialize stat object to all zeros
   app->stat = (struct gkyl_moment_stat) {
   };
@@ -255,6 +263,7 @@ gkyl_moment_app_apply_ic(gkyl_moment_app* app, double t0)
   gkyl_moment_app_apply_ic_field(app, t0);
   for (int i=0;  i<app->num_species; ++i)
     gkyl_moment_app_apply_ic_species(app, i, t0);
+  gkyl_moment_app_apply_ic_embed(app, t0);
 }
 
 void
@@ -297,6 +306,32 @@ gkyl_moment_app_apply_ic_species(gkyl_moment_app* app, int sidx, double t0)
   }
 
   moment_species_apply_bc(app, t0, &app->species[sidx], app->species[sidx].fcurr);
+}
+
+void
+gkyl_moment_app_apply_ic_embed(gkyl_moment_app* app, double t0)
+{
+  app->tcurr = t0;
+
+  struct gkyl_msgpack_data *mt = moment_array_meta_new( (struct moment_output_meta) {
+      .frame = 0,
+      .stime= t0
+    }
+  );
+
+  const char *fmt = "%s-phi.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name);
+
+  gkyl_array_clear(app->embed_phi, 1.0);
+  if (app->has_embed_geo) {
+    gkyl_fv_proj *proj = gkyl_fv_proj_new(&app->grid, 1, 1, app->embed_geo_func,
+      app->embed_ctx);
+    gkyl_fv_proj_advance(proj, t0, &app->local, app->embed_phi);
+    gkyl_fv_proj_release(proj);
+  }
+  gkyl_grid_sub_array_write(&app->grid, &app->local, mt, app->embed_phi, fileNm);
 }
 
 void

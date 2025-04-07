@@ -82,6 +82,7 @@ static void
 gkyl_euler_flux(double gas_gamma, const double q[5], double flux[5])
 {
   double pr = gkyl_euler_pressure(gas_gamma, q), u = q[1]/q[0];
+
   flux[0] = q[1]; // rho*u
   flux[1] = q[1]*u + pr; // rho*u*u + pr
   flux[2] = q[2]*u; // rho*v*u
@@ -165,6 +166,81 @@ rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* t
 // Waves and speeds using Lax fluxes
 GKYL_CU_DH
 static double
+wave_embedded(const struct gkyl_wv_eqn *eqn,
+  const double *delta, const double *ql, const double *qr, const double phil, const double phir, double *waves, double *s)
+{
+  const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
+  double gas_gamma = euler->gas_gamma;
+
+  double qphi[5] = {0.0};
+
+  double amax = 0.0;
+
+  double fl[5], fr[5] = {0.0};
+  if ((phil < 0.0) && (phir > 0.0)) {
+    double rhol = qr[0], rhor = qr[0];
+    double ul = -qr[1]/qr[0], ur = qr[1]/qr[0];
+    double pl = gkyl_euler_pressure(gas_gamma, qr), pr = gkyl_euler_pressure(gas_gamma, qr);
+    double sl = fabs(ul) + sqrt(gas_gamma*pl/rhol), sr = fabs(ur) + sqrt(gas_gamma*pr/rhor);
+    amax = fmax(sl, sr);
+   
+    qphi[0] = qr[0];
+    qphi[1] = -qr[1];
+    qphi[2] = qr[2];
+    qphi[3] = qr[3];
+    qphi[4] = qr[4];
+
+    gkyl_euler_flux(gas_gamma, qphi, fl);
+    gkyl_euler_flux(gas_gamma, qr, fr);
+
+    double *w0 = &waves[0], *w1 = &waves[5];
+    for (int i=0; i<5; ++i) {
+      w0[i] = 0.5*((qr[i]-qphi[i]) - (fr[i]-fl[i])/amax);
+      w1[i] = 0.5*((qr[i]-qphi[i]) + (fr[i]-fl[i])/amax);
+    }
+  }
+  
+  if ((phir < 0.0) && (phil > 0.0)) {
+    double rhol = ql[0], rhor = ql[0];
+    double ul = ql[1]/ql[0], ur = -ql[1]/ql[0];
+    double pl = gkyl_euler_pressure(gas_gamma, ql), pr = gkyl_euler_pressure(gas_gamma, ql);
+    double sl = fabs(ul) + sqrt(gas_gamma*pl/rhol), sr = fabs(ur) + sqrt(gas_gamma*pr/rhor);
+    amax = fmax(sl, sr);
+    
+    qphi[0] = ql[0];
+    qphi[1] = -ql[1];
+    qphi[2] = ql[2];
+    qphi[3] = ql[3];
+    qphi[4] = ql[4];
+
+    gkyl_euler_flux(gas_gamma, ql, fl);
+    gkyl_euler_flux(gas_gamma, qphi, fr);
+    
+    double *w0 = &waves[0], *w1 = &waves[5];
+    for (int i=0; i<5; ++i) {
+      w0[i] = 0.5*((qphi[i]-ql[i]) - (fr[i]-fl[i])/amax);
+      w1[i] = 0.5*((qphi[i]-ql[i]) + (fr[i]-fl[i])/amax);
+    }
+  }
+
+  if ((phir < 0.0) && (phil < 0.0)) {
+
+    double *w0 = &waves[0], *w1 = &waves[5];
+    for (int i=0; i<5; ++i) {
+      w0[i] = 0.0;
+      w1[i] = 0.0;
+    }
+  }
+
+  s[0] = -amax;
+  s[1] = amax;
+  
+  return s[1];
+}
+
+// Waves and speeds using Lax fluxes
+GKYL_CU_DH
+static double
 wave_lax(const struct gkyl_wv_eqn *eqn,
   const double *delta, const double *ql, const double *qr, double *waves, double *s)
 {
@@ -212,15 +288,20 @@ qfluct_lax(const struct gkyl_wv_eqn *eqn,
 GKYL_CU_DH
 static double
 wave_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, double phil,
+  double phir, double *waves, double *s)
 {
+  if ((phil < 0.0) || (phir < 0.0))
+    return wave_embedded(eqn, delta, ql, qr, phil, phir, waves, s);
+  else
     return wave_lax(eqn, delta, ql, qr, waves, s);
 }
 
 GKYL_CU_DH
 static void
 qfluct_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *ql, const double *qr, const double *waves, const double *s,
+  const double *ql, const double *qr, double phil,
+  double phir, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
   return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
@@ -337,12 +418,18 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn,
 GKYL_CU_DH
 static double
 wave_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, double phil,
+  double phir, double *waves, double *s)
 {
-  if (type == GKYL_WV_HIGH_ORDER_FLUX)
-    return wave_roe(eqn, delta, ql, qr, waves, s);
-  else
-    return wave_lax(eqn, delta, ql, qr, waves, s);
+  // Check if inside an embedded surface
+  if ((phil < 0.0) || (phir < 0.0))
+    return wave_embedded(eqn, delta, ql, qr, phil, phir, waves, s);
+  else {
+    if (type == GKYL_WV_HIGH_ORDER_FLUX)
+      return wave_roe(eqn, delta, ql, qr, waves, s);
+    else
+      return wave_lax(eqn, delta, ql, qr, waves, s);
+  }
 
   return 0.0; // can't happen
 }
@@ -350,10 +437,10 @@ wave_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
 GKYL_CU_DH
 static void
 qfluct_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *ql, const double *qr, const double *waves, const double *s,
-  double *amdq, double *apdq)
+  const double *ql, const double *qr, double phil, double phir, const double *waves,
+  const double *s, double *amdq, double *apdq)
 {
-  if (type == GKYL_WV_HIGH_ORDER_FLUX)
+  if (type == GKYL_WV_HIGH_ORDER_FLUX && (phil > 0.0) && (phir > 0.0))
     return qfluct_roe(eqn, ql, qr, waves, s, amdq, apdq);
   else
     return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
@@ -481,7 +568,8 @@ qfluct_hll(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
 GKYL_CU_DH
 static double
 wave_hll_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, double phil,
+  double phir, double *waves, double *s)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX)
     return wave_hll(eqn, delta, ql, qr, waves, s);
@@ -494,7 +582,8 @@ wave_hll_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
 GKYL_CU_DH
 static void
 qfluct_hll_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *ql, const double *qr, const double *waves, const double *s,
+  const double *ql, const double *qr, double phil,
+  double phir, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX)
@@ -578,23 +667,26 @@ qfluct_hllc(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
 GKYL_CU_DH
 static double
 wave_hllc_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, const double phil, const double phir, double *waves, double *s)
 {
-  if (type == GKYL_WV_HIGH_ORDER_FLUX)
-    return wave_hllc(eqn, delta, ql, qr, waves, s);
-  else
-    return wave_lax(eqn, delta, ql, qr, waves, s);
-
+  if ((phil < 0.0) || (phir < 0.0))
+    return wave_embedded(eqn, delta, ql, qr, phil, phir, waves, s);
+  else {
+    if (type == GKYL_WV_HIGH_ORDER_FLUX)
+      return wave_hllc(eqn, delta, ql, qr, waves, s);
+    else
+      return wave_lax(eqn, delta, ql, qr, waves, s);
+  }
   return 0.0; // can't happen
 }
 
 GKYL_CU_DH
 static void
 qfluct_hllc_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *ql, const double *qr, const double *waves, const double *s,
+  const double *ql, const double *qr, const double phil, const double phir, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
-  if (type == GKYL_WV_HIGH_ORDER_FLUX)
+  if (type == GKYL_WV_HIGH_ORDER_FLUX && (phil > 0.0) && (phir > 0.0))
     return qfluct_hllc(eqn, ql, qr, waves, s, amdq, apdq);
   else
     return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);

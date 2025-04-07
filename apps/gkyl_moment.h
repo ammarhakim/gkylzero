@@ -62,6 +62,9 @@ struct gkyl_moment_species {
   void (*nT_source_func)(double t, const double *xn, double *fout, void *ctx);
   bool nT_source_set_only_once;
 
+  bool embed_surf;
+  void (*embed_func)(double t, const double *xn, double *phi, void *ctx);
+
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
   // for function BCs these should be set
@@ -126,6 +129,9 @@ struct gkyl_moment {
   // coordinates and on output xp are the corresponding physical space
   // coordinates.
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
+
+  void (*embed_geo)(double t, const double *xn, double *phi, void *ctx);
+  void *embed_ctx;
 
   double cfl_frac; // CFL fraction to use
 
@@ -233,6 +239,14 @@ void gkyl_moment_app_apply_ic_field(gkyl_moment_app* app, double t0);
  * @param t0 Time for initial conditions
  */
 void gkyl_moment_app_apply_ic_species(gkyl_moment_app* app, int sidx, double t0);
+
+/**
+ * Initialize embedded geometry.
+ *
+ * @param app App object.
+ * @param t0 Time for initial conditions
+ */
+void gkyl_moment_app_apply_ic_embed(gkyl_moment_app* app, double t0);
 
 /**
  * Read field data from .gkyl file.

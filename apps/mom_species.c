@@ -382,7 +382,7 @@ moment_species_update(gkyl_moment_app *app,
   struct gkyl_wave_prop_status stat;
 
   for (int d=0; d<ndim; ++d) {
-    stat = gkyl_wave_prop_advance(sp->slvr[d], tcurr, dt, &app->local, sp->f[d], sp->f[d+1]);
+    stat = gkyl_wave_prop_advance(sp->slvr[d], tcurr, dt, &app->local, app->embed_phi, sp->f[d], sp->f[d+1]);
 
     double my_max_speed = stat.max_speed;
     max_speed = max_speed > my_max_speed ? max_speed : my_max_speed;
@@ -429,7 +429,7 @@ moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
   if (app->scheme_type == GKYL_MOMENT_MP)
     gkyl_mp_scheme_advance(species->mp_slvr, &app->local, fin,
       app->ql, app->qr, app->amdq, app->apdq,
-      species->cflrate, rhs);
+      species->cflrate, app->embed_phi, rhs);
   else
     gkyl_kep_scheme_advance(species->kep_slvr, &app->local, fin, species->alpha,
       species->cflrate, rhs);

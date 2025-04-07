@@ -143,7 +143,7 @@ GKYL_CU_DH
 static double
 wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *delta, const double *ql, const double *qr, 
-  double *waves, double *s)
+  const double phil, const double phir, double *waves, double *s)
 {
   const struct wv_maxwell *maxwell = container_of(eqn, struct wv_maxwell, eqn);
 
@@ -211,7 +211,7 @@ wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
 GKYL_CU_DH
 static void
 qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *ql, const double *qr, const double *waves, const double *s,
+  const double *ql, const double *qr, const double phil, const double phir, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
   const double *w0 = &waves[0*8], *w1 = &waves[1*8], *w2 = &waves[2*8];

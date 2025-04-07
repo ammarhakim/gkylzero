@@ -474,7 +474,7 @@ GKYL_CU_DH
 static double
 wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *delta, const double *ql, const double *qr, 
-  double *waves, double *s)
+  const double phil, const double phir, double *waves, double *s)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX)
     return wave_roe(eqn, delta, ql, qr, waves, s);
@@ -487,7 +487,7 @@ wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
 GKYL_CU_DH
 static void
 qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *ql, const double *qr, const double *waves, const double *s,
+  const double *ql, const double *qr, const double phil, const double phir, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX)

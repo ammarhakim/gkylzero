@@ -281,6 +281,11 @@ struct gkyl_moment_app {
     struct gkyl_array *amdq, *apdq; // minus/plus fluctuations
   };
 
+  bool has_embed_geo;
+  struct gkyl_array *embed_phi;
+  void (*embed_geo_func)(double t, const double *xn, double *phi, void *ctx);
+  void *embed_ctx;
+
   int update_sources; // flag to indicate if sources are to be updated
   struct moment_coupling sources; // sources
 
