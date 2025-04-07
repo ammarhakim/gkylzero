@@ -1042,7 +1042,10 @@ test_cyclic_domain_sync_ser_dev(void)
     1, 1, // Block 1.
   };
   int **cuts0 = cuts_array_new(num_blocks, ndim, cuts_flat0);
+  // Test using MPI
   test_cyclic_domain_sync_ser(true, use_mpi, cuts0, 1);
+  // Test without MPI
+  test_cyclic_domain_sync_ser(true, false, cuts0, 1);
   cuts_array_release(num_blocks, cuts0);
 }
 #endif
