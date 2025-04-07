@@ -234,6 +234,9 @@ gkyl_multib_comm_conn_new_send_from_connections(
       struct gkyl_range irng;
       is_inter = gkyl_range_intersect(&irng, &cross_range, &sub_range);
       if (is_inter) {
+        comm_conn[comm_conn_idx].sr = GKYL_COMM_CONN_SEND;
+        comm_conn[comm_conn_idx].src_edge = 0;
+        comm_conn[comm_conn_idx].tar_edge = 0;
         comm_conn[comm_conn_idx].rank = ir;
         comm_conn[comm_conn_idx].block_id = block_list[ib];
         memcpy(&comm_conn[comm_conn_idx].range, &irng, sizeof(struct gkyl_range));
@@ -311,6 +314,9 @@ gkyl_multib_comm_conn_new_recv_from_connections(
       struct gkyl_range irng;
       is_inter = gkyl_range_intersect(&irng, &cross_range, &sub_range);
       if (is_inter) {
+        comm_conn[comm_conn_idx].sr = GKYL_COMM_CONN_RECV;
+        comm_conn[comm_conn_idx].src_edge = 0;
+        comm_conn[comm_conn_idx].tar_edge = 0;
         comm_conn[comm_conn_idx].rank = ir;
         comm_conn[comm_conn_idx].block_id = tar_bid;
         memcpy(&comm_conn[comm_conn_idx].range, &irng, sizeof(struct gkyl_range));
