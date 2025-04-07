@@ -84,6 +84,7 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   ginp.cgrid = up->grid;
   ginp.cbasis = up->basis;
   struct gkyl_tok_geo *geo = gkyl_tok_geo_new(&inp, &ginp);
+  up->geqdsk_sign_convention = geo->efit->sibry > geo->efit->simag ? 0 : 1;
   // calculate mapc2p and mapc2prz
   gkyl_tok_geo_calc(up, &nrange, dzc, geo, &ginp, mc2p_nodal_fd, mc2p_nodal, up->mc2p, 
     ddtheta_nodal, map_mc2nu_nodal, up->mc2nu_pos, geometry_inp->position_map);

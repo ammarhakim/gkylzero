@@ -60,6 +60,9 @@ struct gk_geometry {
   struct gkyl_array* gxzj; // 1 component. g^{xz} * J. For poisson solve if z derivatives are kept.
   struct gkyl_array* eps2; // 1 component. eps2 = Jg^33 - J/g_33. For poisson if z derivatives are kept.
 
+  int geqdsk_sign_convention; // 0 if psi increases away from magnetic axis
+                              // 1 if psi increases toward magnetic axis
+
   uint32_t flags;
   struct gkyl_ref_count ref_count;  
   struct gk_geometry *on_dev; // pointer to itself or device object
