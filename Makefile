@@ -280,7 +280,7 @@ $(BUILD_DIR)/kernels/advection/%.c.o : kernels/advection/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
-$(BUILD_DIR)/kernels/bgk/%.c.o : kernels/bgk/%.c
+$(BUILD_DIR)/kernels/bgk_gyrokinetic/%.c.o : kernels/bgk_gyrokinetic/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
@@ -320,7 +320,11 @@ $(BUILD_DIR)/kernels/gyrokinetic_pol_density/%.c.o : kernels/gyrokinetic_pol_den
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
-$(BUILD_DIR)/kernels/lbo/%.c.o : kernels/lbo/%.c
+$(BUILD_DIR)/kernels/lbo_gyrokinetic/%.c.o : kernels/lbo_gyrokinetic/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
+$(BUILD_DIR)/kernels/lbo_vlasov/%.c.o : kernels/lbo_vlasov/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
