@@ -21,6 +21,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
   up->global = geometry_inp->global;
   up->global_ext = geometry_inp->global_ext;
   up->grid = geometry_inp->grid;
+  up->geqdsk_sign_convention = geo_host->geqdsk_sign_convention;
 
   // Copy the host-side initialized geometry object to the device
   struct gkyl_array *mc2p_dev = gkyl_array_cu_dev_new(geo_host->mc2p->type, geo_host->mc2p->ncomp, geo_host->mc2p->size);
