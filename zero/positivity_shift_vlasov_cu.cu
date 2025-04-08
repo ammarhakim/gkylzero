@@ -34,9 +34,9 @@ gkyl_pos_shift_vlasov_set_cu_ker_ptrs(struct gkyl_positivity_shift_vlasov_kernel
   }
 
   switch (cbasis_type) {
-    case GKYL_BASIS_MODAL_tensorENDIPITY:
-      kernels->conf_inv_op = choose_tensor_inv_kern(cdim, poly_order);
-      kernels->conf_mul_op = choose_tensor_mul_kern(cdim, poly_order);
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      kernels->conf_inv_op = choose_ser_inv_kern(cdim, poly_order);
+      kernels->conf_mul_op = choose_ser_mul_kern(cdim, poly_order);
       break;
     default:
       assert(false);
@@ -78,7 +78,7 @@ gkyl_positivity_shift_vlasov_advance_int_array_clear_cu_ker(struct gkyl_array* o
 __global__ static void
 gkyl_positivity_shift_vlasov_advance_shift_cu_ker(
   struct gkyl_positivity_shift_vlasov_kernels *kers, const struct gkyl_rect_grid grid,
-  const struct gkyl_range conf_range, const struct gkyl_range vel_range, const struct gkyl_range phase_range,
+  const struct gkyl_range conf_range, const struct gkyl_range phase_range,
   double *ffloor, double ffloor_fac, double cellav_fac, struct gkyl_array* GKYL_RESTRICT shiftedf,
   struct gkyl_array* GKYL_RESTRICT distf, struct gkyl_array* GKYL_RESTRICT m0, struct gkyl_array* GKYL_RESTRICT delta_m0)
 {
@@ -98,7 +98,6 @@ gkyl_positivity_shift_vlasov_advance_shift_cu_ker(
     for (int d=cdim; d<pdim; d++) vidx[d-cdim] = pidx[d];
 
     long clinidx = gkyl_range_idx(&conf_range, pidx);
-    long vlinidx = gkyl_range_idx(&vel_range, vidx);
     long plinidx = gkyl_range_idx(&phase_range, pidx);
 
     int *shiftedf_c = (int*) gkyl_array_fetch(shiftedf, clinidx);
@@ -227,7 +226,7 @@ gkyl_positivity_shift_vlasov_advance_cu(gkyl_positivity_shift_vlasov* up,
     (up->shiftedf->on_dev, 0);
 
   gkyl_positivity_shift_vlasov_advance_shift_cu_ker<<<nblocks_phase, nthreads_phase>>>
-    (up->kernels, up->grid, *conf_rng, up->vel_map->local_vel, *phase_rng, up->ffloor, up->ffloor_fac,
+    (up->kernels, up->grid, *conf_rng, *phase_rng, up->ffloor, up->ffloor_fac,
      up->cellav_fac, up->shiftedf->on_dev, distf->on_dev, m0->on_dev, delta_m0->on_dev);
 
   gkyl_positivity_shift_vlasov_advance_scalef_cu_ker<<<nblocks_phase, nthreads_phase>>>
