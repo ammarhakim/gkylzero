@@ -299,8 +299,8 @@ wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   double sr = gkyl_maxwell_max_abs_speed(c, e_fact, b_fact, qr);
   double amax = fmax(sl, sr);
 
-  double *fl = gkyl_malloc(sizeof(double) * 8);
-  double *fr = gkyl_malloc(sizeof(double) * 8);
+  double *fl = (double*) gkyl_malloc(sizeof(double) * 8);
+  double *fr = (double*) gkyl_malloc(sizeof(double) * 8);
   gkyl_maxwell_flux(c, e_fact, b_fact, ql, fl);
   gkyl_maxwell_flux(c, e_fact, b_fact, qr, fr);
 
@@ -534,8 +534,8 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
   double e_fact = maxwell->e_fact; // Factor of speed of light for electric field correction.
   double b_fact = maxwell->b_fact; // Factor of speed of light for magnetic field correction.
 
-  double *fr = gkyl_malloc(sizeof(double) * 8);
-  double *fl = gkyl_malloc(sizeof(double) * 8);
+  double *fr = (double*) gkyl_malloc(sizeof(double) * 8);
+  double *fl = (double*) gkyl_malloc(sizeof(double) * 8);
   gkyl_maxwell_flux(c, e_fact, b_fact, ql, fl);
   gkyl_maxwell_flux(c, e_fact, b_fact, qr, fr);
 
