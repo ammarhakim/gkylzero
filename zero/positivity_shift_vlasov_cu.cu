@@ -94,9 +94,6 @@ gkyl_positivity_shift_vlasov_advance_shift_cu_ker(
       tid < phase_range.volume; tid += blockDim.x*gridDim.x) {
     gkyl_sub_range_inv_idx(&phase_range, tid, pidx);
 
-    int vidx[3];
-    for (int d=cdim; d<pdim; d++) vidx[d-cdim] = pidx[d];
-
     long clinidx = gkyl_range_idx(&conf_range, pidx);
     long plinidx = gkyl_range_idx(&phase_range, pidx);
 
