@@ -65,6 +65,7 @@ static const pos_shift_vlasov_kern_list_m0 pos_shift_vlasov_kern_list_m0_tensor[
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
+GKYL_CU_D
 static struct { int vdim[4]; } pos_shift_vlasov_cv_index[] = {
   {-1, -1, -1, -1}, // 0x makes no sense
   {-1,  0,  1,  2}, // 1x kernel indices
