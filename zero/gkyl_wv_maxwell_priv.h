@@ -299,10 +299,25 @@ wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   double sr = gkyl_maxwell_max_abs_speed(c, e_fact, b_fact, qr);
   double amax = fmax(sl, sr);
 
-  double *fl = gkyl_malloc(sizeof(double) * 8);
-  double *fr = gkyl_malloc(sizeof(double) * 8);
-  gkyl_maxwell_flux(c, e_fact, b_fact, ql, fl);
-  gkyl_maxwell_flux(c, e_fact, b_fact, qr, fr);
+  double fl[8], fr[8];
+
+  fl[0] = (e_fact * ((c * c) * ql[6]));
+  fl[1] = ((c * c) * ql[5]);
+  fl[2] = (-1.0 * ((c * c) * ql[4]));
+  fl[3] = (b_fact * ql[7]);
+  fl[4] = (-1.0 * ql[2]);
+  fl[5] = ql[1];
+  fl[6] = (e_fact * ql[0]);
+  fl[7] = (b_fact * ((c * c) * ql[3]));
+
+  fr[0] = (e_fact * ((c * c) * qr[6]));
+  fr[1] = ((c * c) * qr[5]);
+  fr[2] = (-1.0 * ((c * c) * qr[4]));
+  fr[3] = (b_fact * qr[7]);
+  fr[4] = (-1.0 * qr[2]);
+  fr[5] = qr[1];
+  fr[6] = (e_fact * qr[0]);
+  fr[7] = (b_fact * ((c * c) * qr[3]));
 
   double *w0 = &waves[0], *w1 = &waves[8];
   for (int i = 0; i < 8; i++) {
@@ -313,8 +328,6 @@ wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   s[0] = -amax;
   s[1] = amax;
 
-  gkyl_free(fl);
-  gkyl_free(fr);
 
   return s[1];
 }
@@ -534,10 +547,25 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
   double e_fact = maxwell->e_fact; // Factor of speed of light for electric field correction.
   double b_fact = maxwell->b_fact; // Factor of speed of light for magnetic field correction.
 
-  double *fr = gkyl_malloc(sizeof(double) * 8);
-  double *fl = gkyl_malloc(sizeof(double) * 8);
-  gkyl_maxwell_flux(c, e_fact, b_fact, ql, fl);
-  gkyl_maxwell_flux(c, e_fact, b_fact, qr, fr);
+  double fl[8], fr[8];
+
+  fl[0] = (e_fact * ((c * c) * ql[6]));
+  fl[1] = ((c * c) * ql[5]);
+  fl[2] = (-1.0 * ((c * c) * ql[4]));
+  fl[3] = (b_fact * ql[7]);
+  fl[4] = (-1.0 * ql[2]);
+  fl[5] = ql[1];
+  fl[6] = (e_fact * ql[0]);
+  fl[7] = (b_fact * ((c * c) * ql[3]));
+
+  fr[0] = (e_fact * ((c * c) * qr[6]));
+  fr[1] = ((c * c) * qr[5]);
+  fr[2] = (-1.0 * ((c * c) * qr[4]));
+  fr[3] = (b_fact * qr[7]);
+  fr[4] = (-1.0 * qr[2]);
+  fr[5] = qr[1];
+  fr[6] = (e_fact * qr[0]);
+  fr[7] = (b_fact * ((c * c) * qr[3]));
 
   for (int i = 0; i < 8; i++) {
     flux_jump[i] = fr[i] - fl[i];
@@ -545,9 +573,6 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
 
   double amaxl = gkyl_maxwell_max_abs_speed(c, e_fact, b_fact, ql);
   double amaxr = gkyl_maxwell_max_abs_speed(c, e_fact, b_fact, qr);
-  
-  gkyl_free(fr);
-  gkyl_free(fl);
 
   return fmax(amaxl, amaxr);
 }
