@@ -296,7 +296,7 @@ void gkyl_calc_metric_advance_rz_neut(
               grFld_n[0] = R*R/jac/jac*(dxdz[1][2]*dxdz[1][2] + dxdz[0][2]*dxdz[0][2] );
               grFld_n[1] = 0.0;
               grFld_n[2] = -R*R/jac/jac*(dxdz[0][0]*dxdz[0][2] + dxdz[1][0]*dxdz[1][2] );
-              grFld_n[3] = 1/jac/jac*(dxdz[0][0]*dxdz[0][0]*dxdz[1][2]*dxdz[1][2] + dxdz[1][0]*dxdz[1][0]*dxdz[0][2]*dxdz[0][2]);
+              grFld_n[3] = 1/R/R;
               grFld_n[4] = 0.0;
               grFld_n[5] = R*R/jac/jac*(dxdz[0][0]*dxdz[0][0] + dxdz[1][0]*dxdz[1][0] );
 
