@@ -91,11 +91,25 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
           adapt_src->range_conf[j] = edge == GKYL_LOWER_EDGE ? app->lower_ghost[dir] : app->upper_ghost[dir];
           adapt_src->dir[j] = dir;
           adapt_src->edge[j] = edge;
-          // We check that the boundaries are not set to zero flux (prevents the call of bflux).
           if (edge == GKYL_LOWER_EDGE) {
+            // Specific scenario if we are in a inner wall limited case.
+            if (s->lower_bc[dir].type == GKYL_SPECIES_GK_IWL) { 
+              adapt_src->range[j] = s->lower_ghost_par_sol;
+              // need to create a configuration space ghost range that encompasses the SOL only.
+              double xLCFS = s->lower_bc[j].aux_parameter;
+              int idxLCFS_m = (xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
+              gkyl_range_shorten_from_below(&adapt_src->range_conf[j], &app->lower_ghost[j], 0, app->grid.cells[0]-idxLCFS_m+1);
+            }
+            // We check that the boundaries are not set to zero flux (prevents the call of bflux).
             assert(s->lower_bc[dir].type != GKYL_SPECIES_ZERO_FLUX);
           }
           else {
+            if (s->upper_bc[dir].type == GKYL_SPECIES_GK_IWL) { 
+              adapt_src->range[j] = s->upper_ghost_par_sol;
+              double xLCFS = s->lower_bc[j].aux_parameter;
+              int idxLCFS_m = (xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
+              gkyl_range_shorten_from_below(&adapt_src->range_conf[j], &app->upper_ghost[j], 0, app->grid.cells[0]-idxLCFS_m+1);
+            }
             assert(s->upper_bc[dir].type != GKYL_SPECIES_ZERO_FLUX);
           }
         }
