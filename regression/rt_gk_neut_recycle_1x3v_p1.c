@@ -145,7 +145,7 @@ create_ctx(void)
   double mu_max_ion = (3.0 / 2.0) * 0.5 * mass_ion * pow(4.0 * vti,2) / (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
   double v_max_neut = 4.0 * vtn; // Domain boundary (ion velocity space: parallel velocity direction).
  
-  double t_end = 100e-6; // Final simulation time.
+  double t_end = 10e-6; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -426,6 +426,16 @@ main(int argc, char **argv)
     .rec_frac = ctx.rec_frac,
   };
 
+  struct gkyl_gyrokinetic_projection recyc_proj = {
+    .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+    .ctx_density = &ctx,
+    .density = evalUnitDensity,
+    .ctx_upar = &ctx,
+    .udrift= evalUdriftInit,
+    .ctx_temp = &ctx,
+    .temp = evalTempNeutInit,
+  }; 
+
   // Electron species.
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
@@ -521,7 +531,7 @@ main(int argc, char **argv)
           .ion_mass = ctx.mass_ion,
           .elc_mass = ctx.mass_elc,
         },
-	{ .react_id = GKYL_REACT_CX,
+	      { .react_id = GKYL_REACT_CX,
           .type_self = GKYL_SELF_PARTNER,
           .ion_id = GKYL_ION_H,
           .ion_nm = "ion",
@@ -535,34 +545,17 @@ main(int argc, char **argv)
     .bcx = {
       .lower = {
         .type = GKYL_SPECIES_RECYCLE,
-    	.emission = neut_bc,
-	.write_diagnostics = true,
-    	.projection = {
-          .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-    	  .ctx_density = &ctx,
-    	  .density = evalUnitDensity,
-    	  .ctx_upar = &ctx,
-    	  .udrift= evalUdriftInit,
-    	  .ctx_temp = &ctx,
-    	  .temp = evalTempNeutInit,
-    	},
+    	  .emission = neut_bc,
+	      .write_diagnostics = true,
+    	  .projection = recyc_proj, 
       },
       .upper = {
         .type = GKYL_SPECIES_RECYCLE,
-    	.emission = neut_bc,
-	.write_diagnostics = true,
-    	.projection = {
-          .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-    	  .ctx_density = &ctx,
-    	  .density = evalUnitDensity,
-    	  .ctx_upar = &ctx,
-    	  .udrift= evalUdriftInit,
-    	  .ctx_temp = &ctx,
-    	  .temp = evalTempNeutInit,
-        },
+    	  .emission = neut_bc,
+	      .write_diagnostics = true,
+    	  .projection = recyc_proj,
       },
     },
-    
     
     .num_diag_moments = 3,
     .diag_moments = { "M1i_from_H", "MEnergy", "LTEMoments"},

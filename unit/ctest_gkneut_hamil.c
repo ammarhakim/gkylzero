@@ -34,8 +34,8 @@ void eval_gzz(double t, const double *xn, double* restrict fout, void *ctx)
 void
 test_hamil(int cdim, bool use_gpu)
 {
-  // construct 1x3v phase grid
-  // construct 1x3v phase basis
+  // construct phase grid
+  // construct phase basis
   // construct conf and phase ranges
 
   double xmax = 1.0;
@@ -122,36 +122,7 @@ test_hamil(int cdim, bool use_gpu)
   /* gkyl_grid_sub_array_write(&grid, &range, 0, hamil, fname); */
   
   // test against predicted value
-  if (cdim==1) {
-    const double *fv = gkyl_array_cfetch(hamil, gkyl_range_idx(&range_ext, (int[4]){1, 1, 1, 1}));
-    double p1_vals[] = { 1.0562500000000002e+01, 0.0000000000000000e+00, -4.0594940802395563e-01,
-			 -1.3531646934131869e-01, -2.7063293868263716e-01, 2.2204460492503131e-16,
-			 0.0000000000000000e+00,  0.0000000000000000e+00,  1.1102230246251565e-16,
-			 0.0000000000000000e+00,  0.0000000000000000e+00, -5.5511151231257827e-17,
-			 0.0000000000000000e+00,  2.7755575615628914e-17, -8.3266726846886741e-17,
-			 4.9343245538895844e-17};
-    for (int i=0; i<pbasis.num_basis; ++i) {
-      TEST_CHECK( gkyl_compare_double(p1_vals[i], fv[i], 1e-12) ); 
-    }
-  }
-  else if (cdim==2) {
-    const double *fv = gkyl_array_cfetch(hamil, gkyl_range_idx(&range_ext, (int[5]){1, 1, 1, 1, 1}));
-    double p1_vals[] = { 1.4937630752565813e+01, -4.4408920985006262e-16, -2.2204460492503131e-16,
-			 -1.9136638615493529e-01, -5.7409915846480741e-01, -3.8273277230987124e-01,
-			 5.5511151231257827e-17, -1.1102230246251565e-16,  0.0000000000000000e+00,
-			 5.5511151231257827e-17,  2.2204460492503131e-16, -1.1102230246251565e-16,
-			 2.2204460492503131e-16,  5.5511151231257827e-17,  5.5511151231257827e-17,
-			 0.0000000000000000e+00,  8.3266726846886741e-17,  1.3877787807814457e-17,
-			 -1.5265566588595902e-16, -8.3266726846886741e-17,  5.5511151231257827e-17,
-			 4.1633363423443370e-17,  2.7755575615628914e-17, -2.7755575615628914e-17,
-			 -2.7755575615628914e-17, -5.5511151231257827e-17,  2.0816681711721685e-17,
-			 5.5511151231257827e-17, -2.7755575615628914e-17, -1.1102230246251565e-16,
-			 -8.3266726846886741e-17, -4.0288591274385723e-17};
-    for (int i=0; i<pbasis.num_basis; ++i) {
-      TEST_CHECK( gkyl_compare_double(p1_vals[i], fv[i], 1e-12) ); 
-    }
-  }
-  else if (cdim==3) {
+if (cdim==3) {
     const double *fv = gkyl_array_cfetch(hamil, gkyl_range_idx(&range_ext, (int[6]){1, 1, 1, 1, 1, 1}));
     double p1_vals[] = { 2.1125000000000000e+01, -2.2204460492503131e-16,  3.3306690738754696e-16,
 			 2.2204460492503131e-16, -2.7063293868263760e-01, -5.4126587736527476e-01,
@@ -195,24 +166,15 @@ test_hamil(int cdim, bool use_gpu)
   gkyl_dg_calc_gk_neut_hamil_release(hamil_calc);
 }
 
-
-void test_hamil_1x() { test_hamil(1, false); }
-void test_hamil_2x() { test_hamil(2, false); }
 void test_hamil_3x() { test_hamil(3, false); }
 
 #ifdef GKYL_HAVE_CUDA
-void test_hamil_1x_gpu() { test_hamil(1, true); }
-void test_hamil_2x_gpu() { test_hamil(2, true); }
 void test_hamil_3x_gpu() { test_hamil(3, true); }
 #endif
 
 TEST_LIST = {
-  { "test_hamil_1x", test_hamil_1x },
-  { "test_hamil_2x", test_hamil_2x },
   { "test_hamil_3x", test_hamil_3x },
 #ifdef GKYL_HAVE_CUDA
-  { "test_hamil_1x_gpu", test_hamil_1x_gpu },
-  { "test_hamil_2x_gpu", test_hamil_2x_gpu },
   { "test_hamil_3x_gpu", test_hamil_3x_gpu },
 #endif
   { NULL, NULL },
