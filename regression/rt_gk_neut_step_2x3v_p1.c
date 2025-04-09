@@ -132,7 +132,6 @@ eval_temp_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   fout[0] = T;
 }
 
-
 void
 eval_density_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
@@ -389,7 +388,6 @@ main(int argc, char **argv)
       //.correct_all_moms = true,
     },
 
-
     .source = { 
        .source_id = GKYL_PROJ_SOURCE, 
        .num_sources = 1, 
@@ -403,7 +401,6 @@ main(int argc, char **argv)
          .ctx_temp = &ctx,
        }, 
     }, 
-
 
     //.collisions =  { 
     //  .collision_id = GKYL_BGK_COLLISIONS, 
@@ -424,7 +421,6 @@ main(int argc, char **argv)
     .num_diag_moments = 4,
     .diag_moments = { "M0", "M1i_from_H", "MEnergy", "LTEMoments"},
   };
-
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
@@ -457,7 +453,7 @@ struct gkyl_tok_geo_grid_inp grid_inp = {
 
   // GK app
   struct gkyl_gk gk = {
-    .name = "gk_step_neut_2x2v_p1",
+    .name = "gk_step_neut_2x3v_p1",
 
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { ctx.lower_x, -ctx.Lz/20.0 },
