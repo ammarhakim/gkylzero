@@ -177,12 +177,11 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
   // Fluid equations.
-  struct gkyl_wv_eqn *iso_euler = gkyl_wv_iso_euler_new(ctx.cs);
+  struct gkyl_wv_eqn *iso_euler = gkyl_wv_iso_euler_new(ctx.cs, false);
 
   struct gkyl_moment_species fluid = {
     .name = "iso_euler",
     .equation = iso_euler,
-    
     .init = evalEulerInit,
     .ctx = &ctx,
 

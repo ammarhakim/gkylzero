@@ -18,8 +18,8 @@ struct gk_app_ctx {
   // Geometry and magnetic field.
   double Lz;        // Domain size along magnetic field.
   double z_min;  double z_max;
-  double psi_min;  double psi_max;
-  double psi_LCFS;    // Radial location of the last closed flux surface.
+  double x_min;  double x_max;
+  double x_LCFS;    // Radial location of the last closed flux surface.
   double Lx_core; // Radial extent of core in psi
   double Lx; // Total radial extent in psi
   // Plasma parameters.
@@ -56,10 +56,10 @@ void density_src(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRIC
   double x = xn[0];
   double z = xn[1];
 
-  if ( app->psi_max - x < app->Lx_core/6.0 ) {
+  if (fabs(z) < Lz/4. && x < app->x_LCFS) {
     fout[0] = app->n_src;
   } else {
-    fout[0] = app->n_src*1.0e-5;
+    fout[0] = 1e-40;
   }
 }
 void upar_elc_src(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
@@ -70,6 +70,8 @@ void temp_elc_src(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRI
 {
   struct gk_app_ctx *app = ctx;
   double Te_src = app->Te_src;
+  double x = xn[0];
+  double z = xn[1];
   fout[0] = Te_src;
 }
 
@@ -82,6 +84,8 @@ void temp_ion_src(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRI
 {
   struct gk_app_ctx *app = ctx;
   double Ti_src = app->Ti_src;
+  double x = xn[0];
+  double z = xn[1];
   fout[0] = Ti_src;
 }
 
@@ -89,17 +93,40 @@ void temp_ion_src(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRI
 void density_init(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
-  fout[0] = app->n0;
+  double Lz = app->Lz;
+  double mi = app->mi;
+
+  double x = xn[0];
+  double z = xn[1];
+  double Ls = Lz/4.;
+  double xn0[] = {0.};
+  double n_src0[1], Te_src0[1];
+  density_src(t,xn0,n_src0,ctx);
+  temp_elc_src(t,xn0,Te_src0,ctx);
+  double effSrc  = n_src0[0];
+  double c_ss    = sqrt(5./3.*Te_src0[0]/mi);
+  double nPeak   = 89.*sqrt(5.)/3./c_ss*Ls*effSrc/2.;
+  double perturb = 0.;
+  if (fabs(z) <= Ls) {
+    fout[0] = nPeak*(1.+sqrt(1.-pow(z/Ls,2)))/2.*(1.+perturb);
+  } else {
+    fout[0] = nPeak/2.*(1.+perturb);
+  }
 }
 void upar_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
+  double x = xn[0];
+  double z = xn[1];
   fout[0] = 0.0;
 }
 void temp_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
   double Ti0 = app->Ti0;
+
+  double x = xn[0];
+  double z = xn[1];
   fout[0] = Ti0;
 }
 
@@ -107,12 +134,17 @@ void temp_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 void upar_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
+  double x = xn[0];
+  double z = xn[1];
   fout[0] = 0.0;
 }
 void temp_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
   double Te0 = app->Te0;
+
+  double x = xn[0];
+  double z = xn[1];
   fout[0] = Te0;
 }
 
@@ -142,11 +174,11 @@ create_ctx(void)
   // Geometry and magnetic field.
   double Lz        = 2.0*(M_PI-1e-14);    // Domain size along magnetic field.
   double B0 = 0.24;
-  double psi_LCFS= -5.4760172700000003e-03; // psi at LCFS. Taken from efit
-  double psi_min = psi_LCFS - 0.0004; // inner flux surface of domain
-  double psi_max = psi_LCFS + 0.0012; // outer flux surface of domain
-  double Lx = psi_max - psi_min;
-  double Lx_core = psi_LCFS - psi_min;
+  double x_min = 0.0018; // inner flux surface of domain
+  double x_max = 0.0024; // outer flux surface of domain
+  double x_LCFS= 0.0021; // psi at LCFS
+  double Lx = x_max - x_min;
+  double Lx_core = x_LCFS - x_min;
 
   // Plasma parameters. Chosen based on the value of a cubic sline
   // between the last TS data inside the LCFS and the probe data in
@@ -178,7 +210,7 @@ create_ctx(void)
   double Ti_src = 40*eV;
 
   // Grid parameters
-  int Nx = 8;
+  int Nx = 2;
   int Nz = 16;
   int Nvpar = 12;
   int Nmu = 8;
@@ -200,8 +232,8 @@ create_ctx(void)
     .vdim = vdim,
     .Lz     = Lz    ,
     .z_min = -Lz/2.,  .z_max = Lz/2.,
-    .psi_min = psi_min,  .psi_max = psi_max,
-    .psi_LCFS = psi_LCFS,
+    .x_min = x_min,  .x_max = x_max,
+    .x_LCFS = x_LCFS,
     .Lx = Lx,
     .Lx_core = Lx_core,
   
@@ -309,13 +341,6 @@ int main(int argc, char **argv)
       .collide_with = { "ion" },
     },
 
-    .diffusion = {
-      .num_diff_dir = 1, 
-      .diff_dirs = { 0 },
-      .D = { 0.3 }, 
-      .order = 2, 
-    }, 
-
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,
@@ -336,9 +361,9 @@ int main(int argc, char **argv)
     },
     .bcy = {
       .lower={.type = GKYL_SPECIES_GK_IWL,
-              .aux_parameter = ctx.psi_LCFS,},
+              .aux_parameter = ctx.x_LCFS,},
       .upper={.type = GKYL_SPECIES_GK_IWL,
-              .aux_parameter = ctx.psi_LCFS,},
+              .aux_parameter = ctx.x_LCFS,},
     },
 
     .num_diag_moments = 5,
@@ -373,13 +398,6 @@ int main(int argc, char **argv)
       .collide_with = { "elc" },
     },
 
-    .diffusion = {
-      .num_diff_dir = 1, 
-      .diff_dirs = { 0 },
-      .D = { 0.3 }, 
-      .order = 2, 
-    }, 
-
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,
@@ -400,9 +418,9 @@ int main(int argc, char **argv)
     },
     .bcy = {
       .lower={.type = GKYL_SPECIES_GK_IWL,
-              .aux_parameter = ctx.psi_LCFS,},
+              .aux_parameter = ctx.x_LCFS,},
       .upper={.type = GKYL_SPECIES_GK_IWL,
-              .aux_parameter = ctx.psi_LCFS,},
+              .aux_parameter = ctx.x_LCFS,},
     },
     
     .num_diag_moments = 5,
@@ -412,7 +430,7 @@ int main(int argc, char **argv)
   // field
   struct gkyl_gyrokinetic_field field = {
     .gkfield_id = GKYL_GK_FIELD_ES_IWL,
-    .xLCFS = ctx.psi_LCFS,
+    .xLCFS = ctx.x_LCFS,
     .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET},
                     .up_type = {GKYL_POISSON_DIRICHLET},
                     .lo_value = {0.0}, .up_value = {0.0}},
@@ -420,7 +438,7 @@ int main(int argc, char **argv)
 
   struct gkyl_efit_inp efit_inp = {
     // psiRZ and related inputs
-    .filepath = "./data/eqdsk/LTX_103955_03.eqdsk",
+    .filepath = "./data/eqdsk/ltx_miller.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
     .reflect = true,
@@ -428,22 +446,22 @@ int main(int argc, char **argv)
 
   struct gkyl_tok_geo_grid_inp grid_inp = {
     .ftype = GKYL_IWL,
-    .rclose = 0.7,
-    .rleft= 0.1,
-    .rright= 0.7,
+    .rclose = 0.4,
+    .rleft= 0.2,
+    .rright= 0.45,
     .rmin=0.1,
-    .rmax=0.7,
-    .zmin = -0.35,
-    .zmax = 0.35,
+    .rmax=0.65,
+    .zmin = -0.3,
+    .zmax = 0.3,
   }; 
 
   // GK app
   struct gkyl_gk gk = {
-    .name = "gk_ltx_iwl_2x2v_p1",
+    .name = "gk_ltx_2x2v_p1",
 
     .cdim = ctx.cdim, .vdim = ctx.vdim,
-    .lower = { ctx.psi_min, ctx.z_min },
-    .upper = { ctx.psi_max, ctx.z_max },
+    .lower = { ctx.x_min, ctx.z_min },
+    .upper = { ctx.x_max, ctx.z_max },
     .cells = { cells_x[0], cells_x[1] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
