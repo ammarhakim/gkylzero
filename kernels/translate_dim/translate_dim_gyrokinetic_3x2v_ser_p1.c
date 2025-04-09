@@ -1,4 +1,4 @@
-#include <gkyl_translate_dim_gyrokinetic_kernels.h> 
+#include <gkyl_translate_dim_kernels.h> 
 
 GKYL_CU_DH void translate_dim_gyrokinetic_3x2v_ser_p1_from_1x2v_p1(const double *flow, double *fout) 
 { 

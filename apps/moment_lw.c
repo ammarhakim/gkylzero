@@ -312,7 +312,7 @@ eqn_iso_euler_lw_new(lua_State *L)
   }
   
   iso_euler_lw->magic = MOMENT_EQN_DEFAULT;
-  iso_euler_lw->eqn = gkyl_wv_iso_euler_new(vt);
+  iso_euler_lw->eqn = gkyl_wv_iso_euler_new(vt, false);
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_iso_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -935,7 +935,7 @@ eqn_advect_lw_new(lua_State *L)
   double c = glua_tbl_get_number(L, "advectionSpeed", 1.0);
 
   advect_lw->magic = MOMENT_EQN_DEFAULT;
-  advect_lw->eqn = gkyl_wv_advect_new(c);
+  advect_lw->eqn = gkyl_wv_advect_new(c, false);
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_advect_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -965,7 +965,7 @@ eqn_burgers_lw_new(lua_State *L)
   struct wv_eqn_lw *burgers_lw = gkyl_malloc(sizeof(*burgers_lw));
 
   burgers_lw->magic = MOMENT_EQN_DEFAULT;
-  burgers_lw->eqn = gkyl_wv_burgers_new();
+  burgers_lw->eqn = gkyl_wv_burgers_new(false);
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_burgers_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -1965,7 +1965,7 @@ struct moment_species_lw {
   bool evolve; // Is this species evolved?
 
   struct lua_func_ctx init_ctx; // Lua registry reference to initialization function.
-
+  
   bool has_applied_acceleration_func; // Is there an applied acceleration initialization function?
   struct lua_func_ctx applied_acceleration_func_ref; // Lua registry reference to applied acceleration initialization function.
   bool evolve_applied_acceleration; // Is the applied acceleration evolved?
