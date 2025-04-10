@@ -98,10 +98,17 @@ test_hamil(int cdim, bool use_gpu)
   hamil = mkarr(use_gpu, pbasis.num_basis, range_ext.volume);
   hamil_ho = use_gpu ? mkarr(false, hamil->ncomp, hamil->size)
                      : gkyl_array_acquire(hamil);
+  struct gykl_array *gxx_ho, *gyy_ho, *gzz_ho;
+  gxx_ho = use_gpu ? mkarr(false, gxx->ncomp, gxx->size)
+                     : gkyl_array_acquire(gxx);
+  gyy_ho = use_gpu ? mkarr(false, gyy->ncomp, gyy->size)
+                     : gkyl_array_acquire(gyy);
+  gzz_ho = use_gpu ? mkarr(false, gzz->ncomp, gzz->size)
+                     : gkyl_array_acquire(gzz);
 
-  gkyl_proj_on_basis_advance(proj_gxx, 1.0, &confRange, gxx);
-  gkyl_proj_on_basis_advance(proj_gyy, 1.0, &confRange, gyy);
-  gkyl_proj_on_basis_advance(proj_gzz, 1.0, &confRange, gzz);
+  gkyl_proj_on_basis_advance(proj_gxx, 1.0, &confRange, gxx_ho);
+  gkyl_proj_on_basis_advance(proj_gyy, 1.0, &confRange, gyy_ho);
+  gkyl_proj_on_basis_advance(proj_gzz, 1.0, &confRange, gzz_ho);
   
   gkyl_array_set_offset(gij, 1.0, gxx, 0);
   gkyl_array_set_offset(gij, 1.0, gxy, cbasis.num_basis);
