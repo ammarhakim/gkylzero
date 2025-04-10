@@ -64,7 +64,7 @@ gkyl_mom_canonical_pb_new(const struct gkyl_basis* cbasis, const struct gkyl_bas
       m1i_from_h_kernels = ser_m1i_from_h_kernels;
       break;
 
-      case GKYL_BASIS_MODAL_HYBRID:
+    case GKYL_BASIS_MODAL_HYBRID:
       // Verify that the poly-order is 1 for hybrid case
       assert(poly_order == 1);
       menergy_kernels = ser_menergy_kernels;
@@ -146,7 +146,7 @@ gkyl_int_mom_canonical_pb_new(const struct gkyl_basis* cbasis, const struct gkyl
       int_mom_kernels = ser_int_mom_kernels;
       break;
 
-      case GKYL_BASIS_MODAL_HYBRID:
+    case GKYL_BASIS_MODAL_HYBRID:
       // Verify that the poly-order is 1 for hybrid case
       assert(poly_order == 1);
       int_mom_kernels = ser_int_mom_kernels;
