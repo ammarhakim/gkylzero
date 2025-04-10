@@ -109,6 +109,12 @@ test_hamil(int cdim, bool use_gpu)
   gkyl_proj_on_basis_advance(proj_gxx, 1.0, &confRange, gxx_ho);
   gkyl_proj_on_basis_advance(proj_gyy, 1.0, &confRange, gyy_ho);
   gkyl_proj_on_basis_advance(proj_gzz, 1.0, &confRange, gzz_ho);
+
+  if (use_gpu) {
+    gkyl_array_copy(gxx, gxx_ho);
+    gkyl_array_copy(gyy, gyy_ho);
+    gkyl_array_copy(gzz, gzz_ho);
+  }
   
   gkyl_array_set_offset(gij, 1.0, gxx, 0);
   gkyl_array_set_offset(gij, 1.0, gxy, cbasis.num_basis);
