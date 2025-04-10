@@ -94,11 +94,13 @@ test_hamil(int cdim, bool use_gpu)
   struct gkyl_array *gyy = mkarr(use_gpu, cbasis.num_basis, confRange.volume);
   struct gkyl_array *gyz = mkarr(use_gpu, cbasis.num_basis, confRange.volume);
   struct gkyl_array *gzz = mkarr(use_gpu, cbasis.num_basis, confRange.volume);
+
   struct gkyl_array *hamil, *hamil_ho;
   hamil = mkarr(use_gpu, pbasis.num_basis, range_ext.volume);
   hamil_ho = use_gpu ? mkarr(false, hamil->ncomp, hamil->size)
                      : gkyl_array_acquire(hamil);
-  struct gykl_array *gxx_ho, *gyy_ho, *gzz_ho;
+
+  struct gkyl_array *gxx_ho, *gyy_ho, *gzz_ho;
   gxx_ho = use_gpu ? mkarr(false, gxx->ncomp, gxx->size)
                      : gkyl_array_acquire(gxx);
   gyy_ho = use_gpu ? mkarr(false, gyy->ncomp, gyy->size)
@@ -115,17 +117,21 @@ test_hamil(int cdim, bool use_gpu)
     gkyl_array_copy(gyy, gyy_ho);
     gkyl_array_copy(gzz, gzz_ho);
   }
+<<<<<<< Updated upstream
   
+=======
+
+>>>>>>> Stashed changes
   gkyl_array_set_offset(gij, 1.0, gxx, 0);
   gkyl_array_set_offset(gij, 1.0, gxy, cbasis.num_basis);
   gkyl_array_set_offset(gij, 1.0, gxz, 2*cbasis.num_basis);
   gkyl_array_set_offset(gij, 1.0, gyy, 3*cbasis.num_basis);
   gkyl_array_set_offset(gij, 1.0, gyz, 4*cbasis.num_basis);
   gkyl_array_set_offset(gij, 1.0, gzz, 5*cbasis.num_basis);
-  
+
   struct gkyl_dg_calc_gk_neut_hamil* hamil_calc = gkyl_dg_calc_gk_neut_hamil_new(&grid, &pbasis, cdim, use_gpu);
   gkyl_dg_calc_gk_neut_hamil_calc(hamil_calc, &confRange, &range, gij, hamil);
-    
+
   if (use_gpu) {
     gkyl_array_copy(hamil_ho, hamil);
   }
@@ -135,8 +141,8 @@ test_hamil(int cdim, bool use_gpu)
   /* gkyl_grid_sub_array_write(&grid, &range, 0, hamil, fname); */
   
   // test against predicted value
-if (cdim==3) {
-    const double *fv = gkyl_array_cfetch(hamil, gkyl_range_idx(&range_ext, (int[6]){1, 1, 1, 1, 1, 1}));
+  if (cdim==3) {
+    const double *fv = gkyl_array_cfetch(hamil_ho, gkyl_range_idx(&range_ext, (int[6]){1, 1, 1, 1, 1, 1}));
     double p1_vals[] = { 2.1125000000000000e+01, -2.2204460492503131e-16,  3.3306690738754696e-16,
 			 2.2204460492503131e-16, -2.7063293868263760e-01, -5.4126587736527476e-01,
 			 -8.1189881604791214e-01, -8.3266726846886741e-17, -1.6653345369377348e-16,
@@ -163,7 +169,7 @@ if (cdim==3) {
       TEST_CHECK( gkyl_compare_double(p1_vals[i], fv[i], 1e-12) ); 
     }
   }
-  
+
   gkyl_array_release(hamil); 
   gkyl_array_release(gij); 
   gkyl_array_release(gxx); 
@@ -172,7 +178,12 @@ if (cdim==3) {
   gkyl_array_release(gyy); 
   gkyl_array_release(gyz); 
   gkyl_array_release(gzz); 
-
+  if (use_gpu) {
+    gkyl_array_release(hamil_ho);
+    gkyl_array_release(gxx_ho);
+    gkyl_array_release(gyy_ho);
+    gkyl_array_release(gzz_ho);
+  }
   gkyl_proj_on_basis_release(proj_gxx); 
   gkyl_proj_on_basis_release(proj_gyy);
   gkyl_proj_on_basis_release(proj_gzz);
