@@ -1,16 +1,16 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
 
-void 
+void
 gk_neut_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_bgk_collisions *bgk)
 {
   int cdim = app->cdim, vdim = 3;
   // allocate nu and initialize it
-  bgk->nu_sum = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  bgk->self_nu = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  struct gkyl_array *self_nu = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+  bgk->nu_sum = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  bgk->self_nu = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  struct gkyl_array *self_nu = mkarr(false, app->basis.num_basis, app->local_ext.volume);
   
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->basis,
     app->poly_order+1, 1, s->info.collisions.self_nu, s->info.collisions.ctx);
   gkyl_proj_on_basis_advance(proj, 0.0, &app->local, self_nu);
   gkyl_proj_on_basis_release(proj);
@@ -21,12 +21,12 @@ gk_neut_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_specie
   // Host-side copy for I/O
   bgk->nu_sum_host = bgk->nu_sum;
   if (app->use_gpu) {
-    bgk->nu_sum_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+    bgk->nu_sum_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
   }
 
-  bgk->nu_fmax = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
+  bgk->nu_fmax = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
   // BGK updater (also computes stable timestep)
-  bgk->up_bgk = gkyl_bgk_collisions_new(&app->confBasis, &app->basis, app->use_gpu);
+  bgk->up_bgk = gkyl_bgk_collisions_new(&app->basis, &s->basis, app->use_gpu);
 }
 
 // computes moments
@@ -38,7 +38,7 @@ gk_neut_species_bgk_moms(gkyl_gyrokinetic_app *app, const struct gk_neut_species
 
   gk_neut_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
   // divide out the Jacobian from the density
-  gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->confBasis, 
+  gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 
     0, species->lte.moms.marr, 0, species->lte.moms.marr, 0, 
     app->gk_geom->jacobgeo, &app->local);  
 
@@ -57,10 +57,10 @@ gk_neut_species_bgk_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *speci
   gk_neut_species_lte_from_moms(app, species, &species->lte, species->lte.moms.marr);
 
   // Multiply the Maxwellian by the configuration-space Jacobian.
-  gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, species->lte.f_lte, 
+  gkyl_dg_mul_conf_phase_op_range(&app->basis, &species->basis, species->lte.f_lte, 
     app->gk_geom->jacobgeo, species->lte.f_lte, &app->local, &species->local);
 
-  gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, bgk->nu_fmax, 
+  gkyl_dg_mul_conf_phase_op_range(&app->basis, &species->basis, bgk->nu_fmax, 
     bgk->self_nu, species->lte.f_lte, &app->local, &species->local);
 
   gkyl_bgk_collisions_advance(bgk->up_bgk, &app->local, &species->local, 

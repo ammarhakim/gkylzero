@@ -2,7 +2,7 @@
 #include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_util.h>
 
-void
+static void
 proj_on_basis_c2p_phase_func(const double *xcomp, double *xphys, void *ctx)
 {
   struct gk_proj_on_basis_c2p_func_ctx *c2p_ctx = ctx;
@@ -11,7 +11,7 @@ proj_on_basis_c2p_phase_func(const double *xcomp, double *xphys, void *ctx)
   gkyl_velocity_map_eval_c2p(c2p_ctx->vel_map, &xcomp[cdim], &xphys[cdim]);
 }
 
-void
+static void
 proj_on_basis_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
 {
   struct gk_proj_on_basis_c2p_func_ctx *c2p_ctx = ctx;
@@ -31,7 +31,7 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
   if (proj->proj_id == GKYL_PROJ_FUNC) {
     proj->proj_func = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
         .grid = &s->grid,
-        .basis = &app->basis,
+        .basis = &s->basis,
         .qtype = GKYL_GAUSS_QUAD,
         .num_quad = app->basis.poly_order+1,
         .num_ret_vals = 1,
@@ -42,15 +42,15 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       }
     );
     if (app->use_gpu) {
-      proj->proj_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
+      proj->proj_host = mkarr(false, s->basis.num_basis, s->local_ext.volume);
     }
   }
   else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
-    proj->dens = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
-    proj->upar = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+    proj->dens = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+    proj->upar = mkarr(false, app->basis.num_basis, app->local_ext.volume);
     proj->proj_dens = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
         .grid = &app->grid,
-        .basis = &app->confBasis,
+        .basis = &app->basis,
         .qtype = GKYL_GAUSS_QUAD,
         .num_quad = app->basis.poly_order+1,
         .num_ret_vals = 1,
@@ -62,7 +62,7 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
     );
     proj->proj_upar = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
         .grid = &app->grid,
-        .basis = &app->confBasis,
+        .basis = &app->basis,
         .qtype = GKYL_GAUSS_QUAD,
         .num_quad = app->basis.poly_order+1,
         .num_ret_vals = 1,
@@ -75,10 +75,10 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
 
     bool bimaxwellian = false;
     if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
-      proj->vtsq = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+      proj->vtsq = mkarr(false, app->basis.num_basis, app->local_ext.volume);
       proj->proj_temp = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
           .grid = &app->grid,
-          .basis = &app->confBasis,
+          .basis = &app->basis,
           .qtype = GKYL_GAUSS_QUAD,
           .num_quad = app->basis.poly_order+1,
           .num_ret_vals = 1,
@@ -89,16 +89,16 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
         }
       );
 
-      proj->prim_moms_host = mkarr(false, 3*app->confBasis.num_basis, app->local_ext.volume);
-      proj->prim_moms = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
+      proj->prim_moms_host = mkarr(false, 3*app->basis.num_basis, app->local_ext.volume);
+      proj->prim_moms = mkarr(app->use_gpu, 3*app->basis.num_basis, app->local_ext.volume);
     }
     else {
       bimaxwellian = true;
-      proj->vtsqpar = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
-      proj->vtsqperp = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+      proj->vtsqpar = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+      proj->vtsqperp = mkarr(false, app->basis.num_basis, app->local_ext.volume);
       proj->proj_temppar = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
           .grid = &app->grid,
-          .basis = &app->confBasis,
+          .basis = &app->basis,
           .qtype = GKYL_GAUSS_QUAD,
           .num_quad = app->basis.poly_order+1,
           .num_ret_vals = 1,
@@ -110,7 +110,7 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       );
       proj->proj_tempperp = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
           .grid = &app->grid,
-          .basis = &app->confBasis,
+          .basis = &app->basis,
           .qtype = GKYL_GAUSS_QUAD,
           .num_quad = app->basis.poly_order+1,
           .num_ret_vals = 1,
@@ -121,15 +121,15 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
         }
       );
 
-      proj->prim_moms_host = mkarr(false, 4*app->confBasis.num_basis, app->local_ext.volume);
-      proj->prim_moms = mkarr(app->use_gpu, 4*app->confBasis.num_basis, app->local_ext.volume);      
+      proj->prim_moms_host = mkarr(false, 4*app->basis.num_basis, app->local_ext.volume);
+      proj->prim_moms = mkarr(app->use_gpu, 4*app->basis.num_basis, app->local_ext.volume);      
     }
 
     // Maxwellian (or bi-Maxwellian) projection updater.
     struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = {
       .phase_grid = &s->grid,
-      .conf_basis = &app->confBasis,
-      .phase_basis = &app->basis,
+      .conf_basis = &app->basis,
+      .phase_basis = &s->basis,
       .conf_range =  &app->local,
       .conf_range_ext = &app->local_ext,
       .vel_range = &s->local_vel, 
@@ -154,8 +154,8 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       // Maxwellian correction updater
       struct gkyl_gk_maxwellian_correct_inp inp_corr = {
         .phase_grid = &s->grid,
-        .conf_basis = &app->confBasis,
-        .phase_basis = &app->basis,
+        .conf_basis = &app->basis,
+        .phase_basis = &s->basis,
         .conf_range =  &app->local,
         .conf_range_ext = &app->local_ext,
         .vel_range = &s->local_vel, 
@@ -189,7 +189,7 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
     }
 
     // Multiply by the gyrocenter coord jacobian (bmag).
-    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, f, 
+    gkyl_dg_mul_conf_phase_op_range(&app->basis, &s->basis, f, 
         app->gk_geom->bmag, f, &app->local, &s->local); 
     // Multiply by the velocity-space jacobian. 
     gkyl_array_scale_by_cell(f, s->vel_map->jacobvel);     
@@ -201,9 +201,9 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
     gkyl_array_scale(proj->vtsq, 1.0/s->info.mass);
 
     // proj_maxwellian expects the primitive moments as a single array.
-    gkyl_array_set_offset(proj->prim_moms_host, 1.0, proj->dens, 0*app->confBasis.num_basis);
-    gkyl_array_set_offset(proj->prim_moms_host, 1.0, proj->upar, 1*app->confBasis.num_basis);
-    gkyl_array_set_offset(proj->prim_moms_host, 1.0, proj->vtsq, 2*app->confBasis.num_basis);
+    gkyl_array_set_offset(proj->prim_moms_host, 1.0, proj->dens, 0*app->basis.num_basis);
+    gkyl_array_set_offset(proj->prim_moms_host, 1.0, proj->upar, 1*app->basis.num_basis);
+    gkyl_array_set_offset(proj->prim_moms_host, 1.0, proj->vtsq, 2*app->basis.num_basis);
 
     // Copy the contents into the array we will use (potentially on GPUs).
     gkyl_array_copy(proj->prim_moms, proj->prim_moms_host);
@@ -219,10 +219,10 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
     gkyl_array_scale(proj->vtsqperp, 1.0/s->info.mass);
 
     // proj_bimaxwellian expects the primitive moments as a single array.
-    gkyl_array_set_offset(proj->prim_moms_host, 1.0, proj->dens, 0*app->confBasis.num_basis);
-    gkyl_array_set_offset(proj->prim_moms_host, 1.0, proj->upar, 1*app->confBasis.num_basis);
-    gkyl_array_set_offset(proj->prim_moms_host, 1.0, proj->vtsqpar , 2*app->confBasis.num_basis);
-    gkyl_array_set_offset(proj->prim_moms_host, 1.0, proj->vtsqperp , 3*app->confBasis.num_basis);  
+    gkyl_array_set_offset(proj->prim_moms_host, 1.0, proj->dens, 0*app->basis.num_basis);
+    gkyl_array_set_offset(proj->prim_moms_host, 1.0, proj->upar, 1*app->basis.num_basis);
+    gkyl_array_set_offset(proj->prim_moms_host, 1.0, proj->vtsqpar , 2*app->basis.num_basis);
+    gkyl_array_set_offset(proj->prim_moms_host, 1.0, proj->vtsqperp , 3*app->basis.num_basis);  
 
     // Copy the contents into the array we will use (potentially on GPUs).
     gkyl_array_copy(proj->prim_moms, proj->prim_moms_host);
@@ -239,7 +239,7 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
     } 
   }
   // Multiply by the configuration space jacobian.
-  gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, f, 
+  gkyl_dg_mul_conf_phase_op_range(&app->basis, &s->basis, f, 
     app->gk_geom->jacobgeo, f, &app->local, &s->local);      
 }
 

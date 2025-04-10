@@ -140,12 +140,19 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
       &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
   }
-  else if (s->model_id == GKYL_MODEL_CANONICAL_PB) {
+  else if (s->model_id == GKYL_MODEL_CANONICAL_PB || s->model_id == GKYL_MODEL_CANONICAL_PB_GR) {
     // Allocate arrays for specified hamiltonian
     s->hamil = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
     s->hamil_host = s->hamil;
     if (app->use_gpu){
       s->hamil_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
+    }
+
+    // Allocate arrays for specified metric inverse
+    s->h_ij = mkarr(app->use_gpu, app->confBasis.num_basis*vdim*(vdim+1)/2, app->local_ext.volume);
+    s->h_ij_host = s->h_ij;
+    if (app->use_gpu){
+      s->h_ij_host = mkarr(false, app->confBasis.num_basis*vdim*(vdim+1)/2, app->local_ext.volume);
     }
 
     // Allocate arrays for specified metric inverse
@@ -169,6 +176,14 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       gkyl_array_copy(s->hamil, s->hamil_host);
     }
     gkyl_eval_on_nodes_release(hamil_proj);
+
+    // Evaluate specified metric function at nodes to insure continuity
+    struct gkyl_eval_on_nodes* h_ij_proj = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis, vdim*(vdim+1)/2, s->info.h_ij, s->info.h_ij_ctx);
+    gkyl_eval_on_nodes_advance(h_ij_proj, 0.0, &app->local, s->h_ij_host);
+    if (app->use_gpu){
+      gkyl_array_copy(s->h_ij, s->h_ij_host);
+    }
+    gkyl_eval_on_nodes_release(h_ij_proj);
 
     // Evaluate specified inverse metric function at nodes to insure continuity of the inverse 
     struct gkyl_eval_on_nodes* h_ij_inv_proj = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis, vdim*(vdim+1)/2, s->info.h_ij_inv, s->info.h_ij_inv_ctx);
@@ -447,8 +462,10 @@ vm_species_calc_app_accel(gkyl_vlasov_app *app, struct vm_species *species, doub
 {
   if (species->has_app_accel) {
     gkyl_proj_on_basis_advance(species->app_accel_proj, tm, &app->local_ext, species->app_accel_host);
-    if (app->use_gpu) // note: app_accel_host is same as app_accel when not on GPUs
+    if (app->use_gpu) {
+      // note: app_accel_host is same as app_accel when not on GPUs
       gkyl_array_copy(species->app_accel, species->app_accel_host);
+    }
   }
 }
 
@@ -740,8 +757,9 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
       gkyl_array_release(s->gamma_inv_host);
     }
   }
-  else if (s->model_id == GKYL_MODEL_CANONICAL_PB) {
+  else if (s->model_id == GKYL_MODEL_CANONICAL_PB || s->model_id == GKYL_MODEL_CANONICAL_PB_GR) {
     gkyl_array_release(s->hamil);
+    gkyl_array_release(s->h_ij);
     gkyl_array_release(s->h_ij_inv);
     gkyl_array_release(s->det_h);
     gkyl_array_release(s->alpha_surf);
@@ -749,6 +767,7 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
     gkyl_array_release(s->const_sgn_alpha);
     if (app->use_gpu){
       gkyl_array_release(s->hamil_host);
+      gkyl_array_release(s->h_ij_host);
       gkyl_array_release(s->h_ij_inv_host);
       gkyl_array_release(s->det_h_host);
     }

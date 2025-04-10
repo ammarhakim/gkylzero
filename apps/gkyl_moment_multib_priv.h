@@ -19,7 +19,6 @@ struct gkyl_moment_multib_app {
   double cfl_frac; // CFL fraction to use
   int num_species; // number of species
 
-
   bool has_field; // true if there is a field present
   char species_name[GKYL_MAX_SPECIES][128]; // name of each species
 

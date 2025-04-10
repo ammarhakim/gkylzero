@@ -11,13 +11,20 @@ struct arc_length_ctx {
   double psi, rclose, zmin, arcL;
   double rleft, rright, zmax;
   double zmin_left, zmin_right; // for single null full SOL only
+  double zmax_left, zmax_right; // for PF UP region (or upper SN, not yet implemented)
+  double zmin_iwl, zmax_iwl; // for IWL
   double arcL_right; // this is for when we need to switch sides
   double arcL_left; // this is for when we need to switch sides
   double arcL_tot; // total arc length
+  double arcL_q1; // For IWL, arc length in quadrant 1
+  double arcL_q2; // For IWL, arc length in quadrant 2
+  double arcL_q3; // For IWL, arc length in quadrant 3
+  double arcL_q4; // For IWL, arc length in quadrant 4
   double phi_right; // this is for when we need to switch sides
   double phi_left; // this is for when we need to switch sides
   double phi_bot; // For new way of trying to do core
   bool right;
+  bool q1, q2, q3, q4; // For IWL
   double zmaxis;
   enum gkyl_tok_geo_type ftype; // type of geometry
 };
@@ -681,6 +688,11 @@ double tok_plate_psi_func(double s, void *ctx);
  * Used to set zmin and zmax and attributes of arc_ctx before looping over arc length
 */
 void tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, struct plate_ctx* pctx, double psi_curr, double alpha_curr, double* arc_memo, double* arc_memo_left, double* arc_memo_right);
+
+/*
+ * Used to set theta extents when using a global normalization factor
+ * */
+void tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, double *theta_lo, double *theta_up);
 
 
 /*

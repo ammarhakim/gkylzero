@@ -16,10 +16,11 @@ GKYL_CU_DH void fluid_vars_integrated_1x_ser_p1(const double *fluid, const doubl
   const double *uz = &u_i[4]; 
 
   // Order of integrated variables is (rho, rhoux, rhouy, rhouz, rhou^2, p) 
-  int_fluid_vars[0] += 1.414213562373095*rho[0]; 
-  int_fluid_vars[1] += 1.414213562373095*rhoux[0]; 
-  int_fluid_vars[2] += 1.414213562373095*rhouy[0]; 
-  int_fluid_vars[3] += 1.414213562373095*rhouz[0]; 
-  int_fluid_vars[4] += rhouz[1]*uz[1]+rhouy[1]*uy[1]+rhoux[1]*ux[1]+rhouz[0]*uz[0]+rhouy[0]*uy[0]+rhoux[0]*ux[0]; 
-  int_fluid_vars[5] += 1.414213562373095*p_ij[0]; 
+  // Note: there is a factor of 1/2^cdim to properly handle the basis function normalization when computing integrated moments 
+  int_fluid_vars[0] += 0.7071067811865476*rho[0]; 
+  int_fluid_vars[1] += 0.7071067811865476*rhoux[0]; 
+  int_fluid_vars[2] += 0.7071067811865476*rhouy[0]; 
+  int_fluid_vars[3] += 0.7071067811865476*rhouz[0]; 
+  int_fluid_vars[4] += 0.5*(rhouz[1]*uz[1]+rhouy[1]*uy[1]+rhoux[1]*ux[1]+rhouz[0]*uz[0]+rhouy[0]*uy[0]+rhoux[0]*ux[0]); 
+  int_fluid_vars[5] += 0.7071067811865476*p_ij[0]; 
 } 
