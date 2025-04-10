@@ -117,11 +117,7 @@ test_hamil(int cdim, bool use_gpu)
     gkyl_array_copy(gyy, gyy_ho);
     gkyl_array_copy(gzz, gzz_ho);
   }
-<<<<<<< Updated upstream
-  
-=======
 
->>>>>>> Stashed changes
   gkyl_array_set_offset(gij, 1.0, gxx, 0);
   gkyl_array_set_offset(gij, 1.0, gxy, cbasis.num_basis);
   gkyl_array_set_offset(gij, 1.0, gxz, 2*cbasis.num_basis);
