@@ -470,16 +470,6 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
   s->alpha_surf = mkarr(app->use_gpu, alpha_surf_sz, s->local_ext.volume);
   s->sgn_alpha_surf = mkarr(app->use_gpu, sgn_alpha_surf_sz, s->local_ext.volume);
   s->const_sgn_alpha = mk_int_arr(app->use_gpu, 3, s->local_ext.volume);
-  // 4. cotangent vectors e^i = g^ij e_j 
-  s->cot_vec = mkarr(app->use_gpu, 9*app->basis.num_basis, app->local_ext.volume);
-  
-  // Pre-compute alpha_surf, sgn_alpha_surf, const_sgn_alpha, and cot_vec since they are time-independent
-  struct gkyl_dg_calc_vlasov_gen_geo_vars *calc_vars = gkyl_dg_calc_vlasov_gen_geo_vars_new(&s->grid, 
-    &app->basis, &s->basis, app->gk_geom, app->use_gpu);
-  gkyl_dg_calc_vlasov_gen_geo_vars_alpha_surf(calc_vars, &app->local, &s->local, &s->local_ext, 
-    s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
-  gkyl_dg_calc_vlasov_gen_geo_vars_cot_vec(calc_vars, &app->local, s->cot_vec);
-  gkyl_dg_calc_vlasov_gen_geo_vars_release(calc_vars);
 
   // Allocate data for integrated moments.
   gk_neut_species_moment_init(app, s, &s->integ_moms, "Integrated");
@@ -539,7 +529,7 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
     }
   }
 
-  s->model_id = GKYL_MODEL_GEN_GEO;
+  s->model_id = GKYL_MODEL_DEFAULT;
   struct gkyl_dg_vlasov_auxfields aux_inp = {.field = 0, .cot_vec = s->cot_vec, 
     .alpha_surf = s->alpha_surf, .sgn_alpha_surf = s->sgn_alpha_surf, .const_sgn_alpha = s->const_sgn_alpha };
   // Set field type and model id for neutral species in GK system and create solver

@@ -326,6 +326,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   // initialize empty collision structs so inputs of structs are set to 0
   s->lbo = (struct vm_lbo_collisions) { };
   s->bgk = (struct vm_bgk_collisions) { };
+  s->fpo = (struct vm_fpo_collisions) { };
   if (s->info.output_f_lte){
     // Always have correct moments on for the f_lte output
     struct correct_all_moms_inp corr_inp = { .correct_all_moms = true, 
@@ -338,6 +339,9 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   }
   else if (s->collision_id == GKYL_BGK_COLLISIONS) {
     vm_species_bgk_init(app, s, &s->bgk);
+  }
+  else if (s->collision_id == GKYL_FPO_COLLISIONS) {
+    vm_species_fpo_init(app, s, &s->fpo);
   }
 
   // determine radiation type to use in vlasov update
@@ -513,6 +517,9 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   else if (species->collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
     species->bgk.implicit_step = false;
     vm_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
+  }
+  else if (species->collision_id == GKYL_FPO_COLLISIONS) {
+    vm_species_fpo_rhs(app, species, &species->fpo, fin, rhs);
   }
 
   if (species->calc_bflux) {
@@ -808,6 +815,9 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   }
   else if (s->collision_id == GKYL_BGK_COLLISIONS) {
     vm_species_bgk_release(app, &s->bgk);
+  }
+  else if (s->collision_id == GKYL_FPO_COLLISIONS) {
+    vm_species_fpo_release(app, &s->fpo);
   }
 
   if (s->radiation_id == GKYL_VM_COMPTON_RADIATION) {
