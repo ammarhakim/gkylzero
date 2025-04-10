@@ -18,7 +18,10 @@ GKYL_CU_DH double gyrokinetic_surfvpar_1x2v_ser_p1(const double *w, const double
   // const_sgn_alpha_r: Boolean array true if sign(alpha_surf_r) is only one sign, either +1 or -1.
   // fl,fc,fr: distribution function in left, center and right cells.
   // out: output increment in center cell.
-
+  if (fabs(fr[0]) < 1e-16 && fabs(fc[0]) < 1e-16 && fabs(fl[0]) < 1e-16) {
+    return 0.0;
+  }
+  
   double rdvpar2 = 2.0/dxv[1];
 
   const double *alphaL = &alpha_surf_l[6];
