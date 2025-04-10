@@ -26,14 +26,6 @@ gkyl_dg_calc_gk_neut_hamil_new(const struct gkyl_rect_grid *phase_grid,
   const struct gkyl_basis *basis, int cdim, bool use_gpu);
 
 /**
- * Create new updater to compute relativistic variables on
- * NV-GPU. See new() method for documentation.
- */
-struct gkyl_dg_calc_gk_neut_hamil* 
-gkyl_dg_calc_gk_neut_hamil_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
-  const struct gkyl_basis *basis, int cdim);
-
-/**
  * Compute the Hamiltonian
  * Uses special kernels which convert between a Gauss-Lobatto nodal basis and
  * our modal basis to insure continuity of the Hamiltonian.
@@ -52,11 +44,3 @@ void gkyl_dg_calc_gk_neut_hamil_calc(struct gkyl_dg_calc_gk_neut_hamil *up,
  * @param up Updater to delete.
  */
 void gkyl_dg_calc_gk_neut_hamil_release(struct gkyl_dg_calc_gk_neut_hamil *up);
-
-/**
- * Host-side wrappers for sr vars operations on device
- */
-
-void gkyl_dg_calc_gk_neut_hamil_calc_cu(struct gkyl_dg_calc_gk_neut_hamil *up,
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_array* gij, struct gkyl_array* hamil);

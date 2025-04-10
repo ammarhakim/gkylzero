@@ -12,6 +12,8 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
+#include <cassert>
+
 enum { MEnergy, M1i_from_H, BAD };
 
 static int
@@ -85,6 +87,15 @@ set_cu_ptrs(struct mom_type_canonical_pb* mom_can_pb, int mom_id, enum gkyl_basi
 
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
+      // Verify that the poly-order is 2 for ser case
+      assert(poly_order == 2);
+      menergy_kernels = ser_menergy_kernels;
+      m1i_from_h_kernels = ser_m1i_from_h_kernels;
+      break;
+
+    case GKYL_BASIS_MODAL_HYBRID:
+      // Verify that the poly-order is 1 for hybrid case
+      assert(poly_order == 1);
       menergy_kernels = ser_menergy_kernels;
       m1i_from_h_kernels = ser_m1i_from_h_kernels;
       break;
@@ -171,6 +182,14 @@ set_int_cu_ptrs(struct mom_type_canonical_pb* mom_can_pb, enum gkyl_basis_type b
   // set kernel pointer
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
+      // Verify that the poly-order is 2 for ser case
+      assert(poly_order == 2);
+      int_mom_kernels = ser_int_mom_kernels;
+      break;
+
+    case GKYL_BASIS_MODAL_HYBRID:
+      // Verify that the poly-order is 1 for hybrid case
+      assert(poly_order == 1);
       int_mom_kernels = ser_int_mom_kernels;
       break;
 

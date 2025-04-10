@@ -64,3 +64,20 @@ choose_kern(enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order)
   }
 }
 
+#ifdef GKYL_HAVE_CUDA
+/**
+ * Create new updater to compute relativistic variables on
+ * NV-GPU. See new() method for documentation.
+ */
+struct gkyl_dg_calc_gk_neut_hamil* 
+gkyl_dg_calc_gk_neut_hamil_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
+  const struct gkyl_basis *basis, int cdim);
+
+/**
+ * Host-side wrappers for sr vars operations on device
+ */
+
+ void gkyl_dg_calc_gk_neut_hamil_calc_cu(struct gkyl_dg_calc_gk_neut_hamil *up,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+  const struct gkyl_array* gij, struct gkyl_array* hamil);
+#endif

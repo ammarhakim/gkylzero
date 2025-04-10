@@ -58,6 +58,15 @@ gkyl_mom_canonical_pb_new(const struct gkyl_basis* cbasis, const struct gkyl_bas
 
   switch (pbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
+      // Verify that the poly-order is 2 for ser case
+      assert(poly_order == 2);
+      menergy_kernels = ser_menergy_kernels;
+      m1i_from_h_kernels = ser_m1i_from_h_kernels;
+      break;
+
+      case GKYL_BASIS_MODAL_HYBRID:
+      // Verify that the poly-order is 1 for hybrid case
+      assert(poly_order == 1);
       menergy_kernels = ser_menergy_kernels;
       m1i_from_h_kernels = ser_m1i_from_h_kernels;
       break;
@@ -132,6 +141,14 @@ gkyl_int_mom_canonical_pb_new(const struct gkyl_basis* cbasis, const struct gkyl
   // set kernel pointer
   switch (pbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
+      // Verify that the poly-order is 2 for ser case
+      assert(poly_order == 2);
+      int_mom_kernels = ser_int_mom_kernels;
+      break;
+
+      case GKYL_BASIS_MODAL_HYBRID:
+      // Verify that the poly-order is 1 for hybrid case
+      assert(poly_order == 1);
       int_mom_kernels = ser_int_mom_kernels;
       break;
 
