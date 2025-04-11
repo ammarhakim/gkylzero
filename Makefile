@@ -15,7 +15,7 @@ CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKY
 LDFLAGS = 
 PREFIX ?= ${HOME}/gkylsoft
 INSTALL_PREFIX ?= ${PREFIX}
-PROJ_NAME ?= greorg
+PROJ_NAME ?= gkeyll
 
 # Determine OS we are running on
 UNAME = $(shell uname)
