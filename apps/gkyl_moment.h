@@ -62,9 +62,6 @@ struct gkyl_moment_species {
   void (*nT_source_func)(double t, const double *xn, double *fout, void *ctx);
   bool nT_source_set_only_once;
 
-  bool embed_surf;
-  void (*embed_func)(double t, const double *xn, double *phi, void *ctx);
-
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
   // for function BCs these should be set
