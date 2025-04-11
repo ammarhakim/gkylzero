@@ -75,13 +75,13 @@ gkyl_bc_emission_spectrum_sey_calc(const struct gkyl_bc_emission_spectrum *up,
   struct gkyl_array *yield, struct gkyl_rect_grid *grid, const struct gkyl_range *impact_buffer_r);
 
 /**
- * Create range over velocity space into wall
+ * Create range over velocity space into wall.
  *
- * @param flux_r Output range over impacting velocity space
- * @param dir Direction in which to apply BC
- * @param parent Input range over all of velocity space
- * @param nghost Number of ghost cells
- * @param edge Lower or upper edge at which to apply BC (emission_spectrum gkyl_edge_loc)
+ * @param flux_r Output range over impacting velocity space.
+ * @param dir Direction in which to apply BC.
+ * @param parent Input range over all of velocity space.
+ * @param nghost Number of ghost cells.
+ * @param edge Lower or upper edge at which to apply BC (emission_spectrum gkyl_edge_loc).
  */
 void
 gkyl_bc_emission_flux_ranges(struct gkyl_range *impact_buff_r, int dir,

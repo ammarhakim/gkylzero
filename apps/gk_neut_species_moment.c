@@ -20,6 +20,12 @@ gk_neut_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spe
       .conf_range =  &app->local,
       .conf_range_ext = &app->local_ext,
       .vel_range = &s->local_vel,
+      .phase_range = &s->local,
+      .h_ij = s->g_ij,
+      .h_ij_inv = s->gij,
+      .det_h = app->gk_geom->jacobgeo,
+      .hamil = s->hamil,
+      .model_id = s->model_id,
       .use_gpu = app->use_gpu,
     };
     // Compute (n, ux, uy, uz, T/m)
@@ -27,10 +33,10 @@ gk_neut_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spe
     sm->num_mom = 5; 
   }
   else {
+    struct gkyl_mom_canonical_pb_auxfields can_pb_inp = {.hamil = s->hamil};
     sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->basis, 
-      &s->basis, &app->local, &s->local_vel, &s->local, s->model_id, 0,
-      nm, sm->is_integrated, app->use_gpu);    
-
+      &s->basis, &app->local, &s->local_vel, &s->local, s->model_id, &can_pb_inp, 
+      nm, sm->is_integrated, app->use_gpu);
     sm->num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc);
   }
 
