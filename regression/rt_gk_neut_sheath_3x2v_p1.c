@@ -713,7 +713,8 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_emission_inp neut_bc = {
     .num_species = 1,
     .in_species = { "ion" },
-    .rec_frac = ctx.rec_frac,
+    .rec_frac = ctx.recycling_frac,
+    .emission_temp = ctx.T0,
   };
   
   // Electrons.
@@ -988,28 +989,10 @@ main(int argc, char **argv)
 //      .lower = {
 //        .type = GKYL_SPECIES_RECYCLE,
 //        .emission = neut_bc,
-//        .projection = {
-//          .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-//          .ctx_density = &ctx,
-//          .density = unit_density,
-//          .ctx_upar = &ctx,
-//          .udrift= udrift,
-//          .ctx_temp = &ctx,
-//          .temp = temp_neut,
-//        },
 //      },
 //      .upper = {
 //        .type = GKYL_SPECIES_RECYCLE,
 //        .emission = neut_bc,
-//        .projection = {
-//          .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-//          .ctx_density = &ctx,
-//          .density = unit_density,
-//          .ctx_upar = &ctx,
-//          .udrift= udrift,
-//          .ctx_temp = &ctx,
-//          .temp = temp_neut,
-//        },
 //      },
 //    },
    

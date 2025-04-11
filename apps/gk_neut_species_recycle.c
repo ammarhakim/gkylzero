@@ -235,7 +235,7 @@ gk_neut_species_recycle_apply_bc(struct gkyl_gyrokinetic_app *app, const struct 
   // from gk_species_bflux_rhs_solver.
   for (int i=0; i<recyc->num_species; ++i) {
     // Copy unit-density Maxwellian from buffer.
-    gkyl_array_set(recyc->spectrum[i], recyc->params->rec_frac, recyc->buffer);
+    gkyl_array_set(recyc->spectrum[i], recyc->params->recycling_frac, recyc->buffer);
 
     struct gk_species *gks = recyc->impact_species[i];
 

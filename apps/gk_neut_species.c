@@ -536,6 +536,31 @@ gk_neut_species_release_static(const gkyl_gyrokinetic_app* app, const struct gk_
 { 
 }
 
+struct gk_neut_recycling_maxwellian_params {
+  double temp; // Temperature of the neutral species emitted during recycling.
+};
+
+static void
+gk_neut_recycling_maxwellian_den(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  fout[0] = 1.0;
+}
+
+static void
+gk_neut_recycling_maxwellian_udrift(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = 0.0;
+}
+
+static void
+gk_neut_recycling_maxwellian_temp(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct gk_neut_recycling_maxwellian_params *params = ctx;
+  fout[0] = params->temp;
+}
+
 static void
 gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s)
 {
@@ -603,8 +628,18 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
       s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, GKYL_BC_FIXED_FUNC, s->basis_on_dev,
         &s->lower_skin[d], &s->lower_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
       // Project unit Maxwellian.
+      struct gk_neut_recycling_maxwellian_params neut_max_pars = { .temp = s->lower_bc[d].emission.emission_temp, };
+      struct gkyl_gyrokinetic_projection recyc_proj_inp = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+        .ctx_density = &neut_max_pars,
+        .density = gk_neut_recycling_maxwellian_den,
+        .ctx_upar = &neut_max_pars,
+        .udrift = gk_neut_recycling_maxwellian_udrift,
+        .ctx_temp = &neut_max_pars,
+        .temp = gk_neut_recycling_maxwellian_temp,
+      };
       struct gk_proj gk_proj_bc_lo;
-      gk_neut_species_projection_init(app, s, s->lower_bc[d].projection, &gk_proj_bc_lo);
+      gk_neut_species_projection_init(app, s, recyc_proj_inp, &gk_proj_bc_lo);
       gk_neut_species_projection_calc(app, s, &gk_proj_bc_lo, s->f1, 0.0); // Temporarily use f1.
       // Initialize recycling object. 
       gk_neut_species_recycle_init(app, &s->bc_recycle_lo, d, GKYL_LOWER_EDGE, &s->lower_bc[d].emission, s->f1, s, app->use_gpu);
@@ -643,12 +678,22 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
     if (s->upper_bc[d].type == GKYL_SPECIES_RECYCLE) {
       // Buffer for scaled Maxwellian in ghost.
       s->bc_buffer_up_recyc = mkarr(app->use_gpu, s->basis.num_basis, s->upper_skin[d].volume);
-      // Initialize fixed func bc object to project the unit Maxwellian in ghost
+      // Initialize fixed func bc object to project the unit Maxwellian in ghost.
       s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, GKYL_BC_FIXED_FUNC, s->basis_on_dev,
         &s->upper_skin[d], &s->upper_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
-      // project unit Maxwellian
+      // Project a unit Maxwellian.
+      struct gk_neut_recycling_maxwellian_params neut_max_pars = { .temp = s->lower_bc[d].emission.emission_temp, };
+      struct gkyl_gyrokinetic_projection recyc_proj_inp = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+        .ctx_density = &neut_max_pars,
+        .density = gk_neut_recycling_maxwellian_den,
+        .ctx_upar = &neut_max_pars,
+        .udrift = gk_neut_recycling_maxwellian_udrift,
+        .ctx_temp = &neut_max_pars,
+        .temp = gk_neut_recycling_maxwellian_temp,
+      };
       struct gk_proj gk_proj_bc_up;
-      gk_neut_species_projection_init(app, s, s->upper_bc[d].projection, &gk_proj_bc_up);
+      gk_neut_species_projection_init(app, s, recyc_proj_inp, &gk_proj_bc_up);
       gk_neut_species_projection_calc(app, s, &gk_proj_bc_up, s->f1, 0.0); // Temporarily use f1.
       // Initialize recycling object. 
       gk_neut_species_recycle_init(app, &s->bc_recycle_up, d, GKYL_UPPER_EDGE, &s->upper_bc[d].emission, s->f1, s, app->use_gpu);

@@ -542,28 +542,10 @@ main(int argc, char **argv)
       .lower = {
         .type = GKYL_SPECIES_RECYCLE,
         .aux_ctx = bc_ctx,
-    	.projection = {
-	  .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
-	  .ctx_density = &ctx,
-	  .density = evalUnitDensity,
-	  .ctx_upar = &ctx,
-	  .udrift= evalUdriftInit,
-	  .ctx_temp = &ctx,
-	  .temp = evalTempNeutInit,      
-	},
       },
       .upper = {
         .type = GKYL_SPECIES_RECYCLE,
 	.aux_ctx = bc_ctx,
-	.projection = {
-	  .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
-	  .ctx_density = &ctx,
-	  .density = evalUnitDensity,
-	  .ctx_upar = &ctx,
-	  .udrift= evalUdriftInit,
-	  .ctx_temp = &ctx,
-	  .temp = evalTempNeutInit,      
-	},
       },
     },
     
