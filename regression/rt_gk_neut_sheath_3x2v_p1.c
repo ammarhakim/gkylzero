@@ -713,7 +713,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_emission_inp neut_bc = {
     .num_species = 1,
     .in_species = { "ion" },
-    .rec_frac = ctx.recycling_frac,
+    .recycling_frac = ctx.recycling_frac,
     .emission_temp = ctx.T0,
   };
   

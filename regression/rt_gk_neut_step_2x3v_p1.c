@@ -35,8 +35,6 @@ struct gk_step_ctx {
   double T_source; // Source electron temperature
   double cx;
   double cz;
-  // Recycling params
-  double rec_frac;
   // Simulation parameters
   int Nx; // Cell count (configuration space: x-direction).
   int Nz; // Cell count (configuration space: z-direction).
@@ -229,9 +227,6 @@ create_ctx(void)
   double cx = 0.0065612*9;
   double cz = 0.4916200;
 
-  // Recycling parameters.
-  double rec_frac = 1.0;
-
   // Collision parameters.
   double nuFrac = 0.25;
   double logLambdaElc = 6.6 - 0.5*log(n0/1e20) + 1.5*log(Te/eV);
@@ -292,7 +287,6 @@ create_ctx(void)
     .nsource = nsource,
     .cx = cx,
     .cz = cz,
-    .rec_frac = rec_frac,
     .lower_x = lower_x,
     .upper_x = upper_x,
     .Lx = Lx,
