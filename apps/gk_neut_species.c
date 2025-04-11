@@ -686,7 +686,6 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
     }
   }
 
-  s->enforce_positivity = false;
   if (app->enforce_positivity || s->info.enforce_positivity) {
     s->enforce_positivity = true;
 
@@ -1204,6 +1203,8 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     .use_last_converged = use_last_converged };
   gk_neut_species_lte_init(app, s, &s->lte, corr_inp);
 
+  s->enforce_positivity = false;
+  
   // Initialize empty structs. New methods will fill them if specified.
   s->src = (struct gk_source) { };
   s->bgk = (struct gk_bgk_collisions) { };
