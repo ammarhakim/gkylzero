@@ -71,6 +71,37 @@ gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const st
   }
 }
 
+static void
+gk_species_collisionless_rhs_included(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
+  // Compute the surface expansion of the phase space flux
+  // Note: Each cell stores the *lower* surface expansions of the 
+  // phase space flux, so local_ext range needed to index the output
+  // values of alpha_surf even though we only loop over local ranges
+  // to avoid evaluating quantities such as geometry in ghost cells
+  // where they are not defined.
+  gkyl_dg_calc_gyrokinetic_vars_alpha_surf(species->calc_gk_vars, 
+    &app->local, &species->local, &species->local_ext, 
+    species->gyro_phi, species->alpha_surf, species->sgn_alpha_surf, species->const_sgn_alpha);
+
+  gkyl_dg_updater_gyrokinetic_advance(species->slvr, &species->local, 
+    fin, species->cflrate, rhs);
+}
+
+static void
+gk_species_collisionless_rhs_empty(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
+}
+
+static void
+gk_species_collisionless_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
+  species->collisionless_rhs_func(app, species, fin, rhs);
+}
+
 static double
 gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
@@ -81,19 +112,7 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
-  // Compute the surface expansion of the phase space flux
-  // Note: Each cell stores the *lower* surface expansions of the 
-  // phase space flux, so local_ext range needed to index the output
-  // values of alpha_surf even though we only loop over local ranges
-  // to avoid evaluating quantities such as geometry in ghost cells
-  // where they are not defined.
-  
-  gkyl_dg_calc_gyrokinetic_vars_alpha_surf(species->calc_gk_vars, 
-    &app->local, &species->local, &species->local_ext, 
-    species->gyro_phi, species->alpha_surf, species->sgn_alpha_surf, species->const_sgn_alpha);
-
-  gkyl_dg_updater_gyrokinetic_advance(species->slvr, &species->local, 
-    fin, species->cflrate, rhs);
+  gk_species_collisionless_rhs(app, species, fin, rhs);
 
   if (species->lbo.collision_id == GKYL_LBO_COLLISIONS) {
     gk_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
@@ -1526,6 +1545,10 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
 
   // Acquire equation object.
   gks->eqn_gyrokinetic = gkyl_dg_updater_gyrokinetic_acquire_eqn(gks->slvr);
+
+  gks->collisionless_rhs_func = gk_species_collisionless_rhs_included;
+  if (gks->info.no_collisionless_terms)
+    gks->collisionless_rhs_func = gk_species_collisionless_rhs_empty;
 
   // Allocate data for density (for charge density or upar calculation).
   gk_species_moment_init(app, gks, &gks->m0, "M0", false);
