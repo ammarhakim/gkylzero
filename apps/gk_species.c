@@ -1717,6 +1717,8 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     gks->m0_gyroavg = gkyl_array_acquire(gks->m0.marr);
   }
 
+  gks->enforce_positivity = false;
+
   if (!gks->info.is_static) {
     gk_species_new_dynamic(gk_app_inp, app, gks);
   }
