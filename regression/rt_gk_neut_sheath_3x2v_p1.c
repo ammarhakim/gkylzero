@@ -715,6 +715,16 @@ main(int argc, char **argv)
     .in_species = { "ion" },
     .rec_frac = ctx.rec_frac,
   };
+
+  struct gkyl_gyrokinetic_projection recyc_proj = {
+    .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+    .ctx_density = &ctx,
+    .density = unit_density,
+    .ctx_upar = &ctx,
+    .udrift= udrift,
+    .ctx_temp = &ctx,
+    .temp = temp_neut,
+  };
   
   // Electrons.
   struct gkyl_gyrokinetic_species elc = {
@@ -760,7 +770,6 @@ main(int argc, char **argv)
         .diag_moments = { "FourMoments" },
         .num_integrated_diag_moments = 1,
         .integrated_diag_moments = { "HamiltonianMoments" },
-//        .time_integrated = true,
       }
     },
 
@@ -914,14 +923,12 @@ main(int argc, char **argv)
     },
   };
 
-
   struct gkyl_gyrokinetic_neut_species D0 = {
     .name = "D0",
     .mass = ctx.mass_ion,
     .lower = { -ctx.vmax_neut, -ctx.vmax_neut, -ctx.vmax_neut},
     .upper = { ctx.vmax_neut, ctx.vmax_neut, ctx.vmax_neut },
     .cells = { NMU, NMU, NMU },
-    .is_static = true,
     
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -932,11 +939,6 @@ main(int argc, char **argv)
       .ctx_temp = &ctx,
       .temp = temp_neut,      
     },
-
-    /* .init_from_file = { */
-    /*   .type = GKYL_IC_IMPORT_F, */
-    /*   .file_name = "D0_restart.gkyl", */
-    /* }, */
 
     .react_neut = {
       .num_react = 3,
@@ -976,47 +978,24 @@ main(int argc, char **argv)
       .lower = {.type = GKYL_SPECIES_ABSORB,},
       .upper = {.type = GKYL_SPECIES_ABSORB,},
     },
-    .bcz = {
-      .lower = {
-        .type = GKYL_SPECIES_ABSORB,
-      },
-      .upper = {
-        .type = GKYL_SPECIES_ABSORB,
-      },
-    },
-//    .bcz = {
-//      .lower = {
-//        .type = GKYL_SPECIES_RECYCLE,
-//        .emission = neut_bc,
-//        .projection = {
-//          .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-//          .ctx_density = &ctx,
-//          .density = unit_density,
-//          .ctx_upar = &ctx,
-//          .udrift= udrift,
-//          .ctx_temp = &ctx,
-//          .temp = temp_neut,
-//        },
-//      },
-//      .upper = {
-//        .type = GKYL_SPECIES_RECYCLE,
-//        .emission = neut_bc,
-//        .projection = {
-//          .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-//          .ctx_density = &ctx,
-//          .density = unit_density,
-//          .ctx_upar = &ctx,
-//          .udrift= udrift,
-//          .ctx_temp = &ctx,
-//          .temp = temp_neut,
-//        },
-//      },
-//    },
+   .bcz = {
+     .lower = {
+       .type = GKYL_SPECIES_RECYCLE,
+       .emission = neut_bc,
+       .projection = recyc_proj,
+       .write_diagnostics = true,
+     },
+     .upper = {
+       .type = GKYL_SPECIES_RECYCLE,
+       .emission = neut_bc,
+       .projection = recyc_proj,
+       .write_diagnostics = true,
+     },
+   },
    
     .num_diag_moments = 3,
     .diag_moments = { "M1i_from_H", "MEnergy", "LTEMoments"},
   };
-
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
