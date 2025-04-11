@@ -74,34 +74,45 @@ struct gk_multib_field {
   int num_local_blocks; // total number of blocks on current rank
   int cdim; // number of configuration space dimensions
 
-  struct gkyl_multib_comm_conn **mbcc_allgatherz_send; // comm object for allgather sends
-  struct gkyl_multib_comm_conn **mbcc_allgatherz_recv; // comm object for allgather receives
-  struct gkyl_range **multibz_ranges; // ranges for allgather along z
-  struct gkyl_range **multibz_ranges_ext; // extended ranges for smoothing along z
-  struct gkyl_range **block_subrangesz; // ranges for copying smooth phi density
-                                       // back to single block apps
-  struct gkyl_range **parent_subrangesz; // ranges for copying smooth charge density
-
-  // arrays for connected-along-z phi and smoothed (in z) phi
   struct gkyl_array **phi_local;
+  struct gkyl_array **rho_c_local;
+
+  //
+  // Objects for parallel smoothing.
+  //
+  // Comm conn for sends/recvs in allgather.
+  struct gkyl_multib_comm_conn **mbcc_allgatherz_send;
+  struct gkyl_multib_comm_conn **mbcc_allgatherz_recv;
+  struct gkyl_range **multibz_ranges; // Multib ranges.
+  struct gkyl_range **multibz_ranges_ext; // Extended multib ranges.
+  struct gkyl_range **block_subrangesz; // Ranges for copying from multib to local range.
+  struct gkyl_range **parent_subrangesz; // Ranges for copying from multib to global range.
+  // Parallel multib potential (DG and smoothed).
   struct gkyl_array **phi_multibz_dg;
   struct gkyl_array **phi_multibz_smooth;
-
-  // Arrays for connected-along z charge density
-  struct gkyl_array **rho_c_local;
+  // Parallel multib charge density (DG and smoothed).
   struct gkyl_array **rho_c_multibz_dg;
   struct gkyl_array **rho_c_multibz_smooth;
-
-
-  // Weights for smoothing
-  struct gkyl_array **lhs_weight_local;
+  // Multib weights.
   struct gkyl_array **lhs_weight_multibz;
-  struct gkyl_array **rhs_weight_local;
   struct gkyl_array **rhs_weight_multibz;
-
-
-  struct gkyl_fem_parproj **fem_parproj; // FEM smoothers for projecting DG functions onto continuous FEM basis
-                                        // weight*phi_{fem} = phi_{dg} 
+  struct gkyl_fem_parproj **fem_parproj; // FEM smoothing operator.
+  
+  //
+  // Objects for perpendicular Poisson solve.
+  //
+  // Comm conn for sends/recvs in allgather.
+  struct gkyl_multib_comm_conn **mbcc_allgather_perp_send;
+  struct gkyl_multib_comm_conn **mbcc_allgather_perp_recv;
+  struct gkyl_range **multib_perp_ranges; // Multib ranges.
+  struct gkyl_range **multib_perp_ranges_ext; // Extended multib ranges.
+  struct gkyl_range **block_subranges_perp; // Ranges for copying from multib to local range.
+  struct gkyl_range **parent_subranges_perp; // Ranges for copying from multib to global range.
+  // Potential and charge density on perpendicular multib range.
+  struct gkyl_array **phi_multib_perp;
+  struct gkyl_array **rho_c_multib_perp;
+  struct gkyl_array **epsilon_multib_perp; // Multib polarization weight.
+  struct gkyl_fem_poisson_perp **fem_poisson; // Perpendicular Poisson solver.
 };
 
 /** Time stepping API */
