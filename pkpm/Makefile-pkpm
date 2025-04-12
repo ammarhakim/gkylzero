@@ -1,0 +1,142 @@
+# -*- makefile-gmake -*-
+
+SRC_DIRS := kernels zero apps
+
+PREFIX ?= ${HOME}/gkylsoft
+SUPERLU_INC = $(PREFIX)/superlu/include
+ifeq ($(UNAME_S),Linux)
+	SUPERLU_LIB_DIR = $(PREFIX)/superlu/lib64
+	SUPERLU_LIB = $(PREFIX)/superlu/lib64/libsuperlu.a
+else
+	SUPERLU_LIB_DIR = $(PREFIX)/superlu/lib
+	SUPERLU_LIB = $(PREFIX)/superlu/lib/libsuperlu.a
+endif
+
+LLIB := ../$(BUILD_DIR)/pkpm/libg0pkpm.so
+SLLIB := ../$(BUILD_DIR)/pkpm/libg0pkpm.a
+SRCS := $(shell find $(SRC_DIRS) -name *.c)
+ifdef USING_NVCC
+	SRCS += $(shell find $(SRC_DIRS) -name *.cu)
+endif
+OBJS := $(SRCS:%=../$(BUILD_DIR)/pkpm/%.o)
+DEPS := $(OBJS:.o=.d)
+
+UNITS := $(patsubst %.c,../${BUILD_DIR}/pkpm/%,$(wildcard unit/ctest_*.c))
+MPI_UNITS := $(patsubst %.c,../${BUILD_DIR}/pkpm/%,$(wildcard unit/mctest_*.c))
+LUA_UNITS := $(patsubst %.c,../${BUILD_DIR}/pkpm/%,$(wildcard unit/lctest_*.c))
+
+REGS := $(patsubst %.c,../${BUILD_DIR}/pkpm/%,$(wildcard creg/rt_*.c))
+
+KERN_INC_DIRS = $(shell find kernels -type d)
+KERN_INCLUDES = $(addprefix -I,$(KERN_INC_DIRS))
+EXT_INCS := -I${MPI_INC_DIR} -I${LUA_INC_DIR} -I${LAPACK_INC} -I${SUPERLU_INC}
+CORE_INCS := -I../core/kernels/array_average -I../core/kernels/array_integrate -I../core/kernels/basis -I../core/kernels/bin_op -I../core/kernels/dg_interpolate -I../core/kernels/skin_surf_from_ghost -I../core/apps -I../core/zero -I../core/minus -I../core/minus/STC/include -I../zero
+MOMENTS_INCS := -I../moments/kernels/fem_poisson -I../moments/apps -I../moments/zero
+VLASOV_INCS := -I../vlasov/kernels/advection -I../vlasov/kernels/canonical_pb -I../vlasov/kernels/dg_diffusion_fluid -I../vlasov/kernels/dg_diffusion_gen -I../vlasov/kernels/dg_diffusion_vlasov -I../vlasov/kernels/euler -I../vlasov/kernels/fpo -I../vlasov/kernels/lbo_vlasov -I../vlasov/kernels/maxwell -I../vlasov/kernels/sr_vlasov -I../vlasov/kernels/vlasov -I../vlasov/kernels/vlasov_poisson -I../vlasov/apps -I../vlasov/zero
+GYROKINETIC_INCS := -I../gyrokinetic/kernels/ambi_bolt_potential -I../gyrokinetic/kernels/bgk_gyrokinetic -I../gyrokinetic/kernels/deflate_geo -I../gyrokinetic/kernels/deflate_surf -I../gyrokinetic/kernels/derived_geo -I../gyrokinetic/kernels/dg_diffusion_gyrokinetic -I../gyrokinetic/kernels/fem_parproj -I../gyrokinetic/kernels/fem_poisson_perp -I../gyrokinetic/kernels/gyrokinetic -I../gyrokinetic/kernels/gyrokinetic_pol_density -I../gyrokinetic/kernels/inflate_surf -I../gyrokinetic/kernels/lbo_gyrokinetic -I../gyrokinetic/kernels/neutral -I../gyrokinetic/kernels/positivity_shift -I../gyrokinetic/kernels/rad -I../gyrokinetic/kernels/translate_dim -I../gyrokinetic/kernels/twistshift -I../gyrokinetic/apps -I../gyrokinetic/zero
+INCS := ${EXT_INCS} ${CORE_INCS} ${MOMENTS_INCS} ${VLASOV_INCS} ${GYROKINETIC_INCS} -Ikernels -Izero -Iapps -Icreg $(KERN_INCLUDES)
+
+CORE_LIB_DIR := -L../${BUILD_DIR}/core
+CORE_LIB := -lg0core
+
+EXEC_LIB_DIRS = -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${MPI_LIB_DIR} -L${LUA_LIB_DIR}
+EXEC_EXT_LIBS = -lsuperlu ${LAPACK_LIB} ${MPI_RPATH} ${MPI_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
+EXEC_LIBS = -L../${BUILD_DIR}/pkpm ${LLIB} ${SLLIB} ${CORE_LIB_DIR} ${CORE_LIB} ${EXEC_EXT_LIBS}
+
+LDFLAGS += -Wl,-rpath,./${BUILD_DIR}/core
+LDFLAGS += -Wl,-rpath,./${BUILD_DIR}/moments
+LDFLAGS += -Wl,-rpath,./${BUILD_DIR}/vlasov
+LDFLAGS += -Wl,-rpath,./${BUILD_DIR}/gyrokinetic
+LDFLAGS += -Wl,-rpath,./${BUILD_DIR}/pkpm
+
+LDFLAGS += -Wl,-rpath,../${BUILD_DIR}/core
+LDFLAGS += -Wl,-rpath,../${BUILD_DIR}/moments
+LDFLAGS += -Wl,-rpath,../${BUILD_DIR}/vlasov
+LDFLAGS += -Wl,-rpath,../${BUILD_DIR}/gyrokinetic
+LDFLAGS += -Wl,-rpath,../${BUILD_DIR}/pkpm
+
+unit: ${LLIB} ${SLLIB} $(UNITS) ${MPI_UNITS} ## Build unit tests
+regression: ${LLIB} ${SLLIB} ${REGS} creg/rt_arg_parse.h ## Build regression tests
+
+.PHONY: all
+all: $(LLIB) $(SLLIB) ## Build all targets
+.DEFAULT_GOAL := all
+
+# c -> o files
+../$(BUILD_DIR)/pkpm/%.c.o: %.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) -c $(CFLAGS) $(ARCH_FLAGS) $(INCS) $< -o $@
+
+# Build commands for CUDA source                                                                                                                                                     
+../$(BUILD_DIR)/pkpm/%.cu.o: %.cu
+	$(MKDIR_P) $(dir $@)
+	$(CC) -c $(CFLAGS) $(NVCC_FLAGS) $(INCS) $< -o $@
+
+# Unit tests
+$(UNITS): ../${BUILD_DIR}/pkpm/unit/%: unit/%.c $(LLIB) $(SLLIB)
+	$(MKDIR_P) ../${BUILD_DIR}/pkpm/unit
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCS) ${EXEC_LIB_DIRS} ${EXEC_LIBS}
+
+# MPI unit tests
+$(MPI_UNITS): ../${BUILD_DIR}/pkpm/unit/%: unit/%.c $(LLIB) $(SLLIB)
+	$(MKDIR_P) ../${BUILD_DIR}/pkpm/unit
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCS) ${EXEC_LIB_DIRS} ${EXEC_LIBS}
+
+# Regression tests
+$(REGS): ../${BUILD_DIR}/pkpm/creg/%: creg/%.c $(LLIB) $(SLLIB)
+	$(MKDIR_P) ../${BUILD_DIR}/pkpm/creg
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCS) ${EXEC_LIB_DIRS} ${EXEC_LIBS}
+
+ifdef USING_NVCC
+../$(BUILD_DIR)/pkpm/kernels/pkpm/%.c.o : kernels/pkpm/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+endif
+
+# build lib
+$(LLIB): $(OBJS)
+	$(MKDIR_P) $(dir $@)
+ifeq ($(UNAME),Linux)
+ifdef USING_NVCC
+	$(CC) -shared -o $@ ../$(BUILD_DIR)/core/*/*.o ../$(BUILD_DIR)/core/*/*/*.o ../$(BUILD_DIR)/moments/*/*.o ../$(BUILD_DIR)/moments/*/*/*.o ../$(BUILD_DIR)/vlasov/*/*.o ../$(BUILD_DIR)/vlasov/*/*/*.o ../$(BUILD_DIR)/gyrokinetic/*/*.o ../$(BUILD_DIR)/gyrokinetic/*/*/*.o ../$(BUILD_DIR)/pkpm/*/*.o ../$(BUILD_DIR)/pkpm/*/*/*.o -Xlinker=-soname -Xlinker=libg0pkpm.so -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${LUA_LIB_DIR} -L${LAPACK_LIB_DIR} ${CORE_LIB_DIR} ${CORE_LIB} -lsuperlu ${LAPACK_LIB} ${MPI_RPATH} ${MPI_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl -arch=sm_${CUDA_ARCH} -rdc=true --compiler-options="-fPIC"
+else
+	$(CC) -shared -o $@ ../$(BUILD_DIR)/core/*/*.o ../$(BUILD_DIR)/core/*/*/*.o ../$(BUILD_DIR)/moments/*/*.o ../$(BUILD_DIR)/moments/*/*/*.o ../$(BUILD_DIR)/vlasov/*/*.o ../$(BUILD_DIR)/vlasov/*/*/*.o ../$(BUILD_DIR)/gyrokinetic/*/*.o ../$(BUILD_DIR)/gyrokinetic/*/*/*.o ../$(BUILD_DIR)/pkpm/*/*.o ../$(BUILD_DIR)/pkpm/*/*/*.o -Wl,-soname,libg0pkpm.so -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${LUA_LIB_DIR} -L${LAPACK_LIB_DIR} ${CORE_LIB_DIR} ${CORE_LIB} -lsuperlu ${LAPACK_LIB} ${MPI_RPATH} ${MPI_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
+endif
+else
+	$(CC) -shared -o $@ ../$(BUILD_DIR)/core/*/*.o ../$(BUILD_DIR)/core/*/*/*.o ../$(BUILD_DIR)/moments/*/*.o ../$(BUILD_DIR)/moments/*/*/*.o ../$(BUILD_DIR)/vlasov/*/*.o ../$(BUILD_DIR)/vlasov/*/*/*.o ../$(BUILD_DIR)/gyrokinetic/*/*.o ../$(BUILD_DIR)/gyrokinetic/*/*/*.o ../$(BUILD_DIR)/pkpm/*/*.o ../$(BUILD_DIR)/pkpm/*/*/*.o -Wl,-install_name,@rpath/libg0pkpm.so -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${LUA_LIB_DIR} -L${LAPACK_LIB_DIR} ${CORE_LIB_DIR} ${CORE_LIB} -lsuperlu ${LAPACK_LIB} ${MPI_RPATH} ${MPI_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
+endif
+
+$(SLLIB): $(OBJS)
+	$(MKDIR_P) $(dir $@)
+	ar -crs $@ ../$(BUILD_DIR)/core/*/*.o ../$(BUILD_DIR)/core/*/*/*.o ../$(BUILD_DIR)/moments/*/*.o ../$(BUILD_DIR)/moments/*/*/*.o ../$(BUILD_DIR)/vlasov/*/*.o ../$(BUILD_DIR)/vlasov/*/*/*.o ../$(BUILD_DIR)/gyrokinetic/*/*.o ../$(BUILD_DIR)/gyrokinetic/*/*/*.o ../$(BUILD_DIR)/pkpm/*/*.o ../$(BUILD_DIR)/pkpm/*/*/*.o
+
+.PHONY: check valcheck
+# Run all unit tests
+check: unit ## Build (if needed) and run all unit tests
+	$(foreach unit,${UNITS},echo $(unit); $(unit) -E;)
+
+valcheck: unit ## Run valgrind on unit test
+	$(foreach unit,$(UNITS),valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --show-error-list=yes $(unit) --exec=never 2>$(unit)_val_err 1>/dev/null;)
+	$(foreach unit,$(UNITS),../core/minus/checkval.sh $(unit);)
+
+-include $(DEPS)
+
+# Headers to install
+INSTALL_HEADERS := $(shell ls kernels/*/gkyl_*.h apps/gkyl_*.h zero/gkyl_*.h | grep -v "priv" | sort)
+
+.PHONY: install
+install: all
+# Construct install 
+	$(MKDIR_P) ${INSTALL_PREFIX}/${PROJ_NAME}/include
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/lib
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/bin
+	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/share
+# Headers
+	cp ${INSTALL_HEADERS} ${INSTALL_PREFIX}/${PROJ_NAME}/include
+# libraries
+	cp -f $(LLIB) ${INSTALL_PREFIX}/${PROJ_NAME}/lib/libg0pkpm.so
+	cp -f $(SLLIB) ${INSTALL_PREFIX}/${PROJ_NAME}/lib/libg0pkpm.a
+
+.PHONY: clean
+clean: ## Clean build output
+	rm -rf ../${BUILD_DIR}/pkpm

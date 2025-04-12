@@ -1,6 +1,6 @@
 #!/bin/sh
 
-CP_CMD=mv
+CP_CMD=git mv
 RM_CMD=:
 G0=..
 
