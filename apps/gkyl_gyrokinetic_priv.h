@@ -455,6 +455,7 @@ struct gk_recycle_wall {
   struct gkyl_range impact_buff_r[GKYL_MAX_SPECIES];  // Ghost range of the impacting boundary.
   struct gkyl_range impact_cbuff_r[GKYL_MAX_SPECIES]; // Conf-space ghost range of the impacting boundary.
 
+  struct gkyl_array *bc_buffer; // Fixed buffers for recycle BCs.
   struct gkyl_array *phase_flux_gk[GKYL_MAX_SPECIES]; // Array to put phase-flux into.
   struct gkyl_array *m0_flux_gk[GKYL_MAX_SPECIES]; // M0 moment of ion flux.
   struct gkyl_dg_updater_moment *m0op_gk[GKYL_MAX_SPECIES]; // M0 moment solver for ion flux.
@@ -463,7 +464,6 @@ struct gk_recycle_wall {
   struct gkyl_array *unit_m0_flux_neut; // MO moment of unit-density flux.
   struct gkyl_dg_updater_moment *m0op_neut; // M0 moment solver for unit-density flux.
 
-  struct gkyl_array *buffer; // Where unit-density Maxwellian is stored.
   struct gkyl_array *spectrum[GKYL_MAX_SPECIES]; // Unit-density Maxwellian is copied and scaled here.
   struct gkyl_range impact_normal_r[GKYL_MAX_SPECIES]; // Phase-space range w/ only velocities towards the boundary.
   struct gkyl_array *f_emit; // Array to fill neutral ghost cell with scaled Maxwellian distf.
@@ -804,7 +804,6 @@ struct gk_neut_species {
   struct gkyl_array *cflrate; // CFL rate in each cell
   struct gkyl_array *bc_buffer; // buffer for BCs (used by bc_basic)
   struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // fixed buffers for time independent BCs
-  struct gkyl_array *bc_buffer_lo_recyc, *bc_buffer_up_recyc; // fixed buffers for recycle BCs 
 
   struct gkyl_array *f_host; // host copy for use IO and initialization
 
@@ -2462,12 +2461,11 @@ void gk_neut_species_bgk_release(const struct gkyl_gyrokinetic_app *app, const s
  * @param dir Direction for BC (x, y, or z)
  * @param edge Edge for BC (lower/upper)
  * @param params Input params for recycling BCs
- * @param f0 Maxwellian distf to scale in ghost
  * @param s Gk_neut_species to apply BCs for
  * @param use_gpu Boolean for using GPUs
  */
 void gk_neut_species_recycle_init(struct gkyl_gyrokinetic_app *app, struct gk_recycle_wall *recyc,
-  int dir, enum gkyl_edge_loc edge, struct gkyl_gyrokinetic_emission_inp *params, struct gkyl_array *f0,
+  int dir, enum gkyl_edge_loc edge, struct gkyl_gyrokinetic_emission_inp *params,
   struct gk_neut_species *s, bool use_gpu);
 
 /**

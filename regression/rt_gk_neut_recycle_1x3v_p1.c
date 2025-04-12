@@ -548,11 +548,6 @@ main(int argc, char **argv)
     
     .num_diag_moments = 3,
     .diag_moments = { "M1i_from_H", "MEnergy", "LTEMoments"},
-//    .boundary_flux_diagnostics = {
-//      .num_diag_moments = 1,
-//      .diag_moments = { "MEnergy" },
-////      .time_integrated = true,
-//    },
   };
 
   // Field.
