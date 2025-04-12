@@ -713,7 +713,8 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_emission_inp neut_bc = {
     .num_species = 1,
     .in_species = { "ion" },
-    .rec_frac = ctx.rec_frac,
+    .recycling_frac = ctx.rec_frac,
+    .emission_temp = ctx.T0,
   };
 
   struct gkyl_gyrokinetic_projection recyc_proj = {
@@ -978,20 +979,18 @@ main(int argc, char **argv)
       .lower = {.type = GKYL_SPECIES_ABSORB,},
       .upper = {.type = GKYL_SPECIES_ABSORB,},
     },
-   .bcz = {
-     .lower = {
-       .type = GKYL_SPECIES_RECYCLE,
-       .emission = neut_bc,
-       .projection = recyc_proj,
-       .write_diagnostics = true,
-     },
-     .upper = {
-       .type = GKYL_SPECIES_RECYCLE,
-       .emission = neut_bc,
-       .projection = recyc_proj,
-       .write_diagnostics = true,
-     },
-   },
+    .bcz = {
+      .lower = {
+        .type = GKYL_SPECIES_RECYCLE,
+        .emission = neut_bc,
+        .write_diagnostics = true,
+      },
+      .upper = {
+        .type = GKYL_SPECIES_RECYCLE,
+        .emission = neut_bc,
+        .write_diagnostics = true,
+      },
+    },
    
     .num_diag_moments = 3,
     .diag_moments = { "M1i_from_H", "MEnergy", "LTEMoments"},
