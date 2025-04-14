@@ -238,7 +238,10 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
     
     // T(x) = const
     // Compute the new temperature (no meaning if no particle).
-    double temp = inp.particle == 0 ? 1.0 : 2./3. * inp.energy/inp.particle;
+    assert(inp.temp_max > 0);
+    double temp = inp.particle == 0 ? inp.temp_max/2.0 : 2./3. * inp.energy/inp.particle;
+    temp = temp > inp.temp_max ? inp.temp_max : temp; // saturate to max temperature.
+
     // Define a constant function = 1
     proj->proj_one = gkyl_proj_on_basis_new(&app->grid, &app->basis, app->poly_order + 1, 1, func_one, &inp);
     struct gkyl_array *one_ho = mkarr(false, app->basis.num_basis, app->local_ext.volume);

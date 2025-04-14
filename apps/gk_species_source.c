@@ -178,7 +178,7 @@ gk_species_source_adapt(gkyl_gyrokinetic_app *app, struct gk_species *s,
 
     // Compute the target temperature of the source following the rule:
     // T = 2/3 * Q/G (T: src temperature, Q: src energy rate, G: total particle rate)
-    double temperature_new = particle_src_new == 0.0 ? 1.0 : 2./3. * energy_src_new/particle_src_new;
+    double temperature_new = particle_src_new == 0.0 ? s->info.source.projection[k].temp_max/2 : 2./3. * energy_src_new/particle_src_new;
 
     // Update the density and temperature moments of the source
     gkyl_array_set(src->proj_source[k].dens, particle_src_new, src->proj_source[k].shape_conf);

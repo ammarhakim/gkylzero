@@ -154,7 +154,7 @@ struct gk_app_ctx create_ctx(void)
   double particle_srcCORE = 1.00e22; // [1/s]
   double center_srcCORE[3] = {x_min, 0.0, 0.0};
   double sigma_srcCORE[3] = {0.03*Lx, 0.0, 0.0};
-  double floor_srcCORE = 1e-2;
+  double floor_srcCORE = 1e-8;
   // Recycling source parameters
   bool adapt_energy_srcRECY = false;
   bool adapt_particle_srcRECY = true;
@@ -162,7 +162,7 @@ struct gk_app_ctx create_ctx(void)
   double particle_srcRECY = 0.01e22; // [1/s]
   double center_srcRECY[3] = {0.5*x_LCFS, 0.0, 0.0};
   double sigma_srcRECY[3] = {0.25*x_LCFS, 0.0, 0.25*Lz};
-  double floor_srcRECY = 1e-2;
+  double floor_srcRECY = 1e-8;
   // Grid parameters
   int num_cell_x = 16;
   int num_cell_y = 10;
@@ -322,6 +322,7 @@ main(int argc, char **argv)
         .sigma_gauss = {ctx.sigma_srcCORE[0], ctx.sigma_srcCORE[1], ctx.sigma_srcCORE[2]},
         .particle = ctx.particle_srcCORE,
         .energy = ctx.energy_srcCORE,
+        .temp_max = 5.0*ctx.Te0,
         .floor = ctx.floor_srcCORE,
       },
       .projection[1] = {
@@ -330,6 +331,7 @@ main(int argc, char **argv)
         .sigma_gauss = {ctx.sigma_srcRECY[0], ctx.sigma_srcRECY[1], ctx.sigma_srcRECY[2]},
         .particle = ctx.particle_srcRECY,
         .energy = ctx.energy_srcRECY,
+        .temp_max = 5.0*ctx.Te0,
         .floor = ctx.floor_srcRECY,
       },
       .num_adapt_sources = ctx.num_sources,
@@ -432,6 +434,7 @@ main(int argc, char **argv)
         .sigma_gauss = {ctx.sigma_srcCORE[0], ctx.sigma_srcCORE[1], ctx.sigma_srcCORE[2]},
         .particle = ctx.particle_srcCORE,
         .energy = ctx.energy_srcCORE,
+        .temp_max = 5.0*ctx.Ti0,
         .floor = ctx.floor_srcCORE,
       },
       .projection[1] = {
@@ -440,6 +443,7 @@ main(int argc, char **argv)
         .sigma_gauss = {ctx.sigma_srcRECY[0], ctx.sigma_srcRECY[1], ctx.sigma_srcRECY[2]},
         .particle = ctx.particle_srcRECY,
         .energy = ctx.energy_srcRECY,
+        .temp_max = 5.0*ctx.Ti0,
         .floor = ctx.floor_srcRECY,
       },
       .num_adapt_sources = ctx.num_sources,

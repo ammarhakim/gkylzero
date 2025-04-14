@@ -47,6 +47,7 @@ struct gkyl_gyrokinetic_projection {
       double particle; // Total particle of the Gaussian Maxwellian distribution (M0 moment).
       double energy; // Total energy (M2*mass moment).
       double floor; // Floor value for the Gaussian Maxwellian distribution.
+      double temp_max; // Maximum temperature of the Gaussian Maxwellian distribution.
 
       // boolean if we are correcting all the moments or only density
       bool correct_all_moms; 
