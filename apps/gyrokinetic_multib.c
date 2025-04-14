@@ -201,7 +201,7 @@ singleb_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   }
 
   // Set z dir grid extents based on tokamak global normalization
-  if(bgi->geometry.geometry_id == GKYL_TOKAMAK) {
+  if (bgi->geometry.geometry_id == GKYL_TOKAMAK) {
     gkyl_gk_geometry_tok_set_grid_extents(bgi->geometry.efit_info, bgi->geometry.tok_grid_info, &app_inp.lower[cdim-1], &app_inp.upper[cdim-1]);
     gkyl_gk_block_geom_reset_block_extents(mbapp->block_geom, bid, app_inp.lower, app_inp.upper);
   }
@@ -511,6 +511,14 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   // MF 2024/10/20: hardcode the BC value here because input file infra doesn't
   // support passing a value yet.
   for (int d=0; d<cdim-1; d++) {
+    // Set it to Dirichlet first, reset below. This avoids problems in
+    // creating the single block field solve, which may not be used.
+    field_inp.poisson_bcs.lo_type[d] = GKYL_POISSON_DIRICHLET;
+    field_inp.poisson_bcs.lo_value[d].v[0] = -1.0e3;
+    field_inp.poisson_bcs.up_type[d] = GKYL_POISSON_DIRICHLET;
+    field_inp.poisson_bcs.up_value[d].v[0] = -1.0e3;
+  }
+  for (int d=0; d<cdim-1; d++) {
     for (int k=0; k<fld->num_physical_bcs; k++) { 
       if (bid == fld->bcs[k].bidx) {
         int bc_type = choose_field_bc_type(fld->bcs[k].bc_type);
@@ -560,7 +568,7 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
 
   // Copy field input into app input.
   memcpy(&app_inp.field, &field_inp, sizeof(struct gkyl_gyrokinetic_field));  
-  
+
   gkyl_gyrokinetic_app_new_solver(&app_inp, app);
 }
 

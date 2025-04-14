@@ -332,6 +332,10 @@ $(BUILD_DIR)/kernels/maxwell/%.c.o : kernels/maxwell/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
+$(BUILD_DIR)/kernels/neutral/%.c.o : kernels/neutral/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
 $(BUILD_DIR)/kernels/pkpm/%.c.o : kernels/pkpm/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
@@ -388,7 +392,11 @@ $(BUILD_DIR)/kernels/inflate_surf/%.c.o : kernels/inflate_surf/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
-$(BUILD_DIR)/kernels/positivity_shift/%.c.o : kernels/positivity_shift/%.c
+$(BUILD_DIR)/kernels/positivity_shift_gyrokinetic/%.c.o : kernels/positivity_shift_gyrokinetic/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
+$(BUILD_DIR)/kernels/positivity_shift_vlasov/%.c.o : kernels/positivity_shift_vlasov/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 

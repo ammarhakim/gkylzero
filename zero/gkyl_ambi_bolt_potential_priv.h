@@ -8,10 +8,11 @@
 
 // Function pointer type for sheath entrance calculations.
 typedef void (*sheathker_t)(const double sheathDirDx, double q_e, double m_e, double T_e,
-  const double *jacInv, const double *GammaJac_i, const double *m0JacIon, double *out);
+  const double *cmag, const double *jacobtotInv,
+  const double *GammaJac_i, const double *m0Ion, const double *m0JacIon, double *out);
 
 // Function pointer type for phi calculation.
-typedef void (*phiker_t)(double q_e, double T_e, const double *jacInv,
+typedef void (*phiker_t)(double q_e, double T_e,
   const double *m0JacIon, const double *sheathvals, double *phi);
 
 typedef struct { sheathker_t kernels[2]; } sheath_calc_kern_loc_list;
@@ -93,5 +94,20 @@ ambi_bolt_potential_choose_kernels(const struct gkyl_basis* basis, struct gkyl_a
   }
 }
 
+#ifdef GKYL_HAVE_CUDA
 void
 ambi_bolt_potential_choose_kernels_cu(const struct gkyl_basis *basis, struct gkyl_ambi_bolt_potential_kernels *kers);
+
+void
+gkyl_ambi_bolt_potential_sheath_calc_cu(struct gkyl_ambi_bolt_potential *up, enum gkyl_edge_loc edge,
+  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
+  const struct gkyl_array *cmag, const struct gkyl_array *jacobtot_inv,
+  const struct gkyl_array *gammai, const struct gkyl_array *m0i, const struct gkyl_array *Jm0i,
+  struct gkyl_array *sheath_vals);
+
+void
+gkyl_ambi_bolt_potential_phi_calc_cu(struct gkyl_ambi_bolt_potential *up,
+  const struct gkyl_range *local_r, const struct gkyl_range *extlocal_r,
+  const struct gkyl_array *m0i, const struct gkyl_array *sheath_vals,
+  struct gkyl_array *phi);
+#endif
