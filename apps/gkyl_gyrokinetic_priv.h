@@ -516,6 +516,13 @@ struct gk_proj {
       struct gkyl_array *vtsqperp; // host-side vth_perp^2 = Tperp/m (perpendicular temperature/mass)
       struct gkyl_proj_on_basis *proj_temppar; // projection operator for parallel temperature
       struct gkyl_proj_on_basis *proj_tempperp; // projection operator for parallel temperature
+
+      struct gkyl_array *shape_conf; // shape of the source in configuration space (on device).    
+      struct gkyl_proj_on_basis *proj_shape; // projection operator for the shape of the source in config space.    
+
+      struct gkyl_array *one_conf; // constant array in configuration space (on device).    
+      struct gkyl_proj_on_basis *proj_one; // projection operator for the constant array.    
+
       union {
         struct { 
           struct gkyl_array *upar; // upar for GK Maxwellian/Bi-Maxwellian projection (on device for GK Maxwellian Gaussian)

@@ -31,7 +31,7 @@ void func_gaussian(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTR
   fout[0] = (envelope + inp->floor);
 }
 
-void func_const(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+void func_one(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 1.0;
 }
@@ -191,74 +191,73 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       proj->corr_max = gkyl_gk_maxwellian_correct_inew( &inp_corr );
     }
   } else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN) {
-    proj->proj_dens = gkyl_proj_on_basis_new(&app->grid, &app->basis, app->poly_order + 1, 1, 
-      func_gaussian, &inp);
-    proj->proj_upar = gkyl_proj_on_basis_new(&app->grid, &app->basis, app->poly_order + 1, 1, 
-      func_const, NULL);
-    proj->proj_temp = gkyl_proj_on_basis_new(&app->grid, &app->basis, app->poly_order + 1, 1, 
-      func_const, NULL);
 
-    // Allocate temporary host arrays to project the moments.
-    struct gkyl_array *dens_ho = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-    struct gkyl_array *upar_ho = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-    struct gkyl_array *vtsq_ho = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+    // First project the shape function, s(x), onto the DG basis and send it to device.
+    proj->proj_shape = gkyl_proj_on_basis_new(&app->grid, &app->basis, app->poly_order + 1, 1, func_gaussian, &inp);
+      
+    struct gkyl_array *shape_ho = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+    gkyl_proj_on_basis_advance(proj->proj_shape, 0, &app->local, shape_ho);
 
-    gkyl_proj_on_basis_advance(proj->proj_dens, 0, &app->local, dens_ho);
-    gkyl_proj_on_basis_advance(proj->proj_upar, 0, &app->local, upar_ho);
-    gkyl_proj_on_basis_advance(proj->proj_temp, 0, &app->local, vtsq_ho);
+    proj->shape_conf = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gkyl_array_copy(proj->shape_conf, shape_ho);
 
-    // Allocate the projection arrays (possibly on device).
-    proj->dens = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    proj->upar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    proj->vtsq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    proj->prim_moms = mkarr(app->use_gpu, 3*app->basis.num_basis, app->local_ext.volume);
+    gkyl_array_release(shape_ho);
 
-    // Copy the contents into the array we will use (potentially on GPUs).
-    gkyl_array_copy(proj->dens, dens_ho);
-    gkyl_array_copy(proj->upar, upar_ho);
-    gkyl_array_copy(proj->vtsq, vtsq_ho);
-
-    // Release the temporary arrays.
-    gkyl_array_release(dens_ho);
-    gkyl_array_release(upar_ho);
-    gkyl_array_release(vtsq_ho);
-
-    // proj->dens contains only the Gaussian envelope defined in func_gaussian.
-    // We want that int d^3x J_{xyz} * proj->dens = inp.particle, so we normalize by int d^3x J_{xyz} gauss(x).
-    struct gkyl_array *Jgauss = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    gkyl_array_accumulate(Jgauss, 1.0, proj->dens);
-    gkyl_dg_mul_op_range(app->basis, 0, Jgauss, 0, app->gk_geom->jacobgeo, 0, Jgauss, &app->local);
+    // Build the integrant Jxyz * s(x), to normalize the shape function, and integrate it.
+    struct gkyl_array *integrant = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gkyl_dg_mul_op_range(app->basis, 0, integrant, 0, app->gk_geom->jacobgeo, 0, proj->shape_conf, &app->local);
 
     struct gkyl_array_integrate *int_op = gkyl_array_integrate_new(&app->grid, &app->basis, 1, 
       GKYL_ARRAY_INTEGRATE_OP_NONE, app->use_gpu);
-    double *Jgauss_int = app->use_gpu? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
-    gkyl_array_integrate_advance(int_op, Jgauss, 1.0, NULL, &app->local, NULL, Jgauss_int);
+    double *integral = app->use_gpu? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
+    gkyl_array_integrate_advance(int_op, integrant, 1.0, NULL, &app->local, NULL, integral);
 
-    // reduce the result through all MPI processes
-    double *red_Jgauss_int = app->use_gpu? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, Jgauss_int, red_Jgauss_int);
+    double *red_integral = app->use_gpu? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, integral, red_integral);
     
-    double red_Jgauss_int_ho[1];
+    double red_integral_ho[1];
     if (app->use_gpu)
-      gkyl_cu_memcpy(red_Jgauss_int_ho, red_Jgauss_int, sizeof(double), GKYL_CU_MEMCPY_D2H);
+      gkyl_cu_memcpy(red_integral_ho, red_integral, sizeof(double), GKYL_CU_MEMCPY_D2H);
     else
-      memcpy(red_Jgauss_int_ho, red_Jgauss_int, sizeof(double));
+      memcpy(red_integral_ho, red_integral, sizeof(double));
 
-    // Scale moments according to initial input values.
-    gkyl_array_scale(proj->dens, inp.particle/red_Jgauss_int_ho[0]);
-    gkyl_array_clear(proj->upar, 0.0); // No source flow.
-    double temp = 2./3. * inp.energy/inp.particle;
-    gkyl_array_scale(proj->vtsq, temp/s->info.mass); // Constant energy.
+    // Scale the shape configuration function
+    gkyl_array_scale(proj->shape_conf, 1.0/red_integral_ho[0]);
+    
+    // We can now build the moments of the projection.
+    proj->dens = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    proj->upar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    proj->vtsq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    proj->prim_moms = mkarr(app->use_gpu, 4*app->basis.num_basis, app->local_ext.volume);      
+
+    // n(x) =  #particle * shape(x)
+    gkyl_array_accumulate(proj->dens, inp.particle, proj->shape_conf);
+
+    //  u(x) = 0
+    gkyl_array_accumulate(proj->upar, 0.0, proj->shape_conf);
+    
+    // T(x) = const
+    // Compute the new temperature (no meaning if no particle).
+    double temp = inp.particle == 0 ? 1.0 : 2./3. * inp.energy/inp.particle;
+    // Define a constant function = 1
+    proj->proj_one = gkyl_proj_on_basis_new(&app->grid, &app->basis, app->poly_order + 1, 1, func_one, &inp);
+    struct gkyl_array *one_ho = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+    gkyl_proj_on_basis_advance(proj->proj_one, 0, &app->local, one_ho);
+    proj->one_conf = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gkyl_array_copy(proj->one_conf, one_ho);
+    gkyl_array_release(one_ho);
+
+    gkyl_array_accumulate(proj->vtsq, temp/s->info.mass, proj->one_conf);
 
     // release 
     if (app->use_gpu) {
-      gkyl_cu_free(Jgauss_int);
-      gkyl_cu_free(red_Jgauss_int);
+      gkyl_cu_free(integral);
+      gkyl_cu_free(red_integral);
     } else {
-      gkyl_free(Jgauss_int);
-      gkyl_free(red_Jgauss_int);
+      gkyl_free(integral);
+      gkyl_free(red_integral);
     }
-    gkyl_array_release(Jgauss);
+    gkyl_array_release(integrant);
     gkyl_array_integrate_release(int_op);
   }
 }
@@ -351,8 +350,7 @@ gk_species_projection_release(const struct gkyl_gyrokinetic_app *app, const stru
       gkyl_array_release(proj->proj_host);
     }
   }
-  else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN ||
-      proj->proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN) { 
+  else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) { 
     gkyl_array_release(proj->dens);
     gkyl_array_release(proj->upar); 
     gkyl_array_release(proj->prim_moms_host);
@@ -360,7 +358,7 @@ gk_species_projection_release(const struct gkyl_gyrokinetic_app *app, const stru
 
     gkyl_proj_on_basis_release(proj->proj_dens);
     gkyl_proj_on_basis_release(proj->proj_upar);
-    if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN) {
+    if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
       gkyl_array_release(proj->vtsq);
       gkyl_proj_on_basis_release(proj->proj_temp);
     }
@@ -370,8 +368,18 @@ gk_species_projection_release(const struct gkyl_gyrokinetic_app *app, const stru
       gkyl_proj_on_basis_release(proj->proj_temppar);
       gkyl_proj_on_basis_release(proj->proj_tempperp);
     }
-    if (!(proj->proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN)) {
-    gkyl_gk_maxwellian_proj_on_basis_release(proj->proj_max);
+    if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN) {
+      gkyl_array_release(proj->dens);
+      gkyl_array_release(proj->upar); 
+      gkyl_array_release(proj->vtsq);
+      gkyl_array_release(proj->prim_moms);
+      gkyl_array_release(proj->shape_conf);
+      gkyl_array_release(proj->one_conf);
+
+      gkyl_proj_on_basis_release(proj->proj_shape);
+      gkyl_proj_on_basis_release(proj->proj_one);
+    } else {
+      gkyl_gk_maxwellian_proj_on_basis_release(proj->proj_max);
     }
     if (proj->correct_all_moms) {
       gkyl_gk_maxwellian_correct_release(proj->corr_max);    

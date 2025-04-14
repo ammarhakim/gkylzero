@@ -64,10 +64,11 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
         adapt_src->adapt_particle = s->info.source.adapt[k].adapt_particle;
         adapt_src->adapt_energy = s->info.source.adapt[k].adapt_energy;
 
-        adapt_src->particle_src_curr = s->info.source.projection[k].particle > 0?
-          s->info.source.projection[k].particle : 1.0;
+        adapt_src->particle_src_curr = s->info.source.projection[k].particle;
         adapt_src->energy_src_curr = s->info.source.projection[k].energy;
-        adapt_src->temperature_curr = 2./3. * adapt_src->energy_src_curr/adapt_src->particle_src_curr;
+        // The temperature computation makes sense only if we inject particles
+        adapt_src->temperature_curr = s->info.source.projection[k].particle > 0?
+          2./3. * adapt_src->energy_src_curr/adapt_src->particle_src_curr : 1.0;
 
         gk_species_moment_init(app, s, &adapt_src->integ_mom, "ThreeMoments", true);
 
@@ -140,15 +141,14 @@ gk_species_source_adapt(gkyl_gyrokinetic_app *app, struct gk_species *s,
   for (int k=0; k < s->info.source.num_adapt_sources; ++k) {
     struct gk_adapt_source *adapt_src = &src->adapt[k];
 
-    // Accumulate energy and particle losses through the boundaries.
     adapt_src->particle_rate_loss = 0.0;
     adapt_src->energy_rate_loss = 0.0;
     int num_mom = adapt_src->integ_mom.num_mom;
+    // Accumulate energy and particle losses through the boundaries considered by the current adaptive source.
     for (int j=0; j < adapt_src->num_boundaries; ++j) {
 
-      gk_species_bflux_get_flux(&s->bflux, adapt_src->dir[j], adapt_src->edge[j], src->source);
-
       // Compute the moment of the bflux to get the integrated loss.
+      gk_species_bflux_get_flux(&s->bflux, adapt_src->dir[j], adapt_src->edge[j], src->source);
       gk_species_moment_calc(&adapt_src->integ_mom, adapt_src->range[j], adapt_src->range_conf[j], src->source);
       app->stat.n_mom += 1;
       
@@ -175,16 +175,17 @@ gk_species_source_adapt(gkyl_gyrokinetic_app *app, struct gk_species *s,
     double energy_src_new = adapt_src->adapt_energy?
       s->info.source.projection[k].energy + adapt_src->energy_rate_loss
       : s->info.source.projection[k].energy;
-            
+
     // Compute the target temperature of the source following the rule:
     // T = 2/3 * Q/G (T: src temperature, Q: src energy rate, G: total particle rate)
-    double temperature_new = 0.0;
-    if (particle_src_new != 0.0) {
-      temperature_new = 2./3. * energy_src_new/particle_src_new;
-    }
-    gkyl_array_scale(src->proj_source[k].dens, particle_src_new/adapt_src->particle_src_curr);
-    gkyl_array_scale(src->proj_source[k].vtsq, temperature_new/adapt_src->temperature_curr);
+    double temperature_new = particle_src_new == 0.0 ? 1.0 : 2./3. * energy_src_new/particle_src_new;
 
+    // Update the density and temperature moments of the source
+    gkyl_array_accumulate(src->proj_source[k].dens, particle_src_new, src->proj_source[k].shape_conf);
+    gkyl_array_accumulate(src->proj_source[k].vtsq, temperature_new, src->proj_source[k].one_conf);
+    // Upar=0 at initialization and is never changed.
+
+    // Refresh the current values of particle, energy and temperature (can be used for control).
     adapt_src->particle_src_curr = particle_src_new;
     adapt_src->energy_src_curr = energy_src_new;
     adapt_src->temperature_curr = temperature_new;
