@@ -231,10 +231,10 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
     proj->prim_moms = mkarr(app->use_gpu, 4*app->basis.num_basis, app->local_ext.volume);      
 
     // n(x) =  #particle * shape(x)
-    gkyl_array_accumulate(proj->dens, inp.particle, proj->shape_conf);
+    gkyl_array_set(proj->dens, inp.particle, proj->shape_conf);
 
     //  u(x) = 0
-    gkyl_array_accumulate(proj->upar, 0.0, proj->shape_conf);
+    gkyl_array_set(proj->upar, 0.0, proj->shape_conf);
     
     // T(x) = const
     // Compute the new temperature (no meaning if no particle).
@@ -247,7 +247,7 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
     gkyl_array_copy(proj->one_conf, one_ho);
     gkyl_array_release(one_ho);
 
-    gkyl_array_accumulate(proj->vtsq, temp/s->info.mass, proj->one_conf);
+    gkyl_array_set(proj->vtsq, temp/s->info.mass, proj->one_conf);
 
     // release 
     if (app->use_gpu) {

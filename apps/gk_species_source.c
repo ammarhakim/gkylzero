@@ -181,8 +181,8 @@ gk_species_source_adapt(gkyl_gyrokinetic_app *app, struct gk_species *s,
     double temperature_new = particle_src_new == 0.0 ? 1.0 : 2./3. * energy_src_new/particle_src_new;
 
     // Update the density and temperature moments of the source
-    gkyl_array_accumulate(src->proj_source[k].dens, particle_src_new, src->proj_source[k].shape_conf);
-    gkyl_array_accumulate(src->proj_source[k].vtsq, temperature_new, src->proj_source[k].one_conf);
+    gkyl_array_set(src->proj_source[k].dens, particle_src_new, src->proj_source[k].shape_conf);
+    gkyl_array_set(src->proj_source[k].vtsq, temperature_new, src->proj_source[k].one_conf);
     // Upar=0 at initialization and is never changed.
 
     // Refresh the current values of particle, energy and temperature (can be used for control).
