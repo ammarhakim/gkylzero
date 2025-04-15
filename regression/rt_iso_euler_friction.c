@@ -201,8 +201,8 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
   // Electron/ion equations.
-  struct gkyl_wv_eqn *elc_iso_euler = gkyl_wv_iso_euler_new(ctx.vt);
-  struct gkyl_wv_eqn *ion_iso_euler = gkyl_wv_iso_euler_new(ctx.vt);
+  struct gkyl_wv_eqn *elc_iso_euler = gkyl_wv_iso_euler_new(ctx.vt, false);
+  struct gkyl_wv_eqn *ion_iso_euler = gkyl_wv_iso_euler_new(ctx.vt, false);
 
   struct gkyl_moment_species elc = {
     .name = "elc",

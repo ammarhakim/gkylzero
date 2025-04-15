@@ -366,7 +366,7 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
   // deflate geometry if necessary
   if (geometry_inp.geometry_id != GKYL_GEOMETRY_FROMFILE) {
-    if(app->cdim < 3)
+    if (app->cdim < 3)
       app->gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_inp);
     else
       app->gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
@@ -496,6 +496,38 @@ gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
   }
 }
 
+static void
+gyrokinetic_pos_shift_quasineutrality_enabled(gkyl_gyrokinetic_app *app)
+{
+  // Enforce quasineutrality after applying positivity shift to charged species.
+  gkyl_array_clear(app->ps_delta_m0_ions, 0.0);
+  gkyl_array_clear(app->ps_delta_m0_elcs, 0.0);
+  for (int i=0; i<app->num_species; ++i) {
+    // Accumulate the shift density of all like-species:
+    struct gk_species *gks = &app->species[i];
+    gkyl_array_accumulate(gks->ps_delta_m0s_tot, 1.0, gks->ps_delta_m0);
+  }
+  // Rescale each species to enforce quasineutrality.
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *gks = &app->species[i];
+    gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gks->pos_shift_op, &app->local, &gks->local,
+      gks->ps_delta_m0, gks->ps_delta_m0s_tot, gks->ps_delta_m0r_tot, gks->m0.marr, gks->f);
+
+    gkyl_array_accumulate(gks->fnew, 1.0, gks->f);
+  }
+}
+
+static void
+gyrokinetic_pos_shift_quasineutrality_disabled(gkyl_gyrokinetic_app *app)
+{
+}
+
+void
+gyrokinetic_pos_shift_quasineutrality(gkyl_gyrokinetic_app *app)
+{
+  app->pos_shift_quasineutrality_func(app);
+}
+
 void
 gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
 {
@@ -506,17 +538,14 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
   app->species = ns>0 ? gkyl_malloc(sizeof(struct gk_species[ns])) : 0;
   app->neut_species = neuts>0 ? gkyl_malloc(sizeof(struct gk_neut_species[neuts])) : 0;
 
-  // set info for each species: this needs to be done here as we need
-  // to access species name from gk_species_init
+  // Copy input parameters for each species
   for (int i=0; i<ns; ++i)
     app->species[i].info = gk->species[i];
 
-  // set info for each neutral species: this needs to be done here as we need
-  // to access species name from gk_species_init
   for (int i=0; i<neuts; ++i)
     app->neut_species[i].info = gk->neut_species[i];
 
-  app->field = gk_field_new(gk, app); // initialize field, even if we are skipping field updates
+  app->field = gk_field_new(gk, app); // Initialize field, even if we are  skipping field updates.
 
   // Choose the function that updates the fields in time.
   if (app->field->update_field)
@@ -525,28 +554,28 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     app->calc_field_func = gyrokinetic_calc_field_none;
 
   app->enforce_positivity = gk->enforce_positivity;
+  app->pos_shift_quasineutrality_func = gyrokinetic_pos_shift_quasineutrality_disabled;
   if (app->enforce_positivity) {
-    // Number of density of the positivity shift added over all the ions.
+    // Number density of the positivity shift added over all the ions.
     // Needed before species_init because species store pointers to these.
     app->ps_delta_m0_ions = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     app->ps_delta_m0_elcs = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+
+    app->pos_shift_quasineutrality_func = gyrokinetic_pos_shift_quasineutrality_enabled;
   }
 
-  // initialize each species
+  // Initialize each species.
   for (int i=0; i<ns; ++i)
     gk_species_init(gk, app, &app->species[i]);
 
-  // initialize each neutral species
   for (int i=0; i<neuts; ++i)
     gk_neut_species_init(gk, app, &app->neut_species[i]);
 
-  // initialize each species cross-collisions terms: this has to be done here
-  // as need pointers to colliding species' collision objects
-  // allocated in gk_species_init and gk_neut_species_init
+  // Initialize each species cross-collisions terms.
   for (int i=0; i<ns; ++i) {
     struct gk_species *gk_s = &app->species[i];
 
-    // initialize cross-species collisions (e.g, LBO or BGK)
+    // Initialize cross-species collisions (e.g, LBO or BGK)
     if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS) {
       if (gk_s->lbo.num_cross_collisions) {
         gk_species_lbo_cross_init(app, &app->species[i], &gk_s->lbo);
@@ -557,30 +586,40 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
         gk_species_bgk_cross_init(app, &app->species[i], &gk_s->bgk);
       }
     }
-    // initialize cross-species reactions with plasma species (e.g., ionization, recombination, or charge exchange)
+    // Initialize cross-species reactions with plasma species (e.g., ionization, recombination, or charge exchange)
     if (gk_s->react.num_react) {
       gk_species_react_cross_init(app, &app->species[i], &gk_s->react);
     }
-    // initialize cross-species reactions with neutral species (e.g., ionization, recombination, or charge exchange)
+    // Initialize cross-species reactions with neutral species (e.g., ionization, recombination, or charge exchange)
     if (gk_s->react_neut.num_react) {
       gk_species_react_cross_init(app, &app->species[i], &gk_s->react_neut);
     }
-    // initial radiation (e.g., line radiation from cross-collisions of electrons with ions)
+    // Initial radiation (e.g., line radiation from cross-collisions of electrons with ions)
     if (gk_s->info.radiation.radiation_id == GKYL_GK_RADIATION) {
       gk_species_radiation_init(app, &app->species[i], &gk_s->rad);
     }
   }
 
-  // initialize neutral species cross-species reactions with plasma species
+  // Initialize neutral species cross-species reactions with plasma species.
   for (int i=0; i<neuts; ++i) {
-    if (app->neut_species[i].react_neut.num_react) {
-      gk_neut_species_react_cross_init(app, &app->neut_species[i], &app->neut_species[i].react_neut);
+    struct gk_neut_species *gkns = &app->neut_species[i]; 
+    if (gkns->react_neut.num_react) {
+      gk_neut_species_react_cross_init(app, gkns, &gkns->react_neut);
+    }
+    
+    // Initialize wall emission terms.
+    for (int d=0; d<app->cdim; ++d) {
+      if (gkns->bc_is_np[d]) {
+        if (gkns->lower_bc[d].type == GKYL_SPECIES_RECYCLE)
+          gk_neut_species_recycle_cross_init(app, gkns, &gkns->bc_recycle_lo);
+        if (gkns->upper_bc[d].type == GKYL_SPECIES_RECYCLE)
+          gk_neut_species_recycle_cross_init(app, gkns, &gkns->bc_recycle_up);
+      }
     }
   }
 
-  // initialize each plasma species and neutral species source terms
-  // This has to be done here as sources may initialize a boundary 
-  // flux updater for their source species
+  // Initialize source terms. Done here as sources may initialize
+  // a boundary flux updater for their source species.
   for (int i=0; i<ns; ++i) {
     gk_species_source_init(app, &app->species[i], &app->species[i].src);
   }
@@ -699,6 +738,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
   app->tcurr = t0;
   for (int i=0; i<app->num_species; ++i)
     gkyl_gyrokinetic_app_apply_ic_species(app, i, t0);
+
   for (int i=0; i<app->num_neut_species; ++i)
     gkyl_gyrokinetic_app_apply_ic_neut_species(app, i, t0);
 
@@ -725,7 +765,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
           s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
 
         // Compute and store (in the ghost cell of out) the boundary fluxes.
-        gk_species_bflux_rhs(app, s, &s->bflux, distf[i], distf[i]);
+        gk_species_bflux_rhs(app, &s->bflux, distf[i], distf[i]);
       }
     }
 
@@ -752,7 +792,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
     gkyl_dg_calc_gyrokinetic_vars_alpha_surf(gks->calc_gk_vars,
       &app->local, &gks->local, &gks->local_ext, gks->gyro_phi,
       gks->alpha_surf, gks->sgn_alpha_surf, gks->const_sgn_alpha);
-    gk_species_bflux_rhs(app, gks, &gks->bflux, gks->f, gks->f);
+    gk_species_bflux_rhs(app, &gks->bflux, gks->f, gks->f);
   }
 
   // Apply boundary conditions.
@@ -844,12 +884,14 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->mc2nu_pos        , arr_ho3, "mc2nu_pos", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->bmag        , arr_ho1, "bmag", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->g_ij        , arr_ho6, "g_ij", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->g_ij_neut        , arr_ho6, "g_ij_neut", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->dxdz        , arr_ho9, "dxdz", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->dzdx        , arr_ho9, "dzdx", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->normals     , arr_ho9, "normals", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->jacobgeo    , arr_ho1, "jacobgeo", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->jacobgeo_inv, arr_ho1, "jacobgeo_inv", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->gij         , arr_ho6, "gij", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->gij_neut         , arr_ho6, "gij_neut", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->b_i         , arr_ho3, "b_i", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->bcart       , arr_ho3, "bcart", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->cmag        , arr_ho1, "cmag", mt);
@@ -1062,6 +1104,13 @@ gkyl_gyrokinetic_app_calc_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_
 }
 
 void
+gkyl_gyrokinetic_app_calc_neut_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_app* app, int sidx, double tm)
+{
+  struct gk_neut_species *gkns = &app->neut_species[sidx];
+  gk_neut_species_bflux_calc_integrated_mom(app, gkns, &gkns->bflux, tm);
+}
+
+void
 gkyl_gyrokinetic_app_write_species_integrated_mom(gkyl_gyrokinetic_app *app, int sidx)
 {
   struct gk_species *gks = &app->species[sidx];
@@ -1101,6 +1150,20 @@ gkyl_gyrokinetic_app_write_species_boundary_flux_mom(gkyl_gyrokinetic_app *app, 
 {
   struct gk_species *gks = &app->species[sidx];
   gk_species_bflux_write_mom(app, gks, &gks->bflux, tm, frame);
+}
+
+void
+gkyl_gyrokinetic_app_write_neut_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_app *app, int sidx)
+{
+  struct gk_neut_species *gkns = &app->neut_species[sidx];
+  gk_neut_species_bflux_write_integrated_mom(app, gkns, &gkns->bflux);
+}
+
+void
+gkyl_gyrokinetic_app_write_neut_species_boundary_flux_mom(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame)
+{
+  struct gk_neut_species *gkns = &app->neut_species[sidx];
+  gk_neut_species_bflux_write_mom(app, gkns, &gkns->bflux, tm, frame);
 }
 
 //
@@ -1306,9 +1369,17 @@ gkyl_gyrokinetic_app_write_neut_species_conf(gkyl_gyrokinetic_app* app, int sidx
   gkyl_gyrokinetic_app_write_neut_species_source_mom(app, sidx, tm, frame);
 
   struct gk_neut_species *gkns = &app->neut_species[sidx];
+
   for (int j=0; j<gkns->react_neut.num_react; ++j) {
     gkyl_gyrokinetic_app_write_neut_species_react_neut(app, sidx, j, tm, frame);
   }
+
+  if (gkns->lower_bc[app->cdim-1].type == GKYL_SPECIES_RECYCLE)
+    gk_neut_species_recycle_write_flux(app, gkns, &gkns->bc_recycle_lo, tm, frame);
+  if (gkns->upper_bc[app->cdim-1].type == GKYL_SPECIES_RECYCLE)
+    gk_neut_species_recycle_write_flux(app, gkns, &gkns->bc_recycle_up, tm, frame);
+
+  gkyl_gyrokinetic_app_write_neut_species_boundary_flux_mom(app, sidx, tm, frame);
 }
 
 //
@@ -1328,6 +1399,7 @@ gkyl_gyrokinetic_app_write_mom(gkyl_gyrokinetic_app* app, double tm, int frame)
   for (int i=0; i<app->num_neut_species; ++i) {
     gkyl_gyrokinetic_app_write_neut_species_mom(app, i, tm, frame);
     gkyl_gyrokinetic_app_write_neut_species_source_mom(app, i, tm, frame);
+    gkyl_gyrokinetic_app_write_neut_species_boundary_flux_mom(app, i, tm, frame);
   }
 }
 
@@ -1347,6 +1419,7 @@ gkyl_gyrokinetic_app_calc_integrated_mom(gkyl_gyrokinetic_app* app, double tm)
   for (int i=0; i<app->num_neut_species; ++i) {
     gkyl_gyrokinetic_app_calc_neut_species_integrated_mom(app, i, tm);
     gkyl_gyrokinetic_app_calc_neut_species_source_integrated_mom(app, i, tm);
+    gkyl_gyrokinetic_app_calc_neut_species_boundary_flux_integrated_mom(app, i, tm);
   }
 }
 
@@ -1373,6 +1446,7 @@ gkyl_gyrokinetic_app_write_integrated_mom(gkyl_gyrokinetic_app *app)
     gkyl_gyrokinetic_app_write_neut_species_integrated_mom(app, i);
     gkyl_gyrokinetic_app_write_neut_species_source_integrated_mom(app, i);
     gkyl_gyrokinetic_app_write_neut_species_lte_max_corr_status(app, i);
+    gkyl_gyrokinetic_app_write_neut_species_boundary_flux_integrated_mom(app, i);
   }
 }
 
@@ -1424,7 +1498,7 @@ gkyl_gyrokinetic_app_write(gkyl_gyrokinetic_app* app, double tm, int frame)
 void
 gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   const struct gkyl_array *fin[], struct gkyl_array *fout[], struct gkyl_array **bflux_out[], 
-  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], 
+  const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[], 
   struct gkyl_update_status *st)
 {
   double dtmin = DBL_MAX;
@@ -1482,16 +1556,17 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     }
   }
 
-  // Compute RHS of Gyrokinetic equation.
+  // Compute collisionless terms of charged species.
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
     double dt1 = gk_species_rhs(app, s, fin[i], fout[i], bflux_out[i]);
     dtmin = fmin(dtmin, dt1);
   }
 
-  // Compute RHS of neutrals.
+  // Compute collisionless terms of neutrals.
   for (int i=0; i<app->num_neut_species; ++i) {
-    double dt1 = gk_neut_species_rhs(app, &app->neut_species[i], fin_neut[i], fout_neut[i]);
+    struct gk_neut_species *s = &app->neut_species[i];
+    double dt1 = gk_neut_species_rhs(app, s, fin_neut[i], fout_neut[i], bflux_out_neut[i]);
     dtmin = fmin(dtmin, dt1);
   }
 
@@ -2086,7 +2161,7 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
   gk_s->bflux.is_not_first_restart_write_call = false;
   if (gk_s->info.time_rate_diagnostics)
     gk_s->is_first_fdot_integ_write_call = false;
-  if (app->enforce_positivity)
+  if (gk_s->enforce_positivity)
     gk_s->is_first_ps_integ_write_call = false;
   if (gk_s->rad.radiation_id == GKYL_GK_RADIATION)
     gk_s->rad.is_first_integ_write_call = false;
@@ -2162,7 +2237,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
             s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
 
           // Compute and store (in the ghost cell of of out) the boundary fluxes.
-          gk_species_bflux_rhs(app, s, &s->bflux, distf[i], distf[i]);
+          gk_species_bflux_rhs(app, &s->bflux, distf[i], distf[i]);
         }
       }
 
@@ -2185,7 +2260,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
         s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
 
       // Compute and store (in the ghost cell of of out) the boundary fluxes.
-      gk_species_bflux_rhs(app, s, &s->bflux, distf[i], distf[i]);
+      gk_species_bflux_rhs(app, &s->bflux, distf[i], distf[i]);
     }
 
     // Apply boundary conditions.
@@ -2193,9 +2268,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
       gk_species_apply_bc(app, &app->species[i], distf[i]);
     }
     for (int i=0; i<app->num_neut_species; ++i) {
-      if (!app->neut_species[i].info.is_static) {
-        gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
-      }
+      gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
     }
   }
   app->field->is_first_energy_write_call = false; // Append to existing diagnostic.
@@ -2248,9 +2321,8 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
   if (app->num_species > 0)
     gkyl_free(app->species);
 
-  for (int i=0; i<app->num_neut_species; ++i) {
+  for (int i=0; i<app->num_neut_species; ++i)
     gk_neut_species_release(app, &app->neut_species[i]);
-  }
   if (app->num_neut_species > 0)
     gkyl_free(app->neut_species);
 

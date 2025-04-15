@@ -121,6 +121,14 @@ struct gkyl_gyrokinetic_source {
   struct gkyl_phase_diagnostics_inp diagnostics;
 };
 
+//
+struct gkyl_gyrokinetic_emission_inp {
+  int num_species;
+  char in_species[GKYL_MAX_SPECIES][128];
+  double recycling_frac; // Recycling coefficient.
+  double emission_temp; // Temperature of emitted species.
+};
+
 // Parameters for boundary conditions
 struct gkyl_gyrokinetic_bc {
   enum gkyl_species_bc_type type; // BC type flag.
@@ -128,6 +136,8 @@ struct gkyl_gyrokinetic_bc {
   void *aux_ctx; // Context for aux_profile.
   double aux_parameter; // Parameter for aux_profile (maybe redundant).
   struct gkyl_gyrokinetic_projection projection; // Projection object input (e.g. for FIXED_FUNC).
+  struct gkyl_gyrokinetic_emission_inp emission; 
+  bool write_diagnostics; // used to write diagnostics from the BC.
 };
 
 struct gkyl_gyrokinetic_bcs {
@@ -242,16 +252,20 @@ struct gkyl_gyrokinetic_species {
 
   bool is_static; // Set to true if species does not change in time.
 
+  bool enforce_positivity; // Positivity enforcement via shift in f.
+  
   // Initial conditions using projection routine.
   struct gkyl_gyrokinetic_projection projection;
   // Initial conditions from a file.
   struct gkyl_gyrokinetic_ic_import init_from_file;
 
-  double polarization_density;
+  bool no_collisionless_terms; // Set to true to turn off collisionles terms.
 
   bool no_by; // Boolean for whether we are using specialized GK kernels with no b_y.
               // These more computationally efficient kernels are for slab or mirror 
               // calculations where there is no toroidal field. 
+
+  double polarization_density; // Density factor in LHS of quasineutrality eqn.
 
   struct gkyl_gyrokinetic_flr flr; // Options for FLR effects.
 
@@ -304,11 +318,18 @@ struct gkyl_gyrokinetic_neut_species {
 
   bool is_static; // Set to true if neutral species does not change in time.
 
+  bool enforce_positivity; // Positivity enforcement via shift in f.
+  
+  struct gkyl_gyrokinetic_ic_import init_from_file;
+  
   // Initial conditions using projection routine.
   struct gkyl_gyrokinetic_projection projection;
 
   int num_diag_moments; // Number of diagnostic moments.
   char diag_moments[16][16]; // List of diagnostic moments.
+
+  // Diagnostics of the fluxes of f at position-space boundaries.
+  struct gkyl_phase_diagnostics_inp boundary_flux_diagnostics;
 
   // Input quantities used by LTE (local thermodynamic equilibrium, or Maxwellian) projection
   // This projection operator is used by BGK collisions and all reactions.
@@ -383,7 +404,8 @@ struct gkyl_gk {
   double cfl_frac; // CFL fraction to use (default 1.0).
   double cfl_frac_omegaH; // CFL fraction used for the omega_H dt (default 1.0).
 
-  bool enforce_positivity; // Positivity enforcement via shift in f.
+  bool enforce_positivity; // Enforce f>=0 for all species and quasineutrality
+                           // of charged species after enforcing f_s>=0.
 
   int num_periodic_dir; // Number of periodic directions.
   int periodic_dirs[3]; // List of periodic directions.
@@ -632,6 +654,15 @@ void gkyl_gyrokinetic_app_calc_species_L2norm(gkyl_gyrokinetic_app* app, int sid
 void gkyl_gyrokinetic_app_calc_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_app* app, int sidx, double tm);
 
 /**
+ * Calculate integrated diagnostic moments of the boundary fluxes for a neutral species.
+ *
+ * @param app App object.
+ * @param sidx Index of species whose integrated moments to compute.
+ * @param tm Time at which integrated diagnostics are to be computed
+ */
+void gkyl_gyrokinetic_app_calc_neut_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_app* app, int sidx, double tm);
+
+/**
  * Write integrated diagnostic moments for charged species to file. Integrated
  * moments are appended to the same file.
  * 
@@ -666,6 +697,15 @@ void gkyl_gyrokinetic_app_write_species_L2norm(gkyl_gyrokinetic_app *app, int si
  * @param sidx Index of species whose integrated moments to write.
  */
 void gkyl_gyrokinetic_app_write_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_app *app, int sidx);
+
+/**
+ * Write integrated diagnostic moments of the boundary fluxes for neutral
+ * species to file. Integrated moments are appended to the same file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species whose integrated moments to write.
+ */
+void gkyl_gyrokinetic_app_write_neutral_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_app *app, int sidx);
 
 /**
  * Write species source to file.
