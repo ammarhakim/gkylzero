@@ -1671,11 +1671,14 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     // Recycling BCs require the fluxes. Since this depends on other species,
     // it'll be checked in .
     bool recycling_bcs = gk_species_do_I_recycle(app, gks);
+    // Check if any of the sources are adaptive.
+    bool adaptive_sources = gks->info.source.num_adapt_sources > 0;
    
-    if (boltz_elc_field || recycling_bcs || gks->info.source.num_adapt_sources > 0)
+    if (boltz_elc_field || recycling_bcs || adaptive_sources) {
       bflux_type = GK_SPECIES_BFLUX_CALC_FLUX;
     }
   }
+
   // Introduce new moments into moms_inp if needed.
   gk_species_bflux_init(app, gks, &gks->bflux, bflux_type, add_bflux_moms_inp);
   

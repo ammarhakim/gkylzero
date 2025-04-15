@@ -601,7 +601,9 @@ struct gk_adapt_source {
   int num_boundaries; // Number of boundaries to adapt to.
   int dir[GKYL_MAX_CDIM]; // Direction to adapt.
   enum gkyl_edge_loc edge[GKYL_MAX_CDIM]; // Edge to adapt.
-  struct gkyl_range *range, *range_conf; // Range of integration in each boundary.
+  struct gkyl_range *range_bflux; // Range of computation of the bflux (ALL phase space ghost).
+  struct gkyl_range *range_mom; // Range of computation of the moment (SOL phase space ghost).
+  struct gkyl_range *range_conf; // Range of integration in each boundary (SOL config space ghost).
 
   struct gk_species_moment integ_mom; // Integrated moment updater.
   double *red_integ_mom, *red_integ_mom_global; // For reduction.
