@@ -18,9 +18,6 @@ GKYL_CU_DH double gyrokinetic_vol_1x2v_ser_p1(const double *w, const double *dxv
   // apardot: time derivative of Apar.
   // fin: Distribution function.
   // out: output increment.
-  if (fabs(fin[0]) < 1e-16) {
-    return 0.0;
-  }
 
   double rdx2 = 2.0/dxv[0];
   double rdvpar2 = 2.0/dxv[1];

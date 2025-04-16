@@ -78,6 +78,11 @@ static double
 kernel_gyrokinetic_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
+  double f0_min_val = 1e-16;
+  if (fabs(qIn[0]) < f0_min_val) {
+    return 0.;
+  }
+  
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
   int vel_idx[2];
@@ -105,6 +110,11 @@ static double
 kernel_gyrokinetic_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
+  double f0_min_val = 1e-16;
+  if (fabs(qIn[0]) < f0_min_val) {
+    return 0.;
+  }
+
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
   int vel_idx[2];
@@ -132,6 +142,11 @@ static double
 kernel_gyrokinetic_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
+  double f0_min_val = 1e-16;
+  if (fabs(qIn[0]) < f0_min_val) {
+    return 0.;
+  }
+
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
   int vel_idx[2];
@@ -159,6 +174,11 @@ static double
 kernel_gyrokinetic_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
+  double f0_min_val = 1e-16;
+  if (fabs(qIn[0]) < f0_min_val) {
+    return 0.;
+  }
+  
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
   int vel_idx[2];
@@ -215,6 +235,11 @@ static double
 kernel_gyrokinetic_no_by_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
+  double f0_min_val = 1e-16;
+  if (fabs(qIn[0]) < f0_min_val) {
+    return 0.;
+  }
+  
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
   int vel_idx[2];
@@ -242,6 +267,11 @@ static double
 kernel_gyrokinetic_no_by_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
+  double f0_min_val = 1e-16;
+  if (fabs(qIn[0]) < f0_min_val) {
+    return 0.;
+  }
+  
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
   int vel_idx[2];
@@ -580,6 +610,11 @@ surf(const struct gkyl_dg_eqn *eqn,
   const int* idxL, const int* idxC, const int* idxR,
   const double* qInL, const double* qInC, const double* qInR, double* GKYL_RESTRICT qRhsOut)
 {
+  double f0_min_val = 1e-16;
+  if (fabs(qInL[0]) < f0_min_val && fabs(qInC[0]) < f0_min_val && fabs(qInR[0]) < f0_min_val) {
+    return 0.;
+  }
+  
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
   // Only in x,y,z,vpar directions.
@@ -623,6 +658,11 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   const int* idxEdge, const int* idxSkin, const int edge,
   const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut)
 {
+  double f0_min_val = 1e-16;
+  if (fabs(qInEdge[0]) < f0_min_val && fabs(qInSkin[0]) < f0_min_val) {
+    return 0.;
+  }
+
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
   // Only in x,y,z,vpar directions.
