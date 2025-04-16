@@ -16,7 +16,6 @@ then
     # delete old checkout and builds
     rm -rf luajit
     git clone https://github.com/LuaJIT/LuaJIT.git luajit
-    cd luajit
 fi
 
 if [ "$BUILD_PKGS" = "yes" ]
