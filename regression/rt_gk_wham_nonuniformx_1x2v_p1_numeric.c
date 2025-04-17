@@ -724,7 +724,7 @@ int main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk app_inp = {
-    .name = "gk_wham_nonuniformx_1x2v_p1_numeric",
+    .name = "gk_wham_nonuniformx_1x2v_p1_numeric_avg",
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = {ctx.z_min},
     .upper = {ctx.z_max},
@@ -741,7 +741,7 @@ int main(int argc, char **argv)
         .map_strength = 0.666,
         .maximum_slope_at_max_B = 1,
         .maximum_slope_at_min_B = 4,
-        .moving_average_width = 0.2,
+        .moving_average_width = 0.5,
       },
     },
     .num_periodic_dir = 0,

@@ -733,18 +733,23 @@ position_map_constB_z_numeric_moving_average(double t, const double *xn, double 
   }
   else
   {
-    double theta_c = xn[0];
+    const double theta_c = xn[0];
     double wd2 = gpm->constB_ctx->moving_average_width / 2.0;
-    double tmin = gpm->constB_ctx->theta_min;
-    double tmax = gpm->constB_ctx->theta_max;
+    const double tmin = gpm->grid.lower[0];
+    const double tmax = gpm->grid.upper[0];
     double rng_lo = theta_c - wd2;
     double rng_up = theta_c + wd2;
 
     if (rng_lo < tmin || rng_up > tmax)
     {
-      // If the range is outside the bounds, we need to adjust it
-      position_map_constB_z_numeric(t, xn, fout, ctx);
-      return;
+      wd2 = fmin(fabs(theta_c - tmin), fabs(theta_c - tmax));
+      rng_lo = theta_c - wd2;
+      rng_up = theta_c + wd2;
+      if (wd2 <= 1e-6)
+      {
+        position_map_constB_z_numeric(t, xn, fout, ctx);
+        return;
+      }
     }
     double rng_len = rng_up - rng_lo;
 
