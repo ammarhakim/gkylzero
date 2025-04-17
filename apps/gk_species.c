@@ -391,6 +391,38 @@ gk_species_write_static(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
 }
 
 static void
+gk_species_write_cfl_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
+{
+  struct timespec wst = gkyl_wall_clock();
+  struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
+      .frame = frame,
+      .stime = tm,
+      .poly_order = 0,
+      .basis_type = gks->basis.id,
+    }
+  );
+  struct timespec wtm = gkyl_wall_clock();
+
+  const char *fmt = "%s-%s-cflrate_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, frame);
+  gkyl_array_copy(gks->cflrate_ho, gks->cflrate);
+  gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt,
+    gks->cflrate_ho, fileNm);
+
+  app->stat.n_io += 1;
+  gk_array_meta_release(mt);  
+  app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
+}
+
+static void
+gk_species_write_cfl_static(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
+{
+  // do nothing
+}
+
+static void
 gk_species_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
   struct timespec wst = gkyl_wall_clock();
@@ -837,6 +869,7 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
 
   // Allocate cflrate (scalar array).
   gks->cflrate = mkarr(app->use_gpu, 1, gks->local_ext.volume);
+  gks->cflrate_ho = mkarr(false, 1, gks->local_ext.volume);
 
   if (app->use_gpu) {
     gks->omega_cfl = gkyl_cu_malloc(sizeof(double));
@@ -1156,6 +1189,10 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
   else
     gks->apply_pos_shift_func = gk_species_apply_pos_shift_disabled;
   gks->write_func = gk_species_write_dynamic;
+  if (gks->info.cfl_dt_diangostic)
+    gks->write_cfl_func = gk_species_write_cfl_dynamic;
+  else 
+    gks->write_cfl_func = gk_species_write_cfl_static;
   gks->write_mom_func = gk_species_write_mom_dynamic;
   gks->calc_integrated_mom_func = gk_species_calc_integrated_mom_dynamic;
   gks->write_integrated_mom_func = gk_species_write_integrated_mom_dynamic;
@@ -1894,8 +1931,10 @@ gk_species_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, i
   if (frame == 0) {
     gk_species_write_dynamic(app, gks, tm, frame);
   }
-  else
+  else {
     gks->write_func(app, gks, tm, frame);
+    gks->write_cfl_func(app, gks, tm, frame);
+  }
 }
 
 void
