@@ -114,8 +114,8 @@ gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *basis,
     for (int i=2; i<grid_do->cells[up->dir]; i++) {
        double decimalL = 1.0-((i-1)*up->dxRat-floor((i-1)*up->dxRat));
        double decimalU = 1.0-(ceil(i*up->dxRat)-i*up->dxRat);
-       int currSize = dg_interp_floor(up->dxRat-decimalL-decimalU, 1e-14, 0.0) + dg_interp_ceil(decimalL, 1e-14, 0.0)
-         + dg_interp_ceil(decimalU, 1e-14, 0.0);
+       int currSize = dg_interp_floor(up->dxRat-decimalL-decimalU, 1e-13, 0.0) + dg_interp_ceil(decimalL, 1e-13, 0.0)
+         + dg_interp_ceil(decimalU, 1e-13, 0.0);
        maxSize = GKYL_MAX2(maxSize, currSize);
     }
     intStencilSize = maxSize;

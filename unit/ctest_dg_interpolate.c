@@ -2274,35 +2274,35 @@ void test_2x2v_gk_hodev(bool use_gpu)
 
 void test_3x2v_gk_hodev(bool use_gpu)
 {
-//  // Refine along x.
-//  int cells_do0[] = {6, 6, 8, 8, 4};
-//  int cells_tar0[] = {12, 6, 8, 8, 4};
-//  test_3x2v_gk(cells_do0, cells_tar0, 1, use_gpu);
-//
-//  // Coarsen along x.
-//  int cells_do1[] = {16, 6, 8, 8, 4};
-//  int cells_tar1[] = {8, 6, 8, 8, 4};
-//  test_3x2v_gk(cells_do1, cells_tar1, 1, use_gpu);
-//
-//  // Refine along y.
-//  int cells_do2[] = {6, 6, 8, 8, 4};
-//  int cells_tar2[] = {6, 12, 8, 8, 4};
-//  test_3x2v_gk(cells_do2, cells_tar2, 1, use_gpu);
-//
-//  // Coarsen along y.
-//  int cells_do3[] = {6, 16, 8, 8, 4};
-//  int cells_tar3[] = {6, 8, 8, 8, 4};
-//  test_3x2v_gk(cells_do3, cells_tar3, 1, use_gpu);
+  // Refine along x.
+  int cells_do0[] = {6, 6, 8, 8, 4};
+  int cells_tar0[] = {12, 6, 8, 8, 4};
+  test_3x2v_gk(cells_do0, cells_tar0, 1, use_gpu);
+
+  // Coarsen along x.
+  int cells_do1[] = {16, 6, 8, 8, 4};
+  int cells_tar1[] = {8, 6, 8, 8, 4};
+  test_3x2v_gk(cells_do1, cells_tar1, 1, use_gpu);
+
+  // Refine along y.
+  int cells_do2[] = {6, 6, 8, 8, 4};
+  int cells_tar2[] = {6, 12, 8, 8, 4};
+  test_3x2v_gk(cells_do2, cells_tar2, 1, use_gpu);
+
+  // Coarsen along y.
+  int cells_do3[] = {6, 16, 8, 8, 4};
+  int cells_tar3[] = {6, 8, 8, 8, 4};
+  test_3x2v_gk(cells_do3, cells_tar3, 1, use_gpu);
 
   // Refine along x and y.
-  int cells_do4[] = {12, 12, 8, 8, 4};
-  int cells_tar4[] = {16, 16, 8, 8, 4};
+  int cells_do4[] = {96, 96, 8, 8, 4};
+  int cells_tar4[] = {128, 128, 8, 8, 4};
   test_3x2v_gk(cells_do4, cells_tar4, 1, use_gpu);
 
-//  // Coarsen along x and y.
-//  int cells_do5[] = {16, 16, 8, 8, 4};
-//  int cells_tar5[] = {8, 8, 8, 8, 4};
-//  test_3x2v_gk(cells_do5, cells_tar5, 1, use_gpu);
+  // Coarsen along x and y.
+  int cells_do5[] = {16, 16, 8, 8, 4};
+  int cells_tar5[] = {8, 8, 8, 8, 4};
+  test_3x2v_gk(cells_do5, cells_tar5, 1, use_gpu);
 }
 
 void test_1x_ho()
