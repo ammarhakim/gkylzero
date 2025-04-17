@@ -19,7 +19,7 @@ struct gkyl_dg_updater_gyrokinetic*
 gkyl_dg_updater_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const bool *is_zero_flux_bc, double charge, double mass, const double skip_if_smaller_than, 
+  const bool *is_zero_flux_bc, double charge, double mass, double skip_if_smaller_than, 
   enum gkyl_gkmodel_id gkmodel_id, const struct gk_geometry *gk_geom, 
   const struct gkyl_velocity_map *vel_map, void *aux_inp, bool use_gpu)
 {

@@ -660,7 +660,6 @@ int main(int argc, char **argv)
     .name = "ion",
     .charge = ctx.qi,
     .mass = ctx.mi,
-    .skip_cell_if_smaller_than = 1e-16,
     .lower = {-1.0, 0.0},
     .upper = { 1.0, 1.0},
     .cells = { cells_v[0], cells_v[1] },

@@ -63,7 +63,8 @@ struct dg_gyrokinetic {
   struct gkyl_range conf_range; // Configuration space range.
   struct gkyl_range phase_range; // Phase space range.
   double charge, mass;
-  double skip_if_smaller_than; // Skip cell update if f0 smaller than this value.
+  bool skip_cells; // Whether we skip cells or not
+  double skip_cells_mag; // Skip cell update if f0 smaller than this value.
   const struct gk_geometry *gk_geom; // Pointer to geometry struct
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
   struct gkyl_dg_gyrokinetic_auxfields auxfields; // Auxiliary fields.
@@ -82,7 +83,7 @@ kernel_gyrokinetic_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* 
   
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (fabs(qIn[0]) < gyrokinetic->skip_if_smaller_than) {
+  if (gyrokinetic->skip_cells && fabs(qIn[0]) < gyrokinetic->skip_cells_mag) {
     return 0.;
   }
 
@@ -113,7 +114,7 @@ kernel_gyrokinetic_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* 
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (fabs(qIn[0]) < gyrokinetic->skip_if_smaller_than) {
+  if (gyrokinetic->skip_cells && fabs(qIn[0]) < gyrokinetic->skip_cells_mag) {
     return 0.;
   }
 
@@ -144,7 +145,7 @@ kernel_gyrokinetic_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* 
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (fabs(qIn[0]) < gyrokinetic->skip_if_smaller_than) {
+  if (gyrokinetic->skip_cells && fabs(qIn[0]) < gyrokinetic->skip_cells_mag) {
     return 0.;
   }
 
@@ -175,7 +176,7 @@ kernel_gyrokinetic_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* 
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (fabs(qIn[0]) < gyrokinetic->skip_if_smaller_than) {
+  if (gyrokinetic->skip_cells && fabs(qIn[0]) < gyrokinetic->skip_cells_mag) {
     return 0.;
   }
   
@@ -235,7 +236,7 @@ kernel_gyrokinetic_no_by_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const do
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (fabs(qIn[0]) < gyrokinetic->skip_if_smaller_than) {
+  if (gyrokinetic->skip_cells && fabs(qIn[0]) < gyrokinetic->skip_cells_mag) {
     return 0.;
   }
 
@@ -266,7 +267,7 @@ kernel_gyrokinetic_no_by_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const do
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (fabs(qIn[0]) < gyrokinetic->skip_if_smaller_than) {
+  if (gyrokinetic->skip_cells && fabs(qIn[0]) < gyrokinetic->skip_cells_mag) {
     return 0.;
   }
   
@@ -608,7 +609,7 @@ surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (fabs(qInL[0]) < gyrokinetic->skip_if_smaller_than && fabs(qInC[0]) < gyrokinetic->skip_if_smaller_than && fabs(qInR[0]) < gyrokinetic->skip_if_smaller_than) {
+  if (gyrokinetic->skip_cells && fabs(qInL[0]) < gyrokinetic->skip_cells_mag && fabs(qInC[0]) < gyrokinetic->skip_cells_mag && fabs(qInR[0]) < gyrokinetic->skip_cells_mag) {
     return 0.;
   }
 
@@ -655,7 +656,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
-  if (fabs(qInEdge[0]) < gyrokinetic->skip_if_smaller_than && fabs(qInSkin[0]) < gyrokinetic->skip_if_smaller_than) {
+  if (gyrokinetic->skip_cells && fabs(qInEdge[0]) < gyrokinetic->skip_cells_mag && fabs(qInSkin[0]) < gyrokinetic->skip_cells_mag) {
     return 0.;
   }
 
