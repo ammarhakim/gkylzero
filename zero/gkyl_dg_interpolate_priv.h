@@ -321,8 +321,12 @@ dg_interpolate_check_cell_overlap(struct gkyl_dg_interpolate *up, const struct g
       for (int d=0; d<up->ndim; d++) {
         bool overlaps = (xlo_do[d] <= xup_tar[d]) && (xlo_tar[d] <= xup_do[d]);
         if (!overlaps) {
+//        if (!overlaps || (
+////				idx_do[0]==1 &&	idx_do[1]==10 &&	idx_do[2]==1 &&	idx_do[3]==1 &&	idx_do[4]==1 &&
+//				idx_tar[0]==1 &&	idx_tar[1]==15 &&	idx_tar[2]==1 &&	idx_tar[3]==1 &&	idx_tar[4]==1
+//			 )) {
           // Print some info and exit.
-          printf("\nidx_do=");
+          printf("\nidx_sten=%d offset_upper[idx_sten]=%d off=%d idx_tar_lo=%d idx_do=",idx_sten,offset_upper[idx_sten],off,idx_tar_lo);
           for (int d=0; d<up->ndim; d++)
             printf("%d ",idx_do[d]);
           printf(" extents=");
@@ -330,7 +334,7 @@ dg_interpolate_check_cell_overlap(struct gkyl_dg_interpolate *up, const struct g
             printf("[%e,%e] ",xlo_do[d],xup_do[d]);
           printf("\nidx_tar=");
           for (int d=0; d<up->ndim; d++)
-            printf("%d ",idx_do[d]);
+            printf("%d ",idx_tar[d]);
           printf(" extents=");
           for (int d=0; d<up->ndim; d++)
             printf("[%e,%e] ",xlo_tar[d],xup_tar[d]);
