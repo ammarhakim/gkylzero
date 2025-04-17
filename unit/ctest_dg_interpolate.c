@@ -198,7 +198,7 @@ void eval_fdonor_2x(double t, const double *xn, double* restrict fout, void *ctx
 void
 test_2x(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
-  double lower[] = {9.460546e-01, -1.078908e-01}, upper[] = {1.053945e+00, 1.078908e-01};
+  double lower[] = {0.0, -M_PI}, upper[] = {1.0, M_PI};
   double mass = 1.0;
 
   const int ndim = sizeof(lower)/sizeof(lower[0]);
