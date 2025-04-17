@@ -17,22 +17,6 @@ gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *basis,
   up->grid_do = *grid_do;
   up->grid_tar = *grid_tar;
 
-  printf("\n");
-  printf("grid_do:\n");
-  printf("  lower: %.9e, %.9e, %.9e, %.9e, %.9e\n",grid_do->lower[0],grid_do->lower[1],grid_do->lower[2],grid_do->lower[3],grid_do->lower[4]);
-  printf("  upper: %.9e, %.9e, %.9e, %.9e, %.9e\n",grid_do->upper[0],grid_do->upper[1],grid_do->upper[2],grid_do->upper[3],grid_do->upper[4]);
-  printf("  cells: %d, %d, %d, %d, %d\n",grid_do->cells[0],grid_do->cells[1],grid_do->cells[2],grid_do->cells[3],grid_do->cells[4]);
-  printf("grid_tar:\n");
-  printf("  lower: %.9e, %.9e, %.9e, %.9e, %.9e\n",grid_tar->lower[0],grid_tar->lower[1],grid_tar->lower[2],grid_tar->lower[3],grid_tar->lower[4]);
-  printf("  upper: %.9e, %.9e, %.9e, %.9e, %.9e\n",grid_tar->upper[0],grid_tar->upper[1],grid_tar->upper[2],grid_tar->upper[3],grid_tar->upper[4]);
-  printf("  cells: %d, %d, %d, %d, %d\n",grid_tar->cells[0],grid_tar->cells[1],grid_tar->cells[2],grid_tar->cells[3],grid_tar->cells[4]);
-  printf("range_do:\n");
-  printf("  lower: %d, %d, %d, %d, %d\n",range_do->lower[0],range_do->lower[1],range_do->lower[2],range_do->lower[3],range_do->lower[4]);
-  printf("  upper: %d, %d, %d, %d, %d\n",range_do->upper[0],range_do->upper[1],range_do->upper[2],range_do->upper[3],range_do->upper[4]);
-  printf("range_tar:\n");
-  printf("  lower: %d, %d, %d, %d, %d\n",range_tar->lower[0],range_tar->lower[1],range_tar->lower[2],range_tar->lower[3],range_tar->lower[4]);
-  printf("  upper: %d, %d, %d, %d, %d\n",range_tar->upper[0],range_tar->upper[1],range_tar->upper[2],range_tar->upper[3],range_tar->upper[4]);
-
   // Perform some basic checks:
   assert(grid_do->ndim == grid_tar->ndim);
   for (int d=0; d<up->ndim; d++) {
@@ -128,9 +112,10 @@ gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *basis,
     // Brute force search. Start with the size of the boundary stencil.
     int maxSize = floor(up->dxRat) + ceil( up->dxRat-floor(up->dxRat) );
     for (int i=2; i<grid_do->cells[up->dir]; i++) {
-       double decimalL = 1-((i-1)*up->dxRat-floor((i-1)*up->dxRat));
-       double decimalU = 1-(ceil(i*up->dxRat)-i*up->dxRat);
-       int currSize = floor(up->dxRat-decimalL-decimalU) + ceil(decimalL) + ceil(decimalU);
+       double decimalL = 1.0-((i-1)*up->dxRat-floor((i-1)*up->dxRat));
+       double decimalU = 1.0-(ceil(i*up->dxRat)-i*up->dxRat);
+       int currSize = dg_interp_floor(up->dxRat-decimalL-decimalU, 1e-14, 0.0) + dg_interp_ceil(decimalL, 1e-14, 0.0)
+         + dg_interp_ceil(decimalU, 1e-14, 0.0);
        maxSize = GKYL_MAX2(maxSize, currSize);
     }
     intStencilSize = maxSize;

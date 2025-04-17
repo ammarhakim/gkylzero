@@ -204,6 +204,24 @@ dg_interp_choose_gk_interp_kernel(int cdim, struct gkyl_basis basis, int dir)
   return 0;
 }
 
+static int dg_interp_floor(double a, double tol, double b)
+{
+  // Floor function but if tol<|a|, it assumes it is b;
+  if (tol < fabs(a))
+    return floor(a);
+  else
+    return b;
+}
+
+static int dg_interp_ceil(double a, double tol, double b)
+{
+  // Ceiling function but if tol<|a|, it assumes it is b;
+  if (tol < fabs(a))
+    return ceil(a);
+  else
+    return b;
+}
+
 static int dg_interp_prime_factors(int n, int *pfs, int pfs_size)
 {
   // Find the prime factors of number `n`, and put them into `pfs`. We assume
@@ -321,12 +339,8 @@ dg_interpolate_check_cell_overlap(struct gkyl_dg_interpolate *up, const struct g
       for (int d=0; d<up->ndim; d++) {
         bool overlaps = (xlo_do[d] <= xup_tar[d]) && (xlo_tar[d] <= xup_do[d]);
         if (!overlaps) {
-//        if (!overlaps || (
-////				idx_do[0]==1 &&	idx_do[1]==10 &&	idx_do[2]==1 &&	idx_do[3]==1 &&	idx_do[4]==1 &&
-//				idx_tar[0]==1 &&	idx_tar[1]==15 &&	idx_tar[2]==1 &&	idx_tar[3]==1 &&	idx_tar[4]==1
-//			 )) {
           // Print some info and exit.
-          printf("\nidx_sten=%d offset_upper[idx_sten]=%d off=%d idx_tar_lo=%d idx_do=",idx_sten,offset_upper[idx_sten],off,idx_tar_lo);
+          printf("\nidx_do=");
           for (int d=0; d<up->ndim; d++)
             printf("%d ",idx_do[d]);
           printf(" extents=");
