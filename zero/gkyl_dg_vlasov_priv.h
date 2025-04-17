@@ -39,11 +39,9 @@ static struct { int vdim[4]; } cv_index[] = {
 
 // for use in kernel tables
 typedef struct { vol_termf_t kernels[3]; } gkyl_dg_vlasov_stream_vol_kern_list;
-typedef struct { vol_termf_t kernels[3]; } gkyl_dg_vlasov_stream_gen_geo_vol_kern_list;
 typedef struct { vol_termf_t kernels[3]; } gkyl_dg_vlasov_vol_kern_list;
 
 typedef struct { vlasov_stream_surf_t kernels[3]; } gkyl_dg_vlasov_stream_surf_kern_list;
-typedef struct { vlasov_stream_surf_t kernels[3]; } gkyl_dg_vlasov_stream_gen_geo_surf_kern_list;
 
 typedef struct { vlasov_stream_boundary_surf_t kernels[3]; } gkyl_dg_vlasov_stream_boundary_surf_kern_list;
 
@@ -276,32 +274,6 @@ static const gkyl_dg_vlasov_stream_vol_kern_list tensor_stream_vol_kernels[] = {
   { NULL, kernel_vlasov_stream_vol_2x3v_tensor_p1, kernel_vlasov_stream_vol_2x3v_tensor_p2 }, // 4
   // 3x kernels
   { NULL, kernel_vlasov_stream_vol_3x3v_tensor_p1, NULL               }, // 5
-};
-
-GKYL_CU_DH
-static double
-kernel_vlasov_stream_gen_geo_vol_3x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
-  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
-
-  long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
-  return vlasov_stream_gen_geo_vol_3x3v_ser_p1(xc, dx, 
-    (const double*) gkyl_array_cfetch(vlasov->auxfields.cot_vec, cidx), 
-    qIn, qRhsOut);
-}
-
-GKYL_CU_D
-static const gkyl_dg_vlasov_stream_gen_geo_vol_kern_list ser_stream_gen_geo_vol_kernels[] = {
-  // 1x kernels
-  { NULL, NULL, NULL }, // 0
-  { NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL }, // 2
-  // 2x kernels
-  { NULL, NULL, NULL }, // 3
-  { NULL, NULL, NULL }, // 4
-  // 3x kernels
-  { NULL, kernel_vlasov_stream_gen_geo_vol_3x3v_ser_p1, NULL }, // 5
 };
 
 //
@@ -709,48 +681,6 @@ static const gkyl_dg_vlasov_stream_surf_kern_list tensor_stream_surf_z_kernels[]
   { NULL, NULL, NULL }, // 4
   // 3x kernels
   { NULL, vlasov_surfz_3x3v_tensor_p1, NULL }, // 5
-};
-
-// Streaming gen geo surface kernel list: x-direction
-GKYL_CU_D
-static const gkyl_dg_vlasov_stream_gen_geo_surf_kern_list ser_stream_gen_geo_surf_x_kernels[] = {
-  // 1x kernels
-  { NULL, NULL, NULL }, // 0
-  { NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL }, // 2  
-  // 2x kernels
-  { NULL, NULL, NULL }, // 3
-  { NULL, NULL, NULL }, // 4
-  // 3x kernels
-  { NULL, vlasov_gen_geo_surfx_3x3v_ser_p1, NULL }, // 5
-};
-
-// Streaming gen geo surface kernel list: y-direction
-GKYL_CU_D
-static const gkyl_dg_vlasov_stream_gen_geo_surf_kern_list ser_stream_gen_geo_surf_y_kernels[] = {
-  // 1x kernels
-  { NULL, NULL, NULL }, // 0
-  { NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL }, // 2  
-  // 2x kernels
-  { NULL, NULL, NULL }, // 3
-  { NULL, NULL, NULL }, // 4
-  // 3x kernels
-  { NULL, vlasov_gen_geo_surfy_3x3v_ser_p1, NULL }, // 5
-};
-
-// Streaming gen geo surface kernel list: z-direction
-GKYL_CU_D
-static const gkyl_dg_vlasov_stream_gen_geo_surf_kern_list ser_stream_gen_geo_surf_z_kernels[] = {
-  // 1x kernels
-  { NULL, NULL, NULL }, // 0
-  { NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL }, // 2  
-  // 2x kernels
-  { NULL, NULL, NULL }, // 3
-  { NULL, NULL, NULL }, // 4
-  // 3x kernels
-  { NULL, vlasov_gen_geo_surfz_3x3v_ser_p1, NULL }, // 5
 };
 
 // Acceleration (full Vlasov-Maxwell) surface kernel list: vx-direction (Serendipity basis)
