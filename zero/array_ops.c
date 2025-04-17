@@ -126,6 +126,30 @@ gkyl_array_set_offset(struct gkyl_array* out, double a,
 }
 
 struct gkyl_array*
+gkyl_array_set_offset_comp(struct gkyl_array* out, double a,
+  const struct gkyl_array* inp, int component_offset_out, 
+  int component_offset_inp, int num_basis)
+{
+  assert(out->type == GKYL_DOUBLE);
+  assert(out->size == inp->size);
+
+#ifdef GKYL_HAVE_CUDA
+  assert(gkyl_array_is_cu_dev(out)==gkyl_array_is_cu_dev(inp));
+  if (gkyl_array_is_cu_dev(out)) { gkyl_array_set_offset_comp_cu(out, a, inp, component_offset_out, component_offset_inp, num_basis); return out; }
+#endif
+
+  int offset_out = component_offset_out * num_basis;
+  int offset_inp = component_offset_inp * num_basis;
+
+  double *out_d = out->data;
+  const double *inp_d = inp->data;
+  for (size_t i=0; i<out->size; ++i)
+    for (size_t d=0; d<num_basis; ++d)
+      out_d[i*NCOM(out)+d+offset_out] = a*inp_d[i*NCOM(inp)+d+offset_inp];
+  return out;
+}
+
+struct gkyl_array*
 gkyl_array_scale(struct gkyl_array* out, double a)
 {
 #ifdef GKYL_HAVE_CUDA

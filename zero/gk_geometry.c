@@ -33,7 +33,9 @@ gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *
 
   // bmag, metrics and derived geo quantities
   up->mc2p = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
+  up->mc2p_reduced = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
   up->mc2nu_pos = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
+  up->mc2nu_pos_reduced = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
   up->bmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->g_ij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
   up->g_ij_neut = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
@@ -245,7 +247,9 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
 
   // bmag, metrics and derived geo quantities
   up->mc2p = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
+  up->mc2p_reduced = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
   up->mc2nu_pos = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
+  up->mc2nu_pos_reduced = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
   up->bmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->g_ij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
   up->g_ij_neut = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
@@ -309,6 +313,21 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   // Done deflating
   gkyl_deflate_geo_release(deflator);
 
+  if (up->grid.ndim==1) {
+    gkyl_array_set_offset_comp(up->mc2p_reduced, 1.0, up->mc2p, 0, 1, up->basis.num_basis);
+    gkyl_array_set_offset_comp(up->mc2nu_pos_reduced, 1.0, up->mc2nu_pos, 0, 2, up->basis.num_basis);
+  }
+  else if (up->grid.ndim==2) {
+    gkyl_array_set_offset_comp(up->mc2p_reduced, 1.0, up->mc2p, 0, 0, up->basis.num_basis);
+    gkyl_array_set_offset_comp(up->mc2p_reduced, 1.0, up->mc2p, 1, 1, up->basis.num_basis);
+    gkyl_array_set_offset_comp(up->mc2nu_pos_reduced, 1.0, up->mc2nu_pos, 0, 0, up->basis.num_basis);
+    gkyl_array_set_offset_comp(up->mc2nu_pos_reduced, 1.0, up->mc2nu_pos, 1, 2, up->basis.num_basis);
+  }
+  else if (up->grid.ndim==3) {
+    gkyl_array_copy(up->mc2p_reduced, up->mc2p);
+    gkyl_array_copy(up->mc2nu_pos_reduced, up->mc2nu_pos);
+  }
+
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->ref_count = gkyl_ref_count_init(gkyl_gk_geometry_free);
@@ -322,7 +341,9 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
 {
   struct gk_geometry *up = container_of(ref, struct gk_geometry, ref_count);
   gkyl_array_release(up->mc2p);
+  gkyl_array_release(up->mc2p_reduced);
   gkyl_array_release(up->mc2nu_pos);
+  gkyl_array_release(up->mc2nu_pos_reduced);
   gkyl_array_release(up->bmag);
   gkyl_array_release(up->g_ij);
   gkyl_array_release(up->g_ij_neut);
