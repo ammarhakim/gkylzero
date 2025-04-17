@@ -19,7 +19,7 @@ GKYL_CU_DH double gyrokinetic_boundary_surfx_1x2v_ser_p1(const double *w, const 
   // edge: determines if the update is for the left edge (-1) or right edge (+1).
   // fskin,fedge: distribution function in skin cell/last edge cell.
   // out: output increment in center cell.
-  
+
   double rdx2 = 2.0/dxv[0];
 
   const double *alphaL = &alpha_surf_skin[0];

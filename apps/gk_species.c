@@ -381,14 +381,6 @@ gk_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, doub
   app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
   app->stat.n_io += 1;
     
-  const char *fmt2 = "%s-%s-cflrate_%d.gkyl";
-  sz = gkyl_calc_strlen(fmt2, app->name, gks->info.name, frame);
-  char fileNmcfl[sz+1]; // ensures no buffer overflow
-  snprintf(fileNmcfl, sizeof fileNmcfl, fmt2, app->name, gks->info.name, frame);
-  gkyl_array_copy(gks->cflrate_ho, gks->cflrate);
-  gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt,
-    gks->cflrate_ho, fileNmcfl);
-
   gk_array_meta_release(mt);  
 }
 
@@ -845,7 +837,6 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
 
   // Allocate cflrate (scalar array).
   gks->cflrate = mkarr(app->use_gpu, 1, gks->local_ext.volume);
-  gks->cflrate_ho = mkarr(false, 1, gks->local_ext.volume);
 
   if (app->use_gpu) {
     gks->omega_cfl = gkyl_cu_malloc(sizeof(double));
