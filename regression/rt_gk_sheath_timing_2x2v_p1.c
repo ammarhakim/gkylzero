@@ -942,7 +942,7 @@ main(int argc, char **argv)
   gkyl_gyrokinetic_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   double sum_tm = stat.species_rhs_tm + stat.species_coll_tm + stat.field_rhs_tm + stat.species_coll_mom_tm +stat.species_alpha_tm + stat.species_bc_tm + stat.accumulate_tm + stat.species_omega_cfl_tm;
-  gkyl_gyrokinetic_app_cout(app, stdout, "Update components are: RHS calc, alpha calc, b calc, collisions RHS, field RHS, collisional moments, accumulate, and omega_cfl\n");
+  gkyl_gyrokinetic_app_cout(app, stdout, "Update components are: RHS calc, alpha calc, bc calc, collisions RHS, field RHS, collisional moments, accumulate, and omega_cfl\n");
   gkyl_gyrokinetic_app_cout(app, stdout, "Sum of update components is %g secs which accounts for %g of total \n",  sum_tm, sum_tm/stat.total_tm);
 
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
