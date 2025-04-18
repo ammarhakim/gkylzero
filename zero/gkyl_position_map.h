@@ -25,6 +25,7 @@ struct gkyl_position_map_inp {
   // xnu' = xnu * s + xc * (1-s)
   double maximum_slope_at_min_B; // The maximum slope of the mapping at a magnetic field minimum. A number > 1. Hard limits on cell sizes
   double maximum_slope_at_max_B; // The maximum slope of the mapping at a magnetic field maximum. A number > 1. Hard limits on cell sizes
+  double moving_average_width; // The width of the moving average for the map to smooth it. Units of normalized field line length
 };
 
 struct gkyl_position_map {
@@ -65,6 +66,7 @@ struct gkyl_position_map_const_B_ctx {
   int map_order_center, map_order_expander; // The polynomial order of the center and expander maps
 
   // Constant B mapping
+  double moving_average_width; // The width of the moving average for the map to smooth it
   int N_theta_boundaries; // Number of times dB/dz changes sign
   int num_extrema; // Number of extrema in the magnetic field
   double theta_extrema[16]; // The theta values of the extrema

@@ -1,4 +1,5 @@
 #include <gkyl_array.h>
+#include <math.h>
 #include <gkyl_calc_bmag.h>
 
 // Context for numeric root finding B mapping
@@ -310,14 +311,9 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
   double bmag_vals[npts];
   double dbmag_vals[npts];
 
-  int extrema = 0;
+  int extrema = 1; // Offset by 1 for the first point
   double theta_extrema[16];
   double bmag_extrema[16];
-
-  theta_extrema[0] = theta_lo;
-  xp[Z_IDX] = theta_lo;
-  gkyl_calc_bmag_global(0.0, xp, &bmag_extrema[0], bmag_ctx);
-  extrema++;
 
   for (int i = 0; i <= npts; i++){
     double theta = theta_lo + i * theta_dxi;
@@ -358,6 +354,12 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
       }
     }
   }
+  
+  // I had a memory issue with doing this before the for loop on my local laptop. Why?
+  // Is the loop above memory unsafe?
+  theta_extrema[0] = theta_lo;
+  xp[Z_IDX] = theta_lo;
+  gkyl_calc_bmag_global(0.0, xp, &bmag_extrema[0], bmag_ctx);
 
   theta_extrema[extrema] = theta_hi;
   xp[Z_IDX] = theta_hi;
@@ -493,6 +495,17 @@ refine_B_field_extrema(struct gkyl_position_map *gpm)
     B_total_change += fabs(gpm->constB_ctx->bmag_extrema[i] - gpm->constB_ctx->bmag_extrema[i-1]);
   }
   gpm->constB_ctx->dB_cell = B_total_change / (gpm->constB_ctx->N_theta_boundaries);
+
+  // Check that all extrema are increasing
+  for (int i = 1; i < gpm->constB_ctx->num_extrema; i++)
+  {
+    if (gpm->constB_ctx->theta_extrema[i] < gpm->constB_ctx->theta_extrema[i-1])
+    {
+      printf("Numerical position map magnetic field extrema finding failed\n");
+      printf("theta_extrema[%d] = %f\n", i, gpm->constB_ctx->theta_extrema[i]);
+      printf("theta_extrema[%d] = %f\n", i-1, gpm->constB_ctx->theta_extrema[i-1]);
+    }
+  }
 }
 
 /**
@@ -554,14 +567,9 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
   // Set strict floor and ceiling limits for theta
   // This is to prevent the root finding algorithm from going out of bounds
   // Not fout[0] = theta because of the finite differences and can lead to jumps
-  if (it <=0)
+  if (it <= 0 || it >= num_boundaries)
   {
-    fout[0] = theta_lo;
-    return;
-  }
-  if (it >= num_boundaries)
-  {
-    fout[0] = theta_hi;
+    fout[0] = (it <= 0) ? theta_lo : theta_hi;
     return;
   }
 
@@ -695,5 +703,61 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
     {
       fout[0] = left_straight_line_value;
     }
+  }
+}
+
+double
+position_map_constB_z_numeric_dbl_exp_wrapper(double z, void *ctx)
+{
+  double fout[3];
+  position_map_constB_z_numeric(0.0, &z, fout, ctx);
+  return fout[0];
+}
+
+/**
+ * Maps the uniform computational coordinate to a non-uniform coordinate
+ * according to the numeric constant B mapping.
+ * 
+ * @param t Time
+ * @param xn Uniform coordinate
+ * @param fout Non-uniform coordinate
+ * @param ctx The context for the position map
+ */
+static void
+position_map_constB_z_numeric_moving_average(double t, const double *xn, double *fout, void *ctx)
+{
+  struct gkyl_position_map *gpm = ctx;
+  if (gpm->constB_ctx->moving_average_width == 0.0)
+  {
+    position_map_constB_z_numeric(t, xn, fout, ctx);
+  }
+  else
+  {
+    const double theta_c = xn[0];
+    double wd2 = gpm->constB_ctx->moving_average_width / 2.0;
+    const double tmin = gpm->grid.lower[0];
+    const double tmax = gpm->grid.upper[0];
+    double rng_lo = theta_c - wd2;
+    double rng_up = theta_c + wd2;
+
+    if (rng_lo < tmin || rng_up > tmax)
+    {
+      wd2 = fmin(fabs(theta_c - tmin), fabs(theta_c - tmax));
+      rng_lo = theta_c - wd2;
+      rng_up = theta_c + wd2;
+      if (wd2 <= 1e-6)
+      {
+        position_map_constB_z_numeric(t, xn, fout, ctx);
+        return;
+      }
+    }
+    double rng_len = rng_up - rng_lo;
+
+    struct gkyl_qr_res res = gkyl_dbl_exp(
+      position_map_constB_z_numeric_dbl_exp_wrapper, ctx,
+      rng_lo, rng_up, 7, 1e-6);
+
+    double theta_avg = res.res / rng_len;
+    fout[0] = theta_avg;
   }
 }
