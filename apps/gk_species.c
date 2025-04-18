@@ -236,6 +236,9 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
             gkyl_bc_twistshift_advance(species->bc_ts_lo, f, f);
           }
           break;
+        case GKYL_SPECIES_AVERAGE_FLUX:
+          gkyl_bc_average_flux_advance(species->bc_average_flux_lo, species->bc_buffer_lo_dynamic, f);
+          break;
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_REFLECT:
         case GKYL_SPECIES_ABSORB:
@@ -261,6 +264,9 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
           if (cdim == 3) {
             gkyl_bc_twistshift_advance(species->bc_ts_up, f, f);
           }
+          break;
+        case GKYL_SPECIES_AVERAGE_FLUX:
+          gkyl_bc_average_flux_advance(species->bc_average_flux_up, species->bc_buffer_up_dynamic, f);
           break;
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_REFLECT:
@@ -701,6 +707,8 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
   gkyl_array_release(s->bc_buffer);
   gkyl_array_release(s->bc_buffer_lo_fixed);
   gkyl_array_release(s->bc_buffer_up_fixed);
+  gkyl_array_release(s->bc_buffer_lo_dynamic);
+  gkyl_array_release(s->bc_buffer_up_dynamic);
 
   if (s->lbo.collision_id == GKYL_LBO_COLLISIONS) {
     gk_species_lbo_release(app, &s->lbo);
@@ -736,6 +744,9 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
         gkyl_bc_twistshift_release(s->bc_ts_lo);
       }
     }
+    else if (s->lower_bc[d].type == GKYL_SPECIES_AVERAGE_FLUX){
+      gkyl_bc_average_flux_release(s->bc_average_flux_lo);
+    }
     else {
       gkyl_bc_basic_release(s->bc_lo[d]);
     }
@@ -748,6 +759,9 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
       if (app->cdim == 3) {
         gkyl_bc_twistshift_release(s->bc_ts_up);
       }
+    }
+    else if (s->lower_bc[d].type == GKYL_SPECIES_AVERAGE_FLUX){
+      gkyl_bc_average_flux_release(s->bc_average_flux_up);
     }
     else {
       gkyl_bc_basic_release(s->bc_up[d]);
@@ -964,6 +978,8 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
   // buffer arrays for fixed function boundary conditions on distribution function
   gks->bc_buffer_lo_fixed = mkarr(app->use_gpu, gks->basis.num_basis, buff_sz);
   gks->bc_buffer_up_fixed = mkarr(app->use_gpu, gks->basis.num_basis, buff_sz);
+  gks->bc_buffer_lo_dynamic = mkarr(app->use_gpu, gks->basis.num_basis, buff_sz);
+  gks->bc_buffer_up_dynamic = mkarr(app->use_gpu, gks->basis.num_basis, buff_sz);
 
   for (int d=0; d<cdim; ++d) {
     // Copy BCs by default.
@@ -1017,6 +1033,10 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
 
         gks->bc_ts_lo = gkyl_bc_twistshift_new(&tsinp);
       }
+    }
+    else if (gks->lower_bc[d].type == GKYL_SPECIES_AVERAGE_FLUX) {
+      gks->bc_average_flux_lo = gkyl_bc_average_flux_new(d, GKYL_LOWER_EDGE, gks->basis_on_dev, 
+        &gks->lower_skin[d], &gks->lower_ghost[d], gks->vel_map, cdim, app->use_gpu);
     }
     else { 
       if (gks->lower_bc[d].type == GKYL_SPECIES_COPY) {
@@ -1083,6 +1103,10 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
 
         gks->bc_ts_up = gkyl_bc_twistshift_new(&tsinp);
       }
+    }
+    else if (gks->upper_bc[d].type == GKYL_SPECIES_AVERAGE_FLUX) {
+      gks->bc_average_flux_up = gkyl_bc_average_flux_new(d, GKYL_LOWER_EDGE, gks->basis_on_dev, 
+        &gks->lower_skin[d], &gks->lower_ghost[d], gks->vel_map, cdim, app->use_gpu);
     }
     else {
       if (gks->upper_bc[d].type == GKYL_SPECIES_COPY) {

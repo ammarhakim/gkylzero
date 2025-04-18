@@ -23,6 +23,7 @@
 #include <gkyl_bc_emission_spectrum.h>
 #include <gkyl_bc_emission_elastic.h>
 #include <gkyl_bc_sheath_gyrokinetic.h>
+#include <gkyl_bc_average_flux.h>
 #include <gkyl_bc_twistshift.h>
 #include <gkyl_bgk_collisions.h>
 #include <gkyl_boundary_flux.h>
@@ -629,6 +630,7 @@ struct gk_species {
   struct gkyl_array *cflrate; // CFL rate in each cell
   struct gkyl_array *bc_buffer; // buffer for BCs (used by bc_basic)
   struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // fixed buffers for time independent BCs 
+  struct gkyl_array *bc_buffer_lo_dynamic, *bc_buffer_up_dynamic; // buffers for time dependent BCs
 
   struct gkyl_array *f_host; // host copy for use IO and initialization
 
@@ -679,8 +681,8 @@ struct gk_species {
   // Boundary conditions on lower/upper edges in each direction.
   struct gkyl_gyrokinetic_bc lower_bc[3], upper_bc[3];
   // gyrokinetic sheath boundary conditions
-  struct gkyl_bc_sheath_gyrokinetic *bc_sheath_lo;
-  struct gkyl_bc_sheath_gyrokinetic *bc_sheath_up;
+  struct gkyl_bc_sheath_gyrokinetic *bc_sheath_lo, *bc_sheath_up;
+  struct gkyl_bc_average_flux *bc_average_flux_lo, *bc_average_flux_up;
   // Pointers to updaters that apply (non-sheath) BC.
   struct gkyl_bc_basic *bc_lo[3];
   struct gkyl_bc_basic *bc_up[3];

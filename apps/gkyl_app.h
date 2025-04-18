@@ -53,6 +53,7 @@ enum gkyl_species_bc_type {
   GKYL_SPECIES_GK_SHEATH, // Gyrokinetic sheath BCs
   GKYL_SPECIES_RECYCLE, // Recycling BCs
   GKYL_SPECIES_GK_IWL, // Gyrokinetic inner wall limited.
+  GKYL_SPECIES_AVERAGE_FLUX, // Average flux BCs. Useful for advecting particles through R=0
 };
 
 // Boundary conditions on fields
