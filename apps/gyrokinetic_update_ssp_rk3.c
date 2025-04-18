@@ -155,6 +155,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
             gk_neut_species_bflux_combine(app, &gkns->bflux, gkns->bflux.f1,
               3.0/4.0, gkns->bflux.f, 1.0/4.0, gkns->bflux.fnew);
           }
+          app->stat.accumulate_tm += gkyl_time_diff_now_sec(wst);
 
           // Compute the fields and apply BCs.
           for (int i=0; i<app->num_species; ++i) {
@@ -166,7 +167,6 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           gyrokinetic_calc_field_and_apply_bc(app, tcurr, fout, fout_neut);
 
           state = RK_STAGE_3;
-          app->stat.accumulate_tm += gkyl_time_diff_now_sec(wst);
         }
         break;
 
