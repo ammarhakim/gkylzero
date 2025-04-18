@@ -500,6 +500,7 @@ void
 gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field, 
   const struct gkyl_array *fin[])
 {
+  struct timespec wst = gkyl_wall_clock();
   gkyl_array_clear(field->rho_c, 0.0);
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
@@ -532,6 +533,7 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
       }
     }
   } 
+  app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
 }
 
 static void
