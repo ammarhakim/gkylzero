@@ -43,7 +43,9 @@ struct surf_sphere_ctx
   double Ltheta; // Domain size (configuration space: polar angular direction).
   double Lphi; // Domain size (configuration space: azimuthal angular direction).
   double vtheta_max; // Domain boundary (velocity space: polar angular direction).
+  double vtheta_min; // Domain boundary (velocity space: polar angular direction).
   double vphi_max; // Domain boundary (velocity space: azimuthal angular direction).
+  double vphi_min; // Domain boundary (velocity space: azimuthal angular direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
@@ -68,27 +70,30 @@ create_ctx(void)
   double mass = 1.0; // Neutral mass.
   double charge = 0.0; // Neutral charge.
 
-  double n0 = 0.3; // Reference number density.
-  double T0 = 0.0000000001; // Reference temperature.
+  double n0 = 1; // Reference number density.
+  double T0 = 0.5; // Reference temperature.
   double V_theta_drift = 0.0; // Drift velocity (polar angular direction).
-  double V_phi_drift = 1.0; // Drift velocity (azimuthal angular direction).
+  double V_phi_drift = 2*pi; // Drift velocity (azimuthal angular direction).
 
   double vt = sqrt(T0/mass); // Thermal velocity.
 
   // Simulation parameters.
   int Ntheta = 8; // Cell count (configuration space: polar angular direction).
-  int Nphi = 32; // Cell count (configuration space: azimuthal angular direction).
-  int Nvtheta = 8; // Cell count (velocity space: polar angular direction).
-  int Nvphi = 8; // Cell count (velocity space: azimuthal angular direction).
+  int Nphi = 8; // Cell count (configuration space: azimuthal angular direction).
+  int Nvtheta = 4; // Cell count (velocity space: polar angular direction).
+  int Nvphi = 4; // Cell count (velocity space: azimuthal angular direction).
   double Ltheta = pi / 2.0; // Domain size (configuration space: polar angular direction).
   double Lphi = 2.0 * pi; // Domain size (configuration space: azimuthal angular direction).
-  double vtheta_max = 5.0 * vt; // Domain boundary (velocity space: polar angular direction).
-  double vphi_max = 5.0 * vt; // Domain boundary (velocity space: azimuthal angular direction).
-  int poly_order = 2; // Polynomial order.
+  double vtheta_max = V_theta_drift + 3*vt; // Domain boundary (velocity space: polar angular direction).
+  double vtheta_min = V_theta_drift - 3*vt; // Domain boundary (velocity space: polar angular direction).
+  double vphi_max = V_phi_drift + 3*vt; // Domain boundary (velocity space: azimuthal angular direction).
+  double vphi_min = V_phi_drift - 3*vt; // Domain boundary (velocity space: azimuthal angular direction).
+
+  int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 15; // Final simulation time.
-  int num_frames = 10; // Number of output frames.
+  double t_end = 2; // Final simulation time.
+  int num_frames = 100; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   int integrated_L2_f_calcs = INT_MAX; // Number of times to calculate integrated L2 norm of distribution function.
@@ -113,7 +118,9 @@ create_ctx(void)
     .Ltheta = Ltheta,
     .Lphi = Lphi,
     .vtheta_max = vtheta_max,
+    .vtheta_min = vtheta_min,
     .vphi_max = vphi_max,
+    .vphi_min = vphi_min,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -140,7 +147,7 @@ evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   double metric_det = (R * R) * sin(theta);
 
-  double n = n0*exp(-fabs(theta-M_PI/2)*3)*exp(-fabs(phi-M_PI)*3); // Total number density.
+  double n = n0*exp(-fabs(theta-M_PI/2)*3*3)*exp(-fabs(phi-M_PI)*3); // Total number density.
   // Set total number density.
   fout[0] = n;
 }
@@ -149,6 +156,8 @@ void
 evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct surf_sphere_ctx *app = ctx;
+  double theta = xn[0], phi = xn[1];
+  double R = app->R;
 
   double T0 = app->T0;
 
@@ -162,8 +171,7 @@ evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   struct surf_sphere_ctx *app = ctx;
 
   double V_theta_drift = app->V_theta_drift;
-  double V_phi_drift = app->V_phi_drift;
-
+  double V_phi_drift = app->V_phi_drift; 
   // Set total drift velocity.
   fout[0] = V_theta_drift; fout[1] = V_phi_drift;
 }
@@ -380,7 +388,7 @@ main(int argc, char **argv)
     .name = "neut",
     .model_id = GKYL_MODEL_CANONICAL_PB,
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -ctx.vtheta_max, -ctx.vphi_max },
+    .lower = { ctx.vtheta_min, ctx.vphi_min },
     .upper = { ctx.vtheta_max, ctx.vphi_max },
     .cells = { NVTHETA, NVPHI },
 
@@ -402,10 +410,10 @@ main(int argc, char **argv)
       .ctx_temp = &ctx,
       .V_drift = evalVDriftInit,
       .ctx_V_drift = &ctx,
-      .correct_all_moms = false,
+      .correct_all_moms = true,
       .iter_eps = 0.0,
       .max_iter = 0,
-      .use_last_converged = false,
+      .use_last_converged = true,
     },
 
     .bcx = {
