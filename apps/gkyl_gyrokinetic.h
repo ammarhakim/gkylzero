@@ -420,9 +420,12 @@ struct gkyl_gyrokinetic_stat {
   double total_tm; // time for simulation (not including ICs)
   double init_species_tm; // time to initialize all species
   double species_rhs_tm; // time to compute species collisionless RHS
+  double species_alpha_tm; // time to compute species alpha
   double init_neut_species_tm; // time to initialize all neutral species
   double neut_species_rhs_tm; // time to compute neutral species collisionless RHS  
   double field_rhs_tm; // time to compute field RHS
+  double accumulate_tm; // Time to accumulate rhs and do algebraic operations
+  double src_tm; // Time to accumulate source onto RHS
 
   double species_lte_tm; // total time for species LTE (local thermodynamic equilibrium) projection updater
   double species_lbo_coll_drag_tm[GKYL_MAX_SPECIES]; // time to compute LBO drag terms

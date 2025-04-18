@@ -18,6 +18,7 @@ gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   // Compute the time rate of change of the distributions, df/dt.
   gyrokinetic_rhs(app, tcurr, dt, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut, st);
 
+  struct timespec wst = gkyl_wall_clock();
   // Complete update of distribution functions.
   double dta = st->dt_actual;
   for (int i=0; i<app->num_species; ++i) {
@@ -30,6 +31,7 @@ gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     gk_neut_species_step_f(gkns, fout_neut[i], dta, fin_neut[i]);
     gk_neut_species_bflux_step_f(app, &gkns->bflux, bflux_out_neut[i], dta, bflux_in_neut[i]);
   }
+  app->stat.accumulate_tm += gkyl_time_diff_now_sec(wst);
 
 }
 
@@ -140,6 +142,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
 
         } 
         else {
+          struct timespec wst = gkyl_wall_clock();
           for (int i=0; i<app->num_species; ++i) {
 	    struct gk_species *gks = &app->species[i];
 	    gk_species_combine(gks, gks->f1, 3.0/4.0, gks->f, 1.0/4.0, gks->fnew, &gks->local_ext);
@@ -163,6 +166,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           gyrokinetic_calc_field_and_apply_bc(app, tcurr, fout, fout_neut);
 
           state = RK_STAGE_3;
+          app->stat.accumulate_tm += gkyl_time_diff_now_sec(wst);
         }
         break;
 
@@ -207,6 +211,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           app->stat.nstage_2_fail += 1;
         }
         else {
+          struct timespec wst = gkyl_wall_clock();
           for (int i=0; i<app->num_species; ++i) {
 	    struct gk_species *gks = &app->species[i];
             // Step f.
@@ -230,6 +235,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
             gk_neut_species_bflux_calc_voltime_integrated_mom(app, gkns, &gkns->bflux, tcurr);
             gk_neut_species_bflux_scale(app, &gkns->bflux, gkns->bflux.f, 1.0/dt);
           }
+          app->stat.accumulate_tm += gkyl_time_diff_now_sec(wst);
 
           // Apply positivity shift if requested.
           for (int i=0; i<app->num_species; ++i) {

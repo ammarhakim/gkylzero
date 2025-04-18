@@ -1720,7 +1720,7 @@ comm_reduce_app_stat(const gkyl_gyrokinetic_app* app,
   }
 
   enum {
-    TOTAL_TM, INIT_SPECIES_TM, SPECIES_RHS_TM, 
+    TOTAL_TM, INIT_SPECIES_TM, SPECIES_RHS_TM, SPECIES_ALPHA_TM,
     INIT_NEUT_SPECIES_TM, NEUT_SPECIES_RHS_TM, 
     FIELD_RHS_TM, 
     SPECIES_LTE_TM, SPECIES_COLL_MOM_TM, SPECIES_COL_TM, 
@@ -1737,6 +1737,7 @@ comm_reduce_app_stat(const gkyl_gyrokinetic_app* app,
     [TOTAL_TM] = local->total_tm,
     [INIT_SPECIES_TM] = local->init_species_tm,
     [SPECIES_RHS_TM] = local->species_rhs_tm,
+    [SPECIES_ALPHA_TM] = local->species_alpha_tm,
     [INIT_NEUT_SPECIES_TM] = local->init_neut_species_tm,
     [NEUT_SPECIES_RHS_TM] = local->neut_species_rhs_tm,
     [FIELD_RHS_TM] = local->field_rhs_tm,
@@ -1773,6 +1774,7 @@ comm_reduce_app_stat(const gkyl_gyrokinetic_app* app,
   global->total_tm = d_red_global[TOTAL_TM];
   global->init_species_tm = d_red_global[INIT_SPECIES_TM];
   global->species_rhs_tm = d_red_global[SPECIES_RHS_TM];
+  global->species_alpha_tm = d_red_global[SPECIES_ALPHA_TM];
   global->init_neut_species_tm = d_red_global[INIT_NEUT_SPECIES_TM];
   global->neut_species_rhs_tm = d_red_global[NEUT_SPECIES_RHS_TM];
   global->field_rhs_tm = d_red_global[FIELD_RHS_TM];
@@ -1875,6 +1877,7 @@ gkyl_gyrokinetic_app_stat_write(gkyl_gyrokinetic_app* app)
   gkyl_gyrokinetic_app_cout(app, fp, " total_tm : %lg,\n", stat.total_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " init_species_tm : %lg,\n", stat.init_species_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " species_rhs_tm : %lg,\n", stat.species_rhs_tm);
+  gkyl_gyrokinetic_app_cout(app, fp, " species_alpha_tm : %lg,\n", stat.species_alpha_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " init_neut_species_tm : %lg,\n", stat.init_neut_species_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " neut_species_rhs_tm : %lg,\n", stat.neut_species_rhs_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " field_rhs_tm : %lg,\n", stat.field_rhs_tm);

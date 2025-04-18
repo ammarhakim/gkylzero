@@ -81,9 +81,11 @@ gk_species_collisionless_rhs_included(gkyl_gyrokinetic_app *app, struct gk_speci
   // values of alpha_surf even though we only loop over local ranges
   // to avoid evaluating quantities such as geometry in ghost cells
   // where they are not defined.
+  struct timespec wst = gkyl_wall_clock();
   gkyl_dg_calc_gyrokinetic_vars_alpha_surf(species->calc_gk_vars, 
     &app->local, &species->local, &species->local_ext, 
     species->gyro_phi, species->alpha_surf, species->sgn_alpha_surf, species->const_sgn_alpha);
+  app->stat.species_alpha_tm += gkyl_time_diff_now_sec(wst);
 
   gkyl_dg_updater_gyrokinetic_advance(species->slvr, &species->local, 
     fin, species->cflrate, rhs);
