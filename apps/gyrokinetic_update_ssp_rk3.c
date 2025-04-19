@@ -8,6 +8,8 @@ gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   const struct gkyl_array **bflux_in_neut[], struct gkyl_array **bflux_out_neut[], 
   struct gkyl_update_status *st)
 {
+
+  struct timespec wst_fe = gkyl_wall_clock();
   // Take a forward Euler step with the suggested time-step dt. This may
   // not be the actual time-step taken. However, the function will never
   // take a time-step larger than dt even if it is allowed by
@@ -31,7 +33,8 @@ gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     gk_neut_species_step_f(gkns, fout_neut[i], dta, fin_neut[i]);
     gk_neut_species_bflux_step_f(app, &gkns->bflux, bflux_out_neut[i], dta, bflux_in_neut[i]);
   }
-  app->stat.accumulate_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.fe_accumulate_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.fe_tm += gkyl_time_diff_now_sec(wst_fe);
 
 }
 

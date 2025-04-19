@@ -426,6 +426,8 @@ struct gkyl_gyrokinetic_stat {
   double field_rhs_tm; // time to compute field RHS
   double accumulate_tm; // Time to accumulate rhs and do algebraic operations
   double src_tm; // Time to accumulate source onto RHS
+  double fe_accumulate_tm; // Time for forward euler
+  double fe_tm; // Time for forward euler
 
   double species_lte_tm; // total time for species LTE (local thermodynamic equilibrium) projection updater
   double species_lbo_coll_drag_tm[GKYL_MAX_SPECIES]; // time to compute LBO drag terms
