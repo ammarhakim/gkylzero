@@ -156,6 +156,19 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     }
   }
 
+  f->use_ghost_current = false;
+  if (f->info.use_ghost_current) {
+    if (app->cdim != 1 && app->num_periodic_dir != 1) {
+      // Ghost currents do not make sense with cdim > 1 or non-periodic boundary conditions.
+      assert(false);
+    }
+    f->use_ghost_current = true; 
+    f->ghost_current = mkarr(app->use_gpu, 1, app->local_ext.volume);
+    if (app->use_gpu) {
+      f->red_ghost_current = gkyl_cu_malloc(sizeof(double[1]));
+    } 
+  }
+
   // allocate buffer for applying BCs 
   long buff_sz = 0;
   // compute buffer size needed
@@ -263,6 +276,25 @@ vm_field_accumulate_current(gkyl_vlasov_app *app,
 
     vm_species_moment_calc(&s->m1i, s->local, app->local, fin[i]);
     gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, &app->local);
+
+    if (app->field->use_ghost_current) {
+      double avals_ghost_current[1], avals_ghost_current_global[1]; 
+      // First set the scalar ghost current array to the cell average 
+      // current/(epsilon0*nx) where nx is the number of x cells. 
+      gkyl_array_set_range(app->field->ghost_current, qbyeps/app->grid.cells[0], s->m1i.marr, &app->local); 
+      // Integrate the current over the whole domain to find the globally averaged ghost current. 
+      if (app->use_gpu) {
+        gkyl_array_reduce_range(app->field->red_ghost_current, app->field->ghost_current, GKYL_SUM, &app->local);
+        gkyl_cu_memcpy(avals_ghost_current, app->field->red_ghost_current, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
+      }
+      else { 
+        gkyl_array_reduce_range(avals_ghost_current, app->field->ghost_current, GKYL_SUM, &app->local);
+      }
+      gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, avals_ghost_current, avals_ghost_current_global);
+      // Set the scalar ghost current array to the global average current and accumulate to the electric field. 
+      gkyl_array_clear(app->field->ghost_current, avals_ghost_current_global[0]);
+      gkyl_array_accumulate_range(emout, 1.0, app->field->ghost_current, &app->local);   
+    }    
   } 
   // Accumulate applied current to electric field terms. 
   // *Only* accumulate applied currents if num_fluid_species = 0 and there is no fluid-EM coupling.
@@ -446,6 +478,14 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
   else {
     gkyl_free(f->omegaCfl_ptr);
   }
+
+  if (f->use_ghost_current) {
+    gkyl_array_release(f->ghost_current); 
+    if (app->use_gpu) {
+      gkyl_cu_free(f->red_ghost_current); 
+    }
+  }
+
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
     gkyl_bc_basic_release(f->bc_lo[d]);

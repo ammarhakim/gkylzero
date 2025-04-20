@@ -54,15 +54,11 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
   vlasov->eqn.boundary_surf_term = boundary_surf;
 
   const gkyl_dg_vlasov_stream_vol_kern_list *stream_vol_kernels;
-  const gkyl_dg_vlasov_stream_gen_geo_vol_kern_list *stream_gen_geo_vol_kernels; 
   const gkyl_dg_vlasov_vol_kern_list *vol_kernels;
 
   const gkyl_dg_vlasov_stream_surf_kern_list *stream_surf_x_kernels, 
     *stream_surf_y_kernels, 
     *stream_surf_z_kernels;
-  const gkyl_dg_vlasov_stream_gen_geo_surf_kern_list *stream_gen_geo_surf_x_kernels, 
-    *stream_gen_geo_surf_y_kernels, 
-    *stream_gen_geo_surf_z_kernels;
 
   const gkyl_dg_vlasov_accel_surf_kern_list *accel_surf_vx_kernels, 
     *accel_surf_vy_kernels, 
@@ -79,15 +75,11 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       stream_vol_kernels = ser_stream_vol_kernels;
-      stream_gen_geo_vol_kernels = ser_stream_gen_geo_vol_kernels;
       vol_kernels = ser_vol_kernels;
 
       stream_surf_x_kernels = ser_stream_surf_x_kernels;
       stream_surf_y_kernels = ser_stream_surf_y_kernels;
       stream_surf_z_kernels = ser_stream_surf_z_kernels;
-      stream_gen_geo_surf_x_kernels = ser_stream_gen_geo_surf_x_kernels;
-      stream_gen_geo_surf_y_kernels = ser_stream_gen_geo_surf_y_kernels;
-      stream_gen_geo_surf_z_kernels = ser_stream_gen_geo_surf_z_kernels;
 
       accel_surf_vx_kernels = ser_accel_surf_vx_kernels;
       accel_surf_vy_kernels = ser_accel_surf_vy_kernels;
@@ -129,58 +121,36 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
       assert(false);
       break;    
   }
-  if (model_id == GKYL_MODEL_GEN_GEO) {
-    if (field_id == GKYL_FIELD_NULL) 
-      vlasov->eqn.vol_term = stream_gen_geo_vol_kernels[cv_index].kernels[poly_order];
-    else 
-      assert(false); // general geometry not yet working for non-neutral
-
-    // Neutral gen geo will always be 3x3v.
-    vlasov->stream_surf[0] = stream_gen_geo_surf_x_kernels[cv_index].kernels[poly_order];
-    vlasov->stream_surf[1] = stream_gen_geo_surf_y_kernels[cv_index].kernels[poly_order];
-    vlasov->stream_surf[2] = stream_gen_geo_surf_z_kernels[cv_index].kernels[poly_order];
-
-    // Set acceleration kernels even if they are not used
-    vlasov->accel_surf[0] = accel_surf_vx_kernels[cv_index].kernels[poly_order];
-    vlasov->accel_surf[1] = accel_surf_vy_kernels[cv_index].kernels[poly_order];
-    vlasov->accel_surf[2] = accel_surf_vz_kernels[cv_index].kernels[poly_order];
-
-    vlasov->accel_boundary_surf[0] = accel_boundary_surf_vx_kernels[cv_index].kernels[poly_order];
-    vlasov->accel_boundary_surf[1] = accel_boundary_surf_vy_kernels[cv_index].kernels[poly_order];
-    vlasov->accel_boundary_surf[2] = accel_boundary_surf_vz_kernels[cv_index].kernels[poly_order];    
+  if (field_id == GKYL_FIELD_NULL) {
+    vlasov->eqn.vol_term = stream_vol_kernels[cv_index].kernels[poly_order];
   }
   else {
-    if (field_id == GKYL_FIELD_NULL) {
-      vlasov->eqn.vol_term = stream_vol_kernels[cv_index].kernels[poly_order];
-    }
-    else {
-      vlasov->eqn.vol_term = vol_kernels[cv_index].kernels[poly_order];
-
-      vlasov->accel_surf[0] = accel_surf_vx_kernels[cv_index].kernels[poly_order];
-      if (vdim>1)
-        vlasov->accel_surf[1] = accel_surf_vy_kernels[cv_index].kernels[poly_order];
-      if (vdim>2)
-        vlasov->accel_surf[2] = accel_surf_vz_kernels[cv_index].kernels[poly_order];
-
-      vlasov->accel_boundary_surf[0] = accel_boundary_surf_vx_kernels[cv_index].kernels[poly_order];
-      if (vdim>1)
-        vlasov->accel_boundary_surf[1] = accel_boundary_surf_vy_kernels[cv_index].kernels[poly_order];
-      if (vdim>2)
-        vlasov->accel_boundary_surf[2] = accel_boundary_surf_vz_kernels[cv_index].kernels[poly_order];
-    }
-    // Streaming kernels are the same for each field_id
-    vlasov->stream_surf[0] = stream_surf_x_kernels[cv_index].kernels[poly_order];
-    if (cdim>1)
-      vlasov->stream_surf[1] = stream_surf_y_kernels[cv_index].kernels[poly_order];
-    if (cdim>2)
-      vlasov->stream_surf[2] = stream_surf_z_kernels[cv_index].kernels[poly_order];
-
-    vlasov->stream_boundary_surf[0] = stream_boundary_surf_x_kernels[cv_index].kernels[poly_order];
-    if (cdim>1)
-      vlasov->stream_boundary_surf[1] = stream_boundary_surf_y_kernels[cv_index].kernels[poly_order];
-    if (cdim>2)
-      vlasov->stream_boundary_surf[2] = stream_boundary_surf_z_kernels[cv_index].kernels[poly_order];
-  }    
+    vlasov->eqn.vol_term = vol_kernels[cv_index].kernels[poly_order];
+    
+    vlasov->accel_surf[0] = accel_surf_vx_kernels[cv_index].kernels[poly_order];
+    if (vdim>1)
+      vlasov->accel_surf[1] = accel_surf_vy_kernels[cv_index].kernels[poly_order];
+    if (vdim>2)
+      vlasov->accel_surf[2] = accel_surf_vz_kernels[cv_index].kernels[poly_order];
+    
+    vlasov->accel_boundary_surf[0] = accel_boundary_surf_vx_kernels[cv_index].kernels[poly_order];
+    if (vdim>1)
+      vlasov->accel_boundary_surf[1] = accel_boundary_surf_vy_kernels[cv_index].kernels[poly_order];
+    if (vdim>2)
+      vlasov->accel_boundary_surf[2] = accel_boundary_surf_vz_kernels[cv_index].kernels[poly_order];
+  }
+  // Streaming kernels are the same for each field_id
+  vlasov->stream_surf[0] = stream_surf_x_kernels[cv_index].kernels[poly_order];
+  if (cdim>1)
+    vlasov->stream_surf[1] = stream_surf_y_kernels[cv_index].kernels[poly_order];
+  if (cdim>2)
+    vlasov->stream_surf[2] = stream_surf_z_kernels[cv_index].kernels[poly_order];
+  
+  vlasov->stream_boundary_surf[0] = stream_boundary_surf_x_kernels[cv_index].kernels[poly_order];
+  if (cdim>1)
+    vlasov->stream_boundary_surf[1] = stream_boundary_surf_y_kernels[cv_index].kernels[poly_order];
+  if (cdim>2)
+    vlasov->stream_boundary_surf[2] = stream_boundary_surf_z_kernels[cv_index].kernels[poly_order];   
 }
 
 struct gkyl_dg_eqn*

@@ -240,6 +240,8 @@ struct gkyl_vlasov_field {
   
   double limiter_fac; // Optional input parameter for adjusting diffusion in slope limiter
   bool limit_em; // Optional input parameter for applying limiters to EM fields
+
+  bool use_ghost_current; // Are we using ghost currents to correct dE/dt = -J in 1x
   
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];

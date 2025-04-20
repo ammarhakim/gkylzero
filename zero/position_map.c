@@ -70,6 +70,18 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
         }
       }
       gpm->constB_ctx->map_strength = pmap_info.map_strength;
+
+      if (pmap_info.maximum_slope_at_min_B == 0.)
+      { gpm->constB_ctx->enable_maximum_slope_limits_at_min_B = false;  }
+      else
+      { gpm->constB_ctx->enable_maximum_slope_limits_at_min_B = true; }
+      gpm->constB_ctx->maximum_slope_at_min_B = pmap_info.maximum_slope_at_min_B;
+
+      if (pmap_info.maximum_slope_at_max_B == 0.)
+      { gpm->constB_ctx->enable_maximum_slope_limits_at_max_B = false;  }
+      else
+      { gpm->constB_ctx->enable_maximum_slope_limits_at_max_B = true; }
+      gpm->constB_ctx->maximum_slope_at_max_B = pmap_info.maximum_slope_at_max_B;
   }
 
   gpm->grid = grid;
@@ -162,6 +174,33 @@ gkyl_position_map_optimize(struct gkyl_position_map* gpm)
     find_B_field_extrema(gpm);
     refine_B_field_extrema(gpm);
   }
+}
+
+double
+gkyl_position_map_slope(const struct gkyl_position_map* gpm, int ix_map,
+  double x, double dx, int ix_comp, struct gkyl_range *nrange)
+{
+  double x_left = x - dx;
+  double x_right = x + dx;
+  double f_left, f, f_right;
+  gpm->maps[ix_map](0.0, &x_left, &f_left, gpm->ctxs[ix_map]);
+  gpm->maps[ix_map](0.0, &x_right, &f_right, gpm->ctxs[ix_map]);
+  double slope;
+  if (ix_comp == nrange->lower[ix_map])
+  {
+    gpm->maps[ix_map](0.0, &x, &f, gpm->ctxs[ix_map]);
+    slope = (f_right - f) / dx;
+  }
+  else if (ix_comp == nrange->upper[ix_map])
+  {
+    gpm->maps[ix_map](0.0, &x, &f, gpm->ctxs[ix_map]);
+    slope = (f - f_left) / dx;
+  }
+  else
+  {
+    slope = (f_right - f_left) / (2.0 * dx);
+  }
+  return slope;
 }
 
 struct gkyl_position_map*

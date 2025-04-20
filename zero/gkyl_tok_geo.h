@@ -50,7 +50,9 @@ enum gkyl_tok_geo_type {
   GKYL_PF_LO_R, // Right half of Private flux region at bottom (outboard lower plate to lower xpt)
 
   GKYL_CORE_L, // Left half of core (lower to upper xpt)
-  GKYL_CORE_R // Right half of core (upper to lower xpt)
+  GKYL_CORE_R, // Right half of core (upper to lower xpt)
+
+  GKYL_IWL, // Inner Wall Limited
 };  
 
 
@@ -218,7 +220,7 @@ void gkyl_tok_geo_mapc2p(const struct gkyl_tok_geo *geo, const struct gkyl_tok_g
  *  and nodes epsilon away to be used for FD
  * @param mc2p_nodal output nodal mapc2p field R,Z,phi)
  * @param mc2p On output, the DG representation of mapc2p ((R,Z,phi)
- * @param ddtheta_nodal output nodal field containing dphi/dtheta = s(psi)/R|grad(psi)|, dR/dtheta and dZ/dtheta
+ * @param ddtheta_nodal output nodal field containing dR/dtheta, dZ/dtheta, and dphi/dtheta = s(psi)/R|grad(psi)|
  * @param mc2nu_pos_nodal output nodal field containing the non-uniform mapping
  * @param mc2nu_pos output DG field containing the non-uniform mapping
  * @param position_map position map object

@@ -167,12 +167,14 @@ void gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *nrang
   // now calculate the metrics
   struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, &up->global, &up->global_ext, &up->local, &up->local_ext, false);
   gkyl_calc_metric_advance(mcalc, nrange, mc2p_nodal_fd, dzc, up->g_ij, up->dxdz, up->dzdx, up->dualmag, up->normals, &up->local);
+  gkyl_array_copy(up->g_ij_neut, up->g_ij);
   
   // calculate the derived geometric quantities
   struct gkyl_calc_derived_geo *jcalculator = gkyl_calc_derived_geo_new(&up->basis, &up->grid, false);
   gkyl_calc_derived_geo_advance(jcalculator, &up->local, up->g_ij, up->bmag, 
     up->jacobgeo, up->jacobgeo_inv, up->gij, up->b_i, up->cmag, up->jacobtot, up->jacobtot_inv, 
     up->bmag_inv, up->bmag_inv_sq, up->gxxj, up->gxyj, up->gyyj, up->gxzj, up->eps2);
+  gkyl_array_copy(up->gij_neut, up->gij);
   gkyl_calc_derived_geo_release(jcalculator);
   gkyl_calc_metric_advance_bcart(mcalc, nrange, up->b_i, up->dzdx, up->bcart, &up->local);
   gkyl_calc_metric_release(mcalc);
@@ -216,6 +218,7 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
   // bmag, metrics and derived geo quantities
   up->bmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->g_ij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
+  up->g_ij_neut = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
   up->dxdz = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->local_ext.volume);
   up->dzdx = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->local_ext.volume);
   up->dualmag = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
@@ -223,6 +226,7 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
   up->jacobgeo = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->gij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
+  up->gij_neut = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
   up->b_i = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
   up->bcart = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
   up->cmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
