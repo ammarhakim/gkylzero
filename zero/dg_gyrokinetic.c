@@ -48,13 +48,13 @@ gkyl_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyr
 struct gkyl_dg_eqn*
 gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const double charge, const double mass, double skip_if_smaller_than, enum gkyl_gkmodel_id gkmodel_id,
+  const double charge, const double mass, double skip_cell_threshold, enum gkyl_gkmodel_id gkmodel_id,
    const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
     return gkyl_dg_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, phase_range,
-      charge, mass, skip_if_smaller_than, gkmodel_id, gk_geom, vel_map);
+      charge, mass, skip_cell_threshold, gkmodel_id, gk_geom, vel_map);
 #endif
 
   struct dg_gyrokinetic *gyrokinetic = gkyl_malloc(sizeof(struct dg_gyrokinetic));
@@ -68,8 +68,8 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
   gyrokinetic->charge = charge;
   gyrokinetic->mass = mass;
 
-  gyrokinetic->skip_cells = (skip_if_smaller_than > 0.0);
-  gyrokinetic->skip_cells_mag = skip_if_smaller_than;
+  gyrokinetic->skip_cells = (skip_cell_threshold > 0.0);
+  gyrokinetic->skip_cells_mag = skip_cell_threshold;
 
   gyrokinetic->eqn.num_equations = 1;
   gyrokinetic->eqn.surf_term = surf;

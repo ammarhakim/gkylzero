@@ -228,7 +228,7 @@ struct gkyl_gyrokinetic_species {
 
   enum gkyl_gkmodel_id gkmodel_id;
   double charge, mass; // Charge and mass.
-  double skip_cell_if_smaller_than; // Skip updates over cells where 0th DG component is smaller than this value
+  double skip_cell_threshold; // Skip updates over cells where 0th DG component is smaller than this value
   double lower[3], upper[3]; // Lower, upper bounds of velocity-space.
   int cells[3]; // Velocity-space cells.
 
