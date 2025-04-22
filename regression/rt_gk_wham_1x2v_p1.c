@@ -607,7 +607,7 @@ int main(int argc, char **argv)
     .name = "elc",
     .charge = ctx.qe,
     .mass = ctx.me,
-    .skip_cell_if_smaller_than = 1e-16,
+    .skip_cell_threshold = 1e-16,
     .lower = {-1.0, 0.0},
     .upper = { 1.0, 1.0},
     .cells = { cells_v[0], cells_v[1] },
