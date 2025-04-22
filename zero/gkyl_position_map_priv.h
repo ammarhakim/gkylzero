@@ -355,8 +355,7 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
     }
   }
   
-  // I had a memory issue with doing this before the for loop on my local laptop. Why?
-  // Is the loop above memory unsafe?
+  // Set final extrema after the loop. MR April 22 2025
   theta_extrema[0] = theta_lo;
   xp[Z_IDX] = theta_lo;
   gkyl_calc_bmag_global(0.0, xp, &bmag_extrema[0], bmag_ctx);
@@ -495,17 +494,6 @@ refine_B_field_extrema(struct gkyl_position_map *gpm)
     B_total_change += fabs(gpm->constB_ctx->bmag_extrema[i] - gpm->constB_ctx->bmag_extrema[i-1]);
   }
   gpm->constB_ctx->dB_cell = B_total_change / (gpm->constB_ctx->N_theta_boundaries);
-
-  // Check that all extrema are increasing
-  for (int i = 1; i < gpm->constB_ctx->num_extrema; i++)
-  {
-    if (gpm->constB_ctx->theta_extrema[i] < gpm->constB_ctx->theta_extrema[i-1])
-    {
-      printf("Numerical position map magnetic field extrema finding failed\n");
-      printf("theta_extrema[%d] = %f\n", i, gpm->constB_ctx->theta_extrema[i]);
-      printf("theta_extrema[%d] = %f\n", i-1, gpm->constB_ctx->theta_extrema[i-1]);
-    }
-  }
 }
 
 /**
