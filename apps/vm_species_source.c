@@ -6,6 +6,7 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct
 {
   int vdim = app->vdim;  
   src->calc_bflux = false;
+  src->rescale_m0 = false; 
   if (s->source_id == GKYL_BFLUX_SOURCE) {
     src->calc_bflux = true;
     assert(s->info.source.source_length);
@@ -18,6 +19,22 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct
     }
     else {
       src->scale_ptr = gkyl_malloc((vdim+2)*sizeof(double));
+    }
+  }
+  else if (s->source_id == GKYL_PROJ_ADAPT_DENSITY_SOURCE) {
+    src->rescale_m0 = true; 
+    src->scale_m0 = mkarr(app->use_gpu, app->confBasis.num_basis, s->local_ext.volume);
+    if (s->info.source.upper_half) {
+      src->m0_reduced = gkyl_dg_updater_moment_new(&s->grid, &app->confBasis, 
+        &app->basis, &app->local, &s->local_vel, &s->local,
+        s->model_id, s->use_vmap, s->info.source.v_thresh, 0, 
+        "M0_upper", false, app->use_gpu);
+    }
+    else {
+      src->m0_reduced = gkyl_dg_updater_moment_new(&s->grid, &app->confBasis, 
+        &app->basis, &app->local, &s->local_vel, &s->local,
+        s->model_id, s->use_vmap, s->info.source.v_thresh, 0, 
+        "M0_lower", false, app->use_gpu);
     }
   }
 
@@ -65,7 +82,7 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct
 }
 
 void
-vm_species_source_calc(gkyl_vlasov_app *app, struct vm_species *s, 
+vm_species_source_calc(gkyl_vlasov_app *app, const struct vm_species *s, 
   struct vm_source *src, double tm)
 {
   if (s->source_id) {
@@ -87,6 +104,11 @@ void
 vm_species_source_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
   struct vm_source *src, const struct gkyl_array *fin[], struct gkyl_array *rhs[])
 {
+  // Recompute the source if the source is time-dependent
+  if (src->source_evolve) {
+    vm_species_source_calc(app, species, src, app->tcurr);
+  }
+
   int species_idx;
   species_idx = vm_find_species_idx(app, species->info.name);
   // use boundary fluxes to scale source profile
@@ -118,6 +140,12 @@ vm_species_source_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
     }
     src->scale_factor = src->scale_factor/src->source_length;
   }
+  else if (species->source_id == GKYL_PROJ_ADAPT_DENSITY_SOURCE) {
+    gkyl_dg_updater_moment_advance(src->m0_reduced, 
+      &species->local, &app->local, fin[species_idx], src->scale_m0);
+    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, src->source, 
+      src->scale_m0, src->source, &app->local, &species->local);    
+  }
   gkyl_array_accumulate(rhs[species_idx], src->scale_factor, src->source);
 }
 
@@ -137,6 +165,11 @@ vm_species_source_release(const struct gkyl_vlasov_app *app, const struct vm_sou
     else {
       gkyl_free(src->scale_ptr);
     }
+  }
+  
+  if (src->rescale_m0) {
+    gkyl_array_release(src->scale_m0); 
+    gkyl_dg_updater_moment_release(src->m0_reduced);
   }
 
   for (int k=0; k<src->num_sources; k++) {

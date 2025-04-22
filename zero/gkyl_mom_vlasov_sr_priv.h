@@ -11,9 +11,9 @@
 
 struct mom_type_vlasov_sr {
   struct gkyl_mom_type momt;
-  double mass; // mass of species
-  struct gkyl_range conf_range; // configuration space range
-  struct gkyl_range vel_range; // velocity space range
+  double v_thresh; // Threshold velocity for upper/lower half-plane moments. 
+  struct gkyl_range conf_range; // Configuration-space range.
+  struct gkyl_range vel_range; // Velocity-space range.
   struct gkyl_mom_vlasov_sr_auxfields auxfields; // Auxiliary fields.
 };
 
@@ -1650,6 +1650,86 @@ static const gkyl_vlasov_sr_mom_kern_list ser_int_mom_kernels[] = {
 
 GKYL_CU_DH
 static void
+kernel_vlasov_sr_vmap_M0_upper_1x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_vmap_M0_upper_1x1v_ser_p1(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.vmap, vidx),
+    mom_vm_sr->v_thresh, f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_vmap_M0_upper_1x1v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_vmap_M0_upper_1x1v_ser_p2(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.vmap, vidx),
+    mom_vm_sr->v_thresh, f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_vmap_M0_lower_1x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_vmap_M0_lower_1x1v_ser_p1(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.vmap, vidx),
+    mom_vm_sr->v_thresh, f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_vmap_M0_lower_1x1v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_vmap_M0_lower_1x1v_ser_p2(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.vmap, vidx),
+    mom_vm_sr->v_thresh, f, out);  
+}
+
+GKYL_CU_DH
+static void
 kernel_vlasov_sr_vmap_M1i_1x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
@@ -2333,6 +2413,36 @@ kernel_vlasov_sr_vmap_int_mom_3x3v_ser_p1(const struct gkyl_mom_type *momt, cons
 //
 // Serendipity basis kernels with a mapped momentum (four-velocity)-space grid
 //
+
+// M0 upper half-plane kernel list
+GKYL_CU_D
+static const gkyl_vlasov_sr_mom_kern_list ser_vmap_m0_upper_kernels[] = {
+  // 1x kernels
+  { NULL, kernel_vlasov_sr_vmap_M0_upper_1x1v_ser_p1, kernel_vlasov_sr_vmap_M0_upper_1x1v_ser_p2 }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL }, // 6
+};
+
+// M0 lower half-plane kernel list
+GKYL_CU_D
+static const gkyl_vlasov_sr_mom_kern_list ser_vmap_m0_lower_kernels[] = {
+  // 1x kernels
+  { NULL, kernel_vlasov_sr_vmap_M0_lower_1x1v_ser_p1, kernel_vlasov_sr_vmap_M0_lower_1x1v_ser_p2 }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL }, // 6
+};
 
 // M1i kernel list
 GKYL_CU_D
@@ -3080,6 +3190,46 @@ static const gkyl_vlasov_sr_mom_kern_list tensor_int_mom_kernels[] = {
 
 GKYL_CU_DH
 static void
+kernel_vlasov_sr_vmap_M0_upper_1x1v_tensor_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_vmap_M0_upper_1x1v_tensor_p2(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.vmap, vidx),
+    mom_vm_sr->v_thresh, f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_vmap_M0_lower_1x1v_tensor_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_vmap_M0_lower_1x1v_tensor_p2(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.vmap, vidx),
+    mom_vm_sr->v_thresh, f, out);  
+}
+
+GKYL_CU_DH
+static void
 kernel_vlasov_sr_vmap_M1i_1x1v_tensor_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
@@ -3391,6 +3541,36 @@ kernel_vlasov_sr_vmap_int_mom_2x3v_tensor_p2(const struct gkyl_mom_type *momt, c
 //
 // Tensor basis kernels with a mapped momentum (four-velocity)-space grid
 //
+
+// M0 upper half-plane kernel list
+GKYL_CU_D
+static const gkyl_vlasov_sr_mom_kern_list tensor_vmap_m0_upper_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, kernel_vlasov_sr_vmap_M0_upper_1x1v_tensor_p2 }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL }, // 6
+};
+
+// M0 lower half-plane kernel list
+GKYL_CU_D
+static const gkyl_vlasov_sr_mom_kern_list tensor_vmap_m0_lower_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, kernel_vlasov_sr_vmap_M0_lower_1x1v_tensor_p2 }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL }, // 6
+};
 
 // M1i kernel list
 GKYL_CU_D

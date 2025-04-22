@@ -24,6 +24,7 @@ typedef struct gkyl_dg_updater_moment_tm gkyl_dg_updater_moment_tm;
  * @param phase_range Phase space range
  * @param model_id Enum identifier for model type (e.g., SR, see gkyl_eqn_type.h)
  * @param use_vmap bool to determine if we are using mapped velocity grid kernels
+ * @param v_thresh Threshold velocity for integrations over only the upper or lower half-plane. 
  * @param aux_inp Void pointer to auxiliary fields. Void to be flexible to different auxfields structs
  * @param mom Name of moment
  * @param is_integrated Boolean for if the moment is an integrated moment
@@ -35,7 +36,7 @@ struct gkyl_dg_updater_moment*
 gkyl_dg_updater_moment_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,   const struct gkyl_range *phase_range,
-  enum gkyl_model_id model_id, bool use_vmap, void *aux_inp, 
+  enum gkyl_model_id model_id, bool use_vmap, double v_thresh, void *aux_inp, 
   const char *mom, bool is_integrated, bool use_gpu);
 
 /**

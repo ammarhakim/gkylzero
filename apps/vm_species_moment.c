@@ -46,7 +46,7 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
         .vmap = s->vmap, .jacob_vel_inv = s->jacob_vel_inv };
       sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->confBasis, 
         &app->basis, &app->local, &s->local_vel, &s->local,
-        s->model_id, s->use_vmap, &sr_inp, 
+        s->model_id, s->use_vmap, 0.0, &sr_inp, 
         nm, is_integrated, app->use_gpu);
       num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc);
     } 
@@ -55,7 +55,7 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
       struct gkyl_mom_canonical_pb_auxfields can_pb_inp = {.hamil = s->hamil};
       sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->confBasis, 
         &app->basis, &app->local, &s->local_vel, &s->local, 
-        s->model_id, s->use_vmap, &can_pb_inp, 
+        s->model_id, s->use_vmap, 0.0, &can_pb_inp, 
         nm, is_integrated, app->use_gpu);
       num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc);
     }  
@@ -63,7 +63,7 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
       // No auxiliary fields for moments if not SR 
       sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->confBasis, 
         &app->basis, &app->local, &s->local_vel, &s->local,
-        s->model_id, s->use_vmap, 0, 
+        s->model_id, s->use_vmap, 0.0, 0, 
         nm, is_integrated, app->use_gpu);   
       num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc); 
     }

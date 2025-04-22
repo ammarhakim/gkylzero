@@ -212,7 +212,7 @@ gk_neut_species_recycle_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
   struct gkyl_mom_canonical_pb_auxfields can_pb_inp = {.hamil = s->hamil};
   recyc->m0op_neut = gkyl_dg_updater_moment_new(&recyc->emit_grid, &app->basis,
     &s->basis, &recyc->emit_cbuff_r, &s->local_vel, &recyc->emit_buff_r, s->model_id,
-    false, &can_pb_inp, "M0", false, app->use_gpu);
+    false, 0.0, &can_pb_inp, "M0", false, app->use_gpu);
   
   gkyl_dg_updater_moment_advance(recyc->m0op_neut, &recyc->emit_normal_r,
     &recyc->emit_cbuff_r, recyc->unit_phase_flux_neut, recyc->unit_m0_flux_neut);

@@ -17,18 +17,21 @@ struct gkyl_mom_vlasov_sr_auxfields {
  * Note: M2 is the integral(gamma*f) velocity moment and M3i the integral(p*f) velocity moment in relativity
  * "Ni" = (M0, M1i) (1+vdim components)
  * "Tij" = stress-energy tensor (M2, M3i (vdim components), Stress tensor (vdim*(vdim+1))/2 components))
+ * Also permits M0_upper and M0_lower, which integrate the zeroth moment over a sub-domain of the upper
+ * or lower half-plane respectively with integration limits set by the v_thresh input parameter. 
  *
  * @param cbasis Configuration-space basis-functions
  * @param pbasis Phase-space basis-functions
  * @param vel_range Velocity space range
  * @param use_vmap bool to determine if we are using mapped velocity grid kernels
+ * @param v_thresh Threshold velocity for integrations over only the upper or lower half-plane. 
  * @param mom Name of moment to compute
  * @param use_gpu bool to determine if on GPU
  */
 struct gkyl_mom_type* gkyl_mom_vlasov_sr_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis, 
   const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, 
-  bool use_vmap, const char *mom, bool use_gpu);
+  bool use_vmap, double v_thresh, const char *mom, bool use_gpu);
 
 /**
  * Create new special relativistic Vlasov moment type object on NV-GPU: 
@@ -37,7 +40,7 @@ struct gkyl_mom_type* gkyl_mom_vlasov_sr_new(const struct gkyl_basis* cbasis,
 struct gkyl_mom_type* gkyl_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis, 
   const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, 
-  bool use_vmap, const char *mom);
+  bool use_vmap, double v_thresh, const char *mom);
 
 /**
  * Create new special relativistic Vlasov integrated moment type

@@ -30,7 +30,7 @@ struct gkyl_dg_updater_moment*
 gkyl_dg_updater_moment_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *vel_range, const struct gkyl_range *phase_range,
-  enum gkyl_model_id model_id, bool use_vmap, void *aux_inp, 
+  enum gkyl_model_id model_id, bool use_vmap, double v_thresh, void *aux_inp, 
   const char *mom, bool is_integrated, bool use_gpu)
 {
   gkyl_dg_updater_moment *up = gkyl_malloc(sizeof(gkyl_dg_updater_moment));
@@ -41,7 +41,7 @@ gkyl_dg_updater_moment_new(const struct gkyl_rect_grid *grid,
       up->type = gkyl_int_mom_vlasov_sr_new(cbasis, pbasis, conf_range, vel_range, use_vmap, use_gpu);
     }
     else {
-      up->type = gkyl_mom_vlasov_sr_new(cbasis, pbasis, conf_range, vel_range, use_vmap, mom, use_gpu);
+      up->type = gkyl_mom_vlasov_sr_new(cbasis, pbasis, conf_range, vel_range, use_vmap, v_thresh, mom, use_gpu);
     }
 
     struct gkyl_mom_vlasov_sr_auxfields *sr_inp = aux_inp;

@@ -74,11 +74,11 @@ gkyl_vlasov_lte_moments_inew(const struct gkyl_vlasov_lte_moments_inp *inp)
     up->M0_calc = gkyl_dg_updater_moment_new(inp->phase_grid, 
       inp->conf_basis, inp->phase_basis, 
       inp->conf_range, inp->vel_range, inp->phase_range, 
-      up->model_id, inp->use_vmap, &sr_inp, "M0", false, inp->use_gpu);
+      up->model_id, inp->use_vmap, 0.0, &sr_inp, "M0", false, inp->use_gpu);
     up->M1i_calc = gkyl_dg_updater_moment_new(inp->phase_grid, 
       inp->conf_basis, inp->phase_basis, 
       inp->conf_range, inp->vel_range, inp->phase_range, 
-      up->model_id, inp->use_vmap, &sr_inp, "M1i", false, inp->use_gpu);
+      up->model_id, inp->use_vmap, 0.0, &sr_inp, "M1i", false, inp->use_gpu);
   }
   else if (up->model_id == GKYL_MODEL_CANONICAL_PB) {
     up->h_ij = gkyl_array_acquire(inp->h_ij);
@@ -103,15 +103,15 @@ gkyl_vlasov_lte_moments_inew(const struct gkyl_vlasov_lte_moments_inp *inp)
     up->M0_calc = gkyl_dg_updater_moment_new(inp->phase_grid, 
       inp->conf_basis, inp->phase_basis, 
       inp->conf_range, inp->vel_range, inp->phase_range, 
-      up->model_id, inp->use_vmap, 0, "M0", false, inp->use_gpu);
+      up->model_id, inp->use_vmap, 0.0, 0, "M0", false, inp->use_gpu);
     up->M1i_calc = gkyl_dg_updater_moment_new(inp->phase_grid, 
       inp->conf_basis, inp->phase_basis, 
       inp->conf_range, inp->vel_range, inp->phase_range, 
-      up->model_id, inp->use_vmap, &can_pb_inp, "M1i_from_H", false, inp->use_gpu);
+      up->model_id, inp->use_vmap, 0.0, &can_pb_inp, "M1i_from_H", false, inp->use_gpu);
     up->Pcalc = gkyl_dg_updater_moment_new(inp->phase_grid, 
       inp->conf_basis, inp->phase_basis, 
       inp->conf_range, inp->vel_range, inp->phase_range, 
-      up->model_id, inp->use_vmap, &can_pb_inp, "MEnergy", false, inp->use_gpu);   
+      up->model_id, inp->use_vmap, 0.0, &can_pb_inp, "MEnergy", false, inp->use_gpu);   
   }
   else {
     // Moment calculator for needed moments (M0, M1i, and M2 for non-relativistic)
@@ -119,15 +119,15 @@ gkyl_vlasov_lte_moments_inew(const struct gkyl_vlasov_lte_moments_inp *inp)
     up->M0_calc = gkyl_dg_updater_moment_new(inp->phase_grid, 
       inp->conf_basis, inp->phase_basis, 
       inp->conf_range, inp->vel_range, inp->phase_range, 
-      up->model_id, inp->use_vmap, 0, "M0", false, inp->use_gpu);
+      up->model_id, inp->use_vmap, 0.0, 0, "M0", false, inp->use_gpu);
     up->M1i_calc = gkyl_dg_updater_moment_new(inp->phase_grid, 
       inp->conf_basis, inp->phase_basis, 
       inp->conf_range, inp->vel_range, inp->phase_range, 
-      up->model_id, inp->use_vmap, 0, "M1i", false, inp->use_gpu);
+      up->model_id, inp->use_vmap, 0.0, 0, "M1i", false, inp->use_gpu);
     up->Pcalc = gkyl_dg_updater_moment_new(inp->phase_grid, 
       inp->conf_basis, inp->phase_basis, 
       inp->conf_range, inp->vel_range, inp->phase_range, 
-      up->model_id, inp->use_vmap, 0, "M2", false, inp->use_gpu);    
+      up->model_id, inp->use_vmap, 0.0, 0, "M2", false, inp->use_gpu);    
   }
   return up;
 }

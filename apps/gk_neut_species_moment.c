@@ -35,7 +35,7 @@ gk_neut_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spe
   else {
     struct gkyl_mom_canonical_pb_auxfields can_pb_inp = {.hamil = s->hamil};
     sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->basis, 
-      &s->basis, &app->local, &s->local_vel, &s->local, s->model_id, false, &can_pb_inp, 
+      &s->basis, &app->local, &s->local_vel, &s->local, s->model_id, false, 0.0, &can_pb_inp, 
       nm, sm->is_integrated, app->use_gpu);
     sm->num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc);
   }

@@ -343,6 +343,10 @@ struct vm_source {
   struct vm_species *source_species; // species to use for the source
   int source_species_idx; // index of source species
 
+  bool rescale_m0; // boolean for if we are rescaling M0 
+  struct gkyl_array *scale_m0; // Time-dependent re-scaling of the density of the source. 
+  struct gkyl_dg_updater_moment *m0_reduced; // Reduced density update for rescaling source. 
+
   struct gkyl_array *source; // applied source
   struct gkyl_array *source_host; // host copy for use in IO 
   struct gkyl_array *source_tmp; // temporary array for sources for accumulation if num_sources>1
@@ -1257,7 +1261,7 @@ void vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *s, s
  * @param src Pointer to source
  * @param tm Time for use in source
  */
-void vm_species_source_calc(gkyl_vlasov_app *app, struct vm_species *species, 
+void vm_species_source_calc(gkyl_vlasov_app *app, const struct vm_species *species, 
   struct vm_source *src, double tm);
 
 /**

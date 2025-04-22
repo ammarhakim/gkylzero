@@ -103,6 +103,8 @@ struct gkyl_vlasov_source {
   char source_species[128];
   
   // sources using projection routine
+  double v_thresh; // Threshold velocity if re-scaling density based on partial moments.
+  bool upper_half; // Are you using the upper-half or lower-half plane for partial moments?
   struct gkyl_vlasov_projection projection[GKYL_MAX_PROJ];
 };
 

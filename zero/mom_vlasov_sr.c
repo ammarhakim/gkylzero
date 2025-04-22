@@ -36,7 +36,7 @@ gkyl_mom_vlasov_sr_set_auxfields(const struct gkyl_mom_type *momt, struct gkyl_m
 struct gkyl_mom_type*
 gkyl_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
   const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, 
-  bool use_vmap, const char *mom, bool use_gpu)
+  bool use_vmap, double v_thresh, const char *mom, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -57,6 +57,7 @@ gkyl_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis*
 
   // choose kernel tables based on basis-function type
   const gkyl_vlasov_sr_mom_kern_list *m0_kernels, *m1i_kernels, 
+    *m0_upper_kernels, *m0_lower_kernels, 
     *m2_kernels, *m3i_kernels, *Ni_kernels, *Tij_kernels;
 
   switch (cbasis->b_type) {
@@ -66,6 +67,8 @@ gkyl_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis*
       Ni_kernels = ser_Ni_kernels;
       Tij_kernels = ser_Tij_kernels;
       if (use_vmap) {
+        m0_upper_kernels = ser_vmap_m0_upper_kernels;
+        m0_lower_kernels = ser_vmap_m0_lower_kernels;
         m1i_kernels = ser_vmap_m1i_kernels;
         m3i_kernels = ser_vmap_m3i_kernels;
       }
@@ -81,6 +84,8 @@ gkyl_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis*
       Ni_kernels = tensor_Ni_kernels;
       Tij_kernels = tensor_Tij_kernels;
       if (use_vmap) {
+        m0_upper_kernels = tensor_vmap_m0_upper_kernels;
+        m0_lower_kernels = tensor_vmap_m0_lower_kernels;
         m1i_kernels = tensor_vmap_m1i_kernels;
         m3i_kernels = tensor_vmap_m3i_kernels;
       }
@@ -100,6 +105,20 @@ gkyl_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis*
     assert(NULL != m0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     mom_vm_sr->momt.kernel = m0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    mom_vm_sr->momt.num_mom = 1;
+  }
+  else if (strcmp(mom, "M0_upper") == 0) { // density (GammaV*n) on the upper half-plane
+    assert(cv_index[cdim].vdim[vdim] != -1);
+    assert(NULL != m0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+    
+    mom_vm_sr->momt.kernel = m0_upper_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    mom_vm_sr->momt.num_mom = 1;
+  }
+  else if (strcmp(mom, "M0_lower") == 0) { // density (GammaV*n) on the upper half-plane
+    assert(cv_index[cdim].vdim[vdim] != -1);
+    assert(NULL != m0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+    
+    mom_vm_sr->momt.kernel = m0_lower_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_vm_sr->momt.num_mom = 1;
   }
   else if (strcmp(mom, "M1i") == 0) { // mass flux (GammaV*n*V_drift)
@@ -145,6 +164,7 @@ gkyl_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis*
   mom_vm_sr->conf_range = *conf_range;
   mom_vm_sr->vel_range = *vel_range;
 
+  mom_vm_sr->v_thresh = v_thresh; 
   mom_vm_sr->auxfields.gamma = 0;
   mom_vm_sr->auxfields.vmap = 0;
   mom_vm_sr->auxfields.jacob_vel_inv = 0;
@@ -234,7 +254,7 @@ gkyl_int_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_ba
 struct gkyl_mom_type*
 gkyl_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
   const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, 
-  bool use_vmap, const char *mom)
+  bool use_vmap, double v_thresh, const char *mom)
 {
   assert(false);
   return 0;
