@@ -113,12 +113,11 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
   f->ssfg_lo = gkyl_skin_surf_from_ghost_new(zdir, GKYL_LOWER_EDGE,
                 app->basis, &f->lower_skin_core, &f->lower_ghost_core, app->use_gpu);
 
-  int ghost_radial[] = {0, 0, 0};
+  int ghost_radial[] = {1, 1, 1};
   int xdir = 0;
-  ghost_radial[xdir] = 1;
   // create lower ssfg updater for the radial direction
   gkyl_skin_ghost_ranges( &f->lower_skin_x, &f->lower_ghost_x, xdir, 
-                          GKYL_LOWER_EDGE, &f->local_par_ext_core, ghost_radial);
+                          GKYL_LOWER_EDGE, &app->local_ext, ghost_radial);
   f->ssfg_x_lo = gkyl_skin_surf_from_ghost_new(xdir, GKYL_LOWER_EDGE,
                   app->basis, &f->lower_skin_x, &f->lower_ghost_x, app->use_gpu);
 }
