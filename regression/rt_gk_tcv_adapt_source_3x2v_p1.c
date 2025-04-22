@@ -966,7 +966,7 @@ void bc_shift_func_lo(double t, const double *xc, double* GKYL_RESTRICT fout, vo
   double x_inner = app->x_inner;
   double r = r_x(x,a_mid,x_inner);
   double R_axis = app->R_axis;
-  fout[0] = -r0/q0*qprofile(r,R_axis)*Lz;
+  fout[0] = -r0/q0*qprofile(r,R_axis)*Lz/2.0;
 }
 
 void bc_shift_func_up(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
