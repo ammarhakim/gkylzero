@@ -1004,7 +1004,7 @@ struct gk_field {
   struct gkyl_range lower_skin_core, lower_ghost_core;
   struct gkyl_range upper_skin_core, upper_ghost_core;
   struct gkyl_skin_surf_from_ghost *ssfg_lo;
-  // radial ssfg operator for BC of phi
+  // radial skin & ghost ranges and ssfg operator for BC of phi
   struct gkyl_range lower_skin_x, lower_ghost_x;
   struct gkyl_skin_surf_from_ghost *ssfg_x_lo;
   
