@@ -345,17 +345,17 @@ void test_array_set_offset_comp()
       for (unsigned k=0; k<a1->ncomp; ++k)
         a2_d[i*a2->ncomp+j*a1->ncomp+k] = i*0.1+k+10*j;
 
-  gkyl_array_set_offset_comp(a1, 0.5, a2, 0, 0, a1->ncomp);
+  gkyl_array_set_offset_comp(a1, 0.5, a2, 0, 0);
   for (unsigned i=0; i<a1->size; ++i)
     for (unsigned j=0; j<a1->ncomp; ++j)
       TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+j], 0.5*(i*0.1+j+10*0), 1e-14) );
 
-  gkyl_array_set_offset_comp(a1, 0.5, a2, 0, 1, a1->ncomp);
+  gkyl_array_set_offset_comp(a1, 0.5, a2, 0, 1*a1->ncomp);
   for (unsigned i=0; i<a1->size; ++i)
     for (unsigned j=0; j<a1->ncomp; ++j)
       TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+j], 0.5*(i*0.1+j+10*1), 1e-14) );
 
-  gkyl_array_set_offset_comp(a1, 0.5, a2, 0, 2, a1->ncomp);
+  gkyl_array_set_offset_comp(a1, 0.5, a2, 0, 2*a1->ncomp);
   for (unsigned i=0; i<a1->size; ++i)
     for (unsigned j=0; j<a1->ncomp; ++j)
       TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+j], 0.5*(i*0.1+j+10*2), 1e-14) );
@@ -1413,19 +1413,19 @@ void test_cu_array_set_offset_comp()
   gkyl_array_copy(a1_cu, a1);
   gkyl_array_copy(a2_cu, a2);
 
-  gkyl_array_set_offset_comp(a1_cu, 0.5, a2_cu, 0, 0, a1->ncomp);
+  gkyl_array_set_offset_comp(a1_cu, 0.5, a2_cu, 0, 0);
   gkyl_array_copy(a1, a1_cu);
   for (unsigned i=0; i<a1->size; ++i)
     for (unsigned j=0; j<a1->ncomp; ++j)
       TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+j], 0.5*(i*0.1+j+10*0), 1e-14) );
 
-  gkyl_array_set_offset_comp(a1_cu, 0.5, a2_cu, 0, 1, a1->ncomp);
+  gkyl_array_set_offset_comp(a1_cu, 0.5, a2_cu, 0, 1 * a1->ncomp);
   gkyl_array_copy(a1, a1_cu);
   for (unsigned i=0; i<a1->size; ++i)
     for (unsigned j=0; j<a1->ncomp; ++j)
       TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+j], 0.5*(i*0.1+j+10*1), 1e-14) );
 
-  gkyl_array_set_offset_comp(a1_cu, 0.5, a2_cu, 0, 2, a1->ncomp);
+  gkyl_array_set_offset_comp(a1_cu, 0.5, a2_cu, 0, 2 * a1->ncomp);
   gkyl_array_copy(a1, a1_cu);
     for (unsigned i=0; i<a1->size; ++i)
       for (unsigned j=0; j<a1->ncomp; ++j)

@@ -120,14 +120,13 @@ struct gkyl_array* gkyl_array_set_offset(struct gkyl_array *out,
  * @param out Output array
  * @param a Factor to multiply input array
  * @param inp Input array
- * @param component_offset_out Component offset of out
- * @param component_offset_inp Component offset of inp
- * @param num_basis Number of basis functions per component
+ * @param offset_out Component offset of out
+ * @param offset_inp Component offset of inp
  * @return out array
 */
 struct gkyl_array* gkyl_array_set_offset_comp(struct gkyl_array* out,
-  double a, const struct gkyl_array* inp, int component_offset_out, 
-  int component_offset_inp, int num_basis);
+  double a, const struct gkyl_array* inp, int offset_out, 
+  int offset_inp);
 
 
 /**
