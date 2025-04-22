@@ -49,7 +49,7 @@ main(int argc, char **argv)
   // Equation object for getting equation type, 
   // advection velocity is set by eval_advect_vel function. 
   double c = 1.0;
-  struct gkyl_wv_eqn *advect = gkyl_wv_advect_new(c);
+  struct gkyl_wv_eqn *advect = gkyl_wv_advect_new(c, false);
 
   // f
   struct gkyl_vlasov_fluid_species f = {

@@ -231,6 +231,85 @@ void gkyl_calc_metric_advance_rz(
   gkyl_array_release(normFld_nodal);
 }
 
+void gkyl_calc_metric_advance_rz_neut(
+  gkyl_calc_metric *up, struct gkyl_range *nrange,
+  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *ddtheta_nodal,
+  double *dzc, struct gkyl_array *gFld, struct gkyl_array *grFld,
+  const struct gkyl_range *update_range)
+{
+  struct gkyl_array* gFld_nodal = gkyl_array_new(GKYL_DOUBLE, 6, nrange->volume);
+  struct gkyl_array* grFld_nodal = gkyl_array_new(GKYL_DOUBLE, 6, nrange->volume);
+  enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
+  enum { R_IDX, Z_IDX, PHI_IDX }; // arrangement of cartesian coordinates
+  int cidx[3];
+  for(int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia){
+      for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
+          for (int it=nrange->lower[TH_IDX]; it<=nrange->upper[TH_IDX]; ++it) {
+              cidx[PSI_IDX] = ip;
+              cidx[AL_IDX] = ia;
+              cidx[TH_IDX] = it;
+              const double *mc2p_n = gkyl_array_cfetch(mc2p_nodal_fd, gkyl_range_idx(nrange, cidx));
+              double dxdz[3][3];
+
+              if((ip == nrange->lower[PSI_IDX]) && (up->local.lower[PSI_IDX]== up->global.lower[PSI_IDX]) ) {
+                dxdz[0][0] = (-3*mc2p_n[R_IDX] + 4*mc2p_n[6+R_IDX] - mc2p_n[12+R_IDX] )/dzc[0]/2;
+                dxdz[1][0] = (-3*mc2p_n[Z_IDX] + 4*mc2p_n[6+Z_IDX] - mc2p_n[12+Z_IDX] )/dzc[0]/2;
+              }
+              else if((ip == nrange->upper[PSI_IDX]) && (up->local.upper[PSI_IDX]== up->global.upper[PSI_IDX])) {
+                dxdz[0][0] = (3*mc2p_n[R_IDX] - 4*mc2p_n[3+R_IDX] + mc2p_n[9+R_IDX] )/dzc[0]/2;
+                dxdz[1][0] = (3*mc2p_n[Z_IDX] - 4*mc2p_n[3+Z_IDX] + mc2p_n[9+Z_IDX] )/dzc[0]/2;
+              }
+              else {
+                dxdz[0][0] = -(mc2p_n[3 +R_IDX] -   mc2p_n[6+R_IDX])/2/dzc[0];
+                dxdz[1][0] = -(mc2p_n[3 +Z_IDX] -   mc2p_n[6+Z_IDX])/2/dzc[0];
+              }
+
+
+              // dphi/dpsi =0
+              dxdz[2][0] = 0.0;
+              // Use exact expressions for dR/dtheta and dZ/dtheta, dphi/dtheta
+              double *ddtheta_n = gkyl_array_fetch(ddtheta_nodal, gkyl_range_idx(nrange, cidx));
+              dxdz[0][2] = ddtheta_n[0];
+              dxdz[1][2] = ddtheta_n[1];
+              dxdz[2][2] = 0.0;
+              double dphidtheta = dxdz[2][2];
+
+              // use exact expressions for d/dalpha
+              dxdz[0][1] = 0.0;
+              dxdz[1][1] = 0.0;
+              dxdz[2][1] = -1.0;
+
+              // dxdz is in cylindrical coords, calculate J as
+              // J = R(dR/dpsi*dZ/dtheta - dR/dtheta*dZ/dpsi)
+              double R = mc2p_n[R_IDX];
+              double jac = sqrt(R*R*(dxdz[0][0]*dxdz[0][0]*dxdz[1][2]*dxdz[1][2] + dxdz[0][2]*dxdz[0][2]*dxdz[1][0]*dxdz[1][0] - 2*dxdz[0][0]*dxdz[0][2]*dxdz[1][0]*dxdz[1][2])) ;
+
+              double *gFld_n= gkyl_array_fetch(gFld_nodal, gkyl_range_idx(nrange, cidx));
+              gFld_n[0] = dxdz[0][0]*dxdz[0][0] + R*R*dxdz[2][0]*dxdz[2][0] + dxdz[1][0]*dxdz[1][0]; 
+              gFld_n[1] = R*R*dxdz[2][0]; 
+              gFld_n[2] = dxdz[0][0]*dxdz[0][2] + R*R*dxdz[2][0]*dphidtheta + dxdz[1][0]*dxdz[1][2];
+              gFld_n[3] = R*R; 
+              gFld_n[4] = R*R*dphidtheta;
+              gFld_n[5] = dxdz[0][2]*dxdz[0][2] + R*R*dphidtheta*dphidtheta + dxdz[1][2]*dxdz[1][2]; 
+
+              double *grFld_n= gkyl_array_fetch(grFld_nodal, gkyl_range_idx(nrange, cidx));
+              grFld_n[0] = R*R/jac/jac*(dxdz[1][2]*dxdz[1][2] + dxdz[0][2]*dxdz[0][2] );
+              grFld_n[1] = 0.0;
+              grFld_n[2] = -R*R/jac/jac*(dxdz[0][0]*dxdz[0][2] + dxdz[1][0]*dxdz[1][2] );
+              grFld_n[3] = 1/R/R;
+              grFld_n[4] = 0.0;
+              grFld_n[5] = R*R/jac/jac*(dxdz[0][0]*dxdz[0][0] + dxdz[1][0]*dxdz[1][0] );
+
+      }
+    }
+  }
+  gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, nrange, update_range, 6, gFld_nodal, gFld);
+  gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, nrange, update_range, 6, grFld_nodal, grFld);
+  gkyl_array_release(gFld_nodal);
+  gkyl_array_release(grFld_nodal);
+}
+
+
 void gkyl_calc_metric_advance_mirror(
   gkyl_calc_metric *up, struct gkyl_range *nrange,
   struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *ddtheta_nodal,
