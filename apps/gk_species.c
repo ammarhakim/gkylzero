@@ -1189,7 +1189,7 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
   else
     gks->apply_pos_shift_func = gk_species_apply_pos_shift_disabled;
   gks->write_func = gk_species_write_dynamic;
-  if (gks->info.cfl_dt_diangostic)
+  if (gks->info.cfl_dt_diagnostic)
     gks->write_cfl_func = gk_species_write_cfl_dynamic;
   else 
     gks->write_cfl_func = gk_species_write_cfl_static;
