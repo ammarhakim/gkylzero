@@ -15,7 +15,7 @@ gkyl_prim_lbo_cross_calc_new(const struct gkyl_rect_grid *grid,
   struct gkyl_prim_lbo_type *prim, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
+  if (use_gpu) {
     return gkyl_prim_lbo_cross_calc_cu_dev_new(grid, prim);
   } 
 #endif   
@@ -43,6 +43,14 @@ gkyl_prim_lbo_cross_calc_advance(struct gkyl_prim_lbo_cross_calc* calc,
   const struct gkyl_array *boundary_corrections, 
   struct gkyl_array *prim_moms_out)
 {
+#ifdef GKYL_HAVE_CUDA
+  if (GKYL_IS_CU_ALLOC(calc->flags)) {
+    gkyl_prim_lbo_cross_calc_advance(calc, conf_rng, greene, self_moms, self_prim_moms,
+      other_moms, other_prim_moms, boundary_corrections, prim_moms_out);
+    return;
+  }
+#endif   
+
   struct gkyl_range_iter conf_iter;
 
   // allocate memory for use in kernels

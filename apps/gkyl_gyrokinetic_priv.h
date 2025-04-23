@@ -259,6 +259,9 @@ struct gk_lbo_collisions {
   double vtsq_min; // minimum vtsq
   struct gkyl_array *nu_init; // Array for initial collisionality when using Spitzer updater
   struct gkyl_spitzer_coll_freq* spitzer_calc; // Updater for Spitzer collisionality if computing Spitzer value
+  struct gk_species_moment maxwellian_moms; // M0, upar, T/m.
+  struct gkyl_array *boundary_corrections_buff; // Buffer for boundary corrections (multiplied by nu).
+  struct gkyl_array *moms_buff; // Buffer for moments (multiplied by nu).
 
   double betaGreenep1; // value of Greene's factor beta + 1
   double other_m[GKYL_MAX_SPECIES]; // masses of species being collided with
@@ -276,10 +279,10 @@ struct gk_lbo_collisions {
   struct gkyl_array *m0;
   struct gkyl_array *vtsq;
   struct gkyl_array *m2self; // m2self used for robustness of LBO
-  struct gkyl_array *self_mnu_m0[GKYL_MAX_SPECIES], *self_mnu[GKYL_MAX_SPECIES];
+  struct gkyl_array *self_mnu[GKYL_MAX_SPECIES];
   struct gkyl_array *other_mnu_m0[GKYL_MAX_SPECIES], *other_mnu[GKYL_MAX_SPECIES];
-  struct gkyl_array *greene_num[GKYL_MAX_SPECIES], *greene_den[GKYL_MAX_SPECIES];
-  struct gkyl_array *greene_factor[GKYL_MAX_SPECIES];
+  struct gkyl_array *greene_num, *greene_den;
+  struct gkyl_array *greene_factor;
 
   int num_cross_collisions; // number of species we cross-collide with
   struct gk_species *collide_with[GKYL_MAX_SPECIES]; // pointers to cross-species we collide with
@@ -1347,10 +1350,19 @@ void gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_speci
  * @param lbo Pointer to LBO
  * @param fin Input distribution function
  */
-void gk_species_lbo_moms(gkyl_gyrokinetic_app *app,
-  const struct gk_species *species,
-  struct gk_lbo_collisions *lbo,
-  const struct gkyl_array *fin);
+void gk_species_lbo_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
+  struct gk_lbo_collisions *lbo, const struct gkyl_array *fin);
+
+/**
+ * Compute the cross-species collision frequencies if using normNu.
+ *
+ * @param app gyrokinetic app object
+ * @param species Pointer to species
+ * @param lbo Pointer to LBO
+ */
+void
+gk_species_lbo_cross_nu(gkyl_gyrokinetic_app *app, const struct gk_species *species,
+  struct gk_lbo_collisions *lbo);
 
 /**
  * Compute necessary moments for cross-species LBO collisions
@@ -1360,10 +1372,8 @@ void gk_species_lbo_moms(gkyl_gyrokinetic_app *app,
  * @param lbo Pointer to LBO
  * @param fin Input distribution function
  */
-void gk_species_lbo_cross_moms(gkyl_gyrokinetic_app *app,
-  const struct gk_species *species,
-  struct gk_lbo_collisions *lbo,
-  const struct gkyl_array *fin);
+void gk_species_lbo_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
+  struct gk_lbo_collisions *lbo, const struct gkyl_array *fin);
 
 /**
  * Compute RHS from LBO collisions
