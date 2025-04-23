@@ -24,16 +24,18 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct
   else if (s->source_id == GKYL_PROJ_ADAPT_DENSITY_SOURCE) {
     src->rescale_m0 = true; 
     src->scale_m0 = mkarr(app->use_gpu, app->confBasis.num_basis, s->local_ext.volume);
+    struct gkyl_mom_vlasov_sr_auxfields sr_inp = { .gamma = s->gamma, 
+      .vmap = s->vmap, .jacob_vel_inv = s->jacob_vel_inv };
     if (s->info.source.upper_half) {
       src->m0_reduced = gkyl_dg_updater_moment_new(&s->grid, &app->confBasis, 
         &app->basis, &app->local, &s->local_vel, &s->local,
-        s->model_id, s->use_vmap, s->info.source.v_thresh, 0, 
+        s->model_id, s->use_vmap, s->info.source.v_thresh, &sr_inp, 
         "M0_upper", false, app->use_gpu);
     }
     else {
       src->m0_reduced = gkyl_dg_updater_moment_new(&s->grid, &app->confBasis, 
         &app->basis, &app->local, &s->local_vel, &s->local,
-        s->model_id, s->use_vmap, s->info.source.v_thresh, 0, 
+        s->model_id, s->use_vmap, s->info.source.v_thresh, &sr_inp, 
         "M0_lower", false, app->use_gpu);
     }
   }
