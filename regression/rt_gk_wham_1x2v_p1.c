@@ -633,6 +633,7 @@ int main(int argc, char **argv)
       .self_nu = evalNuElc,
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
+      .write_diagnostics = true,
     },
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
@@ -685,6 +686,7 @@ int main(int argc, char **argv)
       .self_nu = evalNuIon,
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
+      .write_diagnostics = true,
     },
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
