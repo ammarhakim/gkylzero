@@ -26,7 +26,7 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct
     src->source_species = vm_find_species(app, s->info.source.source_species);
     src->source_species_idx = vm_find_species_idx(app, s->info.source.source_species);    
     src->rescale_m0 = true; 
-    src->scale_m0 = mkarr(app->use_gpu, app->confBasis.num_basis, s->local_ext.volume);
+    src->scale_m0 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     struct gkyl_mom_vlasov_sr_auxfields sr_inp = { .gamma = s->gamma, 
       .vmap = s->vmap, .jacob_vel_inv = s->jacob_vel_inv };
     if (s->info.source.upper_half) {
