@@ -459,6 +459,7 @@ main(int argc, char **argv)
 
     .source = {
       .source_id = GKYL_PROJ_ADAPT_DENSITY_SOURCE,
+      .write_source = true, 
       .source_species = { "pos" }, 
       .v_thresh = 10.0, // threshold velocity for partial moment
       .upper_half = true, // is the integral over the upper-half plane?
@@ -519,6 +520,7 @@ main(int argc, char **argv)
 
     .source = {
       .source_id = GKYL_PROJ_ADAPT_DENSITY_SOURCE,
+      .write_source = true, 
       .source_species = { "elc" }, 
       .v_thresh = 10.0, // threshold velocity for partial moment
       .upper_half = true, // is the integral over the upper-half plane?

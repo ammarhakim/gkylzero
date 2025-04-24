@@ -860,6 +860,16 @@ gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
           }
           gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
             mt, vm_s->src.moms[m].marr_host, fileNm_source); 
+
+          // Write out the adaptive density 
+          if (vm_s->source_id == GKYL_PROJ_ADAPT_DENSITY_SOURCE) {
+            const char *fmt_source_M0 = "%s-%s_source_M0_adapt_%d.gkyl";
+            int sz_source_M0 = gkyl_calc_strlen(fmt, app->name, vm_s->info.name, frame);
+            char fileNm_source_M0[sz_source_M0+1]; // ensures no buffer overflow
+            snprintf(fileNm_source_M0, sizeof fileNm_source_M0, fmt_source_M0, app->name, vm_s->info.name, frame);
+            gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
+              mt, vm_s->src.scale_m0, fileNm_source_M0); 
+          }
         }
       }
     }
