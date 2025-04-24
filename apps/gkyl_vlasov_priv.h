@@ -344,8 +344,13 @@ struct vm_source {
   int source_species_idx; // index of source species
 
   bool rescale_m0; // boolean for if we are rescaling M0 
-  struct gkyl_array *scale_m0; // Time-dependent re-scaling of the density of the source. 
-  struct gkyl_dg_updater_moment *m0_reduced; // Reduced density update for rescaling source. 
+  int num_cross_source; // how many other species are we obtaining sources from?
+  struct vm_species *adapt_source_species[GKYL_MAX_SPECIES]; // list of species to use for the source
+  int adapt_source_species_idx[GKYL_MAX_SPECIES]; // list of indices of source species
+  struct gkyl_array *scale_m0[GKYL_MAX_SPECIES]; // Time-dependent re-scaling of the density of the source. 
+  struct gkyl_dg_updater_moment *m0_reduced[GKYL_MAX_SPECIES]; // Reduced density update for rescaling source. 
+  struct gkyl_array *adapt_source[GKYL_MAX_SPECIES]; // adaptive source array
+  int adapt_proj_source[GKYL_MAX_SPECIES]; // Index of projection function to use for adaptive source. 
 
   struct gkyl_array *source; // applied source
   struct gkyl_array *source_host; // host copy for use in IO 
@@ -1265,6 +1270,18 @@ void vm_species_source_calc(gkyl_vlasov_app *app, const struct vm_species *speci
   struct vm_source *src, double tm);
 
 /**
+ * Compute density re-scaling for adaptive sourcing. 
+ *
+ * @param app Vlasov app object
+ * @param species Species object
+ * @param src Pointer to source
+ * @param fin Input distribution function
+ * @param tm Time for use in source
+ */
+void vm_species_source_adapt_moms(gkyl_vlasov_app *app, const struct vm_species *species, 
+  struct vm_source *src, const struct gkyl_array *fin, double tm);
+
+/**
  * Adapt source based on density re-scaling. 
  *
  * @param app Vlasov app object
@@ -1274,7 +1291,7 @@ void vm_species_source_calc(gkyl_vlasov_app *app, const struct vm_species *speci
  * @param tm Time for use in source
  */
 void vm_species_source_adapt(gkyl_vlasov_app *app, const struct vm_species *species, 
-  struct vm_source *src, const struct gkyl_array *fin[], double tm);
+  struct vm_source *src);
 
 /**
  * Compute RHS contribution from source

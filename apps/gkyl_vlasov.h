@@ -102,10 +102,15 @@ struct gkyl_vlasov_source {
   double source_length; // required for boundary flux source
   char source_species[128];
   
-  // sources using projection routine
-  double v_thresh; // Threshold velocity if re-scaling density based on partial moments.
-  bool upper_half; // Are you using the upper-half or lower-half plane for partial moments?
+  // Sources using projection routine. 
   struct gkyl_vlasov_projection projection[GKYL_MAX_PROJ];
+  
+  // Adaptive source input parameters. 
+  int num_cross_source; // number of species to cross-collide with
+  char source_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
+  double source_with_v_thresh[GKYL_MAX_SPECIES]; // Threshold velocity if re-scaling density based on partial moments.
+  bool source_with_upper_half[GKYL_MAX_SPECIES]; // Are you using the upper-half or lower-half plane for partial moments?
+  int source_with_proj[GKYL_MAX_SPECIES]; // Which projection function is being used with this adaptive source?
 };
 
 // Parameters for boundary conditions

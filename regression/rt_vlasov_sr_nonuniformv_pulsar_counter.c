@@ -460,9 +460,13 @@ main(int argc, char **argv)
     .source = {
       .source_id = GKYL_PROJ_ADAPT_DENSITY_SOURCE,
       .write_source = true, 
-      .source_species = { "pos" }, 
-      .v_thresh = 10.0, // threshold velocity for partial moment
-      .upper_half = true, // is the integral over the upper-half plane?
+
+      .num_cross_source = 1, 
+      .source_with = { "pos" }, 
+      .source_with_v_thresh = { 10.0 }, // threshold velocity for partial moment
+      .source_with_upper_half = { true }, // is the integral over the upper-half plane?
+      .source_with_proj = { 0 }, 
+
       .num_sources = 1, 
       .projection[0] = {
       .proj_id = GKYL_PROJ_VLASOV_LTE,
@@ -521,9 +525,13 @@ main(int argc, char **argv)
     .source = {
       .source_id = GKYL_PROJ_ADAPT_DENSITY_SOURCE,
       .write_source = true, 
-      .source_species = { "elc" }, 
-      .v_thresh = 10.0, // threshold velocity for partial moment
-      .upper_half = true, // is the integral over the upper-half plane?
+
+      .num_cross_source = 1, 
+      .source_with = { "elc" }, 
+      .source_with_v_thresh = { 10.0 }, // threshold velocity for partial moment
+      .source_with_upper_half = { true }, // is the integral over the upper-half plane?
+      .source_with_proj = { 0 }, 
+
       .num_sources = 1, 
       .projection[0] = {
       .proj_id = GKYL_PROJ_VLASOV_LTE,

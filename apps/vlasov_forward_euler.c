@@ -75,10 +75,15 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   // bflux calculation of the source species
   for (int i=0; i<app->num_species; ++i) {
     if (app->species[i].source_id) {
+      vm_species_source_adapt_moms(app, &app->species[i], &app->species[i].src, fin[i], tcurr); 
+    }
+  }
+  for (int i=0; i<app->num_species; ++i) {
+    if (app->species[i].source_id) {
       if (app->species[i].src.source_evolve) {
         vm_species_source_calc(app, &app->species[i], &app->species[i].src, tcurr);
       }
-      vm_species_source_adapt(app, &app->species[i], &app->species[i].src, fin, tcurr); 
+      vm_species_source_adapt(app, &app->species[i], &app->species[i].src); 
       vm_species_source_rhs(app, &app->species[i], &app->species[i].src, fin, fout);
     }
   }

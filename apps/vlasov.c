@@ -868,7 +868,7 @@ gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
             char fileNm_source_M0[sz_source_M0+1]; // ensures no buffer overflow
             snprintf(fileNm_source_M0, sizeof fileNm_source_M0, fmt_source_M0, app->name, vm_s->info.name, frame);
             gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
-              mt, vm_s->src.scale_m0, fileNm_source_M0); 
+              mt, vm_s->src.scale_m0[0], fileNm_source_M0); 
           }
         }
       }
