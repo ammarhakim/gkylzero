@@ -423,17 +423,24 @@ void bc_shift_func_lo(double t, const double *xc, double* GKYL_RESTRICT fout, vo
   double r0 = app->r0;
   double q0 = app->q0;
   double a_mid = app->a_mid;
-  double R_axis = app->R_axis;
   double Lz = app->Lz;
   double r = r_x(x,a_mid);
 
-  fout[0] = -r0/q0*qprofile(r,R_axis)*Lz;
+  fout[0] = -r0/q0*alpha(r, -Lz/2, 0.0, ctx);
 }
 
 void bc_shift_func_up(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
-  bc_shift_func_lo(t, xc, fout, ctx);
-  fout[0] *= -1;
+  double x = xc[0];
+
+  struct gk_app_ctx *app = ctx;
+  double r0 = app->r0;
+  double q0 = app->q0;
+  double a_mid = app->a_mid;
+  double Lz = app->Lz;
+  double r = r_x(x,a_mid);
+
+  fout[0] = -r0/q0*alpha(r, Lz/2, 0.0, ctx);
 }
 
 struct gk_app_ctx
