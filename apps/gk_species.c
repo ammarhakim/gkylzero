@@ -359,6 +359,7 @@ gk_species_apply_pos_shift(gkyl_gyrokinetic_app* app, struct gk_species *gks)
 static void
 gk_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
+  gks->write_cfl_func(app, gks, tm, frame);
   struct timespec wst = gkyl_wall_clock();
   struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
       .frame = frame,
@@ -391,7 +392,7 @@ gk_species_write_static(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
 }
 
 static void
-gk_species_write_cfl_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
+gk_species_write_cfl_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
   struct timespec wst = gkyl_wall_clock();
   struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
@@ -417,7 +418,7 @@ gk_species_write_cfl_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, 
 }
 
 static void
-gk_species_write_cfl_static(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
+gk_species_write_cfl_disabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
   // do nothing
 }
@@ -734,6 +735,9 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
   gkyl_array_release(s->bc_buffer_lo_fixed);
   gkyl_array_release(s->bc_buffer_up_fixed);
 
+  if (s->write_cfl_func) {
+    gkyl_array_release(s->cflrate_ho);
+  }
   if (s->lbo.collision_id == GKYL_LBO_COLLISIONS) {
     gk_species_lbo_release(app, &s->lbo);
   }
@@ -869,7 +873,6 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
 
   // Allocate cflrate (scalar array).
   gks->cflrate = mkarr(app->use_gpu, 1, gks->local_ext.volume);
-  gks->cflrate_ho = mkarr(false, 1, gks->local_ext.volume);
 
   if (app->use_gpu) {
     gks->omega_cfl = gkyl_cu_malloc(sizeof(double));
@@ -1189,10 +1192,12 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
   else
     gks->apply_pos_shift_func = gk_species_apply_pos_shift_disabled;
   gks->write_func = gk_species_write_dynamic;
-  if (gks->info.cfl_dt_diagnostic)
-    gks->write_cfl_func = gk_species_write_cfl_dynamic;
+  if (gks->info.write_omega_cfl) {
+    gks->cflrate_ho = mkarr(false, gks->cflrate->ncomp, gks->cflrate->size);
+    gks->write_cfl_func = gk_species_write_cfl_enabled;
+  }
   else 
-    gks->write_cfl_func = gk_species_write_cfl_static;
+    gks->write_cfl_func = gk_species_write_cfl_disabled;
   gks->write_mom_func = gk_species_write_mom_dynamic;
   gks->calc_integrated_mom_func = gk_species_calc_integrated_mom_dynamic;
   gks->write_integrated_mom_func = gk_species_write_integrated_mom_dynamic;
@@ -1931,10 +1936,8 @@ gk_species_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, i
   if (frame == 0) {
     gk_species_write_dynamic(app, gks, tm, frame);
   }
-  else {
+  else
     gks->write_func(app, gks, tm, frame);
-    gks->write_cfl_func(app, gks, tm, frame);
-  }
 }
 
 void

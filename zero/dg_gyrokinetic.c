@@ -68,8 +68,10 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
   gyrokinetic->charge = charge;
   gyrokinetic->mass = mass;
 
-  gyrokinetic->skip_cells = (skip_cell_threshold > 0.0);
-  gyrokinetic->skip_cells_mag = skip_cell_threshold;
+  if (skip_cell_threshold > 0.0)
+    gyrokinetic->skip_cell_thresh = skip_cell_threshold;
+  else
+    gyrokinetic->skip_cell_thresh = -1.0;
 
   gyrokinetic->eqn.num_equations = 1;
   gyrokinetic->eqn.surf_term = surf;

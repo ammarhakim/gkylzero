@@ -651,7 +651,7 @@ int main(int argc, char **argv)
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
     },
-    .cfl_dt_diagnostic = true,
+    .write_omega_cfl = true,
     .num_diag_moments = 8,
     .diag_moments = {"BiMaxwellianMoments", "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
   };
@@ -703,7 +703,7 @@ int main(int argc, char **argv)
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
     },
-    .cfl_dt_diagnostic = true,
+    .write_omega_cfl = true,
     .num_diag_moments = 8,
     .diag_moments = {"BiMaxwellianMoments", "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
   };
