@@ -606,7 +606,7 @@ struct gk_adapt_source {
   struct gkyl_range *range_mom; // Range of computation of the moment (SOL phase space ghost).
   struct gkyl_range *range_conf; // Range of integration in each boundary (SOL config space ghost).
 
-  struct gk_species_moment integ_mom; // Integrated moment updater.
+  struct gk_species_moment integ_threemoms; // Integrated moment updater.
   double *red_integ_mom, *red_integ_mom_global; // For reduction.
 
   double particle_src_curr, energy_src_curr; // current injection rates of the source.
