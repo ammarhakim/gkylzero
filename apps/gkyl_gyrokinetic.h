@@ -103,6 +103,7 @@ struct gkyl_gyrokinetic_diffusion {
 struct gkyl_gyrokinetic_adapt_source {
   bool adapt_particle; // Whether to adapt the particle source.
   bool adapt_energy; // Whether to adapt the energy source.
+  char adapt_species_name[16]; // Species to adapt the particle loss to ensure quasi neutrality.
   int num_boundaries; // Number of boundaries to adapt.
   int dir[6]; // Direction to adapt.
   enum gkyl_edge_loc edge[6]; // Edge to adapt.

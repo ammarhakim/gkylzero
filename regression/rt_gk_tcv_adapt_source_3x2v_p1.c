@@ -336,6 +336,7 @@ main(int argc, char **argv)
       },
       .num_adapt_sources = ctx.num_sources,
       .adapt[0] = {
+        .adapt_species_name = "ion",
         .adapt_particle = ctx.adapt_particle_srcCORE,
         .adapt_energy = ctx.adapt_energy_srcCORE,
         .num_boundaries = 1,
@@ -343,6 +344,7 @@ main(int argc, char **argv)
         .edge = {GKYL_LOWER_EDGE, GKYL_UPPER_EDGE, GKYL_LOWER_EDGE, GKYL_UPPER_EDGE},
       },
       .adapt[1] = {
+        .adapt_species_name = "ion",
         .adapt_particle = ctx.adapt_particle_srcRECY,
         .adapt_energy = ctx.adapt_energy_srcRECY,
         .num_boundaries = 3,
@@ -448,6 +450,7 @@ main(int argc, char **argv)
       },
       .num_adapt_sources = ctx.num_sources,
       .adapt[0] = {
+        .adapt_species_name = "ion",
         .adapt_particle = ctx.adapt_particle_srcCORE,
         .adapt_energy = ctx.adapt_energy_srcCORE,
         .num_boundaries = 1,
@@ -455,6 +458,7 @@ main(int argc, char **argv)
         .edge = {GKYL_LOWER_EDGE, GKYL_UPPER_EDGE, GKYL_LOWER_EDGE, GKYL_UPPER_EDGE},
       },
       .adapt[1] = {
+        .adapt_species_name = "ion",
         .adapt_particle = ctx.adapt_particle_srcRECY,
         .adapt_energy = ctx.adapt_energy_srcRECY,
         .num_boundaries = 3,

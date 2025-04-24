@@ -64,6 +64,8 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
         adapt_src->adapt_particle = s->info.source.adapt[k].adapt_particle;
         adapt_src->adapt_energy = s->info.source.adapt[k].adapt_energy;
 
+        adapt_src->adapt_species = gk_find_species(app, s->info.source.adapt[k].adapt_species_name);
+
         adapt_src->particle_src_curr = s->info.source.projection[k].particle;
         adapt_src->energy_src_curr = s->info.source.projection[k].energy;
         // The temperature computation makes sense only if we inject particles
@@ -140,9 +142,10 @@ gk_species_source_calc(gkyl_gyrokinetic_app *app, struct gk_species *s,
 void
 gk_species_source_adapt(gkyl_gyrokinetic_app *app, struct gk_species *s, 
   struct gk_source *src, double tm) {  
-  // loop over all adaptive sources.
+
   for (int k=0; k < s->info.source.num_adapt_sources; ++k) {
     struct gk_adapt_source *adapt_src = &src->adapt[k];
+    struct gk_species *s_adapt = adapt_src->adapt_species;
 
     adapt_src->particle_rate_loss = 0.0;
     adapt_src->energy_rate_loss = 0.0;
@@ -151,7 +154,7 @@ gk_species_source_adapt(gkyl_gyrokinetic_app *app, struct gk_species *s,
     for (int j=0; j < adapt_src->num_boundaries; ++j) {
 
       // Compute the moment of the bflux to get the integrated loss.
-      gk_species_bflux_get_flux(&s->bflux, adapt_src->dir[j], adapt_src->edge[j], src->source, &adapt_src->range_bflux[j]);
+      gk_species_bflux_get_flux(&s_adapt->bflux, adapt_src->dir[j], adapt_src->edge[j], src->source, &adapt_src->range_bflux[j]);
       gk_species_moment_calc(&adapt_src->integ_mom, adapt_src->range_mom[j], adapt_src->range_conf[j], src->source);
       app->stat.n_mom += 1;
       
@@ -166,7 +169,7 @@ gk_species_source_adapt(gkyl_gyrokinetic_app *app, struct gk_species *s,
         memcpy(red_int_mom_global, adapt_src->red_integ_mom_global, sizeof(double[num_mom]));
       }
       adapt_src->particle_rate_loss += red_int_mom_global[0]; // n
-      adapt_src->energy_rate_loss += 0.5 * s->info.mass * red_int_mom_global[num_mom-1]; // 1/2 * m * v^2
+      adapt_src->energy_rate_loss += 0.5 * s_adapt->info.mass * red_int_mom_global[num_mom-1]; // 1/2 * m * v^2
     }
 
     // Particle and energy rate update.
