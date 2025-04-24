@@ -954,27 +954,25 @@ void bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx
   fout[0] = sqrt(Bt*Bt + Bp*Bp);
 }
 
-// Taken from rt gk d3d 3x2v
 void bc_shift_func_lo(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
   double x = xc[0];
   struct gk_app_ctx *app = ctx;
-  double r0 = app->r0;
-  double q0 = app->q0;
-  double a_mid = app->a_mid;
-  double Lz = app->Lz;
-  double x_inner = app->x_inner;
-  double r = r_x(x,a_mid,x_inner);
-  double R_axis = app->R_axis;
-  fout[0] = -r0/q0*qprofile(r,R_axis)*Lz/2.0;
+  double r = r_x(x,app->a_mid);
+
+  fout[0] = -app->r0/app->q0*alpha(r, -app->Lz/2.0, 0.0, ctx);
 }
 
 void bc_shift_func_up(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
-  bc_shift_func_lo(t, xc, fout, ctx);
-  fout[0] *= -1;
-}
+  double x = xc[0];
 
+  double x = xc[0];
+  struct gk_app_ctx *app = ctx;
+  double r = r_x(x,app->a_mid);
+
+  fout[0] = -app->r0/app->q0*alpha(r, -app->Lz/2.0, 0.0, ctx);
+}
 
 void
 calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr, bool force_calc)
