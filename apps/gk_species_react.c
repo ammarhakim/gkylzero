@@ -430,7 +430,7 @@ void
 gk_species_react_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct gk_react *gkr,
   int ridx, double tm, int frame)
 {
-  if (gkr->type_self[ridx] == GKYL_SELF_ELC) {
+  if (gkr->type_self[ridx] == GKYL_SELF_ION) {
     struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
         .frame = frame,
         .stime = tm,
