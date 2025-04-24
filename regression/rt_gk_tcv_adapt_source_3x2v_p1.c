@@ -969,7 +969,7 @@ void bc_shift_func_lo(double t, const double *xc, double* GKYL_RESTRICT fout, vo
 {
   double x = xc[0];
   struct gk_app_ctx *app = ctx;
-  double r = r_x(x,app->a_mid);
+  double r = r_x(x, app->a_mid, app->x_inner);
 
   fout[0] = -app->r0/app->q0*alpha(r, -app->Lz/2.0, 0.0, ctx);
 }
@@ -977,10 +977,8 @@ void bc_shift_func_lo(double t, const double *xc, double* GKYL_RESTRICT fout, vo
 void bc_shift_func_up(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
   double x = xc[0];
-
-  double x = xc[0];
   struct gk_app_ctx *app = ctx;
-  double r = r_x(x,app->a_mid);
+  double r = r_x(x, app->a_mid, app->x_inner);
 
   fout[0] = -app->r0/app->q0*alpha(r, -app->Lz/2.0, 0.0, ctx);
 }
