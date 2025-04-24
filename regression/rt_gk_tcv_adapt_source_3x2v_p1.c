@@ -705,12 +705,19 @@ double r_x(double x, double a_mid, double x_inner)
   return x+a_mid-x_inner;
 }
 
-double qprofile(double r, double R_axis) 
-{
-  // Magnetic safety factor as a function of minor radius r.
-  double a[4] = {484.0615913225881, -1378.25993228584, 1309.3099150729233, 
-    -414.13270311478726};
-  return a[0]*pow(r+R_axis,3.0) + a[1]*pow(r+R_axis,2.0) + a[2]*(r+R_axis) + a[3];
+// 8 interval piecewise linear fit of the experimental q-profile for TCV NT
+double qprofile(double r, double R_axis) {
+  double R = r + R_axis;
+  double q = 0.0;
+  if (R <= 1.0747973082573) q = 21.528778497046 * R + -21.171953767196;
+  if (R >= 1.0747973082573 && R <= 1.0897973082573) q = 27.005109113043 * R + -27.057899172396;
+  if (R >= 1.0897973082573 && R <= 1.1047973082573) q = 33.134922877298 * R + -33.7381537128;
+  if (R >= 1.1047973082573 && R <= 1.1197973082573) q = 39.918219789934 * R + -41.23232188299;
+  if (R >= 1.1197973082573 && R <= 1.1347973082573) q = 47.354999850752 * R + -49.560008177196;
+  if (R >= 1.1347973082573 && R <= 1.1497973082573) q = 55.445263059922 * R + -58.740817090056;
+  if (R >= 1.1497973082573 && R <= 1.1647973082573) q = 64.189009417395 * R + -68.794353115963;
+  if (R >= 1.1647973082573) q = 73.586238923069 * R + -79.740220749248;
+  return q;
 }
 
 double R_rtheta(double r, double theta, void *ctx)
