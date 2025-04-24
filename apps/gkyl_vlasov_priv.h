@@ -1265,6 +1265,18 @@ void vm_species_source_calc(gkyl_vlasov_app *app, const struct vm_species *speci
   struct vm_source *src, double tm);
 
 /**
+ * Adapt source based on density re-scaling. 
+ *
+ * @param app Vlasov app object
+ * @param species Species object
+ * @param src Pointer to source
+ * @param fin Input distribution function
+ * @param tm Time for use in source
+ */
+void vm_species_source_adapt(gkyl_vlasov_app *app, const struct vm_species *species, 
+  struct vm_source *src, const struct gkyl_array *fin[], double tm);
+
+/**
  * Compute RHS contribution from source
  *
  * @param app Vlasov app object

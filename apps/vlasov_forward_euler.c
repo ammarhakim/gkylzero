@@ -78,6 +78,7 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
       if (app->species[i].src.source_evolve) {
         vm_species_source_calc(app, &app->species[i], &app->species[i].src, tcurr);
       }
+      vm_species_source_adapt(app, &app->species[i], &app->species[i].src, fin, tcurr); 
       vm_species_source_rhs(app, &app->species[i], &app->species[i].src, fin, fout);
     }
   }

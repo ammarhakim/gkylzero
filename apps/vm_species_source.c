@@ -22,6 +22,9 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct
     }
   }
   else if (s->source_id == GKYL_PROJ_ADAPT_DENSITY_SOURCE) {
+    assert(s->info.source.source_species);
+    src->source_species = vm_find_species(app, s->info.source.source_species);
+    src->source_species_idx = vm_find_species_idx(app, s->info.source.source_species);    
     src->rescale_m0 = true; 
     src->scale_m0 = mkarr(app->use_gpu, app->confBasis.num_basis, s->local_ext.volume);
     struct gkyl_mom_vlasov_sr_auxfields sr_inp = { .gamma = s->gamma, 
@@ -57,7 +60,10 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct
   }
 
   // Allocate temporary variable for accumulating multiple sources if multiple sources present
-  if (src->num_sources > 1) {
+  // We also have multiple sources if we are adapting the density, as we need to insure 
+  // quasi-neutrality with the source and thus that the sources for each species are 
+  // correctly accumulated. 
+  if (src->num_sources > 1 || s->source_id == GKYL_PROJ_ADAPT_DENSITY_SOURCE) {
     src->source_tmp = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
   }
 
@@ -101,16 +107,44 @@ vm_species_source_calc(gkyl_vlasov_app *app, const struct vm_species *s,
   }
 }
 
+void
+vm_species_source_adapt(gkyl_vlasov_app *app, const struct vm_species *species, 
+  struct vm_source *src, const struct gkyl_array *fin[], double tm)
+{
+  int species_idx;
+  species_idx = vm_find_species_idx(app, species->info.name);  
+  if (species->source_id == GKYL_PROJ_ADAPT_DENSITY_SOURCE) {
+    gkyl_array_clear(src->source, 0.0);
+    // If we are adapting the source, we need to recompute the source every time step 
+    // to correctly account for how every species contributes to the adaptation of 
+    // each source, such as in the case where energetic electrons produce both 
+    // electrons and positrons and these high energies can either be positive velocity 
+    // or negative velocity particles (which affects both how the source is adapted 
+    // and the resulting source distribution's drift velocity). 
+    for (int k=0; k<src->num_sources; k++) {
+      // First compute the adaptive source from self-sourcing. 
+      vm_species_projection_calc(app, species, &src->proj_source[k], src->source_tmp, tm);
+      gkyl_dg_updater_moment_advance(src->m0_reduced, 
+        &species->local, &app->local, fin[species_idx], src->scale_m0);
+      gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, src->source_tmp, 
+        src->scale_m0, src->source_tmp, &app->local, &species->local); 
+      gkyl_array_accumulate(src->source, 1.0, src->source_tmp);
+
+      // Next compute the adaptive source from the partner species. 
+      gkyl_dg_updater_moment_advance(src->source_species->src.m0_reduced, 
+        &src->source_species->local, &app->local, fin[src->source_species_idx], src->scale_m0);
+      gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, src->source_tmp, 
+        src->scale_m0, src->source_tmp, &app->local, &species->local); 
+      gkyl_array_accumulate(src->source, 1.0, src->source_tmp);
+    } 
+  }
+}
+
 // computes rhs of the boundary flux
 void
 vm_species_source_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
   struct vm_source *src, const struct gkyl_array *fin[], struct gkyl_array *rhs[])
 {
-  // Recompute the source if the source is time-dependent
-  if (src->source_evolve) {
-    vm_species_source_calc(app, species, src, app->tcurr);
-  }
-
   int species_idx;
   species_idx = vm_find_species_idx(app, species->info.name);
   // use boundary fluxes to scale source profile
@@ -141,12 +175,6 @@ vm_species_source_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
       src->scale_factor += red_mom_global[0];
     }
     src->scale_factor = src->scale_factor/src->source_length;
-  }
-  else if (species->source_id == GKYL_PROJ_ADAPT_DENSITY_SOURCE) {
-    gkyl_dg_updater_moment_advance(src->m0_reduced, 
-      &species->local, &app->local, fin[species_idx], src->scale_m0);
-    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, src->source, 
-      src->scale_m0, src->source, &app->local, &species->local);    
   }
   gkyl_array_accumulate(rhs[species_idx], src->scale_factor, src->source);
 }
