@@ -9,6 +9,7 @@ struct arc_length_ctx {
   double psi, rclose, zmin, zmax, arcL;
   double arcL_tot; // total arc length
   double zmaxis;
+  enum gkyl_mirror_geo_type ftype; // type of geometry
 };
 
 

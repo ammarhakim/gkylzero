@@ -56,7 +56,7 @@ gk_geometry_tok_surf_release_nodal(struct gk_geometry* gk_geom, int dir)
 }
 
 void
-gk_geometry_surf_calc_expansions(struct gk_geometry* gk_geom, int dir, 
+gk_geometry_tok_surf_calc_expansions(struct gk_geometry* gk_geom, int dir, 
   struct gkyl_range nrange_quad_surf)
 {
   struct gk_geom_surf up_surf = gk_geom->geo_surf[dir];
@@ -220,7 +220,7 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   gkyl_calc_metric_release(mcalc);
   // Calculate surface expansions
   for (int dir = 0; dir <up->grid.ndim; dir++)
-    gk_geometry_surf_calc_expansions(up, dir, nrange_quad_surf[dir]);
+    gk_geometry_tok_surf_calc_expansions(up, dir, nrange_quad_surf[dir]);
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);

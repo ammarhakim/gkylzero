@@ -24,6 +24,15 @@ struct gkyl_mirror_geo_stat {
 
 typedef   void (*plate_func)(double s, double* RZ);
 
+
+// Type of flux surface
+enum gkyl_mirror_geo_type {
+  // Normal annular simulation
+  GKYL_MIRROR_ANNULAR,
+  // Simulation with the inner node at R=0
+  GKYL_MIRROR_INNER_NODE,
+};  
+
 struct gkyl_mirror_geo {
   struct gkyl_efit* efit;
 
@@ -80,6 +89,7 @@ struct gkyl_mirror_geo {
 struct gkyl_mirror_geo_grid_inp {
   struct gkyl_rect_grid cgrid;
   struct gkyl_basis cbasis;
+  enum gkyl_mirror_geo_type ftype; // type of geometry
 
   double rclose; // closest R to discrimate
   double rright; // closest R to discrimate
@@ -156,6 +166,26 @@ double gkyl_mirror_geo_integrate_psi_contour(const struct gkyl_mirror_geo *geo, 
  * output array must be pre-allocated by the caller.
  *
  * @param up gk_geometry object
+ * @param nrange range of computational grid
+ * @param geo gkyl_mirror_geo object with efit dats and root finder specs 
+ * @param inp mirror_geo_grid_inp Input structure for creating mapc2p
+ * @param mc2p_nodal output nodal mapc2p field R,Z,phi)
+ * @param mc2p On output, the DG representation of mapc2p ((R,Z,phi)
+ * @param mc2nu_nodal output nodal field containing the non-uniform mapping
+ * @param mc2nu_pos output DG field containing the non-uniform mapping
+ * @param position_map position map object
+ */
+void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, 
+  struct gkyl_mirror_geo* geo, struct gkyl_mirror_geo_grid_inp *inp, 
+  struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, 
+  struct gkyl_array *mc2nu_nodal, struct gkyl_array *mc2nu_pos,
+  struct gkyl_position_map *position_map);
+
+/**
+ * Compute geometry (mapc2p) on a specified computational grid. The
+ * output array must be pre-allocated by the caller.
+ *
+ * @param up gk_geometry object
  * @param nodal range of computational grid
  * @param dzc grid spacing of nodal range
  * @param geo gkyl_mirror_geo object with efit dats and root finder specs 
@@ -164,15 +194,40 @@ double gkyl_mirror_geo_integrate_psi_contour(const struct gkyl_mirror_geo *geo, 
  *  and nodes epsilon away to be used for FD
  * @param mc2p_nodal output nodal mapc2p field R,Z,phi)
  * @param mc2p On output, the DG representation of mapc2p ((R,Z,phi)
- * @param ddtheta_nodal output nodal field containing dR/dtheta, dZ/dtheta, and dphi/dtheta = s(psi)/R|grad(psi)|, 
+ * @param ddtheta_nodal output nodal field containing dphi/dtheta = s(psi)/R|grad(psi)|, dR/dtheta and dZ/dtheta
  * @param mc2nu_pos_nodal output nodal field containing the non-uniform mapping
  * @param mc2nu_pos output DG field containing the non-uniform mapping
  * @param position_map position map object
  */
-void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
-  struct gkyl_mirror_geo *geo, struct gkyl_mirror_geo_grid_inp *inp,
-  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, struct gkyl_array *ddtheta_nodal,
-  struct gkyl_array *mc2nu_pos_nodal, struct gkyl_array *mc2nu_pos, struct gkyl_position_map *position_map);
+void gkyl_mirror_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
+  struct gkyl_mirror_geo* geo, struct gkyl_mirror_geo_grid_inp *inp, 
+  struct gkyl_array *mc2p_nodal_quad, struct gkyl_array *mc2p_quad, struct gkyl_array *mc2p_nodal_fd,
+  struct gkyl_array *ddtheta_nodal,
+  struct gkyl_position_map *position_map);
+
+/**
+ * Compute geometry (mapc2p) on a specified computational grid. The
+ * output array must be pre-allocated by the caller.
+ *
+ * @param up gk_geometry object
+ * @param nodal range of computational grid
+ * @param dzc grid spacing of nodal range
+ * @param geo gkyl_mirror_geo object with efit dats and root finder specs 
+ * @param inp mirror_geo_grid_inp Input structure for creating mapc2p
+ * @param mc2p_nodal_fd output nodal field to be filled with R,Z,phi at grid nodes
+ *  and nodes epsilon away to be used for FD
+ * @param mc2p_nodal output nodal mapc2p field R,Z,phi)
+ * @param mc2p On output, the DG representation of mapc2p ((R,Z,phi)
+ * @param ddtheta_nodal output nodal field containing dphi/dtheta = s(psi)/R|grad(psi)|, dR/dtheta and dZ/dtheta
+ * @param mc2nu_pos_nodal output nodal field containing the non-uniform mapping
+ * @param mc2nu_pos output DG field containing the non-uniform mapping
+ * @param position_map position map object
+ */
+void gkyl_mirror_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_range *nrange, double dzc[3], 
+  struct gkyl_mirror_geo* geo, struct gkyl_mirror_geo_grid_inp *inp, 
+  struct gkyl_array *mc2p_nodal_quad, struct gkyl_array *mc2p_nodal_fd,
+  struct gkyl_array *ddtheta_nodal, struct gkyl_array *bmag_nodal,
+  struct gkyl_position_map *position_map);
 
 /**
  * Return cumulative statistics from geometry computations
