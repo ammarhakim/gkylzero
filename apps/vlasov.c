@@ -732,7 +732,7 @@ gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int fra
         gkyl_array_copy(vm_s->src.source_host, vm_s->src.source);
       }
       gkyl_comm_array_write(vm_s->comm, &vm_s->grid, &vm_s->local, 
-        mt, vm_s->src.source_host, fileNm); 
+        mt, vm_s->src.source_host, fileNm_source); 
     }
   }
 
@@ -907,7 +907,7 @@ gkyl_vlasov_app_write_integrated_mom(gkyl_vlasov_app *app)
         if (vm_s->src.write_source) { 
           // write out integrated diagnostic moments from sources
           const char *fmt_source = "%s-%s-source-%s.gkyl";
-          int sz_source = gkyl_calc_strlen(fmt, app->name, vm_s->info.name,
+          int sz_source = gkyl_calc_strlen(fmt_source, app->name, vm_s->info.name,
             "imom");
           char fileNm_source[sz_source+1]; // ensures no buffer overflow
           snprintf(fileNm_source, sizeof fileNm_source, fmt_source, app->name, vm_s->info.name,
