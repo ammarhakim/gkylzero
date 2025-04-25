@@ -195,6 +195,8 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
       [dir].mc2p_nodal, up->geo_surf[dir].mc2p_nodal_fd, up->geo_surf[dir].ddtheta_nodal,
       up->geo_surf[dir].bmag_nodal, geometry_inp->position_map);
   }
+  gkyl_array_release(up->mc2p);
+  up->mc2p = gkyl_array_acquire(mc2p_quad);
 
   // calculate bmag at interior nodes
   gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &up->grid, &geo->rzgrid, false);
