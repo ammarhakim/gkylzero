@@ -10,6 +10,7 @@
 #include <gkyl_util.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wave_prop.h>
+#include <gkyl_wv_euler_rgfm_priv.h>
 
 struct gkyl_wave_prop {
   struct gkyl_rect_grid grid; // grid object
@@ -518,6 +519,37 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
 
           wv->n_bad_cells += n_bad_cells;
           wv->n_max_bad_cells = wv->n_max_bad_cells >  n_bad_cells ? wv->n_max_bad_cells : n_bad_cells;
+        }
+
+        if (wv->equation->type == GKYL_EQN_EULER_RGFM) {
+          const struct gkyl_wv_eqn* eqn = wv->equation;
+          const struct wv_euler_rgfm *euler_rgfm = container_of(eqn, struct wv_euler_rgfm, eqn);
+          int num_species = euler_rgfm->num_species;
+          int reinit_freq = euler_rgfm->reinit_freq;
+      
+          for (int i = loidx_c; i<= upidx_c; i++) {
+            idxl[dir] = i;
+
+            double *qnew = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+
+            double reinit_param = qnew[4 + (2 * num_species)];
+      
+            if (reinit_param > reinit_freq) {
+              double rho_total = qnew[0];
+        
+              for (int j = 0; j < num_species - 1; j++) {
+                if (qnew[5 + j] / rho_total >= 0.5) {
+                  qnew[5 + j] = 0.99999 * rho_total;
+                }
+                else {
+                  qnew[5 + j] = 0.00001 * rho_total;
+                }
+              }
+            }
+            else {
+              qnew[4 + (2 * num_species)] += 1.0;
+            }
+          }
         }
 
         state = next_state; // change state for next sweep
