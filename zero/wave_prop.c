@@ -545,6 +545,8 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
                   qnew[5 + j] = 0.00001 * rho_total;
                 }
               }
+
+              qnew[4 + (2 * num_species)] = 0.0;
             }
             else {
               qnew[4 + (2 * num_species)] += 1.0;
