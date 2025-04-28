@@ -91,7 +91,7 @@ create_ctx(void)
   double Lx = 0.325; // Domain size (x-direction).
   double Ly = 0.089; // Domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.
-  int reinit_freq = 9; // Reinitialization frequency (for level set).
+  int reinit_freq = 3; // Reinitialization frequency (for level set).
 
   double t_end = 0.4; // Final simulation time.
   int num_frames = 100; // Number of output frames.

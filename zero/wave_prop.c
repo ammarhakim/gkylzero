@@ -527,7 +527,7 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
           int num_species = euler_rgfm->num_species;
           int reinit_freq = euler_rgfm->reinit_freq;
       
-          for (int i = loidx_c; i<= upidx_c; i++) {
+          for (int i = loidx_c; i <= upidx_c; i++) {
             idxl[dir] = i;
 
             double *qnew = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
@@ -536,14 +536,76 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
       
             if (reinit_param > reinit_freq) {
               double rho_total = qnew[0];
-        
+       
+              bool update_up = false;
+              bool update_down = false;
               for (int j = 0; j < num_species - 1; j++) {
                 if (qnew[5 + j] / rho_total >= 0.5) {
-                  qnew[5 + j] = 0.99999 * rho_total;
+                  idxl[dir] = i - 1;
+                  double *ql = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+                  idxl[dir] = i - 2;
+                  double *qll = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+                  idxl[dir] = i - 3;
+                  double *qlll = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+                  
+                  double rho_total_l = ql[0];
+                  double rho_total_ll = qll[0];
+                  double rho_total_lll = qlll[0];
+
+                  idxl[dir] = i + 1;
+                  double *qr = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+                  idxl[dir] = i + 2;
+                  double *qrr = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+                  idxl[dir] = i + 3;
+                  double *qrrr = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+                  
+                  double rho_total_r = qr[0];
+                  double rho_total_rr = qrr[0];
+                  double rho_total_rrr = qrrr[0];
+                  
+                  if (ql[5 + j] / rho_total_l < 0.5 || qll[5 + j] / rho_total_ll < 0.5 || qlll[5 + j] / rho_total_lll < 0.5 || qr[5 + j] / rho_total_r < 0.5 || qrr[5 + j] / rho_total_rr < 0.5 || qrrr[5 + j] / rho_total_rrr < 0.5)  {
+                    qnew[5 + j] = 0.99999 * rho_total;
+                    qnew[4 + num_species + j] = 0.99999 * rho_total;
+                    update_up = true;
+                  }
                 }
-                else {
-                  qnew[5 + j] = 0.00001 * rho_total;
+                
+                if (qnew[5 + j] / rho_total < 0.5) {
+                  idxl[dir] = i - 1;
+                  double *ql = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+                  idxl[dir] = i - 2;
+                  double *qll = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+                  idxl[dir] = i - 3;
+                  double *qlll = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+                  
+                  double rho_total_l = ql[0];
+                  double rho_total_ll = qll[0];
+                  double rho_total_lll = qlll[0];
+
+                  idxl[dir] = i + 1;
+                  double *qr = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+                  idxl[dir] = i + 2;
+                  double *qrr = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+                  idxl[dir] = i + 3;
+                  double *qrrr = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+                  
+                  double rho_total_r = qr[0];
+                  double rho_total_rr = qrr[0];
+                  double rho_total_rrr = qrrr[0];
+
+                  if (qr[5 + j] / rho_total_r >= 0.5 || qrr[5 + j] / rho_total_rr >= 0.5 || qrrr[5 + j] / rho_total_rrr >= 0.5 || ql[5 + j] / rho_total_l >= 0.5 || qll[5 + j] / rho_total_ll >= 0.5 || qlll[5 + j] / rho_total_lll >= 0.5) {
+                    qnew[5 + j] = 0.00001 * rho_total;
+                    qnew[4 + num_species + j] = 0.00001 * rho_total;
+                    update_down = true;
+                  }
                 }
+              }
+
+              if (update_up) {
+                qnew[3 + (2 * num_species)] = 0.00001 * rho_total;
+              }
+              if (update_down) {
+                qnew[3 + (2 * num_species)] = 0.99999 * rho_total;
               }
 
               qnew[4 + (2 * num_species)] = 0.0;
