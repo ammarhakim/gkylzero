@@ -95,6 +95,11 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
     mom_em->medium_kappa = inp.medium_kappa;
   }
 
+  mom_em->has_gr_ultra_rel_sources = inp.has_gr_ultra_rel_sources;
+  if (mom_em->has_gr_ultra_rel_sources) {
+    mom_em->gr_ultra_rel_gas_gamma = inp.gr_ultra_rel_gas_gamma;
+  }
+
   return mom_em;
 }
 

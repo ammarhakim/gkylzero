@@ -25,7 +25,7 @@ struct wv_gr_ultra_rel_euler {
 */
 GKYL_CU_D
 void
-gkyl_gr_ultra_rel_euler_flux(double gas_gamma, const double q[27], double flux[27]);
+gkyl_gr_ultra_rel_euler_flux(double gas_gamma, const double q[66], double flux[66]);
 
 /**
 * Compute primitive variables given the conserved variables.
@@ -36,7 +36,7 @@ gkyl_gr_ultra_rel_euler_flux(double gas_gamma, const double q[27], double flux[2
 */
 GKYL_CU_D
 void
-gkyl_gr_ultra_rel_euler_prim_vars(double gas_gamma, const double q[27], double v[27]);
+gkyl_gr_ultra_rel_euler_prim_vars(double gas_gamma, const double q[66], double v[66]);
 
 /**
 * Compute inverse spatial metric tensor (in covariant component form) given the conserved variables.
@@ -46,7 +46,7 @@ gkyl_gr_ultra_rel_euler_prim_vars(double gas_gamma, const double q[27], double v
 */
 GKYL_CU_D
 void
-gkyl_gr_ultra_rel_euler_inv_spatial_metric(const double q[27], double ***inv_spatial_metric);
+gkyl_gr_ultra_rel_euler_inv_spatial_metric(const double q[66], double ***inv_spatial_metric);
 
 /**
 * Compute perfect fluid stress-energy tensor (in contravariant component form) given the conserved variables.
@@ -57,7 +57,7 @@ gkyl_gr_ultra_rel_euler_inv_spatial_metric(const double q[27], double ***inv_spa
 */
 GKYL_CU_D
 void
-gkyl_gr_ultra_rel_euler_stress_energy_tensor(double gas_gamma, const double q[27], double ***stress_energy);
+gkyl_gr_ultra_rel_euler_stress_energy_tensor(double gas_gamma, const double q[66], double ***stress_energy);
 
 /**
 * Compute maximum absolute wave speed.
@@ -68,7 +68,7 @@ gkyl_gr_ultra_rel_euler_stress_energy_tensor(double gas_gamma, const double q[27
 */
 GKYL_CU_D
 static inline double
-gkyl_gr_ultra_rel_euler_max_abs_speed(double gas_gamma, const double q[27]);
+gkyl_gr_ultra_rel_euler_max_abs_speed(double gas_gamma, const double q[66]);
 
 /**
 * Compute Riemann variables given the conserved variables.
