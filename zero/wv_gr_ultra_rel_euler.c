@@ -1301,7 +1301,6 @@ gr_ultra_rel_euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, doub
 
   if (!in_excision_region) {
     double shift[3];
-
     shift[0] = shift_x; shift[1] = shift_y; shift[2] = shift_z;
 
     double vel[3];

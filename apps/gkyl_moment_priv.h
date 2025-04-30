@@ -85,6 +85,9 @@ struct moment_species {
   double medium_gas_gamma; // Adiabatic index for coupled fluid-Einstein sources in plane-symmetric spacetimes.
   double medium_kappa; // Stress-energy prefactor for coupled fluid-Einstein sources in plane-symmetric spacetimes.
 
+  bool has_gr_ultra_rel; // Run with general relativistic source terms (Euler equations, ultra-relativistic equation of state).
+  double gr_ultra_rel_gas_gamma; // Adiabatic index for general relativistic Euler equations (ultra-relativistic equation of state).
+
   void *ctx; // context for initial condition init function
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
