@@ -72,6 +72,13 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     sp->medium_kappa = mom_sp->medium_kappa;
   }
 
+  sp->has_gr_ultra_rel = false;
+  if (mom_sp->has_gr_ultra_rel) {
+    sp->has_gr_ultra_rel = true;
+
+    sp->gr_ultra_rel_gas_gamma = mom_sp->gr_ultra_rel_gas_gamma;
+  }
+
   sp->scheme_type = mom->scheme_type;
 
   // choose default limiter

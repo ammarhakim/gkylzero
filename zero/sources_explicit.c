@@ -588,30 +588,43 @@ explicit_gr_ultra_rel_source_update_euler(const gkyl_moment_em_coupling* mom_em,
     }
     double rho = p / (gas_gamma - 1.0);
 
-    double vx = momx / (Etot + p);
-    double vy = momy / (Etot + p);
-    double vz = momz / (Etot + p);
+    double cov_vx = momx / (Etot + p);
+    double cov_vy = momy / (Etot + p);
+    double cov_vz = momz / (Etot + p);
 
     if (Etot + p < pow(10.0, -8.0)) {
-      vx = momx / pow(10.0, -8.0);
-      vy = momy / pow(10.0, -8.0);
-      vz = momz / pow(10.0, -8.0);
+      cov_vx = momx / pow(10.0, -8.0);
+      cov_vy = momy / pow(10.0, -8.0);
+      cov_vz = momz / pow(10.0, -8.0);
     }
 
-    if (vx > 1.0 - pow(10.0, -8.0)) {
-      vx = 1.0 - pow(10.0, -8.0);
+    if (cov_vx > 1.0 - pow(10.0, -8.0)) {
+      cov_vx = 1.0 - pow(10.0, -8.0);
     }
-    if (vy > 1.0 - pow(10.0, -8.0)) {
-      vy = 1.0 - pow(10.0, -8.0);
+    if (cov_vy > 1.0 - pow(10.0, -8.0)) {
+      cov_vy = 1.0 - pow(10.0, -8.0);
     }
-    if (vz > 1.0 - pow(10.0, -8.0)) {
-      vz = 1.0 - pow(10.0, -8.0);
+    if (cov_vz > 1.0 - pow(10.0, -8.0)) {
+      cov_vz = 1.0 - pow(10.0, -8.0);
     }
+
+    double cov_vel[3];
+    cov_vel[0] = cov_vx; cov_vel[1] = cov_vy; cov_vel[2] = cov_vz;
 
     double vel[3];
-    double v_sq = 0.0;
-    vel[0] = vx; vel[1] = vy; vel[2] = vz;
+    for (int i = 0; i < 3; i++) {
+      vel[i] = 0.0;
 
+      for (int j = 0; j < 3; j++) {
+        vel[i] += inv_spatial_metric[i][j] * cov_vel[j];
+      }
+    }
+
+    double vx = vel[0];
+    double vy = vel[1];
+    double vz = vel[2];
+
+    double v_sq = 0.0;
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
         v_sq += spatial_metric[i][j] * vel[i] * vel[j];
@@ -688,27 +701,28 @@ explicit_gr_ultra_rel_source_update_euler(const gkyl_moment_em_coupling* mom_em,
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
         fluid_new[0] += dt * (stress_energy[0][0] * shift[i] * shift[j] * extrinsic_curvature[i][j]);
-        fluid_new[0] += dt * (2.0 * stress_energy[0][i] * shift[j] * extrinsic_curvature[i][j]);
-        fluid_new[0] += dt * (stress_energy[i][j] * extrinsic_curvature[i][j]);
+        fluid_new[0] += dt * (2.0 * stress_energy[0][i + 1] * shift[j] * extrinsic_curvature[i][j]);
+        fluid_new[0] += dt * (stress_energy[i + 1][j + 1] * extrinsic_curvature[i][j]);
       }
 
-      fluid_new[0] += dt * (stress_energy[0][0] * shift[i] * lapse_der[i]);
-      fluid_new[0] -= dt * (stress_energy[0][i] * lapse_der[i]);
+      fluid_new[0] -= dt * (stress_energy[0][0] * shift[i] * lapse_der[i]);
+      fluid_new[0] -= dt * (stress_energy[0][i + 1] * lapse_der[i]);
     }
 
     // Momentum density sources.
     for (int j = 0; j < 3; j++) {
-      fluid_new[1 + j] += dt * (stress_energy[0][0] * lapse * lapse_der[j]);
+      fluid_new[1 + j] -= dt * (stress_energy[0][0] * lapse * lapse_der[j]);
 
       for (int k = 0; k < 3; k++) {
         for (int l = 0; l < 3; l++) {
           fluid_new[1 + j] += dt * (0.5 * stress_energy[0][0] * shift[k] * shift[l] * spatial_metric_der[j][k][l]);
+          fluid_new[1 + j] += dt * (0.5 * stress_energy[k + 1][l + 1] * spatial_metric_der[j][k][l]);
         }
 
         fluid_new[1 + j] += dt * ((mom[k] / lapse) * shift_der[j][k]);
 
         for (int i = 0; i < 3; i++) {
-          fluid_new[1 + j] += dt * (stress_energy[0][i] * shift[k] * spatial_metric_der[j][i][k]);
+          fluid_new[1 + j] += dt * (stress_energy[0][i + 1] * shift[k] * spatial_metric_der[j][i][k]);
         }
       }
     }

@@ -143,10 +143,22 @@ gkyl_gr_ultra_rel_euler_prim_vars(double gas_gamma, const double q[66], double v
       cov_vz = 1.0 - pow(10.0, -8.0);
     }
 
+    double cov_vel[3];
+    cov_vel[0] = cov_vx; cov_vel[1] = cov_vy; cov_vel[2] = cov_vz;
+
+    double vel[3];
+    for (int i = 0; i < 3; i++) {
+      vel[i] = 0.0;
+
+      for (int j = 0; j < 3; j++) {
+        vel[i] += inv_spatial_metric[i][j] * cov_vel[j];
+      }
+    }
+
     v[0] = rho;
-    v[1] = cov_vx;
-    v[2] = cov_vy;
-    v[3] = cov_vz;
+    v[1] = vel[0];
+    v[2] = vel[1];
+    v[3] = vel[2];
 
     v[4] = lapse;
     v[5] = shift_x;
@@ -164,7 +176,7 @@ gkyl_gr_ultra_rel_euler_prim_vars(double gas_gamma, const double q[66], double v
     v[26] = 1.0;
   }
   else {
-    for (int i = 0; i < 26; i++) {
+    for (int i = 0; i < 66; i++) {
       v[i] = 0.0;
     }
 
