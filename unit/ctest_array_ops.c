@@ -893,7 +893,7 @@ void test_array_comp_op(bool use_gpu)
       TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+k], fac1/(3.0+i*2.0+k), 1e-14) );
   }
 
-  // Test the DIV operation.
+  // Test the PROD operation.
   struct gkyl_array *a2 = mkarr(use_gpu, a1->ncomp, a1->size);
   struct gkyl_array *a2_ho = use_gpu? mkarr(false, a2->ncomp, a2->size)
                                     : gkyl_array_acquire(a2);
@@ -909,13 +909,35 @@ void test_array_comp_op(bool use_gpu)
 
   fac1 = 1.1;
   double fac2 = 2.2;
+  gkyl_array_comp_op(a1, GKYL_PROD, fac1, a1, fac2, a2);
+
+  gkyl_array_copy(a1_ho, a1);
+  for (unsigned i=0; i<a1->size; ++i) {
+    for (size_t k=0; k<a1->ncomp; ++k) {
+      TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+k], fac1*(3.0+i*2.0+k)*(5.5-i*3.5+k/2.0)+fac2, 1e-14) );
+      TEST_MSG("i=%d k=%zu | Got: %g | Expected: %g\n",i,k,a1_d[i*a1->ncomp+k],fac1*(3.0+i*2.0+k)*(5.5-i*3.5+k/2.0)+fac2);
+    }
+  }
+ 
+  // Test the DIV operation.
+  for (unsigned i=0; i<a2->size; ++i) {
+    for (size_t k=0; k<a2->ncomp; ++k) {
+      a1_d[i*a1->ncomp+k] = 3.0+i*2.0+k;
+      a2_d[i*a2->ncomp+k] = 5.5-i*3.5+k/2.0;
+    }
+  }
+  gkyl_array_copy(a1, a1_ho);
+  gkyl_array_copy(a2, a2_ho);
+
+  fac1 = 1.1;
+  fac2 = 2.2;
   gkyl_array_comp_op(a1, GKYL_DIV, fac1, a1, fac2, a2);
 
   gkyl_array_copy(a1_ho, a1);
   for (unsigned i=0; i<a1->size; ++i) {
     for (size_t k=0; k<a1->ncomp; ++k) {
-      TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+k], fac1*(3.0+i*2.0+k)/(fac2*(5.5-i*3.5+k/2.0)), 1e-14) );
-      TEST_MSG("i=%d k=%zu | Got: %g | Expected: %g\n",i,k,a1_d[i*a1->ncomp+k],fac1*(3.0+i*2.0+k)/(fac2*(5.5-i*3.5+k/2.0)));
+      TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+k], fac1*(3.0+i*2.0+k)/(5.5-i*3.5+k/2.0)+fac2, 1e-14) );
+      TEST_MSG("i=%d k=%zu | Got: %g | Expected: %g\n",i,k,a1_d[i*a1->ncomp+k],fac1*(3.0+i*2.0+k)/(5.5-i*3.5+k/2.0)+fac2);
     }
   }
  
@@ -995,7 +1017,7 @@ void test_array_comp_op_range(bool use_gpu)
       TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+k], fac1/(3.0+i*2.0+k), 1e-14) );
   }
 
-  // Test the DIV operation.
+  // Test the PROD operation.
   struct gkyl_array *a2 = mkarr(use_gpu, a1->ncomp, a1->size);
   struct gkyl_array *a2_ho = use_gpu? mkarr(false, a2->ncomp, a2->size)
                                     : gkyl_array_acquire(a2);
@@ -1013,6 +1035,32 @@ void test_array_comp_op_range(bool use_gpu)
 
   fac1 = 1.1;
   double fac2 = 2.2;
+  gkyl_array_comp_op_range(a1, GKYL_PROD, fac1, a1, fac2, a2, &range);
+
+  gkyl_array_copy(a1_ho, a1);
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long i = gkyl_range_idx(&range, iter.idx);
+    for (size_t k=0; k<a1->ncomp; ++k) {
+      TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+k], fac1*(3.0+i*2.0+k)*(5.5-i*3.5+k/2.0)+fac2, 1e-14) );
+      TEST_MSG("i=%ld k=%zu | Got: %g | Expected: %g\n",i,k,a1_d[i*a1->ncomp+k],fac1*(3.0+i*2.0+k)*(5.5-i*3.5+k/2.0)+fac2);
+    }
+  }
+ 
+  // Test the DIV operation.
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long i = gkyl_range_idx(&range, iter.idx);
+    for (size_t k=0; k<a2->ncomp; ++k) {
+      a1_d[i*a1->ncomp+k] = 3.0+i*2.0+k;
+      a2_d[i*a2->ncomp+k] = 5.5-i*3.5+k/2.0;
+    }
+  }
+  gkyl_array_copy(a1, a1_ho);
+  gkyl_array_copy(a2, a2_ho);
+
+  fac1 = 1.1;
+  fac2 = 2.2;
   gkyl_array_comp_op_range(a1, GKYL_DIV, fac1, a1, fac2, a2, &range);
 
   gkyl_array_copy(a1_ho, a1);
@@ -1020,8 +1068,8 @@ void test_array_comp_op_range(bool use_gpu)
   while (gkyl_range_iter_next(&iter)) {
     long i = gkyl_range_idx(&range, iter.idx);
     for (size_t k=0; k<a1->ncomp; ++k) {
-      TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+k], fac1*(3.0+i*2.0+k)/(fac2*(5.5-i*3.5+k/2.0)), 1e-14) );
-      TEST_MSG("i=%ld k=%zu | Got: %g | Expected: %g\n",i,k,a1_d[i*a1->ncomp+k],fac1*(3.0+i*2.0+k)/(fac2*(5.5-i*3.5+k/2.0)));
+      TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+k], fac1*(3.0+i*2.0+k)/(5.5-i*3.5+k/2.0)+fac2, 1e-14) );
+      TEST_MSG("i=%ld k=%zu | Got: %g | Expected: %g\n",i,k,a1_d[i*a1->ncomp+k],fac1*(3.0+i*2.0+k)/(5.5-i*3.5+k/2.0)+fac2);
     }
   }
  

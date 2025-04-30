@@ -199,6 +199,17 @@ gkyl_array_comp_op(struct gkyl_array *out, enum gkyl_array_op op, double a,
           out_c[k] = a/in1_c[k];
       }
       break;                                            
+    case GKYL_PROD:
+      assert(out->ncomp == in2->ncomp);
+      assert(out->size == in2->size);
+      for (size_t i=0; i<sz; ++i) {
+        double *out_c = gkyl_array_fetch(out, i);
+        const double *in1_c = gkyl_array_cfetch(in1, i);
+        const double *in2_c = gkyl_array_cfetch(in2, i);
+        for (size_t k=0; k<nc; ++k)
+          out_c[k] = a*in1_c[k]*in2_c[k]+b;
+      }
+      break;                                            
     case GKYL_DIV:
       assert(out->ncomp == in2->ncomp);
       assert(out->size == in2->size);
@@ -207,7 +218,7 @@ gkyl_array_comp_op(struct gkyl_array *out, enum gkyl_array_op op, double a,
         const double *in1_c = gkyl_array_cfetch(in1, i);
         const double *in2_c = gkyl_array_cfetch(in2, i);
         for (size_t k=0; k<nc; ++k)
-          out_c[k] = a*in1_c[k]/(b*in2_c[k]);
+          out_c[k] = a*in1_c[k]/in2_c[k]+b;
       }
       break;                                            
     case GKYL_AXPBY:
@@ -494,6 +505,18 @@ gkyl_array_comp_op_range(struct gkyl_array *out, enum gkyl_array_op op, double a
           out_c[k] = a/in1_c[k];
       }
       break;                                            
+    case GKYL_PROD:
+      assert(out->ncomp == in2->ncomp);
+      assert(out->size == in2->size);
+      while (gkyl_range_iter_next(&iter)) {
+        long linidx = gkyl_range_idx(range, iter.idx);
+        double *out_c = gkyl_array_fetch(out, linidx);
+        const double *in1_c = gkyl_array_cfetch(in1, linidx);
+        const double *in2_c = gkyl_array_cfetch(in2, linidx);
+        for (size_t k=0; k<nc; ++k)
+          out_c[k] = a*in1_c[k]*in2_c[k]+b;
+      }
+      break;                                            
     case GKYL_DIV:
       assert(out->ncomp == in2->ncomp);
       assert(out->size == in2->size);
@@ -503,7 +526,7 @@ gkyl_array_comp_op_range(struct gkyl_array *out, enum gkyl_array_op op, double a
         const double *in1_c = gkyl_array_cfetch(in1, linidx);
         const double *in2_c = gkyl_array_cfetch(in2, linidx);
         for (size_t k=0; k<nc; ++k)
-          out_c[k] = a*in1_c[k]/(b*in2_c[k]);
+          out_c[k] = a*in1_c[k]/in2_c[k]+b;
       }
       break;                                            
     case GKYL_AXPBY:

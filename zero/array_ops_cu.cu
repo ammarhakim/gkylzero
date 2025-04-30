@@ -134,6 +134,18 @@ gkyl_array_comp_op_inv_cu_kernel(struct gkyl_array* out, double a, const struct 
 } 
 
 __global__ void
+gkyl_array_comp_op_prod_cu_kernel(struct gkyl_array* out, double a, const struct gkyl_array* in1,
+  double b, const struct gkyl_array* in2)
+{
+  double *out_d = (double*) out->data;
+  const double *in1_d = (const double*) in1->data;
+  const double *in2_d = (const double*) in2->data;
+  for (unsigned long linc = START_ID; linc < NSIZE(out); linc += blockDim.x*gridDim.x)
+    for (unsigned k=0; k<NCOM(out); ++k)
+      out_d[linc*out->ncomp+k] = a*in1_d[linc*out->ncomp+k] * in2_d[linc*out->ncomp+k] + b;
+} 
+
+__global__ void
 gkyl_array_comp_op_div_cu_kernel(struct gkyl_array* out, double a, const struct gkyl_array* in1,
   double b, const struct gkyl_array* in2)
 {
@@ -142,7 +154,7 @@ gkyl_array_comp_op_div_cu_kernel(struct gkyl_array* out, double a, const struct 
   const double *in2_d = (const double*) in2->data;
   for (unsigned long linc = START_ID; linc < NSIZE(out); linc += blockDim.x*gridDim.x)
     for (unsigned k=0; k<NCOM(out); ++k)
-      out_d[linc*out->ncomp+k] = a*in1_d[linc*out->ncomp+k] / (b*in2_d[linc*out->ncomp+k]);
+      out_d[linc*out->ncomp+k] = a*in1_d[linc*out->ncomp+k] / in2_d[linc*out->ncomp+k] + b;
 } 
 
 __global__ void
@@ -218,6 +230,11 @@ gkyl_array_comp_op_cu(struct gkyl_array *out, enum gkyl_array_op op, double a,
       return;
     case GKYL_INV:
       gkyl_array_comp_op_inv_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, a, in1->on_dev, b, 0);
+      return;
+    case GKYL_PROD:
+      assert(out->ncomp == in2->ncomp);
+      assert(out->size == in2->size);
+      gkyl_array_comp_op_prod_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, a, in1->on_dev, b, in2->on_dev);
       return;
     case GKYL_DIV:
       assert(out->ncomp == in2->ncomp);
@@ -581,6 +598,47 @@ gkyl_array_comp_op_range_inv_cu_kernel(struct gkyl_array* out, double a, const s
 } 
 
 __global__ void
+gkyl_array_comp_op_range_prod_cu_kernel(struct gkyl_array* out, double a, const struct gkyl_array* in1,
+  double b, const struct gkyl_array* in2, struct gkyl_range range)
+{
+  long nc = NCOM(out);
+  int idx[GKYL_MAX_DIM];
+
+  int ndim = range.ndim;
+  // ac1 = size of last dimension of range (fastest moving dimension)
+  long ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
+
+  // 2D thread grid
+  // linc2 = c + n*idx1 (contiguous data, including component index c, with idx1 = 0,.., ac1-1)
+  long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
+  long c = linc2 % nc;
+  long idx1 = linc2 / nc;
+  // get corresponding linc1 index for inp and out 
+  // (one of these will not be contiguous if outnc!=inpnc)
+  long linc2_in = c + nc*idx1; 
+  // linc1 = idx2 + ac2*idx3 + ...
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < range.volume/ac1;
+      linc1 += gridDim.x*blockDim.x)
+  {
+    // full linear cell index (not including components) is 
+    // idx1 + ac1*idx2 + ac1*ac2*idx3 + ... = idx1 + ac1*linc1.
+    // we want to find the start linear index of each contiguous data block, 
+    // which corresponds to idx1 = 0. 
+    // so linear index of start of contiguous block is ac1*linc2.
+    gkyl_sub_range_inv_idx(&range, ac1*linc1, idx);
+    long start = gkyl_range_idx(&range, idx);
+    
+    double* out_d = (double*) gkyl_array_fetch(out, start);
+    const double* in1_d = (const double*) gkyl_array_cfetch(in1, start);
+    const double* in2_d = (const double*) gkyl_array_cfetch(in2, start);
+    // do operation on contiguous data block
+    if (linc2 < nc*ac1)
+      out_d[linc2_in] = a*in1_d[linc2_in]*in2_d[linc2_in]+b;
+  }
+} 
+
+__global__ void
 gkyl_array_comp_op_range_div_cu_kernel(struct gkyl_array* out, double a, const struct gkyl_array* in1,
   double b, const struct gkyl_array* in2, struct gkyl_range range)
 {
@@ -617,7 +675,7 @@ gkyl_array_comp_op_range_div_cu_kernel(struct gkyl_array* out, double a, const s
     const double* in2_d = (const double*) gkyl_array_cfetch(in2, start);
     // do operation on contiguous data block
     if (linc2 < nc*ac1)
-      out_d[linc2_in] = a*in1_d[linc2_in]/(b*in2_d[linc2_in]);
+      out_d[linc2_in] = a*in1_d[linc2_in]/in2_d[linc2_in]+b;
   }
 } 
 
@@ -905,6 +963,11 @@ gkyl_array_comp_op_range_cu(struct gkyl_array *out, enum gkyl_array_op op, doubl
       return;
     case GKYL_INV:
       gkyl_array_comp_op_range_inv_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev, a, in1->on_dev, b, 0, *range);
+      return;
+    case GKYL_PROD:
+      assert(out->ncomp == in2->ncomp);
+      assert(out->size == in2->size);
+      gkyl_array_comp_op_range_prod_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev, a, in1->on_dev, b, in2->on_dev, *range);
       return;
     case GKYL_DIV:
       assert(out->ncomp == in2->ncomp);
