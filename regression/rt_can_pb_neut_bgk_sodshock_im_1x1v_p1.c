@@ -70,7 +70,7 @@ create_ctx(void)
   double Vx_drift_r = 0.0; // Right drift velocity (x-direction).
 
   double vt = 1.0; // Thermal velocity.
-  double nu = 15000.0; // Collision frequency.
+  double nu = 0.0; // Collision frequency.
 
   // Simulation parameters.
   int Nx = 128; // Cell count (configuration space: x-direction).
@@ -215,6 +215,15 @@ evalInvMetric(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   
   // Set inverse metric tensor.
   fout[0] = inv_metric_x_x;
+}
+
+void
+evalMetric(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  double metric_x_x = 1.0; // Metric tensor (x-x component).
+  
+  // Set metric tensor.
+  fout[0] = metric_x_x;
 }
 
 void
@@ -377,6 +386,8 @@ main(int argc, char **argv)
 
     .hamil = evalHamiltonian,
     .hamil_ctx = &ctx,
+    .h_ij = evalMetric,
+    .h_ij_ctx = &ctx,
     .h_ij_inv = evalInvMetric,
     .h_ij_inv_ctx = &ctx,
     .det_h = evalMetricDet,
@@ -567,7 +578,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
   gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
-  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.nio);
+  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
   gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
 freeresources:

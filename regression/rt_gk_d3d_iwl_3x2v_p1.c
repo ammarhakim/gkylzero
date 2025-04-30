@@ -521,11 +521,11 @@ create_ctx(void)
   double floor_src = 1e-2;
 
   // Grid parameters
-  int Nx = 96;
-  int Ny = 96;
-  int Nz = 16;
-  int Nvpar = 12;
-  int Nmu = 6;
+  int Nx = 8;
+  int Ny = 4;
+  int Nz = 8;
+  int Nvpar = 8;
+  int Nmu = 4;
   int poly_order = 1;
 
   double vpar_max_elc = 4.*vte;
@@ -533,8 +533,8 @@ create_ctx(void)
   double vpar_max_ion = 4.*vti;
   double mu_max_ion = mi*pow(4*vti,2)/(2*B0);
 
-  double t_end = 1.e-3;
-  int num_frames = 1000;
+  double t_end = 5.e-8;
+  int num_frames = 1;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
@@ -802,19 +802,33 @@ main(int argc, char **argv)
     .diag_moments = { "MaxwellianMoments" },
   };
 
+  struct gkyl_poisson_bias_plane target_corner_bc = {
+    .dir = 0, // Direction perpendicular to the plane.
+    .loc = ctx.x_LCFS, // Location of the plane in the 'dir' dimension.
+    .val = 0.0, // Biasing value.
+  };
+  
+  struct gkyl_poisson_bias_plane_list bias_plane_list = {
+    .num_bias_plane = 1,
+    .bp = &target_corner_bc,
+  };
+
   // field
   struct gkyl_gyrokinetic_field field = {
     .gkfield_id = GKYL_GK_FIELD_ES_IWL,
     .xLCFS = ctx.x_LCFS,
-    .fem_parbc = GKYL_FEM_PARPROJ_DIRICHLET,
     .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET},
                     .up_type = {GKYL_POISSON_DIRICHLET},
                     .lo_value = {0.0}, .up_value = {0.0}},
+    .bias_plane_list = &bias_plane_list
   };
 
   // GK app
   struct gkyl_gk gk = {
     .name = "gk_d3d_iwl_3x2v_p1",
+
+    .cfl_frac_omegaH = 1.0,
+    .cfl_frac = 1.0,
 
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { ctx.x_min, ctx.y_min, ctx.z_min },
@@ -952,7 +966,7 @@ main(int argc, char **argv)
   gkyl_gyrokinetic_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
   gkyl_gyrokinetic_app_cout(app, stdout, "Updates took %g secs\n", stat.total_tm);
 
-  gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld,\n", stat.n_io);
   gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   freeresources:

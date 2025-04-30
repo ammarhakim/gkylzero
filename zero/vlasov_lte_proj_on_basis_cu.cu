@@ -18,9 +18,9 @@ extern "C" {
 
 __global__ static void
 gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu_ker(struct gkyl_range conf_range,
-  const struct gkyl_array* conf_basis_at_ords, int vdim, 
+  const struct gkyl_array* conf_basis_at_ords, int vdim, const struct gkyl_array* h_ij,
   const struct gkyl_array* h_ij_inv, const struct gkyl_array* det_h, 
-  struct gkyl_array* h_ij_inv_quad_d, struct gkyl_array* det_h_quad_d)
+  struct gkyl_array* h_ij_quad_d, struct gkyl_array* h_ij_inv_quad_d, struct gkyl_array* det_h_quad_d)
 {    
   int num_conf_basis = conf_basis_at_ords->ncomp;
   int tot_conf_quad = conf_basis_at_ords->size;
@@ -31,9 +31,11 @@ gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu_ker(struct gkyl_range conf_range
       tid < conf_range.volume; tid += blockDim.x*gridDim.x) {
     gkyl_sub_range_inv_idx(&conf_range, tid, cidx);
     long lincC = gkyl_range_idx(&conf_range, cidx);
+    const double *h_ij_d = (const double*) gkyl_array_cfetch(h_ij, lincC);
     const double *h_ij_inv_d = (const double*) gkyl_array_cfetch(h_ij_inv, lincC);
     const double *det_h_d = (const double*) gkyl_array_cfetch(det_h, lincC);
 
+    double *h_ij_quad = (double*) gkyl_array_fetch(h_ij_quad_d, lincC);
     double *h_ij_inv_quad = (double*) gkyl_array_fetch(h_ij_inv_quad_d, lincC);
     double *det_h_quad = (double*) gkyl_array_fetch(det_h_quad_d, lincC);
 
@@ -44,6 +46,7 @@ gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu_ker(struct gkyl_range conf_range
       for (int k=0; k<num_conf_basis; ++k) {
         det_h_quad[n] += det_h_d[k]*b_ord[k];
         for (int j=0; j<vdim*(vdim+1)/2; ++j) {
+          h_ij_quad[tot_conf_quad*j + n] += h_ij_d[num_conf_basis*j+k]*b_ord[k];
           h_ij_inv_quad[tot_conf_quad*j + n] += h_ij_inv_d[num_conf_basis*j+k]*b_ord[k];
         }
       }
@@ -53,14 +56,14 @@ gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu_ker(struct gkyl_range conf_range
 
 void 
 gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu(gkyl_vlasov_lte_proj_on_basis *up,
-  const struct gkyl_range *conf_range, 
+  const struct gkyl_range *conf_range, const struct gkyl_array *h_ij,
   const struct gkyl_array *h_ij_inv, const struct gkyl_array *det_h)
 {
   int vdim = up->pdim - up->cdim;
   int nblocks = conf_range->nblocks, nthreads = conf_range->nthreads;
   gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu_ker<<<nblocks, nthreads>>>(*conf_range, 
-    up->conf_basis_at_ords->on_dev, vdim,
-    h_ij_inv->on_dev, det_h->on_dev, 
+    up->conf_basis_at_ords->on_dev, vdim, h_ij->on_dev,
+    h_ij_inv->on_dev, det_h->on_dev, up->h_ij_quad->on_dev,
     up->h_ij_inv_quad->on_dev, up->det_h_quad->on_dev);
 }
 

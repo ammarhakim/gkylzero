@@ -15,6 +15,8 @@ gkyl_gk_mom_free(const struct gkyl_ref_count *ref)
   struct mom_type_gyrokinetic *mom_gk = container_of(base, struct mom_type_gyrokinetic, momt);
   gkyl_velocity_map_release(mom_gk->vel_map);
   gkyl_gk_geometry_release(mom_gk->gk_geom);
+  if (mom_gk->phi != 0)
+    gkyl_array_release(mom_gk->phi);
 
   if (gkyl_mom_type_is_cu_dev(base)) {
     // free inner on_dev object
@@ -27,14 +29,14 @@ gkyl_gk_mom_free(const struct gkyl_ref_count *ref)
 
 struct gkyl_mom_type*
 gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range, double mass, const struct gkyl_velocity_map* vel_map,
-  const struct gk_geometry *gk_geom, const char *mom, bool use_gpu)
+  const struct gkyl_range* conf_range, double mass, double charge, const struct gkyl_velocity_map* vel_map,
+  const struct gk_geometry *gk_geom, struct gkyl_array *phi, const char *mom, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_mom_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, mass, vel_map, gk_geom, mom);
+    return gkyl_mom_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, mass, charge, vel_map, gk_geom, phi, mom);
 #endif    
 
   struct mom_type_gyrokinetic *mom_gk = gkyl_malloc(sizeof(struct mom_type_gyrokinetic));
@@ -50,7 +52,7 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
   // choose kernel tables based on basis-function type
   const gkyl_gyrokinetic_mom_kern_list *m0_kernels, *m1_kernels, *m2_kernels, 
     *m2_par_kernels, *m2_perp_kernels, *m3_par_kernels, *m3_perp_kernels,
-    *three_moments_kernels, *four_moments_kernels;;
+    *three_moments_kernels, *four_moments_kernels, *hamiltonian_moments_kernels;
 
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -63,6 +65,7 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
       m3_perp_kernels = ser_m3_perp_kernels;
       three_moments_kernels = ser_three_moments_kernels;
       four_moments_kernels = ser_four_moments_kernels;
+      hamiltonian_moments_kernels = ser_hamiltonian_moments_kernels;
       break;
 
     default:
@@ -84,7 +87,7 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
     mom_gk->momt.kernel = m1_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_gk->momt.num_mom = 1;
   }
-  else if (strcmp(mom, "M2") == 0) { // total energy
+  else if (strcmp(mom, "M2") == 0) { // total kinetic energy
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
@@ -133,7 +136,14 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
     assert(NULL != four_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     mom_gk->momt.kernel = four_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    mom_gk->momt.num_mom = vdim > 1? 4 : 3;
+    mom_gk->momt.num_mom = vdim+2;
+  }
+  else if (strcmp(mom, "HamiltonianMoments") == 0) { // M0, mass*M0 and total particle energy
+    assert(cv_index[cdim].vdim[vdim] != -1);
+    assert(NULL != hamiltonian_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+    
+    mom_gk->momt.kernel = hamiltonian_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    mom_gk->momt.num_mom = 3;
   }
   else {
     // string not recognized
@@ -143,8 +153,12 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
 
   mom_gk->conf_range = *conf_range;
   mom_gk->mass = mass;
+  mom_gk->charge = charge;
   mom_gk->vel_map = gkyl_velocity_map_acquire(vel_map);
   mom_gk->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
+  mom_gk->phi = 0;
+  if (phi)
+    mom_gk->phi = gkyl_array_acquire(phi);
   
   mom_gk->momt.flags = 0;
   GKYL_CLEAR_CU_ALLOC(mom_gk->momt.flags);
@@ -157,14 +171,14 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
 
 struct gkyl_mom_type*
 gkyl_int_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, double mass, const struct gkyl_velocity_map* vel_map,
-  const struct gk_geometry *gk_geom, bool use_gpu)
+  const struct gkyl_range* conf_range, double mass, double charge, const struct gkyl_velocity_map* vel_map,
+  const struct gk_geometry *gk_geom, struct gkyl_array *phi, const char *mom, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu)
-    return gkyl_int_mom_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, mass, vel_map, gk_geom);
+    return gkyl_int_mom_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, mass, charge, vel_map, gk_geom, phi, mom);
 #endif
 
   struct mom_type_gyrokinetic *mom_gk = gkyl_malloc(sizeof(struct mom_type_gyrokinetic));
@@ -176,16 +190,22 @@ gkyl_int_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_
   mom_gk->momt.poly_order = poly_order;
   mom_gk->momt.num_config = cbasis->num_basis;
   mom_gk->momt.num_phase = pbasis->num_basis;
-  mom_gk->momt.num_mom = 2+vdim;
   
+  // choose kernel tables based on basis-function type
+  const gkyl_gyrokinetic_mom_kern_list *int_three_moments_kernels, *int_four_moments_kernels, *int_hamiltonian_moments_kernels,
+    *int_m0_kernels, *int_m1_kernels, *int_m2_par_kernels, *int_m2_perp_kernels, *int_m2_kernels, *int_m3_par_kernels, *int_m3_perp_kernels;
+
   // set kernel pointer
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      assert(cv_index[cdim].vdim[vdim] != -1);
-      assert(NULL != ser_int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-      
-      mom_gk->momt.kernel = ser_int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-
+      int_m0_kernels = ser_int_m0_kernels;
+      int_m1_kernels = ser_int_m1_kernels;
+      int_m2_par_kernels = ser_int_m2_par_kernels;
+      int_m2_perp_kernels = ser_int_m2_perp_kernels;
+      int_m2_kernels = ser_int_m2_kernels;
+      int_three_moments_kernels = ser_int_three_moments_kernels;
+      int_four_moments_kernels = ser_int_four_moments_kernels;
+      int_hamiltonian_moments_kernels = ser_int_hamiltonian_moments_kernels;
       break;
 
     default:
@@ -193,10 +213,95 @@ gkyl_int_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_
       break;    
   }  
 
+  if (strcmp(mom, "M0") == 0) {
+    // Density moment only.
+    assert(cv_index[cdim].vdim[vdim] != -1);   
+    assert(NULL != int_m0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+    
+    mom_gk->momt.kernel = int_m0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    mom_gk->momt.num_mom = 1;
+  }
+  else if (strcmp(mom, "M1") == 0) {
+    // Parallel momentum moment only.
+    assert(cv_index[cdim].vdim[vdim] != -1);   
+    assert(NULL != int_m1_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+    
+    mom_gk->momt.kernel = int_m1_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    mom_gk->momt.num_mom = 1;
+  }
+  else if (strcmp(mom, "M2par") == 0) {
+    // Parallel kinetic energy moment only.
+    assert(cv_index[cdim].vdim[vdim] != -1);   
+    assert(NULL != int_m2_par_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+    
+    mom_gk->momt.kernel = int_m2_par_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    mom_gk->momt.num_mom = 1;
+  }
+  else if (strcmp(mom, "M2perp") == 0) {
+    // Perpendicular kinetic energy moment only.
+    assert(cv_index[cdim].vdim[vdim] != -1);   
+    assert(NULL != int_m2_perp_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+    
+    mom_gk->momt.kernel = int_m2_perp_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    mom_gk->momt.num_mom = 1;
+  }
+  else if (strcmp(mom, "M2") == 0) {
+    // Kinetic energy moment only.
+    assert(cv_index[cdim].vdim[vdim] != -1);   
+    assert(NULL != int_m2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+    
+    mom_gk->momt.kernel = int_m2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    mom_gk->momt.num_mom = 1;
+  }
+  else if (strcmp(mom, "M3par") == 0){
+    // Parallel heat flux moment only.
+    assert(cv_index[cdim].vdim[vdim] != -1);   
+    assert(NULL != int_m3_par_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+    
+    mom_gk->momt.kernel = int_m3_par_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    mom_gk->momt.num_mom = 1;
+  }
+  else if (strcmp(mom, "M3perp") == 0) {
+    // Perpendicular heat flux moment only.
+    assert(cv_index[cdim].vdim[vdim] != -1);   
+    assert(NULL != int_m3_perp_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+    
+    mom_gk->momt.kernel = int_m3_perp_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    mom_gk->momt.num_mom = 1;
+  }
+  else if (strcmp(mom, "ThreeMoments") == 0) { 
+    // Density, parallel momentum, and kinetic energy computed together.
+    assert(cv_index[cdim].vdim[vdim] != -1);   
+    assert(NULL != int_three_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+    
+    mom_gk->momt.kernel = int_three_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    mom_gk->momt.num_mom = 3;
+  }
+  else if (strcmp(mom, "FourMoments") == 0) { 
+    // Density, parallel momentum, and parallel and perpendicular kinetic energy.
+    assert(cv_index[cdim].vdim[vdim] != -1);   
+    assert(NULL != int_four_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+    
+    mom_gk->momt.kernel = int_four_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    mom_gk->momt.num_mom = vdim+2;
+  }
+  else if (strcmp(mom, "HamiltonianMoments") == 0) { 
+    // Density), parallel momentum, and total energy computed together.
+    assert(cv_index[cdim].vdim[vdim] != -1);   
+    assert(NULL != int_hamiltonian_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+    
+    mom_gk->momt.kernel = int_hamiltonian_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    mom_gk->momt.num_mom = 3;
+  }
+
   mom_gk->conf_range = *conf_range;
   mom_gk->mass = mass;
+  mom_gk->charge = charge;
   mom_gk->vel_map = gkyl_velocity_map_acquire(vel_map);
   mom_gk->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
+  mom_gk->phi = 0;
+  if (phi)
+    mom_gk->phi = gkyl_array_acquire(phi);
 
   mom_gk->momt.flags = 0;
   GKYL_CLEAR_CU_ALLOC(mom_gk->momt.flags);
@@ -207,24 +312,3 @@ gkyl_int_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_
   return &mom_gk->momt;  
 }
 
-#ifndef GKYL_HAVE_CUDA
-
-struct gkyl_mom_type*
-gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range, double mass, const struct gkyl_velocity_map* vel_map, 
-  const struct gk_geometry *gk_geom, const char *mom, bool use_gpu)
-{
-  assert(false);
-  return 0;
-}
-
-struct gkyl_mom_type*
-gkyl_int_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, double mass, const struct gkyl_velocity_map* vel_map,
-  const struct gk_geometry *gk_geom, bool use_gpu)
-{
-  assert(false);
-  return 0;
-}
-
-#endif

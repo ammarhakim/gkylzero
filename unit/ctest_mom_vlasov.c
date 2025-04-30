@@ -3,6 +3,7 @@
 #include <acutest.h>
 
 #include <gkyl_array_ops.h>
+#include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_vlasov.h>

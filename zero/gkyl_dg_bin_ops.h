@@ -76,8 +76,27 @@ void gkyl_dg_mul_op_range(struct gkyl_basis basis,
  * @param crange Conf-space range to apply multiplication operator.
  * @param prange Phase-space range to apply multiplication operator.
  */
-void gkyl_dg_mul_conf_phase_op_range(struct gkyl_basis *cbasis,
-  struct gkyl_basis *pbasis, struct gkyl_array* pout,
+void gkyl_dg_mul_conf_phase_op_range(const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, struct gkyl_array* pout,
+  const struct gkyl_array* cop, const struct gkyl_array* pop,
+  const struct gkyl_range *crange, const struct gkyl_range *prange);
+
+/**
+ * Compute pout += a*cop*pop on specified range (sub-range of range
+ * containing the DG fields), where pout and pop are phase-space
+ * operands, and cop is a conf-space operand. 
+ *
+ * @param cbasis Configuration space basis functions used in expansions.
+ * @param pbasis Phase space basis functions used in expansions.
+ * @param pout Output phase-space DG field.
+ * @param a Factor to multiply accumulated output by (e.g., a = -1.0 for decrementing)
+ * @param cop Conf-space operand DG field.
+ * @param pop Phase-space operand DG field.
+ * @param crange Conf-space range to apply multiplication operator.
+ * @param prange Phase-space range to apply multiplication operator.
+ */
+void gkyl_dg_mul_conf_phase_op_accumulate_range(const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, struct gkyl_array* pout, double a, 
   const struct gkyl_array* cop, const struct gkyl_array* pop,
   const struct gkyl_range *crange, const struct gkyl_range *prange);
 
@@ -224,8 +243,15 @@ gkyl_dg_mul_op_range_cu(struct gkyl_basis basis,
   int c_lop, const struct gkyl_array* lop,
   int c_rop, const struct gkyl_array* rop, const struct gkyl_range *range);
 
-void gkyl_dg_mul_conf_phase_op_range_cu(struct gkyl_basis *cbasis,
-  struct gkyl_basis *pbasis, struct gkyl_array* pout,
+void 
+gkyl_dg_mul_conf_phase_op_range_cu(const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, struct gkyl_array* pout,
+  const struct gkyl_array* cop, const struct gkyl_array* pop,
+  const struct gkyl_range *crange, const struct gkyl_range *prange);
+
+void 
+gkyl_dg_mul_conf_phase_op_accumulate_range_cu(const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, struct gkyl_array* pout, double a, 
   const struct gkyl_array* cop, const struct gkyl_array* pop,
   const struct gkyl_range *crange, const struct gkyl_range *prange);
 

@@ -122,7 +122,6 @@ struct gkyl_vlasov_fluid_advection {
   void *velocity_ctx; // context for applied advection function
   // pointer to applied advection velocity function
   void (*velocity)(double t, const double *xn, double *aout, void *ctx);
-  enum gkyl_quad_type qtype; // quadrature to use
 };
 
 // Parameters for fluid species diffusion
@@ -170,8 +169,12 @@ struct gkyl_vlasov_species {
   // pointer to hamilonian function
   void (*hamil)(double t, const double *xn, double *aout, void *ctx);
 
-  void *h_ij_inv_ctx; // context for spatial metric function
-  // pointer to metric inverse function
+  void *h_ij_ctx; // context for spatial metric function (covariant)
+  // pointer to metric (covariant components) function
+  void (*h_ij)(double t, const double *xn, double *aout, void *ctx);
+
+  void *h_ij_inv_ctx; // context for spatial metric function (contravariant)
+  // pointer to metric (contravaraint components) function
   void (*h_ij_inv)(double t, const double *xn, double *aout, void *ctx);
 
   void *det_h_ctx; // context for determinant of the spatial metric
@@ -212,6 +215,8 @@ struct gkyl_vlasov_field {
   
   double limiter_fac; // Optional input parameter for adjusting diffusion in slope limiter
   bool limit_em; // Optional input parameter for applying limiters to EM fields
+
+  bool use_ghost_current; // Are we using ghost currents to correct dE/dt = -J in 1x
   
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
@@ -250,6 +255,10 @@ struct gkyl_vlasov_fluid_species {
   
   // diffusion coupling to include
   struct gkyl_vlasov_fluid_diffusion diffusion;
+
+  void *can_pb_n0_ctx; // context for background density function in canonical PB fluid systems
+  // pointer to background density function in canonical PB fluid systems
+  void (*can_pb_n0)(double t, const double *xn, double *aout, void *ctx);
 
   void *app_accel_ctx; // context for applied acceleration function
   // pointer to applied acceleration function
@@ -336,19 +345,19 @@ struct gkyl_vlasov_stat {
   double field_rhs_tm; // time to compute field RHS
   double current_tm; // time to compute currents and accumulation
 
-  long nspecies_omega_cfl; // number of times CFL-omega all-reduce is called
+  long n_species_omega_cfl; // number of times CFL-omega all-reduce is called
   double species_omega_cfl_tm; // time spent in all-reduce for omega-cfl
 
-  long nfield_omega_cfl; // number of times CFL-omega for field all-reduce is called
+  long n_field_omega_cfl; // number of times CFL-omega for field all-reduce is called
   double field_omega_cfl_tm; // time spent in all-reduce for omega-cfl for field
 
-  long nmom; // calls to moment calculation
+  long n_mom; // calls to moment calculation
   double mom_tm; // time to compute moments
 
-  long ndiag; // calls to diagnostics
+  long n_diag; // calls to diagnostics
   double diag_tm; // time to compute diagnostics
 
-  long nio; // number of calls to IO
+  long n_io; // number of calls to IO
   double io_tm; // time to perform IO
 };
 
@@ -568,6 +577,14 @@ void gkyl_vlasov_app_write_mom(gkyl_vlasov_app *app, double tm, int frame);
  * @param app App object.
  */
 void gkyl_vlasov_app_write_integrated_mom(gkyl_vlasov_app *app);
+
+/**
+ * Write integrated diagnostic quantities for fluid species to file. Integrated
+ * quantities are appended to the same file.
+ * 
+ * @param app App object.
+ */
+void gkyl_vlasov_app_write_fluid_integrated_mom(gkyl_vlasov_app *app);
 
 /**
  * Write integrated L2 norm of the species distribution function to file. Integrated
