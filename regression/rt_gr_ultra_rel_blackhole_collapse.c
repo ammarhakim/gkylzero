@@ -1,11 +1,3 @@
-// 2D Bondi-Hoyle-Lyttleton ultra-relativistic accretion problem onto a non-static (Kerr) black hole, for the general relativistic Euler equations,
-// assuming a stiff equation of state.
-// Input parameters describe wind accretion of an ultra-relativistic gas onto a spinning black hole.
-// Based on the analytical solution for stiff relativistic fluids presented in the article:
-// L. I. Petrich, S. L. Shapiro and S. A. Teukolsky (1988), "Accretion onto a moving black hole: An exact solution",
-// Physical Review Letters, Volume 60 (18): 1781-1784.
-// https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.60.1781
-
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,24 +19,24 @@
 
 #include <rt_arg_parse.h>
 
-struct ultra_rel_bhl_spinning_ctx
+struct ultra_rel_blackhole_collapse_ctx
 {
   // Physical constants (using normalized code units).
   double gas_gamma; // Adiabatic index.
 
-  double rhol; // Left fluid mass density.
-  double ul; // Left fluid velocity.
+  double rhob; // Background fluid mass density.
+  double ub; // Background fluid velocity.
 
-  double rhor; // Right fluid mass density.
-  double ur; // Right fluid velocity.
+  double rhos; // Star fluid mass density.
+  double us; // Star fluid velocity.
 
-  // Spacetime parameters (using geometric units).
-  double mass; // Mass of the black hole.
-  double spin; // Spin of the black hole.
+  // Predicted spacetime parameters (using geometric units).
+  double mass; // Predicted mass of the black hole.
+  double spin; // Predicted spin of the black hole.
 
-  double pos_x; // Position of the black hole (x-direction).
-  double pos_y; // Position of the black hole (y-direction).
-  double pos_z; // Position of the black hole (z-direction).
+  double pos_x; // Predicted position of the black hole (x-direction).
+  double pos_y; // Predicted position of the black hole (y-direction).
+  double pos_z; // Predicted position of the black hole (z-direction).
 
   // Pointer to spacetime metric.
   struct gkyl_gr_spacetime *spacetime;
@@ -63,54 +55,54 @@ struct ultra_rel_bhl_spinning_ctx
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 
-  double x_loc; // Shock location (x-direction).
+  double r_star; // Star radius.
 };
 
-struct ultra_rel_bhl_spinning_ctx
+struct ultra_rel_blackhole_collapse_ctx
 create_ctx(void)
 {
   // Physical constants (using normalized code units).
   double gas_gamma = 2.0; // Adiabatic index.
 
-  double rhol = 10.0; // Left fluid mass density.
-  double ul = 0.3; // Left fluid velocity.
+  double rhob = 1.0; // Background fluid mass density.
+  double ub = 0.0; // Background fluid velocity.
 
-  double rhor = 10.0; // Right fluid mass density.
-  double ur = 0.0; // Right fluid velocity.
+  double rhos = 10.0; // Star fluid mass density.
+  double us = 0.0; // Star fluid velocity.
 
-  // Spacetime parameters (using geometric units).
-  double mass = 0.3; // Mass of the black hole.
-  double spin = -0.6; // Spin of the black hole.
+  // Predicted spacetime parameters (using geometric units).
+  double mass = 0.3; // Predicted mass of the black hole.
+  double spin = 0.0; // Predicted spin of the black hole.
 
-  double pos_x = 2.5; // Position of the black hole (x-direction).
-  double pos_y = 2.5; // Position of the black hole (y-direction).
-  double pos_z = 0.0; // Position of the black hole (z-direction).
+  double pos_x = 2.5; // Predicted position of the black hole (x-direction).
+  double pos_y = 2.5; // Predicted position of the black hole (y-direction).
+  double pos_z = 0.0; // Predicted position of the black hole (z-direction).
 
   // Pointer to spacetime metric.
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, mass, spin, pos_x, pos_y, pos_z);
 
   // Simulation parameters.
-  int Nx = 400; // Cell count (x-direction).
-  int Ny = 400; // Cell count (y-direction).
+  int Nx = 256; // Cell count (x-direction).
+  int Ny = 256; // Cell count (y-direction).
   double Lx = 5.0; // Domain size (x-direction).
   double Ly = 5.0; // Domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.
 
-  double t_end = 15.0; // Final simulation time.
+  double t_end = 2.0; // Final simulation time.
   int num_frames = 100; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  double x_loc = 1.0; // Shock location (x-direction).
+  double r_star = 1.2; // Star radius.
 
-  struct ultra_rel_bhl_spinning_ctx ctx = {
+  struct ultra_rel_blackhole_collapse_ctx ctx = {
     .gas_gamma = gas_gamma,
-    .rhol = rhol,
-    .ul = ul,
-    .rhor = rhor,
-    .ur = ur,
+    .rhob = rhob,
+    .ub = ub,
+    .rhos = rhos,
+    .us = us,
     .mass = mass,
     .spin = spin,
     .pos_x = pos_x,
@@ -128,7 +120,7 @@ create_ctx(void)
     .integrated_mom_calcs = integrated_mom_calcs,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
-    .x_loc = x_loc,
+    .r_star = r_star,
   };
 
   return ctx;
@@ -138,30 +130,36 @@ void
 evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0], y = xn[1];
-  struct ultra_rel_bhl_spinning_ctx *app = ctx;
+  struct ultra_rel_blackhole_collapse_ctx *app = ctx;
 
   double gas_gamma = app->gas_gamma;
 
-  double rhol = app->rhol;
-  double ul = app->ul;
+  double rhob = app->rhob;
+  double ub = app->ub;
 
-  double rhor = app->rhor;
-  double ur = app->ur;
+  double rhos = app->rhos;
+  double us = app->us;
 
-  struct gkyl_gr_spacetime *spacetime = app->spacetime;
+  double Lx = app->Lx;
+  double Ly = app->Ly;
 
-  double x_loc = app->x_loc;
+  // Initialize to Minkowski space because this is a gravitational collapse problem.
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
+
+  double r_star = app->r_star;
 
   double rho = 0.0;
   double u = 0.0;
 
-  if (x < x_loc) {
-    rho = rhol; // Fluid mass density (left).
-    u = ul; // Fluid velocity (left).
+  double r = sqrt((x - (0.5 * Lx)) * (x - (0.5 * Lx)) + (y - (0.5 * Ly)) * (y - (0.5 * Ly)));
+
+  if (r <= r_star) {
+    rho = rhos; // Fluid mass density (star).
+    u = us; // Fluid velocity (star).
   }
   else {
-    rho = rhor; // Fluid mass density (right).
-    u = ur; // Fluid velocity (right).
+    rho = rhob; // Fluid mass density (background).
+    u = ub; // Fluid velocity (background).
   }
   
   double spatial_det, lapse;
@@ -275,10 +273,17 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   fout[60] = spatial_metric_der[2][1][0]; fout[61] = spatial_metric_der[2][1][1]; fout[62] = spatial_metric_der[2][1][2];
   fout[63] = spatial_metric_der[2][2][0]; fout[64] = spatial_metric_der[2][2][1]; fout[65] = spatial_metric_der[2][2][2];
 
+  // Set evolution parameter.
+  fout[66] = 0.0;
+
+  // Set spatial coordinates.
+  fout[67] = x; fout[68] = y; fout[69] = 0.0;
+
   if (in_excision_region) {
     for (int i = 0; i < 66; i++) {
       fout[i] = 0.0;
     }
+    fout[26] = -1.0;
   }
 
   // Free all tensorial quantities.
@@ -348,13 +353,13 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct ultra_rel_bhl_spinning_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct ultra_rel_blackhole_collapse_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
   // Fluid equations.
-  struct gkyl_wv_eqn *gr_ultra_rel_euler = gkyl_wv_gr_ultra_rel_euler_new(ctx.gas_gamma, ctx.spacetime, app_args.use_gpu);
+  struct gkyl_wv_eqn *gr_ultra_rel_euler = gkyl_wv_gr_ultra_rel_euler_new(ctx.gas_gamma, true, ctx.spacetime, app_args.use_gpu);
 
   struct gkyl_moment_species fluid = {
     .name = "gr_ultra_rel_euler",
@@ -439,7 +444,7 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "gr_ultra_rel_bhl_spinning",
+    .name = "gr_ultra_rel_blackhole_collapse",
 
     .ndim = 2,
     .lower = { 0.0, 0.0 },

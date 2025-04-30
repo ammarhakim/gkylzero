@@ -247,6 +247,14 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   fout[20] = extrinsic_curvature[1][0]; fout[21] = extrinsic_curvature[1][1]; fout[22] = extrinsic_curvature[1][2];
   fout[23] = extrinsic_curvature[2][0]; fout[24] = extrinsic_curvature[2][1]; fout[25] = extrinsic_curvature[2][2];
 
+  // Set excision boundary conditions.
+  if (in_excision_region) {
+    fout[26] = -1.0;
+  }
+  else {
+    fout[26] = 1.0;
+  }
+
   // Set lapse function derivatives.
   fout[27] = lapse_der[0]; fout[28] = lapse_der[1]; fout[29] = lapse_der[2];
   // Set shift vector derivatives.
@@ -267,16 +275,10 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   fout[60] = spatial_metric_der[2][1][0]; fout[61] = spatial_metric_der[2][1][1]; fout[62] = spatial_metric_der[2][1][2];
   fout[63] = spatial_metric_der[2][2][0]; fout[64] = spatial_metric_der[2][2][1]; fout[65] = spatial_metric_der[2][2][2];
 
-  // Set excision boundary conditions.
   if (in_excision_region) {
     for (int i = 0; i < 66; i++) {
       fout[i] = 0.0;
     }
-
-    fout[26] = -1.0;
-  }
-  else {
-    fout[26] = 1.0;
   }
 
   // Free all tensorial quantities.

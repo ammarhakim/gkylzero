@@ -693,7 +693,7 @@ explicit_gr_ultra_rel_source_update_euler(const gkyl_moment_em_coupling* mom_em,
     mom[1] = (rho + p) * (W * W) * vy;
     mom[2] = (rho + p) * (W * W) * vz;
 
-    for (int i = 0; i < 66; i++) {
+    for (int i = 0; i < 70; i++) {
       fluid_new[i] = fluid_old[i];
     }
 
@@ -728,7 +728,7 @@ explicit_gr_ultra_rel_source_update_euler(const gkyl_moment_em_coupling* mom_em,
     }
   }
   else {
-    for (int i = 0; i < 66; i++) {
+    for (int i = 0; i < 70; i++) {
       fluid_new[i] = fluid_old[i];
     }
   }
@@ -744,24 +744,24 @@ explicit_gr_ultra_rel_source_update(const gkyl_moment_em_coupling* mom_em, doubl
   for (int i = 0; i < nfluids; i++) {
     double *f = fluid_s[i];
 
-    double f_new[66], f_stage1[66], f_stage2[66], f_old[66];
+    double f_new[70], f_stage1[70], f_stage2[70], f_old[70];
 
-    for (int j = 0; j < 66; j++) {
+    for (int j = 0; j < 70; j++) {
       f_old[j] = f[j];
     }
 
     explicit_gr_ultra_rel_source_update_euler(mom_em, gas_gamma, t_curr, dt, f_old, f_new);
-    for (int j = 0; j < 66; j++) {
+    for (int j = 0; j < 70; j++) {
       f_stage1[j] = f_new[j];
     }
 
     explicit_gr_ultra_rel_source_update_euler(mom_em, gas_gamma, t_curr + dt, dt, f_stage1, f_new);
-    for (int j = 0; j < 66; j++) {
+    for (int j = 0; j < 70; j++) {
       f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
     }
 
     explicit_gr_ultra_rel_source_update_euler(mom_em, gas_gamma, t_curr + (0.5 * dt), dt, f_stage2, f_new);
-    for (int j = 0; j < 66; j++) {
+    for (int j = 0; j < 70; j++) {
       f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
     }
   }

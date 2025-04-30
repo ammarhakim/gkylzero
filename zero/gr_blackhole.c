@@ -147,6 +147,8 @@ blackhole_spatial_metric_tensor(const struct gkyl_gr_spacetime* spacetime, const
       (*spatial_metric_tensor)[i][j] = (*spatial_metric_tensor)[i][j] - (2.0 * kerrschild_scalar * kerrschild_vector[i] * kerrschild_vector[j]);
     }
   }
+
+  gkyl_free(kerrschild_vector);
 }
 
 static void
@@ -177,6 +179,8 @@ blackhole_spacetime_metric_tensor(const struct gkyl_gr_spacetime* spacetime, con
       (*spacetime_metric_tensor)[i][j] = (*spacetime_metric_tensor)[i][j] - (2.0 * kerrschild_scalar * kerrschild_vector_spacetime[i] * kerrschild_vector_spacetime[j]);
     }
   }
+
+  gkyl_free(kerrschild_vector_spacetime);
 }
 
 static void
@@ -365,6 +369,8 @@ blackhole_shift_vector(const struct gkyl_gr_spacetime* spacetime, const double t
   for (int i = 0; i < 3; i++) {
     (*shift_vector)[i] = ((2.0 * kerrschild_scalar) / (1.0 - (2.0 * kerrschild_scalar))) * kerrschild_vector[i];
   }
+
+  gkyl_free(kerrschild_vector);
 }
 
 static void
@@ -480,6 +486,13 @@ blackhole_extrinsic_curvature_tensor(const struct gkyl_gr_spacetime* spacetime, 
       }
     }
   }
+
+  gkyl_free(kerrschild_vector);
+  gkyl_free(kerrschild_scalar_der);
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(kerrschild_vector_der[i]);
+  }
+  gkyl_free(kerrschild_vector_der);
 }
 
 static void
