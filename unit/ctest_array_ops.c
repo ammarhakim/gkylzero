@@ -2161,6 +2161,16 @@ void test_array_comp_op_range_dev()
   test_array_comp_op_range(true);
 }
 
+void test_array_error_denom_fac_dev()
+{
+  test_array_error_denom_fac(true);
+}
+
+void test_array_error_denom_fac_range_dev()
+{
+  test_array_error_denom_fac_range(true);
+}
+
 #endif
 
 TEST_LIST = {
@@ -2211,8 +2221,10 @@ TEST_LIST = {
   { "cu_array_copy_buffer_fn", test_cu_array_copy_buffer_fn },
   { "cu_array_flip_copy_buffer_fn", test_cu_array_flip_copy_buffer_fn },
   { "cu_array_copy_range", test_cu_array_copy_range },
-  { "cu_array_comp_op", test_array_comp_op_dev },
-  { "cu_array_comp_op_range", test_array_comp_op_range_dev },
+  { "array_comp_op", test_array_comp_op_dev },
+  { "array_comp_op_range", test_array_comp_op_range_dev },
+  { "array_error_denom_fac_dev", test_array_error_denom_fac_dev },
+  { "array_error_denom_fac_range_dev", test_array_error_denom_fac_range_dev },
 #endif
   { NULL, NULL },
 };

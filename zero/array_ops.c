@@ -785,6 +785,7 @@ gkyl_array_error_denom_fac(struct gkyl_array* out, double eps_rel, double eps_ab
       sqsum += pow(inp_d[i*inp->ncomp+k],2);
 
     double error_denom_fac = 1.0/(eps_rel*sqrt(sqsum/inp->ncomp) + eps_abs);
+
     for (size_t k=0; k<out->ncomp; ++k)
       out_d[i*out->ncomp+k] = error_denom_fac;
   }
@@ -798,7 +799,7 @@ gkyl_array_error_denom_fac_range(struct gkyl_array* out, double eps_rel, double 
   assert(out->type == GKYL_DOUBLE);
   assert(out->size == inp->size);
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(out)) { gkyl_array_error_denom_fac_cu(out, eps_rel, eps_abs, inp); return out; }
+  if (gkyl_array_is_cu_dev(out)) { gkyl_array_error_denom_fac_range_cu(out, eps_rel, eps_abs, inp, range); return out; }
 #endif
 
   struct gkyl_range_iter iter;
@@ -813,6 +814,7 @@ gkyl_array_error_denom_fac_range(struct gkyl_array* out, double eps_rel, double 
       sqsum += pow(inp_d[k],2);
 
     double error_denom_fac = 1.0/(eps_rel*sqrt(sqsum/inp->ncomp) + eps_abs);
+
     for (size_t k=0; k<out->ncomp; ++k)
       out_d[k] = error_denom_fac;
   }

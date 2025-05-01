@@ -169,6 +169,23 @@ gkyl_array_comp_op_axpby_cu_kernel(struct gkyl_array* out, double a, const struc
       out_d[linc*out->ncomp+k] = a*in1_d[linc*out->ncomp+k] + b*in2_d[linc*out->ncomp+k];
 } 
 
+__global__ void
+gkyl_array_error_denom_fac_cu_kernel(struct gkyl_array* out, double eps_rel, double eps_abs, const struct gkyl_array *inp)
+{
+  double *out_d = (double*) out->data;
+  double *inp_d = (double*) inp->data;
+  for (unsigned long linc = START_ID; linc < NSIZE(out); linc += blockDim.x*gridDim.x) {
+    double sqsum = 0.0;
+    for (size_t k=0; k<inp->ncomp; ++k)
+      sqsum += pow(inp_d[linc*inp->ncomp+k],2);
+
+    double error_denom_fac = 1.0/(eps_rel*sqrt(sqsum/inp->ncomp) + eps_abs);
+
+    for (size_t k=0; k<out->ncomp; ++k)
+      out_d[linc*out->ncomp+k] = error_denom_fac;
+  }
+} 
+
 // Host-side wrappers for array operations
 void
 gkyl_array_clear_cu(struct gkyl_array* out, double val)
@@ -218,6 +235,12 @@ void
 gkyl_array_shiftc_cu(struct gkyl_array* out, double a, unsigned k)
 {
   gkyl_array_shiftc_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, a, k);
+}
+
+void
+gkyl_array_error_denom_fac_cu(struct gkyl_array* out, double eps_rel, double eps_abs, const struct gky_array *inp)
+{
+  gkyl_array_error_denom_fac_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, eps_rel, eps_abs, inp->on_dev);
 }
 
 void
@@ -867,6 +890,49 @@ gkyl_array_flip_copy_to_buffer_fn_cu_kernel(void *data, const struct gkyl_array 
   }
 }
 
+__global__ void
+gkyl_array_error_denom_fac_range_cu_kernel(struct gkyl_array* out, double eps_rel,
+  double eps_abs, const struct gkyl_array *inp, struct gkyl_range range)
+{
+  long ncomp = NCOM(out);
+  int idx[GKYL_MAX_DIM];
+  int ndim = range.ndim;
+  // ac1 = size of last dimension of range (fastest moving dimension).
+  long ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
+
+  // 2D thread grid
+  // linc2 = c + ncomp*idx1 (contiguous data, including component index c, with idx1 = 0,.., ac1-1)
+  long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
+  // linc1 = idx2 + ac2*idx3 + ...
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < range.volume/ac1;
+      linc1 += gridDim.x*blockDim.x)
+  {
+    // full linear cell index (not including components) is
+    // idx1 + ac1*idx2 + ac1*ac2*idx3 + ... = idx1 + ac1*linc1.
+    // we want to find the start linear index of each contiguous data block,
+    // which corresponds to idx1 = 0.
+    // so linear index of start of contiguous block is ac1*linc2.
+    gkyl_sub_range_inv_idx(&range, ac1*linc1, idx);
+    long start = gkyl_range_idx(&range, idx);
+
+    double* out_d = (double*) gkyl_array_fetch(out, start);
+    double* inp_d = (double*) gkyl_array_fetch(inp, start);
+
+    double sqsum = 0.0;
+    for (size_t k=0; k<inp->ncomp; ++k)
+      sqsum += pow(inp_d[k],2);
+
+    double error_denom_fac = 1.0/(eps_rel*sqrt(sqsum/inp->ncomp) + eps_abs);
+
+    // do operation on contiguous data block
+    if (linc2*ncomp < ncomp*ac1) {
+      for (size_t k=0; k<out->ncomp; ++k)
+        out_d[linc2*ncomp+k] = error_denom_fac;
+    }
+  }
+} 
+
 // Host-side wrappers for range-based array operations
 void
 gkyl_array_clear_range_cu(struct gkyl_array *out, double val, const struct gkyl_range *range)
@@ -1063,4 +1129,14 @@ gkyl_array_flip_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *arr,
     gkyl_array_flip_copy_to_buffer_fn_cu_kernel<<<nblocks, nthreads>>>(data,
       arr->on_dev, dir, *range, buff_range, cf);
   }
+}
+
+void
+gkyl_array_error_denom_fac_range_cu(struct gkyl_array* out, double eps_rel, double eps_abs,
+  const struct gkyl_array *inp, const struct gkyl_range *range)
+{
+  dim3 dimGrid, dimBlock;
+  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *range, 1);
+
+  gkyl_array_error_denom_fac_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev, eps_rel, eps_abs, inp->on_dev, *range);
 }
