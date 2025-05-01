@@ -618,9 +618,9 @@ void test_array_reduce_weighted_sum_range_dev()
   double asum_ho[ncomp];
   gkyl_cu_memcpy(asum_ho, asum, ncomp*sizeof(double), GKYL_CU_MEMCPY_D2H);
 
-  TEST_CHECK( asum_ho[0] == 0.05*0.5*0.5*range.volume );
-  TEST_CHECK( asum_ho[1] == 0.15*1.5*1.5*range.volume );
-  TEST_CHECK( asum_ho[2] == 0.25*2.5*2.5*range.volume );
+  TEST_CHECK( gkyl_compare(asum_ho[0], 0.05*0.5*range.volume, 1e-12) );
+  TEST_CHECK( gkyl_compare(asum_ho[1], 0.15*1.5*range.volume, 1e-12) );
+  TEST_CHECK( gkyl_compare(asum_ho[2], 0.25*2.5*range.volume, 1e-12) );
 
   gkyl_array_release(arr);
   gkyl_array_release(arr_ho);
