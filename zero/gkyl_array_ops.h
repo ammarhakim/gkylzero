@@ -405,7 +405,10 @@ void gkyl_array_scale_by_cell_cu(struct gkyl_array* out, const struct gkyl_array
 void gkyl_array_shiftc_cu(struct gkyl_array* out, double a, unsigned k);
 
 void gkyl_array_comp_op_cu(struct gkyl_array *out, enum gkyl_array_op op,
- double a, const struct gkyl_array *in1, double b, const struct gkyl_array *in2);
+  double a, const struct gkyl_array *in1, double b, const struct gkyl_array *in2);
+
+void gkyl_array_error_denom_fac_cu(struct gkyl_array* out, double eps_rel, double eps_abs,
+  const struct gkyl_array *inp);
 
 /**
  * Host-side wrappers for range-based array operations
@@ -453,3 +456,6 @@ void gkyl_array_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *arr,
 
 void gkyl_array_flip_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *arr,
   int dir, const struct gkyl_range *range, struct gkyl_array_copy_func *cf);
+
+void gkyl_array_error_denom_fac_range_cu(struct gkyl_array* out, double eps_rel, double eps_abs,
+  const struct gkyl_array *inp, const struct gkyl_range *range);

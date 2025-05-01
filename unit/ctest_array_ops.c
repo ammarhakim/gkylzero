@@ -1167,13 +1167,13 @@ void test_array_error_denom_fac_range(bool use_gpu)
   gkyl_range_iter_init(&iter, &range);
   while (gkyl_range_iter_next(&iter)) {
     long i = gkyl_range_idx(&range, iter.idx);
-    double *a1_d = gkyl_array_fetch(a1, i);
+    double *a1_d = gkyl_array_fetch(a1_ho, i);
     for (size_t k=0; k<a1->ncomp; ++k)
       a1_d[k] = 3.0-i*2.0+k;
   }
   gkyl_array_copy(a1, a1_ho);
 
-  struct gkyl_array *a2 = mkarr(use_gpu, 3, 10);
+  struct gkyl_array *a2 = mkarr(use_gpu, 3, range.volume);
   struct gkyl_array *a2_ho = use_gpu? mkarr(false, a2->ncomp, a2->size)
                                     : gkyl_array_acquire(a2);
   double eps_rel = 1e-3;
@@ -1185,8 +1185,8 @@ void test_array_error_denom_fac_range(bool use_gpu)
   gkyl_range_iter_init(&iter, &range);
   while (gkyl_range_iter_next(&iter)) {
     long i = gkyl_range_idx(&range, iter.idx);
-    double *a1_d = gkyl_array_fetch(a1, i);
-    double *a2_d = gkyl_array_fetch(a2, i);
+    double *a1_d = gkyl_array_fetch(a1_ho, i);
+    double *a2_d = gkyl_array_fetch(a2_ho, i);
 
     double reduc = 0.0;
     for (size_t k=0; k<a1->ncomp; ++k) 

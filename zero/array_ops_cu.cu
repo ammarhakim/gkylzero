@@ -238,7 +238,7 @@ gkyl_array_shiftc_cu(struct gkyl_array* out, double a, unsigned k)
 }
 
 void
-gkyl_array_error_denom_fac_cu(struct gkyl_array* out, double eps_rel, double eps_abs, const struct gky_array *inp)
+gkyl_array_error_denom_fac_cu(struct gkyl_array* out, double eps_rel, double eps_abs, const struct gkyl_array *inp)
 {
   gkyl_array_error_denom_fac_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, eps_rel, eps_abs, inp->on_dev);
 }
@@ -917,7 +917,7 @@ gkyl_array_error_denom_fac_range_cu_kernel(struct gkyl_array* out, double eps_re
     long start = gkyl_range_idx(&range, idx);
 
     double* out_d = (double*) gkyl_array_fetch(out, start);
-    double* inp_d = (double*) gkyl_array_fetch(inp, start);
+    double* inp_d = (double*) gkyl_array_cfetch(inp, start);
 
     double sqsum = 0.0;
     for (size_t k=0; k<inp->ncomp; ++k)
