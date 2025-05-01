@@ -9,7 +9,7 @@
 #include <gkyl_util.h>
 #include <time.h>
 
-void test_reduce_min_max()
+void test_array_reduce_min_max_ho()
 {
   int ncomp = 3, ncells = 200;
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, ncomp, ncells);
@@ -32,7 +32,7 @@ void test_reduce_min_max()
   gkyl_array_release(arr);
 }
 
-void test_reduce_min_max_range()
+void test_array_reduce_min_max_range_ho()
 {
   int shape[] = {10, 20};
   struct gkyl_range range;
@@ -70,7 +70,7 @@ void test_reduce_min_max_range()
   gkyl_array_release(arr);
 }
 
-void test_reduce_sum_range()
+void test_array_reduce_sum_range_ho()
 {
   int shape[] = {10, 20};
   struct gkyl_range range;
@@ -99,7 +99,7 @@ void test_reduce_sum_range()
   gkyl_array_release(arr);
 }
 
-void test_reduce_abs_max()
+void test_array_reduce_abs_max_ho()
 {
   int ncomp = 3, ncells = 200;
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, ncomp, ncells);
@@ -121,7 +121,7 @@ void test_reduce_abs_max()
   gkyl_array_release(arr);
 }
 
-void test_reduce_sq_sum_range()
+void test_array_reduce_sq_sum_range_ho()
 {
   int shape[] = {10, 20};
   struct gkyl_range range;
@@ -149,7 +149,7 @@ void test_reduce_sq_sum_range()
   gkyl_array_release(arr);
 }
 
-void test_reduce_weighted_min_max()
+void test_array_reduce_weighted_min_max_ho()
 {
   int ncomp = 3, ncells = 200;
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, ncomp, ncells);
@@ -177,7 +177,7 @@ void test_reduce_weighted_min_max()
   gkyl_array_release(brr);
 }
 
-void test_reduce_weighted_sq_sum_range()
+void test_array_reduce_weighted_sq_sum_range_ho()
 {
   int shape[] = {10, 20};
   struct gkyl_range range;
@@ -216,7 +216,7 @@ void test_reduce_weighted_sq_sum_range()
 // CUDA specific tests
 #ifdef GKYL_HAVE_CUDA
 
-void test_cu_array_reduce_max()
+void test_array_reduce_max_dev()
 {
   unsigned long numComp = 3, numCells = 10;
   // Create host array and device copy
@@ -242,14 +242,14 @@ void test_cu_array_reduce_max()
     TEST_CHECK( gkyl_compare(a1max_ho[k], (double)(numCells-1)+(double)k*0.10, 1e-14) );
   }
 
-  gkyl_free(a1max);
-  gkyl_cu_free(a1max_ho);
+  gkyl_cu_free(a1max);
+  gkyl_free(a1max_ho);
   gkyl_array_release(a1);
   gkyl_array_release(a1_ho);
 
 }
 
-void test_cu_array_reduce_abs_max()
+void test_array_reduce_abs_max_dev()
 {
   unsigned long numComp = 3, numCells = 10;
   // Create host array and device copy
@@ -282,7 +282,7 @@ void test_cu_array_reduce_abs_max()
 
 }
 
-void test_cu_array_reduce_max_big()
+void test_array_reduce_max_big_dev()
 {
 
   unsigned long numComp = 12, numCells = 1000;
@@ -307,8 +307,8 @@ void test_cu_array_reduce_max_big()
   gkyl_cu_memcpy(a1max, a1max_cu, numComp*sizeof(double), GKYL_CU_MEMCPY_D2H);
   for (unsigned k=0; k<numComp; ++k) {
     // Make print statements to manually check the comparison
-    printf("a1max[%d] = %g\n", k, a1max[k]);
-    printf("numCells-1+(double)k*0.10 = %g\n", (double)(numCells-1)+(double)k*0.10);
+//    printf("a1max[%d] = %g\n", k, a1max[k]);
+//    printf("numCells-1+(double)k*0.10 = %g\n", (double)(numCells-1)+(double)k*0.10);
     TEST_CHECK( gkyl_compare(a1max[k], (double)(numCells-1)+(double)k*0.10, 1e-14) );
   }
 
@@ -319,7 +319,7 @@ void test_cu_array_reduce_max_big()
 
 }
 
-void test_cu_array_reduce_max_range_1d()
+void test_array_reduce_max_range_1d_dev()
 {
   unsigned long numComp = 1, numCells = 10;
   // create host array and device copy
@@ -366,7 +366,7 @@ void test_cu_array_reduce_max_range_1d()
   gkyl_array_release(a1_cu);
 }
 
-void test_cu_array_reduce_max_range_2d()
+void test_array_reduce_max_range_2d_dev()
 {
   int cells[] = {8, 10};
   int ghost[] = {1, 0};
@@ -434,7 +434,7 @@ void test_cu_array_reduce_max_range_2d()
 }
 
 void
-test_cu_array_reduce_max_range_timer(int NX, int NY, int VX, int VY)
+test_array_reduce_max_range_timer_dev(int NX, int NY, int VX, int VY)
 {
   int cells[] = {NX, NY, VX, VY};
   int ghost[] = {1, 1, 0, 0};
@@ -484,8 +484,7 @@ test_cu_array_reduce_max_range_timer(int NX, int NY, int VX, int VY)
     gkyl_array_reduce_range(a1max_cu, a1_cu, GKYL_MAX, &range);
   double red_tm = gkyl_time_diff_now_sec(tm);
 
-  printf("100 reductions on (%d,%d,%d,%d) took %g sec\n", NX, NY, VX, VY,
-    red_tm);
+//  printf("100 reductions on (%d,%d,%d,%d) took %g sec\n", NX, NY, VX, VY, red_tm);
 
   gkyl_free(a1max);
   gkyl_cu_free(a1max_cu);
@@ -499,18 +498,18 @@ test_cu_array_reduce_max_range_timer(int NX, int NY, int VX, int VY)
 }
 
 void
-test_cu_array_reduce_max_range_timer_32x32x40x40()
+test_array_reduce_max_range_timer_32x32x40x40_dev()
 {
-  test_cu_array_reduce_max_range_timer(32, 32, 40, 40);
+  test_array_reduce_max_range_timer_dev(32, 32, 40, 40);
 }
 
 void
-test_cu_array_reduce_max_range_timer_32x32x32x32()
+test_array_reduce_max_range_timer_32x32x32x32_dev()
 {
-  test_cu_array_reduce_max_range_timer(32, 32, 32, 32);
+  test_array_reduce_max_range_timer_dev(32, 32, 32, 32);
 }
 
-void test_reduce_sum_range()
+void test_array_reduce_sum_range_dev()
 {
   int shape[] = {10, 20};
   struct gkyl_range range;
@@ -524,18 +523,18 @@ void test_reduce_sum_range()
   gkyl_range_iter_init(&iter, &range);
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(&range, iter.idx);
-    double *arr_d = gkyl_array_fetch(arr, loc);
+    double *arr_d = gkyl_array_fetch(arr_ho, loc);
     arr_d[0] = 0.5;
     arr_d[1] = 1.5;
     arr_d[2] = 2.5;
   }
   gkyl_array_copy(arr, arr_ho);
 
-  double* asum = (double*) gkyl_cu_malloc(numComp*sizeof(double));
+  double* asum = (double*) gkyl_cu_malloc(ncomp*sizeof(double));
   gkyl_array_reduce_range(asum, arr, GKYL_SUM, &range);
 
   double asum_ho[ncomp];
-  gkyl_cu_memcpy(asum_ho, asum, numComp*sizeof(double), GKYL_CU_MEMCPY_D2H);
+  gkyl_cu_memcpy(asum_ho, asum, ncomp*sizeof(double), GKYL_CU_MEMCPY_D2H);
 
   TEST_CHECK( asum_ho[0] == 0.5*range.volume );
   TEST_CHECK( asum_ho[1] == 1.5*range.volume );
@@ -546,7 +545,7 @@ void test_reduce_sum_range()
   gkyl_cu_free(asum);
 }
 
-void test_cu_array_reduce_weighted_max()
+void test_array_reduce_weighted_max_dev()
 {
   unsigned long numComp = 3, numCells = 10;
   // Create host array and device copy
@@ -569,7 +568,7 @@ void test_cu_array_reduce_weighted_max()
   double* a1max_ho = gkyl_malloc(numComp*sizeof(double));
 
   // Component-wise reduce array.
-  gkyl_array_reduce(a1max, a1, b1, GKYL_MAX);
+  gkyl_array_reduce_weighted(a1max, a1, b1, GKYL_MAX);
 
   // Copy to host and check values.
   gkyl_cu_memcpy(a1max_ho, a1max, numComp*sizeof(double), GKYL_CU_MEMCPY_D2H);
@@ -577,14 +576,14 @@ void test_cu_array_reduce_weighted_max()
     TEST_CHECK( gkyl_compare(a1max_ho[k], (0.1*(numCells-1)+k*0.01)*((numCells-1)+k*0.10), 1e-14) );
   }
 
-  gkyl_free(a1max);
-  gkyl_cu_free(a1max_ho);
+  gkyl_cu_free(a1max);
+  gkyl_free(a1max_ho);
   gkyl_array_release(a1);
   gkyl_array_release(a1_ho);
 
 }
 
-void test_reduce_weighted_sum_range()
+void test_array_reduce_weighted_sum_range_dev()
 {
   int shape[] = {10, 20};
   struct gkyl_range range;
@@ -600,12 +599,12 @@ void test_reduce_weighted_sum_range()
   gkyl_range_iter_init(&iter, &range);
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(&range, iter.idx);
-    double *arr_d = gkyl_array_fetch(arr, loc);
+    double *arr_d = gkyl_array_fetch(arr_ho, loc);
     arr_d[0] = 0.5;
     arr_d[1] = 1.5;
     arr_d[2] = 2.5;
 
-    double *brr_d = gkyl_brray_fetch(brr, loc);
+    double *brr_d = gkyl_array_fetch(brr_ho, loc);
     brr_d[0] = 0.05;
     brr_d[1] = 0.15;
     brr_d[2] = 0.25;
@@ -613,11 +612,11 @@ void test_reduce_weighted_sum_range()
   gkyl_array_copy(arr, arr_ho);
   gkyl_array_copy(brr, brr_ho);
 
-  double* asum = (double*) gkyl_cu_malloc(numComp*sizeof(double));
+  double* asum = (double*) gkyl_cu_malloc(ncomp*sizeof(double));
   gkyl_array_reduce_weighted_range(asum, arr, brr, GKYL_SUM, &range);
 
   double asum_ho[ncomp];
-  gkyl_cu_memcpy(asum_ho, asum, numComp*sizeof(double), GKYL_CU_MEMCPY_D2H);
+  gkyl_cu_memcpy(asum_ho, asum, ncomp*sizeof(double), GKYL_CU_MEMCPY_D2H);
 
   TEST_CHECK( asum_ho[0] == 0.05*0.5*0.5*range.volume );
   TEST_CHECK( asum_ho[1] == 0.15*1.5*1.5*range.volume );
@@ -633,22 +632,24 @@ void test_reduce_weighted_sum_range()
 #endif
 
 TEST_LIST = {
-  { "array_reduce_min_max", test_reduce_min_max },
-  { "array_reduce_min_max_range", test_reduce_min_max_range },
-  { "array_reduce_sum_range", test_reduce_sum_range },
-  { "array_reduce_abs_max", test_reduce_abs_max },
-  { "array_reduce_sq_sum_range", test_reduce_sq_sum_range },
-  { "array_reduce_weighted_min_max", test_reduce_weighted_min_max },
-  { "array_reduce_weighted_sq_sum_range", test_reduce_weighted_sq_sum_range },
+  { "array_reduce_min_max_ho", test_array_reduce_min_max_ho },
+  { "array_reduce_min_max_range_ho", test_array_reduce_min_max_range_ho },
+  { "array_reduce_sum_range_ho", test_array_reduce_sum_range_ho },
+  { "array_reduce_abs_max_ho", test_array_reduce_abs_max_ho },
+  { "array_reduce_sq_sum_range_ho", test_array_reduce_sq_sum_range_ho },
+  { "array_reduce_weighted_min_max_ho", test_array_reduce_weighted_min_max_ho },
+  { "array_reduce_weighted_sq_sum_range_ho", test_array_reduce_weighted_sq_sum_range_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "cu_array_reduce_max", test_cu_array_reduce_max },
-  { "cu_array_reduce_abs_max", test_cu_array_reduce_abs_max },
-  { "cu_array_reduce_max_big", test_cu_array_reduce_max_big },
-  { "cu_array_reduce_max_range_1d", test_cu_array_reduce_max_range_1d },
-  { "cu_array_reduce_max_range_2d", test_cu_array_reduce_max_range_2d },
-  { "cu_array_reduce_max_range_timer_32x32x40x40", test_cu_array_reduce_max_range_timer_32x32x40x40  },
-  { "cu_array_reduce_max_range_timer_32x32x32x32", test_cu_array_reduce_max_range_timer_32x32x32x32  },  
-  { "cu_array_reduce_weighted_max", test_cu_array_reduce_weighted_max },
+  { "array_reduce_max_dev", test_array_reduce_max_dev },
+  { "array_reduce_abs_max_dev", test_array_reduce_abs_max_dev },
+  { "array_reduce_max_big_dev", test_array_reduce_max_big_dev },
+  { "array_reduce_max_range_1d_dev", test_array_reduce_max_range_1d_dev },
+  { "array_reduce_max_range_2d_dev", test_array_reduce_max_range_2d_dev },
+  { "array_reduce_max_range_timer_32x32x40x40_dev", test_array_reduce_max_range_timer_32x32x40x40_dev  },
+  { "array_reduce_max_range_timer_32x32x32x32_dev", test_array_reduce_max_range_timer_32x32x32x32_dev  },  
+  { "array_reduce_sum_range_dev", test_array_reduce_sum_range_dev },
+  { "array_reduce_weighted_max_dev", test_array_reduce_weighted_max_dev },
+  { "array_reduce_weighted_sum_range_dev", test_array_reduce_weighted_sum_range_dev },
 #endif
   { NULL, NULL },
 };

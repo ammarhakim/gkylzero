@@ -216,6 +216,9 @@ gkyl_array_reduce_weighted(double *out, const struct gkyl_array *arr,
       case GKYL_SUM:
         gkyl_array_reduce_weighted_sum_cu(out, arr, wgt);
         break;
+      case GKYL_ABS_MAX:
+        gkyl_array_reduce_weighted_abs_max_cu(out, arr, wgt);
+        break;
       case GKYL_SQ_SUM:
         gkyl_array_reduce_weighted_sq_sum_cu(out, arr, wgt);
         break;
@@ -224,7 +227,6 @@ gkyl_array_reduce_weighted(double *out, const struct gkyl_array *arr,
       case GKYL_PROD:
       case GKYL_DIV:
       case GKYL_AXPBY:
-      case GKYL_ABS_MAX:
         assert(false);
         break;
     }
@@ -265,6 +267,16 @@ gkyl_array_reduce_weighted(double *out, const struct gkyl_array *arr,
           out[k] += wgt_c[k]*arr_c[k];
       }
       break;
+    case GKYL_ABS_MAX:
+      for (long k=0; k<nc; ++k) out[k] = -DBL_MAX;
+      for (size_t i=0; i<arr->size; ++i) {
+        const double *arr_c = gkyl_array_cfetch(arr, i);
+        const double *wgt_c = gkyl_array_cfetch(wgt, i);
+        for (long k=0; k<nc; ++k)
+          out[k] = fmax(out[k], fabs(wgt_c[k]*arr_c[k]));
+      }
+      break;
+
     case GKYL_SQ_SUM:
       for (long k=0; k<nc; ++k) out[k] = 0;
       for (size_t i=0; i<arr->size; ++i) {
@@ -279,7 +291,6 @@ gkyl_array_reduce_weighted(double *out, const struct gkyl_array *arr,
     case GKYL_PROD:
     case GKYL_DIV:
     case GKYL_AXPBY:
-    case GKYL_ABS_MAX:
       assert(false);
       break;
   }

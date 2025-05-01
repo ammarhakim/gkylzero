@@ -455,3 +455,432 @@ gkyl_array_reduce_range_sq_sum_cu(double *out_d, const struct gkyl_array* inp, c
   cudaDeviceSynchronize();
 }
 
+template <unsigned int BLOCKSIZE> 
+__global__ void
+arrayMax_weighted_blockRedAtomic_cub(const struct gkyl_array* inp, const struct gkyl_array* wgt, double* out)
+{
+  unsigned long linc = blockIdx.x*blockDim.x + threadIdx.x;
+
+  // Specialize BlockReduce for type double.
+  typedef cub::BlockReduce<double, BLOCKSIZE> BlockReduceT;
+
+  // Allocate temporary storage in shared memory.
+  __shared__ typename BlockReduceT::TempStorage temp;
+
+  long nCells = inp->size;
+  size_t nComp = inp->ncomp;
+
+  const double *inp_d = (const double*) inp->data;
+  const double *wgt_d = (const double*) wgt->data;
+
+  for (size_t k = 0; k < nComp; ++k) {
+    out[k] = -DBL_MAX;
+    double f = -DBL_MAX;
+    if (linc < nCells) f = wgt_d[linc*nComp+k]*inp_d[linc*nComp+k];
+    double bResult = 0;
+    bResult = BlockReduceT(temp).Reduce(f, cub::Max());
+    if (threadIdx.x < BLOCKSIZE) {
+      atomicMax_double(&out[k], bResult);
+    }
+  }
+}
+
+template <unsigned int BLOCKSIZE>
+__global__ void
+arrayMax_weighted_range_blockRedAtomic_cub(const struct gkyl_array* inp, const struct gkyl_array* wgt,
+  const struct gkyl_range range, double* out)
+{
+  unsigned long linc = blockIdx.x*blockDim.x + threadIdx.x;
+
+  // Specialize BlockReduce for type double.
+  typedef cub::BlockReduce<double, BLOCKSIZE> BlockReduceT;
+
+  // Allocate temporary storage in shared memory.
+  __shared__ typename BlockReduceT::TempStorage temp;
+
+  long nCells = range.volume;
+  size_t nComp = inp->ncomp;
+
+  int idx[GKYL_MAX_DIM];
+
+  for (size_t k = 0; k < nComp; ++k) {
+    out[k] = -DBL_MAX;
+    gkyl_sub_range_inv_idx(&range, linc, idx);
+    long start = gkyl_range_idx(&range, idx);
+    const double* fptr = (const double*) gkyl_array_cfetch(inp, start);
+    const double* wptr = (const double*) gkyl_array_cfetch(wgt, start);
+    double f = -DBL_MAX;
+    if (linc < nCells) f = wptr[k]*fptr[k];
+    double bResult = 0;
+    bResult = BlockReduceT(temp).Reduce(f, cub::Max());
+    if (threadIdx.x < BLOCKSIZE) {
+      atomicMax_double(&out[k], bResult);
+    }
+  }
+}
+
+void
+gkyl_array_reduce_weighted_max_cu(double *out_d, const struct gkyl_array* inp, const struct gkyl_array* wgt)
+{
+  const int nthreads = GKYL_DEFAULT_NUM_THREADS;  
+  int nblocks = gkyl_int_div_up(inp->size, nthreads);
+  arrayMax_weighted_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_dev, wgt->on_dev, out_d);
+  // device synchronize required because out_d may be host pinned memory
+  cudaDeviceSynchronize();
+}
+
+void
+gkyl_array_reduce_weighted_range_max_cu(double *out_d, const struct gkyl_array* inp,
+  const struct gkyl_array* wgt, const struct gkyl_range *range)
+{
+  const int nthreads = GKYL_DEFAULT_NUM_THREADS;
+  int nblocks = gkyl_int_div_up(range->volume, nthreads);
+  arrayMax_weighted_range_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_dev, wgt->on_dev, *range, out_d);
+  // device synchronize required because out_d may be host pinned memory
+  cudaDeviceSynchronize();
+}
+
+template <unsigned int BLOCKSIZE> 
+__global__ void
+arrayMin_weighted_blockRedAtomic_cub(const struct gkyl_array* inp, const struct gkyl_array* wgt, double* out)
+{
+  unsigned long linc = blockIdx.x*blockDim.x + threadIdx.x;
+
+  // Specialize BlockReduce for type double.
+  typedef cub::BlockReduce<double, BLOCKSIZE> BlockReduceT;
+
+  // Allocate temporary storage in shared memory.
+  __shared__ typename BlockReduceT::TempStorage temp;
+
+  long nCells = inp->size;
+  size_t nComp = inp->ncomp;
+
+  const double *inp_d = (const double*) inp->data;
+  const double *wgt_d = (const double*) wgt->data;
+
+  for (size_t k = 0; k < nComp; ++k) {
+    out[k] = DBL_MAX;
+    double f = DBL_MAX;
+    if (linc < nCells) f = wgt_d[linc*nComp+k]*inp_d[linc*nComp+k];
+    double bResult = 0;
+    bResult = BlockReduceT(temp).Reduce(f, cub::Min());
+    if (threadIdx.x < BLOCKSIZE) {
+      atomicMin_double(&out[k], bResult);
+    }
+  }
+}
+
+template <unsigned int BLOCKSIZE>
+__global__ void
+arrayMin_weighted_range_blockRedAtomic_cub(const struct gkyl_array* inp, const struct gkyl_array* wgt,
+  const struct gkyl_range range, double* out)
+{
+  unsigned long linc = blockIdx.x*blockDim.x + threadIdx.x;
+
+  // Specialize BlockReduce for type double.
+  typedef cub::BlockReduce<double, BLOCKSIZE> BlockReduceT;
+
+  // Allocate temporary storage in shared memory.
+  __shared__ typename BlockReduceT::TempStorage temp;
+
+  long nCells = range.volume;
+  size_t nComp = inp->ncomp;
+
+  int idx[GKYL_MAX_DIM];
+
+  for (size_t k = 0; k < nComp; ++k) {
+    out[k] = DBL_MAX;
+    gkyl_sub_range_inv_idx(&range, linc, idx);
+    long start = gkyl_range_idx(&range, idx);
+    const double* fptr = (const double*) gkyl_array_cfetch(inp, start);
+    const double* wptr = (const double*) gkyl_array_cfetch(wgt, start);
+    double f = DBL_MAX;
+    if (linc < nCells) f = wptr[k]*fptr[k];
+    double bResult = 0;
+    bResult = BlockReduceT(temp).Reduce(f, cub::Min());
+    if (threadIdx.x < BLOCKSIZE) { 
+      atomicMin_double(&out[k], bResult);
+    }
+  }
+}
+
+void
+gkyl_array_reduce_weighted_min_cu(double *out_d, const struct gkyl_array* inp, const struct gkyl_array* wgt)
+{
+  const int nthreads = GKYL_DEFAULT_NUM_THREADS;  
+  int nblocks = gkyl_int_div_up(inp->size, nthreads);
+  arrayMin_weighted_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_dev, wgt->on_dev, out_d);
+  // device synchronize required because out_d may be host pinned memory
+  cudaDeviceSynchronize();
+}
+
+void
+gkyl_array_reduce_weighted_range_min_cu(double *out_d, const struct gkyl_array* inp,
+  const struct gkyl_array* wgt, const struct gkyl_range *range)
+{
+  const int nthreads = GKYL_DEFAULT_NUM_THREADS;
+  int nblocks = gkyl_int_div_up(range->volume, nthreads);
+  arrayMin_weighted_range_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_dev, wgt->on_dev, *range, out_d);
+  // device synchronize required because out_d may be host pinned memory
+  cudaDeviceSynchronize();
+}
+
+template <unsigned int BLOCKSIZE> 
+__global__ void
+arraySum_weighted_blockRedAtomic_cub(const struct gkyl_array* inp, const struct gkyl_array* wgt, double* out)
+{
+  unsigned long linc = blockIdx.x*blockDim.x + threadIdx.x;
+
+  // Specialize BlockReduce for type double.
+  typedef cub::BlockReduce<double, BLOCKSIZE> BlockReduceT;
+
+  // Allocate temporary storage in shared memory.
+  __shared__ typename BlockReduceT::TempStorage temp;
+
+  long nCells = inp->size;
+  size_t nComp = inp->ncomp;
+
+  const double *inp_d = (const double*) inp->data;
+  const double *wgt_d = (const double*) wgt->data;
+
+  for (size_t k = 0; k < nComp; ++k) {
+    double f = 0;
+    if (linc < nCells) f = wgt_d[linc*nComp+k]*inp_d[linc*nComp+k];
+    double bResult = 0;
+    bResult = BlockReduceT(temp).Reduce(f, cub::Sum());
+    if (threadIdx.x == 0) {
+      atomicAdd(&out[k], bResult);
+    }
+  }
+}
+
+template <unsigned int BLOCKSIZE>
+__global__ void
+arraySum_weighted_range_blockRedAtomic_cub(const struct gkyl_array* inp, const struct gkyl_array* wgt,
+  const struct gkyl_range range, double* out)
+{
+  unsigned long linc = blockIdx.x*blockDim.x + threadIdx.x;
+
+  // Specialize BlockReduce for type double.
+  typedef cub::BlockReduce<double, BLOCKSIZE> BlockReduceT;
+
+  // Allocate temporary storage in shared memory.
+  __shared__ typename BlockReduceT::TempStorage temp;
+
+  long nCells = range.volume;
+  size_t nComp = inp->ncomp;
+
+  int idx[GKYL_MAX_DIM];
+
+  for (size_t k = 0; k < nComp; ++k) {
+    gkyl_sub_range_inv_idx(&range, linc, idx);
+    long start = gkyl_range_idx(&range, idx);
+    const double* fptr = (const double*) gkyl_array_cfetch(inp, start);
+    const double* wptr = (const double*) gkyl_array_cfetch(wgt, start);
+    double f = 0;
+    if (linc < nCells) f = wptr[k]*fptr[k];
+    double bResult = 0;
+    bResult = BlockReduceT(temp).Reduce(f, cub::Sum());
+    if (threadIdx.x == 0) {
+      atomicAdd(&out[k], bResult);
+    }
+  }
+}
+
+void
+gkyl_array_reduce_weighted_sum_cu(double *out_d, const struct gkyl_array* inp, const struct gkyl_array* wgt)
+{
+  gkyl_cu_memset(out_d, 0, inp->ncomp*sizeof(double));
+  
+  const int nthreads = GKYL_DEFAULT_NUM_THREADS;  
+  int nblocks = gkyl_int_div_up(inp->size, nthreads);
+  arraySum_weighted_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_dev, wgt->on_dev, out_d);
+  // device synchronize required because out_d may be host pinned memory
+  cudaDeviceSynchronize();
+}
+
+void
+gkyl_array_reduce_weighted_range_sum_cu(double *out_d, const struct gkyl_array* inp,
+  const struct gkyl_array* wgt, const struct gkyl_range *range)
+{
+  gkyl_cu_memset(out_d, 0, inp->ncomp*sizeof(double));
+  
+  const int nthreads = GKYL_DEFAULT_NUM_THREADS;
+  int nblocks = gkyl_int_div_up(range->volume, nthreads);
+  arraySum_weighted_range_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_dev, wgt->on_dev, *range, out_d);
+  // device synchronize required because out_d may be host pinned memory
+  cudaDeviceSynchronize();
+}
+
+template <unsigned int BLOCKSIZE> 
+__global__ void
+arrayAbsMax_weighted_blockRedAtomic_cub(const struct gkyl_array* inp, const struct gkyl_array* wgt, double* out)
+{
+  unsigned long linc = blockIdx.x*blockDim.x + threadIdx.x;
+
+  // Specialize BlockReduce for type double.
+  typedef cub::BlockReduce<double, BLOCKSIZE> BlockReduceT;
+
+  // Allocate temporary storage in shared memory.
+  __shared__ typename BlockReduceT::TempStorage temp;
+
+  long nCells = inp->size;
+  size_t nComp = inp->ncomp;
+
+  const double *inp_d = (const double*) inp->data;
+  const double *wgt_d = (const double*) wgt->data;
+
+  for (size_t k = 0; k < nComp; ++k) {
+    out[k] = -DBL_MAX;
+    double f = -DBL_MAX;
+    if (linc < nCells) f = fabs(wgt_d[linc*nComp+k]*inp_d[linc*nComp+k]);
+    double bResult = 0;
+    bResult = BlockReduceT(temp).Reduce(f, cub::Max());
+    if (threadIdx.x < BLOCKSIZE) {
+      atomicMax_double(&out[k], bResult);
+    }
+  }
+}
+
+template <unsigned int BLOCKSIZE>
+__global__ void
+arrayAbsMax_weighted_range_blockRedAtomic_cub(const struct gkyl_array* inp, const struct gkyl_array* wgt,
+  const struct gkyl_range range, double* out)
+{
+  unsigned long linc = blockIdx.x*blockDim.x + threadIdx.x;
+
+  // Specialize BlockReduce for type double.
+  typedef cub::BlockReduce<double, BLOCKSIZE> BlockReduceT;
+
+  // Allocate temporary storage in shared memory.
+  __shared__ typename BlockReduceT::TempStorage temp;
+
+  long nCells = range.volume;
+  size_t nComp = inp->ncomp;
+
+  int idx[GKYL_MAX_DIM];
+
+  for (size_t k = 0; k < nComp; ++k) {
+    out[k] = -DBL_MAX;
+    gkyl_sub_range_inv_idx(&range, linc, idx);
+    long start = gkyl_range_idx(&range, idx);
+    const double* fptr = (const double*) gkyl_array_cfetch(inp, start);
+    const double* wptr = (const double*) gkyl_array_cfetch(wgt, start);
+    double f = -DBL_MAX;
+    if (linc < nCells) f = fabs(wptr[k]*fptr[k]);
+    double bResult = 0;
+    bResult = BlockReduceT(temp).Reduce(f, cub::Max());
+    if (threadIdx.x < BLOCKSIZE) {
+      atomicMax_double(&out[k], bResult);
+    }
+  }
+}
+
+void
+gkyl_array_reduce_weighted_abs_max_cu(double *out_d, const struct gkyl_array* inp, const struct gkyl_array* wgt)
+{
+  const int nthreads = GKYL_DEFAULT_NUM_THREADS;  
+  int nblocks = gkyl_int_div_up(inp->size, nthreads);
+  arrayAbsMax_weighted_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_dev, wgt->on_dev, out_d);
+  // device synchronize required because out_d may be host pinned memory
+  cudaDeviceSynchronize();
+}
+
+void
+gkyl_array_reduce_weighted_range_abs_max_cu(double *out_d, const struct gkyl_array* inp,
+  const struct gkyl_array* wgt, const struct gkyl_range *range)
+{
+  const int nthreads = GKYL_DEFAULT_NUM_THREADS;
+  int nblocks = gkyl_int_div_up(range->volume, nthreads);
+  arrayAbsMax_weighted_range_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_dev, wgt->on_dev, *range, out_d);
+  // device synchronize required because out_d may be host pinned memory
+  cudaDeviceSynchronize();
+}
+
+template <unsigned int BLOCKSIZE> 
+__global__ void
+arraySqSum_weighted_blockRedAtomic_cub(const struct gkyl_array* inp, const struct gkyl_array* wgt, double* out)
+{
+  unsigned long linc = blockIdx.x*blockDim.x + threadIdx.x;
+
+  // Specialize BlockReduce for type double.
+  typedef cub::BlockReduce<double, BLOCKSIZE> BlockReduceT;
+
+  // Allocate temporary storage in shared memory.
+  __shared__ typename BlockReduceT::TempStorage temp;
+
+  long nCells = inp->size;
+  size_t nComp = inp->ncomp;
+
+  const double *inp_d = (const double*) inp->data;
+  const double *wgt_d = (const double*) wgt->data;
+
+  for (size_t k = 0; k < nComp; ++k) {
+    double f = 0;
+    if (linc < nCells) f = wgt_d[linc*nComp+k]*pow(inp_d[linc*nComp+k],2);
+    double bResult = 0;
+    bResult = BlockReduceT(temp).Reduce(f, cub::Sum());
+    if (threadIdx.x == 0) {
+      atomicAdd(&out[k], bResult);
+    }
+  }
+}
+
+template <unsigned int BLOCKSIZE>
+__global__ void
+arraySqSum_weighted_range_blockRedAtomic_cub(const struct gkyl_array* inp, const struct gkyl_array* wgt,
+  const struct gkyl_range range, double* out)
+{
+  unsigned long linc = blockIdx.x*blockDim.x + threadIdx.x;
+
+  // Specialize BlockReduce for type double.
+  typedef cub::BlockReduce<double, BLOCKSIZE> BlockReduceT;
+
+  // Allocate temporary storage in shared memory.
+  __shared__ typename BlockReduceT::TempStorage temp;
+
+  long nCells = range.volume;
+  size_t nComp = inp->ncomp;
+
+  int idx[GKYL_MAX_DIM];
+
+  for (size_t k = 0; k < nComp; ++k) {
+    gkyl_sub_range_inv_idx(&range, linc, idx);
+    long start = gkyl_range_idx(&range, idx);
+    const double* fptr = (const double*) gkyl_array_cfetch(inp, start);
+    const double* wptr = (const double*) gkyl_array_cfetch(wgt, start);
+    double f = 0;
+    if (linc < nCells) f = wptr[k]*pow(fptr[k],2);
+    double bResult = 0;
+    bResult = BlockReduceT(temp).Reduce(f, cub::Sum());
+    if (threadIdx.x == 0) {
+      atomicAdd(&out[k], bResult);
+    }
+  }
+}
+
+void
+gkyl_array_reduce_weighted_sq_sum_cu(double *out_d, const struct gkyl_array* inp, const struct gkyl_array* wgt)
+{
+  gkyl_cu_memset(out_d, 0, inp->ncomp*sizeof(double));
+  
+  const int nthreads = GKYL_DEFAULT_NUM_THREADS;  
+  int nblocks = gkyl_int_div_up(inp->size, nthreads);
+  arraySqSum_weighted_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_dev, wgt->on_dev, out_d);
+  // device synchronize required because out_d may be host pinned memory
+  cudaDeviceSynchronize();
+}
+
+void
+gkyl_array_reduce_weighted_range_sq_sum_cu(double *out_d, const struct gkyl_array* inp,
+  const struct gkyl_array* wgt, const struct gkyl_range *range)
+{
+  gkyl_cu_memset(out_d, 0, inp->ncomp*sizeof(double));
+  
+  const int nthreads = GKYL_DEFAULT_NUM_THREADS;
+  int nblocks = gkyl_int_div_up(range->volume, nthreads);
+  arraySqSum_weighted_range_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_dev, wgt->on_dev, *range, out_d);
+  // device synchronize required because out_d may be host pinned memory
+  cudaDeviceSynchronize();
+}
+
