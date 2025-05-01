@@ -25,10 +25,10 @@ struct ultra_rel_blackhole_collapse_ctx
   double gas_gamma; // Adiabatic index.
 
   double rhob; // Background fluid mass density.
-  double ub; // Background fluid velocity.
+  double omega_b; // Background fluid angular velocity.
 
   double rhos; // Star fluid mass density.
-  double us; // Star fluid velocity.
+  double omega_s; // Star fluid angular velocity.
 
   // Predicted spacetime parameters (using geometric units).
   double mass; // Predicted mass of the black hole.
@@ -65,14 +65,14 @@ create_ctx(void)
   double gas_gamma = 2.0; // Adiabatic index.
 
   double rhob = 1.0; // Background fluid mass density.
-  double ub = 0.0; // Background fluid velocity.
+  double omega_b = 0.2; // Background fluid angular velocity.
 
   double rhos = 10.0; // Star fluid mass density.
-  double us = 0.0; // Star fluid velocity.
+  double omega_s = 0.0; // Star fluid angular velocity.
 
   // Predicted spacetime parameters (using geometric units).
   double mass = 0.3; // Predicted mass of the black hole.
-  double spin = 0.0; // Predicted spin of the black hole.
+  double spin = 0.9; // Predicted spin of the black hole.
 
   double pos_x = 2.5; // Predicted position of the black hole (x-direction).
   double pos_y = 2.5; // Predicted position of the black hole (y-direction).
@@ -82,8 +82,8 @@ create_ctx(void)
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, mass, spin, pos_x, pos_y, pos_z);
 
   // Simulation parameters.
-  int Nx = 256; // Cell count (x-direction).
-  int Ny = 256; // Cell count (y-direction).
+  int Nx = 400; // Cell count (x-direction).
+  int Ny = 400; // Cell count (y-direction).
   double Lx = 5.0; // Domain size (x-direction).
   double Ly = 5.0; // Domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.
@@ -95,14 +95,14 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  double r_star = 1.2; // Star radius.
+  double r_star = 1.5; // Star radius.
 
   struct ultra_rel_blackhole_collapse_ctx ctx = {
     .gas_gamma = gas_gamma,
     .rhob = rhob,
-    .ub = ub,
+    .omega_b = omega_b,
     .rhos = rhos,
-    .us = us,
+    .omega_s = omega_s,
     .mass = mass,
     .spin = spin,
     .pos_x = pos_x,
@@ -135,10 +135,10 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double gas_gamma = app->gas_gamma;
 
   double rhob = app->rhob;
-  double ub = app->ub;
+  double omega_b = app->omega_b;
 
   double rhos = app->rhos;
-  double us = app->us;
+  double omega_s = app->omega_s;
 
   double Lx = app->Lx;
   double Ly = app->Ly;
@@ -150,16 +150,19 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   double rho = 0.0;
   double u = 0.0;
+  double v = 0.0;
 
   double r = sqrt((x - (0.5 * Lx)) * (x - (0.5 * Lx)) + (y - (0.5 * Ly)) * (y - (0.5 * Ly)));
 
   if (r <= r_star) {
     rho = rhos; // Fluid mass density (star).
-    u = us; // Fluid velocity (star).
+    u = -omega_s * (y - (0.5 * Ly)); // Fluid velocity (star).
+    v = omega_s * (x - (0.5 * Lx));
   }
   else {
     rho = rhob; // Fluid mass density (background).
-    u = ub; // Fluid velocity (background).
+    u = -omega_b * (y - (0.5 * Ly)); // Fluid velocity (background).
+    v = omega_b * (x - (0.5 * Lx));
   }
   
   double spatial_det, lapse;
@@ -205,7 +208,7 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   double *vel = gkyl_malloc(sizeof(double[3]));
   double v_sq = 0.0;
-  vel[0] = u; vel[1] = 0.0; vel[2] = 0.0;
+  vel[0] = u; vel[1] = v; vel[2] = 0.0;
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
@@ -222,7 +225,7 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   
   double Etot = sqrt(spatial_det) * (((rho + p) * (W * W)) - p); // Fluid total energy density.
   double mom_x = sqrt(spatial_det) * (rho + p) * (W * W) * u; // Fluid momentum density (x-direction).
-  double mom_y = 0.0; // Fluid momentum density (y-direction).
+  double mom_y = sqrt(spatial_det) * (rho + p) * (W * W) * v; // Fluid momentum density (y-direction).
   double mom_z = 0.0; // Fluid momentum density (z-direction).
 
   // Set fluid total energy density.
@@ -359,7 +362,7 @@ main(int argc, char **argv)
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
   // Fluid equations.
-  struct gkyl_wv_eqn *gr_ultra_rel_euler = gkyl_wv_gr_ultra_rel_euler_new(ctx.gas_gamma, true, ctx.spacetime, app_args.use_gpu);
+  struct gkyl_wv_eqn *gr_ultra_rel_euler = gkyl_wv_gr_ultra_rel_euler_new(ctx.gas_gamma, GKYL_BLACKHOLE_COLLAPSE_GAUGE, ctx.spacetime, app_args.use_gpu);
 
   struct gkyl_moment_species fluid = {
     .name = "gr_ultra_rel_euler",

@@ -1402,11 +1402,11 @@ gkyl_gr_ultra_rel_euler_free(const struct gkyl_ref_count* ref)
 }
 
 struct gkyl_wv_eqn*
-gkyl_wv_gr_ultra_rel_euler_new(double gas_gamma, bool blackhole_collapse, struct gkyl_gr_spacetime* spacetime, bool use_gpu)
+gkyl_wv_gr_ultra_rel_euler_new(double gas_gamma, enum gkyl_spacetime_gauge spacetime_gauge, struct gkyl_gr_spacetime* spacetime, bool use_gpu)
 {
   return gkyl_wv_gr_ultra_rel_euler_inew(&(struct gkyl_wv_gr_ultra_rel_euler_inp) {
       .gas_gamma = gas_gamma,
-      .blackhole_collapse = blackhole_collapse,
+      .spacetime_gauge = spacetime_gauge,
       .spacetime = spacetime,
       .rp_type = WV_GR_ULTRA_REL_EULER_RP_ROE,
       .use_gpu = use_gpu,
@@ -1424,7 +1424,7 @@ gkyl_wv_gr_ultra_rel_euler_inew(const struct gkyl_wv_gr_ultra_rel_euler_inp* inp
   gr_ultra_rel_euler->eqn.num_diag = 4;
 
   gr_ultra_rel_euler->gas_gamma = inp->gas_gamma;
-  gr_ultra_rel_euler->blackhole_collapse = inp->blackhole_collapse;
+  gr_ultra_rel_euler->spacetime_gauge = inp->spacetime_gauge;
   gr_ultra_rel_euler->spacetime = inp->spacetime;
 
   if (inp->rp_type == WV_GR_ULTRA_REL_EULER_RP_LAX) {

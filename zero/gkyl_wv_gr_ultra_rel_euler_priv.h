@@ -15,7 +15,7 @@ struct wv_gr_ultra_rel_euler {
   struct gkyl_gr_spacetime *spacetime; // Pointer to base spacetime object.
   double gas_gamma; // Adiabatic index.
 
-  bool blackhole_collapse; // Use gauge conditions for a black hole collapse.
+  enum gkyl_spacetime_gauge spacetime_gauge; // Spacetime gauge choice.
 };
 
 /**

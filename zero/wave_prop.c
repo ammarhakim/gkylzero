@@ -625,9 +625,9 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
           const struct gkyl_wv_eqn* eqn = wv->equation;
           const struct wv_gr_ultra_rel_euler *gr_ultra_rel_euler = container_of(eqn, struct wv_gr_ultra_rel_euler, eqn);
 
-          const bool blackhole_collapse = gr_ultra_rel_euler->blackhole_collapse;
+          const enum gkyl_spacetime_gauge spacetime_gauge = gr_ultra_rel_euler->spacetime_gauge;
 
-          if (blackhole_collapse) {
+          if (spacetime_gauge == GKYL_BLACKHOLE_COLLAPSE_GAUGE) {
             const struct gkyl_gr_spacetime* spacetime = gr_ultra_rel_euler->spacetime;
             const struct gr_blackhole *blackhole = container_of(spacetime, struct gr_blackhole, spacetime);
 
@@ -687,14 +687,13 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
               new_spacetime->lapse_function_func(new_spacetime, 0.0, x, y, z, &lapse);
               new_spacetime->shift_vector_func(new_spacetime, 0.0, x, y, z, &shift);
               new_spacetime->excision_region_func(new_spacetime, 0.0, x, y, z, &in_excision_region);
-              
+
               new_spacetime->spatial_metric_tensor_func(new_spacetime, 0.0, x, y, z, &spatial_metric);
               new_spacetime->extrinsic_curvature_tensor_func(new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
 
               new_spacetime->lapse_function_der_func(new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
               new_spacetime->shift_vector_der_func(new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
               new_spacetime->spatial_metric_tensor_der_func(new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
-
               qnew[4] = lapse;
               qnew[5] = shift[0]; qnew[6] = shift[1]; qnew[7] = shift[2];
 

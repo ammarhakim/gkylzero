@@ -121,6 +121,14 @@ blackhole_kerrschildvector_der(const struct gkyl_gr_spacetime* spacetime, const 
     kerrschild_vector_der[2][i] = (1.0 / dz) * (kerrschild_vector_z_forward[i] - kerrschild_vector_z_backward[i]);
   }
 
+  gkyl_free(kerrschild_vector_x_forward);
+  gkyl_free(kerrschild_vector_y_forward);
+  gkyl_free(kerrschild_vector_z_forward);
+
+  gkyl_free(kerrschild_vector_x_backward);
+  gkyl_free(kerrschild_vector_y_backward);
+  gkyl_free(kerrschild_vector_z_backward);
+
   return kerrschild_vector_der;
 }
 

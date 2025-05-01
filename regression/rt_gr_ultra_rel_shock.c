@@ -249,10 +249,17 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   fout[60] = spatial_metric_der[2][1][0]; fout[61] = spatial_metric_der[2][1][1]; fout[62] = spatial_metric_der[2][1][2];
   fout[63] = spatial_metric_der[2][2][0]; fout[64] = spatial_metric_der[2][2][1]; fout[65] = spatial_metric_der[2][2][2];
 
+  // Set evolution parameter.
+  fout[66] = 0.0;
+
+  // Set spatial coordinates.
+  fout[67] = x; fout[68] = 0.0; fout[69] = 0.0;
+
   if (in_excision_region) {
     for (int i = 0; i < 66; i++) {
       fout[i] = 0.0;
     }
+    fout[26] = -1.0;
   }
 
   // Free all tensorial quantities.
@@ -327,7 +334,7 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
   // Fluid equations.
-  struct gkyl_wv_eqn *gr_ultra_rel_euler = gkyl_wv_gr_ultra_rel_euler_new(ctx.gas_gamma, ctx.spacetime, app_args.use_gpu);
+  struct gkyl_wv_eqn *gr_ultra_rel_euler = gkyl_wv_gr_ultra_rel_euler_new(ctx.gas_gamma, GKYL_STATIC_GAUGE, ctx.spacetime, app_args.use_gpu);
 
   struct gkyl_moment_species fluid = {
     .name = "gr_ultra_rel_euler",

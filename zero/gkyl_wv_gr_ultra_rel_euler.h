@@ -12,7 +12,7 @@ enum gkyl_wv_gr_ultra_rel_euler_rp {
 // Input context, packaged as a struct.
 struct gkyl_wv_gr_ultra_rel_euler_inp {
   double gas_gamma; // Adiabatic index.
-  bool blackhole_collapse; // Use gauge conditions for a black hole collapse.
+  enum gkyl_spacetime_gauge spacetime_gauge; // Spacetime gauge choice.
   struct gkyl_gr_spacetime *spacetime; // Pointer to base spacetime object.
 
   enum gkyl_wv_gr_ultra_rel_euler_rp rp_type; // Type of Riemann-solver to use.
@@ -23,13 +23,13 @@ struct gkyl_wv_gr_ultra_rel_euler_inp {
 * Create a new general relativistic Euler equations object with ultra-relativistic equation of state.
 *
 * @param gas_gamma Adiabatic index.
-* @param blackhole_collapse Use gauge conditions for a black hole collapse.
+* @param spacetime_gauge Spactime gauge choice.
 * @param spacetime Pointer to base spacetime object.
 * @param use_gpu Whether the wave equation object is on the host (false) or the device (true).
 * @return Pointer to the general relativistic Euler equations object with ultra-relativistic equation of state.
 */
 struct gkyl_wv_eqn*
-gkyl_wv_gr_ultra_rel_euler_new(double gas_gamma, bool blackhole_collapse, struct gkyl_gr_spacetime* spacetime, bool use_gpu);
+gkyl_wv_gr_ultra_rel_euler_new(double gas_gamma, enum gkyl_spacetime_gauge spacetime_gauge, struct gkyl_gr_spacetime* spacetime, bool use_gpu);
 
 /**
 * Create a new general relativistic Euler equations object with ultra-relativistic equation of state, from an input context struct.
@@ -50,13 +50,13 @@ double
 gkyl_wv_gr_ultra_rel_euler_gas_gamma(const struct gkyl_wv_eqn* eqn);
 
 /**
-* Use black hole collapse gauge conditions?
+* Get spacetime gauge choice.
 *
 * @param eqn General relativistic Euler equations object with ultra-relativistic equation of state.
-* @return Use black hole collapse gauge conditions?
+* @return Spacetime gauge choice.
 */
-bool
-gkyl_wv_gr_ultra_rel_euler_blackhole_collapse(const struct gkyl_wv_eqn* eqn);
+enum gkyl_spacetime_gauge
+gkyl_wv_gr_ultra_rel_euler_spacetime_gauge(const struct gkyl_wv_eqn* eqn);
 
 /**
 * Get base spacetime object.
