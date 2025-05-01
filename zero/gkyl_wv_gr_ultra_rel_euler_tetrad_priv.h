@@ -14,6 +14,8 @@ struct wv_gr_ultra_rel_euler_tetrad {
   struct gkyl_wv_eqn eqn; // Base equation object.
   struct gkyl_gr_spacetime *spacetime; // Pointer to base spacetime object.
   double gas_gamma; // Adiabatic index.
+
+  enum gkyl_spacetime_gauge spacetime_gauge; // Spacetime gauge choice.
 };
 
 /**

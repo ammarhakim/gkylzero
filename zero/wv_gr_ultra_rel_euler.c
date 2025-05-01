@@ -1471,6 +1471,15 @@ gkyl_wv_gr_ultra_rel_euler_gas_gamma(const struct gkyl_wv_eqn* eqn)
   return gas_gamma;
 }
 
+enum gkyl_spacetime_gauge
+gkyl_wv_gr_ultra_rel_euler_spacetime_gauge(const struct gkyl_wv_eqn* eqn)
+{
+  const struct wv_gr_ultra_rel_euler *gr_ultra_rel_euler = container_of(eqn, struct wv_gr_ultra_rel_euler, eqn);
+  enum gkyl_spacetime_gauge spacetime_gauge = gr_ultra_rel_euler->spacetime_gauge;
+
+  return spacetime_gauge;
+}
+
 struct gkyl_gr_spacetime*
 gkyl_wv_gr_ultra_rel_euler_spacetime(const struct gkyl_wv_eqn* eqn)
 {

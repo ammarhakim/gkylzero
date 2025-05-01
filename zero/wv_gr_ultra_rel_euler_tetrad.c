@@ -7,9 +7,9 @@
 #include <gkyl_wv_gr_ultra_rel_euler_tetrad_priv.h>
 
 void
-gkyl_gr_ultra_rel_euler_tetrad_flux(double gas_gamma, const double q[27], double flux[27])
+gkyl_gr_ultra_rel_euler_tetrad_flux(double gas_gamma, const double q[70], double flux[70])
 {
-  double v[27] = { 0.0 };
+  double v[70] = { 0.0 };
   gkyl_gr_ultra_rel_euler_tetrad_prim_vars(gas_gamma, q, v);
   double rho =  v[0];
   double vx = v[1];
@@ -33,21 +33,21 @@ gkyl_gr_ultra_rel_euler_tetrad_flux(double gas_gamma, const double q[27], double
     flux[2] = ((rho + p) * (W * W)) * (vy * vx);
     flux[3] = ((rho + p) * (W * W)) * (vz * vx);
 
-    for (int i = 4; i < 27; i++) {
+    for (int i = 4; i < 70; i++) {
       flux[i] = 0.0;
     }
   }
   else {
-    for (int i = 0; i < 27; i++) {
+    for (int i = 0; i < 70; i++) {
       flux[i] = 0.0;
     }
   }
 }
 
 void
-gkyl_gr_ultra_rel_euler_tetrad_flux_correction(double gas_gamma, const double q[27], const double flux_sr[27], double flux_gr[27])
+gkyl_gr_ultra_rel_euler_tetrad_flux_correction(double gas_gamma, const double q[70], const double flux_sr[70], double flux_gr[70])
 {
-  double v[27] = { 0.0 };
+  double v[70] = { 0.0 };
   gkyl_gr_ultra_rel_euler_tetrad_prim_vars(gas_gamma, q, v);
   double rho =  v[0];
   double vx = v[1];
@@ -108,19 +108,19 @@ gkyl_gr_ultra_rel_euler_tetrad_flux_correction(double gas_gamma, const double q[
     flux_gr[2] = (lapse * sqrt(spatial_det)) * ((flux_sr[2] * (vx - (shift_x / lapse)) * (W_curved * W_curved)) / (vx * (W_flat * W_flat)));
     flux_gr[3] = (lapse * sqrt(spatial_det)) * ((flux_sr[3] * (vx - (shift_x / lapse)) * (W_curved * W_curved)) / (vx * (W_flat * W_flat)));
 
-    for (int i = 4; i < 27; i++) {
+    for (int i = 4; i < 70; i++) {
       flux_gr[i] = 0.0;
     }
   }
   else {
-    for (int i = 0; i < 27; i++) {
+    for (int i = 0; i < 70; i++) {
       flux_gr[i] = 0.0;
     }
   }
 }
 
 void
-gkyl_gr_ultra_rel_euler_tetrad_prim_vars(double gas_gamma, const double q[27], double v[27])
+gkyl_gr_ultra_rel_euler_tetrad_prim_vars(double gas_gamma, const double q[70], double v[70])
 {
   double lapse = q[4];
   double shift_x = q[5];
@@ -196,10 +196,22 @@ gkyl_gr_ultra_rel_euler_tetrad_prim_vars(double gas_gamma, const double q[27], d
       cov_vz = 1.0 - pow(10.0, -8.0);
     }
 
+    double cov_vel[3];
+    cov_vel[0] = cov_vx; cov_vel[1] = cov_vy; cov_vel[2] = cov_vz;
+
+    double vel[3];
+    for (int i = 0; i < 3; i++) {
+      vel[i] = 0.0;
+
+      for (int j = 0; j < 3; j++) {
+        vel[i] += inv_spatial_metric[i][j] * cov_vel[j];
+      }
+    }
+
     v[0] = rho;
-    v[1] = cov_vx;
-    v[2] = cov_vy;
-    v[3] = cov_vz;
+    v[1] = vel[0];
+    v[2] = vel[1];
+    v[3] = vel[2];
 
     v[4] = lapse;
     v[5] = shift_x;
@@ -217,7 +229,7 @@ gkyl_gr_ultra_rel_euler_tetrad_prim_vars(double gas_gamma, const double q[27], d
     v[26] = 1.0;
   }
   else {
-    for (int i = 0; i < 26; i++) {
+    for (int i = 0; i < 70; i++) {
       v[i] = 0.0;
     }
 
@@ -231,7 +243,7 @@ gkyl_gr_ultra_rel_euler_tetrad_prim_vars(double gas_gamma, const double q[27], d
 }
 
 void 
-gkyl_gr_ultra_rel_euler_tetrad_inv_spatial_metric(const double q[27], double ***inv_spatial_metric)
+gkyl_gr_ultra_rel_euler_tetrad_inv_spatial_metric(const double q[70], double ***inv_spatial_metric)
 {
   double spatial_metric[3][3];
   spatial_metric[0][0] = q[8]; spatial_metric[0][1] = q[9]; spatial_metric[0][2] = q[10];
@@ -288,9 +300,9 @@ gkyl_gr_ultra_rel_euler_tetrad_inv_spatial_metric(const double q[27], double ***
 }
 
 void
-gkyl_gr_ultra_rel_euler_tetrad_stress_energy_tensor(double gas_gamma, const double q[27], double ***stress_energy)
+gkyl_gr_ultra_rel_euler_tetrad_stress_energy_tensor(double gas_gamma, const double q[70], double ***stress_energy)
 {
-  double v[27] = { 0.0 };
+  double v[70] = { 0.0 };
   gkyl_gr_ultra_rel_euler_tetrad_prim_vars(gas_gamma, q, v);
   double rho = v[0];
   double vx = v[1];
@@ -380,9 +392,9 @@ gkyl_gr_ultra_rel_euler_tetrad_stress_energy_tensor(double gas_gamma, const doub
 }
 
 static inline double
-gkyl_gr_ultra_rel_euler_tetrad_max_abs_speed(double gas_gamma, const double q[27])
+gkyl_gr_ultra_rel_euler_tetrad_max_abs_speed(double gas_gamma, const double q[70])
 {
-  double v[27] = { 0.0 };
+  double v[70] = { 0.0 };
   gkyl_gr_ultra_rel_euler_tetrad_prim_vars(gas_gamma, q, v);
   double vx = v[1];
   double vy = v[2];
@@ -506,7 +518,7 @@ static inline void
 cons_to_riem(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* qin, double* wout)
 {
   // TODO: This should use a proper L matrix.
-  for (int i = 0; i < 27; i++) {
+  for (int i = 0; i < 70; i++) {
     wout[i] = qin[i];
   }
 }
@@ -515,7 +527,7 @@ static inline void
 riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* win, double* qout)
 {
   // TODO: This should use a proper L matrix.
-  for (int i = 0; i < 27; i++) {
+  for (int i = 0; i < 70; i++) {
     qout[i] = win[i];
   }
 }
@@ -523,7 +535,7 @@ riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
 static void
 gr_ultra_rel_euler_tetrad_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
-  for (int i = 0; i < 27; i++) {
+  for (int i = 0; i < 70; i++) {
     ghost[i] = skin[i];
   }
 
@@ -539,7 +551,7 @@ gr_ultra_rel_euler_tetrad_no_slip(const struct gkyl_wv_eqn* eqn, double t, int n
 
   ghost[0] = skin[0];
 
-  for (int i = 4; i < 27; i++) {
+  for (int i = 4; i < 70; i++) {
     ghost[i] = skin[i];
   }
 }
@@ -625,6 +637,167 @@ rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* ta
   qlocal[23] = inv_v3[0]; qlocal[24] = inv_v3[1]; qlocal[25] = inv_v3[2];
 
   qlocal[26] = qglobal[26];
+
+  qlocal[27] = (qglobal[27] * norm[0]) + (qglobal[28] * norm[1]) + (qglobal[29] * norm[2]);
+  qlocal[28] = (qglobal[27] * tau1[0]) + (qglobal[28] * tau1[1]) + (qglobal[29] * tau1[2]);
+  qlocal[29] = (qglobal[27] * tau2[0]) + (qglobal[28] * tau2[1]) + (qglobal[29] * tau2[2]);
+
+  // Temporary arrays to store rotated shift derivative column vectors.
+  double shiftder_r1[3], shiftder_r2[3], shiftder_r3[3];
+  shiftder_r1[0] = (qglobal[30] * norm[0]) + (qglobal[31] * norm[1]) + (qglobal[32] * norm[2]);
+  shiftder_r1[1] = (qglobal[30] * tau1[0]) + (qglobal[31] * tau1[1]) + (qglobal[32] * tau1[2]);
+  shiftder_r1[2] = (qglobal[30] * tau2[0]) + (qglobal[31] * tau2[1]) + (qglobal[32] * tau2[2]);
+
+  shiftder_r2[0] = (qglobal[33] * norm[0]) + (qglobal[34] * norm[1]) + (qglobal[35] * norm[2]);
+  shiftder_r2[1] = (qglobal[33] * tau1[0]) + (qglobal[34] * tau1[1]) + (qglobal[35] * tau1[2]);
+  shiftder_r2[2] = (qglobal[33] * tau2[0]) + (qglobal[34] * tau2[1]) + (qglobal[35] * tau2[2]);
+
+  shiftder_r3[0] = (qglobal[36] * norm[0]) + (qglobal[37] * norm[1]) + (qglobal[38] * norm[2]);
+  shiftder_r3[1] = (qglobal[36] * tau1[0]) + (qglobal[37] * tau1[1]) + (qglobal[38] * tau1[2]);
+  shiftder_r3[2] = (qglobal[36] * tau2[0]) + (qglobal[37] * tau2[1]) + (qglobal[38] * tau2[2]);
+
+  // Temporary arrays to store rotated shift derivative row vectors.
+  double shiftder_v1[3], shiftder_v2[3], shiftder_v3[3];
+  shiftder_v1[0] = (shiftder_r1[0] * norm[0]) + (shiftder_r2[0] * norm[1]) + (shiftder_r3[0] * norm[2]);
+  shiftder_v1[1] = (shiftder_r1[0] * tau1[0]) + (shiftder_r2[0] * tau1[1]) + (shiftder_r3[0] * tau1[2]);
+  shiftder_v1[2] = (shiftder_r1[0] * tau2[0]) + (shiftder_r2[0] * tau2[1]) + (shiftder_r3[0] * tau2[2]);
+
+  shiftder_v2[0] = (shiftder_r1[1] * norm[0]) + (shiftder_r2[1] * norm[1]) + (shiftder_r3[1] * norm[2]);
+  shiftder_v2[1] = (shiftder_r1[1] * tau1[0]) + (shiftder_r2[1] * tau1[1]) + (shiftder_r3[1] * tau1[2]);
+  shiftder_v2[2] = (shiftder_r1[1] * tau2[0]) + (shiftder_r2[1] * tau2[1]) + (shiftder_r3[1] * tau2[2]);
+
+  shiftder_v3[0] = (shiftder_r1[2] * norm[0]) + (shiftder_r2[2] * norm[1]) + (shiftder_r3[2] * norm[2]);
+  shiftder_v3[1] = (shiftder_r1[2] * tau1[0]) + (shiftder_r2[2] * tau1[1]) + (shiftder_r3[2] * tau1[2]);
+  shiftder_v3[2] = (shiftder_r1[2] * tau2[0]) + (shiftder_r2[2] * tau2[1]) + (shiftder_r3[2] * tau2[2]);
+
+  // Rotate shift vector derivative to local coordinate frame.
+  qlocal[30] = shiftder_v1[0]; qlocal[31] = shiftder_v1[1]; qlocal[32] = shiftder_v1[2];
+  qlocal[33] = shiftder_v2[0]; qlocal[34] = shiftder_v2[1]; qlocal[35] = shiftder_v2[2];
+  qlocal[36] = shiftder_v3[0]; qlocal[37] = shiftder_v3[1]; qlocal[38] = shiftder_v3[2];
+
+  // Temporary arrays to store rotated column vectors.
+  double r11[3], r12[3], r13[3];
+  double r21[3], r22[3], r23[3];
+  double r31[3], r32[3], r33[3];
+
+  r11[0] = (qglobal[39] * norm[0]) + (qglobal[40] * norm[1]) + (qglobal[41] * norm[2]);
+  r11[1] = (qglobal[39] * tau1[0]) + (qglobal[40] * tau1[1]) + (qglobal[41] * tau1[2]);
+  r11[2] = (qglobal[39] * tau2[0]) + (qglobal[40] * tau2[1]) + (qglobal[41] * tau2[2]);
+
+  r12[0] = (qglobal[42] * norm[0]) + (qglobal[43] * norm[1]) + (qglobal[44] * norm[2]);
+  r12[1] = (qglobal[42] * tau1[0]) + (qglobal[43] * tau1[1]) + (qglobal[44] * tau1[2]);
+  r12[2] = (qglobal[42] * tau2[0]) + (qglobal[43] * tau2[1]) + (qglobal[44] * tau2[2]);
+
+  r13[0] = (qglobal[45] * norm[0]) + (qglobal[46] * norm[1]) + (qglobal[47] * norm[2]);
+  r13[1] = (qglobal[45] * tau1[0]) + (qglobal[46] * tau1[1]) + (qglobal[47] * tau1[2]);
+  r13[2] = (qglobal[45] * tau2[0]) + (qglobal[46] * tau2[1]) + (qglobal[47] * tau2[2]);
+
+  r21[0] = (qglobal[48] * norm[0]) + (qglobal[49] * norm[1]) + (qglobal[50] * norm[2]);
+  r21[1] = (qglobal[48] * tau1[0]) + (qglobal[49] * tau1[1]) + (qglobal[50] * tau1[2]);
+  r21[2] = (qglobal[48] * tau2[0]) + (qglobal[49] * tau2[1]) + (qglobal[50] * tau2[2]);
+
+  r22[0] = (qglobal[51] * norm[0]) + (qglobal[52] * norm[1]) + (qglobal[53] * norm[2]);
+  r22[1] = (qglobal[51] * tau1[0]) + (qglobal[52] * tau1[1]) + (qglobal[53] * tau1[2]);
+  r22[2] = (qglobal[51] * tau2[0]) + (qglobal[52] * tau2[1]) + (qglobal[53] * tau2[2]);
+
+  r23[0] = (qglobal[54] * norm[0]) + (qglobal[55] * norm[1]) + (qglobal[56] * norm[2]);
+  r23[1] = (qglobal[54] * tau1[0]) + (qglobal[55] * tau1[1]) + (qglobal[56] * tau1[2]);
+  r23[2] = (qglobal[54] * tau2[0]) + (qglobal[55] * tau2[1]) + (qglobal[56] * tau2[2]);
+
+  r31[0] = (qglobal[57] * norm[0]) + (qglobal[58] * norm[1]) + (qglobal[59] * norm[2]);
+  r31[1] = (qglobal[57] * tau1[0]) + (qglobal[58] * tau1[1]) + (qglobal[59] * tau1[2]);
+  r31[2] = (qglobal[57] * tau2[0]) + (qglobal[58] * tau2[1]) + (qglobal[59] * tau2[2]);
+
+  r32[0] = (qglobal[60] * norm[0]) + (qglobal[61] * norm[1]) + (qglobal[62] * norm[2]);
+  r32[1] = (qglobal[60] * tau1[0]) + (qglobal[61] * tau1[1]) + (qglobal[62] * tau1[2]);
+  r32[2] = (qglobal[60] * tau2[0]) + (qglobal[61] * tau2[1]) + (qglobal[62] * tau2[2]);
+
+  r33[0] = (qglobal[63] * norm[0]) + (qglobal[64] * norm[1]) + (qglobal[65] * norm[2]);
+  r33[1] = (qglobal[63] * tau1[0]) + (qglobal[64] * tau1[1]) + (qglobal[65] * tau1[2]);
+  r33[2] = (qglobal[63] * tau2[0]) + (qglobal[64] * tau2[1]) + (qglobal[65] * tau2[2]);
+
+  // Temporary arrays to store rotated row vectors.
+  double s11[3], s12[3], s13[3];
+  double s21[3], s22[3], s23[3];
+  double s31[3], s32[3], s33[3];
+
+  s11[0] = (r11[0] * norm[0]) + (r12[0] * norm[1]) + (r13[0] * norm[2]);
+  s11[1] = (r11[1] * norm[0]) + (r12[1] * norm[1]) + (r13[1] * norm[2]);
+  s11[2] = (r11[2] * norm[0]) + (r12[2] * norm[1]) + (r13[2] * norm[2]);
+
+  s12[0] = (r11[0] * tau1[0]) + (r12[0] * tau1[1]) + (r13[0] * tau1[2]);
+  s12[1] = (r11[1] * tau1[0]) + (r12[1] * tau1[1]) + (r13[1] * tau1[2]);
+  s12[2] = (r11[2] * tau1[0]) + (r12[2] * tau1[1]) + (r13[2] * tau1[2]);
+
+  s13[0] = (r11[0] * tau2[0]) + (r12[0] * tau2[1]) + (r13[0] * tau2[2]);
+  s13[1] = (r11[1] * tau2[0]) + (r12[1] * tau2[1]) + (r13[1] * tau2[2]);
+  s13[2] = (r11[2] * tau2[0]) + (r12[2] * tau2[1]) + (r13[2] * tau2[2]);
+
+  s21[0] = (r21[0] * norm[0]) + (r22[0] * norm[1]) + (r23[0] * norm[2]);
+  s21[1] = (r21[1] * norm[0]) + (r22[1] * norm[1]) + (r23[1] * norm[2]);
+  s21[2] = (r21[2] * norm[0]) + (r22[2] * norm[1]) + (r23[2] * norm[2]);
+
+  s22[0] = (r21[0] * tau1[0]) + (r22[0] * tau1[1]) + (r23[0] * tau1[2]);
+  s22[1] = (r21[1] * tau1[0]) + (r22[1] * tau1[1]) + (r23[1] * tau1[2]);
+  s22[2] = (r21[2] * tau1[0]) + (r22[2] * tau1[1]) + (r23[2] * tau1[2]);
+
+  s23[0] = (r21[0] * tau2[0]) + (r22[0] * tau2[1]) + (r23[0] * tau2[2]);
+  s23[1] = (r21[1] * tau2[0]) + (r22[1] * tau2[1]) + (r23[1] * tau2[2]);
+  s23[2] = (r21[2] * tau2[0]) + (r22[2] * tau2[1]) + (r23[2] * tau2[2]);
+
+  s31[0] = (r31[0] * norm[0]) + (r32[0] * norm[1]) + (r33[0] * norm[2]);
+  s31[1] = (r31[1] * norm[0]) + (r32[1] * norm[1]) + (r33[1] * norm[2]);
+  s31[2] = (r31[2] * norm[0]) + (r32[2] * norm[1]) + (r33[2] * norm[2]);
+
+  s32[0] = (r31[0] * tau1[0]) + (r32[0] * tau1[1]) + (r33[0] * tau1[2]);
+  s32[1] = (r31[1] * tau1[0]) + (r32[1] * tau1[1]) + (r33[1] * tau1[2]);
+  s32[2] = (r31[2] * tau1[0]) + (r32[2] * tau1[1]) + (r33[2] * tau1[2]);
+
+  s33[0] = (r31[0] * tau2[0]) + (r32[0] * tau2[1]) + (r33[0] * tau2[2]);
+  s33[1] = (r31[1] * tau2[0]) + (r32[1] * tau2[1]) + (r33[1] * tau2[2]);
+  s33[2] = (r31[2] * tau2[0]) + (r32[2] * tau2[1]) + (r33[2] * tau2[2]);
+  
+  // Rotate spatial metric tensor derivative to local coordinate frame.
+  qlocal[39] = (s11[0] * norm[0]) + (s21[0] * norm[1]) + (s31[0] * norm[2]);
+  qlocal[40] = (s11[1] * norm[0]) + (s21[1] * norm[1]) + (s31[1] * norm[2]);
+  qlocal[41] = (s11[2] * norm[0]) + (s21[2] * norm[1]) + (s31[2] * norm[2]);
+
+  qlocal[42] = (s12[0] * norm[0]) + (s22[0] * norm[1]) + (s32[0] * norm[2]);
+  qlocal[43] = (s12[1] * norm[0]) + (s22[1] * norm[1]) + (s32[1] * norm[2]);
+  qlocal[44] = (s12[2] * norm[0]) + (s22[2] * norm[1]) + (s32[2] * norm[2]);
+
+  qlocal[45] = (s13[0] * norm[0]) + (s23[0] * norm[1]) + (s33[0] * norm[2]);
+  qlocal[46] = (s13[1] * norm[0]) + (s23[1] * norm[1]) + (s33[1] * norm[2]);
+  qlocal[47] = (s13[2] * norm[0]) + (s23[2] * norm[1]) + (s33[2] * norm[2]);
+
+  qlocal[48] = (s11[0] * tau1[0]) + (s21[0] * tau1[1]) + (s31[0] * tau1[2]);
+  qlocal[49] = (s11[1] * tau1[0]) + (s21[1] * tau1[1]) + (s31[1] * tau1[2]);
+  qlocal[50] = (s11[2] * tau1[0]) + (s21[2] * tau1[1]) + (s31[2] * tau1[2]);
+
+  qlocal[51] = (s12[0] * tau1[0]) + (s22[0] * tau1[1]) + (s32[0] * tau1[2]);
+  qlocal[52] = (s12[1] * tau1[0]) + (s22[1] * tau1[1]) + (s32[1] * tau1[2]);
+  qlocal[53] = (s12[2] * tau1[0]) + (s22[2] * tau1[1]) + (s32[2] * tau1[2]);
+
+  qlocal[54] = (s13[0] * tau1[0]) + (s23[0] * tau1[1]) + (s33[0] * tau1[2]);
+  qlocal[55] = (s13[1] * tau1[0]) + (s23[1] * tau1[1]) + (s33[1] * tau1[2]);
+  qlocal[56] = (s13[2] * tau1[0]) + (s23[2] * tau1[1]) + (s33[2] * tau1[2]);
+
+  qlocal[57] = (s11[0] * tau2[0]) + (s21[0] * tau2[1]) + (s31[0] * tau2[2]);
+  qlocal[58] = (s11[1] * tau2[0]) + (s21[1] * tau2[1]) + (s31[1] * tau2[2]);
+  qlocal[59] = (s11[2] * tau2[0]) + (s21[2] * tau2[1]) + (s31[2] * tau2[2]);
+
+  qlocal[60] = (s12[0] * tau2[0]) + (s22[0] * tau2[1]) + (s32[0] * tau2[2]);
+  qlocal[61] = (s12[1] * tau2[0]) + (s22[1] * tau2[1]) + (s32[1] * tau2[2]);
+  qlocal[62] = (s12[2] * tau2[0]) + (s22[2] * tau2[1]) + (s32[2] * tau2[2]);
+
+  qlocal[63] = (s13[0] * tau2[0]) + (s23[0] * tau2[1]) + (s33[0] * tau2[2]);
+  qlocal[64] = (s13[1] * tau2[0]) + (s23[1] * tau2[1]) + (s33[1] * tau2[2]);
+  qlocal[65] = (s13[2] * tau2[0]) + (s23[2] * tau2[1]) + (s33[2] * tau2[2]);
+
+  qlocal[66] = qglobal[66];
+  qlocal[67] = (qglobal[67] * norm[0]) + (qglobal[68] * norm[1]) + (qglobal[69] * norm[2]);
+  qlocal[68] = (qglobal[67] * tau1[0]) + (qglobal[68] * tau1[1]) + (qglobal[69] * tau1[2]);
+  qlocal[69] = (qglobal[67] * tau2[0]) + (qglobal[68] * tau2[1]) + (qglobal[69] * tau2[2]);
 }
 
 static inline void
@@ -708,6 +881,167 @@ rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* t
   qglobal[23] = inv_v3[0]; qglobal[24] = inv_v3[1]; qglobal[25] = inv_v3[2];
 
   qglobal[26] = qlocal[26];
+
+  qglobal[27] = (qlocal[27] * norm[0]) + (qlocal[28] * tau1[0]) + (qlocal[29] * tau2[0]);
+  qglobal[28] = (qlocal[27] * norm[1]) + (qlocal[28] * tau1[1]) + (qlocal[29] * tau2[1]);
+  qglobal[29] = (qlocal[27] * norm[2]) + (qlocal[28] * tau1[2]) + (qlocal[29] * tau2[2]);
+
+  // Temporary arrays to store rotated shift derivative column vectors.
+  double shiftder_r1[3], shiftder_r2[3], shiftder_r3[3];
+  shiftder_r1[0] = (qlocal[30] * norm[0]) + (qlocal[31] * tau1[0]) + (qlocal[32] * tau2[0]);
+  shiftder_r1[1] = (qlocal[30] * norm[1]) + (qlocal[31] * tau1[1]) + (qlocal[32] * tau2[1]);
+  shiftder_r1[2] = (qlocal[30] * norm[2]) + (qlocal[31] * tau1[2]) + (qlocal[32] * tau2[2]);
+
+  shiftder_r2[0] = (qlocal[33] * norm[0]) + (qlocal[34] * tau1[0]) + (qlocal[35] * tau2[0]);
+  shiftder_r2[1] = (qlocal[33] * norm[1]) + (qlocal[34] * tau1[1]) + (qlocal[35] * tau2[1]);
+  shiftder_r2[2] = (qlocal[33] * norm[2]) + (qlocal[34] * tau1[2]) + (qlocal[35] * tau2[2]);
+
+  shiftder_r3[0] = (qlocal[36] * norm[0]) + (qlocal[37] * tau1[0]) + (qlocal[38] * tau2[0]);
+  shiftder_r3[1] = (qlocal[36] * norm[1]) + (qlocal[37] * tau1[1]) + (qlocal[38] * tau2[1]);
+  shiftder_r3[2] = (qlocal[36] * norm[2]) + (qlocal[37] * tau1[2]) + (qlocal[38] * tau2[2]);
+
+  // Temporary arrays to store rotated shift derivative row vectors.
+  double shiftder_v1[3], shiftder_v2[3], shiftder_v3[3];
+  shiftder_v1[0] = (shiftder_r1[0] * norm[0]) + (shiftder_r2[0] * tau1[0]) + (shiftder_r3[0] * tau2[0]);
+  shiftder_v1[1] = (shiftder_r1[0] * norm[1]) + (shiftder_r2[0] * tau1[1]) + (shiftder_r3[0] * tau2[1]);
+  shiftder_v1[2] = (shiftder_r1[0] * norm[2]) + (shiftder_r2[0] * tau1[2]) + (shiftder_r3[0] * tau2[2]);
+
+  shiftder_v2[0] = (shiftder_r1[1] * norm[0]) + (shiftder_r2[1] * tau1[0]) + (shiftder_r3[1] * tau2[0]);
+  shiftder_v2[1] = (shiftder_r1[1] * norm[1]) + (shiftder_r2[1] * tau1[1]) + (shiftder_r3[1] * tau2[1]);
+  shiftder_v2[2] = (shiftder_r1[1] * norm[2]) + (shiftder_r2[1] * tau1[2]) + (shiftder_r3[1] * tau2[2]);
+
+  shiftder_v3[0] = (shiftder_r1[2] * norm[0]) + (shiftder_r2[2] * tau1[0]) + (shiftder_r3[2] * tau2[0]);
+  shiftder_v3[1] = (shiftder_r1[2] * norm[1]) + (shiftder_r2[2] * tau1[1]) + (shiftder_r3[2] * tau2[1]);
+  shiftder_v3[2] = (shiftder_r1[2] * norm[2]) + (shiftder_r2[2] * tau1[2]) + (shiftder_r3[2] * tau2[2]);
+
+  // Rotate shift vector derivative back to global coordinate frame.
+  qglobal[30] = shiftder_v1[0]; qglobal[31] = shiftder_v1[1]; qglobal[32] = shiftder_v1[2];
+  qglobal[33] = shiftder_v2[0]; qglobal[34] = shiftder_v2[1]; qglobal[35] = shiftder_v2[2];
+  qglobal[36] = shiftder_v3[0]; qglobal[37] = shiftder_v3[1]; qglobal[38] = shiftder_v3[2];
+
+  // Temporary arrays to store rotated column vectors.
+  double r11[3], r12[3], r13[3];
+  double r21[3], r22[3], r23[3];
+  double r31[3], r32[3], r33[3];
+
+  r11[0] = (qlocal[39] * norm[0]) + (qlocal[48] * tau1[0]) + (qlocal[57] * tau2[0]);
+  r11[1] = (qlocal[39] * norm[1]) + (qlocal[48] * tau1[1]) + (qlocal[57] * tau2[1]);
+  r11[2] = (qlocal[39] * norm[2]) + (qlocal[48] * tau1[2]) + (qlocal[57] * tau2[2]);
+
+  r12[0] = (qlocal[40] * norm[0]) + (qlocal[49] * tau1[0]) + (qlocal[58] * tau2[0]);
+  r12[1] = (qlocal[40] * norm[1]) + (qlocal[49] * tau1[1]) + (qlocal[58] * tau2[1]);
+  r12[2] = (qlocal[40] * norm[2]) + (qlocal[49] * tau1[2]) + (qlocal[58] * tau2[2]);
+
+  r13[0] = (qlocal[41] * norm[0]) + (qlocal[50] * tau1[0]) + (qlocal[59] * tau2[0]);
+  r13[1] = (qlocal[41] * norm[1]) + (qlocal[50] * tau1[1]) + (qlocal[59] * tau2[1]);
+  r13[2] = (qlocal[41] * norm[2]) + (qlocal[50] * tau1[2]) + (qlocal[59] * tau2[2]);
+
+  r21[0] = (qlocal[42] * norm[0]) + (qlocal[51] * tau1[0]) + (qlocal[60] * tau2[0]);
+  r21[1] = (qlocal[42] * norm[1]) + (qlocal[51] * tau1[1]) + (qlocal[60] * tau2[1]);
+  r21[2] = (qlocal[42] * norm[2]) + (qlocal[51] * tau1[2]) + (qlocal[60] * tau2[2]);
+
+  r22[0] = (qlocal[43] * norm[0]) + (qlocal[52] * tau1[0]) + (qlocal[61] * tau2[0]);
+  r22[1] = (qlocal[43] * norm[1]) + (qlocal[52] * tau1[1]) + (qlocal[61] * tau2[1]);
+  r22[2] = (qlocal[43] * norm[2]) + (qlocal[52] * tau1[2]) + (qlocal[61] * tau2[2]);
+
+  r23[0] = (qlocal[44] * norm[0]) + (qlocal[53] * tau1[0]) + (qlocal[62] * tau2[0]);
+  r23[1] = (qlocal[44] * norm[1]) + (qlocal[53] * tau1[1]) + (qlocal[62] * tau2[1]);
+  r23[2] = (qlocal[44] * norm[2]) + (qlocal[53] * tau1[2]) + (qlocal[62] * tau2[2]);
+
+  r31[0] = (qlocal[45] * norm[0]) + (qlocal[54] * tau1[0]) + (qlocal[63] * tau2[0]);
+  r31[1] = (qlocal[45] * norm[1]) + (qlocal[54] * tau1[1]) + (qlocal[63] * tau2[1]);
+  r31[2] = (qlocal[45] * norm[2]) + (qlocal[54] * tau1[2]) + (qlocal[63] * tau2[2]);
+
+  r32[0] = (qlocal[46] * norm[0]) + (qlocal[55] * tau1[0]) + (qlocal[64] * tau2[0]);
+  r32[1] = (qlocal[46] * norm[1]) + (qlocal[55] * tau1[1]) + (qlocal[64] * tau2[1]);
+  r32[2] = (qlocal[46] * norm[2]) + (qlocal[55] * tau1[2]) + (qlocal[64] * tau2[2]);
+
+  r33[0] = (qlocal[47] * norm[0]) + (qlocal[56] * tau1[0]) + (qlocal[65] * tau2[0]);
+  r33[1] = (qlocal[47] * norm[1]) + (qlocal[56] * tau1[1]) + (qlocal[65] * tau2[1]);
+  r33[2] = (qlocal[47] * norm[2]) + (qlocal[56] * tau1[2]) + (qlocal[65] * tau2[2]);
+
+  // Temporary arrays to store rotated row vectors.
+  double s11[3], s12[3], s13[3];
+  double s21[3], s22[3], s23[3];
+  double s31[3], s32[3], s33[3];
+
+  s11[0] = (r11[0] * norm[0]) + (r21[0] * tau1[0]) + (r31[0] * tau2[0]);
+  s11[1] = (r11[1] * norm[0]) + (r21[1] * tau1[0]) + (r31[1] * tau2[0]);
+  s11[2] = (r11[2] * norm[0]) + (r21[2] * tau1[0]) + (r31[2] * tau2[0]);
+
+  s12[0] = (r11[0] * norm[1]) + (r21[0] * tau1[1]) + (r31[0] * tau2[1]);
+  s12[1] = (r11[1] * norm[1]) + (r21[1] * tau1[1]) + (r31[1] * tau2[1]);
+  s12[2] = (r11[2] * norm[1]) + (r21[2] * tau1[1]) + (r31[2] * tau2[1]);
+
+  s13[0] = (r11[0] * norm[2]) + (r21[0] * tau1[2]) + (r31[0] * tau2[2]);
+  s13[1] = (r11[1] * norm[2]) + (r21[1] * tau1[2]) + (r31[1] * tau2[2]);
+  s13[2] = (r11[2] * norm[2]) + (r21[2] * tau1[2]) + (r31[2] * tau2[2]);
+
+  s21[0] = (r12[0] * norm[0]) + (r22[0] * tau1[0]) + (r32[0] * tau2[0]);
+  s21[1] = (r12[1] * norm[0]) + (r22[1] * tau1[0]) + (r32[1] * tau2[0]);
+  s21[2] = (r12[2] * norm[0]) + (r22[2] * tau1[0]) + (r32[2] * tau2[0]);
+
+  s22[0] = (r12[0] * norm[1]) + (r22[0] * tau1[1]) + (r32[0] * tau2[1]);
+  s22[1] = (r12[1] * norm[1]) + (r22[1] * tau1[1]) + (r32[1] * tau2[1]);
+  s22[2] = (r12[2] * norm[1]) + (r22[2] * tau1[1]) + (r32[2] * tau2[1]);
+
+  s23[0] = (r12[0] * norm[2]) + (r22[0] * tau1[2]) + (r32[0] * tau2[2]);
+  s23[1] = (r12[1] * norm[2]) + (r22[1] * tau1[2]) + (r32[1] * tau2[2]);
+  s23[2] = (r12[2] * norm[2]) + (r22[2] * tau1[2]) + (r32[2] * tau2[2]);
+
+  s31[0] = (r13[0] * norm[0]) + (r23[0] * tau1[0]) + (r33[0] * tau2[0]);
+  s31[1] = (r13[1] * norm[0]) + (r23[1] * tau1[0]) + (r33[1] * tau2[0]);
+  s31[2] = (r13[2] * norm[0]) + (r23[2] * tau1[0]) + (r33[2] * tau2[0]);
+
+  s32[0] = (r13[0] * norm[1]) + (r23[0] * tau1[1]) + (r33[0] * tau2[1]);
+  s32[1] = (r13[1] * norm[1]) + (r23[1] * tau1[1]) + (r33[1] * tau2[1]);
+  s32[2] = (r13[2] * norm[1]) + (r23[2] * tau1[1]) + (r33[2] * tau2[1]);
+
+  s33[0] = (r13[0] * norm[2]) + (r23[0] * tau1[2]) + (r33[0] * tau2[2]);
+  s33[1] = (r13[1] * norm[2]) + (r23[1] * tau1[2]) + (r33[1] * tau2[2]);
+  s33[2] = (r13[2] * norm[2]) + (r23[2] * tau1[2]) + (r33[2] * tau2[2]);
+
+  // Rotate spatial metric tensor derivative back to global coordinate frame.
+  qglobal[39] = (s11[0] * norm[0]) + (s12[0] * tau1[0]) + (s13[0] * tau2[0]);
+  qglobal[40] = (s11[1] * norm[0]) + (s12[1] * tau1[0]) + (s13[1] * tau2[0]);
+  qglobal[41] = (s11[2] * norm[0]) + (s12[2] * tau1[0]) + (s13[2] * tau2[0]);
+
+  qglobal[42] = (s11[0] * norm[1]) + (s12[0] * tau1[1]) + (s13[0] * tau2[1]);
+  qglobal[43] = (s11[1] * norm[1]) + (s12[1] * tau1[1]) + (s13[1] * tau2[1]);
+  qglobal[44] = (s11[2] * norm[1]) + (s12[2] * tau1[1]) + (s13[2] * tau2[1]);
+
+  qglobal[45] = (s11[0] * norm[2]) + (s12[0] * tau1[2]) + (s13[0] * tau2[2]);
+  qglobal[46] = (s11[1] * norm[2]) + (s12[1] * tau1[2]) + (s13[1] * tau2[2]);
+  qglobal[47] = (s11[2] * norm[2]) + (s12[2] * tau1[2]) + (s13[2] * tau2[2]);
+
+  qglobal[48] = (s21[0] * norm[0]) + (s22[0] * tau1[0]) + (s23[0] * tau2[0]);
+  qglobal[49] = (s21[1] * norm[0]) + (s22[1] * tau1[0]) + (s23[1] * tau2[0]);
+  qglobal[50] = (s21[2] * norm[0]) + (s22[2] * tau1[0]) + (s23[2] * tau2[0]);
+
+  qglobal[51] = (s21[0] * norm[1]) + (s22[0] * tau1[1]) + (s23[0] * tau2[1]);
+  qglobal[52] = (s21[1] * norm[1]) + (s22[1] * tau1[1]) + (s23[1] * tau2[1]);
+  qglobal[53] = (s21[2] * norm[1]) + (s22[2] * tau1[1]) + (s23[2] * tau2[1]);
+
+  qglobal[54] = (s21[0] * norm[2]) + (s22[0] * tau1[2]) + (s23[0] * tau2[2]);
+  qglobal[55] = (s21[1] * norm[2]) + (s22[1] * tau1[2]) + (s23[1] * tau2[2]);
+  qglobal[56] = (s21[2] * norm[2]) + (s22[2] * tau1[2]) + (s23[2] * tau2[2]);
+
+  qglobal[57] = (s31[0] * norm[0]) + (s32[0] * tau1[0]) + (s33[0] * tau2[0]);
+  qglobal[58] = (s31[1] * norm[0]) + (s32[1] * tau1[0]) + (s33[1] * tau2[0]);
+  qglobal[59] = (s31[2] * norm[0]) + (s32[2] * tau1[0]) + (s33[2] * tau2[0]);
+
+  qglobal[60] = (s31[0] * norm[1]) + (s32[0] * tau1[1]) + (s33[0] * tau2[1]);
+  qglobal[61] = (s31[1] * norm[1]) + (s32[1] * tau1[1]) + (s33[1] * tau2[1]);
+  qglobal[62] = (s31[2] * norm[1]) + (s32[2] * tau1[1]) + (s33[2] * tau2[1]);
+
+  qglobal[63] = (s31[0] * norm[2]) + (s32[0] * tau1[2]) + (s33[0] * tau2[2]);
+  qglobal[64] = (s31[1] * norm[2]) + (s32[1] * tau1[2]) + (s33[1] * tau2[2]);
+  qglobal[65] = (s31[2] * norm[2]) + (s32[2] * tau1[2]) + (s33[2] * tau2[2]);
+
+  qglobal[66] = qlocal[66];
+  qglobal[67] = (qlocal[67] * norm[0]) + (qlocal[68] * tau1[0]) + (qlocal[69] * tau2[0]);
+  qglobal[68] = (qlocal[67] * norm[1]) + (qlocal[68] * tau1[1]) + (qlocal[69] * tau2[1]);
+  qglobal[69] = (qlocal[67] * norm[2]) + (qlocal[68] * tau1[2]) + (qlocal[69] * tau2[2]);
 }
 
 static double
@@ -720,11 +1054,11 @@ wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   double sr = gkyl_gr_ultra_rel_euler_tetrad_max_abs_speed(gas_gamma, qr);
   double amax = fmax(sl, sr);
 
-  double fl_sr[27], fr_sr[27];
+  double fl_sr[70], fr_sr[70];
   gkyl_gr_ultra_rel_euler_tetrad_flux(gas_gamma, ql, fl_sr);
   gkyl_gr_ultra_rel_euler_tetrad_flux(gas_gamma, qr, fr_sr);
 
-  double fl_gr[27], fr_gr[27];
+  double fl_gr[70], fr_gr[70];
   gkyl_gr_ultra_rel_euler_tetrad_flux_correction(gas_gamma, ql, fl_sr, fl_gr);
   gkyl_gr_ultra_rel_euler_tetrad_flux_correction(gas_gamma, qr, fr_sr, fr_gr);
 
@@ -738,15 +1072,15 @@ wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
     in_excision_region_r = true;
   }
 
-  double *w0 = &waves[0], *w1 = &waves[27];
+  double *w0 = &waves[0], *w1 = &waves[70];
   if (!in_excision_region_l && !in_excision_region_r) {
-    for (int i = 0; i < 27; i++) {
+    for (int i = 0; i < 70; i++) {
       w0[i] = 0.5 * ((qr[i] - ql[i]) - (fr_gr[i] - fl_gr[i]) / amax);
       w1[i] = 0.5 * ((qr[i] - ql[i]) + (fr_gr[i] - fl_gr[i]) / amax);
     }
   }
   else {
-    for (int i = 0; i < 27; i++) {
+    for (int i = 0; i < 70; i++) {
       w0[i] = 0.0;
       w1[i] = 0.0;
     }
@@ -761,11 +1095,11 @@ wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
 static void
 qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
 {
-  const double *w0 = &waves[0], *w1 = &waves[27];
+  const double *w0 = &waves[0], *w1 = &waves[70];
   double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
   double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]);
 
-  for (int i = 0; i < 27; i++) {
+  for (int i = 0; i < 70; i++) {
     amdq[i] = (s0m * w0[i]) + (s1m * w1[i]);
     apdq[i] = (s0p * w0[i]) + (s1p * w1[i]);
   }
@@ -788,7 +1122,7 @@ static double
 wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
 {
   const struct wv_gr_ultra_rel_euler_tetrad *gr_ultra_rel_euler_tetrad = container_of(eqn, struct wv_gr_ultra_rel_euler_tetrad, eqn);
-  double vl[27], vr[27];
+  double vl[70], vr[70];
   double gas_gamma = gr_ultra_rel_euler_tetrad->gas_gamma;
   
   gkyl_gr_ultra_rel_euler_tetrad_prim_vars(gas_gamma, ql, vl);
@@ -837,26 +1171,26 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   double a4 = delta[2] - ((k * v2) / energy);
   double a5 = delta[3] - ((k * v3) / energy);
 
-  for (int i = 0; i < 27 * 3; i++) {
+  for (int i = 0; i < 70 * 3; i++) {
     waves[i] = 0;
   }
 
   double *wv;
-  wv = &waves[0 * 27];
+  wv = &waves[0 * 70];
   wv[0] = a1 * (v0 - ((sqrt(s_sq) * v1) / y));
   wv[1] = a1 * (v1 - ((sqrt(s_sq) * v0) / y));
   wv[2] = a1 * v2;
   wv[3] = a1 * v3;
   s[0] = (((1.0 - (gas_gamma * v0)) * v0 * v1) - (sqrt(s_sq) * y)) / (((1.0 - (gas_gamma * v0)) * v0 * v0) + s_sq);
 
-  wv = &waves[1 * 27];
+  wv = &waves[1 * 70];
   wv[0] = a3 * v0;
   wv[1] = a3 * v1;
   wv[2] = (a3 * v2) + a4;
   wv[3] = (a3 * v3) + a5;
   s[1] = v1 / v0;
 
-  wv = &waves[2 * 27];
+  wv = &waves[2 * 70];
   wv[0] = a2 * (v0 + ((sqrt(s_sq) * v1) / y));
   wv[1] = a2 * (v1 + ((sqrt(s_sq) * v0) / y));
   wv[2] = a2 * v2;
@@ -869,9 +1203,9 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
 static void
 qfluct_roe(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
 {
-  const double* w0 = &waves[0 * 27];
-  const double* w1 = &waves[1 * 27];
-  const double* w2 = &waves[2 * 27];
+  const double* w0 = &waves[0 * 70];
+  const double* w1 = &waves[1 * 70];
+  const double* w2 = &waves[2 * 70];
 
   double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]), s2m = fmin(0.0, s[2]);
   double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]), s2p = fmax(0.0, s[2]);
@@ -880,7 +1214,7 @@ qfluct_roe(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
     amdq[i] = (s0m * w0[i]) + (s1m * w1[i]) + (s2m * w2[i]);
     apdq[i] = (s0p * w0[i]) + (s1p * w1[i]) + (s2p * w2[i]);
   }
-  for (int i = 5; i < 27; i++) {
+  for (int i = 5; i < 70; i++) {
     amdq[i] = 0.0;
     apdq[i] = 0.0;
   }
@@ -915,11 +1249,11 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
   const struct wv_gr_ultra_rel_euler_tetrad *gr_ultra_rel_euler_tetrad = container_of(eqn, struct wv_gr_ultra_rel_euler_tetrad, eqn);
   double gas_gamma = gr_ultra_rel_euler_tetrad->gas_gamma;
 
-  double fr_sr[27], fl_sr[27];
+  double fr_sr[70], fl_sr[70];
   gkyl_gr_ultra_rel_euler_tetrad_flux(gas_gamma, ql, fl_sr);
   gkyl_gr_ultra_rel_euler_tetrad_flux(gas_gamma, qr, fr_sr);
 
-  double fr_gr[27], fl_gr[27];
+  double fr_gr[70], fl_gr[70];
   gkyl_gr_ultra_rel_euler_tetrad_flux_correction(gas_gamma, ql, fl_sr, fl_gr);
   gkyl_gr_ultra_rel_euler_tetrad_flux_correction(gas_gamma, qr, fr_sr, fr_gr);
 
@@ -934,12 +1268,12 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
   }
 
   if (!in_excision_region_l && !in_excision_region_r) {
-    for (int m = 0; m < 27; m++) {
+    for (int m = 0; m < 70; m++) {
       flux_jump[m] = fr_gr[m] - fl_gr[m];
     }
   }
   else {
-    for (int m = 0; m < 27; m++) {
+    for (int m = 0; m < 70; m++) {
       flux_jump[m] = 0.0;
     }
   }
@@ -956,7 +1290,7 @@ check_inv(const struct gkyl_wv_eqn* eqn, const double* q)
   const struct wv_gr_ultra_rel_euler_tetrad *gr_ultra_rel_euler_tetrad = container_of(eqn, struct wv_gr_ultra_rel_euler_tetrad, eqn);
   double gas_gamma = gr_ultra_rel_euler_tetrad->gas_gamma;
 
-  double v[27] = { 0.0 };
+  double v[70] = { 0.0 };
   gkyl_gr_ultra_rel_euler_tetrad_prim_vars(gas_gamma, q, v);
 
   if (v[0] < 0.0) {
@@ -990,7 +1324,7 @@ gr_ultra_rel_euler_tetrad_source(const struct gkyl_wv_eqn* eqn, const double* qi
   const struct wv_gr_ultra_rel_euler_tetrad *gr_ultra_rel_euler_tetrad = container_of(eqn, struct wv_gr_ultra_rel_euler_tetrad, eqn);
   double gas_gamma = gr_ultra_rel_euler_tetrad->gas_gamma;
 
-  double v[27] = { 0.0 };
+  double v[70] = { 0.0 };
   gkyl_gr_ultra_rel_euler_tetrad_prim_vars(gas_gamma, qin, v);
   double rho = v[0];
   double vx = v[1];
@@ -1083,7 +1417,7 @@ gr_ultra_rel_euler_tetrad_source(const struct gkyl_wv_eqn* eqn, const double* qi
     }
   }
   else {
-    for (int i = 0; i < 27; i++) {
+    for (int i = 0; i < 70; i++) {
       sout[i] = 0.0;
     }
   }
@@ -1110,10 +1444,11 @@ gkyl_gr_ultra_rel_euler_tetrad_free(const struct gkyl_ref_count* ref)
 }
 
 struct gkyl_wv_eqn*
-gkyl_wv_gr_ultra_rel_euler_tetrad_new(double gas_gamma, struct gkyl_gr_spacetime* spacetime, bool use_gpu)
+gkyl_wv_gr_ultra_rel_euler_tetrad_new(double gas_gamma, enum gkyl_spacetime_gauge spacetime_gauge, struct gkyl_gr_spacetime* spacetime, bool use_gpu)
 {
   return gkyl_wv_gr_ultra_rel_euler_tetrad_inew(&(struct gkyl_wv_gr_ultra_rel_euler_tetrad_inp) {
       .gas_gamma = gas_gamma,
+      .spacetime_gauge = spacetime_gauge,
       .spacetime = spacetime,
       .rp_type = WV_GR_ULTRA_REL_EULER_TETRAD_RP_ROE,
       .use_gpu = use_gpu,
@@ -1127,10 +1462,11 @@ gkyl_wv_gr_ultra_rel_euler_tetrad_inew(const struct gkyl_wv_gr_ultra_rel_euler_t
   struct wv_gr_ultra_rel_euler_tetrad *gr_ultra_rel_euler_tetrad = gkyl_malloc(sizeof(struct wv_gr_ultra_rel_euler_tetrad));
 
   gr_ultra_rel_euler_tetrad->eqn.type = GKYL_EQN_GR_ULTRA_REL_EULER_TETRAD;
-  gr_ultra_rel_euler_tetrad->eqn.num_equations = 27;
+  gr_ultra_rel_euler_tetrad->eqn.num_equations = 70;
   gr_ultra_rel_euler_tetrad->eqn.num_diag = 4;
 
   gr_ultra_rel_euler_tetrad->gas_gamma = inp->gas_gamma;
+  gr_ultra_rel_euler_tetrad->spacetime_gauge = inp->spacetime_gauge;
   gr_ultra_rel_euler_tetrad->spacetime = inp->spacetime;
 
   if (inp->rp_type == WV_GR_ULTRA_REL_EULER_TETRAD_RP_LAX) {
@@ -1175,6 +1511,15 @@ gkyl_wv_gr_ultra_rel_euler_tetrad_gas_gamma(const struct gkyl_wv_eqn* eqn)
   double gas_gamma = gr_ultra_rel_euler_tetrad->gas_gamma;
 
   return gas_gamma;
+}
+
+enum gkyl_spacetime_gauge
+gkyl_wv_gr_ultra_rel_euler_tetrad_spacetime_gauge(const struct gkyl_wv_eqn* eqn)
+{
+  const struct wv_gr_ultra_rel_euler_tetrad *gr_ultra_rel_euler_tetrad = container_of(eqn, struct wv_gr_ultra_rel_euler_tetrad, eqn);
+  enum gkyl_spacetime_gauge spacetime_gauge = gr_ultra_rel_euler_tetrad->spacetime_gauge;
+
+  return spacetime_gauge;
 }
 
 struct gkyl_gr_spacetime*
