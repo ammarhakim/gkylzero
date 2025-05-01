@@ -2022,6 +2022,8 @@ vm_app_new(lua_State *L)
   // Set metatable.
   luaL_getmetatable(L, VLASOV_APP_METATABLE_NM);
   lua_setmetatable(L, -2);
+
+  gkyl_tool_args_release(args);
   
   return 1;
 }
