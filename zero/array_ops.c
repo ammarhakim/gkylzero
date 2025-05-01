@@ -767,3 +767,56 @@ gkyl_array_diff(const struct gkyl_array *arr1, const struct gkyl_array *arr2, co
     .min_rel_diff = min_rel_diff
   };
 }
+
+struct gkyl_array*
+gkyl_array_error_denom_fac(struct gkyl_array* out, double eps_rel, double eps_abs, const struct gkyl_array* inp)
+{
+  assert(out->type == GKYL_DOUBLE);
+  assert(out->size == inp->size);
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(out)) { gkyl_array_error_denom_fac_cu(out, eps_rel, eps_abs, inp); return out; }
+#endif
+
+  double *out_d = out->data;
+  double *inp_d = inp->data;
+  for (size_t i=0; i<out->size; ++i) {
+    double sqsum = 0.0;
+    for (size_t k=0; k<inp->ncomp; ++k)
+      sqsum += pow(inp_d[i*inp->ncomp+k],2);
+
+    double error_denom_fac = 1.0/(eps_rel*sqrt(sqsum/inp->ncomp) + eps_abs);
+    for (size_t k=0; k<out->ncomp; ++k)
+      out_d[i*out->ncomp+k] = error_denom_fac;
+  }
+  return out;
+}
+
+struct gkyl_array*
+gkyl_array_error_denom_fac_range(struct gkyl_array* out, double eps_rel, double eps_abs,
+  const struct gkyl_array* inp, const struct gkyl_range *range)
+{
+  assert(out->type == GKYL_DOUBLE);
+  assert(out->size == inp->size);
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(out)) { gkyl_array_error_denom_fac_cu(out, eps_rel, eps_abs, inp); return out; }
+#endif
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, range);
+  while (gkyl_range_iter_next(&iter)) {
+    long start = gkyl_range_idx(range, iter.idx);
+    double *out_d = gkyl_array_fetch(out, start);
+    double *inp_d = gkyl_array_fetch(inp, start);
+
+    double sqsum = 0.0;
+    for (size_t k=0; k<inp->ncomp; ++k)
+      sqsum += pow(inp_d[k],2);
+
+    double error_denom_fac = 1.0/(eps_rel*sqrt(sqsum/inp->ncomp) + eps_abs);
+    for (size_t k=0; k<out->ncomp; ++k)
+      out_d[k] = error_denom_fac;
+  }
+  return out;
+}
+
+

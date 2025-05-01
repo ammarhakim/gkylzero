@@ -355,6 +355,37 @@ struct gkyl_array_diff gkyl_array_diff(const struct gkyl_array *arr1,
   const struct gkyl_array *arr2, const struct gkyl_range *range);
 
 /**
+ * Return a cell-wise factor used in computing an error norm,
+ * dependent on a relative and an absolute tolerance.
+ *
+ *   out_i^{(j)} = 1/[eps_rel*sqrt((1/N) sum_k^N ( inp_k^{(i)} )^2 )+eps_abs]
+ *
+ * @param out Array to hold the output.
+ * @param eps_rel Relative tolerance.
+ * @param eps_aps Absolute tolerance.
+ * @param inp Input array.
+ * @return output array.
+ */
+struct gkyl_array* gkyl_array_error_denom_fac(struct gkyl_array* out,
+  double eps_rel, double eps_abs, const struct gkyl_array* inp);
+
+/**
+ * Return a cell-wise factor used in computing an error norm,
+ * dependent on a relative and an absolute tolerance, in specified range.
+ *
+ *   out_i^{(j)} = 1/[eps_rel*sqrt((1/N) sum_k^N ( inp_k^{(i)} )^2 )+eps_abs]
+ *
+ * @param out Array to hold the output.
+ * @param eps_rel Relative tolerance.
+ * @param eps_aps Absolute tolerance.
+ * @param inp Input array.
+ * @param range Range to operate in.
+ * @return output array.
+ */
+struct gkyl_array* gkyl_array_error_denom_fac_range(struct gkyl_array* out,
+  double eps_rel, double eps_abs, const struct gkyl_array* inp, const struct gkyl_range *range);
+
+/**
  * Host-side wrappers for array operations
  */
 void gkyl_array_clear_cu(struct gkyl_array* out, double val);
