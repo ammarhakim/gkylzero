@@ -59,11 +59,7 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
     // Create arrays for scaling collisionality by normalization factor.
     // norm_nu is computed from Spitzer calc and is the normalization factor for the local
     // density and thermal velocity, norm_nu_sr = n/(vtSq_s + vtSq_r)^(3/2)
-    // nu_init is the inital collisionality profile, which must be stored so that at every time
-    // time step the collisionality profile is properly scaled and the effects are not cumulative
     lbo->norm_nu = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    lbo->nu_init = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    gkyl_array_copy(lbo->nu_init, lbo->self_nu);
 
     // Allocate moments app used to compute vtsq.
     gk_species_moment_init(app, s, &lbo->maxwellian_moms, "MaxwellianMoments", false);
@@ -408,7 +404,6 @@ gk_species_lbo_release(const struct gkyl_gyrokinetic_app *app, const struct gk_l
 
   if (lbo->normNu) {
     gkyl_array_release(lbo->norm_nu);
-    gkyl_array_release(lbo->nu_init);
     gkyl_spitzer_coll_freq_release(lbo->spitzer_calc);
     gk_species_moment_release(app, &lbo->maxwellian_moms);
   }

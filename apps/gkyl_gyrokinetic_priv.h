@@ -257,7 +257,6 @@ struct gk_lbo_collisions {
   double self_nu_fac; // Self collision frequency without factor of n_r/(v_ts^2+v_tr^2)^(3/2)
   double cross_nu_fac[GKYL_MAX_SPECIES]; // Cross collision freqs without factor of n_r/(v_ts^2+v_tr^2)^(3/2)
   double vtsq_min; // minimum vtsq
-  struct gkyl_array *nu_init; // Array for initial collisionality when using Spitzer updater
   struct gkyl_spitzer_coll_freq* spitzer_calc; // Updater for Spitzer collisionality if computing Spitzer value
   struct gk_species_moment maxwellian_moms; // M0, upar, T/m.
   struct gkyl_array *boundary_corrections_buff; // Buffer for boundary corrections (multiplied by nu).
