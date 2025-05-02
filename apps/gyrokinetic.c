@@ -945,6 +945,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
   gkyl_array_release(mc2p_global);
   gkyl_array_release(mc2p_global_ho);
   gkyl_array_release(arr_ho1);
+  gkyl_array_release(arr_hocdim);
   gkyl_array_release(arr_ho3);
   gkyl_array_release(arr_ho6);
   gkyl_array_release(arr_ho9);
