@@ -93,17 +93,6 @@ gkyl_array_set_offset_cu_kernel(struct gkyl_array* out, double a,
         out_d[linc*NCOM(out)+coff+k] = a*inp_d[linc*NCOM(inp)+k];
   }
 }
-__global__ void
-gkyl_array_set_offset_comp_cu_kernel(struct gkyl_array* out, double a,
-  const struct gkyl_array* inp, int offset_out, 
-  int offset_inp)
-
-  double *out_d = (double*)out->data;
-  const double *inp_d = (const double*)inp->data;
-  for (unsigned long linc = START_ID; linc < NSIZE(out); linc += blockDim.x*gridDim.x)
-    for (size_t d=0; d<NCOM(out); ++d)
-      out_d[linc*NCOM(out)+d+offset_out] = a*inp_d[linc*NCOM(inp)+d+offset_inp];
-}
 
 __global__ void
 gkyl_array_scale_by_cell_cu_kernel(struct gkyl_array* out, const struct gkyl_array* a)
@@ -153,16 +142,6 @@ gkyl_array_set_offset_cu(struct gkyl_array* out, double a, const struct gkyl_arr
 {
   int nblocks = gkyl_int_div_up(out->size, out->nthreads);
   gkyl_array_set_offset_cu_kernel<<<nblocks, out->nthreads>>>(out->on_dev, a, inp->on_dev, coff);
-}
-
-void
-gkyl_array_set_offset_comp_cu(struct gkyl_array* out, double a,
-  const struct gkyl_array* inp, int offset_out, 
-  int offset_inp, int num_basis)
-{
-  int nblocks = gkyl_int_div_up(out->size, out->nthreads);
-  gkyl_array_set_offset_comp_cu_kernel<<<nblocks, out->nthreads>>>(out->on_dev, a, inp->on_dev, 
-    offset_out, offset_inp);
 }
 
 void

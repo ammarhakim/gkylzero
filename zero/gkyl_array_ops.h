@@ -95,7 +95,9 @@ struct gkyl_array* gkyl_array_set(struct gkyl_array *out,
  * out->ncomp > inp->ncomp. Returns out.
  * 
  * Sets all components greater than the coeff offset to the output
- * e.g. out[0,1,2, ...] = a*inp[2,3,4,...]
+ * e.g. coff = 2;
+ *      if out has less components out[0,1,2, ...] = a*inp[2,3,4,...]
+ *      if out has more components out[2,3,4, ...] = a*inp[0,1,2,...]
  * where the middle indicies are the different components
  *
  * @param out Output array
@@ -106,28 +108,6 @@ struct gkyl_array* gkyl_array_set(struct gkyl_array *out,
  */
 struct gkyl_array* gkyl_array_set_offset(struct gkyl_array *out,
   double a, const struct gkyl_array *inp, int coff);
-
-/*
- * Component wise set_offset
- *
- * Sets only the specified component of out to the specific
- * component of inp. Returns out.
- * Set out[component_offset_out] = a*inp[component_offset_inp]
- * 
- * e.g. out[3] = a*inp[2]
- * where the indicies are the different components
- * 
- * @param out Output array
- * @param a Factor to multiply input array
- * @param inp Input array
- * @param offset_out Component offset of out
- * @param offset_inp Component offset of inp
- * @return out array
-*/
-struct gkyl_array* gkyl_array_set_offset_comp(struct gkyl_array* out,
-  double a, const struct gkyl_array* inp, int offset_out, 
-  int offset_inp);
-
 
 /**
  * Scale out = a*out. Returns out.
@@ -354,9 +334,6 @@ void gkyl_array_accumulate_offset_cu(struct gkyl_array* out, double a, const str
 void gkyl_array_set_cu(struct gkyl_array* out, double a, const struct gkyl_array* inp);
 
 void gkyl_array_set_offset_cu(struct gkyl_array* out, double a, const struct gkyl_array* inp, int coff);
-
-void gkyl_array_set_offset_comp_cu(struct gkyl_array* out, double a, const struct gkyl_array* inp,
-   int component_offset_out,  int component_offset_inp, int num_basis);
 
 void gkyl_array_scale_cu(struct gkyl_array* out, double a);
 

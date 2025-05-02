@@ -315,16 +315,20 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
 
   if (up->grid.ndim==1) {
     // In 1D geometry, make mapc2p a function of only Z and mc2nu_pos only a function of length along field line
-    gkyl_array_set_offset_comp(up->mc2p_deflated, 1.0, up->mc2p, 0, 1 * up->basis.num_basis);
-    gkyl_array_set_offset_comp(up->mc2nu_pos_deflated, 1.0, up->mc2nu_pos, 0, 2 * up->basis.num_basis);
+    gkyl_array_set_offset(up->mc2p_deflated, 1.0, up->mc2p, 1 * up->basis.num_basis);
+    gkyl_array_set_offset(up->mc2nu_pos_deflated, 1.0, up->mc2nu_pos, 2 * up->basis.num_basis);
   }
   else if (up->grid.ndim==2) {
     // In 2D geometry, make mapc2p a function of only R and Z 
     // and mc2nu_pos only a function of psi and length along field line
-    gkyl_array_set_offset_comp(up->mc2p_deflated, 1.0, up->mc2p, 0 * up->basis.num_basis, 0 * up->basis.num_basis);
-    gkyl_array_set_offset_comp(up->mc2p_deflated, 1.0, up->mc2p, 1 * up->basis.num_basis, 1 * up->basis.num_basis);
-    gkyl_array_set_offset_comp(up->mc2nu_pos_deflated, 1.0, up->mc2nu_pos, 0 * up->basis.num_basis, 0 * up->basis.num_basis);
-    gkyl_array_set_offset_comp(up->mc2nu_pos_deflated, 1.0, up->mc2nu_pos, 1 * up->basis.num_basis, 2 * up->basis.num_basis);
+    struct gkyl_array *temp = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+    gkyl_array_set_offset(up->mc2p_deflated, 1.0, up->mc2p, 0 * up->basis.num_basis); // 
+    gkyl_array_set_offset(temp,              1.0, up->mc2p, 1 * up->basis.num_basis);
+    gkyl_array_set_offset(up->mc2p_deflated, 1.0, temp,     1 * up->basis.num_basis);
+    gkyl_array_set_offset(up->mc2nu_pos_deflated, 1.0, up->mc2nu_pos, 0 * up->basis.num_basis);
+    gkyl_array_set_offset(temp,                   1.0, up->mc2nu_pos, 2 * up->basis.num_basis);
+    gkyl_array_set_offset(up->mc2nu_pos_deflated, 1.0, temp,          1 * up->basis.num_basis);
+    gkyl_array_release(temp);
   }
   else if (up->grid.ndim==3) {
     // In 3D geoemtry, these are identical
