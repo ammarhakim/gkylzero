@@ -379,7 +379,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       else if (s->lower_bc[d].type == GKYL_SPECIES_ABSORB)
         bctype = GKYL_BC_ABSORB;
       else if (s->lower_bc[d].type == GKYL_SPECIES_REFLECT)
-        bctype = GKYL_BC_REFLECT;
+        bctype = GKYL_BC_DISTF_REFLECT;
       else if (s->lower_bc[d].type == GKYL_SPECIES_FIXED_FUNC)
         bctype = GKYL_BC_FIXED_FUNC;
 
@@ -399,7 +399,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       else if (s->upper_bc[d].type == GKYL_SPECIES_ABSORB)
         bctype = GKYL_BC_ABSORB;
       else if (s->upper_bc[d].type == GKYL_SPECIES_REFLECT)
-        bctype = GKYL_BC_REFLECT;
+        bctype = GKYL_BC_DISTF_REFLECT;
       else if (s->upper_bc[d].type == GKYL_SPECIES_FIXED_FUNC)
         bctype = GKYL_BC_FIXED_FUNC;
 

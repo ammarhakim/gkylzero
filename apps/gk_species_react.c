@@ -91,6 +91,7 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
     // Reaction LTE moments needed for projecting LTE distribution functions
     react->react_lte_moms[i] = mkarr(app->use_gpu, 3*app->basis.num_basis, app->local_ext.volume);
 
+    // Thermal velocities for LTE projection in ionization terms.
     react->vt_sq_iz1[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     react->vt_sq_iz2[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
@@ -212,10 +213,9 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
           0, gkns_donor->lte.moms.marr, 0, gkns_donor->lte.moms.marr, 0, 
           app->gk_geom->jacobgeo, &app->local); 
 
-        // Copy ux, uy, uz for computing dot product u_i . b_i (Cartesian components of b_i)
-        gkyl_array_set_offset(react->u_i[i], 1.0, gkns_donor->lte.moms.marr, 1*app->basis.num_basis);
-        gkyl_dg_dot_product_op_range(app->basis, 
-          react->u_i_dot_b_i[i], react->u_i[i], app->gk_geom->bcart, &app->local); 
+        // Select component parallel to b
+	// if cdim = 1, uidx = 1, if cdim = 2, udix = 2, if cdim = 3, udix = 3
+        gkyl_array_set_offset(react->u_i_dot_b_i[i], 1.0, gkns_donor->lte.moms.marr, app->cdim*app->basis.num_basis);
 
         gkyl_array_set_offset(react->vt_sq_donor[i], 1.0, gkns_donor->lte.moms.marr, 4*app->basis.num_basis);
       }
@@ -266,12 +266,12 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
         0, gks_ion->lte.moms.marr, 0, gks_ion->lte.moms.marr, 0, 
         app->gk_geom->jacobgeo, &app->local); 
 
-      // Construct partner vector velocity upar b_i
-      for (int j = 0; j < 3; ++j) {
-        gkyl_dg_mul_op_range(app->basis, 
-          j, react->upar_ion[i], 1, gks_ion->lte.moms.marr, j, 
-          app->gk_geom->bcart, &app->local); 
-      } 
+      // Construct ion vector velocity upar b_i with same order as can pb.
+      // if cdim = 1, u0 = upar, if cdim = 2, u1 = upar, if cdim = 3, u2 = upar
+      gkyl_array_clear(react->upar_ion[i], 0.0);
+      gkyl_array_set_offset(react->u_i_dot_b_i[i], 1.0, gks_ion->lte.moms.marr, 1*app->basis.num_basis);
+      gkyl_array_set_offset(react->upar_ion[i], 1.0, react->u_i_dot_b_i[i], (app->cdim-1)*app->basis.num_basis);
+      gkyl_array_clear(react->u_i_dot_b_i[i], 0.0);
 
       // compute needed partner (neutral) Maxwellian moments (J*n, ux, uy, uz, T/m) 
       struct gk_neut_species *gkns_partner = &app->neut_species[react->partner_idx[i]];
@@ -284,14 +284,13 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
         app->gk_geom->jacobgeo, &app->local); 
 
       // Copy ux, uy, uz for computing dot product u_i . b_i (Cartesian components of b_i)
-      gkyl_array_set_offset(react->u_i[i], 1.0, gkns_partner->lte.moms.marr, 1*app->basis.num_basis);
-      gkyl_dg_dot_product_op_range(app->basis, 
-        react->u_i_dot_b_i[i], react->u_i[i], app->gk_geom->bcart, &app->local); 
+      // if cdim = 1, uidx = 1, if cdim = 2, udix = 2, if cdim = 3, udix = 3
+      gkyl_array_set_offset(react->u_i_dot_b_i[i], 1.0, gkns_partner->lte.moms.marr, app->cdim*app->basis.num_basis);
 
-      // Copy vt^2 = T/m of the neutrals (partner of the ions)
+      // Copy vt^2 = T/m of the neutrals (partner of the ions).
       gkyl_array_set_offset(react->vt_sq_partner[i], 1.0, gkns_partner->lte.moms.marr, 4*app->basis.num_basis);
 
-      // prim_vars_neut_gk is returned to prim_vars[i] here.
+      // Calculate CX reaction rate.
       gkyl_dg_cx_coll(react->cx[i], gks_ion->lte.moms.marr, gkns_partner->lte.moms.marr, 
         react->upar_ion[i], react->coeff_react[i], 0);
     }
@@ -457,12 +456,12 @@ gk_species_react_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct
     
     if (gkr->react_id[ridx] == GKYL_REACT_IZ) {
       const char *fmt = "%s-%s_%s_%s_iz_react_%d.gkyl";
-      int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name,
+      int sz = gkyl_calc_strlen(fmt, app->name, gkr->react_type[ridx].ion_nm,
         gkr->react_type[ridx].elc_nm, gkr->react_type[ridx].donor_nm, frame);
       char fileNm[sz+1]; // ensures no buffer overflow
-      snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name,
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, gkr->react_type[ridx].ion_nm,
         gkr->react_type[ridx].elc_nm, gkr->react_type[ridx].donor_nm, frame);
-  
+      
       struct timespec wtm = gkyl_wall_clock();
       gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, 
         gkr->coeff_react_host[ridx], fileNm);
