@@ -166,7 +166,7 @@ gk_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, d
 void
 gk_species_source_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm)
 {
-//  if (gks->src.source_id && gks->src.evolve) {
+  if (gks->src.source_id && gks->src.evolve) {
     struct timespec wst = gkyl_wall_clock();
 
     double tm_prev = gkyl_dynvec_getlast_tm(gks->src.integ_diag);
@@ -205,13 +205,13 @@ gk_species_source_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_speci
 
     app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
     app->stat.n_diag += 1;
-//  }
+  }
 }
 
 void
 gk_species_source_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks)
 {
-//  if (gks->src.source_id && gks->src.evolve) {
+  if (gks->src.source_id && gks->src.evolve) {
     struct timespec wst = gkyl_wall_clock();
 
     int rank;
@@ -236,7 +236,7 @@ gk_species_source_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_spec
 
     app->stat.diag_io_tm += gkyl_time_diff_now_sec(wst);
     app->stat.n_diag_io += 1;
-//  }
+  }
 }
 
 void

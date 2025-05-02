@@ -1512,13 +1512,13 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     }
   }
 
+  // Compute the cross-species collision frequencies.
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *gk_s = &app->species[i];
     if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS) { 
       gk_species_lbo_cross_nu(app, &app->species[i], &gk_s->lbo);
     }
   }
-
 
   // Compute necessary moments for cross-species collisions.
   // Needs to be done after self-collisions moments, so separate loop over species.
