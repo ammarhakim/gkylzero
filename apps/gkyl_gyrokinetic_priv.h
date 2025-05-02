@@ -253,7 +253,6 @@ struct gk_lbo_collisions {
   struct gkyl_array *nu_sum, *prim_moms, *nu_prim_moms; // LBO primitive moments
   struct gkyl_array *nu_sum_host, *prim_moms_host, *nu_prim_moms_host; // LBO primitive moments host-side for I/O
   bool normNu; // Boolean to determine if using Spitzer value
-  struct gkyl_array *norm_nu; // Array for normalization factor computed from Spitzer updater n/sqrt(2 vt^2)^3
   double self_nu_fac; // Self collision frequency without factor of n_r/(v_ts^2+v_tr^2)^(3/2)
   double cross_nu_fac[GKYL_MAX_SPECIES]; // Cross collision freqs without factor of n_r/(v_ts^2+v_tr^2)^(3/2)
   double vtsq_min; // minimum vtsq
