@@ -378,9 +378,8 @@ choose_canonical_pb_alpha_surf_kern(enum gkyl_basis_type b_type, int dir, int cv
 {
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      if (poly_order != 2)
-        // Only polyorder 2 basis are supported for ser
-        assert(false);
+      // Verify that the poly-order is 2 for ser case
+      assert(poly_order == 2);
       if (dir == 0)
         return ser_canonical_pb_alpha_surfx_kernels[cv_index].kernels[poly_order];
       else if (dir == 1)
@@ -391,9 +390,8 @@ choose_canonical_pb_alpha_surf_kern(enum gkyl_basis_type b_type, int dir, int cv
         return NULL;
       break;
     case GKYL_BASIS_MODAL_HYBRID:
-      if (poly_order != 1)
-        // Only polyorder 1 basis are supported for hybrid
-        assert(false);
+      // Verify that the poly-order is 1 for hybrid case
+      assert(poly_order == 1);
       if (dir == 0)
         return ser_canonical_pb_alpha_surfx_kernels[cv_index].kernels[poly_order];
       else if (dir == 1)
@@ -425,9 +423,8 @@ choose_canonical_pb_alpha_edge_surf_kern(enum gkyl_basis_type b_type, int dir, i
 {
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      if (poly_order != 2)
-        // Only polyorder 2 basis are supported for ser
-        assert(false);
+      // Verify that the poly-order is 2 for ser case
+      assert(poly_order == 2);
       if (dir == 0)
         return ser_canonical_pb_alpha_edge_surfx_kernels[cv_index].kernels[poly_order];
       else if (dir == 1)
@@ -438,9 +435,8 @@ choose_canonical_pb_alpha_edge_surf_kern(enum gkyl_basis_type b_type, int dir, i
         return NULL;
       break;
     case GKYL_BASIS_MODAL_HYBRID:
-      if (poly_order != 1)
-        // Only polyorder 1 basis are supported for hybrid
-        assert(false);
+      // Verify that the poly-order is 1 for hybrid case
+      assert(poly_order == 1);
       if (dir == 0)
         return ser_canonical_pb_alpha_edge_surfx_kernels[cv_index].kernels[poly_order];
       else if (dir == 1)
@@ -473,9 +469,8 @@ choose_canonical_pb_alpha_surf_v_kern(enum gkyl_basis_type b_type, int dir, int 
 {
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      if (poly_order != 2)
-        // Only polyorder 2 basis are supported for ser
-        assert(false);
+      // Verify that the poly-order is 2 for ser case
+      assert(poly_order == 2);
       if (dir == 0)
         return ser_canonical_pb_alpha_surfvx_kernels[cv_index].kernels[poly_order];
       else if (dir == 1)
@@ -486,9 +481,8 @@ choose_canonical_pb_alpha_surf_v_kern(enum gkyl_basis_type b_type, int dir, int 
         return NULL;
       break;
     case GKYL_BASIS_MODAL_HYBRID:
-      if (poly_order != 1)
-        // Only polyorder 1 basis are supported for hybrid
-        assert(false);
+      // Verify that the poly-order is 1 for hybrid case
+      assert(poly_order == 1);
       if (dir == 0)
         return ser_canonical_pb_alpha_surfvx_kernels[cv_index].kernels[poly_order];
       else if (dir == 1)
@@ -520,15 +514,13 @@ choose_canonical_pb_m1i_contra_to_cov_kern(enum gkyl_basis_type b_type, int cv_i
 {
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      if (poly_order != 2)
-        // Only polyorder 2 basis are supported for ser
-        assert(false);
+      // Verify that the poly-order is 2 for ser case
+      assert(poly_order == 2);
       return ser_canonical_pb_m1i_contra_to_cov_kernels[cv_index].kernels[poly_order];
       break; 
     case GKYL_BASIS_MODAL_HYBRID:
-      if (poly_order != 1)
-        // Only polyorder 1 basis are supported for hybrid
-        assert(false); 
+      // Verify that the poly-order is 1 for hybrid case
+      assert(poly_order == 1);
       return ser_canonical_pb_m1i_contra_to_cov_kernels[cv_index].kernels[poly_order];
       break; 
     case GKYL_BASIS_MODAL_TENSOR:
@@ -546,15 +538,13 @@ choose_canonical_pb_pressure_kern(enum gkyl_basis_type b_type, int cv_index, int
 {
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      if (poly_order != 2)
-        // Only polyorder 2 basis are supported for ser
-        assert(false);
+      // Verify that the poly-order is 2 for ser case
+      assert(poly_order == 2);
       return ser_canonical_pb_pressure_kernels[cv_index].kernels[poly_order];
       break; 
     case GKYL_BASIS_MODAL_HYBRID:
-      if (poly_order != 1)
-        // Only polyorder 1 basis are supported for hybrid
-        assert(false); 
+      // Verify that the poly-order is 1 for hybrid case
+      assert(poly_order == 1);
       return ser_canonical_pb_pressure_kernels[cv_index].kernels[poly_order];
       break; 
     case GKYL_BASIS_MODAL_TENSOR:

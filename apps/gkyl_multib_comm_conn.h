@@ -6,11 +6,16 @@
 #include <gkyl_comm.h>
 #include <gkyl_array.h>
 
+enum multib_send_recv { GKYL_COMM_CONN_SEND, GKYL_COMM_CONN_RECV };
+
 // Information for block send/recv
 struct gkyl_comm_conn {
+  enum multib_send_recv sr; // flag indicating send/recv
   int block_id; // send/recv block ID
   int rank; // send/recv range ID in block
   struct gkyl_range range; // send/recv range
+  enum gkyl_oriented_edge src_edge;
+  enum gkyl_oriented_edge tar_edge;
 };
 
 // List of send/recv for a given rank

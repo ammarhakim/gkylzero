@@ -5,6 +5,7 @@ gyrokinetic_multib_forward_euler(struct gkyl_gyrokinetic_multib_app* app, double
   const struct gkyl_array *fin[], struct gkyl_array *fout[], 
   const struct gkyl_array **bflux_in[], struct gkyl_array **bflux_out[], 
   const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], 
+  const struct gkyl_array **bflux_in_neut[], struct gkyl_array **bflux_out_neut[], 
   struct gkyl_update_status *st)
 {
   // Take a forward Euler step with the suggested time-step dt. This may
@@ -21,7 +22,7 @@ gyrokinetic_multib_forward_euler(struct gkyl_gyrokinetic_multib_app* app, double
     int li_charged = b * app->num_species;
     int li_neut = b * app->num_neut_species;
     gyrokinetic_rhs(app->singleb_apps[b], tcurr, dt, &fin[li_charged], &fout[li_charged],
-      &bflux_out[li_charged], &fin_neut[li_neut], &fout_neut[li_neut], st);
+      &bflux_out[li_charged], &fin_neut[li_neut], &fout_neut[li_neut], &bflux_out_neut[li_neut], st);
     dtmin = fmin(dtmin, st->dt_actual);
   }
 
@@ -39,11 +40,12 @@ gyrokinetic_multib_forward_euler(struct gkyl_gyrokinetic_multib_app* app, double
     for (int i=0; i<app->num_species; ++i) {
       struct gk_species *gks = &sbapp->species[i];
       gk_species_step_f(gks, fout[li_charged+i], dta, fin[li_charged+i]);
-      gk_species_bflux_step_f(sbapp, &gks->bflux_diag, bflux_out[li_charged+i], dta, bflux_in[li_charged+i]);
+      gk_species_bflux_step_f(sbapp, &gks->bflux, bflux_out[li_charged+i], dta, bflux_in[li_charged+i]);
     }
     for (int i=0; i<app->num_neut_species; ++i) {
       struct gk_neut_species *gkns = &sbapp->neut_species[i];
       gk_neut_species_step_f(gkns, fout_neut[li_charged+i], dta, fin_neut[li_charged+i]);
+      gk_neut_species_bflux_step_f(sbapp, &gkns->bflux, bflux_out_neut[li_neut+i], dta, bflux_in_neut[li_neut+i]);
     }
   }
 
@@ -63,8 +65,12 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
   struct gkyl_array *fout[ns_charged * nblocks_local];
   const struct gkyl_array **bflux_in[ns_charged * nblocks_local];
   struct gkyl_array **bflux_out[ns_charged * nblocks_local];
+
   const struct gkyl_array *fin_neut[ns_neut * nblocks_local];
   struct gkyl_array *fout_neut[ns_neut * nblocks_local];
+  const struct gkyl_array **bflux_in_neut[ns_neut * nblocks_local];
+  struct gkyl_array **bflux_out_neut[ns_neut * nblocks_local];
+
   struct gkyl_update_status st = { .success = true };
 
   // time-stepper state
@@ -82,19 +88,26 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
             struct gk_species *gks = &sbapp->species[i];
             fin[li_charged+i] = gks->f;
             fout[li_charged+i] = gks->f1;
-            // Boundary fluxes for diagnostics.
-            gk_species_bflux_clear(sbapp, &gks->bflux_diag, gks->bflux_diag.f, 0.0);
-            gk_species_bflux_clear(sbapp, &gks->bflux_diag, gks->bflux_diag.f1, 0.0);
-            bflux_in[li_charged+i] = (const struct gkyl_array **)gks->bflux_diag.f;
-            bflux_out[li_charged+i] = gks->bflux_diag.f1;
+            // Boundary fluxes.
+            gk_species_bflux_clear(sbapp, &gks->bflux, gks->bflux.f, 0.0);
+            gk_species_bflux_clear(sbapp, &gks->bflux, gks->bflux.f1, 0.0);
+            bflux_in[li_charged+i] = (const struct gkyl_array **)gks->bflux.f;
+            bflux_out[li_charged+i] = gks->bflux.f1;
           }
           for (int i=0; i<ns_neut; ++i) {
-            fin_neut[li_neut+i] = sbapp->neut_species[i].f;
-	    fout_neut[li_neut+i] = sbapp->neut_species[i].f1;
+            struct gk_neut_species *gkns = &sbapp->neut_species[i];
+            fin_neut[li_neut+i] = gkns->f;
+	    fout_neut[li_neut+i] = gkns->f1;
+            // Boundary fluxes.
+            gk_neut_species_bflux_clear(sbapp, &gkns->bflux, gkns->bflux.f, 0.0);
+            gk_neut_species_bflux_clear(sbapp, &gkns->bflux, gkns->bflux.f1, 0.0);
+            bflux_in_neut[li_neut+i] = (const struct gkyl_array **)gkns->bflux.f;
+            bflux_out_neut[li_neut+i] = gkns->bflux.f1;
           }
         }
 
-        gyrokinetic_multib_forward_euler(app, tcurr, dt, fin, fout, bflux_in, bflux_out, fin_neut, fout_neut, &st);
+        gyrokinetic_multib_forward_euler(app, tcurr, dt, fin, fout, bflux_in, bflux_out,
+          fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st);
         dt = st.dt_actual;
 
         for (int b=0; b<nblocks_local; ++b) {
@@ -125,17 +138,22 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
             struct gk_species *gks = &sbapp->species[i];
             fin[li_charged+i] = gks->f1;
             fout[li_charged+i] = gks->fnew;
-            // Boundary fluxes for diagnostics.
-            bflux_in[li_charged+i] = (const struct gkyl_array **)gks->bflux_diag.f1;
-            bflux_out[li_charged+i] = gks->bflux_diag.fnew;
+            // Boundary fluxes.
+            bflux_in[li_charged+i] = (const struct gkyl_array **)gks->bflux.f1;
+            bflux_out[li_charged+i] = gks->bflux.fnew;
           }
           for (int i=0; i<ns_neut; ++i) {
-	    fin_neut[li_neut+i] = sbapp->neut_species[i].f1;
-	    fout_neut[li_neut+i] = sbapp->neut_species[i].fnew;
+            struct gk_neut_species *gkns = &sbapp->neut_species[i];
+	    fin_neut[li_neut+i] = gkns->f1;
+	    fout_neut[li_neut+i] = gkns->fnew;
+            // Boundary fluxes.
+            bflux_in_neut[li_neut+i] = (const struct gkyl_array **)gkns->bflux.f1;
+            bflux_out_neut[li_neut+i] = gkns->bflux.fnew;
           }
         }
 
-        gyrokinetic_multib_forward_euler(app, tcurr+dt, dt, fin, fout, bflux_in, bflux_out, fin_neut, fout_neut, &st);
+        gyrokinetic_multib_forward_euler(app, tcurr+dt, dt, fin, fout, bflux_in, bflux_out,
+          fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st);
 
         if (st.dt_actual < dt) {
 
@@ -166,12 +184,14 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
             for (int i=0; i<ns_charged; ++i) {
 	      struct gk_species *gks = &sbapp->species[i]; 
 	      gk_species_combine(gks, gks->f1, 3.0/4.0, gks->f, 1.0/4.0, gks->fnew, &gks->local_ext);
-              gk_species_bflux_combine(sbapp, gks, &gks->bflux_diag, gks->bflux_diag.f1,
-                3.0/4.0, gks->bflux_diag.f, 1.0/4.0, gks->bflux_diag.fnew);
+              gk_species_bflux_combine(sbapp, &gks->bflux, gks->bflux.f1,
+                3.0/4.0, gks->bflux.f, 1.0/4.0, gks->bflux.fnew);
 	    }
             for (int i=0; i<ns_neut; ++i) {
 	      struct gk_neut_species *gkns = &sbapp->neut_species[i]; 
 	      gk_neut_species_combine(gkns, gkns->f1, 3.0/4.0, gkns->f, 1.0/4.0, gkns->fnew, &gkns->local_ext);
+              gk_neut_species_bflux_combine(sbapp, &gkns->bflux, gkns->bflux.f1,
+                3.0/4.0, gkns->bflux.f, 1.0/4.0, gkns->bflux.fnew);
             }
           }
 
@@ -202,17 +222,22 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
 	    struct gk_species *gks = &sbapp->species[i]; 
             fin[li_charged+i] = gks->f1;
             fout[li_charged+i] = gks->fnew;
-            // Boundary fluxes for diagnostics.
-            bflux_in[li_charged+i] = (const struct gkyl_array **)gks->bflux_diag.f1;
-            bflux_out[li_charged+i] = gks->bflux_diag.fnew;
+            // Boundary fluxes.
+            bflux_in[li_charged+i] = (const struct gkyl_array **)gks->bflux.f1;
+            bflux_out[li_charged+i] = gks->bflux.fnew;
           }
           for (int i=0; i<ns_neut; ++i) {
+            struct gk_neut_species *gkns = &sbapp->neut_species[i];
 	    fin_neut[li_neut+i] = sbapp->neut_species[i].f1;
 	    fout_neut[li_neut+i] = sbapp->neut_species[i].fnew;
+            // Boundary fluxes.
+            bflux_in_neut[li_neut+i] = (const struct gkyl_array **)gkns->bflux.f1;
+            bflux_out_neut[li_neut+i] = gkns->bflux.fnew;
           }
         }
 
-        gyrokinetic_multib_forward_euler(app, tcurr+dt/2, dt, fin, fout, bflux_in, bflux_out, fin_neut, fout_neut, &st);
+        gyrokinetic_multib_forward_euler(app, tcurr+dt/2, dt, fin, fout, bflux_in, bflux_out,
+          fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st);
 
         if (st.dt_actual < dt) {
           // Recalculate the field.
@@ -246,17 +271,22 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
 	      gk_species_combine(gks, gks->f1, 1.0/3.0, gks->f, 2.0/3.0, gks->fnew, &gks->local_ext);
 	      gk_species_copy_range(gks, gks->f, gks->f1, &gks->local_ext);
               // Step boundary fluxes.
-              gk_species_bflux_combine(sbapp, gks, &gks->bflux_diag, gks->bflux_diag.f1,
-                1.0/3.0, gks->bflux_diag.f, 2.0/3.0, gks->bflux_diag.fnew);
-              gk_species_bflux_copy(sbapp, gks, &gks->bflux_diag,
-                gks->bflux_diag.f, gks->bflux_diag.f1);
-              gk_species_bflux_calc_voltime_integrated_mom(sbapp, gks, &gks->bflux_diag, tcurr);
-              gk_species_bflux_scale(sbapp, &gks->bflux_diag, gks->bflux_diag.f, 1.0/dt);
+              gk_species_bflux_combine(sbapp, &gks->bflux, gks->bflux.f1,
+                1.0/3.0, gks->bflux.f, 2.0/3.0, gks->bflux.fnew);
+              gk_species_bflux_copy(sbapp, &gks->bflux, gks->bflux.f, gks->bflux.f1);
+              gk_species_bflux_calc_voltime_integrated_mom(sbapp, gks, &gks->bflux, tcurr);
+              gk_species_bflux_scale(sbapp, &gks->bflux, gks->bflux.f, 1.0/dt);
 	    }
             for (int i=0; i<ns_neut; ++i) {
 	      struct gk_neut_species *gkns = &sbapp->neut_species[i]; 
 	      gk_neut_species_combine(gkns, gkns->f1, 1.0/3.0, gkns->f, 2.0/3.0, gkns->fnew, &gkns->local_ext);
 	      gk_neut_species_copy_range(gkns, gkns->f, gkns->f1, &gkns->local_ext);
+              // Step boundary fluxes.
+              gk_neut_species_bflux_combine(sbapp, &gkns->bflux, gkns->bflux.f1,
+                1.0/3.0, gkns->bflux.f, 2.0/3.0, gkns->bflux.fnew);
+              gk_neut_species_bflux_copy(sbapp, &gkns->bflux, gkns->bflux.f, gkns->bflux.f1);
+              gk_neut_species_bflux_calc_voltime_integrated_mom(sbapp, gkns, &gkns->bflux, tcurr);
+              gk_neut_species_bflux_scale(sbapp, &gkns->bflux, gkns->bflux.f, 1.0/dt);
             }
           }
 
