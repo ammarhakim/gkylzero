@@ -882,9 +882,9 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
 
   struct timespec wtm = gkyl_wall_clock();
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->mc2p        , arr_ho3, "mapc2p", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->mc2p_reduced, arr_hocdim, "mapc2p_reduced", mt);  
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->mc2p_deflated, arr_hocdim, "mapc2p_deflated", mt);  
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->mc2nu_pos   , arr_ho3, "mc2nu_pos", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->mc2nu_pos_reduced, arr_hocdim, "mc2nu_pos_reduced", mt);  
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->mc2nu_pos_deflated, arr_hocdim, "mc2nu_pos_deflated", mt);  
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->bmag        , arr_ho1, "bmag", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->g_ij        , arr_ho6, "g_ij", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->g_ij_neut        , arr_ho6, "g_ij_neut", mt);
