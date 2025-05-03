@@ -1,5 +1,5 @@
-// 2D Bondi-Hoyle-Lyttleton accretion problem onto a static neutron star, for the general relativistic Euler equations.
-// Input parameters describe wind accretion of a cold relativistic gas onto a non-rotating neutron star.
+// 2D Bondi-Hoyle-Lyttleton accretion problem onto a spinning neutron star, for the general relativistic Euler equations.
+// Input parameters describe wind accretion of a cold relativistic gas onto a rotating neutron star.
 // Based on the analytical solution for stiff relativistic fluids presented in the article:
 // L. I. Petrich, S. L. Shapiro and S. A. Teukolsky (1988), "Accretion onto a moving black hole: An exact solution",
 // Physical Review Letters, Volume 60 (18): 1781-1784.
@@ -26,7 +26,7 @@
 
 #include <rt_arg_parse.h>
 
-struct bhl_static_ctx
+struct bhl_spinning_ctx
 {
   // Physical constants (using normalized code units).
   double gas_gamma; // Adiabatic index.
@@ -79,7 +79,7 @@ struct bhl_static_ctx
   double x_loc; // Shock location (x-direction).
 };
 
-struct bhl_static_ctx
+struct bhl_spinning_ctx
 create_ctx(void)
 {
   // Physical constants (using normalized code units).
@@ -95,7 +95,7 @@ create_ctx(void)
 
   // Spacetime parameters (using geometric units).
   double mass = 0.3; // Mass of the neutron star.
-  double spin = 0.0; // Spin of the neutron star.
+  double spin = -0.3; // Spin of the neutron star.
 
   double pos_x = 2.5; // Position of the neutron star (x-direction).
   double pos_y = 2.5; // Position of the neutron star (y-direction).
@@ -132,7 +132,7 @@ create_ctx(void)
 
   double x_loc = 1.0; // Shock location (x-direction).
 
-  struct bhl_static_ctx ctx = {
+  struct bhl_spinning_ctx ctx = {
     .gas_gamma = gas_gamma,
     .rhol = rhol,
     .ul = ul,
@@ -175,7 +175,7 @@ void
 evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0], y = xn[1];
-  struct bhl_static_ctx *app = ctx;
+  struct bhl_spinning_ctx *app = ctx;
 
   double gas_gamma = app->gas_gamma;
 
@@ -346,7 +346,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct bhl_static_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct bhl_spinning_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
@@ -434,7 +434,7 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "gr_bhl_static_neutronstar",
+    .name = "gr_bhl_spinning_neutronstar",
 
     .ndim = 2,
     .lower = { 0.0, 0.0 },
