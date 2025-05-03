@@ -577,9 +577,7 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
 
     // Initialize cross-species collisions (e.g, LBO or BGK)
     if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS) {
-      if (gk_s->lbo.num_cross_collisions) {
-        gk_species_lbo_cross_init(app, &app->species[i], &gk_s->lbo);
-      }
+      gk_species_lbo_cross_init(app, &app->species[i], &gk_s->lbo);
     }
     if (gk_s->bgk.collision_id == GKYL_BGK_COLLISIONS) {
       if (gk_s->bgk.num_cross_collisions) {

@@ -140,9 +140,8 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
 
     lbo->vtsq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
+    // Set pointers to functions chosen at runtime.
     lbo->self_nu_calc = gklbo_self_nu_calc_normNu;
-    lbo->cross_nu_calc = gklbo_cross_nu_calc_normNu;
-    lbo->cross_greene_num = gklbo_cross_greene_num_constNu;
   }
   else {
     // Project the self-collisions collision frequency.
@@ -156,9 +155,8 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
 
     gkyl_array_set(lbo->nu_sum, 1.0, lbo->self_nu);
 
+    // Set pointers to functions chosen at runtime.
     lbo->self_nu_calc = gklbo_self_nu_calc_constNu;
-    lbo->cross_nu_calc = gklbo_cross_nu_calc_constNu;
-    lbo->cross_greene_num = gklbo_cross_greene_num_normNu;
   }
 
   if (!lbo->num_cross_collisions) {
@@ -209,64 +207,74 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
 void 
 gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_lbo_collisions *lbo)
 {
-  lbo->cross_calc = gkyl_prim_lbo_gyrokinetic_cross_calc_new(&s->grid, 
-    &app->basis, &s->basis, &app->local, app->use_gpu);
-  
-  lbo->cross_nu_prim_moms = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
+  if (s->lbo.num_cross_collisions) {
+    lbo->cross_calc = gkyl_prim_lbo_gyrokinetic_cross_calc_new(&s->grid, 
+      &app->basis, &s->basis, &app->local, app->use_gpu);
+    
+    lbo->cross_nu_prim_moms = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
 
-  // Set pointers to species we cross-collide with.
-  for (int i=0; i<lbo->num_cross_collisions; ++i) {
-    lbo->collide_with[i] = gk_find_species(app, s->info.collisions.collide_with[i]);
+    // Set pointers to species we cross-collide with.
+    for (int i=0; i<lbo->num_cross_collisions; ++i) {
+      lbo->collide_with[i] = gk_find_species(app, s->info.collisions.collide_with[i]);
+      if (s->info.collisions.normNu) {
+        double nuFrac = s->info.collisions.nuFrac ? s->info.collisions.nuFrac : 1.0;
+        double eps0 = s->info.collisions.eps0 ? s->info.collisions.eps0: GKYL_EPSILON0;
+        double hbar = s->info.collisions.hbar ? s->info.collisions.hbar: GKYL_PLANCKS_CONSTANT_H/2/M_PI;
+        double eV = s->info.collisions.eV ? s->info.collisions.eV: GKYL_ELEMENTARY_CHARGE;
+        double bmag_mid = s->info.collisions.bmag_mid ? s->info.collisions.bmag_mid : app->bmag_ref;
+        lbo->cross_norm_nu_fac[i] = nuFrac*gkyl_calc_norm_nu(s->info.collisions.n_ref, lbo->collide_with[i]->info.collisions.n_ref,
+          s->info.mass, lbo->collide_with[i]->info.mass, s->info.charge, lbo->collide_with[i]->info.charge,
+         	s->info.collisions.T_ref, lbo->collide_with[i]->info.collisions.T_ref, bmag_mid, eps0, hbar, eV);
+      }
+
+      lbo->other_m[i] = lbo->collide_with[i]->info.mass;
+      lbo->other_prim_moms[i] = lbo->collide_with[i]->lbo.prim_moms;
+      lbo->other_nu[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+      lbo->cross_prim_moms[i] = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
+      lbo->cross_nu[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+      
+      if (lbo->other_m[i] > s->info.mass) {
+        gkyl_array_set(lbo->cross_nu[i], sqrt(2.0), lbo->self_nu);
+        gkyl_array_set(lbo->other_nu[i], sqrt(2.0)*(s->info.mass)/(lbo->other_m[i]), lbo->self_nu);
+      } else {
+        gkyl_array_set(lbo->cross_nu[i], sqrt(2.0)*(lbo->other_m[i])/(s->info.mass), lbo->collide_with[i]->lbo.self_nu);
+        gkyl_array_set(lbo->other_nu[i], sqrt(2.0), lbo->collide_with[i]->lbo.self_nu);
+      }
+      
+      gkyl_array_accumulate(lbo->nu_sum, 1.0, lbo->cross_nu[i]);
+
+      lbo->other_mnu[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+      lbo->other_mnu_m0[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+
+      lbo->self_mnu[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+
+      gkyl_array_set(lbo->self_mnu[i], s->info.mass, lbo->cross_nu[i]);
+      gkyl_array_set(lbo->other_mnu[i], lbo->other_m[i], lbo->other_nu[i]);
+    }
+
+    lbo->greene_num = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    lbo->greene_den = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    lbo->greene_factor = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+
     if (s->info.collisions.normNu) {
-      double nuFrac = s->info.collisions.nuFrac ? s->info.collisions.nuFrac : 1.0;
-      double eps0 = s->info.collisions.eps0 ? s->info.collisions.eps0: GKYL_EPSILON0;
-      double hbar = s->info.collisions.hbar ? s->info.collisions.hbar: GKYL_PLANCKS_CONSTANT_H/2/M_PI;
-      double eV = s->info.collisions.eV ? s->info.collisions.eV: GKYL_ELEMENTARY_CHARGE;
-      double bmag_mid = s->info.collisions.bmag_mid ? s->info.collisions.bmag_mid : app->bmag_ref;
-      lbo->cross_norm_nu_fac[i] = nuFrac*gkyl_calc_norm_nu(s->info.collisions.n_ref, lbo->collide_with[i]->info.collisions.n_ref,
-        s->info.mass, lbo->collide_with[i]->info.mass, s->info.charge, lbo->collide_with[i]->info.charge,
-       	s->info.collisions.T_ref, lbo->collide_with[i]->info.collisions.T_ref, bmag_mid, eps0, hbar, eV);
+      lbo->moms_buff = mkarr(app->use_gpu, lbo->moms.marr->ncomp, lbo->moms.marr->size);
+      lbo->boundary_corrections_buff = mkarr(app->use_gpu, lbo->boundary_corrections->ncomp, lbo->boundary_corrections->size);
+
+      // Set pointers to functions chosen at runtime.
+      lbo->cross_nu_calc = gklbo_cross_nu_calc_normNu;
+      lbo->cross_greene_num = gklbo_cross_greene_num_normNu;
     }
+    else {
+      lbo->moms_buff = gkyl_array_acquire(lbo->moms.marr);
+      lbo->boundary_corrections_buff = gkyl_array_acquire(lbo->boundary_corrections);
 
-    lbo->other_m[i] = lbo->collide_with[i]->info.mass;
-    lbo->other_prim_moms[i] = lbo->collide_with[i]->lbo.prim_moms;
-    lbo->other_nu[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    lbo->cross_prim_moms[i] = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
-    lbo->cross_nu[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    
-    if (lbo->other_m[i] > s->info.mass) {
-      gkyl_array_set(lbo->cross_nu[i], sqrt(2.0), lbo->self_nu);
-      gkyl_array_set(lbo->other_nu[i], sqrt(2.0)*(s->info.mass)/(lbo->other_m[i]), lbo->self_nu);
-    } else {
-      gkyl_array_set(lbo->cross_nu[i], sqrt(2.0)*(lbo->other_m[i])/(s->info.mass), lbo->collide_with[i]->lbo.self_nu);
-      gkyl_array_set(lbo->other_nu[i], sqrt(2.0), lbo->collide_with[i]->lbo.self_nu);
+      // Set pointers to functions chosen at runtime.
+      lbo->cross_nu_calc = gklbo_cross_nu_calc_constNu;
+      lbo->cross_greene_num = gklbo_cross_greene_num_constNu;
     }
-    
-    gkyl_array_accumulate(lbo->nu_sum, 1.0, lbo->cross_nu[i]);
-
-    lbo->other_mnu[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    lbo->other_mnu_m0[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-
-    lbo->self_mnu[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-
-    gkyl_array_set(lbo->self_mnu[i], s->info.mass, lbo->cross_nu[i]);
-    gkyl_array_set(lbo->other_mnu[i], lbo->other_m[i], lbo->other_nu[i]);
+      
+    lbo->betaGreenep1 = 1.0;
   }
-
-  lbo->greene_num = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  lbo->greene_den = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  lbo->greene_factor = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-
-  if (s->info.collisions.normNu) {
-    lbo->moms_buff = mkarr(app->use_gpu, lbo->moms.marr->ncomp, lbo->moms.marr->size);
-    lbo->boundary_corrections_buff = mkarr(app->use_gpu, lbo->boundary_corrections->ncomp, lbo->boundary_corrections->size);
-  }
-  else {
-    lbo->moms_buff = gkyl_array_acquire(lbo->moms.marr);
-    lbo->boundary_corrections_buff = gkyl_array_acquire(lbo->boundary_corrections);
-  }
-    
-  lbo->betaGreenep1 = 1.0;
 }
 
 void
