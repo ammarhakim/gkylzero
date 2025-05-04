@@ -768,6 +768,17 @@ explicit_gr_ultra_rel_source_update(const gkyl_moment_em_coupling* mom_em, doubl
 }
 
 void
+explicit_gr_euler_source_update_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma, double t_curr, const double dt,
+  double* fluid_old, double* fluid_new)
+{
+}
+
+void
+explicit_gr_euler_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES])
+{
+}
+
+void
 explicit_e_field_source_update_euler(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double e_field_old[3], double* e_field_new,
   double* fluid_s[GKYL_MAX_SPECIES], const double* app_current)
 {

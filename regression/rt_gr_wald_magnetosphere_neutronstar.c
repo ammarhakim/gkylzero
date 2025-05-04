@@ -95,7 +95,7 @@ create_ctx(void)
   double ang_mom = spin * mass; // Angular momentum of the neutron star.
   double spin_dimensionless = ang_mom / (mass * mass); // Dimensionless spin of the neutron star.
 
-  double alpha = 5.0; // Neutron star alpha parameter (mass quadrupole moment coefficient).
+  double alpha = 8.0; // Neutron star alpha parameter (mass quadrupole moment coefficient).
   double beta = pow(-0.36 + (1.48 * pow(sqrt(alpha), 0.65)), 3.0); // Neutron star beta parameter (spin octupole moment coefficient).
   double gamma = pow(-4.749 + (0.27613 * pow(sqrt(alpha), 1.5146)) + (5.5168 * pow(sqrt(alpha), 0.22229)), 4.0); // Neutron star gamma parameter (mass hexadecapole moment coefficient).
   //double alpha = 1.0;
@@ -110,8 +110,8 @@ create_ctx(void)
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_new(false, mass, spin, mass_quadrupole, spin_octupole, mass_hexadecapole, pos_x, pos_y, pos_z);
 
   // Simulation parameters.
-  int Nx = 512; // Cell count (x-direction).
-  int Ny = 512; // Cell count (y-direction).
+  int Nx = 1024; // Cell count (x-direction).
+  int Ny = 1024; // Cell count (y-direction).
   double Lx = 10.0; // Domain size (x-direction).
   double Ly = 10.0; // Domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.

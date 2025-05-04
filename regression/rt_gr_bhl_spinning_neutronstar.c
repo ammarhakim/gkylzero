@@ -95,7 +95,7 @@ create_ctx(void)
 
   // Spacetime parameters (using geometric units).
   double mass = 0.3; // Mass of the neutron star.
-  double spin = -0.3; // Spin of the neutron star.
+  double spin = -0.12; // Spin of the neutron star.
 
   double pos_x = 2.5; // Position of the neutron star (x-direction).
   double pos_y = 2.5; // Position of the neutron star (y-direction).
