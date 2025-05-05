@@ -597,8 +597,9 @@ struct gk_proj {
 
 struct gk_adapt_source {
   bool adapt_particle, adapt_energy; // Adaptation flags.
-  struct gkyl_species *adapt_species; // Pointer to the species to adapt the particle loss to ensure quasi-neutrality.
-
+  struct gk_species *adapt_species; // Pointer to the species to adapt the particle loss to ensure quasi-neutrality.
+  double mass_ratio; // Mass ratio of the species to adapt to.
+  
   int num_boundaries; // Number of boundaries to adapt to.
   int dir[GKYL_MAX_CDIM]; // Direction to adapt.
   enum gkyl_edge_loc edge[GKYL_MAX_CDIM]; // Edge to adapt.

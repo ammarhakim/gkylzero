@@ -65,6 +65,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
         adapt_src->adapt_energy = s->info.source.adapt[k].adapt_energy;
 
         adapt_src->adapt_species = gk_find_species(app, s->info.source.adapt[k].adapt_species_name);
+        adapt_src->mass_ratio = s->info.mass/adapt_src->adapt_species->info.mass;
 
         adapt_src->particle_src_curr = s->info.source.projection[k].particle;
         adapt_src->energy_src_curr = s->info.source.projection[k].energy;
@@ -168,8 +169,8 @@ gk_species_source_adapt(gkyl_gyrokinetic_app *app, struct gk_species *s,
       else {
         memcpy(red_int_mom_global, adapt_src->red_integ_mom_global, sizeof(double[num_mom]));
       }
-      adapt_src->particle_rate_loss += red_int_mom_global[0]; // n
-      adapt_src->energy_rate_loss += 0.5 * s_adapt->info.mass * red_int_mom_global[num_mom-1]; // 1/2 * m * v^2
+      adapt_src->particle_rate_loss += red_int_mom_global[0] * adapt_src->mass_ratio; // n
+      adapt_src->energy_rate_loss += 0.5 * s->info.mass * red_int_mom_global[num_mom-1] * adapt_src->mass_ratio; // 1/2 * m * v^2
     }
 
     // Particle and energy rate update.
