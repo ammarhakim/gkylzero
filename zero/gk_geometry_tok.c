@@ -197,6 +197,9 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   gkyl_calc_bmag_advance(bcalculator, &up->local, &up->local_ext, &up->global, &geo->rzlocal, &geo->rzlocal_ext, geo->efit->bmagzr, up->bmag, mc2p_quad, true);
   // calculate bmag at corner nodes
   gkyl_calc_bmag_advance(bcalculator, &up->local, &up->local_ext, &up->global, &geo->rzlocal, &geo->rzlocal_ext, geo->efit->bmagzr, up->bmag_cont, up->mc2p, false);
+  // For now we'll simply populate bmag with bmag cont for simplicity. Need to
+  // revisit the organization MF 2025/05/05.
+  gkyl_array_copy(up->bmag, up->bmag_cont);
   gkyl_calc_bmag_release(bcalculator);
   // Convert bmag to nodal so we can use it to calculate dphidtheta
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->basis, &up->grid, false);

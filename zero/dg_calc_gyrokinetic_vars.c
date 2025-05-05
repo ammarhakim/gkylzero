@@ -103,6 +103,7 @@ void gkyl_dg_calc_gyrokinetic_vars_alpha_surf(struct gkyl_dg_calc_gyrokinetic_va
     for (int dir = 0; dir<cdim+1; ++dir) {
       const double *bmag_surf_d, *jacobtot_inv_surf_d, *cmag_surf_d, *b_i_surf_d;
       if (dir < cdim) {
+        bmag_surf_d = gkyl_array_cfetch(up->gk_geom->bmag, loc_conf);
         bmag_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[dir].bmag, loc_conf);
         jacobtot_inv_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[dir].jacobtot_inv, loc_conf);
         cmag_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[dir].cmag, loc_conf);
