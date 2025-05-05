@@ -197,9 +197,6 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   gkyl_calc_bmag_advance(bcalculator, &up->local, &up->local_ext, &up->global, &geo->rzlocal, &geo->rzlocal_ext, geo->efit->bmagzr, up->bmag, mc2p_quad, true);
   // calculate bmag at corner nodes
   gkyl_calc_bmag_advance(bcalculator, &up->local, &up->local_ext, &up->global, &geo->rzlocal, &geo->rzlocal_ext, geo->efit->bmagzr, up->bmag_cont, up->mc2p, false);
-  // For now we'll simply populate bmag with bmag cont for simplicity. Need to
-  // revisit the organization MF 2025/05/05.
-  gkyl_array_copy(up->bmag, up->bmag_cont);
   gkyl_calc_bmag_release(bcalculator);
   // Convert bmag to nodal so we can use it to calculate dphidtheta
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->basis, &up->grid, false);
@@ -218,6 +215,11 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
     up->jacobgeo, up->jacobgeo_inv, up->gij, up->b_i, up->cmag, up->jacobtot, up->jacobtot_inv, 
     up->bmag_inv, up->bmag_inv_sq, up->gxxj, up->gxyj, up->gyyj, up->gxzj, up->eps2);
   gkyl_tok_calc_derived_geo_release(jcalculator);
+
+  // For now we'll simply populate bmag with bmag cont for simplicity. Need to
+  // revisit the organization MF 2025/05/05.
+  gkyl_array_copy(up->bmag, up->bmag_cont);
+
   // Calculate metrics/derived geo quantities at surface
   for (int dir = 0; dir <up->grid.ndim; dir++) {
     gkyl_calc_metric_advance_rz_surface(mcalc, dir, &nrange_quad_surf[dir], up->geo_surf[dir].mc2p_nodal_fd, up->geo_surf[dir].ddtheta_nodal, up->geo_surf[dir].bmag_nodal, dzc,
