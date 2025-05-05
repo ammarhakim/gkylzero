@@ -93,12 +93,6 @@ struct gkyl_array* gkyl_array_set(struct gkyl_array *out,
  * Set out = a*inp[coff] where coff is a component-offset if
  * out->ncomp < inp->ncomp, or out[coff] = a*inp if
  * out->ncomp > inp->ncomp. Returns out.
- * 
- * Sets all components greater than the coeff offset to the output
- * e.g. coff = 2;
- *      if out has less components out[0,1,2, ...] = a*inp[2,3,4,...]
- *      if out has more components out[2,3,4, ...] = a*inp[0,1,2,...]
- * where the middle indicies are the different components
  *
  * @param out Output array
  * @param a Factor to multiply input array
