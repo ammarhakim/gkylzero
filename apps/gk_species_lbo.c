@@ -207,6 +207,8 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
 void 
 gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_lbo_collisions *lbo)
 {
+  lbo->cross_nu_calc = gklbo_cross_nu_calc_constNu; // This method is empty.
+
   if (s->lbo.num_cross_collisions) {
     lbo->cross_calc = gkyl_prim_lbo_gyrokinetic_cross_calc_new(&s->grid, 
       &app->basis, &s->basis, &app->local, app->use_gpu);
