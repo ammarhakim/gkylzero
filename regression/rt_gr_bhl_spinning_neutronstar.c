@@ -415,6 +415,9 @@ main(int argc, char **argv)
     .force_low_order_flux = true, // Use Lax fluxes.
     .ctx = &ctx,
 
+    .has_gr_euler = true,
+    .gr_euler_gas_gamma = ctx.gas_gamma,
+
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
     .bcy = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
