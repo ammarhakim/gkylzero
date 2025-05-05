@@ -685,9 +685,9 @@ explicit_gr_ultra_rel_source_update_euler(const gkyl_moment_em_coupling* mom_em,
     spatial_metric_der[1][1][0] = fluid_old[51]; spatial_metric_der[1][1][1] = fluid_old[52]; spatial_metric_der[1][1][2] = fluid_old[53];
     spatial_metric_der[1][2][0] = fluid_old[54]; spatial_metric_der[1][2][1] = fluid_old[55]; spatial_metric_der[1][2][2] = fluid_old[56];
 
-    spatial_metric_der[0][0][0] = fluid_old[57]; spatial_metric_der[0][0][1] = fluid_old[58]; spatial_metric_der[0][0][2] = fluid_old[59];
-    spatial_metric_der[0][1][0] = fluid_old[60]; spatial_metric_der[0][1][1] = fluid_old[61]; spatial_metric_der[0][1][2] = fluid_old[62];
-    spatial_metric_der[0][2][0] = fluid_old[63]; spatial_metric_der[0][2][1] = fluid_old[64]; spatial_metric_der[0][2][2] = fluid_old[65];
+    spatial_metric_der[2][0][0] = fluid_old[57]; spatial_metric_der[2][0][1] = fluid_old[58]; spatial_metric_der[2][0][2] = fluid_old[59];
+    spatial_metric_der[2][1][0] = fluid_old[60]; spatial_metric_der[2][1][1] = fluid_old[61]; spatial_metric_der[2][1][2] = fluid_old[62];
+    spatial_metric_der[2][2][0] = fluid_old[63]; spatial_metric_der[2][2][1] = fluid_old[64]; spatial_metric_der[2][2][2] = fluid_old[65];
 
     mom[0] = (rho + p) * (W * W) * vx;
     mom[1] = (rho + p) * (W * W) * vy;
@@ -776,6 +776,34 @@ explicit_gr_euler_source_update_euler(const gkyl_moment_em_coupling* mom_em, con
 void
 explicit_gr_euler_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES])
 {
+  int nfluids = mom_em->nfluids;
+
+  double gas_gamma = mom_em->gr_ultra_rel_gas_gamma;
+
+  for (int i = 0; i < nfluids; i++) {
+    double *f = fluid_s[i];
+
+    double f_new[71], f_stage1[71], f_stage2[71], f_old[71];
+
+    for (int j = 0; j < 71; j++) {
+      f_old[j] = f[j];
+    }
+
+    explicit_gr_euler_source_update_euler(mom_em, gas_gamma, t_curr, dt, f_old, f_new);
+    for (int j = 0; j < 71; j++) {
+      f_stage1[j] = f_new[j];
+    }
+
+    explicit_gr_euler_source_update_euler(mom_em, gas_gamma, t_curr + dt, dt, f_stage1, f_new);
+    for (int j = 0; j < 71; j++) {
+      f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
+    }
+
+    explicit_gr_euler_source_update_euler(mom_em, gas_gamma, t_curr + (0.5 * dt), dt, f_stage2, f_new);
+    for (int j = 0; j < 71; j++) {
+      f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
+    }
+  }
 }
 
 void

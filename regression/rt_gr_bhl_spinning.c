@@ -298,7 +298,7 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   fout[68] = x; fout[69] = y; fout[70] = 0.0;
 
   if (in_excision_region) {
-    for (int i = 0; i < 71; i++) {
+    for (int i = 0; i < 67; i++) {
       fout[i] = 0.0;
     }
     fout[27] = -1.0;
@@ -377,7 +377,7 @@ main(int argc, char **argv)
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
   // Fluid equations.
-  struct gkyl_wv_eqn *gr_euler = gkyl_wv_gr_euler_new(ctx.gas_gamma, GKYL_STATIC_GAUGE, ctx.spacetime, app_args.use_gpu);
+  struct gkyl_wv_eqn *gr_euler = gkyl_wv_gr_euler_new(ctx.gas_gamma, GKYL_STATIC_GAUGE, 100, ctx.spacetime, app_args.use_gpu);
 
   struct gkyl_moment_species fluid = {
     .name = "gr_euler",

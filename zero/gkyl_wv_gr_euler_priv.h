@@ -14,6 +14,9 @@ struct wv_gr_euler {
   struct gkyl_wv_eqn eqn; // Base equation object.
   struct gkyl_gr_spacetime *spacetime; // Pointer to base spacetime object.
   double gas_gamma; // Adiabatic index.
+
+  enum gkyl_spacetime_gauge spacetime_gauge; // Spacetime gauge choice.
+  int reinit_freq; // Spacetime reinitialization frequency.
 };
 
 /**
@@ -25,7 +28,7 @@ struct wv_gr_euler {
 */
 GKYL_CU_D
 void
-gkyl_gr_euler_flux(double gas_gamma, const double q[28], double flux[28]);
+gkyl_gr_euler_flux(double gas_gamma, const double q[71], double flux[71]);
 
 /**
 * Compute primitive variables given the conserved variables.
@@ -36,7 +39,7 @@ gkyl_gr_euler_flux(double gas_gamma, const double q[28], double flux[28]);
 */
 GKYL_CU_D
 void
-gkyl_gr_euler_prim_vars(double gas_gamma, const double q[28], double v[28]);
+gkyl_gr_euler_prim_vars(double gas_gamma, const double q[71], double v[71]);
 
 /**
 * Compute inverse spatial metric tensor (in covariant component form) given the conserved variables.
@@ -46,7 +49,7 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[28], double v[28]);
 */
 GKYL_CU_D
 void
-gkyl_gr_euler_inv_spatial_metric(const double q[28], double ***inv_spatial_metric);
+gkyl_gr_euler_inv_spatial_metric(const double q[71], double ***inv_spatial_metric);
 
 /**
 * Compute perfect fluid stress-energy tensor (in contravariant component form) given the conserved variables.
@@ -57,7 +60,7 @@ gkyl_gr_euler_inv_spatial_metric(const double q[28], double ***inv_spatial_metri
 */
 GKYL_CU_D
 void
-gkyl_gr_euler_stress_energy_tensor(double gas_gamma, const double q[28], double ***stress_energy);
+gkyl_gr_euler_stress_energy_tensor(double gas_gamma, const double q[71], double ***stress_energy);
 
 /**
 * Compute maximum absolute wave speed.
@@ -68,7 +71,7 @@ gkyl_gr_euler_stress_energy_tensor(double gas_gamma, const double q[28], double 
 */
 GKYL_CU_D
 static inline double
-gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[28]);
+gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[71]);
 
 /**
 * Compute Riemann variables given the conserved variables.

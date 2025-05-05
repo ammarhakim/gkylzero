@@ -16,6 +16,7 @@ struct wv_gr_ultra_rel_euler {
   double gas_gamma; // Adiabatic index.
 
   enum gkyl_spacetime_gauge spacetime_gauge; // Spacetime gauge choice.
+  int reinit_freq; // Spacetime reinitialization frequency.
 };
 
 /**

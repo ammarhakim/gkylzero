@@ -1346,30 +1346,32 @@ gr_ultra_rel_euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, doub
     mom[2] = (rho + p) * (W * W) * vz;
 
     // Energy density source.
+    sout[0] = 0.0;
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
         sout[0] += stress_energy[0][0] * shift[i] * shift[j] * extrinsic_curvature[i][j];
-        sout[0] += 2.0 * stress_energy[0][i] * shift[j] * extrinsic_curvature[i][j];
-        sout[0] += stress_energy[i][j] * extrinsic_curvature[i][j];
+        sout[0] += 2.0 * stress_energy[0][i + 1] * shift[j] * extrinsic_curvature[i][j];
+        sout[0] += stress_energy[i + 1][j + 1] * extrinsic_curvature[i][j];
       }
 
-      sout[0] += stress_energy[0][0] * shift[i] * lapse_der[i];
-      sout[0] -= stress_energy[0][i] * lapse_der[i];
+      sout[0] -= stress_energy[0][0] * shift[i] * lapse_der[i];
+      sout[0] -= stress_energy[0][i + 1] * lapse_der[i];
     }
 
     // Momentum density sources.
     for (int j = 0; j < 3; j++) {
-      sout[1 + j] = stress_energy[0][0] * lapse * lapse_der[j];
+      sout[1 + j] = -stress_energy[0][0] * lapse * lapse_der[j];
 
       for (int k = 0; k < 3; k++) {
         for (int l = 0; l < 3; l++) {
           sout[1 + j] += 0.5 * stress_energy[0][0] * shift[k] * shift[l] * spatial_metric_der[j][k][l];
+          sout[1 + j] += 0.5 * stress_energy[k + 1][l + 1] * spatial_metric_der[j][k][l];
         }
 
         sout[1 + j] += (mom[k] / lapse) * shift_der[j][k];
 
         for (int i = 0; i < 3; i++) {
-          sout[1 + j] += stress_energy[0][i] * shift[k] * spatial_metric_der[j][i][k];
+          sout[1 + j] += stress_energy[0][i + 1] * shift[k] * spatial_metric_der[j][i][k];
         }
       }
     }
@@ -1402,11 +1404,12 @@ gkyl_gr_ultra_rel_euler_free(const struct gkyl_ref_count* ref)
 }
 
 struct gkyl_wv_eqn*
-gkyl_wv_gr_ultra_rel_euler_new(double gas_gamma, enum gkyl_spacetime_gauge spacetime_gauge, struct gkyl_gr_spacetime* spacetime, bool use_gpu)
+gkyl_wv_gr_ultra_rel_euler_new(double gas_gamma, enum gkyl_spacetime_gauge spacetime_gauge, int reinit_freq, struct gkyl_gr_spacetime* spacetime, bool use_gpu)
 {
   return gkyl_wv_gr_ultra_rel_euler_inew(&(struct gkyl_wv_gr_ultra_rel_euler_inp) {
       .gas_gamma = gas_gamma,
       .spacetime_gauge = spacetime_gauge,
+      .reinit_freq = reinit_freq,
       .spacetime = spacetime,
       .rp_type = WV_GR_ULTRA_REL_EULER_RP_ROE,
       .use_gpu = use_gpu,
@@ -1425,6 +1428,7 @@ gkyl_wv_gr_ultra_rel_euler_inew(const struct gkyl_wv_gr_ultra_rel_euler_inp* inp
 
   gr_ultra_rel_euler->gas_gamma = inp->gas_gamma;
   gr_ultra_rel_euler->spacetime_gauge = inp->spacetime_gauge;
+  gr_ultra_rel_euler->reinit_freq = inp->reinit_freq;
   gr_ultra_rel_euler->spacetime = inp->spacetime;
 
   if (inp->rp_type == WV_GR_ULTRA_REL_EULER_RP_LAX) {
@@ -1478,6 +1482,15 @@ gkyl_wv_gr_ultra_rel_euler_spacetime_gauge(const struct gkyl_wv_eqn* eqn)
   enum gkyl_spacetime_gauge spacetime_gauge = gr_ultra_rel_euler->spacetime_gauge;
 
   return spacetime_gauge;
+}
+
+int
+gkyl_wv_gr_ultra_rel_euler_reinit_freq(const struct gkyl_wv_eqn* eqn)
+{
+  const struct wv_gr_ultra_rel_euler *gr_ultra_rel_euler = container_of(eqn, struct wv_gr_ultra_rel_euler, eqn);
+  int reinit_freq = gr_ultra_rel_euler->reinit_freq;
+
+  return reinit_freq;
 }
 
 struct gkyl_gr_spacetime*
