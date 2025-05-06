@@ -12,6 +12,7 @@
 #include <gkyl_wave_prop.h>
 
 #include <gkyl_wv_euler_rgfm_priv.h>
+#include <gkyl_wv_gr_maxwell_priv.h>
 #include <gkyl_wv_gr_euler_priv.h>
 #include <gkyl_wv_gr_ultra_rel_euler_priv.h>
 #include <gkyl_wv_gr_ultra_rel_euler_tetrad_priv.h>
@@ -623,6 +624,75 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
           }
         }
 
+        if (wv->equation->type == GKYL_EQN_GR_MAXWELL) {
+          const struct gkyl_wv_eqn* eqn = wv->equation;
+          const struct wv_gr_maxwell *gr_maxwell = container_of(eqn, struct wv_gr_maxwell, eqn);
+          
+          const enum gkyl_spacetime_gauge spacetime_gauge = gr_maxwell->spacetime_gauge;
+
+          if (spacetime_gauge == GKYL_STATIC_GAUGE) {
+            const struct gkyl_gr_spacetime* spacetime = gr_maxwell->spacetime;
+            int reinit_freq = gr_maxwell->reinit_freq;
+            
+            for (int i = loidx_c; i<= upidx_c; i++) {
+              idxl[dir] = i;
+
+              double *qnew = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+              double evol_param = qnew[22];
+
+              if (evol_param > reinit_freq) {
+                double x = qnew[23];
+                double y = qnew[24];
+                double z = qnew[25];
+
+                double lapse;
+                double *shift = gkyl_malloc(sizeof(double[3]));
+                bool in_excision_region;
+
+                double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+                for (int i = 0; i < 3; i++) {
+                  spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+                }
+
+                spacetime->lapse_function_func(spacetime, 0.0, x, y, z, &lapse);
+                spacetime->shift_vector_func(spacetime, 0.0, x, y, z, &shift);
+                spacetime->excision_region_func(spacetime, 0.0, x, y, z, &in_excision_region);
+
+                spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, z, &spatial_metric);
+
+                qnew[8] = lapse;
+                qnew[9] = shift[0]; qnew[10] = shift[1]; qnew[11] = shift[2];
+
+                qnew[12] = spatial_metric[0][0]; qnew[13] = spatial_metric[0][1]; qnew[14] = spatial_metric[0][2];
+                qnew[15] = spatial_metric[1][0]; qnew[16] = spatial_metric[1][1]; qnew[17] = spatial_metric[1][2];
+                qnew[18] = spatial_metric[2][0]; qnew[19] = spatial_metric[2][1]; qnew[20] = spatial_metric[2][2];
+
+                if (in_excision_region) {
+                  for (int i = 0; i < 22; i++) {
+                    qnew[i] = 0.0;
+                  }
+
+                  qnew[21] = -1.0;
+                }
+                else {
+                  qnew[21] = 1.0;
+                }
+
+                for (int i = 0; i < 3; i++) {
+                  gkyl_free(spatial_metric[i]);
+                }
+                gkyl_free(spatial_metric);
+                gkyl_free(shift);
+                
+                qnew[22] = 0.0;
+              }
+              else {
+                qnew[22] += 1.0;
+              }
+            }
+          }
+        }
+
         if (wv->equation->type == GKYL_EQN_GR_EULER) {
           const struct gkyl_wv_eqn* eqn = wv->equation;
           const struct wv_gr_euler *gr_euler = container_of(eqn, struct wv_gr_euler, eqn);
@@ -683,6 +753,7 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
                 spacetime->lapse_function_der_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
                 spacetime->shift_vector_der_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
                 spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+
                 qnew[5] = lapse;
                 qnew[6] = shift[0]; qnew[7] = shift[1]; qnew[8] = shift[2];
 
@@ -947,6 +1018,7 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
               new_spacetime->lapse_function_der_func(new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
               new_spacetime->shift_vector_der_func(new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
               new_spacetime->spatial_metric_tensor_der_func(new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+
               qnew[4] = lapse;
               qnew[5] = shift[0]; qnew[6] = shift[1]; qnew[7] = shift[2];
 
@@ -1084,6 +1156,7 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
               new_spacetime->lapse_function_der_func(new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
               new_spacetime->shift_vector_der_func(new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
               new_spacetime->spatial_metric_tensor_der_func(new_spacetime, 0.0, x, y, z, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+
               qnew[4] = lapse;
               qnew[5] = shift[0]; qnew[6] = shift[1]; qnew[7] = shift[2];
 
