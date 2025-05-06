@@ -26,7 +26,7 @@ void func_gaussian(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTR
   for (int dir = 0; dir < GKYL_MAX_CDIM; ++dir) {
     double t = xn[dir] - inp->center_gauss[dir];
     if (inp->periodic[dir])
-      t = fmod(t, inp->box_size[dir]);
+      t = fmod(fabs(xn[dir]) - inp->center_gauss[dir], inp->box_size[dir]);
     if (inp->sigma_gauss[dir] > 0.0)
       envelope *= exp(-(pow(t,2))/(2.*pow(inp->sigma_gauss[dir],2)));
   }
