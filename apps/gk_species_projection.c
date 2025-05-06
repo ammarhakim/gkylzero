@@ -26,6 +26,8 @@ void func_gaussian(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTR
   for (int dir = 0; dir < GKYL_MAX_CDIM; ++dir) {
     if (inp->sigma_gauss[dir] > 0.0) {
       envelope *= exp(-(pow(xn[dir]-inp->center_gauss[dir],2))/(2.*pow(inp->sigma_gauss[dir],2)));
+      if (dir == GKYL_MAX_CDIM) // Symmetric in z
+        envelope *= exp(-(pow(xn[dir]+inp->center_gauss[dir],2))/(2.*pow(inp->sigma_gauss[dir],2)));
     }
   }
   fout[0] = (envelope + inp->floor);
