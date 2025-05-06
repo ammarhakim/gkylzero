@@ -225,7 +225,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     s->sgn_alpha_surf = mkarr(app->use_gpu, sgn_alpha_surf_sz, s->local_ext.volume);
     s->const_sgn_alpha = mk_int_arr(app->use_gpu, (cdim + vdim), s->local_ext.volume);
 
-    // Pre-compute alpha_surf, sgn_alpha_surf, const_sgn_alpha, and cot_vec since they are time-independent
+    // Pre-compute alpha_surf, sgn_alpha_surf, and const_sgn_alpha since they are time-independent
     struct gkyl_dg_calc_canonical_pb_vars *calc_vars = gkyl_dg_calc_canonical_pb_vars_new(&s->grid, 
       &app->confBasis, &app->basis, app->use_gpu);
     gkyl_dg_calc_canonical_pb_vars_alpha_surf(calc_vars, &app->local, &s->local, &s->local_ext, s->hamil,
@@ -241,7 +241,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   }
   else {
     if (s->field_id == GKYL_FIELD_NULL || s->field_id == GKYL_FIELD_E_B) {
-      struct gkyl_dg_vlasov_auxfields aux_inp = {.field = s->qmem, .cot_vec = 0, 
+      struct gkyl_dg_vlasov_auxfields aux_inp = {.field = s->qmem, 
         .alpha_surf = 0, .sgn_alpha_surf = 0, .const_sgn_alpha = 0 };
       s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
         &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
@@ -383,7 +383,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       else if (s->lower_bc[d].type == GKYL_SPECIES_ABSORB)
         bctype = GKYL_BC_ABSORB;
       else if (s->lower_bc[d].type == GKYL_SPECIES_REFLECT)
-        bctype = GKYL_BC_REFLECT;
+        bctype = GKYL_BC_DISTF_REFLECT;
       else if (s->lower_bc[d].type == GKYL_SPECIES_FIXED_FUNC)
         bctype = GKYL_BC_FIXED_FUNC;
 
@@ -403,7 +403,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       else if (s->upper_bc[d].type == GKYL_SPECIES_ABSORB)
         bctype = GKYL_BC_ABSORB;
       else if (s->upper_bc[d].type == GKYL_SPECIES_REFLECT)
-        bctype = GKYL_BC_REFLECT;
+        bctype = GKYL_BC_DISTF_REFLECT;
       else if (s->upper_bc[d].type == GKYL_SPECIES_FIXED_FUNC)
         bctype = GKYL_BC_FIXED_FUNC;
 
