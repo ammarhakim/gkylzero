@@ -24,11 +24,11 @@ void func_gaussian(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTR
   struct gkyl_gyrokinetic_projection *inp = ctx;
   double envelope = 1.0;
   for (int dir = 0; dir < GKYL_MAX_CDIM; ++dir) {
-    if (inp->sigma_gauss[dir] > 0.0) {
-      envelope *= exp(-(pow(xn[dir]-inp->center_gauss[dir],2))/(2.*pow(inp->sigma_gauss[dir],2)));
-      if (dir == GKYL_MAX_CDIM) // Symmetric in z
-        envelope *= exp(-(pow(xn[dir]+inp->center_gauss[dir],2))/(2.*pow(inp->sigma_gauss[dir],2)));
-    }
+    double t = xn[dir] - inp->center_gauss[dir];
+    if (inp->periodic[dir])
+      t = fmod(t, inp->box_size[dir]);
+    if (inp->sigma_gauss[dir] > 0.0)
+      envelope *= exp(-(pow(t,2))/(2.*pow(inp->sigma_gauss[dir],2)));
   }
   fout[0] = (envelope + inp->floor);
 }
@@ -193,6 +193,10 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       proj->corr_max = gkyl_gk_maxwellian_correct_inew( &inp_corr );
     }
   } else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN) {
+
+    // Fill the box_size attribute of the projection (used for periodicity).
+    for (int dir = 0; dir < app->cdim; ++dir)
+      inp.box_size[dir] = inp.upper[dir] - inp.lower[dir];
 
     // First project the shape function, s(x), onto the DG basis and send it to device.
     proj->proj_shape = gkyl_proj_on_basis_new(&app->grid, &app->basis, app->poly_order + 1, 1, func_gaussian, &inp);

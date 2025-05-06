@@ -44,6 +44,7 @@ struct gkyl_gyrokinetic_projection {
       // if projection is a Maxwellian + Gaussian in configuration space.
       double center_gauss[GKYL_MAX_CDIM]; // Center in configuration space.
       double sigma_gauss[GKYL_MAX_CDIM]; // Sigma in configuration space, function is constant if sigma is 0.
+      bool periodic[GKYL_MAX_CDIM]; // Periodicity in configuration space.
       double particle; // Total particle of the Gaussian Maxwellian distribution (M0 moment).
       double energy; // Total energy (M2*mass moment).
       double floor; // Floor value for the Gaussian Maxwellian distribution.
@@ -54,6 +55,9 @@ struct gkyl_gyrokinetic_projection {
       double iter_eps; // error tolerance for moment fixes (density is always exact)
       int max_iter; // maximum number of iteration
       bool use_last_converged; // use last iteration value regardless of convergence?
+
+      // Attribute to be passed to the projection function
+      double box_size[GKYL_MAX_CDIM]; // Size of the box in each direction
     };
   };
 };
