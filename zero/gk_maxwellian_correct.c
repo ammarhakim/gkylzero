@@ -168,13 +168,12 @@ gkyl_gk_maxwellian_correct_all_moments(gkyl_gk_maxwellian_correct *up,
           // so that we can converge to the correct target moments in SI units and minimize finite precision issues.
           up->error[0] = fmax(fabs(moms_local[0*nc] - moms_target_local[0*nc])/moms_target_local[0*nc],fabs(up->error[0]));
           up->error[2] = fmax(fabs(moms_local[2*nc] - moms_target_local[2*nc])/moms_target_local[2*nc],fabs(up->error[2]));
-          // However, u_par may be ~ 0 and if it is, we need to use absolute error. We can converge safely using
-          // absolute error if u_par ~ O(1). Otherwise, we use relative error for u_par. 
-          if (fabs(moms_target_local[1*nc]) < 1.0) {
-            up->error[1] = fmax(fabs(moms_local[1*nc] - moms_target_local[1*nc]),fabs(up->error[1]));
+          // However, u_par may be ~ 0 and if it is, we normalize it with the target thermal veocity instead.
+          if (fabs(moms_target_local[1*nc]) < sqrt(moms_target_local[2*nc])) {
+            up->error[1] = fmax(fabs(moms_local[1*nc] - moms_target_local[1*nc])/sqrt(moms_target_local[2*nc]),fabs(up->error[1]));
           }
           else {
-            up->error[1] = fmax(fabs(moms_local[1*nc] - moms_target_local[1*nc])/moms_target_local[1*nc],fabs(up->error[1]));
+            up->error[1] = fmax(fabs(moms_local[1*nc] - moms_target_local[1*nc])/fabs(moms_target_local[1*nc]),fabs(up->error[1]));
           }
           // Check if density and temperature (or parallel temperature) are positive, 
           // if they aren't we will break out of the iteration
