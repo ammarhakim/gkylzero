@@ -196,7 +196,7 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
 
     // Fill the box_size attribute of the projection (used for periodicity).
     for (int dir = 0; dir < app->cdim; ++dir)
-      inp.box_size[dir] = inp.upper[dir] - inp.lower[dir];
+      inp.box_size[dir] = app->grid.upper[dir] - app->grid.lower[dir];
 
     // First project the shape function, s(x), onto the DG basis and send it to device.
     proj->proj_shape = gkyl_proj_on_basis_new(&app->grid, &app->basis, app->poly_order + 1, 1, func_gaussian, &inp);
