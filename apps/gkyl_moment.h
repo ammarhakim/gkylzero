@@ -49,8 +49,8 @@ struct gkyl_moment_species {
   bool has_gr_ultra_rel; // Run with general relativistic source terms (Euler equations, ultra-relativistic equation of state).
   double gr_ultra_rel_gas_gamma; // Adiabatic index for general relativistic Euler equations (ultra-relativistic equation of state).
 
-  bool has_gr_euler; // Run with general relativistic source terms (Euler equations, general equation of state).
-  double gr_euler_gas_gamma; // Adiabatic index for general relativistic Euler equations (general equation of state).
+  bool has_gr_euler; // Run with general relativistic source terms (Euler equations, ideal gas equation of state).
+  double gr_euler_gas_gamma; // Adiabatic index for general relativistic Euler equations (ideal gas equation of state).
 
   bool force_low_order_flux; // should  we force low-order flux?
 

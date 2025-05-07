@@ -1397,6 +1397,7 @@ gr_euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
     mom[2] = (rho * h) * (W * W) * vz;
 
     // Energy density source.
+    sout[4] = 0.0;
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
         sout[4] += stress_energy[0][0] * shift[i] * shift[j] * extrinsic_curvature[i][j];
