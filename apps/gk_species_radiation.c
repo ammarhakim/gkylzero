@@ -102,7 +102,7 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
       rad->collide_with_idx[i] = gk_find_neut_species_idx(app, s->info.radiation.collide_with[i]);
       rad->collide_with_neut[i] = gk_find_neut_species(app, s->info.radiation.collide_with[i]);
       rad->is_neut_species[i] = true;
-      gk_neut_species_moment_init(app, rad->collide_with_neut[i], &rad->moms[i], "M0");
+      gk_neut_species_moment_init(app, rad->collide_with_neut[i], &rad->moms[i], "M0", false);
     }
     else {
       rad->collide_with[i] = gk_find_species(app, s->info.radiation.collide_with[i]);

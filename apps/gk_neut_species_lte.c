@@ -8,7 +8,7 @@ gk_neut_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_specie
   int cdim = app->cdim, vdim = 3;
 
   // allocate moments needed for lte update
-  gk_neut_species_moment_init(app, s, &lte->moms, "LTEMoments");
+  gk_neut_species_moment_init(app, s, &lte->moms, "LTEMoments", false);
 
   struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = {
     .phase_grid = &s->grid,

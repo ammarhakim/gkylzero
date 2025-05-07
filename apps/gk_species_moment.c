@@ -117,7 +117,7 @@ gk_species_moment_release(const struct gkyl_gyrokinetic_app *app, const struct g
       gkyl_dg_updater_moment_gyrokinetic_release(sm->mcalc);
     }
 
-    // Free the weak division memory if not computing integrated moments.
+    // Free the weak division memory.
     gkyl_dg_bin_op_mem_release(sm->mem_geo);
   }
 }
