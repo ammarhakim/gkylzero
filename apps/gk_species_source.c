@@ -173,19 +173,27 @@ gk_species_source_adapt(gkyl_gyrokinetic_app *app, struct gk_species *s,
       adapt_src->energy_rate_loss += 0.5 * s->info.mass * red_int_mom_global[num_mom-1] * adapt_src->mass_ratio; // 1/2 * m * v^2
     }
 
+    double particle_input = s->info.source.projection[k].particle;
+    double energy_input = s->info.source.projection[k].energy;
+
     // Particle and energy rate update.
     // balance = user target + loss
     double particle_src_new = adapt_src->adapt_particle? 
-      s->info.source.projection[k].particle + adapt_src->particle_rate_loss
-      : s->info.source.projection[k].particle;
+      particle_input + adapt_src->particle_rate_loss : particle_input;
 
     double energy_src_new = adapt_src->adapt_energy?
-      s->info.source.projection[k].energy + adapt_src->energy_rate_loss
-      : s->info.source.projection[k].energy;
+      energy_input + adapt_src->energy_rate_loss : energy_input;
 
+    // Avoid 0 particle source.
+    // This is important to avoid division by zero in the temperature calculation.
+    particle_src_new = fmax(1.0e-12, particle_src_new);
+    
     // Compute the target temperature of the source following the rule:
     // T = 2/3 * Q/G (T: src temperature, Q: src energy rate, G: total particle rate)
-    double temperature_new = particle_src_new == 0.0 ? s->info.source.projection[k].temp_max/2 : 2./3. * energy_src_new/particle_src_new;
+    double temperature_new = 2./3. * energy_src_new/particle_src_new;
+
+    // Impose the temperature to be within the limits.  
+    temperature_new = fmin(temperature_new, s->info.source.projection[k].temp_max);
 
     // Update the density and temperature moments of the source
     gkyl_array_set(src->proj_source[k].dens, particle_src_new, src->proj_source[k].shape_conf);
