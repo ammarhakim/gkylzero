@@ -553,7 +553,7 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
   }
 
   // Allocate data for integrated moments.
-  gk_neut_species_moment_init(app, s, &s->integ_moms, "Integrated", true);
+  gk_neut_species_moment_init(app, s, &s->integ_moms, "FiveMoments", true);
 
   // Allocate data for integrated diagnostics.
   if (app->use_gpu) {

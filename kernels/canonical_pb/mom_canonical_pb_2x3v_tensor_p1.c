@@ -31,7 +31,7 @@ GKYL_CU_DH void canonical_pb_MEnergy_2x3v_tensor_p1(const double *dxv, const dou
   out[2] += (0.5*f[29]*hamil[31]+0.5*hamil[29]*f[31]+0.5*f[25]*hamil[30]+0.5*hamil[25]*f[30]+0.5*f[23]*hamil[28]+0.5*hamil[23]*f[28]+0.5*f[21]*hamil[27]+0.5*hamil[21]*f[27]+0.5*f[18]*hamil[26]+0.5*hamil[18]*f[26]+0.5*f[15]*hamil[24]+0.5*hamil[15]*f[24]+0.5*f[14]*hamil[22]+0.5*hamil[14]*f[22]+0.5*f[12]*hamil[20]+0.5*hamil[12]*f[20]+0.5*f[11]*hamil[19]+0.5*hamil[11]*f[19]+0.5*f[9]*hamil[17]+0.5*hamil[9]*f[17]+0.5*f[7]*hamil[16]+0.5*hamil[7]*f[16]+0.5*f[5]*hamil[13]+0.5*hamil[5]*f[13]+0.5*f[4]*hamil[10]+0.5*hamil[4]*f[10]+0.5*f[3]*hamil[8]+0.5*hamil[3]*f[8]+0.5*f[1]*hamil[6]+0.5*hamil[1]*f[6]+0.5*f[0]*hamil[2]+0.5*hamil[0]*f[2])*volFact; 
   out[3] += (0.5*f[25]*hamil[31]+0.5*hamil[25]*f[31]+0.5*f[29]*hamil[30]+0.5*hamil[29]*f[30]+0.5*f[15]*hamil[28]+0.5*hamil[15]*f[28]+0.5*f[14]*hamil[27]+0.5*hamil[14]*f[27]+0.5*f[11]*hamil[26]+0.5*hamil[11]*f[26]+0.5*f[23]*hamil[24]+0.5*hamil[23]*f[24]+0.5*f[21]*hamil[22]+0.5*hamil[21]*f[22]+0.5*f[5]*hamil[20]+0.5*hamil[5]*f[20]+0.5*f[18]*hamil[19]+0.5*hamil[18]*f[19]+0.5*f[4]*hamil[17]+0.5*hamil[4]*f[17]+0.5*f[3]*hamil[16]+0.5*hamil[3]*f[16]+0.5*f[12]*hamil[13]+0.5*hamil[12]*f[13]+0.5*f[9]*hamil[10]+0.5*hamil[9]*f[10]+0.5*f[7]*hamil[8]+0.5*hamil[7]*f[8]+0.5*f[0]*hamil[6]+0.5*hamil[0]*f[6]+0.5*f[1]*hamil[2]+0.5*hamil[1]*f[2])*volFact; 
 } 
-GKYL_CU_DH void canonical_pb_int_mom_2x3v_tensor_p1(const double *dxv, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void canonical_pb_int_five_moments_2x3v_tensor_p1(const double *dxv, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 
   const double volFact = dxv[0]*dxv[1]*dxv[2]*dxv[3]*dxv[4]*0.03125; 
   const double dv1 = dxv[2]; 

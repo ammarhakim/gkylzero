@@ -135,13 +135,13 @@ gkyl_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis*
 
 struct gkyl_mom_type*
 gkyl_int_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, bool use_gpu)
+  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, const char *mom, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
 #ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
-    return gkyl_int_mom_vlasov_sr_cu_dev_new(cbasis, pbasis, conf_range, vel_range);
+  if (use_gpu) {
+    return gkyl_int_mom_vlasov_sr_cu_dev_new(cbasis, pbasis, conf_range, vel_range, mom);
   } 
 #endif  
   struct mom_type_vlasov_sr *mom_vm_sr = gkyl_malloc(sizeof(struct mom_type_vlasov_sr));
@@ -154,13 +154,13 @@ gkyl_int_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_ba
   mom_vm_sr->momt.num_config = cbasis->num_basis;
   mom_vm_sr->momt.num_phase = pbasis->num_basis;
 
-  // choose kernel tables based on basis-function type
-  const gkyl_vlasov_sr_mom_kern_list *int_mom_kernels;  
+  // Choose kernel tables based on basis-function type
+  const gkyl_vlasov_sr_mom_kern_list *int_five_moments_kernels;  
   
-  // set kernel pointer
+  // Set kernel pointer.
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      int_mom_kernels = ser_int_mom_kernels;
+      int_five_moments_kernels = ser_int_five_moments_kernels;
       break;
 
     default:
@@ -169,9 +169,12 @@ gkyl_int_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_ba
   }
 
   assert(cv_index[cdim].vdim[vdim] != -1);
-  assert(NULL != int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-  mom_vm_sr->momt.kernel = int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-  mom_vm_sr->momt.num_mom = 2+vdim;
+
+  if (strcmp(mom, "FiveMoments") == 0) {
+    assert(NULL != int_five_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+    mom_vm_sr->momt.kernel = int_five_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    mom_vm_sr->momt.num_mom = 2+vdim;
+  }
 
   mom_vm_sr->conf_range = *conf_range;
   mom_vm_sr->vel_range = *vel_range;

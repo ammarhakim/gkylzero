@@ -31,7 +31,7 @@ gk_neut_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spe
     }
 
     // Allocate data and updaters for integrated moments.
-    gk_neut_species_moment_init(app, s, &s->src.integ_moms, "Integrated", true);
+    gk_neut_species_moment_init(app, s, &s->src.integ_moms, "FiveMoments", true);
     int num_mom = s->src.integ_moms.num_mom;
     if (app->use_gpu) {
       s->src.red_integ_diag = gkyl_cu_malloc(sizeof(double[num_mom]));

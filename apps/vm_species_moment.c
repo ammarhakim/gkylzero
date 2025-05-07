@@ -2,16 +2,16 @@
 #include <gkyl_mom_canonical_pb.h>
 #include <gkyl_vlasov_priv.h>
 
-// initialize species moment object
+// Initialize species moment object.
 void
 vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
-  struct vm_species_moment *sm, const char *nm)
+  struct vm_species_moment *sm, const char *nm, bool is_integrated)
 {
   assert(is_moment_name_valid(nm));
 
-  bool is_integrated = strcmp(nm, "Integrated") == 0;
-  int num_mom;
+  sm->is_integrated = is_integrated;
 
+  int num_mom;
   sm->is_vlasov_lte_moms = strcmp("LTEMoments", nm) == 0;
   if (sm->is_vlasov_lte_moms) {
     struct gkyl_vlasov_lte_moments_inp inp_mom = {
@@ -45,7 +45,7 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
         nm, is_integrated, app->use_gpu);
       num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc);
     } else if ((s->model_id == GKYL_MODEL_CANONICAL_PB || s->model_id == GKYL_MODEL_CANONICAL_PB_GR)
-      && (strcmp(nm, "M1i_from_H") == 0 || strcmp(nm, "MEnergy") == 0 || strcmp(nm, "Integrated") == 0)) {
+      && (strcmp(nm, "M1i_from_H") == 0 || strcmp(nm, "MEnergy") == 0 || (sm->is_integrated && strcmp(nm, "FiveMoments") == 0))) {
       struct gkyl_mom_canonical_pb_auxfields can_pb_inp = {.hamil = s->hamil};
       sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->confBasis, 
         &app->basis, &app->local, &s->local_vel, &s->local, s->model_id, &can_pb_inp, 

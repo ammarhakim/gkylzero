@@ -120,7 +120,6 @@ static const char *const valid_moment_names[] = {
   "MaxwellianMoments", // internal flag for whether we are computing (n, u_par, T/m)
   "BiMaxwellianMoments", // internal flag for whether we are computing (n, u_par, T_par/m, T_perp/m)
   "HamiltonianMoments", // Compute the H moment of f.
-  "Integrated", // this is an internal flag, not for passing to moment type
 };
 
 // check if name of moment is valid or not for gyrokinetics
@@ -140,7 +139,6 @@ static const char *const valid_neut_moment_names[] = {
   "M1i_from_H",
   "MEnergy",
   "LTEMoments", // M0, contra_to_cov(M1i_from_H), T/m) of the LTE (local thermodynamic equilibrium) distribution.
-  "Integrated", // this is an internal flag, not for passing to moment type
 };
 
 // check if name of moment is valid or not for neutrals

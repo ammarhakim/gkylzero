@@ -271,7 +271,7 @@ static void
 set_int_cu_ptrs(struct mom_type_gyrokinetic* momt, int mom_id,
   enum gkyl_basis_type b_type, int vdim, int poly_order, int tblidx)
 {
-  // choose kernel tables based on basis-function type
+  // Choose kernel tables based on basis-function type.
   const gkyl_gyrokinetic_mom_kern_list *int_m0_kernels, *int_m1_kernels, *int_m2_par_kernel, *int_m2_perp_kernel, *int_m2_kernels,
     *int_m3_par_kernels, *int_m3_perp_kernels, *int_three_moments_kernels, *int_four_moments_kernels, *int_hamiltonian_moments_kernels;
 
@@ -338,7 +338,8 @@ set_int_cu_ptrs(struct mom_type_gyrokinetic* momt, int mom_id,
       momt->momt.num_mom = 3;
       break;
 
-    default: // can't happen
+    default: // Can't happen.
+      assert(false);
       break;
   }
 }
@@ -367,7 +368,8 @@ gkyl_int_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struc
      printf("Error: requested GK moment %s not valid\n", mom);
      assert(mom_id != BAD);
   }
-  momt->momt.num_mom = gk_num_mom(vdim, mom_id); // number of moments
+
+  momt->momt.num_mom = gk_num_mom(vdim, mom_id); // Number of moments.
 
   momt->mass = mass;
   momt->charge = charge;

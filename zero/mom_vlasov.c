@@ -24,7 +24,7 @@ gkyl_mom_vlasov_new(const struct gkyl_basis* cbasis,
   assert(cbasis->poly_order == pbasis->poly_order);
 
 #ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
+  if (use_gpu) {
     return gkyl_mom_vlasov_cu_dev_new(cbasis, pbasis, mom);
   } 
 #endif
@@ -135,13 +135,13 @@ gkyl_mom_vlasov_new(const struct gkyl_basis* cbasis,
 }
 
 struct gkyl_mom_type *
-gkyl_int_mom_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, bool use_gpu)
+gkyl_int_mom_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, const char *mom, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
 #ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
-    return gkyl_int_mom_vlasov_cu_dev_new(cbasis, pbasis);
+  if (use_gpu) {
+    return gkyl_int_mom_vlasov_cu_dev_new(cbasis, pbasis, mom);
   } 
 #endif
   struct mom_type_vlasov *mom_vm = gkyl_malloc(sizeof(struct mom_type_vlasov));
@@ -154,31 +154,32 @@ gkyl_int_mom_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
   mom_vm->momt.num_config = cbasis->num_basis;
   mom_vm->momt.num_phase = pbasis->num_basis;
   mom_vm->momt.kernel = kernel;
-  mom_vm->momt.num_mom = 2+vdim;
   
-  // set kernel pointer
+  // Choose kernel tables based on basis-function type.
+  const gkyl_mom_kern_list *int_five_moments_kernels;
+
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      assert(cv_index[cdim].vdim[vdim] != -1);
-      assert(NULL != ser_int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-      
-      mom_vm->kernel = ser_int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-
+      int_five_moments_kernels = ser_int_five_moments_kernels;
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
-      assert(cv_index[cdim].vdim[vdim] != -1);
-      assert(NULL != tensor_int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-      
-      mom_vm->kernel = tensor_int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-
+      int_five_moments_kernels = tensor_int_five_moments_kernels;
       break;
-
 
     default:
       assert(false);
       break;    
   }  
+
+  assert(cv_index[cdim].vdim[vdim] != -1);   
+
+  if (strcmp(mom, "FiveMoments") == 0) { 
+    assert(NULL != int_five_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+    
+    mom_vm->kernel = int_five_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    mom_vm->momt.num_mom = 2+vdim;
+  }
 
   mom_vm->momt.flags = 0;
   GKYL_CLEAR_CU_ALLOC(mom_vm->momt.flags);
@@ -188,23 +189,3 @@ gkyl_int_mom_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
     
   return &mom_vm->momt;  
 }
-
-#ifndef GKYL_HAVE_CUDA
-
-struct gkyl_mom_type*
-gkyl_mom_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const char *mom)
-{
-  assert(false);
-  return 0;
-}
-
-struct gkyl_mom_type *
-gkyl_int_mom_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis)
-{
-  assert(false);
-  return 0;  
-}
-
-#endif

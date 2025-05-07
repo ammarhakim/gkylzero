@@ -52,7 +52,7 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   lbo->m0 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
   // allocate moments needed for LBO update
-  vm_species_moment_init(app, s, &lbo->moms, "FiveMoments");
+  vm_species_moment_init(app, s, &lbo->moms, "FiveMoments", false);
 
   // edge of velocity space corrections to momentum and energy 
   lbo->bcorr_calc = gkyl_mom_calc_bcorr_lbo_vlasov_new(&s->grid, 
