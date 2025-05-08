@@ -1423,7 +1423,7 @@ void gkyl_mom_vm_sr_free(const struct gkyl_ref_count *ref);
  */
 struct gkyl_mom_type* gkyl_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range,
-  const struct gkyl_range* vel_range, const char *mom);
+  const struct gkyl_range* vel_range, enum gkyl_distribution_moments mom_type);
 
 /**
  * Create new special relativistic Vlasov integrated moment type
@@ -1431,7 +1431,7 @@ struct gkyl_mom_type* gkyl_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis* cba
  */
 struct gkyl_mom_type* gkyl_int_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range,
-  const struct gkyl_range* vel_range, const char *mom);
+  const struct gkyl_range* vel_range, enum gkyl_distribution_moments mom_type);
 
 /**
  * CUDA device function to set auxiliary fields needed in computing moments.

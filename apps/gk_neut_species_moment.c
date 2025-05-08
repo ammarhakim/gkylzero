@@ -4,19 +4,17 @@
 // initialize neutral species moment object
 void
 gk_neut_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
-  struct gk_species_moment *sm, const char *nm, bool is_integrated)
+  struct gk_species_moment *sm, enum gkyl_distribution_moments mom_type, bool is_integrated)
 {
-  assert(is_neut_moment_name_valid(nm));
-
   sm->is_integrated = is_integrated;
-  sm->is_maxwellian_moms = strcmp("LTEMoments", nm) == 0;
+  sm->is_maxwellian_moms = mom_type == GKYL_F_MOMENT_LTE;
 
   if (sm->is_integrated) {
     // Create moment operator.
     struct gkyl_mom_canonical_pb_auxfields can_pb_inp = {.hamil = s->hamil};
     sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->basis, 
       &s->basis, &app->local, &s->local_vel, &s->local, s->model_id, &can_pb_inp, 
-      nm, sm->is_integrated, app->use_gpu);
+      mom_type, sm->is_integrated, app->use_gpu);
 
     sm->num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc);
 
@@ -53,7 +51,7 @@ gk_neut_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spe
       struct gkyl_mom_canonical_pb_auxfields can_pb_inp = {.hamil = s->hamil};
       sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->basis, 
         &s->basis, &app->local, &s->local_vel, &s->local, s->model_id, &can_pb_inp, 
-        nm, sm->is_integrated, app->use_gpu);
+        mom_type, sm->is_integrated, app->use_gpu);
 
       sm->num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc);
     }

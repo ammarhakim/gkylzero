@@ -870,14 +870,14 @@ void gkyl_mom_can_pb_free(const struct gkyl_ref_count *ref);
  * see new() method above for documentation.
  */
 struct gkyl_mom_type* gkyl_mom_canonical_pb_cu_dev_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const struct gkyl_range* phase_range, const char *mom);
+  const struct gkyl_basis* pbasis, const struct gkyl_range* phase_range, enum gkyl_distribution_moments mom_type);
 
 /**
  * Create new canonical-pb integrated moment type
  * object on NV-GPU: see new() method above for documentation.
  */
 struct gkyl_mom_type* gkyl_int_mom_canonical_pb_cu_dev_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const struct gkyl_range* phase_range, const char *mom);
+  const struct gkyl_basis* pbasis, const struct gkyl_range* phase_range, enum gkyl_distribution_moments mom_type);
 
 /**
  * CUDA device function to set auxiliary fields needed in computing moments.

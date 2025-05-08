@@ -49,7 +49,7 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct
   }
 
   // Allocate data and updaters for integrated moments.
-  vm_species_moment_init(app, s, &s->src.integ_moms, "FiveMoments", true);
+  vm_species_moment_init(app, s, &s->src.integ_moms, GKYL_F_MOMENT_M0M1M2, true);
   if (app->use_gpu) {
     s->src.red_integ_diag = gkyl_cu_malloc(sizeof(double[vdim+2]));
     s->src.red_integ_diag_global = gkyl_cu_malloc(sizeof(double[vdim+2]));

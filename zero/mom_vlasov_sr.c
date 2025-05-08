@@ -34,13 +34,13 @@ gkyl_mom_vlasov_sr_set_auxfields(const struct gkyl_mom_type *momt, struct gkyl_m
 struct gkyl_mom_type*
 gkyl_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
   const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, 
-  const char *mom, bool use_gpu)
+  enum gkyl_distribution_moments mom_type, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_mom_vlasov_sr_cu_dev_new(cbasis, pbasis, conf_range, vel_range, mom);
+    return gkyl_mom_vlasov_sr_cu_dev_new(cbasis, pbasis, conf_range, vel_range, mom_type);
   } 
 #endif  
   struct mom_type_vlasov_sr *mom_vm_sr = gkyl_malloc(sizeof(struct mom_type_vlasov_sr));
@@ -72,42 +72,43 @@ gkyl_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis*
       break;    
   }
 
-  if (strcmp(mom, "M0") == 0) { // density (GammaV*n)
+  if (mom_type == GKYL_F_MOMENT_M0) { // density (GammaV*n)
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     mom_vm_sr->momt.kernel = m0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_vm_sr->momt.num_mom = 1;
   }
-  else if (strcmp(mom, "M1i") == 0) { // mass flux (GammaV*n*V_drift)
+  else if (mom_type == GKYL_F_MOMENT_M1) { // mass flux (GammaV*n*V_drift)
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m1i_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     mom_vm_sr->momt.kernel = m1i_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_vm_sr->momt.num_mom = vdim;
   }
-  else if (strcmp(mom, "M2") == 0) { // total energy = integral(gamma*f) velocity moment
+  else if (mom_type == GKYL_F_MOMENT_M2) { // total energy = integral(gamma*f) velocity moment
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     mom_vm_sr->momt.kernel = m2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_vm_sr->momt.num_mom = 1;
   }
-  else if (strcmp(mom, "M3i") == 0) { // energy flux = integral(p*f) velocity moment
+  else if (mom_type == GKYL_F_MOMENT_M3) { // energy flux = integral(p*f) velocity moment
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m3i_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     mom_vm_sr->momt.kernel = m3i_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_vm_sr->momt.num_mom = vdim;
   }
-  else if (strcmp(mom, "Ni") == 0) { // 4-momentum (M0, M1i)
+  else if (mom_type == GKYL_F_MOMENT_NI) { // 4-momentum (M0, M1i)
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != Ni_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     mom_vm_sr->momt.kernel = Ni_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_vm_sr->momt.num_mom = 1+vdim;
   }
-  else if (strcmp(mom, "Tij") == 0) { // Stress-energy tensor (M2, M3i (vdim components), Stress tensor (vdim*(vdim+1))/2 components))
+  else if (mom_type == GKYL_F_MOMENT_TIJ) { // Stress-energy tensor (M2, M3i (vdim components),
+                                            // Stress tensor (vdim*(vdim+1))/2 components))
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != Tij_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
@@ -135,13 +136,13 @@ gkyl_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis*
 
 struct gkyl_mom_type*
 gkyl_int_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, const char *mom, bool use_gpu)
+  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, enum gkyl_distribution_moments mom_type, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    return gkyl_int_mom_vlasov_sr_cu_dev_new(cbasis, pbasis, conf_range, vel_range, mom);
+    return gkyl_int_mom_vlasov_sr_cu_dev_new(cbasis, pbasis, conf_range, vel_range, mom_type);
   } 
 #endif  
   struct mom_type_vlasov_sr *mom_vm_sr = gkyl_malloc(sizeof(struct mom_type_vlasov_sr));
@@ -170,7 +171,7 @@ gkyl_int_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_ba
 
   assert(cv_index[cdim].vdim[vdim] != -1);
 
-  if (strcmp(mom, "FiveMoments") == 0) {
+  if (mom_type == GKYL_F_MOMENT_M0ENERGYM3) {
     assert(NULL != int_five_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     mom_vm_sr->momt.kernel = int_five_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_vm_sr->momt.num_mom = 2+vdim;
@@ -189,23 +190,3 @@ gkyl_int_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_ba
     
   return &mom_vm_sr->momt;  
 }
-
-#ifndef GKYL_HAVE_CUDA
-
-struct gkyl_mom_type*
-gkyl_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, const char *mom)
-{
-  assert(false);
-  return 0;
-}
-
-struct gkyl_mom_type *
-gkyl_int_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range)
-{
-  assert(false);
-  return 0;
-}
-
-#endif

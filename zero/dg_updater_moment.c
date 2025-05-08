@@ -32,27 +32,28 @@ gkyl_dg_updater_moment_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
   const struct gkyl_range *phase_range,
   enum gkyl_model_id model_id, void *aux_inp, 
-  const char *mom, bool is_integrated, bool use_gpu)
+  enum gkyl_distribution_moments mom_type, bool is_integrated, bool use_gpu)
 {
   gkyl_dg_updater_moment *up = gkyl_malloc(sizeof(gkyl_dg_updater_moment));
   up->model_id = model_id;
   up->use_gpu = use_gpu;
   if (up->model_id == GKYL_MODEL_SR) {
     if (is_integrated)
-      up->type = gkyl_int_mom_vlasov_sr_new(cbasis, pbasis, conf_range, vel_range, mom, use_gpu);
+      up->type = gkyl_int_mom_vlasov_sr_new(cbasis, pbasis, conf_range, vel_range, mom_type, use_gpu);
     else
-      up->type = gkyl_mom_vlasov_sr_new(cbasis, pbasis, conf_range, vel_range, mom, use_gpu);
+      up->type = gkyl_mom_vlasov_sr_new(cbasis, pbasis, conf_range, vel_range, mom_type, use_gpu);
 
     struct gkyl_mom_vlasov_sr_auxfields *sr_inp = aux_inp;
     gkyl_mom_vlasov_sr_set_auxfields(up->type, *sr_inp);
 
   } 
   else if ((up->model_id == GKYL_MODEL_CANONICAL_PB || up->model_id == GKYL_MODEL_CANONICAL_PB_GR) 
-    && (strcmp(mom, "M1i_from_H") == 0 || strcmp(mom, "MEnergy") == 0)) {
+    && (mom_type == GKYL_F_MOMENT_M1_FROM_H || mom_type == GKYL_F_MOMENT_ENERGY
+    || (is_integrated && mom_type == GKYL_F_MOMENT_M0M1M2))) {
     if (is_integrated)
-      up->type = gkyl_int_mom_canonical_pb_new(cbasis, pbasis, phase_range, mom, use_gpu);
+      up->type = gkyl_int_mom_canonical_pb_new(cbasis, pbasis, phase_range, mom_type, use_gpu);
     else
-      up->type = gkyl_mom_canonical_pb_new(cbasis, pbasis, phase_range, mom, use_gpu);
+      up->type = gkyl_mom_canonical_pb_new(cbasis, pbasis, phase_range, mom_type, use_gpu);
     
     struct gkyl_mom_canonical_pb_auxfields *can_pb_inp = aux_inp;
     gkyl_mom_canonical_pb_set_auxfields(up->type, *can_pb_inp);
@@ -60,9 +61,9 @@ gkyl_dg_updater_moment_new(const struct gkyl_rect_grid *grid,
   } 
   else {
     if (is_integrated)
-      up->type = gkyl_int_mom_vlasov_new(cbasis, pbasis, mom, use_gpu);
+      up->type = gkyl_int_mom_vlasov_new(cbasis, pbasis, mom_type, use_gpu);
     else
-      up->type = gkyl_mom_vlasov_new(cbasis, pbasis, mom, use_gpu);
+      up->type = gkyl_mom_vlasov_new(cbasis, pbasis, mom_type, use_gpu);
   }
 
   up->up_moment = gkyl_mom_calc_new(grid, up->type, use_gpu);

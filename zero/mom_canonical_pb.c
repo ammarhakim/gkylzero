@@ -33,13 +33,13 @@ gkyl_mom_canonical_pb_set_auxfields(const struct gkyl_mom_type *momt, struct gky
 
 struct gkyl_mom_type*
 gkyl_mom_canonical_pb_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* phase_range, const char *mom, bool use_gpu)
+  const struct gkyl_range* phase_range, enum gkyl_distribution_moments mom_type, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    return gkyl_mom_canonical_pb_cu_dev_new(cbasis, pbasis, phase_range, mom);
+    return gkyl_mom_canonical_pb_cu_dev_new(cbasis, pbasis, phase_range, mom_type);
   } 
 #endif  
   struct mom_type_canonical_pb *mom_can_pb = gkyl_malloc(sizeof(struct mom_type_canonical_pb));
@@ -81,14 +81,14 @@ gkyl_mom_canonical_pb_new(const struct gkyl_basis* cbasis, const struct gkyl_bas
       break;    
   }
 
-  if (strcmp(mom, "MEnergy") == 0) { // Energy int( f*H ) 
+  if (mom_type == GKYL_F_MOMENT_ENERGY) { // Energy int( f*H ) 
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != menergy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     mom_can_pb->momt.kernel = menergy_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_can_pb->momt.num_mom = 1;
   }
-  else if (strcmp(mom, "M1i_from_H") == 0) {
+  else if (mom_type == GKYL_F_MOMENT_M1_FROM_H) {
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m1i_from_h_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
@@ -115,14 +115,14 @@ gkyl_mom_canonical_pb_new(const struct gkyl_basis* cbasis, const struct gkyl_bas
 
 struct gkyl_mom_type*
 gkyl_int_mom_canonical_pb_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* phase_range, const char *mom, bool use_gpu)
+  const struct gkyl_range* phase_range, enum gkyl_distribution_moments mom_type, bool use_gpu)
 {
   // Integrates all moments [ mM0, M1i_from_H, MEnergy ]
   assert(cbasis->poly_order == pbasis->poly_order);
 
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    return gkyl_int_mom_canonical_pb_cu_dev_new(cbasis, pbasis, phase_range, mom);
+    return gkyl_int_mom_canonical_pb_cu_dev_new(cbasis, pbasis, phase_range, mom_type);
   } 
 #endif  
   struct mom_type_canonical_pb *mom_can_pb = gkyl_malloc(sizeof(struct mom_type_canonical_pb));
@@ -163,7 +163,7 @@ gkyl_int_mom_canonical_pb_new(const struct gkyl_basis* cbasis, const struct gkyl
 
   assert(cv_index[cdim].vdim[vdim] != -1);
 
-  if (strcmp(mom, "FiveMoments") == 0) {
+  if (mom_type == GKYL_F_MOMENT_M0M1M2) {
     assert(NULL != int_five_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     mom_can_pb->momt.kernel = int_five_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_can_pb->momt.num_mom = vdim+2;

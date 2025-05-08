@@ -17,11 +17,11 @@ struct gkyl_mom_canonical_pb_auxfields {
  * @param cbasis Configuration-space basis-functions
  * @param pbasis Phase-space basis-functions
  * @param phase_range Phase space range
- * @param mom Name of moment to compute.
+ * @param mom_type Name of moment to compute.
  * @param use_gpu bool to determine if on GPU
  */
 struct gkyl_mom_type* gkyl_mom_canonical_pb_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const struct gkyl_range* phase_range, const char *mom,
+  const struct gkyl_basis* pbasis, const struct gkyl_range* phase_range, enum gkyl_distribution_moments mom_type,
   bool use_gpu);
 
 /**
@@ -31,11 +31,11 @@ struct gkyl_mom_type* gkyl_mom_canonical_pb_new(const struct gkyl_basis* cbasis,
  * @param cbasis Configuration-space basis-functions
  * @param pbasis Phase-space basis-functions
  * @param vel_range Velocity space range
- * @param mom Name of moment to compute.
+ * @param mom_type Name of moment to compute.
  * @param use_gpu bool to determine if on GPU
  */
 struct gkyl_mom_type* gkyl_int_mom_canonical_pb_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const struct gkyl_range* phase_range, const char *mom, 
+  const struct gkyl_basis* pbasis, const struct gkyl_range* phase_range, enum gkyl_distribution_moments mom_type, 
   bool use_gpu);
 
 /**

@@ -4,19 +4,17 @@
 // initialize species moment object
 void
 gk_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
-  struct gk_species_moment *sm, const char *nm, bool is_integrated)
+  struct gk_species_moment *sm, enum gkyl_distribution_moments mom_type, bool is_integrated)
 {
-  assert(is_moment_name_valid(nm));
-
   sm->is_integrated = is_integrated;
-  sm->is_maxwellian_moms = strcmp("MaxwellianMoments", nm) == 0;
-  sm->is_bimaxwellian_moms = strcmp("BiMaxwellianMoments", nm) == 0;
+  sm->is_maxwellian_moms = mom_type == GKYL_F_MOMENT_MAXWELLIAN;
+  sm->is_bimaxwellian_moms = mom_type == GKYL_F_MOMENT_BIMAXWELLIAN;
 
   if (sm->is_integrated) {
     // Create moment operator.
     sm->mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&s->grid, &app->basis, 
       &s->basis, &app->local_ext, s->info.mass, s->info.charge, s->vel_map, app->gk_geom,
-      app->field->phi_smooth, nm, sm->is_integrated, app->use_gpu);    
+      app->field->phi_smooth, mom_type, sm->is_integrated, app->use_gpu);    
 
     sm->num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(sm->mcalc);
 
@@ -53,7 +51,7 @@ gk_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     else {
       sm->mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&s->grid, &app->basis, 
         &s->basis, &app->local_ext, s->info.mass, s->info.charge, s->vel_map, app->gk_geom,
-        app->field->phi_smooth, nm, sm->is_integrated, app->use_gpu);    
+        app->field->phi_smooth, mom_type, sm->is_integrated, app->use_gpu);    
 
       sm->num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(sm->mcalc);
     }

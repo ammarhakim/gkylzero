@@ -135,7 +135,7 @@ test_1x2v(int poly_order, bool use_gpu)
 
   // Compute M0 of the original f.
   struct gkyl_dg_updater_moment *m0_mom_up = gkyl_dg_updater_moment_new(
-    &grid, &confBasis, &basis, &confLocal, 0, &local, 0, 0, "M0", false, use_gpu);
+    &grid, &confBasis, &basis, &confLocal, 0, &local, 0, 0, GKYL_F_MOMENT_M0, false, use_gpu);
   struct gkyl_array *m0_pre = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
   gkyl_dg_updater_moment_advance(m0_mom_up, &local, &confLocal, distf, m0_pre);
 
@@ -146,7 +146,7 @@ test_1x2v(int poly_order, bool use_gpu)
 
   // Compute the integrated moments of the original f.
   struct gkyl_dg_updater_moment *int_mom_up = gkyl_dg_updater_moment_new(
-    &grid, &confBasis, &basis, &confLocal, 0, &local, 0, 0, "FiveMoments", true, use_gpu);
+    &grid, &confBasis, &basis, &confLocal, 0, &local, 0, 0, GKYL_F_MOMENT_M0M1M2, true, use_gpu);
 
   int num_mom = gkyl_dg_updater_moment_num_mom(int_mom_up);
   struct gkyl_array *intmom_grid = mkarr(use_gpu, num_mom, confLocal_ext.volume);

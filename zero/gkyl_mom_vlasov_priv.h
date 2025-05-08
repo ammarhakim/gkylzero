@@ -274,7 +274,7 @@ kernel(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
  */
 struct gkyl_mom_type* 
 gkyl_mom_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const char *mom);
+  const struct gkyl_basis* pbasis, enum gkyl_distribution_moments mom_type);
 
 /**
  * Create new integrated Vlasov moment type object on NV-GPU:
@@ -282,5 +282,5 @@ gkyl_mom_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
  */
 struct gkyl_mom_type* 
 gkyl_int_mom_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const char *mom);
+  const struct gkyl_basis* pbasis, enum gkyl_distribution_moments mom_type);
 #endif

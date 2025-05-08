@@ -234,7 +234,7 @@ test_2x_option(bool use_gpu)
 
   // Initialize integrated moment calculator
   struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &confBasis, &basis,
-    &confLocal, mi, qi, gvm, gk_geom, NULL, "FourMoments", true, use_gpu);    
+    &confLocal, mi, qi, gvm, gk_geom, NULL, GKYL_F_MOMENT_M0M1M2PARM2PERP, true, use_gpu);    
 
   int num_mom = 4;
 

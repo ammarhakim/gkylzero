@@ -289,11 +289,11 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     // Species diagnostics
     species_inp.num_diag_moments = sp->num_diag_moments;
     for (int n=0; n<species_inp.num_diag_moments; ++n) {
-      strcpy(species_inp.diag_moments[n], sp->diag_moments[n]);
+      species_inp.diag_moments[n] = sp->diag_moments[n];
     }
     species_inp.num_integrated_diag_moments = sp->num_integrated_diag_moments;
     for (int n=0; n<species_inp.num_integrated_diag_moments; ++n) {
-      strcpy(species_inp.integrated_diag_moments[n], sp->integrated_diag_moments[n]);
+      species_inp.integrated_diag_moments[n] = sp->integrated_diag_moments[n];
     }
     species_inp.time_rate_diagnostics = sp->time_rate_diagnostics;
     species_inp.boundary_flux_diagnostics = sp->boundary_flux_diagnostics;
@@ -406,7 +406,7 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
     // Neutral species diagnostics
     neut_species_inp.num_diag_moments = nsp->num_diag_moments;
     for (int n=0; n<neut_species_inp.num_diag_moments; ++n) {
-      strcpy(neut_species_inp.diag_moments[n], nsp->diag_moments[n]);
+      neut_species_inp.diag_moments[n] = nsp->diag_moments[n];
     }
 
     // choose proper block-specific species input

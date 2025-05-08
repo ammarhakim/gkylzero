@@ -27,7 +27,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     if (src->num_diag_moments == 0) {
       src->num_diag_moments = s->info.num_diag_moments;
       for (int m=0; m<src->num_diag_moments; ++m) {
-        strcpy(s->info.source.diagnostics.diag_moments[m], s->info.diag_moments[m]);
+        s->info.source.diagnostics.diag_moments[m] = s->info.diag_moments[m];
       }
     }
 
@@ -40,7 +40,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     int src_num_diag_int_moms = s->info.source.diagnostics.num_integrated_diag_moments;
     assert(src_num_diag_int_moms < 2); // 1 int moment allowed now.
     gk_species_moment_init(app, s, &s->src.integ_moms,
-      src_num_diag_int_moms == 0? "FourMoments" : s->info.source.diagnostics.integrated_diag_moments[0], true);
+      src_num_diag_int_moms == 0? GKYL_F_MOMENT_M0M1M2PARM2PERP : s->info.source.diagnostics.integrated_diag_moments[0], true);
     int num_mom = s->src.integ_moms.num_mom;
     if (app->use_gpu) {
       s->src.red_integ_diag = gkyl_cu_malloc(sizeof(double[num_mom]));
@@ -134,10 +134,10 @@ gk_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, d
 
       const char *fmt = "%s-%s_source_%s_%d.gkyl";
       int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name,
-        gks->info.source.diagnostics.diag_moments[m], frame);
+        gkyl_distribution_moments_strs[gks->info.source.diagnostics.diag_moments[m]], frame);
       char fileNm[sz+1]; // Ensures no buffer overflow.
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name,
-        gks->info.source.diagnostics.diag_moments[m], frame);
+        gkyl_distribution_moments_strs[gks->info.source.diagnostics.diag_moments[m]], frame);
 
       // Rescale moment by inverse of Jacobian. 
       // For Maxwellian and bi-Maxwellian moments, we only need to re-scale

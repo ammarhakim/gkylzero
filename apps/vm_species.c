@@ -260,11 +260,11 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     s->eqn_vlasov = gkyl_dg_updater_vlasov_poisson_acquire_eqn(s->slvr);
 
   // allocate data for momentum (for use in current accumulation)
-  vm_species_moment_init(app, s, &s->m1i, "M1i", false);
+  vm_species_moment_init(app, s, &s->m1i, GKYL_F_MOMENT_M1, false);
   // allocate date for density (for use in charge density accumulation and weak division for V_drift)
-  vm_species_moment_init(app, s, &s->m0, "M0", false);
+  vm_species_moment_init(app, s, &s->m0, GKYL_F_MOMENT_M0, false);
   // allocate data for integrated moments
-  vm_species_moment_init(app, s, &s->integ_moms, "FiveMoments", true);
+  vm_species_moment_init(app, s, &s->integ_moms, GKYL_F_MOMENT_M0M1M2, true);
 
   // allocate data for diagnostic moments
   int ndm = s->info.num_diag_moments;

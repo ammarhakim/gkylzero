@@ -106,52 +106,6 @@ struct gyrokinetic_output_meta {
   char basis_type_nm[64]; // used during read
 };
 
-// list of valid moment names for gyrokinetics
-static const char *const valid_moment_names[] = {
-  "M0",
-  "M1",
-  "M2",
-  "M2par",
-  "M2perp",
-  "M3par",
-  "M3perp",
-  "ThreeMoments",
-  "FourMoments",
-  "MaxwellianMoments", // internal flag for whether we are computing (n, u_par, T/m)
-  "BiMaxwellianMoments", // internal flag for whether we are computing (n, u_par, T_par/m, T_perp/m)
-  "HamiltonianMoments", // Compute the H moment of f.
-};
-
-// check if name of moment is valid or not for gyrokinetics
-static bool
-is_moment_name_valid(const char *nm)
-{
-  int n = sizeof(valid_moment_names)/sizeof(valid_moment_names[0]);
-  for (int i=0; i<n; ++i)
-    if (strcmp(valid_moment_names[i], nm) == 0)
-      return 1;
-  return 0;
-}
-
-// list of valid moment names for neutrals
-static const char *const valid_neut_moment_names[] = {
-  "M0",
-  "M1i_from_H",
-  "MEnergy",
-  "LTEMoments", // M0, contra_to_cov(M1i_from_H), T/m) of the LTE (local thermodynamic equilibrium) distribution.
-};
-
-// check if name of moment is valid or not for neutrals
-static bool
-is_neut_moment_name_valid(const char *nm)
-{
-  int n = sizeof(valid_neut_moment_names)/sizeof(valid_neut_moment_names[0]);
-  for (int i=0; i<n; ++i)
-    if (strcmp(valid_neut_moment_names[i], nm) == 0)
-      return 1;
-  return 0;
-}
-
 // struct for holding moment correction inputs
 struct correct_all_moms_inp {
   bool correct_all_moms; // boolean if we are correcting all the moments or only density
@@ -360,8 +314,7 @@ enum gkyl_species_bflux_type {
   GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS_DIAGS, // Also compute/write diagnostics.
 };
 
-#define BFLUX_MAX_MOM_NAMES 24
-#define BFLUX_MAX_MOM_NAME_LENGTHS 24
+#define BFLUX_MAX_MOM_NAMES 12
 
 struct gk_boundary_fluxes {
   bool allocated_solver, allocated_moms, allocated_diags;
@@ -377,7 +330,7 @@ struct gk_boundary_fluxes {
   struct gkyl_array **flux; // Array storing boundary fluxes.
   // Objects used for calculating moments.
   int num_calc_moms; // Number of moments of boundary fluxes to compute.
-  char calc_mom_names[BFLUX_MAX_MOM_NAMES][BFLUX_MAX_MOM_NAME_LENGTHS]; // Names of moments calculated.
+  enum gkyl_distribution_moments calc_mom_names[BFLUX_MAX_MOM_NAMES]; // Names of moments calculated.
   bool *is_hamiltonian_mom; // True if need Hamiltonian moments.
   bool a_hamiltonian_mom; // There is one Hamiltonian moment.
   struct gkyl_bc_basic *gfss_bc_op[2*GKYL_MAX_CDIM]; // Applies BCs to bmag and phi.
@@ -408,7 +361,7 @@ struct gk_boundary_fluxes {
   void (*bflux_get_flux_func)(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge,
     struct gkyl_array *out, const struct gkyl_range *out_rng);
   void (*bflux_get_flux_mom_func)(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_edge_loc edge,
-    const char *mom_name, struct gkyl_array *out, const struct gkyl_range *out_rng);
+    enum gkyl_distribution_moments mom_type, struct gkyl_array *out, const struct gkyl_range *out_rng);
   void (*bflux_clear_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fin, double val);
   void (*bflux_scale_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fin, double val);
   void (*bflux_step_f_func)(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fout,
@@ -1181,7 +1134,7 @@ int gk_find_neut_species_idx(const gkyl_gyrokinetic_app *app, const char *nm);
  * @param is_integrated Whether to compute the volume integrated moment.
  */
 void gk_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
-  struct gk_species_moment *sm, const char *nm, bool is_integrated);
+  struct gk_species_moment *sm, enum gkyl_distribution_moments mom_type, bool is_integrated);
 
 /**
  * Calculate moment, given distribution function @a fin.
@@ -1662,13 +1615,13 @@ gk_species_bflux_get_flux(struct gk_boundary_fluxes *bflux, int dir,
  * @param bflux Species boundary flux object.
  * @param dir Direction of the boundary.
  * @param edge Edge of the boundary.
- * @param mom_name Name of the moment desired.
+ * @param mom_type Name of the moment desired.
  * @param out Array to copy the boundary flux moment into.
  * @param out_rng Range to copy the boundary flux moment into.
  */
 void
 gk_species_bflux_get_flux_mom(struct gk_boundary_fluxes *bflux, int dir,
-  enum gkyl_edge_loc edge, const char *mom_name, struct gkyl_array *out, const struct gkyl_range *out_rng);
+  enum gkyl_edge_loc edge, enum gkyl_distribution_moments mom_type, struct gkyl_array *out, const struct gkyl_range *out_rng);
 
 /**
  * Compute moments of the boundary fluxes.
@@ -1865,7 +1818,7 @@ gk_neut_species_bflux_get_flux(struct gk_boundary_fluxes *bflux, int dir,
  */
 void
 gk_neut_species_bflux_get_flux_mom(struct gk_boundary_fluxes *bflux, int dir,
-  enum gkyl_edge_loc edge, const char *mom_name, struct gkyl_array *out, const struct gkyl_range *out_rng);
+  enum gkyl_edge_loc edge, enum gkyl_distribution_moments mom_type, struct gkyl_array *out, const struct gkyl_range *out_rng);
 
 /**
  * Compute moments of the boundary fluxes.
@@ -2328,7 +2281,7 @@ void gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species
  * @param is_integrated Whether to compute the volume integrated moment.
  */
 void gk_neut_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
-  struct gk_species_moment *sm, const char *nm, bool is_integrated);
+  struct gk_species_moment *sm, enum gkyl_distribution_moments mom_type, bool is_integrated);
 
 /**
  * Calculate neutral species moment, given input neutral distribution function fin.
