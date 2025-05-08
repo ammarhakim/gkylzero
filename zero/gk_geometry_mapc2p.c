@@ -164,21 +164,6 @@ void gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *nrang
   gkyl_nodal_ops_n2m(n2m, &up->basis, &up->grid, nrange, &up->local, 3, mc2p_nodal, mc2p, false);
   gkyl_nodal_ops_n2m(n2m, &up->basis, &up->grid, nrange, &up->local, 3, mc2nu_nodal, mc2nu_pos, false);
   gkyl_nodal_ops_release(n2m);
-
-  //// now calculate the metrics
-  //struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, &up->global, &up->global_ext, &up->local, &up->local_ext, false);
-  //gkyl_calc_metric_advance(mcalc, nrange, mc2p_nodal_fd, dzc, up->g_ij, up->dxdz, up->dzdx, up->dualmag, up->normals, &up->local);
-  //gkyl_array_copy(up->g_ij_neut, up->g_ij);
-  //
-  //// calculate the derived geometric quantities
-  //struct gkyl_calc_derived_geo *jcalculator = gkyl_calc_derived_geo_new(&up->basis, &up->grid, 0, false);
-  //gkyl_calc_derived_geo_advance(jcalculator, &up->local, up->g_ij, up->bmag, 
-  //  up->jacobgeo, up->jacobgeo_inv, up->gij, up->b_i, up->cmag, up->jacobtot, up->jacobtot_inv, 
-  //  up->bmag_inv, up->bmag_inv_sq, up->gxxj, up->gxyj, up->gyyj, up->gxzj, up->eps2);
-  //gkyl_array_copy(up->gij_neut, up->gij);
-  //gkyl_calc_derived_geo_release(jcalculator);
-  //gkyl_calc_metric_advance_bcart(mcalc, nrange, up->b_i, up->dzdx, up->bcart, &up->local);
-  //gkyl_calc_metric_release(mcalc);
 }
 
 static
