@@ -1,4 +1,4 @@
-// 2D Wald-like magnetosphere problem for a rotating black hole, for the general relativistic Maxwell equations.
+// 2D Wald-type magnetosphere problem for a rotating neutron star, for the general relativistic Maxwell equations.
 // Input parameters describe a uniform magnetic field surrounding a rotating neutron star.
 // Based on the analytical solution for force-free electrodynamics presented in the article:
 // R. M. Wald (1974), "Black hole in a uniform magnetic field",
@@ -65,6 +65,9 @@ struct wald_magnetosphere_spinning_ctx
   double Ly; // Domain size (y-direction).
   double cfl_frac; // CFL coefficient.
 
+  enum gkyl_spacetime_gauge spacetime_gauge; // Spacetime gauge choice.
+  int reinit_freq; // Spacetime reinitialization frequency.
+
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
   int field_energy_calcs; // Number of times to calculate field energy.
@@ -107,11 +110,14 @@ create_ctx(void)
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_new(false, mass, spin, mass_quadrupole, spin_octupole, mass_hexadecapole, pos_x, pos_y, pos_z);
 
   // Simulation parameters.
-  int Nx = 1024; // Cell count (x-direction).
-  int Ny = 1024; // Cell count (y-direction).
+  int Nx = 256; // Cell count (x-direction).
+  int Ny = 256; // Cell count (y-direction).
   double Lx = 10.0; // Domain size (x-direction).
   double Ly = 10.0; // Domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.
+
+  enum gkyl_spacetime_gauge spacetime_gauge = GKYL_STATIC_GAUGE; // Spacetime gauge choice.
+  int reinit_freq = 10; // Spacetime reinitialization frequency.
 
   double t_end = 50.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
@@ -144,6 +150,8 @@ create_ctx(void)
     .Lx = Lx,
     .Ly = Ly,
     .cfl_frac = cfl_frac,
+    .spacetime_gauge = spacetime_gauge,
+    .reinit_freq = reinit_freq,
     .t_end = t_end,
     .num_frames = num_frames,
     .field_energy_calcs = field_energy_calcs,
@@ -286,8 +294,8 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
-  // Field
-  struct gkyl_wv_eqn *gr_maxwell = gkyl_wv_gr_maxwell_new(ctx.light_speed, ctx.e_fact, ctx.b_fact, GKYL_STATIC_GAUGE, 10, ctx.spacetime, app_args.use_gpu);
+  // Field.
+  struct gkyl_wv_eqn *gr_maxwell = gkyl_wv_gr_maxwell_new(ctx.light_speed, ctx.e_fact, ctx.b_fact, ctx.spacetime_gauge, ctx.reinit_freq, ctx.spacetime, app_args.use_gpu);
 
   struct gkyl_moment_species field = {
     .name = "field",
@@ -369,7 +377,7 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "gr_wald_magnetosphere_neutronstar",
+    .name = "gr_wald_magnetosphere_spinning_neutronstar",
 
     .ndim = 2,
     .lower = { -0.5 * ctx.Lx, -0.5 * ctx.Ly },

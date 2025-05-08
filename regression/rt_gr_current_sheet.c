@@ -51,6 +51,9 @@ struct current_sheet_ctx
   double Lx; // Domain size (x-direction).
   double cfl_frac; // CFL coefficient.
 
+  enum gkyl_spacetime_gauge spacetime_gauge; // Spacetime gauge choice.
+  int reinit_freq; // Spacetime reinitialization frequency.
+
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
   int field_energy_calcs; // Number of times to calculate field energy.
@@ -87,6 +90,9 @@ create_ctx(void)
   double Lx = 3.0; // Domain size (x-direction).
   double cfl_frac = 1.0; // CFL coefficient.
 
+  enum gkyl_spacetime_gauge spacetime_gauge = GKYL_STATIC_GAUGE; // Spacetime gauge choice.
+  int reinit_freq = 10; // Spacetime reinitialization frequency.
+
   double t_end = 1.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
@@ -110,6 +116,8 @@ create_ctx(void)
     .Nx = Nx,
     .Lx = Lx,
     .cfl_frac = cfl_frac,
+    .spacetime_gauge = spacetime_gauge,
+    .reinit_freq = reinit_freq,
     .t_end = t_end,
     .num_frames = num_frames,
     .field_energy_calcs = field_energy_calcs,
@@ -181,14 +189,23 @@ evalGRMaxwellInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRIC
 
   // Set excision boundary conditions.
   if (in_excision_region) {
-    for (int i = 0; i < 21; i++) {
-      fout[i] = 0.0;
-    }
-
     fout[21] = -1.0;
   }
   else {
     fout[21] = 1.0;
+  }
+
+  // Set evolution parameter.
+  fout[22] = 0.0;
+
+  // Set spatial coordinates.
+  fout[23] = x; fout[24] = 0.0; fout[25] = 0.0;
+
+  if (in_excision_region) {
+    for (int i = 0; i < 22; i++) {
+      fout[i] = 0.0;
+    }
+    fout[21] = -1.0;
   }
 
   // Free all tensorial quantities.
@@ -251,7 +268,7 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
   // Field.
-  struct gkyl_wv_eqn *gr_maxwell = gkyl_wv_gr_maxwell_new(ctx.light_speed, ctx.e_fact, ctx.b_fact, ctx.spacetime, app_args.use_gpu);
+  struct gkyl_wv_eqn *gr_maxwell = gkyl_wv_gr_maxwell_new(ctx.light_speed, ctx.e_fact, ctx.b_fact, ctx.spacetime_gauge, ctx.reinit_freq, ctx.spacetime, app_args.use_gpu);
 
   struct gkyl_moment_species field = {
     .name = "field",
