@@ -171,13 +171,15 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
   lbo->m2self = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
   // Host-side copy for I/O.
-  lbo->nu_sum_host = lbo->nu_sum;
-  lbo->prim_moms_host = lbo->prim_moms;
-  lbo->nu_prim_moms_host = lbo->nu_prim_moms;
-  if (app->use_gpu) {
-    lbo->nu_sum_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-    lbo->prim_moms_host = mkarr(false, 2*app->basis.num_basis, app->local_ext.volume);
-    lbo->nu_prim_moms_host = mkarr(false, 2*app->basis.num_basis, app->local_ext.volume);    
+  if (lbo->write_diagnostics) {
+    lbo->nu_sum_host = lbo->nu_sum;
+    lbo->prim_moms_host = lbo->prim_moms;
+    lbo->nu_prim_moms_host = lbo->nu_prim_moms;
+    if (app->use_gpu) {
+      lbo->nu_sum_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+      lbo->prim_moms_host = mkarr(false, 2*app->basis.num_basis, app->local_ext.volume);
+      lbo->nu_prim_moms_host = mkarr(false, 2*app->basis.num_basis, app->local_ext.volume);    
+    }
   }
 
   lbo->dg_div_mem = 0; // Memory for weak division.
@@ -190,11 +192,11 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
   lbo->bcorr_calc = gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(&s->grid, 
     &app->basis, &s->basis, s->info.mass, s->vel_map, app->use_gpu);
   
-  // primitive moment calculator
+  // Primitive moment calculator.
   lbo->coll_pcalc = gkyl_prim_lbo_gyrokinetic_calc_new(&s->grid, 
     &app->basis, &s->basis, &app->local, app->use_gpu);
 
-  // LBO updater
+  // LBO updater.
   struct gkyl_dg_lbo_gyrokinetic_drag_auxfields drag_inp = { .nuSum = lbo->nu_sum, 
     .nuPrimMomsSum = lbo->nu_prim_moms, .m2self = lbo->m2self };
   struct gkyl_dg_lbo_gyrokinetic_diff_auxfields diff_inp = { .nuSum = lbo->nu_sum, 
@@ -437,10 +439,12 @@ gk_species_lbo_release(const struct gkyl_gyrokinetic_app *app, const struct gk_l
   gkyl_array_release(lbo->m0);
   gkyl_array_release(lbo->m2self);
 
-  if (app->use_gpu) {
-    gkyl_array_release(lbo->nu_sum_host);
-    gkyl_array_release(lbo->prim_moms_host);
-    gkyl_array_release(lbo->nu_prim_moms_host);    
+  if (lbo->write_diagnostics) {
+    if (app->use_gpu) {
+      gkyl_array_release(lbo->nu_sum_host);
+      gkyl_array_release(lbo->prim_moms_host);
+      gkyl_array_release(lbo->nu_prim_moms_host);    
+    }
   }
 
   gk_species_moment_release(app, &lbo->moms);
