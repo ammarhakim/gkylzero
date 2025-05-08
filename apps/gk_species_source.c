@@ -86,17 +86,33 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
         }
 
         adapt_src->num_boundaries = s->info.source.adapt[k].num_boundaries;
-        adapt_src->range_bflux = gkyl_malloc(sizeof(struct gkyl_range) * adapt_src->num_boundaries);
-        adapt_src->range_mom = gkyl_malloc(sizeof(struct gkyl_range) * adapt_src->num_boundaries);
-        adapt_src->range_conf = gkyl_malloc(sizeof(struct gkyl_range) * adapt_src->num_boundaries);
         for (int j=0; j < adapt_src->num_boundaries; ++j) {
           int dir = s->info.source.adapt[k].dir[j];
           int edge = s->info.source.adapt[k].edge[j];
+
+          // We check that the boundaries are not set to zero flux (prevents the call of bflux).
+          assert(edge == GKYL_LOWER_EDGE? s->lower_bc[dir].type != GKYL_SPECIES_ZERO_FLUX
+            : s->upper_bc[dir].type != GKYL_SPECIES_ZERO_FLUX);
+
+          // Default scenario: we set the ranges to the full range of the ghost cells.
           adapt_src->range_bflux[j] = edge == GKYL_LOWER_EDGE ? s->lower_ghost[dir] : s->upper_ghost[dir];
           adapt_src->range_mom[j] = edge == GKYL_LOWER_EDGE ? s->lower_ghost[dir] : s->upper_ghost[dir];
           adapt_src->range_conf[j] = edge == GKYL_LOWER_EDGE ? app->lower_ghost[dir] : app->upper_ghost[dir];
           adapt_src->dir[j] = dir;
           adapt_src->edge[j] = edge;
+
+          // Specific scenario if we are in a inner wall limited case. We select only SOL range in parallel direction.
+          if (edge == GKYL_LOWER_EDGE? s->lower_bc[dir].type == GKYL_SPECIES_GK_IWL
+           : s->upper_bc[dir].type == GKYL_SPECIES_GK_IWL) { 
+             double xLCFS = s->lower_bc[dir].aux_parameter;
+             int idxLCFS_m = (xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
+             int len = app->grid.cells[0]-idxLCFS_m+1;
+             gkyl_range_shorten_from_below(&adapt_src->range_conf[j], 
+              edge == GKYL_LOWER_EDGE? &app->lower_ghost[dir] : &app->upper_ghost[dir], 0, len);
+             gkyl_range_shorten_from_below(&adapt_src->range_bflux[j],
+              edge == GKYL_LOWER_EDGE? &s->lower_ghost[dir] : &s->upper_ghost[dir], 0, len);
+             adapt_src->range_mom[j] = edge == GKYL_LOWER_EDGE? s->lower_ghost_par_sol : s->upper_ghost_par_sol;
+          }
         }
       }
     }
@@ -131,7 +147,6 @@ gk_species_source_adapt(gkyl_gyrokinetic_app *app, struct gk_species *s,
     int num_mom = adapt_src->integ_threemoms.num_mom;
     // Accumulate energy and particle losses through the boundaries considered by the current adaptive source.
     for (int j=0; j < adapt_src->num_boundaries; ++j) {
-
       // Compute the moment of the bflux to get the integrated loss.
       gk_species_bflux_get_flux(&s_adapt->bflux, adapt_src->dir[j], adapt_src->edge[j], src->source, &adapt_src->range_bflux[j]);
       gk_species_moment_calc(&adapt_src->integ_threemoms, adapt_src->range_mom[j], adapt_src->range_conf[j], src->source);
@@ -390,16 +405,10 @@ gk_species_source_release(const struct gkyl_gyrokinetic_app *app, const struct g
       if (app->use_gpu){
         gkyl_cu_free(src->adapt[k].red_integ_mom);
         gkyl_cu_free(src->adapt[k].red_integ_mom_global);
-        gkyl_cu_free(src->adapt[k].range_bflux);
-        gkyl_cu_free(src->adapt[k].range_mom);
-        gkyl_cu_free(src->adapt[k].range_conf);
       }
       else {
         gkyl_free(src->adapt[k].red_integ_mom);
         gkyl_free(src->adapt[k].red_integ_mom_global);
-        gkyl_free(src->adapt[k].range_bflux);
-        gkyl_free(src->adapt[k].range_mom);
-        gkyl_free(src->adapt[k].range_conf);
       }
     }
   }
