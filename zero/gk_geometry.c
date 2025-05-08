@@ -8,20 +8,11 @@
 #include <gkyl_basis.h>
 #include <gkyl_deflate_geo.h>
 #include <gkyl_gk_geometry.h>
+#include <gkyl_gk_geometry_priv.h>
 #include <gkyl_alloc_flags_priv.h>
 #include <assert.h>
 #include <float.h>
 
-void
-gk_geometry_surf_alloc(struct gk_geometry* up, int dir)
-{
-  up->geo_surf[dir].bmag = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
-  up->geo_surf[dir].jacobgeo = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
-  up->geo_surf[dir].jacobgeo_sync = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
-  up->geo_surf[dir].b_i = gkyl_array_new(GKYL_DOUBLE, 3*up->surf_basis.num_basis, up->local_ext.volume);
-  up->geo_surf[dir].cmag = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
-  up->geo_surf[dir].jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, 1*up->surf_basis.num_basis, up->local_ext.volume);
-}
 
 struct gk_geometry*
 gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *geometry_inp, bool use_gpu)
@@ -72,7 +63,7 @@ gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *
   up->eps2= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
 
   for (int dir=0; dir<up->grid.ndim; ++dir)
-    gk_geometry_surf_alloc(up, dir);
+    gk_geometry_surf_alloc_expansions(up, dir);
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
@@ -289,7 +280,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   up->eps2= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
 
   for (int dir=0; dir<up->grid.ndim; ++dir)
-    gk_geometry_surf_alloc(up, dir);
+    gk_geometry_surf_alloc_expansions(up, dir);
 
   // Now fill the arrays by deflation
   int rem_dirs[3] = {0};

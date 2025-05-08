@@ -9,6 +9,7 @@
 #include <gkyl_nodal_ops.h>
 #include <gkyl_position_map.h>
 #include <gkyl_gk_geometry.h>
+#include <gkyl_gk_geometry_priv.h>
 #include <gkyl_tok_geo_priv.h>
 
 #include <math.h>
@@ -629,14 +630,6 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
   gkyl_free(arc_memo_right);
 }
 
-double calc_running_coord(double coord_lo, int i, double dx) {
-  double dels[2] = {1.0/sqrt(3), 1.0-1.0/sqrt(3) };
-  double coord = coord_lo;
-  for(int j = 0; j < i; j++)
-    coord+=dels[j%2]*dx;
-  return coord;
-}
-
 void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
     struct gkyl_tok_geo *geo, struct gkyl_tok_geo_grid_inp *inp, 
     struct gkyl_array *mc2p_nodal_quad, struct gkyl_array *mc2p_quad, struct gkyl_array *mc2p_nodal_fd,
@@ -829,14 +822,6 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
   gkyl_free(arc_memo);
   gkyl_free(arc_memo_left);
   gkyl_free(arc_memo_right);
-}
-
-double calc_running_surf_coord(double coord_lo, int i, double dx) {
-  double dels[3] = {(1.0-1.0/sqrt(3))/2.0, 1.0/sqrt(3), (1.0-1.0/sqrt(3))/2.0 };
-  double coord = coord_lo;
-  for(int j = 0; j < i; j++)
-    coord+=dels[j%3]*dx;
-  return coord;
 }
 
 void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_range *nrange, double dzc[3], 
