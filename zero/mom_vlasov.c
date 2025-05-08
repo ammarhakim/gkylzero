@@ -181,6 +181,10 @@ gkyl_int_mom_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
     mom_vm->kernel = int_five_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_vm->momt.num_mom = 2+vdim;
   }
+  else {
+    fprintf(stderr,"Moment option %d not available.\n",mom_type);
+    assert(false);
+  }
 
   mom_vm->momt.flags = 0;
   GKYL_CLEAR_CU_ALLOC(mom_vm->momt.flags);

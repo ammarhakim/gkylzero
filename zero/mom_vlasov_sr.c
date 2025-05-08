@@ -176,6 +176,10 @@ gkyl_int_mom_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_ba
     mom_vm_sr->momt.kernel = int_five_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_vm_sr->momt.num_mom = 2+vdim;
   }
+  else {
+    fprintf(stderr,"Moment option %d not available.\n",mom_type);
+    assert(false);
+  }
 
   mom_vm_sr->conf_range = *conf_range;
   mom_vm_sr->vel_range = *vel_range;

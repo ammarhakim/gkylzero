@@ -41,6 +41,7 @@ gk_num_mom(int vdim, enum gkyl_distribution_moments mom_type)
       break;
 
     default: // can't happen
+      fprintf(stderr,"Moment option %d not available.\n",mom_type);
       assert(false);
       break;
   }

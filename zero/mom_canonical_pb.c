@@ -168,6 +168,10 @@ gkyl_int_mom_canonical_pb_new(const struct gkyl_basis* cbasis, const struct gkyl
     mom_can_pb->momt.kernel = int_five_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_can_pb->momt.num_mom = vdim+2;
   }
+  else {
+    fprintf(stderr,"Moment option %d not available.\n",mom_type);
+    assert(false);
+  }
 
   mom_can_pb->phase_range = *phase_range;
 

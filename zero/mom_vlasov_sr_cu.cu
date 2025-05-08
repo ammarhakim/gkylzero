@@ -13,7 +13,7 @@ extern "C" {
 }
 
 static int
-v_num_mom(int vdim, int mom_type)
+v_num_mom(int vdim, enum gkyl_distribution_moments mom_type)
 {
   int num_mom = 0;
   
@@ -41,6 +41,7 @@ v_num_mom(int vdim, int mom_type)
       break;  
 
     default: // Can't happen.
+      fprintf(stderr,"Moment option %d not available.\n",mom_type);
       assert(false);
       break;
   }

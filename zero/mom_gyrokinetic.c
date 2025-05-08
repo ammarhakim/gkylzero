@@ -286,6 +286,10 @@ gkyl_int_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_
     mom_gk->momt.kernel = int_hamiltonian_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_gk->momt.num_mom = 3;
   }
+  else {
+    fprintf(stderr,"Moment option %d not available.\n",mom_type);
+    assert(false);
+  }
 
   mom_gk->conf_range = *conf_range;
   mom_gk->mass = mass;
