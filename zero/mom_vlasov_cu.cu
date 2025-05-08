@@ -196,7 +196,7 @@ set_int_cu_ptrs(struct mom_type_vlasov* momt, enum gkyl_distribution_moments mom
   switch (mom_type) {
     case GKYL_F_MOMENT_M0M1M2:
       momt->kernel = int_five_moments_kernels[tblidx].kernels[poly_order];
-      momt->num_mom = 2+vdim;
+      momt->momt.num_mom = 2+vdim;
       break;
 
     default:
