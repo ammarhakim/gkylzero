@@ -89,7 +89,7 @@ test_deflate_inflate(bool use_gpu)
   gkyl_array_copy(field_dev, field);
 
   // Create deflated 1d grid, ranges, basis, and field.
-  double deflated_lower[] = { lower[0] }, deflated_upper[] = { upper[0] };
+  double deflated_lower[] = { -M_PI}, deflated_upper[] = { M_PI};
   int deflated_cells[] = { 12};
   struct gkyl_rect_grid deflated_grid;
   gkyl_rect_grid_init(&deflated_grid, 1, deflated_lower, deflated_upper, deflated_cells);
