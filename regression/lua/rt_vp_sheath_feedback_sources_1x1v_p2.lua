@@ -136,7 +136,7 @@ vlasovApp = Vlasov.App.new {
     },
 
     evolve = true, -- Evolve species?
-    diagnostics = { "LTEMoments" }
+    diagnostics = { G0.DistributionMoment.LTEMoments }
   },
 
   -- Ions.
@@ -210,7 +210,7 @@ vlasovApp = Vlasov.App.new {
     },
 
     evolve = true, -- Evolve species?
-    diagnostics = { "LTEMoments" }
+    diagnostics = { G0.DistributionMoment.LTEMoments }
   },
 
   isElectrostatic = true,

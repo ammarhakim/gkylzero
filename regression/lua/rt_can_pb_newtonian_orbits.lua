@@ -149,7 +149,7 @@ vlasovApp = Vlasov.App.new {
     },
 
     evolve = true, -- Evolve species?
-    diagnostics = { "M0", "M1i_from_H" }
+    diagnostics = { G0.DistributionMoment.M0, G0.DistributionMoment.M1i_from_H }
   },
 
   skipField = true,
