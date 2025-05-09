@@ -441,7 +441,7 @@ test_position_polynomial_map_optimize_1x()
   pos_map->bmag_ctx->crange_global = &localRange;
   pos_map->bmag_ctx->cbasis = &basis;
   pos_map->bmag_ctx->cgrid = &grid;
-  gkyl_array_copy(pos_map->bmag_ctx->bmag, bmag_global);
+  pos_map->bmag_ctx->bmag = gkyl_array_acquire(bmag_global);
 
   pos_map->constB_ctx->psi = 0.5;
   pos_map->constB_ctx->psi_min = 0.4;
@@ -511,7 +511,7 @@ test_position_map_numeric_optimize_1x()
   pos_map->bmag_ctx->crange_global = &localRange;
   pos_map->bmag_ctx->cbasis = &basis;
   pos_map->bmag_ctx->cgrid = &grid;
-  gkyl_array_copy(pos_map->bmag_ctx->bmag, bmag_global);
+  pos_map->bmag_ctx->bmag = gkyl_array_acquire(bmag_global);
 
   pos_map->constB_ctx->psi = 0.5;
   pos_map->constB_ctx->psi_min = 0.4;
@@ -580,7 +580,7 @@ test_position_map_numeric_calculate_1x()
   pos_map->bmag_ctx->crange_global = &localRange;
   pos_map->bmag_ctx->cbasis = &basis;
   pos_map->bmag_ctx->cgrid = &grid;
-  gkyl_array_copy(pos_map->bmag_ctx->bmag, bmag_global);
+  pos_map->bmag_ctx->bmag = gkyl_array_acquire(bmag_global);
 
   pos_map->constB_ctx->psi = 0.5;
   pos_map->constB_ctx->psi_min = 0.4;
