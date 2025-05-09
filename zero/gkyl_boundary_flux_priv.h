@@ -10,6 +10,7 @@ struct gkyl_boundary_flux {
   const struct gkyl_dg_eqn *equation; // Equation object.
   bool use_boundary_surf; // Use boundary_surf instead of boundary_flux terms.
   bool use_gpu; // Whether to run on GPU.
+  double skip_cell_threshold; // Threshold for skipping cells in the skin range.
 
   uint32_t flags;
   struct gkyl_boundary_flux *on_dev; // pointer to itself or device data

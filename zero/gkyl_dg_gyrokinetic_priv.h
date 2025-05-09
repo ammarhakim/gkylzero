@@ -63,6 +63,7 @@ struct dg_gyrokinetic {
   struct gkyl_range conf_range; // Configuration space range.
   struct gkyl_range phase_range; // Phase space range.
   double charge, mass;
+  double skip_cell_thresh; // Skip cell update if f0 smaller than this value.
   const struct gk_geometry *gk_geom; // Pointer to geometry struct
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
   struct gkyl_dg_gyrokinetic_auxfields auxfields; // Auxiliary fields.
@@ -78,7 +79,12 @@ static double
 kernel_gyrokinetic_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
+  
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
+
+  if (fabs(qIn[0]) < gyrokinetic->skip_cell_thresh) {
+    return 0.;
+  }
 
   int vel_idx[2];
   for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
@@ -107,6 +113,10 @@ kernel_gyrokinetic_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* 
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
+  if (fabs(qIn[0]) < gyrokinetic->skip_cell_thresh) {
+    return 0.;
+  }
+
   int vel_idx[2];
   for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
 
@@ -133,6 +143,10 @@ kernel_gyrokinetic_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* 
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
+
+  if (fabs(qIn[0]) < gyrokinetic->skip_cell_thresh) {
+    return 0.;
+  }
 
   int vel_idx[2];
   for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
@@ -161,6 +175,10 @@ kernel_gyrokinetic_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* 
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
+  if (fabs(qIn[0]) < gyrokinetic->skip_cell_thresh) {
+    return 0.;
+  }
+  
   int vel_idx[2];
   for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
 
@@ -217,6 +235,10 @@ kernel_gyrokinetic_no_by_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const do
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
+  if (fabs(qIn[0]) < gyrokinetic->skip_cell_thresh) {
+    return 0.;
+  }
+
   int vel_idx[2];
   for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
 
@@ -244,6 +266,10 @@ kernel_gyrokinetic_no_by_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const do
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
+  if (fabs(qIn[0]) < gyrokinetic->skip_cell_thresh) {
+    return 0.;
+  }
+  
   int vel_idx[2];
   for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
 
@@ -582,6 +608,10 @@ surf(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
 
+  if (fabs(qInL[0]) < gyrokinetic->skip_cell_thresh && fabs(qInC[0]) < gyrokinetic->skip_cell_thresh && fabs(qInR[0]) < gyrokinetic->skip_cell_thresh) {
+    return 0.;
+  }
+
   // Only in x,y,z,vpar directions.
   if (dir <= gyrokinetic->cdim) {
     int vel_idxL[2], vel_idxC[2], vel_idxR[2];
@@ -624,6 +654,10 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
+
+  if (fabs(qInEdge[0]) < gyrokinetic->skip_cell_thresh && fabs(qInSkin[0]) < gyrokinetic->skip_cell_thresh) {
+    return 0.;
+  }
 
   // Only in x,y,z,vpar directions.
   if (dir <= gyrokinetic->cdim) {
@@ -700,7 +734,7 @@ boundary_flux(const struct gkyl_dg_eqn *eqn,
  */
 struct gkyl_dg_eqn* gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id,
+  const double charge, const double mass, double skip_if_smaller_than, enum gkyl_gkmodel_id gkmodel_id,
   const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map);
 
 /**

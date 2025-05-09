@@ -42,6 +42,7 @@ struct dg_lbo_gyrokinetic_drag {
   lbo_gyrokinetic_drag_boundary_surf_t boundary_surf[2]; // Surface terms for acceleration.
   struct gkyl_range conf_range; // Configuration space range.
   double mass; // Species mass.
+  double skip_cell_thresh; // Skip cell update if f0 smaller than this value.
   const struct gk_geometry *gk_geom; // Pointer to geometry struct
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
   struct gkyl_dg_lbo_gyrokinetic_drag_auxfields auxfields; // Auxiliary fields.
@@ -60,6 +61,10 @@ kernel_lbo_gyrokinetic_drag_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
+
+  if (fabs(qIn[0]) < lbo->skip_cell_thresh) {
+    return 0.;
+  }
 
   int vel_idx[2];
   for (int d=lbo->cdim; d<lbo->pdim; d++) vel_idx[d-lbo->cdim] = idx[d];
@@ -92,6 +97,10 @@ kernel_lbo_gyrokinetic_drag_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
 
+  if (fabs(qIn[0]) < lbo->skip_cell_thresh) {
+    return 0.;
+  }
+
   int vel_idx[2];
   for (int d=lbo->cdim; d<lbo->pdim; d++) vel_idx[d-lbo->cdim] = idx[d];
 
@@ -123,6 +132,10 @@ kernel_lbo_gyrokinetic_drag_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
 
+  if (fabs(qIn[0]) < lbo->skip_cell_thresh) {
+    return 0.;
+  }
+  
   int vel_idx[2];
   for (int d=lbo->cdim; d<lbo->pdim; d++) vel_idx[d-lbo->cdim] = idx[d];
 
@@ -154,6 +167,10 @@ kernel_lbo_gyrokinetic_drag_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
 
+  if (fabs(qIn[0]) < lbo->skip_cell_thresh) {
+    return 0.;
+  }
+  
   int vel_idx[2];
   for (int d=lbo->cdim; d<lbo->pdim; d++) vel_idx[d-lbo->cdim] = idx[d];
 
@@ -250,6 +267,11 @@ surf(const struct gkyl_dg_eqn *eqn,
   const double* qInL, const double* qInC, const double* qInR, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
+
+  if (fabs(qInL[0]) < lbo->skip_cell_thresh && fabs(qInC[0]) < lbo->skip_cell_thresh && fabs(qInR[0]) < lbo->skip_cell_thresh) {
+    return 0.;
+  }
+
   long cidx = gkyl_range_idx(&lbo->conf_range, idxC);
   const double* nuSum_p     = (const double*) gkyl_array_cfetch(lbo->auxfields.nuSum, cidx);
   const double* nuPrimMomsSum_p = (const double*) gkyl_array_cfetch(lbo->auxfields.nuPrimMomsSum, cidx);
@@ -292,6 +314,11 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_lbo_gyrokinetic_drag *lbo = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
+
+  if (fabs(qInEdge[0]) < lbo->skip_cell_thresh && fabs(qInSkin[0]) < lbo->skip_cell_thresh) {
+    return 0.;
+  }
+
   long cidx = gkyl_range_idx(&lbo->conf_range, idxSkin);
   const double* nuSum_p     = (const double*) gkyl_array_cfetch(lbo->auxfields.nuSum, cidx);
   const double* nuPrimMomsSum_p = (const double*) gkyl_array_cfetch(lbo->auxfields.nuPrimMomsSum, cidx); 
@@ -328,7 +355,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
  */
 struct gkyl_dg_eqn* gkyl_dg_lbo_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
   const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid,
-  double mass, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map);
+  double mass, double skip_cell_threshold, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map);
 
 /**
  * CUDA device function to set auxiliary fields needed in updating the drag flux term.

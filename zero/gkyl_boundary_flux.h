@@ -19,6 +19,7 @@ typedef struct gkyl_boundary_flux gkyl_boundary_flux;
  * @param skin_r Skin range.
  * @param ghost_r Ghost range.
  * @param equation Equation object
+ * @param skip_cell_threshold Threshold for skipping cells in the skin range.
  * @param use_boundary_surf Whether to use boundary_surf kernels (instead of
  *                          boundary_flux kernels).
  * @param use_gpu Boolean to indicate whether to use the GPU.
@@ -26,7 +27,7 @@ typedef struct gkyl_boundary_flux gkyl_boundary_flux;
  */
 struct gkyl_boundary_flux* gkyl_boundary_flux_new(int dir, enum gkyl_edge_loc edge,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  const struct gkyl_dg_eqn *equation, bool use_boundary_surf, bool use_gpu);
+  const struct gkyl_dg_eqn *equation, double skip_cell_threshold, bool use_boundary_surf, bool use_gpu);
 
 /**
  * Compute the boundary flux.

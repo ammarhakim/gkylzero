@@ -10,7 +10,7 @@ extern "C" {
 struct gkyl_boundary_flux*
 gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  const struct gkyl_dg_eqn *equation, bool use_boundary_surf)
+  const struct gkyl_dg_eqn *equation, double skip_cell_threshold, bool use_boundary_surf)
 {
   struct gkyl_boundary_flux *up = (struct gkyl_boundary_flux*) gkyl_malloc(sizeof(struct gkyl_boundary_flux));
 
@@ -21,6 +21,11 @@ gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   up->ghost_r = *ghost_r;
   up->use_boundary_surf = use_boundary_surf;
   up->use_gpu = true;
+
+  if (skip_cell_threshold > 0.0)
+    up->skip_cell_threshold = skip_cell_threshold;
+  else
+    up->skip_cell_threshold = -1.0;
 
   struct gkyl_dg_eqn *eqn = gkyl_dg_eqn_acquire(equation);
   up->equation = eqn->on_dev;
@@ -60,6 +65,9 @@ gkyl_boundary_flux_advance_cu_ker(const struct gkyl_boundary_flux *up,
 
     const double* fg_c = (const double*) gkyl_array_cfetch(fIn, linidx_g);
     const double* fs_c = (const double*) gkyl_array_cfetch(fIn, linidx_s);
+
+    if (fabs(fs_c[0]) < up->skip_cell_threshold && fabs(fg_c[0]) < up->skip_cell_threshold)
+      continue;
     
     if (up->use_boundary_surf)
       up->equation->boundary_surf_term(up->equation, up->dir, xc_s, xc_g,
