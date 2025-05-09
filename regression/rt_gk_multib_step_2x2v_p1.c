@@ -1055,7 +1055,7 @@ struct gkyl_comm *comm = 0;
     .cells = { cells_v[0], cells_v[1] },
     .no_by = true,
     .num_diag_moments = 7,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
@@ -1528,7 +1528,7 @@ struct gkyl_comm *comm = 0;
     .cells = { cells_v[0], cells_v[1] },
     .no_by = true,
     .num_diag_moments = 7,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
@@ -1619,7 +1619,7 @@ struct gkyl_comm *comm = 0;
     .cells = { cells_v[0], cells_v[1] },
     .no_by = true,
     .num_diag_moments = 7,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
@@ -1735,7 +1735,7 @@ struct gkyl_comm *comm = 0;
     .cells = { cells_v[0], cells_v[0], cells_v[0] },
     .is_static = true,
     .num_diag_moments = 3,
-    .diag_moments = { "M0", "M1i", "M2"},
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},
 
     .duplicate_across_blocks = true,
     .blocks = Ar0_blocks,

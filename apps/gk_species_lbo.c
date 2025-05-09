@@ -81,7 +81,7 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
   }
 
   // Allocate moments needed for LBO update.
-  gk_species_moment_init(app, s, &lbo->moms, "ThreeMoments", false);
+  gk_species_moment_init(app, s, &lbo->moms, GKYL_F_MOMENT_M0M1M2, false);
 
   lbo->dg_div_mem = 0; // Memory for weak division.
   if (app->use_gpu)

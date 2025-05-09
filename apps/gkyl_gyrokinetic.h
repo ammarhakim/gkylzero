@@ -11,6 +11,7 @@
 #include <gkyl_velocity_map.h>
 #include <gkyl_position_map.h>
 #include <gkyl_gyrokinetic_comms.h>
+#include <gkyl_mom_type.h>
 
 #include <stdbool.h>
 
@@ -53,9 +54,9 @@ struct gkyl_gyrokinetic_projection {
 
 struct gkyl_phase_diagnostics_inp {
   int num_diag_moments; // Number of diagnostic moments.
-  char diag_moments[24][24]; // List of diagnostic moments.
+  enum gkyl_distribution_moments diag_moments[12]; // List of diagnostic moments.
   int num_integrated_diag_moments; // Number of integrated diagnostic moments.
-  char integrated_diag_moments[24][24]; // List of integrated diagnostic moments.
+  enum gkyl_distribution_moments integrated_diag_moments[12]; // List of integrated diagnostic moments.
   bool time_integrated; // Whether to use time integrated diags.
 };
 
@@ -256,9 +257,9 @@ struct gkyl_gyrokinetic_species {
   bool scale_with_polarization;
 
   int num_diag_moments; // number of diagnostic moments
-  char diag_moments[24][24]; // list of diagnostic moments
+  enum gkyl_distribution_moments diag_moments[12]; // list of diagnostic moments
   int num_integrated_diag_moments; // Number of integrated diagnostic moments.
-  char integrated_diag_moments[24][24]; // List of integrated diagnostic moments.
+  enum gkyl_distribution_moments integrated_diag_moments[12]; // List of integrated diagnostic moments.
   bool time_rate_diagnostics; // Whether to ouput df/dt diagnostics.
 
   // Diagnostics of the fluxes of f at position-space boundaries.
@@ -309,7 +310,7 @@ struct gkyl_gyrokinetic_neut_species {
   struct gkyl_gyrokinetic_projection projection;
 
   int num_diag_moments; // Number of diagnostic moments.
-  char diag_moments[16][16]; // List of diagnostic moments.
+  enum gkyl_distribution_moments diag_moments[12]; // List of diagnostic moments.
 
   // Diagnostics of the fluxes of f at position-space boundaries.
   struct gkyl_phase_diagnostics_inp boundary_flux_diagnostics;
