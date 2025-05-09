@@ -48,6 +48,9 @@ struct ultra_rel_blackhole_collapse_ctx
   double Ly; // Domain size (y-direction).
   double cfl_frac; // CFL coefficient.
 
+  enum gkyl_spacetime_gauge spacetime_gauge; // Spacetime gauge choice.
+  int reinit_freq; // Spacetime reinitialization frequency.
+
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
   int field_energy_calcs; // Number of times to calculate field energy.
@@ -88,8 +91,11 @@ create_ctx(void)
   double Ly = 5.0; // Domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.
 
+  enum gkyl_spacetime_gauge spacetime_gauge = GKYL_BLACKHOLE_COLLAPSE_GAUGE; // Spacetime gauge choice.
+  int reinit_freq = 100; // Spacetime reinitialization frequency.
+
   double t_end = 2.0; // Final simulation time.
-  int num_frames = 1; // Number of output frames.
+  int num_frames = 100; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -114,6 +120,8 @@ create_ctx(void)
     .Lx = Lx,
     .Ly = Ly,
     .cfl_frac = cfl_frac,
+    .spacetime_gauge = spacetime_gauge,
+    .reinit_freq = reinit_freq,
     .t_end = t_end,
     .num_frames = num_frames,
     .field_energy_calcs = field_energy_calcs,
@@ -362,7 +370,7 @@ main(int argc, char **argv)
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
   // Fluid equations.
-  struct gkyl_wv_eqn *gr_ultra_rel_euler = gkyl_wv_gr_ultra_rel_euler_new(ctx.gas_gamma, GKYL_BLACKHOLE_COLLAPSE_GAUGE, ctx.spacetime, app_args.use_gpu);
+  struct gkyl_wv_eqn *gr_ultra_rel_euler = gkyl_wv_gr_ultra_rel_euler_new(ctx.gas_gamma, ctx.spacetime_gauge, ctx.reinit_freq, ctx.spacetime, app_args.use_gpu);
 
   struct gkyl_moment_species fluid = {
     .name = "gr_ultra_rel_euler",

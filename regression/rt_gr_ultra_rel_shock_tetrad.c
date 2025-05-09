@@ -45,6 +45,9 @@ struct ultra_rel_shock_ctx
   double Lx; // Domain size (x-direction).
   double cfl_frac; // CFL coefficient.
 
+  enum gkyl_spacetime_gauge spacetime_gauge; // Spacetime gauge choice.
+  int reinit_freq; // Spacetime reinitialization frequency.
+
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
   int field_energy_calcs; // Number of times to calculate field energy.
@@ -75,6 +78,9 @@ create_ctx(void)
   double Lx = 2.0; // Domain size (x-direction).
   double cfl_frac = 0.95; // CFL coefficient.
 
+  enum gkyl_spacetime_gauge spacetime_gauge = GKYL_STATIC_GAUGE; // Spacetime gauge choice.
+  int reinit_freq = 100; // Spacetime reinitialization frequency.
+
   double t_end = 1.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
@@ -94,6 +100,8 @@ create_ctx(void)
     .Nx = Nx,
     .Lx = Lx,
     .cfl_frac = cfl_frac,
+    .spacetime_gauge = spacetime_gauge,
+    .reinit_freq = reinit_freq,
     .t_end = t_end,
     .num_frames = num_frames,
     .field_energy_calcs = field_energy_calcs,
@@ -334,7 +342,7 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
   // Fluid equations.
-  struct gkyl_wv_eqn *gr_ultra_rel_euler_tetrad = gkyl_wv_gr_ultra_rel_euler_tetrad_new(ctx.gas_gamma, GKYL_STATIC_GAUGE, ctx.spacetime, app_args.use_gpu);
+  struct gkyl_wv_eqn *gr_ultra_rel_euler_tetrad = gkyl_wv_gr_ultra_rel_euler_tetrad_new(ctx.gas_gamma, ctx.spacetime_gauge, ctx.reinit_freq, ctx.spacetime, app_args.use_gpu);
 
   struct gkyl_moment_species fluid = {
     .name = "gr_ultra_rel_euler_tetrad",

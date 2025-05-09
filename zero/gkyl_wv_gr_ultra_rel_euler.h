@@ -25,7 +25,7 @@ struct gkyl_wv_gr_ultra_rel_euler_inp {
 *
 * @param gas_gamma Adiabatic index.
 * @param spacetime_gauge Spacetime gauge choice.
-* @param reinit_freq; // Spacetime reinitialization frequency.
+* @param reinit_freq Spacetime reinitialization frequency.
 * @param spacetime Pointer to base spacetime object.
 * @param use_gpu Whether the wave equation object is on the host (false) or the device (true).
 * @return Pointer to the general relativistic Euler equations object with ultra-relativistic equation of state.

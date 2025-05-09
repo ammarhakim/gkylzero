@@ -144,6 +144,34 @@ gkyl_gr_ultra_rel_euler_tetrad_prim_vars(double gas_gamma, const double q[70], d
   extrinsic_curvature[1][0] = q[20]; extrinsic_curvature[1][1] = q[21]; extrinsic_curvature[1][2] = q[22];
   extrinsic_curvature[2][0] = q[23]; extrinsic_curvature[2][1] = q[24]; extrinsic_curvature[2][2] = q[25];
 
+  double lapse_der[3];
+  lapse_der[0] = q[27];
+  lapse_der[1] = q[28];
+  lapse_der[2] = q[29];
+
+  double shift_der[3][3];
+  shift_der[0][0] = q[30]; shift_der[0][1] = q[31]; shift_der[0][2] = q[32];
+  shift_der[1][0] = q[33]; shift_der[1][1] = q[34]; shift_der[1][2] = q[35];
+  shift_der[2][0] = q[36]; shift_der[2][1] = q[37]; shift_der[2][2] = q[38];
+
+  double spatial_metric_der[3][3][3];
+  spatial_metric_der[0][0][0] = q[39]; spatial_metric_der[0][0][1] = q[40]; spatial_metric_der[0][0][2] = q[41];
+  spatial_metric_der[0][1][0] = q[42]; spatial_metric_der[0][1][1] = q[43]; spatial_metric_der[0][1][2] = q[44];
+  spatial_metric_der[0][2][0] = q[45]; spatial_metric_der[0][2][1] = q[46]; spatial_metric_der[0][2][2] = q[47];
+
+  spatial_metric_der[1][0][0] = q[48]; spatial_metric_der[1][0][1] = q[49]; spatial_metric_der[1][0][2] = q[50];
+  spatial_metric_der[1][1][0] = q[51]; spatial_metric_der[1][1][1] = q[52]; spatial_metric_der[1][1][2] = q[53];
+  spatial_metric_der[1][2][0] = q[54]; spatial_metric_der[1][2][1] = q[55]; spatial_metric_der[1][2][2] = q[56];
+
+  spatial_metric_der[0][0][0] = q[57]; spatial_metric_der[0][0][1] = q[58]; spatial_metric_der[0][0][2] = q[59];
+  spatial_metric_der[0][1][0] = q[60]; spatial_metric_der[0][1][1] = q[61]; spatial_metric_der[0][1][2] = q[62];
+  spatial_metric_der[0][2][0] = q[63]; spatial_metric_der[0][2][1] = q[64]; spatial_metric_der[0][2][2] = q[65];
+
+  double evol_param = q[66];
+  double x = q[67];
+  double y = q[68];
+  double z = q[69];
+
   bool in_excision_region = false;
   if (q[26] < pow(10.0, -8.0)) {
     in_excision_region = true;
@@ -227,6 +255,31 @@ gkyl_gr_ultra_rel_euler_tetrad_prim_vars(double gas_gamma, const double q[70], d
     v[23] = extrinsic_curvature[2][0]; v[24] = extrinsic_curvature[2][1]; v[25] = extrinsic_curvature[2][2];
 
     v[26] = 1.0;
+
+    v[27] = lapse_der[0];
+    v[28] = lapse_der[1];
+    v[29] = lapse_der[2];
+
+    v[30] = shift_der[0][0]; v[31] = shift_der[0][1]; v[32] = shift_der[0][2];
+    v[33] = shift_der[1][0]; v[34] = shift_der[1][1]; v[35] = shift_der[1][2];
+    v[36] = shift_der[2][0]; v[37] = shift_der[2][1]; v[38] = shift_der[2][2];
+
+    v[39] = spatial_metric_der[0][0][0]; v[40] = spatial_metric_der[0][0][1]; v[41] = spatial_metric_der[0][0][2];
+    v[42] = spatial_metric_der[0][1][0]; v[43] = spatial_metric_der[0][1][1]; v[44] = spatial_metric_der[0][1][2];
+    v[45] = spatial_metric_der[0][2][0]; v[46] = spatial_metric_der[0][2][1]; v[47] = spatial_metric_der[0][2][2];
+
+    v[48] = spatial_metric_der[1][0][0]; v[49] = spatial_metric_der[1][0][1]; v[50] = spatial_metric_der[1][0][2];
+    v[51] = spatial_metric_der[1][1][0]; v[52] = spatial_metric_der[1][1][1]; v[53] = spatial_metric_der[1][1][2];
+    v[54] = spatial_metric_der[1][2][0]; v[55] = spatial_metric_der[1][2][1]; v[56] = spatial_metric_der[1][2][2];
+
+    v[57] = spatial_metric_der[2][0][0]; v[58] = spatial_metric_der[2][0][1]; v[59] = spatial_metric_der[2][0][2];
+    v[60] = spatial_metric_der[2][1][0]; v[61] = spatial_metric_der[2][1][1]; v[62] = spatial_metric_der[2][1][2];
+    v[63] = spatial_metric_der[2][2][0]; v[64] = spatial_metric_der[2][2][1]; v[65] = spatial_metric_der[2][2][2];
+
+    v[66] = evol_param;
+    v[67] = x;
+    v[68] = y;
+    v[69] = z;
   }
   else {
     for (int i = 0; i < 70; i++) {
@@ -1347,6 +1400,29 @@ gr_ultra_rel_euler_tetrad_source(const struct gkyl_wv_eqn* eqn, const double* qi
   extrinsic_curvature[1][0] = v[20]; extrinsic_curvature[1][1] = v[21]; extrinsic_curvature[1][2] = v[22];
   extrinsic_curvature[2][0] = v[23]; extrinsic_curvature[2][1] = v[24]; extrinsic_curvature[2][2] = v[25];
 
+  double lapse_der[3];
+  lapse_der[0] = v[27];
+  lapse_der[1] = v[28];
+  lapse_der[2] = v[29];
+
+  double shift_der[3][3];
+  shift_der[0][0] = v[30]; shift_der[0][1] = v[31]; shift_der[0][2] = v[32];
+  shift_der[1][0] = v[33]; shift_der[1][1] = v[34]; shift_der[1][2] = v[35];
+  shift_der[2][0] = v[36]; shift_der[2][1] = v[37]; shift_der[2][2] = v[38];
+
+  double spatial_metric_der[3][3][3];
+  spatial_metric_der[0][0][0] = v[39]; spatial_metric_der[0][0][1] = v[40]; spatial_metric_der[0][0][2] = v[41];
+  spatial_metric_der[0][1][0] = v[42]; spatial_metric_der[0][1][1] = v[43]; spatial_metric_der[0][1][2] = v[44];
+  spatial_metric_der[0][2][0] = v[45]; spatial_metric_der[0][2][1] = v[46]; spatial_metric_der[0][2][2] = v[47];
+
+  spatial_metric_der[1][0][0] = v[48]; spatial_metric_der[1][0][1] = v[49]; spatial_metric_der[1][0][2] = v[50];
+  spatial_metric_der[1][1][0] = v[51]; spatial_metric_der[1][1][1] = v[52]; spatial_metric_der[1][1][2] = v[53];
+  spatial_metric_der[1][2][0] = v[54]; spatial_metric_der[1][2][1] = v[55]; spatial_metric_der[1][2][2] = v[56];
+
+  spatial_metric_der[0][0][0] = v[57]; spatial_metric_der[0][0][1] = v[58]; spatial_metric_der[0][0][2] = v[59];
+  spatial_metric_der[0][1][0] = v[60]; spatial_metric_der[0][1][1] = v[61]; spatial_metric_der[0][1][2] = v[62];
+  spatial_metric_der[0][2][0] = v[63]; spatial_metric_der[0][2][1] = v[64]; spatial_metric_der[0][2][2] = v[65];
+
   double **stress_energy = gkyl_malloc(sizeof(double*[4]));
   for (int i = 0; i < 4; i++) {
     stress_energy[i] = gkyl_malloc(sizeof(double[4]));
@@ -1360,11 +1436,7 @@ gr_ultra_rel_euler_tetrad_source(const struct gkyl_wv_eqn* eqn, const double* qi
   }
 
   if (!in_excision_region) {
-    double lapse_der[3];
     double shift[3];
-    double shift_der[3][3];
-    double spatial_metric_der[3][3][3];
-
     shift[0] = shift_x; shift[1] = shift_y; shift[2] = shift_z;
 
     double vel[3];
@@ -1388,30 +1460,32 @@ gr_ultra_rel_euler_tetrad_source(const struct gkyl_wv_eqn* eqn, const double* qi
     mom[2] = (rho + p) * (W * W) * vz;
 
     // Energy density source.
+    sout[0] = 0.0;
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
         sout[0] += stress_energy[0][0] * shift[i] * shift[j] * extrinsic_curvature[i][j];
-        sout[0] += 2.0 * stress_energy[0][i] * shift[j] * extrinsic_curvature[i][j];
-        sout[0] += stress_energy[i][j] * extrinsic_curvature[i][j];
+        sout[0] += 2.0 * stress_energy[0][i + 1] * shift[j] * extrinsic_curvature[i][j];
+        sout[0] += stress_energy[i + 1][j + 1] * extrinsic_curvature[i][j];
       }
 
-      sout[0] += stress_energy[0][0] * shift[i] * lapse_der[i];
-      sout[0] -= stress_energy[0][i] * lapse_der[i];
+      sout[0] -= stress_energy[0][0] * shift[i] * lapse_der[i];
+      sout[0] -= stress_energy[0][i + 1] * lapse_der[i];
     }
 
     // Momentum density sources.
     for (int j = 0; j < 3; j++) {
-      sout[1 + j] = stress_energy[0][0] * lapse * lapse_der[j];
+      sout[1 + j] = -stress_energy[0][0] * lapse * lapse_der[j];
 
       for (int k = 0; k < 3; k++) {
         for (int l = 0; l < 3; l++) {
           sout[1 + j] += 0.5 * stress_energy[0][0] * shift[k] * shift[l] * spatial_metric_der[j][k][l];
+          sout[1 + j] += 0.5 * stress_energy[k + 1][l + 1] * spatial_metric_der[j][k][l];
         }
 
         sout[1 + j] += (mom[k] / lapse) * shift_der[j][k];
 
         for (int i = 0; i < 3; i++) {
-          sout[1 + j] += stress_energy[0][i] * shift[k] * spatial_metric_der[j][i][k];
+          sout[1 + j] += stress_energy[0][i + 1] * shift[k] * spatial_metric_der[j][i][k];
         }
       }
     }
@@ -1444,11 +1518,12 @@ gkyl_gr_ultra_rel_euler_tetrad_free(const struct gkyl_ref_count* ref)
 }
 
 struct gkyl_wv_eqn*
-gkyl_wv_gr_ultra_rel_euler_tetrad_new(double gas_gamma, enum gkyl_spacetime_gauge spacetime_gauge, struct gkyl_gr_spacetime* spacetime, bool use_gpu)
+gkyl_wv_gr_ultra_rel_euler_tetrad_new(double gas_gamma, enum gkyl_spacetime_gauge spacetime_gauge, int reinit_freq, struct gkyl_gr_spacetime* spacetime, bool use_gpu)
 {
   return gkyl_wv_gr_ultra_rel_euler_tetrad_inew(&(struct gkyl_wv_gr_ultra_rel_euler_tetrad_inp) {
       .gas_gamma = gas_gamma,
       .spacetime_gauge = spacetime_gauge,
+      .reinit_freq = reinit_freq,
       .spacetime = spacetime,
       .rp_type = WV_GR_ULTRA_REL_EULER_TETRAD_RP_ROE,
       .use_gpu = use_gpu,
@@ -1467,6 +1542,7 @@ gkyl_wv_gr_ultra_rel_euler_tetrad_inew(const struct gkyl_wv_gr_ultra_rel_euler_t
 
   gr_ultra_rel_euler_tetrad->gas_gamma = inp->gas_gamma;
   gr_ultra_rel_euler_tetrad->spacetime_gauge = inp->spacetime_gauge;
+  gr_ultra_rel_euler_tetrad->reinit_freq = inp->reinit_freq;
   gr_ultra_rel_euler_tetrad->spacetime = inp->spacetime;
 
   if (inp->rp_type == WV_GR_ULTRA_REL_EULER_TETRAD_RP_LAX) {
@@ -1520,6 +1596,15 @@ gkyl_wv_gr_ultra_rel_euler_tetrad_spacetime_gauge(const struct gkyl_wv_eqn* eqn)
   enum gkyl_spacetime_gauge spacetime_gauge = gr_ultra_rel_euler_tetrad->spacetime_gauge;
 
   return spacetime_gauge;
+}
+
+int
+gkyl_wv_gr_ultra_rel_euler_tetrad_reinit_freq(const struct gkyl_wv_eqn* eqn)
+{
+  const struct wv_gr_ultra_rel_euler_tetrad *gr_ultra_rel_euler_tetrad = container_of(eqn, struct wv_gr_ultra_rel_euler_tetrad, eqn);
+  int reinit_freq = gr_ultra_rel_euler_tetrad->reinit_freq;
+
+  return reinit_freq;
 }
 
 struct gkyl_gr_spacetime*

@@ -91,6 +91,34 @@ gkyl_gr_ultra_rel_euler_prim_vars(double gas_gamma, const double q[70], double v
   extrinsic_curvature[1][0] = q[20]; extrinsic_curvature[1][1] = q[21]; extrinsic_curvature[1][2] = q[22];
   extrinsic_curvature[2][0] = q[23]; extrinsic_curvature[2][1] = q[24]; extrinsic_curvature[2][2] = q[25];
 
+  double lapse_der[3];
+  lapse_der[0] = q[27];
+  lapse_der[1] = q[28];
+  lapse_der[2] = q[29];
+
+  double shift_der[3][3];
+  shift_der[0][0] = q[30]; shift_der[0][1] = q[31]; shift_der[0][2] = q[32];
+  shift_der[1][0] = q[33]; shift_der[1][1] = q[34]; shift_der[1][2] = q[35];
+  shift_der[2][0] = q[36]; shift_der[2][1] = q[37]; shift_der[2][2] = q[38];
+
+  double spatial_metric_der[3][3][3];
+  spatial_metric_der[0][0][0] = q[39]; spatial_metric_der[0][0][1] = q[40]; spatial_metric_der[0][0][2] = q[41];
+  spatial_metric_der[0][1][0] = q[42]; spatial_metric_der[0][1][1] = q[43]; spatial_metric_der[0][1][2] = q[44];
+  spatial_metric_der[0][2][0] = q[45]; spatial_metric_der[0][2][1] = q[46]; spatial_metric_der[0][2][2] = q[47];
+
+  spatial_metric_der[1][0][0] = q[48]; spatial_metric_der[1][0][1] = q[49]; spatial_metric_der[1][0][2] = q[50];
+  spatial_metric_der[1][1][0] = q[51]; spatial_metric_der[1][1][1] = q[52]; spatial_metric_der[1][1][2] = q[53];
+  spatial_metric_der[1][2][0] = q[54]; spatial_metric_der[1][2][1] = q[55]; spatial_metric_der[1][2][2] = q[56];
+
+  spatial_metric_der[0][0][0] = q[57]; spatial_metric_der[0][0][1] = q[58]; spatial_metric_der[0][0][2] = q[59];
+  spatial_metric_der[0][1][0] = q[60]; spatial_metric_der[0][1][1] = q[61]; spatial_metric_der[0][1][2] = q[62];
+  spatial_metric_der[0][2][0] = q[63]; spatial_metric_der[0][2][1] = q[64]; spatial_metric_der[0][2][2] = q[65];
+
+  double evol_param = q[66];
+  double x = q[67];
+  double y = q[68];
+  double z = q[69];
+
   bool in_excision_region = false;
   if (q[26] < pow(10.0, -8.0)) {
     in_excision_region = true;
@@ -174,6 +202,31 @@ gkyl_gr_ultra_rel_euler_prim_vars(double gas_gamma, const double q[70], double v
     v[23] = extrinsic_curvature[2][0]; v[24] = extrinsic_curvature[2][1]; v[25] = extrinsic_curvature[2][2];
 
     v[26] = 1.0;
+
+    v[27] = lapse_der[0];
+    v[28] = lapse_der[1];
+    v[29] = lapse_der[2];
+
+    v[30] = shift_der[0][0]; v[31] = shift_der[0][1]; v[32] = shift_der[0][2];
+    v[33] = shift_der[1][0]; v[34] = shift_der[1][1]; v[35] = shift_der[1][2];
+    v[36] = shift_der[2][0]; v[37] = shift_der[2][1]; v[38] = shift_der[2][2];
+
+    v[39] = spatial_metric_der[0][0][0]; v[40] = spatial_metric_der[0][0][1]; v[41] = spatial_metric_der[0][0][2];
+    v[42] = spatial_metric_der[0][1][0]; v[43] = spatial_metric_der[0][1][1]; v[44] = spatial_metric_der[0][1][2];
+    v[45] = spatial_metric_der[0][2][0]; v[46] = spatial_metric_der[0][2][1]; v[47] = spatial_metric_der[0][2][2];
+
+    v[48] = spatial_metric_der[1][0][0]; v[49] = spatial_metric_der[1][0][1]; v[50] = spatial_metric_der[1][0][2];
+    v[51] = spatial_metric_der[1][1][0]; v[52] = spatial_metric_der[1][1][1]; v[53] = spatial_metric_der[1][1][2];
+    v[54] = spatial_metric_der[1][2][0]; v[55] = spatial_metric_der[1][2][1]; v[56] = spatial_metric_der[1][2][2];
+
+    v[57] = spatial_metric_der[2][0][0]; v[58] = spatial_metric_der[2][0][1]; v[59] = spatial_metric_der[2][0][2];
+    v[60] = spatial_metric_der[2][1][0]; v[61] = spatial_metric_der[2][1][1]; v[62] = spatial_metric_der[2][1][2];
+    v[63] = spatial_metric_der[2][2][0]; v[64] = spatial_metric_der[2][2][1]; v[65] = spatial_metric_der[2][2][2];
+
+    v[66] = evol_param;
+    v[67] = x;
+    v[68] = y;
+    v[69] = z;
   }
   else {
     for (int i = 0; i < 70; i++) {
