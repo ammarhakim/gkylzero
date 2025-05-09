@@ -5,7 +5,6 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_const.h>
-#include <gkyl_fem_parproj.h>
 #include <gkyl_gyrokinetic.h>
 
 #include <rt_arg_parse.h>

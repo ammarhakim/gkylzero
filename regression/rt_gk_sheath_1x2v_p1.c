@@ -59,6 +59,7 @@ struct sheath_ctx
   int Nz; // Number of cells along z.
   int Nvpar; // Number of cells in parallel velocity.
   int Nmu; // Number of cells in mu.
+  int cells[GKYL_MAX_DIM]; // Number of cells in all directions.
   double Lz; // Domain size along z.
   double vpar_max_elc; // Maximum electron parallel velocity.
   double mu_max_elc; // Maximum electron magnetic moment.
@@ -66,7 +67,6 @@ struct sheath_ctx
   double mu_max_ion; // Domain boundary (ion velocity space: magnetic moment direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
-  int cells[GKYL_MAX_DIM]; // Number of cells in all directions.
 
   double t_end; // End time.
   int num_frames; // Number of output frames.
@@ -603,7 +603,7 @@ main(int argc, char **argv)
   struct gkyl_gk app_inp = {
     .name = "gk_sheath_1x2v_p1",
 
-    .cdim = 1, .vdim = 2,
+    .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { -0.5 * ctx.Lz },
     .upper = { 0.5 * ctx.Lz },
     .cells = { cells_x[0] },
