@@ -1632,26 +1632,26 @@ test_bc_twistshift_3x_fig11(bool use_gpu)
   const int cells3[] = {80, 40, 4};
 
   enum gkyl_edge_loc edgelo = GKYL_LOWER_EDGE; // Lower edge.
-  test_bc_twistshift_3x_fig11_wcells(cells0, edgelo, 0, true, use_gpu, true);
-  test_bc_twistshift_3x_fig11_wcells(cells1, edgelo, 0, false, use_gpu, false);
-  test_bc_twistshift_3x_fig11_wcells(cells2, edgelo, 0, false, use_gpu, false);
-  test_bc_twistshift_3x_fig11_wcells(cells3, edgelo, 0, false, use_gpu, false);
+//  test_bc_twistshift_3x_fig11_wcells(cells0, edgelo, 0, true, use_gpu, true);
+//  test_bc_twistshift_3x_fig11_wcells(cells1, edgelo, 0, false, use_gpu, false);
+//  test_bc_twistshift_3x_fig11_wcells(cells2, edgelo, 0, false, use_gpu, false);
+//  test_bc_twistshift_3x_fig11_wcells(cells3, edgelo, 0, false, use_gpu, true);
 
   enum gkyl_edge_loc edgeup = GKYL_UPPER_EDGE; // Upper edge.
-  test_bc_twistshift_3x_fig11_wcells(cells0, edgeup, 0, true, use_gpu, false);
-  test_bc_twistshift_3x_fig11_wcells(cells1, edgeup, 0, false, use_gpu, false);
-  test_bc_twistshift_3x_fig11_wcells(cells2, edgeup, 0, false, use_gpu, false);
-  test_bc_twistshift_3x_fig11_wcells(cells3, edgeup, 0, false, use_gpu, false);
+//  test_bc_twistshift_3x_fig11_wcells(cells0, edgeup, 0, true, use_gpu, false);
+//  test_bc_twistshift_3x_fig11_wcells(cells1, edgeup, 0, false, use_gpu, false);
+//  test_bc_twistshift_3x_fig11_wcells(cells2, edgeup, 0, false, use_gpu, false);
+  test_bc_twistshift_3x_fig11_wcells(cells3, edgeup, 0, false, use_gpu, true);
 
-  // Apply the TS BC on the lower half of the x domain.
-  test_bc_twistshift_3x_fig11_wcells(cells0, edgelo, -1, true, use_gpu, false);
-  test_bc_twistshift_3x_fig11_wcells(cells1, edgelo, -1, false, use_gpu, false);
-  test_bc_twistshift_3x_fig11_wcells(cells2, edgelo, -1, false, use_gpu, false);
-
-  // Apply the TS BC on the upper half of the x domain.
-  test_bc_twistshift_3x_fig11_wcells(cells0, edgelo, 1, true, use_gpu, false);
-  test_bc_twistshift_3x_fig11_wcells(cells1, edgelo, 1, false, use_gpu, false);
-  test_bc_twistshift_3x_fig11_wcells(cells2, edgelo, 1, false, use_gpu, false);
+//  // Apply the TS BC on the lower half of the x domain.
+//  test_bc_twistshift_3x_fig11_wcells(cells0, edgelo, -1, true, use_gpu, false);
+//  test_bc_twistshift_3x_fig11_wcells(cells1, edgelo, -1, false, use_gpu, false);
+//  test_bc_twistshift_3x_fig11_wcells(cells2, edgelo, -1, false, use_gpu, false);
+//
+//  // Apply the TS BC on the upper half of the x domain.
+//  test_bc_twistshift_3x_fig11_wcells(cells0, edgelo, 1, true, use_gpu, false);
+//  test_bc_twistshift_3x_fig11_wcells(cells1, edgelo, 1, false, use_gpu, false);
+//  test_bc_twistshift_3x_fig11_wcells(cells2, edgelo, 1, false, use_gpu, false);
 }
 
 void

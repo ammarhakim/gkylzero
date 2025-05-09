@@ -16,7 +16,8 @@ double plasma_frequency(double n, double m, double eps0, double eV)
 }
 
 // Calculate the Coulomb Logarithm
-double coulomb_log(double ns, double nr, double ms, double mr, double Ts, double Tr, double qs, double qr, double bmag_mid, double eps0, double hbar, double eV)
+double coulomb_log(double ns, double nr, double ms, double mr, double Ts, double Tr,
+  double qs, double qr, double bmag_mid, double eps0, double hbar, double eV)
 {
 
   double vts = sqrt(Ts/ms); // Thermal velocity for species s
@@ -34,10 +35,12 @@ double coulomb_log(double ns, double nr, double ms, double mr, double Ts, double
 }
 
 // Calculate the normNu
-double gkyl_calc_norm_nu(double ns, double nr, double ms, double mr, double qs, double qr, double Ts, double Tr, double bmag_mid, double eps0, double hbar, double eV)
+double gkyl_calc_norm_nu(double ns, double nr, double ms, double mr, double qs, double qr,
+  double Ts, double Tr, double bmag_mid, double eps0, double hbar, double eV)
 {
   double clog = coulomb_log(ns,nr,ms,mr,Ts, Tr, qs, qr, bmag_mid, eps0, hbar, eV);
-  return 1.0/ms*(1/mr+1/ms)*qs*qs*qr*qr*clog/(3.0*pow(2.0*M_PI,1.5)*eps0*eps0);
+  double cross_fac2 = fabs(ms - mr)/mr < 1e-16? 1.0 : 2.0;
+  return cross_fac2 * (1.0/ms)*(1.0/mr+1.0/ms)*pow(qs*qr,2)*clog/(3.0*pow(2.0*M_PI,1.5)*pow(eps0,2));
 }
 
 // create range to loop over quadrature points.

@@ -126,15 +126,16 @@ pkpm_species_lbo_moms(gkyl_pkpm_app *app, const struct pkpm_species *species,
 
   gkyl_array_set_range(lbo->m0, 1.0, species->pkpm_moms.marr, &app->local);
 
-  if (app->use_gpu) {
-    // construct boundary corrections
-    gkyl_mom_calc_bcorr_advance_cu(lbo->bcorr_calc,
-      &species->local, &app->local, fin, lbo->boundary_corrections);
+  // construct boundary corrections
+  gkyl_mom_calc_bcorr_advance(lbo->bcorr_calc,
+    &species->local, &app->local, fin, lbo->boundary_corrections);
 
+  // Compute primitive moments.
+  gkyl_prim_lbo_calc_advance(lbo->coll_pcalc, &app->local, 
+    species->pkpm_moms.marr, lbo->boundary_corrections, lbo->prim_moms);
+
+  if (app->use_gpu) {
     // PKPM moments already computed before this, so just fetch results
-    gkyl_prim_lbo_calc_advance_cu(lbo->coll_pcalc, &app->local, 
-      species->pkpm_moms.marr, lbo->boundary_corrections,
-      lbo->prim_moms);
     if (lbo->normNu) {
       gkyl_array_clear(lbo->norm_nu, 0.0);
       gkyl_array_clear(lbo->self_nu, 0.0);
@@ -145,14 +146,8 @@ pkpm_species_lbo_moms(gkyl_pkpm_app *app, const struct pkpm_species *species,
     }
   } 
   else {
-    // construct boundary corrections
-    gkyl_mom_calc_bcorr_advance(lbo->bcorr_calc,
-      &species->local, &app->local, fin, lbo->boundary_corrections);
 
     // PKPM moments already computed before this, so just fetch results
-    gkyl_prim_lbo_calc_advance(lbo->coll_pcalc, &app->local, 
-      species->pkpm_moms.marr, lbo->boundary_corrections,
-      lbo->prim_moms);
     if (lbo->normNu) {
       gkyl_array_clear(lbo->norm_nu, 0.0);
       gkyl_array_clear(lbo->self_nu, 0.0);
@@ -193,22 +188,13 @@ pkpm_species_lbo_cross_moms(gkyl_pkpm_app *app, const struct pkpm_species *speci
       lbo->greene_num[i], 0, lbo->greene_den[i], &app->local);
     gkyl_array_scale(lbo->greene_factor[i], 2*lbo->betaGreenep1);
 
-    if (app->use_gpu)
-      gkyl_prim_lbo_cross_calc_advance_cu(lbo->cross_calc,
-        &app->local, 
-        lbo->greene_factor[i], 
-        species->info.mass, lbo->moms.marr, lbo->prim_moms, 
-        lbo->other_m[i], lbo->collide_with[i]->lbo.moms.marr, lbo->other_prim_moms[i],
-        lbo->boundary_corrections, 
-        lbo->cross_prim_moms[i]);
-    else 
-      gkyl_prim_lbo_cross_calc_advance(lbo->cross_calc,
-        &app->local, 
-        lbo->greene_factor[i], 
-        species->info.mass, lbo->moms.marr, lbo->prim_moms, 
-        lbo->other_m[i], lbo->collide_with[i]->lbo.moms.marr, lbo->other_prim_moms[i],
-        lbo->boundary_corrections, 
-        lbo->cross_prim_moms[i]);
+    gkyl_prim_lbo_cross_calc_advance(lbo->cross_calc,
+      &app->local, 
+      lbo->greene_factor[i], 
+      species->info.mass, lbo->moms.marr, lbo->prim_moms, 
+      lbo->other_m[i], lbo->collide_with[i]->lbo.moms.marr, lbo->other_prim_moms[i],
+      lbo->boundary_corrections, 
+      lbo->cross_prim_moms[i]);
 
 
     for (int d=0; d<app->vdim; d++)

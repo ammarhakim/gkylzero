@@ -427,7 +427,7 @@ test_func_cu(int cdim, int vdim, int poly_order,
   boundary_corrections_cu = mkarr_cu((vdim+1)*confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moment corrections
-  gkyl_mom_calc_bcorr_advance_cu(bcorr_calc, &local, &confLocal, distf_cu, boundary_corrections_cu);
+  gkyl_mom_calc_bcorr_advance(bcorr_calc, &local, &confLocal, distf_cu, boundary_corrections_cu);
 
   gkyl_prim_lbo_calc *primcalc = gkyl_prim_lbo_vlasov_calc_new(&grid, &confBasis, &basis, &confLocal, true);
   gkyl_prim_lbo_cross_calc *crossprimcalc = gkyl_prim_lbo_vlasov_cross_calc_new(&grid, &confBasis, &basis, &confLocal, true);
@@ -441,7 +441,7 @@ test_func_cu(int cdim, int vdim, int poly_order,
   prim_moms_cu = mkarr_cu((vdim+1)*confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moment corrections
-  gkyl_prim_lbo_calc_advance_cu(primcalc, &confLocal, moms_cu, boundary_corrections_cu, prim_moms_cu);
+  gkyl_prim_lbo_calc_advance(primcalc, &confLocal, moms_cu, boundary_corrections_cu, prim_moms_cu);
 
   gkyl_array_set_offset(u_cu, 1., prim_moms_cu, 0);
   gkyl_array_set_offset(vth_cu, 1., prim_moms_cu, vdim*confBasis.num_basis);
@@ -482,7 +482,7 @@ test_func_cu(int cdim, int vdim, int poly_order,
 
   // MF 2022/09/13: the second moms here should be cross_moms, but we pass moms
   // for simplicity in this (infrastructure) test.
-  gkyl_prim_lbo_cross_calc_advance_cu(crossprimcalc, &confLocal, greene_cu,
+  gkyl_prim_lbo_cross_calc_advance(crossprimcalc, &confLocal, greene_cu,
     self_m, moms_cu, prim_moms_cu, cross_m, moms_cu, cross_prim_moms,
     boundary_corrections_cu, prim_moms_out_cu);
 

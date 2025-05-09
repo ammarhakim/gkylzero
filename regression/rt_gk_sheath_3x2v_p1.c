@@ -684,6 +684,9 @@ main(int argc, char **argv)
       .ctx = &ctx,
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
+      .normNu = true,
+      .n_ref = ctx.n0,
+      .T_ref = ctx.Te,
     },
 
     .source = {
@@ -754,6 +757,9 @@ main(int argc, char **argv)
       .ctx = &ctx,
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
+      .normNu = true,
+      .n_ref = ctx.n0,
+      .T_ref = ctx.Ti,
     },
 
     .source = {
