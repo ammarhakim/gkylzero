@@ -19,7 +19,7 @@ struct gkyl_bmag_ctx{
    const struct gkyl_basis* basis; // Physical RZ basis
    const struct gkyl_basis* cbasis; // Computational basis 
    const struct gkyl_array* bmagdg; // DG representation of bmag in physical RZ coordinates
-   const struct gkyl_array* bmag; // DG representation of bmag in computational coordinates
+   struct gkyl_array* bmag; // DG representation of bmag in computational coordinates
    const struct gkyl_array* mapc2p; // DG representation of mapc2p
 };
 
