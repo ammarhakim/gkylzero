@@ -930,7 +930,7 @@ main(int argc, char **argv)
   struct gkyl_gk app_inp = {
     .name = "gk_neut_sheath_3x2v_p1",
 
-    .cdim = 3, .vdim = 2,
+    .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = { ctx.R - (0.5 * ctx.Lx), -0.5 * ctx.Ly, -0.5 * ctx.Lz},
     .upper = { ctx.R + (0.5 * ctx.Lx),  0.5 * ctx.Ly,  0.5 * ctx.Lz},
     .cells = { cells_x[0], cells_x[1], cells_x[2] },
@@ -966,7 +966,7 @@ main(int argc, char **argv)
 
   // Create app object.
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&app_inp);
-  
+
   double t_curr = 0.0, t_end = ctx.t_end; // Initial and final simulation times.
   int frame_curr = 0; // Initialize simulation.
 
@@ -1046,9 +1046,9 @@ main(int argc, char **argv)
 
     step += 1;
   }
-  
+
   gkyl_gyrokinetic_app_stat_write(app);
-  
+
   // Fetch simulation statistics.
   struct gkyl_gyrokinetic_stat stat = gkyl_gyrokinetic_app_stat(app);
 
@@ -1059,7 +1059,7 @@ main(int argc, char **argv)
   if (stat.nstage_2_fail > 0) {
     gkyl_gyrokinetic_app_cout(app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
     gkyl_gyrokinetic_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
-  }  
+  }
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   gkyl_gyrokinetic_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
   gkyl_gyrokinetic_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
