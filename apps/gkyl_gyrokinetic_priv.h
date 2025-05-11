@@ -593,19 +593,25 @@ struct gk_proj {
 };
 
 struct gk_source {
-  enum gkyl_source_id source_id; // type of source
+  enum gkyl_source_id source_id; // Type of source.
   bool evolve; // Whether the source is time dependent.
-  struct gkyl_array *source; // applied source
-  struct gkyl_array *source_host; // host copy for use in IO and projecting
-  struct gk_proj proj_source[GKYL_MAX_SOURCES]; // projector for source
+  struct gkyl_array *source; // Applied source.
+  struct gkyl_array *source_host; // Host copy for use in IO and projecting.
+  struct gk_proj proj_source[GKYL_MAX_SOURCES]; // Projector for source.
   int num_sources; // Number of sources.
 
-  int num_diag_moments; // number of diagnostics moments
-  struct gk_species_moment *moms; // diagnostic moments
-  struct gk_species_moment integ_moms; // integrated moments
-  double *red_integ_diag, *red_integ_diag_global; // for reduction of integrated moments
-  gkyl_dynvec integ_diag; // integrated moments reduced across grid
-  bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
+  int num_diag_mom; // Number of diagnostics moments.
+  struct gk_species_moment *moms; // Diagnostic moments.
+  int num_diag_int_mom; // Number of volume-integrated diagnostic moments.
+  struct gk_species_moment integ_moms; // Integrated moments.
+  double *red_integ_diag, *red_integ_diag_global; // For reduction of integrated moments.
+  gkyl_dynvec integ_diag; // Integrated moments reduced across grid.
+  bool is_first_integ_write_call; // Flag for integrated moments dynvec written first time.
+  // Functions chosen at runtime.
+  void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+  void (*write_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+  void (*calc_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm);
+  void (*write_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks);
 };
 
 // species data
