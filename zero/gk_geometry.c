@@ -34,34 +34,8 @@ gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *
   gkyl_cart_modal_serendip(&up->surf_basis, up->grid.ndim-1, up->basis.poly_order);
   up->geqdsk_sign_convention = geo_host->geqdsk_sign_convention;
 
-  // bmag, metrics and derived geo quantities
-  up->mc2p = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
-  up->mc2nu_pos = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
-  up->bmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->g_ij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
-  up->g_ij_neut = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
-  up->dxdz = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->local_ext.volume);
-  up->dzdx = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->local_ext.volume);
-  up->dualmag = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
-  up->normals = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->local_ext.volume);
-  up->jacobgeo = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->jacobgeo_ghost = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->gij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
-  up->gij_neut = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
-  up->b_i = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
-  up->bcart = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
-  up->cmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->jacobtot = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->bmag_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->bmag_inv_sq = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->gxxj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->gxyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->gyyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->gxzj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->eps2= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-
+  gk_geometry_corn_alloc_expansions(up);
+  gk_geometry_int_alloc_expansions(up);
   for (int dir=0; dir<up->grid.ndim; ++dir)
     gk_geometry_surf_alloc_expansions(up, dir);
 
@@ -185,8 +159,8 @@ gkyl_gk_geometry_reduce_bmag(struct gk_geometry* up, enum gkyl_array_op op)
   struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, cdim, up->basis.num_basis);
   up->basis.node_list(gkyl_array_fetch(nodes, 0));
 
-  struct gkyl_array *bmag_ho = gkyl_array_new(GKYL_DOUBLE, up->bmag->ncomp, up->bmag->size);
-  gkyl_array_copy(bmag_ho, up->bmag);
+  struct gkyl_array *bmag_ho = gkyl_array_new(GKYL_DOUBLE, up->geo_int.bmag->ncomp, up->geo_int.bmag->size);
+  gkyl_array_copy(bmag_ho, up->geo_int.bmag);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &up->local);
@@ -251,34 +225,8 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   gkyl_cart_modal_serendip(&up->surf_basis, up->grid.ndim-1, up->basis.poly_order);
   up->geqdsk_sign_convention = up_3d->geqdsk_sign_convention;
 
-  // bmag, metrics and derived geo quantities
-  up->mc2p = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
-  up->mc2nu_pos = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
-  up->bmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->g_ij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
-  up->g_ij_neut = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
-  up->dxdz = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->local_ext.volume);
-  up->dzdx = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->local_ext.volume);
-  up->dualmag = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
-  up->normals = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->local_ext.volume);
-  up->jacobgeo = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->jacobgeo_ghost = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->gij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
-  up->gij_neut = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
-  up->b_i = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
-  up->bcart = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
-  up->cmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->jacobtot = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->bmag_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->bmag_inv_sq = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->gxxj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->gxyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->gyyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->gxzj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->eps2= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-
+  gk_geometry_corn_alloc_expansions(up);
+  gk_geometry_int_alloc_expansions(up);
   for (int dir=0; dir<up->grid.ndim; ++dir)
     gk_geometry_surf_alloc_expansions(up, dir);
 
@@ -293,32 +241,32 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   }
   struct gkyl_deflate_geo* deflator = gkyl_deflate_geo_new(&up_3d->basis, &up->basis, &up_3d->grid, &up->grid, rem_dirs, false);
 
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->mc2p, up->mc2p, 3);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->mc2nu_pos, up->mc2nu_pos, 3);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->bmag, up->bmag, 1);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->g_ij, up->g_ij, 6);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->g_ij_neut, up->g_ij_neut, 6);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->dxdz, up->dxdz, 9);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->dzdx, up->dzdx, 9);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->dualmag, up->dualmag, 3);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->normals, up->normals, 9);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->jacobgeo, up->jacobgeo, 1);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->jacobgeo_ghost, up->jacobgeo_ghost, 1);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->jacobgeo_inv, up->jacobgeo_inv, 1);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->gij, up->gij, 6);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->gij_neut, up->gij_neut, 6);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->b_i, up->b_i, 3);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->bcart, up->bcart, 3);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->cmag, up->cmag, 1);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->jacobtot, up->jacobtot, 1);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->jacobtot_inv, up->jacobtot_inv, 1);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->bmag_inv, up->bmag_inv, 1);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->bmag_inv_sq, up->bmag_inv_sq, 1);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->gxxj, up->gxxj, 1);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->gxyj, up->gxyj, 1);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->gyyj, up->gyyj, 1);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->gxzj, up->gxzj, 1);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->eps2, up->eps2, 1);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_corn.mc2p, up->geo_corn.mc2p, 3);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_corn.mc2nu_pos, up->geo_corn.mc2nu_pos, 3);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.bmag, up->geo_int.bmag, 1);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.g_ij, up->geo_int.g_ij, 6);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.g_ij_neut, up->geo_int.g_ij_neut, 6);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.dxdz, up->geo_int.dxdz, 9);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.dzdx, up->geo_int.dzdx, 9);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.dualmag, up->geo_int.dualmag, 3);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.normals, up->geo_int.normals, 9);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.jacobgeo, up->geo_int.jacobgeo, 1);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.jacobgeo_ghost, up->geo_int.jacobgeo_ghost, 1);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.jacobgeo_inv, up->geo_int.jacobgeo_inv, 1);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.gij, up->geo_int.gij, 6);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.gij_neut, up->geo_int.gij_neut, 6);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.b_i, up->geo_int.b_i, 3);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.bcart, up->geo_int.bcart, 3);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.cmag, up->geo_int.cmag, 1);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.jacobtot, up->geo_int.jacobtot, 1);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.jacobtot_inv, up->geo_int.jacobtot_inv, 1);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.bmag_inv, up->geo_int.bmag_inv, 1);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.bmag_inv_sq, up->geo_int.bmag_inv_sq, 1);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.gxxj, up->geo_int.gxxj, 1);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.gxyj, up->geo_int.gxyj, 1);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.gyyj, up->geo_int.gyyj, 1);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.gxzj, up->geo_int.gxzj, 1);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.eps2, up->geo_int.eps2, 1);
   // Done deflating
   gkyl_deflate_geo_release(deflator);
 
@@ -366,32 +314,35 @@ void
 gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
 {
   struct gk_geometry *up = container_of(ref, struct gk_geometry, ref_count);
-  gkyl_array_release(up->mc2p);
-  gkyl_array_release(up->mc2nu_pos);
-  gkyl_array_release(up->bmag);
-  gkyl_array_release(up->g_ij);
-  gkyl_array_release(up->g_ij_neut);
-  gkyl_array_release(up->jacobgeo);
-  gkyl_array_release(up->jacobgeo_ghost);
-  gkyl_array_release(up->jacobgeo_inv);
-  gkyl_array_release(up->dxdz);
-  gkyl_array_release(up->dzdx);
-  gkyl_array_release(up->dualmag);
-  gkyl_array_release(up->normals);
-  gkyl_array_release(up->gij);
-  gkyl_array_release(up->gij_neut);
-  gkyl_array_release(up->b_i);
-  gkyl_array_release(up->bcart);
-  gkyl_array_release(up->cmag);
-  gkyl_array_release(up->jacobtot);
-  gkyl_array_release(up->jacobtot_inv);
-  gkyl_array_release(up->bmag_inv);
-  gkyl_array_release(up->bmag_inv_sq);
-  gkyl_array_release(up->gxxj);
-  gkyl_array_release(up->gxyj);
-  gkyl_array_release(up->gyyj);
-  gkyl_array_release(up->gxzj);
-  gkyl_array_release(up->eps2);
+  gkyl_array_release(up->geo_corn.mc2p);
+  gkyl_array_release(up->geo_corn.mc2nu_pos);
+  gkyl_array_release(up->geo_corn.bmag);
+
+  gkyl_array_release(up->geo_int.mc2p);
+  gkyl_array_release(up->geo_int.bmag);
+  gkyl_array_release(up->geo_int.g_ij);
+  gkyl_array_release(up->geo_int.g_ij_neut);
+  gkyl_array_release(up->geo_int.jacobgeo);
+  gkyl_array_release(up->geo_int.jacobgeo_ghost);
+  gkyl_array_release(up->geo_int.jacobgeo_inv);
+  gkyl_array_release(up->geo_int.dxdz);
+  gkyl_array_release(up->geo_int.dzdx);
+  gkyl_array_release(up->geo_int.dualmag);
+  gkyl_array_release(up->geo_int.normals);
+  gkyl_array_release(up->geo_int.gij);
+  gkyl_array_release(up->geo_int.gij_neut);
+  gkyl_array_release(up->geo_int.b_i);
+  gkyl_array_release(up->geo_int.bcart);
+  gkyl_array_release(up->geo_int.cmag);
+  gkyl_array_release(up->geo_int.jacobtot);
+  gkyl_array_release(up->geo_int.jacobtot_inv);
+  gkyl_array_release(up->geo_int.bmag_inv);
+  gkyl_array_release(up->geo_int.bmag_inv_sq);
+  gkyl_array_release(up->geo_int.gxxj);
+  gkyl_array_release(up->geo_int.gxyj);
+  gkyl_array_release(up->geo_int.gyyj);
+  gkyl_array_release(up->geo_int.gxzj);
+  gkyl_array_release(up->geo_int.eps2);
 
   for(int dir = 0; dir < up->grid.ndim; dir++) {
     gkyl_array_release(up->geo_surf[dir].jacobgeo);

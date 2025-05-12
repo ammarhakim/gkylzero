@@ -237,7 +237,7 @@ gk_species_radiation_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
     }
     // divide out Jacobian from ion density before computation of final drag coefficient
     gkyl_dg_div_op_range(rad->moms[i].mem_geo, app->basis, 0, rad->moms[i].marr, 0,
-      rad->moms[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
+      rad->moms[i].marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);
     gkyl_dg_calc_gk_rad_vars_nI_nu_advance(
       rad->calc_gk_rad_vars, &app->local, &species->local, 
       &rad->vnu_surf[i], &rad->vnu[i], &rad->vsqnu_surf[i], &rad->vsqnu[i], 
@@ -291,7 +291,7 @@ gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app, struct gk_species *sp
 
     // divide out Jacobian from ion density before computation of final drag coefficient
     gkyl_dg_div_op_range(rad->moms[i].mem_geo, app->basis, 0, rad->moms[i].marr, 0,
-      rad->moms[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
+      rad->moms[i].marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);
     gkyl_dg_calc_gk_rad_vars_nI_nu_advance(
       rad->calc_gk_rad_vars, 
       &app->local, &species->local, 
@@ -307,7 +307,7 @@ gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app, struct gk_species *sp
     gk_species_moment_calc(&rad->m2, species->local, app->local, rad->emissivity_rhs);
 
     gkyl_dg_mul_op(app->basis, 0, rad->emissivity_denominator, 0, rad->m0, 0, rad->moms[i].marr);
-    gkyl_dg_mul_op(app->basis, 0, rad->emissivity_denominator, 0, rad->emissivity_denominator, 0, app->gk_geom->jacobgeo);
+    gkyl_dg_mul_op(app->basis, 0, rad->emissivity_denominator, 0, rad->emissivity_denominator, 0, app->gk_geom->geo_int.jacobgeo);
     gkyl_dg_div_op_range(rad->m2.mem_geo ,app->basis, 0, rad->emissivity[i], 0, rad->m2.marr, 0, rad->emissivity_denominator, &app->local);
 
     rad->emissivity[i] = gkyl_array_scale(rad->emissivity[i], -species->info.mass/2.0);

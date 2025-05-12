@@ -17,14 +17,11 @@
 
 static
 void gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
-  evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx, 
-  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p,
-  struct gkyl_array* mc2nu_nodal, struct gkyl_array* mc2nu_pos,
-  struct gkyl_position_map *position_map)
+  evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx, struct gkyl_position_map *position_map)
 {
   // First just do bmag
   struct gkyl_eval_on_nodes *eval_bmag = gkyl_eval_on_nodes_new(&up->grid, &up->basis, 1, bmag_func, bmag_ctx);
-  gkyl_eval_on_nodes_advance(eval_bmag, 0.0, &up->local, up->bmag);
+  gkyl_eval_on_nodes_advance(eval_bmag, 0.0, &up->local, up->geo_corn.bmag);
   gkyl_eval_on_nodes_release(eval_bmag);
 
   //Now project mapc2p and the FD array
@@ -42,15 +39,6 @@ void gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *nrang
   double dx_fact = up->basis.poly_order == 1 ? 1 : 0.5;
   dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
 
-  // used for finite differences 
-  double delta_alpha = dalpha*1e-4;
-  double delta_psi = dpsi*1e-6;
-  double delta_theta = dtheta*1e-4;
-  dzc[0] = delta_psi;
-  dzc[1] = delta_alpha;
-  dzc[2] = delta_theta;
-  int modifiers[5] = {0, -1, 1, -2, 2};
-
   position_map->constB_ctx->psi_max   = up->grid.upper[PSI_IDX];
   position_map->constB_ctx->psi_min   = up->grid.lower[PSI_IDX];
   position_map->constB_ctx->alpha_max = up->grid.upper[AL_IDX];
@@ -63,114 +51,45 @@ void gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *nrang
   int cidx[3] = { 0 };
   for(int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia){
     cidx[AL_IDX] = ia;
-    for(int ia_delta = 0; ia_delta < 5; ia_delta++){ // should be <5
-      if((ia == nrange->lower[AL_IDX]) && (up->local.lower[AL_IDX]== up->global.lower[AL_IDX]) ){
-        if(ia_delta == 1 || ia_delta == 3)
-          continue; // want to use one sided stencils at edge
-      }
-      else if((ia == nrange->upper[AL_IDX])  && (up->local.upper[AL_IDX]== up->global.upper[AL_IDX])){
-          if(ia_delta == 2 || ia_delta == 4)
-            continue; // want to use one sided stencils at edge
-      }
-      else{ //interior
-        if( ia_delta == 3 || ia_delta == 4)
-          continue; //dont do two away
-      }
-      double alpha_curr = alpha_lo + ia*dalpha + modifiers[ia_delta]*delta_alpha;
+    double alpha_curr = alpha_lo + ia*dalpha;
+    for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
+      double psi_curr = psi_lo + ip*dpsi;
+      cidx[PSI_IDX] = ip;
+      // set node coordinates
+      for (int it=nrange->lower[TH_IDX]; it<=nrange->upper[TH_IDX]; ++it) {
+        double theta_curr = theta_lo + it*dtheta ;
+        cidx[TH_IDX] = it;
 
-      for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
-        int ip_delta_max = 5;// should be 5
-        if(ia_delta != 0)
-          ip_delta_max = 1;
-        for(int ip_delta = 0; ip_delta < ip_delta_max; ip_delta++){
-          if((ip == nrange->lower[PSI_IDX]) && (up->local.lower[PSI_IDX]== up->global.lower[PSI_IDX]) ){
-            if(ip_delta == 1 || ip_delta == 3)
-              continue; // want to use one sided stencils at edge
-          }
-          else if((ip == nrange->upper[PSI_IDX]) && (up->local.upper[PSI_IDX]== up->global.upper[PSI_IDX])){
-            if(ip_delta == 2 || ip_delta == 4)
-              continue; // want to use one sided stencils at edge
-          }
-          else{ // interior 
-            if( ip_delta == 3 || ip_delta == 4)
-              continue; //dont do two away
-          }
-          double psi_curr = psi_lo + ip*dpsi + modifiers[ip_delta]*delta_psi;
-          cidx[PSI_IDX] = ip;
-          // set node coordinates
-          for (int it=nrange->lower[TH_IDX]; it<=nrange->upper[TH_IDX]; ++it) {
-            int it_delta_max = 5; // should be 5
-            if(ia_delta != 0 || ip_delta != 0 )
-              it_delta_max = 1;
-            for(int it_delta = 0; it_delta < it_delta_max; it_delta++){
-              if((it == nrange->lower[TH_IDX]) && (up->local.lower[TH_IDX]== up->global.lower[TH_IDX])){
-                if(it_delta == 1 || it_delta == 3)
-                  continue; // want to use one sided stencils at edge
-              }
-              else if((it == nrange->upper[TH_IDX]) && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX])){
-                if(it_delta == 2 || it_delta == 4)
-                  continue; // want to use one sided stencils at edge
-              }
-              else{
-                if( it_delta == 3 || it_delta == 4)
-                  continue; //dont do two away
-              }
-              double theta_curr = theta_lo + it*dtheta + modifiers[it_delta]*delta_theta;
+        position_map->maps[0](0.0, &psi_curr,   &psi_curr,   position_map->ctxs[0]);
+        position_map->maps[1](0.0, &alpha_curr, &alpha_curr, position_map->ctxs[1]);
+        position_map->maps[2](0.0, &theta_curr, &theta_curr, position_map->ctxs[2]);
 
-              position_map->maps[0](0.0, &psi_curr,   &psi_curr,   position_map->ctxs[0]);
-              position_map->maps[1](0.0, &alpha_curr, &alpha_curr, position_map->ctxs[1]);
-              position_map->maps[2](0.0, &theta_curr, &theta_curr, position_map->ctxs[2]);
+        double *mc2p_n = (double *) gkyl_array_fetch(up->geo_corn.mc2p_nodal, gkyl_range_idx(nrange, cidx));
+        double xyz[3] = {psi_curr, alpha_curr, theta_curr};
+        double XYZ[3] = {0.};
+        mapc2p_func(0.0, xyz, XYZ, mapc2p_ctx);
 
-              cidx[TH_IDX] = it;
-              int lidx = 0;
-              if (ip_delta != 0)
-                lidx = 3 + 3*(ip_delta-1);
-              if (ia_delta != 0)
-                lidx = 15 + 3*(ia_delta-1);
-              if (it_delta != 0)
-                lidx = 27 + 3*(it_delta-1);
+        mc2p_n[X_IDX] = XYZ[X_IDX];
+        mc2p_n[Y_IDX] = XYZ[Y_IDX];
+        mc2p_n[Z_IDX] = XYZ[Z_IDX];
 
-              double *mc2p_fd_n = (double *) gkyl_array_fetch(mc2p_nodal_fd, gkyl_range_idx(nrange, cidx));
-              double *mc2p_n = (double *) gkyl_array_fetch(mc2p_nodal, gkyl_range_idx(nrange, cidx));
-
-              double xyz[3] = {psi_curr, alpha_curr, theta_curr};
-              double XYZ[3] = {0.};
-              mapc2p_func(0.0, xyz, XYZ, mapc2p_ctx);
-
-              mc2p_fd_n[lidx+X_IDX] = XYZ[X_IDX];
-              mc2p_fd_n[lidx+Y_IDX] = XYZ[Y_IDX];
-              mc2p_fd_n[lidx+Z_IDX] = XYZ[Z_IDX];
-
-              if(ip_delta==0 && ia_delta==0 && it_delta==0){
-                mc2p_n[X_IDX] = XYZ[X_IDX];
-                mc2p_n[Y_IDX] = XYZ[Y_IDX];
-                mc2p_n[Z_IDX] = XYZ[Z_IDX];
-              }
-
-              double *mc2nu_n = gkyl_array_fetch(mc2nu_nodal, gkyl_range_idx(nrange, cidx));
-              if(ip_delta==0 && ia_delta==0 && it_delta==0) {
-                mc2nu_n[X_IDX] = psi_curr;
-                mc2nu_n[Y_IDX] = alpha_curr;
-                mc2nu_n[Z_IDX] = theta_curr;
-              }
-            }
-          }
-        }
+        double *mc2nu_n = gkyl_array_fetch(up->geo_corn.mc2nu_pos_nodal, gkyl_range_idx(nrange, cidx));
+        mc2nu_n[X_IDX] = psi_curr;
+        mc2nu_n[Y_IDX] = alpha_curr;
+        mc2nu_n[Z_IDX] = theta_curr;
       }
     }
   }
 
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->basis, &up->grid, false);
-  gkyl_nodal_ops_n2m(n2m, &up->basis, &up->grid, nrange, &up->local, 3, mc2p_nodal, mc2p, false);
-  gkyl_nodal_ops_n2m(n2m, &up->basis, &up->grid, nrange, &up->local, 3, mc2nu_nodal, mc2nu_pos, false);
+  gkyl_nodal_ops_n2m(n2m, &up->basis, &up->grid, nrange, &up->local, 3, up->geo_corn.mc2p_nodal, up->geo_corn.mc2p, false);
+  gkyl_nodal_ops_n2m(n2m, &up->basis, &up->grid, nrange, &up->local, 3, up->geo_corn.mc2nu_pos_nodal, up->geo_corn.mc2nu_pos, false);
   gkyl_nodal_ops_release(n2m);
 }
 
 static
 void gk_geometry_mapc2p_advance_interior(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
-  evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx, 
-  struct gkyl_array *mc2p_nodal_quad_fd, struct gkyl_array *mc2p_nodal_quad, struct gkyl_array *mc2p_quad,
-  struct gkyl_array *bmag_nodal, struct gkyl_position_map *position_map)
+  evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx, struct gkyl_position_map *position_map)
 {
 
   //Now project mapc2p and the FD array
@@ -245,9 +164,9 @@ void gk_geometry_mapc2p_advance_interior(struct gk_geometry* up, struct gkyl_ran
               if (it_delta != 0)
                 lidx = 27 + 3*(it_delta-1);
 
-              double *mc2p_quad_fd_n = (double *) gkyl_array_fetch(mc2p_nodal_quad_fd, gkyl_range_idx(nrange, cidx));
-              double *mc2p_quad_n = (double *) gkyl_array_fetch(mc2p_nodal_quad, gkyl_range_idx(nrange, cidx));
-              double *bmag_n = (double *) gkyl_array_fetch(bmag_nodal, gkyl_range_idx(nrange, cidx));
+              double *mc2p_quad_fd_n = (double *) gkyl_array_fetch(up->geo_int.mc2p_nodal_fd, gkyl_range_idx(nrange, cidx));
+              double *mc2p_quad_n = (double *) gkyl_array_fetch(up->geo_int.mc2p_nodal, gkyl_range_idx(nrange, cidx));
+              double *bmag_n = (double *) gkyl_array_fetch(up->geo_int.bmag_nodal, gkyl_range_idx(nrange, cidx));
 
               double xyz[3] = {psi_curr, alpha_curr, theta_curr};
               double XYZ[3] = {0.};
@@ -273,22 +192,23 @@ void gk_geometry_mapc2p_advance_interior(struct gk_geometry* up, struct gkyl_ran
   }
 
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->basis, &up->grid, false);
-  gkyl_nodal_ops_n2m(n2m, &up->basis, &up->grid, nrange, &up->local, 3, mc2p_nodal_quad, mc2p_quad, true);
+  gkyl_nodal_ops_n2m(n2m, &up->basis, &up->grid, nrange, &up->local, 3, up->geo_int.mc2p_nodal, up->geo_int.mc2p, true);
+  gkyl_nodal_ops_n2m(n2m, &up->basis, &up->grid, nrange, &up->local, 3, up->geo_int.bmag_nodal, up->geo_int.bmag, true);
   gkyl_nodal_ops_release(n2m);
 
   // now calculate the metrics
   struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, &up->global, &up->global_ext, &up->local, &up->local_ext, false);
-  gkyl_calc_metric_advance_interior(mcalc, nrange, mc2p_nodal_quad_fd, dzc, up->g_ij, up->dxdz, up->dzdx, up->dualmag, up->normals, &up->local);
-  gkyl_array_copy(up->g_ij_neut, up->g_ij);
+  gkyl_calc_metric_advance_interior(mcalc, nrange, up->geo_int.mc2p_nodal_fd, dzc, up->geo_int.g_ij, up->geo_int.dxdz, up->geo_int.dzdx, up->geo_int.dualmag, up->geo_int.normals, &up->local);
+  gkyl_array_copy(up->geo_int.g_ij_neut, up->geo_int.g_ij);
   
   // calculate the derived geometric quantities
   struct gkyl_calc_derived_geo *jcalculator = gkyl_calc_derived_geo_new(&up->basis, &up->grid, 1, false);
-  gkyl_calc_derived_geo_advance(jcalculator, &up->local, up->g_ij, up->bmag, 
-    up->jacobgeo, up->jacobgeo_inv, up->gij, up->b_i, up->cmag, up->jacobtot, up->jacobtot_inv, 
-    up->bmag_inv, up->bmag_inv_sq, up->gxxj, up->gxyj, up->gyyj, up->gxzj, up->eps2);
-  gkyl_array_copy(up->gij_neut, up->gij);
+  gkyl_calc_derived_geo_advance(jcalculator, &up->local, up->geo_int.g_ij, up->geo_int.bmag, 
+    up->geo_int.jacobgeo, up->geo_int.jacobgeo_inv, up->geo_int.gij, up->geo_int.b_i, up->geo_int.cmag, up->geo_int.jacobtot, up->geo_int.jacobtot_inv, 
+    up->geo_int.bmag_inv, up->geo_int.bmag_inv_sq, up->geo_int.gxxj, up->geo_int.gxyj, up->geo_int.gyyj, up->geo_int.gxzj, up->geo_int.eps2);
+  gkyl_array_copy(up->geo_int.gij_neut, up->geo_int.gij);
   gkyl_calc_derived_geo_release(jcalculator);
-  gkyl_calc_metric_advance_bcart(mcalc, nrange, up->b_i, up->dzdx, up->bcart, &up->local);
+  gkyl_calc_metric_advance_bcart(mcalc, nrange, up->geo_int.b_i, up->geo_int.dzdx, up->geo_int.bcart, &up->local);
   gkyl_calc_metric_release(mcalc);
 }
 
@@ -495,59 +415,25 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
 
   // Initialize surface basis abd allocate surface geo
   gkyl_cart_modal_serendip(&up->surf_basis, up->grid.ndim-1, poly_order);
+
+  // Allocate nodal and modal arrays for corner, interior, and surface geo
+  gk_geometry_corn_alloc_nodal(up, nrange);
+  gk_geometry_corn_alloc_expansions(up);
+  gk_geometry_int_alloc_nodal(up, nrange_quad);
+  gk_geometry_int_alloc_expansions(up);
   for (int dir=0; dir<up->grid.ndim; ++dir) {
     gk_geometry_surf_alloc_nodal(up, dir, nrange_quad_surf[dir]);
     gk_geometry_surf_alloc_expansions(up, dir);
   }
 
-  int num_fd_nodes = 13;
-  struct gkyl_array* mc2p_nodal_fd = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*num_fd_nodes, nrange.volume);
-  struct gkyl_array* mc2p_nodal_quad_fd = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*num_fd_nodes, nrange_quad.volume);
-  struct gkyl_array* mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
-  struct gkyl_array* mc2p_nodal_quad = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange_quad.volume);
-  struct gkyl_array *mc2p_quad = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
-  up->mc2p = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
-
-  struct gkyl_array* mc2nu_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
-  up->mc2nu_pos = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
-
-  struct gkyl_array* bmag_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange_quad.volume);
-
-  // bmag, metrics and derived geo quantities
-  up->bmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->g_ij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
-  up->g_ij_neut = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
-  up->dxdz = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->local_ext.volume);
-  up->dzdx = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->local_ext.volume);
-  up->dualmag = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
-  up->normals = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->local_ext.volume);
-  up->jacobgeo = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->jacobgeo_ghost = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->gij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
-  up->gij_neut = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
-  up->b_i = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
-  up->bcart = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
-  up->cmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->jacobtot = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->bmag_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->bmag_inv_sq = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->gxxj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->gxyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->gyyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->gxzj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->eps2= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-
   // calculate mapc2p in cartesian coords at corner nodes for
   // getting cell coordinates (used only for plotting)
   gk_geometry_mapc2p_advance(up, &nrange, dzc, geometry_inp->mapc2p, geometry_inp->c2p_ctx,
-    geometry_inp->bmag_func, geometry_inp->bmag_ctx, mc2p_nodal_fd, mc2p_nodal, up->mc2p,
-    mc2nu_nodal, up->mc2nu_pos, geometry_inp->position_map);
+    geometry_inp->bmag_func, geometry_inp->bmag_ctx, geometry_inp->position_map);
   // calculate mapc2p in cartesian coords at interior nodes for
   // calculating geo quantity volume expansions 
   gk_geometry_mapc2p_advance_interior(up, &nrange_quad, dzc, geometry_inp->mapc2p, geometry_inp->c2p_ctx,
-    geometry_inp->bmag_func, geometry_inp->bmag_ctx, mc2p_nodal_quad_fd, mc2p_nodal_quad, mc2p_quad, bmag_nodal, geometry_inp->position_map);
+    geometry_inp->bmag_func, geometry_inp->bmag_ctx, geometry_inp->position_map);
   // calculate mapc2p in cylindrical coords at surfaces
   for (int dir = 0; dir <up->grid.ndim; dir++) {
     gk_geometry_mapc2p_advance_surface(up, dir, &nrange_quad_surf[dir], dzc, geometry_inp->mapc2p, geometry_inp->c2p_ctx,
@@ -559,14 +445,9 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
   up->ref_count = gkyl_ref_count_init(gkyl_gk_geometry_free);
   up->on_dev = up; // CPU eqn obj points to itself
 
-  // Release interior nodal data
-  gkyl_array_release(mc2nu_nodal);
-  gkyl_array_release(mc2p_nodal_quad_fd);
-  gkyl_array_release(mc2p_nodal);
-  gkyl_array_release(mc2p_nodal_quad);
-  gkyl_array_release(mc2p_quad);
-  gkyl_array_release(bmag_nodal);
-  // Release surface nodal data
+  // Release nodal data
+  gk_geometry_corn_release_nodal(up);
+  gk_geometry_int_release_nodal(up);
   for (int dir=0; dir<up->grid.ndim; ++dir)
     gk_geometry_surf_release_nodal(up, dir);
 
@@ -601,7 +482,7 @@ gkyl_gk_geometry_mapc2p_new(struct gkyl_gk_geometry_inp *geometry_inp)
 
       geometry_inp->position_map->to_optimize = true;
       gkyl_comm_array_allgather_host(geometry_inp->comm, &geometry_inp->local, \
-      &geometry_inp->global, gk_geom->bmag, (struct gkyl_array*) geometry_inp->position_map->bmag_ctx->bmag);
+      &geometry_inp->global, gk_geom->geo_int.bmag, (struct gkyl_array*) geometry_inp->position_map->bmag_ctx->bmag);
 
       gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
       gkyl_gk_geometry_release(gk_geom); // release 3d geometry

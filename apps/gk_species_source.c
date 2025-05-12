@@ -144,7 +144,7 @@ gk_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, d
       // the density (the 0th component).
       gkyl_dg_div_op_range(gks->moms[m].mem_geo, app->basis, 
         0, gks->src.moms[m].marr, 0, gks->src.moms[m].marr, 0, 
-        app->gk_geom->jacobgeo, &app->local);      
+        app->gk_geom->geo_int.jacobgeo, &app->local);      
 
       if (app->use_gpu) {
         gkyl_array_copy(gks->src.moms[m].marr_host, gks->src.moms[m].marr);

@@ -172,7 +172,7 @@ gk_species_lbo_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   gk_species_moment_calc(&lbo->moms, species->local, app->local, fin);
 
   gkyl_dg_div_op_range(lbo->dg_div_mem, app->basis, 0, lbo->m0,
-    0, lbo->moms.marr, 0, app->gk_geom->jacobgeo, &app->local);  
+    0, lbo->moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);  
 
   gkyl_array_set_offset_range(lbo->m2self, 1.0, lbo->moms.marr, 2*app->basis.num_basis, &app->local);
   

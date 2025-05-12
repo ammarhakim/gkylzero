@@ -56,10 +56,10 @@ gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu_kernel(struct gkyl_dg_calc_gyrokinet
     long loc_vel = gkyl_range_idx(&up->vel_map->local_vel, idx_vel);
     long loc_phase = gkyl_range_idx(&phase_range, idx);
 
-    const double *bmag_d = (const double*) gkyl_array_cfetch(up->gk_geom->bmag, loc_conf);
-    const double *jacobtot_inv_d = (const double*) gkyl_array_cfetch(up->gk_geom->jacobtot_inv, loc_conf);
-    const double *cmag_d = (const double*) gkyl_array_cfetch(up->gk_geom->cmag, loc_conf);
-    const double *b_i_d = (const double*) gkyl_array_cfetch(up->gk_geom->b_i, loc_conf);
+    const double *bmag_d = (const double*) gkyl_array_cfetch(up->gk_geom->geo_int.bmag, loc_conf);
+    const double *jacobtot_inv_d = (const double*) gkyl_array_cfetch(up->gk_geom->geo_int.jacobtot_inv, loc_conf);
+    const double *cmag_d = (const double*) gkyl_array_cfetch(up->gk_geom->geo_int.cmag, loc_conf);
+    const double *b_i_d = (const double*) gkyl_array_cfetch(up->gk_geom->geo_int.b_i, loc_conf);
     const double *phi_d = (const double*) gkyl_array_cfetch(phi, loc_conf);
     const double *vmap_d = (const double*) gkyl_array_cfetch(up->vel_map->vmap, loc_vel);
     const double *vmapSq_d = (const double*) gkyl_array_cfetch(up->vel_map->vmap_sq, loc_vel);

@@ -814,7 +814,7 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
   struct gkyl_array *jacs_vol[mbapp->num_local_blocks];
   for (int b=0; b<mbapp->num_local_blocks; ++b) {
     struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
-    jacs_vol[b] = sbapp->gk_geom->jacobgeo_ghost;
+    jacs_vol[b] = sbapp->gk_geom->geo_int.jacobgeo_ghost;
   }
   // Sync across blocks.
   gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks,
@@ -827,11 +827,11 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
     struct gkyl_dg_bin_op_mem *div_mem = mbapp->use_gpu? gkyl_dg_bin_op_mem_cu_dev_new(sbapp->upper_ghost[d].volume, sbapp->basis.num_basis) : gkyl_dg_bin_op_mem_new(sbapp->upper_ghost[d].volume, sbapp->basis.num_basis);
     for (int e=0; e<2; ++e) {
       if (mbapp->block_topo->conn[bid].connections[d][e].edge != GKYL_PHYSICAL) {
-        gkyl_array_copy_range_to_range(sbapp->gk_geom->jacobgeo, sbapp->gk_geom->jacobgeo, 
+        gkyl_array_copy_range_to_range(sbapp->gk_geom->geo_int.jacobgeo, sbapp->gk_geom->geo_int.jacobgeo, 
           e == 0 ? &sbapp->lower_ghost[d] : &sbapp->upper_ghost[d], 
           e == 0 ? &sbapp->lower_skin[d] : &sbapp->upper_skin[d]);
-        //gkyl_dg_div_op_range(sbapp->species[0].moms[0].mem_geo, sbapp->basis, 0, sbapp->gk_geom->jacobgeo_ghost, 0, sbapp->gk_geom->jacobgeo, 0, sbapp->gk_geom->jacobgeo_ghost, &sbapp->upper_ghost[d]);
-        gkyl_dg_div_op_range(div_mem, sbapp->basis, 0, sbapp->gk_geom->jacobgeo_ghost, 0, sbapp->gk_geom->jacobgeo, 0, sbapp->gk_geom->jacobgeo_ghost, 
+        //gkyl_dg_div_op_range(sbapp->species[0].moms[0].mem_geo, sbapp->basis, 0, sbapp->gk_geom->geo_int.jacobgeo_ghost, 0, sbapp->gk_geom->geo_int.jacobgeo, 0, sbapp->gk_geom->geo_int.jacobgeo_ghost, &sbapp->upper_ghost[d]);
+        gkyl_dg_div_op_range(div_mem, sbapp->basis, 0, sbapp->gk_geom->geo_int.jacobgeo_ghost, 0, sbapp->gk_geom->geo_int.jacobgeo, 0, sbapp->gk_geom->geo_int.jacobgeo_ghost, 
           e == 0 ? &sbapp->lower_ghost[d] : &sbapp->upper_ghost[d]);
       }
     }
@@ -931,7 +931,7 @@ gyrokinetic_multib_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcur
         if (app->block_topo->conn[bid].connections[dir][e].edge != GKYL_PHYSICAL) {
           gkyl_dg_mul_conf_phase_op_range(&sbapp->basis, 
               &sbapp->species[i].basis, sbapp->species[i].fghost_vol, 
-              sbapp->gk_geom->jacobgeo_ghost, sbapp->species[i].fghost_vol,
+              sbapp->gk_geom->geo_int.jacobgeo_ghost, sbapp->species[i].fghost_vol,
               e ==0 ? &sbapp->lower_ghost[dir] : &sbapp->upper_ghost[dir],
               e == 0 ? &sbapp->species[i].lower_ghost[dir] : &sbapp->species[i].upper_ghost[dir]);
         }

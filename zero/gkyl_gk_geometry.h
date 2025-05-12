@@ -35,23 +35,20 @@ struct gk_geom_surf {
 
 };
 
-struct gk_geometry {
-  // stuff for mapc2p and finite differences array
-  struct gkyl_range local;
-  struct gkyl_range local_ext;
-  struct gkyl_range global;
-  struct gkyl_range global_ext;
-  struct gkyl_basis basis;
-  struct gkyl_basis surf_basis;
-  struct gkyl_rect_grid grid;
-
-  struct gk_geom_surf geo_surf[3];
-
-  // These 21 DG fields contain the geometric quantities needed to solve the
-  // GK Equation and Poisson Equation and to apply certain BC's
-  // The first 20 are defined on the configuration space domain. The last is a single element.
+struct gk_geom_corn {
   struct gkyl_array* mc2p; // 3 components. Cartesian X,Y, and Z
   struct gkyl_array* mc2nu_pos; // 3 components. Uniform computational space to non-uniform computational space mapping
+  struct gkyl_array* bmag; // 1 component. B Magnitude of magnetic field
+
+  // Arrays below are just for computation of arrays above
+  struct gkyl_array* mc2p_nodal; // 3 components. Cartesian X,Y, and Z
+  struct gkyl_array* mc2nu_pos_nodal; // 3 components. Uniform computational space 
+                                      // to non-uniform computational space mapping
+
+};
+
+struct gk_geom_int {
+  struct gkyl_array* mc2p; // 3 components. Cartesian X,Y, and Z
   struct gkyl_array* bmag; // 1 component. B Magnitude of magnetic field
   struct gkyl_array* g_ij; // 6 components. 
                            // Metric coefficients g_{ij} Stored in order g_11, g12, g_13, g_22, g_23, g_33
@@ -84,6 +81,77 @@ struct gk_geometry {
   struct gkyl_array* gyyj; // 1 component. g^{yy} * J. For poisson solve.
   struct gkyl_array* gxzj; // 1 component. g^{xz} * J. For poisson solve if z derivatives are kept.
   struct gkyl_array* eps2; // 1 component. eps2 = Jg^33 - J/g_33. For poisson if z derivatives are kept.
+  
+  // Arrays below are just for computation of arrays above
+  struct gkyl_array *bmag_nodal;
+  struct gkyl_array *ddtheta_nodal;
+  struct gkyl_array* mc2p_nodal; // 3 components. Cartesian X,Y, and Z
+  struct gkyl_array* mc2p_nodal_fd; // 39 components. Cartesian X,Y, and Z at nodes and FD nodes.
+  /* Array containing cartesian coordinates at nodes and nearby nodes (epsilon and 2 epsilon away) used for FD
+  *    At each array location 39 values are stored.
+  *    The arrangement is as follows: X_c, Y_c, Z_c, 
+  *    X_L1, Y_L1, Z_L1, X_R1, Y_R1, Z_R1,
+  *    X_L2, Y_L2, Z_L2, X_R2, Y_R2, Z_R2,
+  *    X_L3, Y_L3, Z_L3, X_R3, Y_R3, Z_R3,
+  *    X_LL1, Y_LL1, Z_LL1, X_RR1, Y_RR1, Z_RR1,
+  *    X_LL2, Y_LL2, Z_LL2, X_RR2, Y_RR2, Z_RR2,
+  *    X_LL3, Y_LL3, Z_LL3, X_RR3, Y_RR3, Z_RR3
+  *    where L#/R# indicates a node shifted to the left/right by epsilon in coordinate #
+  *    and LL#/RR# indicates a node shifted to the left/right by 2 epsilon in coordinate #
+  */
+
+};
+
+struct gk_geometry {
+  // stuff for mapc2p and finite differences array
+  struct gkyl_range local;
+  struct gkyl_range local_ext;
+  struct gkyl_range global;
+  struct gkyl_range global_ext;
+  struct gkyl_basis basis;
+  struct gkyl_basis surf_basis;
+  struct gkyl_rect_grid grid;
+
+  // The fields in these structs contain the geometric quantities needed to solve the
+  // GK Equation and Poisson Equation and to apply certain BC's
+  struct gk_geom_corn geo_corn; // Volume geometry from corner Nodes
+  struct gk_geom_int geo_int; // Volume geometry from interior nodes
+  struct gk_geom_surf geo_surf[3]; // Surface geometry
+
+  //struct gkyl_array* mc2p; // 3 components. Cartesian X,Y, and Z
+  //struct gkyl_array* mc2nu_pos; // 3 components. Uniform computational space to non-uniform computational space mapping
+  //struct gkyl_array* bmag; // 1 component. B Magnitude of magnetic field
+  //struct gkyl_array* g_ij; // 6 components. 
+  //                         // Metric coefficients g_{ij} Stored in order g_11, g12, g_13, g_22, g_23, g_33
+  //struct gkyl_array* g_ij_neut; // 6 components. 
+  //                         // Metric coefficients g_{ij} Stored in order g_11, g12, g_13, g_22, g_23, g_33
+  //                         // Calculated with coord definition alpha = phi for tokamak geometry
+  //struct gkyl_array* dxdz; // 9 components.
+  //                         // Cartesian components of tangent Vectors stored in order e_1, e_2, e_3
+  //struct gkyl_array* dzdx; // 9 components.
+  //                         // Cartesian components of dual vectors stroed in order e^1, e^2, e^3
+  //struct gkyl_array* dualmag; // 3 components
+  //                            // norms of the dual vectors : sqrt(e^i.e^i)
+  //struct gkyl_array* normals; // 9 components
+  //                            // Cartesian components of normal vectors in order n^1,, n^2, n^3
+  //struct gkyl_array* jacobgeo; // 1 component. Configuration space jacobian J
+  //struct gkyl_array* jacobgeo_ghost; // 1 component. Configuration space jacobian J
+  //struct gkyl_array* jacobgeo_inv; // 1 component. 1/J
+  //struct gkyl_array* gij; // Matric coefficients g^{ij}. See g_ij for order.
+  //struct gkyl_array* gij_neut; // Matric coefficients g^{ij}. See g_ij for order. 
+  //                             // Calculated with coord definition alpha = phi for tokamak geometry
+  //struct gkyl_array* b_i; // 3 components. Contravariant components of magnetic field vector b_1, b_2, b_3.
+  //struct gkyl_array* bcart; // 3 components. Cartesian components of magnetic field vector b_X, b_Y, b_Z.
+  //struct gkyl_array* cmag; // 1 component. C = JB/sqrt(g_33)
+  //struct gkyl_array* jacobtot; // 1 component. Phase space Jacobian = JB
+  //struct gkyl_array* jacobtot_inv; // 1 component. 1/(JB)
+  //struct gkyl_array* bmag_inv; // 1 component. 1/B.
+  //struct gkyl_array* bmag_inv_sq; // 1 component. 1/B^2.
+  //struct gkyl_array* gxxj; // 1 component. g^{xx} * J. For poisson solve.
+  //struct gkyl_array* gxyj; // 1 component. g^{xy} * J. For poisson solve.
+  //struct gkyl_array* gyyj; // 1 component. g^{yy} * J. For poisson solve.
+  //struct gkyl_array* gxzj; // 1 component. g^{xz} * J. For poisson solve if z derivatives are kept.
+  //struct gkyl_array* eps2; // 1 component. eps2 = Jg^33 - J/g_33. For poisson if z derivatives are kept.
 
   int geqdsk_sign_convention; // 0 if psi increases away from magnetic axis
                               // 1 if psi increases toward magnetic axis

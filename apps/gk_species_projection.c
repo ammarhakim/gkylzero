@@ -190,7 +190,7 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
 
     // Multiply by the gyrocenter coord jacobian (bmag).
     gkyl_dg_mul_conf_phase_op_range(&app->basis, &s->basis, f, 
-        app->gk_geom->bmag, f, &app->local, &s->local); 
+        app->gk_geom->geo_int.bmag, f, &app->local, &s->local); 
     // Multiply by the velocity-space jacobian. 
     gkyl_array_scale_by_cell(f, s->vel_map->jacobvel);     
   }
@@ -240,7 +240,7 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
   }
   // Multiply by the configuration space jacobian.
   gkyl_dg_mul_conf_phase_op_range(&app->basis, &s->basis, f, 
-    app->gk_geom->jacobgeo, f, &app->local, &s->local);      
+    app->gk_geom->geo_int.jacobgeo, f, &app->local, &s->local);      
 }
 
 void
