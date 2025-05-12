@@ -214,7 +214,6 @@ void gk_geometry_mapc2p_advance_interior(struct gk_geometry* up, struct gkyl_ran
 
 void gk_geometry_mapc2p_advance_surface(struct gk_geometry* up, int dir, struct gkyl_range *nrange, double dzc[3], 
   evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx, 
-  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *bmag_nodal,
   struct gkyl_position_map *position_map)
 {
 
@@ -329,9 +328,9 @@ void gk_geometry_mapc2p_advance_surface(struct gk_geometry* up, int dir, struct 
               if (it_delta != 0)
                 lidx = 27 + 3*(it_delta-1);
 
-              double *mc2p_fd_n = (double *) gkyl_array_fetch(mc2p_nodal_fd, gkyl_range_idx(nrange, cidx));
-              double *mc2p_n = (double *) gkyl_array_fetch(mc2p_nodal, gkyl_range_idx(nrange, cidx));
-              double *bmag_n = (double *) gkyl_array_fetch(bmag_nodal, gkyl_range_idx(nrange, cidx));
+              double *mc2p_fd_n = (double *) gkyl_array_fetch(up->geo_surf[dir].mc2p_nodal_fd, gkyl_range_idx(nrange, cidx));
+              double *mc2p_n = (double *) gkyl_array_fetch(up->geo_surf[dir].mc2p_nodal, gkyl_range_idx(nrange, cidx));
+              double *bmag_n = (double *) gkyl_array_fetch(up->geo_surf[dir].bmag_nodal, gkyl_range_idx(nrange, cidx));
 
               double xyz[3] = {psi_curr, alpha_curr, theta_curr};
               double XYZ[3] = {0.};
@@ -436,8 +435,8 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
     geometry_inp->bmag_func, geometry_inp->bmag_ctx, geometry_inp->position_map);
   // calculate mapc2p in cylindrical coords at surfaces
   for (int dir = 0; dir <up->grid.ndim; dir++) {
-    gk_geometry_mapc2p_advance_surface(up, dir, &nrange_quad_surf[dir], dzc, geometry_inp->mapc2p, geometry_inp->c2p_ctx,
-      geometry_inp->bmag_func, geometry_inp->bmag_ctx, up->geo_surf[dir].mc2p_nodal_fd, up->geo_surf[dir].mc2p_nodal, up->geo_surf[dir].bmag_nodal, geometry_inp->position_map);
+    gk_geometry_mapc2p_advance_surface(up, dir, &nrange_quad_surf[dir], dzc, geometry_inp->mapc2p, 
+      geometry_inp->c2p_ctx, geometry_inp->bmag_func, geometry_inp->bmag_ctx, geometry_inp->position_map);
   }
 
   up->flags = 0;
