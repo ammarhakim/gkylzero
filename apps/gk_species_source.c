@@ -41,7 +41,7 @@ void
 gk_species_source_write_init_only(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
   gk_species_source_write_enabled(app, gks, tm, frame);
-  gks->write_func = gk_species_source_write_disabled;
+  gks->src.write_func = gk_species_source_write_disabled;
 }
 
 void
@@ -100,7 +100,7 @@ void
 gk_species_source_write_mom_init_only(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
   gk_species_source_write_mom_enabled(app, gks, tm, frame);
-  gks->write_mom_func = gk_species_source_write_mom_disabled;
+  gks->src.write_mom_func = gk_species_source_write_mom_disabled;
 }
 
 void
