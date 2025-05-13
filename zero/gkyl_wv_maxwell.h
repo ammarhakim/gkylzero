@@ -63,6 +63,12 @@ struct gkyl_wv_eqn*
 gkyl_wv_maxwell_new(double c, double e_fact, double b_fact, bool use_gpu);
 
 /**
+ * Create a new Maxwell equation object that lives on NV-GPU.
+ * see new() method above for documentation.
+ */
+ struct gkyl_wv_eqn* gkyl_wv_maxwell_cu_dev_new(double c, double e_fact, double b_fact);
+
+/**
 * Create a new Maxwell equations object, from an input context struct.
 *
 * @param inp Input context struct.
