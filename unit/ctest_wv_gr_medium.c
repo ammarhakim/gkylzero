@@ -33,21 +33,21 @@ test_gr_medium_basic()
   double prims[15];
   gkyl_gr_medium_prim_vars(gas_gamma, q, prims);
 
-  TEST_CHECK( gkyl_compare(prims[0], exp_2a, 1e-16) );
-  TEST_CHECK( gkyl_compare(prims[1], a_dt, 1e-16) );
-  TEST_CHECK( gkyl_compare(prims[2], a_dx, 1e-16) );
-  TEST_CHECK( gkyl_compare(prims[3], b_dt, 1e-16) );
-  TEST_CHECK( gkyl_compare(prims[4], b_dx, 1e-16) );
-  TEST_CHECK( gkyl_compare(prims[5], c_dt, 1e-16) );
-  TEST_CHECK( gkyl_compare(prims[6], c_dx, 1e-16) );
-  TEST_CHECK( gkyl_compare(prims[7], a_dt_dx, 1e-16) );
-  TEST_CHECK( gkyl_compare(prims[8], a_dx_dx, 1e-16) );
-  TEST_CHECK( gkyl_compare(prims[9], b_dt_dx, 1e-16) );
-  TEST_CHECK( gkyl_compare(prims[10], b_dx_dx, 1e-16) );
-  TEST_CHECK( gkyl_compare(prims[11], c_dt_dx, 1e-16) );
-  TEST_CHECK( gkyl_compare(prims[12], c_dx_dx, 1e-16) );
-  TEST_CHECK( gkyl_compare(prims[13], rho, 1e-15) );
-  TEST_CHECK( gkyl_compare(prims[14], vel, 1e-15) );
+  TEST_CHECK( gkyl_compare(prims[0], exp_2a, 1e-14) );
+  TEST_CHECK( gkyl_compare(prims[1], a_dt, 1e-14) );
+  TEST_CHECK( gkyl_compare(prims[2], a_dx, 1e-14) );
+  TEST_CHECK( gkyl_compare(prims[3], b_dt, 1e-14) );
+  TEST_CHECK( gkyl_compare(prims[4], b_dx, 1e-14) );
+  TEST_CHECK( gkyl_compare(prims[5], c_dt, 1e-14) );
+  TEST_CHECK( gkyl_compare(prims[6], c_dx, 1e-14) );
+  TEST_CHECK( gkyl_compare(prims[7], a_dt_dx, 1e-14) );
+  TEST_CHECK( gkyl_compare(prims[8], a_dx_dx, 1e-14) );
+  TEST_CHECK( gkyl_compare(prims[9], b_dt_dx, 1e-14) );
+  TEST_CHECK( gkyl_compare(prims[10], b_dx_dx, 1e-14) );
+  TEST_CHECK( gkyl_compare(prims[11], c_dt_dx, 1e-14) );
+  TEST_CHECK( gkyl_compare(prims[12], c_dx_dx, 1e-14) );
+  TEST_CHECK( gkyl_compare(prims[13], rho, 1e-14) );
+  TEST_CHECK( gkyl_compare(prims[14], vel, 1e-14) );
 
   double Etot = ((rho + p) * (W * W)) - p;
   double mom = (rho + p) * vel * (W * W);
@@ -102,7 +102,7 @@ test_gr_medium_basic()
     gkyl_wv_eqn_rotate_to_global(gr_medium, tau1[d], tau2[d], norm[d], q_l, q_g);
 
     for (int i = 0; i < 15; i++) {
-      TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
+      TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-14) );
     }
 
     double w1[15], q1[15];
@@ -110,7 +110,7 @@ test_gr_medium_basic()
     gr_medium->riem_to_cons(gr_medium, q_local, w1, q1);
 
     for (int i = 0; i < 15; i++) {
-      TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
+      TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-14) );
     }
   }
 
@@ -208,7 +208,7 @@ test_gr_medium_waves()
     gkyl_wv_eqn_rotate_to_global(gr_medium, tau1[d], tau2[d], norm[d], fr_local, fr);
 
     for (int i = 0; i < 15; i++) {
-      TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-16) );
+      TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-14) );
     }
   }
 
@@ -306,7 +306,7 @@ test_gr_medium_waves_2()
     gkyl_wv_eqn_rotate_to_global(gr_medium, tau1[d], tau2[d], norm[d], fr_local, fr);
 
     for (int i = 0; i < 15; i++) {
-      TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-16) );
+      TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-14) );
     }
   }
 

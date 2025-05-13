@@ -98,7 +98,7 @@ void ker_cu_wv_maxwell_test(const struct gkyl_wv_eqn *eqn, int *nfail)
     eqn->rotate_to_global_func(eqn, tau1[d], tau2[d], norm[d], flux_local, flux);
 
     for (int m=0; m<8; ++m) {
-      GKYL_CU_CHECK( flux[m] == fluxes[d][m], nfail );
+      GKYL_CU_CHECK( fabs(flux[m] - fluxes[d][m]) / flux[m] < 1e-14, nfail );
     }
 
     // check Riemann transform

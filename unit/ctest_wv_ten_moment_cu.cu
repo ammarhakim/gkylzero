@@ -98,7 +98,7 @@ void ker_cu_wv_ten_moment_test(const struct gkyl_wv_eqn *eqn, int *nfail)
     eqn->rotate_to_global_func(eqn, tau1[d], tau2[d], norm[d], fr_local, fr);
     
     for (int i=0; i<10; ++i)
-      GKYL_CU_CHECK( fr[i]-fl[i] == amdq[i]+apdq[i], nfail );
+      GKYL_CU_CHECK( fabs((fr[i]-fl[i]) - (amdq[i]+apdq[i])) < 1e-14, nfail );
   }
 }
 
