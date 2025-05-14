@@ -112,9 +112,10 @@ gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *basis,
     // Brute force search. Start with the size of the boundary stencil.
     int maxSize = floor(up->dxRat) + ceil( up->dxRat-floor(up->dxRat) );
     for (int i=2; i<grid_do->cells[up->dir]; i++) {
-       double decimalL = 1-((i-1)*up->dxRat-floor((i-1)*up->dxRat));
-       double decimalU = 1-(ceil(i*up->dxRat)-i*up->dxRat);
-       int currSize = floor(up->dxRat-decimalL-decimalU) + ceil(decimalL) + ceil(decimalU);
+       double decimalL = 1.0-((i-1)*up->dxRat-floor((i-1)*up->dxRat));
+       double decimalU = 1.0-(ceil(i*up->dxRat)-i*up->dxRat);
+       int currSize = dg_interp_floor(up->dxRat-decimalL-decimalU, 1e-13, 0.0) + dg_interp_ceil(decimalL, 1e-13, 0.0)
+         + dg_interp_ceil(decimalU, 1e-13, 0.0);
        maxSize = GKYL_MAX2(maxSize, currSize);
     }
     intStencilSize = maxSize;
