@@ -69,7 +69,7 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
   gyrokinetic->mass = mass;
 
   if (skip_cell_threshold > 0.0)
-    gyrokinetic->skip_cell_thresh = skip_cell_threshold * pow(2.0, ((double)pdim)/2.0);
+    gyrokinetic->skip_cell_thresh = skip_cell_threshold * pow(sqrt(2.0), pdim);
   else
     gyrokinetic->skip_cell_thresh = -1.0;
 

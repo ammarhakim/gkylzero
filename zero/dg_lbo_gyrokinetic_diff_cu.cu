@@ -100,7 +100,7 @@ gkyl_dg_lbo_gyrokinetic_diff_cu_dev_new(const struct gkyl_basis* cbasis, const s
   lbo->conf_range = *conf_range;
 
   if (skip_cell_threshold > 0.0)
-    lbo->skip_cell_thresh = skip_cell_threshold * pow(2.0, ((double)pdim)/2.0);
+    lbo->skip_cell_thresh = skip_cell_threshold * pow(sqrt(2.0), pdim);
   else
     lbo->skip_cell_thresh = -1.0;
 
