@@ -27,15 +27,13 @@ struct gkyl_boundary_flux {
  * @param skin_r Skin range.
  * @param ghost_r Ghost range.
  * @param equation Equation object
- * @param cdim Number of configuration dimensions.
- * @param vdim Number of velocity dimensions.
  * @param skip_cell_threshold Threshold for skipping cells.
  * @return New updater pointer.
  */
 gkyl_boundary_flux*
 gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  const struct gkyl_dg_eqn *equation, int cdim, int vdim, double skip_cell_threshold, bool use_boundary_surf);
+  const struct gkyl_dg_eqn *equation, double skip_cell_threshold, bool use_boundary_surf);
 
 /**
  * Compute the boundary flux on the GPU.
