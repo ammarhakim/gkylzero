@@ -74,16 +74,9 @@ gkyl_boundary_flux_advance_cu_ker(const struct gkyl_boundary_flux *up,
       }
     }
     else {
-      if (up->use_boundary_surf)
-        up->equation->boundary_surf_term(up->equation, up->dir, xc_s, xc_g,
-          up->grid.dx, up->grid.dx, idx_s, idx_g, up->edge == GKYL_LOWER_EDGE? -1 : 1,
-          fs_c, fg_c, fluxOut_g
-        );
-      else
-        up->equation->boundary_flux_term(up->equation, up->dir, xc_s, xc_g,
-          up->grid.dx, up->grid.dx, idx_s, idx_g, up->edge == GKYL_LOWER_EDGE? -1 : 1,
-          fs_c, fg_c, fluxOut_g
-        );
+      up->equation->boundary_surf_term(up->equation, up->dir, xc_s, xc_g,
+        up->grid.dx, up->grid.dx, idx_s, idx_g, up->edge == GKYL_LOWER_EDGE? -1 : 1,
+        fs_c, fg_c, fluxOut_g);
     }
   }
 }

@@ -12,7 +12,7 @@
 gkyl_boundary_flux*
 gkyl_boundary_flux_new(int dir, enum gkyl_edge_loc edge,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  const struct gkyl_dg_eqn *equation, double skip_cell_threshold, bool use_boundary_surf, bool use_gpu)
+  const struct gkyl_dg_eqn *equation, int cdim, int vdim, double skip_cell_threshold, bool use_boundary_surf, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -31,7 +31,7 @@ gkyl_boundary_flux_new(int dir, enum gkyl_edge_loc edge,
   up->use_gpu = use_gpu;
 
   if (skip_cell_threshold > 0.0)
-    up->skip_cell_threshold = skip_cell_threshold * pow(2.0, pdim);
+    up->skip_cell_threshold = skip_cell_threshold * pow(2.0, cdim+vdim);
   else
     up->skip_cell_threshold = -1.0;
 
@@ -83,16 +83,9 @@ gkyl_boundary_flux_advance(gkyl_boundary_flux *up,
       }
     }
     else {
-      if (up->use_boundary_surf)
-        up->equation->boundary_surf_term(up->equation, up->dir, xc_s, xc_g,
-          up->grid.dx, up->grid.dx, idx_s, idx_g, up->edge == GKYL_LOWER_EDGE? -1 : 1,
-          fIn_s, fIn_g, fluxOut_g
-        );
-      else
-        up->equation->boundary_flux_term(up->equation, up->dir, xc_s, xc_g,
-          up->grid.dx, up->grid.dx, idx_s, idx_g, up->edge == GKYL_LOWER_EDGE? -1 : 1,
-          fIn_s, fIn_g, fluxOut_g
-        );
+      up->equation->boundary_surf_term(up->equation, up->dir, xc_s, xc_g,
+        up->grid.dx, up->grid.dx, idx_s, idx_g, up->edge == GKYL_LOWER_EDGE? -1 : 1,
+        fIn_s, fIn_g, fluxOut_g);
     }
   }
 
