@@ -170,7 +170,7 @@ gk_neut_species_recycle_init(struct gkyl_gyrokinetic_app *app, struct gk_recycle
   // Calculate flux associated with unit Maxwellian projected in f0.
   recyc->unit_phase_flux_neut = mkarr(app->use_gpu, s->basis.num_basis, recyc->emit_buff_r.volume);
   recyc->f0_flux_slvr = gkyl_boundary_flux_new(recyc->dir, recyc->edge, &s->grid,
-    recyc->emit_skin_r, recyc->emit_ghost_r, s->eqn_vlasov, app->cdim, app->vdim, -1.0, true, app->use_gpu);  
+    recyc->emit_skin_r, recyc->emit_ghost_r, s->eqn_vlasov, -1.0, true, app->use_gpu);  
   gkyl_boundary_flux_advance(recyc->f0_flux_slvr, s->f1, s->f1);
   gkyl_array_copy_range_to_range(recyc->unit_phase_flux_neut, s->f1, &recyc->emit_buff_r,
     recyc->emit_ghost_r);

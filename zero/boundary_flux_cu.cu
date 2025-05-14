@@ -23,7 +23,7 @@ gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   up->use_gpu = true;
 
   if (skip_cell_threshold > 0.0)
-    up->skip_cell_threshold = skip_cell_threshold * pow(2.0, pdim);
+    up->skip_cell_threshold = skip_cell_threshold * pow(2.0, ((double)grid->ndim)/2.0);
   else
     up->skip_cell_threshold = -1.0;
 
