@@ -23,7 +23,7 @@ gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   up->use_gpu = true;
 
   if (skip_cell_threshold > 0.0)
-    up->skip_cell_threshold = skip_cell_threshold;
+    up->skip_cell_threshold = skip_cell_threshold * pow(2.0, pdim);
   else
     up->skip_cell_threshold = -1.0;
 
@@ -65,20 +65,26 @@ gkyl_boundary_flux_advance_cu_ker(const struct gkyl_boundary_flux *up,
 
     const double* fg_c = (const double*) gkyl_array_cfetch(fIn, linidx_g);
     const double* fs_c = (const double*) gkyl_array_cfetch(fIn, linidx_s);
+    double *fluxOut_g = (double*) gkyl_array_fetch(fluxOut, linidx_g);
 
     if (fabs(fs_c[0]) < up->skip_cell_threshold && fabs(fg_c[0]) < up->skip_cell_threshold)
-      continue;
-    
-    if (up->use_boundary_surf)
-      up->equation->boundary_surf_term(up->equation, up->dir, xc_s, xc_g,
-        up->grid.dx, up->grid.dx, idx_s, idx_g, up->edge == GKYL_LOWER_EDGE? -1 : 1,
-        fs_c, fg_c, (double*) gkyl_array_fetch(fluxOut, linidx_g)
-      );
-    else
-      up->equation->boundary_flux_term(up->equation, up->dir, xc_s, xc_g,
-        up->grid.dx, up->grid.dx, idx_s, idx_g, up->edge == GKYL_LOWER_EDGE? -1 : 1,
-        fs_c, fg_c, (double*) gkyl_array_fetch(fluxOut, linidx_g)
-      );
+    {
+      for (int d=0; d<fluxOut->ncomp; ++d) {
+        fluxOut_g[d] = 0.0;
+      }
+    }
+    else {
+      if (up->use_boundary_surf)
+        up->equation->boundary_surf_term(up->equation, up->dir, xc_s, xc_g,
+          up->grid.dx, up->grid.dx, idx_s, idx_g, up->edge == GKYL_LOWER_EDGE? -1 : 1,
+          fs_c, fg_c, fluxOut_g
+        );
+      else
+        up->equation->boundary_flux_term(up->equation, up->dir, xc_s, xc_g,
+          up->grid.dx, up->grid.dx, idx_s, idx_g, up->edge == GKYL_LOWER_EDGE? -1 : 1,
+          fs_c, fg_c, fluxOut_g
+        );
+    }
   }
 }
 

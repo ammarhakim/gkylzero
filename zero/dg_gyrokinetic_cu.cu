@@ -165,7 +165,7 @@ gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gky
   gyrokinetic->mass = mass;
 
   if (skip_cell_threshold > 0.0)
-    gyrokinetic->skip_cell_thresh = skip_cell_threshold;
+    gyrokinetic->skip_cell_thresh = skip_cell_threshold * pow(2.0, pdim);
   else
     gyrokinetic->skip_cell_thresh = -1.0;
 

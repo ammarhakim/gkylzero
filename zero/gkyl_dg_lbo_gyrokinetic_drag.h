@@ -23,7 +23,7 @@ struct gkyl_dg_lbo_gyrokinetic_drag_auxfields {
  * @param conf_range Configuration space range for use in indexing primitive moments
  * @param pgrid Phase-space grid object.
  * @param mass Species mass
- * @param skip_cell_threshold Threshold which under skips cells
+ * @param skip_cell_threshold Threshold under which to skip cells
  * @param gk_geom Gyrokinetic geometry object.
  * @param vel_map Velocity space mapping object.
  * @return Pointer to LBO equation object

@@ -735,7 +735,7 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
   gkyl_array_release(s->bc_buffer_lo_fixed);
   gkyl_array_release(s->bc_buffer_up_fixed);
 
-  if (s->write_cfl_func) {
+  if (s->info.write_omega_cfl) {
     gkyl_array_release(s->cflrate_ho);
   }
   if (s->lbo.collision_id == GKYL_LBO_COLLISIONS) {
