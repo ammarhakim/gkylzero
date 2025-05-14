@@ -76,7 +76,6 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
   gyrokinetic->eqn.num_equations = 1;
   gyrokinetic->eqn.surf_term = surf;
   gyrokinetic->eqn.boundary_surf_term = boundary_surf;
-  gyrokinetic->eqn.boundary_flux_term = boundary_flux;
 
   const gkyl_dg_gyrokinetic_vol_kern_list *vol_kernels, *vol_no_by_kernels;
   const gkyl_dg_gyrokinetic_surf_kern_list *surf_x_kernels, *surf_no_by_x_kernels; 
@@ -87,9 +86,6 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
   const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_y_kernels, *boundary_surf_no_by_y_kernels; 
   const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_z_kernels, *boundary_surf_no_by_z_kernels; 
   const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_vpar_kernels, *boundary_surf_no_by_vpar_kernels; 
-  const gkyl_dg_gyrokinetic_boundary_flux_kern_list *boundary_flux_x_kernels, *boundary_flux_no_by_x_kernels; 
-  const gkyl_dg_gyrokinetic_boundary_flux_kern_list *boundary_flux_y_kernels, *boundary_flux_no_by_y_kernels; 
-  const gkyl_dg_gyrokinetic_boundary_flux_kern_list *boundary_flux_z_kernels, *boundary_flux_no_by_z_kernels; 
 
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -102,9 +98,6 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
       boundary_surf_y_kernels = ser_boundary_surf_y_kernels;
       boundary_surf_z_kernels = ser_boundary_surf_z_kernels;
       boundary_surf_vpar_kernels = ser_boundary_surf_vpar_kernels;
-      boundary_flux_x_kernels = ser_boundary_flux_x_kernels;
-      boundary_flux_y_kernels = ser_boundary_flux_y_kernels;
-      boundary_flux_z_kernels = ser_boundary_flux_z_kernels;
 
       vol_no_by_kernels = ser_no_by_vol_kernels;
       surf_no_by_x_kernels = ser_no_by_surf_x_kernels;
@@ -115,9 +108,6 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
       boundary_surf_no_by_y_kernels = ser_no_by_boundary_surf_y_kernels;
       boundary_surf_no_by_z_kernels = ser_no_by_boundary_surf_z_kernels;
       boundary_surf_no_by_vpar_kernels = ser_no_by_boundary_surf_vpar_kernels;
-      boundary_flux_no_by_x_kernels = ser_no_by_boundary_flux_x_kernels;
-      boundary_flux_no_by_y_kernels = ser_no_by_boundary_flux_y_kernels;
-      boundary_flux_no_by_z_kernels = ser_no_by_boundary_flux_z_kernels;
 
       break;
 
@@ -143,11 +133,6 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
       gyrokinetic->boundary_surf[2] = CK(boundary_surf_no_by_z_kernels,cdim,vdim,poly_order);
     gyrokinetic->boundary_surf[cdim] = CK(boundary_surf_no_by_vpar_kernels,cdim,vdim,poly_order);
 
-    gyrokinetic->boundary_flux[0] = CK(boundary_flux_no_by_x_kernels,cdim,vdim,poly_order);
-    if (cdim>1)
-      gyrokinetic->boundary_flux[1] = CK(boundary_flux_no_by_y_kernels,cdim,vdim,poly_order);
-    if (cdim>2)
-      gyrokinetic->boundary_flux[2] = CK(boundary_flux_no_by_z_kernels,cdim,vdim,poly_order);
   }
   else {
     gyrokinetic->eqn.vol_term = CK(vol_kernels,cdim,vdim,poly_order);
@@ -166,18 +151,12 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
       gyrokinetic->boundary_surf[2] = CK(boundary_surf_z_kernels,cdim,vdim,poly_order);
     gyrokinetic->boundary_surf[cdim] = CK(boundary_surf_vpar_kernels,cdim,vdim,poly_order);
 
-    gyrokinetic->boundary_flux[0] = CK(boundary_flux_x_kernels,cdim,vdim,poly_order);
-    if (cdim>1)
-      gyrokinetic->boundary_flux[1] = CK(boundary_flux_y_kernels,cdim,vdim,poly_order);
-    if (cdim>2)
-      gyrokinetic->boundary_flux[2] = CK(boundary_flux_z_kernels,cdim,vdim,poly_order);
   }
 
   // Ensure non-NULL pointers.
   for (int i=0; i<cdim; ++i) assert(gyrokinetic->surf[i]);
   assert(gyrokinetic->surf[cdim]);
   for (int i=0; i<cdim+1; ++i) assert(gyrokinetic->boundary_surf[i]);
-  for (int i=0; i<cdim; ++i) assert(gyrokinetic->boundary_flux[i]);
 
   gyrokinetic->conf_range = *conf_range;
   gyrokinetic->phase_range = *phase_range;
