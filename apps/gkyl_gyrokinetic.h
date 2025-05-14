@@ -110,6 +110,8 @@ struct gkyl_gyrokinetic_emission_inp {
   char in_species[GKYL_MAX_SPECIES][128];
   double recycling_frac; // Recycling coefficient.
   double emission_temp; // Temperature of emitted species.
+  bool reflect; // Is reflection included.
+  double reflect_frac; // Scaling factor for reflection.
 };
 
 // Parameters for boundary conditions

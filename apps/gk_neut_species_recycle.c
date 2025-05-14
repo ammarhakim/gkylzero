@@ -180,6 +180,11 @@ gk_neut_species_recycle_init(struct gkyl_gyrokinetic_app *app, struct gk_recycle
     recyc->write_flux_func = gk_neut_species_recycle_write_flux_enabled;
   }
 
+  if (recyc->params->reflect) {
+    recyc->reflect_bc = gkyl_bc_basic_new(dir, edge, GKYL_BC_DISTF_REFLECT, s->basis_on_dev,
+      recyc->emit_skin_r, recyc->emit_ghost_r, s->f->ncomp, app->cdim, app->use_gpu);
+  }
+
   gkyl_bc_basic_buffer_fixed_func(bc_basic_op, recyc->bc_buffer, s->f1);
   gkyl_array_clear(s->f1, 0.0);
 
@@ -278,7 +283,14 @@ void
 gk_neut_species_recycle_apply_bc(struct gkyl_gyrokinetic_app *app, const struct gk_recycle_wall *recyc,
   const struct gk_neut_species *s, struct gkyl_array *fout)
 {
+
   gkyl_array_clear(recyc->f_emit, 0.0); // Zero emitted distribution before beginning accumulate
+
+  if (recyc->params->reflect) {
+    gkyl_bc_basic_advance(recyc->reflect_bc, recyc->f_emit, fout);
+    // Basis is passed directly instead of by pointer for bin op, so advance uses host copy.
+    gkyl_array_set(recyc->f_emit, recyc->params->reflect_frac, recyc->f_emit);
+  }
 
   // Inelastic emission contribution.
   // This relies on the calculation of the ion flux (phase_flux_gk).
@@ -330,6 +342,10 @@ gk_neut_species_recycle_release(const struct gkyl_gyrokinetic_app *app, const st
     gkyl_array_release(recyc->m0_flux_gk[i]);
     gkyl_array_release(recyc->spectrum[i]);
     gkyl_dg_updater_moment_gyrokinetic_release(recyc->m0op_gk[i]);
+  }
+
+  if (recyc->params->reflect) {
+    gkyl_bc_basic_release(recyc->reflect_bc);
   }
 
   gkyl_array_release(recyc->bc_buffer);

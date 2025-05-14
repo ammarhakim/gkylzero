@@ -425,6 +425,8 @@ main(int argc, char **argv)
     .in_species = { "ion" },
     .recycling_frac = ctx.rec_frac,
     .emission_temp = ctx.T0,
+    .reflect = true, 
+    .reflect_frac = 0.5,
   };
 
   // Electron species.
@@ -576,7 +578,7 @@ main(int argc, char **argv)
   struct gkyl_gk *gk = gkyl_malloc(sizeof *gk);
   memset(gk, 0, sizeof(*gk));
 
-  strcpy(gk->name, "gk_neut_recycle_1x3v_p1");
+  strcpy(gk->name, "gk_neut_recycle_reflect_1x3v_p1");
   gk->cfl_frac = 1.0;
 
   gk->cdim = ctx.cdim;

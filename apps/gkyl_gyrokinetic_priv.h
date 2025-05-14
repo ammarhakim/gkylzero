@@ -436,6 +436,8 @@ struct gk_recycle_wall {
   struct gkyl_gyrokinetic_emission_inp *params;
   int num_species;
 
+  struct gkyl_bc_basic *reflect_bc; // Optional BC for reflection.
+
   int dir; // Direction orthogonal to the recycling boundary..
   enum gkyl_edge_loc edge; // Edge of the recycling boundary.
   gkyl_boundary_flux *f0_flux_slvr; // Operator that computes the neutral flux.
