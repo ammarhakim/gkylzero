@@ -79,11 +79,11 @@ struct gkyl_rect_grid gkyl_gk_geometry_augment_grid(struct gkyl_rect_grid grid, 
     cells[2] = grid.cells[1];
 
     lower[0] = grid.lower[0];
-    lower[1] = geometry.world[0] - 1e-1;
+    lower[1] = geometry.world[0] - 1e-5;
     lower[2] = grid.lower[1];
 
     upper[0] = grid.upper[0];
-    upper[1] = geometry.world[0] + 1e-1;
+    upper[1] = geometry.world[0] + 1e-5;
     upper[2] = grid.upper[1];
   }
 

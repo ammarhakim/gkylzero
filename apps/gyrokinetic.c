@@ -388,7 +388,7 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
   app->bmag_ref = (bmag_max_global + bmag_min_global)/2.0;
 
-  gkyl_position_map_set(app->position_map, app->gk_geom->geo_corn.mc2nu_pos);
+  gkyl_position_map_set_mc2nu(app->position_map, app->gk_geom->geo_corn.mc2nu_pos);
 
   // If we are on the gpu, copy from host.
   if (app->use_gpu) {
