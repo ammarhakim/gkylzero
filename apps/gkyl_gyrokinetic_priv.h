@@ -627,6 +627,7 @@ struct gk_species {
 
   struct gkyl_array *f, *f1, *fnew; // arrays for updates
   struct gkyl_array *cflrate; // CFL rate in each cell
+  struct gkyl_array *cflrate_ho; // CFL rate in each cell on host-side
   struct gkyl_array *bc_buffer; // buffer for BCs (used by bc_basic)
   struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // fixed buffers for time independent BCs 
 
@@ -758,6 +759,7 @@ struct gk_species {
     const struct gkyl_range *range);
   void (*apply_pos_shift_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks);
   void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+  void (*write_cfl_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
   void (*write_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
   void (*calc_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm);
   void (*write_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks);
