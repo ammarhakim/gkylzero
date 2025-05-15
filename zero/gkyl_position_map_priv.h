@@ -355,12 +355,12 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
   }
   
   // Set final extrema after the loop. MR April 22 2025
-  theta_extrema[0] = theta_lo;
-  xp[Z_IDX] = theta_lo;
+  theta_extrema[0] = constB_ctx->theta_min;
+  xp[Z_IDX] = constB_ctx->theta_min;
   gkyl_calc_bmag_global(0.0, xp, &bmag_extrema[0], bmag_ctx);
 
-  theta_extrema[extrema] = theta_hi;
-  xp[Z_IDX] = theta_hi;
+  theta_extrema[extrema] = constB_ctx->theta_max;
+  xp[Z_IDX] = constB_ctx->theta_max;
   gkyl_calc_bmag_global(0.0, xp, &bmag_extrema[extrema], bmag_ctx);
   extrema++;
 
