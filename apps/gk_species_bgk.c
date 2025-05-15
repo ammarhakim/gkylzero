@@ -218,7 +218,7 @@ gk_species_bgk_write_cross_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks
       .stime = tm,
       .poly_order = app->poly_order,
       .basis_type = app->basis.id
-    }
+    }, GKYL_GK_META_NONE, 0
   );
 
   if (gks->bgk.num_cross_collisions && gks->bgk.write_diagnostics) {

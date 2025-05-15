@@ -317,7 +317,7 @@ gk_neut_species_react_write(gkyl_gyrokinetic_app* app, struct gk_neut_species *g
         .stime = tm,
         .poly_order = app->poly_order,
         .basis_type = app->basis.id
-      }
+      }, GKYL_GK_META_NONE, 0
     );
 
     // Compute reaction rate

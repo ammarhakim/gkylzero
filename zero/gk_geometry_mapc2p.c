@@ -356,6 +356,7 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
   up->global = geometry_inp->geo_global;
   up->global_ext = geometry_inp->geo_global_ext;
   up->grid = geometry_inp->geo_grid;
+  up->geqdsk_sign_convention = 0;
 
   struct gkyl_range nrange;
   struct gkyl_range nrange_quad;

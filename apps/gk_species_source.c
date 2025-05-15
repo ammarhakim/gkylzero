@@ -91,7 +91,7 @@ gk_species_source_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
         .stime = tm,
         .poly_order = app->poly_order,
         .basis_type = gks->basis.id
-      }
+      }, GKYL_GK_META_NONE, 0
     );
 
     // Write out the source distribution function
@@ -125,7 +125,7 @@ gk_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, d
         .stime = tm,
         .poly_order = app->poly_order,
         .basis_type = app->basis.id
-      }
+      }, GKYL_GK_META_NONE, 0
     );
 
     for (int m=0; m<gks->src.num_diag_moments; ++m) {

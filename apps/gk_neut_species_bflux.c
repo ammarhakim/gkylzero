@@ -438,7 +438,7 @@ gk_neut_species_bflux_write_mom_dynamic(gkyl_gyrokinetic_app* app, void *species
       .stime = tm,
       .poly_order = app->poly_order,
       .basis_type = app->basis.id
-    }
+    }, GKYL_GK_META_NONE, 0
   );
 
   int rank, comm_size;

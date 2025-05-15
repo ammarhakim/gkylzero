@@ -32,7 +32,10 @@ gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *
   up->global_ext = geometry_inp->global_ext;
   up->grid = geometry_inp->grid;
   gkyl_cart_modal_serendip(&up->surf_basis, up->grid.ndim-1, up->basis.poly_order);
-  up->geqdsk_sign_convention = geo_host->geqdsk_sign_convention;
+  if (geometry_inp ->geometry_id == GKYL_GEOMETRY_FROMFILE)
+    up->geqdsk_sign_convention = 0;
+  else
+    up->geqdsk_sign_convention = geo_host->geqdsk_sign_convention;
 
   gk_geometry_corn_alloc_expansions(up);
   gk_geometry_int_alloc_expansions(up);

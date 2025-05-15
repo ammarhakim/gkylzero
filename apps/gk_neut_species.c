@@ -246,7 +246,7 @@ gk_neut_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_species 
       .stime = tm,
       .poly_order = app->poly_order,
       .basis_type = gkns->basis.id
-    }
+    }, GKYL_GK_META_NONE, 0
   );
 
   const char *fmt = "%s-%s_%d.gkyl";
@@ -283,7 +283,7 @@ gk_neut_species_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_spec
       .stime = tm,
       .poly_order = app->poly_order,
       .basis_type = app->basis.id
-    }
+    }, GKYL_GK_META_NONE, 0
   );
 
   for (int m=0; m<gkns->info.num_diag_moments; ++m) {
@@ -783,7 +783,7 @@ gk_neut_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
       gk_meta_from_mpack( &(struct gkyl_msgpack_data) {
           .meta = hdr.meta,
           .meta_sz = hdr.meta_size
-        }
+        }, GKYL_GK_META_NONE, 0
       );
     assert(strcmp(s->basis.id, meta.basis_type_nm) == 0);
     assert(poly_order == meta.poly_order);

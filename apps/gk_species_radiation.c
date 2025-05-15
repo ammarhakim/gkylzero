@@ -339,7 +339,7 @@ gk_species_radiation_write_drag(gkyl_gyrokinetic_app* app, struct gk_species *gk
         .stime = tm,
         .poly_order = app->poly_order,
         .basis_type = app->basis.id      
-      }
+      }, GKYL_GK_META_NONE, 0
     );
 
     // Construct the file handles for vparallel and mu drag
@@ -404,7 +404,7 @@ gk_species_radiation_write_emissivity(gkyl_gyrokinetic_app* app, struct gk_speci
         .stime = tm,
         .poly_order = app->poly_order,
         .basis_type = app->basis.id
-      }
+      }, GKYL_GK_META_NONE, 0
     );
     
     const struct gkyl_array *fin_neut[app->num_neut_species];
