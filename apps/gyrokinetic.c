@@ -83,17 +83,10 @@ gk_array_meta_new(struct gyrokinetic_output_meta meta, enum gk_extra_meta_type e
   mpack_write_cstr(&writer, "Git_commit_hash");
   mpack_write_cstr(&writer, GIT_COMMIT_ID);
 
-  switch (extra_meta_type) {
-    case GKYL_GK_META_NONE:
-      break;
-    case GKYL_GK_META_GEO:
+  if (extra_meta_type == GKYL_GK_META_GEO) {
       struct gyrokinetic_output_meta_geo *extram = extra_meta;
       mpack_write_cstr(&writer, "geqdsk_sign_convention");
       mpack_write_i64(&writer, extram->geqdsk_sign_convention);
-    case GKYL_GK_META_SOURCE:
-      break;
-    case GKYL_GK_META_RECYCLING:
-      break;
   }
 
   mpack_complete_map(&writer);
@@ -143,17 +136,10 @@ gk_meta_from_mpack(struct gkyl_msgpack_data *mt, enum gk_extra_meta_type extra_m
     meta.basis_type = meta.basis_type_nm;
     MPACK_FREE(basis_type);
 
-    switch (extra_meta_type) {
-      case GKYL_GK_META_NONE:
-        break;
-      case GKYL_GK_META_GEO:
-        struct gyrokinetic_output_meta_geo *extram = extra_meta;
-        mpack_node_t geo_node = mpack_node_map_cstr(root, "geqdsk_sign_convention");
-        extram->geqdsk_sign_convention = mpack_node_i64(geo_node);
-      case GKYL_GK_META_SOURCE:
-        break;
-      case GKYL_GK_META_RECYCLING:
-        break;
+    if (extra_meta_type == GKYL_GK_META_GEO) {
+          struct gyrokinetic_output_meta_geo *extram = extra_meta;
+          mpack_node_t geo_node = mpack_node_map_cstr(root, "geqdsk_sign_convention");
+          extram->geqdsk_sign_convention = mpack_node_i64(geo_node);
     }
 
     mpack_tree_destroy(&tree);
