@@ -307,12 +307,12 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
   double theta_lo = constB_ctx->theta_min;
   double theta_hi = constB_ctx->theta_max;
   double theta_dxi = (theta_hi - theta_lo) / npts;
-  double bmag_vals[npts];
-  double dbmag_vals[npts];
+  double *bmag_vals = gkyl_malloc(sizeof(double) * (npts + 1));
+  double *dbmag_vals = gkyl_malloc(sizeof(double) * (npts + 1));
 
   int extrema = 1; // Offset by 1 for the first point
-  double theta_extrema[16];
-  double bmag_extrema[16];
+  double *theta_extrema = gkyl_malloc(sizeof(double) * (npts + 1));
+  double *bmag_extrema = gkyl_malloc(sizeof(double) * (npts + 1));
 
   for (int i = 0; i <= npts; i++){
     double theta = theta_lo + i * theta_dxi;
@@ -399,6 +399,12 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
   {    gpm->constB_ctx->min_or_max[extrema-1] = 0; } // Minimum
   else  
   {    printf("Error: Extrema is not an extrema. Position_map optimization failed\n");  }
+
+  // Free mallocs
+  gkyl_free(bmag_vals);
+  gkyl_free(dbmag_vals);
+  gkyl_free(theta_extrema);
+  gkyl_free(bmag_extrema);
 }
 
 /**
