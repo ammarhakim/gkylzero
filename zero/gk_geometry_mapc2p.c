@@ -50,14 +50,7 @@ void gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *nrang
   dzc[2] = delta_theta;
   int modifiers[5] = {0, -1, 1, -2, 2};
 
-  position_map->constB_ctx->psi_max   = up->grid.upper[PH_IDX];
-  position_map->constB_ctx->psi_min   = up->grid.lower[PH_IDX];
-  position_map->constB_ctx->alpha_max = up->grid.upper[AL_IDX];
-  position_map->constB_ctx->alpha_min = up->grid.lower[AL_IDX];
-  position_map->constB_ctx->theta_max = up->grid.upper[TH_IDX];
-  position_map->constB_ctx->theta_min = up->grid.lower[TH_IDX];
-  position_map->constB_ctx->N_theta_boundaries = up->global.upper[TH_IDX] - up->global.lower[TH_IDX];
-  gkyl_position_map_optimize(position_map);
+  gkyl_position_map_optimize(position_map, up->grid, up->global);
                                 
   int cidx[3] = { 0 };
   for(int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia){
@@ -283,9 +276,8 @@ gkyl_gk_geometry_mapc2p_new(struct gkyl_gk_geometry_inp *geometry_inp)
       else
         gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
 
-      geometry_inp->position_map->to_optimize = true;
-      gkyl_comm_array_allgather_host(geometry_inp->comm, &geometry_inp->local, \
-      &geometry_inp->global, gk_geom->bmag, (struct gkyl_array*) geometry_inp->position_map->bmag_ctx->bmag);
+      gkyl_position_map_set_bmag(geometry_inp->position_map, geometry_inp->comm, \
+        gk_geom->bmag);
 
       gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
       gkyl_gk_geometry_release(gk_geom); // release 3d geometry

@@ -310,14 +310,9 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
   double bmag_vals[npts];
   double dbmag_vals[npts];
 
-  int extrema = 0;
+  int extrema = 1; // Offset by 1 for the first point
   double theta_extrema[16];
   double bmag_extrema[16];
-
-  theta_extrema[0] = theta_lo;
-  xp[Z_IDX] = theta_lo;
-  gkyl_calc_bmag_global(0.0, xp, &bmag_extrema[0], bmag_ctx);
-  extrema++;
 
   for (int i = 0; i <= npts; i++){
     double theta = theta_lo + i * theta_dxi;
@@ -358,6 +353,11 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
       }
     }
   }
+  
+  // Set final extrema after the loop. MR April 22 2025
+  theta_extrema[0] = theta_lo;
+  xp[Z_IDX] = theta_lo;
+  gkyl_calc_bmag_global(0.0, xp, &bmag_extrema[0], bmag_ctx);
 
   theta_extrema[extrema] = theta_hi;
   xp[Z_IDX] = theta_hi;
@@ -554,14 +554,9 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
   // Set strict floor and ceiling limits for theta
   // This is to prevent the root finding algorithm from going out of bounds
   // Not fout[0] = theta because of the finite differences and can lead to jumps
-  if (it <=0)
+  if (it <= 0 || it >= num_boundaries)
   {
-    fout[0] = theta_lo;
-    return;
-  }
-  if (it >= num_boundaries)
-  {
-    fout[0] = theta_hi;
+    fout[0] = (it <= 0) ? theta_lo : theta_hi;
     return;
   }
 
