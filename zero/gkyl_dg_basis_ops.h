@@ -107,7 +107,7 @@ gkyl_dg_basis_op_mem *gkyl_dg_alloc_cubic_1d(int cells);
  * from nodal data. Free memory using gkyl_dg_basis_op_mem_release method.
  *
  * @param cells Number of cells in each direction in 2D grid
- * @return Newly alloicated memory.
+ * @return Newly allocated memory.
  */
 gkyl_dg_basis_op_mem *gkyl_dg_alloc_cubic_2d(int cells[2]);
 
@@ -137,7 +137,7 @@ void gkyl_dg_calc_cubic_1d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells,
  * Compute cubic expansion from 2D nodal values. Note that the
  * nodal_vals and cubic arrays must not have any ghost cells and must
  * be properly allocated by the caller. Further, mem must also be
- * constructed from a call to gkyl_dg_alloc_cubic_1d.
+ * constructed from a call to gkyl_dg_alloc_cubic_2d.
  *
  * @param mem Memory space to use
  * @param cells Number of cells along each direction
