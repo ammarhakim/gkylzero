@@ -102,9 +102,25 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
 }
 
 void
-gkyl_position_map_set(struct gkyl_position_map* gpm, struct gkyl_array* mc2nu)
+gkyl_position_map_set_mc2nu(struct gkyl_position_map* gpm, struct gkyl_array* mc2nu)
 {
   gkyl_array_copy(gpm->mc2nu, mc2nu);
+}
+
+void
+gkyl_position_map_set_bmag(struct gkyl_position_map* gpm, struct gkyl_comm* comm,
+  struct gkyl_array* bmag)
+{
+  gpm->to_optimize = true;
+  if (comm == NULL) {
+    gkyl_array_release(gpm->bmag_ctx->bmag);
+    gpm->bmag_ctx->bmag = gkyl_array_acquire(bmag);
+    return;
+  }
+  else {
+    gkyl_comm_array_allgather_host(comm, &gpm->local, \
+    &gpm->global, bmag, (struct gkyl_array*) gpm->bmag_ctx->bmag);
+  }
 }
 
 void 
@@ -135,8 +151,18 @@ gkyl_position_map_eval_mc2nu(const struct gkyl_position_map* gpm, const double *
 }
 
 void
-gkyl_position_map_optimize(struct gkyl_position_map* gpm)
+gkyl_position_map_optimize(struct gkyl_position_map* gpm, struct gkyl_rect_grid grid,
+  struct gkyl_range global)
 {
+  enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
+  gpm->constB_ctx->psi_max   = grid.upper[PSI_IDX];
+  gpm->constB_ctx->psi_min   = grid.lower[PSI_IDX];
+  gpm->constB_ctx->alpha_max = grid.upper[AL_IDX];
+  gpm->constB_ctx->alpha_min = grid.lower[AL_IDX];
+  gpm->constB_ctx->theta_max = grid.upper[TH_IDX];
+  gpm->constB_ctx->theta_min = grid.lower[TH_IDX];
+  gpm->constB_ctx->N_theta_boundaries = global.upper[TH_IDX] - global.lower[TH_IDX] + 2;
+
   if (gpm->id == GKYL_PMAP_CONSTANT_DB_POLYNOMIAL && gpm->to_optimize == true)
   {
     gpm->maps[0] = gpm->constB_ctx->maps_backup[0];

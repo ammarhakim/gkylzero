@@ -388,7 +388,7 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
   app->bmag_ref = (bmag_max_global + bmag_min_global)/2.0;
 
-  gkyl_position_map_set(app->position_map, app->gk_geom->mc2nu_pos);
+  gkyl_position_map_set_mc2nu(app->position_map, app->gk_geom->mc2nu_pos);
 
   // If we are on the gpu, copy from host
   if (app->use_gpu) {
@@ -577,9 +577,7 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
 
     // Initialize cross-species collisions (e.g, LBO or BGK)
     if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS) {
-      if (gk_s->lbo.num_cross_collisions) {
-        gk_species_lbo_cross_init(app, &app->species[i], &gk_s->lbo);
-      }
+      gk_species_lbo_cross_init(app, &app->species[i], &gk_s->lbo);
     }
     if (gk_s->bgk.collision_id == GKYL_BGK_COLLISIONS) {
       if (gk_s->bgk.num_cross_collisions) {
@@ -1512,6 +1510,14 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     }
   }
 
+  // Compute the cross-species collision frequencies.
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *gk_s = &app->species[i];
+    if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS) { 
+      gk_species_lbo_cross_nu(app, &app->species[i], &gk_s->lbo);
+    }
+  }
+
   // Compute necessary moments for cross-species collisions.
   // Needs to be done after self-collisions moments, so separate loop over species.
   for (int i=0; i<app->num_species; ++i) {
@@ -2095,12 +2101,14 @@ gkyl_gyrokinetic_app_from_file_species(gkyl_gyrokinetic_app *app, int sidx,
   struct gk_species *gk_s = &app->species[sidx];
   
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
-    rstat.io_status =
-      gkyl_comm_array_read(gk_s->comm, &gk_s->grid, &gk_s->local, gk_s->f_host, fname);
+    rstat.io_status = gkyl_comm_array_read(gk_s->comm, &gk_s->grid, &gk_s->local, gk_s->f_host, fname);
     if (app->use_gpu)
       gkyl_array_copy(gk_s->f, gk_s->f_host);
-    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+
+    if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
       gk_species_source_calc(app, gk_s, &gk_s->src, 0.0);
+      // Read volume and time integrated boundary flux diagnostics.
+      gk_species_bflux_read_voltime_integrated_mom(app, gk_s, &gk_s->bflux);
     }
   }
 
@@ -2120,8 +2128,10 @@ gkyl_gyrokinetic_app_from_file_neut_species(gkyl_gyrokinetic_app *app, int sidx,
       gkyl_comm_array_read(gk_ns->comm, &gk_ns->grid, &gk_ns->local, gk_ns->f_host, fname);
     if (app->use_gpu)
       gkyl_array_copy(gk_ns->f, gk_ns->f_host);
-    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+    if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
       gk_neut_species_source_calc(app, gk_ns, &gk_ns->src, 0.0);
+      // Read volume and time integrated boundary flux diagnostics.
+      gk_neut_species_bflux_read_voltime_integrated_mom(app, gk_ns, &gk_ns->bflux);
     }
   }
 
@@ -2155,7 +2165,6 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
   gk_s->is_first_L2norm_write_call = false;
   for (int b=0; b<gk_s->bflux.num_boundaries; ++b)
     gk_s->bflux.is_first_intmom_write_call[b] = false;
-  gk_s->bflux.is_not_first_restart_write_call = false;
   if (gk_s->info.time_rate_diagnostics)
     gk_s->is_first_fdot_integ_write_call = false;
   if (gk_s->enforce_positivity)

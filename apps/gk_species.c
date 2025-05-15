@@ -359,6 +359,7 @@ gk_species_apply_pos_shift(gkyl_gyrokinetic_app* app, struct gk_species *gks)
 static void
 gk_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
+  gks->write_cfl_func(app, gks, tm, frame);
   struct timespec wst = gkyl_wall_clock();
   struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
       .frame = frame,
@@ -386,6 +387,38 @@ gk_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, doub
 
 static void
 gk_species_write_static(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
+{
+  // do nothing
+}
+
+static void
+gk_species_write_cfl_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
+{
+  struct timespec wst = gkyl_wall_clock();
+  struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
+      .frame = frame,
+      .stime = tm,
+      .poly_order = 0,
+      .basis_type = gks->basis.id,
+    }
+  );
+  struct timespec wtm = gkyl_wall_clock();
+
+  const char *fmt = "%s-%s-cflrate_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, frame);
+  gkyl_array_copy(gks->cflrate_ho, gks->cflrate);
+  gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt,
+    gks->cflrate_ho, fileNm);
+
+  app->stat.n_io += 1;
+  gk_array_meta_release(mt);  
+  app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
+}
+
+static void
+gk_species_write_cfl_disabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
   // do nothing
 }
@@ -702,6 +735,9 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
   gkyl_array_release(s->bc_buffer_lo_fixed);
   gkyl_array_release(s->bc_buffer_up_fixed);
 
+  if (s->info.write_omega_cfl) {
+    gkyl_array_release(s->cflrate_ho);
+  }
   if (s->lbo.collision_id == GKYL_LBO_COLLISIONS) {
     gk_species_lbo_release(app, &s->lbo);
   }
@@ -951,7 +987,8 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
     }
 
     gks->diff_slvr = gkyl_dg_updater_diffusion_gyrokinetic_new(&gks->grid, &gks->basis, &app->basis, 
-      false, diff_dir, diffusion_order, &app->local, is_zero_flux, app->use_gpu);
+      false, diff_dir, diffusion_order, &app->local, is_zero_flux,
+      gks->info.skip_cell_threshold, app->use_gpu);
   }
   
   // Allocate buffer needed for BCs.
@@ -1156,6 +1193,12 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
   else
     gks->apply_pos_shift_func = gk_species_apply_pos_shift_disabled;
   gks->write_func = gk_species_write_dynamic;
+  if (gks->info.write_omega_cfl) {
+    gks->cflrate_ho = mkarr(false, gks->cflrate->ncomp, gks->cflrate->size);
+    gks->write_cfl_func = gk_species_write_cfl_enabled;
+  }
+  else 
+    gks->write_cfl_func = gk_species_write_cfl_disabled;
   gks->write_mom_func = gk_species_write_mom_dynamic;
   gks->calc_integrated_mom_func = gk_species_calc_integrated_mom_dynamic;
   gks->write_integrated_mom_func = gk_species_write_integrated_mom_dynamic;
@@ -1600,7 +1643,8 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   // Create collisionless solver.
   gks->slvr = gkyl_dg_updater_gyrokinetic_new(&gks->grid, &app->basis, &gks->basis, 
     &app->local, &gks->local, is_zero_flux, gks->info.charge, gks->info.mass,
-    gks->gkmodel_id, app->gk_geom, gks->vel_map, &aux_inp, app->use_gpu);
+    gks->info.skip_cell_threshold, gks->gkmodel_id, app->gk_geom, gks->vel_map, 
+    &aux_inp, app->use_gpu);
 
   // Acquire equation object.
   gks->eqn_gyrokinetic = gkyl_dg_updater_gyrokinetic_acquire_eqn(gks->slvr);
