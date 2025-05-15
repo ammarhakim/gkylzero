@@ -158,12 +158,12 @@ struct gkyl_poly_roots {
 };  
 
 // Quartic polynomial to hand off to ridders
-struct quartic_polynomial {
+struct gkyl_quartic_polynomial {
   double p[4];
 };
 
 // Result polynomials from Sturn Chain
-struct sturn_polynomials {
+struct gkyl_sturm_polynomials {
   double p0[4];
   double p1[4];
   double p2[4];
@@ -180,7 +180,7 @@ struct gkyl_root_intervals {
   int niter; // number of iterations
   int niter_refinement[4]; // number of iterations
   int nroots; // number of distinct-real-roots
-  struct sturn_polynomials sturn_chain;
+  struct gkyl_sturm_polynomials sturn_chain;
   double real_roots_ridders[4]; // Output of the root finding algorithm
   int status_ridders[4]; // Status of the ridders' ability to find the roots 
 };
@@ -298,7 +298,7 @@ void gkyl_refine_root_intervals_bisection(struct gkyl_root_intervals *root_inter
   double tol);
 
 
-  /**
+/**
  * Compute the roots from the intervals given by gkyl_calc_quartic_root_intervals() 
  * using ridders' algorithm. This can handle either refined or unrefined intervals.
  * 
