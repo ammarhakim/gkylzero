@@ -25,7 +25,7 @@ gk_geometry_set_int_cu_kernel(struct gk_geometry *gk_geom,
    struct gkyl_array *dxdz, struct gkyl_array *dzdx, struct gkyl_array *dualmag, struct gkyl_array *normals,
    struct gkyl_array *jacobgeo, struct gkyl_array *jacobgeo_ghost, struct gkyl_array *jacobgeo_inv, struct gkyl_array *gij,
    struct gkyl_array *gij_neut, struct gkyl_array *b_i, struct gkyl_array *bcart, struct gkyl_array *cmag,
-   struct gkyl_array *jacobtot, struct gkyl_array *jacobtot_inv, struct gkyl_array *bmag_inv,, struct gkyl_array *bmag_inv_sq,
+   struct gkyl_array *jacobtot, struct gkyl_array *jacobtot_inv, struct gkyl_array *bmag_inv, struct gkyl_array *bmag_inv_sq,
    struct gkyl_array *gxxj, struct gkyl_array *gxyj, struct gkyl_array *gyyj, struct gkyl_array *gxzj,
    struct gkyl_array *eps2)
 {
