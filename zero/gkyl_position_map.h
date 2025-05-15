@@ -100,7 +100,19 @@ struct gkyl_position_map* gkyl_position_map_new(struct gkyl_position_map_inp pma
  * 
  * @note This function is used to set the position map array in the position map object.
  */
-void gkyl_position_map_set(struct gkyl_position_map* gpm, struct gkyl_array* mc2nu);
+void gkyl_position_map_set_mc2nu(struct gkyl_position_map* gpm, struct gkyl_array* mc2nu);
+
+/**
+ * Set the magnetic field array in the position map object. This is used to set the magnetic field
+ * array in the position map object.
+ *
+ * @param gpm Position map object.
+ * @param comm Communicator object.
+ * @param bmag Magnetic field array.
+ */
+void
+gkyl_position_map_set_bmag(struct gkyl_position_map* gpm, struct gkyl_comm* comm,
+  struct gkyl_array* bmag);
 
 /**
  * Evaluate the position mapping at a specific computational (position) coordinate.
@@ -140,8 +152,11 @@ struct gkyl_position_map* gkyl_position_map_acquire(const struct gkyl_position_m
  * Optimize the position map object for constant B mapping.
  * 
  * @param gpm Position map object.
+ * @param grid 3D Position space grid.
+ * @param global 3D Global position range.
  */
-void gkyl_position_map_optimize(struct gkyl_position_map* gpm);
+void gkyl_position_map_optimize(struct gkyl_position_map* gpm, struct gkyl_rect_grid grid,
+  struct gkyl_range global);
 
 
 /**

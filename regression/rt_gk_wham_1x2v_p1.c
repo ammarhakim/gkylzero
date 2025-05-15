@@ -459,7 +459,7 @@ create_ctx(void)
   int Nmu = 32;  // Number of cells in the mu direction 192
   int poly_order = 1;
 
-  double t_end = 4.0e-9;
+  double t_end = 2.0e-10;
   int num_frames = 1;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -607,6 +607,7 @@ int main(int argc, char **argv)
     .name = "elc",
     .charge = ctx.qe,
     .mass = ctx.me,
+    .skip_cell_threshold = 1e-16,
     .lower = {-1.0, 0.0},
     .upper = { 1.0, 1.0},
     .cells = { cells_v[0], cells_v[1] },
@@ -651,6 +652,7 @@ int main(int argc, char **argv)
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
     },
+    .write_omega_cfl = true,
     .num_diag_moments = 8,
     .diag_moments = {"BiMaxwellianMoments", "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
   };
@@ -703,6 +705,7 @@ int main(int argc, char **argv)
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
     },
+    .write_omega_cfl = true,
     .num_diag_moments = 8,
     .diag_moments = {"BiMaxwellianMoments", "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
   };

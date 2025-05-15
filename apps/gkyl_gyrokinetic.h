@@ -228,6 +228,7 @@ struct gkyl_gyrokinetic_species {
 
   enum gkyl_gkmodel_id gkmodel_id;
   double charge, mass; // Charge and mass.
+  double skip_cell_threshold; // Skip updates over cells where the cell-averaged Jf is smaller than this value. Jf is what is output in the -species_#.gkyl files.
   double lower[3], upper[3]; // Lower, upper bounds of velocity-space.
   int cells[3]; // Velocity-space cells.
 
@@ -260,6 +261,7 @@ struct gkyl_gyrokinetic_species {
   int num_integrated_diag_moments; // Number of integrated diagnostic moments.
   char integrated_diag_moments[24][24]; // List of integrated diagnostic moments.
   bool time_rate_diagnostics; // Whether to ouput df/dt diagnostics.
+  bool write_omega_cfl; // Whether to ouput dt diagnostic for the CFL constraint.
 
   // Diagnostics of the fluxes of f at position-space boundaries.
   struct gkyl_phase_diagnostics_inp boundary_flux_diagnostics;
