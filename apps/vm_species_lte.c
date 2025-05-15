@@ -8,7 +8,7 @@ vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   int cdim = app->cdim, vdim = app->vdim;
 
   // allocate moments needed for lte update
-  vm_species_moment_init(app, s, &lte->moms, "LTEMoments");
+  vm_species_moment_init(app, s, &lte->moms, GKYL_F_MOMENT_LTE, false);
 
   struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = {
     .phase_grid = &s->grid,

@@ -62,7 +62,7 @@ vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s
     emit->impact_grid[i] = &emit->impact_species[i]->bflux.boundary_grid[bdir];
 
     emit->flux_slvr[i] = gkyl_dg_updater_moment_new(emit->impact_grid[i], &app->confBasis,
-      &app->basis, NULL, NULL, NULL, emit->impact_species[i]->model_id, 0, "Integrated", 1,
+      &app->basis, NULL, NULL, NULL, emit->impact_species[i]->model_id, 0, GKYL_F_MOMENT_M0M1M2, true,
       app->use_gpu);
 
     emit->impact_skin_r[i] = (emit->edge == GKYL_LOWER_EDGE) ? &emit->impact_species[i]->lower_skin[emit->dir] : &emit->impact_species[i]->upper_skin[emit->dir];

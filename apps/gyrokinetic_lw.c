@@ -191,16 +191,11 @@ gyrokinetic_species_lw_new(lua_State *L)
   with_lua_tbl_tbl(L, "diagnostics") {
     int num_diag_moments = glua_objlen(L);
 
-    int n = 0;
     for (int i = 0; i < num_diag_moments; i ++) {
-      const char *mom = glua_tbl_iget_string(L, i+1, "");
-
-      if (is_moment_name_valid(mom)) {
-        strcpy(gk_species.diag_moments[n++], mom);
-      }
+      gk_species.diag_moments[i] = glua_tbl_iget_integer(L, i+1, 0);
     }
 
-    gk_species.num_diag_moments = n;
+    gk_species.num_diag_moments = num_diag_moments;
   }
 
   with_lua_tbl_tbl(L, "bcx") {
@@ -798,16 +793,11 @@ gyrokinetic_neutral_species_lw_new(lua_State *L)
   with_lua_tbl_tbl(L, "diagnostics") {
     int num_diag_moments = glua_objlen(L);
 
-    int n = 0;
     for (int i = 0; i < num_diag_moments; i ++) {
-      const char *mom = glua_tbl_iget_string(L, i+1, "");
-
-      if (is_moment_name_valid(mom)) {
-        strcpy(gk_neut_species.diag_moments[n++], mom);
-      }
+      gk_neut_species.diag_moments[i] = glua_tbl_iget_integer(L, i+1, 0);
     }
 
-    gk_neut_species.num_diag_moments = n;
+    gk_neut_species.num_diag_moments = num_diag_moments;
   }
 
   with_lua_tbl_tbl(L, "bcx") {
