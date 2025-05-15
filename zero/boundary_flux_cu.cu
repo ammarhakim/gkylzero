@@ -10,7 +10,7 @@ extern "C" {
 struct gkyl_boundary_flux*
 gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  const struct gkyl_dg_eqn *equation, double skip_cell_threshold, bool use_boundary_surf)
+  const struct gkyl_dg_eqn *equation, double skip_cell_threshold)
 {
   struct gkyl_boundary_flux *up = (struct gkyl_boundary_flux*) gkyl_malloc(sizeof(struct gkyl_boundary_flux));
 
@@ -19,7 +19,6 @@ gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   up->grid = *grid;
   up->skin_r = *skin_r;
   up->ghost_r = *ghost_r;
-  up->use_boundary_surf = use_boundary_surf;
   up->use_gpu = true;
 
   if (skip_cell_threshold > 0.0)

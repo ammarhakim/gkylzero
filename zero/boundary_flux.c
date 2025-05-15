@@ -12,11 +12,11 @@
 gkyl_boundary_flux*
 gkyl_boundary_flux_new(int dir, enum gkyl_edge_loc edge,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  const struct gkyl_dg_eqn *equation, double skip_cell_threshold, bool use_boundary_surf, bool use_gpu)
+  const struct gkyl_dg_eqn *equation, double skip_cell_threshold, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    return gkyl_boundary_flux_cu_dev_new(dir, edge, grid, skin_r, ghost_r, equation, skip_cell_threshold, use_boundary_surf);
+    return gkyl_boundary_flux_cu_dev_new(dir, edge, grid, skin_r, ghost_r, equation, skip_cell_threshold);
   } 
 #endif
 
@@ -27,7 +27,6 @@ gkyl_boundary_flux_new(int dir, enum gkyl_edge_loc edge,
   up->grid = *grid;
   up->skin_r = *skin_r;
   up->ghost_r = *ghost_r;
-  up->use_boundary_surf = use_boundary_surf;
   up->use_gpu = use_gpu;
 
   if (skip_cell_threshold > 0.0)
