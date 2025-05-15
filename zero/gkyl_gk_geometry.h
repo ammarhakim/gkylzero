@@ -118,41 +118,6 @@ struct gk_geometry {
   struct gk_geom_int geo_int; // Volume geometry from interior nodes
   struct gk_geom_surf geo_surf[3]; // Surface geometry
 
-  //struct gkyl_array* mc2p; // 3 components. Cartesian X,Y, and Z
-  //struct gkyl_array* mc2nu_pos; // 3 components. Uniform computational space to non-uniform computational space mapping
-  //struct gkyl_array* bmag; // 1 component. B Magnitude of magnetic field
-  //struct gkyl_array* g_ij; // 6 components. 
-  //                         // Metric coefficients g_{ij} Stored in order g_11, g12, g_13, g_22, g_23, g_33
-  //struct gkyl_array* g_ij_neut; // 6 components. 
-  //                         // Metric coefficients g_{ij} Stored in order g_11, g12, g_13, g_22, g_23, g_33
-  //                         // Calculated with coord definition alpha = phi for tokamak geometry
-  //struct gkyl_array* dxdz; // 9 components.
-  //                         // Cartesian components of tangent Vectors stored in order e_1, e_2, e_3
-  //struct gkyl_array* dzdx; // 9 components.
-  //                         // Cartesian components of dual vectors stroed in order e^1, e^2, e^3
-  //struct gkyl_array* dualmag; // 3 components
-  //                            // norms of the dual vectors : sqrt(e^i.e^i)
-  //struct gkyl_array* normals; // 9 components
-  //                            // Cartesian components of normal vectors in order n^1,, n^2, n^3
-  //struct gkyl_array* jacobgeo; // 1 component. Configuration space jacobian J
-  //struct gkyl_array* jacobgeo_ghost; // 1 component. Configuration space jacobian J
-  //struct gkyl_array* jacobgeo_inv; // 1 component. 1/J
-  //struct gkyl_array* gij; // Matric coefficients g^{ij}. See g_ij for order.
-  //struct gkyl_array* gij_neut; // Matric coefficients g^{ij}. See g_ij for order. 
-  //                             // Calculated with coord definition alpha = phi for tokamak geometry
-  //struct gkyl_array* b_i; // 3 components. Contravariant components of magnetic field vector b_1, b_2, b_3.
-  //struct gkyl_array* bcart; // 3 components. Cartesian components of magnetic field vector b_X, b_Y, b_Z.
-  //struct gkyl_array* cmag; // 1 component. C = JB/sqrt(g_33)
-  //struct gkyl_array* jacobtot; // 1 component. Phase space Jacobian = JB
-  //struct gkyl_array* jacobtot_inv; // 1 component. 1/(JB)
-  //struct gkyl_array* bmag_inv; // 1 component. 1/B.
-  //struct gkyl_array* bmag_inv_sq; // 1 component. 1/B^2.
-  //struct gkyl_array* gxxj; // 1 component. g^{xx} * J. For poisson solve.
-  //struct gkyl_array* gxyj; // 1 component. g^{xy} * J. For poisson solve.
-  //struct gkyl_array* gyyj; // 1 component. g^{yy} * J. For poisson solve.
-  //struct gkyl_array* gxzj; // 1 component. g^{xz} * J. For poisson solve if z derivatives are kept.
-  //struct gkyl_array* eps2; // 1 component. eps2 = Jg^33 - J/g_33. For poisson if z derivatives are kept.
-
   int geqdsk_sign_convention; // 0 if psi increases away from magnetic axis
                               // 1 if psi increases toward magnetic axis
 
