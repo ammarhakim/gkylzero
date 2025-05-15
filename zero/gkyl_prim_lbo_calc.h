@@ -23,14 +23,6 @@ gkyl_prim_lbo_calc_new(const struct gkyl_rect_grid *grid,
   struct gkyl_prim_lbo_type *prim, bool use_gpu);
 
 /**
- * Create new updater to compute primitive moments of distribution function on
- * NV-GPU. See new() method for documentation.
- */
-struct gkyl_prim_lbo_calc* 
-gkyl_prim_lbo_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
-  struct gkyl_prim_lbo_type *prim);
-
-/**
  * Compute primitive moments of distribution function. The phase_rng and conf_rng
  * MUST be a sub-ranges of the range on which the distribution
  * function and the moments are defined. These ranges must be
@@ -46,11 +38,6 @@ void gkyl_prim_lbo_calc_advance(struct gkyl_prim_lbo_calc* calc,
   const struct gkyl_range *conf_rng,
   const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections,
   struct gkyl_array *prim_moms_out);
-
-void gkyl_prim_lbo_calc_advance_cu(struct gkyl_prim_lbo_calc* calc, 
-  const struct gkyl_range *conf_rng, 
-  const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections,
-  struct gkyl_array* prim_moms_out);
 
 /**
  * Delete pointer to primitive moment calculator updater.
