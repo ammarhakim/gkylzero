@@ -72,7 +72,9 @@ test_ambi_bolt_init_1x()
   double mass_e = 1.0, charge_e = -1.0, temp_e = 1.0;
   bool use_gpu = false;
 
-  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, mass_e, charge_e, temp_e, use_gpu);
+  struct gkyl_array *test = gkyl_array_new(GKYL_DOUBLE, 1, 1);
+
+  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, test, mass_e, charge_e, temp_e, use_gpu);
 
   TEST_CHECK( ambi->cdim == 1);
   TEST_CHECK( ambi->num_basis == basis->num_basis);
@@ -109,7 +111,6 @@ test_ambi_bolt_sheath_calc_1x()
   double mass_e = 1.0, charge_e = -1.0, temp_e = 1.0;
   bool use_gpu = false;
 
-  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, mass_e, charge_e, temp_e, use_gpu);
 
   struct gkyl_array *sheath_vals[2*cdim];
   for (int j=0; j<cdim; ++j) {
@@ -137,10 +138,12 @@ test_ambi_bolt_sheath_calc_1x()
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
+  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, cmag, mass_e, charge_e, temp_e, use_gpu);
+
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, 
-    &lower_skin[0], &lower_ghost[0], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[0]);
+    &lower_skin[0], &lower_ghost[0], gamma_i, M0, M0, sheath_vals[0]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
-    &upper_skin[0], &upper_ghost[0], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[1]);
+    &upper_skin[0], &upper_ghost[0], gamma_i, M0, M0, sheath_vals[1]);
 
   // Serendipity 1x basis is [1/sqrt(2), sqrt(3/2)x].
   // sheath_vals stores both the ion density and sheath value
@@ -211,8 +214,6 @@ test_ambi_bolt_phi_calc_1x()
   double mass_e = 1.0, charge_e = -1.0, temp_e = 1.0;
   bool use_gpu = false;
 
-  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, mass_e, charge_e, temp_e, use_gpu);
-
   struct gkyl_array *sheath_vals[2*cdim];
   for (int j=0; j<cdim; ++j) {
     sheath_vals[2*j]   = gkyl_array_new(GKYL_DOUBLE, 2*basis->num_basis, local_ext.volume);
@@ -239,10 +240,12 @@ test_ambi_bolt_phi_calc_1x()
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
+  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, cmag, mass_e, charge_e, temp_e, use_gpu);
+
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, 
-    &lower_skin[0], &lower_ghost[0], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[0]);
+    &lower_skin[0], &lower_ghost[0], gamma_i, M0, M0, sheath_vals[0]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
-    &upper_skin[0], &upper_ghost[0], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[1]);
+    &upper_skin[0], &upper_ghost[0], gamma_i, M0, M0, sheath_vals[1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   int idx_par = cdim-1, off = 2*idx_par;
@@ -302,8 +305,6 @@ test_ambi_bolt_sheath_calc_1x_hat()
   double mass_e = 1.0, charge_e = -1.0, temp_e = 1.0;
   bool use_gpu = false;
 
-  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, mass_e, charge_e, temp_e, use_gpu);
-
   struct gkyl_array *sheath_vals[2*cdim];
   for (int j=0; j<cdim; ++j) {
     sheath_vals[2*j]   = gkyl_array_new(GKYL_DOUBLE, 2*basis->num_basis, local_ext.volume);
@@ -332,10 +333,12 @@ test_ambi_bolt_sheath_calc_1x_hat()
   gkyl_proj_on_basis_advance(proj_hat, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
+  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, cmag, mass_e, charge_e, temp_e, use_gpu);
+
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, 
-    &lower_skin[0], &lower_ghost[0], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[0]);
+    &lower_skin[0], &lower_ghost[0], gamma_i, M0, M0, sheath_vals[0]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
-    &upper_skin[0], &upper_ghost[0], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[1]);
+    &upper_skin[0], &upper_ghost[0], gamma_i, M0, M0, sheath_vals[1]);
 
   // Serendipity 1x basis is [1/sqrt(2), sqrt(3/2)x].
   // sheath_vals stores both the ion density and sheath value
@@ -405,8 +408,6 @@ test_ambi_bolt_phi_calc_1x_hat()
   double mass_e = 1.0, charge_e = -1.0, temp_e = 1.0;
   bool use_gpu = false;
 
-  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, mass_e, charge_e, temp_e, use_gpu);
-
   struct gkyl_array *sheath_vals[2*cdim];
   for (int j=0; j<cdim; ++j) {
     sheath_vals[2*j]   = gkyl_array_new(GKYL_DOUBLE, 2*basis->num_basis, local_ext.volume);
@@ -435,10 +436,12 @@ test_ambi_bolt_phi_calc_1x_hat()
   gkyl_proj_on_basis_advance(proj_hat, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
+  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, cmag, mass_e, charge_e, temp_e, use_gpu);
+
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, 
-    &lower_skin[0], &lower_ghost[0], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[0]);
+    &lower_skin[0], &lower_ghost[0], gamma_i, M0, M0, sheath_vals[0]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
-    &upper_skin[0], &upper_ghost[0], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[1]);
+    &upper_skin[0], &upper_ghost[0], gamma_i, M0, M0, sheath_vals[1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   int idx_par = cdim-1, off = 2*idx_par;
@@ -500,7 +503,9 @@ test_ambi_bolt_init_2x()
   double mass_e = 1.0, charge_e = -1.0, temp_e = 1.0;
   bool use_gpu = false;
 
-  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, mass_e, charge_e, temp_e, use_gpu);
+  struct gkyl_array *test = gkyl_array_new(GKYL_DOUBLE, 1, 1);
+
+  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, test, mass_e, charge_e, temp_e, use_gpu);
 
   TEST_CHECK( ambi->cdim == 2);
   TEST_CHECK( ambi->num_basis == basis->num_basis);
@@ -537,8 +542,6 @@ test_ambi_bolt_sheath_calc_2x_one()
   double mass_e = 1.0, charge_e = -1.0, temp_e = 1.0;
   bool use_gpu = false;
 
-  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, mass_e, charge_e, temp_e, use_gpu);
-
   struct gkyl_array *sheath_vals[2*cdim];
   for (int j=0; j<cdim; ++j) {
     sheath_vals[2*j]   = gkyl_array_new(GKYL_DOUBLE, 2*basis->num_basis, local_ext.volume);
@@ -566,11 +569,13 @@ test_ambi_bolt_sheath_calc_2x_one()
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
+  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, cmag, mass_e, charge_e, temp_e, use_gpu);
+
   int idx_par = cdim-1, off = 2*idx_par;
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, 
-    &lower_skin[idx_par], &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off]);
+    &lower_skin[idx_par], &lower_ghost[idx_par], gamma_i, M0, M0, sheath_vals[off]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
-    &upper_skin[idx_par], &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off+1]);
+    &upper_skin[idx_par], &upper_ghost[idx_par], gamma_i, M0, M0, sheath_vals[off+1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   gkyl_array_copy_range_to_range(sheath_vals[off+1], sheath_vals[off+1],
@@ -642,8 +647,6 @@ test_ambi_bolt_sheath_calc_2x_hat()
   double mass_e = 1.0, charge_e = -1.0, temp_e = 1.0;
   bool use_gpu = false;
 
-  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, mass_e, charge_e, temp_e, use_gpu);
-
   struct gkyl_array *sheath_vals[2*cdim];
   for (int j=0; j<cdim; ++j) {
     sheath_vals[2*j]   = gkyl_array_new(GKYL_DOUBLE, 2*basis->num_basis, local_ext.volume);
@@ -672,11 +675,13 @@ test_ambi_bolt_sheath_calc_2x_hat()
   gkyl_proj_on_basis_advance(proj_hat, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
+  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, cmag, mass_e, charge_e, temp_e, use_gpu);
+
   int idx_par = cdim-1, off = 2*idx_par;
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, 
-    &lower_skin[idx_par], &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off]);
+    &lower_skin[idx_par], &lower_ghost[idx_par], gamma_i, M0, M0, sheath_vals[off]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
-    &upper_skin[idx_par], &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off+1]);
+    &upper_skin[idx_par], &upper_ghost[idx_par], gamma_i, M0, M0, sheath_vals[off+1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   gkyl_array_copy_range_to_range(sheath_vals[off+1], sheath_vals[off+1],
@@ -749,8 +754,6 @@ test_ambi_bolt_sheath_calc_2x_ramp_sheath()
   double mass_e = 1.0, charge_e = -1.0, temp_e = 1.0;
   bool use_gpu = false;
 
-  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, mass_e, charge_e, temp_e, use_gpu);
-
   struct gkyl_array *sheath_vals[2*cdim];
   for (int j=0; j<cdim; ++j) {
     sheath_vals[2*j]   = gkyl_array_new(GKYL_DOUBLE, 2*basis->num_basis, local_ext.volume);
@@ -779,11 +782,13 @@ test_ambi_bolt_sheath_calc_2x_ramp_sheath()
   gkyl_proj_on_basis_advance(proj_ramp, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
+  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, cmag, mass_e, charge_e, temp_e, use_gpu);
+
   int idx_par = cdim-1, off = 2*idx_par;
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, 
-    &lower_skin[idx_par], &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off]);
+    &lower_skin[idx_par], &lower_ghost[idx_par], gamma_i, M0, M0, sheath_vals[off]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
-    &upper_skin[idx_par], &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off+1]);
+    &upper_skin[idx_par], &upper_ghost[idx_par], gamma_i, M0, M0, sheath_vals[off+1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   gkyl_array_copy_range_to_range(sheath_vals[off+1], sheath_vals[off+1],
@@ -856,8 +861,6 @@ test_ambi_bolt_phi_calc_2x_one()
   double mass_e = 1.0, charge_e = -1.0, temp_e = 1.0;
   bool use_gpu = false;
 
-  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, mass_e, charge_e, temp_e, use_gpu);
-
   struct gkyl_array *sheath_vals[2*cdim];
   for (int j=0; j<cdim; ++j) {
     sheath_vals[2*j]   = gkyl_array_new(GKYL_DOUBLE, 2*basis->num_basis, local_ext.volume);
@@ -885,11 +888,13 @@ test_ambi_bolt_phi_calc_2x_one()
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
+  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, cmag, mass_e, charge_e, temp_e, use_gpu);
+
   int idx_par = cdim-1, off = 2*idx_par;
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, 
-    &lower_skin[idx_par], &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off]);
+    &lower_skin[idx_par], &lower_ghost[idx_par], gamma_i, M0, M0, sheath_vals[off]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
-    &upper_skin[idx_par], &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off+1]);
+    &upper_skin[idx_par], &upper_ghost[idx_par], gamma_i, M0, M0, sheath_vals[off+1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   gkyl_array_copy_range_to_range(sheath_vals[off+1], sheath_vals[off+1],
@@ -951,8 +956,6 @@ test_ambi_bolt_phi_calc_2x_hat()
   double mass_e = 1.0, charge_e = -1.0, temp_e = 1.0;
   bool use_gpu = false;
 
-  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, mass_e, charge_e, temp_e, use_gpu);
-
   struct gkyl_array *sheath_vals[2*cdim];
   for (int j=0; j<cdim; ++j) {
     sheath_vals[2*j]   = gkyl_array_new(GKYL_DOUBLE, 2*basis->num_basis, local_ext.volume);
@@ -981,11 +984,13 @@ test_ambi_bolt_phi_calc_2x_hat()
   gkyl_proj_on_basis_advance(proj_hat, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
+  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, cmag, mass_e, charge_e, temp_e, use_gpu);
+
   int idx_par = cdim-1, off = 2*idx_par;
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, 
-    &lower_skin[idx_par], &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off]);
+    &lower_skin[idx_par], &lower_ghost[idx_par], gamma_i, M0, M0, sheath_vals[off]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
-    &upper_skin[idx_par], &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off+1]);
+    &upper_skin[idx_par], &upper_ghost[idx_par], gamma_i, M0, M0, sheath_vals[off+1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   gkyl_array_copy_range_to_range(sheath_vals[off+1], sheath_vals[off+1],
@@ -1047,8 +1052,6 @@ test_ambi_bolt_phi_calc_2x_ramp()
   double mass_e = 1.0, charge_e = -1.0, temp_e = 1.0;
   bool use_gpu = false;
 
-  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, mass_e, charge_e, temp_e, use_gpu);
-
   struct gkyl_array *sheath_vals[2*cdim];
   for (int j=0; j<cdim; ++j) {
     sheath_vals[2*j]   = gkyl_array_new(GKYL_DOUBLE, 2*basis->num_basis, local_ext.volume);
@@ -1077,11 +1080,13 @@ test_ambi_bolt_phi_calc_2x_ramp()
   gkyl_proj_on_basis_advance(proj_ramp, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
+  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, cmag, mass_e, charge_e, temp_e, use_gpu);
+
   int idx_par = cdim-1, off = 2*idx_par;
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, 
-    &lower_skin[idx_par], &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off]);
+    &lower_skin[idx_par], &lower_ghost[idx_par], gamma_i, M0, M0, sheath_vals[off]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
-    &upper_skin[idx_par], &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off+1]);
+    &upper_skin[idx_par], &upper_ghost[idx_par], gamma_i, M0, M0, sheath_vals[off+1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   gkyl_array_copy_range_to_range(sheath_vals[off+1], sheath_vals[off+1],
@@ -1143,8 +1148,6 @@ test_ambi_bolt_phi_calc_2x_parabola()
   double mass_e = 1.0, charge_e = -1.0, temp_e = 1.0;
   bool use_gpu = false;
 
-  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, mass_e, charge_e, temp_e, use_gpu);
-
   struct gkyl_array *sheath_vals[2*cdim];
   for (int j=0; j<cdim; ++j) {
     sheath_vals[2*j]   = gkyl_array_new(GKYL_DOUBLE, 2*basis->num_basis, local_ext.volume);
@@ -1173,11 +1176,13 @@ test_ambi_bolt_phi_calc_2x_parabola()
   gkyl_proj_on_basis_advance(proj_func, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
+  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, cmag, mass_e, charge_e, temp_e, use_gpu);
+
   int idx_par = cdim-1, off = 2*idx_par;
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, 
-    &lower_skin[idx_par], &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off]);
+    &lower_skin[idx_par], &lower_ghost[idx_par], gamma_i, M0, M0, sheath_vals[off]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
-    &upper_skin[idx_par], &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off+1]);
+    &upper_skin[idx_par], &upper_ghost[idx_par], gamma_i, M0, M0, sheath_vals[off+1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   gkyl_array_copy_range_to_range(sheath_vals[off+1], sheath_vals[off+1],
@@ -1245,8 +1250,6 @@ test_ambi_bolt_phi_calc_3x_one()
   double mass_e = 1.0, charge_e = -1.0, temp_e = 1.0;
   bool use_gpu = false;
 
-  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, mass_e, charge_e, temp_e, use_gpu);
-
   struct gkyl_array *sheath_vals[2*cdim];
   for (int j=0; j<cdim; ++j) {
     sheath_vals[2*j]   = gkyl_array_new(GKYL_DOUBLE, 2*basis->num_basis, local_ext.volume);
@@ -1275,11 +1278,13 @@ test_ambi_bolt_phi_calc_3x_one()
   gkyl_proj_on_basis_advance(proj_func, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
+  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, cmag, mass_e, charge_e, temp_e, use_gpu);
+
   int idx_par = cdim-1, off = 2*idx_par;
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, 
-    &lower_skin[idx_par], &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off]);
+    &lower_skin[idx_par], &lower_ghost[idx_par], gamma_i, M0, M0, sheath_vals[off]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
-    &upper_skin[idx_par], &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off+1]);
+    &upper_skin[idx_par], &upper_ghost[idx_par], gamma_i, M0, M0, sheath_vals[off+1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   gkyl_array_copy_range_to_range(sheath_vals[off+1], sheath_vals[off+1],
@@ -1350,8 +1355,6 @@ test_ambi_bolt_phi_calc_3x_parabola()
   double mass_e = 1.0, charge_e = -1.0, temp_e = 1.0;
   bool use_gpu = false;
 
-  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, mass_e, charge_e, temp_e, use_gpu);
-
   struct gkyl_array *sheath_vals[2*cdim];
   for (int j=0; j<cdim; ++j) {
     sheath_vals[2*j]   = gkyl_array_new(GKYL_DOUBLE, 2*basis->num_basis, local_ext.volume);
@@ -1380,11 +1383,13 @@ test_ambi_bolt_phi_calc_3x_parabola()
   gkyl_proj_on_basis_advance(proj_func, 0.0, &local_ext, M0);
   gkyl_proj_on_basis_advance(proj_one, 0.0, &local_ext, gamma_i);
 
+  struct gkyl_ambi_bolt_potential *ambi = gkyl_ambi_bolt_potential_new(&grid, basis, cmag, mass_e, charge_e, temp_e, use_gpu);
+
   int idx_par = cdim-1, off = 2*idx_par;
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_LOWER_EDGE, 
-    &lower_skin[idx_par], &lower_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off]);
+    &lower_skin[idx_par], &lower_ghost[idx_par], gamma_i, M0, M0, sheath_vals[off]);
   gkyl_ambi_bolt_potential_sheath_calc(ambi, GKYL_UPPER_EDGE,
-    &upper_skin[idx_par], &upper_ghost[idx_par], cmag, jacobtot_inv, gamma_i, M0, M0, sheath_vals[off+1]);
+    &upper_skin[idx_par], &upper_ghost[idx_par], gamma_i, M0, M0, sheath_vals[off+1]);
 
   // Copy upper sheath values into lower ghost & add to lower sheath values for averaging.
   gkyl_array_copy_range_to_range(sheath_vals[off+1], sheath_vals[off+1],
