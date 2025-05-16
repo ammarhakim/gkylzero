@@ -219,9 +219,13 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     polarization_weight = 1.0; 
     
     // Must do a dg_div_op_range for C/JB to get weak division.
-    struct gkyl_array *cmag_div_jacobtot = gkyl_array_new(GKYL_DOUBLE, app->gk_geom->cmag->ncomp, 
-      app->gk_geom->cmag->size);
-    struct gkyl_dg_bin_op_mem *mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->basis.num_basis);
+    struct gkyl_array *cmag_div_jacobtot = mkarr(app->use_gpu, app->gk_geom->cmag->ncomp, app->gk_geom->cmag->size);
+    struct gkyl_dg_bin_op_mem *mem;
+    if (app->use_gpu)
+      mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->basis.num_basis);
+    else
+      mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->basis.num_basis);
+
     gkyl_dg_div_op_range(mem, app->basis, 0, cmag_div_jacobtot, 0, app->gk_geom->cmag, 0,
       app->gk_geom->jacobtot, &app->local);
 
