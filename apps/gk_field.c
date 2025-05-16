@@ -217,13 +217,22 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   double es_energy_fac_1d_adiabatic = 0.0; 
   if (f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
     polarization_weight = 1.0; 
-    f->ambi_pot = gkyl_ambi_bolt_potential_new(&app->grid, &app->basis, 
+    
+    // Must do a dg_div_op_range for C/JB to get weak division.
+    struct gkyl_array *cmag_div_jacobtot = gkyl_array_new(GKYL_DOUBLE, app->gk_geom->cmag->ncomp, 
+      app->gk_geom->cmag->size);
+    struct gkyl_dg_bin_op_mem *mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->basis.num_basis);
+    gkyl_dg_div_op_range(mem, app->basis, 0, cmag_div_jacobtot, 0, app->gk_geom->cmag, 0,
+      app->gk_geom->jacobtot, &app->local);
+
+    f->ambi_pot = gkyl_ambi_bolt_potential_new(&app->grid, &app->basis, cmag_div_jacobtot,
       f->info.electron_mass, f->info.electron_charge, f->info.electron_temp, app->use_gpu);
     // Sheath_vals contains both the density and potential sheath values.
     for (int j=0; j<app->cdim; ++j) {
       f->sheath_vals[2*j]   = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
       f->sheath_vals[2*j+1] = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
     }
+    gkyl_array_release(cmag_div_jacobtot);
   } else {
 
     // Allocate array for the polarization weight times geometric coefficients.
@@ -240,7 +249,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       gkyl_array_copy(f->epsilon, app->gk_geom->jacobgeo);
       gkyl_array_scale(f->epsilon, polarization_weight);
       gkyl_array_scale(f->epsilon, f->info.kperpSq);
-
+      
       if (f->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
         // Add the contribution from adiabatic electrons (in principle any
         // species can be adiabatic, which we can add suport for later).
@@ -552,11 +561,11 @@ gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *f
     // NOTE: this relies on the accumulate_rho_c calling gk_species_moment_calc(s->m0)
     // to calculate the particle flux and place it in the ghost cells of s->m0.marr.
     gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_LOWER_EDGE, 
-      &app->lower_skin[idx_par], &app->lower_ghost[idx_par], app->gk_geom->cmag, 
-      app->gk_geom->jacobtot_inv, s->m0.marr, field->rho_c, s->m0.marr, field->sheath_vals[off]);
+      &app->lower_skin[idx_par], &app->lower_ghost[idx_par],
+      s->m0.marr, field->rho_c, s->m0.marr, field->sheath_vals[off]);
     gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_UPPER_EDGE, 
-      &app->upper_skin[idx_par], &app->upper_ghost[idx_par], app->gk_geom->cmag,
-      app->gk_geom->jacobtot_inv, s->m0.marr, field->rho_c, s->m0.marr, field->sheath_vals[off+1]);
+      &app->upper_skin[idx_par], &app->upper_ghost[idx_par],
+      s->m0.marr, field->rho_c, s->m0.marr, field->sheath_vals[off+1]);
 
     // Broadcast the sheath values from skin processes to other processes.
     gkyl_comm_array_bcast(app->comm, field->sheath_vals[off]  , field->sheath_vals[off], 0);

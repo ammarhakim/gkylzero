@@ -1,9 +1,11 @@
 #include <gkyl_ambi_bolt_potential.h>
 #include <gkyl_ambi_bolt_potential_priv.h>
 #include <gkyl_alloc.h>
+#include <gkyl_dg_bin_ops.h>
 
 gkyl_ambi_bolt_potential*
 gkyl_ambi_bolt_potential_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
+  const struct gkyl_array *cmag_div_jacobtot,
   double mass_e, double charge_e, double temp_e, bool use_gpu)
 {
   struct gkyl_ambi_bolt_potential *up = gkyl_malloc(sizeof(struct gkyl_ambi_bolt_potential));
@@ -16,6 +18,8 @@ gkyl_ambi_bolt_potential_new(const struct gkyl_rect_grid *grid, const struct gky
   up->mass_e = mass_e;
   up->charge_e = charge_e;
   up->temp_e = temp_e;
+
+  up->cmag_div_jacobtot = gkyl_array_acquire(cmag_div_jacobtot);
 
   up->kernels = gkyl_malloc(sizeof(struct gkyl_ambi_bolt_potential_kernels));
 #ifdef GKYL_HAVE_CUDA
@@ -39,7 +43,6 @@ gkyl_ambi_bolt_potential_new(const struct gkyl_rect_grid *grid, const struct gky
 
 void gkyl_ambi_bolt_potential_sheath_calc(struct gkyl_ambi_bolt_potential *up, enum gkyl_edge_loc edge,
   const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  const struct gkyl_array *cmag, const struct gkyl_array *jacobtot_inv,
   const struct gkyl_array *gammai, const struct gkyl_array *m0i, const struct gkyl_array *Jm0i,
   struct gkyl_array *sheath_vals)
 {
@@ -67,15 +70,14 @@ void gkyl_ambi_bolt_potential_sheath_calc(struct gkyl_ambi_bolt_potential *up, e
     long ghost_loc = gkyl_range_idx(ghost_r, iter.idx);
     long skin_loc = gkyl_range_idx(skin_r, idx_s);
 
-    const double *cmag_p = (const double*) gkyl_array_cfetch(cmag, skin_loc);
-    const double *jacobtotinv_p = (const double*) gkyl_array_cfetch(jacobtot_inv, skin_loc);
+    const double *cdiv_JB_p = (const double*) gkyl_array_cfetch(up->cmag_div_jacobtot, skin_loc);
     const double *m0i_p = (const double*) gkyl_array_cfetch(m0i, skin_loc);
     const double *Jm0i_p = (const double*) gkyl_array_cfetch(Jm0i, skin_loc);
     const double *gammai_p = (const double*) gkyl_array_cfetch(gammai, ghost_loc);
     double *out_p = (double*) gkyl_array_cfetch(sheath_vals, ghost_loc);
 
     up->kernels->sheath_calc[keridx](up->dz, up->charge_e, up->mass_e, up->temp_e,
-      cmag_p, jacobtotinv_p, gammai_p, m0i_p, Jm0i_p, out_p);
+      cdiv_JB_p, gammai_p, m0i_p, Jm0i_p, out_p);
   }
 }
 
@@ -111,6 +113,7 @@ void gkyl_ambi_bolt_potential_phi_calc(struct gkyl_ambi_bolt_potential *up,
 
 void gkyl_ambi_bolt_potential_release(gkyl_ambi_bolt_potential *up)
 {
+  gkyl_array_release(up->cmag_div_jacobtot);
   gkyl_free(up->kernels);
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
