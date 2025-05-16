@@ -718,19 +718,17 @@ main(int argc, char **argv)
     },
 
     .bcx = {
-      .lower={.type = GKYL_SPECIES_ABSORB,},
-      .upper={.type = GKYL_SPECIES_ABSORB,},
+      .lower = {.type = GKYL_SPECIES_ABSORB,},
+      .upper = {.type = GKYL_SPECIES_ABSORB,},
     },
     .bcz = {
-      .lower={.type = GKYL_SPECIES_GK_IWL,
-              .aux_parameter = ctx.x_LCFS,
-              .aux_profile = bc_shift_func_lo,
-              .aux_ctx = &ctx,
+      .lower = {.type = GKYL_SPECIES_GK_IWL,
+                .aux_profile = bc_shift_func_lo,
+                .aux_ctx = &ctx,
       },
-      .upper={.type = GKYL_SPECIES_GK_IWL,
-              .aux_parameter = ctx.x_LCFS,
-              .aux_profile = bc_shift_func_up,
-              .aux_ctx = &ctx,
+      .upper = {.type = GKYL_SPECIES_GK_IWL,
+                .aux_profile = bc_shift_func_up,
+                .aux_ctx = &ctx,
       },
     },
 
@@ -794,19 +792,17 @@ main(int argc, char **argv)
     },
 
     .bcx = {
-      .lower={.type = GKYL_SPECIES_ABSORB,},
-      .upper={.type = GKYL_SPECIES_ABSORB,},
+      .lower = {.type = GKYL_SPECIES_ABSORB,},
+      .upper = {.type = GKYL_SPECIES_ABSORB,},
     },
     .bcz = {
-      .lower={.type = GKYL_SPECIES_GK_IWL,
-              .aux_parameter = ctx.x_LCFS,
-              .aux_profile = bc_shift_func_lo,
-              .aux_ctx = &ctx,
+      .lower = {.type = GKYL_SPECIES_GK_IWL,
+                .aux_profile = bc_shift_func_lo,
+                .aux_ctx = &ctx,
       },
-      .upper={.type = GKYL_SPECIES_GK_IWL,
-              .aux_parameter = ctx.x_LCFS,
-              .aux_profile = bc_shift_func_up,
-              .aux_ctx = &ctx,
+      .upper = {.type = GKYL_SPECIES_GK_IWL,
+                .aux_profile = bc_shift_func_up,
+                .aux_ctx = &ctx,
       },
     },
 
@@ -828,7 +824,6 @@ main(int argc, char **argv)
   // field
   struct gkyl_gyrokinetic_field field = {
     .gkfield_id = GKYL_GK_FIELD_ES_IWL,
-    .xLCFS = ctx.x_LCFS,
     .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET},
                     .up_type = {GKYL_POISSON_DIRICHLET},
                     .lo_value = {0.0}, .up_value = {0.0}},
@@ -854,7 +849,9 @@ main(int argc, char **argv)
       .mapc2p = mapc2p, // mapping of computational to physical space
       .c2p_ctx = &ctx,
       .bmag_func = bmag_func, // magnetic field magnitude
-      .bmag_ctx = &ctx
+      .bmag_ctx = &ctx,
+      .has_LCFS = true,
+      .x_LCFS = ctx.x_LCFS, // Location of last closed flux surface.
     },
 
     .num_periodic_dir = 1,

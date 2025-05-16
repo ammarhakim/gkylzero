@@ -15,6 +15,7 @@
 #include <gkyl_tok_calc_derived_geo.h>
 #include <gkyl_calc_metric.h>
 #include <gkyl_calc_bmag.h>
+#include <assert.h>
 
 struct gk_geometry*
 gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
@@ -27,6 +28,23 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   up->global = geometry_inp->geo_global;
   up->global_ext = geometry_inp->geo_global_ext;
   up->grid = geometry_inp->geo_grid;
+  up->has_LCFS = geometry_inp->has_LCFS;
+  if (up->has_LCFS) {
+    up->x_LCFS = geometry_inp->x_LCFS;
+    // Check that the split happens within the domain.
+    assert((up->grid.lower[0] <= up->x_LCFS) && (up->x_LCFS <= up->grid.upper[0]));
+    // If the split is not at a cell boundary, move it to the nearest one.
+    double needint = (up->x_LCFS - up->grid.lower[0])/up->grid.dx[0];
+    double rem = fabs(needint-floor(needint));
+    if (rem < 1.0e-12) {
+      up->idx_LCFS_lo = (int) needint;
+    }
+    else {
+      up->idx_LCFS_lo = rem <= 0.5? floor(needint) : ceil(needint);
+      up->x_LCFS = up->grid.lower[0]+up->idx_LCFS_lo*up->grid.dx[0];
+      fprintf(stderr, "x_LCFS was not at a cell boundary. Moved to: %.9e\n", up->x_LCFS);
+    }
+  }
 
   struct gkyl_range nrange;
   double dzc[3] = {0.0};

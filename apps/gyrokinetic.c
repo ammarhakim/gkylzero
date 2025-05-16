@@ -312,6 +312,8 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     .global_ext = app->global_ext,
     .basis = app->basis,
     .comm = app->comm,
+    .has_LCFS = gk->geometry.has_LCFS,
+    .x_LCFS = gk->geometry.x_LCFS,
   };
   for(int i = 0; i<3; i++)
     geometry_inp.world[i] = gk->geometry.world[i];
@@ -406,6 +408,50 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   gkyl_dg_mul_op_range(app->basis, 0, tmp, 0, app->gk_geom->bmag, 0, app->gk_geom->jacobgeo, &app->local); 
   gkyl_dg_inv_op_range(app->basis, 0, app->jacobtot_inv_weak, 0, tmp, &app->local); 
   gkyl_array_release(tmp);
+
+  if (gk->geometry.has_LCFS) {
+    // IWL simulation. Create core and SOL global ranges.
+    int idx_LCFS_lo = app->gk_geom->idx_LCFS_lo;
+    int len_core = idx_LCFS_lo;
+    int len_sol = app->global.upper[0]-len_core;
+    gkyl_range_shorten_from_above(&app->global_core, &app->global, 0, len_core);
+    gkyl_range_shorten_from_below(&app->global_sol , &app->global, 0, len_sol);
+    // Same for local ranges.
+    gkyl_range_shorten_from_above(&app->local_core , &app->local , 0, len_core);
+    gkyl_range_shorten_from_below(&app->local_sol  , &app->local , 0, len_sol);
+
+    int len_core_ext = idx_LCFS_lo+1;
+    int len_sol_ext = app->global_ext.upper[0]-len_core;
+    gkyl_range_shorten_from_above(&app->global_ext_core, &app->global_ext, 0, len_core_ext);
+    gkyl_range_shorten_from_below(&app->global_ext_sol , &app->global_ext, 0, len_sol_ext);
+    // Same for local ranges.
+    gkyl_range_shorten_from_above(&app->local_ext_core , &app->local_ext , 0, len_core_ext);
+    gkyl_range_shorten_from_below(&app->local_ext_sol  , &app->local_ext , 0, len_sol_ext);
+
+    // Create core and SOL parallel skin and ghost ranges.
+    int par_dir = app->cdim-1;
+    for (int e=0; e<2; e++) {
+      gkyl_range_shorten_from_above(e==0? &app->lower_skin_par_core  : &app->upper_skin_par_core,
+                                    e==0? &app->lower_skin[par_dir]  : &app->upper_skin[par_dir], 0, len_core);
+      gkyl_range_shorten_from_above(e==0? &app->lower_ghost_par_core : &app->upper_ghost_par_core,
+                                    e==0? &app->lower_ghost[par_dir] : &app->upper_ghost[par_dir], 0, len_core);
+      gkyl_range_shorten_from_below(e==0? &app->lower_skin_par_sol   : &app->upper_skin_par_sol,
+                                    e==0? &app->lower_skin[par_dir]  : &app->upper_skin[par_dir], 0, len_sol);
+      gkyl_range_shorten_from_below(e==0? &app->lower_ghost_par_sol  : &app->upper_ghost_par_sol,
+                                    e==0? &app->lower_ghost[par_dir] : &app->upper_ghost[par_dir], 0, len_sol);
+    }
+
+    // Create a core local range, extended in the BC dir.
+    int ndim = app->cdim;
+    int lower_bcdir_ext[ndim], upper_bcdir_ext[ndim];
+    for (int i=0; i<ndim; i++) {
+      lower_bcdir_ext[i] = app->local_core.lower[i];
+      upper_bcdir_ext[i] = app->local_core.upper[i];
+    }
+    lower_bcdir_ext[par_dir] = app->local_ext_core.lower[par_dir];
+    upper_bcdir_ext[par_dir] = app->local_ext_core.upper[par_dir];
+    gkyl_sub_range_init(&app->local_par_ext_core, &app->local_ext_core, lower_bcdir_ext, upper_bcdir_ext);
+  }
 
   return app;
 }
