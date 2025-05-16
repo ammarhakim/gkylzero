@@ -66,6 +66,8 @@ struct gk_geometry {
   double x_LCFS; // For mapc2p IWL geometry, the user has to provide the
                  // location of the LCFS. For numerical IWL, it may be stored
                  // in the eqdsk.
+  int idx_LCFS_lo; // Index of the cell that abuts the LCFS from below.
+
   uint32_t flags;
   struct gkyl_ref_count ref_count;  
   struct gk_geometry *on_dev; // pointer to itself or device object

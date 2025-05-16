@@ -13,6 +13,7 @@
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_math.h>
 #include <gkyl_nodal_ops.h>
+#include <assert.h>
 
 static
 void gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
@@ -185,6 +186,14 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
   up->global_ext = geometry_inp->geo_global_ext;
   up->grid = geometry_inp->geo_grid;
   up->x_LCFS = geometry_inp->x_LCFS;
+  if (fabs(up->x_LCFS) > 1e-16) {
+    // Check the split happens within the domain and at a cell boundary.
+    assert((up->grid.lower[0] < up->x_LCFS) && (up->x_LCFS < up->grid.upper[0]));
+    double needint = (up->x_LCFS-up->grid.lower[0])/up->grid.dx[0];
+    assert(floor(fabs(needint-floor(needint))) < 1.);
+    // Index of the cell that abuts the x_LCFS from below.
+    up->idx_LCFS_lo = (up->x_LCFS-1e-8 - up->grid.lower[0])/up->grid.dx[0]+1;
+  }
 
   struct gkyl_range nrange;
   double dzc[3] = {0.0};

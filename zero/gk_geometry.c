@@ -31,6 +31,14 @@ gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *
   up->grid = geometry_inp->grid;
   up->geqdsk_sign_convention = geo_host->geqdsk_sign_convention;
   up->x_LCFS = geometry_inp->x_LCFS;
+  if (fabs(up->x_LCFS) > 1e-16) {
+    // Check the split happens within the domain and at a cell boundary.
+    assert((up->grid.lower[0] < up->x_LCFS) && (up->x_LCFS < up->grid.upper[0]));
+    double needint = (up->x_LCFS-up->grid.lower[0])/up->grid.dx[0];
+    assert(floor(fabs(needint-floor(needint))) < 1.);
+    // Index of the cell that abuts the x_LCFS from below.
+    up->idx_LCFS_lo = (up->x_LCFS-1e-8 - up->grid.lower[0])/up->grid.dx[0]+1;
+  }
 
   // bmag, metrics and derived geo quantities
   up->mc2p = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
@@ -244,6 +252,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   up->grid = geometry_inp->grid;
   up->geqdsk_sign_convention = up_3d->geqdsk_sign_convention;
   up->x_LCFS = up_3d->x_LCFS;
+  up->idx_LCFS_lo = up_3d->idx_LCFS_lo;
 
   // bmag, metrics and derived geo quantities
   up->mc2p = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
