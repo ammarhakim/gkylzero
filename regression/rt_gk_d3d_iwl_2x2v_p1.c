@@ -618,8 +618,7 @@ main(int argc, char **argv)
 
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
-//      .num_sources = 2,
-      .num_sources = 1,
+      .num_sources = 2,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
         .ctx_density = &ctx,
@@ -629,23 +628,23 @@ main(int argc, char **argv)
         .upar = zero_func,
         .temp = temp_elc_srcOMP,
       },
-//      .projection[1] = {
-//        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-//        .ctx_density = &ctx,
-//        .ctx_upar = &ctx,
-//        .ctx_temp = &ctx,
-//        .density = density_elc_srcGB,
-//        .upar = zero_func,
-//        .temp = temp_elc_srcGB,
-//      },
+      .projection[1] = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+        .ctx_density = &ctx,
+        .ctx_upar = &ctx,
+        .ctx_temp = &ctx,
+        .density = density_elc_srcGB,
+        .upar = zero_func,
+        .temp = temp_elc_srcGB,
+      },
     },
 
-//    .diffusion = {
-//      .num_diff_dir = 1,
-//      .diff_dirs = { 0 },
-//      .D = { 0.5 },
-//      .order = 2,
-//    },
+    .diffusion = {
+      .num_diff_dir = 1,
+      .diff_dirs = { 0 },
+      .D = { 0.5 },
+      .order = 2,
+    },
 
     .bcx = {
       .lower = {.type = GKYL_SPECIES_ABSORB,},
@@ -689,8 +688,7 @@ main(int argc, char **argv)
 
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
-//      .num_sources = 2,
-      .num_sources = 1,
+      .num_sources = 2,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
         .ctx_density = &ctx,
@@ -699,24 +697,24 @@ main(int argc, char **argv)
         .density = density_srcOMP,
         .upar = zero_func,
         .temp = temp_ion_srcOMP,
+    },
+      .projection[1] = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+        .ctx_density = &ctx,
+        .ctx_upar = &ctx,
+        .ctx_temp = &ctx,
+        .density = density_ion_srcGB,
+        .upar = zero_func,
+        .temp = temp_ion_srcGB,
       },
-//      .projection[1] = {
-//        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-//        .ctx_density = &ctx,
-//        .ctx_upar = &ctx,
-//        .ctx_temp = &ctx,
-//        .density = density_ion_srcGB,
-//        .upar = zero_func,
-//        .temp = temp_ion_srcGB,
-//      },
     },
 
-//    .diffusion = {
-//      .num_diff_dir = 1,
-//      .diff_dirs = { 0 },
-//      .D = { 0.5 },
-//      .order = 2,
-//    },
+    .diffusion = {
+      .num_diff_dir = 1,
+      .diff_dirs = { 0 },
+      .D = { 0.5 },
+      .order = 2,
+    },
 
     .bcx = {
       .lower = {.type = GKYL_SPECIES_ABSORB,},
