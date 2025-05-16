@@ -312,6 +312,7 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     .global_ext = app->global_ext,
     .basis = app->basis,
     .comm = app->comm,
+    .x_LCFS = gk->geometry.x_LCFS,
   };
   for(int i = 0; i<3; i++)
     geometry_inp.world[i] = gk->geometry.world[i];

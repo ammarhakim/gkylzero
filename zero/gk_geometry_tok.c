@@ -27,6 +27,7 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   up->global = geometry_inp->geo_global;
   up->global_ext = geometry_inp->geo_global_ext;
   up->grid = geometry_inp->geo_grid;
+  up->x_LCFS = geometry_inp->x_LCFS;
 
   struct gkyl_range nrange;
   double dzc[3] = {0.0};

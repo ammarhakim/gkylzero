@@ -140,12 +140,14 @@ struct gkyl_gyrokinetic_geometry {
   // pointer to bmag function
   void (*bmag_func)(double t, const double *xc, double *xp, void *ctx);
 
+  double world[3]; // extra computational coordinates for cases with reduced dimensionality
+
+  double x_LCFS; // x coordinate of the last closed flux surface.
+
   struct gkyl_efit_inp efit_info; // context with RZ data such as efit file for a tokamak or mirror
   struct gkyl_tok_geo_grid_inp tok_grid_info; // context for tokamak geometry with computational domain info
   struct gkyl_mirror_geo_grid_inp mirror_grid_info; // context for mirror geometry with computational domain info
   struct gkyl_position_map_inp position_map_info; // position map object
-
-  double world[3]; // extra computational coordinates for cases with reduced dimensionality
 };
 
 // Parameters for species radiation
@@ -341,7 +343,6 @@ struct gkyl_gyrokinetic_field {
 
   double polarization_bmag; 
   double kperpSq; // kperp^2 parameter for 1D field equations
-  double xLCFS; // radial location of the LCFS.
 
   // parameters for adiabatic electrons simulations
   double electron_mass, electron_charge, electron_density, electron_temp;

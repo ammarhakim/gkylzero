@@ -59,7 +59,7 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
   int zdir = app->cdim - 1;
 
   // Define sub range of ghost and skin cells that spans only the core
-  double xLCFS = f->info.xLCFS;
+  double xLCFS = app->gk_geom->x_LCFS;
   // Index of the cell that abuts the xLCFS from below.
   int idxLCFS_m = (xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
 
@@ -307,7 +307,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       fem_parproj_bc_sol = GKYL_FEM_PARPROJ_NONE;
     }
     // construct core and SOL ranges.
-    double xLCFS = f->info.xLCFS;
+    double xLCFS = app->gk_geom->x_LCFS;
     // Index of the cell that abuts the xLCFS from below.
     int idxLCFS_m = (xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
     gkyl_range_shorten_from_below(&f->global_sol, &app->global, 0, app->grid.cells[0]-idxLCFS_m+1);

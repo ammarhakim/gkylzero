@@ -589,7 +589,7 @@ main(int argc, char **argv)
   // Construct communicator for use in app.
   struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
-  // electrons
+  // Electrons.
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.qe, .mass = ctx.me,
@@ -618,7 +618,8 @@ main(int argc, char **argv)
 
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
-      .num_sources = 2,
+//      .num_sources = 2,
+      .num_sources = 1,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
         .ctx_density = &ctx,
@@ -628,40 +629,38 @@ main(int argc, char **argv)
         .upar = zero_func,
         .temp = temp_elc_srcOMP,
       },
-      .projection[1] = {
-        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-        .ctx_density = &ctx,
-        .ctx_upar = &ctx,
-        .ctx_temp = &ctx,
-        .density = density_elc_srcGB,
-        .upar = zero_func,
-        .temp = temp_elc_srcGB,
-      },
+//      .projection[1] = {
+//        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+//        .ctx_density = &ctx,
+//        .ctx_upar = &ctx,
+//        .ctx_temp = &ctx,
+//        .density = density_elc_srcGB,
+//        .upar = zero_func,
+//        .temp = temp_elc_srcGB,
+//      },
     },
 
-    .diffusion = {
-      .num_diff_dir = 1,
-      .diff_dirs = { 0 },
-      .D = { 0.5 },
-      .order = 2,
-    },
+//    .diffusion = {
+//      .num_diff_dir = 1,
+//      .diff_dirs = { 0 },
+//      .D = { 0.5 },
+//      .order = 2,
+//    },
 
     .bcx = {
-      .lower={.type = GKYL_SPECIES_ABSORB,},
-      .upper={.type = GKYL_SPECIES_ABSORB,},
+      .lower = {.type = GKYL_SPECIES_ABSORB,},
+      .upper = {.type = GKYL_SPECIES_ABSORB,},
     },
     .bcy = {
-      .lower={.type = GKYL_SPECIES_GK_IWL,
-              .aux_parameter = ctx.x_LCFS,},
-      .upper={.type = GKYL_SPECIES_GK_IWL,
-              .aux_parameter = ctx.x_LCFS,},
+      .lower = {.type = GKYL_SPECIES_GK_IWL,},
+      .upper = {.type = GKYL_SPECIES_GK_IWL,},
     },
 
-    .num_diag_moments = 5,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+    .num_diag_moments = 4,
+    .diag_moments = { "M1", "M2par", "M2perp", "BiMaxwellianMoments" },
   };
 
-  // ions
+  // Ions.
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.qi, .mass = ctx.mi,
@@ -690,7 +689,8 @@ main(int argc, char **argv)
 
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
-      .num_sources = 2,
+//      .num_sources = 2,
+      .num_sources = 1,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
         .ctx_density = &ctx,
@@ -700,43 +700,40 @@ main(int argc, char **argv)
         .upar = zero_func,
         .temp = temp_ion_srcOMP,
       },
-      .projection[1] = {
-        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-        .ctx_density = &ctx,
-        .ctx_upar = &ctx,
-        .ctx_temp = &ctx,
-        .density = density_ion_srcGB,
-        .upar = zero_func,
-        .temp = temp_ion_srcGB,
-      },
+//      .projection[1] = {
+//        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+//        .ctx_density = &ctx,
+//        .ctx_upar = &ctx,
+//        .ctx_temp = &ctx,
+//        .density = density_ion_srcGB,
+//        .upar = zero_func,
+//        .temp = temp_ion_srcGB,
+//      },
     },
 
-    .diffusion = {
-      .num_diff_dir = 1,
-      .diff_dirs = { 0 },
-      .D = { 0.5 },
-      .order = 2,
-    },
+//    .diffusion = {
+//      .num_diff_dir = 1,
+//      .diff_dirs = { 0 },
+//      .D = { 0.5 },
+//      .order = 2,
+//    },
 
     .bcx = {
-      .lower={.type = GKYL_SPECIES_ABSORB,},
-      .upper={.type = GKYL_SPECIES_ABSORB,},
+      .lower = {.type = GKYL_SPECIES_ABSORB,},
+      .upper = {.type = GKYL_SPECIES_ABSORB,},
     },
     .bcy = {
-      .lower={.type = GKYL_SPECIES_GK_IWL,
-              .aux_parameter = ctx.x_LCFS,},
-      .upper={.type = GKYL_SPECIES_GK_IWL,
-              .aux_parameter = ctx.x_LCFS,},
+      .lower = {.type = GKYL_SPECIES_GK_IWL,},
+      .upper = {.type = GKYL_SPECIES_GK_IWL,},
     },
 
-    .num_diag_moments = 5,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+    .num_diag_moments = 4,
+    .diag_moments = { "M1", "M2par", "M2perp", "BiMaxwellianMoments" },
   };
 
   // field
   struct gkyl_gyrokinetic_field field = {
     .gkfield_id = GKYL_GK_FIELD_ES_IWL,
-    .xLCFS = ctx.x_LCFS,
     .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET},
                     .up_type = {GKYL_POISSON_DIRICHLET},
                     .lo_value = {0.0}, .up_value = {0.0}},
@@ -759,10 +756,11 @@ main(int argc, char **argv)
     .geometry = {
       .geometry_id = GKYL_MAPC2P,
       .world = {0.},
-      .mapc2p = mapc2p, // mapping of computational to physical space
+      .mapc2p = mapc2p, // Mapping of computational to physical space.
       .c2p_ctx = &ctx,
-      .bmag_func = bmag_func, // magnetic field magnitude
-      .bmag_ctx = &ctx
+      .bmag_func = bmag_func, // Magnetic field magnitude.
+      .bmag_ctx = &ctx,
+      .x_LCFS = ctx.x_LCFS, // Location of last closed flux surface.
     },
 
     .num_periodic_dir = 0,
