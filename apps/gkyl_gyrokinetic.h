@@ -162,12 +162,15 @@ struct gkyl_gyrokinetic_geometry {
   // pointer to bmag function
   void (*bmag_func)(double t, const double *xc, double *xp, void *ctx);
 
+  double world[3]; // extra computational coordinates for cases with reduced dimensionality
+
+  bool has_LCFS; // Whether the geometry has a last closed flux surface (LCFS).
+  double x_LCFS; // x coordinate of the LCFS.
+
   struct gkyl_efit_inp efit_info; // context with RZ data such as efit file for a tokamak or mirror
   struct gkyl_tok_geo_grid_inp tok_grid_info; // context for tokamak geometry with computational domain info
   struct gkyl_mirror_geo_grid_inp mirror_grid_info; // context for mirror geometry with computational domain info
   struct gkyl_position_map_inp position_map_info; // position map object
-
-  double world[3]; // extra computational coordinates for cases with reduced dimensionality
 };
 
 // Parameters for species radiation
@@ -250,6 +253,7 @@ struct gkyl_gyrokinetic_species {
 
   enum gkyl_gkmodel_id gkmodel_id;
   double charge, mass; // Charge and mass.
+  double skip_cell_threshold; // Skip updates over cells where the cell-averaged Jf is smaller than this value. Jf is what is output in the -species_#.gkyl files.
   double lower[3], upper[3]; // Lower, upper bounds of velocity-space.
   int cells[3]; // Velocity-space cells.
 
@@ -282,6 +286,7 @@ struct gkyl_gyrokinetic_species {
   int num_integrated_diag_moments; // Number of integrated diagnostic moments.
   char integrated_diag_moments[24][24]; // List of integrated diagnostic moments.
   bool time_rate_diagnostics; // Whether to ouput df/dt diagnostics.
+  bool write_omega_cfl; // Whether to ouput dt diagnostic for the CFL constraint.
 
   // Diagnostics of the fluxes of f at position-space boundaries.
   struct gkyl_phase_diagnostics_inp boundary_flux_diagnostics;
@@ -361,7 +366,6 @@ struct gkyl_gyrokinetic_field {
 
   double polarization_bmag; 
   double kperpSq; // kperp^2 parameter for 1D field equations
-  double xLCFS; // radial location of the LCFS.
 
   // parameters for adiabatic electrons simulations
   double electron_mass, electron_charge, electron_density, electron_temp;

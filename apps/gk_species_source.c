@@ -336,10 +336,14 @@ gk_species_source_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_speci
 
     gkyl_dynvec_append(gks->src.integ_diag, tm, avals_global);
 
-    app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-    app->stat.n_diag += 1;
+  app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.n_diag += 1;
 
-  }
+}
+
+void
+gk_species_source_write_integrated_mom_disabled(gkyl_gyrokinetic_app* app, struct gk_species *gks)
+{
 }
 
 void

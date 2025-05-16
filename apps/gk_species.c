@@ -359,6 +359,7 @@ gk_species_apply_pos_shift(gkyl_gyrokinetic_app* app, struct gk_species *gks)
 static void
 gk_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
+  gks->write_cfl_func(app, gks, tm, frame);
   struct timespec wst = gkyl_wall_clock();
   struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
       .frame = frame,
@@ -386,6 +387,38 @@ gk_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, doub
 
 static void
 gk_species_write_static(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
+{
+  // do nothing
+}
+
+static void
+gk_species_write_cfl_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
+{
+  struct timespec wst = gkyl_wall_clock();
+  struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
+      .frame = frame,
+      .stime = tm,
+      .poly_order = 0,
+      .basis_type = gks->basis.id,
+    }
+  );
+  struct timespec wtm = gkyl_wall_clock();
+
+  const char *fmt = "%s-%s-cflrate_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, frame);
+  gkyl_array_copy(gks->cflrate_ho, gks->cflrate);
+  gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt,
+    gks->cflrate_ho, fileNm);
+
+  app->stat.n_io += 1;
+  gk_array_meta_release(mt);  
+  app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
+}
+
+static void
+gk_species_write_cfl_disabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
   // do nothing
 }
@@ -702,6 +735,9 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
   gkyl_array_release(s->bc_buffer_lo_fixed);
   gkyl_array_release(s->bc_buffer_up_fixed);
 
+  if (s->info.write_omega_cfl) {
+    gkyl_array_release(s->cflrate_ho);
+  }
   if (s->lbo.collision_id == GKYL_LBO_COLLISIONS) {
     gk_species_lbo_release(app, &s->lbo);
   }
@@ -892,13 +928,6 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
       // applying sheath BCs in the SOL.
       gks->periodic_dirs[gks->num_periodic_dir] = app->cdim-1; // The last direction is the parallel one.
       gks->num_periodic_dir += 1;
-      // Check that the LCFS is the same on both BCs and that it's on a cell boundary within our grid.
-      double xLCFS = gks->lower_bc[dir].aux_parameter;
-      assert(fabs(xLCFS-gks->upper_bc[dir].aux_parameter) < 1e-14);
-      // Check the split happens within the domain and at a cell boundary.
-      assert((app->grid.lower[0]<xLCFS) && (xLCFS<app->grid.upper[0]));
-      double needint = (xLCFS-app->grid.lower[0])/app->grid.dx[0];
-      assert(floor(fabs(needint-floor(needint))) < 1.);
     }
   }
   
@@ -951,7 +980,8 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
     }
 
     gks->diff_slvr = gkyl_dg_updater_diffusion_gyrokinetic_new(&gks->grid, &gks->basis, &app->basis, 
-      false, diff_dir, diffusion_order, &app->local, is_zero_flux, app->use_gpu);
+      false, diff_dir, diffusion_order, &app->local, is_zero_flux,
+      gks->info.skip_cell_threshold, app->use_gpu);
   }
   
   // Allocate buffer needed for BCs.
@@ -976,30 +1006,12 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
         cdim, 2.0*(gks->info.charge/gks->info.mass), app->use_gpu);
     }
     else if (gks->lower_bc[d].type == GKYL_SPECIES_GK_IWL) {
-      double xLCFS = gks->lower_bc[d].aux_parameter;
-      // Index of the cell that abuts the xLCFS from below.
-      int idxLCFS_m = (xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
-      gkyl_range_shorten_from_below(&gks->lower_skin_par_sol, &gks->lower_skin[d], 0, app->grid.cells[0]-idxLCFS_m);
-      gkyl_range_shorten_from_below(&gks->lower_ghost_par_sol, &gks->lower_ghost[d], 0, app->grid.cells[0]-idxLCFS_m + 1);
-
       gks->bc_sheath_lo = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_LOWER_EDGE, gks->basis_on_dev, 
         &gks->lower_skin_par_sol, &gks->lower_ghost_par_sol, gks->vel_map,
         cdim, 2.0*(gks->info.charge/gks->info.mass), app->use_gpu);
 
       if (cdim == 3) {
         // For 3x2v we need a twistshift BC in the core.
-        // Create a core local range, extended in the BC dir.
-        int ndim = cdim+vdim;
-        int lower_bcdir_ext[ndim], upper_bcdir_ext[ndim];
-        for (int i=0; i<ndim; i++) {
-          lower_bcdir_ext[i] = gks->local.lower[i];
-          upper_bcdir_ext[i] = gks->local.upper[i];
-        }
-        upper_bcdir_ext[0] = idxLCFS_m;
-        lower_bcdir_ext[d] = gks->local_ext.lower[d];
-        upper_bcdir_ext[d] = gks->local_ext.upper[d];
-        gkyl_sub_range_init(&gks->local_par_ext_core, &gks->local_ext, lower_bcdir_ext, upper_bcdir_ext);
-
         struct gkyl_bc_twistshift_inp tsinp = {
           .bc_dir = d,
           .shift_dir = 1, // y shift.
@@ -1053,19 +1065,12 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
         cdim, 2.0*(gks->info.charge/gks->info.mass), app->use_gpu);
     }
     else if (gks->upper_bc[d].type == GKYL_SPECIES_GK_IWL) {
-      double xLCFS = gks->upper_bc[d].aux_parameter;
-      // Index of the cell that abuts the xLCFS from below.
-      int idxLCFS_m = (xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
-      gkyl_range_shorten_from_below(&gks->upper_skin_par_sol, &gks->upper_skin[d], 0, app->grid.cells[0]-idxLCFS_m);
-      gkyl_range_shorten_from_below(&gks->upper_ghost_par_sol, &gks->upper_ghost[d], 0, app->grid.cells[0]-idxLCFS_m + 1);
-
       gks->bc_sheath_up = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_UPPER_EDGE, gks->basis_on_dev, 
         &gks->upper_skin_par_sol, &gks->upper_ghost_par_sol, gks->vel_map,
         cdim, 2.0*(gks->info.charge/gks->info.mass), app->use_gpu);
 
       if (cdim == 3) {
         // For 3x2v we need a twistshift BC in the core.
-        // Create a core local range, extended in the BC dir.
         struct gkyl_bc_twistshift_inp tsinp = {
           .bc_dir = d,
           .shift_dir = 1, // y shift.
@@ -1156,6 +1161,12 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
   else
     gks->apply_pos_shift_func = gk_species_apply_pos_shift_disabled;
   gks->write_func = gk_species_write_dynamic;
+  if (gks->info.write_omega_cfl) {
+    gks->cflrate_ho = mkarr(false, gks->cflrate->ncomp, gks->cflrate->size);
+    gks->write_cfl_func = gk_species_write_cfl_enabled;
+  }
+  else 
+    gks->write_cfl_func = gk_species_write_cfl_disabled;
   gks->write_mom_func = gk_species_write_mom_dynamic;
   gks->calc_integrated_mom_func = gk_species_calc_integrated_mom_dynamic;
   gks->write_integrated_mom_func = gk_species_write_integrated_mom_dynamic;
@@ -1600,7 +1611,8 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   // Create collisionless solver.
   gks->slvr = gkyl_dg_updater_gyrokinetic_new(&gks->grid, &app->basis, &gks->basis, 
     &app->local, &gks->local, is_zero_flux, gks->info.charge, gks->info.mass,
-    gks->gkmodel_id, app->gk_geom, gks->vel_map, &aux_inp, app->use_gpu);
+    gks->info.skip_cell_threshold, gks->gkmodel_id, app->gk_geom, gks->vel_map, 
+    &aux_inp, app->use_gpu);
 
   // Acquire equation object.
   gks->eqn_gyrokinetic = gkyl_dg_updater_gyrokinetic_acquire_eqn(gks->slvr);
@@ -1645,6 +1657,50 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
 
     gkyl_sub_range_intersect(&gks->global_lower_ghost[dir], &gks->local_ext, &gks->global_lower_ghost[dir]);
     gkyl_sub_range_intersect(&gks->global_upper_ghost[dir], &gks->local_ext, &gks->global_upper_ghost[dir]);
+  }
+
+  if (gk_app_inp->geometry.has_LCFS) {
+    // IWL simulation. Create core and SOL global ranges.
+    int idx_LCFS_lo = app->gk_geom->idx_LCFS_lo;
+    int len_core = idx_LCFS_lo;
+    int len_sol = gks->global.upper[0]-len_core;
+    gkyl_range_shorten_from_above(&gks->global_core, &gks->global, 0, len_core);
+    gkyl_range_shorten_from_below(&gks->global_sol , &gks->global, 0, len_sol);
+    // Same for local ranges.
+    gkyl_range_shorten_from_above(&gks->local_core , &gks->local , 0, len_core);
+    gkyl_range_shorten_from_below(&gks->local_sol  , &gks->local , 0, len_sol);
+
+    int len_core_ext = idx_LCFS_lo+1;
+    int len_sol_ext = gks->global_ext.upper[0]-len_core;
+    gkyl_range_shorten_from_above(&gks->global_ext_core, &gks->global_ext, 0, len_core_ext);
+    gkyl_range_shorten_from_below(&gks->global_ext_sol , &gks->global_ext, 0, len_sol_ext);
+    // Same for local ranges.
+    gkyl_range_shorten_from_above(&gks->local_ext_core , &gks->local_ext , 0, len_core_ext);
+    gkyl_range_shorten_from_below(&gks->local_ext_sol  , &gks->local_ext , 0, len_sol_ext);
+
+    // Create core and SOL parallel skin and ghost ranges.
+    int par_dir = app->cdim-1;
+    for (int e=0; e<2; e++) {
+      gkyl_range_shorten_from_above(e==0? &gks->lower_skin_par_core  : &gks->upper_skin_par_core,
+                                    e==0? &gks->lower_skin[par_dir]  : &gks->upper_skin[par_dir], 0, len_core);
+      gkyl_range_shorten_from_above(e==0? &gks->lower_ghost_par_core : &gks->upper_ghost_par_core,
+                                    e==0? &gks->lower_ghost[par_dir] : &gks->upper_ghost[par_dir], 0, len_core);
+      gkyl_range_shorten_from_below(e==0? &gks->lower_skin_par_sol   : &gks->upper_skin_par_sol,
+                                    e==0? &gks->lower_skin[par_dir]  : &gks->upper_skin[par_dir], 0, len_sol);
+      gkyl_range_shorten_from_below(e==0? &gks->lower_ghost_par_sol  : &gks->upper_ghost_par_sol,
+                                    e==0? &gks->lower_ghost[par_dir] : &gks->upper_ghost[par_dir], 0, len_sol);
+    }
+
+    // Create a core local range, extended in the BC dir (for TS BCs).
+    int ndim = gks->local.ndim;
+    int lower_bcdir_ext[ndim], upper_bcdir_ext[ndim];
+    for (int i=0; i<ndim; i++) {
+      lower_bcdir_ext[i] = gks->local_core.lower[i];
+      upper_bcdir_ext[i] = gks->local_core.upper[i];
+    }
+    lower_bcdir_ext[par_dir] = gks->local_ext_core.lower[par_dir];
+    upper_bcdir_ext[par_dir] = gks->local_ext_core.upper[par_dir];
+    gkyl_sub_range_init(&gks->local_par_ext_core, &gks->local_ext_core, lower_bcdir_ext, upper_bcdir_ext);
   }
 
   // Initialize boundary fluxes.

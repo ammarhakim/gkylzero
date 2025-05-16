@@ -796,7 +796,7 @@ test_3x_p1_pmap_straight_cylinder()
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_tok_new(&geometry_input);
 
-  gkyl_position_map_set(pos_map, gk_geom->mc2nu_pos);
+  gkyl_position_map_set_mc2nu(pos_map, gk_geom->mc2nu_pos);
 
   write_geometry(gk_geom, grid, range, "straight_cylinder");
 
