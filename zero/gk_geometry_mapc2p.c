@@ -188,12 +188,18 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
   up->has_LCFS = geometry_inp->has_LCFS;
   if (up->has_LCFS) {
     up->x_LCFS = geometry_inp->x_LCFS;
-    // Check the split happens within the domain and at a cell boundary.
-    assert((up->grid.lower[0] < up->x_LCFS) && (up->x_LCFS < up->grid.upper[0]));
-    double needint = (up->x_LCFS-up->grid.lower[0])/up->grid.dx[0];
-    assert(floor(fabs(needint-floor(needint))) < 1.);
-    // Index of the cell that abuts the x_LCFS from below.
-    up->idx_LCFS_lo = (up->x_LCFS-1e-8 - up->grid.lower[0])/up->grid.dx[0]+1;
+    // Check that the split happens within the domain.
+    assert((up->grid.lower[0] <= up->x_LCFS) && (up->x_LCFS <= up->grid.upper[0]));
+    // If the split is not at a cell boundary, move it to the nearest one.
+    double needint = (up->x_LCFS - up->grid.lower[0])/up->grid.dx[0];
+    double rem = fabs(needint-floor(needint));
+    if (rem < 1.0e-12) {
+      up->idx_LCFS_lo = (int) needint;
+    }
+    else {
+      up->idx_LCFS_lo = rem <= 0.5? floor(needint) : ceil(needint);
+      fprintf(stderr, "x_LCFS was not at a cell boundary. Moved to: %.9e\n", up->grid.lower[0]+up->idx_LCFS_lo*up->grid.dx[0]);
+    }
   }
 
   struct gkyl_range nrange;

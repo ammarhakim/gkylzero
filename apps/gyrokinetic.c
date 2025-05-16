@@ -422,11 +422,11 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
     int len_core_ext = idx_LCFS_lo+1;
     int len_sol_ext = app->global_ext.upper[0]-len_core;
-    gkyl_range_shorten_from_above(&app->global_ext_core, &app->global_ext, 0, len_core);
-    gkyl_range_shorten_from_below(&app->global_ext_sol , &app->global_ext, 0, len_sol);
+    gkyl_range_shorten_from_above(&app->global_ext_core, &app->global_ext, 0, len_core_ext);
+    gkyl_range_shorten_from_below(&app->global_ext_sol , &app->global_ext, 0, len_sol_ext);
     // Same for local ranges.
-    gkyl_range_shorten_from_above(&app->local_ext_core , &app->local_ext , 0, len_core);
-    gkyl_range_shorten_from_below(&app->local_ext_sol  , &app->local_ext , 0, len_sol);
+    gkyl_range_shorten_from_above(&app->local_ext_core , &app->local_ext , 0, len_core_ext);
+    gkyl_range_shorten_from_below(&app->local_ext_sol  , &app->local_ext , 0, len_sol_ext);
 
     // Create core and SOL parallel skin and ghost ranges.
     int par_dir = app->cdim-1;
