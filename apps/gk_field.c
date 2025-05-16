@@ -237,6 +237,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       f->sheath_vals[2*j+1] = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
     }
     gkyl_array_release(cmag_div_jacobtot);
+    gkyl_dg_bin_op_mem_release(mem);
   } else {
 
     // Allocate array for the polarization weight times geometric coefficients.
