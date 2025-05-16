@@ -49,7 +49,7 @@ void gkyl_ambi_bolt_potential_sheath_calc(struct gkyl_ambi_bolt_potential *up, e
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
     return gkyl_ambi_bolt_potential_sheath_calc_cu(up, edge, skin_r, ghost_r,
-      cmag, jacobtot_inv, gammai, m0i, Jm0i, sheath_vals);
+      up->cmag_div_jacobtot, gammai, m0i, Jm0i, sheath_vals);
 #endif
 
   unsigned int keridx = (edge == GKYL_LOWER_EDGE) ? 0 : 1;
