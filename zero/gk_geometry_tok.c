@@ -28,8 +28,9 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   up->global = geometry_inp->geo_global;
   up->global_ext = geometry_inp->geo_global_ext;
   up->grid = geometry_inp->geo_grid;
-  up->x_LCFS = geometry_inp->x_LCFS;
-  if (fabs(up->x_LCFS) > 1e-16) {
+  up->has_LCFS = geometry_inp->has_LCFS;
+  if (up->has_LCFS) {
+    up->x_LCFS = geometry_inp->x_LCFS;
     // Check the split happens within the domain and at a cell boundary.
     assert((up->grid.lower[0] < up->x_LCFS) && (up->x_LCFS < up->grid.upper[0]));
     double needint = (up->x_LCFS-up->grid.lower[0])/up->grid.dx[0];

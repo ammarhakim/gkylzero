@@ -22,8 +22,9 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
   up->global_ext = geometry_inp->global_ext;
   up->grid = geometry_inp->grid;
   up->geqdsk_sign_convention = geo_host->geqdsk_sign_convention;
-  up->x_LCFS = geo_host->x_LCFS;
-  if (fabs(up->x_LCFS) > 1e-16) {
+  up->has_LCFS = geo_host->has_LCFS;
+  if (up->has_LCFS) {
+    up->x_LCFS = geo_host->x_LCFS;
     // Check the split happens within the domain and at a cell boundary.
     assert((up->grid.lower[0] < up->x_LCFS) && (up->x_LCFS < up->grid.upper[0]));
     double needint = (up->x_LCFS-up->grid.lower[0])/up->grid.dx[0];

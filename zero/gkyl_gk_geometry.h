@@ -63,6 +63,7 @@ struct gk_geometry {
   int geqdsk_sign_convention; // 0 if psi increases away from magnetic axis
                               // 1 if psi increases toward magnetic axis
 
+  bool has_LCFS; // Whether the geometry has an LCFS.
   double x_LCFS; // For mapc2p IWL geometry, the user has to provide the
                  // location of the LCFS. For numerical IWL, it may be stored
                  // in the eqdsk.
@@ -96,7 +97,8 @@ struct gkyl_gk_geometry_inp {
 
   double world[3]; // extra computational coordinates for cases with reduced dimensionality
 
-  double x_LCFS; // x location of the last closed flux surface.
+  bool has_LCFS; // Whether the geometry has a last closed flux surface (LCFS).
+  double x_LCFS; // x location of the LCFS.
 
   // 3D grid ranges and basis
   struct gkyl_rect_grid geo_grid;

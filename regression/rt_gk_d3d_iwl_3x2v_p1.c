@@ -850,6 +850,7 @@ main(int argc, char **argv)
       .c2p_ctx = &ctx,
       .bmag_func = bmag_func, // magnetic field magnitude
       .bmag_ctx = &ctx,
+      .has_LCFS = true,
       .x_LCFS = ctx.x_LCFS, // Location of last closed flux surface.
     },
 

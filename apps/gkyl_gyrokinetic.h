@@ -142,7 +142,8 @@ struct gkyl_gyrokinetic_geometry {
 
   double world[3]; // extra computational coordinates for cases with reduced dimensionality
 
-  double x_LCFS; // x coordinate of the last closed flux surface.
+  bool has_LCFS; // Whether the geometry has a last closed flux surface (LCFS).
+  double x_LCFS; // x coordinate of the LCFS.
 
   struct gkyl_efit_inp efit_info; // context with RZ data such as efit file for a tokamak or mirror
   struct gkyl_tok_geo_grid_inp tok_grid_info; // context for tokamak geometry with computational domain info

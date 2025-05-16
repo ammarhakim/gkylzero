@@ -462,6 +462,7 @@ int main(int argc, char **argv)
       .geometry_id = GKYL_TOKAMAK,
       .efit_info = efit_inp,
       .tok_grid_info = grid_inp,
+      .has_LCFS = true,
       .x_LCFS = ctx.psi_LCFS, // Location of last closed flux surface.
     },
 
