@@ -140,6 +140,7 @@ void compareToAnalytics(const struct gkyl_gk *app_inp, void* ctx )
   }
   else {
     printf("Sheath value and analytical sheath value match!\n");
+    printf("Fractional error: %g\n", (sheath_val - analytical_sheath)/analytical_sheath);
   }
   gkyl_array_release(field);
 }
