@@ -105,8 +105,8 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
           if (edge == GKYL_LOWER_EDGE? s->lower_bc[dir].type == GKYL_SPECIES_GK_IWL
            : s->upper_bc[dir].type == GKYL_SPECIES_GK_IWL) { 
              double xLCFS = s->lower_bc[dir].aux_parameter;
-             int idxLCFS_m = (xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
-             int len = app->grid.cells[0]-idxLCFS_m+1;
+             int idxLCFS_m = (xLCFS - 1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
+             int len = app->grid.cells[0]-idxLCFS_m + 1;
              gkyl_range_shorten_from_below(&adapt_src->range_conf[j], 
               edge == GKYL_LOWER_EDGE? &app->lower_ghost[dir] : &app->upper_ghost[dir], 0, len);
              gkyl_range_shorten_from_below(&adapt_src->range_bflux[j],

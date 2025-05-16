@@ -310,10 +310,10 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     double xLCFS = f->info.xLCFS;
     // Index of the cell that abuts the xLCFS from below.
     int idxLCFS_m = (xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
-    gkyl_range_shorten_from_below(&f->global_sol, &app->global, 0, app->grid.cells[0]-idxLCFS_m+1);
-    gkyl_range_shorten_from_below(&f->global_ext_sol, &app->global_ext, 0, app->grid.cells[0]-idxLCFS_m+1);
-    gkyl_range_shorten_from_above(&f->global_core, &app->global, 0, idxLCFS_m+1);
-    gkyl_range_shorten_from_above(&f->global_ext_core, &app->global_ext, 0, idxLCFS_m+1);
+    gkyl_range_shorten_from_below(&f->global_sol, &app->global, 0, app->grid.cells[0]-idxLCFS_m);
+    gkyl_range_shorten_from_below(&f->global_ext_sol, &app->global_ext, 0, app->grid.cells[0]-idxLCFS_m);
+    gkyl_range_shorten_from_above(&f->global_core, &app->global, 0, idxLCFS_m);
+    gkyl_range_shorten_from_above(&f->global_ext_core, &app->global_ext, 0, idxLCFS_m);
 
     f->fem_parproj_core = gkyl_fem_parproj_new(&f->global_core, &app->basis,
       fem_parproj_bc_core, 0, 0, app->use_gpu);
