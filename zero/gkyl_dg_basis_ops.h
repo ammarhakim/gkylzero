@@ -161,6 +161,15 @@ struct gkyl_basis_ops_evalf* gkyl_dg_basis_ops_evalf_new(const struct gkyl_rect_
   const struct gkyl_array *nodal_vals);
 
 /**
+ * Write the cubic DG representation to specified file.
+ *
+ * @param evf Interpolator object
+ * @param fname Output file name
+ * @return If file was written to disk
+ */
+bool gkyl_dg_basis_ops_evalf_write_cubic(const struct gkyl_basis_ops_evalf *evf, const char *fname);
+
+/**
  * Acquire pointer to memory allocated for cubic interpolation.
  *
  * @param evf Memory to acquire

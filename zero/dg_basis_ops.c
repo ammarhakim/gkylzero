@@ -1,5 +1,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
+#include <gkyl_array_rio.h>
 #include <gkyl_dg_basis_ops.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_ref_count.h>
@@ -675,6 +676,25 @@ gkyl_dg_basis_ops_evalf_new(const struct gkyl_rect_grid *grid,
   evf->ref_count = (struct gkyl_ref_count) { evalf_free, 1 };
   
   return evf;
+}
+
+bool
+gkyl_dg_basis_ops_evalf_write_cubic(const struct gkyl_basis_ops_evalf *evf, const char *fname)
+{
+  struct dg_basis_ops_evalf_ctx *ectx = evf->ctx;
+
+  struct gkyl_msgpack_data *mdata = gkyl_msgpack_create(2,
+    (struct gkyl_msgpack_map_elem []) {
+      { .key = "polyOrder", .elem_type = GKYL_MP_INT, .ival = 3 },
+      { .key = "basisType", .elem_type = GKYL_MP_STRING, .cval = ectx->basis.id }
+    }
+  );
+
+  enum gkyl_array_rio_status status =
+    gkyl_grid_sub_array_write(&ectx->grid, &ectx->local, mdata, ectx->cubic, fname);
+  gkyl_msgpack_data_release(mdata);  
+  
+  return status == GKYL_ARRAY_RIO_SUCCESS;
 }
 
 struct gkyl_basis_ops_evalf *
