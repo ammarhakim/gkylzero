@@ -198,7 +198,8 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
     }
     else {
       up->idx_LCFS_lo = rem <= 0.5? floor(needint) : ceil(needint);
-      fprintf(stderr, "x_LCFS was not at a cell boundary. Moved to: %.9e\n", up->grid.lower[0]+up->idx_LCFS_lo*up->grid.dx[0]);
+      up->x_LCFS = up->grid.lower[0]+up->idx_LCFS_lo*up->grid.dx[0];
+      fprintf(stderr, "x_LCFS was not at a cell boundary. Moved to: %.9e\n", up->x_LCFS);
     }
   }
 
