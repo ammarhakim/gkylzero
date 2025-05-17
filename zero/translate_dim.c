@@ -43,9 +43,22 @@ gkyl_translate_dim_advance(gkyl_translate_dim* up,
   struct gkyl_array *GKYL_RESTRICT ftar)
 {
   // Perform some basic checks:
-  for (int d=0; d<up->cdim_do-1; d++) {
-    assert(rng_do->lower[d] == rng_tar->lower[d]);
-    assert(rng_do->upper[d] == rng_tar->upper[d]);
+  const struct gkyl_range *hidim_rng, *lodim_rng;
+  if (rng_do->ndim > rng_tar->ndim) {
+    hidim_rng = rng_do;
+    lodim_rng = rng_tar;
+  }
+  else {
+    hidim_rng = rng_tar;
+    lodim_rng = rng_do;
+  }
+  int c = 0;
+  for (int d=0; d<hidim_rng->ndim; d++) {
+    if (d != up->dir) {
+      assert(hidim_rng->lower[d] == lodim_rng->lower[c]);
+      assert(hidim_rng->upper[d] == lodim_rng->upper[c]);
+      c++;
+    }
   }
   for (int d=0; d<up->vdim_do; d++) {
     assert(rng_do->lower[up->cdim_do+d] == rng_tar->lower[up->cdim_tar+d]);
