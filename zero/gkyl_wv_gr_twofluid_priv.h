@@ -92,13 +92,15 @@ gkyl_gr_twofluid_stress_energy_tensor_ion(double gas_gamma_elc, double gas_gamma
 /**
 * Compute maximum absolute wave speed.
 *
-* @param gas_gamma Adiabatic index.
+* @param gas_gamma_elc Adiabatic index (electrons).
+* @param gas_gamma_ion Adiabatic index (ions).
+* @param light_speed Speed of light.
 * @param q Conserved variable vector.
 * @return Maximum absolute wave speed for a given q.
 */
 GKYL_CU_D
 static inline double
-gkyl_gr_twofluid_max_abs_speed(double gas_gamma, const double q[84]);
+gkyl_gr_twofluid_max_abs_speed(double gas_gamma_elc, double gas_gamma_ion, double light_speed, const double q[84]);
 
 /**
 * Compute Riemann variables given the conserved variables.
