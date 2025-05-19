@@ -132,6 +132,23 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
         src_inp.gr_euler_gas_gamma = app->species[i].gr_euler_gas_gamma;
       }
     }
+
+    src_inp.has_gr_twofluid_sources = false;
+    for (int i = 0; i < app->num_species; i++) {
+      if (app->species[i].has_gr_twofluid) {
+        src_inp.has_gr_twofluid_sources = true;
+
+        if (app->species[i].gr_twofluid_mass_elc != 0.0 || app->species[i].gr_twofluid_mass_ion != 0.0 || app->species[i].gr_twofluid_charge_elc != 0.0 ||
+          app->species[i].gr_twofluid_charge_ion != 0.0 || app->species[i].gr_twofluid_gas_gamma_elc != 0.0 || app->species[i].gr_twofluid_gas_gamma_ion != 0.0) {
+          src_inp.gr_twofluid_mass_elc = app->species[i].gr_twofluid_mass_elc;
+          src_inp.gr_twofluid_mass_ion = app->species[i].gr_twofluid_mass_ion;
+          src_inp.gr_twofluid_charge_elc = app->species[i].gr_twofluid_charge_elc;
+          src_inp.gr_twofluid_charge_ion = app->species[i].gr_twofluid_charge_ion;
+          src_inp.gr_twofluid_gas_gamma_elc = app->species[i].gr_twofluid_gas_gamma_elc;
+          src_inp.gr_twofluid_gas_gamma_ion = app->species[i].gr_twofluid_gas_gamma_ion;
+        }
+      }
+    }
   }
 
   // save the use-rel bool

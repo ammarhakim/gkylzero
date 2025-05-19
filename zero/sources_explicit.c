@@ -992,7 +992,7 @@ explicit_gr_euler_source_update(const gkyl_moment_em_coupling* mom_em, double t_
 {
   int nfluids = mom_em->nfluids;
 
-  double gas_gamma = mom_em->gr_ultra_rel_gas_gamma;
+  double gas_gamma = mom_em->gr_euler_gas_gamma;
 
   for (int i = 0; i < nfluids; i++) {
     double *f = fluid_s[i];
@@ -1015,6 +1015,78 @@ explicit_gr_euler_source_update(const gkyl_moment_em_coupling* mom_em, double t_
 
     explicit_gr_euler_source_update_euler(mom_em, gas_gamma, t_curr + (0.5 * dt), dt, f_stage2, f_new);
     for (int j = 0; j < 71; j++) {
+      f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
+    }
+  }
+}
+
+void
+explicit_gr_twofluid_source_update_elc_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma_elc, const double mass_elc, const double charge_elc,
+  double t_curr, const double dt, double* fluid_old, double* fluid_new)
+{
+  for (int i = 0; i < 84; i++) {
+    fluid_new[i] = fluid_old[i];
+  }
+}
+
+void
+explicit_gr_twofluid_source_update_ion_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma_ion, const double mass_ion, const double charge_ion,
+  double t_curr, const double dt, double* fluid_old, double* fluid_new)
+{
+  for (int i = 0; i < 84; i++) {
+    fluid_new[i] = fluid_old[i];
+  }
+}
+
+void
+explicit_gr_twofluid_source_update_em_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma_elc, const double gas_gamma_ion, const double mass_elc,
+  const double charge_elc, const double mass_ion, const double charge_ion, double t_curr, const double dt, double* fluid_old, double* fluid_new)
+{
+  for (int i = 0; i < 84; i++) {
+    fluid_new[i] = fluid_old[i];
+  }
+}
+
+void
+explicit_gr_twofluid_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES])
+{
+  int nfluids = mom_em->nfluids;
+
+  double mass_elc = mom_em->gr_twofluid_mass_elc;
+  double mass_ion = mom_em->gr_twofluid_mass_ion;
+  double charge_elc = mom_em->gr_twofluid_charge_elc;
+  double charge_ion = mom_em->gr_twofluid_charge_ion;
+  double gas_gamma_elc = mom_em->gr_twofluid_gas_gamma_elc;
+  double gas_gamma_ion = mom_em->gr_twofluid_gas_gamma_ion;
+
+  for (int i = 0; i < nfluids; i++) {
+    double *f = fluid_s[i];
+
+    double f_new_elc[84], f_new_ion[84], f_new[84];
+    double f_stage1[84], f_stage2[84], f_old[84];
+
+    for (int j = 0; j < 84; j++) {
+      f_old[j] = f[j];
+    }
+
+    explicit_gr_twofluid_source_update_elc_euler(mom_em, gas_gamma_elc, mass_elc, charge_elc, t_curr, dt, f_old, f_new_elc);
+    explicit_gr_twofluid_source_update_ion_euler(mom_em, gas_gamma_ion, mass_ion, charge_ion, t_curr, dt, f_new_elc, f_new_ion);
+    explicit_gr_twofluid_source_update_em_euler(mom_em, gas_gamma_elc, gas_gamma_ion, mass_elc, charge_elc, mass_ion, charge_ion, t_curr, dt, f_new_ion, f_new);
+    for (int j = 0; j < 84; j++) {
+      f_stage1[j] = f_new[j];
+    }
+
+    explicit_gr_twofluid_source_update_elc_euler(mom_em, gas_gamma_elc, mass_elc, charge_elc, t_curr + dt, dt, f_stage1, f_new_elc);
+    explicit_gr_twofluid_source_update_ion_euler(mom_em, gas_gamma_ion, mass_ion, charge_ion, t_curr + dt, dt, f_new_elc, f_new_ion);
+    explicit_gr_twofluid_source_update_em_euler(mom_em, gas_gamma_elc, gas_gamma_ion, mass_elc, charge_elc, mass_ion, charge_ion, t_curr + dt, dt, f_new_ion, f_new);
+    for (int j = 0; j < 84; j++) {
+      f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
+    }
+
+    explicit_gr_twofluid_source_update_elc_euler(mom_em, gas_gamma_elc, mass_elc, charge_elc, t_curr + (0.5 * dt), dt, f_stage2, f_new_elc);
+    explicit_gr_twofluid_source_update_ion_euler(mom_em, gas_gamma_ion, mass_ion, charge_ion, t_curr + (0.5 * dt), dt, f_new_elc, f_new_ion);
+    explicit_gr_twofluid_source_update_em_euler(mom_em, gas_gamma_elc, gas_gamma_ion, mass_elc, charge_elc, mass_ion, charge_ion,t_curr + (0.5 * dt), dt, f_new_ion, f_new);
+    for (int j = 0; j < 84; j++) {
       f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
     }
   }

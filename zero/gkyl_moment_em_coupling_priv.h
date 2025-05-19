@@ -59,4 +59,12 @@ struct gkyl_moment_em_coupling {
 
   bool has_gr_euler_sources; // Run with general relativistic source terms (Euler equations, general equation of state).
   double gr_euler_gas_gamma; // Adiabatic index for general relativistic Euler equations (general equation of state).
+
+  bool has_gr_twofluid_sources; // Run with general relativistic two-fluid source terms.
+  double gr_twofluid_mass_elc; // Electron mass for general relativistic two-fluid equations.
+  double gr_twofluid_mass_ion; // Ion mass for general relativistic two-fluid equations.
+  double gr_twofluid_charge_elc; // Electron charge for general relativistic two-fluid equations.
+  double gr_twofluid_charge_ion; // Ion charge for general relativistic two-fluid equations.
+  double gr_twofluid_gas_gamma_elc; // Adiabatic index for electrons in general relativistic two-fluid equations.
+  double gr_twofluid_gas_gamma_ion; // Adiabatic index for ions in general relativistic two-fluid equations.
 };
