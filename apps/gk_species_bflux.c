@@ -572,15 +572,9 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
           // We consider only the SOL ranges in the IWL case
           if (e == 0? gk_s->lower_bc[d].type == GKYL_SPECIES_GK_IWL
             : gk_s->upper_bc[d].type == GKYL_SPECIES_GK_IWL) {
-            double xLCFS = gk_s->lower_bc[d].aux_parameter;
-            int idxLCFS = (xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
-            int len = app->grid.cells[0]-idxLCFS;
-            gkyl_range_shorten_from_below(&bflux->boundaries_conf_skin[nb], 
-              e == 0? &app->lower_skin[d] : &app->upper_skin[d], 0, len);
-            gkyl_range_shorten_from_below(&bflux->boundaries_conf_ghost[nb], 
-              e == 0? &app->lower_ghost[d] : &app->upper_ghost[d], 0, len+1);
-            gkyl_range_shorten_from_below(&bflux->boundaries_phase_ghost[nb], 
-              e == 0? &gk_s->lower_ghost[d] : &gk_s->upper_ghost[d], 0, len+1);
+            bflux->boundaries_conf_skin[nb] = e==0? app->lower_skin_par_sol : app->upper_skin_par_sol;
+            bflux->boundaries_conf_ghost[nb] = e==0? app->lower_ghost_par_sol : app->upper_ghost_par_sol;
+            bflux->boundaries_phase_ghost[nb] = e==0? gk_s->lower_ghost_par_sol : gk_s->upper_ghost_par_sol;            
           } else {
             bflux->boundaries_conf_skin[nb] = e==0? app->lower_skin[d] : app->upper_skin[d];
             bflux->boundaries_conf_ghost[nb] = e==0? app->lower_ghost[d] : app->upper_ghost[d];
