@@ -657,6 +657,17 @@ main(int argc, char **argv)
 
     .num_diag_moments = 4,
     .diag_moments = { "M1", "M2par", "M2perp", "BiMaxwellianMoments" },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { "HamiltonianMoments" },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_diag_moments = 1,
+      .diag_moments = { "HamiltonianMoments" },
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { "HamiltonianMoments" },
+//      .time_integrated = true,
+    },
   };
 
   // Ions.
@@ -727,6 +738,17 @@ main(int argc, char **argv)
 
     .num_diag_moments = 4,
     .diag_moments = { "M1", "M2par", "M2perp", "BiMaxwellianMoments" },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { "HamiltonianMoments" },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_diag_moments = 1,
+      .diag_moments = { "HamiltonianMoments" },
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { "HamiltonianMoments" },
+//      .time_integrated = true,
+    },
   };
 
   // field
@@ -735,6 +757,7 @@ main(int argc, char **argv)
     .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET},
                     .up_type = {GKYL_POISSON_DIRICHLET},
                     .lo_value = {0.0}, .up_value = {0.0}},
+    .time_rate_diagnostics = true,
   };
 
   // GK app

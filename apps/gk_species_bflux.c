@@ -458,7 +458,7 @@ gk_species_bflux_write_mom_dynamic(gkyl_gyrokinetic_app* app, void *spec_in,
         if (app->cdim > 1) {
           // Project the moment down to lower dimensions.
           int num_mom_comp = bflux->moms_op[mom_idx].num_mom;
-          gkyl_translate_dim_advance(bflux->transdim[b], bflux->boundaries_conf_skin[b], &bflux->surf_local[dir],
+          gkyl_translate_dim_advance(bflux->transdim[b], bflux->boundaries_conf_skin_fullx[b], &bflux->surf_local[dir],
             bflux->moms_op[mom_idx].marr, num_mom_comp, bflux->mom_surf[b*num_diag_mom+m]);
 
           if (app->use_gpu)
@@ -561,21 +561,31 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
     bflux->bflux_get_flux_func = gk_species_bflux_get_flux_dynamic;
 
     // Identify the non-periodic, non-zero-flux boundaries to compute boundary fluxes at.
-    bflux->num_boundaries = 0;
+    int num_bound = 0;
     for (int d=0; d<app->cdim; ++d) {
       for (int e=0; e<2; ++e) {
         if ( gk_s->bc_is_np[d] &&
              ((e == 0 && gk_s->lower_bc[d].type != GKYL_SPECIES_ZERO_FLUX) ||
               (e == 1 && gk_s->upper_bc[d].type != GKYL_SPECIES_ZERO_FLUX)) ) {
-          bflux->boundaries_dir[bflux->num_boundaries] = d;
-          bflux->boundaries_edge[bflux->num_boundaries] = e==0? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
-          bflux->boundaries_conf_skin[bflux->num_boundaries] = e==0? &app->lower_skin[d] : &app->upper_skin[d];
-          bflux->boundaries_conf_ghost[bflux->num_boundaries] = e==0? &app->lower_ghost[d] : &app->upper_ghost[d];
-          bflux->boundaries_phase_ghost[bflux->num_boundaries] = e==0? &gk_s->lower_ghost[d] : &gk_s->upper_ghost[d];
-          bflux->num_boundaries++;
+          bflux->boundaries_dir[num_bound] = d;
+          bflux->boundaries_edge[num_bound] = e==0? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
+
+          bflux->boundaries_conf_skin[num_bound] = e==0? &app->lower_skin[d] : &app->upper_skin[d];
+          bflux->boundaries_conf_ghost[num_bound] = e==0? &app->lower_ghost[d] : &app->upper_ghost[d];
+          bflux->boundaries_phase_ghost[num_bound] = e==0? &gk_s->lower_ghost[d] : &gk_s->upper_ghost[d];
+          bflux->boundaries_conf_skin_fullx[num_bound] = bflux->boundaries_conf_skin[num_bound];
+          if (e == 0? gk_s->lower_bc[d].type == GKYL_SPECIES_GK_IWL : gk_s->upper_bc[d].type == GKYL_SPECIES_GK_IWL) {
+            // Use SOL ranges only for parallel boundary fluxes.
+            bflux->boundaries_conf_skin[num_bound] = e==0? &app->lower_skin_par_sol : &app->upper_skin_par_sol;
+            bflux->boundaries_conf_ghost[num_bound] = e==0? &app->lower_ghost_par_sol : &app->upper_ghost_par_sol;
+            bflux->boundaries_phase_ghost[num_bound] = e==0? &gk_s->lower_ghost_par_sol : &gk_s->upper_ghost_par_sol;
+          }
+
+          num_bound++;
         }
       }
     }
+    bflux->num_boundaries = num_bound;
   
     // Allocate updater that computes boundary fluxes.
     for (int b=0; b<bflux->num_boundaries; ++b) {
@@ -659,8 +669,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
       long buff_sz = 0;
       for (int b=0; b<bflux->num_boundaries; ++b) {
         int dir = bflux->boundaries_dir[b];
-        struct gkyl_range *skin_r = bflux->boundaries_edge[b]==GKYL_LOWER_EDGE? &app->lower_skin[dir]
-                                                                              : &app->upper_skin[dir];
+        struct gkyl_range *skin_r = bflux->boundaries_conf_skin[b];
     
         bflux->gfss_bc_op[b] = gkyl_bc_basic_new(bflux->boundaries_dir[b], bflux->boundaries_edge[b],
           GKYL_BC_CONF_BOUNDARY_VALUE, &app->basis, skin_r, bflux->boundaries_conf_ghost[b], 1, app->cdim, app->use_gpu);
