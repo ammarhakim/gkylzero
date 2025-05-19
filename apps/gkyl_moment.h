@@ -8,6 +8,7 @@
 #include <gkyl_util.h>
 #include <gkyl_wave_prop.h>
 #include <gkyl_wv_eqn.h>
+#include <gkyl_wv_embed_geo.h>
 
 #include <time.h>
 
@@ -86,6 +87,8 @@ struct gkyl_moment_field {
   void (*ext_em)(double t, const double *xn, double *ext_em_out, void *ctx);
   bool ext_em_evolve; // set to true if external electromagnetic field function is time dependent
   double t_ramp_E; // linear ramp for turning on external E field
+
+  struct gkyl_wv_embed_geo *embed_geo;
   
   void *app_current_ctx; // context for external electromagnetic fields function
   // pointer to external electromagnetic fields function

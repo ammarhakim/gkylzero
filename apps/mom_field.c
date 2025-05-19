@@ -21,7 +21,8 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
 
   double c = 1/sqrt(epsilon0*mu0);
   struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c,
-    mom_fld->elc_error_speed_fact, mom_fld->mag_error_speed_fact, false);
+    mom_fld->elc_error_speed_fact, mom_fld->mag_error_speed_fact,
+    mom_fld->embed_geo, false);
 
   fld->maxwell = gkyl_wv_eqn_acquire(maxwell);
   
@@ -194,6 +195,16 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
   }
 
   fld->use_explicit_em_coupling = mom_fld->use_explicit_em_coupling;
+
+  if (maxwell->embed_geo)
+    fld->has_embed_geo = true;
+  fld->embed_mask = mkarr(false, 1, app->local_ext.volume);
+  gkyl_array_clear(fld->embed_mask, 1.0);
+
+  if (fld->has_embed_geo) {
+    gkyl_wv_embed_geo_new_mask(maxwell->embed_geo, &app->grid,
+      &app->local, fld->embed_mask);
+  }
 
   fld->ext_em = mkarr(false, 6, app->local_ext.volume);
   gkyl_array_clear(fld->ext_em, 0.0);

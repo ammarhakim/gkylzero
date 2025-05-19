@@ -30,7 +30,8 @@ ten_moment_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout
 }
 
 struct gkyl_wv_eqn*
-gkyl_wv_ten_moment_new(double k0, bool use_grad_closure, bool use_gpu)
+gkyl_wv_ten_moment_new(double k0, bool use_grad_closure,
+  struct gkyl_wv_embed_geo* embed_geo, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -69,7 +70,27 @@ gkyl_wv_ten_moment_new(double k0, bool use_grad_closure, bool use_gpu)
   ten_moment->eqn.ref_count = gkyl_ref_count_init(gkyl_ten_moment_free);
   ten_moment->eqn.on_dev = &ten_moment->eqn; // CPU eqn obj points to itself
 
-  return &ten_moment->eqn;  
+  ten_moment->eqn.embed_geo = embed_geo;
+  if (ten_moment->eqn.embed_geo) {
+    switch (ten_moment->eqn.embed_geo->type) {
+      case GKYL_EMBED_ABSORB:
+        ten_moment->eqn.embed_geo->embed_func = wave_embed_absorb;
+        break;
+
+      case GKYL_EMBED_REFLECT:
+        ten_moment->eqn.embed_geo->embed_func = wave_embed_reflect;
+        break;
+
+      case GKYL_EMBED_FUNC:
+        break; // already set by gkyl_wv_embed_geo_new
+
+      default:
+        assert(false);
+        break;
+    }
+  } 
+
+  return &ten_moment->eqn;
 }
 
 double

@@ -165,60 +165,30 @@ rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* t
 }
 
 GKYL_CU_DH
-static double
-wave_embed_absorb(const struct gkyl_wv_eqn *eqn,
-  const double *delta, const double *ql, const double *qr, const double phil,
-  const double phir, double *waves, double *s)
+static void
+wave_embed_absorb(const double *q, double *qphi, double *delta, void *ctx)
 {
-  const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
-  double gas_gamma = euler->gas_gamma;
+  qphi[0] = 0.0;
+  qphi[1] = 0.0;
+  qphi[2] = 0.0;
+  qphi[3] = 0.0;
+  qphi[4] = 0.0;
+}
 
-  double qphi[5] = {0.0};
-
-  double amax = 0.0;
-
-  double fl[5], fr[5] = {0.0};
-  if ((phil < 0.0) && (phir > 0.0)) {
-    double rhor = qr[0];
-    double ur = qr[1]/qr[0];
-    double pr = gkyl_euler_pressure(gas_gamma, qr);
-    double sr = fabs(ur) + sqrt(gas_gamma*pr/rhor);
-    amax = sr;
-
-    gkyl_euler_flux(gas_gamma, qphi, fl);
-    gkyl_euler_flux(gas_gamma, qr, fr);
-
-    double *w0 = &waves[0], *w1 = &waves[5];
-    for (int i=0; i<5; ++i) {
-      w1[i] = 0.5*((qr[i]-qphi[i]) + (fr[i]-fl[i])/amax);
-    }
-  }
-  
-  if ((phir < 0.0) && (phil > 0.0)) {
-    double rhol = ql[0];
-    double ul = ql[1]/ql[0];
-    double pl = gkyl_euler_pressure(gas_gamma, ql);
-    double sl = fabs(ul) + sqrt(gas_gamma*pl/rhol);
-    amax = sl;
-
-    gkyl_euler_flux(gas_gamma, ql, fl);
-    gkyl_euler_flux(gas_gamma, qphi, fr);
-    
-    double *w0 = &waves[0], *w1 = &waves[5];
-    for (int i=0; i<5; ++i) {
-      w0[i] = 0.5*((qphi[i]-ql[i]) - (fr[i]-fl[i])/amax);
-    }
-  }
-
-  s[0] = -amax;
-  s[1] = amax;
-  
-  return s[1];
+GKYL_CU_DH
+static void
+wave_embed_reflect(const double *q, double *qphi, double *delta, void *ctx)
+{
+  qphi[0] = q[0];
+  qphi[1] = -q[1];
+  qphi[2] = q[2];
+  qphi[3] = q[3];
+  qphi[4] = q[4];
 }
 
 GKYL_CU_DH
 static double
-wave_embed_reflect(const struct gkyl_wv_eqn *eqn,
+wave_embedded(const struct gkyl_wv_eqn *eqn,
   const double *delta, const double *ql, const double *qr, const double phil,
   const double phir, double *waves, double *s)
 {
@@ -226,6 +196,7 @@ wave_embed_reflect(const struct gkyl_wv_eqn *eqn,
   double gas_gamma = euler->gas_gamma;
 
   double qphi[5] = {0.0};
+  double deltaphi[5] = {0.0};
 
   double amax = 0.0;
 
@@ -237,11 +208,7 @@ wave_embed_reflect(const struct gkyl_wv_eqn *eqn,
     double sr = fabs(ur) + sqrt(gas_gamma*pr/rhor);
     amax = sr;
    
-    qphi[0] = qr[0];
-    qphi[1] = -qr[1];
-    qphi[2] = qr[2];
-    qphi[3] = qr[3];
-    qphi[4] = qr[4];
+    eqn->embed_geo->embed_func(qr, qphi, deltaphi, eqn->embed_geo->ctx);
 
     gkyl_euler_flux(gas_gamma, qphi, fl);
     gkyl_euler_flux(gas_gamma, qr, fr);
@@ -259,11 +226,7 @@ wave_embed_reflect(const struct gkyl_wv_eqn *eqn,
     double sl = fabs(ul) + sqrt(gas_gamma*pl/rhol);
     amax = sl;
     
-    qphi[0] = ql[0];
-    qphi[1] = -ql[1];
-    qphi[2] = ql[2];
-    qphi[3] = ql[3];
-    qphi[4] = ql[4];
+    eqn->embed_geo->embed_func(ql, qphi, deltaphi, eqn->embed_geo->ctx);
 
     gkyl_euler_flux(gas_gamma, ql, fl);
     gkyl_euler_flux(gas_gamma, qphi, fr);
@@ -334,7 +297,7 @@ wave_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   double phir, double *waves, double *s)
 {
   if ((phil < 0.0) || (phir < 0.0))
-    return eqn->embed_geo->embed_func(eqn, delta, ql, qr, phil, phir, waves, s);
+    return wave_embedded(eqn, delta, ql, qr, phil, phir, waves, s);
   else
     return wave_lax(eqn, delta, ql, qr, waves, s);
 }
@@ -472,7 +435,7 @@ wave_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   }
   // Check if inside an embedded surface
   if ((phil < 0.0) || (phir < 0.0))
-    return eqn->embed_geo->embed_func(eqn, delta, ql, qr, phil, phir, waves, s);
+    return wave_embedded(eqn, delta, ql, qr, phil, phir, waves, s);
   else {
     if (type == GKYL_WV_HIGH_ORDER_FLUX)
       return wave_roe(eqn, delta, ql, qr, waves, s);
@@ -726,7 +689,7 @@ wave_hllc_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
     s[i] = 0.0;
   }
   if ((phil < 0.0) || (phir < 0.0))
-    return eqn->embed_geo->embed_func(eqn, delta, ql, qr, phil, phir, waves, s);
+    return wave_embedded(eqn, delta, ql, qr, phil, phir, waves, s);
   else {
     if (type == GKYL_WV_HIGH_ORDER_FLUX)
       return wave_hllc(eqn, delta, ql, qr, waves, s);

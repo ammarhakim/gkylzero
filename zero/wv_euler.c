@@ -97,6 +97,10 @@ gkyl_wv_euler_inew(const struct gkyl_wv_euler_inp *inp)
 
       case GKYL_EMBED_FUNC:
         break; // already set by gkyl_wv_embed_geo_new
+
+      default:
+        assert(false);
+        break;
     }
   } 
 

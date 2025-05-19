@@ -234,7 +234,7 @@ main(int argc, char **argv)
   int NTHETA = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ntheta);
 
   // Fluid equations.
-  struct gkyl_wv_eqn *ten_moment = gkyl_wv_ten_moment_new(ctx.gas_gamma, false, app_args.use_gpu);
+  struct gkyl_wv_eqn *ten_moment = gkyl_wv_ten_moment_new(ctx.gas_gamma, false, NULL, app_args.use_gpu);
 
   struct gkyl_moment_species fluid = {
     .name = "10m",

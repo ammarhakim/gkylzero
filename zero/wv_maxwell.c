@@ -30,7 +30,8 @@ maxwell_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
 }
 
 struct gkyl_wv_eqn*
-gkyl_wv_maxwell_new(double c, double e_fact, double b_fact, bool use_gpu)
+gkyl_wv_maxwell_new(double c, double e_fact, double b_fact,
+  struct gkyl_wv_embed_geo* embed_geo, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
@@ -48,7 +49,7 @@ gkyl_wv_maxwell_new(double c, double e_fact, double b_fact, bool use_gpu)
   maxwell->e_fact = e_fact;
   maxwell->b_fact = b_fact;
   
-  maxwell->eqn.waves_func = wave;
+  maxwell->eqn.waves_func = wave_l;
   maxwell->eqn.qfluct_func = qfluct;
 
   maxwell->eqn.flux_jump = flux_jump;
@@ -70,6 +71,26 @@ gkyl_wv_maxwell_new(double c, double e_fact, double b_fact, bool use_gpu)
   GKYL_CLEAR_CU_ALLOC(maxwell->eqn.flags);
   maxwell->eqn.ref_count = gkyl_ref_count_init(gkyl_wv_maxwell_free);
   maxwell->eqn.on_dev = &maxwell->eqn; // CPU eqn obj points to itself
+
+  maxwell->eqn.embed_geo = embed_geo;
+  if (maxwell->eqn.embed_geo) {
+    switch (maxwell->eqn.embed_geo->type) {
+      case GKYL_EMBED_COPY_B:
+        maxwell->eqn.embed_geo->embed_func = wave_embed_copy_B;
+        break;
+
+      case GKYL_EMBED_PEC:
+        maxwell->eqn.embed_geo->embed_func = wave_embed_pec;
+        break;
+
+      case GKYL_EMBED_FUNC:
+        break; // already set by gkyl_wv_embed_geo_new
+
+      default:
+        assert(false);
+        break;
+    }
+  }
 
   return &maxwell->eqn;
 }

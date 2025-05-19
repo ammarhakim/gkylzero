@@ -4,6 +4,7 @@
 
 #include <math.h>
 #include <gkyl_array.h>
+#include <gkyl_wv_embed_geo.h>
 #include <gkyl_wv_eqn.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
@@ -141,9 +142,8 @@ rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* t
 // Waves and speeds using Roe averaging
 GKYL_CU_DH
 static double
-wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, 
-  const double phil, const double phir, double *waves, double *s)
+wave(const struct gkyl_wv_eqn *eqn, const double *delta,
+  const double *ql, const double *qr, double *waves, double *s)
 {
   const struct wv_maxwell *maxwell = container_of(eqn, struct wv_maxwell, eqn);
 
@@ -206,6 +206,69 @@ wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   s[5] = c;
   
   return c;
+}
+
+GKYL_CU_DH
+static void
+wave_embed_copy_B(const double *q, double *qphi, double *delta, void *ctx)
+{
+  qphi[0] = 0.0;
+  qphi[1] = 0.0;
+  qphi[2] = 0.0;
+  qphi[3] = q[3];
+  qphi[4] = q[4];
+  qphi[5] = q[5];
+  qphi[6] = q[6];
+  qphi[7] = q[7];
+
+  for (int d=0; d<8; ++d) delta[d] = q[d] - qphi[d];
+}
+
+GKYL_CU_DH
+static void
+wave_embed_pec(const double *q, double *qphi, double *delta, void *ctx)
+{
+  qphi[0] = q[0];
+  qphi[1] = -q[1];
+  qphi[2] = -q[2];
+  qphi[3] = -q[3];
+  qphi[4] = q[4];
+  qphi[5] = q[5];
+  qphi[6] = -q[6];
+  qphi[7] = q[7];
+
+  for (int d=0; d<8; ++d) delta[d] = q[d] - qphi[d];
+}
+
+GKYL_CU_DH
+static double
+wave_embedded(const struct gkyl_wv_eqn *eqn, const double *delta,
+  const double *ql, const double *qr, const double phil, const double phir,
+  double *waves, double *s)
+{
+  double qphi[8] = {0.0};
+  double deltaphi[8] = {0.0};
+
+  if ((phil < 0.0) && (phir > 0.0)) {
+    eqn->embed_geo->embed_func(qr, qphi, deltaphi, eqn->embed_geo->ctx);
+  }
+  if ((phil > 0.0) && (phir < 0.0)) {
+    eqn->embed_geo->embed_func(ql, qphi, deltaphi, eqn->embed_geo->ctx);
+  }
+
+  return wave(eqn, deltaphi, ql, qr, waves, s);
+}
+
+GKYL_CU_DH
+static double
+wave_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double *delta, const double *ql, const double *qr, 
+  const double phil, const double phir, double *waves, double *s)
+{
+  if ((phil < 0.0) || (phir < 0.0))
+    return wave_embedded(eqn, delta, ql, qr, phil, phir, waves, s);
+  else
+    return wave(eqn, delta, ql, qr, waves, s);
 }
 
 GKYL_CU_DH

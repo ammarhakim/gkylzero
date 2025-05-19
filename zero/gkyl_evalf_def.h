@@ -43,6 +43,5 @@ typedef void (*array_copy_func_t)(size_t nc, double *out, const double *inp, voi
  * @param eqn Base equation object.
  * @param ctx Context for function evaluation. Can be NULL
  */
-typedef double (*wv_embed_func_t)(const struct gkyl_wv_eqn *eqn, const double *delta,
-  const double *ql, const double *qr, const double phil, const double phir,
-  double *waves, double *s);
+typedef void (*wv_embed_func_t)(const double *q, double *qphi, double *delta,
+  void *ctx);

@@ -10,7 +10,8 @@
  * @param use_gpu Boolean to determine whether wave equation object is on host or device
  * @return Pointer to Ten moment equation object.
  */
-struct gkyl_wv_eqn* gkyl_wv_ten_moment_new(double k0, bool use_grad_closure, bool use_gpu);
+struct gkyl_wv_eqn* gkyl_wv_ten_moment_new(double k0, bool use_grad_closure,
+  struct gkyl_wv_embed_geo* embed_geo, bool use_gpu);
 
 /**
  * Create a new Ten moment equation object that lives on NV-GPU.
