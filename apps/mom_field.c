@@ -412,6 +412,8 @@ moment_field_release(const struct moment_field *fld)
     gkyl_fv_proj_release(fld->app_current_proj);
   }
 
+  gkyl_array_release(fld->embed_mask);
+
   gkyl_dynvec_release(fld->integ_energy);
   gkyl_array_release(fld->bc_buffer);
 }
