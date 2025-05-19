@@ -390,8 +390,8 @@ create_ctx(void)
   double R_axis    = 1.72068012;         // Magnetic axis major radius [m].
   double B_axis    = 2.0;                // Magnetic field at the magnetic axis [T].
   double R_LCFSmid = 2.2801477223421736; // Major radius of the LCFS at the outboard midplane [m].
-  double Rmid_min  = R_LCFSmid - 0.1;    // Minimum midplane major radius of simulation box [m].
-  double Rmid_max  = R_LCFSmid + 0.05;   // Maximum midplane major radius of simulation box [m].
+  double Rmid_min  = R_LCFSmid - 5*0.15/8;    // Minimum midplane major radius of simulation box [m].
+  double Rmid_max  = R_LCFSmid + 3*0.15/8;   // Maximum midplane major radius of simulation box [m].
   double R0        = 0.5*(Rmid_min+Rmid_max);  // Major radius of the simulation box [m].
 
   double a_mid     = R_LCFSmid-R_axis;   // Minor radius at outboard midplane [m].
