@@ -318,7 +318,7 @@ moment_field_update(gkyl_moment_app *app,
   if (!fld->is_static) {
     for (int d=0; d<ndim; ++d) {
       // update solution
-      stat = gkyl_wave_prop_advance(fld->slvr[d], tcurr, dt, &app->local, app->embed_phi, fld->f[d], fld->f[d+1]);
+      stat = gkyl_wave_prop_advance(fld->slvr[d], tcurr, dt, &app->local, fld->embed_mask, fld->f[d], fld->f[d+1]);
 
       if (!stat.success)
         return (struct gkyl_update_status) {
@@ -348,7 +348,7 @@ moment_field_rhs(gkyl_moment_app *app, struct moment_field *fld,
 
   gkyl_mp_scheme_advance(fld->mp_slvr, &app->local, fin,
     app->ql, app->qr, app->amdq, app->apdq,
-    fld->cflrate, app->embed_phi, rhs);
+    fld->cflrate, fld->embed_mask, rhs);
 
   double omegaCfl[1];
   gkyl_array_reduce_range(omegaCfl, fld->cflrate, GKYL_MAX, &(app->local));

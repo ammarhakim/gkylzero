@@ -1,4 +1,3 @@
-
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,6 +6,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
+#include <gkyl_wv_embed_geo.h>
 #include <gkyl_wv_euler.h>
 
 #include <gkyl_null_comm.h>
@@ -212,8 +212,12 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
+  struct gkyl_wv_embed_geo *embed_geo = gkyl_wv_embed_geo_new(GKYL_EMBED_REFLECT,
+    evalPhiInit, NULL, &ctx);
+
   // Fluid equations.
-  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
+  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, embed_geo,
+    app_args.use_gpu);
 
   struct gkyl_moment_species fluid = {
     .name = "euler",
@@ -304,9 +308,6 @@ main(int argc, char **argv)
 
     .num_species = 1,
     .species = { fluid },
-
-    .embed_geo = evalPhiInit,
-    .embed_ctx = &ctx,
 
     .parallelism = {
       .use_gpu = app_args.use_gpu,
@@ -429,6 +430,7 @@ main(int argc, char **argv)
 freeresources:
   // Free resources after simulation completion.
   gkyl_wv_eqn_release(euler);
+  gkyl_wv_embed_geo_release(embed_geo);
   gkyl_comm_release(comm);
   gkyl_moment_app_release(app);  
   

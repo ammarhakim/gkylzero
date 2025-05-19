@@ -87,6 +87,8 @@ struct gkyl_wv_eqn {
 
   wv_source_func_t source_func; // function for computing the forcing/source term vector.
 
+  struct gkyl_wv_embed_geo *embed_geo;
+
   uint32_t flags;  
   struct gkyl_ref_count ref_count; // reference count
   struct gkyl_wv_eqn *on_dev; // pointer to itself or device data

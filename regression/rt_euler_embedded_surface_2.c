@@ -1,3 +1,4 @@
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,14 +18,18 @@
 
 #include <rt_arg_parse.h>
 
-struct reflect_2d_ctx
+struct embedded_ctx
 {
   // Physical constants (using normalized code units).
   double gas_gamma; // Adiabatic idex.
 
   double rho0; // Reference fluid mass density.
-  double beta; // Beta parameter in exponential pressure distribution.
-
+  double rho1;
+  double u0;
+  double u1;
+  double p0;
+  double p1;
+  
   // Simulation parameters.
   int Nx; // Cell count (x-direction).
   int Ny; // Cell count (y-direction).
@@ -40,33 +45,41 @@ struct reflect_2d_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct reflect_2d_ctx
+struct embedded_ctx
 create_ctx(void)
 {
   // Physical constants (using normalized code units).
   double gas_gamma = 1.4; // Adiabatic index.
 
-  double rho0 = 1.0; // Reference fluid mass density.
-  double beta = 50.0; // Beta parameter in exponential pressure distribution.
-
+  double rho0 = 2.66666666*1.4; // Reference fluid mass density.
+  double rho1 = 1.4; // Reference fluid mass density.
+  double u0 = 1.25;
+  double u1 = 0.0;
+  double p0 = 4.5*1.0;
+  double p1 = 1.0;
+  
   // Simulation parameters.
-  int Nx = 128; // Cell count (x-direction).
-  int Ny = 128; // Cell count (y-direction).
+  int Nx = 300; // Cell count (x-direction).
+  int Ny = 300; // Cell count (y-direction).
   double Lx = 1.0; // Domain size (x-direction).
   double Ly = 1.0; // Domain size (y-direction).
   double cfl_frac = 0.9; // CFL coefficient.
 
-  double t_end = 0.5; // Final simulation time.
-  int num_frames = 1; // Number of output frames.
+  double t_end = 0.25; // Final simulation time.
+  int num_frames = 5; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct reflect_2d_ctx ctx = {
+  struct embedded_ctx ctx = {
     .gas_gamma = gas_gamma,
     .rho0 = rho0,
-    .beta = beta,
+    .rho1 = rho1,
+    .u0 = u0,
+    .u1 = u1,
+    .p0 = p0,
+    .p1 = p1,
     .Nx = Nx,
     .Ny = Ny,
     .Lx = Lx,
@@ -83,30 +96,111 @@ create_ctx(void)
   return ctx;
 }
 
+static inline void
+mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void* ctx)
+{
+  double x = zc[0], y = zc[1];
+
+  double r1 = 0.15;
+  double r2 = r1/0.6;
+
+  double xc = x/r2, yc = y/r2;
+
+  if (fabs(x) <= r2 && fabs(y) <= r2) {
+    double d = fmax(fabs(xc), fabs(yc));
+    d = fmax(d, 1.0e-10);
+    double D = r2*d/sqrt(2.0);
+    double R = r1;
+
+    if (d > r1/r2) {
+      R = r1*pow((1.0 - r1/r2)/(1.0 - d), r2/r1 + 0.5);
+      // Scale D outside circle to correctly extend to grid edge.
+      D = D*((1.0 - sqrt(2.0))/(r1/r2 - 1.0)*d + (1.0 - sqrt(2)*r1/r2)/(1.0 - r1/r2));
+    }
+
+    if ((xc > 0.0) && (fabs(yc) <= fabs(xc))) {
+      xp[1] = yc*D/d;
+      xp[0] = D - sqrt(R*R - D*D) + sqrt(R*R - xp[1]*xp[1]);
+    }
+    else if ((xc < 0.0) && (fabs(yc) <= fabs(xc))) {
+      xp[1] = yc*D/d;
+      xp[0] = -(D - sqrt(R*R - D*D) + sqrt(R*R - xp[1]*xp[1]));
+    }
+    else if ((yc > 0.0) && (fabs(xc) <= fabs(yc))) {
+      xp[0] = xc*D/d;
+      xp[1] = D - sqrt(R*R - D*D) + sqrt(R*R - xp[0]*xp[0]);
+    }
+    else {
+      xp[0] = xc*D/d;
+      xp[1] = -(D - sqrt(R*R - D*D) + sqrt(R*R - xp[0]*xp[0]));
+    }
+  }
+  else {
+    xp[0] = x;
+    xp[1] = y;
+  }
+}
+
+void
+evalPhiInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT phi, void* ctx)
+{
+  double x = xn[0], y = xn[1];
+  double xp[2] = { 0.0 };
+  mapc2p(0.0, xn, xp, ctx);
+
+  struct embedded_ctx *app = ctx;
+
+  double xc = 0.0;
+  double yc = 0.0;
+
+  double r = 0.15;
+
+  if (((xp[0]-xc)*(xp[0]-xc) + (xp[1]-yc)*(xp[1]-yc)) < r*r)
+    phi[0] = -1.0;
+  else
+    phi[0] = 1.0;
+}
+
 void
 evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0], y = xn[1];
-  struct reflect_2d_ctx *app = ctx;
+  double xp[2] = { 0.0 };
+  mapc2p(0.0, xn, xp, ctx);
+  struct embedded_ctx *app = ctx;
 
   double gas_gamma = app->gas_gamma;
 
   double rho0 = app->rho0;
-  double beta = app->beta;
   
   double Lx = app->Lx;
   double Ly = app->Ly;
 
-  double xc = 0.5 * Lx;
-  double yc = 0.5 * Ly;
+  double xc = 0.0;
+  double yc = 0.0;
 
-  double p = 1.0 + 0.1 * exp(-beta * ((x - xc) * (x - xc) + (y - yc) * (y - yc)));
+  double rho = app->rho0; // Fluid mass density.
+  double u = app->u0;
+  double p = app->p0;
 
-  double rho = rho0; // Fluid mass density.
-  double mom_x = 0.0; // Fluid momentum density (x-direction).
+  double r = 0.15;
+
+  if (xp[0] > -0.3) {
+    rho = app->rho1;
+    u = app->u1;
+    p = app->p1;
+  }
+
+  if (((xp[0]-xc)*(xp[0]-xc) + (xp[1]-yc)*(xp[1]-yc)) < r*r) {
+    rho = 0.01;
+    u = 0.0;
+    p = 0.01;
+  }
+
+  double mom_x = rho*u; // Fluid momentum density (x-direction).
   double mom_y = 0.0; // Fluid momentum density (y-direction).
   double mom_z = 0.0; // Fluid momentum density (z-direction).
-  double Etot = p / (gas_gamma - 1.0); // Fluid total energy density.
+  double Etot = p/(gas_gamma - 1.0) + 0.5*rho*u*u; // Fluid total energy density.
 
   // Set fluid mass density.
   fout[0] = rho;
@@ -163,7 +257,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct reflect_2d_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct embedded_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
@@ -178,8 +272,8 @@ main(int argc, char **argv)
     .init = evalEulerInit,
     .ctx = &ctx,
 
-    .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
-    .bcy = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
+    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+    .bcy = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
 
   int nrank = 1; // Number of processes in simulation.
@@ -249,17 +343,22 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "euler_reflect_2d",
+    .name = "euler_embedded_c2p_2",
 
     .ndim = 2,
-    .lower = { 0.0, 0.0 },
-    .upper = { ctx.Lx, ctx.Ly }, 
+    .lower = { -0.5*ctx.Lx, -0.5*ctx.Ly },
+    .upper = { 0.5*ctx.Lx, 0.5*ctx.Ly }, 
     .cells = { NX, NY },
+
+    .mapc2p = mapc2p,
 
     .cfl_frac = ctx.cfl_frac,
 
     .num_species = 1,
     .species = { fluid },
+
+    .embed_geo = evalPhiInit,
+    .embed_ctx = &ctx,
 
     .parallelism = {
       .use_gpu = app_args.use_gpu,

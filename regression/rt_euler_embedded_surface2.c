@@ -6,6 +6,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
+#include <gkyl_wv_embed_geo.h>
 #include <gkyl_wv_euler.h>
 
 #include <gkyl_null_comm.h>
@@ -217,11 +218,15 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
+  struct gkyl_wv_embed_geo *embed_geo = gkyl_wv_embed_geo_new(GKYL_EMBED_REFLECT,
+    evalPhiInit, NULL, &ctx);
+
   // Fluid equations.
   struct gkyl_wv_eqn *euler = gkyl_wv_euler_inew(
     &(struct gkyl_wv_euler_inp) {
         .gas_gamma = ctx.gas_gamma,
         .rp_type = WV_EULER_RP_HLLC,
+        .embed_geo = embed_geo,
         .use_gpu = app_args.use_gpu,
     });
 
@@ -316,9 +321,6 @@ main(int argc, char **argv)
 
     .num_species = 1,
     .species = { fluid },
-
-    .embed_geo = evalPhiInit,
-    .embed_ctx = &ctx,
 
     .parallelism = {
       .use_gpu = app_args.use_gpu,

@@ -87,8 +87,8 @@ five_moment_1d_run_single(int argc, char **argv, struct five_moment_1d_single_in
       mesh_pdata[i].euler_ion = gkyl_wv_euler_inew(&inp);
     }
     else {
-      mesh_pdata[i].euler_elc = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
-      mesh_pdata[i].euler_ion = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
+      mesh_pdata[i].euler_elc = gkyl_wv_euler_new(gas_gamma, NULL, app_args.use_gpu);
+      mesh_pdata[i].euler_ion = gkyl_wv_euler_new(gas_gamma, NULL, app_args.use_gpu);
     }
     mesh_pdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact, app_args.use_gpu);
 
@@ -396,8 +396,8 @@ five_moment_1d_run_double(int argc, char **argv, struct five_moment_1d_double_in
       mesh_pdata[i].euler_ion = gkyl_wv_euler_inew(&inp);
     }
     else {
-      mesh_pdata[i].euler_elc = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
-      mesh_pdata[i].euler_ion = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
+      mesh_pdata[i].euler_elc = gkyl_wv_euler_new(gas_gamma, NULL, app_args.use_gpu);
+      mesh_pdata[i].euler_ion = gkyl_wv_euler_new(gas_gamma, NULL, app_args.use_gpu);
     }
     mesh_pdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact, app_args.use_gpu);
 
@@ -741,8 +741,8 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
       mesh_bdata[i].euler_ion = gkyl_wv_euler_inew(&inp);
     }
     else {
-      mesh_bdata[i].euler_elc = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
-      mesh_bdata[i].euler_ion = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
+      mesh_bdata[i].euler_elc = gkyl_wv_euler_new(gas_gamma, NULL, app_args.use_gpu);
+      mesh_bdata[i].euler_ion = gkyl_wv_euler_new(gas_gamma, NULL, app_args.use_gpu);
     }
     mesh_bdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact, app_args.use_gpu);
 
@@ -1121,8 +1121,8 @@ five_moment_2d_run_double(int argc, char **argv, struct five_moment_2d_double_in
       mesh_bdata[i].euler_ion = gkyl_wv_euler_inew(&inp);
     }
     else {
-      mesh_bdata[i].euler_elc = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
-      mesh_bdata[i].euler_ion = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
+      mesh_bdata[i].euler_elc = gkyl_wv_euler_new(gas_gamma, NULL, app_args.use_gpu);
+      mesh_bdata[i].euler_ion = gkyl_wv_euler_new(gas_gamma, NULL, app_args.use_gpu);
     }
     mesh_bdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact, app_args.use_gpu);
 
