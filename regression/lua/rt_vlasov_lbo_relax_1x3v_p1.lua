@@ -109,7 +109,7 @@ vlasovApp = Vlasov.App.new {
     },
 
     evolve = true, -- Evolve species?
-    diagnostics = { G0.DistributionMoment.M0, G0.DistributionMoment.M1, G0.DistributionMoment.M2 }
+    diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2 }
   },
 
   -- Bump species.
@@ -153,7 +153,7 @@ vlasovApp = Vlasov.App.new {
     },
 
     evolve = true, -- Evolve species?
-    diagnostics = { G0.DistributionMoment.M0, G0.DistributionMoment.M1, G0.DistributionMoment.M2 }
+    diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2 }
   },
 
   skipField = true,

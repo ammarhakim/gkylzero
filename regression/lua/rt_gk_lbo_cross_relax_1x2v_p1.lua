@@ -151,7 +151,7 @@ gyrokineticApp = Gyrokinetic.App.new {
     },
 
     evolve = true, -- Evolve species?
-    diagnostics = { G0.DistributionMoment.M0, G0.DistributionMoment.M1, G0.DistributionMoment.M2, G0.DistributionMoment.M2par, G0.DistributionMoment.M2perp, G0.DistributionMoment.BiMaxwellianMoments }
+    diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2, G0.Moment.M2par, G0.Moment.M2perp, G0.Moment.BiMaxwellianMoments }
   },
 
   -- Ions.
@@ -201,7 +201,7 @@ gyrokineticApp = Gyrokinetic.App.new {
     },
 
     evolve = true, -- Evolve species?
-    diagnostics = { G0.DistributionMoment.M0, G0.DistributionMoment.M1, G0.DistributionMoment.M2, G0.DistributionMoment.M2par, G0.DistributionMoment.M2perp, G0.DistributionMoment.BiMaxwellianMoments }
+    diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2, G0.Moment.M2par, G0.Moment.M2perp, G0.Moment.BiMaxwellianMoments }
   },
 
   -- Field.

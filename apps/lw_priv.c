@@ -270,7 +270,7 @@ register_types(lua_State *L, const struct gkyl_str_int_pair types[], const char 
 void
 gkyl_register_distribution_moment_types(lua_State *L)
 {
-  register_types(L, distribution_moms, "DistributionMoment");
+  register_types(L, distribution_moms, "Moment");
 }
 
 void

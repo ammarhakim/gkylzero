@@ -317,7 +317,7 @@ gyrokineticApp = Gyrokinetic.App.new {
     },
 
     evolve = true, -- Evolve species?
-    diagnostics = { G0.DistributionMoment.M0, G0.DistributionMoment.M1, G0.DistributionMoment.M2, G0.DistributionMoment.M2par, G0.DistributionMoment.M2perp }
+    diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2, G0.Moment.M2par, G0.Moment.M2perp }
   },
 
   -- Ions.
@@ -447,7 +447,7 @@ gyrokineticApp = Gyrokinetic.App.new {
     },
 
     evolve = true, -- Evolve species?
-    diagnostics = { G0.DistributionMoment.M0, G0.DistributionMoment.M1, G0.DistributionMoment.M2, G0.DistributionMoment.M2par, G0.DistributionMoment.M2perp }
+    diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2, G0.Moment.M2par, G0.Moment.M2perp }
   },
 
   -- Li1+ ions.
@@ -599,7 +599,7 @@ gyrokineticApp = Gyrokinetic.App.new {
     },
 
     evolve = true, -- Evolve species?
-    diagnostics = { G0.DistributionMoment.M0, G0.DistributionMoment.M1, G0.DistributionMoment.M2, G0.DistributionMoment.M2par, G0.DistributionMoment.M2perp }
+    diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2, G0.Moment.M2par, G0.Moment.M2perp }
   },
 
   -- Li2+ ions.
@@ -751,7 +751,7 @@ gyrokineticApp = Gyrokinetic.App.new {
     },
 
     evolve = true, -- Evolve species?
-    diagnostics = { G0.DistributionMoment.M0, G0.DistributionMoment.M1, G0.DistributionMoment.M2, G0.DistributionMoment.M2par, G0.DistributionMoment.M2perp }
+    diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2, G0.Moment.M2par, G0.Moment.M2perp }
   },
 
   -- Field.
