@@ -243,7 +243,7 @@ gk_neut_species_bflux_calc_integrated_mom_dynamic(gkyl_gyrokinetic_app* app,
       // Integrated moment of the boundary flux.
       int dir = bflux->boundaries_dir[b];
       gkyl_array_integrate_advance(bflux->integ_op[m], bflux->f[b*bflux->num_calc_moms+int_mom_idx], 1.0, 0,
-        bflux->boundaries_conf_ghost[b], 0, bflux->int_moms_local);
+        &bflux->boundaries_conf_ghost[b], 0, bflux->int_moms_local);
 
       gkyl_comm_allreduce(app->comm_plane[dir], GKYL_DOUBLE, GKYL_SUM, num_mom_comp, 
         bflux->int_moms_local, bflux->int_moms_global);
@@ -277,7 +277,7 @@ gk_neut_species_bflux_calc_voltime_integrated_mom_dynamic(gkyl_gyrokinetic_app* 
       // Integrated moment of the boundary flux.
       int dir = bflux->boundaries_dir[b];
       gkyl_array_integrate_advance(bflux->integ_op[m], bflux->f[b*bflux->num_calc_moms+int_mom_idx], 1., 0,
-        bflux->boundaries_conf_ghost[b], 0, bflux->int_moms_local);
+        &bflux->boundaries_conf_ghost[b], 0, bflux->int_moms_local);
 
       gkyl_comm_allreduce(app->comm_plane[dir], GKYL_DOUBLE, GKYL_SUM, num_mom_comp, 
         bflux->int_moms_local, bflux->int_moms_global);
