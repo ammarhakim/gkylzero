@@ -8,6 +8,7 @@ extern "C" {
 #include <gkyl_math.h>
 #include <gkyl_util.h>
 #include <gkyl_gk_geometry.h>
+#include <assert.h>
 }
 // CPU interface to create and track a GPU object
 struct gk_geometry* 
