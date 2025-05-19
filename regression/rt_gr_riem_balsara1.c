@@ -36,8 +36,8 @@ struct riem_balsara1_ctx
   double pr; // Right electron/ion pressure.
 
   double Bx; // Total magnetic field (x-direction).
-  double Bzl; // Left total magneic field (z-direction).
-  double Bzr; // Right total magnetic field (z-direction).
+  double Byl; // Left total magneic field (y-direction).
+  double Byr; // Right total magnetic field (y-direction).
 
   bool has_collision; // Whether to include collisions.
   double nu_base_ei; // Base electron-ion collision frequency.
@@ -73,23 +73,23 @@ struct riem_balsara1_ctx
 create_ctx(void)
 {
   // Physical constants (using normalized code units).
-  double gas_gamma_elc = 5.0 / 3.0; // Adiabatic index (electrons).
-  double gas_gamma_ion = 5.0 / 3.0; // Adiabatic index (ions).
+  double gas_gamma_elc = 2.0; // Adiabatic index (electrons).
+  double gas_gamma_ion = 2.0; // Adiabatic index (ions).
   double epsilon0 = 1.0; // Permittivity of free space.
   double mu0 = 1.0; // Permeability of free space.
   double mass_ion = 1.0; // Proton mass.
   double charge_ion = 1.0; // Proton charge.
-  double mass_elc = 1.0 / 1836.2; // Electron mass.
+  double mass_elc = 1.0; // Electron mass.
   double charge_elc = -1.0; // Electron charge.
 
   double rhol_ion = 1.0; // Left ion mass density.
   double rhor_ion = 0.125; // Right ion mass density;
-  double pl = 5.0e-5; // Left electron/ion pressure.
-  double pr = 5.0e-6; // Right electron/ion pressure.
+  double pl = 1.0; // Left electron/ion pressure.
+  double pr = 0.1; // Right electron/ion pressure.
 
-  double Bx = 0.5e-2; // Total magnetic field (x-direction).
-  double Bzl = 1.0e-2; // Left total magneic field (z-direction).
-  double Bzr = -1.0e-2; // Right total magnetic field (z-direction).
+  double Bx = 0.5; // Total magnetic field (x-direction).
+  double Byl = 1.0; // Left total magneic field (y-direction).
+  double Byr = -1.0; // Right total magnetic field (y-direction).
 
   bool has_collision = false; // Whether to include collisions.
   double nu_base_ei = 0.5; // Base electron-ion collision frequency.
@@ -134,8 +134,8 @@ create_ctx(void)
     .pl = pl,
     .pr = pr,
     .Bx = Bx,
-    .Bzl = Bzl,
-    .Bzr = Bzr,
+    .Byl = Byl,
+    .Byr = Byr,
     .has_collision = has_collision,
     .nu_base_ei = nu_base_ei,
     .light_speed = light_speed,
@@ -179,15 +179,15 @@ evalGRTwoFluidInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
   double pr = app->pr;
 
   double Bx = app->Bx; // Total magnetic field (x-direction).
-  double Bzl = app->Bzl;
-  double Bzr = app->Bzr;
+  double Byl = app->Byl;
+  double Byr = app->Byr;
 
   double Dx = 0.0; // Total electric field (x-direction).
   double Dy = 0.0; // Total electric field (y-direction).
   double Dz = 0.0; // Total electric field (z-direction).
 
-  double By = 0.0; // Total magnetic field (y-direction).
-  double Bz = 0.0;
+  double By = 0.0;
+  double Bz = 0.0; // Total magnetic field (z-direction).
 
   struct gkyl_gr_spacetime *spacetime = app->spacetime;
 
@@ -207,10 +207,10 @@ evalGRTwoFluidInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
   }
 
   if (x < 0.5) {
-    Bz = Bzl; // Total magnetic field (z-direction, left).
+    By = Byl; // Total magnetic field (y-direction, left).
   }
   else {
-    Bz = Bzr; // Total magnetic field (z-direction, right).
+    By = Byr; // Total magnetic field (y-direction, right).
   }
 
   double spatial_det, lapse;
@@ -430,6 +430,14 @@ main(int argc, char **argv)
     .init = evalGRTwoFluidInit,
     .force_low_order_flux = true, // Use Lax fluxes.
     .ctx = &ctx,
+
+    .has_gr_twofluid = true,
+    .gr_twofluid_mass_elc = ctx.mass_elc,
+    .gr_twofluid_mass_ion = ctx.mass_ion,
+    .gr_twofluid_charge_elc = ctx.charge_elc,
+    .gr_twofluid_charge_ion = ctx.charge_ion,
+    .gr_twofluid_gas_gamma_elc = ctx.gas_gamma_elc,
+    .gr_twofluid_gas_gamma_ion = ctx.gas_gamma_ion,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
