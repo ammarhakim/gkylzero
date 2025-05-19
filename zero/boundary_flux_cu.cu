@@ -10,7 +10,7 @@ extern "C" {
 struct gkyl_boundary_flux*
 gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  const struct gkyl_dg_eqn *equation, bool use_boundary_surf)
+  const struct gkyl_dg_eqn *equation, double skip_cell_threshold)
 {
   struct gkyl_boundary_flux *up = (struct gkyl_boundary_flux*) gkyl_malloc(sizeof(struct gkyl_boundary_flux));
 
@@ -19,8 +19,12 @@ gkyl_boundary_flux_cu_dev_new(int dir, enum gkyl_edge_loc edge,
   up->grid = *grid;
   up->skin_r = *skin_r;
   up->ghost_r = *ghost_r;
-  up->use_boundary_surf = use_boundary_surf;
   up->use_gpu = true;
+
+  if (skip_cell_threshold > 0.0)
+    up->skip_cell_threshold = skip_cell_threshold * pow(sqrt(2.0), grid->ndim);
+  else
+    up->skip_cell_threshold = -1.0;
 
   struct gkyl_dg_eqn *eqn = gkyl_dg_eqn_acquire(equation);
   up->equation = eqn->on_dev;
@@ -60,17 +64,19 @@ gkyl_boundary_flux_advance_cu_ker(const struct gkyl_boundary_flux *up,
 
     const double* fg_c = (const double*) gkyl_array_cfetch(fIn, linidx_g);
     const double* fs_c = (const double*) gkyl_array_cfetch(fIn, linidx_s);
-    
-    if (up->use_boundary_surf)
+    double *fluxOut_g = (double*) gkyl_array_fetch(fluxOut, linidx_g);
+
+    if (fabs(fs_c[0]) < up->skip_cell_threshold && fabs(fg_c[0]) < up->skip_cell_threshold)
+    {
+      for (int d=0; d<fluxOut->ncomp; ++d) {
+        fluxOut_g[d] = 0.0;
+      }
+    }
+    else {
       up->equation->boundary_surf_term(up->equation, up->dir, xc_s, xc_g,
         up->grid.dx, up->grid.dx, idx_s, idx_g, up->edge == GKYL_LOWER_EDGE? -1 : 1,
-        fs_c, fg_c, (double*) gkyl_array_fetch(fluxOut, linidx_g)
-      );
-    else
-      up->equation->boundary_flux_term(up->equation, up->dir, xc_s, xc_g,
-        up->grid.dx, up->grid.dx, idx_s, idx_g, up->edge == GKYL_LOWER_EDGE? -1 : 1,
-        fs_c, fg_c, (double*) gkyl_array_fetch(fluxOut, linidx_g)
-      );
+        fs_c, fg_c, fluxOut_g);
+    }
   }
 }
 
