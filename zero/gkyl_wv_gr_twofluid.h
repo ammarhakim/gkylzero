@@ -5,7 +5,8 @@
 
 // Type of Riemann-solver to use:
 enum gkyl_wv_gr_twofluid_rp {
-  WV_GR_TWOFLUID_RP_LAX, // Default (Lax fluxes).
+  WV_GR_TWOFLUID_RP_HLL, // Default (HLL fluxes).
+  WV_GR_TWOFLUID_RP_LAX
 };
 
 // Input context, packaged as a struct.

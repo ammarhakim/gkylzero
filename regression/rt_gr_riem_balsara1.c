@@ -430,7 +430,7 @@ main(int argc, char **argv)
     .equation = gr_twofluid,
     
     .init = evalGRTwoFluidInit,
-    .force_low_order_flux = true, // Use Lax fluxes.
+    .force_low_order_flux = false, // Use HLL fluxes.
     .ctx = &ctx,
 
     .has_gr_twofluid = true,
