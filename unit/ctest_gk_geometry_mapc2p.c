@@ -306,7 +306,7 @@ test_3x_p1_pmap()
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&geometry_input);
   
-  gkyl_position_map_set(pos_map, gk_geom->mc2nu_pos);
+  gkyl_position_map_set_mc2nu(pos_map, gk_geom->mc2nu_pos);
 
   // Define the nodes for the script to calculate values at
   int cidx[3];
