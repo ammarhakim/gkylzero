@@ -9,6 +9,7 @@ extern "C" {
 #include <gkyl_array_reduce.h>
 #include <gkyl_array_reduce_priv.h>
 #include <gkyl_basis.h>
+#include <float.h>
 }
 
 // CUDA does not natively support atomics for MAX and MIN on doubles (addition/sum is fine).
