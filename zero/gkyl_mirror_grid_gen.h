@@ -1,3 +1,5 @@
+#pragma once
+
 #include <gkyl_array.h>
 #include <gkyl_rect_grid.h>
 
