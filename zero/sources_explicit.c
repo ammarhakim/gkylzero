@@ -1103,15 +1103,15 @@ explicit_gr_twofluid_source_update_elc_euler(const gkyl_moment_em_coupling* mom_
       p_elc = pow(10.0, -8.0);
     }
     
-    double vx_elc_new = ((rho_elc * h_elc * W_elc * vx_elc) + (dt * ((charge_elc / mass_elc) * (((rho_elc * W_elc) * Dx) + (((rho_elc * W_elc) /
-      (rho_elc * h_elc * (W_elc * W_elc))) * (rho_elc * h_elc * W_elc) * ((vy_elc * Bz) - (vz_elc * By))))))) / (rho_elc * h_elc * W_elc);
-    double vy_elc_new = ((rho_elc * h_elc * W_elc * vy_elc) + (dt * ((charge_elc / mass_elc) * (((rho_elc * W_elc) * Dy) + (((rho_elc * W_elc) /
-      (rho_elc * h_elc * (W_elc * W_elc))) * (rho_elc * h_elc * W_elc) * ((vz_elc * Bx) - (vx_elc * Bz))))))) / (rho_elc * h_elc * W_elc);
-    double vz_elc_new = ((rho_elc * h_elc * W_elc * vz_elc) + (dt * ((charge_elc / mass_elc) * (((rho_elc * W_elc) * Dz) + (((rho_elc * W_elc) /
-      (rho_elc * h_elc * (W_elc * W_elc))) * (rho_elc * h_elc * W_elc) * ((vx_elc * By) - (vy_elc * Bx))))))) / (rho_elc * h_elc * W_elc);
+    double vx_elc_new = ((rho_elc * h_elc * (W_elc * W_elc) * vx_elc) + (dt * ((charge_elc / mass_elc) * (((rho_elc * W_elc) * Dx) + (((rho_elc * W_elc) /
+      (rho_elc * h_elc * (W_elc * W_elc))) * (rho_elc * h_elc * (W_elc * W_elc)) * ((vy_elc * Bz) - (vz_elc * By))))))) / (rho_elc * h_elc * (W_elc * W_elc));
+    double vy_elc_new = ((rho_elc * h_elc * (W_elc * W_elc) * vy_elc) + (dt * ((charge_elc / mass_elc) * (((rho_elc * W_elc) * Dy) + (((rho_elc * W_elc) /
+      (rho_elc * h_elc * (W_elc * W_elc))) * (rho_elc * h_elc * (W_elc * W_elc)) * ((vz_elc * Bx) - (vx_elc * Bz))))))) / (rho_elc * h_elc * (W_elc * W_elc));
+    double vz_elc_new = ((rho_elc * h_elc * (W_elc * W_elc) * vz_elc) + (dt * ((charge_elc / mass_elc) * (((rho_elc * W_elc) * Dz) + (((rho_elc * W_elc) /
+      (rho_elc * h_elc * (W_elc * W_elc))) * (rho_elc * h_elc * (W_elc * W_elc)) * ((vx_elc * By) - (vy_elc * Bx))))))) / (rho_elc * h_elc * (W_elc * W_elc));
     
     double p_elc_new = ((p_elc - (rho_elc * h_elc * (W_elc * W_elc))) - (dt * ((charge_elc / mass_elc) * (((rho_elc * W_elc) /
-      (rho_elc * h_elc * (W_elc * W_elc))) * (rho_elc * h_elc * W_elc) * ((vx_elc * Dx) + (vy_elc * Dy) + (vz_elc * Dz)))))) + (rho_elc * h_elc * (W_elc * W_elc));
+      (rho_elc * h_elc * (W_elc * W_elc))) * (rho_elc * h_elc * (W_elc * W_elc)) * ((vx_elc * Dx) + (vy_elc * Dy) + (vz_elc * Dz)))))) + (rho_elc * h_elc * (W_elc * W_elc));
     
     double *vel_elc_new = gkyl_malloc(sizeof(double[3]));
     double v_sq_elc_new = 0.0;
@@ -1221,15 +1221,15 @@ explicit_gr_twofluid_source_update_ion_euler(const gkyl_moment_em_coupling* mom_
       p_ion = pow(10.0, -8.0);
     }
     
-    double vx_ion_new = ((rho_ion * h_ion * W_ion * vx_ion) + (dt * ((charge_ion / mass_ion) * (((rho_ion * W_ion) * Dx) + (((rho_ion * W_ion) /
-      (rho_ion * h_ion * (W_ion * W_ion))) * (rho_ion * h_ion * W_ion) * ((vy_ion * Bz) - (vz_ion * By))))))) / (rho_ion * h_ion * W_ion);
-    double vy_ion_new = ((rho_ion * h_ion * W_ion * vy_ion) + (dt * ((charge_ion / mass_ion) * (((rho_ion * W_ion) * Dy) + (((rho_ion * W_ion) /
-      (rho_ion * h_ion * (W_ion * W_ion))) * (rho_ion * h_ion * W_ion) * ((vz_ion * Bx) - (vx_ion * Bz))))))) / (rho_ion * h_ion * W_ion);
-    double vz_ion_new = ((rho_ion * h_ion * W_ion * vz_ion) + (dt * ((charge_ion / mass_ion) * (((rho_ion * W_ion) * Dz) + (((rho_ion * W_ion) /
-      (rho_ion * h_ion * (W_ion * W_ion))) * (rho_ion * h_ion * W_ion) * ((vx_ion * By) - (vy_ion * Bx))))))) / (rho_ion * h_ion * W_ion);
+    double vx_ion_new = ((rho_ion * h_ion * (W_ion * W_ion) * vx_ion) + (dt * ((charge_ion / mass_ion) * (((rho_ion * W_ion) * Dx) + (((rho_ion * W_ion) /
+      (rho_ion * h_ion * (W_ion * W_ion))) * (rho_ion * h_ion * (W_ion * W_ion)) * ((vy_ion * Bz) - (vz_ion * By))))))) / (rho_ion * h_ion * (W_ion * W_ion));
+    double vy_ion_new = ((rho_ion * h_ion * (W_ion * W_ion) * vy_ion) + (dt * ((charge_ion / mass_ion) * (((rho_ion * W_ion) * Dy) + (((rho_ion * W_ion) /
+      (rho_ion * h_ion * (W_ion * W_ion))) * (rho_ion * h_ion * (W_ion * W_ion)) * ((vz_ion * Bx) - (vx_ion * Bz))))))) / (rho_ion * h_ion * (W_ion * W_ion));
+    double vz_ion_new = ((rho_ion * h_ion * (W_ion * W_ion) * vz_ion) + (dt * ((charge_ion / mass_ion) * (((rho_ion * W_ion) * Dz) + (((rho_ion * W_ion) /
+      (rho_ion * h_ion * (W_ion * W_ion))) * (rho_ion * h_ion * (W_ion * W_ion)) * ((vx_ion * By) - (vy_ion * Bx))))))) / (rho_ion * h_ion * (W_ion * W_ion));
     
     double p_ion_new = ((p_ion - (rho_ion * h_ion * (W_ion * W_ion))) - (dt * ((charge_ion / mass_ion) * (((rho_ion * W_ion) /
-      (rho_ion * h_ion * (W_ion * W_ion))) * (rho_ion * h_ion * W_ion) * ((vx_ion * Dx) + (vy_ion * Dy) + (vz_ion * Dz)))))) + (rho_ion * h_ion * (W_ion * W_ion));
+      (rho_ion * h_ion * (W_ion * W_ion))) * (rho_ion * h_ion * (W_ion * W_ion)) * ((vx_ion * Dx) + (vy_ion * Dy) + (vz_ion * Dz)))))) + (rho_ion * h_ion * (W_ion * W_ion));
     
     double *vel_ion_new = gkyl_malloc(sizeof(double[3]));
     double v_sq_ion_new = 0.0;
@@ -1396,11 +1396,11 @@ explicit_gr_twofluid_source_update_em_euler(const gkyl_moment_em_coupling* mom_e
     }
 
     double Dx_new = Dx + (dt * ((charge_elc / mass_elc) * ((rho_elc * W_elc) / (rho_elc * h_elc * (W_elc * W_elc))) * (rho_elc * h_elc * W_elc) * vx_elc))
-      + (dt * ((charge_ion / mass_ion) * ((rho_ion * W_ion) / (rho_ion * h_ion * (W_ion * W_ion))) * (rho_ion * h_ion * W_ion) * vx_ion));
+      + (dt * ((charge_ion / mass_ion) * ((rho_ion * W_ion) / (rho_ion * h_ion * (W_ion * W_ion))) * (rho_ion * h_ion * (W_ion * W_ion)) * vx_ion));
     double Dy_new = Dy + (dt * ((charge_elc / mass_elc) * ((rho_elc * W_elc) / (rho_elc * h_elc * (W_elc * W_elc))) * (rho_elc * h_elc * W_elc) * vy_elc))
-      + (dt * ((charge_ion / mass_ion) * ((rho_ion * W_ion) / (rho_ion * h_ion * (W_ion * W_ion))) * (rho_ion * h_ion * W_ion) * vy_ion));
+      + (dt * ((charge_ion / mass_ion) * ((rho_ion * W_ion) / (rho_ion * h_ion * (W_ion * W_ion))) * (rho_ion * h_ion * (W_ion * W_ion)) * vy_ion));
     double Dz_new = Dz + (dt * ((charge_elc / mass_elc) * ((rho_elc * W_elc) / (rho_elc * h_elc * (W_elc * W_elc))) * (rho_elc * h_elc * W_elc) * vz_elc))
-      + (dt * ((charge_ion / mass_ion) * ((rho_ion * W_ion) / (rho_ion * h_ion * (W_ion * W_ion))) * (rho_ion * h_ion * W_ion) * vz_ion));
+      + (dt * ((charge_ion / mass_ion) * ((rho_ion * W_ion) / (rho_ion * h_ion * (W_ion * W_ion))) * (rho_ion * h_ion * (W_ion * W_ion)) * vz_ion));
     
     fluid_new[10] = Dx_new; fluid_new[11] = Dy_new; fluid_new[12] = Dz_new;
   }
