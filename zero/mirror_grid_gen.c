@@ -17,6 +17,12 @@ struct psirz_ctx {
   double psi; // psi to match
 };
 
+static inline double
+floor_sqrt(double x)
+{
+  return sqrt( fmax(x, 1e-14) );
+}
+
 static
 double psirz(double R, void *ctx)
 {
@@ -60,6 +66,7 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
   
   long nctot = nc[NPSI]*nc[NZ];
   geo->nodesrz = gkyl_array_new(GKYL_DOUBLE, 2, nctot);
+  geo->node_geom = gkyl_array_new(GKYL_USER, sizeof(struct gkyl_mirror_grid_gen_geom), nctot);
 
   struct gkyl_range node_rng;
   gkyl_range_init_from_shape(&node_rng, 2, nc);
@@ -87,6 +94,7 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
 
   struct psirz_ctx pctx = { .evcub = evcub };
 
+  // compute node locations
   bool status = true;
   for (int iz=0; iz<nc[NZ]; ++iz) {
     double zcurr = zlow + iz*dz;
@@ -129,6 +137,34 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
     }
   }
 
+  // compute geometry at nodes
+  for (int iz=0; iz<nc[NZ]; ++iz) {
+    for (int ipsi=0; ipsi<nc[NPSI]; ++ipsi) {
+      int idx[2] = { ipsi, iz };
+      long loc = gkyl_range_idx(&node_rng, idx);
+      const double *rz = gkyl_array_cfetch(geo->nodesrz, loc);
+
+      double fout[3];
+      double xn[2] = { rz[0], rz[1] };
+      evcub->eval_cubic_wgrad(0.0, xn, fout, evcub->ctx);
+
+      struct gkyl_mirror_grid_gen_geom *g = gkyl_array_fetch(geo->node_geom, loc);
+
+      g->e1d.x[0] = fout[1]; // dpsi/dr
+      g->e1d.x[1] = 0.0; // no toroidal component
+      g->e1d.x[2] = fout[2]; // dspi/dz
+
+      if (inp->fl_coord == GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z) {
+        // for sqrt(psi) as the radial coordinate e^1 = grad(psi)/2*sqrt(psi)
+        g->e1d.x[0] = g->e1d.x[0]/(2*floor_sqrt(fout[0]));
+        g->e1d.x[2] = g->e1d.x[2]/(2*floor_sqrt(fout[0]));
+      }
+
+      g->e3d.x[0] = 0; g->e3d.x[1] = 0.0;
+      g->e3d.x[2] = 1.0; // e^3 is just sigma_3
+    }
+  }
+  
   cleanup:
 
   if (true != status) {
@@ -146,6 +182,7 @@ void
 gkyl_mirror_grid_gen_release(struct gkyl_mirror_grid_gen *geom)
 {
   gkyl_array_release(geom->nodesrz);
+  gkyl_array_release(geom->node_geom);
   gkyl_free(geom->gg_x);
   gkyl_free(geom);
 }

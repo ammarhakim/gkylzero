@@ -1,6 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Linear dispersion solver for multi-moment multifluid equations.
+-- Generate grid for use in simulations of magnetic mirrors
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -116,5 +116,7 @@ for d = 1, #cells do
    inp.cells[d-1] = cells[d]
 end
 
+local tmStart = Time.clock()
 -- generate grid
 ffi.C.gkylt_mirrorgridgen(inp)
+io.write(string.format("Completed in %g seconds\n", Time.clock()-tmStart))

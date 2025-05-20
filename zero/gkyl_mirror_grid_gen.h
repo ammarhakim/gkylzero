@@ -1,13 +1,22 @@
 #pragma once
 
 #include <gkyl_array.h>
+#include <gkyl_math.h>
 #include <gkyl_rect_grid.h>
 
-// Forward declare internal private object
+// Forward declare internal object
 struct gkyl_mirror_grid_gen_x;
+
+// geometric quantities
+struct __attribute__((__packed__)) gkyl_mirror_grid_gen_geom {
+  struct gkyl_vec3 e1d; // er, ephi and ez components of e^1
+  struct gkyl_vec3 e3d; // er, ephi and ez components of e^3
+  struct gkyl_vec3 B; // er, ephi and ez components of B
+};
 
 struct gkyl_mirror_grid_gen {
   struct gkyl_array *nodesrz; // r,z coordinates of corner nodes of cells
+  struct gkyl_array *node_geom; // geometric quantities at nodes
 
   struct gkyl_mirror_grid_gen_x *gg_x;
 };  
