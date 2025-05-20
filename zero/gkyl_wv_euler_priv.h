@@ -427,9 +427,11 @@ wave_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   double phir, double *waves, double *s)
 {
   // clear waves and wave speeds
-  for (int i=0; i<3; ++i) { // mwaves
-    double *w = &waves[5*i];
-    for (int j=0; j<5; ++j) // meqn
+  int mwaves = (type == GKYL_WV_HIGH_ORDER_FLUX) ? eqn->num_waves : 2;
+  int meqn = eqn->num_equations;
+  for (int i=0; i<mwaves; ++i) {
+    double *w = &waves[i*meqn];
+    for (int j=0; j<meqn; ++j)
       w[j] = 0.0;
     s[i] = 0.0;
   }

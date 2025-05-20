@@ -91,15 +91,16 @@ create_ctx(void)
   double mirdip_r_ramp2 = 3.0*R0;
   double mirdip_x_mirror = -3.0*R0;
   
-  double mi = GKYL_PROTON_MASS;
+  double mi = 16.0*GKYL_PROTON_MASS;
   double mi_me = 25.0;
   double pi_pe = 5.0;
   double me = mi/mi_me;  
-  double qi = GKYL_ELEMENTARY_CHARGE;
-  double qe = -qi;
-
+  
   double di = 0.2*R0;
   double de = di*sqrt(me/mi);
+
+  double qi = mi/di/sqrt(mu0*rho_in);
+  double qe = -qi;
 
   // Simulation parameters.
   int Nx = 300; // Cell count (x-direction).
@@ -108,7 +109,7 @@ create_ctx(void)
   double Lx_u = 30.0*R0;
   double Ly = 40.0*R0; // Domain size (y-direction).
   double k0_elc = 1.0/de; // Closure parameter for electrons.
-  double k0_ion = 1.0/di; // Closure parameter for ions.
+  double k0_ion = 1.0/de; // Closure parameter for ions.
   double cfl_frac = 0.9; // CFL coefficient.
 
   double t_end = 250.0; // Final simulation time.
@@ -117,6 +118,11 @@ create_ctx(void)
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
+
+  printf("light speed [km/s] = %f\n", c/1.0e3);
+  printf("dipole strength [nT] = %f\n", D/(R0*R0*R0)/1.0e-9);
+  printf("density [amu/cm^3] = %f\n", rho_in/mi/1.0e6);
+  printf("solar wind speed [km/s] = %f\n", vx_in/1.0e3);
   
   struct magnetosphere_ctx ctx = {
     .mu0 = mu0,
@@ -331,7 +337,7 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 
   double Ex = 0.0; // Total electric field (x-direction).
   double Ey = 0.0; // Total electric field (y-direction).
-  double Ez = -vx*By_in + vy*Bx_in; // Total electric field (z-direction).
+  double Ez = -vx*(Byt + Byt_m + By_in) + vy*(Bxt + Bxt_m + Bx_in); // Total electric field (z-direction).
 
   // Set electric field.
   fout[0] = Ex, fout[1] = Ey; fout[2] = Ez;
@@ -556,6 +562,8 @@ main(int argc, char **argv)
     .init = evalElcInit,
     .ctx = &ctx,
 
+    .force_low_order_flux = true, // Use Lax fluxes.
+
     .bcx = { GKYL_SPECIES_FUNC, GKYL_SPECIES_COPY },  
     .bcx_func = { evalElcLowerBC, NULL},
   };
@@ -567,6 +575,8 @@ main(int argc, char **argv)
     
     .init = evalIonInit,
     .ctx = &ctx,
+
+    .force_low_order_flux = true, // Use Lax fluxes.
 
     .bcx = { GKYL_SPECIES_FUNC, GKYL_SPECIES_COPY },  
     .bcx_func = { evalIonLowerBC, NULL},

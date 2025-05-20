@@ -220,8 +220,6 @@ wave_embed_copy_B(const double *q, double *qphi, double *delta, void *ctx)
   qphi[5] = q[5];
   qphi[6] = q[6];
   qphi[7] = q[7];
-
-  for (int d=0; d<8; ++d) delta[d] = q[d] - qphi[d];
 }
 
 GKYL_CU_DH
@@ -236,8 +234,6 @@ wave_embed_pec(const double *q, double *qphi, double *delta, void *ctx)
   qphi[5] = q[5];
   qphi[6] = -q[6];
   qphi[7] = q[7];
-
-  for (int d=0; d<8; ++d) delta[d] = q[d] - qphi[d];
 }
 
 GKYL_CU_DH
@@ -251,9 +247,13 @@ wave_embedded(const struct gkyl_wv_eqn *eqn, const double *delta,
 
   if ((phil < 0.0) && (phir > 0.0)) {
     eqn->embed_geo->embed_func(qr, qphi, deltaphi, eqn->embed_geo->ctx);
+
+    for (int d=0; d<8; ++d) deltaphi[d] = qr[d] - qphi[d];
   }
   if ((phil > 0.0) && (phir < 0.0)) {
     eqn->embed_geo->embed_func(ql, qphi, deltaphi, eqn->embed_geo->ctx);
+
+    for (int d=0; d<8; ++d) deltaphi[d] = qphi[d] - ql[d];
   }
 
   return wave(eqn, deltaphi, ql, qr, waves, s);
