@@ -934,26 +934,23 @@ main(int argc, char **argv)
   double fe_tm = stat.species_rhs_tm + stat.species_coll_tm + stat.species_coll_mom_tm +stat.species_alpha_tm + stat.species_omega_cfl_tm + stat.fe_accumulate_tm + stat.src_tm;
   double sum_tm = stat.fe_tm  + stat.field_rhs_tm + stat.species_bc_tm + stat.accumulate_tm;
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "  Fe time %g secs\n", stat.fe_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "    Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "    Species alpha calc took %g secs\n", stat.species_alpha_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "    Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "    Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "    Sources took %g secs\n", stat.src_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "    omega cfl took %g secs\n", stat.species_omega_cfl_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "    fe accumulate took %g secs\n", stat.fe_accumulate_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "    Accounted for %g of fe tm\n", fe_tm/stat.fe_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "  Accumulate took %g secs\n", stat.accumulate_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "  Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "  Species bc calc took %g secs\n", stat.species_bc_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "  Accounted for %g of total \n",  sum_tm/stat.total_tm);
-
-  //gkyl_gyrokinetic_app_cout(app, stdout, "Update components are: RHS calc, alpha calc, bc calc, collisions RHS, field RHS, collisional moments, accumulate, and omega_cfl\n");
-  //gkyl_gyrokinetic_app_cout(app, stdout, "Sum of update components is %g secs which accounts for %g of total \n",  sum_tm, sum_tm/stat.total_tm);
-
+  gkyl_gyrokinetic_app_cout(app, stdout, "Timing:\n");
+  gkyl_gyrokinetic_app_cout(app, stdout, "  - Time loop:                       %.4e sec.\n", stat.total_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "    * Forward Euler:                 %.4e sec.\n", stat.fe_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ Species RHS calc:            %.4e sec.\n", stat.species_rhs_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ Species alpha calc:          %.4e sec.\n", stat.species_alpha_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ Species collisions RHS calc: %.4e sec.\n", stat.species_coll_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ Species collisional moments: %.4e sec.\n", stat.species_coll_mom_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ Sources:                     %.4e secs\n", stat.src_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ omega_cfl:                   %.4e secs\n", stat.species_omega_cfl_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ Accumulate:                  %.4e secs\n", stat.fe_accumulate_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ Accounted for:               %4.2f %%.\n", 100.0*fe_tm/stat.fe_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "    * Accumulate:                    %.4e sec.\n", stat.accumulate_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "    * Field RHS calc:                %.4e sec.\n", stat.field_rhs_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "    * Species BC calc:               %.4e sec.\n", stat.species_bc_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "    * Accounted for:                 %4.2f %%.\n", 100.0*sum_tm/stat.total_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "  - I/O:                             %.4e sec.\n", stat.io_tm);
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
-  gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
 freeresources:
   // Free resources after simulation completion.
