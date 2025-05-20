@@ -1615,7 +1615,180 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   double sl_em, sr_em;
 
   if (curved_spacetime_l || curved_spacetime_r) {
-    // TODO: Implement curved spacetime extension.
+    double vel_elc_l[3];
+    double v_sq_elc_l = 0.0;
+    vel_elc_l[0] = vx_elc_l; vel_elc_l[1] = vy_elc_l; vel_elc_l[2] = vz_elc_l;
+    
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        v_sq_elc_l += spatial_metric_l[i][j] * vel_elc_l[i] * vel_elc_l[j];
+      }
+    }
+
+    double shift_l[3];
+    shift_l[0] = shift_x_l; shift_l[1] = shift_y_l; shift_l[2] = shift_z_l;
+
+    double material_eigs_elc_l[3];
+    double fast_acoustic_eigs_elc_l[3];
+    double slow_acoustic_eigs_elc_l[3];
+
+    for (int i = 0; i < 3; i++) {
+      material_eigs_elc_l[i] = (lapse_l * vel_elc_l[i]) - shift_l[i];
+
+      fast_acoustic_eigs_elc_l[i] = (lapse_l / (1.0 - (v_sq_elc_l * (c_s_elc_l * c_s_elc_l)))) * ((vel_elc_l[i] * (1.0 - (c_s_elc_l * c_s_elc_l))) +
+        (c_s_elc_l * sqrt((1.0 - v_sq_elc_l) * (inv_spatial_metric_l[i][i] * (1.0 - (v_sq_elc_l * (c_s_elc_l * c_s_elc_l))) -
+        (vel_elc_l[i] * vel_elc_l[i]) * (1.0 - (c_s_elc_l * c_s_elc_l)))))) - shift_l[i];
+      
+      slow_acoustic_eigs_elc_l[i] = (lapse_l / (1.0 - (v_sq_elc_l * (c_s_elc_l * c_s_elc_l)))) * ((vel_elc_l[i] * (1.0 - (c_s_elc_l * c_s_elc_l))) -
+        (c_s_elc_l * sqrt((1.0 - v_sq_elc_l) * (inv_spatial_metric_l[i][i] * (1.0 - (v_sq_elc_l * (c_s_elc_l * c_s_elc_l))) -
+        (vel_elc_l[i] * vel_elc_l[i]) * (1.0 - (c_s_elc_l * c_s_elc_l)))))) - shift_l[i];
+    }
+
+    double max_eig_elc_l = 0.0;
+    for (int i = 0; i < 3; i++) {
+      if (fabs(material_eigs_elc_l[i]) > max_eig_elc_l) {
+        max_eig_elc_l = fabs(material_eigs_elc_l[i]);
+      }
+      if (fabs(fast_acoustic_eigs_elc_l[i]) > max_eig_elc_l) {
+        max_eig_elc_l = fabs(fast_acoustic_eigs_elc_l[i]);
+      }
+      if (fabs(slow_acoustic_eigs_elc_l[i]) > max_eig_elc_l) {
+        max_eig_elc_l = fabs(slow_acoustic_eigs_elc_l[i]);
+      }
+    }
+
+    double vel_elc_r[3];
+    double v_sq_elc_r = 0.0;
+    vel_elc_r[0] = vx_elc_r; vel_elc_r[1] = vy_elc_r; vel_elc_r[2] = vz_elc_r;
+    
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        v_sq_elc_r += spatial_metric_r[i][j] * vel_elc_r[i] * vel_elc_r[j];
+      }
+    }
+
+    double shift_r[3];
+    shift_r[0] = shift_x_r; shift_r[1] = shift_y_r; shift_r[2] = shift_z_r;
+
+    double material_eigs_elc_r[3];
+    double fast_acoustic_eigs_elc_r[3];
+    double slow_acoustic_eigs_elc_r[3];
+
+    for (int i = 0; i < 3; i++) {
+      material_eigs_elc_r[i] = (lapse_r * vel_elc_r[i]) - shift_r[i];
+
+      fast_acoustic_eigs_elc_r[i] = (lapse_r / (1.0 - (v_sq_elc_r * (c_s_elc_r * c_s_elc_r)))) * ((vel_elc_r[i] * (1.0 - (c_s_elc_r * c_s_elc_r))) +
+        (c_s_elc_r * sqrt((1.0 - v_sq_elc_r) * (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_elc_r * (c_s_elc_r * c_s_elc_r))) -
+        (vel_elc_r[i] * vel_elc_r[i]) * (1.0 - (c_s_elc_r * c_s_elc_r)))))) - shift_r[i];
+      
+      slow_acoustic_eigs_elc_r[i] = (lapse_r / (1.0 - (v_sq_elc_r * (c_s_elc_r * c_s_elc_r)))) * ((vel_elc_r[i] * (1.0 - (c_s_elc_r * c_s_elc_r))) -
+        (c_s_elc_r * sqrt((1.0 - v_sq_elc_r) * (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_elc_r * (c_s_elc_r * c_s_elc_r))) -
+        (vel_elc_r[i] * vel_elc_r[i]) * (1.0 - (c_s_elc_r * c_s_elc_r)))))) - shift_r[i];
+    }
+
+    double max_eig_elc_r = 0.0;
+    for (int i = 0; i < 3; i++) {
+      if (fabs(material_eigs_elc_r[i]) > max_eig_elc_r) {
+        max_eig_elc_r = fabs(material_eigs_elc_r[i]);
+      }
+      if (fabs(fast_acoustic_eigs_elc_r[i]) > max_eig_elc_r) {
+        max_eig_elc_r = fabs(fast_acoustic_eigs_elc_r[i]);
+      }
+      if (fabs(slow_acoustic_eigs_elc_r[i]) > max_eig_elc_r) {
+        max_eig_elc_r = fabs(slow_acoustic_eigs_elc_r[i]);
+      }
+    }
+
+    double max_eig_avg_elc = 0.5 * (max_eig_elc_l + max_eig_elc_r);
+
+    sl_elc = (vx_avg_elc - max_eig_avg_elc) / (1.0 - (vx_avg_elc * max_eig_avg_elc));
+    sr_elc = (vx_avg_elc + max_eig_avg_elc) / (1.0 + (vx_avg_elc * max_eig_avg_elc));
+
+    double vel_ion_l[3];
+    double v_sq_ion_l = 0.0;
+    vel_ion_l[0] = vx_ion_l; vel_ion_l[1] = vy_ion_l; vel_ion_l[2] = vz_ion_l;
+    
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        v_sq_ion_l += spatial_metric_l[i][j] * vel_ion_l[i] * vel_ion_l[j];
+      }
+    }
+
+    double material_eigs_ion_l[3];
+    double fast_acoustic_eigs_ion_l[3];
+    double slow_acoustic_eigs_ion_l[3];
+
+    for (int i = 0; i < 3; i++) {
+      material_eigs_ion_l[i] = (lapse_l * vel_ion_l[i]) - shift_l[i];
+
+      fast_acoustic_eigs_ion_l[i] = (lapse_l / (1.0 - (v_sq_ion_l * (c_s_ion_l * c_s_ion_l)))) * ((vel_ion_l[i] * (1.0 - (c_s_ion_l * c_s_ion_l))) +
+        (c_s_ion_l * sqrt((1.0 - v_sq_ion_l) * (inv_spatial_metric_l[i][i] * (1.0 - (v_sq_ion_l * (c_s_ion_l * c_s_ion_l))) -
+        (vel_ion_l[i] * vel_ion_l[i]) * (1.0 - (c_s_ion_l * c_s_ion_l)))))) - shift_l[i];
+      
+      slow_acoustic_eigs_ion_l[i] = (lapse_l / (1.0 - (v_sq_ion_l * (c_s_ion_l * c_s_ion_l)))) * ((vel_ion_l[i] * (1.0 - (c_s_ion_l * c_s_ion_l))) -
+        (c_s_ion_l * sqrt((1.0 - v_sq_ion_l) * (inv_spatial_metric_l[i][i] * (1.0 - (v_sq_ion_l * (c_s_ion_l * c_s_ion_l))) -
+        (vel_ion_l[i] * vel_ion_l[i]) * (1.0 - (c_s_ion_l * c_s_ion_l)))))) - shift_l[i];
+    }
+
+    double max_eig_ion_l = 0.0;
+    for (int i = 0; i < 3; i++) {
+      if (fabs(material_eigs_ion_l[i]) > max_eig_ion_l) {
+        max_eig_ion_l = fabs(material_eigs_ion_l[i]);
+      }
+      if (fabs(fast_acoustic_eigs_ion_l[i]) > max_eig_ion_l) {
+        max_eig_ion_l = fabs(fast_acoustic_eigs_ion_l[i]);
+      }
+      if (fabs(slow_acoustic_eigs_ion_l[i]) > max_eig_ion_l) {
+        max_eig_ion_l = fabs(slow_acoustic_eigs_ion_l[i]);
+      }
+    }
+
+    double vel_ion_r[3];
+    double v_sq_ion_r = 0.0;
+    vel_ion_r[0] = vx_ion_r; vel_ion_r[1] = vy_ion_r; vel_ion_r[2] = vz_ion_r;
+    
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        v_sq_ion_r += spatial_metric_r[i][j] * vel_ion_r[i] * vel_ion_r[j];
+      }
+    }
+
+    double material_eigs_ion_r[3];
+    double fast_acoustic_eigs_ion_r[3];
+    double slow_acoustic_eigs_ion_r[3];
+
+    for (int i = 0; i < 3; i++) {
+      material_eigs_ion_r[i] = (lapse_r * vel_ion_r[i]) - shift_r[i];
+
+      fast_acoustic_eigs_ion_r[i] = (lapse_r / (1.0 - (v_sq_ion_r * (c_s_ion_r * c_s_ion_r)))) * ((vel_ion_r[i] * (1.0 - (c_s_ion_r * c_s_ion_r))) +
+        (c_s_ion_r * sqrt((1.0 - v_sq_ion_r) * (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_ion_r * (c_s_ion_r * c_s_ion_r))) -
+        (vel_ion_r[i] * vel_ion_r[i]) * (1.0 - (c_s_ion_r * c_s_ion_r)))))) - shift_r[i];
+      
+      slow_acoustic_eigs_ion_r[i] = (lapse_r / (1.0 - (v_sq_ion_r * (c_s_ion_r * c_s_ion_r)))) * ((vel_ion_r[i] * (1.0 - (c_s_ion_r * c_s_ion_r))) -
+        (c_s_ion_r * sqrt((1.0 - v_sq_ion_r) * (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_ion_r * (c_s_ion_r * c_s_ion_r))) -
+        (vel_ion_r[i] * vel_ion_r[i]) * (1.0 - (c_s_ion_r * c_s_ion_r)))))) - shift_r[i];
+    }
+
+    double max_eig_ion_r = 0.0;
+    for (int i = 0; i < 3; i++) {
+      if (fabs(material_eigs_ion_r[i]) > max_eig_ion_r) {
+        max_eig_ion_r = fabs(material_eigs_ion_r[i]);
+      }
+      if (fabs(fast_acoustic_eigs_ion_r[i]) > max_eig_ion_r) {
+        max_eig_ion_r = fabs(fast_acoustic_eigs_ion_r[i]);
+      }
+      if (fabs(slow_acoustic_eigs_ion_r[i]) > max_eig_ion_r) {
+        max_eig_ion_r = fabs(slow_acoustic_eigs_ion_r[i]);
+      }
+    }
+
+    double max_eig_avg_ion = 0.5 * (max_eig_ion_l + max_eig_ion_r);
+
+    sl_ion = (vx_avg_ion - max_eig_avg_ion) / (1.0 - (vx_avg_ion * max_eig_avg_ion));
+    sr_ion = (vx_avg_ion + max_eig_avg_ion) / (1.0 + (vx_avg_ion * max_eig_avg_ion));
+
+    sl_em = -light_speed * sqrt(spatial_metric_det_l) * lapse_l;
+    sr_em = light_speed * sqrt(spatial_metric_det_r) * lapse_r;
   }
   else {
     sl_elc = (vx_avg_elc - cs_avg_elc) / (1.0 - (vx_avg_elc * cs_avg_elc));
@@ -1677,6 +1850,13 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   s[3] = sr_ion;
   s[4] = sl_em;
   s[5] = sr_em;
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(inv_spatial_metric_l[i]);
+    gkyl_free(inv_spatial_metric_r[i]);
+  }
+  gkyl_free(inv_spatial_metric_l);
+  gkyl_free(inv_spatial_metric_r);
 
   return fmax(fmax(fmax(fabs(sl_elc), fabs(sr_elc)), fmax(fabs(sl_ion), fabs(sr_ion))), fmax(fabs(sl_em), fabs(sr_em)));
 }
