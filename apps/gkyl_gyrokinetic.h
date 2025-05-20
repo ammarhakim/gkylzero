@@ -41,12 +41,23 @@ struct gkyl_gyrokinetic_projection {
       void (*temppar)(double t, const double *xn, double *fout, void *ctx);
       void *ctx_tempperp;
       void (*tempperp)(double t, const double *xn, double *fout, void *ctx);
+      // if projection is a Maxwellian + Gaussian in configuration space.
+      double center_gauss[GKYL_MAX_CDIM]; // Center in configuration space.
+      double sigma_gauss[GKYL_MAX_CDIM]; // Sigma in configuration space, function is constant if sigma is 0.
+      bool periodic[GKYL_MAX_CDIM]; // Periodicity in configuration space.
+      double particle; // Total particle of the Gaussian Maxwellian distribution (M0 moment).
+      double energy; // Total energy (M2*mass moment).
+      double floor; // Floor value for the Gaussian Maxwellian distribution.
+      double temp_max; // Maximum temperature of the Gaussian Maxwellian distribution.
 
       // boolean if we are correcting all the moments or only density
       bool correct_all_moms; 
       double iter_eps; // error tolerance for moment fixes (density is always exact)
       int max_iter; // maximum number of iteration
       bool use_last_converged; // use last iteration value regardless of convergence?
+
+      // Attribute to be passed to the projection function
+      double box_size[GKYL_MAX_CDIM]; // Size of the box in each direction
     };
   };
 };
@@ -92,12 +103,23 @@ struct gkyl_gyrokinetic_diffusion {
   int order; // integer for order of the diffusion (4 for grad^4, 6 for grad^6, default is grad^2)
 };
 
+// Structure to hold parameters for adaptive source
+struct gkyl_gyrokinetic_adapt_source {
+  bool adapt_particle; // Whether to adapt the particle source.
+  bool adapt_energy; // Whether to adapt the energy source.
+  char adapt_species_name[16]; // Species to adapt the particle loss to ensure quasi neutrality.
+  int num_boundaries; // Number of boundaries to adapt.
+  int dir[6]; // Direction to adapt.
+  enum gkyl_edge_loc edge[6]; // Edge to adapt.
+};
+
 // Parameters for species source
 struct gkyl_gyrokinetic_source {
   enum gkyl_source_id source_id; // type of source
   int num_sources;
   bool evolve; // Whether the source is time dependent.
-
+  int num_adapt_sources;
+  struct gkyl_gyrokinetic_adapt_source adapt[GKYL_MAX_SOURCES]; // Adaptive source parameters
   // sources using projection routine
   struct gkyl_gyrokinetic_projection projection[GKYL_MAX_SOURCES];
 
