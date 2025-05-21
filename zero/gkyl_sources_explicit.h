@@ -295,6 +295,36 @@ explicit_gr_twofluid_source_update_em_euler(const gkyl_moment_em_coupling* mom_e
   double* fluid_old, double* fluid_new);
 
 /**
+* Integrate the curved spacetime coupling source terms for the electrons in the general relativistic two-fluid equation system within a single
+* cell, using an explicit forcing solver (specifically a simple first-order forward-Euler method).
+*
+* @param mom_em Moment-EM coupling object.
+* @param gas_gamma_elc Adiabatic index (electrons).
+* @param t_curr Current simulation time.
+* @param dt Current stable time-step.
+* @param fluid_old Array of old fluid variables (before source update).
+* @param fluid_new Array of new fluid variables (after source update).
+*/
+void
+explicit_gr_twofluid_source_update_elc_spacetime_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma_elc, double t_curr,
+  const double dt, double* fluid_old, double* fluid_new);
+
+/**
+* Integrate the curved spacetime coupling source terms for the ions in the general relativistic two-fluid equation system within a single
+* cell, using an explicit forcing solver (specifically a simple first-order forward-Euler method).
+*
+* @param mom_em Moment-EM coupling object.
+* @param gas_gamma_ion Adiabatic index (ions).
+* @param t_curr Current simulation time.
+* @param dt Current stable time-step.
+* @param fluid_old Array of old fluid variables (before source update).
+* @param fluid_new Array of new fluid variables (after source update).
+*/
+void
+explicit_gr_twofluid_source_update_ion_spacetime_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma_ion, double t_curr,
+  const double dt, double* fluid_old, double* fluid_new);
+
+/**
 * Integrate all electron, ion, and electromagnetic coupling source terms in the general relativistic two-fluid equation system within a
 * single cell, using an explicit forcing solver (specifically a strong stability-preserving third-order Runge-Kutta method).
 *

@@ -1407,6 +1407,454 @@ explicit_gr_twofluid_source_update_em_euler(const gkyl_moment_em_coupling* mom_e
 }
 
 void
+explicit_gr_twofluid_source_update_elc_spacetime_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma_elc, double t_curr, const double dt,
+  double* fluid_old, double* fluid_new)
+{
+  double lapse = fluid_old[18];
+  double shift_x = fluid_old[19];
+  double shift_y = fluid_old[20];
+  double shift_z = fluid_old[21];
+
+  double spatial_metric[3][3];
+  spatial_metric[0][0] = fluid_old[22]; spatial_metric[0][1] = fluid_old[23]; spatial_metric[0][2] = fluid_old[24];
+  spatial_metric[1][0] = fluid_old[25]; spatial_metric[1][1] = fluid_old[26]; spatial_metric[1][2] = fluid_old[27];
+  spatial_metric[2][0] = fluid_old[28]; spatial_metric[2][1] = fluid_old[29]; spatial_metric[2][2] = fluid_old[30];
+
+  double inv_spatial_metric[3][3];
+  double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) - (spatial_metric[2][1] * spatial_metric[1][2]))) -
+    (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) - (spatial_metric[1][2] * spatial_metric[2][0]))) +
+    (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) - (spatial_metric[1][1] * spatial_metric[2][0])));
+  
+  double trace = 0.0;
+  for (int i = 0; i < 3; i++) {
+    trace += spatial_metric[i][i];
+  }
+
+  double spatial_metric_sq[3][3];
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      spatial_metric_sq[i][j] = 0.0;
+    }
+  }
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      for (int k = 0; k < 3; k++) {
+        spatial_metric_sq[i][j] += spatial_metric[i][k] * spatial_metric[k][j];
+      }
+    }
+  }
+
+  double sq_trace = 0.0;
+  for (int i = 0; i < 3; i++) {
+    sq_trace += spatial_metric_sq[i][i];
+  }
+
+  double euclidean_metric[3][3];
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      if (i == j) {
+        euclidean_metric[i][j] = 1.0;
+      }
+      else {
+        euclidean_metric[i][j] = 0.0;
+      }
+    }
+  }
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      inv_spatial_metric[i][j] = (1.0 / spatial_det) *
+        ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) - (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
+    }
+  }
+
+  double extrinsic_curvature[3][3];
+  extrinsic_curvature[0][0] = fluid_old[31]; extrinsic_curvature[0][1] = fluid_old[32]; extrinsic_curvature[0][2] = fluid_old[33];
+  extrinsic_curvature[1][0] = fluid_old[34]; extrinsic_curvature[1][1] = fluid_old[35]; extrinsic_curvature[1][2] = fluid_old[36];
+  extrinsic_curvature[2][0] = fluid_old[37]; extrinsic_curvature[2][1] = fluid_old[38]; extrinsic_curvature[2][2] = fluid_old[39];
+
+  bool in_excision_region = false;
+  if (fluid_old[40] < pow(10.0, -8.0)) {
+    in_excision_region = true;
+  }
+
+  if (!in_excision_region) {
+    double D_elc = fluid_old[0] / sqrt(spatial_det);
+    double momx_elc = fluid_old[1] / sqrt(spatial_det);
+    double momy_elc = fluid_old[2] / sqrt(spatial_det);
+    double momz_elc = fluid_old[3] / sqrt(spatial_det);
+    double Etot_elc = fluid_old[4] / sqrt(spatial_det);
+
+    double C_elc = D_elc / sqrt(((Etot_elc + D_elc) * (Etot_elc + D_elc)) - ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)));
+    double C0_elc = (D_elc + Etot_elc) / sqrt(((Etot_elc + D_elc) * (Etot_elc + D_elc)) - ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)));
+    if (((Etot_elc + D_elc) * (Etot_elc + D_elc)) - ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)) < pow(10.0, -8.0)) {
+      C_elc = D_elc / sqrt(pow(10.0, -8.0));
+      C0_elc = (D_elc + Etot_elc) / sqrt(pow(10.0, -8.0));
+    }
+
+    double alpha0_elc = -1.0 / (gas_gamma_elc * gas_gamma_elc);
+    double alpha1_elc = -2.0 * C_elc * ((gas_gamma_elc - 1.0) / (gas_gamma_elc * gas_gamma_elc));
+    double alpha2_elc = ((gas_gamma_elc - 2.0) / gas_gamma_elc) * ((C0_elc * C0_elc) - 1.0) + 1.0 - (C_elc * C_elc) * ((gas_gamma_elc - 1.0) / gas_gamma_elc) * ((gas_gamma_elc - 1.0) / gas_gamma_elc);
+    double alpha4_elc = (C0_elc * C0_elc) - 1.0;
+    double eta_elc = 2.0 * C_elc *((gas_gamma_elc - 1.0) / gas_gamma_elc);
+
+    double guess_elc = 1.0;
+    int iter_elc = 0;
+
+    while (iter_elc < 100) {
+      double poly_elc = (alpha4_elc * (guess_elc * guess_elc * guess_elc) * (guess_elc - eta_elc)) + (alpha2_elc * (guess_elc * guess_elc)) + (alpha1_elc * guess_elc) + alpha0_elc;
+      double poly_der_elc = alpha1_elc + (2.0 * alpha2_elc * guess_elc) + (4.0 * alpha4_elc * (guess_elc * guess_elc * guess_elc)) - (3.0 * eta_elc * alpha4_elc * (guess_elc * guess_elc));
+
+      double guess_new_elc = guess_elc - (poly_elc / poly_der_elc);
+
+      if (fabs(guess_elc - guess_new_elc) < pow(10.0, -8.0)) {
+        iter_elc = 100;
+      }
+      else {
+        iter_elc += 1;
+        guess_elc = guess_new_elc;
+      }
+    }
+
+    double W_elc = 0.5 * C0_elc * guess_elc * (1.0 + sqrt(1.0 + (4.0 * ((gas_gamma_elc - 1.0) / gas_gamma_elc) * ((1.0 - (C_elc * guess_elc)) / ((C0_elc * C0_elc) * (guess_elc * guess_elc))))));
+    double h_elc = 1.0 / (C_elc * guess_elc);
+
+    double rho_elc = D_elc / W_elc;
+    double vx_elc = momx_elc / (rho_elc * h_elc * (W_elc * W_elc));
+    double vy_elc = momy_elc / (rho_elc * h_elc * (W_elc * W_elc));
+    double vz_elc = momz_elc / (rho_elc * h_elc * (W_elc * W_elc));
+    double p_elc = (rho_elc * h_elc * (W_elc * W_elc)) - D_elc - Etot_elc;
+
+    if (rho_elc < pow(10.0, -8.0)) {
+      rho_elc = pow(10.0, -8.0);
+    }
+    if (p_elc < pow(10.0, -8.0)) {
+      p_elc = pow(10.0, -8.0);
+    }
+
+    double spacetime_vel_elc[4];
+    spacetime_vel_elc[0] = W_elc / lapse;
+    spacetime_vel_elc[1] = (W_elc * vx_elc) - (shift_x * (W_elc / lapse));
+    spacetime_vel_elc[2] = (W_elc * vy_elc) - (shift_y * (W_elc / lapse));
+    spacetime_vel_elc[3] = (W_elc * vz_elc) - (shift_z * (W_elc / lapse));
+
+    double shift[3];
+    shift[0] = shift_x; shift[1] = shift_y; shift[2] = shift_z;
+
+    double inv_spacetime_metric[4][4];
+    inv_spacetime_metric[0][0] = - (1.0 / (lapse * lapse));
+    for (int i = 0; i < 3; i++) {
+      inv_spacetime_metric[0][i] = (1.0 / (lapse * lapse)) * shift[i];
+      inv_spacetime_metric[i][0] = (1.0 / (lapse * lapse)) * shift[i];
+    }
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        inv_spacetime_metric[i][j] = inv_spatial_metric[i][j] - ((1.0 / (lapse * lapse)) * shift[i] * shift[j]);
+      }
+    }
+
+    double stress_energy_elc[4][4];
+    for (int i = 0; i < 4; i++) {
+      for (int j = 0; j < 4; j++) {
+        stress_energy_elc[i][j] = (rho_elc * h_elc * spacetime_vel_elc[i] * spacetime_vel_elc[j]) + (p_elc * inv_spacetime_metric[i][j]);
+      }
+    }
+
+    double lapse_der[3];
+    lapse_der[0] = fluid_old[41];
+    lapse_der[1] = fluid_old[42];
+    lapse_der[2] = fluid_old[43];
+
+    double shift_der[3][3];
+    shift_der[0][0] = fluid_old[44]; shift_der[0][1] = fluid_old[45]; shift_der[0][2] = fluid_old[46];
+    shift_der[1][0] = fluid_old[47]; shift_der[1][1] = fluid_old[48]; shift_der[1][2] = fluid_old[49];
+    shift_der[2][0] = fluid_old[50]; shift_der[2][1] = fluid_old[51]; shift_der[2][2] = fluid_old[52];
+
+    double spatial_metric_der[3][3][3];
+    spatial_metric_der[0][0][0] = fluid_old[53]; spatial_metric_der[0][0][1] = fluid_old[54]; spatial_metric_der[0][0][2] = fluid_old[55];
+    spatial_metric_der[0][1][0] = fluid_old[56]; spatial_metric_der[0][1][1] = fluid_old[57]; spatial_metric_der[0][1][2] = fluid_old[58];
+    spatial_metric_der[0][2][0] = fluid_old[59]; spatial_metric_der[0][2][1] = fluid_old[60]; spatial_metric_der[0][2][2] = fluid_old[61];
+
+    spatial_metric_der[1][0][0] = fluid_old[62]; spatial_metric_der[1][0][1] = fluid_old[63]; spatial_metric_der[1][0][2] = fluid_old[64];
+    spatial_metric_der[1][1][0] = fluid_old[65]; spatial_metric_der[1][1][1] = fluid_old[66]; spatial_metric_der[1][1][2] = fluid_old[67];
+    spatial_metric_der[1][2][0] = fluid_old[68]; spatial_metric_der[1][2][1] = fluid_old[69]; spatial_metric_der[1][2][2] = fluid_old[70];
+
+    spatial_metric_der[2][0][0] = fluid_old[71]; spatial_metric_der[2][0][1] = fluid_old[72]; spatial_metric_der[2][0][2] = fluid_old[73];
+    spatial_metric_der[2][1][0] = fluid_old[74]; spatial_metric_der[2][1][1] = fluid_old[75]; spatial_metric_der[2][1][2] = fluid_old[76];
+    spatial_metric_der[2][2][0] = fluid_old[77]; spatial_metric_der[2][2][1] = fluid_old[78]; spatial_metric_der[2][2][2] = fluid_old[79];
+
+    double mom_elc[3];
+    mom_elc[0] = (rho_elc + p_elc) * (W_elc * W_elc) * vx_elc;
+    mom_elc[1] = (rho_elc + p_elc) * (W_elc * W_elc) * vy_elc;
+    mom_elc[2] = (rho_elc + p_elc) * (W_elc * W_elc) * vz_elc;
+
+    for (int i = 0; i < 84; i++) {
+      fluid_new[i] = fluid_old[i];
+    }
+
+    // Energy density source.
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        fluid_new[4] += dt * (stress_energy_elc[0][0] * shift[i] * shift[j] * extrinsic_curvature[i][j]);
+        fluid_new[4] += dt * (2.0 * stress_energy_elc[0][i + 1] * shift[j] * extrinsic_curvature[i][j]);
+        fluid_new[4] += dt * (stress_energy_elc[i + 1][j + 1] * extrinsic_curvature[i][j]);
+      }
+
+      fluid_new[4] -= dt * (stress_energy_elc[0][0] * shift[i] * lapse_der[i]);
+      fluid_new[4] -= dt * (stress_energy_elc[0][i + 1] * lapse_der[i]);
+    }
+
+    // Momentum density sources.
+    for (int j = 0; j < 3; j++) {
+      fluid_new[1 + j] -= dt * (stress_energy_elc[0][0] * lapse * lapse_der[j]);
+
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          fluid_new[1 + j] += dt * (0.5 * stress_energy_elc[0][0] * shift[k] * shift[l] * spatial_metric_der[j][k][l]);
+          fluid_new[1 + j] += dt * (0.5 * stress_energy_elc[k + 1][l + 1] * spatial_metric_der[j][k][l]);
+        }
+
+        fluid_new[1 + j] += dt * ((mom_elc[k] / lapse) * shift_der[j][k]);
+
+        for (int i = 0; i < 3; i++) {
+          fluid_new[1 + j] += dt * (stress_energy_elc[0][i + 1] * shift[k] * spatial_metric_der[j][i][k]);
+        }
+      }
+    }
+  }
+  else {
+    for (int i = 0; i < 84; i++) {
+      fluid_new[i] = fluid_old[i];
+    }
+  }
+}
+
+void
+explicit_gr_twofluid_source_update_ion_spacetime_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma_ion, double t_curr, const double dt,
+  double* fluid_old, double* fluid_new)
+{
+  double lapse = fluid_old[18];
+  double shift_x = fluid_old[19];
+  double shift_y = fluid_old[20];
+  double shift_z = fluid_old[21];
+
+  double spatial_metric[3][3];
+  spatial_metric[0][0] = fluid_old[22]; spatial_metric[0][1] = fluid_old[23]; spatial_metric[0][2] = fluid_old[24];
+  spatial_metric[1][0] = fluid_old[25]; spatial_metric[1][1] = fluid_old[26]; spatial_metric[1][2] = fluid_old[27];
+  spatial_metric[2][0] = fluid_old[28]; spatial_metric[2][1] = fluid_old[29]; spatial_metric[2][2] = fluid_old[30];
+
+  double inv_spatial_metric[3][3];
+  double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) - (spatial_metric[2][1] * spatial_metric[1][2]))) -
+    (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) - (spatial_metric[1][2] * spatial_metric[2][0]))) +
+    (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) - (spatial_metric[1][1] * spatial_metric[2][0])));
+  
+  double trace = 0.0;
+  for (int i = 0; i < 3; i++) {
+    trace += spatial_metric[i][i];
+  }
+
+  double spatial_metric_sq[3][3];
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      spatial_metric_sq[i][j] = 0.0;
+    }
+  }
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      for (int k = 0; k < 3; k++) {
+        spatial_metric_sq[i][j] += spatial_metric[i][k] * spatial_metric[k][j];
+      }
+    }
+  }
+
+  double sq_trace = 0.0;
+  for (int i = 0; i < 3; i++) {
+    sq_trace += spatial_metric_sq[i][i];
+  }
+
+  double euclidean_metric[3][3];
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      if (i == j) {
+        euclidean_metric[i][j] = 1.0;
+      }
+      else {
+        euclidean_metric[i][j] = 0.0;
+      }
+    }
+  }
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      inv_spatial_metric[i][j] = (1.0 / spatial_det) *
+        ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) - (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
+    }
+  }
+
+  double extrinsic_curvature[3][3];
+  extrinsic_curvature[0][0] = fluid_old[31]; extrinsic_curvature[0][1] = fluid_old[32]; extrinsic_curvature[0][2] = fluid_old[33];
+  extrinsic_curvature[1][0] = fluid_old[34]; extrinsic_curvature[1][1] = fluid_old[35]; extrinsic_curvature[1][2] = fluid_old[36];
+  extrinsic_curvature[2][0] = fluid_old[37]; extrinsic_curvature[2][1] = fluid_old[38]; extrinsic_curvature[2][2] = fluid_old[39];
+
+  bool in_excision_region = false;
+  if (fluid_old[40] < pow(10.0, -8.0)) {
+    in_excision_region = true;
+  }
+
+  if (!in_excision_region) {
+    double D_ion = fluid_old[5] / sqrt(spatial_det);
+    double momx_ion = fluid_old[6] / sqrt(spatial_det);
+    double momy_ion = fluid_old[7] / sqrt(spatial_det);
+    double momz_ion = fluid_old[8] / sqrt(spatial_det);
+    double Etot_ion = fluid_old[9] / sqrt(spatial_det);
+
+    double C_ion = D_ion / sqrt(((Etot_ion + D_ion) * (Etot_ion + D_ion)) - ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)));
+    double C0_ion = (D_ion + Etot_ion) / sqrt(((Etot_ion + D_ion) * (Etot_ion + D_ion)) - ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)));
+    if (((Etot_ion + D_ion) * (Etot_ion + D_ion)) - ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)) < pow(10.0, -8.0)) {
+      C_ion = D_ion / sqrt(pow(10.0, -8.0));
+      C0_ion = (D_ion + Etot_ion) / sqrt(pow(10.0, -8.0));
+    }
+
+    double alpha0_ion = -1.0 / (gas_gamma_ion * gas_gamma_ion);
+    double alpha1_ion = -2.0 * C_ion * ((gas_gamma_ion - 1.0) / (gas_gamma_ion * gas_gamma_ion));
+    double alpha2_ion = ((gas_gamma_ion - 2.0) / gas_gamma_ion) * ((C0_ion * C0_ion) - 1.0) + 1.0 - (C_ion * C_ion) * ((gas_gamma_ion - 1.0) / gas_gamma_ion) * ((gas_gamma_ion - 1.0) / gas_gamma_ion);
+    double alpha4_ion = (C0_ion * C0_ion) - 1.0;
+    double eta_ion = 2.0 * C_ion *((gas_gamma_ion - 1.0) / gas_gamma_ion);
+
+    double guess_ion = 1.0;
+    int iter_ion = 0;
+
+    while (iter_ion < 100) {
+      double poly_ion = (alpha4_ion * (guess_ion * guess_ion * guess_ion) * (guess_ion - eta_ion)) + (alpha2_ion * (guess_ion * guess_ion)) + (alpha1_ion * guess_ion) + alpha0_ion;
+      double poly_der_ion = alpha1_ion + (2.0 * alpha2_ion * guess_ion) + (4.0 * alpha4_ion * (guess_ion * guess_ion * guess_ion)) - (3.0 * eta_ion * alpha4_ion * (guess_ion * guess_ion));
+
+      double guess_new_ion = guess_ion - (poly_ion / poly_der_ion);
+
+      if (fabs(guess_ion - guess_new_ion) < pow(10.0, -8.0)) {
+        iter_ion = 100;
+      }
+      else {
+        iter_ion += 1;
+        guess_ion = guess_new_ion;
+      }
+    }
+
+    double W_ion = 0.5 * C0_ion * guess_ion * (1.0 + sqrt(1.0 + (4.0 * ((gas_gamma_ion - 1.0) / gas_gamma_ion) * ((1.0 - (C_ion * guess_ion)) / ((C0_ion * C0_ion) * (guess_ion * guess_ion))))));
+    double h_ion = 1.0 / (C_ion * guess_ion);
+
+    double rho_ion = D_ion / W_ion;
+    double vx_ion = momx_ion / (rho_ion * h_ion * (W_ion * W_ion));
+    double vy_ion = momy_ion / (rho_ion * h_ion * (W_ion * W_ion));
+    double vz_ion = momz_ion / (rho_ion * h_ion * (W_ion * W_ion));
+    double p_ion = (rho_ion * h_ion * (W_ion * W_ion)) - D_ion - Etot_ion;
+
+    if (rho_ion < pow(10.0, -8.0)) {
+      rho_ion = pow(10.0, -8.0);
+    }
+    if (p_ion < pow(10.0, -8.0)) {
+      p_ion = pow(10.0, -8.0);
+    }
+
+    double spacetime_vel_ion[4];
+    spacetime_vel_ion[0] = W_ion / lapse;
+    spacetime_vel_ion[1] = (W_ion * vx_ion) - (shift_x * (W_ion / lapse));
+    spacetime_vel_ion[2] = (W_ion * vy_ion) - (shift_y * (W_ion / lapse));
+    spacetime_vel_ion[3] = (W_ion * vz_ion) - (shift_z * (W_ion / lapse));
+
+    double shift[3];
+    shift[0] = shift_x; shift[1] = shift_y; shift[2] = shift_z;
+
+    double inv_spacetime_metric[4][4];
+    inv_spacetime_metric[0][0] = - (1.0 / (lapse * lapse));
+    for (int i = 0; i < 3; i++) {
+      inv_spacetime_metric[0][i] = (1.0 / (lapse * lapse)) * shift[i];
+      inv_spacetime_metric[i][0] = (1.0 / (lapse * lapse)) * shift[i];
+    }
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        inv_spacetime_metric[i][j] = inv_spatial_metric[i][j] - ((1.0 / (lapse * lapse)) * shift[i] * shift[j]);
+      }
+    }
+
+    double stress_energy_ion[4][4];
+    for (int i = 0; i < 4; i++) {
+      for (int j = 0; j < 4; j++) {
+        stress_energy_ion[i][j] = (rho_ion * h_ion * spacetime_vel_ion[i] * spacetime_vel_ion[j]) + (p_ion * inv_spacetime_metric[i][j]);
+      }
+    }
+
+    double lapse_der[3];
+    lapse_der[0] = fluid_old[41];
+    lapse_der[1] = fluid_old[42];
+    lapse_der[2] = fluid_old[43];
+
+    double shift_der[3][3];
+    shift_der[0][0] = fluid_old[44]; shift_der[0][1] = fluid_old[45]; shift_der[0][2] = fluid_old[46];
+    shift_der[1][0] = fluid_old[47]; shift_der[1][1] = fluid_old[48]; shift_der[1][2] = fluid_old[49];
+    shift_der[2][0] = fluid_old[50]; shift_der[2][1] = fluid_old[51]; shift_der[2][2] = fluid_old[52];
+
+    double spatial_metric_der[3][3][3];
+    spatial_metric_der[0][0][0] = fluid_old[53]; spatial_metric_der[0][0][1] = fluid_old[54]; spatial_metric_der[0][0][2] = fluid_old[55];
+    spatial_metric_der[0][1][0] = fluid_old[56]; spatial_metric_der[0][1][1] = fluid_old[57]; spatial_metric_der[0][1][2] = fluid_old[58];
+    spatial_metric_der[0][2][0] = fluid_old[59]; spatial_metric_der[0][2][1] = fluid_old[60]; spatial_metric_der[0][2][2] = fluid_old[61];
+
+    spatial_metric_der[1][0][0] = fluid_old[62]; spatial_metric_der[1][0][1] = fluid_old[63]; spatial_metric_der[1][0][2] = fluid_old[64];
+    spatial_metric_der[1][1][0] = fluid_old[65]; spatial_metric_der[1][1][1] = fluid_old[66]; spatial_metric_der[1][1][2] = fluid_old[67];
+    spatial_metric_der[1][2][0] = fluid_old[68]; spatial_metric_der[1][2][1] = fluid_old[69]; spatial_metric_der[1][2][2] = fluid_old[70];
+
+    spatial_metric_der[2][0][0] = fluid_old[71]; spatial_metric_der[2][0][1] = fluid_old[72]; spatial_metric_der[2][0][2] = fluid_old[73];
+    spatial_metric_der[2][1][0] = fluid_old[74]; spatial_metric_der[2][1][1] = fluid_old[75]; spatial_metric_der[2][1][2] = fluid_old[76];
+    spatial_metric_der[2][2][0] = fluid_old[77]; spatial_metric_der[2][2][1] = fluid_old[78]; spatial_metric_der[2][2][2] = fluid_old[79];
+
+    double mom_ion[3];
+    mom_ion[0] = (rho_ion + p_ion) * (W_ion * W_ion) * vx_ion;
+    mom_ion[1] = (rho_ion + p_ion) * (W_ion * W_ion) * vy_ion;
+    mom_ion[2] = (rho_ion + p_ion) * (W_ion * W_ion) * vz_ion;
+
+    for (int i = 0; i < 84; i++) {
+      fluid_new[i] = fluid_old[i];
+    }
+
+    // Energy density source.
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        fluid_new[9] += dt * (stress_energy_ion[0][0] * shift[i] * shift[j] * extrinsic_curvature[i][j]);
+        fluid_new[9] += dt * (2.0 * stress_energy_ion[0][i + 1] * shift[j] * extrinsic_curvature[i][j]);
+        fluid_new[9] += dt * (stress_energy_ion[i + 1][j + 1] * extrinsic_curvature[i][j]);
+      }
+
+      fluid_new[9] -= dt * (stress_energy_ion[0][0] * shift[i] * lapse_der[i]);
+      fluid_new[9] -= dt * (stress_energy_ion[0][i + 1] * lapse_der[i]);
+    }
+
+    // Momentum density sources.
+    for (int j = 0; j < 3; j++) {
+      fluid_new[6 + j] -= dt * (stress_energy_ion[0][0] * lapse * lapse_der[j]);
+
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          fluid_new[6 + j] += dt * (0.5 * stress_energy_ion[0][0] * shift[k] * shift[l] * spatial_metric_der[j][k][l]);
+          fluid_new[6 + j] += dt * (0.5 * stress_energy_ion[k + 1][l + 1] * spatial_metric_der[j][k][l]);
+        }
+
+        fluid_new[6 + j] += dt * ((mom_ion[k] / lapse) * shift_der[j][k]);
+
+        for (int i = 0; i < 3; i++) {
+          fluid_new[6 + j] += dt * (stress_energy_ion[0][i + 1] * shift[k] * spatial_metric_der[j][i][k]);
+        }
+      }
+    }
+  }
+  else {
+    for (int i = 0; i < 84; i++) {
+      fluid_new[i] = fluid_old[i];
+    }
+  }
+}
+
+void
 explicit_gr_twofluid_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES])
 {
   int nfluids = mom_em->nfluids;
@@ -1421,7 +1869,7 @@ explicit_gr_twofluid_source_update(const gkyl_moment_em_coupling* mom_em, double
   for (int i = 0; i < nfluids; i++) {
     double *f = fluid_s[i];
 
-    double f_new_elc[84], f_new_ion[84], f_new[84];
+    double f_new_elc[84], f_new_elc_spacetime[84], f_new_ion[84], f_new_ion_spacetime[84], f_new[84];
     double f_stage1[84], f_stage2[84], f_old[84];
 
     for (int j = 0; j < 84; j++) {
@@ -1429,39 +1877,45 @@ explicit_gr_twofluid_source_update(const gkyl_moment_em_coupling* mom_em, double
     }
 
     explicit_gr_twofluid_source_update_elc_euler(mom_em, gas_gamma_elc, mass_elc, charge_elc, t_curr, dt, f_old, f_new_elc);
-    explicit_gr_twofluid_source_update_ion_euler(mom_em, gas_gamma_ion, mass_ion, charge_ion, t_curr, dt, f_new_elc, f_new_ion);
+    explicit_gr_twofluid_source_update_elc_spacetime_euler(mom_em, gas_gamma_elc, t_curr, dt, f_new_elc, f_new_elc_spacetime);
+    explicit_gr_twofluid_source_update_ion_euler(mom_em, gas_gamma_ion, mass_ion, charge_ion, t_curr, dt, f_new_elc_spacetime, f_new_ion);
+    explicit_gr_twofluid_source_update_ion_spacetime_euler(mom_em, gas_gamma_ion, t_curr, dt, f_new_ion, f_new_ion_spacetime);
     explicit_gr_twofluid_source_update_em_euler(mom_em, gas_gamma_elc, gas_gamma_ion, mass_elc, charge_elc, mass_ion, charge_ion, t_curr, dt, f_old, f_new);
     for (int j = 0; j < 5; j++) {
-      f_stage1[j] = f_new_elc[j];
+      f_stage1[j] = f_new_elc_spacetime[j];
     }
     for (int j = 5; j < 10; j++) {
-      f_stage1[j] = f_new_ion[j];
+      f_stage1[j] = f_new_ion_spacetime[j];
     }
     for (int j = 10; j < 84; j++) {
       f_stage1[j] = f_new[j];
     }
 
     explicit_gr_twofluid_source_update_elc_euler(mom_em, gas_gamma_elc, mass_elc, charge_elc, t_curr + dt, dt, f_stage1, f_new_elc);
-    explicit_gr_twofluid_source_update_ion_euler(mom_em, gas_gamma_ion, mass_ion, charge_ion, t_curr + dt, dt, f_new_elc, f_new_ion);
+    explicit_gr_twofluid_source_update_elc_spacetime_euler(mom_em, gas_gamma_elc, t_curr + dt, dt, f_new_elc, f_new_elc_spacetime);
+    explicit_gr_twofluid_source_update_ion_euler(mom_em, gas_gamma_ion, mass_ion, charge_ion, t_curr + dt, dt, f_new_elc_spacetime, f_new_ion);
+    explicit_gr_twofluid_source_update_ion_spacetime_euler(mom_em, gas_gamma_ion, t_curr + dt, dt, f_new_ion, f_new_ion_spacetime);
     explicit_gr_twofluid_source_update_em_euler(mom_em, gas_gamma_elc, gas_gamma_ion, mass_elc, charge_elc, mass_ion, charge_ion, t_curr + dt, dt, f_stage1, f_new);
     for (int j = 0; j < 5; j++) {
-      f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new_elc[j]);
+      f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new_elc_spacetime[j]);
     }
     for (int j = 5; j < 10; j++) {
-      f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new_ion[j]);
+      f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new_ion_spacetime[j]);
     }
     for (int j = 10; j < 84; j++) {
       f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
     }
 
     explicit_gr_twofluid_source_update_elc_euler(mom_em, gas_gamma_elc, mass_elc, charge_elc, t_curr + (0.5 * dt), dt, f_stage2, f_new_elc);
-    explicit_gr_twofluid_source_update_ion_euler(mom_em, gas_gamma_ion, mass_ion, charge_ion, t_curr + (0.5 * dt), dt, f_new_elc, f_new_ion);
+    explicit_gr_twofluid_source_update_elc_spacetime_euler(mom_em, gas_gamma_elc, t_curr + (0.5 * dt), dt, f_new_elc, f_new_elc_spacetime);
+    explicit_gr_twofluid_source_update_ion_euler(mom_em, gas_gamma_ion, mass_ion, charge_ion, t_curr + (0.5 * dt), dt, f_new_elc_spacetime, f_new_ion);
+    explicit_gr_twofluid_source_update_ion_spacetime_euler(mom_em, gas_gamma_ion, t_curr + (0.5 * dt), dt, f_new_ion, f_new_ion_spacetime);
     explicit_gr_twofluid_source_update_em_euler(mom_em, gas_gamma_elc, gas_gamma_ion, mass_elc, charge_elc, mass_ion, charge_ion, t_curr + (0.5 * dt), dt, f_stage2, f_new);
     for (int j = 0; j < 5; j++) {
-      f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new_elc[j]);
+      f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new_elc_spacetime[j]);
     }
     for (int j = 5; j < 10; j++) {
-      f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new_ion[j]);
+      f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new_ion_spacetime[j]);
     }
     for (int j = 10; j < 84; j++) {
       f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
