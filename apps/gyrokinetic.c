@@ -1678,6 +1678,9 @@ gkyl_gyrokinetic_app_stat(gkyl_gyrokinetic_app* app)
   // Timers not yet computed in app directly.
   stat->time_rate_diags_tm = stat->fdot_tm + stat->phidot_tm;
   stat->pos_shift_tm = stat->species_pos_shift_tm + stat->neut_species_pos_shift_tm + stat->pos_shift_quasineut_tm;
+  stat->io_tm = stat->species_io_tm + stat->species_diag_calc_tm + stat->species_diag_io_tm + stat->neut_species_io_tm
+    + stat->neut_species_diag_calc_tm + stat->neut_species_diag_io_tm + stat->field_io_tm + stat->field_diag_calc_tm
+    + stat->field_diag_io_tm + stat->app_io_tm;
 
   // Additions of several timers.
   stat->fwd_euler_sum_tm = stat->species_coll_mom_tm + stat->species_react_mom_tm + stat->neut_species_coll_mom_tm
@@ -1692,8 +1695,7 @@ gkyl_gyrokinetic_app_stat(gkyl_gyrokinetic_app* app)
   stat->pos_shift_sum_tm = stat->species_pos_shift_tm + stat->neut_species_pos_shift_tm + stat->pos_shift_quasineut_tm;
   stat->time_stepper_sum_tm = stat->fwd_euler_tm  + stat->field_tm + stat->bc_tm + stat->time_rate_diags_tm
     + stat->pos_shift_tm + stat->time_stepper_arithmetic_tm;
-
-  stat->io_tm = stat->species_io_tm + stat->species_diag_calc_tm + stat->species_diag_io_tm + stat->neut_species_io_tm
+  stat->io_sum_tm = stat->species_io_tm + stat->species_diag_calc_tm + stat->species_diag_io_tm + stat->neut_species_io_tm
     + stat->neut_species_diag_calc_tm + stat->neut_species_diag_io_tm + stat->field_io_tm + stat->field_diag_calc_tm
     + stat->field_diag_io_tm + stat->app_io_tm;
 
@@ -1770,6 +1772,7 @@ gkyl_gyrokinetic_app_print_timings(gkyl_gyrokinetic_app* app, FILE *iostream)
   gkyl_gyrokinetic_app_cout(app, iostream, "    * Field diag calc:                 %.4e sec. / %4.2f %%.\n", stat->field_diag_calc_tm       , ratio_to_percent(stat->field_diag_calc_tm       , stat->io_tm, 0.0));
   gkyl_gyrokinetic_app_cout(app, iostream, "    * Field diag write:                %.4e sec. / %4.2f %%.\n", stat->field_diag_io_tm         , ratio_to_percent(stat->field_diag_io_tm         , stat->io_tm, 0.0));
   gkyl_gyrokinetic_app_cout(app, iostream, "    * Common write:                    %.4e sec. / %4.2f %%.\n", stat->app_io_tm                , ratio_to_percent(stat->app_io_tm                , stat->io_tm, 0.0));
+  gkyl_gyrokinetic_app_cout(app, iostream, "    * Accounted for:                   %4.2f %%.\n", ratio_to_percent(stat->io_sum_tm, stat->io_tm, 100.0));
 }
 
 void
@@ -1884,6 +1887,7 @@ comm_reduce_app_stat(const gkyl_gyrokinetic_app* app,
     SPECIES_IO_TM, SPECIES_DIAG_CALC_TM, SPECIES_DIAG_IO_TM, 
     NEUT_SPECIES_IO_TM, NEUT_SPECIES_DIAG_CALC_TM, NEUT_SPECIES_DIAG_IO_TM, 
     FIELD_IO_TM, FIELD_DIAG_CALC_TM, FIELD_DIAG_IO_TM, 
+    APP_IO_TM, IO_TM, 
     D_END
   };
 
@@ -1938,6 +1942,8 @@ comm_reduce_app_stat(const gkyl_gyrokinetic_app* app,
     [FIELD_IO_TM] = local->field_io_tm,
     [FIELD_DIAG_CALC_TM] = local->field_diag_calc_tm,
     [FIELD_DIAG_IO_TM] = local->field_diag_io_tm,
+    [APP_IO_TM] = local->app_io_tm,
+    [IO_TM] = local->io_tm,
   };
 
   double d_red_global[D_END];
@@ -2006,6 +2012,9 @@ comm_reduce_app_stat(const gkyl_gyrokinetic_app* app,
   global->field_io_tm = d_red_global[FIELD_IO_TM];
   global->field_diag_calc_tm = d_red_global[FIELD_DIAG_CALC_TM];
   global->field_diag_io_tm = d_red_global[FIELD_DIAG_IO_TM];
+
+  global->app_io_tm = d_red_global[APP_IO_TM];
+  global->io_tm = d_red_global[IO_TM];
 
   // misc data needing reduction
 
@@ -2136,6 +2145,9 @@ gkyl_gyrokinetic_app_stat_write(gkyl_gyrokinetic_app* app)
   gkyl_gyrokinetic_app_cout(app, fp, " field_io_tm : %lg\n", stat.field_io_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " field_diag_calc_tm : %lg\n", stat.field_diag_calc_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " field_diag_io_tm : %lg\n", stat.field_diag_io_tm);
+
+  gkyl_gyrokinetic_app_cout(app, fp, " app_io_tm : %lg\n", stat.app_io_tm);
+  gkyl_gyrokinetic_app_cout(app, fp, " io_tm : %lg\n", stat.io_tm);
 
   gkyl_gyrokinetic_app_cout(app, fp, " n_species_omega_cfl : %ld,\n", stat.n_species_omega_cfl);
   gkyl_gyrokinetic_app_cout(app, fp, " n_mom : %ld,\n", stat.n_mom);

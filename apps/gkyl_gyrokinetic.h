@@ -481,6 +481,7 @@ struct gkyl_gyrokinetic_stat {
   double time_rate_diags_sum_tm;
   double pos_shift_sum_tm;
   double time_stepper_sum_tm;
+  double io_sum_tm;
 
   double species_io_tm; // Time to write the species distribution.
   double species_diag_calc_tm; // Time to compute species diagnostics.
