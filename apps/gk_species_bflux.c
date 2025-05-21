@@ -431,9 +431,10 @@ gk_species_bflux_write_mom_dynamic(gkyl_gyrokinetic_app* app, void *spec_in,
     int dir = bflux->boundaries_dir[b];
     int edi = bflux->boundaries_edge[b]==GKYL_LOWER_EDGE? 0 : 1;
 
-    if ((edi == 0 && rank == 0) || (edi == 1 && rank == comm_size-1)) {
+    if (dir < app->cdim-1 || ((edi == 0 && rank == 0) || (edi == 1 && rank == comm_size-1))) {
       for (int m=0; m<num_diag_mom; ++m) {
         int mom_idx = bflux->diag_mom_idx[m];
+        struct gkyl_array *mom_arr = bflux->f[b*bflux->num_calc_moms+mom_idx];
 
         const char *fmt = "%s-%s_bflux_%s%s_%s_%d.gkyl";
         const char *mom_name = gks->info.boundary_flux_diagnostics.diag_moments[mom_idx];
@@ -442,7 +443,6 @@ gk_species_bflux_write_mom_dynamic(gkyl_gyrokinetic_app* app, void *spec_in,
         snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, vars[dir], edge[edi], mom_name, frame);
         
         // For now copy the moment to the skin ghost and write it out.
-        struct gkyl_array *mom_arr = bflux->f[b*bflux->num_calc_moms+mom_idx];
         gkyl_array_copy_range_to_range(mom_arr, mom_arr,
           bflux->boundaries_conf_skin[b], bflux->boundaries_conf_ghost[b]);
 
