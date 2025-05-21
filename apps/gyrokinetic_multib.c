@@ -1593,7 +1593,7 @@ gkyl_gyrokinetic_multib_update(gkyl_gyrokinetic_multib_app* app, double dt)
   struct gkyl_update_status status = gyrokinetic_multib_update_ssp_rk3(app, dt);
   app->tcurr += status.dt_actual;
 
-  app->stat.total_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.time_loop_tm += gkyl_time_diff_now_sec(wst);
 
   // Check for any CUDA errors during time step
   if (app->use_gpu)
@@ -1634,7 +1634,9 @@ gkyl_gyrokinetic_multib_app_stat(gkyl_gyrokinetic_multib_app* app)
   app->stat.dfdt_dt_reduce_tm = 0.0;
   app->stat.fwd_euler_step_f_tm = 0.0;
 
-  app->stat.field_rhs_tm = 0.0;
+  app->stat.field_tm = 0.0;
+  app->stat.field_phi_rhs_tm = 0.0;
+  app->stat.field_phi_solve_tm = 0.0;
 
   app->stat.species_bc_tm = 0.0;
   app->stat.n_species_omega_cfl = 0;
@@ -1677,7 +1679,9 @@ gkyl_gyrokinetic_multib_app_stat(gkyl_gyrokinetic_multib_app* app)
     struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
     struct gkyl_gyrokinetic_stat sb_stat = gkyl_gyrokinetic_app_stat(sbapp);
 
-    app->stat.field_rhs_tm += sb_stat.field_rhs_tm;
+    app->stat.field_tm += sb_stat.field_tm;
+    app->stat.field_phi_rhs_tm += sb_stat.field_phi_rhs_tm;
+    app->stat.field_phi_solve_tm += sb_stat.field_phi_solve_tm;
 
     app->stat.species_lte_tm += sb_stat.species_lte_tm;
     app->stat.species_coll_mom_tm += sb_stat.species_coll_mom_tm;

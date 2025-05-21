@@ -220,12 +220,14 @@ gk_neut_species_copy_range_static(struct gkyl_array *out,
 static void
 gk_neut_species_apply_pos_shift_enabled(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns)
 {
+  struct timespec wtm = gkyl_wall_clock();
   // Copy f so we can calculate the moments of the change later. 
   gkyl_array_set(gkns->fnew, -1.0, gkns->f);
 
   // Shift each species.
   gkyl_positivity_shift_vlasov_advance(gkns->pos_shift_op, &app->local, &gkns->local,
     gkns->f, gkns->m0.marr, gkns->ps_delta_m0);
+  app->stat.neut_species_pos_shift_tm += gkyl_time_diff_now_sec(wtm);
 }
 
 static void

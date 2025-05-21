@@ -158,7 +158,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
             gk_neut_species_bflux_combine(app, &gkns->bflux, gkns->bflux.f1,
               3.0/4.0, gkns->bflux.f, 1.0/4.0, gkns->bflux.fnew);
           }
-          app->stat.accumulate_tm += gkyl_time_diff_now_sec(wst);
+          app->stat.time_stepper_arithmetic_tm += gkyl_time_diff_now_sec(wst);
 
           // Compute the fields and apply BCs.
           for (int i=0; i<app->num_species; ++i) {
@@ -238,7 +238,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
             gk_neut_species_bflux_calc_voltime_integrated_mom(app, gkns, &gkns->bflux, tcurr);
             gk_neut_species_bflux_scale(app, &gkns->bflux, gkns->bflux.f, 1.0/dt);
           }
-          app->stat.accumulate_tm += gkyl_time_diff_now_sec(wst);
+          app->stat.time_stepper_arithmetic_tm += gkyl_time_diff_now_sec(wst);
 
           // Apply positivity shift if requested.
           for (int i=0; i<app->num_species; ++i) {

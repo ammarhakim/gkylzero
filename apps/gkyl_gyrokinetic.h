@@ -421,11 +421,10 @@ struct gkyl_gyrokinetic_stat {
   double stage_2_dt_diff[2]; // [min,max] rel-diff for stage-2 failure
   double stage_3_dt_diff[2]; // [min,max] rel-diff for stage-3 failure
     
-  double total_tm; // time for simulation (not including ICs)
   double init_species_tm; // time to initialize all species
   double init_neut_species_tm; // time to initialize all neutral species
-  double field_rhs_tm; // time to compute field RHS
-  double accumulate_tm; // Time to accumulate rhs and do algebraic operations
+
+  double time_loop_tm; // time for simulation (not including ICs)
   double fwd_euler_tm; // Time for forward euler
   double fwd_euler_step_f_tm; // Time spent on fwd euler step_f.
   double dfdt_dt_reduce_tm; // Time spent on fwd euler dt reduction.
@@ -454,12 +453,38 @@ struct gkyl_gyrokinetic_stat {
   double neut_species_react_tm; // total time for neutral reactions updaters
   double neut_species_src_tm; // Time to accumulate neutral species source onto RHS.
 
+  double time_rate_diags_tm; // Time spent on time rate of change diagnostics.
+  double fdot_tm; // Time spent on computing \dot{f} diagnostics.
+  double phidot_tm; // Time spent on computing \dot{phi} diagnostics.
+
+  double field_tm; // Time to compute fields.
+  double field_phi_rhs_tm; // Time spent on poisson eqn RHS.
+  double field_phi_solve_tm;   // Time spent to solve poisson eqn.
+
+  double bc_tm; // Time to compute BCs.
+  double species_bc_tm; // Time to compute species BCs.
+  double neut_species_bc_tm; // Time to compute neutral species BCs.
+
+  double time_stepper_arithmetic_tm; // Time spent on arithmetic ops in time stepper.
+
+  double pos_shift_tm; // Time spent on positivity shift.
+  double species_pos_shift_tm; // Time spent on species positivity shift.
+  double neut_species_pos_shift_tm; // Time spent on neutral species positivity shift.
+  double pos_shift_quasineut_tm; // Time spent on positivity shift quasineutrality.
+
+  // Group timers: additions of several of the above timers.
+  double fwd_euler_sum_tm;
+  double field_sum_tm;
+  double bc_sum_tm;
+  double time_rate_diags_sum_tm;
+  double pos_shift_sum_tm;
+  double time_stepper_sum_tm;
+
   long n_iter_corr[GKYL_MAX_SPECIES]; // total number of iterations used to correct species LTE projection
   long num_corr[GKYL_MAX_SPECIES]; // total number of times correction updater for species LTE projection is called
   long neut_n_iter_corr[GKYL_MAX_SPECIES]; // total number of iterations used to correct neutral species LTE projection
   long neut_num_corr[GKYL_MAX_SPECIES]; // total number of times correction updater for neutral species LTE projection is called
 
-  double species_bc_tm; // time to compute species BCs
   long n_species_omega_cfl; // number of times CFL-omega all-reduce is called
   double species_omega_cfl_tm; // time spent in all-reduce for omega-cfl
   long n_mom; // total number of calls to moment updater routines
@@ -470,7 +495,6 @@ struct gkyl_gyrokinetic_stat {
   long n_diag_io; // number of calls to IO for diagnostics
   double diag_io_tm; // time to perform IO for diagnostics
 
-  double neut_species_bc_tm; // time to compute neutral species BCs
   long n_neut_species_omega_cfl; // number of times CFL-omega all-reduce is called for neutrals
   double neut_species_omega_cfl_tm; // time spent in all-reduce for omega-cfl for neutrals
   long n_neut_mom; // total number of calls to neutrals moment updater routines
@@ -1013,6 +1037,15 @@ void gkyl_gyrokinetic_app_write(gkyl_gyrokinetic_app* app, double tm, int frame)
  * @param app App object.
  */
 void gkyl_gyrokinetic_app_stat_write(gkyl_gyrokinetic_app* app);
+
+/**
+ * Print timing of solver components to iostream.
+ *
+ * @param app App object.
+ * @param iostream Where to write timers to (e.g. stdout, stderr);
+ */
+void
+gkyl_gyrokinetic_app_print_timings(gkyl_gyrokinetic_app* app, FILE *iostream);
 
 /**
  * Record the time step (in private dynvector).

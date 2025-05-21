@@ -931,41 +931,9 @@ main(int argc, char **argv)
     gkyl_gyrokinetic_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
   }  
 
-  double fwd_euler_added_tm = stat.species_coll_mom_tm + stat.species_react_mom_tm + stat.neut_species_coll_mom_tm + stat.neut_species_react_mom_tm + stat.species_rad_mom_tm + stat.species_gyroavg_tm + stat.species_collisionless_tm + stat.species_coll_tm + stat.species_diffusion_tm + stat.species_rad_tm + stat.species_react_tm + stat.species_bflux_calc_tm+stat.species_bflux_moms_tm + stat.species_omega_cfl_tm + stat.species_src_tm + stat.neut_species_collisionless_tm + stat.neut_species_coll_tm + stat.neut_species_react_tm + stat.neut_species_omega_cfl_tm + stat.neut_species_src_tm + stat.dfdt_dt_reduce_tm + stat.fwd_euler_step_f_tm;
-
-  double sum_tm = stat.fwd_euler_tm  + stat.field_rhs_tm + stat.species_bc_tm + stat.accumulate_tm;
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Timing:\n");
-  gkyl_gyrokinetic_app_cout(app, stdout, "  - Time loop:                         %.4e sec.\n", stat.total_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "    * Forward Euler:                   %.4e sec.\n", stat.fwd_euler_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ Collision moments (charged):   %.4e sec.\n", stat.species_coll_mom_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ Reaction moments (charged):    %.4e sec.\n", stat.species_react_mom_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ Collision moments (neutral):   %.4e sec.\n", stat.neut_species_coll_mom_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ Reaction moments (neutral):    %.4e sec.\n", stat.neut_species_react_mom_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ Radiation moments:             %.4e sec.\n", stat.species_rad_mom_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ Species gyroaverage:           %.4e sec.\n", stat.species_gyroavg_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ Collisionless terms (charged): %.4e sec.\n", stat.species_collisionless_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ Collision terms (charged):     %.4e sec.\n", stat.species_coll_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ Diffusion (charged):           %.4e sec.\n", stat.species_diffusion_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ Radiation terms:               %.4e sec.\n", stat.species_rad_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ Reaction terms (charged):      %.4e sec.\n", stat.species_react_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ Boundary fluxes (charged):     %.4e sec.\n", stat.species_bflux_calc_tm+stat.species_bflux_moms_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ omega_cfl (charged):           %.4e sec.\n", stat.species_omega_cfl_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ Sources (charged):             %.4e sec.\n", stat.species_src_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ Collisionless terms (neutral): %.4e sec.\n", stat.neut_species_collisionless_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ Collision terms (neutral):     %.4e sec.\n", stat.neut_species_coll_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ Reaction terms (neutral):      %.4e sec.\n", stat.neut_species_react_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ omega_cfl (neutral):           %.4e sec.\n", stat.neut_species_omega_cfl_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ Sources (neutral):             %.4e sec.\n", stat.neut_species_src_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ Time step reduction:           %.4e sec.\n", stat.dfdt_dt_reduce_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ Step f:                        %.4e sec.\n", stat.fwd_euler_step_f_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "      ^ Accounted for:                 %4.2f %%.\n", 100.0*fwd_euler_added_tm/stat.fwd_euler_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "    * Accumulate:                      %.4e sec.\n", stat.accumulate_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "    * Field RHS calc:                  %.4e sec.\n", stat.field_rhs_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "    * Species BC calc:                 %.4e sec.\n", stat.species_bc_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "    * Accounted for:                   %4.2f %%.\n", 100.0*sum_tm/stat.total_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "  - I/O:                               %.4e sec.\n", stat.io_tm);
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
+  gkyl_gyrokinetic_app_print_timings(app, stdout);
 
 freeresources:
   // Free resources after simulation completion.

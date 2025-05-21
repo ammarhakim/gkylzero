@@ -347,12 +347,14 @@ gk_species_copy_range_static(struct gkyl_array *out,
 static void
 gk_species_apply_pos_shift_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks)
 {
+  struct timespec wtm = gkyl_wall_clock();
   // Copy f so we can calculate the moments of the change later. 
   gkyl_array_set(gks->fnew, -1.0, gks->f);
 
   // Shift each species.
   gkyl_positivity_shift_gyrokinetic_advance(gks->pos_shift_op, &app->local, &gks->local,
     gks->f, gks->m0.marr, gks->ps_delta_m0);
+  app->stat.species_pos_shift_tm += gkyl_time_diff_now_sec(wtm);
 }
 
 static void
@@ -514,10 +516,12 @@ gk_species_write_mom_static(gkyl_gyrokinetic_app* app, struct gk_species *gks, d
 static void
 gk_species_calc_int_mom_dt_active(gkyl_gyrokinetic_app* app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom)
 {
+  struct timespec wst = gkyl_wall_clock();
   // Compute moment of f_new to compute moment of df/dt.
   // Need to do it after the fields are updated.
   gk_species_moment_calc(&gks->integ_moms, gks->local, app->local, gks->f); 
   gkyl_array_set(fdot_int_mom, 1.0/dt, gks->integ_moms.marr);
+  app->stat.fdot_tm += gkyl_time_diff_now_sec(wst);
 }
 
 static void
