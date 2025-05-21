@@ -7,11 +7,13 @@
 // Forward declare internal object
 struct gkyl_mirror_grid_gen_x;
 
-// geometric quantities
+// Geometric quantities
 struct __attribute__((__packed__)) gkyl_mirror_grid_gen_geom {
-  struct gkyl_vec3 e1d; // er, ephi and ez components of e^1
-  struct gkyl_vec3 e3d; // er, ephi and ez components of e^3
-  struct gkyl_vec3 B; // er, ephi and ez components of B
+  struct gkyl_vec3 e1d; // e_r, e_phi and e_z components of e^1
+  struct gkyl_vec3 e2d; // e_r, e_phi and e_z components of e^2
+  struct gkyl_vec3 e3d; // e_r, e_phi and e_z components of e^3
+  struct gkyl_vec3 B;   // e_r, e_phi and e_z components of B
+  double Jc; // Jacobian = 1/e^1*(e^2 X e^3)
 };
 
 struct gkyl_mirror_grid_gen {

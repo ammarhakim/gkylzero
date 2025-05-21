@@ -7,7 +7,8 @@
 #include <gkyl_rect_decomp.h>
 
 struct gkyl_mirror_grid_gen_x {
-  
+  enum gkyl_mirror_grid_gen_field_line_coord fl_coord; // field-line coordinate to use
+  bool include_axis; // add nodes on r=0 axis (the axis is assumed be psi=0)
 };
 
 // context for use in root finder
@@ -39,6 +40,9 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
 {
   struct gkyl_mirror_grid_gen *geo = gkyl_malloc(sizeof *geo);
   geo->gg_x = gkyl_malloc(sizeof *geo->gg_x);
+
+  geo->gg_x->fl_coord = inp->fl_coord;
+  geo->gg_x->include_axis = inp->include_axis;
 
   int nr = inp->nrnodes, nz = inp->nznodes;
   int cells[] = { nr, nz };
@@ -137,6 +141,8 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
     }
   }
 
+  enum { PSI_I, DPSI_R_I, DPSI_Z_I };
+  
   // compute geometry at nodes
   for (int iz=0; iz<nc[NZ]; ++iz) {
     for (int ipsi=0; ipsi<nc[NPSI]; ++ipsi) {
@@ -150,18 +156,31 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
 
       struct gkyl_mirror_grid_gen_geom *g = gkyl_array_fetch(geo->node_geom, loc);
 
-      g->e1d.x[0] = fout[1]; // dpsi/dr
+      // e^1
+      g->e1d.x[0] = fout[DPSI_R_I]; // dpsi/dr
       g->e1d.x[1] = 0.0; // no toroidal component
-      g->e1d.x[2] = fout[2]; // dspi/dz
-
+      g->e1d.x[2] = fout[DPSI_Z_I]; // dspi/dz
+      
       if (inp->fl_coord == GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z) {
-        // for sqrt(psi) as the radial coordinate e^1 = grad(psi)/2*sqrt(psi)
+        // for sqrt(psi) as radial coordinate e^1 = grad(psi)/2*sqrt(psi)
         g->e1d.x[0] = g->e1d.x[0]/(2*floor_sqrt(fout[0]));
         g->e1d.x[2] = g->e1d.x[2]/(2*floor_sqrt(fout[0]));
       }
 
+      // e^2 is just e^phi
+      g->e2d.x[0] = 0; g->e2d.x[1] = 1.0; g->e3d.x[2] = 0.0;
+
+      // e^3 is just sigma_3
       g->e3d.x[0] = 0; g->e3d.x[1] = 0.0;
-      g->e3d.x[2] = 1.0; // e^3 is just sigma_3
+      g->e3d.x[2] = 1.0;
+
+      // B
+      g->B.x[0] = -fout[DPSI_Z_I]/xn[0];
+      g->B.x[1] = 0.0;
+      g->B.x[2] = fout[DPSI_R_I]/xn[0];
+
+      // Jacobian
+      g->Jc = 1/gkyl_vec3_triple(g->e1d, g->e2d, g->e3d);
     }
   }
   

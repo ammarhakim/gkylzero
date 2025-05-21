@@ -67,6 +67,13 @@ gkyl_vec3_cross(struct gkyl_vec3 a, struct gkyl_vec3 b)
   };
 }
 
+// a \dot (b \times c)
+static inline double
+gkyl_vec3_triple(struct gkyl_vec3 a, struct gkyl_vec3 b, struct gkyl_vec3 c)
+{
+  return gkyl_vec3_dot(a, gkyl_vec3_cross(b, c));
+}  
+
 // minmod(a,b,c, ...) returns min of all parameters are positive, max
 // of all parameters if all are negative, and zero otherwise.
 
