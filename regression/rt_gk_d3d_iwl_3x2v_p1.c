@@ -715,6 +715,11 @@ main(int argc, char **argv)
         .upar = zero_func,
         .temp = temp_elc_srcGB,
       },
+      .diagnostics = {
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { "HamiltonianMoments" },
+//        .time_integrated = true,
+      },
     },
 
     .bcx = {
@@ -734,6 +739,17 @@ main(int argc, char **argv)
 
     .num_diag_moments = 1,
     .diag_moments = { "MaxwellianMoments" },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { "HamiltonianMoments" },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_diag_moments = 1,
+      .diag_moments = { "HamiltonianMoments" },
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { "HamiltonianMoments" },
+//      .time_integrated = true,
+    },
   };
 
   // ions
@@ -789,6 +805,11 @@ main(int argc, char **argv)
         .upar = zero_func,
         .temp = temp_ion_srcGB,
       },
+      .diagnostics = {
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { "HamiltonianMoments" },
+//        .time_integrated = true,
+      },
     },
 
     .bcx = {
@@ -808,6 +829,17 @@ main(int argc, char **argv)
 
     .num_diag_moments = 1,
     .diag_moments = { "MaxwellianMoments" },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { "HamiltonianMoments" },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_diag_moments = 1,
+      .diag_moments = { "HamiltonianMoments" },
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { "HamiltonianMoments" },
+//      .time_integrated = true,
+    },
   };
 
   struct gkyl_poisson_bias_plane target_corner_bc = {
@@ -827,7 +859,8 @@ main(int argc, char **argv)
     .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET},
                     .up_type = {GKYL_POISSON_DIRICHLET},
                     .lo_value = {0.0}, .up_value = {0.0}},
-    .bias_plane_list = &bias_plane_list
+    .bias_plane_list = &bias_plane_list,
+    .time_rate_diagnostics = true,
   };
 
   // GK app
