@@ -20,64 +20,68 @@
 
 struct magnetosphere_ctx
 {
-  double epsilon0;
-  double c;
-  double mu0;
+  double epsilon0; // permittivity
+  double c; // speed of light
+  double mu0; // permeability
 
-  double R0;
-  double D;
-  double rc;
+  double R0; // radius of planet
+  double Dx; // dipole field strength (x-direction)
+  double Dy; // dipole field strength (y-direction)
+  double rc; // radius of inner boundary of field
 
-  double rho_in;
-  double vx_in;
-  double vy_in;
-  double vz_in;
-  double p_in;
-  double Bx_in;
-  double By_in;
-  double Bz_in;
+  double rho_in; // solar wind density
+  double vx_in; // solar wind speed (x-direction)
+  double vy_in; // solar wind speed (x-direction)
+  double vz_in; // solar wind speed (x-direction)
+  double p_in; // solar wind pressure
+  double Bx_in; // solar wind magnetic field (x-direction)
+  double By_in; // solar wind magnetic field (y-direction)
+  double Bz_in; // solar wind magnetic field (z-direction)
 
-  double mirdip_r_ramp1;
-  double mirdip_r_ramp2;
-  double mirdip_x_mirror;
+  double r_ramp1; // scaling factor for velocity near the planet
+  double r_ramp2; // scaling factor for velocity near the planet
+  double x_mirror; // location of mirror dipole
 
-  double mi;
-  double mi_me;
-  double pi_pe;
-  double me;
-  double di;
-  double qi;
-  double qe;
-  double de;
+  double mi; // ion mass
+  double mi_me; // ion/electron mass ratio
+  double pi_pe; // ion/electron pressure ratio
+  double me; // electron mass
+  double di; // ion skin depth
+  double qi; // ion charge
+  double qe; // electron charge
+  double de; // electron skin depth
 
-  int Nx; // Cell count (x-direction);
-  int Ny; // Cell count (y-direction);
-  double Lx_l; // Domain size (x-direction).
-  double Lx_u; // Domain size (x-direction).
-  double Ly; // Domain size (y-direction).
-  double k0_elc; // Closure parameter for electrons.
-  double k0_ion; // Closure parameter for ions.
+  int Nx; // cell count (x-direction);
+  int Ny; // cell count (y-direction);
+  double Lx_l; // domain size (x-direction).
+  double Lx_u; // domain size (x-direction).
+  double Ly; // domain size (y-direction).
+  double k0_elc; // closure parameter for electrons.
+  double k0_ion; // closure parameter for ions.
   double cfl_frac; // CFL coefficient.
 
-  double t_end; // Final simulation time.
-  int num_frames; // Number of output frames.
-  int field_energy_calcs; // Number of times to calculate field energy.
-  int integrated_mom_calcs; // Number of times to calculate integrated moments.
-  double dt_failure_tol; // Minimum allowable fraction of initial time-step.
-  int num_failures_max; // Maximum allowable number of consecutive small time-steps.
+  double t_end; // final simulation time.
+  int num_frames; // number of output frames.
+  int field_energy_calcs; // number of times to calculate field energy.
+  int integrated_mom_calcs; // number of times to calculate integrated moments.
+  double dt_failure_tol; // minimum allowable fraction of initial time-step.
+  int num_failures_max; // maximum allowable number of consecutive small time-steps.
 };
 
 struct magnetosphere_ctx
 create_ctx(void)
 {
-  double mu0 = GKYL_MU0;
-  double c = 3.0e6;
-  double epsilon0 = 1/mu0/(c*c);
+  // physical constants
+  double mu0 = GKYL_MU0; // physical permeability (SI)
+  double c = GKYL_SPEED_OF_LIGHT/100.0; // reduced speed of light
+  double epsilon0 = 1/mu0/(c*c); // reduced permittivity
 
-  double R0 = 1737.4e3;
-  double D = -100.0e-9*(R0*R0);
+  double R0 = 1737.4e3; // radius of the Moon
+  double Dx = -100.0e-9*(R0*R0);
+  double Dy = -100.0e-9*(R0*R0);
   double rc = 0.5*R0;
 
+  // solar wind inflow parameters
   double rho_in = 10.0e6*GKYL_PROTON_MASS;
   double vx_in = 150.0e3;
   double vy_in = 0.0;
@@ -87,10 +91,11 @@ create_ctx(void)
   double By_in = -20.0e-9;
   double Bz_in = 0.0;
 
-  double mirdip_r_ramp1 = 2.0*R0;
-  double mirdip_r_ramp2 = 3.0*R0;
-  double mirdip_x_mirror = -3.0*R0;
-  
+  double r_ramp1 = 2.0*R0;
+  double r_ramp2 = 3.0*R0;
+  double x_mirror = -3.0*R0;
+
+  // electron mass is artificially increased
   double mi = 16.0*GKYL_PROTON_MASS;
   double mi_me = 25.0;
   double pi_pe = 5.0;
@@ -102,22 +107,21 @@ create_ctx(void)
   double qi = mi/di/sqrt(mu0*rho_in);
   double qe = -qi;
 
-  // Simulation parameters.
-  int Nx = 300; // Cell count (x-direction).
-  int Ny = 400; // Cell count (y-direction).
-  double Lx_l = -30.0*R0;
-  double Lx_u = 30.0*R0;
-  double Ly = 40.0*R0; // Domain size (y-direction).
-  double k0_elc = 1.0/de; // Closure parameter for electrons.
-  double k0_ion = 1.0/de; // Closure parameter for ions.
+  // simulation parameters.
+  int Nx = 300; // cell count (x-direction).
+  int Ny = 400; // cell count (y-direction).
+  double Lx = -30.0*R0; // domain size (x-direction).
+  double Ly = 40.0*R0; // domain size (y-direction).
+  double k0_elc = 1.0/de; // closure parameter for electrons.
+  double k0_ion = 1.0/de; // closure parameter for ions.
   double cfl_frac = 0.9; // CFL coefficient.
 
-  double t_end = 250.0; // Final simulation time.
-  int num_frames = 40; // Number of output frames.
-  int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
-  int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
-  double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
-  int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
+  double t_end = 250.0; // final simulation time.
+  int num_frames = 40; // number of output frames.
+  int field_energy_calcs = INT_MAX; // number of times to calculate field energy.
+  int integrated_mom_calcs = INT_MAX; // number of times to calculate integrated moments.
+  double dt_failure_tol = 1.0e-4; // minimum allowable fraction of initial time-step.
+  int num_failures_max = 20; // maximum allowable number of consecutive small time-steps.
 
   printf("light speed [km/s] = %f\n", c/1.0e3);
   printf("dipole strength [nT] = %f\n", D/(R0*R0*R0)/1.0e-9);
@@ -129,7 +133,8 @@ create_ctx(void)
     .c = c,
     .epsilon0 = epsilon0,
     .R0 = R0,
-    .D = D,
+    .Dx = Dx,
+    .Dy = Dy,
     .rc = rc,
     .rho_in = rho_in,
     .vx_in = vx_in,
@@ -139,9 +144,9 @@ create_ctx(void)
     .Bx_in = Bx_in,
     .By_in = By_in,
     .Bz_in = Bz_in,
-    .mirdip_r_ramp1 = mirdip_r_ramp1,
-    .mirdip_r_ramp2 = mirdip_r_ramp2,
-    .mirdip_x_mirror = mirdip_x_mirror,
+    .r_ramp1 = r_ramp1,
+    .r_ramp2 = r_ramp2,
+    .x_mirror = x_mirror,
     .mi = mi,
     .mi_me = mi_me,
     .pi_pe = pi_pe,
@@ -179,6 +184,7 @@ evalPhiInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT phi,
   double xc = 0.0;
   double yc = 0.0;
 
+  // masks the region inside the planet
   if (((x-xc)*(x-xc) + (y-yc)*(y-yc)) < R0*R0)
     phi[0] = -1.0;
   else
@@ -194,8 +200,8 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double r = sqrt(x*x + y*y);
   double mi_me = app->mi_me;
 
-  double r_ramp1 = app->mirdip_r_ramp1;
-  double r_ramp2 = app->mirdip_r_ramp2;
+  double r_ramp1 = app->r_ramp1;
+  double r_ramp2 = app->r_ramp2;
 
   double rhoe = app->rho_in/(1 + mi_me);
   double vx_in = app->vx_in, vy_in = app->vy_in, vz_in = app->vz_in;
@@ -206,6 +212,7 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
 
   double pe = app->p_in/(1 + pi_pe);
 
+  // reduce solar wind speed near planet
   double s = (r - r_ramp1)/(r_ramp2 - r_ramp1);
   s = fmax(s, 0.0);
   s = fmin(s, 1.0);
@@ -214,19 +221,11 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double vy = vy_in*s;
   double vz = vz_in*s;
 
-  /* if ((x*x + y*y) < (R0*R0)) { */
-  /*   rhoe = 1.0e-10*rhoe; */
-  /*   vx = 0.0; */
-  /*   vy = 0.0; */
-  /*   vz = 0.0; */
-  /*   pe = 1.0e-10*pe; */
-  /* } */
-
-  // Set electron mass density.
+  // set electron mass density.
   fout[0] = rhoe;
-  // Set electron momentum density.
+  // set electron momentum density.
   fout[1] = rhoe*vx; fout[2] = rhoe*vy; fout[3] = rhoe*vz;
-  // Set electron pressure tensor.
+  // set electron pressure tensor.
   fout[4] = pe + rhoe*vx*vx; fout[5] = rhoe*vx*vy; fout[6] = rhoe*vx*vz;
   fout[7] = pe + rhoe*vy*vy; fout[8] = rhoe*vy*vz; fout[9] = pe + rhoe*vz*vz;
 }
@@ -241,8 +240,8 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double R0 = app->R0;
   double r = sqrt(x*x + y*y);
 
-  double r_ramp1 = app->mirdip_r_ramp1;
-  double r_ramp2 = app->mirdip_r_ramp2;
+  double r_ramp1 = app->r_ramp1;
+  double r_ramp2 = app->r_ramp2;
 
   double rhoi = app->rho_in - app->rho_in/(1 + mi_me);
   double vx_in = app->vx_in, vy_in = app->vy_in, vz_in = app->vz_in;
@@ -252,6 +251,7 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
 
   double pi = app->p_in - app->p_in/(1 + pi_pe);
 
+  // reduce solar wind speed near planet
   double s = (r - r_ramp1)/(r_ramp2 - r_ramp1);
   s = fmax(s, 0.0);
   s = fmin(s, 1.0);
@@ -260,19 +260,11 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double vy = vy_in*s;
   double vz = vz_in*s;
 
-  /* if ((x*x + y*y) < (R0*R0)) { */
-  /*   rhoi = 1.0e-10*rhoi; */
-  /*   vx = 0.0; */
-  /*   vy = 0.0; */
-  /*   vz = 0.0; */
-  /*   pi = 1.0e-10*pi; */
-  /* } */
-
-  // Set electron mass density.
+  // set ion mass density.
   fout[0] = rhoi;
-  // Set electron momentum density.
+  // set ion momentum density.
   fout[1] = rhoi*vx; fout[2] = rhoi*vy; fout[3] = rhoi*vz;
-  // Set electron pressure tensor.
+  // set ion pressure tensor.
   fout[4] = pi + rhoi*vx*vx; fout[5] = rhoi*vx*vy; fout[6] = rhoi*vx*vz;
   fout[7] = pi + rhoi*vy*vy; fout[8] = rhoi*vy*vz; fout[9] = pi + rhoi*vz*vz;
 }
@@ -283,67 +275,90 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double x = xn[0], y = xn[1];
   struct magnetosphere_ctx *app = ctx;
 
-  double D = app->D;
-  double x_mirror = app->mirdip_x_mirror;
+  double Dx = app->Dx;
+  double Dy = app->Dy;
+  double x_mirror = app->x_mirror;
   double rc = app->rc;
-  double r_ramp1 = app->mirdip_r_ramp1;
-  double r_ramp2 = app->mirdip_r_ramp2;
-
-  double Bx_in = app->Bx_in;
-  double By_in = app->By_in;
+  double r_ramp1 = app->r_ramp1;
+  double r_ramp2 = app->r_ramp2;
   
   double vx_in = app->vx_in;
   double vy_in = app->vy_in;
+  double vz_in = app->vz_in;
 
   double x0 = 2.0*x_mirror;
   
   double r = sqrt(x*x + y*y);
   double rm = sqrt((x - x0)*(x - x0) + y*y);
 
+  // total field without static dipole field
   double Bx = 0.0;
   double By = 0.0;
   double Bz = 0.0;
 
+  // total magnetic field
   double Bxt = 0.0;
   double Byt = 0.0;
+  double Bzt = 0.0;
+
+  // dipole field in x > x_mirror
+  double Bxt_p = 0.0;
+  double Byt_p = 0.0;
+  double Bzt_p = 0.0;
+
+  // mirror dipole in x > x_mirror
   double Bxt_m = 0.0;
   double Byt_m = 0.0;
+  double Bzt_m = 0.0;
 
+  // solar wind field
+  double Bx_in = app->Bx_in;
+  double By_in = app->By_in;
+  double Bz_in = app->Bz_in;
+
+  // static dipole field
   double Bxt_d = 0.0;
   double Byt_d = 0.0;
+  double Bzt_d = 0.0;
+
   if ((x >= x_mirror) && (x*x + y*y >= rc*rc)) {
-    Bxt = (2.0*x*D*x + 2.0*x*D*y - D*r*r)/(r*r*r*r);
-    Byt = (2.0*y*D*x + 2.0*y*D*y - D*r*r)/(r*r*r*r);
+    Bxt_p = (2.0*x*Dx*x + 2.0*x*Dy*y - Dx*r*r)/(r*r*r*r);
+    Byt_p = (2.0*y*Dx*x + 2.0*y*Dy*y - Dy*r*r)/(r*r*r*r);
   }
 
   if ((x >= x_mirror) && ((x - x0)*(x - x0) + y*y >= rc*rc)) {
-    Bxt_m = (-2.0*(x - x0)*D*(x - x0) + 2.0*(x - x0)*D*y + D*rm*rm)/(rm*rm*rm*rm);
-    Byt_m = (-2.0*y*D*(x - x0) + 2.0*y*D*y - D*rm*rm)/(rm*rm*rm*rm);
+    Bxt_m = (-2.0*(x - x0)*Dx*(x - x0) + 2.0*(x - x0)*Dy*y + Dx*rm*rm)/(rm*rm*rm*rm);
+    Byt_m = (-2.0*y*Dx*(x - x0) + 2.0*y*Dy*y - Dy*rm*rm)/(rm*rm*rm*rm);
   }
 
   if (x*x + y*y >= rc*rc) {
-    Bxt_d = (2.0*x*D*x + 2.0*x*D*y - D*r*r)/(r*r*r*r);
-    Byt_d = (2.0*y*D*x + 2.0*y*D*y - D*r*r)/(r*r*r*r);
-    Bx = Bxt + Bxt_m + Bx_in - Bxt_d;
-    By = Byt + Byt_m + By_in - Byt_d;
+    Bxt_d = (2.0*x*Dx*x + 2.0*x*Dy*y - Dx*r*r)/(r*r*r*r);
+    Byt_d = (2.0*y*Dx*x + 2.0*y*Dy*y - Dy*r*r)/(r*r*r*r);
+    Bxt = Bxt_p + Bxt_m + Bx_in;
+    Byt = Byt_p + Byt_m + By_in;
+    Bx = Bxt - Bxt_d;
+    By = Byt - Byt_d;
   }
 
+  // reduce solar wind speed near planet
   double s = (r - r_ramp1)/(r_ramp2 - r_ramp1);
   s = fmax(s, 0.0);
   s = fmin(s, 1.0);
 
   double vx = vx_in*s;
   double vy = vy_in*s;
+  double vz = vz_in*s;
 
-  double Ex = 0.0; // Total electric field (x-direction).
-  double Ey = 0.0; // Total electric field (y-direction).
-  double Ez = -vx*(Byt + Byt_m + By_in) + vy*(Bxt + Bxt_m + Bx_in); // Total electric field (z-direction).
+  // electric fields induced by total magnetic field and solar wind speed
+  double Ex = -vy*Bzt + vz*Byt; // total electric field (x-direction).
+  double Ey = -vx*Bzt + vz*Bxt; // total electric field (y-direction).
+  double Ez = -vx*Byt + vy*Bxt; // total electric field (z-direction).
 
-  // Set electric field.
+  // set electric field.
   fout[0] = Ex, fout[1] = Ey; fout[2] = Ez;
-  // Set magnetic field.
+  // set magnetic field.
   fout[3] = Bx, fout[4] = By; fout[5] = Bz;
-  // Set correction potentials.
+  // set correction potentials.
   fout[6] = 0.0; fout[7] = 0.0;
 }
 
@@ -353,24 +368,27 @@ evalExternalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RES
   double x = xn[0], y = xn[1];
   struct magnetosphere_ctx *app = ctx;
 
-  double D = app->D;
+  double Dx = app->Dx;
+  double Dy = app->Dy;
   double rc = app->rc;
   double r = sqrt(x*x + y*y);
 
+  // dipole field
   double Bx = 0.0;
   double By = 0.0;
-  double Bz = 0.0; // External magnetic field (z-direction).
+  double Bz = 0.0;
 
   if ((x*x + y*y) >= (rc*rc)) {
-    Bx = (2.0*x*D*x + 2.0*x*D*y - D*r*r)/(r*r*r*r);
-    By = (2.0*y*D*x + 2.0*y*D*y - D*r*r)/(r*r*r*r);
+    Bx = (2.0*x*Dx*x + 2.0*x*Dy*y - Dx*r*r)/(r*r*r*r);
+    By = (2.0*y*Dx*x + 2.0*y*Dy*y - Dy*r*r)/(r*r*r*r);
   }
-  // Set external electric field.
+  // set external electric field.
   fout[0] = 0.0; fout[1] = 0.0; fout[2] = 0.0;
-  // Set external magnetic field.
+  // set external magnetic field.
   fout[3] = Bx; fout[4] = By; fout[5] = Bz;
 }
 
+// electron solar wind inflow boundary condition
 void
 evalElcLowerBC(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
@@ -386,15 +404,16 @@ evalElcLowerBC(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* sk
 
   double pe = app->p_in/(1 + pi_pe);
 
-  // Set electron mass density.
+  // set electron mass density.
   ghost[0] = rhoe;
-  // Set electron momentum density.
+  // set electron momentum density.
   ghost[1] = rhoe*vx; ghost[2] = rhoe*vy; ghost[3] = rhoe*vz;
-  // Set electron pressure tensor.
+  // set electron pressure tensor.
   ghost[4] = pe + rhoe*vx*vx; ghost[5] = rhoe*vx*vy; ghost[6] = rhoe*vx*vz;
   ghost[7] = pe + rhoe*vy*vy; ghost[8] = rhoe*vy*vz; ghost[9] = pe + rhoe*vz*vz;
 }
 
+// ion solar wind inflow boundary condition
 void
 evalIonLowerBC(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
@@ -410,15 +429,16 @@ evalIonLowerBC(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* sk
 
   double pi = app->p_in - app->p_in/(1 + pi_pe);
 
-  // Set electron mass density.
+  // set ion mass density.
   ghost[0] = rhoi;
-  // Set electron momentum density.
+  // set ion momentum density.
   ghost[1] = rhoi*vx; ghost[2] = rhoi*vy; ghost[3] = rhoi*vz;
-  // Set electron pressure tensor.
+  // set ion pressure tensor.
   ghost[4] = pi + rhoi*vx*vx; ghost[5] = rhoi*vx*vy; ghost[6] = rhoi*vx*vz;
   ghost[7] = pi + rhoi*vy*vy; ghost[8] = rhoi*vy*vz; ghost[9] = pi + rhoi*vz*vz;
 }
 
+// field solar wind inflow boundary condition
 void
 evalFieldLowerBC(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
@@ -428,19 +448,22 @@ evalFieldLowerBC(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* 
 
   double Bx_in = app->Bx_in;
   double By_in = app->By_in;
+  double Bz_in = app->Bz_in;
 
-  double Ex = 0.0; // Total electric field (x-direction).
-  double Ey = 0.0; // Total electric field (y-direction).
-  double Ez = -vx*By_in + vy*Bx_in; // Total electric field (z-direction).
+  // electric fields induced by solar magnetic field and speed
+  double Ex_in = -vy*Bz_in + vz*By_in; // total electric field (x-direction).
+  double Ey_in = -vx*Bz_in + vz*Bx_in; // total electric field (y-direction).
+  double Ez_in = -vx*By_in + vy*Bx_in; // total electric field (z-direction).
 
-  // Set electric field.
-  ghost[0] = Ex, ghost[1] = Ey; ghost[2] = Ez;
-  // Set magnetic field.
-  ghost[3] = Bx_in, ghost[4] = By_in; ghost[5] = 0.0;
-  // Set correction potentials.
+  // set electric field.
+  ghost[0] = Ex_in, ghost[1] = Ey_in; ghost[2] = Ez_in;
+  // set magnetic field.
+  ghost[3] = Bx_in, ghost[4] = By_in; ghost[5] = Bz_in;
+  // set correction potentials.
   ghost[6] = skin[6]; ghost[7] = skin[7];
 }
 
+// electron boundary condition at planet surface
 static void
 evalInnerElc(const double *q, double *qphi, double *delta, void *ctx)
 {
@@ -452,18 +475,16 @@ evalInnerElc(const double *q, double *qphi, double *delta, void *ctx)
   double pi_pe = app->pi_pe;
   double pe = app->p_in/(1 + pi_pe);
 
+  // set electron mass density.
   qphi[0] = rhoe;
-  qphi[1] = 0.0;
-  qphi[2] = 0.0;
-  qphi[3] = 0.0;
-  qphi[4] = pe;
-  qphi[5] = 0.0;
-  qphi[6] = 0.0;
-  qphi[7] = pe;
-  qphi[8] = 0.0;
-  qphi[9] = pe;
+  // set electron momentum density.
+  qphi[1] = 0.0; qphi[2] = 0.0; qphi[3] = 0.0;
+  // set electron pressure tensor.
+  qphi[4] = pe; qphi[5] = 0.0; qphi[6] = 0.0;
+  qphi[7] = pe; qphi[8] = 0.0; qphi[9] = pe;
 }
 
+// ion boundary condition at planet surface
 static void
 evalInnerIon(const double *q, double *qphi, double *delta, void *ctx)
 {
@@ -475,16 +496,13 @@ evalInnerIon(const double *q, double *qphi, double *delta, void *ctx)
   double pi_pe = app->pi_pe;
   double pi = app->p_in - app->p_in/(1 + pi_pe);
 
+  // set ion mass density.
   qphi[0] = rhoi;
-  qphi[1] = 0.0;
-  qphi[2] = 0.0;
-  qphi[3] = 0.0;
-  qphi[4] = pi;
-  qphi[5] = 0.0;
-  qphi[6] = 0.0;
-  qphi[7] = pi;
-  qphi[8] = 0.0;
-  qphi[9] = pi;
+  // set ion momentum density.
+  qphi[1] = 0.0; qphi[2] = 0.0; qphi[3] = 0.0;
+  // set ion pressure tensor.
+  qphi[4] = pi; qphi[5] = 0.0; qphi[6] = 0.0;
+  qphi[7] = pi; qphi[8] = 0.0; qphi[9] = pi;
 }
 
 void
@@ -539,12 +557,15 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
+  // electron embedded surface
   struct gkyl_wv_embed_geo *embed_geo_elc = gkyl_wv_embed_geo_new(GKYL_EMBED_FUNC,
     evalPhiInit, evalInnerElc, &ctx);
 
+  // ion embedded surface
   struct gkyl_wv_embed_geo *embed_geo_ion = gkyl_wv_embed_geo_new(GKYL_EMBED_FUNC,
     evalPhiInit, evalInnerIon, &ctx); 
 
+  // field embedded surface
   struct gkyl_wv_embed_geo *embed_geo_fld = gkyl_wv_embed_geo_new(GKYL_EMBED_COPY_B,
     evalPhiInit, NULL, &ctx);
 
@@ -566,6 +587,7 @@ main(int argc, char **argv)
 
     .bcx = { GKYL_SPECIES_FUNC, GKYL_SPECIES_COPY },  
     .bcx_func = { evalElcLowerBC, NULL},
+    // bcy defaults to GKYL_SPECIES_COPY
   };
 
   struct gkyl_moment_species ion = {
@@ -580,6 +602,7 @@ main(int argc, char **argv)
 
     .bcx = { GKYL_SPECIES_FUNC, GKYL_SPECIES_COPY },  
     .bcx_func = { evalIonLowerBC, NULL},
+    // bcy defaults to GKYL_SPECIES_COPY
   };
 
   // Field.
@@ -598,6 +621,7 @@ main(int argc, char **argv)
 
     .bcx = { GKYL_FIELD_FUNC, GKYL_FIELD_COPY },  
     .bcx_func = { evalFieldLowerBC, NULL },
+    // bcy defaults to GKYL_FIELD_COPY
   };
 
   int nrank = 1; // Number of processes in simulation.
@@ -806,6 +830,7 @@ freeresources:
   // Free resources after simulation completion.
   gkyl_wv_eqn_release(elc_ten_moment);
   gkyl_wv_eqn_release(ion_ten_moment);
+  // Free all embedded geometry structures
   gkyl_wv_embed_geo_release(embed_geo_elc);
   gkyl_wv_embed_geo_release(embed_geo_ion);
   gkyl_wv_embed_geo_release(embed_geo_fld);
