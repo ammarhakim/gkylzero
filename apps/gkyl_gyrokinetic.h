@@ -442,6 +442,7 @@ struct gkyl_gyrokinetic_stat {
   double species_react_mom_tm; // total time to compute various moments needed in reactions 
   double species_react_tm; // total time for reactions updaters
   double species_src_tm; // Time to accumulate species source onto RHS.
+  double species_omega_cfl_tm; // time spent in all-reduce for omega-cfl
 
   double neut_species_collisionless_tm; // Time to compute neutral species collisionless RHS.
   double neut_species_lte_tm; // total time for neutral species LTE (local thermodynamic equilibrium) projection updater
@@ -452,6 +453,7 @@ struct gkyl_gyrokinetic_stat {
   double neut_species_react_mom_tm; // total time to compute various moments needed in neutral reactions
   double neut_species_react_tm; // total time for neutral reactions updaters
   double neut_species_src_tm; // Time to accumulate neutral species source onto RHS.
+  double neut_species_omega_cfl_tm; // time spent in all-reduce for omega-cfl for neutrals
 
   double time_rate_diags_tm; // Time spent on time rate of change diagnostics.
   double fdot_tm; // Time spent on computing \dot{f} diagnostics.
@@ -480,37 +482,41 @@ struct gkyl_gyrokinetic_stat {
   double pos_shift_sum_tm;
   double time_stepper_sum_tm;
 
+  double species_io_tm; // Time to write the species distribution.
+  double species_diag_calc_tm; // Time to compute species diagnostics.
+  double species_diag_io_tm; // Time to write species diagnostics.
+
+  double neut_species_io_tm; // Time to write the neutral species distribution.
+  double neut_species_diag_calc_tm; // Time to compute neutral species diagnostics.
+  double neut_species_diag_io_tm; // Time to write neutral species diagnostics.
+
+  double field_io_tm; // Time to write the fields.
+  double field_diag_calc_tm; // Time to compute field diagnostics.
+  double field_diag_io_tm; // Time to write field diagnostics.
+
+  double app_io_tm; // Time to write common diagnostics.
+  double io_tm; // Time to write common diagnostics.
+
   long n_iter_corr[GKYL_MAX_SPECIES]; // total number of iterations used to correct species LTE projection
   long num_corr[GKYL_MAX_SPECIES]; // total number of times correction updater for species LTE projection is called
   long neut_n_iter_corr[GKYL_MAX_SPECIES]; // total number of iterations used to correct neutral species LTE projection
   long neut_num_corr[GKYL_MAX_SPECIES]; // total number of times correction updater for neutral species LTE projection is called
 
   long n_species_omega_cfl; // number of times CFL-omega all-reduce is called
-  double species_omega_cfl_tm; // time spent in all-reduce for omega-cfl
   long n_mom; // total number of calls to moment updater routines
   long n_diag; // total number of calls to diagnostics
-  double diag_tm; // total time to compute diagnostics
   long n_io; // number of calls to IO
-  double io_tm; // time to perform IO
   long n_diag_io; // number of calls to IO for diagnostics
-  double diag_io_tm; // time to perform IO for diagnostics
 
   long n_neut_species_omega_cfl; // number of times CFL-omega all-reduce is called for neutrals
-  double neut_species_omega_cfl_tm; // time spent in all-reduce for omega-cfl for neutrals
   long n_neut_mom; // total number of calls to neutrals moment updater routines
   long n_neut_diag; // total number of calls to diagnostics for neutral species
-  double neut_diag_tm; // total time to compute diagnostics for neutral species
   long n_neut_io; // number of calls to IO for neutral species
-  double neut_io_tm; // time to perform IO for neutral species
   long n_neut_diag_io; // number of calls to IO for neutral species diagnostics
-  double neut_diag_io_tm; // time to perform IO for neutral species diagnostics
 
   long n_field_diag; // total number of calls to diagnostics for field
-  double field_diag_tm; // total time to compute diagnostics for field 
   long n_field_io; // number of calls to IO for field
-  double field_io_tm; // time to perform IO for field
   long n_field_diag_io; // number of calls to IO for field diagnostics
-  double field_diag_io_tm; // time to perform IO for field diagnostics
 };
 
 // Object representing gk app

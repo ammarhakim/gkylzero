@@ -680,6 +680,7 @@ gk_field_project_init(struct gkyl_gyrokinetic_app *app)
 void
 gk_field_calc_energy(gkyl_gyrokinetic_app *app, double tm, const struct gk_field *field)
 {
+  struct timespec wst = gkyl_wall_clock();
   gkyl_array_integrate_advance(field->calc_em_energy, field->phi_smooth, 
     1.0, field->es_energy_fac, &app->local, &app->local, field->em_energy_red);
 
@@ -720,6 +721,7 @@ gk_field_calc_energy(gkyl_gyrokinetic_app *app, double tm, const struct gk_field
 
     gkyl_dynvec_append(field->integ_energy_dot, tm, energy_dot_global);
   }
+  app->stat.field_diag_calc_tm += gkyl_time_diff_now_sec(wst);
 }
 
 // release resources for field

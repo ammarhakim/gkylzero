@@ -1639,31 +1639,35 @@ gkyl_gyrokinetic_multib_app_stat(gkyl_gyrokinetic_multib_app* app)
   app->stat.field_phi_solve_tm = 0.0;
 
   app->stat.species_bc_tm = 0.0;
+  app->stat.neut_species_bc_tm = 0.0;
+
+  app->stat.species_io_tm = 0.0;
+  app->stat.species_diag_calc_tm = 0.0;
+  app->stat.species_diag_io_tm = 0.0;
+
+  app->stat.neut_species_io_tm = 0.0;
+  app->stat.neut_species_diag_calc_tm = 0.0;
+  app->stat.neut_species_diag_io_tm = 0.0;
+
+  app->stat.field_io_tm = 0.0;
+  app->stat.field_diag_calc_tm = 0.0;
+  app->stat.field_diag_io_tm = 0.0;
+
   app->stat.n_species_omega_cfl = 0;
   app->stat.n_mom = 0; 
   app->stat.n_diag = 0;
-  app->stat.diag_tm = 0.0;
   app->stat.n_io = 0;
-  app->stat.io_tm = 0.0;
   app->stat.n_diag_io = 0;
-  app->stat.diag_io_tm = 0.0;
 
-  app->stat.neut_species_bc_tm = 0.0;
   app->stat.n_neut_species_omega_cfl = 0;
   app->stat.n_neut_mom = 0; 
   app->stat.n_neut_diag = 0;
-  app->stat.neut_diag_tm = 0.0;
   app->stat.n_neut_io = 0;
-  app->stat.neut_io_tm = 0.0;
   app->stat.n_neut_diag_io = 0;
-  app->stat.neut_diag_io_tm = 0.0;
 
   app->stat.n_field_diag = 0;
-  app->stat.field_diag_tm = 0.0;
   app->stat.n_field_io = 0;
-  app->stat.field_io_tm = 0.0;
   app->stat.n_field_diag_io = 0;
-  app->stat.field_diag_io_tm = 0.0;
 
   for (int i=0; i<app->num_species; ++i) {
     app->stat.n_iter_corr[i] = 0;
@@ -1690,34 +1694,37 @@ gkyl_gyrokinetic_multib_app_stat(gkyl_gyrokinetic_multib_app* app)
     app->stat.species_rad_tm += sb_stat.species_rad_tm;
     app->stat.species_react_mom_tm += sb_stat.species_react_mom_tm;
     app->stat.species_react_tm += sb_stat.species_react_tm;
+    app->stat.species_omega_cfl_tm += sb_stat.species_omega_cfl_tm;
 
     app->stat.neut_species_lte_tm += sb_stat.neut_species_lte_tm;
     app->stat.neut_species_coll_mom_tm += sb_stat.neut_species_coll_mom_tm;
     app->stat.neut_species_coll_tm += sb_stat.neut_species_coll_tm;
     app->stat.neut_species_react_mom_tm += sb_stat.neut_species_react_mom_tm;
     app->stat.neut_species_react_tm += sb_stat.neut_species_react_tm;
+    app->stat.neut_species_omega_cfl_tm += sb_stat.neut_species_omega_cfl_tm;
 
     app->stat.species_bc_tm += sb_stat.species_bc_tm;
+    app->stat.neut_species_bc_tm += sb_stat.neut_species_bc_tm;
+
+    app->stat.species_io_tm += sb_stat.species_io_tm;
+    app->stat.species_diag_calc_tm += sb_stat.species_diag_calc_tm;
+    app->stat.species_diag_io_tm += sb_stat.species_diag_io_tm;
+
+    app->stat.neut_species_io_tm += sb_stat.neut_species_io_tm;
+    app->stat.neut_species_diag_calc_tm += sb_stat.neut_species_diag_calc_tm;
+    app->stat.neut_species_diag_io_tm += sb_stat.neut_species_diag_io_tm;
+
     app->stat.n_species_omega_cfl += sb_stat.n_species_omega_cfl;
-    app->stat.species_omega_cfl_tm += sb_stat.species_omega_cfl_tm;
     app->stat.n_mom += sb_stat.n_mom;    
     app->stat.n_diag += sb_stat.n_diag;
-    app->stat.diag_tm += sb_stat.diag_tm;
     app->stat.n_io += sb_stat.n_io;
-    app->stat.io_tm += sb_stat.io_tm;
     app->stat.n_diag_io += sb_stat.n_diag_io;
-    app->stat.diag_io_tm += sb_stat.diag_io_tm;
 
-    app->stat.neut_species_bc_tm += sb_stat.neut_species_bc_tm;
     app->stat.n_neut_species_omega_cfl += sb_stat.n_neut_species_omega_cfl;
-    app->stat.neut_species_omega_cfl_tm += sb_stat.neut_species_omega_cfl_tm;
     app->stat.n_neut_mom += sb_stat.n_neut_mom;  
     app->stat.n_neut_diag += sb_stat.n_neut_diag;
-    app->stat.neut_diag_tm += sb_stat.neut_diag_tm;
     app->stat.n_neut_io += sb_stat.n_neut_io;
-    app->stat.neut_io_tm += sb_stat.neut_io_tm;
     app->stat.n_neut_diag_io += sb_stat.n_neut_diag_io;
-    app->stat.neut_diag_io_tm += sb_stat.neut_diag_io_tm;
 
     for (int i=0; i<app->num_species; ++i) {
       app->stat.n_iter_corr[i] += sbapp->stat.n_iter_corr[i];
@@ -1766,7 +1773,7 @@ gkyl_gyrokinetic_multib_app_write_dt(gkyl_gyrokinetic_multib_app* app)
     else {
       gkyl_dynvec_awrite(app->dts, fileNm);
     }
-    app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
+    app->stat.app_io_tm += gkyl_time_diff_now_sec(wtm);
     app->stat.n_diag_io += 1;
   }
   gkyl_dynvec_clear(app->dts);

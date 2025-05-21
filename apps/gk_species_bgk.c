@@ -221,25 +221,26 @@ gk_species_bgk_write_cross_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks
 
   if (gks->bgk.num_cross_collisions && gks->bgk.write_diagnostics) {
     // Compute self and cross BGK moments
+    struct timespec wst = gkyl_wall_clock();
     gk_species_bgk_moms(app, gks, &gks->bgk, gks->f);
     gk_species_bgk_cross_moms(app, gks, &gks->bgk, gks->f);
+    app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
 
     // Loop over number of cross collisions and write out cross moments for each cross collision
     for (int i=0; i<gks->bgk.num_cross_collisions; ++i) {
+      struct timespec wtm = gkyl_wall_clock();
       // Construct the file handles for cross moments
       const char *fmt_cross = "%s-%s_cross_moms_%d_%d.gkyl";
       int sz_cross = gkyl_calc_strlen(fmt_cross, app->name, gks->info.name, frame);
       char fileNm_cross[sz_cross+1]; // ensures no buffer overflow
       snprintf(fileNm_cross, sizeof fileNm_cross, fmt_cross, app->name, gks->info.name, i, frame);
 
-      if (app->use_gpu) {
+      if (app->use_gpu)
         gkyl_array_copy(gks->bgk.cross_moms_host[i], gks->bgk.cross_moms[i]);
-      }
 
-      struct timespec wtm = gkyl_wall_clock();
       gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
         gks->bgk.cross_moms_host[i], fileNm_cross);
-      app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
+      app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
       app->stat.n_diag_io += 1;    
     }
   }
