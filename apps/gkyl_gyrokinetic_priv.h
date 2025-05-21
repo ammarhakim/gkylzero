@@ -835,7 +835,14 @@ struct gk_neut_species {
 
   struct gkyl_array *g_ij, *gij; // Metric tensor and its conjugate.
   struct gkyl_array *hamil; // Specified hamiltonian function for canonical poisson bracket
-  struct gkyl_array *hamil_host; // Host side hamiltonian array for intial projection
+  struct gkyl_array *hamil_host; // Host side hamiltonian array for intial projection.
+  struct gkyl_array *h_ij; // Specified metric inverse for canonical poisson bracket
+  struct gkyl_array *h_ij_host; // Host side metric inverse array for intial projection
+  struct gkyl_array *h_ij_inv; // Specified metric inverse for canonical poisson bracket
+  struct gkyl_array *h_ij_inv_host; // Host side metric inverse array for intial projection
+  struct gkyl_array *det_h; // Specified metric determinant
+  struct gkyl_array *det_h_host; // Host side metric determinant
+  
   struct gkyl_array *alpha_surf; // array for surface phase space flux (v^i = v . e^i)
   struct gkyl_array *sgn_alpha_surf; // array for the sign of the surface phase space flux at quadrature points
                                      // utilized for numerical flux function

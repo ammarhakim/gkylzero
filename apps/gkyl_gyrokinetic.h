@@ -307,6 +307,23 @@ struct gkyl_gyrokinetic_neut_species {
   bool is_static; // Set to true if neutral species does not change in time.
 
   bool enforce_positivity; // Positivity enforcement via shift in f.
+
+  void *hamil_ctx; // context for hamiltonian function
+  // pointer to hamilonian function
+  void (*hamil)(double t, const double *xn, double *aout, void *ctx);
+
+  void *h_ij_ctx; // context for spatial metric function (covariant)
+  // pointer to metric (covariant components) function
+  void (*h_ij)(double t, const double *xn, double *aout, void *ctx);
+
+  void *h_ij_inv_ctx; // context for spatial metric function (contravariant)
+  // pointer to metric (contravaraint components) function
+  void (*h_ij_inv)(double t, const double *xn, double *aout, void *ctx);
+
+  void *det_h_ctx; // context for determinant of the spatial metric
+  // pointer to the determinant of the spatial metric
+  void (*det_h)(double t, const double *xn, double *aout, void *ctx);
+
   
   struct gkyl_gyrokinetic_ic_import init_from_file;
   

@@ -302,7 +302,7 @@ gk_neut_species_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_spec
     // the density (the 0th component).
     gkyl_dg_div_op_range(gkns->moms[m].mem_geo, app->basis, 
       0, gkns->moms[m].marr, 0, gkns->moms[m].marr, 0, 
-      app->gk_geom->jacobgeo, &app->local);      
+      gkns->det_h, &app->local);      
 
     if (app->use_gpu) {
       gkyl_array_copy(gkns->moms[m].marr_host, gkns->moms[m].marr);
@@ -1031,42 +1031,106 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     s->f_host = mkarr(false, s->basis.num_basis, s->local_ext.volume);
   }
 
-  if (app->cdim < 3) {
-    // Reorganize g_ij and gij as done in calculation of Hamiltonian to
-    // compute momentum and temperature.
-    s->gij = mkarr(app->use_gpu, app->gk_geom->gij_neut->ncomp, app->gk_geom->gij_neut->size);
-    s->g_ij = mkarr(app->use_gpu, app->gk_geom->g_ij_neut->ncomp, app->gk_geom->g_ij_neut->size);
+  /* if (app->cdim < 3) { */
+  /*   // Reorganize g_ij and gij as done in calculation of Hamiltonian to */
+  /*   // compute momentum and temperature. */
+  /*   s->gij = mkarr(app->use_gpu, app->gk_geom->gij_neut->ncomp, app->gk_geom->gij_neut->size); */
+  /*   s->g_ij = mkarr(app->use_gpu, app->gk_geom->g_ij_neut->ncomp, app->gk_geom->g_ij_neut->size); */
 
-    // Reorganize the metric tensor so ignorable coordinates are last.
-    int metric_reorg_idxs_1x[] = {5, 2, 4, 0, 1, 3};
-    int metric_reorg_idxs_2x[] = {0, 2, 1, 5, 4, 3};
-    int *metric_reorg_idxs = app->cdim == 1? metric_reorg_idxs_1x : metric_reorg_idxs_2x;
-    int num_basis_conf = app->basis.num_basis;
-    struct gkyl_array *tmp_arr = mkarr(app->use_gpu, num_basis_conf, app->gk_geom->gij_neut->size);
-    for (int i=0; i<6; i++) {
-      gkyl_array_move_comp(s->gij, i*num_basis_conf, app->gk_geom->gij_neut, metric_reorg_idxs[i]*num_basis_conf, tmp_arr);
-      gkyl_array_move_comp(s->g_ij, i*num_basis_conf, app->gk_geom->g_ij_neut, metric_reorg_idxs[i]*num_basis_conf, tmp_arr);
-    }
-    gkyl_array_release(tmp_arr);
-  }
-  else {
-    s->gij = gkyl_array_acquire(app->gk_geom->gij);
-    s->g_ij = gkyl_array_acquire(app->gk_geom->g_ij);
-  }
+  /*   // Reorganize the metric tensor so ignorable coordinates are last. */
+  /*   int metric_reorg_idxs_1x[] = {5, 2, 4, 0, 1, 3}; */
+  /*   int metric_reorg_idxs_2x[] = {0, 2, 1, 5, 4, 3}; */
+  /*   int *metric_reorg_idxs = app->cdim == 1? metric_reorg_idxs_1x : metric_reorg_idxs_2x; */
+  /*   int num_basis_conf = app->basis.num_basis; */
+  /*   struct gkyl_array *tmp_arr = mkarr(app->use_gpu, num_basis_conf, app->gk_geom->gij_neut->size); */
+  /*   for (int i=0; i<6; i++) { */
+  /*     gkyl_array_move_comp(s->gij, i*num_basis_conf, app->gk_geom->gij_neut, metric_reorg_idxs[i]*num_basis_conf, tmp_arr); */
+  /*     gkyl_array_move_comp(s->g_ij, i*num_basis_conf, app->gk_geom->g_ij_neut, metric_reorg_idxs[i]*num_basis_conf, tmp_arr); */
+  /*   } */
+  /*   gkyl_array_release(tmp_arr); */
+  /* } */
+  /* else { */
+  /*   s->gij = gkyl_array_acquire(app->gk_geom->gij); */
+  /*   s->g_ij = gkyl_array_acquire(app->gk_geom->g_ij); */
+  /* } */
 
   // Allocate array for the Hamiltonian.
   s->hamil = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
-    
-  // Call updater to evaluate hamiltonian
-  struct gkyl_dg_calc_gk_neut_hamil* hamil_calc = gkyl_dg_calc_gk_neut_hamil_new(&s->grid, &s->basis, app->cdim, app->use_gpu);
-  gkyl_dg_calc_gk_neut_hamil_calc(hamil_calc, &app->local, &s->local, s->gij, s->hamil);
-  gkyl_dg_calc_gk_neut_hamil_release(hamil_calc);
-    
   s->hamil_host = s->hamil;
-  if (app->use_gpu) {
+  if (app->use_gpu){
     s->hamil_host = mkarr(false, s->basis.num_basis, s->local_ext.volume);
-    gkyl_array_copy(s->hamil_host, s->hamil);
   }
+  
+  // Allocate arrays for specified metric inverse
+  s->h_ij = mkarr(app->use_gpu, app->basis.num_basis*vdim*(vdim+1)/2, app->local_ext.volume);
+  s->h_ij_host = s->h_ij;
+  if (app->use_gpu){
+    s->h_ij_host = mkarr(false, app->basis.num_basis*vdim*(vdim+1)/2, app->local_ext.volume);
+  }
+  
+  // Allocate arrays for specified metric inverse
+  s->h_ij_inv = mkarr(app->use_gpu, app->basis.num_basis*vdim*(vdim+1)/2, app->local_ext.volume);
+  s->h_ij_inv_host = s->h_ij_inv;
+  if (app->use_gpu){
+    s->h_ij_inv_host = mkarr(false, app->basis.num_basis*vdim*(vdim+1)/2, app->local_ext.volume);
+  }
+  
+  // Allocate arrays for specified metric determinant
+  s->det_h = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  s->det_h_host = s->det_h;
+  if (app->use_gpu){
+    s->det_h_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+  }
+  
+  // Evaluate specified hamiltonian function at nodes to insure continuity of hamiltoniam
+  struct gkyl_eval_on_nodes* hamil_proj = gkyl_eval_on_nodes_new(&s->grid, &s->basis, 1, s->info.hamil, s->info.hamil_ctx);
+  gkyl_eval_on_nodes_advance(hamil_proj, 0.0, &s->local_ext, s->hamil_host);
+  if (app->use_gpu){
+    gkyl_array_copy(s->hamil, s->hamil_host);
+  }
+  gkyl_eval_on_nodes_release(hamil_proj);
+  
+  // Evaluate specified metric function at nodes to insure continuity
+  struct gkyl_eval_on_nodes* h_ij_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis, vdim*(vdim+1)/2, s->info.h_ij, s->info.h_ij_ctx);
+  gkyl_eval_on_nodes_advance(h_ij_proj, 0.0, &app->local, s->h_ij_host);
+  if (app->use_gpu){
+    gkyl_array_copy(s->h_ij, s->h_ij_host);
+  }
+  gkyl_eval_on_nodes_release(h_ij_proj);
+  
+  // Evaluate specified inverse metric function at nodes to insure continuity of the inverse 
+  struct gkyl_eval_on_nodes* h_ij_inv_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis, vdim*(vdim+1)/2, s->info.h_ij_inv, s->info.h_ij_inv_ctx);
+  gkyl_eval_on_nodes_advance(h_ij_inv_proj, 0.0, &app->local, s->h_ij_inv_host);
+  if (app->use_gpu){
+    gkyl_array_copy(s->h_ij_inv, s->h_ij_inv_host);
+  }
+  gkyl_eval_on_nodes_release(h_ij_inv_proj);
+  
+  // Evaluate specified determinant metric function at nodes to insure continuity of the determinant
+  struct gkyl_eval_on_nodes* det_h_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis, 1, s->info.det_h, s->info.det_h_ctx);
+  gkyl_eval_on_nodes_advance(det_h_proj, 0.0, &app->local, s->det_h_host);
+  if (app->use_gpu){
+    gkyl_array_copy(s->det_h, s->det_h_host);
+  }
+  gkyl_eval_on_nodes_release(det_h_proj);
+
+  // Write out stuff
+  gkyl_grid_sub_array_write(&s->grid, &s->local, 0, s->hamil_host, "check_gk_neut_hamil.gkyl");
+  gkyl_grid_sub_array_write(&app->grid, &app->local, 0, s->h_ij_host, "check_gk_neut_h_ij.gkyl");
+  gkyl_grid_sub_array_write(&app->grid, &app->local, 0, s->h_ij_inv_host, "check_gk_neut_h_ij_inv.gkyl");
+  gkyl_grid_sub_array_write(&app->grid, &app->local, 0, s->det_h_host, "check_gk_neut_det_h.gkyl"); 
+  
+  // Call updater to evaluate hamiltonian
+  /* struct gkyl_dg_calc_gk_neut_hamil* hamil_calc = gkyl_dg_calc_gk_neut_hamil_new(&s->grid, &s->basis, app->cdim, app->use_gpu); */
+  /* gkyl_dg_calc_gk_neut_hamil_calc(hamil_calc, &app->local, &s->local, s->gij, s->hamil); */
+  /* gkyl_dg_calc_gk_neut_hamil_release(hamil_calc); */
+    
+  /* s->hamil_host = s->hamil; */
+  /* if (app->use_gpu) { */
+  /*   s->hamil_host = mkarr(false, s->basis.num_basis, s->local_ext.volume); */
+  /*   gkyl_array_copy(s->hamil_host, s->hamil); */
+  /* } */
+  /* gkyl_grid_sub_array_write(&s->grid, &s->local, 0, s->hamil, "check_gk_neut_hamil.gkyl"); */
 
   // Need to figure out size of alpha_surf and sgn_alpha_surf by finding size of surface basis set 
   struct gkyl_basis surf_basis, surf_quad_basis;
@@ -1083,6 +1147,7 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   s->alpha_surf = mkarr(app->use_gpu, alpha_surf_sz, s->local_ext.volume);
   s->sgn_alpha_surf = mkarr(app->use_gpu, sgn_alpha_surf_sz, s->local_ext.volume);
   s->const_sgn_alpha = mk_int_arr(app->use_gpu, (2*cdim), s->local_ext.volume);
+  //gkyl_grid_sub_array_write(&s->grid, &s->local, 0, s->hamil, "check_gk_neut_alpha_surf.gkyl");
 
   // Pre-compute alpha_surf, sgn_alpha_surf, const_sgn_alpha, and cot_vec since they are time-independent
   struct gkyl_dg_calc_canonical_pb_vars *calc_vars = gkyl_dg_calc_canonical_pb_vars_new(&s->grid, 
@@ -1090,6 +1155,8 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   gkyl_dg_calc_canonical_pb_vars_alpha_surf(calc_vars, &app->local, &s->local, &s->local_ext, s->hamil,
     s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
   gkyl_dg_calc_canonical_pb_vars_release(calc_vars);
+
+  //gkyl_grid_sub_array_write(&s->grid, &s->local, 0, s->alpha_surf, "check_gk_neut_alpha_surf.gkyl");
 
   struct gkyl_dg_canonical_pb_auxfields aux_inp = {.hamil = s->hamil, .alpha_surf = s->alpha_surf, 
     .sgn_alpha_surf = s->sgn_alpha_surf, .const_sgn_alpha = s->const_sgn_alpha};

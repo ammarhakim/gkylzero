@@ -201,6 +201,12 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     }
     gkyl_eval_on_nodes_release(det_h_proj);
 
+    // Write out stuff
+    gkyl_grid_sub_array_write(&s->grid, &s->local, 0, s->hamil, "check_can_pb_hamil.gkyl");
+    gkyl_grid_sub_array_write(&app->grid, &app->local, 0, s->h_ij, "check_can_pb_h_ij.gkyl");
+    gkyl_grid_sub_array_write(&app->grid, &app->local, 0, s->h_ij_inv, "check_can_pb_h_ij_inv.gkyl");
+    gkyl_grid_sub_array_write(&app->grid, &app->local, 0, s->det_h, "check_can_pb_det_h.gkyl");
+
     // Need to figure out size of alpha_surf and sgn_alpha_surf by finding size of surface basis set 
     struct gkyl_basis surf_basis, surf_quad_basis;
     if (app->basis.b_type == GKYL_BASIS_MODAL_HYBRID) {

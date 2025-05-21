@@ -19,9 +19,9 @@ gk_neut_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_specie
     .conf_range_ext = &app->local_ext,
     .vel_range = &s->local_vel,
     .phase_range = &s->local,
-    .h_ij = s->g_ij,
-    .h_ij_inv = s->gij,
-    .det_h = app->gk_geom->jacobgeo,
+    .h_ij = s->h_ij,
+    .h_ij_inv = s->h_ij_inv,
+    .det_h = s->det_h,
     .hamil = s->hamil,
     .model_id = s->model_id,
     .use_gpu = app->use_gpu,
@@ -43,9 +43,9 @@ gk_neut_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_specie
       .conf_range_ext = &app->local_ext,
       .vel_range = &s->local_vel,
       .phase_range = &s->local,
-      .h_ij = s->g_ij,
-      .h_ij_inv = s->gij,
-      .det_h = app->gk_geom->jacobgeo,
+      .h_ij = s->h_ij,
+      .h_ij_inv = s->h_ij_inv,
+      .det_h = s->det_h,
       .hamil = s->hamil,
       .model_id = s->model_id,
       .use_gpu = app->use_gpu,
@@ -108,7 +108,7 @@ gk_neut_species_lte(gkyl_gyrokinetic_app *app, const struct gk_neut_species *spe
   // divide out the Jacobian from the density
   gkyl_dg_div_op_range(lte->moms.mem_geo, app->basis, 
     0, lte->moms.marr, 0, lte->moms.marr, 0, 
-    app->gk_geom->jacobgeo, &app->local);  
+    species->det_h, &app->local);  
 
   gk_neut_species_lte_from_moms(app, species, lte, lte->moms.marr);
 }

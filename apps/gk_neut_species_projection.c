@@ -46,9 +46,9 @@ gk_neut_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
       .vel_range = &s->local_vel,
       .vel_map = s->vel_map,
       .phase_range = &s->local,
-      .h_ij = s->g_ij,
-      .h_ij_inv = s->gij,
-      .det_h = app->gk_geom->jacobgeo,
+      .h_ij = s->h_ij,
+      .h_ij_inv = s->h_ij_inv,
+      .det_h = s->det_h,
       .hamil = s->hamil,
       .model_id = s->model_id,
       .use_gpu = app->use_gpu,
@@ -68,9 +68,9 @@ gk_neut_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
         .vel_range = &s->local_vel,
         .vel_map = s->vel_map,
         .phase_range = &s->local,
-        .h_ij = s->g_ij,
-        .h_ij_inv = s->gij,
-        .det_h = app->gk_geom->jacobgeo,
+        .h_ij = s->h_ij,
+        .h_ij_inv = s->h_ij_inv,
+        .det_h = s->det_h,
         .hamil = s->hamil,	
         .model_id = s->model_id,
         .use_gpu = app->use_gpu,
@@ -112,7 +112,7 @@ gk_neut_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_neut_
 
     // Multiply density by the conf-space jacobian.
     gkyl_dg_mul_op_range(app->basis, 0, proj->prim_moms, 
-      0, app->gk_geom->jacobgeo, 0, proj->prim_moms, &app->local);
+      0, s->det_h, 0, proj->prim_moms, &app->local);
 
     // Project the Maxwellian distribution function.
     // Projection routine also corrects the density of the projected distribution function.
