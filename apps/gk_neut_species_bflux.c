@@ -129,6 +129,7 @@ void
 gk_neut_species_bflux_rhs_calc(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
   const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
+  struct timespec wst = gkyl_wall_clock();
   for (int b=0; b<bflux->num_boundaries; ++b) {
     // Ghost cells of the rhs array are filled with the bflux. This is overwritten
     // by the boundary conditions, but it is used before that happens.
@@ -136,6 +137,7 @@ gk_neut_species_bflux_rhs_calc(gkyl_gyrokinetic_app *app, struct gk_boundary_flu
     gkyl_boundary_flux_advance(bflux->flux_slvr[b], fin, rhs);
     gkyl_array_copy_range_to_range(bflux->flux[b], rhs, &bflux->boundaries_phase_ghost_nosub[b], bflux->boundaries_phase_ghost[b]);
   }
+  app->stat.neut_species_bflux_calc_tm += gkyl_time_diff_now_sec(wst);
 }
 
 static void
@@ -155,6 +157,7 @@ static void
 gk_neut_species_bflux_calc_moms_dynamic(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
   const struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
 {
+  struct timespec wst = gkyl_wall_clock();
   // Compute moments of boundary fluxes.
   for (int b=0; b<bflux->num_boundaries; ++b) {
     for (int m=0; m<bflux->num_calc_moms; m++) {
@@ -163,6 +166,7 @@ gk_neut_species_bflux_calc_moms_dynamic(gkyl_gyrokinetic_app *app, struct gk_bou
       gkyl_array_copy_range(bflux_moms[b*bflux->num_calc_moms+m], bflux->moms_op[m].marr, bflux->boundaries_conf_ghost[b]);
     }
   }
+  app->stat.neut_species_bflux_moms_tm += gkyl_time_diff_now_sec(wst);
 }
 
 static void

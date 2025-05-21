@@ -37,6 +37,7 @@ void
 gklbo_cross_nu_calc_normNu(gkyl_gyrokinetic_app *app, const struct gk_species *s,
   struct gk_lbo_collisions *lbo)
 {
+  struct timespec wst = gkyl_wall_clock();
   for (int i=0; i<lbo->num_cross_collisions; ++i) {
     // Calculate nu_sr(x,t).
     gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, lbo->vtsq, lbo->vtsq_min,
@@ -53,6 +54,7 @@ gklbo_cross_nu_calc_normNu(gkyl_gyrokinetic_app *app, const struct gk_species *s
     for (int d=0; d<2; d++)
       gkyl_dg_mul_op(app->basis, d, lbo->boundary_corrections_buff, d, lbo->boundary_corrections, 0, lbo->cross_nu[i]);
   }
+  app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
 }
 
 void
@@ -325,7 +327,6 @@ gk_species_lbo_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
   // Compute primitive moments for cross-species collisions.
   struct timespec wst = gkyl_wall_clock();
   
-  wst = gkyl_wall_clock();  
   for (int i=0; i<lbo->num_cross_collisions; ++i) {
     // Calculate greene_num = m_r * nu_rs * n_r.
     lbo->cross_greene_num(app, species, lbo, i);

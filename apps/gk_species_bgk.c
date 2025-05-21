@@ -144,7 +144,6 @@ gk_species_bgk_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
 }
 
-// computes moments from cross-species collisions
 void
 gk_species_bgk_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   struct gk_bgk_collisions *bgk, const struct gkyl_array *fin)
@@ -171,7 +170,6 @@ gk_species_bgk_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
 }
 
-// updates the collision terms in the rhs
 void
 gk_species_bgk_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, struct gkyl_array *rhs)

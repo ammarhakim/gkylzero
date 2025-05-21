@@ -291,7 +291,7 @@ gk_species_source_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
   if (src->source_id) {
     gkyl_array_accumulate(rhs, 1.0, src->source);
   }
-  app->stat.src_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.species_src_tm += gkyl_time_diff_now_sec(wst);
 }
 
 void

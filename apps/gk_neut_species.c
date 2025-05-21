@@ -28,8 +28,10 @@ gk_neut_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_species *s
   gkyl_array_clear(rhs, 0.0);
   
   // Collisionless terms.
+  struct timespec wst = gkyl_wall_clock();
   gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
     fin, species->cflrate, rhs);
+  app->stat.neut_species_collisionless_tm += gkyl_time_diff_now_sec(wst);
 
   if (species->bgk.collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
     gk_neut_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
@@ -1289,19 +1291,6 @@ gk_neut_species_n_iter_corr(gkyl_gyrokinetic_app *app)
   for (int i=0; i<app->num_neut_species; ++i) {
     app->stat.neut_num_corr[i] = app->neut_species[i].lte.num_corr;
     app->stat.neut_n_iter_corr[i] = app->neut_species[i].lte.n_iter;
-  }
-}
-
-void
-gk_neut_species_tm(gkyl_gyrokinetic_app *app)
-{
-  app->stat.neut_species_rhs_tm = 0.0;
-  for (int i=0; i<app->num_neut_species; ++i) {
-    if (!app->neut_species[i].info.is_static) {
-      struct gkyl_dg_updater_vlasov_tm tm =
-        gkyl_dg_updater_vlasov_get_tm(app->neut_species[i].slvr);
-      app->stat.neut_species_rhs_tm += tm.vlasov_tm;
-    }
   }
 }
 

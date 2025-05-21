@@ -21,16 +21,20 @@ void
 gk_species_gyroaverage_none(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gkyl_array *field_in, struct gkyl_array *field_gyroavg)
 {
+  struct timespec wst = gkyl_wall_clock();
   // Don't perform gyroaveraging, just copy over.
   gkyl_array_set(field_gyroavg, 1.0, field_in);
+  app->stat.species_gyroavg_tm += gkyl_time_diff_now_sec(wst);
 }
 
 void
 gk_species_gyroaverage(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gkyl_array *field_in, struct gkyl_array *field_gyroavg)
 {
+  struct timespec wst = gkyl_wall_clock();
   // Gyroaverage input field.
   gkyl_deflated_fem_poisson_advance(species->flr_op, field_in, field_in, field_gyroavg);
+  app->stat.species_gyroavg_tm += gkyl_time_diff_now_sec(wst);
 }
 
 // Begin static function definitions.
@@ -75,20 +79,22 @@ static void
 gk_species_collisionless_rhs_included(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
+  struct timespec wst = gkyl_wall_clock();
+
   // Compute the surface expansion of the phase space flux
   // Note: Each cell stores the *lower* surface expansions of the 
   // phase space flux, so local_ext range needed to index the output
   // values of alpha_surf even though we only loop over local ranges
   // to avoid evaluating quantities such as geometry in ghost cells
   // where they are not defined.
-  struct timespec wst = gkyl_wall_clock();
   gkyl_dg_calc_gyrokinetic_vars_alpha_surf(species->calc_gk_vars, 
     &app->local, &species->local, &species->local_ext, 
     species->gyro_phi, species->alpha_surf, species->sgn_alpha_surf, species->const_sgn_alpha);
-  app->stat.species_alpha_tm += gkyl_time_diff_now_sec(wst);
 
   gkyl_dg_updater_gyrokinetic_advance(species->slvr, &species->local, 
     fin, species->cflrate, rhs);
+
+  app->stat.species_collisionless_tm += gkyl_time_diff_now_sec(wst);
 }
 
 static void
@@ -124,8 +130,10 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   }
   
   if (species->has_diffusion) {
+    struct timespec wst = gkyl_wall_clock();
     gkyl_dg_updater_diffusion_gyrokinetic_advance(species->diff_slvr, &species->local, 
       species->diffD, app->gk_geom->jacobgeo_inv, fin, species->cflrate, rhs);
+    app->stat.species_diffusion_tm += gkyl_time_diff_now_sec(wst);
   }
 
   if (species->rad.radiation_id == GKYL_GK_RADIATION) {
@@ -1910,19 +1918,6 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
 }
 
 void
-gk_species_coll_tm(gkyl_gyrokinetic_app *app)
-{
-  for (int i=0; i<app->num_species; ++i) {
-    if (app->species[i].lbo.collision_id == GKYL_LBO_COLLISIONS) {
-      struct gkyl_dg_updater_lbo_gyrokinetic_tm tm =
-        gkyl_dg_updater_lbo_gyrokinetic_get_tm(app->species[i].lbo.coll_slvr);
-      app->stat.species_lbo_coll_diff_tm[i] = tm.diff_tm;
-      app->stat.species_lbo_coll_drag_tm[i] = tm.drag_tm;
-    }
-  }
-}
-
-void
 gk_species_n_iter_corr(gkyl_gyrokinetic_app *app)
 {
   for (int i=0; i<app->num_species; ++i) {
@@ -1934,12 +1929,12 @@ gk_species_n_iter_corr(gkyl_gyrokinetic_app *app)
 void
 gk_species_tm(gkyl_gyrokinetic_app *app)
 {
-  app->stat.species_rhs_tm = 0.0;
+  app->stat.species_collisionless_tm = 0.0;
   for (int i=0; i<app->num_species; ++i) {
     if (!app->species[i].info.is_static) {
       struct gkyl_dg_updater_gyrokinetic_tm tm =
         gkyl_dg_updater_gyrokinetic_get_tm(app->species[i].slvr);
-      app->stat.species_rhs_tm += tm.gyrokinetic_tm;
+      app->stat.species_collisionless_tm += tm.gyrokinetic_tm;
     }
   }
 }

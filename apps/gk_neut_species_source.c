@@ -66,9 +66,11 @@ void
 gk_neut_species_source_rhs(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
   struct gk_source *src, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
+  struct timespec wst = gkyl_wall_clock();
   if (src->source_id) {
     gkyl_array_accumulate(rhs, 1.0, src->source);
   }
+  app->stat.neut_species_src_tm += gkyl_time_diff_now_sec(wst);
 }
 
 // Write functions

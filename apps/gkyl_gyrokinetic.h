@@ -423,31 +423,36 @@ struct gkyl_gyrokinetic_stat {
     
   double total_tm; // time for simulation (not including ICs)
   double init_species_tm; // time to initialize all species
-  double species_rhs_tm; // time to compute species collisionless RHS
-  double species_alpha_tm; // time to compute species alpha
   double init_neut_species_tm; // time to initialize all neutral species
-  double neut_species_rhs_tm; // time to compute neutral species collisionless RHS  
   double field_rhs_tm; // time to compute field RHS
   double accumulate_tm; // Time to accumulate rhs and do algebraic operations
-  double src_tm; // Time to accumulate source onto RHS
-  double fe_accumulate_tm; // Time for forward euler
-  double fe_tm; // Time for forward euler
+  double fwd_euler_tm; // Time for forward euler
+  double fwd_euler_step_f_tm; // Time spent on fwd euler step_f.
+  double dfdt_dt_reduce_tm; // Time spent on fwd euler dt reduction.
 
+  double species_collisionless_tm; // Time to compute species collisionless RHS (alpha already computed).
+  double species_gyroavg_tm; // Time to compute species collisionless RHS.
   double species_lte_tm; // total time for species LTE (local thermodynamic equilibrium) projection updater
-  double species_lbo_coll_drag_tm[GKYL_MAX_SPECIES]; // time to compute LBO drag terms
-  double species_lbo_coll_diff_tm[GKYL_MAX_SPECIES]; // time to compute LBO diffusion terms
+  double species_bflux_calc_tm; // Time for species boundary flux calculation.
+  double species_bflux_moms_tm; // Time for species boundary flux moments.
   double species_coll_mom_tm; // time needed to compute various moments needed in collisions
   double species_coll_tm; // total time for collision updater (excluded moments)
+  double species_diffusion_tm; // Time to compute species diffusion term.
   double species_rad_mom_tm; // total time to compute various moments needed in radiation operator
   double species_rad_tm; // total time for radiation operator
   double species_react_mom_tm; // total time to compute various moments needed in reactions 
   double species_react_tm; // total time for reactions updaters
+  double species_src_tm; // Time to accumulate species source onto RHS.
 
+  double neut_species_collisionless_tm; // Time to compute neutral species collisionless RHS.
   double neut_species_lte_tm; // total time for neutral species LTE (local thermodynamic equilibrium) projection updater
-  double neut_species_coll_mom_tm; // time needed to compute various moments needed in neutral self-collisions
+  double neut_species_bflux_calc_tm; // Time for neutral species boundary flux calculation.
+  double neut_species_bflux_moms_tm; // Time for neutral species boundary flux moments.
   double neut_species_coll_tm; // total time for neutral self-collisions updater (excluded moments)
+  double neut_species_coll_mom_tm; // time needed to compute various moments needed in neutral self-collisions
   double neut_species_react_mom_tm; // total time to compute various moments needed in neutral reactions
   double neut_species_react_tm; // total time for neutral reactions updaters
+  double neut_species_src_tm; // Time to accumulate neutral species source onto RHS.
 
   long n_iter_corr[GKYL_MAX_SPECIES]; // total number of iterations used to correct species LTE projection
   long num_corr[GKYL_MAX_SPECIES]; // total number of times correction updater for species LTE projection is called

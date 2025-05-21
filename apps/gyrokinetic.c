@@ -1635,6 +1635,7 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
       &app->neut_species[i].src, fin_neut[i], fout_neut[i]);
   }
 
+  struct timespec wtm = gkyl_wall_clock();
   double dt_max_rel_diff = 0.01;
   // Check if dtmin is slightly smaller than dt. Use dt if it is
   // (avoids retaking steps if dt changes are very small).
@@ -1650,6 +1651,7 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   // Don't take a time-step larger that input dt.
   double dta = st->dt_actual = dt < dtmin ? dt : dtmin;
   st->dt_suggested = dtmin;
+  app->stat.dfdt_dt_reduce_tm += gkyl_time_diff_now_sec(wtm);
 }
 
 struct gkyl_update_status
@@ -1671,8 +1673,6 @@ gkyl_gyrokinetic_update(gkyl_gyrokinetic_app* app, double dt)
 struct gkyl_gyrokinetic_stat
 gkyl_gyrokinetic_app_stat(gkyl_gyrokinetic_app* app)
 {
-  gk_species_tm(app);
-  gk_species_coll_tm(app);
   return app->stat;
 }
 
@@ -1772,13 +1772,16 @@ comm_reduce_app_stat(const gkyl_gyrokinetic_app* app,
   }
 
   enum {
-    TOTAL_TM, INIT_SPECIES_TM, SPECIES_RHS_TM, SPECIES_ALPHA_TM,
-    INIT_NEUT_SPECIES_TM, NEUT_SPECIES_RHS_TM, 
-    FIELD_RHS_TM, 
-    SPECIES_LTE_TM, SPECIES_COLL_MOM_TM, SPECIES_COL_TM, 
-    SPECIES_RAD_MOM_TM, SPECIES_RAD_TM, SPECIES_REACT_MOM_TM, SPECIES_REACT_TM, 
-    NEUT_SPECIES_LTE_TM, NEUT_SPECIES_COLL_MOM_TM, NEUT_SPECIES_COL_TM, 
-    NEUT_SPECIES_REACT_MOM_TM,  NEUT_SPECIES_REACT_TM,  
+    TOTAL_TM, INIT_SPECIES_TM, INIT_NEUT_SPECIES_TM,
+    FWD_EULER_TM, FWD_EULER_STEP_F_TM, DFDT_DT_REDUCE_TM,
+    SPECIES_COLLISIONLESS_TM, SPECIES_LTE_TM, SPECIES_GYROAVG_TM,
+    SPECIES_BFLUX_CALC_TM, SPECIES_BFLUX_MOMS_TM, SPECIES_DIFFUSION_TM,
+    SPECIES_COLL_MOM_TM, SPECIES_COLL_TM, 
+    SPECIES_RAD_MOM_TM, SPECIES_RAD_TM, SPECIES_REACT_MOM_TM, SPECIES_REACT_TM, SPECIES_SRC_TM, 
+    NEUT_SPECIES_COLLISIONLESS_TM, NEUT_SPECIES_LTE_TM, NEUT_SPECIES_BFLUX_CALC_TM, NEUT_SPECIES_BFLUX_MOMS_TM,
+    NEUT_SPECIES_COLL_MOM_TM, NEUT_SPECIES_COLL_TM, 
+    NEUT_SPECIES_REACT_MOM_TM,  NEUT_SPECIES_REACT_TM, NEUT_SPECIES_SRC_TM,
+    FIELD_RHS_TM,
     SPECIES_BC_TM, SPECIES_OMEGA_CFL_TM, DIAG_TM, IO_TM, DIAG_IO_TM, 
     NEUT_SPECIES_BC_TM, NEUT_SPECIES_OMEGA_CFL_TM, NEUT_DIAG_TM, NEUT_IO_TM, NEUT_DIAG_IO_TM, 
     FIELD_DIAG_TM, FIELD_IO_TM, FIELD_DIAG_IO_TM, 
@@ -1788,23 +1791,32 @@ comm_reduce_app_stat(const gkyl_gyrokinetic_app* app,
   double d_red[D_END] = {
     [TOTAL_TM] = local->total_tm,
     [INIT_SPECIES_TM] = local->init_species_tm,
-    [SPECIES_RHS_TM] = local->species_rhs_tm,
-    [SPECIES_ALPHA_TM] = local->species_alpha_tm,
     [INIT_NEUT_SPECIES_TM] = local->init_neut_species_tm,
-    [NEUT_SPECIES_RHS_TM] = local->neut_species_rhs_tm,
-    [FIELD_RHS_TM] = local->field_rhs_tm,
+    [FWD_EULER_STEP_F_TM] = local->fwd_euler_step_f_tm,
+    [DFDT_DT_REDUCE_TM] = local->dfdt_dt_reduce_tm,
+    [SPECIES_COLLISIONLESS_TM] = local->species_collisionless_tm,
     [SPECIES_LTE_TM] = local->species_lte_tm,
+    [SPECIES_GYROAVG_TM] = local->species_gyroavg_tm,
+    [SPECIES_BFLUX_CALC_TM] = local->species_bflux_calc_tm,
+    [SPECIES_BFLUX_MOMS_TM] = local->species_bflux_moms_tm,
+    [SPECIES_DIFFUSION_TM] = local->species_diffusion_tm,
     [SPECIES_COLL_MOM_TM] = local->species_coll_mom_tm,
-    [SPECIES_COL_TM] = local->species_coll_tm,
+    [SPECIES_COLL_TM] = local->species_coll_tm,
     [SPECIES_RAD_MOM_TM] = local->species_rad_mom_tm,
     [SPECIES_RAD_TM] = local->species_rad_tm,
     [SPECIES_REACT_MOM_TM] = local->species_react_mom_tm,
     [SPECIES_REACT_TM] = local->species_react_tm,
+    [SPECIES_SRC_TM] = local->species_src_tm,
+    [NEUT_SPECIES_COLLISIONLESS_TM] = local->neut_species_collisionless_tm,
     [NEUT_SPECIES_LTE_TM] = local->neut_species_lte_tm,
+    [NEUT_SPECIES_BFLUX_CALC_TM] = local->neut_species_bflux_calc_tm,
+    [NEUT_SPECIES_BFLUX_MOMS_TM] = local->neut_species_bflux_moms_tm,
     [NEUT_SPECIES_COLL_MOM_TM] = local->neut_species_coll_mom_tm,
-    [NEUT_SPECIES_COL_TM] = local->neut_species_coll_tm,
+    [NEUT_SPECIES_COLL_TM] = local->neut_species_coll_tm,
     [NEUT_SPECIES_REACT_MOM_TM] = local->neut_species_react_mom_tm,
     [NEUT_SPECIES_REACT_TM] = local->neut_species_react_tm,
+    [NEUT_SPECIES_SRC_TM] = local->neut_species_src_tm,
+    [FIELD_RHS_TM] = local->field_rhs_tm,
     [SPECIES_BC_TM] = local->species_bc_tm,
     [SPECIES_OMEGA_CFL_TM] = local->species_omega_cfl_tm,
     [DIAG_TM] = local->diag_tm,
@@ -1825,25 +1837,35 @@ comm_reduce_app_stat(const gkyl_gyrokinetic_app* app,
   
   global->total_tm = d_red_global[TOTAL_TM];
   global->init_species_tm = d_red_global[INIT_SPECIES_TM];
-  global->species_rhs_tm = d_red_global[SPECIES_RHS_TM];
-  global->species_alpha_tm = d_red_global[SPECIES_ALPHA_TM];
   global->init_neut_species_tm = d_red_global[INIT_NEUT_SPECIES_TM];
-  global->neut_species_rhs_tm = d_red_global[NEUT_SPECIES_RHS_TM];
-  global->field_rhs_tm = d_red_global[FIELD_RHS_TM];
+  global->fwd_euler_step_f_tm = d_red_global[FWD_EULER_STEP_F_TM];
+  global->dfdt_dt_reduce_tm = d_red_global[DFDT_DT_REDUCE_TM];
 
+  global->species_collisionless_tm = d_red_global[SPECIES_COLLISIONLESS_TM];
   global->species_lte_tm = d_red_global[SPECIES_LTE_TM];
+  global->species_gyroavg_tm = d_red_global[SPECIES_GYROAVG_TM];
+  global->species_bflux_calc_tm = d_red_global[SPECIES_BFLUX_CALC_TM];
+  global->species_bflux_moms_tm = d_red_global[SPECIES_BFLUX_MOMS_TM];
+  global->species_diffusion_tm = d_red_global[SPECIES_DIFFUSION_TM];
   global->species_coll_mom_tm = d_red_global[SPECIES_COLL_MOM_TM];
-  global->species_coll_tm = d_red_global[SPECIES_COL_TM];
+  global->species_coll_tm = d_red_global[SPECIES_COLL_TM];
   global->species_rad_mom_tm = d_red_global[SPECIES_RAD_MOM_TM];
   global->species_rad_tm = d_red_global[SPECIES_RAD_TM];
   global->species_react_mom_tm = d_red_global[SPECIES_REACT_MOM_TM];
   global->species_react_tm = d_red_global[SPECIES_REACT_TM];
+  global->species_src_tm = d_red_global[SPECIES_SRC_TM];
 
+  global->neut_species_collisionless_tm = d_red_global[NEUT_SPECIES_COLLISIONLESS_TM];
   global->neut_species_lte_tm = d_red_global[NEUT_SPECIES_LTE_TM];
+  global->neut_species_bflux_calc_tm = d_red_global[NEUT_SPECIES_BFLUX_CALC_TM];
+  global->neut_species_bflux_moms_tm = d_red_global[NEUT_SPECIES_BFLUX_MOMS_TM];
   global->neut_species_coll_mom_tm = d_red_global[NEUT_SPECIES_COLL_MOM_TM];
-  global->neut_species_coll_tm = d_red_global[NEUT_SPECIES_COL_TM];
+  global->neut_species_coll_tm = d_red_global[NEUT_SPECIES_COLL_TM];
   global->neut_species_react_mom_tm = d_red_global[NEUT_SPECIES_REACT_MOM_TM];
   global->neut_species_react_tm = d_red_global[NEUT_SPECIES_REACT_TM];
+  global->neut_species_src_tm = d_red_global[NEUT_SPECIES_SRC_TM];
+
+  global->field_rhs_tm = d_red_global[FIELD_RHS_TM];
 
   global->species_bc_tm = d_red_global[SPECIES_BC_TM];
   global->species_omega_cfl_tm = d_red_global[SPECIES_OMEGA_CFL_TM];
@@ -1867,11 +1889,6 @@ comm_reduce_app_stat(const gkyl_gyrokinetic_app* app,
     global->stage_2_dt_diff);
   gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 2, local->stage_3_dt_diff,
     global->stage_3_dt_diff);
-
-  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, GKYL_MAX_SPECIES, local->species_lbo_coll_drag_tm,
-    global->species_lbo_coll_drag_tm);
-  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, GKYL_MAX_SPECIES, local->species_lbo_coll_diff_tm,
-    global->species_lbo_coll_diff_tm);
 }
 
 void
@@ -1889,12 +1906,9 @@ gkyl_gyrokinetic_app_stat_write(gkyl_gyrokinetic_app* app)
   time_t t = time(NULL);
   struct tm curr_tm = *localtime(&t);
 
-  gk_species_coll_tm(app);
   gk_species_n_iter_corr(app); 
-  gk_species_tm(app);
 
   gk_neut_species_n_iter_corr(app); 
-  gk_neut_species_tm(app);
 
   struct gkyl_gyrokinetic_stat stat = { };
   comm_reduce_app_stat(app, &app->stat, &stat);
@@ -1928,17 +1942,10 @@ gkyl_gyrokinetic_app_stat_write(gkyl_gyrokinetic_app* app)
 
   gkyl_gyrokinetic_app_cout(app, fp, " total_tm : %lg,\n", stat.total_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " init_species_tm : %lg,\n", stat.init_species_tm);
-  gkyl_gyrokinetic_app_cout(app, fp, " species_rhs_tm : %lg,\n", stat.species_rhs_tm);
-  gkyl_gyrokinetic_app_cout(app, fp, " species_alpha_tm : %lg,\n", stat.species_alpha_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " init_neut_species_tm : %lg,\n", stat.init_neut_species_tm);
-  gkyl_gyrokinetic_app_cout(app, fp, " neut_species_rhs_tm : %lg,\n", stat.neut_species_rhs_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " field_rhs_tm : %lg,\n", stat.field_rhs_tm);
 
   for (int s=0; s<app->num_species; ++s) {
-    gkyl_gyrokinetic_app_cout(app, fp, " species_coll_drag_tm[%d] : %lg,\n", s,
-      stat.species_lbo_coll_drag_tm[s]);
-    gkyl_gyrokinetic_app_cout(app, fp, " species_coll_diff_tm[%d] : %lg,\n", s,
-      stat.species_lbo_coll_diff_tm[s]);
     gkyl_gyrokinetic_app_cout(app, fp, " n_iter_corr[%d] : %ld,\n", s, 
       stat.n_iter_corr[s]);
     gkyl_gyrokinetic_app_cout(app, fp, " num_corr[%d] : %ld,\n", s, 
@@ -1951,19 +1958,29 @@ gkyl_gyrokinetic_app_stat_write(gkyl_gyrokinetic_app* app)
       stat.neut_num_corr[s]);    
   }
 
+  gkyl_gyrokinetic_app_cout(app, fp, " species_collisionless_tm : %lg,\n", stat.species_collisionless_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " species_lte_tm : %lg,\n", stat.species_lte_tm);
+  gkyl_gyrokinetic_app_cout(app, fp, " species_gyroavg_tm : %lg,\n", stat.species_gyroavg_tm);
+  gkyl_gyrokinetic_app_cout(app, fp, " species_bflux_calc_tm : %lg,\n", stat.species_bflux_calc_tm);
+  gkyl_gyrokinetic_app_cout(app, fp, " species_bflux_moms_tm : %lg,\n", stat.species_bflux_moms_tm);
+  gkyl_gyrokinetic_app_cout(app, fp, " species_diffusion_tm : %lg,\n", stat.species_diffusion_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " species_coll_mom_tm : %lg,\n", stat.species_coll_mom_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " species_coll_tm : %lg,\n", stat.species_coll_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " species_rad_mom_tm : %lg,\n", stat.species_rad_mom_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " species_rad_tm : %lg,\n", stat.species_rad_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " species_react_mom_tm : %lg,\n", stat.species_react_mom_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " species_react_tm : %lg,\n", stat.species_react_tm);
+  gkyl_gyrokinetic_app_cout(app, fp, " species_src_tm : %lg,\n", stat.species_src_tm);
 
+  gkyl_gyrokinetic_app_cout(app, fp, " neut_species_collisionless_tm : %lg,\n", stat.neut_species_collisionless_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " neut_species_lte_tm : %lg,\n", stat.neut_species_lte_tm);
+  gkyl_gyrokinetic_app_cout(app, fp, " neut_species_bflux_calc_tm : %lg,\n", stat.neut_species_bflux_calc_tm);
+  gkyl_gyrokinetic_app_cout(app, fp, " neut_species_bflux_moms_tm : %lg,\n", stat.neut_species_bflux_moms_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " neut_species_coll_mom_tm : %lg,\n", stat.neut_species_coll_mom_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " neut_species_coll_tm : %lg,\n", stat.neut_species_coll_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " neut_species_react_mom_tm : %lg,\n", stat.neut_species_react_mom_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " neut_species_react_tm : %lg,\n", stat.neut_species_react_tm);
+  gkyl_gyrokinetic_app_cout(app, fp, " neut_species_src_tm : %lg,\n", stat.neut_species_src_tm);
 
   gkyl_gyrokinetic_app_cout(app, fp, " species_bc_tm : %lg,\n", stat.species_bc_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " n_species_omega_cfl : %ld,\n", stat.n_species_omega_cfl);

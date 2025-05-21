@@ -1605,27 +1605,39 @@ gkyl_gyrokinetic_multib_update(gkyl_gyrokinetic_multib_app* app, double dt)
 struct gkyl_gyrokinetic_stat
 gkyl_gyrokinetic_multib_app_stat(gkyl_gyrokinetic_multib_app* app)
 {
-  app->stat.species_rhs_tm = 0.0;
-  app->stat.neut_species_rhs_tm = 0.0;
-  app->stat.field_rhs_tm = 0.0;
-
   app->stat.species_lte_tm = 0.0;
+  app->stat.species_gyroavg_tm = 0.0;
+  app->stat.species_collisionless_tm = 0.0;
+  app->stat.species_diffusion_tm = 0.0;
+  app->stat.species_bflux_calc_tm = 0.0;
+  app->stat.species_bflux_moms_tm = 0.0;
   app->stat.species_coll_mom_tm = 0.0;
   app->stat.species_coll_tm = 0.0;
-  app->stat.species_rad_mom_tm = 0.0; 
-  app->stat.species_rad_tm = 0.0; 
   app->stat.species_react_mom_tm = 0.0; 
   app->stat.species_react_tm = 0.0; 
+  app->stat.species_rad_mom_tm = 0.0; 
+  app->stat.species_rad_tm = 0.0; 
+  app->stat.species_omega_cfl_tm = 0.0;
+  app->stat.species_src_tm = 0.0;
 
   app->stat.neut_species_lte_tm = 0.0;
+  app->stat.neut_species_collisionless_tm = 0.0;
+  app->stat.neut_species_bflux_calc_tm = 0.0;
+  app->stat.neut_species_bflux_moms_tm = 0.0;
   app->stat.neut_species_coll_mom_tm = 0.0;
   app->stat.neut_species_coll_tm = 0.0;
   app->stat.neut_species_react_mom_tm = 0.0; 
   app->stat.neut_species_react_tm = 0.0; 
+  app->stat.neut_species_omega_cfl_tm = 0.0;
+  app->stat.neut_species_src_tm = 0.0;
+
+  app->stat.dfdt_dt_reduce_tm = 0.0;
+  app->stat.fwd_euler_step_f_tm = 0.0;
+
+  app->stat.field_rhs_tm = 0.0;
 
   app->stat.species_bc_tm = 0.0;
   app->stat.n_species_omega_cfl = 0;
-  app->stat.species_omega_cfl_tm = 0.0;
   app->stat.n_mom = 0; 
   app->stat.n_diag = 0;
   app->stat.diag_tm = 0.0;
@@ -1636,7 +1648,6 @@ gkyl_gyrokinetic_multib_app_stat(gkyl_gyrokinetic_multib_app* app)
 
   app->stat.neut_species_bc_tm = 0.0;
   app->stat.n_neut_species_omega_cfl = 0;
-  app->stat.neut_species_omega_cfl_tm = 0.0;
   app->stat.n_neut_mom = 0; 
   app->stat.n_neut_diag = 0;
   app->stat.neut_diag_tm = 0.0;
@@ -1653,8 +1664,6 @@ gkyl_gyrokinetic_multib_app_stat(gkyl_gyrokinetic_multib_app* app)
   app->stat.field_diag_io_tm = 0.0;
 
   for (int i=0; i<app->num_species; ++i) {
-    app->stat.species_lbo_coll_diff_tm[i] = 0.0;
-    app->stat.species_lbo_coll_drag_tm[i] = 0.0;
     app->stat.n_iter_corr[i] = 0;
     app->stat.num_corr[i] = 0;
   }
@@ -1668,8 +1677,6 @@ gkyl_gyrokinetic_multib_app_stat(gkyl_gyrokinetic_multib_app* app)
     struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
     struct gkyl_gyrokinetic_stat sb_stat = gkyl_gyrokinetic_app_stat(sbapp);
 
-    app->stat.species_rhs_tm += sb_stat.species_rhs_tm;
-    app->stat.neut_species_rhs_tm += sb_stat.neut_species_rhs_tm;
     app->stat.field_rhs_tm += sb_stat.field_rhs_tm;
 
     app->stat.species_lte_tm += sb_stat.species_lte_tm;
@@ -1709,8 +1716,6 @@ gkyl_gyrokinetic_multib_app_stat(gkyl_gyrokinetic_multib_app* app)
     app->stat.neut_diag_io_tm += sb_stat.neut_diag_io_tm;
 
     for (int i=0; i<app->num_species; ++i) {
-      app->stat.species_lbo_coll_diff_tm[i] += sbapp->stat.species_lbo_coll_diff_tm[i];
-      app->stat.species_lbo_coll_drag_tm[i] += sbapp->stat.species_lbo_coll_drag_tm[i];
       app->stat.n_iter_corr[i] += sbapp->stat.n_iter_corr[i];
       app->stat.num_corr[i] += sbapp->stat.num_corr[i];
     }
