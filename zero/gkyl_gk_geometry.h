@@ -110,6 +110,7 @@ struct gk_geometry {
   struct gkyl_range global_ext;
   struct gkyl_basis basis;
   struct gkyl_basis surf_basis;
+  int num_surf_basis;
   struct gkyl_rect_grid grid;
 
   // The fields in these structs contain the geometric quantities needed to solve the

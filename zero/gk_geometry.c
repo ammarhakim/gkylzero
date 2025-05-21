@@ -31,7 +31,13 @@ gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *
   up->global = geometry_inp->global;
   up->global_ext = geometry_inp->global_ext;
   up->grid = geometry_inp->grid;
-  gkyl_cart_modal_serendip(&up->surf_basis, up->grid.ndim-1, up->basis.poly_order);
+  if (up->grid.ndim > 1) {
+    gkyl_cart_modal_serendip(&up->surf_basis, up->grid.ndim-1, up->basis.poly_order);
+    up->num_surf_basis = up->surf_basis.num_basis;
+  }
+  else {
+    up->num_surf_basis = 1;
+  }
   if (geometry_inp ->geometry_id == GKYL_GEOMETRY_FROMFILE)
     up->geqdsk_sign_convention = 0;
   else
@@ -225,7 +231,13 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   up->local = geometry_inp->local;
   up->local_ext = geometry_inp->local_ext;
   up->grid = geometry_inp->grid;
-  gkyl_cart_modal_serendip(&up->surf_basis, up->grid.ndim-1, up->basis.poly_order);
+  if (up->grid.ndim > 1) {
+    gkyl_cart_modal_serendip(&up->surf_basis, up->grid.ndim-1, up->basis.poly_order);
+    up->num_surf_basis = up->surf_basis.num_basis;
+  }
+  else {
+    up->num_surf_basis = 1;
+  }
   up->geqdsk_sign_convention = up_3d->geqdsk_sign_convention;
 
   gk_geometry_corn_alloc_expansions(up);
@@ -293,7 +305,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
       upper[count]+=1;
       gkyl_sub_range_init(&local_ext_in_dir, &up->local_ext, lower, upper);
 
-      struct gkyl_deflate_geo_surf* deflator_surf = gkyl_deflate_geo_surf_new(&up_3d->surf_basis, &up->surf_basis, &up_3d->grid, &up->grid, rem_dirs, count, false);
+      struct gkyl_deflate_geo_surf* deflator_surf = gkyl_deflate_geo_surf_new(&up_3d->surf_basis, up->num_surf_basis, &up_3d->grid, &up->grid, rem_dirs, count, false);
       gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir].bmag, up->geo_surf[count].bmag, 1);
       gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir].jacobgeo, up->geo_surf[count].jacobgeo, 1);
       gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir].jacobgeo_sync, up->geo_surf[count].jacobgeo_sync, 1);

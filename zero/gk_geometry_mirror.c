@@ -68,6 +68,7 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
 
   // Initialize surface basis
   gkyl_cart_modal_serendip(&up->surf_basis, up->grid.ndim-1, poly_order);
+  up->num_surf_basis = up->surf_basis.num_basis;
 
   // Initialize mirror geometry object from EFIT
   const struct gkyl_efit_inp inp = geometry_inp->efit_info;

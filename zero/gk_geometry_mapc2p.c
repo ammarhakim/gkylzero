@@ -394,6 +394,7 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
 
   // Initialize surface basis abd allocate surface geo
   gkyl_cart_modal_serendip(&up->surf_basis, up->grid.ndim-1, poly_order);
+  up->num_surf_basis = up->surf_basis.num_basis;
 
   // Allocate nodal and modal arrays for corner, interior, and surface geo
   gk_geometry_corn_alloc_nodal(up, nrange);
