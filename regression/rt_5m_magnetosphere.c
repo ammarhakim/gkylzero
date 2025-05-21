@@ -7,7 +7,7 @@
 #include <gkyl_const.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
-#include <gkyl_wv_ten_moment.h>
+#include <gkyl_wv_euler.h>
 
 #include <gkyl_null_comm.h>
 
@@ -23,6 +23,7 @@ struct magnetosphere_ctx
   double epsilon0; // permittivity
   double c; // speed of light
   double mu0; // permeability
+  double gas_gamma; // 
 
   double R0; // radius of planet
   double Dx; // dipole field strength (x-direction)
@@ -74,6 +75,7 @@ create_ctx(void)
   double mu0 = GKYL_MU0; // physical permeability (SI)
   double c = GKYL_SPEED_OF_LIGHT/100.0; // reduced speed of light
   double epsilon0 = 1/mu0/(c*c); // reduced permittivity
+  double gas_gamma = 5.0/3.0;
 
   double R0 = 1737.4e3; // radius of the Moon
   double Dx = -100.0e-9*(R0*R0);
@@ -121,11 +123,12 @@ create_ctx(void)
   int integrated_mom_calcs = INT_MAX; // number of times to calculate integrated moments.
   double dt_failure_tol = 1.0e-4; // minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // maximum allowable number of consecutive small time-steps.
-  
+
   struct magnetosphere_ctx ctx = {
     .mu0 = mu0,
     .c = c,
     .epsilon0 = epsilon0,
+    .gas_gamma = gas_gamma,
     .R0 = R0,
     .Dx = Dx,
     .Dy = Dy,
@@ -191,6 +194,7 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   struct magnetosphere_ctx *app = ctx;
 
   double r = sqrt(x*x + y*y);
+  double gas_gamma = app->gas_gamma;
   double mi_me = app->mi_me;
 
   double r_ramp1 = app->r_ramp1;
@@ -214,13 +218,14 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double vy = vy_in*s;
   double vz = vz_in*s;
 
+  double Ee_tot = pe/(gas_gamma - 1.0) + 0.5*rhoe*(vx*vx + vy*vy + vz*vz);
+
   // set electron mass density.
   fout[0] = rhoe;
   // set electron momentum density.
   fout[1] = rhoe*vx; fout[2] = rhoe*vy; fout[3] = rhoe*vz;
   // set electron pressure tensor.
-  fout[4] = pe + rhoe*vx*vx; fout[5] = rhoe*vx*vy; fout[6] = rhoe*vx*vz;
-  fout[7] = pe + rhoe*vy*vy; fout[8] = rhoe*vy*vz; fout[9] = pe + rhoe*vz*vz;
+  fout[4] = Ee_tot;
 }
 
 void
@@ -229,6 +234,7 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double x = xn[0], y = xn[1];
   struct magnetosphere_ctx *app = ctx;
 
+  double gas_gamma = app->gas_gamma;
   double mi_me = app->mi_me;
   double R0 = app->R0;
   double r = sqrt(x*x + y*y);
@@ -253,13 +259,14 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double vy = vy_in*s;
   double vz = vz_in*s;
 
+  double Ei_tot = pi/(gas_gamma - 1.0) + 0.5*rhoi*(vx*vx + vy*vy + vz*vz);
+
   // set ion mass density.
   fout[0] = rhoi;
   // set ion momentum density.
   fout[1] = rhoi*vx; fout[2] = rhoi*vy; fout[3] = rhoi*vz;
-  // set ion pressure tensor.
-  fout[4] = pi + rhoi*vx*vx; fout[5] = rhoi*vx*vy; fout[6] = rhoi*vx*vz;
-  fout[7] = pi + rhoi*vy*vy; fout[8] = rhoi*vy*vz; fout[9] = pi + rhoi*vz*vz;
+  // set ion total energy density.
+  fout[4] = Ei_tot;
 }
 
 void
@@ -387,6 +394,7 @@ evalElcLowerBC(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* sk
 {
   struct magnetosphere_ctx *app = ctx;
 
+  double gas_gamma = app->gas_gamma;
   double mi_me = app->mi_me;
 
   double rhoe = app->rho_in/(1 + mi_me);
@@ -397,13 +405,14 @@ evalElcLowerBC(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* sk
 
   double pe = app->p_in/(1 + pi_pe);
 
+  double Ee_tot = pe/(gas_gamma - 1.0) + 0.5*rhoe*(vx*vx + vy*vy + vz*vz);
+
   // set electron mass density.
   ghost[0] = rhoe;
   // set electron momentum density.
   ghost[1] = rhoe*vx; ghost[2] = rhoe*vy; ghost[3] = rhoe*vz;
-  // set electron pressure tensor.
-  ghost[4] = pe + rhoe*vx*vx; ghost[5] = rhoe*vx*vy; ghost[6] = rhoe*vx*vz;
-  ghost[7] = pe + rhoe*vy*vy; ghost[8] = rhoe*vy*vz; ghost[9] = pe + rhoe*vz*vz;
+  // set electron total energy density.
+  ghost[4] = Ee_tot;
 }
 
 // ion solar wind inflow boundary condition
@@ -412,6 +421,7 @@ evalIonLowerBC(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* sk
 {
   struct magnetosphere_ctx *app = ctx;
 
+  double gas_gamma = app->gas_gamma;
   double mi_me = app->mi_me;
 
   double rhoi = app->rho_in - app->rho_in/(1 + mi_me);
@@ -422,13 +432,14 @@ evalIonLowerBC(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* sk
 
   double pi = app->p_in - app->p_in/(1 + pi_pe);
 
+  double Ei_tot = pi/(gas_gamma - 1.0) + 0.5*rhoi*(vx*vx + vy*vy + vz*vz);
+
   // set ion mass density.
   ghost[0] = rhoi;
   // set ion momentum density.
   ghost[1] = rhoi*vx; ghost[2] = rhoi*vy; ghost[3] = rhoi*vz;
-  // set ion pressure tensor.
-  ghost[4] = pi + rhoi*vx*vx; ghost[5] = rhoi*vx*vy; ghost[6] = rhoi*vx*vz;
-  ghost[7] = pi + rhoi*vy*vy; ghost[8] = rhoi*vy*vz; ghost[9] = pi + rhoi*vz*vz;
+  // set ion total energy density.
+  ghost[4] = Ei_tot;
 }
 
 // field solar wind inflow boundary condition
@@ -462,19 +473,21 @@ evalInnerElc(const double *q, double *qphi, double *delta, void *ctx)
 {
   struct magnetosphere_ctx *app = ctx;
 
+  double gas_gamma = app->gas_gamma;
   double mi_me = app->mi_me;
   double rhoe = app->rho_in/(1 + mi_me);
 
   double pi_pe = app->pi_pe;
   double pe = app->p_in/(1 + pi_pe);
 
+  double Ee_tot = pe/(gas_gamma - 1.0);
+
   // set electron mass density.
   qphi[0] = rhoe;
   // set electron momentum density.
   qphi[1] = 0.0; qphi[2] = 0.0; qphi[3] = 0.0;
-  // set electron pressure tensor.
-  qphi[4] = pe; qphi[5] = 0.0; qphi[6] = 0.0;
-  qphi[7] = pe; qphi[8] = 0.0; qphi[9] = pe;
+  // set electron total energy density.
+  qphi[4] = Ee_tot;
 }
 
 // ion boundary condition at planet surface
@@ -483,19 +496,21 @@ evalInnerIon(const double *q, double *qphi, double *delta, void *ctx)
 {
   struct magnetosphere_ctx *app = ctx;
 
+  double gas_gamma = app->gas_gamma;
   double mi_me = app->mi_me;
   double rhoi = app->rho_in - app->rho_in/(1 + mi_me);
 
   double pi_pe = app->pi_pe;
   double pi = app->p_in - app->p_in/(1 + pi_pe);
 
+  double Ei_tot = pi/(gas_gamma - 1.0);
+
   // set ion mass density.
   qphi[0] = rhoi;
   // set ion momentum density.
   qphi[1] = 0.0; qphi[2] = 0.0; qphi[3] = 0.0;
-  // set ion pressure tensor.
-  qphi[4] = pi; qphi[5] = 0.0; qphi[6] = 0.0;
-  qphi[7] = pi; qphi[8] = 0.0; qphi[9] = pi;
+  // set ion total energy density.
+  qphi[4] = Ei_tot;
 }
 
 void
@@ -563,15 +578,15 @@ main(int argc, char **argv)
     evalPhiInit, NULL, &ctx);
 
   // Electron/ion equations.
-  struct gkyl_wv_eqn *elc_ten_moment = gkyl_wv_ten_moment_new(ctx.k0_elc,
-    false, embed_geo_elc, app_args.use_gpu);
-  struct gkyl_wv_eqn *ion_ten_moment = gkyl_wv_ten_moment_new(ctx.k0_ion,
-    false, embed_geo_ion, app_args.use_gpu);
+  struct gkyl_wv_eqn *elc_euler = gkyl_wv_euler_new(ctx.gas_gamma,
+    embed_geo_elc, app_args.use_gpu);
+  struct gkyl_wv_eqn *ion_euler = gkyl_wv_euler_new(ctx.gas_gamma,
+    embed_geo_ion, app_args.use_gpu);
 
   struct gkyl_moment_species elc = {
     .name = "elc",
     .charge = ctx.qe, .mass = ctx.me,
-    .equation = elc_ten_moment,
+    .equation = elc_euler,
     
     .init = evalElcInit,
     .ctx = &ctx,
@@ -586,7 +601,7 @@ main(int argc, char **argv)
   struct gkyl_moment_species ion = {
     .name = "ion",
     .charge = ctx.qi, .mass = ctx.mi,
-    .equation = ion_ten_moment,
+    .equation = ion_euler,
     
     .init = evalIonInit,
     .ctx = &ctx,
@@ -685,7 +700,7 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "10m_magnetosphere",
+    .name = "5m_magnetosphere",
 
     .ndim = 2,
     .lower = { -ctx.Lx, -ctx.Ly },
@@ -821,8 +836,8 @@ main(int argc, char **argv)
 
 freeresources:
   // Free resources after simulation completion.
-  gkyl_wv_eqn_release(elc_ten_moment);
-  gkyl_wv_eqn_release(ion_ten_moment);
+  gkyl_wv_eqn_release(elc_euler);
+  gkyl_wv_eqn_release(ion_euler);
   // Free all embedded geometry structures
   gkyl_wv_embed_geo_release(embed_geo_elc);
   gkyl_wv_embed_geo_release(embed_geo_ion);
