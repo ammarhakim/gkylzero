@@ -145,7 +145,9 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
   
   // compute geometry at nodes
   for (int iz=0; iz<nc[NZ]; ++iz) {
+    
     for (int ipsi=0; ipsi<nc[NPSI]; ++ipsi) {
+      
       int idx[2] = { ipsi, iz };
       long loc = gkyl_range_idx(&node_rng, idx);
       const double *rz = gkyl_array_cfetch(geo->nodesrz, loc);
@@ -174,13 +176,30 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
       g->e3d.x[0] = 0; g->e3d.x[1] = 0.0;
       g->e3d.x[2] = 1.0;
 
-      // B
-      g->B.x[0] = -fout[DPSI_Z_I]/xn[0];
-      g->B.x[1] = 0.0;
-      g->B.x[2] = fout[DPSI_R_I]/xn[0];
+      if (inc_axis && (ipsi == 0)) {
+        double fout2[4];
+        // we need to compute second derivative of psi
+        evcub->eval_cubic_wgrad2(0.0, xn, fout2, evcub->ctx);
+        
+        if (inp->fl_coord == GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z)
+          g->Jc = 0; // is this correct? Assumes asymptotics of psi ~ r^2 as r -> 0
+        else
+          g->Jc = 1/fout[DPSI_R_I];
 
-      // Jacobian
-      g->Jc = 1/gkyl_vec3_triple(g->e1d, g->e2d, g->e3d);
+        // B
+        g->B.x[0] = 0.0; // no radial component
+        g->B.x[1] = 0.0;
+        g->B.x[2] = fout[DPSI_R_I]; // diff(psi,r,2)
+      }
+      else {
+        // Jacobian
+        g->Jc = 1/gkyl_vec3_triple(g->e1d, g->e2d, g->e3d);
+
+        // B
+        g->B.x[0] = -fout[DPSI_Z_I]/xn[0];
+        g->B.x[1] = 0.0;
+        g->B.x[2] = fout[DPSI_R_I]/xn[0];
+      }
     }
   }
   
