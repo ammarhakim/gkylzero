@@ -18,6 +18,7 @@
 #endif
 
 #include <rt_arg_parse.h>
+#include <kann.h>
 
 struct sodshock_ctx
 {
@@ -110,10 +111,10 @@ create_ctx(void)
   int num_trains = INT_MAX; // Number of times to train neural network.
   int num_input_moms = 3; // Number of "input" moments to train on.
   int* input_moms = gkyl_malloc(sizeof(int[3]));
-  input_moms[0] = 0; input_moms[1] = 1; input_moms[2] = 2; // Array of "input" moments to train on.
+  input_moms[0] = 0; input_moms[1] = 2; input_moms[2] = 3; // Array of "input" moments to train on.
   int num_output_moms = 3; // Number of "output" moments to train on.
-  int* output_moms = gkyl_malloc(sizeof(int[3]));
-  output_moms[0] = 3; output_moms[1] = 4; output_moms[2] = 5; // Array of "output" moments to train on.
+  int* output_moms = gkyl_malloc(sizeof(int[2]));
+  output_moms[0] = 4; output_moms[1] = 5; // Array of "output" moments to train on.
 
   struct sodshock_ctx ctx = {
     .pi = pi,
@@ -495,7 +496,14 @@ main(int argc, char **argv)
   int num_trains = ctx.num_trains;
   struct gkyl_tm_trigger nn_trig = { .dt = t_end / num_trains, .tcurr = t_curr, .curr = frame_curr };
 
+  kad_node_t *t;
+  kann_t *ann;
   if (ctx.train_nn) {
+    t = kann_layer_input(ctx.num_input_moms);
+    t = kad_relu(kann_layer_dense(t, 64));
+    t = kann_layer_cost(t, ctx.num_output_moms, KANN_C_CEM);
+    ann = kann_new(t, 0);
+
     train_mom(&nn_trig, app, t_curr, false, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
   }
 
@@ -565,6 +573,8 @@ main(int argc, char **argv)
   write_data(&io_trig, app, t_curr, false);
   if (ctx.train_nn) {
     train_mom(&nn_trig, app, t_curr, false, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
+
+    kann_delete(ann);
   }
   gkyl_pkpm_app_stat_write(app);
 
