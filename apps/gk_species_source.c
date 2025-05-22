@@ -270,12 +270,12 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
 
 void
 gk_species_source_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s, 
-  struct gk_source *src, double tm)
+  struct gk_source *src, struct gkyl_array *f_buffer, double tm)
 {
   if (src->source_id) {
     for (int k=0; k<s->info.source.num_sources; k++) {
-      gk_species_projection_calc(app, s, &src->proj_source[k], s->fnew, tm);
-      gkyl_array_accumulate(src->source, 1., s->fnew);
+      gk_species_projection_calc(app, s, &src->proj_source[k], f_buffer, tm);
+      gkyl_array_accumulate(src->source, 1., f_buffer);
     }
   }
 }
