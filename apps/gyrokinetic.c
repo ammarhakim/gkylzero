@@ -2175,7 +2175,7 @@ gkyl_gyrokinetic_app_from_file_neut_species(gkyl_gyrokinetic_app *app, int sidx,
     if (app->use_gpu)
       gkyl_array_copy(gk_ns->f, gk_ns->f_host);
     if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
-      gk_neut_species_source_calc(app, gk_ns, &gk_ns->src, 0.0);
+      gk_neut_species_source_calc(app, gk_ns, &gk_ns->src, gk_ns->lte.f_lte, 0.0);
       // Read volume and time integrated boundary flux diagnostics.
       gk_neut_species_bflux_read_voltime_integrated_mom(app, gk_ns, &gk_ns->bflux);
     }

@@ -2692,10 +2692,11 @@ void gk_neut_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
  * @param app gyrokinetic app object
  * @param species Neutral species object
  * @param src Neutral species source object
+ * @param f_buffer Phase-space buffer used to project the source.
  * @param tm Time for use in source
  */
 void gk_neut_species_source_calc(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, 
-  struct gk_source *src, double tm);
+  struct gk_source *src, struct gkyl_array *f_buffer, double tm);
 
 /**
  * Compute RHS contribution from source
