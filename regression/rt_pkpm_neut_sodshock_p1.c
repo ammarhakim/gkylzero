@@ -56,6 +56,14 @@ struct sodshock_ctx
   int integrated_L2_f_calcs; // Number of times to calculate integrated L2 norm of distribution function.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
+
+  // Training parameters.
+  bool train_nn; // Train neural network on simulation data?
+  int num_trains; // Number of times to train neural network.
+  int num_input_moms; // Number of "input" moments to train on.
+  int* input_moms; // Array of "input" moments to train on.
+  int num_output_moms; // Number of "output" moments to train on.
+  int* output_moms; // Array of "output" moments to train on.
 };
 
 struct sodshock_ctx
@@ -97,6 +105,16 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
+  // Training parameters.
+  bool train_nn = true; // Train neural network on simulation data?
+  int num_trains = INT_MAX; // Number of times to train neural network.
+  int num_input_moms = 3; // Number of "input" moments to train on.
+  int* input_moms = gkyl_malloc(sizeof(int[3]));
+  input_moms[0] = 0; input_moms[1] = 1; input_moms[2] = 2; // Array of "input" moments to train on.
+  int num_output_moms = 3; // Number of "output" moments to train on.
+  int* output_moms = gkyl_malloc(sizeof(int[3]));
+  output_moms[0] = 3; output_moms[1] = 4; output_moms[2] = 5; // Array of "output" moments to train on.
+
   struct sodshock_ctx ctx = {
     .pi = pi,
     .epsilon0 = epsilon0,
@@ -123,6 +141,12 @@ create_ctx(void)
     .integrated_L2_f_calcs = integrated_L2_f_calcs,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
+    .train_nn = train_nn,
+    .num_trains = num_trains,
+    .num_input_moms = num_input_moms,
+    .input_moms = input_moms,
+    .num_output_moms = num_output_moms,
+    .output_moms = output_moms,
   };
 
   return ctx;
@@ -242,6 +266,19 @@ calc_integrated_L2_f(struct gkyl_tm_trigger* l2t, gkyl_pkpm_app* app, double t_c
 {
   if (gkyl_tm_trigger_check_and_bump(l2t, t_curr) || force_calc) {
     gkyl_pkpm_app_calc_integrated_L2_f(app, t_curr);
+  }
+}
+
+void
+train_mom(struct gkyl_tm_trigger* nn, gkyl_pkpm_app* app, double t_curr, bool force_train, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms)
+{
+  if (gkyl_tm_trigger_check_and_bump(nn, t_curr) || force_train) {
+    int frame = nn->curr - 1;
+    if (force_train) {
+      frame = nn->curr;
+    }
+
+    gkyl_pkpm_app_train(app, t_curr, frame, num_input_moms, input_moms, num_output_moms, output_moms);
   }
 }
 
@@ -454,6 +491,14 @@ main(int argc, char **argv)
 
   write_data(&io_trig, app, t_curr, false);
 
+  // Create trigger for neural network training.
+  int num_trains = ctx.num_trains;
+  struct gkyl_tm_trigger nn_trig = { .dt = t_end / num_trains, .tcurr = t_curr, .curr = frame_curr };
+
+  if (ctx.train_nn) {
+    train_mom(&nn_trig, app, t_curr, false, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
+  }
+
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
 
@@ -479,6 +524,9 @@ main(int argc, char **argv)
     calc_integrated_mom(&im_trig, app, t_curr, false);
     calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
     write_data(&io_trig, app, t_curr, false);
+    if (ctx.train_nn) {
+      train_mom(&nn_trig, app, t_curr, false, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
+    }
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
@@ -497,6 +545,9 @@ main(int argc, char **argv)
         calc_integrated_mom(&im_trig, app, t_curr, true);
         calc_integrated_L2_f(&l2f_trig, app, t_curr, true);
         write_data(&io_trig, app, t_curr, true);
+        if (ctx.train_nn) {
+          train_mom(&nn_trig, app, t_curr, true, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
+        }
 
         break;
       }
@@ -512,6 +563,9 @@ main(int argc, char **argv)
   calc_integrated_mom(&im_trig, app, t_curr, false);
   calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
+  if (ctx.train_nn) {
+    train_mom(&nn_trig, app, t_curr, false, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
+  }
   gkyl_pkpm_app_stat_write(app);
 
   struct gkyl_pkpm_stat stat = gkyl_pkpm_app_stat(app);
