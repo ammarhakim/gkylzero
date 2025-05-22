@@ -33,6 +33,14 @@ struct lua_func_ctx {
 };
 
 /**
+ * Add distribution moment flags for species into Lua interpreter.
+ *
+ * @param L Lua state to use.
+ */
+void
+gkyl_register_distribution_moment_types(lua_State *L);
+
+/**
  * Add boundary condition flags for species into Lua interpreter.
  *
  * @param L Lua state to use.

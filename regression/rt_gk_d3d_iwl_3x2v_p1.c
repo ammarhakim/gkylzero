@@ -733,7 +733,7 @@ main(int argc, char **argv)
     },
 
     .num_diag_moments = 1,
-    .diag_moments = { "MaxwellianMoments" },
+    .diag_moments = { GKYL_F_MOMENT_MAXWELLIAN },
   };
 
   // ions
@@ -807,7 +807,7 @@ main(int argc, char **argv)
     },
 
     .num_diag_moments = 1,
-    .diag_moments = { "MaxwellianMoments" },
+    .diag_moments = { GKYL_F_MOMENT_MAXWELLIAN },
   };
 
   struct gkyl_poisson_bias_plane target_corner_bc = {

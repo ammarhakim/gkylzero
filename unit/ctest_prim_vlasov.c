@@ -184,7 +184,7 @@ test_func(int cdim, int vdim, int poly_order,
   // project collision frequency on basis
   gkyl_proj_on_basis_advance(projNu, 0.0, &confLocal_ext, nu);
   
-  struct gkyl_mom_type *vm_moms_t = gkyl_mom_vlasov_new(&confBasis, &basis, "FiveMoments", false);
+  struct gkyl_mom_type *vm_moms_t = gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M0M1M2, false);
   gkyl_mom_calc *moms_calc = gkyl_mom_calc_new(&grid, vm_moms_t, false);
 
   // create moment arrays
@@ -410,7 +410,7 @@ test_func_cu(int cdim, int vdim, int poly_order,
   gkyl_proj_on_basis_advance(projNu, 0.0, &confLocal_ext, nu);
   gkyl_array_copy(nu_cu, nu);
   
-  struct gkyl_mom_type *vm_moms_t = gkyl_mom_vlasov_new(&confBasis, &basis, "FiveMoments", true);
+  struct gkyl_mom_type *vm_moms_t = gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M0M1M2, true);
   gkyl_mom_calc *moms_calc = gkyl_mom_calc_new(&grid, vm_moms_t, true);
 
   // create moment arrays

@@ -614,7 +614,7 @@ int main(int argc, char **argv)
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
     },
     .num_diag_moments = 7,
-    .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
+    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP},
   };
 
   struct gkyl_gyrokinetic_field field = {
