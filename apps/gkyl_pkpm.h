@@ -7,6 +7,7 @@
 #include <gkyl_util.h>
 
 #include <stdbool.h>
+#include <kann.h>
 
 // Parameters for species collisions
 struct gkyl_pkpm_collisions {
@@ -338,13 +339,14 @@ void gkyl_pkpm_app_stat_write(gkyl_pkpm_app* app);
  * @param app App object.
  * @param tm Time-stamp.
  * @param frame Frame number.
+ * @param ann Neural network architecture.
  * @param num_input_moms Number of "input" moments to train on.
  * @param input_moms Array of "input" moments to train on.
  * @param num_output_moms Number of "output" moments to train on.
  * @param output_moms Array of "output" moments to train on.
  */
  void
- gkyl_pkpm_app_train(gkyl_pkpm_app* app, double tm, int frame, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms);
+ gkyl_pkpm_app_train(gkyl_pkpm_app* app, double tm, int frame, kann_t* ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms);
 
  /**
  * Train neural network on PKPM moments data for a particular species.
@@ -353,13 +355,14 @@ void gkyl_pkpm_app_stat_write(gkyl_pkpm_app* app);
  * @param sidx Index of fluid species to train on.
  * @param tm Time-stamp.
  * @param frame Frame number.
+ * @param ann Neural network architecture.
  * @param num_input_moms Number of "input" moments to train on.
  * @param input_moms Array of "input" moments to train on.
  * @param num_output_moms Number of "output" moments to train on.
  * @param output_moms Array of "output" moments to train on.
  */
 void
-gkyl_pkpm_app_train_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms);
+gkyl_pkpm_app_train_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann_t* ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms);
 
 /**
  * Initialize field from file

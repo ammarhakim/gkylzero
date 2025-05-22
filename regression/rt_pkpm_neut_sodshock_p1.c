@@ -271,7 +271,7 @@ calc_integrated_L2_f(struct gkyl_tm_trigger* l2t, gkyl_pkpm_app* app, double t_c
 }
 
 void
-train_mom(struct gkyl_tm_trigger* nn, gkyl_pkpm_app* app, double t_curr, bool force_train, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms)
+train_mom(struct gkyl_tm_trigger* nn, gkyl_pkpm_app* app, double t_curr, bool force_train, kann_t* ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms)
 {
   if (gkyl_tm_trigger_check_and_bump(nn, t_curr) || force_train) {
     int frame = nn->curr - 1;
@@ -279,7 +279,7 @@ train_mom(struct gkyl_tm_trigger* nn, gkyl_pkpm_app* app, double t_curr, bool fo
       frame = nn->curr;
     }
 
-    gkyl_pkpm_app_train(app, t_curr, frame, num_input_moms, input_moms, num_output_moms, output_moms);
+    gkyl_pkpm_app_train(app, t_curr, frame, ann, num_input_moms, input_moms, num_output_moms, output_moms);
   }
 }
 
@@ -504,7 +504,7 @@ main(int argc, char **argv)
     t = kann_layer_cost(t, ctx.num_output_moms, KANN_C_CEM);
     ann = kann_new(t, 0);
 
-    train_mom(&nn_trig, app, t_curr, false, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
+    train_mom(&nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
   }
 
   // Compute initial guess of maximum stable time-step.
@@ -533,7 +533,7 @@ main(int argc, char **argv)
     calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
     write_data(&io_trig, app, t_curr, false);
     if (ctx.train_nn) {
-      train_mom(&nn_trig, app, t_curr, false, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
+      train_mom(&nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
     }
 
     if (dt_init < 0.0) {
@@ -554,7 +554,7 @@ main(int argc, char **argv)
         calc_integrated_L2_f(&l2f_trig, app, t_curr, true);
         write_data(&io_trig, app, t_curr, true);
         if (ctx.train_nn) {
-          train_mom(&nn_trig, app, t_curr, true, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
+          train_mom(&nn_trig, app, t_curr, true, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
         }
 
         break;
@@ -572,8 +572,9 @@ main(int argc, char **argv)
   calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
   if (ctx.train_nn) {
-    train_mom(&nn_trig, app, t_curr, false, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
+    train_mom(&nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
 
+    kann_save("pkpm_neut_sodshock_p1-nn.dat", ann);
     kann_delete(ann);
   }
   gkyl_pkpm_app_stat_write(app);
