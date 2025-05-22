@@ -868,7 +868,7 @@ int main(int argc, char **argv)
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
   gkyl_gyrokinetic_app_print_timings(app, stdout);
-
+  
   freeresources:
   // simulation complete, free app
   gkyl_gyrokinetic_app_release(app);

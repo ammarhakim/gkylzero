@@ -930,7 +930,6 @@ int main(int argc, char **argv)
     gkyl_gyrokinetic_app_cout(app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
     gkyl_gyrokinetic_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
   }
-
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
   gkyl_gyrokinetic_app_print_timings(app, stdout);
@@ -1158,9 +1157,9 @@ int main(int argc, char **argv)
     gkyl_gyrokinetic_app_cout(app_3x, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat_3x.stage_2_dt_diff[1]);
     gkyl_gyrokinetic_app_cout(app_3x, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat_3x.stage_2_dt_diff[0]);
   }
-  gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
-  gkyl_gyrokinetic_app_print_timings(app, stdout);
+  gkyl_gyrokinetic_app_cout(app_3x, stdout, "Number of RK stage-3 failures %ld\n", stat_3x.nstage_3_fail);
+  gkyl_gyrokinetic_app_cout(app_3x, stdout, "Number of write calls %ld\n", stat.n_io);
+  gkyl_gyrokinetic_app_print_timings(app_3x, stdout);
 
 freeresources:
   // Free resources after simulation completion.
