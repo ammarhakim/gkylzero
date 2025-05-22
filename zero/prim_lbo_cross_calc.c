@@ -40,13 +40,13 @@ gkyl_prim_lbo_cross_calc_advance(struct gkyl_prim_lbo_cross_calc* calc,
   const struct gkyl_array *greene,
   double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_prim_moms,
   double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_prim_moms, 
-  const struct gkyl_array *boundary_corrections, 
+  const struct gkyl_array *boundary_corrections, const struct gkyl_array *nu, 
   struct gkyl_array *prim_moms_out)
 {
 #ifdef GKYL_HAVE_CUDA
   if (GKYL_IS_CU_ALLOC(calc->flags)) {
     gkyl_prim_lbo_cross_calc_advance_cu(calc, conf_rng, greene, self_m, self_moms, self_prim_moms,
-      other_m, other_moms, other_prim_moms, boundary_corrections, prim_moms_out);
+      other_m, other_moms, other_prim_moms, boundary_corrections, prim_moms_out, nu);
     return;
   }
 #endif   
@@ -79,7 +79,7 @@ gkyl_prim_lbo_cross_calc_advance(struct gkyl_prim_lbo_cross_calc* calc,
     calc->prim->cross_prim(calc->prim, &lhs, &rhs, conf_iter.idx, gkyl_array_cfetch(greene, midx),
       self_m, gkyl_array_cfetch(self_moms, midx), gkyl_array_cfetch(self_prim_moms, midx),
       other_m, gkyl_array_cfetch(other_moms, midx), gkyl_array_cfetch(other_prim_moms, midx),
-      gkyl_array_cfetch(boundary_corrections, midx)
+      gkyl_array_cfetch(boundary_corrections, midx), gkyl_array_cfetch(nu, midx)
     );
 
     count += 1;

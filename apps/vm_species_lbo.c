@@ -137,7 +137,7 @@ vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
 
   // construct primitive moments  
   gkyl_prim_lbo_calc_advance(lbo->coll_pcalc, &app->local, 
-    lbo->moms.marr, lbo->boundary_corrections, lbo->prim_moms);
+    lbo->moms.marr, lbo->boundary_corrections, lbo->self_nu, lbo->prim_moms);
 
   for (int d=0; d<app->vdim; d++)
     gkyl_dg_mul_op(app->confBasis, d, lbo->nu_prim_moms, d, lbo->prim_moms, 0, lbo->self_nu);
@@ -175,7 +175,7 @@ vm_species_lbo_cross_moms(gkyl_vlasov_app *app, const struct vm_species *species
       lbo->greene_factor[i], 
       species->info.mass, lbo->moms.marr, lbo->prim_moms, 
       lbo->other_m[i], lbo->collide_with[i]->lbo.moms.marr, lbo->other_prim_moms[i],
-      lbo->boundary_corrections, 
+      lbo->boundary_corrections, lbo->cross_nu[i],
       lbo->cross_prim_moms[i]);
 
 
