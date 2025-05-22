@@ -1004,7 +1004,7 @@ test_L_domain_sync_dev(void)
   };
   int **cuts0 = cuts_array_new(num_blocks, ndim, cuts_flat0);
   #ifdef GKYL_HAVE_NCCL
-    test_L_domain_sync(true, use_mpi, cuts0, 1);
+    test_L_domain_sync(true, true, cuts0, 1);
   #endif
   cuts_array_release(num_blocks, cuts0);
 }
