@@ -14,6 +14,8 @@ typedef struct gkyl_ambi_bolt_potential gkyl_ambi_bolt_potential;
  *
  * @param grid Cartesian grid dynamic field is defined on.
  * @param basis Basis object (configuration space).
+ * @param cmag_div_jacobtot Clebsch function in definition of magnetic field divided by
+ *                          Jacobian times magnetic field.
  * @param mass_e Electron mass.
  * @param charge_e Electron charge.
  * @param temp_e Electron temperature.
@@ -21,8 +23,8 @@ typedef struct gkyl_ambi_bolt_potential gkyl_ambi_bolt_potential;
  * @return New updater pointer.
  */
 gkyl_ambi_bolt_potential* gkyl_ambi_bolt_potential_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *basis, double mass_e, double charge_e, double temp_e,
-  bool use_gpu);
+  const struct gkyl_basis *basis, const struct gkyl_array *cmag_div_jacobtot,
+  double mass_e, double charge_e, double temp_e, bool use_gpu);
 
 /**
  * Compute the ion density and electrostatic potential at the sheath entrance.
@@ -36,8 +38,6 @@ gkyl_ambi_bolt_potential* gkyl_ambi_bolt_potential_new(const struct gkyl_rect_gr
  * @param edge Lower (-1) or upper (1) boundary along the field line.
  * @param skin_r Global skin range along the field line.
  * @param ghost_r Corresponding global ghost range along the field line.
- * @param cmag Clebsch function in definition of the magnetic field.
- * @param jacobtot_inv Reciprocal of the phase-space and conf-space Jacobians (1/(J*B)).
  * @param gammai Ion particle flux at the sheath entrance times the
  *               conf-space Jacobian.
  * @param m0i Ion number density.
@@ -47,7 +47,6 @@ gkyl_ambi_bolt_potential* gkyl_ambi_bolt_potential_new(const struct gkyl_rect_gr
 void
 gkyl_ambi_bolt_potential_sheath_calc(struct gkyl_ambi_bolt_potential *up, enum gkyl_edge_loc edge,
   const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  const struct gkyl_array *cmag, const struct gkyl_array *jacobtot_inv,
   const struct gkyl_array *gammai, const struct gkyl_array *m0i, const struct gkyl_array *Jm0i,
   struct gkyl_array *sheath_vals);
 
