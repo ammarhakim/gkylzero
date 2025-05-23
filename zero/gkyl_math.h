@@ -19,6 +19,13 @@ gkyl_vec3_new(double x, double y, double z)
   return (struct gkyl_vec3) { .x = { x, y, z} };
 }
 
+// scalar*a
+static inline struct gkyl_vec3
+gkyl_vec3_scale(double scalar, struct gkyl_vec3 a)
+{
+  return (struct gkyl_vec3) { .x = { scalar*a.x[0], scalar*a.x[1], scalar*a.x[2] } };
+}
+
 // a+b
 static inline struct gkyl_vec3
 gkyl_vec3_add(struct gkyl_vec3 a, struct gkyl_vec3 b)

@@ -9,16 +9,24 @@ struct gkyl_mirror_grid_gen_x;
 
 // Geometric quantities
 struct __attribute__((__packed__)) gkyl_mirror_grid_gen_geom {
+  struct gkyl_vec3 e1; // e^r, e^phi and e^z components of e_1
+  struct gkyl_vec3 e2; // e^r, e^phi and e^z components of e_2
+  struct gkyl_vec3 e3; // e^r, e^phi and e^z components of e_3
+  
   struct gkyl_vec3 e1d; // e_r, e_phi and e_z components of e^1
   struct gkyl_vec3 e2d; // e_r, e_phi and e_z components of e^2
-  struct gkyl_vec3 e3d; // e_r, e_phi and e_z components of e^3
+  struct gkyl_vec3 e3d; // e_r, e_phi and e_z components of e^3  
+
   struct gkyl_vec3 B;   // e_r, e_phi and e_z components of B
-  double Jc; // Jacobian = 1/e^1*(e^2 X e^3)
+  double Jc; // Jacobian = e_1*(e_2 X e_3)  = 1/e^1*(e^2 X e^3)
 };
 
 struct gkyl_mirror_grid_gen {
   struct gkyl_array *nodesrz; // r,z coordinates of corner nodes of cells
-  struct gkyl_array *node_geom; // geometric quantities at nodes
+
+  // geometric quantities at nodes: this is an array of
+  // gkyl_mirror_grid_gen_geom objects
+  struct gkyl_array *node_geom;
 
   struct gkyl_mirror_grid_gen_x *gg_x;
 };  
@@ -27,8 +35,7 @@ struct gkyl_mirror_grid_gen {
 enum gkyl_mirror_grid_gen_field_line_coord {
   GKYL_MIRROR_GRID_GEN_PSI_CART_Z, // use psi and Cartesian Z coordinate
   GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // use sqrt(psi) and Cartesian Z coordinate
-  GKYL_MIRROR_GRID_GEN_FL_LENGTH, // use field-line length NYI
-};  
+};
 
 // input struct to construct the mirror geometry
 struct gkyl_mirror_grid_gen_inp {
@@ -52,6 +59,23 @@ struct gkyl_mirror_grid_gen_inp {
  * @return newly create mirror geometry object
  */
 struct gkyl_mirror_grid_gen *gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp);
+
+/**
+ * Does the grid include the axis?
+ *
+ * @param geom Geometry object
+ * @return true if axis is included, false otherwise.
+ */
+bool gkyl_mirror_grid_gen_is_include_axis(const struct gkyl_mirror_grid_gen *geom);
+
+/**
+ * Get field-line coordinate used in grid
+ *
+ * @param geom Geometry object
+ * @return field-line coordinate used in grid
+ */
+enum gkyl_mirror_grid_gen_field_line_coord
+  gkyl_mirror_grid_gen_fl_coord(const struct gkyl_mirror_grid_gen *geom);
 
 /**
  * Release the mirror geometry object.

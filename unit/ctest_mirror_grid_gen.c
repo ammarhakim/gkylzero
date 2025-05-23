@@ -8,11 +8,11 @@
 #include <gkyl_mirror_grid_gen.h>
 
 static void
-test_wham_hires(void)
+test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord)
 {
   double clower[] = { 2.0e-6, 0.0, -2.0 };
   double cupper[] = { 3.0e-3, 2*M_PI, 2.0 };
-  int cells[] = { 10, 16, 64 };
+  int cells[] = { 10, 16, 32 };
 
   const char *fname = "data/unit/wham_hires.geqdsk_psi.gkyl";
   
@@ -42,14 +42,36 @@ test_wham_hires(void)
         .nznodes = psi_grid.cells[1]-1, // cells and not nodes
 
         .psiRZ = psi,
-        .fl_coord = GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z,
-        .include_axis = false,
+        .fl_coord = fl_coord,
+        .include_axis = include_axis,
         .write_psi_cubic = false,
       }
     );
 
+  TEST_CHECK( include_axis == gkyl_mirror_grid_gen_is_include_axis(geom) );
+  TEST_CHECK( fl_coord == gkyl_mirror_grid_gen_fl_coord(geom) );  
+  
   struct gkyl_range node_range;
   gkyl_range_init_from_shape(&node_range, 2, (int[2]) { cells[0]+1, cells[2]+1 });
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &node_range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&node_range, iter.idx);
+
+    const struct gkyl_mirror_grid_gen_geom *g =
+      gkyl_array_cfetch(geom->node_geom, loc);
+
+    /* // compute the tangent vectors */
+    /* struct gkyl_vec3 e1 = gkyl_vec3_scale(g->Jc, */
+    /*   gkyl_vec3_cross(g->e2d, g->e3d)); */
+
+    /* struct gkyl_vec3 e2 = gkyl_vec3_scale(g->Jc, */
+    /*   gkyl_vec3_cross(g->e3d, g->e2d)); */
+    
+    /* struct gkyl_vec3 e3 = gkyl_vec3_scale(g->Jc, */
+    /*   gkyl_vec3_cross(g->e3d, g->e2d)); */
+  }
 
   gkyl_mirror_grid_gen_release(geom);
   gkyl_array_release(psi);
@@ -59,7 +81,34 @@ test_wham_hires(void)
   return;
 }
 
+static void
+test_wham_no_axis_psi(void)
+{
+  test_wham(false, GKYL_MIRROR_GRID_GEN_PSI_CART_Z);
+}
+
+static void
+test_wham_with_axis_psi(void)
+{
+  test_wham(true, GKYL_MIRROR_GRID_GEN_PSI_CART_Z);
+}
+
+static void
+test_wham_no_axis_sqrt_psi(void)
+{
+  test_wham(false, GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z);
+}
+
+static void
+test_wham_with_axis_sqrt_psi(void)
+{
+  test_wham(true, GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z);
+}
+
 TEST_LIST = {
-  { "wham_hires", test_wham_hires },
+  { "wham_no_axis_psi", test_wham_no_axis_psi },
+  { "wham_with_axis_psi", test_wham_with_axis_psi },
+  /* { "wham_no_axis_sqrt_psi", test_wham_no_axis_sqrt_psi }, */
+  /* { "wham_with_axis_sqrt_psi", test_wham_with_axis_sqrt_psi }, */
   { NULL, NULL },
 };

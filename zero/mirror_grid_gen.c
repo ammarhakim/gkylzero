@@ -86,7 +86,7 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
   // adjust if we are using sqrt(psi) as radial coordinate
   double psic_lo = psi_lo, psic_up = psi_up;
   if (inp->fl_coord == GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z) {
-    // when we include axis the psi_lo is ignored
+    // when we include axis psi_lo is ignored
     psic_lo = inc_axis ? 0.0 : sqrt(psi_lo);
     psic_up = sqrt(psi_up);
   }
@@ -147,55 +147,84 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
   for (int iz=0; iz<nc[NZ]; ++iz) {
     
     for (int ipsi=0; ipsi<nc[NPSI]; ++ipsi) {
-      
       int idx[2] = { ipsi, iz };
       long loc = gkyl_range_idx(&node_rng, idx);
-      const double *rz = gkyl_array_cfetch(geo->nodesrz, loc);
-
-      double fout[3];
-      double xn[2] = { rz[0], rz[1] };
-      evcub->eval_cubic_wgrad(0.0, xn, fout, evcub->ctx);
-
-      struct gkyl_mirror_grid_gen_geom *g = gkyl_array_fetch(geo->node_geom, loc);
-
-      // e^1
-      g->e1d.x[0] = fout[DPSI_R_I]; // dpsi/dr
-      g->e1d.x[1] = 0.0; // no toroidal component
-      g->e1d.x[2] = fout[DPSI_Z_I]; // dspi/dz
       
-      if (inp->fl_coord == GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z) {
-        // for sqrt(psi) as radial coordinate e^1 = grad(psi)/2*sqrt(psi)
-        g->e1d.x[0] = g->e1d.x[0]/(2*floor_sqrt(fout[0]));
-        g->e1d.x[2] = g->e1d.x[2]/(2*floor_sqrt(fout[0]));
-      }
-
-      // e^2 is just e^phi
-      g->e2d.x[0] = 0; g->e2d.x[1] = 1.0; g->e3d.x[2] = 0.0;
-
-      // e^3 is just sigma_3
-      g->e3d.x[0] = 0; g->e3d.x[1] = 0.0;
-      g->e3d.x[2] = 1.0;
-
+      const double *rz = gkyl_array_cfetch(geo->nodesrz, loc);
+      double xn[2] = { rz[0], rz[1] };
+      
+      struct gkyl_mirror_grid_gen_geom *g = gkyl_array_fetch(geo->node_geom, loc);
+      
       if (inc_axis && (ipsi == 0)) {
-        double fout2[4];
-        // we need to compute second derivative of psi
+        double fout2[4]; // second derivative of psi is needed
         evcub->eval_cubic_wgrad2(0.0, xn, fout2, evcub->ctx);
+
+        // On-axis the coordinate system breaks down. Below we choose
+        // some reasonable defaults for the tnagent and
+        // duals. However, the Jacobians and magnetic field are
+        // correct and computed using the estimated asymptotic
+        // behavior of psi as r -> 0.
+        
+        // e^1, e_1
+        g->e1d.x[0] = 1.0; g->e1d.x[1] = 0.0; g->e1d.x[2] = 0.0;
+        g->e1.x[0] = 1.0; g->e1.x[1] = 0.0; g->e1.x[2] = 0.0;
+
+        // e^2, e_2
+        g->e2d.x[0] = 0; g->e2d.x[1] = 1.0; g->e3d.x[2] = 0.0;
+
+        // e^3, e_3
+        g->e3d.x[0] = 0; g->e3d.x[1] = 0.0; g->e3d.x[2] = 1.0;
+        g->e3.x[0] = 0; g->e3.x[1] = 0.0; g->e3.x[2] = 1.0;
         
         if (inp->fl_coord == GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z)
-          g->Jc = 0; // is this correct? Assumes asymptotics of psi ~ r^2 as r -> 0
+          g->Jc = 0; // assumes asymptotics of psi ~ r^2 as r -> 0
         else
-          g->Jc = 1/fout[DPSI_R_I];
+          g->Jc = 1/fout2[DPSI_R_I];
 
-        // B
         g->B.x[0] = 0.0; // no radial component
         g->B.x[1] = 0.0;
-        g->B.x[2] = fout[DPSI_R_I]; // diff(psi,r,2)
+        g->B.x[2] = fout2[DPSI_R_I]; // diff(psi,r,2)
       }
       else {
-        // Jacobian
-        g->Jc = 1/gkyl_vec3_triple(g->e1d, g->e2d, g->e3d);
+        double fout[3]; // first derivative of psi is needed
+        evcub->eval_cubic_wgrad(0.0, xn, fout, evcub->ctx);
+      
+        // e^1
+        g->e1d.x[0] = fout[DPSI_R_I]; // dpsi/dr
+        g->e1d.x[1] = 0.0; // no toroidal component
+        g->e1d.x[2] = fout[DPSI_Z_I]; // dspi/dz
+      
+        if (inp->fl_coord == GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z) {
+          // for sqrt(psi) as radial coordinate e^1 = grad(psi)/2*sqrt(psi)
+          g->e1d.x[0] = g->e1d.x[0]/(2*floor_sqrt(fout[0]));
+          g->e1d.x[2] = g->e1d.x[2]/(2*floor_sqrt(fout[0]));
+        }
 
-        // B
+        // e^2 is just e^phi
+        g->e2d.x[0] = 0; g->e2d.x[1] = 1.0; g->e3d.x[2] = 0.0;
+
+        // e^3 is just sigma_3
+        g->e3d.x[0] = 0; g->e3d.x[1] = 0.0;
+        g->e3d.x[2] = 1.0;
+
+        // e_1 points along the radial direction
+        g->e1.x[0] = 1/g->e1d.x[0];
+        g->e1.x[1] = 0.0;
+        g->e1.x[2] = 0.0;
+
+        // e_2
+        g->e2.x[0] = 0; g->e2.x[1] = 1.0; g->e3.x[2] = 0.0;
+
+        // e_3
+        g->e3.x[0] = -fout[DPSI_Z_I]/fout[DPSI_R_I];
+        g->e3.x[1] = 0.0;
+        g->e3.x[2] = 1.0;
+        
+        if (inp->fl_coord == GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z)
+          g->Jc = 2*floor_sqrt(fout[PSI_I])*xn[0]/fout[DPSI_R_I];
+        else
+          g->Jc = xn[0]/fout[DPSI_R_I];
+        
         g->B.x[0] = -fout[DPSI_Z_I]/xn[0];
         g->B.x[1] = 0.0;
         g->B.x[2] = fout[DPSI_R_I]/xn[0];
@@ -216,6 +245,18 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
   return geo;
 }
 
+bool
+gkyl_mirror_grid_gen_is_include_axis(const struct gkyl_mirror_grid_gen *geom)
+{
+  return geom->gg_x->include_axis;
+}
+
+enum gkyl_mirror_grid_gen_field_line_coord
+  gkyl_mirror_grid_gen_fl_coord(const struct gkyl_mirror_grid_gen *geom)
+{
+  return geom->gg_x->fl_coord;
+}
+  
 void
 gkyl_mirror_grid_gen_release(struct gkyl_mirror_grid_gen *geom)
 {
