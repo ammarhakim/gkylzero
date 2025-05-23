@@ -656,7 +656,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
     if (need_m2perp) {
       // For moments that contain M2perp=2*mu*B/m we must fill the ghost cell of B. Use the option
       // in bc_basic that fills the ghost cell by evaluating the skin cell at the boundary.
-      long buff_sz = 0;
+      long buff_sz = 1;
       for (int b=0; b<bflux->num_boundaries; ++b) {
         int dir = bflux->boundaries_dir[b];
         struct gkyl_range *skin_r = bflux->boundaries_edge[b]==GKYL_LOWER_EDGE? &app->lower_skin[dir]
@@ -672,7 +672,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
     
       // Fill ghost cell of bmag.
       for (int b=0; b<bflux->num_boundaries; ++b)
-        gkyl_bc_basic_advance(bflux->gfss_bc_op[b], bflux->bc_buffer, app->gk_geom->geo_int.bmag);
+        gkyl_bc_basic_advance(bflux->gfss_bc_op[b], bflux->bc_buffer, app->gk_geom->geo_corn.bmag);
 
       if (!bflux->a_hamiltonian_mom) {
         gkyl_array_release(bflux->bc_buffer);

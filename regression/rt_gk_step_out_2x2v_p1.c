@@ -576,7 +576,7 @@ main(int argc, char **argv)
     .poly_order = 1,
     .basis_type = app_args.basis_type,
     .cfl_frac = 0.5,
-    .cfl_frac_omegaH = 1e10,
+//    .cfl_frac_omegaH = 1e10,
 
     .geometry = {
       .world = {0.0},

@@ -1053,7 +1053,7 @@ kernel_gyrokinetic_hamiltonian_moments_1x1v_ser_p1(const struct gkyl_mom_type *m
   long vidx = gkyl_range_idx(&mom_gk->vel_map->local_vel, idx_vel);
   return gyrokinetic_hamiltonian_moments_1x1v_ser_p1(dx,
     (const double*) gkyl_array_cfetch(mom_gk->vel_map->vmap, vidx), mom_gk->mass, mom_gk->charge,
-    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->geo_int.bmag, cidx), 
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->geo_corn.bmag, cidx), 
     (const double*) gkyl_array_cfetch(mom_gk->phi, cidx), f, out);  
 }
 
@@ -1071,7 +1071,7 @@ kernel_gyrokinetic_hamiltonian_moments_1x2v_ser_p1(const struct gkyl_mom_type *m
   long vidx = gkyl_range_idx(&mom_gk->vel_map->local_vel, idx_vel);
   return gyrokinetic_hamiltonian_moments_1x2v_ser_p1(dx,
     (const double*) gkyl_array_cfetch(mom_gk->vel_map->vmap, vidx), mom_gk->mass, mom_gk->charge,
-    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->geo_int.bmag, cidx), 
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->geo_corn.bmag, cidx), 
     (const double*) gkyl_array_cfetch(mom_gk->phi, cidx), f, out);  
 }
 
@@ -1089,7 +1089,7 @@ kernel_gyrokinetic_hamiltonian_moments_2x2v_ser_p1(const struct gkyl_mom_type *m
   long vidx = gkyl_range_idx(&mom_gk->vel_map->local_vel, idx_vel);
   return gyrokinetic_hamiltonian_moments_2x2v_ser_p1(dx,
     (const double*) gkyl_array_cfetch(mom_gk->vel_map->vmap, vidx), mom_gk->mass, mom_gk->charge,
-    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->geo_int.bmag, cidx), 
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->geo_corn.bmag, cidx), 
     (const double*) gkyl_array_cfetch(mom_gk->phi, cidx), f, out);  
 }
 
@@ -1107,7 +1107,7 @@ kernel_gyrokinetic_hamiltonian_moments_3x2v_ser_p1(const struct gkyl_mom_type *m
   long vidx = gkyl_range_idx(&mom_gk->vel_map->local_vel, idx_vel);
   return gyrokinetic_hamiltonian_moments_3x2v_ser_p1(dx,
     (const double*) gkyl_array_cfetch(mom_gk->vel_map->vmap, vidx), mom_gk->mass, mom_gk->charge,
-    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->geo_int.bmag, cidx), 
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->geo_corn.bmag, cidx), 
     (const double*) gkyl_array_cfetch(mom_gk->phi, cidx), f, out);  
 }
 
@@ -1125,7 +1125,7 @@ kernel_gyrokinetic_hamiltonian_moments_1x1v_ser_p2(const struct gkyl_mom_type *m
   long vidx = gkyl_range_idx(&mom_gk->vel_map->local_vel, idx_vel);
   return gyrokinetic_hamiltonian_moments_1x1v_ser_p2(dx,
     (const double*) gkyl_array_cfetch(mom_gk->vel_map->vmap, vidx), mom_gk->mass, mom_gk->charge,
-    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->geo_int.bmag, cidx), 
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->geo_corn.bmag, cidx), 
     (const double*) gkyl_array_cfetch(mom_gk->phi, cidx), f, out);  
 }
 
@@ -1143,7 +1143,7 @@ kernel_gyrokinetic_hamiltonian_moments_1x2v_ser_p2(const struct gkyl_mom_type *m
   long vidx = gkyl_range_idx(&mom_gk->vel_map->local_vel, idx_vel);
   return gyrokinetic_hamiltonian_moments_1x2v_ser_p2(dx,
     (const double*) gkyl_array_cfetch(mom_gk->vel_map->vmap, vidx), mom_gk->mass, mom_gk->charge,
-    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->geo_int.bmag, cidx), 
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->geo_corn.bmag, cidx), 
     (const double*) gkyl_array_cfetch(mom_gk->phi, cidx), f, out);  
 }
 
@@ -1161,7 +1161,7 @@ kernel_gyrokinetic_hamiltonian_moments_2x2v_ser_p2(const struct gkyl_mom_type *m
   long vidx = gkyl_range_idx(&mom_gk->vel_map->local_vel, idx_vel);
   return gyrokinetic_hamiltonian_moments_2x2v_ser_p2(dx,
     (const double*) gkyl_array_cfetch(mom_gk->vel_map->vmap, vidx), mom_gk->mass, mom_gk->charge,
-    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->geo_int.bmag, cidx), 
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->geo_corn.bmag, cidx), 
     (const double*) gkyl_array_cfetch(mom_gk->phi, cidx), f, out);  
 }
 
@@ -2242,7 +2242,7 @@ kernel_gyrokinetic_int_hamiltonian_moments_1x1v_ser_p1(const struct gkyl_mom_typ
   long vidx = gkyl_range_idx(&mom_gk->vel_map->local_vel, idx_vel);
   return gyrokinetic_int_hamiltonian_moments_1x1v_ser_p1(dx,
     (const double*) gkyl_array_cfetch(mom_gk->vel_map->vmap, vidx), mom_gk->mass, mom_gk->charge,
-    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->geo_int.bmag, cidx), 
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->geo_corn.bmag, cidx), 
     (const double*) gkyl_array_cfetch(mom_gk->phi, cidx), f, out);  
 }
 
@@ -2260,7 +2260,7 @@ kernel_gyrokinetic_int_hamiltonian_moments_1x1v_ser_p2(const struct gkyl_mom_typ
   long vidx = gkyl_range_idx(&mom_gk->vel_map->local_vel, idx_vel);
   return gyrokinetic_int_hamiltonian_moments_1x1v_ser_p2(dx,
     (const double*) gkyl_array_cfetch(mom_gk->vel_map->vmap, vidx), mom_gk->mass, mom_gk->charge,
-    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->geo_int.bmag, cidx), 
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->geo_corn.bmag, cidx), 
     (const double*) gkyl_array_cfetch(mom_gk->phi, cidx), f, out);  
 }
 
@@ -2278,7 +2278,7 @@ kernel_gyrokinetic_int_hamiltonian_moments_1x2v_ser_p1(const struct gkyl_mom_typ
   long vidx = gkyl_range_idx(&mom_gk->vel_map->local_vel, idx_vel);
   return gyrokinetic_int_hamiltonian_moments_1x2v_ser_p1(dx,
     (const double*) gkyl_array_cfetch(mom_gk->vel_map->vmap, vidx), mom_gk->mass, mom_gk->charge,
-    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->geo_int.bmag, cidx), 
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->geo_corn.bmag, cidx), 
     (const double*) gkyl_array_cfetch(mom_gk->phi, cidx), f, out);  
 }
 
@@ -2296,7 +2296,7 @@ kernel_gyrokinetic_int_hamiltonian_moments_1x2v_ser_p2(const struct gkyl_mom_typ
   long vidx = gkyl_range_idx(&mom_gk->vel_map->local_vel, idx_vel);
   return gyrokinetic_int_hamiltonian_moments_1x2v_ser_p2(dx,
     (const double*) gkyl_array_cfetch(mom_gk->vel_map->vmap, vidx), mom_gk->mass, mom_gk->charge,
-    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->geo_int.bmag, cidx), 
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->geo_corn.bmag, cidx), 
     (const double*) gkyl_array_cfetch(mom_gk->phi, cidx), f, out);  
 }
 
@@ -2314,7 +2314,7 @@ kernel_gyrokinetic_int_hamiltonian_moments_2x2v_ser_p1(const struct gkyl_mom_typ
   long vidx = gkyl_range_idx(&mom_gk->vel_map->local_vel, idx_vel);
   return gyrokinetic_int_hamiltonian_moments_2x2v_ser_p1(dx,
     (const double*) gkyl_array_cfetch(mom_gk->vel_map->vmap, vidx), mom_gk->mass, mom_gk->charge,
-    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->geo_int.bmag, cidx), 
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->geo_corn.bmag, cidx), 
     (const double*) gkyl_array_cfetch(mom_gk->phi, cidx), f, out);  
 }
 
@@ -2332,7 +2332,7 @@ kernel_gyrokinetic_int_hamiltonian_moments_2x2v_ser_p2(const struct gkyl_mom_typ
   long vidx = gkyl_range_idx(&mom_gk->vel_map->local_vel, idx_vel);
   return gyrokinetic_int_hamiltonian_moments_2x2v_ser_p2(dx,
     (const double*) gkyl_array_cfetch(mom_gk->vel_map->vmap, vidx), mom_gk->mass, mom_gk->charge,
-    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->geo_int.bmag, cidx), 
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->geo_corn.bmag, cidx), 
     (const double*) gkyl_array_cfetch(mom_gk->phi, cidx), f, out);  
 }
 
@@ -2350,7 +2350,7 @@ kernel_gyrokinetic_int_hamiltonian_moments_3x2v_ser_p1(const struct gkyl_mom_typ
   long vidx = gkyl_range_idx(&mom_gk->vel_map->local_vel, idx_vel);
   return gyrokinetic_int_hamiltonian_moments_3x2v_ser_p1(dx,
     (const double*) gkyl_array_cfetch(mom_gk->vel_map->vmap, vidx), mom_gk->mass, mom_gk->charge,
-    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->geo_int.bmag, cidx), 
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->geo_corn.bmag, cidx), 
     (const double*) gkyl_array_cfetch(mom_gk->phi, cidx), f, out);  
 }
 
