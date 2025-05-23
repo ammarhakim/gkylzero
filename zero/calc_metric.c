@@ -1337,8 +1337,8 @@ void gkyl_calc_metric_advance_bcart(gkyl_calc_metric *up, struct gkyl_range *nra
 
 
   // Fill the inputs
-  gkyl_nodal_ops_m2n(up->n2m, up->cbasis, up->grid, nrange, update_range, 9, dualFld_nodal, dualFld, false);
-  gkyl_nodal_ops_m2n(up->n2m, up->cbasis, up->grid, nrange, update_range, 3, biFld_nodal, biFld, false);
+  gkyl_nodal_ops_m2n(up->n2m, up->cbasis, up->grid, nrange, update_range, 9, dualFld_nodal, dualFld, true);
+  gkyl_nodal_ops_m2n(up->n2m, up->cbasis, up->grid, nrange, update_range, 3, biFld_nodal, biFld, true);
   
   for(int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia) {
       for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
