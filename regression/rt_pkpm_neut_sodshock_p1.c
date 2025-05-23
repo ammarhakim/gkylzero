@@ -115,7 +115,7 @@ create_ctx(void)
   // Training parameters.
   bool train_nn = true; // Train neural network on simulation data?
   bool train_ab_initio = true; // Train neural network ab initio?
-  const char* train_nn_file = "pkpm_neut_sodshock_p1_moms_nn_1.dat"; // File path of neural network to train.
+  const char* train_nn_file = "pkpm_neut_sodshock_p1_moms_nn_1"; // File path of neural network to train.
   int num_trains = INT_MAX; // Number of times to train neural network.
   int num_nn_writes = 1; // Number of times to write out neural network.
   int num_input_moms = 3; // Number of "input" moments to train on.
@@ -125,7 +125,7 @@ create_ctx(void)
   int* output_moms = gkyl_malloc(sizeof(int[2]));
   output_moms[0] = 4; output_moms[1] = 5; // Array of "output" moments to train on.
   bool test_nn = false; // Test neural network on simulation data?
-  const char* test_nn_file = "pkpm_neut_sodshock_p1_moms_nn_1.dat"; // File path of neural network to test.
+  const char* test_nn_file = "pkpm_neut_sodshock_p1_moms_nn_1"; // File path of neural network to test.
   int num_tests = 1; // Number of times to test neural network.
 
   struct sodshock_ctx ctx = {
@@ -289,7 +289,7 @@ calc_integrated_L2_f(struct gkyl_tm_trigger* l2t, gkyl_pkpm_app* app, double t_c
 }
 
 void
-train_mom(struct gkyl_tm_trigger* nn, gkyl_pkpm_app* app, double t_curr, bool force_train, kann_t* ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms)
+train_mom(struct gkyl_tm_trigger* nn, gkyl_pkpm_app* app, double t_curr, bool force_train, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms)
 {
   if (gkyl_tm_trigger_check_and_bump(nn, t_curr) || force_train) {
     int frame = nn->curr - 1;
@@ -302,7 +302,7 @@ train_mom(struct gkyl_tm_trigger* nn, gkyl_pkpm_app* app, double t_curr, bool fo
 }
 
 void
-write_nn(struct gkyl_tm_trigger* nnw, gkyl_pkpm_app* app, double t_curr, bool force_write, kann_t* ann)
+write_nn(struct gkyl_tm_trigger* nnw, gkyl_pkpm_app* app, double t_curr, bool force_write, kann_t** ann)
 {
   if (gkyl_tm_trigger_check_and_bump(nnw, t_curr) || force_write) {
     int frame = nnw->curr - 1;
@@ -315,7 +315,7 @@ write_nn(struct gkyl_tm_trigger* nnw, gkyl_pkpm_app* app, double t_curr, bool fo
 }
 
 void
-test_mom(struct gkyl_tm_trigger* nnt, gkyl_pkpm_app* app, double t_curr, bool force_test, kann_t* ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms)
+test_mom(struct gkyl_tm_trigger* nnt, gkyl_pkpm_app* app, double t_curr, bool force_test, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms)
 {
   if (gkyl_tm_trigger_check_and_bump(nnt, t_curr) || force_test) {
     int frame = nnt->curr - 1;
@@ -540,30 +540,41 @@ main(int argc, char **argv)
   int num_trains = ctx.num_trains;
   struct gkyl_tm_trigger nn_trig = { .dt = t_end / num_trains, .tcurr = t_curr, .curr = frame_curr };
 
-  kad_node_t *t;
-  kann_t *ann;
+  kad_node_t **t = gkyl_malloc(sizeof(kad_node_t*) * app_inp.num_species);
+  kann_t **ann = gkyl_malloc(sizeof(kann_t*) * app_inp.num_species);
   if (ctx.train_nn) {
     if (ctx.train_ab_initio) {
-      if (ctx.poly_order == 1) {
-        t = kann_layer_input(ctx.num_input_moms * 2);
+      for (int i = 0; i < app_inp.num_species; i++ ) {
+        if (ctx.poly_order == 1) {
+          t[i] = kann_layer_input(ctx.num_input_moms * 2);
+        }
+        else if (ctx.poly_order == 2) {
+          t[i] = kann_layer_input(ctx.num_input_moms * 3);
+        }
+
+        t[i] = kann_layer_dense(t[i], 128);
+        t[i] = kad_relu(t[i]);
+        t[i] = kann_layer_dense(t[i], 128);
+        t[i] = kad_relu(t[i]);
+        
+        if (ctx.poly_order == 1) {
+          t[i] = kann_layer_cost(t[i], ctx.num_output_moms * 2, KANN_C_MSE);
+        }
+        else if (ctx.poly_order == 2) {
+          t[i] = kann_layer_cost(t[i], ctx.num_output_moms * 3, KANN_C_MSE);
+        }
+        ann[i] = kann_new(t[i], 0);
       }
-      else if (ctx.poly_order == 2) {
-        t = kann_layer_input(ctx.num_input_moms * 3);
-      }
-      t = kann_layer_dense(t, 128);
-      t = kad_relu(t);
-      t = kann_layer_dense(t, 128);
-      t = kad_relu(t);
-      if (ctx.poly_order == 1) {
-        t = kann_layer_cost(t, ctx.num_output_moms * 2, KANN_C_MSE);
-      }
-      else if (ctx.poly_order == 2) {
-        t = kann_layer_cost(t, ctx.num_output_moms * 3, KANN_C_MSE);
-      }
-      ann = kann_new(t, 0);
     }
     else {
-      ann = kann_load(ctx.train_nn_file);
+      for (int i = 0; i < app_inp.num_species; i++) {
+        const char *fmt = "%s-%s.dat";
+        int sz = gkyl_calc_strlen(fmt, ctx.train_nn_file, app_inp.species[i].name);
+        char fileNm[sz + 1];
+        snprintf(fileNm, sizeof fileNm, fmt, ctx.train_nn_file, app_inp.species[i].name);
+
+        ann[i] = kann_load(fileNm);
+      }
     }
 
     train_mom(&nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
@@ -581,9 +592,16 @@ main(int argc, char **argv)
   int num_tests = ctx.num_tests;
   struct gkyl_tm_trigger nnt_trig = { .dt = t_end / num_tests, .tcurr = t_curr, .curr = frame_curr };
 
-  kann_t *ann_test;
+  kann_t **ann_test = gkyl_malloc(sizeof(kann_t*) * app_inp.num_species);
   if (ctx.test_nn) {
-    ann_test = kann_load(ctx.test_nn_file);
+    for (int i = 0; i < app_inp.num_species; i++) {
+      const char *fmt = "%s-%s.dat";
+      int sz = gkyl_calc_strlen(fmt, ctx.test_nn_file, app_inp.species[i].name);
+      char fileNm[sz + 1];
+      snprintf(fileNm, sizeof fileNm, fmt, ctx.test_nn_file, app_inp.species[i].name);
+
+      ann_test[i] = kann_load(fileNm);
+    }
 
     test_mom(&nnt_trig, app, t_curr, false, ann_test, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
   }
@@ -664,12 +682,16 @@ main(int argc, char **argv)
     train_mom(&nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
     write_nn(&nnw_trig, app, t_curr, false, ann);
 
-    kann_delete(ann);
+    for (int i = 0; i < app_inp.num_species; i++) {
+      kann_delete(ann[i]);
+    }
   }
   if (ctx.test_nn) {
     test_mom(&nnt_trig, app, t_curr, false, ann_test, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
 
-    kann_delete(ann_test);
+    for (int i = 0; i < app_inp.num_species; i++) {
+      kann_delete(ann_test[i]);
+    }
   }
   gkyl_pkpm_app_stat_write(app);
 
@@ -703,6 +725,8 @@ freeresources:
   gkyl_pkpm_app_release(app);
   gkyl_free(ctx.input_moms);
   gkyl_free(ctx.output_moms);
+  gkyl_free(ann);
+  gkyl_free(ann_test);
 
 mpifinalize:
 #ifdef GKYL_HAVE_MPI

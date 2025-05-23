@@ -638,7 +638,7 @@ gkyl_pkpm_app_write_field_energy(gkyl_pkpm_app* app)
 }
 
 void
-gkyl_pkpm_app_train(gkyl_pkpm_app* app, double tm, int frame, kann_t* ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms)
+gkyl_pkpm_app_train(gkyl_pkpm_app* app, double tm, int frame, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms)
 {
   for (int i = 0; i < app->num_species; i++) {
     gkyl_pkpm_app_train_mom(app, i, tm, frame, ann, num_input_moms, input_moms, num_output_moms, output_moms);
@@ -646,7 +646,7 @@ gkyl_pkpm_app_train(gkyl_pkpm_app* app, double tm, int frame, kann_t* ann, int n
 }
 
 void
-gkyl_pkpm_app_train_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann_t* ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms)
+gkyl_pkpm_app_train_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms)
 {
   struct pkpm_species *s = &app->species[sidx];
   pkpm_species_moment_calc(&s->pkpm_moms_diag, s->local, app->local, s->f);
@@ -710,7 +710,7 @@ gkyl_pkpm_app_train_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann
     count += 1;
   }
   
-  kann_train_fnn1(ann, 0.001f, 64, 50, 10, 0.1f, count, input_data, output_data);
+  kann_train_fnn1(ann[sidx], 0.0001f, 64, 50, 10, 0.1f, count, input_data, output_data);
 
   for (int i = 0; i < app->grid.cells[0]; i++) {
     gkyl_free(input_data[i]);
@@ -721,18 +721,28 @@ gkyl_pkpm_app_train_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann
 }
 
 void
-gkyl_pkpm_app_write_nn(gkyl_pkpm_app* app, double tm, int frame, kann_t* ann)
+gkyl_pkpm_app_write_nn(gkyl_pkpm_app* app, double tm, int frame, kann_t** ann)
 {
-  const char *fmt = "%s_moms_nn_%d.dat";
-  int sz = gkyl_calc_strlen(fmt, app->name, frame);
-  char fileNm[sz + 1];
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, frame);
-
-  kann_save(fileNm, ann);
+  for (int i = 0; i < app->num_species; i++) {
+    gkyl_pkpm_app_write_nn_mom(app, i, tm, frame, ann);
+  }
 }
 
 void
-gkyl_pkpm_app_test(gkyl_pkpm_app* app, double tm, int frame, kann_t* ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms)
+gkyl_pkpm_app_write_nn_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann_t** ann)
+{
+  struct pkpm_species *s = &app->species[sidx];
+
+  const char *fmt = "%s_moms_nn_%d-%s.dat";
+  int sz = gkyl_calc_strlen(fmt, app->name, frame, s->info.name);
+  char fileNm[sz + 1];
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, frame, s->info.name);
+
+  kann_save(fileNm, ann[sidx]);
+}
+
+void
+gkyl_pkpm_app_test(gkyl_pkpm_app* app, double tm, int frame, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms)
 {
   for (int i = 0; i < app->num_species; i++) {
     gkyl_pkpm_app_test_mom(app, i, tm, frame, ann, num_input_moms, input_moms, num_output_moms, output_moms);
@@ -740,7 +750,7 @@ gkyl_pkpm_app_test(gkyl_pkpm_app* app, double tm, int frame, kann_t* ann, int nu
 }
 
 void
-gkyl_pkpm_app_test_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann_t* ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms)
+gkyl_pkpm_app_test_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms)
 {
   struct gkyl_msgpack_data *mt = pkpm_array_meta_new( (struct pkpm_output_meta) {
       .frame = frame,
@@ -816,7 +826,7 @@ gkyl_pkpm_app_test_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann_
   }
 
   for (int i = 0; i < count; i++) {
-    const float *output_predicted = kann_apply1(ann, input_data[i]);
+    const float *output_predicted = kann_apply1(ann[sidx], input_data[i]);
     if (app->poly_order == 1) {
       for (int j = 0; j < num_output_moms * 2; j++) {
         output_data_predicted[i][j] = output_predicted[j];

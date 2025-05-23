@@ -346,7 +346,7 @@ void gkyl_pkpm_app_stat_write(gkyl_pkpm_app* app);
  * @param output_moms Array of "output" moments to train on.
  */
  void
- gkyl_pkpm_app_train(gkyl_pkpm_app* app, double tm, int frame, kann_t* ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms);
+ gkyl_pkpm_app_train(gkyl_pkpm_app* app, double tm, int frame, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms);
 
  /**
  * Train neural network on PKPM moments data for a particular fluid species.
@@ -362,10 +362,10 @@ void gkyl_pkpm_app_stat_write(gkyl_pkpm_app* app);
  * @param output_moms Array of "output" moments to train on.
  */
 void
-gkyl_pkpm_app_train_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann_t* ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms);
+gkyl_pkpm_app_train_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms);
 
 /**
- * Write out overall PKPM moments neural network.
+ * Write out PKPM moments neural network for each fluid species.
  * 
  * @param app App object.
  * @param tm Time-stamp.
@@ -373,7 +373,19 @@ gkyl_pkpm_app_train_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann
  * @param ann Neural network architecture.
  */
  void
- gkyl_pkpm_app_write_nn(gkyl_pkpm_app* app, double tm, int frame, kann_t* ann);
+ gkyl_pkpm_app_write_nn(gkyl_pkpm_app* app, double tm, int frame, kann_t** ann);
+
+ /**
+ * Write out PKPM moments neural network for a particular fluid species.
+ * 
+ * @param app App object.
+ * @param sidx Index of fluid species to write out.
+ * @param tm Time-stamp.
+ * @param frame Frame number.
+ * @param ann Neural network architecture.
+ */
+ void
+ gkyl_pkpm_app_write_nn_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann_t** ann);
 
 /**
  * Test neural network on PKPM moments data for each fluid species, and write moments to a file.
@@ -388,7 +400,7 @@ gkyl_pkpm_app_train_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann
  * @param output_moms Array of "output" moments to test on.
  */
  void
- gkyl_pkpm_app_test(gkyl_pkpm_app* app, double tm, int frame, kann_t* ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms);
+ gkyl_pkpm_app_test(gkyl_pkpm_app* app, double tm, int frame, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms);
 
  /**
  * Test neural network on PKPM moments data for a particular fluid species, and write moments to a file.
@@ -404,7 +416,7 @@ gkyl_pkpm_app_train_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann
  * @param output_moms Array of "output" moments to test on.
  */
 void
-gkyl_pkpm_app_test_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann_t* ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms);
+gkyl_pkpm_app_test_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms);
 
 /**
  * Initialize field from file
