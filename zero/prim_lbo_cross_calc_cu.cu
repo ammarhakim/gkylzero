@@ -20,7 +20,7 @@ gkyl_prim_lbo_cross_calc_set_cu_ker(gkyl_prim_lbo_cross_calc* calc,
   const struct gkyl_array *greene,
   double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_prim_moms,
   double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_prim_moms,
-  const struct gkyl_array *boundary_corrections)
+  const struct gkyl_array *boundary_corrections, const struct gkyl_array *nu)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -46,13 +46,14 @@ gkyl_prim_lbo_cross_calc_set_cu_ker(gkyl_prim_lbo_cross_calc* calc,
     const double *other_moms_d = (const double*) gkyl_array_cfetch(other_moms, start);
     const double *other_prim_moms_d = (const double*) gkyl_array_cfetch(other_prim_moms, start);
     const double *boundary_corrections_d = (const double*) gkyl_array_cfetch(boundary_corrections, start);
+    const double *nu_d = (const double*) gkyl_array_cfetch(nu, start);
 
     gkyl_mat_clear(&lhs, 0.0); gkyl_mat_clear(&rhs, 0.0);
 
     calc->prim->cross_prim(calc->prim, &lhs, &rhs, idx, greene_d, 
       self_m, self_moms_d, self_prim_moms_d,
       other_m, other_moms_d, other_prim_moms_d,
-      boundary_corrections_d
+      boundary_corrections_d, nu_d
     );
   }
 }
@@ -91,7 +92,7 @@ gkyl_prim_lbo_cross_calc_advance_cu(struct gkyl_prim_lbo_cross_calc* calc,
   const struct gkyl_array *greene,
   double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_prim_moms,
   double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_prim_moms,
-  const struct gkyl_array *boundary_corrections, 
+  const struct gkyl_array *boundary_corrections, const struct gkyl_array *nu,  
   struct gkyl_array *prim_moms_out)
 {
   int nc = calc->prim->num_config;
@@ -111,7 +112,7 @@ gkyl_prim_lbo_cross_calc_advance_cu(struct gkyl_prim_lbo_cross_calc* calc,
     greene->on_dev, 
     self_m, self_moms->on_dev, self_prim_moms->on_dev,
     other_m, other_moms->on_dev, other_prim_moms->on_dev,
-    boundary_corrections->on_dev);
+    boundary_corrections->on_dev, nu->on_dev);
   
   bool status = gkyl_nmat_linsolve_lu_pa(calc->mem, calc->As, calc->xs);
   

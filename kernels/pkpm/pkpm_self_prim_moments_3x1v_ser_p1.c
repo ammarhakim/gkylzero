@@ -1,11 +1,12 @@
 #include <gkyl_prim_lbo_pkpm_kernels.h> 
  
-GKYL_CU_DH void pkpm_self_prim_moments_3x1v_ser_p1(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *vlasov_pkpm_moms, const double *boundary_corrections) 
+GKYL_CU_DH void pkpm_self_prim_moments_3x1v_ser_p1(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *vlasov_pkpm_moms, const double *boundary_corrections, const double *nu) 
 { 
   // A:                    Matrix to be inverted to solve Ax = rhs (set by this function). 
   // rhs:                  right-hand side of Ax = rhs (set by this function). 
   // vlasov_pkpm_moms:     [rho, p_parallel, p_perp], Moments computed from kinetic equation in pkpm model. 
   // boundary_corrections: boundary corrections to vtSq. 
+  // nu:                   collision frequency. 
  
   const double *rho = &vlasov_pkpm_moms[0]; 
   const double *p_parallel = &vlasov_pkpm_moms[8]; 
@@ -13,30 +14,30 @@ GKYL_CU_DH void pkpm_self_prim_moments_3x1v_ser_p1(struct gkyl_mat *A, struct gk
   const double *M1 = &vlasov_pkpm_moms[24]; 
   // If a corner value is below zero, use cell average.
   bool cellAvg = false;
-  if (-0.25*(7.348469228349534*rho[7]-4.242640687119286*(rho[6]+rho[5]+rho[4])+2.449489742783178*(rho[3]+rho[2]+rho[1])-1.414213562373095*rho[0]) < 0) cellAvg = true; 
-  if (-0.25*(7.348469228349534*p_parallel[7]-4.242640687119286*(p_parallel[6]+p_parallel[5]+p_parallel[4])+2.449489742783178*(p_parallel[3]+p_parallel[2]+p_parallel[1])-1.414213562373095*p_parallel[0]) < 0) cellAvg = true; 
-  if (-0.25*(7.348469228349534*p_perp[7]-4.242640687119286*(p_perp[6]+p_perp[5]+p_perp[4])+2.449489742783178*(p_perp[3]+p_perp[2]+p_perp[1])-1.414213562373095*p_perp[0]) < 0) cellAvg = true; 
-  if (0.25*(7.348469228349534*rho[7]+4.242640687119286*rho[6]-4.242640687119286*(rho[5]+rho[4])-2.449489742783178*(rho[3]+rho[2])+2.449489742783178*rho[1]+1.414213562373095*rho[0]) < 0) cellAvg = true; 
-  if (0.25*(7.348469228349534*p_parallel[7]+4.242640687119286*p_parallel[6]-4.242640687119286*(p_parallel[5]+p_parallel[4])-2.449489742783178*(p_parallel[3]+p_parallel[2])+2.449489742783178*p_parallel[1]+1.414213562373095*p_parallel[0]) < 0) cellAvg = true; 
-  if (0.25*(7.348469228349534*p_perp[7]+4.242640687119286*p_perp[6]-4.242640687119286*(p_perp[5]+p_perp[4])-2.449489742783178*(p_perp[3]+p_perp[2])+2.449489742783178*p_perp[1]+1.414213562373095*p_perp[0]) < 0) cellAvg = true; 
-  if (0.25*(7.348469228349534*rho[7]-4.242640687119286*rho[6]+4.242640687119286*rho[5]-4.242640687119286*rho[4]-2.449489742783178*rho[3]+2.449489742783178*rho[2]-2.449489742783178*rho[1]+1.414213562373095*rho[0]) < 0) cellAvg = true; 
-  if (0.25*(7.348469228349534*p_parallel[7]-4.242640687119286*p_parallel[6]+4.242640687119286*p_parallel[5]-4.242640687119286*p_parallel[4]-2.449489742783178*p_parallel[3]+2.449489742783178*p_parallel[2]-2.449489742783178*p_parallel[1]+1.414213562373095*p_parallel[0]) < 0) cellAvg = true; 
-  if (0.25*(7.348469228349534*p_perp[7]-4.242640687119286*p_perp[6]+4.242640687119286*p_perp[5]-4.242640687119286*p_perp[4]-2.449489742783178*p_perp[3]+2.449489742783178*p_perp[2]-2.449489742783178*p_perp[1]+1.414213562373095*p_perp[0]) < 0) cellAvg = true; 
-  if (-0.25*(7.348469228349534*rho[7]+4.242640687119286*(rho[6]+rho[5])-4.242640687119286*rho[4]+2.449489742783178*rho[3]-2.449489742783178*(rho[2]+rho[1])-1.414213562373095*rho[0]) < 0) cellAvg = true; 
-  if (-0.25*(7.348469228349534*p_parallel[7]+4.242640687119286*(p_parallel[6]+p_parallel[5])-4.242640687119286*p_parallel[4]+2.449489742783178*p_parallel[3]-2.449489742783178*(p_parallel[2]+p_parallel[1])-1.414213562373095*p_parallel[0]) < 0) cellAvg = true; 
-  if (-0.25*(7.348469228349534*p_perp[7]+4.242640687119286*(p_perp[6]+p_perp[5])-4.242640687119286*p_perp[4]+2.449489742783178*p_perp[3]-2.449489742783178*(p_perp[2]+p_perp[1])-1.414213562373095*p_perp[0]) < 0) cellAvg = true; 
-  if (0.25*(7.348469228349534*rho[7]-4.242640687119286*(rho[6]+rho[5])+4.242640687119286*rho[4]+2.449489742783178*rho[3]-2.449489742783178*(rho[2]+rho[1])+1.414213562373095*rho[0]) < 0) cellAvg = true; 
-  if (0.25*(7.348469228349534*p_parallel[7]-4.242640687119286*(p_parallel[6]+p_parallel[5])+4.242640687119286*p_parallel[4]+2.449489742783178*p_parallel[3]-2.449489742783178*(p_parallel[2]+p_parallel[1])+1.414213562373095*p_parallel[0]) < 0) cellAvg = true; 
-  if (0.25*(7.348469228349534*p_perp[7]-4.242640687119286*(p_perp[6]+p_perp[5])+4.242640687119286*p_perp[4]+2.449489742783178*p_perp[3]-2.449489742783178*(p_perp[2]+p_perp[1])+1.414213562373095*p_perp[0]) < 0) cellAvg = true; 
-  if (-0.25*(7.348469228349534*rho[7]+4.242640687119286*rho[6]-4.242640687119286*rho[5]+4.242640687119286*rho[4]-2.449489742783178*rho[3]+2.449489742783178*rho[2]-2.449489742783178*rho[1]-1.414213562373095*rho[0]) < 0) cellAvg = true; 
-  if (-0.25*(7.348469228349534*p_parallel[7]+4.242640687119286*p_parallel[6]-4.242640687119286*p_parallel[5]+4.242640687119286*p_parallel[4]-2.449489742783178*p_parallel[3]+2.449489742783178*p_parallel[2]-2.449489742783178*p_parallel[1]-1.414213562373095*p_parallel[0]) < 0) cellAvg = true; 
-  if (-0.25*(7.348469228349534*p_perp[7]+4.242640687119286*p_perp[6]-4.242640687119286*p_perp[5]+4.242640687119286*p_perp[4]-2.449489742783178*p_perp[3]+2.449489742783178*p_perp[2]-2.449489742783178*p_perp[1]-1.414213562373095*p_perp[0]) < 0) cellAvg = true; 
-  if (-0.25*(7.348469228349534*rho[7]-4.242640687119286*rho[6]+4.242640687119286*(rho[5]+rho[4])-2.449489742783178*(rho[3]+rho[2])+2.449489742783178*rho[1]-1.414213562373095*rho[0]) < 0) cellAvg = true; 
-  if (-0.25*(7.348469228349534*p_parallel[7]-4.242640687119286*p_parallel[6]+4.242640687119286*(p_parallel[5]+p_parallel[4])-2.449489742783178*(p_parallel[3]+p_parallel[2])+2.449489742783178*p_parallel[1]-1.414213562373095*p_parallel[0]) < 0) cellAvg = true; 
-  if (-0.25*(7.348469228349534*p_perp[7]-4.242640687119286*p_perp[6]+4.242640687119286*(p_perp[5]+p_perp[4])-2.449489742783178*(p_perp[3]+p_perp[2])+2.449489742783178*p_perp[1]-1.414213562373095*p_perp[0]) < 0) cellAvg = true; 
-  if (0.25*(7.348469228349534*rho[7]+4.242640687119286*(rho[6]+rho[5]+rho[4])+2.449489742783178*(rho[3]+rho[2]+rho[1])+1.414213562373095*rho[0]) < 0) cellAvg = true; 
-  if (0.25*(7.348469228349534*p_parallel[7]+4.242640687119286*(p_parallel[6]+p_parallel[5]+p_parallel[4])+2.449489742783178*(p_parallel[3]+p_parallel[2]+p_parallel[1])+1.414213562373095*p_parallel[0]) < 0) cellAvg = true; 
-  if (0.25*(7.348469228349534*p_perp[7]+4.242640687119286*(p_perp[6]+p_perp[5]+p_perp[4])+2.449489742783178*(p_perp[3]+p_perp[2]+p_perp[1])+1.414213562373095*p_perp[0]) < 0) cellAvg = true; 
+  if (-(0.25*(7.348469228349534*rho[7]-4.242640687119286*(rho[6]+rho[5]+rho[4])+2.4494897427831783*(rho[3]+rho[2]+rho[1])-1.4142135623730951*rho[0])) < 0) cellAvg = true; 
+  if (-(0.25*(7.348469228349534*p_parallel[7]-4.242640687119286*(p_parallel[6]+p_parallel[5]+p_parallel[4])+2.4494897427831783*(p_parallel[3]+p_parallel[2]+p_parallel[1])-1.4142135623730951*p_parallel[0])) < 0) cellAvg = true; 
+  if (-(0.25*(7.348469228349534*p_perp[7]-4.242640687119286*(p_perp[6]+p_perp[5]+p_perp[4])+2.4494897427831783*(p_perp[3]+p_perp[2]+p_perp[1])-1.4142135623730951*p_perp[0])) < 0) cellAvg = true; 
+  if (0.25*(7.348469228349534*rho[7]+4.242640687119286*rho[6]-4.242640687119286*(rho[5]+rho[4])-2.4494897427831783*(rho[3]+rho[2])+2.4494897427831783*rho[1]+1.4142135623730951*rho[0]) < 0) cellAvg = true; 
+  if (0.25*(7.348469228349534*p_parallel[7]+4.242640687119286*p_parallel[6]-4.242640687119286*(p_parallel[5]+p_parallel[4])-2.4494897427831783*(p_parallel[3]+p_parallel[2])+2.4494897427831783*p_parallel[1]+1.4142135623730951*p_parallel[0]) < 0) cellAvg = true; 
+  if (0.25*(7.348469228349534*p_perp[7]+4.242640687119286*p_perp[6]-4.242640687119286*(p_perp[5]+p_perp[4])-2.4494897427831783*(p_perp[3]+p_perp[2])+2.4494897427831783*p_perp[1]+1.4142135623730951*p_perp[0]) < 0) cellAvg = true; 
+  if (0.25*(7.348469228349534*rho[7]-4.242640687119286*rho[6]+4.242640687119286*rho[5]-4.242640687119286*rho[4]-2.4494897427831783*rho[3]+2.4494897427831783*rho[2]-2.4494897427831783*rho[1]+1.4142135623730951*rho[0]) < 0) cellAvg = true; 
+  if (0.25*(7.348469228349534*p_parallel[7]-4.242640687119286*p_parallel[6]+4.242640687119286*p_parallel[5]-4.242640687119286*p_parallel[4]-2.4494897427831783*p_parallel[3]+2.4494897427831783*p_parallel[2]-2.4494897427831783*p_parallel[1]+1.4142135623730951*p_parallel[0]) < 0) cellAvg = true; 
+  if (0.25*(7.348469228349534*p_perp[7]-4.242640687119286*p_perp[6]+4.242640687119286*p_perp[5]-4.242640687119286*p_perp[4]-2.4494897427831783*p_perp[3]+2.4494897427831783*p_perp[2]-2.4494897427831783*p_perp[1]+1.4142135623730951*p_perp[0]) < 0) cellAvg = true; 
+  if (-(0.25*(7.348469228349534*rho[7]+4.242640687119286*(rho[6]+rho[5])-4.242640687119286*rho[4]+2.4494897427831783*rho[3]-2.4494897427831783*(rho[2]+rho[1])-1.4142135623730951*rho[0])) < 0) cellAvg = true; 
+  if (-(0.25*(7.348469228349534*p_parallel[7]+4.242640687119286*(p_parallel[6]+p_parallel[5])-4.242640687119286*p_parallel[4]+2.4494897427831783*p_parallel[3]-2.4494897427831783*(p_parallel[2]+p_parallel[1])-1.4142135623730951*p_parallel[0])) < 0) cellAvg = true; 
+  if (-(0.25*(7.348469228349534*p_perp[7]+4.242640687119286*(p_perp[6]+p_perp[5])-4.242640687119286*p_perp[4]+2.4494897427831783*p_perp[3]-2.4494897427831783*(p_perp[2]+p_perp[1])-1.4142135623730951*p_perp[0])) < 0) cellAvg = true; 
+  if (0.25*(7.348469228349534*rho[7]-4.242640687119286*(rho[6]+rho[5])+4.242640687119286*rho[4]+2.4494897427831783*rho[3]-2.4494897427831783*(rho[2]+rho[1])+1.4142135623730951*rho[0]) < 0) cellAvg = true; 
+  if (0.25*(7.348469228349534*p_parallel[7]-4.242640687119286*(p_parallel[6]+p_parallel[5])+4.242640687119286*p_parallel[4]+2.4494897427831783*p_parallel[3]-2.4494897427831783*(p_parallel[2]+p_parallel[1])+1.4142135623730951*p_parallel[0]) < 0) cellAvg = true; 
+  if (0.25*(7.348469228349534*p_perp[7]-4.242640687119286*(p_perp[6]+p_perp[5])+4.242640687119286*p_perp[4]+2.4494897427831783*p_perp[3]-2.4494897427831783*(p_perp[2]+p_perp[1])+1.4142135623730951*p_perp[0]) < 0) cellAvg = true; 
+  if (-(0.25*(7.348469228349534*rho[7]+4.242640687119286*rho[6]-4.242640687119286*rho[5]+4.242640687119286*rho[4]-2.4494897427831783*rho[3]+2.4494897427831783*rho[2]-2.4494897427831783*rho[1]-1.4142135623730951*rho[0])) < 0) cellAvg = true; 
+  if (-(0.25*(7.348469228349534*p_parallel[7]+4.242640687119286*p_parallel[6]-4.242640687119286*p_parallel[5]+4.242640687119286*p_parallel[4]-2.4494897427831783*p_parallel[3]+2.4494897427831783*p_parallel[2]-2.4494897427831783*p_parallel[1]-1.4142135623730951*p_parallel[0])) < 0) cellAvg = true; 
+  if (-(0.25*(7.348469228349534*p_perp[7]+4.242640687119286*p_perp[6]-4.242640687119286*p_perp[5]+4.242640687119286*p_perp[4]-2.4494897427831783*p_perp[3]+2.4494897427831783*p_perp[2]-2.4494897427831783*p_perp[1]-1.4142135623730951*p_perp[0])) < 0) cellAvg = true; 
+  if (-(0.25*(7.348469228349534*rho[7]-4.242640687119286*rho[6]+4.242640687119286*(rho[5]+rho[4])-2.4494897427831783*(rho[3]+rho[2])+2.4494897427831783*rho[1]-1.4142135623730951*rho[0])) < 0) cellAvg = true; 
+  if (-(0.25*(7.348469228349534*p_parallel[7]-4.242640687119286*p_parallel[6]+4.242640687119286*(p_parallel[5]+p_parallel[4])-2.4494897427831783*(p_parallel[3]+p_parallel[2])+2.4494897427831783*p_parallel[1]-1.4142135623730951*p_parallel[0])) < 0) cellAvg = true; 
+  if (-(0.25*(7.348469228349534*p_perp[7]-4.242640687119286*p_perp[6]+4.242640687119286*(p_perp[5]+p_perp[4])-2.4494897427831783*(p_perp[3]+p_perp[2])+2.4494897427831783*p_perp[1]-1.4142135623730951*p_perp[0])) < 0) cellAvg = true; 
+  if (0.25*(7.348469228349534*rho[7]+4.242640687119286*(rho[6]+rho[5]+rho[4])+2.4494897427831783*(rho[3]+rho[2]+rho[1])+1.4142135623730951*rho[0]) < 0) cellAvg = true; 
+  if (0.25*(7.348469228349534*p_parallel[7]+4.242640687119286*(p_parallel[6]+p_parallel[5]+p_parallel[4])+2.4494897427831783*(p_parallel[3]+p_parallel[2]+p_parallel[1])+1.4142135623730951*p_parallel[0]) < 0) cellAvg = true; 
+  if (0.25*(7.348469228349534*p_perp[7]+4.242640687119286*(p_perp[6]+p_perp[5]+p_perp[4])+2.4494897427831783*(p_perp[3]+p_perp[2]+p_perp[1])+1.4142135623730951*p_perp[0]) < 0) cellAvg = true; 
  
   double m0r[8] = {0.0}; 
   double m1r[8] = {0.0}; 
@@ -209,70 +210,70 @@ GKYL_CU_DH void pkpm_self_prim_moments_3x1v_ser_p1(struct gkyl_mat *A, struct gk
   gkyl_mat_set(A,7,7,0.3535533905932737*m0r[0]); 
  
   // ....... Block from correction to u (correction to M1).......... // 
-  gkyl_mat_set(A,0,8,-0.3535533905932737*cMr[0]); 
-  gkyl_mat_set(A,0,9,-0.3535533905932737*cMr[1]); 
-  gkyl_mat_set(A,0,10,-0.3535533905932737*cMr[2]); 
-  gkyl_mat_set(A,0,11,-0.3535533905932737*cMr[3]); 
-  gkyl_mat_set(A,0,12,-0.3535533905932737*cMr[4]); 
-  gkyl_mat_set(A,0,13,-0.3535533905932737*cMr[5]); 
-  gkyl_mat_set(A,0,14,-0.3535533905932737*cMr[6]); 
-  gkyl_mat_set(A,0,15,-0.3535533905932737*cMr[7]); 
-  gkyl_mat_set(A,1,8,-0.3535533905932737*cMr[1]); 
-  gkyl_mat_set(A,1,9,-0.3535533905932737*cMr[0]); 
-  gkyl_mat_set(A,1,10,-0.3535533905932737*cMr[4]); 
-  gkyl_mat_set(A,1,11,-0.3535533905932737*cMr[5]); 
-  gkyl_mat_set(A,1,12,-0.3535533905932737*cMr[2]); 
-  gkyl_mat_set(A,1,13,-0.3535533905932737*cMr[3]); 
-  gkyl_mat_set(A,1,14,-0.3535533905932737*cMr[7]); 
-  gkyl_mat_set(A,1,15,-0.3535533905932737*cMr[6]); 
-  gkyl_mat_set(A,2,8,-0.3535533905932737*cMr[2]); 
-  gkyl_mat_set(A,2,9,-0.3535533905932737*cMr[4]); 
-  gkyl_mat_set(A,2,10,-0.3535533905932737*cMr[0]); 
-  gkyl_mat_set(A,2,11,-0.3535533905932737*cMr[6]); 
-  gkyl_mat_set(A,2,12,-0.3535533905932737*cMr[1]); 
-  gkyl_mat_set(A,2,13,-0.3535533905932737*cMr[7]); 
-  gkyl_mat_set(A,2,14,-0.3535533905932737*cMr[3]); 
-  gkyl_mat_set(A,2,15,-0.3535533905932737*cMr[5]); 
-  gkyl_mat_set(A,3,8,-0.3535533905932737*cMr[3]); 
-  gkyl_mat_set(A,3,9,-0.3535533905932737*cMr[5]); 
-  gkyl_mat_set(A,3,10,-0.3535533905932737*cMr[6]); 
-  gkyl_mat_set(A,3,11,-0.3535533905932737*cMr[0]); 
-  gkyl_mat_set(A,3,12,-0.3535533905932737*cMr[7]); 
-  gkyl_mat_set(A,3,13,-0.3535533905932737*cMr[1]); 
-  gkyl_mat_set(A,3,14,-0.3535533905932737*cMr[2]); 
-  gkyl_mat_set(A,3,15,-0.3535533905932737*cMr[4]); 
-  gkyl_mat_set(A,4,8,-0.3535533905932737*cMr[4]); 
-  gkyl_mat_set(A,4,9,-0.3535533905932737*cMr[2]); 
-  gkyl_mat_set(A,4,10,-0.3535533905932737*cMr[1]); 
-  gkyl_mat_set(A,4,11,-0.3535533905932737*cMr[7]); 
-  gkyl_mat_set(A,4,12,-0.3535533905932737*cMr[0]); 
-  gkyl_mat_set(A,4,13,-0.3535533905932737*cMr[6]); 
-  gkyl_mat_set(A,4,14,-0.3535533905932737*cMr[5]); 
-  gkyl_mat_set(A,4,15,-0.3535533905932737*cMr[3]); 
-  gkyl_mat_set(A,5,8,-0.3535533905932737*cMr[5]); 
-  gkyl_mat_set(A,5,9,-0.3535533905932737*cMr[3]); 
-  gkyl_mat_set(A,5,10,-0.3535533905932737*cMr[7]); 
-  gkyl_mat_set(A,5,11,-0.3535533905932737*cMr[1]); 
-  gkyl_mat_set(A,5,12,-0.3535533905932737*cMr[6]); 
-  gkyl_mat_set(A,5,13,-0.3535533905932737*cMr[0]); 
-  gkyl_mat_set(A,5,14,-0.3535533905932737*cMr[4]); 
-  gkyl_mat_set(A,5,15,-0.3535533905932737*cMr[2]); 
-  gkyl_mat_set(A,6,8,-0.3535533905932737*cMr[6]); 
-  gkyl_mat_set(A,6,9,-0.3535533905932737*cMr[7]); 
-  gkyl_mat_set(A,6,10,-0.3535533905932737*cMr[3]); 
-  gkyl_mat_set(A,6,11,-0.3535533905932737*cMr[2]); 
-  gkyl_mat_set(A,6,12,-0.3535533905932737*cMr[5]); 
-  gkyl_mat_set(A,6,13,-0.3535533905932737*cMr[4]); 
-  gkyl_mat_set(A,6,14,-0.3535533905932737*cMr[0]); 
-  gkyl_mat_set(A,6,15,-0.3535533905932737*cMr[1]); 
-  gkyl_mat_set(A,7,8,-0.3535533905932737*cMr[7]); 
-  gkyl_mat_set(A,7,9,-0.3535533905932737*cMr[6]); 
-  gkyl_mat_set(A,7,10,-0.3535533905932737*cMr[5]); 
-  gkyl_mat_set(A,7,11,-0.3535533905932737*cMr[4]); 
-  gkyl_mat_set(A,7,12,-0.3535533905932737*cMr[3]); 
-  gkyl_mat_set(A,7,13,-0.3535533905932737*cMr[2]); 
-  gkyl_mat_set(A,7,14,-0.3535533905932737*cMr[1]); 
-  gkyl_mat_set(A,7,15,-0.3535533905932737*cMr[0]); 
+  gkyl_mat_set(A,0,8,-(0.3535533905932737*cMr[0])); 
+  gkyl_mat_set(A,0,9,-(0.3535533905932737*cMr[1])); 
+  gkyl_mat_set(A,0,10,-(0.3535533905932737*cMr[2])); 
+  gkyl_mat_set(A,0,11,-(0.3535533905932737*cMr[3])); 
+  gkyl_mat_set(A,0,12,-(0.3535533905932737*cMr[4])); 
+  gkyl_mat_set(A,0,13,-(0.3535533905932737*cMr[5])); 
+  gkyl_mat_set(A,0,14,-(0.3535533905932737*cMr[6])); 
+  gkyl_mat_set(A,0,15,-(0.3535533905932737*cMr[7])); 
+  gkyl_mat_set(A,1,8,-(0.3535533905932737*cMr[1])); 
+  gkyl_mat_set(A,1,9,-(0.3535533905932737*cMr[0])); 
+  gkyl_mat_set(A,1,10,-(0.3535533905932737*cMr[4])); 
+  gkyl_mat_set(A,1,11,-(0.3535533905932737*cMr[5])); 
+  gkyl_mat_set(A,1,12,-(0.3535533905932737*cMr[2])); 
+  gkyl_mat_set(A,1,13,-(0.3535533905932737*cMr[3])); 
+  gkyl_mat_set(A,1,14,-(0.3535533905932737*cMr[7])); 
+  gkyl_mat_set(A,1,15,-(0.3535533905932737*cMr[6])); 
+  gkyl_mat_set(A,2,8,-(0.3535533905932737*cMr[2])); 
+  gkyl_mat_set(A,2,9,-(0.3535533905932737*cMr[4])); 
+  gkyl_mat_set(A,2,10,-(0.3535533905932737*cMr[0])); 
+  gkyl_mat_set(A,2,11,-(0.3535533905932737*cMr[6])); 
+  gkyl_mat_set(A,2,12,-(0.3535533905932737*cMr[1])); 
+  gkyl_mat_set(A,2,13,-(0.3535533905932737*cMr[7])); 
+  gkyl_mat_set(A,2,14,-(0.3535533905932737*cMr[3])); 
+  gkyl_mat_set(A,2,15,-(0.3535533905932737*cMr[5])); 
+  gkyl_mat_set(A,3,8,-(0.3535533905932737*cMr[3])); 
+  gkyl_mat_set(A,3,9,-(0.3535533905932737*cMr[5])); 
+  gkyl_mat_set(A,3,10,-(0.3535533905932737*cMr[6])); 
+  gkyl_mat_set(A,3,11,-(0.3535533905932737*cMr[0])); 
+  gkyl_mat_set(A,3,12,-(0.3535533905932737*cMr[7])); 
+  gkyl_mat_set(A,3,13,-(0.3535533905932737*cMr[1])); 
+  gkyl_mat_set(A,3,14,-(0.3535533905932737*cMr[2])); 
+  gkyl_mat_set(A,3,15,-(0.3535533905932737*cMr[4])); 
+  gkyl_mat_set(A,4,8,-(0.3535533905932737*cMr[4])); 
+  gkyl_mat_set(A,4,9,-(0.3535533905932737*cMr[2])); 
+  gkyl_mat_set(A,4,10,-(0.3535533905932737*cMr[1])); 
+  gkyl_mat_set(A,4,11,-(0.3535533905932737*cMr[7])); 
+  gkyl_mat_set(A,4,12,-(0.3535533905932737*cMr[0])); 
+  gkyl_mat_set(A,4,13,-(0.3535533905932737*cMr[6])); 
+  gkyl_mat_set(A,4,14,-(0.3535533905932737*cMr[5])); 
+  gkyl_mat_set(A,4,15,-(0.3535533905932737*cMr[3])); 
+  gkyl_mat_set(A,5,8,-(0.3535533905932737*cMr[5])); 
+  gkyl_mat_set(A,5,9,-(0.3535533905932737*cMr[3])); 
+  gkyl_mat_set(A,5,10,-(0.3535533905932737*cMr[7])); 
+  gkyl_mat_set(A,5,11,-(0.3535533905932737*cMr[1])); 
+  gkyl_mat_set(A,5,12,-(0.3535533905932737*cMr[6])); 
+  gkyl_mat_set(A,5,13,-(0.3535533905932737*cMr[0])); 
+  gkyl_mat_set(A,5,14,-(0.3535533905932737*cMr[4])); 
+  gkyl_mat_set(A,5,15,-(0.3535533905932737*cMr[2])); 
+  gkyl_mat_set(A,6,8,-(0.3535533905932737*cMr[6])); 
+  gkyl_mat_set(A,6,9,-(0.3535533905932737*cMr[7])); 
+  gkyl_mat_set(A,6,10,-(0.3535533905932737*cMr[3])); 
+  gkyl_mat_set(A,6,11,-(0.3535533905932737*cMr[2])); 
+  gkyl_mat_set(A,6,12,-(0.3535533905932737*cMr[5])); 
+  gkyl_mat_set(A,6,13,-(0.3535533905932737*cMr[4])); 
+  gkyl_mat_set(A,6,14,-(0.3535533905932737*cMr[0])); 
+  gkyl_mat_set(A,6,15,-(0.3535533905932737*cMr[1])); 
+  gkyl_mat_set(A,7,8,-(0.3535533905932737*cMr[7])); 
+  gkyl_mat_set(A,7,9,-(0.3535533905932737*cMr[6])); 
+  gkyl_mat_set(A,7,10,-(0.3535533905932737*cMr[5])); 
+  gkyl_mat_set(A,7,11,-(0.3535533905932737*cMr[4])); 
+  gkyl_mat_set(A,7,12,-(0.3535533905932737*cMr[3])); 
+  gkyl_mat_set(A,7,13,-(0.3535533905932737*cMr[2])); 
+  gkyl_mat_set(A,7,14,-(0.3535533905932737*cMr[1])); 
+  gkyl_mat_set(A,7,15,-(0.3535533905932737*cMr[0])); 
  
   // ....... Block from weak multiply of u (correction to M1) and M1  .......... // 
   gkyl_mat_set(A,8,0,0.3535533905932737*m1r[0]); 

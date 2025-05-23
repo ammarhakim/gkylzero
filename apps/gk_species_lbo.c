@@ -302,7 +302,7 @@ gk_species_lbo_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
 
   // Construct primitive moments.
   gkyl_prim_lbo_calc_advance(lbo->coll_pcalc, &app->local, 
-    lbo->moms_buff, lbo->boundary_corrections_buff, lbo->prim_moms);
+    lbo->moms_buff, lbo->boundary_corrections_buff, lbo->self_nu, lbo->prim_moms);
 
   // Scale upar and vtSq by nu.
   for (int d=0; d<2; d++)
@@ -344,7 +344,7 @@ gk_species_lbo_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
     // Compute cross primitive moments.
     gkyl_prim_lbo_cross_calc_advance(lbo->cross_calc, &app->local, lbo->greene_factor, species->info.mass,
       lbo->moms_buff, lbo->prim_moms, lbo->other_m[i], lbo->collide_with[i]->lbo.moms_buff,
-      lbo->other_prim_moms[i], lbo->boundary_corrections_buff, lbo->cross_prim_moms[i]);
+      lbo->other_prim_moms[i], lbo->boundary_corrections_buff, lbo->cross_nu[i], lbo->cross_prim_moms[i]);
 
     // Scale upar_{rs} and vtSq_{rs} by nu_{rs}
     for (int d=0; d<2; d++)

@@ -132,7 +132,7 @@ pkpm_species_lbo_moms(gkyl_pkpm_app *app, const struct pkpm_species *species,
 
   // Compute primitive moments.
   gkyl_prim_lbo_calc_advance(lbo->coll_pcalc, &app->local, 
-    species->pkpm_moms.marr, lbo->boundary_corrections, lbo->prim_moms);
+    species->pkpm_moms.marr, lbo->boundary_corrections, lbo->self_nu, lbo->prim_moms);
 
   if (app->use_gpu) {
     // PKPM moments already computed before this, so just fetch results
@@ -193,7 +193,7 @@ pkpm_species_lbo_cross_moms(gkyl_pkpm_app *app, const struct pkpm_species *speci
       lbo->greene_factor[i], 
       species->info.mass, lbo->moms.marr, lbo->prim_moms, 
       lbo->other_m[i], lbo->collide_with[i]->lbo.moms.marr, lbo->other_prim_moms[i],
-      lbo->boundary_corrections, 
+      lbo->boundary_corrections, lbo->cross_nu[i],
       lbo->cross_prim_moms[i]);
 
 
