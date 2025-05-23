@@ -111,6 +111,10 @@ gkyl_position_map_set_bmag(struct gkyl_position_map* gpm, struct gkyl_comm* comm
   struct gkyl_array* bmag)
 {
   gpm->to_optimize = true;
+  int N_boundaries = gpm->constB_ctx->N_theta_boundaries;
+  gpm->constB_ctx->theta_extrema = gkyl_malloc(sizeof(double) * N_boundaries);
+  gpm->constB_ctx->bmag_extrema = gkyl_malloc(sizeof(double) * N_boundaries);
+  gpm->constB_ctx->min_or_max = gkyl_malloc(sizeof(bool) * N_boundaries);
   if (comm == NULL) {
     gkyl_array_release(gpm->bmag_ctx->bmag);
     gpm->bmag_ctx->bmag = gkyl_array_acquire(bmag);
@@ -248,6 +252,12 @@ gkyl_position_map_free(const struct gkyl_ref_count *ref)
   struct gkyl_position_map *gpm = container_of(ref, struct gkyl_position_map, ref_count);
   gkyl_array_release(gpm->mc2nu);
   gkyl_array_release(gpm->bmag_ctx->bmag);
+  if (gpm->to_optimize == true)
+  {
+    gkyl_free(gpm->constB_ctx->theta_extrema);
+    gkyl_free(gpm->constB_ctx->bmag_extrema);
+    gkyl_free(gpm->constB_ctx->min_or_max);
+  }
   gkyl_free(gpm->bmag_ctx);
   gkyl_free(gpm->constB_ctx);
   gkyl_free(gpm);

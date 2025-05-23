@@ -25,8 +25,8 @@ GKYL_CU_DH double lbo_gyrokinetic_drag_boundary_surfvpar_1x2v_ser_p1(const doubl
 
   if (edge == -1) { 
 
-  alphaDrSurf[0] = nuSum[0]*(1.732050807568877*vmap[1]+vmap[0])-1.414213562373095*nuUSum[0]; 
-  alphaDrSurf[1] = 1.732050807568877*nuSum[1]*vmap[1]-1.414213562373095*nuUSum[1]+vmap[0]*nuSum[1]; 
+  alphaDrSurf[0] = nuSum[0]*(1.7320508075688772*vmap[1]+vmap[0])-1.4142135623730951*nuUSum[0]; 
+  alphaDrSurf[1] = 1.7320508075688772*nuSum[1]*vmap[1]-1.4142135623730951*nuUSum[1]+vmap[0]*nuSum[1]; 
 
   if (alphaDrSurf[0]-alphaDrSurf[1] < 0.0) { 
     fUpwindQuad[0] = gkhyb_1x2v_p1_surfx2_eval_quad_node_0_r(fSkin)/vmap_prime_skin[0]; 
@@ -35,7 +35,7 @@ GKYL_CU_DH double lbo_gyrokinetic_drag_boundary_surfvpar_1x2v_ser_p1(const doubl
     fUpwindQuad[0] = gkhyb_1x2v_p1_surfx2_eval_quad_node_0_l(fEdge)/vmap_prime_edge[0]; 
     fUpwindQuad[1] = gkhyb_1x2v_p1_surfx2_eval_quad_node_1_l(fEdge)/vmap_prime_edge[0]; 
   } 
-  if (alphaDrSurf[0]-alphaDrSurf[1] < 0.0) { 
+  if (alphaDrSurf[1]+alphaDrSurf[0] < 0.0) { 
     fUpwindQuad[2] = gkhyb_1x2v_p1_surfx2_eval_quad_node_2_r(fSkin)/vmap_prime_skin[0]; 
     fUpwindQuad[3] = gkhyb_1x2v_p1_surfx2_eval_quad_node_3_r(fSkin)/vmap_prime_skin[0]; 
   } else { 
@@ -59,15 +59,15 @@ GKYL_CU_DH double lbo_gyrokinetic_drag_boundary_surfvpar_1x2v_ser_p1(const doubl
   out[5] += 0.7071067811865475*Ghat[3]*rdv2; 
   out[6] += 1.224744871391589*Ghat[2]*rdv2; 
   out[7] += 1.224744871391589*Ghat[3]*rdv2; 
-  out[8] += 1.58113883008419*Ghat[0]*rdv2; 
-  out[9] += 1.58113883008419*Ghat[1]*rdv2; 
-  out[10] += 1.58113883008419*Ghat[2]*rdv2; 
-  out[11] += 1.58113883008419*Ghat[3]*rdv2; 
+  out[8] += 1.5811388300841895*Ghat[0]*rdv2; 
+  out[9] += 1.5811388300841898*Ghat[1]*rdv2; 
+  out[10] += 1.5811388300841898*Ghat[2]*rdv2; 
+  out[11] += 1.5811388300841895*Ghat[3]*rdv2; 
 
   } else { 
 
-  alphaDrSurf[0] = nuSum[0]*(vmap[0]-1.732050807568877*vmap[1])-1.414213562373095*nuUSum[0]; 
-  alphaDrSurf[1] = (-1.732050807568877*nuSum[1]*vmap[1])-1.414213562373095*nuUSum[1]+vmap[0]*nuSum[1]; 
+  alphaDrSurf[0] = nuSum[0]*(vmap[0]-1.7320508075688772*vmap[1])-1.4142135623730951*nuUSum[0]; 
+  alphaDrSurf[1] = -(1.7320508075688772*nuSum[1]*vmap[1])-1.4142135623730951*nuUSum[1]+vmap[0]*nuSum[1]; 
 
   if (alphaDrSurf[0]-alphaDrSurf[1] < 0.0) { 
     fUpwindQuad[0] = gkhyb_1x2v_p1_surfx2_eval_quad_node_0_r(fEdge)/vmap_prime_edge[0]; 
@@ -76,7 +76,7 @@ GKYL_CU_DH double lbo_gyrokinetic_drag_boundary_surfvpar_1x2v_ser_p1(const doubl
     fUpwindQuad[0] = gkhyb_1x2v_p1_surfx2_eval_quad_node_0_l(fSkin)/vmap_prime_skin[0]; 
     fUpwindQuad[1] = gkhyb_1x2v_p1_surfx2_eval_quad_node_1_l(fSkin)/vmap_prime_skin[0]; 
   } 
-  if (alphaDrSurf[0]-alphaDrSurf[1] < 0.0) { 
+  if (alphaDrSurf[1]+alphaDrSurf[0] < 0.0) { 
     fUpwindQuad[2] = gkhyb_1x2v_p1_surfx2_eval_quad_node_2_r(fEdge)/vmap_prime_edge[0]; 
     fUpwindQuad[3] = gkhyb_1x2v_p1_surfx2_eval_quad_node_3_r(fEdge)/vmap_prime_edge[0]; 
   } else { 
@@ -92,18 +92,18 @@ GKYL_CU_DH double lbo_gyrokinetic_drag_boundary_surfvpar_1x2v_ser_p1(const doubl
   Ghat[2] = 0.5*(alphaDrSurf[1]*fUpwind[3]+alphaDrSurf[0]*fUpwind[2]); 
   Ghat[3] = 0.5*(alphaDrSurf[0]*fUpwind[3]+alphaDrSurf[1]*fUpwind[2]); 
 
-  out[0] += -0.7071067811865475*Ghat[0]*rdv2; 
-  out[1] += -0.7071067811865475*Ghat[1]*rdv2; 
+  out[0] += -(0.7071067811865475*Ghat[0]*rdv2); 
+  out[1] += -(0.7071067811865475*Ghat[1]*rdv2); 
   out[2] += 1.224744871391589*Ghat[0]*rdv2; 
-  out[3] += -0.7071067811865475*Ghat[2]*rdv2; 
+  out[3] += -(0.7071067811865475*Ghat[2]*rdv2); 
   out[4] += 1.224744871391589*Ghat[1]*rdv2; 
-  out[5] += -0.7071067811865475*Ghat[3]*rdv2; 
+  out[5] += -(0.7071067811865475*Ghat[3]*rdv2); 
   out[6] += 1.224744871391589*Ghat[2]*rdv2; 
   out[7] += 1.224744871391589*Ghat[3]*rdv2; 
-  out[8] += -1.58113883008419*Ghat[0]*rdv2; 
-  out[9] += -1.58113883008419*Ghat[1]*rdv2; 
-  out[10] += -1.58113883008419*Ghat[2]*rdv2; 
-  out[11] += -1.58113883008419*Ghat[3]*rdv2; 
+  out[8] += -(1.5811388300841895*Ghat[0]*rdv2); 
+  out[9] += -(1.5811388300841898*Ghat[1]*rdv2); 
+  out[10] += -(1.5811388300841898*Ghat[2]*rdv2); 
+  out[11] += -(1.5811388300841895*Ghat[3]*rdv2); 
 
   } 
 
