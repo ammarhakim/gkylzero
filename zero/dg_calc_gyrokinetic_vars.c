@@ -87,7 +87,7 @@ void gkyl_dg_calc_gyrokinetic_vars_alpha_surf(struct gkyl_dg_calc_gyrokinetic_va
 
     gkyl_rect_grid_cell_center(&up->phase_grid, idx, xc);
 
-    const double *bmag_d = gkyl_array_cfetch(up->gk_geom->geo_int.bmag, loc_conf);
+    const double *bmag_d = gkyl_array_cfetch(up->gk_geom->geo_corn.bmag, loc_conf);
     const double *jacobtot_inv_d = gkyl_array_cfetch(up->gk_geom->geo_int.jacobtot_inv, loc_conf);
     const double *cmag_d = gkyl_array_cfetch(up->gk_geom->geo_int.cmag, loc_conf);
     const double *b_i_d = gkyl_array_cfetch(up->gk_geom->geo_int.b_i, loc_conf);

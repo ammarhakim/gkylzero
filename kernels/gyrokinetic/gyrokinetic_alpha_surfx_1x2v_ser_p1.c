@@ -36,8 +36,9 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_1x2v_ser_p1(const double *w, const double
   const double *b_z_surf = &b_i_surf[0];
 
   double hamil[6] = {0.}; 
-  hamil[0] = (1.4142135623730951*phi[0]-2.4494897427831783*phi[1])*q_+0.7071067811865475*vmapSq[0]*m_; 
+  hamil[0] = (1.4142135623730951*phi[0]-2.4494897427831783*phi[1])*q_+0.7071067811865475*vmapSq[0]*m_+(bmag[0]-1.7320508075688772*bmag[1])*vmap[2]; 
   hamil[1] = 0.7071067811865475*vmapSq[1]*m_; 
+  hamil[2] = (bmag[0]-1.7320508075688772*bmag[1])*vmap[3]; 
   hamil[4] = 0.7071067811865475*vmapSq[2]*m_; 
 
   double *alphaL = &alpha_surf[0];
