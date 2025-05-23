@@ -657,12 +657,22 @@ gkyl_pkpm_app_train_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann
 
   float **input_data = gkyl_malloc(sizeof(float*[app->grid.cells[0]]));
   for (int i = 0; i < app->grid.cells[0]; i++) {
-    input_data[i] = gkyl_malloc(sizeof(float[num_input_moms * 2]));
+    if (app->poly_order == 1) {
+      input_data[i] = gkyl_malloc(sizeof(float[num_input_moms * 2]));
+    }
+    else if (app->poly_order == 2) {
+      input_data[i] = gkyl_malloc(sizeof(float[num_input_moms * 3]));
+    }
   }
 
   float **output_data = gkyl_malloc(sizeof(float*[app->grid.cells[0]]));
   for (int i = 0; i < app->grid.cells[0]; i++) {
-    output_data[i] = gkyl_malloc(sizeof(float[num_output_moms * 2]));
+    if (app->poly_order == 1) {
+      output_data[i] = gkyl_malloc(sizeof(float[num_output_moms * 2]));
+    }
+    else if (app->poly_order == 2) {
+      output_data[i] = gkyl_malloc(sizeof(float[num_output_moms * 3]));
+    }
   }
 
   struct gkyl_range_iter iter;
@@ -674,13 +684,27 @@ gkyl_pkpm_app_train_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann
     const double *pkpm_moms_diag_d = gkyl_array_cfetch(s->pkpm_moms_diag.marr_host, loc);
 
     for (int i = 0; i < num_input_moms; i++) {
-      input_data[count][i * 2] = (float)pkpm_moms_diag_d[input_moms[i] * 2];
-      input_data[count][(i * 2) + 1] = (float)pkpm_moms_diag_d[(input_moms[i] * 2) + 1];
+      if (app->poly_order == 1) {
+        input_data[count][i * 2] = (float)pkpm_moms_diag_d[input_moms[i] * 2];
+        input_data[count][(i * 2) + 1] = (float)pkpm_moms_diag_d[(input_moms[i] * 2) + 1];
+      }
+      else if (app->poly_order == 2) {
+        input_data[count][i * 3] = (float)pkpm_moms_diag_d[input_moms[i] * 3];
+        input_data[count][(i * 3) + 1] = (float)pkpm_moms_diag_d[(input_moms[i] * 3) + 1];
+        input_data[count][(i * 3) + 2] = (float)pkpm_moms_diag_d[(input_moms[i] * 3) + 2];
+      }
     }
 
     for (int i = 0; i < num_output_moms; i++) {
-      output_data[count][i * 2] = (float)pkpm_moms_diag_d[output_moms[i] * 2];
-      output_data[count][(i * 2) + 1] = (float)pkpm_moms_diag_d[(output_moms[i] * 2) + 1];
+      if (app->poly_order == 1) {
+        output_data[count][i * 2] = (float)pkpm_moms_diag_d[output_moms[i] * 2];
+        output_data[count][(i * 2) + 1] = (float)pkpm_moms_diag_d[(output_moms[i] * 2) + 1];
+      }
+      else if (app->poly_order == 2) {
+        output_data[count][i * 3] = (float)pkpm_moms_diag_d[output_moms[i] * 3];
+        output_data[count][(i * 3) + 1] = (float)pkpm_moms_diag_d[(output_moms[i] * 3) + 1];
+        output_data[count][(i * 3) + 2] = (float)pkpm_moms_diag_d[(output_moms[i] * 3) + 2];
+      }
     }
 
     count += 1;
@@ -735,14 +759,25 @@ gkyl_pkpm_app_test_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann_
 
   float **input_data = gkyl_malloc(sizeof(float*[app->grid.cells[0]]));
   for (int i = 0; i < app->grid.cells[0]; i++) {
-    input_data[i] = gkyl_malloc(sizeof(float[num_input_moms * 2]));
+    if (app->poly_order == 1) {
+      input_data[i] = gkyl_malloc(sizeof(float[num_input_moms * 2]));
+    }
+    else if (app->poly_order == 2) {
+      input_data[i] = gkyl_malloc(sizeof(float[num_input_moms * 3]));
+    }
   }
 
   float **output_data_real = gkyl_malloc(sizeof(float*[app->grid.cells[0]]));
   float **output_data_predicted = gkyl_malloc(sizeof(float*[app->grid.cells[0]]));
   for (int i = 0; i < app->grid.cells[0]; i++) {
-    output_data_real[i] = gkyl_malloc(sizeof(float[num_output_moms * 2]));
-    output_data_predicted[i] = gkyl_malloc(sizeof(float[num_output_moms * 2]));
+    if (app->poly_order == 1) {
+      output_data_real[i] = gkyl_malloc(sizeof(float[num_output_moms * 2]));
+      output_data_predicted[i] = gkyl_malloc(sizeof(float[num_output_moms * 2]));
+    }
+    else if (app->poly_order == 2) {
+      output_data_real[i] = gkyl_malloc(sizeof(float[num_output_moms * 3]));
+      output_data_predicted[i] = gkyl_malloc(sizeof(float[num_output_moms * 3]));
+    }
   }
 
   struct gkyl_range_iter iter;
@@ -754,13 +789,27 @@ gkyl_pkpm_app_test_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann_
     const double *pkpm_moms_diag_d = gkyl_array_cfetch(s->pkpm_moms_diag.marr_host, loc);
 
     for (int i = 0; i < num_input_moms; i++) {
-      input_data[count][i * 2] = (float)pkpm_moms_diag_d[input_moms[i] * 2];
-      input_data[count][(i * 2) + 1] = (float)pkpm_moms_diag_d[(input_moms[i] * 2) + 1];
+      if (app->poly_order == 1) {
+        input_data[count][i * 2] = (float)pkpm_moms_diag_d[input_moms[i] * 2];
+        input_data[count][(i * 2) + 1] = (float)pkpm_moms_diag_d[(input_moms[i] * 2) + 1];
+      }
+      else if (app->poly_order == 2) {
+        input_data[count][i * 3] = (float)pkpm_moms_diag_d[input_moms[i] * 3];
+        input_data[count][(i * 3) + 1] = (float)pkpm_moms_diag_d[(input_moms[i] * 3) + 1];
+        input_data[count][(i * 3) + 2] = (float)pkpm_moms_diag_d[(input_moms[i] * 3) + 2];
+      }
     }
 
     for (int i = 0; i < num_output_moms; i++) {
-      output_data_real[count][i * 2] = (float)pkpm_moms_diag_d[output_moms[i] * 2];
-      output_data_real[count][(i * 2) + 1] = (float)pkpm_moms_diag_d[(output_moms[i] * 2) + 1];
+      if (app->poly_order == 1) {
+        output_data_real[count][i * 2] = (float)pkpm_moms_diag_d[output_moms[i] * 2];
+        output_data_real[count][(i * 2) + 1] = (float)pkpm_moms_diag_d[(output_moms[i] * 2) + 1];
+      }
+      else if (app->poly_order == 2) {
+        output_data_real[count][i * 3] = (float)pkpm_moms_diag_d[output_moms[i] * 3];
+        output_data_real[count][(i * 3) + 1] = (float)pkpm_moms_diag_d[(output_moms[i] * 3) + 1];
+        output_data_real[count][(i * 3) + 2] = (float)pkpm_moms_diag_d[(output_moms[i] * 3) + 2];
+      }
     }
 
     count += 1;
@@ -768,8 +817,15 @@ gkyl_pkpm_app_test_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann_
 
   for (int i = 0; i < count; i++) {
     const float *output_predicted = kann_apply1(ann, input_data[i]);
-    for (int j = 0; j < num_output_moms * 2; j++) {
-      output_data_predicted[i][j] = output_predicted[j];
+    if (app->poly_order == 1) {
+      for (int j = 0; j < num_output_moms * 2; j++) {
+        output_data_predicted[i][j] = output_predicted[j];
+      }
+    }
+    else if (app->poly_order == 2) {
+      for (int j = 0; j < num_output_moms * 3; j++) {
+        output_data_predicted[i][j] = output_predicted[j];
+      }
     }
   }
 
@@ -782,8 +838,15 @@ gkyl_pkpm_app_test_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann_
     double *pkpm_moms_diag_d_new = gkyl_array_fetch(s->pkpm_moms_diag.marr_host, loc_new);
 
     for (int i = 0; i < num_output_moms; i++) {
-      pkpm_moms_diag_d_new[output_moms[i] * 2] = (double)output_data_predicted[count_new][i * 2];
-      pkpm_moms_diag_d_new[(output_moms[i] * 2) + 1] = (double)output_data_predicted[count_new][(i * 2) + 1];
+      if (app->poly_order == 1) {
+        pkpm_moms_diag_d_new[output_moms[i] * 2] = (double)output_data_predicted[count_new][i * 2];
+        pkpm_moms_diag_d_new[(output_moms[i] * 2) + 1] = (double)output_data_predicted[count_new][(i * 2) + 1];
+      }
+      else if (app->poly_order == 2) {
+        pkpm_moms_diag_d_new[output_moms[i] * 3] = (double)output_data_predicted[count_new][i * 3];
+        pkpm_moms_diag_d_new[(output_moms[i] * 3) + 1] = (double)output_data_predicted[count_new][(i * 3) + 1];
+        pkpm_moms_diag_d_new[(output_moms[i] * 3) + 2] = (double)output_data_predicted[count_new][(i * 3) + 2];
+      }
     }
 
     count_new += 1;
@@ -805,8 +868,15 @@ gkyl_pkpm_app_test_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann_
     double *pkpm_moms_diag_d_old = gkyl_array_fetch(s->pkpm_moms_diag.marr_host, loc_old);
 
     for (int i = 0; i < num_output_moms; i++) {
-      pkpm_moms_diag_d_old[output_moms[i] * 2] = (double)output_data_real[count_old][i * 2];
-      pkpm_moms_diag_d_old[(output_moms[i] * 2) + 1] = (double)output_data_real[count_old][(i * 2) + 1];
+      if (app->poly_order == 1) {
+        pkpm_moms_diag_d_old[output_moms[i] * 2] = (double)output_data_real[count_old][i * 2];
+        pkpm_moms_diag_d_old[(output_moms[i] * 2) + 1] = (double)output_data_real[count_old][(i * 2) + 1];
+      }
+      else if (app->poly_order == 2) {
+        pkpm_moms_diag_d_old[output_moms[i] * 3] = (double)output_data_real[count_old][i * 3];
+        pkpm_moms_diag_d_old[(output_moms[i] * 3) + 1] = (double)output_data_real[count_old][(i * 3) + 1];
+        pkpm_moms_diag_d_old[(output_moms[i] * 3) + 2] = (double)output_data_real[count_old][(i * 3) + 2];
+      }
     }
 
     count_old += 1;

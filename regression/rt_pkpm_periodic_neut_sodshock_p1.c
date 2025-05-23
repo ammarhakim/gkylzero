@@ -124,8 +124,8 @@ create_ctx(void)
   int num_output_moms = 2; // Number of "output" moments to train on.
   int* output_moms = gkyl_malloc(sizeof(int[2]));
   output_moms[0] = 4; output_moms[1] = 5; // Array of "output" moments to train on.
-  bool test_nn = true; // Test neural network on simulation data?
-  const char* test_nn_file = "pkpm_neut_sodshock_p1_moms_nn_1.dat"; // File path of neural network to test.
+  bool test_nn = false; // Test neural network on simulation data?
+  const char* test_nn_file = "pkpm_periodic_neut_sodshock_p1_moms_nn_1.dat"; // File path of neural network to test.
   int num_tests = 1; // Number of times to test neural network.
 
   struct sodshock_ctx ctx = {
@@ -544,12 +544,22 @@ main(int argc, char **argv)
   kann_t *ann;
   if (ctx.train_nn) {
     if (ctx.train_ab_initio) {
-      t = kann_layer_input(ctx.num_input_moms);
+      if (ctx.poly_order == 1) {
+        t = kann_layer_input(ctx.num_input_moms * 2);
+      }
+      else if (ctx.poly_order == 2) {
+        t = kann_layer_input(ctx.num_input_moms * 3);
+      }
       t = kann_layer_dense(t, 128);
       t = kad_relu(t);
       t = kann_layer_dense(t, 128);
       t = kad_relu(t);
-      t = kann_layer_cost(t, ctx.num_output_moms, KANN_C_MSE);
+      if (ctx.poly_order == 1) {
+        t = kann_layer_cost(t, ctx.num_output_moms * 2, KANN_C_MSE);
+      }
+      else if (ctx.poly_order == 2) {
+        t = kann_layer_cost(t, ctx.num_output_moms * 3, KANN_C_MSE);
+      }
       ann = kann_new(t, 0);
     }
     else {
