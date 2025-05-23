@@ -18,6 +18,7 @@
 #endif
 
 #include <rt_arg_parse.h>
+#include <kann.h>
 
 struct es_shock_ctx
 {
@@ -63,6 +64,18 @@ struct es_shock_ctx
   int integrated_L2_f_calcs; // Number of times to calculate integrated L2 norm of distribution function.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
+
+  // Training parameters.
+  bool train_nn; // Train neural network on simulation data?
+  int num_nn_writes; // Number of times to write out neural network.
+  int num_trains; // Number of times to train neural network.
+  int num_input_moms; // Number of "input" moments to train on.
+  int* input_moms; // Array of "input" moments to train on.
+  int num_output_moms; // Number of "output" moments to train on.
+  int* output_moms; // Array of "output" moments to train on.
+  bool test_nn; // Test neural network on simulation data?
+  const char* test_nn_file; // File path of neural network to test.
+  int num_tests; // Number of times to test neural network.
 };
 
 struct es_shock_ctx
@@ -111,6 +124,20 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
+  // Training parameters.
+  bool train_nn = true; // Train neural network on simulation data?
+  int num_trains = INT_MAX; // Number of times to train neural network.
+  int num_nn_writes = 1; // Number of times to write out neural network.
+  int num_input_moms = 3; // Number of "input" moments to train on.
+  int* input_moms = gkyl_malloc(sizeof(int[3]));
+  input_moms[0] = 0; input_moms[1] = 2; input_moms[2] = 3; // Array of "input" moments to train on.
+  int num_output_moms = 2; // Number of "output" moments to train on.
+  int* output_moms = gkyl_malloc(sizeof(int[2]));
+  output_moms[0] = 4; output_moms[1] = 5; // Array of "output" moments to train on.
+  bool test_nn = true; // Test neural network on simulation data?
+  const char* test_nn_file = "pkpm_neut_sodshock_p1-neut_moms_nn_1.dat"; // File path of neural network to test.
+  int num_tests = 1; // Number of times to test neural network.
+
   struct es_shock_ctx ctx = {
     .pi = pi,
     .epsilon0 = epsilon0,
@@ -142,6 +169,16 @@ create_ctx(void)
     .integrated_L2_f_calcs = integrated_L2_f_calcs,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
+    .train_nn = train_nn,
+    .num_trains = num_trains,
+    .num_nn_writes = num_nn_writes,
+    .num_input_moms = num_input_moms,
+    .input_moms = input_moms,
+    .num_output_moms = num_output_moms,
+    .output_moms = output_moms,
+    .test_nn = test_nn,
+    .test_nn_file = test_nn_file,
+    .num_tests = num_tests,
   };
 
   return ctx;
@@ -320,6 +357,45 @@ calc_integrated_L2_f(struct gkyl_tm_trigger* l2t, gkyl_pkpm_app* app, double t_c
 {
   if (gkyl_tm_trigger_check_and_bump(l2t, t_curr) || force_calc) {
     gkyl_pkpm_app_calc_integrated_L2_f(app, t_curr);
+  }
+}
+
+void
+train_mom(struct gkyl_tm_trigger* nn, gkyl_pkpm_app* app, double t_curr, bool force_train, kann_t* ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms)
+{
+  if (gkyl_tm_trigger_check_and_bump(nn, t_curr) || force_train) {
+    int frame = nn->curr - 1;
+    if (force_train) {
+      frame = nn->curr;
+    }
+
+    gkyl_pkpm_app_train(app, t_curr, frame, ann, num_input_moms, input_moms, num_output_moms, output_moms);
+  }
+}
+
+void
+write_nn(struct gkyl_tm_trigger* nnw, gkyl_pkpm_app* app, double t_curr, bool force_write, kann_t* ann)
+{
+  if (gkyl_tm_trigger_check_and_bump(nnw, t_curr) || force_write) {
+    int frame = nnw->curr - 1;
+    if (force_write) {
+      frame = nnw->curr;
+    }
+
+    gkyl_pkpm_app_write_nn(app, t_curr, frame, ann);
+  }
+}
+
+void
+test_mom(struct gkyl_tm_trigger* nnt, gkyl_pkpm_app* app, double t_curr, bool force_test, kann_t* ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms)
+{
+  if (gkyl_tm_trigger_check_and_bump(nnt, t_curr) || force_test) {
+    int frame = nnt->curr - 1;
+    if (force_test) {
+      frame = nnt->curr;
+    }
+
+    gkyl_pkpm_app_test(app, t_curr, frame, ann, num_input_moms, input_moms, num_output_moms, output_moms);
   }
 }
 
@@ -559,6 +635,43 @@ main(int argc, char **argv)
 
   write_data(&io_trig, app, t_curr, false);
 
+  // Create trigger for neural network training.
+  int num_trains = ctx.num_trains;
+  struct gkyl_tm_trigger nn_trig = { .dt = t_end / num_trains, .tcurr = t_curr, .curr = frame_curr };
+
+  kad_node_t *t;
+  kann_t *ann;
+  if (ctx.train_nn) {
+    t = kann_layer_input(ctx.num_input_moms);
+    t = kann_layer_dense(t, 64);
+    t = kad_relu(t);
+    t = kann_layer_dense(t, 64);
+    t = kad_relu(t);
+    t = kann_layer_cost(t, ctx.num_output_moms, KANN_C_MSE);
+    ann = kann_new(t, 0);
+
+    train_mom(&nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
+  }
+
+  // Create trigger for neural network writing.
+  int num_nn_writes = ctx.num_nn_writes;
+  struct gkyl_tm_trigger nnw_trig = { .dt = t_end / num_nn_writes, .tcurr = t_curr, .curr = frame_curr };
+
+  if (ctx.train_nn) {
+    write_nn(&nnw_trig, app, t_curr, false, ann);
+  }
+
+  // Create trigger for neural network testing.
+  int num_tests = ctx.num_tests;
+  struct gkyl_tm_trigger nnt_trig = { .dt = t_end / num_tests, .tcurr = t_curr, .curr = frame_curr };
+
+  kann_t *ann_test;
+  if (ctx.test_nn) {
+    ann_test = kann_load(ctx.test_nn_file);
+
+    test_mom(&nnt_trig, app, t_curr, false, ann_test, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
+  }
+
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
 
@@ -584,6 +697,13 @@ main(int argc, char **argv)
     calc_integrated_mom(&im_trig, app, t_curr, false);
     calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
     write_data(&io_trig, app, t_curr, false);
+    if (ctx.train_nn) {
+      train_mom(&nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
+      write_nn(&nnw_trig, app, t_curr, false, ann);
+    }
+    if (ctx.test_nn) {
+      test_mom(&nnt_trig, app, t_curr, false, ann_test, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
+    }
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
@@ -602,6 +722,13 @@ main(int argc, char **argv)
         calc_integrated_mom(&im_trig, app, t_curr, true);
         calc_integrated_L2_f(&l2f_trig, app, t_curr, true);
         write_data(&io_trig, app, t_curr, true);
+        if (ctx.train_nn) {
+          train_mom(&nn_trig, app, t_curr, true, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
+          write_nn(&nnw_trig, app, t_curr, true, ann);
+        }
+        if (ctx.test_nn) {
+          test_mom(&nnt_trig, app, t_curr, true, ann_test, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
+        }
 
         break;
       }
@@ -617,6 +744,13 @@ main(int argc, char **argv)
   calc_integrated_mom(&im_trig, app, t_curr, false);
   calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
+  if (ctx.train_nn) {
+    train_mom(&nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
+    write_nn(&nnw_trig, app, t_curr, false, ann);
+  }
+  if (ctx.test_nn) {
+    test_mom(&nnt_trig, app, t_curr, false, ann_test, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
+  }
   gkyl_pkpm_app_stat_write(app);
 
   struct gkyl_pkpm_stat stat = gkyl_pkpm_app_stat(app);
@@ -647,6 +781,8 @@ freeresources:
   // Free resources after simulation completion.
   gkyl_comm_release(comm);
   gkyl_pkpm_app_release(app);
+  kann_delete(ann);
+  kann_delete(ann_test);
 
 mpifinalize:
 #ifdef GKYL_HAVE_MPI

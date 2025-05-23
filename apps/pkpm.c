@@ -714,6 +714,158 @@ gkyl_pkpm_app_train_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann
   gkyl_free(output_data);
 }
 
+void
+gkyl_pkpm_app_write_nn(gkyl_pkpm_app* app, double tm, int frame, kann_t* ann)
+{
+  for (int i = 0; i < app->num_species; i++) {
+    gkyl_pkpm_app_write_nn_mom(app, i, tm, frame, ann);
+  }
+}
+
+void
+gkyl_pkpm_app_write_nn_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann_t* ann)
+{
+  struct pkpm_species *s = &app->species[sidx];
+
+  const char *fmt = "%s-%s_moms_nn_%d.dat";
+  int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, frame);
+  char fileNm[sz + 1];
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name, frame);
+
+  kann_save(fileNm, ann);
+}
+
+void
+gkyl_pkpm_app_test(gkyl_pkpm_app* app, double tm, int frame, kann_t* ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms)
+{
+  for (int i = 0; i < app->num_species; i++) {
+    gkyl_pkpm_app_test_mom(app, i, tm, frame, ann, num_input_moms, input_moms, num_output_moms, output_moms);
+  }
+}
+
+void
+gkyl_pkpm_app_test_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann_t* ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms)
+{
+  struct gkyl_msgpack_data *mt = pkpm_array_meta_new( (struct pkpm_output_meta) {
+      .frame = frame,
+      .stime = tm,
+      .poly_order = app->poly_order,
+      .basis_type = app->confBasis.id
+    }
+  );
+
+  struct pkpm_species *s = &app->species[sidx];
+  pkpm_species_moment_calc(&s->pkpm_moms_diag, s->local, app->local, s->f);
+
+  if (app->use_gpu) {
+    gkyl_array_copy(s->pkpm_moms_diag.marr_host, s->pkpm_moms_diag.marr);
+  }
+
+  float **input_data = gkyl_malloc(sizeof(float*[app->grid.cells[0]]));
+  for (int i = 0; i < app->grid.cells[0]; i++) {
+    input_data[i] = gkyl_malloc(sizeof(float[num_input_moms * 2]));
+  }
+
+  float **output_data_real = gkyl_malloc(sizeof(float*[app->grid.cells[0]]));
+  float **output_data_predicted = gkyl_malloc(sizeof(float*[app->grid.cells[0]]));
+  for (int i = 0; i < app->grid.cells[0]; i++) {
+    output_data_real[i] = gkyl_malloc(sizeof(float[num_output_moms * 2]));
+    output_data_predicted[i] = gkyl_malloc(sizeof(float[num_output_moms * 2]));
+  }
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &app->local);
+  long count = 0;
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&app->local, iter.idx);
+
+    const double *pkpm_moms_diag_d = gkyl_array_cfetch(s->pkpm_moms_diag.marr_host, loc);
+
+    for (int i = 0; i < num_input_moms; i++) {
+      input_data[count][i * 2] = (float)pkpm_moms_diag_d[input_moms[i]];
+    }
+
+    for (int i = 0; i < num_output_moms; i++) {
+      output_data_real[count][i * 2] = (float)pkpm_moms_diag_d[output_moms[i]];
+    }
+
+    count += 1;
+  }
+
+  for (int i = 0; i < count; i++) {
+    for (int j = 0; j < num_input_moms; j++) {
+      if (i > 0 && i < count - 1) {
+        input_data[i][(j * 2) + 1] = (input_data[i + 1][j * 2] - input_data[i - 1][j * 2]) / (2.0 * app->grid.dx[0]);
+      }
+      else {
+        input_data[i][(j * 2) + 1] = 0.0;
+      }
+    }
+
+    for (int j = 0; j < num_output_moms; j++) {
+      if (i > 0 && i < count - 1) {
+        output_data_real[i][(j * 2) + 1] = (output_data_real[i + 1][j * 2] - output_data_real[i - 1][j * 2]) / (2.0 * app->grid.dx[0]);
+      }
+      else {
+        output_data_real[i][(j * 2) + 1] = 0.0;
+      }
+    }
+  }
+
+  for (int i = 0; i < count; i++) {
+    const float *output_predicted = kann_apply1(ann, input_data[i]);
+    for (int j = 0; j < num_output_moms * 2; j++) {
+      output_data_predicted[i][j] = output_predicted[j];
+    }
+  }
+
+  struct gkyl_range_iter iter_new;
+  gkyl_range_iter_init(&iter_new, &app->local);
+  long count_new = 0;
+  while (gkyl_range_iter_next(&iter_new)) {
+    long loc_new = gkyl_range_idx(&app->local, iter_new.idx);
+
+    double *pkpm_moms_diag_d_new = gkyl_array_fetch(s->pkpm_moms_diag.marr_host, loc_new);
+
+    for (int i = 0; i < num_output_moms; i++) {
+      pkpm_moms_diag_d_new[output_moms[i]] = (double)output_data_predicted[count_new][i * 2];
+    }
+
+    count_new += 1;
+  }
+
+  const char *fmt = "%s-%s_pkpm_moms_predicted_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, frame);
+  char fileNm[sz + 1];
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name, frame);
+
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, s->pkpm_moms_diag.marr_host, fileNm);
+
+  struct gkyl_range_iter iter_old;
+  gkyl_range_iter_init(&iter_old, &app->local);
+  long count_old = 0;
+  while (gkyl_range_iter_next(&iter_old)) {
+    long loc_old = gkyl_range_idx(&app->local, iter_old.idx);
+
+    double *pkpm_moms_diag_d_old = gkyl_array_fetch(s->pkpm_moms_diag.marr_host, loc_old);
+
+    for (int i = 0; i < num_output_moms; i++) {
+      pkpm_moms_diag_d_old[output_moms[i]] = (double)output_data_real[count_old][i * 2];
+    }
+
+    count_old += 1;
+  }
+
+  for (int i = 0; i < app->grid.cells[0]; i++) {
+    gkyl_free(input_data[i]);
+    gkyl_free(output_data_real[i]);
+    gkyl_free(output_data_predicted[i]);
+  }
+  gkyl_free(input_data);
+  gkyl_free(output_data_real);
+  gkyl_free(output_data_predicted);
+}
+
 struct gkyl_update_status
 gkyl_pkpm_update(gkyl_pkpm_app* app, double dt)
 {
