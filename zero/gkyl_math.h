@@ -79,10 +79,49 @@ static inline double
 gkyl_vec3_triple(struct gkyl_vec3 a, struct gkyl_vec3 b, struct gkyl_vec3 c)
 {
   return gkyl_vec3_dot(a, gkyl_vec3_cross(b, c));
-}  
+}
+
+/**
+ * Convert contravariant components of a vector in polar coordinate
+ * basis to Cartesian basis components. Note the polar basis are not
+ * normalized.
+ *
+ * @param r Radial coordinate
+ * @param phi Polar angle
+ * @param pin Input contravariant vector components
+ * @return Cartesian component for @a pin
+ */
+static inline struct gkyl_vec3
+gkyl_vec3_polar_con_to_cart(double r, double phi, struct gkyl_vec3 pin)
+{
+  double c0 = pin.x[0] * cos(phi) - pin.x[1] * sin(phi) * r;
+  double c1 = pin.x[0] * sin(phi) + pin.x[1] * cos(phi) * r;
+  double c2 = pin.x[2];
+  return gkyl_vec3_new(c0, c1, c2);
+}
+
+/**
+ * Convert contravariant components of a vector in polar coordinate
+ * basis to Cartesian basis components. Note the polar basis are not
+ * normalized.
+ *
+ * @param r Radial coordinate
+ * @param phi Polar angle
+ * @param pin Input contravariant vector components
+ * @return Cartesian component for @a pin
+ */
+static inline struct gkyl_vec3
+gkyl_vec3_polar_cov_to_cart(double r, double phi, struct gkyl_vec3 pin)
+{
+  double c0 = pin.x[0]*cos(phi)-(pin.x[1]*sin(phi))/r;
+  double c1 = pin.x[0]*sin(phi)+(pin.x[1]*cos(phi))/r;
+  double c2 = pin.x[2];
+  return gkyl_vec3_new(c0, c1, c2);
+}    
 
 // minmod(a,b,c, ...) returns min of all parameters are positive, max
 // of all parameters if all are negative, and zero otherwise.
+
 
 // minmod(x,y)
 static inline double

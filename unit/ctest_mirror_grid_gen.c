@@ -59,18 +59,50 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(&node_range, iter.idx);
 
+    const double *rz =
+      gkyl_array_cfetch(geom->nodesrz, loc);
+
     const struct gkyl_mirror_grid_gen_geom *g =
       gkyl_array_cfetch(geom->node_geom, loc);
 
-    /* // compute the tangent vectors */
-    /* struct gkyl_vec3 e1 = gkyl_vec3_scale(g->Jc, */
-    /*   gkyl_vec3_cross(g->e2d, g->e3d)); */
+    // check Jacobian
+    double Jac = gkyl_vec3_triple(
+      gkyl_vec3_polar_con_to_cart(rz[0], 0.0, g->tang[0]),
+      gkyl_vec3_polar_con_to_cart(rz[0], 0.0, g->tang[1]),
+      gkyl_vec3_polar_con_to_cart(rz[0], 0.0, g->tang[2])
+    );
 
-    /* struct gkyl_vec3 e2 = gkyl_vec3_scale(g->Jc, */
-    /*   gkyl_vec3_cross(g->e3d, g->e2d)); */
+    if (false == include_axis)
+      TEST_CHECK( gkyl_compare_double(Jac, g->Jc, 1e-14) );
+
+    // check C = Jc*Bmag/sqrt(g33)
+    double g33 =
+      gkyl_vec3_dot(
+        gkyl_vec3_polar_con_to_cart(rz[0], 0.0, g->tang[2]),
+        gkyl_vec3_polar_con_to_cart(rz[0], 0.0, g->tang[2])
+      );
+    double Bmag = gkyl_vec3_len(
+      gkyl_vec3_polar_cov_to_cart(rz[0], 0.0, g->B)
+    );
+
+    if (fl_coord == GKYL_MIRROR_GRID_GEN_PSI_CART_Z)
+      TEST_CHECK( gkyl_compare_double(Bmag*g->Jc/sqrt(g33), 1.0, 1e-14) );
     
-    /* struct gkyl_vec3 e3 = gkyl_vec3_scale(g->Jc, */
-    /*   gkyl_vec3_cross(g->e3d, g->e2d)); */
+    // check relationship between tangents and duals
+    for (int i=0; i<3; ++i) {
+      struct gkyl_vec3 tcart = gkyl_vec3_polar_con_to_cart(rz[0], 0.0, g->tang[i]);
+      
+      for (int j=0; j<3; ++j) {
+        struct gkyl_vec3 dcart = gkyl_vec3_polar_cov_to_cart(rz[0], 0.0, g->dual[j]);
+
+        // tang[i] dot dual[j] = delta_{i,j}
+        double tdotd = gkyl_vec3_dot(tcart, dcart);
+        if (i == j)
+          TEST_CHECK( gkyl_compare_double(tdotd, 1.0, 1e-14) );
+        else
+          TEST_CHECK( gkyl_compare_double(tdotd, 0.0, 1e-14) );
+      }
+    }
   }
 
   gkyl_mirror_grid_gen_release(geom);
@@ -108,7 +140,7 @@ test_wham_with_axis_sqrt_psi(void)
 TEST_LIST = {
   { "wham_no_axis_psi", test_wham_no_axis_psi },
   { "wham_with_axis_psi", test_wham_with_axis_psi },
-  /* { "wham_no_axis_sqrt_psi", test_wham_no_axis_sqrt_psi }, */
-  /* { "wham_with_axis_sqrt_psi", test_wham_with_axis_sqrt_psi }, */
+  { "wham_no_axis_sqrt_psi", test_wham_no_axis_sqrt_psi },
+  { "wham_with_axis_sqrt_psi", test_wham_with_axis_sqrt_psi },
   { NULL, NULL },
 };

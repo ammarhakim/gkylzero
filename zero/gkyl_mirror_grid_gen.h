@@ -9,21 +9,18 @@ struct gkyl_mirror_grid_gen_x;
 
 // Geometric quantities
 struct __attribute__((__packed__)) gkyl_mirror_grid_gen_geom {
-  struct gkyl_vec3 e1; // e^r, e^phi and e^z components of e_1
-  struct gkyl_vec3 e2; // e^r, e^phi and e^z components of e_2
-  struct gkyl_vec3 e3; // e^r, e^phi and e^z components of e_3
-  
-  struct gkyl_vec3 e1d; // e_r, e_phi and e_z components of e^1
-  struct gkyl_vec3 e2d; // e_r, e_phi and e_z components of e^2
-  struct gkyl_vec3 e3d; // e_r, e_phi and e_z components of e^3  
+  // e^r, e^phi and e^z (contravariant) components of tangent vectors  
+  struct gkyl_vec3 tang[3];
 
-  struct gkyl_vec3 B;   // e_r, e_phi and e_z components of B
+  // e_r, e_phi and e_z (covariant) components of dual vectors
+  struct gkyl_vec3 dual[3];
+
+  struct gkyl_vec3 B;   // e_r, e_phi and e_z (covariant) components of B
   double Jc; // Jacobian = e_1*(e_2 X e_3)  = 1/e^1*(e^2 X e^3)
 };
 
 struct gkyl_mirror_grid_gen {
   struct gkyl_array *nodesrz; // r,z coordinates of corner nodes of cells
-
   // geometric quantities at nodes: this is an array of
   // gkyl_mirror_grid_gen_geom objects
   struct gkyl_array *node_geom;

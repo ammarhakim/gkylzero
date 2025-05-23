@@ -165,16 +165,29 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
         // correct and computed using the estimated asymptotic
         // behavior of psi as r -> 0.
         
-        // e^1, e_1
-        g->e1d.x[0] = 1.0; g->e1d.x[1] = 0.0; g->e1d.x[2] = 0.0;
-        g->e1.x[0] = 1.0; g->e1.x[1] = 0.0; g->e1.x[2] = 0.0;
+        g->dual[0].x[0] = 1.0;
+        g->dual[0].x[1] = 0.0;
+        g->dual[0].x[2] = 0.0;
 
-        // e^2, e_2
-        g->e2d.x[0] = 0; g->e2d.x[1] = 1.0; g->e3d.x[2] = 0.0;
+        g->dual[1].x[0] = 0;
+        g->dual[1].x[1] = 1.0;
+        g->dual[1].x[2] = 0.0;
 
-        // e^3, e_3
-        g->e3d.x[0] = 0; g->e3d.x[1] = 0.0; g->e3d.x[2] = 1.0;
-        g->e3.x[0] = 0; g->e3.x[1] = 0.0; g->e3.x[2] = 1.0;
+        g->dual[2].x[0] = 0;
+        g->dual[2].x[1] = 0.0;
+        g->dual[2].x[2] = 1.0;        
+        
+        g->tang[0].x[0] = 1.0;
+        g->tang[0].x[1] = 0.0;
+        g->tang[0].x[2] = 0.0;
+
+        g->tang[1].x[0] = 0.0;
+        g->tang[1].x[1] = 1.0;
+        g->tang[1].x[2] = 0.0;        
+        
+        g->tang[2].x[0] = 0;
+        g->tang[2].x[1] = 0.0;
+        g->tang[2].x[2] = 1.0;
         
         if (inp->fl_coord == GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z)
           g->Jc = 0; // assumes asymptotics of psi ~ r^2 as r -> 0
@@ -190,35 +203,40 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
         evcub->eval_cubic_wgrad(0.0, xn, fout, evcub->ctx);
       
         // e^1
-        g->e1d.x[0] = fout[DPSI_R_I]; // dpsi/dr
-        g->e1d.x[1] = 0.0; // no toroidal component
-        g->e1d.x[2] = fout[DPSI_Z_I]; // dspi/dz
+        g->dual[0].x[0] = fout[DPSI_R_I]; // dpsi/dr
+        g->dual[0].x[1] = 0.0; // no toroidal component
+        g->dual[0].x[2] = fout[DPSI_Z_I]; // dspi/dz
       
         if (inp->fl_coord == GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z) {
           // for sqrt(psi) as radial coordinate e^1 = grad(psi)/2*sqrt(psi)
-          g->e1d.x[0] = g->e1d.x[0]/(2*floor_sqrt(fout[0]));
-          g->e1d.x[2] = g->e1d.x[2]/(2*floor_sqrt(fout[0]));
+          g->dual[0].x[0] = g->dual[0].x[0]/(2*floor_sqrt(fout[0]));
+          g->dual[0].x[2] = g->dual[0].x[2]/(2*floor_sqrt(fout[0]));
         }
 
         // e^2 is just e^phi
-        g->e2d.x[0] = 0; g->e2d.x[1] = 1.0; g->e3d.x[2] = 0.0;
+        g->dual[1].x[0] = 0;
+        g->dual[1].x[1] = 1.0;
+        g->dual[1].x[2] = 0.0;
 
         // e^3 is just sigma_3
-        g->e3d.x[0] = 0; g->e3d.x[1] = 0.0;
-        g->e3d.x[2] = 1.0;
+        g->dual[2].x[0] = 0;
+        g->dual[2].x[1] = 0.0;
+        g->dual[2].x[2] = 1.0;
 
         // e_1 points along the radial direction
-        g->e1.x[0] = 1/g->e1d.x[0];
-        g->e1.x[1] = 0.0;
-        g->e1.x[2] = 0.0;
+        g->tang[0].x[0] = 1/g->dual[0].x[0];
+        g->tang[0].x[1] = 0.0;
+        g->tang[0].x[2] = 0.0;
 
         // e_2
-        g->e2.x[0] = 0; g->e2.x[1] = 1.0; g->e3.x[2] = 0.0;
+        g->tang[1].x[0] = 0;
+        g->tang[1].x[1] = 1.0;
+        g->tang[1].x[2] = 0.0;
 
         // e_3
-        g->e3.x[0] = -fout[DPSI_Z_I]/fout[DPSI_R_I];
-        g->e3.x[1] = 0.0;
-        g->e3.x[2] = 1.0;
+        g->tang[2].x[0] = -fout[DPSI_Z_I]/fout[DPSI_R_I];
+        g->tang[2].x[1] = 0.0;
+        g->tang[2].x[2] = 1.0;
         
         if (inp->fl_coord == GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z)
           g->Jc = 2*floor_sqrt(fout[PSI_I])*xn[0]/fout[DPSI_R_I];
