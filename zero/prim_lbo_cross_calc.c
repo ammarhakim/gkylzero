@@ -46,7 +46,7 @@ gkyl_prim_lbo_cross_calc_advance(struct gkyl_prim_lbo_cross_calc* calc,
 #ifdef GKYL_HAVE_CUDA
   if (GKYL_IS_CU_ALLOC(calc->flags)) {
     gkyl_prim_lbo_cross_calc_advance_cu(calc, conf_rng, greene, self_m, self_moms, self_prim_moms,
-      other_m, other_moms, other_prim_moms, boundary_corrections, prim_moms_out, nu);
+      other_m, other_moms, other_prim_moms, boundary_corrections, nu, prim_moms_out);
     return;
   }
 #endif   
@@ -164,7 +164,7 @@ gkyl_prim_lbo_cross_calc_advance_cu(struct gkyl_prim_lbo_cross_calc* calc,
   const struct gkyl_array *greene,
   double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_prim_moms,
   double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_prim_moms,
-  const struct gkyl_array *boundary_corrections, 
+  const struct gkyl_array *boundary_corrections, const struct gkyl_array *nu, 
   struct gkyl_array *prim_moms_out)
 {
   assert(false);
