@@ -161,7 +161,7 @@ test_3x_p1()
   };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&geometry_input);
-  write_geometry(gk_geom, grid, range, "geomapc2p");
+  //write_geometry(gk_geom, grid, range, "geomapc2p");
 
   // Define nodal operations
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
