@@ -60,8 +60,10 @@ struct sodshock_ctx
 
   // Training parameters.
   bool train_nn; // Train neural network on simulation data?
-  int num_nn_writes; // Number of times to write out neural network.
+  bool train_ab_initio; // Train neural network ab initio?
+  const char* train_nn_file; // File path of neural network to train.
   int num_trains; // Number of times to train neural network.
+  int num_nn_writes; // Number of times to write out neural network.
   int num_input_moms; // Number of "input" moments to train on.
   int* input_moms; // Array of "input" moments to train on.
   int num_output_moms; // Number of "output" moments to train on.
@@ -112,6 +114,8 @@ create_ctx(void)
 
   // Training parameters.
   bool train_nn = true; // Train neural network on simulation data?
+  bool train_ab_initio = true; // Train neural network ab initio?
+  const char* train_nn_file = "pkpm_neut_sodshock_p1_moms_nn_1.dat"; // File path of neural network to train.
   int num_trains = INT_MAX; // Number of times to train neural network.
   int num_nn_writes = 1; // Number of times to write out neural network.
   int num_input_moms = 3; // Number of "input" moments to train on.
@@ -121,7 +125,7 @@ create_ctx(void)
   int* output_moms = gkyl_malloc(sizeof(int[2]));
   output_moms[0] = 4; output_moms[1] = 5; // Array of "output" moments to train on.
   bool test_nn = true; // Test neural network on simulation data?
-  const char* test_nn_file = "pkpm_neut_sodshock_p1-neut_moms_nn_1.dat"; // File path of neural network to test.
+  const char* test_nn_file = "pkpm_neut_sodshock_p1_moms_nn_1.dat"; // File path of neural network to test.
   int num_tests = 1; // Number of times to test neural network.
 
   struct sodshock_ctx ctx = {
@@ -151,6 +155,8 @@ create_ctx(void)
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
     .train_nn = train_nn,
+    .train_ab_initio = train_ab_initio,
+    .train_nn_file = train_nn_file,
     .num_trains = num_trains,
     .num_nn_writes = num_nn_writes,
     .num_input_moms = num_input_moms,
@@ -537,13 +543,18 @@ main(int argc, char **argv)
   kad_node_t *t;
   kann_t *ann;
   if (ctx.train_nn) {
-    t = kann_layer_input(ctx.num_input_moms);
-    t = kann_layer_dense(t, 128);
-    t = kad_relu(t);
-    t = kann_layer_dense(t, 128);
-    t = kad_relu(t);
-    t = kann_layer_cost(t, ctx.num_output_moms, KANN_C_MSE);
-    ann = kann_new(t, 0);
+    if (ctx.train_ab_initio) {
+      t = kann_layer_input(ctx.num_input_moms);
+      t = kann_layer_dense(t, 128);
+      t = kad_relu(t);
+      t = kann_layer_dense(t, 128);
+      t = kad_relu(t);
+      t = kann_layer_cost(t, ctx.num_output_moms, KANN_C_MSE);
+      ann = kann_new(t, 0);
+    }
+    else {
+      ann = kann_load(ctx.train_nn_file);
+    }
 
     train_mom(&nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
   }
@@ -642,9 +653,13 @@ main(int argc, char **argv)
   if (ctx.train_nn) {
     train_mom(&nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
     write_nn(&nnw_trig, app, t_curr, false, ann);
+
+    kann_delete(ann);
   }
   if (ctx.test_nn) {
     test_mom(&nnt_trig, app, t_curr, false, ann_test, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
+
+    kann_delete(ann_test);
   }
   gkyl_pkpm_app_stat_write(app);
 
@@ -676,8 +691,8 @@ freeresources:
   // Free resources after simulation completion.
   gkyl_comm_release(comm);
   gkyl_pkpm_app_release(app);
-  kann_delete(ann);
-  kann_delete(ann_test);
+  gkyl_free(ctx.input_moms);
+  gkyl_free(ctx.output_moms);
 
 mpifinalize:
 #ifdef GKYL_HAVE_MPI
