@@ -68,6 +68,8 @@ struct es_shock_ctx
   // Training parameters.
   bool train_nn; // Train neural network on simulation data?
   bool train_ab_initio; // Train neural network ab initio?
+  int nn_width; // Number of neurons to use per layer.
+  int nn_depth; // Number of layers to use.
   const char* train_nn_file; // File path of neural network to train.
   int num_trains; // Number of times to train neural network.
   int num_nn_writes; // Number of times to write out neural network.
@@ -129,6 +131,8 @@ create_ctx(void)
   // Training parameters.
   bool train_nn = true; // Train neural network on simulation data?
   bool train_ab_initio = true; // Train neural network ab initio?
+  int nn_width = 256; // Number of neurons to use per layer.
+  int nn_depth = 5; // Number of layers to use.
   const char* train_nn_file = "pkpm_es_shock_p2_moms_nn_1"; // File path of neural network to train.
   int num_trains = INT_MAX; // Number of times to train neural network.
   int num_nn_writes = 1; // Number of times to write out neural network.
@@ -175,6 +179,8 @@ create_ctx(void)
     .num_failures_max = num_failures_max,
     .train_nn = train_nn,
     .train_ab_initio = train_ab_initio,
+    .nn_width = nn_width,
+    .nn_depth = nn_depth,
     .train_nn_file = train_nn_file,
     .num_trains = num_trains,
     .num_nn_writes = num_nn_writes,
@@ -657,10 +663,10 @@ main(int argc, char **argv)
           t[i] = kann_layer_input(ctx.num_input_moms * 3);
         }
 
-        t[i] = kann_layer_dense(t[i], 128);
-        t[i] = kad_relu(t[i]);
-        t[i] = kann_layer_dense(t[i], 128);
-        t[i] = kad_relu(t[i]);
+        for (int j = 0; j < ctx.nn_depth; j++) {
+          t[i] = kann_layer_dense(t[i], ctx.nn_width);
+          t[i] = kad_tanh(t[i]);
+        }
         
         if (ctx.poly_order == 1) {
           t[i] = kann_layer_cost(t[i], ctx.num_output_moms * 2, KANN_C_MSE);
