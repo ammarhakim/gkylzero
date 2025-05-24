@@ -55,6 +55,7 @@ struct landau_damping_ctx
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 
+  // Training parameters.
   bool train_nn; // Train neural network on simulation data?
   bool train_ab_initio; // Train neural network ab initio?
   int nn_width; // Number of neurons to use per layer.
