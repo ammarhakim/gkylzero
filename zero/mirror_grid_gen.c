@@ -150,14 +150,14 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
       int idx[2] = { ipsi, iz };
       long loc = gkyl_range_idx(&node_rng, idx);
       
-      const double *rz = gkyl_array_cfetch(geo->nodesrz, loc);
-      double xn[2] = { rz[0], rz[1] };
+      const double *rzp = gkyl_array_cfetch(geo->nodesrz, loc);
+      double rz[2] = { rzp[0], rzp[1] };
       
       struct gkyl_mirror_grid_gen_geom *g = gkyl_array_fetch(geo->node_geom, loc);
       
       if (inc_axis && (ipsi == 0)) {
         double fout2[4]; // second derivative of psi is needed
-        evcub->eval_cubic_wgrad2(0.0, xn, fout2, evcub->ctx);
+        evcub->eval_cubic_wgrad2(0.0, rz, fout2, evcub->ctx);
 
         // On-axis the coordinate system breaks down. Below we choose
         // some reasonable defaults for the tnagent and
@@ -200,7 +200,7 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
       }
       else {
         double fout[3]; // first derivative of psi is needed
-        evcub->eval_cubic_wgrad(0.0, xn, fout, evcub->ctx);
+        evcub->eval_cubic_wgrad(0.0, rz, fout, evcub->ctx);
       
         // e^1
         g->dual[0].x[0] = fout[DPSI_R_I]; // dpsi/dr
@@ -215,7 +215,7 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
 
         // e^2 is just e^phi
         g->dual[1].x[0] = 0;
-        g->dual[1].x[1] = 1.0;
+        g->dual[1].x[1] = 1.0/(rz[0]*rz[0]);
         g->dual[1].x[2] = 0.0;
 
         // e^3 is just sigma_3
@@ -239,13 +239,13 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
         g->tang[2].x[2] = 1.0;
         
         if (inp->fl_coord == GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z)
-          g->Jc = 2*floor_sqrt(fout[PSI_I])*xn[0]/fout[DPSI_R_I];
+          g->Jc = 2*floor_sqrt(fout[PSI_I])*rz[0]/fout[DPSI_R_I];
         else
-          g->Jc = xn[0]/fout[DPSI_R_I];
+          g->Jc = rz[0]/fout[DPSI_R_I];
         
-        g->B.x[0] = -fout[DPSI_Z_I]/xn[0];
+        g->B.x[0] = -fout[DPSI_Z_I]/rz[0];
         g->B.x[1] = 0.0;
-        g->B.x[2] = fout[DPSI_R_I]/xn[0];
+        g->B.x[2] = fout[DPSI_R_I]/rz[0];
       }
     }
   }

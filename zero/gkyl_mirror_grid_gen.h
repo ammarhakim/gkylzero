@@ -7,15 +7,13 @@
 // Forward declare internal object
 struct gkyl_mirror_grid_gen_x;
 
-// Geometric quantities
+// Geometric quantities: various vectors are stored as the components
+// along the polar tangents e_r, e_phi, e_z, that is, each vector's
+// contravariant components are stored
 struct __attribute__((__packed__)) gkyl_mirror_grid_gen_geom {
-  // e^r, e^phi and e^z (contravariant) components of tangent vectors  
-  struct gkyl_vec3 tang[3];
-
-  // e_r, e_phi and e_z (covariant) components of dual vectors
-  struct gkyl_vec3 dual[3];
-
-  struct gkyl_vec3 B;   // e_r, e_phi and e_z (covariant) components of B
+  struct gkyl_vec3 tang[3]; // tangent vectors  
+  struct gkyl_vec3 dual[3]; // dual vectors
+  struct gkyl_vec3 B; // Magnetic field
   double Jc; // Jacobian = e_1*(e_2 X e_3)  = 1/e^1*(e^2 X e^3)
 };
 
