@@ -657,7 +657,12 @@ main(int argc, char **argv)
     if (ctx.train_ab_initio) {
       for (int i = 0; i < app_inp.num_species; i++ ) {
         if (ctx.poly_order == 1) {
-          t[i] = kann_layer_input(ctx.num_input_moms * 2);
+          if (cdim == 1) {
+            t[i] = kann_layer_input(ctx.num_input_moms * 2);
+          }
+          else if (cdim == 2) {
+            t[i] = kann_layer_input(ctx.num_input_moms * 4);
+          }
         }
         else if (ctx.poly_order == 2) {
           t[i] = kann_layer_input(ctx.num_input_moms * 3);
@@ -669,7 +674,12 @@ main(int argc, char **argv)
         }
         
         if (ctx.poly_order == 1) {
-          t[i] = kann_layer_cost(t[i], ctx.num_output_moms * 2, KANN_C_MSE);
+          if (cdim == 1) {
+            t[i] = kann_layer_cost(t[i], ctx.num_output_moms * 2, KANN_C_MSE);
+          }
+          else if (cdim == 2) {
+            t[i] = kann_layer_cost(t[i], ctx.num_output_moms * 4, KANN_C_MSE);
+          }
         }
         else if (ctx.poly_order == 2) {
           t[i] = kann_layer_cost(t[i], ctx.num_output_moms * 3, KANN_C_MSE);

@@ -46,7 +46,6 @@ nn_depth = 5 -- Number of layers to use.
 train_nn_file = "rt_pkpm_neut_sodshock_p2_moms_nn_1" -- File path of neural network to train.
 num_trains = GKYL_MAX_INT -- Number of times to train neural network.
 num_nn_writes = 1 -- Number of times to write out neural network.
-num_input_moms = 3 -- Number of "input" moments to train on.
 input_moms = { 1, 3, 4 } -- Array of "input" moments to train on.
 output_moms = { 5, 6 } -- Array of "output" moments to train on.
 test_nn = false -- Test neural network on simulation data?

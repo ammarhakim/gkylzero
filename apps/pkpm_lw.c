@@ -1343,7 +1343,12 @@ pkpm_app_run(lua_State *L)
     if (app_lw->train_ab_initio) {
       for (int i = 0; i < app->num_species; i++ ) {
         if (app->poly_order == 1) {
-          t[i] = kann_layer_input(app_lw->num_input_moms * 2);
+          if (app->cdim == 1) {
+            t[i] = kann_layer_input(app_lw->num_input_moms * 2);
+          }
+          else if (app->cdim == 2) {
+            t[i] = kann_layer_input(app_lw->num_input_moms * 4);
+          }
         }
         else if (app->poly_order == 2) {
           t[i] = kann_layer_input(app_lw->num_input_moms * 3);
@@ -1355,7 +1360,12 @@ pkpm_app_run(lua_State *L)
         }
         
         if (app->poly_order == 1) {
-          t[i] = kann_layer_cost(t[i], app_lw->num_output_moms * 2, KANN_C_MSE);
+          if (app->cdim == 1) {
+            t[i] = kann_layer_cost(t[i], app_lw->num_output_moms * 2, KANN_C_MSE);
+          }
+          else if (app->cdim == 2) {
+            t[i] = kann_layer_cost(t[i], app_lw->num_output_moms * 4, KANN_C_MSE);
+          }
         }
         else if (app->poly_order == 2) {
           t[i] = kann_layer_cost(t[i], app_lw->num_output_moms * 3, KANN_C_MSE);
