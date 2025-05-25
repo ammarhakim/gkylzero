@@ -60,7 +60,7 @@ num_nn_writes = 1 -- Number of times to write out neural network.
 input_moms = { 1, 3, 4 } -- Array of "input" moments to train on.
 output_moms = { 5, 6 } -- Array of "output" moments to train on.
 test_nn = false -- Test neural network on simulation data?
-test_nn_file = "rt_pkpm_periodic_es_shock_p1_nn_1" -- File path of neural network to test.
+test_nn_file = "rt_pkpm_periodic_es_shock_p1_moms_nn_1" -- File path of neural network to test.
 num_tests = 1 -- Number of times to test neural network.
 
 pkpmApp = PKPM.App.new {
