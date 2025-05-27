@@ -8,6 +8,7 @@ gyrokinetic_multib_forward_euler(struct gkyl_gyrokinetic_multib_app* app, double
   const struct gkyl_array **bflux_in_neut[], struct gkyl_array **bflux_out_neut[], 
   struct gkyl_update_status *st)
 {
+  struct timespec wst_fe = gkyl_wall_clock();
   // Take a forward Euler step with the suggested time-step dt. This may
   // not be the actual time-step taken. However, the function will never
   // take a time-step larger than dt even if it is allowed by
@@ -26,11 +27,14 @@ gyrokinetic_multib_forward_euler(struct gkyl_gyrokinetic_multib_app* app, double
     dtmin = fmin(dtmin, st->dt_actual);
   }
 
+  struct timespec wtm = gkyl_wall_clock();
   // Compute minimum time-step across all processors.
   double dtmin_local = dtmin, dtmin_global;
   gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &dtmin_local, &dtmin_global);
   st->dt_actual = dtmin_global;
+  app->stat.dfdt_dt_reduce_tm += gkyl_time_diff_now_sec(wtm);
 
+  struct timespec wst = gkyl_wall_clock();
   // Complete update of distribution functions.
   double dta = st->dt_actual;
   for (int b=0; b<app->num_local_blocks; ++b) {
@@ -49,6 +53,8 @@ gyrokinetic_multib_forward_euler(struct gkyl_gyrokinetic_multib_app* app, double
     }
   }
 
+  app->stat.fwd_euler_step_f_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.fwd_euler_tm += gkyl_time_diff_now_sec(wst_fe);
 }
 
 struct gkyl_update_status
@@ -179,6 +185,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
 
         } 
         else {
+          struct timespec wst = gkyl_wall_clock();
           for (int b=0; b<nblocks_local; ++b) {
             struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
             for (int i=0; i<ns_charged; ++i) {
@@ -194,6 +201,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
                 3.0/4.0, gkns->bflux.f, 1.0/4.0, gkns->bflux.fnew);
             }
           }
+          app->stat.time_stepper_arithmetic_tm += gkyl_time_diff_now_sec(wst);
 
           for (int b=0; b<nblocks_local; ++b) {
             struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
@@ -263,6 +271,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
           app->stat.nstage_2_fail += 1;
         }
         else {
+          struct timespec wst = gkyl_wall_clock();
           for (int b=0; b<nblocks_local; ++b) {
             struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
             for (int i=0; i<ns_charged; ++i) {
@@ -289,6 +298,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
               gk_neut_species_bflux_scale(sbapp, &gkns->bflux, gkns->bflux.f, 1.0/dt);
             }
           }
+          app->stat.time_stepper_arithmetic_tm += gkyl_time_diff_now_sec(wst);
 
 //          if (app->enforce_positivity) {
 //            // Apply positivity shift if requested.

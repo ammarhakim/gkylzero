@@ -96,6 +96,7 @@ void
 gk_species_lte(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   struct gk_lte *lte, const struct gkyl_array *fin)
 {
+  struct timespec wst = gkyl_wall_clock();
   // Compute needed Maxwellian moments (J*n, u_par, T/m).
   gk_species_moment_calc(&lte->moms, species->local, app->local, fin);
   
@@ -103,6 +104,7 @@ gk_species_lte(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   gkyl_dg_div_op_range(lte->moms.mem_geo, app->basis, 
     0, lte->moms.marr, 0, lte->moms.marr, 0, 
     app->gk_geom->geo_int.jacobgeo, &app->local);  
+  app->stat.species_lte_tm += gkyl_time_diff_now_sec(wst);   
 
   gk_species_lte_from_moms(app, species, lte, lte->moms.marr);
 }
@@ -134,7 +136,7 @@ gk_species_lte_write_max_corr_status(gkyl_gyrokinetic_app* app, struct gk_specie
     }
     gkyl_dynvec_clear(gks->lte.corr_stat);
 
-    app->stat.diag_io_tm += gkyl_time_diff_now_sec(wst);
+    app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
     app->stat.n_diag_io += 1;    
   }
 }

@@ -103,12 +103,14 @@ void
 gk_neut_species_lte(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
   struct gk_lte *lte, const struct gkyl_array *fin)
 {
+  struct timespec wst = gkyl_wall_clock();
   gk_neut_species_moment_calc(&lte->moms, species->local, app->local, fin);
 
   // divide out the Jacobian from the density
   gkyl_dg_div_op_range(lte->moms.mem_geo, app->basis, 
     0, lte->moms.marr, 0, lte->moms.marr, 0, 
     app->gk_geom->geo_int.jacobgeo, &app->local);  
+  app->stat.neut_species_lte_tm += gkyl_time_diff_now_sec(wst);   
 
   gk_neut_species_lte_from_moms(app, species, lte, lte->moms.marr);
 }
@@ -140,7 +142,7 @@ gk_neut_species_lte_write_max_corr_status(gkyl_gyrokinetic_app* app, struct gk_n
     }
     gkyl_dynvec_clear(gk_ns->lte.corr_stat);
 
-    app->stat.neut_diag_io_tm += gkyl_time_diff_now_sec(wst);
+    app->stat.neut_species_diag_io_tm += gkyl_time_diff_now_sec(wst);
     app->stat.n_neut_diag_io += 1;
   }
 }
