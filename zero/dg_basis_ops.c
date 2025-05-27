@@ -593,9 +593,9 @@ eval_cubic_wgrad(double t, const double *xn, double *fout, void *ctx)
   const double *fdg = gkyl_array_cfetch(ectx->cubic, lidx);
   
   fout[0] = ectx->basis.eval_expand(eta, fdg);
-  fout[1] = ectx->basis.eval_grad_expand(0, eta, fdg);
+  fout[1] = ectx->basis.eval_grad_expand(0, eta, fdg)*2/ectx->grid.dx[0];
   if (ectx->ndim > 1)
-    fout[2] = ectx->basis.eval_grad_expand(1, eta, fdg);
+    fout[2] = ectx->basis.eval_grad_expand(1, eta, fdg)*2/ectx->grid.dx[1];
 }
 
 // function for computing cubic at a specified coordinate
@@ -623,9 +623,9 @@ eval_cubic_wgrad2(double t, const double *xn, double *fout, void *ctx)
 
   fout[0] = ectx->basis.eval_expand(eta, fdg);
   if (ectx->ndim > 1) {
-    fout[1] = eval_laplacian_expand_2d_tensor_p3(0, eta, fdg);
-    fout[2] = eval_laplacian_expand_2d_tensor_p3(1, eta, fdg);
-    fout[3] = eval_mixedpartial_expand_2d_tensor_p3(eta, fdg);
+    fout[1] = eval_laplacian_expand_2d_tensor_p3(0, eta, fdg)*2/ectx->grid.dx[0]*2/ectx->grid.dx[0];
+    fout[2] = eval_laplacian_expand_2d_tensor_p3(1, eta, fdg)*2/ectx->grid.dx[1]*2/ectx->grid.dx[1];
+    fout[3] = eval_mixedpartial_expand_2d_tensor_p3(eta, fdg)*2/ectx->grid.dx[0]*2/ectx->grid.dx[1];
   }
 }
 

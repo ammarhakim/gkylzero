@@ -226,15 +226,15 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
         double fout[4];
         up->evf->eval_cubic_wgrad2(0.0, xn, fout, up->evf->ctx);
         psi_curr = fout[0];
-        br = fout[3]*scale_factorZ*scale_factorR;
-        bz = -fout[1]*scale_factorR*scale_factorR;
+        br = fout[3]; //*scale_factorZ*scale_factorR;
+        bz = -fout[1]; //*scale_factorR*scale_factorR;
       }
       else {
         double fout[3];
         up->evf->eval_cubic_wgrad(0.0, xn, fout, up->evf->ctx);
         psi_curr = fout[0];
-        br = 1.0/R*fout[2]*scale_factorZ;
-        bz = -1.0/R*fout[1]*scale_factorR;
+        br = 1.0/R*fout[2]; //*scale_factorZ;
+        bz = -1.0/R*fout[1]; //*scale_factorR;
       }
       double *bpol_n = gkyl_array_fetch(bpolzr_n, gkyl_range_idx(&nrange, idx));
       bpol_n[0] = sqrt(br*br + bz*bz);

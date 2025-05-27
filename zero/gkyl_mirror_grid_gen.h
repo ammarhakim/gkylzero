@@ -39,7 +39,7 @@ struct gkyl_mirror_grid_gen_inp {
   bool include_axis; // add nodes on r=0 axis (the axis is assumed be psi=0)
   
   double R[2], Z[2]; // extents of R,Z grid on which psi(R,Z) is given
-  int nrnodes, nznodes; // numer of nodes in R and Z
+  int nrcells, nzcells; // numer of cells in R and Z
   const struct gkyl_array *psiRZ; // nodal values of psi(R,Z)
 
   bool write_psi_cubic; // set to true to write the cubic fit to file

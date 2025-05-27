@@ -40,8 +40,8 @@ gkylt_mirrorgridgen(const struct gkylt_mirrorgridgen_inp *inp)
         .R = { psi_grid.lower[0], psi_grid.upper[0] },
         .Z = { psi_grid.lower[1], psi_grid.upper[1] },
         
-        .nrnodes = psi_grid.cells[0]-1, // cells and not nodes
-        .nznodes = psi_grid.cells[1]-1, // cells and not nodes
+        .nrcells = psi_grid.cells[0]-1, // cells and not nodes
+        .nzcells = psi_grid.cells[1]-1, // cells and not nodes
 
         .psiRZ = psi,
         .fl_coord = inp->fl_coord,

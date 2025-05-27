@@ -44,7 +44,7 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
   geo->gg_x->fl_coord = inp->fl_coord;
   geo->gg_x->include_axis = inp->include_axis;
 
-  int nr = inp->nrnodes, nz = inp->nznodes;
+  int nr = inp->nrcells, nz = inp->nzcells;
   int cells[] = { nr, nz };
   double lower[2] = { inp->R[0], inp->Z[0] };
   double upper[2] = { inp->R[1], inp->Z[1] };
