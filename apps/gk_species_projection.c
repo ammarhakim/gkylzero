@@ -19,7 +19,7 @@ proj_on_basis_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
 }
 
 // Default shaping function for Maxwellian Gaussian projection (to be normalized later).
-void func_gaussian(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+void func_gaussian(double t, const double* xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct gkyl_gyrokinetic_projection *inp = ctx;
   double envelope = 1.0;
@@ -33,7 +33,7 @@ void func_gaussian(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTR
   fout[0] = (envelope + inp->floor);
 }
 
-void func_one(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+void func_one(double t, const double* xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 1.0;
 }
@@ -65,7 +65,7 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       proj->proj_host = mkarr(false, s->basis.num_basis, s->local_ext.volume);
     }
   }
-  else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
+  else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
     proj->dens = mkarr(false, app->basis.num_basis, app->local_ext.volume);
     proj->upar = mkarr(false, app->basis.num_basis, app->local_ext.volume);
     proj->proj_dens = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
