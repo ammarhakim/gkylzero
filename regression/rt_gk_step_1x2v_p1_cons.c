@@ -582,7 +582,8 @@ main(int argc, char **argv)
     },
 
     .num_diag_moments = 3,
-    .diag_moments = { "M0", "M1i", "M2"}, //, "M2par", "M2perp" },
+//    .diag_moments = { "M0", "M1i", "M2"}, //, "M2par", "M2perp" },
+    .diag_moments = { "M1i_from_H", "MEnergy", "LTEMoments"},
   };
 
   // Field.

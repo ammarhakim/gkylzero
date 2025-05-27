@@ -31,9 +31,9 @@ GKYL_CU_DH int gyrokinetic_alpha_edge_surfx_1x1v_ser_p1(const double *w, const d
   const double *b_x = &b_i[0];
   const double *b_x_surf = &b_i_surf[0];
   const double *b_y = &b_i[2];
-  const double *b_y_surf = &b_i_surf[0];
+  const double *b_y_surf = &b_i_surf[1];
   const double *b_z = &b_i[4];
-  const double *b_z_surf = &b_i_surf[0];
+  const double *b_z_surf = &b_i_surf[2];
 
   double hamil[3] = {0.}; 
   hamil[0] = (1.7320508075688772*phi[1]+phi[0])*q_+0.5*vmapSq[0]*m_; 
@@ -42,15 +42,17 @@ GKYL_CU_DH int gyrokinetic_alpha_edge_surfx_1x1v_ser_p1(const double *w, const d
 
   double *alphaR = &alpha_surf[0];
   double *sgn_alpha_surfR = &sgn_alpha_surf[0];
+  alphaR[0] = (1.4142135623730951*cmag_surf[0]*jacobtot_inv_surf[0]*hamil[1])/(vmap[1]*m_); 
+  alphaR[1] = (3.1622776601683795*cmag_surf[0]*jacobtot_inv_surf[0]*hamil[2])/(vmap[1]*m_); 
 
   int const_sgn_alpha_surf = 1;  
   
-  if (0.0 > 0.) 
+  if (0.7071067811865468*alphaR[0]-0.9486832980505135*alphaR[1] > 0.) 
     sgn_alpha_surfR[0] = 1.0; 
   else  
     sgn_alpha_surfR[0] = -1.0; 
   
-  if (0.0 > 0.) 
+  if (0.7071067811865468*alphaR[0] > 0.) 
     sgn_alpha_surfR[1] = 1.0; 
   else  
     sgn_alpha_surfR[1] = -1.0; 
@@ -60,7 +62,7 @@ GKYL_CU_DH int gyrokinetic_alpha_edge_surfx_1x1v_ser_p1(const double *w, const d
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.0 > 0.) 
+  if (0.9486832980505135*alphaR[1]+0.7071067811865468*alphaR[0] > 0.) 
     sgn_alpha_surfR[2] = 1.0; 
   else  
     sgn_alpha_surfR[2] = -1.0; 
