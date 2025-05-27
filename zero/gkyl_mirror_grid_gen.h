@@ -11,19 +11,19 @@ struct gkyl_mirror_grid_gen_x;
 // along the polar tangents e_r, e_phi, e_z, that is, each vector's
 // contravariant components are stored
 struct __attribute__((__packed__)) gkyl_mirror_grid_gen_geom {
-  struct gkyl_vec3 tang[3]; // tangent vectors  
-  struct gkyl_vec3 dual[3]; // dual vectors
-  struct gkyl_vec3 B; // Magnetic field
+  struct gkyl_vec3 tang[3]; // tangent vectors, e_i
+  struct gkyl_vec3 dual[3]; // dual vectors, e^i
+  struct gkyl_vec3 B; // Magnetic field contravariant components
   double Jc; // Jacobian = e_1*(e_2 X e_3)  = 1/e^1*(e^2 X e^3)
 };
 
 struct gkyl_mirror_grid_gen {
-  struct gkyl_array *nodesrz; // r,z coordinates of corner nodes of cells
-  // geometric quantities at nodes: this is an array of
-  // gkyl_mirror_grid_gen_geom objects
-  struct gkyl_array *node_geom;
+  struct gkyl_array *nodes_rz; // r,z coordinates of corner nodes of cells
+  struct gkyl_array *nodes_geom; // geometric quantities at nodes: 
+  // this is an array of gkyl_mirror_grid_gen_geom objects
 
-  struct gkyl_mirror_grid_gen_x *gg_x;
+  struct gkyl_mirror_grid_gen_x *gg_x; // Internal object that contains flags
+  // describing the type of geometry being generated
 };  
 
 // flag to indicate what field-line coordinate to use
@@ -73,8 +73,8 @@ enum gkyl_mirror_grid_gen_field_line_coord
   gkyl_mirror_grid_gen_fl_coord(const struct gkyl_mirror_grid_gen *geom);
 
 /**
- * Release the mirror geometry object.
+ * Release the mirror grid object.
  *
- * @param geom Geometry object to release
+ * @param geom Mirror grid object to release
  */
 void gkyl_mirror_grid_gen_release(struct gkyl_mirror_grid_gen *geom);

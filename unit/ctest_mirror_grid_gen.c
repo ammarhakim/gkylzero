@@ -62,10 +62,10 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
     long loc = gkyl_range_idx(&node_range, iter.idx);
 
     const double *rz =
-      gkyl_array_cfetch(geom->nodesrz, loc);
+      gkyl_array_cfetch(geom->nodes_rz, loc);
 
     const struct gkyl_mirror_grid_gen_geom *g =
-      gkyl_array_cfetch(geom->node_geom, loc);
+      gkyl_array_cfetch(geom->nodes_geom, loc);
 
     // check Jacobian
     double Jac = gkyl_vec3_triple(
@@ -227,12 +227,12 @@ test_quad_geom(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_
     long loc = gkyl_range_idx(&node_range, iter.idx);
 
     const double *rz =
-      gkyl_array_cfetch(geom->nodesrz, loc);
+      gkyl_array_cfetch(geom->nodes_rz, loc);
 
     double r = rz[0], z = rz[1];
 
     const struct gkyl_mirror_grid_gen_geom *g =
-      gkyl_array_cfetch(geom->node_geom, loc);
+      gkyl_array_cfetch(geom->nodes_geom, loc);
 
     // construct metric tensor
     double g00 = gkyl_vec3_dot(

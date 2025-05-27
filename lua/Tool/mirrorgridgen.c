@@ -1,5 +1,6 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_mirror_grid_gen.h>
+#include <gkyl_mirror_geo_gen.h>
 #include <gkylt_mirrorgridgen.h>
 
 #include <stc/cstr.h>
@@ -33,7 +34,7 @@ gkylt_mirrorgridgen(const struct gkylt_mirrorgridgen_inp *inp)
   cstr cubic_fileNm = cstr_from_fmt("%s-psi-cubic.gkyl", inp->out_prefix);
   
   // create mirror geometry
-  struct gkyl_mirror_grid_gen *geom =
+  struct gkyl_mirror_grid_gen *mirror_grid =
     gkyl_mirror_grid_gen_inew(&(struct gkyl_mirror_grid_gen_inp) {
         .comp_grid = &comp_grid,
         
@@ -67,12 +68,12 @@ gkylt_mirrorgridgen(const struct gkylt_mirrorgridgen_inp *inp)
   do {
     cstr fileNm = cstr_from_fmt("%s-nodal_coords.gkyl", inp->out_prefix);
     enum gkyl_array_rio_status io_status =
-      gkyl_grid_sub_array_write(&nodal_grid, &node_range, 0, geom->nodesrz, fileNm.str);
+      gkyl_grid_sub_array_write(&nodal_grid, &node_range, 0, mirror_grid->nodes_rz, fileNm.str);
     cstr_drop(&fileNm);
   } while (0);
   
 
-  gkyl_mirror_grid_gen_release(geom);
+  gkyl_mirror_grid_gen_release(mirror_grid);
   gkyl_array_release(psi);
 
   cleanup:

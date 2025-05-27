@@ -61,7 +61,7 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
       gkyl_dg_basis_ops_evalf_write_cubic(evcub, fname);
   } while (0);
 
-  // construct grid in RZ plane
+  // Construct grid in RZ plane
   
   enum { NPSI, NZ };
   int nc[2];
@@ -69,24 +69,25 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
   nc[NZ] = inp->comp_grid->cells[2]+1;
   
   long nctot = nc[NPSI]*nc[NZ];
-  geo->nodesrz = gkyl_array_new(GKYL_DOUBLE, 2, nctot);
-  geo->node_geom = gkyl_array_new(GKYL_USER, sizeof(struct gkyl_mirror_grid_gen_geom), nctot);
+  geo->nodes_rz = gkyl_array_new(GKYL_DOUBLE, 2, nctot);
+  geo->nodes_geom = gkyl_array_new(GKYL_USER, sizeof(struct gkyl_mirror_grid_gen_geom), nctot);
 
   struct gkyl_range node_rng;
   gkyl_range_init_from_shape(&node_rng, 2, nc);
 
-  double zlow = inp->comp_grid->lower[2], zup = inp->comp_grid->upper[2];
-  double dz = (zup-zlow)/(nc[NZ]-1);
+  double z_lo = inp->comp_grid->lower[2];
+  double z_up = inp->comp_grid->upper[2];
+  double dz = (z_up-z_lo)/(nc[NZ]-1);
 
   double psi_lo = inp->comp_grid->lower[0];
   double psi_up = inp->comp_grid->upper[0];
 
   bool inc_axis = inp->include_axis;
 
-  // adjust if we are using sqrt(psi) as radial coordinate
+  // Adjust if we are using sqrt(psi) as radial coordinate
   double psic_lo = psi_lo, psic_up = psi_up;
   if (inp->fl_coord == GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z) {
-    // when we include axis psi_lo is ignored
+    // When we include axis, psi_lo is ignored
     psic_lo = inc_axis ? 0.0 : sqrt(psi_lo);
     psic_up = sqrt(psi_up);
   }
@@ -98,10 +99,10 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
 
   struct psirz_ctx pctx = { .evcub = evcub };
 
-  // compute node locations
+  // Compute node locations
   bool status = true;
   for (int iz=0; iz<nc[NZ]; ++iz) {
-    double zcurr = zlow + iz*dz;
+    double zcurr = z_lo + iz*dz;
 
     double psi_min[1], psi_max[1];
     evcub->eval_cubic(0.0, (double[2]) { rmin, zcurr }, psi_min, evcub->ctx);
@@ -111,14 +112,14 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
 
       if (inc_axis && (ipsi == 0)) {
         int idx[2] = { ipsi, iz };
-        double *rz = gkyl_array_fetch(geo->nodesrz, gkyl_range_idx(&node_rng, idx));
+        double *rz = gkyl_array_fetch(geo->nodes_rz, gkyl_range_idx(&node_rng, idx));
         rz[0] = 0.0; rz[1] = zcurr;
       }
       else {
         double psic_curr = psic_lo + ipsi*dpsi;
         pctx.Z = zcurr;
 
-        // we continue to do root-finding for psi and not sqrt(psi)
+        // We continue to do root-finding for psi and not sqrt(psi)
         double psi_curr = psic_curr;
         if (inp->fl_coord == GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z)
           psi_curr = psic_curr*psic_curr;
@@ -135,7 +136,7 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
         }
         
         int idx[2] = { ipsi, iz };
-        double *rz = gkyl_array_fetch(geo->nodesrz, gkyl_range_idx(&node_rng, idx));
+        double *rz = gkyl_array_fetch(geo->nodes_rz, gkyl_range_idx(&node_rng, idx));
         rz[0] = root.res; rz[1] = zcurr;
       }
     }
@@ -143,17 +144,17 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
 
   enum { PSI_I, DPSI_R_I, DPSI_Z_I };
   
-  // compute geometry at nodes
+  // Compute geometry at nodes
   for (int iz=0; iz<nc[NZ]; ++iz) {
     
     for (int ipsi=0; ipsi<nc[NPSI]; ++ipsi) {
       int idx[2] = { ipsi, iz };
       long loc = gkyl_range_idx(&node_rng, idx);
       
-      const double *rzp = gkyl_array_cfetch(geo->nodesrz, loc);
+      const double *rzp = gkyl_array_cfetch(geo->nodes_rz, loc);
       double rz[2] = { rzp[0], rzp[1] };
       
-      struct gkyl_mirror_grid_gen_geom *g = gkyl_array_fetch(geo->node_geom, loc);
+      struct gkyl_mirror_grid_gen_geom *g = gkyl_array_fetch(geo->nodes_geom, loc);
       
       if (inc_axis && (ipsi == 0)) {
         double fout2[4]; // second derivative of psi is needed
@@ -278,8 +279,8 @@ enum gkyl_mirror_grid_gen_field_line_coord
 void
 gkyl_mirror_grid_gen_release(struct gkyl_mirror_grid_gen *geom)
 {
-  gkyl_array_release(geom->nodesrz);
-  gkyl_array_release(geom->node_geom);
+  gkyl_array_release(geom->nodes_rz);
+  gkyl_array_release(geom->nodes_geom);
   gkyl_free(geom->gg_x);
   gkyl_free(geom);
 }
