@@ -381,9 +381,9 @@ struct gk_boundary_fluxes {
   int num_boundaries; // Number of boundaries to compute bfluxes at.
   int boundaries_dir[2*GKYL_MAX_CDIM]; // Direction of bflux boundaries.
   enum gkyl_edge_loc boundaries_edge[2*GKYL_MAX_CDIM]; // Edge of bflux boundaries.
-  struct gkyl_range boundaries_conf_skin[2*GKYL_MAX_CDIM]; // Conf-space ghost range of boundaries.
-  struct gkyl_range boundaries_conf_ghost[2*GKYL_MAX_CDIM]; // Conf-space ghost range of boundaries.
-  struct gkyl_range boundaries_phase_ghost[2*GKYL_MAX_CDIM]; // Phase-space ghost range of boundaries.
+  struct gkyl_range *boundaries_conf_skin[2*GKYL_MAX_CDIM]; // Conf-space ghost range of boundaries.
+  struct gkyl_range *boundaries_conf_ghost[2*GKYL_MAX_CDIM]; // Conf-space ghost range of boundaries.
+  struct gkyl_range *boundaries_phase_ghost[2*GKYL_MAX_CDIM]; // Phase-space ghost range of boundaries.
   struct gkyl_range *boundaries_phase_ghost_nosub; // Not a sub range of local_ext.
   gkyl_boundary_flux *flux_slvr[2*GKYL_MAX_CDIM]; // boundary flux solver
   struct gkyl_array **flux; // Array storing boundary fluxes.

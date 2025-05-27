@@ -18,7 +18,7 @@ gk_species_bflux_clear_dynamic(gkyl_gyrokinetic_app *app, struct gk_boundary_flu
 {
   for (int b=0; b<bflux->num_boundaries; ++b)
     for (int m=0; m<bflux->num_calc_moms; m++)
-      gkyl_array_clear_range(fin[b*bflux->num_calc_moms+m], val, &bflux->boundaries_conf_ghost[b]);
+      gkyl_array_clear_range(fin[b*bflux->num_calc_moms+m], val, bflux->boundaries_conf_ghost[b]);
 }
 
 static void
@@ -40,7 +40,7 @@ gk_species_bflux_scale_dynamic(gkyl_gyrokinetic_app *app, struct gk_boundary_flu
 {
   for (int b=0; b<bflux->num_boundaries; ++b)
     for (int m=0; m<bflux->num_calc_moms; m++)
-      gkyl_array_scale_range(fin[b*bflux->num_calc_moms+m], val, &bflux->boundaries_conf_ghost[b]);
+      gkyl_array_scale_range(fin[b*bflux->num_calc_moms+m], val, bflux->boundaries_conf_ghost[b]);
 }
 
 static void
@@ -62,8 +62,8 @@ gk_species_bflux_step_f_dynamic(gkyl_gyrokinetic_app *app, struct gk_boundary_fl
 {
   for (int b=0; b<bflux->num_boundaries; ++b)
     for (int m=0; m<bflux->num_calc_moms; m++)
-      gkyl_array_accumulate_range(gkyl_array_scale_range(fout[b*bflux->num_calc_moms+m], dt, &bflux->boundaries_conf_ghost[b]),
-        1.0, fin[b*bflux->num_calc_moms+m], &bflux->boundaries_conf_ghost[b]);
+      gkyl_array_accumulate_range(gkyl_array_scale_range(fout[b*bflux->num_calc_moms+m], dt, bflux->boundaries_conf_ghost[b]),
+        1.0, fin[b*bflux->num_calc_moms+m], bflux->boundaries_conf_ghost[b]);
 }
 
 static void
@@ -86,8 +86,8 @@ gk_species_bflux_combine_dynamic(gkyl_gyrokinetic_app *app, struct gk_boundary_f
   for (int b=0; b<bflux->num_boundaries; ++b)
     for (int m=0; m<bflux->num_calc_moms; m++)
       gkyl_array_accumulate_range(gkyl_array_set_range(fout[b*bflux->num_calc_moms+m],
-        fac1, fin1[b*bflux->num_calc_moms+m], &bflux->boundaries_conf_ghost[b]),
-        fac2, fin2[b*bflux->num_calc_moms+m], &bflux->boundaries_conf_ghost[b]);
+        fac1, fin1[b*bflux->num_calc_moms+m], bflux->boundaries_conf_ghost[b]),
+        fac2, fin2[b*bflux->num_calc_moms+m], bflux->boundaries_conf_ghost[b]);
 }
 
 static void
@@ -109,7 +109,7 @@ gk_species_bflux_copy_dynamic(gkyl_gyrokinetic_app *app, struct gk_boundary_flux
 {
   for (int b=0; b<bflux->num_boundaries; ++b)
     for (int m=0; m<bflux->num_calc_moms; m++)
-      gkyl_array_copy_range(fout[b*bflux->num_calc_moms+m], fin[b*bflux->num_calc_moms+m], &bflux->boundaries_conf_ghost[b]);
+      gkyl_array_copy_range(fout[b*bflux->num_calc_moms+m], fin[b*bflux->num_calc_moms+m], bflux->boundaries_conf_ghost[b]);
 }
 
 static void
@@ -132,9 +132,9 @@ gk_species_bflux_rhs_calc(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *
   for (int b=0; b<bflux->num_boundaries; ++b) {
     // Ghost cells of the rhs array are filled with the bflux. This is overwritten
     // by the boundary conditions, but it is used before that happens.
-    gkyl_array_clear_range(rhs, 0.0, &bflux->boundaries_phase_ghost[b]);
+    gkyl_array_clear_range(rhs, 0.0, bflux->boundaries_phase_ghost[b]);
     gkyl_boundary_flux_advance(bflux->flux_slvr[b], fin, rhs);
-    gkyl_array_copy_range_to_range(bflux->flux[b], rhs, &bflux->boundaries_phase_ghost_nosub[b], &bflux->boundaries_phase_ghost[b]);
+    gkyl_array_copy_range_to_range(bflux->flux[b], rhs, &bflux->boundaries_phase_ghost_nosub[b], bflux->boundaries_phase_ghost[b]);
   }
 }
 
@@ -164,9 +164,9 @@ gk_species_bflux_calc_moms_dynamic(gkyl_gyrokinetic_app *app, struct gk_boundary
     }
 
     for (int m=0; m<bflux->num_calc_moms; m++) {
-      gk_species_moment_calc(&bflux->moms_op[m], bflux->boundaries_phase_ghost[b], bflux->boundaries_conf_ghost[b], rhs);
+      gk_species_moment_calc(&bflux->moms_op[m], *bflux->boundaries_phase_ghost[b], *bflux->boundaries_conf_ghost[b], rhs);
 
-      gkyl_array_copy_range(bflux_moms[b*bflux->num_calc_moms+m], bflux->moms_op[m].marr, &bflux->boundaries_conf_ghost[b]);
+      gkyl_array_copy_range(bflux_moms[b*bflux->num_calc_moms+m], bflux->moms_op[m].marr, bflux->boundaries_conf_ghost[b]);
     }
   }
 }
@@ -196,7 +196,7 @@ gk_species_bflux_get_flux_mom_dynamic(struct gk_boundary_fluxes *bflux, int dir,
       break;
     }
   }
-  gkyl_array_copy_range_to_range(out, bflux->f[b*bflux->num_calc_moms+mom_idx], out_rng, &bflux->boundaries_conf_ghost[b]);
+  gkyl_array_copy_range_to_range(out, bflux->f[b*bflux->num_calc_moms+mom_idx], out_rng, bflux->boundaries_conf_ghost[b]);
 }
 
 static void
@@ -245,11 +245,11 @@ gk_species_bflux_calc_integrated_mom_dynamic(gkyl_gyrokinetic_app* app,
     int num_mom_comp = bflux->moms_op[int_mom_idx].num_mom; 
     double avals_global[num_mom_comp];
 
-      for (int b=0; b<bflux->num_boundaries; ++b) {
-        // Integrated moment of the boundary flux.
-        int dir = bflux->boundaries_dir[b];
-        gkyl_array_integrate_advance(bflux->integ_op[m], bflux->f[b*bflux->num_calc_moms+int_mom_idx], 1.0, 0,
-          &bflux->boundaries_conf_ghost[b], 0, bflux->int_moms_local);
+    for (int b=0; b<bflux->num_boundaries; ++b) {
+      // Integrated moment of the boundary flux.
+      int dir = bflux->boundaries_dir[b];
+      gkyl_array_integrate_advance(bflux->integ_op[m], bflux->f[b*bflux->num_calc_moms+int_mom_idx], 1.0, 0,
+        bflux->boundaries_conf_ghost[b], 0, bflux->int_moms_local);
 
       gkyl_comm_allreduce(app->comm_plane[dir], GKYL_DOUBLE, GKYL_SUM, num_mom_comp, 
         bflux->int_moms_local, bflux->int_moms_global);
@@ -279,11 +279,11 @@ gk_species_bflux_calc_voltime_integrated_mom_dynamic(gkyl_gyrokinetic_app* app,
     double avals_global[num_mom_comp];
     double *intmom_cumm_buff = bflux->intmom_cumm_buff[m];
 
-      for (int b=0; b<bflux->num_boundaries; ++b) {
-        // Integrated moment of the boundary flux.
-        int dir = bflux->boundaries_dir[b];
-        gkyl_array_integrate_advance(bflux->integ_op[m], bflux->f[b*bflux->num_calc_moms+int_mom_idx], 1., 0,
-          &bflux->boundaries_conf_ghost[b], 0, bflux->int_moms_local);
+    for (int b=0; b<bflux->num_boundaries; ++b) {
+      // Integrated moment of the boundary flux.
+      int dir = bflux->boundaries_dir[b];
+      gkyl_array_integrate_advance(bflux->integ_op[m], bflux->f[b*bflux->num_calc_moms+int_mom_idx], 1., 0,
+        bflux->boundaries_conf_ghost[b], 0, bflux->int_moms_local);
 
       gkyl_comm_allreduce(app->comm_plane[dir], GKYL_DOUBLE, GKYL_SUM, num_mom_comp, 
         bflux->int_moms_local, bflux->int_moms_global);
@@ -442,7 +442,7 @@ gk_species_bflux_write_mom_dynamic(gkyl_gyrokinetic_app* app, void *spec_in,
         // For now copy the moment to the skin ghost and write it out.
         int mom_idx = bflux->diag_mom_idx[m];
         gkyl_array_copy_range_to_range(bflux->moms_op[mom_idx].marr, bflux->moms_op[mom_idx].marr,
-          &bflux->boundaries_conf_skin[b], &bflux->boundaries_conf_ghost[b]);
+          bflux->boundaries_conf_skin[b], bflux->boundaries_conf_ghost[b]);
 
         // Rescale moment by inverse of Jacobian. 
         // For Maxwellian and bi-Maxwellian moments, we only need to re-scale
@@ -452,13 +452,13 @@ gk_species_bflux_write_mom_dynamic(gkyl_gyrokinetic_app* app, void *spec_in,
           app->gk_geom->jacobgeo, &app->local);  // It fails if one uses the skin range here.
         // Rescale by dx/2 in the direction of the boundary to account for the
         // normalization in the boundary surf kernels.
-        gkyl_array_scale_range(bflux->moms_op[mom_idx].marr, 0.5*app->grid.dx[dir], &bflux->boundaries_conf_skin[b]);
+        gkyl_array_scale_range(bflux->moms_op[mom_idx].marr, 0.5*app->grid.dx[dir], bflux->boundaries_conf_skin[b]);
           
         struct timespec wtm = gkyl_wall_clock();
         if (app->cdim > 1) {
           // Project the moment down to lower dimensions.
           int num_mom_comp = bflux->moms_op[mom_idx].num_mom;
-          gkyl_translate_dim_advance(bflux->transdim[b], &bflux->boundaries_conf_skin[b], &bflux->surf_local[dir],
+          gkyl_translate_dim_advance(bflux->transdim[b], bflux->boundaries_conf_skin[b], &bflux->surf_local[dir],
             bflux->moms_op[mom_idx].marr, num_mom_comp, bflux->mom_surf[b*num_diag_mom+m]);
 
           if (app->use_gpu)
@@ -561,31 +561,22 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
     bflux->bflux_get_flux_func = gk_species_bflux_get_flux_dynamic;
 
     // Identify the non-periodic, non-zero-flux boundaries to compute boundary fluxes at.
-    int nb = 0;
+    bflux->num_boundaries = 0;
     for (int d=0; d<app->cdim; ++d) {
       for (int e=0; e<2; ++e) {
         if ( gk_s->bc_is_np[d] &&
              ((e == 0 && gk_s->lower_bc[d].type != GKYL_SPECIES_ZERO_FLUX) ||
               (e == 1 && gk_s->upper_bc[d].type != GKYL_SPECIES_ZERO_FLUX)) ) {
-          bflux->boundaries_dir[nb] = d;
-          bflux->boundaries_edge[nb] = e==0? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
-          // We consider only the SOL ranges in the IWL case
-          if (e == 0? gk_s->lower_bc[d].type == GKYL_SPECIES_GK_IWL
-            : gk_s->upper_bc[d].type == GKYL_SPECIES_GK_IWL) {
-            bflux->boundaries_conf_skin[nb] = e==0? app->lower_skin_par_sol : app->upper_skin_par_sol;
-            bflux->boundaries_conf_ghost[nb] = e==0? app->lower_ghost_par_sol : app->upper_ghost_par_sol;
-            bflux->boundaries_phase_ghost[nb] = e==0? gk_s->lower_ghost_par_sol : gk_s->upper_ghost_par_sol;            
-          } else {
-            bflux->boundaries_conf_skin[nb] = e==0? app->lower_skin[d] : app->upper_skin[d];
-            bflux->boundaries_conf_ghost[nb] = e==0? app->lower_ghost[d] : app->upper_ghost[d];
-            bflux->boundaries_phase_ghost[nb] = e==0? gk_s->lower_ghost[d] : gk_s->upper_ghost[d];
-          }
-          nb++;
+          bflux->boundaries_dir[bflux->num_boundaries] = d;
+          bflux->boundaries_edge[bflux->num_boundaries] = e==0? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
+          bflux->boundaries_conf_skin[bflux->num_boundaries] = e==0? &app->lower_skin[d] : &app->upper_skin[d];
+          bflux->boundaries_conf_ghost[bflux->num_boundaries] = e==0? &app->lower_ghost[d] : &app->upper_ghost[d];
+          bflux->boundaries_phase_ghost[bflux->num_boundaries] = e==0? &gk_s->lower_ghost[d] : &gk_s->upper_ghost[d];
+          bflux->num_boundaries++;
         }
       }
     }
-    bflux->num_boundaries = nb;
-
+  
     // Allocate updater that computes boundary fluxes.
     for (int b=0; b<bflux->num_boundaries; ++b) {
       int dir = bflux->boundaries_dir[b];
@@ -602,8 +593,8 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
     for (int b=0; b<bflux->num_boundaries; ++b) {
       int rlower[ndim], rupper[ndim];
       for (int d=0; d<ndim; d++) {
-        rlower[d] = bflux->boundaries_phase_ghost[b].lower[d];
-        rupper[d] = bflux->boundaries_phase_ghost[b].upper[d];
+        rlower[d] = bflux->boundaries_phase_ghost[b]->lower[d];
+        rupper[d] = bflux->boundaries_phase_ghost[b]->upper[d];
       }
       gkyl_range_init(&bflux->boundaries_phase_ghost_nosub[b], ndim, rlower, rupper);
       bflux->flux[b] = mkarr(app->use_gpu, gk_s->basis.num_basis, bflux->boundaries_phase_ghost_nosub[b].volume);
@@ -672,7 +663,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
                                                                               : &app->upper_skin[dir];
     
         bflux->gfss_bc_op[b] = gkyl_bc_basic_new(bflux->boundaries_dir[b], bflux->boundaries_edge[b],
-          GKYL_BC_CONF_BOUNDARY_VALUE, &app->basis, skin_r, &bflux->boundaries_conf_ghost[b], 1, app->cdim, app->use_gpu);
+          GKYL_BC_CONF_BOUNDARY_VALUE, &app->basis, skin_r, bflux->boundaries_conf_ghost[b], 1, app->cdim, app->use_gpu);
         
         long vol = skin_r->volume;
         buff_sz = buff_sz > vol ? buff_sz : vol;
