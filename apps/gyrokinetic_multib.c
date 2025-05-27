@@ -498,7 +498,6 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   struct gkyl_gyrokinetic_field field_inp = { };
   field_inp.gkfield_id = fld->gkfield_id;
   field_inp.kperpSq = fld->kperpSq; 
-  field_inp.xLCFS = fld->xLCFS; 
   field_inp.time_rate_diagnostics = fld->time_rate_diagnostics; 
 
   // Adiabatic electron inputs.
