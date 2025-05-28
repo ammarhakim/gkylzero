@@ -464,8 +464,8 @@ create_ctx(void)
   double z_min = -2.0;
   double z_max =  2.0;
   double z_m = 0.982544;
-  double psi_min = 1e-3;
-  double psi_max = 1e-2;
+  double psi_min = 4e-4;
+  double psi_max = 3e-3;
 
   // Source parameters
   double NSrcIon = 3.1715e23 / 8.0;
