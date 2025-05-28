@@ -40,12 +40,12 @@ gkyl_mirror_geo_gen_inew(const struct gkyl_mirror_geo_gen_inp *inp)
   geo->nodes_geom = gkyl_array_new(GKYL_USER, sizeof(struct gkyl_mirror_geo_gen_geom), nodal_range_3x.volume);
 
   // Loop over all node locations
-  for (int ipsi=nodal_range_3x.lower[PSI_IDX]; ipsi<nodal_range_3x.upper[PSI_IDX]; ++ipsi) {
-    for (int iz=nodal_range_3x.lower[Z_IDX]; iz<nodal_range_3x.upper[Z_IDX]; ++iz) {
-      for (int ia=nodal_range_3x.lower[AL_IDX]; ia<nodal_range_3x.upper[AL_IDX]; ++ia) {
+  for (int ip=nodal_range_3x.lower[PSI_IDX]; ip<=nodal_range_3x.upper[PSI_IDX]; ++ip) {
+    for (int ia=nodal_range_3x.lower[AL_IDX]; ia<=nodal_range_3x.upper[AL_IDX]; ++ia) {
+      for (int iz=nodal_range_3x.lower[Z_IDX]; iz<=nodal_range_3x.upper[Z_IDX]; ++iz) {
         // Find our location in the array
-        int idx_2x[2] = { ipsi, iz };
-        int idx_3x[3] = { ipsi, ia, iz };
+        int idx_2x[2] = { ip, iz };
+        int idx_3x[3] = { ip, ia, iz };
         long loc_2x = gkyl_range_idx(&nodal_range_2x, idx_2x);
         long loc_3x = gkyl_range_idx(&nodal_range_3x, idx_3x);
 

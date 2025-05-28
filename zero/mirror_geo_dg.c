@@ -88,9 +88,8 @@ gkyl_mirror_geo_dg_inew(const struct gkyl_mirror_geo_dg_inp *inp)
 
   enum { PSI_IDX, AL_IDX, Z_IDX }; // arrangement of computational coordinates in the grid
 
-  int cidx[3] = { 0 };
-  for(int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia)  {
-    for(int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+  for(int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+    for(int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia) {
       for(int iz=nrange.lower[Z_IDX]; iz<=nrange.upper[Z_IDX]; ++iz) {
 
         int cidx[3] = { ip, ia, iz };
@@ -101,7 +100,7 @@ gkyl_mirror_geo_dg_inew(const struct gkyl_mirror_geo_dg_inp *inp)
         double *mapc2p_nodal_n = gkyl_array_fetch(mapc2p_nodal, idx);
         mapc2p_nodal_n[0] = geom_n->rza_coord[0];
         mapc2p_nodal_n[1] = geom_n->rza_coord[1];
-        mapc2p_nodal_n[2] = geom_n->rza_coord[2];
+        mapc2p_nodal_n[2] = -geom_n->rza_coord[2];
 
         double *mc2nu_pos_nodal_n = gkyl_array_fetch(mc2nu_pos_nodal, idx);
         mc2nu_pos_nodal_n[0] = geom_n->psi;

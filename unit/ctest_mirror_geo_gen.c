@@ -87,12 +87,12 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   double alpha_lo = comp_grid.lower[AL_IDX] + (range.lower[AL_IDX] - range.lower[AL_IDX]) * comp_grid.dx[AL_IDX];
 
   // Loop over all node locations
-  for (int ipsi=nodal_range_3x.lower[PSI_IDX]; ipsi<nodal_range_3x.upper[PSI_IDX]; ++ipsi) {
-    for (int iz=nodal_range_3x.lower[Z_IDX]; iz<nodal_range_3x.upper[Z_IDX]; ++iz) {
-      for (int ia=nodal_range_3x.lower[AL_IDX]; ia<nodal_range_3x.upper[AL_IDX]; ++ia) {
+  for (int ip=nodal_range_3x.lower[PSI_IDX]; ip<nodal_range_3x.upper[PSI_IDX]; ++ip) {
+    for (int ia=nodal_range_3x.lower[AL_IDX]; ia<nodal_range_3x.upper[AL_IDX]; ++ia) {
+      for (int iz=nodal_range_3x.lower[Z_IDX]; iz<nodal_range_3x.upper[Z_IDX]; ++iz) {
         // Find our location in the array
-        int idx_2x[2] = { ipsi, iz };
-        int idx_3x[3] = { ipsi, ia, iz };
+        int idx_2x[2] = { ip, iz };
+        int idx_3x[3] = { ip, ia, iz };
         long loc_2x = gkyl_range_idx(&nodal_range_2x, idx_2x);
         long loc_3x = gkyl_range_idx(&nodal_range_3x, idx_3x);
         double alpha_curr = alpha_lo + ia*dalpha;
@@ -151,7 +151,7 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
             double gij = gkyl_vec3_dot(g->dual[i], g->dual[j]);
             TEST_CHECK( gkyl_compare_double(g->metric_contr[count], gij, 1e-12) );
             TEST_CHECK( gkyl_compare_double(g->metric_contr_neut[count], gij, 1e-12) );
-            TEST_MSG("ip = %d, ia = %d, it = %d\n", ipsi, ia, iz);
+            TEST_MSG("ip = %d, ia = %d, it = %d\n", ip, ia, iz);
             TEST_MSG("g_ij = %e, g^ij = %e\n", g->metric_covar[count], g->metric_contr[count]);
             TEST_MSG("g_ij_geom = %e, g^ij_geom = %e\n", g_ij, gij);
             count++;

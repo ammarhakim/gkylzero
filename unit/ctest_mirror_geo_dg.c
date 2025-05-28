@@ -128,13 +128,6 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
       }
     );
 
-  struct gkyl_mirror_geo_gen *mirror_geo = 
-    gkyl_mirror_geo_gen_inew(&(struct gkyl_mirror_geo_gen_inp) {
-        .comp_grid = &comp_grid,
-        .mirror_grid = mirror_grid,
-      }
-    );
-
   struct gkyl_basis basis;
   int poly_order = 1;
   int cdim = 3;
@@ -144,8 +137,14 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   int nghost[3] = { 1,1,1};
   gkyl_create_grid_ranges(&comp_grid, nghost, &ext_range, &range);
 
-  // Comp grid is 11 x 33. It's the local nodes
-  // ext grid is 12 x 18 x 34
+  struct gkyl_mirror_geo_gen *mirror_geo = 
+    gkyl_mirror_geo_gen_inew(&(struct gkyl_mirror_geo_gen_inp) {
+        .comp_grid = &comp_grid,
+        .mirror_grid = mirror_grid,
+        .range = range,
+        .basis = basis,
+      }
+    );
 
   struct gkyl_mirror_geo_dg *mirror_geo_dg = 
     gkyl_mirror_geo_dg_inew(&(struct gkyl_mirror_geo_dg_inp) {
@@ -160,22 +159,16 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   // Check this generated geometry compared to the known analytic geometrical quantities
 
   // Define nodal operations
-  enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
+  enum { PSI_IDX, AL_IDX, Z_IDX }; // arrangement of computational coordinates
   int cidx[3];
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&basis, &comp_grid, false);
 
   // Create nodal range
-  struct gkyl_range nodal_range_2x, nodal_range;
+  struct gkyl_range nodal_range;
   
   int nodes[3];
-  if (basis.poly_order == 1) {
-    for (int d=0; d<3; ++d)
-      nodes[d] = gkyl_range_shape(&range, d) + 1;
-  }
-  if (basis.poly_order == 2) {
-    for (int d=0; d<3; ++d)
-      nodes[d] = 2*gkyl_range_shape(&range, d) + 1;
-  }
+  for (int d=0; d<3; ++d)
+    nodes[d] = gkyl_range_shape(&range, d) + 1;
   gkyl_range_init_from_shape(&nodal_range, 3, nodes);
 
   // Check that |bhat|=1 at nodes
@@ -183,13 +176,17 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   gkyl_nodal_ops_m2n(n2m, &basis, &comp_grid, &nodal_range, &range, 3, bhat_nodal, mirror_geo_dg->b_cart);
   for (int ia=nodal_range.lower[AL_IDX]; ia<=nodal_range.upper[AL_IDX]; ++ia){
     for (int ip=nodal_range.lower[PSI_IDX]; ip<=nodal_range.upper[PSI_IDX]; ++ip) {
-      for (int it=nodal_range.lower[TH_IDX]; it<=nodal_range.upper[TH_IDX]; ++it) {
+      for (int it=nodal_range.lower[Z_IDX]; it<=nodal_range.upper[Z_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
-        cidx[TH_IDX] = it;
+        cidx[Z_IDX] = it;
         double *bhat_n = gkyl_array_fetch(bhat_nodal, gkyl_range_idx(&nodal_range, cidx));
         double bhat_mag = sqrt(bhat_n[0]*bhat_n[0] + bhat_n[1]*bhat_n[1] + bhat_n[2]*bhat_n[2]);
         TEST_CHECK( gkyl_compare( bhat_mag, 1.0, 1e-12) );
+        TEST_MSG("bhat_mag = %g at (psi, alpha, z) = (%g, %g, %g)", bhat_mag,
+          comp_grid.lower[PSI_IDX] + ip*(comp_grid.upper[PSI_IDX]-comp_grid.lower[PSI_IDX])/comp_grid.cells[PSI_IDX],
+          comp_grid.lower[AL_IDX] + ia*(comp_grid.upper[AL_IDX]-comp_grid.lower[AL_IDX])/comp_grid.cells[AL_IDX],
+          comp_grid.lower[Z_IDX] + it*(comp_grid.upper[Z_IDX]-comp_grid.lower[Z_IDX])/comp_grid.cells[Z_IDX]);
       }
     }
   }
@@ -202,10 +199,10 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   gkyl_nodal_ops_m2n(n2m, &basis, &comp_grid, &nodal_range, &range, 3, mapc2p_nodal, mirror_geo_dg->mapc2p);
   for (int ia=nodal_range.lower[AL_IDX]; ia<=nodal_range.upper[AL_IDX]; ++ia){
     for (int ip=nodal_range.lower[PSI_IDX] + 3; ip<=nodal_range.upper[PSI_IDX]; ++ip) {
-      for (int it=nodal_range.lower[TH_IDX]; it<=nodal_range.upper[TH_IDX]; ++it) {
+      for (int it=nodal_range.lower[Z_IDX]; it<=nodal_range.upper[Z_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
-        cidx[TH_IDX] = it;
+        cidx[Z_IDX] = it;
         double *dualmag_n = gkyl_array_fetch(dualmag_nodal, gkyl_range_idx(&nodal_range, cidx));
         double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nodal_range, cidx));
         double xn[3] = {mapc2p_n[0], mapc2p_n[1], mapc2p_n[2]};
@@ -223,13 +220,13 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   gkyl_nodal_ops_m2n(n2m, &basis, &comp_grid, &nodal_range, &range, 1, bmag_nodal, mirror_geo_dg->Bmag);
   for (int ia=nodal_range.lower[AL_IDX]; ia<=nodal_range.upper[AL_IDX]; ++ia){
     for (int ip=nodal_range.lower[PSI_IDX]; ip<=nodal_range.upper[PSI_IDX]; ++ip) {
-      for (int it=nodal_range.lower[TH_IDX]; it<=nodal_range.upper[TH_IDX]; ++it) {
+      for (int it=nodal_range.lower[Z_IDX]; it<=nodal_range.upper[Z_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
-        cidx[TH_IDX] = it;
+        cidx[Z_IDX] = it;
         double psi = comp_grid.lower[PSI_IDX] + ip*(comp_grid.upper[PSI_IDX]-comp_grid.lower[PSI_IDX])/comp_grid.cells[PSI_IDX];
         double alpha = comp_grid.lower[AL_IDX] + ia*(comp_grid.upper[AL_IDX]-comp_grid.lower[AL_IDX])/comp_grid.cells[AL_IDX];
-        double theta = comp_grid.lower[TH_IDX] + it*(comp_grid.upper[TH_IDX]-comp_grid.lower[TH_IDX])/comp_grid.cells[TH_IDX];
+        double theta = comp_grid.lower[Z_IDX] + it*(comp_grid.upper[Z_IDX]-comp_grid.lower[Z_IDX])/comp_grid.cells[Z_IDX];
         double xn[3] = {psi, alpha, theta};
         double *bmag_n = gkyl_array_fetch(bmag_nodal, gkyl_range_idx(&nodal_range, cidx));
         double bmag_anal[1];
@@ -244,14 +241,14 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   gkyl_nodal_ops_m2n(n2m, &basis, &comp_grid, &nodal_range, &range, 1, bmag_inv_sq_nodal, mirror_geo_dg->Bmag_inv_sq);
   for (int ia=nodal_range.lower[AL_IDX]; ia<=nodal_range.upper[AL_IDX]; ++ia){
     for (int ip=nodal_range.lower[PSI_IDX]; ip<=nodal_range.upper[PSI_IDX]; ++ip) {
-      for (int it=nodal_range.lower[TH_IDX]; it<=nodal_range.upper[TH_IDX]; ++it) {
+      for (int it=nodal_range.lower[Z_IDX]; it<=nodal_range.upper[Z_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
-        cidx[TH_IDX] = it;
+        cidx[Z_IDX] = it;
         double *bmag_inv_sq_n = gkyl_array_fetch(bmag_inv_sq_nodal, gkyl_range_idx(&nodal_range, cidx));
         double psi = comp_grid.lower[PSI_IDX] + ip*(comp_grid.upper[PSI_IDX]-comp_grid.lower[PSI_IDX])/comp_grid.cells[PSI_IDX];
         double alpha = comp_grid.lower[AL_IDX] + ia*(comp_grid.upper[AL_IDX]-comp_grid.lower[AL_IDX])/comp_grid.cells[AL_IDX];
-        double theta = comp_grid.lower[TH_IDX] + it*(comp_grid.upper[TH_IDX]-comp_grid.lower[TH_IDX])/comp_grid.cells[TH_IDX];
+        double theta = comp_grid.lower[Z_IDX] + it*(comp_grid.upper[Z_IDX]-comp_grid.lower[Z_IDX])/comp_grid.cells[Z_IDX];
         double xn[3] = {psi, alpha, theta};
         double bmag_anal[1];
         bmag_func(0, xn, bmag_anal, 0);
@@ -265,14 +262,14 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   gkyl_nodal_ops_m2n(n2m, &basis, &comp_grid, &nodal_range, &range, 1, bmag_inv_nodal, mirror_geo_dg->Bmag_inv);
   for (int ia=nodal_range.lower[AL_IDX]; ia<=nodal_range.upper[AL_IDX]; ++ia){
     for (int ip=nodal_range.lower[PSI_IDX]; ip<=nodal_range.upper[PSI_IDX]; ++ip) {
-      for (int it=nodal_range.lower[TH_IDX]; it<=nodal_range.upper[TH_IDX]; ++it) {
+      for (int it=nodal_range.lower[Z_IDX]; it<=nodal_range.upper[Z_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
-        cidx[TH_IDX] = it;
+        cidx[Z_IDX] = it;
         double *bmag_inv_n = gkyl_array_fetch(bmag_inv_nodal, gkyl_range_idx(&nodal_range, cidx));
         double psi = comp_grid.lower[PSI_IDX] + ip*(comp_grid.upper[PSI_IDX]-comp_grid.lower[PSI_IDX])/comp_grid.cells[PSI_IDX];
         double alpha = comp_grid.lower[AL_IDX] + ia*(comp_grid.upper[AL_IDX]-comp_grid.lower[AL_IDX])/comp_grid.cells[AL_IDX];
-        double theta = comp_grid.lower[TH_IDX] + it*(comp_grid.upper[TH_IDX]-comp_grid.lower[TH_IDX])/comp_grid.cells[TH_IDX];
+        double theta = comp_grid.lower[Z_IDX] + it*(comp_grid.upper[Z_IDX]-comp_grid.lower[Z_IDX])/comp_grid.cells[Z_IDX];
         double xn[3] = {psi, alpha, theta};
         double bmag_anal[1];
         bmag_func(0, xn, bmag_anal, 0);
@@ -286,10 +283,10 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   gkyl_nodal_ops_m2n(n2m, &basis, &comp_grid, &nodal_range, &range, 1, cmag_nodal, mirror_geo_dg->C);
   for (int ia=nodal_range.lower[AL_IDX]; ia<=nodal_range.upper[AL_IDX]; ++ia){
     for (int ip=nodal_range.lower[PSI_IDX]; ip<=nodal_range.upper[PSI_IDX]; ++ip) {
-      for (int it=nodal_range.lower[TH_IDX]; it<=nodal_range.upper[TH_IDX]; ++it) {
+      for (int it=nodal_range.lower[Z_IDX]; it<=nodal_range.upper[Z_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
-        cidx[TH_IDX] = it;
+        cidx[Z_IDX] = it;
         double *cmag_n = gkyl_array_fetch(cmag_nodal, gkyl_range_idx(&nodal_range, cidx));
         TEST_CHECK( gkyl_compare( cmag_n[0], 1.0, 1e-8) );
       }
@@ -302,12 +299,17 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   gkyl_nodal_ops_m2n(n2m, &basis, &comp_grid, &nodal_range, &range, 1, eps2_nodal, mirror_geo_dg->eps2);
   for (int ia=nodal_range.lower[AL_IDX]; ia<=nodal_range.upper[AL_IDX]; ++ia){
     for (int ip=nodal_range.lower[PSI_IDX]; ip<=nodal_range.upper[PSI_IDX]; ++ip) {
-      for (int it=nodal_range.lower[TH_IDX]; it<=nodal_range.upper[TH_IDX]; ++it) {
+      for (int it=nodal_range.lower[Z_IDX]; it<=nodal_range.upper[Z_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
-        cidx[TH_IDX] = it;
+        cidx[Z_IDX] = it;
         double *eps2_n = gkyl_array_fetch(eps2_nodal, gkyl_range_idx(&nodal_range, cidx));
         TEST_CHECK( gkyl_compare( eps2_n[0], 1.0, 1e-8) );
+        TEST_MSG("eps2 = %g should be 1.0 at (psi, alpha, z) = (%g, %g, %g)", 
+          eps2_n[0],
+          comp_grid.lower[PSI_IDX] + ip*(comp_grid.upper[PSI_IDX]-comp_grid.lower[PSI_IDX])/comp_grid.cells[PSI_IDX],
+          comp_grid.lower[AL_IDX] + ia*(comp_grid.upper[AL_IDX]-comp_grid.lower[AL_IDX])/comp_grid.cells[AL_IDX],
+          comp_grid.lower[Z_IDX] + it*(comp_grid.upper[Z_IDX]-comp_grid.lower[Z_IDX])/comp_grid.cells[Z_IDX]);
       }
     }
   }
@@ -317,10 +319,10 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   gkyl_nodal_ops_m2n(n2m, &basis, &comp_grid, &nodal_range, &range, 6, gij_nodal, mirror_geo_dg->metric_covar);
   for (int ia=nodal_range.lower[AL_IDX]; ia<=nodal_range.upper[AL_IDX]; ++ia){
     for (int ip=nodal_range.lower[PSI_IDX]; ip<=nodal_range.upper[PSI_IDX]; ++ip) {
-      for (int it=nodal_range.lower[TH_IDX]; it<=nodal_range.upper[TH_IDX]; ++it) {
+      for (int it=nodal_range.lower[Z_IDX]; it<=nodal_range.upper[Z_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
-        cidx[TH_IDX] = it;
+        cidx[Z_IDX] = it;
         double *gij_n = gkyl_array_fetch(gij_nodal, gkyl_range_idx(&nodal_range, cidx));
         double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nodal_range, cidx));
         double r = mapc2p_n[0];
@@ -338,10 +340,10 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   gkyl_nodal_ops_m2n(n2m, &basis, &comp_grid, &nodal_range, &range, 6, gij_contra_nodal, mirror_geo_dg->metric_contr);
   for (int ia=nodal_range.lower[AL_IDX]; ia<=nodal_range.upper[AL_IDX]; ++ia){
     for (int ip=nodal_range.lower[PSI_IDX]; ip<=nodal_range.upper[PSI_IDX]; ++ip) {
-      for (int it=nodal_range.lower[TH_IDX]; it<=nodal_range.upper[TH_IDX]; ++it) {
+      for (int it=nodal_range.lower[Z_IDX]; it<=nodal_range.upper[Z_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
-        cidx[TH_IDX] = it;
+        cidx[Z_IDX] = it;
         double *gij_contra_n = gkyl_array_fetch(gij_contra_nodal, gkyl_range_idx(&nodal_range, cidx));
         double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nodal_range, cidx));
         double r = mapc2p_n[0];
@@ -359,10 +361,10 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   gkyl_nodal_ops_m2n(n2m, &basis, &comp_grid, &nodal_range, &range, 1, jacobgeo_nodal, mirror_geo_dg->Jc);
   for (int ia=nodal_range.lower[AL_IDX]; ia<=nodal_range.upper[AL_IDX]; ++ia){
     for (int ip=nodal_range.lower[PSI_IDX]; ip<=nodal_range.upper[PSI_IDX]; ++ip) {
-      for (int it=nodal_range.lower[TH_IDX]; it<=nodal_range.upper[TH_IDX]; ++it) {
+      for (int it=nodal_range.lower[Z_IDX]; it<=nodal_range.upper[Z_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
-        cidx[TH_IDX] = it;
+        cidx[Z_IDX] = it;
         double *jacobgeo_n = gkyl_array_fetch(jacobgeo_nodal, gkyl_range_idx(&nodal_range, cidx));
         double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nodal_range, cidx));
         // double jacobian_analytic = 2.0;
@@ -378,10 +380,10 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   gkyl_nodal_ops_m2n(n2m, &basis, &comp_grid, &nodal_range, &range, 1, jacobgeo_inv_nodal, mirror_geo_dg->Jc_inv);
   for (int ia=nodal_range.lower[AL_IDX]; ia<=nodal_range.upper[AL_IDX]; ++ia){
     for (int ip=nodal_range.lower[PSI_IDX]; ip<=nodal_range.upper[PSI_IDX]; ++ip) {
-      for (int it=nodal_range.lower[TH_IDX]; it<=nodal_range.upper[TH_IDX]; ++it) {
+      for (int it=nodal_range.lower[Z_IDX]; it<=nodal_range.upper[Z_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
-        cidx[TH_IDX] = it;
+        cidx[Z_IDX] = it;
         double *jacobgeo_inv_n = gkyl_array_fetch(jacobgeo_inv_nodal, gkyl_range_idx(&nodal_range, cidx));
         double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nodal_range, cidx));
         double fout[1];
@@ -396,10 +398,10 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   gkyl_nodal_ops_m2n(n2m, &basis, &comp_grid, &nodal_range, &range, 1, jacobtot_nodal, mirror_geo_dg->JB);
   for (int ia=nodal_range.lower[AL_IDX]; ia<=nodal_range.upper[AL_IDX]; ++ia){
     for (int ip=nodal_range.lower[PSI_IDX]; ip<=nodal_range.upper[PSI_IDX]; ++ip) {
-      for (int it=nodal_range.lower[TH_IDX]; it<=nodal_range.upper[TH_IDX]; ++it) {
+      for (int it=nodal_range.lower[Z_IDX]; it<=nodal_range.upper[Z_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
-        cidx[TH_IDX] = it;
+        cidx[Z_IDX] = it;
         double *jacobtot_n = gkyl_array_fetch(jacobtot_nodal, gkyl_range_idx(&nodal_range, cidx));
         double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nodal_range, cidx));
         double fout[1];
@@ -417,10 +419,10 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   gkyl_nodal_ops_m2n(n2m, &basis, &comp_grid, &nodal_range, &range, 1, jacobtot_inv_nodal, mirror_geo_dg->JB_inv);
   for (int ia=nodal_range.lower[AL_IDX]; ia<=nodal_range.upper[AL_IDX]; ++ia){
     for (int ip=nodal_range.lower[PSI_IDX]; ip<=nodal_range.upper[PSI_IDX]; ++ip) {
-      for (int it=nodal_range.lower[TH_IDX]; it<=nodal_range.upper[TH_IDX]; ++it) {
+      for (int it=nodal_range.lower[Z_IDX]; it<=nodal_range.upper[Z_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
-        cidx[TH_IDX] = it;
+        cidx[Z_IDX] = it;
         double *jacobtot_inv_n = gkyl_array_fetch(jacobtot_inv_nodal, gkyl_range_idx(&nodal_range, cidx));
         double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nodal_range, cidx));
         double fout[1];
@@ -436,19 +438,23 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   // Check mapc2p
   for (int ia=nodal_range.lower[AL_IDX]; ia<=nodal_range.upper[AL_IDX]; ++ia){
     for (int ip=nodal_range.lower[PSI_IDX]; ip<=nodal_range.upper[PSI_IDX]; ++ip) {
-      for (int it=nodal_range.lower[TH_IDX]; it<=nodal_range.upper[TH_IDX]; ++it) {
+      for (int it=nodal_range.lower[Z_IDX]; it<=nodal_range.upper[Z_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
-        cidx[TH_IDX] = it;
+        cidx[Z_IDX] = it;
         double psi = comp_grid.lower[PSI_IDX] + ip*(comp_grid.upper[PSI_IDX]-comp_grid.lower[PSI_IDX])/comp_grid.cells[PSI_IDX];
         double alpha = comp_grid.lower[AL_IDX] + ia*(comp_grid.upper[AL_IDX]-comp_grid.lower[AL_IDX])/comp_grid.cells[AL_IDX];
-        double theta = comp_grid.lower[TH_IDX] + it*(comp_grid.upper[TH_IDX]-comp_grid.lower[TH_IDX])/comp_grid.cells[TH_IDX]; 
+        double theta = comp_grid.lower[Z_IDX] + it*(comp_grid.upper[Z_IDX]-comp_grid.lower[Z_IDX])/comp_grid.cells[Z_IDX]; 
         double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nodal_range, cidx));
         double xn[3] = {psi, alpha, theta};
         double fout[3];
         mapc2p(0.0, xn, fout, 0);
         for (int i=0; i<3; ++i)
+        {
           TEST_CHECK( gkyl_compare( mapc2p_n[i], fout[i], 1e-8) );
+          TEST_MSG("mapc2p_n[%d] = %g, fout[%d] = %g at (psi, alpha, z) = (%g, %g, %g)", 
+            i, mapc2p_n[i], i, fout[i], psi, alpha, theta);
+        }
       }
     }
   }
@@ -458,13 +464,13 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   gkyl_nodal_ops_m2n(n2m, &basis, &comp_grid, &nodal_range, &range, 3, mc2nu_pos_nodal, mirror_geo_dg->mc2nu_pos);
   for (int ia=nodal_range.lower[AL_IDX]; ia<=nodal_range.upper[AL_IDX]; ++ia){
     for (int ip=nodal_range.lower[PSI_IDX]; ip<=nodal_range.upper[PSI_IDX]; ++ip) {
-      for (int it=nodal_range.lower[TH_IDX]; it<=nodal_range.upper[TH_IDX]; ++it) {
+      for (int it=nodal_range.lower[Z_IDX]; it<=nodal_range.upper[Z_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
-        cidx[TH_IDX] = it;
+        cidx[Z_IDX] = it;
         double psi = comp_grid.lower[PSI_IDX] + ip*(comp_grid.upper[PSI_IDX]-comp_grid.lower[PSI_IDX])/comp_grid.cells[PSI_IDX];
         double alpha = comp_grid.lower[AL_IDX] + ia*(comp_grid.upper[AL_IDX]-comp_grid.lower[AL_IDX])/comp_grid.cells[AL_IDX];
-        double theta = comp_grid.lower[TH_IDX] + it*(comp_grid.upper[TH_IDX]-comp_grid.lower[TH_IDX])/comp_grid.cells[TH_IDX];
+        double theta = comp_grid.lower[Z_IDX] + it*(comp_grid.upper[Z_IDX]-comp_grid.lower[Z_IDX])/comp_grid.cells[Z_IDX];
         double xn[3] = {psi, alpha, theta};
         double *mc2nu_pos_n = gkyl_array_fetch(mc2nu_pos_nodal, gkyl_range_idx(&nodal_range, cidx));
         for (int i=0; i<3; ++i)
@@ -479,18 +485,18 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   gkyl_nodal_ops_m2n(n2m, &basis, &comp_grid, &nodal_range, &range,  9*basis.num_basis, normals_nodal, mirror_geo_dg->normals);
   for (int ia=nodal_range.lower[AL_IDX]+1; ia<=nodal_range.upper[AL_IDX]-1; ++ia){
     for (int ip=nodal_range.lower[PSI_IDX]+3; ip<=nodal_range.upper[PSI_IDX]; ++ip) {
-      for (int it=nodal_range.lower[TH_IDX]; it<=nodal_range.upper[TH_IDX]; ++it) {
+      for (int it=nodal_range.lower[Z_IDX]; it<=nodal_range.upper[Z_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
-        cidx[TH_IDX] = it;
+        cidx[Z_IDX] = it;
         double *normals_n = gkyl_array_fetch(normals_nodal, gkyl_range_idx(&nodal_range, cidx));
         double psi = comp_grid.lower[PSI_IDX] + ip*(comp_grid.upper[PSI_IDX]-comp_grid.lower[PSI_IDX])/comp_grid.cells[PSI_IDX];
         double alpha = comp_grid.lower[AL_IDX] + ia*(comp_grid.upper[AL_IDX]-comp_grid.lower[AL_IDX])/comp_grid.cells[AL_IDX];
-        double theta = comp_grid.lower[TH_IDX] + it*(comp_grid.upper[TH_IDX]-comp_grid.lower[TH_IDX])/comp_grid.cells[TH_IDX];
+        double theta = comp_grid.lower[Z_IDX] + it*(comp_grid.upper[Z_IDX]-comp_grid.lower[Z_IDX])/comp_grid.cells[Z_IDX];
         double xn[3] = {psi, alpha, theta};
         double fout[9];
         exact_normals(0.0, xn, fout, 0);
-        // printf("cidx: %d %d %d\n", cidx[PSI_IDX], cidx[AL_IDX], cidx[TH_IDX]);
+        // printf("cidx: %d %d %d\n", cidx[PSI_IDX], cidx[AL_IDX], cidx[Z_IDX]);
         for (int i=0; i<9; ++i)
         {
           // printf("i=%d, normals_n[i]=%g, fout[i]=%g\n", i, normals_n[i], fout[i]);
