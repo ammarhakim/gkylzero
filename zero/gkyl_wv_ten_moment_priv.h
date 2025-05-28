@@ -9,10 +9,14 @@
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 
+#include <kann.h>
+
 struct wv_ten_moment {
-  struct gkyl_wv_eqn eqn; // base object
-  double k0; // closure parameter
-  bool use_grad_closure; // should we use gradient based closure?
+  struct gkyl_wv_eqn eqn; // Base object.
+  double k0; // Closure parameter.
+  bool use_grad_closure; // Should we use gradient-based closure?
+  bool use_nn_closure; // Should we use neural network-based closure?
+  kann_t* ann; // Neural network architecture.
 };
 
 /**

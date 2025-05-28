@@ -316,7 +316,7 @@ eqn_tenmoment_lw_new(lua_State *L)
   bool has_grad_closure = glua_tbl_get_bool(L, "hasGradClosure", false);
 
   tenm_lw->magic = MOMENT_EQN_DEFAULT;
-  tenm_lw->eqn = gkyl_wv_ten_moment_new(k0, has_grad_closure, false);
+  tenm_lw->eqn = gkyl_wv_ten_moment_new(k0, has_grad_closure, false, 0, false);
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_tenm_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));

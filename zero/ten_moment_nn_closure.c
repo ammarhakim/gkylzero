@@ -130,41 +130,41 @@ calc_mag_heat_flux(const gkyl_ten_moment_nn_closure *nnclosure, const double *fl
     B_avg[0] = calc_harmonic_avg_1D(em_tot_d[L_1D][BX], em_tot_d[U_1D][BX]);
     B_avg[1] = calc_harmonic_avg_1D(em_tot_d[L_1D][BY], em_tot_d[U_1D][BY]);
     B_avg[2] = calc_harmonic_avg_1D(em_tot_d[L_1D][BZ], em_tot_d[U_1D][BZ]);
+
+    // p_par = P_11, p_perp = P_12.
+    input_data[0][2] = p_avg[0];
+    input_data[0][3] = dp_dx[0];
+    input_data[0][4] = p_avg[1];
+    input_data[0][5] = dp_dx[1];
+
+    // p_par = P_33, p_perp = P_13.
+    input_data[1][2] = p_avg[5];
+    input_data[1][3] = dp_dx[5];
+    input_data[1][4] = p_avg[2];
+    input_data[1][5] = dp_dx[2];
+
+    // p_par = P_22, p_perp = P_23.
+    input_data[2][2] = p_avg[3];
+    input_data[2][3] = dp_dx[3];
+    input_data[2][4] = p_avg[4];
+    input_data[2][5] = dp_dx[4];
+
+    for (int i = 0; i < 3; i++) {
+        const float *output_data = kann_apply1(ann, input_data[i]);
+    }
+
+    // Q_11 = q_par, Q_12 = q_perp.
+    q_unmag[0] = output_data[0][0];
+    q_unmag[1] = output_data[0][2];
+
+    // Q_33 = q_par, Q_13 = q_perp.
+    q_unmag[5] = output_data[1][0];
+    q_unmag[2] = output_data[1][2];
+
+    // Q_22 = q_par, Q_23 = q_perp.
+    q_unmag[3] = output_data[2][0];
+    q_unmag[4] = output_data[2][2];
   }
-
-  // p_par = P_11, p_perp = P_12.
-  input_data[0][2] = p_avg[0];
-  input_data[0][3] = dp_dx[0];
-  input_data[0][4] = p_avg[1];
-  input_data[0][5] = dp_dx[1];
-
-  // p_par = P_33, p_perp = P_13.
-  input_data[1][2] = p_avg[5];
-  input_data[1][3] = dp_dx[5];
-  input_data[1][4] = p_avg[2];
-  input_data[1][5] = dp_dx[2];
-
-  // p_par = P_22, p_perp = P_23.
-  input_data[2][2] = p_avg[3];
-  input_data[2][3] = dp_dx[3];
-  input_data[2][4] = p_avg[4];
-  input_data[2][5] = dp_dx[4];
-
-  for (int i = 0; i < 3; i++) {
-    const float *output_data = kann_apply1(ann, input_data[i]);
-  }
-
-  // Q_11 = q_par, Q_12 = q_perp.
-  q_unmag[0] = output_data[0][0];
-  q_unmag[1] = output_data[0][2];
-
-  // Q_33 = q_par, Q_13 = q_perp.
-  q_unmag[5] = output_data[1][0];
-  q_unmag[2] = output_data[1][2];
-
-  // Q_22 = q_par, Q_23 = q_perp.
-  q_unmag[3] = output_data[2][0];
-  q_unmag[4] = output_data[2][2];
 
   if (fabs(B_avg[0]) < pow(10.0, -8.0) && fabs(B_avg[1]) < pow(10.0, -8.0) && fabs(B_avg[2]) < pow(10.0, -8.0)) {
     B_avg[0] = 1.0;
@@ -187,6 +187,164 @@ calc_mag_heat_flux(const gkyl_ten_moment_nn_closure *nnclosure, const double *fl
   }
   gkyl_free(input_data);
   gkyl_free(output_data);
+}
+
+static void
+calc_nn_closure_update(const gkyl_ten_moment_nn_closure *nnclosure, const double *fluid_d[], const double *em_tot_d[], double *rhs)
+{
+  const int ndim = nnclosure->ndim;
+  const int poly_order = nnclosure->poly_order;
+  kann_t* ann = nnclosure->ann;
+
+  double drho_dx = 0.0, drho_dy = 0.0, drho_dz = 0.0;
+  double dp_dx[6] = { 0.0 };
+  double dp_dy[6] = { 0.0 };
+  double dp_dz[6] = { 0.0 };
+  double rho_avg = 0.0;
+  double p_avg[6] = { 0.0 };
+  double B_avg[3] = { 0.0 };
+  double divQx[6] = { 0.0 };
+  double divQy[6] = { 0.0 };
+  double divQz[6] = { 0.0 };
+
+  float **input_data = gkyl_malloc(sizeof(float*[3]));
+  float **output_data = gkyl_malloc(sizeof(float*[3]));
+  for (int i = 0; i < 6; i++) {
+    input_data[i] = gkyl_malloc(sizeof(float[6]));
+    output_data[i] = gkyl_malloc(sizeof(float[4]));
+  }
+
+  for (int i = 0; i < 3; i++) {
+    input_data[i][0] = rho_avg;
+    input_data[i][1] = drho_dx;
+  }
+
+  if (ndim == 1) {
+    const double dx = nnclosure->grid.dx[0];
+    double rho[2] = { 0.0 };
+    double p[2][6] = { 0.0 };
+    var_setup(nnclosure, L_1D, U_1D, fluid_d, rho, p);
+
+    drho_dx = calc_sym_grad_1D(dx, rho[L_1D], rho[U_1D]);
+    dp_dx[0] = calc_sym_grad_1D(dx, p[L_1D][0], p[U_1D][0]);
+    dp_dx[1] = calc_sym_grad_1D(dx, p[L_1D][1], p[U_1D][1]);
+    dp_dx[2] = calc_sym_grad_1D(dx, p[L_1D][2], p[U_1D][2]);
+    dp_dx[3] = calc_sym_grad_1D(dx, p[L_1D][3], p[U_1D][3]);
+    dp_dx[4] = calc_sym_grad_1D(dx, p[L_1D][4], p[U_1D][4]);
+    dp_dx[5] = calc_sym_grad_1D(dx, p[L_1D][5], p[U_1D][5]);
+
+    rho_avg = calc_harmonic_avg_1D(rho[L_1D], rho[U_1D]);
+    p_avg[0] = calc_harmonic_avg_1D(p[L_1D][0], p[U_1D][0]);
+    p_avg[1] = calc_harmonic_avg_1D(p[L_1D][1], p[U_1D][1]);
+    p_avg[2] = calc_harmonic_avg_1D(p[L_1D][2], p[U_1D][2]);
+    p_avg[3] = calc_harmonic_avg_1D(p[L_1D][3], p[U_1D][3]);
+    p_avg[4] = calc_harmonic_avg_1D(p[L_1D][4], p[U_1D][4]);
+    p_avg[5] = calc_harmonic_avg_1D(p[L_1D][5], p[U_1D][5]);
+    B_avg[0] = calc_harmonic_avg_1D(em_tot_d[L_1D][BX], em_tot_d[U_1D][BX]);
+    B_avg[1] = calc_harmonic_avg_1D(em_tot_d[L_1D][BY], em_tot_d[U_1D][BY]);
+    B_avg[2] = calc_harmonic_avg_1D(em_tot_d[L_1D][BZ], em_tot_d[U_1D][BZ]);
+
+    // p_par = P_11, p_perp = P_12.
+    input_data[0][2] = p_avg[0];
+    input_data[0][3] = dp_dx[0];
+    input_data[0][4] = p_avg[1];
+    input_data[0][5] = dp_dx[1];
+
+    // p_par = P_33, p_perp = P_13.
+    input_data[1][2] = p_avg[5];
+    input_data[1][3] = dp_dx[5];
+    input_data[1][4] = p_avg[2];
+    input_data[1][5] = dp_dx[2];
+
+    // p_par = P_22, p_perp = P_23.
+    input_data[2][2] = p_avg[3];
+    input_data[2][3] = dp_dx[3];
+    input_data[2][4] = p_avg[4];
+    input_data[2][5] = dp_dx[4];
+
+    for (int i = 0; i < 3; i++) {
+        const float *output_data = kann_apply1(ann, input_data[i]);
+    }
+
+    // div(Q_11) = div(q_par), div(Q_12) = q_perp.
+    divQx[0] = output_data[0][1];
+    divQx[1] = output_data[0][3];
+
+    // div(Q_33) = div(q_par), div(Q_13) = q_perp.
+    divQx[5] = output_data[1][1];
+    divQx[2] = output_data[1][3];
+
+    // div(Q_22) = div(q_par), div(Q_23) = q_perp.
+    divQx[3] = output_data[2][1];
+    divQx[4] = output_data[2][3];
+  }
+
+  if (fabs(B_avg[0]) < pow(10.0, -8.0) && fabs(B_avg[1]) < pow(10.0, -8.0) && fabs(B_avg[2]) < pow(10.0, -8.0)) {
+    B_avg[0] = 1.0;
+  }
+
+  rhs[RHO] = 0.0;
+  rhs[MX] = 0.0;
+  rhs[MY] = 0.0;
+  rhs[MZ] = 0.0;
+  rhs[P11] = divQx[0] + divQy[0] + divQz[0];
+  rhs[P12] = divQx[1] + divQy[1] + divQz[1];
+  rhs[P13] = divQx[2] + divQy[2] + divQz[2];
+  rhs[P22] = divQx[3] + divQy[3] + divQz[3];
+  rhs[P23] = divQx[4] + divQy[4] + divQz[4];
+  rhs[P33] = divQx[5] + divQy[5] + divQz[5];
+}
+
+void
+gkyl_ten_moment_nn_closure_advance(const gkyl_ten_moment_nn_closure *nnclosure, const struct gkyl_range *heat_flux_rng, const struct gkyl_range *update_rng,
+  const struct gkyl_array *fluid, const struct gkyl_array *em_tot, struct gkyl_array *heat_flux, struct gkyl_array *rhs)
+{
+  int ndim = update_rng->ndim;
+  long sz[] = { 2, 4, 8};
+
+  long offsets_vertices[sz[ndim - 1]];
+  create_offsets_vertices(update_rng, offsets_vertices);
+
+  long offsets_centers[sz[ndim - 1]];
+  create_offsets_centers(heat_flux_rng, offsets_centers);
+
+  const double *fluid_d[sz[ndim - 1]];
+  const double *em_tot_d[sz[ndim - 1]];
+  double *heat_flux_d;
+  const double *heat_flux_up[sz[ndim - 1]];
+  double *rhs_d;
+
+  struct gkyl_range_iter iter_vertex;
+  gkyl_range_iter_init(&iter_vertex, heat_flux_rng);
+  while (gkyl_range_iter_next(&iter_vertex)) {
+    long linc_vertex = gkyl_range_idx(heat_flux_rng, iter_vertex.idx);
+    long linc_center = gkyl_range_idx(update_rng, iter_vertex.idx);
+
+    for (int i = 0; i < sz[ndim - 1]; i++) {
+      em_tot_d[i] = gkyl_array_cfetch(em_tot, linc_center + offsets_vertices[i]);
+      fluid_d[i] = gkyl_array_cfetch(fluid, linc_center + offsets_vertices[i]);
+    }
+
+    heat_flux_d = gkyl_array_fetch(heat_flux, linc_vertex);
+
+    calc_mag_heat_flux(nnclosure, fluid_d, em_tot_d, heat_flux_d);
+  }
+
+  struct gkyl_range_iter iter_center;
+  gkyl_range_iter_init(&iter_center, update_rng);
+  while (gkyl_range_iter_next(&iter_center)) {
+    long linc_vertex = gkyl_range_idx(heat_flux_rng, iter_center.idx);
+    long linc_center = gkyl_range_idx(update_rng, iter_center.idx);
+
+    for (int i = 0; i < sz[ndim - 1]; i++) {
+      em_tot_d[i] = gkyl_array_cfetch(em_tot, linc_vertex + offsets_centers[i]);
+      fluid_d[i] = gkyl_array_cfetch(fluid, linc_vertex + offsets_centers[i]);
+    }
+
+    rhs_d = gkyl_array_fetch(rhs, linc_center);
+
+    calc_nn_closure_update(nnclosure, fluid_d, em_tot_d, rhs_d);
+  }
 }
 
 gkyl_ten_moment_nn_closure*

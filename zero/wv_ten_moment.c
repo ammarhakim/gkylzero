@@ -30,7 +30,7 @@ ten_moment_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout
 }
 
 struct gkyl_wv_eqn*
-gkyl_wv_ten_moment_new(double k0, bool use_grad_closure, bool use_gpu)
+gkyl_wv_ten_moment_new(double k0, bool use_grad_closure, bool use_nn_closure, kann_t* ann, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -41,6 +41,8 @@ gkyl_wv_ten_moment_new(double k0, bool use_grad_closure, bool use_gpu)
 
   ten_moment->k0 = k0;
   ten_moment->use_grad_closure = use_grad_closure;
+  ten_moment->use_nn_closure = use_nn_closure;
+  ten_moment->ann = ann;
 
   ten_moment->eqn.type = GKYL_EQN_TEN_MOMENT;
   ten_moment->eqn.num_equations = 10;
@@ -79,9 +81,23 @@ gkyl_wv_ten_moment_k0(const struct gkyl_wv_eqn* eqn)
   return tm->k0;
 }
 
-double
+bool
 gkyl_wv_ten_moment_use_grad_closure(const struct gkyl_wv_eqn* eqn)
 {
   const struct wv_ten_moment *tm = container_of(eqn, struct wv_ten_moment, eqn);
   return tm->use_grad_closure;
+}
+
+bool
+gkyl_wv_ten_moment_use_nn_closure(const struct gkyl_wv_eqn* eqn)
+{
+  const struct wv_ten_moment *tm = container_of(eqn, struct wv_ten_moment, eqn);
+  return tm->use_nn_closure;
+}
+
+kann_t*
+gkyl_wv_ten_moment_ann(const struct gkyl_wv_eqn* eqn)
+{
+  const struct wv_ten_moment *tm = container_of(eqn, struct wv_ten_moment, eqn);
+  return tm->ann;
 }
