@@ -14,29 +14,17 @@ gkyl_mirror_geo_dg_inew(const struct gkyl_mirror_geo_dg_inp *inp)
   struct gkyl_basis basis = inp->basis;
 
   // Create nodal range
-  struct gkyl_range nodal_range_2x, nodal_range_3x;
-  
-  int nodes_3x[3];
+  struct gkyl_range  nrange;
+  int nodes[3];
   if (basis.poly_order == 1) {
     for (int d=0; d<3; ++d)
-      nodes_3x[d] = gkyl_range_shape(&inp->range, d) + 1;
+      nodes[d] = gkyl_range_shape(&inp->range, d) + 1;
   }
   if (basis.poly_order == 2) {
     for (int d=0; d<3; ++d)
-      nodes_3x[d] = 2*gkyl_range_shape(&inp->range, d) + 1;
+      nodes[d] = 2*gkyl_range_shape(&inp->range, d) + 1;
   }
-  gkyl_range_init_from_shape(&nodal_range_3x, 3, nodes_3x);
-
-  int nodes_2x[2];
-  if (basis.poly_order == 1) {
-    nodes_2x[0] = gkyl_range_shape(&inp->range, 0) + 1;
-    nodes_2x[1] = gkyl_range_shape(&inp->range, 2) + 1;
-  }
-  if (basis.poly_order == 2) {
-    nodes_2x[0] = 2*gkyl_range_shape(&inp->range, 0) + 1;
-    nodes_2x[1] = 2*gkyl_range_shape(&inp->range, 2) + 1;
-  }
-  gkyl_range_init_from_shape(&nodal_range_2x, 2, nodes_2x);
+  gkyl_range_init_from_shape(&nrange, 3, nodes);
 
   // Allocate the arrays inside this geometry object
   geo->mapc2p = gkyl_array_new(GKYL_DOUBLE, basis.num_basis*inp->comp_grid->ndim, inp->range_ext.volume);
@@ -98,42 +86,27 @@ gkyl_mirror_geo_dg_inew(const struct gkyl_mirror_geo_dg_inp *inp)
   struct gkyl_array* C_nodal = gkyl_array_new(GKYL_DOUBLE, 1, inp->range_ext.volume);
   struct gkyl_array* eps2_nodal = gkyl_array_new(GKYL_DOUBLE, 1, inp->range_ext.volume);
 
-  enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
-
-  double dtheta = inp->comp_grid->dx[TH_IDX],
-    dpsi = inp->comp_grid->dx[PSI_IDX],
-    dalpha = inp->comp_grid->dx[AL_IDX];
-  
-    // Used to be a global on the last subtraction, but we are not worying about paralellism here
-  double theta_lo = inp->comp_grid->lower[TH_IDX] + (inp->range.lower[TH_IDX] - inp->range.lower[TH_IDX])*inp->comp_grid->dx[TH_IDX],
-    psi_lo = inp->comp_grid->lower[PSI_IDX] + (inp->range.lower[PSI_IDX] - inp->range.lower[PSI_IDX])*inp->comp_grid->dx[PSI_IDX],
-    alpha_lo = inp->comp_grid->lower[AL_IDX] + (inp->range.lower[AL_IDX] - inp->range.lower[AL_IDX])*inp->comp_grid->dx[AL_IDX];
-
-  double dx_fact = basis.poly_order == 1 ? 1 : 0.5;
-  dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
+  enum { PSI_IDX, AL_IDX, Z_IDX }; // arrangement of computational coordinates in the grid
 
   int cidx[3] = { 0 };
-  int cidx_2x[2] = { 0 };
-  for(int ia=nodal_range_3x.lower[AL_IDX]; ia<=nodal_range_3x.upper[AL_IDX]; ++ia)  {
-    double alpha_curr = alpha_lo + ia*dalpha;
-    for(int ip=nodal_range_3x.lower[PSI_IDX]; ip<=nodal_range_3x.upper[PSI_IDX]; ++ip) {
-      for(int it=nodal_range_3x.lower[TH_IDX]; it<=nodal_range_3x.upper[TH_IDX]; ++it) {
-        cidx[PSI_IDX] = ip; cidx[AL_IDX] = ia; cidx[TH_IDX] = it;
-        cidx_2x[0] = ip; cidx_2x[1] = it;
-        long idx = gkyl_range_idx(&nodal_range_3x, cidx);
-        long idx_2x = gkyl_range_idx(&nodal_range_2x, cidx_2x);
+  for(int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia)  {
+    for(int ip=nrange.lower[PSI_IDX]; ip<=nrange.upper[PSI_IDX]; ++ip) {
+      for(int iz=nrange.lower[Z_IDX]; iz<=nrange.upper[Z_IDX]; ++iz) {
 
-        struct gkyl_mirror_geo_gen_geom *geom_n = gkyl_array_fetch(inp->mirror_geo->nodes_geom, idx_2x);
+        int cidx[3] = { ip, ia, iz };
+        long idx = gkyl_range_idx(&nrange, cidx);
+
+        struct gkyl_mirror_geo_gen_geom *geom_n = gkyl_array_fetch(inp->mirror_geo->nodes_geom, idx);
 
         double *mapc2p_nodal_n = gkyl_array_fetch(mapc2p_nodal, idx);
-        mapc2p_nodal_n[0] = geom_n->rz_coord[0];
-        mapc2p_nodal_n[1] = geom_n->rz_coord[1];
-        mapc2p_nodal_n[2] = -alpha_curr;
+        mapc2p_nodal_n[0] = geom_n->rza_coord[0];
+        mapc2p_nodal_n[1] = geom_n->rza_coord[1];
+        mapc2p_nodal_n[2] = geom_n->rza_coord[2];
 
         double *mc2nu_pos_nodal_n = gkyl_array_fetch(mc2nu_pos_nodal, idx);
         mc2nu_pos_nodal_n[0] = geom_n->psi;
-        mc2nu_pos_nodal_n[1] = alpha_curr;
-        mc2nu_pos_nodal_n[2] = geom_n->rz_coord[1];
+        mc2nu_pos_nodal_n[1] = geom_n->rza_coord[2];
+        mc2nu_pos_nodal_n[2] = geom_n->rza_coord[1];
 
         // Fetch all array pointers at the beginning
         double *tang_nodal_n = gkyl_array_fetch(tang_nodal, idx);
@@ -184,6 +157,7 @@ gkyl_mirror_geo_dg_inew(const struct gkyl_mirror_geo_dg_inp *inp)
         eps2_nodal_n[0] = geom_n->eps2;
 
         // Loop over tensor quantities
+        // This breaks conventions of functional programming, but I can't figure out a way to assign this data another way without it being disgustingly verbose.
         for (int i = 0; i < 3; ++i) {
           for (int j = 0; j < 3; ++j) {
             tang_nodal_n[i*3 + j] = geom_n->tang[i].x[j];
@@ -208,31 +182,31 @@ gkyl_mirror_geo_dg_inew(const struct gkyl_mirror_geo_dg_inp *inp)
 
   // Using the nodal arrays, we now convert them to the DG basis
   struct gkyl_nodal_ops *n2m =  gkyl_nodal_ops_new(&basis, inp->comp_grid, false);
-  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nodal_range_3x, &inp->range, 3, mapc2p_nodal, geo->mapc2p);
-  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nodal_range_3x, &inp->range, 3, mc2nu_pos_nodal, geo->mc2nu_pos);
-  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nodal_range_3x, &inp->range, 9, tang_nodal, geo->tang);
-  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nodal_range_3x, &inp->range, 9, dual_nodal, geo->dual);
-  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nodal_range_3x, &inp->range, 3, dualmag_nodal, geo->dualmag);
-  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nodal_range_3x, &inp->range, 9, normals_nodal, geo->normals);
-  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nodal_range_3x, &inp->range, 1, Jc_nodal, geo->Jc);
-  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nodal_range_3x, &inp->range, 1, Jc_inv_nodal, geo->Jc_inv);
-  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nodal_range_3x, &inp->range, 1, JB_nodal, geo->JB);
-  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nodal_range_3x, &inp->range, 1, JB_inv_nodal, geo->JB_inv);
-  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nodal_range_3x, &inp->range, 6, metric_covar_nodal, geo->metric_covar);
-  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nodal_range_3x, &inp->range, 6, metric_covar_neut_nodal, geo->metric_covar_neut);
-  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nodal_range_3x, &inp->range, 6, metric_contr_nodal, geo->metric_contr);
-  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nodal_range_3x, &inp->range, 6, metric_contr_neut_nodal, geo->metric_contr_neut);
-  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nodal_range_3x, &inp->range, 1, gxxj_nodal, geo->gxxj);
-  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nodal_range_3x, &inp->range, 1, gxyj_nodal, geo->gxyj);
-  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nodal_range_3x, &inp->range, 1, gyyj_nodal, geo->gyyj);
-  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nodal_range_3x, &inp->range, 1, gxzj_nodal, geo->gxzj);
-  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nodal_range_3x, &inp->range, 1, Bmag_nodal, geo->Bmag);
-  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nodal_range_3x, &inp->range, 1, Bmag_inv_nodal, geo->Bmag_inv);
-  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nodal_range_3x, &inp->range, 1, Bmag_inv_sq_nodal, geo->Bmag_inv_sq);
-  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nodal_range_3x, &inp->range, 3, B_covar_nodal, geo->b_covar);
-  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nodal_range_3x, &inp->range, 3, B_cart_nodal, geo->b_cart);
-  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nodal_range_3x, &inp->range, 1, C_nodal, geo->C);
-  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nodal_range_3x, &inp->range, 1, eps2_nodal, geo->eps2);
+  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nrange, &inp->range, 3, mapc2p_nodal, geo->mapc2p);
+  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nrange, &inp->range, 3, mc2nu_pos_nodal, geo->mc2nu_pos);
+  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nrange, &inp->range, 9, tang_nodal, geo->tang);
+  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nrange, &inp->range, 9, dual_nodal, geo->dual);
+  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nrange, &inp->range, 3, dualmag_nodal, geo->dualmag);
+  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nrange, &inp->range, 9, normals_nodal, geo->normals);
+  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nrange, &inp->range, 1, Jc_nodal, geo->Jc);
+  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nrange, &inp->range, 1, Jc_inv_nodal, geo->Jc_inv);
+  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nrange, &inp->range, 1, JB_nodal, geo->JB);
+  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nrange, &inp->range, 1, JB_inv_nodal, geo->JB_inv);
+  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nrange, &inp->range, 6, metric_covar_nodal, geo->metric_covar);
+  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nrange, &inp->range, 6, metric_covar_neut_nodal, geo->metric_covar_neut);
+  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nrange, &inp->range, 6, metric_contr_nodal, geo->metric_contr);
+  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nrange, &inp->range, 6, metric_contr_neut_nodal, geo->metric_contr_neut);
+  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nrange, &inp->range, 1, gxxj_nodal, geo->gxxj);
+  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nrange, &inp->range, 1, gxyj_nodal, geo->gxyj);
+  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nrange, &inp->range, 1, gyyj_nodal, geo->gyyj);
+  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nrange, &inp->range, 1, gxzj_nodal, geo->gxzj);
+  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nrange, &inp->range, 1, Bmag_nodal, geo->Bmag);
+  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nrange, &inp->range, 1, Bmag_inv_nodal, geo->Bmag_inv);
+  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nrange, &inp->range, 1, Bmag_inv_sq_nodal, geo->Bmag_inv_sq);
+  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nrange, &inp->range, 3, B_covar_nodal, geo->b_covar);
+  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nrange, &inp->range, 3, B_cart_nodal, geo->b_cart);
+  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nrange, &inp->range, 1, C_nodal, geo->C);
+  gkyl_nodal_ops_n2m(n2m, &basis, inp->comp_grid, &nrange, &inp->range, 1, eps2_nodal, geo->eps2);
   
   // Release memory for nodal operations
   gkyl_nodal_ops_release(n2m);

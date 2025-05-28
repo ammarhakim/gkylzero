@@ -1,14 +1,16 @@
 #pragma once
 
 #include <gkyl_array.h>
+#include <gkyl_basis.h>
 #include <gkyl_math.h>
-#include <gkyl_rect_grid.h>
 #include <gkyl_mirror_grid_gen.h>
+#include <gkyl_range.h>
+#include <gkyl_rect_grid.h>
 
 // This file aims to compute all the geometric quantities needed in
 // the simulation at nodal values].
 struct __attribute__((__packed__)) gkyl_mirror_geo_gen_geom {
-  double rz_coord[2]; // Cylindrical coordinate radius and axial length
+  double rza_coord[3]; // Cylindrical coordinate radius, axial length, angle
   double psi; // Psi value at this node
 
   struct gkyl_vec3 tang[3]; // tangent vectors, e_i cartesian components
@@ -45,6 +47,8 @@ struct gkyl_mirror_geo_gen {
 struct gkyl_mirror_geo_gen_inp {
   const struct gkyl_rect_grid *comp_grid; // Computational space grid (psi, phi, z)
   struct gkyl_mirror_grid_gen *mirror_grid; // Generated mirror grid
+  struct gkyl_range range; // Range of the computational grid
+  struct gkyl_basis basis; // Basis for the geometry
 };
 
 /**

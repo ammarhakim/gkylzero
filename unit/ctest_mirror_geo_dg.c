@@ -16,7 +16,7 @@
 // exact_g_contra_ij [5] = pi^2 in the mirror test, but here it is 1
 // mapc2p there is sqrt(psi*4), z/PI, -alpha, but here it is sqrt(psi*4), z, -alpha
 // dualmag [2] = pi in the mirror test, but here it is 1
-// There are issues with the exact_normals on some edge cases. There is also a sign flip here.
+// The normals are very different
 
 
 // Functions for test_3x_straight_cylinder
@@ -70,7 +70,7 @@ void exact_normals(double t, const double *xn, double* GKYL_RESTRICT fout, void 
 {
   double psi = xn[0], alpha = xn[1], theta = xn[2];
   // Remember cylindrical angle = - alpha
-  fout[0] = cos(-alpha);
+  fout[0] = -cos(-alpha);
   fout[1] = -sin(-alpha);
   fout[2] = 0.0;
   fout[3] = -sin(-alpha);
@@ -475,29 +475,30 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
 
   // Check normals
   // Plus 3 away from axis to avoid errors
-  // struct gkyl_array* normals_nodal = gkyl_array_new(GKYL_DOUBLE, 9*basis.num_basis, nodal_range.volume);
-  // gkyl_nodal_ops_m2n(n2m, &basis, &comp_grid, &nodal_range, &range,  9*basis.num_basis, normals_nodal, mirror_geo_dg->normals);
-  // for (int ia=nodal_range.lower[AL_IDX]; ia<=nodal_range.upper[AL_IDX]; ++ia){
-  //   for (int ip=nodal_range.lower[PSI_IDX]+3; ip<=nodal_range.upper[PSI_IDX]; ++ip) {
-  //     for (int it=nodal_range.lower[TH_IDX]; it<=nodal_range.upper[TH_IDX]; ++it) {
-  //       cidx[PSI_IDX] = ip;
-  //       cidx[AL_IDX] = ia;
-  //       cidx[TH_IDX] = it;
-  //       double *normals_n = gkyl_array_fetch(normals_nodal, gkyl_range_idx(&nodal_range, cidx));
-  //       double psi = comp_grid.lower[PSI_IDX] + ip*(comp_grid.upper[PSI_IDX]-comp_grid.lower[PSI_IDX])/comp_grid.cells[PSI_IDX];
-  //       double alpha = comp_grid.lower[AL_IDX] + ia*(comp_grid.upper[AL_IDX]-comp_grid.lower[AL_IDX])/comp_grid.cells[AL_IDX];
-  //       double theta = comp_grid.lower[TH_IDX] + it*(comp_grid.upper[TH_IDX]-comp_grid.lower[TH_IDX])/comp_grid.cells[TH_IDX];
-  //       double xn[3] = {psi, alpha, theta};
-  //       double fout[9];
-  //       exact_normals(0.0, xn, fout, 0);
-  //       for (int i=0; i<9; ++i)
-  //       {
-  //         // printf("i=%d, normals_n[i]=%g, fout[i]=%g\n", i, normals_n[i], fout[i]);
-  //         TEST_CHECK( gkyl_compare( normals_n[i], fout[i], 1e-6) );
-  //       }
-  //     }
-  //   }
-  // }
+  struct gkyl_array* normals_nodal = gkyl_array_new(GKYL_DOUBLE, 9*basis.num_basis, nodal_range.volume);
+  gkyl_nodal_ops_m2n(n2m, &basis, &comp_grid, &nodal_range, &range,  9*basis.num_basis, normals_nodal, mirror_geo_dg->normals);
+  for (int ia=nodal_range.lower[AL_IDX]+1; ia<=nodal_range.upper[AL_IDX]-1; ++ia){
+    for (int ip=nodal_range.lower[PSI_IDX]+3; ip<=nodal_range.upper[PSI_IDX]; ++ip) {
+      for (int it=nodal_range.lower[TH_IDX]; it<=nodal_range.upper[TH_IDX]; ++it) {
+        cidx[PSI_IDX] = ip;
+        cidx[AL_IDX] = ia;
+        cidx[TH_IDX] = it;
+        double *normals_n = gkyl_array_fetch(normals_nodal, gkyl_range_idx(&nodal_range, cidx));
+        double psi = comp_grid.lower[PSI_IDX] + ip*(comp_grid.upper[PSI_IDX]-comp_grid.lower[PSI_IDX])/comp_grid.cells[PSI_IDX];
+        double alpha = comp_grid.lower[AL_IDX] + ia*(comp_grid.upper[AL_IDX]-comp_grid.lower[AL_IDX])/comp_grid.cells[AL_IDX];
+        double theta = comp_grid.lower[TH_IDX] + it*(comp_grid.upper[TH_IDX]-comp_grid.lower[TH_IDX])/comp_grid.cells[TH_IDX];
+        double xn[3] = {psi, alpha, theta};
+        double fout[9];
+        exact_normals(0.0, xn, fout, 0);
+        // printf("cidx: %d %d %d\n", cidx[PSI_IDX], cidx[AL_IDX], cidx[TH_IDX]);
+        for (int i=0; i<9; ++i)
+        {
+          // printf("i=%d, normals_n[i]=%g, fout[i]=%g\n", i, normals_n[i], fout[i]);
+          // TEST_CHECK( gkyl_compare( normals_n[i], fout[i], 1e-6) );
+        }
+      }
+    }
+  }
 
   gkyl_array_release(bhat_nodal);
   gkyl_array_release(dualmag_nodal);
@@ -514,7 +515,7 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   gkyl_array_release(jacobtot_inv_nodal);
   gkyl_array_release(mapc2p_nodal);
   gkyl_array_release(mc2nu_pos_nodal);
-  // gkyl_array_release(normals_nodal);
+  gkyl_array_release(normals_nodal);
   gkyl_nodal_ops_release(n2m);
 
   gkyl_mirror_grid_gen_release(mirror_grid);
