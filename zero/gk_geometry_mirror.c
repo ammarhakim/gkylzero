@@ -18,9 +18,12 @@
 #include <gkyl_calc_bmag.h>
 #include <gkyl_position_map.h>
 
+#include <gkyl_mirror_grid_gen.h>
+#include <gkyl_mirror_geo_gen.h>
+#include <gkyl_mirror_geo_dg.h>
 
 struct gk_geometry*
-gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
+gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
 {
 
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
@@ -46,123 +49,94 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
   }
 
   gkyl_range_init_from_shape(&nrange, up->grid.ndim, nodes);
-  int num_fd_nodes = 13;
-  struct gkyl_array* mc2p_nodal_fd = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*num_fd_nodes, nrange.volume);
-  struct gkyl_array* mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
-  up->mc2p = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
 
-  struct gkyl_array* map_mc2nu_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
-  up->mc2nu_pos = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
+  up->geqdsk_sign_convention = 0.0; // Hardcoded. From gkyl_mirror_geo_new
 
-  struct gkyl_array* ddtheta_nodal = gkyl_array_new(GKYL_DOUBLE, 3, nrange.volume);
-  struct gkyl_array* bmag_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
+  const char *fname = "data/unit/wham_hires.geqdsk_psi.gkyl";
 
-  // bmag, metrics and derived geo quantities
-  up->bmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->g_ij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
-  up->g_ij_neut = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
-  up->dxdz = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->local_ext.volume);
-  up->dzdx = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->local_ext.volume);
-  up->dualmag = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
-  up->normals = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->local_ext.volume);
-  up->jacobgeo = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->gij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
-  up->gij_neut = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
-  up->b_i = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
-  up->bcart = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
-  up->cmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->jacobtot = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->bmag_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->bmag_inv_sq = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->gxxj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->gxyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->gyyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->gxzj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->eps2= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+  // read psi(R,Z) from file
+  struct gkyl_rect_grid psi_grid;
+  struct gkyl_array *psi = gkyl_grid_array_new_from_file(&psi_grid, fname);
 
-  const struct gkyl_efit_inp inp = geometry_inp->efit_info;
-  struct gkyl_mirror_geo_grid_inp ginp = geometry_inp->mirror_grid_info;
-  ginp.cgrid = up->grid;
-  ginp.cbasis = up->basis;
-  struct gkyl_mirror_geo *geo = gkyl_mirror_geo_new(&inp, &ginp);
-  up->geqdsk_sign_convention = geo->efit->sibry > geo->efit->simag ? 0 : 1;
-  // calculate mapc2p
-  gkyl_mirror_geo_calc(up, &nrange, dzc, geo, &ginp, mc2p_nodal_fd, mc2p_nodal, up->mc2p, ddtheta_nodal,
-      map_mc2nu_nodal, up->mc2nu_pos, geometry_inp->position_map);
-  // calculate bmag
-  gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &up->grid, &geo->rzgrid, false);
-  gkyl_calc_bmag_advance(bcalculator, &up->local, &up->local_ext, &up->global, &geo->rzlocal, &geo->rzlocal_ext, geo->efit->bmagzr, up->bmag, up->mc2p);
-  gkyl_calc_bmag_release(bcalculator);
+  // create mirror geometry
+  struct gkyl_mirror_grid_gen *mirror_grid =
+    gkyl_mirror_grid_gen_inew(&(struct gkyl_mirror_grid_gen_inp) {
+        .comp_grid = &up->grid,
+        
+        .R = { psi_grid.lower[0], psi_grid.upper[0] },
+        .Z = { psi_grid.lower[1], psi_grid.upper[1] },
+        
+        // psi(R,Z) grid size
+        .nrcells = psi_grid.cells[0]-1, // cells and not nodes
+        .nzcells = psi_grid.cells[1]-1, // cells and not nodes
 
-  // Convert bmag to nodal so we can use it to calculate dphidtheta
-  struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->basis, &up->grid, false);
-  gkyl_nodal_ops_m2n(n2m, &up->basis, &up->grid, &nrange, &up->local, 1, bmag_nodal, up->bmag);
-  gkyl_nodal_ops_release(n2m);
+        .psiRZ = psi,
+        .fl_coord = GKYL_MIRROR_GRID_GEN_PSI_CART_Z, // move to input
+        .include_axis = false, // move to input
+        .write_psi_cubic = false,
+      }
+    );
 
-  // Now calculate the metrics
-  struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, &up->global, &up->global_ext, &up->local, &up->local_ext, false);
-  gkyl_calc_metric_advance_mirror(mcalc, &nrange, mc2p_nodal_fd, ddtheta_nodal, bmag_nodal, dzc, up->g_ij, up->dxdz, up->dzdx, up->dualmag, up->normals, up->jacobgeo, up->bcart, &up->local);
-  gkyl_array_copy(up->g_ij_neut, up->g_ij);
-  // calculate the derived geometric quantities
-  gkyl_tok_calc_derived_geo *jcalculator = gkyl_tok_calc_derived_geo_new(&up->basis, &up->grid, false);
-  gkyl_tok_calc_derived_geo_advance(jcalculator, &up->local, up->g_ij, up->bmag, 
-    up->jacobgeo, up->jacobgeo_inv, up->gij, up->b_i, up->cmag, up->jacobtot, up->jacobtot_inv, 
-    up->bmag_inv, up->bmag_inv_sq, up->gxxj, up->gxyj, up->gyyj, up->gxzj, up->eps2);
-  gkyl_array_copy(up->gij_neut, up->gij);
-  gkyl_tok_calc_derived_geo_release(jcalculator);
-  gkyl_calc_metric_release(mcalc);
+  struct gkyl_mirror_geo_gen *mirror_geo = 
+    gkyl_mirror_geo_gen_inew(&(struct gkyl_mirror_geo_gen_inp) {
+        .comp_grid = &up->grid,
+        .mirror_grid = mirror_grid,
+        .range = up->global,
+        .basis = up->basis,
+      }
+    );
+
+  struct gkyl_mirror_geo_dg *mirror_geo_dg = 
+    gkyl_mirror_geo_dg_inew(&(struct gkyl_mirror_geo_dg_inp) {
+        .comp_grid = &up->grid,
+        .mirror_geo = mirror_geo,
+        .range = up->global,
+        .range_ext = up->global_ext,
+        .basis = up->basis,
+      }
+    );
+
+  up->mc2p = gkyl_array_acquire(mirror_geo_dg->mapc2p);
+  up->mc2nu_pos = gkyl_array_acquire(mirror_geo_dg->mc2nu_pos);
+
+  up->dxdz = gkyl_array_acquire(mirror_geo_dg->tang);
+  up->dzdx = gkyl_array_acquire(mirror_geo_dg->dual);
+  up->dualmag = gkyl_array_acquire(mirror_geo_dg->dualmag);
+  up->normals = gkyl_array_acquire(mirror_geo_dg->normals);
+
+  up->g_ij = gkyl_array_acquire(mirror_geo_dg->metric_covar);
+  up->g_ij_neut = gkyl_array_acquire(mirror_geo_dg->metric_covar_neut);
+  up->gij = gkyl_array_acquire(mirror_geo_dg->metric_contr);
+  up->gij_neut = gkyl_array_acquire(mirror_geo_dg->metric_contr_neut);
+  up->gxxj = gkyl_array_acquire(mirror_geo_dg->gxxj);
+  up->gxyj = gkyl_array_acquire(mirror_geo_dg->gxyj);
+  up->gyyj = gkyl_array_acquire(mirror_geo_dg->gyyj);
+  up->gxzj = gkyl_array_acquire(mirror_geo_dg->gxzj);
+
+  up->jacobgeo = gkyl_array_acquire(mirror_geo_dg->Jc);
+  up->jacobgeo_inv = gkyl_array_acquire(mirror_geo_dg->Jc_inv);
+  up->jacobtot = gkyl_array_acquire(mirror_geo_dg->JB);
+  up->jacobtot_inv = gkyl_array_acquire(mirror_geo_dg->JB_inv);
+
+  up->b_i = gkyl_array_acquire(mirror_geo_dg->b_covar);
+  up->bcart = gkyl_array_acquire(mirror_geo_dg->b_cart);
+  up->bmag = gkyl_array_acquire(mirror_geo_dg->Bmag);
+  up->bmag_inv = gkyl_array_acquire(mirror_geo_dg->Bmag_inv);
+  up->bmag_inv_sq = gkyl_array_acquire(mirror_geo_dg->Bmag_inv_sq);
+  
+  up->cmag = gkyl_array_acquire(mirror_geo_dg->C);
+  up->eps2 = gkyl_array_acquire(mirror_geo_dg->eps2);
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->ref_count = gkyl_ref_count_init(gkyl_gk_geometry_free);
   up->on_dev = up; // CPU eqn obj points to itself
 
-  gkyl_mirror_geo_release(geo);
-  gkyl_array_release(mc2p_nodal_fd);
-  gkyl_array_release(mc2p_nodal);
-  gkyl_array_release(map_mc2nu_nodal);
-  gkyl_array_release(ddtheta_nodal);
-  gkyl_array_release(bmag_nodal);
+
+  gkyl_mirror_grid_gen_release(mirror_grid);
+  gkyl_mirror_geo_gen_release(mirror_geo);
+  gkyl_mirror_geo_dg_release(mirror_geo_dg);
+  gkyl_array_release(psi);
 
   return up;
-}
-
-struct gk_geometry*
-gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
-{
-  struct gk_geometry* gk_geom_3d;
-  struct gk_geometry* gk_geom;
-
-  if (geometry_inp->position_map == 0){
-    geometry_inp->position_map = gkyl_position_map_new((struct gkyl_position_map_inp) {}, \
-      geometry_inp->grid, geometry_inp->local, geometry_inp->local_ext, geometry_inp->local, \
-      geometry_inp->local_ext, geometry_inp->basis);
-    gk_geom_3d = gk_geometry_mirror_init(geometry_inp);
-    gkyl_position_map_release(geometry_inp->position_map);
-  }
-  else {
-    // First construct the uniform 3d geometry
-    gk_geom_3d = gk_geometry_mirror_init(geometry_inp);
-    if (geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_POLYNOMIAL || \
-        geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_NUMERIC) {
-      // The array mc2nu is computed using the uniform geometry, so we need to deflate it
-      // Must deflate the 3D uniform geometry in order for the allgather to work
-      if(geometry_inp->grid.ndim < 3)
-        gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, geometry_inp);
-      else
-        gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
-
-      gkyl_position_map_set_bmag(geometry_inp->position_map, geometry_inp->comm, \
-        gk_geom->bmag);
-
-      gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
-      gkyl_gk_geometry_release(gk_geom); // release 3d geometry
-
-      // Construct the non-uniform grid
-      gk_geom_3d = gk_geometry_mirror_init(geometry_inp);
-    }
-  }
-  return gk_geom_3d;
 }

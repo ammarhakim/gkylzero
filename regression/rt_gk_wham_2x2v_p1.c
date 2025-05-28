@@ -461,8 +461,8 @@ create_ctx(void)
   double kperp = kperpRhos / rho_s;
 
   // Geometry parameters.
-  double z_min = -M_PI + 1e-1;
-  double z_max =  M_PI - 1e-1;
+  double z_min = -2.0;
+  double z_max =  2.0;
   double z_m = 0.982544;
   double psi_min = 1e-3;
   double psi_max = 1e-2;
