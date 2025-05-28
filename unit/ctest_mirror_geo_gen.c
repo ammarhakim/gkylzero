@@ -30,6 +30,9 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   struct gkyl_rect_grid psi_grid;
   struct gkyl_array *psi = gkyl_grid_array_new_from_file(&psi_grid, fname);
 
+  struct gkyl_range node_range;
+  gkyl_range_init_from_shape(&node_range, 2, (int[2]) { cells[0]+1, cells[2]+1 });
+  
   // create mirror geometry
   struct gkyl_mirror_grid_gen *mirror_grid =
     gkyl_mirror_grid_gen_inew(&(struct gkyl_mirror_grid_gen_inp) {
@@ -56,8 +59,6 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
       }
     );
 
-  struct gkyl_range node_range;
-  gkyl_range_init_from_shape(&node_range, 2, (int[2]) { cells[0]+1, cells[2]+1 });
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &node_range);
@@ -127,14 +128,17 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
     TEST_CHECK( gkyl_compare_double(g->Bmag_inv_sq, 1.0/(Bmag*Bmag), 1e-14) );
 
     // check B vector
-    TEST_CHECK( gkyl_compare_double(g->B_covar.x[0], grid->B.x[0], 1e-14) );
-    TEST_CHECK( gkyl_compare_double(g->B_covar.x[1], grid->B.x[1] * rz[0]*rz[0], 1e-14) ); // B_1 = B^1 * r^2
-    TEST_CHECK( gkyl_compare_double(g->B_covar.x[2], grid->B.x[2], 1e-14) );
+    struct gkyl_vec3 B_covar = gkyl_vec3_polar_con_to_cov(rz[0], grid->B);
+    struct gkyl_vec3 b_covar = gkyl_vec3_norm(B_covar);
+    TEST_CHECK( gkyl_compare_double(g->b_covar.x[0], b_covar.x[0], 1e-14) );
+    TEST_CHECK( gkyl_compare_double(g->b_covar.x[1], b_covar.x[1] * rz[0]*rz[0], 1e-14) ); // B_1 = B^1 * r^2
+    TEST_CHECK( gkyl_compare_double(g->b_covar.x[2], b_covar.x[2], 1e-14) );
 
     struct gkyl_vec3 B_cart = gkyl_vec3_polar_con_to_cart(rz[0], 0.0, grid->B);
-    TEST_CHECK( gkyl_compare_double(g->B_cart.x[0], B_cart.x[0], 1e-14) );
-    TEST_CHECK( gkyl_compare_double(g->B_cart.x[1], B_cart.x[1], 1e-14) );
-    TEST_CHECK( gkyl_compare_double(g->B_cart.x[2], B_cart.x[2], 1e-14) );
+    struct gkyl_vec3 b_cart = gkyl_vec3_norm(B_cart);
+    TEST_CHECK( gkyl_compare_double(g->b_cart.x[0], b_cart.x[0], 1e-14) );
+    TEST_CHECK( gkyl_compare_double(g->b_cart.x[1], b_cart.x[1], 1e-14) );
+    TEST_CHECK( gkyl_compare_double(g->b_cart.x[2], b_cart.x[2], 1e-14) );
 
 
     // check Jacobian

@@ -34,8 +34,8 @@ struct gkyl_mirror_geo_dg {
   struct gkyl_array *Bmag; // B magnitude
   struct gkyl_array *Bmag_inv; // Inverse of B: 1/B
   struct gkyl_array *Bmag_inv_sq; // Inverse of B squared: 1/B^2
-  struct gkyl_array *B_covar; // Covariant components of magnetic field vector b_1, b_2, b_3
-  struct gkyl_array *B_cart; // Cartesian components of magnetic field vector b_X, b_Y, b_Z
+  struct gkyl_array *b_covar; // Covariant components of magnetic field vector b_1, b_2, b_3
+  struct gkyl_array *b_cart; // Cartesian components of magnetic field vector b_X, b_Y, b_Z
   
   struct gkyl_array *C; // C = JB/sqrt(g_33)
   struct gkyl_array *eps2; // 1 component. eps2 = Jg^33 - J/g_33 for Poisson solve if z derivatives are kept
@@ -44,9 +44,8 @@ struct gkyl_mirror_geo_dg {
 struct gkyl_mirror_geo_dg_inp {
   struct gkyl_mirror_geo_gen *mirror_geo; // Generated mirror geometry
   
-  struct gkyl_range local;
-  struct gkyl_range local_ext;
-  struct gkyl_range nodal_range;
+  struct gkyl_range range;
+  struct gkyl_range range_ext;
   struct gkyl_basis basis; // Basis for the geometry
   struct gkyl_rect_grid *comp_grid; // Computational space grid (psi, phi, z)
 };

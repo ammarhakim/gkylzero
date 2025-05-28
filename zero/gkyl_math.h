@@ -119,6 +119,25 @@ gkyl_vec3_polar_cov_to_cart(double r, double phi, struct gkyl_vec3 pin)
   return gkyl_vec3_new(c0, c1, c2);
 }    
 
+/**
+ * Convert contravariant components of a vector in polar coordinate
+ * basis to Cartesian basis components. Note the polar basis are not
+ * normalized.
+ *
+ * @param r Radial coordinate
+ * @param phi Polar angle
+ * @param pin Input contravariant vector components
+ * @return Cartesian component for @a pin
+ */
+static inline struct gkyl_vec3
+gkyl_vec3_polar_con_to_cov(double r, struct gkyl_vec3 pin)
+{
+  double c0 = pin.x[0];
+  double c1 = pin.x[1] * r * r;
+  double c2 = pin.x[2];
+  return gkyl_vec3_new(c0, c1, c2);
+}
+
 // minmod(a,b,c, ...) returns min of all parameters are positive, max
 // of all parameters if all are negative, and zero otherwise.
 

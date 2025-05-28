@@ -25,8 +25,8 @@ struct __attribute__((__packed__)) gkyl_mirror_geo_gen_geom {
   double Bmag; // Magnitude of magnetic field
   double Bmag_inv; // Inverse of magnetic field
   double Bmag_inv_sq;  // Inverse of magnetic field squared
-  struct gkyl_vec3 B_covar; // Covariant components ofp magnetic field vector
-  struct gkyl_vec3 B_cart; // Cartesian components of magnetic field vector
+  struct gkyl_vec3 b_covar; // Covariant components of magnetic field unit vector
+  struct gkyl_vec3 b_cart; // Cartesian components of magnetic field unit vector
 
   double Jc; // Jacobian = e_1*(e_2 X e_3)  = 1/e^1*(e^2 X e^3)
   double Jc_inv; // Jacobian inverse

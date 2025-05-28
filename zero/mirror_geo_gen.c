@@ -75,17 +75,17 @@ gkyl_mirror_geo_gen_inew(const struct gkyl_mirror_geo_gen_inp *inp)
         }
       }
 
-      // Determine covariant magnetic field quantities
-      g->B_covar.x[0] = grid->B.x[0];
-      g->B_covar.x[1] = grid->B.x[1] * g->rz_coord[0] * g->rz_coord[0]; // B_1 = B^1 * r^2
-      g->B_covar.x[2] = grid->B.x[2];
         
       // Determine Cartesian components of magnetic field vector
-      g->B_cart = gkyl_vec3_polar_con_to_cart(g->rz_coord[0], 0.0, grid->B);
+      struct gkyl_vec3 B_cart = gkyl_vec3_polar_con_to_cart(g->rz_coord[0], 0.0, grid->B);
 
-      g->Bmag = gkyl_vec3_len(g->B_cart);
+      g->Bmag = gkyl_vec3_len(B_cart);
       g->Bmag_inv = 1.0 / g->Bmag;
       g->Bmag_inv_sq = g->Bmag_inv * g->Bmag_inv;
+      g->b_cart = gkyl_vec3_norm(B_cart);
+      
+      // Determine covariant magnetic field unit vector
+      g->b_covar = gkyl_vec3_norm(gkyl_vec3_polar_con_to_cov(g->rz_coord[0], grid->B));
 
       // Determine scalar quantities combining J and B
       g->Jc = grid->Jc;
@@ -95,6 +95,7 @@ gkyl_mirror_geo_gen_inew(const struct gkyl_mirror_geo_gen_inp *inp)
 
       // Compute cmag
       g->C = g->JB / sqrt(g->metric_covar[5]); // g_33 is the last element in the covariant metric tensor
+      // I think eps2 changed because g^33 = g_33 = 1 unambiguously
       g->eps2 = g->Jc * g->metric_contr[5] - g->JB / g->metric_covar[5];
     }
   }
