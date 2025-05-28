@@ -168,7 +168,6 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
   up->global = geometry_inp->global;
   up->global_ext = geometry_inp->global_ext;
   up->grid = geometry_inp->grid;
-  gkyl_cart_modal_serendip(&up->surf_basis, up->grid.ndim-1, up->basis.poly_order);
   up->geqdsk_sign_convention = geo_host->geqdsk_sign_convention;
   up->has_LCFS = geo_host->has_LCFS;
   if (up->has_LCFS) {
@@ -188,34 +187,15 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
     }
   }
 
-  // Copy the host-side initialized geometry object to the device
-  //struct gkyl_array *mc2p_dev = gkyl_array_cu_dev_new(geo_host->mc2p->type, geo_host->mc2p->ncomp, geo_host->mc2p->size);
-  //struct gkyl_array *mc2nu_pos_dev = gkyl_array_cu_dev_new(geo_host->mc2nu_pos->type, geo_host->mc2nu_pos->ncomp, geo_host->mc2nu_pos->size);
-  //struct gkyl_array *bmag_dev = gkyl_array_cu_dev_new(geo_host->bmag->type, geo_host->bmag->ncomp, geo_host->bmag->size);
-  //struct gkyl_array *g_ij_dev = gkyl_array_cu_dev_new(geo_host->g_ij->type, geo_host->g_ij->ncomp, geo_host->g_ij->size);
-  //struct gkyl_array *g_ij_neut_dev = gkyl_array_cu_dev_new(geo_host->g_ij_neut->type, geo_host->g_ij_neut->ncomp, geo_host->g_ij_neut->size);
-  //struct gkyl_array *dxdz_dev = gkyl_array_cu_dev_new(geo_host->dxdz->type, geo_host->dxdz->ncomp, geo_host->dxdz->size);
-  //struct gkyl_array *dzdx_dev = gkyl_array_cu_dev_new(geo_host->dzdx->type, geo_host->dzdx->ncomp, geo_host->dzdx->size);
-  //struct gkyl_array *dualmag_dev = gkyl_array_cu_dev_new(geo_host->dualmag->type, geo_host->dualmag->ncomp, geo_host->dualmag->size);
-  //struct gkyl_array *normals_dev = gkyl_array_cu_dev_new(geo_host->normals->type, geo_host->normals->ncomp, geo_host->normals->size);
-  //struct gkyl_array *jacobgeo_dev = gkyl_array_cu_dev_new(geo_host->jacobgeo->type, geo_host->jacobgeo->ncomp, geo_host->jacobgeo->size);
-  //struct gkyl_array *jacobgeo_ghost_dev = gkyl_array_cu_dev_new(geo_host->jacobgeo_ghost->type, geo_host->jacobgeo_ghost->ncomp, geo_host->jacobgeo_ghost->size);
-  //struct gkyl_array *jacobgeo_inv_dev = gkyl_array_cu_dev_new(geo_host->jacobgeo_inv->type, geo_host->jacobgeo_inv->ncomp, geo_host->jacobgeo_inv->size);
-  //struct gkyl_array *gij_dev = gkyl_array_cu_dev_new(geo_host->gij->type, geo_host->gij->ncomp, geo_host->gij->size);
-  //struct gkyl_array *gij_neut_dev = gkyl_array_cu_dev_new(geo_host->gij_neut->type, geo_host->gij_neut->ncomp, geo_host->gij_neut->size);
-  //struct gkyl_array *b_i_dev = gkyl_array_cu_dev_new(geo_host->b_i->type, geo_host->b_i->ncomp, geo_host->b_i->size);
-  //struct gkyl_array *bcart_dev = gkyl_array_cu_dev_new(geo_host->bcart->type, geo_host->bcart->ncomp, geo_host->bcart->size);
-  //struct gkyl_array *cmag_dev = gkyl_array_cu_dev_new(geo_host->cmag->type, geo_host->cmag->ncomp, geo_host->cmag->size);
-  //struct gkyl_array *jacobtot_dev = gkyl_array_cu_dev_new(geo_host->jacobtot->type, geo_host->jacobtot->ncomp, geo_host->jacobtot->size);
-  //struct gkyl_array *jacobtot_inv_dev = gkyl_array_cu_dev_new(geo_host->jacobtot_inv->type, geo_host->jacobtot_inv->ncomp, geo_host->jacobtot_inv->size);
-  //struct gkyl_array *bmag_inv_dev = gkyl_array_cu_dev_new(geo_host->bmag_inv->type, geo_host->bmag_inv->ncomp, geo_host->bmag_inv->size);
-  //struct gkyl_array *bmag_inv_sq_dev = gkyl_array_cu_dev_new(geo_host->bmag_inv_sq->type, geo_host->bmag_inv_sq->ncomp, geo_host->bmag_inv_sq->size);
-  //struct gkyl_array *gxxj_dev = gkyl_array_cu_dev_new(geo_host->gxxj->type, geo_host->gxxj->ncomp, geo_host->gxxj->size);
-  //struct gkyl_array *gxyj_dev = gkyl_array_cu_dev_new(geo_host->gxyj->type, geo_host->gxyj->ncomp, geo_host->gxyj->size);
-  //struct gkyl_array *gyyj_dev = gkyl_array_cu_dev_new(geo_host->gyyj->type, geo_host->gyyj->ncomp, geo_host->gyyj->size);
-  //struct gkyl_array *gxzj_dev = gkyl_array_cu_dev_new(geo_host->gxzj->type, geo_host->gxzj->ncomp, geo_host->gxzj->size);
-  //struct gkyl_array *eps2_dev = gkyl_array_cu_dev_new(geo_host->eps2->type, geo_host->eps2->ncomp, geo_host->eps2->size);
+  if (up->grid.ndim > 1) {
+    gkyl_cart_modal_serendip(&up->surf_basis, up->grid.ndim-1, up->basis.poly_order);
+    up->num_surf_basis = up->surf_basis.num_basis;
+  }
+  else {
+    up->num_surf_basis = 1;
+  }
 
+  // Copy the host-side initialized geometry object to the device
   struct gk_geom_corn *geo_corn_dev = gk_geometry_corn_cu_dev_alloc(geo_host->geo_corn);
   struct gk_geom_int *geo_int_dev = gk_geometry_int_cu_dev_alloc(geo_host->geo_int);
   struct gk_geom_surf *geo_surf_dev[up->grid.ndim];
