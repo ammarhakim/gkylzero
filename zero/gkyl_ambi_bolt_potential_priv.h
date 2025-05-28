@@ -8,8 +8,8 @@
 
 // Function pointer type for sheath entrance calculations.
 typedef void (*sheathker_t)(const double sheathDirDx, double q_e, double m_e, double T_e,
-  const double *cmag, const double *jacobtotInv,
-  const double *GammaJac_i, const double *m0Ion, const double *m0JacIon, double *out);
+  const double *cmag_div_jacobtot, const double *GammaJac_i, const double *m0Ion, 
+  const double *m0JacIon, double *out);
 
 // Function pointer type for phi calculation.
 typedef void (*phiker_t)(double q_e, double T_e,
@@ -64,6 +64,7 @@ struct gkyl_ambi_bolt_potential {
   double mass_e;  // Electron mass.
   double charge_e;  // Electron charge.
   double temp_e;  // Electron temperature.
+  struct gkyl_array *cmag_div_jacobtot;  // Clebsch function in definition of magnetic field divided by jacobian times magnetic field.
   struct gkyl_ambi_bolt_potential_kernels *kernels;  // sheath_calc and phi_calc kernels.
   struct gkyl_ambi_bolt_potential_kernels *kernels_cu;  // device copy.
 };
@@ -101,7 +102,7 @@ ambi_bolt_potential_choose_kernels_cu(const struct gkyl_basis *basis, struct gky
 void
 gkyl_ambi_bolt_potential_sheath_calc_cu(struct gkyl_ambi_bolt_potential *up, enum gkyl_edge_loc edge,
   const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  const struct gkyl_array *cmag, const struct gkyl_array *jacobtot_inv,
+  const struct gkyl_array *cmag_div_jacobtot,
   const struct gkyl_array *gammai, const struct gkyl_array *m0i, const struct gkyl_array *Jm0i,
   struct gkyl_array *sheath_vals);
 
