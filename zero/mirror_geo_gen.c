@@ -1,7 +1,4 @@
 #include <gkyl_alloc.h>
-// #include <gkyl_array_rio.h>
-// #include <gkyl_basis.h>
-// #include <gkyl_dg_basis_ops.h>
 #include <gkyl_math.h>
 #include <gkyl_mirror_geo_gen.h>
 #include <gkyl_rect_decomp.h>
@@ -11,7 +8,6 @@ gkyl_mirror_geo_gen_inew(const struct gkyl_mirror_geo_gen_inp *inp)
 {
   struct gkyl_mirror_geo_gen *geo = gkyl_malloc(sizeof *geo);
 
-  enum { PSI_I, DPSI_R_I, DPSI_Z_I };
   enum { NPSI, NZ };
 
   // Outline the grid to loop over
@@ -38,10 +34,12 @@ gkyl_mirror_geo_gen_inew(const struct gkyl_mirror_geo_gen_inp *inp)
       struct gkyl_mirror_geo_gen_geom *g = gkyl_array_fetch(geo->nodes_geom, loc);
       const struct gkyl_mirror_grid_gen_geom *grid = gkyl_array_fetch(inp->mirror_grid->nodes_geom, loc);
       const double *node_rz = gkyl_array_fetch(inp->mirror_grid->nodes_rz, loc);
+      const double *node_psi = gkyl_array_fetch(inp->mirror_grid->nodes_psi, loc);
 
       // Copy node locations
       for (int i=0; i<2; ++i)
         g->rz_coord[i] = node_rz[i];
+      g->psi = node_psi[0];
       
       // Dual and tangent vectors in cartesian coordinates
       for (int i=0; i<3; ++i) {
@@ -78,14 +76,14 @@ gkyl_mirror_geo_gen_inew(const struct gkyl_mirror_geo_gen_inp *inp)
       }
 
       // Determine covariant magnetic field quantities
-      g->Bvec.x[0] = grid->B.x[0];
-      g->Bvec.x[1] = grid->B.x[1] * g->rz_coord[0] * g->rz_coord[0]; // B_1 = B^1 * r^2
-      g->Bvec.x[2] = grid->B.x[2];
+      g->B_covar.x[0] = grid->B.x[0];
+      g->B_covar.x[1] = grid->B.x[1] * g->rz_coord[0] * g->rz_coord[0]; // B_1 = B^1 * r^2
+      g->B_covar.x[2] = grid->B.x[2];
         
       // Determine Cartesian components of magnetic field vector
-      g->Bcart = gkyl_vec3_polar_con_to_cart(g->rz_coord[0], 0.0, grid->B);
+      g->B_cart = gkyl_vec3_polar_con_to_cart(g->rz_coord[0], 0.0, grid->B);
 
-      g->Bmag = gkyl_vec3_len(g->Bcart);
+      g->Bmag = gkyl_vec3_len(g->B_cart);
       g->Bmag_inv = 1.0 / g->Bmag;
       g->Bmag_inv_sq = g->Bmag_inv * g->Bmag_inv;
 
@@ -98,7 +96,6 @@ gkyl_mirror_geo_gen_inew(const struct gkyl_mirror_geo_gen_inp *inp)
       // Compute cmag
       g->C = g->JB / sqrt(g->metric_covar[5]); // g_33 is the last element in the covariant metric tensor
       g->eps2 = g->Jc * g->metric_contr[5] - g->JB / g->metric_covar[5];
-      
     }
   }
   return geo;

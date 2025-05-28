@@ -5,11 +5,11 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_mirror_grid_gen.h>
 
-// Geometric quantities: various vectors are stored as the components
-// along the polar tangents e_r, e_phi, e_z, that is, each vector's
-// contravariant components are stored
+// This file aims to compute all the geometric quantities needed in
+// the simulation at nodal values].
 struct __attribute__((__packed__)) gkyl_mirror_geo_gen_geom {
   double rz_coord[2]; // Cylindrical coordinate radius and axial length
+  double psi; // Psi value at this node
 
   struct gkyl_vec3 tang[3]; // tangent vectors, e_i cartesian components
   struct gkyl_vec3 dual[3]; // dual vectors, e^i cartesian
@@ -25,8 +25,8 @@ struct __attribute__((__packed__)) gkyl_mirror_geo_gen_geom {
   double Bmag; // Magnitude of magnetic field
   double Bmag_inv; // Inverse of magnetic field
   double Bmag_inv_sq;  // Inverse of magnetic field squared
-  struct gkyl_vec3 Bvec; // Covariant components of magnetic field vector
-  struct gkyl_vec3 Bcart; // Cartesian components of magnetic field vector
+  struct gkyl_vec3 B_covar; // Covariant components ofp magnetic field vector
+  struct gkyl_vec3 B_cart; // Cartesian components of magnetic field vector
 
   double Jc; // Jacobian = e_1*(e_2 X e_3)  = 1/e^1*(e^2 X e^3)
   double Jc_inv; // Jacobian inverse

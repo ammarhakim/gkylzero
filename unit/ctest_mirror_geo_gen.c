@@ -127,14 +127,14 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
     TEST_CHECK( gkyl_compare_double(g->Bmag_inv_sq, 1.0/(Bmag*Bmag), 1e-14) );
 
     // check B vector
-    TEST_CHECK( gkyl_compare_double(g->Bvec.x[0], grid->B.x[0], 1e-14) );
-    TEST_CHECK( gkyl_compare_double(g->Bvec.x[1], grid->B.x[1] * rz[0]*rz[0], 1e-14) ); // B_1 = B^1 * r^2
-    TEST_CHECK( gkyl_compare_double(g->Bvec.x[2], grid->B.x[2], 1e-14) );
+    TEST_CHECK( gkyl_compare_double(g->B_covar.x[0], grid->B.x[0], 1e-14) );
+    TEST_CHECK( gkyl_compare_double(g->B_covar.x[1], grid->B.x[1] * rz[0]*rz[0], 1e-14) ); // B_1 = B^1 * r^2
+    TEST_CHECK( gkyl_compare_double(g->B_covar.x[2], grid->B.x[2], 1e-14) );
 
-    struct gkyl_vec3 Bcart = gkyl_vec3_polar_con_to_cart(rz[0], 0.0, grid->B);
-    TEST_CHECK( gkyl_compare_double(g->Bcart.x[0], Bcart.x[0], 1e-14) );
-    TEST_CHECK( gkyl_compare_double(g->Bcart.x[1], Bcart.x[1], 1e-14) );
-    TEST_CHECK( gkyl_compare_double(g->Bcart.x[2], Bcart.x[2], 1e-14) );
+    struct gkyl_vec3 B_cart = gkyl_vec3_polar_con_to_cart(rz[0], 0.0, grid->B);
+    TEST_CHECK( gkyl_compare_double(g->B_cart.x[0], B_cart.x[0], 1e-14) );
+    TEST_CHECK( gkyl_compare_double(g->B_cart.x[1], B_cart.x[1], 1e-14) );
+    TEST_CHECK( gkyl_compare_double(g->B_cart.x[2], B_cart.x[2], 1e-14) );
 
 
     // check Jacobian
