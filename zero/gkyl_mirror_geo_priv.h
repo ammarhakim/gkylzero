@@ -428,8 +428,8 @@ phi_contour_func(double Z, void *ctx)
     double xn[2] = {r_curr, Z};
     double fout[3];
     c->geo->efit->evf->eval_cubic_wgrad(0.0, xn, fout, c->geo->efit->evf->ctx);
-    double dpsidR = fout[1]*2.0/c->geo->rzgrid_cubic.dx[0];
-    double dpsidZ = fout[2]*2.0/c->geo->rzgrid_cubic.dx[1];
+    double dpsidR = fout[1];
+    double dpsidZ = fout[2];
     double grad_psi_mag = sqrt(dpsidR*dpsidR + dpsidZ*dpsidZ);
 
     double result  = (1/r_curr/grad_psi_mag) *sqrt(1+dRdZ*dRdZ) ;
