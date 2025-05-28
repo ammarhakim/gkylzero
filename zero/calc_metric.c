@@ -328,7 +328,7 @@ void gkyl_calc_metric_advance_rz_interior(
               dualFld_n[2] = +R/J*dxdz[0][2];
 
               dualFld_n[3] = 1/J * (dxdz[1][0]*dxdz[0][2]*sin(phi) + dxdz[1][0]*R*cos(phi)*dphidtheta - dxdz[1][2]*dxdz[0][0]*sin(phi) - dxdz[1][2]*R*cos(phi)*dxdz[2][0] );
-              dualFld_n[4] = -1/J * (dxdz[1][0]*dxdz[0][2]*cos(phi) + dxdz[1][0]*R*sin(phi)*dphidtheta - dxdz[1][2]*dxdz[0][0]*cos(phi) - dxdz[1][2]*R*sin(phi)*dxdz[2][0] );
+              dualFld_n[4] = -1/J * (dxdz[1][0]*dxdz[0][2]*cos(phi) - dxdz[1][0]*R*sin(phi)*dphidtheta - dxdz[1][2]*dxdz[0][0]*cos(phi) + dxdz[1][2]*R*sin(phi)*dxdz[2][0] );
               dualFld_n[5] =  R/J * ( dxdz[0][2]*dxdz[2][0] - dxdz[0][0]*dphidtheta);
 
               dualFld_n[6] = +R/J*cos(phi)*dxdz[1][0];
@@ -668,7 +668,7 @@ void gkyl_calc_metric_advance_mirror(
               dualFld_n[2] = +R/J*dxdz[0][2];
 
               dualFld_n[3] = 1/J * (dxdz[1][0]*dxdz[0][2]*sin(phi) - dxdz[1][2]*dxdz[0][0]*sin(phi) - dxdz[1][2]*R*cos(phi)*dxdz[2][0] );
-              dualFld_n[4] = -1/J * (dxdz[1][0]*dxdz[0][2]*cos(phi) - dxdz[1][2]*dxdz[0][0]*cos(phi) - dxdz[1][2]*R*sin(phi)*dxdz[2][0] );
+              dualFld_n[4] = -1/J * (dxdz[1][0]*dxdz[0][2]*cos(phi) - dxdz[1][2]*dxdz[0][0]*cos(phi) + dxdz[1][2]*R*sin(phi)*dxdz[2][0] );
               dualFld_n[5] =  R/J * dxdz[0][2]*dxdz[2][0];
 
               dualFld_n[6] = +R/J*cos(phi)*dxdz[1][0];
