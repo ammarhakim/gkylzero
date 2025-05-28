@@ -96,7 +96,7 @@ calc_mag_heat_flux(const gkyl_ten_moment_nn_closure *nnclosure, const double *fl
 
   float **input_data = gkyl_malloc(sizeof(float*[3]));
   float **output_data = gkyl_malloc(sizeof(float*[3]));
-  for (int i = 0; i < 6; i++) {
+  for (int i = 0; i < 3; i++) {
     input_data[i] = gkyl_malloc(sizeof(float[6]));
     output_data[i] = gkyl_malloc(sizeof(float[4]));
   }
@@ -150,7 +150,11 @@ calc_mag_heat_flux(const gkyl_ten_moment_nn_closure *nnclosure, const double *fl
     input_data[2][5] = dp_dx[4];
 
     for (int i = 0; i < 3; i++) {
-        const float *output_data = kann_apply1(ann, input_data[i]);
+      const float *output_data_predicted = kann_apply1(ann, input_data[i]);
+
+      for (int j = 0; j < 4; j++) {
+        output_data[i][j] = output_data_predicted[j];
+      }
     }
 
     // Q_11 = q_par, Q_12 = q_perp.
@@ -209,7 +213,7 @@ calc_nn_closure_update(const gkyl_ten_moment_nn_closure *nnclosure, const double
 
   float **input_data = gkyl_malloc(sizeof(float*[3]));
   float **output_data = gkyl_malloc(sizeof(float*[3]));
-  for (int i = 0; i < 6; i++) {
+  for (int i = 0; i < 3; i++) {
     input_data[i] = gkyl_malloc(sizeof(float[6]));
     output_data[i] = gkyl_malloc(sizeof(float[4]));
   }
@@ -263,7 +267,11 @@ calc_nn_closure_update(const gkyl_ten_moment_nn_closure *nnclosure, const double
     input_data[2][5] = dp_dx[4];
 
     for (int i = 0; i < 3; i++) {
-        const float *output_data = kann_apply1(ann, input_data[i]);
+      const float *output_data_predicted = kann_apply1(ann, input_data[i]);
+
+      for (int j = 0; j < 4; j++) {
+        output_data[i][j] = output_data_predicted[j];
+      }
     }
 
     // div(Q_11) = div(q_par), div(Q_12) = q_perp.
@@ -287,12 +295,12 @@ calc_nn_closure_update(const gkyl_ten_moment_nn_closure *nnclosure, const double
   rhs[MX] = 0.0;
   rhs[MY] = 0.0;
   rhs[MZ] = 0.0;
-  rhs[P11] = divQx[0] + divQy[0] + divQz[0];
-  rhs[P12] = divQx[1] + divQy[1] + divQz[1];
-  rhs[P13] = divQx[2] + divQy[2] + divQz[2];
-  rhs[P22] = divQx[3] + divQy[3] + divQz[3];
-  rhs[P23] = divQx[4] + divQy[4] + divQz[4];
-  rhs[P33] = divQx[5] + divQy[5] + divQz[5];
+  rhs[P11] = (divQx[0] * B_avg[0]) + (divQy[0] * B_avg[1]) + (divQz[0] * B_avg[2]);
+  rhs[P12] = (divQx[1] * B_avg[0]) + (divQy[1] * B_avg[1]) + (divQz[1] * B_avg[2]);
+  rhs[P13] = (divQx[2] * B_avg[0]) + (divQy[2] * B_avg[1]) + (divQz[2] * B_avg[2]);
+  rhs[P22] = (divQx[3] * B_avg[0]) + (divQy[3] * B_avg[1]) + (divQz[3] * B_avg[2]);
+  rhs[P23] = (divQx[4] * B_avg[0]) + (divQy[4] * B_avg[1]) + (divQz[4] * B_avg[2]);
+  rhs[P33] = (divQx[5] * B_avg[0]) + (divQy[5] * B_avg[1]) + (divQz[5] * B_avg[2]);
 }
 
 void
@@ -300,7 +308,7 @@ gkyl_ten_moment_nn_closure_advance(const gkyl_ten_moment_nn_closure *nnclosure, 
   const struct gkyl_array *fluid, const struct gkyl_array *em_tot, struct gkyl_array *heat_flux, struct gkyl_array *rhs)
 {
   int ndim = update_rng->ndim;
-  long sz[] = { 2, 4, 8};
+  long sz[] = { 2, 4, 8 };
 
   long offsets_vertices[sz[ndim - 1]];
   create_offsets_vertices(update_rng, offsets_vertices);

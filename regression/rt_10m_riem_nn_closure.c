@@ -1,4 +1,4 @@
-// Generalized Brio-Wu Riemann problem, with gradient-based closure, for the 10-moment equations.
+// Generalized Brio-Wu Riemann problem, with neural network-based closure, for the 10-moment equations.
 // Input parameters match the initial conditions found in entry JE4 of Ammar's Simulation Journal (https://ammar-hakim.org/sj/je/je4/je4-twofluid-shock.html), adapted from Section 7.1 of the article:
 // A. Hakim, J. Loverich and U. Shumlak (2006), "A high resolution wave propagation scheme for ideal Two-Fluid plasma equations",
 // Journal of Computational Physics, Volume 219 (1): 418-442.
@@ -22,8 +22,9 @@
 #endif
 
 #include <rt_arg_parse.h>
+#include <kann.h>
 
-struct riem_grad_closure_ctx
+struct riem_nn_closure_ctx
 {
   // Physical constants (using normalized code units).
   double epsilon0; // Permittivity of free space.
@@ -61,9 +62,13 @@ struct riem_grad_closure_ctx
   int integrated_mom_calcs; // Number of times to calculate integrated moments.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
+
+  // Neural network parameters.
+  bool use_nn_closure; // Use neural network-based closure?
+  const char* nn_closure_file; // File path of neural network to use.
 };
 
-struct riem_grad_closure_ctx
+struct riem_nn_closure_ctx
 create_ctx(void)
 {
   // Physical constants (using normalized code units).
@@ -102,8 +107,12 @@ create_ctx(void)
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
+
+  // Neural network parameters.
+  bool use_nn_closure = true; // Use neural network-based closure?
+  const char* nn_closure_file = "rt_pkpm_periodic_es_shock_p1_moms_nn_1"; // File path of neural network to use.
   
-  struct riem_grad_closure_ctx ctx = {
+  struct riem_nn_closure_ctx ctx = {
     .epsilon0 = epsilon0,
     .mu0 = mu0,
     .mass_ion = mass_ion,
@@ -131,6 +140,8 @@ create_ctx(void)
     .integrated_mom_calcs = integrated_mom_calcs,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
+    .use_nn_closure = use_nn_closure,
+    .nn_closure_file = nn_closure_file,
   };
 
   return ctx;
@@ -140,7 +151,7 @@ void
 evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0];
-  struct riem_grad_closure_ctx *app = ctx;
+  struct riem_nn_closure_ctx *app = ctx;
 
   double rhol_elc = app->rhol_elc;
   double rhor_elc = app->rhor_elc;
@@ -184,7 +195,7 @@ void
 evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0];
-  struct riem_grad_closure_ctx *app = ctx;
+  struct riem_nn_closure_ctx *app = ctx;
 
   double rhol_ion = app->rhol_ion;
   double rhor_ion = app->rhor_ion;
@@ -228,7 +239,7 @@ void
 evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0];
-  struct riem_grad_closure_ctx *app = ctx;
+  struct riem_nn_closure_ctx *app = ctx;
 
   double Bzl = app->Bzl;
   double Bzr = app->Bzr;
@@ -303,13 +314,28 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct riem_grad_closure_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct riem_nn_closure_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
+  kann_t **ann = gkyl_malloc(sizeof(kann_t*) * 2);
+  if (ctx.use_nn_closure) {
+    const char *fmt_elc = "%s-%s.dat";
+    int sz_elc = gkyl_calc_strlen(fmt_elc, ctx.nn_closure_file, "elc");
+    char fileNm_elc[sz_elc + 1];
+    snprintf(fileNm_elc, sizeof fileNm_elc, fmt_elc, ctx.nn_closure_file, "elc");
+    ann[0] = kann_load(fileNm_elc);
+
+    const char *fmt_ion = "%s-%s.dat";
+    int sz_ion = gkyl_calc_strlen(fmt_ion, ctx.nn_closure_file, "ion");
+    char fileNm_ion[sz_ion + 1];
+    snprintf(fileNm_ion, sizeof fileNm_ion, fmt_ion, ctx.nn_closure_file, "ion");
+    ann[1] = kann_load(fileNm_ion);
+  }
+
   // Electron/ion equations.
-  struct gkyl_wv_eqn *elc_ten_moment = gkyl_wv_ten_moment_new(ctx.k0, true, false, 0, app_args.use_gpu);
-  struct gkyl_wv_eqn *ion_ten_moment = gkyl_wv_ten_moment_new(ctx.k0, true, false, 0, app_args.use_gpu);
+  struct gkyl_wv_eqn *elc_ten_moment = gkyl_wv_ten_moment_new(ctx.k0, false, ctx.use_nn_closure, ann[0], app_args.use_gpu);
+  struct gkyl_wv_eqn *ion_ten_moment = gkyl_wv_ten_moment_new(ctx.k0, false, ctx.use_nn_closure, ann[1], app_args.use_gpu);
 
   struct gkyl_moment_species elc = {
     .name = "elc",
@@ -405,7 +431,7 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "10m_riem_grad_closure",
+    .name = "10m_riem_nn_closure",
 
     .ndim = 1,
     .lower = { 0.0 },
@@ -531,6 +557,11 @@ main(int argc, char **argv)
   calc_field_energy(&fe_trig, app, t_curr, false);
   calc_integrated_mom(&im_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
+  if (ctx.use_nn_closure) {
+    for (int i = 0; i < app_inp.num_species; i++) {
+      kann_delete(ann[i]);
+    }
+  }
   gkyl_moment_app_stat_write(app);
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
@@ -548,7 +579,8 @@ freeresources:
   gkyl_wv_eqn_release(elc_ten_moment);
   gkyl_wv_eqn_release(ion_ten_moment);
   gkyl_comm_release(comm);
-  gkyl_moment_app_release(app);  
+  gkyl_moment_app_release(app);
+  gkyl_free(ann);
   
 mpifinalize:
 #ifdef GKYL_HAVE_MPI
