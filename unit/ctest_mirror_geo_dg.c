@@ -10,13 +10,22 @@
 #include <gkyl_mirror_geo_dg.h>
 #include <gkyl_nodal_ops.h>
 
+
+// Differences between this test and gk_geometry_mirror
+// exact_gij [5] = 1/pi^2 in the mirror test, but here it is 1
+// exact_g_contra_ij [5] = pi^2 in the mirror test, but here it is 1
+// mapc2p there is sqrt(psi*4), z/PI, -alpha, but here it is sqrt(psi*4), z, -alpha
+// dualmag [2] = pi in the mirror test, but here it is 1
+// There are issues with the exact_normals on some edge cases. There is also a sign flip here.
+
+
 // Functions for test_3x_straight_cylinder
 void mapc2p(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   double psi = xn[0], alpha = xn[1], zeta = xn[2];
   fout[0] = sqrt(psi * 4 ); // Function fed is psi = 0.5/2 * R^2 from the efit file
-  fout[1] = -alpha; // There is a minus due to conventions
-  fout[2] = zeta; // Note that this does not have pi-1e-2 in it because the coordinate zeta is always defined -pi to pi
+  fout[1] = zeta; // Note that this does not have pi-1e-2 in it because the coordinate zeta is always defined -pi to pi
+  fout[2] = -alpha; // There is a minus due to conventions
 }
 
 void exact_gij(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
@@ -356,8 +365,10 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
         cidx[TH_IDX] = it;
         double *jacobgeo_n = gkyl_array_fetch(jacobgeo_nodal, gkyl_range_idx(&nodal_range, cidx));
         double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nodal_range, cidx));
-        double jacobian_analytic = 2.0;
-        TEST_CHECK( gkyl_compare( jacobgeo_n[0], jacobian_analytic, 1e-6) );
+        // double jacobian_analytic = 2.0;
+        double fout[1];
+        exact_jacobian(0, mapc2p_n, fout, 0);
+        TEST_CHECK( gkyl_compare( jacobgeo_n[0], fout[0], 1e-6) );
       }
     }
   }
@@ -373,8 +384,9 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
         cidx[TH_IDX] = it;
         double *jacobgeo_inv_n = gkyl_array_fetch(jacobgeo_inv_nodal, gkyl_range_idx(&nodal_range, cidx));
         double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nodal_range, cidx));
-        double jacobian_analytic = 2.0;
-        TEST_CHECK( gkyl_compare( jacobgeo_inv_n[0], 1/jacobian_analytic, 1e-6) );
+        double fout[1];
+        exact_jacobian(0, mapc2p_n, fout, 0);
+        TEST_CHECK( gkyl_compare( jacobgeo_inv_n[0], 1/fout[0], 1e-6) );
       }
     }
   }
@@ -390,9 +402,11 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
         cidx[TH_IDX] = it;
         double *jacobtot_n = gkyl_array_fetch(jacobtot_nodal, gkyl_range_idx(&nodal_range, cidx));
         double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nodal_range, cidx));
-        double jacobian_analytic = 2.0;
-        double magnetic_field = 0.5;
-        double jacobtot_analytic = jacobian_analytic * magnetic_field;
+        double fout[1];
+        exact_jacobian(0, mapc2p_n, fout, 0);
+        double Bmag_anal[1];
+        bmag_func(0, mapc2p_n, Bmag_anal, 0);
+        double jacobtot_analytic = fout[0] * Bmag_anal[0];
         TEST_CHECK( gkyl_compare( jacobtot_n[0], jacobtot_analytic, 1e-6) );
       }
     }
@@ -409,9 +423,11 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
         cidx[TH_IDX] = it;
         double *jacobtot_inv_n = gkyl_array_fetch(jacobtot_inv_nodal, gkyl_range_idx(&nodal_range, cidx));
         double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nodal_range, cidx));
-        double jacobian_analytic = 2.0;
-        double magnetic_field = 0.5;
-        double jacobtot_analytic = jacobian_analytic * magnetic_field;
+        double fout[1];
+        exact_jacobian(0, mapc2p_n, fout, 0);
+        double Bmag_anal[1];
+        bmag_func(0, mapc2p_n, Bmag_anal, 0);
+        double jacobtot_analytic = fout[0] * Bmag_anal[0];
         TEST_CHECK( gkyl_compare( jacobtot_inv_n[0], 1/jacobtot_analytic, 1e-6) );
       }
     }
@@ -427,7 +443,6 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
         double psi = comp_grid.lower[PSI_IDX] + ip*(comp_grid.upper[PSI_IDX]-comp_grid.lower[PSI_IDX])/comp_grid.cells[PSI_IDX];
         double alpha = comp_grid.lower[AL_IDX] + ia*(comp_grid.upper[AL_IDX]-comp_grid.lower[AL_IDX])/comp_grid.cells[AL_IDX];
         double theta = comp_grid.lower[TH_IDX] + it*(comp_grid.upper[TH_IDX]-comp_grid.lower[TH_IDX])/comp_grid.cells[TH_IDX]; 
-        // mapc2p_n[0] = R, mapc2p_n[1] = Theta, mapc2p_n[2] = Z_cylindrical
         double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nodal_range, cidx));
         double xn[3] = {psi, alpha, theta};
         double fout[3];

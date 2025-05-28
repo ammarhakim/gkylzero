@@ -127,8 +127,8 @@ gkyl_mirror_geo_dg_inew(const struct gkyl_mirror_geo_dg_inp *inp)
 
         double *mapc2p_nodal_n = gkyl_array_fetch(mapc2p_nodal, idx);
         mapc2p_nodal_n[0] = geom_n->rz_coord[0];
-        mapc2p_nodal_n[1] = -alpha_curr;
-        mapc2p_nodal_n[2] = geom_n->rz_coord[1];
+        mapc2p_nodal_n[1] = geom_n->rz_coord[1];
+        mapc2p_nodal_n[2] = -alpha_curr;
 
         double *mc2nu_pos_nodal_n = gkyl_array_fetch(mc2nu_pos_nodal, idx);
         mc2nu_pos_nodal_n[0] = geom_n->psi;
