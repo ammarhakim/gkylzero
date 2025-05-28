@@ -109,7 +109,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
 
         adapt_src->particle_src_curr = s->info.source.projection[k].particle;
         adapt_src->energy_src_curr = s->info.source.projection[k].energy;
-        // The temperature computation makes sense only if we inject particles
+        // The temperature computation makes sense only if we inject particles.
         adapt_src->temperature_curr = s->info.source.projection[k].particle > 0?
           2./3. * adapt_src->energy_src_curr/adapt_src->particle_src_curr : 1.0;
 
@@ -221,6 +221,7 @@ gk_species_source_adapt(gkyl_gyrokinetic_app *app, struct gk_species *s,
 
     // Impose the temperature to be within the limits.  
     temperature_new = fmin(temperature_new, s->info.source.projection[k].temp_max);
+    temperature_new = fmax(temperature_new, s->info.source.projection[k].temp_min);
 
     // Update the density and temperature moments of the source
     gkyl_array_set(src->proj_source[k].dens, particle_src_new, src->proj_source[k].shape_conf);
