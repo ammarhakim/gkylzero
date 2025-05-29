@@ -1,20 +1,16 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <time.h>
 #include <acutest.h>
 #include <gkyl_array.h>
 #include <gkyl_array_rio.h>
-#include <gkyl_array_ops.h>
 #include <gkyl_basis.h>
-#include <gkyl_eval_on_nodes.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mirror.h>
 #include <gkyl_nodal_ops.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_rect_decomp.h>
 #include <gkyl_util.h>
 
 void
