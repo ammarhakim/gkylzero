@@ -464,7 +464,7 @@ create_ctx(void)
   double z_min = -2.0;
   double z_max =  2.0;
   double z_m = 0.982544;
-  double psi_min = 4e-4;
+  double psi_min = 1e-5;
   double psi_max = 3e-3;
 
   // Source parameters
@@ -503,8 +503,8 @@ create_ctx(void)
   double mu_max_elc = me * pow(3. * vte, 2.) / (2. * B_p);
   double vpar_max_ion = 20 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
-  int Nx = 4;
-  int Nz = 64;
+  int Nx = 8;
+  int Nz = 32;
   int Nvpar = 32; // Number of cells in the paralell velocity direction 96
   int Nmu = 32;  // Number of cells in the mu direction 192
   int poly_order = 1;
@@ -788,7 +788,7 @@ int main(int argc, char **argv)
   };
 
   struct gkyl_efit_inp efit_inp = {
-    .filepath = "./data/eqdsk/wham.geqdsk", // equilibrium to use
+    .filepath = "./data/eqdsk/wham_hires.geqdsk", // efit file to use
     .rz_poly_order = 2,                     // polynomial order for psi(R,Z) used for field line tracing
     .flux_poly_order = 1,                   // polynomial order for fpol(psi)
   };
@@ -797,6 +797,8 @@ int main(int argc, char **argv)
     .rclose = 0.2, // closest R to region of interest
     .zmin = -2.0,  // Z of lower boundary
     .zmax =  2.0,  // Z of upper boundary 
+    .include_axis = false, // Include R=0 axis in grid
+    .fl_coord = GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // coordinate system for psi grid
   };
 
   // GK app

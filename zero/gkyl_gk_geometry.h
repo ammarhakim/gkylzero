@@ -8,7 +8,7 @@
 #include <gkyl_util.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_tok_geo.h>
-#include <gkyl_mirror_geo.h>
+#include <gkyl_mirror_grid_gen.h>
 #include <gkyl_position_map.h>
 
 
@@ -74,6 +74,16 @@ struct gk_geometry {
   struct gk_geometry *on_dev; // pointer to itself or device object
 };
 
+
+// Inputs to create geometry for a specific computational grid
+struct gkyl_mirror_geo_grid_inp {
+  double rclose; // closest R to discrimate
+  double rright; // closest R to discrimate
+  double zmin, zmax; // extents of Z for integration
+
+  bool include_axis; // add nodes on r=0 axis (the axis is assumed be psi=0)
+  enum gkyl_mirror_grid_gen_field_line_coord fl_coord; // field-line coordinate to use
+};
 
 // Input struct for geometry creation
 struct gkyl_gk_geometry_inp {
