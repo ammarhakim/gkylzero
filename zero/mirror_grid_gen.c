@@ -95,7 +95,7 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
   double dpsi = (psic_up-psic_lo)/(nc[NPSI]-1);
 
   double rlow = lower[0], rup = upper[0];
-  double rmin = rlow + 1e-6*(rup-rlow);
+  double rmin = rlow + 1e-8*(rup-rlow);
 
   struct psirz_ctx pctx = { .evcub = evcub };
 
