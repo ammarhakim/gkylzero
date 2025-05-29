@@ -46,11 +46,11 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
   }
   gkyl_range_init_from_shape(&nrange, up->grid.ndim, nodes);
   
-  // Load the efit data
-  struct gkyl_efit* efit = gkyl_efit_new(&geometry_inp->efit_info);
-  up->geqdsk_sign_convention = efit->sibry > efit->simag ? 0 : 1;
-  struct gkyl_rect_grid psi_grid = efit->rzgrid_cubic;
-  struct gkyl_array *psi = efit->psizr_cubic;
+  up->geqdsk_sign_convention = 0.0; // Hardcoded 0. Means psi increases from axis. Always true for mirror geometry.
+
+  // read psi(R,Z) from file
+  struct gkyl_rect_grid psi_grid;
+  struct gkyl_array *psi = gkyl_grid_array_new_from_file(&psi_grid, geometry_inp->mirror_grid_info.filename_psi);
 
   // create mirror geometry
   struct gkyl_mirror_grid_gen *mirror_grid =

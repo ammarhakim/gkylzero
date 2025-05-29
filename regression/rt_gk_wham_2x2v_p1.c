@@ -463,8 +463,8 @@ create_ctx(void)
   // Geometry parameters.
   double z_min = -2.0;
   double z_max =  2.0;
-  double z_m = 0.982544;
-  double psi_min = 1e-5;
+  double z_m = 1.0;
+  double psi_min = 1e-6;
   double psi_max = 3e-3;
 
   // Source parameters
@@ -787,13 +787,8 @@ int main(int argc, char **argv)
     .polarization_potential_ctx = &ctx,
   };
 
-  struct gkyl_efit_inp efit_inp = {
-    .filepath = "./data/eqdsk/wham_hires.geqdsk", // efit file to use
-    .rz_poly_order = 2,                     // polynomial order for psi(R,Z) used for field line tracing
-    .flux_poly_order = 1,                   // polynomial order for fpol(psi)
-  };
-
   struct gkyl_mirror_geo_grid_inp grid_inp = {
+    .filename_psi = "data/unit/wham_hires.geqdsk_psi.gkyl", // psi file to use
     .rclose = 0.2, // closest R to region of interest
     .zmin = -2.0,  // Z of lower boundary
     .zmax =  2.0,  // Z of upper boundary 
@@ -813,7 +808,6 @@ int main(int argc, char **argv)
     .geometry = {
       .geometry_id = GKYL_MIRROR,
       .world = {0.0},
-      .efit_info = efit_inp,
       .mirror_grid_info = grid_inp,
     },
     .num_periodic_dir = 0,

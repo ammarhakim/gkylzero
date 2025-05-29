@@ -77,6 +77,7 @@ struct gk_geometry {
 
 // Inputs to create geometry for a specific computational grid
 struct gkyl_mirror_geo_grid_inp {
+  char filename_psi[256]; // file with psi(R,Z) data
   double rclose; // closest R to discrimate
   double rright; // closest R to discrimate
   double zmin, zmax; // extents of Z for integration
