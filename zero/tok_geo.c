@@ -119,6 +119,26 @@ arc_length_func(double Z, void *ctx)
     }
   }
 
+  else if(actx->ftype==GKYL_IWL){
+    if(actx->q3) {
+      double *arc_memo = actx->arc_memo;
+      ival = integrate_psi_contour_memo(actx->geo, psi, Z, actx->geo->zmaxis, rclose, false, false, arc_memo) - arcL;
+    }
+    else if (actx->q4) {
+      double *arc_memo = actx->arc_memo;
+      ival = integrate_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo)  - arcL + actx->arcL_q3;
+    }
+    else if (actx->q1) {
+      double *arc_memo = actx->arc_memo;
+      ival = integrate_psi_contour_memo(actx->geo, psi, actx->geo->zmaxis, Z, rclose, false, false, arc_memo)  - arcL + actx->arcL_q3 +actx->arcL_q4;
+    }
+    else {
+      double *arc_memo = actx->arc_memo;
+      ival = integrate_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, false, false, arc_memo)  - arcL + actx->arcL_q3 +actx->arcL_q4 + actx->arcL_q1;
+    }
+
+  }
+
   return ival;
 }
 
@@ -210,6 +230,25 @@ phi_func(double alpha_curr, double Z, void *ctx)
   }
   else if(actx->ftype==GKYL_PF_UP_L){
       ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, false, false, arc_memo);// + actx->phi_right;
+  }
+  else if (actx->ftype==GKYL_IWL) {
+    // phi = alpha at outboard midplane
+    if(actx->right==true){
+      if(Z<actx->zmaxis)
+        ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo);
+      else
+        ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
+    }
+    else{
+      if (Z<actx->zmaxis) {
+        ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo) ;
+        phi_ref  = -actx->phi_right;
+      }
+      else {
+        ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo) ;
+        phi_ref  = actx->phi_right;
+      }
+    }
   }
   // Now multiply by fpol
   double R[4] = {0};
@@ -422,14 +461,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
     .geo = geo
   };
 
-  position_map->constB_ctx->psi_max   = up->grid.upper[PSI_IDX];
-  position_map->constB_ctx->psi_min   = up->grid.lower[PSI_IDX];
-  position_map->constB_ctx->alpha_max = up->grid.upper[AL_IDX];
-  position_map->constB_ctx->alpha_min = up->grid.lower[AL_IDX];
-  position_map->constB_ctx->theta_max = up->grid.upper[TH_IDX];
-  position_map->constB_ctx->theta_min = up->grid.lower[TH_IDX];
-  position_map->constB_ctx->N_theta_boundaries = up->global.upper[TH_IDX] - up->global.lower[TH_IDX];
-  gkyl_position_map_optimize(position_map);
+  gkyl_position_map_optimize(position_map, up->grid, up->global);
 
   int cidx[3] = { 0 };
   for(int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia){
