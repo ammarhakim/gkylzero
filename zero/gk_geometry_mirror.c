@@ -1,21 +1,9 @@
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
-#include <gkyl_array_ops.h>
-#include <gkyl_array_rio.h>
-#include <gkyl_basis.h>
-#include <gkyl_comm.h>
-#include <gkyl_deflate_geo.h>
-#include <gkyl_eval_on_nodes.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mirror.h>
-#include <gkyl_math.h>
-#include <gkyl_nodal_ops.h>
-
-#include <gkyl_calc_metric.h>
-#include <gkyl_calc_bmag.h>
 #include <gkyl_position_map.h>
-
 #include <gkyl_mirror_grid_gen.h>
 #include <gkyl_mirror_geo_gen.h>
 #include <gkyl_mirror_geo_dg.h>
@@ -45,7 +33,7 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
       nodes[d] = 2*gkyl_range_shape(&up->local, d) + 1;
   }
   gkyl_range_init_from_shape(&nrange, up->grid.ndim, nodes);
-  
+
   up->geqdsk_sign_convention = 0.0; // Hardcoded 0. Means psi increases from axis. Always true for mirror geometry.
 
   // read psi(R,Z) from file
