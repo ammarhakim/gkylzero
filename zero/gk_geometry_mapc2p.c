@@ -192,8 +192,13 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
     assert((up->grid.lower[0] <= up->x_LCFS) && (up->x_LCFS <= up->grid.upper[0]));
     // Check that the split happens at a cell boundary;
     double needint = (up->x_LCFS - up->grid.lower[0])/up->grid.dx[0];
-    if (fabs(needint-floor(needint)) < 1.0e-12) {
-      up->idx_LCFS_lo = (int) needint;
+    double rem_floor = fabs(needint-floor(needint));
+    double rem_ceil = fabs(needint-ceil(needint));
+    if (rem_floor < 1.0e-12) {
+      up->idx_LCFS_lo = (int) floor(needint);
+    }
+    else if (rem_ceil < 1.0e-12) {
+      up->idx_LCFS_lo = (int) ceil(needint);
     }
     else {
       fprintf(stderr, "x_LCFS = %.9e must be at a cell boundary.\n", up->x_LCFS);
