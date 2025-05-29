@@ -95,15 +95,51 @@ gkyl_positivity_shift_vlasov_advance(gkyl_positivity_shift_vlasov* up,
       double xc[GKYL_MAX_DIM];
       gkyl_rect_grid_cell_center(&up->grid, vel_iter.idx, xc);
 
-      // Compute the original number density.
-      up->kernels->m0(xc, up->grid.dx, vel_iter.idx, distf_c, m0in_c);
+      // Contribution to the old number density from this v-space cell.
+      double m0phase_in_c[num_cbasis];
+      for (int k=0; k<num_cbasis; k++)
+        m0phase_in_c[k] = 0.0;
+      up->kernels->m0(xc, up->grid.dx, vel_iter.idx, distf_c, m0phase_in_c);
+
+      // Add to the old number density.
+      for (int k=0; k<num_cbasis; k++)
+        m0in_c[k] += m0phase_in_c[k];
 
       // Shift f if needed.
       bool shifted_node = up->kernels->shift(up->ffloor[0], distf_c);
-      shiftedf = shiftedf || shifted_node;
 
-      // Compute the new number density.
-      up->kernels->m0(xc, up->grid.dx, vel_iter.idx, distf_c, m0_c);
+      // If m0phase_in_c was positive but one of the nodes of f was
+      // shifted, rescale f in this cell so it keeps the same density.
+      if (shifted_node) {
+        // Compute the new number density in this phase-space cell.
+        double m0phase_out_c[num_cbasis];
+        for (int k=0; k<num_cbasis; k++)
+          m0phase_out_c[k] = 0.0;
+        up->kernels->m0(xc, up->grid.dx, vel_iter.idx, distf_c, m0phase_out_c);
+
+        if (up->kernels->is_m0_positive(m0phase_in_c)) {
+          double m0ratio_c[num_cbasis];
+          up->kernels->conf_inv_op(m0phase_out_c, m0ratio_c);
+          up->kernels->conf_mul_op(m0phase_in_c, m0ratio_c, m0ratio_c);
+
+          up->kernels->conf_phase_mul_op(m0ratio_c, distf_c, distf_c);
+
+          // Add contribution from this phase-space cell to the new number density.
+          for (int k=0; k<num_cbasis; k++)
+            m0_c[k] += m0phase_in_c[k];
+        }
+        else {
+          // Add contribution from this phase-space cell to the new number density.
+          for (int k=0; k<num_cbasis; k++)
+            m0_c[k] += m0phase_out_c[k];
+
+          shiftedf = true;
+        }
+      }
+      else {
+        for (int k=0; k<num_cbasis; k++)
+          m0_c[k] += m0phase_in_c[k];
+      }
 
       distf_max = GKYL_MAX2(distf_max, distf_c[0]);
     }
