@@ -116,8 +116,6 @@ gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic* up,
       // Shift f if needed.
       bool shifted_node = up->kernels->shift(up->ffloor[0], distf_c);
 
-      // If m0phase_in_c was positive but one of the nodes of f was
-      // shifted, rescale f in this cell so it keeps the same density.
       if (shifted_node) {
         // Compute the new number density in this phase-space cell.
         double m0phase_out_c[num_cbasis];
@@ -126,6 +124,7 @@ gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic* up,
         up->kernels->m0(up->grid.dx, vmap_c, up->mass, bmag_c, distf_c, m0phase_out_c);
 
         if (up->kernels->is_m0_positive(m0phase_in_c)) {
+          // Rescale f in this cell so it keeps the same density.
           double m0ratio_c[num_cbasis];
           up->kernels->conf_inv_op(m0phase_out_c, m0ratio_c);
           up->kernels->conf_mul_op(m0phase_in_c, m0ratio_c, m0ratio_c);
@@ -145,6 +144,7 @@ gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic* up,
         }
       }
       else {
+        // Add contribution from this phase-space cell to the new number density.
         for (int k=0; k<num_cbasis; k++)
           m0_c[k] += m0phase_in_c[k];
       }

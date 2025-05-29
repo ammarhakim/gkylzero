@@ -101,56 +101,54 @@ gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker(
     int *shiftedf_c = (int*) gkyl_array_fetch(shiftedf, clinidx);
     const double *bmag_c = (const double*) gkyl_array_cfetch(bmag, clinidx);
     const double *vmap_c = (const double*) gkyl_array_cfetch(vmap, vlinidx);
+    double *m0_c = (double*) gkyl_array_fetch(m0, clinidx);
+    double *delta_m0_c = (double*) gkyl_array_fetch(delta_m0, clinidx);
     double *distf_c = (double*) gkyl_array_fetch(distf, plinidx);
 
-    // Compute the original number density.
+    // Contribution to the old number density from this v-space cell.
     double m0Local_in[num_cbasis];
     for (unsigned int k=0; k<delta_m0->ncomp; ++k)
       m0Local_in[k] = 0.0;
     kers->m0(grid.dx, vmap_c, mass, bmag_c, distf_c, m0Local_in);
-    double *delta_m0_c = (double*) gkyl_array_fetch(delta_m0, clinidx);
-    for (unsigned int k = 0; k < delta_m0->ncomp; ++k) {
-       if (tid < phase_range.volume)
-         atomicAdd(&delta_m0_c[k], m0Local_in[k]);
-    }
+
+    // Add to the old number density.
+    for (unsigned int k = 0; k < delta_m0->ncomp; ++k)
+      atomicAdd(&delta_m0_c[k], m0Local_in[k]);
 
     // Shift f if needed.
     bool shifted_node = kers->shift(ffloor[0], distf_c);
 
-    // Compute the new number density local to this phase-space cell.
-    double m0Local_out[num_cbasis];
-    for (unsigned int k=0; k<m0->ncomp; ++k)
-      m0Local_out[k] = 0.0;
-    double *m0_c = (double*) gkyl_array_fetch(m0, clinidx);
-    kers->m0(grid.dx, vmap_c, mass, bmag_c, distf_c, m0Local_out);
-
-    // If m0phase_in_c was positive but one of the nodes was shifted, rescale
-    // f in this cell so it keeps the same density.
     if (shifted_node) {
+      // Compute the new number density local to this phase-space cell.
+      double m0Local_out[num_cbasis];
+      for (unsigned int k=0; k<m0->ncomp; ++k)
+        m0Local_out[k] = 0.0;
+      kers->m0(grid.dx, vmap_c, mass, bmag_c, distf_c, m0Local_out);
+
       if (kers->is_m0_positive(m0Local_in)) {
+        // Rescale f in this cell so it keeps the same density.
         double m0ratio_c[num_cbasis];
         kers->conf_inv_op(m0Local_out, m0ratio_c);
         kers->conf_mul_op(m0Local_in, m0ratio_c, m0ratio_c);
   
-        long plinidx = gkyl_range_idx(&phase_range, pidx);
-        double *distf_c = (double*) gkyl_array_fetch(distf, plinidx);
         kers->conf_phase_mul_op(m0ratio_c, distf_c, distf_c);
 
-        // Add the old local contribution to the new number density.
-        for (unsigned int k = 0; k < m0->ncomp; ++k) {
-           if (tid < phase_range.volume)
-             atomicAdd(&m0_c[k], m0Local_in[k]);
-        }
+        // Add contribution from this phase-space cell to the new number density.
+        for (unsigned int k = 0; k < m0->ncomp; ++k)
+          atomicAdd(&m0_c[k], m0Local_in[k]);
       }
       else {
-        // Add the new local contribution to the new number density.
-        for (unsigned int k = 0; k < m0->ncomp; ++k) {
-           if (tid < phase_range.volume)
-             atomicAdd(&m0_c[k], m0Local_out[k]);
-        }
+        // Add contribution from this phase-space cell to the new number density.
+        for (unsigned int k = 0; k < m0->ncomp; ++k)
+          atomicAdd(&m0_c[k], m0Local_out[k]);
 
         atomicOr(shiftedf_c, shifted_node);
       }
+    }
+    else {
+      // Add contribution from this phase-space cell to the new number density.
+      for (unsigned int k = 0; k < m0->ncomp; ++k)
+        atomicAdd(&m0_c[k], m0Local_in[k]);
     }
 
     distf_max = fmax(distf_max, distf_c[0]);
@@ -244,17 +242,21 @@ gkyl_positivity_shift_gyrokinetic_advance_cu(gkyl_positivity_shift_gyrokinetic* 
   gkyl_array_clear_range(m0, 0.0, conf_rng);
   gkyl_array_clear_range(delta_m0, 0.0, conf_rng);
 
+  // Set shiftedf boolean (int) to 0s.
   gkyl_positivity_shift_gyrokinetic_advance_int_array_clear_cu_ker<<<nblocks_conf, nthreads_conf>>>
     (up->shiftedf->on_dev, 0);
 
+  // Shift f is needed & scale f locally if initial local contribution to M0 was >0.
   gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker<<<nblocks_phase, nthreads_phase>>>
     (up->kernels, up->grid, *conf_rng, up->vel_map->local_vel, *phase_rng, up->ffloor, up->ffloor_fac,
      up->cellav_fac, up->mass, up->gk_geom->bmag->on_dev, up->vel_map->vmap->on_dev, up->shiftedf->on_dev,
      distf->on_dev, m0->on_dev, delta_m0->on_dev);
 
+  // If a shift took place, rescale f so it keeps the same M0.
   gkyl_positivity_shift_gyrokinetic_advance_scalef_cu_ker<<<nblocks_phase, nthreads_phase>>>
     (up->kernels, *conf_rng, *phase_rng, up->shiftedf->on_dev, m0->on_dev, delta_m0->on_dev, distf->on_dev);
 
+  // Ensure m0 and delta_m0 are correct based on whether a shift took place.
   gkyl_positivity_shift_gyrokinetic_advance_m0fix_cu_ker<<<nblocks_conf, nthreads_conf>>>
     (up->kernels, *conf_rng, up->shiftedf->on_dev, m0->on_dev, delta_m0->on_dev);
 }
