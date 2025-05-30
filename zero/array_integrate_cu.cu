@@ -91,28 +91,29 @@ array_integrate_blockRedAtomic_cub(struct gkyl_array_integrate *up, const struct
   int idx[GKYL_MAX_DIM];
   gkyl_sub_range_inv_idx(&range, linc, idx);
   long start = gkyl_range_idx(&range, idx);
-  const double *fptr = (const double*) gkyl_array_cfetch(inp, start);
-
-  const double *wptr = 0;
-  if (weight) {
-    int widx[GKYL_MAX_DIM];
-    for (int d=0; d<weight_range.ndim; d++) widx[d] = idx[d]; 
-    long linidx_w = gkyl_range_idx(&weight_range, widx);
-    wptr = (const double*) gkyl_array_cfetch(weight, linidx_w);
-  }
 
   double outLocal[10]; // Set to max of 10 (e.g. heat flux tensor).
   for (unsigned int k=0; k<up->num_comp; ++k)
     outLocal[k] = 0.0;
 
   // Integrate in this cell
-  up->kernel(up->dxSq, up->vol*factor, up->num_comp, up->num_basis, wptr, fptr, outLocal);
+  if (linc < range.volume) {
+    const double *fptr = (const double*) gkyl_array_cfetch(inp, start);
+
+    const double *wptr = 0;
+    if (weight) {
+      int widx[GKYL_MAX_DIM];
+      for (int d=0; d<weight_range.ndim; d++) widx[d] = idx[d]; 
+      long linidx_w = gkyl_range_idx(&weight_range, widx);
+      wptr = (const double*) gkyl_array_cfetch(weight, linidx_w);
+    }
+
+    up->kernel(up->dxSq, up->vol*factor, up->num_comp, up->num_basis, wptr, fptr, outLocal);
+  }
 
   for (size_t k = 0; k < up->num_comp; ++k) {
-    double f = 0;
-    if (linc < range.volume) f = outLocal[k];
     double bResult = 0;
-    bResult = BlockReduceT(temp).Reduce(f, cub::Sum());
+    bResult = BlockReduceT(temp).Reduce(outLocal[k], cub::Sum());
     if (threadIdx.x == 0)
       atomicAdd(&out[k], bResult);
   }
