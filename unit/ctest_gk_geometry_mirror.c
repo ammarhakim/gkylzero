@@ -1140,7 +1140,7 @@ test_3x_p1_pmap_straight_cylinder()
 
 TEST_LIST = {
   { "test_load_geometry", test_load_geometry },
-  // { "test_3x_p1_straight_cylinder", test_3x_p1_straight_cylinder },
+  { "test_3x_p1_straight_cylinder", test_3x_p1_straight_cylinder },
   // { "test_3x_p1_pmap_straight_cylinder", test_3x_p1_pmap_straight_cylinder },
   { NULL, NULL },
 };
