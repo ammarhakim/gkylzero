@@ -8,7 +8,7 @@
 #include <gkyl_util.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_tok_geo.h>
-#include <gkyl_mirror_geo.h>
+#include <gkyl_mirror_grid_gen.h>
 #include <gkyl_position_map.h>
 
 
@@ -47,8 +47,8 @@ struct gk_geometry {
   struct gkyl_array* gij; // Metric coefficients g^{ij}. See g_ij for order.
   struct gkyl_array* gij_neut; // Metric coefficients g^{ij}. See g_ij for order. 
                                // Calculated with coord definition alpha = phi for tokamak geometry
-  struct gkyl_array* b_i; // 3 components. Covariant components of magnetic field vector b_1, b_2, b_3.
-  struct gkyl_array* bcart; // 3 components. Cartesian components of magnetic field vector b_X, b_Y, b_Z.
+  struct gkyl_array* b_i; // 3 components. Covariant components of magnetic field unit vector b_1, b_2, b_3.
+  struct gkyl_array* bcart; // 3 components. Cartesian components of magnetic field unit vector b_X, b_Y, b_Z.
   struct gkyl_array* cmag; // 1 component. C = JB/sqrt(g_33)
   struct gkyl_array* jacobtot; // 1 component. Phase space Jacobian = JB
   struct gkyl_array* jacobtot_inv; // 1 component. 1/(JB)
@@ -74,6 +74,17 @@ struct gk_geometry {
   struct gk_geometry *on_dev; // pointer to itself or device object
 };
 
+
+// Inputs to create geometry for a specific computational grid
+struct gkyl_mirror_geo_grid_inp {
+  char filename_psi[256]; // file with psi(R,Z) data
+  double rclose; // closest R to discrimate
+  double rright; // closest R to discrimate
+  double zmin, zmax; // extents of Z for integration
+
+  bool include_axis; // add nodes on r=0 axis (the axis is assumed be psi=0)
+  enum gkyl_mirror_grid_gen_field_line_coord fl_coord; // field-line coordinate to use
+};
 
 // Input struct for geometry creation
 struct gkyl_gk_geometry_inp {

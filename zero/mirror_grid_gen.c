@@ -70,6 +70,7 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
   
   long nctot = nc[NPSI]*nc[NZ];
   geo->nodes_rz = gkyl_array_new(GKYL_DOUBLE, 2, nctot);
+  geo->nodes_psi = gkyl_array_new(GKYL_DOUBLE, 1, nctot);
   geo->nodes_geom = gkyl_array_new(GKYL_USER, sizeof(struct gkyl_mirror_grid_gen_geom), nctot);
 
   struct gkyl_range node_rng;
@@ -138,6 +139,8 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
         int idx[2] = { ipsi, iz };
         double *rz = gkyl_array_fetch(geo->nodes_rz, gkyl_range_idx(&node_rng, idx));
         rz[0] = root.res; rz[1] = zcurr;
+        double *psi_coord = gkyl_array_fetch(geo->nodes_psi, gkyl_range_idx(&node_rng, idx));
+        psi_coord[0] = psi_curr; // store psi coordinate
       }
     }
   }
@@ -280,6 +283,7 @@ void
 gkyl_mirror_grid_gen_release(struct gkyl_mirror_grid_gen *geom)
 {
   gkyl_array_release(geom->nodes_rz);
+  gkyl_array_release(geom->nodes_psi);
   gkyl_array_release(geom->nodes_geom);
   gkyl_free(geom->gg_x);
   gkyl_free(geom);
