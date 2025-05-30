@@ -327,7 +327,7 @@ static void calc_moms_vlasov(struct gkyl_rect_grid *grid, struct gkyl_basis *con
   bool use_gpu, struct gkyl_array *distf, struct gkyl_array *moms)
 {
   struct gkyl_dg_updater_moment* mom_op = gkyl_dg_updater_moment_new(grid, confBasis,
-    basis, confLocal, 0, local, 0, 0, "FiveMoments", false, use_gpu);
+    basis, confLocal, 0, local, 0, 0, GKYL_F_MOMENT_M0M1M2, false, use_gpu);
   gkyl_dg_updater_moment_advance(mom_op, local, confLocal, distf, moms);
   gkyl_dg_updater_moment_release(mom_op);
 }
@@ -886,7 +886,7 @@ static void calc_moms_gk(struct gkyl_rect_grid *grid, struct gkyl_basis *confBas
   struct gk_geometry *gk_geom, bool use_gpu, struct gkyl_array *distf, struct gkyl_array *moms)
 {
   struct gkyl_dg_updater_moment* mom_op = gkyl_dg_updater_moment_gyrokinetic_new(grid, confBasis,
-    basis, confLocal, mass, charge, gvm, gk_geom, 0, "ThreeMoments", false, use_gpu);
+    basis, confLocal, mass, charge, gvm, gk_geom, 0, GKYL_F_MOMENT_M0M1M2, false, use_gpu);
   gkyl_dg_updater_moment_gyrokinetic_advance(mom_op, local, confLocal, distf, moms);
   gkyl_dg_updater_moment_gyrokinetic_release(mom_op);
 }

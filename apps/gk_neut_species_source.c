@@ -12,26 +12,23 @@ gk_neut_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spe
     // we need to ensure source has same shape as distribution function
     src->source = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
     src->source_host = src->source;
-    if (app->use_gpu) {
+    if (app->use_gpu)
       src->source_host = mkarr(false, s->basis.num_basis, s->local_ext.volume);
-    }
 
     src->evolve = s->info.source.evolve; // Whether the source is time dependent.
 
     src->num_sources = s->info.source.num_sources;
-    for (int k=0; k<s->info.source.num_sources; k++) {
+    for (int k=0; k<s->info.source.num_sources; k++)
       gk_neut_species_projection_init(app, s, s->info.source.projection[k], &src->proj_source[k]);
-    }
 
     // Allocate data and updaters for diagnostic moments.
     src->num_diag_mom = s->info.num_diag_moments;
     s->src.moms = gkyl_malloc(sizeof(struct gk_species_moment[src->num_diag_mom]));
-    for (int m=0; m<src->num_diag_mom; ++m) {
-      gk_neut_species_moment_init(app, s, &s->src.moms[m], s->info.diag_moments[m]);
-    }
+    for (int m=0; m<src->num_diag_mom; ++m)
+      gk_neut_species_moment_init(app, s, &s->src.moms[m], s->info.diag_moments[m], false);
 
     // Allocate data and updaters for integrated moments.
-    gk_neut_species_moment_init(app, s, &s->src.integ_moms, "Integrated");
+    gk_neut_species_moment_init(app, s, &s->src.integ_moms, GKYL_F_MOMENT_M0M1M2, true);
     int num_mom = s->src.integ_moms.num_mom;
     if (app->use_gpu) {
       s->src.red_integ_diag = gkyl_cu_malloc(sizeof(double[num_mom]));

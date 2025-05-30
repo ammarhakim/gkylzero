@@ -5,6 +5,7 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_mom_type.h>
 
 // Object type (defined in gkyl_dg_updater_moment_priv.h)
 typedef struct gkyl_dg_updater_moment gkyl_dg_updater_moment;
@@ -24,7 +25,7 @@ typedef struct gkyl_dg_updater_moment_tm gkyl_dg_updater_moment_tm;
  * @param phase_range phase space range
  * @param model_id Enum identifier for model type (e.g., SR, see gkyl_eqn_type.h)
  * @param aux_inp Void pointer to auxiliary fields. Void to be flexible to different auxfields structs
- * @param mom Name of moment
+ * @param mom_type Name of moment.
  * @param is_integrated Boolean for if the moment is an integrated moment
  * @param mass Mass of species 
  * @param use_gpu Boolean to determine whether struct objects are on host or device
@@ -37,7 +38,7 @@ gkyl_dg_updater_moment_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
   const struct gkyl_range *phase_range,
   enum gkyl_model_id model_id, void *aux_inp, 
-  const char *mom, bool is_integrated, bool use_gpu);
+  enum gkyl_distribution_moments mom_type, bool is_integrated, bool use_gpu);
 
 /**
  * Acquire moment object
@@ -65,7 +66,7 @@ gkyl_dg_updater_moment_num_mom(const struct gkyl_dg_updater_moment* moment);
  * That is, it must be either the same range as the array range, or one created using the
  * or one created using the gkyl_sub_range_init method.
  *
- * @param moemnt moment updater object
+ * @param moment moment updater object
  * @param update_phase_rng Phase space range on which to compute.
  * @param update_conf_rng Configuration space range on which to compute.
  * @param fIn Input to updater
