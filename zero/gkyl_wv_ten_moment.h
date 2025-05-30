@@ -9,12 +9,13 @@
  * @param k0 Closure parameter.
  * @param use_grad_closure Should we use gradient-based closure?
  * @param use_nn_closure Should we use neural network-based closure?
+ * @param poly_order Polynomial order of learned DG coefficients.
  * @param ann Neural network architecture.
  * @param use_gpu Boolean to determine whether wave equation object is on host or device.
  * @return Pointer to 10-moment equation object.
  */
 struct gkyl_wv_eqn*
-gkyl_wv_ten_moment_new(double k0, bool use_grad_closure, bool use_nn_closure, kann_t* ann, bool use_gpu);
+gkyl_wv_ten_moment_new(double k0, bool use_grad_closure, bool use_nn_closure, int poly_order, kann_t* ann, bool use_gpu);
 
 /**
  * Create a new 10-moment equation object that lives on NV-GPU.
@@ -49,6 +50,15 @@ gkyl_wv_ten_moment_use_grad_closure(const struct gkyl_wv_eqn* wv);
  */
 bool
 gkyl_wv_ten_moment_use_nn_closure(const struct gkyl_wv_eqn* wv);
+
+/**
+ * Get polynomial order of learned DG coefficients.
+ * 
+ * @param wv 10-moment equation object.
+ * @return Polynomial order of learned DG coefficients.
+ */
+ int
+ gkyl_wv_ten_moment_poly_order(const struct gkyl_wv_eqn* wv);
 
 /**
  * Get neural network architecture.

@@ -16,6 +16,7 @@ struct wv_ten_moment {
   double k0; // Closure parameter.
   bool use_grad_closure; // Should we use gradient-based closure?
   bool use_nn_closure; // Should we use neural network-based closure?
+  int poly_order; // Polynomial order of learned DG coefficients.
   kann_t* ann; // Neural network architecture.
 };
 
@@ -504,13 +505,15 @@ GKYL_CU_DH
 static bool
 check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
 {
-  if (q[0] < 0.0)
+  if (q[0] < 0.0) {
     return false;
+  }
 
   double P[3];
   gkyl_ten_moment_diag_pressure(q, P);
-  if (P[0] < 0.0 || P[1] < 0.0 || P[2] < 0.0)
+  if (P[0] < 0.0 || P[1] < 0.0 || P[2] < 0.0) {
     return false;
+  }
   
   return true;
 }

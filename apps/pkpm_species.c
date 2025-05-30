@@ -89,7 +89,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   // We use the 10 moment system since PKPM model generates a full pressure tensor
   // k0 = 0.0 and use_grad_closure = false because we do not need a closure 
   // (the kinetic equations are the closure)
-  s->equation = gkyl_wv_ten_moment_new(0.0, false, false, 0, app->use_gpu); 
+  s->equation = gkyl_wv_ten_moment_new(0.0, false, false, 0, 0, app->use_gpu); 
 
   // Distribution function arrays for coupling different Laguerre moments
   // g_dist_source has two components: 

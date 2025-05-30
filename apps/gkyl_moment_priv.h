@@ -64,6 +64,7 @@ struct moment_species {
   bool has_grad_closure; // Has gradient-based closure (only for 10 moment).
   bool has_nn_closure; // Has neural network-based closure (only for 10 moment).
   kann_t* ann; // Neural network architecture.
+  int poly_order; // Polynomial order of learned DG coefficients.
   enum gkyl_braginskii_type type_brag; // which Braginskii equations
 
   bool has_friction; // Run with frictional sources.

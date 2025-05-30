@@ -154,6 +154,8 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_nn_closure) {
       struct gkyl_ten_moment_nn_closure_inp nn_closure_inp = {
         .grid = &app->grid,
+        .k0 = app->species[i].k0,
+        .poly_order = app->species[i].poly_order,
         .ann = app->species[i].ann,
       };
       src->nn_closure_slvr[i] = gkyl_ten_moment_nn_closure_new(nn_closure_inp);

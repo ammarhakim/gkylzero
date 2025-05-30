@@ -65,6 +65,7 @@ struct riem_nn_closure_ctx
 
   // Neural network parameters.
   bool use_nn_closure; // Use neural network-based closure?
+  int poly_order; // Polynomial order of learned DG coefficients.
   const char* nn_closure_file; // File path of neural network to use.
 };
 
@@ -110,7 +111,8 @@ create_ctx(void)
 
   // Neural network parameters.
   bool use_nn_closure = true; // Use neural network-based closure?
-  const char* nn_closure_file = "rt_pkpm_periodic_es_shock_p1_moms_nn_1"; // File path of neural network to use.
+  int poly_order = 1; // Polynomial order of learned DG coefficients.
+  const char* nn_closure_file = "data/neural_nets/pkpm_periodic_es_shock_p1_moms_nn_1"; // File path of neural network to use.
   
   struct riem_nn_closure_ctx ctx = {
     .epsilon0 = epsilon0,
@@ -141,6 +143,7 @@ create_ctx(void)
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
     .use_nn_closure = use_nn_closure,
+    .poly_order = poly_order,
     .nn_closure_file = nn_closure_file,
   };
 
@@ -334,8 +337,8 @@ main(int argc, char **argv)
   }
 
   // Electron/ion equations.
-  struct gkyl_wv_eqn *elc_ten_moment = gkyl_wv_ten_moment_new(ctx.k0, false, ctx.use_nn_closure, ann[0], app_args.use_gpu);
-  struct gkyl_wv_eqn *ion_ten_moment = gkyl_wv_ten_moment_new(ctx.k0, false, ctx.use_nn_closure, ann[1], app_args.use_gpu);
+  struct gkyl_wv_eqn *elc_ten_moment = gkyl_wv_ten_moment_new(ctx.k0, false, ctx.use_nn_closure, ctx.poly_order, ann[0], app_args.use_gpu);
+  struct gkyl_wv_eqn *ion_ten_moment = gkyl_wv_ten_moment_new(ctx.k0, false, ctx.use_nn_closure, ctx.poly_order, ann[1], app_args.use_gpu);
 
   struct gkyl_moment_species elc = {
     .name = "elc",

@@ -14,6 +14,7 @@ struct gkyl_ten_moment_nn_closure_inp
 {
   const struct gkyl_rect_grid *grid; // Grid on which to solve equations.
   int poly_order; // Polynomial order of learned DG coefficients.
+  double k0; // Damping coefficient.
   kann_t* ann; // Neural network architecture.
 };
 
