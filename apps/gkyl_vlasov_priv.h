@@ -387,6 +387,7 @@ struct vm_species {
   struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // fixed buffers for time independent BCs 
 
   struct gkyl_array *f_host; // host copy for use IO and initialization
+  bool write_cell_avg; // Boolean for only writing cell average of f
 
   enum gkyl_field_id field_id; // Type of field equation.
   double qbym; // Charge (q) divided by mass (m).
@@ -398,6 +399,8 @@ struct vm_species {
   struct gkyl_array *jacob_vel_inv; // inverse Jacobian in each direction for mapped velocity-space grids
   struct gkyl_array *vmap_pgkyl; // mapping for mapped velocity-space grids for I/O
   struct gkyl_array *jacob_vel_pgkyl; // total Jacobian for mapped velocity-space grids for I/O 
+  struct gkyl_array *vmap_avg_pgkyl; // cell average of mapping for mapped velocity-space grids for I/O
+  struct gkyl_array *jacob_vel_avg_pgkyl; // cell average of total Jacobian for mapped velocity-space grids for I/O 
   struct gkyl_array *jacob_vel_gauss; // total Jacobian for mapped velocity-space grids at Gauss-Legendre quadrature points.
   // organization of the different equation objects and the required data and solvers
   union {

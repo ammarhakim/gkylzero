@@ -736,6 +736,18 @@ gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int fra
     }
   }
 
+  if (vm_s->write_cell_avg) {
+    const char *fmt_avg = "%s-%s_avg_%d.gkyl";
+    int sz_avg = gkyl_calc_strlen(fmt_avg, app->name, vm_s->info.name, frame);
+    char fileNm_avg[sz_avg+1]; // ensures no buffer overflow
+    snprintf(fileNm_avg, sizeof fileNm_avg, fmt_avg, app->name, vm_s->info.name, frame);
+
+    // Copy the cell average into a temporary array and re-scale
+    gkyl_array_set_offset(vm_s->cflrate, 1.0/pow(2.0, (app->cdim+app->vdim)/2.0), vm_s->f, 0); 
+    gkyl_comm_array_write(vm_s->comm, &vm_s->grid, &vm_s->local, 
+      mt, vm_s->cflrate, fileNm_avg);  
+  }
+
   if (vm_s->use_vmap && frame == 0) {
     struct gkyl_msgpack_data *mt_vel = vlasov_array_meta_new( (struct vlasov_output_meta) {
         .frame = frame,
@@ -761,7 +773,25 @@ gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int fra
       snprintf(fileNm_jacob_vel, sizeof fileNm_jacob_vel, fmt_jacob_vel, app->name, vm_s->info.name);
 
       gkyl_grid_sub_array_write(&vm_s->grid_vel, &vm_s->local_vel, 
-        mt_vel, vm_s->jacob_vel_pgkyl, fileNm_jacob_vel);      
+        mt_vel, vm_s->jacob_vel_pgkyl, fileNm_jacob_vel); 
+
+      if (vm_s->write_cell_avg) {
+        const char *fmt_vmap_avg = "%s-%s_vmap_avg.gkyl";
+        int sz_vmap_avg = gkyl_calc_strlen(fmt_vmap_avg, app->name, vm_s->info.name);
+        char fileNm_vmap_avg[sz_vmap_avg+1]; // ensures no buffer overflow
+        snprintf(fileNm_vmap_avg, sizeof fileNm_vmap_avg, fmt_vmap_avg, app->name, vm_s->info.name);  
+        
+        gkyl_grid_sub_array_write(&vm_s->grid_vel, &vm_s->local_vel, 
+          mt_vel, vm_s->vmap_avg_pgkyl, fileNm_vmap_avg);
+
+        const char *fmt_jacob_vel_avg = "%s-%s_jacob_vel_avg.gkyl";
+        int sz_jacob_vel_avg = gkyl_calc_strlen(fmt_jacob_vel_avg, app->name, vm_s->info.name);
+        char fileNm_jacob_vel_avg[sz_jacob_vel_avg+1]; // ensures no buffer overflow
+        snprintf(fileNm_jacob_vel_avg, sizeof fileNm_jacob_vel_avg, fmt_jacob_vel_avg, app->name, vm_s->info.name);
+
+        gkyl_grid_sub_array_write(&vm_s->grid_vel, &vm_s->local_vel, 
+          mt_vel, vm_s->jacob_vel_avg_pgkyl, fileNm_jacob_vel_avg);           
+      } 
     }
   }  
 

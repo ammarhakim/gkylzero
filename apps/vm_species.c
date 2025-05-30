@@ -73,6 +73,8 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   if (app->use_gpu)
     s->f_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
 
+  s->write_cell_avg = s->info.write_cell_avg; // Write out only the cell averages?
+
   // allocate cflrate (scalar array)
   s->cflrate = mkarr(app->use_gpu, 1, s->local_ext.volume);
 
@@ -132,6 +134,8 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   // velocity map and Jacobian for I/O 
   s->vmap_pgkyl = mkarr(app->use_gpu, vdim*vmap_basis.num_basis, s->local_vel.volume);
   s->jacob_vel_pgkyl = mkarr(app->use_gpu, jacob_vel_basis.num_basis, s->local_vel.volume);
+  s->vmap_avg_pgkyl = mkarr(app->use_gpu, vdim, s->local_vel.volume);
+  s->jacob_vel_avg_pgkyl = mkarr(app->use_gpu, 1, s->local_vel.volume);
   // velocity space Jacobian at Gaussian quadrature points for projecting distribution functions
   s->jacob_vel_gauss = mkarr(app->use_gpu, jacob_vel_basis.num_basis, s->local_vel.volume);
 
@@ -144,7 +148,9 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     }
     gkyl_velocity_map_cubic_new(&s->grid_vel, &s->local_vel, 
       inp_vmap, s->vmap, s->jacob_vel_inv, 
-      s->vmap_pgkyl, s->jacob_vel_pgkyl, s->jacob_vel_gauss);
+      s->vmap_pgkyl, s->jacob_vel_pgkyl, 
+      s->vmap_avg_pgkyl, s->jacob_vel_avg_pgkyl, 
+      s->jacob_vel_gauss);
   }
 
   if (s->model_id  == GKYL_MODEL_SR) {
@@ -779,6 +785,8 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   gkyl_array_release(s->jacob_vel_inv);
   gkyl_array_release(s->vmap_pgkyl);
   gkyl_array_release(s->jacob_vel_pgkyl);
+  gkyl_array_release(s->vmap_avg_pgkyl);
+  gkyl_array_release(s->jacob_vel_avg_pgkyl);
   gkyl_array_release(s->jacob_vel_gauss);
 
   // Release arrays for different types of Vlasov equations

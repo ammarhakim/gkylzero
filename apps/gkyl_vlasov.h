@@ -169,6 +169,8 @@ struct gkyl_vlasov_species {
   double lower[3], upper[3]; // lower, upper bounds of velocity-space
   int cells[3]; // velocity-space cells
 
+  bool write_cell_avg; // Boolean for only writing cell average of f
+
   // Velocity-space mapping in each velocity-space dimension
   struct vlasov_mapc2p_vel mapc2p_vel[GKYL_MAX_CDIM];
 

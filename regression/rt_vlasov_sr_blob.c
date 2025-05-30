@@ -445,12 +445,18 @@ main(int argc, char **argv)
     },
 
     .source = {
-      .v_thresh = 1.0, // threshold velocity for partial moment
-      .upper_half = true, // is the integral over the upper-half plane?
-      .source_evolve = true, 
+      .source_id = GKYL_PROJ_ADAPT_DENSITY_SOURCE,
+      .write_source = true, 
+
+      .num_cross_source = 1, 
+      .source_with = { "pos" }, 
+      .source_with_v_thresh = { 10.0 }, // threshold velocity for partial moment
+      .source_with_upper_half = { true }, // is the integral over the upper-half plane?
+      .source_with_proj = { 0 }, 
+
       .num_sources = 1, 
       .projection[0] = {
-        .proj_id = GKYL_PROJ_VLASOV_LTE,
+      .proj_id = GKYL_PROJ_VLASOV_LTE,
         .density = evalDensitySource,
         .ctx_density = &ctx,
         .temp = evalTempSource,
@@ -458,6 +464,8 @@ main(int argc, char **argv)
         .V_drift = evalVDriftSource,
         .ctx_V_drift = &ctx,
         .correct_all_moms = true,
+        .max_iter = 10, 
+        .iter_eps = 1.0e-6, 
         .use_last_converged = true, 
       },
     },
@@ -499,12 +507,17 @@ main(int argc, char **argv)
 
     .source = {
       .source_id = GKYL_PROJ_ADAPT_DENSITY_SOURCE,
-      .v_thresh = 1.0, // threshold velocity for partial moment
-      .upper_half = false, // is the integral over the upper-half plane?
-      .source_evolve = true, 
+      .write_source = true, 
+
+      .num_cross_source = 1, 
+      .source_with = { "elc" }, 
+      .source_with_v_thresh = { 10.0 }, // threshold velocity for partial moment
+      .source_with_upper_half = { true }, // is the integral over the upper-half plane?
+      .source_with_proj = { 0 }, 
+
       .num_sources = 1, 
       .projection[0] = {
-        .proj_id = GKYL_PROJ_VLASOV_LTE,
+      .proj_id = GKYL_PROJ_VLASOV_LTE,
         .density = evalDensitySource,
         .ctx_density = &ctx,
         .temp = evalTempSource,
@@ -512,6 +525,8 @@ main(int argc, char **argv)
         .V_drift = evalVDriftSource,
         .ctx_V_drift = &ctx,
         .correct_all_moms = true,
+        .max_iter = 10, 
+        .iter_eps = 1.0e-6, 
         .use_last_converged = true, 
       },
     },

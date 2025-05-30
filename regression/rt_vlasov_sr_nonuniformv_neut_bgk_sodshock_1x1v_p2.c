@@ -344,6 +344,8 @@ main(int argc, char **argv)
       .mapc2p_vel_func = mapc2p_vel, 
       .mapc2p_vel_ctx = &ctx, 
     },
+
+    .write_cell_avg = true, 
     
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "LTEMoments" },
