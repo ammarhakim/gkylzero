@@ -7,13 +7,12 @@
 // Forward declare internal object
 struct gkyl_mirror_grid_gen_x;
 
-// Geometric quantities: various vectors are stored as the components
-// along the polar tangents e_r, e_phi, e_z, that is, each vector's
-// contravariant components are stored
+// Geometric quantities: various vectors are stored as contravariant
+// components
 struct __attribute__((__packed__)) gkyl_mirror_grid_gen_geom {
   struct gkyl_vec3 tang[3]; // tangent vectors, e_i
   struct gkyl_vec3 dual[3]; // dual vectors, e^i
-  struct gkyl_vec3 B; // Magnetic field contravariant components
+  struct gkyl_vec3 B; // Magnetic field
   double Jc; // Jacobian = e_1*(e_2 X e_3)  = 1/e^1*(e^2 X e^3)
 };
 
@@ -40,7 +39,7 @@ struct gkyl_mirror_grid_gen_inp {
   bool include_axis; // add nodes on r=0 axis (the axis is assumed be psi=0)
   
   double R[2], Z[2]; // extents of R,Z grid on which psi(R,Z) is given
-  int nrcells, nzcells; // numer of cells in R and Z
+  int nrcells, nzcells; // number of cells in R and Z
   const struct gkyl_array *psiRZ; // nodal values of psi(R,Z)
 
   bool write_psi_cubic; // set to true to write the cubic fit to file
