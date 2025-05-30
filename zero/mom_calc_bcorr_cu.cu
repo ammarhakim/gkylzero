@@ -42,8 +42,7 @@ gkyl_mom_calc_bcorr_advance_cu_ker(const struct gkyl_mom_calc_bcorr* bcorr,
 
     double* mptr = (double*) gkyl_array_fetch(out, lincC);
     for (unsigned int k = 0; k < out->ncomp; ++k) {
-       if (tid < vel_rng.volume)
-         atomicAdd(&mptr[k], momLocal[k]);
+       atomicAdd(&mptr[k], momLocal[k]);
     }
   }
 }

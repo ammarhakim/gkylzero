@@ -128,8 +128,7 @@ gkyl_dg_calc_pkpm_dist_vars_div_ppar_cu_kernel(struct gkyl_dg_calc_pkpm_dist_var
     // Accumulate output to output array atomically to avoid race conditions
     double *pkpm_div_ppar_d = (double*) gkyl_array_fetch(pkpm_div_ppar, linc_conf);
     for (unsigned int k = 0; k < pkpm_div_ppar->ncomp; ++k) {
-       if (linc1 < phase_range.volume)
-         atomicAdd(&pkpm_div_ppar_d[k], momLocal[k]);
+       atomicAdd(&pkpm_div_ppar_d[k], momLocal[k]);
     }    
   }  
 }

@@ -227,9 +227,7 @@ gkyl_dg_calc_sr_vars_pressure_cu_kernel(struct gkyl_dg_calc_sr_vars *up,
     // Accumulate output to output array atomically to avoid race conditions
     double *sr_pressure_d = (double*) gkyl_array_fetch(sr_pressure, loc_conf);
     for (unsigned int k = 0; k < sr_pressure->ncomp; ++k) {
-      if (linc1 < phase_range.volume) {
-        atomicAdd(&sr_pressure_d[k], momLocal[k]);
-      }
+      atomicAdd(&sr_pressure_d[k], momLocal[k]);
     }   
   }  
 }

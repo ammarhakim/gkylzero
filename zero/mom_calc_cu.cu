@@ -39,8 +39,7 @@ gkyl_mom_calc_advance_cu_ker(const gkyl_mom_calc* mcalc,
 
     double* mptr = (double*) gkyl_array_fetch(mout, lincC);
     for (unsigned int k = 0; k < mout->ncomp; ++k) {
-       if (tid < phase_range.volume)
-         atomicAdd(&mptr[k], momLocal[k]);
+       atomicAdd(&mptr[k], momLocal[k]);
     }
   }
 }
