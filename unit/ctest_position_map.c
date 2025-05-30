@@ -272,7 +272,7 @@ test_position_map_set()
     3*pos_map->basis.num_basis, pos_map->local_ext.volume);
   gkyl_array_clear(pmap_arr_set, 1.0);
 
-  gkyl_position_map_set(pos_map, pmap_arr_set);
+  gkyl_position_map_set_mc2nu(pos_map, pmap_arr_set);
 
   double *pos_map_i  = pos_map->mc2nu->data; 
   for (unsigned i=0; i<pos_map->mc2nu->size; ++i)
@@ -318,7 +318,7 @@ test_gkyl_position_map_eval_mc2nu()
   gkyl_proj_on_basis_advance(projDistf, 0.0, &localRange, pmap_arr_set);
   gkyl_proj_on_basis_release(projDistf);
 
-  gkyl_position_map_set(pos_map, pmap_arr_set);
+  gkyl_position_map_set_mc2nu(pos_map, pmap_arr_set);
 
   for (int i=0; i<3; i++) {
     for (int j=0; j<3; j++) {
@@ -376,7 +376,7 @@ test_gkyl_position_map_slope()
   gkyl_proj_on_basis_advance(projDistf, 0.0, &localRange, pmap_arr_set);
   gkyl_proj_on_basis_release(projDistf);
 
-  gkyl_position_map_set(pos_map, pmap_arr_set);
+  gkyl_position_map_set_mc2nu(pos_map, pmap_arr_set);
 
   for (int i=0; i<8; i++) {
     for (int j=0; j<8; j++) {
@@ -438,28 +438,17 @@ test_position_polynomial_map_optimize_1x()
   gkyl_proj_on_basis_advance(projB, 0.0, &localRange, bmag_global);
   gkyl_proj_on_basis_release(projB);
 
-  pos_map->bmag_ctx->crange_global = &localRange;
-  pos_map->bmag_ctx->cbasis = &basis;
-  pos_map->bmag_ctx->cgrid = &grid;
-  gkyl_array_copy(pos_map->bmag_ctx->bmag, bmag_global);
+  gkyl_position_map_set_bmag(pos_map, NULL, bmag_global);
 
-  pos_map->constB_ctx->psi = 0.5;
-  pos_map->constB_ctx->psi_min = 0.4;
-  pos_map->constB_ctx->psi_max = 0.6;
-  pos_map->constB_ctx->alpha = 0.0;
-  pos_map->constB_ctx->alpha_min = -0.1;
-  pos_map->constB_ctx->alpha_max = 0.1;
-  pos_map->constB_ctx->theta_max = upper[0];
-  pos_map->constB_ctx->theta_min = lower[0];
-  pos_map->constB_ctx->maps_backup[0] = test_identity_position_map;
-  pos_map->constB_ctx->ctxs_backup[0]  = 0;
-  pos_map->constB_ctx->maps_backup[1] = test_identity_position_map;
-  pos_map->constB_ctx->ctxs_backup[1]  = 0;
+  struct gkyl_rect_grid grid3D;
+  double lower3D[] = {0.4, -0.1, lower[0]}, upper3D[] = {0.6, 0.1, upper[0]};
+  int cells3D[] = { 1, 1, cells[0]};
+  gkyl_rect_grid_init(&grid3D, 3, lower3D, upper3D, cells3D);
+  int ghost3D[] = { 1, 1 , 1};
+  struct gkyl_range localRange3D, localRange3D_ext; // local, local-ext ranges.
+  gkyl_create_grid_ranges(&grid3D, ghost3D, &localRange3D_ext, &localRange3D);
 
-  pos_map->constB_ctx->N_theta_boundaries = cells[0]+1;
-  pos_map->to_optimize = true;
-
-  gkyl_position_map_optimize(pos_map);
+  gkyl_position_map_optimize(pos_map, grid3D, localRange3D);
 
   TEST_CHECK(pos_map->to_optimize == true);
   TEST_CHECK( gkyl_compare(pos_map->constB_ctx->theta_throat, 1.565796, 1e-6) );
@@ -508,27 +497,17 @@ test_position_map_numeric_optimize_1x()
   gkyl_proj_on_basis_advance(projB, 0.0, &localRange, bmag_global);
   gkyl_proj_on_basis_release(projB);
 
-  pos_map->bmag_ctx->crange_global = &localRange;
-  pos_map->bmag_ctx->cbasis = &basis;
-  pos_map->bmag_ctx->cgrid = &grid;
-  gkyl_array_copy(pos_map->bmag_ctx->bmag, bmag_global);
+  struct gkyl_rect_grid grid3D;
+  double lower3D[] = {0.4, -0.1, lower[0]}, upper3D[] = {0.6, 0.1, upper[0]};
+  int cells3D[] = {1, 1, cells[0]};
+  gkyl_rect_grid_init(&grid3D, 3, lower3D, upper3D, cells3D);
+  int ghost3D[] = { 1, 1 , 1};
+  struct gkyl_range localRange3D, localRange3D_ext; // local, local-ext ranges.
+  gkyl_create_grid_ranges(&grid3D, ghost3D, &localRange3D_ext, &localRange3D);
 
-  pos_map->constB_ctx->psi = 0.5;
-  pos_map->constB_ctx->psi_min = 0.4;
-  pos_map->constB_ctx->psi_max = 0.6;
-  pos_map->constB_ctx->alpha = 0.0;
-  pos_map->constB_ctx->alpha_min = -0.1;
-  pos_map->constB_ctx->alpha_max = 0.1;
-  pos_map->constB_ctx->theta_max = upper[0];
-  pos_map->constB_ctx->theta_min = lower[0];
-  pos_map->constB_ctx->maps_backup[0] = test_identity_position_map;
-  pos_map->constB_ctx->ctxs_backup[0]  = 0;
-  pos_map->constB_ctx->maps_backup[1] = test_identity_position_map;
-  pos_map->constB_ctx->ctxs_backup[1]  = 0;
-  pos_map->constB_ctx->N_theta_boundaries = cells[0]+1;
-  pos_map->to_optimize = true;
-
-  gkyl_position_map_optimize(pos_map);
+  gkyl_position_map_optimize(pos_map, grid3D, localRange3D);
+  gkyl_position_map_set_bmag(pos_map, NULL, bmag_global);
+  gkyl_position_map_optimize(pos_map, grid3D, localRange3D);
 
   double theta_extrema_analytic[5] = {lower[0], lower[0]/2, 0.0, upper[0]/2, upper[0]};
 
@@ -577,27 +556,17 @@ test_position_map_numeric_calculate_1x()
   gkyl_proj_on_basis_advance(projB, 0.0, &localRange, bmag_global);
   gkyl_proj_on_basis_release(projB);
 
-  pos_map->bmag_ctx->crange_global = &localRange;
-  pos_map->bmag_ctx->cbasis = &basis;
-  pos_map->bmag_ctx->cgrid = &grid;
-  gkyl_array_copy(pos_map->bmag_ctx->bmag, bmag_global);
+  struct gkyl_rect_grid grid3D;
+  double lower3D[] = {0.4, -0.1, lower[0]}, upper3D[] = {0.6, 0.1, upper[0]};
+  int cells3D[] = {1, 1, cells[0]};
+  gkyl_rect_grid_init(&grid3D, 3, lower3D, upper3D, cells3D);
+  int ghost3D[] = { 1, 1 , 1};
+  struct gkyl_range localRange3D, localRange3D_ext; // local, local-ext ranges.
+  gkyl_create_grid_ranges(&grid3D, ghost3D, &localRange3D_ext, &localRange3D);
 
-  pos_map->constB_ctx->psi = 0.5;
-  pos_map->constB_ctx->psi_min = 0.4;
-  pos_map->constB_ctx->psi_max = 0.6;
-  pos_map->constB_ctx->alpha = 0.0;
-  pos_map->constB_ctx->alpha_min = -0.1;
-  pos_map->constB_ctx->alpha_max = 0.1;
-  pos_map->constB_ctx->theta_max = upper[0];
-  pos_map->constB_ctx->theta_min = lower[0];
-  pos_map->constB_ctx->maps_backup[0] = test_identity_position_map;
-  pos_map->constB_ctx->ctxs_backup[0]  = 0;
-  pos_map->constB_ctx->maps_backup[1] = test_identity_position_map;
-  pos_map->constB_ctx->ctxs_backup[1]  = 0;
-  pos_map->constB_ctx->N_theta_boundaries = cells[0]+1;
-  pos_map->to_optimize = true;
-
-  gkyl_position_map_optimize(pos_map);
+  gkyl_position_map_optimize(pos_map, grid3D, localRange3D);
+  gkyl_position_map_set_bmag(pos_map, NULL, bmag_global);
+  gkyl_position_map_optimize(pos_map, grid3D, localRange3D);
 
   double theta_map = 1.0;
   pos_map->maps[2](0.0, &theta_map, &theta_map, pos_map->ctxs[2]);

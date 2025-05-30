@@ -24,9 +24,9 @@ gk_neut_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spe
     }
 
     // Allocate data and updaters for diagnostic moments.
-    src->num_diag_moments = s->info.num_diag_moments;
-    s->src.moms = gkyl_malloc(sizeof(struct gk_species_moment[src->num_diag_moments]));
-    for (int m=0; m<src->num_diag_moments; ++m) {
+    src->num_diag_mom = s->info.num_diag_moments;
+    s->src.moms = gkyl_malloc(sizeof(struct gk_species_moment[src->num_diag_mom]));
+    for (int m=0; m<src->num_diag_mom; ++m) {
       gk_neut_species_moment_init(app, s, &s->src.moms[m], s->info.diag_moments[m]);
     }
 
@@ -227,7 +227,7 @@ gk_neut_species_source_release(const struct gkyl_gyrokinetic_app *app, const str
     }
 
     // Release moment data.
-    for (int i=0; i<src->num_diag_moments; ++i) {
+    for (int i=0; i<src->num_diag_mom; ++i) {
       gk_neut_species_moment_release(app, &src->moms[i]);
     }
     gkyl_free(src->moms);

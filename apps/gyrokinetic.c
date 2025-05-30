@@ -312,6 +312,8 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     .global_ext = app->global_ext,
     .basis = app->basis,
     .comm = app->comm,
+    .has_LCFS = gk->geometry.has_LCFS,
+    .x_LCFS = gk->geometry.x_LCFS,
   };
   for(int i = 0; i<3; i++)
     geometry_inp.world[i] = gk->geometry.world[i];
@@ -388,7 +390,7 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
   app->bmag_ref = (bmag_max_global + bmag_min_global)/2.0;
 
-  gkyl_position_map_set(app->position_map, app->gk_geom->mc2nu_pos);
+  gkyl_position_map_set_mc2nu(app->position_map, app->gk_geom->mc2nu_pos);
 
   // If we are on the gpu, copy from host
   if (app->use_gpu) {
@@ -406,6 +408,50 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   gkyl_dg_mul_op_range(app->basis, 0, tmp, 0, app->gk_geom->bmag, 0, app->gk_geom->jacobgeo, &app->local); 
   gkyl_dg_inv_op_range(app->basis, 0, app->jacobtot_inv_weak, 0, tmp, &app->local); 
   gkyl_array_release(tmp);
+
+  if (gk->geometry.has_LCFS) {
+    // IWL simulation. Create core and SOL global ranges.
+    int idx_LCFS_lo = app->gk_geom->idx_LCFS_lo;
+    int len_core = idx_LCFS_lo;
+    int len_sol = app->global.upper[0]-len_core;
+    gkyl_range_shorten_from_above(&app->global_core, &app->global, 0, len_core);
+    gkyl_range_shorten_from_below(&app->global_sol , &app->global, 0, len_sol);
+    // Same for local ranges.
+    gkyl_range_shorten_from_above(&app->local_core , &app->local , 0, len_core);
+    gkyl_range_shorten_from_below(&app->local_sol  , &app->local , 0, len_sol);
+
+    int len_core_ext = idx_LCFS_lo+1;
+    int len_sol_ext = app->global_ext.upper[0]-len_core;
+    gkyl_range_shorten_from_above(&app->global_ext_core, &app->global_ext, 0, len_core_ext);
+    gkyl_range_shorten_from_below(&app->global_ext_sol , &app->global_ext, 0, len_sol_ext);
+    // Same for local ranges.
+    gkyl_range_shorten_from_above(&app->local_ext_core , &app->local_ext , 0, len_core_ext);
+    gkyl_range_shorten_from_below(&app->local_ext_sol  , &app->local_ext , 0, len_sol_ext);
+
+    // Create core and SOL parallel skin and ghost ranges.
+    int par_dir = app->cdim-1;
+    for (int e=0; e<2; e++) {
+      gkyl_range_shorten_from_above(e==0? &app->lower_skin_par_core  : &app->upper_skin_par_core,
+                                    e==0? &app->lower_skin[par_dir]  : &app->upper_skin[par_dir], 0, len_core);
+      gkyl_range_shorten_from_above(e==0? &app->lower_ghost_par_core : &app->upper_ghost_par_core,
+                                    e==0? &app->lower_ghost[par_dir] : &app->upper_ghost[par_dir], 0, len_core);
+      gkyl_range_shorten_from_below(e==0? &app->lower_skin_par_sol   : &app->upper_skin_par_sol,
+                                    e==0? &app->lower_skin[par_dir]  : &app->upper_skin[par_dir], 0, len_sol);
+      gkyl_range_shorten_from_below(e==0? &app->lower_ghost_par_sol  : &app->upper_ghost_par_sol,
+                                    e==0? &app->lower_ghost[par_dir] : &app->upper_ghost[par_dir], 0, len_sol);
+    }
+
+    // Create a core local range, extended in the BC dir.
+    int ndim = app->cdim;
+    int lower_bcdir_ext[ndim], upper_bcdir_ext[ndim];
+    for (int i=0; i<ndim; i++) {
+      lower_bcdir_ext[i] = app->local_core.lower[i];
+      upper_bcdir_ext[i] = app->local_core.upper[i];
+    }
+    lower_bcdir_ext[par_dir] = app->local_ext_core.lower[par_dir];
+    upper_bcdir_ext[par_dir] = app->local_ext_core.upper[par_dir];
+    gkyl_sub_range_init(&app->local_par_ext_core, &app->local_ext_core, lower_bcdir_ext, upper_bcdir_ext);
+  }
 
   return app;
 }
@@ -577,9 +623,7 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
 
     // Initialize cross-species collisions (e.g, LBO or BGK)
     if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS) {
-      if (gk_s->lbo.num_cross_collisions) {
-        gk_species_lbo_cross_init(app, &app->species[i], &gk_s->lbo);
-      }
+      gk_species_lbo_cross_init(app, &app->species[i], &gk_s->lbo);
     }
     if (gk_s->bgk.collision_id == GKYL_BGK_COLLISIONS) {
       if (gk_s->bgk.num_cross_collisions) {
@@ -781,6 +825,26 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
       else
         // Project the field.
         gk_field_project_init(app);
+    }
+
+    // Compute necessary moments and boundary corrections for collisions.
+    for (int i=0; i<app->num_species; ++i) {
+      if (app->species[i].lbo.collision_id == GKYL_LBO_COLLISIONS) {
+        gk_species_lbo_moms(app, &app->species[i], 
+          &app->species[i].lbo, distf[i]);
+      }
+      if (app->species[i].bgk.collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
+        gk_species_bgk_moms(app, &app->species[i], 
+          &app->species[i].bgk, distf[i]);
+      }
+    }
+
+    // Compute the cross-species collision frequencies.
+    for (int i=0; i<app->num_species; ++i) {
+      struct gk_species *gk_s = &app->species[i];
+      if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS) { 
+        gk_species_lbo_cross_nu(app, &app->species[i], &gk_s->lbo);
+      }
     }
 
   }
@@ -1512,6 +1576,14 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     }
   }
 
+  // Compute the cross-species collision frequencies.
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *gk_s = &app->species[i];
+    if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS) { 
+      gk_species_lbo_cross_nu(app, &app->species[i], &gk_s->lbo);
+    }
+  }
+
   // Compute necessary moments for cross-species collisions.
   // Needs to be done after self-collisions moments, so separate loop over species.
   for (int i=0; i<app->num_species; ++i) {
@@ -2095,13 +2167,30 @@ gkyl_gyrokinetic_app_from_file_species(gkyl_gyrokinetic_app *app, int sidx,
   struct gk_species *gk_s = &app->species[sidx];
   
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
-    rstat.io_status =
-      gkyl_comm_array_read(gk_s->comm, &gk_s->grid, &gk_s->local, gk_s->f_host, fname);
+    rstat.io_status = gkyl_comm_array_read(gk_s->comm, &gk_s->grid, &gk_s->local, gk_s->f_host, fname);
     if (app->use_gpu)
       gkyl_array_copy(gk_s->f, gk_s->f_host);
-    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+
+    if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
       gk_species_source_calc(app, gk_s, &gk_s->src, 0.0);
+      // Read volume and time integrated boundary flux diagnostics.
+      gk_species_bflux_read_voltime_integrated_mom(app, gk_s, &gk_s->bflux);
     }
+  }
+
+  // Compute necessary moments and boundary corrections for collisions.
+  if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS) {
+    gk_species_lbo_moms(app, gk_s, 
+      &gk_s->lbo, gk_s->f);
+  }
+  if (gk_s->bgk.collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
+    gk_species_bgk_moms(app, gk_s, 
+      &gk_s->bgk, gk_s->f);
+  }
+
+  // Compute the cross-species collision frequencies.
+  if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS) { 
+    gk_species_lbo_cross_nu(app, gk_s, &gk_s->lbo);
   }
 
   return rstat;
@@ -2120,8 +2209,10 @@ gkyl_gyrokinetic_app_from_file_neut_species(gkyl_gyrokinetic_app *app, int sidx,
       gkyl_comm_array_read(gk_ns->comm, &gk_ns->grid, &gk_ns->local, gk_ns->f_host, fname);
     if (app->use_gpu)
       gkyl_array_copy(gk_ns->f, gk_ns->f_host);
-    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+    if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
       gk_neut_species_source_calc(app, gk_ns, &gk_ns->src, 0.0);
+      // Read volume and time integrated boundary flux diagnostics.
+      gk_neut_species_bflux_read_voltime_integrated_mom(app, gk_ns, &gk_ns->bflux);
     }
   }
 
@@ -2155,7 +2246,6 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
   gk_s->is_first_L2norm_write_call = false;
   for (int b=0; b<gk_s->bflux.num_boundaries; ++b)
     gk_s->bflux.is_first_intmom_write_call[b] = false;
-  gk_s->bflux.is_not_first_restart_write_call = false;
   if (gk_s->info.time_rate_diagnostics)
     gk_s->is_first_fdot_integ_write_call = false;
   if (gk_s->enforce_positivity)
