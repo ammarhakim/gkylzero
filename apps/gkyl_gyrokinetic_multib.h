@@ -5,6 +5,35 @@
 
 typedef struct gkyl_gyrokinetic_multib_app gkyl_gyrokinetic_multib_app;
 
+// Boundary conditions on fields and particles
+enum gkyl_gyrokinetic_bc_type {
+  GKYL_BC_GK_SKIP, // Do not apply any BCs 
+  GKYL_BC_GK_SPECIES_REFLECT, // perfect reflector
+  GKYL_BC_GK_SPECIES_ABSORB, // Absorbing BCs
+  GKYL_BC_GK_SPECIES_FUNC, // Function boundary conditions
+  GKYL_BC_GK_SPECIES_FIXED_FUNC, // Fixed function, time-independent, boundary conditions
+  GKYL_BC_GK_SPECIES_EMISSION, // Emission spectrum BCs
+  GKYL_BC_GK_SPECIES_ZERO_FLUX, // Zero flux BCs; must be applied on both lower and upper BC
+  GKYL_BC_GK_SPECIES_GK_SHEATH, // Gyrokinetic sheath BCs
+  GKYL_BC_GK_SPECIES_RECYCLE, // Recycling BCs
+  GKYL_BC_GK_SPECIES_GK_IWL, // Gyrokinetic inner wall limited.
+
+  GKYL_BC_GK_FIELD_DIRICHLET, // Dirichlet boundary conditions
+  GKYL_BC_GK_FIELD_NEUMANN, // Nemann boundary conditions
+};
+
+// BC for blocks
+struct gkyl_gyrokinetic_block_physical_bcs {
+  int bidx; // block index
+  int dir;  // direction in which BC is specified
+  enum gkyl_edge_loc edge; // which edge this BC is for
+  enum gkyl_gyrokinetic_bc_type bc_type; // BC type flag.
+  void (*aux_profile)(double t, const double *xn, double *fout, void *ctx); // Auxiliary function (e.g. wall potential).
+  void *aux_ctx; // Context for aux_profile.
+  double aux_parameter; // Parameter for aux_profile (maybe redundant).
+  struct gkyl_gyrokinetic_projection projection; // Projection object input (e.g. for FIXED_FUNC).
+};
+
 // Species input per block
 struct gkyl_gyrokinetic_multib_species_pb {
   int block_id; // block ID
@@ -27,15 +56,20 @@ struct gkyl_gyrokinetic_multib_species {
 
   double lower[3], upper[3]; // Lower, upper bounds of velocity-space.
   int cells[3]; // Velocity-space cells.
-  struct gkyl_mapc2p_inp mapc2p; // velocity mapping
+  struct gkyl_mapc2p_inp mapc2p; // Velocity mapping.
 
 
   bool no_by; // Boolean for whether we are using specialized GK kernels with no b_y.
               // These more computationally efficient kernels are for slab or mirror 
               // calculations where there is no toroidal field. 
 
-  int num_diag_moments; // number of diagnostic moments
-  char diag_moments[24][24]; // list of diagnostic moments
+  int num_diag_moments; // Number of diagnostic moments.
+  char diag_moments[24][24]; // List of diagnostic moments.
+  int num_integrated_diag_moments; // Number of integrated diagnostic moments.
+  char integrated_diag_moments[24][24]; // List of integrated diagnostic moments.
+  bool time_rate_diagnostics; // Whether to ouput df/dt diagnostics.
+
+  struct gkyl_phase_diagnostics_inp boundary_flux_diagnostics;
 
   // Collisions to include.
   struct gkyl_gyrokinetic_collisions collisions;
@@ -52,13 +86,13 @@ struct gkyl_gyrokinetic_multib_species {
   struct gkyl_gyrokinetic_react react_neut;
 
 
-  bool duplicate_across_blocks; // set to true if all blocks are identical  
-  // species inputs per-block: only one is needed if duplicate_across_blocks = true
+  bool duplicate_across_blocks; // Set to true if all blocks are identical.
+  // Species inputs per-block: only one is needed if duplicate_across_blocks = true.
   const struct gkyl_gyrokinetic_multib_species_pb *blocks;
 
-  // Physical boundary conditions
+  // Physical boundary conditions.
   int num_physical_bcs;
-  const struct gkyl_block_physical_bcs *bcs;
+  const struct gkyl_gyrokinetic_block_physical_bcs *bcs;
 };
 
 // Neutral species input per block
@@ -96,15 +130,17 @@ struct gkyl_gyrokinetic_multib_neut_species {
 
   // Physical boundary conditions
   int num_physical_bcs;
-  const struct gkyl_block_physical_bcs *bcs;
+  const struct gkyl_gyrokinetic_block_physical_bcs *bcs;
 };
 
 // Field input per block 
 struct gkyl_gyrokinetic_multib_field_pb {
   int block_id; // block ID
 
-  double polarization_bmag; 
-  enum gkyl_fem_parproj_bc_type fem_parbc;
+  double polarization_bmag; // B  to use in linearized polarization weight
+  double kperpSq; // kperp^2 parameter for 1D field equations
+
+  bool time_rate_diagnostics; // Writes the time rate of change of field energy.
 
   void *phi_wall_lo_ctx; // context for biased wall potential on lower wall
   // pointer to biased wall potential on lower wall function
@@ -121,7 +157,6 @@ struct gkyl_gyrokinetic_multib_field_pb {
 struct gkyl_gyrokinetic_multib_field {
   enum gkyl_gkfield_id gkfield_id;
   double kperpSq; // kperp^2 parameter for 1D field equations
-  double xLCFS; // radial location of the LCFS.
 
   // parameters for adiabatic electrons simulations
   double electron_mass, electron_charge, electron_density, electron_temp;
@@ -134,7 +169,9 @@ struct gkyl_gyrokinetic_multib_field {
 
   // Physical boundary conditions
   int num_physical_bcs;
-  const struct gkyl_block_physical_bcs *bcs;
+  const struct gkyl_gyrokinetic_block_physical_bcs *bcs;
+
+  bool time_rate_diagnostics; // Writes the time rate of change of field energy.
 };
 
 // Top-level app parameters: this
@@ -388,6 +425,15 @@ void gkyl_gyrokinetic_multib_app_calc_species_integrated_mom(gkyl_gyrokinetic_mu
 void gkyl_gyrokinetic_multib_app_calc_neut_species_integrated_mom(gkyl_gyrokinetic_multib_app* app, int sidx, double tm);
 
 /**
+ * Calculate integrated diagnostic moments of the boundary fluxes for a plasma species.
+ *
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param tm Time at which integrated diagnostics are to be computed
+ */
+void gkyl_gyrokinetic_multib_app_calc_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_multib_app* app, int sidx, double tm);
+
+/**
  * Write integrated diagnostic moments for charged species to file. Integrated
  * moments are appended to the same file.
  * 
@@ -404,6 +450,15 @@ void gkyl_gyrokinetic_multib_app_write_species_integrated_mom(gkyl_gyrokinetic_m
  * @param sidx Index of neutral species to initialize.
  */
 void gkyl_gyrokinetic_multib_app_write_neut_species_integrated_mom(gkyl_gyrokinetic_multib_app *app, int sidx);
+
+/**
+ * Write integrated diagnostic moments of the boundary fluxes for charged
+ * species to file. Integrated moments are appended to the same file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ */
+void gkyl_gyrokinetic_multib_app_write_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_multib_app *app, int sidx);
 
 /**
  * Write species source to file.
@@ -482,6 +537,24 @@ void gkyl_gyrokinetic_multib_app_write_species_source_integrated_mom(gkyl_gyroki
 void gkyl_gyrokinetic_multib_app_write_neut_species_source_integrated_mom(gkyl_gyrokinetic_multib_app *app, int sidx);
 
 /**
+ * Write species integrated correct Maxwellian status of the to file. 
+ * Correct Maxwellian status is appended to the same file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to write.
+ */
+void gkyl_gyrokinetic_multib_app_write_species_lte_max_corr_status(gkyl_gyrokinetic_multib_app *app, int sidx);
+
+/**
+ * Write neutral species integrated correct Maxwellian status of the to file. 
+ * Correct Maxwellian status is appended to the same file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to write.
+ */
+void gkyl_gyrokinetic_multib_app_write_neut_species_lte_max_corr_status(gkyl_gyrokinetic_multib_app *app, int sidx);
+
+/**
  * Write LBO collisional moments for species to file.
  * 
  * @param app App object.
@@ -492,13 +565,14 @@ void gkyl_gyrokinetic_multib_app_write_neut_species_source_integrated_mom(gkyl_g
 void gkyl_gyrokinetic_multib_app_write_species_lbo_mom(gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame);
 
 /**
- * Write integrated correct Maxwellian status of the species BGK distribution function
- * to file. Correct Maxwellian status is appended to the same file.
+ * Write BGK cross moments for species to file.
  * 
  * @param app App object.
  * @param sidx Index of species to write.
+ * @param tm Time-stamp
+ * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write_species_bgk_max_corr_status(gkyl_gyrokinetic_multib_app *app, int sidx);
+void gkyl_gyrokinetic_multib_app_write_species_bgk_cross_mom(gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame);
 
 /**
  * Write radiation drag coefficients for species to file.
@@ -690,6 +764,24 @@ void gkyl_gyrokinetic_multib_app_write(gkyl_gyrokinetic_multib_app* app, double 
  * @param app App object.
  */
 void gkyl_gyrokinetic_multib_app_stat_write(gkyl_gyrokinetic_multib_app* app);
+
+/**
+ * Record the time step (in private dynvector).
+ *
+ * @param app App object.
+ * @param tm Time stamp.
+ * @param dt Time step to record (e.g. provided by app's status object).
+ */
+void
+gkyl_gyrokinetic_multib_app_save_dt(gkyl_gyrokinetic_multib_app* app, double tm, double dt);
+
+/**
+ * Write the time step over time.
+ *
+ * @param app App object.
+ */
+void
+gkyl_gyrokinetic_multib_app_write_dt(gkyl_gyrokinetic_multib_app* app);
 
 /**
  * Read geometry file.

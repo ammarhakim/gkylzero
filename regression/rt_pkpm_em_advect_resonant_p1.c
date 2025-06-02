@@ -1,3 +1,8 @@
+// Advection in specified electromagnetic fields for the PKPM system of equations.
+// Input parameters match the initial conditions found in entry JE32 of Ammar's Simulation Journal (https://ammar-hakim.org/sj/je/je32/je32-vlasov-test-ptcl.html)
+// but with a rotation so that the oscillating electric field is in the z_hat direction and the background magnetic field in the x_hat direction. 
+// Solution is given by the resonant case, omega = Omega_c where Omega_c = q B/m is the cyclotron frequency. 
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,10 +36,9 @@ struct em_advect_resonant_ctx
   double charge_elc; // Electron charge.
 
   double vt; // Thermal velocity.
-  double nu; // Collision frequency.
-
   double B0; // Reference magnetic field strength.
-  double omega; // Magnetic field frequency.
+  double omega; //Oscillating field frequency normalized to cyclotron frequency.
+  double nu; // Collision frequency.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
@@ -66,16 +70,15 @@ create_ctx(void)
   double charge_elc = -1.0; // Electron charge.
 
   double vt = 1.0; // Thermal velocity.
-  double nu = 1.0e-4; // Collision frequency.
-
   double B0 = 1.0; // Reference magnetic field strength.
-  double omega = 1.0; // Magnetic field frequency.
+  double omega = 1.0; // Oscillating field frequency normalized to cyclotron frequency.
+  double nu = 1.0e-4; // Collision frequency.
 
   // Simulation parameters.
   int Nx = 2; // Cell count (configuration space: x-direction).
-  int Nvx = 32; // Cell count (velocity space: vx-direction).
+  int Nvx = 16; // Cell count (velocity space: vx-direction).
   double Lx = 4.0 * pi; // Domain size (configuration space: x-direction).
-  double vx_max = 6.0 * vt; // Domain boundary (velocity space: vx-direction).
+  double vx_max = 8.0 * vt; // Domain boundary (velocity space: vx-direction).
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
@@ -94,9 +97,9 @@ create_ctx(void)
     .mass_elc = mass_elc,
     .charge_elc = charge_elc,
     .vt = vt,
-    .nu = nu,
     .B0 = B0,
     .omega = omega,
+    .nu = nu,
     .Nx = Nx,
     .Nvx = Nvx,
     .Lx = Lx,
@@ -197,7 +200,7 @@ evalNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, voi
 void
 write_data(struct gkyl_tm_trigger* iot, gkyl_pkpm_app* app, double t_curr, bool force_write)
 {
-  if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
     int frame = iot->curr - 1;
     if (force_write) {
       frame = iot->curr;
@@ -211,25 +214,25 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_pkpm_app* app, double t_curr, bool 
 }
 
 void
-calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_pkpm_app* app, double t_curr)
+calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_pkpm_app* app, double t_curr, bool force_calc)
 {
-  if (gkyl_tm_trigger_check_and_bump(fet, t_curr)) {
+  if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
     gkyl_pkpm_app_calc_field_energy(app, t_curr);
   }
 }
 
 void
-calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_pkpm_app* app, double t_curr)
+calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_pkpm_app* app, double t_curr, bool force_calc)
 {
-  if (gkyl_tm_trigger_check_and_bump(imt, t_curr)) {
+  if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
     gkyl_pkpm_app_calc_integrated_mom(app, t_curr);
   }
 }
 
 void
-calc_integrated_L2_f(struct gkyl_tm_trigger* l2t, gkyl_pkpm_app* app, double t_curr)
+calc_integrated_L2_f(struct gkyl_tm_trigger* l2t, gkyl_pkpm_app* app, double t_curr, bool force_calc)
 {
-  if (gkyl_tm_trigger_check_and_bump(l2t, t_curr)) {
+  if (gkyl_tm_trigger_check_and_bump(l2t, t_curr) || force_calc) {
     gkyl_pkpm_app_calc_integrated_L2_f(app, t_curr);
   }
 }
@@ -357,11 +360,14 @@ main(int argc, char **argv)
     .elcErrorSpeedFactor = 0.0,
     .mgnErrorSpeedFactor = 0.0,
 
+    .is_static = true, 
+
     .init = evalFieldInit,
     .ctx = &ctx,
 
     .ext_em = evalExternalFieldInit,
     .ext_em_ctx = &ctx,
+    .ext_em_evolve = true, 
   };
 
   // PKPM app.
@@ -422,19 +428,19 @@ main(int argc, char **argv)
   int field_energy_calcs = ctx.field_energy_calcs;
   struct gkyl_tm_trigger fe_trig = { .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr };
 
-  calc_field_energy(&fe_trig, app, t_curr);
+  calc_field_energy(&fe_trig, app, t_curr, false);
 
   // Create trigger for integrated moments.
   int integrated_mom_calcs = ctx.integrated_mom_calcs;
   struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr };
 
-  calc_integrated_mom(&im_trig, app, t_curr);
+  calc_integrated_mom(&im_trig, app, t_curr, false);
 
   // Create trigger for integrated L2 norm of the distribution function.
   int integrated_L2_f_calcs = ctx.integrated_L2_f_calcs;
   struct gkyl_tm_trigger l2f_trig = { .dt = t_end / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr };
 
-  calc_integrated_L2_f(&l2f_trig, app, t_curr);
+  calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
@@ -463,9 +469,9 @@ main(int argc, char **argv)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
-    calc_field_energy(&fe_trig, app, t_curr);
-    calc_integrated_mom(&im_trig, app, t_curr);
-    calc_integrated_L2_f(&l2f_trig, app, t_curr);
+    calc_field_energy(&fe_trig, app, t_curr, false);
+    calc_integrated_mom(&im_trig, app, t_curr, false);
+    calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
     write_data(&io_trig, app, t_curr, false);
 
     if (dt_init < 0.0) {
@@ -480,6 +486,12 @@ main(int argc, char **argv)
       if (num_failures >= num_failures_max) {
         gkyl_pkpm_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_pkpm_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+
+        calc_field_energy(&fe_trig, app, t_curr, true);
+        calc_integrated_mom(&im_trig, app, t_curr, true);
+        calc_integrated_L2_f(&l2f_trig, app, t_curr, true);
+        write_data(&io_trig, app, t_curr, true);
+
         break;
       }
     }
@@ -490,9 +502,9 @@ main(int argc, char **argv)
     step += 1;
   }
 
-  calc_field_energy(&fe_trig, app, t_curr);
-  calc_integrated_mom(&im_trig, app, t_curr);
-  calc_integrated_L2_f(&l2f_trig, app, t_curr);
+  calc_field_energy(&fe_trig, app, t_curr, false);
+  calc_integrated_mom(&im_trig, app, t_curr, false);
+  calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
   gkyl_pkpm_app_stat_write(app);
 
@@ -517,7 +529,7 @@ main(int argc, char **argv)
   gkyl_pkpm_app_cout(app, stdout, "Current evaluation and accumulate took %g secs\n", stat.current_tm);
   gkyl_pkpm_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
-  gkyl_pkpm_app_cout(app, stdout, "Number of write calls %ld\n", stat.nio);
+  gkyl_pkpm_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
   gkyl_pkpm_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
 freeresources:

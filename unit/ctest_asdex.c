@@ -144,7 +144,6 @@ test_fixed_z()
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("total time = %g\n", cpu_time_used);
 }
 
 void
@@ -214,7 +213,6 @@ test_shaped_plate()
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("total time = %g\n", cpu_time_used);
 }
 
 TEST_LIST = {

@@ -34,23 +34,6 @@ test_11()
   double cpu_time_used;
   start = clock();
 
-  double clower[] = { 0.0, -0.01, -M_PI+1e-14 };
-  double cupper[] = {0.1, 0.01, M_PI-1e-14 };
-
-  int ccells[] = { 1, 1, 8 };
-
-  struct gkyl_rect_grid cgrid;
-  gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
-
-  struct gkyl_range clocal, clocal_ext;
-  int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
-  gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
-
-  int cpoly_order = 1;
-  struct gkyl_basis cbasis;
-  gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
-
-
   struct gkyl_tok_geo_grid_inp ginp = {
     .rmin = 0.0,
     .rmax = 10.0,
@@ -61,43 +44,9 @@ test_11()
 
   }; 
 
-  struct gkyl_gk_geometry_inp geometry_inp = {
-    .geometry_id  = GKYL_TOKAMAK,
-    .efit_info = efit_inp,
-    .tok_grid_info = ginp,
-    .grid = cgrid,
-    .local = clocal,
-    .local_ext = clocal_ext,
-    .global = clocal,
-    .global_ext = clocal_ext,
-    .basis = cbasis,
-    .geo_grid = cgrid,
-    .geo_local = clocal,
-    .geo_local_ext = clocal_ext,
-    .geo_global = clocal,
-    .geo_global_ext = clocal_ext,
-    .geo_basis = cbasis,
-  };
-
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
-
-
-  gkyl_gk_geometry_release(up);
-
-  end = clock();
-  cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("total time = %g\n", cpu_time_used);
-}
-
-void
-test_12()
-{
-  clock_t start, end;
-  double cpu_time_used;
-  start = clock();
-
   double clower[] = { 0.0, -0.01, -M_PI+1e-14 };
   double cupper[] = {0.1, 0.01, M_PI-1e-14 };
+  gkyl_gk_geometry_tok_set_grid_extents(efit_inp, ginp, &clower[2], &cupper[2]);
 
   int ccells[] = { 1, 1, 8 };
 
@@ -112,15 +61,6 @@ test_12()
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
-
-  struct gkyl_tok_geo_grid_inp ginp = {
-    .rmin = 0.0,
-    .rmax = 10.0,
-    .ftype = GKYL_CORE_L,
-    .rclose = 6.0,
-    .rleft= 0.25,
-    .rright= 6.0,
-  }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
     .efit_info = efit_inp,
@@ -146,7 +86,66 @@ test_12()
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("total time = %g\n", cpu_time_used);
+}
+
+void
+test_12()
+{
+  clock_t start, end;
+  double cpu_time_used;
+  start = clock();
+
+  struct gkyl_tok_geo_grid_inp ginp = {
+    .rmin = 0.0,
+    .rmax = 10.0,
+    .ftype = GKYL_CORE_L,
+    .rclose = 6.0,
+    .rleft= 0.25,
+    .rright= 6.0,
+  }; 
+
+  double clower[] = { 0.0, -0.01, -M_PI+1e-14 };
+  double cupper[] = {0.1, 0.01, M_PI-1e-14 };
+  gkyl_gk_geometry_tok_set_grid_extents(efit_inp, ginp, &clower[2], &cupper[2]);
+
+  int ccells[] = { 1, 1, 8 };
+
+  struct gkyl_rect_grid cgrid;
+  gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
+
+  struct gkyl_range clocal, clocal_ext;
+  int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
+  gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
+
+  int cpoly_order = 1;
+  struct gkyl_basis cbasis;
+  gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
+
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_TOKAMAK,
+    .efit_info = efit_inp,
+    .tok_grid_info = ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
+
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
+
+
+  gkyl_gk_geometry_release(up);
+
+  end = clock();
+  cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
 }
 
 
@@ -159,8 +158,19 @@ test_1()
   double cpu_time_used;
   start = clock();
 
+  struct gkyl_tok_geo_grid_inp ginp = {
+    .rmin = 0.0,
+    .rmax = 10.0,
+    .ftype = GKYL_PF_LO_R,
+    .rright = 6.0,
+    .rleft = 0.25,
+    .zmin_left = -5.8,
+    .zmin_right = -5.8,
+  }; 
+
   double clower[] = { 0.0, -0.01, -M_PI+1e-14 };
   double cupper[] = {0.1, 0.01, M_PI-1e-14 };
+  gkyl_gk_geometry_tok_set_grid_extents(efit_inp, ginp, &clower[2], &cupper[2]);
 
   int ccells[] = { 1, 1, 8 };
 
@@ -172,15 +182,6 @@ test_1()
   int cpoly_order = 1;
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
-
-  struct gkyl_tok_geo_grid_inp ginp = {
-    .rmin = 0.0,
-    .rmax = 10.0,
-    .ftype = GKYL_PF_LO_R,
-    .rright = 6.0,
-    .rleft = 0.25,
-    .zmin = -5.8,
-  }; 
 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
@@ -204,7 +205,6 @@ test_1()
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("total time = %g\n", cpu_time_used);
 }
 
 void
@@ -214,8 +214,19 @@ test_2()
   double cpu_time_used;
   start = clock();
 
+  struct gkyl_tok_geo_grid_inp ginp = {
+    .rmin = 0.0,
+    .rmax = 10.0,
+    .ftype = GKYL_SOL_DN_OUT_LO,
+    .rright = 6.0,
+    .rleft = 0.25,
+    .zmin = -5.8,
+    .zmax = 5.8,
+  }; 
+
   double clower[] = { -0.2, -0.01, -M_PI+1e-14 };
   double cupper[] = {-0.0, 0.01, M_PI-1e-14 };
+  gkyl_gk_geometry_tok_set_grid_extents(efit_inp, ginp, &clower[2], &cupper[2]);
 
   int ccells[] = { 1, 1, 8 };
 
@@ -228,14 +239,6 @@ test_2()
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
-  struct gkyl_tok_geo_grid_inp ginp = {
-    .rmin = 0.0,
-    .rmax = 10.0,
-    .ftype = GKYL_SOL_DN_OUT_LO,
-    .rright = 6.0,
-    .rleft = 0.25,
-    .zmin = -5.8,
-  }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
     .efit_info = efit_inp,
@@ -259,7 +262,6 @@ test_2()
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("total time = %g\n", cpu_time_used);
 }
 
 void
@@ -269,8 +271,19 @@ test_3()
   double cpu_time_used;
   start = clock();
 
+  struct gkyl_tok_geo_grid_inp ginp = {
+    .rmin = 0.0,
+    .rmax = 10.0,
+    .ftype = GKYL_SOL_DN_OUT_MID,
+    .rright = 6.0,
+    .rleft = 0.25,
+    .zmin = -5.8,
+    .zmax = 5.8,
+  }; 
+
   double clower[] = { -0.2, -0.01, -M_PI+1e-14 };
   double cupper[] = {-0.0, 0.01, M_PI-1e-14 };
+  gkyl_gk_geometry_tok_set_grid_extents(efit_inp, ginp, &clower[2], &cupper[2]);
 
   int ccells[] = { 1, 1, 8 };
 
@@ -283,13 +296,6 @@ test_3()
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
-  struct gkyl_tok_geo_grid_inp ginp = {
-    .rmin = 0.0,
-    .rmax = 10.0,
-    .ftype = GKYL_SOL_DN_OUT_MID,
-    .rright = 6.0,
-    .rleft = 0.25,
-  }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
     .efit_info = efit_inp,
@@ -313,7 +319,6 @@ test_3()
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("total time = %g\n", cpu_time_used);
 }
 
 void
@@ -323,8 +328,19 @@ test_4()
   double cpu_time_used;
   start = clock();
 
+  struct gkyl_tok_geo_grid_inp ginp = {
+    .rmin = 0.0,
+    .rmax = 10.0,
+    .ftype = GKYL_SOL_DN_OUT_UP,
+    .rright = 6.0,
+    .rleft = 0.25,
+    .zmin = -5.8,
+    .zmax = 5.8,
+  }; 
+
   double clower[] = { -0.2, -0.01, -M_PI+1e-14 };
   double cupper[] = {-0.0, 0.01, M_PI-1e-14 };
+  gkyl_gk_geometry_tok_set_grid_extents(efit_inp, ginp, &clower[2], &cupper[2]);
 
   int ccells[] = { 1, 1, 8 };
 
@@ -337,14 +353,6 @@ test_4()
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
-  struct gkyl_tok_geo_grid_inp ginp = {
-    .rmin = 0.0,
-    .rmax = 10.0,
-    .ftype = GKYL_SOL_DN_OUT_UP,
-    .rright = 6.0,
-    .rleft = 0.25,
-    .zmax = 5.8,
-  }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
     .efit_info = efit_inp,
@@ -368,7 +376,6 @@ test_4()
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("total time = %g\n", cpu_time_used);
 }
 
 void
@@ -378,8 +385,19 @@ test_7()
   double cpu_time_used;
   start = clock();
 
+  struct gkyl_tok_geo_grid_inp ginp = {
+    .rmin = 0.0,
+    .rmax = 10.0,
+    .ftype = GKYL_SOL_DN_IN_UP,
+    .rleft = 0.25,
+    .rright= 6.0,
+    .zmin = -5.8,
+    .zmax = 5.8,
+  }; 
+
   double clower[] = { -0.01, -0.01, -M_PI+1e-14 };
   double cupper[] = {-0.0, 0.01, M_PI-1e-14 };
+  gkyl_gk_geometry_tok_set_grid_extents(efit_inp, ginp, &clower[2], &cupper[2]);
 
   int ccells[] = { 1, 1, 8 };
 
@@ -392,14 +410,7 @@ test_7()
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
-  struct gkyl_tok_geo_grid_inp ginp = {
-    .rmin = 0.0,
-    .rmax = 10.0,
-    .ftype = GKYL_SOL_DN_IN_UP,
-    .rleft = 0.25,
-    .rright= 6.0,
-    .zmax = 5.8,
-  }; 
+
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
     .efit_info = efit_inp,
@@ -423,7 +434,6 @@ test_7()
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("total time = %g\n", cpu_time_used);
 }
 
 void
@@ -433,8 +443,19 @@ test_8()
   double cpu_time_used;
   start = clock();
 
+  struct gkyl_tok_geo_grid_inp ginp = {
+    .rmin = 0.0,
+    .rmax = 10.0,
+    .ftype = GKYL_SOL_DN_IN_MID,
+    .rleft = 0.25,
+    .rright= 6.0,
+    .zmin = -5.8,
+    .zmax = 5.8,
+  }; 
+
   double clower[] = { -0.01, -0.01, -M_PI+1e-14 };
   double cupper[] = {-0.0, 0.01, M_PI-1e-14 };
+  gkyl_gk_geometry_tok_set_grid_extents(efit_inp, ginp, &clower[2], &cupper[2]);
 
   int ccells[] = { 1, 1, 8 };
 
@@ -447,13 +468,6 @@ test_8()
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
-  struct gkyl_tok_geo_grid_inp ginp = {
-    .rmin = 0.0,
-    .rmax = 10.0,
-    .ftype = GKYL_SOL_DN_IN_MID,
-    .rleft = 0.25,
-    .rright= 6.0,
-  }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
     .efit_info = efit_inp,
@@ -477,7 +491,6 @@ test_8()
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("total time = %g\n", cpu_time_used);
 }
 
 void
@@ -487,8 +500,19 @@ test_9()
   double cpu_time_used;
   start = clock();
 
+  struct gkyl_tok_geo_grid_inp ginp = {
+    .rmin = 0.0,
+    .rmax = 10.0,
+    .ftype = GKYL_SOL_DN_IN_LO,
+    .rleft = 0.25,
+    .rright= 6.0,
+    .zmin = -5.8,
+    .zmax = 5.8,
+  }; 
+
   double clower[] = { -0.01, -0.01, -M_PI+1e-14 };
   double cupper[] = {-0.0, 0.01, M_PI-1e-14 };
+  gkyl_gk_geometry_tok_set_grid_extents(efit_inp, ginp, &clower[2], &cupper[2]);
 
   int ccells[] = { 1, 1, 8 };
 
@@ -501,14 +525,6 @@ test_9()
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
-  struct gkyl_tok_geo_grid_inp ginp = {
-    .rmin = 0.0,
-    .rmax = 10.0,
-    .ftype = GKYL_SOL_DN_IN_LO,
-    .rleft = 0.25,
-    .rright= 6.0,
-    .zmin = -5.8,
-  }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
     .efit_info = efit_inp,
@@ -532,7 +548,6 @@ test_9()
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("total time = %g\n", cpu_time_used);
 }
 
 void
@@ -542,8 +557,19 @@ test_10()
   double cpu_time_used;
   start = clock();
 
+  struct gkyl_tok_geo_grid_inp ginp = {
+    .rmin = 0.0,
+    .rmax = 10.0,
+    .ftype = GKYL_PF_LO_L,
+    .rleft= 0.25,
+    .zmin_left = -5.8,
+    .zmin_right = -5.8,
+    .rright= 6.0,
+  }; 
+
   double clower[] = { 0.0, -0.01, -M_PI+1e-14 };
   double cupper[] = {0.1, 0.01, M_PI-1e-14 };
+  gkyl_gk_geometry_tok_set_grid_extents(efit_inp, ginp, &clower[2], &cupper[2]);
 
   int ccells[] = { 1, 1, 8 };
 
@@ -556,14 +582,6 @@ test_10()
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
-  struct gkyl_tok_geo_grid_inp ginp = {
-    .rmin = 0.0,
-    .rmax = 10.0,
-    .ftype = GKYL_PF_LO_L,
-    .rleft= 0.25,
-    .zmin = -5.8,
-    .rright= 6.0,
-  }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
     .efit_info = efit_inp,
@@ -587,7 +605,6 @@ test_10()
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("total time = %g\n", cpu_time_used);
 }
 
 void
@@ -597,8 +614,19 @@ test_5()
   double cpu_time_used;
   start = clock();
 
+  struct gkyl_tok_geo_grid_inp ginp = {
+    .rmin = 0.0,
+    .rmax = 10.0,
+    .ftype = GKYL_PF_UP_R,
+    .rright = 6.0,
+    .rleft = 0.25,
+    .zmax_left = 5.8,
+    .zmax_right = 5.8,
+  }; 
+
   double clower[] = { 0.0, -0.01, -M_PI+1e-14 };
   double cupper[] = {0.1, 0.01, M_PI-1e-14 };
+  gkyl_gk_geometry_tok_set_grid_extents(efit_inp, ginp, &clower[2], &cupper[2]);
 
   int ccells[] = { 1, 1, 8 };
 
@@ -611,14 +639,6 @@ test_5()
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
-  struct gkyl_tok_geo_grid_inp ginp = {
-    .rmin = 0.0,
-    .rmax = 10.0,
-    .ftype = GKYL_PF_UP_R,
-    .rright = 6.0,
-    .rleft = 0.25,
-    .zmax = 5.8,
-  }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
     .efit_info = efit_inp,
@@ -642,7 +662,6 @@ test_5()
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("total time = %g\n", cpu_time_used);
 }
 
 void
@@ -652,8 +671,19 @@ test_6()
   double cpu_time_used;
   start = clock();
 
+  struct gkyl_tok_geo_grid_inp ginp = {
+    .rmin = 0.0,
+    .rmax = 10.0,
+    .ftype = GKYL_PF_UP_L,
+    .rleft = 0.25,
+    .rright= 6.0,
+    .zmax_left = 5.8,
+    .zmax_right = 5.8,
+  }; 
+
   double clower[] = { 0.0, -0.01, -M_PI+1e-14 };
   double cupper[] = {0.1, 0.01, M_PI-1e-14 };
+  gkyl_gk_geometry_tok_set_grid_extents(efit_inp, ginp, &clower[2], &cupper[2]);
 
   int ccells[] = { 1, 1, 8 };
 
@@ -666,14 +696,6 @@ test_6()
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
-  struct gkyl_tok_geo_grid_inp ginp = {
-    .rmin = 0.0,
-    .rmax = 10.0,
-    .ftype = GKYL_PF_UP_L,
-    .rleft = 0.25,
-    .rright= 6.0,
-    .zmax = 5.8,
-  }; 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_TOKAMAK,
     .efit_info = efit_inp,
@@ -697,7 +719,6 @@ test_6()
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("total time = %g\n", cpu_time_used);
 }
 
 

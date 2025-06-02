@@ -407,7 +407,7 @@ contour_func(double Z, void *ctx)
   c->ncall += 1;
   double R[4] = { 0 }, dR[4] = { 0 };
   
-  int nr = R_psiZ(c->geo, c->psi, Z, 4, R, dR);
+  int nr = gkyl_mirror_geo_R_psiZ(c->geo, c->psi, Z, 4, R, dR);
   double dRdZ = nr == 1 ? dR[0] : choose_closest(c->last_R, R, dR,nr);
   
   return nr>0 ? sqrt(1+dRdZ*dRdZ) : 0.0;
@@ -420,7 +420,7 @@ phi_contour_func(double Z, void *ctx)
   c->ncall += 1;
   double R[4] = { 0 }, dR[4] = { 0 };
   
-  int nr = R_psiZ(c->geo, c->psi, Z, 4, R, dR);
+  int nr = gkyl_mirror_geo_R_psiZ(c->geo, c->psi, Z, 4, R, dR);
   double dRdZ = nr == 1 ? dR[0] : choose_closest(c->last_R, R, dR, nr);
   double r_curr = nr == 1 ? R[0] : choose_closest(c->last_R, R, R, nr);
 
@@ -428,8 +428,8 @@ phi_contour_func(double Z, void *ctx)
     double xn[2] = {r_curr, Z};
     double fout[3];
     c->geo->efit->evf->eval_cubic_wgrad(0.0, xn, fout, c->geo->efit->evf->ctx);
-    double dpsidR = fout[1]*2.0/c->geo->rzgrid_cubic.dx[0];
-    double dpsidZ = fout[2]*2.0/c->geo->rzgrid_cubic.dx[1];
+    double dpsidR = fout[1];
+    double dpsidZ = fout[2];
     double grad_psi_mag = sqrt(dpsidR*dpsidR + dpsidZ*dpsidZ);
 
     double result  = (1/r_curr/grad_psi_mag) *sqrt(1+dRdZ*dRdZ) ;

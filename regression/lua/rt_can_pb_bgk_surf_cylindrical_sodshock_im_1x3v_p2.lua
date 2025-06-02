@@ -100,6 +100,18 @@ vlasovApp = Vlasov.App.new {
 
       return inv_metric_r_r, inv_metric_r_theta, inv_metric_r_z, inv_metric_theta_theta, inv_metric_theta_z, inv_metric_z_z
     end,
+    metric = function (t, xn)
+      local q_r = xn[1]
+
+      local metric_r_r = 1.0 -- Metric tensor (radial-radial component).
+      local metric_r_theta = 0.0 -- Metric tensor (radial-angular component).
+      local metric_r_z = 0.0 -- Metric tensor (radial-z component).
+      local metric_theta_theta = q_r * q_r -- Metric tensor (angular-angular component).
+      local metric_theta_z = 0.0 -- Metric tensor (angular-z component).
+      local metric_z_z = 1.0 -- Metric tensor (z-z component).
+
+      return metric_r_r, metric_r_theta, metric_r_z, metric_theta_theta, metric_theta_z, metric_z_z
+    end,
     metricDeterminant = function (t, xn)
       local q_r = xn[1]
 

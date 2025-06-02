@@ -134,8 +134,8 @@ gkyl_dg_mul_conf_phase_op_range_cu_kernel(struct gkyl_basis cbasis,
 
 // Host-side wrapper for range-based dg conf*phase multiplication.
 void
-gkyl_dg_mul_conf_phase_op_range_cu(struct gkyl_basis *cbasis,
-  struct gkyl_basis *pbasis, struct gkyl_array* pout,
+gkyl_dg_mul_conf_phase_op_range_cu(const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, struct gkyl_array* pout,
   const struct gkyl_array* cop, const struct gkyl_array* pop,
   const struct gkyl_range *crange, const struct gkyl_range *prange)
 {
@@ -143,6 +143,71 @@ gkyl_dg_mul_conf_phase_op_range_cu(struct gkyl_basis *cbasis,
   int nthreads = prange->nthreads;
   gkyl_dg_mul_conf_phase_op_range_cu_kernel<<<nblocks, nthreads>>>(*cbasis, *pbasis,
     pout->on_dev, cop->on_dev, pop->on_dev, *crange, *prange);
+}
+
+static void
+gkyl_parallelize_components_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gkyl_range range, int ncomp)
+{
+  // Create a 2D thread grid so we launch ncomp*range.volume number of threads 
+  // so we can parallelize over components too
+  dimBlock->y = ncomp; // ncomp *must* be less than 256
+  dimGrid->y = 1;
+  dimBlock->x = GKYL_DEFAULT_NUM_THREADS/ncomp;
+  dimGrid->x = gkyl_int_div_up(range.volume, dimBlock->x);
+}
+
+__global__ void
+gkyl_dg_mul_conf_phase_op_accumulate_range_cu_kernel(struct gkyl_basis cbasis,
+  struct gkyl_basis pbasis, struct gkyl_array* pout, double a, 
+  const struct gkyl_array* cop, const struct gkyl_array* pop,
+  struct gkyl_range crange, struct gkyl_range prange)
+{
+  int cdim = cbasis.ndim;
+  int vdim = pbasis.ndim - cdim;
+  int poly_order = cbasis.poly_order;
+  // On GPU, choose kernels which parallelize over components
+  mul_accumulate_comp_par_op_t mul_accumulate_op = choose_mul_conf_phase_accumulate_comp_par_kern(pbasis.b_type, 
+    cdim, vdim, poly_order);
+
+  int pidx[GKYL_MAX_DIM];
+  long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < prange.volume;
+      linc1 += gridDim.x*blockDim.x)
+  {
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&prange, linc1, pidx);
+
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long start = gkyl_range_idx(&prange, pidx);
+
+    const double *pop_d = (const double*) gkyl_array_cfetch(pop, start);
+    double *pout_d = (double*) gkyl_array_fetch(pout, start);
+
+    int cidx[3];
+    for (int d=0; d<cdim; d++) cidx[d] = pidx[d];
+    long cstart = gkyl_range_idx(&crange, cidx);
+    const double *cop_d = (const double*) gkyl_array_cfetch(cop, cstart);
+
+    mul_accumulate_op(a, cop_d, pop_d, pout_d, linc2);
+  }
+}
+
+// Host-side wrapper for range-based dg conf*phase multiplication with accumulation to output.
+void
+gkyl_dg_mul_conf_phase_op_accumulate_range_cu(const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, struct gkyl_array* pout, double a, 
+  const struct gkyl_array* cop, const struct gkyl_array* pop,
+  const struct gkyl_range *crange, const struct gkyl_range *prange)
+{
+  dim3 dimGrid, dimBlock;
+  int num_phase_basis = pbasis->num_basis;
+  gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *prange, num_phase_basis);
+  gkyl_dg_mul_conf_phase_op_accumulate_range_cu_kernel<<<dimGrid, dimBlock>>>(*cbasis, *pbasis,
+    pout->on_dev, a, cop->on_dev, pop->on_dev, *crange, *prange);
 }
 
 __global__ void

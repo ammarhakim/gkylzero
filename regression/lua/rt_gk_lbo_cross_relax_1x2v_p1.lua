@@ -204,11 +204,12 @@ gyrokineticApp = Gyrokinetic.App.new {
     diagnostics = { "M0", "M1", "M2", "M2par", "M2perp", "BiMaxwellianMoments" }
   },
 
-  skipField = true,
-
   -- Field.
   field = Gyrokinetic.Field.new {
-    femParBc = G0.ParProjBc.None
+    femParBc = G0.ParProjBc.None,
+    
+    zeroInitField = true, -- Don't compute the field at t = 0.
+    isStatic = true -- Don't evolve the field in time.
   }
 }
 

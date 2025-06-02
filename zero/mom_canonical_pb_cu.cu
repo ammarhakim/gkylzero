@@ -12,15 +12,20 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-enum { MEnergy, BAD };
+#include <cassert>
+
+enum { MEnergy, M1i_from_H, BAD };
 
 static int
 get_mom_id(const char *mom)
 {
   int mom_idx = BAD;
 
-  if (strcmp(mom, "MEnergy") == 0) { // total energy = integral(hamil*f) velocity moment
+  if (strcmp(mom, "MEnergy") == 0) { // total energy = integral(hamil*f) 
     mom_idx = MEnergy;
+  }
+  else if (strcmp(mom, "M1i_from_H") == 0) { // Jnu^i = integral(\alpha^i*f) velocity moment
+    mom_idx = M1i_from_H;
   }
   else {
     mom_idx = BAD;
@@ -38,6 +43,10 @@ v_num_mom(int vdim, int mom_id)
     case MEnergy:
       num_mom = 1;
       break;    
+
+    case M1i_from_H:
+      num_mom = vdim;
+      break;   
 
     default: // can't happen
       break;
@@ -74,14 +83,26 @@ set_cu_ptrs(struct mom_type_canonical_pb* mom_can_pb, int mom_id, enum gkyl_basi
   
   // choose kernel tables based on basis-function type
   const gkyl_canonical_pb_mom_kern_list *menergy_kernels;
+  const gkyl_canonical_pb_mom_kern_list *m1i_from_h_kernels;
 
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
+      // Verify that the poly-order is 2 for ser case
+      assert(poly_order == 2);
       menergy_kernels = ser_menergy_kernels;
+      m1i_from_h_kernels = ser_m1i_from_h_kernels;
+      break;
+
+    case GKYL_BASIS_MODAL_HYBRID:
+      // Verify that the poly-order is 1 for hybrid case
+      assert(poly_order == 1);
+      menergy_kernels = ser_menergy_kernels;
+      m1i_from_h_kernels = ser_m1i_from_h_kernels;
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
       menergy_kernels = tensor_menergy_kernels;
+      m1i_from_h_kernels = tensor_m1i_from_h_kernels;
       break;
 
     default:
@@ -93,6 +114,11 @@ set_cu_ptrs(struct mom_type_canonical_pb* mom_can_pb, int mom_id, enum gkyl_basi
     case MEnergy:
       mom_can_pb->momt.kernel = menergy_kernels[tblidx].kernels[poly_order];
       mom_can_pb->momt.num_mom = 1;
+      break;
+
+    case M1i_from_H:
+      mom_can_pb->momt.kernel = m1i_from_h_kernels[tblidx].kernels[poly_order];
+      mom_can_pb->momt.num_mom = vdim;
       break;
 
     default: // can't happen
@@ -135,7 +161,7 @@ gkyl_mom_canonical_pb_cu_dev_new(const struct gkyl_basis* cbasis, const struct g
 
   assert(cv_index[cdim].vdim[vdim] != -1);
 
-  set_cu_ptrs<<<1,1>>>(momt_cu, mom_id, cbasis->b_type,
+  set_cu_ptrs<<<1,1>>>(momt_cu, mom_id, pbasis->b_type,
     vdim, poly_order, cv_index[cdim].vdim[vdim]);
 
   mom_can_pb->momt.on_dev = &momt_cu->momt;
@@ -156,6 +182,14 @@ set_int_cu_ptrs(struct mom_type_canonical_pb* mom_can_pb, enum gkyl_basis_type b
   // set kernel pointer
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
+      // Verify that the poly-order is 2 for ser case
+      assert(poly_order == 2);
+      int_mom_kernels = ser_int_mom_kernels;
+      break;
+
+    case GKYL_BASIS_MODAL_HYBRID:
+      // Verify that the poly-order is 1 for hybrid case
+      assert(poly_order == 1);
       int_mom_kernels = ser_int_mom_kernels;
       break;
 
@@ -203,10 +237,11 @@ gkyl_int_mom_canonical_pb_cu_dev_new(const struct gkyl_basis* cbasis, const stru
     gkyl_cu_malloc(sizeof(struct mom_type_canonical_pb));
   gkyl_cu_memcpy(momt_cu, mom_can_pb, sizeof(struct mom_type_canonical_pb), GKYL_CU_MEMCPY_H2D);
 
-  set_int_cu_ptrs<<<1,1>>>(momt_cu, cbasis->b_type,
+  set_int_cu_ptrs<<<1,1>>>(momt_cu, pbasis->b_type,
     vdim, poly_order, cv_index[cdim].vdim[vdim]);
 
   mom_can_pb->momt.on_dev = &momt_cu->momt;
   
   return &mom_can_pb->momt;
 }
+

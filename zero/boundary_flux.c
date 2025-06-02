@@ -12,11 +12,11 @@
 gkyl_boundary_flux*
 gkyl_boundary_flux_new(int dir, enum gkyl_edge_loc edge,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  const struct gkyl_dg_eqn *equation, bool use_gpu)
+  const struct gkyl_dg_eqn *equation, double skip_cell_threshold, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    return gkyl_boundary_flux_cu_dev_new(dir, edge, grid, skin_r, ghost_r, equation);
+    return gkyl_boundary_flux_cu_dev_new(dir, edge, grid, skin_r, ghost_r, equation, skip_cell_threshold);
   } 
 #endif
 
@@ -28,6 +28,11 @@ gkyl_boundary_flux_new(int dir, enum gkyl_edge_loc edge,
   up->skin_r = *skin_r;
   up->ghost_r = *ghost_r;
   up->use_gpu = use_gpu;
+
+  if (skip_cell_threshold > 0.0)
+    up->skip_cell_threshold = skip_cell_threshold * pow(sqrt(2.0), grid->ndim);
+  else
+    up->skip_cell_threshold = -1.0;
 
   up->equation = gkyl_dg_eqn_acquire(equation);
   
@@ -66,10 +71,21 @@ gkyl_boundary_flux_advance(gkyl_boundary_flux *up,
     long linidx_g = gkyl_range_idx(&up->ghost_r, idx_g); 
     long linidx_s = gkyl_range_idx(&up->skin_r, idx_s);
 
-    up->equation->boundary_flux_term(up->equation, up->dir, xc_s, xc_g,
-      up->grid.dx, up->grid.dx, idx_s, idx_g, up->edge == GKYL_LOWER_EDGE? -1 : 1,
-      gkyl_array_cfetch(fIn, linidx_s), gkyl_array_cfetch(fIn, linidx_g), gkyl_array_fetch(fluxOut, linidx_g)
-    );
+    const double *fIn_s = gkyl_array_cfetch(fIn, linidx_s);
+    const double *fIn_g = gkyl_array_cfetch(fIn, linidx_g);
+    double *fluxOut_g = gkyl_array_fetch(fluxOut, linidx_g);
+
+    if (fabs(fIn_s[0]) < up->skip_cell_threshold && fabs(fIn_g[0]) < up->skip_cell_threshold)
+    {
+      for (int d=0; d<fluxOut->ncomp; ++d) {
+        fluxOut_g[d] = 0.0;
+      }
+    }
+    else {
+      up->equation->boundary_surf_term(up->equation, up->dir, xc_s, xc_g,
+        up->grid.dx, up->grid.dx, idx_s, idx_g, up->edge == GKYL_LOWER_EDGE? -1 : 1,
+        fIn_s, fIn_g, fluxOut_g);
+    }
   }
 
 }

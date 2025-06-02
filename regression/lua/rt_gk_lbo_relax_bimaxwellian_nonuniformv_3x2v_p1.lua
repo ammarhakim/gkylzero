@@ -208,8 +208,6 @@ gyrokineticApp = Gyrokinetic.App.new {
     diagnostics = { "M0", "M1", "M2", "M2par", "M2perp" }
   },
 
-  skipField = true,
-
   -- Field.
   field = Gyrokinetic.Field.new {
     femParBc = G0.ParProjBc.None,
@@ -218,18 +216,21 @@ gyrokineticApp = Gyrokinetic.App.new {
       lowerType = {
         G0.PoissonBc.bcDirichlet,
         G0.PoissonBc.bcDirichlet
-    },
-    upperType = {
+      },
+      upperType = {
         G0.PoissonBc.bcDirichlet,
         G0.PoissonBc.bcDirichlet
-    },
-    lowerValue = {
+      },
+      lowerValue = {
         0.0, 0.0
-    },
-    upperValue = {
+      },
+      upperValue = {
         0.0, 0.0
-    }
-    }
+      }
+    },
+
+    zeroInitField = true, -- Don't compute the field at t = 0.
+    isStatic = true -- Don't evolve the field in time.
   }
 }
 

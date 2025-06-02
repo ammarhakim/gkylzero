@@ -23,6 +23,8 @@ struct gkyl_position_map_inp {
   double map_strength; // Zero is uniform mapping, one is fully nonuniform mapping. How strong the nonuniformity is
   // Call map_strength = s, xc computational coordinate, and xnu the nonuniform coordinate
   // xnu' = xnu * s + xc * (1-s)
+  double maximum_slope_at_min_B; // The maximum slope of the mapping at a magnetic field minimum. A number > 1. Hard limits on cell sizes
+  double maximum_slope_at_max_B; // The maximum slope of the mapping at a magnetic field maximum. A number > 1. Hard limits on cell sizes
 };
 
 struct gkyl_position_map {
@@ -53,6 +55,10 @@ struct gkyl_position_map_const_B_ctx {
   double alpha_min, alpha_max; // The max and min alpha values for the simulation
   double theta_min, theta_max; // The max and min theta values for the simulation
   double map_strength; // Zero is uniform mapping, one is fully nonuniform mapping. How strong the nonuniformity is
+  bool enable_maximum_slope_limits_at_min_B; // Whether to enable the maximum slope limits at a magnetic field minimum
+  bool enable_maximum_slope_limits_at_max_B; // Whether to enable the maximum slope limits at a magnetic field maximum
+  double maximum_slope_at_min_B; // The maximum slope of the mapping at a magnetic field minimum
+  double maximum_slope_at_max_B; // The maximum slope of the mapping at a magnetic field maximum
 
   // Polynomial-based mapping
   double theta_throat, Bmag_throat; // The theta and Bmag values at the throat of the magnetic field
@@ -61,8 +67,9 @@ struct gkyl_position_map_const_B_ctx {
   // Constant B mapping
   int N_theta_boundaries; // Number of times dB/dz changes sign
   int num_extrema; // Number of extrema in the magnetic field
-  double theta_extrema[16]; // The theta values of the extrema
-  double bmag_extrema[16]; // The Bmag values of the extrema
+  double *theta_extrema; // The theta values of the extrema
+  double *bmag_extrema; // The Bmag values of the extrema
+  bool *min_or_max; // Whether the extrema is a minima or maxima. 1 is maxima, 0 is minima
   double dB_cell; // The change in Bmag per cell
 };
 
@@ -93,7 +100,19 @@ struct gkyl_position_map* gkyl_position_map_new(struct gkyl_position_map_inp pma
  * 
  * @note This function is used to set the position map array in the position map object.
  */
-void gkyl_position_map_set(struct gkyl_position_map* gpm, struct gkyl_array* mc2nu);
+void gkyl_position_map_set_mc2nu(struct gkyl_position_map* gpm, struct gkyl_array* mc2nu);
+
+/**
+ * Set the magnetic field array in the position map object. This is used to set the magnetic field
+ * array in the position map object.
+ *
+ * @param gpm Position map object.
+ * @param comm Communicator object.
+ * @param bmag Magnetic field array.
+ */
+void
+gkyl_position_map_set_bmag(struct gkyl_position_map* gpm, struct gkyl_comm* comm,
+  struct gkyl_array* bmag);
 
 /**
  * Evaluate the position mapping at a specific computational (position) coordinate.
@@ -107,6 +126,21 @@ void
 gkyl_position_map_eval_mc2nu(const struct gkyl_position_map* gpm, const double *xc, double *xnu);
 
 /**
+ * Evaluate the slope of the position mapping at a specific computational (position) coordinate.
+ * 
+ * @param gpm Gkyl position map object.
+ * @param ix_map Index of the map to evaluate. Calls gpm->maps[index].
+ * @param x Computational position coordinates.
+ * @param dx Computational position increment.
+ * @param ix_comp Index in the geometry loop of which cell we are discussing
+ * @param nrange Range of the computational coordinates.
+ * @return Slope of the position mapping.
+ */
+double
+gkyl_position_map_slope(const struct gkyl_position_map* gpm, int ix_map,
+  double x, double dx, int ix_comp, struct gkyl_range *nrange);
+
+/**
  * Create a new pointer to the position map object.
  * Release it with gkyl_position_map_release.
  *
@@ -118,8 +152,11 @@ struct gkyl_position_map* gkyl_position_map_acquire(const struct gkyl_position_m
  * Optimize the position map object for constant B mapping.
  * 
  * @param gpm Position map object.
+ * @param grid 3D Position space grid.
+ * @param global 3D Global position range.
  */
-void gkyl_position_map_optimize(struct gkyl_position_map* gpm);
+void gkyl_position_map_optimize(struct gkyl_position_map* gpm, struct gkyl_rect_grid grid,
+  struct gkyl_range global);
 
 
 /**

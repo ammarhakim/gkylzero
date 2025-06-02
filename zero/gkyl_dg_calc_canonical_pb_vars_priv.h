@@ -13,11 +13,14 @@
 
 typedef int (*canonical_pb_alpha_surf_t)(const double *w, const double *dxv, const double *hamil,
   double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
-typedef void (*canonical_pb_pressure_t)(const double *h_ij_inv, const double *MEnergy, const double *v_j,
+typedef void (*canonical_pb_m1i_contra_to_cov_t)(const double *h_ij, const double *v_i, const double *nv_i,
+ double* GKYL_RESTRICT v_i_cov, double* GKYL_RESTRICT nv_i_cov); 
+typedef void (*canonical_pb_pressure_t)(const double *h_ij_inv, const double *MEnergy, const double *v_i,
   const double *nv_i, double* GKYL_RESTRICT d_Jv_P); 
 
 // for use in kernel tables
 typedef struct { canonical_pb_alpha_surf_t kernels[3]; } gkyl_dg_canonical_pb_alpha_surf_kern_list;
+typedef struct { canonical_pb_m1i_contra_to_cov_t kernels[3]; } gkyl_dg_canonical_pb_m1i_contra_to_cov_kern_list;
 typedef struct { canonical_pb_pressure_t kernels[3]; } gkyl_dg_canonical_pb_pressure_kern_list;
 
 struct gkyl_dg_calc_canonical_pb_vars {
@@ -27,6 +30,7 @@ struct gkyl_dg_calc_canonical_pb_vars {
   canonical_pb_alpha_surf_t alpha_surf[6]; // kernel for computing surface expansion of phase space flux alpha
   canonical_pb_alpha_surf_t alpha_edge_surf[3]; // kernel for computing surface expansion of phase space flux alpha
                                                // at upper configuration space edge
+  canonical_pb_m1i_contra_to_cov_t canonical_pb_covariant_u_i; // Canonical pb covariant u_i components
   canonical_pb_pressure_t canonical_pb_pressure; // Canonical pb pressure
   uint32_t flags;
   struct gkyl_dg_calc_canonical_pb_vars *on_dev; // pointer to itself or device data
@@ -174,6 +178,22 @@ static const gkyl_dg_canonical_pb_alpha_surf_kern_list ser_canonical_pb_alpha_su
   { NULL, NULL, NULL }, // 5
 };
 
+// canonical_pb contravaraint to covariant conversion (Serendipity kernels)
+// (Jnu_i = h_{ij}Jnu^i and u_i = h_{ij}u^j) 
+GKYL_CU_D
+static const gkyl_dg_canonical_pb_m1i_contra_to_cov_kern_list ser_canonical_pb_m1i_contra_to_cov_kernels[] = {
+  // 1x kernels
+  { NULL, canonical_pb_vars_m1i_contra_to_cov_1x1v_ser_p1, canonical_pb_vars_m1i_contra_to_cov_1x1v_ser_p2 }, // 0
+  { NULL, canonical_pb_vars_m1i_contra_to_cov_1x2v_ser_p1, canonical_pb_vars_m1i_contra_to_cov_1x2v_ser_p2 }, // 1
+  { NULL, canonical_pb_vars_m1i_contra_to_cov_1x3v_ser_p1, canonical_pb_vars_m1i_contra_to_cov_1x3v_ser_p2 }, // 2
+  // 2x kernels
+  { NULL, canonical_pb_vars_m1i_contra_to_cov_2x2v_ser_p1, canonical_pb_vars_m1i_contra_to_cov_2x2v_ser_p2 }, // 3
+  { NULL, canonical_pb_vars_m1i_contra_to_cov_2x3v_ser_p1, canonical_pb_vars_m1i_contra_to_cov_2x3v_ser_p2 }, // 4
+  // 3x kernels
+  { NULL, NULL, NULL }, // 5
+};
+
+
 // canonical_pb Pressure (d*P*Jv = 2*E - n*h^{ij}*u_i*u_j) (Serendipity kernels)
 GKYL_CU_D
 static const gkyl_dg_canonical_pb_pressure_kern_list ser_canonical_pb_pressure_kernels[] = {
@@ -183,9 +203,9 @@ static const gkyl_dg_canonical_pb_pressure_kern_list ser_canonical_pb_pressure_k
   { NULL, canonical_pb_vars_pressure_1x3v_ser_p1, canonical_pb_vars_pressure_1x3v_ser_p2 }, // 2
   // 2x kernels
   { NULL, canonical_pb_vars_pressure_2x2v_ser_p1, canonical_pb_vars_pressure_2x2v_ser_p2 }, // 3
-  { NULL, canonical_pb_vars_pressure_2x3v_ser_p1, canonical_pb_vars_pressure_2x3v_ser_p2 }, // 3
+  { NULL, canonical_pb_vars_pressure_2x3v_ser_p1, canonical_pb_vars_pressure_2x3v_ser_p2 }, // 4
   // 3x kernels
-  { NULL, NULL, NULL }, // 2
+  { NULL, NULL, NULL }, // 5
 };
 
 //
@@ -321,6 +341,22 @@ static const gkyl_dg_canonical_pb_alpha_surf_kern_list tensor_canonical_pb_alpha
   { NULL, canonical_pb_alpha_surfvz_3x3v_tensor_p1, NULL }, // 5
 };
 
+// canonical_pb contravaraint to covariant conversion (Tensor kernels)
+// (Jnu_i = h_{ij}Jnu^i and u_i = h_{ij}u^j) 
+GKYL_CU_D
+static const gkyl_dg_canonical_pb_m1i_contra_to_cov_kern_list tensor_canonical_pb_m1i_contra_to_cov_kernels[] = {
+  // 1x kernels
+  { NULL, canonical_pb_vars_m1i_contra_to_cov_1x1v_tensor_p1, canonical_pb_vars_m1i_contra_to_cov_1x1v_tensor_p2 }, // 0
+  { NULL, canonical_pb_vars_m1i_contra_to_cov_1x2v_tensor_p1, canonical_pb_vars_m1i_contra_to_cov_1x2v_tensor_p2 }, // 1
+  { NULL, canonical_pb_vars_m1i_contra_to_cov_1x3v_tensor_p1, canonical_pb_vars_m1i_contra_to_cov_1x3v_tensor_p2 }, // 2
+  // 2x kernels
+  { NULL, canonical_pb_vars_m1i_contra_to_cov_2x2v_tensor_p1, canonical_pb_vars_m1i_contra_to_cov_2x2v_tensor_p2 }, // 3
+  { NULL, canonical_pb_vars_m1i_contra_to_cov_2x3v_tensor_p1, NULL }, //4
+  // 3x kernels
+  { NULL, canonical_pb_vars_m1i_contra_to_cov_3x3v_tensor_p1, NULL }, // 5
+};
+
+
 // canonical_pb Pressure (d*P*Jv = h^{ij}*M2_{ij} - n*h^{ij}*u_i*u_j) (Tensor kernels)
 GKYL_CU_D
 static const gkyl_dg_canonical_pb_pressure_kern_list tensor_canonical_pb_pressure_kernels[] = {
@@ -342,9 +378,8 @@ choose_canonical_pb_alpha_surf_kern(enum gkyl_basis_type b_type, int dir, int cv
 {
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      if (poly_order != 2)
-        // Only polyorder 2 basis are supported for ser
-        assert(true);
+      // Verify that the poly-order is 2 for ser case
+      assert(poly_order == 2);
       if (dir == 0)
         return ser_canonical_pb_alpha_surfx_kernels[cv_index].kernels[poly_order];
       else if (dir == 1)
@@ -355,9 +390,8 @@ choose_canonical_pb_alpha_surf_kern(enum gkyl_basis_type b_type, int dir, int cv
         return NULL;
       break;
     case GKYL_BASIS_MODAL_HYBRID:
-      if (poly_order != 1)
-        // Only polyorder 1 basis are supported for hybrid
-        assert(false);
+      // Verify that the poly-order is 1 for hybrid case
+      assert(poly_order == 1);
       if (dir == 0)
         return ser_canonical_pb_alpha_surfx_kernels[cv_index].kernels[poly_order];
       else if (dir == 1)
@@ -389,9 +423,8 @@ choose_canonical_pb_alpha_edge_surf_kern(enum gkyl_basis_type b_type, int dir, i
 {
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      if (poly_order != 2)
-        // Only polyorder 2 basis are supported for ser
-        assert(true);
+      // Verify that the poly-order is 2 for ser case
+      assert(poly_order == 2);
       if (dir == 0)
         return ser_canonical_pb_alpha_edge_surfx_kernels[cv_index].kernels[poly_order];
       else if (dir == 1)
@@ -402,9 +435,8 @@ choose_canonical_pb_alpha_edge_surf_kern(enum gkyl_basis_type b_type, int dir, i
         return NULL;
       break;
     case GKYL_BASIS_MODAL_HYBRID:
-      if (poly_order != 1)
-        // Only polyorder 1 basis are supported for hybrid
-        assert(false);
+      // Verify that the poly-order is 1 for hybrid case
+      assert(poly_order == 1);
       if (dir == 0)
         return ser_canonical_pb_alpha_edge_surfx_kernels[cv_index].kernels[poly_order];
       else if (dir == 1)
@@ -437,9 +469,8 @@ choose_canonical_pb_alpha_surf_v_kern(enum gkyl_basis_type b_type, int dir, int 
 {
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      if (poly_order != 2)
-        // Only polyorder 2 basis are supported for ser
-        assert(true);
+      // Verify that the poly-order is 2 for ser case
+      assert(poly_order == 2);
       if (dir == 0)
         return ser_canonical_pb_alpha_surfvx_kernels[cv_index].kernels[poly_order];
       else if (dir == 1)
@@ -450,9 +481,8 @@ choose_canonical_pb_alpha_surf_v_kern(enum gkyl_basis_type b_type, int dir, int 
         return NULL;
       break;
     case GKYL_BASIS_MODAL_HYBRID:
-      if (poly_order != 1)
-        // Only polyorder 1 basis are supported for hybrid
-        assert(false);
+      // Verify that the poly-order is 1 for hybrid case
+      assert(poly_order == 1);
       if (dir == 0)
         return ser_canonical_pb_alpha_surfvx_kernels[cv_index].kernels[poly_order];
       else if (dir == 1)
@@ -479,20 +509,42 @@ choose_canonical_pb_alpha_surf_v_kern(enum gkyl_basis_type b_type, int dir, int 
 }
 
 GKYL_CU_D
+static canonical_pb_m1i_contra_to_cov_t
+choose_canonical_pb_m1i_contra_to_cov_kern(enum gkyl_basis_type b_type, int cv_index, int cdim, int poly_order)
+{
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      // Verify that the poly-order is 2 for ser case
+      assert(poly_order == 2);
+      return ser_canonical_pb_m1i_contra_to_cov_kernels[cv_index].kernels[poly_order];
+      break; 
+    case GKYL_BASIS_MODAL_HYBRID:
+      // Verify that the poly-order is 1 for hybrid case
+      assert(poly_order == 1);
+      return ser_canonical_pb_m1i_contra_to_cov_kernels[cv_index].kernels[poly_order];
+      break; 
+    case GKYL_BASIS_MODAL_TENSOR:
+      return tensor_canonical_pb_m1i_contra_to_cov_kernels[cv_index].kernels[poly_order];
+      break; 
+    default:
+      assert(false);
+      break;  
+  }
+}
+
+GKYL_CU_D
 static canonical_pb_pressure_t
 choose_canonical_pb_pressure_kern(enum gkyl_basis_type b_type, int cv_index, int cdim, int poly_order)
 {
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      if (poly_order != 2)
-        // Only polyorder 2 basis are supported for ser
-        assert(true);
+      // Verify that the poly-order is 2 for ser case
+      assert(poly_order == 2);
       return ser_canonical_pb_pressure_kernels[cv_index].kernels[poly_order];
       break; 
     case GKYL_BASIS_MODAL_HYBRID:
-      if (poly_order != 1)
-        // Only polyorder 1 basis are supported for hybrid
-        assert(false); 
+      // Verify that the poly-order is 1 for hybrid case
+      assert(poly_order == 1);
       return ser_canonical_pb_pressure_kernels[cv_index].kernels[poly_order];
       break; 
     case GKYL_BASIS_MODAL_TENSOR:
