@@ -57,6 +57,8 @@ deflate_zsurf_choose_kernel(enum gkyl_basis_type basis_type, int dim, int edge, 
       assert(false);
       break;
   }
+
+  return 0;
 }
 
 /**
