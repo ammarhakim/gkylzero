@@ -1,5 +1,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
+#include <gkyl_array_rio.h>
 #include <gkyl_dg_basis_ops.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_ref_count.h>
@@ -592,9 +593,9 @@ eval_cubic_wgrad(double t, const double *xn, double *fout, void *ctx)
   const double *fdg = gkyl_array_cfetch(ectx->cubic, lidx);
   
   fout[0] = ectx->basis.eval_expand(eta, fdg);
-  fout[1] = ectx->basis.eval_grad_expand(0, eta, fdg);
+  fout[1] = ectx->basis.eval_grad_expand(0, eta, fdg)*2/ectx->grid.dx[0];
   if (ectx->ndim > 1)
-    fout[2] = ectx->basis.eval_grad_expand(1, eta, fdg);
+    fout[2] = ectx->basis.eval_grad_expand(1, eta, fdg)*2/ectx->grid.dx[1];
 }
 
 // function for computing cubic at a specified coordinate
@@ -622,9 +623,9 @@ eval_cubic_wgrad2(double t, const double *xn, double *fout, void *ctx)
 
   fout[0] = ectx->basis.eval_expand(eta, fdg);
   if (ectx->ndim > 1) {
-    fout[1] = eval_laplacian_expand_2d_tensor_p3(0, eta, fdg);
-    fout[2] = eval_laplacian_expand_2d_tensor_p3(1, eta, fdg);
-    fout[3] = eval_mixedpartial_expand_2d_tensor_p3(eta, fdg);
+    fout[1] = eval_laplacian_expand_2d_tensor_p3(0, eta, fdg)*2/ectx->grid.dx[0]*2/ectx->grid.dx[0];
+    fout[2] = eval_laplacian_expand_2d_tensor_p3(1, eta, fdg)*2/ectx->grid.dx[1]*2/ectx->grid.dx[1];
+    fout[3] = eval_mixedpartial_expand_2d_tensor_p3(eta, fdg)*2/ectx->grid.dx[0]*2/ectx->grid.dx[1];
   }
 }
 
@@ -675,6 +676,25 @@ gkyl_dg_basis_ops_evalf_new(const struct gkyl_rect_grid *grid,
   evf->ref_count = (struct gkyl_ref_count) { evalf_free, 1 };
   
   return evf;
+}
+
+bool
+gkyl_dg_basis_ops_evalf_write_cubic(const struct gkyl_basis_ops_evalf *evf, const char *fname)
+{
+  struct dg_basis_ops_evalf_ctx *ectx = evf->ctx;
+
+  struct gkyl_msgpack_data *mdata = gkyl_msgpack_create(2,
+    (struct gkyl_msgpack_map_elem []) {
+      { .key = "polyOrder", .elem_type = GKYL_MP_INT, .ival = 3 },
+      { .key = "basisType", .elem_type = GKYL_MP_STRING, .cval = ectx->basis.id }
+    }
+  );
+
+  enum gkyl_array_rio_status status =
+    gkyl_grid_sub_array_write(&ectx->grid, &ectx->local, mdata, ectx->cubic, fname);
+  gkyl_msgpack_data_release(mdata);  
+  
+  return status == GKYL_ARRAY_RIO_SUCCESS;
 }
 
 struct gkyl_basis_ops_evalf *
