@@ -42,6 +42,7 @@ struct gkyl_deflate_zsurf {
   deflate_zsurf_kernel kernel;
   uint32_t flags;
   struct gkyl_deflate_zsurf *on_dev; // pointer to itself or device data
+  bool use_gpu;
 };
 
 GKYL_CU_D
