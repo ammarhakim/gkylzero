@@ -804,6 +804,7 @@ struct gk_neut_species {
   struct gkyl_gyrokinetic_neut_species info; // data for neutral species
 
   struct gkyl_basis basis; // phase-space basis
+  struct gkyl_basis vel_basis;
 
   // pointer to basis on device
   // (points to host structs if not on GPU)

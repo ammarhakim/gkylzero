@@ -943,9 +943,11 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   // Basis is tensor for p=1 and ser for p>1
   if (app->poly_order > 1) {
     gkyl_cart_modal_serendip(&s->basis, pdim, app->poly_order);
+    gkyl_cart_modal_serendip(&s->vel_basis, vdim, app->poly_order);
   }
   else if (app->poly_order == 1) {
     gkyl_cart_modal_tensor(&s->basis, pdim, app->poly_order); // for canonical PB
+    gkyl_cart_modal_serendip(&s->vel_basis, vdim, app->poly_order);
   }
 
   if (app->use_gpu) {
