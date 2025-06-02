@@ -51,6 +51,7 @@ static const array_integrate_sq_weighted_kern_list gkyl_array_integrate_sq_weigh
 
 GKYL_CU_D
 static const array_integrate_sq_weighted_kern_list gkyl_array_integrate_sq_weighted_ker_list_gkhyb[] = {
+  {NULL, NULL},
   {gkyl_array_integrate_op_sq_weighted_1x1v_gkhyb_p1, NULL},
   {gkyl_array_integrate_op_sq_weighted_1x2v_gkhyb_p1, NULL},
   {gkyl_array_integrate_op_sq_weighted_2x2v_gkhyb_p1, NULL},

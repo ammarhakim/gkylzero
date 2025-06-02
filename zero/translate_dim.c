@@ -22,6 +22,15 @@ gkyl_translate_dim_new(int cdim_do, struct gkyl_basis basis_do, int cdim_tar,
   assert(up->vdim_do == up->vdim_tar);
   assert(basis_do.b_type == basis_tar.b_type);
   assert(basis_do.poly_order == basis_tar.poly_order);
+  // Set pointer to the function performing basic checks on the ranges in advance method.
+  if (up->vdim_do == 0) {
+    up->range_check_func = cdim_do > cdim_tar? translate_dim_range_check_conf_deflate
+                                             : translate_dim_range_check_conf_inflate;
+  }
+  else {
+    up->range_check_func = cdim_do > cdim_tar? translate_dim_range_check_phase_deflate
+                                             : translate_dim_range_check_phase_inflate;
+  }
 
   if (!use_gpu)
     up->kernels = gkyl_malloc(sizeof(struct gkyl_translate_dim_kernels));
@@ -42,28 +51,8 @@ gkyl_translate_dim_advance(gkyl_translate_dim* up,
   const struct gkyl_array *GKYL_RESTRICT fdo, int ncomp,
   struct gkyl_array *GKYL_RESTRICT ftar)
 {
-  // Perform some basic checks:
-  const struct gkyl_range *hidim_rng, *lodim_rng;
-  if (rng_do->ndim > rng_tar->ndim) {
-    hidim_rng = rng_do;
-    lodim_rng = rng_tar;
-  }
-  else {
-    hidim_rng = rng_tar;
-    lodim_rng = rng_do;
-  }
-  int c = 0;
-  for (int d=0; d<hidim_rng->ndim; d++) {
-    if (d != up->dir) {
-      assert(hidim_rng->lower[d] == lodim_rng->lower[c]);
-      assert(hidim_rng->upper[d] == lodim_rng->upper[c]);
-      c++;
-    }
-  }
-  for (int d=0; d<up->vdim_do; d++) {
-    assert(rng_do->lower[up->cdim_do+d] == rng_tar->lower[up->cdim_tar+d]);
-    assert(rng_do->upper[up->cdim_do+d] == rng_tar->upper[up->cdim_tar+d]);
-  };
+  // Perform some basic checks.
+  up->range_check_func(up->dir, up->cdim_do, up->cdim_tar, up->vdim_do, rng_do, rng_tar);
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
