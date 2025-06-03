@@ -105,7 +105,7 @@ create_ctx(void)
   int Ny = 128; // Cell count (y-direction).
   double Lx = 20.48 * d_i; // Domain size (x-direction).
   double Ly = 20.48 * d_i; // Domain size (y-direction).
-  double k0 = 5.0; // Closure parameter.
+  double k0 = 5000.0; // Closure parameter.
   double cfl_frac = 1.0; // CFL coefficient.
 
   double t_end = 75.0 / omega_ci; // Final simulation time.
@@ -118,7 +118,7 @@ create_ctx(void)
   // Neural network parameters.
   bool use_nn_closure = false; // Use neural network-based closure?
   int poly_order = 1; // Polynomial order of learned DG coefficients.
-  const char* nn_closure_file = "data/neural_nets/pkpm_2d_travel_pulse_p1_moms_nn_1"; // File path of neural network to use.
+  const char* nn_closure_file = "data/neural_nets/pkpm_ot_p1_moms_nn_1"; // File path of neural network to use.
 
   struct ot_ctx ctx = {
     .pi = pi,
