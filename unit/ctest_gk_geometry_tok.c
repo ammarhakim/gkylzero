@@ -750,14 +750,16 @@ test_3x_p1_pmap_straight_cylinder()
   int nghost[3] = { 1,1,1};
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
-  struct gkyl_position_map_inp pos_map_inp = {
-    .maps = {0, 0, mapz},
-    .ctxs = {0, 0, 0},
-  };
-
-  // Configuration space geometry initialization
-  struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp, grid, range, 
-    ext_range, range, ext_range, basis);
+  struct gkyl_position_map *pos_map = gkyl_position_map_new((struct gkyl_position_map_new_inp) {
+    .maps = {0, 0, mapz}, // Position mapping in each position direction
+    .ctxs = {0, 0, 0}, // Context for each position mapping function
+    .grid = grid,
+    .local = range,
+    .local_ext = ext_range,
+    .global = range,
+    .global_ext = ext_range,
+    .basis = basis,
+  });
 
   struct gkyl_efit_inp inp = {
     // psiRZ and related inputs

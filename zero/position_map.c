@@ -21,15 +21,13 @@ gkyl_position_map_identity(double t, const double *xn, double *fout, void *ctx)
 }
 
 struct gkyl_position_map*
-gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_grid grid,
-  struct gkyl_range local, struct gkyl_range local_ext, struct gkyl_range global, struct gkyl_range global_ext,
-  struct gkyl_basis basis)
+gkyl_position_map_new(struct gkyl_position_map_new_inp pmap_info)
 {
   struct gkyl_position_map *gpm = gkyl_malloc(sizeof(*gpm));
   gpm->id = pmap_info.id;
 
   gpm->bmag_ctx = gkyl_malloc(sizeof(struct gkyl_bmag_ctx));
-  gpm->bmag_ctx->bmag = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, global_ext.volume);
+  gpm->bmag_ctx->bmag = gkyl_array_new(GKYL_DOUBLE, pmap_info.basis.num_basis, pmap_info.global_ext.volume);
   gpm->to_optimize = false;
 
   gpm->constB_ctx = gkyl_malloc(sizeof(struct gkyl_position_map_const_B_ctx));
@@ -84,13 +82,13 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
       gpm->constB_ctx->maximum_slope_at_max_B = pmap_info.maximum_slope_at_max_B;
   }
 
-  gpm->grid = grid;
-  gpm->local = local;
-  gpm->local_ext = local_ext;
-  gpm->global = global;
-  gpm->global_ext = global_ext;
-  gpm->basis = basis;
-  gpm->cdim = grid.ndim; 
+  gpm->grid = pmap_info.grid;
+  gpm->local = pmap_info.local;
+  gpm->local_ext = pmap_info.local_ext;
+  gpm->global = pmap_info.global;
+  gpm->global_ext = pmap_info.global_ext;
+  gpm->basis = pmap_info.basis;
+  gpm->cdim = pmap_info.grid.ndim; 
   gpm->mc2nu = gkyl_array_new(GKYL_DOUBLE, 3*gpm->basis.num_basis, gpm->local_ext.volume);
   gpm->flags = 0;
   GKYL_CLEAR_CU_ALLOC(gpm->flags);

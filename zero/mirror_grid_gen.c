@@ -100,10 +100,32 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
 
   struct psirz_ctx pctx = { .evcub = evcub };
 
+  struct gkyl_range nrange;
+  int nodes[2];
+  if (inp->basis.poly_order == 1) {
+    nodes[0] = gkyl_range_shape(&inp->range, 0) + 1;
+    nodes[1] = gkyl_range_shape(&inp->range, 2) + 1;
+  }
+  if (inp->basis.poly_order == 2) {
+    nodes[0] = 2*gkyl_range_shape(&inp->range, 0) + 1;
+    nodes[1] = 2*gkyl_range_shape(&inp->range, 2) + 1;
+  }
+  gkyl_range_init_from_shape(&nrange, 2, nodes);
+
+  gkyl_position_map_optimize(inp->pmap, *inp->comp_grid, inp->range); // what grid is this? Is this 3x global and 3x grid or deflated?
+
+  enum { PSI_I, DPSI_R_I, DPSI_Z_I };
+
   // Compute node locations
   bool status = true;
   for (int iz=0; iz<nc[NZ]; ++iz) {
     double zcurr = z_lo + iz*dz;
+    
+    double Zcurr;
+    inp->pmap->maps[2](0.0, &zcurr,  &Zcurr,  inp->pmap->ctxs[2]);
+    double dZ_dz = gkyl_position_map_slope(inp->pmap, 2, zcurr,\
+        dz, iz, &nrange); // derivative of the position map in Z direction
+    zcurr = Zcurr; // update zcurr to be the mapped value
 
     double psi_min[1], psi_max[1];
     evcub->eval_cubic(0.0, (double[2]) { rmin, zcurr }, psi_min, evcub->ctx);
@@ -111,10 +133,14 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
 
     for (int ipsi=0; ipsi<nc[NPSI]; ++ipsi) {
 
+      int idx[2] = { ipsi, iz };
+      long loc = gkyl_range_idx(&node_rng, idx);
+      double *rz = gkyl_array_fetch(geo->nodes_rz, loc);
+      double *psi_coord = gkyl_array_fetch(geo->nodes_psi, loc);
+
       if (inc_axis && (ipsi == 0)) {
-        int idx[2] = { ipsi, iz };
-        double *rz = gkyl_array_fetch(geo->nodes_rz, gkyl_range_idx(&node_rng, idx));
         rz[0] = 0.0; rz[1] = zcurr;
+        psi_coord[0] = 0.0; // store psi coordinate
       }
       else {
         double psic_curr = psic_lo + ipsi*dpsi;
@@ -135,28 +161,11 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
           status = false;
           goto cleanup;
         }
-        
-        int idx[2] = { ipsi, iz };
-        double *rz = gkyl_array_fetch(geo->nodes_rz, gkyl_range_idx(&node_rng, idx));
         rz[0] = root.res; rz[1] = zcurr;
-        double *psi_coord = gkyl_array_fetch(geo->nodes_psi, gkyl_range_idx(&node_rng, idx));
         psi_coord[0] = psi_curr; // store psi coordinate
       }
-    }
-  }
-
-  enum { PSI_I, DPSI_R_I, DPSI_Z_I };
-  
-  // Compute geometry at nodes
-  for (int iz=0; iz<nc[NZ]; ++iz) {
-    
-    for (int ipsi=0; ipsi<nc[NPSI]; ++ipsi) {
-      int idx[2] = { ipsi, iz };
-      long loc = gkyl_range_idx(&node_rng, idx);
       
-      const double *rzp = gkyl_array_cfetch(geo->nodes_rz, loc);
-      double rz[2] = { rzp[0], rzp[1] };
-      
+      // Determine the geometry at this node
       struct gkyl_mirror_grid_gen_geom *g = gkyl_array_fetch(geo->nodes_geom, loc);
       
       if (inc_axis && (ipsi == 0)) {
@@ -179,7 +188,7 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
 
         g->dual[2].x[0] = 0;
         g->dual[2].x[1] = 0.0;
-        g->dual[2].x[2] = 1.0;        
+        g->dual[2].x[2] = 1.0 / dZ_dz;        
         
         g->tang[0].x[0] = 1.0;
         g->tang[0].x[1] = 0.0;
@@ -191,12 +200,12 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
         
         g->tang[2].x[0] = 0;
         g->tang[2].x[1] = 0.0;
-        g->tang[2].x[2] = 1.0;
+        g->tang[2].x[2] = 1.0 * dZ_dz;
         
         if (inp->fl_coord == GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z)
           g->Jc = 0; // assumes asymptotics of psi ~ r^2 as r -> 0
         else
-          g->Jc = 1/fout2[DPSI_R_I];
+          g->Jc = 1/fout2[DPSI_R_I] * dZ_dz;
 
         g->B.x[0] = 0.0; // no radial component
         g->B.x[1] = 0.0;
@@ -225,7 +234,7 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
         // e^3 is just sigma_3
         g->dual[2].x[0] = 0;
         g->dual[2].x[1] = 0.0;
-        g->dual[2].x[2] = 1.0;
+        g->dual[2].x[2] = 1.0 / dZ_dz;
 
         // e_1 points along the radial direction
         g->tang[0].x[0] = 1/g->dual[0].x[0];
@@ -240,12 +249,12 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
         // e_3
         g->tang[2].x[0] = -fout[DPSI_Z_I]/fout[DPSI_R_I];
         g->tang[2].x[1] = 0.0;
-        g->tang[2].x[2] = 1.0;
+        g->tang[2].x[2] = 1.0 * dZ_dz;
         
         if (inp->fl_coord == GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z)
-          g->Jc = 2*floor_sqrt(fout[PSI_I])*rz[0]/fout[DPSI_R_I];
+          g->Jc = 2*floor_sqrt(fout[PSI_I])*rz[0]/fout[DPSI_R_I] * dZ_dz;
         else
-          g->Jc = rz[0]/fout[DPSI_R_I];
+          g->Jc = rz[0]/fout[DPSI_R_I] * dZ_dz;
         
         g->B.x[0] = -fout[DPSI_Z_I]/rz[0];
         g->B.x[1] = 0.0;

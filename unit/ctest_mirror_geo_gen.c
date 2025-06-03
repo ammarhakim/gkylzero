@@ -31,6 +31,26 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   struct gkyl_rect_grid psi_grid;
   struct gkyl_array *psi = gkyl_grid_array_new_from_file(&psi_grid, fname);
 
+  struct gkyl_basis basis;
+  int poly_order = 1;
+  int cdim = 3;
+  gkyl_cart_modal_serendip(&basis, cdim, poly_order);
+  
+  struct gkyl_range ext_range, range;
+  int nghost[3] = { 1,1,1};
+  gkyl_create_grid_ranges(&comp_grid, nghost, &ext_range, &range);
+
+  struct gkyl_position_map_new_inp pos_map_inp = {  
+    .basis = basis,
+    .grid = comp_grid,
+    .local = range,
+    .local_ext = ext_range,
+    .global = range,
+    .global_ext = ext_range,
+  };
+
+  // Configuration space geometry initialization
+  struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp);
 
   // create mirror geometry
   struct gkyl_mirror_grid_gen *mirror_grid =
@@ -48,17 +68,12 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
         .fl_coord = fl_coord,
         .include_axis = include_axis,
         .write_psi_cubic = false,
+
+        .pmap = pos_map,
+        .basis = basis,
+        .range = range,
       }
     );
-
-  struct gkyl_basis basis;
-  int poly_order = 1;
-  int cdim = 3;
-  gkyl_cart_modal_serendip(&basis, cdim, poly_order);
-  
-  struct gkyl_range ext_range, range;
-  int nghost[3] = { 1,1,1};
-  gkyl_create_grid_ranges(&comp_grid, nghost, &ext_range, &range);
 
   struct gkyl_mirror_geo_gen *mirror_geo = 
     gkyl_mirror_geo_gen_inew(&(struct gkyl_mirror_geo_gen_inp) {

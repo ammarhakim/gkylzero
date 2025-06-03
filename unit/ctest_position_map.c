@@ -97,13 +97,16 @@ test_position_map_init_1x()
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  struct gkyl_position_map_inp pos_map_inp = {
-    .maps = {test_nonuniform_position_map, test_nonuniform_position_map, test_nonuniform_position_map},
+  struct gkyl_position_map *pos_map = gkyl_position_map_new((struct gkyl_position_map_new_inp) {
+    .maps = {test_nonuniform_position_map, test_nonuniform_position_map, test_identity_position_map},
     .ctxs = {NULL, NULL, NULL},
-  };
-
-  struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp,
-    grid, localRange, localRange_ext, localRange, localRange_ext, basis);
+    .grid = grid,
+    .local = localRange,
+    .local_ext = localRange_ext,
+    .global = localRange,
+    .global_ext = localRange_ext,
+    .basis = basis,
+  });
 
   TEST_CHECK(pos_map->to_optimize == 0);
   TEST_CHECK(pos_map->grid.ndim == 1);
@@ -135,11 +138,12 @@ test_position_map_init_1x_null()
   // Basis functions.
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
-
-  struct gkyl_position_map_inp pos_map_inp = { };
   
-  struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp, \
-    grid, localRange, localRange_ext, localRange, localRange_ext, basis);
+  struct gkyl_position_map *pos_map = gkyl_position_map_new((struct gkyl_position_map_new_inp) {
+    .basis = basis,
+    .local_ext = localRange_ext,
+    .global_ext = localRange_ext,
+  });
 
   TEST_CHECK(pos_map->id == GKYL_PMAP_USER_INPUT);
   for (double i = 0; i < 1; i = i+0.1){
@@ -155,8 +159,8 @@ test_position_map_init_1x_null()
     TEST_CHECK(y[0] == x[0]);
   }
   TEST_CHECK(pos_map->to_optimize == 0);
-  TEST_CHECK(pos_map->grid.ndim == 1);
-  TEST_CHECK(pos_map->local.ndim == 1);
+  TEST_CHECK(pos_map->grid.ndim == 0);
+  TEST_CHECK(pos_map->local.ndim == 0);
   TEST_CHECK(pos_map->local_ext.ndim == 1);
   TEST_CHECK(pos_map->basis.ndim == 1);
   TEST_CHECK(pos_map->basis.poly_order == 1);
@@ -184,13 +188,16 @@ test_position_map_init_2x()
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  struct gkyl_position_map_inp pos_map_inp = {
+  struct gkyl_position_map *pos_map = gkyl_position_map_new((struct gkyl_position_map_new_inp) {
     .maps = {test_nonuniform_position_map, test_nonuniform_position_map, test_nonuniform_position_map},
     .ctxs = {0, 0, 0},
-  };
-
-  struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp, \
-    grid, localRange, localRange_ext, localRange, localRange_ext, basis);
+    .grid = grid,
+    .local = localRange,
+    .local_ext = localRange_ext,
+    .global = localRange,
+    .global_ext = localRange_ext,
+    .basis = basis,
+  });
 
   TEST_CHECK(pos_map->to_optimize == 0);
   TEST_CHECK(pos_map->grid.ndim == 2);
@@ -222,13 +229,16 @@ test_position_map_init_3x()
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  struct gkyl_position_map_inp pos_map_inp = {
+  struct gkyl_position_map *pos_map = gkyl_position_map_new((struct gkyl_position_map_new_inp) {
     .maps = {test_nonuniform_position_map, test_nonuniform_position_map, test_nonuniform_position_map},
     .ctxs = {0, 0, 0},
-  };
-
-  struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp, \
-    grid, localRange, localRange_ext, localRange, localRange_ext, basis);
+    .grid = grid,
+    .local = localRange,
+    .local_ext = localRange_ext,
+    .global = localRange,
+    .global_ext = localRange_ext,
+    .basis = basis,
+  });
 
   TEST_CHECK(pos_map->to_optimize == 0);
   TEST_CHECK(pos_map->grid.ndim == 3);
@@ -259,14 +269,17 @@ test_position_map_set()
   // Basis functions.
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
-  
-  struct gkyl_position_map_inp pos_map_inp = {
+
+  struct gkyl_position_map *pos_map = gkyl_position_map_new((struct gkyl_position_map_new_inp) {
     .maps = {test_nonuniform_position_map, test_nonuniform_position_map, test_nonuniform_position_map},
     .ctxs = {0, 0, 0},
-  };
-
-  struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp, \
-    grid, localRange, localRange_ext, localRange, localRange_ext, basis);
+    .grid = grid,
+    .local = localRange,
+    .local_ext = localRange_ext,
+    .global = localRange,
+    .global_ext = localRange_ext,
+    .basis = basis,
+  });
 
   struct gkyl_array *pmap_arr_set = gkyl_array_new(GKYL_DOUBLE, \
     3*pos_map->basis.num_basis, pos_map->local_ext.volume);
@@ -301,14 +314,17 @@ test_gkyl_position_map_eval_mc2nu()
   // Basis functions.
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
-  
-  struct gkyl_position_map_inp pos_map_inp = {
+
+  struct gkyl_position_map *pos_map = gkyl_position_map_new((struct gkyl_position_map_new_inp) {
     .maps = {test_nonuniform_position_map, test_nonuniform_position_map, test_nonuniform_position_map},
     .ctxs = {0, 0, 0},
-  };
-
-  struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp, \
-    grid, localRange, localRange_ext, localRange, localRange_ext, basis);
+    .grid = grid,
+    .local = localRange,
+    .local_ext = localRange_ext,
+    .global = localRange,
+    .global_ext = localRange_ext,
+    .basis = basis,
+  });
 
   struct gkyl_array *pmap_arr_set = gkyl_array_new(GKYL_DOUBLE, \
     3*pos_map->basis.num_basis, pos_map->local_ext.volume);
@@ -359,14 +375,17 @@ test_gkyl_position_map_slope()
   // Basis functions.
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
-  
-  struct gkyl_position_map_inp pos_map_inp = {
+
+  struct gkyl_position_map *pos_map = gkyl_position_map_new((struct gkyl_position_map_new_inp) {
     .maps = {test_nonuniform_position_map, test_nonuniform_position_map, test_nonuniform_position_map},
     .ctxs = {0, 0, 0},
-  };
-
-  struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp, \
-    grid, localRange, localRange_ext, localRange, localRange_ext, basis);
+    .grid = grid,
+    .local = localRange,
+    .local_ext = localRange_ext,
+    .global = localRange,
+    .global_ext = localRange_ext,
+    .basis = basis,
+  });
 
   struct gkyl_array *pmap_arr_set = gkyl_array_new(GKYL_DOUBLE, \
     3*pos_map->basis.num_basis, pos_map->local_ext.volume);
@@ -424,13 +443,16 @@ test_position_polynomial_map_optimize_1x()
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  struct gkyl_position_map_inp pos_map_inp = {
+  struct gkyl_position_map *pos_map = gkyl_position_map_new((struct gkyl_position_map_new_inp) {
     .id = GKYL_PMAP_CONSTANT_DB_POLYNOMIAL,
     .map_strength = 1.0,
-  };
-
-  struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp,\
-    grid, localRange, localRange_ext, localRange, localRange_ext, basis);
+    .grid = grid,
+    .local = localRange,
+    .local_ext = localRange_ext,
+    .global = localRange,
+    .global_ext = localRange_ext,
+    .basis = basis,
+  });
 
   // Project bmag_func onto bmag_global
   struct gkyl_array *bmag_global = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, localRange_ext.volume);
@@ -483,13 +505,16 @@ test_position_map_numeric_optimize_1x()
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  struct gkyl_position_map_inp pos_map_inp = {
+  struct gkyl_position_map *pos_map = gkyl_position_map_new((struct gkyl_position_map_new_inp) {
     .id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
     .map_strength = 1.0,
-  };
-
-  struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp,\
-    grid, localRange, localRange_ext, localRange, localRange_ext, basis);
+    .grid = grid,
+    .local = localRange,
+    .local_ext = localRange_ext,
+    .global = localRange,
+    .global_ext = localRange_ext,
+    .basis = basis,
+  });
 
   // Project bmag_func onto bmag_global
   struct gkyl_array *bmag_global = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, localRange_ext.volume);
@@ -542,13 +567,16 @@ test_position_map_numeric_calculate_1x()
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  struct gkyl_position_map_inp pos_map_inp = {
+  struct gkyl_position_map *pos_map = gkyl_position_map_new((struct gkyl_position_map_new_inp) {
     .id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
     .map_strength = 1.0,
-  };
-
-  struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp,\
-    grid, localRange, localRange_ext, localRange, localRange_ext, basis);
+    .grid = grid,
+    .local = localRange,
+    .local_ext = localRange_ext,
+    .global = localRange,
+    .global_ext = localRange_ext,
+    .basis = basis,
+  });
 
   // Project bmag_func onto bmag_global
   struct gkyl_array *bmag_global = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, localRange_ext.volume);

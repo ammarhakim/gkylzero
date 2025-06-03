@@ -31,6 +31,27 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   struct gkyl_rect_grid psi_grid;
   struct gkyl_array *psi = gkyl_grid_array_new_from_file(&psi_grid, fname);
 
+  struct gkyl_basis basis;
+  int poly_order = 1;
+  int cdim = 2;
+  gkyl_cart_modal_serendip(&basis, cdim, poly_order);
+  
+  struct gkyl_range ext_range, range;
+  int nghost[2] = { 1, 1 };
+  gkyl_create_grid_ranges(&comp_grid, nghost, &ext_range, &range);
+
+  struct gkyl_position_map_new_inp pos_map_inp = {  
+    .basis = basis,
+    .grid = comp_grid,
+    .local = range,
+    .local_ext = ext_range,
+    .global = range,
+    .global_ext = ext_range,
+  };
+
+  // Configuration space geometry initialization
+  struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp);
+
   // create mirror geometry
   struct gkyl_mirror_grid_gen *geom =
     gkyl_mirror_grid_gen_inew(&(struct gkyl_mirror_grid_gen_inp) {
@@ -47,6 +68,10 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
         .fl_coord = fl_coord,
         .include_axis = include_axis,
         .write_psi_cubic = false,
+
+        .pmap = pos_map,
+        .range = range,
+        .basis = basis,
       }
     );
 
@@ -126,6 +151,7 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
     }
   }
 
+  gkyl_position_map_release(pos_map);
   gkyl_mirror_grid_gen_release(geom);
   gkyl_array_release(psi);
 
@@ -195,6 +221,27 @@ test_quad_geom(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_
     pn[0] = 0.5*(R*R)*(Z*Z+1.0); // psi(R,Z) = 1/2*R^2*(Z^2+1.0)
   }
 
+  struct gkyl_basis basis;
+  int poly_order = 1;
+  int cdim = 2;
+  gkyl_cart_modal_serendip(&basis, cdim, poly_order);
+  
+  struct gkyl_range ext_range, range;
+  int nghost[2] = { 1, 1 };
+  gkyl_create_grid_ranges(&comp_grid, nghost, &ext_range, &range);
+
+  struct gkyl_position_map_new_inp pos_map_inp = {  
+    .basis = basis,
+    .grid = comp_grid,
+    .local = range,
+    .local_ext = ext_range,
+    .global = range,
+    .global_ext = ext_range,
+  };
+
+  // Configuration space geometry initialization
+  struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp);
+
   // create mirror geometry
   struct gkyl_mirror_grid_gen *geom =
     gkyl_mirror_grid_gen_inew(&(struct gkyl_mirror_grid_gen_inp) {
@@ -211,7 +258,11 @@ test_quad_geom(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_
         .fl_coord = fl_coord,
         .include_axis = include_axis,
         .write_psi_cubic = false,
-        .psi_cubic_fname = "ctest_mirror_grid_gen_quad.gkyl"
+        .psi_cubic_fname = "ctest_mirror_grid_gen_quad.gkyl",
+
+        .pmap = pos_map,
+        .range = range,
+        .basis = basis,
       }
     );
 
@@ -316,6 +367,7 @@ test_quad_geom(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_
     
   }
 
+  gkyl_position_map_release(pos_map);
   gkyl_mirror_grid_gen_release(geom);
   gkyl_array_release(psi);
 

@@ -6,6 +6,8 @@
 #include <gkyl_array.h>
 #include <gkyl_comm.h>
 #include <gkyl_comm_io.h>
+#include <gkyl_rect_grid.h>
+
 
 enum gkyl_position_map_id {
   GKYL_PMAP_USER_INPUT = 0, // Function projection. User specified. Default
@@ -15,6 +17,7 @@ enum gkyl_position_map_id {
 
 typedef void (*mc2nu_t)(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx);
 
+// Struct for the input file for the position map
 struct gkyl_position_map_inp {
   enum gkyl_position_map_id id;
   mc2nu_t maps[3]; // Position mapping in each position direction. This is defined in full 3x, 
@@ -25,6 +28,24 @@ struct gkyl_position_map_inp {
   // xnu' = xnu * s + xc * (1-s)
   double maximum_slope_at_min_B; // The maximum slope of the mapping at a magnetic field minimum. A number > 1. Hard limits on cell sizes
   double maximum_slope_at_max_B; // The maximum slope of the mapping at a magnetic field maximum. A number > 1. Hard limits on cell sizes
+};
+
+// Struct that gkyl_position_map_new() takes as input
+struct gkyl_position_map_new_inp {
+  enum gkyl_position_map_id id;
+  mc2nu_t maps[3]; // Position mapping in each position direction. This is defined in full 3x, 
+  // not in deflated coordinates.
+  void *ctxs[3]; // Context for each position mapping function.
+  double map_strength; // Zero is uniform mapping, one is fully nonuniform mapping. How strong the nonuniformity is
+  // Call map_strength = s, xc computational coordinate, and xnu the nonuniform coordinate
+  // xnu' = xnu * s + xc * (1-s)
+  double maximum_slope_at_min_B; // The maximum slope of the mapping at a magnetic field minimum. A number > 1. Hard limits on cell sizes
+  double maximum_slope_at_max_B; // The maximum slope of the mapping at a magnetic field maximum. A number > 1. Hard limits on cell sizes
+
+  // The following quantities are defined on the deflated grid
+  struct gkyl_rect_grid grid;
+  struct gkyl_range local, local_ext, global, global_ext;
+  struct gkyl_basis basis;
 };
 
 struct gkyl_position_map {
@@ -80,17 +101,10 @@ struct gkyl_position_map_const_B_ctx {
  * same coordinate space as computational coordinates. (e.g. uniform field
  * aligned -> non-uniform field aligned).
  *
- * @param pmap_info Comp. to phys. mapping input object (see definition above).
- * @param grid Position space grid.
- * @param local Local position range.
- * @param local_ext Local extended position range.
- * @param global Global position range.
- * @param use_gpu Whether to create a device copy of this new object.
+ * @param pmap_info Comp. to phys. mapping input object (see definition above). Input parameters
  * @return New position map object.
  */
-struct gkyl_position_map* gkyl_position_map_new(struct gkyl_position_map_inp pmap_info,
-  struct gkyl_rect_grid grid, struct gkyl_range local, struct gkyl_range local_ext, 
-  struct gkyl_range global, struct gkyl_range global_ext, struct gkyl_basis basis);
+struct gkyl_position_map* gkyl_position_map_new(struct gkyl_position_map_new_inp pmap_info);
 
 /**
  * Set the position map object. Copy the non-uniform map array to the position map object.

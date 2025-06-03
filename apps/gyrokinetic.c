@@ -290,9 +290,21 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   int comm_sz;
   gkyl_comm_get_size(app->comm, &comm_sz);
 
-  // Configuration space geometry initialization
-  app->position_map = gkyl_position_map_new(gk->geometry.position_map_info, app->grid, app->local, 
-      app->local_ext, app->global, app->global_ext, app->basis);
+  app->position_map = gkyl_position_map_new((struct gkyl_position_map_new_inp) {
+    .id = gk->geometry.position_map_info.id,
+    .maps = { gk->geometry.position_map_info.maps[0], gk->geometry.position_map_info.maps[1], gk->geometry.position_map_info.maps[2] },
+    .ctxs = { gk->geometry.position_map_info.ctxs[0], gk->geometry.position_map_info.ctxs[1], gk->geometry.position_map_info.ctxs[2] },
+    .map_strength = gk->geometry.position_map_info.map_strength,
+    .maximum_slope_at_min_B = gk->geometry.position_map_info.maximum_slope_at_min_B,
+    .maximum_slope_at_max_B = gk->geometry.position_map_info.maximum_slope_at_max_B,
+
+    .grid = app->grid,
+    .local = app->local,
+    .local_ext = app->local_ext,
+    .global = app->global,
+    .global_ext = app->global_ext,
+    .basis = app->basis,
+  });
 
   // Initialize the input struct from user side input struct
   struct gkyl_gk_geometry_inp geometry_inp = {

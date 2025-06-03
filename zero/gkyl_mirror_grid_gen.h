@@ -2,6 +2,7 @@
 
 #include <gkyl_array.h>
 #include <gkyl_math.h>
+#include <gkyl_position_map.h>
 #include <gkyl_rect_grid.h>
 
 // Forward declare internal object
@@ -44,6 +45,10 @@ struct gkyl_mirror_grid_gen_inp {
 
   bool write_psi_cubic; // set to true to write the cubic fit to file
   const char *psi_cubic_fname; // name for cubic fit file
+
+  struct gkyl_range range; // 3x range that the bmag is defined on
+  struct gkyl_basis basis; // Basis for the geometry
+  struct gkyl_position_map *pmap; // position map object, if any
 };
 
 /**

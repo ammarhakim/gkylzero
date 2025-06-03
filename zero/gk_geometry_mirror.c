@@ -41,6 +41,10 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
         .fl_coord = geometry_inp->mirror_grid_info.fl_coord,
         .include_axis = geometry_inp->mirror_grid_info.include_axis,
         .write_psi_cubic = false,
+
+        .range = up->global,
+        .basis = up->basis,
+        .pmap = geometry_inp->position_map,
       }
     );
 
@@ -95,9 +99,14 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   struct gk_geometry* gk_geom;
 
   if (geometry_inp->position_map == 0){
-    geometry_inp->position_map = gkyl_position_map_new((struct gkyl_position_map_inp) {}, \
-      geometry_inp->grid, geometry_inp->local, geometry_inp->local_ext, geometry_inp->local, \
-      geometry_inp->local_ext, geometry_inp->basis);
+    geometry_inp->position_map = gkyl_position_map_new((struct gkyl_position_map_new_inp) {
+      .grid = geometry_inp->grid,
+      .local = geometry_inp->local,
+      .local_ext = geometry_inp->local_ext,
+      .global = geometry_inp->global,
+      .global_ext = geometry_inp->global_ext,
+      .basis = geometry_inp->basis,
+    });
     gk_geom_3d = gk_geometry_mirror_init(geometry_inp);
     gkyl_position_map_release(geometry_inp->position_map);
   }
