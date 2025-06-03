@@ -18,6 +18,7 @@
 #endif
 
 #include <rt_arg_parse.h>
+#include <kann.h>
 
 struct ot_ctx
 {
@@ -44,7 +45,7 @@ struct ot_ctx
   double vti; // Ion thermal velocity.
 
   double omega_ci; // Ion cyclotron frequency.
-  double rho_s; // Ion sound gyroradius.
+  double d_i; // Ion sound inertial length.
 
   double delta_B0; // Reference magnetic field strength perturbation.
   double delta_u0; // Reference fluid velocity perturbation.
@@ -114,7 +115,7 @@ create_ctx(void)
   double vti = vte / sqrt(mass_ion); // Ion thermal velocity.
 
   double omega_ci = charge_ion * B0 / mass_ion; // Ion cyclotron frequency.
-  double rho_s = vAi / omega_ci; // Ion sound gyroradius.
+  double d_i = vAi / omega_ci; // Ion sound inertial length.
 
   double delta_B0 = 0.2 * B0; // Reference magnetic field strength perturbation.
   double delta_u0 = 0.2 * vAi; // Reference fluid velocity perturbation.
@@ -126,15 +127,15 @@ create_ctx(void)
   int Nx = 32; // Cell count (configuration space: x-direction).
   int Ny = 32; // Cell count (configuration space: y-direction).
   int Nvx = 16; // Cell count (velocity space: vx-direction).
-  double Lx = 20.48 * rho_s; // Domain size (configuration space: x-direction).
-  double Ly = 20.48 * rho_s; // Domain size (configuration space: y-direction).
+  double Lx = 20.48 * d_i; // Domain size (configuration space: x-direction).
+  double Ly = 20.48 * d_i; // Domain size (configuration space: y-direction).
   double vx_max_elc = 6.0 * vte; // Domain boundary (electron velocity space: vx-direction).
   double vx_max_ion = 6.0 * vti; // Domain boundary (ion velocity space: vx-direction).
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
   double t_end = 75.0 / omega_ci; // Final simulation time.
-  int num_frames = 100; // Number of output frames.
+  int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   int integrated_L2_f_calcs = INT_MAX; // Number of times to calculate integrated L2 norm of distribution function.
@@ -148,7 +149,7 @@ create_ctx(void)
   int nn_depth = 5; // Number of layers to use.
   const char* train_nn_file = "pkpm_ot_p1_moms_nn_1"; // File path of neural network to train.
   int num_trains = INT_MAX; // Number of times to train neural network.
-  int num_nn_writes = 100; // Number of times to write out neural network.
+  int num_nn_writes = 1; // Number of times to write out neural network.
   int num_input_moms = 3; // Number of "input" moments to train on.
   int* input_moms = gkyl_malloc(sizeof(int[3]));
   input_moms[0] = 0; input_moms[1] = 2; input_moms[2] = 3; // Array of "input" moments to train on.
@@ -175,7 +176,7 @@ create_ctx(void)
     .vte = vte,
     .vti = vti,
     .omega_ci = omega_ci,
-    .rho_s = rho_s,
+    .d_i = d_i,
     .delta_B0 = delta_B0,
     .delta_u0 = delta_u0,
     .nu_elc = nu_elc,
