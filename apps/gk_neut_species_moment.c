@@ -16,6 +16,7 @@ gk_neut_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spe
       .phase_grid = &s->grid,
       .vel_grid = &s->grid_vel, 
       .conf_basis = &app->basis,
+      .vel_basis = &s->vel_basis,
       .phase_basis = &s->basis,
       .conf_range =  &app->local,
       .conf_range_ext = &app->local_ext,
