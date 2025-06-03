@@ -12,10 +12,10 @@ translate_dim_range_check_conf_deflate(int dir, int cdim_do, int cdim_tar, int v
   const struct gkyl_range *rng_do, const struct gkyl_range *rng_tar)
 {
   int c = 0;
-  for (int d=0; d<cdim_tar; d++) {
+  for (int d=0; d<cdim_do; d++) {
     if (d != dir) {
-      assert(rng_tar->lower[d] == rng_do->lower[c]);
-      assert(rng_tar->upper[d] == rng_do->upper[c]);
+      assert(rng_tar->lower[c] == rng_do->lower[d]);
+      assert(rng_tar->upper[c] == rng_do->upper[d]);
       c++;
     }
   }
