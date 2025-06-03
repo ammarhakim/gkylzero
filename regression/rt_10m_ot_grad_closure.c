@@ -18,7 +18,7 @@
 #include <rt_arg_parse.h>
 #include <kann.h>
 
-struct ot_ctx
+struct ot_grad_closure_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
@@ -69,7 +69,7 @@ struct ot_ctx
   const char* nn_closure_file; // File path of neural network to use.
 };
 
-struct ot_ctx
+struct ot_grad_closure_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
@@ -120,7 +120,7 @@ create_ctx(void)
   int poly_order = 1; // Polynomial order of learned DG coefficients.
   const char* nn_closure_file = "data/neural_nets/pkpm_2d_travel_pulse_p1_moms_nn_1"; // File path of neural network to use.
 
-  struct ot_ctx ctx = {
+  struct ot_grad_closure_ctx ctx = {
     .pi = pi,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
@@ -162,7 +162,7 @@ create_ctx(void)
 void
 evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct ot_ctx *app = ctx;
+  struct ot_grad_closure_ctx *app = ctx;
   double x = xn[0], y = xn[1];
 
   double pi = app->pi;
@@ -210,7 +210,7 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
 void
 evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct ot_ctx *app = ctx;
+  struct ot_grad_closure_ctx *app = ctx;
   double x = xn[0], y = xn[1];
 
   double pi = app->pi;
@@ -253,7 +253,7 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
 void
 evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct ot_ctx *app = ctx;
+  struct ot_grad_closure_ctx *app = ctx;
   double x = xn[0], y = xn[1];
 
   double pi = app->pi;
@@ -337,7 +337,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct ot_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct ot_grad_closure_ctx ctx = create_ctx(); // Context for initialization functions.
     
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
@@ -358,8 +358,8 @@ main(int argc, char **argv)
   }
     
   // Electron/ion equations.
-  struct gkyl_wv_eqn *elc_ten_moment = gkyl_wv_ten_moment_new(ctx.k0, false, ctx.use_nn_closure, ctx.poly_order, ann[0], app_args.use_gpu);
-  struct gkyl_wv_eqn *ion_ten_moment = gkyl_wv_ten_moment_new(ctx.k0, false, ctx.use_nn_closure, ctx.poly_order, ann[1], app_args.use_gpu);
+  struct gkyl_wv_eqn *elc_ten_moment = gkyl_wv_ten_moment_new(ctx.k0, true, ctx.use_nn_closure, ctx.poly_order, ann[0], app_args.use_gpu);
+  struct gkyl_wv_eqn *ion_ten_moment = gkyl_wv_ten_moment_new(ctx.k0, true, ctx.use_nn_closure, ctx.poly_order, ann[1], app_args.use_gpu);
 
   struct gkyl_moment_species elc = {
     .name = "elc",
@@ -420,18 +420,21 @@ main(int argc, char **argv)
   if (app_args.use_mpi) {
     comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
+        .sync_corners = true,
       }
     );
   }
   else {
     comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .use_gpu = app_args.use_gpu
+        .use_gpu = app_args.use_gpu,
+        .sync_corners = true,
       }
     );
   }
 #else
   comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .use_gpu = app_args.use_gpu
+      .use_gpu = app_args.use_gpu,
+      .sync_corners = true,
     }
   );
 #endif
@@ -455,7 +458,7 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "10m_ot",
+    .name = "10m_ot_grad_closure",
 
     .ndim = 2,
     .lower = { 0.0, 0.0 },
