@@ -609,8 +609,7 @@ struct gk_adapt_source {
   int num_boundaries; // Number of boundaries to adapt to.
   int dir[2*GKYL_MAX_CDIM]; // Direction to adapt.
   enum gkyl_edge_loc edge[2*GKYL_MAX_CDIM]; // Edge to adapt.
-  struct gkyl_range range_bflux[2*GKYL_MAX_CDIM]; // Range of computation of the bflux (ALL phase space ghost).
-  struct gkyl_range range_mom[2*GKYL_MAX_CDIM]; // Range of computation of the moment (SOL phase space ghost).
+  struct gkyl_range range_pb[2*GKYL_MAX_CDIM]; // Range of computation of the bflux and moment (ALL phase space ghost).
   struct gkyl_range range_conf[2*GKYL_MAX_CDIM]; // Range of integration in each boundary (SOL config space ghost).
 
   struct gk_species_moment integ_threemoms; // Integrated moment updater.
@@ -2135,10 +2134,9 @@ void gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
  * @param app gyrokinetic app object.
  * @param species Species object.
  * @param src Species source object.
- * @param f_buffer Phase-space buffer used to project the source.
  * @param tm Time for use in source.
  */
-void gk_species_source_calc(gkyl_gyrokinetic_app *app, struct gk_species *s, 
+void gk_species_source_calc(gkyl_gyrokinetic_app *app, struct gk_species *species, 
   struct gk_source *src, double tm);
 
 /**
@@ -2151,7 +2149,7 @@ void gk_species_source_calc(gkyl_gyrokinetic_app *app, struct gk_species *s,
  */
 void
 gk_species_source_adapt(gkyl_gyrokinetic_app *app, struct gk_species *s, 
-  struct gk_source *src, struct gkyl_array *f_buffer, double tm);
+  struct gk_source *src, double tm);
 
 /**
  * Compute RHS contribution from source.
