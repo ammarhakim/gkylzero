@@ -394,8 +394,10 @@ struct gk_boundary_fluxes {
   enum gkyl_edge_loc boundaries_edge[2*GKYL_MAX_CDIM]; // Edge of bflux boundaries.
   struct gkyl_range *boundaries_conf_skin[2*GKYL_MAX_CDIM]; // Conf-space ghost range of boundaries.
   struct gkyl_range *boundaries_conf_ghost[2*GKYL_MAX_CDIM]; // Conf-space ghost range of boundaries.
+  struct gkyl_range *boundaries_phase_skin[2*GKYL_MAX_CDIM]; // Phase-space skin range of boundaries.
   struct gkyl_range *boundaries_phase_ghost[2*GKYL_MAX_CDIM]; // Phase-space ghost range of boundaries.
   struct gkyl_range *boundaries_phase_ghost_nosub; // Not a sub range of local_ext.
+  struct gkyl_range *boundaries_conf_skin_fullx[2*GKYL_MAX_CDIM]; // Whole x range (for IWL).
   gkyl_boundary_flux *flux_slvr[2*GKYL_MAX_CDIM]; // boundary flux solver
   struct gkyl_array **flux; // Array storing boundary fluxes.
   // Objects used for calculating moments.
@@ -2118,10 +2120,11 @@ void gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
  * @param app gyrokinetic app object.
  * @param species Species object.
  * @param src Species source object.
+ * @param f_buffer Phase-space buffer used to project the source.
  * @param tm Time for use in source.
  */
 void gk_species_source_calc(gkyl_gyrokinetic_app *app, const struct gk_species *species, 
-  struct gk_source *src, double tm);
+  struct gk_source *src, struct gkyl_array *f_buffer, double tm);
 
 /**
  * Compute RHS contribution from source.
@@ -2704,10 +2707,11 @@ void gk_neut_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
  * @param app gyrokinetic app object
  * @param species Neutral species object
  * @param src Neutral species source object
+ * @param f_buffer Phase-space buffer used to project the source.
  * @param tm Time for use in source
  */
 void gk_neut_species_source_calc(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, 
-  struct gk_source *src, double tm);
+  struct gk_source *src, struct gkyl_array *f_buffer, double tm);
 
 /**
  * Compute RHS contribution from source
