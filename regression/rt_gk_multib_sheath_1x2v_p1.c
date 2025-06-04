@@ -595,9 +595,9 @@ main(int argc, char **argv)
       }, 
       .diagnostics = {
         .num_diag_moments = 5,
-        .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+        .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
         .num_integrated_diag_moments = 1,
-        .integrated_diag_moments = { "HamiltonianMoments" },
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
 //        .time_integrated = true,
       }
     },
@@ -620,13 +620,13 @@ main(int argc, char **argv)
     .cells = { cells_v[0], cells_v[1] },
 
     .num_diag_moments = 7,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
     .num_integrated_diag_moments = 1,
-    .integrated_diag_moments = { "HamiltonianMoments" },
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     .time_rate_diagnostics = true,
     .boundary_flux_diagnostics = {
       .num_integrated_diag_moments = 1,
-      .integrated_diag_moments = { "HamiltonianMoments" },
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
 //      .time_integrated = true,
     },
 
@@ -678,9 +678,9 @@ main(int argc, char **argv)
       }, 
       .diagnostics = {
         .num_diag_moments = 5,
-        .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+        .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
         .num_integrated_diag_moments = 1,
-        .integrated_diag_moments = { "HamiltonianMoments" },
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
 //        .time_integrated = true,
       }
     },
@@ -701,13 +701,13 @@ main(int argc, char **argv)
     .cells = { cells_v[0], cells_v[1] },
 
     .num_diag_moments = 7,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
     .num_integrated_diag_moments = 1,
-    .integrated_diag_moments = { "HamiltonianMoments" },
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     .time_rate_diagnostics = true,
     .boundary_flux_diagnostics = {
       .num_integrated_diag_moments = 1,
-      .integrated_diag_moments = { "HamiltonianMoments" },
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
 //      .time_integrated = true,
     },
 

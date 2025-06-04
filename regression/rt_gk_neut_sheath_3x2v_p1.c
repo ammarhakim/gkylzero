@@ -686,9 +686,9 @@ main(int argc, char **argv)
       },
       .diagnostics = {
         .num_diag_moments = 1,
-        .diag_moments = { "FourMoments" },
+        .diag_moments = { GKYL_F_MOMENT_M0M1M2PARM2PERP },
         .num_integrated_diag_moments = 1,
-        .integrated_diag_moments = { "HamiltonianMoments" },
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
       }
     },
 
@@ -728,14 +728,14 @@ main(int argc, char **argv)
     },
 
     .num_diag_moments = 2,
-    .diag_moments = { "FourMoments", "BiMaxwellianMoments" },
+    .diag_moments = { GKYL_F_MOMENT_M0M1M2PARM2PERP, GKYL_F_MOMENT_BIMAXWELLIAN },
     .num_integrated_diag_moments = 1,
-    .integrated_diag_moments = { "HamiltonianMoments" },
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     .time_rate_diagnostics = true,
 
     .boundary_flux_diagnostics = {
       .num_integrated_diag_moments = 1,
-      .integrated_diag_moments = { "HamiltonianMoments" },
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     },
   };
 
@@ -814,9 +814,9 @@ main(int argc, char **argv)
       },
       .diagnostics = {
         .num_diag_moments = 1,
-        .diag_moments = { "FourMoments" },
+        .diag_moments = { GKYL_F_MOMENT_M0M1M2PARM2PERP },
         .num_integrated_diag_moments = 1,
-        .integrated_diag_moments = { "HamiltonianMoments" },
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
 //        .time_integrated = true,
       }
     },
@@ -831,14 +831,14 @@ main(int argc, char **argv)
     },
     
     .num_diag_moments = 2,
-    .diag_moments = { "FourMoments", "BiMaxwellianMoments" },
+    .diag_moments = { GKYL_F_MOMENT_M0M1M2PARM2PERP, GKYL_F_MOMENT_BIMAXWELLIAN },
     .num_integrated_diag_moments = 1,
-    .integrated_diag_moments = { "HamiltonianMoments" },
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     .time_rate_diagnostics = true,
 
     .boundary_flux_diagnostics = {
       .num_integrated_diag_moments = 1,
-      .integrated_diag_moments = { "HamiltonianMoments" },
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     },
   };
 
@@ -911,7 +911,7 @@ main(int argc, char **argv)
     },
    
     .num_diag_moments = 3,
-    .diag_moments = { "M1i_from_H", "MEnergy", "LTEMoments"},
+    .diag_moments = { GKYL_F_MOMENT_M1_FROM_H, GKYL_F_MOMENT_ENERGY, GKYL_F_MOMENT_LTE},
   };
 
   // Field.

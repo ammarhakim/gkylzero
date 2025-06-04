@@ -218,7 +218,7 @@ gk_neut_species_recycle_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
   struct gkyl_mom_canonical_pb_auxfields can_pb_inp = {.hamil = s->hamil};
   recyc->m0op_neut = gkyl_dg_updater_moment_new(&recyc->emit_grid, &app->basis,
     &s->basis, &recyc->emit_cbuff_r, &s->local_vel, &recyc->emit_buff_r, s->model_id,
-    &can_pb_inp, "M0", false, app->use_gpu);
+    &can_pb_inp, GKYL_F_MOMENT_M0, false, app->use_gpu);
   
   gkyl_dg_updater_moment_advance(recyc->m0op_neut, &recyc->emit_normal_r,
     &recyc->emit_cbuff_r, recyc->unit_phase_flux_neut, recyc->unit_m0_flux_neut);
@@ -261,7 +261,7 @@ gk_neut_species_recycle_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
 
     recyc->m0op_gk[i] = gkyl_dg_updater_moment_gyrokinetic_new(&recyc->impact_grid[i], &app->basis,
       &gks->basis, &recyc->emit_cbuff_r, gks->info.mass, gks->info.charge, gks->vel_map,
-      app->gk_geom, 0, "M0", 0, app->use_gpu);
+      app->gk_geom, 0, GKYL_F_MOMENT_M0, false, app->use_gpu);
     
     // Create a phase-space range that only includes velocities towards the boundary.
     gkyl_bc_emission_flux_ranges(&recyc->impact_normal_r[i], recyc->dir + cdim, &recyc->impact_buff_r[i],

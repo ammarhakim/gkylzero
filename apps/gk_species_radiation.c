@@ -102,13 +102,13 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
       rad->collide_with_idx[i] = gk_find_neut_species_idx(app, s->info.radiation.collide_with[i]);
       rad->collide_with_neut[i] = gk_find_neut_species(app, s->info.radiation.collide_with[i]);
       rad->is_neut_species[i] = true;
-      gk_neut_species_moment_init(app, rad->collide_with_neut[i], &rad->moms[i], "M0");
+      gk_neut_species_moment_init(app, rad->collide_with_neut[i], &rad->moms[i], GKYL_F_MOMENT_M0, false);
     }
     else {
       rad->collide_with[i] = gk_find_species(app, s->info.radiation.collide_with[i]);
       rad->is_neut_species[i] = false;
       // allocate density calculation needed for radiation update
-      gk_species_moment_init(app, rad->collide_with[i], &rad->moms[i], "M0", false);
+      gk_species_moment_init(app, rad->collide_with[i], &rad->moms[i], GKYL_F_MOMENT_M0, false);
     }
 
     if (status == 1) {
@@ -162,7 +162,7 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   rad->nvsqnu = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
 
   // Allocate moments needed for temperature update.
-  gk_species_moment_init(app, s, &rad->prim_moms, "MaxwellianMoments", false);
+  gk_species_moment_init(app, s, &rad->prim_moms, GKYL_F_MOMENT_MAXWELLIAN, false);
 
   rad->vtsq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   rad->m0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
@@ -181,7 +181,7 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   }
 
   // Allocate data and updaters for integrated moments.
-  gk_species_moment_init(app, s, &rad->integ_moms, "FourMoments", true);
+  gk_species_moment_init(app, s, &rad->integ_moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, true);
   int num_mom = rad->integ_moms.num_mom;
   if (app->use_gpu) {
     rad->red_integ_diag = gkyl_cu_malloc(sizeof(double[num_mom]));
@@ -199,7 +199,7 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   rad->emissivity_rhs = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
   rad->emissivity_denominator = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   // allocate M2 for emissivity
-  gk_species_moment_init(app, s, &rad->m2, "M2", false);
+  gk_species_moment_init(app, s, &rad->m2, GKYL_F_MOMENT_M2, false);
 
   // Radiation updater
   struct gkyl_dg_rad_gyrokinetic_auxfields drag_inp = { .nvnu_surf = rad->nvnu_surf, .nvnu = rad->nvnu,

@@ -89,36 +89,6 @@ struct vlasov_output_meta {
   char basis_type_nm[64]; // used during read
 };
 
-// list of valid moment names
-static const char *const valid_moment_names[] = {
-  "M0",
-  "M1i",
-  "M2",
-  "M3i",
-  "FiveMoments", // non-relativistic (M0, M1i, M2)
-  "M2ij", // non-relativistic stress tensor
-  "M3ijk", // non-relativistic heat flux tensor
-  "Ni", // relativistic four-flux (M0, M1i)
-  "Tij", // relativistic stress-energy tensor
-  "LTEMoments", // this is an internal flag for computing moments (n, V_drift, T/m)
-                // of the LTE (local thermodynamic equilibrium) distribution
-                // Note: in relativity V_drift is the bulk four-velocity (GammaV, GammaV*V_drift)
-  "Integrated", // this is an internal flag, not for passing to moment type
-  "M1i_from_H", // this is for the canonical-pb species only**
-  "MEnergy", // this is for the canonical-pb species only**
-};
-
-// check if name of moment is valid or not
-static bool
-is_moment_name_valid(const char *nm)
-{
-  int n = sizeof(valid_moment_names)/sizeof(valid_moment_names[0]);
-  for (int i=0; i<n; ++i)
-    if (strcmp(valid_moment_names[i], nm) == 0)
-      return 1;
-  return 0;
-}
-
 // struct for holding moment correction inputs
 struct correct_all_moms_inp {
   bool correct_all_moms; // boolean if we are correcting all the moments or only density
@@ -146,6 +116,7 @@ struct vm_species_moment {
   };
 
   bool is_vlasov_lte_moms;
+  bool is_integrated; // =True means volume integrated moment.
 };
 
 // forward declare species struct
@@ -860,10 +831,11 @@ int vm_find_fluid_species_idx(const gkyl_vlasov_app *app, const char *nm);
  * @param app Vlasov app object
  * @param s Species object 
  * @param sm Species moment object
- * @param nm Name string indicating moment type
+ * @param mom_type Type of moment to compute.
+ * @param is_integrated Whether to compute volume-integrated moment.
  */
 void vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
-  struct vm_species_moment *sm, const char *nm);
+  struct vm_species_moment *sm, enum gkyl_distribution_moments mom_type, bool is_integrated);
 
 /**
  * Calculate moment, given distribution function @a fin.

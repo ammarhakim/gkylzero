@@ -79,10 +79,10 @@ gk_species_source_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species
 
     const char *fmt = "%s-%s_source_%s_%d.gkyl";
     int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name,
-      gks->info.source.diagnostics.diag_moments[m], frame);
+      gkyl_distribution_moments_strs[gks->info.source.diagnostics.diag_moments[m]], frame);
     char fileNm[sz+1]; // Ensures no buffer overflow.
     snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name,
-      gks->info.source.diagnostics.diag_moments[m], frame);
+      gkyl_distribution_moments_strs[gks->info.source.diagnostics.diag_moments[m]], frame);
 
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
       gks->src.moms[m].marr_host, fileNm);
@@ -214,9 +214,8 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     src->num_diag_mom = s->info.source.diagnostics.num_diag_moments;
     if (src->num_diag_mom == 0) {
       src->num_diag_mom = s->info.num_diag_moments;
-      for (int m=0; m<src->num_diag_mom; ++m) {
-        strcpy(s->info.source.diagnostics.diag_moments[m], s->info.diag_moments[m]);
-      }
+      for (int m=0; m<src->num_diag_mom; ++m)
+        s->info.source.diagnostics.diag_moments[m] = s->info.diag_moments[m];
     }
 
     src->moms = gkyl_malloc(sizeof(struct gk_species_moment[src->num_diag_mom]));
@@ -229,7 +228,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     assert(src->num_diag_int_mom < 2); // 1 int moment allowed now.
     if (src->evolve || src->num_diag_int_mom > 0) {
       gk_species_moment_init(app, s, &src->integ_moms,
-        src->num_diag_int_mom == 0? "FourMoments" : s->info.source.diagnostics.integrated_diag_moments[0], true);
+        src->num_diag_int_mom == 0? GKYL_F_MOMENT_M0M1M2PARM2PERP : s->info.source.diagnostics.integrated_diag_moments[0], true);
       int num_mom = src->integ_moms.num_mom;
       if (app->use_gpu) {
         src->red_integ_diag = gkyl_cu_malloc(sizeof(double[num_mom]));
