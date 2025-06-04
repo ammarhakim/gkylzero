@@ -473,13 +473,13 @@ create_ctx(void)
   double mu_max_elc = me * pow(3. * vte, 2.) / (2. * B_p);
   double vpar_max_ion = 20 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
-  int Nz = 32;
+  int Nz = 288;
   int Nvpar = 32; // Number of cells in the paralell velocity direction 96
   int Nmu = 32;  // Number of cells in the mu direction 192
   int poly_order = 1;
 
-  double t_end = 2.0e-10;
-  int num_frames = 1;
+  double t_end = 1e-8;
+  int num_frames = 10;
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -672,6 +672,14 @@ int main(int argc, char **argv)
     .write_omega_cfl = true,
     .num_diag_moments = 8,
     .diag_moments = {GKYL_F_MOMENT_BIMAXWELLIAN, GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    },
   };
 
   struct gkyl_gyrokinetic_species ion = {
@@ -728,11 +736,20 @@ int main(int argc, char **argv)
     .write_omega_cfl = true,
     .num_diag_moments = 8,
     .diag_moments = {GKYL_F_MOMENT_BIMAXWELLIAN, GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    },
   };
 
   struct gkyl_gyrokinetic_field field = {
     .polarization_bmag = ctx.B_p, 
     .kperpSq = pow(ctx.kperp, 2.),
+    .time_rate_diagnostics = true,
   };
 
   struct gkyl_mirror_geo_grid_inp grid_inp = {
