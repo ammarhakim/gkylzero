@@ -827,6 +827,26 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
         gk_field_project_init(app);
     }
 
+    // Compute necessary moments and boundary corrections for collisions.
+    for (int i=0; i<app->num_species; ++i) {
+      if (app->species[i].lbo.collision_id == GKYL_LBO_COLLISIONS) {
+        gk_species_lbo_moms(app, &app->species[i], 
+          &app->species[i].lbo, distf[i]);
+      }
+      if (app->species[i].bgk.collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
+        gk_species_bgk_moms(app, &app->species[i], 
+          &app->species[i].bgk, distf[i]);
+      }
+    }
+
+    // Compute the cross-species collision frequencies.
+    for (int i=0; i<app->num_species; ++i) {
+      struct gk_species *gk_s = &app->species[i];
+      if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS) { 
+        gk_species_lbo_cross_nu(app, &app->species[i], &gk_s->lbo);
+      }
+    }
+
   }
 
   // Compute the phase-space advection speeds and boundary fluxes as t=0
@@ -2152,10 +2172,25 @@ gkyl_gyrokinetic_app_from_file_species(gkyl_gyrokinetic_app *app, int sidx,
       gkyl_array_copy(gk_s->f, gk_s->f_host);
 
     if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
-      gk_species_source_calc(app, gk_s, &gk_s->src, 0.0);
+      gk_species_source_calc(app, gk_s, &gk_s->src, gk_s->lte.f_lte, 0.0);
       // Read volume and time integrated boundary flux diagnostics.
       gk_species_bflux_read_voltime_integrated_mom(app, gk_s, &gk_s->bflux);
     }
+  }
+
+  // Compute necessary moments and boundary corrections for collisions.
+  if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS) {
+    gk_species_lbo_moms(app, gk_s, 
+      &gk_s->lbo, gk_s->f);
+  }
+  if (gk_s->bgk.collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
+    gk_species_bgk_moms(app, gk_s, 
+      &gk_s->bgk, gk_s->f);
+  }
+
+  // Compute the cross-species collision frequencies.
+  if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS) { 
+    gk_species_lbo_cross_nu(app, gk_s, &gk_s->lbo);
   }
 
   return rstat;
@@ -2175,7 +2210,7 @@ gkyl_gyrokinetic_app_from_file_neut_species(gkyl_gyrokinetic_app *app, int sidx,
     if (app->use_gpu)
       gkyl_array_copy(gk_ns->f, gk_ns->f_host);
     if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
-      gk_neut_species_source_calc(app, gk_ns, &gk_ns->src, 0.0);
+      gk_neut_species_source_calc(app, gk_ns, &gk_ns->src, gk_ns->lte.f_lte, 0.0);
       // Read volume and time integrated boundary flux diagnostics.
       gk_neut_species_bflux_read_voltime_integrated_mom(app, gk_ns, &gk_ns->bflux);
     }

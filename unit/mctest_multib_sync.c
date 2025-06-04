@@ -994,8 +994,6 @@ test_cyclic_domain_sync_ser_ho(void)
 static void
 test_L_domain_sync_dev(void)
 {
-  bool use_mpi = GKYL_HAVE_NCCL;
-
   int num_blocks = 3; // L-shaped example.
   int ndim = 2;
 
@@ -1005,18 +1003,15 @@ test_L_domain_sync_dev(void)
     1, 1, // Block 2.
   };
   int **cuts0 = cuts_array_new(num_blocks, ndim, cuts_flat0);
-  test_L_domain_sync(true, use_mpi, cuts0, 1);
+  #ifdef GKYL_HAVE_NCCL
+    test_L_domain_sync(true, true, cuts0, 1);
+  #endif
   cuts_array_release(num_blocks, cuts0);
-
-//  int cuts1[] = {3, 3};
-//  test_L_domain_sync(true, use_mpi, cuts1);
 }
 
 static void
 test_cyclic_domain_sync_dev(void)
 {
-  bool use_mpi = GKYL_HAVE_NCCL;
-
   int num_blocks = 2; // cyclic-shaped example.
   int ndim = 2;
 
@@ -1025,15 +1020,15 @@ test_cyclic_domain_sync_dev(void)
     1, 2, // Block 1.
   };
   int **cuts0 = cuts_array_new(num_blocks, ndim, cuts_flat0);
-  test_cyclic_domain_sync(true, use_mpi, cuts0, 1);
+  #ifdef GKYL_HAVE_NCCL
+    test_cyclic_domain_sync(true, true, cuts0, 1);
+  #endif
   cuts_array_release(num_blocks, cuts0);
 }
 
 static void
 test_cyclic_domain_sync_ser_dev(void)
 {
-  bool use_mpi = GKYL_HAVE_NCCL;
-
   int num_blocks = 2; // cyclic-shaped example.
   int ndim = 2;
 
@@ -1043,7 +1038,10 @@ test_cyclic_domain_sync_ser_dev(void)
   };
   int **cuts0 = cuts_array_new(num_blocks, ndim, cuts_flat0);
   // Test using MPI
-  test_cyclic_domain_sync_ser(true, use_mpi, cuts0, 1);
+
+  #ifdef GKYL_HAVE_NCCL
+    test_cyclic_domain_sync_ser(true, true, cuts0, 1);
+  #endif
   // Test without MPI
   test_cyclic_domain_sync_ser(true, false, cuts0, 1);
   cuts_array_release(num_blocks, cuts0);

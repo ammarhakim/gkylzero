@@ -11,11 +11,13 @@ gkyl_deflate_zsurf_new(const struct gkyl_basis *cbasis, const struct gkyl_basis 
   int edge, bool use_gpu) 
 {
 #ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
+  if (use_gpu) {
     return gkyl_deflate_zsurf_cu_dev_new(cbasis, deflated_cbasis, edge);
   } 
 #endif 
+
   gkyl_deflate_zsurf *up = gkyl_malloc(sizeof(*up));
+  up->use_gpu = use_gpu;
   up->num_basis = cbasis->num_basis;
   up->num_deflated_basis = deflated_cbasis->num_basis;
   up->cdim = cbasis->ndim;
@@ -61,5 +63,9 @@ gkyl_deflate_zsurf_advance(const gkyl_deflate_zsurf *up, int zidx,
 
 void gkyl_deflate_zsurf_release(gkyl_deflate_zsurf* up) 
 {
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu)
+    gkyl_cu_free(up->on_dev);
+#endif
   gkyl_free(up);
 }
