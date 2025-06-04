@@ -456,7 +456,7 @@ gk_species_bflux_write_mom_dynamic(gkyl_gyrokinetic_app* app, void *spec_in,
           0, mom_arr, 0, mom_arr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);  // It fails if one uses the skin range here.
         // Rescale by dx/2 in the direction of the boundary to account for the
         // normalization in the boundary surf kernels.
-        gkyl_array_scale_range(mon_arr, 0.5*app->grid.dx[dir], bflux->boundaries_conf_skin[b]);
+        gkyl_array_scale_range(mom_arr, 0.5*app->grid.dx[dir], bflux->boundaries_conf_skin[b]);
         app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
           
         const char *fmt = "%s-%s_bflux_%s%s_%s_%d.gkyl";
