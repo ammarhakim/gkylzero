@@ -1196,7 +1196,7 @@ gk_neut_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_neut_species *spec
     gk_neut_species_projection_calc(app, species, &species->proj_init, species->f, t0);
 
   // we are pre-computing source for now as it is time-independent
-  gk_neut_species_source_calc(app, species, &species->src, t0);
+  gk_neut_species_source_calc(app, species, &species->src, species->lte.f_lte, t0);
 }
 
 // Compute the RHS for species update, returning maximum stable
