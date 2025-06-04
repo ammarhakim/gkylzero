@@ -152,6 +152,10 @@ void gkyl_calc_metric_advance_rz(
               double *bmag_n = gkyl_array_fetch(bmag_nodal, gkyl_range_idx(nrange, cidx));
               double dphidtheta = (jFld_n[0]*jFld_n[0]*bmag_n[0]*bmag_n[0] - dxdz[0][2]*dxdz[0][2] - dxdz[1][2]*dxdz[1][2])/R/R;
               dphidtheta = sqrt(dphidtheta);
+              // recover sign from exact dphidtheta = F(psi)/R/\grad(psi)
+              if (ddtheta_n[2] < 0) {
+                dphidtheta = -dphidtheta;
+              }
 
               double *gFld_n= gkyl_array_fetch(gFld_nodal, gkyl_range_idx(nrange, cidx));
               gFld_n[0] = dxdz[0][0]*dxdz[0][0] + R*R*dxdz[2][0]*dxdz[2][0] + dxdz[1][0]*dxdz[1][0]; 
@@ -298,13 +302,17 @@ void gkyl_calc_metric_advance_rz_interior(
 
               // Calculate dphi/dtheta based on the divergence free condition
               // on B: 1 = J*B/sqrt(g_33)
-              //double *bmag_n = gkyl_array_fetch(bmag_nodal, gkyl_range_idx(nrange, cidx));
-              //double dphidtheta = (jFld_n[0]*jFld_n[0]*bmag_n[0]*bmag_n[0] - dxdz[0][2]*dxdz[0][2] - dxdz[1][2]*dxdz[1][2])/R/R;
-              //dphidtheta = sqrt(dphidtheta);
+              double *bmag_n = gkyl_array_fetch(bmag_nodal, gkyl_range_idx(nrange, cidx));
+              double dphidtheta = (jFld_n[0]*jFld_n[0]*bmag_n[0]*bmag_n[0] - dxdz[0][2]*dxdz[0][2] - dxdz[1][2]*dxdz[1][2])/R/R;
+              dphidtheta = sqrt(dphidtheta);
+              // recover sign from exact dphidtheta = F(psi)/R/\grad(psi)
+              if (ddtheta_n[2] < 0) {
+                dphidtheta = -dphidtheta;
+              }
 
               // AS 2/22/25 It seems that now that we are using interior points,
               // cmag comes out fine without directtly enforcing the condition
-              double dphidtheta = ddtheta_n[2];
+              //double dphidtheta = ddtheta_n[2];
 
               double *gFld_n= gkyl_array_fetch(gFld_nodal, gkyl_range_idx(nrange, cidx));
               gFld_n[0] = dxdz[0][0]*dxdz[0][0] + R*R*dxdz[2][0]*dxdz[2][0] + dxdz[1][0]*dxdz[1][0]; 
@@ -459,6 +467,10 @@ void gkyl_calc_metric_advance_rz_surface(
         double *bmag_n = gkyl_array_fetch(bmag_nodal, gkyl_range_idx(nrange, cidx));
         double dphidtheta = (jFld_n[0]*jFld_n[0]*bmag_n[0]*bmag_n[0] - dxdz[0][2]*dxdz[0][2] - dxdz[1][2]*dxdz[1][2])/R/R;
         dphidtheta = sqrt(dphidtheta);
+        // recover sign from exact dphidtheta = F(psi)/R/\grad(psi)
+        if (ddtheta_n[2] < 0) {
+          dphidtheta = -dphidtheta;
+        }
 
         double *gFld_n= gkyl_array_fetch(gFld_nodal, gkyl_range_idx(nrange, cidx));
         gFld_n[0] = dxdz[0][0]*dxdz[0][0] + R*R*dxdz[2][0]*dxdz[2][0] + dxdz[1][0]*dxdz[1][0]; 
