@@ -129,6 +129,7 @@ void
 gk_species_bflux_rhs_calc(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
   const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
+  struct timespec wst = gkyl_wall_clock();
   for (int b=0; b<bflux->num_boundaries; ++b) {
     // Ghost cells of the rhs array are filled with the bflux. This is overwritten
     // by the boundary conditions, but it is used before that happens.
@@ -136,6 +137,7 @@ gk_species_bflux_rhs_calc(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *
     gkyl_boundary_flux_advance(bflux->flux_slvr[b], fin, rhs);
     gkyl_array_copy_range_to_range(bflux->flux[b], rhs, &bflux->boundaries_phase_ghost_nosub[b], bflux->boundaries_phase_ghost[b]);
   }
+  app->stat.species_bflux_calc_tm += gkyl_time_diff_now_sec(wst);
 }
 
 static void
@@ -156,6 +158,7 @@ gk_species_bflux_calc_moms_dynamic(gkyl_gyrokinetic_app *app, struct gk_boundary
   const struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
 {
   // Compute moments of boundary fluxes.
+  struct timespec wst = gkyl_wall_clock();
   for (int b=0; b<bflux->num_boundaries; ++b) {
     if (bflux->a_hamiltonian_mom) {
       // Apply BC to phi so it is defined in the ghost cell.
@@ -169,6 +172,7 @@ gk_species_bflux_calc_moms_dynamic(gkyl_gyrokinetic_app *app, struct gk_boundary
       gkyl_array_copy_range(bflux_moms[b*bflux->num_calc_moms+m], bflux->moms_op[m].marr, bflux->boundaries_conf_ghost[b]);
     }
   }
+  app->stat.species_bflux_moms_tm += gkyl_time_diff_now_sec(wst);
 }
 
 static void
@@ -237,6 +241,7 @@ static void
 gk_species_bflux_calc_integrated_mom_dynamic(gkyl_gyrokinetic_app* app,
   void *spec_in, struct gk_boundary_fluxes *bflux, double tm)
 {
+  struct timespec wst = gkyl_wall_clock();
   const struct gk_species *gk_s = spec_in;
 
   int num_diag_int_mom = gk_s->info.boundary_flux_diagnostics.num_integrated_diag_moments;
@@ -264,6 +269,7 @@ gk_species_bflux_calc_integrated_mom_dynamic(gkyl_gyrokinetic_app* app,
       
     } 
   } 
+  app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
 }
 
 static void
@@ -317,6 +323,7 @@ static void
 gk_species_bflux_append_integrated_mom(gkyl_gyrokinetic_app* app,
   void *spec_in, struct gk_boundary_fluxes *bflux, double tm)
 {
+  struct timespec wst = gkyl_wall_clock();
   // Append the time integrated moment of the boundary flux.
   const struct gk_species *gk_s = spec_in;
   int num_diag_int_mom = gk_s->info.boundary_flux_diagnostics.num_integrated_diag_moments;
@@ -327,6 +334,7 @@ gk_species_bflux_append_integrated_mom(gkyl_gyrokinetic_app* app,
     for (int b=0; b<bflux->num_boundaries; ++b)
       gkyl_dynvec_append(bflux->intmom[b*num_diag_int_mom+m], tm, &intmom_cumm_buff[b*num_mom_comp]);
   }
+  app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
 }
 
 static void
@@ -346,6 +354,7 @@ static void
 gk_species_bflux_write_integrated_mom_dynamic(gkyl_gyrokinetic_app *app,
   void *spec_in, struct gk_boundary_fluxes *bflux)
 {
+  struct timespec wst = gkyl_wall_clock();
   const struct gk_species *gks = spec_in;
 
   int rank, comm_size;
@@ -370,7 +379,6 @@ gk_species_bflux_write_integrated_mom_dynamic(gkyl_gyrokinetic_app *app,
         char fileNm[sz+1]; // ensures no buffer overflow
         snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, vars[dir], edge[edi], mom_name);
 
-        struct timespec wtm = gkyl_wall_clock();
         if (bflux->is_first_intmom_write_call[b]) {
           gkyl_dynvec_write(bflux->intmom[b*num_diag_int_mom+m], fileNm);
         }
@@ -378,7 +386,6 @@ gk_species_bflux_write_integrated_mom_dynamic(gkyl_gyrokinetic_app *app,
           gkyl_dynvec_awrite(bflux->intmom[b*num_diag_int_mom+m], fileNm);
         }
 
-        app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
         app->stat.n_diag_io += 1;
 
         gkyl_dynvec_clear(bflux->intmom[b*num_diag_int_mom+m]);
@@ -388,6 +395,7 @@ gk_species_bflux_write_integrated_mom_dynamic(gkyl_gyrokinetic_app *app,
       }
     }
   }
+  app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
 
 static void
@@ -407,7 +415,6 @@ static void
 gk_species_bflux_write_mom_dynamic(gkyl_gyrokinetic_app* app, void *spec_in,
   struct gk_boundary_fluxes *bflux, double tm, int frame)
 {
-  struct timespec wst = gkyl_wall_clock();
   const struct gk_species *gks = spec_in;
 
   struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
@@ -434,14 +441,9 @@ gk_species_bflux_write_mom_dynamic(gkyl_gyrokinetic_app* app, void *spec_in,
     // MF 2025/05/22: Note that this if-statement assumes MPI decomposition only along z.
     if (dir < app->cdim-1 || ((edi == 0 && rank == 0) || (edi == 1 && rank == comm_size-1))) {
       for (int m=0; m<num_diag_mom; ++m) {
+        struct timespec wst = gkyl_wall_clock();
         int mom_idx = bflux->diag_mom_idx[m];
         struct gkyl_array *mom_arr = bflux->f[b*bflux->num_calc_moms+mom_idx];
-
-        const char *fmt = "%s-%s_bflux_%s%s_%s_%d.gkyl";
-        const char *mom_name = gkyl_distribution_moments_strs[gks->info.boundary_flux_diagnostics.diag_moments[mom_idx]];
-        int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, vars[dir], edge[edi], mom_name, frame);
-        char fileNm[sz+1]; // ensures no buffer overflow
-        snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, vars[dir], edge[edi], mom_name, frame);
         
         // For now copy the moment to the skin ghost and write it out.
         gkyl_array_copy_range_to_range(mom_arr, mom_arr,
@@ -455,30 +457,42 @@ gk_species_bflux_write_mom_dynamic(gkyl_gyrokinetic_app* app, void *spec_in,
         // Rescale by dx/2 in the direction of the boundary to account for the
         // normalization in the boundary surf kernels.
         gkyl_array_scale_range(mom_arr, 0.5*app->grid.dx[dir], bflux->boundaries_conf_skin[b]);
+        app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
           
-        struct timespec wtm = gkyl_wall_clock();
+        const char *fmt = "%s-%s_bflux_%s%s_%s_%d.gkyl";
+        const char *mom_name = gkyl_distribution_moments_strs[gks->info.boundary_flux_diagnostics.diag_moments[mom_idx]];
+        int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, vars[dir], edge[edi], mom_name, frame);
+        char fileNm[sz+1]; // ensures no buffer overflow
+        snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, vars[dir], edge[edi], mom_name, frame);
+        
         if (app->cdim > 1) {
+          struct timespec wst = gkyl_wall_clock();
           // Project the moment down to lower dimensions.
           int num_mom_comp = bflux->moms_op[mom_idx].num_mom;
           gkyl_translate_dim_advance(bflux->transdim[b], bflux->boundaries_conf_skin_fullx[b], &bflux->surf_local[dir],
             mom_arr, num_mom_comp, bflux->mom_surf[b*num_diag_mom+m]);
+          app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
 
+          struct timespec wtm = gkyl_wall_clock();
           if (app->use_gpu)
             gkyl_array_copy(bflux->mom_surf_ho[b*num_diag_mom+m], bflux->mom_surf[b*num_diag_mom+m]);
   
           gkyl_comm_array_write(bflux->comm_surf[dir], &bflux->grid_surf[dir], &bflux->surf_local[dir], mt,
             bflux->mom_surf_ho[b*num_diag_mom+m], fileNm);
+          app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
         }
         else {
           // Don't project down to 0D; the infrastructure doesn't make it easy to do so.
+          struct timespec wtm = gkyl_wall_clock();
           if (app->use_gpu)
             gkyl_array_copy(bflux->moms_op[mom_idx].marr_host, mom_arr);
   
           gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
             bflux->moms_op[mom_idx].marr_host, fileNm);
+
+          app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
         }
   
-        app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
         app->stat.n_diag_io += 1;
       }
     }

@@ -422,62 +422,103 @@ struct gkyl_gyrokinetic_stat {
   double stage_2_dt_diff[2]; // [min,max] rel-diff for stage-2 failure
   double stage_3_dt_diff[2]; // [min,max] rel-diff for stage-3 failure
     
-  double total_tm; // time for simulation (not including ICs)
   double init_species_tm; // time to initialize all species
-  double species_rhs_tm; // time to compute species collisionless RHS
   double init_neut_species_tm; // time to initialize all neutral species
-  double neut_species_rhs_tm; // time to compute neutral species collisionless RHS  
-  double field_rhs_tm; // time to compute field RHS
 
+  double time_loop_tm; // time for simulation (not including ICs)
+  double fwd_euler_tm; // Time for forward euler
+  double fwd_euler_step_f_tm; // Time spent on fwd euler step_f.
+  double dfdt_dt_reduce_tm; // Time spent on fwd euler dt reduction.
+
+  double species_collisionless_tm; // Time to compute species collisionless RHS (alpha already computed).
+  double species_gyroavg_tm; // Time to compute species collisionless RHS.
   double species_lte_tm; // total time for species LTE (local thermodynamic equilibrium) projection updater
-  double species_lbo_coll_drag_tm[GKYL_MAX_SPECIES]; // time to compute LBO drag terms
-  double species_lbo_coll_diff_tm[GKYL_MAX_SPECIES]; // time to compute LBO diffusion terms
+  double species_bflux_calc_tm; // Time for species boundary flux calculation.
+  double species_bflux_moms_tm; // Time for species boundary flux moments.
   double species_coll_mom_tm; // time needed to compute various moments needed in collisions
   double species_coll_tm; // total time for collision updater (excluded moments)
+  double species_diffusion_tm; // Time to compute species diffusion term.
   double species_rad_mom_tm; // total time to compute various moments needed in radiation operator
   double species_rad_tm; // total time for radiation operator
   double species_react_mom_tm; // total time to compute various moments needed in reactions 
   double species_react_tm; // total time for reactions updaters
+  double species_src_tm; // Time to accumulate species source onto RHS.
+  double species_omega_cfl_tm; // time spent in all-reduce for omega-cfl
 
+  double neut_species_collisionless_tm; // Time to compute neutral species collisionless RHS.
   double neut_species_lte_tm; // total time for neutral species LTE (local thermodynamic equilibrium) projection updater
-  double neut_species_coll_mom_tm; // time needed to compute various moments needed in neutral self-collisions
+  double neut_species_bflux_calc_tm; // Time for neutral species boundary flux calculation.
+  double neut_species_bflux_moms_tm; // Time for neutral species boundary flux moments.
   double neut_species_coll_tm; // total time for neutral self-collisions updater (excluded moments)
+  double neut_species_coll_mom_tm; // time needed to compute various moments needed in neutral self-collisions
   double neut_species_react_mom_tm; // total time to compute various moments needed in neutral reactions
   double neut_species_react_tm; // total time for neutral reactions updaters
+  double neut_species_src_tm; // Time to accumulate neutral species source onto RHS.
+  double neut_species_omega_cfl_tm; // time spent in all-reduce for omega-cfl for neutrals
+
+  double time_rate_diags_tm; // Time spent on time rate of change diagnostics.
+  double fdot_tm; // Time spent on computing \dot{f} diagnostics.
+  double phidot_tm; // Time spent on computing \dot{phi} diagnostics.
+
+  double field_tm; // Time to compute fields.
+  double field_phi_rhs_tm; // Time spent on poisson eqn RHS.
+  double field_phi_solve_tm;   // Time spent to solve poisson eqn.
+
+  double bc_tm; // Time to compute BCs.
+  double species_bc_tm; // Time to compute species BCs.
+  double neut_species_bc_tm; // Time to compute neutral species BCs.
+
+  double time_stepper_arithmetic_tm; // Time spent on arithmetic ops in time stepper.
+
+  double pos_shift_tm; // Time spent on positivity shift.
+  double species_pos_shift_tm; // Time spent on species positivity shift.
+  double neut_species_pos_shift_tm; // Time spent on neutral species positivity shift.
+  double pos_shift_quasineut_tm; // Time spent on positivity shift quasineutrality.
+
+  // Group timers: additions of several of the above timers.
+  double fwd_euler_sum_tm;
+  double field_sum_tm;
+  double bc_sum_tm;
+  double time_rate_diags_sum_tm;
+  double pos_shift_sum_tm;
+  double time_stepper_sum_tm;
+  double io_sum_tm;
+
+  double species_io_tm; // Time to write the species distribution.
+  double species_diag_calc_tm; // Time to compute species diagnostics.
+  double species_diag_io_tm; // Time to write species diagnostics.
+
+  double neut_species_io_tm; // Time to write the neutral species distribution.
+  double neut_species_diag_calc_tm; // Time to compute neutral species diagnostics.
+  double neut_species_diag_io_tm; // Time to write neutral species diagnostics.
+
+  double field_io_tm; // Time to write the fields.
+  double field_diag_calc_tm; // Time to compute field diagnostics.
+  double field_diag_io_tm; // Time to write field diagnostics.
+
+  double app_io_tm; // Time to write common diagnostics.
+  double io_tm; // Time to write common diagnostics.
 
   long n_iter_corr[GKYL_MAX_SPECIES]; // total number of iterations used to correct species LTE projection
   long num_corr[GKYL_MAX_SPECIES]; // total number of times correction updater for species LTE projection is called
   long neut_n_iter_corr[GKYL_MAX_SPECIES]; // total number of iterations used to correct neutral species LTE projection
   long neut_num_corr[GKYL_MAX_SPECIES]; // total number of times correction updater for neutral species LTE projection is called
 
-  double species_bc_tm; // time to compute species BCs
   long n_species_omega_cfl; // number of times CFL-omega all-reduce is called
-  double species_omega_cfl_tm; // time spent in all-reduce for omega-cfl
   long n_mom; // total number of calls to moment updater routines
   long n_diag; // total number of calls to diagnostics
-  double diag_tm; // total time to compute diagnostics
   long n_io; // number of calls to IO
-  double io_tm; // time to perform IO
   long n_diag_io; // number of calls to IO for diagnostics
-  double diag_io_tm; // time to perform IO for diagnostics
 
-  double neut_species_bc_tm; // time to compute neutral species BCs
   long n_neut_species_omega_cfl; // number of times CFL-omega all-reduce is called for neutrals
-  double neut_species_omega_cfl_tm; // time spent in all-reduce for omega-cfl for neutrals
   long n_neut_mom; // total number of calls to neutrals moment updater routines
   long n_neut_diag; // total number of calls to diagnostics for neutral species
-  double neut_diag_tm; // total time to compute diagnostics for neutral species
   long n_neut_io; // number of calls to IO for neutral species
-  double neut_io_tm; // time to perform IO for neutral species
   long n_neut_diag_io; // number of calls to IO for neutral species diagnostics
-  double neut_diag_io_tm; // time to perform IO for neutral species diagnostics
 
   long n_field_diag; // total number of calls to diagnostics for field
-  double field_diag_tm; // total time to compute diagnostics for field 
   long n_field_io; // number of calls to IO for field
-  double field_io_tm; // time to perform IO for field
   long n_field_diag_io; // number of calls to IO for field diagnostics
-  double field_diag_io_tm; // time to perform IO for field diagnostics
 };
 
 // Object representing gk app
@@ -1004,6 +1045,15 @@ void gkyl_gyrokinetic_app_write(gkyl_gyrokinetic_app* app, double tm, int frame)
  * @param app App object.
  */
 void gkyl_gyrokinetic_app_stat_write(gkyl_gyrokinetic_app* app);
+
+/**
+ * Print timing of solver components to iostream.
+ *
+ * @param app App object.
+ * @param iostream Where to write timers to (e.g. stdout, stderr);
+ */
+void
+gkyl_gyrokinetic_app_print_timings(gkyl_gyrokinetic_app* app, FILE *iostream);
 
 /**
  * Record the time step (in private dynvector).

@@ -33,8 +33,10 @@ eval_on_nodes_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
 static void
 gk_field_calc_energy_dt_active(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced)
 {
+  struct timespec wst = gkyl_wall_clock();
   gkyl_array_integrate_advance(field->calc_em_energy, field->phi_smooth, 
     1.0/dt, field->es_energy_fac, &app->local, &app->local, energy_reduced);
+  app->stat.phidot_tm += gkyl_time_diff_now_sec(wst);
 }
 
 static void
@@ -464,6 +466,7 @@ void
 gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field, 
   const struct gkyl_array *fin[])
 {
+  struct timespec wst = gkyl_wall_clock();
   gkyl_array_clear(field->rho_c, 0.0);
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
@@ -496,6 +499,7 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
       }
     }
   } 
+  app->stat.field_phi_rhs_tm += gkyl_time_diff_now_sec(wst);
 }
 
 static void
@@ -612,7 +616,7 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
 
     }
   }
-  app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.field_phi_solve_tm += gkyl_time_diff_now_sec(wst);
 }
 
 static struct gkyl_app_restart_status
@@ -676,6 +680,7 @@ gk_field_project_init(struct gkyl_gyrokinetic_app *app)
 void
 gk_field_calc_energy(gkyl_gyrokinetic_app *app, double tm, const struct gk_field *field)
 {
+  struct timespec wst = gkyl_wall_clock();
   gkyl_array_integrate_advance(field->calc_em_energy, field->phi_smooth, 
     1.0, field->es_energy_fac, &app->local, &app->local, field->em_energy_red);
 
@@ -716,6 +721,7 @@ gk_field_calc_energy(gkyl_gyrokinetic_app *app, double tm, const struct gk_field
 
     gkyl_dynvec_append(field->integ_energy_dot, tm, energy_dot_global);
   }
+  app->stat.field_diag_calc_tm += gkyl_time_diff_now_sec(wst);
 }
 
 // release resources for field

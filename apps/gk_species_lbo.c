@@ -37,6 +37,7 @@ void
 gklbo_cross_nu_calc_normNu(gkyl_gyrokinetic_app *app, const struct gk_species *s,
   struct gk_lbo_collisions *lbo)
 {
+  struct timespec wst = gkyl_wall_clock();
   for (int i=0; i<lbo->num_cross_collisions; ++i) {
     // Calculate nu_sr(x,t).
     gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, lbo->vtsq, lbo->vtsq_min,
@@ -53,6 +54,7 @@ gklbo_cross_nu_calc_normNu(gkyl_gyrokinetic_app *app, const struct gk_species *s
     for (int d=0; d<2; d++)
       gkyl_dg_mul_op(app->basis, d, lbo->boundary_corrections_buff, d, lbo->boundary_corrections, 0, lbo->cross_nu[i]);
   }
+  app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
 }
 
 void
@@ -325,7 +327,6 @@ gk_species_lbo_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
   // Compute primitive moments for cross-species collisions.
   struct timespec wst = gkyl_wall_clock();
   
-  wst = gkyl_wall_clock();  
   for (int i=0; i<lbo->num_cross_collisions; ++i) {
     // Calculate greene_num = m_r * nu_rs * n_r.
     lbo->cross_greene_num(app, species, lbo, i);
@@ -373,6 +374,18 @@ void
 gk_species_lbo_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
   if (gks->lbo.collision_id == GKYL_LBO_COLLISIONS && gks->lbo.write_diagnostics) {
+    struct timespec wst = gkyl_wall_clock();
+    // Compute primitive moments.
+    const struct gkyl_array *fin[app->num_species];
+    gk_species_lbo_moms(app, gks, &gks->lbo, gks->f);
+
+    // Compute cross primitive moments.
+    if (gks->lbo.num_cross_collisions)
+      gk_species_lbo_cross_moms(app, gks, &gks->lbo, gks->f);
+    
+    app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
+
+    struct timespec wtm = gkyl_wall_clock();
     struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
         .frame = frame,
         .stime = tm,
@@ -387,21 +400,14 @@ gk_species_lbo_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, doub
     char fileNm_prim[sz_prim+1]; // Ensures no buffer overflow.
     snprintf(fileNm_prim, sizeof fileNm_prim, fmt_prim, app->name, gks->info.name, frame);
 
-    // Compute primitive moments.
-    const struct gkyl_array *fin[app->num_species];
-    gk_species_lbo_moms(app, gks, &gks->lbo, gks->f);
-
     // Copy data from device to host before writing it out.
-    if (app->use_gpu) {  
+    if (app->use_gpu)  
       gkyl_array_copy(gks->lbo.prim_moms_host, gks->lbo.prim_moms);
-    }
 
-    struct timespec wtm = gkyl_wall_clock();
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gks->lbo.prim_moms_host, fileNm_prim);
-    app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
     app->stat.n_diag_io += 1;   
 
-    // Uncomment the following to write out nu_sum and nu_prim_moms
+    // Write out nu_sum and nu_prim_moms.
     const char *fmt = "%s-%s_nu_sum_%d.gkyl";
     int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, frame);
     char fileNm[sz+1]; // ensures no buffer overflow
@@ -412,9 +418,6 @@ gk_species_lbo_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, doub
     char fileNm_nu_prim[sz_nu_prim+1]; // ensures no buffer overflow
     snprintf(fileNm_nu_prim, sizeof fileNm_nu_prim, fmt_nu_prim, app->name, gks->info.name, frame);
     
-    if (gks->lbo.num_cross_collisions)
-      gk_species_lbo_cross_moms(app, gks, &gks->lbo, gks->f);
-    
     // copy data from device to host before writing it out
     if (app->use_gpu) {
       gkyl_array_copy(gks->lbo.nu_sum_host, gks->lbo.nu_sum);
@@ -423,8 +426,10 @@ gk_species_lbo_write_mom(gkyl_gyrokinetic_app* app, struct gk_species *gks, doub
     
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gks->lbo.nu_sum_host, fileNm);
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gks->lbo.nu_prim_moms_host, fileNm_nu_prim);
+    app->stat.n_diag_io += 2;
 
     gk_array_meta_release(mt); 
+    app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
   }
 }
 
