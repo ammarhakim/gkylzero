@@ -395,6 +395,7 @@ struct vm_species {
       struct gkyl_array *det_h_host; // Host side metric determinant
 
       struct gkyl_array *alpha_surf; // Surface phase space velocity
+      struct gkyl_array *alpha_surf_host; // Host side surface phase space velocity
       struct gkyl_array *sgn_alpha_surf; // sign(alpha_surf) at quadrature points
       struct gkyl_array *const_sgn_alpha; // boolean for if sign(alpha_surf) is a constant, either +1 or -1
     };

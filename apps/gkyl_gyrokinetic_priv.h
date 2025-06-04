@@ -845,6 +845,7 @@ struct gk_neut_species {
   struct gkyl_array *det_h_host; // Host side metric determinant
   
   struct gkyl_array *alpha_surf; // array for surface phase space flux (v^i = v . e^i)
+  struct gkyl_array *alpha_surf_host; 
   struct gkyl_array *sgn_alpha_surf; // array for the sign of the surface phase space flux at quadrature points
                                      // utilized for numerical flux function
                                      // F = alpha_surf/2 ( (f^+ + f^-) - sign_alpha_surf*(f^+ - f^-) )

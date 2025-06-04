@@ -1147,9 +1147,13 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   // 2. sgn_alpha_surf (sign(alpha_surf) at quadrature points)
   // 3. const_sgn_alpha (boolean for if sign(alpha_surf) is a constant, either +1 or -1)
   s->alpha_surf = mkarr(app->use_gpu, alpha_surf_sz, s->local_ext.volume);
+  s->alpha_surf_host = s->alpha_surf;
+  if (app->use_gpu){
+    s->alpha_surf_host = mkarr(false, alpha_surf_sz, app->local_ext.volume);
+  }
+  
   s->sgn_alpha_surf = mkarr(app->use_gpu, sgn_alpha_surf_sz, s->local_ext.volume);
   s->const_sgn_alpha = mk_int_arr(app->use_gpu, (2*cdim), s->local_ext.volume);
-  //gkyl_grid_sub_array_write(&s->grid, &s->local, 0, s->hamil, "check_gk_neut_alpha_surf.gkyl");
 
   // Pre-compute alpha_surf, sgn_alpha_surf, const_sgn_alpha, and cot_vec since they are time-independent
   struct gkyl_dg_calc_canonical_pb_vars *calc_vars = gkyl_dg_calc_canonical_pb_vars_new(&s->grid, 
@@ -1157,8 +1161,10 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   gkyl_dg_calc_canonical_pb_vars_alpha_surf(calc_vars, &app->local, &s->local, &s->local_ext, s->hamil,
     s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
   gkyl_dg_calc_canonical_pb_vars_release(calc_vars);
-
-  //gkyl_grid_sub_array_write(&s->grid, &s->local, 0, s->alpha_surf, "check_gk_neut_alpha_surf.gkyl");
+  if (app->use_gpu){
+    gkyl_array_copy(s->alpha_surf_host, s->alpha_surf);
+  }    
+  gkyl_grid_sub_array_write(&s->grid, &s->local, 0, s->alpha_surf_host, "check_gk_neut_surf.gkyl");
 
   struct gkyl_dg_canonical_pb_auxfields aux_inp = {.hamil = s->hamil, .alpha_surf = s->alpha_surf, 
     .sgn_alpha_surf = s->sgn_alpha_surf, .const_sgn_alpha = s->const_sgn_alpha};
