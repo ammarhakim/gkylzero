@@ -69,7 +69,7 @@ struct gk_geom_int {
   struct gkyl_array* gij; // Metric coefficients g^{ij}. See g_ij for order.
   struct gkyl_array* gij_neut; // Metric coefficients g^{ij}. See g_ij for order. 
                                // Calculated with coord definition alpha = phi for tokamak geometry
-  struct gkyl_array* b_i; // 3 components. Contravariant components of magnetic field vector b_1, b_2, b_3.
+  struct gkyl_array* b_i; // 3 components. Covariant components of magnetic field vector b_1, b_2, b_3.
   struct gkyl_array* bcart; // 3 components. Cartesian components of magnetic field vector b_X, b_Y, b_Z.
   struct gkyl_array* cmag; // 1 component. C = JB/sqrt(g_33)
   struct gkyl_array* jacobtot; // 1 component. Phase space Jacobian = JB

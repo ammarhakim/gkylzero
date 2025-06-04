@@ -168,22 +168,34 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
   up->global = geometry_inp->global;
   up->global_ext = geometry_inp->global_ext;
   up->grid = geometry_inp->grid;
+
+  if (up->grid.ndim > 1) {
+    gkyl_cart_modal_serendip(&up->surf_basis, up->grid.ndim-1, up->basis.poly_order);
+    up->num_surf_basis = up->surf_basis.num_basis;
+  }
+  else {
+    up->num_surf_basis = 1;
+  }
+
   up->geqdsk_sign_convention = geo_host->geqdsk_sign_convention;
   up->has_LCFS = geo_host->has_LCFS;
   if (up->has_LCFS) {
     up->x_LCFS = geo_host->x_LCFS;
     // Check that the split happens within the domain.
     assert((up->grid.lower[0] <= up->x_LCFS) && (up->x_LCFS <= up->grid.upper[0]));
-    // If the split is not at a cell boundary, move it to the nearest one.
+    // Check that the split happens at a cell boundary;
     double needint = (up->x_LCFS - up->grid.lower[0])/up->grid.dx[0];
-    double rem = fabs(needint-floor(needint));
-    if (rem < 1.0e-12) {
-      up->idx_LCFS_lo = (int) needint;
+    double rem_floor = fabs(needint-floor(needint));
+    double rem_ceil = fabs(needint-ceil(needint));
+    if (rem_floor < 1.0e-12) {
+      up->idx_LCFS_lo = (int) floor(needint);
+    }
+    else if (rem_ceil < 1.0e-12) {
+      up->idx_LCFS_lo = (int) ceil(needint);
     }
     else {
-      up->idx_LCFS_lo = rem <= 0.5? floor(needint) : ceil(needint);
-      up->x_LCFS = up->grid.lower[0]+up->idx_LCFS_lo*up->grid.dx[0];
-      fprintf(stderr, "x_LCFS was not at a cell boundary. Moved to: %.9e\n", up->x_LCFS);
+      fprintf(stderr, "x_LCFS = %.9e must be at a cell boundary.\n", up->x_LCFS);
+      assert(false);
     }
   }
 
