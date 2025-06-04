@@ -230,7 +230,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     s->alpha_surf = mkarr(app->use_gpu, alpha_surf_sz, s->local_ext.volume);
     s->alpha_surf_host = s->alpha_surf;
     if (app->use_gpu){
-      s->alpha_surf_host = mkarr(false, alpha_surf_sz, app->local_ext.volume);
+      s->alpha_surf_host = mkarr(false, alpha_surf_sz, s->local_ext.volume);
     }
 
     s->sgn_alpha_surf = mkarr(app->use_gpu, sgn_alpha_surf_sz, s->local_ext.volume);

@@ -1149,7 +1149,7 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   s->alpha_surf = mkarr(app->use_gpu, alpha_surf_sz, s->local_ext.volume);
   s->alpha_surf_host = s->alpha_surf;
   if (app->use_gpu){
-    s->alpha_surf_host = mkarr(false, alpha_surf_sz, app->local_ext.volume);
+    s->alpha_surf_host = mkarr(false, alpha_surf_sz, s->local_ext.volume);
   }
   
   s->sgn_alpha_surf = mkarr(app->use_gpu, sgn_alpha_surf_sz, s->local_ext.volume);
@@ -1164,7 +1164,7 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   if (app->use_gpu){
     gkyl_array_copy(s->alpha_surf_host, s->alpha_surf);
   }    
-  gkyl_grid_sub_array_write(&s->grid, &s->local, 0, s->alpha_surf_host, "check_gk_neut_surf.gkyl");
+  gkyl_grid_sub_array_write(&s->grid, &s->local, 0, s->alpha_surf_host, "check_gk_neut_alpha_surf.gkyl");
 
   struct gkyl_dg_canonical_pb_auxfields aux_inp = {.hamil = s->hamil, .alpha_surf = s->alpha_surf, 
     .sgn_alpha_surf = s->sgn_alpha_surf, .const_sgn_alpha = s->const_sgn_alpha};
