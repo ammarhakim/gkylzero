@@ -766,6 +766,15 @@ void gkyl_gyrokinetic_multib_app_write(gkyl_gyrokinetic_multib_app* app, double 
 void gkyl_gyrokinetic_multib_app_stat_write(gkyl_gyrokinetic_multib_app* app);
 
 /**
+ * Print timing of solver components to iostream.
+ *
+ * @param app App object.
+ * @param iostream Where to write timers to (e.g. stdout, stderr);
+ */
+void
+gkyl_gyrokinetic_multib_app_print_timings(gkyl_gyrokinetic_multib_app* app, FILE *iostream);
+
+/**
  * Record the time step (in private dynvector).
  *
  * @param app App object.

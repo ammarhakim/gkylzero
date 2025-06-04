@@ -2295,13 +2295,6 @@ void gk_species_coll_tm(gkyl_gyrokinetic_app *app);
 void gk_species_n_iter_corr(gkyl_gyrokinetic_app *app);
 
 /**
- * Fill stat object in app with collisionless timers.
- *
- * @param app App object to update stat timers.
- */
-void gk_species_tm(gkyl_gyrokinetic_app *app);
-
-/**
  * Species write function.
  *
  * @param app gyrokinetic app object.
@@ -2818,13 +2811,6 @@ void gk_neut_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_neut_sp
  * @param app App object to update stat timers
  */
 void gk_neut_species_n_iter_corr(gkyl_gyrokinetic_app *app);
-
-/**
- * Fill stat object in app with collisionless timers for neutral species.
- *
- * @param app App object to update stat timers
- */
-void gk_neut_species_tm(gkyl_gyrokinetic_app *app);
 
 /**
  * Scale and accumulate for forward euler method.
