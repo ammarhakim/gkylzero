@@ -450,6 +450,13 @@ main(int argc, char **argv)
         .temp = evalSourceTempElcInit,
         .ctx_temp = &ctx,
       }, 
+      .diagnostics = {
+        .num_diag_moments = 1,
+        .diag_moments = { "FourMoments" },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { "HamiltonianMoments" },
+//        .time_integrated = true,
+      }
     },
     
     .bcx = {
@@ -466,6 +473,17 @@ main(int argc, char **argv)
 
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { "HamiltonianMoments" },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_diag_moments = 1,
+      .diag_moments = { "HamiltonianMoments" },
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { "HamiltonianMoments" },
+//      .time_integrated = true,
+    },
   };
 
   // Ion species.
@@ -508,6 +526,13 @@ main(int argc, char **argv)
         .temp = evalSourceTempIonInit,
         .ctx_temp = &ctx,
       }, 
+      .diagnostics = {
+        .num_diag_moments = 1,
+        .diag_moments = { "FourMoments" },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { "HamiltonianMoments" },
+//        .time_integrated = true,
+      }
     },
     
     .bcx = {
@@ -524,6 +549,17 @@ main(int argc, char **argv)
 
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { "HamiltonianMoments" },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_diag_moments = 1,
+      .diag_moments = { "HamiltonianMoments" },
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { "HamiltonianMoments" },
+//      .time_integrated = true,
+    },
   };
 
   // Field.
@@ -533,6 +569,7 @@ main(int argc, char **argv)
       .up_type = { GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC },
       .lo_value = { 0.0, 0.0 }, .up_value = { 0.0, 0.0}
     },
+    .time_rate_diagnostics = true,
   };
 
   // GK app.

@@ -823,14 +823,17 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
     int bid = mbapp->local_blocks[b];
     struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
     int d = 0;
-    struct gkyl_dg_bin_op_mem *div_mem = mbapp->use_gpu? gkyl_dg_bin_op_mem_cu_dev_new(sbapp->upper_ghost[d].volume, sbapp->basis.num_basis) : gkyl_dg_bin_op_mem_new(sbapp->upper_ghost[d].volume, sbapp->basis.num_basis);
+    struct gkyl_dg_bin_op_mem *div_mem = mbapp->use_gpu? 
+      gkyl_dg_bin_op_mem_cu_dev_new(sbapp->upper_ghost[d].volume, sbapp->basis.num_basis) :
+      gkyl_dg_bin_op_mem_new(sbapp->upper_ghost[d].volume, sbapp->basis.num_basis);
     for (int e=0; e<2; ++e) {
       if (mbapp->block_topo->conn[bid].connections[d][e].edge != GKYL_PHYSICAL) {
         gkyl_array_copy_range_to_range(sbapp->gk_geom->geo_int.jacobgeo, sbapp->gk_geom->geo_int.jacobgeo, 
           e == 0 ? &sbapp->lower_ghost[d] : &sbapp->upper_ghost[d], 
           e == 0 ? &sbapp->lower_skin[d] : &sbapp->upper_skin[d]);
-        //gkyl_dg_div_op_range(sbapp->species[0].moms[0].mem_geo, sbapp->basis, 0, sbapp->gk_geom->geo_int.jacobgeo_ghost, 0, sbapp->gk_geom->geo_int.jacobgeo, 0, sbapp->gk_geom->geo_int.jacobgeo_ghost, &sbapp->upper_ghost[d]);
-        gkyl_dg_div_op_range(div_mem, sbapp->basis, 0, sbapp->gk_geom->geo_int.jacobgeo_ghost, 0, sbapp->gk_geom->geo_int.jacobgeo, 0, sbapp->gk_geom->geo_int.jacobgeo_ghost, 
+
+        gkyl_dg_div_op_range(div_mem, sbapp->basis, 0, sbapp->gk_geom->geo_int.jacobgeo_ghost, 0,
+          sbapp->gk_geom->geo_int.jacobgeo, 0, sbapp->gk_geom->geo_int.jacobgeo_ghost, 
           e == 0 ? &sbapp->lower_ghost[d] : &sbapp->upper_ghost[d]);
       }
     }

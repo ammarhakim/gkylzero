@@ -243,10 +243,10 @@ create_ctx(void)
   double mu_max_ion = 0.75*mi*(4.0*vtIon)*(4.0*vtIon)/(2.0*B0);
 
   int Nx = 4; // Number of cells in x.
-  int Ny = 1; // Number of cells in y.
+  int Ny = 2; // Number of cells in y.
   int Nz = 8; // Number of cells in z.
-  int Nvpar = 16; // Number of cells in vpar.
-  int Nmu = 8; // Number of cells in mu.
+  int Nvpar = 6; // Number of cells in vpar.
+  int Nmu = 4; // Number of cells in mu.
 
   double t_end = 4.0e-7; 
   double num_frames = 1;
@@ -393,6 +393,13 @@ main(int argc, char **argv)
         .ctx_temp = &ctx,
         .temp = eval_temp_elc_source,      
       }, 
+      .diagnostics = {
+        .num_diag_moments = 1,
+        .diag_moments = { "FourMoments" },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { "HamiltonianMoments" },
+//        .time_integrated = true,
+      }
     },
 
     .bcx = {
@@ -406,6 +413,17 @@ main(int argc, char **argv)
         
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { "HamiltonianMoments" },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_diag_moments = 1,
+      .diag_moments = { "HamiltonianMoments" },
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { "HamiltonianMoments" },
+//      .time_integrated = true,
+    },
   };
 
   // ions
@@ -445,6 +463,13 @@ main(int argc, char **argv)
         .ctx_temp = &ctx,
         .temp = eval_temp_ion_source,      
       }, 
+      .diagnostics = {
+        .num_diag_moments = 1,
+        .diag_moments = { "FourMoments" },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { "HamiltonianMoments" },
+//        .time_integrated = true,
+      }
     },
 
     .bcx = {
@@ -458,6 +483,17 @@ main(int argc, char **argv)
     
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { "HamiltonianMoments" },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_diag_moments = 1,
+      .diag_moments = { "HamiltonianMoments" },
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { "HamiltonianMoments" },
+//      .time_integrated = true,
+    },
   };
 
   // field
@@ -465,6 +501,7 @@ main(int argc, char **argv)
     .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC}, 
                     .up_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC}, 
                     .lo_value = {0.0, 0.0}, .up_value = {0.0, 0.0}}, 
+    .time_rate_diagnostics = true,
   };
 
   struct gkyl_efit_inp efit_inp = {
@@ -511,6 +548,8 @@ main(int argc, char **argv)
 
     .parallelism = {
       .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0], app_args.cuts[1], app_args.cuts[2] },
+      .comm = comm,
     },
   };
 
