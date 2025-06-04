@@ -390,8 +390,8 @@ create_ctx(void)
   double R_axis    = 1.72068012;         // Magnetic axis major radius [m].
   double B_axis    = 2.0;                // Magnetic field at the magnetic axis [T].
   double R_LCFSmid = 2.2801477223421736; // Major radius of the LCFS at the outboard midplane [m].
-  double Rmid_min  = R_LCFSmid - 0.1;    // Minimum midplane major radius of simulation box [m].
-  double Rmid_max  = R_LCFSmid + 0.05;   // Maximum midplane major radius of simulation box [m].
+  double Rmid_min  = R_LCFSmid - 5*0.15/8;    // Minimum midplane major radius of simulation box [m].
+  double Rmid_max  = R_LCFSmid + 3*0.15/8;   // Maximum midplane major radius of simulation box [m].
   double R0        = 0.5*(Rmid_min+Rmid_max);  // Major radius of the simulation box [m].
 
   double a_mid     = R_LCFSmid-R_axis;   // Minor radius at outboard midplane [m].
@@ -454,7 +454,7 @@ create_ctx(void)
 
   // Grid parameters
   int Nx = 8;
-  int Nz = 8;
+  int Nz = 12;
   int Nvpar = 8;
   int Nmu = 4;
   int poly_order = 1;
@@ -465,7 +465,7 @@ create_ctx(void)
   double mu_max_ion = mi*pow(4*vti,2)/(2*B0);
 
   double t_end = 1.e-6;
-  int num_frames = 10;
+  int num_frames = 1;
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -637,6 +637,11 @@ main(int argc, char **argv)
         .upar = zero_func,
         .temp = temp_elc_srcGB,
       },
+      .diagnostics = {
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { "HamiltonianMoments" },
+//        .time_integrated = true,
+      },
     },
 
     .diffusion = {
@@ -657,6 +662,17 @@ main(int argc, char **argv)
 
     .num_diag_moments = 4,
     .diag_moments = { "M1", "M2par", "M2perp", "BiMaxwellianMoments" },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { "HamiltonianMoments" },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_diag_moments = 1,
+      .diag_moments = { "HamiltonianMoments" },
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { "HamiltonianMoments" },
+//      .time_integrated = true,
+    },
   };
 
   // Ions.
@@ -697,7 +713,7 @@ main(int argc, char **argv)
         .density = density_srcOMP,
         .upar = zero_func,
         .temp = temp_ion_srcOMP,
-    },
+      },
       .projection[1] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
         .ctx_density = &ctx,
@@ -706,6 +722,11 @@ main(int argc, char **argv)
         .density = density_ion_srcGB,
         .upar = zero_func,
         .temp = temp_ion_srcGB,
+      },
+      .diagnostics = {
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { "HamiltonianMoments" },
+//        .time_integrated = true,
       },
     },
 
@@ -727,6 +748,17 @@ main(int argc, char **argv)
 
     .num_diag_moments = 4,
     .diag_moments = { "M1", "M2par", "M2perp", "BiMaxwellianMoments" },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { "HamiltonianMoments" },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_diag_moments = 1,
+      .diag_moments = { "HamiltonianMoments" },
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { "HamiltonianMoments" },
+//      .time_integrated = true,
+    },
   };
 
   // field
@@ -735,6 +767,7 @@ main(int argc, char **argv)
     .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET},
                     .up_type = {GKYL_POISSON_DIRICHLET},
                     .lo_value = {0.0}, .up_value = {0.0}},
+    .time_rate_diagnostics = true,
   };
 
   // GK app
@@ -873,14 +906,8 @@ main(int argc, char **argv)
     gkyl_gyrokinetic_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
   }
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
-
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
-  gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
+  gkyl_gyrokinetic_app_print_timings(app, stdout);
 
 freeresources:
   // Free resources after simulation completion.

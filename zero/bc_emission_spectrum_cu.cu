@@ -79,8 +79,7 @@ gkyl_bc_emission_spectrum_advance_cu_weight_ker(int cdim, int dir, enum gkyl_edg
 
     double* wptr = (double*) gkyl_array_fetch(weight, lincC);
     for (unsigned int k = 0; k < weight->ncomp; ++k) {
-       if (tid < impact_buff_r.volume)
-         atomicAdd(&wptr[k], wLocal[k]);
+       atomicAdd(&wptr[k], wLocal[k]);
     }
   }
 }
