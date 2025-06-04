@@ -107,7 +107,7 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
   lbo->self_nu = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
   // Allocate moments needed for LBO update.
-  gk_species_moment_init(app, s, &lbo->moms, "ThreeMoments", false);
+  gk_species_moment_init(app, s, &lbo->moms, GKYL_F_MOMENT_M0M1M2, false);
 
   // Allocate needed arrays (boundary corrections, primitive moments, and nu*primitive moments)
   lbo->boundary_corrections = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
@@ -138,7 +138,7 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
       s->info.collisions.T_ref, bmag_mid, eps0, hbar, eV);
 
     // Allocate moments app used to compute vtsq.
-    gk_species_moment_init(app, s, &lbo->maxwellian_moms, "MaxwellianMoments", false);
+    gk_species_moment_init(app, s, &lbo->maxwellian_moms, GKYL_F_MOMENT_MAXWELLIAN, false);
 
     lbo->vtsq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 

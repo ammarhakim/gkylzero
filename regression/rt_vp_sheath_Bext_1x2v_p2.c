@@ -412,7 +412,7 @@ main(int argc, char **argv)
     },
 
     .num_diag_moments = 1,
-    .diag_moments = { "LTEMoments" },
+    .diag_moments = { GKYL_F_MOMENT_LTE },
   };
 
   // Ions.
@@ -440,7 +440,7 @@ main(int argc, char **argv)
     },
 
     .num_diag_moments = 1,
-    .diag_moments = { "LTEMoments" },
+    .diag_moments = { GKYL_F_MOMENT_LTE },
   };
 
   // Field.
