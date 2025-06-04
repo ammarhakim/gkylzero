@@ -580,6 +580,11 @@ main(int argc, char **argv)
   calc_field_energy(&fe_trig, app, t_curr, false);
   calc_integrated_mom(&im_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
+  if (ctx.use_nn_closure) {
+    for (int i = 0; i < app_inp.num_species; i++) {
+      kann_delete(ann[i]);
+    }
+  }
   gkyl_moment_app_stat_write(app);
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
@@ -597,7 +602,8 @@ freeresources:
   gkyl_wv_eqn_release(elc_ten_moment);
   gkyl_wv_eqn_release(ion_ten_moment);
   gkyl_comm_release(comm);
-  gkyl_moment_app_release(app);  
+  gkyl_moment_app_release(app);
+  gkyl_free(ann);
   
 mpifinalize:
 #ifdef GKYL_HAVE_MPI
