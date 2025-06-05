@@ -32,11 +32,12 @@ gkyl_prim_lbo_calc_new(const struct gkyl_rect_grid *grid,
  * @param conf_rng Config-space range
  * @param moms Moments of distribution function (Zeroth, First, and Second)
  * @param boundary_corrections Momentum and Energy boundary corrections
+ * @param nu Collision frequency.
  * @param prim_moms_out Output drift velocity and thermal speed squared.
  */
 void gkyl_prim_lbo_calc_advance(struct gkyl_prim_lbo_calc* calc, 
-  const struct gkyl_range *conf_rng,
-  const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections,
+  const struct gkyl_range *conf_rng, const struct gkyl_array *moms,
+  const struct gkyl_array *boundary_corrections, const struct gkyl_array *nu,
   struct gkyl_array *prim_moms_out);
 
 /**
