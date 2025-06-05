@@ -1176,7 +1176,7 @@ main(int argc, char **argv)
       }, 
       .diagnostics = {
         .num_integrated_diag_moments = 1,
-        .integrated_diag_moments = { "FourMoments" },
+        .integrated_diag_moments = { GKYL_F_MOMENT_M0M1M2PARM2PERP },
       }
     },
 
@@ -1240,7 +1240,7 @@ main(int argc, char **argv)
     .duplicate_across_blocks = false,
 
     .num_diag_moments = 4,
-    .diag_moments = { "M1", "M2par", "M2perp", "BiMaxwellianMoments" },
+    .diag_moments = { GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN },
   };
 
   // Ions.
@@ -1296,8 +1296,7 @@ main(int argc, char **argv)
       }, 
       .diagnostics = {
         .num_integrated_diag_moments = 1,
-//        .integrated_diag_moments = { "M2" },
-        .integrated_diag_moments = { "FourMoments" },
+        .integrated_diag_moments = { GKYL_F_MOMENT_M0M1M2PARM2PERP },
       }
     },
 
@@ -1361,7 +1360,7 @@ main(int argc, char **argv)
     .duplicate_across_blocks = false,
 
     .num_diag_moments = 4,
-    .diag_moments = { "M1", "M2par", "M2perp", "BiMaxwellianMoments" },
+    .diag_moments = { GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN },
   };
 
   // Field object.
@@ -1503,14 +1502,8 @@ main(int argc, char **argv)
     gkyl_gyrokinetic_multib_app_cout(app, stdout, "Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
   }  
   gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Updates took %g secs\n", stat.total_tm);
-
   gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of write calls %ld,\n", stat.n_io);
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
+  gkyl_gyrokinetic_multib_app_print_timings(app, stdout);
 
   freeresources:
   // Free resources after simulation completion.

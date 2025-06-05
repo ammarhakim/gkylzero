@@ -2614,7 +2614,7 @@ struct gkyl_mom_type*
 gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range,
   double mass, double charge, const struct gkyl_velocity_map *vel_map,
-  const struct gk_geometry *gk_geom, struct gkyl_array *phi, const char *mom);
+  const struct gk_geometry *gk_geom, struct gkyl_array *phi, enum gkyl_distribution_moments mom_type);
 
 /**
  * Create new integrated Gyrokinetic moment type object on NV-GPU:
@@ -2624,5 +2624,5 @@ struct gkyl_mom_type*
 gkyl_int_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range,
   double mass, double charge, const struct gkyl_velocity_map *vel_map,
-  const struct gk_geometry *gk_geom, struct gkyl_array *phi, const char *mom);
+  const struct gk_geometry *gk_geom, struct gkyl_array *phi, enum gkyl_distribution_moments mom_type);
 #endif    

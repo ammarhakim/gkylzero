@@ -248,7 +248,7 @@ create_ctx(void)
   double vpar_max_ion = 4.0*vtIon;
   double mu_max_ion = 12*mi*vtIon*vtIon/(2.0*B0);
 
-  double vpar_max_D0 = 4.0*vtD0;
+  double vpar_max_D0 = vtD0;
 
 
   // Number of cells.
@@ -365,9 +365,9 @@ main(int argc, char **argv)
   // neutral Deuterium
   struct gkyl_gyrokinetic_neut_species D0 = {
     .name = "D0", .mass = ctx.massIon,
-    .lower = { -ctx.vpar_max_D0/3.0, -ctx.vpar_max_D0*2.0, -ctx.vpar_max_D0*4.0},
-    .upper = { ctx.vpar_max_D0/3.0, ctx.vpar_max_D0*2.0, ctx.vpar_max_D0*4.0 },
-    .cells = { cells_v[0], cells_v[0], cells_v[0] },
+    .lower = { -ctx.vpar_max_D0*2.3, -ctx.vpar_max_D0*25.1, -ctx.vpar_max_D0*9.0},
+    .upper = { ctx.vpar_max_D0*2.3, ctx.vpar_max_D0*25.1, ctx.vpar_max_D0*9.0 },
+    .cells = { 24,24,24 },
     .is_static = false,
     .enforce_positivity = true,
 
@@ -413,7 +413,7 @@ main(int argc, char **argv)
     },
     
     .num_diag_moments = 4,
-    .diag_moments = { "M0", "M1i_from_H", "MEnergy", "LTEMoments"},
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1_FROM_H, GKYL_F_MOMENT_ENERGY, GKYL_F_MOMENT_LTE},
   };
 
   // Field.
@@ -435,7 +435,7 @@ main(int argc, char **argv)
   };
 
 struct gkyl_tok_geo_grid_inp grid_inp = {
-    .ftype = GKYL_SOL_DN_OUT, // type of geometry
+    .ftype = GKYL_DN_SOL_OUT, // type of geometry
     .rclose = 6.2,            // closest R to region of interest
     .rright= 6.2,             // Closest R to outboard SOL
     .rleft= 2.0,              // closest R to inboard SOL
@@ -447,11 +447,11 @@ struct gkyl_tok_geo_grid_inp grid_inp = {
 
   // GK app
   struct gkyl_gk gk = {
-    .name = "gk_step_neut_2x3v_p1",
+    .name = "gk_neut_step_2x3v_p1",
 
     .cdim = ctx.cdim, .vdim = ctx.vdim,
-    .lower = { ctx.lower_x, -ctx.Lz/20.0 },
-    .upper = { ctx.upper_x,  ctx.Lz/20.0 },
+    .lower = { ctx.lower_x, -ctx.Lz/2.0 },
+    .upper = { ctx.upper_x,  ctx.Lz/2.0 },
     .cells = { cells_x[0], cells_x[1] },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
@@ -578,14 +578,8 @@ struct gkyl_tok_geo_grid_inp grid_inp = {
     gkyl_gyrokinetic_app_cout(app, stdout, "Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
   }  
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Updates took %g secs\n", stat.total_tm);
-
-  gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld,\n", stat.n_io);
-  gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
+  gkyl_gyrokinetic_app_print_timings(app, stdout);
 
   freeresources:
   // Free resources after simulation completion.

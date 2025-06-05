@@ -654,7 +654,7 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   gkyl_array_shiftc(gk_geom->geo_int.bmag, B0*pow(sqrt(2.0),cdim), 0);
 
   struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &basis_conf,
-    &basis, &local_conf, mass, 0, gvm, gk_geom, NULL, "ThreeMoments", true, use_gpu);
+    &basis, &local_conf, mass, 0, gvm, gk_geom, NULL, GKYL_F_MOMENT_M0M1M2, true, use_gpu);
   int num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(mcalc);
 
   struct gkyl_array *marr = mkarr(use_gpu, num_mom, local_ext_conf.volume);
@@ -1395,7 +1395,7 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
   gkyl_array_shiftc(gk_geom->geo_int.bmag, B0*pow(sqrt(2.0),cdim), 0);
 
   struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &basis_conf,
-    &basis, &local_conf, mass, 0, gvm, gk_geom, NULL, "ThreeMoments", true, use_gpu);
+    &basis, &local_conf, mass, 0, gvm, gk_geom, NULL, GKYL_F_MOMENT_M0M1M2, true, use_gpu);
   int num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(mcalc);
 
   struct gkyl_array *marr = mkarr(use_gpu, num_mom, local_ext_conf.volume);

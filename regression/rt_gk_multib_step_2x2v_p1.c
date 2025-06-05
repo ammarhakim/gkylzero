@@ -1069,7 +1069,7 @@ main(int argc, char **argv)
     .cells = { cells_v[0], cells_v[1] },
     .no_by = true,
     .num_diag_moments = 7,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
@@ -1542,7 +1542,7 @@ main(int argc, char **argv)
     .cells = { cells_v[0], cells_v[1] },
     .no_by = true,
     .num_diag_moments = 7,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
@@ -1633,7 +1633,7 @@ main(int argc, char **argv)
     .cells = { cells_v[0], cells_v[1] },
     .no_by = true,
     .num_diag_moments = 7,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
@@ -1749,7 +1749,7 @@ main(int argc, char **argv)
     .cells = { cells_v[0], cells_v[0], cells_v[0] },
     .is_static = true,
     .num_diag_moments = 3,
-    .diag_moments = { "M0", "M1i", "M2"},
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},
 
     .duplicate_across_blocks = true,
     .blocks = Ar0_blocks,
@@ -1927,15 +1927,9 @@ main(int argc, char **argv)
     gkyl_gyrokinetic_multib_app_cout(app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
     gkyl_gyrokinetic_multib_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
   }
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
-
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
+  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of RK stage-3 failures %ld.\n", stat.nstage_3_fail);
+  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of write calls %ld.\n", stat.n_io);
+  gkyl_gyrokinetic_multib_app_print_timings(app, stdout);
 
 freeresources:
   // Free resources after simulation completion.

@@ -474,6 +474,8 @@ gk_multib_field_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *
     gk_field_accumulate_rho_c(sbapp, sbapp->field, fin_local_block);
   }
 
+  struct timespec wst = gkyl_wall_clock();
+
   // Gather the charge density along the magnetic field.
   int stat_par_rho = gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbf->num_local_blocks, mbapp->local_blocks,
     mbf->mbcc_allgatherz_send, mbf->mbcc_allgatherz_recv, mbf->rho_c_local, mbf->rho_c_multibz_dg);
@@ -540,6 +542,7 @@ gk_multib_field_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *
     }
   }
 
+  mbapp->stat.field_phi_solve_tm += gkyl_time_diff_now_sec(wst);
 }
 
 // Release resources for multib field.
