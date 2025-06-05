@@ -301,6 +301,26 @@ evalInvMetric(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 }
 
 void
+evalMetric(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct toroidal_sodshock_ctx *app = ctx;
+  double q_r = xn[0], q_theta = xn[1];
+
+  double R = app->R;
+
+  double metric_r_r = 1.0; // Metric tensor (radial-radial component).
+  double metric_r_theta = 0.0; // Metric tensor (radial-polar component).
+  double metric_r_phi = 0.0; // Metric tensor (radial-azimuthal component).
+  double metric_theta_theta = q_r * q_r; // Metric tensor (polar-polar component).
+  double metric_theta_phi = 0.0; // Metric tensor (polar-azimuthal component).
+  double metric_phi_phi = (R + (q_r * cos(q_theta))) * (R + (q_r * cos(q_theta))); // Metric tensor (azimuthal-azimuthal component).
+  
+  // Set Metric tensor.
+  fout[0] = metric_r_r; fout[1] = metric_r_theta; fout[2] = metric_r_phi;
+  fout[3] = metric_theta_theta; fout[4] = metric_theta_phi; fout[5] = metric_phi_phi;
+}
+
+void
 evalMetricDet(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct toroidal_sodshock_ctx *app =ctx;
@@ -468,6 +488,8 @@ main(int argc, char **argv)
 
     .hamil = evalHamiltonian,
     .hamil_ctx = &ctx,
+    .h_ij = evalMetric,
+    .h_ij_ctx = &ctx,
     .h_ij_inv = evalInvMetric,
     .h_ij_inv_ctx = &ctx,
     .det_h = evalMetricDet,
@@ -504,7 +526,7 @@ main(int argc, char **argv)
     },
     
     .num_diag_moments = 4,
-    .diag_moments = { "M0", "M1i", "LTEMoments", "MEnergy" },
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_LTE, GKYL_F_MOMENT_ENERGY },
   };
 
   // Vlasov-Maxwell app.

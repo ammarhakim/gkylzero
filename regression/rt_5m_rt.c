@@ -342,10 +342,12 @@ main(int argc, char **argv)
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
     .equation = elc_euler,
-    .evolve = true,
+    
     .init = evalElcInit,
-    .app_accel_func = evalAppAccel,
     .ctx = &ctx,
+
+    .app_accel = evalAppAccel,
+    .app_accel_ctx = &ctx,
 
     .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
   };
@@ -354,10 +356,12 @@ main(int argc, char **argv)
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
     .equation = ion_euler,
-    .evolve = true,
+    
     .init = evalIonInit,
-    .app_accel_func = evalAppAccel,
     .ctx = &ctx,
+        
+    .app_accel = evalAppAccel,
+    .app_accel_ctx = &ctx,
 
     .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },    
   };
@@ -367,7 +371,6 @@ main(int argc, char **argv)
     .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
     .mag_error_speed_fact = 1.0,
     
-    .evolve = true,
     .init = evalFieldInit,
     .ctx = &ctx,
     

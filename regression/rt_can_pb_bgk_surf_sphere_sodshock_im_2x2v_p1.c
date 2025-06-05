@@ -283,6 +283,22 @@ evalInvMetric(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 }
 
 void
+evalMetric(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sphere_sodshock_ctx *app = ctx;
+  double q_theta = xn[0];
+
+  double R = app->R;
+
+  double metric_theta_theta = R * R; // Metric tensor (polar-polar component).
+  double metric_theta_phi = 0.0; // Metric tensor (polar-azimuthal component).
+  double metric_phi_phi = (R * sin(q_theta)) * (R * sin(q_theta)); // Metric tensor (azimuthal-azimuthal component).
+  
+  // Set metric tensor.
+  fout[0] = metric_theta_theta; fout[1] = metric_theta_phi; fout[2] = metric_phi_phi;
+}
+
+void
 evalMetricDet(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct sphere_sodshock_ctx *app = ctx;
@@ -449,6 +465,8 @@ main(int argc, char **argv)
 
     .hamil = evalHamiltonian,
     .hamil_ctx = &ctx,
+    .h_ij = evalMetric,
+    .h_ij_ctx = &ctx,
     .h_ij_inv = evalInvMetric,
     .h_ij_inv_ctx = &ctx,
     .det_h = evalMetricDet,
@@ -486,7 +504,7 @@ main(int argc, char **argv)
     },
     
     .num_diag_moments = 3,
-    .diag_moments = { "M0", "M1i", "LTEMoments" },
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_LTE },
   };
 
   // Vlasov-Maxwell app.

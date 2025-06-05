@@ -1,3 +1,8 @@
+-- Advection in specified electromagnetic fields for the PKPM system of equations.
+-- Input parameters match the initial conditions found in entry JE32 of Ammar's Simulation Journal (https://ammar-hakim.org/sj/je/je32/je32-vlasov-test-ptcl.html)
+-- but with a rotation so that the oscillating electric field is in the z_hat direction and the background magnetic field in the x_hat direction. 
+-- Solution is given by the resonant case, omega = Omega_c where Omega_c = q B/m is the cyclotron frequency. 
+
 local PKPM = G0.PKPM
 
 -- Mathematical constants (dimensionless).
@@ -12,14 +17,15 @@ charge_elc = -1.0 -- Electron charge.
 vt = 1.0 -- Thermal velocity.
 nu = 1.0e-4 -- Collision frequency.
 
+-- External EM field parameters.
+omega = 1.0 -- Oscillating electric field frequency normalized to cyclotron frequency.
 B0 = 1.0 -- Reference magnetic field strength.
-omega = 1.0 -- Magnetic field frequency.
 
 -- Simulation parameters.
 Nx = 2 -- Cell count (configuration space: x-direction).
-Nvx = 32 -- Cell count (velocity space: vx-direction).
+Nvx = 16 -- Cell count (velocity space: vx-direction).
 Lx = 4.0 * pi -- Domain size (configuration space: x-direction).
-vx_max = 6.0 * vt -- Domain boundary (velocity space: vx-direction).
+vx_max = 8.0 * vt -- Domain boundary (velocity space: vx-direction).
 poly_order = 1 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
@@ -128,7 +134,8 @@ pkpmApp = PKPM.App.new {
       return Ex, Ey, Ez, Bx, By, Bz
     end,
 
-    evolve = true, -- Evolve field?
+    evolve = false, -- Evolve field?
+    evolveExternalField = true, 
     elcErrorSpeedFactor = 0.0,
     mgnErrorSpeedFactor = 0.0
   }

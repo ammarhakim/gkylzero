@@ -223,7 +223,7 @@ main(int argc, char **argv)
   struct gkyl_moment_species fluid = {
     .name = "gr_medium",
     .equation = gr_medium,
-    .evolve = true,
+    
     .init = evalGRMediumInit,
     .ctx = &ctx,
 

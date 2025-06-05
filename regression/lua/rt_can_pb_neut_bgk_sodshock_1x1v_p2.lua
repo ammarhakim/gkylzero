@@ -75,6 +75,11 @@ vlasovApp = Vlasov.App.new {
 
       return inv_metric_x_x
     end,
+    metric = function (t, xn)
+      local metric_x_x = 1.0 -- Metric tensor (x-x component).
+
+      return metric_x_x
+    end,
     metricDeterminant = function (t, xn)
       local metric_det = 1.0 -- Metric tensor determinant.
 
@@ -156,7 +161,7 @@ vlasovApp = Vlasov.App.new {
     },
 
     evolve = true, -- Evolve species?
-    diagnostics = { "M0", "M1i", "LTEMoments" }
+    diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.LTEMoments }
   },
 
   skipField = true,

@@ -194,6 +194,18 @@ evalInvMetric(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 }
 
 void
+evalMetric(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  double metric_x_x = 1.0; // Metric tensor (x-x component).
+  double metric_x_y = 0.0; // Metric tensor (x-y component).
+  double metric_y_y = 1.0; // Metric tensor (y-y component).
+  
+  // Set Metric tensor.
+  fout[0] = metric_x_x; fout[1] = metric_x_y; fout[2] = metric_y_y;
+}
+
+
+void
 evalMetricDet(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double metric_det = 1.0; // Metric tensor determinant.
@@ -355,6 +367,8 @@ main(int argc, char **argv)
 
     .hamil = evalHamiltonian,
     .hamil_ctx = &ctx,
+    .h_ij = evalMetric,
+    .h_ij_ctx = &ctx,
     .h_ij_inv = evalInvMetric,
     .h_ij_inv_ctx = &ctx,
     .det_h = evalMetricDet,
@@ -386,7 +400,7 @@ main(int argc, char **argv)
     },
     
     .num_diag_moments = 3,
-    .diag_moments = { "M0", "M1i", "LTEMoments" },
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_LTE },
   };
 
   // Vlasov-Maxwell app.

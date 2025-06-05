@@ -8,6 +8,8 @@
 #include <gkyl_vlasov.h>
 #include <gkyl_vlasov_lw.h>
 #include <gkyl_vlasov_priv.h>
+#include <gkyl_wv_advect.h>
+#include <gkyl_wv_canonical_pb_fluid.h>
 #include <gkyl_wv_euler.h>
 #include <gkyl_zero_lw.h>
 
@@ -109,6 +111,133 @@ static struct luaL_Reg eqn_euler_ctor[] = {
   { 0, 0 }
 };
 
+/* ****************************** */
+/* Advection Equation */
+/* ****************************** */
+
+// Advect.new { }
+static int
+eqn_advect_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *advect_lw = gkyl_malloc(sizeof(*advect_lw));
+
+  advect_lw->magic = VLASOV_EQN_DEFAULT;
+  // Set a constant speed of 1.0; Advection velocity in DG advection equation
+  // is handled by the app_advect function initialized in the FluidSpecies table. 
+  advect_lw->eqn = gkyl_wv_advect_new(1.0, false);
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_advect_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_advect_lw = advect_lw; // Point userdata to the equation object.
+  
+  // Set metatable.
+  luaL_getmetatable(L, VLASOV_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_advect_ctor[] = {
+  { "new", eqn_advect_lw_new },
+  { 0, 0 }
+};
+
+/* ****************************** */
+/* incompressible Euler Equations */
+/* ****************************** */
+
+// IncompressEuler.new { }
+static int
+eqn_incompress_euler_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *incompress_euler_lw = gkyl_malloc(sizeof(*incompress_euler_lw));
+
+  incompress_euler_lw->magic = VLASOV_EQN_DEFAULT;
+  incompress_euler_lw->eqn = gkyl_wv_can_pb_incompress_euler_new();
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_incompress_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_incompress_euler_lw = incompress_euler_lw; // Point userdata to the equation object.
+  
+  // Set metatable.
+  luaL_getmetatable(L, VLASOV_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_incompress_euler_ctor[] = {
+  { "new", eqn_incompress_euler_lw_new },
+  { 0, 0 }
+};
+
+/* *********************** */
+/* Hasegawa-Mima Equations */
+/* *********************** */
+
+// HasegawaMima.new { }
+static int
+eqn_hasegawa_mima_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *hasegawa_mima_lw = gkyl_malloc(sizeof(*hasegawa_mima_lw));
+
+  hasegawa_mima_lw->magic = VLASOV_EQN_DEFAULT;
+  hasegawa_mima_lw->eqn = gkyl_wv_can_pb_hasegawa_mima_new();
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_hasegawa_mima_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_hasegawa_mima_lw = hasegawa_mima_lw; // Point userdata to the equation object.
+  
+  // Set metatable.
+  luaL_getmetatable(L, VLASOV_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_hasegawa_mima_ctor[] = {
+  { "new", eqn_hasegawa_mima_lw_new },
+  { 0, 0 }
+};
+
+/* *************************** */
+/* Hasegawa-Wakatani Equations */
+/* *************************** */
+
+// HasegawaWakatani.new { alpha = 1.0, is_modified = false }
+// Set is_modified=true to utilized modified Hasegawa-Wakatani system which
+// subtracts off zonal component of adiabatic coupling term. 
+static int
+eqn_hasegawa_wakatani_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *hasegawa_wakatani_lw = gkyl_malloc(sizeof(*hasegawa_wakatani_lw));
+
+  double alpha = glua_tbl_get_number(L, "alpha", 1.0);
+  bool is_modified = glua_tbl_get_bool(L, "is_modified", false);  
+
+  hasegawa_wakatani_lw->magic = VLASOV_EQN_DEFAULT;
+  hasegawa_wakatani_lw->eqn = gkyl_wv_can_pb_hasegawa_wakatani_new(alpha, is_modified);
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_hasegawa_wakatani_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_hasegawa_wakatani_lw = hasegawa_wakatani_lw; // Point userdata to the equation object.
+  
+  // Set metatable.
+  luaL_getmetatable(L, VLASOV_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_hasegawa_wakatani_ctor[] = {
+  { "new", eqn_hasegawa_wakatani_lw_new },
+  { 0, 0 }
+};
+
 // Register and load all wave equation objects.
 static void
 eqn_openlibs(lua_State *L)
@@ -120,6 +249,10 @@ eqn_openlibs(lua_State *L)
   lua_settable(L, -3);
 
   luaL_register(L, "G0.Vlasov.Eq.Euler", eqn_euler_ctor);
+  luaL_register(L, "G0.Vlasov.Eq.Advect", eqn_advect_ctor);
+  luaL_register(L, "G0.Vlasov.Eq.IncompressEuler", eqn_incompress_euler_ctor);
+  luaL_register(L, "G0.Vlasov.Eq.HasegawaMima", eqn_hasegawa_mima_ctor);
+  luaL_register(L, "G0.Vlasov.Eq.HasegawaWakatani", eqn_hasegawa_wakatani_ctor);
 }
 
 /* *************** */
@@ -139,6 +272,9 @@ struct vlasov_species_lw {
 
   bool has_hamiltonian_func; // Is there a Hamiltonian function?
   struct lua_func_ctx hamiltonian_func_ref; // Lua registry reference to Hamiltonian function.
+
+  bool has_metric_func; // Is there an metric tensor function?
+  struct lua_func_ctx metric_func_ref; // Lua registry reference to metric tensor function.
 
   bool has_inverse_metric_func; // Is there an inverse metric tensor function?
   struct lua_func_ctx inverse_metric_func_ref; // Lua registry reference to inverse metric tensor function.
@@ -240,21 +376,16 @@ vlasov_species_lw_new(lua_State *L)
     }
   }
 
-  bool evolve = glua_tbl_get_integer(L, "evolve", true);
+  bool evolve = glua_tbl_get_bool(L, "evolve", true);
 
   with_lua_tbl_tbl(L, "diagnostics") {
     int num_diag_moments = glua_objlen(L);
 
-    int n = 0;
     for (int i = 0; i < num_diag_moments; i ++) {
-      const char *mom = glua_tbl_iget_string(L, i+1, "");
-
-      if (is_moment_name_valid(mom)) {
-        strcpy(vm_species.diag_moments[n++], mom);
-      }
+      vm_species.diag_moments[i] = glua_tbl_iget_integer(L, i+1, 0);
     }
 
-    vm_species.num_diag_moments = n;
+    vm_species.num_diag_moments = num_diag_moments;
   }
 
   with_lua_tbl_tbl(L, "bcx") {
@@ -290,6 +421,9 @@ vlasov_species_lw_new(lua_State *L)
   bool has_hamiltonian_func = false;
   int hamiltonian_func_ref = LUA_NOREF;
 
+  bool has_metric_func = false;
+  int metric_func_ref = LUA_NOREF;
+
   bool has_inverse_metric_func = false;
   int inverse_metric_func_ref = LUA_NOREF;
 
@@ -299,6 +433,11 @@ vlasov_species_lw_new(lua_State *L)
   if (glua_tbl_get_func(L, "hamiltonian")) {
     hamiltonian_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
     has_hamiltonian_func = true;
+  }
+
+  if (glua_tbl_get_func(L, "metric")) {
+    metric_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_metric_func = true;
   }
 
   if (glua_tbl_get_func(L, "inverseMetric")) {
@@ -508,6 +647,15 @@ vlasov_species_lw_new(lua_State *L)
     .L = L,
   };
 
+  vms_lw->has_metric_func = has_metric_func;
+  vms_lw->metric_func_ref = (struct lua_func_ctx) {
+    .func_ref = metric_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = (vdim * (vdim + 1)) / 2,
+    .L = L,
+  };
+
+
   vms_lw->has_inverse_metric_func = has_inverse_metric_func;
   vms_lw->inverse_metric_func_ref = (struct lua_func_ctx) {
     .func_ref = inverse_metric_func_ref,
@@ -658,6 +806,12 @@ struct vlasov_fluid_species_lw {
   
   struct gkyl_vlasov_fluid_species vlasov_fluid_species; // Input struct to construct fluid species.
   struct lua_func_ctx init_ctx; // Lua registry reference to initialization function.
+
+  bool has_app_advect_func; // Is there an applied advection function?
+  struct lua_func_ctx app_advect_func_ref; // Lua registry reference to applied advection function. 
+
+  bool has_n0_func; // Is there a background density function?
+  struct lua_func_ctx n0_func_ref; // Lua registry reference to background density function.     
 };
 
 static int
@@ -702,6 +856,22 @@ vlasov_fluid_species_lw_new(lua_State *L)
     return luaL_error(L, "Fluid species must have an \"init\" function for initial conditions!");
   }
 
+  bool has_app_advect_func = false;
+  int app_advect_func_ref = LUA_NOREF;
+
+  if (glua_tbl_get_func(L, "appAdvect")) {
+    app_advect_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_app_advect_func = true;
+  }
+
+  bool has_n0_func = false;
+  int n0_func_ref = LUA_NOREF;
+
+  if (glua_tbl_get_func(L, "n0")) {
+    n0_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_n0_func = true;
+  }
+
   with_lua_tbl_tbl(L, "bcx") {
     int nbc = glua_objlen(L);
 
@@ -734,6 +904,22 @@ vlasov_fluid_species_lw_new(lua_State *L)
     .func_ref = init_ref,
     .ndim = 0, // This will be set later.
     .nret = vm_fluid_species.equation->num_equations,
+    .L = L,
+  };
+
+  vmfs_lw->has_app_advect_func = has_app_advect_func;
+  vmfs_lw->app_advect_func_ref = (struct lua_func_ctx) {
+    .func_ref = app_advect_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = 3,
+    .L = L,
+  };
+
+  vmfs_lw->has_n0_func = has_n0_func;
+  vmfs_lw->n0_func_ref = (struct lua_func_ctx) {
+    .func_ref = n0_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = 1,
     .L = L,
   };
   
@@ -791,10 +977,10 @@ vlasov_field_lw_new(lua_State *L)
   vm_field.elcErrorSpeedFactor = glua_tbl_get_number(L, "elcErrorSpeedFactor", 0.0);
   vm_field.mgnErrorSpeedFactor = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
   vm_field.limit_em = glua_tbl_get_bool(L, "limitField", false);
+  vm_field.use_ghost_current = glua_tbl_get_bool(L, "useGhostCurrent", false);
 
-  vm_field.is_static = glua_tbl_get_bool(L, "isStatic", false);
-
-  bool evolve = glua_tbl_get_integer(L, "evolve", true);
+  bool evolve = glua_tbl_get_bool(L, "evolve", true);
+  vm_field.is_static = !evolve;
 
   int init_ref = LUA_NOREF;
   if (glua_tbl_get_func(L, "init")) {
@@ -929,6 +1115,7 @@ vlasov_field_lw_new(lua_State *L)
     .nret = 6,
     .L = L,
   };
+  vmf_lw->evolve_external_field = evolve_external_field;
 
   vmf_lw->has_applied_current_func = has_applied_current_func;
   vmf_lw->applied_current_func_ref = (struct lua_func_ctx) {
@@ -965,6 +1152,9 @@ struct vlasov_app_lw {
 
   bool has_hamiltonian_func[GKYL_MAX_SPECIES]; // Is there a Hamiltonian function?
   struct lua_func_ctx hamiltonian_func_ctx[GKYL_MAX_SPECIES]; // Lua registry reference to Hamiltonian function.
+
+  bool has_metric_func[GKYL_MAX_SPECIES]; // Is there an inverse metric tensor function?
+  struct lua_func_ctx metric_func_ctx[GKYL_MAX_SPECIES]; // Lua registry reference to inverse metric tensor function.
 
   bool has_inverse_metric_func[GKYL_MAX_SPECIES]; // Is there an inverse metric tensor function?
   struct lua_func_ctx inverse_metric_func_ctx[GKYL_MAX_SPECIES]; // Lua registry reference to inverse metric tensor function.
@@ -1036,6 +1226,9 @@ struct vlasov_app_lw {
 
   struct lua_func_ctx fluid_species_init_ctx[GKYL_MAX_SPECIES]; // Function context for fluid species initial conditions.
 
+  struct lua_func_ctx app_advect_func_ctx[GKYL_MAX_SPECIES]; // Function context for fluid species applied advection.
+  struct lua_func_ctx n0_func_ctx[GKYL_MAX_SPECIES]; // Function context for fluid species background density.
+
   struct lua_func_ctx field_func_ctx; // Function context for field.
   struct lua_func_ctx external_potential_func_ctx; // Function context for external potential.
   struct lua_func_ctx external_field_func_ctx; // Function context for external field.
@@ -1068,6 +1261,10 @@ get_species_inp(lua_State *L, int cdim, struct vlasov_species_lw *species[GKYL_M
       if (vms->magic == VLASOV_SPECIES_DEFAULT) {
         if (vms->has_hamiltonian_func) {
           vms->hamiltonian_func_ref.ndim = cdim + vms->vdim;
+        }
+
+        if (vms->has_metric_func) {
+          vms->metric_func_ref.ndim = cdim;
         }
 
         if (vms->has_inverse_metric_func) {
@@ -1386,6 +1583,9 @@ vm_app_new(lua_State *L)
     app_lw->has_hamiltonian_func[s] = species[s]->has_hamiltonian_func;
     app_lw->hamiltonian_func_ctx[s] = species[s]->hamiltonian_func_ref;
 
+    app_lw->has_metric_func[s] = species[s]->has_metric_func;
+    app_lw->metric_func_ctx[s] = species[s]->metric_func_ref;
+
     app_lw->has_inverse_metric_func[s] = species[s]->has_inverse_metric_func;
     app_lw->inverse_metric_func_ctx[s] = species[s]->inverse_metric_func_ref;
 
@@ -1395,6 +1595,11 @@ vm_app_new(lua_State *L)
     if (species[s]->has_hamiltonian_func) {
       vm.species[s].hamil = gkyl_lw_eval_cb;
       vm.species[s].hamil_ctx = &app_lw->hamiltonian_func_ctx[s];
+    }
+
+    if (species[s]->has_metric_func) {
+      vm.species[s].h_ij = gkyl_lw_eval_cb;
+      vm.species[s].h_ij_ctx = &app_lw->metric_func_ctx[s];
     }
 
     if (species[s]->has_inverse_metric_func) {
@@ -1574,10 +1779,25 @@ vm_app_new(lua_State *L)
   
   for (int s = 0; s < vm.num_fluid_species; s++) {
     vm.fluid_species[s] = fluid_species[s]->vlasov_fluid_species;
-    
+
+    fluid_species[s]->init_ctx.ndim = cdim; 
     app_lw->fluid_species_init_ctx[s] = fluid_species[s]->init_ctx;
     vm.fluid_species[s].init = gkyl_lw_eval_cb;
     vm.fluid_species[s].ctx = &app_lw->fluid_species_init_ctx[s];
+
+    if (fluid_species[s]->has_app_advect_func) {
+      fluid_species[s]->app_advect_func_ref.ndim = cdim; 
+      app_lw->app_advect_func_ctx[s] = fluid_species[s]->app_advect_func_ref;
+      vm.fluid_species[s].advection.velocity = gkyl_lw_eval_cb;
+      vm.fluid_species[s].advection.velocity_ctx = &app_lw->app_advect_func_ctx[s];
+    }
+
+    if (fluid_species[s]->has_n0_func) {
+      fluid_species[s]->n0_func_ref.ndim = cdim; 
+      app_lw->n0_func_ctx[s] = fluid_species[s]->n0_func_ref;
+      vm.fluid_species[s].can_pb_n0 = gkyl_lw_eval_cb;
+      vm.fluid_species[s].can_pb_n0_ctx = &app_lw->n0_func_ctx[s];
+    }
   }
 
   // Set field input.
@@ -1592,7 +1812,6 @@ vm_app_new(lua_State *L)
         vmf->init_ref.ndim = cdim;
 
         vm.field = vmf->vm_field;
-        vm.skip_field = !vmf->evolve;
 
         app_lw->field_func_ctx = vmf->init_ref;
         vm.field.init = gkyl_lw_eval_cb;
@@ -1923,6 +2142,21 @@ vm_app_write_integrated_mom(lua_State *L)
   return 1;
 }
 
+// Write integrated fluid moments to file () -> bool.
+static int
+vm_app_write_fluid_integrated_mom(lua_State *L)
+{
+  bool status = true;
+
+  struct vlasov_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw *app_lw = *l_app_lw;
+
+  gkyl_vlasov_app_write_fluid_integrated_mom(app_lw->app);
+
+  lua_pushboolean(L, status);  
+  return 1;
+}
+
 // Write integrated L2 norm of f to file () -> bool.
 static int
 vm_app_write_integrated_L2_f(lua_State *L)
@@ -1981,6 +2215,7 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, boo
     gkyl_vlasov_app_write(app, t_curr, frame);
     gkyl_vlasov_app_write_field_energy(app);
     gkyl_vlasov_app_write_integrated_mom(app);
+    gkyl_vlasov_app_write_fluid_integrated_mom(app);
     gkyl_vlasov_app_write_integrated_L2_f(app);
 
     gkyl_vlasov_app_calc_mom(app);
@@ -2129,10 +2364,10 @@ vm_app_run(lua_State *L)
 
   struct step_message_trigs m_trig = {
     .log_count = 0,
-    .tenth = t_curr > 0.0 ? 0.0 : (int) floor(t_curr / t_end * 10.0),
-    .p1c = t_curr > 0.0 ? 0.0 : (int) floor(t_curr / t_end * 100.0) % 10,
-    .log_trig = { .dt = (t_end - t_curr) / 10.0 },
-    .log_trig_1p = { .dt = (t_end - t_curr) / 100.0 },
+    .tenth = t_curr > 0.0 ?  (int) floor(t_curr / t_end * 10.0) : 0.0,
+    .p1c = t_curr > 0.0 ?  (int) floor(t_curr / t_end * 100.0) % 10 : 0.0,
+    .log_trig = { .dt = t_end / 10.0, .tcurr = t_curr },
+    .log_trig_1p = { .dt = t_end / 100.0, .tcurr = t_curr },
   };
 
   struct timespec tm_ic0 = gkyl_wall_clock();

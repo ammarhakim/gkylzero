@@ -7,13 +7,13 @@ gk_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
 {
   int cdim = app->cdim, vdim = app->vdim;
 
-  // allocate moments needed for Maxwellian (LTE=local thermodynamic equilibrium) update
-  gk_species_moment_init(app, s, &lte->moms, "MaxwellianMoments");
+  // Allocate moments needed for Maxwellian (LTE=local thermodynamic equilibrium) update.
+  gk_species_moment_init(app, s, &lte->moms, GKYL_F_MOMENT_MAXWELLIAN, false);
 
   struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = {
     .phase_grid = &s->grid,
-    .conf_basis = &app->confBasis,
-    .phase_basis = &app->basis,
+    .conf_basis = &app->basis,
+    .phase_basis = &s->basis,
     .conf_range =  &app->local,
     .conf_range_ext = &app->local_ext,
     .vel_range = &s->local_vel,
@@ -32,8 +32,8 @@ gk_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
   if (lte->correct_all_moms) {
     struct gkyl_gk_maxwellian_correct_inp inp_corr = {
       .phase_grid = &s->grid,
-      .conf_basis = &app->confBasis,
-      .phase_basis = &app->basis,
+      .conf_basis = &app->basis,
+      .phase_basis = &s->basis,
       .conf_range =  &app->local,
       .conf_range_ext = &app->local_ext,
       .vel_range = &s->local_vel, 
@@ -45,15 +45,15 @@ gk_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
       .use_last_converged = use_last_converged, 
       .use_gpu = app->use_gpu,
     };
-    lte->n_iter = 0; // total number of iterations from correcting moments
-    lte->num_corr = 0; // total number of times the correction updater is called
+    lte->n_iter = 0; // Total number of iterations from correcting moments.
+    lte->num_corr = 0; // Total number of times the correction updater is called.
     lte->corr_max = gkyl_gk_maxwellian_correct_inew( &inp_corr );
 
     lte->corr_stat = gkyl_dynvec_new(GKYL_DOUBLE, 5);
     lte->is_first_corr_status_write_call = true;
   }
 
-  lte->f_lte = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
+  lte->f_lte = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
 }
 
 // Compute f_lte from input Maxwellian (LTE=local thermodynamic equilibrium) moments
@@ -92,18 +92,19 @@ gk_species_lte_from_moms(gkyl_gyrokinetic_app *app, const struct gk_species *spe
   app->stat.species_lte_tm += gkyl_time_diff_now_sec(wst);   
 }
 
-// Compute equivalent f_lte from fin
 void
 gk_species_lte(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   struct gk_lte *lte, const struct gkyl_array *fin)
 {
-// compute needed Maxwellian moments (J*n, u_par, T/m)   
+  struct timespec wst = gkyl_wall_clock();
+  // Compute needed Maxwellian moments (J*n, u_par, T/m).
   gk_species_moment_calc(&lte->moms, species->local, app->local, fin);
   
-  // divide out the Jacobian from the density
-  gkyl_dg_div_op_range(lte->moms.mem_geo, app->confBasis, 
+  // Divide out the Jacobian from the density.
+  gkyl_dg_div_op_range(lte->moms.mem_geo, app->basis, 
     0, lte->moms.marr, 0, lte->moms.marr, 0, 
     app->gk_geom->jacobgeo, &app->local);  
+  app->stat.species_lte_tm += gkyl_time_diff_now_sec(wst);   
 
   gk_species_lte_from_moms(app, species, lte, lte->moms.marr);
 }
@@ -117,25 +118,25 @@ gk_species_lte_write_max_corr_status(gkyl_gyrokinetic_app* app, struct gk_specie
     int rank;
     gkyl_comm_get_rank(app->comm, &rank);
     if (rank == 0) {
-      // write out correction status 
+      // Write out correction status.
       const char *fmt = "%s-%s-%s.gkyl";
       int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, "corr-max-stat");
       char fileNm[sz+1]; // ensures no buffer overflow
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "corr-max-stat");
 
       if (gks->lte.is_first_corr_status_write_call) {
-        // write to a new file (this ensure previous output is removed)
+        // Write to a new file (this ensure previous output is removed).
         gkyl_dynvec_write(gks->lte.corr_stat, fileNm);
         gks->lte.is_first_corr_status_write_call = false;
       }
       else {
-        // append to existing file
+        // Append to existing file.
         gkyl_dynvec_awrite(gks->lte.corr_stat, fileNm);
       }
     }
     gkyl_dynvec_clear(gks->lte.corr_stat);
 
-    app->stat.diag_io_tm += gkyl_time_diff_now_sec(wst);
+    app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
     app->stat.n_diag_io += 1;    
   }
 }

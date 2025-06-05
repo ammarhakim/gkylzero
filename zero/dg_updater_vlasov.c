@@ -41,7 +41,7 @@ gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid,
     struct gkyl_dg_vlasov_sr_auxfields *sr_inp = aux_inp;
     gkyl_vlasov_sr_set_auxfields(up->eqn_vlasov, *sr_inp);
   } 
-  else if (up->model_id == GKYL_MODEL_CANONICAL_PB) {
+  else if (up->model_id == GKYL_MODEL_CANONICAL_PB || up->model_id == GKYL_MODEL_CANONICAL_PB_GR) {
     up->eqn_vlasov = gkyl_dg_canonical_pb_new(cbasis, pbasis, phase_range, up->use_gpu);
     struct gkyl_dg_canonical_pb_auxfields *canonical_pb_inp = aux_inp;
     gkyl_canonical_pb_set_auxfields(up->eqn_vlasov, *canonical_pb_inp); 
@@ -63,7 +63,7 @@ gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid,
   int num_up_dirs = cdim;
   // update velocity space only when field is present 
   // Need to include Canonical_pb to update velocity space directions
-  if (field_id != GKYL_FIELD_NULL || up->model_id == GKYL_MODEL_CANONICAL_PB) {
+  if (field_id != GKYL_FIELD_NULL || up->model_id == GKYL_MODEL_CANONICAL_PB || up->model_id == GKYL_MODEL_CANONICAL_PB_GR) {
     for (int d=cdim; d<pdim; ++d) {
       up_dirs[d] = d;
       zero_flux_flags[d] = zero_flux_flags[d+pdim] = 1; // zero-flux BCs in vel-space

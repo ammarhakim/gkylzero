@@ -1,9 +1,12 @@
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_vlasov.h>
+#include <gkyl_util.h>
+#include <gkyl_wv_advect.h>
 #include <rt_arg_parse.h>
 
 struct sim_ctx {
@@ -20,7 +23,7 @@ evalInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, 
 }
 
 void
-velocity(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+eval_advect_vel(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct sim_ctx *app = ctx;
   double x = xn[0];
@@ -51,6 +54,11 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 4);
   struct sim_ctx ctx = create_ctx(); // context for init functions
   
+  // Equation object for getting equation type, 
+  // advection velocity is set by eval_advect_vel function. 
+  double c = 1.0;
+  struct gkyl_wv_eqn *advect = gkyl_wv_advect_new(c, false);
+  
   struct gkyl_vlasov_fluid_species f = {
     .name = "f",
 
@@ -59,8 +67,11 @@ main(int argc, char **argv)
 
     .ctx = &ctx,
     .init = evalInit,
-
-    .advection = {.velocity = velocity, .velocity_ctx = 0},
+    .equation = advect,
+    .advection = {
+      .velocity = eval_advect_vel,
+      .velocity_ctx = &ctx,
+    },
     .diffusion = {.D = ctx.D},
   };  
 
@@ -126,6 +137,7 @@ main(int argc, char **argv)
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
 
   // simulation complete, free app
+  gkyl_wv_eqn_release(advect);
   gkyl_vlasov_app_release(app);
 
   printf("\n");

@@ -48,7 +48,7 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
   // form depend on type_self, e.g., for ionization and type_self == GKYL_SELF_ELC
   // f_react = n_donor*(fmax1(n_elc, upar_elc, vtiz1^2) + fmax2(n_elc, upar_donor, vtiz2^2) - f_elc)
   // RHS update is then obtained by incrementing rhs += coeff_react*f_react
-  react->f_react = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
+  react->f_react = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
 
   int vdim = app->vdim;
 
@@ -82,38 +82,39 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
       neut_vt_sq_min = gk_neut_species_react_get_vt_sq_min(app, &app->neut_species[react->partner_idx[i]]);
     }
 
-    react->coeff_react[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    react->coeff_react[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     react->coeff_react_host[i] = react->coeff_react[i];
     if(app->use_gpu) {
-      react->coeff_react_host[i] = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+      react->coeff_react_host[i] = mkarr(false, app->basis.num_basis, app->local_ext.volume);
     }
 
     // Reaction LTE moments needed for projecting LTE distribution functions
-    react->react_lte_moms[i] = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
+    react->react_lte_moms[i] = mkarr(app->use_gpu, 3*app->basis.num_basis, app->local_ext.volume);
 
-    react->vt_sq_iz1[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    react->vt_sq_iz2[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    // Thermal velocities for LTE projection in ionization terms.
+    react->vt_sq_iz1[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    react->vt_sq_iz2[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
     // J*n for use in final update formulae of reactions
-    react->Jm0_elc[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    react->Jm0_ion[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    react->Jm0_donor[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    react->Jm0_elc[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    react->Jm0_ion[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    react->Jm0_donor[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
     // Vector flow velocity, donor velocity, and donor vt^2 for projecting LTE distribution functions
     // donor velocity is simply upar when reacting with plasma, and u_i . b_i when reacting with neutrals
-    react->u_i[i] = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
-    react->u_i_dot_b_i[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    react->vt_sq_donor[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    react->u_i[i] = mkarr(app->use_gpu, 3*app->basis.num_basis, app->local_ext.volume);
+    react->u_i_dot_b_i[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    react->vt_sq_donor[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
     // Partner flow velocity (upar b_i), partner vt^2 for projecting LTE distribution functions
-    react->upar_ion[i] = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
-    react->vt_sq_partner[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    react->upar_ion[i] = mkarr(app->use_gpu, 3*app->basis.num_basis, app->local_ext.volume);
+    react->vt_sq_partner[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     
     if (react->react_id[i] == GKYL_REACT_IZ) {
       struct gkyl_dg_iz_inp iz_inp = {
         .grid = &s->grid,
-        .cbasis = &app->confBasis,
-        .pbasis = &app->basis,
+        .cbasis = &app->basis,
+        .pbasis = &s->basis,
         .conf_rng = &app->local,
         .conf_rng_ext = &app->local_ext,
         .phase_rng = &s->local,
@@ -127,8 +128,8 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
     else if (react->react_id[i] == GKYL_REACT_RECOMB) {
       struct gkyl_dg_recomb_inp recomb_inp = {
         .grid = &s->grid,
-        .cbasis = &app->confBasis,
-        .pbasis = &app->basis,
+        .cbasis = &app->basis,
+        .pbasis = &s->basis,
         .conf_rng = &app->local,
         .conf_rng_ext = &app->local_ext,
         .phase_rng = &s->local,
@@ -140,11 +141,12 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
       react->recomb[i] = gkyl_dg_recomb_new(&recomb_inp, app->use_gpu);
     }
     else if (react->react_id[i] == GKYL_REACT_CX) {
+      struct gk_neut_species *gkns = &app->neut_species[react->partner_idx[i]];
       struct gkyl_dg_cx_inp cx_inp = {
         .grid = &s->grid,
-        .cbasis = &app->confBasis,
-        .pbasis_gk = &app->basis,
-        .pbasis_vl = &app->neut_basis,
+        .cbasis = &app->basis,
+        .pbasis_gk = &s->basis,
+        .pbasis_vl = &gkns->basis,
         .conf_rng = &app->local,
         .conf_rng_ext = &app->local_ext,
         .phase_rng = &s->local,
@@ -178,7 +180,7 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
       gkyl_array_set_range(react->Jm0_elc[i], 1.0, gks_elc->lte.moms.marr, &app->local);
 
       // divide out the Jacobian from the electron density for computing reaction rates
-      gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, app->confBasis, 
+      gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, app->basis, 
         0, gks_elc->lte.moms.marr, 0, gks_elc->lte.moms.marr, 0, 
         app->gk_geom->jacobgeo, &app->local); 
 
@@ -191,12 +193,12 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
         gkyl_array_set_range(react->Jm0_donor[i], 1.0, gks_donor->lte.moms.marr, &app->local);
 
         // divide out the Jacobian from the donor density for use in Maxwellian projection
-        gkyl_dg_div_op_range(gks_donor->lte.moms.mem_geo, app->confBasis, 
+        gkyl_dg_div_op_range(gks_donor->lte.moms.mem_geo, app->basis, 
           0, gks_donor->lte.moms.marr, 0, gks_donor->lte.moms.marr, 0, 
           app->gk_geom->jacobgeo, &app->local); 
 
         // If all interacting species are GK, u_i . b_i is simply upar of the donor species
-        gkyl_array_set_offset(react->u_i_dot_b_i[i], 1.0, gks_donor->lte.moms.marr, 1*app->confBasis.num_basis); 
+        gkyl_array_set_offset(react->u_i_dot_b_i[i], 1.0, gks_donor->lte.moms.marr, 1*app->basis.num_basis); 
       }
       else {
         struct gk_neut_species *gkns_donor = &app->neut_species[react->donor_idx[i]];
@@ -207,16 +209,15 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
         gkyl_array_set_range(react->Jm0_donor[i], 1.0, gkns_donor->lte.moms.marr, &app->local);
 
         // divide out the Jacobian from the donor density for use in Maxwellian projection
-        gkyl_dg_div_op_range(gkns_donor->lte.moms.mem_geo, app->confBasis, 
+        gkyl_dg_div_op_range(gkns_donor->lte.moms.mem_geo, app->basis, 
           0, gkns_donor->lte.moms.marr, 0, gkns_donor->lte.moms.marr, 0, 
           app->gk_geom->jacobgeo, &app->local); 
 
-        // Copy ux, uy, uz for computing dot product u_i . b_i (Cartesian components of b_i)
-        gkyl_array_set_offset(react->u_i[i], 1.0, gkns_donor->lte.moms.marr, 1*app->confBasis.num_basis);
-        gkyl_dg_dot_product_op_range(app->confBasis, 
-          react->u_i_dot_b_i[i], react->u_i[i], app->gk_geom->bcart, &app->local); 
+        // Select component parallel to b
+	// if cdim = 1, uidx = 1, if cdim = 2, udix = 2, if cdim = 3, udix = 3
+        gkyl_array_set_offset(react->u_i_dot_b_i[i], 1.0, gkns_donor->lte.moms.marr, app->cdim*app->basis.num_basis);
 
-        gkyl_array_set_offset(react->vt_sq_donor[i], 1.0, gkns_donor->lte.moms.marr, 4*app->confBasis.num_basis);
+        gkyl_array_set_offset(react->vt_sq_donor[i], 1.0, gkns_donor->lte.moms.marr, 4*app->basis.num_basis);
       }
 
       // compute ionization reaction rate from input electron primitive moments
@@ -232,7 +233,7 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
       gkyl_array_set_range(react->Jm0_elc[i], 1.0, gks_elc->lte.moms.marr, &app->local);
 
       // divide out the Jacobian from the electron density for computing reaction rates
-      gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, app->confBasis, 
+      gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, app->basis, 
         0, gks_elc->lte.moms.marr, 0, gks_elc->lte.moms.marr, 0, 
         app->gk_geom->jacobgeo, &app->local); 
 
@@ -244,7 +245,7 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
       gkyl_array_set_range(react->Jm0_ion[i], 1.0, gks_ion->lte.moms.marr, &app->local);
 
       // divide out the Jacobian from the ion density for use in Maxwellian projection
-      gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, app->confBasis, 
+      gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, app->basis, 
         0, gks_ion->lte.moms.marr, 0, gks_ion->lte.moms.marr, 0, 
         app->gk_geom->jacobgeo, &app->local); 
       
@@ -261,16 +262,16 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
       gkyl_array_set_range(react->Jm0_ion[i], 1.0, gks_ion->lte.moms.marr, &app->local);
 
       // divide out the Jacobian from the ion density
-      gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, app->confBasis, 
+      gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, app->basis, 
         0, gks_ion->lte.moms.marr, 0, gks_ion->lte.moms.marr, 0, 
         app->gk_geom->jacobgeo, &app->local); 
 
-      // Construct partner vector velocity upar b_i
-      for (int j = 0; j < 3; ++j) {
-        gkyl_dg_mul_op_range(app->confBasis, 
-          j, react->upar_ion[i], 1, gks_ion->lte.moms.marr, j, 
-          app->gk_geom->bcart, &app->local); 
-      } 
+      // Construct ion vector velocity upar b_i with same order as can pb.
+      // if cdim = 1, u0 = upar, if cdim = 2, u1 = upar, if cdim = 3, u2 = upar
+      gkyl_array_clear(react->upar_ion[i], 0.0);
+      gkyl_array_set_offset(react->u_i_dot_b_i[i], 1.0, gks_ion->lte.moms.marr, 1*app->basis.num_basis);
+      gkyl_array_set_offset(react->upar_ion[i], 1.0, react->u_i_dot_b_i[i], (app->cdim-1)*app->basis.num_basis);
+      gkyl_array_clear(react->u_i_dot_b_i[i], 0.0);
 
       // compute needed partner (neutral) Maxwellian moments (J*n, ux, uy, uz, T/m) 
       struct gk_neut_species *gkns_partner = &app->neut_species[react->partner_idx[i]];
@@ -278,19 +279,18 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
         gkns_partner->local, app->local, fin_neut[react->partner_idx[i]]);  
 
       // divide out the Jacobian from the partner density
-      gkyl_dg_div_op_range(gkns_partner->lte.moms.mem_geo, app->confBasis, 
+      gkyl_dg_div_op_range(gkns_partner->lte.moms.mem_geo, app->basis, 
         0, gkns_partner->lte.moms.marr, 0, gkns_partner->lte.moms.marr, 0, 
         app->gk_geom->jacobgeo, &app->local); 
 
       // Copy ux, uy, uz for computing dot product u_i . b_i (Cartesian components of b_i)
-      gkyl_array_set_offset(react->u_i[i], 1.0, gkns_partner->lte.moms.marr, 1*app->confBasis.num_basis);
-      gkyl_dg_dot_product_op_range(app->confBasis, 
-        react->u_i_dot_b_i[i], react->u_i[i], app->gk_geom->bcart, &app->local); 
+      // if cdim = 1, uidx = 1, if cdim = 2, udix = 2, if cdim = 3, udix = 3
+      gkyl_array_set_offset(react->u_i_dot_b_i[i], 1.0, gkns_partner->lte.moms.marr, app->cdim*app->basis.num_basis);
 
-      // Copy vt^2 = T/m of the neutrals (partner of the ions)
-      gkyl_array_set_offset(react->vt_sq_partner[i], 1.0, gkns_partner->lte.moms.marr, 4*app->confBasis.num_basis);
+      // Copy vt^2 = T/m of the neutrals (partner of the ions).
+      gkyl_array_set_offset(react->vt_sq_partner[i], 1.0, gkns_partner->lte.moms.marr, 4*app->basis.num_basis);
 
-      // prim_vars_neut_gk is returned to prim_vars[i] here.
+      // Calculate CX reaction rate.
       gkyl_dg_cx_coll(react->cx[i], gks_ion->lte.moms.marr, gkns_partner->lte.moms.marr, 
         react->upar_ion[i], react->coeff_react[i], 0);
     }
@@ -317,34 +317,34 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, struct gk_species *s,
         // (fmax1(n_elc, upar_elc, vtiz1^2) + fmax2(n_elc, upar_donor, vtiz2^2) - f_elc)
 
         // primary electron; first copy all components (n_elc, upar_elc, Telc/m)
-        gkyl_array_set_offset(react->react_lte_moms[i], 1.0, gks_elc->lte.moms.marr, 0*app->confBasis.num_basis);
+        gkyl_array_set_offset(react->react_lte_moms[i], 1.0, gks_elc->lte.moms.marr, 0*app->basis.num_basis);
         // overwrite thermal velocity to be first ionization energy vtiz1^2
-        gkyl_array_set_offset(react->react_lte_moms[i], 1.0, react->vt_sq_iz1[i], 2*app->confBasis.num_basis);
+        gkyl_array_set_offset(react->react_lte_moms[i], 1.0, react->vt_sq_iz1[i], 2*app->basis.num_basis);
         gk_species_lte_from_moms(app, gks_elc, &gks_elc->lte, react->react_lte_moms[i]);
 
         // Accumulate J*n_donor*fmax1(n_elc, upar_elc, vtiz1^2) onto f_react
-        gkyl_dg_mul_conf_phase_op_accumulate_range(&app->confBasis, &app->basis, react->f_react,
+        gkyl_dg_mul_conf_phase_op_accumulate_range(&app->basis, &s->basis, react->f_react,
           1.0, react->Jm0_donor[i], gks_elc->lte.f_lte, &app->local, &s->local);
 
         // secondary electron 
         // density unchanged but now we use the donor parallel velocity and second ionization energy vtiz2^2
-        gkyl_array_set_offset(react->react_lte_moms[i], 1.0, react->u_i_dot_b_i[i], 1*app->confBasis.num_basis);
-        gkyl_array_set_offset(react->react_lte_moms[i], 1.0, react->vt_sq_iz2[i], 2*app->confBasis.num_basis);
+        gkyl_array_set_offset(react->react_lte_moms[i], 1.0, react->u_i_dot_b_i[i], 1*app->basis.num_basis);
+        gkyl_array_set_offset(react->react_lte_moms[i], 1.0, react->vt_sq_iz2[i], 2*app->basis.num_basis);
         gk_species_lte_from_moms(app, gks_elc, &gks_elc->lte, react->react_lte_moms[i]);
 
         // Accumulate J*n_donor*fmax2(n_elc, upar_donor, vtiz2^2) onto f_react
-        gkyl_dg_mul_conf_phase_op_accumulate_range(&app->confBasis, &app->basis, react->f_react,
+        gkyl_dg_mul_conf_phase_op_accumulate_range(&app->basis, &s->basis, react->f_react,
           1.0, react->Jm0_donor[i], gks_elc->lte.f_lte, &app->local, &s->local);
 
         // Accumulate -n_donor*(J*f_elc) (*note* Jacobian factor already included in fin)
         if (react->all_gk) {
           struct gk_species *gks_donor = &app->species[react->donor_idx[i]];
-          gkyl_dg_mul_conf_phase_op_accumulate_range(&app->confBasis, &app->basis, react->f_react,
+          gkyl_dg_mul_conf_phase_op_accumulate_range(&app->basis, &s->basis, react->f_react,
             -1.0, gks_donor->lte.moms.marr, fin, &app->local, &s->local); 
         }
         else {
           struct gk_neut_species *gkns_donor = &app->neut_species[react->donor_idx[i]];
-          gkyl_dg_mul_conf_phase_op_accumulate_range(&app->confBasis, &app->basis, react->f_react,
+          gkyl_dg_mul_conf_phase_op_accumulate_range(&app->basis, &s->basis, react->f_react,
             -1.0, gkns_donor->lte.moms.marr, fin, &app->local, &s->local);           
         }     
       }
@@ -353,26 +353,26 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, struct gk_species *s,
         if (react->all_gk) {
           struct gk_species *gks_donor = &app->species[react->donor_idx[i]];
           // Copy components of donor plasma into reaction moments 
-          gkyl_array_set_offset(react->react_lte_moms[i], 1.0, gks_donor->lte.moms.marr, 0*app->confBasis.num_basis); 
+          gkyl_array_set_offset(react->react_lte_moms[i], 1.0, gks_donor->lte.moms.marr, 0*app->basis.num_basis); 
         }
         else {
           struct gk_neut_species *gkns_donor = &app->neut_species[react->donor_idx[i]];
           // Copy components of donor neutrals into reaction moments 
-          gkyl_array_set_offset(react->react_lte_moms[i], 1.0, gkns_donor->lte.moms.marr, 0*app->confBasis.num_basis); 
+          gkyl_array_set_offset(react->react_lte_moms[i], 1.0, gkns_donor->lte.moms.marr, 0*app->basis.num_basis); 
           // Overwrite parallel velocity and vt^2 to be u_i . b_i and vt^2 of the neutrals
-          gkyl_array_set_offset(react->react_lte_moms[i], 1.0, react->u_i_dot_b_i[i], 1*app->confBasis.num_basis); 
-          gkyl_array_set_offset(react->react_lte_moms[i], 1.0, react->vt_sq_donor[i], 2*app->confBasis.num_basis);       
+          gkyl_array_set_offset(react->react_lte_moms[i], 1.0, react->u_i_dot_b_i[i], 1*app->basis.num_basis); 
+          gkyl_array_set_offset(react->react_lte_moms[i], 1.0, react->vt_sq_donor[i], 2*app->basis.num_basis);       
         }    
         gk_species_lte_from_moms(app, gks_ion, &gks_ion->lte, react->react_lte_moms[i]);
 
         // Accumulate J*n_elc*fmax(n_donor, upar_donor, vt_donor^2) onto f_react
-        gkyl_dg_mul_conf_phase_op_accumulate_range(&app->confBasis, &app->basis, react->f_react,
+        gkyl_dg_mul_conf_phase_op_accumulate_range(&app->basis, &s->basis, react->f_react,
           1.0, react->Jm0_elc[i], gks_ion->lte.f_lte, &app->local, &s->local);
       }
       else {
         // donor update is -n_elc*coeff_react*f_donor
         // Accumulate -n_elc*(J*f_donor) (*note* Jacobian factor already included in fin)
-        gkyl_dg_mul_conf_phase_op_accumulate_range(&app->confBasis, &app->basis, react->f_react,
+        gkyl_dg_mul_conf_phase_op_accumulate_range(&app->basis, &s->basis, react->f_react,
           -1.0, gks_elc->lte.moms.marr, fin, &app->local, &s->local);  
       }
     }
@@ -380,13 +380,13 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, struct gk_species *s,
       if (react->type_self[i] == GKYL_SELF_ELC) {
         // electron update is -n_ion*coeff_react*f_elc
         // Accumulate -n_ion*(J*f_elc) (*note* Jacobian factor already included in fin)
-        gkyl_dg_mul_conf_phase_op_accumulate_range(&app->confBasis, &app->basis, react->f_react,
+        gkyl_dg_mul_conf_phase_op_accumulate_range(&app->basis, &s->basis, react->f_react,
           -1.0, gks_ion->lte.moms.marr, fin, &app->local, &s->local);  
       }
       else if (react->type_self[i] == GKYL_SELF_ION) {
         // ion update is -n_elc*coeff_react*f_ion
         // Accumulate -n_elc*(J*f_ion) (*note* Jacobian factor already included in fin)
-        gkyl_dg_mul_conf_phase_op_accumulate_range(&app->confBasis, &app->basis, react->f_react,
+        gkyl_dg_mul_conf_phase_op_accumulate_range(&app->basis, &s->basis, react->f_react,
           -1.0, gks_elc->lte.moms.marr, fin, &app->local, &s->local);  
       }
       else {
@@ -394,7 +394,7 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, struct gk_species *s,
         gk_species_lte_from_moms(app, s, &s->lte, gks_ion->lte.moms.marr);
 
         // Accumulate J*n_elc*fmax(n_ion, upar_ion, vt_ion^2) onto f_react
-        gkyl_dg_mul_conf_phase_op_accumulate_range(&app->confBasis, &app->basis, react->f_react,
+        gkyl_dg_mul_conf_phase_op_accumulate_range(&app->basis, &s->basis, react->f_react,
           1.0, react->Jm0_elc[i], s->lte.f_lte, &app->local, &s->local);
       }
     }
@@ -403,23 +403,23 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, struct gk_species *s,
       struct gk_neut_species *gkns_partner = &app->neut_species[react->donor_idx[i]];
 
       // Copy components of partner neutrals into reaction moments 
-      gkyl_array_set_offset(react->react_lte_moms[i], 1.0, gkns_partner->lte.moms.marr, 0*app->confBasis.num_basis); 
+      gkyl_array_set_offset(react->react_lte_moms[i], 1.0, gkns_partner->lte.moms.marr, 0*app->basis.num_basis); 
       // Overwrite parallel velocity and vt^2 to be u_i . b_i and vt^2 of the neutrals
-      gkyl_array_set_offset(react->react_lte_moms[i], 1.0, react->u_i_dot_b_i[i], 1*app->confBasis.num_basis); 
-      gkyl_array_set_offset(react->react_lte_moms[i], 1.0, react->vt_sq_partner[i], 2*app->confBasis.num_basis); 
+      gkyl_array_set_offset(react->react_lte_moms[i], 1.0, react->u_i_dot_b_i[i], 1*app->basis.num_basis); 
+      gkyl_array_set_offset(react->react_lte_moms[i], 1.0, react->vt_sq_partner[i], 2*app->basis.num_basis); 
       gk_species_lte_from_moms(app, s, &s->lte, react->react_lte_moms[i]);
 
       // Accumulate J*n_ion*fmax(n_partner, upar_partner, vt_partner^2) onto f_react
-      gkyl_dg_mul_conf_phase_op_accumulate_range(&app->confBasis, &app->basis, react->f_react,
+      gkyl_dg_mul_conf_phase_op_accumulate_range(&app->basis, &s->basis, react->f_react,
         1.0, react->Jm0_ion[i], s->lte.f_lte, &app->local, &s->local);
 
       // Accumulate -n_partner*(J*f_ion) (*note* Jacobian factor already included in fin)
-      gkyl_dg_mul_conf_phase_op_accumulate_range(&app->confBasis, &app->basis, react->f_react,
+      gkyl_dg_mul_conf_phase_op_accumulate_range(&app->basis, &s->basis, react->f_react,
         -1.0, react->react_lte_moms[i], fin, &app->local, &s->local);        
     }
 
     // Accumulate reaction update to rhs 
-    gkyl_dg_mul_conf_phase_op_accumulate_range(&app->confBasis, &app->basis, rhs,
+    gkyl_dg_mul_conf_phase_op_accumulate_range(&app->basis, &s->basis, rhs,
       1.0, react->coeff_react[i], react->f_react, &app->local, &s->local);  
   }
   app->stat.species_react_tm += gkyl_time_diff_now_sec(wst);
@@ -431,14 +431,7 @@ gk_species_react_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct
   int ridx, double tm, int frame)
 {
   if (gkr->type_self[ridx] == GKYL_SELF_ION) {
-    struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
-        .frame = frame,
-        .stime = tm,
-        .poly_order = app->poly_order,
-        .basis_type = app->confBasis.id
-      }
-    );
-
+    struct timespec wst = gkyl_wall_clock();
     // Compute reaction rate
     const struct gkyl_array *fin[app->num_species];
     const struct gkyl_array *fin_neut[app->num_neut_species];
@@ -449,23 +442,30 @@ gk_species_react_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct
       fin_neut[i] = app->neut_species[i].f;
     }
     gk_species_react_cross_moms(app, gks, gkr, fin, fin_neut);
+    app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
     
-    if (app->use_gpu) {
+    struct timespec wtm = gkyl_wall_clock();
+    struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
+        .frame = frame,
+        .stime = tm,
+        .poly_order = app->poly_order,
+        .basis_type = app->basis.id
+      }
+    );
+
+    if (app->use_gpu)
       gkyl_array_copy(gkr->coeff_react_host[ridx], gkr->coeff_react[ridx]);
-    }
     
     if (gkr->react_id[ridx] == GKYL_REACT_IZ) {
       const char *fmt = "%s-%s_%s_%s_iz_react_%d.gkyl";
-      int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name,
+      int sz = gkyl_calc_strlen(fmt, app->name, gkr->react_type[ridx].ion_nm,
         gkr->react_type[ridx].elc_nm, gkr->react_type[ridx].donor_nm, frame);
       char fileNm[sz+1]; // ensures no buffer overflow
-      snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name,
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, gkr->react_type[ridx].ion_nm,
         gkr->react_type[ridx].elc_nm, gkr->react_type[ridx].donor_nm, frame);
-  
-      struct timespec wtm = gkyl_wall_clock();
+      
       gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, 
         gkr->coeff_react_host[ridx], fileNm);
-      app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
     }
     if (gkr->react_id[ridx] == GKYL_REACT_RECOMB) {
       const char *fmt = "%s-%s_%s_%s_recomb_react_%d.gkyl";
@@ -475,10 +475,8 @@ gk_species_react_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, 
         gkr->react_type[ridx].elc_nm, gkr->react_type[ridx].recvr_nm, frame);
 
-      struct timespec wtm = gkyl_wall_clock();
       gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, 
         gkr->coeff_react_host[ridx], fileNm);
-      app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
     }
     if (gkr->react_id[ridx] == GKYL_REACT_CX) {
       const char *fmt = "%s-%s_%s_cx_react_%d.gkyl";
@@ -488,14 +486,13 @@ gk_species_react_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name,
         gkr->react_type[ridx].partner_nm, frame);
 
-      struct timespec wtm = gkyl_wall_clock();
       gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, 
         gkr->coeff_react_host[ridx], fileNm);
-      app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
     }
     app->stat.n_diag_io += 1;
    
     gk_array_meta_release(mt); 
+    app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
   }
 }
 

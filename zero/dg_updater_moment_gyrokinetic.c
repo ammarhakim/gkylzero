@@ -25,17 +25,17 @@ gkyl_dg_updater_moment_gyrokinetic_num_mom(const gkyl_dg_updater_moment* moment)
 struct gkyl_dg_updater_moment*
 gkyl_dg_updater_moment_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const struct gkyl_range *conf_range, double mass,
+  const struct gkyl_range *conf_range, double mass, double charge,
   const struct gkyl_velocity_map *vel_map, const struct gk_geometry *gk_geom,
-  const char *mom, bool is_integrated, bool use_gpu)
+  struct gkyl_array *phi, enum gkyl_distribution_moments mom_type, bool is_integrated, bool use_gpu)
 {
   gkyl_dg_updater_moment *up = gkyl_malloc(sizeof(gkyl_dg_updater_moment));
   up->use_gpu = use_gpu;
 
   if (is_integrated)
-    up->type = gkyl_int_mom_gyrokinetic_new(conf_basis, phase_basis, conf_range, mass, vel_map, gk_geom, use_gpu);
+    up->type = gkyl_int_mom_gyrokinetic_new(conf_basis, phase_basis, conf_range, mass, charge, vel_map, gk_geom, phi, mom_type, use_gpu);
   else
-    up->type = gkyl_mom_gyrokinetic_new(conf_basis, phase_basis, conf_range, mass, vel_map, gk_geom, mom, use_gpu);
+    up->type = gkyl_mom_gyrokinetic_new(conf_basis, phase_basis, conf_range, mass, charge, vel_map, gk_geom, phi, mom_type, use_gpu);
 
   up->up_moment = gkyl_mom_calc_new(grid, up->type, use_gpu);
 
