@@ -1823,7 +1823,7 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *gks, double t0
     gk_species_projection_calc(app, gks, &gks->proj_init, gks->f, t0);
 
   // We are pre-computing source for now as it is time-independent.
-  gk_species_source_calc(app, gks, &gks->src, t0);
+  gk_species_source_calc(app, gks, &gks->src, gks->lte.f_lte, t0);
 }
 
 void

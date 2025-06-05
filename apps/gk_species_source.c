@@ -205,7 +205,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
       src->source_host = mkarr(false, src->source->ncomp, src->source->size); 
     }
 
-    src->evolve = s->info.source.evolve; // Whether the source is time dependent.
+    src->evolve = s->info.source.evolve || s->info.source.num_adapt_sources > 0; // Whether the source is time dependent.
 
     src->num_sources = s->info.source.num_sources;
     for (int k=0; k<s->info.source.num_sources; k++) {
@@ -277,6 +277,8 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
         adapt_src->adapt_energy = s->info.source.adapt[k].adapt_energy;
 
         adapt_src->adapt_species = gk_find_species(app, s->info.source.adapt[k].adapt_species_name);
+        assert(adapt_src->adapt_species != NULL); // Make sure the adaptive species is found.
+
         adapt_src->mass_ratio = s->info.mass/adapt_src->adapt_species->info.mass;
 
         adapt_src->particle_src_curr = s->info.source.projection[k].particle;
@@ -313,11 +315,10 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
           adapt_src->edge[j] = edge;
 
           // Specific scenario if we are in a inner wall limited case. We select only SOL range in parallel direction.
-          if (edge == GKYL_LOWER_EDGE? 
-            s->lower_bc[dir].type == GKYL_SPECIES_GK_IWL : s->upper_bc[dir].type == GKYL_SPECIES_GK_IWL) 
-            { 
+          if (edge == GKYL_LOWER_EDGE? s->lower_bc[dir].type == GKYL_SPECIES_GK_IWL : s->upper_bc[dir].type == GKYL_SPECIES_GK_IWL) 
+          {
             adapt_src->range_pb[j] = edge == GKYL_LOWER_EDGE ? s->lower_ghost_par_sol : s->upper_ghost_par_sol;
-            adapt_src->range_conf[j] = edge == GKYL_LOWER_EDGE ? app->lower_ghost_par_sol : app->lower_ghost_par_sol;
+            adapt_src->range_conf[j] = edge == GKYL_LOWER_EDGE ? app->lower_ghost_par_sol : app->upper_ghost_par_sol;
           }
         }
       }
@@ -327,19 +328,14 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
 
 void
 gk_species_source_calc(gkyl_gyrokinetic_app *app, struct gk_species *s, 
-  struct gk_source *src, double tm)
+  struct gk_source *src, struct gkyl_array *f_buffer, double tm)
 {
   if (src->source_id) {
     gkyl_array_clear(src->source, 0.0);
-    // It would be better to avoid this temporary phase space array, but it is needed. 
-    // The s->lte array is already used in the projection calc. One could imagine doing a 
-    // projection accumulate maybe?
-    struct gkyl_array *source_tmp = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
     for (int k=0; k<s->info.source.num_sources; k++) {
-      gk_species_projection_calc(app, s, &src->proj_source[k], source_tmp, tm);
-      gkyl_array_accumulate(src->source, 1., source_tmp);
+      gk_species_projection_calc(app, s, &src->proj_source[k], f_buffer, tm);
+      gkyl_array_accumulate(src->source, 1., f_buffer);
     }
-    gkyl_array_release(source_tmp);
   }
 }
 
@@ -386,7 +382,7 @@ gk_species_source_adapt(gkyl_gyrokinetic_app *app, struct gk_species *s,
 
     // Avoid 0 particle source.
     // This is important to avoid division by zero in the temperature calculation.
-    particle_src_new = fmax(1.0e-12, particle_src_new);
+    particle_src_new = fmax(particle_input, particle_src_new);
     
     // Compute the target temperature of the source following the rule:
     // T = 2/3 * Q/G (T: src temperature, Q: src energy rate, G: total particle rate)
@@ -398,7 +394,7 @@ gk_species_source_adapt(gkyl_gyrokinetic_app *app, struct gk_species *s,
 
     // Update the density and temperature moments of the source
     gkyl_array_set(src->proj_source[k].dens, particle_src_new, src->proj_source[k].shape_conf);
-    gkyl_array_set(src->proj_source[k].vtsq, temperature_new, src->proj_source[k].one_conf);
+    gkyl_array_set(src->proj_source[k].vtsq, temperature_new / s->info.mass, src->proj_source[k].one_conf);
     // Upar=0 at initialization and is never changed.
 
     // Refresh the current values of particle, energy and temperature (can be used for control).
@@ -408,7 +404,7 @@ gk_species_source_adapt(gkyl_gyrokinetic_app *app, struct gk_species *s,
   }
 
   // Reproject the source
-  gk_species_source_calc(app, s, src, tm);
+  gk_species_source_calc(app, s, &s->src, s->lte.f_lte, tm);
 }
 
 
