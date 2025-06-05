@@ -349,8 +349,8 @@ bmag_func(double r_curr, double Z, void *ctx)
   double xn[2] = {r_curr, Z};
   double fout[3];
   actx->geo->efit->evf->eval_cubic_wgrad(0.0, xn, fout, actx->geo->efit->evf->ctx);
-  double dpsidR = fout[1]*2.0/actx->geo->rzgrid_cubic.dx[0];
-  double dpsidZ = fout[2]*2.0/actx->geo->rzgrid_cubic.dx[1];
+  double dpsidR = fout[1];
+  double dpsidZ = fout[2];
 
   double Br = 1.0/r_curr*dpsidZ;
   double Bz = -1.0/r_curr*dpsidR;
