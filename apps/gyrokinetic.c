@@ -400,7 +400,7 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     gkyl_gk_geometry_release(gk_geom_dev);
   }
 
-  gkyl_gyrokinetic_app_write_geometry(app);
+  gkyl_gyrokinetic_app_write_geometry(app, &geometry_inp);
 
   // Allocate 1/(J.B) using weak mul/div.
   struct gkyl_array *tmp = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
@@ -933,7 +933,7 @@ gyrokinetic_app_geometry_copy_and_write(gkyl_gyrokinetic_app* app, struct gkyl_a
 }
 
 void
-gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
+gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_geometry_inp *geometry_inp)
 {
   struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
       .frame = 0,
@@ -945,12 +945,18 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
 
   // Gather geo into a global array
   struct gkyl_array* arr_ho1 = mkarr(false,   app->basis.num_basis, app->local_ext.volume);
+  struct gkyl_array* arr_hocdim = mkarr(false, app->cdim*app->basis.num_basis, app->local_ext.volume);
   struct gkyl_array* arr_ho3 = mkarr(false, 3*app->basis.num_basis, app->local_ext.volume);
   struct gkyl_array* arr_ho6 = mkarr(false, 6*app->basis.num_basis, app->local_ext.volume);
   struct gkyl_array* arr_ho9 = mkarr(false, 9*app->basis.num_basis, app->local_ext.volume);
 
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->mc2p        , arr_ho3, "mapc2p", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->mc2nu_pos        , arr_ho3, "mc2nu_pos", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->mc2nu_pos   , arr_ho3, "mc2nu_pos", mt);
+  if (app->cdim < 3) {
+    if (geometry_inp->geometry_id == GKYL_MIRROR || geometry_inp->geometry_id == GKYL_TOKAMAK)
+      gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->mc2p_deflated, arr_hocdim, "mapc2p_deflated", mt);  
+    gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->mc2nu_pos_deflated, arr_hocdim, "mc2nu_pos_deflated", mt);  
+  }
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->bmag        , arr_ho1, "bmag", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->g_ij        , arr_ho6, "g_ij", mt);
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->g_ij_neut        , arr_ho6, "g_ij_neut", mt);
@@ -1006,6 +1012,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
   gkyl_array_release(mc2p_global);
   gkyl_array_release(mc2p_global_ho);
   gkyl_array_release(arr_ho1);
+  gkyl_array_release(arr_hocdim);
   gkyl_array_release(arr_ho3);
   gkyl_array_release(arr_ho6);
   gkyl_array_release(arr_ho9);
