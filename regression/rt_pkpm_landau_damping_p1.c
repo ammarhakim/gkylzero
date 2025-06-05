@@ -109,11 +109,11 @@ create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   // Training parameters.
-  bool train_nn = false; // Train neural network on simulation data?
+  bool train_nn = true; // Train neural network on simulation data?
   bool train_ab_initio = true; // Train neural network ab initio?
   int nn_width = 256; // Number of neurons to use per layer.
   int nn_depth = 5; // Number of layers to use.
-  const char* train_nn_file = "pkpm_periodic_es_shock_p1_moms_nn_1"; // File path of neural network to train.
+  const char* train_nn_file = "pkpm_landau_damping_p1_moms_nn_1"; // File path of neural network to train.
   int num_trains = INT_MAX; // Number of times to train neural network.
   int num_nn_writes = 1; // Number of times to write out neural network.
   int num_input_moms = 3; // Number of "input" moments to train on.
@@ -122,8 +122,8 @@ create_ctx(void)
   int num_output_moms = 2; // Number of "output" moments to train on.
   int* output_moms = gkyl_malloc(sizeof(int[2]));
   output_moms[0] = 4; output_moms[1] = 5; // Array of "output" moments to train on.
-  bool test_nn = true; // Test neural network on simulation data?
-  const char* test_nn_file = "pkpm_periodic_es_shock_p1_moms_nn_1"; // File path of neural network to test.
+  bool test_nn = false; // Test neural network on simulation data?
+  const char* test_nn_file = "pkpm_landau_damping_p1_moms_nn_1"; // File path of neural network to test.
   int num_tests = 1; // Number of times to test neural network.
 
   struct landau_damping_ctx ctx = {
