@@ -18,6 +18,7 @@ struct __attribute__((__packed__)) gkyl_mirror_grid_gen_geom {
 
 struct gkyl_mirror_grid_gen {
   struct gkyl_array *nodes_rz; // r,z coordinates of corner nodes of cells
+  struct gkyl_array *nodes_psi; // psi values at nodes
   struct gkyl_array *nodes_geom; // geometric quantities at nodes: 
   // this is an array of gkyl_mirror_grid_gen_geom objects
 

@@ -7,7 +7,6 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_gyrokinetic.h>
-#include <gkyl_mirror_geo.h>
 #include <gkyl_math.h>
 
 #include <rt_arg_parse.h>
@@ -117,8 +116,8 @@ create_ctx(void)
   double qe = -eV;  // Electron charge.
   double qi = eV;  // Ion charge.
 
-  double z_min = -3.0;
-  double z_max =  3.0;
+  double z_min = -1.0;
+  double z_max =  1.0;
   double psi_eval = 1e-5;
   double B_p = 0.008;
 
@@ -279,16 +278,13 @@ int main(int argc, char **argv)
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN},
   };
 
-  struct gkyl_efit_inp efit_inp = {
-    .filepath = "./data/eqdsk/single_coil.geqdsk", // equilibrium to use
-    .rz_poly_order = 2,                     // polynomial order for psi(R,Z) used for field line tracing
-    .flux_poly_order = 1,                   // polynomial order for fpol(psi)
-  };
-
   struct gkyl_mirror_geo_grid_inp grid_inp = {
+    .filename_psi = "data/unit/single_coil.geqdsk_psi.gkyl", // psi file to use
     .rclose = 0.2, // closest R to region of interest
     .zmin = -1.0,  // Z of lower boundary
     .zmax =  1.0,  // Z of upper boundary 
+    .include_axis = false, // Include R=0 axis in grid
+    .fl_coord = GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // coordinate system for psi grid
   };
 
   struct gkyl_gyrokinetic_field field = {
@@ -318,7 +314,6 @@ int main(int argc, char **argv)
     .geometry = {
       .geometry_id = GKYL_MIRROR,
       .world = {ctx.psi_eval, 0.0},
-      .efit_info = efit_inp,
       .mirror_grid_info = grid_inp,
     },
 
