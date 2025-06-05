@@ -27,7 +27,7 @@ gkyl_deflate_geo* gkyl_deflate_geo_new(const struct gkyl_basis *cbasis, const st
  * Create new updater to compute the deflated surface geo
  *
  * @param cbasis Basis object (configuration space).
- * @param deflated_cbasis Basis object (configuration space) with one less dimension
+ * @param deflated_num_basis number of basis elements in deflated basis
  * @param grid configuration space grid
  * @param defated_grid configuration space grid with onne less dimension
  * @param rem_dirs array of directions to remove. 0 to keep, 1 to remove
@@ -36,7 +36,7 @@ gkyl_deflate_geo* gkyl_deflate_geo_new(const struct gkyl_basis *cbasis, const st
  * @return New updater pointer.
  */
 
-struct gkyl_deflate_geo_surf* gkyl_deflate_geo_surf_new(const struct gkyl_basis *cbasis,const struct gkyl_basis *deflated_cbasis, const struct gkyl_rect_grid *grid, const struct gkyl_rect_grid *deflated_grid, const int *rem_dirs, int dir, bool use_gpu);
+struct gkyl_deflate_geo_surf* gkyl_deflate_geo_surf_new(const struct gkyl_basis *cbasis, int deflated_num_basis, const struct gkyl_rect_grid *grid, const struct gkyl_rect_grid *deflated_grid, const int *rem_dirs, int dir, bool use_gpu);
 
 /**
  * Advance deflate_geo

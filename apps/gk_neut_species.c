@@ -246,7 +246,7 @@ gk_neut_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_species 
       .stime = tm,
       .poly_order = app->poly_order,
       .basis_type = gkns->basis.id
-    }
+    }, GKYL_GK_META_NONE, 0
   );
 
   const char *fmt = "%s-%s_%d.gkyl";
@@ -283,7 +283,7 @@ gk_neut_species_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_spec
       .stime = tm,
       .poly_order = app->poly_order,
       .basis_type = app->basis.id
-    }
+    }, GKYL_GK_META_NONE, 0
   );
 
   for (int m=0; m<gkns->info.num_diag_moments; ++m) {
@@ -302,7 +302,7 @@ gk_neut_species_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_spec
     // the density (the 0th component).
     gkyl_dg_div_op_range(gkns->moms[m].mem_geo, app->basis, 
       0, gkns->moms[m].marr, 0, gkns->moms[m].marr, 0, 
-      app->gk_geom->jacobgeo, &app->local);      
+      app->gk_geom->geo_int.jacobgeo, &app->local);      
 
     if (app->use_gpu) {
       gkyl_array_copy(gkns->moms[m].marr_host, gkns->moms[m].marr);
@@ -328,7 +328,7 @@ gk_neut_species_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_spec
     // Rescale moment by inverse of Jacobian.
     gkyl_dg_div_op_range(gkns->ps_moms.mem_geo, app->basis,
       0, gkns->ps_moms.marr, 0, gkns->ps_moms.marr, 0,
-      app->gk_geom->jacobgeo, &app->local);
+      app->gk_geom->geo_int.jacobgeo, &app->local);
     if (app->use_gpu) {
       gkyl_array_copy(gkns->ps_moms.marr_host, gkns->ps_moms.marr);
     }
@@ -783,7 +783,7 @@ gk_neut_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
       gk_meta_from_mpack( &(struct gkyl_msgpack_data) {
           .meta = hdr.meta,
           .meta_sz = hdr.meta_size
-        }
+        }, GKYL_GK_META_NONE, 0
       );
     assert(strcmp(s->basis.id, meta.basis_type_nm) == 0);
     assert(poly_order == meta.poly_order);
@@ -1034,24 +1034,24 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   if (app->cdim < 3) {
     // Reorganize g_ij and gij as done in calculation of Hamiltonian to
     // compute momentum and temperature.
-    s->gij = mkarr(app->use_gpu, app->gk_geom->gij_neut->ncomp, app->gk_geom->gij_neut->size);
-    s->g_ij = mkarr(app->use_gpu, app->gk_geom->g_ij_neut->ncomp, app->gk_geom->g_ij_neut->size);
+    s->gij = mkarr(app->use_gpu, app->gk_geom->geo_int.gij_neut->ncomp, app->gk_geom->geo_int.gij_neut->size);
+    s->g_ij = mkarr(app->use_gpu, app->gk_geom->geo_int.g_ij_neut->ncomp, app->gk_geom->geo_int.g_ij_neut->size);
 
     // Reorganize the metric tensor so ignorable coordinates are last.
     int metric_reorg_idxs_1x[] = {5, 2, 4, 0, 1, 3};
     int metric_reorg_idxs_2x[] = {0, 2, 1, 5, 4, 3};
     int *metric_reorg_idxs = app->cdim == 1? metric_reorg_idxs_1x : metric_reorg_idxs_2x;
     int num_basis_conf = app->basis.num_basis;
-    struct gkyl_array *tmp_arr = mkarr(app->use_gpu, num_basis_conf, app->gk_geom->gij_neut->size);
+    struct gkyl_array *tmp_arr = mkarr(app->use_gpu, num_basis_conf, app->gk_geom->geo_int.gij_neut->size);
     for (int i=0; i<6; i++) {
-      gkyl_array_move_comp(s->gij, i*num_basis_conf, app->gk_geom->gij_neut, metric_reorg_idxs[i]*num_basis_conf, tmp_arr);
-      gkyl_array_move_comp(s->g_ij, i*num_basis_conf, app->gk_geom->g_ij_neut, metric_reorg_idxs[i]*num_basis_conf, tmp_arr);
+      gkyl_array_move_comp(s->gij, i*num_basis_conf, app->gk_geom->geo_int.gij_neut, metric_reorg_idxs[i]*num_basis_conf, tmp_arr);
+      gkyl_array_move_comp(s->g_ij, i*num_basis_conf, app->gk_geom->geo_int.g_ij_neut, metric_reorg_idxs[i]*num_basis_conf, tmp_arr);
     }
     gkyl_array_release(tmp_arr);
   }
   else {
-    s->gij = gkyl_array_acquire(app->gk_geom->gij);
-    s->g_ij = gkyl_array_acquire(app->gk_geom->g_ij);
+    s->gij = gkyl_array_acquire(app->gk_geom->geo_int.gij);
+    s->g_ij = gkyl_array_acquire(app->gk_geom->geo_int.g_ij);
   }
 
   // Allocate array for the Hamiltonian.
@@ -1196,7 +1196,7 @@ gk_neut_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_neut_species *spec
     gk_neut_species_projection_calc(app, species, &species->proj_init, species->f, t0);
 
   // we are pre-computing source for now as it is time-independent
-  gk_neut_species_source_calc(app, species, &species->src, t0);
+  gk_neut_species_source_calc(app, species, &species->src, species->lte.f_lte, t0);
 }
 
 // Compute the RHS for species update, returning maximum stable

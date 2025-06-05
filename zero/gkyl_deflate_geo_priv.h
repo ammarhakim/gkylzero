@@ -101,7 +101,7 @@ struct gkyl_deflate_geo{
 
 struct gkyl_deflate_geo_surf{
   const struct gkyl_basis *basis;
-  const struct gkyl_basis *deflated_basis;
+  int deflated_num_basis;
   const struct gkyl_rect_grid* grid;
   const struct gkyl_rect_grid* deflated_grid;
   deflate_geo_kernel kernel;

@@ -650,8 +650,8 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   // Need the magnetic field to be initialized in the ghost cell in order to
   // compute integrated moments in the ghost cell (for checking moment
   // conservation).
-  gkyl_array_clear(gk_geom->bmag, 0.0);
-  gkyl_array_shiftc(gk_geom->bmag, B0*pow(sqrt(2.0),cdim), 0);
+  gkyl_array_clear(gk_geom->geo_int.bmag, 0.0);
+  gkyl_array_shiftc(gk_geom->geo_int.bmag, B0*pow(sqrt(2.0),cdim), 0);
 
   struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &basis_conf,
     &basis, &local_conf, mass, 0, gvm, gk_geom, NULL, "ThreeMoments", true, use_gpu);
@@ -1391,8 +1391,8 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
   // Need the magnetic field to be initialized in the ghost cell in order to
   // compute integrated moments in the ghost cell (for checking moment
   // conservation).
-  gkyl_array_clear(gk_geom->bmag, 0.0);
-  gkyl_array_shiftc(gk_geom->bmag, B0*pow(sqrt(2.0),cdim), 0);
+  gkyl_array_clear(gk_geom->geo_int.bmag, 0.0);
+  gkyl_array_shiftc(gk_geom->geo_int.bmag, B0*pow(sqrt(2.0),cdim), 0);
 
   struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &basis_conf,
     &basis, &local_conf, mass, 0, gvm, gk_geom, NULL, "ThreeMoments", true, use_gpu);
@@ -1635,13 +1635,13 @@ test_bc_twistshift_3x_fig11(bool use_gpu)
   test_bc_twistshift_3x_fig11_wcells(cells0, edgelo, 0, true, use_gpu, true);
   test_bc_twistshift_3x_fig11_wcells(cells1, edgelo, 0, false, use_gpu, false);
   test_bc_twistshift_3x_fig11_wcells(cells2, edgelo, 0, false, use_gpu, false);
-  test_bc_twistshift_3x_fig11_wcells(cells3, edgelo, 0, false, use_gpu, false);
+  test_bc_twistshift_3x_fig11_wcells(cells3, edgelo, 0, false, use_gpu, true);
 
   enum gkyl_edge_loc edgeup = GKYL_UPPER_EDGE; // Upper edge.
   test_bc_twistshift_3x_fig11_wcells(cells0, edgeup, 0, true, use_gpu, false);
   test_bc_twistshift_3x_fig11_wcells(cells1, edgeup, 0, false, use_gpu, false);
   test_bc_twistshift_3x_fig11_wcells(cells2, edgeup, 0, false, use_gpu, false);
-  test_bc_twistshift_3x_fig11_wcells(cells3, edgeup, 0, false, use_gpu, false);
+  test_bc_twistshift_3x_fig11_wcells(cells3, edgeup, 0, false, use_gpu, true);
 
   // Apply the TS BC on the lower half of the x domain.
   test_bc_twistshift_3x_fig11_wcells(cells0, edgelo, -1, true, use_gpu, false);

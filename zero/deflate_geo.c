@@ -23,13 +23,13 @@ struct gkyl_deflate_geo* gkyl_deflate_geo_new(const struct gkyl_basis *cbasis,co
   return up;
 }
 
-struct gkyl_deflate_geo_surf* gkyl_deflate_geo_surf_new(const struct gkyl_basis *cbasis,const struct gkyl_basis *deflated_cbasis, const struct gkyl_rect_grid *grid, const struct gkyl_rect_grid *deflated_grid, const int *rem_dirs, int dir, bool use_gpu){
+struct gkyl_deflate_geo_surf* gkyl_deflate_geo_surf_new(const struct gkyl_basis *cbasis, int deflated_num_basis, const struct gkyl_rect_grid *grid, const struct gkyl_rect_grid *deflated_grid, const int *rem_dirs, int dir, bool use_gpu){
 
   struct gkyl_deflate_geo_surf *up = gkyl_malloc(sizeof(struct gkyl_deflate_geo_surf));
   up->grid = grid;
   up->deflated_grid = deflated_grid;
   up->basis = cbasis;
-  up->deflated_basis = deflated_cbasis;
+  up->deflated_num_basis = deflated_num_basis;
   up->rem_dirs = gkyl_malloc(3*sizeof(int));
   up->dir = dir;
   for(int i=0; i<3; i++) {
@@ -123,7 +123,7 @@ void gkyl_deflate_geo_surf_advance(const struct gkyl_deflate_geo_surf *up, const
       long loc_deflated = gkyl_range_idx(deflated_range, iter.idx);
       double *fld_deflated = gkyl_array_fetch(deflated_field, loc_deflated);
       for(int c = 0; c<ncomp; c++){
-        up->kernel(&fld[c*up->basis->num_basis], &fld_deflated[c*up->deflated_basis->num_basis]);
+        up->kernel(&fld[c*up->basis->num_basis], &fld_deflated[c*up->deflated_num_basis]);
       }
  }
 

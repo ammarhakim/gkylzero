@@ -57,7 +57,7 @@ gyrokinetic_cuts_check(struct gkyl_gyrokinetic_app* app, struct gkyl_comm *comm,
 
 // returned gkyl_array_meta must be freed using gk_array_meta_release
 struct gkyl_msgpack_data*
-gk_array_meta_new(struct gyrokinetic_output_meta meta)
+gk_array_meta_new(struct gyrokinetic_output_meta meta, enum gk_extra_meta_type extra_meta_type, void *extra_meta)
 {
   struct gkyl_msgpack_data *mt = gkyl_malloc(sizeof(*mt));
 
@@ -83,6 +83,12 @@ gk_array_meta_new(struct gyrokinetic_output_meta meta)
   mpack_write_cstr(&writer, "Git_commit_hash");
   mpack_write_cstr(&writer, GIT_COMMIT_ID);
 
+  if (extra_meta_type == GKYL_GK_META_GEO) {
+      struct gyrokinetic_output_meta_geo *extram = extra_meta;
+      mpack_write_cstr(&writer, "geqdsk_sign_convention");
+      mpack_write_i64(&writer, extram->geqdsk_sign_convention);
+  }
+
   mpack_complete_map(&writer);
 
   int status = mpack_writer_destroy(&writer);
@@ -105,7 +111,7 @@ gk_array_meta_release(struct gkyl_msgpack_data *mt)
 }
 
 struct gyrokinetic_output_meta
-gk_meta_from_mpack(struct gkyl_msgpack_data *mt)
+gk_meta_from_mpack(struct gkyl_msgpack_data *mt, enum gk_extra_meta_type extra_meta_type, void *extra_meta)
 {
   struct gyrokinetic_output_meta meta = { .frame = 0, .stime = 0.0 };
 
@@ -129,6 +135,12 @@ gk_meta_from_mpack(struct gkyl_msgpack_data *mt)
     strcpy(meta.basis_type_nm, basis_type);
     meta.basis_type = meta.basis_type_nm;
     MPACK_FREE(basis_type);
+
+    if (extra_meta_type == GKYL_GK_META_GEO) {
+          struct gyrokinetic_output_meta_geo *extram = extra_meta;
+          mpack_node_t geo_node = mpack_node_map_cstr(root, "geqdsk_sign_convention");
+          extram->geqdsk_sign_convention = mpack_node_i64(geo_node);
+    }
 
     mpack_tree_destroy(&tree);
   }
@@ -312,6 +324,8 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     .global_ext = app->global_ext,
     .basis = app->basis,
     .comm = app->comm,
+    .has_LCFS = gk->geometry.has_LCFS,
+    .x_LCFS = gk->geometry.x_LCFS,
   };
   for(int i = 0; i<3; i++)
     geometry_inp.world[i] = gk->geometry.world[i];
@@ -388,7 +402,7 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
   app->bmag_ref = (bmag_max_global + bmag_min_global)/2.0;
 
-  gkyl_position_map_set(app->position_map, app->gk_geom->mc2nu_pos);
+  gkyl_position_map_set_mc2nu(app->position_map, app->gk_geom->geo_corn.mc2nu_pos);
 
   // If we are on the gpu, copy from host.
   if (app->use_gpu) {
@@ -403,9 +417,53 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   // Allocate 1/(J.B) using weak mul/div.
   struct gkyl_array *tmp = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   app->jacobtot_inv_weak = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  gkyl_dg_mul_op_range(app->basis, 0, tmp, 0, app->gk_geom->bmag, 0, app->gk_geom->jacobgeo, &app->local); 
+  gkyl_dg_mul_op_range(app->basis, 0, tmp, 0, app->gk_geom->geo_int.bmag, 0, app->gk_geom->geo_int.jacobgeo, &app->local); 
   gkyl_dg_inv_op_range(app->basis, 0, app->jacobtot_inv_weak, 0, tmp, &app->local); 
   gkyl_array_release(tmp);
+
+  if (gk->geometry.has_LCFS) {
+    // IWL simulation. Create core and SOL global ranges.
+    int idx_LCFS_lo = app->gk_geom->idx_LCFS_lo;
+    int len_core = idx_LCFS_lo;
+    int len_sol = app->global.upper[0]-len_core;
+    gkyl_range_shorten_from_above(&app->global_core, &app->global, 0, len_core);
+    gkyl_range_shorten_from_below(&app->global_sol , &app->global, 0, len_sol);
+    // Same for local ranges.
+    gkyl_range_shorten_from_above(&app->local_core , &app->local , 0, len_core);
+    gkyl_range_shorten_from_below(&app->local_sol  , &app->local , 0, len_sol);
+
+    int len_core_ext = idx_LCFS_lo+1;
+    int len_sol_ext = app->global_ext.upper[0]-len_core;
+    gkyl_range_shorten_from_above(&app->global_ext_core, &app->global_ext, 0, len_core_ext);
+    gkyl_range_shorten_from_below(&app->global_ext_sol , &app->global_ext, 0, len_sol_ext);
+    // Same for local ranges.
+    gkyl_range_shorten_from_above(&app->local_ext_core , &app->local_ext , 0, len_core_ext);
+    gkyl_range_shorten_from_below(&app->local_ext_sol  , &app->local_ext , 0, len_sol_ext);
+
+    // Create core and SOL parallel skin and ghost ranges.
+    int par_dir = app->cdim-1;
+    for (int e=0; e<2; e++) {
+      gkyl_range_shorten_from_above(e==0? &app->lower_skin_par_core  : &app->upper_skin_par_core,
+                                    e==0? &app->lower_skin[par_dir]  : &app->upper_skin[par_dir], 0, len_core);
+      gkyl_range_shorten_from_above(e==0? &app->lower_ghost_par_core : &app->upper_ghost_par_core,
+                                    e==0? &app->lower_ghost[par_dir] : &app->upper_ghost[par_dir], 0, len_core);
+      gkyl_range_shorten_from_below(e==0? &app->lower_skin_par_sol   : &app->upper_skin_par_sol,
+                                    e==0? &app->lower_skin[par_dir]  : &app->upper_skin[par_dir], 0, len_sol);
+      gkyl_range_shorten_from_below(e==0? &app->lower_ghost_par_sol  : &app->upper_ghost_par_sol,
+                                    e==0? &app->lower_ghost[par_dir] : &app->upper_ghost[par_dir], 0, len_sol);
+    }
+
+    // Create a core local range, extended in the BC dir.
+    int ndim = app->cdim;
+    int lower_bcdir_ext[ndim], upper_bcdir_ext[ndim];
+    for (int i=0; i<ndim; i++) {
+      lower_bcdir_ext[i] = app->local_core.lower[i];
+      upper_bcdir_ext[i] = app->local_core.upper[i];
+    }
+    lower_bcdir_ext[par_dir] = app->local_ext_core.lower[par_dir];
+    upper_bcdir_ext[par_dir] = app->local_ext_core.upper[par_dir];
+    gkyl_sub_range_init(&app->local_par_ext_core, &app->local_ext_core, lower_bcdir_ext, upper_bcdir_ext);
+  }
 
   return app;
 }
@@ -449,7 +507,7 @@ gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
   if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || app->field->gkfield_id == GKYL_GK_FIELD_ADIABATIC)) {
     // Compute parfac = (cmag/(jacobgeo*B^_\parallel))*kpar_max.
     struct gkyl_array *parfac = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    gkyl_dg_mul_op_range(app->basis, 0, parfac, 0, app->gk_geom->cmag, 0, app->gk_geom->jacobtot_inv, &app->local); 
+    gkyl_dg_mul_op_range(app->basis, 0, parfac, 0, app->gk_geom->geo_int.cmag, 0, app->gk_geom->geo_int.jacobtot_inv, &app->local); 
     double kpar_max = M_PI*(app->poly_order+1)/app->grid.dx[app->cdim-1];
     gkyl_array_scale_range(parfac, kpar_max, &app->local);
 
@@ -577,9 +635,7 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
 
     // Initialize cross-species collisions (e.g, LBO or BGK)
     if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS) {
-      if (gk_s->lbo.num_cross_collisions) {
-        gk_species_lbo_cross_init(app, &app->species[i], &gk_s->lbo);
-      }
+      gk_species_lbo_cross_init(app, &app->species[i], &gk_s->lbo);
     }
     if (gk_s->bgk.collision_id == GKYL_BGK_COLLISIONS) {
       if (gk_s->bgk.num_cross_collisions) {
@@ -783,6 +839,26 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
         gk_field_project_init(app);
     }
 
+    // Compute necessary moments and boundary corrections for collisions.
+    for (int i=0; i<app->num_species; ++i) {
+      if (app->species[i].lbo.collision_id == GKYL_LBO_COLLISIONS) {
+        gk_species_lbo_moms(app, &app->species[i], 
+          &app->species[i].lbo, distf[i]);
+      }
+      if (app->species[i].bgk.collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
+        gk_species_bgk_moms(app, &app->species[i], 
+          &app->species[i].bgk, distf[i]);
+      }
+    }
+
+    // Compute the cross-species collision frequencies.
+    for (int i=0; i<app->num_species; ++i) {
+      struct gk_species *gk_s = &app->species[i];
+      if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS) { 
+        gk_species_lbo_cross_nu(app, &app->species[i], &gk_s->lbo);
+      }
+    }
+
   }
 
   // Compute the phase-space advection speeds and boundary fluxes as t=0
@@ -864,16 +940,20 @@ gyrokinetic_app_geometry_copy_and_write(gkyl_gyrokinetic_app* app, struct gkyl_a
 
 static void
 gyrokinetic_app_geometry_copy_and_write_surf(gkyl_gyrokinetic_app* app, struct gkyl_array *arr,
-  struct gkyl_array *arr_host, char *varNm, int dir, struct gkyl_msgpack_data *mt)
+  struct gkyl_array *arr_host, struct gkyl_array *arr_host_doubled, char *varNm, int dir, struct gkyl_msgpack_data *mt)
 {
   gkyl_array_copy(arr_host, arr);
+
+  gkyl_array_set_offset(arr_host_doubled, 1.0, arr_host, 0);
+  gkyl_array_copy_range_to_range(arr_host, arr_host, &app->upper_skin[dir], &app->upper_ghost[dir]);
+  gkyl_array_set_offset(arr_host_doubled, 1.0, arr_host, arr_host->ncomp);
 
   const char *fmt = "%s-%s_dir%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, varNm, dir);
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, varNm, dir);
 
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, arr_host, fileNm);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, arr_host_doubled, fileNm);
 }
 
 void
@@ -884,6 +964,10 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
       .stime = 0,
       .poly_order = app->poly_order,
       .basis_type = app->basis.id
+    }, 
+    GKYL_GK_META_GEO, 
+    &(struct gyrokinetic_output_meta_geo) {
+      .geqdsk_sign_convention = app->gk_geom->geqdsk_sign_convention
     }
   );
 
@@ -895,50 +979,54 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
 
 
   struct timespec wtm = gkyl_wall_clock();
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->mc2p        , arr_ho3, "mapc2p", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->mc2nu_pos   , arr_ho3, "mc2nu_pos", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->bmag        , arr_ho1, "bmag", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->g_ij        , arr_ho6, "g_ij", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->g_ij_neut        , arr_ho6, "g_ij_neut", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->dxdz        , arr_ho9, "dxdz", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->dzdx        , arr_ho9, "dzdx", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->normals     , arr_ho9, "normals", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->jacobgeo    , arr_ho1, "jacobgeo", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->jacobgeo_inv, arr_ho1, "jacobgeo_inv", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->gij         , arr_ho6, "gij", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->gij_neut         , arr_ho6, "gij_neut", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->b_i         , arr_ho3, "b_i", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->bcart       , arr_ho3, "bcart", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->cmag        , arr_ho1, "cmag", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->jacobtot    , arr_ho1, "jacobtot", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->jacobtot_inv, arr_ho1, "jacobtot_inv", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->bmag_inv    , arr_ho1, "bmag_inv", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->bmag_inv_sq , arr_ho1, "bmag_inv_sq", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->gxxj        , arr_ho1, "gxxj", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->gxyj        , arr_ho1, "gxyj", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->gyyj        , arr_ho1, "gyyj", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->gxzj        , arr_ho1, "gxzj", mt);
-  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->eps2        , arr_ho1, "eps2", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_corn.mc2p       , arr_ho3, "mapc2p", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_corn.mc2nu_pos  , arr_ho3, "mc2nu_pos", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_corn.bmag       , arr_ho1, "bmag_corn", mt);
+
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.bmag        , arr_ho1, "bmag", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.g_ij        , arr_ho6, "g_ij", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.g_ij_neut   , arr_ho6, "g_ij_neut", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.dxdz        , arr_ho9, "dxdz", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.dzdx        , arr_ho9, "dzdx", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.normals     , arr_ho9, "normals", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.jacobgeo    , arr_ho1, "jacobgeo", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.jacobgeo_inv, arr_ho1, "jacobgeo_inv", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.gij         , arr_ho6, "gij", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.gij_neut    , arr_ho6, "gij_neut", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.b_i         , arr_ho3, "b_i", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.bcart       , arr_ho3, "bcart", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.cmag        , arr_ho1, "cmag", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.jacobtot    , arr_ho1, "jacobtot", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.jacobtot_inv, arr_ho1, "jacobtot_inv", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.bmag_inv    , arr_ho1, "bmag_inv", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.bmag_inv_sq , arr_ho1, "bmag_inv_sq", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.gxxj        , arr_ho1, "gxxj", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.gxyj        , arr_ho1, "gxyj", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.gyyj        , arr_ho1, "gyyj", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.gxzj        , arr_ho1, "gxzj", mt);
+  gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.eps2        , arr_ho1, "eps2", mt);
   app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
   app->stat.n_diag_io += 22;
 
 
   // Write surface quantities
-  struct gkyl_array* arr_surf_ho1 = mkarr(false,   app->gk_geom->surf_basis.num_basis, app->local_ext.volume);
-  struct gkyl_array* arr_surf_ho3 = mkarr(false, 3*app->gk_geom->surf_basis.num_basis, app->local_ext.volume);
+  struct gkyl_array* arr_surf_ho1 = mkarr(false,   app->gk_geom->num_surf_basis, app->local_ext.volume);
+  struct gkyl_array* arr_surf_ho2 = mkarr(false, 2*app->gk_geom->num_surf_basis, app->local_ext.volume);
+  struct gkyl_array* arr_surf_ho3 = mkarr(false, 3*app->gk_geom->num_surf_basis, app->local_ext.volume);
+  struct gkyl_array* arr_surf_ho6 = mkarr(false, 6*app->gk_geom->num_surf_basis, app->local_ext.volume);
   for (int dir = 0; dir<app->cdim; dir++ ) {
-    gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir].jacobgeo       , arr_surf_ho1, "jacobgeo", dir, mt);
-    gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir].jacobtot_inv   , arr_surf_ho1, "jacobtot_inv", dir, mt);
-    gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir].b_i            , arr_surf_ho3, "b_i", dir, mt);
-    gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir].cmag           , arr_surf_ho1, "cmag", dir, mt);
-    gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir].bmag           , arr_surf_ho1, "bmag", dir, mt);
+    gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir].jacobgeo       , arr_surf_ho1, arr_surf_ho2, "jacobgeo", dir, mt);
+    gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir].jacobtot_inv   , arr_surf_ho1, arr_surf_ho2, "jacobtot_inv", dir, mt);
+    gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir].b_i            , arr_surf_ho3, arr_surf_ho6, "b_i", dir, mt);
+    gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir].cmag           , arr_surf_ho1, arr_surf_ho2, "cmag", dir, mt);
+    gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir].bmag           , arr_surf_ho1, arr_surf_ho2, "bmag", dir, mt);
     app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
     app->stat.n_diag_io += 5;
   }
 
   // Write out nodes. This has to be done from rank 0 so we need to gather mc2p.
-  struct gkyl_array *mc2p_global = mkarr(app->use_gpu, app->gk_geom->mc2p->ncomp, app->global_ext.volume);
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->mc2p, mc2p_global);
+  struct gkyl_array *mc2p_global = mkarr(app->use_gpu, app->gk_geom->geo_corn.mc2p->ncomp, app->global_ext.volume);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->geo_corn.mc2p, mc2p_global);
   struct gkyl_array *mc2p_global_ho = mkarr(false, mc2p_global->ncomp, mc2p_global->size);
   gkyl_array_copy(mc2p_global_ho, mc2p_global);
 
@@ -975,7 +1063,9 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
   gkyl_array_release(arr_ho6);
   gkyl_array_release(arr_ho9);
   gkyl_array_release(arr_surf_ho1);
+  gkyl_array_release(arr_surf_ho2);
   gkyl_array_release(arr_surf_ho3);
+  gkyl_array_release(arr_surf_ho6);
 
   gk_array_meta_release(mt);
 }
@@ -998,7 +1088,7 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
         .stime = tm,
         .poly_order = app->poly_order,
         .basis_type = app->basis.id
-      }
+      }, GKYL_GK_META_NONE, 0
     );
 
     const char *fmt = "%s-field_%d.gkyl";
@@ -1543,6 +1633,14 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     }
   }
 
+  // Compute the cross-species collision frequencies.
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *gk_s = &app->species[i];
+    if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS) { 
+      gk_species_lbo_cross_nu(app, &app->species[i], &gk_s->lbo);
+    }
+  }
+
   // Compute necessary moments for cross-species collisions.
   // Needs to be done after self-collisions moments, so separate loop over species.
   for (int i=0; i<app->num_species; ++i) {
@@ -2030,7 +2128,7 @@ header_from_file(gkyl_gyrokinetic_app *app, const char *fname)
       gk_meta_from_mpack( &(struct gkyl_msgpack_data) {
           .meta = hdr.meta,
           .meta_sz = hdr.meta_size
-        }
+        }, GKYL_GK_META_NONE, 0 
       );
 
     rstat.frame = meta.frame;
@@ -2065,6 +2163,30 @@ gyrokinetic_app_geometry_read_and_copy(gkyl_gyrokinetic_app* app, struct gkyl_ar
   }
 }
 
+static void
+gyrokinetic_app_geometry_read_and_copy_surf(gkyl_gyrokinetic_app* app, struct gkyl_array *arr,
+  struct gkyl_array *arr_host, struct gkyl_array *arr_host_doubled, char *varNm, int dir)
+{
+  cstr fileNm = cstr_from_fmt("%s-%s_dir%d.gkyl", app->name, varNm, dir);
+
+  struct gkyl_app_restart_status rstat = header_from_file(app, fileNm.str);
+
+  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+    rstat.io_status =
+      gkyl_comm_array_read(app->comm, &app->grid, &app->local, arr_host_doubled, fileNm.str);
+    gkyl_array_set_offset_range(arr_host, 1.0, arr_host_doubled, 0, &app->local);
+    gkyl_array_copy_range_to_range(arr_host_doubled, arr_host_doubled, &app->upper_ghost[dir], &app->upper_skin[dir]);
+    gkyl_array_set_offset_range(arr_host, 1.0, arr_host_doubled, arr_host->ncomp, &app->upper_ghost[dir]);
+    gkyl_array_copy(arr, arr_host);
+
+  }
+  else {
+    gkyl_gyrokinetic_app_cout(app, stderr, "*** Failed to read geometry file! (%s)\n",
+        gkyl_array_rio_status_msg(rstat.io_status));
+    assert(false);
+  }
+}
+
 void
 gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
 {
@@ -2073,33 +2195,68 @@ gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
   struct gkyl_array* arr_ho6 = mkarr(false, 6*app->basis.num_basis, app->local_ext.volume);
   struct gkyl_array* arr_ho9 = mkarr(false, 9*app->basis.num_basis, app->local_ext.volume);
 
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->mc2p        , arr_ho3, "mapc2p");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->mc2nu_pos   , arr_ho3, "mc2nu_pos");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->bmag        , arr_ho1, "bmag");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->g_ij        , arr_ho6, "g_ij");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->dxdz        , arr_ho9, "dxdz");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->dzdx        , arr_ho9, "dzdx");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->normals     , arr_ho9, "normals");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->jacobgeo    , arr_ho1, "jacobgeo");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->jacobgeo_inv, arr_ho1, "jacobgeo_inv");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->gij         , arr_ho6, "gij");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->b_i         , arr_ho3, "b_i");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->bcart       , arr_ho3, "bcart");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->cmag        , arr_ho1, "cmag");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->jacobtot    , arr_ho1, "jacobtot");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->jacobtot_inv, arr_ho1, "jacobtot_inv");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->bmag_inv    , arr_ho1, "bmag_inv");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->bmag_inv_sq , arr_ho1, "bmag_inv_sq");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->gxxj        , arr_ho1, "gxxj");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->gxyj        , arr_ho1, "gxyj");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->gyyj        , arr_ho1, "gyyj");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->gxzj        , arr_ho1, "gxzj");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->eps2        , arr_ho1, "eps2");
+  cstr fileNm = cstr_from_fmt("%s-%s.gkyl", app->name, "jacobgeo");
+  struct gkyl_array_header_info hdr;
+  struct gyrokinetic_output_meta_geo extra_meta;
+
+  FILE *fp;
+  with_file(fp, fileNm.str, "r") {
+
+    int status = gkyl_grid_sub_array_header_read_fp(&app->grid, &hdr, fp);
+
+    struct gyrokinetic_output_meta meta =
+      gk_meta_from_mpack( &(struct gkyl_msgpack_data) {
+          .meta = hdr.meta,
+          .meta_sz = hdr.meta_size
+        }, GKYL_GK_META_GEO, &extra_meta
+      );
+    app->gk_geom->geqdsk_sign_convention = extra_meta.geqdsk_sign_convention;
+    gkyl_grid_sub_array_header_release(&hdr);
+  }
+
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_corn.mc2p        , arr_ho3, "mapc2p");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_corn.mc2nu_pos   , arr_ho3, "mc2nu_pos");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.bmag        , arr_ho1, "bmag");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.g_ij        , arr_ho6, "g_ij");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.dxdz        , arr_ho9, "dxdz");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.dzdx        , arr_ho9, "dzdx");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.normals     , arr_ho9, "normals");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.jacobgeo    , arr_ho1, "jacobgeo");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.jacobgeo_inv, arr_ho1, "jacobgeo_inv");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.gij         , arr_ho6, "gij");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.b_i         , arr_ho3, "b_i");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.bcart       , arr_ho3, "bcart");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.cmag        , arr_ho1, "cmag");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.jacobtot    , arr_ho1, "jacobtot");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.jacobtot_inv, arr_ho1, "jacobtot_inv");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.bmag_inv    , arr_ho1, "bmag_inv");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.bmag_inv_sq , arr_ho1, "bmag_inv_sq");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.gxxj        , arr_ho1, "gxxj");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.gxyj        , arr_ho1, "gxyj");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.gyyj        , arr_ho1, "gyyj");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.gxzj        , arr_ho1, "gxzj");
+  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.eps2        , arr_ho1, "eps2");
+
+  struct gkyl_array* arr_surf_ho1 = mkarr(false,   app->gk_geom->num_surf_basis, app->local_ext.volume);
+  struct gkyl_array* arr_surf_ho2 = mkarr(false, 2*app->gk_geom->num_surf_basis, app->local_ext.volume);
+  struct gkyl_array* arr_surf_ho3 = mkarr(false, 3*app->gk_geom->num_surf_basis, app->local_ext.volume);
+  struct gkyl_array* arr_surf_ho6 = mkarr(false, 6*app->gk_geom->num_surf_basis, app->local_ext.volume);
+  for (int dir = 0; dir<app->cdim; dir++ ) {
+    gyrokinetic_app_geometry_read_and_copy_surf(app, app->gk_geom->geo_surf[dir].jacobgeo     , arr_surf_ho1, arr_surf_ho2, "jacobgeo", dir);
+    gyrokinetic_app_geometry_read_and_copy_surf(app, app->gk_geom->geo_surf[dir].jacobtot_inv , arr_surf_ho1, arr_surf_ho2, "jacobtot_inv", dir);
+    gyrokinetic_app_geometry_read_and_copy_surf(app, app->gk_geom->geo_surf[dir].b_i          , arr_surf_ho3, arr_surf_ho6, "b_i", dir);
+    gyrokinetic_app_geometry_read_and_copy_surf(app, app->gk_geom->geo_surf[dir].cmag         , arr_surf_ho1, arr_surf_ho2, "cmag", dir);
+    gyrokinetic_app_geometry_read_and_copy_surf(app, app->gk_geom->geo_surf[dir].bmag         , arr_surf_ho1, arr_surf_ho2, "bmag", dir);
+  }
 
   gkyl_array_release(arr_ho1);
   gkyl_array_release(arr_ho3);
   gkyl_array_release(arr_ho6);
   gkyl_array_release(arr_ho9);
+  gkyl_array_release(arr_surf_ho1);
+  gkyl_array_release(arr_surf_ho2);
+  gkyl_array_release(arr_surf_ho3);
+  gkyl_array_release(arr_surf_ho6);
 }
 
 struct gkyl_app_restart_status
@@ -2126,13 +2283,30 @@ gkyl_gyrokinetic_app_from_file_species(gkyl_gyrokinetic_app *app, int sidx,
   struct gk_species *gk_s = &app->species[sidx];
   
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
-    rstat.io_status =
-      gkyl_comm_array_read(gk_s->comm, &gk_s->grid, &gk_s->local, gk_s->f_host, fname);
+    rstat.io_status = gkyl_comm_array_read(gk_s->comm, &gk_s->grid, &gk_s->local, gk_s->f_host, fname);
     if (app->use_gpu)
       gkyl_array_copy(gk_s->f, gk_s->f_host);
-    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
-      gk_species_source_calc(app, gk_s, &gk_s->src, 0.0);
+
+    if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+      gk_species_source_calc(app, gk_s, &gk_s->src, gk_s->lte.f_lte, 0.0);
+      // Read volume and time integrated boundary flux diagnostics.
+      gk_species_bflux_read_voltime_integrated_mom(app, gk_s, &gk_s->bflux);
     }
+  }
+
+  // Compute necessary moments and boundary corrections for collisions.
+  if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS) {
+    gk_species_lbo_moms(app, gk_s, 
+      &gk_s->lbo, gk_s->f);
+  }
+  if (gk_s->bgk.collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
+    gk_species_bgk_moms(app, gk_s, 
+      &gk_s->bgk, gk_s->f);
+  }
+
+  // Compute the cross-species collision frequencies.
+  if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS) { 
+    gk_species_lbo_cross_nu(app, gk_s, &gk_s->lbo);
   }
 
   return rstat;
@@ -2151,8 +2325,10 @@ gkyl_gyrokinetic_app_from_file_neut_species(gkyl_gyrokinetic_app *app, int sidx,
       gkyl_comm_array_read(gk_ns->comm, &gk_ns->grid, &gk_ns->local, gk_ns->f_host, fname);
     if (app->use_gpu)
       gkyl_array_copy(gk_ns->f, gk_ns->f_host);
-    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
-      gk_neut_species_source_calc(app, gk_ns, &gk_ns->src, 0.0);
+    if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+      gk_neut_species_source_calc(app, gk_ns, &gk_ns->src, gk_ns->lte.f_lte, 0.0);
+      // Read volume and time integrated boundary flux diagnostics.
+      gk_neut_species_bflux_read_voltime_integrated_mom(app, gk_ns, &gk_ns->bflux);
     }
   }
 
@@ -2186,7 +2362,6 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
   gk_s->is_first_L2norm_write_call = false;
   for (int b=0; b<gk_s->bflux.num_boundaries; ++b)
     gk_s->bflux.is_first_intmom_write_call[b] = false;
-  gk_s->bflux.is_not_first_restart_write_call = false;
   if (gk_s->info.time_rate_diagnostics)
     gk_s->is_first_fdot_integ_write_call = false;
   if (gk_s->enforce_positivity)

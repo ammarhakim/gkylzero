@@ -38,13 +38,13 @@ GKYL_CU_DH int gyrokinetic_alpha_surfz_3x2v_ser_p1(const double *w, const double
   const double *b_z_surf = &b_i_surf[8];
 
   double hamil[24] = {0.}; 
-  hamil[0] = 1.4142135623730951*(phi[0]*q_+vmapSq[0]*m_+bmag_surf[0]*vmap[2])-2.4494897427831783*phi[3]*q_; 
-  hamil[1] = 1.4142135623730951*(phi[1]*q_+bmag_surf[1]*vmap[2])-2.4494897427831783*phi[5]*q_; 
+  hamil[0] = -(2.4494897427831783*phi[3]*q_)+1.4142135623730951*(phi[0]*q_+vmapSq[0]*m_)+vmap[2]*(bmag[0]-1.7320508075688772*bmag[3]); 
+  hamil[1] = (1.4142135623730951*phi[1]-2.4494897427831783*phi[5])*q_+vmap[2]*(bmag[1]-1.7320508075688772*bmag[5]); 
   hamil[2] = (1.4142135623730951*phi[2]-2.4494897427831783*phi[6])*q_; 
   hamil[3] = 1.4142135623730951*vmapSq[1]*m_; 
-  hamil[4] = 1.4142135623730951*bmag_surf[0]*vmap[3]; 
+  hamil[4] = (bmag[0]-1.7320508075688772*bmag[3])*vmap[3]; 
   hamil[5] = (1.4142135623730951*phi[4]-2.4494897427831783*phi[7])*q_; 
-  hamil[8] = 1.4142135623730951*bmag_surf[1]*vmap[3]; 
+  hamil[8] = vmap[3]*(bmag[1]-1.7320508075688772*bmag[5]); 
   hamil[16] = 1.4142135623730951*vmapSq[2]*m_; 
 
   double *alphaL = &alpha_surf[48];

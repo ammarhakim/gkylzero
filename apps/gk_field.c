@@ -55,28 +55,8 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
   struct gk_species *gks = &app->species[0];
   // Get the z BC info from the first species in our app
   const struct gkyl_gyrokinetic_bcs *bcz = &gks->info.bcz;
-  // define the parallel direction index (handle 2x and 3x cases)
+  // Define the parallel direction index (handle 2x and 3x cases).
   int zdir = app->cdim - 1;
-
-  // Define sub range of ghost and skin cells that spans only the core
-  double xLCFS = f->info.xLCFS;
-  // Index of the cell that abuts the xLCFS from below.
-  int idxLCFS_m = (xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
-
-  // check that idxLCFS_m is within the local range
-  assert(idxLCFS_m >= app->local.lower[0] && idxLCFS_m <= app->local.upper[0]);
-
-  // Create a core local range, extended in the BC dir.
-  int ndim = app->cdim;
-  int lower_bcdir_ext[ndim], upper_bcdir_ext[ndim];
-  for (int i=0; i<ndim; i++) {
-    lower_bcdir_ext[i] = app->local.lower[i];
-    upper_bcdir_ext[i] = app->local.upper[i];
-  }
-  upper_bcdir_ext[0] = idxLCFS_m;
-  lower_bcdir_ext[zdir] = app->local_ext.lower[zdir];
-  upper_bcdir_ext[zdir] = app->local_ext.upper[zdir];
-  gkyl_sub_range_init(&f->local_par_ext_core, &app->local_ext, lower_bcdir_ext, upper_bcdir_ext);
 
   // TSBC updaters
   int ghost[] = {1, 1, 1};
@@ -89,7 +69,7 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
       .shear_dir = 0, // shift varies with x.
       .edge = GKYL_LOWER_EDGE,
       .cdim = app->cdim,
-      .bcdir_ext_update_r = f->local_par_ext_core,
+      .bcdir_ext_update_r = app->local_par_ext_core,
       .num_ghost = ghost, // one ghost per config direction
       .basis = app->basis,
       .grid = app->grid,
@@ -101,17 +81,9 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
     f->bc_T_LU_lo = gkyl_bc_twistshift_new(&T_LU_lo);
   }
 
-  // SSFG updaters
-  int ghost_par[] = {0, 0, 0};
-  ghost_par[zdir] = 1;
-  // create lower and upper skin and ghost ranges for the z BC in the core region
-  gkyl_skin_ghost_ranges( &f->lower_skin_core, &f->lower_ghost_core, zdir, 
-                          GKYL_LOWER_EDGE, &f->local_par_ext_core, ghost_par);
-  gkyl_skin_ghost_ranges( &f->upper_skin_core, &f->upper_ghost_core, zdir, 
-                          GKYL_UPPER_EDGE, &f->local_par_ext_core, ghost_par);
-  // add the SSFG updater for lower and upper application
-  f->ssfg_lo = gkyl_skin_surf_from_ghost_new(zdir,GKYL_LOWER_EDGE,
-                app->basis,&f->lower_skin_core,&f->lower_ghost_core,app->use_gpu);
+  // Add the SSFG updater for lower and upper application.
+  f->ssfg_lo = gkyl_skin_surf_from_ghost_new(zdir, GKYL_LOWER_EDGE,
+    app->basis, &app->lower_skin_par_core, &app->lower_ghost_par_core, app->use_gpu);
 }
 
 static void
@@ -237,7 +209,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     }
     if (app->cdim == 1) {
       // Need to set weight to kperpsq*polarizationWeight for use in potential smoothing.
-      gkyl_array_copy(f->epsilon, app->gk_geom->jacobgeo);
+      gkyl_array_copy(f->epsilon, app->gk_geom->geo_int.jacobgeo);
       gkyl_array_scale(f->epsilon, polarization_weight);
       gkyl_array_scale(f->epsilon, f->info.kperpSq);
 
@@ -250,7 +222,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
         double quasineut_contr = q_s*n_s0*q_s/T_s;
         
         struct gkyl_array *epsilon_adiab = mkarr(app->use_gpu, f->epsilon->ncomp, f->epsilon->size);
-        gkyl_array_copy(epsilon_adiab, app->gk_geom->jacobgeo);
+        gkyl_array_copy(epsilon_adiab, app->gk_geom->geo_int.jacobgeo);
         gkyl_array_scale(epsilon_adiab, quasineut_contr);
         gkyl_array_accumulate(f->epsilon, 1., epsilon_adiab);
         gkyl_array_release(epsilon_adiab);
@@ -264,7 +236,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     }
     else if (app->cdim > 1) {
       // Initialize the polarization weight.
-      struct gkyl_array *Jgij[3] = {app->gk_geom->gxxj, app->gk_geom->gxyj, app->gk_geom->gyyj};
+      struct gkyl_array *Jgij[3] = {app->gk_geom->geo_int.gxxj, app->gk_geom->geo_int.gxyj, app->gk_geom->geo_int.gyyj};
       for (int i=0; i<app->cdim-2/app->cdim; i++) {
         gkyl_array_set_offset(f->epsilon, polarization_weight, Jgij[i], i*app->basis.num_basis);
       }
@@ -306,18 +278,10 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       fem_parproj_bc_core = GKYL_FEM_PARPROJ_NONE;
       fem_parproj_bc_sol = GKYL_FEM_PARPROJ_NONE;
     }
-    // construct core and SOL ranges.
-    double xLCFS = f->info.xLCFS;
-    // Index of the cell that abuts the xLCFS from below.
-    int idxLCFS_m = (xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
-    gkyl_range_shorten_from_below(&f->global_sol, &app->global, 0, app->grid.cells[0]-idxLCFS_m+1);
-    gkyl_range_shorten_from_below(&f->global_ext_sol, &app->global_ext, 0, app->grid.cells[0]-idxLCFS_m+1);
-    gkyl_range_shorten_from_above(&f->global_core, &app->global, 0, idxLCFS_m+1);
-    gkyl_range_shorten_from_above(&f->global_ext_core, &app->global_ext, 0, idxLCFS_m+1);
 
-    f->fem_parproj_core = gkyl_fem_parproj_new(&f->global_core, &app->basis,
+    f->fem_parproj_core = gkyl_fem_parproj_new(&app->global_core, &app->basis,
       fem_parproj_bc_core, 0, 0, app->use_gpu);
-    f->fem_parproj_sol = gkyl_fem_parproj_new(&f->global_sol, &app->basis,
+    f->fem_parproj_sol = gkyl_fem_parproj_new(&app->global_sol, &app->basis,
       fem_parproj_bc_sol, 0, 0, app->use_gpu);
   } 
   else {
@@ -443,10 +407,10 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     }
     // Initialize the weight in the Laplacian operator.
     f->flr_rhoSq_sum = mkarr(app->use_gpu, (2*(app->cdim-1)-1)*app->basis.num_basis, app->local_ext.volume);
-    gkyl_array_set_offset(f->flr_rhoSq_sum, flr_weight, app->gk_geom->gxxj, 0*app->basis.num_basis);
+    gkyl_array_set_offset(f->flr_rhoSq_sum, flr_weight, app->gk_geom->geo_int.gxxj, 0*app->basis.num_basis);
     if (app->cdim > 2) {
-      gkyl_array_set_offset(f->flr_rhoSq_sum, flr_weight, app->gk_geom->gxyj, 1*app->basis.num_basis);
-      gkyl_array_set_offset(f->flr_rhoSq_sum, flr_weight, app->gk_geom->gyyj, 2*app->basis.num_basis);
+      gkyl_array_set_offset(f->flr_rhoSq_sum, flr_weight, app->gk_geom->geo_int.gxyj, 1*app->basis.num_basis);
+      gkyl_array_set_offset(f->flr_rhoSq_sum, flr_weight, app->gk_geom->geo_int.gyyj, 2*app->basis.num_basis);
     }
     // Initialize the factor multiplying the field in the FLR operator.
     f->flr_kSq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
@@ -510,7 +474,7 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
       // times the conf-space Jacobian), not charge density.
       // Rescale moment by inverse of Jacobian.
       gkyl_dg_div_op_range(s->m0.mem_geo, app->basis, 0, field->rho_c, 0, s->m0.marr, 0, 
-        app->gk_geom->jacobgeo, &app->local);  
+        app->gk_geom->geo_int.jacobgeo, &app->local);  
 
       // We also need the M0 flux of the boundary flux through the z
       // boundaries. Put it in the ghost cells of f and take its moment.
@@ -552,11 +516,11 @@ gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *f
     // NOTE: this relies on the accumulate_rho_c calling gk_species_moment_calc(s->m0)
     // to calculate the particle flux and place it in the ghost cells of s->m0.marr.
     gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_LOWER_EDGE, 
-      &app->lower_skin[idx_par], &app->lower_ghost[idx_par], app->gk_geom->cmag, 
-      app->gk_geom->jacobtot_inv, s->m0.marr, field->rho_c, s->m0.marr, field->sheath_vals[off]);
+      &app->lower_skin[idx_par], &app->lower_ghost[idx_par], app->gk_geom->geo_int.cmag, 
+      app->gk_geom->geo_int.jacobtot_inv, s->m0.marr, field->rho_c, s->m0.marr, field->sheath_vals[off]);
     gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_UPPER_EDGE, 
-      &app->upper_skin[idx_par], &app->upper_ghost[idx_par], app->gk_geom->cmag,
-      app->gk_geom->jacobtot_inv, s->m0.marr, field->rho_c, s->m0.marr, field->sheath_vals[off+1]);
+      &app->upper_skin[idx_par], &app->upper_ghost[idx_par], app->gk_geom->geo_int.cmag,
+      app->gk_geom->geo_int.jacobtot_inv, s->m0.marr, field->rho_c, s->m0.marr, field->sheath_vals[off+1]);
 
     // Broadcast the sheath values from skin processes to other processes.
     gkyl_comm_array_bcast(app->comm, field->sheath_vals[off]  , field->sheath_vals[off], 0);
@@ -671,7 +635,7 @@ header_from_file(gkyl_gyrokinetic_app *app, const char *fname)
       gk_meta_from_mpack( &(struct gkyl_msgpack_data) {
           .meta = hdr.meta,
           .meta_sz = hdr.meta_size
-        }
+        }, GKYL_GK_META_NONE, 0
       );
 
     rstat.frame = meta.frame;
@@ -803,7 +767,6 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
       gkyl_bc_twistshift_release(f->bc_T_LU_lo);
     }
     gkyl_skin_surf_from_ghost_release(f->ssfg_lo);
-    // gkyl_array_release(f->bc_buffer);
   }
 
   gkyl_dynvec_release(f->integ_energy);
