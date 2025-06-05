@@ -457,7 +457,7 @@ create_ctx(void)
   double Ti_par0 = 7500 * eV;
   double Ti_par_m = 1000 * eV;
 
-  double Te_par0 = 1800 * eV;  
+  double Te_par0 = 1800 * eV;
   double Te_par_m = 300 * eV;
   double Te_perp0 = 2000 * eV;
   double Te_perp_m = 3000 * eV;
@@ -508,7 +508,7 @@ create_ctx(void)
     .c_s = c_s,
     .omega_ci = omega_ci,
     .rho_s = rho_s,
-    .kperp = kperp, 
+    .kperp = kperp,
     .z_min = z_min,
     .z_max = z_max,
     .psi_eval = psi_eval,
@@ -631,7 +631,7 @@ int main(int argc, char **argv)
       .ctx = &ctx,
     },
     .projection = {
-      .proj_id = GKYL_PROJ_BIMAXWELLIAN, 
+      .proj_id = GKYL_PROJ_BIMAXWELLIAN,
       .ctx_density = &ctx,
       .density = eval_density_elc,
       .ctx_upar = &ctx,
@@ -639,7 +639,7 @@ int main(int argc, char **argv)
       .ctx_temppar = &ctx,
       .temppar = eval_temp_par_elc,
       .ctx_tempperp = &ctx,
-      .tempperp = eval_temp_perp_elc,   
+      .tempperp = eval_temp_perp_elc,
     },
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
@@ -656,14 +656,21 @@ int main(int argc, char **argv)
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,
       .projection[0] = {
-        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
         .ctx_density = &ctx,
         .density = eval_density_elc_source,
         .ctx_upar = &ctx,
         .upar= eval_upar_elc_source,
         .ctx_temp = &ctx,
-        .temp = eval_temp_elc_source,      
-      }, 
+        .temp = eval_temp_elc_source,
+      },
+      .diagnostics = {
+        .num_diag_moments = 5,
+        .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+        .time_integrated = true,
+      }
     },
     .bcx = {
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
@@ -695,15 +702,15 @@ int main(int argc, char **argv)
       .ctx = &ctx,
     },
     .projection = {
-      .proj_id = GKYL_PROJ_BIMAXWELLIAN, 
+      .proj_id = GKYL_PROJ_BIMAXWELLIAN,
       .ctx_density = &ctx,
       .density = eval_density_ion,
       .ctx_upar = &ctx,
       .upar= eval_upar_ion,
-      .ctx_temppar = &ctx,    
+      .ctx_temppar = &ctx,
       .temppar = eval_temp_par_ion,
       .ctx_tempperp = &ctx,
-      .tempperp = eval_temp_perp_ion, 
+      .tempperp = eval_temp_perp_ion,
     },
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
@@ -720,14 +727,21 @@ int main(int argc, char **argv)
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,
       .projection[0] = {
-        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
         .ctx_density = &ctx,
         .density = eval_density_ion_source,
         .ctx_upar = &ctx,
         .upar= eval_upar_ion_source,
         .ctx_temp = &ctx,
-        .temp = eval_temp_ion_source,      
-      }, 
+        .temp = eval_temp_ion_source,
+      },
+      .diagnostics = {
+        .num_diag_moments = 5,
+        .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+        .time_integrated = true,
+      }
     },
     .bcx = {
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
@@ -747,7 +761,7 @@ int main(int argc, char **argv)
   };
 
   struct gkyl_gyrokinetic_field field = {
-    .polarization_bmag = ctx.B_p, 
+    .polarization_bmag = ctx.B_p,
     .kperpSq = pow(ctx.kperp, 2.),
     .time_rate_diagnostics = true,
   };
@@ -756,7 +770,7 @@ int main(int argc, char **argv)
     .filename_psi = "data/unit/wham_hires.geqdsk_psi.gkyl", // psi file to use
     .rclose = 0.2, // closest R to region of interest
     .zmin = -2.0,  // Z of lower boundary
-    .zmax =  2.0,  // Z of upper boundary 
+    .zmax =  2.0,  // Z of upper boundary
     .include_axis = false, // Include R=0 axis in grid
     .fl_coord = GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // coordinate system for psi grid
   };
@@ -886,12 +900,12 @@ int main(int argc, char **argv)
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
   gkyl_gyrokinetic_app_print_timings(app, stdout);
-  
+
   freeresources:
   // simulation complete, free app
   gkyl_gyrokinetic_app_release(app);
   gkyl_gyrokinetic_comms_release(comm);
-  
+
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi)
     MPI_Finalize();
