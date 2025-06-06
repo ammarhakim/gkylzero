@@ -8,6 +8,8 @@ gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   const struct gkyl_array **bflux_in_neut[], struct gkyl_array **bflux_out_neut[], 
   struct gkyl_update_status *st)
 {
+
+  struct timespec wst_fe = gkyl_wall_clock();
   // Take a forward Euler step with the suggested time-step dt. This may
   // not be the actual time-step taken. However, the function will never
   // take a time-step larger than dt even if it is allowed by
@@ -18,6 +20,7 @@ gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   // Compute the time rate of change of the distributions, df/dt.
   gyrokinetic_rhs(app, tcurr, dt, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut, st);
 
+  struct timespec wst = gkyl_wall_clock();
   // Complete update of distribution functions.
   double dta = st->dt_actual;
   for (int i=0; i<app->num_species; ++i) {
@@ -30,6 +33,8 @@ gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     gk_neut_species_step_f(gkns, fout_neut[i], dta, fin_neut[i]);
     gk_neut_species_bflux_step_f(app, &gkns->bflux, bflux_out_neut[i], dta, bflux_in_neut[i]);
   }
+  app->stat.fwd_euler_step_f_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.fwd_euler_tm += gkyl_time_diff_now_sec(wst_fe);
 
 }
 
@@ -140,6 +145,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
 
         } 
         else {
+          struct timespec wst = gkyl_wall_clock();
           for (int i=0; i<app->num_species; ++i) {
 	    struct gk_species *gks = &app->species[i];
 	    gk_species_combine(gks, gks->f1, 3.0/4.0, gks->f, 1.0/4.0, gks->fnew, &gks->local_ext);
@@ -152,6 +158,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
             gk_neut_species_bflux_combine(app, &gkns->bflux, gkns->bflux.f1,
               3.0/4.0, gkns->bflux.f, 1.0/4.0, gkns->bflux.fnew);
           }
+          app->stat.time_stepper_arithmetic_tm += gkyl_time_diff_now_sec(wst);
 
           // Compute the fields and apply BCs.
           for (int i=0; i<app->num_species; ++i) {
@@ -207,6 +214,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           app->stat.nstage_2_fail += 1;
         }
         else {
+          struct timespec wst = gkyl_wall_clock();
           for (int i=0; i<app->num_species; ++i) {
 	    struct gk_species *gks = &app->species[i];
             // Step f.
@@ -236,6 +244,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
             gk_neut_species_bflux_calc_voltime_integrated_mom(app, gkns, &gkns->bflux, tcurr);
             gk_neut_species_bflux_scale(app, &gkns->bflux, gkns->bflux.f, 1.0/dt);
           }
+          app->stat.time_stepper_arithmetic_tm += gkyl_time_diff_now_sec(wst);
 
           // Apply positivity shift if requested.
           for (int i=0; i<app->num_species; ++i) {

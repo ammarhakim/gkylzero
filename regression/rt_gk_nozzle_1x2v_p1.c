@@ -7,7 +7,6 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_gyrokinetic.h>
-#include <gkyl_mirror_geo.h>
 #include <gkyl_math.h>
 
 #include <rt_arg_parse.h>
@@ -117,8 +116,8 @@ create_ctx(void)
   double qe = -eV;  // Electron charge.
   double qi = eV;  // Ion charge.
 
-  double z_min = -3.0;
-  double z_max =  3.0;
+  double z_min = -1.0;
+  double z_max =  1.0;
   double psi_eval = 1e-5;
   double B_p = 0.008;
 
@@ -276,19 +275,16 @@ int main(int argc, char **argv)
       .upper={.type = GKYL_SPECIES_REFLECT,},
     },
     .num_diag_moments = 6,
-    .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "BiMaxwellianMoments"},
-  };
-
-  struct gkyl_efit_inp efit_inp = {
-    .filepath = "./data/eqdsk/single_coil.geqdsk", // equilibrium to use
-    .rz_poly_order = 2,                     // polynomial order for psi(R,Z) used for field line tracing
-    .flux_poly_order = 1,                   // polynomial order for fpol(psi)
+    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN},
   };
 
   struct gkyl_mirror_geo_grid_inp grid_inp = {
+    .filename_psi = "data/unit/single_coil.geqdsk_psi.gkyl", // psi file to use
     .rclose = 0.2, // closest R to region of interest
     .zmin = -1.0,  // Z of lower boundary
     .zmax =  1.0,  // Z of upper boundary 
+    .include_axis = false, // Include R=0 axis in grid
+    .fl_coord = GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // coordinate system for psi grid
   };
 
   struct gkyl_gyrokinetic_field field = {
@@ -318,7 +314,6 @@ int main(int argc, char **argv)
     .geometry = {
       .geometry_id = GKYL_MIRROR,
       .world = {ctx.psi_eval, 0.0},
-      .efit_info = efit_inp,
       .mirror_grid_info = grid_inp,
     },
 
@@ -435,13 +430,8 @@ int main(int argc, char **argv)
     gkyl_gyrokinetic_app_cout(app, stdout, "Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
   }
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Updates took %g secs\n", stat.total_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld,\n", stat.n_io);
-  gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
+  gkyl_gyrokinetic_app_print_timings(app, stdout);
   
   freeresources:
   // simulation complete, free app

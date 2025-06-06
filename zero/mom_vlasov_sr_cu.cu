@@ -12,70 +12,37 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-enum { M0, M1i, M2, M3i, Ni, Tij, BAD };
-
 static int
-get_mom_id(const char *mom)
-{
-  int mom_idx = BAD;
-
-  if (strcmp(mom, "M0") == 0) { // density (GammaV*n)
-    mom_idx = M0;
-  }
-  else if (strcmp(mom, "M1i") == 0) { // mass flux (GammaV*n*V)
-    mom_idx = M1i;
-  }
-  else if (strcmp(mom, "M2") == 0) { // total energy = integral(gamma*f) velocity moment
-    mom_idx = M2;
-  }
-  else if (strcmp(mom, "M3i") == 0) { // tenergy flux = integral(p*f) velocity moment
-    mom_idx = M3i;
-  }
-  else if (strcmp(mom, "Ni") == 0) { // 4-momentum (M0, M1i)
-    mom_idx = Ni;
-  }
-  else if (strcmp(mom, "Tij") == 0) { // Stress-energy tensor 
-                                      // (M2, M3i (vdim components), Stress tensor (vdim*(vdim+1))/2 components))
-    mom_idx = Tij;
-  }
-  else {
-    mom_idx = BAD;
-  }    
-
-  return mom_idx;
-}
-
-static int
-v_num_mom(int vdim, int mom_id)
+v_num_mom(int vdim, enum gkyl_distribution_moments mom_type)
 {
   int num_mom = 0;
   
-  switch (mom_id) {
-    case M0:
+  switch (mom_type) {
+    case GKYL_F_MOMENT_M0:
+    case GKYL_F_MOMENT_M2:
       num_mom = 1;
       break;
 
-    case M1i:
+    case GKYL_F_MOMENT_M1:
+    case GKYL_F_MOMENT_M3:
       num_mom = vdim;
       break;   
 
-    case M2:
-      num_mom = 1;
-      break;   
-
-    case M3i:
-      num_mom = vdim;
-      break;  
-
-    case Ni:
+    case GKYL_F_MOMENT_NI:
       num_mom = vdim+1;
       break;   
     
-    case Tij:
+    case GKYL_F_MOMENT_TIJ:
       num_mom = 1+vdim+(vdim*(vdim+1))/2;
       break;   
 
-    default: // can't happen
+    case GKYL_F_MOMENT_M0ENERGYM3:
+      num_mom = vdim+2;
+      break;  
+
+    default: // Can't happen.
+      fprintf(stderr,"Moment option %d not available.\n",mom_type);
+      assert(false);
       break;
   }
 
@@ -103,8 +70,8 @@ gkyl_mom_vlasov_sr_set_auxfields_cu(const struct gkyl_mom_type *momt, struct gky
 
 __global__
 static void
-set_cu_ptrs(struct mom_type_vlasov_sr* mom_vm_sr, int mom_id, enum gkyl_basis_type b_type, int vdim,
-  int poly_order, int tblidx)
+set_cu_ptrs(struct mom_type_vlasov_sr* mom_vm_sr, enum gkyl_distribution_moments mom_type,
+  enum gkyl_basis_type b_type, int vdim, int poly_order, int tblidx)
 {
   mom_vm_sr->auxfields.gamma = 0;
   
@@ -127,38 +94,39 @@ set_cu_ptrs(struct mom_type_vlasov_sr* mom_vm_sr, int mom_id, enum gkyl_basis_ty
       break;    
   }
   
-  switch (mom_id) {
-    case M0:
+  switch (mom_type) {
+    case GKYL_F_MOMENT_M0:
       mom_vm_sr->momt.kernel = m0_kernels[tblidx].kernels[poly_order];
       mom_vm_sr->momt.num_mom = 1;
       break;
 
-    case M1i:
+    case GKYL_F_MOMENT_M1:
       mom_vm_sr->momt.kernel = m1i_kernels[tblidx].kernels[poly_order];
       mom_vm_sr->momt.num_mom = vdim;
       break;
 
-    case M2:
+    case GKYL_F_MOMENT_M2:
       mom_vm_sr->momt.kernel = m2_kernels[tblidx].kernels[poly_order];
       mom_vm_sr->momt.num_mom = 1;
       break;
 
-    case M3i:
+    case GKYL_F_MOMENT_M3:
       mom_vm_sr->momt.kernel = m3i_kernels[tblidx].kernels[poly_order];
       mom_vm_sr->momt.num_mom = vdim;
       break;
 
-    case Ni:
+    case GKYL_F_MOMENT_NI:
       mom_vm_sr->momt.kernel = Ni_kernels[tblidx].kernels[poly_order];
       mom_vm_sr->momt.num_mom = 1+vdim;
       break;
 
-    case Tij:
+    case GKYL_F_MOMENT_TIJ:
       mom_vm_sr->momt.kernel = Tij_kernels[tblidx].kernels[poly_order];
       mom_vm_sr->momt.num_mom = 1+vdim+(vdim*(vdim+1))/2;
       break;
 
     default: // can't happen
+      assert(false);
       break;
   }
 }
@@ -166,7 +134,7 @@ set_cu_ptrs(struct mom_type_vlasov_sr* mom_vm_sr, int mom_id, enum gkyl_basis_ty
 struct gkyl_mom_type*
 gkyl_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
   const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, 
-  const char *mom)
+  enum gkyl_distribution_moments mom_type)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -185,9 +153,7 @@ gkyl_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl
   mom_vm_sr->conf_range = *conf_range;
   mom_vm_sr->vel_range = *vel_range;
 
-  int mom_id = get_mom_id(mom);
-  assert(mom_id != BAD);
-  mom_vm_sr->momt.num_mom = v_num_mom(vdim, mom_id); // number of moments
+  mom_vm_sr->momt.num_mom = v_num_mom(vdim, mom_type); // number of moments
 
   mom_vm_sr->momt.flags = 0;
   GKYL_SET_CU_ALLOC(mom_vm_sr->momt.flags);
@@ -200,7 +166,7 @@ gkyl_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl
 
   assert(cv_index[cdim].vdim[vdim] != -1);
 
-  set_cu_ptrs<<<1,1>>>(momt_cu, mom_id, cbasis->b_type,
+  set_cu_ptrs<<<1,1>>>(momt_cu, mom_type, cbasis->b_type,
     vdim, poly_order, cv_index[cdim].vdim[vdim]);
 
   mom_vm_sr->momt.on_dev = &momt_cu->momt;
@@ -210,18 +176,18 @@ gkyl_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl
 
 __global__
 static void
-set_int_cu_ptrs(struct mom_type_vlasov_sr* mom_vm_sr, enum gkyl_basis_type b_type, int vdim,
-  int poly_order, int tblidx)
+set_int_cu_ptrs(struct mom_type_vlasov_sr* mom_vm_sr, enum gkyl_distribution_moments mom_type,
+  enum gkyl_basis_type b_type, int vdim, int poly_order, int tblidx)
 {
   mom_vm_sr->auxfields.gamma = 0;
 
   // choose kernel tables based on basis-function type
-  const gkyl_vlasov_sr_mom_kern_list *int_mom_kernels;  
+  const gkyl_vlasov_sr_mom_kern_list *int_five_moments_kernels;  
   
   // set kernel pointer
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      int_mom_kernels = ser_int_mom_kernels;
+      int_five_moments_kernels = ser_int_five_moments_kernels;
       break;
 
     default:
@@ -229,13 +195,21 @@ set_int_cu_ptrs(struct mom_type_vlasov_sr* mom_vm_sr, enum gkyl_basis_type b_typ
       break;    
   }
 
-  mom_vm_sr->momt.kernel = int_mom_kernels[tblidx].kernels[poly_order];
-  mom_vm_sr->momt.num_mom = 2+vdim;
+  switch (mom_type) {
+    case GKYL_F_MOMENT_M0ENERGYM3:
+      mom_vm_sr->momt.kernel = int_five_moments_kernels[tblidx].kernels[poly_order];
+      mom_vm_sr->momt.num_mom = 2+vdim;
+      break;
+
+    default:
+      assert(false);
+      break;
+  }
 }
 
 struct gkyl_mom_type *
 gkyl_int_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range)
+  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, enum gkyl_distribution_moments mom_type)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -251,7 +225,7 @@ gkyl_int_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis* cbasis, const struct 
   mom_vm_sr->momt.num_config = cbasis->num_basis;
   mom_vm_sr->momt.num_phase = pbasis->num_basis;
 
-  mom_vm_sr->momt.num_mom = vdim+2;
+  mom_vm_sr->momt.num_mom = v_num_mom(vdim, mom_type); // number of moments
 
   mom_vm_sr->conf_range = *conf_range;
   mom_vm_sr->vel_range = *vel_range;
@@ -265,7 +239,7 @@ gkyl_int_mom_vlasov_sr_cu_dev_new(const struct gkyl_basis* cbasis, const struct 
     gkyl_cu_malloc(sizeof(struct mom_type_vlasov_sr));
   gkyl_cu_memcpy(momt_cu, mom_vm_sr, sizeof(struct mom_type_vlasov_sr), GKYL_CU_MEMCPY_H2D);
 
-  set_int_cu_ptrs<<<1,1>>>(momt_cu, cbasis->b_type,
+  set_int_cu_ptrs<<<1,1>>>(momt_cu, mom_type, cbasis->b_type,
     vdim, poly_order, cv_index[cdim].vdim[vdim]);
 
   mom_vm_sr->momt.on_dev = &momt_cu->momt;

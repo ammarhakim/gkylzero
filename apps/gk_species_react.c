@@ -431,14 +431,7 @@ gk_species_react_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct
   int ridx, double tm, int frame)
 {
   if (gkr->type_self[ridx] == GKYL_SELF_ION) {
-    struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
-        .frame = frame,
-        .stime = tm,
-        .poly_order = app->poly_order,
-        .basis_type = app->basis.id
-      }
-    );
-
+    struct timespec wst = gkyl_wall_clock();
     // Compute reaction rate
     const struct gkyl_array *fin[app->num_species];
     const struct gkyl_array *fin_neut[app->num_neut_species];
@@ -449,10 +442,19 @@ gk_species_react_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct
       fin_neut[i] = app->neut_species[i].f;
     }
     gk_species_react_cross_moms(app, gks, gkr, fin, fin_neut);
+    app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
     
-    if (app->use_gpu) {
+    struct timespec wtm = gkyl_wall_clock();
+    struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
+        .frame = frame,
+        .stime = tm,
+        .poly_order = app->poly_order,
+        .basis_type = app->basis.id
+      }
+    );
+
+    if (app->use_gpu)
       gkyl_array_copy(gkr->coeff_react_host[ridx], gkr->coeff_react[ridx]);
-    }
     
     if (gkr->react_id[ridx] == GKYL_REACT_IZ) {
       const char *fmt = "%s-%s_%s_%s_iz_react_%d.gkyl";
@@ -462,10 +464,8 @@ gk_species_react_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gkr->react_type[ridx].ion_nm,
         gkr->react_type[ridx].elc_nm, gkr->react_type[ridx].donor_nm, frame);
       
-      struct timespec wtm = gkyl_wall_clock();
       gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, 
         gkr->coeff_react_host[ridx], fileNm);
-      app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
     }
     if (gkr->react_id[ridx] == GKYL_REACT_RECOMB) {
       const char *fmt = "%s-%s_%s_%s_recomb_react_%d.gkyl";
@@ -475,10 +475,8 @@ gk_species_react_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, 
         gkr->react_type[ridx].elc_nm, gkr->react_type[ridx].recvr_nm, frame);
 
-      struct timespec wtm = gkyl_wall_clock();
       gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, 
         gkr->coeff_react_host[ridx], fileNm);
-      app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
     }
     if (gkr->react_id[ridx] == GKYL_REACT_CX) {
       const char *fmt = "%s-%s_%s_cx_react_%d.gkyl";
@@ -488,14 +486,13 @@ gk_species_react_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name,
         gkr->react_type[ridx].partner_nm, frame);
 
-      struct timespec wtm = gkyl_wall_clock();
       gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, 
         gkr->coeff_react_host[ridx], fileNm);
-      app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
     }
     app->stat.n_diag_io += 1;
    
     gk_array_meta_release(mt); 
+    app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
   }
 }
 

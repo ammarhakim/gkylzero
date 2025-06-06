@@ -12,102 +12,37 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-enum { M0, M1, M2, M2par, M2perp, M3par, M3perp, ThreeMoments, FourMoments, HamiltonianMoments, BAD };
-
 static int
-get_gk_mom_id(const char *mom)
-{
-  int mom_idx = BAD;
-
-  if (strcmp(mom, "M0") == 0) { // density
-    mom_idx = M0;
-  }
-  else if (strcmp(mom, "M1") == 0) { // parallel momentum
-    mom_idx = M1;
-  }
-  else if (strcmp(mom, "M2") == 0) { // total kinetic energy
-    mom_idx = M2;
-  }
-  else if (strcmp(mom, "M2par") == 0) { // parallell kinetic energy
-    mom_idx = M2par;
-  }
-  else if (strcmp(mom, "M2perp") == 0) { // perpendicularl kinetic energy
-    mom_idx = M2perp;
-  }
-  else if (strcmp(mom, "M3par") == 0) { // parallel heat flux
-    mom_idx = M3par;
-  }
-  else if (strcmp(mom, "M3perp") == 0) { // perpendicular heat flux
-    mom_idx = M3perp;
-  }
-  else if (strcmp(mom, "ThreeMoments") == 0) {
-    // Zeroth (density), First (parallel momentum), 
-    // and Second (total energy) computed together
-    mom_idx = ThreeMoments;                    
-  }
-  else if (strcmp(mom, "FourMoments") == 0) {
-    // Density, parallel momentum, parallel and
-    // perpendicular kinetic energy.
-    mom_idx = FourMoments;
-  }
-  else if (strcmp(mom, "HamiltonianMoments") == 0) {
-    // Density, parallel momentum, total particle energy.
-    mom_idx = HamiltonianMoments;
-  }
-  else {
-    mom_idx = BAD;
-  }    
-
-  return mom_idx;
-}
-
-static int
-gk_num_mom(int vdim, int mom_id)
+gk_num_mom(int vdim, enum gkyl_distribution_moments mom_type)
 {
   int num_mom = 0;
   
-  switch (mom_id) {
-    case M0:
+  switch (mom_type) {
+    case GKYL_F_MOMENT_M0:
+    case GKYL_F_MOMENT_M1:
+    case GKYL_F_MOMENT_M2:
+    case GKYL_F_MOMENT_M2PAR:
+    case GKYL_F_MOMENT_M2PERP:
+    case GKYL_F_MOMENT_M3PAR:
+    case GKYL_F_MOMENT_M3PERP:
       num_mom = 1;
       break;
 
-    case M1:
-      num_mom = 1;
-      break;
-
-    case M2:
-      num_mom = 1;
-      break;
-
-    case M2par:
-      num_mom = 1;
-      break;
-
-    case M2perp:
-      num_mom = 1;
-      break;
-
-    case M3par:
-      num_mom = 1;
-      break;
-
-    case M3perp:
-      num_mom = 1;
-      break;
-
-    case ThreeMoments:
+    case GKYL_F_MOMENT_M0M1M2:
       num_mom = 3;
       break;      
       
-    case FourMoments:
+    case GKYL_F_MOMENT_M0M1M2PARM2PERP:
       num_mom = vdim+2;
       break;      
       
-    case HamiltonianMoments:
+    case GKYL_F_MOMENT_HAMILTONIAN:
       num_mom = 3;
       break;
 
     default: // can't happen
+      fprintf(stderr,"Moment option %d not available.\n",mom_type);
+      assert(false);
       break;
   }
 
@@ -116,7 +51,7 @@ gk_num_mom(int vdim, int mom_id)
 
 __global__
 static void
-set_cu_ptrs(struct mom_type_gyrokinetic *mom_gk, int mom_id,
+set_cu_ptrs(struct mom_type_gyrokinetic *mom_gk, enum gkyl_distribution_moments mom_type,
   enum gkyl_basis_type b_type, int vdim, int poly_order, int tblidx)
 {
   // choose kernel tables based on basis-function type
@@ -143,53 +78,53 @@ set_cu_ptrs(struct mom_type_gyrokinetic *mom_gk, int mom_id,
       break;    
   }  
   
-  switch (mom_id) {
-    case M0:
+  switch (mom_type) {
+    case GKYL_F_MOMENT_M0:
       mom_gk->momt.kernel = m0_kernels[tblidx].kernels[poly_order];
       mom_gk->momt.num_mom = 1;
       break;
 
-    case M1:
+    case GKYL_F_MOMENT_M1:
       mom_gk->momt.kernel = m1_kernels[tblidx].kernels[poly_order];
       mom_gk->momt.num_mom = 1;
       break;
 
-    case M2:
+    case GKYL_F_MOMENT_M2:
       mom_gk->momt.kernel = m2_kernels[tblidx].kernels[poly_order];
       mom_gk->momt.num_mom = 1;
       break;
 
-    case M2par:
+    case GKYL_F_MOMENT_M2PAR:
       mom_gk->momt.kernel = m2_par_kernels[tblidx].kernels[poly_order];
       mom_gk->momt.num_mom = 1;
       break;
 
-    case M2perp:
+    case GKYL_F_MOMENT_M2PERP:
       mom_gk->momt.kernel = m2_perp_kernels[tblidx].kernels[poly_order];
       mom_gk->momt.num_mom = 1;
       break;
 
-    case M3par:
+    case GKYL_F_MOMENT_M3PAR:
       mom_gk->momt.kernel = m3_par_kernels[tblidx].kernels[poly_order];
       mom_gk->momt.num_mom = 1;
       break;
 
-    case M3perp:
+    case GKYL_F_MOMENT_M3PERP:
       mom_gk->momt.kernel = m3_perp_kernels[tblidx].kernels[poly_order];
       mom_gk->momt.num_mom = 1;
       break;
 
-    case ThreeMoments:
+    case GKYL_F_MOMENT_M0M1M2:
       mom_gk->momt.kernel = three_moments_kernels[tblidx].kernels[poly_order];
       mom_gk->momt.num_mom = 3;
       break;
       
-    case FourMoments:
+    case GKYL_F_MOMENT_M0M1M2PARM2PERP:
       mom_gk->momt.kernel = four_moments_kernels[tblidx].kernels[poly_order];
       mom_gk->momt.num_mom = vdim+2;
       break;
       
-    case HamiltonianMoments:
+    case GKYL_F_MOMENT_HAMILTONIAN:
       mom_gk->momt.kernel = hamiltonian_moments_kernels[tblidx].kernels[poly_order];
       mom_gk->momt.num_mom = 3;
       break;
@@ -202,7 +137,7 @@ set_cu_ptrs(struct mom_type_gyrokinetic *mom_gk, int mom_id,
 struct gkyl_mom_type*
 gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
   const struct gkyl_range* conf_range, double mass, double charge, const struct gkyl_velocity_map* vel_map,
-  const struct gk_geometry *gk_geom, struct gkyl_array *phi, const char *mom)
+  const struct gk_geometry *gk_geom, struct gkyl_array *phi, enum gkyl_distribution_moments mom_type)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -218,12 +153,7 @@ gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gk
   mom_gk->momt.num_config = cbasis->num_basis;
   mom_gk->momt.num_phase = pbasis->num_basis;
 
-  int mom_id = get_gk_mom_id(mom);
-  if(mom_id == BAD) {
-     printf("Error: requested GK moment %s not valid\n", mom);
-     assert(mom_id != BAD);
-  }
-  mom_gk->momt.num_mom = gk_num_mom(vdim, mom_id); // number of moments
+  mom_gk->momt.num_mom = gk_num_mom(vdim, mom_type); // number of moments
 
   mom_gk->mass = mass;
   mom_gk->charge = charge;
@@ -253,7 +183,7 @@ gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gk
 
   assert(cv_index[cdim].vdim[vdim] != -1);
 
-  set_cu_ptrs<<<1,1>>>(mom_gk_cu, mom_id, cbasis->b_type,
+  set_cu_ptrs<<<1,1>>>(mom_gk_cu, mom_type, cbasis->b_type,
     vdim, poly_order, cv_index[cdim].vdim[vdim]);
 
   mom_gk->momt.on_dev = &mom_gk_cu->momt;
@@ -268,10 +198,10 @@ gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gk
 
 __global__
 static void
-set_int_cu_ptrs(struct mom_type_gyrokinetic* momt, int mom_id,
+set_int_cu_ptrs(struct mom_type_gyrokinetic* momt, enum gkyl_distribution_moments mom_type,
   enum gkyl_basis_type b_type, int vdim, int poly_order, int tblidx)
 {
-  // choose kernel tables based on basis-function type
+  // Choose kernel tables based on basis-function type.
   const gkyl_gyrokinetic_mom_kern_list *int_m0_kernels, *int_m1_kernels, *int_m2_par_kernel, *int_m2_perp_kernel, *int_m2_kernels,
     *int_m3_par_kernels, *int_m3_perp_kernels, *int_three_moments_kernels, *int_four_moments_kernels, *int_hamiltonian_moments_kernels;
 
@@ -294,51 +224,52 @@ set_int_cu_ptrs(struct mom_type_gyrokinetic* momt, int mom_id,
       break;    
   }  
   
-  switch (mom_id) {
-    case M0:
+  switch (mom_type) {
+    case GKYL_F_MOMENT_M0:
       momt->momt.kernel = int_m0_kernels[tblidx].kernels[poly_order];
       momt->momt.num_mom = 1;
       break;
-    case M1:
+    case GKYL_F_MOMENT_M1:
       momt->momt.kernel = int_m1_kernels[tblidx].kernels[poly_order];
       momt->momt.num_mom = 1;
       break;
-    case M2par:
+    case GKYL_F_MOMENT_M2PAR:
       momt->momt.kernel = int_m2_par_kernel[tblidx].kernels[poly_order];
       momt->momt.num_mom = 1;
       break;
-    case M2perp:
+    case GKYL_F_MOMENT_M2PERP:
       momt->momt.kernel = int_m2_perp_kernel[tblidx].kernels[poly_order];
       momt->momt.num_mom = 1;
       break;
-    case M2:
+    case GKYL_F_MOMENT_M2:
       momt->momt.kernel = int_m2_kernels[tblidx].kernels[poly_order];
       momt->momt.num_mom = 1;
       break;
-    case M3par:
+    case GKYL_F_MOMENT_M3PAR:
       momt->momt.kernel = int_m3_par_kernels[tblidx].kernels[poly_order];
       momt->momt.num_mom = 1;
       break;
-    case M3perp:
+    case GKYL_F_MOMENT_M3PERP:
       momt->momt.kernel = int_m3_perp_kernels[tblidx].kernels[poly_order];
       momt->momt.num_mom = 1;
       break;
-    case ThreeMoments:
+    case GKYL_F_MOMENT_M0M1M2:
       momt->momt.kernel = int_three_moments_kernels[tblidx].kernels[poly_order];
       momt->momt.num_mom = 3;
       break;
       
-    case FourMoments:
+    case GKYL_F_MOMENT_M0M1M2PARM2PERP:
       momt->momt.kernel = int_four_moments_kernels[tblidx].kernels[poly_order];
       momt->momt.num_mom = vdim+2;
       break;
       
-    case HamiltonianMoments:
+    case GKYL_F_MOMENT_HAMILTONIAN:
       momt->momt.kernel = int_hamiltonian_moments_kernels[tblidx].kernels[poly_order];
       momt->momt.num_mom = 3;
       break;
 
-    default: // can't happen
+    default: // Can't happen.
+      assert(false);
       break;
   }
 }
@@ -346,7 +277,7 @@ set_int_cu_ptrs(struct mom_type_gyrokinetic* momt, int mom_id,
 struct gkyl_mom_type*
 gkyl_int_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
   const struct gkyl_range* conf_range, double mass, double charge, const struct gkyl_velocity_map* vel_map,
-  const struct gk_geometry *gk_geom, struct gkyl_array *phi, const char *mom)
+  const struct gk_geometry *gk_geom, struct gkyl_array *phi, enum gkyl_distribution_moments mom_type)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -362,12 +293,7 @@ gkyl_int_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struc
   momt->momt.num_config = cbasis->num_basis;
   momt->momt.num_phase = pbasis->num_basis;
 
-  int mom_id = get_gk_mom_id(mom);
-  if (mom_id == BAD) {
-     printf("Error: requested GK moment %s not valid\n", mom);
-     assert(mom_id != BAD);
-  }
-  momt->momt.num_mom = gk_num_mom(vdim, mom_id); // number of moments
+  momt->momt.num_mom = gk_num_mom(vdim, mom_type); // Number of moments.
 
   momt->mass = mass;
   momt->charge = charge;
@@ -395,7 +321,7 @@ gkyl_int_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struc
     gkyl_cu_malloc(sizeof(struct mom_type_gyrokinetic));
   gkyl_cu_memcpy(momt_cu, momt, sizeof(struct mom_type_gyrokinetic), GKYL_CU_MEMCPY_H2D);
 
-  set_int_cu_ptrs<<<1,1>>>(momt_cu, mom_id, cbasis->b_type,
+  set_int_cu_ptrs<<<1,1>>>(momt_cu, mom_type, cbasis->b_type,
     vdim, poly_order, cv_index[cdim].vdim[vdim]);
 
   momt->momt.on_dev = &momt_cu->momt;

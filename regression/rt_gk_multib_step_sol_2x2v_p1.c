@@ -498,9 +498,9 @@ main(int argc, char **argv)
       }, 
       .diagnostics = {
         .num_diag_moments = 4,
-        .diag_moments = { "M0", "M1", "M2par", "M2perp" },
+        .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
         .num_integrated_diag_moments = 1,
-        .integrated_diag_moments = { "HamiltonianMoments" },
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
 //        .time_integrated = true,
       }
     },
@@ -530,13 +530,13 @@ main(int argc, char **argv)
 
     .no_by = true,
     .num_diag_moments = 7,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
     .num_integrated_diag_moments = 1,
-    .integrated_diag_moments = { "HamiltonianMoments" },
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     .time_rate_diagnostics = true,
     .boundary_flux_diagnostics = {
       .num_integrated_diag_moments = 1,
-      .integrated_diag_moments = { "HamiltonianMoments" },
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
 //      .time_integrated = true,
     },
 
@@ -599,9 +599,9 @@ main(int argc, char **argv)
       }, 
       .diagnostics = {
         .num_diag_moments = 4,
-        .diag_moments = { "M0", "M1", "M2par", "M2perp" },
+        .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
         .num_integrated_diag_moments = 1,
-        .integrated_diag_moments = { "HamiltonianMoments" },
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
 //        .time_integrated = true,
       }
     },
@@ -631,13 +631,13 @@ main(int argc, char **argv)
     .no_by = true,
 
     .num_diag_moments = 7,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
     .num_integrated_diag_moments = 1,
-    .integrated_diag_moments = { "HamiltonianMoments" },
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     .time_rate_diagnostics = true,
     .boundary_flux_diagnostics = {
       .num_integrated_diag_moments = 1,
-      .integrated_diag_moments = { "HamiltonianMoments" },
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
 //      .time_integrated = true,
     },
 
@@ -759,7 +759,7 @@ main(int argc, char **argv)
   long step = 1;
   while ((t_curr < t_end) && (step <= app_args.num_steps)) {
     gkyl_gyrokinetic_multib_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
-    struct gkyl_update_status status = gkyl_gyrokinetic_update(app, dt);
+    struct gkyl_update_status status = gkyl_gyrokinetic_multib_update(app, dt);
     gkyl_gyrokinetic_multib_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
 
     if (!status.success) {
@@ -811,14 +811,8 @@ main(int argc, char **argv)
     gkyl_gyrokinetic_multib_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
   }
   gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
-
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
+  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of write calls %ld.\n", stat.n_io);
+  gkyl_gyrokinetic_multib_app_print_timings(app, stdout);
 
 freeresources:
   // Free resources after simulation completion.
