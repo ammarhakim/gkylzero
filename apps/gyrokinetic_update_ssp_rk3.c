@@ -226,7 +226,13 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
             gk_species_bflux_copy(app, &gks->bflux, gks->bflux.f, gks->bflux.f1);
             gk_species_bflux_calc_voltime_integrated_mom(app, gks, &gks->bflux, tcurr);
             gk_species_bflux_scale(app, &gks->bflux, gks->bflux.f, 1.0/dt);
+
+            // adapt the sources
+            if (gks->src.num_adapt_sources > 0) {
+              gk_species_source_adapt(app, gks, &gks->src, tcurr);
+            }
           }
+
           for (int i=0; i<app->num_neut_species; ++i) {
 	    struct gk_neut_species *gkns = &app->neut_species[i];
 	    gk_neut_species_combine(gkns, gkns->f1, 1.0/3.0, gkns->f, 2.0/3.0, gkns->fnew, &gkns->local_ext);
