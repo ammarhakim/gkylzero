@@ -94,16 +94,19 @@ calc_mag_heat_flux(const gkyl_ten_moment_nn_closure *nnclosure, const double *fl
 
   double rho_avg = 0.0;
   double drho_dx = 0.0, drho_dy = 0.0, drho_dz = 0.0;
+  double drho_dx_dy = 0.0;
 
   double p_avg[6] = { 0.0 };
   double dp_dx[6] = { 0.0 };
   double dp_dy[6] = { 0.0 };
   double dp_dz[6] = { 0.0 };
+  double dp_dx_dy[6] = { 0.0 };
 
   double B_avg[3] = { 0.0 };
   double dB_dx[3] = { 0.0 };
   double dB_dy[3] = { 0.0 };
   double dB_dz[3] = { 0.0 };
+  double dB_dx_dy[3] = { 0.0 };
 
   double Q[10] = { 0.0 };
 
@@ -305,6 +308,17 @@ calc_mag_heat_flux(const gkyl_ten_moment_nn_closure *nnclosure, const double *fl
       dB_dy[1] = calc_sym_grady_2D(dy, em_tot_d[LL_2D][BY], em_tot_d[LU_2D][BY], em_tot_d[UL_2D][BY], em_tot_d[UU_2D][BY]);
       dB_dy[2] = calc_sym_grady_2D(dy, em_tot_d[LL_2D][BZ], em_tot_d[LU_2D][BZ], em_tot_d[UL_2D][BZ], em_tot_d[UU_2D][BZ]);
 
+      drho_dx_dy = calc_sym_gradxy_2D(dx, dy, rho[LL_2D], rho[LU_2D], rho[UL_2D], rho[UU_2D]);
+      dp_dx_dy[0] = calc_sym_gradxy_2D(dx, dy, p[LL_2D][0], p[LU_2D][0], p[UL_2D][0], p[UU_2D][0]);
+      dp_dx_dy[1] = calc_sym_gradxy_2D(dx, dy, p[LL_2D][1], p[LU_2D][1], p[UL_2D][1], p[UU_2D][1]);
+      dp_dx_dy[2] = calc_sym_gradxy_2D(dx, dy, p[LL_2D][2], p[LU_2D][2], p[UL_2D][2], p[UU_2D][2]);
+      dp_dx_dy[3] = calc_sym_gradxy_2D(dx, dy, p[LL_2D][3], p[LU_2D][3], p[UL_2D][3], p[UU_2D][3]);
+      dp_dx_dy[4] = calc_sym_gradxy_2D(dx, dy, p[LL_2D][4], p[LU_2D][4], p[UL_2D][4], p[UU_2D][4]);
+      dp_dx_dy[5] = calc_sym_gradxy_2D(dx, dy, p[LL_2D][5], p[LU_2D][5], p[UL_2D][5], p[UU_2D][5]);
+      dB_dx_dy[0] = calc_sym_gradxy_2D(dx, dy, em_tot_d[LL_2D][BX], em_tot_d[LU_2D][BX], em_tot_d[UL_2D][BX], em_tot_d[UU_2D][BX]);
+      dB_dx_dy[1] = calc_sym_gradxy_2D(dx, dy, em_tot_d[LL_2D][BY], em_tot_d[LU_2D][BY], em_tot_d[UL_2D][BY], em_tot_d[UU_2D][BY]);
+      dB_dx_dy[2] = calc_sym_gradxy_2D(dx, dy, em_tot_d[LL_2D][BZ], em_tot_d[LU_2D][BZ], em_tot_d[UL_2D][BZ], em_tot_d[UU_2D][BZ]);
+
       if (fabs(B_avg[0]) < pow(10.0, -8.0) && fabs(B_avg[1]) < pow(10.0, -8.0) && fabs(B_avg[2]) < pow(10.0, -8.0)) {
         B_avg[0] = 1.0;
       }
@@ -312,6 +326,9 @@ calc_mag_heat_flux(const gkyl_ten_moment_nn_closure *nnclosure, const double *fl
       double b_mag = sqrt((B_avg[0] * B_avg[0]) + (B_avg[1] * B_avg[1]) + (B_avg[2] * B_avg[2]));
       double b_mag_dx = ((B_avg[0] * dB_dx[0]) + (B_avg[1] * dB_dx[1]) + (B_avg[2] * dB_dx[2])) / b_mag;
       double b_mag_dy = ((B_avg[0] * dB_dy[0]) + (B_avg[1] * dB_dy[1]) + (B_avg[2] * dB_dy[2])) / b_mag;
+      double b_mag_dx_dy = b_mag * ((dB_dx[0] * dB_dy[0]) + (B_avg[0] * dB_dx_dy[0]) + (dB_dx[1] * dB_dy[1]) + (B_avg[1] * dB_dx_dy[1]) + (dB_dx[2] * dB_dy[2]) + (B_avg[2] * dB_dx_dy[2]));
+      b_mag_dx_dy -= b_mag_dx * b_mag_dy;
+      b_mag_dx_dy /= b_mag * b_mag;
 
       double local_mag[3];
       for (int i = 0; i < 3; i++) {
@@ -320,14 +337,19 @@ calc_mag_heat_flux(const gkyl_ten_moment_nn_closure *nnclosure, const double *fl
 
       double local_mag_dx[3];
       double local_mag_dy[3];
+      double local_mag_dx_dy[3];
       for (int i = 0; i < 3; i++) {
         local_mag_dx[i] = ((b_mag * dB_dx[i]) - (B_avg[i] * b_mag_dx)) / (b_mag * b_mag);
         local_mag_dy[i] = ((b_mag * dB_dy[i]) - (B_avg[i] * b_mag_dy)) / (b_mag * b_mag);
+        local_mag_dx_dy[i] = (b_mag * b_mag) * ((b_mag_dy * dB_dx[i]) + (b_mag * dB_dx_dy[i]) - (dB_dy[i] * b_mag_dx) * (B_avg[i] * b_mag_dx_dy));
+        local_mag_dx_dy[i] -= 2.0 * ((b_mag * dB_dx[i]) - (B_avg[i] * b_mag_dx)) * b_mag * b_mag_dy;
+        local_mag_dx_dy[i] /= b_mag * b_mag * b_mag * b_mag;
       }
 
       double p_tensor[3][3];
       double p_tensor_dx[3][3];
       double p_tensor_dy[3][3];
+      double p_tensor_dx_dy[3][3];
 
       p_tensor[0][0] = p_avg[0]; p_tensor[0][1] = p_avg[1]; p_tensor[0][2] = p_avg[2];
       p_tensor[1][0] = p_avg[1]; p_tensor[1][1] = p_avg[3]; p_tensor[1][2] = p_avg[4];
@@ -340,6 +362,10 @@ calc_mag_heat_flux(const gkyl_ten_moment_nn_closure *nnclosure, const double *fl
       p_tensor_dy[0][0] = dp_dy[0]; p_tensor_dy[0][1] = dp_dy[1]; p_tensor_dy[0][2] = dp_dy[2];
       p_tensor_dy[1][0] = dp_dy[1]; p_tensor_dy[1][1] = dp_dy[3]; p_tensor_dy[1][2] = dp_dy[4];
       p_tensor_dy[2][0] = dp_dy[2]; p_tensor_dy[2][1] = dp_dy[4]; p_tensor_dy[2][2] = dp_dy[5];
+
+      p_tensor_dx_dy[0][0] = dp_dx_dy[0]; p_tensor_dx_dy[0][1] = dp_dx_dy[1]; p_tensor_dx_dy[0][2] = dp_dx_dy[2];
+      p_tensor_dx_dy[1][0] = dp_dx_dy[1]; p_tensor_dx_dy[1][1] = dp_dx_dy[3]; p_tensor_dx_dy[1][2] = dp_dx_dy[4];
+      p_tensor_dx_dy[2][0] = dp_dx_dy[2]; p_tensor_dx_dy[2][1] = dp_dx_dy[4]; p_tensor_dx_dy[2][2] = dp_dx_dy[5];
 
       double p_par = 0.0;
       for (int i = 0; i < 3; i++) {
@@ -357,6 +383,7 @@ calc_mag_heat_flux(const gkyl_ten_moment_nn_closure *nnclosure, const double *fl
 
       double p_par_dx = 0.0;
       double p_par_dy = 0.0;
+      double p_par_dx_dy = 0.0;
 
       for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
@@ -367,32 +394,44 @@ calc_mag_heat_flux(const gkyl_ten_moment_nn_closure *nnclosure, const double *fl
           p_par_dy += local_mag[i] * local_mag[j] * p_tensor_dy[i][j];
           p_par_dy += p_tensor[i][j] * local_mag[j] * local_mag_dy[i];
           p_par_dy += p_tensor[i][j] * local_mag[i] * local_mag_dy[j];
+
+          p_par_dx_dy += local_mag[i] * local_mag[i] * p_tensor_dx_dy[i][j];
+          p_par_dx_dy += p_tensor_dx[i][j] * local_mag[i] * local_mag_dy[j];
+          p_par_dx_dy += p_tensor_dx[i][j] * local_mag[j] * local_mag_dy[i];
+          p_par_dx_dy += p_tensor[i][j] * local_mag[i] * local_mag_dx_dy[j];
+          p_par_dx_dy += local_mag_dx[j] * local_mag[i] * p_tensor_dy[i][j];
+          p_par_dx_dy += local_mag_dx[j] * p_tensor[i][j] * local_mag_dy[i];
+          p_par_dx_dy += p_tensor[i][j] * local_mag[j] * local_mag_dx_dy[i];
+          p_par_dx_dy += p_tensor[i][j] * local_mag_dy[j] * local_mag_dx[i];
+          p_par_dx_dy += local_mag[j] * local_mag_dx[i] * p_tensor_dy[i][j];
         }
       }
 
       double p_tensor_trace_dx = 0.0;
       double p_tensor_trace_dy = 0.0;
+      double p_tensor_trace_dx_dy = 0.0;
       for (int i = 0; i < 3; i++) {
         p_tensor_trace_dx += p_tensor_dx[i][i];
         p_tensor_trace_dy += p_tensor_dy[i][i];
+        p_tensor_trace_dx_dy += p_tensor_dx_dy[i][i];
       }
 
       double p_perp_dx = 0.5 * (p_tensor_trace_dx - p_par_dx);
       double p_perp_dy = 0.5 * (p_tensor_trace_dy - p_par_dy);
+      double p_perp_dx_dy = 0.5 * (p_tensor_trace_dx_dy - p_par_dx_dy);
 
-      // Assume vanishing second derivatives for now...
       input_data[0] = rho_avg;
       input_data[1] = drho_dx;
       input_data[2] = drho_dy;
-      input_data[3] = 0.0;
+      input_data[3] = drho_dx_dy;
       input_data[4] = p_par;
       input_data[5] = p_par_dx;
       input_data[6] = p_par_dy;
-      input_data[7] = 0.0;
+      input_data[7] = p_par_dx_dy;
       input_data[8] = p_perp;
       input_data[9] = p_perp_dx;
       input_data[10] = p_perp_dy;
-      input_data[11] = 0.0;
+      input_data[11] = p_perp_dx_dy;
 
       const float *output_data_predicted = kann_apply1(ann, input_data);
 
@@ -481,16 +520,19 @@ calc_nn_closure_update(const gkyl_ten_moment_nn_closure *nnclosure, const double
 
   double rho_avg = 0.0;
   double drho_dx = 0.0, drho_dy = 0.0, drho_dz = 0.0;
+  double drho_dx_dy = 0.0;
 
   double p_avg[6] = { 0.0 };
   double dp_dx[6] = { 0.0 };
   double dp_dy[6] = { 0.0 };
   double dp_dz[6] = { 0.0 };
+  double dp_dx_dy[6] = { 0.0 };
 
   double B_avg[3] = { 0.0 };
   double dB_dx[3] = { 0.0 };
   double dB_dy[3] = { 0.0 };
   double dB_dz[3] = { 0.0 };
+  double dB_dx_dy[3] = { 0.0 };
 
   double divQx[6] = { 0.0 };
   double divQy[6] = { 0.0 };
@@ -741,6 +783,17 @@ calc_nn_closure_update(const gkyl_ten_moment_nn_closure *nnclosure, const double
       dB_dy[1] = calc_sym_grady_2D(dy, em_tot_d[LL_2D][BY], em_tot_d[LU_2D][BY], em_tot_d[UL_2D][BY], em_tot_d[UU_2D][BY]);
       dB_dy[2] = calc_sym_grady_2D(dy, em_tot_d[LL_2D][BZ], em_tot_d[LU_2D][BZ], em_tot_d[UL_2D][BZ], em_tot_d[UU_2D][BZ]);
 
+      drho_dx_dy = calc_sym_gradxy_2D(dx, dy, rho[LL_2D], rho[LU_2D], rho[UL_2D], rho[UU_2D]);
+      dp_dx_dy[0] = calc_sym_gradxy_2D(dx, dy, p[LL_2D][0], p[LU_2D][0], p[UL_2D][0], p[UU_2D][0]);
+      dp_dx_dy[1] = calc_sym_gradxy_2D(dx, dy, p[LL_2D][1], p[LU_2D][1], p[UL_2D][1], p[UU_2D][1]);
+      dp_dx_dy[2] = calc_sym_gradxy_2D(dx, dy, p[LL_2D][2], p[LU_2D][2], p[UL_2D][2], p[UU_2D][2]);
+      dp_dx_dy[3] = calc_sym_gradxy_2D(dx, dy, p[LL_2D][3], p[LU_2D][3], p[UL_2D][3], p[UU_2D][3]);
+      dp_dx_dy[4] = calc_sym_gradxy_2D(dx, dy, p[LL_2D][4], p[LU_2D][4], p[UL_2D][4], p[UU_2D][4]);
+      dp_dx_dy[5] = calc_sym_gradxy_2D(dx, dy, p[LL_2D][5], p[LU_2D][5], p[UL_2D][5], p[UU_2D][5]);
+      dB_dx_dy[0] = calc_sym_gradxy_2D(dx, dy, em_tot_d[LL_2D][BX], em_tot_d[LU_2D][BX], em_tot_d[UL_2D][BX], em_tot_d[UU_2D][BX]);
+      dB_dx_dy[1] = calc_sym_gradxy_2D(dx, dy, em_tot_d[LL_2D][BY], em_tot_d[LU_2D][BY], em_tot_d[UL_2D][BY], em_tot_d[UU_2D][BY]);
+      dB_dx_dy[2] = calc_sym_gradxy_2D(dx, dy, em_tot_d[LL_2D][BZ], em_tot_d[LU_2D][BZ], em_tot_d[UL_2D][BZ], em_tot_d[UU_2D][BZ]);
+
       if (fabs(B_avg[0]) < pow(10.0, -8.0) && fabs(B_avg[1]) < pow(10.0, -8.0) && fabs(B_avg[2]) < pow(10.0, -8.0)) {
         B_avg[0] = 1.0;
       }
@@ -748,6 +801,9 @@ calc_nn_closure_update(const gkyl_ten_moment_nn_closure *nnclosure, const double
       double b_mag = sqrt((B_avg[0] * B_avg[0]) + (B_avg[1] * B_avg[1]) + (B_avg[2] * B_avg[2]));
       double b_mag_dx = ((B_avg[0] * dB_dx[0]) + (B_avg[1] * dB_dx[1]) + (B_avg[2] * dB_dx[2])) / b_mag;
       double b_mag_dy = ((B_avg[0] * dB_dy[0]) + (B_avg[1] * dB_dy[1]) + (B_avg[2] * dB_dy[2])) / b_mag;
+      double b_mag_dx_dy = b_mag * ((dB_dx[0] * dB_dy[0]) + (B_avg[0] * dB_dx_dy[0]) + (dB_dx[1] * dB_dy[1]) + (B_avg[1] * dB_dx_dy[1]) + (dB_dx[2] * dB_dy[2]) + (B_avg[2] * dB_dx_dy[2]));
+      b_mag_dx_dy -= b_mag_dx * b_mag_dy;
+      b_mag_dx_dy /= b_mag * b_mag;
 
       double local_mag[3];
       for (int i = 0; i < 3; i++) {
@@ -756,14 +812,19 @@ calc_nn_closure_update(const gkyl_ten_moment_nn_closure *nnclosure, const double
 
       double local_mag_dx[3];
       double local_mag_dy[3];
+      double local_mag_dx_dy[3];
       for (int i = 0; i < 3; i++) {
         local_mag_dx[i] = ((b_mag * dB_dx[i]) - (B_avg[i] * b_mag_dx)) / (b_mag * b_mag);
         local_mag_dy[i] = ((b_mag * dB_dy[i]) - (B_avg[i] * b_mag_dy)) / (b_mag * b_mag);
+        local_mag_dx_dy[i] = (b_mag * b_mag) * ((b_mag_dy * dB_dx[i]) + (b_mag * dB_dx_dy[i]) - (dB_dy[i] * b_mag_dx) * (B_avg[i] * b_mag_dx_dy));
+        local_mag_dx_dy[i] -= 2.0 * ((b_mag * dB_dx[i]) - (B_avg[i] * b_mag_dx)) * b_mag * b_mag_dy;
+        local_mag_dx_dy[i] /= b_mag * b_mag * b_mag * b_mag;
       }
 
       double p_tensor[3][3];
       double p_tensor_dx[3][3];
       double p_tensor_dy[3][3];
+      double p_tensor_dx_dy[3][3];
 
       p_tensor[0][0] = p_avg[0]; p_tensor[0][1] = p_avg[1]; p_tensor[0][2] = p_avg[2];
       p_tensor[1][0] = p_avg[1]; p_tensor[1][1] = p_avg[3]; p_tensor[1][2] = p_avg[4];
@@ -776,6 +837,10 @@ calc_nn_closure_update(const gkyl_ten_moment_nn_closure *nnclosure, const double
       p_tensor_dy[0][0] = dp_dy[0]; p_tensor_dy[0][1] = dp_dy[1]; p_tensor_dy[0][2] = dp_dy[2];
       p_tensor_dy[1][0] = dp_dy[1]; p_tensor_dy[1][1] = dp_dy[3]; p_tensor_dy[1][2] = dp_dy[4];
       p_tensor_dy[2][0] = dp_dy[2]; p_tensor_dy[2][1] = dp_dy[4]; p_tensor_dy[2][2] = dp_dy[5];
+
+      p_tensor_dx_dy[0][0] = dp_dx_dy[0]; p_tensor_dx_dy[0][1] = dp_dx_dy[1]; p_tensor_dx_dy[0][2] = dp_dx_dy[2];
+      p_tensor_dx_dy[1][0] = dp_dx_dy[1]; p_tensor_dx_dy[1][1] = dp_dx_dy[3]; p_tensor_dx_dy[1][2] = dp_dx_dy[4];
+      p_tensor_dx_dy[2][0] = dp_dx_dy[2]; p_tensor_dx_dy[2][1] = dp_dx_dy[4]; p_tensor_dx_dy[2][2] = dp_dx_dy[5];
 
       double p_par = 0.0;
       for (int i = 0; i < 3; i++) {
@@ -793,6 +858,7 @@ calc_nn_closure_update(const gkyl_ten_moment_nn_closure *nnclosure, const double
 
       double p_par_dx = 0.0;
       double p_par_dy = 0.0;
+      double p_par_dx_dy = 0.0;
 
       for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
@@ -803,32 +869,44 @@ calc_nn_closure_update(const gkyl_ten_moment_nn_closure *nnclosure, const double
           p_par_dy += local_mag[i] * local_mag[j] * p_tensor_dy[i][j];
           p_par_dy += p_tensor[i][j] * local_mag[j] * local_mag_dy[i];
           p_par_dy += p_tensor[i][j] * local_mag[i] * local_mag_dy[j];
+
+          p_par_dx_dy += local_mag[i] * local_mag[i] * p_tensor_dx_dy[i][j];
+          p_par_dx_dy += p_tensor_dx[i][j] * local_mag[i] * local_mag_dy[j];
+          p_par_dx_dy += p_tensor_dx[i][j] * local_mag[j] * local_mag_dy[i];
+          p_par_dx_dy += p_tensor[i][j] * local_mag[i] * local_mag_dx_dy[j];
+          p_par_dx_dy += local_mag_dx[j] * local_mag[i] * p_tensor_dy[i][j];
+          p_par_dx_dy += local_mag_dx[j] * p_tensor[i][j] * local_mag_dy[i];
+          p_par_dx_dy += p_tensor[i][j] * local_mag[j] * local_mag_dx_dy[i];
+          p_par_dx_dy += p_tensor[i][j] * local_mag_dy[j] * local_mag_dx[i];
+          p_par_dx_dy += local_mag[j] * local_mag_dx[i] * p_tensor_dy[i][j];
         }
       }
 
       double p_tensor_trace_dx = 0.0;
       double p_tensor_trace_dy = 0.0;
+      double p_tensor_trace_dx_dy = 0.0;
       for (int i = 0; i < 3; i++) {
         p_tensor_trace_dx += p_tensor_dx[i][i];
         p_tensor_trace_dy += p_tensor_dy[i][i];
+        p_tensor_trace_dx_dy += p_tensor_dx_dy[i][i];
       }
 
       double p_perp_dx = 0.5 * (p_tensor_trace_dx - p_par_dx);
       double p_perp_dy = 0.5 * (p_tensor_trace_dy - p_par_dy);
+      double p_perp_dx_dy = 0.5 * (p_tensor_trace_dx_dy - p_par_dx_dy);
 
-      // Assume vanishing second derivatives for now...
       input_data[0] = rho_avg;
       input_data[1] = drho_dx;
       input_data[2] = drho_dy;
-      input_data[3] = 0.0;
+      input_data[3] = drho_dx_dy;
       input_data[4] = p_par;
       input_data[5] = p_par_dx;
       input_data[6] = p_par_dy;
-      input_data[7] = 0.0;
+      input_data[7] = p_par_dx_dy;
       input_data[8] = p_perp;
       input_data[9] = p_perp_dx;
       input_data[10] = p_perp_dy;
-      input_data[11] = 0.0;
+      input_data[11] = p_perp_dx_dy;
 
       const float *output_data_predicted = kann_apply1(ann, input_data);
 

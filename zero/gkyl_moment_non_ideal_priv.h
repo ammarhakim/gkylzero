@@ -63,6 +63,13 @@ calc_sym_grady_2D(double dy, double a_ll, double a_lu, double a_ul, double a_uu)
   return (a_lu + a_uu - a_ll - a_ul)/(2*dy);
 }
 
+// Calculate symmetrized cross-derivative in 2D.
+static inline double
+calc_sym_gradxy_2D(double dx, double dy, double a_ll, double a_lu, double a_ul, double a_uu)
+{
+  return (a_uu - a_ul - a_lu + a_ll) / (4.0 * dx * dy);
+}
+
 // Calculate symmetrized gradients 3D
 static inline double
 calc_sym_gradx_3D(double dx, double a_lll, double a_llu, double a_lul, double a_luu, double a_ull, double a_ulu, double a_uul, double a_uuu)
