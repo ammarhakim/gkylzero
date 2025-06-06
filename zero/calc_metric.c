@@ -151,6 +151,10 @@ void gkyl_calc_metric_advance_rz(
               double *bmag_n = gkyl_array_fetch(bmag_nodal, gkyl_range_idx(nrange, cidx));
               double dphidtheta = (jFld_n[0]*jFld_n[0]*bmag_n[0]*bmag_n[0] - dxdz[0][2]*dxdz[0][2] - dxdz[1][2]*dxdz[1][2])/R/R;
               dphidtheta = sqrt(dphidtheta);
+              // recover sign from exact dphidtheta = F(psi)/R/\grad(psi)Add commentMore actions
+              if (ddtheta_n[2] < 0) {
+                dphidtheta = -dphidtheta;
+              }
 
               double *gFld_n= gkyl_array_fetch(gFld_nodal, gkyl_range_idx(nrange, cidx));
               gFld_n[0] = dxdz[0][0]*dxdz[0][0] + R*R*dxdz[2][0]*dxdz[2][0] + dxdz[1][0]*dxdz[1][0]; 
