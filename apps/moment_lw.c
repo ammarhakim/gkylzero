@@ -20,6 +20,7 @@
 #include <gkyl_wv_ten_moment.h>
 #include <gkyl_gr_minkowski.h>
 #include <gkyl_gr_blackhole.h>
+#include <gkyl_gr_neutronstar.h>
 #include <gkyl_wv_gr_maxwell.h>
 #include <gkyl_wv_gr_maxwell_tetrad.h>
 #include <gkyl_wv_gr_ultra_rel_euler.h>
@@ -27,6 +28,8 @@
 #include <gkyl_wv_gr_euler.h>
 #include <gkyl_wv_gr_euler_tetrad.h>
 #include <gkyl_wv_gr_medium.h>
+#include <gkyl_wv_advect.h>
+#include <gkyl_wv_burgers.h>
 #include <gkyl_zero_lw.h>
 
 #include <lua.h>
@@ -57,22 +60,6 @@ enum moment_magic_ids {
 static const struct gkyl_str_int_pair wave_split_type[] = {
   { "qwave", GKYL_WAVE_QWAVE },
   { "fwave", GKYL_WAVE_FWAVE },
-  { 0, 0 }
-};
-
-// Ideal MHD Riemann problem -> enum map.
-static const struct gkyl_str_int_pair mhd_rp_type[] = {
-  { "roe", WV_MHD_RP_ROE },
-  { "hlld", WV_MHD_RP_HLLD },
-  { "lax", WV_MHD_RP_LAX },
-  { 0, 0 }
-};
-
-// Ideal divB correction -> enum map.
-static const struct gkyl_str_int_pair mhd_divb_type[] = {
-  { "none", GKYL_MHD_DIVB_NONE },
-  { "glm",  GKYL_MHD_DIVB_GLM },
-  { "eight_waves", GKYL_MHD_DIVB_EIGHT_WAVES },
   { 0, 0 }
 };
 
@@ -234,7 +221,7 @@ eqn_iso_euler_lw_new(lua_State *L)
   }
   
   iso_euler_lw->magic = MOMENT_EQN_DEFAULT;
-  iso_euler_lw->eqn = gkyl_wv_iso_euler_new(vt);
+  iso_euler_lw->eqn = gkyl_wv_iso_euler_new(vt, false);
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_iso_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -362,12 +349,8 @@ eqn_mhd_lw_new(lua_State *L)
 
   double gas_gamma = glua_tbl_get_number(L, "gasGamma", 1.4);
   
-  const char *rp_str = glua_tbl_get_string(L, "rpType", "roe");
-  enum gkyl_wv_mhd_rp rp_type = gkyl_search_str_int_pair_by_str(mhd_rp_type, rp_str, WV_MHD_RP_ROE);
-
-  const char *divb_str = glua_tbl_get_string(L, "divergenceConstraint", "none");
-  enum gkyl_wv_mhd_div_constraint divb = gkyl_search_str_int_pair_by_str(
-    mhd_divb_type, divb_str, GKYL_MHD_DIVB_NONE);
+  enum gkyl_wv_mhd_rp rp_type = glua_tbl_get_integer(L, "rpType", WV_MHD_RP_ROE);
+  enum gkyl_wv_mhd_div_constraint divb = glua_tbl_get_integer(L, "divergenceConstraint", GKYL_MHD_DIVB_NONE);
 
   double glm_ch = glua_tbl_get_number(L, "glmCh", 1.0);
   double glm_alpha = glua_tbl_get_number(L, "glmAlpha", 0.4);
@@ -848,6 +831,68 @@ static struct luaL_Reg eqn_gr_medium_ctor[] = {
   { 0, 0 }
 };
 
+/* ************************* */
+/* Linear Advection Equation */
+/* ************************* */
+
+// Advection.new { advectionSpeed = 1.0 }
+static int
+eqn_advect_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *advect_lw = gkyl_malloc(sizeof(*advect_lw));
+
+  double c = glua_tbl_get_number(L, "advectionSpeed", 1.0);
+
+  advect_lw->magic = MOMENT_EQN_DEFAULT;
+  advect_lw->eqn = gkyl_wv_advect_new(c, false);
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_advect_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_advect_lw = advect_lw; // Point userdata to the equation object.
+  
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_advect_ctor[] = {
+  { "new", eqn_advect_lw_new },
+  { 0, 0 }
+};
+
+/* ************************* */
+/* Inviscid Burgers Equation */
+/* ************************* */
+
+// Burgers.new { }
+static int
+eqn_burgers_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *burgers_lw = gkyl_malloc(sizeof(*burgers_lw));
+
+  burgers_lw->magic = MOMENT_EQN_DEFAULT;
+  burgers_lw->eqn = gkyl_wv_burgers_new(false);
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_burgers_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_burgers_lw = burgers_lw; // Point userdata to the equation object.
+  
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_burgers_ctor[] = {
+  { "new", eqn_burgers_lw_new },
+  { 0, 0 }
+};
+
 // Register and load all wave equation objects.
 static void
 eqn_openlibs(lua_State *L)
@@ -863,7 +908,7 @@ eqn_openlibs(lua_State *L)
   luaL_register(L, "G0.Moments.Eq.SrEuler", eqn_sr_euler_ctor);
   luaL_register(L, "G0.Moments.Eq.ColdFluid", eqn_coldfluid_ctor);
   luaL_register(L, "G0.Moments.Eq.TenMoment", eqn_tenmoment_ctor); 
-  luaL_register(L, "G0.Moments.Eq.Mhd", eqn_mhd_ctor);
+  luaL_register(L, "G0.Moments.Eq.MHD", eqn_mhd_ctor);
   luaL_register(L, "G0.Moments.Eq.ReactiveEuler", eqn_reactive_euler_ctor);
   luaL_register(L, "G0.Moments.Eq.EulerMixture", eqn_euler_mixture_ctor);
   luaL_register(L, "G0.Moments.Eq.IsoEulerMixture", eqn_iso_euler_mixture_ctor);
@@ -874,6 +919,8 @@ eqn_openlibs(lua_State *L)
   luaL_register(L, "G0.Moments.Eq.GREuler", eqn_gr_euler_ctor);
   luaL_register(L, "G0.Moments.Eq.GREulerTetrad", eqn_gr_euler_tetrad_ctor);
   luaL_register(L, "G0.Moments.Eq.GRMedium", eqn_gr_medium_ctor);
+  luaL_register(L, "G0.Moments.Eq.LinearAdvection", eqn_advect_ctor);
+  luaL_register(L, "G0.Moments.Eq.Burgers", eqn_burgers_ctor);
 }
 
 // Metatable name for spacetime object input struct.
@@ -1448,6 +1495,355 @@ static struct luaL_Reg spacetime_blackhole_ctor[] = {
   { 0, 0 }
 };
 
+/* ********************** */
+/* Neutron Star Spacetime */
+/* ********************** */
+
+static int
+spacetime_neutronstar_lw_new(lua_State *L)
+{
+  struct gr_spacetime_lw *neutronstar_lw = gkyl_malloc(sizeof(*neutronstar_lw));
+
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double mass_quadrupole = luaL_checknumber(L, 3);
+  double spin_octupole = luaL_checknumber(L, 4);
+  double mass_hexadecapole = luaL_checknumber(L, 5);
+  double pos_x = luaL_checknumber(L, 6);
+  double pos_y = luaL_checknumber(L, 7);
+  double pos_z = luaL_checknumber(L, 8);
+
+  neutronstar_lw->magic = MOMENT_SPACETIME_DEFAULT;
+  neutronstar_lw->spacetime = gkyl_gr_neutronstar_inew( &(struct gkyl_gr_neutronstar_inp) {
+      .mass = mass,
+      .spin = spin,
+      .mass_quadrupole = mass_quadrupole,
+      .spin_octupole = spin_octupole,
+      .mass_hexadecapole = mass_hexadecapole,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  // Create Lua userdata.
+  struct gr_spacetime_lw **l_neutronstar_lw = lua_newuserdata(L, sizeof(struct gr_spacetime_lw*));
+  *l_neutronstar_lw = neutronstar_lw;
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_SPACETIME_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+static int
+spacetime_neutronstar_lw_spatial_metric_tensor(lua_State *L)
+{
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double mass_quadrupole = luaL_checknumber(L, 3);
+  double spin_octupole = luaL_checknumber(L, 4);
+  double mass_hexadecapole = luaL_checknumber(L, 5);
+  double pos_x = luaL_checknumber(L, 6);
+  double pos_y = luaL_checknumber(L, 7);
+  double pos_z = luaL_checknumber(L, 8);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_inew( &(struct gkyl_gr_neutronstar_inp) {
+      .mass = mass,
+      .spin = spin,
+      .mass_quadrupole = mass_quadrupole,
+      .spin_octupole = spin_octupole,
+      .mass_hexadecapole = mass_hexadecapole,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 9);
+  double x = luaL_checknumber(L, 10);
+  double y = luaL_checknumber(L, 11);
+  double z = luaL_checknumber(L, 12);
+
+  double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  spacetime->spatial_metric_tensor_func(spacetime, t, x, y, z, &spatial_metric);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+
+    lua_createtable(L, 3, 0);
+    for (int j = 0; j < 3; j++) {
+      lua_pushinteger(L, j + 1);
+      lua_pushnumber(L, spatial_metric[i][j]);
+      lua_rawset(L, -3);
+    }
+
+    lua_rawset(L, -3);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(spatial_metric[i]);
+  }
+  gkyl_free(spatial_metric);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_neutronstar_lw_spatial_metric_det(lua_State *L)
+{
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double mass_quadrupole = luaL_checknumber(L, 3);
+  double spin_octupole = luaL_checknumber(L, 4);
+  double mass_hexadecapole = luaL_checknumber(L, 5);
+  double pos_x = luaL_checknumber(L, 6);
+  double pos_y = luaL_checknumber(L, 7);
+  double pos_z = luaL_checknumber(L, 8);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_inew( &(struct gkyl_gr_neutronstar_inp) {
+      .mass = mass,
+      .spin = spin,
+      .mass_quadrupole = mass_quadrupole,
+      .spin_octupole = spin_octupole,
+      .mass_hexadecapole = mass_hexadecapole,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 9);
+  double x = luaL_checknumber(L, 10);
+  double y = luaL_checknumber(L, 11);
+  double z = luaL_checknumber(L, 12);
+
+  double spatial_metric_det;
+  spacetime->spatial_metric_det_func(spacetime, t, x, y, z, &spatial_metric_det);
+
+  lua_pushnumber(L, spatial_metric_det);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_neutronstar_lw_lapse_function(lua_State *L)
+{
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double mass_quadrupole = luaL_checknumber(L, 3);
+  double spin_octupole = luaL_checknumber(L, 4);
+  double mass_hexadecapole = luaL_checknumber(L, 5);
+  double pos_x = luaL_checknumber(L, 6);
+  double pos_y = luaL_checknumber(L, 7);
+  double pos_z = luaL_checknumber(L, 8);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_inew( &(struct gkyl_gr_neutronstar_inp) {
+      .mass = mass,
+      .spin = spin,
+      .mass_quadrupole = mass_quadrupole,
+      .spin_octupole = spin_octupole,
+      .mass_hexadecapole = mass_hexadecapole,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 9);
+  double x = luaL_checknumber(L, 10);
+  double y = luaL_checknumber(L, 11);
+  double z = luaL_checknumber(L, 12);
+
+  double lapse;
+  spacetime->lapse_function_func(spacetime, t, x, y, z, &lapse);
+
+  lua_pushnumber(L, lapse);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_neutronstar_lw_shift_vector(lua_State *L)
+{
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double mass_quadrupole = luaL_checknumber(L, 3);
+  double spin_octupole = luaL_checknumber(L, 4);
+  double mass_hexadecapole = luaL_checknumber(L, 5);
+  double pos_x = luaL_checknumber(L, 6);
+  double pos_y = luaL_checknumber(L, 7);
+  double pos_z = luaL_checknumber(L, 8);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_inew( &(struct gkyl_gr_neutronstar_inp) {
+      .mass = mass,
+      .spin = spin,
+      .mass_quadrupole = mass_quadrupole,
+      .spin_octupole = spin_octupole,
+      .mass_hexadecapole = mass_hexadecapole,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 9);
+  double x = luaL_checknumber(L, 10);
+  double y = luaL_checknumber(L, 11);
+  double z = luaL_checknumber(L, 12);
+
+  double *shift = gkyl_malloc(sizeof(double[3]));
+  spacetime->shift_vector_func(spacetime, t, x, y, z, &shift);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+    lua_pushnumber(L, shift[i]);
+    lua_rawset(L, -3);
+  }
+
+  gkyl_free(shift);
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_neutronstar_lw_extrinsic_curvature_tensor(lua_State *L)
+{
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double mass_quadrupole = luaL_checknumber(L, 3);
+  double spin_octupole = luaL_checknumber(L, 4);
+  double mass_hexadecapole = luaL_checknumber(L, 5);
+  double pos_x = luaL_checknumber(L, 6);
+  double pos_y = luaL_checknumber(L, 7);
+  double pos_z = luaL_checknumber(L, 8);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_inew( &(struct gkyl_gr_neutronstar_inp) {
+      .mass = mass,
+      .spin = spin,
+      .mass_quadrupole = mass_quadrupole,
+      .spin_octupole = spin_octupole,
+      .mass_hexadecapole = mass_hexadecapole,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 9);
+  double x = luaL_checknumber(L, 10);
+  double y = luaL_checknumber(L, 11);
+  double z = luaL_checknumber(L, 12);
+  double dx = luaL_checknumber(L, 13);
+  double dy = luaL_checknumber(L, 14);
+  double dz = luaL_checknumber(L, 15);
+
+  double **extrinsic_curvature = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    extrinsic_curvature[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  spacetime->extrinsic_curvature_tensor_func(spacetime, t, x, y, z, dx, dy, dz, &extrinsic_curvature);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+
+    lua_createtable(L, 3, 0);
+    for (int j = 0; j < 3; j++) {
+      lua_pushinteger(L, j + 1);
+      lua_pushnumber(L, extrinsic_curvature[i][j]);
+      lua_rawset(L, -3);
+    }
+
+    lua_rawset(L, -3);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(extrinsic_curvature[i]);
+  }
+  gkyl_free(extrinsic_curvature);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_neutronstar_lw_excision_region(lua_State *L)
+{
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double mass_quadrupole = luaL_checknumber(L, 3);
+  double spin_octupole = luaL_checknumber(L, 4);
+  double mass_hexadecapole = luaL_checknumber(L, 5);
+  double pos_x = luaL_checknumber(L, 6);
+  double pos_y = luaL_checknumber(L, 7);
+  double pos_z = luaL_checknumber(L, 8);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_inew( &(struct gkyl_gr_neutronstar_inp) {
+      .mass = mass,
+      .spin = spin,
+      .mass_quadrupole = mass_quadrupole,
+      .spin_octupole = spin_octupole,
+      .mass_hexadecapole = mass_hexadecapole,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 9);
+  double x = luaL_checknumber(L, 10);
+  double y = luaL_checknumber(L, 11);
+  double z = luaL_checknumber(L, 12);
+
+  bool in_excision_region;
+  spacetime->excision_region_func(spacetime, t, x, y, z, &in_excision_region);
+
+  lua_pushboolean(L, in_excision_region);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+// Spacetime constructor.
+static struct luaL_Reg spacetime_neutronstar_ctor[] = {
+  { "new", spacetime_neutronstar_lw_new },
+  { "spatialMetricTensor", spacetime_neutronstar_lw_spatial_metric_tensor },
+  { "spatialMetricDeterminant", spacetime_neutronstar_lw_spatial_metric_det },
+  { "lapseFunction", spacetime_neutronstar_lw_lapse_function },
+  { "shiftVector", spacetime_neutronstar_lw_shift_vector },
+  { "extrinsicCurvatureTensor", spacetime_neutronstar_lw_extrinsic_curvature_tensor },
+  { "excisionRegion", spacetime_neutronstar_lw_excision_region },
+  { 0, 0 }
+};
+
 // Register and load all GR spacetime objects.
 static void
 spacetime_openlibs(lua_State *L)
@@ -1460,6 +1856,7 @@ spacetime_openlibs(lua_State *L)
 
   luaL_register(L, "G0.Moments.Spacetime.Minkowski", spacetime_minkowski_ctor);
   luaL_register(L, "G0.Moments.Spacetime.BlackHole", spacetime_blackhole_ctor);
+  luaL_register(L, "G0.Moments.Spacetime.NeutronStar", spacetime_neutronstar_ctor);
 }
 
 /* *************** */
@@ -1477,9 +1874,10 @@ struct moment_species_lw {
   bool evolve; // Is this species evolved?
 
   struct lua_func_ctx init_ctx; // Lua registry reference to initialization function.
-
-  bool has_app_accel; // Is there an applied acceleration function?
-  struct lua_func_ctx app_accel_func_ctx; // Lua registry reference to applied acceleration function.
+  
+  bool has_applied_acceleration_func; // Is there an applied acceleration initialization function?
+  struct lua_func_ctx applied_acceleration_func_ref; // Lua registry reference to applied acceleration initialization function.
+  bool evolve_applied_acceleration; // Is the applied acceleration evolved?
 
   bool has_nT_source; // Is there a temperature source function?
   struct lua_func_ctx nT_source_func_ctx; // Lua registry reference to temperature source function.
@@ -1524,7 +1922,8 @@ moment_species_lw_new(lua_State *L)
   const char *split_str = glua_tbl_get_string(L, "splitType", "qwave");
   mom_species.split_type = gkyl_search_str_int_pair_by_str(wave_split_type, split_str, GKYL_WAVE_QWAVE);
 
-  bool evolve = mom_species.evolve = glua_tbl_get_bool(L, "evolve", true);
+  bool evolve = glua_tbl_get_bool(L, "evolve", true);
+  mom_species.is_static = !evolve; 
   mom_species.force_low_order_flux = glua_tbl_get_bool(L, "forceLowOrderFlux", false);
 
   int init_ref = LUA_NOREF;
@@ -1559,13 +1958,16 @@ moment_species_lw_new(lua_State *L)
     }
   }
 
-  bool has_app_accel = false;
-  int app_accel_ref = LUA_NOREF;
+  bool has_applied_acceleration_func = false;
+  int applied_acceleration_func_ref = LUA_NOREF;
+  bool evolve_applied_acceleration = false;
+
   if (glua_tbl_get_func(L, "appliedAcceleration")) {
-    has_app_accel = true;
-    app_accel_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    applied_acceleration_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_applied_acceleration_func = true;
+
+    evolve_applied_acceleration = glua_tbl_get_bool(L, "evolveAppliedAcceleration", false);
   }
-  mom_species.is_app_accel_static = glua_tbl_get_bool(L, "isAppliedAccelerationStatic", false);
 
   bool has_nT_source = false;
   int nT_source_ref = LUA_NOREF;
@@ -1611,13 +2013,14 @@ moment_species_lw_new(lua_State *L)
     .L = L,
   };
 
-  moms_lw->has_app_accel = has_app_accel;
-  moms_lw->app_accel_func_ctx = (struct lua_func_ctx) {
-    .func_ref = app_accel_ref,
+  moms_lw->has_applied_acceleration_func = has_applied_acceleration_func;
+  moms_lw->applied_acceleration_func_ref = (struct lua_func_ctx) {
+    .func_ref = applied_acceleration_func_ref,
     .ndim = 0, // This will be set later.
-    .nret = GKYL_MOM_APP_NUM_APPLIED_ACCELERATION,
+    .nret = 3,
     .L = L,
   };
+  moms_lw->evolve_applied_acceleration = evolve_applied_acceleration;
 
   moms_lw->has_nT_source = has_nT_source;
   moms_lw->nT_source_func_ctx = (struct lua_func_ctx) {
@@ -1656,11 +2059,15 @@ struct moment_field_lw {
   
   struct lua_func_ctx init_ctx; // Lua registry reference to initialization function.
 
-  bool has_app_current; // Is there an applied current function?
-  struct lua_func_ctx app_current_ctx; // Lua registry reference to applied current function.
+  bool has_external_field_func; // Is there an external field initialization function?
+  struct lua_func_ctx external_field_func_ref; // Lua registry reference to external field initialization function.
+  bool evolve_external_field; // Is the external field evolved?
+  double external_field_ramp_time; // Linear ramp for turning on external field without re-projecting. 
 
-  bool has_ext_em; // Is there an external field function?
-  struct lua_func_ctx ext_em_ctx; // Lua registry reference to external EM function.
+  bool has_applied_current_func; // Is there an applied current initialization function?
+  struct lua_func_ctx applied_current_func_ref; // Lua registry reference to applied current initialization function.
+  bool evolve_applied_current; // Is the applied current evolved?
+  double applied_current_ramp_time; // Linear ramp for turning on applied current without re-projecting. 
 };
 
 static int
@@ -1676,7 +2083,9 @@ moment_field_lw_new(lua_State *L)
 
   mom_field.limiter = glua_tbl_get_integer(L, "limiter", GKYL_MONOTONIZED_CENTERED);
   
-  bool evolve = glua_tbl_get_integer(L, "evolve", true);
+  bool evolve = glua_tbl_get_bool(L, "evolve", true);
+  mom_field.is_static = !evolve; 
+  mom_field.use_explicit_em_coupling = glua_tbl_get_bool(L, "useExplicitEmCoupling", false);
 
   int init_ref = LUA_NOREF;
   if (glua_tbl_get_func(L, "init")) {
@@ -1710,24 +2119,31 @@ moment_field_lw_new(lua_State *L)
     }
   }
 
-  bool has_app_current = false;
-  int app_current_ref = LUA_NOREF;
+  bool has_external_field_func = false;
+  int external_field_func_ref = LUA_NOREF;
+  bool evolve_external_field = false;
+  double external_field_ramp_time = 0.0; 
+
+  if (glua_tbl_get_func(L, "externalFieldInit")) {
+    external_field_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_external_field_func = true;
+
+    evolve_external_field = glua_tbl_get_bool(L, "evolveExternalField", false);
+    external_field_ramp_time = glua_tbl_get_number(L, "externalFieldRampTime", 0.0);
+  }
+
+  bool has_applied_current_func = false;
+  int applied_current_func_ref = LUA_NOREF;
+  bool evolve_applied_current = false;
+  double applied_current_ramp_time = 0.0; 
+
   if (glua_tbl_get_func(L, "appliedCurrent")) {
-    has_app_current = true;
-    app_current_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-  }
-  mom_field.t_ramp_curr = glua_tbl_get_number(L, "currentRampTime", 0.0);
+    applied_current_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_applied_current_func = true;
 
-  bool has_ext_em = false;
-  int ext_em_ref = LUA_NOREF;
-  if (glua_tbl_get_func(L, "externalEm")) {
-    has_ext_em = true;
-    ext_em_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    evolve_applied_current = glua_tbl_get_bool(L, "evolveAppliedCurrent", false);
+    applied_current_ramp_time = glua_tbl_get_number(L, "appliedCurrentRampTime", 0.0);
   }
-  mom_field.t_ramp_E = glua_tbl_get_number(L, "externalEmRampTime", 0.0);
-  mom_field.is_ext_em_static = glua_tbl_get_bool(L, "isExternalEmStatic", false);
-
-  mom_field.use_explicit_em_coupling = glua_tbl_get_bool(L, "useExplicitEmCoupling", false);
 
   struct moment_field_lw *momf_lw = lua_newuserdata(L, sizeof(*momf_lw));
 
@@ -1742,21 +2158,25 @@ moment_field_lw_new(lua_State *L)
     .L = L,
   };  
 
-  momf_lw->has_app_current = has_app_current;
-  momf_lw->app_current_ctx = (struct lua_func_ctx) {
-    .func_ref = app_current_ref,
+  momf_lw->has_external_field_func = has_external_field_func;
+  momf_lw->external_field_func_ref = (struct lua_func_ctx) {
+    .func_ref = external_field_func_ref,
     .ndim = 0, // This will be set later.
-    .nret = GKYL_MOM_APP_NUM_APPLIED_CURRENT,
+    .nret = 6,
     .L = L,
   };
+  momf_lw->evolve_external_field = evolve_external_field;
+  momf_lw->external_field_ramp_time = external_field_ramp_time;
 
-  momf_lw->has_ext_em = has_ext_em;
-  momf_lw->ext_em_ctx = (struct lua_func_ctx) {
-    .func_ref = ext_em_ref,
+  momf_lw->has_applied_current_func = has_applied_current_func;
+  momf_lw->applied_current_func_ref = (struct lua_func_ctx) {
+    .func_ref = applied_current_func_ref,
     .ndim = 0, // This will be set later.
-    .nret = GKYL_MOM_APP_NUM_EXT_EM,
+    .nret = 3,
     .L = L,
-  };  
+  };
+  momf_lw->evolve_applied_current = evolve_applied_current;
+  momf_lw->applied_current_ramp_time = applied_current_ramp_time;
   
   // Set metatable.
   luaL_getmetatable(L, MOMENT_FIELD_METATABLE_NM);
@@ -1785,12 +2205,12 @@ struct moment_app_lw {
   struct lua_func_ctx mapc2p_ctx; // Function context for mapc2p.
 
   struct lua_func_ctx species_init_ctx[GKYL_MAX_SPECIES]; // Function context for species initial conditions.
-  struct lua_func_ctx species_app_accel_func_ctx[GKYL_MAX_SPECIES]; // Function context for applied acceleration.
+  struct lua_func_ctx applied_acceleration_func_ctx[GKYL_MAX_SPECIES]; // Function context for applied acceleration.
   struct lua_func_ctx species_nT_source_func_ctx[GKYL_MAX_SPECIES]; // Function context for temperature sources.
 
   struct lua_func_ctx field_init_ctx; // Function context for field initial conditions.
-  struct lua_func_ctx field_app_current_ctx; // Function context for applied current.
-  struct lua_func_ctx field_ext_em_ctx; // Function context for external EM field.
+  struct lua_func_ctx external_field_func_ctx; // Function context for external field.
+  struct lua_func_ctx applied_current_func_ctx; // Function context for applied current.
   
   double t_start, t_end; // Start and end times of simulation.
   int num_frames; // Number of data frames to write.
@@ -1830,7 +2250,7 @@ get_species_inp(lua_State *L, int cdim, struct moment_species_lw *species[GKYL_M
       if (vms->magic == MOMENT_SPECIES_DEFAULT) {
         
         vms->init_ctx.ndim = cdim;
-        vms->app_accel_func_ctx.ndim = cdim;
+        vms->applied_acceleration_func_ref.ndim = cdim;
         vms->nT_source_func_ctx.ndim = cdim;
         
         if (lua_type(L,TKEY) == LUA_TSTRING) {
@@ -1907,13 +2327,13 @@ mom_app_new(lua_State *L)
 
   with_lua_tbl_tbl(L, "lower") {
     for (int d = 0; d < cdim; d++) {
-      mom.lower[d] = glua_tbl_iget_number(L, d + 1, 0);
+      mom.lower[d] = glua_tbl_iget_number(L, d + 1, 0.0);
     }
   }
 
   with_lua_tbl_tbl(L, "upper") {
     for (int d = 0; d < cdim; d++) {
-      mom.upper[d] = glua_tbl_iget_number(L, d + 1, 0);
+      mom.upper[d] = glua_tbl_iget_number(L, d + 1, 0.0);
     }
   }
 
@@ -1974,16 +2394,30 @@ mom_app_new(lua_State *L)
     mom.species[s].init = gkyl_lw_eval_cb;
     mom.species[s].ctx = &app_lw->species_init_ctx[s];
 
-    if (species[s]->has_app_accel) {
-      app_lw->species_app_accel_func_ctx[s] = species[s]->app_accel_func_ctx;
-      mom.species[s].app_accel_func = gkyl_lw_eval_cb;
-      mom.species[s].app_accel_ctx = &app_lw->species_app_accel_func_ctx[s];
+    app_lw->applied_acceleration_func_ctx[s] = species[s]->applied_acceleration_func_ref;
+    if (species[s]->has_applied_acceleration_func) {
+      mom.species[s].app_accel = gkyl_lw_eval_cb;
+      mom.species[s].app_accel_ctx = &app_lw->applied_acceleration_func_ctx[s];
+      mom.species[s].app_accel_evolve = species[s]->evolve_applied_acceleration;
     }
 
     if (species[s]->has_nT_source) {
       app_lw->species_nT_source_func_ctx[s] = species[s]->nT_source_func_ctx;
       mom.species[s].nT_source_func = gkyl_lw_eval_cb;
       mom.species[s].nT_source_ctx = &app_lw->species_nT_source_func_ctx[s];
+    }
+  }
+
+  mom.has_collision = glua_tbl_get_bool(L, "hasCollision", false);
+  with_lua_tbl_tbl(L, "nuBase") {
+    for (int s = 0; s < mom.num_species; s++) {
+      if (glua_tbl_iget_tbl(L, s + 1)) {
+        for (int s2 = 0; s2 < mom.num_species; s2++) {
+          mom.nu_base[s][s2] = glua_tbl_iget_number(L, s2 + 1, 0.0);
+        }
+
+        lua_pop(L, 1);
+      }
     }
   }
 
@@ -2001,20 +2435,26 @@ mom_app_new(lua_State *L)
         mom.field.init = gkyl_lw_eval_cb;
         mom.field.ctx = &app_lw->field_init_ctx;
 
-        if (momf->has_app_current) {
-          momf->app_current_ctx.ndim = cdim;
+        if (momf->has_external_field_func) {
+          momf->external_field_func_ref.ndim = cdim;
 
-          app_lw->field_app_current_ctx = momf->app_current_ctx;
-          mom.field.app_current_func = gkyl_lw_eval_cb;
-          mom.field.app_current_ctx = &app_lw->field_app_current_ctx;
+          app_lw->external_field_func_ctx = momf->external_field_func_ref;
+          mom.field.ext_em = gkyl_lw_eval_cb;
+          mom.field.ext_em_ctx = &app_lw->external_field_func_ctx;
+
+          mom.field.ext_em_evolve = momf->evolve_external_field;
+          mom.field.t_ramp_E = momf->external_field_ramp_time;
         }
 
-        if (momf->has_ext_em) {
-          momf->ext_em_ctx.ndim = cdim;
+        if (momf->has_applied_current_func) {
+          momf->applied_current_func_ref.ndim = cdim;
 
-          app_lw->field_ext_em_ctx = momf->ext_em_ctx;
-          mom.field.ext_em_func = gkyl_lw_eval_cb;
-          mom.field.ext_em_ctx = &app_lw->field_app_current_ctx;
+          app_lw->applied_current_func_ctx = momf->applied_current_func_ref;
+          mom.field.app_current = gkyl_lw_eval_cb;
+          mom.field.app_current_ctx = &app_lw->applied_current_func_ctx;
+
+          mom.field.app_current_evolve = momf->evolve_applied_current;
+          mom.field.t_ramp_curr = momf->applied_current_ramp_time;
         }
       }
     }
@@ -2032,7 +2472,9 @@ mom_app_new(lua_State *L)
   with_lua_global(L, "GKYL_MPI_COMM") {
     if (lua_islightuserdata(L, -1)) {
       has_mpi = true;
-      MPI_Comm mpi_comm = lua_touserdata(L, -1);
+      struct { MPI_Comm comm;} *lw_mpi_comm_world
+        = lua_touserdata(L, -1);
+      MPI_Comm mpi_comm = lw_mpi_comm_world->comm;
       comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
           .mpi_comm = mpi_comm,
           .sync_corners = true
@@ -2460,7 +2902,7 @@ mom_app_stat_write(lua_State *L)
 static void
 write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr, bool force_write)
 {
-  if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
     int frame = iot->curr - 1;
     if (force_write) {
       frame = iot->curr;
@@ -2474,18 +2916,18 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr, boo
 
 // Calculate and append field energy to dynvector.
 static void
-calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_moment_app* app, double t_curr)
+calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_moment_app* app, double t_curr, double force_calc)
 {
-  if (gkyl_tm_trigger_check_and_bump(fet, t_curr)) {
+  if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
     gkyl_moment_app_calc_field_energy(app, t_curr);
   }
 }
 
 // Calculate and append integrated moments to dynvector.
 static void
-calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_moment_app* app, double t_curr)
+calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_moment_app* app, double t_curr, bool force_calc)
 {
-  if (gkyl_tm_trigger_check_and_bump(imt, t_curr)) {
+  if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
     gkyl_moment_app_calc_integrated_mom(app, t_curr);
   }
 }
@@ -2703,22 +3145,22 @@ mom_app_run(lua_State *L)
   int field_energy_calcs = app_lw->field_energy_calcs;
   int integrated_mom_calcs = app_lw->integrated_mom_calcs;
   // Triggers for IO and logging.
-  struct gkyl_tm_trigger io_trig = { .dt = (t_end - t_curr) / num_frames, .tcurr = t_curr, .curr = frame_curr };
-  struct gkyl_tm_trigger fe_trig = { .dt = (t_end - t_curr) / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr };
-  struct gkyl_tm_trigger im_trig = { .dt = (t_end - t_curr) / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger fe_trig = { .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr };
 
   struct step_message_trigs m_trig = {
     .log_count = 0,
-    .tenth = t_curr > 0.0 ? 0.0 : (int) floor(t_curr / t_end * 10.0),
-    .p1c = t_curr > 0.0 ? 0.0 : (int) floor(t_curr / t_end * 100.0) % 10,
-    .log_trig = { .dt = (t_end - t_curr) / 10.0 },
-    .log_trig_1p = { .dt = (t_end - t_curr) / 100.0 },
+    .tenth = t_curr > 0.0 ?  (int) floor(t_curr / t_end * 10.0) : 0.0,
+    .p1c = t_curr > 0.0 ?  (int) floor(t_curr / t_end * 100.0) % 10 : 0.0,
+    .log_trig = { .dt = t_end / 10.0, .tcurr = t_curr },
+    .log_trig_1p = { .dt = t_end / 100.0, .tcurr = t_curr },
   };
 
   struct timespec tm_ic0 = gkyl_wall_clock();
   // Initialize simulation.
-  calc_field_energy(&fe_trig, app, t_curr);
-  calc_integrated_mom(&im_trig, app, t_curr);
+  calc_field_energy(&fe_trig, app, t_curr, false);
+  calc_integrated_mom(&im_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
   
   gkyl_moment_app_cout(app, stdout, "Initialization completed in %g sec\n\n", gkyl_time_diff_now_sec(tm_ic0));
@@ -2750,8 +3192,8 @@ mom_app_run(lua_State *L)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
-    calc_field_energy(&fe_trig, app, t_curr);
-    calc_integrated_mom(&im_trig, app, t_curr);
+    calc_field_energy(&fe_trig, app, t_curr, false);
+    calc_integrated_mom(&im_trig, app, t_curr, false);
     write_data(&io_trig, app, t_curr, false);
 
     if (dt_init < 0.0) {
@@ -2766,6 +3208,11 @@ mom_app_run(lua_State *L)
       if (num_failures >= num_failures_max) {
         gkyl_moment_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_moment_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+
+        calc_field_energy(&fe_trig, app, t_curr, true);
+        calc_integrated_mom(&im_trig, app, t_curr, true);
+        write_data(&io_trig, app, t_curr, true);
+
         break;
       }
     }
@@ -2780,8 +3227,8 @@ mom_app_run(lua_State *L)
     step += 1;
   }
 
-  calc_field_energy(&fe_trig, app, t_curr);
-  calc_integrated_mom(&im_trig, app, t_curr);
+  calc_field_energy(&fe_trig, app, t_curr, false);
+  calc_integrated_mom(&im_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
   gkyl_moment_app_stat_write(app);
 

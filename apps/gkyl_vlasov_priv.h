@@ -25,12 +25,14 @@
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_canonical_pb_vars.h>
+#include <gkyl_dg_calc_canonical_pb_fluid_vars.h>
 #include <gkyl_dg_calc_em_vars.h>
 #include <gkyl_dg_calc_prim_vars.h>
 #include <gkyl_dg_calc_fluid_vars.h>
 #include <gkyl_dg_calc_fluid_em_coupling.h>
 #include <gkyl_dg_calc_sr_vars.h>
 #include <gkyl_dg_canonical_pb.h>
+#include <gkyl_dg_canonical_pb_fluid.h>
 #include <gkyl_dg_euler.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_updater_fluid.h>
@@ -87,35 +89,6 @@ struct vlasov_output_meta {
   char basis_type_nm[64]; // used during read
 };
 
-// list of valid moment names
-static const char *const valid_moment_names[] = {
-  "M0",
-  "M1i",
-  "M2",
-  "M3i",
-  "FiveMoments", // non-relativistic (M0, M1i, M2)
-  "M2ij", // non-relativistic stress tensor
-  "M3ijk", // non-relativistic heat flux tensor
-  "Ni", // relativistic four-flux (M0, M1i)
-  "Tij", // relativistic stress-energy tensor
-  "LTEMoments", // this is an internal flag for computing moments (n, V_drift, T/m)
-                // of the LTE (local thermodynamic equilibrium) distribution
-                // Note: in relativity V_drift is the bulk four-velocity (GammaV, GammaV*V_drift)
-  "Integrated", // this is an internal flag, not for passing to moment type
-  "MEnergy", // this is for the canonical-pb species only**
-};
-
-// check if name of moment is valid or not
-static bool
-is_moment_name_valid(const char *nm)
-{
-  int n = sizeof(valid_moment_names)/sizeof(valid_moment_names[0]);
-  for (int i=0; i<n; ++i)
-    if (strcmp(valid_moment_names[i], nm) == 0)
-      return 1;
-  return 0;
-}
-
 // struct for holding moment correction inputs
 struct correct_all_moms_inp {
   bool correct_all_moms; // boolean if we are correcting all the moments or only density
@@ -143,6 +116,7 @@ struct vm_species_moment {
   };
 
   bool is_vlasov_lte_moms;
+  bool is_integrated; // =True means volume integrated moment.
 };
 
 // forward declare species struct
@@ -384,6 +358,8 @@ struct vm_species {
     struct {
       struct gkyl_array *hamil; // Specified hamiltonian function for canonical poisson bracket
       struct gkyl_array *hamil_host; // Host side hamiltonian array for intial projection
+      struct gkyl_array *h_ij; // Specified metric inverse for canonical poisson bracket
+      struct gkyl_array *h_ij_host; // Host side metric inverse array for intial projection
       struct gkyl_array *h_ij_inv; // Specified metric inverse for canonical poisson bracket
       struct gkyl_array *h_ij_inv_host; // Host side metric inverse array for intial projection
       struct gkyl_array *det_h; // Specified metric determinant
@@ -432,13 +408,13 @@ struct vm_species {
   struct gkyl_array *app_accel_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *app_accel_proj; // projector for acceleration
 
-  bool calc_bflux; // are we computing boundary fluxes?
-  struct vm_boundary_fluxes bflux; // boundary flux object
-
   int num_init; // Number of initial condition functions.
   struct vm_proj proj_init[GKYL_MAX_PROJ]; // projectors for initial conditions
   struct gkyl_array *f_tmp; // temporary array for accumulating initial conditions
   
+  bool calc_bflux; // are we computing boundary fluxes?
+  struct vm_boundary_fluxes bflux; // boundary flux object
+
   enum gkyl_source_id source_id; // type of source
   struct vm_source src; // applied source
 
@@ -502,6 +478,10 @@ struct vm_field {
 
       struct gkyl_array *em_energy; // EM energy components in each cell
       double *em_energy_red; // memory for use in GPU reduction of EM energy
+
+      bool use_ghost_current; // Are we using ghost currents to correct dE/dt = -J in 1x
+      struct gkyl_array *ghost_current; // Array for storying global average of current density
+      double *red_ghost_current; // memory for use in GPU reduction of average of current density
 
       // boundary conditions on lower/upper edges in each direction  
       enum gkyl_field_bc_type lower_bc[3], upper_bc[3];
@@ -570,6 +550,7 @@ struct vm_fluid_species {
   enum gkyl_eqn_type eqn_type;  // type ID of equation
   int num_equations;            // number of equations in species
   struct gkyl_wv_eqn *equation; // equation object
+  bool has_poisson;
   // organization of the different equation objects and the required data and solvers
   union {
     // Applied advection
@@ -581,8 +562,11 @@ struct vm_fluid_species {
     struct {
       // For isothermal Euler, u : (ux, uy, uz), p : (vth*rho)
       // For Euler, u : (ux, uy, uz, T/m), p : (gamma - 1)*(E - 1/2 rho u^2)
+      // Also a prim_vars and prim_vars_host array for I/O of (u,p)
       struct gkyl_array *u; 
       struct gkyl_array *p; 
+      struct gkyl_array *prim_vars; 
+      struct gkyl_array *prim_vars_host; 
       struct gkyl_array *cell_avg_prim; // Integer array for whether e.g., rho *only* uses cell averages for weak division
                                         // Determined when constructing the matrix if rho < 0.0 at control points
 
@@ -597,6 +581,29 @@ struct vm_fluid_species {
       struct gkyl_dg_calc_fluid_vars *calc_fluid_vars; // Updater to compute fluid variables (flow velocity and pressure)
       struct gkyl_dg_calc_fluid_vars *calc_fluid_vars_ext; // Updater to compute fluid variables (flow velocity and pressure)
                                                            // over extended range (used when BCs are not absorbing to minimize apply BCs calls) 
+    };
+    // Canonical PB Fluid such as incompressible Euler or Hasegawa-Wakatani
+    struct {
+      struct gkyl_array *phi; // potential determined by canonical PB Poisson equation on local range used by updater
+      struct gkyl_array *phi_global; // potential determined by canonical PB Poisson equation on global range given by Poisson solver
+      struct gkyl_array *poisson_rhs_global; // global RHS of Poisson equation, simply an all-gather of, e.g., the vorticity
+      struct gkyl_array *phi_host; // host copy for use IO
+      struct gkyl_array *can_pb_n0; // background density gradient for driving turbulence in some fluid systems. 
+      struct gkyl_array *epsilon; // Permittivity in Poisson equation, set to -1.0 for canonical PB Poisson equations. 
+      struct gkyl_array *kSq; // k^2 factor in Helmholtz equation needed for Hasegawa-Mima where we solve (grad^2 - 1) phi = RHS
+
+      struct gkyl_range global_sub_range; // sub range of intersection of global range and local range
+                                          // for solving Poisson equation on each MPI process in parallel
+    
+      struct gkyl_fem_poisson *fem_poisson; // Poisson solver for - nabla . (epsilon * nabla phi) - kSq * phi = rho.
+
+      struct gkyl_array *alpha_surf; // Surface configuration space velocity (derivatives of potential, phi)
+      struct gkyl_array *sgn_alpha_surf; // sign(alpha_surf) at quadrature points
+      struct gkyl_array *const_sgn_alpha; // boolean for if sign(alpha_surf) is a constant, either +1 or -1
+      struct gkyl_dg_calc_canonical_pb_fluid_vars *calc_can_pb_fluid_vars; // Updater for computing surface alpha and sources. 
+      struct gkyl_array *can_pb_energy_fac; // Factor in calculation of canonical PB energy diagnostic.
+      struct gkyl_array_integrate *calc_can_pb_energy;
+      double *red_can_pb_energy, *red_can_pb_energy_global; // Memory for use in GPU reduction of canonical PB energy.
     };
   };
 
@@ -632,6 +639,13 @@ struct vm_fluid_species {
   struct vm_fluid_source src; // applied source
 
   double* omegaCfl_ptr;
+
+  // Function pointers for computing primitive/auxiliary variables, 
+  // and also write method, release method, and method for calculating integrated quantities. 
+  void (*prim_vars_func)(gkyl_vlasov_app *app, struct vm_fluid_species *f, const struct gkyl_array *fluid); 
+  void (*calc_integrated_mom_func)(gkyl_vlasov_app* app, struct vm_fluid_species *f, double tm); 
+  void (*write_func)(gkyl_vlasov_app *app, struct vm_fluid_species *f, double tm, int frame); 
+  void (*release_func)(const gkyl_vlasov_app *app, struct vm_fluid_species *f);   
 };
 
 // fluid-EM coupling data
@@ -734,6 +748,33 @@ struct gkyl_update_status vlasov_poisson_update_ssp_rk3(gkyl_vlasov_app *app,
 /** gkyl_vlasov_app private API */
 
 /**
+ * Create a new array metadata object. It must be freed using
+ * vlasov_array_meta_release.
+ *
+ * @param meta Vlasov metadata object.
+ * @return Array metadata object.
+ */
+struct gkyl_msgpack_data*
+vlasov_array_meta_new(struct vlasov_output_meta meta);
+
+/**
+ * Free memory for array metadata object.
+ *
+ * @param mt Array metadata object.
+ */
+void
+vlasov_array_meta_release(struct gkyl_msgpack_data *mt);
+
+/**
+ * Return the metadata for outputing vlasov data.
+ *
+ * @param mt Array metadata object.
+ * @return A vlasov metadata object.
+ */
+struct vlasov_output_meta
+vlasov_meta_from_mpack(struct gkyl_msgpack_data *mt);
+
+/**
  * Apply BCs to kinetic species, fluid species and EM fields.
  *
  * @param app Top-level Vlasov app.
@@ -790,10 +831,11 @@ int vm_find_fluid_species_idx(const gkyl_vlasov_app *app, const char *nm);
  * @param app Vlasov app object
  * @param s Species object 
  * @param sm Species moment object
- * @param nm Name string indicating moment type
+ * @param mom_type Type of moment to compute.
+ * @param is_integrated Whether to compute volume-integrated moment.
  */
 void vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
-  struct vm_species_moment *sm, const char *nm);
+  struct vm_species_moment *sm, enum gkyl_distribution_moments mom_type, bool is_integrated);
 
 /**
  * Calculate moment, given distribution function @a fin.
@@ -1604,6 +1646,25 @@ double vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid
  * @param f Fluid Species to apply BCs
  */
 void vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species, struct gkyl_array *f);
+
+/**
+ * Computed the integrated quantities for the fluid system.
+ *
+ * @param app Vlasov app object
+ * @param fluid_species Pointer to fluid species
+ * @param tm Time integrated quantities are being computed at. 
+ */
+void vm_fluid_species_calc_integrated_mom(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double tm);
+
+/**
+ * Write out the evolved fluid species and other potential primitive/auxiliary variables.
+ *
+ * @param app Vlasov app object
+ * @param fluid_species Pointer to fluid species
+ * @param tm Time fluid quantities are being written at.
+ * @param frame Frame number for I/O.  
+ */
+void vm_fluid_species_write(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double tm, int frame);
 
 /**
  * Release resources allocated by fluid species

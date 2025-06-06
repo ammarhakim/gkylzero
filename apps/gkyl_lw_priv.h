@@ -33,6 +33,14 @@ struct lua_func_ctx {
 };
 
 /**
+ * Add distribution moment flags for species into Lua interpreter.
+ *
+ * @param L Lua state to use.
+ */
+void
+gkyl_register_distribution_moment_types(lua_State *L);
+
+/**
  * Add boundary condition flags for species into Lua interpreter.
  *
  * @param L Lua state to use.
@@ -79,6 +87,22 @@ gkyl_register_wave_limiter_types(lua_State *L);
  */
 void
 gkyl_register_euler_rp_types(lua_State *L);
+
+/**
+* Add Riemann problem type flags for MHD equations into Lua interpreter.
+*
+* @param L Lua state to use.
+ */
+void
+gkyl_register_mhd_rp_types(lua_State *L);
+
+/**
+* Add divergence correction type flags for MHD equations into Lua interpreter.
+*
+* @param L Lua state to use.
+ */
+void
+gkyl_register_mhd_divb_types(lua_State *L);
 
 /**
 * Add Braginskii type flags for moment equations into Lua interpreter.
@@ -137,6 +161,14 @@ void
 gkyl_register_gyrokinetic_geometry_types(lua_State *L);
 
 /**
+ * Add position map type flags for gyrokinetic app initialization into Lua interpreter.
+ *
+ * @param L Lua state to use.
+ */
+void
+gkyl_register_gyrokinetic_position_map_types(lua_State *L);
+
+/**
  * Add field type flags for gyrokinetic field initialization into Lua interpreter.
  *
  * @param L Lua state to use.
@@ -159,6 +191,30 @@ gkyl_register_gyrokinetic_radiation_types(lua_State *L);
  */
 void
 gkyl_register_gyrokinetic_radiation_Te_types(lua_State *L);
+
+/**
+ * Add reaction type flags for gyrokinetic species initialization into Lua interpreter.
+ *
+ * @param L Lua state to use.
+ */
+void
+gkyl_register_gyrokinetic_reaction_types(lua_State *L);
+
+/**
+ * Add ion type flags for gyrokinetic species initialization into Lua interpreter.
+ *
+ * @param L Lua state to use.
+ */
+void
+gkyl_register_gyrokinetic_ion_types(lua_State *L);
+
+/**
+ * Add self-reaction type flags for gyrokinetic species initialization into Lua interpreter.
+ *
+ * @param L Lua state to use.
+ */
+void
+gkyl_register_gyrokinetic_self_reaction_types(lua_State *L);
 
 /**
  * Wrapper around Lua function for use in eval callbacks.

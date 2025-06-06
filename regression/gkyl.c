@@ -59,6 +59,7 @@ static struct tool_description tool_list[] = {
   {"multimomlinear", "multimomlinear.lua",
    "Linear dispersion solver for multi-moment, multifluid equations"},  
   {"eqdskreader", "eqdskreader.lua", "Read eqdsk file, writing data to files"},
+  {"mirrorgridgen", "mirrorgridgen.lua", "Generate grid for use in mirror simulations"},
   {0, 0}
 };
 
@@ -301,10 +302,15 @@ show_banner(FILE *fp)
     fprintf(fp, "%s\n", s);
     fprintf(fp, "Gkyl built with Git changset %s\n", STRINGIFY(GKYL_GIT_CHANGESET));
     fprintf(fp, "Gkyl build on %s\n", STRINGIFY(GKYL_BUILD_DATE));
-#ifdef GKYL_HAVE_NCCL
+#ifdef GKYL_HAVE_CUDA
     fprintf(fp, "Built with CUDA\n");
 #else
     fprintf(fp, "Built without CUDA\n");
+#endif
+#ifdef GKYL_HAVE_NCCL
+    fprintf(fp, "Built with NCCL\n");
+#else
+    fprintf(fp, "Built without NCCL\n");
 #endif
 #ifdef GKYL_HAVE_MPI
     fprintf(fp, "Built with MPI\n\n");
@@ -342,12 +348,18 @@ main(int argc, char **argv)
   gkyl_gyrokinetic_lw_openlibs(L);
   lua_gc(L, LUA_GCRESTART, -1);
 
+#ifdef GKYL_HAVE_MPI
+  struct {
+    MPI_Comm comm;
+  } lw_mpi_comm_world = { .comm = MPI_COMM_WORLD };
+#endif
+  
   if (app_args->use_mpi) {
     lua_pushboolean(L, true);
     lua_setglobal(L, "GKYL_HAVE_MPI");
- 
-#ifdef GKYL_HAVE_MPI 
-    lua_pushlightuserdata(L, MPI_COMM_WORLD);
+
+#ifdef GKYL_HAVE_MPI
+    lua_pushlightuserdata(L, &lw_mpi_comm_world);
 #else
     lua_pushlightuserdata(L, false);
 #endif

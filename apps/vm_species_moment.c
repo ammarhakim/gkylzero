@@ -2,17 +2,15 @@
 #include <gkyl_mom_canonical_pb.h>
 #include <gkyl_vlasov_priv.h>
 
-// initialize species moment object
+// Initialize species moment object.
 void
 vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
-  struct vm_species_moment *sm, const char *nm)
+  struct vm_species_moment *sm, enum gkyl_distribution_moments mom_type, bool is_integrated)
 {
-  assert(is_moment_name_valid(nm));
+  sm->is_integrated = is_integrated;
 
-  bool is_integrated = strcmp(nm, "Integrated") == 0;
   int num_mom;
-
-  sm->is_vlasov_lte_moms = strcmp("LTEMoments", nm) == 0;
+  sm->is_vlasov_lte_moms = mom_type == GKYL_F_MOMENT_LTE;
   if (sm->is_vlasov_lte_moms) {
     struct gkyl_vlasov_lte_moments_inp inp_mom = {
       .phase_grid = &s->grid,
@@ -26,6 +24,7 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
       .phase_range = &s->local,
       .gamma = s->gamma,
       .gamma_inv = s->gamma_inv,
+      .h_ij = s->h_ij,
       .h_ij_inv = s->h_ij_inv,
       .det_h = s->det_h,
       .hamil = s->hamil,
@@ -41,20 +40,22 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
       struct gkyl_mom_vlasov_sr_auxfields sr_inp = {.gamma = s->gamma};
       sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->confBasis, 
         &app->basis, &app->local, &s->local_vel, &s->local, s->model_id, &sr_inp, 
-        nm, is_integrated, app->use_gpu);
+        mom_type, is_integrated, app->use_gpu);
       num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc);
-    } else if (s->model_id == GKYL_MODEL_CANONICAL_PB && (strcmp(nm, "MEnergy") == 0 || strcmp(nm, "Integrated") == 0)) {
+    } else if ((s->model_id == GKYL_MODEL_CANONICAL_PB || s->model_id == GKYL_MODEL_CANONICAL_PB_GR)
+      && (mom_type == GKYL_F_MOMENT_M1_FROM_H || mom_type == GKYL_F_MOMENT_ENERGY
+      || (sm->is_integrated && mom_type == GKYL_F_MOMENT_M0M1M2))) {
       struct gkyl_mom_canonical_pb_auxfields can_pb_inp = {.hamil = s->hamil};
       sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->confBasis, 
         &app->basis, &app->local, &s->local_vel, &s->local, s->model_id, &can_pb_inp, 
-        nm, is_integrated, app->use_gpu);
+        mom_type, is_integrated, app->use_gpu);
       num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc);
     }  
     else {
       // No auxiliary fields for moments if not SR 
       sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->confBasis, 
         &app->basis, &app->local, &s->local_vel, &s->local, s->model_id, 0, 
-        nm, is_integrated, app->use_gpu);   
+        mom_type, is_integrated, app->use_gpu);   
       num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc); 
     }
   }

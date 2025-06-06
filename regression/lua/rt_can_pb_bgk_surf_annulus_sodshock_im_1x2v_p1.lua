@@ -89,6 +89,15 @@ vlasovApp = Vlasov.App.new {
 
       return inv_metric_r_r, inv_metric_r_theta, inv_metric_theta_theta
     end,
+    metric = function (t, xn)
+      local q_r = xn[1]
+
+      local metric_r_r = 1.0 -- Metric tensor (radial-radial component).
+      local metric_r_theta = 0.0 -- Metric tensor (radial-angular component).
+      local metric_theta_theta = q_r * q_r -- Metric tensor (angular-angular component).
+
+      return metric_r_r, metric_r_theta, metric_theta_theta
+    end,
     metricDeterminant = function (t, xn)
       local q_r = xn[1]
 
@@ -182,7 +191,7 @@ vlasovApp = Vlasov.App.new {
     },
 
     evolve = true, -- Evolve species?
-    diagnostics = { "M0", "M1i", "LTEMoments", "MEnergy" }
+    diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.LTEMoments, G0.Moment.EnergyMoment }
   },
 
   skipField = true,

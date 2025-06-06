@@ -19,13 +19,13 @@ gkyl_mom_free(const struct gkyl_ref_count *ref)
 
 struct gkyl_mom_type*
 gkyl_mom_vlasov_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const char *mom, bool use_gpu)
+  const struct gkyl_basis* pbasis, enum gkyl_distribution_moments mom_type, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
 #ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
-    return gkyl_mom_vlasov_cu_dev_new(cbasis, pbasis, mom);
+  if (use_gpu) {
+    return gkyl_mom_vlasov_cu_dev_new(cbasis, pbasis, mom_type);
   } 
 #endif
   struct mom_type_vlasov *mom_vm = gkyl_malloc(sizeof(struct mom_type_vlasov));
@@ -69,42 +69,42 @@ gkyl_mom_vlasov_new(const struct gkyl_basis* cbasis,
       break;    
   }
 
-  if (strcmp(mom, "M0") == 0) { // density
+  if (mom_type == GKYL_F_MOMENT_M0) { // density
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     mom_vm->kernel = m0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_vm->momt.num_mom = 1;
   }
-  else if (strcmp(mom, "M1i") == 0) { // momentum
+  else if (mom_type == GKYL_F_MOMENT_M1) { // momentum
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m1i_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     mom_vm->kernel = m1i_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_vm->momt.num_mom = vdim;
   }
-  else if (strcmp(mom, "M2") == 0) { // energy
+  else if (mom_type == GKYL_F_MOMENT_M2) { // energy
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     mom_vm->kernel = m2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_vm->momt.num_mom = 1;
   }
-  else if (strcmp(mom, "M2ij") == 0) { // pressure tensor in lab-frame
+  else if (mom_type == GKYL_F_MOMENT_M2IJ) { // pressure tensor in lab-frame
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m2ij_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     mom_vm->kernel = m2ij_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_vm->momt.num_mom = vdim*(vdim+1)/2;
   }
-  else if (strcmp(mom, "M3i") == 0) { // heat-flux vector in lab-frame
+  else if (mom_type == GKYL_F_MOMENT_M3) { // heat-flux vector in lab-frame
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m3i_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
     mom_vm->kernel = m3i_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_vm->momt.num_mom = vdim;
   }
-  else if (strcmp(mom, "M3ijk") == 0) { // heat-flux tensor in lab-frame
+  else if (mom_type == GKYL_F_MOMENT_M3IJK) { // heat-flux tensor in lab-frame
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m3ijk_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
@@ -113,7 +113,7 @@ gkyl_mom_vlasov_new(const struct gkyl_basis* cbasis,
     int m3ijk_count[] = { 1, 4, 10 };
     mom_vm->momt.num_mom = m3ijk_count[vdim-1];
   }
-  else if (strcmp(mom, "FiveMoments") == 0) { // Zeroth, First, and Second moment computed together
+  else if (mom_type == GKYL_F_MOMENT_M0M1M2) { // Zeroth, First, and Second moment computed together
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != five_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
     
@@ -135,13 +135,14 @@ gkyl_mom_vlasov_new(const struct gkyl_basis* cbasis,
 }
 
 struct gkyl_mom_type *
-gkyl_int_mom_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, bool use_gpu)
+gkyl_int_mom_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
+  enum gkyl_distribution_moments mom_type, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
 #ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
-    return gkyl_int_mom_vlasov_cu_dev_new(cbasis, pbasis);
+  if (use_gpu) {
+    return gkyl_int_mom_vlasov_cu_dev_new(cbasis, pbasis, mom_type);
   } 
 #endif
   struct mom_type_vlasov *mom_vm = gkyl_malloc(sizeof(struct mom_type_vlasov));
@@ -154,31 +155,36 @@ gkyl_int_mom_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
   mom_vm->momt.num_config = cbasis->num_basis;
   mom_vm->momt.num_phase = pbasis->num_basis;
   mom_vm->momt.kernel = kernel;
-  mom_vm->momt.num_mom = 2+vdim;
   
-  // set kernel pointer
+  // Choose kernel tables based on basis-function type.
+  const gkyl_mom_kern_list *int_five_moments_kernels;
+
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      assert(cv_index[cdim].vdim[vdim] != -1);
-      assert(NULL != ser_int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-      
-      mom_vm->kernel = ser_int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-
+      int_five_moments_kernels = ser_int_five_moments_kernels;
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
-      assert(cv_index[cdim].vdim[vdim] != -1);
-      assert(NULL != tensor_int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-      
-      mom_vm->kernel = tensor_int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-
+      int_five_moments_kernels = tensor_int_five_moments_kernels;
       break;
-
 
     default:
       assert(false);
       break;    
   }  
+
+  assert(cv_index[cdim].vdim[vdim] != -1);   
+
+  if (mom_type == GKYL_F_MOMENT_M0M1M2) { // Zeroth, First, and Second moment computed together
+    assert(NULL != int_five_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+    
+    mom_vm->kernel = int_five_moments_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    mom_vm->momt.num_mom = 2+vdim;
+  }
+  else {
+    fprintf(stderr,"Moment option %d not available.\n",mom_type);
+    assert(false);
+  }
 
   mom_vm->momt.flags = 0;
   GKYL_CLEAR_CU_ALLOC(mom_vm->momt.flags);
@@ -188,23 +194,3 @@ gkyl_int_mom_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
     
   return &mom_vm->momt;  
 }
-
-#ifndef GKYL_HAVE_CUDA
-
-struct gkyl_mom_type*
-gkyl_mom_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, const char *mom)
-{
-  assert(false);
-  return 0;
-}
-
-struct gkyl_mom_type *
-gkyl_int_mom_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis)
-{
-  assert(false);
-  return 0;  
-}
-
-#endif

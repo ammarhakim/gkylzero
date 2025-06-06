@@ -56,6 +56,12 @@ momentApp = Moments.App.new {
   upper = { Lx },
   cells = { Nx },
   cflFrac = cfl_frac,
+
+  hasCollision = has_collision,
+  nuBase = {
+    { 0.0, nu_base_ei },
+    { nu_base_ei, 0.0 }
+  },
   
   -- Boundary conditions for configuration space.
   periodicDirs = { }, -- Periodic directions (none).

@@ -129,7 +129,7 @@ test_3x2v_p1(bool use_gpu)
 
   struct gkyl_dg_updater_gyrokinetic* up;
   up = gkyl_dg_updater_gyrokinetic_new(&phaseGrid, &confBasis, &basis, &confRange, &phaseRange, 
-    is_zero_flux, 1.0, 1.0, 0, gk_geom, gvm, &aux, use_gpu);
+    is_zero_flux, 1.0, 1.0, -1, 0, gk_geom, gvm, &aux, use_gpu);
 
   // initialize arrays
   struct gkyl_array *fin, *rhs, *cflrate;
@@ -149,7 +149,7 @@ test_3x2v_p1(bool use_gpu)
   }
   double gk_tm = gkyl_time_diff_now_sec(tm);
 
-  printf("\ngyrokinetic update on (%d, %d, %d, %d, %d) took %g sec\n", cells[0], cells[1], cells[2], cells[3], cells[4], gk_tm); 
+  // printf("\ngyrokinetic update on (%d, %d, %d, %d, %d) took %g sec\n", cells[0], cells[1], cells[2], cells[3], cells[4], gk_tm); 
 
   // clean up
   gkyl_gk_geometry_release(gk_geom);  

@@ -160,17 +160,17 @@ init_quad_values(int cdim, const struct gkyl_basis *basis,
 
 static void
 gkyl_vlasov_lte_proj_on_basis_geom_quad_vars(gkyl_vlasov_lte_proj_on_basis *up, 
-  const struct gkyl_range *conf_range, 
+  const struct gkyl_range *conf_range, const struct gkyl_array *h_ij,
   const struct gkyl_array *h_ij_inv, const struct gkyl_array *det_h)
 {
 // Setup the intial geometric vars, on GPU 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    return gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu(up, conf_range, 
+    return gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu(up, conf_range, h_ij,
       h_ij_inv, det_h);
 #endif
 
-  // Otherwise run the CPU Version to setup h_ij_inv, det_h
+  // Otherwise run the CPU Version to setup h_ij, h_ij_inv, det_h
   int cdim = up->cdim, pdim = up->pdim;
   int vdim = pdim-cdim;
 
@@ -185,8 +185,10 @@ gkyl_vlasov_lte_proj_on_basis_geom_quad_vars(gkyl_vlasov_lte_proj_on_basis *up,
   while (gkyl_range_iter_next(&conf_iter)) {
     long midx = gkyl_range_idx(conf_range, conf_iter.idx);
 
+    const double *h_ij_d = gkyl_array_cfetch(h_ij, midx);
     const double *h_ij_inv_d = gkyl_array_cfetch(h_ij_inv, midx);
     const double *det_h_d = gkyl_array_cfetch(det_h, midx);
+    double *h_ij_quad = gkyl_array_fetch(up->h_ij_quad, midx);
     double *h_ij_inv_quad = gkyl_array_fetch(up->h_ij_inv_quad, midx);
     double *det_h_quad = gkyl_array_fetch(up->det_h_quad, midx);
 
@@ -197,6 +199,7 @@ gkyl_vlasov_lte_proj_on_basis_geom_quad_vars(gkyl_vlasov_lte_proj_on_basis *up,
       for (int k=0; k<num_conf_basis; ++k) {
         det_h_quad[n] += det_h_d[k]*b_ord[k];
         for (int j=0; j<vdim*(vdim+1)/2; ++j) {
+          h_ij_quad[tot_conf_quad*j + n] += h_ij_d[num_conf_basis*j+k]*b_ord[k];
           h_ij_inv_quad[tot_conf_quad*j + n] += h_ij_inv_d[num_conf_basis*j+k]*b_ord[k];
         }
       }
@@ -329,25 +332,30 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
   }
 
   up->is_canonical_pb = false;
-  if (inp->model_id == GKYL_MODEL_CANONICAL_PB) {
+  if (inp->model_id == GKYL_MODEL_CANONICAL_PB || inp->model_id == GKYL_MODEL_CANONICAL_PB_GR) {
     up->is_canonical_pb = true;
     // Allocate and obtain geometric variables at quadrature points for canonical-pb
     // since these quantities are time-independent.
     if (up->use_gpu) { 
+      up->h_ij_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, 
+        up->tot_conf_quad*(vdim*(vdim+1)/2), inp->conf_range_ext->volume);
       up->h_ij_inv_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, 
         up->tot_conf_quad*(vdim*(vdim+1)/2), inp->conf_range_ext->volume);
       up->det_h_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, 
         up->tot_conf_quad, inp->conf_range_ext->volume);
     }
     else {
+      up->h_ij_quad = gkyl_array_new(GKYL_DOUBLE, 
+        up->tot_conf_quad*(vdim*(vdim+1)/2), inp->conf_range_ext->volume);
       up->h_ij_inv_quad = gkyl_array_new(GKYL_DOUBLE, 
         up->tot_conf_quad*(vdim*(vdim+1)/2), inp->conf_range_ext->volume);
       up->det_h_quad = gkyl_array_new(GKYL_DOUBLE, 
         up->tot_conf_quad, inp->conf_range_ext->volume);
     }
+    gkyl_array_clear(up->h_ij_quad, 0.0); 
     gkyl_array_clear(up->h_ij_inv_quad, 0.0); 
     gkyl_array_clear(up->det_h_quad, 0.0); 
-    gkyl_vlasov_lte_proj_on_basis_geom_quad_vars(up, inp->conf_range, inp->h_ij_inv, inp->det_h);
+    gkyl_vlasov_lte_proj_on_basis_geom_quad_vars(up, inp->conf_range, inp->h_ij, inp->h_ij_inv, inp->det_h);
   }
 
   // Store a LTE moment calculation updater to compute and correct the density
@@ -363,6 +371,7 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     .phase_range = inp->phase_range,
     .gamma = inp->gamma,
     .gamma_inv = inp->gamma_inv,
+    .h_ij = inp->h_ij,
     .h_ij_inv = inp->h_ij_inv,
     .det_h = inp->det_h,
     .hamil = inp->hamil,
@@ -510,7 +519,7 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
               - (1.0/T_over_m_quad[cqidx])*(GammaV_quad*sqrt(1.0 + uu) - vu));
           }
           else if (up->is_canonical_pb) {
-            // Assumes a (particle) hamiltonian in canocial form: g = 1/2 g^{ij} w_i_w_j
+            // Assumes a (particle) hamiltonian in canocial form: H = 1/2 g^{ij} p_i p_j
             const double *h_ij_inv_quad = gkyl_array_cfetch(up->h_ij_inv_quad, midx);
             double efact = 0.0;
             for (int d0=0; d0<vdim; ++d0) {
@@ -565,7 +574,7 @@ gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis* up)
   if (up->vel_map != 0) {
     gkyl_velocity_map_release(up->vel_map);
   }
-  
+
   gkyl_array_release(up->ordinates);
   gkyl_array_release(up->weights);
   gkyl_array_release(up->basis_at_ords);
@@ -578,6 +587,7 @@ gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis* up)
   gkyl_dg_bin_op_mem_release(up->mem);
 
   if (up->is_canonical_pb) {
+    gkyl_array_release(up->h_ij_quad);
     gkyl_array_release(up->h_ij_inv_quad);
     gkyl_array_release(up->det_h_quad);
   }

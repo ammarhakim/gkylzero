@@ -12,34 +12,29 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-enum { MEnergy, BAD };
+#include <cassert>
 
 static int
-get_mom_id(const char *mom)
-{
-  int mom_idx = BAD;
-
-  if (strcmp(mom, "MEnergy") == 0) { // total energy = integral(hamil*f) velocity moment
-    mom_idx = MEnergy;
-  }
-  else {
-    mom_idx = BAD;
-  }    
-
-  return mom_idx;
-}
-
-static int
-v_num_mom(int vdim, int mom_id)
+v_num_mom(int vdim, enum gkyl_distribution_moments mom_type)
 {
   int num_mom = 0;
   
-  switch (mom_id) {
-    case MEnergy:
+  switch (mom_type) {
+    case GKYL_F_MOMENT_ENERGY:
       num_mom = 1;
       break;    
 
-    default: // can't happen
+    case GKYL_F_MOMENT_M1_FROM_H:
+      num_mom = vdim;
+      break;   
+
+    case GKYL_F_MOMENT_M0M1M2:
+      num_mom = 2+vdim;
+      break;   
+
+    default: // Can't happen.
+      fprintf(stderr,"Moment option %d not available.\n",mom_type);
+      assert(false);
       break;
   }
 
@@ -67,21 +62,33 @@ gkyl_mom_canonical_pb_set_auxfields_cu(const struct gkyl_mom_type *momt, struct 
 
 __global__
 static void
-set_cu_ptrs(struct mom_type_canonical_pb* mom_can_pb, int mom_id, enum gkyl_basis_type b_type, int vdim,
-  int poly_order, int tblidx)
+set_cu_ptrs(struct mom_type_canonical_pb* mom_can_pb, enum gkyl_distribution_moments mom_type,
+  enum gkyl_basis_type b_type, int vdim, int poly_order, int tblidx)
 {
   mom_can_pb->auxfields.hamil = 0;
   
   // choose kernel tables based on basis-function type
   const gkyl_canonical_pb_mom_kern_list *menergy_kernels;
+  const gkyl_canonical_pb_mom_kern_list *m1i_from_h_kernels;
 
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
+      // Verify that the poly-order is 2 for ser case
+      assert(poly_order == 2);
       menergy_kernels = ser_menergy_kernels;
+      m1i_from_h_kernels = ser_m1i_from_h_kernels;
+      break;
+
+    case GKYL_BASIS_MODAL_HYBRID:
+      // Verify that the poly-order is 1 for hybrid case
+      assert(poly_order == 1);
+      menergy_kernels = ser_menergy_kernels;
+      m1i_from_h_kernels = ser_m1i_from_h_kernels;
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
       menergy_kernels = tensor_menergy_kernels;
+      m1i_from_h_kernels = tensor_m1i_from_h_kernels;
       break;
 
     default:
@@ -89,10 +96,15 @@ set_cu_ptrs(struct mom_type_canonical_pb* mom_can_pb, int mom_id, enum gkyl_basi
       break;    
   }
   
-  switch (mom_id) {
-    case MEnergy:
+  switch (mom_type) {
+    case GKYL_F_MOMENT_ENERGY:
       mom_can_pb->momt.kernel = menergy_kernels[tblidx].kernels[poly_order];
       mom_can_pb->momt.num_mom = 1;
+      break;
+
+    case GKYL_F_MOMENT_M1_FROM_H:
+      mom_can_pb->momt.kernel = m1i_from_h_kernels[tblidx].kernels[poly_order];
+      mom_can_pb->momt.num_mom = vdim;
       break;
 
     default: // can't happen
@@ -102,7 +114,7 @@ set_cu_ptrs(struct mom_type_canonical_pb* mom_can_pb, int mom_id, enum gkyl_basi
 
 struct gkyl_mom_type*
 gkyl_mom_canonical_pb_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* phase_range, const char *mom)
+  const struct gkyl_range* phase_range, enum gkyl_distribution_moments mom_type)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -120,9 +132,7 @@ gkyl_mom_canonical_pb_cu_dev_new(const struct gkyl_basis* cbasis, const struct g
 
   mom_can_pb->phase_range = *phase_range;
 
-  int mom_id = get_mom_id(mom);
-  assert(mom_id != BAD);
-  mom_can_pb->momt.num_mom = v_num_mom(vdim, mom_id); // number of moments
+  mom_can_pb->momt.num_mom = v_num_mom(vdim, mom_type); // Number of moments.
 
   mom_can_pb->momt.flags = 0;
   GKYL_SET_CU_ALLOC(mom_can_pb->momt.flags);
@@ -135,7 +145,7 @@ gkyl_mom_canonical_pb_cu_dev_new(const struct gkyl_basis* cbasis, const struct g
 
   assert(cv_index[cdim].vdim[vdim] != -1);
 
-  set_cu_ptrs<<<1,1>>>(momt_cu, mom_id, cbasis->b_type,
+  set_cu_ptrs<<<1,1>>>(momt_cu, mom_type, pbasis->b_type,
     vdim, poly_order, cv_index[cdim].vdim[vdim]);
 
   mom_can_pb->momt.on_dev = &momt_cu->momt;
@@ -145,22 +155,30 @@ gkyl_mom_canonical_pb_cu_dev_new(const struct gkyl_basis* cbasis, const struct g
 
 __global__
 static void
-set_int_cu_ptrs(struct mom_type_canonical_pb* mom_can_pb, enum gkyl_basis_type b_type, int vdim,
-  int poly_order, int tblidx)
+set_int_cu_ptrs(struct mom_type_canonical_pb* mom_can_pb, enum gkyl_distribution_moments mom_type,
+  enum gkyl_basis_type b_type, int vdim, int poly_order, int tblidx)
 {
   mom_can_pb->auxfields.hamil = 0;
 
-  // choose kernel tables based on basis-function type
-  const gkyl_canonical_pb_mom_kern_list *int_mom_kernels;  
+  // Coose kernel tables based on basis-function type.
+  const gkyl_canonical_pb_mom_kern_list *int_five_moments_kernels;
   
-  // set kernel pointer
+  // Set kernel pointer.
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      int_mom_kernels = ser_int_mom_kernels;
+      // Verify that the poly-order is 2 for ser case
+      assert(poly_order == 2);
+      int_five_moments_kernels = ser_int_five_moments_kernels;
+      break;
+
+    case GKYL_BASIS_MODAL_HYBRID:
+      // Verify that the poly-order is 1 for hybrid case
+      assert(poly_order == 1);
+      int_five_moments_kernels = ser_int_five_moments_kernels;
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
-      int_mom_kernels = tensor_int_mom_kernels;
+      int_five_moments_kernels = tensor_int_five_moments_kernels;
       break;
 
     default:
@@ -168,13 +186,21 @@ set_int_cu_ptrs(struct mom_type_canonical_pb* mom_can_pb, enum gkyl_basis_type b
       break;    
   }
 
-  mom_can_pb->momt.kernel = int_mom_kernels[tblidx].kernels[poly_order];
-  mom_can_pb->momt.num_mom = 2+vdim;
+  switch (mom_type) {
+    case GKYL_F_MOMENT_M0M1M2:
+      mom_can_pb->momt.kernel = int_five_moments_kernels[tblidx].kernels[poly_order];
+      mom_can_pb->momt.num_mom = 2+vdim;
+      break;
+
+    default:
+      assert(false);
+      break;
+  }
 }
 
 struct gkyl_mom_type *
 gkyl_int_mom_canonical_pb_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* phase_range)
+  const struct gkyl_range* phase_range, enum gkyl_distribution_moments mom_type)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -190,7 +216,7 @@ gkyl_int_mom_canonical_pb_cu_dev_new(const struct gkyl_basis* cbasis, const stru
   mom_can_pb->momt.num_config = cbasis->num_basis;
   mom_can_pb->momt.num_phase = pbasis->num_basis;
 
-  mom_can_pb->momt.num_mom = vdim+2;
+  mom_can_pb->momt.num_mom = v_num_mom(vdim, mom_type); // Number of moments.
 
   mom_can_pb->phase_range = *phase_range;
 
@@ -203,10 +229,11 @@ gkyl_int_mom_canonical_pb_cu_dev_new(const struct gkyl_basis* cbasis, const stru
     gkyl_cu_malloc(sizeof(struct mom_type_canonical_pb));
   gkyl_cu_memcpy(momt_cu, mom_can_pb, sizeof(struct mom_type_canonical_pb), GKYL_CU_MEMCPY_H2D);
 
-  set_int_cu_ptrs<<<1,1>>>(momt_cu, cbasis->b_type,
+  set_int_cu_ptrs<<<1,1>>>(momt_cu, mom_type, pbasis->b_type,
     vdim, poly_order, cv_index[cdim].vdim[vdim]);
 
   mom_can_pb->momt.on_dev = &momt_cu->momt;
   
   return &mom_can_pb->momt;
 }
+

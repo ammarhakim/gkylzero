@@ -5,9 +5,9 @@
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
-#include <gkyl_gyrokinetic_maxwellian_correct.h>
-#include <gkyl_gyrokinetic_maxwellian_moments.h>
-#include <gkyl_proj_maxwellian_on_basis.h>
+#include <gkyl_gk_maxwellian_correct.h>
+#include <gkyl_gk_maxwellian_moments.h>
+#include <gkyl_gk_maxwellian_proj_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_velocity_map.h>
 #include <gkyl_range.h>
@@ -146,18 +146,18 @@ void test_1x1v(int poly_order, bool use_gpu)
 
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
-      .geometry_id = GKYL_MAPC2P,
-      .world = {0.0, 0.0},
-      .mapc2p = mapc2p_3x, // mapping of computational to physical space
-      .c2p_ctx = 0,
-      .bmag_func = bmag_func_3x, // magnetic field magnitude
-      .bmag_ctx = 0,
-      .grid = confGrid,
-      .local = confLocal,
-      .local_ext = confLocal_ext,
-      .global = confLocal,
-      .global_ext = confLocal_ext,
-      .basis = confBasis,
+    .geometry_id = GKYL_MAPC2P,
+    .world = {0.0, 0.0},
+    .mapc2p = mapc2p_3x, // mapping of computational to physical space
+    .c2p_ctx = 0,
+    .bmag_func = bmag_func_3x, // magnetic field magnitude
+    .bmag_ctx = 0,
+    .grid = confGrid,
+    .local = confLocal,
+    .local_ext = confLocal_ext,
+    .global = confLocal,
+    .global_ext = confLocal_ext,
+    .basis = confBasis,
   };
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
   gkyl_create_grid_ranges(&geometry_input.geo_grid, confGhost, &geometry_input.geo_local_ext, &geometry_input.geo_local);
@@ -167,6 +167,14 @@ void test_1x1v(int poly_order, bool use_gpu)
   // deflate geometry if necessary
   struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input);
   gkyl_gk_geometry_release(gk_geom_3d);
+
+  // If we are on the gpu, copy from host
+  if (use_gpu) {
+    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_new(gk_geom, &geometry_input, use_gpu);
+    gkyl_gk_geometry_release(gk_geom);
+    gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
+    gkyl_gk_geometry_release(gk_geom_dev);
+  }
 
   // Initialize velocity space mapping.
   struct gkyl_mapc2p_inp c2p_in = { };
@@ -204,34 +212,47 @@ void test_1x1v(int poly_order, bool use_gpu)
   gkyl_array_set_offset(moms_in, 1., m0_in, 0*confBasis.num_basis);
   gkyl_array_set_offset(moms_in, 1., m1_in, 1*confBasis.num_basis);
   gkyl_array_set_offset(moms_in, 1., m2_in, 2*confBasis.num_basis);
-  // (2) create distribution function array
-  gkyl_proj_maxwellian_on_basis *proj_maxwellian = gkyl_proj_maxwellian_on_basis_new(&grid,
-    &confBasis, &basis, poly_order+1, gvm, use_gpu);
-  struct gkyl_array *fM = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_maxwellian, &local, &confLocal, 
-    moms_in, gk_geom->bmag, gk_geom->jacobtot, mass, fM);
-  // (3) copy from device to host
-  struct gkyl_array *fM_ho;
-  if (use_gpu) {
-    fM_ho = mkarr(basis.num_basis, local_ext.volume, false);
-    gkyl_array_copy(fM_ho, fM);
-  } else {
-    fM_ho = fM;
-  }
-  // Optionally write out the inital distribution function and desired initial moments  
-  // char fname_fM_ic[1024];
-  // sprintf(fname_fM_ic, "ctest_correct_maxwellian_%dx%dv_p%d.gkyl", cdim, vdim, poly_order);
-  // gkyl_grid_sub_array_write(&grid, &local, 0, fM_ho, fname_fM_ic);
-  // char moms_ic[1024];
-  // sprintf(moms_ic, "ctest_correct_maxwellian_moms_%dx%dv_p%d.gkyl", cdim, vdim, poly_order);
-  // gkyl_grid_sub_array_write(&confGrid, &confLocal, 0, moms_in, moms_ic);
-  // Create a Maxwellian with corrected moments
-  struct gkyl_gyrokinetic_maxwellian_correct_inp inp = {
+
+  // Create distribution function array
+  struct gkyl_array *distf;
+  distf = mkarr(false, basis.num_basis, local_ext.volume);
+  struct gkyl_array *distf_cu;
+  if (use_gpu)  // create device copy.
+    distf_cu  = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+
+  // Maxwellian (or bi-Maxwellian) projection updater.
+  struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal, 
+    .gk_geom = gk_geom,
+    .vel_map = gvm,
+    .mass = mass,
+    .bimaxwellian = false, 
+    .use_gpu = use_gpu,
+  };
+  struct gkyl_gk_maxwellian_proj_on_basis *proj_max = gkyl_gk_maxwellian_proj_on_basis_inew( &inp_proj );
+  if (use_gpu) {
+    gkyl_gk_maxwellian_proj_on_basis_advance(proj_max,
+      &local, &confLocal, moms_in, false, distf_cu);  
+    gkyl_array_copy(distf, distf_cu);
+  } 
+  else {
+    gkyl_gk_maxwellian_proj_on_basis_advance(proj_max,
+      &local, &confLocal, moms_in, false, distf);  
+  }
+
+  // Create a Maxwellian with corrected moments
+  struct gkyl_gk_maxwellian_correct_inp inp = {
+    .phase_grid = &grid,
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .conf_range =  &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal, 
     .mass = mass, 
     .max_iter = iter_max, 
     .eps = err_max, 
@@ -240,23 +261,21 @@ void test_1x1v(int poly_order, bool use_gpu)
     .divide_jacobgeo = true, 
     .use_gpu = use_gpu
   };
-  gkyl_gyrokinetic_maxwellian_correct *corr_max = gkyl_gyrokinetic_maxwellian_correct_inew(&inp);
-  // First correct the density
-  gkyl_gyrokinetic_maxwellian_correct_density_moment(corr_max, 
-    fM, moms_in, &local, &confLocal);
-  // Now correct all the moments
-  struct gkyl_gyrokinetic_maxwellian_correct_status status_corr;
-  status_corr = gkyl_gyrokinetic_maxwellian_correct_all_moments(corr_max, 
-    fM, moms_in, &local, &confLocal);
-  gkyl_gyrokinetic_maxwellian_correct_release(corr_max);
+  gkyl_gk_maxwellian_correct *corr_max = gkyl_gk_maxwellian_correct_inew(&inp);
+  // Correct all the moments
+  struct gkyl_gk_maxwellian_correct_status status_corr;
   if (use_gpu) {
-    gkyl_array_copy(fM_ho, fM);
-  } else {
-    fM_ho = fM;
+    status_corr = gkyl_gk_maxwellian_correct_all_moments(corr_max, 
+      distf_cu, moms_in, &local, &confLocal);
+    gkyl_array_copy(distf, distf_cu);
+  } 
+  else {
+    status_corr = gkyl_gk_maxwellian_correct_all_moments(corr_max, 
+      distf, moms_in, &local, &confLocal); 
   }
 
   // Compute the moments of our corrected distribution function
-  struct gkyl_gyrokinetic_maxwellian_moments_inp inp_mom = {
+  struct gkyl_gk_maxwellian_moments_inp inp_mom = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -268,26 +287,19 @@ void test_1x1v(int poly_order, bool use_gpu)
     .mass = mass, 
     .use_gpu = use_gpu,
   };
-  gkyl_gyrokinetic_maxwellian_moments *max_moms = gkyl_gyrokinetic_maxwellian_moments_inew( &inp_mom );
+  gkyl_gk_maxwellian_moments *max_moms = gkyl_gk_maxwellian_moments_inew( &inp_mom );
   // (2) calculate the moments and copy from host to device
   struct gkyl_array *moms_corr = mkarr(use_gpu, 3*confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *moms_corr_ho;
-  gkyl_gyrokinetic_maxwellian_moments_advance(max_moms, &local, &confLocal, fM, moms_corr);
-  gkyl_gyrokinetic_maxwellian_moments_release(max_moms);
   if (use_gpu) { 
-    moms_corr_ho = mkarr(3*confBasis.num_basis, confLocal_ext.volume, false);
+    gkyl_gk_maxwellian_moments_advance(max_moms, &local, &confLocal, distf_cu, moms_corr);
+    moms_corr_ho = mkarr(false, 3*confBasis.num_basis, confLocal_ext.volume);
     gkyl_array_copy(moms_corr_ho, moms_corr); 
   } 
   else {
+    gkyl_gk_maxwellian_moments_advance(max_moms, &local, &confLocal, distf, moms_corr);
     moms_corr_ho = moms_corr;
   }
-  // Optionally write out the corrected distribution function and moments  
-  // char fname_fM_corr[1024];
-  // sprintf(fname_fM_corr, "ctest_correct_maxwellian_%dx%dv_p%d_corr.gkyl", cdim, vdim, poly_order);
-  // gkyl_grid_sub_array_write(&grid, &local, 0, fM_ho, fname_fM_corr);
-  // char moms_corr_ic[1024];
-  // sprintf(moms_corr_ic, "ctest_correct_maxwellian_moms_%dx%dv_p%d_corr.gkyl", cdim, vdim, poly_order);
-  // gkyl_grid_sub_array_write(&confGrid, &confLocal, 0, moms_corr_ho, moms_corr_ic);
 
   // (4) compare the correct moments with the input moments
   for (int k=0; k<cells[0]; k++) {
@@ -313,18 +325,20 @@ void test_1x1v(int poly_order, bool use_gpu)
   gkyl_array_release(m2_in);
   gkyl_array_release(moms_in);
   gkyl_array_release(moms_corr);
-  gkyl_array_release(fM);
+  gkyl_array_release(distf);
   if (use_gpu) {
     gkyl_array_release(m0_in_ho);
     gkyl_array_release(m1_in_ho);
     gkyl_array_release(m2_in_ho);
     gkyl_array_release(moms_corr_ho);
-    gkyl_array_release(fM_ho);
+    gkyl_array_release(distf_cu);
   }
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1);
   gkyl_proj_on_basis_release(proj_m2);
-  gkyl_proj_maxwellian_on_basis_release(proj_maxwellian);
+  gkyl_gk_maxwellian_proj_on_basis_release(proj_max);
+  gkyl_gk_maxwellian_correct_release(corr_max);
+  gkyl_gk_maxwellian_moments_release(max_moms);
 }
 
 void test_1x2v(int poly_order, bool use_gpu)
@@ -387,18 +401,18 @@ void test_1x2v(int poly_order, bool use_gpu)
 
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
-      .geometry_id = GKYL_MAPC2P,
-      .world = {0.0, 0.0},
-      .mapc2p = mapc2p_3x, // mapping of computational to physical space
-      .c2p_ctx = 0,
-      .bmag_func = bmag_func_3x, // magnetic field magnitude
-      .bmag_ctx =0 ,
-      .grid = confGrid,
-      .local = confLocal,
-      .local_ext = confLocal_ext,
-      .global = confLocal,
-      .global_ext = confLocal_ext,
-      .basis = confBasis,
+    .geometry_id = GKYL_MAPC2P,
+    .world = {0.0, 0.0},
+    .mapc2p = mapc2p_3x, // mapping of computational to physical space
+    .c2p_ctx = 0,
+    .bmag_func = bmag_func_3x, // magnetic field magnitude
+    .bmag_ctx = 0,
+    .grid = confGrid,
+    .local = confLocal,
+    .local_ext = confLocal_ext,
+    .global = confLocal,
+    .global_ext = confLocal_ext,
+    .basis = confBasis,
   };
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
   gkyl_create_grid_ranges(&geometry_input.geo_grid, confGhost, &geometry_input.geo_local_ext, &geometry_input.geo_local);
@@ -408,6 +422,14 @@ void test_1x2v(int poly_order, bool use_gpu)
   // deflate geometry if necessary
   struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input);
   gkyl_gk_geometry_release(gk_geom_3d);
+
+  // If we are on the gpu, copy from host
+  if (use_gpu) {
+    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_new(gk_geom, &geometry_input, use_gpu);
+    gkyl_gk_geometry_release(gk_geom);
+    gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
+    gkyl_gk_geometry_release(gk_geom_dev);
+  }
 
   // Initialize velocity space mapping.
   struct gkyl_mapc2p_inp c2p_in = { };
@@ -445,55 +467,70 @@ void test_1x2v(int poly_order, bool use_gpu)
   gkyl_array_set_offset(moms_in, 1., m0_in, 0*confBasis.num_basis);
   gkyl_array_set_offset(moms_in, 1., m1_in, 1*confBasis.num_basis);
   gkyl_array_set_offset(moms_in, 1., m2_in, 2*confBasis.num_basis);
-  // (2) create distribution function array
-  gkyl_proj_maxwellian_on_basis *proj_maxwellian = gkyl_proj_maxwellian_on_basis_new(&grid,
-    &confBasis, &basis, poly_order+1, gvm, use_gpu);
-  struct gkyl_array *fM = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_maxwellian, &local, &confLocal, 
-    moms_in, gk_geom->bmag, gk_geom->jacobtot, mass, fM);
-  // (3) copy from device to host
-  struct gkyl_array *fM_ho;
-  if (use_gpu) {
-    fM_ho = mkarr(basis.num_basis, local_ext.volume, false);
-    gkyl_array_copy(fM_ho, fM);
-  } else {
-    fM_ho = fM;
-  }
-  // Optionally write out the inital distribution function and desired initial moments  
-  // char fname_fM_ic[1024];
-  // sprintf(fname_fM_ic, "ctest_correct_maxwellian_%dx%dv_p%d.gkyl", cdim, vdim, poly_order);
-  // gkyl_grid_sub_array_write(&grid, &local, 0, fM_ho, fname_fM_ic);
-  // char moms_ic[1024];
-  // sprintf(moms_ic, "ctest_correct_maxwellian_moms_%dx%dv_p%d.gkyl", cdim, vdim, poly_order);
-  // gkyl_grid_sub_array_write(&confGrid, &confLocal, 0, moms_in, moms_ic);
-  // Create a Maxwellian with corrected moments
-  struct gkyl_gyrokinetic_maxwellian_correct_inp inp = {
+
+  // Create distribution function array
+  struct gkyl_array *distf;
+  distf = mkarr(false, basis.num_basis, local_ext.volume);
+  struct gkyl_array *distf_cu;
+  if (use_gpu)  // create device copy.
+    distf_cu  = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+
+  // Maxwellian (or bi-Maxwellian) projection updater.
+  struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal, 
     .gk_geom = gk_geom,
     .vel_map = gvm,
-    .divide_jacobgeo = true, 
+    .mass = mass,
+    .bimaxwellian = false, 
+    .use_gpu = use_gpu,
+  };
+  struct gkyl_gk_maxwellian_proj_on_basis *proj_max = gkyl_gk_maxwellian_proj_on_basis_inew( &inp_proj );
+  if (use_gpu) {
+    gkyl_gk_maxwellian_proj_on_basis_advance(proj_max,
+      &local, &confLocal, moms_in, false, distf_cu);  
+    gkyl_array_copy(distf, distf_cu);
+  } 
+  else {
+    gkyl_gk_maxwellian_proj_on_basis_advance(proj_max,
+      &local, &confLocal, moms_in, false, distf);  
+  }
+
+  // Create a Maxwellian with corrected moments
+  struct gkyl_gk_maxwellian_correct_inp inp = {
+    .phase_grid = &grid,
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .conf_range =  &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal, 
     .mass = mass, 
     .max_iter = iter_max, 
     .eps = err_max, 
+    .gk_geom = gk_geom,
+    .vel_map = gvm,
+    .divide_jacobgeo = true, 
     .use_gpu = use_gpu
   };
-  gkyl_gyrokinetic_maxwellian_correct *corr_max = gkyl_gyrokinetic_maxwellian_correct_inew(&inp);
-  struct gkyl_gyrokinetic_maxwellian_correct_status status_corr;
-  status_corr = gkyl_gyrokinetic_maxwellian_correct_all_moments(corr_max, 
-    fM, moms_in, &local, &confLocal);
-  gkyl_gyrokinetic_maxwellian_correct_release(corr_max);
+  gkyl_gk_maxwellian_correct *corr_max = gkyl_gk_maxwellian_correct_inew(&inp);
+  // Correct all the moments
+  struct gkyl_gk_maxwellian_correct_status status_corr;
   if (use_gpu) {
-    gkyl_array_copy(fM_ho, fM);
-  } else {
-    fM_ho = fM;
+    status_corr = gkyl_gk_maxwellian_correct_all_moments(corr_max, 
+      distf_cu, moms_in, &local, &confLocal);
+    gkyl_array_copy(distf, distf_cu);
+  } 
+  else {
+    status_corr = gkyl_gk_maxwellian_correct_all_moments(corr_max, 
+      distf, moms_in, &local, &confLocal); 
   }
-  
+
   // Compute the moments of our corrected distribution function
-  struct gkyl_gyrokinetic_maxwellian_moments_inp inp_mom = {
+  struct gkyl_gk_maxwellian_moments_inp inp_mom = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -505,26 +542,19 @@ void test_1x2v(int poly_order, bool use_gpu)
     .mass = mass, 
     .use_gpu = use_gpu,
   };
-  gkyl_gyrokinetic_maxwellian_moments *max_moms = gkyl_gyrokinetic_maxwellian_moments_inew( &inp_mom );
+  gkyl_gk_maxwellian_moments *max_moms = gkyl_gk_maxwellian_moments_inew( &inp_mom );
   // (2) calculate the moments and copy from host to device
   struct gkyl_array *moms_corr = mkarr(use_gpu, 3*confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *moms_corr_ho;
-  gkyl_gyrokinetic_maxwellian_moments_advance(max_moms, &local, &confLocal, fM, moms_corr);
-  gkyl_gyrokinetic_maxwellian_moments_release(max_moms);
   if (use_gpu) { 
-    moms_corr_ho = mkarr(3*confBasis.num_basis, confLocal_ext.volume, false);
+    gkyl_gk_maxwellian_moments_advance(max_moms, &local, &confLocal, distf_cu, moms_corr);
+    moms_corr_ho = mkarr(false, 3*confBasis.num_basis, confLocal_ext.volume);
     gkyl_array_copy(moms_corr_ho, moms_corr); 
   } 
   else {
+    gkyl_gk_maxwellian_moments_advance(max_moms, &local, &confLocal, distf, moms_corr);
     moms_corr_ho = moms_corr;
   }
-  // Optionally write out the corrected distribution function and moments  
-  // char fname_fM_corr[1024];
-  // sprintf(fname_fM_corr, "ctest_correct_maxwellian_%dx%dv_p%d_corr.gkyl", cdim, vdim, poly_order);
-  // gkyl_grid_sub_array_write(&grid, &local, 0, fM_ho, fname_fM_corr);
-  // char moms_corr_ic[1024];
-  // sprintf(moms_corr_ic, "ctest_correct_maxwellian_moms_%dx%dv_p%d_corr.gkyl", cdim, vdim, poly_order);
-  // gkyl_grid_sub_array_write(&confGrid, &confLocal, 0, moms_corr_ho, moms_corr_ic);
 
   // (4) compare the correct moments with the input moments
   for (int k=0; k<cells[0]; k++) {
@@ -550,18 +580,20 @@ void test_1x2v(int poly_order, bool use_gpu)
   gkyl_array_release(m2_in);
   gkyl_array_release(moms_in);
   gkyl_array_release(moms_corr);
-  gkyl_array_release(fM);
+  gkyl_array_release(distf);
   if (use_gpu) {
     gkyl_array_release(m0_in_ho);
     gkyl_array_release(m1_in_ho);
     gkyl_array_release(m2_in_ho);
     gkyl_array_release(moms_corr_ho);
-    gkyl_array_release(fM_ho);
+    gkyl_array_release(distf_cu);
   }
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1);
   gkyl_proj_on_basis_release(proj_m2);
-  gkyl_proj_maxwellian_on_basis_release(proj_maxwellian);
+  gkyl_gk_maxwellian_proj_on_basis_release(proj_max);
+  gkyl_gk_maxwellian_correct_release(corr_max);
+  gkyl_gk_maxwellian_moments_release(max_moms);
 }
 
 void test_2x2v(int poly_order, bool use_gpu)
@@ -624,18 +656,18 @@ void test_2x2v(int poly_order, bool use_gpu)
 
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
-      .geometry_id = GKYL_MAPC2P,
-      .world = {0.0},
-      .mapc2p = mapc2p_3x, // mapping of computational to physical space
-      .c2p_ctx = 0,
-      .bmag_func = bmag_func_3x, // magnetic field magnitude
-      .bmag_ctx =0 ,
-      .grid = confGrid,
-      .local = confLocal,
-      .local_ext = confLocal_ext,
-      .global = confLocal,
-      .global_ext = confLocal_ext,
-      .basis = confBasis,
+    .geometry_id = GKYL_MAPC2P,
+    .world = {0.0},
+    .mapc2p = mapc2p_3x, // mapping of computational to physical space
+    .c2p_ctx = 0,
+    .bmag_func = bmag_func_3x, // magnetic field magnitude
+    .bmag_ctx = 0,
+    .grid = confGrid,
+    .local = confLocal,
+    .local_ext = confLocal_ext,
+    .global = confLocal,
+    .global_ext = confLocal_ext,
+    .basis = confBasis,
   };
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
   gkyl_create_grid_ranges(&geometry_input.geo_grid, confGhost, &geometry_input.geo_local_ext, &geometry_input.geo_local);
@@ -645,6 +677,14 @@ void test_2x2v(int poly_order, bool use_gpu)
   // deflate geometry if necessary
   struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input);
   gkyl_gk_geometry_release(gk_geom_3d);
+
+  // If we are on the gpu, copy from host
+  if (use_gpu) {
+    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_new(gk_geom, &geometry_input, use_gpu);
+    gkyl_gk_geometry_release(gk_geom);
+    gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
+    gkyl_gk_geometry_release(gk_geom_dev);
+  }
 
   // Initialize velocity space mapping.
   struct gkyl_mapc2p_inp c2p_in = { };
@@ -682,55 +722,70 @@ void test_2x2v(int poly_order, bool use_gpu)
   gkyl_array_set_offset(moms_in, 1., m0_in, 0*confBasis.num_basis);
   gkyl_array_set_offset(moms_in, 1., m1_in, 1*confBasis.num_basis);
   gkyl_array_set_offset(moms_in, 1., m2_in, 2*confBasis.num_basis);
-  // (2) create distribution function array
-  gkyl_proj_maxwellian_on_basis *proj_maxwellian = gkyl_proj_maxwellian_on_basis_new(&grid,
-    &confBasis, &basis, poly_order+1, gvm, use_gpu);
-  struct gkyl_array *fM = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_maxwellian, &local, &confLocal, 
-    moms_in, gk_geom->bmag, gk_geom->jacobtot, mass, fM);
-  // (3) copy from device to host
-  struct gkyl_array *fM_ho;
-  if (use_gpu) {
-    fM_ho = mkarr(basis.num_basis, local_ext.volume, false);
-    gkyl_array_copy(fM_ho, fM);
-  } else {
-    fM_ho = fM;
-  }
-  // Optionally write out the inital distribution function and desired initial moments  
-  // char fname_fM_ic[1024];
-  // sprintf(fname_fM_ic, "ctest_correct_maxwellian_%dx%dv_p%d.gkyl", cdim, vdim, poly_order);
-  // gkyl_grid_sub_array_write(&grid, &local, fM_ho, fname_fM_ic);
-  // char moms_ic[1024];
-  // sprintf(moms_ic, "ctest_correct_maxwellian_moms_%dx%dv_p%d.gkyl", cdim, vdim, poly_order);
-  // gkyl_grid_sub_array_write(&confGrid, &confLocal, moms_in, moms_ic);
-  // Create a Maxwellian with corrected moments
-  struct gkyl_gyrokinetic_maxwellian_correct_inp inp = {
+
+  // Create distribution function array
+  struct gkyl_array *distf;
+  distf = mkarr(false, basis.num_basis, local_ext.volume);
+  struct gkyl_array *distf_cu;
+  if (use_gpu)  // create device copy.
+    distf_cu  = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+
+  // Maxwellian (or bi-Maxwellian) projection updater.
+  struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
     .conf_range =  &confLocal,
     .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal, 
     .gk_geom = gk_geom,
     .vel_map = gvm,
-    .divide_jacobgeo = true, 
+    .mass = mass,
+    .bimaxwellian = false, 
+    .use_gpu = use_gpu,
+  };
+  struct gkyl_gk_maxwellian_proj_on_basis *proj_max = gkyl_gk_maxwellian_proj_on_basis_inew( &inp_proj );
+  if (use_gpu) {
+    gkyl_gk_maxwellian_proj_on_basis_advance(proj_max,
+      &local, &confLocal, moms_in, false, distf_cu);  
+    gkyl_array_copy(distf, distf_cu);
+  } 
+  else {
+    gkyl_gk_maxwellian_proj_on_basis_advance(proj_max,
+      &local, &confLocal, moms_in, false, distf);  
+  }
+
+  // Create a Maxwellian with corrected moments
+  struct gkyl_gk_maxwellian_correct_inp inp = {
+    .phase_grid = &grid,
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .conf_range =  &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal, 
     .mass = mass, 
     .max_iter = iter_max, 
     .eps = err_max, 
+    .gk_geom = gk_geom,
+    .vel_map = gvm,
+    .divide_jacobgeo = true, 
     .use_gpu = use_gpu
   };
-  gkyl_gyrokinetic_maxwellian_correct *corr_max = gkyl_gyrokinetic_maxwellian_correct_inew(&inp);
-  struct gkyl_gyrokinetic_maxwellian_correct_status status_corr;
-  status_corr = gkyl_gyrokinetic_maxwellian_correct_all_moments(corr_max, 
-    fM, moms_in, &local, &confLocal);
-  gkyl_gyrokinetic_maxwellian_correct_release(corr_max);
+  gkyl_gk_maxwellian_correct *corr_max = gkyl_gk_maxwellian_correct_inew(&inp);
+  // Correct all the moments
+  struct gkyl_gk_maxwellian_correct_status status_corr;
   if (use_gpu) {
-    gkyl_array_copy(fM_ho, fM);
-  } else {
-    fM_ho = fM;
+    status_corr = gkyl_gk_maxwellian_correct_all_moments(corr_max, 
+      distf_cu, moms_in, &local, &confLocal);
+    gkyl_array_copy(distf, distf_cu);
+  } 
+  else {
+    status_corr = gkyl_gk_maxwellian_correct_all_moments(corr_max, 
+      distf, moms_in, &local, &confLocal); 
   }
-  
+
   // Compute the moments of our corrected distribution function
-  struct gkyl_gyrokinetic_maxwellian_moments_inp inp_mom = {
+  struct gkyl_gk_maxwellian_moments_inp inp_mom = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -742,26 +797,19 @@ void test_2x2v(int poly_order, bool use_gpu)
     .mass = mass, 
     .use_gpu = use_gpu,
   };
-  gkyl_gyrokinetic_maxwellian_moments *max_moms = gkyl_gyrokinetic_maxwellian_moments_inew( &inp_mom );
+  gkyl_gk_maxwellian_moments *max_moms = gkyl_gk_maxwellian_moments_inew( &inp_mom );
   // (2) calculate the moments and copy from host to device
   struct gkyl_array *moms_corr = mkarr(use_gpu, 3*confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *moms_corr_ho;
-  gkyl_gyrokinetic_maxwellian_moments_advance(max_moms, &local, &confLocal, fM, moms_corr);
-  gkyl_gyrokinetic_maxwellian_moments_release(max_moms);
   if (use_gpu) { 
-    moms_corr_ho = mkarr(3*confBasis.num_basis, confLocal_ext.volume, false);
+    gkyl_gk_maxwellian_moments_advance(max_moms, &local, &confLocal, distf_cu, moms_corr);
+    moms_corr_ho = mkarr(false, 3*confBasis.num_basis, confLocal_ext.volume);
     gkyl_array_copy(moms_corr_ho, moms_corr); 
   } 
   else {
+    gkyl_gk_maxwellian_moments_advance(max_moms, &local, &confLocal, distf, moms_corr);
     moms_corr_ho = moms_corr;
   }
-  // Optionally write out the corrected distribution function and moments  
-  // char fname_fM_corr[1024];
-  // sprintf(fname_fM_corr, "ctest_correct_maxwellian_%dx%dv_p%d_corr.gkyl", cdim, vdim, poly_order);
-  // gkyl_grid_sub_array_write(&grid, &local, fM_ho, fname_fM_corr);
-  // char moms_corr_ic[1024];
-  // sprintf(moms_corr_ic, "ctest_correct_maxwellian_moms_%dx%dv_p%d_corr.gkyl", cdim, vdim, poly_order);
-  // gkyl_grid_sub_array_write(&confGrid, &confLocal,moms_corr_ho, moms_corr_ic);
 
   // (4) compare the correct moments with the input moments
   for (int i=0; i<cells[0]; i++) {
@@ -789,18 +837,20 @@ void test_2x2v(int poly_order, bool use_gpu)
   gkyl_array_release(m2_in);
   gkyl_array_release(moms_in);
   gkyl_array_release(moms_corr);
-  gkyl_array_release(fM);
+  gkyl_array_release(distf);
   if (use_gpu) {
     gkyl_array_release(m0_in_ho);
     gkyl_array_release(m1_in_ho);
     gkyl_array_release(m2_in_ho);
     gkyl_array_release(moms_corr_ho);
-    gkyl_array_release(fM_ho);
+    gkyl_array_release(distf_cu);
   }
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1);
   gkyl_proj_on_basis_release(proj_m2);
-  gkyl_proj_maxwellian_on_basis_release(proj_maxwellian);
+  gkyl_gk_maxwellian_proj_on_basis_release(proj_max);
+  gkyl_gk_maxwellian_correct_release(corr_max);
+  gkyl_gk_maxwellian_moments_release(max_moms);
 }
 
 // Run the test

@@ -37,6 +37,7 @@ GKYL_CU_DH void gyrokinetic_cross_prim_moms_bgk_1x1v_ser_p1(const double betaGre
   double T2[2] = {0.0}; 
   double T3[2] = {0.0}; 
   double cVtsq[2] = {0.0}; 
+  bool negative_cross_temp = false; 
 
   binop_mul_1d_ser_p1(n_s, nu_sr, msNsNusr); 
   binop_mul_1d_ser_p1(n_r, nu_rs, mrNrNurs); 
@@ -73,5 +74,14 @@ GKYL_CU_DH void gyrokinetic_cross_prim_moms_bgk_1x1v_ser_p1(const double betaGre
   binop_mul_1d_ser_p1(coeff, cVtsq, cVtsq); 
   vtsq_sr[0] = vtsq_s[0] + cVtsq[0]/dv; 
   vtsq_sr[1] = vtsq_s[1] + cVtsq[1]/dv; 
-} 
  
+  // If vtsq_sr is negative at a corner, turn off collisions.
+  if (-0.5*(2.449489742783178*vtsq_sr[1]-1.414213562373095*vtsq_sr[0]) < 0.0) negative_cross_temp = true; 
+  if (0.5*(2.449489742783178*vtsq_sr[1]+1.414213562373095*vtsq_sr[0]) < 0.0) negative_cross_temp = true; 
+  if (negative_cross_temp) { 
+    upar_sr[0] = upar_s[0]; 
+    vtsq_sr[0] = vtsq_s[0]; 
+    upar_sr[1] = upar_s[1]; 
+    vtsq_sr[1] = vtsq_s[1]; 
+  } 
+} 
