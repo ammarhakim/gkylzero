@@ -52,7 +52,7 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   lbo->m0 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
   // allocate moments needed for LBO update
-  vm_species_moment_init(app, s, &lbo->moms, "FiveMoments");
+  vm_species_moment_init(app, s, &lbo->moms, GKYL_F_MOMENT_M0M1M2, false);
 
   // edge of velocity space corrections to momentum and energy 
   lbo->bcorr_calc = gkyl_mom_calc_bcorr_lbo_vlasov_new(&s->grid, 
@@ -131,26 +131,14 @@ vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
   vm_species_moment_calc(&lbo->moms, species->local, app->local, fin);
   gkyl_array_set_range(lbo->m0, 1.0, lbo->moms.marr, &app->local);
   
-  if (app->use_gpu) {
-    // construct boundary corrections
-    gkyl_mom_calc_bcorr_advance_cu(lbo->bcorr_calc,
-      &species->local, &app->local, fin, lbo->boundary_corrections);
+  // construct boundary corrections
+  gkyl_mom_calc_bcorr_advance(lbo->bcorr_calc,
+    &species->local, &app->local, fin, lbo->boundary_corrections);
 
-    // construct primitive moments  
-    gkyl_prim_lbo_calc_advance_cu(lbo->coll_pcalc, &app->local, 
-      lbo->moms.marr, lbo->boundary_corrections,
-      lbo->prim_moms);
-  } 
-  else {
-    // construct boundary corrections
-    gkyl_mom_calc_bcorr_advance(lbo->bcorr_calc,
-      &species->local, &app->local, fin, lbo->boundary_corrections);
+  // construct primitive moments  
+  gkyl_prim_lbo_calc_advance(lbo->coll_pcalc, &app->local, 
+    lbo->moms.marr, lbo->boundary_corrections, lbo->self_nu, lbo->prim_moms);
 
-    // construct primitive moments  
-    gkyl_prim_lbo_calc_advance(lbo->coll_pcalc, &app->local, 
-      lbo->moms.marr, lbo->boundary_corrections,
-      lbo->prim_moms);
-  }
   for (int d=0; d<app->vdim; d++)
     gkyl_dg_mul_op(app->confBasis, d, lbo->nu_prim_moms, d, lbo->prim_moms, 0, lbo->self_nu);
   gkyl_dg_mul_op(app->confBasis, app->vdim, lbo->nu_prim_moms, app->vdim, lbo->prim_moms, 0, lbo->self_nu);
@@ -182,22 +170,13 @@ vm_species_lbo_cross_moms(gkyl_vlasov_app *app, const struct vm_species *species
       lbo->greene_num[i], 0, lbo->greene_den[i], &app->local);
     gkyl_array_scale(lbo->greene_factor[i], 2*lbo->betaGreenep1);
 
-    if (app->use_gpu)
-      gkyl_prim_lbo_cross_calc_advance_cu(lbo->cross_calc,
-        &app->local, 
-        lbo->greene_factor[i], 
-        species->info.mass, lbo->moms.marr, lbo->prim_moms, 
-        lbo->other_m[i], lbo->collide_with[i]->lbo.moms.marr, lbo->other_prim_moms[i],
-        lbo->boundary_corrections, 
-        lbo->cross_prim_moms[i]);
-    else 
-      gkyl_prim_lbo_cross_calc_advance(lbo->cross_calc,
-        &app->local, 
-        lbo->greene_factor[i], 
-        species->info.mass, lbo->moms.marr, lbo->prim_moms, 
-        lbo->other_m[i], lbo->collide_with[i]->lbo.moms.marr, lbo->other_prim_moms[i],
-        lbo->boundary_corrections, 
-        lbo->cross_prim_moms[i]);
+    gkyl_prim_lbo_cross_calc_advance(lbo->cross_calc,
+      &app->local, 
+      lbo->greene_factor[i], 
+      species->info.mass, lbo->moms.marr, lbo->prim_moms, 
+      lbo->other_m[i], lbo->collide_with[i]->lbo.moms.marr, lbo->other_prim_moms[i],
+      lbo->boundary_corrections, lbo->cross_nu[i],
+      lbo->cross_prim_moms[i]);
 
 
     for (int d=0; d<app->vdim; d++)

@@ -204,6 +204,7 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 }
 
 void
+
 calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc) {
@@ -365,7 +366,7 @@ main(int argc, char **argv)
     },
 
     .num_diag_moments = 2,
-    .diag_moments = { "M0", "M1i" },
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1 },
   };
 
   // positrons
@@ -406,7 +407,7 @@ main(int argc, char **argv)
     },
 
     .num_diag_moments = 2,
-    .diag_moments = { "M0", "M1i" },
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1 },
   };
 
   // field
@@ -532,7 +533,7 @@ main(int argc, char **argv)
   }
 
   gkyl_vlasov_app_stat_write(app);
-  
+
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
 
   gkyl_vlasov_app_cout(app, stdout, "\n");
@@ -550,7 +551,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
   gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
-  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.nio);
+  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
   gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   freeresources:

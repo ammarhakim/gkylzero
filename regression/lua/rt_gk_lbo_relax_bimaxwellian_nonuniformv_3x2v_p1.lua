@@ -165,7 +165,7 @@ gyrokineticApp = Gyrokinetic.App.new {
     },
 
     evolve = true, -- Evolve species?
-    diagnostics = { "M0", "M1", "M2", "M2par", "M2perp" }
+    diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2, G0.Moment.M2par, G0.Moment.M2perp }
   },
 
   -- Ions.
@@ -205,10 +205,8 @@ gyrokineticApp = Gyrokinetic.App.new {
     },
 
     evolve = true, -- Evolve species?
-    diagnostics = { "M0", "M1", "M2", "M2par", "M2perp" }
+    diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2, G0.Moment.M2par, G0.Moment.M2perp }
   },
-
-  skipField = true,
 
   -- Field.
   field = Gyrokinetic.Field.new {
@@ -218,18 +216,21 @@ gyrokineticApp = Gyrokinetic.App.new {
       lowerType = {
         G0.PoissonBc.bcDirichlet,
         G0.PoissonBc.bcDirichlet
-    },
-    upperType = {
+      },
+      upperType = {
         G0.PoissonBc.bcDirichlet,
         G0.PoissonBc.bcDirichlet
-    },
-    lowerValue = {
+      },
+      lowerValue = {
         0.0, 0.0
-    },
-    upperValue = {
+      },
+      upperValue = {
         0.0, 0.0
-    }
-    }
+      }
+    },
+
+    zeroInitField = true, -- Don't compute the field at t = 0.
+    isStatic = true -- Don't evolve the field in time.
   }
 }
 

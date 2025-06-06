@@ -8,6 +8,7 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_array_reduce.h>
 #include <gkyl_fem_poisson.h>
 
 void evalFunc2x_periodicx_periodicy_sol(double t, const double *xn, double* restrict fout, void *ctx)
@@ -374,13 +375,13 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   gkyl_array_shiftc(eps, gyy*dg0norm, 2*basis.num_basis);
 
   // FEM poisson solver.
-  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&localRange, &grid, basis, &bcs, eps, NULL, false, use_gpu);
+  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&localRange, &grid, basis, &bcs, NULL, eps, NULL, false, use_gpu);
 
   // Set the RHS source.
   if (use_gpu)
-    gkyl_fem_poisson_set_rhs(poisson, rho_cu);
+    gkyl_fem_poisson_set_rhs(poisson, rho_cu, NULL);
   else
-    gkyl_fem_poisson_set_rhs(poisson, rho);
+    gkyl_fem_poisson_set_rhs(poisson, rho, NULL);
 
   // Solve the problem.
   if (use_gpu) {

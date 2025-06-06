@@ -19,7 +19,6 @@ struct gkyl_dg_iz_inp {
   enum gkyl_ion_type type_ion; // Enum for type of ion for ionization (H thru O, Ar)
   int charge_state; // Ion charge state
   enum gkyl_react_self_type type_self; // Species type (ion, electron or donor)
-  bool all_gk; // To indicate if all 3 interacting species are GK or not
 };
 
 // Object type
@@ -43,25 +42,20 @@ struct gkyl_dg_iz* gkyl_dg_iz_cu_dev_new(struct gkyl_dg_iz_inp *inp);
  * 
  *
  * @param iz Ionization object.
- * @param moms_elc Input electron moments
- * @param moms_donor Input neutral moments
- * @param b_i Unit bmag vector in Cartesian (X,Y,Z) components
- * @param prim_vars_elc Primitive variables for elc species
- * @param prim_vars_donor Primitive variables for elc species
- * @param vtSq_iz1 Thermal speed for ionization fmax
- * @param vtSq_iz2 Thermal speed for ionization fmax
+ * @param prim_vars_elc (n, upar, T/m) for the electrons
+ * @param vtSq_iz1 First thermal speed for ionization fmax (primary electrons)
+ * @param vtSq_iz2 Second thermal speed for ionization fmax (secondary electrons)
  * @param coef_iz Output reaction rate coefficient
+ * @param cflrate CFL scalar rate (frequency) array (units of 1/[T]) 
  */
 
-void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_elc,
-  const struct gkyl_array *moms_donor, const struct gkyl_array *b_i,
-  struct gkyl_array *prim_vars_elc, struct gkyl_array *prim_vars_donor,
+void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, 
+  const struct gkyl_array *prim_vars_elc, 
   struct gkyl_array *vtSq_iz1, struct gkyl_array *vtSq_iz2,
   struct gkyl_array *coef_iz, struct gkyl_array *cflrate);
 
-void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_elc,
-  const struct gkyl_array *moms_donor, const struct gkyl_array *b_i,
-  struct gkyl_array *prim_vars_elc, struct gkyl_array *prim_vars_donor,
+void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up, 
+  const struct gkyl_array *prim_vars_elc, 
   struct gkyl_array *vtSq_iz1, struct gkyl_array *vtSq_iz2,
   struct gkyl_array *coef_iz, struct gkyl_array *cflrate);
   

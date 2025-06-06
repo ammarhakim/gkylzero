@@ -193,39 +193,24 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 }
 
 void
-evalElcAppAccel(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalAppAccel(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct hartmann_ctx *app = ctx;
 
   double grav = app->grav;
 
-  double accele_x = 0.0; // Electron applied acceleration (x-direction).
-  double accele_y = grav; // Electron applied acceleration (y-direction).
-  double accele_z = 0.0; // Electron applied acceleration (z-direction).
+  double accel_x = 0.0; // Applied acceleration (x-direction).
+  double accel_y = grav; // Applied acceleration (y-direction).
+  double accel_z = 0.0; // Applied acceleration (z-direction).
 
-  // Set electron applied acceleration.
-  fout[0] = accele_x; fout[1] = accele_y; fout[2] = accele_z;
-}
-
-void
-evalIonAppAccel(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct hartmann_ctx *app = ctx;
-
-  double grav = app->grav;
-
-  double acceli_x = 0.0; // Ion applied acceleration (x-direction).
-  double acceli_y = grav; // Ion applied acceleration (y-direction).
-  double acceli_z = 0.0; // Ion applied acceleration (z-direction).
-
-  // Set ion applied acceleration.
-  fout[0] = acceli_x; fout[1] = acceli_y; fout[2] = acceli_z;
+  // Set applied acceleration.
+  fout[0] = accel_x; fout[1] = accel_y; fout[2] = accel_z;
 }
 
 void
 write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr, bool force_write)
 {
-  if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
     int frame = iot->curr - 1;
     if (force_write) {
       frame = iot->curr;
@@ -238,17 +223,17 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr, boo
 }
 
 void
-calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_moment_app* app, double t_curr)
+calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_moment_app* app, double t_curr, bool force_calc)
 {
-  if (gkyl_tm_trigger_check_and_bump(fet, t_curr)) {
+  if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
     gkyl_moment_app_calc_field_energy(app, t_curr);
   }
 }
 
 void
-calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_moment_app* app, double t_curr)
+calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_moment_app* app, double t_curr, bool force_calc)
 {
-  if (gkyl_tm_trigger_check_and_bump(imt, t_curr)) {
+  if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
     gkyl_moment_app_calc_integrated_mom(app, t_curr);
   }
 }
@@ -274,17 +259,18 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
   // Electron/ion equations.
-  struct gkyl_wv_eqn *elc_iso_euler = gkyl_wv_iso_euler_new(ctx.vte);
-  struct gkyl_wv_eqn *ion_iso_euler = gkyl_wv_iso_euler_new(ctx.vti);
+  struct gkyl_wv_eqn *elc_iso_euler = gkyl_wv_iso_euler_new(ctx.vte, false);
+  struct gkyl_wv_eqn *ion_iso_euler = gkyl_wv_iso_euler_new(ctx.vti, false);
 
   struct gkyl_moment_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
     .equation = elc_iso_euler,
-    .evolve = true,
+    
     .init = evalElcInit,
     .ctx = &ctx,
-    .app_accel_func = evalElcAppAccel,
+
+    .app_accel = evalAppAccel,
     .app_accel_ctx = &ctx,
 
     .type_brag = GKYL_BRAG_MAG_FULL,
@@ -296,10 +282,11 @@ main(int argc, char **argv)
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
     .equation = ion_iso_euler,
-    .evolve = true,
+    
     .init = evalIonInit,
     .ctx = &ctx,
-    .app_accel_func = evalIonAppAccel,
+
+    .app_accel = evalAppAccel,
     .app_accel_ctx = &ctx,
 
     .type_brag = GKYL_BRAG_MAG_FULL,
@@ -311,7 +298,7 @@ main(int argc, char **argv)
   struct gkyl_moment_field field = {
     .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
     
-    .evolve = false,
+    .is_static = true,
     .init = evalFieldInit,
     .ctx = &ctx,
 
@@ -441,13 +428,13 @@ main(int argc, char **argv)
   int field_energy_calcs = ctx.field_energy_calcs;
   struct gkyl_tm_trigger fe_trig = { .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr };
 
-  calc_field_energy(&fe_trig, app, t_curr);
+  calc_field_energy(&fe_trig, app, t_curr, false);
 
   // Create trigger for integrated moments.
   int integrated_mom_calcs = ctx.integrated_mom_calcs;
   struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr };
 
-  calc_integrated_mom(&im_trig, app, t_curr);
+  calc_integrated_mom(&im_trig, app, t_curr, false);
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
@@ -476,8 +463,8 @@ main(int argc, char **argv)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
-    calc_field_energy(&fe_trig, app, t_curr);
-    calc_integrated_mom(&im_trig, app, t_curr);
+    calc_field_energy(&fe_trig, app, t_curr, false);
+    calc_integrated_mom(&im_trig, app, t_curr, false);
     write_data(&io_trig, app, t_curr, false);
 
     if (dt_init < 0.0) {
@@ -492,6 +479,11 @@ main(int argc, char **argv)
       if (num_failures >= num_failures_max) {
         gkyl_moment_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_moment_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+
+        calc_field_energy(&fe_trig, app, t_curr, true);
+        calc_integrated_mom(&im_trig, app, t_curr, true);
+        write_data(&io_trig, app, t_curr, true);
+
         break;
       }
     }
@@ -502,8 +494,8 @@ main(int argc, char **argv)
     step += 1;
   }
 
-  calc_field_energy(&fe_trig, app, t_curr);
-  calc_integrated_mom(&im_trig, app, t_curr);
+  calc_field_energy(&fe_trig, app, t_curr, false);
+  calc_integrated_mom(&im_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
   gkyl_moment_app_stat_write(app);
 

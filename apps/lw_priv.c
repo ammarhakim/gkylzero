@@ -3,10 +3,37 @@
 #include <gkyl_app.h>
 #include <gkyl_moment.h>
 #include <gkyl_wv_euler.h>
+#include <gkyl_wv_mhd.h>
 #include <gkyl_vlasov.h>
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_lw_priv.h>
 #include <gkyl_util.h>
+
+// Define options for moments of a distribution function.
+static const struct gkyl_str_int_pair distribution_moms[] = {
+  { "M0",                 GKYL_F_MOMENT_M0 }, // Number density.
+  { "M1",                 GKYL_F_MOMENT_M1 }, // Momentum density.
+  { "M2",                 GKYL_F_MOMENT_M2 }, // Kinetic energy density.
+  { "M2par",              GKYL_F_MOMENT_M2PAR }, // Parallel kinetic energy density.
+  { "M2perp",             GKYL_F_MOMENT_M2PERP }, // Perpendicular kinetic energy density.
+  { "M2ij",               GKYL_F_MOMENT_M2IJ }, // Kinetic energy tensor..
+  { "M3",                 GKYL_F_MOMENT_M3 }, // Heat flux.
+  { "M3par",              GKYL_F_MOMENT_M3PAR }, // Parallel energy flux.
+  { "M3perp",             GKYL_F_MOMENT_M3PERP }, // Perpendicular energy flux.
+  { "M3ijk",              GKYL_F_MOMENT_M3IJK }, // Heat flux in lab frame.
+  { "MaxwellianMoments",  GKYL_F_MOMENT_MAXWELLIAN }, // M0, drift speed, T/m.
+  { "BiMaxwellianMoments",GKYL_F_MOMENT_BIMAXWELLIAN }, // M0, drift speed, Tpar/m, Tperp/m.
+  { "LTEMoments",         GKYL_F_MOMENT_LTE }, // Maxwellian or Maxwell-Juttner moments.
+  { "M0M1M2",             GKYL_F_MOMENT_M0M1M2 },  // M0, M1, M2.
+  { "M0M1M2parM2perp",    GKYL_F_MOMENT_M0M1M2PARM2PERP },  // M0, M1, M2par, M2perp.
+  { "HamiltonianMoments", GKYL_F_MOMENT_HAMILTONIAN },  // M0, mass*M1, H moments.
+  { "M1_from_H",          GKYL_F_MOMENT_M1_FROM_H }, // dH/dv / m moment.
+  { "EnergyMoment",       GKYL_F_MOMENT_ENERGY }, // H moment.
+  { "M0EnergyM3",         GKYL_F_MOMENT_M0ENERGYM3 }, // M0, Energy (H) and M3 moments.
+  { "Ni",                 GKYL_F_MOMENT_NI }, // M0, M1i for-vector.
+  { "Tij",                GKYL_F_MOMENT_TIJ }, // Stress-energy tensor.
+  { 0, 0 }
+};
 
 // Species boundary conditions -> enum map.
 static const struct gkyl_str_int_pair species_bcs[] = {
@@ -75,6 +102,22 @@ static const struct gkyl_str_int_pair euler_rp_type[] = {
   { 0, 0 }
 };
 
+// MHD Riemann problem -> enum map.
+static const struct gkyl_str_int_pair mhd_rp_type[] = {
+  { "Roe", WV_MHD_RP_ROE },
+  { "HLLD", WV_MHD_RP_HLLD },
+  { "Lax", WV_MHD_RP_LAX },
+  { 0, 0 }
+};
+
+// MHD divergence correction -> enum map.
+static const struct gkyl_str_int_pair mhd_divb_type[] = {
+  { "None", GKYL_MHD_DIVB_NONE },
+  { "GLM", GKYL_MHD_DIVB_GLM },
+  { "EightWaves", GKYL_MHD_DIVB_EIGHT_WAVES },
+  { 0, 0 }
+};
+
 // Braginskii type -> enum map.
 static const struct gkyl_str_int_pair braginskii_type[] = {
   { "Mag", GKYL_BRAG_MAG },
@@ -99,8 +142,8 @@ static const struct gkyl_str_int_pair projection_type[] = {
 static const struct gkyl_str_int_pair model_type[] = {
   { "Default", GKYL_MODEL_DEFAULT },
   { "SR", GKYL_MODEL_SR },
-  { "GeneralGeometry", GKYL_MODEL_GEN_GEO },
   { "CanonicalPB", GKYL_MODEL_CANONICAL_PB },
+  { "CanonicalPBGR", GKYL_MODEL_CANONICAL_PB_GR },
   { 0, 0 }
 };
 
@@ -139,6 +182,14 @@ static const struct gkyl_str_int_pair geometry_type[] = {
   { 0, 0 }
 };
 
+// Gyrokinetic position map type -> enum map.
+static const struct gkyl_str_int_pair position_map_type[] = {
+  { "UserInput", GKYL_PMAP_USER_INPUT },
+  { "ConstantPolynomial", GKYL_PMAP_CONSTANT_DB_POLYNOMIAL },
+  { "ConstantNumeric", GKYL_PMAP_CONSTANT_DB_NUMERIC },
+  { 0, 0 }
+};
+
 // Gyrokinetic field type -> enum map.
 static const struct gkyl_str_int_pair gk_field_type[] = {
   { "Electrostatic", GKYL_GK_FIELD_ES },
@@ -165,6 +216,41 @@ static const struct gkyl_str_int_pair gk_radiation_te_type[] = {
   { 0, 0 }
 };
 
+// Gyrokinetic reaction type -> enum map.
+static const struct gkyl_str_int_pair gk_react_type[] = {
+  { "None", GKYL_NO_REACT },
+  { "Ionization", GKYL_REACT_IZ },
+  { "ChargeExchange", GKYL_REACT_CX },
+  { "Recombination", GKYL_REACT_RECOMB },
+  { 0, 0 }
+};
+
+// Gyrokinetic ion type -> enum map.
+static const struct gkyl_str_int_pair gk_ion_type[] = {
+  { "Hydrogen", GKYL_ION_H },
+  { "Deuterium", GKYL_ION_D },
+  { "Helium", GKYL_ION_HE },
+  { "Lithium", GKYL_ION_LI },
+  { "Beryllium", GKYL_ION_BE },
+  { "Boron", GKYL_ION_B },
+  { "Carbon", GKYL_ION_C },
+  { "Nitrogen", GKYL_ION_N },
+  { "Oxygen", GKYL_ION_O },
+  { "Neon", GKYL_ION_NE },
+  { "Argon", GKYL_ION_AR },
+  { 0, 0 }
+};
+
+// Gyrokinetic self-reaction type -> enum map.
+static const struct gkyl_str_int_pair gk_react_self_type[] = {
+  { "Electron", GKYL_SELF_ELC },
+  { "Ion", GKYL_SELF_ION },
+  { "Donor", GKYL_SELF_DONOR },
+  { "Receiver", GKYL_SELF_RECVR },
+  { "Partner", GKYL_SELF_PARTNER },
+  { 0, 0 }
+};
+
 static void
 register_types(lua_State *L, const struct gkyl_str_int_pair types[], const char *nm)
 {
@@ -179,6 +265,12 @@ register_types(lua_State *L, const struct gkyl_str_int_pair types[], const char 
   }
   
   lua_rawset(L, -3);
+}
+
+void
+gkyl_register_distribution_moment_types(lua_State *L)
+{
+  register_types(L, distribution_moms, "Moment");
 }
 
 void
@@ -215,6 +307,18 @@ void
 gkyl_register_euler_rp_types(lua_State *L)
 {
   register_types(L, euler_rp_type, "EulerRP");
+}
+
+void
+gkyl_register_mhd_rp_types(lua_State *L)
+{
+  register_types(L, mhd_rp_type, "MHDRP");
+}
+
+void
+gkyl_register_mhd_divb_types(lua_State *L)
+{
+  register_types(L, mhd_divb_type, "DivB");
 }
 
 void
@@ -260,6 +364,12 @@ gkyl_register_gyrokinetic_geometry_types(lua_State *L)
 }
 
 void
+gkyl_register_gyrokinetic_position_map_types(lua_State *L)
+{
+  register_types(L, position_map_type, "PositionMap");
+}
+
+void
 gkyl_register_gyrokinetic_field_types(lua_State *L)
 {
   register_types(L, gk_field_type, "GKField");
@@ -275,6 +385,24 @@ void
 gkyl_register_gyrokinetic_radiation_Te_types(lua_State *L)
 {
   register_types(L, gk_radiation_te_type, "TeMinModel");
+}
+
+void
+gkyl_register_gyrokinetic_reaction_types(lua_State *L)
+{
+  register_types(L, gk_react_type, "Reaction");
+}
+
+void
+gkyl_register_gyrokinetic_ion_types(lua_State *L)
+{
+  register_types(L, gk_ion_type, "Ion");
+}
+
+void
+gkyl_register_gyrokinetic_self_reaction_types(lua_State *L)
+{
+  register_types(L, gk_react_self_type, "Self");
 }
 
 void

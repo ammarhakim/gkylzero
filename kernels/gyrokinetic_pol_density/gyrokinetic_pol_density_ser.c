@@ -9,10 +9,10 @@ void gkyl_gyrokinetic_pol_density_1x_ser_p1(const double *dx, const double *epsi
 
   const double *epsxx = &epsilon[0];
 
-  double rdx00 = 4.0/(dx[0]*dx[0]);
+  double rdx00 = 1.0;
 
-  out[0] = (-4.743416490252569*epsxx[0]*phi[2]*rdx00)-2.121320343559642*epsxx[1]*phi[1]*rdx00; 
-  out[1] = -9.48683298050514*epsxx[1]*phi[2]*rdx00; 
+  out[0] = 0.7071067811865475*epsxx[1]*phi[1]*rdx00+0.7071067811865475*epsxx[0]*phi[0]*rdx00; 
+  out[1] = 0.6324555320336759*epsxx[1]*phi[2]*rdx00+0.7071067811865475*epsxx[0]*phi[1]*rdx00+0.7071067811865475*phi[0]*epsxx[1]*rdx00; 
 
 }
 

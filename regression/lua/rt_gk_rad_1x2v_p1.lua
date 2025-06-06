@@ -151,7 +151,7 @@ gyrokineticApp = Gyrokinetic.App.new {
     },
 
     evolve = true, -- Evolve species?
-    diagnostics = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" }
+    diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2, G0.Moment.M2par, G0.Moment.M2perp, G0.Moment.M3par, G0.Moment.M3perp }
   },
 
   -- Ions.
@@ -191,15 +191,16 @@ gyrokineticApp = Gyrokinetic.App.new {
     },
 
     evolve = true, -- Evolve species?
-    diagnostics = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" }
+    diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2, G0.Moment.M2par, G0.Moment.M2perp, G0.Moment.M3par, G0.Moment.M3perp }
   },
-
-  skipField = true,
 
   -- Field.
   field = Gyrokinetic.Field.new {
     femParBc = G0.ParProjBc.Periodic,
-    kPerpSq = k_perp * k_perp
+    kPerpSq = k_perp * k_perp,
+
+    zeroInitField = true, -- Don't compute the field at t = 0.
+    isStatic = true -- Don't evolve the field in time.
   }
 }
 

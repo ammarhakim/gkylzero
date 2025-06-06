@@ -4,14 +4,15 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_const.h>
 
 #include <gkyl_dg_updater_moment_gyrokinetic.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
+#include <gkyl_gk_maxwellian_proj_on_basis.h>
 #include <gkyl_proj_on_basis.h>
-#include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_velocity_map.h>
 #include <gkyl_range.h>
 #include <gkyl_eval_on_nodes.h>
@@ -158,12 +159,10 @@ test_2x_option(bool use_gpu)
   memcpy(&geometry_input.geo_local, &geometry_input.geo_global, sizeof(struct gkyl_range));
   memcpy(&geometry_input.geo_local_ext, &geometry_input.geo_global_ext, sizeof(struct gkyl_range));
 
-
   struct gk_geometry* gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_input);
   // deflate geometry
   struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input);
   gkyl_gk_geometry_release(gk_geom_3d);
-
 
   // If we are on the gpu, copy from host
   if (use_gpu) {
@@ -187,7 +186,7 @@ test_2x_option(bool use_gpu)
   gkyl_proj_on_basis_advance(proj_udrift, 0.0, &confLocal, udrift);
   gkyl_proj_on_basis_advance(proj_vtsq, 0.0, &confLocal, vtsq);
   
-  // proj_maxwellian expects the primitive moments as a single array.
+  // Projection routine expects the primitive moments as a single array.
   struct gkyl_array *prim_moms = mkarr(false, 3*confBasis.num_basis, confLocal_ext.volume);
   gkyl_array_set_offset(prim_moms, 1.0, m0, 0*confBasis.num_basis);
   gkyl_array_set_offset(prim_moms, 1.0, udrift, 1*confBasis.num_basis);
@@ -198,13 +197,26 @@ test_2x_option(bool use_gpu)
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, vGrid,
     local, local_ext, vLocal, vLocal_ext, use_gpu);
 
-  // Initialize Maxwellian projection object
-  gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_new(&grid,
-    &confBasis, &basis, poly_order+1, gvm, use_gpu);
-
-  // Initialize distribution function with proj_gkmaxwellian_on_basis
+  // Create distribution function array
   struct gkyl_array *f = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  // If on GPUs, need to copy n, udrift, and vt^2 onto device
+
+  // Maxwellian (or bi-Maxwellian) projection updater.
+  struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = {
+    .phase_grid = &grid,
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .conf_range =  &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &vLocal, 
+    .gk_geom = gk_geom,
+    .vel_map = gvm,
+    .mass = mi,
+    .bimaxwellian = false, 
+    .use_gpu = use_gpu,
+  };
+  struct gkyl_gk_maxwellian_proj_on_basis *proj_max = gkyl_gk_maxwellian_proj_on_basis_inew( &inp_proj );
+
+  // If on GPUs, need to copy primitive moments onto device
   struct gkyl_array *prim_moms_dev, *m0_dev;
   if (use_gpu) {
     prim_moms_dev = mkarr(use_gpu, 3*confBasis.num_basis, confLocal_ext.volume);
@@ -212,24 +224,24 @@ test_2x_option(bool use_gpu)
     
     gkyl_array_copy(prim_moms_dev, prim_moms);
     gkyl_array_copy(m0_dev, m0);
-    gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &local_ext, &confLocal_ext, prim_moms_dev,
-      gk_geom->bmag, gk_geom->bmag, mi, f);
-  }
+    gkyl_gk_maxwellian_proj_on_basis_advance(proj_max,
+      &local, &confLocal, prim_moms_dev, false, f);  
+  } 
   else {
-    gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &local_ext, &confLocal_ext, prim_moms,
-      gk_geom->bmag, gk_geom->bmag, mi, f);
+    gkyl_gk_maxwellian_proj_on_basis_advance(proj_max,
+      &local, &confLocal, prim_moms, false, f);  
   }
 
   // Initialize integrated moment calculator
   struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &confBasis, &basis,
-    &confLocal, mi, gvm, gk_geom, "Integrated", true, use_gpu);    
+    &confLocal, mi, qi, gvm, gk_geom, NULL, GKYL_F_MOMENT_M0M1M2PARM2PERP, true, use_gpu);    
 
-  int num_mom = 4;
+  int num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(mcalc);
 
   struct gkyl_array *marr = mkarr(use_gpu, num_mom, confLocal_ext.volume);
-  struct gkyl_array *marr_host = marr;
-  if (use_gpu)
-    marr_host = mkarr(false, num_mom, local_ext.volume);  
+  struct gkyl_array *marr_host = use_gpu? marr_host = mkarr(false, marr->ncomp, marr->size)
+                                        : gkyl_array_acquire(marr);
+    
 
   double *red_integ_diag_global;
 
@@ -243,8 +255,6 @@ test_2x_option(bool use_gpu)
   gkyl_dg_updater_moment_gyrokinetic_advance(mcalc, &local, &confLocal, f, marr);
   gkyl_array_reduce_range(red_integ_diag_global, marr, GKYL_SUM, &confLocal);
 
-
-
   if (use_gpu)
     gkyl_cu_memcpy(avals_global, red_integ_diag_global, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
   else
@@ -255,8 +265,9 @@ test_2x_option(bool use_gpu)
   TEST_CHECK( gkyl_compare( avals_global[0]/3e19, 1.0, 1e-2));
   TEST_CHECK( gkyl_compare( avals_global[1]/3e19, 0.0, 1e-2));
   TEST_CHECK( gkyl_compare( avals_global[2]/2.14e+29, 1.0, 1e-2));
+  TEST_MSG( "Got: %.9e | Expected: %.9e\n",avals_global[2]/2.14e+29, 1.0);
   TEST_CHECK( gkyl_compare( avals_global[3]/4.21e+29, 1.0, 1e-2));
-
+  TEST_MSG( "Got: %.9e | Expected: %.9e\n",avals_global[3]/4.21e+29, 1.0);
 
   gkyl_array_release(m0);
   gkyl_array_release(udrift); 
@@ -264,11 +275,12 @@ test_2x_option(bool use_gpu)
   gkyl_array_release(prim_moms);
 
   gkyl_array_release(marr);
+  gkyl_array_release(marr_host);
 
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_udrift);
   gkyl_proj_on_basis_release(proj_vtsq);
-  gkyl_proj_maxwellian_on_basis_release(proj_max);  
+  gkyl_gk_maxwellian_proj_on_basis_release(proj_max);
   gkyl_velocity_map_release(gvm);
 
   gkyl_array_release(f);
@@ -281,8 +293,6 @@ test_2x_option(bool use_gpu)
   gkyl_dg_updater_moment_gyrokinetic_release(mcalc);
   gkyl_gk_geometry_release(gk_geom);
 }
-
-
 
 void test_2x() { test_2x_option(false); }
 

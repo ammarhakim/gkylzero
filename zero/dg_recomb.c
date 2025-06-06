@@ -6,12 +6,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
-#include <gkyl_dg_prim_vars_vlasov.h>
-#include <gkyl_dg_prim_vars_gyrokinetic.h>
-#include <gkyl_dg_prim_vars_transform.h>
-#include <gkyl_dg_prim_vars_type.h>
 #include <gkyl_array_ops.h>
-#include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_recomb.h>
 #include <gkyl_dg_recomb_priv.h>
@@ -31,9 +26,6 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   up->conf_rng_ext = inp->conf_rng_ext;
   up->phase_rng = inp->phase_rng;
   up->grid = inp->grid;
-  up->mass_self = inp->mass_self;
-  up->type_self = inp->type_self;
-  up->all_gk = inp->all_gk;
   
   int cdim = up->cbasis->ndim;
   int pdim = up->pbasis->ndim;
@@ -127,20 +119,10 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   if (use_gpu) {
     up->recomb_data = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->adas_basis.num_basis, data.NT*data.NN);
     gkyl_array_copy(up->recomb_data, adas_dg);
-    up->vtSq_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng_ext->volume);
   }
   else {
     up->recomb_data = gkyl_array_new(GKYL_DOUBLE, up->adas_basis.num_basis, data.NT*data.NN);
     gkyl_array_copy(up->recomb_data, adas_dg);
-    up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng_ext->volume);
-  }
-
-  up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(up->cbasis, up->pbasis, "vtSq", use_gpu); 
-  if ((up->all_gk == false) && (up->type_self == GKYL_SELF_RECVR)) {
-    up->calc_prim_vars_ion = gkyl_dg_prim_vars_transform_new(up->cbasis, up->pbasis, up->conf_rng, "prim_vlasov", use_gpu);
-  }
-  else { // create dummy updater to pass to cuda kernel which isn't used
-    up->calc_prim_vars_ion = gkyl_dg_prim_vars_transform_new(up->cbasis, up->pbasis, up->conf_rng, "prim_gk", use_gpu);
   }
   
   up->on_dev = up; // CPU eqn obj points to itself
@@ -152,20 +134,14 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
 }
 
 void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
-  const struct gkyl_array *moms_elc, const struct gkyl_array *moms_ion,
-  const struct gkyl_array *b_i, struct gkyl_array *prim_vars_ion,
+  const struct gkyl_array *prim_vars_elc, 
   struct gkyl_array *coef_recomb, struct gkyl_array *cflrate)
 {
 #ifdef GKYL_HAVE_CUDA
   if(gkyl_array_is_cu_dev(coef_recomb)) {
-    return gkyl_dg_recomb_coll_cu(up, moms_elc, moms_ion, b_i, prim_vars_ion, coef_recomb, cflrate);
+    return gkyl_dg_recomb_coll_cu(up, prim_vars_elc, coef_recomb, cflrate);
   }
 #endif
-  if ((up->all_gk == false) && (up->type_self == GKYL_SELF_RECVR)) {
-    // Set auxiliary variable (b_i) for computation of udrift_i
-    gkyl_dg_prim_vars_transform_set_auxfields(up->calc_prim_vars_ion, 
-      (struct gkyl_dg_prim_vars_auxfields) {.b_i = b_i});
-  }
 
   struct gkyl_range_iter conf_iter, vel_iter;
   int rem_dir[GKYL_MAX_DIM] = { 0 };
@@ -173,18 +149,15 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
   gkyl_range_iter_init(&conf_iter, up->conf_rng);
   while (gkyl_range_iter_next(&conf_iter)) {
     long loc = gkyl_range_idx(up->conf_rng, conf_iter.idx);
-    const double *moms_elc_d = gkyl_array_cfetch(moms_elc, loc);
-    const double *m0_elc_d = &moms_elc_d[0];    
-    
-    double *vtSq_elc_d = gkyl_array_fetch(up->vtSq_elc, loc);
-    double *coef_recomb_d = gkyl_array_fetch(coef_recomb, loc);
+    long nc = coef_recomb->ncomp;
 
-    up->calc_prim_vars_elc_vtSq->kernel(up->calc_prim_vars_elc_vtSq, conf_iter.idx, moms_elc_d, vtSq_elc_d);
+    const double *prim_vars_elc_d = gkyl_array_cfetch(prim_vars_elc, loc);
+    double *coef_recomb_d = gkyl_array_fetch(coef_recomb, loc);
 
     //Find cell containing value of n,T
     double cell_av_fac = pow(1/sqrt(2),up->cdim);
-    double m0_elc_av = m0_elc_d[0]*cell_av_fac;
-    double temp_elc_av = vtSq_elc_d[0]*cell_av_fac*up->mass_elc/up->elem_charge;
+    double m0_elc_av = prim_vars_elc_d[0]*cell_av_fac;
+    double temp_elc_av = prim_vars_elc_d[2*nc]*cell_av_fac*up->mass_elc/up->elem_charge;
     double log_Te_av = log10(temp_elc_av);
     double log_m0_av = log10(m0_elc_av);
     double cell_val_t;
@@ -225,14 +198,6 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
       double adas_eval = up->adas_basis.eval_expand(cell_vals_2d, recomb_dat_d);
       coef_recomb_d[0] = pow(10.0,adas_eval)/cell_av_fac;
     }
-    
-    if ((up->all_gk==false) && (up->type_self == GKYL_SELF_RECVR)) {
-      const double *moms_ion_d = gkyl_array_cfetch(moms_ion, loc);
-      double *prim_vars_ion_d = gkyl_array_fetch(prim_vars_ion, loc);
-      
-      up->calc_prim_vars_ion->kernel(up->calc_prim_vars_ion, conf_iter.idx,
-					    moms_ion_d, prim_vars_ion_d);
-    }
   }
   //gkyl_grid_sub_array_write(&s->grid, &s->local, react->coef_react[i], "coef_recomb.gkyl");
 
@@ -255,19 +220,5 @@ void
 gkyl_dg_recomb_release(struct gkyl_dg_recomb* up)
 {
   gkyl_array_release(up->recomb_data);
-  gkyl_array_release(up->vtSq_elc);
-  gkyl_dg_prim_vars_type_release(up->calc_prim_vars_elc_vtSq);
-  gkyl_dg_prim_vars_type_release(up->calc_prim_vars_ion);
   free(up);
 }
-
-/* #ifndef GKYL_HAVE_CUDA */
-
-/* struct gkyl_dg_recomb* */
-/* gkyl_dg_recomb_cu_dev_new(struct gkyl_dg_recomb_inp *inp) */
-/* { */
-/*   assert(false); */
-/*   return 0; */
-/* } */
-
-/* #endif */

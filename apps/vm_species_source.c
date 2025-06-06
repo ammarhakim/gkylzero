@@ -45,11 +45,11 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct
   src->num_diag_moments = s->info.num_diag_moments;
   s->src.moms = gkyl_malloc(sizeof(struct vm_species_moment[src->num_diag_moments]));
   for (int m=0; m<src->num_diag_moments; ++m) {
-    vm_species_moment_init(app, s, &s->src.moms[m], s->info.diag_moments[m]);
+    vm_species_moment_init(app, s, &s->src.moms[m], s->info.diag_moments[m], false);
   }
 
   // Allocate data and updaters for integrated moments.
-  vm_species_moment_init(app, s, &s->src.integ_moms, "Integrated");
+  vm_species_moment_init(app, s, &s->src.integ_moms, GKYL_F_MOMENT_M0M1M2, true);
   if (app->use_gpu) {
     s->src.red_integ_diag = gkyl_cu_malloc(sizeof(double[vdim+2]));
     s->src.red_integ_diag_global = gkyl_cu_malloc(sizeof(double[vdim+2]));
@@ -135,7 +135,7 @@ vm_species_source_release(const struct gkyl_vlasov_app *app, const struct vm_sou
     } 
     else {
       gkyl_free(src->scale_ptr);
-    }  
+    }
   }
 
   for (int k=0; k<src->num_sources; k++) {

@@ -70,6 +70,18 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
         }
       }
       gpm->constB_ctx->map_strength = pmap_info.map_strength;
+
+      if (pmap_info.maximum_slope_at_min_B == 0.)
+      { gpm->constB_ctx->enable_maximum_slope_limits_at_min_B = false;  }
+      else
+      { gpm->constB_ctx->enable_maximum_slope_limits_at_min_B = true; }
+      gpm->constB_ctx->maximum_slope_at_min_B = pmap_info.maximum_slope_at_min_B;
+
+      if (pmap_info.maximum_slope_at_max_B == 0.)
+      { gpm->constB_ctx->enable_maximum_slope_limits_at_max_B = false;  }
+      else
+      { gpm->constB_ctx->enable_maximum_slope_limits_at_max_B = true; }
+      gpm->constB_ctx->maximum_slope_at_max_B = pmap_info.maximum_slope_at_max_B;
   }
 
   gpm->grid = grid;
@@ -89,9 +101,29 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
 }
 
 void
-gkyl_position_map_set(struct gkyl_position_map* gpm, struct gkyl_array* mc2nu)
+gkyl_position_map_set_mc2nu(struct gkyl_position_map* gpm, struct gkyl_array* mc2nu)
 {
   gkyl_array_copy(gpm->mc2nu, mc2nu);
+}
+
+void
+gkyl_position_map_set_bmag(struct gkyl_position_map* gpm, struct gkyl_comm* comm,
+  struct gkyl_array* bmag)
+{
+  gpm->to_optimize = true;
+  int N_boundaries = gpm->constB_ctx->N_theta_boundaries;
+  gpm->constB_ctx->theta_extrema = gkyl_malloc(sizeof(double) * N_boundaries);
+  gpm->constB_ctx->bmag_extrema = gkyl_malloc(sizeof(double) * N_boundaries);
+  gpm->constB_ctx->min_or_max = gkyl_malloc(sizeof(bool) * N_boundaries);
+  if (comm == NULL) {
+    gkyl_array_release(gpm->bmag_ctx->bmag);
+    gpm->bmag_ctx->bmag = gkyl_array_acquire(bmag);
+    return;
+  }
+  else {
+    gkyl_comm_array_allgather_host(comm, &gpm->local, \
+    &gpm->global, bmag, (struct gkyl_array*) gpm->bmag_ctx->bmag);
+  }
 }
 
 void 
@@ -122,8 +154,18 @@ gkyl_position_map_eval_mc2nu(const struct gkyl_position_map* gpm, const double *
 }
 
 void
-gkyl_position_map_optimize(struct gkyl_position_map* gpm)
+gkyl_position_map_optimize(struct gkyl_position_map* gpm, struct gkyl_rect_grid grid,
+  struct gkyl_range global)
 {
+  enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
+  gpm->constB_ctx->psi_max   = grid.upper[PSI_IDX];
+  gpm->constB_ctx->psi_min   = grid.lower[PSI_IDX];
+  gpm->constB_ctx->alpha_max = grid.upper[AL_IDX];
+  gpm->constB_ctx->alpha_min = grid.lower[AL_IDX];
+  gpm->constB_ctx->theta_max = grid.upper[TH_IDX];
+  gpm->constB_ctx->theta_min = grid.lower[TH_IDX];
+  gpm->constB_ctx->N_theta_boundaries = global.upper[TH_IDX] - global.lower[TH_IDX] + 2;
+
   if (gpm->id == GKYL_PMAP_CONSTANT_DB_POLYNOMIAL && gpm->to_optimize == true)
   {
     gpm->maps[0] = gpm->constB_ctx->maps_backup[0];
@@ -164,6 +206,33 @@ gkyl_position_map_optimize(struct gkyl_position_map* gpm)
   }
 }
 
+double
+gkyl_position_map_slope(const struct gkyl_position_map* gpm, int ix_map,
+  double x, double dx, int ix_comp, struct gkyl_range *nrange)
+{
+  double x_left = x - dx;
+  double x_right = x + dx;
+  double f_left, f, f_right;
+  gpm->maps[ix_map](0.0, &x_left, &f_left, gpm->ctxs[ix_map]);
+  gpm->maps[ix_map](0.0, &x_right, &f_right, gpm->ctxs[ix_map]);
+  double slope;
+  if (ix_comp == nrange->lower[ix_map])
+  {
+    gpm->maps[ix_map](0.0, &x, &f, gpm->ctxs[ix_map]);
+    slope = (f_right - f) / dx;
+  }
+  else if (ix_comp == nrange->upper[ix_map])
+  {
+    gpm->maps[ix_map](0.0, &x, &f, gpm->ctxs[ix_map]);
+    slope = (f - f_left) / dx;
+  }
+  else
+  {
+    slope = (f_right - f_left) / (2.0 * dx);
+  }
+  return slope;
+}
+
 struct gkyl_position_map*
 gkyl_position_map_acquire(const struct gkyl_position_map* gpm)
 {
@@ -183,6 +252,12 @@ gkyl_position_map_free(const struct gkyl_ref_count *ref)
   struct gkyl_position_map *gpm = container_of(ref, struct gkyl_position_map, ref_count);
   gkyl_array_release(gpm->mc2nu);
   gkyl_array_release(gpm->bmag_ctx->bmag);
+  if (gpm->to_optimize == true)
+  {
+    gkyl_free(gpm->constB_ctx->theta_extrema);
+    gkyl_free(gpm->constB_ctx->bmag_extrema);
+    gkyl_free(gpm->constB_ctx->min_or_max);
+  }
   gkyl_free(gpm->bmag_ctx);
   gkyl_free(gpm->constB_ctx);
   gkyl_free(gpm);

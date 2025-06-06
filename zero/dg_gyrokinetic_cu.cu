@@ -50,7 +50,6 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
 
   gyrokinetic->eqn.surf_term = surf;
   gyrokinetic->eqn.boundary_surf_term = boundary_surf;
-  gyrokinetic->eqn.boundary_flux_term = boundary_flux;
 
   const gkyl_dg_gyrokinetic_vol_kern_list *vol_kernels, *vol_no_by_kernels;
   const gkyl_dg_gyrokinetic_surf_kern_list *surf_x_kernels, *surf_no_by_x_kernels; 
@@ -61,9 +60,6 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
   const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_y_kernels, *boundary_surf_no_by_y_kernels; 
   const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_z_kernels, *boundary_surf_no_by_z_kernels; 
   const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_vpar_kernels, *boundary_surf_no_by_vpar_kernels; 
-  const gkyl_dg_gyrokinetic_boundary_flux_kern_list *boundary_flux_x_kernels, *boundary_flux_no_by_x_kernels; 
-  const gkyl_dg_gyrokinetic_boundary_flux_kern_list *boundary_flux_y_kernels, *boundary_flux_no_by_y_kernels; 
-  const gkyl_dg_gyrokinetic_boundary_flux_kern_list *boundary_flux_z_kernels, *boundary_flux_no_by_z_kernels; 
   
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -76,9 +72,6 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
       boundary_surf_y_kernels = ser_boundary_surf_y_kernels;
       boundary_surf_z_kernels = ser_boundary_surf_z_kernels;
       boundary_surf_vpar_kernels = ser_boundary_surf_vpar_kernels;
-      boundary_flux_x_kernels = ser_boundary_flux_x_kernels;
-      boundary_flux_y_kernels = ser_boundary_flux_y_kernels;
-      boundary_flux_z_kernels = ser_boundary_flux_z_kernels;
 
       vol_no_by_kernels = ser_no_by_vol_kernels;
       surf_no_by_x_kernels = ser_no_by_surf_x_kernels;
@@ -89,9 +82,6 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
       boundary_surf_no_by_y_kernels = ser_no_by_boundary_surf_y_kernels;
       boundary_surf_no_by_z_kernels = ser_no_by_boundary_surf_z_kernels;
       boundary_surf_no_by_vpar_kernels = ser_no_by_boundary_surf_vpar_kernels;
-      boundary_flux_no_by_x_kernels = ser_no_by_boundary_flux_x_kernels;
-      boundary_flux_no_by_y_kernels = ser_no_by_boundary_flux_y_kernels;
-      boundary_flux_no_by_z_kernels = ser_no_by_boundary_flux_z_kernels;
       
       break;
 
@@ -115,12 +105,6 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
     if (cdim>2)
       gyrokinetic->boundary_surf[2] = boundary_surf_no_by_z_kernels[cv_index].kernels[poly_order];
     gyrokinetic->boundary_surf[cdim] = boundary_surf_no_by_vpar_kernels[cv_index].kernels[poly_order];
-
-    gyrokinetic->boundary_flux[0] = boundary_flux_no_by_x_kernels[cv_index].kernels[poly_order];
-    if (cdim>1)
-      gyrokinetic->boundary_flux[1] = boundary_flux_no_by_y_kernels[cv_index].kernels[poly_order];
-    if (cdim>2)
-      gyrokinetic->boundary_flux[2] = boundary_flux_no_by_z_kernels[cv_index].kernels[poly_order];
   }
   else {
     gyrokinetic->eqn.vol_term = vol_kernels[cv_index].kernels[poly_order];
@@ -138,19 +122,13 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
     if (cdim>2)
       gyrokinetic->boundary_surf[2] = boundary_surf_z_kernels[cv_index].kernels[poly_order];
     gyrokinetic->boundary_surf[cdim] = boundary_surf_vpar_kernels[cv_index].kernels[poly_order];
-
-    gyrokinetic->boundary_flux[0] = boundary_flux_x_kernels[cv_index].kernels[poly_order];
-    if (cdim>1)
-      gyrokinetic->boundary_flux[1] = boundary_flux_y_kernels[cv_index].kernels[poly_order];
-    if (cdim>2)
-      gyrokinetic->boundary_flux[2] = boundary_flux_z_kernels[cv_index].kernels[poly_order];
   }
 }
 
 struct gkyl_dg_eqn*
 gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id,
+  const double charge, const double mass, double skip_cell_threshold, enum gkyl_gkmodel_id gkmodel_id,
   const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map)
 {
   struct dg_gyrokinetic *gyrokinetic = (struct dg_gyrokinetic*) gkyl_malloc(sizeof(*gyrokinetic));
@@ -163,6 +141,11 @@ gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gky
 
   gyrokinetic->charge = charge;
   gyrokinetic->mass = mass;
+
+  if (skip_cell_threshold > 0.0)
+    gyrokinetic->skip_cell_thresh = skip_cell_threshold * pow(sqrt(2.0), pdim);
+  else
+    gyrokinetic->skip_cell_thresh = -1.0;
 
   gyrokinetic->eqn.num_equations = 1;
 

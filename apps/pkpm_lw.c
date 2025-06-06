@@ -22,6 +22,9 @@
 #ifdef GKYL_HAVE_MPI
 #include <mpi.h>
 #include <gkyl_mpi_comm.h>
+#ifdef GKYL_HAVE_NCCL
+#include <gkyl_nccl_comm.h>
+#endif
 #endif
 
 // Magic IDs for use in distinguishing various species and field types.
@@ -50,6 +53,14 @@ struct pkpm_species_lw {
 
   bool has_fluid_init_func; // Is there a fluid initialization function?
   struct lua_func_ctx fluid_init_func_ref; // Lua registry reference to fluid initialization function.
+
+  bool has_applied_acceleration_func; // Is there an applied acceleration initialization function?
+  struct lua_func_ctx applied_acceleration_func_ref; // Lua registry reference to applied acceleration initialization function.
+  bool evolve_applied_acceleration; // Is the applied acceleration evolved?
+
+  bool has_diffusion; // Is there a diffusion operator? 
+  double D; // Diffusion coefficient. 
+  double order; // Diffusion order (e.g., grad^2, grad^4, grad^6). 
 
   enum gkyl_collision_id collision_id; // Collision type.
   
@@ -91,7 +102,7 @@ pkpm_species_lw_new(lua_State *L)
     }
   }
 
-  bool evolve = glua_tbl_get_integer(L, "evolve", true);
+  bool evolve = glua_tbl_get_bool(L, "evolve", true);
 
   with_lua_tbl_tbl(L, "bcx") {
     int nbc = glua_objlen(L);
@@ -131,6 +142,26 @@ pkpm_species_lw_new(lua_State *L)
   if (glua_tbl_get_func(L, "initFluid")) {
     fluid_init_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
     has_fluid_init_func = true;
+  }
+
+  bool has_applied_acceleration_func = false;
+  int applied_acceleration_func_ref = LUA_NOREF;
+  bool evolve_applied_acceleration = false;
+
+  if (glua_tbl_get_func(L, "appliedAcceleration")) {
+    applied_acceleration_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_applied_acceleration_func = true;
+
+    evolve_applied_acceleration = glua_tbl_get_bool(L, "evolveAppliedAcceleration", false);
+  }
+
+  bool has_diffusion = false; 
+  double D = 0.0; 
+  int order = 0; 
+  with_lua_tbl_tbl(L, "diffusion") {
+    has_diffusion = true; 
+    D = glua_tbl_get_number(L, "D", 0.0);
+    order = glua_tbl_get_integer(L, "order", 0);
   }
 
   enum gkyl_collision_id collision_id = GKYL_NO_COLLISIONS;
@@ -179,6 +210,19 @@ pkpm_species_lw_new(lua_State *L)
     .nret = 3,
     .L = L,
   };
+
+  pkpm_s_lw->has_applied_acceleration_func = has_applied_acceleration_func;
+  pkpm_s_lw->applied_acceleration_func_ref = (struct lua_func_ctx) {
+    .func_ref = applied_acceleration_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = 3,
+    .L = L,
+  };
+  pkpm_s_lw->evolve_applied_acceleration = evolve_applied_acceleration;
+
+  pkpm_s_lw->has_diffusion = has_diffusion; 
+  pkpm_s_lw->D = D; 
+  pkpm_s_lw->order = order; 
 
   pkpm_s_lw->collision_id = collision_id;
 
@@ -245,9 +289,8 @@ pkpm_field_lw_new(lua_State *L)
   pkpm_field.elcErrorSpeedFactor = glua_tbl_get_number(L, "elcErrorSpeedFactor", 0.0);
   pkpm_field.mgnErrorSpeedFactor = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
 
-  pkpm_field.is_static = glua_tbl_get_bool(L, "isStatic", false);
-
-  bool evolve = glua_tbl_get_integer(L, "evolve", true);
+  bool evolve = glua_tbl_get_bool(L, "evolve", true);
+  pkpm_field.is_static = !evolve;
 
   int init_ref = LUA_NOREF;
   if (glua_tbl_get_func(L, "init")) {
@@ -355,15 +398,12 @@ static struct luaL_Reg pkpm_field_ctor[] = {
 struct pkpm_app_lw {
   gkyl_pkpm_app *app; // PKPM app object.
 
-  bool has_dist_init_func[GKYL_MAX_SPECIES]; // Is there a distribution initialization function?
   struct lua_func_ctx dist_init_func_ctx[GKYL_MAX_SPECIES]; // Context for distribution initialization function.
-
-  bool has_fluid_init_func[GKYL_MAX_SPECIES]; // Is there a fluid initialization function?
   struct lua_func_ctx fluid_init_func_ctx[GKYL_MAX_SPECIES]; // Context for fluid initialization function.
+  struct lua_func_ctx applied_acceleration_func_ctx[GKYL_MAX_SPECIES]; // Context for applied acceleration function.
 
   enum gkyl_collision_id collision_id[GKYL_MAX_SPECIES]; // Collision type.
 
-  bool has_self_nu_func[GKYL_MAX_SPECIES]; // Is there a self-collision frequency function?
   struct lua_func_ctx self_nu_func_ctx[GKYL_MAX_SPECIES]; // Context for self-collision frequency function.
 
   int num_cross_collisions[GKYL_MAX_SPECIES]; // Number of species that we cross-collide with.
@@ -406,6 +446,10 @@ get_species_inp(lua_State *L, int cdim, struct pkpm_species_lw *species[GKYL_MAX
           pkpm_s->fluid_init_func_ref.ndim = cdim;
         }
 
+        if(pkpm_s->has_applied_acceleration_func) {
+          pkpm_s->applied_acceleration_func_ref.ndim = cdim;
+        }
+
         if (pkpm_s->has_self_nu_func) {
           pkpm_s->self_nu_func_ref.ndim = cdim;
         }
@@ -423,13 +467,117 @@ get_species_inp(lua_State *L, int cdim, struct pkpm_species_lw *species[GKYL_MAX
   return curr;
 }
 
-// comparison method to sort species array by species name
+// Comparison method to sort species array by species name.
 static int
 species_compare_func(const void *a, const void *b)
 {
   const struct pkpm_species_lw *const *spa = a;
   const struct pkpm_species_lw *const *spb = b;
   return strcmp((*spa)->pkpm_species.name, (*spb)->pkpm_species.name);
+}
+
+static struct gkyl_tool_args *
+tool_args_from_argv(int optind, int argc, char *const*argv)
+{
+  struct gkyl_tool_args *targs = gkyl_malloc(sizeof *targs);
+  
+  targs->argc = argc-optind;
+  targs->argv = 0;
+
+  if (targs->argc > 0) {
+    targs->argv = gkyl_malloc(targs->argc*sizeof(char *));
+      for (int i = optind, j = 0; i < argc; ++i, ++j) {
+        targs->argv[j] = gkyl_malloc(strlen(argv[i])+1);
+        strcpy(targs->argv[j], argv[i]);
+      }
+  }
+
+  return targs;
+}
+
+// CLI parser for main script.
+struct script_cli {
+  bool help; // Show help.
+  bool step_mode; // Run for fixed number of steps? (for valgrind/cuda-memcheck)
+  int num_steps; // Number of steps.
+  bool use_mpi; // Should we use MPI?
+  bool use_gpu; // Should this be run on GPU?
+  bool trace_mem; // Should we trace memory allocation/deallocation?
+  bool use_verbose; // Should we use verbose output?
+  bool is_restart; // Is this a restarted simulation?
+  int restart_frame; // Which frame to restart simulation from.  
+  
+  struct gkyl_tool_args *rest;
+};
+
+static struct script_cli
+pkpm_parse_script_cli(struct gkyl_tool_args *acv)
+{
+  struct script_cli cli = {
+    .help =- false,
+    .step_mode = false,
+    .num_steps = INT_MAX,
+    .use_mpi = false,
+    .use_gpu = false,
+    .trace_mem = false,
+    .use_verbose = false,
+    .is_restart = false,
+    .restart_frame = 0,
+  };
+
+#ifdef GKYL_HAVE_MPI
+  cli.use_mpi = true;
+#endif
+#ifdef GKYL_HAVE_CUDA
+  cli.use_gpu = true;
+#endif
+  
+  coption_long longopts[] = {
+    { 0 }
+  };
+  const char* shortopts = "+hVs:SGmr:";
+
+  coption opt = coption_init();
+  int c;
+  while ((c = coption_get(&opt, acv->argc, acv->argv, shortopts, longopts)) != -1) {
+    switch (c) {
+      case 'h':
+        cli.help = true;
+        break;
+
+      case 's':
+        cli.num_steps = atoi(opt.arg);
+        break;
+      
+      case 'S':
+        cli.use_mpi = false;
+        break;
+      
+      case 'G':
+        cli.use_gpu = false;
+        break;
+      
+      case 'm':
+        cli.trace_mem = true;
+        break;
+      
+      case 'V':
+        cli.use_verbose = true;
+        break;
+      
+      case 'r':
+        cli.is_restart = true;
+        cli.restart_frame = atoi(opt.arg);
+        break;        
+        
+      case '?':
+        break;
+    }
+  }
+
+  cli.rest = tool_args_from_argv(opt.ind, acv->argc, acv->argv);
+  
+  return cli;
 }
 
 // Create top-level App object.
@@ -532,37 +680,41 @@ pkpm_app_new(lua_State *L)
     pkpm.species[s] = species[s]->pkpm_species;
     pkpm.vdim = species[s]->vdim;
 
-    app_lw->has_dist_init_func[s] = species[s]->has_dist_init_func;
     app_lw->dist_init_func_ctx[s] = species[s]->dist_init_func_ref;
-
-    app_lw->has_fluid_init_func[s] = species[s]->has_fluid_init_func;
     app_lw->fluid_init_func_ctx[s] = species[s]->fluid_init_func_ref;
-
     if (species[s]->has_dist_init_func) {
       pkpm.species[s].init_dist = gkyl_lw_eval_cb;
       pkpm.species[s].ctx_dist = &app_lw->dist_init_func_ctx[s];
     }
-
     if (species[s]->has_fluid_init_func) {
       pkpm.species[s].init_fluid = gkyl_lw_eval_cb;
       pkpm.species[s].ctx_fluid = &app_lw->fluid_init_func_ctx[s];
     }
 
-    app_lw->collision_id[s] = species[s]->collision_id;
+    app_lw->applied_acceleration_func_ctx[s] = species[s]->applied_acceleration_func_ref;
+    if (species[s]->has_applied_acceleration_func) {
+      pkpm.species[s].app_accel = gkyl_lw_eval_cb;
+      pkpm.species[s].app_accel_ctx = &app_lw->applied_acceleration_func_ctx[s];
+      pkpm.species[s].app_accel_evolve = species[s]->evolve_applied_acceleration;
+    }
 
-    app_lw->has_self_nu_func[s] = species[s]->has_self_nu_func;
+    if (species[s]->has_diffusion) {
+      pkpm.species[s].diffusion.D = species[s]->D; 
+      pkpm.species[s].diffusion.order = species[s]->order; 
+    }
+
+    app_lw->collision_id[s] = species[s]->collision_id;
+    pkpm.species[s].collisions.collision_id = app_lw->collision_id[s];
+
     app_lw->self_nu_func_ctx[s] = species[s]->self_nu_func_ref;
+    if (species[s]->has_self_nu_func) {
+      pkpm.species[s].collisions.self_nu = gkyl_lw_eval_cb;
+      pkpm.species[s].collisions.ctx = &app_lw->self_nu_func_ctx[s];
+    }
 
     app_lw->num_cross_collisions[s] = species[s]->num_cross_collisions;
     for (int i = 0; i < app_lw->num_cross_collisions[s]; i++) {
       strcpy(app_lw->collide_with[s][i], species[s]->collide_with[i]);
-    }
-
-    pkpm.species[s].collisions.collision_id = app_lw->collision_id[s];
-
-    if (species[s]->has_self_nu_func) {
-      pkpm.species[s].collisions.self_nu = gkyl_lw_eval_cb;
-      pkpm.species[s].collisions.ctx = &app_lw->self_nu_func_ctx[s];
     }
 
     pkpm.species[s].collisions.num_cross_collisions = app_lw->num_cross_collisions[s];
@@ -610,32 +762,67 @@ pkpm_app_new(lua_State *L)
 
   // Create parallelism.
   struct gkyl_comm *comm = 0;
-  bool has_mpi = false;
 
   for (int d = 0; d < cdim; d++) {
     pkpm.parallelism.cuts[d] = cuts[d]; 
   }
 
-#ifdef GKYL_HAVE_MPI
-  with_lua_global(L, "GKYL_MPI_COMM") {
-    if (lua_islightuserdata(L, -1)) {
-      has_mpi = true;
-      MPI_Comm mpi_comm = lua_touserdata(L, -1);
-      comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
-          .mpi_comm = mpi_comm,
-        }
-      );
+  struct gkyl_tool_args *args = gkyl_tool_args_new(L);
+  struct script_cli script_cli = pkpm_parse_script_cli(args);
 
+#ifdef GKYL_HAVE_MPI
+  if (script_cli.use_gpu && script_cli.use_mpi) {
+#ifdef GKYL_HAVE_NCCL
+    with_lua_global(L, "GKYL_MPI_COMM") {
+      if (lua_islightuserdata(L, -1)) {
+        struct { MPI_Comm comm; } *lw_mpi_comm_world = lua_touserdata(L, -1);
+        MPI_Comm mpi_comm = lw_mpi_comm_world->comm;
+
+        int nrank = 1; // Number of processors in simulation.
+        MPI_Comm_size(mpi_comm, &nrank);
+
+        comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
+            .mpi_comm = mpi_comm,
+          }
+        );
+      }
+    }
+#else
+    printf("Using CUDA and MPI together requires NCCL.\n");
+    assert(0 == 1);
+#endif
+  }
+  else if (script_cli.use_mpi) {
+    with_lua_global(L, "GKYL_MPI_COMM") {
+      if (lua_islightuserdata(L, -1)) {
+        struct { MPI_Comm comm; } *lw_mpi_comm_world = lua_touserdata(L, -1);
+        MPI_Comm mpi_comm = lw_mpi_comm_world->comm;
+
+        int nrank = 1; // Number of processors in simulation.
+        MPI_Comm_size(mpi_comm, &nrank);
+
+        comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+            .mpi_comm = mpi_comm,
+          }
+        );
+      }
     }
   }
+  else {
+    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+        .use_gpu = script_cli.use_gpu,
+      }
+    );
+  }
+#else
+  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+      .use_gpu = script_cli.use_gpu,
+    }
+  );
 #endif
 
-  if (!has_mpi) {
-    // If there is no proper MPI_Comm specifed, the assume we are a
-    // serial sim.
-    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {} );
-  }
   pkpm.parallelism.comm = comm;
+  pkpm.parallelism.use_gpu = script_cli.use_gpu;
 
   int rank;
   gkyl_comm_get_rank(comm, &rank);
@@ -882,7 +1069,7 @@ pkpm_app_stat_write(lua_State *L)
 static void
 write_data(struct gkyl_tm_trigger* iot, gkyl_pkpm_app* app, double t_curr, bool force_write)
 {
-  if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
     int frame = iot->curr - 1;
     if (force_write) {
       frame = iot->curr;
@@ -897,27 +1084,27 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_pkpm_app* app, double t_curr, bool 
 
 // Calculate and append field energy to dynvector.
 static void
-calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_pkpm_app* app, double t_curr)
+calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_pkpm_app* app, double t_curr, bool force_calc)
 {
-  if (gkyl_tm_trigger_check_and_bump(fet, t_curr)) {
+  if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
     gkyl_pkpm_app_calc_field_energy(app, t_curr);
   }
 }
 
 // Calculate and append integrated moments to dynvector.
 static void
-calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_pkpm_app* app, double t_curr)
+calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_pkpm_app* app, double t_curr, bool force_calc)
 {
-  if (gkyl_tm_trigger_check_and_bump(imt, t_curr)) {
+  if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
     gkyl_pkpm_app_calc_integrated_mom(app, t_curr);
   }
 }
 
 // Calculate and append integrated L2 norm of distribution function to dynvector.
 static void
-calc_integrated_L2_f(struct gkyl_tm_trigger* l2t, gkyl_pkpm_app* app, double t_curr)
+calc_integrated_L2_f(struct gkyl_tm_trigger* l2t, gkyl_pkpm_app* app, double t_curr, bool force_calc)
 {
-  if (gkyl_tm_trigger_check_and_bump(l2t, t_curr)) {
+  if (gkyl_tm_trigger_check_and_bump(l2t, t_curr) || force_calc) {
     gkyl_pkpm_app_calc_integrated_L2_f(app, t_curr);
   }
 }
@@ -955,90 +1142,14 @@ show_help(const struct gkyl_pkpm_app *app)
 {
   gkyl_pkpm_app_cout(app, stdout, "PKPM script takes the following arguments:\n");
   gkyl_pkpm_app_cout(app, stdout, " -h   Print this help message and exit\n");
+  gkyl_pkpm_app_cout(app, stdout, " -sN  Only run N steps of simulation\n");
+  gkyl_pkpm_app_cout(app, stdout, " -S   Do not initialize MPI\n");
+  gkyl_pkpm_app_cout(app, stdout, " -G   Do not initialize CUDA\n");
+  gkyl_pkpm_app_cout(app, stdout, " -m   Run memory tracer\n");
   gkyl_pkpm_app_cout(app, stdout, " -V   Show verbose output\n");
   gkyl_pkpm_app_cout(app, stdout, " -rN  Restart simulation from frame N\n");
-  gkyl_pkpm_app_cout(app, stdout, " -sN  Only run N steps of simulation\n");
 
   gkyl_pkpm_app_cout(app, stdout, "\n");
-}
-
-static struct gkyl_tool_args *
-tool_args_from_argv(int optind, int argc, char *const*argv)
-{
-  struct gkyl_tool_args *targs = gkyl_malloc(sizeof *targs);
-  
-  targs->argc = argc-optind;
-  targs->argv = 0;
-
-  if (targs->argc > 0) {
-    targs->argv = gkyl_malloc(targs->argc*sizeof(char *));
-      for (int i = optind, j = 0; i < argc; ++i, ++j) {
-        targs->argv[j] = gkyl_malloc(strlen(argv[i])+1);
-        strcpy(targs->argv[j], argv[i]);
-      }
-  }
-
-  return targs;
-}
-
-// CLI parser for main script
-struct script_cli {
-  bool help; // show help
-  bool step_mode; // run for fixed number of steps? (for valgrind/cuda-memcheck)
-  int num_steps; // number of steps
-  bool use_verbose; // Should we use verbose output?
-  bool is_restart; // Is this a restarted simulation?
-  int restart_frame; // Which frame to restart simulation from.  
-  
-  struct gkyl_tool_args *rest;
-};
-
-static struct script_cli
-pkpm_parse_script_cli(struct gkyl_tool_args *acv)
-{
-  struct script_cli cli = {
-    .help =- false,
-    .step_mode = false,
-    .num_steps = INT_MAX,
-    .use_verbose = false,
-    .is_restart = false,
-    .restart_frame = 0,
-  };
-  
-  coption_long longopts[] = {
-    {0}
-  };
-  const char* shortopts = "+hVs:r:";
-
-  coption opt = coption_init();
-  int c;
-  while ((c = coption_get(&opt, acv->argc, acv->argv, shortopts, longopts)) != -1) {
-    switch (c) {
-      case 'h':
-        cli.help = true;
-        break;
-        
-      case 'V':
-        cli.use_verbose = true;
-        break;
-
-      case 's':
-        cli.num_steps = atoi(opt.arg);
-        break;
-      
-      case 'r':
-        cli.is_restart = true;
-        cli.restart_frame = atoi(opt.arg);
-        break;        
-        
-      case '?':
-        break;
-    }
-  }
-
-  cli.rest = tool_args_from_argv(opt.ind, acv->argc, acv->argv);
-  
-  return cli;
 }
 
 // Run simulation. (num_steps) -> bool. num_steps is optional.
@@ -1072,6 +1183,11 @@ pkpm_app_run(lua_State *L)
 
   gkyl_pkpm_app_cout(app, stdout, "Initializing PKPM Simulation ...\n");
 
+  if (script_cli.trace_mem) {
+    gkyl_cu_dev_mem_debug_set(true);
+    gkyl_mem_debug_set(true);
+  }
+
   // Initialize simulation.
   bool is_restart = script_cli.is_restart;
   int restart_frame = script_cli.restart_frame;  
@@ -1100,24 +1216,24 @@ pkpm_app_run(lua_State *L)
   int integrated_mom_calcs = app_lw->integrated_mom_calcs;
   int integrated_L2_f_calcs = app_lw->integrated_L2_f_calcs;
   // Triggers for IO and logging.
-  struct gkyl_tm_trigger io_trig = { .dt = (t_end - t_curr) / num_frames, .tcurr = t_curr, .curr = frame_curr };
-  struct gkyl_tm_trigger fe_trig = { .dt = (t_end - t_curr) / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr };
-  struct gkyl_tm_trigger im_trig = { .dt = (t_end - t_curr) / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr };
-  struct gkyl_tm_trigger l2f_trig = { .dt = (t_end - t_curr) / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger fe_trig = { .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger l2f_trig = { .dt = t_end / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr };
 
   struct step_message_trigs m_trig = {
     .log_count = 0,
-    .tenth = t_curr > 0.0 ? 0.0 : (int) floor(t_curr / t_end * 10.0),
-    .p1c = t_curr > 0.0 ? 0.0 : (int) floor(t_curr / t_end * 100.0) % 10,
-    .log_trig = { .dt = (t_end - t_curr) / 10.0 },
-    .log_trig_1p = { .dt = (t_end - t_curr) / 100.0 },
+    .tenth = t_curr > 0.0 ?  (int) floor(t_curr / t_end * 10.0) : 0.0,
+    .p1c = t_curr > 0.0 ?  (int) floor(t_curr / t_end * 100.0) % 10 : 0.0,
+    .log_trig = { .dt = t_end / 10.0, .tcurr = t_curr },
+    .log_trig_1p = { .dt = t_end / 100.0, .tcurr = t_curr },
   };
 
   struct timespec tm_ic0 = gkyl_wall_clock();
   // Initialize simulation.
-  calc_field_energy(&fe_trig, app, t_curr);
-  calc_integrated_mom(&im_trig, app, t_curr);
-  calc_integrated_L2_f(&l2f_trig, app, t_curr);
+  calc_field_energy(&fe_trig, app, t_curr, false);
+  calc_integrated_mom(&im_trig, app, t_curr, false);
+  calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
 
   gkyl_pkpm_app_cout(app, stdout, "Initialization completed in %g sec\n\n", gkyl_time_diff_now_sec(tm_ic0));
@@ -1149,9 +1265,9 @@ pkpm_app_run(lua_State *L)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
-    calc_field_energy(&fe_trig, app, t_curr);
-    calc_integrated_mom(&im_trig, app, t_curr);
-    calc_integrated_L2_f(&l2f_trig, app, t_curr);
+    calc_field_energy(&fe_trig, app, t_curr, false);
+    calc_integrated_mom(&im_trig, app, t_curr, false);
+    calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
     write_data(&io_trig, app, t_curr, false);
 
     if (dt_init < 0.0) {
@@ -1166,6 +1282,12 @@ pkpm_app_run(lua_State *L)
       if (num_failures >= num_failures_max) {
         gkyl_pkpm_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_pkpm_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+
+        calc_field_energy(&fe_trig, app, t_curr, true);
+        calc_integrated_mom(&im_trig, app, t_curr, true);
+        calc_integrated_L2_f(&l2f_trig, app, t_curr, true);
+        write_data(&io_trig, app, t_curr, true);
+
         break;
       }
     }
@@ -1180,9 +1302,9 @@ pkpm_app_run(lua_State *L)
     step += 1;
   }
 
-  calc_field_energy(&fe_trig, app, t_curr);
-  calc_integrated_mom(&im_trig, app, t_curr);
-  calc_integrated_L2_f(&l2f_trig, app, t_curr);
+  calc_field_energy(&fe_trig, app, t_curr, false);
+  calc_integrated_mom(&im_trig, app, t_curr, false);
+  calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
   gkyl_pkpm_app_stat_write(app);
 
@@ -1207,7 +1329,7 @@ pkpm_app_run(lua_State *L)
   gkyl_pkpm_app_cout(app, stdout, "Current evaluation and accumulate took %g secs\n", stat.current_tm);
   gkyl_pkpm_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
-  gkyl_pkpm_app_cout(app, stdout, "Number of write calls %ld\n", stat.nio);
+  gkyl_pkpm_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
   gkyl_pkpm_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
 freeresources:

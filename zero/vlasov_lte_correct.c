@@ -20,8 +20,9 @@ gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
   gkyl_vlasov_lte_correct *up = gkyl_malloc(sizeof(*up));
 
   up->vel_map = 0;
-  if (inp->vel_map != 0)
+  if (inp->vel_map != 0) {
     up->vel_map = gkyl_velocity_map_acquire(inp->vel_map);
+  }
 
   up->eps = inp->eps;
   up->max_iter = inp->max_iter;
@@ -69,6 +70,7 @@ gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
     .phase_range = inp->phase_range,
     .gamma = inp->gamma,
     .gamma_inv = inp->gamma_inv,
+    .h_ij = inp->h_ij,
     .h_ij_inv = inp->h_ij_inv,
     .det_h = inp->det_h,
     .hamil = inp->hamil,
@@ -93,6 +95,7 @@ gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
     .gamma = inp->gamma,
     .gamma_inv = inp->gamma_inv,
     .quad_type = inp->quad_type,
+    .h_ij = inp->h_ij,
     .h_ij_inv = inp->h_ij_inv,  
     .det_h = inp->det_h,
     .hamil = inp->hamil,
