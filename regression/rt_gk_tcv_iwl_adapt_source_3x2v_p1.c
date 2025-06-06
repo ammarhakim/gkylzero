@@ -283,8 +283,8 @@ main(int argc, char **argv)
       .adapt_particle = ctx.adapt_particle_srcCORE,
       .adapt_energy = ctx.adapt_energy_srcCORE,
       .num_boundaries = 1,
-      .dir = {0, 0, 2, 2},
-      .edge = {GKYL_LOWER_EDGE, GKYL_UPPER_EDGE, GKYL_LOWER_EDGE, GKYL_UPPER_EDGE},
+      .dir = {0},
+      .edge = {GKYL_LOWER_EDGE},
   };
 
   struct gkyl_gyrokinetic_projection proj_srcRECY_e = {
@@ -353,9 +353,9 @@ main(int argc, char **argv)
       .adapt[1] = adapt_srcRECY_e,
       .diagnostics = {
         .num_diag_moments = 1,
-        .diag_moments = {"HamiltonianMoments"},
+        .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
         .num_integrated_diag_moments = 1,
-        .integrated_diag_moments = {"HamiltonianMoments"},
+        .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
       }
     },
 
@@ -374,12 +374,14 @@ main(int argc, char **argv)
       },
     },
     .num_diag_moments = 9,
-    .diag_moments = {"HamiltonianMoments", "BiMaxwellianMoments", "M0", "M1", "M2par", "M2perp", "M2", "M3par", "M3perp"},
+    .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN, GKYL_F_MOMENT_BIMAXWELLIAN, 
+      GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, 
+      GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP},
     .num_integrated_diag_moments = 1,
-    .integrated_diag_moments = { "HamiltonianMoments" },
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     .boundary_flux_diagnostics = {
       .num_integrated_diag_moments = 1,
-      .integrated_diag_moments = { "HamiltonianMoments" },
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     },
   };
 
@@ -399,9 +401,9 @@ main(int argc, char **argv)
     .adapt_species_name = "ion",
     .adapt_particle = ctx.adapt_particle_srcCORE,
     .adapt_energy = ctx.adapt_energy_srcCORE,
-    .num_boundaries = 4,
-    .dir = {0, 0, 2, 2},
-    .edge = {GKYL_LOWER_EDGE, GKYL_UPPER_EDGE, GKYL_LOWER_EDGE, GKYL_UPPER_EDGE},
+    .num_boundaries = 1,
+    .dir = {0},
+    .edge = {GKYL_LOWER_EDGE},
   };
 
   struct gkyl_gyrokinetic_projection proj_srcRECY_i = {
@@ -470,9 +472,9 @@ main(int argc, char **argv)
       .adapt[1] = adapt_srcRECY_i,
       .diagnostics = {
         .num_diag_moments = 1,
-        .diag_moments = {"HamiltonianMoments"},
+        .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
         .num_integrated_diag_moments = 1,
-        .integrated_diag_moments = {"HamiltonianMoments"},
+        .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
       }
     },
     .bcx = {
@@ -490,12 +492,14 @@ main(int argc, char **argv)
       },
     },
     .num_diag_moments = 9,
-    .diag_moments = {"HamiltonianMoments", "BiMaxwellianMoments", "M0", "M1", "M2par", "M2perp", "M2", "M3par", "M3perp"},
+    .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN, GKYL_F_MOMENT_BIMAXWELLIAN, 
+      GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, 
+      GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP},
     .num_integrated_diag_moments = 1,
-    .integrated_diag_moments = { "HamiltonianMoments" },
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     .boundary_flux_diagnostics = {
       .num_integrated_diag_moments = 1,
-      .integrated_diag_moments = { "HamiltonianMoments" },
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     },
   };
 
@@ -545,12 +549,12 @@ main(int argc, char **argv)
   struct gkyl_gk *gk = gkyl_malloc(sizeof *gk);
   memset(gk, 0, sizeof(*gk));
 
-  strcpy(gk->name, "rt_gk_tcv_nt_iwl_adapt_src_3x2v_p1");
+  strcpy(gk->name, "rt_gk_tcv_iwl_adapt_source_3x2v_p1");
 
   gk->cfl_frac_omegaH = 1.0e9;
   gk->cfl_frac = 1.0;
-  gk->cdim = 3;
-  gk->vdim = 2;
+  gk->cdim = ctx.cdim;
+  gk->vdim = ctx.vdim;
   gk->lower[0] = ctx.x_min;
   gk->lower[1] = ctx.y_min;
   gk->lower[2] = ctx.z_min;
@@ -676,11 +680,11 @@ main(int argc, char **argv)
     gkyl_gyrokinetic_app_cout(app, stdout, "Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
   }  
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Species collisionless calc took %g secs\n", stat.species_collisionless_tm);
   gkyl_gyrokinetic_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Field calc took %g secs\n", stat.field_tm);
   gkyl_gyrokinetic_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Updates took %g secs\n", stat.total_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Updates took %g secs\n", stat.time_loop_tm);
 
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld,\n", stat.n_io);
   gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
