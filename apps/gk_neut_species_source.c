@@ -132,7 +132,7 @@ gk_neut_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_neut_speci
 
       const char *fmt = "%s-%s_source_%s_%d.gkyl";
       int sz = gkyl_calc_strlen(fmt, app->name, gkns->info.name,
-        gkns->info.diag_moments[m], frame);
+        gkyl_distribution_moments_strs[gkns->info.source.diagnostics.diag_moments[m]], frame);
       char fileNm[sz+1]; // ensures no buffer overflow
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gkns->info.name,
         gkns->info.diag_moments[m], frame);
