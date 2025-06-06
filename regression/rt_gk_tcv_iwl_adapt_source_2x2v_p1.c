@@ -136,8 +136,10 @@ struct gk_app_ctx create_ctx(void)
     (12 * pow(M_PI,3./2.) * pow(eps0,2) * sqrt(mi) * pow(Ti0,3./2.));
 
   // Source parameters
-  double num_sources = 2; // We do not activate the recycling source here.
-  // Core source parameters
+  double num_sources = 2;
+  // Core source:
+  // - Injects energy only in the core region (0.25MW per species).
+  // - The particles injection is only the one that are lost through the inner radial boundary.
   bool adapt_energy_srcCORE = true; // The source will compensate the losses in energy according to given boundaries.
   bool adapt_particle_srcCORE = true; // The source will compensate the losses in particle according to given boundaries.
   double energy_srcCORE = 0.25e6; // What the source must inject in energy [W]
@@ -145,8 +147,10 @@ struct gk_app_ctx create_ctx(void)
   double center_srcCORE[2] = {x_min, -Lz/4}; // This is the position of the ion source,
   double sigma_srcCORE[2] = {0.03*Lx, Lz/6}; //  the electron source will be at +Lz/2.
   double floor_srcCORE = 1e-10;
-  // Recycling source parameters (we do not use it here)
-  bool adapt_energy_srcRECY = true;
+  // Recycling source:
+  // - Reinjects particles that are absorbed by the wall.
+  // - Energy is free to leave the system.
+  bool adapt_energy_srcRECY = false;
   bool adapt_particle_srcRECY = true;
   double energy_srcRECY = 0.0; // [W]
   double particle_srcRECY = 0.0; // [1/s]
