@@ -65,8 +65,6 @@ static void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *c
 static void mapc2p_vel_elc(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx);
 static void mapc2p_vel_ion(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx);
 static void bmag_func(double t, const double *xn, double *bmag, void *ctx);
-static void bc_shift_func_lo(double t, const double *xn, double *fout, void *ctx);
-static void bc_shift_func_up(double t, const double *xn, double *fout, void *ctx);
 static void write_data(struct gkyl_tm_trigger *iot_conf, struct gkyl_tm_trigger *iot_phase,
                        gkyl_gyrokinetic_app *app, double t_curr, bool force_write);
 static void calc_integrated_diagnostics(struct gkyl_tm_trigger *iot, gkyl_gyrokinetic_app *app, double t_curr, bool force_write);
@@ -352,19 +350,20 @@ main(int argc, char **argv)
       }
     },
 
+    .diffusion = {
+      .num_diff_dir = 1,
+      .diff_dirs = { 0 },
+      .D = { 0.5 },
+      .order = 2,
+    },
+
     .bcx = {
       .lower={.type = GKYL_SPECIES_ABSORB,},
       .upper={.type = GKYL_SPECIES_ABSORB,},
     },
-    .bcz = {
-      .lower={.type = GKYL_SPECIES_GK_IWL,
-              .aux_profile = bc_shift_func_lo,
-              .aux_ctx = &ctx,
-      },
-      .upper={.type = GKYL_SPECIES_GK_IWL,
-              .aux_profile = bc_shift_func_up,
-              .aux_ctx = &ctx,
-      },
+    .bcy = {
+      .lower={.type = GKYL_SPECIES_GK_IWL},
+      .upper={.type = GKYL_SPECIES_GK_IWL},
     },
     .num_diag_moments = 9,
     .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN, GKYL_F_MOMENT_BIMAXWELLIAN, 
@@ -470,19 +469,21 @@ main(int argc, char **argv)
         .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
       }
     },
+
+    .diffusion = {
+      .num_diff_dir = 1,
+      .diff_dirs = { 0 },
+      .D = { 0.5 },
+      .order = 2,
+    },
+
     .bcx = {
       .lower={.type = GKYL_SPECIES_ABSORB,},
       .upper={.type = GKYL_SPECIES_ABSORB,},
     },
-    .bcz = {
-      .lower={.type = GKYL_SPECIES_GK_IWL,
-              .aux_profile = bc_shift_func_lo,
-              .aux_ctx = &ctx,
-      },
-      .upper={.type = GKYL_SPECIES_GK_IWL,
-              .aux_profile = bc_shift_func_up,
-              .aux_ctx = &ctx,
-      },
+    .bcy = {
+      .lower={.type = GKYL_SPECIES_GK_IWL},
+      .upper={.type = GKYL_SPECIES_GK_IWL},
     },
     .num_diag_moments = 9,
     .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN, GKYL_F_MOMENT_BIMAXWELLIAN, 
@@ -958,24 +959,6 @@ void bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx
   double Bt = Bphi(R_rtheta(r,z,ctx),ctx);
   double Bp = dPsidr(r,z,ctx)/R_rtheta(r,z,ctx)*gradr(r,z,ctx);
   fout[0] = sqrt(Bt*Bt + Bp*Bp);
-}
-
-void bc_shift_func_lo(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
-{
-  double x = xc[0];
-  struct gk_app_ctx *app = ctx;
-  double r = r_x(x, app->a_mid, app->x_inner);
-
-  fout[0] = -app->r0/app->q0*alpha(r, -app->Lz/2.0, 0.0, ctx);
-}
-
-void bc_shift_func_up(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
-{
-  double x = xc[0];
-  struct gk_app_ctx *app = ctx;
-  double r = r_x(x, app->a_mid, app->x_inner);
-
-  fout[0] = -app->r0/app->q0*alpha(r, app->Lz/2.0, 0.0, ctx);
 }
 
 void
