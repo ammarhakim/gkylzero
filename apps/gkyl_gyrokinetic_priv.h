@@ -2085,10 +2085,11 @@ void gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
  * @param app gyrokinetic app object.
  * @param species Species object.
  * @param src Species source object.
+ * @param f_buffer Phase-space buffer used to project the source.
  * @param tm Time for use in source.
  */
 void gk_species_source_calc(gkyl_gyrokinetic_app *app, struct gk_species *species, 
-  struct gk_source *src, double tm);
+  struct gk_source *src, struct gkyl_array *f_buffer, double tm);
 
 /**
  * Adapt source to user's defined power keeping particle input rate constant.

@@ -284,7 +284,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
         adapt_src->temperature_curr = s->info.source.projection[k].particle > 0?
           2./3. * adapt_src->energy_src_curr/adapt_src->particle_src_curr : 1.0;
 
-        gk_species_moment_init(app, s, &adapt_src->integ_threemoms, "ThreeMoments", true);
+        gk_species_moment_init(app, s, &adapt_src->integ_threemoms, GKYL_F_MOMENT_M0M1M2, true);
 
         int num_mom = adapt_src->integ_threemoms.num_mom;
         if (app->use_gpu){
