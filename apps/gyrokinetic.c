@@ -1290,6 +1290,16 @@ gkyl_gyrokinetic_app_write_neut_species_source_integrated_mom(gkyl_gyrokinetic_a
 }
 
 //
+// ............. Damping outputs ............... //
+// 
+void
+gkyl_gyrokinetic_app_write_species_damping(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
+{
+  struct gk_species *gks = &app->species[sidx];
+  gk_species_damping_write(app, gks, tm, frame);
+}
+
+//
 // ............. LTE outputs ............... //
 // 
 
@@ -1391,6 +1401,8 @@ gkyl_gyrokinetic_app_write_species_phase(gkyl_gyrokinetic_app* app, int sidx, do
   gkyl_gyrokinetic_app_write_species(app, sidx, tm, frame);
 
   gkyl_gyrokinetic_app_write_species_source(app, sidx, tm, frame);
+
+  gkyl_gyrokinetic_app_write_species_damping(app, sidx, tm, frame);
 
   gkyl_gyrokinetic_app_write_species_rad_drag(app, sidx, tm, frame);
 }
@@ -1705,7 +1717,7 @@ gkyl_gyrokinetic_app_stat(gkyl_gyrokinetic_app* app)
   // Additions of several timers.
   stat->fwd_euler_sum_tm = stat->species_coll_mom_tm + stat->species_react_mom_tm + stat->neut_species_coll_mom_tm
     + stat->neut_species_react_mom_tm + stat->species_rad_mom_tm + stat->species_gyroavg_tm + stat->species_collisionless_tm
-    + stat->species_coll_tm + stat->species_diffusion_tm + stat->species_rad_tm + stat->species_react_tm
+    + stat->species_coll_tm + stat->species_damp_tm + stat->species_diffusion_tm + stat->species_rad_tm + stat->species_react_tm
     + stat->species_bflux_calc_tm+stat->species_bflux_moms_tm + stat->species_omega_cfl_tm + stat->species_src_tm
     + stat->neut_species_collisionless_tm + stat->neut_species_coll_tm + stat->neut_species_react_tm
     + stat->neut_species_omega_cfl_tm + stat->neut_species_src_tm + stat->dfdt_dt_reduce_tm + stat->fwd_euler_step_f_tm;
@@ -1747,6 +1759,7 @@ gkyl_gyrokinetic_app_print_timings(gkyl_gyrokinetic_app* app, FILE *iostream)
   gkyl_gyrokinetic_app_cout(app, iostream, "      ^ Species gyroaverage:           %.4e sec. / %4.2f %%.\n", stat->species_gyroavg_tm           , ratio_to_percent(stat->species_gyroavg_tm           ,stat->fwd_euler_tm, 0.0));
   gkyl_gyrokinetic_app_cout(app, iostream, "      ^ Collisionless terms (charged): %.4e sec. / %4.2f %%.\n", stat->species_collisionless_tm     , ratio_to_percent(stat->species_collisionless_tm     ,stat->fwd_euler_tm, 0.0));
   gkyl_gyrokinetic_app_cout(app, iostream, "      ^ Collision terms (charged):     %.4e sec. / %4.2f %%.\n", stat->species_coll_tm              , ratio_to_percent(stat->species_coll_tm              ,stat->fwd_euler_tm, 0.0));
+  gkyl_gyrokinetic_app_cout(app, iostream, "      ^ Damping (charged):             %.4e sec. / %4.2f %%.\n", stat->species_damp_tm              , ratio_to_percent(stat->species_damp_tm               ,stat->fwd_euler_tm, 0.0));
   gkyl_gyrokinetic_app_cout(app, iostream, "      ^ Diffusion (charged):           %.4e sec. / %4.2f %%.\n", stat->species_diffusion_tm         , ratio_to_percent(stat->species_diffusion_tm         ,stat->fwd_euler_tm, 0.0));
   gkyl_gyrokinetic_app_cout(app, iostream, "      ^ Radiation terms:               %.4e sec. / %4.2f %%.\n", stat->species_rad_tm               , ratio_to_percent(stat->species_rad_tm               ,stat->fwd_euler_tm, 0.0));
   gkyl_gyrokinetic_app_cout(app, iostream, "      ^ Reaction terms (charged):      %.4e sec. / %4.2f %%.\n", stat->species_react_tm             , ratio_to_percent(stat->species_react_tm             ,stat->fwd_euler_tm, 0.0));
@@ -1894,7 +1907,7 @@ comm_reduce_app_stat(const gkyl_gyrokinetic_app* app,
     INIT_SPECIES_TM, INIT_NEUT_SPECIES_TM,
     TIME_LOOP_TM, FWD_EULER_TM, FWD_EULER_STEP_F_TM, DFDT_DT_REDUCE_TM,
     SPECIES_COLLISIONLESS_TM, SPECIES_LTE_TM, SPECIES_GYROAVG_TM,
-    SPECIES_BFLUX_CALC_TM, SPECIES_BFLUX_MOMS_TM, SPECIES_DIFFUSION_TM,
+    SPECIES_BFLUX_CALC_TM, SPECIES_BFLUX_MOMS_TM, SPECIES_DAMP_TM, SPECIES_DIFFUSION_TM,
     SPECIES_COLL_MOM_TM, SPECIES_COLL_TM, 
     SPECIES_RAD_MOM_TM, SPECIES_RAD_TM, SPECIES_REACT_MOM_TM, SPECIES_REACT_TM, SPECIES_SRC_TM, SPECIES_OMEGA_CFL_TM,
     NEUT_SPECIES_COLLISIONLESS_TM, NEUT_SPECIES_LTE_TM, NEUT_SPECIES_BFLUX_CALC_TM, NEUT_SPECIES_BFLUX_MOMS_TM,
@@ -1922,6 +1935,7 @@ comm_reduce_app_stat(const gkyl_gyrokinetic_app* app,
     [SPECIES_GYROAVG_TM] = local->species_gyroavg_tm,
     [SPECIES_BFLUX_CALC_TM] = local->species_bflux_calc_tm,
     [SPECIES_BFLUX_MOMS_TM] = local->species_bflux_moms_tm,
+    [SPECIES_DAMP_TM] = local->species_damp_tm,
     [SPECIES_DIFFUSION_TM] = local->species_diffusion_tm,
     [SPECIES_COLL_MOM_TM] = local->species_coll_mom_tm,
     [SPECIES_COLL_TM] = local->species_coll_tm,
@@ -1981,6 +1995,7 @@ comm_reduce_app_stat(const gkyl_gyrokinetic_app* app,
   global->species_gyroavg_tm = d_red_global[SPECIES_GYROAVG_TM];
   global->species_bflux_calc_tm = d_red_global[SPECIES_BFLUX_CALC_TM];
   global->species_bflux_moms_tm = d_red_global[SPECIES_BFLUX_MOMS_TM];
+  global->species_damp_tm = d_red_global[SPECIES_DAMP_TM];
   global->species_diffusion_tm = d_red_global[SPECIES_DIFFUSION_TM];
   global->species_coll_mom_tm = d_red_global[SPECIES_COLL_MOM_TM];
   global->species_coll_tm = d_red_global[SPECIES_COLL_TM];
@@ -2116,6 +2131,7 @@ gkyl_gyrokinetic_app_stat_write(gkyl_gyrokinetic_app* app)
   gkyl_gyrokinetic_app_cout(app, fp, " species_gyroavg_tm : %lg,\n", stat.species_gyroavg_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " species_bflux_calc_tm : %lg,\n", stat.species_bflux_calc_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " species_bflux_moms_tm : %lg,\n", stat.species_bflux_moms_tm);
+  gkyl_gyrokinetic_app_cout(app, fp, " species_damp_tm : %lg,\n", stat.species_damp_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " species_diffusion_tm : %lg,\n", stat.species_diffusion_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " species_coll_mom_tm : %lg,\n", stat.species_coll_mom_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " species_coll_tm : %lg,\n", stat.species_coll_tm);

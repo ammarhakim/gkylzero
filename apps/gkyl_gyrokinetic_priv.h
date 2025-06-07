@@ -567,6 +567,15 @@ struct gk_source {
   void (*write_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks);
 };
 
+struct gk_damping {
+  enum gkyl_gyrokinetic_damping_type type; // Type of damping term.
+  bool evolve; // Whether the source is time dependent.
+  struct gkyl_array *rate; // Damping rate.
+  struct gkyl_array *rate_host; // Host copy for use in IO and projecting.
+  // Functions chosen at runtime.
+  void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+};
+
 // species data
 struct gk_species {
   struct gkyl_gyrokinetic_species info; // data for species
@@ -621,7 +630,10 @@ struct gk_species {
   };
 
   struct gkyl_dg_calc_gyrokinetic_vars *calc_gk_vars;
-
+  gkyl_dg_updater_gyrokinetic *slvr; // Gyrokinetic solver.
+  struct gkyl_dg_eqn *eqn_gyrokinetic; // Gyrokinetic equation object.
+  double collisionless_scale_fac; // Factor multiplying collisionless terms.
+  
   struct gk_species_moment m0; // for computing charge density
   struct gk_species_moment integ_moms; // integrated moments
   struct gk_species_moment *moms; // diagnostic moments
@@ -638,9 +650,6 @@ struct gk_species {
   gkyl_dynvec L2norm; // L2 norm.
   bool is_first_L2norm_write_call; // flag for L2norm dynvec written first time
 
-  gkyl_dg_updater_gyrokinetic *slvr; // Gyrokinetic solver.
-  struct gkyl_dg_eqn *eqn_gyrokinetic; // Gyrokinetic equation object.
-  
   int num_periodic_dir; // Number of periodic directions.
   int periodic_dirs[3]; // List of periodic directions.
   bool bc_is_np[3]; // Whether BC is nonperiodic.
@@ -677,6 +686,8 @@ struct gk_species {
   struct gk_proj proj_init; // Projector for initial conditions.
 
   struct gk_source src; // Plasma source.
+
+  struct gk_damping damping; // Damping term: -nu(z)*f.
 
   // Boundary fluxes used for other solvers and diagnostics.
   struct gk_boundary_fluxes bflux;
@@ -2118,6 +2129,48 @@ void gk_species_source_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk
  * @param src Species source object to release.
  */
 void gk_species_source_release(const struct gkyl_gyrokinetic_app *app, const struct gk_source *src);
+
+/** gk_species_damping API */
+
+/**
+ * Initialize species damping object.
+ *
+ * @param app gyrokinetic app object.
+ * @param s Species object.
+ * @param damp Species damping object.
+ */
+void gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_damping *damp);
+
+/**
+ * Compute species applied source term.
+ *
+ * @param app gyrokinetic app object.
+ * @param gks Species object.
+ * @param damp Species damping object.
+ * @param fin Current distribution function.
+ * @param f_buffer Phase-space buffer.
+ * @param rhs df/dt damping term gets added to.
+ */
+void gk_species_damping_advance(gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_damping *damp,
+  const struct gkyl_array *fin, struct gkyl_array *f_buffer, struct gkyl_array *rhs, struct gkyl_array *cflrate);
+
+/**
+ * Write damping diagnostics.
+ *
+ * @param app gyrokinetic app object.
+ * @param gks Pointer to species.
+ * @param tm Time for damping diagnostic.
+ * @param frame Output frame.
+ */
+void gk_species_damping_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+
+/**
+ * Release species damping object.
+ *
+ * @param app gyrokinetic app object.
+ * @param damp Species damping object to release.
+ */
+void gk_species_damping_release(const struct gkyl_gyrokinetic_app *app, const struct gk_damping *damp);
 
 /** gk_species API */
 

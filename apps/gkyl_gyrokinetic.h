@@ -226,6 +226,26 @@ struct gkyl_gyrokinetic_correct_inp {
                            // *even if* the scheme fails to converge.   
 };
 
+enum gkyl_gyrokinetic_damping_type {
+  GKYL_GK_DAMPING_NONE = 0,
+  GKYL_GK_DAMPING_USER_INPUT,
+  GKYL_GK_DAMPING_LOSS_CONE,
+};
+
+struct gkyl_gyrokinetic_damping {
+  // Add a damping term to the RHS of the gyrokinetic equation
+  //   df/dt = - rate(z) * f
+  // with the function rate(z) being:
+  //   - a function given by the user (type = GKYL_PROPORTIONAL_TERM_USER_INPUT).
+  //   - I_loss(z) * scale_factor * scale_profile(z), where I_loss(z) is =1 in the loss
+  //     cone and 0 in the confined region (type = GKYL_PROPORTIONAL_TERM_LOSS_CONE).
+  enum gkyl_gyrokinetic_damping_type type;
+  void (*rate_profile)(double t, const double *xn, double *fout, void *ctx);
+  void *rate_profile_ctx; // Context for rate_profile function.
+  double scale_factor;
+  void (*scale_profile)(double t, const double *xn, double *fout, void *ctx);
+};
+
 // Parameters for gk species.
 struct gkyl_gyrokinetic_species {
   char name[128]; // Species name.
@@ -248,6 +268,7 @@ struct gkyl_gyrokinetic_species {
   struct gkyl_gyrokinetic_ic_import init_from_file;
 
   bool no_collisionless_terms; // Set to true to turn off collisionles terms.
+  double collisionless_scale_factor; // Factor multiplying collisionless terms.
 
   bool no_by; // Boolean for whether we are using specialized GK kernels with no b_y.
               // These more computationally efficient kernels are for slab or mirror 
@@ -282,6 +303,9 @@ struct gkyl_gyrokinetic_species {
 
   // Source to include.
   struct gkyl_gyrokinetic_source source;
+
+  // A damping term -rate*f on RHS.
+  struct gkyl_gyrokinetic_damping damping; 
 
   // Radiation to include.
   struct gkyl_gyrokinetic_radiation radiation;
@@ -437,6 +461,7 @@ struct gkyl_gyrokinetic_stat {
   double species_bflux_moms_tm; // Time for species boundary flux moments.
   double species_coll_mom_tm; // time needed to compute various moments needed in collisions
   double species_coll_tm; // total time for collision updater (excluded moments)
+  double species_damp_tm; // Time to accumulate species damping onto RHS.
   double species_diffusion_tm; // Time to compute species diffusion term.
   double species_rad_mom_tm; // total time to compute various moments needed in radiation operator
   double species_rad_tm; // total time for radiation operator

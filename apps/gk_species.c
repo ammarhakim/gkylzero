@@ -94,6 +94,9 @@ gk_species_collisionless_rhs_included(gkyl_gyrokinetic_app *app, struct gk_speci
   gkyl_dg_updater_gyrokinetic_advance(species->slvr, &species->local, 
     fin, species->cflrate, rhs);
 
+  gkyl_array_scale_range(rhs, species->collisionless_scale_fac, &species->local);
+  gkyl_array_scale_range(species->cflrate, species->collisionless_scale_fac, &species->local);
+
   app->stat.species_collisionless_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -121,6 +124,8 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   gkyl_array_clear(rhs, 0.0);
 
   gk_species_collisionless_rhs(app, species, fin, rhs);
+
+  gk_species_damping_advance(app, species, &species->damping, fin, species->lte.f_lte, rhs, species->cflrate);
 
   if (species->lbo.collision_id == GKYL_LBO_COLLISIONS) {
     gk_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
@@ -1638,6 +1643,13 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   if (gks->info.no_collisionless_terms)
     gks->collisionless_rhs_func = gk_species_collisionless_rhs_empty;
 
+  gks->collisionless_scale_fac = 1.0;
+  if (gks->info.collisionless_scale_factor)
+    gks->collisionless_scale_fac = gks->info.collisionless_scale_factor;
+
+  // Damping term -nu*f on RHS.
+  gk_species_damping_init(app, gks, &gks->damping);
+
   // Allocate data for density (for charge density or upar calculation).
   gk_species_moment_init(app, gks, &gks->m0, GKYL_F_MOMENT_M0, false);
 
@@ -2019,6 +2031,8 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   gkyl_free(s->moms);
 
   gk_species_source_release(app, &s->src);
+
+  gk_species_damping_release(app, &s->damping);
 
   // Free boundary flux memory.
   gk_species_bflux_release(app, s, &s->bflux);
