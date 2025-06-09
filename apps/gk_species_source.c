@@ -473,7 +473,7 @@ gk_species_source_release(const struct gkyl_gyrokinetic_app *app, const struct g
     }
     if (src->num_adapt_sources > 0) {
       for (int k=0; k < src->num_adapt_sources; ++k) {
-        struct gk_adapt_source *adapt_src = &src->adapt[k];
+        const struct gk_adapt_source *adapt_src = &src->adapt[k];
         gk_species_moment_release(app, &adapt_src->integ_threemoms);
         if (app->use_gpu) {
           gkyl_cu_free(adapt_src->red_integ_mom);
