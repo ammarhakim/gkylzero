@@ -1203,6 +1203,22 @@ gkyl_gyrokinetic_multib_app_write_topo(const gkyl_gyrokinetic_multib_app* app)
   }
 }
 
+void 
+gkyl_gyrokinetic_multib_app_write_flag(const gkyl_gyrokinetic_multib_app* app, int frame)
+{
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+  if (0 == rank) {
+    FILE *fp = fopen("gkeyll_text_output/new_data_flag", "w");
+    if (fp == NULL)
+      assert(false);
+    // Write the integer to the file
+    fprintf(fp, "%d\n", frame);
+    // Close the file
+    fclose(fp);
+  }
+}
+
 void
 gkyl_gyrokinetic_multib_app_write_field(gkyl_gyrokinetic_multib_app *app, double tm, int frame)
 {

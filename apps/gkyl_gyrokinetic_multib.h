@@ -335,6 +335,14 @@ void gkyl_gyrokinetic_multib_app_cout(const gkyl_gyrokinetic_multib_app* app, FI
 void gkyl_gyrokinetic_multib_app_write_topo(const gkyl_gyrokinetic_multib_app* app);
 
 /**
+ * Write newest frame number output
+ * 
+ * @param app App object.
+ * @param frame frame number.
+ */
+void gkyl_gyrokinetic_multib_app_write_flag(const gkyl_gyrokinetic_multib_app* app, int frame);
+
+/**
  * Write geometry file.
  *
  * @param app App object.
