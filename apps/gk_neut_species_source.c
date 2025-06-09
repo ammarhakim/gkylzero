@@ -25,10 +25,10 @@ gk_neut_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spe
     src->num_diag_mom = s->info.num_diag_moments;
     s->src.moms = gkyl_malloc(sizeof(struct gk_species_moment[src->num_diag_mom]));
     for (int m=0; m<src->num_diag_mom; ++m)
-      gk_neut_species_moment_init(app, s, &s->src.moms[m], s->info.diag_moments[m], false);
+      gk_neut_species_moment_init(app, s, &s->src.moms[m], s->info.diag_moments[m], false, s->info.is_external);
 
     // Allocate data and updaters for integrated moments.
-    gk_neut_species_moment_init(app, s, &s->src.integ_moms, GKYL_F_MOMENT_M0M1M2, true);
+    gk_neut_species_moment_init(app, s, &s->src.integ_moms, GKYL_F_MOMENT_M0M1M2, true, s->info.is_external);
     int num_mom = s->src.integ_moms.num_mom;
     if (app->use_gpu) {
       s->src.red_integ_diag = gkyl_cu_malloc(sizeof(double[num_mom]));

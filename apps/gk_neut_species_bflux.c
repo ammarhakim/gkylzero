@@ -650,7 +650,7 @@ gk_neut_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
     bflux->moms_op = gkyl_malloc(sizeof(struct gk_species_moment[bflux->num_calc_moms]));
     bool need_hamil_ghost = false;
     for (int m=0; m<bflux->num_calc_moms; m++) {
-      gk_neut_species_moment_init(app, gkns, &bflux->moms_op[m], bflux->calc_mom_names[m], false);
+      gk_neut_species_moment_init(app, gkns, &bflux->moms_op[m], bflux->calc_mom_names[m], false, gkns->info.is_external);
 
       need_hamil_ghost = (bflux->calc_mom_names[m] == GKYL_F_MOMENT_M1_FROM_H)
         || (bflux->calc_mom_names[m] == GKYL_F_MOMENT_ENERGY);
