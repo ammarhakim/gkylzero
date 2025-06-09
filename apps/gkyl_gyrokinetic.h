@@ -306,6 +306,7 @@ struct gkyl_gyrokinetic_neut_species {
   struct gkyl_mapc2p_inp mapc2p;
 
   bool is_static; // Set to true if neutral species does not change in time.
+  bool is_external; // True if neutrals are evolved by another code
 
   bool enforce_positivity; // Positivity enforcement via shift in f.
   

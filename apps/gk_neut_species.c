@@ -556,7 +556,7 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
   }
 
   // Allocate data for integrated moments.
-  gk_neut_species_moment_init(app, s, &s->integ_moms, GKYL_F_MOMENT_M0M1M2, true);
+  gk_neut_species_moment_init(app, s, &s->integ_moms, GKYL_F_MOMENT_M0M1M2, true, s->info.is_external);
 
   // Allocate data for integrated diagnostics.
   if (app->use_gpu) {
@@ -671,7 +671,7 @@ gk_neut_species_new_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app
       s->grid, &app->local_ext, app->use_gpu);
 
     // Allocate data for diagnostic moments
-    gk_neut_species_moment_init(app, s, &s->ps_moms, GKYL_F_MOMENT_M0, false);
+    gk_neut_species_moment_init(app, s, &s->ps_moms, GKYL_F_MOMENT_M0, false, s->info.is_external);
 
     s->ps_integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, s->integ_moms.num_mom);
     s->is_first_ps_integ_write_call = true;
@@ -712,7 +712,7 @@ gk_neut_species_new_static(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
   s->copy_func = gk_neut_species_copy_range_static;
   s->apply_pos_shift_func = gk_neut_species_apply_pos_shift_disabled;
   s->write_func = gk_neut_species_write_static;
-  s->write_mom_func = gk_neut_species_write_mom_static;
+  s->write_mom_func = s->info.is_external ? gk_neut_species_write_mom_dynamic : gk_neut_species_write_mom_static;
   s->calc_integrated_mom_func = gk_neut_species_calc_integrated_mom_static;
   s->write_integrated_mom_func = gk_neut_species_write_integrated_mom_static;
 }
@@ -1137,13 +1137,13 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   }
   
   // Allocate object for computing number .density 
-  gk_neut_species_moment_init(app, s, &s->m0, GKYL_F_MOMENT_M0, false);
+  gk_neut_species_moment_init(app, s, &s->m0, GKYL_F_MOMENT_M0, false, s->info.is_external);
 
   // Allocate objects for computing diagnostic moments.
   int ndm = s->info.num_diag_moments;
   s->moms = gkyl_malloc(sizeof(struct gk_species_moment[ndm]));
   for (int m=0; m<ndm; ++m)
-    gk_neut_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m], false);
+    gk_neut_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m], false, s->info.is_external);
 
   // Initialize boundary fluxes.
   s->bflux = (struct gk_boundary_fluxes) { };
@@ -1194,7 +1194,10 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
 void
 gk_neut_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species, double t0)
 {
-  if (species->info.init_from_file.type == 0)
+  if (species->info.is_external) {
+    gk_neut_species_read_lte(app, species);
+  }
+  else if (species->info.init_from_file.type == 0)
     gk_neut_species_projection_calc(app, species, &species->proj_init, species->f, t0);
 
   // we are pre-computing source for now as it is time-independent

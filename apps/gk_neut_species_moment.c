@@ -4,10 +4,11 @@
 // initialize neutral species moment object
 void
 gk_neut_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
-  struct gk_species_moment *sm, enum gkyl_distribution_moments mom_type, bool is_integrated)
+  struct gk_species_moment *sm, enum gkyl_distribution_moments mom_type, bool is_integrated, bool is_external)
 {
   sm->is_integrated = is_integrated;
   sm->is_maxwellian_moms = mom_type == GKYL_F_MOMENT_LTE;
+  sm->is_external = is_external;
 
   if (sm->is_integrated) {
     // Create moment operator.
@@ -72,11 +73,71 @@ gk_neut_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spe
   }
 }
 
+static void gk_neut_species_read_moment(struct gkyl_gyrokinetic_app *app, struct gkyl_array *out, cstr fileNm)
+{
+  struct gkyl_range nrange;
+  gkyl_gk_geometry_init_nodal_range(&nrange, &app->local, app->poly_order);
+  struct gkyl_array* nnodal = mkarr(false, 1, nrange.volume);
+
+  FILE *ptr = fopen(fileNm.str,"r");
+  size_t status;
+
+  int nr = gkyl_range_shape(&nrange, 0);
+  int nz = gkyl_range_shape(&nrange, 1);
+  int idx[2];
+
+  for(int ir = 0; ir < nr; ir++){
+    idx[0] = ir;
+    for(int iz = 0; iz < nz; iz++){
+      idx[1] = iz;
+      // set psi
+      double *nnodal_n = gkyl_array_fetch(nnodal, gkyl_range_idx(&nrange, idx));
+      status = fscanf(ptr,"%lf", nnodal_n);
+    }
+  }
+
+  fclose(ptr);
+
+  struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&app->basis, &app->grid, false);
+  gkyl_nodal_ops_n2m(n2m, &app->basis, &app->grid, &nrange, &app->local, 1, nnodal, out, false);
+  gkyl_array_release(nnodal);
+}
+
+void gk_neut_species_read_lte(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s)
+{
+    cstr fileNm = cstr_from_fmt("gkeyll_text_input/%s-%s_ux.txt", app->name, s->info.name);
+    gk_neut_species_read_moment(app, s->m0.marr_host, fileNm);
+    gkyl_array_set_offset(s->lte.moms.marr_host, 1.0, s->m0.marr_host, 1*app->basis.num_basis);
+    fileNm = cstr_from_fmt("gkeyll_text_input/%s-%s_uy.txt", app->name, s->info.name);
+    gk_neut_species_read_moment(app, s->m0.marr_host, fileNm);
+    gkyl_array_set_offset(s->lte.moms.marr_host, 1.0, s->m0.marr_host, 2*app->basis.num_basis);
+    fileNm = cstr_from_fmt("gkeyll_text_input/%s-%s_uz.txt", app->name, s->info.name);
+    gk_neut_species_read_moment(app, s->m0.marr_host, fileNm);
+    gkyl_array_set_offset(s->lte.moms.marr_host, 1.0, s->m0.marr_host, 3*app->basis.num_basis);
+
+    fileNm = cstr_from_fmt("gkeyll_text_input/%s-%s_Temp.txt", app->name, s->info.name);
+    gk_neut_species_read_moment(app, s->m0.marr_host, fileNm);
+    gkyl_array_scale(s->m0.marr_host, 1/s->info.mass);
+    gkyl_array_set_offset(s->lte.moms.marr_host, 1.0, s->m0.marr_host, 4*app->basis.num_basis);
+
+    fileNm = cstr_from_fmt("gkeyll_text_input/%s-%s_M0.txt", app->name, s->info.name);
+    gk_neut_species_read_moment(app, s->m0.marr_host, fileNm);
+    gkyl_array_set_offset(s->lte.moms.marr_host, 1.0, s->m0.marr_host, 0*app->basis.num_basis);
+
+    if (app->use_gpu) {
+      gkyl_array_copy(s->m0.marr, s->m0.marr_host);
+      gkyl_array_copy(s->lte.moms.marr, s->lte.moms.marr_host);
+    }
+}
+
+
 void
 gk_neut_species_moment_calc(const struct gk_species_moment *sm,
   const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
   const struct gkyl_array *fin)
 {
+  if (sm->is_external)
+    return;
   if (sm->is_maxwellian_moms) {
     gkyl_vlasov_lte_moments_advance(sm->vlasov_lte_moms, 
       &phase_rng, &conf_rng, fin, sm->marr);

@@ -208,10 +208,12 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
         // Copy J*n for use in final update
         gkyl_array_set_range(react->Jm0_donor[i], 1.0, gkns_donor->lte.moms.marr, &app->local);
 
+        if(!gkns_donor->info.is_external) {
         // divide out the Jacobian from the donor density for use in Maxwellian projection
-        gkyl_dg_div_op_range(gkns_donor->lte.moms.mem_geo, app->basis, 
-          0, gkns_donor->lte.moms.marr, 0, gkns_donor->lte.moms.marr, 0, 
-          app->gk_geom->geo_int.jacobgeo, &app->local); 
+          gkyl_dg_div_op_range(gkns_donor->lte.moms.mem_geo, app->basis, 
+            0, gkns_donor->lte.moms.marr, 0, gkns_donor->lte.moms.marr, 0, 
+            app->gk_geom->geo_int.jacobgeo, &app->local); 
+        }
 
         // Select component parallel to b
 	// if cdim = 1, uidx = 1, if cdim = 2, udix = 2, if cdim = 3, udix = 3
@@ -278,10 +280,13 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
       gk_neut_species_moment_calc(&gkns_partner->lte.moms, 
         gkns_partner->local, app->local, fin_neut[react->partner_idx[i]]);  
 
-      // divide out the Jacobian from the partner density
-      gkyl_dg_div_op_range(gkns_partner->lte.moms.mem_geo, app->basis, 
-        0, gkns_partner->lte.moms.marr, 0, gkns_partner->lte.moms.marr, 0, 
-        app->gk_geom->geo_int.jacobgeo, &app->local); 
+
+      if(!gkns_partner->info.is_external) {
+        // divide out the Jacobian from the partner density
+        gkyl_dg_div_op_range(gkns_partner->lte.moms.mem_geo, app->basis, 
+          0, gkns_partner->lte.moms.marr, 0, gkns_partner->lte.moms.marr, 0, 
+          app->gk_geom->geo_int.jacobgeo, &app->local); 
+      }
 
       // Copy ux, uy, uz for computing dot product u_i . b_i (Cartesian components of b_i)
       // if cdim = 1, uidx = 1, if cdim = 2, udix = 2, if cdim = 3, udix = 3

@@ -155,6 +155,7 @@ struct gk_species_moment {
   };
   bool is_maxwellian_moms;
   bool is_bimaxwellian_moms;
+  bool is_external;
 };
 
 struct gk_rad_drag {  
@@ -2344,9 +2345,19 @@ void gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species
  * @param sm Neutral species moment object.
  * @param nm Name string indicating moment type.
  * @param is_integrated Whether to compute the volume integrated moment.
+ * @param is_external Whether neutrals are evolved by another code
  */
 void gk_neut_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
-  struct gk_species_moment *sm, enum gkyl_distribution_moments mom_type, bool is_integrated);
+  struct gk_species_moment *sm, enum gkyl_distribution_moments mom_type, bool is_integrated, bool is_external);
+
+
+/**
+ * Initialize neutral species moment object.
+ *
+ * @param app gyrokinetic app object.
+ * @param s Neutral specis object
+ */
+void gk_neut_species_read_lte(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s);
 
 /**
  * Calculate neutral species moment, given input neutral distribution function fin.
