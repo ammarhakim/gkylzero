@@ -8,10 +8,7 @@ gk_neut_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_specie
   int cdim = app->cdim, vdim = 3;
 
   // allocate moments needed for lte update
-  gk_neut_species_moment_init(app, s, &lte->moms, "LTEMoments");
-
-  struct gkyl_array *g_ij = app->cdim < 3 ? app->gk_geom->g_ij_neut : app->gk_geom->g_ij; 
-  struct gkyl_array *gij = app->cdim < 3 ? app->gk_geom->gij_neut : app->gk_geom->gij; 
+  gk_neut_species_moment_init(app, s, &lte->moms, GKYL_F_MOMENT_LTE, false);
 
   struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = {
     .phase_grid = &s->grid,
@@ -22,8 +19,8 @@ gk_neut_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_specie
     .conf_range_ext = &app->local_ext,
     .vel_range = &s->local_vel,
     .phase_range = &s->local,
-    .h_ij = g_ij,
-    .h_ij_inv = gij,
+    .h_ij = s->g_ij,
+    .h_ij_inv = s->gij,
     .det_h = app->gk_geom->jacobgeo,
     .hamil = s->hamil,
     .model_id = s->model_id,
@@ -46,8 +43,8 @@ gk_neut_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_specie
       .conf_range_ext = &app->local_ext,
       .vel_range = &s->local_vel,
       .phase_range = &s->local,
-      .h_ij = g_ij,
-      .h_ij_inv = gij,
+      .h_ij = s->g_ij,
+      .h_ij_inv = s->gij,
       .det_h = app->gk_geom->jacobgeo,
       .hamil = s->hamil,
       .model_id = s->model_id,
@@ -106,12 +103,14 @@ void
 gk_neut_species_lte(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
   struct gk_lte *lte, const struct gkyl_array *fin)
 {
+  struct timespec wst = gkyl_wall_clock();
   gk_neut_species_moment_calc(&lte->moms, species->local, app->local, fin);
 
   // divide out the Jacobian from the density
   gkyl_dg_div_op_range(lte->moms.mem_geo, app->basis, 
     0, lte->moms.marr, 0, lte->moms.marr, 0, 
     app->gk_geom->jacobgeo, &app->local);  
+  app->stat.neut_species_lte_tm += gkyl_time_diff_now_sec(wst);   
 
   gk_neut_species_lte_from_moms(app, species, lte, lte->moms.marr);
 }
@@ -143,7 +142,7 @@ gk_neut_species_lte_write_max_corr_status(gkyl_gyrokinetic_app* app, struct gk_n
     }
     gkyl_dynvec_clear(gk_ns->lte.corr_stat);
 
-    app->stat.neut_diag_io_tm += gkyl_time_diff_now_sec(wst);
+    app->stat.neut_species_diag_io_tm += gkyl_time_diff_now_sec(wst);
     app->stat.n_neut_diag_io += 1;
   }
 }

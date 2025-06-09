@@ -7,6 +7,56 @@
 #include <gkyl_util.h>
 #include <assert.h>
 
+static void
+translate_dim_range_check_conf_deflate(int dir, int cdim_do, int cdim_tar, int vdim,
+  const struct gkyl_range *rng_do, const struct gkyl_range *rng_tar)
+{
+  int c = 0;
+  for (int d=0; d<cdim_do; d++) {
+    if (d != dir) {
+      assert(rng_tar->lower[c] == rng_do->lower[d]);
+      assert(rng_tar->upper[c] == rng_do->upper[d]);
+      c++;
+    }
+  }
+}
+
+static void
+translate_dim_range_check_conf_inflate(int dir, int cdim_do, int cdim_tar, int vdim,
+  const struct gkyl_range *rng_do, const struct gkyl_range *rng_tar)
+{
+  for (int d=0; d<cdim_do-1; d++) {
+    assert(rng_do->lower[d] == rng_tar->lower[d]);
+    assert(rng_do->upper[d] == rng_tar->upper[d]);
+  }
+  assert(rng_do->lower[cdim_do-1] == rng_tar->lower[cdim_tar-1]);
+  assert(rng_do->upper[cdim_do-1] == rng_tar->upper[cdim_tar-1]);
+}
+
+static void
+translate_dim_range_check_phase_deflate(int dir, int cdim_do, int cdim_tar, int vdim,
+  const struct gkyl_range *rng_do, const struct gkyl_range *rng_tar)
+{
+  translate_dim_range_check_conf_deflate(dir, cdim_do, cdim_tar, vdim,
+    rng_do, rng_tar);
+  for (int d=0; d<vdim; d++) {
+    assert(rng_do->lower[cdim_do+d] == rng_tar->lower[cdim_tar+d]);
+    assert(rng_do->upper[cdim_do+d] == rng_tar->upper[cdim_tar+d]);
+  };
+}
+
+static void
+translate_dim_range_check_phase_inflate(int dir, int cdim_do, int cdim_tar, int vdim,
+  const struct gkyl_range *rng_do, const struct gkyl_range *rng_tar)
+{
+  translate_dim_range_check_conf_inflate(dir, cdim_do, cdim_tar, vdim,
+    rng_do, rng_tar);
+  for (int d=0; d<vdim; d++) {
+    assert(rng_do->lower[cdim_do+d] == rng_tar->lower[cdim_tar+d]);
+    assert(rng_do->upper[cdim_do+d] == rng_tar->upper[cdim_tar+d]);
+  };
+}
+
 // Function pointer type for sheath reflection kernels.
 typedef void (*translate_dim_t)(const double *fdo, double *ftar);
 
@@ -115,6 +165,8 @@ struct gkyl_translate_dim {
   int dir; // Direction to remove when going to lower dimensionality.
   bool use_gpu;
   struct gkyl_translate_dim_kernels *kernels;
+  void (*range_check_func)(int dir, int cdim_do, int cdim_tar, int vdim,
+    const struct gkyl_range *rng_do, const struct gkyl_range *rng_tar);
 };
 
 #ifdef GKYL_HAVE_CUDA

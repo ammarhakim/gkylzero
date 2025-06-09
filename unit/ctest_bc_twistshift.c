@@ -654,7 +654,7 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   gkyl_array_shiftc(gk_geom->bmag, B0*pow(sqrt(2.0),cdim), 0);
 
   struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &basis_conf,
-    &basis, &local_conf, mass, 0, gvm, gk_geom, NULL, "ThreeMoments", true, use_gpu);
+    &basis, &local_conf, mass, 0, gvm, gk_geom, NULL, GKYL_F_MOMENT_M0M1M2, true, use_gpu);
   int num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(mcalc);
 
   struct gkyl_array *marr = mkarr(use_gpu, num_mom, local_ext_conf.volume);
@@ -1395,7 +1395,7 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
   gkyl_array_shiftc(gk_geom->bmag, B0*pow(sqrt(2.0),cdim), 0);
 
   struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &basis_conf,
-    &basis, &local_conf, mass, 0, gvm, gk_geom, NULL, "ThreeMoments", true, use_gpu);
+    &basis, &local_conf, mass, 0, gvm, gk_geom, NULL, GKYL_F_MOMENT_M0M1M2, true, use_gpu);
   int num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(mcalc);
 
   struct gkyl_array *marr = mkarr(use_gpu, num_mom, local_ext_conf.volume);
@@ -1635,13 +1635,13 @@ test_bc_twistshift_3x_fig11(bool use_gpu)
   test_bc_twistshift_3x_fig11_wcells(cells0, edgelo, 0, true, use_gpu, true);
   test_bc_twistshift_3x_fig11_wcells(cells1, edgelo, 0, false, use_gpu, false);
   test_bc_twistshift_3x_fig11_wcells(cells2, edgelo, 0, false, use_gpu, false);
-  test_bc_twistshift_3x_fig11_wcells(cells3, edgelo, 0, false, use_gpu, false);
+  test_bc_twistshift_3x_fig11_wcells(cells3, edgelo, 0, false, use_gpu, true);
 
   enum gkyl_edge_loc edgeup = GKYL_UPPER_EDGE; // Upper edge.
   test_bc_twistshift_3x_fig11_wcells(cells0, edgeup, 0, true, use_gpu, false);
   test_bc_twistshift_3x_fig11_wcells(cells1, edgeup, 0, false, use_gpu, false);
   test_bc_twistshift_3x_fig11_wcells(cells2, edgeup, 0, false, use_gpu, false);
-  test_bc_twistshift_3x_fig11_wcells(cells3, edgeup, 0, false, use_gpu, false);
+  test_bc_twistshift_3x_fig11_wcells(cells3, edgeup, 0, false, use_gpu, true);
 
   // Apply the TS BC on the lower half of the x domain.
   test_bc_twistshift_3x_fig11_wcells(cells0, edgelo, -1, true, use_gpu, false);

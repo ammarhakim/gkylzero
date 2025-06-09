@@ -8,7 +8,7 @@
 #include <gkyl_util.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_tok_geo.h>
-#include <gkyl_mirror_geo.h>
+#include <gkyl_mirror_grid_gen.h>
 #include <gkyl_position_map.h>
 
 
@@ -44,11 +44,11 @@ struct gk_geometry {
                               // Cartesian components of normal vectors in order n^1,, n^2, n^3
   struct gkyl_array* jacobgeo; // 1 component. Configuration space jacobian J
   struct gkyl_array* jacobgeo_inv; // 1 component. 1/J
-  struct gkyl_array* gij; // Matric coefficients g^{ij}. See g_ij for order.
-  struct gkyl_array* gij_neut; // Matric coefficients g^{ij}. See g_ij for order. 
+  struct gkyl_array* gij; // Metric coefficients g^{ij}. See g_ij for order.
+  struct gkyl_array* gij_neut; // Metric coefficients g^{ij}. See g_ij for order. 
                                // Calculated with coord definition alpha = phi for tokamak geometry
-  struct gkyl_array* b_i; // 3 components. Contravariant components of magnetic field vector b_1, b_2, b_3.
-  struct gkyl_array* bcart; // 3 components. Cartesian components of magnetic field vector b_X, b_Y, b_Z.
+  struct gkyl_array* b_i; // 3 components. Covariant components of magnetic field unit vector b_1, b_2, b_3.
+  struct gkyl_array* bcart; // 3 components. Cartesian components of magnetic field unit vector b_X, b_Y, b_Z.
   struct gkyl_array* cmag; // 1 component. C = JB/sqrt(g_33)
   struct gkyl_array* jacobtot; // 1 component. Phase space Jacobian = JB
   struct gkyl_array* jacobtot_inv; // 1 component. 1/(JB)
@@ -63,11 +63,28 @@ struct gk_geometry {
   int geqdsk_sign_convention; // 0 if psi increases away from magnetic axis
                               // 1 if psi increases toward magnetic axis
 
+  bool has_LCFS; // Whether the geometry has an LCFS.
+  double x_LCFS; // For mapc2p IWL geometry, the user has to provide the
+                 // location of the LCFS. For numerical IWL, it may be stored
+                 // in the eqdsk.
+  int idx_LCFS_lo; // Index of the cell that abuts the LCFS from below.
+
   uint32_t flags;
   struct gkyl_ref_count ref_count;  
   struct gk_geometry *on_dev; // pointer to itself or device object
 };
 
+
+// Inputs to create geometry for a specific computational grid
+struct gkyl_mirror_geo_grid_inp {
+  char filename_psi[256]; // file with psi(R,Z) data
+  double rclose; // closest R to discrimate
+  double rright; // closest R to discrimate
+  double zmin, zmax; // extents of Z for integration
+
+  bool include_axis; // add nodes on r=0 axis (the axis is assumed be psi=0)
+  enum gkyl_mirror_grid_gen_field_line_coord fl_coord; // field-line coordinate to use
+};
 
 // Input struct for geometry creation
 struct gkyl_gk_geometry_inp {
@@ -90,6 +107,9 @@ struct gkyl_gk_geometry_inp {
   struct gkyl_comm *comm; // communicator object
 
   double world[3]; // extra computational coordinates for cases with reduced dimensionality
+
+  bool has_LCFS; // Whether the geometry has a last closed flux surface (LCFS).
+  double x_LCFS; // x location of the LCFS.
 
   // 3D grid ranges and basis
   struct gkyl_rect_grid geo_grid;

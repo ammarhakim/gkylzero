@@ -8,6 +8,7 @@ extern "C" {
 #include <gkyl_math.h>
 #include <gkyl_util.h>
 #include <gkyl_gk_geometry.h>
+#include <assert.h>
 }
 // CPU interface to create and track a GPU object
 struct gk_geometry* 
@@ -22,6 +23,26 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
   up->global_ext = geometry_inp->global_ext;
   up->grid = geometry_inp->grid;
   up->geqdsk_sign_convention = geo_host->geqdsk_sign_convention;
+  up->has_LCFS = geo_host->has_LCFS;
+  if (up->has_LCFS) {
+    up->x_LCFS = geo_host->x_LCFS;
+    // Check that the split happens within the domain.
+    assert((up->grid.lower[0] <= up->x_LCFS) && (up->x_LCFS <= up->grid.upper[0]));
+    // Check that the split happens at a cell boundary;
+    double needint = (up->x_LCFS - up->grid.lower[0])/up->grid.dx[0];
+    double rem_floor = fabs(needint-floor(needint));
+    double rem_ceil = fabs(needint-ceil(needint));
+    if (rem_floor < 1.0e-12) {
+      up->idx_LCFS_lo = (int) floor(needint);
+    }
+    else if (rem_ceil < 1.0e-12) {
+      up->idx_LCFS_lo = (int) ceil(needint);
+    }
+    else {
+      fprintf(stderr, "x_LCFS = %.9e must be at a cell boundary.\n", up->x_LCFS);
+      assert(false);
+    }
+  }
 
   // Copy the host-side initialized geometry object to the device
   struct gkyl_array *mc2p_dev = gkyl_array_cu_dev_new(geo_host->mc2p->type, geo_host->mc2p->ncomp, geo_host->mc2p->size);
@@ -77,31 +98,31 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
   gkyl_array_copy(eps2_dev, geo_host->eps2);
 
   // this is for the memcpy below
-  up->mc2p  = mc2p_dev->on_dev;
-  up->mc2nu_pos  = mc2nu_pos_dev->on_dev;
-  up->bmag  = bmag_dev->on_dev;
-  up->g_ij  = g_ij_dev->on_dev;
-  up->g_ij_neut  = g_ij_neut_dev->on_dev;
-  up->dxdz  = dxdz_dev->on_dev;
-  up->dzdx  = dzdx_dev->on_dev;
-  up->dualmag  = dualmag_dev->on_dev;
-  up->normals  = normals_dev->on_dev;
-  up->jacobgeo  = jacobgeo_dev->on_dev;
+  up->mc2p = mc2p_dev->on_dev;
+  up->mc2nu_pos = mc2nu_pos_dev->on_dev;
+  up->bmag = bmag_dev->on_dev;
+  up->g_ij = g_ij_dev->on_dev;
+  up->g_ij_neut = g_ij_neut_dev->on_dev;
+  up->dxdz = dxdz_dev->on_dev;
+  up->dzdx = dzdx_dev->on_dev;
+  up->dualmag = dualmag_dev->on_dev;
+  up->normals = normals_dev->on_dev;
+  up->jacobgeo = jacobgeo_dev->on_dev;
   up->jacobgeo_inv = jacobgeo_inv_dev->on_dev;
-  up->gij  = gij_dev->on_dev;
-  up->gij_neut  = gij_neut_dev->on_dev;
-  up->b_i  = b_i_dev->on_dev;
-  up->bcart  = bcart_dev->on_dev;
-  up->cmag  =  cmag_dev->on_dev;
-  up->jacobtot  = jacobtot_dev->on_dev;
+  up->gij = gij_dev->on_dev;
+  up->gij_neut = gij_neut_dev->on_dev;
+  up->b_i = b_i_dev->on_dev;
+  up->bcart = bcart_dev->on_dev;
+  up->cmag = cmag_dev->on_dev;
+  up->jacobtot = jacobtot_dev->on_dev;
   up->jacobtot_inv = jacobtot_inv_dev->on_dev;
-  up->bmag_inv  = bmag_inv_dev->on_dev;
+  up->bmag_inv = bmag_inv_dev->on_dev;
   up->bmag_inv_sq = bmag_inv_sq_dev->on_dev;
-  up->gxxj  = gxxj_dev->on_dev;
-  up->gxyj  = gxyj_dev->on_dev;
-  up->gyyj  = gyyj_dev->on_dev;
-  up->gxzj  = gxzj_dev->on_dev;
-  up->eps2  = eps2_dev->on_dev;
+  up->gxxj = gxxj_dev->on_dev;
+  up->gxyj = gxyj_dev->on_dev;
+  up->gyyj = gyyj_dev->on_dev;
+  up->gxzj = gxzj_dev->on_dev;
+  up->eps2 = eps2_dev->on_dev;
 
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
@@ -113,31 +134,31 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
   up->on_dev = up_cu;
 
   // geometry object should store host pointer
-  up->mc2p  = mc2p_dev;
+  up->mc2p = mc2p_dev;
   up->mc2nu_pos  = mc2nu_pos_dev;
-  up->bmag  = bmag_dev;
-  up->g_ij  = g_ij_dev;
-  up->g_ij_neut  = g_ij_neut_dev;
-  up->dxdz  = dxdz_dev;
-  up->dzdx  = dzdx_dev;
-  up->dualmag  = dualmag_dev;
-  up->normals  = normals_dev;
-  up->jacobgeo  = jacobgeo_dev;
+  up->bmag = bmag_dev;
+  up->g_ij = g_ij_dev;
+  up->g_ij_neut = g_ij_neut_dev;
+  up->dxdz = dxdz_dev;
+  up->dzdx = dzdx_dev;
+  up->dualmag = dualmag_dev;
+  up->normals = normals_dev;
+  up->jacobgeo = jacobgeo_dev;
   up->jacobgeo_inv = jacobgeo_inv_dev;
-  up->gij  = gij_dev;
-  up->gij_neut  = gij_neut_dev;
-  up->b_i  = b_i_dev;
-  up->bcart  = bcart_dev;
-  up->cmag  =  cmag_dev;
-  up->jacobtot  = jacobtot_dev;
+  up->gij = gij_dev;
+  up->gij_neut = gij_neut_dev;
+  up->b_i = b_i_dev;
+  up->bcart = bcart_dev;
+  up->cmag = cmag_dev;
+  up->jacobtot = jacobtot_dev;
   up->jacobtot_inv = jacobtot_inv_dev;
-  up->bmag_inv  = bmag_inv_dev;
+  up->bmag_inv = bmag_inv_dev;
   up->bmag_inv_sq = bmag_inv_sq_dev;
-  up->gxxj  = gxxj_dev;
-  up->gxyj  = gxyj_dev;
-  up->gyyj  = gyyj_dev;
-  up->gxzj  = gxzj_dev;
-  up->eps2  = eps2_dev;
+  up->gxxj = gxxj_dev;
+  up->gxyj = gxyj_dev;
+  up->gyyj = gyyj_dev;
+  up->gxzj = gxzj_dev;
+  up->eps2 = eps2_dev;
   
   return up;
 }

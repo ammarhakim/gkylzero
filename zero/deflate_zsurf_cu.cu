@@ -73,6 +73,7 @@ gkyl_deflate_zsurf_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl
   up->num_basis = cbasis->num_basis;
   up->num_deflated_basis = deflated_cbasis->num_basis;
   up->cdim = cbasis->ndim;
+  up->use_gpu = true;
 
   int poly_order = cbasis->poly_order;
   enum gkyl_basis_type b_type = cbasis->b_type;
