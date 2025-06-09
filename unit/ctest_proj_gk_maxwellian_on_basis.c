@@ -279,9 +279,10 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   gkyl_velocity_map_release(gvm);
 
 #ifdef GKYL_HAVE_CUDA
-  if (use_gpu) 
+  if (use_gpu) {
     gkyl_cu_free(basis_on_dev);
     gkyl_cu_free(conf_basis_on_dev);
+  }
 #endif  
 }
 
@@ -605,9 +606,10 @@ test_3x2v_gk(int poly_order, bool use_gpu)
     gkyl_array_release(moms_cu);
 
 #ifdef GKYL_HAVE_CUDA
-  if (use_gpu) 
+  if (use_gpu) {
     gkyl_cu_free(basis_on_dev);
     gkyl_cu_free(conf_basis_on_dev);
+  }
 #endif  
 }
 
