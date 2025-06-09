@@ -1390,7 +1390,7 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
       poly_order+1, 1, inp.conf_scale, inp.conf_scale_ctx);
     struct gkyl_array *xfac = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     struct gkyl_array *xfac_ho = app->use_gpu? mkarr(false, app->basis.num_basis, app->local_ext.volume)
-                                             : gkyl_array_acquire(xfac_ho);
+                                             : gkyl_array_acquire(xfac);
     gkyl_proj_on_basis_advance(proj_conf_scale, 0.0, &app->local, xfac_ho);
     gkyl_array_copy(xfac, xfac_ho);
     gkyl_dg_mul_conf_phase_op_range(&app->basis, &gks->basis, gks->f, xfac, gks->f, &app->local, &gks->local);
