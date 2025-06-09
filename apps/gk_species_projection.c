@@ -359,7 +359,8 @@ gk_species_projection_release(const struct gkyl_gyrokinetic_app *app, const stru
       gkyl_array_release(proj->proj_host);
     }
   }
-  else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) { 
+  else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN 
+    || proj->proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN) { 
     gkyl_array_release(proj->dens);
     gkyl_array_release(proj->upar); 
     gkyl_array_release(proj->prim_moms_host);
@@ -367,6 +368,8 @@ gk_species_projection_release(const struct gkyl_gyrokinetic_app *app, const stru
 
     gkyl_proj_on_basis_release(proj->proj_dens);
     gkyl_proj_on_basis_release(proj->proj_upar);
+    gkyl_gk_maxwellian_proj_on_basis_release(proj->proj_max);
+
     if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
       gkyl_array_release(proj->vtsq);
       gkyl_proj_on_basis_release(proj->proj_temp);
@@ -377,21 +380,17 @@ gk_species_projection_release(const struct gkyl_gyrokinetic_app *app, const stru
       gkyl_proj_on_basis_release(proj->proj_temppar);
       gkyl_proj_on_basis_release(proj->proj_tempperp);
     }
-    if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN) {
-      gkyl_array_release(proj->dens);
-      gkyl_array_release(proj->upar); 
+    else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN){
       gkyl_array_release(proj->vtsq);
-      gkyl_array_release(proj->prim_moms);
+
       gkyl_array_release(proj->shape_conf);
       gkyl_array_release(proj->one_conf);
-
       gkyl_proj_on_basis_release(proj->proj_shape);
-      gkyl_proj_on_basis_release(proj->proj_one);
-    } else {
-      gkyl_gk_maxwellian_proj_on_basis_release(proj->proj_max);
+      gkyl_proj_on_basis_release(proj->proj_one);    
     }
+
     if (proj->correct_all_moms) {
-      gkyl_gk_maxwellian_correct_release(proj->corr_max);    
+        gkyl_gk_maxwellian_correct_release(proj->corr_max);    
     }
   }
 }
