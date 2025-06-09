@@ -170,26 +170,24 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
   gkyl_loss_cone_mask_gyrokinetic *up = gkyl_malloc(sizeof(*up));
 
   up->grid_phase = inp->phase_grid;
-  up->basis_conf = inp->conf_basis;
-  up->basis_phase = inp->phase_basis;
   up->vel_map = gkyl_velocity_map_acquire(inp->vel_map);
   up->mass = inp->mass;
   up->charge = inp->charge;
 
-  up->cdim = up->basis_conf->ndim;
-  up->pdim = up->basis_phase->ndim;
+  up->cdim = inp->conf_basis->ndim;
+  up->pdim = inp->phase_basis->ndim;
   int vdim = up->pdim - up->cdim;
-  up->num_basis_conf = up->basis_conf->num_basis;
-  up->num_basis_phase = up->basis_phase->num_basis;
+  up->num_basis_conf = inp->conf_basis->num_basis;
+  up->num_basis_phase = inp->phase_basis->num_basis;
   up->use_gpu = inp->use_gpu;
 
-  int num_quad = inp->num_quad? inp->num_quad : up->basis_conf->poly_order+1;
+  int num_quad = inp->num_quad? inp->num_quad : inp->conf_basis->poly_order+1;
   // Initialize data needed for conf-space quadrature.
-  up->tot_quad_conf = init_quad_values(up->cdim, up->basis_conf, num_quad,
+  up->tot_quad_conf = init_quad_values(up->cdim, inp->conf_basis, num_quad,
     &up->ordinates_conf, &up->weights_conf, &up->basis_at_ords_conf, false);
 
   // Initialize data needed for phase-space quadrature.
-  up->tot_quad_phase = init_quad_values(up->cdim, up->basis_phase, num_quad,
+  up->tot_quad_phase = init_quad_values(up->cdim, inp->phase_basis, num_quad,
     &up->ordinates_phase, &up->weights_phase, &up->basis_at_ords_phase, false);
 
   up->fun_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad_phase); // Only used in CPU implementation.
@@ -199,7 +197,7 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
   int num_quad_v = num_quad;  // Hybrid basis have p=2 in velocity space.
   // hybrid basis have p=2 in velocity space.
   bool is_vdim_p2[2] = {false};  // 2 is the max vdim for GK.
-  if (num_quad > 1 && up->basis_phase->b_type == GKYL_BASIS_MODAL_GKHYBRID) {
+  if (num_quad > 1 && inp->phase_basis->b_type == GKYL_BASIS_MODAL_GKHYBRID) {
     num_quad_v = num_quad+1;
     is_vdim_p2[0] = true;  // only vpar is quadratic in GK hybrid.
   }
@@ -243,11 +241,11 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
     gkyl_mat_mm_array_mem_release(phase_nodal_to_modal_mem_ho);
 
     // Initialize data needed for conf-space quadrature on device.
-    up->tot_quad_conf = init_quad_values(up->cdim, up->basis_conf, num_quad,
+    up->tot_quad_conf = init_quad_values(up->cdim, inp->conf_basis, num_quad,
       &up->ordinates_conf, &up->weights_conf, &up->basis_at_ords_conf, up->use_gpu);
 
     // Initialize data needed for phase-space quadrature on device.
-    up->tot_quad_phase = init_quad_values(up->cdim, up->basis_phase, num_quad,
+    up->tot_quad_phase = init_quad_values(up->cdim, inp->phase_basis, num_quad,
       &up->ordinates_phase, &up->weights_phase, &up->basis_at_ords_phase, up->use_gpu);
 
     int pidx[GKYL_MAX_DIM];

@@ -36,8 +36,6 @@ struct gkyl_loss_cone_mask_gyrokinetic {
   int vdim; // Velocity-space dimension.
 
   const struct gkyl_rect_grid *grid_phase;
-  const struct gkyl_basis *basis_conf; // Configuration-space basis.
-  const struct gkyl_basis *basis_phase; // Phase-space basis.
   int num_basis_conf; // Number of configuration-space basis functions.
   int num_basis_phase; // Number of phase-space basis functions.
 
