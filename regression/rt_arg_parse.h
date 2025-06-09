@@ -31,6 +31,7 @@ struct gkyl_app_args {
   bool skip_limiters; // should we skip limiters?
   bool is_restart; // is this a restarted sim?
   int restart_frame; // frame to restart from
+  char opt_args[128]; // optional arguments
 };
 
 static int
@@ -93,7 +94,7 @@ parse_app_args(int argc, char **argv)
   args.basis_type = GKYL_BASIS_MODAL_SERENDIPITY;
 
   int c;
-  while ((c = getopt(argc, argv, "+hjgmMt:s:i:b:x:y:z:u:v:w:r:c:d:e:")) != -1) {
+  while ((c = getopt(argc, argv, "+hjgmMt:s:i:b:x:y:z:u:v:w:r:c:d:e:o:")) != -1) {
     switch (c)
     {
       case 'h':
@@ -110,6 +111,7 @@ parse_app_args(int argc, char **argv)
         printf(" -l     Turn off limiters\n");
         printf(" -rN    Restart the simulation from frame N\n");
         printf(" -m     Turn on memory allocation/deallocation tracing\n");
+        printf(" -o     Optional arguments (as string, requires parsing)\n");
         printf("\n");
         printf(" Grid resolution in configuration space:\n");
         printf(" -xNX -yNY -zNZ\n");
@@ -199,6 +201,11 @@ parse_app_args(int argc, char **argv)
         args.mp_recon = get_mp_recon_type(optarg);
         assert(args.mp_recon != -1);
         break;        
+
+      case 'o':
+        assert(strlen(optarg) < sizeof(args.opt_args));
+        strcpy(args.opt_args, optarg);
+        break;
 
       case '?':
         break;
