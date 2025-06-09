@@ -71,6 +71,8 @@ gkyl_ten_moment_grad_closure_advance(const gkyl_ten_moment_grad_closure *gces,
   double cfla = 0.0, cfl = gces->cfl, cflm = 1.1*cfl;
   double is_cfl_violated = 0.0; // deliberately a double
 
+  gkyl_array_clear(rhs, 0.0);
+
   long offsets_vertices[sz[ndim-1]];
   create_offsets_vertices(update_range, offsets_vertices);
 
