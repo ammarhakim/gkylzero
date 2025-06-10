@@ -901,7 +901,7 @@ int main(int argc, char **argv)
       .init_from_file = {
         .type = GKYL_IC_IMPORT_F,
         .file_name = "gk_wham_1x2v_p1-elc_0.gkyl",
-        .jacobgeo_inv_file_name = "gk_wham_1x2v_p1-jacobgeo_inv.gkyl",
+        // .jacobgeo_inv_file_name = "gk_wham_1x2v_p1-jacobgeo_inv.gkyl",
       },
       .mapc2p = {
         .mapping = mapc2p_vel_elc,
@@ -954,7 +954,7 @@ int main(int argc, char **argv)
       .init_from_file = {
         .type = GKYL_IC_IMPORT_F,
         .file_name = "gk_wham_1x2v_p1-ion_0.gkyl",
-        .jacobgeo_inv_file_name = "gk_wham_1x2v_p1-jacobgeo_inv.gkyl",
+        // .jacobgeo_inv_file_name = "gk_wham_1x2v_p1-jacobgeo_inv.gkyl",
       },
       .scale_with_polarization = true,
       .collisions =  {
