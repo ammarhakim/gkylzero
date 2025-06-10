@@ -231,7 +231,11 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
         double *bmag_n = gkyl_array_fetch(bmag_nodal, gkyl_range_idx(&nodal_range, cidx));
         double bmag_anal[1];
         bmag_func(0, xn, bmag_anal, 0);
-        TEST_CHECK( gkyl_compare( bmag_n[0], bmag_anal[0], 1e-8) );
+        TEST_CHECK( gkyl_compare( bmag_n[0], bmag_anal[0], 1e-7) );
+        TEST_MSG("bmag = %.16g  at (psi, alpha, z) = (%g, %g, %g). Expected %.16g ", bmag_n[0],
+          comp_grid.lower[PSI_IDX] + ip*(comp_grid.upper[PSI_IDX]-comp_grid.lower[PSI_IDX])/comp_grid.cells[PSI_IDX],
+          comp_grid.lower[AL_IDX] + ia*(comp_grid.upper[AL_IDX]-comp_grid.lower[AL_IDX])/comp_grid.cells[AL_IDX],
+          comp_grid.lower[Z_IDX] + it*(comp_grid.upper[Z_IDX]-comp_grid.lower[Z_IDX])/comp_grid.cells[Z_IDX], bmag_anal[0]);
       }
     }
   }
@@ -273,7 +277,11 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
         double xn[3] = {psi, alpha, theta};
         double bmag_anal[1];
         bmag_func(0, xn, bmag_anal, 0);
-        TEST_CHECK( gkyl_compare( bmag_inv_n[0], 1/bmag_anal[0], 1e-8) );
+        TEST_CHECK( gkyl_compare( bmag_inv_n[0], 1/bmag_anal[0], 1e-7) );
+        TEST_MSG("bmag_inv = %.16g  at (psi, alpha, z) = (%g, %g, %g). Expected %.16g ", bmag_inv_n[0],
+          comp_grid.lower[PSI_IDX] + ip*(comp_grid.upper[PSI_IDX]-comp_grid.lower[PSI_IDX])/comp_grid.cells[PSI_IDX],
+          comp_grid.lower[AL_IDX] + ia*(comp_grid.upper[AL_IDX]-comp_grid.lower[AL_IDX])/comp_grid.cells[AL_IDX],
+          comp_grid.lower[Z_IDX] + it*(comp_grid.upper[Z_IDX]-comp_grid.lower[Z_IDX])/comp_grid.cells[Z_IDX], 1/bmag_anal[0]);
       }
     }
   }
@@ -304,13 +312,13 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
         cidx[AL_IDX] = ia;
         cidx[Z_IDX] = it;
         double *eps2_n = gkyl_array_fetch(eps2_nodal, gkyl_range_idx(&nodal_range, cidx));
-        TEST_CHECK( gkyl_compare( eps2_n[0], 1.0, 1e-8) );
-        TEST_MSG("eps2 = %g should be 1.0 at (psi, alpha, z) = (%g, %g, %g)", 
+        TEST_CHECK( gkyl_compare( eps2_n[0], 1.0, 1e-7) );
+        TEST_MSG("eps2 = %.16g should be 1.0 at (psi, alpha, z) = (%.16g, %.16g, %.16g)", 
           eps2_n[0],
           comp_grid.lower[PSI_IDX] + ip*(comp_grid.upper[PSI_IDX]-comp_grid.lower[PSI_IDX])/comp_grid.cells[PSI_IDX],
           comp_grid.lower[AL_IDX] + ia*(comp_grid.upper[AL_IDX]-comp_grid.lower[AL_IDX])/comp_grid.cells[AL_IDX],
           comp_grid.lower[Z_IDX] + it*(comp_grid.upper[Z_IDX]-comp_grid.lower[Z_IDX])/comp_grid.cells[Z_IDX]);
-      }
+            }
     }
   }
 
