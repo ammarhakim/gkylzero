@@ -1371,7 +1371,7 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
   struct gkyl_basis conf_basis_do;
   gkyl_cart_modal_serendip(&conf_basis_do, cdim_do, poly_order);
   // Array for Jacobian inverse
-  struct gkyl_array *jacobgeo_inv_do = mkarr(app->use_gpu, conf_basis_do.num_basis, conf_local_ext_do.volume);
+  struct gkyl_array *jacobgeo_inv_do = mkarr(false, conf_basis_do.num_basis, conf_local_ext_do.volume);
 
   // Read donor distribution function and Jacobian inverse.
   struct gkyl_app_restart_status rstat;
