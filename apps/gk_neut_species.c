@@ -848,11 +848,6 @@ gk_neut_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
   struct gkyl_app_restart_status rstat;
   rstat.io_status = gkyl_comm_array_read(comm_do, &grid_do, &local_do, fdo_host, inp.file_name);
 
-
-  // Read donor distribution function and Jacobian inverse.
-  struct gkyl_app_restart_status rstat;
-  rstat.io_status = gkyl_comm_array_read(comm_do, &grid_do, &local_do, fdo_host, inp.file_name);
-
   bool scale_by_jacobgeo = false;
   with_file(fp, inp.jacobgeo_inv_file_name, "r") {
     // Set up configuration space donor grid and basis
