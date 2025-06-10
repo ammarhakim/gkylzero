@@ -67,9 +67,9 @@ struct gkyl_position_map_const_B_ctx {
   // Constant B mapping
   int N_theta_boundaries; // Number of times dB/dz changes sign
   int num_extrema; // Number of extrema in the magnetic field
-  double theta_extrema[16]; // The theta values of the extrema
-  double bmag_extrema[16]; // The Bmag values of the extrema
-  bool min_or_max[16]; // Whether the extrema is a minima or maxima. 1 is maxima, 0 is minima
+  double *theta_extrema; // The theta values of the extrema
+  double *bmag_extrema; // The Bmag values of the extrema
+  bool *min_or_max; // Whether the extrema is a minima or maxima. 1 is maxima, 0 is minima
   double dB_cell; // The change in Bmag per cell
 };
 

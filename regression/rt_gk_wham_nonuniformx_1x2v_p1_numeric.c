@@ -432,8 +432,8 @@ create_ctx(void)
   // Geometry parameters.
   // Axial coordinate Z extents. Endure that Z=0 is not on
   // the boundary of a cell (due to AD errors).
-  double z_min = -M_PI + 1e-1;
-  double z_max =  M_PI - 1e-1;
+  double z_min = -2.0;
+  double z_max =  2.0;
   double psi_eval = 0.0026530898059565;
 
   double z_m = 0.982544;
@@ -666,7 +666,7 @@ int main(int argc, char **argv)
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
     },
     .num_diag_moments = 8,
-    .diag_moments = {"BiMaxwellianMoments", "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .diag_moments = {GKYL_F_MOMENT_BIMAXWELLIAN, GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
   };
 
   struct gkyl_gyrokinetic_species ion = {
@@ -717,7 +717,7 @@ int main(int argc, char **argv)
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
     },
     .num_diag_moments = 8,
-    .diag_moments = {"BiMaxwellianMoments", "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+    .diag_moments = {GKYL_F_MOMENT_BIMAXWELLIAN, GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
   };
 
   struct gkyl_gyrokinetic_field field = {
@@ -725,16 +725,13 @@ int main(int argc, char **argv)
     .kperpSq = pow(ctx.kperp, 2.),
   };
 
-  struct gkyl_efit_inp efit_inp = {
-    .filepath = "./data/eqdsk/wham.geqdsk", // equilibrium to use
-    .rz_poly_order = 2,                     // polynomial order for psi(R,Z) used for field line tracing
-    .flux_poly_order = 1,                   // polynomial order for fpol(psi)
-  };
-
   struct gkyl_mirror_geo_grid_inp grid_inp = {
+    .filename_psi = "data/unit/wham_hires.geqdsk_psi.gkyl", // psi file to use
     .rclose = 0.2, // closest R to region of interest
     .zmin = -2.0,  // Z of lower boundary
     .zmax =  2.0,  // Z of upper boundary 
+    .include_axis = false, // Include R=0 axis in grid
+    .fl_coord = GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // coordinate system for psi grid
   };
 
   // GK app
@@ -749,7 +746,6 @@ int main(int argc, char **argv)
     .geometry = {
       .geometry_id = GKYL_MIRROR,
       .world = {ctx.psi_eval, 0.0},
-      .efit_info = efit_inp,
       .mirror_grid_info = grid_inp,
       .position_map_info = {
         .id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
@@ -867,13 +863,8 @@ int main(int argc, char **argv)
     gkyl_gyrokinetic_app_cout(app, stdout, "Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
   }
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Updates took %g secs\n", stat.total_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld,\n", stat.n_io);
-  gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
+  gkyl_gyrokinetic_app_print_timings(app, stdout);
   
   freeresources:
   // simulation complete, free app

@@ -184,7 +184,7 @@ test_func(int cdim, int vdim, int poly_order,
   // project collision frequency on basis
   gkyl_proj_on_basis_advance(projNu, 0.0, &confLocal_ext, nu);
   
-  struct gkyl_mom_type *vm_moms_t = gkyl_mom_vlasov_new(&confBasis, &basis, "FiveMoments", false);
+  struct gkyl_mom_type *vm_moms_t = gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M0M1M2, false);
   gkyl_mom_calc *moms_calc = gkyl_mom_calc_new(&grid, vm_moms_t, false);
 
   // create moment arrays
@@ -233,7 +233,7 @@ test_func(int cdim, int vdim, int poly_order,
   prim_moms = mkarr((vdim+1)*confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moment corrections
-  gkyl_prim_lbo_calc_advance(primcalc, &confLocal, moms, boundary_corrections, prim_moms);
+  gkyl_prim_lbo_calc_advance(primcalc, &confLocal, moms, boundary_corrections, nu, prim_moms);
 
   gkyl_array_set_offset(u, 1., prim_moms, 0);
   gkyl_array_set_offset(vth, 1., prim_moms, vdim*confBasis.num_basis);
@@ -271,7 +271,7 @@ test_func(int cdim, int vdim, int poly_order,
   // for simplicity in this (infrastructure) test.
   gkyl_prim_lbo_cross_calc_advance(crossprimcalc, &confLocal, greene,
     self_m, moms, prim_moms, cross_m, moms, cross_prim_moms,
-    boundary_corrections, prim_moms_out);
+    boundary_corrections, nu, prim_moms_out);
   
   gkyl_array_set_offset(u_out, 1., prim_moms_out, 0);
   gkyl_array_set_offset(vtsq_out, 1., prim_moms_out, vdim*confBasis.num_basis);
@@ -410,7 +410,7 @@ test_func_cu(int cdim, int vdim, int poly_order,
   gkyl_proj_on_basis_advance(projNu, 0.0, &confLocal_ext, nu);
   gkyl_array_copy(nu_cu, nu);
   
-  struct gkyl_mom_type *vm_moms_t = gkyl_mom_vlasov_new(&confBasis, &basis, "FiveMoments", true);
+  struct gkyl_mom_type *vm_moms_t = gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M0M1M2, true);
   gkyl_mom_calc *moms_calc = gkyl_mom_calc_new(&grid, vm_moms_t, true);
 
   // create moment arrays
@@ -441,7 +441,7 @@ test_func_cu(int cdim, int vdim, int poly_order,
   prim_moms_cu = mkarr_cu((vdim+1)*confBasis.num_basis, confLocal_ext.volume);
 
   // compute the moment corrections
-  gkyl_prim_lbo_calc_advance(primcalc, &confLocal, moms_cu, boundary_corrections_cu, prim_moms_cu);
+  gkyl_prim_lbo_calc_advance(primcalc, &confLocal, moms_cu, boundary_corrections_cu, nu_cu, prim_moms_cu);
 
   gkyl_array_set_offset(u_cu, 1., prim_moms_cu, 0);
   gkyl_array_set_offset(vth_cu, 1., prim_moms_cu, vdim*confBasis.num_basis);
@@ -484,7 +484,7 @@ test_func_cu(int cdim, int vdim, int poly_order,
   // for simplicity in this (infrastructure) test.
   gkyl_prim_lbo_cross_calc_advance(crossprimcalc, &confLocal, greene_cu,
     self_m, moms_cu, prim_moms_cu, cross_m, moms_cu, cross_prim_moms,
-    boundary_corrections_cu, prim_moms_out_cu);
+    boundary_corrections_cu, nu_cu, prim_moms_out_cu);
 
   gkyl_array_set_offset(u_out_cu, 1., prim_moms_out_cu, 0);
   gkyl_array_set_offset(vtsq_out_cu, 1., prim_moms_out_cu, vdim*confBasis.num_basis);
