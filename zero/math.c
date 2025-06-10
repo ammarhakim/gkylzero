@@ -338,7 +338,7 @@ sign_changes(int *signs)
 
 
 static void
-signs_strun_chain(double *eval_sturn_chain, int *signs)
+signs_strum_chain(double *eval_sturn_chain, int *signs)
 {
   int iter = 0;
   for (int i=0; i<=4; ++i) {
@@ -355,7 +355,7 @@ signs_strun_chain(double *eval_sturn_chain, int *signs)
 
 
 static void
-eval_sturn_chain(struct sturn_polynomials *sturn_chain, double x, double *eval)
+eval_strum_chain(struct gkyl_sturm_polynomials *sturn_chain, double x, double *eval)
 {
   eval[0] = eval_poly(x,sturn_chain->p0);
   eval[1] = eval_poly_lo(sturn_chain->p1,x);
@@ -366,19 +366,19 @@ eval_sturn_chain(struct sturn_polynomials *sturn_chain, double x, double *eval)
 
 
 static double
-eval_num_roots(struct sturn_polynomials *sturn_chain, double domain[2])
+eval_num_roots(struct gkyl_sturm_polynomials *sturn_chain, double domain[2])
 {
   // Evaluate the sturn chain
   double eval_sturn_chain_l[5];
   double eval_sturn_chain_r[5];
-  eval_sturn_chain(sturn_chain,domain[0],eval_sturn_chain_l);
-  eval_sturn_chain(sturn_chain,domain[1],eval_sturn_chain_r);
+  eval_strum_chain(sturn_chain,domain[0],eval_sturn_chain_l);
+  eval_strum_chain(sturn_chain,domain[1],eval_sturn_chain_r);
 
   // Compute the signs 
   int signs_l[5];
   int signs_r[5];
-  signs_strun_chain(eval_sturn_chain_l,signs_l);
-  signs_strun_chain(eval_sturn_chain_r,signs_r);
+  signs_strum_chain(eval_sturn_chain_l,signs_l);
+  signs_strum_chain(eval_sturn_chain_r,signs_r);
 
   // Compute the number of roots
   int num_roots = sign_changes(signs_l) - sign_changes(signs_r);
@@ -444,7 +444,7 @@ check_poly_bounded(double *p, double left_bound, double middle_bound, double rig
 
 
 static struct gkyl_root_intervals
-bisection_root_search(struct sturn_polynomials *sturn_chain, double domain[2], double tol)
+bisection_root_search(struct gkyl_sturm_polynomials *sturn_chain, double domain[2], double tol)
 {
 
   // Initialize 
@@ -688,7 +688,7 @@ minus_euclidean_division_rem(double *p0, double *p1, int p0_deg, double *res)
 }
 
 
-static struct sturn_polynomials 
+static struct gkyl_sturm_polynomials 
 compute_sturn_chain(double p0[4])
 {
 
@@ -705,7 +705,7 @@ compute_sturn_chain(double p0[4])
   // Compute the next division p2 by p3
   minus_euclidean_division_rem(p2,p3,0,p4);
 
-  return (struct sturn_polynomials) {
+  return (struct gkyl_sturm_polynomials) {
     .p0 = { p0[0], p0[1], p0[2], p0[3] },
     .p1 = { p1[0], p1[1], p1[2], p1[3] },
     .p2 = { p2[0], p2[1], p2[2], p2[3] },
@@ -813,7 +813,7 @@ gkyl_calc_quartic_root_intervals(double coeff[4], double domain[2], double tol)
 {
 
   // Compute the sturn chain
-  struct sturn_polynomials sturn_chain = compute_sturn_chain(coeff);
+  struct gkyl_sturm_polynomials sturn_chain = compute_sturn_chain(coeff);
 
   // Isolate the intervals
   struct gkyl_root_intervals root_intervals = bisection_root_search(&sturn_chain,domain, tol);

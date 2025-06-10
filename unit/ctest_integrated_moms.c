@@ -234,9 +234,9 @@ test_2x_option(bool use_gpu)
 
   // Initialize integrated moment calculator
   struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &confBasis, &basis,
-    &confLocal, mi, qi, gvm, gk_geom, NULL, "Integrated", true, use_gpu);    
+    &confLocal, mi, qi, gvm, gk_geom, NULL, GKYL_F_MOMENT_M0M1M2PARM2PERP, true, use_gpu);    
 
-  int num_mom = 4;
+  int num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(mcalc);
 
   struct gkyl_array *marr = mkarr(use_gpu, num_mom, confLocal_ext.volume);
   struct gkyl_array *marr_host = use_gpu? marr_host = mkarr(false, marr->ncomp, marr->size)
@@ -265,7 +265,9 @@ test_2x_option(bool use_gpu)
   TEST_CHECK( gkyl_compare( avals_global[0]/3e19, 1.0, 1e-2));
   TEST_CHECK( gkyl_compare( avals_global[1]/3e19, 0.0, 1e-2));
   TEST_CHECK( gkyl_compare( avals_global[2]/2.14e+29, 1.0, 1e-2));
+  TEST_MSG( "Got: %.9e | Expected: %.9e\n",avals_global[2]/2.14e+29, 1.0);
   TEST_CHECK( gkyl_compare( avals_global[3]/4.21e+29, 1.0, 1e-2));
+  TEST_MSG( "Got: %.9e | Expected: %.9e\n",avals_global[3]/4.21e+29, 1.0);
 
   gkyl_array_release(m0);
   gkyl_array_release(udrift); 

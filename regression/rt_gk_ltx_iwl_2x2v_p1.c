@@ -145,7 +145,7 @@ create_ctx(void)
   // Geometry and magnetic field.
   double Lz        = 2.0*(M_PI-1e-14);    // Domain size along magnetic field.
   double B0 = 0.24;
-  double psi_LCFS= -5.4760172700000003e-03; // psi at LCFS. Taken from efit
+  double psi_LCFS = -5.4760172700000003e-03; // psi at LCFS. Taken from efit
   double psi_min = psi_LCFS - 0.0004; // inner flux surface of domain
   double psi_max = psi_LCFS + 0.0012; // outer flux surface of domain
   double Lx = psi_max - psi_min;
@@ -349,14 +349,12 @@ int main(int argc, char **argv)
       .upper={.type = GKYL_SPECIES_ABSORB,},
     },
     .bcy = {
-      .lower={.type = GKYL_SPECIES_GK_IWL,
-              .aux_parameter = ctx.psi_LCFS,},
-      .upper={.type = GKYL_SPECIES_GK_IWL,
-              .aux_parameter = ctx.psi_LCFS,},
+      .lower={.type = GKYL_SPECIES_GK_IWL,},
+      .upper={.type = GKYL_SPECIES_GK_IWL,},
     },
 
     .num_diag_moments = 5,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
   };
 
   // ions
@@ -413,20 +411,17 @@ int main(int argc, char **argv)
       .upper={.type = GKYL_SPECIES_ABSORB,},
     },
     .bcy = {
-      .lower={.type = GKYL_SPECIES_GK_IWL,
-              .aux_parameter = ctx.psi_LCFS,},
-      .upper={.type = GKYL_SPECIES_GK_IWL,
-              .aux_parameter = ctx.psi_LCFS,},
+      .lower={.type = GKYL_SPECIES_GK_IWL,},
+      .upper={.type = GKYL_SPECIES_GK_IWL,},
     },
     
     .num_diag_moments = 5,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
   };
 
   // field
   struct gkyl_gyrokinetic_field field = {
     .gkfield_id = GKYL_GK_FIELD_ES_IWL,
-    .xLCFS = ctx.psi_LCFS,
     .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET},
                     .up_type = {GKYL_POISSON_DIRICHLET},
                     .lo_value = {0.0}, .up_value = {0.0}},
@@ -444,9 +439,9 @@ int main(int argc, char **argv)
     .ftype = GKYL_IWL,
     .rclose = 0.7,
     .rleft= 0.1,
-    .rright= 0.7,
-    .rmin=0.1,
-    .rmax=0.7,
+    .rright = 0.7,
+    .rmin = 0.1,
+    .rmax = 0.7,
     .zmin = -0.35,
     .zmax = 0.35,
   }; 
@@ -467,6 +462,8 @@ int main(int argc, char **argv)
       .geometry_id = GKYL_TOKAMAK,
       .efit_info = efit_inp,
       .tok_grid_info = grid_inp,
+      .has_LCFS = true,
+      .x_LCFS = ctx.psi_LCFS, // Location of last closed flux surface.
     },
 
     .num_periodic_dir = 0,
@@ -580,14 +577,8 @@ int main(int argc, char **argv)
     gkyl_gyrokinetic_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
   }
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
-
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
-  gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
+  gkyl_gyrokinetic_app_print_timings(app, stdout);
 
 freeresources:
   // Free resources after simulation completion.

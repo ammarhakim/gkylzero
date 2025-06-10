@@ -455,8 +455,8 @@ create_ctx(void)
   double R_axis    = 1.6;                // Magnetic axis major radius [m].
   double B_axis    = 2.0*R_axisTrue/R_axis; // Magnetic field at the magnetic axis [T].
   double R_LCFSmid = 2.17;               // Major radius of the LCFS at the outboard midplane [m].
-  double Rmid_min  = R_LCFSmid - 0.1;    // Minimum midplane major radius of simulation box [m].
-  double Rmid_max  = R_LCFSmid + 0.05;   // Maximum midplane major radius of simulation box [m].
+  double Rmid_min  = R_LCFSmid - 5*0.15/8;    // Minimum midplane major radius of simulation box [m].
+  double Rmid_max  = R_LCFSmid + 3*0.15/8;   // Maximum midplane major radius of simulation box [m].
   double R0        = 0.5*(Rmid_min+Rmid_max);  // Major radius of the simulation box [m].
 
   // Minor radius at outboard midplane [m]. Redefine it with
@@ -715,27 +715,41 @@ main(int argc, char **argv)
         .upar = zero_func,
         .temp = temp_elc_srcGB,
       },
+      .diagnostics = {
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+//        .time_integrated = true,
+      },
     },
 
     .bcx = {
-      .lower={.type = GKYL_SPECIES_ABSORB,},
-      .upper={.type = GKYL_SPECIES_ABSORB,},
+      .lower = {.type = GKYL_SPECIES_ABSORB,},
+      .upper = {.type = GKYL_SPECIES_ABSORB,},
     },
     .bcz = {
-      .lower={.type = GKYL_SPECIES_GK_IWL,
-              .aux_parameter = ctx.x_LCFS,
-              .aux_profile = bc_shift_func_lo,
-              .aux_ctx = &ctx,
+      .lower = {.type = GKYL_SPECIES_GK_IWL,
+                .aux_profile = bc_shift_func_lo,
+                .aux_ctx = &ctx,
       },
-      .upper={.type = GKYL_SPECIES_GK_IWL,
-              .aux_parameter = ctx.x_LCFS,
-              .aux_profile = bc_shift_func_up,
-              .aux_ctx = &ctx,
+      .upper = {.type = GKYL_SPECIES_GK_IWL,
+                .aux_profile = bc_shift_func_up,
+                .aux_ctx = &ctx,
       },
     },
 
     .num_diag_moments = 1,
-    .diag_moments = { "MaxwellianMoments" },
+    .diag_moments = { GKYL_F_MOMENT_MAXWELLIAN },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_diag_moments = 1,
+      .diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+//      .time_integrated = true,
+    },
   };
 
   // ions
@@ -791,27 +805,41 @@ main(int argc, char **argv)
         .upar = zero_func,
         .temp = temp_ion_srcGB,
       },
+      .diagnostics = {
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+//        .time_integrated = true,
+      },
     },
 
     .bcx = {
-      .lower={.type = GKYL_SPECIES_ABSORB,},
-      .upper={.type = GKYL_SPECIES_ABSORB,},
+      .lower = {.type = GKYL_SPECIES_ABSORB,},
+      .upper = {.type = GKYL_SPECIES_ABSORB,},
     },
     .bcz = {
-      .lower={.type = GKYL_SPECIES_GK_IWL,
-              .aux_parameter = ctx.x_LCFS,
-              .aux_profile = bc_shift_func_lo,
-              .aux_ctx = &ctx,
+      .lower = {.type = GKYL_SPECIES_GK_IWL,
+                .aux_profile = bc_shift_func_lo,
+                .aux_ctx = &ctx,
       },
-      .upper={.type = GKYL_SPECIES_GK_IWL,
-              .aux_parameter = ctx.x_LCFS,
-              .aux_profile = bc_shift_func_up,
-              .aux_ctx = &ctx,
+      .upper = {.type = GKYL_SPECIES_GK_IWL,
+                .aux_profile = bc_shift_func_up,
+                .aux_ctx = &ctx,
       },
     },
 
     .num_diag_moments = 1,
-    .diag_moments = { "MaxwellianMoments" },
+    .diag_moments = { GKYL_F_MOMENT_MAXWELLIAN },
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+    .time_rate_diagnostics = true,
+
+    .boundary_flux_diagnostics = {
+      .num_diag_moments = 1,
+      .diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+      .num_integrated_diag_moments = 1,
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+//      .time_integrated = true,
+    },
   };
 
   struct gkyl_poisson_bias_plane target_corner_bc = {
@@ -828,11 +856,11 @@ main(int argc, char **argv)
   // field
   struct gkyl_gyrokinetic_field field = {
     .gkfield_id = GKYL_GK_FIELD_ES_IWL,
-    .xLCFS = ctx.x_LCFS,
     .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET},
                     .up_type = {GKYL_POISSON_DIRICHLET},
                     .lo_value = {0.0}, .up_value = {0.0}},
-    .bias_plane_list = &bias_plane_list
+    .bias_plane_list = &bias_plane_list,
+    .time_rate_diagnostics = true,
   };
 
   // GK app
@@ -854,7 +882,9 @@ main(int argc, char **argv)
       .mapc2p = mapc2p, // mapping of computational to physical space
       .c2p_ctx = &ctx,
       .bmag_func = bmag_func, // magnetic field magnitude
-      .bmag_ctx = &ctx
+      .bmag_ctx = &ctx,
+      .has_LCFS = true,
+      .x_LCFS = ctx.x_LCFS, // Location of last closed flux surface.
     },
 
     .num_periodic_dir = 1,
@@ -968,14 +998,8 @@ main(int argc, char **argv)
     gkyl_gyrokinetic_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
   }
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
-
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
-  gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
+  gkyl_gyrokinetic_app_print_timings(app, stdout);
 
 freeresources:
   // Free resources after simulation completion.
