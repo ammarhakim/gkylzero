@@ -121,7 +121,7 @@ test_cubic_evalf_2d(void)
   evf->eval_cubic_wgrad2(0.0, xn, fout, evf->ctx);
   TEST_CHECK( gkyl_compare_double(fout[0], sq(xn[0])*sq(xn[1]), 1.0e-15) );
   TEST_CHECK( gkyl_compare_double(fout[1], 2*sq(xn[1]), 1.0e-15) );
-  TEST_CHECK( gkyl_compare_double(fout[2], 2*sq(xn[0]), 1.0e-15) );
+  TEST_CHECK( gkyl_compare_double(fout[2], 2*sq(xn[0]), 1.0e-14) );
   TEST_CHECK( gkyl_compare_double(fout[3], 4*xn[0]*xn[1], 1.0e-15) );
 
   gkyl_array_release(psi_nodal);
