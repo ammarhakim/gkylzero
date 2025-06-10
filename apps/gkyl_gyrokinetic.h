@@ -213,7 +213,7 @@ struct gkyl_gyrokinetic_ic_import {
   // and to modify that distribution such that f = alpha(x)*f_in+beta(x,v).
   enum gkyl_ic_import_type type;
   char file_name[128]; // Name of file that contains IC, J*f_in.
-  char jacobgeo_inv_name[128]; // Name of file that contains Jacobian inverse. Used to invert Jf to get f
+  char jacobgeo_inv_file_name[128]; // Name of file that contains 1/Jacobian. Used to get f from Jf.
   void *conf_scale_ctx;
   void (*conf_scale)(double t, const double *xn, double *fout, void *ctx); // alpha(x).
   struct gkyl_gyrokinetic_projection phase_add; // beta(x,v).

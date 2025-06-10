@@ -1375,7 +1375,7 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
 
   // Read donor distribution function and Jacobian inverse.
   struct gkyl_app_restart_status rstat;
-  rstat.io_status = gkyl_comm_array_read(comm_do, &conf_grid_do, &conf_local_do, jacobgeo_inv_do, inp.jacobgeo_inv_name); // error
+  rstat.io_status = gkyl_comm_array_read(comm_do, &conf_grid_do, &conf_local_do, jacobgeo_inv_do, inp.jacobgeo_inv_file_name); // error
   rstat.io_status = gkyl_comm_array_read(comm_do, &grid_do, &local_do, fdo_host, inp.file_name);
 
   // Multiply the donor distribution function by the Jacobian inverse.
