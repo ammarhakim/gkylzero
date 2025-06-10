@@ -1431,9 +1431,11 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
   gkyl_dg_mul_conf_phase_op_range(&app->basis, &gks->basis, gks->f, app->gk_geom->jacobgeo, gks->f, &app->local, &gks->local);
 
   gkyl_rect_decomp_release(decomp_do);
+  gkyl_rect_decomp_release(conf_decomp_do);
   gkyl_comm_release(comm_do);
   gkyl_array_release(fdo);
   gkyl_array_release(fdo_host);
+  gkyl_array_release(jacobgeo_inv_do);
 }
 
 static bool
