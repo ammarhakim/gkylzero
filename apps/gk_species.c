@@ -1371,17 +1371,17 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
   struct gkyl_basis conf_basis_do;
   gkyl_cart_modal_serendip(&conf_basis_do, cdim_do, poly_order);
   // Array for Jacobian inverse
-  struct gkyl_array *jacobgeo_inv_do = mkarr(false, conf_basis_do.num_basis, conf_local_ext_do.volume);
+  struct gkyl_array *jacobgeo_inv_do_host = mkarr(false, conf_basis_do.num_basis, conf_local_ext_do.volume);
 
   // Read donor distribution function and Jacobian inverse.
   struct gkyl_app_restart_status rstat;
   if (inp.jacobgeo_inv_file_name[0] != '\0')
-    rstat.io_status = gkyl_comm_array_read(comm_do, &conf_grid_do, &conf_local_do, jacobgeo_inv_do, inp.jacobgeo_inv_file_name);
+    rstat.io_status = gkyl_comm_array_read(comm_do, &conf_grid_do, &conf_local_do, jacobgeo_inv_do_host, inp.jacobgeo_inv_file_name);
   rstat.io_status = gkyl_comm_array_read(comm_do, &grid_do, &local_do, fdo_host, inp.file_name);
 
   // Multiply the donor distribution function by the Jacobian inverse.
   if (inp.jacobgeo_inv_file_name[0] != '\0')
-    gkyl_dg_mul_conf_phase_op_range(&conf_basis_do, &basis_do, fdo_host, jacobgeo_inv_do, fdo_host, &conf_local_ext_do, &local_ext_do);
+    gkyl_dg_mul_conf_phase_op_range(&conf_basis_do, &basis_do, fdo_host, jacobgeo_inv_do_host, fdo_host, &conf_local_ext_do, &local_ext_do);
 
   if (app->use_gpu) {
     gkyl_array_copy(fdo, fdo_host);
@@ -1438,7 +1438,7 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
   gkyl_comm_release(comm_do);
   gkyl_array_release(fdo);
   gkyl_array_release(fdo_host);
-  gkyl_array_release(jacobgeo_inv_do);
+  gkyl_array_release(jacobgeo_inv_do_host);
 }
 
 static bool
