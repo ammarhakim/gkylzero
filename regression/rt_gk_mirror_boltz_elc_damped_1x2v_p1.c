@@ -353,7 +353,7 @@ bmag_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 }
 
 void
-prop_rhs_term_profile(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+loss_cone_damping_rate_profile(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double z = xn[0], vpar = xn[1], mu = xn[2];
 
@@ -393,22 +393,21 @@ prop_rhs_term_profile(double t, const double *GKYL_RESTRICT xn, double *GKYL_RES
 }
 
 void
-prop_rhs_term_scale(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+loss_cone_damping_rate_scaling(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  double z = xn[0];
+  double z = xn[0], vpar = xn[1], mu = xn[2];
 
   struct gk_mirror_ctx *app = ctx;
   double vt = app->vti;
   double z_m = app->z_m;
-  double z_max = app->z_max;
+  double alpha = app->alpha;
 
-  double Lpar;
-  if (fabs(z) <= z_m)
-    Lpar = z_m;
+  if (fabs(z) < z_m) {
+    double Lpar = z_m;
+    fout[0] = (1.0-alpha) * vt/Lpar;
+  }
   else
-    Lpar = z_max - z_m;
-
-  fout[0] = vt/Lpar;
+    fout[0] = 0.0;
 }
 
 struct gk_mirror_ctx
@@ -681,12 +680,12 @@ int main(int argc, char **argv)
     },
 
     .damping = {
-      .type = GKYL_GK_DAMPING_USER_INPUT,
-      .rate_profile = prop_rhs_term_profile,
+//      .type = GKYL_GK_DAMPING_USER_INPUT,
+//      .rate_profile = loss_cone_damping_rate_profile,
+//      .rate_profile_ctx = &ctx,
+      .type = GKYL_GK_DAMPING_LOSS_CONE,
+      .rate_profile = loss_cone_damping_rate_scaling,
       .rate_profile_ctx = &ctx,
-//      .type = GKYL_GK_DAMPING_LOSS_CONE,
-//      .scale_factor = (1.0-ctx.alpha),
-//      .scale_profile = prop_rhs_term_scale,
     },
 
     .bcx = {
@@ -707,7 +706,7 @@ int main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk app_inp = { 
-    .name = "gk_mirror_boltz_elc_1x2v_p1",
+    .name = "gk_mirror_boltz_elc_damped_1x2v_p1",
     .cdim = ctx.cdim, .vdim = ctx.vdim,
     .lower = {ctx.z_min},
     .upper = {ctx.z_max},
