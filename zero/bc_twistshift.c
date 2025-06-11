@@ -376,7 +376,7 @@ ts_donor_target_offset(struct gkyl_bc_twistshift *up, const double *xc_do, const
   int shift_dir = up->shift_dir_in_ts_grid;
 
   double shift;
-  up->shift_func(0.0, (double[]){xc_do[up->shear_dir]}, &shift, up->shift_func_ctx);
+  up->shift_func(0.0, (double[]){xc_do[up->shear_dir]}, &shift, up->shift_func_ctx); // TAG: the shift analytical function appears here.
 
   int shift_sign = ts_sign(shift);
   double shift_dir_L = up->ts_grid.upper[up->shift_dir] - up->ts_grid.lower[up->shift_dir];
@@ -423,7 +423,7 @@ ts_find_intersect(struct gkyl_bc_twistshift *up, double shiftCoordTar, double sh
     .shiftCoordDo = shiftCoordDo,
     .shiftDirL = shiftDirL,
     .periodicCopyIdx = 0,
-    .shift_func = up->shift_func,
+    .shift_func = up->shift_func, // TAG: the shift analytical function appears here.
     .shift_func_ctx = up->shift_func_ctx,
   };
   struct gkyl_qr_res rootfind_res = ts_root_find(ts_shifted_coord_loss_func, &func_ctx,
@@ -440,7 +440,7 @@ ts_find_intersect(struct gkyl_bc_twistshift *up, double shiftCoordTar, double sh
     for (int sI=0; sI<num_steps+1; sI++) {
       double xp = shearDirBounds[0] + sI*step_sz;
       double xp_shift;
-      up->shift_func(0.0, (double[]){xp}, &xp_shift, up->shift_func_ctx);
+      up->shift_func(0.0, (double[]){xp}, &xp_shift, up->shift_func_ctx); // TAG: the shift analytical function appears here.
       double ex_shift = xp_shift<0.? ((shiftCoordTar-xp_shift)-shiftDirLimits[0])/shiftDirL
                                    : (shiftDirLimits[1]-(shiftCoordTar-xp_shift))/shiftDirL;
       double nP_new = ts_sign(xp_shift)*floor(fabs(ex_shift));
@@ -638,7 +638,7 @@ ts_subcellint_sNi_sNii(struct gkyl_bc_twistshift *up, struct ts_val_found *inter
     .shift_dir = up->shift_dir_in_ts_grid,
     .shift_dir_bounds = {up->ts_grid.lower[up->shift_dir_in_ts_grid], 
                          up->ts_grid.upper[up->shift_dir_in_ts_grid]},
-    .shift_func     = up->shift_func,
+    .shift_func     = up->shift_func, // TAG: the shift analytical function appears here.
     .shift_func_ctx = up->shift_func_ctx,
   };
 
@@ -729,8 +729,8 @@ ts_subcellint_si_sii(struct gkyl_bc_twistshift *up, struct ts_val_found *inter_p
   //   mat_do: current donor matrix.
 
   double shift_lo, shift_up;
-  up->shift_func(0.0, (double[]){cellb_tar[cellb_lo(up->shear_dir_in_ts_grid)]}, &shift_lo, up->shift_func_ctx);
-  up->shift_func(0.0, (double[]){cellb_tar[cellb_up(up->shear_dir_in_ts_grid)]}, &shift_up, up->shift_func_ctx);
+  up->shift_func(0.0, (double[]){cellb_tar[cellb_lo(up->shear_dir_in_ts_grid)]}, &shift_lo, up->shift_func_ctx); // TAG: the shift analytical function appears here.
+  up->shift_func(0.0, (double[]){cellb_tar[cellb_up(up->shear_dir_in_ts_grid)]}, &shift_up, up->shift_func_ctx); // TAG: the shift analytical function appears here.
 
   bool is_si = -shift_lo < -shift_up;
 
@@ -761,7 +761,7 @@ ts_subcellint_si_sii(struct gkyl_bc_twistshift *up, struct ts_val_found *inter_p
     .shift_dir = up->shift_dir_in_ts_grid,
     .shift_dir_bounds = {up->ts_grid.lower[up->shift_dir_in_ts_grid], 
                          up->ts_grid.upper[up->shift_dir_in_ts_grid]},
-    .shift_func     = up->shift_func,
+    .shift_func     = up->shift_func, // TAG: the shift analytical function appears here.
     .shift_func_ctx = up->shift_func_ctx,
   };
 
@@ -792,8 +792,8 @@ ts_subcellint_siii_siv(struct gkyl_bc_twistshift *up, struct ts_val_found *inter
   //   mat_do: current donor matrix.
 
   double shift_lo, shift_up;
-  up->shift_func(0.0, (double[]){cellb_tar[cellb_lo(up->shear_dir_in_ts_grid)]}, &shift_lo, up->shift_func_ctx);
-  up->shift_func(0.0, (double[]){cellb_tar[cellb_up(up->shear_dir_in_ts_grid)]}, &shift_up, up->shift_func_ctx);
+  up->shift_func(0.0, (double[]){cellb_tar[cellb_lo(up->shear_dir_in_ts_grid)]}, &shift_lo, up->shift_func_ctx); // TAG: the shift analytical function appears here.
+  up->shift_func(0.0, (double[]){cellb_tar[cellb_up(up->shear_dir_in_ts_grid)]}, &shift_up, up->shift_func_ctx); // TAG: the shift analytical function appears here.
 
   bool is_siii = -shift_lo > -shift_up;
 
@@ -824,7 +824,7 @@ ts_subcellint_siii_siv(struct gkyl_bc_twistshift *up, struct ts_val_found *inter
     .shift_dir = up->shift_dir_in_ts_grid,
     .shift_dir_bounds = {up->ts_grid.lower[up->shift_dir_in_ts_grid], 
                          up->ts_grid.upper[up->shift_dir_in_ts_grid]},
-    .shift_func     = up->shift_func,
+    .shift_func     = up->shift_func, // TAG: the shift analytical function appears here.
     .shift_func_ctx = up->shift_func_ctx,
   };
 
@@ -866,7 +866,7 @@ ts_subcellint_sv_svi(struct gkyl_bc_twistshift *up, struct ts_val_found *inter_p
     .shift_dir = up->shift_dir_in_ts_grid,
     .shift_dir_bounds = {up->ts_grid.lower[up->shift_dir_in_ts_grid], 
                          up->ts_grid.upper[up->shift_dir_in_ts_grid]},
-    .shift_func     = up->shift_func,
+    .shift_func     = up->shift_func, // TAG: the shift analytical function appears here.
     .shift_func_ctx = up->shift_func_ctx,
   };
 
@@ -968,7 +968,7 @@ ts_subcellint_svii_sviii(struct gkyl_bc_twistshift *up, struct ts_val_found *int
     .shift_dir = up->shift_dir_in_ts_grid,
     .shift_dir_bounds = {up->ts_grid.lower[up->shift_dir_in_ts_grid], 
                          up->ts_grid.upper[up->shift_dir_in_ts_grid]},
-    .shift_func     = up->shift_func,
+    .shift_func     = up->shift_func, // TAG: the shift analytical function appears here.
     .shift_func_ctx = up->shift_func_ctx,
   };
 
@@ -1086,7 +1086,7 @@ ts_subcellint_six_sx(struct gkyl_bc_twistshift *up, struct ts_val_found *inter_p
     .shift_dir = up->shift_dir_in_ts_grid,
     .shift_dir_bounds = {up->ts_grid.lower[up->shift_dir_in_ts_grid], 
                          up->ts_grid.upper[up->shift_dir_in_ts_grid]},
-    .shift_func     = up->shift_func,
+    .shift_func     = up->shift_func, // TAG: the shift analytical function appears here.
     .shift_func_ctx = up->shift_func_ctx,
   };
 
@@ -1146,7 +1146,7 @@ ts_subcellint_sxi_sxii(struct gkyl_bc_twistshift *up, struct ts_val_found *inter
     .shift_dir = up->shift_dir_in_ts_grid,
     .shift_dir_bounds = {up->ts_grid.lower[up->shift_dir_in_ts_grid], 
                          up->ts_grid.upper[up->shift_dir_in_ts_grid]},
-    .shift_func     = up->shift_func,
+    .shift_func     = up->shift_func, // TAG: the shift analytical function appears here.
     .shift_func_ctx = up->shift_func_ctx,
   };
 
@@ -1181,8 +1181,8 @@ ts_subcellint_sxiii_sxiv(struct gkyl_bc_twistshift *up, struct ts_val_found *int
   //   mat_do: current donor matrix.
 
   double shift_lo, shift_up;
-  up->shift_func(0.0, (double[]){cellb_tar[cellb_lo(up->shear_dir_in_ts_grid)]}, &shift_lo, up->shift_func_ctx);
-  up->shift_func(0.0, (double[]){cellb_tar[cellb_up(up->shear_dir_in_ts_grid)]}, &shift_up, up->shift_func_ctx);
+  up->shift_func(0.0, (double[]){cellb_tar[cellb_lo(up->shear_dir_in_ts_grid)]}, &shift_lo, up->shift_func_ctx); // TAG: the shift analytical function appears here.
+  up->shift_func(0.0, (double[]){cellb_tar[cellb_up(up->shear_dir_in_ts_grid)]}, &shift_up, up->shift_func_ctx); // TAG: the shift analytical function appears here.
 
   bool is_sxiii = -shift_lo < -shift_up;
 
@@ -1196,7 +1196,7 @@ ts_subcellint_sxiii_sxiv(struct gkyl_bc_twistshift *up, struct ts_val_found *int
     .shift_dir = up->shift_dir_in_ts_grid,
     .shift_dir_bounds = {up->ts_grid.lower[up->shift_dir_in_ts_grid], 
                          up->ts_grid.upper[up->shift_dir_in_ts_grid]},
-    .shift_func     = up->shift_func,
+    .shift_func     = up->shift_func, // TAG: the shift analytical function appears here.
     .shift_func_ctx = up->shift_func_ctx,
   };
 
@@ -1272,7 +1272,7 @@ ts_subcellint_sxv_sxvi(struct gkyl_bc_twistshift *up, struct ts_val_found *inter
   double shift_dir_bounds[] = {up->ts_grid.lower[up->shift_dir_in_ts_grid],
                                up->ts_grid.upper[up->shift_dir_in_ts_grid]};
   double shift;
-  up->shift_func(0.0, (double[]){xc_do[up->shear_dir_in_ts_grid]}, &shift, up->shift_func_ctx);
+  up->shift_func(0.0, (double[]){xc_do[up->shear_dir_in_ts_grid]}, &shift, up->shift_func_ctx); // TAG: the shift analytical function appears here.
 
   double shifted_coord = cellb_tar[cellb_lo(up->shift_dir_in_ts_grid)] - shift;
   shifted_coord = ts_wrap_to_range(shifted_coord, shift_dir_bounds[0], shift_dir_bounds[1],
@@ -1288,7 +1288,7 @@ ts_subcellint_sxv_sxvi(struct gkyl_bc_twistshift *up, struct ts_val_found *inter
     .shift_dir = up->shift_dir_in_ts_grid,
     .shift_dir_bounds = {up->ts_grid.lower[up->shift_dir_in_ts_grid], 
                          up->ts_grid.upper[up->shift_dir_in_ts_grid]},
-    .shift_func     = up->shift_func,
+    .shift_func     = up->shift_func, // TAG: the shift analytical function appears here.
     .shift_func_ctx = up->shift_func_ctx,
   };
 
@@ -1394,7 +1394,7 @@ ts_calc_mats(struct gkyl_bc_twistshift *up)
         for (int j=0; j<2; j++) { // Loop over j_do-/+1/2
           double shift_dir_coord_tar = cellb_tar[2*up->shift_dir_in_ts_grid+i];
           double shift_dir_coord_do = cellb_do[2*up->shift_dir_in_ts_grid+j];
-          struct gkyl_qr_res inter_res = ts_find_intersect(up, shift_dir_coord_tar, shift_dir_coord_do,
+          struct gkyl_qr_res inter_res = ts_find_intersect(up, shift_dir_coord_tar, shift_dir_coord_do, // TAG: the shift analytical function appears here.
             (double[]) {cellb_tar[cellb_lo(up->shear_dir_in_ts_grid)],cellb_tar[cellb_up(up->shear_dir_in_ts_grid)]},
             shift_dir_lims);
           int ip_linc = i*2+j;
@@ -1415,53 +1415,53 @@ ts_calc_mats(struct gkyl_bc_twistshift *up)
 
       if (num_inter_pts_found == 4) {
         // sN: all intersections are found at this cell.
-        ts_subcellint_sNi_sNii(up, inter_pts, xc_do, xc_tar, cellb_do, cellb_tar, is_upper_shift_dir_cell, shift_c, &mat_do);
+        ts_subcellint_sNi_sNii(up, inter_pts, xc_do, xc_tar, cellb_do, cellb_tar, is_upper_shift_dir_cell, shift_c, &mat_do); // TAG: the shift analytical function appears here.
       }
       else if (num_inter_pts_found == 1) {
         if (inter_pts[1].status) {
           // si:   y_{j_tar-1/2}-yShift intersects x_{i-1/2}.
           // sii:  y_{j_tar-1/2}-yShift intersects x_{i+1/2}.
-          ts_subcellint_si_sii(up, inter_pts, xc_do, xc_tar, cellb_do, cellb_tar, is_upper_shift_dir_cell, shift_c, &mat_do);
+          ts_subcellint_si_sii(up, inter_pts, xc_do, xc_tar, cellb_do, cellb_tar, is_upper_shift_dir_cell, shift_c, &mat_do); // TAG: the shift analytical function appears here.
         }
         else {
           // siii: y_{j_tar+1/2}-yShift intersects x_{i-1/2}.
           // siv:  y_{j_tar+1/2}-yShift intersects x_{i+1/2}.
-          ts_subcellint_siii_siv(up, inter_pts, xc_do, xc_tar, cellb_do, cellb_tar, is_upper_shift_dir_cell, shift_c, &mat_do);
+          ts_subcellint_siii_siv(up, inter_pts, xc_do, xc_tar, cellb_do, cellb_tar, is_upper_shift_dir_cell, shift_c, &mat_do); // TAG: the shift analytical function appears here.
         }
       }
       else if (num_inter_pts_found == 3) {
         if (!inter_pts[2].status) {
           // sv:    y_{j_tar+1/2}-yShift doesn't intersect y_{j_do-1/2} & intersects x_{i-1/2}.
           // svi:   y_{j_tar+1/2}-yShift doesn't intersect y_{j_do-1/2} & intersects x_{i+1/2}.
-          ts_subcellint_sv_svi(up, inter_pts, xc_do, xc_tar, cellb_do, cellb_tar, is_upper_shift_dir_cell, shift_c, &mat_do);
+          ts_subcellint_sv_svi(up, inter_pts, xc_do, xc_tar, cellb_do, cellb_tar, is_upper_shift_dir_cell, shift_c, &mat_do); // TAG: the shift analytical function appears here.
         }
         else {
           // svii:  y_{j_tar-1/2}-yShift doesn't intersect y_{j_do+1/2} & intersects x_{i-1/2}.
           // sviii: y_{j_tar-1/2}-yShift doesn't intersect y_{j_do+1/2} & intersects x_{i+1/2}.
-          ts_subcellint_svii_sviii(up, inter_pts, xc_do, xc_tar, cellb_do, cellb_tar, is_upper_shift_dir_cell, shift_c, &mat_do);
+          ts_subcellint_svii_sviii(up, inter_pts, xc_do, xc_tar, cellb_do, cellb_tar, is_upper_shift_dir_cell, shift_c, &mat_do); // TAG: the shift analytical function appears here.
         }
       }
       else if (num_inter_pts_found == 2) {
         if (inter_pts[0].status && inter_pts[1].status) {
           // six:   y_{j_tar-1/2}-yShift crosses y_{j_do-/+1/2} (increasing yShift).
           // sx:    y_{j_tar-1/2}-yShift crosses y_{j_do-/+1/2} (decreasing yShift).
-          ts_subcellint_six_sx(up, inter_pts, xc_do, xc_tar, cellb_do, cellb_tar, is_upper_shift_dir_cell, shift_c, &mat_do);
+          ts_subcellint_six_sx(up, inter_pts, xc_do, xc_tar, cellb_do, cellb_tar, is_upper_shift_dir_cell, shift_c, &mat_do); // TAG: the shift analytical function appears here.
         }
         else if (inter_pts[2].status && inter_pts[3].status) {
           // sxi:   y_{j_tar+1/2}-yShift crosses y_{j_do-/+1/2} (decreasing yShift).
           // sxii:  y_{j_tar+1/2}-yShift crosses y_{j_do-/+1/2} (increasing yShift).
-          ts_subcellint_sxi_sxii(up, inter_pts, xc_do, xc_tar, cellb_do, cellb_tar, is_upper_shift_dir_cell, shift_c, &mat_do);
+          ts_subcellint_sxi_sxii(up, inter_pts, xc_do, xc_tar, cellb_do, cellb_tar, is_upper_shift_dir_cell, shift_c, &mat_do); // TAG: the shift analytical function appears here.
         }
         else {
           // sxiii: y_{j_tar-1/2}-yShift crosses y_{j_do-1/2} & y_{j_tar+1/2}-yShift crosses y_{j_do+1/2} (increasing yShift).
           // sxiv:  y_{j_tar-1/2}-yShift crosses y_{j_do-1/2} & y_{j_tar+1/2}-yShift crosses y_{j_do+1/2} (decreasing yShift).
-          ts_subcellint_sxiii_sxiv(up, inter_pts, xc_do, xc_tar, cellb_do, cellb_tar, is_upper_shift_dir_cell, shift_c, &mat_do);
+          ts_subcellint_sxiii_sxiv(up, inter_pts, xc_do, xc_tar, cellb_do, cellb_tar, is_upper_shift_dir_cell, shift_c, &mat_do); // TAG: the shift analytical function appears here.
         }
       }
       else if (num_inter_pts_found == 0) {
         // sxv:  y_{j_tar-1/2}-yShift crosses x_{i-/+1/2}.
         // sxvi: y_{j_tar+1/2}-yShift crosses x_{i-/+1/2}.
-        ts_subcellint_sxv_sxvi(up, inter_pts, xc_do, xc_tar, cellb_do, cellb_tar, is_upper_shift_dir_cell, shift_c, &mat_do);
+        ts_subcellint_sxv_sxvi(up, inter_pts, xc_do, xc_tar, cellb_do, cellb_tar, is_upper_shift_dir_cell, shift_c, &mat_do); // TAG: the shift analytical function appears here.
       }
       else {
         // An error occurred. This shouldn't happen.
@@ -1672,7 +1672,7 @@ gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
   up->edge = inp->edge;
   up->basis = inp->basis;
   up->grid = inp->grid;
-  up->shift_func     = inp->shift_func; // Function defining the shift.
+  up->shift_func     = inp->shift_func; // Function defining the shift. // TAG: the shift analytical function appears here.
   up->shift_func_ctx = inp->shift_func_ctx; // Context for shift_func.
   up->use_gpu = inp->use_gpu;
   up->local_bcdir_ext_r = inp->bcdir_ext_update_r;
@@ -1733,7 +1733,7 @@ gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
   gkyl_cart_modal_serendip(&up->shift_b, 1, up->shift_poly_order);
   up->shift = gkyl_array_new(GKYL_DOUBLE, up->shift_b.num_basis, up->shear_r.volume);
   gkyl_eval_on_nodes *evup = gkyl_eval_on_nodes_new(&up->shear_grid, &up->shift_b, 1,
-    inp->shift_func, inp->shift_func_ctx);
+    inp->shift_func, inp->shift_func_ctx); // TAG: the shift analytical function appears here.
   gkyl_eval_on_nodes_advance(evup, 0.0, &up->shear_r, up->shift);
   gkyl_eval_on_nodes_release(evup);
 
