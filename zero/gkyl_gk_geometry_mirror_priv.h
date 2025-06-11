@@ -6,7 +6,9 @@ void
 gk_geometry_mirror_array_acquire(struct gk_geometry *up, struct gkyl_mirror_geo_dg *geo_dg)
 {
     up->mc2p = gkyl_array_acquire(geo_dg->mapc2p);
+    up->mc2p_deflated = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
     up->mc2nu_pos = gkyl_array_acquire(geo_dg->mc2nu_pos);
+    up->mc2nu_pos_deflated = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
     up->dxdz = gkyl_array_acquire(geo_dg->tang);
     up->dzdx = gkyl_array_acquire(geo_dg->dual);
     up->dualmag = gkyl_array_acquire(geo_dg->dualmag);
@@ -36,7 +38,9 @@ void
 gk_geometry_mirror_array_new(struct gk_geometry *up)
 {
     up->mc2p = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
+    up->mc2p_deflated = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
     up->mc2nu_pos = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
+    up->mc2nu_pos_deflated = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
     up->bmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
     up->g_ij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
     up->g_ij_neut = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);

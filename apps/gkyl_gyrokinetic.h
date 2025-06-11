@@ -579,7 +579,7 @@ void gkyl_gyrokinetic_app_apply_ic_cross_species(gkyl_gyrokinetic_app* app, int 
  *
  * @param app App object.
  */
-void gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app *app);
+void gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app *app, struct gkyl_gk_geometry_inp *geometry_inp);
 
 /**
  * Write field data to file.
