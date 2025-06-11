@@ -697,14 +697,8 @@ int main(int argc, char **argv)
       }, 
     },
     .bcx = {
-      .lower = {
-        .type = GKYL_SPECIES_FIXED_FUNC,
-        .projection = elc_ic,
-      },
-      .upper = {
-        .type = GKYL_SPECIES_FIXED_FUNC,
-        .projection = elc_ic,
-      },
+      .lower={.type = GKYL_SPECIES_ZERO_FLUX,},
+      .upper={.type = GKYL_SPECIES_ABSORB,},
     },
     .bcz = {
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
@@ -761,14 +755,8 @@ int main(int argc, char **argv)
       }, 
     },
     .bcx = {
-      .lower = {
-        .type = GKYL_SPECIES_FIXED_FUNC,
-        .projection = ion_ic,
-      },
-      .upper = {
-        .type = GKYL_SPECIES_FIXED_FUNC,
-        .projection = ion_ic,
-      },
+      .lower={.type = GKYL_SPECIES_ZERO_FLUX,},
+      .upper={.type = GKYL_SPECIES_ABSORB,},
     },
     .bcz = {
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
@@ -796,7 +784,7 @@ int main(int argc, char **argv)
     .rclose = 0.2, // closest R to region of interest
     .zmin = -2.0,  // Z of lower boundary
     .zmax =  2.0,  // Z of upper boundary 
-    .include_axis = false, // Include R=0 axis in grid
+    .include_axis = true, // Include R=0 axis in grid
     .fl_coord = GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // coordinate system for psi grid
   };
 

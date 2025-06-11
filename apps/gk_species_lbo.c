@@ -291,8 +291,19 @@ gk_species_lbo_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
 
   // Compute J*M0, J*M1, J*M2 moments and separate our M0 and M2.
   gk_species_moment_calc(&lbo->moms, species->local, app->local, fin);
-  gkyl_dg_div_op_range(lbo->dg_div_mem, app->basis, 0, lbo->m0,
-    0, lbo->moms.marr, 0, app->gk_geom->jacobgeo, &app->local);  
+
+  // try gkyl_dg_inv_op on jacob geo, then dg_mul_op_range
+
+  // gkyl_dg_div_op_range(lbo->dg_div_mem, app->basis, 0, lbo->m0,
+  //   0, lbo->moms.marr, 0, app->gk_geom->jacobgeo, &app->local);
+    
+  struct gkyl_array *jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, app->gk_geom->jacobgeo->ncomp, app->gk_geom->jacobgeo->size);
+  gkyl_dg_inv_op_range(app->basis, 0, jacobgeo_inv, 0,
+    app->gk_geom->jacobgeo, &app->local);
+  gkyl_dg_mul_op_range(app->basis, 0, lbo->m0, 0,
+    lbo->moms.marr, 0, jacobgeo_inv, &app->local);
+
+  // Set M0 to be the first component of the moments.  
   gkyl_array_set_offset_range(lbo->m2self, 1.0, lbo->moms.marr, 2*app->basis.num_basis, &app->local);
   
   // Construct boundary corrections.

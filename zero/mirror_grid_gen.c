@@ -193,8 +193,21 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
         g->tang[2].x[1] = 0.0;
         g->tang[2].x[2] = 1.0;
         
-        if (inp->fl_coord == GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z)
-          g->Jc = 0; // assumes asymptotics of psi ~ r^2 as r -> 0
+        if (inp->fl_coord == GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z) {
+          int idx_off[2] = { ipsi+1, iz };
+          long loc_off = gkyl_range_idx(&node_rng, idx_off);
+          
+          const double *rzp_off = gkyl_array_cfetch(geo->nodes_rz, loc_off);
+          double rz_off[2] = { rzp_off[0], rzp_off[1] };
+          // g->Jc = 0; // assumes asymptotics of psi ~ r^2 as r -> 0
+          // For now, approximate Jc near the axis by evaluating slightly off-axis to avoid division by zero errors
+          double fout_quad[3];
+          double rz_quad[2] = { rz_off[0]/sqrt(3), rz[1] };
+          printf("rz_quad: %g %g\n", rz_quad[0], rz_quad[1]);
+          evcub->eval_cubic_wgrad(0.0, rz_quad, fout_quad, evcub->ctx);
+          g->Jc = 2*floor_sqrt(fout_quad[PSI_I])*rz_quad[0]/fout_quad[DPSI_R_I];
+          printf("Jc at axis: %g\n", g->Jc);
+        }
         else
           g->Jc = 1/fout2[DPSI_R_I];
 
