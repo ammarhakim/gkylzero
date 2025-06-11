@@ -125,7 +125,8 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
 
   gk_species_collisionless_rhs(app, species, fin, rhs);
 
-  gk_species_damping_advance(app, species, &species->damping, fin, species->lte.f_lte, rhs, species->cflrate);
+  gk_species_damping_advance(app, species, &species->damping, app->field->phi_smooth, fin,
+    species->lte.f_lte, rhs, species->cflrate);
 
   if (species->lbo.collision_id == GKYL_LBO_COLLISIONS) {
     gk_species_lbo_rhs(app, species, &species->lbo, fin, rhs);

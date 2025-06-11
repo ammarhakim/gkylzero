@@ -242,8 +242,7 @@ struct gkyl_gyrokinetic_damping {
   enum gkyl_gyrokinetic_damping_type type;
   void (*rate_profile)(double t, const double *xn, double *fout, void *ctx);
   void *rate_profile_ctx; // Context for rate_profile function.
-  double scale_factor;
-  void (*scale_profile)(double t, const double *xn, double *fout, void *ctx);
+  int num_quad; // Number of quadrature points in each direction to use in projecting the rate.
 };
 
 // Parameters for gk species.

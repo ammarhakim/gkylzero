@@ -132,21 +132,21 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     gkyl_cart_modal_serendip(&basis, ndim, poly_order);
   gkyl_cart_modal_serendip(&basis_conf, cdim, poly_order);
 
-  struct gkyl_basis *basis_on_dev, *conf_basis_on_dev;
+  struct gkyl_basis *basis_on_dev, *basis_on_dev_conf;
   if (use_gpu) {
 #ifdef GKYL_HAVE_CUDA
     basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
-    conf_basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
+    basis_on_dev_conf = gkyl_cu_malloc(sizeof(struct gkyl_basis));
     if (poly_order == 1) 
       gkyl_cart_modal_gkhybrid_cu_dev(basis_on_dev, cdim, vdim);
     else
       gkyl_cart_modal_serendip_cu_dev(basis_on_dev, ndim, poly_order);
-    gkyl_cart_modal_serendip_cu_dev(conf_basis_on_dev, cdim, poly_order);
+    gkyl_cart_modal_serendip_cu_dev(basis_on_dev_conf, cdim, poly_order);
 #endif
   }
   else { 
     basis_on_dev = &basis;
-    conf_basis_on_dev = &basis_conf;
+    basis_on_dev_conf = &basis_conf;
   }
 
   // Ranges.
@@ -215,7 +215,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   phi_func_1x(0.0, xc, &phi_m, &ctx);
 
   // Create mask array.
-  struct gkyl_array *mask = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *mask = mkarr(use_gpu, ctx.num_quad == 1? 1 : basis.num_basis, local_ext.volume);
   struct gkyl_array *mask_ho = use_gpu? mkarr(false, mask->ncomp, mask->size)
 	                              : gkyl_array_acquire(mask);
 
@@ -264,12 +264,12 @@ test_1x2v_gk(int poly_order, bool use_gpu)
 //      TEST_CHECK( gkyl_compare_double(p2_vals[i], fv[i], 1e-2) );
 //  }
 
-  // write distribution function to file
+  // Write mask to file.
   char fname[1024];
   if (use_gpu)
-    sprintf(fname, "ctest_loss_cone_mask_gyrokinetic_1x2v_p%d_gpu.gkyl", poly_order);
+    sprintf(fname, "ctest_loss_cone_mask_gyrokinetic_1x2v_p%d_dev.gkyl", poly_order);
   else
-    sprintf(fname, "ctest_loss_cone_mask_gyrokinetic_1x2v_p%d_cpu.gkyl", poly_order);
+    sprintf(fname, "ctest_loss_cone_mask_gyrokinetic_1x2v_p%d_ho.gkyl", poly_order);
   gkyl_grid_sub_array_write(&grid, &local, 0, mask_ho, fname);
 
   gkyl_array_release(phi); 
@@ -283,7 +283,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
     gkyl_cu_free(basis_on_dev);
-    gkyl_cu_free(conf_basis_on_dev);
+    gkyl_cu_free(basis_on_dev_conf);
   }
 #endif  
 }

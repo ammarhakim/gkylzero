@@ -38,6 +38,7 @@ struct gkyl_loss_cone_mask_gyrokinetic {
   const struct gkyl_rect_grid *grid_phase;
   int num_basis_conf; // Number of configuration-space basis functions.
   int num_basis_phase; // Number of phase-space basis functions.
+  double norm_fac; // Normalization factor.
 
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
 

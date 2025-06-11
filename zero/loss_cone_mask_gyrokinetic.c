@@ -38,7 +38,6 @@ init_quad_values(int cdim, const struct gkyl_basis *basis,
   struct gkyl_array **basis_at_ords, bool use_gpu)
 {
   int ndim = basis->ndim;
-  int vdim = ndim-cdim;
   int num_quad_v = num_quad;
   // Hybrid basis have p=2 in velocity space.
   bool is_vdim_p2[2] = {false};  // 2 is the max vdim for GK.
@@ -176,12 +175,13 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
 
   up->cdim = inp->conf_basis->ndim;
   up->pdim = inp->phase_basis->ndim;
-  int vdim = up->pdim - up->cdim;
+
+  int num_quad = inp->num_quad? inp->num_quad : inp->phase_basis->poly_order+1;
+  up->norm_fac = num_quad == 1? 1.0/pow(sqrt(2.0),up->pdim) : 1.0;
   up->num_basis_conf = inp->conf_basis->num_basis;
-  up->num_basis_phase = inp->phase_basis->num_basis;
+  up->num_basis_phase = num_quad == 1? 1 : inp->phase_basis->num_basis;
   up->use_gpu = inp->use_gpu;
 
-  int num_quad = inp->num_quad? inp->num_quad : inp->conf_basis->poly_order+1;
   // Initialize data needed for conf-space quadrature.
   up->tot_quad_conf = init_quad_values(up->cdim, inp->conf_basis, num_quad,
     &up->ordinates_conf, &up->weights_conf, &up->basis_at_ords_conf, false);
@@ -285,7 +285,7 @@ proj_on_basis(const gkyl_loss_cone_mask_gyrokinetic *up, const struct gkyl_array
   for (int imu=0; imu<tot_quad; ++imu) {
     double tmp = weights[imu]*func_at_ords[imu];
     for (int k=0; k<num_basis; ++k)
-      f[k] += tmp*basis_at_ords[k+num_basis*imu];
+      f[k] += tmp*basis_at_ords[k+num_basis*imu] * up->norm_fac;
   }
 }
 

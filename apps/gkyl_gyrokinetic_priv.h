@@ -17,6 +17,7 @@
 #include <gkyl_array_integrate.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_reduce.h>
+#include <gkyl_array_dg_reduce.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_bc_basic.h>
 #include <gkyl_bc_emission.h>
@@ -572,6 +573,11 @@ struct gk_damping {
   bool evolve; // Whether the source is time dependent.
   struct gkyl_array *rate; // Damping rate.
   struct gkyl_array *rate_host; // Host copy for use in IO and projecting.
+  struct gkyl_loss_cone_mask_gyrokinetic *lcm_proj_op; // Operator that projects the loss cone mask.
+  double bmag_max; // Maximum magnetic field amplitude.
+  double *bmag_max_coord; // Location of bmag_max.
+  double *phi_m, *phi_m_global; // Electrostatic potential at bmag_max.
+  struct gkyl_array *scale_prof; // Conf-space scaling factor profile.
   // Functions chosen at runtime.
   void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
 };
@@ -2147,12 +2153,14 @@ void gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species
  * @param app gyrokinetic app object.
  * @param gks Species object.
  * @param damp Species damping object.
+ * @param phi Current electrostatic potential.
  * @param fin Current distribution function.
  * @param f_buffer Phase-space buffer.
  * @param rhs df/dt damping term gets added to.
  */
 void gk_species_damping_advance(gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_damping *damp,
-  const struct gkyl_array *fin, struct gkyl_array *f_buffer, struct gkyl_array *rhs, struct gkyl_array *cflrate);
+  const struct gkyl_array *phi, const struct gkyl_array *fin, struct gkyl_array *f_buffer,
+  struct gkyl_array *rhs, struct gkyl_array *cflrate);
 
 /**
  * Write damping diagnostics.

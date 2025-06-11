@@ -106,7 +106,7 @@ gkyl_loss_cone_mask_gyrokinetic_qDphiDbmag_quad_ker(struct gkyl_range conf_range
 __global__ static void
 gkyl_loss_cone_mask_gyrokinetic_quad_ker(struct gkyl_rect_grid grid_phase,
   struct gkyl_range phase_range, struct gkyl_range conf_range, struct gkyl_range vel_range,
-  double mass, const struct gkyl_array* basis_at_ords_conf, const struct gkyl_array* phase_ordinates, 
+  double mass, double norm_fac, const struct gkyl_array* basis_at_ords_conf, const struct gkyl_array* phase_ordinates, 
   const struct gkyl_array* qDphiDbmag_quad, const struct gkyl_array* Dbmag_quad, const int *p2c_qidx, 
   struct gkyl_array* vmap, struct gkyl_basis* vmap_basis, struct gkyl_array* mask_out_quad)
 {
@@ -159,7 +159,7 @@ gkyl_loss_cone_mask_gyrokinetic_quad_ker(struct gkyl_rect_grid grid_phase,
     double mu_bound = GKYL_MAX2(0.0, KEparDbmag+qDphiDbmag_quad_d[cqidx]);
 
     double *fq = (double*) gkyl_array_fetch(mask_out_quad, linidx_phase);
-    fq[linc2] = xmu[cdim+1] <= mu_bound ? 1.0 : 0.0;
+    fq[linc2] = xmu[cdim+1] <= mu_bound ? norm_fac : 0.0 ;
   }
 }
 
@@ -182,7 +182,7 @@ gkyl_loss_cone_mask_gyrokinetic_advance_cu(gkyl_loss_cone_mask_gyrokinetic *up,
   gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, tot_quad_phase);
 
   gkyl_loss_cone_mask_gyrokinetic_quad_ker<<<dimGrid, dimBlock>>>(*up->grid_phase, *phase_range, *conf_range,
-    gvm->local_ext_vel, up->mass, up->basis_at_ords_conf->on_dev, up->ordinates_phase->on_dev,
+    gvm->local_ext_vel, up->mass, up->norm_fac, up->basis_at_ords_conf->on_dev, up->ordinates_phase->on_dev,
     up->qDphiDbmag_quad->on_dev, up->Dbmag_quad->on_dev, up->p2c_qidx, gvm->vmap->on_dev, gvm->vmap_basis, 
     up->mask_out_quad->on_dev);
 
