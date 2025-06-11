@@ -528,8 +528,8 @@ main(int argc, char **argv)
   // electrons sources
   struct gkyl_gyrokinetic_projection proj_srcCORE_e = {
     .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN,
-    .center = {ctx.center_srcCORE[0], -ctx.center_srcCORE[1]},
-    .width = {ctx.sigma_srcCORE[0], ctx.sigma_srcCORE[1]},
+    .gaussian_mean = {ctx.center_srcCORE[0], -ctx.center_srcCORE[1]},
+    .gaussian_std_dev = {ctx.sigma_srcCORE[0], ctx.sigma_srcCORE[1]},
     .periodic = {false, false},
     .particle = ctx.particle_srcCORE,
     .energy = ctx.energy_srcCORE,
@@ -548,8 +548,8 @@ main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_projection proj_srcRECY_e = {
     .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
-    .center = {ctx.center_srcRECY[0], ctx.center_srcRECY[1]},
-    .width = {ctx.sigma_srcRECY[0], ctx.sigma_srcRECY[1]},
+    .gaussian_mean = {ctx.center_srcRECY[0], ctx.center_srcRECY[1]},
+    .gaussian_std_dev = {ctx.sigma_srcRECY[0], ctx.sigma_srcRECY[1]},
     .periodic = {false, true},
     .particle = ctx.particle_srcRECY,
     .energy = ctx.energy_srcRECY,
@@ -648,8 +648,8 @@ main(int argc, char **argv)
   // ions sources
   struct gkyl_gyrokinetic_projection proj_srcCORE_i = {
     .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
-    .center = {ctx.center_srcCORE[0], ctx.center_srcCORE[1]},
-    .width = {ctx.sigma_srcCORE[0], ctx.sigma_srcCORE[1]},
+    .gaussian_mean = {ctx.center_srcCORE[0], ctx.center_srcCORE[1]},
+    .gaussian_std_dev = {ctx.sigma_srcCORE[0], ctx.sigma_srcCORE[1]},
     .periodic = {false, false},
     .particle = ctx.particle_srcCORE,
     .energy = ctx.energy_srcCORE,
@@ -668,8 +668,8 @@ main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_projection proj_srcRECY_i = {
     .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
-    .center = {ctx.center_srcRECY[0], ctx.center_srcRECY[1]},
-    .width = {ctx.sigma_srcRECY[0], ctx.sigma_srcRECY[1]},
+    .gaussian_mean = {ctx.center_srcRECY[0], ctx.center_srcRECY[1]},
+    .gaussian_std_dev = {ctx.sigma_srcRECY[0], ctx.sigma_srcRECY[1]},
     .periodic = {false, true},
     .particle = ctx.particle_srcRECY,
     .energy = ctx.energy_srcRECY,
