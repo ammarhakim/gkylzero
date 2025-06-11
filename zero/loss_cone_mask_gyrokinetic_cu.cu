@@ -18,7 +18,7 @@ extern "C" {
 
 __global__ static void
 gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu_ker(struct gkyl_range conf_range,
-  const struct gkyl_array* basis_at_ords_conf, const struct gkyl_array* bmag, double bmag_max,
+  const struct gkyl_array* basis_at_ords_conf, const struct gkyl_array* bmag, const double *bmag_max,
   struct gkyl_array* Dbmag_quad_d)
 {    
   int num_basis_conf = basis_at_ords_conf->ncomp;
@@ -42,14 +42,14 @@ gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu_ker(struct gkyl_range conf_range,
       for (int k=0; k<num_basis_conf; ++k)
         bmag_quad[n] += bmag_d[k]*b_ord[k];
 
-      bmag_quad[n] = bmag_max - bmag_quad[n];
+      bmag_quad[n] = bmag_max[0] - bmag_quad[n];
     }
   }
 }
 
 void 
 gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu(gkyl_loss_cone_mask_gyrokinetic *up,
-  const struct gkyl_range *conf_range, const struct gkyl_array *bmag, double bmag_max)
+  const struct gkyl_range *conf_range, const struct gkyl_array *bmag, const double *bmag_max)
 {
   int nblocks = conf_range->nblocks, nthreads = conf_range->nthreads;
   gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu_ker<<<nblocks, nthreads>>>(*conf_range, 
@@ -70,7 +70,7 @@ gkyl_parallelize_components_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gk
 __global__ static void
 gkyl_loss_cone_mask_gyrokinetic_qDphiDbmag_quad_ker(struct gkyl_range conf_range, 
   const struct gkyl_array* basis_at_ords_conf, double charge, const struct gkyl_array* phi,
-  double phi_m, const struct gkyl_array* Dbmag_quad, struct gkyl_array* qDphiDbmag_quad)
+  const double *phi_m, const struct gkyl_array* Dbmag_quad, struct gkyl_array* qDphiDbmag_quad)
 {
   int num_basis_conf = basis_at_ords_conf->ncomp;
 
@@ -97,7 +97,7 @@ gkyl_loss_cone_mask_gyrokinetic_qDphiDbmag_quad_ker(struct gkyl_range conf_range
     // Potential energy term at each quadrature point.
     double *qDphiDbmag_quad_d = (double*) gkyl_array_fetch(qDphiDbmag_quad, linidx);
     if (Dbmag_quad_d[linc2] > 0.0)
-      qDphiDbmag_quad_d[linc2] = charge*(phi_quad-phi_m)/Dbmag_quad_d[linc2];
+      qDphiDbmag_quad_d[linc2] = charge*(phi_quad-phi_m[0])/Dbmag_quad_d[linc2];
     else
       qDphiDbmag_quad_d[linc2] = 0.0;
   }
@@ -166,7 +166,7 @@ gkyl_loss_cone_mask_gyrokinetic_quad_ker(struct gkyl_rect_grid grid_phase,
 void
 gkyl_loss_cone_mask_gyrokinetic_advance_cu(gkyl_loss_cone_mask_gyrokinetic *up,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *phi, double phi_m, struct gkyl_array *mask_out)
+  const struct gkyl_array *phi, const double *phi_m, struct gkyl_array *mask_out)
 {
   dim3 dimGrid_conf, dimBlock_conf;
   int tot_quad_conf = up->basis_at_ords_conf->size;

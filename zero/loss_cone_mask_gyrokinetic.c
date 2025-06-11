@@ -131,7 +131,7 @@ init_quad_values(int cdim, const struct gkyl_basis *basis,
 
 static void
 gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad(gkyl_loss_cone_mask_gyrokinetic *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_array *bmag, double bmag_max)
+  const struct gkyl_range *conf_range, const struct gkyl_array *bmag, const double *bmag_max)
 {
   // Get bmag_max-bmag at quadrature nodes.
 #ifdef GKYL_HAVE_CUDA
@@ -158,7 +158,7 @@ gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad(gkyl_loss_cone_mask_gyrokinetic *up,
       for (int k=0; k<num_basis_conf; ++k)
         Dbmag_quad[n] += bmag_d[k]*b_ord[k];
 
-      Dbmag_quad[n] = bmag_max - Dbmag_quad[n];
+      Dbmag_quad[n] = bmag_max[0] - Dbmag_quad[n];
     }
   }
 }
@@ -214,7 +214,7 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
     int p2c_qidx_ho[up->phase_qrange.volume];
     up->p2c_qidx = (int*) gkyl_cu_malloc(sizeof(int)*up->phase_qrange.volume);
 
-    // Allocate f_maxwellian_quad at phase-space quadrature points
+    // Allocate mask_quad at phase-space quadrature points.
     // Dbmag_quad at configuration-space quadrature points.
     // qDphiDbmag_quad, the term proportional to (phi-phi_m)/(bmag_max-bmag), at quadrature points.
     up->mask_out_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_quad_phase,
@@ -292,7 +292,7 @@ proj_on_basis(const gkyl_loss_cone_mask_gyrokinetic *up, const struct gkyl_array
 void
 gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *phi, double phi_m, struct gkyl_array *mask_out)
+  const struct gkyl_array *phi, const double *phi_m, struct gkyl_array *mask_out)
 {
 
 #ifdef GKYL_HAVE_CUDA
@@ -339,7 +339,7 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
         phi_quad[n] += phi_d[k]*b_ord[k];
 
       if (Dbmag_quad[n] > 0.0)
-        qDphiDbmag_quad[n] = up->charge*(phi_quad[n]-phi_m)/Dbmag_quad[n];
+        qDphiDbmag_quad[n] = up->charge*(phi_quad[n]-phi_m[0])/Dbmag_quad[n];
       else
         qDphiDbmag_quad[n] = 0.0;
     }
@@ -384,7 +384,7 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
         fq[0] = xmu[cdim+1] <= mu_bound? 1.0 : 0.0;
       }
-      // compute expansion coefficients of Maxwellian distribution function on basis
+      // Compute DG expansion coefficients of the mask.
       proj_on_basis(up, up->fun_at_ords, gkyl_array_fetch(mask_out, linidx_phase));
     }
   }

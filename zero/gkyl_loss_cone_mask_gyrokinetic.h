@@ -20,7 +20,7 @@ struct gkyl_loss_cone_mask_gyrokinetic_inp {
   const struct gkyl_range *vel_range; // Velocity space range.
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
   const struct gkyl_array *bmag; // Magnetic field magnitude.
-  double bmag_max; // Maximum bmag.
+  const double *bmag_max; // Maximum bmag (on GPU if use_gpu=true).
   double mass; // Species mass.
   double charge; // Species charge.
   int num_quad; // Number of quad points in each direction to use (default: poly_order+1).
@@ -49,12 +49,12 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
  * @param phase_rng Phase-space range.
  * @param conf_rng Configuration-space range.
  * @param phi Electrostatic potential.
- * @param phi_m Electrostatic potential at the mirror throat.
+ * @param phi_m Electrostatic potential at the mirror throat (on GPU if use_gpu=true).
  * @param mask_out Output masking function.
  */
 void gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *phi, double phi_m, struct gkyl_array *mask_out);
+  const struct gkyl_array *phi, const double *phi_m, struct gkyl_array *mask_out);
 
 /**
  * Delete updater.

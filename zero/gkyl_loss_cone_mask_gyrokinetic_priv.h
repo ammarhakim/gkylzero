@@ -44,7 +44,7 @@ struct gkyl_loss_cone_mask_gyrokinetic {
 
   double mass; // Species mass.
   double charge; // Species charge.
-  double bmag_max; // Maximum magnetic field amplitude.
+  const double *bmag_max; // Maximum magnetic field amplitude.
   bool use_gpu; // Boolean if we are performing projection on device.
 
   struct gkyl_range conf_qrange; // Range of Configuration-space ordinates.
@@ -86,7 +86,7 @@ struct gkyl_loss_cone_mask_gyrokinetic {
  */
 void 
 gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu(gkyl_loss_cone_mask_gyrokinetic *up,
-  const struct gkyl_range *conf_range, const struct gkyl_array *bmag, double bmag_max);
+  const struct gkyl_range *conf_range, const struct gkyl_array *bmag, const double *bmag_max);
 
 /**
  * Compute projection of the loss cone masking function on the phase-space basis
@@ -96,11 +96,11 @@ gkyl_loss_cone_mask_gyrokinetic_Dbmag_quad_cu(gkyl_loss_cone_mask_gyrokinetic *u
  * @param phase_rng Phase-space range.
  * @param conf_rng Configuration-space range.
  * @param phi Electrostatic potential.
- * @param phi_m Electrostatic potential at the mirror throat.
+ * @param phi_m Electrostatic potential at the mirror throat (on GPU).
  * @param mask_out Output masking function.
  */
 void
 gkyl_loss_cone_mask_gyrokinetic_advance_cu(gkyl_loss_cone_mask_gyrokinetic *up,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *phi, double phi_m, struct gkyl_array *mask_out);
+  const struct gkyl_array *phi, const double *phi_m, struct gkyl_array *mask_out);
 #endif

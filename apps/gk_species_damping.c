@@ -75,26 +75,24 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
     else if (damp->type == GKYL_GK_DAMPING_LOSS_CONE) {
       damp->evolve = true; // Since the loss cone boundary is proportional to phi(t).
 
-      // Maximum bmag and its location.
-      double *bmag_max_local, bmag_max_local_ho[1];
-      if (app->use_gpu)
+      // Maximum bmag.
+      double *bmag_max_local;
+      if (app->use_gpu) {
         bmag_max_local = gkyl_cu_malloc(sizeof(double));
-      else
+        damp->bmag_max = gkyl_cu_malloc(sizeof(double));
+      }
+      else {
         bmag_max_local = gkyl_malloc(sizeof(double));
-
+        damp->bmag_max = gkyl_malloc(sizeof(double));
+      }
       gkyl_array_dg_reducec_range(bmag_max_local, app->gk_geom->bmag, 0, GKYL_MAX, app->basis_on_dev, &app->local);
-
-      if (app->use_gpu)
-	gkyl_cu_memcpy(bmag_max_local_ho, bmag_max_local, sizeof(double), GKYL_CU_MEMCPY_D2H);
-      else
-	memcpy(bmag_max_local_ho, bmag_max_local, sizeof(double));
-
-      gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &bmag_max_local_ho, &damp->bmag_max);
+      gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, bmag_max_local, damp->bmag_max);
       if (app->use_gpu)
         gkyl_cu_free(bmag_max_local);
       else
         gkyl_free(bmag_max_local);
 
+      // Get the location of maximum bmag.
       double bmag_max_coord_ho[] = {0.98};
       if (app->use_gpu) {
         damp->bmag_max_coord = gkyl_cu_malloc(app->cdim*sizeof(double));
@@ -149,6 +147,17 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
 
       gkyl_array_release(scale_prof_high_order_ho);
       gkyl_array_release(scale_prof_high_order);
+
+      // Compute the initial damping rate (assuming phi=0 because phi hasn't been computed).
+      // Find the potential at the mirror throat.
+      gkyl_dg_basis_ops_eval_array_at_coord_comp(app->field->phi_smooth, damp->bmag_max_coord,
+        app->basis_on_dev, &app->grid, &app->local, damp->phi_m);
+      gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, damp->phi_m, damp->phi_m_global);
+      // Project the loss cone mask.
+      gkyl_loss_cone_mask_gyrokinetic_advance(damp->lcm_proj_op, &gks->local, &app->local,
+        app->field->phi_smooth, damp->phi_m_global, damp->rate);
+      // Multiply by the user's scaling profile.
+      gkyl_array_scale_by_cell(damp->rate, damp->scale_prof);
     }
 
     // Set function pointers chosen at runtime.
@@ -171,9 +180,6 @@ gk_species_damping_advance(gkyl_gyrokinetic_app *app, const struct gk_species *g
     gkyl_array_set(f_buffer, 1.0, fin);
     gkyl_array_scale_by_cell(f_buffer, damp->rate);
     gkyl_array_accumulate(rhs, -1.0, f_buffer);
-
-    // Add the frequency to the CFL frequency.
-    gkyl_array_accumulate(cflrate, 1.0, damp->rate);
   }
   else if (damp->type == GKYL_GK_DAMPING_LOSS_CONE) {
     // Find the potential at the mirror throat.
@@ -181,14 +187,9 @@ gk_species_damping_advance(gkyl_gyrokinetic_app *app, const struct gk_species *g
       app->basis_on_dev, &app->grid, &app->local, damp->phi_m);
     gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, damp->phi_m, damp->phi_m_global);
 
-    double phi_m_ho[1];
-    if (app->use_gpu)
-      gkyl_cu_memcpy(phi_m_ho, damp->phi_m_global, sizeof(double), GKYL_CU_MEMCPY_D2H);
-    else
-      memcpy(phi_m_ho, damp->phi_m_global, sizeof(double));
-
     // Project the loss cone mask.
-    gkyl_loss_cone_mask_gyrokinetic_advance(damp->lcm_proj_op, &gks->local, &app->local, phi, phi_m_ho[0], damp->rate);
+    gkyl_loss_cone_mask_gyrokinetic_advance(damp->lcm_proj_op, &gks->local, &app->local,
+      phi, damp->phi_m_global, damp->rate);
 
     // Assemble the damping term -scale_prof * mask * f.
     gkyl_array_set(f_buffer, 1.0, fin);
@@ -196,9 +197,10 @@ gk_species_damping_advance(gkyl_gyrokinetic_app *app, const struct gk_species *g
     gkyl_array_scale_by_cell(f_buffer, damp->rate);
     gkyl_array_accumulate(rhs, -1.0, f_buffer);
 
-    // Add the frequency to the CFL frequency.
-    gkyl_array_accumulate(cflrate, 1.0, damp->rate);
   }
+
+  // Add the frequency to the CFL frequency.
+  gkyl_array_accumulate(cflrate, 1.0, damp->rate);
 
   app->stat.species_damp_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -222,11 +224,13 @@ gk_species_damping_release(const struct gkyl_gyrokinetic_app *app, const struct 
     }
     else if (damp->type == GKYL_GK_DAMPING_LOSS_CONE) {
       if (app->use_gpu) {
+        gkyl_cu_free(damp->bmag_max);
         gkyl_cu_free(damp->bmag_max_coord);
         gkyl_cu_free(damp->phi_m);
         gkyl_cu_free(damp->phi_m_global);
       }
       else {
+        gkyl_free(damp->bmag_max);
         gkyl_free(damp->bmag_max_coord);
         gkyl_free(damp->phi_m);
         gkyl_free(damp->phi_m_global);
