@@ -228,9 +228,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
             gk_species_bflux_scale(app, &gks->bflux, gks->bflux.f, 1.0/dt);
 
             // adapt the sources
-            if (gks->src.num_adapt_sources > 0) {
-              gk_species_source_adapt(app, gks, &gks->src, tcurr);
-            }
+            gk_species_source_adapt(app, gks, &gks->src, gks->lte.f_lte, tcurr);
           }
 
           for (int i=0; i<app->num_neut_species; ++i) {

@@ -528,17 +528,17 @@ main(int argc, char **argv)
   // electrons sources
   struct gkyl_gyrokinetic_projection proj_srcCORE_e = {
     .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN,
-    .center_gauss = {ctx.center_srcCORE[0], -ctx.center_srcCORE[1]},
-    .sigma_gauss = {ctx.sigma_srcCORE[0], ctx.sigma_srcCORE[1]},
+    .center = {ctx.center_srcCORE[0], -ctx.center_srcCORE[1]},
+    .width = {ctx.sigma_srcCORE[0], ctx.sigma_srcCORE[1]},
     .periodic = {false, false},
     .particle = ctx.particle_srcCORE,
     .energy = ctx.energy_srcCORE,
     .temp_max = 5.0*ctx.Te0,
-    .floor = ctx.floor_srcCORE,
+    .f_floor = ctx.floor_srcCORE,
   };
 
   struct gkyl_gyrokinetic_adapt_source adapt_srcCORE_e ={
-    .adapt_species_name = "elc",
+    .adapt_to_species = "elc",
     .adapt_particle = ctx.adapt_particle_srcCORE,
     .adapt_energy = ctx.adapt_energy_srcCORE,
     .num_boundaries = 1,
@@ -548,17 +548,17 @@ main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_projection proj_srcRECY_e = {
     .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
-    .center_gauss = {ctx.center_srcRECY[0], ctx.center_srcRECY[1]},
-    .sigma_gauss = {ctx.sigma_srcRECY[0], ctx.sigma_srcRECY[1]},
+    .center = {ctx.center_srcRECY[0], ctx.center_srcRECY[1]},
+    .width = {ctx.sigma_srcRECY[0], ctx.sigma_srcRECY[1]},
     .periodic = {false, true},
     .particle = ctx.particle_srcRECY,
     .energy = ctx.energy_srcRECY,
     .temp_max = 5.0*ctx.Te0,
-    .floor = ctx.floor_srcRECY,
+    .f_floor = ctx.floor_srcRECY,
   };
 
   struct gkyl_gyrokinetic_adapt_source adapt_srcRECY_e = {
-    .adapt_species_name = "elc",
+    .adapt_to_species = "elc",
     .adapt_particle = ctx.adapt_particle_srcRECY,
     .adapt_energy = ctx.adapt_energy_srcRECY,
     .num_boundaries = 3,
@@ -648,17 +648,17 @@ main(int argc, char **argv)
   // ions sources
   struct gkyl_gyrokinetic_projection proj_srcCORE_i = {
     .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
-    .center_gauss = {ctx.center_srcCORE[0], ctx.center_srcCORE[1]},
-    .sigma_gauss = {ctx.sigma_srcCORE[0], ctx.sigma_srcCORE[1]},
+    .center = {ctx.center_srcCORE[0], ctx.center_srcCORE[1]},
+    .width = {ctx.sigma_srcCORE[0], ctx.sigma_srcCORE[1]},
     .periodic = {false, false},
     .particle = ctx.particle_srcCORE,
     .energy = ctx.energy_srcCORE,
     .temp_max = 5.0*ctx.Te0,
-    .floor = ctx.floor_srcCORE,
+    .f_floor = ctx.floor_srcCORE,
   };
 
   struct gkyl_gyrokinetic_adapt_source adapt_srcCORE_i ={
-    .adapt_species_name = "ion",
+    .adapt_to_species = "ion",
     .adapt_particle = ctx.adapt_particle_srcCORE,
     .adapt_energy = ctx.adapt_energy_srcCORE,
     .num_boundaries = 1,
@@ -668,17 +668,17 @@ main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_projection proj_srcRECY_i = {
     .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
-    .center_gauss = {ctx.center_srcRECY[0], ctx.center_srcRECY[1]},
-    .sigma_gauss = {ctx.sigma_srcRECY[0], ctx.sigma_srcRECY[1]},
+    .center = {ctx.center_srcRECY[0], ctx.center_srcRECY[1]},
+    .width = {ctx.sigma_srcRECY[0], ctx.sigma_srcRECY[1]},
     .periodic = {false, true},
     .particle = ctx.particle_srcRECY,
     .energy = ctx.energy_srcRECY,
     .temp_max = 5.0*ctx.Te0,
-    .floor = ctx.floor_srcRECY,
+    .f_floor = ctx.floor_srcRECY,
   };
 
   struct gkyl_gyrokinetic_adapt_source adapt_srcRECY_i = {
-    .adapt_species_name = "ion",
+    .adapt_to_species = "ion",
     .adapt_particle = ctx.adapt_particle_srcRECY,
     .adapt_energy = ctx.adapt_energy_srcRECY,
     .num_boundaries = 3,

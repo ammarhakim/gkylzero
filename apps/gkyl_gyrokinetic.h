@@ -19,6 +19,7 @@
 struct gkyl_gyrokinetic_projection {
   enum gkyl_projection_id proj_id; // type of projection (see gkyl_eqn_type.h)
   enum gkyl_quad_type quad_type; // quadrature scheme to use: defaults to Gaussian
+  double f_floor; // Floor value of the distribution.
 
   union {
     struct {
@@ -43,22 +44,21 @@ struct gkyl_gyrokinetic_projection {
       void *ctx_tempperp;
       void (*tempperp)(double t, const double *xn, double *fout, void *ctx);
       // if projection is a Maxwellian + Gaussian in configuration space.
-      double center_gauss[GKYL_MAX_CDIM]; // Center in configuration space.
-      double sigma_gauss[GKYL_MAX_CDIM]; // Sigma in configuration space, function is constant if sigma is 0.
-      bool periodic[GKYL_MAX_CDIM]; // Periodicity in configuration space.
+      double gaussian_mean[GKYL_MAX_CDIM]; // Center in configuration space.
+      double gaussian_std_dev[GKYL_MAX_CDIM]; // Sigma in configuration space, function is constant if sigma is 0.
       double particle; // Total particle of the Gaussian Maxwellian distribution (M0 moment).
       double energy; // Total energy (M2*mass moment).
-      double floor; // Floor value for the Gaussian Maxwellian distribution.
       double temp_max; // Maximum temperature of the Gaussian Maxwellian distribution.
       double temp_min; // Minimum temperature of the Gaussian Maxwellian distribution.
-
+      
       // boolean if we are correcting all the moments or only density
       bool correct_all_moms; 
       double iter_eps; // error tolerance for moment fixes (density is always exact)
       int max_iter; // maximum number of iteration
       bool use_last_converged; // use last iteration value regardless of convergence?
-
-      // Attribute to be passed to the projection function
+      
+      // Attribute to be passed to the projection function (not an interface)
+      bool periodic[GKYL_MAX_CDIM]; // Periodicity in configuration space.
       double box_size[GKYL_MAX_CDIM]; // Size of the box in each direction
     };
   };
@@ -109,7 +109,7 @@ struct gkyl_gyrokinetic_diffusion {
 struct gkyl_gyrokinetic_adapt_source {
   bool adapt_particle; // Whether to adapt the particle source.
   bool adapt_energy; // Whether to adapt the energy source.
-  char adapt_species_name[16]; // Species to adapt the particle loss to ensure quasi neutrality.
+  char adapt_to_species[16]; // Species to adapt the particle loss to ensure quasi neutrality.
   int num_boundaries; // Number of boundaries to adapt.
   int dir[6]; // Direction to adapt.
   enum gkyl_edge_loc edge[6]; // Edge to adapt.

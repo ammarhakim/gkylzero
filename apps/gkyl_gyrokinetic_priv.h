@@ -528,11 +528,8 @@ struct gk_proj {
       struct gkyl_proj_on_basis *proj_temppar; // projection operator for parallel temperature
       struct gkyl_proj_on_basis *proj_tempperp; // projection operator for parallel temperature
 
-      struct gkyl_array *shape_conf; // shape of the source in configuration space (on device).    
-      struct gkyl_proj_on_basis *proj_shape; // projection operator for the shape of the source in config space.    
-
-      struct gkyl_array *one_conf; // constant array in configuration space (on device).    
-      struct gkyl_proj_on_basis *proj_one; // projection operator for the constant array.    
+      struct gkyl_array *gaussian_profile; // shape of the source in configuration space (on device).    
+      struct gkyl_proj_on_basis *proj_gaussian; // projection operator for the shape of the source in config space.    
 
       union {
         struct { 
@@ -560,8 +557,8 @@ struct gk_adapt_source {
   int num_boundaries; // Number of boundaries to adapt to.
   int dir[2*GKYL_MAX_CDIM]; // Direction to adapt.
   enum gkyl_edge_loc edge[2*GKYL_MAX_CDIM]; // Edge to adapt.
-  struct gkyl_range range_pb[2*GKYL_MAX_CDIM]; // Range of computation of the bflux and moment (ALL phase space ghost).
-  struct gkyl_range range_conf[2*GKYL_MAX_CDIM]; // Range of integration in each boundary (SOL config space ghost).
+  struct gkyl_range boundaries_phase_ghost[2*GKYL_MAX_CDIM]; // Range of computation of the bflux and moment (ALL phase space ghost).
+  struct gkyl_range boundaries_conf_ghost[2*GKYL_MAX_CDIM]; // Range of integration in each boundary (SOL config space ghost).
 
   struct gk_species_moment integ_threemoms; // Integrated moment updater.
   double *red_integ_mom, *red_integ_mom_global; // For reduction.
@@ -586,14 +583,14 @@ struct gk_source {
   double *red_integ_diag, *red_integ_diag_global; // For reduction of integrated moments.
   gkyl_dynvec integ_diag; // Integrated moments reduced across grid.
   bool is_first_integ_write_call; // Flag for integrated moments dynvec written first time.
+  struct gk_adapt_source adapt[GKYL_MAX_SOURCES]; // Adaptation source.
+  int num_adapt_sources; // Number of adaptive sources.
   // Functions chosen at runtime.
   void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
   void (*write_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
   void (*calc_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm);
   void (*write_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks);
-  
-  struct gk_adapt_source adapt[GKYL_MAX_SOURCES]; // Adaptation source.
-  int num_adapt_sources; // Number of adaptive sources.
+  void (*adapt_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct gk_source *src, struct gkyl_array *f_buffer, double tm);
 };
 
 // species data
@@ -2092,7 +2089,7 @@ void gk_species_source_calc(gkyl_gyrokinetic_app *app, struct gk_species *specie
   struct gk_source *src, struct gkyl_array *f_buffer, double tm);
 
 /**
- * Adapt source to user's defined power keeping particle input rate constant.
+ * Adapt source to maintain input power and/or particle content constant.
  * 
  * @param app gyrokinetic app object.
  * @param s Species object.
@@ -2101,7 +2098,7 @@ void gk_species_source_calc(gkyl_gyrokinetic_app *app, struct gk_species *specie
  */
 void
 gk_species_source_adapt(gkyl_gyrokinetic_app *app, struct gk_species *s, 
-  struct gk_source *src, double tm);
+  struct gk_source *src, struct gkyl_array *f_buffer, double tm);
 
 /**
  * Compute RHS contribution from source.
