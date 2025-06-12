@@ -1667,6 +1667,14 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
       &app->neut_species[i].src, fin_neut[i], fout_neut[i]);
   }
 
+  // Multiply dfdt by a factor.
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *gks = &app->species[i];
+    if (gks->scale_dfdt) {
+      gkyl_array_scale_by_cell(fout[i], gks->dfdt_scale_fac);
+    }
+  }
+
   struct timespec wtm = gkyl_wall_clock();
   double dt_max_rel_diff = 0.01;
   // Check if dtmin is slightly smaller than dt. Use dt if it is

@@ -158,6 +158,10 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
 
   // Compute diagnostic moments of the boundary fluxes.
   gk_species_bflux_calc_moms(app, &species->bflux, rhs, bflux_moms);
+
+  if (species->scale_dfdt) {
+    gkyl_array_scale_by_cell(species->cflrate, species->dfdt_scale_fac);
+  }
   
   // Reduce the CFL frequency anc compute stable dt needed by this species.
   app->stat.n_species_omega_cfl +=1;
@@ -823,6 +827,10 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
     }
   }
 
+  if (s->scale_dfdt) {
+    gkyl_array_release(s->dfdt_scale_fac);
+  }
+
   if (app->use_gpu) {
     gkyl_cu_free(s->omega_cfl);
     gkyl_cu_free(s->m0_max);
@@ -870,6 +878,14 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
 static void
 gk_species_release_static(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 {
+}
+
+static void
+proj_on_basis_c2p_phase_func(const double *xcomp, double *xphys, void *ctx)
+{
+  struct gk_proj_on_basis_c2p_func_ctx *c2p_ctx = ctx;
+  int cdim = c2p_ctx->cdim; // Assumes update range is a phase range.
+  gkyl_velocity_map_eval_c2p(c2p_ctx->vel_map, &xcomp[cdim], &xphys[cdim]);
 }
 
 // Initialize species object.
@@ -1167,7 +1183,71 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
         gks->ps_delta_m0r_tot = gkyl_array_acquire(app->ps_delta_m0_ions);
       }
     }
+  }
 
+  if (gks->info.dfdt_scaling.type) {
+    gks->scale_dfdt = true;
+
+    // Project the function that masks df/dt.
+    int num_quad = gks->info.dfdt_scaling.num_quad? gks->info.dfdt_scaling.num_quad : 1;
+
+    struct gkyl_array *dfdt_scale_fac_high_order_ho = mkarr(false, gks->basis.num_basis, gks->local_ext.volume);
+
+    struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
+    proj_on_basis_c2p_ctx.cdim = app->cdim;
+    proj_on_basis_c2p_ctx.vdim = gks->local_vel.ndim;
+    proj_on_basis_c2p_ctx.vel_map = gks->vel_map;
+    gkyl_proj_on_basis *projup = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+        .grid = &gks->grid,
+        .basis = &gks->basis,
+        .num_quad = num_quad,
+        .num_ret_vals = 1,
+        .eval = gks->info.dfdt_scaling.profile,
+        .ctx = gks->info.dfdt_scaling.profile_ctx,
+        .c2p_func = proj_on_basis_c2p_phase_func,
+        .c2p_func_ctx = &proj_on_basis_c2p_ctx,
+      }
+    );
+    gkyl_proj_on_basis_advance(projup, 0.0, &gks->local, dfdt_scale_fac_high_order_ho);
+    gkyl_proj_on_basis_release(projup);
+
+    gks->dfdt_scale_fac = mkarr(app->use_gpu, num_quad==1? 1 : gks->basis.num_basis, gks->local_ext.volume);
+
+    if (num_quad == 1) {
+      // Use the lte.f_lte as a temporary buffer.
+      gkyl_array_copy(gks->lte.f_lte, dfdt_scale_fac_high_order_ho);
+      gkyl_array_set_offset(gks->dfdt_scale_fac, 1.0/pow(sqrt(2.0),gks->grid.ndim), gks->lte.f_lte, 0);
+    }
+    else
+      gkyl_array_copy(gks->dfdt_scale_fac, dfdt_scale_fac_high_order_ho);
+
+
+      // Write the dfdt scaling factor.
+      struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
+          .frame = 0,
+          .stime = 0,
+          .poly_order = 0,
+          .basis_type = "tensor",
+        }
+      );
+      const char *fmt = "%s-%s_dfdt_scaling_%d.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, 0);
+      char fileNm[sz+1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, 0);
+      struct gkyl_array *dfdt_scale_fac_ho;
+      if (app->use_gpu) { // Copy data from device to host before writing it out.
+        dfdt_scale_fac_ho = mkarr(false, gks->dfdt_scale_fac->ncomp, gks->dfdt_scale_fac->size);
+        gkyl_array_copy(dfdt_scale_fac_ho, gks->dfdt_scale_fac);
+      }
+      else
+        dfdt_scale_fac_ho = gkyl_array_acquire(gks->dfdt_scale_fac);
+
+      gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt, dfdt_scale_fac_ho, fileNm);
+      gkyl_array_release(dfdt_scale_fac_ho);
+      gk_array_meta_release(mt);
+      // Finished writing the dfdt scaling factor.
+
+    gkyl_array_release(dfdt_scale_fac_ho);
   }
 
   // Set function pointers.

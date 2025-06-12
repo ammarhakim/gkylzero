@@ -199,34 +199,36 @@ gk_species_damping_advance(gkyl_gyrokinetic_app *app, const struct gk_species *g
   const struct gkyl_array *phi, const struct gkyl_array *fin, struct gkyl_array *f_buffer,
   struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
-  struct timespec wst = gkyl_wall_clock();
-  if (damp->type == GKYL_GK_DAMPING_USER_INPUT) {
-    gkyl_array_set(f_buffer, 1.0, fin);
-    gkyl_array_scale_by_cell(f_buffer, damp->rate);
-    gkyl_array_accumulate(rhs, -1.0, f_buffer);
+  if (damp->type) {
+    struct timespec wst = gkyl_wall_clock();
+    if (damp->type == GKYL_GK_DAMPING_USER_INPUT) {
+      gkyl_array_set(f_buffer, 1.0, fin);
+      gkyl_array_scale_by_cell(f_buffer, damp->rate);
+      gkyl_array_accumulate(rhs, -1.0, f_buffer);
+    }
+    else if (damp->type == GKYL_GK_DAMPING_LOSS_CONE) {
+      // Find the potential at the mirror throat.
+      gkyl_dg_basis_ops_eval_array_at_coord_comp(phi, damp->bmag_max_coord,
+        app->basis_on_dev, &app->grid, &app->local, damp->phi_m);
+      gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, damp->phi_m, damp->phi_m_global);
+
+      // Project the loss cone mask.
+      gkyl_loss_cone_mask_gyrokinetic_advance(damp->lcm_proj_op, &gks->local, &app->local,
+        phi, damp->phi_m_global, damp->rate);
+
+      // Assemble the damping term -scale_prof * mask * f.
+      gkyl_array_set(f_buffer, 1.0, fin);
+      gkyl_array_scale_by_cell(damp->rate, damp->scale_prof);
+      gkyl_array_scale_by_cell(f_buffer, damp->rate);
+      gkyl_array_accumulate(rhs, -1.0, f_buffer);
+
+    }
+
+    // Add the frequency to the CFL frequency.
+    gkyl_array_accumulate(cflrate, 1.0, damp->rate);
+
+    app->stat.species_damp_tm += gkyl_time_diff_now_sec(wst);
   }
-  else if (damp->type == GKYL_GK_DAMPING_LOSS_CONE) {
-    // Find the potential at the mirror throat.
-    gkyl_dg_basis_ops_eval_array_at_coord_comp(phi, damp->bmag_max_coord,
-      app->basis_on_dev, &app->grid, &app->local, damp->phi_m);
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, damp->phi_m, damp->phi_m_global);
-
-    // Project the loss cone mask.
-    gkyl_loss_cone_mask_gyrokinetic_advance(damp->lcm_proj_op, &gks->local, &app->local,
-      phi, damp->phi_m_global, damp->rate);
-
-    // Assemble the damping term -scale_prof * mask * f.
-    gkyl_array_set(f_buffer, 1.0, fin);
-    gkyl_array_scale_by_cell(damp->rate, damp->scale_prof);
-    gkyl_array_scale_by_cell(f_buffer, damp->rate);
-    gkyl_array_accumulate(rhs, -1.0, f_buffer);
-
-  }
-
-  // Add the frequency to the CFL frequency.
-  gkyl_array_accumulate(cflrate, 1.0, damp->rate);
-
-  app->stat.species_damp_tm += gkyl_time_diff_now_sec(wst);
 }
 
 void

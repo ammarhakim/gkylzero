@@ -245,6 +245,19 @@ struct gkyl_gyrokinetic_damping {
   int num_quad; // Number of quadrature points in each direction to use in projecting the rate.
 };
 
+enum gkyl_gyrokinetic_phase_scaling_type {
+  GKYL_GK_SCALING_NONE = 0,
+  GKYL_GK_SCALING_USER_INPUT,
+  GKYL_GK_SCALING_LOSS_CONE,
+};
+
+struct gkyl_gyrokinetic_phase_scaling {
+  enum gkyl_gyrokinetic_phase_scaling_type type;
+  void (*profile)(double t, const double *xn, double *fout, void *ctx); // Profile to multiply df/dt by.
+  void *profile_ctx; // Context for profile function.
+  int num_quad; // Number of quadrature points in each direction to use in projecting profile.
+};
+
 // Parameters for gk species.
 struct gkyl_gyrokinetic_species {
   char name[128]; // Species name.
@@ -265,6 +278,9 @@ struct gkyl_gyrokinetic_species {
   struct gkyl_gyrokinetic_projection projection;
   // Initial conditions from a file.
   struct gkyl_gyrokinetic_ic_import init_from_file;
+
+  // Phase-space field to multiply df/dt by.
+  struct gkyl_gyrokinetic_phase_scaling dfdt_scaling;
 
   bool no_collisionless_terms; // Set to true to turn off collisionles terms.
   double collisionless_scale_factor; // Factor multiplying collisionless terms.

@@ -638,7 +638,10 @@ struct gk_species {
   struct gkyl_dg_calc_gyrokinetic_vars *calc_gk_vars;
   gkyl_dg_updater_gyrokinetic *slvr; // Gyrokinetic solver.
   struct gkyl_dg_eqn *eqn_gyrokinetic; // Gyrokinetic equation object.
+
   double collisionless_scale_fac; // Factor multiplying collisionless terms.
+  bool scale_dfdt; // Whether to scale df/dt by dfdt_scale_fac.
+  struct gkyl_array *dfdt_scale_fac; // Function multiplying df/dt.
   
   struct gk_species_moment m0; // for computing charge density
   struct gk_species_moment integ_moms; // integrated moments
