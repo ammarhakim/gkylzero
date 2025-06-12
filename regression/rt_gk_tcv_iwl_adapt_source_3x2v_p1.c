@@ -554,7 +554,7 @@ main(int argc, char **argv)
   // Construct communicator for use in app.
   struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
-  // electrons sources
+  // Electron core source:
   struct gkyl_gyrokinetic_projection proj_srcCORE_e = {
     .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN,
     .gaussian_mean = {ctx.center_srcCORE[0], ctx.center_srcCORE[1], -ctx.center_srcCORE[2]},
@@ -564,7 +564,6 @@ main(int argc, char **argv)
     .temp_max = 5.0*ctx.Te0,
     .f_floor = ctx.floor_srcCORE,
   };
-
   struct gkyl_gyrokinetic_adapt_source adapt_srcCORE_e ={
       .adapt_to_species = "elc",
       .adapt_particle = ctx.adapt_particle_srcCORE,
@@ -573,7 +572,7 @@ main(int argc, char **argv)
       .dir = {0},
       .edge = {GKYL_LOWER_EDGE},
   };
-
+  // Electron recycling source:
   struct gkyl_gyrokinetic_projection proj_srcRECY_e = {
     .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
     .gaussian_mean = {ctx.center_srcRECY[0], ctx.center_srcRECY[1], ctx.center_srcRECY[2]},
@@ -583,9 +582,10 @@ main(int argc, char **argv)
     .temp_max = 5.0*ctx.Te0,
     .f_floor = ctx.floor_srcRECY,
   };
-
+  // The recycling source is adapting to the ion losses 
+  // for ambipolarity (neutral ionization process).
   struct gkyl_gyrokinetic_adapt_source adapt_srcRECY_e = {
-    .adapt_to_species = "elc",
+    .adapt_to_species = "ion",
     .adapt_particle = ctx.adapt_particle_srcRECY,
     .adapt_energy = ctx.adapt_energy_srcRECY,
     .num_boundaries = 3,
@@ -671,7 +671,7 @@ main(int argc, char **argv)
     },
   };
 
-  // ions sources
+  // Ion core source:
   struct gkyl_gyrokinetic_projection proj_srcCORE_i = {
     .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
     .gaussian_mean = {ctx.center_srcCORE[0], ctx.center_srcCORE[1], ctx.center_srcCORE[2]},
@@ -681,7 +681,7 @@ main(int argc, char **argv)
     .temp_max = 5.0*ctx.Te0,
     .f_floor = ctx.floor_srcCORE,
   };
-
+  // The core source is adapting to the ion losses through the inner radial boundary.
   struct gkyl_gyrokinetic_adapt_source adapt_srcCORE_i ={
     .adapt_to_species = "ion",
     .adapt_particle = ctx.adapt_particle_srcCORE,
@@ -691,6 +691,7 @@ main(int argc, char **argv)
     .edge = {GKYL_LOWER_EDGE},
   };
 
+  // Ion recycling source:
   struct gkyl_gyrokinetic_projection proj_srcRECY_i = {
     .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
     .gaussian_mean = {ctx.center_srcRECY[0], ctx.center_srcRECY[1], ctx.center_srcRECY[2]},
@@ -700,7 +701,8 @@ main(int argc, char **argv)
     .temp_max = 5.0*ctx.Te0,
     .f_floor = ctx.floor_srcRECY,
   };
-
+  // As for the electrons, the ion recycling source is adapting to the ion losses for maintaining
+  // ambipolarity (neutral ionization process).
   struct gkyl_gyrokinetic_adapt_source adapt_srcRECY_i = {
     .adapt_to_species = "ion",
     .adapt_particle = ctx.adapt_particle_srcRECY,

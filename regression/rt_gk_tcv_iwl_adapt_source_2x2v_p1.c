@@ -554,9 +554,10 @@ main(int argc, char **argv)
     .temp_max = 5.0*ctx.Te0,
     .f_floor = ctx.floor_srcRECY,
   };
-
+  //The electron recycling source is adapting to the ion losses for maintaining
+  // ambipolarity (neutral ionization process).
   struct gkyl_gyrokinetic_adapt_source adapt_srcRECY_e = {
-    .adapt_to_species = "elc",
+    .adapt_to_species = "ion",
     .adapt_particle = ctx.adapt_particle_srcRECY,
     .adapt_energy = ctx.adapt_energy_srcRECY,
     .num_boundaries = 3,
