@@ -45,6 +45,14 @@ gk_species_damping_write_init_only(gkyl_gyrokinetic_app* app, struct gk_species 
   gks->damping.write_func = gk_species_damping_write_disabled;
 }
 
+static void
+proj_on_basis_c2p_phase_func(const double *xcomp, double *xphys, void *ctx)
+{
+  struct gk_proj_on_basis_c2p_func_ctx *c2p_ctx = ctx;
+  int cdim = c2p_ctx->cdim; // Assumes update range is a phase range.
+  gkyl_velocity_map_eval_c2p(c2p_ctx->vel_map, &xcomp[cdim], &xphys[cdim]);
+}
+
 void
 gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks,
   struct gk_damping *damp)
@@ -66,11 +74,27 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
       damp->rate_host = mkarr(false, damp->rate->ncomp, damp->rate->size); 
 
     if (damp->type == GKYL_GK_DAMPING_USER_INPUT) {
-      gkyl_proj_on_basis *projup = gkyl_proj_on_basis_new(&gks->grid, &gks->basis, num_quad, 1, 
-        gks->info.damping.rate_profile, gks->info.damping.rate_profile_ctx);
+      struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
+      proj_on_basis_c2p_ctx.cdim = app->cdim;
+      proj_on_basis_c2p_ctx.vdim = gks->local_vel.ndim;
+      proj_on_basis_c2p_ctx.vel_map = gks->vel_map;
+      gkyl_proj_on_basis *projup = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+          .grid = &gks->grid,
+          .basis = &gks->basis,
+          .num_quad = num_quad,
+          .num_ret_vals = 1,
+          .eval = gks->info.damping.rate_profile,
+          .ctx = gks->info.damping.rate_profile_ctx,
+          .c2p_func = proj_on_basis_c2p_phase_func,
+          .c2p_func_ctx = &proj_on_basis_c2p_ctx,
+        }
+      );
       gkyl_proj_on_basis_advance(projup, 0.0, &gks->local, damp->rate_host);
       gkyl_proj_on_basis_release(projup);
       gkyl_array_copy(damp->rate, damp->rate_host);
+
+      if (num_quad == 1)
+        gkyl_array_scale_range(damp->rate, 1.0/pow(sqrt(2.0),gks->grid.ndim), &gks->local);
     }
     else if (damp->type == GKYL_GK_DAMPING_LOSS_CONE) {
       damp->evolve = true; // Since the loss cone boundary is proportional to phi(t).

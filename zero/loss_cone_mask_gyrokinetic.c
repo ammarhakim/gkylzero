@@ -304,9 +304,6 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
   int cdim = up->cdim, pdim = up->pdim;
   int vdim = pdim-cdim;
 
-  int tot_quad_phase = up->tot_quad_phase;
-  int num_basis_phase = up->num_basis_phase;  
-
   int tot_quad_conf = up->tot_quad_conf;
   int num_basis_conf = up->num_basis_conf;
 
