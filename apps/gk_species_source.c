@@ -208,11 +208,12 @@ gk_species_source_adapt(gkyl_gyrokinetic_app *app, struct gk_species *s,
   app->stat.species_src_tm += gkyl_time_diff_now_sec(wst);
 }
 
-void gk_species_source_adapt_none(gkyl_gyrokinetic_app *app, struct gk_species *s, 
+static void 
+gk_species_source_adapt_none(gkyl_gyrokinetic_app *app, struct gk_species *s, 
   struct gk_source *src, struct gkyl_array *f_buffer, double tm)
 {}
 
-void
+static void
 gk_species_source_adapt_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *s, 
   struct gk_source *src, struct gkyl_array *f_buffer, double tm) 
 {
