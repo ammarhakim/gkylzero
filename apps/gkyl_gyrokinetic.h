@@ -46,8 +46,8 @@ struct gkyl_gyrokinetic_projection {
       // if projection is a Maxwellian + Gaussian in configuration space.
       double gaussian_mean[GKYL_MAX_CDIM]; // Center in configuration space.
       double gaussian_std_dev[GKYL_MAX_CDIM]; // Sigma in configuration space, function is constant if sigma is 0.
-      double particle; // Total particle of the Gaussian Maxwellian distribution (M0 moment).
-      double energy; // Total energy (M2*mass moment).
+      double total_num_particles; // Total particle of the Gaussian Maxwellian distribution (M0 moment).
+      double total_energy; // Total energy (M2*mass moment).
       double temp_max; // Maximum temperature of the Gaussian Maxwellian distribution.
       double temp_min; // Minimum temperature of the Gaussian Maxwellian distribution.
       

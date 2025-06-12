@@ -530,8 +530,8 @@ main(int argc, char **argv)
     .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN,
     .gaussian_mean = {ctx.center_srcCORE[0], -ctx.center_srcCORE[1]},
     .gaussian_std_dev = {ctx.sigma_srcCORE[0], ctx.sigma_srcCORE[1]},
-    .particle = ctx.particle_srcCORE,
-    .energy = ctx.energy_srcCORE,
+    .total_num_particles = ctx.particle_srcCORE,
+    .total_energy = ctx.energy_srcCORE,
     .temp_max = 5.0*ctx.Te0,
     .f_floor = ctx.floor_srcCORE,
   };
@@ -549,8 +549,8 @@ main(int argc, char **argv)
     .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
     .gaussian_mean = {ctx.center_srcRECY[0], ctx.center_srcRECY[1]},
     .gaussian_std_dev = {ctx.sigma_srcRECY[0], ctx.sigma_srcRECY[1]},
-    .particle = ctx.particle_srcRECY,
-    .energy = ctx.energy_srcRECY,
+    .total_num_particles = ctx.particle_srcRECY,
+    .total_energy = ctx.energy_srcRECY,
     .temp_max = 5.0*ctx.Te0,
     .f_floor = ctx.floor_srcRECY,
   };
@@ -648,8 +648,8 @@ main(int argc, char **argv)
     .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
     .gaussian_mean = {ctx.center_srcCORE[0], ctx.center_srcCORE[1]},
     .gaussian_std_dev = {ctx.sigma_srcCORE[0], ctx.sigma_srcCORE[1]},
-    .particle = ctx.particle_srcCORE,
-    .energy = ctx.energy_srcCORE,
+    .total_num_particles = ctx.particle_srcCORE,
+    .total_energy = ctx.energy_srcCORE,
     .temp_max = 5.0*ctx.Te0,
     .f_floor = ctx.floor_srcCORE,
   };
@@ -667,8 +667,8 @@ main(int argc, char **argv)
     .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
     .gaussian_mean = {ctx.center_srcRECY[0], ctx.center_srcRECY[1]},
     .gaussian_std_dev = {ctx.sigma_srcRECY[0], ctx.sigma_srcRECY[1]},
-    .particle = ctx.particle_srcRECY,
-    .energy = ctx.energy_srcRECY,
+    .total_num_particles = ctx.particle_srcRECY,
+    .total_energy = ctx.energy_srcRECY,
     .temp_max = 5.0*ctx.Te0,
     .f_floor = ctx.floor_srcRECY,
   };

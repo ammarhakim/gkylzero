@@ -19,7 +19,7 @@ proj_on_basis_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
 }
 
 struct func_gaussian_ctx {
-  bool periodic[GKYL_MAX_CDIM]; // Periodicity in configuration space.
+  bool is_dir_periodic[GKYL_MAX_CDIM]; // Periodicity in configuration space.
   double box_size[GKYL_MAX_CDIM]; // Size of the box in each direction
   double gaussian_mean[GKYL_MAX_CDIM]; // Center in configuration space.
   double gaussian_std_dev[GKYL_MAX_CDIM]; // Sigma in configuration space, function is constant if sigma is 0.
@@ -33,7 +33,7 @@ func_gaussian(double t, const double* xn, double* GKYL_RESTRICT fout, void *ctx)
   double envelope = 1.0;
   for (int dir = 0; dir < GKYL_MAX_CDIM; ++dir) {
     double t = xn[dir] - inp->gaussian_mean[dir];
-    if (inp->periodic[dir])
+    if (inp->is_dir_periodic[dir])
       t = fmod(fabs(xn[dir]) - inp->gaussian_mean[dir], inp->box_size[dir]);
     if (inp->gaussian_std_dev[dir] > 0.0)
       envelope *= exp(-(pow(t,2))/(2.*pow(inp->gaussian_std_dev[dir],2)));
@@ -187,9 +187,9 @@ init_maxwellian_gaussian(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     fg_ctx.box_size[dir] = app->grid.upper[dir] - app->grid.lower[dir];
   }
   // Set periodicity for last dim if we are in IWL, and all other directions defined by the user.
-  fg_ctx.periodic[app->cdim-1] = app->field->info.gkfield_id == GKYL_GK_FIELD_ES_IWL;
+  fg_ctx.is_dir_periodic[app->cdim-1] = app->field->info.gkfield_id == GKYL_GK_FIELD_ES_IWL;
   for (int i=app->num_periodic_dir; i < app->cdim; ++i)
-    fg_ctx.periodic[app->periodic_dirs[i]] = true;
+    fg_ctx.is_dir_periodic[app->periodic_dirs[i]] = true;
 
   struct gkyl_array *shape_ho = mkarr(false, app->basis.num_basis, app->local_ext.volume);
   struct gkyl_proj_on_basis *proj_gaussian = gkyl_proj_on_basis_new(&app->grid, &app->basis, app->poly_order + 1, 1, func_gaussian, &fg_ctx);
@@ -232,14 +232,14 @@ init_maxwellian_gaussian(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   proj->prim_moms = mkarr(app->use_gpu, 4*app->basis.num_basis, app->local_ext.volume);      
 
   // Density
-  gkyl_array_set_offset(proj->prim_moms, inp.particle, proj->gaussian_profile, 0*app->basis.num_basis);
+  gkyl_array_set_offset(proj->prim_moms, inp.total_num_particles, proj->gaussian_profile, 0*app->basis.num_basis);
 
   // Parallel velocity
   gkyl_array_set_offset(proj->prim_moms, 0.0, proj->gaussian_profile, 1*app->basis.num_basis);
   
   // Temperature
   assert(inp.temp_max > 0);
-  double temp = inp.particle == 0 ? inp.temp_max/2.0 : 2./3. * inp.energy/inp.particle;
+  double temp = inp.total_num_particles == 0 ? inp.temp_max/2.0 : 2./3. * inp.total_energy/inp.total_num_particles;
   temp = temp > inp.temp_max ? inp.temp_max : temp; // saturate to max temperature.
   gkyl_array_shiftc(proj->prim_moms, temp/s->info.mass, 2*app->basis.num_basis);
 }

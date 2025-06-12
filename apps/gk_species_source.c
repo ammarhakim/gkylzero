@@ -242,8 +242,8 @@ gk_species_source_adapt_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *s,
       adapt_src->energy_rate_loss += 0.5 * s->info.mass * red_int_mom_global[num_mom-1] * adapt_src->mass_ratio; // 1/2 * m * v^2
     }
 
-    double particle_input = s->info.source.projection[k].particle;
-    double energy_input = s->info.source.projection[k].energy;
+    double particle_input = s->info.source.projection[k].total_num_particles;
+    double energy_input = s->info.source.projection[k].total_energy;
 
     // Particle and energy rate update.
     // balance = user target + loss
@@ -377,10 +377,10 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
 
         adapt_src->mass_ratio = s->info.mass/adapt_src->adapt_species->info.mass;
 
-        adapt_src->particle_src_curr = s->info.source.projection[k].particle;
-        adapt_src->energy_src_curr = s->info.source.projection[k].energy;
+        adapt_src->particle_src_curr = s->info.source.projection[k].total_num_particles;
+        adapt_src->energy_src_curr = s->info.source.projection[k].total_energy;
         // The temperature computation makes sense only if we inject particles.
-        adapt_src->temperature_curr = s->info.source.projection[k].particle > 0?
+        adapt_src->temperature_curr = s->info.source.projection[k].total_num_particles > 0?
           2./3. * adapt_src->energy_src_curr/adapt_src->particle_src_curr : 1.0;
 
         gk_species_moment_init(app, s, &adapt_src->integ_threemoms, GKYL_F_MOMENT_M0M1M2, true);
@@ -396,12 +396,16 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
         }
 
         adapt_src->num_boundaries = s->info.source.adapt[k].num_boundaries;
+        bool is_dir_periodic[GKYL_MAX_CDIM] = {0};
+        for (int j=0; j < app->num_periodic_dir; ++j) {
+          is_dir_periodic[app->periodic_dirs[j]] = true;
+        }
         for (int j=0; j < adapt_src->num_boundaries; ++j) {
           int dir = s->info.source.adapt[k].dir[j];
           int edge = s->info.source.adapt[k].edge[j];
 
           // Source adaptation on periodic, zero flux, or reflect boundary is not allowed.
-          assert(app->periodic_dirs[dir] == 0);
+          assert(is_dir_periodic[dir] == 0);
           if (edge == GKYL_LOWER_EDGE) {
             assert(s->lower_bc[dir].type != GKYL_SPECIES_ZERO_FLUX);
             assert(s->lower_bc[dir].type != GKYL_SPECIES_REFLECT);
