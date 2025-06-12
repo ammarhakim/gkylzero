@@ -56,10 +56,6 @@ struct gkyl_gyrokinetic_projection {
       double iter_eps; // error tolerance for moment fixes (density is always exact)
       int max_iter; // maximum number of iteration
       bool use_last_converged; // use last iteration value regardless of convergence?
-      
-      // Attribute to be passed to the projection function (not an interface)
-      bool periodic[GKYL_MAX_CDIM]; // Periodicity in configuration space.
-      double box_size[GKYL_MAX_CDIM]; // Size of the box in each direction
     };
   };
 };

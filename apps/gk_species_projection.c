@@ -18,11 +18,18 @@ proj_on_basis_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
   gkyl_position_map_eval_mc2nu(c2p_ctx->pos_map, xcomp, xphys);
 }
 
-// Default shaping function for Maxwellian Gaussian projection (to be normalized later).
+struct func_gaussian_ctx {
+  bool periodic[GKYL_MAX_CDIM]; // Periodicity in configuration space.
+  double box_size[GKYL_MAX_CDIM]; // Size of the box in each direction
+  double gaussian_mean[GKYL_MAX_CDIM]; // Center in configuration space.
+  double gaussian_std_dev[GKYL_MAX_CDIM]; // Sigma in configuration space, function is constant if sigma is 0.
+  double f_floor; // Floor value of the distribution.
+};
+
 static void 
 func_gaussian(double t, const double* xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct gkyl_gyrokinetic_projection *inp = ctx;
+  struct func_gaussian_ctx *inp = ctx;
   double envelope = 1.0;
   for (int dir = 0; dir < GKYL_MAX_CDIM; ++dir) {
     double t = xn[dir] - inp->gaussian_mean[dir];
@@ -32,12 +39,6 @@ func_gaussian(double t, const double* xn, double* GKYL_RESTRICT fout, void *ctx)
       envelope *= exp(-(pow(t,2))/(2.*pow(inp->gaussian_std_dev[dir],2)));
   }
   fout[0] = (envelope + inp->f_floor);
-}
-
-static void 
-func_one(double t, const double* xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  fout[0] = 1.0;
 }
 
 static void
@@ -178,14 +179,20 @@ init_maxwellian_gaussian(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   struct gkyl_gyrokinetic_projection inp, struct gk_proj *proj)
 {
   // Fill the box_size attribute of the projection (used for periodicity).
+  struct func_gaussian_ctx fg_ctx;
+  fg_ctx.f_floor = inp.f_floor;
   for (int dir = 0; dir < app->cdim; ++dir) {
-    inp.box_size[dir] = app->grid.upper[dir] - app->grid.lower[dir];
-    inp.periodic[dir] = app->periodic_dirs[dir];
+    fg_ctx.gaussian_mean[dir] = inp.gaussian_mean[dir];
+    fg_ctx.gaussian_std_dev[dir] = inp.gaussian_std_dev[dir];
+    fg_ctx.box_size[dir] = app->grid.upper[dir] - app->grid.lower[dir];
   }
+  // Set periodicity for last dim if we are in IWL, and all other directions defined by the user.
+  fg_ctx.periodic[app->cdim-1] = app->field->info.gkfield_id == GKYL_GK_FIELD_ES_IWL;
+  for (int i=app->num_periodic_dir; i < app->cdim; ++i)
+    fg_ctx.periodic[app->periodic_dirs[i]] = true;
 
-  // First project the shape function, s(x), onto the DG basis and send it to device.
   struct gkyl_array *shape_ho = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-  struct gkyl_proj_on_basis *proj_gaussian = gkyl_proj_on_basis_new(&app->grid, &app->basis, app->poly_order + 1, 1, func_gaussian, &inp);
+  struct gkyl_proj_on_basis *proj_gaussian = gkyl_proj_on_basis_new(&app->grid, &app->basis, app->poly_order + 1, 1, func_gaussian, &fg_ctx);
   proj->gaussian_profile = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
   gkyl_proj_on_basis_advance(proj_gaussian, 0, &app->local, shape_ho);
