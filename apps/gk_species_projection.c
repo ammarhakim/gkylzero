@@ -25,20 +25,24 @@ struct func_gaussian_ctx {
   double gaussian_std_dev[GKYL_MAX_CDIM]; // Sigma in configuration space, function is constant if sigma is 0.
   double f_floor; // Floor value of the distribution.
 };
-
 static void 
 func_gaussian(double t, const double* xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct func_gaussian_ctx *inp = ctx;
   double envelope = 1.0;
   for (int dir = 0; dir < GKYL_MAX_CDIM; ++dir) {
-    double t = xn[dir] - inp->gaussian_mean[dir];
-    if (inp->is_dir_periodic[dir])
-      t = fmod(fabs(xn[dir]) - inp->gaussian_mean[dir], inp->box_size[dir]);
+    double dx = xn[dir] - inp->gaussian_mean[dir];
+    double L = inp->box_size[dir];
+    if (inp->is_dir_periodic[dir]) { 
+      // Periodic wrapping
+      dx = fmod(dx + L/2.0, L);
+      if (dx < 0) dx += L;
+      dx -= L/2.0;
+    }
     if (inp->gaussian_std_dev[dir] > 0.0)
-      envelope *= exp(-(pow(t,2))/(2.*pow(inp->gaussian_std_dev[dir],2)));
+      envelope *= exp(-dx*dx/(2.0*inp->gaussian_std_dev[dir]*inp->gaussian_std_dev[dir]));
   }
-  fout[0] = (envelope + inp->f_floor);
+  fout[0] = envelope + inp->f_floor;
 }
 
 static void
@@ -187,8 +191,10 @@ init_maxwellian_gaussian(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     fg_ctx.box_size[dir] = app->grid.upper[dir] - app->grid.lower[dir];
   }
   // Set periodicity for last dim if we are in IWL, and all other directions defined by the user.
+  for (int dir = 0; dir < GKYL_MAX_CDIM; ++dir)
+    fg_ctx.is_dir_periodic[dir] = false;
   fg_ctx.is_dir_periodic[app->cdim-1] = app->field->info.gkfield_id == GKYL_GK_FIELD_ES_IWL;
-  for (int i=app->num_periodic_dir; i < app->cdim; ++i)
+  for (int i=0; i < app->num_periodic_dir; ++i)
     fg_ctx.is_dir_periodic[app->periodic_dirs[i]] = true;
 
   struct gkyl_array *shape_ho = mkarr(false, app->basis.num_basis, app->local_ext.volume);
