@@ -440,7 +440,7 @@ struct gk_app_ctx create_ctx(void)
   double vpar_max_ion = 5.*vti;
   double mu_max_ion   = 1.*mi*pow(4*vti,2)/(2*B0);
   double final_time = 1.e-6;
-  int num_frames = 1;
+  int num_frames = 5;
   double write_phase_freq = 1.0;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-3; // Minimum allowable fraction of initial time-step.
