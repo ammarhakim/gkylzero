@@ -1104,7 +1104,10 @@ gkyl_gyrokinetic_multib_app_read_from_frame(gkyl_gyrokinetic_multib_app *app, in
       if (sbapp->neut_species[i].info.is_static) {
         neut_frame = 0;
       }
-      rstat = gkyl_gyrokinetic_app_from_frame_neut_species(sbapp, i, neut_frame);
+      if (sbapp->neut_species[i].info.is_external)
+        gkyl_gyrokinetic_app_apply_ic_neut_species(sbapp, i, 0.0);
+      else
+        rstat = gkyl_gyrokinetic_app_from_frame_neut_species(sbapp, i, neut_frame);
     }
     for (int i=0; i<app->num_species; i++) {
       rstat = gkyl_gyrokinetic_app_from_frame_species(sbapp, i, frame);
@@ -1212,9 +1215,7 @@ gkyl_gyrokinetic_multib_app_write_flag(const gkyl_gyrokinetic_multib_app* app, i
     FILE *fp = fopen("gkeyll_text_output/new_data_flag", "w");
     if (fp == NULL)
       assert(false);
-    // Write the integer to the file
     fprintf(fp, "%d\n", frame);
-    // Close the file
     fclose(fp);
   }
 }

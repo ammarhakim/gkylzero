@@ -1163,6 +1163,14 @@ gkyl_gyrokinetic_app_from_frame_neut_species(gkyl_gyrokinetic_app *app, int sidx
 void gkyl_gyrokinetic_app_cout(const gkyl_gyrokinetic_app* app, FILE *fp, const char *fmt, ...);
 
 /**
+ * Write newest frame number output
+ * 
+ * @param app App object.
+ * @param frame frame number.
+ */
+void gkyl_gyrokinetic_app_write_flag(const gkyl_gyrokinetic_app* app, int frame);
+
+/**
  * Advance simulation by a suggested time-step 'dt'. The dt may be too
  * large in which case method will attempt to take a smaller time-step
  * and also return it as the 'dt_actual' field of the status

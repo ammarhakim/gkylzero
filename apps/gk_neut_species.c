@@ -1196,6 +1196,7 @@ gk_neut_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_neut_species *spec
 {
   if (species->info.is_external) {
     gk_neut_species_read_lte(app, species);
+    return;
   }
   else if (species->info.init_from_file.type == 0)
     gk_neut_species_projection_calc(app, species, &species->proj_init, species->f, t0);

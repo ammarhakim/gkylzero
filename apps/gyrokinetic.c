@@ -2671,6 +2671,20 @@ gkyl_gyrokinetic_app_cout(const gkyl_gyrokinetic_app* app, FILE *fp, const char 
   va_end(argp);
 }
 
+void 
+gkyl_gyrokinetic_app_write_flag(const gkyl_gyrokinetic_app* app, int frame)
+{
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+  if (0 == rank) {
+    FILE *fp = fopen("gkeyll_text_output/new_data_flag", "w");
+    if (fp == NULL)
+      assert(false);
+    fprintf(fp, "%d\n", frame);
+    fclose(fp);
+  }
+}
+
 void
 gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
 {
