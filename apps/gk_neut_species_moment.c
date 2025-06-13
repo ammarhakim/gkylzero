@@ -122,6 +122,7 @@ void gk_neut_species_read_lte(struct gkyl_gyrokinetic_app *app, struct gk_neut_s
 
     fileNm = cstr_from_fmt("gkeyll_text_input/%s-%s_M0.txt", app->name, s->info.name);
     gk_neut_species_read_moment(app, s->m0.marr_host, fileNm);
+    gkyl_dg_mul_op_range(app->basis, 0, s->m0.marr_host, 0, s->m0.marr_host, 0, app->gk_geom->geo_int.jacobgeo, &app->local); 
     gkyl_array_set_offset(s->lte.moms.marr_host, 1.0, s->m0.marr_host, 0*app->basis.num_basis);
 
     if (app->use_gpu) {
