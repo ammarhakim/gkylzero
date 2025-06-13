@@ -390,6 +390,7 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
 
     neut_species_inp.mass = nsp->mass; 
     neut_species_inp.is_static = nsp->is_static; 
+    neut_species_inp.is_external = nsp->is_external; 
 
     // Velocity space information (neutrals are 3V)
     for (int v=0; v<3; ++v) {

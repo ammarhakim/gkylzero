@@ -117,6 +117,7 @@ struct gkyl_gyrokinetic_multib_neut_species {
   struct gkyl_mapc2p_inp mapc2p;
 
   bool is_static; // Set to true if neutral species does not change in time.
+  bool is_external; // Set to true if neutral species is evolved by external code
 
   int num_diag_moments; // Number of diagnostic moments.
   enum gkyl_distribution_moments diag_moments[12]; // List of diagnostic moments.
