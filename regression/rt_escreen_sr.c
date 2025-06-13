@@ -366,7 +366,7 @@ main(int argc, char **argv)
     },
 
     .num_diag_moments = 2,
-    .diag_moments = { "M0", "M1i" },
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1 },
   };
 
   // positrons
@@ -407,7 +407,7 @@ main(int argc, char **argv)
     },
 
     .num_diag_moments = 2,
-    .diag_moments = { "M0", "M1i" },
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1 },
   };
 
   // field

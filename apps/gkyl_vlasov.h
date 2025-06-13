@@ -8,6 +8,7 @@
 #include <gkyl_wv_eqn.h>
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_vlasov_comms.h>
+#include <gkyl_mom_type.h>
 
 #include <stdbool.h>
 
@@ -149,7 +150,7 @@ struct gkyl_vlasov_species {
   struct gkyl_vlasov_projection projection[GKYL_MAX_PROJ];
 
   int num_diag_moments; // number of diagnostic moments
-  char diag_moments[16][16]; // list of diagnostic moments
+  enum gkyl_distribution_moments diag_moments[16]; // list of diagnostic moments
 
   // collisions to include
   struct gkyl_vlasov_collisions collisions;

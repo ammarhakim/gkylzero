@@ -107,7 +107,7 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
   lbo->self_nu = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
   // Allocate moments needed for LBO update.
-  gk_species_moment_init(app, s, &lbo->moms, "ThreeMoments", false);
+  gk_species_moment_init(app, s, &lbo->moms, GKYL_F_MOMENT_M0M1M2, false);
 
   // Allocate needed arrays (boundary corrections, primitive moments, and nu*primitive moments)
   lbo->boundary_corrections = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
@@ -138,7 +138,7 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
       s->info.collisions.T_ref, bmag_mid, eps0, hbar, eV);
 
     // Allocate moments app used to compute vtsq.
-    gk_species_moment_init(app, s, &lbo->maxwellian_moms, "MaxwellianMoments", false);
+    gk_species_moment_init(app, s, &lbo->maxwellian_moms, GKYL_F_MOMENT_MAXWELLIAN, false);
 
     lbo->vtsq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
@@ -304,7 +304,7 @@ gk_species_lbo_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
 
   // Construct primitive moments.
   gkyl_prim_lbo_calc_advance(lbo->coll_pcalc, &app->local, 
-    lbo->moms_buff, lbo->boundary_corrections_buff, lbo->prim_moms);
+    lbo->moms_buff, lbo->boundary_corrections_buff, lbo->self_nu, lbo->prim_moms);
 
   // Scale upar and vtSq by nu.
   for (int d=0; d<2; d++)
@@ -345,7 +345,7 @@ gk_species_lbo_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
     // Compute cross primitive moments.
     gkyl_prim_lbo_cross_calc_advance(lbo->cross_calc, &app->local, lbo->greene_factor, species->info.mass,
       lbo->moms_buff, lbo->prim_moms, lbo->other_m[i], lbo->collide_with[i]->lbo.moms_buff,
-      lbo->other_prim_moms[i], lbo->boundary_corrections_buff, lbo->cross_prim_moms[i]);
+      lbo->other_prim_moms[i], lbo->boundary_corrections_buff, lbo->cross_nu[i], lbo->cross_prim_moms[i]);
 
     // Scale upar_{rs} and vtSq_{rs} by nu_{rs}
     for (int d=0; d<2; d++)

@@ -717,7 +717,7 @@ main(int argc, char **argv)
       },
       .diagnostics = {
         .num_integrated_diag_moments = 1,
-        .integrated_diag_moments = { "HamiltonianMoments" },
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
 //        .time_integrated = true,
       },
     },
@@ -738,16 +738,16 @@ main(int argc, char **argv)
     },
 
     .num_diag_moments = 1,
-    .diag_moments = { "MaxwellianMoments" },
+    .diag_moments = { GKYL_F_MOMENT_MAXWELLIAN },
     .num_integrated_diag_moments = 1,
-    .integrated_diag_moments = { "HamiltonianMoments" },
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     .time_rate_diagnostics = true,
 
     .boundary_flux_diagnostics = {
       .num_diag_moments = 1,
-      .diag_moments = { "HamiltonianMoments" },
+      .diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
       .num_integrated_diag_moments = 1,
-      .integrated_diag_moments = { "HamiltonianMoments" },
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
 //      .time_integrated = true,
     },
   };
@@ -807,7 +807,7 @@ main(int argc, char **argv)
       },
       .diagnostics = {
         .num_integrated_diag_moments = 1,
-        .integrated_diag_moments = { "HamiltonianMoments" },
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
 //        .time_integrated = true,
       },
     },
@@ -828,16 +828,16 @@ main(int argc, char **argv)
     },
 
     .num_diag_moments = 1,
-    .diag_moments = { "MaxwellianMoments" },
+    .diag_moments = { GKYL_F_MOMENT_MAXWELLIAN },
     .num_integrated_diag_moments = 1,
-    .integrated_diag_moments = { "HamiltonianMoments" },
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     .time_rate_diagnostics = true,
 
     .boundary_flux_diagnostics = {
       .num_diag_moments = 1,
-      .diag_moments = { "HamiltonianMoments" },
+      .diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
       .num_integrated_diag_moments = 1,
-      .integrated_diag_moments = { "HamiltonianMoments" },
+      .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
 //      .time_integrated = true,
     },
   };

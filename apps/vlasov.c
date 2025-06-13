@@ -806,10 +806,10 @@ gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
 
       const char *fmt = "%s-%s_%s_%d.gkyl";
       int sz = gkyl_calc_strlen(fmt, app->name, vm_s->info.name,
-        vm_s->info.diag_moments[m], frame);
+        gkyl_distribution_moments_strs[vm_s->info.diag_moments[m]], frame);
       char fileNm[sz+1]; // ensures no buffer overflow
       snprintf(fileNm, sizeof fileNm, fmt, app->name, vm_s->info.name,
-        vm_s->info.diag_moments[m], frame);
+        gkyl_distribution_moments_strs[vm_s->info.diag_moments[m]], frame);
 
       if (app->use_gpu) {
         gkyl_array_copy(vm_s->moms[m].marr_host, vm_s->moms[m].marr);
@@ -821,10 +821,10 @@ gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
         if (vm_s->src.write_source) {
           const char *fmt_source = "%s-%s_source_%s_%d.gkyl";
           int sz_source = gkyl_calc_strlen(fmt, app->name, vm_s->info.name,
-            vm_s->info.diag_moments[m], frame);
+            gkyl_distribution_moments_strs[vm_s->info.diag_moments[m]], frame);
           char fileNm_source[sz_source+1]; // ensures no buffer overflow
           snprintf(fileNm_source, sizeof fileNm_source, fmt_source, app->name, vm_s->info.name,
-            vm_s->info.diag_moments[m], frame);
+            gkyl_distribution_moments_strs[vm_s->info.diag_moments[m]], frame);
 
           if (app->use_gpu) {
             gkyl_array_copy(vm_s->src.moms[m].marr_host, vm_s->src.moms[m].marr);

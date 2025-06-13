@@ -449,7 +449,7 @@ main(int argc, char **argv)
     },
 
     .num_diag_moments = 4,
-    .diag_moments = { "M0", "M1", "M2par", "M2perp" },
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
   };
 
   // Ion species.
@@ -474,7 +474,7 @@ main(int argc, char **argv)
     },
 
     .num_diag_moments = 4,
-    .diag_moments = { "M0", "M1", "M2par", "M2perp" },
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
   };
 
   struct gkyl_gyrokinetic_neut_species neut = {
@@ -547,7 +547,7 @@ main(int argc, char **argv)
     },
     
     .num_diag_moments = 3,
-    .diag_moments = { "M1i_from_H", "MEnergy", "LTEMoments"},
+    .diag_moments = { GKYL_F_MOMENT_M1_FROM_H, GKYL_F_MOMENT_ENERGY, GKYL_F_MOMENT_LTE},
   };
 
   // Field.

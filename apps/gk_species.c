@@ -467,10 +467,10 @@ gk_species_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, 
 
     const char *fmt = "%s-%s_%s_%d.gkyl";
     int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name,
-      gks->info.diag_moments[m], frame);
+      gkyl_distribution_moments_strs[gks->info.diag_moments[m]], frame);
     char fileNm[sz+1]; // ensures no buffer overflow
     snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name,
-      gks->info.diag_moments[m], frame);
+      gkyl_distribution_moments_strs[gks->info.diag_moments[m]], frame);
     
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
       gks->moms[m].marr_host, fileNm);
@@ -903,7 +903,7 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
   int num_diag_int_moms = gks->info.num_integrated_diag_moments;
   assert(num_diag_int_moms < 2); // 1 int moment allowed now.
   gk_species_moment_init(app, gks, &gks->integ_moms,
-    num_diag_int_moms == 0? "FourMoments" : gks->info.integrated_diag_moments[0], true);
+    num_diag_int_moms == 0? GKYL_F_MOMENT_M0M1M2PARM2PERP : gks->info.integrated_diag_moments[0], true);
 
   if (app->use_gpu) {
     gks->red_integ_diag = gkyl_cu_malloc(sizeof(double[gks->integ_moms.num_mom]));
@@ -1145,7 +1145,7 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
       gks->grid, gks->info.mass, app->gk_geom, gks->vel_map, &app->local_ext, app->use_gpu);
 
     // Allocate data for diagnostic moments
-    gk_species_moment_init(app, gks, &gks->ps_moms, "FourMoments", false);
+    gk_species_moment_init(app, gks, &gks->ps_moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, false);
 
     gks->ps_integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, gks->ps_moms.num_mom);
     gks->is_first_ps_integ_write_call = true;
@@ -1390,7 +1390,7 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
       poly_order+1, 1, inp.conf_scale, inp.conf_scale_ctx);
     struct gkyl_array *xfac = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     struct gkyl_array *xfac_ho = app->use_gpu? mkarr(false, app->basis.num_basis, app->local_ext.volume)
-                                             : gkyl_array_acquire(xfac_ho);
+                                             : gkyl_array_acquire(xfac);
     gkyl_proj_on_basis_advance(proj_conf_scale, 0.0, &app->local, xfac_ho);
     gkyl_array_copy(xfac, xfac_ho);
     gkyl_dg_mul_conf_phase_op_range(&app->basis, &gks->basis, gks->f, xfac, gks->f, &app->local, &gks->local);
@@ -1639,7 +1639,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     gks->collisionless_rhs_func = gk_species_collisionless_rhs_empty;
 
   // Allocate data for density (for charge density or upar calculation).
-  gk_species_moment_init(app, gks, &gks->m0, "M0", false);
+  gk_species_moment_init(app, gks, &gks->m0, GKYL_F_MOMENT_M0, false);
 
   // Allocate data for diagnostic moments.
   int ndm = gks->info.num_diag_moments;

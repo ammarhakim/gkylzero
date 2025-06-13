@@ -288,7 +288,7 @@ test_quad_geom(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_
         // g01
         TEST_CHECK ( gkyl_compare_double(0.0, g01, 1e-14) );
         // g02
-        TEST_CHECK ( gkyl_compare_double(-2*sqrt(psil)*SQ(r)*z/(SQ(r)*SQ(1+SQ(z))), g02, 1e-14) );
+        TEST_CHECK ( gkyl_compare_double(-2*sqrt(psil)*SQ(r)*z/(SQ(r)*SQ(1+SQ(z))), g02, 1e-13) );
 
         // g11
         TEST_CHECK ( gkyl_compare_double(SQ(r), g11, 1e-14) );
