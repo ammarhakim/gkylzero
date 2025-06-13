@@ -244,7 +244,7 @@ gk_species_source_adapt_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *s,
     }
 
     double particle_input = s->info.source.projection[k].total_num_particles;
-    double energy_input = s->info.source.projection[k].total_energy;
+    double energy_input = s->info.source.projection[k].total_kin_energy;
 
     // Particle and energy rate update.
     // balance = user target + loss
@@ -254,7 +254,7 @@ gk_species_source_adapt_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *s,
     double energy_src_new = adapt_src->adapt_energy?
       energy_input + adapt_src->energy_rate_loss : energy_input;
 
-    // Avoid 0 particle source.
+    // Avoid negative particle source.
     // This is important to avoid division by zero in the temperature calculation.
     particle_src_new = fmax(particle_input, particle_src_new);
     
@@ -305,9 +305,8 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     src->evolve = s->info.source.evolve || s->info.source.num_adapt_sources > 0; // Whether the source is time dependent.
 
     src->num_sources = s->info.source.num_sources;
-    for (int k=0; k<s->info.source.num_sources; k++) {
+    for (int k=0; k<s->info.source.num_sources; k++)
       gk_species_projection_init(app, s, s->info.source.projection[k], &src->proj_source[k]);
-    }
 
     // Allocate data and updaters for diagnostic moments.
     src->num_diag_mom = s->info.source.diagnostics.num_diag_moments;
@@ -318,9 +317,8 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     }
 
     src->moms = gkyl_malloc(sizeof(struct gk_species_moment[src->num_diag_mom]));
-    for (int m=0; m<src->num_diag_mom; ++m) {
+    for (int m=0; m<src->num_diag_mom; ++m)
       gk_species_moment_init(app, s, &src->moms[m], s->info.source.diagnostics.diag_moments[m], false);
-    }
 
     // Allocate data and updaters for integrated moments.
     src->num_diag_int_mom = s->info.source.diagnostics.num_integrated_diag_moments;
@@ -379,7 +377,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
         adapt_src->mass_ratio = s->info.mass/adapt_src->adapt_species->info.mass;
 
         adapt_src->particle_src_curr = s->info.source.projection[k].total_num_particles;
-        adapt_src->energy_src_curr = s->info.source.projection[k].total_energy;
+        adapt_src->energy_src_curr = s->info.source.projection[k].total_kin_energy;
         // The temperature computation makes sense only if we inject particles.
         adapt_src->temperature_curr = s->info.source.projection[k].total_num_particles > 0?
           2./3. * adapt_src->energy_src_curr/adapt_src->particle_src_curr : 1.0;

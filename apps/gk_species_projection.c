@@ -332,7 +332,7 @@ init_maxwellian_gaussian(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   
   // Temperature
   assert(inp.temp_max > 0);
-  double temp = inp.total_num_particles == 0 ? inp.temp_max/2.0 : 2./3. * inp.total_energy/inp.total_num_particles;
+  double temp = inp.total_num_particles == 0 ? inp.temp_max/2.0 : 2./3. * inp.total_kin_energy/inp.total_num_particles;
   temp = temp > inp.temp_max ? inp.temp_max : temp; // saturate to max temperature.
   gkyl_array_shiftc(proj->prim_moms, temp/s->info.mass, 2*app->basis.num_basis);
 }

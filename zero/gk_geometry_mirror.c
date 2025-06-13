@@ -76,6 +76,7 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
     gk_geometry_mirror_array_copy(up, mirror_geo_dg);
   }
 
+
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->ref_count = gkyl_ref_count_init(gkyl_gk_geometry_free);

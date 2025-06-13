@@ -76,7 +76,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         for (int i=0; i<app->num_neut_species; ++i) {
           struct gk_neut_species *gkns = &app->neut_species[i];
           fin_neut[i] = gkns->f;
-	  fout_neut[i] = gkns->f1;
+	        fout_neut[i] = gkns->f1;
           // Boundary fluxes.
           gk_neut_species_bflux_clear(app, &gkns->bflux, gkns->bflux.f, 0.0);
           gk_neut_species_bflux_clear(app, &gkns->bflux, gkns->bflux.f1, 0.0);
@@ -115,8 +115,8 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         }
         for (int i=0; i<app->num_neut_species; ++i) {
           struct gk_neut_species *gkns = &app->neut_species[i];
-	  fin_neut[i] = gkns->f1;
-	  fout_neut[i] = gkns->fnew;
+          fin_neut[i] = gkns->f1;
+          fout_neut[i] = gkns->fnew;
           // Boundary fluxes.
           bflux_in_neut[i] = (const struct gkyl_array **)gkns->bflux.f1;
           bflux_out_neut[i] = gkns->bflux.fnew;
@@ -147,14 +147,14 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         else {
           struct timespec wst = gkyl_wall_clock();
           for (int i=0; i<app->num_species; ++i) {
-	    struct gk_species *gks = &app->species[i];
-	    gk_species_combine(gks, gks->f1, 3.0/4.0, gks->f, 1.0/4.0, gks->fnew, &gks->local_ext);
+            struct gk_species *gks = &app->species[i];
+            gk_species_combine(gks, gks->f1, 3.0/4.0, gks->f, 1.0/4.0, gks->fnew, &gks->local_ext);
             gk_species_bflux_combine(app, &gks->bflux, gks->bflux.f1,
               3.0/4.0, gks->bflux.f, 1.0/4.0, gks->bflux.fnew);
           }
           for (int i=0; i<app->num_neut_species; ++i) {
-	    struct gk_neut_species *gkns = &app->neut_species[i];
-	    gk_neut_species_combine(gkns, gkns->f1, 3.0/4.0, gkns->f, 1.0/4.0, gkns->fnew, &gkns->local_ext);
+            struct gk_neut_species *gkns = &app->neut_species[i];
+            gk_neut_species_combine(gkns, gkns->f1, 3.0/4.0, gkns->f, 1.0/4.0, gkns->fnew, &gkns->local_ext);
             gk_neut_species_bflux_combine(app, &gkns->bflux, gkns->bflux.f1,
               3.0/4.0, gkns->bflux.f, 1.0/4.0, gkns->bflux.fnew);
           }
@@ -184,8 +184,8 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
         }
         for (int i=0; i<app->num_neut_species; ++i) {
           struct gk_neut_species *gkns = &app->neut_species[i];
-	  fin_neut[i] = gkns->f1;
-	  fout_neut[i] = gkns->fnew;
+          fin_neut[i] = gkns->f1;
+          fout_neut[i] = gkns->fnew;
           // Boundary fluxes.
           bflux_in_neut[i] = (const struct gkyl_array **)gkns->bflux.f1;
           bflux_out_neut[i] = gkns->bflux.fnew;
@@ -226,15 +226,12 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
             gk_species_bflux_copy(app, &gks->bflux, gks->bflux.f, gks->bflux.f1);
             gk_species_bflux_calc_voltime_integrated_mom(app, gks, &gks->bflux, tcurr);
             gk_species_bflux_scale(app, &gks->bflux, gks->bflux.f, 1.0/dt);
-
-            // adapt the sources
-            gk_species_source_adapt(app, gks, &gks->src, gks->lte.f_lte, tcurr);
           }
 
           for (int i=0; i<app->num_neut_species; ++i) {
-	    struct gk_neut_species *gkns = &app->neut_species[i];
-	    gk_neut_species_combine(gkns, gkns->f1, 1.0/3.0, gkns->f, 2.0/3.0, gkns->fnew, &gkns->local_ext);
-	    gk_neut_species_copy_range(gkns, gkns->f, gkns->f1, &gkns->local_ext);
+            struct gk_neut_species *gkns = &app->neut_species[i];
+            gk_neut_species_combine(gkns, gkns->f1, 1.0/3.0, gkns->f, 2.0/3.0, gkns->fnew, &gkns->local_ext);
+            gk_neut_species_copy_range(gkns, gkns->f, gkns->f1, &gkns->local_ext);
             // Step boundary fluxes.
             gk_neut_species_bflux_combine(app, &gkns->bflux, gkns->bflux.f1,
               1.0/3.0, gkns->bflux.f, 2.0/3.0, gkns->bflux.fnew);
@@ -271,6 +268,9 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
             // Compute moment of f_new to compute moment of df/dt.
             // Need to do it after the fields are updated.
             gk_species_calc_int_mom_dt(app, gks, dt, gks->fdot_mom_new);
+
+            // adapt the sources
+            gk_species_source_adapt(app, gks, &gks->src, gks->lte.f_lte, tcurr);
           }
 
           // Compute field energy divided by dt for energy balance diagnostics.
