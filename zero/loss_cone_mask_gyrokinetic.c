@@ -378,8 +378,13 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
 
 	double mu_bound = GKYL_MAX2(0.0, KEparDbmag+qDphiDbmag_quad[cqidx]);
 
+        gkyl_rect_grid_cell_center(up->grid_phase, vel_iter.idx, xc);
+
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
-        fq[0] = xmu[cdim+1] <= mu_bound? 1.0 : 0.0;
+	if (mu_bound < xmu[cdim+1] && fabs(xc[cdim-1]) < 0.98) 
+          fq[0] = 1.0;
+        else
+          fq[0] = 0.0;
       }
       // Compute DG expansion coefficients of the mask.
       proj_on_basis(up, up->fun_at_ords, gkyl_array_fetch(mask_out, linidx_phase));

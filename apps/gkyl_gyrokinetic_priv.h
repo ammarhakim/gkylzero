@@ -582,6 +582,23 @@ struct gk_damping {
   void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
 };
 
+struct gk_fdot_multiplier {
+  enum gkyl_gyrokinetic_fdot_multiplier_type type; // Type of multiplicative function term.
+  bool evolve; // Whether the multiplicative function is time dependent.
+  struct gkyl_array *multiplier; // Damping rate.
+  struct gkyl_array *multiplier_host; // Host copy for use in IO and projecting.
+  struct gkyl_loss_cone_mask_gyrokinetic *lcm_proj_op; // Operator that projects the loss cone mask.
+  double *bmag_max; // Maximum magnetic field amplitude.
+  double *bmag_max_coord; // Location of bmag_max.
+  double *phi_m, *phi_m_global; // Electrostatic potential at bmag_max.
+  // Functions chosen at runtime.
+  void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+  void (*advance_times_rate_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+    struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out);
+  void (*advance_times_cfl_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+    struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out);
+};
+
 // species data
 struct gk_species {
   struct gkyl_gyrokinetic_species info; // data for species
@@ -640,8 +657,6 @@ struct gk_species {
   struct gkyl_dg_eqn *eqn_gyrokinetic; // Gyrokinetic equation object.
 
   double collisionless_scale_fac; // Factor multiplying collisionless terms.
-  bool scale_dfdt; // Whether to scale df/dt by dfdt_scale_fac.
-  struct gkyl_array *dfdt_scale_fac; // Function multiplying df/dt.
   
   struct gk_species_moment m0; // for computing charge density
   struct gk_species_moment integ_moms; // integrated moments
@@ -697,6 +712,8 @@ struct gk_species {
   struct gk_source src; // Plasma source.
 
   struct gk_damping damping; // Damping term: -nu(z)*f.
+
+  struct gk_fdot_multiplier fdot_mult; // Function multiplying df/dt.
 
   // Boundary fluxes used for other solvers and diagnostics.
   struct gk_boundary_fluxes bflux;
@@ -2160,6 +2177,7 @@ void gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species
  * @param fin Current distribution function.
  * @param f_buffer Phase-space buffer.
  * @param rhs df/dt damping term gets added to.
+ * @param cflrate CFL frequency in phase space.
  */
 void gk_species_damping_advance(gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_damping *damp,
   const struct gkyl_array *phi, const struct gkyl_array *fin, struct gkyl_array *f_buffer,
@@ -2182,6 +2200,63 @@ void gk_species_damping_write(gkyl_gyrokinetic_app* app, struct gk_species *gks,
  * @param damp Species damping object to release.
  */
 void gk_species_damping_release(const struct gkyl_gyrokinetic_app *app, const struct gk_damping *damp);
+
+/** gk_species_fdot_multiplier API */
+
+/**
+ * Initialize species df/dt multiplier object.
+ *
+ * @param app gyrokinetic app object.
+ * @param s Species object.
+ * @param fdmul Species df/dt multiplier object.
+ */
+void gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_fdot_multiplier *fdmul);
+
+/**
+ * Multiply the CFL rate.
+ *
+ * @param app gyrokinetic app object.
+ * @param gks Species object.
+ * @param fdmul Species df/dt multiplier object.
+ * @param phi Current electrostatic potential.
+ * @param fin Current distribution function.
+ * @param f_buffer Phase-space buffer.
+ * @param out CFL rate to multiply.
+ */
+void gk_species_fdot_multiplier_advance_times_cfl(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+  struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out);
+
+/**
+ * Multiply df/dt.
+ *
+ * @param app gyrokinetic app object.
+ * @param gks Species object.
+ * @param fdmul Species df/dt multiplier object.
+ * @param phi Current electrostatic potential.
+ * @param fin Current distribution function.
+ * @param f_buffer Phase-space buffer.
+ * @param out df/dt to multiply.
+ */
+void gk_species_fdot_multiplier_advance_times_rate(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+  struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, struct gkyl_array *out);
+
+/**
+ * Write damping diagnostics.
+ *
+ * @param app gyrokinetic app object.
+ * @param gks Pointer to species.
+ * @param tm Time for damping diagnostic.
+ * @param frame Output frame.
+ */
+void gk_species_fdot_multiplier_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+
+/**
+ * Release species damping object.
+ *
+ * @param app gyrokinetic app object.
+ * @param fdmul Species df/dt multiplier object.
+ */
+void gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app, const struct gk_fdot_multiplier *fdmul);
 
 /** gk_species API */
 

@@ -158,8 +158,13 @@ gkyl_loss_cone_mask_gyrokinetic_quad_ker(struct gkyl_rect_grid grid_phase,
 
     double mu_bound = GKYL_MAX2(0.0, KEparDbmag+qDphiDbmag_quad_d[cqidx]);
 
+    gkyl_rect_grid_cell_center(&grid_phase, pidx, xc);
+
     double *fq = (double*) gkyl_array_fetch(mask_out_quad, linidx_phase);
-    fq[linc2] = xmu[cdim+1] <= mu_bound ? norm_fac : 0.0 ;
+    if (mu_bound < xmu[cdim+1] && fabs(xc[cdim-1]) < 0.98) 
+      fq[linc2] = norm_fac;
+    else
+      fq[linc2] = 0.0;
   }
 }
 

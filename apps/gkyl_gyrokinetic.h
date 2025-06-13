@@ -245,14 +245,14 @@ struct gkyl_gyrokinetic_damping {
   int num_quad; // Number of quadrature points in each direction to use in projecting the rate.
 };
 
-enum gkyl_gyrokinetic_phase_scaling_type {
-  GKYL_GK_SCALING_NONE = 0,
-  GKYL_GK_SCALING_USER_INPUT,
-  GKYL_GK_SCALING_LOSS_CONE,
+enum gkyl_gyrokinetic_fdot_multiplier_type {
+  GKYL_GK_FDOT_MULTIPLIER_NONE = 0,
+  GKYL_GK_FDOT_MULTIPLIER_USER_INPUT,
+  GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE,
 };
 
-struct gkyl_gyrokinetic_phase_scaling {
-  enum gkyl_gyrokinetic_phase_scaling_type type;
+struct gkyl_gyrokinetic_fdot_multiplier {
+  enum gkyl_gyrokinetic_fdot_multiplier_type type;
   void (*profile)(double t, const double *xn, double *fout, void *ctx); // Profile to multiply df/dt by.
   void *profile_ctx; // Context for profile function.
   int num_quad; // Number of quadrature points in each direction to use in projecting profile.
@@ -279,8 +279,8 @@ struct gkyl_gyrokinetic_species {
   // Initial conditions from a file.
   struct gkyl_gyrokinetic_ic_import init_from_file;
 
-  // Phase-space field to multiply df/dt by.
-  struct gkyl_gyrokinetic_phase_scaling dfdt_scaling;
+  // Phase-space field multiplying df/dt.
+  struct gkyl_gyrokinetic_fdot_multiplier time_rate_multiplier;
 
   bool no_collisionless_terms; // Set to true to turn off collisionles terms.
   double collisionless_scale_factor; // Factor multiplying collisionless terms.
@@ -477,6 +477,7 @@ struct gkyl_gyrokinetic_stat {
   double species_coll_mom_tm; // time needed to compute various moments needed in collisions
   double species_coll_tm; // total time for collision updater (excluded moments)
   double species_damp_tm; // Time to accumulate species damping onto RHS.
+  double species_fdot_mult_tm; // Time to spent on the df/dt multiplier.
   double species_diffusion_tm; // Time to compute species diffusion term.
   double species_rad_mom_tm; // total time to compute various moments needed in radiation operator
   double species_rad_tm; // total time for radiation operator
