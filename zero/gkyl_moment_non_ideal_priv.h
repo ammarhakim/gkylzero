@@ -50,6 +50,13 @@ calc_sym_grad_1D(double dx, double a_l, double a_u)
   return (a_u - a_l)/dx;
 }
 
+// Calculate symmetrized second-derivative in 1D.
+static inline double
+calc_sym_grad2_1D(double dx, double a_l, double a_c, double a_u)
+{
+  return (a_u + a_l - (2.0 * a_c)) / (dx * dx);
+}
+
 // Calculate symmetrized gradients 2D
 static inline double
 calc_sym_gradx_2D(double dx, double a_ll, double a_lu, double a_ul, double a_uu)

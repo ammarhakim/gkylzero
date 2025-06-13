@@ -20,6 +20,11 @@ enum loc_1d {
   L_1D, U_1D
 };
 
+// 1D, second-order stencil locations (L2: lower, C2: center, U2: upper).
+enum loc_1d_second_order {
+  L2_1D, C2_1D, U2_1D
+};
+
 // 2D stencil locations (L: lower, U: upper).
 enum loc_2d {
   LL_2D, LU_2D,
@@ -150,6 +155,9 @@ calc_mag_heat_flux(const gkyl_ten_moment_nn_closure *nnclosure, const double *fl
 
       if (fabs(B_avg[0]) < pow(10.0, -8.0) && fabs(B_avg[1]) < pow(10.0, -8.0) && fabs(B_avg[2]) < pow(10.0, -8.0)) {
         B_avg[0] = 1.0;
+        dB_dx[0] = 0.0; dB_dx[1] = 0.0; dB_dx[2] = 0.0;
+        dB_dy[0] = 0.0; dB_dy[1] = 0.0; dB_dy[2] = 0.0;
+        dB_dz[0] = 0.0; dB_dz[1] = 0.0; dB_dz[2] = 0.0;
       }
 
       double b_mag = sqrt((B_avg[0] * B_avg[0]) + (B_avg[1] * B_avg[1]) + (B_avg[2] * B_avg[2]));
@@ -321,6 +329,10 @@ calc_mag_heat_flux(const gkyl_ten_moment_nn_closure *nnclosure, const double *fl
 
       if (fabs(B_avg[0]) < pow(10.0, -8.0) && fabs(B_avg[1]) < pow(10.0, -8.0) && fabs(B_avg[2]) < pow(10.0, -8.0)) {
         B_avg[0] = 1.0;
+        dB_dx[0] = 0.0; dB_dx[1] = 0.0; dB_dx[2] = 0.0;
+        dB_dy[0] = 0.0; dB_dy[1] = 0.0; dB_dy[2] = 0.0;
+        dB_dz[0] = 0.0; dB_dz[1] = 0.0; dB_dz[2] = 0.0;
+        dB_dx_dy[0] = 0.0; dB_dx_dy[1] = 0.0; dB_dx_dy[2] = 0.0;
       }
 
       double b_mag = sqrt((B_avg[0] * B_avg[0]) + (B_avg[1] * B_avg[1]) + (B_avg[2] * B_avg[2]));
@@ -520,18 +532,21 @@ calc_nn_closure_update(const gkyl_ten_moment_nn_closure *nnclosure, const double
 
   double rho_avg = 0.0;
   double drho_dx = 0.0, drho_dy = 0.0, drho_dz = 0.0;
+  double drho_dx_dx = 0.0;
   double drho_dx_dy = 0.0;
 
   double p_avg[6] = { 0.0 };
   double dp_dx[6] = { 0.0 };
   double dp_dy[6] = { 0.0 };
   double dp_dz[6] = { 0.0 };
+  double dp_dx_dx[6] = { 0.0 };
   double dp_dx_dy[6] = { 0.0 };
 
   double B_avg[3] = { 0.0 };
   double dB_dx[3] = { 0.0 };
   double dB_dy[3] = { 0.0 };
   double dB_dz[3] = { 0.0 };
+  double dB_dx_dx[3] = { 0.0 };
   double dB_dx_dy[3] = { 0.0 };
 
   double divQx[6] = { 0.0 };
@@ -544,6 +559,10 @@ calc_nn_closure_update(const gkyl_ten_moment_nn_closure *nnclosure, const double
     if (poly_order == 1) {
       input_data = gkyl_malloc(sizeof(float[6]));
       output_data = gkyl_malloc(sizeof(float[4]));
+    }
+    else if (poly_order == 2) {
+      input_data = gkyl_malloc(sizeof(float[9]));
+      output_data = gkyl_malloc(sizeof(float[6]));
     }
   }
   else if (ndim == 2) {
@@ -584,7 +603,9 @@ calc_nn_closure_update(const gkyl_ten_moment_nn_closure *nnclosure, const double
 
       if (fabs(B_avg[0]) < pow(10.0, -8.0) && fabs(B_avg[1]) < pow(10.0, -8.0) && fabs(B_avg[2]) < pow(10.0, -8.0)) {
         B_avg[0] = 1.0;
-        dB_dx[0] = 0.0; dB_dy[1] = 0.0; dB_dz[2] = 0.0;
+        dB_dx[0] = 0.0; dB_dx[1] = 0.0; dB_dx[2] = 0.0;
+        dB_dy[0] = 0.0; dB_dy[1] = 0.0; dB_dy[2] = 0.0;
+        dB_dz[0] = 0.0; dB_dz[1] = 0.0; dB_dz[2] = 0.0;
       }
 
       double b_mag = sqrt((B_avg[0] * B_avg[0]) + (B_avg[1] * B_avg[1]) + (B_avg[2] * B_avg[2]));
@@ -741,6 +762,238 @@ calc_nn_closure_update(const gkyl_ten_moment_nn_closure *nnclosure, const double
       divQx[4] = B_avg[0] * heat_flux_tensor_dx[0][1][2];
       divQx[5] = B_avg[0] * heat_flux_tensor_dx[0][2][2];
     }
+    else if (poly_order == 2) {
+      const double dx = nnclosure->grid.dx[0];
+      double rho[3] = { 0.0 };
+      double p[3][6] = { 0.0 };
+      var_setup(nnclosure, L2_1D, U2_1D, fluid_d, rho, p);
+
+      rho_avg = calc_arithm_avg_1D(rho[L2_1D], rho[U2_1D]);
+      p_avg[0] = calc_arithm_avg_1D(p[L2_1D][0], p[U2_1D][0]);
+      p_avg[1] = calc_arithm_avg_1D(p[L2_1D][1], p[U2_1D][1]);
+      p_avg[2] = calc_arithm_avg_1D(p[L2_1D][2], p[U2_1D][2]);
+      p_avg[3] = calc_arithm_avg_1D(p[L2_1D][3], p[U2_1D][3]);
+      p_avg[4] = calc_arithm_avg_1D(p[L2_1D][4], p[U2_1D][4]);
+      p_avg[5] = calc_arithm_avg_1D(p[L2_1D][5], p[U2_1D][5]);
+      B_avg[0] = calc_arithm_avg_1D(em_tot_d[L2_1D][BX], em_tot_d[U2_1D][BX]);
+      B_avg[1] = calc_arithm_avg_1D(em_tot_d[L2_1D][BY], em_tot_d[U2_1D][BY]);
+      B_avg[2] = calc_arithm_avg_1D(em_tot_d[L2_1D][BZ], em_tot_d[U2_1D][BZ]);
+
+      drho_dx = calc_sym_grad_1D(dx, rho[L2_1D], rho[U2_1D]);
+      dp_dx[0] = calc_sym_grad_1D(dx, p[L2_1D][0], p[U2_1D][0]);
+      dp_dx[1] = calc_sym_grad_1D(dx, p[L2_1D][1], p[U2_1D][1]);
+      dp_dx[2] = calc_sym_grad_1D(dx, p[L2_1D][2], p[U2_1D][2]);
+      dp_dx[3] = calc_sym_grad_1D(dx, p[L2_1D][3], p[U2_1D][3]);
+      dp_dx[4] = calc_sym_grad_1D(dx, p[L2_1D][4], p[U2_1D][4]);
+      dp_dx[5] = calc_sym_grad_1D(dx, p[L2_1D][5], p[U2_1D][5]);
+      dB_dx[0] = calc_sym_grad_1D(dx, em_tot_d[L2_1D][BX], em_tot_d[U2_1D][BX]);
+      dB_dx[1] = calc_sym_grad_1D(dx, em_tot_d[L2_1D][BY], em_tot_d[U2_1D][BY]);
+      dB_dx[2] = calc_sym_grad_1D(dx, em_tot_d[L2_1D][BZ], em_tot_d[U2_1D][BZ]);
+
+      drho_dx_dx = calc_sym_grad2_1D(dx, rho[L2_1D], rho[C2_1D], rho[U2_1D]);
+      dp_dx_dx[0] = calc_sym_grad2_1D(dx, p[L2_1D][0], p[C2_1D][0], p[U2_1D][0]);
+      dp_dx_dx[1] = calc_sym_grad2_1D(dx, p[L2_1D][1], p[C2_1D][1], p[U2_1D][1]);
+      dp_dx_dx[2] = calc_sym_grad2_1D(dx, p[L2_1D][2], p[C2_1D][2], p[U2_1D][2]);
+      dp_dx_dx[3] = calc_sym_grad2_1D(dx, p[L2_1D][3], p[C2_1D][3], p[U2_1D][3]);
+      dp_dx_dx[4] = calc_sym_grad2_1D(dx, p[L2_1D][4], p[C2_1D][4], p[U2_1D][4]);
+      dp_dx_dx[5] = calc_sym_grad2_1D(dx, p[L2_1D][5], p[C2_1D][5], p[U2_1D][5]);
+      dB_dx_dx[0] = calc_sym_grad2_1D(dx, em_tot_d[L2_1D][BX], em_tot_d[C2_1D][BX], em_tot_d[U2_1D][BX]);
+      dB_dx_dx[1] = calc_sym_grad2_1D(dx, em_tot_d[L2_1D][BY], em_tot_d[C2_1D][BY], em_tot_d[U2_1D][BY]);
+      dB_dx_dx[2] = calc_sym_grad2_1D(dx, em_tot_d[L2_1D][BZ], em_tot_d[C2_1D][BZ], em_tot_d[U2_1D][BZ]);
+
+      if (fabs(B_avg[0]) < pow(10.0, -8.0) && fabs(B_avg[1]) < pow(10.0, -8.0) && fabs(B_avg[2]) < pow(10.0, -8.0)) {
+        B_avg[0] = 1.0;
+        dB_dx[0] = 0.0; dB_dx[1] = 0.0; dB_dx[2] = 0.0;
+        dB_dy[0] = 0.0; dB_dy[1] = 0.0; dB_dy[2] = 0.0;
+        dB_dz[0] = 0.0; dB_dz[1] = 0.0; dB_dz[2] = 0.0;
+        dB_dx_dx[0] = 0.0; dB_dx_dx[1] = 0.0; dB_dx_dx[2] = 0.0;
+      }
+
+      double b_mag = sqrt((B_avg[0] * B_avg[0]) + (B_avg[1] * B_avg[1]) + (B_avg[2] * B_avg[2]));
+      double b_mag_dx = ((B_avg[0] * dB_dx[0]) + (B_avg[1] * dB_dx[1]) + (B_avg[2] * dB_dx[2])) / b_mag;
+      double b_mag_dx_dx = b_mag * ((dB_dx[0] * dB_dx[0]) + (B_avg[0] * dB_dx_dx[0]) + (dB_dx[1] * dB_dx[1]) + (B_avg[1] * dB_dx_dx[1]) + (dB_dx[2] * dB_dy[2]) + (B_avg[2] * dB_dx_dy[2]));
+      b_mag_dx_dx -= b_mag_dx * b_mag_dx;
+      b_mag_dx_dx /= b_mag * b_mag;
+
+      double local_mag[3];
+      for (int i = 0; i < 3; i++) {
+        local_mag[i] = B_avg[i] / b_mag;
+      }
+
+      double local_mag_dx[3];
+      double local_mag_dy[3];
+      double local_mag_dx_dx[3];
+      for (int i = 0; i < 3; i++) {
+        local_mag_dx[i] = ((b_mag * dB_dx[i]) - (B_avg[i] * b_mag_dx)) / (b_mag * b_mag);
+        local_mag_dx_dx[i] = (b_mag * b_mag) * ((b_mag_dx * dB_dx[i]) + (b_mag * dB_dx_dx[i]) - (dB_dx[i] * b_mag_dx) * (B_avg[i] * b_mag_dx_dx));
+        local_mag_dx_dx[i] -= 2.0 * ((b_mag * dB_dx[i]) - (B_avg[i] * b_mag_dx)) * b_mag * b_mag_dx;
+        local_mag_dx_dx[i] /= b_mag * b_mag * b_mag * b_mag;
+      }
+
+      double p_tensor[3][3];
+      double p_tensor_dx[3][3];
+      double p_tensor_dx_dx[3][3];
+
+      p_tensor[0][0] = p_avg[0]; p_tensor[0][1] = p_avg[1]; p_tensor[0][2] = p_avg[2];
+      p_tensor[1][0] = p_avg[1]; p_tensor[1][1] = p_avg[3]; p_tensor[1][2] = p_avg[4];
+      p_tensor[2][0] = p_avg[2]; p_tensor[2][1] = p_avg[4]; p_tensor[2][2] = p_avg[5];
+
+      p_tensor_dx[0][0] = dp_dx[0]; p_tensor_dx[0][1] = dp_dx[1]; p_tensor_dx[0][2] = dp_dx[2];
+      p_tensor_dx[1][0] = dp_dx[1]; p_tensor_dx[1][1] = dp_dx[3]; p_tensor_dx[1][2] = dp_dx[4];
+      p_tensor_dx[2][0] = dp_dx[2]; p_tensor_dx[2][1] = dp_dx[4]; p_tensor_dx[2][2] = dp_dx[5];
+
+      p_tensor_dx_dx[0][0] = dp_dx_dx[0]; p_tensor_dx_dx[0][1] = dp_dx_dx[1]; p_tensor_dx_dx[0][2] = dp_dx_dx[2];
+      p_tensor_dx_dx[1][0] = dp_dx_dx[1]; p_tensor_dx_dx[1][1] = dp_dx_dx[3]; p_tensor_dx_dx[1][2] = dp_dx_dx[4];
+      p_tensor_dx_dx[2][0] = dp_dx_dx[2]; p_tensor_dx_dx[2][1] = dp_dx_dx[4]; p_tensor_dx_dx[2][2] = dp_dx_dx[5];
+
+      double p_par = 0.0;
+      for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+          p_par += p_tensor[i][j] * local_mag[i] * local_mag[j];
+        }
+      }
+
+      double p_tensor_trace = 0.0;
+      for (int i = 0; i < 3; i++) {
+        p_tensor_trace += p_tensor[i][i];
+      }
+
+      double p_perp = 0.5 * (p_tensor_trace - p_par);
+
+      double p_par_dx = 0.0;
+      double p_par_dx_dx = 0.0;
+
+      for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+          p_par_dx += local_mag[i] * local_mag[j] * p_tensor_dx[i][j];
+          p_par_dx += p_tensor[i][j] * local_mag[j] * local_mag_dx[i];
+          p_par_dx += p_tensor[i][j] * local_mag[i] * local_mag_dx[j];
+
+          p_par_dx_dx += local_mag[i] * local_mag[i] * p_tensor_dx_dx[i][j];
+          p_par_dx_dx += p_tensor_dx[i][j] * local_mag[i] * local_mag_dx[j];
+          p_par_dx_dx += p_tensor_dx[i][j] * local_mag[j] * local_mag_dx[i];
+          p_par_dx_dx += p_tensor[i][j] * local_mag[i] * local_mag_dx_dx[j];
+          p_par_dx_dx += local_mag_dx[j] * local_mag[i] * p_tensor_dx[i][j];
+          p_par_dx_dx += local_mag_dx[j] * p_tensor[i][j] * local_mag_dx[i];
+          p_par_dx_dx += p_tensor[i][j] * local_mag[j] * local_mag_dx_dx[i];
+          p_par_dx_dx += p_tensor[i][j] * local_mag_dx[j] * local_mag_dx[i];
+          p_par_dx_dx += local_mag[j] * local_mag_dx[i] * p_tensor_dx[i][j];
+        }
+      }
+
+      double p_tensor_trace_dx = 0.0;
+      double p_tensor_trace_dx_dx = 0.0;
+      for (int i = 0; i < 3; i++) {
+        p_tensor_trace_dx += p_tensor_dx[i][i];
+        p_tensor_trace_dx_dx += p_tensor_dx_dx[i][i];
+      }
+
+      double p_perp_dx = 0.5 * (p_tensor_trace_dx - p_par_dx);
+      double p_perp_dx_dx = 0.5 * (p_tensor_trace_dx_dx - p_par_dx_dx);
+
+      input_data[0] = rho_avg;
+      input_data[1] = drho_dx;
+      input_data[2] = drho_dx_dx;
+      input_data[3] = p_par;
+      input_data[4] = p_par_dx;
+      input_data[5] = p_par_dx_dx;
+      input_data[6] = p_perp;
+      input_data[7] = p_perp_dx;
+      input_data[8] = p_perp_dx_dx;
+
+      const float *output_data_predicted = kann_apply1(ann, input_data);
+
+      for (int i = 0; i < 6; i++) {
+        output_data[i] = output_data_predicted[i];
+      }
+
+      double q_par = output_data[0];
+      double q_par_dx = output_data[1];
+      double q_perp = output_data[3];
+      double q_perp_dx = output_data[4];
+
+      double heat_flux_tensor[3][3][3];
+
+      for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+          for (int k = 0; k < 3; k++) {
+            heat_flux_tensor[i][j][k] = q_par * local_mag[i] * local_mag[j] * local_mag[k];
+
+            if (i == j) {
+              heat_flux_tensor[i][j][k] += q_perp * (1.0 - (local_mag[i] * local_mag[j])) * local_mag[k];
+            }
+            else {
+              heat_flux_tensor[i][j][k] -= q_perp * (local_mag[i] * local_mag[j]) * local_mag[k];
+            }
+
+            if (i == k) {
+              heat_flux_tensor[i][j][k] += q_perp * (1.0 - (local_mag[i] * local_mag[k])) * local_mag[j];
+            }
+            else {
+              heat_flux_tensor[i][j][k] -= q_perp * (local_mag[i] * local_mag[k]) * local_mag[j];
+            }
+
+            if (j == k) {
+              heat_flux_tensor[i][j][k] += q_perp * (1.0 - (local_mag[j] * local_mag[k])) * local_mag[i];
+            }
+            else {
+              heat_flux_tensor[i][j][k] -= q_perp * (local_mag[j] * local_mag[k]) * local_mag[i];
+            }
+          }
+        }
+      }
+
+      double heat_flux_tensor_dx[3][3][3];
+
+      for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+          for (int k = 0; k < 3; k++) {
+            heat_flux_tensor_dx[i][j][k] = local_mag[i] * local_mag[j] * local_mag[k] * q_par_dx;
+            heat_flux_tensor_dx[i][j][k] += q_par * local_mag[j] * local_mag[k] * local_mag_dx[i];
+            heat_flux_tensor_dx[i][j][k] += q_par * local_mag[i] * local_mag[k] * local_mag_dx[j];
+            heat_flux_tensor_dx[i][j][k] += q_par * local_mag[i] * local_mag[j] * local_mag_dx[k];
+
+            if (i == j) {
+              heat_flux_tensor_dx[i][j][k] += (1.0 - (local_mag[i] * local_mag[j])) * local_mag[k] * q_perp_dx;
+              heat_flux_tensor_dx[i][j][k] += q_perp * (1.0 - (local_mag[i] * local_mag[j])) * local_mag_dx[k];
+            }
+            else {
+              heat_flux_tensor_dx[i][j][k] -= (local_mag[i] * local_mag[j]) * local_mag[k] * q_perp_dx;
+              heat_flux_tensor_dx[i][j][k] += q_perp * (local_mag[i] * local_mag[j]) * local_mag_dx[k];
+            }
+
+            if (i == k) {
+              heat_flux_tensor_dx[i][j][k] += (1.0 - (local_mag[i] * local_mag[k])) * local_mag[j] * q_perp_dx;
+              heat_flux_tensor_dx[i][j][k] += q_perp * (1.0 - (local_mag[i] * local_mag[k])) * local_mag_dx[j];
+            }
+            else {
+              heat_flux_tensor_dx[i][j][k] -= (local_mag[i] * local_mag[k]) * local_mag[j] * q_perp_dx;
+              heat_flux_tensor_dx[i][j][k] += q_perp * (local_mag[i] * local_mag[k]) * local_mag_dx[j];
+            }
+
+            if (j == k) {
+              heat_flux_tensor_dx[i][j][k] += (1.0 - (local_mag[j] * local_mag[k])) * local_mag[i] * q_perp_dx;
+              heat_flux_tensor_dx[i][j][k] += q_perp * (1.0 - (local_mag[j] * local_mag[k])) * local_mag_dx[i];
+            }
+            else {
+              heat_flux_tensor_dx[i][j][k] -= (local_mag[j] * local_mag[k]) * local_mag[i] * q_perp_dx;
+              heat_flux_tensor_dx[i][j][k] += q_perp * (local_mag[j] * local_mag[k]) * local_mag_dx[i];
+            }
+
+            heat_flux_tensor_dx[i][j][k] -= ((local_mag[i] * local_mag_dx[j]) + (local_mag[j] * local_mag_dx[i])) * local_mag[k];
+            heat_flux_tensor_dx[i][j][k] -= ((local_mag[i] * local_mag_dx[k]) + (local_mag[k] * local_mag_dx[i])) * local_mag[j];
+            heat_flux_tensor_dx[i][j][k] -= ((local_mag[j] * local_mag_dx[k]) + (local_mag[k] * local_mag_dx[j])) * local_mag[i];
+          }
+        }
+      }
+
+      divQx[0] = B_avg[0] * heat_flux_tensor_dx[0][0][0];
+      divQx[1] = B_avg[0] * heat_flux_tensor_dx[0][0][1];
+      divQx[2] = B_avg[0] * heat_flux_tensor_dx[0][0][2];
+      divQx[3] = B_avg[0] * heat_flux_tensor_dx[0][1][1];
+      divQx[4] = B_avg[0] * heat_flux_tensor_dx[0][1][2];
+      divQx[5] = B_avg[0] * heat_flux_tensor_dx[0][2][2];
+    }
   }
   else if (ndim == 2) {
     if (poly_order == 1) {
@@ -796,6 +1049,10 @@ calc_nn_closure_update(const gkyl_ten_moment_nn_closure *nnclosure, const double
 
       if (fabs(B_avg[0]) < pow(10.0, -8.0) && fabs(B_avg[1]) < pow(10.0, -8.0) && fabs(B_avg[2]) < pow(10.0, -8.0)) {
         B_avg[0] = 1.0;
+        dB_dx[0] = 0.0; dB_dx[1] = 0.0; dB_dx[2] = 0.0;
+        dB_dy[0] = 0.0; dB_dy[1] = 0.0; dB_dy[2] = 0.0;
+        dB_dz[0] = 0.0; dB_dz[1] = 0.0; dB_dz[2] = 0.0;
+        dB_dx_dy[0] = 0.0; dB_dx_dy[1] = 0.0; dB_dx_dy[2] = 0.0;
       }
 
       double b_mag = sqrt((B_avg[0] * B_avg[0]) + (B_avg[1] * B_avg[1]) + (B_avg[2] * B_avg[2]));
@@ -1065,19 +1322,36 @@ void
 gkyl_ten_moment_nn_closure_advance(const gkyl_ten_moment_nn_closure *nnclosure, const struct gkyl_range *heat_flux_rng, const struct gkyl_range *update_rng,
   const struct gkyl_array *fluid, const struct gkyl_array *em_tot, struct gkyl_array *heat_flux, struct gkyl_array *rhs)
 {
+  int poly_order = nnclosure->poly_order;
   int ndim = update_rng->ndim;
   long sz[] = { 2, 4, 8 };
+  long sz_p2[] = { 3, 9, 27 };
 
   long offsets_vertices[sz[ndim - 1]];
-  create_offsets_vertices(update_rng, offsets_vertices);
+  long offsets_vertices_p2[sz_p2[ndim - 1]];
+  if (poly_order == 1) {
+    create_offsets_vertices(update_rng, offsets_vertices);
+  }
+  else {
+    create_offsets_vertices(update_rng, offsets_vertices_p2);
+  }
 
   long offsets_centers[sz[ndim - 1]];
-  create_offsets_centers(heat_flux_rng, offsets_centers);
+  long offsets_centers_p2[sz_p2[ndim - 1]];
+  if (poly_order == 1) {
+    create_offsets_centers(heat_flux_rng, offsets_centers);
+  }
+  else {
+    create_offsets_centers(heat_flux_rng, offsets_centers_p2);
+  }
 
   const double *fluid_d[sz[ndim - 1]];
+  const double *fluid_d_p2[sz_p2[ndim - 1]];
   const double *em_tot_d[sz[ndim - 1]];
+  const double *em_tot_d_p2[sz_p2[ndim - 1]];
   double *heat_flux_d;
   const double *heat_flux_up[sz[ndim - 1]];
+  const double *heat_flux_up_p2[sz_p2[ndim - 1]];
   double *rhs_d;
 
   struct gkyl_range_iter iter_vertex;
@@ -1086,9 +1360,17 @@ gkyl_ten_moment_nn_closure_advance(const gkyl_ten_moment_nn_closure *nnclosure, 
     long linc_vertex = gkyl_range_idx(heat_flux_rng, iter_vertex.idx);
     long linc_center = gkyl_range_idx(update_rng, iter_vertex.idx);
 
-    for (int i = 0; i < sz[ndim - 1]; i++) {
-      em_tot_d[i] = gkyl_array_cfetch(em_tot, linc_center + offsets_vertices[i]);
-      fluid_d[i] = gkyl_array_cfetch(fluid, linc_center + offsets_vertices[i]);
+    if (poly_order == 1) {
+      for (int i = 0; i < sz[ndim - 1]; i++) {
+        em_tot_d[i] = gkyl_array_cfetch(em_tot, linc_center + offsets_vertices[i]);
+        fluid_d[i] = gkyl_array_cfetch(fluid, linc_center + offsets_vertices[i]);
+      }
+    }
+    else {
+      for (int i = 0; i < sz_p2[ndim - 1]; i++) {
+        em_tot_d_p2[i] = gkyl_array_cfetch(em_tot, linc_center + offsets_vertices_p2[i]);
+        fluid_d_p2[i] = gkyl_array_cfetch(fluid, linc_center + offsets_vertices_p2[i]);
+      }
     }
 
     heat_flux_d = gkyl_array_fetch(heat_flux, linc_vertex);
@@ -1103,14 +1385,27 @@ gkyl_ten_moment_nn_closure_advance(const gkyl_ten_moment_nn_closure *nnclosure, 
     long linc_vertex = gkyl_range_idx(heat_flux_rng, iter_center.idx);
     long linc_center = gkyl_range_idx(update_rng, iter_center.idx);
 
-    for (int i = 0; i < sz[ndim - 1]; i++) {
-      em_tot_d[i] = gkyl_array_cfetch(em_tot, linc_vertex + offsets_centers[i]);
-      fluid_d[i] = gkyl_array_cfetch(fluid, linc_vertex + offsets_centers[i]);
+    if (poly_order == 1) {
+      for (int i = 0; i < sz[ndim - 1]; i++) {
+        em_tot_d[i] = gkyl_array_cfetch(em_tot, linc_vertex + offsets_centers[i]);
+        fluid_d[i] = gkyl_array_cfetch(fluid, linc_vertex + offsets_centers[i]);
+      }
+    }
+    else {
+      for (int i = 0; i < sz_p2[ndim - 1]; i++) {
+        em_tot_d_p2[i] = gkyl_array_cfetch(em_tot, linc_vertex + offsets_centers_p2[i]);
+        fluid_d_p2[i] = gkyl_array_cfetch(fluid, linc_vertex + offsets_centers_p2[i]);
+      }
     }
 
     rhs_d = gkyl_array_fetch(rhs, linc_center);
 
-    calc_nn_closure_update(nnclosure, fluid_d, em_tot_d, rhs_d);
+    if (poly_order == 1) {
+      calc_nn_closure_update(nnclosure, fluid_d, em_tot_d, rhs_d);
+    }
+    else {
+      calc_nn_closure_update(nnclosure, fluid_d_p2, em_tot_d_p2, rhs_d);
+    }
   }
 }
 

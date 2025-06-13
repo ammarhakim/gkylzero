@@ -1,4 +1,4 @@
--- Generalized Brio-Wu Riemann problem, with neural network-based closure, for the 10-moment equations.
+-- Generalized Brio-Wu Riemann problem, with neural network-based closure using p2 reconstruction, for the 10-moment equations.
 -- Input parameters match the initial conditions found in entry JE4 of Ammar's Simulation Journal (https://ammar-hakim.org/sj/je/je4/je4-twofluid-shock.html), adapted from Section 7.1 of the article:
 -- A. Hakim, J. Loverich and U. Shumlak (2006), "A high resolution wave propagation scheme for ideal Two-Fluid plasma equations",
 -- Journal of Computational Physics, Volume 219 (1): 418-442.
@@ -46,8 +46,8 @@ num_failures_max = 20 -- Maximum allowable number of consecutive small time-step
 
 -- Neural network parameters.
 use_nn_closure = true -- Use neural network-based closure?
-poly_order = 1 -- Polynomial order of learned DG coefficients.
-nn_closure_file = "data/neural_nets/pkpm_periodic_es_shock_p1_moms_nn_1" -- File path of neural network to use.
+poly_order = 2 -- Polynomial order of learned DG coefficients.
+nn_closure_file = "data/neural_nets/pkpm_periodic_es_shock_p2_moms_nn_1" -- File path of neural network to use.
 
 momentApp = Moments.App.new {
 
