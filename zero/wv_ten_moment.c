@@ -30,11 +30,18 @@ ten_moment_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout
 }
 
 struct gkyl_wv_eqn*
-gkyl_wv_ten_moment_new(double k0, bool use_grad_closure, bool use_nn_closure, int poly_order, kann_t* ann, bool use_gpu)
+gkyl_wv_ten_moment_inew(const struct gkyl_wv_ten_moment_inp *inp)
 {
+  double k0 = inp->k0;
+  bool use_grad_closure = inp->use_grad_closure;
+  bool use_nn_closure = inp->use_nn_closure;
+  int poly_order = inp->poly_order;
+  kann_t* ann = inp->ann;
+  bool use_gpu = inp->use_gpu;
+
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    return gkyl_wv_ten_moment_cu_dev_new(k0, use_grad_closure);
+    return gkyl_wv_ten_moment_cu_dev_new(k0, use_grad_closure, use_nn_closure, poly_order, ann, use_gpu);
   } 
 #endif    
   struct wv_ten_moment *ten_moment = gkyl_malloc(sizeof(struct wv_ten_moment));
@@ -73,6 +80,20 @@ gkyl_wv_ten_moment_new(double k0, bool use_grad_closure, bool use_nn_closure, in
   ten_moment->eqn.on_dev = &ten_moment->eqn; // CPU eqn obj points to itself
 
   return &ten_moment->eqn;  
+}
+
+struct gkyl_wv_eqn*
+gkyl_wv_ten_moment_new(double k0, bool use_grad_closure, bool use_nn_closure, int poly_order, kann_t* ann, bool use_gpu)
+{
+  return gkyl_wv_ten_moment_inew( &(struct gkyl_wv_ten_moment_inp) {
+      .k0 = k0,
+      .use_grad_closure = use_grad_closure,
+      .use_nn_closure = use_nn_closure,
+      .poly_order = poly_order,
+      .ann = ann,
+      .use_gpu = use_gpu,
+    }
+  );
 }
 
 double
