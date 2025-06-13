@@ -244,7 +244,7 @@ gk_species_source_adapt_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *s,
     }
 
     double particle_input = s->info.source.projection[k].total_num_particles;
-    double energy_input = s->info.source.projection[k].total_energy;
+    double energy_input = s->info.source.projection[k].total_kinetic_energy;
 
     // Particle and energy rate update.
     // balance = user target + loss
@@ -377,7 +377,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
         adapt_src->mass_ratio = s->info.mass/adapt_src->adapt_species->info.mass;
 
         adapt_src->particle_src_curr = s->info.source.projection[k].total_num_particles;
-        adapt_src->energy_src_curr = s->info.source.projection[k].total_energy;
+        adapt_src->energy_src_curr = s->info.source.projection[k].total_kinetic_energy;
         // The temperature computation makes sense only if we inject particles.
         adapt_src->temperature_curr = s->info.source.projection[k].total_num_particles > 0?
           2./3. * adapt_src->energy_src_curr/adapt_src->particle_src_curr : 1.0;
