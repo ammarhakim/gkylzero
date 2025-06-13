@@ -209,7 +209,7 @@ gk_species_source_adapt(gkyl_gyrokinetic_app *app, struct gk_species *s,
 }
 
 static void 
-gk_species_source_adapt_none(gkyl_gyrokinetic_app *app, struct gk_species *s, 
+gk_species_source_adapt_disabled(gkyl_gyrokinetic_app *app, struct gk_species *s, 
   struct gk_source *src, struct gkyl_array *f_buffer, double tm)
 {}
 
@@ -292,6 +292,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   src->write_mom_func = gk_species_source_write_mom_disabled;
   src->calc_integrated_mom_func = gk_species_source_calc_integrated_mom_disabled;
   src->write_integrated_mom_func = gk_species_source_write_integrated_mom_disabled;
+  src->adapt_func = gk_species_source_adapt_disabled;
 
   if (src->source_id) {
     // Allocate source array.
@@ -362,7 +363,6 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     }
 
     // Set up the adaptive source.
-    src->adapt_func = gk_species_source_adapt_none;
     src->num_adapt_sources = s->info.source.num_adapt_sources;
     assert(src->num_adapt_sources <= src->num_sources); // Adaptive source should be a subset of the sources.
     if(src->num_adapt_sources > 0){
