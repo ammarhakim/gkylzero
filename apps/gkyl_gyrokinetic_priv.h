@@ -513,7 +513,7 @@ struct gk_proj {
     };
     // Maxwellian and Bi-Maxwellian projection from primitive moments
     struct {
-      struct gkyl_array *dens; // host-side density
+      struct gkyl_array *dens; // density (on device for GK Maxwellian Gaussian).
 
       struct gkyl_array *prim_moms_host; // host-side prim_moms for initialization with proj_on_basis
       struct gkyl_array *prim_moms; // prim_moms we pass to Maxwellian projection object (potentially on device)
@@ -521,15 +521,19 @@ struct gk_proj {
       bool correct_all_moms; // boolean if we are correcting all the moments
 
       struct gkyl_proj_on_basis *proj_dens; // projection operator for density
-      struct gkyl_array *vtsq; // host-side vth^2 = T/m (temperature/mass)
+      struct gkyl_array *vtsq; // vth^2 = T/m (temperature/mass) (on device for GK Maxwellian Gaussian).
       struct gkyl_proj_on_basis *proj_temp; // projection operator for temperature
       struct gkyl_array *vtsqpar; // host-side vth_par^2 = Tpar/m (parallel temperature/mass)
       struct gkyl_array *vtsqperp; // host-side vth_perp^2 = Tperp/m (perpendicular temperature/mass)
       struct gkyl_proj_on_basis *proj_temppar; // projection operator for parallel temperature
       struct gkyl_proj_on_basis *proj_tempperp; // projection operator for parallel temperature
+
+      struct gkyl_array *gaussian_profile; // shape of the source in configuration space (on device).    
+      struct gkyl_proj_on_basis *proj_gaussian; // projection operator for the shape of the source in config space.    
+
       union {
         struct { 
-          struct gkyl_array *upar; // host-side upar for GK Maxwellian/Bi-Maxwellian projection
+          struct gkyl_array *upar; // upar for GK Maxwellian/Bi-Maxwellian projection (on device for GK Maxwellian Gaussian)
           struct gkyl_proj_on_basis *proj_upar; // projection operator for upar for GK Maxwellian/Bi-Maxwellian projection
           struct gkyl_gk_maxwellian_proj_on_basis *proj_max; // Maxwellian projection object for GK
           struct gkyl_gk_maxwellian_correct *corr_max; // Maxwellian correction object for GK
@@ -543,6 +547,25 @@ struct gk_proj {
       };  
     };
   };
+};
+
+struct gk_adapt_source {
+  bool adapt_particle, adapt_energy; // Adaptation flags.
+  struct gk_species *adapt_species; // Pointer to the species to adapt the particle loss to ensure quasi-neutrality.
+  double mass_ratio; // Mass ratio of the species to adapt to.
+  
+  int num_boundaries; // Number of boundaries to adapt to.
+  int dir[2*GKYL_MAX_CDIM]; // Direction to adapt.
+  enum gkyl_edge_loc edge[2*GKYL_MAX_CDIM]; // Edge to adapt.
+  struct gkyl_range boundaries_phase_ghost[2*GKYL_MAX_CDIM]; // Range of computation of the bflux and moment (ALL phase space ghost).
+  struct gkyl_range boundaries_conf_ghost[2*GKYL_MAX_CDIM]; // Range of integration in each boundary (SOL config space ghost).
+
+  struct gk_species_moment integ_threemoms; // Integrated moment updater.
+  double *red_integ_mom, *red_integ_mom_global; // For reduction.
+
+  double particle_src_curr, energy_src_curr; // current injection rates of the source.
+  double particle_rate_loss, energy_rate_loss; // Loss rates we adapt to.
+  double temperature_curr; // Current density and temperature.
 };
 
 struct gk_source {
@@ -560,11 +583,14 @@ struct gk_source {
   double *red_integ_diag, *red_integ_diag_global; // For reduction of integrated moments.
   gkyl_dynvec integ_diag; // Integrated moments reduced across grid.
   bool is_first_integ_write_call; // Flag for integrated moments dynvec written first time.
+  struct gk_adapt_source adapt[GKYL_MAX_SOURCES]; // Adaptation source.
+  int num_adapt_sources; // Number of adaptive sources.
   // Functions chosen at runtime.
   void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
   void (*write_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
   void (*calc_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm);
   void (*write_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks);
+  void (*adapt_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, struct gk_source *src, struct gkyl_array *f_buffer, double tm);
 };
 
 // species data
@@ -2028,7 +2054,7 @@ void gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
  * @param f Output distribution function from projection.
  * @param tm Time for use in projection.
  */
-void gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *species, 
+void gk_species_projection_calc(gkyl_gyrokinetic_app *app, struct gk_species *species, 
   struct gk_proj *proj, struct gkyl_array *f, double tm);
 
 /**
@@ -2059,7 +2085,19 @@ void gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
  * @param f_buffer Phase-space buffer used to project the source.
  * @param tm Time for use in source.
  */
-void gk_species_source_calc(gkyl_gyrokinetic_app *app, const struct gk_species *species, 
+void gk_species_source_calc(gkyl_gyrokinetic_app *app, struct gk_species *species, 
+  struct gk_source *src, struct gkyl_array *f_buffer, double tm);
+
+/**
+ * Adapt source to maintain input power and/or particle content constant.
+ * 
+ * @param app gyrokinetic app object.
+ * @param s Species object.
+ * @param src Species source object.
+ * @param tm Time for use in source.
+ */
+void
+gk_species_source_adapt(gkyl_gyrokinetic_app *app, struct gk_species *s, 
   struct gk_source *src, struct gkyl_array *f_buffer, double tm);
 
 /**
