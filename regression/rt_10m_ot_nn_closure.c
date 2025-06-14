@@ -365,7 +365,7 @@ main(int argc, char **argv)
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
     .equation = elc_ten_moment,
-
+    
     .init = evalElcInit,
     .ctx = &ctx,
   };
@@ -383,7 +383,7 @@ main(int argc, char **argv)
   struct gkyl_moment_field field = {
     .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
     .mag_error_speed_fact = 1.0,
-        
+
     .init = evalFieldInit,
     .ctx = &ctx,
   };

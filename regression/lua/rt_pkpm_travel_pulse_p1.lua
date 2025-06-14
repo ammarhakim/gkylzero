@@ -38,7 +38,7 @@ dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
 num_failures_max = 20 -- Maximum allowable number of consecutive small time-steps.
 
 -- Training parameters.
-train_nn = true -- Train neural network on simulation data?
+train_nn = false -- Train neural network on simulation data?
 train_ab_initio = true -- Train neural network ab initio?
 nn_width = 256 -- Number of neurons to use per layer.
 nn_depth = 5 -- Number of layers to use.

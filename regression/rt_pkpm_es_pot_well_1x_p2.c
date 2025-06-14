@@ -103,7 +103,7 @@ create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   // Training parameters.
-  bool train_nn = true; // Train neural network on simulation data?
+  bool train_nn = false; // Train neural network on simulation data?
   bool train_ab_initio = true; // Train neural network ab initio?
   int nn_width = 256; // Number of neurons to use per layer.
   int nn_depth = 5; // Number of layers to use.
