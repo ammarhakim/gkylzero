@@ -190,7 +190,16 @@ main(int argc, char **argv)
     int sz_10m = gkyl_calc_strlen(fmt_10m, ctx.nn_closure_file, "10m");
     char fileNm_10m[sz_10m + 1];
     snprintf(fileNm_10m, sizeof fileNm_10m, fmt_10m, ctx.nn_closure_file, "10m");
-    ann[0] = kann_load(fileNm_10m);
+    FILE *file_10m = fopen(fileNm_10m, "r");
+    if (file_10m != NULL) {
+      ann[0] = kann_load(fileNm_10m);
+      fclose(file_10m);
+    }
+    else {
+      ann[0] = 0;
+      ctx.use_nn_closure = false;
+      fprintf(stderr, "Neural network for 10m species not found! Disabling NN-based closure.\n");
+    }
   }
 
   // Fluid equations.

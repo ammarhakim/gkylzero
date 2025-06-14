@@ -339,7 +339,16 @@ eqn_tenmoment_lw_new(lua_State *L)
     int sz = gkyl_calc_strlen(fmt, nn_closure_file, nn_species_name);
     char fileNm[sz + 1];
     snprintf(fileNm, sizeof fileNm, fmt, nn_closure_file, nn_species_name);
-    ann = kann_load(fileNm);
+    FILE *file = fopen(fileNm, "r");
+    if (file != NULL) {
+      ann = kann_load(fileNm);
+      fclose(file);
+    }
+    else {
+      ann = 0;
+      has_nn_closure = false;
+      fprintf(stderr, "Neural network for %s species not found! Disabling NN-based closure.\n", nn_species_name);
+    }
   }
 
   tenm_lw->magic = MOMENT_EQN_DEFAULT;

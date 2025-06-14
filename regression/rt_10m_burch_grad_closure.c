@@ -474,13 +474,31 @@ main(int argc, char **argv)
     int sz_elc = gkyl_calc_strlen(fmt_elc, ctx.nn_closure_file, "elc");
     char fileNm_elc[sz_elc + 1];
     snprintf(fileNm_elc, sizeof fileNm_elc, fmt_elc, ctx.nn_closure_file, "elc");
-    ann[0] = kann_load(fileNm_elc);
+    FILE *file_elc = fopen(fileNm_elc, "r");
+    if (file_elc != NULL) {
+      ann[0] = kann_load(fileNm_elc);
+      fclose(file_elc);
+    }
+    else {
+      ann[0] = 0;
+      ctx.use_nn_closure = false;
+      fprintf(stderr, "Neural network for elc species not found! Disabling NN-based closure.\n");
+    }
 
     const char *fmt_ion = "%s-%s.dat";
     int sz_ion = gkyl_calc_strlen(fmt_ion, ctx.nn_closure_file, "ion");
     char fileNm_ion[sz_ion + 1];
     snprintf(fileNm_ion, sizeof fileNm_ion, fmt_ion, ctx.nn_closure_file, "ion");
-    ann[1] = kann_load(fileNm_ion);
+    FILE *file_ion = fopen(fileNm_ion, "r");
+    if (file_ion != NULL) {
+      ann[1] = kann_load(fileNm_ion);
+      fclose(file_ion);
+    }
+    else {
+      ann[1] = 0;
+      ctx.use_nn_closure = false;
+      fprintf(stderr, "Neural network for ion species not found! Disabling NN-based closure.\n");
+    }
   }
     
   // Electron/ion equations.
