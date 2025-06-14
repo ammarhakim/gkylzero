@@ -197,7 +197,7 @@ void
 test_cu_wv_ten_moment()
 {
   double k0 = 1.0;
-  struct gkyl_wv_eqn *eqn = gkyl_wv_ten_moment_new(k0, false, true);
+  struct gkyl_wv_eqn *eqn = gkyl_wv_ten_moment_new(k0, false, false, 0, 0, true);
 
   // this is not possible from user code and should NOT be done. This
   // is for testing only
