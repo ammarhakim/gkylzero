@@ -273,7 +273,7 @@ gkyl_moment_app_apply_ic_field(gkyl_moment_app* app, double t0)
     gkyl_fv_proj_advance(app->field.ext_em_proj, t0, &app->local, app->field.ext_em);
   }
   if (app->field.has_app_current) {
-    gkyl_fv_proj_advance(app->field.app_current_proj, t0, &app->local, app->field.ext_em);
+    gkyl_fv_proj_advance(app->field.app_current_proj, t0, &app->local, app->field.app_current);
   }
 
   moment_field_apply_bc(app, t0, &app->field, app->field.fcurr);
@@ -768,7 +768,7 @@ gkyl_moment_app_from_file_field(gkyl_moment_app *app, const char *fname)
     gkyl_fv_proj_advance(app->field.ext_em_proj, rstat.stime, &app->local, app->field.ext_em);
   }
   if (app->field.has_app_current) {
-    gkyl_fv_proj_advance(app->field.app_current_proj, rstat.stime, &app->local, app->field.ext_em);
+    gkyl_fv_proj_advance(app->field.app_current_proj, rstat.stime, &app->local, app->field.app_current);
   }  
 
   return rstat;

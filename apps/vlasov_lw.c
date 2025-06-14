@@ -381,16 +381,11 @@ vlasov_species_lw_new(lua_State *L)
   with_lua_tbl_tbl(L, "diagnostics") {
     int num_diag_moments = glua_objlen(L);
 
-    int n = 0;
     for (int i = 0; i < num_diag_moments; i ++) {
-      const char *mom = glua_tbl_iget_string(L, i+1, "");
-
-      if (is_moment_name_valid(mom)) {
-        strcpy(vm_species.diag_moments[n++], mom);
-      }
+      vm_species.diag_moments[i] = glua_tbl_iget_integer(L, i+1, 0);
     }
 
-    vm_species.num_diag_moments = n;
+    vm_species.num_diag_moments = num_diag_moments;
   }
 
   with_lua_tbl_tbl(L, "bcx") {

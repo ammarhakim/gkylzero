@@ -64,9 +64,9 @@ struct gkyl_gyrokinetic_multib_species {
               // calculations where there is no toroidal field. 
 
   int num_diag_moments; // Number of diagnostic moments.
-  char diag_moments[24][24]; // List of diagnostic moments.
+  enum gkyl_distribution_moments diag_moments[12]; // List of diagnostic moments.
   int num_integrated_diag_moments; // Number of integrated diagnostic moments.
-  char integrated_diag_moments[24][24]; // List of integrated diagnostic moments.
+  enum gkyl_distribution_moments integrated_diag_moments[12]; // List of integrated diagnostic moments.
   bool time_rate_diagnostics; // Whether to ouput df/dt diagnostics.
 
   struct gkyl_phase_diagnostics_inp boundary_flux_diagnostics;
@@ -119,7 +119,7 @@ struct gkyl_gyrokinetic_multib_neut_species {
   bool is_static; // Set to true if neutral species does not change in time.
 
   int num_diag_moments; // Number of diagnostic moments.
-  char diag_moments[16][16]; // List of diagnostic moments.
+  enum gkyl_distribution_moments diag_moments[12]; // List of diagnostic moments.
 
   // Reactions with plasma species to include.
   struct gkyl_gyrokinetic_react react_neut;
@@ -157,7 +157,6 @@ struct gkyl_gyrokinetic_multib_field_pb {
 struct gkyl_gyrokinetic_multib_field {
   enum gkyl_gkfield_id gkfield_id;
   double kperpSq; // kperp^2 parameter for 1D field equations
-  double xLCFS; // radial location of the LCFS.
 
   // parameters for adiabatic electrons simulations
   double electron_mass, electron_charge, electron_density, electron_temp;
@@ -765,6 +764,15 @@ void gkyl_gyrokinetic_multib_app_write(gkyl_gyrokinetic_multib_app* app, double 
  * @param app App object.
  */
 void gkyl_gyrokinetic_multib_app_stat_write(gkyl_gyrokinetic_multib_app* app);
+
+/**
+ * Print timing of solver components to iostream.
+ *
+ * @param app App object.
+ * @param iostream Where to write timers to (e.g. stdout, stderr);
+ */
+void
+gkyl_gyrokinetic_multib_app_print_timings(gkyl_gyrokinetic_multib_app* app, FILE *iostream);
 
 /**
  * Record the time step (in private dynvector).

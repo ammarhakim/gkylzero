@@ -50,14 +50,13 @@ gkyl_gk_maxwellian_correct_all_moments_abs_diff_cu_ker(struct gkyl_range conf_ra
     // Also: for density and temperature(s), this error is a relative error 
     // compared to the target moment value so that we can converge to the 
     // correct target moments in SI units and minimize finite precision issues.
-    // However, upar (1st component) may be ~ 0 and if it is, we need to use 
-    // absolute error. We can converge safely using absolute error if upar ~ O(1). 
-    // Otherwise, we use relative error for upar. 
-    if (linc2 == 1 && moms_target_local[linc2*nc] < 1.0) {
-      abs_diff_moms_local[linc2] = fabs(moms_local[linc2*nc] - moms_target_local[linc2*nc]);
+    // However, upar (1st component) may be ~ 0 and if it is, 
+    // we normalize it with the target thermal veocity instead.
+    if (linc2 == 1 && moms_target_local[linc2*nc] < sqrt(moms_target_local[2*nc])) {
+      abs_diff_moms_local[linc2] = fabs(moms_local[linc2*nc] - moms_target_local[linc2*nc])/sqrt(moms_target_local[2*nc]);
     }
     else {
-      abs_diff_moms_local[linc2] = fabs(moms_local[linc2*nc] - moms_target_local[linc2*nc])/moms_target_local[linc2*nc];
+      abs_diff_moms_local[linc2] = fabs(moms_local[linc2*nc] - moms_target_local[linc2*nc])/fabs(moms_target_local[linc2*nc]);
     }
   }
 }

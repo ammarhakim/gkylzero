@@ -15,6 +15,7 @@
 #include <gkyl_tok_calc_derived_geo.h>
 #include <gkyl_calc_metric.h>
 #include <gkyl_calc_bmag.h>
+#include <assert.h>
 
 struct gk_geometry*
 gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
@@ -27,6 +28,26 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   up->global = geometry_inp->geo_global;
   up->global_ext = geometry_inp->geo_global_ext;
   up->grid = geometry_inp->geo_grid;
+  up->has_LCFS = geometry_inp->has_LCFS;
+  if (up->has_LCFS) {
+    up->x_LCFS = geometry_inp->x_LCFS;
+    // Check that the split happens within the domain.
+    assert((up->grid.lower[0] <= up->x_LCFS) && (up->x_LCFS <= up->grid.upper[0]));
+    // Check that the split happens at a cell boundary;
+    double needint = (up->x_LCFS - up->grid.lower[0])/up->grid.dx[0];
+    double rem_floor = fabs(needint-floor(needint));
+    double rem_ceil = fabs(needint-ceil(needint));
+    if (rem_floor < 1.0e-12) {
+      up->idx_LCFS_lo = (int) floor(needint);
+    }
+    else if (rem_ceil < 1.0e-12) {
+      up->idx_LCFS_lo = (int) ceil(needint);
+    }
+    else {
+      fprintf(stderr, "x_LCFS = %.9e must be at a cell boundary.\n", up->x_LCFS);
+      assert(false);
+    }
+  }
 
   struct gkyl_range nrange;
   double dzc[3] = {0.0};
@@ -47,9 +68,11 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   struct gkyl_array* mc2p_nodal_fd = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*num_fd_nodes, nrange.volume);
   struct gkyl_array* mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
   up->mc2p = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
+  up->mc2p_deflated = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
 
   struct gkyl_array* map_mc2nu_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
   up->mc2nu_pos = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
+  up->mc2nu_pos_deflated = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
 
   struct gkyl_array* ddtheta_nodal = gkyl_array_new(GKYL_DOUBLE, 3, nrange.volume);
   struct gkyl_array* bmag_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
@@ -150,9 +173,8 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
       else
         gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
 
-      geometry_inp->position_map->to_optimize = true;
-      gkyl_comm_array_allgather_host(geometry_inp->comm, &geometry_inp->local, \
-      &geometry_inp->global, gk_geom->bmag, (struct gkyl_array*) geometry_inp->position_map->bmag_ctx->bmag);
+      gkyl_position_map_set_bmag(geometry_inp->position_map, geometry_inp->comm, \
+        gk_geom->bmag);
 
       gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
       gkyl_gk_geometry_release(gk_geom); // release 3d geometry

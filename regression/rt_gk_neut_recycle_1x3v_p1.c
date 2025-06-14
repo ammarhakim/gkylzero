@@ -114,9 +114,9 @@ create_ctx(void)
 
   // Collision frequencies.
   double nu_elc = nu_frac * log_lambda_elc * pow(charge_ion,4) * n0 /
-    (6.0 * sqrt(2.0) * pow(pi,3.0/2.0) * pow(epsilon0,2) * sqrt(mass_elc) * pow(Te,3.0/2.0));
+    (6.0 * sqrt(2.0) * pow(M_PI,3.0/2.0) * pow(epsilon0,2) * sqrt(mass_elc) * pow(Te,3.0/2.0));
   double nu_ion = nu_frac * log_lambda_ion * pow(charge_ion,4) * n0 /
-    (12.0 * pow(pi,3.0/2.0) * pow(epsilon0,2) * sqrt(mass_ion) * pow(Ti,3.0/2.0));
+    (12.0 * pow(M_PI,3.0/2.0) * pow(epsilon0,2) * sqrt(mass_ion) * pow(Ti,3.0/2.0));
   
   double c_s = sqrt(Te / mass_ion); // Sound speed.
   double vte = sqrt(Te / mass_elc); // Electron thermal velocity.
@@ -449,7 +449,7 @@ main(int argc, char **argv)
     },
 
     .num_diag_moments = 4,
-    .diag_moments = { "M0", "M1", "M2par", "M2perp" },
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
   };
 
   // Ion species.
@@ -474,7 +474,7 @@ main(int argc, char **argv)
     },
 
     .num_diag_moments = 4,
-    .diag_moments = { "M0", "M1", "M2par", "M2perp" },
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
   };
 
   struct gkyl_gyrokinetic_neut_species neut = {
@@ -547,7 +547,7 @@ main(int argc, char **argv)
     },
     
     .num_diag_moments = 3,
-    .diag_moments = { "M1i_from_H", "MEnergy", "LTEMoments"},
+    .diag_moments = { GKYL_F_MOMENT_M1_FROM_H, GKYL_F_MOMENT_ENERGY, GKYL_F_MOMENT_LTE},
   };
 
   // Field.
@@ -557,52 +557,47 @@ main(int argc, char **argv)
     .is_static = true,
   };
 
-  struct gkyl_gyrokinetic_geometry geometry = {
-    .geometry_id = GKYL_MAPC2P,
-    .world = {0.01, 0.0},
-    .mapc2p = mapc2p,
-    .c2p_ctx = &ctx,
-    .bmag_func = bmag_func,
-    .bmag_ctx = &ctx
+  // Gyrokinetic app.
+  struct gkyl_gk app_inp = {
+    .name = "gk_neut_recycle_1x3v_p1",
+
+    .cdim = ctx.cdim, .vdim = ctx.vdim,
+    .lower = { -0.5 * ctx.Lz},
+    .upper = {  0.5 * ctx.Lz},
+    .cells = { cells_x[0] },
+
+    .poly_order = 1,
+    .basis_type = app_args.basis_type,
+    .cfl_frac = 1.0,
+
+    .geometry = {
+      .geometry_id = GKYL_MAPC2P,
+      .world = {0.01, 0.0},
+      .mapc2p = mapc2p,
+      .c2p_ctx = &ctx,
+      .bmag_func = bmag_func,
+      .bmag_ctx = &ctx
+    },
+
+    .num_periodic_dir = 0,
+    .periodic_dirs = { },
+
+    .num_species = 2,
+    .species = { elc, ion },
+    .num_neut_species = 1,
+    .neut_species = { neut },
+
+    .field = field,
+
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0] },
+      .comm = comm,
+    },
   };
-
-  struct gkyl_app_parallelism_inp parallelism = {
-    .use_gpu = app_args.use_gpu,
-    .cuts = { app_args.cuts[0], app_args.cuts[1] },
-    .comm = comm,
-  };
-
-  // GK app
-  struct gkyl_gk *gk = gkyl_malloc(sizeof *gk);
-  memset(gk, 0, sizeof(*gk));
-
-  strcpy(gk->name, "gk_neut_recycle_1x3v_p1");
-  gk->cfl_frac = 1.0;
-
-  gk->cdim = ctx.cdim;
-  gk->vdim = ctx.vdim;
-  gk->lower[0] = -0.5*ctx.Lz;
-  gk->upper[0] =  0.5*ctx.Lz;
-
-  gk->cells[0] = cells_x[0];
-  gk->poly_order = 1;
-  gk->basis_type = app_args.basis_type;
-
-  gk->geometry = geometry;
-
-  gk->num_periodic_dir = 0;
-
-  gk->num_species = 2;
-  gk->species[0] = elc;
-  gk->species[1] = ion;
-  gk->num_neut_species = 1;
-  gk->neut_species[0] = neut;
-  gk->field = field;
-
-  gk->parallelism = parallelism;
 
   // Create app object.
-  gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(gk);
+  gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&app_inp);
 
   // Initial and final simulation times.
   int frame_curr = 0;
@@ -698,25 +693,17 @@ main(int argc, char **argv)
     gkyl_gyrokinetic_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
   }  
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
-  gkyl_gyrokinetic_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
-
-  gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld,\n", stat.n_io);
-  gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
+  gkyl_gyrokinetic_app_print_timings(app, stdout);
 
   freeresources:
   // Free resources after simulation completion.
-  gkyl_free(gk);
   gkyl_gyrokinetic_app_release(app);
   gkyl_gyrokinetic_comms_release(comm);
   
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi) {
+  if (app_args.use_mpi)
     MPI_Finalize();
-  }
 #endif
 
   return 0;

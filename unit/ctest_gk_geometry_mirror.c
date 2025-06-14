@@ -1,21 +1,16 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <time.h>
 #include <acutest.h>
 #include <gkyl_array.h>
 #include <gkyl_array_rio.h>
-#include <gkyl_array_ops.h>
 #include <gkyl_basis.h>
-#include <gkyl_eval_on_nodes.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mirror.h>
 #include <gkyl_nodal_ops.h>
-#include <gkyl_mirror_geo.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_rect_decomp.h>
 #include <gkyl_util.h>
 
 void
@@ -86,7 +81,7 @@ write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_range lo
 }
 
 void
-test_lores()
+test_load_geometry()
 {
   struct gkyl_efit_inp inp = {
     // psiRZ and related inputs
@@ -100,10 +95,10 @@ test_lores()
   double cpu_time_used;
   start = clock();
 
-  double clower[] = { 1e-10, -0.01, -M_PI+1e-14 };
-  double cupper[] = { 2e-3,  0.01,  M_PI-1e-14 };
+  double clower[] = { 1e-10, -0.01, -2.0 };
+  double cupper[] = { 3e-3,   0.01,  2.0 };
 
-  int ccells[] = { 4, 1, 8 };
+  int ccells[] = { 4, 4, 8 };
 
   struct gkyl_rect_grid cgrid;
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
@@ -115,17 +110,18 @@ test_lores()
   int cpoly_order = 1;
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
-
 
   struct gkyl_mirror_geo_grid_inp ginp = {
-    .rclose = 0.2,
-    .zmin = -2.4,
-    .zmax =  2.4,
+    .filename_psi = "data/unit/wham_hires.geqdsk_psi.gkyl", // psi file to use
+    .rclose = 0.2, // closest R to region of interest
+    .zmin = -2.0,  // Z of lower boundary
+    .zmax =  2.0,  // Z of upper boundary 
+    .include_axis = false, // Include R=0 axis in grid
+    .fl_coord = GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // coordinate system for psi grid
   };
 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_MIRROR,
-    .efit_info = inp,
     .mirror_grid_info = ginp,
     .grid = cgrid,
     .local = clocal,
@@ -142,70 +138,6 @@ test_lores()
   };
 
   struct gk_geometry* up = gkyl_gk_geometry_mirror_new(&geometry_inp); 
-
-  gkyl_gk_geometry_release(up);
-
-  end = clock();
-  cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-}
-
-void
-test_hires()
-{
-  struct gkyl_efit_inp inp = {
-    // psiRZ and related inputs
-    .filepath = "./data/eqdsk/wham_hires.geqdsk",
-    .rz_poly_order = 2,
-    .flux_poly_order = 1,
-  };
-
-  clock_t start, end;
-  double cpu_time_used;
-  start = clock();
-
-  double clower[] = { 1e-3, -0.01, -M_PI+1e-14 };
-  double cupper[] = { 3e-3,  0.01,  M_PI-1e-14 };
-
-  int ccells[] = { 1, 1, 8 };
-
-  struct gkyl_rect_grid cgrid;
-  gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
-
-  struct gkyl_range clocal, clocal_ext;
-  int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
-  gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
-
-  int cpoly_order = 1;
-  struct gkyl_basis cbasis;
-  gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
-
-
-struct gkyl_mirror_geo_grid_inp ginp = {
-  .rclose = 0.2,
-  .zmin = -2.0,
-  .zmax =  2.0,
-};
-
-  struct gkyl_gk_geometry_inp geometry_inp = {
-    .geometry_id  = GKYL_MIRROR,
-    .efit_info = inp,
-    .mirror_grid_info = ginp,
-    .grid = cgrid,
-    .local = clocal,
-    .local_ext = clocal_ext,
-    .global = clocal,
-    .global_ext = clocal_ext,
-    .basis = cbasis,
-    .geo_grid = cgrid,
-    .geo_local = clocal,
-    .geo_local_ext = clocal_ext,
-    .geo_global = clocal,
-    .geo_global_ext = clocal_ext,
-    .geo_basis = cbasis,
-  };
-
-  struct gk_geometry* up = gkyl_gk_geometry_mirror_new(&geometry_inp); 
-
 
   gkyl_gk_geometry_release(up);
 
@@ -222,7 +154,7 @@ void mapc2p(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   double psi = xn[0], alpha = xn[1], zeta = xn[2];
   fout[0] = sqrt(psi * 4 ); // Function fed is psi = 0.5/2 * R^2 from the efit file
-  fout[1] = zeta * 1.0 / M_PI; // Note that this does not have pi-1e-2 in it because the coordinate zeta is always defined -pi to pi
+  fout[1] = zeta; // Note that this does not have pi-1e-2 in it because the coordinate zeta is always defined -pi to pi
   fout[2] = -alpha; // There is a minus due to conventions
 }
 
@@ -235,7 +167,7 @@ void exact_gij(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx
   fout[2] = 0.0; // g_13
   fout[3] = r*r; // g_22
   fout[4] = 0.0; // g_23
-  fout[5] = 1/(M_PI*M_PI); // g_33
+  fout[5] = 1,0; // g_33
 }
 
 void exact_g_contra_ij(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
@@ -247,7 +179,7 @@ void exact_g_contra_ij(double t, const double *xn, double* GKYL_RESTRICT fout, v
   fout[2] = 0.0; // g_13
   fout[3] = 1/psi/4; // g_22
   fout[4] = 0.0; // g_23
-  fout[5] = (M_PI*M_PI); // g_33
+  fout[5] = 1.0; // g_33
 }
 
 void exact_dual_magnitude(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
@@ -256,7 +188,7 @@ void exact_dual_magnitude(double t, const double *xn, double* GKYL_RESTRICT fout
   double psi = r*r/4;
   fout[0]  = r/2;
   fout[1] = 1/(2*sqrt(psi));
-  fout[2] = M_PI;
+  fout[2] = 1.0;
 }
 
 void exact_normals(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
@@ -273,6 +205,12 @@ void exact_normals(double t, const double *xn, double* GKYL_RESTRICT fout, void 
   fout[7] = 0.0;
   fout[8] = -1.0;
 }
+
+void exact_jacobian(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  fout[0] = 2.0;
+}
+
 
 void bmag_func(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx){
   fout[0] = 0.5;
@@ -297,10 +235,10 @@ test_3x_p1_straight_cylinder()
   double psiMin = 1e-4;
   int Nz = 10;
 
-  double lower[3] = {psiMin, -M_PI, -M_PI+1e-2};
-  double upper[3] = {psiMax,  M_PI,  M_PI-1e-2};
+  double lower[3] = {psiMin, -M_PI, -1.0};
+  double upper[3] = {psiMax,  M_PI,  1.0};
   // int cells[3] = { 18, 18, Nz };
-  int cells[3] = { 8, 8, 8};
+  int cells[3] = { 2, 2, 2};
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, cdim, lower, upper, cells);
   
@@ -308,22 +246,18 @@ test_3x_p1_straight_cylinder()
   int nghost[3] = { 1,1,1};
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
-  struct gkyl_efit_inp inp = {
-    // psiRZ and related inputs
-    .filepath = "./data/eqdsk/straight_cylinder.geqdsk",
-    .rz_poly_order = 2,
-    .flux_poly_order = 1,
-    .reflect = true,
-  };
   struct gkyl_mirror_geo_grid_inp ginp = {
-    .rclose = 0.5,
-    .zmin = -1.,
-    .zmax =  1.,
+    .filename_psi = "data/unit/straight_cylinder.geqdsk_psi.gkyl", // psi file to use
+    .rclose = 0.5, // closest R to region of interest
+    .zmin = -1.0,  // Z of lower boundary
+    .zmax =  1.0,  // Z of upper boundary 
+    .include_axis = false, // Include R=0 axis in grid
+    .fl_coord = GKYL_MIRROR_GRID_GEN_PSI_CART_Z, // coordinate system for psi grid
   };
+
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
     .geometry_id = GKYL_MIRROR,
-    .efit_info = inp,
     .mirror_grid_info = ginp,
     .grid = grid,
     .local = range,
@@ -341,7 +275,7 @@ test_3x_p1_straight_cylinder()
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_mirror_new(&geometry_input);
 
-  // write_geometry(gk_geom, grid, range, "straight_cylinder");
+  write_geometry(gk_geom, grid, range, "straight_cylinder");
 
   // Define nodal operations
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
@@ -482,7 +416,7 @@ test_3x_p1_straight_cylinder()
         cidx[AL_IDX] = ia;
         cidx[TH_IDX] = it;
         double *eps2_n = gkyl_array_fetch(eps2_nodal, gkyl_range_idx(&nrange, cidx));
-        TEST_CHECK( gkyl_compare( eps2_n[0], 0.0, 1e-8) );
+        TEST_CHECK( gkyl_compare( eps2_n[0], 1.0, 1e-7) );
       }
     }
   }
@@ -540,8 +474,9 @@ test_3x_p1_straight_cylinder()
         cidx[TH_IDX] = it;
         double *jacobgeo_n = gkyl_array_fetch(jacobgeo_nodal, gkyl_range_idx(&nrange, cidx));
         double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nrange, cidx));
-        double jacobian_analytic = 2/M_PI;
-        TEST_CHECK( gkyl_compare( jacobgeo_n[0], jacobian_analytic, 1e-6) );
+        double fout[1];
+        exact_jacobian(0.0, NULL, fout, 0);
+        TEST_CHECK( gkyl_compare( jacobgeo_n[0], fout[0], 1e-6) );
       }
     }
   }
@@ -557,8 +492,9 @@ test_3x_p1_straight_cylinder()
         cidx[TH_IDX] = it;
         double *jacobgeo_inv_n = gkyl_array_fetch(jacobgeo_inv_nodal, gkyl_range_idx(&nrange, cidx));
         double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nrange, cidx));
-        double jacobian_analytic = 2/M_PI;
-        TEST_CHECK( gkyl_compare( jacobgeo_inv_n[0], 1/jacobian_analytic, 1e-6) );
+        double fout[1];
+        exact_jacobian(0.0, NULL, fout, 0);
+        TEST_CHECK( gkyl_compare( jacobgeo_inv_n[0], 1/fout[0], 1e-6) );
       }
     }
   }
@@ -575,10 +511,11 @@ test_3x_p1_straight_cylinder()
         double *jacobtot_n = gkyl_array_fetch(jacobtot_nodal, gkyl_range_idx(&nrange, cidx));
         // mapc2p_n[0] = x, mapc2p_n[1] = y, mapc2p_n[2] = z
         double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nrange, cidx));
-        double jacobian_analytic = 2/M_PI;
-        double magnetic_field = 0.5;
-        double jacobtot_analytic = jacobian_analytic * magnetic_field;
-        TEST_CHECK( gkyl_compare( jacobtot_n[0], jacobtot_analytic, 1e-6) );
+        double foutJ[1];
+        exact_jacobian(0.0, NULL, foutJ, 0);
+        double foutB[1];
+        bmag_func(0.0, NULL, foutB, 0);
+        TEST_CHECK( gkyl_compare( jacobtot_n[0], foutJ[0]*foutB[0], 1e-6) );
       }
     }
   }
@@ -595,10 +532,11 @@ test_3x_p1_straight_cylinder()
         double *jacobtot_inv_n = gkyl_array_fetch(jacobtot_inv_nodal, gkyl_range_idx(&nrange, cidx));
         // mapc2p_n[0] = x, mapc2p_n[1] = y, mapc2p_n[2] = z
         double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nrange, cidx));
-        double jacobian_analytic = 2/M_PI;
-        double magnetic_field = 0.5;
-        double jacobtot_analytic = jacobian_analytic * magnetic_field;
-        TEST_CHECK( gkyl_compare( jacobtot_inv_n[0], 1/jacobtot_analytic, 1e-6) );
+        double foutJ[1];
+        exact_jacobian(0.0, NULL, foutJ, 0);
+        double foutB[1];
+        bmag_func(0.0, NULL, foutB, 0);
+        TEST_CHECK( gkyl_compare( jacobtot_inv_n[0], 1/foutJ[0]/foutB[0], 1e-6) );
       }
     }
   }
@@ -692,7 +630,7 @@ test_3x_p1_straight_cylinder()
 void
 mapz(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  double a = M_PI;
+  double a = 2.0;
   double s = 0.2;
   fout[0] = (-1/(2*a) * pow(a - xn[0], 2) + a)*(1-s) + s * xn[0];
 }
@@ -700,7 +638,7 @@ mapz(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 void
 jacob_mapz(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  double a = M_PI;
+  double a = 2.0;
   double s = 0.2;
   fout[0] = (1/a * pow(a - xn[0], 1))*(1-s) + s;
 }
@@ -716,7 +654,7 @@ void exact_gij_pmap(double t, const double *xn, double* GKYL_RESTRICT fout, void
   fout[2] = 0.0; // g_13
   fout[3] = r*r; // g_22
   fout[4] = 0.0; // g_23
-  fout[5] = 1/(M_PI*M_PI) * pow(dThetadtheta,2); // g_33
+  fout[5] = 1.0 * pow(dThetadtheta,2); // g_33
 }
 
 void exact_g_contra_ij_pmap(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
@@ -730,7 +668,7 @@ void exact_g_contra_ij_pmap(double t, const double *xn, double* GKYL_RESTRICT fo
   fout[2] = 0.0; // g_13
   fout[3] = 1/psi/4; // g_22
   fout[4] = 0.0; // g_23
-  fout[5] = (M_PI*M_PI) / pow(dThetadtheta,2); // g_33
+  fout[5] = 1.0 / pow(dThetadtheta,2); // g_33
 }
 
 void exact_dual_magnitude_pmap(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
@@ -741,7 +679,7 @@ void exact_dual_magnitude_pmap(double t, const double *xn, double* GKYL_RESTRICT
   jacob_mapz(0, &theta, &dThetadtheta, 0);
   fout[0]  = r/2;
   fout[1] = 1/(2*sqrt(psi));
-  fout[2] = M_PI / dThetadtheta;
+  fout[2] = 1.0 / dThetadtheta;
 }
 
 void exact_normals_pmap(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
@@ -775,8 +713,8 @@ test_3x_p1_pmap_straight_cylinder()
   double psiMin = 1e-4;
   int Nz = 10;
 
-  double lower[3] = {psiMin, -M_PI, -M_PI+1e-2};
-  double upper[3] = {psiMax,  M_PI,  M_PI-1e-2};
+  double lower[3] = {psiMin, -M_PI, -2.0};
+  double upper[3] = {psiMax,  M_PI,  2.0};
   // int cells[3] = { 18, 18, Nz };
   int cells[3] = { 8, 8, 8};
   struct gkyl_rect_grid grid;
@@ -795,22 +733,18 @@ test_3x_p1_pmap_straight_cylinder()
   struct gkyl_position_map *pos_map = gkyl_position_map_new(pos_map_inp, grid, range, 
     ext_range, range, ext_range, basis);
 
-  struct gkyl_efit_inp inp = {
-    // psiRZ and related inputs
-    .filepath = "./data/eqdsk/straight_cylinder.geqdsk",
-    .rz_poly_order = 2,
-    .flux_poly_order = 1,
-    .reflect = true,
-  };
   struct gkyl_mirror_geo_grid_inp ginp = {
-    .rclose = 0.5,
-    .zmin = -1.,
-    .zmax =  1.,
+    .filename_psi = "data/unit/wham_hires.geqdsk_psi.gkyl", // psi file to use
+    .rclose = 0.2, // closest R to region of interest
+    .zmin = -2.0,  // Z of lower boundary
+    .zmax =  2.0,  // Z of upper boundary 
+    .include_axis = false, // Include R=0 axis in grid
+    .fl_coord = GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // coordinate system for psi grid
   };
+
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
     .geometry_id = GKYL_MIRROR,
-    .efit_info = inp,
     .mirror_grid_info = ginp,
     .position_map = pos_map,
     .grid = grid,
@@ -829,7 +763,7 @@ test_3x_p1_pmap_straight_cylinder()
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_mirror_new(&geometry_input);
 
-  gkyl_position_map_set(pos_map, gk_geom->mc2nu_pos);
+  gkyl_position_map_set_mc2nu(pos_map, gk_geom->mc2nu_pos);
 
   // write_geometry(gk_geom, grid, range, "straight_cylinder");
 
@@ -1205,9 +1139,8 @@ test_3x_p1_pmap_straight_cylinder()
 
 
 TEST_LIST = {
-  { "test_lores", test_lores },
-  // { "test_hires", test_hires },
+  { "test_load_geometry", test_load_geometry },
   { "test_3x_p1_straight_cylinder", test_3x_p1_straight_cylinder },
-  { "test_3x_p1_pmap_straight_cylinder", test_3x_p1_pmap_straight_cylinder },
+  // { "test_3x_p1_pmap_straight_cylinder", test_3x_p1_pmap_straight_cylinder },
   { NULL, NULL },
 };

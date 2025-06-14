@@ -86,6 +86,7 @@ enum gkyl_projection_id {
   GKYL_PROJ_BIMAXWELLIAN, // Bi-Maxwellian projection
   GKYL_PROJ_VLASOV_LTE, // LTE (Local thermodynamic equilibrium) projection for Vlasov
                         // (Maxwellian for non-relativistic, Maxwell-Juttner for relativistic)
+  GKYL_PROJ_MAXWELLIAN_GAUSSIAN, // Maxwellian in velocity space + Gaussian in configuration space
 };
 
 // Identifiers for specific radiation object types

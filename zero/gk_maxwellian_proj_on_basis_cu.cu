@@ -150,7 +150,6 @@ gkyl_gk_maxwellian_proj_on_basis_f_quad_ker(struct gkyl_rect_grid phase_grid,
   double f_floor = 1.0e-40;
   int pdim = phase_range.ndim, cdim = conf_range.ndim;
   int vdim = pdim-cdim;
-  int vdim_phys = vdim == 1 ? 1 : 3;
   int tot_conf_quad = conf_basis_at_ords->size;
 
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM] = {0.0};

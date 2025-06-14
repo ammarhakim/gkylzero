@@ -18,8 +18,8 @@ GKYL_CU_DH double lbo_gyrokinetic_drag_surfvpar_1x1v_ser_p1(const double *dxv, c
   double rdv2 = 2.0/dxv[1]; 
 
   double alphaDrSurf_l[2] = {0.0}; 
-  alphaDrSurf_l[0] = (-1.224744871391589*nuSum[0]*vmap[1])+0.7071067811865475*nuSum[0]*vmap[0]-1.0*nuUSum[0]; 
-  alphaDrSurf_l[1] = (-1.224744871391589*nuSum[1]*vmap[1])-1.0*nuUSum[1]+0.7071067811865475*vmap[0]*nuSum[1]; 
+  alphaDrSurf_l[0] = -(1.224744871391589*nuSum[0]*vmap[1])+0.7071067811865475*nuSum[0]*vmap[0]-1.0*nuUSum[0]; 
+  alphaDrSurf_l[1] = -(1.224744871391589*nuSum[1]*vmap[1])-1.0*nuUSum[1]+0.7071067811865475*vmap[0]*nuSum[1]; 
 
   double alphaDrSurf_r[2] = {0.0}; 
   alphaDrSurf_r[0] = 1.224744871391589*nuSum[0]*vmap[1]+0.7071067811865475*nuSum[0]*vmap[0]-1.0*nuUSum[0]; 
@@ -67,8 +67,8 @@ GKYL_CU_DH double lbo_gyrokinetic_drag_surfvpar_1x1v_ser_p1(const double *dxv, c
   out[1] += 0.7071067811865475*Ghat_r[1]*rdv2-0.7071067811865475*Ghat_l[1]*rdv2; 
   out[2] += 1.224744871391589*Ghat_r[0]*rdv2+1.224744871391589*Ghat_l[0]*rdv2; 
   out[3] += 1.224744871391589*Ghat_r[1]*rdv2+1.224744871391589*Ghat_l[1]*rdv2; 
-  out[4] += 1.58113883008419*Ghat_r[0]*rdv2-1.58113883008419*Ghat_l[0]*rdv2; 
-  out[5] += 1.58113883008419*Ghat_r[1]*rdv2-1.58113883008419*Ghat_l[1]*rdv2; 
+  out[4] += 1.5811388300841895*Ghat_r[0]*rdv2-1.5811388300841895*Ghat_l[0]*rdv2; 
+  out[5] += 1.5811388300841898*Ghat_r[1]*rdv2-1.5811388300841898*Ghat_l[1]*rdv2; 
 
   return 0.;
 
