@@ -18,6 +18,7 @@
 #include <string.h>
 
 #include <stc/coption.h>
+#include <kann.h>
 
 #ifdef GKYL_HAVE_MPI
 #include <mpi.h>
@@ -420,6 +421,22 @@ struct pkpm_app_lw {
   int integrated_L2_f_calcs; // Number of times to calculate integrated L2 norm of distribution function.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
+
+  // Training parameters.
+  bool train_nn; // Train neural network on simulation data?
+  bool train_ab_initio; // Train neural network ab initio?
+  int nn_width; // Number of neurons to use per layer.
+  int nn_depth; // Number of layers to use.
+  char train_nn_file[256]; // File path of neural network to train.
+  int num_trains; // Number of times to train neural network.
+  int num_nn_writes; // Number of times to write out neural network.
+  int num_input_moms; // Number of "input" moments to train on.
+  int* input_moms; // Array of "input" moments to train on.
+  int num_output_moms; // Number of "output" moments to train on.
+  int* output_moms; // Array of "output" moments to train on.
+  bool test_nn; // Test neural network on simulation data?
+  char test_nn_file[256]; // File path of neural network to test.
+  int num_tests; // Number of times to test neural network.
 };
 
 // Gets all species objects from the App table, which must on top of
@@ -606,6 +623,47 @@ pkpm_app_new(lua_State *L)
   app_lw->integrated_mom_calcs = glua_tbl_get_integer(L, "integratedMomentCalcs", INT_MAX);
   app_lw->dt_failure_tol = glua_tbl_get_number(L, "dtFailureTol", 1.0e-4);
   app_lw->num_failures_max = glua_tbl_get_integer(L, "numFailuresMax", 20);
+
+  // Initialize training parameters.
+  app_lw->train_nn = glua_tbl_get_bool(L, "trainNN", false);
+  app_lw->train_ab_initio = glua_tbl_get_bool(L, "trainAbInitio", true);
+  app_lw->nn_width = glua_tbl_get_integer(L, "NNWidth", 256);
+  app_lw->nn_depth = glua_tbl_get_integer(L, "NNDepth", 5);
+  const char* train_nn_file_char = glua_tbl_get_string(L, "trainNNFile", "");
+  strcpy(app_lw->train_nn_file, train_nn_file_char);
+  app_lw->num_trains = glua_tbl_get_integer(L, "numTrains", INT_MAX);
+  app_lw->num_nn_writes = glua_tbl_get_integer(L, "numNNWrites", 1);
+
+  app_lw->num_input_moms = 0;
+  if (glua_tbl_has_key(L, "inputMoms")) {
+    with_lua_tbl_tbl(L, "inputMoms") {
+      app_lw->num_input_moms = glua_objlen(L);
+      app_lw->input_moms = gkyl_malloc(sizeof(int[app_lw->num_input_moms]));
+
+      for (int i = 0; i < app_lw->num_input_moms; i++) {
+        // Indices are off by 1 between Lua and C.
+        app_lw->input_moms[i] = glua_tbl_iget_integer(L, i + 1, 0) - 1;
+      }
+    }
+  }
+
+  app_lw->num_output_moms = 0;
+  if (glua_tbl_has_key(L, "outputMoms")) {
+    with_lua_tbl_tbl(L, "outputMoms") {
+      app_lw->num_output_moms = glua_objlen(L);
+      app_lw->output_moms = gkyl_malloc(sizeof(int[app_lw->num_output_moms]));
+
+      for (int i = 0; i < app_lw->num_output_moms; i++) {
+        // Indices are off by 1 between Lua and C.
+        app_lw->output_moms[i] = glua_tbl_iget_integer(L, i + 1, 0) - 1;
+      }
+    }
+  }
+
+  app_lw->test_nn = glua_tbl_get_bool(L, "testNN", false);
+  const char* test_nn_file_char = glua_tbl_get_string(L, "testNNFile", "");
+  strcpy(app_lw->test_nn_file, test_nn_file_char);
+  app_lw->num_tests = glua_tbl_get_integer(L, "numTests", 1);
 
   struct gkyl_pkpm pkpm = { }; // Input table for app.
 
@@ -1109,6 +1167,45 @@ calc_integrated_L2_f(struct gkyl_tm_trigger* l2t, gkyl_pkpm_app* app, double t_c
   }
 }
 
+static void
+train_mom(struct gkyl_tm_trigger* nn, gkyl_pkpm_app* app, double t_curr, bool force_train, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms)
+{
+  if (gkyl_tm_trigger_check_and_bump(nn, t_curr) || force_train) {
+    int frame = nn->curr - 1;
+    if (force_train) {
+      frame = nn->curr;
+    }
+
+    gkyl_pkpm_app_train(app, t_curr, frame, ann, num_input_moms, input_moms, num_output_moms, output_moms);
+  }
+}
+
+static void
+write_nn(struct gkyl_tm_trigger* nnw, gkyl_pkpm_app* app, double t_curr, bool force_write, kann_t** ann)
+{
+  if (gkyl_tm_trigger_check_and_bump(nnw, t_curr) || force_write) {
+    int frame = nnw->curr - 1;
+    if (force_write) {
+      frame = nnw->curr;
+    }
+
+    gkyl_pkpm_app_write_nn(app, t_curr, frame, ann);
+  }
+}
+
+static void
+test_mom(struct gkyl_tm_trigger* nnt, gkyl_pkpm_app* app, double t_curr, bool force_test, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms)
+{
+  if (gkyl_tm_trigger_check_and_bump(nnt, t_curr) || force_test) {
+    int frame = nnt->curr - 1;
+    if (force_test) {
+      frame = nnt->curr;
+    }
+
+    gkyl_pkpm_app_test(app, t_curr, frame, ann, num_input_moms, input_moms, num_output_moms, output_moms);
+  }
+}
+
 // Step message context.
 struct step_message_trigs {
   int log_count; // Number of times logging called.
@@ -1236,6 +1333,108 @@ pkpm_app_run(lua_State *L)
   calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
 
+  // Create trigger for neural network training.
+  int num_trains = app_lw->num_trains;
+  struct gkyl_tm_trigger nn_trig = { .dt = t_end / num_trains, .tcurr = t_curr, .curr = frame_curr };
+
+  kad_node_t **t = gkyl_malloc(sizeof(kad_node_t*) * app->num_species);
+  kann_t **ann = gkyl_malloc(sizeof(kann_t*) * app->num_species);
+  if (app_lw->train_nn) {
+    if (app_lw->train_ab_initio) {
+      for (int i = 0; i < app->num_species; i++ ) {
+        if (app->poly_order == 1) {
+          if (app->cdim == 1) {
+            t[i] = kann_layer_input(app_lw->num_input_moms * 2);
+          }
+          else if (app->cdim == 2) {
+            t[i] = kann_layer_input(app_lw->num_input_moms * 4);
+          }
+        }
+        else if (app->poly_order == 2) {
+          t[i] = kann_layer_input(app_lw->num_input_moms * 3);
+        }
+
+        for (int j = 0; j < app_lw->nn_depth; j++) {
+          t[i] = kann_layer_dense(t[i], app_lw->nn_width);
+          t[i] = kad_tanh(t[i]);
+        }
+        
+        if (app->poly_order == 1) {
+          if (app->cdim == 1) {
+            t[i] = kann_layer_cost(t[i], app_lw->num_output_moms * 2, KANN_C_MSE);
+          }
+          else if (app->cdim == 2) {
+            t[i] = kann_layer_cost(t[i], app_lw->num_output_moms * 4, KANN_C_MSE);
+          }
+        }
+        else if (app->poly_order == 2) {
+          t[i] = kann_layer_cost(t[i], app_lw->num_output_moms * 3, KANN_C_MSE);
+        }
+        ann[i] = kann_new(t[i], 0);
+      }
+    }
+    else {
+      for (int i = 0; i < app->num_species; i++) {
+        const char *fmt = "%s-%s.dat";
+        int sz = gkyl_calc_strlen(fmt, app_lw->train_nn_file, app->species[i].info.name);
+        char fileNm[sz + 1];
+        snprintf(fileNm, sizeof fileNm, fmt, app_lw->train_nn_file, app->species[i].info.name);
+
+        FILE *file = fopen(fileNm, "r");
+        if (file != NULL) {
+          ann[i] = kann_load(fileNm);
+          fclose(file);
+        }
+        else {
+          ann[i] = 0;
+          app_lw->train_nn = false;
+          fprintf(stderr, "Neural network for species %s not found! Disabling NN training.\n", app->species[i].info.name);
+        }
+      }
+    }
+  }
+  
+  if (app_lw->train_nn) {
+    train_mom(&nn_trig, app, t_curr, false, ann, app_lw->num_input_moms, app_lw->input_moms, app_lw->num_output_moms, app_lw->output_moms);
+  }
+
+  // Create trigger for neural network writing.
+  int num_nn_writes = app_lw->num_nn_writes;
+  struct gkyl_tm_trigger nnw_trig = { .dt = t_end / num_nn_writes, .tcurr = t_curr, .curr = frame_curr };
+
+  if (app_lw->train_nn) {
+    write_nn(&nnw_trig, app, t_curr, false, ann);
+  }
+
+  // Create trigger for neural network testing.
+  int num_tests = app_lw->num_tests;
+  struct gkyl_tm_trigger nnt_trig = { .dt = t_end / num_tests, .tcurr = t_curr, .curr = frame_curr };
+
+  kann_t **ann_test = gkyl_malloc(sizeof(kann_t*) * app->num_species);
+  if (app_lw->test_nn) {
+    for (int i = 0; i < app->num_species; i++) {
+      const char *fmt = "%s-%s.dat";
+      int sz = gkyl_calc_strlen(fmt, app_lw->test_nn_file, app->species[i].info.name);
+      char fileNm[sz + 1];
+      snprintf(fileNm, sizeof fileNm, fmt, app_lw->test_nn_file, app->species[i].info.name);
+
+      FILE *file = fopen(fileNm, "r");
+      if (file != NULL) {
+        ann_test[i] = kann_load(fileNm);
+        fclose(file);
+      }
+      else {
+        ann_test[i] = 0;
+        app_lw->test_nn = false;
+        fprintf(stderr, "Neural network for species %s not found! Disabling NN testing.\n", app->species[i].info.name);
+      }
+    }
+  }
+  
+  if (app_lw->test_nn) {
+    test_mom(&nnt_trig, app, t_curr, false, ann_test, app_lw->num_input_moms, app_lw->input_moms, app_lw->num_output_moms, app_lw->output_moms);
+  }
+
   gkyl_pkpm_app_cout(app, stdout, "Initialization completed in %g sec\n\n", gkyl_time_diff_now_sec(tm_ic0));
   
   // Compute initial guess of maximum stable time-step.
@@ -1269,6 +1468,13 @@ pkpm_app_run(lua_State *L)
     calc_integrated_mom(&im_trig, app, t_curr, false);
     calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
     write_data(&io_trig, app, t_curr, false);
+    if (app_lw->train_nn) {
+      train_mom(&nn_trig, app, t_curr, false, ann, app_lw->num_input_moms, app_lw->input_moms, app_lw->num_output_moms, app_lw->output_moms);
+      write_nn(&nnw_trig, app, t_curr, false, ann);
+    }
+    if (app_lw->test_nn) {
+      test_mom(&nnt_trig, app, t_curr, false, ann_test, app_lw->num_input_moms, app_lw->input_moms, app_lw->num_output_moms, app_lw->output_moms);
+    }
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
@@ -1287,6 +1493,13 @@ pkpm_app_run(lua_State *L)
         calc_integrated_mom(&im_trig, app, t_curr, true);
         calc_integrated_L2_f(&l2f_trig, app, t_curr, true);
         write_data(&io_trig, app, t_curr, true);
+        if (app_lw->train_nn) {
+          train_mom(&nn_trig, app, t_curr, true, ann, app_lw->num_input_moms, app_lw->input_moms, app_lw->num_output_moms, app_lw->output_moms);
+          write_nn(&nnw_trig, app, t_curr, true, ann);
+        }
+        if (app_lw->test_nn) {
+          test_mom(&nnt_trig, app, t_curr, true, ann_test, app_lw->num_input_moms, app_lw->input_moms, app_lw->num_output_moms, app_lw->output_moms);
+        }
 
         break;
       }
@@ -1306,6 +1519,21 @@ pkpm_app_run(lua_State *L)
   calc_integrated_mom(&im_trig, app, t_curr, false);
   calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
+  if (app_lw->train_nn) {
+    train_mom(&nn_trig, app, t_curr, false, ann, app_lw->num_input_moms, app_lw->input_moms, app_lw->num_output_moms, app_lw->output_moms);
+    write_nn(&nnw_trig, app, t_curr, false, ann);
+
+    for (int i = 0; i < app->num_species; i++) {
+      kann_delete(ann[i]);
+    }
+  }
+  if (app_lw->test_nn) {
+    test_mom(&nnt_trig, app, t_curr, false, ann_test, app_lw->num_input_moms, app_lw->input_moms, app_lw->num_output_moms, app_lw->output_moms);
+
+    for (int i = 0; i < app->num_species; i++) {
+      kann_delete(ann_test[i]);
+    }
+  }
   gkyl_pkpm_app_stat_write(app);
 
   struct gkyl_pkpm_stat stat = gkyl_pkpm_app_stat(app);
@@ -1333,6 +1561,11 @@ pkpm_app_run(lua_State *L)
   gkyl_pkpm_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
 freeresources:
+
+  gkyl_free(app_lw->input_moms);
+  gkyl_free(app_lw->output_moms);
+  gkyl_free(ann);
+  gkyl_free(ann_test);
 
   lua_pushboolean(L, ret_status);
   return 1;

@@ -22,6 +22,7 @@
 #endif
 
 #include <rt_arg_parse.h>
+#include <kann.h>
 
 struct sodshock_ctx
 {
@@ -46,6 +47,11 @@ struct sodshock_ctx
   int integrated_mom_calcs; // Number of times to calculate integrated moments.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
+
+  // Neural network parameters.
+  bool use_nn_closure; // Use neural network-based closure?
+  int poly_order; // Polynomial order of learned DG coefficients.
+  const char* nn_closure_file; // File path of neural network to use.
 };
 
 struct sodshock_ctx
@@ -73,6 +79,11 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
+  // Neural network parameters.
+  bool use_nn_closure = false; // Use neural network-based closure?
+  int poly_order = 1; // Polynomial order of learned DG coefficients.
+  const char* nn_closure_file = "data/neural_nets/pkpm_periodic_es_shock_p1_moms_nn_1"; // File path of neural network to use.
+
   struct sodshock_ctx ctx = {
     .rhol = rhol,
     .ul = ul,
@@ -90,6 +101,9 @@ create_ctx(void)
     .integrated_mom_calcs = integrated_mom_calcs,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
+    .use_nn_closure = use_nn_closure,
+    .poly_order = poly_order,
+    .nn_closure_file = nn_closure_file,
   };
 
   return ctx;
@@ -195,8 +209,26 @@ main(int argc, char **argv)
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
+  kann_t **ann = gkyl_malloc(sizeof(kann_t*) * 1);
+  if (ctx.use_nn_closure) {
+    const char *fmt_10m = "%s-%s.dat";
+    int sz_10m = gkyl_calc_strlen(fmt_10m, ctx.nn_closure_file, "10m");
+    char fileNm_10m[sz_10m + 1];
+    snprintf(fileNm_10m, sizeof fileNm_10m, fmt_10m, ctx.nn_closure_file, "10m");
+    FILE *file_10m = fopen(fileNm_10m, "r");
+    if (file_10m != NULL) {
+      ann[0] = kann_load(fileNm_10m);
+      fclose(file_10m);
+    }
+    else {
+      ann[0] = 0;
+      ctx.use_nn_closure = false;
+      fprintf(stderr, "Neural network for 10m species not found! Disabling NN-based closure.\n");
+    }
+  }
+
   // Fluid equations.
-  struct gkyl_wv_eqn *ten_moment = gkyl_wv_ten_moment_new(ctx.k0, false, app_args.use_gpu);
+  struct gkyl_wv_eqn *ten_moment = gkyl_wv_ten_moment_new(ctx.k0, false, ctx.use_nn_closure, ctx.poly_order, ann[0], app_args.use_gpu);
 
   struct gkyl_moment_species fluid = {
     .name = "10m",
@@ -394,6 +426,11 @@ main(int argc, char **argv)
   calc_field_energy(&fe_trig, app, t_curr, false);
   calc_integrated_mom(&im_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
+  if (ctx.use_nn_closure) {
+    for (int i = 0; i < app_inp.num_species; i++) {
+      kann_delete(ann[i]);
+    }
+  }
   gkyl_moment_app_stat_write(app);
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
@@ -410,7 +447,8 @@ freeresources:
   // Free resources after simulation completion.
   gkyl_wv_eqn_release(ten_moment);
   gkyl_comm_release(comm);
-  gkyl_moment_app_release(app);  
+  gkyl_moment_app_release(app);
+  gkyl_free(ann);
   
 mpifinalize:
 #ifdef GKYL_HAVE_MPI
