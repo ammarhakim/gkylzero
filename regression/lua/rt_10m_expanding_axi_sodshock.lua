@@ -33,6 +33,11 @@ dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
 num_failures_max = 20 -- Maximum allowable number of consecutive small time-steps.
 rloc = 0.5 * (0.25 + 1.25) -- Fluid boundary (radial coordinate).
 
+-- Neural network parameters.
+use_nn_closure = false -- Use neural network-based closure?
+poly_order = 1 -- Polynomial order of learned DG coefficients.
+nn_closure_file = "data/neural_nets/pkpm_ot_p1_moms_nn_1" -- File path of neural network to use.
+
 momentApp = Moments.App.new {
   tEnd = t_end,
   nFrame = num_frames,
@@ -61,7 +66,13 @@ momentApp = Moments.App.new {
   
   -- Fluid.
   fluid = Moments.Species.new {
-    equation = TenMoment.new { k0 = k0 },
+    equation = TenMoment.new {
+      k0 = k0,
+      hasNNClosure = use_nn_closure,
+      polyOrder = poly_order,
+      NNClosureFile = nn_closure_file,
+      NNSpeciesName = "elc"
+    },
 
     hasVolumeSources = true,
     volumeGasGamma = gas_gamma,

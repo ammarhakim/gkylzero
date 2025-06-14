@@ -44,6 +44,11 @@ integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated m
 dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
 num_failures_max = 20 -- Maximum allowable number of consecutive small time-steps.
 
+-- Neural network parameters.
+use_nn_closure = false -- Use neural network-based closure?
+poly_order = 1 -- Polynomial order of learned DG coefficients.
+nn_closure_file = "data/neural_nets/pkpm_periodic_es_shock_p1_moms_nn_1" -- File path of neural network to use.
+
 momentApp = Moments.App.new {
 
   tEnd = t_end,
@@ -71,7 +76,11 @@ momentApp = Moments.App.new {
     charge = charge_elc, mass = mass_elc,
     equation = TenMoment.new {
       k0 = k0,
-      hasGradClosure = true
+      hasGradClosure = true,
+      hasNNClosure = use_nn_closure,
+      polyOrder = poly_order,
+      NNClosureFile = nn_closure_file,
+      NNSpeciesName = "elc"
     },
 
     -- Initial conditions function.
@@ -111,7 +120,11 @@ momentApp = Moments.App.new {
     charge = charge_ion, mass = mass_ion,
     equation = TenMoment.new {
       k0 = k0,
-      hasGradClosure = true
+      hasGradClosure = true,
+      hasNNClosure = use_nn_closure,
+      polyOrder = poly_order,
+      NNClosureFile = nn_closure_file,
+      NNSpeciesName = "ion"
     },
 
     -- Initial conditions function.

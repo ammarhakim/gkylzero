@@ -31,12 +31,22 @@ wv_ten_moment_set_cu_dev_ptrs(struct wv_ten_moment *ten_moment)
 }
 
 struct gkyl_wv_eqn*
-gkyl_wv_ten_moment_cu_dev_new(double k0, bool use_grad_closure)
+gkyl_wv_ten_moment_cu_dev_inew(const struct gkyl_wv_ten_moment_inp *inp)
 {
+  double k0 = inp->k0;
+  bool use_grad_closure = inp->use_grad_closure;
+  bool use_nn_closure = inp->use_nn_closure;
+  int poly_order = inp->poly_order;
+  kann_t* ann = inp->ann;
+  bool use_gpu = inp->use_gpu;
+
   struct wv_ten_moment *ten_moment = (struct wv_ten_moment*) gkyl_malloc(sizeof(struct wv_ten_moment));
 
   ten_moment->k0 = k0;
   ten_moment->use_grad_closure = use_grad_closure;
+  ten_moment->use_nn_closure = use_nn_closure;
+  ten_moment->poly_order = poly_order;
+  ten_moment->ann = ann;
 
   ten_moment->eqn.type = GKYL_EQN_TEN_MOMENT;
   ten_moment->eqn.num_equations = 10;
@@ -55,4 +65,19 @@ gkyl_wv_ten_moment_cu_dev_new(double k0, bool use_grad_closure)
 
   ten_moment->eqn.on_dev = &ten_moment_cu->eqn; // CPU eqn obj points to itself
   return &ten_moment->eqn;
+}
+
+struct gkyl_wv_eqn*
+gkyl_wv_ten_moment_cu_dev_new(double k0, bool use_grad_closure, bool use_nn_closure, int poly_order, kann_t* ann, bool use_gpu)
+{
+  struct gkyl_wv_ten_moment_inp ten_moment_inp = {
+    .k0 = k0,
+    .use_grad_closure = use_grad_closure,
+    .use_nn_closure = use_nn_closure,
+    .poly_order = poly_order,
+    .ann = ann,
+    .use_gpu = use_gpu,
+  };
+
+  return gkyl_wv_ten_moment_cu_dev_inew(&ten_moment_inp);
 }
