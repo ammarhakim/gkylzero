@@ -814,8 +814,11 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
           &app->local, &s->local, &s->local_ext, app->field->phi_smooth,
           s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
 
-        // Compute and store (in the ghost cell of of out) the boundary fluxes.
+        // Compute and store (in the ghost cell of out) the boundary fluxes.
         gk_species_bflux_rhs(app, &s->bflux, distf[i], distf[i]);
+
+        // Adapt the source term to the initial condition.
+        gk_species_source_adapt(app, s, &s->src, s->lte.f_lte, 0.0);
       }
     }
 
@@ -1479,9 +1482,9 @@ gkyl_gyrokinetic_app_calc_integrated_mom(gkyl_gyrokinetic_app* app, double tm)
 {
   for (int i=0; i<app->num_species; ++i) {
     gkyl_gyrokinetic_app_calc_species_integrated_mom(app, i, tm);
-    gkyl_gyrokinetic_app_calc_species_source_integrated_mom(app, i, tm);
     gkyl_gyrokinetic_app_calc_species_rad_integrated_mom(app, i, tm);
     gkyl_gyrokinetic_app_calc_species_boundary_flux_integrated_mom(app, i, tm);
+    gkyl_gyrokinetic_app_calc_species_source_integrated_mom(app, i, tm);
   }
 
   for (int i=0; i<app->num_neut_species; ++i) {
@@ -2515,11 +2518,12 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
       // this may require removing 'const' from a lot of places.
       gyrokinetic_calc_field(app, rstat.stime, (const struct gkyl_array **) distf);
     }
-    else
+    else {
       // Read the t=0 field.
       gkyl_gyrokinetic_app_from_frame_field(app, 0);
+    }
 
-    // Compute boundary fluxes, for recycling and diagnostics.
+    // Compute boundary fluxes, for recycling and diagnostics and adapt the source.
     for (int i=0; i<app->num_species; ++i) {
       struct gk_species *s = &app->species[i];
 
@@ -2530,6 +2534,9 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
 
       // Compute and store (in the ghost cell of of out) the boundary fluxes.
       gk_species_bflux_rhs(app, &s->bflux, distf[i], distf[i]);
+
+      // Adapt the source term to the restart condition.
+      gk_species_source_adapt(app, s, &s->src, s->lte.f_lte, 0.0);
     }
 
     // Apply boundary conditions.
@@ -2542,7 +2549,6 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
   }
   app->field->is_first_energy_write_call = false; // Append to existing diagnostic.
   app->field->is_first_energy_dot_write_call = false; // Append to existing diagnostic.
-
   return rstat;
 }
 

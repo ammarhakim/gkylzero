@@ -1443,6 +1443,22 @@ gk_species_do_I_recycle(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
   return recycling_bcs;
 }
 
+static bool
+gk_species_do_I_adapt_src(struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
+{
+  // Check whether one of the species adapts its source depending on
+  // this gyrokinetic species.
+  bool adapt_src = false;
+  for (int i=0; i<app->num_species; ++i) {
+    struct gkyl_gyrokinetic_source *source = &app->species[i].info.source;
+    if (source->num_adapt_sources > 0) {
+      for (int j=0; j<source->num_adapt_sources; j++)
+        adapt_src = adapt_src || 0 == strcmp(gks->info.name, source->adapt[j].adapt_to_species);
+    }
+  }
+  return adapt_src;
+}
+
 void
 gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
@@ -1724,7 +1740,6 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->bflux = (struct gk_boundary_fluxes) { };
   // Additional bflux moments to step in time.
   struct gkyl_phase_diagnostics_inp add_bflux_moms_inp = (struct gkyl_phase_diagnostics_inp) { };
-  // Set the operation type for the bflux app.
   enum gkyl_species_bflux_type bflux_type = GK_SPECIES_BFLUX_NONE;
   if (gks->info.boundary_flux_diagnostics.num_diag_moments > 0 ||
       gks->info.boundary_flux_diagnostics.num_integrated_diag_moments > 0) {
@@ -1741,10 +1756,14 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     // Recycling BCs require the fluxes. Since this depends on other species,
     // it'll be checked in .
     bool recycling_bcs = gk_species_do_I_recycle(app, gks);
+    // Check if any of the sources are adaptive.
+    bool adaptive_sources = gk_species_do_I_adapt_src(app, gks);
    
-    if (boltz_elc_field || recycling_bcs)
+    if (boltz_elc_field || recycling_bcs || adaptive_sources) {
       bflux_type = GK_SPECIES_BFLUX_CALC_FLUX;
+    }
   }
+
   // Introduce new moments into moms_inp if needed.
   gk_species_bflux_init(app, gks, &gks->bflux, bflux_type, add_bflux_moms_inp);
   
