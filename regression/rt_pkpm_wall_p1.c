@@ -579,10 +579,21 @@ main(int argc, char **argv)
         char fileNm[sz + 1];
         snprintf(fileNm, sizeof fileNm, fmt, ctx.train_nn_file, app_inp.species[i].name);
 
-        ann[i] = kann_load(fileNm);
+        FILE *file = fopen(fileNm, "r");
+        if (file != NULL) {
+          ann[i] = kann_load(fileNm);
+          fclose(file);
+        }
+        else {
+          ann[i] = 0;
+          ctx.train_nn = false;
+          fprintf(stderr, "Neural network for species %s not found! Disabling NN training.\n", app_inp.species[i].name);
+        }
       }
     }
+  }
 
+  if (ctx.train_nn) {
     train_mom(&nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
   }
 
@@ -606,9 +617,20 @@ main(int argc, char **argv)
       char fileNm[sz + 1];
       snprintf(fileNm, sizeof fileNm, fmt, ctx.test_nn_file, app_inp.species[i].name);
 
-      ann_test[i] = kann_load(fileNm);
+      FILE *file = fopen(fileNm, "r");
+      if (file != NULL) {
+        ann_test[i] = kann_load(fileNm);
+        fclose(file);
+      }
+      else {
+        ann_test[i] = 0;
+        ctx.test_nn = false;
+        fprintf(stderr, "Neural network for species %s not found! Disabling NN testing.\n", app_inp.species[i].name);
+      }
     }
+  }
 
+  if (ctx.test_nn) {
     test_mom(&nnt_trig, app, t_curr, false, ann_test, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
   }
 
