@@ -366,6 +366,9 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     if(src->num_adapt_sources > 0){
       src->adapt_func = gk_species_source_adapt_dynamic;
       for (int k = 0; k < src->num_adapt_sources; ++k) {
+        // Adaptive source must be a Maxwellian Gaussian projection.
+        assert(src->proj_source[k].proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN);
+
         struct gk_adapt_source *adapt_src = &src->adapt[k];
 
         adapt_src->adapt_particle = s->info.source.adapt[k].adapt_particle;
