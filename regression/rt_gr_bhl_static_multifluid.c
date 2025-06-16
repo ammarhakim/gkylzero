@@ -89,11 +89,11 @@ create_ctx(void)
 
   double rhol_ion = 3.0; // Left ion mass density.
   double ul = 0.3; // Left electron/ion velocity.
-  double pl = 0.05; // Left electron/ion pressure.
+  double pl = 3.0; // Left electron/ion pressure.
 
-  double rhor_ion = 0.01; // Right ion mass density.
+  double rhor_ion = 1.0; // Right ion mass density.
   double ur = 0.0; // Right electron/ion velocity.
-  double pr = 0.01; // Right electron/ion pressure.
+  double pr = 1.0; // Right electron/ion pressure.
 
   double light_speed = 1.0; // Speed of light.
   double e_fact = 0.0; // Factor of speed of light for electric field correction.
@@ -124,8 +124,8 @@ create_ctx(void)
   enum gkyl_spacetime_gauge spacetime_gauge = GKYL_STATIC_GAUGE; // Spacetime gauge choice.
   int reinit_freq = 100; // Spacetime reinitialization frequency.
 
-  double t_end = 15.0; // Final simulation time.
-  int num_frames = 100; // Number of output frames.
+  double t_end = 4.0; // Final simulation time.
+  int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.

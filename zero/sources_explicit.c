@@ -1021,8 +1021,8 @@ explicit_gr_euler_source_update(const gkyl_moment_em_coupling* mom_em, double t_
 }
 
 void
-explicit_gr_twofluid_source_update_elc_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma_elc, const double mass_elc, const double charge_elc,
-  double t_curr, const double dt, double* fluid_old, double* fluid_new)
+explicit_gr_twofluid_source_update_elc_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma_elc, const double mass_elc,
+  const double charge_elc, double t_curr, const double dt, double* fluid_old, double* fluid_new)
 {
   for (int i = 0; i < 84; i++) {
     fluid_new[i] = fluid_old[i];
@@ -1030,6 +1030,11 @@ explicit_gr_twofluid_source_update_elc_euler(const gkyl_moment_em_coupling* mom_
 
   double Dx = fluid_old[10], Dy = fluid_old[11], Dz = fluid_old[12];
   double Bx = fluid_old[13], By = fluid_old[14], Bz = fluid_old[15];
+
+  double lapse = fluid_old[18];
+  double shift_x = fluid_old[19];
+  double shift_y = fluid_old[20];
+  double shift_z = fluid_old[21];
 
   double spatial_metric[3][3];
   spatial_metric[0][0] = fluid_old[22]; spatial_metric[0][1] = fluid_old[23]; spatial_metric[0][2] = fluid_old[24];
@@ -1039,6 +1044,26 @@ explicit_gr_twofluid_source_update_elc_euler(const gkyl_moment_em_coupling* mom_
   bool in_excision_region = false;
   if (fluid_old[40] < pow(10.0, -8.0)) {
     in_excision_region = true;
+  }
+
+  bool curved_spacetime = false;
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      if (i == j) {
+        if (fabs(spatial_metric[i][j] - 1.0) > pow(10.0, -8.0)) {
+          curved_spacetime = true;
+        }
+      }
+      else {
+        if (fabs(spatial_metric[i][j]) > pow(10.0, -8.0)) {
+          curved_spacetime = true;
+        }
+      }
+    }
+  }
+  if (fabs(lapse - 1.0) > pow(10.0, -8.0) || fabs(shift_x) > pow(10.0, -8.0) || fabs(shift_y) > pow(10.0, -8.0) ||
+    fabs(shift_z) > pow(10.0, -8.0)) {
+    curved_spacetime = true;
   }
 
   if (!in_excision_region) {
@@ -1053,7 +1078,8 @@ explicit_gr_twofluid_source_update_elc_euler(const gkyl_moment_em_coupling* mom_
     double Etot_elc = fluid_old[4] / sqrt(spatial_det);
 
     double C_elc = D_elc / sqrt(((Etot_elc + D_elc) * (Etot_elc + D_elc)) - ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)));
-    double C0_elc = (D_elc + Etot_elc) / sqrt(((Etot_elc + D_elc) * (Etot_elc + D_elc)) - ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)));
+    double C0_elc = (D_elc + Etot_elc) / sqrt(((Etot_elc + D_elc) * (Etot_elc + D_elc)) - ((momx_elc * momx_elc) + (momy_elc * momy_elc) +
+      (momz_elc * momz_elc)));
     if (((Etot_elc + D_elc) * (Etot_elc + D_elc)) - ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)) < pow(10.0, -8.0)) {
       C_elc = D_elc / sqrt(pow(10.0, -8.0));
       C0_elc = (D_elc + Etot_elc) / sqrt(pow(10.0, -8.0));
@@ -1061,8 +1087,8 @@ explicit_gr_twofluid_source_update_elc_euler(const gkyl_moment_em_coupling* mom_
 
     double alpha0_elc = -1.0 / (gas_gamma_elc * gas_gamma_elc);
     double alpha1_elc = -2.0 * C_elc * ((gas_gamma_elc - 1.0) / (gas_gamma_elc * gas_gamma_elc));
-    double alpha2_elc = ((gas_gamma_elc - 2.0) / gas_gamma_elc) * ((C0_elc * C0_elc) - 1.0) + 1.0 - (C_elc * C_elc) * ((gas_gamma_elc - 1.0) / gas_gamma_elc) *
-      ((gas_gamma_elc - 1.0) / gas_gamma_elc);
+    double alpha2_elc = ((gas_gamma_elc - 2.0) / gas_gamma_elc) * ((C0_elc * C0_elc) - 1.0) + 1.0 - (C_elc * C_elc) *
+      ((gas_gamma_elc - 1.0) / gas_gamma_elc) * ((gas_gamma_elc - 1.0) / gas_gamma_elc);
     double alpha4_elc = (C0_elc * C0_elc) - 1.0;
     double eta_elc = 2.0 * C_elc *((gas_gamma_elc - 1.0) / gas_gamma_elc);
 
@@ -1111,7 +1137,8 @@ explicit_gr_twofluid_source_update_elc_euler(const gkyl_moment_em_coupling* mom_
       (rho_elc * h_elc * (W_elc * W_elc))) * (rho_elc * h_elc * (W_elc * W_elc)) * ((vx_elc * By) - (vy_elc * Bx))))))) / (rho_elc * h_elc * (W_elc * W_elc));
     
     double p_elc_new = ((p_elc - (rho_elc * h_elc * (W_elc * W_elc))) - (dt * ((charge_elc / mass_elc) * (((rho_elc * W_elc) /
-      (rho_elc * h_elc * (W_elc * W_elc))) * (rho_elc * h_elc * (W_elc * W_elc)) * ((vx_elc * Dx) + (vy_elc * Dy) + (vz_elc * Dz)))))) + (rho_elc * h_elc * (W_elc * W_elc));
+      (rho_elc * h_elc * (W_elc * W_elc))) * (rho_elc * h_elc * (W_elc * W_elc)) * ((vx_elc * Dx) + (vy_elc * Dy) + (vz_elc * Dz)))))) +
+      (rho_elc * h_elc * (W_elc * W_elc));
     
     double *vel_elc_new = gkyl_malloc(sizeof(double[3]));
     double v_sq_elc_new = 0.0;
@@ -1130,17 +1157,29 @@ explicit_gr_twofluid_source_update_elc_euler(const gkyl_moment_em_coupling* mom_
   
     double h_elc_new = 1.0 + ((p_elc_new / rho_elc) * (gas_gamma_elc / (gas_gamma_elc - 1.0)));
 
-    fluid_new[0] = sqrt(spatial_det) * rho_elc * W_elc_new;
-    fluid_new[1] = sqrt(spatial_det) * rho_elc * h_elc_new * (W_elc_new * W_elc_new) * vx_elc_new;
-    fluid_new[2] = sqrt(spatial_det) * rho_elc * h_elc_new * (W_elc_new * W_elc_new) * vy_elc_new;
-    fluid_new[3] = sqrt(spatial_det) * rho_elc * h_elc_new * (W_elc_new * W_elc_new) * vz_elc_new;
-    fluid_new[4] = sqrt(spatial_det) * ((rho_elc * h_elc_new * (W_elc_new * W_elc_new)) - p_elc_new - (rho_elc * W_elc_new));
+    if (!curved_spacetime) {
+      fluid_new[0] = sqrt(spatial_det) * rho_elc * W_elc_new;
+      fluid_new[1] = sqrt(spatial_det) * rho_elc * h_elc_new * (W_elc_new * W_elc_new) * vx_elc_new;
+      fluid_new[2] = sqrt(spatial_det) * rho_elc * h_elc_new * (W_elc_new * W_elc_new) * vy_elc_new;
+      fluid_new[3] = sqrt(spatial_det) * rho_elc * h_elc_new * (W_elc_new * W_elc_new) * vz_elc_new;
+      fluid_new[4] = sqrt(spatial_det) * ((rho_elc * h_elc_new * (W_elc_new * W_elc_new)) - p_elc_new - (rho_elc * W_elc_new));
+    }
+    else {
+      fluid_new[1] += sqrt(spatial_det) * rho_elc * (dt * ((charge_elc / mass_elc) * (((rho_elc * W_elc) * Dx) + (((rho_elc * W_elc) /
+        (rho_elc * h_elc * (W_elc * W_elc))) * (rho_elc * h_elc * (W_elc * W_elc)) * ((vy_elc * Bz) - (vz_elc * By)))))) / (rho_elc * h_elc * (W_elc * W_elc));
+      fluid_new[2] += sqrt(spatial_det) * rho_elc * (dt * ((charge_elc / mass_elc) * (((rho_elc * W_elc) * Dy) + (((rho_elc * W_elc) /
+        (rho_elc * h_elc * (W_elc * W_elc))) * (rho_elc * h_elc * (W_elc * W_elc)) * ((vz_elc * Bx) - (vx_elc * Bz)))))) / (rho_elc * h_elc * (W_elc * W_elc));
+      fluid_new[3] += sqrt(spatial_det) * rho_elc * (dt * ((charge_elc / mass_elc) * (((rho_elc * W_elc) * Dz) + (((rho_elc * W_elc) /
+        (rho_elc * h_elc * (W_elc * W_elc))) * (rho_elc * h_elc * (W_elc * W_elc)) * ((vx_elc * By) - (vy_elc * Bx)))))) / (rho_elc * h_elc * (W_elc * W_elc));
+      fluid_new[4] -= sqrt(spatial_det) * rho_elc * (dt * ((charge_elc / mass_elc) * (((rho_elc * W_elc) / (rho_elc * h_elc * (W_elc * W_elc))) *
+        (rho_elc * h_elc * (W_elc * W_elc)) * ((vx_elc * Dx) + (vy_elc * Dy) + (vz_elc * Dz)))));
+    }
   }
 }
 
 void
-explicit_gr_twofluid_source_update_ion_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma_ion, const double mass_ion, const double charge_ion,
-  double t_curr, const double dt, double* fluid_old, double* fluid_new)
+explicit_gr_twofluid_source_update_ion_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma_ion, const double mass_ion,
+  const double charge_ion, double t_curr, const double dt, double* fluid_old, double* fluid_new)
 {
   for (int i = 0; i < 84; i++) {
     fluid_new[i] = fluid_old[i];
@@ -1148,6 +1187,11 @@ explicit_gr_twofluid_source_update_ion_euler(const gkyl_moment_em_coupling* mom_
 
   double Dx = fluid_old[10], Dy = fluid_old[11], Dz = fluid_old[12];
   double Bx = fluid_old[13], By = fluid_old[14], Bz = fluid_old[15];
+
+  double lapse = fluid_old[18];
+  double shift_x = fluid_old[19];
+  double shift_y = fluid_old[20];
+  double shift_z = fluid_old[21];
 
   double spatial_metric[3][3];
   spatial_metric[0][0] = fluid_old[22]; spatial_metric[0][1] = fluid_old[23]; spatial_metric[0][2] = fluid_old[24];
@@ -1157,6 +1201,26 @@ explicit_gr_twofluid_source_update_ion_euler(const gkyl_moment_em_coupling* mom_
   bool in_excision_region = false;
   if (fluid_old[40] < pow(10.0, -8.0)) {
     in_excision_region = true;
+  }
+
+  bool curved_spacetime = false;
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      if (i == j) {
+        if (fabs(spatial_metric[i][j] - 1.0) > pow(10.0, -8.0)) {
+          curved_spacetime = true;
+        }
+      }
+      else {
+        if (fabs(spatial_metric[i][j]) > pow(10.0, -8.0)) {
+          curved_spacetime = true;
+        }
+      }
+    }
+  }
+  if (fabs(lapse - 1.0) > pow(10.0, -8.0) || fabs(shift_x) > pow(10.0, -8.0) || fabs(shift_y) > pow(10.0, -8.0) ||
+    fabs(shift_z) > pow(10.0, -8.0)) {
+    curved_spacetime = true;
   }
 
   if (!in_excision_region) {
@@ -1171,7 +1235,8 @@ explicit_gr_twofluid_source_update_ion_euler(const gkyl_moment_em_coupling* mom_
     double Etot_ion = fluid_old[9] / sqrt(spatial_det);
 
     double C_ion = D_ion / sqrt(((Etot_ion + D_ion) * (Etot_ion + D_ion)) - ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)));
-    double C0_ion = (D_ion + Etot_ion) / sqrt(((Etot_ion + D_ion) * (Etot_ion + D_ion)) - ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)));
+    double C0_ion = (D_ion + Etot_ion) / sqrt(((Etot_ion + D_ion) * (Etot_ion + D_ion)) - ((momx_ion * momx_ion) + (momy_ion * momy_ion) +
+      (momz_ion * momz_ion)));
     if (((Etot_ion + D_ion) * (Etot_ion + D_ion)) - ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)) < pow(10.0, -8.0)) {
       C_ion = D_ion / sqrt(pow(10.0, -8.0));
       C0_ion = (D_ion + Etot_ion) / sqrt(pow(10.0, -8.0));
@@ -1179,8 +1244,8 @@ explicit_gr_twofluid_source_update_ion_euler(const gkyl_moment_em_coupling* mom_
 
     double alpha0_ion = -1.0 / (gas_gamma_ion * gas_gamma_ion);
     double alpha1_ion = -2.0 * C_ion * ((gas_gamma_ion - 1.0) / (gas_gamma_ion * gas_gamma_ion));
-    double alpha2_ion = ((gas_gamma_ion - 2.0) / gas_gamma_ion) * ((C0_ion * C0_ion) - 1.0) + 1.0 - (C_ion * C_ion) * ((gas_gamma_ion - 1.0) / gas_gamma_ion) *
-      ((gas_gamma_ion - 1.0) / gas_gamma_ion);
+    double alpha2_ion = ((gas_gamma_ion - 2.0) / gas_gamma_ion) * ((C0_ion * C0_ion) - 1.0) + 1.0 - (C_ion * C_ion) *
+      ((gas_gamma_ion - 1.0) / gas_gamma_ion) * ((gas_gamma_ion - 1.0) / gas_gamma_ion);
     double alpha4_ion = (C0_ion * C0_ion) - 1.0;
     double eta_ion = 2.0 * C_ion *((gas_gamma_ion - 1.0) / gas_gamma_ion);
 
@@ -1229,7 +1294,8 @@ explicit_gr_twofluid_source_update_ion_euler(const gkyl_moment_em_coupling* mom_
       (rho_ion * h_ion * (W_ion * W_ion))) * (rho_ion * h_ion * (W_ion * W_ion)) * ((vx_ion * By) - (vy_ion * Bx))))))) / (rho_ion * h_ion * (W_ion * W_ion));
     
     double p_ion_new = ((p_ion - (rho_ion * h_ion * (W_ion * W_ion))) - (dt * ((charge_ion / mass_ion) * (((rho_ion * W_ion) /
-      (rho_ion * h_ion * (W_ion * W_ion))) * (rho_ion * h_ion * (W_ion * W_ion)) * ((vx_ion * Dx) + (vy_ion * Dy) + (vz_ion * Dz)))))) + (rho_ion * h_ion * (W_ion * W_ion));
+      (rho_ion * h_ion * (W_ion * W_ion))) * (rho_ion * h_ion * (W_ion * W_ion)) * ((vx_ion * Dx) + (vy_ion * Dy) + (vz_ion * Dz)))))) +
+      (rho_ion * h_ion * (W_ion * W_ion));
     
     double *vel_ion_new = gkyl_malloc(sizeof(double[3]));
     double v_sq_ion_new = 0.0;
@@ -1248,11 +1314,23 @@ explicit_gr_twofluid_source_update_ion_euler(const gkyl_moment_em_coupling* mom_
   
     double h_ion_new = 1.0 + ((p_ion_new / rho_ion) * (gas_gamma_ion / (gas_gamma_ion - 1.0)));
 
-    fluid_new[5] = sqrt(spatial_det) * rho_ion * W_ion_new;
-    fluid_new[6] = sqrt(spatial_det) * rho_ion * h_ion_new * (W_ion_new * W_ion_new) * vx_ion_new;
-    fluid_new[7] = sqrt(spatial_det) * rho_ion * h_ion_new * (W_ion_new * W_ion_new) * vy_ion_new;
-    fluid_new[8] = sqrt(spatial_det) * rho_ion * h_ion_new * (W_ion_new * W_ion_new) * vz_ion_new;
-    fluid_new[9] = sqrt(spatial_det) * ((rho_ion * h_ion_new * (W_ion_new * W_ion_new)) - p_ion_new - (rho_ion * W_ion_new));
+    if (!curved_spacetime) {
+      fluid_new[5] = sqrt(spatial_det) * rho_ion * W_ion_new;
+      fluid_new[6] = sqrt(spatial_det) * rho_ion * h_ion_new * (W_ion_new * W_ion_new) * vx_ion_new;
+      fluid_new[7] = sqrt(spatial_det) * rho_ion * h_ion_new * (W_ion_new * W_ion_new) * vy_ion_new;
+      fluid_new[8] = sqrt(spatial_det) * rho_ion * h_ion_new * (W_ion_new * W_ion_new) * vz_ion_new;
+      fluid_new[9] = sqrt(spatial_det) * ((rho_ion * h_ion_new * (W_ion_new * W_ion_new)) - p_ion_new - (rho_ion * W_ion_new));
+    }
+    else {
+      fluid_new[6] += sqrt(spatial_det) * rho_ion * (dt * ((charge_ion / mass_ion) * (((rho_ion * W_ion) * Dx) + (((rho_ion * W_ion) /
+        (rho_ion * h_ion * (W_ion * W_ion))) * (rho_ion * h_ion * (W_ion * W_ion)) * ((vy_ion * Bz) - (vz_ion * By)))))) / (rho_ion * h_ion * (W_ion * W_ion));
+      fluid_new[7] += sqrt(spatial_det) * rho_ion * (dt * ((charge_ion / mass_ion) * (((rho_ion * W_ion) * Dy) + (((rho_ion * W_ion) /
+        (rho_ion * h_ion * (W_ion * W_ion))) * (rho_ion * h_ion * (W_ion * W_ion)) * ((vz_ion * Bx) - (vx_ion * Bz)))))) / (rho_ion * h_ion * (W_ion * W_ion));
+      fluid_new[8] += sqrt(spatial_det) * rho_ion * (dt * ((charge_ion / mass_ion) * (((rho_ion * W_ion) * Dz) + (((rho_ion * W_ion) /
+        (rho_ion * h_ion * (W_ion * W_ion))) * (rho_ion * h_ion * (W_ion * W_ion)) * ((vx_ion * By) - (vy_ion * Bx)))))) / (rho_ion * h_ion * (W_ion * W_ion));
+      fluid_new[9] -= sqrt(spatial_det) * rho_ion * (dt * ((charge_ion / mass_ion) * (((rho_ion * W_ion) / (rho_ion * h_ion * (W_ion * W_ion))) *
+        (rho_ion * h_ion * (W_ion * W_ion)) * ((vx_ion * Dx) + (vy_ion * Dy) + (vz_ion * Dz)))));
+    }
   }
 }
 
@@ -1288,7 +1366,8 @@ explicit_gr_twofluid_source_update_em_euler(const gkyl_moment_em_coupling* mom_e
     double Etot_elc = fluid_old[4] / sqrt(spatial_det);
 
     double C_elc = D_elc / sqrt(((Etot_elc + D_elc) * (Etot_elc + D_elc)) - ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)));
-    double C0_elc = (D_elc + Etot_elc) / sqrt(((Etot_elc + D_elc) * (Etot_elc + D_elc)) - ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)));
+    double C0_elc = (D_elc + Etot_elc) / sqrt(((Etot_elc + D_elc) * (Etot_elc + D_elc)) - ((momx_elc * momx_elc) + (momy_elc * momy_elc) +
+      (momz_elc * momz_elc)));
     if (((Etot_elc + D_elc) * (Etot_elc + D_elc)) - ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)) < pow(10.0, -8.0)) {
       C_elc = D_elc / sqrt(pow(10.0, -8.0));
       C0_elc = (D_elc + Etot_elc) / sqrt(pow(10.0, -8.0));
@@ -1296,8 +1375,8 @@ explicit_gr_twofluid_source_update_em_euler(const gkyl_moment_em_coupling* mom_e
 
     double alpha0_elc = -1.0 / (gas_gamma_elc * gas_gamma_elc);
     double alpha1_elc = -2.0 * C_elc * ((gas_gamma_elc - 1.0) / (gas_gamma_elc * gas_gamma_elc));
-    double alpha2_elc = ((gas_gamma_elc - 2.0) / gas_gamma_elc) * ((C0_elc * C0_elc) - 1.0) + 1.0 - (C_elc * C_elc) * ((gas_gamma_elc - 1.0) / gas_gamma_elc) *
-      ((gas_gamma_elc - 1.0) / gas_gamma_elc);
+    double alpha2_elc = ((gas_gamma_elc - 2.0) / gas_gamma_elc) * ((C0_elc * C0_elc) - 1.0) + 1.0 - (C_elc * C_elc) *
+      ((gas_gamma_elc - 1.0) / gas_gamma_elc) * ((gas_gamma_elc - 1.0) / gas_gamma_elc);
     double alpha4_elc = (C0_elc * C0_elc) - 1.0;
     double eta_elc = 2.0 * C_elc *((gas_gamma_elc - 1.0) / gas_gamma_elc);
 
@@ -1345,7 +1424,8 @@ explicit_gr_twofluid_source_update_em_euler(const gkyl_moment_em_coupling* mom_e
     double Etot_ion = fluid_old[9] / sqrt(spatial_det);
 
     double C_ion = D_ion / sqrt(((Etot_ion + D_ion) * (Etot_ion + D_ion)) - ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)));
-    double C0_ion = (D_ion + Etot_ion) / sqrt(((Etot_ion + D_ion) * (Etot_ion + D_ion)) - ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)));
+    double C0_ion = (D_ion + Etot_ion) / sqrt(((Etot_ion + D_ion) * (Etot_ion + D_ion)) - ((momx_ion * momx_ion) + (momy_ion * momy_ion) +
+      (momz_ion * momz_ion)));
     if (((Etot_ion + D_ion) * (Etot_ion + D_ion)) - ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)) < pow(10.0, -8.0)) {
       C_ion = D_ion / sqrt(pow(10.0, -8.0));
       C0_ion = (D_ion + Etot_ion) / sqrt(pow(10.0, -8.0));
@@ -1353,8 +1433,8 @@ explicit_gr_twofluid_source_update_em_euler(const gkyl_moment_em_coupling* mom_e
 
     double alpha0_ion = -1.0 / (gas_gamma_ion * gas_gamma_ion);
     double alpha1_ion = -2.0 * C_ion * ((gas_gamma_ion - 1.0) / (gas_gamma_ion * gas_gamma_ion));
-    double alpha2_ion = ((gas_gamma_ion - 2.0) / gas_gamma_ion) * ((C0_ion * C0_ion) - 1.0) + 1.0 - (C_ion * C_ion) * ((gas_gamma_ion - 1.0) / gas_gamma_ion) *
-      ((gas_gamma_ion - 1.0) / gas_gamma_ion);
+    double alpha2_ion = ((gas_gamma_ion - 2.0) / gas_gamma_ion) * ((C0_ion * C0_ion) - 1.0) + 1.0 - (C_ion * C_ion) *
+      ((gas_gamma_ion - 1.0) / gas_gamma_ion) * ((gas_gamma_ion - 1.0) / gas_gamma_ion);
     double alpha4_ion = (C0_ion * C0_ion) - 1.0;
     double eta_ion = 2.0 * C_ion *((gas_gamma_ion - 1.0) / gas_gamma_ion);
 
@@ -1495,7 +1575,8 @@ explicit_gr_twofluid_source_update_elc_spacetime_euler(const gkyl_moment_em_coup
 
     double alpha0_elc = -1.0 / (gas_gamma_elc * gas_gamma_elc);
     double alpha1_elc = -2.0 * C_elc * ((gas_gamma_elc - 1.0) / (gas_gamma_elc * gas_gamma_elc));
-    double alpha2_elc = ((gas_gamma_elc - 2.0) / gas_gamma_elc) * ((C0_elc * C0_elc) - 1.0) + 1.0 - (C_elc * C_elc) * ((gas_gamma_elc - 1.0) / gas_gamma_elc) * ((gas_gamma_elc - 1.0) / gas_gamma_elc);
+    double alpha2_elc = ((gas_gamma_elc - 2.0) / gas_gamma_elc) * ((C0_elc * C0_elc) - 1.0) + 1.0 - (C_elc * C_elc) *
+      ((gas_gamma_elc - 1.0) / gas_gamma_elc) * ((gas_gamma_elc - 1.0) / gas_gamma_elc);
     double alpha4_elc = (C0_elc * C0_elc) - 1.0;
     double eta_elc = 2.0 * C_elc *((gas_gamma_elc - 1.0) / gas_gamma_elc);
 
@@ -1503,8 +1584,10 @@ explicit_gr_twofluid_source_update_elc_spacetime_euler(const gkyl_moment_em_coup
     int iter_elc = 0;
 
     while (iter_elc < 100) {
-      double poly_elc = (alpha4_elc * (guess_elc * guess_elc * guess_elc) * (guess_elc - eta_elc)) + (alpha2_elc * (guess_elc * guess_elc)) + (alpha1_elc * guess_elc) + alpha0_elc;
-      double poly_der_elc = alpha1_elc + (2.0 * alpha2_elc * guess_elc) + (4.0 * alpha4_elc * (guess_elc * guess_elc * guess_elc)) - (3.0 * eta_elc * alpha4_elc * (guess_elc * guess_elc));
+      double poly_elc = (alpha4_elc * (guess_elc * guess_elc * guess_elc) * (guess_elc - eta_elc)) + (alpha2_elc * (guess_elc * guess_elc)) +
+        (alpha1_elc * guess_elc) + alpha0_elc;
+      double poly_der_elc = alpha1_elc + (2.0 * alpha2_elc * guess_elc) + (4.0 * alpha4_elc * (guess_elc * guess_elc * guess_elc)) -
+        (3.0 * eta_elc * alpha4_elc * (guess_elc * guess_elc));
 
       double guess_new_elc = guess_elc - (poly_elc / poly_der_elc);
 
@@ -1517,7 +1600,8 @@ explicit_gr_twofluid_source_update_elc_spacetime_euler(const gkyl_moment_em_coup
       }
     }
 
-    double W_elc = 0.5 * C0_elc * guess_elc * (1.0 + sqrt(1.0 + (4.0 * ((gas_gamma_elc - 1.0) / gas_gamma_elc) * ((1.0 - (C_elc * guess_elc)) / ((C0_elc * C0_elc) * (guess_elc * guess_elc))))));
+    double W_elc = 0.5 * C0_elc * guess_elc * (1.0 + sqrt(1.0 + (4.0 * ((gas_gamma_elc - 1.0) / gas_gamma_elc) * ((1.0 - (C_elc * guess_elc)) /
+      ((C0_elc * C0_elc) * (guess_elc * guess_elc))))));
     double h_elc = 1.0 / (C_elc * guess_elc);
 
     double rho_elc = D_elc / W_elc;
@@ -1719,7 +1803,8 @@ explicit_gr_twofluid_source_update_ion_spacetime_euler(const gkyl_moment_em_coup
 
     double alpha0_ion = -1.0 / (gas_gamma_ion * gas_gamma_ion);
     double alpha1_ion = -2.0 * C_ion * ((gas_gamma_ion - 1.0) / (gas_gamma_ion * gas_gamma_ion));
-    double alpha2_ion = ((gas_gamma_ion - 2.0) / gas_gamma_ion) * ((C0_ion * C0_ion) - 1.0) + 1.0 - (C_ion * C_ion) * ((gas_gamma_ion - 1.0) / gas_gamma_ion) * ((gas_gamma_ion - 1.0) / gas_gamma_ion);
+    double alpha2_ion = ((gas_gamma_ion - 2.0) / gas_gamma_ion) * ((C0_ion * C0_ion) - 1.0) + 1.0 - (C_ion * C_ion) *
+      ((gas_gamma_ion - 1.0) / gas_gamma_ion) * ((gas_gamma_ion - 1.0) / gas_gamma_ion);
     double alpha4_ion = (C0_ion * C0_ion) - 1.0;
     double eta_ion = 2.0 * C_ion *((gas_gamma_ion - 1.0) / gas_gamma_ion);
 
@@ -1727,8 +1812,10 @@ explicit_gr_twofluid_source_update_ion_spacetime_euler(const gkyl_moment_em_coup
     int iter_ion = 0;
 
     while (iter_ion < 100) {
-      double poly_ion = (alpha4_ion * (guess_ion * guess_ion * guess_ion) * (guess_ion - eta_ion)) + (alpha2_ion * (guess_ion * guess_ion)) + (alpha1_ion * guess_ion) + alpha0_ion;
-      double poly_der_ion = alpha1_ion + (2.0 * alpha2_ion * guess_ion) + (4.0 * alpha4_ion * (guess_ion * guess_ion * guess_ion)) - (3.0 * eta_ion * alpha4_ion * (guess_ion * guess_ion));
+      double poly_ion = (alpha4_ion * (guess_ion * guess_ion * guess_ion) * (guess_ion - eta_ion)) + (alpha2_ion * (guess_ion * guess_ion)) +
+        (alpha1_ion * guess_ion) + alpha0_ion;
+      double poly_der_ion = alpha1_ion + (2.0 * alpha2_ion * guess_ion) + (4.0 * alpha4_ion * (guess_ion * guess_ion * guess_ion)) -
+        (3.0 * eta_ion * alpha4_ion * (guess_ion * guess_ion));
 
       double guess_new_ion = guess_ion - (poly_ion / poly_der_ion);
 
@@ -1741,7 +1828,8 @@ explicit_gr_twofluid_source_update_ion_spacetime_euler(const gkyl_moment_em_coup
       }
     }
 
-    double W_ion = 0.5 * C0_ion * guess_ion * (1.0 + sqrt(1.0 + (4.0 * ((gas_gamma_ion - 1.0) / gas_gamma_ion) * ((1.0 - (C_ion * guess_ion)) / ((C0_ion * C0_ion) * (guess_ion * guess_ion))))));
+    double W_ion = 0.5 * C0_ion * guess_ion * (1.0 + sqrt(1.0 + (4.0 * ((gas_gamma_ion - 1.0) / gas_gamma_ion) * ((1.0 - (C_ion * guess_ion)) /
+      ((C0_ion * C0_ion) * (guess_ion * guess_ion))))));
     double h_ion = 1.0 / (C_ion * guess_ion);
 
     double rho_ion = D_ion / W_ion;
@@ -1895,7 +1983,8 @@ explicit_gr_twofluid_source_update(const gkyl_moment_em_coupling* mom_em, double
     explicit_gr_twofluid_source_update_elc_spacetime_euler(mom_em, gas_gamma_elc, t_curr + dt, dt, f_new_elc, f_new_elc_spacetime);
     explicit_gr_twofluid_source_update_ion_euler(mom_em, gas_gamma_ion, mass_ion, charge_ion, t_curr + dt, dt, f_stage1, f_new_ion);
     explicit_gr_twofluid_source_update_ion_spacetime_euler(mom_em, gas_gamma_ion, t_curr + dt, dt, f_new_ion, f_new_ion_spacetime);
-    explicit_gr_twofluid_source_update_em_euler(mom_em, gas_gamma_elc, gas_gamma_ion, mass_elc, charge_elc, mass_ion, charge_ion, t_curr + dt, dt, f_stage1, f_new);
+    explicit_gr_twofluid_source_update_em_euler(mom_em, gas_gamma_elc, gas_gamma_ion, mass_elc, charge_elc, mass_ion, charge_ion, t_curr + dt, dt,
+      f_stage1, f_new);
     for (int j = 0; j < 5; j++) {
       f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new_elc_spacetime[j]);
     }
@@ -1910,7 +1999,8 @@ explicit_gr_twofluid_source_update(const gkyl_moment_em_coupling* mom_em, double
     explicit_gr_twofluid_source_update_elc_spacetime_euler(mom_em, gas_gamma_elc, t_curr + (0.5 * dt), dt, f_new_elc, f_new_elc_spacetime);
     explicit_gr_twofluid_source_update_ion_euler(mom_em, gas_gamma_ion, mass_ion, charge_ion, t_curr + (0.5 * dt), dt, f_stage2, f_new_ion);
     explicit_gr_twofluid_source_update_ion_spacetime_euler(mom_em, gas_gamma_ion, t_curr + (0.5 * dt), dt, f_new_ion, f_new_ion_spacetime);
-    explicit_gr_twofluid_source_update_em_euler(mom_em, gas_gamma_elc, gas_gamma_ion, mass_elc, charge_elc, mass_ion, charge_ion, t_curr + (0.5 * dt), dt, f_stage2, f_new);
+    explicit_gr_twofluid_source_update_em_euler(mom_em, gas_gamma_elc, gas_gamma_ion, mass_elc, charge_elc, mass_ion, charge_ion,
+      t_curr + (0.5 * dt), dt, f_stage2, f_new);
     for (int j = 0; j < 5; j++) {
       f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new_elc_spacetime[j]);
     }
