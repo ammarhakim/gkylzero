@@ -12,6 +12,7 @@
 #include <gkyl_wv_coldfluid.h>
 #include <gkyl_wv_euler.h>
 #include <gkyl_wv_euler_mixture.h>
+#include <gkyl_wv_euler_rgfm.h>
 #include <gkyl_wv_iso_euler.h>
 #include <gkyl_wv_iso_euler_mixture.h>
 #include <gkyl_wv_mhd.h>
@@ -74,6 +75,12 @@ static const struct gkyl_str_int_pair reactive_euler_rp_type[] = {
 static const struct gkyl_str_int_pair euler_mixture_rp_type[] = {
   { "roe", WV_EULER_MIXTURE_RP_ROE },
   { "lax", WV_EULER_MIXTURE_RP_LAX },
+  { 0, 0 }
+};
+
+// Euler RGFM Riemann problem -> enum map.
+static const struct gkyl_str_int_pair euler_rgfm_rp_type[] = {
+  { "lax", WV_EULER_RGFM_RP_LAX },
   { 0, 0 }
 };
 
@@ -477,6 +484,57 @@ eqn_euler_mixture_lw_new(lua_State *L)
 // Equation constructor.
 static const luaL_Reg eqn_euler_mixture_ctor[] = {
   { "new", eqn_euler_mixture_lw_new },
+  { 0, 0 }
+};
+
+/* *********************** */
+/* Euler RGFM Equations */
+/* *********************** */
+
+// EulerRGFM.new { numComponents = 2, gasGamma = {1.4, 1.4}, reinitFreq = 3, rpType = "lax" }
+// where rpType is "lax".
+static int
+eqn_euler_rgfm_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *euler_rgfm_lw = gkyl_malloc(sizeof(*euler_rgfm_lw));
+
+  int num_components = glua_tbl_get_integer(L, "numComponents", 2);
+
+  double *gas_gamma_s = gkyl_malloc(sizeof(double[num_components]));
+  with_lua_tbl_tbl(L, "gasGamma") {
+    for (int i = 0; i < num_components; i++) {
+      gas_gamma_s[i] = glua_tbl_iget_number(L, i + 1, 1.4);
+    }
+  }
+  int reinit_freq = glua_tbl_get_integer(L, "reinitFreq", 3);
+  
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
+  enum gkyl_wv_euler_rgfm_rp rp_type = gkyl_search_str_int_pair_by_str(euler_rgfm_rp_type, rp_str, WV_EULER_RGFM_RP_LAX);
+
+  euler_rgfm_lw->magic = MOMENT_EQN_DEFAULT;
+  euler_rgfm_lw->eqn = gkyl_wv_euler_rgfm_inew( & (struct gkyl_wv_euler_rgfm_inp) {
+      .num_species = num_components,
+      .gas_gamma_s = gas_gamma_s,
+      .reinit_freq = reinit_freq,
+      .rp_type = rp_type,
+      .use_gpu = false
+    }
+  );
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_euler_rgfm_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_euler_rgfm_lw = euler_rgfm_lw; // Point userdata to the equation object.
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Equation constructor.
+static const luaL_Reg eqn_euler_rgfm_ctor[] = {
+  { "new", eqn_euler_rgfm_lw_new },
   { 0, 0 }
 };
 
@@ -911,6 +969,7 @@ eqn_openlibs(lua_State *L)
   luaL_register(L, "G0.Moments.Eq.MHD", eqn_mhd_ctor);
   luaL_register(L, "G0.Moments.Eq.ReactiveEuler", eqn_reactive_euler_ctor);
   luaL_register(L, "G0.Moments.Eq.EulerMixture", eqn_euler_mixture_ctor);
+  luaL_register(L, "G0.Moments.Eq.EulerRGFM", eqn_euler_rgfm_ctor);
   luaL_register(L, "G0.Moments.Eq.IsoEulerMixture", eqn_iso_euler_mixture_ctor);
   luaL_register(L, "G0.Moments.Eq.GRMaxwell", eqn_gr_maxwell_ctor);
   luaL_register(L, "G0.Moments.Eq.GRMaxwellTetrad", eqn_gr_maxwell_tetrad_ctor);
