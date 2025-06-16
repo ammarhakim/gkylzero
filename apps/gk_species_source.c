@@ -267,9 +267,11 @@ gk_species_source_adapt_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *s,
     temperature_new = fmax(temperature_new, s->info.source.projection[k].temp_min);
 
     // Update the density and temperature moments of the source
+    gkyl_array_clear(src->proj_source[k].prim_moms, 0.0);
     gkyl_array_set_offset(src->proj_source[k].prim_moms, particle_src_new, src->proj_source[k].gaussian_profile, 0*app->basis.num_basis);
     gkyl_array_set_offset(src->proj_source[k].prim_moms, 0.0, src->proj_source[k].gaussian_profile, 1*app->basis.num_basis);
-    gkyl_array_shiftc(src->proj_source[k].prim_moms, temperature_new / s->info.mass, 2*app->basis.num_basis);
+    double dg_norm = pow(sqrt(2.0), app->cdim);
+    gkyl_array_shiftc(src->proj_source[k].prim_moms, dg_norm * temperature_new / s->info.mass, 2*app->basis.num_basis);
 
     // Refresh the current values of particle, energy and temperature (can be used for control).
     adapt_src->particle_src_curr = particle_src_new;
