@@ -267,9 +267,11 @@ gk_species_source_adapt_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *s,
     temperature_new = fmax(temperature_new, s->info.source.projection[k].temp_min);
 
     // Update the density and temperature moments of the source
+    gkyl_array_clear(src->proj_source[k].prim_moms, 0.0);
     gkyl_array_set_offset(src->proj_source[k].prim_moms, particle_src_new, src->proj_source[k].gaussian_profile, 0*app->basis.num_basis);
-    gkyl_array_set_offset(src->proj_source[k].prim_moms, 0.0, src->proj_source[k].gaussian_profile, 1*app->basis.num_basis);
-    gkyl_array_shiftc(src->proj_source[k].prim_moms, temperature_new / s->info.mass, 2*app->basis.num_basis);
+    // The parallel velocity is left to be 0
+    double dg_norm = pow(sqrt(2.0), app->cdim);
+    gkyl_array_shiftc(src->proj_source[k].prim_moms, dg_norm * temperature_new / s->info.mass, 2*app->basis.num_basis);
 
     // Refresh the current values of particle, energy and temperature (can be used for control).
     adapt_src->particle_src_curr = particle_src_new;
@@ -366,6 +368,9 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     if(src->num_adapt_sources > 0){
       src->adapt_func = gk_species_source_adapt_dynamic;
       for (int k = 0; k < src->num_adapt_sources; ++k) {
+        // Adaptive source must be a Maxwellian Gaussian projection.
+        assert(src->proj_source[k].proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN);
+
         struct gk_adapt_source *adapt_src = &src->adapt[k];
 
         adapt_src->adapt_particle = s->info.source.adapt[k].adapt_particle;
