@@ -24,6 +24,8 @@ Nx = 4096 -- Cell count (x-direction).
 Lx = 1.0 -- Domain size (x-direction).
 cfl_frac = 0.95 -- CFL coefficient.
 
+reinit_freq = 100 -- Spacetime reinitialization frequency.
+
 t_end = 0.4 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
@@ -50,7 +52,8 @@ momentApp = Moments.App.new {
   -- Fluid.
   fluid = Moments.Species.new {
     equation = GREulerTetrad.new {
-      gasGamma = gas_gamma
+      gasGamma = gas_gamma,
+      reinitFreq = reinit_freq
     },
   
     -- Initial conditions function.
@@ -77,6 +80,10 @@ momentApp = Moments.App.new {
       local spatial_det = Minkowski.spatialMetricDeterminant(0.0, x, 0.0, 0.0)
       local extrinsic_curvature = Minkowski.extrinsicCurvatureTensor(0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0)
       local in_excision_region = Minkowski.excisionRegion(0.0, x, 0.0, 0.0)
+
+      local lapse_der = Minkowski.lapseFunctionDer(0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0)
+      local shift_der = Minkowski.shiftVectorDer(0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0)
+      local spatial_metric_der = Minkowski.spatialMetricTensorDer(0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0)
 
       local vel = { u, 0.0, 0.0 }
       local v_sq = 0.0
@@ -105,9 +112,14 @@ momentApp = Moments.App.new {
         rho_rel, mom_x, mom_y, mom_z, Etot, lapse = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
         for i = 1, 3 do
           shift[i] = 0.0
+          lapse_der[i] = 0.0
           for j = 1, 3 do
             spatial_metric[i][j] = 0.0
             extrinsic_curvature[i][j] = 0.0
+            shift_der[i][j] = 0.0
+            for k = 1, 3 do
+              spatial_metric_der[i][j][k] = 0.0
+            end
           end  
         end
         
@@ -125,7 +137,22 @@ momentApp = Moments.App.new {
         extrinsic_curvature[1][1], extrinsic_curvature[1][2], extrinsic_curvature[1][3],
         extrinsic_curvature[2][1], extrinsic_curvature[2][2], extrinsic_curvature[2][3],
         extrinsic_curvature[3][1], extrinsic_curvature[3][2], extrinsic_curvature[3][3],
-        excision
+        excision,
+        lapse_der[1], lapse_der[2], lapse_der[3],
+        shift_der[1][1], shift_der[1][2], shift_der[1][3],
+        shift_der[2][1], shift_der[2][2], shift_der[2][3],
+        shift_der[3][1], shift_der[3][2], shift_der[3][3],
+        spatial_metric_der[1][1][1], spatial_metric_der[1][1][2], spatial_metric_der[1][1][3],
+        spatial_metric_der[1][2][1], spatial_metric_der[1][2][2], spatial_metric_der[1][2][3],
+        spatial_metric_der[1][3][1], spatial_metric_der[1][3][2], spatial_metric_der[1][3][3],
+        spatial_metric_der[2][1][1], spatial_metric_der[2][1][2], spatial_metric_der[2][1][3],
+        spatial_metric_der[2][2][1], spatial_metric_der[2][2][2], spatial_metric_der[2][2][3],
+        spatial_metric_der[2][3][1], spatial_metric_der[2][3][2], spatial_metric_der[2][3][3],
+        spatial_metric_der[3][1][1], spatial_metric_der[3][1][2], spatial_metric_der[3][1][3],
+        spatial_metric_der[3][2][1], spatial_metric_der[3][2][2], spatial_metric_der[3][2][3],
+        spatial_metric_der[3][3][1], spatial_metric_der[3][3][2], spatial_metric_der[3][3][3],
+        0.0,
+        x, 0.0, 0.0
     end,
 
     evolve = true, -- Evolve species?

@@ -34,6 +34,8 @@ Lx = 10.0 -- Domain size (x-direction).
 Ly = 10.0 -- Domain size (y-direction).
 cfl_frac = 0.95 -- CFL coefficient.
 
+reinit_freq = 10 -- Spacetime reinitialization frequency.
+
 t_end = 50.0 -- Final simulation time.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
@@ -61,7 +63,15 @@ momentApp = Moments.App.new {
     equation = GRMaxwell.new {
       lightSpeed = light_speed,
       elcErrorSpeedFactor = e_fact,
-      mgnErrorSpeedFactor = b_fact
+      mgnErrorSpeedFactor = b_fact,
+      blackHoleParameters = {
+        mass = mass,
+        spin = spin,
+        posX = pos_x,
+        posY = pos_y,
+        posZ = pos_z
+      },
+      reinitFreq = reinit_freq
     },
   
     -- Initial conditions function.
@@ -115,7 +125,9 @@ momentApp = Moments.App.new {
         spatial_metric[1][1], spatial_metric[1][2], spatial_metric[1][3],
         spatial_metric[2][1], spatial_metric[2][2], spatial_metric[2][3],
         spatial_metric[3][1], spatial_metric[3][2], spatial_metric[3][3],
-        excision
+        excision,
+        0.0,
+        x, y, 0.0
     end,
 
     evolve = true, -- Evolve species?
