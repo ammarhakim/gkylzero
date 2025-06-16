@@ -24,6 +24,8 @@ Nx = 4096 -- Cell count (x-direction).
 Lx = 1.0 -- Domain size (x-direction).
 cfl_frac = 0.95 -- CFL coefficient.
 
+reinit_freq = 100 -- Spacetime reinitialization frequency.
+
 t_end = 0.4 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
