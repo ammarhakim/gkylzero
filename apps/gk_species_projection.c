@@ -345,7 +345,8 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, struct gk_species *s,
     gkyl_array_copy(f, s->lte.f_lte);
   }
   
-  if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
+  if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN
+    || proj->proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN) {
     // Correct all the moments of the projected Maxwellian (or bi-Maxwellian) distribution function.
     if (proj->correct_all_moms) {
       struct gkyl_gk_maxwellian_correct_status status_corr;
