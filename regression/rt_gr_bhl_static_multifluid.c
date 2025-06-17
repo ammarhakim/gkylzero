@@ -368,10 +368,10 @@ evalGRTwoFluidInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
   fout[80] = 0.0;
 
   // Set spatial coordinates.
-  fout[81] = x; fout[82] = 0.0; fout[83] = 0.0;
+  fout[81] = x; fout[82] = y; fout[83] = 0.0;
 
   if (in_excision_region) {
-    for (int i = 0; i < 84; i++) {
+    for (int i = 0; i < 80; i++) {
       fout[i] = 0.0;
     }
     fout[40] = -1.0;
