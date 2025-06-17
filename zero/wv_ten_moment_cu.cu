@@ -26,7 +26,8 @@ wv_ten_moment_set_cu_dev_ptrs(struct wv_ten_moment *ten_moment)
   ten_moment->eqn.riem_to_cons = riem_to_cons;
 
   ten_moment->eqn.wall_bc_func = ten_moment_wall;
-
+  ten_moment->eqn.line_tied_bc_func = ten_moment_line_tied;
+  
   ten_moment->eqn.cons_to_diag = gkyl_default_cons_to_diag;
 }
 

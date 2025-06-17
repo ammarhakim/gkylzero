@@ -59,6 +59,7 @@ gkyl_wv_ten_moment_new(double k0, bool use_grad_closure, bool use_gpu)
   ten_moment->eqn.riem_to_cons = riem_to_cons;
 
   ten_moment->eqn.wall_bc_func = ten_moment_wall;
+  ten_moment->eqn.line_tied_bc_func = ten_moment_line_tied;
 
   ten_moment->eqn.cons_to_diag = gkyl_default_cons_to_diag;
 

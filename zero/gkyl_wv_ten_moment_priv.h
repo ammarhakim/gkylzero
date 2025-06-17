@@ -168,6 +168,27 @@ ten_moment_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *s
 }
 
 GKYL_CU_DH
+static void
+ten_moment_line_tied(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx)
+{
+  // copy density and Pxx, Pyy, and Pzz
+  ghost[0] = skin[0];
+  ghost[4] = skin[4];
+  ghost[7] = skin[7];
+  ghost[9] = skin[9];
+
+  // zero-tangent for momentum
+  ghost[1] = skin[1];
+  ghost[2] = -skin[2];
+  ghost[3] = -skin[3];
+
+  // zero-tangent for off-diagonal components of pressure tensor
+  ghost[8] = skin[8];
+  ghost[6] = -skin[6];
+  ghost[5] = -skin[5];
+}
+
+GKYL_CU_DH
 static inline void
 rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm,
   const double* GKYL_RESTRICT qglobal, double* GKYL_RESTRICT qlocal)
