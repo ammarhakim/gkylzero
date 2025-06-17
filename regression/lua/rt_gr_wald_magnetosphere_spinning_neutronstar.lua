@@ -1,5 +1,5 @@
--- 2D Wald magnetosphere problem for a static neutron star, for the general relativistic Maxwell equations.
--- Input parameters describe a uniform magnetic field surrounding a non-rotating neutron star.
+-- 2D Wald magnetosphere problem for a spinning neutron star, for the general relativistic Maxwell equations.
+-- Input parameters describe a uniform magnetic field surrounding a rotating neutron star.
 -- Based on the analytical solution for force-free electrodynamics presented in the article:
 -- R. M. Wald (1974), "Black hole in a uniform magnetic field",
 -- Physical Review D, Volume 10 (6): 1680.
@@ -18,7 +18,7 @@ B0 = 1.0 -- Reference magnetic field strength.
 
 -- Spacetime parameters (using geometric units).
 mass = 0.5 -- Mass of the neutron star.
-spin = 0.0 -- Spin of the neutron star.
+spin = -0.2 -- Spin of the neutron star.
 
 pos_x = 0.0 -- Position of the neutron star (x-direction).
 pos_y = 0.0 -- Position of the neutron star (y-direction).

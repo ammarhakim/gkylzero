@@ -1,5 +1,5 @@
--- 2D Bondi-Hoyle-Lyttleton accretion problem onto a static neutron star, for the general relativistic Euler equations.
--- Input parameters describe wind accretion of a cold relativistic gas onto a non-rotating neutron star.
+-- 2D Bondi-Hoyle-Lyttleton accretion problem onto a spinning neutron star, for the general relativistic Euler equations.
+-- Input parameters describe wind accretion of a cold relativistic gas onto a rotating neutron star.
 -- Based on the analytical solution for stiff relativistic fluids presented in the article:
 -- L. I. Petrich, S. L. Shapiro and S. A. Teukolsky (1988), "Accretion onto a moving black hole: An exact solution",
 -- Physical Review Letters, Volume 60 (18): 1781-1784.
@@ -22,7 +22,7 @@ pr = 0.01 -- Right fluid pressure.
 
 -- Spacetime parameters (using geometric units).
 mass = 0.3 -- Mass of the neutron star.
-spin = 0.0 -- Spin of the neutron star.
+spin = -0.12 -- Spin of the neutron star.
 
 pos_x = 2.5 -- Position of the neutron star (x-direction).
 pos_y = 2.5 -- Position of the neutron star (y-direction).

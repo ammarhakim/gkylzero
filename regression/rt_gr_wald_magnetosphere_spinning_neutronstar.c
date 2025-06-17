@@ -1,4 +1,4 @@
-// 2D Wald-type magnetosphere problem for a rotating neutron star, for the general relativistic Maxwell equations.
+// 2D Wald-type magnetosphere problem for a spinning neutron star, for the general relativistic Maxwell equations.
 // Input parameters describe a uniform magnetic field surrounding a rotating neutron star.
 // Based on the analytical solution for force-free electrodynamics presented in the article:
 // R. M. Wald (1974), "Black hole in a uniform magnetic field",
