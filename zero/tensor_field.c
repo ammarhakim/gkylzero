@@ -55,6 +55,8 @@ gkyl_tensor_field_acquire(const struct gkyl_tensor_field* tfld)
 struct gkyl_tensor_field*
 gkyl_tensor_field_copy(struct gkyl_tensor_field* dest, const struct gkyl_tensor_field* src)
 {
+  for (int i=0; i<GKYL_MAX_DIM; ++i) 
+    dest->iloc[i] = src->iloc[i];
   gkyl_array_copy(dest->tdata, src->tdata);
   return dest;
 }

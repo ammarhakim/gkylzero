@@ -205,7 +205,7 @@ void test_cu_tensor_field_base()
   TEST_CHECK( tfld_cu->size == 10 );
   TEST_CHECK( tfld_cu->ref_count.count == 1 );
 
-   TEST_CHECK( gkyl_tensor_field_is_cu_dev(tfld_cu) == true );
+  TEST_CHECK( gkyl_tensor_field_is_cu_dev(tfld_cu) == true );
 
   TEST_CHECK( tfld_cu->tdata->size == size );
   TEST_CHECK( tfld_cu->tdata->ncomp == pow(ndim,rank) );
@@ -224,8 +224,9 @@ void test_cu_tensor_field_base()
 
   gkyl_tensor_field_copy(tfld_cu, tfld);
 
+  // reset host array
   for (unsigned i=0; i<tfld->tdata->size; ++i){
-    tfldData[i] = (i+0.5)*0.1;
+    tfldData[i] = 0.0;
   }
 
   gkyl_tensor_field_copy(tfld, tfld_cu);

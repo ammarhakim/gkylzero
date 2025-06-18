@@ -19,7 +19,6 @@ gkyl_get_tensor_field_range_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gk
   dimGrid->x = gkyl_int_div_up(size, dimBlock->x);
 }
 
-
 __global__ static void
 tensor_field_raise_or_lower_idx_set_cu_kernel(const struct gkyl_tensor_field *met, int raised_idx, 
   const struct gkyl_tensor_field *ten, struct gkyl_tensor_field *tensor_out)
