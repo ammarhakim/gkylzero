@@ -104,6 +104,7 @@ struct gkyl_tok_geo {
 
   bool inexact_roots; // If true we will allow approximate roots when no root is found
   bool use_cubics; // If true will use the cubic rep of psi rather than the quadratic representation
+  bool use_hyperbolic_numbers; // If true will use the hyperbolic numbers to do cubic root finding (much faster)
 
   // pointer to root finder (depends on polyorder)
   struct RdRdZ_sol (*calc_roots)(const double *psi, double psi0, double Z,
@@ -145,6 +146,7 @@ struct gkyl_tok_geo_grid_inp {
 
   bool inexact_roots; // If true we will allow approximate roots when no root is found
   bool use_cubics; // If true will use the cubic rep of psi rather than the quadratic representation
+  bool use_hyperbolic_numbers; // If true will use the hyperbolic numbers to do cubic root finding (much faster)
 
   // Parameters for root finder: leave unset to use defaults
   struct {
