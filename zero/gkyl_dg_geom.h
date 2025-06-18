@@ -9,6 +9,9 @@
 
 // Geometry information for lower surfaces (left, bottom, front) for a cell
 struct gkyl_dg_surf_geom {
+  double quad_weight; // weight of node for quadrature
+  double xp[3]; // physical coordinate of node
+  
   double area_elem; // area element: Jc*norm(e^d), where e^d is dual normal to face 'd'
   struct gkyl_vec3 norm; // norm[d] is the normal to face perp to direction 'd'
   // tau1[d] X tau2[d] = norm[d] are tangents to face perp to direction 'd'
@@ -16,7 +19,10 @@ struct gkyl_dg_surf_geom {
 };
 
 // Geometry information for a single cell
-struct gkyl_dg_cell_geom {
+struct gkyl_dg_vol_geom {
+  double quad_weight; // weight of node for quadrature
+  double xp[3]; // physical coordinate of node
+  
   struct gkyl_vec3 tang[3]; // tangent vectors, e_i
   struct gkyl_vec3 dual[3]; // dual vectors, e^i
   double Jc; // Jacobian = e_1*(e_2 X e_3)  = 1/e^1*(e^2 X e^3)
@@ -25,11 +31,11 @@ struct gkyl_dg_cell_geom {
 // geometry information over a range of cells: 
 struct gkyl_dg_geom {
   struct gkyl_range range; // range over which geometry is defined
-  struct gkyl_array *surf_geom[GKYL_MAX_CDIM]; // surface geometry in dir 'd' in each cell
-  struct gkyl_array *cell_geom; // cell geometry
-  
   struct gkyl_range surf_quad_range; // range for indexing surface nodes
   struct gkyl_range vol_quad_range; // range for indexing volume nodes
+                           // 
+  struct gkyl_array *surf_geom[GKYL_MAX_CDIM]; // surface geometry in dir 'd' in each cell
+  struct gkyl_array *vol_geom; // cell geometry
   
   uint32_t flags;
   struct gkyl_ref_count ref_count;  
@@ -82,10 +88,8 @@ gkyl_dg_geom_get_surf(const struct gkyl_dg_geom *dgg, int d, const int *idx)
 }
 
 /**
- * Get pointer to geometry on the surface normal to 'd' given by idx
- * into the range over which the geometry was constructed. The
- * returned array needs to be further indexed to fetch the specific
- * struct at a quadrature point
+ * Get linear index into surface quadrature node corresponding to
+ * multi-dimensional index @a idx.
  *
  * @param dgg DG geometry object
  * @param idx Index (ndim-1) of surface quadrature node
@@ -96,6 +100,37 @@ static inline long
 gkyl_dg_geom_surf_quad_idx(const struct gkyl_dg_geom *dgg, const int *idx)
 {
   return gkyl_range_idx(&dgg->surf_quad_range, idx);
+}
+
+/**
+ * Get pointer to geometry in cell given by idx into the range over
+ * which the geometry was constructed. The returned array needs to be
+ * further indexed to fetch the specific struct at a quadrature point
+ *
+ * @param dgg DG geometry object
+ * @param idx Index into grid
+ * @return Pointer to cell geometry at all quadrature nodes in cell @a idx
+ */
+GKYL_CU_DH
+static inline const struct gkyl_dg_vol_geom*
+gkyl_dg_geom_get_vol(const struct gkyl_dg_geom *dgg, const int *idx)
+{
+  return (const struct gkyl_dg_vol_geom*) gkyl_array_cfetch(dgg->vol_geom, gkyl_range_idx(&dgg->range, idx));
+}
+
+/**
+ * Get linear index into surface quadrature node corresponding to
+ * multi-dimensional index @a idx.
+ *
+ * @param dgg DG geometry object
+ * @param idx Index (ndim-1) of surface quadrature node
+ * @return Linear index for indexing surface quadrature array
+ */
+GKYL_CU_DH
+static inline long
+gkyl_dg_geom_vol_quad_idx(const struct gkyl_dg_geom *dgg, const int *idx)
+{
+  return gkyl_range_idx(&dgg->vol_quad_range, idx);
 }
 
 /**
