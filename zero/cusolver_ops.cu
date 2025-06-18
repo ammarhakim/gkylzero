@@ -1,3 +1,5 @@
+#ifndef GKYL_HAVE_CUDSS
+
 #include <cusparse.h>
 #include <cusolverSp.h>
 #include <cusolverRf.h>
@@ -10,16 +12,8 @@ extern "C" {
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
-#include <gkyl_cusolver_ops.h>
+#include <gkyl_culinsolver_ops.h>
 }
-
-
-#ifdef GKYL_HAVE_CUDA
-#include <cusparse.h>
-#include <cusolverSp.h>
-#include <cusolverRf.h>
-#include <cusolverSp_LOWLEVEL_PREVIEW.h>
-#endif
 
 // ..................................
 // MF 2022/06/24: unfortunately cusolverRf doesn't work for multiple RHS columns.
@@ -28,14 +22,15 @@ extern "C" {
 //                better parallelism.
 //
 
-struct gkyl_cusolver_prob {
+struct gkyl_culinsolver_prob {
   double *rhs, *rhs_cu; // right-hand side vector (reused to store the answer x). 
   double *x;
   double *csrvalA_cu;
   int *csrrowptrA_cu, *csrcolindA_cu;
+  int nprob; // number of problems to solve.
   int mrow, ncol; // A is a mrow x ncol matrix.
   int nnz; // number of non-zero entries in A.
-  int nrhs; // number of problems to solve (B is an mrow x nrhs matrix).
+  int nrhs; // number of columns in B (B is an mrow x nrhs matrix).
   cusolverSpHandle_t cusolverSpH;
   cusparseMatDescr_t A;
   cudaStream_t stream;
@@ -61,24 +56,27 @@ struct gkyl_cusolver_prob {
   double **csrvalApointers_cu; // array of pointers to LHS A matrices.
 };
 
-gkyl_cusolver_prob*
-gkyl_cusolver_prob_new(const int mrow, const int ncol, const int nprob)
+gkyl_culinsolver_prob*
+gkyl_culinsolver_prob_new(int nprob, int mrow, int ncol, int nrhs)
 {
-  struct gkyl_cusolver_prob *prob = (struct gkyl_cusolver_prob*) gkyl_malloc(sizeof(*prob));
+  assert((nprob==1) || (nrhs==1));
 
+  struct gkyl_culinsolver_prob *prob = (struct gkyl_culinsolver_prob*) gkyl_malloc(sizeof(*prob));
+
+  prob->nprob = nprob;
   prob->mrow = mrow;
   prob->ncol = ncol;
-  prob->nrhs = nprob;
+  prob->nrhs = GKYL_MAX2(nprob,nrhs);
 
-  prob->rhs = (double*) gkyl_malloc(sizeof(double)*mrow*nprob);
-  prob->rhs_cu = (double*) gkyl_cu_malloc(sizeof(double)*mrow*nprob);
+  prob->rhs = (double*) gkyl_malloc(mrow*prob->nrhs*sizeof(double));
+  prob->rhs_cu = (double*) gkyl_cu_malloc(mrow*prob->nrhs*sizeof(double));
 
   if (prob->nrhs > 1) {
-    double **rhspointers = (double**) gkyl_malloc(sizeof(double*)*nprob);
-    prob->rhspointers_cu = (double**) gkyl_cu_malloc(sizeof(double*)*nprob);
-    for (size_t k=0; k<nprob; k++)
+    double **rhspointers = (double**) gkyl_malloc(prob->nrhs*sizeof(double*));
+    prob->rhspointers_cu = (double**) gkyl_cu_malloc(prob->nrhs*sizeof(double*));
+    for (size_t k=0; k<prob->nrhs; k++)
       rhspointers[k] = &prob->rhs_cu[k*mrow];
-    gkyl_cu_memcpy(prob->rhspointers_cu, rhspointers, sizeof(double*)*nprob, GKYL_CU_MEMCPY_H2D);
+    gkyl_cu_memcpy(prob->rhspointers_cu, rhspointers, prob->nrhs*sizeof(double*), GKYL_CU_MEMCPY_H2D);
     gkyl_free(rhspointers);
   }
 
@@ -120,14 +118,17 @@ gkyl_cusolver_prob_new(const int mrow, const int ncol, const int nprob)
 }
 
 void
-gkyl_cusolver_amat_from_triples(gkyl_cusolver_prob *prob, gkyl_mat_triples *tri)
+gkyl_culinsolver_amat_from_triples(struct gkyl_culinsolver_prob *prob, struct gkyl_mat_triples **tri)
 {
-  assert(gkyl_mat_triples_is_rowmaj(tri));  // Triples must be in rowmaj order for cusolver.
-  prob->nnz = gkyl_mat_triples_size(tri);
+  prob->nnz = gkyl_mat_triples_size(tri[0]);
+  for (size_t k=0; k<prob->nprob; k++) {
+    assert(gkyl_mat_triples_size(tri[k]) == prob->nnz);  // No. of nonzeros must be the same for every problem.
+    assert(gkyl_mat_triples_is_rowmaj(tri[k]));  // Triples must be in rowmaj order for cusolver.
+  }
 
   // Convert triples to CSR arrays on device.
   // Use CSR format
-  double *csrvalA = (double*) gkyl_malloc(sizeof(double)*(prob->nnz)); // non-zero matrix elements.
+  double *csrvalA = (double*) gkyl_malloc(prob->nprob*prob->nnz*sizeof(double)); // non-zero matrix elements.
   int *csrcolindA = (int*) gkyl_malloc(sizeof(int)*prob->nnz); // col index of entries in csrvalA.
   int *csrrowptrA = (int*) gkyl_malloc(sizeof(int)*(prob->mrow+1)); // 1st entry of each row as index in csrvalA.
 
@@ -135,40 +136,43 @@ gkyl_cusolver_amat_from_triples(gkyl_cusolver_prob *prob, gkyl_mat_triples *tri)
   for (size_t i=0; i<prob->mrow; i++) csrrowptrA_assigned[i] = false;
 
   // Sorted (row-major order) keys (linear indices to flattened matrix).
-  gkyl_mat_triples_iter *iter = gkyl_mat_triples_iter_new(tri);
-  for (size_t i=0; i<prob->nnz; ++i) {
-    gkyl_mat_triples_iter_next(iter); // bump iterator.
-    struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter);
-    size_t idx[2] = { mt.row, mt.col };
-    
-    csrvalA[i] = mt.val;
-    csrcolindA[i] = idx[1];
-    if (!csrrowptrA_assigned[idx[0]]) {
-      csrrowptrA[idx[0]] = i;
-      csrrowptrA_assigned[idx[0]] = true;
+  for (size_t k=0; k<prob->nprob; k++) {
+    gkyl_mat_triples_iter *iter = gkyl_mat_triples_iter_new(tri[k]);
+    for (size_t i=0; i<prob->nnz; ++i) {
+      gkyl_mat_triples_iter_next(iter); // bump iterator.
+      struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter);
+      size_t idx[2] = { mt.row, mt.col };
+      
+      csrvalA[k*prob->nnz+i] = mt.val;
+      if (k==0) {
+        csrcolindA[i] = idx[1];
+        if (!csrrowptrA_assigned[idx[0]]) {
+          csrrowptrA[idx[0]] = i;
+          csrrowptrA_assigned[idx[0]] = true;
+        }
+      }
     }
+    gkyl_mat_triples_iter_release(iter);
   }
   csrrowptrA[prob->mrow] = prob->nnz;
-
-  gkyl_mat_triples_iter_release(iter);
   gkyl_free(csrrowptrA_assigned);
 
   // copy arrays to device
-  prob->csrvalA_cu = (double*) gkyl_cu_malloc(sizeof(double)*(prob->nnz)); // non-zero matrix elements.
+  prob->csrvalA_cu = (double*) gkyl_cu_malloc(prob->nprob*prob->nnz*sizeof(double)); // non-zero matrix elements.
   prob->csrcolindA_cu = (int*) gkyl_cu_malloc(sizeof(int)*prob->nnz); // col index of entries in csrvalA.
   prob->csrrowptrA_cu = (int*) gkyl_cu_malloc(sizeof(int)*(prob->mrow+1)); // 1st entry of each row as index in csrvalA.
-  gkyl_cu_memcpy(prob->csrvalA_cu, csrvalA, sizeof(double)*prob->nnz, GKYL_CU_MEMCPY_H2D);
+  gkyl_cu_memcpy(prob->csrvalA_cu, csrvalA, prob->nprob*prob->nnz*sizeof(double), GKYL_CU_MEMCPY_H2D);
   gkyl_cu_memcpy(prob->csrcolindA_cu, csrcolindA, sizeof(int)*prob->nnz, GKYL_CU_MEMCPY_H2D);
   gkyl_cu_memcpy(prob->csrrowptrA_cu, csrrowptrA, sizeof(int)*(prob->mrow+1), GKYL_CU_MEMCPY_H2D);
 
   double **csrvalApointers;
   if (prob->nrhs > 1) {
     // cusolverRfBatch also needs an array of pointers to
-    // the varios A matrices (all the same in our case).
-    csrvalApointers = (double**) gkyl_malloc(sizeof(double*)*prob->nrhs);
-    prob->csrvalApointers_cu = (double**) gkyl_cu_malloc(sizeof(double*)*prob->nrhs);
+    // the various A matrices (all the same if nprob=1).
+    csrvalApointers = (double**) gkyl_malloc(prob->nrhs*sizeof(double*));
+    prob->csrvalApointers_cu = (double**) gkyl_cu_malloc(prob->nrhs*sizeof(double*));
     for (size_t k=0; k<prob->nrhs; k++)
-      csrvalApointers[k] = &prob->csrvalA_cu[0];
+      csrvalApointers[k] = prob->nprob == 1? &prob->csrvalA_cu[0] : &prob->csrvalA_cu[k*prob->nnz];
     gkyl_cu_memcpy(prob->csrvalApointers_cu, csrvalApointers, sizeof(double*)*prob->nrhs, GKYL_CU_MEMCPY_H2D);
   }
 
@@ -310,13 +314,13 @@ gkyl_cusolver_amat_from_triples(gkyl_cusolver_prob *prob, gkyl_mat_triples *tri)
   cusolverRfSetResetValuesFastMode(prob->cusolverRfH, CUSOLVERRF_RESET_VALUES_FAST_MODE_ON);
 
   // ............... Assemble P*A*Q = L*U .................. //
-  if (prob->nrhs == 1) {
+  if ((prob->nprob == 1) && (prob->nrhs == 1)) {
     cusolverRfSetupHost(prob->mrow, prob->nnz, csrrowptrA, csrcolindA, csrvalA,
       nnzL, h_csrRowIndL, h_csrColIndL, h_csrValL,
       nnzU, h_csrRowIndU, h_csrColIndU, h_csrValU, h_P, h_Q, prob->cusolverRfH);
   } else {
     for (size_t k=0; k<prob->nrhs; k++)
-      csrvalApointers[k] = &csrvalA[0];
+      csrvalApointers[k] = prob->nprob == 1? &csrvalA[0] : &csrvalA[k*prob->nnz];
     cusolverRfBatchSetupHost(prob->nrhs, prob->mrow, prob->nnz, csrrowptrA, csrcolindA, csrvalApointers,
       nnzL, h_csrRowIndL, h_csrColIndL, h_csrValL,
       nnzU, h_csrRowIndU, h_csrColIndU, h_csrValU, h_P, h_Q, prob->cusolverRfH);
@@ -393,7 +397,7 @@ gkyl_cusolver_amat_from_triples(gkyl_cusolver_prob *prob, gkyl_mat_triples *tri)
 }
 
 void
-gkyl_cusolver_brhs_from_triples(gkyl_cusolver_prob *prob, gkyl_mat_triples *tri)
+gkyl_culinsolver_brhs_from_triples(struct gkyl_culinsolver_prob *prob, gkyl_mat_triples *tri)
 {
   long nnz_rhs = gkyl_mat_triples_size(tri);  // number of non-zero entries in RHS matrix B
   
@@ -410,8 +414,11 @@ gkyl_cusolver_brhs_from_triples(gkyl_cusolver_prob *prob, gkyl_mat_triples *tri)
 }
 
 void
-gkyl_cusolver_solve(gkyl_cusolver_prob *prob)
+gkyl_culinsolver_solve(struct gkyl_culinsolver_prob *prob)
 {
+  // MF 2023/05/25: the 1 below is nrhs, and cuSolver docs say only 1 is supported. To me it is not
+  // clear whether this means one can only solve 1 system, or whether we can solve multiple systems
+  // but each system can only have nrhs=1. I think it's the latter.
   if (prob->nrhs==1)
     cusolverRfSolve(prob->cusolverRfH, prob->d_P, prob->d_Q, 1, prob->d_T, prob->mrow, prob->rhs_cu, prob->mrow);
   else
@@ -419,45 +426,44 @@ gkyl_cusolver_solve(gkyl_cusolver_prob *prob)
 }
 
 void
-gkyl_cusolver_sync(gkyl_cusolver_prob *prob)
-{
-  cudaStreamSynchronize(prob->stream);
-}
-
-void
-gkyl_cusolver_finish_host(gkyl_cusolver_prob *prob)
+gkyl_culinsolver_finish_host(struct gkyl_culinsolver_prob *prob)
 {
   //cudaStreamSynchronize(prob->stream); // not needed when using blocking stream
   gkyl_cu_memcpy(prob->rhs, prob->rhs_cu, sizeof(double)*prob->mrow*prob->nrhs, GKYL_CU_MEMCPY_D2H);
 }
 
+void
+gkyl_culinsolver_clear_rhs(struct gkyl_culinsolver_prob *prob, double val)
+{
+  gkyl_cu_memset(prob->rhs_cu, val, prob->mrow*prob->nrhs*sizeof(double));
+}
+
 double*
-gkyl_cusolver_get_rhs_ptr(gkyl_cusolver_prob *prob, const long loc)
+gkyl_culinsolver_get_rhs_ptr(struct gkyl_culinsolver_prob *prob, long loc)
 {
   return prob->rhs_cu+loc;
 }
 
 double*
-gkyl_cusolver_get_sol_ptr(gkyl_cusolver_prob *prob, const long loc)
+gkyl_culinsolver_get_sol_ptr(struct gkyl_culinsolver_prob *prob, long loc)
 {
   return prob->rhs_cu+loc;
 }
 
 double
-gkyl_cusolver_get_sol_ij(gkyl_cusolver_prob *prob, const long ielement, const long jprob)
+gkyl_culinsolver_get_sol_ij(struct gkyl_culinsolver_prob *prob, long ielement, long jprob)
 {
   return prob->rhs[jprob*prob->mrow+ielement];
 }
 
-
 double
-gkyl_cusolver_get_sol_lin(gkyl_cusolver_prob *prob, const long loc)
+gkyl_culinsolver_get_sol_lin(struct gkyl_culinsolver_prob *prob, long loc)
 {
   return prob->rhs[loc];
 }
 
 void
-gkyl_cusolver_prob_release(gkyl_cusolver_prob *prob)
+gkyl_culinsolver_prob_release(struct gkyl_culinsolver_prob *prob)
 {
   gkyl_cu_free(prob->rhs_cu);
   gkyl_cu_free(prob->csrcolindA_cu);
@@ -481,3 +487,6 @@ gkyl_cusolver_prob_release(gkyl_cusolver_prob *prob)
   cudaStreamDestroy(prob->stream);
   gkyl_free(prob);
 }
+
+// End ifndef GKYL_HAVE_CUDSS statement.
+#endif

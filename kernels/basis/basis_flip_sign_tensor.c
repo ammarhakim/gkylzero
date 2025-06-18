@@ -1,4 +1,4 @@
-// Thu Jul  7 12:39:10 2022
+// Fri Dec  1 11:03:08 2023
 #include <gkyl_basis_tensor_kernels.h>
 GKYL_CU_DH
 void
@@ -53,6 +53,90 @@ flip_even_sign_2d_tensor_p2(int dir, const double *f, double *fout )
     fout[6] = 1*f[6];
     fout[7] = -1*f[7];
     fout[8] = -1*f[8];
+  }
+}
+
+GKYL_CU_DH
+void
+flip_odd_sign_2d_tensor_p3(int dir, const double *f, double *fout )
+{
+  if (dir == 0) {
+    fout[0] = 1*f[0];
+    fout[1] = -1*f[1];
+    fout[2] = 1*f[2];
+    fout[3] = -1*f[3];
+    fout[4] = 1*f[4];
+    fout[5] = 1*f[5];
+    fout[6] = 1*f[6];
+    fout[7] = -1*f[7];
+    fout[8] = -1*f[8];
+    fout[9] = 1*f[9];
+    fout[10] = 1*f[10];
+    fout[11] = -1*f[11];
+    fout[12] = -1*f[12];
+    fout[13] = -1*f[13];
+    fout[14] = 1*f[14];
+    fout[15] = -1*f[15];
+  }
+  if (dir == 1) {
+    fout[0] = 1*f[0];
+    fout[1] = 1*f[1];
+    fout[2] = -1*f[2];
+    fout[3] = -1*f[3];
+    fout[4] = 1*f[4];
+    fout[5] = 1*f[5];
+    fout[6] = -1*f[6];
+    fout[7] = 1*f[7];
+    fout[8] = 1*f[8];
+    fout[9] = -1*f[9];
+    fout[10] = 1*f[10];
+    fout[11] = -1*f[11];
+    fout[12] = -1*f[12];
+    fout[13] = 1*f[13];
+    fout[14] = -1*f[14];
+    fout[15] = -1*f[15];
+  }
+}
+
+GKYL_CU_DH
+void
+flip_even_sign_2d_tensor_p3(int dir, const double *f, double *fout )
+{
+  if (dir == 0) {
+    fout[0] = -1*f[0];
+    fout[1] = 1*f[1];
+    fout[2] = -1*f[2];
+    fout[3] = 1*f[3];
+    fout[4] = -1*f[4];
+    fout[5] = -1*f[5];
+    fout[6] = -1*f[6];
+    fout[7] = 1*f[7];
+    fout[8] = 1*f[8];
+    fout[9] = -1*f[9];
+    fout[10] = -1*f[10];
+    fout[11] = 1*f[11];
+    fout[12] = 1*f[12];
+    fout[13] = 1*f[13];
+    fout[14] = -1*f[14];
+    fout[15] = 1*f[15];
+  }
+  if (dir == 1) {
+    fout[0] = -1*f[0];
+    fout[1] = -1*f[1];
+    fout[2] = 1*f[2];
+    fout[3] = 1*f[3];
+    fout[4] = -1*f[4];
+    fout[5] = -1*f[5];
+    fout[6] = 1*f[6];
+    fout[7] = -1*f[7];
+    fout[8] = -1*f[8];
+    fout[9] = 1*f[9];
+    fout[10] = -1*f[10];
+    fout[11] = 1*f[11];
+    fout[12] = 1*f[12];
+    fout[13] = -1*f[13];
+    fout[14] = 1*f[14];
+    fout[15] = 1*f[15];
   }
 }
 

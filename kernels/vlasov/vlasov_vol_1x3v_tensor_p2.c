@@ -1,33 +1,34 @@
 #include <gkyl_vlasov_kernels.h> 
-GKYL_CU_DH double vlasov_vol_1x3v_tensor_p2(const double *w, const double *dxv, const double *qmem, const double *f, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_vol_1x3v_tensor_p2(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
-  // qmem:      q/m*EM fields.
+  // field:      q/m*EM fields.
+  // cot_vec:   Only used in gen geo.
   // f:         Input distribution function.
   // out:       Incremented output.
   double dv0dx0 = dxv[1]/dxv[0]; 
   double w0dx0 = w[1]/dxv[0]; 
   const double dv10 = 2/dxv[1]; 
-  const double *E0 = &qmem[0]; 
+  const double *E0 = &field[0]; 
   const double dv1 = dxv[1], wv1 = w[1]; 
   const double dv11 = 2/dxv[2]; 
-  const double *E1 = &qmem[3]; 
+  const double *E1 = &field[3]; 
   const double dv2 = dxv[2], wv2 = w[2]; 
   const double dv12 = 2/dxv[3]; 
-  const double *E2 = &qmem[6]; 
+  const double *E2 = &field[6]; 
   const double dv3 = dxv[3], wv3 = w[3]; 
 
-  const double *B0 = &qmem[9]; 
-  const double *B1 = &qmem[12]; 
-  const double *B2 = &qmem[15]; 
-  double alpha_mid = 0.0; 
+  const double *B0 = &field[9]; 
+  const double *B1 = &field[12]; 
+  const double *B2 = &field[15]; 
+  double cflFreq_mid = 0.0; 
   double alpha_cdim[81] = {0.0}; 
   double alpha_vdim[243] = {0.0}; 
 
   alpha_cdim[0] = 8.0*w0dx0; 
   alpha_cdim[2] = 2.309401076758503*dv0dx0; 
-  alpha_mid += fabs(w0dx0)+0.5*dv0dx0; 
+  cflFreq_mid += 5.0*(fabs(w0dx0)+0.5*dv0dx0); 
 
   alpha_vdim[0] = dv10*(2.828427124746191*(B2[0]*wv2+E0[0])-2.828427124746191*B1[0]*wv3); 
   alpha_vdim[1] = dv10*(2.828427124746191*(B2[1]*wv2+E0[1])-2.828427124746191*B1[1]*wv3); 
@@ -38,7 +39,7 @@ GKYL_CU_DH double vlasov_vol_1x3v_tensor_p2(const double *w, const double *dxv, 
   alpha_vdim[11] = dv10*(2.828427124746191*(B2[2]*wv2+E0[2])-2.828427124746191*B1[2]*wv3); 
   alpha_vdim[21] = 0.8164965809277261*B2[2]*dv10*dv2; 
   alpha_vdim[25] = -0.8164965809277261*B1[2]*dv10*dv3; 
-  alpha_mid += fabs(0.125*alpha_vdim[0]-0.1397542485937369*alpha_vdim[11]); 
+  cflFreq_mid += 5.0*fabs(0.125*alpha_vdim[0]-0.1397542485937369*alpha_vdim[11]); 
 
   alpha_vdim[81] = dv11*(2.828427124746191*B0[0]*wv3-2.828427124746191*B2[0]*wv1+2.828427124746191*E1[0]); 
   alpha_vdim[82] = dv11*(2.828427124746191*B0[1]*wv3-2.828427124746191*B2[1]*wv1+2.828427124746191*E1[1]); 
@@ -49,7 +50,7 @@ GKYL_CU_DH double vlasov_vol_1x3v_tensor_p2(const double *w, const double *dxv, 
   alpha_vdim[92] = dv11*(2.828427124746191*B0[2]*wv3-2.828427124746191*B2[2]*wv1+2.828427124746191*E1[2]); 
   alpha_vdim[100] = -0.8164965809277261*B2[2]*dv1*dv11; 
   alpha_vdim[106] = 0.8164965809277261*B0[2]*dv11*dv3; 
-  alpha_mid += fabs(0.125*alpha_vdim[81]-0.1397542485937369*alpha_vdim[92]); 
+  cflFreq_mid += 5.0*fabs(0.125*alpha_vdim[81]-0.1397542485937369*alpha_vdim[92]); 
 
   alpha_vdim[162] = dv12*(2.828427124746191*(B1[0]*wv1+E2[0])-2.828427124746191*B0[0]*wv2); 
   alpha_vdim[163] = dv12*(2.828427124746191*(B1[1]*wv1+E2[1])-2.828427124746191*B0[1]*wv2); 
@@ -60,7 +61,7 @@ GKYL_CU_DH double vlasov_vol_1x3v_tensor_p2(const double *w, const double *dxv, 
   alpha_vdim[173] = dv12*(2.828427124746191*(B1[2]*wv1+E2[2])-2.828427124746191*B0[2]*wv2); 
   alpha_vdim[181] = 0.8164965809277261*B1[2]*dv1*dv12; 
   alpha_vdim[183] = -0.8164965809277261*B0[2]*dv12*dv2; 
-  alpha_mid += fabs(0.125*alpha_vdim[162]-0.1397542485937369*alpha_vdim[173]); 
+  cflFreq_mid += 5.0*fabs(0.125*alpha_vdim[162]-0.1397542485937369*alpha_vdim[173]); 
 
   out[1] += 0.4330127018922193*(alpha_cdim[2]*f[2]+alpha_cdim[0]*f[0]); 
   out[2] += 0.4330127018922193*(alpha_vdim[25]*f[25]+alpha_vdim[21]*f[21]+alpha_vdim[11]*f[11]+alpha_vdim[8]*f[8]+alpha_vdim[6]*f[6]+alpha_vdim[4]*f[4]+alpha_vdim[3]*f[3]+alpha_vdim[1]*f[1]+alpha_vdim[0]*f[0]); 
@@ -143,5 +144,5 @@ GKYL_CU_DH double vlasov_vol_1x3v_tensor_p2(const double *w, const double *dxv, 
   out[79] += 0.7745966692414833*(f[51]*alpha_vdim[183]+f[52]*alpha_vdim[181])+0.8660254037844386*f[68]*alpha_vdim[173]+(0.7745966692414833*f[66]+0.8660254037844386*f[38])*alpha_vdim[168]+0.7745966692414833*f[67]*alpha_vdim[167]+0.8660254037844386*(f[40]*alpha_vdim[167]+f[51]*alpha_vdim[165]+f[52]*alpha_vdim[164]+f[76]*alpha_vdim[163])+0.9682458365518543*(f[59]*alpha_vdim[163]+f[68]*alpha_vdim[162])+0.7745966692414833*(f[51]*alpha_vdim[106]+f[53]*alpha_vdim[100])+0.8660254037844386*f[70]*alpha_vdim[92]+(0.7745966692414833*f[66]+0.8660254037844386*f[38])*alpha_vdim[89]+0.7745966692414833*f[69]*alpha_vdim[86]+0.8660254037844386*(f[43]*alpha_vdim[86]+f[51]*alpha_vdim[85]+f[53]*alpha_vdim[83]+f[77]*alpha_vdim[82])+0.9682458365518543*(f[63]*alpha_vdim[82]+f[70]*alpha_vdim[81])+0.8660254037844386*alpha_vdim[1]*f[78]+0.4330127018922193*alpha_cdim[0]*f[75]+(0.8660254037844386*alpha_vdim[11]+0.9682458365518543*alpha_vdim[0])*f[71]+0.7745966692414833*(alpha_vdim[6]*f[69]+alpha_vdim[8]*f[67])+(0.3872983346207416*alpha_cdim[2]+0.9682458365518543*alpha_vdim[1])*f[65]+(0.7745966692414833*alpha_vdim[21]+0.8660254037844386*alpha_vdim[3])*f[53]+0.7745966692414833*alpha_vdim[25]*f[52]+0.8660254037844386*(alpha_vdim[4]*f[52]+alpha_vdim[6]*f[43]+alpha_vdim[8]*f[40]); 
   out[80] += (0.5532833351724881*f[66]+0.8660254037844386*f[38])*alpha_vdim[183]+(0.5532833351724881*f[67]+0.8660254037844386*f[40])*alpha_vdim[181]+(0.6185895741317419*f[76]+0.9682458365518543*f[59])*alpha_vdim[173]+0.7745966692414833*(f[51]*alpha_vdim[168]+f[52]*alpha_vdim[167])+0.8660254037844386*(f[66]*alpha_vdim[165]+f[67]*alpha_vdim[164]+f[68]*alpha_vdim[163])+0.9682458365518543*f[76]*alpha_vdim[162]+(0.5532833351724881*f[66]+0.8660254037844386*f[38])*alpha_vdim[106]+(0.5532833351724881*f[69]+0.8660254037844386*f[43])*alpha_vdim[100]+(0.6185895741317419*f[77]+0.9682458365518543*f[63])*alpha_vdim[92]+0.7745966692414833*(f[51]*alpha_vdim[89]+f[53]*alpha_vdim[86])+0.8660254037844386*(f[66]*alpha_vdim[85]+f[69]*alpha_vdim[83]+f[70]*alpha_vdim[82])+0.9682458365518543*(f[77]*alpha_vdim[81]+alpha_cdim[0]*f[79])+(0.6185895741317419*alpha_vdim[11]+0.9682458365518543*alpha_vdim[0])*f[78]+0.8660254037844386*(alpha_cdim[2]+alpha_vdim[1])*f[71]+(0.5532833351724881*alpha_vdim[21]+0.8660254037844386*alpha_vdim[3])*f[69]+(0.5532833351724881*alpha_vdim[25]+0.8660254037844386*alpha_vdim[4])*f[67]+0.9682458365518543*alpha_vdim[11]*f[65]+0.7745966692414833*(alpha_vdim[6]*f[53]+alpha_vdim[8]*f[52])+0.8660254037844386*(alpha_vdim[21]*f[43]+alpha_vdim[25]*f[40]); 
 
-  return alpha_mid; 
+  return cflFreq_mid; 
 } 

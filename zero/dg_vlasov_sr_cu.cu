@@ -5,6 +5,7 @@ extern "C" {
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_dg_vlasov_sr.h>    
 #include <gkyl_dg_vlasov_sr_priv.h>
+#include <gkyl_util.h>
 }
 
 #include <cassert>
@@ -14,18 +15,18 @@ extern "C" {
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
 gkyl_vlasov_sr_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, 
-  const struct gkyl_array *qmem, const struct gkyl_array *p_over_gamma)
+  const struct gkyl_array *qmem, const struct gkyl_array *gamma)
 {
   struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
   vlasov_sr->auxfields.qmem = qmem;
-  vlasov_sr->auxfields.p_over_gamma = p_over_gamma;
+  vlasov_sr->auxfields.gamma = gamma;
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
 void
 gkyl_vlasov_sr_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_sr_auxfields auxin)
 {
-  gkyl_vlasov_sr_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.qmem->on_dev, auxin.p_over_gamma->on_dev);
+  gkyl_vlasov_sr_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.qmem->on_dev, auxin.gamma->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and vlasov kernel function
@@ -35,7 +36,7 @@ dg_vlasov_sr_set_cu_dev_ptrs(struct dg_vlasov_sr *vlasov_sr, enum gkyl_basis_typ
   int cv_index, int cdim, int vdim, int poly_order, enum gkyl_field_id field_id)
 {
   vlasov_sr->auxfields.qmem = 0; 
-  vlasov_sr->auxfields.p_over_gamma= 0; 
+  vlasov_sr->auxfields.gamma= 0; 
 
   vlasov_sr->eqn.surf_term = surf;
   vlasov_sr->eqn.boundary_surf_term = boundary_surf;
@@ -63,25 +64,11 @@ dg_vlasov_sr_set_cu_dev_ptrs(struct dg_vlasov_sr *vlasov_sr, enum gkyl_basis_typ
       
       break;
 
-    // case GKYL_BASIS_MODAL_TENSOR:
-    //   stream_vol_kernels = ten_stream_vol_kernels;
-    //   vol_kernels = ten_vol_kernels;
-    //   stream_surf_x_kernels = ten_stream_surf_x_kernels;
-    //   stream_surf_y_kernels = ten_stream_surf_y_kernels;
-    //   stream_surf_z_kernels = ten_stream_surf_z_kernels;
-    //   accel_surf_vx_kernels = ten_accel_surf_vx_kernels;
-    //   accel_surf_vy_kernels = ten_accel_surf_vy_kernels;
-    //   accel_surf_vz_kernels = ten_accel_surf_vz_kernels;
-    //   accel_boundary_surf_vx_kernels = ten_accel_boundary_surf_vx_kernels;
-    //   accel_boundary_surf_vy_kernels = ten_accel_boundary_surf_vy_kernels;
-    //   accel_boundary_surf_vz_kernels = ten_accel_boundary_surf_vz_kernels;
-    //   break;
-
     default:
       assert(false);
       break;    
   }  
-  if (field_id == GKYL_FIELD_SR_NULL)
+  if (field_id == GKYL_FIELD_NULL)
     vlasov_sr->eqn.vol_term = stream_vol_kernels[cv_index].kernels[poly_order];
   else
     vlasov_sr->eqn.vol_term = vol_kernels[cv_index].kernels[poly_order];

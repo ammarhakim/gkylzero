@@ -4,11 +4,12 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_wave_geom.h>
+#include <gkyl_wave_geom_priv.h>
 
 #include <math.h>
 
 static void
-nomapc2p(double t, const double *xc, double *xp, void *ctx)
+my_nomapc2p(double t, const double *xc, double *xp, void *ctx)
 {
   int *ndim = ctx;
   for (int i=0; i<(*ndim); ++i) xp[i] = xc[i];
@@ -28,7 +29,7 @@ test_wv_geom_1d_1()
   struct gkyl_range arr_range, arr_ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);
 
-  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &arr_range, nomapc2p, &ndim);
+  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &arr_range, my_nomapc2p, &ndim, false);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &arr_range);
@@ -69,7 +70,7 @@ test_wv_geom_1d_2()
   struct gkyl_range range, ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
-  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &range, mapc2p, &ndim);
+  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &range, mapc2p, &ndim, false);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
@@ -111,7 +112,7 @@ test_wv_geom_2d_1()
   struct gkyl_range range, ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
-  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &range, nomapc2p, &ndim);
+  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &range, my_nomapc2p, &ndim, false);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
@@ -180,7 +181,7 @@ test_wv_geom_2d_2()
   struct gkyl_range range, ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
-  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &range, mapc2p_2d, &ndim);
+  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &range, mapc2p_2d, &ndim, false);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
@@ -254,7 +255,7 @@ test_wv_geom_2d_3()
   struct gkyl_range range, ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
-  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &range, mapc2p_polar, &ndim);
+  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &range, mapc2p_polar, &ndim, false);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
@@ -314,7 +315,7 @@ test_wv_geom_3d_1()
   struct gkyl_range range, ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
-  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &range, nomapc2p, &ndim);
+  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &range, my_nomapc2p, &ndim, false);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
@@ -405,7 +406,7 @@ test_wv_geom_3d_2()
   struct gkyl_range range, ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
-  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &range, mapc2p_cylind, &ndim);
+  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &range, mapc2p_cylind, &ndim, false);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
@@ -452,6 +453,39 @@ test_wv_geom_3d_2()
   gkyl_wave_geom_release(wg);
 }
 
+#ifdef GKYL_HAVE_CUDA
+
+int cu_wave_geom_test(const struct gkyl_wave_geom *wg);
+
+void
+test_wv_geom_3d_cu()
+{
+  int ndim = 3;
+  double z_min = 0, z_max = 1;
+  double r_inn = 0.25, r_out = 1.25;
+  double phi_max = M_PI / 2.;
+  double lower[] = {r_inn, 0, z_min}, upper[] = {r_out, phi_max, z_max};
+  int cells[] = {1, 1, 1};
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+
+  double area = 0.5*(r_out*r_out-r_inn*r_inn);
+  double edge_inn = sqrt(2) * r_inn;
+  double area_c = (r_out - r_inn) * phi_max;
+
+  // create range
+  int nghost[GKYL_MAX_DIM] = { 0 };
+  struct gkyl_range range, ext_range;
+  gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
+
+  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &range, mapc2p_cylind, &ndim, true);
+
+  cu_wave_geom_test(wg->on_dev);
+
+  gkyl_wave_geom_release(wg);
+}
+#endif
+
 TEST_LIST = {
   { "wv_geom_1d_1", test_wv_geom_1d_1 },
   { "wv_geom_1d_2", test_wv_geom_1d_2 },
@@ -460,5 +494,8 @@ TEST_LIST = {
   { "wv_geom_2d_3", test_wv_geom_2d_3 },
   { "wv_geom_3d_1", test_wv_geom_3d_1 },
   { "wv_geom_3d_2", test_wv_geom_3d_2 },
+#ifdef GKYL_HAVE_CUDA
+  { "wv_geom_3d_cu", test_wv_geom_3d_cu },
+#endif
   { NULL, NULL },
 };

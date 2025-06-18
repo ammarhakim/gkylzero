@@ -11,18 +11,25 @@
 void
 prim_lbo_gyrokinetic_free(const struct gkyl_ref_count *ref)
 {
-  struct gkyl_prim_lbo_type *prim = container_of(ref, struct gkyl_prim_lbo_type, ref_count);
-  if (GKYL_IS_CU_ALLOC(prim->flag))
-    gkyl_cu_free(prim->on_dev);
-  gkyl_free(prim);
+  struct gkyl_prim_lbo_type *prim_ty = container_of(ref, struct gkyl_prim_lbo_type, ref_count);
+  if (GKYL_IS_CU_ALLOC(prim_ty->flag))
+    gkyl_cu_free(prim_ty->on_dev);
+
+  struct prim_lbo_type_gyrokinetic *gk = container_of(prim_ty, struct prim_lbo_type_gyrokinetic, prim);
+  gkyl_free(gk);
 }
 
 struct gkyl_prim_lbo_type*
 gkyl_prim_lbo_gyrokinetic_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis)
+  const struct gkyl_basis* pbasis, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
-  
+
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_prim_lbo_gyrokinetic_cu_dev_new(cbasis, pbasis);
+  } 
+#endif     
   struct prim_lbo_type_gyrokinetic *prim_gyrokinetic = gkyl_malloc(sizeof(struct prim_lbo_type_gyrokinetic));
   int cdim = prim_gyrokinetic->prim.cdim = cbasis->ndim;
   int pdim = prim_gyrokinetic->prim.pdim = pbasis->ndim;

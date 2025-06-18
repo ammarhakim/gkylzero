@@ -1,5 +1,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_dynvec.h>
+#include <gkyl_elem_type_priv.h>
 #include <gkyl_ref_count.h>
 #include <gkyl_util.h>
 
@@ -11,25 +12,6 @@
 
 /* Size by which vector grows each time it is reallocated */
 static const size_t DYNVEC_ALLOC_SZ = 1024;
-
-// code for array datatype for use in IO
-static const uint64_t array_data_type[] = {
-  [GKYL_INT] = 0,
-  [GKYL_FLOAT] = 1,
-  [GKYL_DOUBLE] = 2,
-  [GKYL_USER] = 32,
-};
-
-// size in bytes for various data-types
-static const size_t array_elem_size[] = {
-  [GKYL_INT] = sizeof(int),
-  [GKYL_FLOAT] = sizeof(float),
-  [GKYL_DOUBLE] = sizeof(double),
-  [GKYL_USER] = 1,
-};
-
-// type-id for field data
-static const uint64_t dynvec_file_type = 2;
 
 struct gkyl_dynvec_tag {
   enum gkyl_elem_type type; // type of data stored in vector
@@ -59,7 +41,7 @@ gkyl_dynvec_new(enum gkyl_elem_type type, size_t ncomp)
 {
   struct gkyl_dynvec_tag *dv = gkyl_malloc(sizeof(struct gkyl_dynvec_tag));
   dv->type = type;
-  dv->elemsz = array_elem_size[type];
+  dv->elemsz = gkyl_elem_type_size[type];
   dv->ncomp = ncomp;
   dv->esznc = dv->elemsz*dv->ncomp;
   dv->csize = DYNVEC_ALLOC_SZ;
@@ -72,6 +54,9 @@ gkyl_dynvec_new(enum gkyl_elem_type type, size_t ncomp)
   
   return dv;
 }
+
+int gkyl_dynvec_elem_type(gkyl_dynvec vec) { return vec->type; }
+int gkyl_dynvec_ncomp(gkyl_dynvec vec) { return vec->ncomp; }
 
 void
 gkyl_dynvec_reserve_more(gkyl_dynvec dv, size_t rsize)
@@ -185,33 +170,6 @@ gkyl_dynvec_acquire(const gkyl_dynvec vec)
   return (struct gkyl_dynvec_tag*) vec;
 }
 
-/*
-  IF THIS FORMAT IF MODIFIED, PLEASE COPY AND THEN CHANGE THE
-  DESCRIPTION SO WE HAVE THE OLDER VERSIONS DOCUMENTED HERE. UPDATE
-  VERSION BY 1 EACH TIME YOU CHANGE THE FORMAT.
-
-  The format of the gkyl binary output is as follows.
-
-  ## Version 1: May 9th 2022. Created by A.H
-
-  Data      Type and meaning
-  --------------------------
-  gkyl0     5 bytes
-  version   uint64_t 
-  file_type uint64_t (1: field data, 2: diagnostic data)
-  meta_size uint64_t Number of bytes of meta-data
-  DATA      meta_size bytes of data. This is in msgpack format
-
-  For file_type = 2 (dynvec) the above header is followed by
-
-  real_type uint64_t. Indicates real type of data 
-  esznc     uint64_t Element-size * number of components in field
-  size      uint64_t Total number of cells in field
-  TIME_DATA float64[size] bytes of data
-  DATA      size*esznc bytes of data
-  
- */
-
 static int
 gkyl_dynvec_write_mode(const gkyl_dynvec vec,
   const char *fname, const char *mode)
@@ -226,11 +184,11 @@ gkyl_dynvec_write_mode(const gkyl_dynvec vec,
     fwrite(g0, sizeof(char[5]), 1, fp);
     uint64_t version = 1;
     fwrite(&version, sizeof(uint64_t), 1, fp);
-    fwrite(&dynvec_file_type, sizeof(uint64_t), 1, fp);
+    fwrite(&gkyl_file_type_int[GKYL_DYNVEC_DATA_FILE], sizeof(uint64_t), 1, fp);
     uint64_t meta_size = 0; // THIS WILL CHANGE ONCE METADATA IS EMBEDDED
     fwrite(&meta_size, sizeof(uint64_t), 1, fp);
     
-    uint64_t real_type = array_data_type[vec->type];
+    uint64_t real_type = gkyl_array_data_type[vec->type];
     fwrite(&real_type, sizeof(uint64_t), 1, fp);
 
     uint64_t esznc = vec->esznc, size = gkyl_dynvec_size(vec);
@@ -258,7 +216,7 @@ gkyl_dynvec_awrite(const gkyl_dynvec vec, const char *fname)
 
 // ncomp returned in 'ncomp'
 static bool
-gkyl_dynvec_read_ncomp_1(FILE *fp, int *ncomp)
+gkyl_dynvec_read_ncomp_1(FILE *fp, struct gkyl_dynvec_etype_ncomp *enc)
 {
   size_t frr;
   // Version 1 header
@@ -276,7 +234,7 @@ gkyl_dynvec_read_ncomp_1(FILE *fp, int *ncomp)
 
   uint64_t file_type;
   frr = fread(&file_type, sizeof(uint64_t), 1, fp);
-  if (file_type != dynvec_file_type)
+  if (file_type != gkyl_file_type_int[GKYL_DYNVEC_DATA_FILE])
     return false;
 
   uint64_t meta_size;
@@ -286,27 +244,33 @@ gkyl_dynvec_read_ncomp_1(FILE *fp, int *ncomp)
   // method
   fseek(fp, meta_size, SEEK_CUR);
 
-  uint64_t real_type = 0;
-  if (1 != fread(&real_type, sizeof(uint64_t), 1, fp))
+  uint64_t real_code = 0;
+  if (1 != fread(&real_code, sizeof(uint64_t), 1, fp))
     return false;
+  enc->type = gkyl_array_code_to_data_type[real_code];
 
   uint64_t esznc;
   if (1 != fread(&esznc, sizeof(uint64_t), 1, fp))
     return false;
 
-  *ncomp = esznc/array_elem_size[real_type];
-
+  int real_type = gkyl_array_code_to_data_type[real_code];
+  enc->ncomp = esznc/gkyl_elem_type_size[real_type];
+  
   return true;
 }
 
-int
+
+struct gkyl_dynvec_etype_ncomp
 gkyl_dynvec_read_ncomp(const char *fname)
 {
-  int ncomp = 0;
+  struct gkyl_dynvec_etype_ncomp enc = {
+    .type = GKYL_DOUBLE,
+    .ncomp = 0
+  };
   FILE *fp = 0;
   with_file(fp, fname, "r")
-    gkyl_dynvec_read_ncomp_1(fp, &ncomp);
-  return ncomp;
+    gkyl_dynvec_read_ncomp_1(fp, &enc);
+  return enc;
 }
 
 static bool
@@ -327,7 +291,7 @@ gkyl_dynvec_read_1(gkyl_dynvec vec, FILE *fp) {
 
   uint64_t file_type;
   frr = fread(&file_type, sizeof(uint64_t), 1, fp);
-  if (file_type != dynvec_file_type)
+  if (file_type != gkyl_file_type_int[GKYL_DYNVEC_DATA_FILE])
     return false;
 
   uint64_t meta_size;
@@ -340,7 +304,7 @@ gkyl_dynvec_read_1(gkyl_dynvec vec, FILE *fp) {
   uint64_t real_type = 0;
   if (1 != fread(&real_type, sizeof(uint64_t), 1, fp))
     return false;
-  if (real_type != array_data_type[vec->type])
+  if (real_type != gkyl_array_data_type[vec->type])
     return false;
 
   uint64_t esznc, size;
@@ -386,6 +350,20 @@ gkyl_dynvec_read(gkyl_dynvec vec, const char *fname)
   fclose(fp);
   
   return status;
+}
+
+void
+gkyl_dynvec_to_array(const gkyl_dynvec vec, struct gkyl_array *tm_mesh,
+  struct gkyl_array *dyndata)
+{
+  int nv = gkyl_dynvec_size(vec);
+  for (int i=0; i<nv; ++i) {
+    double *tmm = gkyl_array_fetch(tm_mesh, i);
+    tmm[0] = gkyl_dynvec_get_tm(vec, i);
+
+    void *dd = gkyl_array_fetch(dyndata, i);
+    gkyl_dynvec_get(vec, i, dd);
+  }
 }
 
 void

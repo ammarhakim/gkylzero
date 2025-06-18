@@ -1,10 +1,12 @@
 /* -*- c -*- */
 
 #include <stdio.h>
-#include <gkylzero.h>
 
 extern "C" {
-    int cu_mom_vlasov_test(const struct gkyl_mom_type *mom);
+#include <gkyl_mom_type.h>
+#include <gkyl_alloc.h>
+#include <gkyl_util.h>
+  int cu_mom_vlasov_test(const struct gkyl_mom_type *mom);
 }
 
 __global__

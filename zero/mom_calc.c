@@ -6,11 +6,17 @@
 
 #include <assert.h>
 
-gkyl_mom_calc*
+struct gkyl_mom_calc*
 gkyl_mom_calc_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_mom_type *momt)
+  const struct gkyl_mom_type *momt, bool use_gpu)
 {
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_mom_calc_cu_dev_new(grid, momt);
+  } 
+#endif
   gkyl_mom_calc *up = gkyl_malloc(sizeof(gkyl_mom_calc));
+  
   up->grid = *grid;
   up->momt = gkyl_mom_type_acquire(momt);
 
@@ -31,7 +37,7 @@ copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
 }
 
 void
-gkyl_mom_calc_advance(const gkyl_mom_calc* calc,
+gkyl_mom_calc_advance(const struct gkyl_mom_calc* calc,
   const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
   const struct gkyl_array *GKYL_RESTRICT fin, struct gkyl_array *GKYL_RESTRICT mout)
 {
@@ -42,7 +48,7 @@ gkyl_mom_calc_advance(const gkyl_mom_calc* calc,
   int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
   for (int d=0; d<conf_rng->ndim; ++d) rem_dir[d] = 1;
 
-  gkyl_array_clear_range(mout, 0.0, *conf_rng);
+  gkyl_array_clear_range(mout, 0.0, conf_rng);
 
   // the outer loop is over configuration space cells; for each
   // config-space cell the inner loop walks over the velocity space
@@ -62,7 +68,7 @@ gkyl_mom_calc_advance(const gkyl_mom_calc* calc,
       long fidx = gkyl_range_idx(&vel_rng, vel_iter.idx);
 
       gkyl_mom_type_calc(calc->momt, xc, calc->grid.dx, pidx,
-	gkyl_array_cfetch(fin, fidx), gkyl_array_fetch(mout, midx), 0
+        gkyl_array_cfetch(fin, fidx), gkyl_array_fetch(mout, midx), 0
       );
     }
   }
@@ -79,7 +85,7 @@ void gkyl_mom_calc_release(gkyl_mom_calc* up)
 #ifndef GKYL_HAVE_CUDA
 
 void
-gkyl_mom_calc_advance_cu(const gkyl_mom_calc* mcalc,
+gkyl_mom_calc_advance_cu(const struct gkyl_mom_calc* mcalc,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
   const struct gkyl_array *GKYL_RESTRICT fin, struct gkyl_array *GKYL_RESTRICT mout)
 {

@@ -19,9 +19,21 @@ struct gkyl_proj_on_basis {
   struct gkyl_array *ordinates; // ordinates for quadrature
   struct gkyl_array *weights; // weights for quadrature
   struct gkyl_array *basis_at_ords; // basis functions at ordinates
+
+  proj_on_basis_c2p_t c2p; // Function transformin comp to phys coords.
+  void *c2p_ctx; // Context for the c2p mapping.
 };
 
-gkyl_proj_on_basis*
+// Identity comp to phys coord mapping, for when user doesn't provide a map.
+static inline void
+c2p_identity(const double *xcomp, double *xphys, void *ctx)
+{
+  struct gkyl_rect_grid *grid = ctx;
+  int ndim = grid->ndim;
+  for (int d=0; d<ndim; d++) xphys[d] = xcomp[d];
+}
+
+struct gkyl_proj_on_basis*
 gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
   int num_quad, int num_ret_vals, evalf_t eval, void *ctx)
 {
@@ -32,22 +44,33 @@ gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
       .num_quad = num_quad,
       .num_ret_vals = num_ret_vals,
       .eval = eval,
-      .ctx = ctx
+      .ctx = ctx,
+      .c2p_func = 0,
+      .c2p_func_ctx = NULL,
     }
   );
 }
 
-gkyl_proj_on_basis*
+struct gkyl_proj_on_basis*
 gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp *inp)
 {
-  gkyl_proj_on_basis *up = gkyl_malloc(sizeof(gkyl_proj_on_basis));
+  struct gkyl_proj_on_basis *up = gkyl_malloc(sizeof(struct gkyl_proj_on_basis));
 
   up->grid = *inp->grid;
-  int num_quad = up->num_quad = inp->num_quad;
+  int num_quad = up->num_quad = inp->num_quad == 0 ? inp->basis->poly_order+1 : inp->num_quad;
   int num_ret_vals = up->num_ret_vals = inp->num_ret_vals;
   up->eval = inp->eval;
   up->ctx = inp->ctx;
   up->num_basis = inp->basis->num_basis;
+
+  if (inp->c2p_func == 0) {
+    up->c2p = c2p_identity;
+    up->c2p_ctx = &up->grid; // Use grid as the context since all we need is ndim.
+  }
+  else {
+    up->c2p = inp->c2p_func;
+    up->c2p_ctx = inp->c2p_func_ctx;
+  }
 
   double ordinates1[num_quad], weights1[num_quad];
 
@@ -109,16 +132,27 @@ gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp *inp)
   return up;
 }
 
+int gkyl_proj_on_basis_get_tot_quad(const struct gkyl_proj_on_basis *up)
+{
+  return up->tot_quad;
+}
+
+double* gkyl_proj_on_basis_fetch_ordinate(const struct gkyl_proj_on_basis *up, long node)
+{
+  return gkyl_array_fetch(up->ordinates, node);
+}
+
 static inline void
-comp_to_phys(int ndim, const double *eta,
+log_to_comp(int ndim, const double *eta,
   const double * GKYL_RESTRICT dx, const double * GKYL_RESTRICT xc,
   double* GKYL_RESTRICT xout)
 {
+  // Convert logical to computational coordinates.
   for (int d=0; d<ndim; ++d) xout[d] = 0.5*dx[d]*eta[d]+xc[d];
 }
 
-static void
-proj_on_basis(const gkyl_proj_on_basis *up, const struct gkyl_array *fun_at_ords, double* f)
+void
+gkyl_proj_on_basis_quad(const struct gkyl_proj_on_basis *up, const struct gkyl_array *fun_at_ords, double* f)
 {
   int num_basis = up->num_basis;
   int tot_quad = up->tot_quad;
@@ -145,7 +179,7 @@ proj_on_basis(const gkyl_proj_on_basis *up, const struct gkyl_array *fun_at_ords
 }
 
 void
-gkyl_proj_on_basis_advance(const gkyl_proj_on_basis *up,
+gkyl_proj_on_basis_advance(const struct gkyl_proj_on_basis *up,
   double tm, const struct gkyl_range *update_range, struct gkyl_array *arr)
 {
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
@@ -161,20 +195,21 @@ gkyl_proj_on_basis_advance(const gkyl_proj_on_basis *up,
     gkyl_rect_grid_cell_center(&up->grid, iter.idx, xc);
 
     for (int i=0; i<tot_quad; ++i) {
-      comp_to_phys(up->grid.ndim, gkyl_array_cfetch(up->ordinates, i),
+      log_to_comp(up->grid.ndim, gkyl_array_cfetch(up->ordinates, i),
         up->grid.dx, xc, xmu);
+      up->c2p(xmu, xmu, up->c2p_ctx);
       up->eval(tm, xmu, gkyl_array_fetch(fun_at_ords, i), up->ctx);
     }
 
     long lidx = gkyl_range_idx(update_range, iter.idx);
-    proj_on_basis(up, fun_at_ords, gkyl_array_fetch(arr, lidx));
+    gkyl_proj_on_basis_quad(up, fun_at_ords, gkyl_array_fetch(arr, lidx));
   }
 
   gkyl_array_release(fun_at_ords);
 }
 
 void
-gkyl_proj_on_basis_release(gkyl_proj_on_basis* up)
+gkyl_proj_on_basis_release(struct gkyl_proj_on_basis* up)
 {
   gkyl_array_release(up->ordinates);
   gkyl_array_release(up->weights);

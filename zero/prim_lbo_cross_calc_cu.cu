@@ -16,11 +16,11 @@ extern "C" {
 __global__ static void
 gkyl_prim_lbo_cross_calc_set_cu_ker(gkyl_prim_lbo_cross_calc* calc,
   struct gkyl_nmat *As, struct gkyl_nmat *xs,
-  struct gkyl_basis cbasis, const struct gkyl_range conf_rng,
+  const struct gkyl_range conf_rng,
   const struct gkyl_array *greene,
-  double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
-  double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_u, const struct gkyl_array *other_vtsq, 
-  const struct gkyl_array *boundary_corrections)
+  double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_prim_moms,
+  double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_prim_moms,
+  const struct gkyl_array *boundary_corrections, const struct gkyl_array *nu)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -40,30 +40,29 @@ gkyl_prim_lbo_cross_calc_set_cu_ker(gkyl_prim_lbo_cross_calc* calc,
     struct gkyl_mat lhs = gkyl_nmat_get(As, linc1);
     struct gkyl_mat rhs = gkyl_nmat_get(xs, linc1);
 
-    const double *self_moms_d = (const double*) gkyl_array_cfetch(self_moms, start);
-    const double *self_u_d = (const double*) gkyl_array_cfetch(self_u, start);
     const double *greene_d = (const double*) gkyl_array_cfetch(greene, start);
-    const double *self_vtsq_d = (const double*) gkyl_array_cfetch(self_vtsq, start);
+    const double *self_moms_d = (const double*) gkyl_array_cfetch(self_moms, start);
+    const double *self_prim_moms_d = (const double*) gkyl_array_cfetch(self_prim_moms, start);
     const double *other_moms_d = (const double*) gkyl_array_cfetch(other_moms, start);
-    const double *other_u_d = (const double*) gkyl_array_cfetch(other_u, start);
-    const double *other_vtsq_d = (const double*) gkyl_array_cfetch(other_vtsq, start);
+    const double *other_prim_moms_d = (const double*) gkyl_array_cfetch(other_prim_moms, start);
     const double *boundary_corrections_d = (const double*) gkyl_array_cfetch(boundary_corrections, start);
+    const double *nu_d = (const double*) gkyl_array_cfetch(nu, start);
 
     gkyl_mat_clear(&lhs, 0.0); gkyl_mat_clear(&rhs, 0.0);
 
     calc->prim->cross_prim(calc->prim, &lhs, &rhs, idx, greene_d, 
-      self_m, self_moms_d, self_u_d, self_vtsq_d,
-      other_m, other_moms_d, other_u_d, other_vtsq_d, 
-      boundary_corrections_d
+      self_m, self_moms_d, self_prim_moms_d,
+      other_m, other_moms_d, other_prim_moms_d,
+      boundary_corrections_d, nu_d
     );
   }
 }
 
 __global__ static void
 gkyl_prim_lbo_copy_sol_cu_ker(struct gkyl_nmat *xs,
-  struct gkyl_basis cbasis, const struct gkyl_range conf_rng,
+  const struct gkyl_range conf_rng,
   int nc, int udim, 
-  struct gkyl_array* u_out, struct gkyl_array* vtsq_out)
+  struct gkyl_array* prim_moms_out)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -81,23 +80,22 @@ gkyl_prim_lbo_copy_sol_cu_ker(struct gkyl_nmat *xs,
     long start = gkyl_range_idx(&conf_rng, idx);
 
     struct gkyl_mat out_d = gkyl_nmat_get(xs, linc1);
-    double *u_d = (double*) gkyl_array_fetch(u_out, start);
-    double *vtsq_d = (double*) gkyl_array_fetch(vtsq_out, start);
+    double *prim_moms_d = (double*) gkyl_array_fetch(prim_moms_out, start);
     
-    prim_lbo_copy_sol(&out_d, nc, udim, u_d, vtsq_d);
+    prim_lbo_copy_sol(&out_d, nc, udim, prim_moms_d);
   }
 }
 
 void
-gkyl_prim_lbo_cross_calc_advance_cu(gkyl_prim_lbo_cross_calc* calc,
-  struct gkyl_basis cbasis, const struct gkyl_range *conf_rng,
+gkyl_prim_lbo_cross_calc_advance_cu(struct gkyl_prim_lbo_cross_calc* calc,
+  const struct gkyl_range *conf_rng,
   const struct gkyl_array *greene,
-  double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
-  double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_u, const struct gkyl_array *other_vtsq, 
-  const struct gkyl_array *boundary_corrections, 
-  struct gkyl_array *u_out, struct gkyl_array *vtsq_out)
+  double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_prim_moms,
+  double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_prim_moms,
+  const struct gkyl_array *boundary_corrections, const struct gkyl_array *nu,  
+  struct gkyl_array *prim_moms_out)
 {
-  int nc = cbasis.num_basis;
+  int nc = calc->prim->num_config;
   int udim = calc->prim->udim;
   int N = nc*(udim + 1);
   
@@ -107,20 +105,20 @@ gkyl_prim_lbo_cross_calc_advance_cu(gkyl_prim_lbo_cross_calc* calc,
     calc->mem = gkyl_nmat_linsolve_lu_cu_dev_new(calc->As->num, calc->As->nr);
     calc->is_first = false;
   }
-
+  
   gkyl_prim_lbo_cross_calc_set_cu_ker<<<conf_rng->nblocks, conf_rng->nthreads>>>(calc->on_dev,
     calc->As->on_dev, calc->xs->on_dev, 
-    cbasis, *conf_rng, 
+    *conf_rng, 
     greene->on_dev, 
-    self_m, self_moms->on_dev, self_u->on_dev, self_vtsq->on_dev,
-    other_m, other_moms->on_dev, other_u->on_dev, other_vtsq->on_dev,
-    boundary_corrections->on_dev);
+    self_m, self_moms->on_dev, self_prim_moms->on_dev,
+    other_m, other_moms->on_dev, other_prim_moms->on_dev,
+    boundary_corrections->on_dev, nu->on_dev);
   
   bool status = gkyl_nmat_linsolve_lu_pa(calc->mem, calc->As, calc->xs);
   
   gkyl_prim_lbo_copy_sol_cu_ker<<<conf_rng->nblocks, conf_rng->nthreads>>>(calc->xs->on_dev,
-    cbasis, *conf_rng, nc, udim, 
-    u_out->on_dev, vtsq_out->on_dev);
+    *conf_rng, nc, udim, 
+    prim_moms_out->on_dev);
 }
 
 gkyl_prim_lbo_cross_calc*

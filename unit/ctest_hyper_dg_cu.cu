@@ -1,11 +1,12 @@
 #include <gkylzero.h>
-#include <gkyl_hyper_dg_priv.h>
-#include <gkyl_dg_vlasov_priv.h>
 
 #define TEST_NO_MAIN
 #include <acutest.h>
 
 extern "C" {
+#include <gkyl_hyper_dg_priv.h>
+#include <gkyl_dg_vlasov_priv.h>
+    
 int hyper_dg_kernel_test(const gkyl_hyper_dg *slvr);
 }
 

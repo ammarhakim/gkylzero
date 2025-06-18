@@ -1,6 +1,6 @@
 #include <acutest.h>
-#include <gkyl_moment_prim_maxwell.h>
 #include <gkyl_wv_maxwell.h>
+#include <gkyl_wv_maxwell_priv.h>
 
 // Make indexing cleaner with the dir_shuffle
 #define EX 0
@@ -18,7 +18,7 @@ test_maxwell_basic()
   double c2 = c*c;
   double e_fact = 2.0;
   double b_fact = 2.5;
-  struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c, e_fact, b_fact);
+  struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c, e_fact, b_fact, false);
 
   TEST_CHECK( maxwell->num_equations == 8 );
   TEST_CHECK( maxwell->num_waves == 6 );
@@ -90,9 +90,9 @@ test_maxwell_basic()
   double q_local[8], flux_local[8], flux[8];
 
   for (int d=0; d<3; ++d) {
-    maxwell->rotate_to_local_func(tau1[d], tau2[d], norm[d], q, q_local);
+    maxwell->rotate_to_local_func(maxwell, tau1[d], tau2[d], norm[d], q, q_local);
     gkyl_maxwell_flux(c, e_fact, b_fact, q_local, flux_local);
-    maxwell->rotate_to_global_func(tau1[d], tau2[d], norm[d], flux_local, flux);
+    maxwell->rotate_to_global_func(maxwell, tau1[d], tau2[d], norm[d], flux_local, flux);
 
     for (int m=0; m<8; ++m)
       TEST_CHECK( gkyl_compare(flux[m], fluxes[d][m], 1e-15) );
@@ -117,7 +117,7 @@ test_maxwell_waves()
   double c2 = c*c;
   double e_fact = 1.0;
   double b_fact = 1.0;
-  struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c, e_fact, b_fact);
+  struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c, e_fact, b_fact, false);
 
   double ql[8] = { 0.0, 1.0, 0.0, 1.0, -0.75, 0.0, 0.0, 0.0};
   double qr[8] = { 0.0, -1.0, 0.0, 1.0, 0.75, 0.0, 0.0, 0.0};
@@ -153,12 +153,17 @@ test_maxwell_waves()
     
     gkyl_wv_eqn_waves(maxwell, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, waves_local, speeds);
 
+    double apdq_local[8], amdq_local[8];
+    gkyl_wv_eqn_qfluct(maxwell, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, waves_local, speeds,
+      amdq_local, apdq_local);
+
     // rotate waves back to global frame
     for (int mw=0; mw<6; ++mw)
       gkyl_wv_eqn_rotate_to_global(maxwell, tau1[d], tau2[d], norm[d], &waves_local[mw*8], &waves[mw*8]);
 
     double apdq[8], amdq[8];
-    gkyl_wv_eqn_qfluct(maxwell, GKYL_WV_HIGH_ORDER_FLUX, ql, qr, waves, speeds, amdq, apdq);
+    gkyl_wv_eqn_rotate_to_global(maxwell, tau1[d], tau2[d], norm[d], apdq_local, apdq);
+    gkyl_wv_eqn_rotate_to_global(maxwell, tau1[d], tau2[d], norm[d], amdq_local, amdq);
     
     // check if sum of left/right going fluctuations sum to jump in flux
     double fl_local[8], fr_local[8];
@@ -169,15 +174,43 @@ test_maxwell_waves()
     gkyl_wv_eqn_rotate_to_global(maxwell, tau1[d], tau2[d], norm[d], fl_local, fl);
     gkyl_wv_eqn_rotate_to_global(maxwell, tau1[d], tau2[d], norm[d], fr_local, fr);
     
-    for (int i=0; i<8; ++i)
+    for (int i=0; i<8; ++i) {
+      //printf("%d: %g %g (%g)\n", i, fr[i]-fl[i], amdq[i]+apdq[i], (fr[i]-fl[i])-(amdq[i]+apdq[i]));
       TEST_CHECK( gkyl_compare(fr[i]-fl[i], amdq[i]+apdq[i], 1e-14) );
+    }
   }
     
   gkyl_wv_eqn_release(maxwell);
 }
 
+#ifdef GKYL_HAVE_CUDA
+
+int cu_wv_maxwell_test(const struct gkyl_wv_eqn *eqn);
+
+void
+test_cu_wv_maxwell()
+{
+  double c = 299792458.0;
+  double c2 = c*c;
+  double e_fact = 2.0;
+  double b_fact = 2.5;
+  struct gkyl_wv_eqn *eqn = gkyl_wv_maxwell_new(c, e_fact, b_fact, true);
+  
+  // call CUDA test
+  int nfail = cu_wv_maxwell_test(eqn->on_dev);
+
+  TEST_CHECK( nfail == 0 );
+
+  gkyl_wv_eqn_release(eqn);
+}
+
+#endif
+
 TEST_LIST = {
   { "maxwell_basic", test_maxwell_basic },
   { "maxwell_waves", test_maxwell_waves },
+#ifdef GKYL_HAVE_CUDA
+  { "cu_wv_maxwell", test_cu_wv_maxwell },
+#endif  
   { NULL, NULL },
 };

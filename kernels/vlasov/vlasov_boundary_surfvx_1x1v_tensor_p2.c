@@ -1,17 +1,17 @@
 #include <gkyl_vlasov_kernels.h> 
 #include <gkyl_basis_tensor_2x_p2_surfx2_eval_quad.h> 
 #include <gkyl_basis_tensor_2x_p2_upwind_quad_to_modal.h> 
-GKYL_CU_DH void vlasov_boundary_surfvx_1x1v_tensor_p2(const double *w, const double *dxv, const double *qmem, const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_boundary_surfvx_1x1v_tensor_p2(const double *w, const double *dxv, const double *field, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out) 
 { 
   // w:           Cell-center coordinates.
   // dxv[NDIM]:   Cell spacing.
-  // qmem:        q/m*EM fields.
+  // field:       q/m*EM fields.
   // edge:        Determines if the update is for the left edge (-1) or right edge (+1).
   // fSkin/fEdge: Input Distribution function in skin cell/last edge cell 
   // out:         Output distribution function in skin cell 
   const double dv10 = 2/dxv[1]; 
   const double dv1 = dxv[1], wv1 = w[1]; 
-  const double *E0 = &qmem[0]; 
+  const double *E0 = &field[0]; 
 
   double alpha[3] = {0.0}; 
 
@@ -94,4 +94,6 @@ GKYL_CU_DH void vlasov_boundary_surfvx_1x1v_tensor_p2(const double *w, const dou
   out[8] += 1.58113883008419*Ghat[2]*dv10; 
 
   } 
+  return 0.;
+
 } 

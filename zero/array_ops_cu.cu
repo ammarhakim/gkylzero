@@ -21,16 +21,15 @@ extern "C" {
 static void
 gkyl_get_array_range_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gkyl_range range, int ncomp)
 {
-  int volume = range.volume;
   int ndim = range.ndim;
   // ac1 = size of last dimension of range (fastest moving dimension)
   int ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
   // CUDA Max block size in x is 2^31 - 1, Max block size in y is 2^16-1
   // Thus, x block size should be bigger to avoid max block size limits
-  dimBlock->y = GKYL_MIN(ncomp*ac1, GKYL_DEFAULT_NUM_THREADS);
+  dimBlock->y = GKYL_MIN2(ncomp*ac1, GKYL_DEFAULT_NUM_THREADS);
   dimGrid->y = gkyl_int_div_up(ncomp*ac1, dimBlock->y);
   dimBlock->x = gkyl_int_div_up(GKYL_DEFAULT_NUM_THREADS, ncomp*ac1);
-  dimGrid->x = gkyl_int_div_up(volume, ac1*dimBlock->x);
+  dimGrid->x = gkyl_int_div_up(range.volume, ac1*dimBlock->x);
 }
 
 __global__ void
@@ -105,11 +104,11 @@ gkyl_array_scale_by_cell_cu_kernel(struct gkyl_array* out, const struct gkyl_arr
 } 
 
 __global__ void
-gkyl_array_shiftc0_cu_kernel(struct gkyl_array* out, double a)
+gkyl_array_shiftc_cu_kernel(struct gkyl_array* out, double a, unsigned k)
 {
   double *out_d = (double*) out->data;
   for (unsigned long linc = START_ID; linc < NSIZE(out); linc += blockDim.x*gridDim.x)
-    out_d[linc*out->ncomp] = a+out_d[linc*out->ncomp];
+    out_d[linc*out->ncomp+k] = a+out_d[linc*out->ncomp+k];
 } 
 
 // Host-side wrappers for array operations
@@ -158,9 +157,9 @@ gkyl_array_scale_by_cell_cu(struct gkyl_array* out, const struct gkyl_array* a)
 }
 
 void
-gkyl_array_shiftc0_cu(struct gkyl_array* out, double a)
+gkyl_array_shiftc_cu(struct gkyl_array* out, double a, unsigned k)
 {
-  gkyl_array_shiftc0_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, a);
+  gkyl_array_shiftc_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, a, k);
 }
 
 // Range-based methods
@@ -298,16 +297,16 @@ gkyl_array_accumulate_offset_range_cu_kernel(struct gkyl_array *out,
 }
 
 __global__ void
-gkyl_array_set_range_cu_kernel(struct gkyl_array *out,
-  double a, const struct gkyl_array* inp, struct gkyl_range range)
+gkyl_array_set_range_cu_kernel(struct gkyl_array *out, double a,
+  const struct gkyl_array* inp, struct gkyl_range out_range, struct gkyl_range inp_range)
 {
   long outnc = NCOM(out), inpnc = NCOM(inp);
   long n = outnc<inpnc ? outnc : inpnc;
-  int idx[GKYL_MAX_DIM];
+  int idx_out[GKYL_MAX_DIM], idx_inp[GKYL_MAX_DIM];
 
-  int ndim = range.ndim;
+  int ndim = inp_range.ndim;
   // ac1 = size of last dimension of range (fastest moving dimension)
-  long ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
+  long ac1 = inp_range.iac[ndim-1] > 0 ? inp_range.iac[ndim-1] : 1;
 
   // 2D thread grid
   // linc2 = c + n*idx1 (contiguous data, including component index c, with idx1 = 0,.., ac1-1)
@@ -320,7 +319,7 @@ gkyl_array_set_range_cu_kernel(struct gkyl_array *out,
   long linc2_out = c + outnc*idx1; 
   // linc1 = idx2 + ac2*idx3 + ...
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
-      linc1 < range.volume/ac1;
+      linc1 < inp_range.volume/ac1;
       linc1 += gridDim.x*blockDim.x)
   {
     // full linear cell index (not including components) is 
@@ -328,11 +327,13 @@ gkyl_array_set_range_cu_kernel(struct gkyl_array *out,
     // we want to find the start linear index of each contiguous data block, 
     // which corresponds to idx1 = 0. 
     // so linear index of start of contiguous block is ac1*linc2.
-    gkyl_sub_range_inv_idx(&range, ac1*linc1, idx);
-    long start = gkyl_range_idx(&range, idx);
+    gkyl_sub_range_inv_idx(&out_range, ac1*linc1, idx_out);
+    gkyl_sub_range_inv_idx(&inp_range, ac1*linc1, idx_inp);
+    long start_out = gkyl_range_idx(&out_range, idx_out);
+    long start_inp = gkyl_range_idx(&inp_range, idx_inp);
     
-    double* out_d = (double*) gkyl_array_fetch(out, start);
-    const double* inp_d = (const double*) gkyl_array_cfetch(inp, start);
+    double* out_d = (double*) gkyl_array_fetch(out, start_out);
+    const double* inp_d = (const double*) gkyl_array_cfetch(inp, start_inp);
     // do operation on contiguous data block
     if (linc2 < n*ac1)
       out_d[linc2_out] = a*inp_d[linc2_in];
@@ -391,6 +392,39 @@ gkyl_array_set_offset_range_cu_kernel(struct gkyl_array *out,
   }
 }
 
+__global__ void
+gkyl_array_shiftc_range_cu_kernel(struct gkyl_array* out, double a,
+  unsigned k, struct gkyl_range range)
+{
+  long ncomp = NCOM(out);
+  int idx[GKYL_MAX_DIM];
+  int ndim = range.ndim;
+  // ac1 = size of last dimension of range (fastest moving dimension).
+  long ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
+
+  // 2D thread grid
+  // linc2 = c + ncomp*idx1 (contiguous data, including component index c, with idx1 = 0,.., ac1-1)
+  long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
+  // linc1 = idx2 + ac2*idx3 + ...
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < range.volume/ac1;
+      linc1 += gridDim.x*blockDim.x)
+  {
+    // full linear cell index (not including components) is
+    // idx1 + ac1*idx2 + ac1*ac2*idx3 + ... = idx1 + ac1*linc1.
+    // we want to find the start linear index of each contiguous data block,
+    // which corresponds to idx1 = 0.
+    // so linear index of start of contiguous block is ac1*linc2.
+    gkyl_sub_range_inv_idx(&range, ac1*linc1, idx);
+    long start = gkyl_range_idx(&range, idx);
+
+    double* out_d = (double*) gkyl_array_fetch(out, start);
+    // do operation on contiguous data block
+    if (linc2*ncomp < ncomp*ac1)
+      out_d[linc2*ncomp+k] += a;
+  }
+} 
+
 __global__ void 
 gkyl_array_copy_range_cu_kernel(struct gkyl_array *out, const struct gkyl_array* inp,
   struct gkyl_range out_range, struct gkyl_range inp_range)
@@ -398,7 +432,7 @@ gkyl_array_copy_range_cu_kernel(struct gkyl_array *out, const struct gkyl_array*
   int idx_out[GKYL_MAX_DIM], idx_inp[GKYL_MAX_DIM];
   long n = NCOM(out); // assume ncomp_in == ncomp_out
   int ndim = inp_range.ndim;
-  // ac1 = size of last dimension of inp_range (fastest moving dimension)
+  // ac1 = size of last dimension in input range (fastest moving dimension)
   long ac1 = inp_range.iac[ndim-1] > 0 ? inp_range.iac[ndim-1] : 1;
 
   // 2D thread grid
@@ -500,7 +534,7 @@ gkyl_array_copy_to_buffer_fn_cu_kernel(void *data, const struct gkyl_array *arr,
     long linc = gkyl_range_idx(&range, idx);
 
     const double *inp = (const double*) gkyl_array_cfetch(arr, linc);
-    double *out = (double*) flat_fetch(data, arr->esznc*linc1);
+    double *out = (double*) gkyl_flat_fetch(data, arr->esznc*linc1);
     cf->func(arr->ncomp, out, inp, cf->ctx);
   }
 }
@@ -531,142 +565,167 @@ gkyl_array_flip_copy_to_buffer_fn_cu_kernel(void *data, const struct gkyl_array 
     long flinc = gkyl_range_idx(&buff_range, fidx);
     
     const double *inp = (const double*) gkyl_array_cfetch(arr, linc);
-    double *out = (double*) flat_fetch(data, arr->esznc*flinc);
+    double *out = (double*) gkyl_flat_fetch(data, arr->esznc*flinc);
     cf->func(arr->ncomp, out, inp, cf->ctx);
   }
 }
 
 // Host-side wrappers for range-based array operations
 void
-gkyl_array_clear_range_cu(struct gkyl_array *out, double val, struct gkyl_range range)
+gkyl_array_clear_range_cu(struct gkyl_array *out, double val, const struct gkyl_range *range)
 {
   dim3 dimGrid, dimBlock;
-  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, range, out->ncomp);
+  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *range, out->ncomp);
 
-  gkyl_array_clear_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev, val, range);
+  gkyl_array_clear_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev, val, *range);
 }
 
 void
 gkyl_array_accumulate_range_cu(struct gkyl_array *out,
-  double a, const struct gkyl_array* inp, struct gkyl_range range)
+  double a, const struct gkyl_array* inp, const struct gkyl_range *range)
 {
   dim3 dimGrid, dimBlock;
-  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, range, min(out->ncomp, inp->ncomp));
+  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *range, min(out->ncomp, inp->ncomp));
 
-  gkyl_array_accumulate_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev, a, inp->on_dev, range);
+  gkyl_array_accumulate_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev, a, inp->on_dev, *range);
 }
 
 void
 gkyl_array_accumulate_offset_range_cu(struct gkyl_array *out,
-  double a, const struct gkyl_array* inp, int coff, struct gkyl_range range)
+  double a, const struct gkyl_array* inp, int coff, const struct gkyl_range *range)
 {
   dim3 dimGrid, dimBlock;
-  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, range, min(out->ncomp, inp->ncomp));
+  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *range, min(out->ncomp, inp->ncomp));
 
-  gkyl_array_accumulate_offset_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev, a, inp->on_dev, coff, range);
+  gkyl_array_accumulate_offset_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev, a, inp->on_dev, coff, *range);
 }
 
 void
 gkyl_array_set_range_cu(struct gkyl_array *out,
-  double a, const struct gkyl_array* inp, struct gkyl_range range)
+  double a, const struct gkyl_array* inp, const struct gkyl_range *range)
 {
   dim3 dimGrid, dimBlock;
-  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, range, min(out->ncomp, inp->ncomp));
+  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *range, min(out->ncomp, inp->ncomp));
 
   gkyl_array_set_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev,
-    a, inp->on_dev, range);
+    a, inp->on_dev, *range, *range);
+}
+
+void
+gkyl_array_set_range_to_range_cu(struct gkyl_array *out, double a,
+  const struct gkyl_array* inp, const struct gkyl_range *out_range, const struct gkyl_range *inp_range)
+{
+  if (inp_range->volume > 0) {
+    dim3 dimGrid, dimBlock;
+    gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *inp_range, min(out->ncomp, inp->ncomp));
+
+    gkyl_array_set_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev,
+      a, inp->on_dev, *out_range, *inp_range);
+  }
 }
 
 void
 gkyl_array_set_offset_range_cu(struct gkyl_array *out,
-  double a, const struct gkyl_array* inp, int coff, struct gkyl_range range)
+  double a, const struct gkyl_array* inp, int coff, const struct gkyl_range *range)
 {
   dim3 dimGrid, dimBlock;
-  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, range, min(out->ncomp, inp->ncomp));
+  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *range, min(out->ncomp, inp->ncomp));
 
   gkyl_array_set_offset_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev,
-    a, inp->on_dev, coff, range);
+    a, inp->on_dev, coff, *range);
 }
 
 void
 gkyl_array_scale_range_cu(struct gkyl_array *out,
-  double a, struct gkyl_range range)
+  double a, const struct gkyl_range *range)
 {
   dim3 dimGrid, dimBlock;
-  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, range, out->ncomp);
+  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *range, out->ncomp);
 
   gkyl_array_set_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev,
-    a, out->on_dev, range);
+    a, out->on_dev, *range, *range);
+}
+
+void
+gkyl_array_shiftc_range_cu(struct gkyl_array* out, double a, unsigned k, const struct gkyl_range *range)
+{
+  dim3 dimGrid, dimBlock;
+  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *range, 1);
+
+  gkyl_array_shiftc_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev, a, k, *range);
 }
 
 void
 gkyl_array_copy_range_cu(struct gkyl_array *out,
-  const struct gkyl_array *inp, struct gkyl_range range)
+  const struct gkyl_array *inp, const struct gkyl_range *range)
 {
   dim3 dimGrid, dimBlock;
-  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, range, out->ncomp);
+  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *range, out->ncomp);
 
   gkyl_array_copy_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev,
-    inp->on_dev, range, range);
+    inp->on_dev, *range, *range);
 }
 
 void
 gkyl_array_copy_range_to_range_cu(struct gkyl_array *out,
-  const struct gkyl_array *inp, struct gkyl_range out_range, struct gkyl_range inp_range)
+  const struct gkyl_array *inp, const struct gkyl_range *out_range, const struct gkyl_range *inp_range)
 {
-  printf("gkyl_array_copy_range_to_range_cu is not working properly. Please FIX!!\n");
-  assert(false);
-  
-  dim3 dimGrid, dimBlock;
-  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, inp_range, out->ncomp);
+  if (inp_range->volume > 0) {
+    dim3 dimGrid, dimBlock;
+    gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *inp_range, inp->ncomp);
 
-  gkyl_array_copy_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev,
-    inp->on_dev, out_range, inp_range);
+    gkyl_array_copy_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev,
+      inp->on_dev, *out_range, *inp_range);
+  }
 }
 
 void 
 gkyl_array_copy_to_buffer_cu(void *data, 
-  const struct gkyl_array *arr, struct gkyl_range range)
+  const struct gkyl_array *arr, const struct gkyl_range *range)
 {
   dim3 dimGrid, dimBlock;
-  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, range, arr->ncomp);
+  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *range, arr->ncomp);
 
   gkyl_array_copy_to_buffer_cu_kernel<<<dimGrid, dimBlock>>>(data,
-    arr->on_dev, range);
+    arr->on_dev, *range);
 }
 
 void 
 gkyl_array_copy_from_buffer_cu(struct gkyl_array *arr,
-  const void *data, struct gkyl_range range)
+  const void *data, const struct gkyl_range *range)
 {
-  int nelem = range.volume*arr->ncomp;
+  int nelem = range->volume*arr->ncomp;
   int nthreads = GKYL_DEFAULT_NUM_THREADS;
   int nblocks = gkyl_int_div_up(nelem, nthreads);
   gkyl_array_copy_from_buffer_cu_kernel<<<nblocks, nthreads>>>(arr->on_dev,
-    data, range);
+    data, *range);
 }
 
 void
 gkyl_array_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *arr,
-  struct gkyl_range range, struct gkyl_array_copy_func *cf)
+  const struct gkyl_range *range, struct gkyl_array_copy_func *cf)
 {
-  int nblocks = range.nblocks;
-  int nthreads = range.nthreads;
+  if (range->volume > 0) {
+    int nblocks = range->nblocks;
+    int nthreads = range->nthreads;
 
-  gkyl_array_copy_to_buffer_fn_cu_kernel<<<nblocks, nthreads>>>(
-    data, arr->on_dev, range, cf);
+    gkyl_array_copy_to_buffer_fn_cu_kernel<<<nblocks, nthreads>>>(
+      data, arr->on_dev, *range, cf);
+  }
 }
 
 void
 gkyl_array_flip_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *arr,
-  int dir, struct gkyl_range range, struct gkyl_array_copy_func *cf)
+  int dir, const struct gkyl_range *range, struct gkyl_array_copy_func *cf)
 {
-  int nblocks = range.nblocks;
-  int nthreads = range.nthreads;
+  if (range->volume > 0) {
+    int nblocks = range->nblocks;
+    int nthreads = range->nthreads;
 
-  struct gkyl_range buff_range;
-  gkyl_range_init(&buff_range, range.ndim, range.lower, range.upper);
+    struct gkyl_range buff_range;
+    gkyl_range_init(&buff_range, range->ndim, range->lower, range->upper);
   
-  gkyl_array_flip_copy_to_buffer_fn_cu_kernel<<<nblocks, nthreads>>>(data,
-    arr->on_dev, dir, range, buff_range, cf);
+    gkyl_array_flip_copy_to_buffer_fn_cu_kernel<<<nblocks, nthreads>>>(data,
+      arr->on_dev, dir, *range, buff_range, cf);
+  }
 }

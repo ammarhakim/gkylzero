@@ -8,7 +8,9 @@ config.mak
 *.sw*
 */.nfs*
 cuda-build/*
+cubld/*
 build/*
+bld/*
 build-*/*
 *.gkyl
 .waf*
@@ -17,6 +19,9 @@ waf_tools/*.pyc
 waf_tools/__pycache__/
 gkylzero-dist*
 *.json
+TAGS
+data/adas/*.npy
+*.log
 
 # Object files
 *.o
@@ -60,3 +65,5 @@ gkylzero-dist*
 *.idb
 *.pdb
 
+# Adas data files
+data/adas/*.npy

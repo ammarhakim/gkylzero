@@ -48,6 +48,8 @@ gkyl_prim_lbo_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis,
   int pdim = prim_gyrokinetic->prim.pdim = pbasis->ndim;
   int vdim = pdim - cdim;
   int poly_order = prim_gyrokinetic->prim.poly_order = cbasis->poly_order;
+  prim_gyrokinetic->prim.num_config = cbasis->num_basis;
+  prim_gyrokinetic->prim.num_phase = pbasis->num_basis;
   prim_gyrokinetic->prim.udim = 1;
 
   prim_gyrokinetic->prim.flag = 0;

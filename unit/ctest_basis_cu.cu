@@ -1,10 +1,12 @@
 /* -*- c -*- */
 
-#include <gkylzero.h>
 #include <stdio.h>
 
 extern "C" {
-int dev_cu_ser_2d(struct gkyl_basis *basis);
+#include <gkyl_basis.h>
+#include <gkyl_util.h>
+#include <gkyl_alloc.h>
+  int dev_cu_ser_2d(struct gkyl_basis *basis);
 }
 
 __global__

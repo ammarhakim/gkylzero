@@ -1,7 +1,7 @@
 #include <gkyl_util.h>
 #include <acutest.h>
-#include <gkyl_moment_prim_euler.h>
 #include <gkyl_wv_euler.h>
+#include <gkyl_wv_euler_priv.h>
 
 void
 calcq(double gas_gamma, const double pv[5], double q[5])
@@ -16,7 +16,7 @@ void
 test_euler_basic()
 {
   double gas_gamma = 1.4;
-  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(gas_gamma);
+  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(gas_gamma, false);
 
   TEST_CHECK( euler->num_equations == 5 );
   TEST_CHECK( euler->num_waves == 3 );
@@ -55,17 +55,17 @@ test_euler_basic()
   TEST_CHECK ( pr == gkyl_euler_pressure(gas_gamma, q) );
 
   double q_local[5], flux_local[5], flux[5];
-  for (int d=1; d<2; ++d) {
-    euler->rotate_to_local_func(tau1[d], tau2[d], norm[d], q, q_local);
+  for (int d=0; d<3; ++d) {
+    euler->rotate_to_local_func(euler, tau1[d], tau2[d], norm[d], q, q_local);
     gkyl_euler_flux(gas_gamma, q_local, flux_local);
-    euler->rotate_to_global_func(tau1[d], tau2[d], norm[d], flux_local, flux);
+    euler->rotate_to_global_func(euler, tau1[d], tau2[d], norm[d], flux_local, flux);
     
     for (int m=0; m<5; ++m)
       TEST_CHECK( gkyl_compare(flux[m], fluxes[d][m], 1e-15) );
   }
 
   double q_l[5], q_g[5];
-  for (int d=1; d<3; ++d) {
+  for (int d=0; d<3; ++d) {
     gkyl_wv_eqn_rotate_to_local(euler, tau1[d], tau2[d], norm[d], q, q_l);
     gkyl_wv_eqn_rotate_to_global(euler, tau1[d], tau2[d], norm[d], q_l, q_g);
 
@@ -88,7 +88,7 @@ void
 test_euler_waves(enum gkyl_wv_flux_type ftype)
 {
   double gas_gamma = 1.4;
-  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(gas_gamma);
+  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(gas_gamma, false);
 
   double vl[5] = { 1.0, 0.1, 0.2, 0.3, 1.5};
   double vr[5] = { 0.1, 1.0, 2.0, 3.0, 0.15};
@@ -158,10 +158,15 @@ void test_euler_waves_ho(void) { test_euler_waves(GKYL_WV_HIGH_ORDER_FLUX); }
 void test_euler_waves_lo(void) { test_euler_waves(GKYL_WV_LOW_ORDER_FLUX); }
 
 void
-test_euler_waves_2(enum gkyl_wv_flux_type ftype)
+test_euler_waves_2(enum gkyl_wv_flux_type ftype, enum gkyl_wv_euler_rp rp_type)
 {
   double gas_gamma = 1.4;
-  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(gas_gamma);
+  struct gkyl_wv_euler_inp inp = {
+    .gas_gamma = gas_gamma,
+    .rp_type = rp_type, 
+    .use_gpu = false, 
+  };
+  struct gkyl_wv_eqn *euler = gkyl_wv_euler_inew(&inp);
 
   double vl[5] = { 1.0, 0.1, 0.2, 0.3, 1.5};
   double vr[5] = { 0.01, 1.0, 2.0, 3.0, 15.0};
@@ -227,14 +232,75 @@ test_euler_waves_2(enum gkyl_wv_flux_type ftype)
   gkyl_wv_eqn_release(euler);
 }
 
-void test_euler_waves_2_ho(void) { test_euler_waves_2(GKYL_WV_HIGH_ORDER_FLUX); }
-void test_euler_waves_2_lo(void) { test_euler_waves_2(GKYL_WV_LOW_ORDER_FLUX); }
+#ifdef GKYL_HAVE_CUDA
+
+int cu_wv_euler_test(const struct gkyl_wv_eqn *eqn);
+
+void
+test_cu_wv_euler()
+{
+  double gas_gamma = 1.4;
+  struct gkyl_wv_eqn *eqn = gkyl_wv_euler_new(gas_gamma, true);
+
+  // this is not possible from user code and should NOT be done. This
+  // is for testing only
+  struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
+
+  TEST_CHECK( euler->gas_gamma == 1.4 ); 
+  
+  // call CUDA test
+  int nfail = cu_wv_euler_test(eqn->on_dev);
+
+  TEST_CHECK( nfail == 0 );
+
+  gkyl_wv_eqn_release(eqn);
+}
+
+#endif
+
+void test_euler_waves_2_ho_roe(void) {
+  test_euler_waves_2(GKYL_WV_HIGH_ORDER_FLUX, WV_EULER_RP_ROE);
+}
+void test_euler_waves_2_lo_roe(void) {
+  test_euler_waves_2(GKYL_WV_LOW_ORDER_FLUX, WV_EULER_RP_ROE);
+}
+
+void test_euler_waves_2_ho_hllc(void) {
+  test_euler_waves_2(GKYL_WV_HIGH_ORDER_FLUX, WV_EULER_RP_HLLC);
+}
+void test_euler_waves_2_lo_hllc(void) {
+  test_euler_waves_2(GKYL_WV_LOW_ORDER_FLUX, WV_EULER_RP_HLLC);
+}
+
+void test_euler_waves_2_ho_lax(void) {
+  test_euler_waves_2(GKYL_WV_HIGH_ORDER_FLUX, WV_EULER_RP_LAX);
+}
+void test_euler_waves_2_lo_lax(void) {
+  test_euler_waves_2(GKYL_WV_LOW_ORDER_FLUX, WV_EULER_RP_LAX);
+}
+
+void test_euler_waves_2_ho_hll(void) {
+  test_euler_waves_2(GKYL_WV_HIGH_ORDER_FLUX, WV_EULER_RP_HLL);
+}
+void test_euler_waves_2_lo_hll(void) {
+  test_euler_waves_2(GKYL_WV_LOW_ORDER_FLUX, WV_EULER_RP_HLL);
+}
+
 
 TEST_LIST = {
   { "euler_basic", test_euler_basic },
   { "euler_waves_ho", test_euler_waves_ho },
   { "euler_waves_lo", test_euler_waves_lo },
-  { "euler_waves_2_ho", test_euler_waves_2_ho },
-  { "euler_waves_2_lo", test_euler_waves_2_lo },
+  { "euler_waves_2_ho_roe", test_euler_waves_2_ho_roe },
+  { "euler_waves_2_lo_roe", test_euler_waves_2_lo_roe },
+  { "euler_waves_2_ho_hllc", test_euler_waves_2_ho_hllc },
+  { "euler_waves_2_lo_hllc", test_euler_waves_2_lo_hllc },
+  { "euler_waves_2_ho_lax", test_euler_waves_2_ho_lax },
+  { "euler_waves_2_lo_lax", test_euler_waves_2_lo_lax },
+  { "euler_waves_2_ho_hll", test_euler_waves_2_ho_hll },
+  { "euler_waves_2_lo_hll", test_euler_waves_2_lo_hll },
+#ifdef GKYL_HAVE_CUDA
+  { "cu_wv_euler", test_cu_wv_euler },
+#endif  
   { NULL, NULL },
 };

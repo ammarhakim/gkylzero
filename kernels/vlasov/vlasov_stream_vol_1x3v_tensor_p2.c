@@ -1,9 +1,8 @@
 #include <gkyl_vlasov_kernels.h> 
-GKYL_CU_DH double vlasov_stream_vol_1x3v_tensor_p2(const double *w, const double *dxv, const double *qmem, const double *f, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_stream_vol_1x3v_tensor_p2(const double *w, const double *dxv, const double *f, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
-  // qmem:      q/m*EM fields (unused in streaming-only update).
   // f:         Input distribution function.
   // out:       Incremented output.
   double w1Ddx0  = w[1]/dxv[0]; 
@@ -64,5 +63,5 @@ GKYL_CU_DH double vlasov_stream_vol_1x3v_tensor_p2(const double *w, const double
   out[79] += 3.464101615137755*f[75]*w1Ddx0+0.8944271909999161*f[65]*dv1Ddx0; 
   out[80] += 7.745966692414834*f[79]*w1Ddx0+2.0*f[71]*dv1Ddx0; 
 
-  return fabs(w1Ddx0)+0.5*dv1Ddx0;
+  return 5.0*(fabs(w1Ddx0)+0.5*dv1Ddx0);
 } 

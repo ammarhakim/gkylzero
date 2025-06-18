@@ -3,7 +3,34 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include <gkyl_util.h>
+#include <gkyl_alloc.h>
+
+#include <mpack.h>
+
+int
+gkyl_search_str_int_pair_by_str(const struct gkyl_str_int_pair pairs[], const char *str, int def)
+{
+  for (int i=0; pairs[i].str != 0; ++i) {
+    if (strcmp(pairs[i].str, str) == 0)
+      return pairs[i].val;
+  }
+  return def;  
+}
+
+const char *
+gkyl_search_str_int_pair_by_int(const struct gkyl_str_int_pair pairs[], int val, const char *def)
+{
+  for (int i=0; pairs[i].str != 0; ++i) {
+    if (pairs[i].val == val)
+      return pairs[i].str;
+  }
+  return def;  
+}
 
 int
 gkyl_tm_trigger_check_and_bump(struct gkyl_tm_trigger *tmt, double tcurr)
@@ -27,6 +54,8 @@ gkyl_exit(const char* msg)
 int
 gkyl_compare_float(float a, float b, float eps)
 {
+  //if (isnanf(a) || isnanf(b)) return 0;
+  
   float absa = fabs(a), absb = fabs(b), diff = fabs(a-b);
 
   if (a == b) return 1;
@@ -39,6 +68,8 @@ gkyl_compare_float(float a, float b, float eps)
 int
 gkyl_compare_double(double a, double b, double eps)
 {
+  if (isnan(a) || isnan(b)) return 0;
+  
   double absa = fabs(a), absb = fabs(b), diff = fabs(a-b);
   if (a == b) return 1;
   if (a == 0 || b == 0 || (absa+absb < DBL_MIN)) return diff < eps;
@@ -163,3 +194,81 @@ gkyl_pcg64_rand_double(pcg64_random_t* rng)
 {
   return ldexp(gkyl_pcg64_rand_uint64(rng), -64);
 }
+
+bool
+gkyl_check_file_exists(const char *fname)
+{
+  return access(fname, F_OK) == 0;
+}
+
+int64_t
+gkyl_file_size(const char *fname)
+{
+  struct stat st;
+  stat(fname, &st);
+  return st.st_size;
+}
+
+char*
+gkyl_load_file(const char *fname, int64_t *sz)
+{
+  int64_t msz = gkyl_file_size(fname);
+  char *buff = gkyl_malloc(msz);
+  FILE *fp = fopen(fname, "r");
+  int n = fread(buff, msz, 1, fp);
+  *sz = msz;
+  fclose(fp);
+  return buff;
+}
+
+struct gkyl_msgpack_data *
+gkyl_msgpack_create(int nvals, const struct gkyl_msgpack_map_elem *elist)
+{
+  struct gkyl_msgpack_data *mdata = gkyl_malloc(sizeof *mdata);
+  mdata->meta_sz = 0;
+  mdata->meta = 0;
+
+  mpack_writer_t writer;
+  mpack_writer_init_growable(&writer, &mdata->meta, &mdata->meta_sz);
+
+  mpack_build_map(&writer);  
+  for (int i=0; i<nvals; ++i) {
+    mpack_write_cstr(&writer, elist[i].key);
+
+    switch (elist[i].elem_type) {
+      case GKYL_MP_INT:
+        mpack_write_i64(&writer, elist[i].ival);
+        break;
+
+      case GKYL_MP_DOUBLE:
+        mpack_write_double(&writer, elist[i].dval);
+        break;
+
+      case GKYL_MP_STRING:
+        mpack_write_cstr(&writer, elist[i].cval);
+        break;
+    }
+  }
+
+  mpack_complete_map(&writer);
+
+  int status = mpack_writer_destroy(&writer);
+
+  if (status != mpack_ok) {
+    MPACK_FREE(mdata->meta); // we need to use free here as mpack does its own malloc
+    gkyl_free(mdata);
+    mdata = 0;
+  }
+
+  return mdata;
+}
+
+void
+gkyl_msgpack_data_release(struct gkyl_msgpack_data *mdata)
+{
+  if (!mdata) return;
+  if (mdata->meta_sz > 0)
+    MPACK_FREE(mdata->meta);
+  gkyl_free(mdata);
+}
+

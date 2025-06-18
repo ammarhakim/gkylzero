@@ -25,7 +25,7 @@ gkyl_mom_calc_advance_cu_ker(const gkyl_mom_calc* mcalc,
 
     long lincP = gkyl_range_idx(&phase_range, pidx);
     const double* fptr = (const double*) gkyl_array_cfetch(fin, lincP);
-    double momLocal[96]; // hard-coded to max confBasis.num_basis (3x p=3 Ser) for now.
+    double momLocal[96]; // hard-coded to 3 * max confBasis.num_basis (3x p=3 Ser) for now.
     for (unsigned int k=0; k<96; ++k)
       momLocal[k] = 0.0;
 
@@ -39,8 +39,7 @@ gkyl_mom_calc_advance_cu_ker(const gkyl_mom_calc* mcalc,
 
     double* mptr = (double*) gkyl_array_fetch(mout, lincC);
     for (unsigned int k = 0; k < mout->ncomp; ++k) {
-       if (tid < phase_range.volume)
-         atomicAdd(&mptr[k], momLocal[k]);
+       atomicAdd(&mptr[k], momLocal[k]);
     }
   }
 }
@@ -51,7 +50,7 @@ gkyl_mom_calc_advance_cu(const gkyl_mom_calc* mcalc,
   const struct gkyl_array *GKYL_RESTRICT fin, struct gkyl_array *GKYL_RESTRICT mout)
 {
   int nblocks = phase_range->nblocks, nthreads = phase_range->nthreads;
-  gkyl_array_clear_range(mout, 0.0, *conf_range);
+  gkyl_array_clear_range(mout, 0.0, conf_range);
   gkyl_mom_calc_advance_cu_ker<<<nblocks, nthreads>>>
     (mcalc->on_dev, *phase_range, *conf_range, fin->on_dev, mout->on_dev);
 }

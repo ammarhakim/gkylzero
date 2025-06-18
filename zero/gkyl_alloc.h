@@ -6,6 +6,11 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+// GKYL_ALIGN_UP finds the integer that is closest to "a" that is
+// multiple of "b"
+#define GKYL_UDIV_UP(a, b) (((a) + (b) - 1) / (b))
+#define GKYL_ALIGN_UP(a, b) (UDIV_UP(a, b) * (b))
+
 /**
  * Set the global flag to turn on memory allocation/deallocation
  * tracing.
@@ -95,6 +100,12 @@ typedef struct gkyl_mem_buff_tag* gkyl_mem_buff;
 /** Allocate new memory buffer with count bytes */
 gkyl_mem_buff gkyl_mem_buff_new(size_t count);
 
+/** Allocate new memory buffer on GPU with count bytes */
+gkyl_mem_buff gkyl_mem_buff_cu_new(size_t count);
+
+/** Resize the mem_buff */
+gkyl_mem_buff gkyl_mem_buff_resize(gkyl_mem_buff mem, size_t count);
+
 /** Get size of mem_buff */
 size_t gkyl_mem_buff_size(gkyl_mem_buff mem);
 
@@ -129,13 +140,13 @@ void* gkyl_cu_malloc_host_(const char *file, int line, const char *func, size_t 
 void gkyl_cu_free_host_(const char *file, int line, const char *func, void *ptr);
 
 /** Copy data between host/device */
-void gkyl_cu_memcpy(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind);
+void gkyl_cu_memcpy(void *dst, const void *src, size_t count, enum gkyl_cu_memcpy_kind kind);
 
 /** Copy data between host/device */
 #ifdef GKYL_HAVE_CUDA
-void gkyl_cu_memcpy_async(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind, cudaStream_t stream);
+void gkyl_cu_memcpy_async(void *dst, const void *src, size_t count, enum gkyl_cu_memcpy_kind kind, cudaStream_t stream);
 #else
-void gkyl_cu_memcpy_async(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind, int stream);
+void gkyl_cu_memcpy_async(void *dst, const void *src, size_t count, enum gkyl_cu_memcpy_kind kind, int stream);
 #endif
 
 /** Set memory on device */

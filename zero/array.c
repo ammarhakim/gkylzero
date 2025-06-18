@@ -12,6 +12,13 @@
 // alignment boundary is 32 bytes to be compatible with AVX
 static const size_t ARRAY_ALIGN_BND = 32;
 
+#define set_arr_dat_zero_ho(arr, data) \
+  for (size_t i=0; i<arr->size*arr->ncomp; ++i) data[i] = 0
+
+#define set_arr_dat_zero_dev(arr, data_ho) \
+  for (size_t i=0; i<arr->size*arr->ncomp; ++i) data_ho[i] = 0; \
+  gkyl_cu_memcpy(arr->data, data_ho, arr->size*arr->esznc, GKYL_CU_MEMCPY_H2D);
+
 static void*
 g_array_alloc(size_t num, size_t sz)
 {
@@ -43,21 +50,28 @@ static void
 array_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_array *arr = container_of(ref, struct gkyl_array, ref_count);
-  if (GKYL_IS_CU_ALLOC(arr->flags)) {
+
+  if (false == GKYL_IS_ALLOC_EXTERN(arr->flags)) {
+    // only free if we allocated memory ourselves
+  
+    if (GKYL_IS_CU_ALLOC(arr->flags)) {
 #ifdef GKYL_HAVE_CUDA 
-    cudaStreamDestroy(arr->iostream);
+      cudaStreamDestroy(arr->iostream);
 #endif
-    gkyl_cu_free(arr->data);
-    gkyl_cu_free(arr->on_dev);
-  }
-  else {
-    g_array_free(arr->data);
+      gkyl_cu_free(arr->data);
+      gkyl_cu_free(arr->on_dev);
+    }
+    else {
+      g_array_free(arr->data);
+    }
+    
   }
   gkyl_free(arr);
 }
 
-struct gkyl_array*
-gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
+// internal method to allocate array
+static struct gkyl_array*
+array_new(enum gkyl_elem_type type, size_t ncomp, size_t size, bool is_alloc_extern, void *buff)
 {
   struct gkyl_array* arr = gkyl_malloc(sizeof(struct gkyl_array));
 
@@ -67,6 +81,11 @@ gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
   arr->size = size;
   arr->flags = 0;
 
+  if (is_alloc_extern)
+    GKYL_SET_ALLOC_EXTERN(arr->flags);
+  else
+    GKYL_CLEAR_ALLOC_EXTERN(arr->flags);
+  
   GKYL_CLEAR_CU_ALLOC(arr->flags);
 #ifdef USE_ALIGNED_ALLOC  
   GKYL_SET_ALLOC_ALIGNED(arr->flags);
@@ -75,7 +94,10 @@ gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
 #endif
   
   arr->esznc = arr->elemsz*arr->ncomp;
-  arr->data = g_array_alloc(arr->size, arr->esznc);
+  arr->data = buff;  
+  if (!is_alloc_extern)
+    arr->data = g_array_alloc(arr->size, arr->esznc);
+  
   arr->ref_count = gkyl_ref_count_init(array_free);
 
   arr->nthreads = 1;
@@ -83,13 +105,47 @@ gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
 
   arr->on_dev = arr; // on_dev reference
 
+  if (!is_alloc_extern) {
+    // Zero out array elements (not for user-defined type).
+    if (type == GKYL_INT) {
+      int *dat_p = arr->data;
+      set_arr_dat_zero_ho(arr, dat_p);
+    }
+    else if (type == GKYL_FLOAT) {
+      float *dat_p = arr->data;
+      set_arr_dat_zero_ho(arr, dat_p);
+    }
+    else if (type == GKYL_DOUBLE) {
+      double *dat_p = arr->data;
+      set_arr_dat_zero_ho(arr, dat_p);
+    }
+  }
+
   return arr;
+}
+
+struct gkyl_array*
+gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
+{
+  return array_new(type, ncomp, size, false, 0);
+}
+
+struct gkyl_array*
+gkyl_array_new_from_buff(enum gkyl_elem_type type, size_t ncomp, size_t size, void *buff)
+{
+  return array_new(type, ncomp, size, true, buff);
 }
 
 bool
 gkyl_array_is_cu_dev(const struct gkyl_array *arr)
 {
   return GKYL_IS_CU_ALLOC(arr->flags);  
+}
+
+bool
+gkyl_array_is_using_buffer(const struct gkyl_array *arr)
+{
+  return GKYL_IS_ALLOC_EXTERN(arr->flags);
 }
 
 struct gkyl_array*
@@ -160,19 +216,26 @@ gkyl_array_clone(const struct gkyl_array* src)
   arr->size = src->size;
   arr->flags = src->flags;
 
+  GKYL_CLEAR_ALLOC_EXTERN(arr->flags);
+
+  if (!GKYL_IS_CU_ALLOC(src->flags)) {
+    arr->data = g_array_alloc(arr->size, arr->esznc);
+    memcpy(arr->data, src->data, arr->size*arr->esznc);
+  }
+#ifdef GKYL_HAVE_CUDA
   if (GKYL_IS_CU_ALLOC(src->flags)) {
     arr->nthreads = src->nthreads;
     arr->nblocks = src->nblocks;
+
+    cudaStreamCreate(&arr->iostream);
+
     arr->data = gkyl_cu_malloc(arr->size*arr->esznc);
     arr->on_dev = gkyl_cu_malloc(sizeof(struct gkyl_array));
     gkyl_cu_memcpy(arr->data, src->data, arr->size*arr->esznc, GKYL_CU_MEMCPY_D2D);
     gkyl_cu_memcpy(arr->on_dev, src->on_dev, sizeof(struct gkyl_array), GKYL_CU_MEMCPY_D2D);
     gkyl_cu_memcpy(&((arr->on_dev)->data), &arr->data, sizeof(void*), GKYL_CU_MEMCPY_H2D);
   }
-  else {
-    arr->data = g_array_alloc(arr->size, arr->esznc);
-    memcpy(arr->data, src->data, arr->size*arr->esznc);
-  }
+#endif
   
   arr->ref_count = gkyl_ref_count_init(array_free);
   
@@ -207,7 +270,8 @@ gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
   arr->ncomp = ncomp;
   arr->size = size;
   arr->flags = 0;
-  
+
+  GKYL_CLEAR_ALLOC_EXTERN(arr->flags);
   GKYL_SET_CU_ALLOC(arr->flags);
   GKYL_CLEAR_ALLOC_ALIGNED(arr->flags);
   
@@ -227,6 +291,23 @@ gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
   // (which is the host-side pointer to the device data)
   gkyl_cu_memcpy(&((arr->on_dev)->data), &arr->data, sizeof(void*), GKYL_CU_MEMCPY_H2D);
 
+  // Zero out array elements (not for user-defined type).
+  if (type == GKYL_INT) {
+    int *data_ho = gkyl_malloc(arr->size*arr->esznc);
+    set_arr_dat_zero_dev(arr, data_ho);
+    gkyl_free(data_ho);
+  }
+  else if (type == GKYL_FLOAT) {
+    float *data_ho = gkyl_malloc(arr->size*arr->esznc);
+    set_arr_dat_zero_dev(arr, data_ho);
+    gkyl_free(data_ho);
+  }
+  else if (type == GKYL_DOUBLE) {
+    double *data_ho = gkyl_malloc(arr->size*arr->esznc);
+    set_arr_dat_zero_dev(arr, data_ho);
+    gkyl_free(data_ho);
+  }
+
   return arr;
 }
 
@@ -241,6 +322,7 @@ gkyl_array_cu_host_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
   arr->size = size;
   arr->flags = 0;
 
+  GKYL_CLEAR_ALLOC_EXTERN(arr->flags);
   GKYL_CLEAR_CU_ALLOC(arr->flags);
 #ifdef USE_ALIGNED_ALLOC  
   GKYL_SET_ALLOC_ALIGNED(arr->flags);
@@ -257,6 +339,20 @@ gkyl_array_cu_host_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
 
   arr->on_dev = arr; // on_dev reference
   
+  // Zero out array elements (not for user-defined type).
+  if (type == GKYL_INT) {
+    int *dat_p = arr->data;
+    set_arr_dat_zero_ho(arr, dat_p);
+  }
+  else if (type == GKYL_FLOAT) {
+    float *dat_p = arr->data;
+    set_arr_dat_zero_ho(arr, dat_p);
+  }
+  else if (type == GKYL_DOUBLE) {
+    double *dat_p = arr->data;
+    set_arr_dat_zero_ho(arr, dat_p);
+  }
+
   return arr;
 }
 

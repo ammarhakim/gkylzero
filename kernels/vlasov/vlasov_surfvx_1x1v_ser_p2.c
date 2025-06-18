@@ -1,16 +1,16 @@
 #include <gkyl_vlasov_kernels.h> 
 #include <gkyl_basis_ser_2x_p2_surfx2_eval_quad.h> 
 #include <gkyl_basis_ser_2x_p2_upwind_quad_to_modal.h> 
-GKYL_CU_DH void vlasov_surfvx_1x1v_ser_p2(const double *w, const double *dxv, const double *qmem, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_surfvx_1x1v_ser_p2(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w:         Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
-  // qmem:      q/m*EM fields.
+  // field:     q/m*EM fields.
   // fl/fc/fr:  Input Distribution function in left/center/right cells 
   // out:       Output distribution function in center cell 
   const double dv10 = 2/dxv[1]; 
   const double dv1 = dxv[1], wv1 = w[1]; 
-  const double *E0 = &qmem[0]; 
+  const double *E0 = &field[0]; 
 
   double alpha[3] = {0.0}; 
 
@@ -67,5 +67,7 @@ GKYL_CU_DH void vlasov_surfvx_1x1v_ser_p2(const double *w, const double *dxv, co
   out[5] += (1.58113883008419*Ghat_l[0]-1.58113883008419*Ghat_r[0])*dv10; 
   out[6] += -1.224744871391589*(Ghat_r[2]+Ghat_l[2])*dv10; 
   out[7] += (1.58113883008419*Ghat_l[1]-1.58113883008419*Ghat_r[1])*dv10; 
+
+  return 0.;
 
 } 

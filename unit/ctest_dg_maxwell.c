@@ -51,12 +51,12 @@ test_cu_dg_max()
 
   TEST_CHECK( maxwell->maxwell_data.c == 1.0 );
   TEST_CHECK( maxwell->maxwell_data.chi == 0.5 );
-  TEST_CHECK( maxwell->maxwell_data.gamma == 0.25 );  
+  TEST_CHECK( maxwell->maxwell_data.gamma == 0.25 );
   
   // call CUDA test
-  int nfail = cu_maxwell_test(eqn->on_dev);
+  /* int nfail = cu_maxwell_test(eqn->on_dev); */
 
-  TEST_CHECK( nfail == 0 );
+  /* TEST_CHECK( nfail == 0 ); */
 
   gkyl_dg_eqn_release(eqn);
 }

@@ -1,9 +1,8 @@
 #!/bin/sh
 
-echo "Generating gkylzero.h amalgamated header file ..."
-
 # list of header files, excluding private headers
-header_list=`ls gkyl_*.h | grep -v "priv" | sort`
+zero_header_list=`cd zero; ls gkyl_*.h | grep -v "priv" | sort; cd ..`
+app_header_list=`cd apps; ls gkyl_*.h | grep -v "priv" | sort; cd ..`
 
 cat <<EOF
 #pragma once
@@ -13,9 +12,24 @@ cat <<EOF
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 EOF
 
-for head in $header_list
+for head in $zero_header_list
 do
-
+echo "#include <${head}>"
 done
+
+for head in $app_header_list
+do
+echo "#include <${head}>"
+done
+
+cat <<EOF1
+
+#ifdef __cplusplus
+}
+#endif
+EOF1
+
+

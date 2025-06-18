@@ -1,18 +1,17 @@
 #include <gkyl_lbo_vlasov_kernels.h> 
 #include <gkyl_basis_hyb_1x2v_p1_surfx3_eval_quad.h> 
 #include <gkyl_basis_hyb_1x2v_p1_upwind_quad_to_modal.h> 
-GKYL_CU_DH void lbo_vlasov_drag_boundary_surfvy_1x2v_ser_p1(const double *w, const double *dxv, const double *nuSum, const double *nuUSum, const double *nuVtSqSum, const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double lbo_vlasov_drag_boundary_surfvy_1x2v_ser_p1(const double *w, const double *dxv, const double *nuSum, const double *nuPrimMomsSum, const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
 { 
-  // w[3]:         Cell-center coordinates. 
-  // dxv[3]:       Cell spacing. 
-  // nuSum:         collisionalities added (self and cross species collisionalities). 
-  // nuUSum[4]:    sum of bulk velocities times their respective collisionalities. 
-  // nuVtSqSum[2]: sum of thermal speeds squared time their respective collisionalities. 
-  // fSkin/Edge:    Distribution function in cells 
-  // out:           Incremented distribution function in cell 
+  // w[3]: Cell-center coordinates. 
+  // dxv[3]: Cell spacing. 
+  // nuSum: collisionalities added (self and cross species collisionalities). 
+  // nuPrimMomsSum[6]: sum of bulk velocities and thermal speeds (squared) times their respective collisionalities. 
+  // fSkin/Edge: Distribution function in cells 
+  // out: Incremented distribution function in cell 
   double rdv2 = 2.0/dxv[2]; 
 
-  const double *sumNuUy = &nuUSum[2]; 
+  const double *sumNuUy = &nuPrimMomsSum[2]; 
 
   double alphaDrSurf[6] = {0.0}; 
   double fUpwindQuad[6] = {0.0};
@@ -122,4 +121,7 @@ GKYL_CU_DH void lbo_vlasov_drag_boundary_surfvy_1x2v_ser_p1(const double *w, con
   out[15] += -1.58113883008419*Ghat[3]*rdv2; 
 
   } 
+
+  return 0.;
+
 } 

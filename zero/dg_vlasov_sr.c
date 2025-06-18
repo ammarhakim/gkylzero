@@ -36,7 +36,7 @@ gkyl_vlasov_sr_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlaso
 
   struct dg_vlasov_sr *vlasov_sr = container_of(eqn, struct dg_vlasov_sr, eqn);
   vlasov_sr->auxfields.qmem = auxin.qmem;
-  vlasov_sr->auxfields.p_over_gamma = auxin.p_over_gamma;
+  vlasov_sr->auxfields.gamma = auxin.gamma;
 }
 
 struct gkyl_dg_eqn*
@@ -85,25 +85,11 @@ gkyl_dg_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* 
       
       break;
 
-    // case GKYL_BASIS_MODAL_TENSOR:
-    //   stream_vol_kernels = ten_stream_vol_kernels;
-    //   vol_kernels = ten_vol_kernels;
-    //   stream_surf_x_kernels = ten_stream_surf_x_kernels;
-    //   stream_surf_y_kernels = ten_stream_surf_y_kernels;
-    //   stream_surf_z_kernels = ten_stream_surf_z_kernels;
-    //   accel_surf_vx_kernels = ten_accel_surf_vx_kernels;
-    //   accel_surf_vy_kernels = ten_accel_surf_vy_kernels;
-    //   accel_surf_vz_kernels = ten_accel_surf_vz_kernels;
-    //   accel_boundary_surf_vx_kernels = ten_accel_boundary_surf_vx_kernels;
-    //   accel_boundary_surf_vy_kernels = ten_accel_boundary_surf_vy_kernels;
-    //   accel_boundary_surf_vz_kernels = ten_accel_boundary_surf_vz_kernels;
-    //   break;
-
     default:
       assert(false);
       break;    
   }  
-  if (field_id == GKYL_FIELD_SR_NULL)
+  if (field_id == GKYL_FIELD_NULL)
     vlasov_sr->eqn.vol_term = CK(stream_vol_kernels,cdim,vdim,poly_order);
   else
     vlasov_sr->eqn.vol_term = CK(vol_kernels,cdim,vdim,poly_order);
@@ -135,7 +121,7 @@ gkyl_dg_vlasov_sr_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* 
   vlasov_sr->conf_range = *conf_range;
   vlasov_sr->vel_range = *vel_range;
 
-  vlasov_sr->auxfields.p_over_gamma = 0;
+  vlasov_sr->auxfields.gamma = 0;
 
   vlasov_sr->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(vlasov_sr->eqn.flags);

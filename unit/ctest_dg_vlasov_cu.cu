@@ -2,10 +2,10 @@
 
 #include <stdio.h>
 #include <gkylzero.h>
-#include <gkyl_dg_vlasov_priv.h>
 
 extern "C" {
-    int cu_vlasov_test(const struct gkyl_dg_eqn *eqn);
+#include <gkyl_dg_vlasov_priv.h>    
+int cu_vlasov_test(const struct gkyl_dg_eqn *eqn);
 }
 
 __global__

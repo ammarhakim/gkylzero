@@ -1,6 +1,6 @@
-#include "gkyl_vlasov_priv.h"
-#include <gkyl_dynvec.h>
 #include <acutest.h>
+#include <gkyl_array_rio_format_desc.h>
+#include <gkyl_dynvec.h>
 
 #include <math.h>
 
@@ -8,6 +8,9 @@ void
 test_1()
 {
   gkyl_dynvec dv = gkyl_dynvec_new(GKYL_DOUBLE, 3);
+
+  TEST_CHECK( gkyl_dynvec_elem_type(dv) == GKYL_DOUBLE );
+  TEST_CHECK( gkyl_dynvec_ncomp(dv) == 3 );
 
   double out[3];
   TEST_CHECK( gkyl_dynvec_size(dv) == 0 );
@@ -208,9 +211,14 @@ test_io()
   gkyl_dynvec_write(dv, "ctest_dynvec_test_io_1.gkyl");
   gkyl_dynvec_clear(dv);
 
-  int nc = gkyl_dynvec_read_ncomp("ctest_dynvec_test_io_1.gkyl");
-  TEST_CHECK( nc == 3 );
+  struct gkyl_dynvec_etype_ncomp enc = { };
+  enc = gkyl_dynvec_read_ncomp("ctest_dynvec_test_io_1.gkyl");
+  TEST_CHECK( enc.ncomp == 3 );
+  TEST_CHECK( enc.type == GKYL_DOUBLE );
 
+  int file_type = gkyl_get_gkyl_file_type("ctest_dynvec_test_io_1.gkyl");
+  TEST_CHECK( 2 == file_type );  
+  
   bool res = gkyl_dynvec_read(dv, "ctest_dynvec_test_io_1.gkyl");
   TEST_CHECK( res );
 
@@ -309,12 +317,47 @@ test_io_2()
   gkyl_dynvec_release(dv);
 }
 
+void
+test_to_array()
+{
+  gkyl_dynvec dv = gkyl_dynvec_new(GKYL_DOUBLE, 3);
+
+  double out[3] = { 0.0 };
+  for (int i=0; i<10; ++i) {
+    out[0] = 0.1*i;
+    out[1] = 0.2*i;
+    out[2] = 0.3*i;
+    gkyl_dynvec_append(dv, i*0.1, out);
+  }
+
+  struct gkyl_array *tm_mesh = gkyl_array_new(GKYL_DOUBLE, 1, gkyl_dynvec_size(dv));
+  struct gkyl_array *dyn_data = gkyl_array_new(GKYL_DOUBLE, 3, gkyl_dynvec_size(dv));
+
+  gkyl_dynvec_to_array(dv, tm_mesh, dyn_data);
+
+  for (int i=0; i<10; ++i) {
+    const double *tm_i = gkyl_array_cfetch(tm_mesh, i);
+    const double *dd_i = gkyl_array_cfetch(dyn_data, i);
+
+    TEST_CHECK( tm_i[0] == i*0.1 );
+
+    TEST_CHECK( dd_i[0] == i*0.1 );
+    TEST_CHECK( dd_i[1] == i*0.2 );
+    TEST_CHECK( dd_i[2] == i*0.3 );
+  }
+  
+  gkyl_dynvec_release(dv);
+  gkyl_array_release(tm_mesh);
+  gkyl_array_release(dyn_data);
+}
+
 TEST_LIST = {
   { "test_1", test_1 },
   { "test_2", test_2 },
   { "test_3", test_3 },
   { "test_4", test_4 },
   { "test_io", test_io },
-  { "test_io_2", test_io_2 }, 
+  { "test_io_2", test_io_2 },
+  { "test_to_array", test_to_array },
   { NULL, NULL },
 };

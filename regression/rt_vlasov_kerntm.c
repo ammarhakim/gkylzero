@@ -109,7 +109,12 @@ main(int argc, char **argv)
     .lower = { -6.0, -6.0, -6.0 },
     .upper = { 6.0, 6.0, 6.0 }, 
     .cells = { inp.vcells[0], inp.vcells[1], inp.vcells[2] },
-    .init = evalDistFunc,
+    .num_init = 1, 
+    .projection[0] = {
+      .proj_id = GKYL_PROJ_FUNC,
+      .func = evalDistFunc,
+      .ctx_func = 0,
+    },
   };
 
   // field
@@ -128,7 +133,9 @@ main(int argc, char **argv)
     .cells = { inp.ccells[0], inp.ccells[1], inp.ccells[2] },
     .poly_order = inp.poly_order,
 
-    .use_gpu = inp.use_gpu,
+    .parallelism = {
+      .use_gpu = inp.use_gpu,
+    },
 
     .num_species = 1,
     .species = { elc },

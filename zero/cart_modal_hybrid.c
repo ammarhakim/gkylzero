@@ -3,7 +3,7 @@
 #include <gkyl_util.h>
 #include <gkyl_alloc.h>
 
-#include "cart_modal_hybrid_priv.h"
+#include <gkyl_cart_modal_hybrid_priv.h>
 
 void
 gkyl_cart_modal_hybrid(struct gkyl_basis *basis, int cdim, int vdim)
@@ -26,6 +26,8 @@ gkyl_cart_modal_hybrid(struct gkyl_basis *basis, int cdim, int vdim)
   basis->flip_even_sign = fes_list[cdim].fs[vdim];
   basis->node_list = nl_list[cdim].nl[vdim];
   basis->nodal_to_modal = n2m_list[cdim].n2m[vdim];
+  basis->quad_nodal_to_modal = qn2m_list[cdim].n2m[vdim];
+  basis->modal_to_quad_nodal = m2qn_list[cdim].n2m[vdim];
 }
 
 struct gkyl_basis *

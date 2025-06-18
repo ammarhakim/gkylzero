@@ -61,13 +61,22 @@ double gkyl_mat_triples_get(const gkyl_mat_triples *tri, size_t i, size_t j);
 size_t gkyl_mat_triples_size(const gkyl_mat_triples *tri);
 
 /**
- * Initialize a new iterator into triples. Release calling
- * gkyl_mat_triples_iter_release method.
+ * Allocate and initialize a new iterator into triples. Release
+ * calling gkyl_mat_triples_iter_release method.
  *
  * @param tri Triples to create a new iterator for.
  * @return New iterator
  */
 gkyl_mat_triples_iter *gkyl_mat_triples_iter_new(const gkyl_mat_triples *tri);
+
+/**
+ * Initialize (set to the beginning) an existing iterator into
+ * triples.
+ *
+ * @param iter Iterator to set back to the beginning.
+ * @param tri Triples to create a new iterator for.
+ */
+void gkyl_mat_triples_iter_init(struct gkyl_mat_triples_iter *iter, const gkyl_mat_triples *tri);
 
 /**
  * Move iterator to the next triple
@@ -84,6 +93,14 @@ bool gkyl_mat_triples_iter_next(gkyl_mat_triples_iter *iter);
  * @return triple at current iter location
  */
 struct gkyl_mtriple gkyl_mat_triples_iter_at(const gkyl_mat_triples_iter *iter);
+
+/**
+ * Set the value of all triples to a given value.
+ *
+ * @param iter Iterator to release
+ * @param val Value to set triples' value to.
+ */
+void gkyl_mat_triples_clear(struct gkyl_mat_triples *tri, double val);
 
 /**
  * Release triples iterator

@@ -5,7 +5,7 @@ source ./build-opts.sh
 # Edit to suite your system
 PREFIX=$GKYLSOFT/superlu-5.2.2
 # Location where dependency sources will be downloaded
-DEP_SOURCES=$HOME/gkylsoft/dep_src/
+DEP_SOURCES=$GKYLSOFT/dep_src/
 
 mkdir -p $DEP_SOURCES
 cd $DEP_SOURCES
@@ -32,7 +32,7 @@ then
     cmake .. -DCMAKE_C_FLAGS="-g -O3 -fPIC" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_INSTALL_LIBDIR=lib -Denable_tests=NO -Denable_internal_blaslib=NO -DXSDK_ENABLE_Fortran=NO
 
     # build and install
-    make -j VERBOSE=1
+    make -j 32 VERBOSE=1
     make install
 
     # soft-link 

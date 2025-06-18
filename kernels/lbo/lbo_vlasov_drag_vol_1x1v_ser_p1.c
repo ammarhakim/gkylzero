@@ -1,13 +1,14 @@
 #include <gkyl_lbo_vlasov_kernels.h> 
-GKYL_CU_DH double lbo_vlasov_drag_vol_1x1v_ser_p1(const double *w, const double *dxv, const double *nuSum, const double *nuUSum, const double *nuVtSqSum, const double *f, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double lbo_vlasov_drag_vol_1x1v_ser_p1(const double *w, const double *dxv, const double *nuSum, const double *nuPrimMomsSum, const double *f, double* GKYL_RESTRICT out) 
 { 
-  // w[2]:      Cell-center coordinates. 
-  // dxv[2]:    Cell spacing. 
-  // nuSum:     collisionalities added (self and cross species collisionalities). 
-  // nuUSum:    sum of bulk velocities times their respective collisionalities. 
-  // nuVtSqSum: sum of thermal speeds squared time their respective collisionalities. 
-  // f:         Input distribution function.
-  // out:       Incremented output 
+  // w[2]: Cell-center coordinates. 
+  // dxv[2]: Cell spacing. 
+  // nuSum: collisionalities added (self and cross species collisionalities). 
+  // nuPrimMomsSum: sum of bulk velocities and thermal speeds (squared) times their respective collisionalities. 
+  // f: Input distribution function.
+  // out: Incremented output 
+  const double *nuUSum = nuPrimMomsSum;
+
   const double rdvx2 = 2.0/dxv[1]; 
 
   double alphaDrag[6]; 

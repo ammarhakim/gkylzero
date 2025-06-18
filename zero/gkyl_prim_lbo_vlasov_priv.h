@@ -7,12 +7,12 @@
 #include <gkyl_util.h>
 
 typedef void (*vlasov_self_prim_t)(struct gkyl_mat *A, struct gkyl_mat *rhs, 
-  const double *moms, const double *boundary_corrections);
+  const double *moms, const double *boundary_corrections, const double *nu);
 
 typedef void (*vlasov_cross_prim_t)(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *greene,
-  const double m_self, const double *moms_self, const double *u_self, const double *vtsq_self,
-  const double m_other, const double *moms_other, const double *u_other, const double *vtsq_other,
-  const double *boundary_corrections);
+  const double m_self, const double *moms_self, const double *prim_moms_self,
+  const double m_other, const double *moms_other, const double *prim_moms_other,
+  const double *boundary_corrections, const double *nu);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
@@ -76,23 +76,23 @@ void prim_lbo_vlasov_free(const struct gkyl_ref_count *ref);
 GKYL_CU_D
 static void
 self_prim(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A, struct gkyl_mat *rhs, 
-  const int *idx, const double *moms, const double *boundary_corrections)
+  const int *idx, const double *moms, const double *boundary_corrections, const double *nu)
 {
   struct prim_lbo_type_vlasov *prim_vlasov = container_of(prim, struct prim_lbo_type_vlasov, prim);
 
-  return prim_vlasov->self_prim(A, rhs, moms, boundary_corrections);
+  return prim_vlasov->self_prim(A, rhs, moms, boundary_corrections, nu);
 }
 
 GKYL_CU_D
 static void
 cross_prim(const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A, struct gkyl_mat *rhs, 
   const int *idx, const double *greene,
-  const double m_self, const double *moms_self, const double *u_self, const double *vtsq_self,
-  const double m_other, const double *moms_other, const double *u_other, const double *vtsq_other,
-  const double *boundary_corrections)
+  const double m_self, const double *moms_self, const double *prim_moms_self,
+  const double m_other, const double *moms_other, const double *prim_moms_other,
+  const double *boundary_corrections, const double *nu)
 {
   struct prim_lbo_type_vlasov *prim_vlasov = container_of(prim, struct prim_lbo_type_vlasov, prim);
 
-  return prim_vlasov->cross_prim(A, rhs, greene, m_self, moms_self, u_self, vtsq_self,
-    m_other, moms_other, u_other, vtsq_other, boundary_corrections);
+  return prim_vlasov->cross_prim(A, rhs, greene, m_self, moms_self, prim_moms_self,
+    m_other, moms_other, prim_moms_other, boundary_corrections, nu);
 }

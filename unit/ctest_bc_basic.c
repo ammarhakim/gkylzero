@@ -175,11 +175,11 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type, bool useGP
   for (int bc_dir = 0; bc_dir < cdim; bc_dir++) { 
     struct gkyl_bc_basic *bclo;
     if (strcmp(boundary_type, "reflect") == 0) {
-      bclo = gkyl_bc_basic_new(bc_dir, GKYL_LOWER_EDGE, &local_ext,
-        ghost, GKYL_BC_REFLECT, basis_cu, distf->ncomp, cdim, useGPU);
+      bclo = gkyl_bc_basic_new(bc_dir, GKYL_LOWER_EDGE, GKYL_BC_DISTF_REFLECT, basis_cu,
+        &skin_ghost.lower_skin[bc_dir], &skin_ghost.lower_ghost[bc_dir], distf->ncomp, cdim, useGPU);
     } else if (strcmp(boundary_type, "absorb") == 0) {
-      bclo = gkyl_bc_basic_new(bc_dir, GKYL_LOWER_EDGE, &local_ext,
-        ghost, GKYL_BC_ABSORB,  basis_cu, distf->ncomp, cdim, useGPU);
+      bclo = gkyl_bc_basic_new(bc_dir, GKYL_LOWER_EDGE, GKYL_BC_ABSORB, basis_cu,
+        &skin_ghost.lower_skin[bc_dir], &skin_ghost.lower_ghost[bc_dir], distf->ncomp, cdim, useGPU);
     }
     if (useGPU) {
 #ifdef GKYL_HAVE_CUDA
@@ -194,11 +194,11 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type, bool useGP
     // Create and apply BC to the upper ghost cells
     struct gkyl_bc_basic *bcup;
     if (strcmp(boundary_type, "reflect") == 0) {
-      bcup = gkyl_bc_basic_new(bc_dir, GKYL_UPPER_EDGE, &local_ext,
-        ghost, GKYL_BC_REFLECT, basis_cu, distf->ncomp, cdim, useGPU);
-    } else if (strcmp(boundary_type, "absorb") == 0) {
-      bcup = gkyl_bc_basic_new(bc_dir, GKYL_UPPER_EDGE, &local_ext,
-        ghost, GKYL_BC_ABSORB,  basis_cu, distf->ncomp, cdim, useGPU);
+      bcup = gkyl_bc_basic_new(bc_dir, GKYL_UPPER_EDGE, GKYL_BC_DISTF_REFLECT, basis_cu,
+        &skin_ghost.upper_skin[bc_dir], &skin_ghost.upper_ghost[bc_dir], distf->ncomp, cdim, useGPU);
+    } else if (strcmp(boundary_type, "absorb") == 0) {                                                                   
+      bcup = gkyl_bc_basic_new(bc_dir, GKYL_UPPER_EDGE, GKYL_BC_ABSORB, basis_cu,
+        &skin_ghost.upper_skin[bc_dir], &skin_ghost.upper_ghost[bc_dir], distf->ncomp, cdim, useGPU);
     } 
     if (useGPU) {
 #ifdef GKYL_HAVE_CUDA
@@ -229,14 +229,14 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type, bool useGP
 
       // Flip the skin value in velocity space to apply reflect BC to skin cell
       gkyl_array_flip_copy_to_buffer_fn(bc_buffer->data, distf_flip, cdim+d,
-        skin_ghost.lower_skin[d], &(struct gkyl_array_copy_func) 
+        &(skin_ghost.lower_skin[d]), &(struct gkyl_array_copy_func) 
         { .func = buffer_fn, .ctx = 0 });
-      gkyl_array_copy_from_buffer(distf_flip, bc_buffer->data, skin_ghost.lower_skin[d]);
+      gkyl_array_copy_from_buffer(distf_flip, bc_buffer->data, &(skin_ghost.lower_skin[d]));
 
       gkyl_array_flip_copy_to_buffer_fn(bc_buffer->data, distf_flip, cdim+d,
-        skin_ghost.upper_skin[d], &(struct gkyl_array_copy_func)
+       &( skin_ghost.upper_skin[d]), &(struct gkyl_array_copy_func)
         { .func = buffer_fn, .ctx = 0 });
-      gkyl_array_copy_from_buffer(distf_flip, bc_buffer->data, skin_ghost.upper_skin[d]);
+      gkyl_array_copy_from_buffer(distf_flip, bc_buffer->data, &(skin_ghost.upper_skin[d]));
     }
     while (gkyl_range_iter_next(&iter)) {
       // Find the index and value of f at the ghost and adjacent skin cells

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <gkyl_array.h>
 #include <gkyl_elem_type.h>
 
 #include <stdbool.h>
@@ -7,6 +8,12 @@
 
 /** Dynamic vector to store time-dependent diagnostics */
 typedef struct gkyl_dynvec_tag* gkyl_dynvec;
+
+// Element type and number of components
+struct gkyl_dynvec_etype_ncomp {
+  enum gkyl_elem_type type; // type of data stored in vector
+  size_t ncomp; // number of 'components'
+};
 
 /**
  * Create a new new dynvec. Delete using gkyl_dynvec_release method.
@@ -16,6 +23,22 @@ typedef struct gkyl_dynvec_tag* gkyl_dynvec;
  * @return Newly allocated vector.
  */
 gkyl_dynvec gkyl_dynvec_new(enum gkyl_elem_type type, size_t ncomp);
+
+/**
+ * Get element type stored in dynvec.
+ *
+ * @param vec Dynvec object
+ * @return Element type
+ */
+int gkyl_dynvec_elem_type(gkyl_dynvec vec);
+
+/**
+ * Get number of components stored
+ *
+ * @param vec Dynvec object
+ * @return Number of components
+ */
+int gkyl_dynvec_ncomp(gkyl_dynvec vec);
 
 /**
  * Reserve @a rsize more elements so additional @a rsize append calls
@@ -150,9 +173,9 @@ int gkyl_dynvec_awrite(const gkyl_dynvec vec, const char *fname);
  * Read number of components from the dynvec file.
  *
  * @param Name of input file
- * @return Number of components
+ * @return Element type and number of components
  */
-int gkyl_dynvec_read_ncomp(const char *fname);
+struct gkyl_dynvec_etype_ncomp gkyl_dynvec_read_ncomp(const char *fname);
 
 /**
  * Read dynvector from file, appending data to end of the
@@ -163,6 +186,18 @@ int gkyl_dynvec_read_ncomp(const char *fname);
  * @param fname Name of input file.
  */
 bool gkyl_dynvec_read(gkyl_dynvec vec, const char *fname);
+
+/**
+ * Convert contents of dynvector to array. Time mesh is not copied to
+ * the array but it returned as a seperate array. The input arrays
+ * must be preallocated to be big enough to contain all the data.
+ *
+ * @param vec Dynvector to convert
+ * @param tm_mesh On output, time-mesh of data
+ * @param dyndata On output, data in dynamic array
+ */
+void gkyl_dynvec_to_array(const gkyl_dynvec vec, struct gkyl_array *tm_mesh,
+  struct gkyl_array *dyndata);
 
 /**
  * Release dynvec.

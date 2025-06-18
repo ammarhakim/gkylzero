@@ -14,7 +14,7 @@ extern "C" {
 }
 
 __global__ static void
-gkyl_mom_calc_bcorr_advance_cu_ker(const gkyl_mom_calc_bcorr* bcorr,
+gkyl_mom_calc_bcorr_advance_cu_ker(const struct gkyl_mom_calc_bcorr* bcorr,
   const struct gkyl_range conf_rng, struct gkyl_range vel_rng,
   enum gkyl_vel_edge edge, const struct gkyl_array* fin, struct gkyl_array* out)
 {
@@ -42,14 +42,13 @@ gkyl_mom_calc_bcorr_advance_cu_ker(const gkyl_mom_calc_bcorr* bcorr,
 
     double* mptr = (double*) gkyl_array_fetch(out, lincC);
     for (unsigned int k = 0; k < out->ncomp; ++k) {
-       if (tid < vel_rng.volume)
-         atomicAdd(&mptr[k], momLocal[k]);
+       atomicAdd(&mptr[k], momLocal[k]);
     }
   }
 }
 
 void
-gkyl_mom_calc_bcorr_advance_cu(gkyl_mom_calc_bcorr *bcorr,
+gkyl_mom_calc_bcorr_advance_cu(const struct gkyl_mom_calc_bcorr *bcorr,
   const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
   const struct gkyl_array *GKYL_RESTRICT fin, struct gkyl_array *GKYL_RESTRICT out)
 {
@@ -62,7 +61,7 @@ gkyl_mom_calc_bcorr_advance_cu(gkyl_mom_calc_bcorr *bcorr,
   }
   enum gkyl_vel_edge edge;
   
-  gkyl_array_clear_range(out, 0.0, *conf_rng);
+  gkyl_array_clear_range(out, 0.0, conf_rng);
   
   for(int d=0; d<phase_rng->ndim - conf_rng->ndim; ++d) {
     

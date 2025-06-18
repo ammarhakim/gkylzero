@@ -1,7 +1,7 @@
 #include <gkyl_advection_kernels.h> 
 #include <gkyl_basis_ser_3x_p2_surfx2_eval_quad.h> 
 #include <gkyl_basis_ser_3x_p2_upwind_quad_to_modal.h> 
-GKYL_CU_DH void advection_surfy_3x_ser_p2(const double *w, const double *dxv, const double *ul, const double *uc, const double *ur, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double advection_surfy_3x_ser_p2(const double *w, const double *dxv, const double *ul, const double *uc, const double *ur, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
@@ -27,56 +27,56 @@ GKYL_CU_DH void advection_surfy_3x_ser_p2(const double *w, const double *dxv, co
   u_c_l = ser_3x_p2_surfx2_eval_quad_node_0_l(uc_0); 
   u_c_r = ser_3x_p2_surfx2_eval_quad_node_0_r(uc_0); 
   u_r_l = ser_3x_p2_surfx2_eval_quad_node_0_l(ur_0); 
-  uQuad_l[0] = fabs(fmax(u_l_r, u_c_l)); 
-  uQuad_r[0] = fabs(fmax(u_c_r, u_r_l)); 
+  uQuad_l[0] = fmax(fabs(u_l_r), fabs(u_c_l)); 
+  uQuad_r[0] = fmax(fabs(u_c_r), fabs(u_r_l)); 
   u_l_r = ser_3x_p2_surfx2_eval_quad_node_1_r(ul_0); 
   u_c_l = ser_3x_p2_surfx2_eval_quad_node_1_l(uc_0); 
   u_c_r = ser_3x_p2_surfx2_eval_quad_node_1_r(uc_0); 
   u_r_l = ser_3x_p2_surfx2_eval_quad_node_1_l(ur_0); 
-  uQuad_l[1] = fabs(fmax(u_l_r, u_c_l)); 
-  uQuad_r[1] = fabs(fmax(u_c_r, u_r_l)); 
+  uQuad_l[1] = fmax(fabs(u_l_r), fabs(u_c_l)); 
+  uQuad_r[1] = fmax(fabs(u_c_r), fabs(u_r_l)); 
   u_l_r = ser_3x_p2_surfx2_eval_quad_node_2_r(ul_0); 
   u_c_l = ser_3x_p2_surfx2_eval_quad_node_2_l(uc_0); 
   u_c_r = ser_3x_p2_surfx2_eval_quad_node_2_r(uc_0); 
   u_r_l = ser_3x_p2_surfx2_eval_quad_node_2_l(ur_0); 
-  uQuad_l[2] = fabs(fmax(u_l_r, u_c_l)); 
-  uQuad_r[2] = fabs(fmax(u_c_r, u_r_l)); 
+  uQuad_l[2] = fmax(fabs(u_l_r), fabs(u_c_l)); 
+  uQuad_r[2] = fmax(fabs(u_c_r), fabs(u_r_l)); 
   u_l_r = ser_3x_p2_surfx2_eval_quad_node_3_r(ul_0); 
   u_c_l = ser_3x_p2_surfx2_eval_quad_node_3_l(uc_0); 
   u_c_r = ser_3x_p2_surfx2_eval_quad_node_3_r(uc_0); 
   u_r_l = ser_3x_p2_surfx2_eval_quad_node_3_l(ur_0); 
-  uQuad_l[3] = fabs(fmax(u_l_r, u_c_l)); 
-  uQuad_r[3] = fabs(fmax(u_c_r, u_r_l)); 
+  uQuad_l[3] = fmax(fabs(u_l_r), fabs(u_c_l)); 
+  uQuad_r[3] = fmax(fabs(u_c_r), fabs(u_r_l)); 
   u_l_r = ser_3x_p2_surfx2_eval_quad_node_4_r(ul_0); 
   u_c_l = ser_3x_p2_surfx2_eval_quad_node_4_l(uc_0); 
   u_c_r = ser_3x_p2_surfx2_eval_quad_node_4_r(uc_0); 
   u_r_l = ser_3x_p2_surfx2_eval_quad_node_4_l(ur_0); 
-  uQuad_l[4] = fabs(fmax(u_l_r, u_c_l)); 
-  uQuad_r[4] = fabs(fmax(u_c_r, u_r_l)); 
+  uQuad_l[4] = fmax(fabs(u_l_r), fabs(u_c_l)); 
+  uQuad_r[4] = fmax(fabs(u_c_r), fabs(u_r_l)); 
   u_l_r = ser_3x_p2_surfx2_eval_quad_node_5_r(ul_0); 
   u_c_l = ser_3x_p2_surfx2_eval_quad_node_5_l(uc_0); 
   u_c_r = ser_3x_p2_surfx2_eval_quad_node_5_r(uc_0); 
   u_r_l = ser_3x_p2_surfx2_eval_quad_node_5_l(ur_0); 
-  uQuad_l[5] = fabs(fmax(u_l_r, u_c_l)); 
-  uQuad_r[5] = fabs(fmax(u_c_r, u_r_l)); 
+  uQuad_l[5] = fmax(fabs(u_l_r), fabs(u_c_l)); 
+  uQuad_r[5] = fmax(fabs(u_c_r), fabs(u_r_l)); 
   u_l_r = ser_3x_p2_surfx2_eval_quad_node_6_r(ul_0); 
   u_c_l = ser_3x_p2_surfx2_eval_quad_node_6_l(uc_0); 
   u_c_r = ser_3x_p2_surfx2_eval_quad_node_6_r(uc_0); 
   u_r_l = ser_3x_p2_surfx2_eval_quad_node_6_l(ur_0); 
-  uQuad_l[6] = fabs(fmax(u_l_r, u_c_l)); 
-  uQuad_r[6] = fabs(fmax(u_c_r, u_r_l)); 
+  uQuad_l[6] = fmax(fabs(u_l_r), fabs(u_c_l)); 
+  uQuad_r[6] = fmax(fabs(u_c_r), fabs(u_r_l)); 
   u_l_r = ser_3x_p2_surfx2_eval_quad_node_7_r(ul_0); 
   u_c_l = ser_3x_p2_surfx2_eval_quad_node_7_l(uc_0); 
   u_c_r = ser_3x_p2_surfx2_eval_quad_node_7_r(uc_0); 
   u_r_l = ser_3x_p2_surfx2_eval_quad_node_7_l(ur_0); 
-  uQuad_l[7] = fabs(fmax(u_l_r, u_c_l)); 
-  uQuad_r[7] = fabs(fmax(u_c_r, u_r_l)); 
+  uQuad_l[7] = fmax(fabs(u_l_r), fabs(u_c_l)); 
+  uQuad_r[7] = fmax(fabs(u_c_r), fabs(u_r_l)); 
   u_l_r = ser_3x_p2_surfx2_eval_quad_node_8_r(ul_0); 
   u_c_l = ser_3x_p2_surfx2_eval_quad_node_8_l(uc_0); 
   u_c_r = ser_3x_p2_surfx2_eval_quad_node_8_r(uc_0); 
   u_r_l = ser_3x_p2_surfx2_eval_quad_node_8_l(ur_0); 
-  uQuad_l[8] = fabs(fmax(u_l_r, u_c_l)); 
-  uQuad_r[8] = fabs(fmax(u_c_r, u_r_l)); 
+  uQuad_l[8] = fmax(fabs(u_l_r), fabs(u_c_l)); 
+  uQuad_r[8] = fmax(fabs(u_c_r), fabs(u_r_l)); 
 
   // Project tensor nodal quadrature basis back onto modal basis. 
   ser_3x_p2_upwind_quad_to_modal(uQuad_l, uMax_l); 
@@ -119,5 +119,7 @@ GKYL_CU_DH void advection_surfy_3x_ser_p2(const double *w, const double *dxv, co
   out[17] += -1.224744871391589*(Ghat_r[6]+Ghat_l[6])*dx1; 
   out[18] += (1.58113883008419*Ghat_l[3]-1.58113883008419*Ghat_r[3])*dx1; 
   out[19] += -1.224744871391589*(Ghat_r[7]+Ghat_l[7])*dx1; 
+
+  return 0.;
 
 } 

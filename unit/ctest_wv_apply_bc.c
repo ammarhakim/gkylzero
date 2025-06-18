@@ -27,7 +27,7 @@ rtheta_map(double t, const double *xc, double *xp, void *ctx)
 }
 
 static void
-bc_copy(double t, int nc, const double *skin, double *restrict ghost, void *ctx)
+bc_copy(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin, double *restrict ghost, void *ctx)
 {
   for (int c=0; c<nc; ++c) ghost[c] = skin[c];
 }
@@ -45,8 +45,8 @@ test_1()
   struct gkyl_range range, ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
   
-  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &ext_range, nomapc2p, &ndim);
-  struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_new();
+  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &ext_range, nomapc2p, &ndim, false);
+  struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_new(false);
 
   gkyl_wv_apply_bc *lbc = gkyl_wv_apply_bc_new(&grid, eqn, wg,
     0, GKYL_LOWER_EDGE, nghost, bc_copy, NULL);
@@ -55,7 +55,7 @@ test_1()
 
   struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, 1, ext_range.volume);
 
-  gkyl_array_clear_range(distf, 1.0, range);
+  gkyl_array_clear_range(distf, 1.0, &range);
 
   // check if ghost-cells on left/right edges of domain are 0.0
   double *data = distf->data;
@@ -97,8 +97,8 @@ test_2()
   struct gkyl_range ext_range, range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
-  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &ext_range, nomapc2p, &ndim);
-  struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_new();  
+  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &ext_range, nomapc2p, &ndim, false);
+  struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_new(false);  
 
   gkyl_wv_apply_bc *lbc = gkyl_wv_apply_bc_new(&grid, eqn, wg,
     0, GKYL_LOWER_EDGE, nghost, bc_copy, NULL);
@@ -113,7 +113,7 @@ test_2()
   struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, 1, ext_range.volume);
 
   // clear interior of array
-  gkyl_array_clear_range(distf, 1.0, range);
+  gkyl_array_clear_range(distf, 1.0, &range);
 
   // check if only interior is cleared
   struct gkyl_range_iter iter;
@@ -169,8 +169,8 @@ test_3()
   struct gkyl_range ext_range, range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
-  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &ext_range, nomapc2p, &ndim);
-  struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_new();
+  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &ext_range, nomapc2p, &ndim, false);
+  struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_new(false);
 
   gkyl_wv_apply_bc *lbc = gkyl_wv_apply_bc_new(&grid, eqn, wg,
     0, GKYL_LOWER_EDGE, nghost, bc_copy, NULL);
@@ -186,7 +186,7 @@ test_3()
 
   // clear interior of array
   gkyl_array_clear(distf, 0.0);
-  gkyl_array_clear_range(distf, 1.0, range);
+  gkyl_array_clear_range(distf, 1.0, &range);
 
   // check if only interior is cleared
   struct gkyl_range_iter iter;
@@ -224,7 +224,7 @@ test_3()
   /** apply BCs on restricted range: test 2 */
 
   gkyl_array_clear(distf, 0.0);
-  gkyl_array_clear_range(distf, 1.0, range);
+  gkyl_array_clear_range(distf, 1.0, &range);
   
   gkyl_sub_range_init(&sub_range, &ext_range, (int []) { 2, 1 }, (int []) { 8, 4 });
 
@@ -249,7 +249,7 @@ test_3()
   /** apply BCs on restricted range: test 3 */
 
   gkyl_array_clear(distf, 0.0);
-  gkyl_array_clear_range(distf, 1.0, range);
+  gkyl_array_clear_range(distf, 1.0, &range);
   
   gkyl_sub_range_init(&sub_range, &ext_range, (int []) { 2, 2 }, (int []) { 8, 4 });
 
@@ -312,7 +312,7 @@ test_bc_buff_rtheta()
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
 
-  struct gkyl_wv_eqn *eqn = gkyl_wv_euler_new(1.4);  
+  struct gkyl_wv_eqn *eqn = gkyl_wv_euler_new(1.4, false);  
 
   int nghost[] = { 2, 2 };
 
@@ -332,7 +332,7 @@ test_bc_buff_rtheta()
     eqn->num_equations, buff_sz);
 
   struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &ext_range,
-    rtheta_map, &ndim);
+    rtheta_map, &ndim, false);
 
   gkyl_wv_apply_bc *bbc = gkyl_wv_apply_bc_new(&grid, eqn, wg,
     1, GKYL_LOWER_EDGE, nghost, bc_copy, NULL);

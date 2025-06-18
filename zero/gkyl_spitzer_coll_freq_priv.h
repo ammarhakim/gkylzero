@@ -15,17 +15,21 @@ struct gkyl_spitzer_coll_freq {
 
   struct gkyl_array *fun_at_ords; // function (Maxwellian) evaluated at
                                   // ordinates in a cell.
+
+  // Time independent factors that can be precomputed.
+  double hbar_fac, r4pieps0_fac, nufraceps0_fac, cellav_fac;
+  double eps0;
 };
 
 void
 gkyl_spitzer_coll_freq_advance_normnu_cu(const gkyl_spitzer_coll_freq *up,
-  const struct gkyl_range *range, const struct gkyl_array *vtSqSelf,
-  const struct gkyl_array *m0Other, const struct gkyl_array *vtSqOther,
+  const struct gkyl_range *range, const struct gkyl_array *vtSqSelf, double vtSqMinSelf,
+  const struct gkyl_array *m0Other, const struct gkyl_array *vtSqOther, double vtSqMinOther,
   double normNu, struct gkyl_array *nuOut);
 
 void
 gkyl_spitzer_coll_freq_advance_cu(const gkyl_spitzer_coll_freq *up,
-  const struct gkyl_range *range,
-  double qSelf, double mSelf, const struct gkyl_array *m0Self, const struct gkyl_array *vtSqSelf,
-  double qOther, double mOther, const struct gkyl_array *m0Other, const struct gkyl_array *vtSqOther,
+  const struct gkyl_range *range, const struct gkyl_array *bmag,
+  double qSelf, double mSelf, const struct gkyl_array *m0Self, const struct gkyl_array *vtSqSelf, double vtSqMinSelf,
+  double qOther, double mOther, const struct gkyl_array *m0Other, const struct gkyl_array *vtSqOther, double vtSqMinOther,
   struct gkyl_array *nuOut);

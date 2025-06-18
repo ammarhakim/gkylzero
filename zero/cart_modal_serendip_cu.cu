@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 
-#include "gkyl_util.h"
+#include <gkyl_util.h>
 extern "C" {
 #include <assert.h>
 #include <string.h>    
@@ -10,7 +10,7 @@ extern "C" {
 #include <gkyl_dg_maxwell.h>    
 #include <gkyl_dg_maxwell_priv.h>
 
-#include "cart_modal_serendip_priv.h"
+#include <gkyl_cart_modal_serendip_priv.h>
 }
 
 __global__ void static
@@ -31,6 +31,8 @@ gkyl_cart_modal_serendip_cu_dev_kern(struct gkyl_basis *basis, int ndim, int pol
   basis->flip_even_sign = fes_list[ndim].fs[poly_order];
   basis->node_list = nl_list[ndim].nl[poly_order];
   basis->nodal_to_modal = n2m_list[ndim].n2m[poly_order];
+  basis->quad_nodal_to_modal = qn2m_list[ndim].n2m[poly_order];
+  basis->modal_to_quad_nodal = m2qn_list[ndim].n2m[poly_order];
 }
 
 void

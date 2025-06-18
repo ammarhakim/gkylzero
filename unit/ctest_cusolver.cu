@@ -1,3 +1,5 @@
+#ifndef GKYL_HAVE_CUDSS
+
 #include <cusparse.h>
 #include <cusolverSp.h>
 #include <cusolverRf.h>
@@ -10,7 +12,7 @@ extern "C" {
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
-#include <gkyl_cusolver_ops.h>
+#include <gkyl_culinsolver_ops.h>
 }
 
 #define TEST_NO_MAIN
@@ -21,6 +23,7 @@ void test_cusolver_qr();
 void test_cusolver_rf();
 void test_cusolver_ops();
 void test_cusolver_ops_multiple_rhs();
+void test_cusolver_ops_multiple_prob();
 }
 
 void test_cusolver_qr()
@@ -144,7 +147,9 @@ void test_cusolver_ops()
   
   s = 19.0; u = 21.0; p = 16.0; e = 5.0; r = 18.0; l = 12.0;
   /*  A : matrix([s,0,u,u,0],[l,u,0,0,0],[0,l,p,0,0],[0,0,0,e,u],[l,l,0,0,r]); */
-  gkyl_mat_triples *tri = gkyl_mat_triples_new(m, n);
+  struct gkyl_mat_triples **tri_arr = (struct gkyl_mat_triples **) gkyl_malloc(sizeof(struct gkyl_mat_triples *));
+  tri_arr[0] = gkyl_mat_triples_new(m, n);
+  struct gkyl_mat_triples *tri = tri_arr[0];
   gkyl_mat_triples_set_rowmaj_order(tri);
   // row 0
   gkyl_mat_triples_insert(tri, 0, 0, s);
@@ -165,11 +170,12 @@ void test_cusolver_ops()
   gkyl_mat_triples_insert(tri, 4, 4, r);
 
   // Create the cuSolver linear problem setup.
-  gkyl_cusolver_prob *prob = gkyl_cusolver_prob_new(m, n, nrhs);
+  gkyl_culinsolver_prob *prob = gkyl_culinsolver_prob_new(1, m, n, nrhs);
 
   // Allocate the A matrix from triples.
-  gkyl_cusolver_amat_from_triples(prob, tri);
+  gkyl_culinsolver_amat_from_triples(prob, tri_arr);
   gkyl_mat_triples_release(tri);
+  gkyl_free(tri_arr);
 
   // Create right-hand side matrix B = transpose([1,1,1,1,1]).
   gkyl_mat_triples *triRHS = gkyl_mat_triples_new(m, nrhs);
@@ -178,21 +184,20 @@ void test_cusolver_ops()
   gkyl_mat_triples_insert(triRHS, 2, 0, 1.0);
   gkyl_mat_triples_insert(triRHS, 3, 0, 1.0);
   gkyl_mat_triples_insert(triRHS, 4, 0, 1.0);
-  gkyl_cusolver_brhs_from_triples(prob, triRHS);
+  gkyl_culinsolver_brhs_from_triples(prob, triRHS);
   gkyl_mat_triples_release(triRHS);
 
-
-  gkyl_cusolver_solve(prob);
-  gkyl_cusolver_finish_host(prob);
+  gkyl_culinsolver_solve(prob);
+  gkyl_culinsolver_finish_host(prob);
 
   // Solution is: [-1/32, 11/168, 3/224, 1/16, 11/336].
-  TEST_CHECK( gkyl_compare_double(-1.0/32.0,   gkyl_cusolver_get_sol_lin(prob,0), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 11.0/168.0, gkyl_cusolver_get_sol_lin(prob,1), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 3.0/224.0,  gkyl_cusolver_get_sol_lin(prob,2), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 1.0/16.0,   gkyl_cusolver_get_sol_lin(prob,3), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 11.0/336.0, gkyl_cusolver_get_sol_lin(prob,4), 1e-14) );
+  TEST_CHECK( gkyl_compare_double(-1.0/32.0,   gkyl_culinsolver_get_sol_lin(prob,0), 1e-14) );
+  TEST_CHECK( gkyl_compare_double( 11.0/168.0, gkyl_culinsolver_get_sol_lin(prob,1), 1e-14) );
+  TEST_CHECK( gkyl_compare_double( 3.0/224.0,  gkyl_culinsolver_get_sol_lin(prob,2), 1e-14) );
+  TEST_CHECK( gkyl_compare_double( 1.0/16.0,   gkyl_culinsolver_get_sol_lin(prob,3), 1e-14) );
+  TEST_CHECK( gkyl_compare_double( 11.0/336.0, gkyl_culinsolver_get_sol_lin(prob,4), 1e-14) );
 
-  gkyl_cusolver_prob_release(prob);
+  gkyl_culinsolver_prob_release(prob);
 }
 
 void test_cusolver_ops_multiple_rhs()
@@ -207,7 +212,9 @@ void test_cusolver_ops_multiple_rhs()
   
   s = 19.0; u = 21.0; p = 16.0; e = 5.0; r = 18.0; l = 12.0;
   /*  A : matrix([s,0,u,u,0],[l,u,0,0,0],[0,l,p,0,0],[0,0,0,e,u],[l,l,0,0,r]); */
-  gkyl_mat_triples *tri = gkyl_mat_triples_new(m, n);
+  struct gkyl_mat_triples **tri_arr = (struct gkyl_mat_triples **) gkyl_malloc(sizeof(struct gkyl_mat_triples *));
+  tri_arr[0] = gkyl_mat_triples_new(m, n);
+  struct gkyl_mat_triples *tri = tri_arr[0];
   gkyl_mat_triples_set_rowmaj_order(tri);
   // row 0
   gkyl_mat_triples_insert(tri, 0, 0, s);
@@ -228,11 +235,12 @@ void test_cusolver_ops_multiple_rhs()
   gkyl_mat_triples_insert(tri, 4, 4, r);
 
   // Create the cuSolver linear problem setup.
-  gkyl_cusolver_prob *prob = gkyl_cusolver_prob_new(m, n, nrhs);
+  gkyl_culinsolver_prob *prob = gkyl_culinsolver_prob_new(1, m, n, nrhs);
 
   // Allocate the A matrix from triples.
-  gkyl_cusolver_amat_from_triples(prob, tri);
+  gkyl_culinsolver_amat_from_triples(prob, tri_arr);
   gkyl_mat_triples_release(tri);
+  gkyl_free(tri_arr);
 
   // Create right-hand side matrix B = transpose([1,1,1,1,1]).
   gkyl_mat_triples *triRHS = gkyl_mat_triples_new(m, nrhs);
@@ -243,35 +251,136 @@ void test_cusolver_ops_multiple_rhs()
     gkyl_mat_triples_insert(triRHS, 3, k, 1.0);
     gkyl_mat_triples_insert(triRHS, 4, k, 1.0);
   }
-  gkyl_cusolver_brhs_from_triples(prob, triRHS);
+  gkyl_culinsolver_brhs_from_triples(prob, triRHS);
   gkyl_mat_triples_release(triRHS);
 
-  gkyl_cusolver_solve(prob);
-  gkyl_cusolver_finish_host(prob);
+  gkyl_culinsolver_solve(prob);
+  gkyl_culinsolver_finish_host(prob);
 
   // Solution is: [-1/32, 11/168, 3/224, 1/16, 11/336].
   // 1st problem
-  TEST_CHECK( gkyl_compare_double(-1.0/32.0,   gkyl_cusolver_get_sol_lin(prob,0), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 11.0/168.0, gkyl_cusolver_get_sol_lin(prob,1), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 3.0/224.0,  gkyl_cusolver_get_sol_lin(prob,2), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 1.0/16.0,   gkyl_cusolver_get_sol_lin(prob,3), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 11.0/336.0, gkyl_cusolver_get_sol_lin(prob,4), 1e-14) );
+  TEST_CHECK( gkyl_compare_double(-1.0/32.0,   gkyl_culinsolver_get_sol_lin(prob,0), 1e-14) );
+  TEST_CHECK( gkyl_compare_double( 11.0/168.0, gkyl_culinsolver_get_sol_lin(prob,1), 1e-14) );
+  TEST_CHECK( gkyl_compare_double( 3.0/224.0,  gkyl_culinsolver_get_sol_lin(prob,2), 1e-14) );
+  TEST_CHECK( gkyl_compare_double( 1.0/16.0,   gkyl_culinsolver_get_sol_lin(prob,3), 1e-14) );
+  TEST_CHECK( gkyl_compare_double( 11.0/336.0, gkyl_culinsolver_get_sol_lin(prob,4), 1e-14) );
   // 2nd problem
-  TEST_CHECK( gkyl_compare_double(-1.0/32.0,   gkyl_cusolver_get_sol_lin(prob,5), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 11.0/168.0, gkyl_cusolver_get_sol_lin(prob,6), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 3.0/224.0,  gkyl_cusolver_get_sol_lin(prob,7), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 1.0/16.0,   gkyl_cusolver_get_sol_lin(prob,8), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 11.0/336.0, gkyl_cusolver_get_sol_lin(prob,9), 1e-14) );
+  TEST_CHECK( gkyl_compare_double(-1.0/32.0,   gkyl_culinsolver_get_sol_lin(prob,5), 1e-14) );
+  TEST_CHECK( gkyl_compare_double( 11.0/168.0, gkyl_culinsolver_get_sol_lin(prob,6), 1e-14) );
+  TEST_CHECK( gkyl_compare_double( 3.0/224.0,  gkyl_culinsolver_get_sol_lin(prob,7), 1e-14) );
+  TEST_CHECK( gkyl_compare_double( 1.0/16.0,   gkyl_culinsolver_get_sol_lin(prob,8), 1e-14) );
+  TEST_CHECK( gkyl_compare_double( 11.0/336.0, gkyl_culinsolver_get_sol_lin(prob,9), 1e-14) );
   // 3rd problem
-  TEST_CHECK( gkyl_compare_double(-1.0/32.0,   gkyl_cusolver_get_sol_lin(prob,10), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 11.0/168.0, gkyl_cusolver_get_sol_lin(prob,11), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 3.0/224.0,  gkyl_cusolver_get_sol_lin(prob,12), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 1.0/16.0,   gkyl_cusolver_get_sol_lin(prob,13), 1e-14) );
-  TEST_CHECK( gkyl_compare_double( 11.0/336.0, gkyl_cusolver_get_sol_lin(prob,14), 1e-14) );
+  TEST_CHECK( gkyl_compare_double(-1.0/32.0,   gkyl_culinsolver_get_sol_lin(prob,10), 1e-14) );
+  TEST_CHECK( gkyl_compare_double( 11.0/168.0, gkyl_culinsolver_get_sol_lin(prob,11), 1e-14) );
+  TEST_CHECK( gkyl_compare_double( 3.0/224.0,  gkyl_culinsolver_get_sol_lin(prob,12), 1e-14) );
+  TEST_CHECK( gkyl_compare_double( 1.0/16.0,   gkyl_culinsolver_get_sol_lin(prob,13), 1e-14) );
+  TEST_CHECK( gkyl_compare_double( 11.0/336.0, gkyl_culinsolver_get_sol_lin(prob,14), 1e-14) );
 
-  gkyl_cusolver_prob_release(prob);
+  gkyl_culinsolver_prob_release(prob);
 }
 
+double superlu_test_answer(double s, double u, double p, double e, double r, double l, int idx) {
+  // Solution is: [-1/32, 11/168, 3/224, 1/16, 11/336].
+  // for a unit RHS vector and 
+  //  s = 19.0; u = 21.0; p = 16.0; e = 5.0; r = 18.0; l = 12.0;
+  double sol;
+  switch (idx) {
+    case 0:
+      sol = (e*l*r + e*p*r - l*p*u - e*r*u - p*r*u + p*pow(u,2))/
+        (e*pow(l,2)*r + e*p*r*s - pow(l,2)*p*u + l*p*pow(u,2));
+      break;
+    case 1:
+      sol = (r*(-(e*l*p) + e*p*s + e*l*u + l*p*u))/
+        (u*(e*pow(l,2)*r + e*p*r*s - pow(l,2)*p*u + l*p*pow(u,2)));
+      break;
+    case 2:
+      sol = -((-(e*pow(l,2)*r) + e*l*r*s + pow(l,2)*r*u - e*r*s*u + pow(l,2)*pow(u,2) -
+        l*pow(u,3))/(u*(e*pow(l,2)*r + e*p*r*s - pow(l,2)*p*u + l*p*pow(u,2))));
+      break;
+    case 3:
+      sol = (-(pow(l,2)*p) + pow(l,2)*r + l*p*s + p*r*s + pow(l,2)*u + l*p*u - p*s*u -
+      l*pow(u,2))/(e*pow(l,2)*r + e*p*r*s - pow(l,2)*p*u + l*p*pow(u,2));
+      break;
+    case 4:
+      sol = (e*pow(l,2)*p - e*l*p*s - e*pow(l,2)*u - e*l*p*u - pow(l,2)*p*u + e*p*s*u +
+        e*l*pow(u,2) + l*p*pow(u,2))/
+        (u*(e*pow(l,2)*r + e*p*r*s - pow(l,2)*p*u + l*p*pow(u,2)));
+      break;
+  }
+  return sol;
+};
+
+void test_cusolver_ops_multiple_prob()
+{
+  double s, u, p, e, r, l;
+  int    nprob, m, n;
+
+  /* Initialize matrix A. */
+  /*  A : matrix([s,0,u,u,0],[l,u,0,0,0],[0,l,p,0,0],[0,0,0,e,u],[l,l,0,0,r]); */
+  m = n = 5;
+  nprob = 7;
+
+  /*  A : matrix([s,0,u,u,0],[l,u,0,0,0],[0,l,p,0,0],[0,0,0,e,u],[l,l,0,0,r]); */
+  struct gkyl_mat_triples **tri_arr = (struct gkyl_mat_triples **) gkyl_malloc(nprob*sizeof(struct gkyl_mat_triples *));
+  for (size_t k=0; k<nprob; k++) {
+    tri_arr[k] = gkyl_mat_triples_new(m, n);
+    struct gkyl_mat_triples *tri = tri_arr[k];
+    gkyl_mat_triples_set_rowmaj_order(tri);
+
+    s = 19.0*(k+1)/nprob; u = 21.0*(k+1)/nprob; p = 16.0*(k+1)/nprob; e = 5.0*(k+1)/nprob; r = 18.0*(k+1)/nprob; l = 12.0*(k+1)/nprob;
+
+    // row 0
+    gkyl_mat_triples_insert(tri, 0, 0, s);
+    gkyl_mat_triples_insert(tri, 0, 2, u);
+    gkyl_mat_triples_insert(tri, 0, 3, u);
+    // row 1
+    gkyl_mat_triples_insert(tri, 1, 0, l);
+    gkyl_mat_triples_insert(tri, 1, 1, u);
+    // row 2
+    gkyl_mat_triples_insert(tri, 2, 1, l);
+    gkyl_mat_triples_insert(tri, 2, 2, p);
+    // row 3
+    gkyl_mat_triples_insert(tri, 3, 3, e);
+    gkyl_mat_triples_insert(tri, 3, 4, u);
+    // row 4
+    gkyl_mat_triples_insert(tri, 4, 0, l);
+    gkyl_mat_triples_insert(tri, 4, 1, l);
+    gkyl_mat_triples_insert(tri, 4, 4, r);
+  }
+
+  // Create the cuSolver linear problem setup.
+  gkyl_culinsolver_prob *prob = gkyl_culinsolver_prob_new(nprob, m, n, 1);
+
+  // Allocate the A matrix from triples.
+  gkyl_culinsolver_amat_from_triples(prob, tri_arr);
+  for (size_t k=0; k<nprob; k++)
+    gkyl_mat_triples_release(tri_arr[k]);
+  gkyl_free(tri_arr);
+
+  // Create right-hand side matrix B = transpose([1,1,1,1,1]).
+  gkyl_mat_triples *triRHS = gkyl_mat_triples_new(m, nprob);
+  for (int k=0; k<nprob; k++) {
+    gkyl_mat_triples_insert(triRHS, 0, k, 1.0);
+    gkyl_mat_triples_insert(triRHS, 1, k, 1.0);
+    gkyl_mat_triples_insert(triRHS, 2, k, 1.0);
+    gkyl_mat_triples_insert(triRHS, 3, k, 1.0);
+    gkyl_mat_triples_insert(triRHS, 4, k, 1.0);
+  }
+  gkyl_culinsolver_brhs_from_triples(prob, triRHS);
+  gkyl_mat_triples_release(triRHS);
+
+  gkyl_culinsolver_solve(prob);
+  gkyl_culinsolver_finish_host(prob);
+
+  for (int k=0; k<nprob; k++) {
+    s = 19.0*(k+1)/nprob; u = 21.0*(k+1)/nprob; p = 16.0*(k+1)/nprob; e = 5.0*(k+1)/nprob; r = 18.0*(k+1)/nprob; l = 12.0*(k+1)/nprob;
+    for (int i=0; i<m; i++)
+      TEST_CHECK( gkyl_compare_double( superlu_test_answer(s,u,p,e,r,l,i), gkyl_culinsolver_get_sol_lin(prob,k*5+i), 1e-10) );
+  }
+
+  gkyl_culinsolver_prob_release(prob);
+}
 
 void test_cusolver_rf()
 {
@@ -558,3 +667,5 @@ void test_cusolver_rf()
 
 }
 
+// End ifndef GKYL_HAVE_CUDSS statement.
+#endif

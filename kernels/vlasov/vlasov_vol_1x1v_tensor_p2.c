@@ -1,15 +1,16 @@
 #include <gkyl_vlasov_kernels.h> 
-GKYL_CU_DH double vlasov_vol_1x1v_tensor_p2(const double *w, const double *dxv, const double *qmem, const double *f, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_vol_1x1v_tensor_p2(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
-  // qmem:      q/m*EM fields.
+  // field:      q/m*EM fields.
+  // cot_vec:   Only used in gen geo.
   // f:         Input distribution function.
   // out:       Incremented output.
   double dv0dx0 = dxv[1]/dxv[0]; 
   double w0dx0 = w[1]/dxv[0]; 
   const double dv10 = 2/dxv[1]; 
-  const double *E0 = &qmem[0]; 
+  const double *E0 = &field[0]; 
   const double dv1 = dxv[1], wv1 = w[1]; 
 
   double cflFreq_mid = 0.0; 

@@ -1,39 +1,42 @@
 #include <gkyl_lbo_gyrokinetic_kernels.h> 
-GKYL_CU_DH double lbo_gyrokinetic_drag_vol_2x2v_ser_p1(const double *w, const double *dxv, const double m_, const double *bmag_inv, const double *nuSum, const double *nuUSum, const double *nuVtSqSum, const double *f, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double lbo_gyrokinetic_drag_vol_2x2v_ser_p1(const double *dxv, const double *vmap, const double *vmap_prime, const double m_, const double *bmag_inv, const double *nuSum, const double *nuPrimMomsSum, const double *f, double* GKYL_RESTRICT out) 
 { 
-  // w[4]:      cell-center coordinates. 
-  // dxv[4]:    cell spacing. 
-  // m_:        species mass.
-  // bmag_inv:  1/(magnetic field magnitude). 
-  // nuSum:     collisionalities added (self and cross species collisionalities). 
-  // nuUSum:    sum of bulk velocities times their respective collisionalities. 
-  // nuVtSqSum: sum of thermal speeds squared time their respective collisionalities. 
-  // f:         input distribution function.
-  // out:       incremented output 
-  double rdv2[2]; 
-  rdv2[0]   = 2.0/dxv[2]; 
-  rdv2[1]   = 2.0/dxv[3]; 
+  // dxv[4]: cell spacing. 
+  // vmap: velocity space mapping.
+  // vmap_prime: velocity space mapping derivative.
+  // m_: species mass.
+  // bmag_inv: 1/(magnetic field magnitude). 
+  // nuSum: collisionalities added (self and cross species collisionalities). 
+  // nuPrimMomsSum: sum of bulk velocities and thermal speeds squared times their respective collisionalities. 
+  // f: input distribution function.
+  // out: incremented output 
 
-  double alphaDrag[48]; 
+  const double *nuUSum = nuPrimMomsSum;
+
+  double rdv2[2]; 
+  rdv2[0] = 2.0/dxv[2]; 
+  rdv2[1] = 2.0/dxv[3]; 
+
+  double alphaDrag[48] = {0.}; 
   // Expand rdv2*(nu*vpar-nuUparSum) in phase basis.
-  alphaDrag[0] = rdv2[0]*(2.0*nuUSum[0]-2.0*nuSum[0]*w[2]); 
-  alphaDrag[1] = rdv2[0]*(2.0*nuUSum[1]-2.0*nuSum[1]*w[2]); 
-  alphaDrag[2] = rdv2[0]*(2.0*nuUSum[2]-2.0*nuSum[2]*w[2]); 
-  alphaDrag[3] = -0.5773502691896258*nuSum[0]*rdv2[0]*dxv[2]; 
-  alphaDrag[5] = rdv2[0]*(2.0*nuUSum[3]-2.0*w[2]*nuSum[3]); 
-  alphaDrag[6] = -0.5773502691896258*rdv2[0]*nuSum[1]*dxv[2]; 
-  alphaDrag[7] = -0.5773502691896258*rdv2[0]*dxv[2]*nuSum[2]; 
-  alphaDrag[11] = -0.5773502691896258*rdv2[0]*dxv[2]*nuSum[3]; 
+  alphaDrag[0] = (rdv2[0]*(2.0*nuUSum[0]-1.414213562373095*nuSum[0]*vmap[0]))/vmap_prime[0]; 
+  alphaDrag[1] = (rdv2[0]*(2.0*nuUSum[1]-1.414213562373095*vmap[0]*nuSum[1]))/vmap_prime[0]; 
+  alphaDrag[2] = (rdv2[0]*(2.0*nuUSum[2]-1.414213562373095*vmap[0]*nuSum[2]))/vmap_prime[0]; 
+  alphaDrag[3] = -(1.414213562373095*nuSum[0]*rdv2[0]*vmap[1])/vmap_prime[0]; 
+  alphaDrag[5] = (rdv2[0]*(2.0*nuUSum[3]-1.414213562373095*vmap[0]*nuSum[3]))/vmap_prime[0]; 
+  alphaDrag[6] = -(1.414213562373095*rdv2[0]*nuSum[1]*vmap[1])/vmap_prime[0]; 
+  alphaDrag[7] = -(1.414213562373095*rdv2[0]*vmap[1]*nuSum[2])/vmap_prime[0]; 
+  alphaDrag[11] = -(1.414213562373095*rdv2[0]*vmap[1]*nuSum[3])/vmap_prime[0]; 
 
   // Expand rdv2*nu*2*mu in phase basis.
-  alphaDrag[24] = -4.0*nuSum[0]*rdv2[1]*w[3]; 
-  alphaDrag[25] = -4.0*nuSum[1]*rdv2[1]*w[3]; 
-  alphaDrag[26] = -4.0*rdv2[1]*nuSum[2]*w[3]; 
-  alphaDrag[28] = -1.154700538379252*nuSum[0]*rdv2[1]*dxv[3]; 
-  alphaDrag[29] = -4.0*rdv2[1]*nuSum[3]*w[3]; 
-  alphaDrag[32] = -1.154700538379252*nuSum[1]*rdv2[1]*dxv[3]; 
-  alphaDrag[33] = -1.154700538379252*rdv2[1]*nuSum[2]*dxv[3]; 
-  alphaDrag[36] = -1.154700538379252*rdv2[1]*dxv[3]*nuSum[3]; 
+  alphaDrag[24] = -(2.828427124746191*nuSum[0]*rdv2[1]*vmap[2])/vmap_prime[1]; 
+  alphaDrag[25] = -(2.828427124746191*nuSum[1]*rdv2[1]*vmap[2])/vmap_prime[1]; 
+  alphaDrag[26] = -(2.828427124746191*rdv2[1]*nuSum[2]*vmap[2])/vmap_prime[1]; 
+  alphaDrag[28] = -(2.828427124746191*nuSum[0]*rdv2[1]*vmap[3])/vmap_prime[1]; 
+  alphaDrag[29] = -(2.828427124746191*rdv2[1]*vmap[2]*nuSum[3])/vmap_prime[1]; 
+  alphaDrag[32] = -(2.828427124746191*nuSum[1]*rdv2[1]*vmap[3])/vmap_prime[1]; 
+  alphaDrag[33] = -(2.828427124746191*rdv2[1]*nuSum[2]*vmap[3])/vmap_prime[1]; 
+  alphaDrag[36] = -(2.828427124746191*rdv2[1]*nuSum[3]*vmap[3])/vmap_prime[1]; 
 
   out[3] += 0.4330127018922193*(alphaDrag[11]*f[11]+alphaDrag[7]*f[7]+alphaDrag[6]*f[6]+alphaDrag[5]*f[5]+alphaDrag[3]*f[3]+alphaDrag[2]*f[2]+alphaDrag[1]*f[1]+alphaDrag[0]*f[0]); 
   out[4] += 0.4330127018922193*(f[12]*alphaDrag[36]+f[9]*alphaDrag[33]+f[8]*alphaDrag[32]+f[5]*alphaDrag[29]+f[4]*alphaDrag[28]+f[2]*alphaDrag[26]+f[1]*alphaDrag[25]+f[0]*alphaDrag[24]); 

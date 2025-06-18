@@ -1,18 +1,18 @@
 #include <gkyl_vlasov_kernels.h> 
 #include <gkyl_basis_tensor_3x_p2_surfx3_eval_quad.h> 
 #include <gkyl_basis_tensor_3x_p2_upwind_quad_to_modal.h> 
-GKYL_CU_DH void vlasov_surfvy_1x2v_tensor_p2(const double *w, const double *dxv, const double *qmem, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_surfvy_1x2v_tensor_p2(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w:         Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
-  // qmem:      q/m*EM fields.
+  // field:     q/m*EM fields.
   // fl/fc/fr:  Input Distribution function in left/center/right cells 
   // out:       Output distribution function in center cell 
   const double dv11 = 2/dxv[2]; 
   const double dv1 = dxv[1], wv1 = w[1]; 
   const double dv2 = dxv[2], wv2 = w[2]; 
-  const double *E1 = &qmem[3]; 
-  const double *B2 = &qmem[15]; 
+  const double *E1 = &field[3]; 
+  const double *B2 = &field[15]; 
 
   double alpha[9] = {0.0}; 
 
@@ -145,5 +145,7 @@ GKYL_CU_DH void vlasov_surfvy_1x2v_tensor_p2(const double *w, const double *dxv,
   out[24] += (1.58113883008419*Ghat_l[6]-1.58113883008419*Ghat_r[6])*dv11; 
   out[25] += (1.58113883008419*Ghat_l[7]-1.58113883008419*Ghat_r[7])*dv11; 
   out[26] += (1.58113883008419*Ghat_l[8]-1.58113883008419*Ghat_r[8])*dv11; 
+
+  return 0.;
 
 } 

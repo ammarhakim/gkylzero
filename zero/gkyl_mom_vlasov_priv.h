@@ -21,11 +21,7 @@ typedef void (*vlasov_momf_t)(const double *xc, const double *dx,
 // for use in kernel tables
 typedef struct { vlasov_momf_t kernels[3]; } gkyl_mom_kern_list;
 
-//
-// Serendipity basis kernels
-//
-
-// M0 kernel list
+// M0 kernel list (Serendipity basis)
 GKYL_CU_D
 static const gkyl_mom_kern_list ser_m0_kernels[] = {
   // 1x kernels
@@ -39,7 +35,21 @@ static const gkyl_mom_kern_list ser_m0_kernels[] = {
   { NULL, vlasov_M0_3x3v_ser_p1, NULL                  }, // 5
 };
 
-// M1i kernel list
+// M0 kernel list (Tensor basis)
+GKYL_CU_D
+static const gkyl_mom_kern_list tensor_m0_kernels[] = {
+  // 1x kernels
+  { NULL, vlasov_M0_1x1v_tensor_p1, vlasov_M0_1x1v_tensor_p2 }, // 0
+  { NULL, vlasov_M0_1x2v_tensor_p1, vlasov_M0_1x2v_tensor_p2 }, // 1
+  { NULL, vlasov_M0_1x3v_tensor_p1, vlasov_M0_1x3v_tensor_p2 }, // 2
+  // 2x kernels
+  { NULL, vlasov_M0_2x2v_tensor_p1, vlasov_M0_2x2v_tensor_p2 }, // 3
+  { NULL, vlasov_M0_2x3v_tensor_p1, vlasov_M0_2x3v_tensor_p2 }, // 4
+  // 3x kernels
+  { NULL, vlasov_M0_3x3v_tensor_p1, NULL                  }, // 5
+};
+
+// M1i kernel list (Serendipity basis)
 GKYL_CU_D
 static const gkyl_mom_kern_list ser_m1i_kernels[] = {
   // 1x kernels
@@ -53,7 +63,22 @@ static const gkyl_mom_kern_list ser_m1i_kernels[] = {
   { NULL, vlasov_M1i_3x3v_ser_p1, NULL                   }, // 5
 };
 
-// M2 kernel list
+// M1i kernel list (Tensor basis)
+GKYL_CU_D
+static const gkyl_mom_kern_list tensor_m1i_kernels[] = {
+  // 1x kernels
+  { NULL, vlasov_M1i_1x1v_tensor_p1, vlasov_M1i_1x1v_tensor_p2 }, // 0
+  { NULL, vlasov_M1i_1x2v_tensor_p1, vlasov_M1i_1x2v_tensor_p2 }, // 1
+  { NULL, vlasov_M1i_1x3v_tensor_p1, vlasov_M1i_1x3v_tensor_p2 }, // 2
+  // 2x kernels
+  { NULL, vlasov_M1i_2x2v_tensor_p1, vlasov_M1i_2x2v_tensor_p2 }, // 3
+  { NULL, vlasov_M1i_2x3v_tensor_p1, vlasov_M1i_2x3v_tensor_p2 }, // 4
+  // 3x kernels
+  { NULL, vlasov_M1i_3x3v_tensor_p1, NULL                   }, // 5
+};
+
+
+// M2 kernel list (Serendipity basis)
 GKYL_CU_D
 static const gkyl_mom_kern_list ser_m2_kernels[] = {
   // 1x kernels
@@ -67,7 +92,21 @@ static const gkyl_mom_kern_list ser_m2_kernels[] = {
   { NULL, vlasov_M2_3x3v_ser_p1, NULL                  }, // 5
 };
 
-// M2ij kernel list
+// M2 kernel list (Tensor basis)
+GKYL_CU_D
+static const gkyl_mom_kern_list tensor_m2_kernels[] = {
+  // 1x kernels
+  { NULL, vlasov_M2_1x1v_tensor_p1, vlasov_M2_1x1v_tensor_p2 }, // 0
+  { NULL, vlasov_M2_1x2v_tensor_p1, vlasov_M2_1x2v_tensor_p2 }, // 1
+  { NULL, vlasov_M2_1x3v_tensor_p1, vlasov_M2_1x3v_tensor_p2 }, // 2
+  // 2x kernels
+  { NULL, vlasov_M2_2x2v_tensor_p1, vlasov_M2_2x2v_tensor_p2 }, // 3
+  { NULL, vlasov_M2_2x3v_tensor_p1, vlasov_M2_2x3v_tensor_p2 }, // 4
+  // 3x kernels
+  { NULL, vlasov_M2_3x3v_tensor_p1, NULL                  }, // 5
+};
+
+// M2ij kernel list (Serendipity basis)
 GKYL_CU_D
 static const gkyl_mom_kern_list ser_m2ij_kernels[] = {
   // 1x kernels
@@ -81,7 +120,21 @@ static const gkyl_mom_kern_list ser_m2ij_kernels[] = {
   { NULL, vlasov_M2ij_3x3v_ser_p1, NULL                    }, // 5
 };
 
-// M3i kernel list
+// M2ij kernel list (Tensor basis)
+GKYL_CU_D
+static const gkyl_mom_kern_list tensor_m2ij_kernels[] = {
+  // 1x kernels
+  { NULL, vlasov_M2ij_1x1v_tensor_p1, vlasov_M2ij_1x1v_tensor_p2 }, // 0
+  { NULL, vlasov_M2ij_1x2v_tensor_p1, vlasov_M2ij_1x2v_tensor_p2 }, // 1
+  { NULL, vlasov_M2ij_1x3v_tensor_p1, vlasov_M2ij_1x3v_tensor_p2 }, // 2
+  // 2x kernels
+  { NULL, vlasov_M2ij_2x2v_tensor_p1, vlasov_M2ij_2x2v_tensor_p2 }, // 3
+  { NULL, vlasov_M2ij_2x3v_tensor_p1, vlasov_M2ij_2x3v_tensor_p2 }, // 4
+  // 3x kernels
+  { NULL, vlasov_M2ij_3x3v_tensor_p1, NULL                    }, // 5
+};
+
+// M3i kernel list (Serendipity basis)
 GKYL_CU_D
 static const gkyl_mom_kern_list ser_m3i_kernels[] = {
   // 1x kernels
@@ -95,7 +148,21 @@ static const gkyl_mom_kern_list ser_m3i_kernels[] = {
   { NULL, vlasov_M3i_3x3v_ser_p1, NULL                   }, // 5
 };
 
-// M3ijk kernel list
+// M3i kernel list (Tensor basis)
+GKYL_CU_D
+static const gkyl_mom_kern_list tensor_m3i_kernels[] = {
+  // 1x kernels
+  { NULL, vlasov_M3i_1x1v_tensor_p1, vlasov_M3i_1x1v_tensor_p2 }, // 0
+  { NULL, vlasov_M3i_1x2v_tensor_p1, vlasov_M3i_1x2v_tensor_p2 }, // 1
+  { NULL, vlasov_M3i_1x3v_tensor_p1, vlasov_M3i_1x3v_tensor_p2 }, // 2
+  // 2x kernels
+  { NULL, vlasov_M3i_2x2v_tensor_p1, vlasov_M3i_2x2v_tensor_p2 }, // 3
+  { NULL, vlasov_M3i_2x3v_tensor_p1, vlasov_M3i_2x3v_tensor_p2 }, // 4
+  // 3x kernels
+  { NULL, vlasov_M3i_3x3v_tensor_p1, NULL                   }, // 5
+};
+
+// M3ijk kernel list (Serendipity basis)
 GKYL_CU_D
 static const gkyl_mom_kern_list ser_m3ijk_kernels[] = {
   // 1x kernels
@@ -109,7 +176,21 @@ static const gkyl_mom_kern_list ser_m3ijk_kernels[] = {
   { NULL, vlasov_M3ijk_3x3v_ser_p1, NULL                     }, // 5
 };
 
-// Five moments (Zeroth, First, and Second moment together) kernel list
+// M3ijk kernel list (Tensor basis)
+GKYL_CU_D
+static const gkyl_mom_kern_list tensor_m3ijk_kernels[] = {
+  // 1x kernels
+  { NULL, vlasov_M3ijk_1x1v_tensor_p1, vlasov_M3ijk_1x1v_tensor_p2 }, // 0
+  { NULL, vlasov_M3ijk_1x2v_tensor_p1, vlasov_M3ijk_1x2v_tensor_p2 }, // 1
+  { NULL, vlasov_M3ijk_1x3v_tensor_p1, vlasov_M3ijk_1x3v_tensor_p2 }, // 2
+  // 2x kernels
+  { NULL, vlasov_M3ijk_2x2v_tensor_p1, vlasov_M3ijk_2x2v_tensor_p2 }, // 3
+  { NULL, vlasov_M3ijk_2x3v_tensor_p1, vlasov_M3ijk_2x3v_tensor_p2 }, // 4
+  // 3x kernels
+  { NULL, vlasov_M3ijk_3x3v_tensor_p1, NULL                     }, // 5
+};
+
+// Five moments (Zeroth, First, and Second moment together) kernel list (Serendipity basis)
 GKYL_CU_D
 static const gkyl_mom_kern_list ser_five_moments_kernels[] = {
   // 1x kernels
@@ -123,134 +204,46 @@ static const gkyl_mom_kern_list ser_five_moments_kernels[] = {
   { NULL, vlasov_five_moments_3x3v_ser_p1, NULL                     }, // 5
 };
 
-// Integrated moments kernel list
+// Five moments (Zeroth, First, and Second moment together) kernel list (Tensor basis)
 GKYL_CU_D
-static const gkyl_mom_kern_list ser_int_mom_kernels[] = {
+static const gkyl_mom_kern_list tensor_five_moments_kernels[] = {
   // 1x kernels
-  { NULL, vlasov_int_mom_1x1v_ser_p1, vlasov_int_mom_1x1v_ser_p2 }, // 0
-  { NULL, vlasov_int_mom_1x2v_ser_p1, vlasov_int_mom_1x2v_ser_p2 }, // 1
-  { NULL, vlasov_int_mom_1x3v_ser_p1, vlasov_int_mom_1x3v_ser_p2 }, // 2
+  { NULL, vlasov_five_moments_1x1v_tensor_p1, vlasov_five_moments_1x1v_tensor_p2 }, // 0
+  { NULL, vlasov_five_moments_1x2v_tensor_p1, vlasov_five_moments_1x2v_tensor_p2 }, // 1
+  { NULL, vlasov_five_moments_1x3v_tensor_p1, vlasov_five_moments_1x3v_tensor_p2 }, // 2
   // 2x kernels
-  { NULL, vlasov_int_mom_2x2v_ser_p1, vlasov_int_mom_2x2v_ser_p2 }, // 3
-  { NULL, vlasov_int_mom_2x3v_ser_p1, vlasov_int_mom_2x3v_ser_p2 }, // 4
+  { NULL, vlasov_five_moments_2x2v_tensor_p1, vlasov_five_moments_2x2v_tensor_p2 }, // 3
+  { NULL, vlasov_five_moments_2x3v_tensor_p1, vlasov_five_moments_2x3v_tensor_p2 }, // 4
   // 3x kernels
-  { NULL, vlasov_int_mom_3x3v_ser_p1, NULL                     }, // 5
+  { NULL, vlasov_five_moments_3x3v_tensor_p1, NULL                     }, // 5
 };
 
-//
-// Tensor-product basis kernels
-//
-
-// M0 kernel list
+// Integrated moments kernel list (Serendipity basis)
 GKYL_CU_D
-static const gkyl_mom_kern_list ten_m0_kernels[] = {
+static const gkyl_mom_kern_list ser_int_five_moments_kernels[] = {
   // 1x kernels
-  { NULL, vlasov_M0_1x1v_ser_p1, vlasov_M0_1x1v_tensor_p2 }, // 0
-  { NULL, vlasov_M0_1x2v_ser_p1, vlasov_M0_1x2v_tensor_p2 }, // 1
-  { NULL, vlasov_M0_1x3v_ser_p1, vlasov_M0_1x3v_tensor_p2 }, // 2
+  { NULL, vlasov_int_five_moments_1x1v_ser_p1, vlasov_int_five_moments_1x1v_ser_p2 }, // 0
+  { NULL, vlasov_int_five_moments_1x2v_ser_p1, vlasov_int_five_moments_1x2v_ser_p2 }, // 1
+  { NULL, vlasov_int_five_moments_1x3v_ser_p1, vlasov_int_five_moments_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, vlasov_M0_2x2v_ser_p1, vlasov_M0_2x2v_tensor_p2 }, // 3
-  { NULL, vlasov_M0_2x3v_ser_p1, NULL                  }, // 4
+  { NULL, vlasov_int_five_moments_2x2v_ser_p1, vlasov_int_five_moments_2x2v_ser_p2 }, // 3
+  { NULL, vlasov_int_five_moments_2x3v_ser_p1, vlasov_int_five_moments_2x3v_ser_p2 }, // 4
   // 3x kernels
-  { NULL, vlasov_M0_3x3v_ser_p1, NULL                  }, // 5
+  { NULL, vlasov_int_five_moments_3x3v_ser_p1, NULL                     }, // 5
 };
 
-// M1i kernel list
+// Integrated moments kernel list (Tensor basis)
 GKYL_CU_D
-static const gkyl_mom_kern_list ten_m1i_kernels[] = {
+static const gkyl_mom_kern_list tensor_int_five_moments_kernels[] = {
   // 1x kernels
-  { NULL, vlasov_M1i_1x1v_ser_p1, vlasov_M1i_1x1v_tensor_p2 }, // 0
-  { NULL, vlasov_M1i_1x2v_ser_p1, vlasov_M1i_1x2v_tensor_p2 }, // 1
-  { NULL, vlasov_M1i_1x3v_ser_p1, vlasov_M1i_1x3v_tensor_p2 }, // 2
+  { NULL, vlasov_int_five_moments_1x1v_tensor_p1, vlasov_int_five_moments_1x1v_tensor_p2 }, // 0
+  { NULL, vlasov_int_five_moments_1x2v_tensor_p1, vlasov_int_five_moments_1x2v_tensor_p2 }, // 1
+  { NULL, vlasov_int_five_moments_1x3v_tensor_p1, vlasov_int_five_moments_1x3v_tensor_p2 }, // 2
   // 2x kernels
-  { NULL, vlasov_M1i_2x2v_ser_p1, vlasov_M1i_2x2v_tensor_p2 }, // 3
-  { NULL, vlasov_M1i_2x3v_ser_p1, NULL                   }, // 4
+  { NULL, vlasov_int_five_moments_2x2v_tensor_p1, vlasov_int_five_moments_2x2v_tensor_p2 }, // 3
+  { NULL, vlasov_int_five_moments_2x3v_tensor_p1, vlasov_int_five_moments_2x3v_tensor_p2 }, // 4
   // 3x kernels
-  { NULL, vlasov_M1i_3x3v_ser_p1, NULL                   }, // 5
-};
-
-// M2 kernel list
-GKYL_CU_D
-static const gkyl_mom_kern_list ten_m2_kernels[] = {
-  // 1x kernels
-  { NULL, vlasov_M2_1x1v_ser_p1, vlasov_M2_1x1v_tensor_p2 }, // 0
-  { NULL, vlasov_M2_1x2v_ser_p1, vlasov_M2_1x2v_tensor_p2 }, // 1
-  { NULL, vlasov_M2_1x3v_ser_p1, vlasov_M2_1x3v_tensor_p2 }, // 2
-  // 2x kernels
-  { NULL, vlasov_M2_2x2v_ser_p1, vlasov_M2_2x2v_tensor_p2 }, // 3
-  { NULL, vlasov_M2_2x3v_ser_p1, NULL                  }, // 4
-  // 3x kernels
-  { NULL, vlasov_M2_3x3v_ser_p1, NULL                  }, // 5
-};
-
-// M2ij kernel list
-GKYL_CU_D
-static const gkyl_mom_kern_list ten_m2ij_kernels[] = {
-  // 1x kernels
-  { NULL, vlasov_M2ij_1x1v_ser_p1, vlasov_M2ij_1x1v_tensor_p2 }, // 0
-  { NULL, vlasov_M2ij_1x2v_ser_p1, vlasov_M2ij_1x2v_tensor_p2 }, // 1
-  { NULL, vlasov_M2ij_1x3v_ser_p1, vlasov_M2ij_1x3v_tensor_p2 }, // 2
-  // 2x kernels
-  { NULL, vlasov_M2ij_2x2v_ser_p1, vlasov_M2ij_2x2v_tensor_p2 }, // 3
-  { NULL, vlasov_M2ij_2x3v_ser_p1, NULL                    }, // 4
-  // 3x kernels
-  { NULL, vlasov_M2ij_3x3v_ser_p1, NULL                    }, // 5
-};
-
-// M3i kernel list
-GKYL_CU_D
-static const gkyl_mom_kern_list ten_m3i_kernels[] = {
-  // 1x kernels
-  { NULL, vlasov_M3i_1x1v_ser_p1, vlasov_M3i_1x1v_tensor_p2 }, // 0
-  { NULL, vlasov_M3i_1x2v_ser_p1, vlasov_M3i_1x2v_tensor_p2 }, // 1
-  { NULL, vlasov_M3i_1x3v_ser_p1, vlasov_M3i_1x3v_tensor_p2 }, // 2
-  // 2x kernels
-  { NULL, vlasov_M3i_2x2v_ser_p1, vlasov_M3i_2x2v_tensor_p2 }, // 3
-  { NULL, vlasov_M3i_2x3v_ser_p1, NULL                   }, // 4
-  // 3x kernels
-  { NULL, vlasov_M3i_3x3v_ser_p1, NULL                   }, // 5
-};
-
-// M3ijk kernel list
-GKYL_CU_D
-static const gkyl_mom_kern_list ten_m3ijk_kernels[] = {
-  // 1x kernels
-  { NULL, vlasov_M3ijk_1x1v_ser_p1, vlasov_M3ijk_1x1v_tensor_p2 }, // 0
-  { NULL, vlasov_M3ijk_1x2v_ser_p1, vlasov_M3ijk_1x2v_tensor_p2 }, // 1
-  { NULL, vlasov_M3ijk_1x3v_ser_p1, vlasov_M3ijk_1x3v_tensor_p2 }, // 2
-  // 2x kernels
-  { NULL, vlasov_M3ijk_2x2v_ser_p1, vlasov_M3ijk_2x2v_tensor_p2 }, // 3
-  { NULL, vlasov_M3ijk_2x3v_ser_p1, NULL                     }, // 4
-  // 3x kernels
-  { NULL, vlasov_M3ijk_3x3v_ser_p1, NULL                     }, // 5
-};
-
-// Five moments (Zeroth, First, and Second moment together) kernel list
-GKYL_CU_D
-static const gkyl_mom_kern_list ten_five_moments_kernels[] = {
-  // 1x kernels
-  {NULL, vlasov_five_moments_1x1v_ser_p1, vlasov_five_moments_1x1v_tensor_p2}, // 0
-  {NULL, vlasov_five_moments_1x2v_ser_p1, vlasov_five_moments_1x2v_tensor_p2}, // 1
-  {NULL, vlasov_five_moments_1x3v_ser_p1, vlasov_five_moments_1x3v_tensor_p2}, // 2
-  // 2x kernels
-  {NULL, vlasov_five_moments_2x2v_ser_p1, vlasov_five_moments_2x2v_tensor_p2}, // 3
-  {NULL, vlasov_five_moments_2x3v_ser_p1, NULL}, // 4
-  // 3x kernels
-  {NULL, vlasov_five_moments_3x3v_ser_p1, NULL}, // 5
-};
-
-// Integrated moments kernel list
-GKYL_CU_D
-static const gkyl_mom_kern_list ten_int_mom_kernels[] = {
-  // 1x kernels
-  { NULL, vlasov_int_mom_1x1v_ser_p1, vlasov_int_mom_1x1v_tensor_p2 }, // 0
-  { NULL, vlasov_int_mom_1x2v_ser_p1, vlasov_int_mom_1x2v_tensor_p2 }, // 1
-  { NULL, vlasov_int_mom_1x3v_ser_p1, vlasov_int_mom_1x3v_tensor_p2 }, // 2
-  // 2x kernels
-  { NULL, vlasov_int_mom_2x2v_ser_p1, vlasov_int_mom_2x2v_tensor_p2 }, // 3
-  { NULL, vlasov_int_mom_2x3v_ser_p1, NULL                     }, // 4
-  // 3x kernels
-  { NULL, vlasov_int_mom_3x3v_ser_p1, NULL                     }, // 5
+  { NULL, vlasov_int_five_moments_3x3v_tensor_p1, NULL                     }, // 5
 };
 
 struct mom_type_vlasov {
@@ -273,3 +266,21 @@ kernel(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
   return mom_vlasov->kernel(xc, dx, idx, f, out);
 }
+
+#ifdef GKYL_HAVE_CUDA
+/**
+ * Create new Vlasov moment type object on NV-GPU: 
+ * see new() method above for documentation.
+ */
+struct gkyl_mom_type* 
+gkyl_mom_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
+  const struct gkyl_basis* pbasis, enum gkyl_distribution_moments mom_type);
+
+/**
+ * Create new integrated Vlasov moment type object on NV-GPU:
+ * see new() method above for documentation.
+ */
+struct gkyl_mom_type* 
+gkyl_int_mom_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
+  const struct gkyl_basis* pbasis, enum gkyl_distribution_moments mom_type);
+#endif

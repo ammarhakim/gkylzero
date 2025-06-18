@@ -11,6 +11,10 @@ void test_cusolver_qr();
 void test_cusolver_rf();
 void test_cusolver_ops();
 void test_cusolver_ops_multiple_rhs();
+void test_cusolver_ops_multiple_prob();
+void test_cudss_simple();
+void test_cudss_ops();
+void test_cudss_ops_multiple_rhs();
 
 void test_slu_example()
 {
@@ -88,7 +92,7 @@ void test_slu_example()
   StatFree(&stat);
 }
 
-void test_slu_ops(const bool separateLUdecomp)
+void test_superlu_ops(const bool separateLUdecomp)
 {
 /*  
  * Like test_slu_example but using superlu_ops.
@@ -104,7 +108,9 @@ void test_slu_ops(const bool separateLUdecomp)
   
   s = 19.0; u = 21.0; p = 16.0; e = 5.0; r = 18.0; l = 12.0;
   /*  A : matrix([s,0,u,u,0],[l,u,0,0,0],[0,l,p,0,0],[0,0,0,e,u],[l,l,0,0,r]); */
-  gkyl_mat_triples *tri = gkyl_mat_triples_new(m, n);
+  struct gkyl_mat_triples **tri_arr = gkyl_malloc(sizeof(struct gkyl_mat_triples *));
+  tri_arr[0] = gkyl_mat_triples_new(m, n);
+  struct gkyl_mat_triples *tri = tri_arr[0];
   // row 0
   gkyl_mat_triples_insert(tri, 0, 0, s);
   gkyl_mat_triples_insert(tri, 0, 2, u);
@@ -124,11 +130,12 @@ void test_slu_ops(const bool separateLUdecomp)
   gkyl_mat_triples_insert(tri, 4, 4, r);
 
   // Create the SuperLU linear problem setup.
-  gkyl_superlu_prob *sluprob = gkyl_superlu_prob_new(m, n, nrhs);
+  gkyl_superlu_prob *sluprob = gkyl_superlu_prob_new(1, m, n, nrhs);
 
   // Allocate the A matrix from triples.
-  gkyl_superlu_amat_from_triples(sluprob, tri);
-  gkyl_mat_triples_release(tri);
+  gkyl_superlu_amat_from_triples(sluprob, tri_arr);
+  gkyl_mat_triples_release(tri_arr[0]);
+  gkyl_free(tri_arr);
 
   // Create right-hand side matrix B = transpose([1,1,1,1,1]).
   gkyl_mat_triples *triRHS = gkyl_mat_triples_new(m, nrhs);
@@ -159,24 +166,131 @@ void test_slu_ops(const bool separateLUdecomp)
 
 }
 
-void test_slu_basic() {
-  test_slu_ops(false);
+void test_superlu_ops_basic() {
+  test_superlu_ops(false);
 }
 
-void test_slu_separateLU() {
-  test_slu_ops(true);
+void test_superlu_ops_separateLU() {
+  test_superlu_ops(true);
 }
 
+double superlu_test_answer(double s, double u, double p, double e, double r, double l, int idx) {
+  // Solution is: [-1/32, 11/168, 3/224, 1/16, 11/336].
+  // for a unit RHS vector and
+  //  s = 19.0; u = 21.0; p = 16.0; e = 5.0; r = 18.0; l = 12.0;
+  double sol;
+  switch (idx) {
+    case 0:
+      sol = (e*l*r + e*p*r - l*p*u - e*r*u - p*r*u + p*pow(u,2))/
+        (e*pow(l,2)*r + e*p*r*s - pow(l,2)*p*u + l*p*pow(u,2));
+      break;
+    case 1:
+      sol = (r*(-(e*l*p) + e*p*s + e*l*u + l*p*u))/
+        (u*(e*pow(l,2)*r + e*p*r*s - pow(l,2)*p*u + l*p*pow(u,2)));
+      break;
+    case 2:
+      sol = -((-(e*pow(l,2)*r) + e*l*r*s + pow(l,2)*r*u - e*r*s*u + pow(l,2)*pow(u,2) -
+        l*pow(u,3))/(u*(e*pow(l,2)*r + e*p*r*s - pow(l,2)*p*u + l*p*pow(u,2))));
+      break;
+    case 3:
+      sol = (-(pow(l,2)*p) + pow(l,2)*r + l*p*s + p*r*s + pow(l,2)*u + l*p*u - p*s*u -
+      l*pow(u,2))/(e*pow(l,2)*r + e*p*r*s - pow(l,2)*p*u + l*p*pow(u,2));
+      break;
+    case 4:
+      sol = (e*pow(l,2)*p - e*l*p*s - e*pow(l,2)*u - e*l*p*u - pow(l,2)*p*u + e*p*s*u +
+        e*l*pow(u,2) + l*p*pow(u,2))/
+        (u*(e*pow(l,2)*r + e*p*r*s - pow(l,2)*p*u + l*p*pow(u,2)));
+      break;
+  }
+  return sol;
+};
+
+void test_superlu_ops_multiple_prob()
+{
+  double s, u, p, e, r, l;
+  int    nprob, m, n;
+
+  /* Initialize matrix A. */
+  /*  A : matrix([s,0,u,u,0],[l,u,0,0,0],[0,l,p,0,0],[0,0,0,e,u],[l,l,0,0,r]); */
+  m = n = 5;
+  nprob = 7;
+
+  /*  A : matrix([s,0,u,u,0],[l,u,0,0,0],[0,l,p,0,0],[0,0,0,e,u],[l,l,0,0,r]); */
+  struct gkyl_mat_triples **tri_arr = (struct gkyl_mat_triples **) gkyl_malloc(nprob*sizeof(struct gkyl_mat_triples *));
+  for (size_t k=0; k<nprob; k++) {
+    tri_arr[k] = gkyl_mat_triples_new(m, n);
+    struct gkyl_mat_triples *tri = tri_arr[k];
+
+    s = 19.0*(k+1)/nprob; u = 21.0*(k+1)/nprob; p = 16.0*(k+1)/nprob; e = 5.0*(k+1)/nprob; r = 18.0*(k+1)/nprob; l = 12.0*(k+1)/nprob;
+
+    // row 0
+    gkyl_mat_triples_insert(tri, 0, 0, s);
+    gkyl_mat_triples_insert(tri, 0, 2, u);
+    gkyl_mat_triples_insert(tri, 0, 3, u);
+    // row 1
+    gkyl_mat_triples_insert(tri, 1, 0, l);
+    gkyl_mat_triples_insert(tri, 1, 1, u);
+    // row 2
+    gkyl_mat_triples_insert(tri, 2, 1, l);
+    gkyl_mat_triples_insert(tri, 2, 2, p);
+    // row 3
+    gkyl_mat_triples_insert(tri, 3, 3, e);
+    gkyl_mat_triples_insert(tri, 3, 4, u);
+    // row 4
+    gkyl_mat_triples_insert(tri, 4, 0, l);
+    gkyl_mat_triples_insert(tri, 4, 1, l);
+    gkyl_mat_triples_insert(tri, 4, 4, r);
+  }
+
+  // Create the SuperLU linear problem setup.
+  gkyl_superlu_prob *prob = gkyl_superlu_prob_new(nprob, m, n, 1);
+
+  // Allocate the A matrix from triples.
+  gkyl_superlu_amat_from_triples(prob, tri_arr);
+  for (size_t k=0; k<nprob; k++)
+    gkyl_mat_triples_release(tri_arr[k]);
+  gkyl_free(tri_arr);
+
+  // Create right-hand side matrix B = transpose([1,1,1,1,1]).
+  gkyl_mat_triples *triRHS = gkyl_mat_triples_new(m, nprob);
+  for (int k=0; k<nprob; k++) {
+    gkyl_mat_triples_insert(triRHS, 0, k, 1.0);
+    gkyl_mat_triples_insert(triRHS, 1, k, 1.0);
+    gkyl_mat_triples_insert(triRHS, 2, k, 1.0);
+    gkyl_mat_triples_insert(triRHS, 3, k, 1.0);
+    gkyl_mat_triples_insert(triRHS, 4, k, 1.0);
+  }
+  gkyl_superlu_brhs_from_triples(prob, triRHS);
+  gkyl_mat_triples_release(triRHS);
+
+  gkyl_superlu_solve(prob);
+
+  for (int k=0; k<nprob; k++) {
+    s = 19.0*(k+1)/nprob; u = 21.0*(k+1)/nprob; p = 16.0*(k+1)/nprob; e = 5.0*(k+1)/nprob; r = 18.0*(k+1)/nprob; l = 12.0*(k+1)/nprob;
+    for (int i=0; i<m; i++)
+      TEST_CHECK( gkyl_compare_double( superlu_test_answer(s,u,p,e,r,l,i), gkyl_superlu_get_rhs_lin(prob,k*m+i), 1e-10) );
+  }
+
+  gkyl_superlu_prob_release(prob);
+}
 
 TEST_LIST = {
   { "slu_example", test_slu_example },
-  { "slu_basic", test_slu_basic },
-  { "slu_separateLU", test_slu_separateLU },
+  { "superlu_ops_basic", test_superlu_ops_basic },
+  { "superlu_ops_separateLU", test_superlu_ops_separateLU },
+  { "superlu_ops_multiple_prob", test_superlu_ops_multiple_prob },
 #ifdef GKYL_HAVE_CUDA
+#ifdef GKYL_HAVE_CUDSS
+  { "cudss_simple", test_cudss_simple },
+  { "cudss_ops", test_cudss_ops },
+  { "cudss_ops_multiple_rhs", test_cudss_ops_multiple_rhs },
+#else
   { "cusolver_qr", test_cusolver_qr },
   { "cusolver_rf", test_cusolver_rf },
   { "cusolver_ops", test_cusolver_ops },
   { "cusolver_ops_multiple_rhs", test_cusolver_ops_multiple_rhs },
+  { "cusolver_ops_multiple_prob", test_cusolver_ops_multiple_prob },
+#endif
 #endif
   { NULL, NULL }
 };

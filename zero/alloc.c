@@ -44,7 +44,7 @@ void*
 gkyl_malloc_(const char *file, int line, const char *func, size_t size)
 {
   void *mem = malloc(size);
-  GKYL_MEMMSG("%p [%ld] 0.malloc: %s %s:%d\n", mem, size, file, func, line);  
+  GKYL_MEMMSG("%p [%zu] 0.malloc: %s %s:%d\n", mem, size, file, func, line);  
   if (0 == mem) gkyl_exit("malloc failed!");
   return mem;
 }
@@ -53,7 +53,7 @@ void*
 gkyl_calloc_(const char *file, int line, const char *func, size_t num, size_t size)
 {
   void *mem = calloc(num, size);
-  GKYL_MEMMSG("%p [%ld] 0.calloc: %s %s:%d\n", mem, size, file, func, line);
+  GKYL_MEMMSG("%p [%zu] 0.calloc: %s %s:%d\n", mem, size, file, func, line);
   if (0 == mem) gkyl_exit("calloc failed!");
   return mem;
 }
@@ -62,7 +62,7 @@ void*
 gkyl_realloc_(const char *file, int line, const char *func, void *ptr, size_t new_size)
 {
   void *mem = realloc(ptr, new_size);
-  GKYL_MEMMSG("%p [%ld] 0.realloc: %s %s:%d\n", mem, new_size, file, func, line);  
+  GKYL_MEMMSG("%p [%zu] 0.realloc: %s %s:%d\n", mem, new_size, file, func, line);  
   if (0 == mem) gkyl_exit("realloc failed!");
   return mem;
 }
@@ -122,16 +122,46 @@ gkyl_aligned_free_(const char *file, int line, const char *func,
 }
 
 struct gkyl_mem_buff_tag {
+  bool on_gpu; // is this on GPU?
   size_t count; // size of memory in bytes
-  char data[]; // Allocated memory
+  char *data; // Allocated memory
 };
 
 gkyl_mem_buff
 gkyl_mem_buff_new(size_t count)
 {
-  size_t sz = sizeof(struct gkyl_mem_buff_tag) + sizeof(char[count]);
-  struct gkyl_mem_buff_tag *mem = gkyl_calloc(sz,1);
+  struct gkyl_mem_buff_tag *mem = gkyl_malloc(sizeof(*mem));
+  mem->on_gpu = false;
   mem->count = count;
+  mem->data = gkyl_malloc(count);
+  return mem;
+}
+
+gkyl_mem_buff
+gkyl_mem_buff_cu_new(size_t count)
+{
+  struct gkyl_mem_buff_tag *mem = gkyl_malloc(sizeof(*mem));
+  mem->on_gpu = true;
+  mem->count = count;
+  mem->data = gkyl_cu_malloc(count);
+  return mem;
+}
+
+gkyl_mem_buff
+gkyl_mem_buff_resize(gkyl_mem_buff mem, size_t count)
+{
+  if (count > mem->count) {
+    if (mem->on_gpu) {
+      char *data_new = gkyl_cu_malloc(count);
+      gkyl_cu_memcpy(data_new, mem->data, mem->count, GKYL_CU_MEMCPY_D2D);
+      gkyl_cu_free(mem->data);
+      mem->data = data_new;
+    }
+    else {
+      mem->data = gkyl_realloc(mem->data, count);
+    }
+    mem->count = count;
+  }
   return mem;
 }
 
@@ -150,6 +180,11 @@ gkyl_mem_buff_data(gkyl_mem_buff mem)
 void
 gkyl_mem_buff_release(gkyl_mem_buff mem)
 {
+  if (mem->on_gpu)
+    gkyl_cu_free(mem->data);
+  else
+    gkyl_free(mem->data);
+  
   gkyl_free(mem);
 }
 
@@ -168,19 +203,21 @@ gkyl_cu_malloc_(const char *file, int line, const char *func, size_t size)
     gkyl_exit("cudaMalloc failed!");
   
   GKYL_CU_MEMMSG("%p 0.cudaMalloc: %s %s:%d\n", ptr, file, func, line);
+
   return ptr;
 }
 
-// for pinned host memory
 void*
 gkyl_cu_malloc_host_(const char *file, int line, const char *func, size_t size)
 {
+  // Allocate pinned host memory.
   void *ptr;
   cudaError_t err = cudaMallocHost(&ptr, size);
   if (err != cudaSuccess)
     gkyl_exit("cudaMallocHost failed!");
 
   GKYL_CU_MEMMSG("%p 0.cudaMallocHost: %s %s:%d\n", ptr, file, func, line);
+
   return ptr;
 }
 
@@ -199,7 +236,7 @@ gkyl_cu_free_host_(const char *file, int line, const char *func, void *ptr)
 }
 
 void
-gkyl_cu_memcpy(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind)
+gkyl_cu_memcpy(void *dst, const void *src, size_t count, enum gkyl_cu_memcpy_kind kind)
 {
   cudaError_t err = cudaMemcpy(dst, src, count, kind);
   if (err != cudaSuccess) {
@@ -210,7 +247,7 @@ gkyl_cu_memcpy(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind
 }
 
 void
-gkyl_cu_memcpy_async(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind, cudaStream_t stream)
+gkyl_cu_memcpy_async(void *dst, const void *src, size_t count, enum gkyl_cu_memcpy_kind kind, cudaStream_t stream)
 {
   cudaError_t err = cudaMemcpyAsync(dst, src, count, kind, stream);
   if (err != cudaSuccess) {
@@ -223,7 +260,9 @@ gkyl_cu_memcpy_async(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kin
 void
 gkyl_cu_memset(void *data, int val, size_t count)
 {
-  cudaMemset(data, val, count);
+  cudaError_t err = cudaMemset(data, val, count);
+  if (err != cudaSuccess)
+    gkyl_exit("gkyl_cu_memset failed!");
 }
 
 #else
@@ -258,13 +297,13 @@ gkyl_cu_free_host_(const char *file, int line, const char *func, void *ptr)
 }
 
 void
-gkyl_cu_memcpy(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind)
+gkyl_cu_memcpy(void *dst, const void *src, size_t count, enum gkyl_cu_memcpy_kind kind)
 {
   assert(false);  
 }
 
 void
-gkyl_cu_memcpy_async(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kind kind, int stream)
+gkyl_cu_memcpy_async(void *dst, const void *src, size_t count, enum gkyl_cu_memcpy_kind kind, int stream)
 {
   assert(false);  
 }

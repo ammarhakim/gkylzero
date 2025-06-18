@@ -34,6 +34,11 @@
 # define GKYL_MAX_CDIM 3
 #endif
 
+// Maximum velocity-space dimensions supported
+#ifndef GKYL_MAX_VDIM
+# define GKYL_MAX_VDIM 3
+#endif
+
 // Maximum dimensions supported
 #ifndef GKYL_MAX_DIM
 # define GKYL_MAX_DIM 7
@@ -41,7 +46,37 @@
 
 // Maximum number of supported species
 #ifndef GKYL_MAX_SPECIES
-# define GKYL_MAX_SPECIES 8
+# define GKYL_MAX_SPECIES 16
+#endif
+
+// Maximum number of supported species
+#ifndef GKYL_MAX_REACT
+# define GKYL_MAX_REACT 3*GKYL_MAX_SPECIES
+#endif
+
+// Maximum number of supported sources
+#ifndef GKYL_MAX_SOURCES
+# define GKYL_MAX_SOURCES 4
+#endif
+
+// Maximum number of supported charge states
+#ifndef GKYL_MAX_CHARGE_STATE
+# define GKYL_MAX_CHARGE_STATE 18
+#endif
+
+// Maximum number of supported densities for radiation
+#ifndef GKYL_MAX_RAD_DENSITIES
+# define GKYL_MAX_RAD_DENSITIES 26
+#endif
+
+// Maximum number of supported projection objects
+#ifndef GKYL_MAX_PROJ
+# define GKYL_MAX_PROJ 4
+#endif
+
+// Maximum number of ghost cells in each direction
+#ifndef GKYL_MAX_NGHOST
+# define GKYL_MAX_NGHOST 8
 #endif
 
 // Default alignment boundary
@@ -74,7 +109,8 @@ enum gkyl_cu_memcpy_kind {
 inline cudaError_t __checkCudaErrors__(cudaError_t code, const char *func, const char *file, int line)
 {
   if (code) {
-    fprintf(stderr, "CUDA error: %s (code=%d)  \"%s\" at %s:%d \n", cudaGetErrorString(code), (unsigned int)code, func, file, line);
+    fprintf(stderr, "CUDA error: %s (code=%u)  \"%s\" at %s:%d \n",
+      cudaGetErrorString(code), (unsigned int)code, func, file, line);
     cudaDeviceReset();
     exit(EXIT_FAILURE);
   }
@@ -136,8 +172,9 @@ enum gkyl_cu_memcpy_kind {
 
 // Code
 
-#define GKYL_MIN(x,y) ((x)<(y) ? (x) : (y))
-#define GKYL_MAX(x,y) ((x)>(y) ? (x) : (y))
+#define GKYL_MIN2(x,y) ((x)<(y) ? (x) : (y))
+#define GKYL_MAX2(x,y) ((x)>(y) ? (x) : (y))
+#define GKYL_SGN(b) (((b)>=0.) ? 1.0 : -1.0)
 
 EXTERN_C_BEG
 
@@ -149,14 +186,44 @@ struct gkyl_kern_op_count {
   size_t num_prod; // number of * and / operations
 };
 
+// String, integer pairs
+struct gkyl_str_int_pair {
+  const char *str;
+  int val;
+};
+
+/**
+ * Search @a pairs list for @a str and return the corresponding int
+ * value. Return @a def if not found. The pair table must be NULL
+ * terminated.
+ *
+ * @param pairs Pair list to search from. Final entry must be { 0, 0 }
+ * @param str String to search for
+ * @param def Default value to return
+ * @return value corresponding to @a str, or @a def.
+ */
+int gkyl_search_str_int_pair_by_str(const struct gkyl_str_int_pair pairs[], const char *str, int def);
+
+/**
+ * Search @a pairs list for @a val and return the corresponding string
+ * value. Return @a def if not found. The pair table must be NULL
+ * terminated.
+ *
+ * @param pairs Pair list to search from. Final entry must be { 0, 0 }
+ * @param val Value to search for
+ * @param def Default value to return
+ * @return value corresponding to @a val, or @a def.
+ */
+const char* gkyl_search_str_int_pair_by_int(const struct gkyl_str_int_pair pairs[], int val, const char *def);
+
 /**
  * Time-trigger. Typical initialization is:
  * 
  * struct gkyl_tm_trigger tmt = { .dt = tend/nframe };
  */
 struct gkyl_tm_trigger {
-  int curr; // current counter
-  double dt, tcurr; // Time-interval, current time
+  int curr; // Current counter.
+  double dt, tcurr; // Time-interval, current time.
 };
 
 /**
@@ -218,6 +285,20 @@ gkyl_copy_long_arr(int n, const long* GKYL_RESTRICT inp, long* GKYL_RESTRICT out
 }
 
 /**
+ * Copy (small) double arrays.
+ *
+ * @param n Number of elements to copy
+ * @param inp Input array
+ * @param out Output array
+ */
+GKYL_CU_DH
+static inline void
+gkyl_copy_double_arr(int n, const double* GKYL_RESTRICT inp, double* GKYL_RESTRICT out)
+{
+  for (int i=0; i<n; ++i) out[i] = inp[i];
+}
+
+/**
  *   Round a/b to nearest higher integer value
  */
 GKYL_CU_DH
@@ -225,6 +306,27 @@ static inline int
 gkyl_int_div_up(int a, int b)
 {
   return (a%b != 0) ? (a/b+1) : (a/b);
+}
+
+/**
+ *   Minmod limiter for choosing the minimal modification between 3 values (usually slopes)
+ */
+GKYL_CU_DH
+static inline double 
+gkyl_minmod(double a, double b, double c)
+{
+  double sa = GKYL_SGN(a);
+  double sb = GKYL_SGN(b);
+  double sc = GKYL_SGN(c);
+  if( (sa==sb) && (sb==sc) ) {
+    if (sa<0)
+      return GKYL_MAX2(GKYL_MAX2(a,b),c);
+    else
+      return GKYL_MIN2(GKYL_MIN2(a,b),c);
+  }
+  else {
+     return 0;
+  }
 }
 
 /**
@@ -317,6 +419,71 @@ uint64_t gkyl_pcg64_rand_uint64(pcg64_random_t* rng);
  * @param rng Pointer to RNG
  * @return Uniformly distributed double in [0,1)
  */
-double gkyl_pcg64_rand_double(pcg64_random_t* rng);
+double gkyl_pcg64_rand_double(pcg64_random_t *rng);
+
+/**
+ * Check if file exists.
+ *
+ * @param fname Name of file
+ * @return true if file exists, false otherwise
+ */
+bool gkyl_check_file_exists(const char *fname);
+
+/**
+ * Get file size in bytes.
+ *
+ * @param fname Name of file
+ * @return file size in bytes
+ */
+int64_t gkyl_file_size(const char *fname);
+
+/**
+ * Read contents of file into a character buffer. The returned buffer
+ * must be freed using gkyl_free.
+ *
+ * @param fname Name of file
+ * @param sz On return this has the size of data read
+ * @return Data in file as a char array.
+ */
+char* gkyl_load_file(const char *fname, int64_t *sz);
+
+/**
+ * Structure to store msgpack data
+ */
+struct gkyl_msgpack_data {
+  size_t meta_sz; // size of data in bytes
+  char *meta; // data pointer (pointer to bytes. NOT a NULL terminated string!)
+};
+
+// Msgpack element type
+enum gkyl_msgpack_elem_type { GKYL_MP_INT, GKYL_MP_DOUBLE, GKYL_MP_STRING };
+
+// Entry type into msgpack map
+struct gkyl_msgpack_map_elem {
+  char *key; // name of element
+  enum gkyl_msgpack_elem_type elem_type; // type of element
+  union {
+    // depending on elem_type one of following should be set    
+    int ival;
+    double dval;
+    char *cval; // null terminated string managed by caller
+  };
+};
+
+/**
+ * Create a new msgpack data from list of map elements.
+ *
+ * @param nvals Number of values in the elist array
+ * @param elist List of elements to insert into map
+ * @return New msgpack_data object. Free using the release method
+ */
+struct gkyl_msgpack_data* gkyl_msgpack_create(int nvals, const struct gkyl_msgpack_map_elem *elist);
+
+/**
+ * Release data created by the gkyl_msgpack_create method.
+ *
+ * @param mdata Data object to free
+ */
+void gkyl_msgpack_data_release(struct gkyl_msgpack_data *mdata);
 
 EXTERN_C_END

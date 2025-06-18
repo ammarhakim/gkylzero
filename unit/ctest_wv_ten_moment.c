@@ -1,6 +1,6 @@
 #include <acutest.h>
-#include <gkyl_moment_prim_ten_moment.h>
 #include <gkyl_wv_ten_moment.h>
+#include <gkyl_wv_ten_moment_priv.h>
 
 static const int dir_u_shuffle[][3] = {
   {1, 2, 3},
@@ -41,7 +41,7 @@ calcq(const double pv[10], double q[10])
 void
 test_ten_moment_basic()
 {
-  struct gkyl_wv_eqn *ten_moment = gkyl_wv_ten_moment_new(0.0);
+  struct gkyl_wv_eqn *ten_moment = gkyl_wv_ten_moment_new(0.0, false, false);
 
   TEST_CHECK( ten_moment->num_equations == 10 );
   TEST_CHECK( ten_moment->num_waves == 5 );
@@ -98,9 +98,9 @@ test_ten_moment_basic()
 
   double q_local[10], flux_local[10], flux[10];
   for (int d=0; d<3; ++d) {
-    ten_moment->rotate_to_local_func(tau1[d], tau2[d], norm[d], q, q_local);
+    ten_moment->rotate_to_local_func(ten_moment, tau1[d], tau2[d], norm[d], q, q_local);
     gkyl_ten_moment_flux(q_local, flux_local);
-    ten_moment->rotate_to_global_func(tau1[d], tau2[d], norm[d], flux_local, flux);
+    ten_moment->rotate_to_global_func(ten_moment, tau1[d], tau2[d], norm[d], flux_local, flux);
     
     for (int m=0; m<10; ++m)
       TEST_CHECK( gkyl_compare(flux[m], fluxes[d][m], 1e-15) );
@@ -128,7 +128,7 @@ test_ten_moment_basic()
 void
 test_ten_moment_waves()
 {
-  struct gkyl_wv_eqn *ten_moment = gkyl_wv_ten_moment_new(0.0);
+  struct gkyl_wv_eqn *ten_moment = gkyl_wv_ten_moment_new(0.0, false, false);
 
   double vl[10] = { 1.0, 0.1, 0.2, 0.3, 0.5, 0.0, 0.0, 1.0, 0.0, 1.5};
   double vr[10] = { 0.1, 1.0, 2.0, 3.0, 0.1, 0.0, 0.0, 0.2, 0.0, 0.3};
@@ -189,8 +189,37 @@ test_ten_moment_waves()
   gkyl_wv_eqn_release(ten_moment);
 }
 
+#ifdef GKYL_HAVE_CUDA
+
+int cu_wv_ten_moment_test(const struct gkyl_wv_eqn *eqn);
+
+void
+test_cu_wv_ten_moment()
+{
+  double k0 = 1.0;
+  struct gkyl_wv_eqn *eqn = gkyl_wv_ten_moment_new(k0, false, true);
+
+  // this is not possible from user code and should NOT be done. This
+  // is for testing only
+  struct wv_ten_moment *ten_moment = container_of(eqn, struct wv_ten_moment, eqn);
+
+  TEST_CHECK( ten_moment->k0 == 1.0 ); 
+  
+  // call CUDA test
+  int nfail = cu_wv_ten_moment_test(eqn->on_dev);
+
+  TEST_CHECK( nfail == 0 );
+
+  gkyl_wv_eqn_release(eqn);
+}
+
+#endif
+
 TEST_LIST = {
   { "ten_moment_basic", test_ten_moment_basic },
   { "ten_moment_waves", test_ten_moment_waves },
+#ifdef GKYL_HAVE_CUDA
+  { "cu_wv_ten_moment", test_cu_wv_ten_moment },
+#endif  
   { NULL, NULL },
 };

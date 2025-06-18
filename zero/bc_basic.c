@@ -1,27 +1,30 @@
 #include <gkyl_bc_basic.h>
 #include <gkyl_bc_basic_priv.h>
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 
 // Private function to create a pointer to the function that applies the BC,
 // i.e., the array_copy_func applied to expansion coefficients in ghost cell.
 struct gkyl_array_copy_func*
-gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bctype,
+gkyl_bc_basic_create_arr_copy_func(int dir, enum gkyl_edge_loc edge, int cdim, enum gkyl_bc_basic_type bctype,
   const struct gkyl_basis *basis, int ncomp, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_bc_basic_create_arr_copy_func_cu(dir, cdim, bctype, basis, ncomp);
+    return gkyl_bc_basic_create_arr_copy_func_cu(dir, edge, cdim, bctype, basis, ncomp);
 #endif
 
   struct dg_bc_ctx *ctx = gkyl_malloc(sizeof(*ctx));
   ctx->basis = basis;
   ctx->dir = dir;
+  ctx->edge = edge;
   ctx->cdim = cdim;
   ctx->ncomp = ncomp;
 
   struct gkyl_array_copy_func *fout = gkyl_malloc(sizeof(*fout));
   switch (bctype) {
     case GKYL_BC_COPY:
+    case GKYL_BC_FIXED_FUNC:
       fout->func = copy_bc;
       break;
       
@@ -30,13 +33,59 @@ gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bc
       break;
 
     case GKYL_BC_REFLECT:
+      fout->func = reflect_bc;
+      break;
+
+    case GKYL_BC_DISTF_REFLECT:
       fout->func = species_reflect_bc;
       break;
-    // Perfect electrical conductor
+
+    case GKYL_BC_CONF_BOUNDARY_VALUE:
+      fout->func = conf_boundary_value_bc;
+      break;
+
+    // Maxwell's perfect electrical conductor (zero normal B and zero tangent E)
     case GKYL_BC_MAXWELL_PEC:
       fout->func = maxwell_pec_bc;
       break;
-      
+
+    // Maxwell's symmetry BC (zero normal E and zero tangent B)
+    case GKYL_BC_MAXWELL_SYM:
+      fout->func = maxwell_sym_bc;
+      break;
+
+    // Reservoir Maxwell's BCs for heat flux problem
+    // Based on Roberg-Clark et al. PRL 2018
+    // NOTE: ONLY WORKS WITH X BOUNDARY 
+    case GKYL_BC_MAXWELL_RESERVOIR:
+      fout->func = maxwell_reservoir_bc;
+      break;
+
+    // PKPM Reflecting wall for distribution function
+    case GKYL_BC_PKPM_SPECIES_REFLECT:
+      fout->func = pkpm_species_reflect_bc;
+      break;    
+
+    // PKPM Reflecting wall for momentum
+    case GKYL_BC_PKPM_MOM_REFLECT:
+      fout->func = pkpm_mom_reflect_bc;
+      break;    
+
+    // PKPM No-slip wall for momentum
+    case GKYL_BC_PKPM_MOM_NO_SLIP:
+      fout->func = pkpm_mom_no_slip_bc;
+      break;   
+
+    // Euler Reflecting wall 
+    case GKYL_BC_EULER_REFLECT:
+      fout->func = euler_reflect_bc;
+      break;    
+
+    // Euler No-slip wall 
+    case GKYL_BC_EULER_NO_SLIP:
+      fout->func = euler_no_slip_bc;
+      break;  
+
     default:
       assert(false);
       break;
@@ -51,9 +100,9 @@ gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bc
 }
 
 struct gkyl_bc_basic*
-gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_range *local_range_ext,
-  const int *num_ghosts, enum gkyl_bc_basic_type bctype, const struct gkyl_basis *basis,
-  int num_comp, int cdim, bool use_gpu)
+gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, enum gkyl_bc_basic_type bctype,
+  const struct gkyl_basis *basis, const struct gkyl_range *skin_r,
+  const struct gkyl_range *ghost_r, int num_comp, int cdim, bool use_gpu)
 {
 
   // Allocate space for new updater.
@@ -64,15 +113,21 @@ gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_range *loc
   up->edge = edge;
   up->bctype = bctype;
   up->use_gpu = use_gpu;
-
-  // Create the skin/ghost ranges.
-  gkyl_skin_ghost_ranges(&up->skin_r, &up->ghost_r, dir, edge,
-    local_range_ext, num_ghosts);
+  up->skin_r = skin_r;
+  up->ghost_r = ghost_r;
 
   // Create function applied to array contents (DG coefficients) when
   // copying to/from buffer.
-  up->array_copy_func = gkyl_bc_basic_create_arr_copy_func(dir, cdim, up->bctype, basis, num_comp, use_gpu);
+  up->array_copy_func = gkyl_bc_basic_create_arr_copy_func(dir, edge, cdim, up->bctype, basis, num_comp, use_gpu);
   return up;
+}
+
+void
+gkyl_bc_basic_buffer_fixed_func(const struct gkyl_bc_basic *up, struct gkyl_array *buff_arr, struct gkyl_array *f_arr)
+{
+  if (up->bctype == GKYL_BC_FIXED_FUNC)
+    gkyl_array_copy_to_buffer_fn(buff_arr->data, f_arr,
+                                 up->skin_r, up->array_copy_func->on_dev);    
 }
 
 void
@@ -83,14 +138,30 @@ gkyl_bc_basic_advance(const struct gkyl_bc_basic *up, struct gkyl_array *buff_ar
   switch (up->bctype) {
     case GKYL_BC_COPY:
     case GKYL_BC_ABSORB:
+    case GKYL_BC_REFLECT:
     case GKYL_BC_MAXWELL_PEC:
+    case GKYL_BC_MAXWELL_SYM:
+    case GKYL_BC_MAXWELL_RESERVOIR:
+    case GKYL_BC_PKPM_MOM_REFLECT:
+    case GKYL_BC_PKPM_MOM_NO_SLIP:
+    case GKYL_BC_EULER_REFLECT:
+    case GKYL_BC_EULER_NO_SLIP:
       gkyl_array_copy_to_buffer_fn(buff_arr->data, f_arr,
                                    up->skin_r, up->array_copy_func->on_dev);
       break;
 
-    case GKYL_BC_REFLECT:
+    case GKYL_BC_DISTF_REFLECT:
+    case GKYL_BC_PKPM_SPECIES_REFLECT:
       gkyl_array_flip_copy_to_buffer_fn(buff_arr->data, f_arr, up->dir+up->cdim,
                                         up->skin_r, up->array_copy_func->on_dev);
+      break;
+
+    case GKYL_BC_CONF_BOUNDARY_VALUE:
+      gkyl_array_flip_copy_to_buffer_fn(buff_arr->data, f_arr, up->dir,
+                                        up->skin_r, up->array_copy_func->on_dev);
+      break;
+
+    case GKYL_BC_FIXED_FUNC: // if BC is fixed func, do nothing, buffer already full
       break;
   }
   // 2) Copy from buffer to ghost.

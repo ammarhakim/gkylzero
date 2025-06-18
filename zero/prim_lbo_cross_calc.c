@@ -1,6 +1,6 @@
 #include "gkyl_prim_lbo_type.h"
 #include <gkyl_alloc.h>
-//#include <gkyl_alloc_flags_priv.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_prim_lbo_cross_calc.h>
 #include <gkyl_prim_lbo_cross_calc_priv.h>
@@ -10,10 +10,15 @@
 #include <gkyl_mat.h>
 #include <assert.h>
 
-gkyl_prim_lbo_cross_calc*
+struct gkyl_prim_lbo_cross_calc*
 gkyl_prim_lbo_cross_calc_new(const struct gkyl_rect_grid *grid,
-  struct gkyl_prim_lbo_type *prim)
+  struct gkyl_prim_lbo_type *prim, bool use_gpu)
 {
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu) {
+    return gkyl_prim_lbo_cross_calc_cu_dev_new(grid, prim);
+  } 
+#endif   
   gkyl_prim_lbo_cross_calc *up = gkyl_malloc(sizeof(gkyl_prim_lbo_cross_calc));
   up->grid = *grid;
   up->prim = gkyl_prim_lbo_type_acquire(prim);
@@ -30,18 +35,26 @@ gkyl_prim_lbo_cross_calc_new(const struct gkyl_rect_grid *grid,
 }
 
 void
-gkyl_prim_lbo_cross_calc_advance(gkyl_prim_lbo_cross_calc* calc,
-  struct gkyl_basis cbasis, const struct gkyl_range *conf_rng,
+gkyl_prim_lbo_cross_calc_advance(struct gkyl_prim_lbo_cross_calc* calc,
+  const struct gkyl_range *conf_rng,
   const struct gkyl_array *greene,
-  double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
-  double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_u, const struct gkyl_array *other_vtsq, 
-  const struct gkyl_array *boundary_corrections, 
-  struct gkyl_array *u_out, struct gkyl_array *vtsq_out)
+  double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_prim_moms,
+  double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_prim_moms, 
+  const struct gkyl_array *boundary_corrections, const struct gkyl_array *nu, 
+  struct gkyl_array *prim_moms_out)
 {
+#ifdef GKYL_HAVE_CUDA
+  if (GKYL_IS_CU_ALLOC(calc->flags)) {
+    gkyl_prim_lbo_cross_calc_advance_cu(calc, conf_rng, greene, self_m, self_moms, self_prim_moms,
+      other_m, other_moms, other_prim_moms, boundary_corrections, nu, prim_moms_out);
+    return;
+  }
+#endif   
+
   struct gkyl_range_iter conf_iter;
-  
+
   // allocate memory for use in kernels
-  int nc = cbasis.num_basis;
+  int nc = calc->prim->num_config;
   int udim = calc->prim->udim;
   int N = nc*(udim + 1);
 
@@ -51,7 +64,7 @@ gkyl_prim_lbo_cross_calc_advance(gkyl_prim_lbo_cross_calc* calc,
     calc->mem = gkyl_nmat_linsolve_lu_new(calc->As->num, calc->As->nr);
     calc->is_first = false;
   }
-
+  
   // loop over configuration space cells.
   gkyl_range_iter_init(&conf_iter, conf_rng);
   long count = 0;
@@ -64,35 +77,37 @@ gkyl_prim_lbo_cross_calc_advance(gkyl_prim_lbo_cross_calc* calc,
     gkyl_mat_clear(&lhs, 0.0); gkyl_mat_clear(&rhs, 0.0);
 
     calc->prim->cross_prim(calc->prim, &lhs, &rhs, conf_iter.idx, gkyl_array_cfetch(greene, midx),
-      self_m, gkyl_array_cfetch(self_moms, midx), gkyl_array_cfetch(self_u, midx), gkyl_array_cfetch(self_vtsq, midx),
-      other_m, gkyl_array_cfetch(other_moms, midx), gkyl_array_cfetch(other_u, midx), gkyl_array_cfetch(other_vtsq, midx),
-      gkyl_array_cfetch(boundary_corrections, midx)
+      self_m, gkyl_array_cfetch(self_moms, midx), gkyl_array_cfetch(self_prim_moms, midx),
+      other_m, gkyl_array_cfetch(other_moms, midx), gkyl_array_cfetch(other_prim_moms, midx),
+      gkyl_array_cfetch(boundary_corrections, midx), gkyl_array_cfetch(nu, midx)
     );
 
     count += 1;
   }
 
   bool status = gkyl_nmat_linsolve_lu_pa(calc->mem, calc->As, calc->xs);
+  assert(status);
+
   gkyl_range_iter_init(&conf_iter, conf_rng);
   count = 0;
   while (gkyl_range_iter_next(&conf_iter)) {
     long midx = gkyl_range_idx(conf_rng, conf_iter.idx);
 
     struct gkyl_mat out = gkyl_nmat_get(calc->xs, count);
-    prim_lbo_copy_sol(&out, nc, udim, 
-      gkyl_array_fetch(u_out, midx), gkyl_array_fetch(vtsq_out, midx)
-    );
+    prim_lbo_copy_sol(&out, nc, udim, gkyl_array_fetch(prim_moms_out, midx));
     count += 1;
 
   }
 }
 
-const struct gkyl_prim_lbo_type* gkyl_prim_lbo_cross_calc_get_prim(gkyl_prim_lbo_cross_calc* calc)
+const struct gkyl_prim_lbo_type* 
+gkyl_prim_lbo_cross_calc_get_prim(struct gkyl_prim_lbo_cross_calc* calc)
 {
   return calc->prim;
 }
 
-void gkyl_prim_lbo_cross_calc_release(gkyl_prim_lbo_cross_calc* up)
+void 
+gkyl_prim_lbo_cross_calc_release(struct gkyl_prim_lbo_cross_calc* up)
 {
   gkyl_prim_lbo_type_release(up->prim);
 
@@ -109,38 +124,28 @@ void gkyl_prim_lbo_cross_calc_release(gkyl_prim_lbo_cross_calc* up)
 }
 
 // "derived" class constructors
-gkyl_prim_lbo_cross_calc* 
-gkyl_prim_lbo_vlasov_cross_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis)
+struct gkyl_prim_lbo_cross_calc* 
+gkyl_prim_lbo_vlasov_cross_calc_new(const struct gkyl_rect_grid *grid, 
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_rng, bool use_gpu)
 {
   struct gkyl_prim_lbo_type *prim; // LBO primitive moments type
-  prim = gkyl_prim_lbo_vlasov_new(cbasis, pbasis);
-  gkyl_prim_lbo_cross_calc *calc = gkyl_prim_lbo_cross_calc_new(grid, prim);
+  prim = gkyl_prim_lbo_vlasov_new(cbasis, pbasis, use_gpu);
+  struct gkyl_prim_lbo_cross_calc *calc = gkyl_prim_lbo_cross_calc_new(grid, prim, use_gpu);
   gkyl_prim_lbo_type_release(prim);
   return calc;
 }
 
-gkyl_prim_lbo_cross_calc* 
-gkyl_prim_lbo_gyrokinetic_cross_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis)
+struct gkyl_prim_lbo_cross_calc* 
+gkyl_prim_lbo_gyrokinetic_cross_calc_new(const struct gkyl_rect_grid *grid, 
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_rng, bool use_gpu)
 {
   struct gkyl_prim_lbo_type *prim; // LBO primitive moments type
-  prim = gkyl_prim_lbo_gyrokinetic_new(cbasis, pbasis);
-  return gkyl_prim_lbo_cross_calc_new(grid, prim);
-}
-
-gkyl_prim_lbo_cross_calc* 
-gkyl_prim_lbo_vlasov_cross_calc_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis)
-{
-  struct gkyl_prim_lbo_type *prim; // LBO primitive moments type
-  prim = gkyl_prim_lbo_vlasov_cu_dev_new(cbasis, pbasis);
-  return gkyl_prim_lbo_cross_calc_cu_dev_new(grid, prim);
-}
-
-gkyl_prim_lbo_cross_calc* 
-gkyl_prim_lbo_gyrokinetic_cross_calc_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis)
-{
-  struct gkyl_prim_lbo_type *prim; // LBO primitive moments type
-  prim = gkyl_prim_lbo_gyrokinetic_cu_dev_new(cbasis, pbasis);
-  return gkyl_prim_lbo_cross_calc_cu_dev_new(grid, prim);
+  prim = gkyl_prim_lbo_gyrokinetic_new(cbasis, pbasis, use_gpu);
+  struct gkyl_prim_lbo_cross_calc *calc = gkyl_prim_lbo_cross_calc_new(grid, prim, use_gpu);
+  gkyl_prim_lbo_type_release(prim);
+  return calc;
 }
 
 #ifndef GKYL_HAVE_CUDA
@@ -154,13 +159,13 @@ gkyl_prim_lbo_cross_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
 }
 
 void
-gkyl_prim_lbo_cross_calc_advance_cu(gkyl_prim_lbo_cross_calc* calc,
-  struct gkyl_basis cbasis, const struct gkyl_range *conf_rng,
+gkyl_prim_lbo_cross_calc_advance_cu(struct gkyl_prim_lbo_cross_calc* calc,
+  const struct gkyl_range *conf_rng,
   const struct gkyl_array *greene,
-  double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_u, const struct gkyl_array *self_vtsq,
-  double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_u, const struct gkyl_array *other_vtsq, 
-  const struct gkyl_array *boundary_corrections, 
-  struct gkyl_array *u_out, struct gkyl_array *vtsq_out)
+  double self_m, const struct gkyl_array *self_moms, const struct gkyl_array *self_prim_moms,
+  double other_m, const struct gkyl_array *other_moms, const struct gkyl_array *other_prim_moms,
+  const struct gkyl_array *boundary_corrections, const struct gkyl_array *nu, 
+  struct gkyl_array *prim_moms_out)
 {
   assert(false);
 }

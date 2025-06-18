@@ -4,6 +4,10 @@
 
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_comm.h>
+
+#include <stdio.h>
+#include <stdlib.h>
 
 // ranges for use in BCs
 struct app_skin_ghost_ranges {
@@ -14,7 +18,7 @@ struct app_skin_ghost_ranges {
   struct gkyl_range upper_ghost[GKYL_MAX_DIM];
 };
 
-// allocate array (filled with zeros)
+// allocate double array (filled with zeros)
 static struct gkyl_array*
 mkarr(bool on_gpu, long nc, long size)
 {
@@ -25,11 +29,22 @@ mkarr(bool on_gpu, long nc, long size)
     a = gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
+// allocate integer array (filled with zeros)
+static struct gkyl_array*
+mk_int_arr(bool on_gpu, long nc, long size)
+{
+  struct gkyl_array* a;
+  if (on_gpu)
+    a = gkyl_array_cu_dev_new(GKYL_INT, nc, size);
+  else
+    a = gkyl_array_new(GKYL_INT, nc, size);
+  return a;
+}
 
 // Compute out = c1*arr1 + c2*arr2
 static inline struct gkyl_array*
 array_combine(struct gkyl_array *out, double c1, const struct gkyl_array *arr1,
-  double c2, const struct gkyl_array *arr2, const struct gkyl_range rng)
+  double c2, const struct gkyl_array *arr2, const struct gkyl_range *rng)
 {
   return gkyl_array_accumulate_range(gkyl_array_set_range(out, c1, arr1, rng),
     c2, arr2, rng);

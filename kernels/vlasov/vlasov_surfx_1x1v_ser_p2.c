@@ -1,10 +1,21 @@
 #include <gkyl_vlasov_kernels.h> 
-GKYL_CU_DH void vlasov_surfx_1x1v_ser_p2(const double *w, const double *dxv, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_surfx_1x1v_ser_p2(const double *w, const double *dxv, 
+  const double *alpha_surf_l, const double *alpha_surf_r, 
+  const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
+  const int *const_sgn_alpha_l, const int *const_sgn_alpha_r, 
+  const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
-  // w[NDIM]:   Cell-center coordinates.
-  // dxv[NDIM]: Cell spacing.
-  // fl/fc/fr:  Input Distribution function in left/center/right cells.
-  // out:       Incremented distribution function in center cell.
+  // w[NDIM]: cell-center.
+  // dxv[NDIM]: cell length.
+  // alpha_surf_l: Surface expansion of phase space flux on the left (used by general geometry version).
+  // alpha_surf_r: Surface expansion of phase space flux on the right (used by general geometry version).
+  // sgn_alpha_surf_l: sign(alpha_surf_l) at quadrature points (used by general geometry version).
+  // sgn_alpha_surf_r: sign(alpha_surf_r) at quadrature points (used by general geometry version).
+  // const_sgn_alpha_l: Boolean array true if sign(alpha_surf_l) is only one sign, either +1 or -1 (used by general geometry version).
+  // const_sgn_alpha_r: Boolean array true if sign(alpha_surf_r) is only one sign, either +1 or -1 (used by general geometry version).
+  // fl,fc,fr: distribution function in left, center and right cells.
+  // out: output increment in center cell.
+
   const double dx10 = 2/dxv[0]; 
   const double dv = dxv[1], wv = w[1]; 
   double Ghat_r[3]; 
@@ -38,4 +49,7 @@ GKYL_CU_DH void vlasov_surfx_1x1v_ser_p2(const double *w, const double *dxv, con
   out[5] += (0.7071067811865475*Ghat_l[2]-0.7071067811865475*Ghat_r[2])*dx10; 
   out[6] += (1.58113883008419*Ghat_l[1]-1.58113883008419*Ghat_r[1])*dx10; 
   out[7] += -1.224744871391589*(Ghat_r[2]+Ghat_l[2])*dx10; 
+
+  return 0.;
+
 } 

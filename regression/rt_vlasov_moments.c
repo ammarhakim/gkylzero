@@ -244,9 +244,14 @@ main(int argc, char **argv)
     .lower = { -6.0, -6.0, -6.0 },
     .upper = { 6.0, 6.0, 6.0 }, 
     .cells = { inp.vcells[0], inp.vcells[1], inp.vcells[2] },
-    .init = inp.eval,
+    .num_init = 1,     
+    .projection[0] = {
+      .proj_id = GKYL_PROJ_FUNC,
+      .func = inp.eval,
+      .ctx_func = 0,
+    },
     .num_diag_moments = 4,
-    .diag_moments = { "M0", "M1i", "M2", "M2ij" },
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2IJ },
   };
 
   // field
@@ -269,7 +274,9 @@ main(int argc, char **argv)
     .species = { elc },
     .field = field,
 
-    .use_gpu = inp.use_gpu,
+    .parallelism = {
+      .use_gpu = inp.use_gpu,
+    },
   };
 
   // create app object

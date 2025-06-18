@@ -9,7 +9,7 @@
 
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_advection_auxfields { 
-  const struct gkyl_array *u;
+  const struct gkyl_array *u_i;
 };
 
 /**
@@ -38,27 +38,8 @@ struct gkyl_dg_eqn* gkyl_dg_advection_cu_dev_new(const struct gkyl_basis* cbasis
  */
 void gkyl_advection_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_advection_auxfields auxin);
 
-/**
- * Set up function to apply absorbing boundary conditions.
- * 
- * @param eqn Equation pointer.
- * @param dir Direction to apply absorbing boundary conditions.
- * @param cbasis Configuration space basis
- * @return Pointer to array_copy_func which can be passed to array_copy_fn methods
- */
-
-struct gkyl_array_copy_func* gkyl_advection_absorb_bc_create(const struct gkyl_dg_eqn *eqn, 
-  int dir, const struct gkyl_basis* cbasis);
-
-/**
- * Release boundary conditions function.
- * 
- * @param bc Pointer to array_copy_func.
- */
-
-void gkyl_advection_bc_release(struct gkyl_array_copy_func* bc);
-
 #ifdef GKYL_HAVE_CUDA
+
 /**
  * CUDA device function to set auxiliary fields (e.g. advection velocity u) needed in updating advection equation.
  * 
@@ -66,17 +47,5 @@ void gkyl_advection_bc_release(struct gkyl_array_copy_func* bc);
  * @param auxfields Pointer to struct of aux fields.
  */
 void gkyl_advection_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_advection_auxfields auxin);
-
-/**
- * CUDA device function to set up function to apply absorbing boundary conditions.
- * 
- * @param eqn Equation pointer.
- * @param dir Direction to apply absorbing boundary conditions.
- * @param cbasis Configuration space basis
- * @return Pointer to array_copy_func which can be passed to array_copy_fn methods
- */
-
-struct gkyl_array_copy_func* gkyl_advection_absorb_bc_create_cu(const struct gkyl_dg_eqn *eqn, 
-  int dir, const struct gkyl_basis* cbasis);
 
 #endif

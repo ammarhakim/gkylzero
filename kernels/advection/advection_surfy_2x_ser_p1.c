@@ -1,7 +1,7 @@
 #include <gkyl_advection_kernels.h> 
 #include <gkyl_basis_ser_2x_p1_surfx2_eval_quad.h> 
 #include <gkyl_basis_ser_2x_p1_upwind_quad_to_modal.h> 
-GKYL_CU_DH void advection_surfy_2x_ser_p1(const double *w, const double *dxv, const double *ul, const double *uc, const double *ur, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double advection_surfy_2x_ser_p1(const double *w, const double *dxv, const double *ul, const double *uc, const double *ur, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
@@ -27,14 +27,14 @@ GKYL_CU_DH void advection_surfy_2x_ser_p1(const double *w, const double *dxv, co
   u_c_l = ser_2x_p1_surfx2_eval_quad_node_0_l(uc_0); 
   u_c_r = ser_2x_p1_surfx2_eval_quad_node_0_r(uc_0); 
   u_r_l = ser_2x_p1_surfx2_eval_quad_node_0_l(ur_0); 
-  uQuad_l[0] = fabs(fmax(u_l_r, u_c_l)); 
-  uQuad_r[0] = fabs(fmax(u_c_r, u_r_l)); 
+  uQuad_l[0] = fmax(fabs(u_l_r), fabs(u_c_l)); 
+  uQuad_r[0] = fmax(fabs(u_c_r), fabs(u_r_l)); 
   u_l_r = ser_2x_p1_surfx2_eval_quad_node_1_r(ul_0); 
   u_c_l = ser_2x_p1_surfx2_eval_quad_node_1_l(uc_0); 
   u_c_r = ser_2x_p1_surfx2_eval_quad_node_1_r(uc_0); 
   u_r_l = ser_2x_p1_surfx2_eval_quad_node_1_l(ur_0); 
-  uQuad_l[1] = fabs(fmax(u_l_r, u_c_l)); 
-  uQuad_r[1] = fabs(fmax(u_c_r, u_r_l)); 
+  uQuad_l[1] = fmax(fabs(u_l_r), fabs(u_c_l)); 
+  uQuad_r[1] = fmax(fabs(u_c_r), fabs(u_r_l)); 
 
   // Project tensor nodal quadrature basis back onto modal basis. 
   ser_2x_p1_upwind_quad_to_modal(uQuad_l, uMax_l); 
@@ -49,5 +49,7 @@ GKYL_CU_DH void advection_surfy_2x_ser_p1(const double *w, const double *dxv, co
   out[1] += (0.7071067811865475*Ghat_l[1]-0.7071067811865475*Ghat_r[1])*dx1; 
   out[2] += -1.224744871391589*(Ghat_r[0]+Ghat_l[0])*dx1; 
   out[3] += -1.224744871391589*(Ghat_r[1]+Ghat_l[1])*dx1; 
+
+  return 0.;
 
 } 

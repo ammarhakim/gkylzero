@@ -49,6 +49,7 @@ gkyl_dg_maxwell_new(const struct gkyl_basis* cbasis,
       surf_x_kernels = ser_surf_x_kernels;
       surf_y_kernels = ser_surf_y_kernels;
       surf_z_kernels = ser_surf_z_kernels;
+
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
@@ -56,6 +57,7 @@ gkyl_dg_maxwell_new(const struct gkyl_basis* cbasis,
       surf_x_kernels = ten_surf_x_kernels;
       surf_y_kernels = ten_surf_y_kernels;
       surf_z_kernels = ten_surf_z_kernels;
+      
       break;
 
     default:
@@ -64,7 +66,6 @@ gkyl_dg_maxwell_new(const struct gkyl_basis* cbasis,
   }  
     
   maxwell->eqn.num_equations = 8;
-  maxwell->eqn.vol_term = vol;
   maxwell->eqn.surf_term = surf;
   maxwell->eqn.boundary_surf_term = boundary_surf;
 
@@ -72,8 +73,7 @@ gkyl_dg_maxwell_new(const struct gkyl_basis* cbasis,
   maxwell->maxwell_data.chi = lightSpeed*elcErrorSpeedFactor;
   maxwell->maxwell_data.gamma = lightSpeed*mgnErrorSpeedFactor;
 
-  maxwell->vol =  CK(vol_kernels, cdim, poly_order);
-  assert(maxwell->vol);
+  maxwell->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
 
   maxwell->surf[0] = CK(surf_x_kernels, cdim, poly_order);
   if (cdim>1)

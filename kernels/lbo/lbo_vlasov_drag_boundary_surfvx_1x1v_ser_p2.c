@@ -1,18 +1,17 @@
 #include <gkyl_lbo_vlasov_kernels.h> 
 #include <gkyl_basis_ser_2x_p2_surfx2_eval_quad.h> 
 #include <gkyl_basis_ser_2x_p2_upwind_quad_to_modal.h> 
-GKYL_CU_DH void lbo_vlasov_drag_boundary_surfvx_1x1v_ser_p2(const double *w, const double *dxv, const double *nuSum, const double *nuUSum, const double *nuVtSqSum, const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double lbo_vlasov_drag_boundary_surfvx_1x1v_ser_p2(const double *w, const double *dxv, const double *nuSum, const double *nuPrimMomsSum, const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
 { 
-  // w[2]:         Cell-center coordinates. 
-  // dxv[2]:       Cell spacing. 
-  // nuSum:         collisionalities added (self and cross species collisionalities). 
-  // nuUSum[3]:    sum of bulk velocities times their respective collisionalities. 
-  // nuVtSqSum[3]: sum of thermal speeds squared time their respective collisionalities. 
-  // fSkin/Edge:    Distribution function in cells 
-  // out:           Incremented distribution function in cell 
+  // w[2]: Cell-center coordinates. 
+  // dxv[2]: Cell spacing. 
+  // nuSum: collisionalities added (self and cross species collisionalities). 
+  // nuPrimMomsSum[6]: sum of bulk velocities and thermal speeds (squared) times their respective collisionalities. 
+  // fSkin/Edge: Distribution function in cells 
+  // out: Incremented distribution function in cell 
   double rdv2 = 2.0/dxv[1]; 
 
-  const double *sumNuUx = &nuUSum[0]; 
+  const double *sumNuUx = &nuPrimMomsSum[0]; 
 
   double alphaDrSurf[3] = {0.0}; 
   double fUpwindQuad[3] = {0.0};
@@ -25,17 +24,17 @@ GKYL_CU_DH void lbo_vlasov_drag_boundary_surfvx_1x1v_ser_p2(const double *w, con
   alphaDrSurf[1] = 0.5*(2.0*nuSum[1]*w[1]-2.0*sumNuUx[1]+dxv[1]*nuSum[1]); 
   alphaDrSurf[2] = -0.5*(2.0*sumNuUx[2]+((-2.0*w[1])-1.0*dxv[1])*nuSum[2]); 
 
-  if (0.6324555320336759*alphaDrSurf[2]-0.9486832980505137*alphaDrSurf[1]+0.7071067811865475*alphaDrSurf[0] < 0) { 
+  if (0.6324555320336768*alphaDrSurf[2]-0.9486832980505135*alphaDrSurf[1]+0.7071067811865468*alphaDrSurf[0] < 0) { 
     fUpwindQuad[0] = ser_2x_p2_surfx2_eval_quad_node_0_r(fSkin); 
   } else { 
     fUpwindQuad[0] = ser_2x_p2_surfx2_eval_quad_node_0_l(fEdge); 
   } 
-  if (0.7071067811865475*alphaDrSurf[0]-0.7905694150420947*alphaDrSurf[2] < 0) { 
+  if (0.7071067811865468*alphaDrSurf[0]-0.7905694150420945*alphaDrSurf[2] < 0) { 
     fUpwindQuad[1] = ser_2x_p2_surfx2_eval_quad_node_1_r(fSkin); 
   } else { 
     fUpwindQuad[1] = ser_2x_p2_surfx2_eval_quad_node_1_l(fEdge); 
   } 
-  if (0.6324555320336759*alphaDrSurf[2]+0.9486832980505137*alphaDrSurf[1]+0.7071067811865475*alphaDrSurf[0] < 0) { 
+  if (0.6324555320336768*alphaDrSurf[2]+0.9486832980505135*alphaDrSurf[1]+0.7071067811865468*alphaDrSurf[0] < 0) { 
     fUpwindQuad[2] = ser_2x_p2_surfx2_eval_quad_node_2_r(fSkin); 
   } else { 
     fUpwindQuad[2] = ser_2x_p2_surfx2_eval_quad_node_2_l(fEdge); 
@@ -63,17 +62,17 @@ GKYL_CU_DH void lbo_vlasov_drag_boundary_surfvx_1x1v_ser_p2(const double *w, con
   alphaDrSurf[1] = 0.5*(2.0*nuSum[1]*w[1]-2.0*sumNuUx[1]-1.0*dxv[1]*nuSum[1]); 
   alphaDrSurf[2] = -0.5*(2.0*sumNuUx[2]+(dxv[1]-2.0*w[1])*nuSum[2]); 
 
-  if (0.6324555320336759*alphaDrSurf[2]-0.9486832980505137*alphaDrSurf[1]+0.7071067811865475*alphaDrSurf[0] < 0) { 
+  if (0.6324555320336768*alphaDrSurf[2]-0.9486832980505135*alphaDrSurf[1]+0.7071067811865468*alphaDrSurf[0] < 0) { 
     fUpwindQuad[0] = ser_2x_p2_surfx2_eval_quad_node_0_r(fEdge); 
   } else { 
     fUpwindQuad[0] = ser_2x_p2_surfx2_eval_quad_node_0_l(fSkin); 
   } 
-  if (0.7071067811865475*alphaDrSurf[0]-0.7905694150420947*alphaDrSurf[2] < 0) { 
+  if (0.7071067811865468*alphaDrSurf[0]-0.7905694150420945*alphaDrSurf[2] < 0) { 
     fUpwindQuad[1] = ser_2x_p2_surfx2_eval_quad_node_1_r(fEdge); 
   } else { 
     fUpwindQuad[1] = ser_2x_p2_surfx2_eval_quad_node_1_l(fSkin); 
   } 
-  if (0.6324555320336759*alphaDrSurf[2]+0.9486832980505137*alphaDrSurf[1]+0.7071067811865475*alphaDrSurf[0] < 0) { 
+  if (0.6324555320336768*alphaDrSurf[2]+0.9486832980505135*alphaDrSurf[1]+0.7071067811865468*alphaDrSurf[0] < 0) { 
     fUpwindQuad[2] = ser_2x_p2_surfx2_eval_quad_node_2_r(fEdge); 
   } else { 
     fUpwindQuad[2] = ser_2x_p2_surfx2_eval_quad_node_2_l(fSkin); 
@@ -96,4 +95,7 @@ GKYL_CU_DH void lbo_vlasov_drag_boundary_surfvx_1x1v_ser_p2(const double *w, con
   out[7] += -1.58113883008419*Ghat[1]*rdv2; 
 
   } 
+
+  return 0.;
+
 } 

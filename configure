@@ -1,5 +1,10 @@
 #!/bin/sh
 
+OSTYPE=`uname -o`
+MACHINE=`uname -n`
+USER=`whoami`
+echo "# OS type is $OSTYPE on $MACHINE user $USER"
+
 # Defaults
 PREFIX=${HOME}/gkylsoft
 
@@ -8,17 +13,13 @@ CC=cc
 ARCH_FLAGS=-march=native
 CUDA_ARCH=70
 
-# Default lapack include and libraries: we prefer linking to static library
-LAPACK_INC=${HOME}/gkylsoft/OpenBLAS/include
-LAPACK_LIB=${HOME}/gkylsoft/OpenBLAS/lib/libopenblas.a
+USE_MPI=
+USE_LUA=
+USE_ADAS=
+CONF_LUA_LIB=luajit-5.1
 
-# SuperLU includes and librararies
-SUPERLU_INC=${HOME}/gkylsoft/superlu/include
-if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    SUPERLU_LIB=${HOME}/gkylsoft/superlu/lib64/libsuperlu.a;
-else
-    SUPERLU_LIB=${HOME}/gkylsoft/superlu/lib/libsuperlu.a;
-fi
+# Location of CUDA math libraries
+CUDAMATH_LIBS=
 
 # ----------------------------------------------------------------------------
 # Function definitions
@@ -46,6 +47,12 @@ CUDA_ARCH                  CUDA architecture flag to specify compute capability.
 --prefix=DIR               Prefix where GkeyllZero is installed
                            Default is $HOME/gkylsoft/
 
+--use-mpi                  [no] Build MPI-dependent code
+--use-nccl                 [no] Build NCCL-dependent code
+--use-cudss                [no] Build CUDSS-dependent code
+--use-lua                  [no] Build Lua dependent code
+--use-adas                 [no] Build adas dependent code
+
 Library Includes and Locations
 
 --lapack-inc               Location of Lapacke headers
@@ -53,6 +60,20 @@ Library Includes and Locations
 
 --superlu-inc              Location of SuperLU headers
 --superlu-lib              Full path to SuperLU static library
+
+--mpi-inc                  Location of MPI headers
+--mpi-lib                  Location to MPI library
+
+--nccl-inc                 Location of NCCL headers
+--nccl-lib                 Location to NCCL library
+
+--cudss-inc                 Location of cuDSS headers
+--cudss-lib                 Location to cuDSS library
+
+--lua-inc                  Location of Lua headers
+--lua-lib                  Location to Lua library
+
+--cudamath-libdir          Full path to CUDA math libraries
 
 EOF
 }
@@ -132,13 +153,129 @@ do
    --superlu-lib)
       [ -n "$value" ] || die "Missing value in flag $key."
       SUPERLU_LIB="$value"
+      ;;
+   --use-mpi)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      USE_MPI="$value"
+      ;;       
+   --mpi-inc)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      CONF_MPI_INC_DIR="$value"
+      ;;
+   --mpi-lib)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      CONF_MPI_LIB_DIR="$value"
+      ;;
+   --use-nccl)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      USE_NCCL="$value"
+      ;;       
+   --nccl-inc)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      CONF_NCCL_INC_DIR="$value"
+      ;;
+   --nccl-lib)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      CONF_NCCL_LIB_DIR="$value"
+      ;;
+   --use-cudss)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      USE_CUDSS="$value"
+      ;;       
+   --cudss-inc)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      CONF_CUDSS_INC_DIR="$value"
+      ;;
+   --cudss-lib)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      CONF_CUDSS_LIB_DIR="$value"
+      ;;
+   --use-lua)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      USE_LUA="$value"
+      ;;       
+   --lua-inc)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      CONF_LUA_INC_DIR="$value"
+      ;;
+   --lua-lib)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      CONF_LUA_LIB_DIR="$value"
       ;;   
+   --cudamath-libdir)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      CUDAMATH_LIBDIR="$value"
+      ;;
+   --use-adas)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      USE_ADAS="$value"
+      ;;  
    *)
       die "Error: Unknown flag: $1"
       ;;
    esac
    shift
 done
+
+if [ "$USE_MPI" = "yes" ]
+then
+    USE_MPI=1
+else
+    USE_MPI=
+fi
+
+if [ "$USE_NCCL" = "yes" ]
+then
+    USE_NCCL=1
+else
+    USE_NCCL=
+fi
+
+if [ "$USE_CUDSS" = "yes" ]
+then
+    USE_CUDSS=1
+else
+    USE_CUDSS=
+fi
+
+if [ "$USE_LUA" = "yes" ]
+then
+    USE_LUA=1
+else
+    USE_LUA=
+fi
+
+if [ "$USE_ADAS" = "yes" ]
+then
+    USE_ADAS=1
+else
+    USE_ADAS=
+fi
+
+# Default lapack include and libraries: we prefer linking to static library
+: "${LAPACK_INC:=$PREFIX/OpenBLAS/include}"
+: "${LAPACK_LIB=$PREFIX/OpenBLAS/lib/libopenblas.a}"
+
+# MPI specific paths and flags
+: "${CONF_MPI_INC_DIR=$PREFIX/openmpi/include/}"
+: "${CONF_MPI_LIB_DIR=$PREFIX/openmpi/lib/}"
+
+# Lua specific paths and flags
+: "${CONF_LUA_INC_DIR=$PREFIX/luajit/include/luajit-2.1}"
+: "${CONF_LUA_LIB_DIR=$PREFIX/luajit/lib/}"
+
+# cuDSS specific paths and flags
+: "${CONF_CUDSS_INC_DIR=$PREFIX/cuDSS/include/}"
+: "${CONF_CUDSS_LIB_DIR=$PREFIX/cuDSS/lib/}"
+
+# SuperLU includes and librararies
+: "${SUPERLU_INC=$PREFIX/superlu/include}"
+if [ "$OSTYPE" = "linux-gnu"* ]
+then
+    : "${SUPERLU_LIB=$PREFIX/superlu/lib64/libsuperlu.a}"
+else
+    : "${SUPERLU_LIB=$PREFIX/superlu/lib/libsuperlu.a}"
+fi
 
 # Write out config.mak
 cat <<EOF1 > config.mak
@@ -158,6 +295,28 @@ LAPACK_LIB=$LAPACK_LIB
 SUPERLU_INC=$SUPERLU_INC
 SUPERLU_LIB=$SUPERLU_LIB
 
+USE_MPI=$USE_MPI
+CONF_MPI_INC_DIR=$CONF_MPI_INC_DIR
+CONF_MPI_LIB_DIR=$CONF_MPI_LIB_DIR
+
+USE_NCCL=$USE_NCCL
+CONF_NCCL_INC_DIR=$CONF_NCCL_INC_DIR
+CONF_NCCL_LIB_DIR=$CONF_NCCL_LIB_DIR
+
+USE_CUDSS=$USE_CUDSS
+CONF_CUDSS_INC_DIR=$CONF_CUDSS_INC_DIR
+CONF_CUDSS_LIB_DIR=$CONF_CUDSS_LIB_DIR
+
+USE_LUA=$USE_LUA
+CONF_LUA_INC_DIR=$CONF_LUA_INC_DIR
+CONF_LUA_LIB_DIR=$CONF_LUA_LIB_DIR
+CONF_LUA_LIB=$CONF_LUA_LIB
+
+CUDAMATH_LIBDIR=$CUDAMATH_LIBDIR
+
+USE_ADAS=$USE_ADAS
+
 EOF1
 
-echo "Wrote config.mak"
+echo "# Wrote config.mak with contents:"
+cat config.mak

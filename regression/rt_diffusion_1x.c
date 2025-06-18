@@ -1,17 +1,18 @@
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_vlasov.h>
+#include <gkyl_util.h>
+#include <gkyl_wv_advect.h>
 #include <rt_arg_parse.h>
 
 struct sim_ctx {
   double a; // advection velocity
   double Lx; // size of the box
 };
-
-static inline double sq(double x) { return x*x; }
 
 void
 evalInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
@@ -34,11 +35,13 @@ D(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *c
 }
 
 void
-velocity(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+eval_advect_vel(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct sim_ctx *app = ctx;
   double x = xn[0];
   fout[0] = 0.0;
+  fout[1] = 0.0; 
+  fout[2] = 0.0; 
 }
 
 struct sim_ctx
@@ -61,6 +64,11 @@ main(int argc, char **argv)
   }
   struct sim_ctx ctx = create_ctx(); // context for init functions
   
+  // Equation object for getting equation type, 
+  // advection velocity is set by eval_advect_vel function. 
+  double c = 1.0;
+  struct gkyl_wv_eqn *advect = gkyl_wv_advect_new(c, false);
+  
   struct gkyl_vlasov_fluid_species f = {
     .name = "f",
 
@@ -69,9 +77,12 @@ main(int argc, char **argv)
 
     .ctx = &ctx,
     .init = evalInit,
-
-    .advection = {.velocity = velocity, .velocity_ctx = 0},
-    .diffusion = {.D = D, .D_ctx = 0},
+    .equation = advect,
+    .advection = {
+      .velocity = eval_advect_vel,
+      .velocity_ctx = &ctx,
+    },
+    .diffusion = {.Dij = D, .Dij_ctx = 0},
   };  
 
   // VM app
@@ -82,7 +93,7 @@ main(int argc, char **argv)
     .lower = { -2 },
     .upper = { 2 },
     .cells = { 256 },
-    .poly_order = 1,
+    .poly_order = 2,
     .basis_type = app_args.basis_type,
 
     .num_periodic_dir = 1,
@@ -96,7 +107,9 @@ main(int argc, char **argv)
 
     .skip_field = true,
 
-    .use_gpu = app_args.use_gpu,
+    .parallelism = {
+      .use_gpu = app_args.use_gpu,
+    },
   };
 
   // create app object
@@ -135,6 +148,7 @@ main(int argc, char **argv)
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
 
   // simulation complete, free app
+  gkyl_wv_eqn_release(advect);
   gkyl_vlasov_app_release(app);
 
   printf("\n");

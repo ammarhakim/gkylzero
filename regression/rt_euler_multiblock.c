@@ -222,7 +222,7 @@ sync_blocks(const struct gkyl_block_topo *btopo, const struct block_data bdata[]
         
         // copy skin-cell data to buffer
         gkyl_array_copy_to_buffer(
-          bc_buffer->data, fld[i], bdata[i].skin_ghost.lower_skin[d]);
+          bc_buffer->data, fld[i], &(bdata[i].skin_ghost.lower_skin[d]));
 
         int tbid = te[0].bid, tdir = te[0].dir;
           
@@ -230,12 +230,12 @@ sync_blocks(const struct gkyl_block_topo *btopo, const struct block_data bdata[]
         switch (te[0].edge) {
           case GKYL_LOWER_POSITIVE:
           case GKYL_LOWER_NEGATIVE:
-            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, bdata[tbid].skin_ghost.lower_ghost[tdir]);
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
             break;
 
           case GKYL_UPPER_POSITIVE:
           case GKYL_UPPER_NEGATIVE:
-            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, bdata[tbid].skin_ghost.upper_ghost[tdir]);
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
             break;
 
           default:
@@ -250,7 +250,7 @@ sync_blocks(const struct gkyl_block_topo *btopo, const struct block_data bdata[]
         
         // copy skin-cell data to buffer
         gkyl_array_copy_to_buffer(
-          bc_buffer->data, fld[i], bdata[i].skin_ghost.upper_skin[d]);
+          bc_buffer->data, fld[i], &(bdata[i].skin_ghost.upper_skin[d]));
 
         int tbid = te[1].bid, tdir = te[1].dir;
           
@@ -258,12 +258,12 @@ sync_blocks(const struct gkyl_block_topo *btopo, const struct block_data bdata[]
         switch (te[1].edge) {
           case GKYL_LOWER_POSITIVE:
           case GKYL_LOWER_NEGATIVE:
-            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, bdata[tbid].skin_ghost.lower_ghost[tdir]);
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
             break;
 
           case GKYL_UPPER_POSITIVE:
           case GKYL_UPPER_NEGATIVE:
-            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, bdata[tbid].skin_ghost.upper_ghost[tdir]);
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
             break;
 
           default:
@@ -277,7 +277,7 @@ sync_blocks(const struct gkyl_block_topo *btopo, const struct block_data bdata[]
 void
 block_data_write(const char *fileNm, const struct block_data *bdata)
 { 
-  gkyl_grid_sub_array_write(&bdata->grid, &bdata->range, bdata->f[0], fileNm);
+  gkyl_grid_sub_array_write(&bdata->grid, &bdata->range, 0, bdata->f[0], fileNm);
 }
 
 double
@@ -555,12 +555,12 @@ main(int argc, char **argv)
   for (int i=0; i<num_blocks; ++i) {
     gkyl_create_grid_ranges(&bdata[i].grid, (int []) { 2, 2 }, &bdata[i].ext_range, &bdata[i].range);
     bdata[i].geom = gkyl_wave_geom_new(&bdata[i].grid, &bdata[i].ext_range,
-      0, 0);
+      0, 0, false);
   }
 
   // create FV updaters for dimensional sweeps
   for (int i=0; i<num_blocks; ++i) {
-    bdata[i].euler = gkyl_wv_euler_new(1.4);
+    bdata[i].euler = gkyl_wv_euler_new(1.4, false);
 
     for (int d=0; d<2; ++d)
       bdata[i].slvr[d] = gkyl_wave_prop_new( &(struct gkyl_wave_prop_inp) {
