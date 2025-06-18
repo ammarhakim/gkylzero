@@ -1,12 +1,7 @@
 #include <acutest.h>
 #include <mpack.h>
 
-#include <gkyl_alloc.h>
 #include <gkyl_tensor_field.h>
-#include <gkyl_elem_type_priv.h>
-#include <gkyl_range.h>
-#include <gkyl_rect_decomp.h>
-#include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 
 
@@ -121,9 +116,79 @@ void test_tensor_field_fetch()
 }
 
 
+void test_tensor_field_set()
+{
+  int rank = 2; 
+  int ndim = 3;
+  int size = 10;
+
+  enum gkyl_tensor_index_loc iloc[GKYL_MAX_DIM];
+  for (int i=0; i<rank; ++i)  
+    iloc[i] = GKYL_TENSOR_INDEX_LOWER;
+
+  struct gkyl_tensor_field *tfld = gkyl_tensor_field_new(rank,ndim,size,iloc);
+  struct gkyl_tensor_field *tfld2 = gkyl_tensor_field_new(rank,ndim,size,iloc);
+
+  // Set the data two different ways
+  double *tfldData  = tfld->tdata->data;
+  for (unsigned i=0; i<tfld->size; ++i){
+    double *tensor = gkyl_array_fetch(tfld->tdata, i);
+    for (unsigned j=0; j<tfld->tdata->ncomp; ++j) {
+      tensor[j] = i + j;
+    }
+  }
+
+  int idx[GKYL_MAX_DIM] = {0.0, 0.0}; 
+  for (unsigned i=0; i<size; ++i){
+    for (unsigned j=0; j<ndim; ++j){
+      for (unsigned k=0; k<ndim; ++k){
+        double val = i + k + j*ndim;
+        idx[0] = j; idx[1] = k;
+        gkyl_tensor_field_elem_set(tfld2, i, idx, val);
+      }
+    }
+  }
+
+  for (unsigned i=0; i<size; ++i){
+    for (unsigned j=0; j<ndim; ++j){
+      for (unsigned k=0; k<ndim; ++k){
+        idx[0] = j; idx[1] = k;
+        double val = gkyl_tensor_field_elem_fetch(tfld, i, idx);
+        double val2 = gkyl_tensor_field_elem_fetch(tfld2, i, idx);
+        TEST_CHECK( val == val2 );
+      }
+    }
+  }
+
+  // Tensor fetch method
+  double *tfldDataLh = gkyl_tensor_field_fetch(tfld, 0);
+  TEST_CHECK( tfldDataLh[0] == (0.0 + 0.0) );
+
+  double *tfldDataUh = gkyl_tensor_field_fetch(tfld, 8);
+  TEST_CHECK( tfldDataUh[3] == (8.0 + 3.0) );
+
+  // Tensor element fetch method
+  int indxLh[GKYL_MAX_DIM] = {0.0, 0.0}; 
+  indxLh[0] = 0; indxLh[1] = 2;
+  double tfldDataLhElem = gkyl_tensor_field_elem_fetch(tfld, 0, indxLh);
+  double tfldDataLhElem2 = gkyl_tensor_field_elem_fetch(tfld2, 0, indxLh);
+  TEST_CHECK( tfldDataLhElem == tfldDataLhElem2 );
+
+  int indxUh[GKYL_MAX_DIM] = {0.0, 0.0}; 
+  indxUh[0] = 2; indxUh[1] = 0;
+  double tfldDataUhElem = gkyl_tensor_field_elem_fetch(tfld, 5, indxUh);
+  double tfldDataUhElem2 = gkyl_tensor_field_elem_fetch(tfld2, 5, indxUh);
+  TEST_CHECK( tfldDataUhElem == tfldDataUhElem2 );
+ 
+  gkyl_tensor_field_release(tfld);
+  gkyl_tensor_field_release(tfld2);
+}
+
+
 TEST_LIST = {
   { "test_tensor_field", test_tensor_field },  
   { "test_tensor_field_base", test_tensor_field_base },
   { "test_tensor_field_fetch", test_tensor_field_fetch },
+  { "test_tensor_field_set", test_tensor_field_set },
   { NULL, NULL },
 };

@@ -88,6 +88,7 @@ gkyl_tensor_field_elem_fetch(const struct gkyl_tensor_field *ten, long loc, int 
  * @param ten Tensor field
  * @param loc Tensor to set
  * @param idx Element to set
+ * @param ev Double to set
  */
 static inline void
 gkyl_tensor_field_elem_set(struct gkyl_tensor_field *ten, long loc, int idx[GKYL_MAX_DIM], double ev)
