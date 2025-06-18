@@ -108,26 +108,15 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   }
 
 
-  // calculate mapc2p in cylindrical coords at corner nodes for
+  // calculate bmag and mapc2p in cylindrical coords at corner nodes for
   // getting cell coordinates (used only for plotting)
   gkyl_tok_geo_calc(up, &nrange, geo, &ginp, geometry_inp->position_map);
-  // calculate mapc2p in cylindrical coords at interior nodes for
+  // calculate bmag and mapc2p in cylindrical coords at interior nodes for
   // calculating geo quantity volume expansions 
   gkyl_tok_geo_calc_interior(up, &nrange_quad, dzc, geo, &ginp, geometry_inp->position_map);
-  // calculate mapc2p in cylindrical coords at surfaces
+  // calculate bmag and mapc2p in cylindrical coords at surfaces
   for (int dir = 0; dir <up->grid.ndim; dir++)
     gkyl_tok_geo_calc_surface(up, dir, &nrange_quad_surf[dir], dzc, geo, &ginp, geometry_inp->position_map);
-
-  // calculate bmag at corner nodes 
-  gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &up->grid, &geo->rzgrid, false);
-  gkyl_calc_bmag_advance(bcalculator, &up->local, &up->local_ext, &up->global, &geo->rzlocal, &geo->rzlocal_ext, geo->efit->bmagzr, up->geo_corn.bmag, up->geo_corn.mc2p, false);
-  // calculate bmag at interior nodes
-  gkyl_calc_bmag_advance(bcalculator, &up->local, &up->local_ext, &up->global, &geo->rzlocal, &geo->rzlocal_ext, geo->efit->bmagzr, up->geo_int.bmag, up->geo_int.mc2p, true);
-  gkyl_calc_bmag_release(bcalculator);
-  // Convert bmag to nodal at interior nodes so we can use it to calculate dphidtheta
-  struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->basis, &up->grid, false);
-  gkyl_nodal_ops_m2n(n2m, &up->basis, &up->grid, &nrange_quad, &up->local, 1, up->geo_int.bmag_nodal, up->geo_int.bmag, true);
-  gkyl_nodal_ops_release(n2m);
 
   // Now calculate the metrics at interior nodes
   struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, &up->global, &up->global_ext, &up->local, &up->local_ext, false);

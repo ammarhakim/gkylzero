@@ -46,6 +46,7 @@ struct gk_geom_corn {
   struct gkyl_array* mc2p_nodal; // 3 components. Cartesian X,Y, and Z
   struct gkyl_array* mc2nu_pos_nodal; // 3 components. Uniform computational space 
                                       // to non-uniform computational space mapping
+  struct gkyl_array* bmag_nodal; // 1 components. Magnitude of Magnetic Field
 
 };
 

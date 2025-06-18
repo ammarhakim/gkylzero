@@ -121,6 +121,7 @@ gk_geometry_corn_alloc_nodal(struct gk_geometry* gk_geom, struct gkyl_range nran
   // mapc2p
   gk_geom->geo_corn.mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, 3, nrange.volume);
   gk_geom->geo_corn.mc2nu_pos_nodal = gkyl_array_new(GKYL_DOUBLE, 3, nrange.volume);
+  gk_geom->geo_corn.bmag_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
 }
 
 static void
@@ -141,6 +142,7 @@ gk_geometry_corn_release_nodal(struct gk_geometry* gk_geom)
 {
   gkyl_array_release(gk_geom->geo_corn.mc2p_nodal);
   gkyl_array_release(gk_geom->geo_corn.mc2nu_pos_nodal);
+  gkyl_array_release(gk_geom->geo_corn.bmag_nodal);
 }
 
 static void

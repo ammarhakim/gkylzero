@@ -345,17 +345,46 @@ bmag_func(double r_curr, double Z, void *ctx)
   gkyl_rect_grid_cell_center(&actx->geo->fgrid, &idx, &fxc);
   double fx = (psi_fpol-fxc)/(actx->geo->fgrid.dx[0]*0.5);
   double fpol = actx->geo->fbasis.eval_expand(&fx, coeffs);
+  double Bphi = fpol/r_curr;
+  double Br = 0.0, Bz = 0.0, bmag = 0.0;
 
+  if (actx->geo->use_cubics) {
   double xn[2] = {r_curr, Z};
   double fout[3];
   actx->geo->efit->evf->eval_cubic_wgrad(0.0, xn, fout, actx->geo->efit->evf->ctx);
   double dpsidR = fout[1];
   double dpsidZ = fout[2];
 
-  double Br = 1.0/r_curr*dpsidZ;
-  double Bz = -1.0/r_curr*dpsidR;
-  double Bphi = fpol/r_curr;
-  double bmag = sqrt(Br*Br+Bz*Bz+Bphi*Bphi);
+  Br = 1.0/r_curr*dpsidZ;
+  Bz = -1.0/r_curr*dpsidR;
+  }
+  else {
+    int rzidx[2];
+    int idxtemp = actx->geo->rzlocal.lower[0] + (int) floor((r_curr - actx->geo->rzgrid.lower[0])/actx->geo->rzgrid.dx[0]);
+    idxtemp = GKYL_MIN2(idxtemp, actx->geo->rzlocal.upper[0]);
+    idxtemp = GKYL_MAX2(idxtemp, actx->geo->rzlocal.lower[0]);
+    rzidx[0] = idxtemp;
+    idxtemp = actx->geo->rzlocal.lower[1] + (int) floor((Z - actx->geo->rzgrid.lower[1])/actx->geo->rzgrid.dx[1]);
+    idxtemp = GKYL_MIN2(idxtemp, actx->geo->rzlocal.upper[1]);
+    idxtemp = GKYL_MAX2(idxtemp, actx->geo->rzlocal.lower[1]);
+    rzidx[1] = idxtemp;
+
+    long loc = gkyl_range_idx((&actx->geo->rzlocal), rzidx);
+    const double *psih = gkyl_array_cfetch(actx->geo->psiRZ, loc);
+
+    double xc[2];
+    gkyl_rect_grid_cell_center((&actx->geo->rzgrid), rzidx, xc);
+    double x = (r_curr-xc[0])/(actx->geo->rzgrid.dx[0]*0.5);
+    double y = (Z-xc[1])/(actx->geo->rzgrid.dx[1]*0.5);
+
+    double dpsidx = 5.625*psih[8]*(2.0*x*SQ(y)-0.6666666666666666*x)+2.904737509655563*psih[7]*(SQ(y)-0.3333333333333333)+5.809475019311126*psih[6]*x*y+1.5*psih[3]*y+3.354101966249684*psih[4]*x+0.8660254037844386*psih[1];
+    double dpsidy = 5.625*psih[8]*(2.0*SQ(x)*y-0.6666666666666666*y)+5.809475019311126*psih[7]*x*y+3.354101966249684*psih[5]*y+2.904737509655563*psih[6]*(SQ(x)-0.3333333333333333)+1.5*psih[3]*x+0.8660254037844386*psih[2];
+    double dpsidR = dpsidx*2.0/actx->geo->rzgrid.dx[0];
+    double dpsidZ = dpsidy*2.0/actx->geo->rzgrid.dx[1];
+    Br = 1.0/r_curr*dpsidZ;
+    Bz = -1.0/r_curr*dpsidR;
+  }
+  bmag = sqrt(Br*Br+Bz*Bz+Bphi*Bphi);
   return bmag;
 }
 
@@ -398,6 +427,7 @@ gkyl_tok_geo_new(const struct gkyl_efit_inp *inp, const struct gkyl_tok_geo_grid
   geo->zmaxis = geo->efit->zmaxis;
 
   geo->use_cubics = ginp->use_cubics;
+  geo->use_hyperbolic_numbers = ginp->use_hyperbolic_numbers;
   geo->root_param.eps =
     ginp->root_param.eps > 0 ? ginp->root_param.eps : 1e-10;
   geo->root_param.max_iter =
@@ -409,7 +439,10 @@ gkyl_tok_geo_new(const struct gkyl_efit_inp *inp, const struct gkyl_tok_geo_grid
     ginp->quad_param.eps > 0 ? ginp->quad_param.eps : 1e-10;
 
   if (geo->use_cubics) {
-    geo->calc_roots = calc_RdR_p3;
+    if(geo->use_hyperbolic_numbers)
+      geo->calc_roots = calc_RdR_p3_hyperbolic;
+    else
+      geo->calc_roots = calc_RdR_p3;
     geo->calc_grad_psi = calc_grad_psi_p3;
   }
   else if (geo->efit->rzbasis.poly_order == 1) {
@@ -500,7 +533,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
   gkyl_position_map_optimize(position_map, up->grid, up->global);
 
   int cidx[3] = { 0 };
-  for (int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia){
+  for (int ia=nrange->lower[AL_IDX]; ia<=nrange->lower[AL_IDX]+1; ++ia){
     cidx[AL_IDX] = ia;
     double alpha_curr = alpha_lo + ia*dalpha;
     // This is the convention described in Noah Mandell's Thesis Eq 5.104. comp coord y = -alpha.
@@ -599,20 +632,61 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
         double phi_curr = phi_func(alpha_curr, z_curr, &arc_ctx);
         double *mc2p_n = gkyl_array_fetch(up->geo_corn.mc2p_nodal, gkyl_range_idx(nrange, cidx));
         double *mc2nu_n = gkyl_array_fetch(up->geo_corn.mc2nu_pos_nodal, gkyl_range_idx(nrange, cidx));
+        double *bmag_n = gkyl_array_fetch(up->geo_corn.bmag_nodal, gkyl_range_idx(nrange, cidx));
 
 
         mc2p_n[X_IDX] = r_curr;
         mc2p_n[Y_IDX] = z_curr;
         mc2p_n[Z_IDX] = phi_curr;
         mc2nu_n[X_IDX] = psi_curr;
-        mc2nu_n[Y_IDX] = -alpha_curr;
+        mc2nu_n[Y_IDX] = alpha_curr;
         mc2nu_n[Z_IDX] = theta_curr;
+        bmag_n[0] = bmag_func(r_curr, z_curr, &arc_ctx);
       }
     }
   }
+
+  // Populate other alpha indices by using axisymmetry
+  for (int ia=nrange->lower[AL_IDX]+1; ia<=nrange->upper[AL_IDX]; ++ia){
+    cidx[AL_IDX] = ia;
+    double alpha_curr = alpha_lo + ia*dalpha;
+    alpha_curr*=-1.0;
+    double alpha_donor = alpha_lo + nrange->lower[AL_IDX]*dalpha;
+    alpha_donor*=-1.0;
+    double alpha_diff = alpha_curr -  alpha_donor;
+    for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
+      cidx[PSI_IDX] = ip;
+      for (int it=nrange->lower[TH_IDX]; it<=nrange->upper[TH_IDX]; ++it) {
+        cidx[TH_IDX] = it;
+
+        double *mc2p_n = gkyl_array_fetch(up->geo_corn.mc2p_nodal, gkyl_range_idx(nrange, cidx));
+        double *mc2nu_n = gkyl_array_fetch(up->geo_corn.mc2nu_pos_nodal, gkyl_range_idx(nrange, cidx));
+        double *bmag_n = gkyl_array_fetch(up->geo_corn.bmag_nodal, gkyl_range_idx(nrange, cidx));
+
+        int donor_cidx[3] ;
+        donor_cidx[AL_IDX] = nrange->lower[AL_IDX];
+        donor_cidx[PSI_IDX] = ip;
+        donor_cidx[TH_IDX] = it;
+
+        double *donor_mc2p_n = gkyl_array_fetch(up->geo_corn.mc2p_nodal, gkyl_range_idx(nrange, donor_cidx));
+        double *donor_mc2nu_n = gkyl_array_fetch(up->geo_corn.mc2nu_pos_nodal, gkyl_range_idx(nrange, donor_cidx));
+        double *donor_bmag_n = gkyl_array_fetch(up->geo_corn.bmag_nodal, gkyl_range_idx(nrange, donor_cidx));
+
+        mc2p_n[X_IDX] = donor_mc2p_n[X_IDX];
+        mc2p_n[Y_IDX] = donor_mc2p_n[Y_IDX];
+        mc2p_n[Z_IDX] = donor_mc2p_n[Z_IDX] + alpha_diff;
+        mc2nu_n[X_IDX] = donor_mc2nu_n[X_IDX];
+        mc2nu_n[Y_IDX] = donor_mc2nu_n[AL_IDX] + alpha_diff;
+        mc2nu_n[Z_IDX] = donor_mc2nu_n[Z_IDX];
+        bmag_n[0] = donor_bmag_n[0];
+      }
+    }
+  }
+
   struct gkyl_nodal_ops *n2m =  gkyl_nodal_ops_new(&inp->cbasis, &inp->cgrid, false);
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, up->geo_corn.mc2p_nodal, up->geo_corn.mc2p, false);
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, up->geo_corn.mc2nu_pos_nodal, up->geo_corn.mc2nu_pos, false);
+  gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 1, up->geo_corn.bmag_nodal, up->geo_corn.bmag, false);
   gkyl_nodal_ops_release(n2m);
 
   gkyl_free(arc_memo);
@@ -690,7 +764,7 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
   gkyl_position_map_optimize(position_map, up->grid, up->global);
 
   int cidx[3] = { 0 };
-  for(int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia){
+  for(int ia=nrange->lower[AL_IDX]; ia<=nrange->lower[AL_IDX]+1; ++ia){
     cidx[AL_IDX] = ia;
     double alpha_curr = calc_running_coord(alpha_lo, ia-nrange->lower[AL_IDX], dalpha);
     // This is the convention described in Noah Mandell's Thesis Eq 5.104. comp coord y = -alpha.
@@ -776,6 +850,7 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
           double *mc2p_fd_n = gkyl_array_fetch(up->geo_int.mc2p_nodal_fd, gkyl_range_idx(nrange, cidx));
           double *ddtheta_n = gkyl_array_fetch(up->geo_int.ddtheta_nodal, gkyl_range_idx(nrange, cidx));
           double *mc2p_n = gkyl_array_fetch(up->geo_int.mc2p_nodal, gkyl_range_idx(nrange, cidx));
+          double *bmag_n = gkyl_array_fetch(up->geo_int.bmag_nodal, gkyl_range_idx(nrange, cidx));
 
           mc2p_fd_n[lidx+X_IDX] = r_curr;
           mc2p_fd_n[lidx+Y_IDX] = z_curr;
@@ -788,6 +863,57 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
             mc2p_n[lidx+X_IDX] = r_curr;
             mc2p_n[lidx+Y_IDX] = z_curr;
             mc2p_n[lidx+Z_IDX] = phi_curr;
+            bmag_n[0] = bmag_func(r_curr, z_curr, &arc_ctx);
+          }
+        }
+      }
+    }
+  }
+
+  // Populate other alpha indices by using axisymmetry
+  for (int ia=nrange->lower[AL_IDX]+1; ia<=nrange->upper[AL_IDX]; ++ia){
+    cidx[AL_IDX] = ia;
+    double alpha_curr = calc_running_coord(alpha_lo, ia-nrange->lower[AL_IDX], dalpha);
+    alpha_curr*=-1.0;
+    double alpha_donor = calc_running_coord(alpha_lo, 0, dalpha);
+    alpha_donor*=-1.0;
+    double alpha_diff = alpha_curr -  alpha_donor;
+    for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
+      cidx[PSI_IDX] = ip;
+      int ip_delta_max = 3;
+      for(int ip_delta = 0; ip_delta < ip_delta_max; ip_delta++){
+        for (int it=nrange->lower[TH_IDX]; it<=nrange->upper[TH_IDX]; ++it) {
+          cidx[TH_IDX] = it;
+            int lidx = 0;
+            if (ip_delta != 0)
+              lidx = 3 + 3*(ip_delta-1);
+
+          double *mc2p_fd_n = gkyl_array_fetch(up->geo_int.mc2p_nodal_fd, gkyl_range_idx(nrange, cidx));
+          double *ddtheta_n = gkyl_array_fetch(up->geo_int.ddtheta_nodal, gkyl_range_idx(nrange, cidx));
+          double *mc2p_n = gkyl_array_fetch(up->geo_int.mc2p_nodal, gkyl_range_idx(nrange, cidx));
+          double *bmag_n = gkyl_array_fetch(up->geo_int.bmag_nodal, gkyl_range_idx(nrange, cidx));
+
+          int donor_cidx[3] ;
+          donor_cidx[AL_IDX] = nrange->lower[AL_IDX];
+          donor_cidx[PSI_IDX] = ip;
+          donor_cidx[TH_IDX] = it;
+
+          double *donor_mc2p_fd_n = gkyl_array_fetch(up->geo_int.mc2p_nodal_fd, gkyl_range_idx(nrange, donor_cidx));
+          double *donor_ddtheta_n = gkyl_array_fetch(up->geo_int.ddtheta_nodal, gkyl_range_idx(nrange, donor_cidx));
+          double *donor_mc2p_n = gkyl_array_fetch(up->geo_int.mc2p_nodal, gkyl_range_idx(nrange, donor_cidx));
+          double *donor_bmag_n = gkyl_array_fetch(up->geo_int.bmag_nodal, gkyl_range_idx(nrange, donor_cidx));
+
+          mc2p_fd_n[lidx+X_IDX] =  donor_mc2p_fd_n[lidx+X_IDX];
+          mc2p_fd_n[lidx+Y_IDX] =  donor_mc2p_fd_n[lidx+Y_IDX];
+          mc2p_fd_n[lidx+Z_IDX] =  donor_mc2p_fd_n[lidx+Z_IDX] + alpha_diff;
+          if(ip_delta==0){
+            ddtheta_n[0] = donor_ddtheta_n[0];
+            ddtheta_n[1] = donor_ddtheta_n[1];
+            ddtheta_n[2] = donor_ddtheta_n[2];
+            mc2p_n[lidx+X_IDX] = donor_mc2p_n[lidx+X_IDX];
+            mc2p_n[lidx+Y_IDX] = donor_mc2p_n[lidx+Y_IDX];
+            mc2p_n[lidx+Z_IDX] = donor_mc2p_n[lidx+Z_IDX];
+            bmag_n[0] = donor_bmag_n[0];
           }
         }
       }
@@ -796,6 +922,7 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
 
   struct gkyl_nodal_ops *n2m =  gkyl_nodal_ops_new(&inp->cbasis, &inp->cgrid, false);
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, up->geo_int.mc2p_nodal, up->geo_int.mc2p, true);
+  gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 1, up->geo_int.bmag_nodal, up->geo_int.bmag, true);
   gkyl_nodal_ops_release(n2m);
 
   gkyl_free(arc_memo);
@@ -873,7 +1000,7 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
   gkyl_position_map_optimize(position_map, up->grid, up->global);
 
   int cidx[3] = { 0 };
-  for(int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia){
+  for(int ia=nrange->lower[AL_IDX]; ia<=nrange->lower[AL_IDX]+1; ++ia){
     cidx[AL_IDX] = ia;
     double alpha_curr = dir==1 ? alpha_lo + ia*dalpha : calc_running_coord(alpha_lo, ia-nrange->lower[AL_IDX], dalpha);
     // This is the convention described in Noah Mandell's Thesis Eq 5.104. comp coord y = -alpha.
@@ -982,6 +1109,51 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
             ddtheta_n[1] = cos(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI*dTheta_dtheta;
             ddtheta_n[2] = dphidtheta_func(z_curr, &arc_ctx)*dTheta_dtheta;
             bmag_n[0] = bmag_func(r_curr, z_curr, &arc_ctx);
+          }
+        }
+      }
+    }
+  }
+
+  // Populate other alpha indices by using axisymmetry
+  for (int ia=nrange->lower[AL_IDX]+1; ia<=nrange->upper[AL_IDX]; ++ia){
+    cidx[AL_IDX] = ia;
+    double alpha_curr = dir==1 ? alpha_lo + ia*dalpha : calc_running_coord(alpha_lo, ia-nrange->lower[AL_IDX], dalpha);
+    alpha_curr*=-1.0;
+    double alpha_donor= dir==1 ? alpha_lo + nrange->lower[AL_IDX]*dalpha : calc_running_coord(alpha_lo, 0, dalpha);
+    alpha_donor*=-1.0;
+    double alpha_diff = alpha_curr -  alpha_donor;
+    for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
+      cidx[PSI_IDX] = ip;
+      int ip_delta_max = 3;
+      for(int ip_delta = 0; ip_delta < ip_delta_max; ip_delta++){
+        for (int it=nrange->lower[TH_IDX]; it<=nrange->upper[TH_IDX]; ++it) {
+          cidx[TH_IDX] = it;
+            int lidx = 0;
+            if (ip_delta != 0)
+              lidx = 3 + 3*(ip_delta-1);
+
+          double *mc2p_fd_n = gkyl_array_fetch(up->geo_surf[dir].mc2p_nodal_fd, gkyl_range_idx(nrange, cidx));
+          double *ddtheta_n = gkyl_array_fetch(up->geo_surf[dir].ddtheta_nodal, gkyl_range_idx(nrange, cidx));
+          double *bmag_n = gkyl_array_fetch(up->geo_surf[dir].bmag_nodal, gkyl_range_idx(nrange, cidx));
+
+          int donor_cidx[3] ;
+          donor_cidx[AL_IDX] = nrange->lower[AL_IDX];
+          donor_cidx[PSI_IDX] = ip;
+          donor_cidx[TH_IDX] = it;
+
+          double *donor_mc2p_fd_n = gkyl_array_fetch(up->geo_int.mc2p_nodal_fd, gkyl_range_idx(nrange, donor_cidx));
+          double *donor_ddtheta_n = gkyl_array_fetch(up->geo_int.ddtheta_nodal, gkyl_range_idx(nrange, donor_cidx));
+          double *donor_bmag_n = gkyl_array_fetch(up->geo_int.bmag_nodal, gkyl_range_idx(nrange, donor_cidx));
+
+          mc2p_fd_n[lidx+X_IDX] =  donor_mc2p_fd_n[lidx+X_IDX];
+          mc2p_fd_n[lidx+Y_IDX] =  donor_mc2p_fd_n[lidx+Y_IDX];
+          mc2p_fd_n[lidx+Z_IDX] =  donor_mc2p_fd_n[lidx+Z_IDX] + alpha_diff;
+          if(ip_delta==0){
+            ddtheta_n[0] = donor_ddtheta_n[0];
+            ddtheta_n[1] = donor_ddtheta_n[1];
+            ddtheta_n[2] = donor_ddtheta_n[2];
+            bmag_n[0] = donor_bmag_n[0];
           }
         }
       }
