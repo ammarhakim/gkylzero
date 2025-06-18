@@ -114,7 +114,7 @@ create_ctx(void)
   double cfl_frac = 0.95; // CFL coefficient.
 
   enum gkyl_spacetime_gauge spacetime_gauge = GKYL_STATIC_GAUGE; // Spacetime gauge choice.
-  int reinit_freq = 100; // Spacetime reinitialization frequency.
+  int reinit_freq = INT_MAX; // Spacetime reinitialization frequency.
 
   double t_end = 5.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.

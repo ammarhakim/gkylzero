@@ -36,9 +36,9 @@ Nx = 256 -- Cell count (x-direction).
 Ny = 256 -- Cell count (y-direction).
 Lx = 1.0 -- Domain size (x-direction).
 Ly = 1.0 -- Domain size (y-direction).
-cfl_frac = 0.95 -- CFL coefficient.
+cfl_frac = 0.8 -- CFL coefficient.
 
-reinit_freq = 100 -- Spacetime reinitialization frequency.
+reinit_freq = GKYL_MAX_INT -- Spacetime reinitialization frequency.
 
 t_end = 0.4 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
@@ -192,6 +192,8 @@ momentApp = Moments.App.new {
     end,
 
     evolve = true, -- Evolve species?
+    limiter = G0.WaveLimiter.MinMod,
+    forceLowOrderFlux = false, -- Use HLL fluxes.
     bcx = { G0.SpeciesBc.bcCopy, G0.SpeciesBc.bcCopy }, -- Copy boundary conditions (x-direction).
     bcy = { G0.SpeciesBc.bcCopy, G0.SpeciesBc.bcCopy } -- Copy boundary conditions (y-direction).
   }

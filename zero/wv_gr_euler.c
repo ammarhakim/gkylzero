@@ -1236,6 +1236,283 @@ qfluct_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const d
 }
 
 static double
+wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+{
+  const struct wv_gr_euler *gr_euler = container_of(eqn, struct wv_gr_euler, eqn);
+  double gas_gamma = gr_euler->gas_gamma;
+
+  double vl[71], vr[71];
+  gkyl_gr_euler_prim_vars(gas_gamma, ql, vl);
+  gkyl_gr_euler_prim_vars(gas_gamma, qr, vr);
+
+  double rho_l = vl[0];
+  double vx_l = vl[1];
+  double vy_l = vl[2];
+  double vz_l = vl[3];
+  double p_l = vl[4];
+
+  double lapse_l = vl[5];
+  double shift_xl = vl[6];
+  double shift_yl = vl[7];
+  double shift_zl = vl[8];
+
+  double spatial_metric_l[3][3];
+  spatial_metric_l[0][0] = vl[9]; spatial_metric_l[0][1] = vl[10]; spatial_metric_l[0][2] = vl[11];
+  spatial_metric_l[1][0] = vl[12]; spatial_metric_l[1][1] = vl[13]; spatial_metric_l[1][2] = vl[14];
+  spatial_metric_l[2][0] = vl[15]; spatial_metric_l[2][1] = vl[16]; spatial_metric_l[2][2] = vl[17];
+
+  double **inv_spatial_metric_l = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    inv_spatial_metric_l[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  gkyl_gr_euler_inv_spatial_metric(ql, &inv_spatial_metric_l);
+
+  bool in_excision_region_l = false;
+  if (vl[27] < pow(10.0, -8.0)) {
+    in_excision_region_l = true;
+  }
+
+  bool curved_spacetime_l = false;
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      if (i == j) {
+        if (fabs(spatial_metric_l[i][j] - 1.0) > pow(10.0, -8.0)) {
+          curved_spacetime_l = true;
+        }
+      }
+      else {
+        if (fabs(spatial_metric_l[i][j]) > pow(10.0, -8.0)) {
+          curved_spacetime_l = true;
+        }
+      }
+    }
+  }
+  if (fabs(lapse_l - 1.0) > pow(10.0, -8.0) || fabs(shift_xl) > pow(10.0, -8.0) || fabs(shift_yl) > pow(10.0, -8.0) ||
+    fabs(shift_zl) > pow(10.0, -8.0)) {
+    curved_spacetime_l = true;
+  }
+
+  double rho_r = vr[0];
+  double vx_r = vr[1];
+  double vy_r = vr[2];
+  double vz_r = vr[3];
+  double p_r = vr[4];
+
+  double lapse_r = vr[5];
+  double shift_xr = vr[6];
+  double shift_yr = vr[7];
+  double shift_zr = vr[8];
+
+  double spatial_metric_r[3][3];
+  spatial_metric_r[0][0] = vr[9]; spatial_metric_r[0][1] = vr[10]; spatial_metric_r[0][2] = vr[11];
+  spatial_metric_r[1][0] = vr[12]; spatial_metric_r[1][1] = vr[13]; spatial_metric_r[1][2] = vr[14];
+  spatial_metric_r[2][0] = vr[15]; spatial_metric_r[2][1] = vr[16]; spatial_metric_r[2][2] = vr[17];
+
+  double **inv_spatial_metric_r = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    inv_spatial_metric_r[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  gkyl_gr_euler_inv_spatial_metric(qr, &inv_spatial_metric_r);
+
+  bool in_excision_region_r = false;
+  if (vr[27] < pow(10.0, -8.0)) {
+    in_excision_region_r = true;
+  }
+
+  bool curved_spacetime_r = false;
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      if (i == j) {
+        if (fabs(spatial_metric_r[i][j] - 1.0) > pow(10.0, -8.0)) {
+          curved_spacetime_r = true;
+        }
+      }
+      else {
+        if (fabs(spatial_metric_l[i][j]) > pow(10.0, -8.0)) {
+          curved_spacetime_r = true;
+        }
+      }
+    }
+  }
+  if (fabs(lapse_r - 1.0) > pow(10.0, -8.0) || fabs(shift_xr) > pow(10.0, -8.0) || fabs(shift_yr) > pow(10.0, -8.0) ||
+    fabs(shift_zr) > pow(10.0, -8.0)) {
+    curved_spacetime_r = true;
+  }
+
+  double num_l = (gas_gamma * p_l) / rho_l;
+  double den_l = 1.0 + ((p_l / rho_l) * (gas_gamma) / (gas_gamma - 1.0));
+  double c_sl = sqrt(num_l / den_l);
+
+  double num_r = (gas_gamma * p_r) / rho_r;
+  double den_r = 1.0 + ((p_r / rho_r) * (gas_gamma) / (gas_gamma - 1.0));
+  double c_sr = sqrt(num_r / den_r);
+
+  double vx_avg = 0.5 * (vx_l + vx_r);
+  double cs_avg = 0.5 * (c_sl + c_sr);
+
+  double sl, sr;
+
+  if (curved_spacetime_l || curved_spacetime_r) {
+    double vel_l[3];
+    double v_sq_l = 0.0;
+    vel_l[0] = vx_l; vel_l[1] = vy_l; vel_l[2] = vz_l;
+
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        v_sq_l += spatial_metric_l[i][j] * vel_l[i] * vel_l[j];
+      }
+    }
+
+    double shift_l[3];
+    shift_l[0] = shift_xl; shift_l[1] = shift_yl; shift_l[2] = shift_zl;
+
+    double material_eigs_l[3];
+    double fast_acoustic_eigs_l[3];
+    double slow_acoustic_eigs_l[3];
+
+    for (int i = 0; i < 3; i++) {
+      material_eigs_l[i] = (lapse_l * vel_l[i]) - shift_l[i];
+
+      fast_acoustic_eigs_l[i] = (lapse_l / (1.0 - (v_sq_l * (c_sl * c_sl)))) * ((vel_l[i] * (1.0 - (c_sl * c_sl))) +
+        (c_sl * sqrt((1.0 - v_sq_l) * (inv_spatial_metric_l[i][i] * (1.0 - (v_sq_l * (c_sl * c_sl))) - (vel_l[i] * vel_l[i]) * (1.0 - (c_sl * c_sl)))))) - shift_l[i];
+      
+      slow_acoustic_eigs_l[i] = (lapse_l / (1.0 - (v_sq_l * (c_sl * c_sl)))) * ((vel_l[i] * (1.0 - (c_sl * c_sl))) -
+        (c_sl * sqrt((1.0 - v_sq_l) * (inv_spatial_metric_l[i][i] * (1.0 - (v_sq_l * (c_sl * c_sl))) - (vel_l[i] * vel_l[i]) * (1.0 - (c_sl * c_sl)))))) - shift_l[i];
+    }
+
+    double max_eig_l = 0.0;
+    for (int i = 0; i < 3; i++) {
+      if (fabs(material_eigs_l[i]) > max_eig_l) {
+        max_eig_l = fabs(material_eigs_l[i]);
+      }
+      if (fabs(fast_acoustic_eigs_l[i]) > max_eig_l) {
+        max_eig_l = fabs(fast_acoustic_eigs_l[i]);
+      }
+      if (fabs(slow_acoustic_eigs_l[i]) > max_eig_l) {
+        max_eig_l = fabs(slow_acoustic_eigs_l[i]);
+      }
+    }
+
+    double vel_r[3];
+    double v_sq_r = 0.0;
+    vel_r[0] = vx_r; vel_r[1] = vy_r; vel_r[2] = vz_r;
+
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        v_sq_r += spatial_metric_r[i][j] * vel_r[i] * vel_r[j];
+      }
+    }
+
+    double shift_r[3];
+    shift_r[0] = shift_xr; shift_r[1] = shift_yr; shift_r[2] = shift_zr;
+
+    double material_eigs_r[3];
+    double fast_acoustic_eigs_r[3];
+    double slow_acoustic_eigs_r[3];
+
+    for (int i = 0; i < 3; i++) {
+      material_eigs_r[i] = (lapse_r * vel_r[i]) - shift_r[i];
+
+      fast_acoustic_eigs_r[i] = (lapse_r / (1.0 - (v_sq_r * (c_sl * c_sl)))) * ((vel_r[i] * (1.0 - (c_sl * c_sl))) +
+        (c_sl * sqrt((1.0 - v_sq_r) * (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_r * (c_sl * c_sl))) - (vel_r[i] * vel_r[i]) * (1.0 - (c_sl * c_sl)))))) - shift_r[i];
+      
+      slow_acoustic_eigs_r[i] = (lapse_r / (1.0 - (v_sq_r * (c_sl * c_sl)))) * ((vel_r[i] * (1.0 - (c_sl * c_sl))) -
+        (c_sl * sqrt((1.0 - v_sq_r) * (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_r * (c_sl * c_sl))) - (vel_r[i] * vel_r[i]) * (1.0 - (c_sl * c_sl)))))) - shift_r[i];
+    }
+
+    double max_eig_r = 0.0;
+    for (int i = 0; i < 3; i++) {
+      if (fabs(material_eigs_r[i]) > max_eig_r) {
+        max_eig_r = fabs(material_eigs_r[i]);
+      }
+      if (fabs(fast_acoustic_eigs_r[i]) > max_eig_r) {
+        max_eig_r = fabs(fast_acoustic_eigs_r[i]);
+      }
+      if (fabs(slow_acoustic_eigs_r[i]) > max_eig_r) {
+        max_eig_r = fabs(slow_acoustic_eigs_r[i]);
+      }
+    }
+
+    double max_eig_avg = 0.5 * (max_eig_l + max_eig_r);
+    
+    sl = (vx_avg - max_eig_avg) / (1.0 - (vx_avg * max_eig_avg));
+    sr = (vx_avg + max_eig_avg) / (1.0 + (vx_avg * max_eig_avg));
+  }
+  else {
+    sl = (vx_avg - cs_avg) / (1.0 - (vx_avg * cs_avg));
+    sr = (vx_avg + cs_avg) / (1.0 + (vx_avg * cs_avg));
+  }
+
+  double fl[71], fr[71];
+  gkyl_gr_euler_flux(gas_gamma, ql, fl);
+  gkyl_gr_euler_flux(gas_gamma, qr, fr);
+
+  double qm[71];
+  for (int i = 0; i < 71; i++) {
+    qm[i] = ((sr * qr[i]) - (sl * ql[i]) + (fl[i] - fr[i])) / (sr - sl);
+  }
+
+  double *w0 = &waves[0], *w1 = &waves[71];
+  if (!in_excision_region_l && !in_excision_region_r) {
+    for (int i = 0; i < 71; i++) {
+      w0[i] = qm[i] - ql[i];
+      w1[i] = qr[i] - qm[i];
+    }
+  }
+  else {
+    for (int i = 0; i < 71; i++) {
+      w0[i] = 0.0;
+      w1[i] = 0.0;
+    }
+  }
+
+  s[0] = sl;
+  s[1] = sr;
+
+  return fmax(fabs(sl), fabs(sr));
+}
+
+static void
+qfluct_hll(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
+{
+  const double *w0 = &waves[0], *w1 = &waves[71];
+  double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
+  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]);
+
+  for (int i = 0; i < 71; i++) {
+    amdq[i] = (s0m * w0[i]) + (s1m * w1[i]);
+    apdq[i] = (s0p * w0[i]) + (s1p * w1[i]);
+  }
+}
+
+static double
+wave_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX) {
+    return wave_hll(eqn, delta, ql, qr, waves, s);
+  }
+  else {
+    return wave_lax(eqn, delta, ql, qr, waves, s);
+  }
+
+  return 0.0; // Unreachable code.
+}
+
+static void
+qfluct_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
+  double* amdq, double* apdq)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX) {
+    return qfluct_hll(eqn, ql, qr, waves, s, amdq, apdq);
+  }
+  else {
+    return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
+  }
+}
+
+static double
 flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump)
 {
   const struct wv_gr_euler *gr_euler = container_of(eqn, struct wv_gr_euler, eqn);
@@ -1462,7 +1739,7 @@ gkyl_wv_gr_euler_new(double gas_gamma, enum gkyl_spacetime_gauge spacetime_gauge
       .spacetime_gauge = spacetime_gauge,
       .reinit_freq = reinit_freq,
       .spacetime = spacetime,
-      .rp_type = WV_GR_EULER_RP_ROE,
+      .rp_type = WV_GR_EULER_RP_HLL,
       .use_gpu = use_gpu,
     }
   );
@@ -1491,6 +1768,11 @@ gkyl_wv_gr_euler_inew(const struct gkyl_wv_gr_euler_inp* inp)
     gr_euler->eqn.num_waves = 3;
     gr_euler->eqn.waves_func = wave_roe_l;
     gr_euler->eqn.qfluct_func = qfluct_roe_l;
+  }
+  else if (inp->rp_type == WV_GR_EULER_RP_HLL) {
+    gr_euler->eqn.num_waves = 2;
+    gr_euler->eqn.waves_func = wave_hll_l;
+    gr_euler->eqn.qfluct_func = qfluct_hll_l;
   }
 
   gr_euler->eqn.flux_jump = flux_jump;

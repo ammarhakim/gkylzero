@@ -106,10 +106,10 @@ create_ctx(void)
   int Ny = 256; // Cell count (y-direction).
   double Lx = 1.0; // Domain size (x-direction).
   double Ly = 1.0; // Domain size (y-direction).
-  double cfl_frac = 0.95; // CFL coefficient.
+  double cfl_frac = 0.8; // CFL coefficient.
 
   enum gkyl_spacetime_gauge spacetime_gauge = GKYL_STATIC_GAUGE; // Spacetime gauge choice.
-  int reinit_freq = 100; // Spacetime reinitialization frequency.
+  int reinit_freq = INT_MAX; // Spacetime reinitialization frequency.
 
   double t_end = 0.4; // Final simulation time.
   int num_frames = 1; // Number of output frames.
@@ -431,7 +431,8 @@ main(int argc, char **argv)
     .equation = gr_euler,
     
     .init = evalGREulerInit,
-    .force_low_order_flux = true, // Use Lax fluxes.
+    .force_low_order_flux = false, // Use HLL fluxes.
+    .limiter = GKYL_MIN_MOD,
     .ctx = &ctx,
 
     .has_gr_euler = true,

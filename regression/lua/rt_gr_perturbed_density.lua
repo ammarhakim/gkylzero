@@ -22,7 +22,7 @@ pr = 5.0 -- Right fluid pressure.
 -- Simulation parameters.
 Nx = 4096 -- Cell count (x-direction).
 Lx = 1.0 -- Domain size (x-direction).
-cfl_frac = 0.95 -- CFL coefficient.
+cfl_frac = 0.85 -- CFL coefficient.
 
 reinit_freq = 100 -- Spacetime reinitialization frequency.
 
@@ -159,6 +159,8 @@ momentApp = Moments.App.new {
     end,
 
     evolve = true, -- Evolve species?
+    limiter = G0.WaveLimiter.MinMod,
+    forceLowOrderFlux = false, -- Use HLL fluxes.
     bcx = { G0.SpeciesBc.bcCopy, G0.SpeciesBc.bcCopy } -- Copy boundary conditions (x-direction).
   }
 }

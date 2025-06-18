@@ -35,7 +35,7 @@ Lx = 5.0 -- Domain size (x-direction).
 Ly = 5.0 -- Domain size (y-direction).
 cfl_frac = 0.95 -- CFL coefficient.
 
-reinit_freq = 100 -- Spacetime reinitialization frequency.
+reinit_freq = GKYL_MAX_INT -- Spacetime reinitialization frequency.
 
 t_end = 5.0 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
@@ -192,6 +192,7 @@ momentApp = Moments.App.new {
     end,
 
     evolve = true, -- Evolve species?
+    forceLowOrderFlux = true, -- Use Lax fluxes.
     bcx = { G0.SpeciesBc.bcCopy, G0.SpeciesBc.bcCopy }, -- Copy boundary conditions (x-direction).
     bcy = { G0.SpeciesBc.bcCopy, G0.SpeciesBc.bcCopy } -- Copy boundary conditions (y-direction).
   }

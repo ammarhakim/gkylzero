@@ -159,6 +159,7 @@ momentApp = Moments.App.new {
     end,
 
     evolve = true, -- Evolve species?
+    forceLowOrderFlux = true, -- Use Lax fluxes.
     bcx = { G0.SpeciesBc.bcCopy, G0.SpeciesBc.bcCopy } -- Copy boundary conditions (x-direction).
   }
 }

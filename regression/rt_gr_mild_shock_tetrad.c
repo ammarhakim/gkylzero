@@ -76,7 +76,7 @@ create_ctx(void)
   // Simulation parameters.
   int Nx = 4096; // Cell count (x-direction).
   double Lx = 1.0; // Domain size (x-direction).
-  double cfl_frac = 0.95; // CFL coefficient.
+  double cfl_frac = 0.85; // CFL coefficient.
 
   enum gkyl_spacetime_gauge spacetime_gauge = GKYL_STATIC_GAUGE; // Spacetime gauge choice.
   int reinit_freq = 100; // Spacetime reinitialization frequency.
@@ -352,7 +352,8 @@ main(int argc, char **argv)
     .equation = gr_euler_tetrad,
     
     .init = evalGREulerInit,
-    .force_low_order_flux = true, // Use Lax fluxes.
+    .force_low_order_flux = false, // Use HLL fluxes.
+    .limiter = GKYL_MIN_MOD,
     .ctx = &ctx,
 
     .has_gr_euler = true,
