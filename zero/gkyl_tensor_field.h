@@ -27,11 +27,10 @@ struct gkyl_tensor_field {
  * @param rank Rank of the tensor field
  * @param ndim Number of dimensions
  * @param size Number of indices 
- * @param iloc Integer index array of size GKYL_MAX_DIM which is either
- *             0 or 1, for covaraint or contravaraint elements respectively
+ * @param iloc Enum array of size GKYL_MAX_DIM which for lower or upper indices
  * @return Pointer to newly allocated tensor field.
  */
-struct gkyl_tensor_field *gkyl_tensor_field_new(size_t rank, size_t ndim, size_t size, int *iloc);
+struct gkyl_tensor_field *gkyl_tensor_field_new(size_t rank, size_t ndim, size_t size, const enum gkyl_tensor_index_loc *iloc);
 
 /**
  * Fetches a pointer to the tensor stored at the index 'loc'.
@@ -96,6 +95,15 @@ gkyl_tensor_field_elem_set(struct gkyl_tensor_field *ten, long loc, int idx[GKYL
   double *val = gkyl_tensor_field_fetch(ten, loc);
   val[ gkyl_range_idx(&ten->trange, idx) ] = ev;
 }
+
+/**
+ * Acquire pointer to tensor field. The pointer must be released using
+ * gkyl_tensor_field_release method.
+ *
+ * @param tfld Array to which a pointer is needed
+ * @return Pointer to acquired array
+ */
+struct gkyl_tensor_field* gkyl_tensor_field_acquire(const struct gkyl_tensor_field* tfld);
 
 /**
  * Release pointer to tensor field
