@@ -388,6 +388,109 @@ bmag_func(double r_curr, double Z, void *ctx)
   return bmag;
 }
 
+static void
+curlbhat_func(double r_curr, double Z, double phi, double *curlbhat, void *ctx)
+{
+  struct arc_length_ctx *actx = ctx;
+  double *arc_memo = actx->arc_memo;
+  double psi = actx->psi, rclose = actx->rclose, zmin = actx->zmin, arcL = actx->arcL, zmax = actx->zmax;
+  // Calculate fpol and fpolprime
+  // First get the location on the flux grid
+  double psi_fpol = psi;
+  if ( (psi_fpol < actx->geo->fgrid.lower[0]) || (psi_fpol > actx->geo->fgrid.upper[0]) ) // F = F(psi_sep) in the SOL.
+    psi_fpol = actx->geo->sibry;
+  int idx = fmin(actx->geo->frange.lower[0] + (int) floor((psi_fpol - actx->geo->fgrid.lower[0])/actx->geo->fgrid.dx[0]), actx->geo->frange.upper[0]);
+  long loc = gkyl_range_idx(&actx->geo->frange, &idx);
+  const double *coeffs = gkyl_array_cfetch(actx->geo->fpoldg,loc);
+  double fxc;
+  gkyl_rect_grid_cell_center(&actx->geo->fgrid, &idx, &fxc);
+  double fx = (psi_fpol-fxc)/(actx->geo->fgrid.dx[0]*0.5);
+  // Second calculate fpol and bphi 
+  double fpol = actx->geo->fbasis.eval_expand(&fx, coeffs);
+  double Bphi = fpol/r_curr;
+  // Third calculate fpolprime
+  coeffs = gkyl_array_cfetch(actx->geo->fpolprimedg,loc);
+  double fpolprime = actx->geo->fbasis.eval_expand(&fx, coeffs);
+
+
+  // Now calculate psi's various derivatives
+  double Br = 0.0, Bz = 0.0, bmag = 0.0;
+  double dpsidR = 0.0, dpsidZ = 0.0;
+  double d2psidR2 = 0.0, d2psidZ2 = 0.0, d2psidRdZ = 0.0;
+  double dBdR = 0.0, dBdZ = 0.0;
+  double dBrdR = 0.0, dBrdZ = 0.0;
+  double dBzdR = 0.0, dBzdZ = 0.0;
+
+  if (actx->geo->use_cubics) {
+    double xn[2] = {r_curr, Z};
+    double fout[4];
+    actx->geo->efit->evf->eval_cubic_wgrad(0.0, xn, fout, actx->geo->efit->evf->ctx);
+    dpsidR = fout[1];
+    dpsidZ = fout[2];
+    actx->geo->efit->evf->eval_cubic_wgrad(0.0, xn, fout, actx->geo->efit->evf->ctx);
+    d2psidR2 = fout[1];
+    d2psidZ2 = fout[2];
+    d2psidRdZ = fout[3];
+  }
+  else {
+    int rzidx[2];
+    int idxtemp = actx->geo->rzlocal.lower[0] + (int) floor((r_curr - actx->geo->rzgrid.lower[0])/actx->geo->rzgrid.dx[0]);
+    idxtemp = GKYL_MIN2(idxtemp, actx->geo->rzlocal.upper[0]);
+    idxtemp = GKYL_MAX2(idxtemp, actx->geo->rzlocal.lower[0]);
+    rzidx[0] = idxtemp;
+    idxtemp = actx->geo->rzlocal.lower[1] + (int) floor((Z - actx->geo->rzgrid.lower[1])/actx->geo->rzgrid.dx[1]);
+    idxtemp = GKYL_MIN2(idxtemp, actx->geo->rzlocal.upper[1]);
+    idxtemp = GKYL_MAX2(idxtemp, actx->geo->rzlocal.lower[1]);
+    rzidx[1] = idxtemp;
+
+    long loc = gkyl_range_idx((&actx->geo->rzlocal), rzidx);
+    const double *psih = gkyl_array_cfetch(actx->geo->psiRZ, loc);
+
+    double xc[2];
+    gkyl_rect_grid_cell_center((&actx->geo->rzgrid), rzidx, xc);
+    double x = (r_curr-xc[0])/(actx->geo->rzgrid.dx[0]*0.5);
+    double y = (Z-xc[1])/(actx->geo->rzgrid.dx[1]*0.5);
+
+    double dpsidx = 5.625*psih[8]*(2.0*x*SQ(y)-0.6666666666666666*x)+2.904737509655563*psih[7]*(SQ(y)-0.3333333333333333)+5.809475019311126*psih[6]*x*y+1.5*psih[3]*y+3.354101966249684*psih[4]*x+0.8660254037844386*psih[1];
+    double dpsidy = 5.625*psih[8]*(2.0*SQ(x)*y-0.6666666666666666*y)+5.809475019311126*psih[7]*x*y+3.354101966249684*psih[5]*y+2.904737509655563*psih[6]*(SQ(x)-0.3333333333333333)+1.5*psih[3]*x+0.8660254037844386*psih[2];
+    dpsidR = dpsidx*2.0/actx->geo->rzgrid.dx[0];
+    dpsidZ = dpsidy*2.0/actx->geo->rzgrid.dx[1];
+    double d2psidx2 = 11.25*psih[8]*y*y+5.809475019311125*psih[6]*y-3.75*psih[8]+3.354101966249685*psih[4];
+    double d2psidy2 = 11.25*psih[8]*x*x+5.809475019311125*psih[7]*x-3.75*psih[8]+3.354101966249685*psih[5];
+    double d2psidxdy = 22.5*psih[8]*x*y+5.809475019311125*psih[7]*y+5.809475019311125*psih[6]*x+1.5*psih[3]; 
+    d2psidR2 = d2psidx2*(2.0/actx->geo->rzgrid.dx[0])*(2.0/actx->geo->rzgrid.dx[0]);
+    d2psidZ2 = d2psidy2*(2.0/actx->geo->rzgrid.dx[1])*(2.0/actx->geo->rzgrid.dx[1]);
+    d2psidRdZ = d2psidxdy*(2.0/actx->geo->rzgrid.dx[0])*(2.0/actx->geo->rzgrid.dx[1]);
+  }
+
+  Br = 1.0/r_curr*dpsidZ;
+  Bz = -1.0/r_curr*dpsidR;
+  bmag = sqrt(Br*Br+Bz*Bz+Bphi*Bphi);
+
+  dBrdR  = 1.0/r_curr*d2psidRdZ;
+  dBrdZ  = 1.0/r_curr*d2psidZ2;
+  dBzdR  = -1.0/r_curr*d2psidR2;
+  dBzdZ  = -1.0/r_curr*d2psidRdZ;
+
+
+  double dFdR = fpolprime*dpsidR;
+  double dFdZ = fpolprime*dpsidZ;
+  dBdR = 1/bmag*(Br*dBrdR + Bz*dBzdR + fpol/r_curr*(dFdR/r_curr - fpol/r_curr/r_curr));
+  dBdZ = 1/bmag*(Br*dBrdZ + Bz*dBzdZ + fpol/r_curr*dFdZ);
+
+  // Get the polar components (contravariant, upperscript components on tangent basis)
+  double polar_comp[3] = {0.0};
+  polar_comp[0] = 1.0/bmag*-1.0/r_curr*dFdZ - 1.0/bmag*1.0/bmag*dBdZ*fpol/r_curr; // R component ^1
+  polar_comp[1] = 1.0/bmag*1.0/r_curr*(dBrdZ - dBzdR) + (-dBdR*Bz/r_curr + dBdZ*Br/r_curr); // Phi component ^2
+  polar_comp[2] = 1.0/bmag*1.0/r_curr*dFdR + 1.0/bmag*1.0/bmag*dBdR*fpol/r_curr;
+
+  // Convert to cartesian
+  curlbhat[0] = polar_comp[0] * cos(phi) - polar_comp[1] * sin(phi) * r_curr;
+  curlbhat[1] = polar_comp[0] * sin(phi) + polar_comp[1] * cos(phi) * r_curr;
+  curlbhat[2] = polar_comp[2];
+}
+
+
 
 
 
@@ -421,6 +524,7 @@ gkyl_tok_geo_new(const struct gkyl_efit_inp *inp, const struct gkyl_tok_geo_grid
   geo->frange = geo->efit->fluxlocal;
   geo->frange_ext = geo->efit->fluxlocal_ext;
   geo->fpoldg= gkyl_array_acquire(geo->efit->fpolflux);
+  geo->fpolprimedg= gkyl_array_acquire(geo->efit->fpolprimeflux);
   geo->qdg= gkyl_array_acquire(geo->efit->qflux);
   geo->sibry = geo->efit->sibry;
   geo->psisep = geo->efit->psisep;
@@ -851,6 +955,7 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
           double *ddtheta_n = gkyl_array_fetch(up->geo_int.ddtheta_nodal, gkyl_range_idx(nrange, cidx));
           double *mc2p_n = gkyl_array_fetch(up->geo_int.mc2p_nodal, gkyl_range_idx(nrange, cidx));
           double *bmag_n = gkyl_array_fetch(up->geo_int.bmag_nodal, gkyl_range_idx(nrange, cidx));
+          double *curlbhat_n = gkyl_array_fetch(up->geo_int.curlbhat_nodal, gkyl_range_idx(nrange, cidx));
 
           mc2p_fd_n[lidx+X_IDX] = r_curr;
           mc2p_fd_n[lidx+Y_IDX] = z_curr;
@@ -864,6 +969,7 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
             mc2p_n[lidx+Y_IDX] = z_curr;
             mc2p_n[lidx+Z_IDX] = phi_curr;
             bmag_n[0] = bmag_func(r_curr, z_curr, &arc_ctx);
+            curlbhat_func(r_curr, z_curr, phi_curr, curlbhat_n, &arc_ctx);
           }
         }
       }
@@ -892,6 +998,7 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
           double *ddtheta_n = gkyl_array_fetch(up->geo_int.ddtheta_nodal, gkyl_range_idx(nrange, cidx));
           double *mc2p_n = gkyl_array_fetch(up->geo_int.mc2p_nodal, gkyl_range_idx(nrange, cidx));
           double *bmag_n = gkyl_array_fetch(up->geo_int.bmag_nodal, gkyl_range_idx(nrange, cidx));
+          double *curlbhat_n = gkyl_array_fetch(up->geo_int.curlbhat_nodal, gkyl_range_idx(nrange, cidx));
 
           int donor_cidx[3] ;
           donor_cidx[AL_IDX] = nrange->lower[AL_IDX];
@@ -902,6 +1009,7 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
           double *donor_ddtheta_n = gkyl_array_fetch(up->geo_int.ddtheta_nodal, gkyl_range_idx(nrange, donor_cidx));
           double *donor_mc2p_n = gkyl_array_fetch(up->geo_int.mc2p_nodal, gkyl_range_idx(nrange, donor_cidx));
           double *donor_bmag_n = gkyl_array_fetch(up->geo_int.bmag_nodal, gkyl_range_idx(nrange, donor_cidx));
+          double *donor_curlbhat_n = gkyl_array_fetch(up->geo_int.curlbhat_nodal, gkyl_range_idx(nrange, donor_cidx));
 
           mc2p_fd_n[lidx+X_IDX] =  donor_mc2p_fd_n[lidx+X_IDX];
           mc2p_fd_n[lidx+Y_IDX] =  donor_mc2p_fd_n[lidx+Y_IDX];
@@ -914,6 +1022,9 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
             mc2p_n[lidx+Y_IDX] = donor_mc2p_n[lidx+Y_IDX];
             mc2p_n[lidx+Z_IDX] = donor_mc2p_n[lidx+Z_IDX];
             bmag_n[0] = donor_bmag_n[0];
+            curlbhat_n[0] = donor_curlbhat_n[0];
+            curlbhat_n[1] = donor_curlbhat_n[1];
+            curlbhat_n[2] = donor_curlbhat_n[2];
           }
         }
       }
@@ -1099,6 +1210,7 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
           double *mc2p_fd_n = gkyl_array_fetch(up->geo_surf[dir].mc2p_nodal_fd, gkyl_range_idx(nrange, cidx));
           double *ddtheta_n = gkyl_array_fetch(up->geo_surf[dir].ddtheta_nodal, gkyl_range_idx(nrange, cidx));
           double *bmag_n = gkyl_array_fetch(up->geo_surf[dir].bmag_nodal, gkyl_range_idx(nrange, cidx));
+          double *curlbhat_n = gkyl_array_fetch(up->geo_surf[dir].curlbhat_nodal, gkyl_range_idx(nrange, cidx));
 
           mc2p_fd_n[lidx+X_IDX] = r_curr;
           mc2p_fd_n[lidx+Y_IDX] = z_curr;
@@ -1109,6 +1221,7 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
             ddtheta_n[1] = cos(atan(dr_curr))*arc_ctx.arcL_tot/2.0/M_PI*dTheta_dtheta;
             ddtheta_n[2] = dphidtheta_func(z_curr, &arc_ctx)*dTheta_dtheta;
             bmag_n[0] = bmag_func(r_curr, z_curr, &arc_ctx);
+            curlbhat_func(r_curr, z_curr, phi_curr, curlbhat_n, &arc_ctx);
           }
         }
       }
@@ -1136,15 +1249,17 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
           double *mc2p_fd_n = gkyl_array_fetch(up->geo_surf[dir].mc2p_nodal_fd, gkyl_range_idx(nrange, cidx));
           double *ddtheta_n = gkyl_array_fetch(up->geo_surf[dir].ddtheta_nodal, gkyl_range_idx(nrange, cidx));
           double *bmag_n = gkyl_array_fetch(up->geo_surf[dir].bmag_nodal, gkyl_range_idx(nrange, cidx));
+          double *curlbhat_n = gkyl_array_fetch(up->geo_surf[dir].curlbhat_nodal, gkyl_range_idx(nrange, cidx));
 
           int donor_cidx[3] ;
           donor_cidx[AL_IDX] = nrange->lower[AL_IDX];
           donor_cidx[PSI_IDX] = ip;
           donor_cidx[TH_IDX] = it;
 
-          double *donor_mc2p_fd_n = gkyl_array_fetch(up->geo_int.mc2p_nodal_fd, gkyl_range_idx(nrange, donor_cidx));
-          double *donor_ddtheta_n = gkyl_array_fetch(up->geo_int.ddtheta_nodal, gkyl_range_idx(nrange, donor_cidx));
-          double *donor_bmag_n = gkyl_array_fetch(up->geo_int.bmag_nodal, gkyl_range_idx(nrange, donor_cidx));
+          double *donor_mc2p_fd_n = gkyl_array_fetch(up->geo_surf[dir].mc2p_nodal_fd, gkyl_range_idx(nrange, donor_cidx));
+          double *donor_ddtheta_n = gkyl_array_fetch(up->geo_surf[dir].ddtheta_nodal, gkyl_range_idx(nrange, donor_cidx));
+          double *donor_bmag_n = gkyl_array_fetch(up->geo_surf[dir].bmag_nodal, gkyl_range_idx(nrange, donor_cidx));
+          double *donor_curlbhat_n = gkyl_array_fetch(up->geo_surf[dir].curlbhat_nodal, gkyl_range_idx(nrange, donor_cidx));
 
           mc2p_fd_n[lidx+X_IDX] =  donor_mc2p_fd_n[lidx+X_IDX];
           mc2p_fd_n[lidx+Y_IDX] =  donor_mc2p_fd_n[lidx+Y_IDX];
@@ -1154,6 +1269,9 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
             ddtheta_n[1] = donor_ddtheta_n[1];
             ddtheta_n[2] = donor_ddtheta_n[2];
             bmag_n[0] = donor_bmag_n[0];
+            curlbhat_n[0] = donor_curlbhat_n[0];
+            curlbhat_n[1] = donor_curlbhat_n[1];
+            curlbhat_n[2] = donor_curlbhat_n[2];
           }
         }
       }
@@ -1184,6 +1302,7 @@ gkyl_tok_geo_release(struct gkyl_tok_geo *geo)
   gkyl_array_release(geo->psiRZ);
   gkyl_array_release(geo->psiRZ_cubic);
   gkyl_array_release(geo->fpoldg);
+  gkyl_array_release(geo->fpolprimedg);
   gkyl_array_release(geo->qdg);
   gkyl_efit_release(geo->efit);
   gkyl_free(geo);
