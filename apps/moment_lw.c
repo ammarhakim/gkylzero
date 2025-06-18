@@ -2753,6 +2753,16 @@ moment_species_lw_new(lua_State *L)
     mom_species.medium_kappa = glua_tbl_get_number(L, "mediumKappa", 8.0 * M_PI);
   }
 
+  mom_species.has_gr_ultra_rel = glua_tbl_get_bool(L, "hasGRUltraRel", false);
+  if (mom_species.has_gr_ultra_rel) {
+    mom_species.gr_ultra_rel_gas_gamma = glua_tbl_get_number(L, "GRUltraRelGasGamma", 5.0 / 3.0);
+  }
+
+  mom_species.has_gr_euler = glua_tbl_get_bool(L, "hasGREuler", false);
+  if (mom_species.has_gr_euler) {
+    mom_species.gr_euler_gas_gamma = glua_tbl_get_number(L, "GREulerGasGamma", 5.0 / 3.0);
+  }
+  
   mom_species.type_brag = glua_tbl_get_integer(L, "braginskiiType", 0);
 
   struct moment_species_lw *moms_lw = lua_newuserdata(L, sizeof(*moms_lw));

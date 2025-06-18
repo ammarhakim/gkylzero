@@ -74,6 +74,9 @@ momentApp = Moments.App.new {
       },
       reinitFreq = reinit_freq
     },
+
+    hasGRUltraRel = true,
+    GRUltraRelGasGamma = gas_gamma,
   
     -- Initial conditions function.
     init = function (t, xn)

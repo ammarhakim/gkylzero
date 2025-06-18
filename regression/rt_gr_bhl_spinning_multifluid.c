@@ -19,7 +19,7 @@
 
 #include <rt_arg_parse.h>
 
-struct bhl_static_multifluid_ctx
+struct bhl_spinning_multifluid_ctx
 {
   // Physical constants (using normalized code units).
   double gas_gamma_elc; // Adiabatic index (electrons).
@@ -76,7 +76,7 @@ struct bhl_static_multifluid_ctx
   double x_loc; // Shock location (x-direction).
 };
 
-struct bhl_static_multifluid_ctx
+struct bhl_spinning_multifluid_ctx
 create_ctx(void)
 {
   // Physical constants (using normalized code units).
@@ -105,7 +105,7 @@ create_ctx(void)
 
   // Spacetime parameters (using geometric units).
   double mass = 0.3; // Mass of the black hole.
-  double spin = 0.0; // Spin of the black hole.
+  double spin = -0.9; // Spin of the black hole.
 
   double pos_x = 2.5; // Position of the black hole (x-direction).
   double pos_y = 2.5; // Position of the black hole (y-direction).
@@ -133,7 +133,7 @@ create_ctx(void)
 
   double x_loc = 1.0; // Shock location (x-direction).
 
-  struct bhl_static_multifluid_ctx ctx = {
+  struct bhl_spinning_multifluid_ctx ctx = {
     .gas_gamma_elc = gas_gamma_elc,
     .gas_gamma_ion = gas_gamma_ion,
     .mass_ion = mass_ion,
@@ -180,7 +180,7 @@ void
 evalGRTwoFluidInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0], y = xn[1];
-  struct bhl_static_multifluid_ctx *app = ctx;
+  struct bhl_spinning_multifluid_ctx *app = ctx;
 
   double gas_gamma_elc = app->gas_gamma_elc;
   double gas_gamma_ion = app->gas_gamma_ion;
@@ -443,7 +443,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct bhl_static_multifluid_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct bhl_spinning_multifluid_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
@@ -540,7 +540,7 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "gr_bhl_static_multifluid",
+    .name = "gr_bhl_spinning_multifluid",
 
     .ndim = 2,
     .lower = { 0.0, 0.0 },
