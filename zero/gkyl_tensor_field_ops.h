@@ -42,3 +42,10 @@ void gkyl_tensor_field_lower_idx_set(const struct gkyl_tensor_field *metric, int
  */
 void gkyl_tensor_field_raise_idx_set(const struct gkyl_tensor_field *metric, int raised_idx, 
   const struct gkyl_tensor_field *ten, struct gkyl_tensor_field *ten_out);
+
+/**
+ * Host-side wrappers for array operations
+ */
+void
+tensor_field_raise_or_lower_idx_set_cu(const struct gkyl_tensor_field *met, int raised_idx, 
+  const struct gkyl_tensor_field *ten, struct gkyl_tensor_field *tensor_out);

@@ -46,7 +46,7 @@ void test_tensor_field_raise_idx_in_place()
 
   // Compute h^ij h_jk
   int idx_to_raise = 0;
-  gkyl_tensor_field_raise_idx_in_place(diag_metric_contra,idx_to_raise, diag_metric_cov); 
+  gkyl_tensor_field_raise_idx_in_place(diag_metric_contra, idx_to_raise, diag_metric_cov); 
 
   // test that the result is delta^i_j
   for (unsigned i=0; i<size; ++i){

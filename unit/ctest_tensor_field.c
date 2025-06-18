@@ -184,11 +184,69 @@ void test_tensor_field_set()
   gkyl_tensor_field_release(tfld2);
 }
 
+// Cuda specific tests
+#ifdef GKYL_HAVE_CUDA
+
+void test_cu_tensor_field_base()
+{
+
+  int rank = 2; 
+  int ndim = 3;
+  int size = 10;
+
+  enum gkyl_tensor_index_loc iloc[GKYL_MAX_DIM];
+  for (int i=0; i<rank; ++i)  
+    iloc[i] = GKYL_TENSOR_INDEX_LOWER;
+
+  struct gkyl_tensor_field *tfld_cu = gkyl_tensor_field_cu_dev_new(rank,ndim,size,iloc);
+
+  TEST_CHECK( tfld_cu->rank == 2 );
+  TEST_CHECK( tfld_cu->ndim == 3 );
+  TEST_CHECK( tfld_cu->size == 10 );
+  TEST_CHECK( tfld_cu->ref_count.count == 1 );
+
+   TEST_CHECK( gkyl_tensor_field_is_cu_dev(tfld_cu) == true );
+
+  TEST_CHECK( tfld_cu->tdata->size == size );
+  TEST_CHECK( tfld_cu->tdata->ncomp == pow(ndim,rank) );
+
+  // create host array and initialize it
+  struct gkyl_tensor_field *tfld = gkyl_tensor_field_new(rank,ndim,size,iloc);
+
+  gkyl_tensor_field_copy(tfld, tfld_cu);
+
+  double *tfldData = tfld->tdata->data;
+  // Iterate over the array (with is size*(ndim)^rank)
+  for (unsigned i=0; i<tfld->tdata->size; ++i){
+    TEST_CHECK( tfldData[i] == 0. );
+    tfldData[i] = (i+0.5)*0.1;
+  }
+
+  gkyl_tensor_field_copy(tfld_cu, tfld);
+
+  for (unsigned i=0; i<tfld->tdata->size; ++i){
+    tfldData[i] = (i+0.5)*0.1;
+  }
+
+  gkyl_tensor_field_copy(tfld, tfld_cu);
+
+  for (unsigned i=0; i<tfld->tdata->size; ++i)
+    TEST_CHECK( tfldData[i] == (i+0.5)*0.1 );
+
+  gkyl_tensor_field_release(tfld);
+  gkyl_tensor_field_release(tfld_cu);
+}
+
+#endif
+
 
 TEST_LIST = {
   { "test_tensor_field", test_tensor_field },  
   { "test_tensor_field_base", test_tensor_field_base },
   { "test_tensor_field_fetch", test_tensor_field_fetch },
   { "test_tensor_field_set", test_tensor_field_set },
+#ifdef GKYL_HAVE_CUDA
+  { "cu_tensor_field_base", test_cu_tensor_field_base },
+#endif
   { NULL, NULL },
 };
