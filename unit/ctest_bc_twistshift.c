@@ -650,8 +650,8 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   // Need the magnetic field to be initialized in the ghost cell in order to
   // compute integrated moments in the ghost cell (for checking moment
   // conservation).
-  gkyl_array_clear(gk_geom->bmag, 0.0);
-  gkyl_array_shiftc(gk_geom->bmag, B0*pow(sqrt(2.0),cdim), 0);
+  gkyl_array_clear(gk_geom->geo_int.bmag, 0.0);
+  gkyl_array_shiftc(gk_geom->geo_int.bmag, B0*pow(sqrt(2.0),cdim), 0);
 
   struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &basis_conf,
     &basis, &local_conf, mass, 0, gvm, gk_geom, NULL, GKYL_F_MOMENT_M0M1M2, true, use_gpu);
@@ -1391,8 +1391,8 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
   // Need the magnetic field to be initialized in the ghost cell in order to
   // compute integrated moments in the ghost cell (for checking moment
   // conservation).
-  gkyl_array_clear(gk_geom->bmag, 0.0);
-  gkyl_array_shiftc(gk_geom->bmag, B0*pow(sqrt(2.0),cdim), 0);
+  gkyl_array_clear(gk_geom->geo_int.bmag, 0.0);
+  gkyl_array_shiftc(gk_geom->geo_int.bmag, B0*pow(sqrt(2.0),cdim), 0);
 
   struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &basis_conf,
     &basis, &local_conf, mass, 0, gvm, gk_geom, NULL, GKYL_F_MOMENT_M0M1M2, true, use_gpu);

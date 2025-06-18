@@ -28,27 +28,32 @@ typedef   void (*plate_func)(double s, double* RZ);
 // Type of flux surface
 enum gkyl_tok_geo_type {
   // Full blocks to be used as stand alone simulations
-  GKYL_SOL_DN_OUT, // Full Outboard SOL of double-null configuration
-  GKYL_SOL_DN_IN, // Full Inboard SOL of double-null configuration
-  GKYL_SOL_SN_LO, // Full SOL of a lower single-null configuration
-  GKYL_SOL_SN_UP, // Full SOL of an upper single-null configuration -- not yet implemented
+  GKYL_DN_SOL_OUT, // Full Outboard SOL of double-null (DN) configuration
+  GKYL_DN_SOL_IN, // Full Inboard SOL of DN configuration
+  GKYL_LSN_SOL, // Full SOL of a lower single-null (LSN) configuration
+  GKYL_USN_UP, // Full SOL of an upper single-null (USN) configuration -- not yet implemented
   GKYL_CORE, // Full core
-  //GKYL_PF_LO, // Full lower PF
-  //GKYL_PF_UP, // Full upper PF
 
-  // 12 Blocks to be used for multiblock double null whold device simulations
-  GKYL_SOL_DN_OUT_LO,  // Section of outboard SOL below lower xpt
-  GKYL_SOL_DN_OUT_MID, // Section of outboard SOL between xpts
-  GKYL_SOL_DN_OUT_UP,  // Section of outboard SOL above upper xpt
-  GKYL_SOL_DN_IN_LO,   // Section of inboard SOL below lower xpt
-  GKYL_SOL_DN_IN_MID,  // Section of inboard SOL between xpts
-  GKYL_SOL_DN_IN_UP,   // Section of inboard SOL above upper xpt 
+  // 6 SOL Block Types for DN multi-block simulations
+  GKYL_DN_SOL_OUT_LO,  // Section of outboard SOL below lower xpt
+  GKYL_DN_SOL_OUT_MID, // Section of outboard SOL between xpts
+  GKYL_DN_SOL_OUT_UP,  // Section of outboard SOL above upper xpt
+  GKYL_DN_SOL_IN_LO,   // Section of inboard SOL below lower xpt
+  GKYL_DN_SOL_IN_MID,  // Section of inboard SOL between xpts
+  GKYL_DN_SOL_IN_UP,   // Section of inboard SOL above upper xpt 
+  
+  // 3 SOL Block Types for LSN multi-block simulations
+  GKYL_LSN_SOL_LO, // Outboard divertor leg of LSN
+  GKYL_LSN_SOL_MID, // Middle portion of LSN SOL between X-points
+  GKYL_LSN_SOL_UP, // Inboard divertor leg of LSN
 
+  // PF Block types that can be used with SN or DN configurations in multi-block simulations
   GKYL_PF_UP_L, // Left half of Private flux region at top (inboard upper plate to upper xpt)
   GKYL_PF_UP_R, // Right half of Private flux region at top (upper xpt to outboard upper plate)
   GKYL_PF_LO_L, // Left half of Private flux region at bottom (lower xpt to inboard lower plate)
   GKYL_PF_LO_R, // Right half of Private flux region at bottom (outboard lower plate to lower xpt)
 
+  // Core Block types that can be used with SN or DN configurations in multi-block simulations 
   GKYL_CORE_L, // Left half of core (lower to upper xpt)
   GKYL_CORE_R, // Right half of core (upper to lower xpt)
 
@@ -208,28 +213,43 @@ void gkyl_tok_geo_mapc2p(const struct gkyl_tok_geo *geo, const struct gkyl_tok_g
     const double *xn, double *ret);
 
 /**
- * Compute geometry (mapc2p) on a specified computational grid. The
- * output array must be pre-allocated by the caller.
+ * Compute geometry (mapc2p) on a specified computational grid.
  *
  * @param up gk_geometry object
  * @param nodal range of computational grid
  * @param dzc grid spacing of nodal range
  * @param geo gkyl_tok_geo object with efit dats and root finder specs 
  * @param inp tok_geo_grid_inp Input structure for creating mapc2p
- * @param mc2p_nodal_fd output nodal field to be filled with R,Z,phi at grid nodes
- *  and nodes epsilon away to be used for FD
- * @param mc2p_nodal output nodal mapc2p field R,Z,phi)
- * @param mc2p On output, the DG representation of mapc2p ((R,Z,phi)
- * @param ddtheta_nodal output nodal field containing dR/dtheta, dZ/dtheta, and dphi/dtheta = s(psi)/R|grad(psi)|
- * @param mc2nu_pos_nodal output nodal field containing the non-uniform mapping
- * @param mc2nu_pos output DG field containing the non-uniform mapping
  * @param position_map position map object
  */
-void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
-  struct gkyl_tok_geo* geo, struct gkyl_tok_geo_grid_inp *inp, struct gkyl_array *mc2p_nodal_fd,
-  struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, struct gkyl_array *ddtheta_nodal,
-  struct gkyl_array *mc2nu_nodal, struct gkyl_array *mc2nu_pos,
-  struct gkyl_position_map *position_map);
+void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, 
+  struct gkyl_tok_geo* geo, struct gkyl_tok_geo_grid_inp *inp, struct gkyl_position_map *position_map);
+
+/**
+ * Compute geometry (mapc2p) on a specified computational grid.
+ *
+ * @param up gk_geometry object
+ * @param nodal range of computational grid
+ * @param dzc grid spacing of nodal range
+ * @param geo gkyl_tok_geo object with efit dats and root finder specs 
+ * @param inp tok_geo_grid_inp Input structure for creating mapc2p
+ * @param position_map position map object
+ */
+void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
+  struct gkyl_tok_geo* geo, struct gkyl_tok_geo_grid_inp *inp, struct gkyl_position_map *position_map);
+
+/**
+ * Compute geometry (mapc2p) on a specified computational grid.
+ *
+ * @param up gk_geometry object
+ * @param nodal range of computational grid
+ * @param dzc grid spacing of nodal range
+ * @param geo gkyl_tok_geo object with efit dats and root finder specs 
+ * @param inp tok_geo_grid_inp Input structure for creating mapc2p
+ * @param position_map position map object
+ */
+void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_range *nrange, double dzc[3], 
+  struct gkyl_tok_geo* geo, struct gkyl_tok_geo_grid_inp *inp, struct gkyl_position_map *position_map);
 
 
 /*

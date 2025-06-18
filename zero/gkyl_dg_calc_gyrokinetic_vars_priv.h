@@ -13,6 +13,7 @@
 typedef int (*gyrokinetic_alpha_surf_t)(const double *w, const double *dxv, 
   const double *vmap, const double *vmapSq, const double q_, const double m_, 
   const double *bmag, const double *jacobtot_inv, const double *cmag, const double *b_i, 
+  const double *bmag_surf, const double *jacobtot_inv_surf, const double *cmag_surf, const double *b_i_surf, 
   const double *phi, double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
@@ -261,6 +262,6 @@ gkyl_dg_calc_gyrokinetic_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid
  */
 void gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu(struct gkyl_dg_calc_gyrokinetic_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
+  const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
   struct gkyl_array* alpha_surf, struct gkyl_array* sgn_alpha_surf, struct gkyl_array* const_sgn_alpha);
 #endif

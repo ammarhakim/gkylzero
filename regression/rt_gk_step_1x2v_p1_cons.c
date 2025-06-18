@@ -85,7 +85,7 @@ struct gkyl_efit_inp inp = {
 
 
 struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_SOL_DN_OUT,  // type of geometry
+    .ftype = GKYL_DN_SOL_OUT,  // type of geometry
     .rclose = 6.2,             // closest R to region of interest
     .rright= 6.2,              // Closest R to outboard SOL
     .rleft= 2.0,               // closest R to inboard SOL
@@ -582,7 +582,7 @@ main(int argc, char **argv)
     },
 
     .num_diag_moments = 3,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2}, //, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
+    .diag_moments = { GKYL_F_MOMENT_M1_FROM_H, GKYL_F_MOMENT_ENERGY, GKYL_F_MOMENT_LTE},
   };
 
   // Field.

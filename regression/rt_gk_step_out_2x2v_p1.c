@@ -383,7 +383,7 @@ main(int argc, char **argv)
     .upper = {  ctx.vpar_max_elc, ctx.mu_max_elc}, 
     .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
-    .no_by = false,
+    .no_by = true,
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -464,7 +464,7 @@ main(int argc, char **argv)
     .upper = {  ctx.vpar_max_ion, ctx.mu_max_ion}, 
     .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
-    .no_by = false,
+    .no_by = true,
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -554,7 +554,7 @@ main(int argc, char **argv)
   };
 
   struct gkyl_tok_geo_grid_inp grid_inp = {
-    .ftype = GKYL_SOL_DN_OUT,     // type of geometry
+    .ftype = GKYL_DN_SOL_OUT,     // type of geometry
     .rclose = 6.2,                // closest R to region of interest
     .rright = 6.2,                // Closest R to outboard SOL
     .rleft = 2.0,                 // closest R to inboard SOL
@@ -576,7 +576,7 @@ main(int argc, char **argv)
     .poly_order = 1,
     .basis_type = app_args.basis_type,
     .cfl_frac = 0.5,
-    .cfl_frac_omegaH = 1e10,
+//    .cfl_frac_omegaH = 1e10,
 
     .geometry = {
       .world = {0.0},

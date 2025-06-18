@@ -106,6 +106,17 @@ struct gyrokinetic_output_meta {
   char basis_type_nm[64]; // used during read
 };
 
+enum gk_extra_meta_type {
+  GKYL_GK_META_NONE = 0,
+  GKYL_GK_META_GEO,
+  GKYL_GK_META_SOURCE,
+  GKYL_GK_META_RECYCLING,
+};
+
+struct gyrokinetic_output_meta_geo {
+  int geqdsk_sign_convention; // sign convention for geqdsk
+};
+
 // struct for holding moment correction inputs
 struct correct_all_moms_inp {
   bool correct_all_moms; // boolean if we are correcting all the moments or only density
@@ -619,7 +630,7 @@ struct gk_species {
 
   struct gkyl_velocity_map *vel_map; // Velocity mapping objects.
 
-  struct gkyl_array *f, *f1, *fnew; // arrays for updates
+  struct gkyl_array *f, *f1, *fnew, *fghost_vol; // arrays for updates
   struct gkyl_array *cflrate; // CFL rate in each cell
   struct gkyl_array *cflrate_ho; // CFL rate in each cell on host-side
   struct gkyl_array *bc_buffer; // buffer for BCs (used by bc_basic)
@@ -1094,10 +1105,12 @@ struct gkyl_gyrokinetic_app {
  * gk_array_meta_release.
  *
  * @param meta Gyrokinetic metadata object.
+ * @param extra_meta_type Extra Gyrokinetic metadata type.
+ * @param extra_meta Extra Gyrokinetic metadata.
  * @return Array metadata object.
  */
 struct gkyl_msgpack_data*
-gk_array_meta_new(struct gyrokinetic_output_meta meta);
+gk_array_meta_new(struct gyrokinetic_output_meta meta, enum gk_extra_meta_type extra_meta_type, void *extra_meta);
 
 /**
  * Free memory for array metadata object.
@@ -1111,10 +1124,12 @@ gk_array_meta_release(struct gkyl_msgpack_data *mt);
  * Return the metadata for outputing gyrokinetic data.
  *
  * @param mt Array metadata object.
+ * @param extra_meta_type Extra Gyrokinetic metadata type.
+ * @param extra_meta Extra Gyrokinetic metadata.
  * @return A gyrokinetic metadata object.
  */
 struct gyrokinetic_output_meta
-gk_meta_from_mpack(struct gkyl_msgpack_data *mt);
+gk_meta_from_mpack(struct gkyl_msgpack_data *mt, enum gk_extra_meta_type extra_meta_type, void *extra_meta);
 
 /**
  * Allocate a new gyrokinetic app and initialize its conf-space grid and

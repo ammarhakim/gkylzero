@@ -2,6 +2,7 @@
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
 #include <gkyl_gk_geometry.h>
+#include <gkyl_gk_geometry_priv.h>
 #include <gkyl_gk_geometry_mirror.h>
 #include <gkyl_gk_geometry_mirror_priv.h>
 #include <gkyl_position_map.h>
@@ -76,7 +77,6 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
     gk_geometry_mirror_array_copy(up, mirror_geo_dg);
   }
 
-
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->ref_count = gkyl_ref_count_init(gkyl_gk_geometry_free);
@@ -86,6 +86,7 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
   gkyl_mirror_geo_gen_release(mirror_geo);
   gkyl_mirror_geo_dg_release(mirror_geo_dg);
   gkyl_array_release(psi);
+
   return up;
 }
 
@@ -115,7 +116,7 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
         gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
 
       gkyl_position_map_set_bmag(geometry_inp->position_map, geometry_inp->comm, \
-        gk_geom->bmag);
+        gk_geom->geo_int.bmag);
 
       gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
       gkyl_gk_geometry_release(gk_geom); // release 3d geometry

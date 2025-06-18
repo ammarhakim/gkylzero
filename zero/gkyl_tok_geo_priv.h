@@ -16,14 +16,17 @@ struct arc_length_ctx {
   double arcL_right; // this is for when we need to switch sides
   double arcL_left; // this is for when we need to switch sides
   double arcL_tot; // total arc length
+  double arcL_start; // For core bloks only. arc length between theta=0 and lower turning point
+                     // measured counterclockwise from left side
+  double phi_right; // this is for when we need to switch sides
+  double phi_left; // this is for when we need to switch sides
+  double phi_bot; // For new way of trying to do core
+  bool right; // on right side of turning points
+  bool pre; // on left side starting from theta=0
   double arcL_q1; // For IWL, arc length in quadrant 1
   double arcL_q2; // For IWL, arc length in quadrant 2
   double arcL_q3; // For IWL, arc length in quadrant 3
   double arcL_q4; // For IWL, arc length in quadrant 4
-  double phi_right; // this is for when we need to switch sides
-  double phi_left; // this is for when we need to switch sides
-  double phi_bot; // For new way of trying to do core
-  bool right;
   bool q1, q2, q3, q4; // For IWL
   double zmaxis;
   enum gkyl_tok_geo_type ftype; // type of geometry
