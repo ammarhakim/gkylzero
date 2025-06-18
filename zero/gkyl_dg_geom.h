@@ -2,24 +2,31 @@
 
 #include <gkyl_array.h>
 #include <gkyl_evalf_def.h>
+#include <gkyl_math.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 
-// Geometry information for a single surface
+// Geometry information for lower surfaces (left, bottom, front) for a cell
 struct gkyl_dg_surf_geom {
-  double area_elem[GKYL_MAX_CDIM]; // area element: Jc*norm(e^d), where e^d is dual normal to face 'd'
-  double norm[GKYL_MAX_CDIM][GKYL_MAX_CDIM]; // norm[d] is the normal to face perp to direction 'd'
+  double area_elem; // area element: Jc*norm(e^d), where e^d is dual normal to face 'd'
+  struct gkyl_vec3 norm; // norm[d] is the normal to face perp to direction 'd'
   // tau1[d] X tau2[d] = norm[d] are tangents to face perp to direction 'd'
-  double tau1[GKYL_MAX_CDIM][GKYL_MAX_CDIM];
-  double tau2[GKYL_MAX_CDIM][GKYL_MAX_CDIM];
+  struct gkyl_vec3 tau1, tau2;
 };
+
+// Geometry information for a single cell
+struct gkyl_dg_cell_geom {
+  struct gkyl_vec3 tang[3]; // tangent vectors, e_i
+  struct gkyl_vec3 dual[3]; // dual vectors, e^i
+  double Jc; // Jacobian = e_1*(e_2 X e_3)  = 1/e^1*(e^2 X e^3)
+};  
 
 // geometry information over a range of cells: 
 struct gkyl_dg_geom {
   struct gkyl_range range; // range over which geometry is defined
   struct gkyl_array *surf_geom[GKYL_MAX_CDIM]; // surface geometry in dir 'd' in each cell
-  
+  struct gkyl_array *cell_geom; // cell geometry
   
   struct gkyl_range surf_quad_range; // range for indexing surface nodes
   struct gkyl_range vol_quad_range; // range for indexing volume nodes
@@ -33,7 +40,7 @@ struct gkyl_dg_geom {
 struct gkyl_dg_geom_inp {
   const struct gkyl_rect_grid *grid; // grid over which geometry needs to be defined
   struct gkyl_range *range; // range of grid: this needs to be extended grid
-  bool skip_geometry_creation; // set to true if only allocation is needed  
+  bool skip_geometry_creation; // true if only allocation is needed (geom must be computed eleswhere)
   int nquad; // number of quadrature points in each direction
   evalf_t mapc2p; // mapping function: set mapc2p = 0 to use identity map
   void *ctx; // context for use in mapc2p
