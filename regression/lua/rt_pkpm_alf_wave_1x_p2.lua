@@ -55,6 +55,20 @@ integrated_L2_f_calcs = GKYL_MAX_INT -- Number of times to calculate L2 norm of 
 dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
 num_failures_max = 20 -- Maximum allowable number of consecutive small time-steps.
 
+-- Training parameters.
+train_nn = false -- Train neural network on simulation data?
+train_ab_initio = true -- Train neural network ab initio?
+nn_width = 256 -- Number of neurons to use per layer.
+nn_depth = 5 -- Number of layers to use.
+train_nn_file = "rt_pkpm_alf_wave_1x_p2_moms_nn_1" -- File path of neural network to train.
+num_trains = GKYL_MAX_INT -- Number of times to train neural network.
+num_nn_writes = 1 -- Number of times to write out neural network.
+input_moms = { 1, 3, 4 } -- Array of "input" moments to train on.
+output_moms = { 5, 6 } -- Array of "output" moments to train on.
+test_nn = false -- Test neural network on simulation data?
+test_nn_file = "rt_pkpm_alf_wave_1x_p2_moms_nn_1" -- File path of neural network to test.
+num_tests = 1 -- Number of times to test neural network.
+
 pkpmApp = PKPM.App.new {
 
   tEnd = t_end,
@@ -204,7 +218,21 @@ pkpmApp = PKPM.App.new {
     
     elcErrorSpeedFactor = 0.0,
     mgnErrorSpeedFactor = 0.0
-  }
+  },
+
+  -- Training parameters.
+  trainNN = train_nn,
+  trainAbInitio = train_ab_initio,
+  NNWidth = nn_width,
+  NNDepth = nn_depth,
+  trainNNFile = train_nn_file,
+  numTrains = num_trains,
+  numNNWrites = num_nn_writes,
+  inputMoms = input_moms,
+  outputMoms = output_moms,
+  testNN = test_nn,
+  testNNFile = test_nn_file,
+  numTests = num_tests
 }
 
 pkpmApp:run()
