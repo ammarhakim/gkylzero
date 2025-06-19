@@ -431,6 +431,7 @@ main(int argc, char **argv)
     
     .init = evalGRTwoFluidInit,
     .force_low_order_flux = false, // Use HLL fluxes.
+    .limiter = GKYL_MIN_MOD,
     .ctx = &ctx,
 
     .has_gr_twofluid = true,
