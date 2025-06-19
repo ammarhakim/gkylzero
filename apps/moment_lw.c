@@ -107,6 +107,7 @@ static const struct gkyl_str_int_pair gr_maxwell_tetrad_rp_type[] = {
 
 // General relativistic Euler Riemann problem (ultra-relativistic equation of state) -> enum map.
 static const struct gkyl_str_int_pair gr_ultra_rel_euler_rp_type[] = {
+  { "hll", WV_GR_ULTRA_REL_EULER_RP_HLL },
   { "roe", WV_GR_ULTRA_REL_EULER_RP_ROE },
   { "lax", WV_GR_ULTRA_REL_EULER_RP_LAX },
   { 0, 0 }
@@ -114,6 +115,7 @@ static const struct gkyl_str_int_pair gr_ultra_rel_euler_rp_type[] = {
 
 // General relativistic Euler Riemann problem in the tetrad basis (ultra-relativistic equation of state) -> enum map.
 static const struct gkyl_str_int_pair gr_ultra_rel_euler_tetrad_rp_type[] = {
+  { "hll", WV_GR_ULTRA_REL_EULER_TETRAD_RP_HLL },
   { "roe", WV_GR_ULTRA_REL_EULER_TETRAD_RP_ROE },
   { "lax", WV_GR_ULTRA_REL_EULER_TETRAD_RP_LAX },
   { 0, 0 }
@@ -748,8 +750,8 @@ eqn_gr_ultra_rel_euler_lw_new(lua_State *L)
 
   double gas_gamma = glua_tbl_get_number(L, "gasGamma", 4.0 / 3.0);
 
-  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
-  enum gkyl_wv_gr_ultra_rel_euler_rp rp_type = gkyl_search_str_int_pair_by_str(gr_ultra_rel_euler_rp_type, rp_str, WV_GR_ULTRA_REL_EULER_RP_LAX);
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "hll");
+  enum gkyl_wv_gr_ultra_rel_euler_rp rp_type = gkyl_search_str_int_pair_by_str(gr_ultra_rel_euler_rp_type, rp_str, WV_GR_ULTRA_REL_EULER_RP_HLL);
 
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
   int reinit_freq = glua_tbl_get_integer(L, "reinitFreq", 100);
@@ -817,8 +819,8 @@ eqn_gr_ultra_rel_euler_tetrad_lw_new(lua_State *L)
 
   double gas_gamma = glua_tbl_get_number(L, "gasGamma", 4.0 / 3.0);
 
-  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
-  enum gkyl_wv_gr_ultra_rel_euler_tetrad_rp rp_type = gkyl_search_str_int_pair_by_str(gr_ultra_rel_euler_tetrad_rp_type, rp_str, WV_GR_ULTRA_REL_EULER_TETRAD_RP_LAX);
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "hll");
+  enum gkyl_wv_gr_ultra_rel_euler_tetrad_rp rp_type = gkyl_search_str_int_pair_by_str(gr_ultra_rel_euler_tetrad_rp_type, rp_str, WV_GR_ULTRA_REL_EULER_TETRAD_RP_HLL);
 
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
   int reinit_freq = glua_tbl_get_integer(L, "reinitFreq", 100);
