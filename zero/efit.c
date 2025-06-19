@@ -111,6 +111,7 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   up->psizr_cubic = gkyl_array_new(GKYL_DOUBLE, up->rzbasis_cubic.num_basis, up->rzlocal_cubic_ext.volume);
   up->bmagzr = gkyl_array_new(GKYL_DOUBLE, up->rzbasis.num_basis, up->rzlocal_ext.volume);
   up->fpolflux = gkyl_array_new(GKYL_DOUBLE, up->fluxbasis.num_basis, up->fluxlocal_ext.volume);
+  up->fpolprimeflux = gkyl_array_new(GKYL_DOUBLE, up->fluxbasis.num_basis, up->fluxlocal_ext.volume);
   up->qflux = gkyl_array_new(GKYL_DOUBLE, up->fluxbasis.num_basis, up->fluxlocal_ext.volume);
 
   // Read fpol because we do want that
@@ -139,10 +140,41 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   gkyl_nodal_ops_n2m(n2m_flux, &up->fluxbasis, &up->fluxgrid, 
     &flux_nrange, &up->fluxlocal, 1, fpolflux_n, up->fpolflux, false);
 
-  // Now we 3 of the 1d arrays, all of length nr :
+  // Now we have 3 of the 1d arrays, all of length nr :
   // pres, ffprim, pprime
-  // I don't actually care about these so just read 4*nr times
-  for(int i = 0; i<3*up->nr; i++){
+  // I don't actually care about pres or pprime, so skip those
+
+  //skip pres
+  for(int i = 0; i<up->nr; i++){
+    status = fscanf(ptr, "%lf", &up->xdum);
+  }
+
+  // read ffprime and divide out f
+  struct gkyl_array *fpolprimeflux_n = gkyl_array_new(GKYL_DOUBLE, 1, flux_nrange.volume);
+  // fpol*fpolprime is given on a uniform flux grid from the magnetic axis to plasma boundary
+  if (step_convention) {
+    for (int i = up->nr-1; i>=0; i--){
+      fidx[0] = i;
+      double *fpolprime_n = gkyl_array_fetch(fpolprimeflux_n, gkyl_range_idx(&flux_nrange, fidx));
+      status = fscanf(ptr,"%lf", fpolprime_n);
+      double *fpol_n = gkyl_array_fetch(fpolflux_n, gkyl_range_idx(&flux_nrange, fidx));
+      fpolprime_n[0] = fpolprime_n[0]/fpol_n[0]; // divide out fpol
+    }
+  }
+  else {
+    for(int i = 0; i<up->nr; i++){
+      fidx[0] = i;
+      double *fpolprime_n= gkyl_array_fetch(fpolprimeflux_n, gkyl_range_idx(&flux_nrange, fidx));
+      status = fscanf(ptr,"%lf", fpolprime_n);
+      double *fpol_n = gkyl_array_fetch(fpolflux_n, gkyl_range_idx(&flux_nrange, fidx));
+      fpolprime_n[0] = fpolprime_n[0]/fpol_n[0]; // divide out fpol
+    }
+  }
+  gkyl_nodal_ops_n2m(n2m_flux, &up->fluxbasis, &up->fluxgrid, 
+    &flux_nrange, &up->fluxlocal, 1, fpolprimeflux_n, up->fpolprimeflux, false);
+
+  // skip pprime
+  for(int i = 0; i<up->nr; i++){
     status = fscanf(ptr, "%lf", &up->xdum);
   }
 
@@ -285,6 +317,7 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   gkyl_nodal_ops_release(n2m_rz);
   // Free nodal arrays
   gkyl_array_release(fpolflux_n);
+  gkyl_array_release(fpolprimeflux_n);
   gkyl_array_release(psizr_n);
   gkyl_array_release(qflux_n);
   gkyl_array_release(bpolzr_n);

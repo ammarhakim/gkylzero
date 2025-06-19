@@ -381,65 +381,34 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
     }
   }
 
-  struct gkyl_range nrange;
-  struct gkyl_range nrange_quad;
-  struct gkyl_range nrange_quad_surf[3];
   double dzc[3] = {0.0};
-
-  int poly_order = up->basis.poly_order;
-
-  // nodes tensor
-  int num_nodes_corners[GKYL_MAX_CDIM];
-  if (poly_order == 1) {
-    for (int d=0; d<up->grid.ndim; ++d)
-      num_nodes_corners[d] = gkyl_range_shape(&up->local, d) + 1;
-  }
-  if (poly_order == 2) {
-    for (int d=0; d<up->grid.ndim; ++d)
-      num_nodes_corners[d] = 2*gkyl_range_shape(&up->local, d) + 1;
-  }
-
-  int num_quad_points = poly_order+1;
-
-  int num_nodes_quad_interior[GKYL_MAX_CDIM];
-  for (int d=0; d<up->grid.ndim; ++d)
-    num_nodes_quad_interior[d] = gkyl_range_shape(&up->local, d)*num_quad_points;
-
-  int num_nodes_quad_surf_in_dir[up->grid.ndim][GKYL_MAX_CDIM];
-  for (int dir=0; dir<up->grid.ndim; ++dir)
-    for (int d=0; d<up->grid.ndim; ++d)
-      num_nodes_quad_surf_in_dir[dir][d] = d == dir ? gkyl_range_shape(&up->local, d)+1 : gkyl_range_shape(&up->local, d)*num_quad_points;
-
-  gkyl_range_init_from_shape(&nrange, up->grid.ndim, num_nodes_corners);
-  gkyl_range_init_from_shape(&nrange_quad, up->grid.ndim, num_nodes_quad_interior);
-  for (int dir=0; dir<up->grid.ndim; ++dir)
-    gkyl_range_init_from_shape(&nrange_quad_surf[dir], up->grid.ndim, num_nodes_quad_surf_in_dir[dir]);
+  gk_geometry_set_nodal_ranges(up) ;
 
   // Initialize surface basis abd allocate surface geo
-  gkyl_cart_modal_serendip(&up->surf_basis, up->grid.ndim-1, poly_order);
+  gkyl_cart_modal_serendip(&up->surf_basis, up->grid.ndim-1, up->basis.poly_order);
   up->num_surf_basis = up->surf_basis.num_basis;
 
   // Allocate nodal and modal arrays for corner, interior, and surface geo
-  gk_geometry_corn_alloc_nodal(up, nrange);
+  gk_geometry_corn_alloc_nodal(up);
   gk_geometry_corn_alloc_expansions(up);
-  gk_geometry_int_alloc_nodal(up, nrange_quad);
+  gk_geometry_int_alloc_nodal(up);
   gk_geometry_int_alloc_expansions(up);
   for (int dir=0; dir<up->grid.ndim; ++dir) {
-    gk_geometry_surf_alloc_nodal(up, dir, nrange_quad_surf[dir]);
+    gk_geometry_surf_alloc_nodal(up, dir);
     gk_geometry_surf_alloc_expansions(up, dir);
   }
 
   // calculate mapc2p in cartesian coords at corner nodes for
   // getting cell coordinates (used only for plotting)
-  gk_geometry_mapc2p_advance(up, &nrange, dzc, geometry_inp->mapc2p, geometry_inp->c2p_ctx,
+  gk_geometry_mapc2p_advance(up, &up->nrange_corn, dzc, geometry_inp->mapc2p, geometry_inp->c2p_ctx,
     geometry_inp->bmag_func, geometry_inp->bmag_ctx, geometry_inp->position_map);
   // calculate mapc2p in cartesian coords at interior nodes for
   // calculating geo quantity volume expansions 
-  gk_geometry_mapc2p_advance_interior(up, &nrange_quad, dzc, geometry_inp->mapc2p, geometry_inp->c2p_ctx,
+  gk_geometry_mapc2p_advance_interior(up, &up->nrange_int, dzc, geometry_inp->mapc2p, geometry_inp->c2p_ctx,
     geometry_inp->bmag_func, geometry_inp->bmag_ctx, geometry_inp->position_map);
   // calculate mapc2p in cylindrical coords at surfaces
   for (int dir = 0; dir <up->grid.ndim; dir++) {
-    gk_geometry_mapc2p_advance_surface(up, dir, &nrange_quad_surf[dir], dzc, geometry_inp->mapc2p, 
+    gk_geometry_mapc2p_advance_surface(up, dir, &up->nrange_surf[dir], dzc, geometry_inp->mapc2p, 
       geometry_inp->c2p_ctx, geometry_inp->bmag_func, geometry_inp->bmag_ctx, geometry_inp->position_map);
   }
 

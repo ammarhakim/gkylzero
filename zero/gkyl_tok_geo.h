@@ -83,6 +83,7 @@ struct gkyl_tok_geo {
   struct gkyl_range frange_ext; // extended range
   struct gkyl_basis fbasis; // psi basis for fpol
   const struct gkyl_array *fpoldg; // fpol(psi) dg rep
+  const struct gkyl_array *fpolprimedg; // fpol'(psi) dg rep
   const struct gkyl_array *qdg; // q(psi) dg rep
                                    
 
