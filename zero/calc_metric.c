@@ -384,6 +384,7 @@ gkyl_calc_metric_advance_rz_interior( gkyl_calc_metric *up, struct gk_geometry *
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 9, gk_geom->geo_int.dzdx_nodal, gk_geom->geo_int.dzdx, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 3, gk_geom->geo_int.dualmag_nodal, gk_geom->geo_int.dualmag, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 9, gk_geom->geo_int.normals_nodal, gk_geom->geo_int.normals, true);
+  gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 3, gk_geom->geo_int.curlbhat_nodal, gk_geom->geo_int.curlbhat, true);
 }
 
 void gkyl_calc_metric_advance_rz_surface( gkyl_calc_metric *up, int dir, struct gk_geometry *gk_geom)
@@ -527,6 +528,15 @@ void gkyl_calc_metric_advance_rz_surface( gkyl_calc_metric *up, int dir, struct 
         normFld_n[6] = dualFld_n[6]/norm3;
         normFld_n[7] = dualFld_n[7]/norm3;
         normFld_n[8] = dualFld_n[8]/norm3;
+
+        // Set lenr
+        double *lenr_n = gkyl_array_fetch(gk_geom->geo_surf[dir].lenr_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        lenr_n[0] = J*dualmagFld_n[0];
+        lenr_n[1] = J*dualmagFld_n[1];
+        lenr_n[2] = J*dualmagFld_n[2];
+
+        double *B3_n = gkyl_array_fetch(gk_geom->geo_surf[dir].B3_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        B3_n[0] = 1/sqrt(gFld_n[5]);
 
       }
     }

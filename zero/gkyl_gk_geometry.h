@@ -27,7 +27,7 @@ struct gk_geom_surf {
   struct gkyl_array* mc2p_nodal_fd; // 3 components. Cartesian X,Y, and Z at surf quad nodes and nodes epsilon away
   struct gkyl_array* mc2p_nodal; // 3 components. Cartesian X,Y, and Z at surf  quad nodes
   struct gkyl_array* bmag_nodal; // 1 component. B Magnitude of magnetic field
-  struct gkyl_array *curlbhat_nodal; // Cartesian components of curl(bhat)
+  struct gkyl_array* curlbhat_nodal; // Cartesian components of curl(bhat)
   struct gkyl_array* jacobgeo_nodal; // 1 component. Configuration space jacobian J
   struct gkyl_array* b_i_nodal; // 3 components. Contravariant components of magnetic field vector b_1, b_2, b_3.
   struct gkyl_array* cmag_nodal; // 1 component. C = JB/sqrt(g_33)
@@ -44,6 +44,8 @@ struct gk_geom_surf {
                               // Cartesian components of normal vectors in order n^1,, n^2, n^3
   struct gkyl_array* bcart_nodal; // 3 components. Cartesian components of magnetic field unit vector b_X, b_Y, b_Z.
 
+  struct gkyl_array* B3_nodal; // 1 component n^3 \dot \vec{B} = 1/g_33 
+  struct gkyl_array* lenr_nodal; // 3 components Jc|n^i|
 };
 
 struct gk_geom_corn {
@@ -95,6 +97,7 @@ struct gk_geom_int {
   struct gkyl_array* gyyj; // 1 component. g^{yy} * J. For poisson solve.
   struct gkyl_array* gxzj; // 1 component. g^{xz} * J. For poisson solve if z derivatives are kept.
   struct gkyl_array* eps2; // 1 component. eps2 = Jg^33 - J/g_33. For poisson if z derivatives are kept.
+  struct gkyl_array* curlbhat; // 3 components curl(bhat) cartesian components
   
   // Arrays below are just for computation of arrays above
   struct gkyl_array *bmag_nodal;
