@@ -767,7 +767,7 @@ test_gr_euler_tetrad_waves_minkowski()
       ql[64] = spatial_metric_der_l[2][2][0]; ql[65] = spatial_metric_der_l[2][2][1]; ql[66] = spatial_metric_der_l[2][2][2];
 
       ql[67] = 0.0;
-      ql[68] = x; ql[69] = y; ql[70] = 0.0;
+      ql[68] = x - 0.5; ql[69] = y; ql[70] = 0.0;
 
       qr[0] = sqrt(spatial_det_r) * rho_r * W_r;
       qr[1] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * u_r;
@@ -806,7 +806,7 @@ test_gr_euler_tetrad_waves_minkowski()
       qr[64] = spatial_metric_der_r[2][2][0]; qr[65] = spatial_metric_der_r[2][2][1]; qr[66] = spatial_metric_der_r[2][2][2];
 
       qr[67] = 0.0;
-      qr[68] = x; qr[69] = y; qr[70] = 0.0;
+      qr[68] = x + 0.5; qr[69] = y; qr[70] = 0.0;
 
       double norm[3][3] = {
         { 1.0, 0.0, 0.0 },
@@ -1035,7 +1035,7 @@ test_gr_euler_tetrad_waves_schwarzschild()
         ql[64] = spatial_metric_der_l[2][2][0]; ql[65] = spatial_metric_der_l[2][2][1]; ql[66] = spatial_metric_der_l[2][2][2];
 
         ql[67] = 0.0;
-        ql[68] = x; ql[69] = y; ql[70] = 0.0;
+        ql[68] = x - 0.5; ql[69] = y; ql[70] = 0.0;
 
         qr[0] = sqrt(spatial_det_r) * rho_r * W_r;
         qr[1] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * u_r;
@@ -1074,7 +1074,7 @@ test_gr_euler_tetrad_waves_schwarzschild()
         qr[64] = spatial_metric_der_r[2][2][0]; qr[65] = spatial_metric_der_r[2][2][1]; qr[66] = spatial_metric_der_r[2][2][2];
 
         qr[67] = 0.0;
-        qr[68] = x; qr[69] = y; qr[70] = 0.0;
+        qr[68] = x + 0.5; qr[69] = y; qr[70] = 0.0;
 
         double norm[3][3] = {
           { 1.0, 0.0, 0.0 },
@@ -1304,7 +1304,7 @@ test_gr_euler_tetrad_waves_kerr()
         ql[64] = spatial_metric_der_l[2][2][0]; ql[65] = spatial_metric_der_l[2][2][1]; ql[66] = spatial_metric_der_l[2][2][2];
 
         ql[67] = 0.0;
-        ql[68] = x; ql[69] = y; ql[70] = 0.0;
+        ql[68] = x - 0.5; ql[69] = y; ql[70] = 0.0;
 
         qr[0] = sqrt(spatial_det_r) * rho_r * W_r;
         qr[1] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * u_r;
@@ -1343,7 +1343,7 @@ test_gr_euler_tetrad_waves_kerr()
         qr[64] = spatial_metric_der_r[2][2][0]; qr[65] = spatial_metric_der_r[2][2][1]; qr[66] = spatial_metric_der_r[2][2][2];
 
         qr[67] = 0.0;
-        qr[68] = x; qr[69] = y; qr[70] = 0.0;
+        qr[68] = x + 0.5; qr[69] = y; qr[70] = 0.0;
 
         double norm[3][3] = {
           { 1.0, 0.0, 0.0 },
