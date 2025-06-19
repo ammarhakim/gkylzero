@@ -44,6 +44,7 @@
 #include <string.h>
 
 #include <stc/coption.h>
+#include <kann.h>
 
 #ifdef GKYL_HAVE_MPI
 #include <mpi.h>
@@ -160,6 +161,8 @@ static const struct gkyl_str_int_pair gr_twofluid_rp_type[] = {
 struct wv_eqn_lw {
   int magic; // This must be the first element in the struct.
   struct gkyl_wv_eqn *eqn; // Equation object.
+  bool has_nn; // Does this equation object have a neural network attached?
+  kann_t *ann; // Neural network.
 };
 
 // Clean up memory allocated for equation object.
@@ -170,6 +173,9 @@ wv_eqn_lw_gc(lua_State *L)
   struct wv_eqn_lw *wv_lw = *l_wv_lw;
 
   gkyl_wv_eqn_release(wv_lw->eqn);
+  if (wv_lw->has_nn) {
+    kann_delete(wv_lw->ann);
+  }
   gkyl_free(*l_wv_lw);
   
   return 0;
@@ -206,6 +212,8 @@ eqn_euler_lw_new(lua_State *L)
       .use_gpu = false
     }
   );
+  euler_lw->has_nn = false;
+  euler_lw->ann = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -241,6 +249,8 @@ eqn_iso_euler_lw_new(lua_State *L)
   
   iso_euler_lw->magic = MOMENT_EQN_DEFAULT;
   iso_euler_lw->eqn = gkyl_wv_iso_euler_new(vt, false);
+  iso_euler_lw->has_nn = false;
+  iso_euler_lw->ann = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_iso_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -273,6 +283,8 @@ eqn_sr_euler_lw_new(lua_State *L)
 
   sr_euler_lw->magic = MOMENT_EQN_DEFAULT;
   sr_euler_lw->eqn = gkyl_wv_sr_euler_new(gas_gamma);
+  sr_euler_lw->has_nn = false;
+  sr_euler_lw->ann = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_sr_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -303,6 +315,8 @@ eqn_coldfluid_lw_new(lua_State *L)
 
   coldfluid_lw->magic = MOMENT_EQN_DEFAULT;
   coldfluid_lw->eqn = gkyl_wv_coldfluid_new();
+  coldfluid_lw->has_nn = false;
+  coldfluid_lw->ann = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_coldfluid_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -333,9 +347,33 @@ eqn_tenmoment_lw_new(lua_State *L)
 
   double k0 = glua_tbl_get_number(L, "k0", 1.0);
   bool has_grad_closure = glua_tbl_get_bool(L, "hasGradClosure", false);
+  bool has_nn_closure = glua_tbl_get_bool(L, "hasNNClosure", false);
+  int poly_order = glua_tbl_get_integer(L, "polyOrder", 1);
+  const char* nn_species_name = glua_tbl_get_string(L, "NNSpeciesName", "");
+  const char* nn_closure_file = glua_tbl_get_string(L, "NNClosureFile", "");
+  
+  kann_t *ann = 0;
+  if (has_nn_closure) {
+    const char *fmt = "%s-%s.dat";
+    int sz = gkyl_calc_strlen(fmt, nn_closure_file, nn_species_name);
+    char fileNm[sz + 1];
+    snprintf(fileNm, sizeof fileNm, fmt, nn_closure_file, nn_species_name);
+    FILE *file = fopen(fileNm, "r");
+    if (file != NULL) {
+      ann = kann_load(fileNm);
+      fclose(file);
+    }
+    else {
+      ann = 0;
+      has_nn_closure = false;
+      fprintf(stderr, "Neural network for %s species not found! Disabling NN-based closure.\n", nn_species_name);
+    }
+  }
 
   tenm_lw->magic = MOMENT_EQN_DEFAULT;
-  tenm_lw->eqn = gkyl_wv_ten_moment_new(k0, has_grad_closure, false);
+  tenm_lw->eqn = gkyl_wv_ten_moment_new(k0, has_grad_closure, has_nn_closure, poly_order, ann, false);
+  tenm_lw->has_nn = has_nn_closure;
+  tenm_lw->ann = ann;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_tenm_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -383,6 +421,8 @@ eqn_mhd_lw_new(lua_State *L)
       .glm_ch = glm_ch
     }
   );
+  mhd_lw->has_nn = false;
+  mhd_lw->ann = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_mhd_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -432,6 +472,8 @@ eqn_reactive_euler_lw_new(lua_State *L)
       .use_gpu = false
     }
   );
+  reactive_euler_lw->has_nn = false;
+  reactive_euler_lw->ann = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_reactive_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -481,6 +523,8 @@ eqn_euler_mixture_lw_new(lua_State *L)
       .use_gpu = false
     }
   );
+  euler_mixture_lw->has_nn = false;
+  euler_mixture_lw->ann = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_euler_mixture_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -581,6 +625,8 @@ eqn_iso_euler_mixture_lw_new(lua_State *L)
       .use_gpu = false
     }
   );
+  iso_euler_mixture_lw->has_nn = false;
+  iso_euler_mixture_lw->ann = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_iso_euler_mixture_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -654,6 +700,8 @@ eqn_gr_maxwell_lw_new(lua_State *L)
       .use_gpu = false,
     }
   );
+  gr_maxwell_lw->has_nn = false;
+  gr_maxwell_lw->ann = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_gr_maxwell_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -727,6 +775,8 @@ eqn_gr_maxwell_tetrad_lw_new(lua_State *L)
       .use_gpu = false,
     }
   );
+  gr_maxwell_tetrad_lw->has_nn = false;
+  gr_maxwell_tetrad_lw->ann = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_gr_maxwell_tetrad_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -796,6 +846,8 @@ eqn_gr_ultra_rel_euler_lw_new(lua_State *L)
       .use_gpu = false,
     }
   );
+  gr_ultra_rel_euler_lw->has_nn = false;
+  gr_ultra_rel_euler_lw->ann = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_gr_ultra_rel_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -865,6 +917,8 @@ eqn_gr_ultra_rel_euler_tetrad_lw_new(lua_State *L)
       .use_gpu = false,
     }
   );
+  gr_ultra_rel_euler_tetrad_lw->has_nn = false;
+  gr_ultra_rel_euler_tetrad_lw->ann = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_gr_ultra_rel_euler_tetrad_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -934,6 +988,8 @@ eqn_gr_euler_lw_new(lua_State *L)
       .use_gpu = false,
     }
   );
+  gr_euler_lw->has_nn = false;
+  gr_euler_lw->ann = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_gr_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -1003,6 +1059,8 @@ eqn_gr_euler_tetrad_lw_new(lua_State *L)
       .use_gpu = false,
     }
   );
+  gr_euler_tetrad_lw->has_nn = false;
+  gr_euler_tetrad_lw->ann = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_gr_euler_tetrad_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -1045,6 +1103,8 @@ eqn_gr_medium_lw_new(lua_State *L)
       .use_gpu = false,
     }
   );
+  gr_medium_lw->has_nn = false;
+  gr_medium_lw->ann = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_gr_medium_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -1164,6 +1224,8 @@ eqn_advect_lw_new(lua_State *L)
 
   advect_lw->magic = MOMENT_EQN_DEFAULT;
   advect_lw->eqn = gkyl_wv_advect_new(c, false);
+  advect_lw->has_nn = false;
+  advect_lw->ann = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_advect_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -1194,6 +1256,8 @@ eqn_burgers_lw_new(lua_State *L)
 
   burgers_lw->magic = MOMENT_EQN_DEFAULT;
   burgers_lw->eqn = gkyl_wv_burgers_new(false);
+  burgers_lw->has_nn = false;
+  burgers_lw->ann = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_burgers_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
