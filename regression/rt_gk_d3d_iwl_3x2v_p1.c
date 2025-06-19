@@ -424,17 +424,24 @@ void bc_shift_func_lo(double t, const double *xc, double* GKYL_RESTRICT fout, vo
   double r0 = app->r0;
   double q0 = app->q0;
   double a_mid = app->a_mid;
-  double R_axis = app->R_axis;
   double Lz = app->Lz;
   double r = r_x(x,a_mid);
 
-  fout[0] = -r0/q0*qprofile(r,R_axis)*Lz;
+  fout[0] = -r0/q0*alpha(r, -Lz/2, 0.0, ctx);
 }
 
 void bc_shift_func_up(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
-  bc_shift_func_lo(t, xc, fout, ctx);
-  fout[0] *= -1;
+  double x = xc[0];
+
+  struct gk_app_ctx *app = ctx;
+  double r0 = app->r0;
+  double q0 = app->q0;
+  double a_mid = app->a_mid;
+  double Lz = app->Lz;
+  double r = r_x(x,a_mid);
+
+  fout[0] = -r0/q0*alpha(r, Lz/2, 0.0, ctx);
 }
 
 struct gk_app_ctx
@@ -485,18 +492,24 @@ create_ctx(void)
   double omega_ci = fabs(qi*B0/mi); // Ion cyclotron frequency.
   double rho_s = c_s/omega_ci; // Ion sound gyroradius.
 
-  double Lx    = Rmid_max-Rmid_min;  // Domain size along x.
-  double Ly    = 150*rho_s;          // Domain size along y.
-  double Lz    = 2.*M_PI-1e-10;      // Domain size along magnetic field.
-  double x_min = 0.;
-  double x_max = Lx;
-  double y_min = -Ly/2.;
-  double y_max =  Ly/2.;
-  double z_min = -Lz/2.;
-  double z_max =  Lz/2.;
-
-  double q0 = qprofile(r_x(0.5*(x_min+x_max),a_mid),R_axis);    // Magnetic safety factor in the center of domain.
-
+  // Domain size along the radial direction.
+  double Lx        = Rmid_max-Rmid_min;   
+  double x_min     = 0.;
+  double x_max     = Lx;
+  double x_LCFS    = R_LCFSmid - Rmid_min; // Radial location of the last closed flux surface.
+  // Domain size along magnetic field.
+  double Lz        = 2.*M_PI-1e-10;
+  double z_min     = -Lz/2.;
+  double z_max     =  Lz/2.;
+  // Domain size along the binormal coordinate. (Adjusted to have integer toroidal mode number)
+  // We need: 2*pi*Cy/Ly to be an integer (Cy = r0/q0)
+  double Ly        = 150*rho_s; // this is a guess.
+  double q0        = qprofile(r_x(0.5*(x_min+x_max),a_mid,x_inner),R_axis);
+  Ly = 2.*M_PI*r0/q0/round(2.*M_PI*r0/q0/Ly); 
+  // Note: max|Ly^new/Ly^old| = 1/(2n-1) with n the original toroidal mode number.
+  double y_min     = -Ly/2.;
+  double y_max     =  Ly/2.;
+  
   double nuFrac = 0.1;
   // Electron-electron collision freq.
   double logLambdaElc = 6.6 - 0.5 * log(n0/1e20) + 1.5 * log(Ti0/eV);
