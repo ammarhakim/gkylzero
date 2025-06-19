@@ -518,6 +518,16 @@ gkyl_vlasov_app_calc_mom(gkyl_vlasov_app* app)
       app->stat.mom_tm += gkyl_time_diff_now_sec(wst);
       app->stat.n_mom += 1;
     }
+    if (vm_s->source_id) {
+      if (vm_s->src.write_source) {
+        for (int m=0; m<vm_s->info.num_diag_moments; ++m) {
+          struct timespec wst = gkyl_wall_clock();
+          vm_species_moment_calc(&vm_s->src.moms[m], vm_s->local, app->local, vm_s->src.source);
+          app->stat.mom_tm += gkyl_time_diff_now_sec(wst);
+          app->stat.n_mom += 1;
+        }
+      }
+    }
   }
 }
 
