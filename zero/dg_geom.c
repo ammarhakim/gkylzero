@@ -72,6 +72,12 @@ gkyl_dg_geom_acquire(const struct gkyl_dg_geom* dgg)
 }
 
 void
+gkyl_dg_geom_write(const struct gkyl_dg_geom* dgg, const char *fname)
+{
+  
+}
+
+void
 gkyl_dg_geom_release(const struct gkyl_dg_geom *dgg)
 {
   gkyl_ref_count_dec(&dgg->ref_count);

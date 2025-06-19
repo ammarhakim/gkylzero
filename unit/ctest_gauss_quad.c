@@ -2,7 +2,8 @@
 #include <gkyl_gauss_quad_data.h>
 #include <gkyl_util.h>
 
-void test_g1()
+static void
+test_g1()
 {
   double w[gkyl_gauss_max], x[gkyl_gauss_max];
   
@@ -21,7 +22,26 @@ void test_g1()
   }
 }
 
+static void
+test_ndim()
+{
+  double nquad = 4;
+  double *x = gkyl_malloc(sizeof(double)*nquad*nquad*2);
+  double *w = gkyl_malloc(sizeof(double)*nquad*nquad);
+
+  gkyl_ndim_ordinates_weights(2, x, w, nquad);
+
+  double area = 0.0;
+  for (int d=0; d<2; ++d) area += w[d];
+
+  TEST_CHECK( gkyl_compare_double(2.0, area, 1e-14) );
+
+  gkyl_free(x);
+  gkyl_free(w);
+}
+
 TEST_LIST = {
   { "basic", test_g1 },
+  { "ndim", test_ndim },
   { NULL, NULL },
 };
