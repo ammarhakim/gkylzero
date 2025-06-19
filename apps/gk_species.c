@@ -1374,9 +1374,33 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
   struct gkyl_array *fdo_host = app->use_gpu? mkarr(false, basis_do.num_basis, local_ext_do.volume)
                                             : gkyl_array_acquire(fdo);
 
-  // Read donor field.
+  // Read donor distribution function and Jacobian inverse.
   struct gkyl_app_restart_status rstat;
   rstat.io_status = gkyl_comm_array_read(comm_do, &grid_do, &local_do, fdo_host, inp.file_name);
+
+  bool scale_by_jacobgeo = false;
+  with_file(fp, inp.jacobgeo_inv_file_name, "r") {
+    // Set up configuration space donor grid and basis
+    struct gkyl_rect_grid conf_grid_do;
+    gkyl_rect_grid_init(&conf_grid_do, cdim_do, grid_do.lower, grid_do.upper, grid_do.cells);
+    // Create configuration space global ranges
+    struct gkyl_range conf_local_ext_do, conf_local_do, conf_global_ext_do, conf_global_do;
+    gkyl_create_grid_ranges(&conf_grid_do, ghost_do, &conf_global_ext_do, &conf_global_do);
+    // Create configuration space local ranges
+    struct gkyl_rect_decomp *conf_decomp_do = gkyl_rect_decomp_new_from_cuts(cdim_do, cuts_do, &conf_global_do);
+    gkyl_create_ranges(&conf_decomp_do->ranges[my_rank], ghost_do, &conf_local_ext_do, &conf_local_do);
+    // Create a configuration space basis.
+    struct gkyl_basis conf_basis_do;
+    gkyl_cart_modal_serendip(&conf_basis_do, cdim_do, poly_order);
+    // Array for Jacobian inverse
+    struct gkyl_array *jacobgeo_inv_do_host = mkarr(false, conf_basis_do.num_basis, conf_local_ext_do.volume);
+    rstat.io_status = gkyl_comm_array_read(comm_do, &conf_grid_do, &conf_local_do, jacobgeo_inv_do_host, inp.jacobgeo_inv_file_name);
+    gkyl_dg_mul_conf_phase_op_range(&conf_basis_do, &basis_do, fdo_host, jacobgeo_inv_do_host, fdo_host, &conf_local_ext_do, &local_ext_do);
+    gkyl_array_release(jacobgeo_inv_do_host);
+    gkyl_rect_decomp_release(conf_decomp_do);
+    scale_by_jacobgeo = true;
+  }
+
   if (app->use_gpu) {
     gkyl_array_copy(fdo, fdo_host);
   }
@@ -1406,7 +1430,7 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
       poly_order+1, 1, inp.conf_scale, inp.conf_scale_ctx);
     struct gkyl_array *xfac = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     struct gkyl_array *xfac_ho = app->use_gpu? mkarr(false, app->basis.num_basis, app->local_ext.volume)
-                                             : gkyl_array_acquire(xfac_ho);
+                                             : gkyl_array_acquire(xfac);
     gkyl_proj_on_basis_advance(proj_conf_scale, 0.0, &app->local, xfac_ho);
     gkyl_array_copy(xfac, xfac_ho);
     gkyl_dg_mul_conf_phase_op_range(&app->basis, &gks->basis, gks->f, xfac, gks->f, &app->local, &gks->local);
@@ -1422,6 +1446,10 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
     gkyl_array_accumulate_range(gks->f, 1.0, gks->fnew, &gks->local);
     gk_species_projection_release(app, &proj_phase_add);
   }
+
+  // Multiply f by the Jacobian.
+  if (scale_by_jacobgeo)
+    gkyl_dg_mul_conf_phase_op_range(&app->basis, &gks->basis, gks->f, app->gk_geom->jacobgeo, gks->f, &app->local, &gks->local);
 
   gkyl_rect_decomp_release(decomp_do);
   gkyl_comm_release(comm_do);
@@ -1457,6 +1485,22 @@ gk_species_do_I_recycle(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
     }
   }
   return recycling_bcs;
+}
+
+static bool
+gk_species_do_I_adapt_src(struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
+{
+  // Check whether one of the species adapts its source depending on
+  // this gyrokinetic species.
+  bool adapt_src = false;
+  for (int i=0; i<app->num_species; ++i) {
+    struct gkyl_gyrokinetic_source *source = &app->species[i].info.source;
+    if (source->num_adapt_sources > 0) {
+      for (int j=0; j<source->num_adapt_sources; j++)
+        adapt_src = adapt_src || 0 == strcmp(gks->info.name, source->adapt[j].adapt_to_species);
+    }
+  }
+  return adapt_src;
 }
 
 void
@@ -1750,7 +1794,6 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->bflux = (struct gk_boundary_fluxes) { };
   // Additional bflux moments to step in time.
   struct gkyl_phase_diagnostics_inp add_bflux_moms_inp = (struct gkyl_phase_diagnostics_inp) { };
-  // Set the operation type for the bflux app.
   enum gkyl_species_bflux_type bflux_type = GK_SPECIES_BFLUX_NONE;
   if (gks->info.boundary_flux_diagnostics.num_diag_moments > 0 ||
       gks->info.boundary_flux_diagnostics.num_integrated_diag_moments > 0) {
@@ -1767,10 +1810,14 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     // Recycling BCs require the fluxes. Since this depends on other species,
     // it'll be checked in .
     bool recycling_bcs = gk_species_do_I_recycle(app, gks);
+    // Check if any of the sources are adaptive.
+    bool adaptive_sources = gk_species_do_I_adapt_src(app, gks);
    
-    if (boltz_elc_field || recycling_bcs)
+    if (boltz_elc_field || recycling_bcs || adaptive_sources) {
       bflux_type = GK_SPECIES_BFLUX_CALC_FLUX;
+    }
   }
+
   // Introduce new moments into moms_inp if needed.
   gk_species_bflux_init(app, gks, &gks->bflux, bflux_type, add_bflux_moms_inp);
   
