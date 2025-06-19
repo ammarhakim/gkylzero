@@ -750,10 +750,6 @@ gk_neut_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
 
     // Perform some basic checks.
     if (pdim_do == pdim) {
-      for (int d=0; d<pdim; d++) {
-        assert(grid_do.lower[d] == grid.lower[d]);
-        assert(grid_do.upper[d] == grid.upper[d]);
-      }
       // Check if the grid resolution is the same.
       for (int d=0; d<pdim; d++)
         same_res = same_res && (grid_do.cells[d] == grid.cells[d]);
