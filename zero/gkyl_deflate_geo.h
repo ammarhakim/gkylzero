@@ -54,6 +54,21 @@ void gkyl_deflate_geo_advance(const gkyl_deflate_geo *up, const struct gkyl_rang
 
 
 /**
+ * Advance deflate_geo on nodal quantities
+ *
+ * @param up deflate_geo updater object.
+ * @param range Config-space range.
+ * @param deflated_range range with one dimension removed
+ * @param field 3d field
+ * @param deflated_field 2d field on output
+ * @param ncomp number of components
+ */
+
+
+void gkyl_deflate_geo_advance_nodal(const gkyl_deflate_geo *up, const struct gkyl_range *range, const struct gkyl_range* deflated_range, const struct gkyl_array *field, struct gkyl_array *deflated_field, int ncomp);
+
+
+/**
  * Advance deflate_geo_surf
  *
  * @param up deflate_geo updater object.
@@ -64,6 +79,19 @@ void gkyl_deflate_geo_advance(const gkyl_deflate_geo *up, const struct gkyl_rang
  * @param ncomp number of components
  */
 void gkyl_deflate_geo_surf_advance(const struct gkyl_deflate_geo_surf *up, const struct gkyl_range *range, const struct gkyl_range* deflated_range, const struct gkyl_array *field, struct gkyl_array *deflated_field, int ncomp);
+
+/**
+ * Advance deflate_geo_surf on nodal quantities
+ *
+ * @param up deflate_geo updater object.
+ * @param nrange Config-space range.
+ * @param deflated_nrange range with one dimension removed
+ * @param field 3d field
+ * @param deflated_field 2d field on output
+ * @param ncomp number of components
+ */
+void gkyl_deflate_geo_surf_advance_nodal(const struct gkyl_deflate_geo_surf *up, const struct gkyl_range *range, const struct gkyl_range* deflated_range, const struct gkyl_array *field, struct gkyl_array *deflated_field, int ncomp);
+
 
 /**
  * Delete updater.
