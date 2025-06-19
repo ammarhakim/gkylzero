@@ -9,20 +9,14 @@
 
 // Geometry information for lower surfaces (left, bottom, front) for a cell
 struct gkyl_dg_surf_geom {
-  double quad_weight; // weight of node for quadrature
-  double xp[3]; // physical coordinate of node
-  
-  double area_elem; // area element: Jc*norm(e^d), where e^d is dual normal to face 'd'
-  struct gkyl_vec3 norm; // norm[d] is the normal to face perp to direction 'd'
-  // tau1[d] X tau2[d] = norm[d] are tangents to face perp to direction 'd'
+  double area_elem; // area element: Jc*norm(e^d), where e^d is dual normal
+  struct gkyl_vec3 norm; // norm is the normal to face perp to direction 'd'
+  // tau1 X tau2 = norm are tangents to face perp to direction 'd'
   struct gkyl_vec3 tau1, tau2;
 };
 
 // Geometry information for a single cell
 struct gkyl_dg_vol_geom {
-  double quad_weight; // weight of node for quadrature
-  double xp[3]; // physical coordinate of node
-  
   struct gkyl_vec3 tang[3]; // tangent vectors, e_i
   struct gkyl_vec3 dual[3]; // dual vectors, e^i
   double Jc; // Jacobian = e_1*(e_2 X e_3)  = 1/e^1*(e^2 X e^3)
@@ -32,8 +26,9 @@ struct gkyl_dg_vol_geom {
 struct gkyl_dg_geom {
   struct gkyl_range range; // range over which geometry is defined
   struct gkyl_range surf_quad_range; // range for indexing surface nodes
-  struct gkyl_range vol_quad_range; // range for indexing volume nodes
-                           // 
+  struct gkyl_range vol_quad_range;  // range for indexing volume nodes
+
+  
   struct gkyl_array *surf_geom[GKYL_MAX_CDIM]; // surface geometry in dir 'd' in each cell
   struct gkyl_array *vol_geom; // cell geometry
   

@@ -39,14 +39,12 @@ gkyl_dg_geom_new(const struct gkyl_dg_geom_inp *inp)
   dgg->range = *inp->range;
 
   int ndim = dgg->range.ndim;
-  int lower[GKYL_MAX_CDIM], upper[GKYL_MAX_CDIM];
-  for (int d=0; d<ndim; ++d) {
-    lower[d] = 0;
-    upper[d] = inp->nquad-1; // inclusive
-  }
+  int shape[GKYL_MAX_CDIM];
+  for (int d=0; d<ndim; ++d) shape[d] = inp->nquad;
+
   // NOTE: surfaces are ndim-1 objects
-  gkyl_range_init(&dgg->surf_quad_range, ndim-1, lower, upper);
-  gkyl_range_init(&dgg->vol_quad_range, ndim, lower, upper);
+  gkyl_range_init_from_shape(&dgg->surf_quad_range, ndim-1, shape);
+  gkyl_range_init_from_shape(&dgg->vol_quad_range, ndim, shape);
 
   for (int d=0; d<ndim; ++d)
     dgg->surf_geom[d] = gkyl_array_new(GKYL_USER,
@@ -54,6 +52,8 @@ gkyl_dg_geom_new(const struct gkyl_dg_geom_inp *inp)
 
   dgg->vol_geom = gkyl_array_new(GKYL_USER,
     sizeof(struct gkyl_dg_vol_geom[dgg->vol_quad_range.volume]), dgg->range.volume);
+
+  // always compute
   
   dgg->flags = 0;
   GKYL_CLEAR_CU_ALLOC(dgg->flags);
