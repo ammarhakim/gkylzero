@@ -1,6 +1,85 @@
-#include <gkyl_gk_geometry.h>
+#include <assert.h>
+#include <math.h>
+
+#include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
+#include <gkyl_array.h>
+#include <gkyl_math.h>
+#include <gkyl_util.h>
 #include <gkyl_dg_geom.h>
+
+#include <gkyl_gk_geometry.h>
 #include <gkyl_gk_dg_geom.h>
+
+static bool
+gk_dg_geom_is_cu_dev(const struct gkyl_gk_dg_geom* dgg)
+{
+  return GKYL_IS_CU_ALLOC(dgg->flags);
+}
+
+static void
+gk_dg_geom_free(const struct gkyl_ref_count *ref)
+{
+  struct gkyl_gk_dg_geom *dgg = container_of(ref, struct gkyl_gk_dg_geom, ref_count);
+
+  for (int d=0; d<dgg->range.ndim; ++d)
+    gkyl_array_release(dgg->surf_geom[d]);
+
+  if (gk_dg_geom_is_cu_dev(dgg)) 
+    gkyl_cu_free(dgg->on_dev); 
+
+  gkyl_free(dgg);
+}
+
+
+struct gkyl_gk_dg_geom *
+gkyl_gk_dg_geom_new(const struct gkyl_gk_dg_geom_inp *inp)
+{
+  struct gkyl_gk_dg_geom *dgg = gkyl_malloc(sizeof *dgg);
+
+  dgg->range = *inp->range;
+
+  int ndim = dgg->range.ndim;
+  int shape[GKYL_MAX_CDIM];
+  for (int d=0; d<ndim; ++d) shape[d] = inp->nquad;
+
+  // NOTE: surfaces are ndim-1 objects
+  gkyl_range_init_from_shape(&dgg->surf_quad_range, ndim-1, shape);
+
+  for (int d=0; d<ndim; ++d)
+    dgg->surf_geom[d] = gkyl_array_new(GKYL_USER,
+      sizeof(struct gkyl_dg_surf_geom[dgg->surf_quad_range.volume]), dgg->range.volume);
+
+  // always compute
+  
+  dgg->flags = 0;
+  GKYL_CLEAR_CU_ALLOC(dgg->flags);
+  dgg->ref_count = gkyl_ref_count_init(gk_dg_geom_free);
+  dgg->on_dev = dgg; // CPU eqn obj points to itself
+  
+  return dgg;
+}
+
+
+struct gkyl_gk_dg_geom*
+gkyl_gk_dg_geom_acquire(const struct gkyl_gk_dg_geom* dgg)
+{
+  gkyl_ref_count_inc(&dgg->ref_count);
+  return (struct gkyl_gk_dg_geom*) dgg;
+}
+
+void
+gkyl_gk_dg_geom_write(const struct gkyl_gk_dg_geom* dgg, const char *fname)
+{
+  
+}
+
+void
+gkyl_gk_dg_geom_release(const struct gkyl_gk_dg_geom *dgg)
+{
+  gkyl_ref_count_dec(&dgg->ref_count);
+}
+
 
 void
 gkyl_gk_dg_geom_populate_vol(struct gkyl_dg_geom *dg_geom, struct gk_geometry* gk_geom)
@@ -56,7 +135,7 @@ gkyl_gk_dg_geom_populate_vol(struct gkyl_dg_geom *dg_geom, struct gk_geometry* g
 }
 
 void
-gkyl_gk_dg_geom_populate_surf(struct gkyl_dg_geom *dg_geom, struct gk_geometry* gk_geom)
+gkyl_gk_dg_geom_populate_surf(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom, struct gk_geometry* gk_geom)
 {
   int ndim = gk_geom->grid.ndim;
   // Populate surface nodes
@@ -74,6 +153,7 @@ gkyl_gk_dg_geom_populate_surf(struct gkyl_dg_geom *dg_geom, struct gk_geometry* 
 
       long loc = gkyl_range_idx(&local_ext_in_dir, iter.idx);
       struct gkyl_dg_surf_geom *dgs = gkyl_array_fetch(dg_geom->surf_geom[dir], loc);
+      struct gkyl_gk_dg_surf_geom *gkdgs = gkyl_array_fetch(gk_dg_geom->surf_geom[dir], loc);
 
 
       struct gkyl_range_iter qsiter;
@@ -97,6 +177,24 @@ gkyl_gk_dg_geom_populate_surf(struct gkyl_dg_geom *dg_geom, struct gk_geometry* 
         dgs[qsloc].norm.x[0] = global_val[dir*3+0];
         dgs[qsloc].norm.x[1] = global_val[dir*3+1];
         dgs[qsloc].norm.x[2] = global_val[dir*3+2];
+        
+        // set e3hat \dot B = B^3/sqrt(g_33}
+        global_val = gkyl_array_cfetch(gk_geom->geo_surf[dir].B3_nodal, global_loc);
+        gkdgs[qsloc].B3  = global_val[0];
+        // set n \dot curl(bhat)
+        global_val = gkyl_array_cfetch(gk_geom->geo_surf[dir].normcurlbhat_nodal, global_loc);
+        gkdgs[qsloc].normcurlbhat  = global_val[dir];
+
+        // set |B|
+        global_val = gkyl_array_cfetch(gk_geom->geo_surf[dir].bmag_nodal, global_loc);
+        gkdgs[qsloc].bmag  = global_val[0];
+
+        // set bhat
+        global_val = gkyl_array_cfetch(gk_geom->geo_surf[dir].b_i_nodal, global_loc);
+        gkdgs[qsloc].bhat.x[0]  = global_val[0];
+        gkdgs[qsloc].bhat.x[1]  = global_val[1];
+        gkdgs[qsloc].bhat.x[2]  = global_val[2];
+
       }
     }
   }
@@ -186,7 +284,7 @@ gkyl_gk_dg_geom_write_vol(struct gkyl_dg_geom *dg_geom, struct gk_geometry* gk_g
 }
 
 void
-gkyl_gk_dg_geom_write_surf(struct gkyl_dg_geom *dg_geom, struct gk_geometry* gk_geom, const char *name)
+gkyl_gk_dg_geom_write_surf(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom, struct gk_geometry* gk_geom, const char *name)
 {
 
 
@@ -213,7 +311,12 @@ gkyl_gk_dg_geom_write_surf(struct gkyl_dg_geom *dg_geom, struct gk_geometry* gk_
     gkyl_sub_range_init(&local_ext_in_dir, &gk_geom->local_ext, lower, upper);
 
     struct gkyl_array* nodal_lenr = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
-    struct gkyl_array* nodal_normals = gkyl_array_new(GKYL_DOUBLE, 9, gk_geom->nrange_surf[dir].volume);
+    struct gkyl_array* nodal_normals = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_surf[dir].volume);
+    struct gkyl_array* nodal_B3 = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
+    struct gkyl_array* nodal_normcurlbhat = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
+    struct gkyl_array* nodal_bmag = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
+    struct gkyl_array* nodal_b_i = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_surf[dir].volume);
+
 
     struct gkyl_range_iter iter;
     gkyl_range_iter_init(&iter, &local_ext_in_dir);
@@ -221,6 +324,7 @@ gkyl_gk_dg_geom_write_surf(struct gkyl_dg_geom *dg_geom, struct gk_geometry* gk_
 
       long loc = gkyl_range_idx(&local_ext_in_dir, iter.idx);
       struct gkyl_dg_surf_geom *dgs = gkyl_array_fetch(dg_geom->surf_geom[dir], loc);
+      struct gkyl_gk_dg_surf_geom *gkdgs = gkyl_array_fetch(gk_dg_geom->surf_geom[dir], loc);
 
 
       struct gkyl_range_iter qsiter;
@@ -241,9 +345,26 @@ gkyl_gk_dg_geom_write_surf(struct gkyl_dg_geom *dg_geom, struct gk_geometry* gk_
 
         // set normals
         global_val = gkyl_array_fetch(nodal_normals, global_loc);
-        global_val[dir*3+0] = dgs[qsloc].norm.x[0];
-        global_val[dir*3+1] = dgs[qsloc].norm.x[1];
-        global_val[dir*3+2] = dgs[qsloc].norm.x[2];
+        global_val[0] = dgs[qsloc].norm.x[0];
+        global_val[1] = dgs[qsloc].norm.x[1];
+        global_val[2] = dgs[qsloc].norm.x[2];
+
+        // set e3hat \dot B = B^3/sqrt(g_33}
+        global_val = gkyl_array_fetch(nodal_B3, global_loc);
+        global_val[0] = gkdgs[qsloc].B3 ;
+        // set n \dot curl(bhat)
+        global_val = gkyl_array_fetch(nodal_normcurlbhat, global_loc);
+        global_val[dir] = gkdgs[qsloc].normcurlbhat ;
+
+        // set |B|
+        global_val = gkyl_array_fetch(nodal_bmag, global_loc);
+        global_val[0] = gkdgs[qsloc].bmag ;
+
+        // set bhat
+        global_val = gkyl_array_fetch(nodal_b_i, global_loc);
+        global_val[0] = gkdgs[qsloc].bhat.x[0];
+        global_val[1] = gkdgs[qsloc].bhat.x[1];
+        global_val[2] = gkdgs[qsloc].bhat.x[2];
       }
     }
 
@@ -256,6 +377,14 @@ gkyl_gk_dg_geom_write_surf(struct gkyl_dg_geom *dg_geom, struct gk_geometry* gk_
     gkyl_grid_sub_array_write(&ngrid, &gk_geom->nrange_surf[dir], 0,  nodal_lenr, fileNm);
     sprintf(fileNm, fmt, name, "normals_surf", dir);
     gkyl_grid_sub_array_write(&ngrid, &gk_geom->nrange_surf[dir], 0,  nodal_normals, fileNm);
+    sprintf(fileNm, fmt, name, "B3_surf", dir);
+    gkyl_grid_sub_array_write(&ngrid, &gk_geom->nrange_surf[dir], 0,  nodal_B3, fileNm);
+    sprintf(fileNm, fmt, name, "normcurlbhat_surf", dir);
+    gkyl_grid_sub_array_write(&ngrid, &gk_geom->nrange_surf[dir], 0,  nodal_normcurlbhat, fileNm);
+    sprintf(fileNm, fmt, name, "bmag_surf", dir);
+    gkyl_grid_sub_array_write(&ngrid, &gk_geom->nrange_surf[dir], 0,  nodal_bmag, fileNm);
+    sprintf(fileNm, fmt, name, "bhat_surf", dir);
+    gkyl_grid_sub_array_write(&ngrid, &gk_geom->nrange_surf[dir], 0,  nodal_b_i, fileNm);
 
     gkyl_array_release(nodal_lenr);
     gkyl_array_release(nodal_normals);
