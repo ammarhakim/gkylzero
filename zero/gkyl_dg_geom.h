@@ -20,7 +20,7 @@ struct gkyl_dg_vol_geom {
   struct gkyl_vec3 tang[3]; // tangent vectors, e_i
   struct gkyl_vec3 dual[3]; // dual vectors, e^i
   double Jc; // Jacobian = e_1*(e_2 X e_3)  = 1/e^1*(e^2 X e^3)
-};  
+};
 
 // geometry information over a range of cells: 
 struct gkyl_dg_geom {
@@ -63,6 +63,15 @@ struct gkyl_dg_geom* gkyl_dg_geom_new(const struct gkyl_dg_geom_inp *inp);
  * @return Pointer to acquired geometry
  */
 struct gkyl_dg_geom* gkyl_dg_geom_acquire(const struct gkyl_dg_geom* dgg);
+
+/**
+ * Write out geometry data to file. The "fprefix" is the prefix of the
+ * set of file names.
+ *
+ * @param dgg Geometry to which a pointer is needed
+ * @param fname Name of output file to write
+ */
+void gkyl_dg_geom_write(const struct gkyl_dg_geom* dgg, const char *fprefix);
 
 /**
  * Get pointer to geometry on the surface normal to 'd' given by idx

@@ -9,7 +9,7 @@ struct gkyl_mirror_grid_gen_x;
 
 // Geometric quantities: various vectors are stored as contravariant
 // components
-struct __attribute__((__packed__)) gkyl_mirror_grid_gen_geom {
+struct gkyl_mirror_grid_gen_geom {
   struct gkyl_vec3 tang[3]; // tangent vectors, e_i
   struct gkyl_vec3 dual[3]; // dual vectors, e^i
   struct gkyl_vec3 B; // Magnetic field
