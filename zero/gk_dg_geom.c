@@ -354,7 +354,7 @@ gkyl_gk_dg_geom_write_surf(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom 
         global_val[0] = gkdgs[qsloc].B3 ;
         // set n \dot curl(bhat)
         global_val = gkyl_array_fetch(nodal_normcurlbhat, global_loc);
-        global_val[dir] = gkdgs[qsloc].normcurlbhat ;
+        global_val[0] = gkdgs[qsloc].normcurlbhat ;
 
         // set |B|
         global_val = gkyl_array_fetch(nodal_bmag, global_loc);
