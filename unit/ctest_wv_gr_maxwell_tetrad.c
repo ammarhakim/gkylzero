@@ -13,9 +13,9 @@ test_gr_maxwell_tetrad_basic_minkowski()
   double e_fact = 0.0;
   double b_fact = 0.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
-  struct gkyl_wv_eqn *gr_maxwell_tetrad = gkyl_wv_gr_maxwell_tetrad_new(light_speed, e_fact, b_fact, spacetime, false);
+  struct gkyl_wv_eqn *gr_maxwell_tetrad = gkyl_wv_gr_maxwell_tetrad_new(light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
 
-  TEST_CHECK( gr_maxwell_tetrad->num_equations == 22 );
+  TEST_CHECK( gr_maxwell_tetrad->num_equations == 26 );
   TEST_CHECK( gr_maxwell_tetrad->num_waves == 6 );
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
@@ -40,7 +40,7 @@ test_gr_maxwell_tetrad_basic_minkowski()
 
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spatial_metric);
 
-      double q[22];
+      double q[26];
       q[0] = Dx; q[1] = Dy; q[2] = Dz;
       q[3] = Bx; q[4] = By; q[5] = Bz;
       q[6] = phi; q[7] = psi;
@@ -53,6 +53,9 @@ test_gr_maxwell_tetrad_basic_minkowski()
       q[18] = spatial_metric[2][0]; q[19] = spatial_metric[2][1]; q[20] = spatial_metric[2][2];
 
       q[21] = 1.0;
+
+      q[22] = 0.0;
+      q[23] = x; q[24] = y; q[25] = 0.0;
 
       double Ex = (lapse * Dx) + ((shift[1] * Bz) - (shift[2] * By));
       double Ey = (lapse * Dy) - ((shift[0] * Bz) - (shift[2] * Bx));
@@ -89,7 +92,7 @@ test_gr_maxwell_tetrad_basic_minkowski()
         { 0.0, 1.0, 0.0 },
       };
 
-      double q_local[22], flux_local_sr[22], flux_local_gr[22], flux[22];
+      double q_local[26], flux_local_sr[26], flux_local_gr[26], flux[26];
       for (int d = 0; d < 3; d++) {
         gr_maxwell_tetrad->rotate_to_local_func(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], q, q_local);
         gkyl_gr_maxwell_tetrad_flux(light_speed, e_fact, b_fact, q_local, flux_local_sr);
@@ -101,7 +104,7 @@ test_gr_maxwell_tetrad_basic_minkowski()
         }
       }
 
-      double q_l[22], q_g[22];
+      double q_l[26], q_g[26];
       for (int d = 0; d < 3; d++) {
         gkyl_wv_eqn_rotate_to_local(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], q, q_l);
         gkyl_wv_eqn_rotate_to_global(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g);
@@ -110,7 +113,7 @@ test_gr_maxwell_tetrad_basic_minkowski()
           TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
         }
 
-        double w1[22], q1[22];
+        double w1[26], q1[26];
         gr_maxwell_tetrad->cons_to_riem(gr_maxwell_tetrad, q_local, q_local, w1);
         gr_maxwell_tetrad->riem_to_cons(gr_maxwell_tetrad, q_local, w1, q1);
 
@@ -138,9 +141,9 @@ test_gr_maxwell_tetrad_basic_schwarzschild()
   double e_fact = 0.0;
   double b_fact = 0.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
-  struct gkyl_wv_eqn *gr_maxwell_tetrad = gkyl_wv_gr_maxwell_tetrad_new(light_speed, e_fact, b_fact, spacetime, false);
+  struct gkyl_wv_eqn *gr_maxwell_tetrad = gkyl_wv_gr_maxwell_tetrad_new(light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
 
-  TEST_CHECK( gr_maxwell_tetrad->num_equations == 22 );
+  TEST_CHECK( gr_maxwell_tetrad->num_equations == 26 );
   TEST_CHECK( gr_maxwell_tetrad->num_waves == 6 );
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
@@ -168,7 +171,7 @@ test_gr_maxwell_tetrad_basic_schwarzschild()
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spatial_metric);
 
       if (!in_excision_region) {
-        double q[22];
+        double q[26];
         q[0] = Dx; q[1] = Dy; q[2] = Dz;
         q[3] = Bx; q[4] = By; q[5] = Bz;
         q[6] = phi; q[7] = psi;
@@ -181,6 +184,9 @@ test_gr_maxwell_tetrad_basic_schwarzschild()
         q[18] = spatial_metric[2][0]; q[19] = spatial_metric[2][1]; q[20] = spatial_metric[2][2];
 
         q[21] = 1.0;
+
+        q[22] = 0.0;
+        q[23] = x; q[24] = y; q[25] = 0.0;
 
         double Ex = (lapse * Dx) + ((shift[1] * Bz) - (shift[2] * By));
         double Ey = (lapse * Dy) - ((shift[0] * Bz) - (shift[2] * Bx));
@@ -217,7 +223,7 @@ test_gr_maxwell_tetrad_basic_schwarzschild()
           { 0.0, 1.0, 0.0 },
         };
 
-        double q_local[22], flux_local_sr[22], flux_local_gr[22], flux[22];
+        double q_local[26], flux_local_sr[26], flux_local_gr[26], flux[26];
         for (int d = 0; d < 3; d++) {
           gr_maxwell_tetrad->rotate_to_local_func(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], q, q_local);
           gkyl_gr_maxwell_tetrad_flux(light_speed, e_fact, b_fact, q_local, flux_local_sr);
@@ -229,7 +235,7 @@ test_gr_maxwell_tetrad_basic_schwarzschild()
           }
         }
 
-        double q_l[22], q_g[22];
+        double q_l[26], q_g[26];
         for (int d = 0; d < 3; d++) {
           gkyl_wv_eqn_rotate_to_local(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], q, q_l);
           gkyl_wv_eqn_rotate_to_global(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g);
@@ -238,7 +244,7 @@ test_gr_maxwell_tetrad_basic_schwarzschild()
             TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
           }
 
-          double w1[22], q1[22];
+          double w1[26], q1[26];
           gr_maxwell_tetrad->cons_to_riem(gr_maxwell_tetrad, q_local, q_local, w1);
           gr_maxwell_tetrad->riem_to_cons(gr_maxwell_tetrad, q_local, w1, q1);
 
@@ -267,9 +273,9 @@ test_gr_maxwell_tetrad_basic_kerr()
   double e_fact = 0.0;
   double b_fact = 0.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.9, 0.0, 0.0, 0.0);
-  struct gkyl_wv_eqn *gr_maxwell_tetrad = gkyl_wv_gr_maxwell_tetrad_new(light_speed, e_fact, b_fact, spacetime, false);
+  struct gkyl_wv_eqn *gr_maxwell_tetrad = gkyl_wv_gr_maxwell_tetrad_new(light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
 
-  TEST_CHECK( gr_maxwell_tetrad->num_equations == 22 );
+  TEST_CHECK( gr_maxwell_tetrad->num_equations == 26 );
   TEST_CHECK( gr_maxwell_tetrad->num_waves == 6 );
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
@@ -297,7 +303,7 @@ test_gr_maxwell_tetrad_basic_kerr()
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spatial_metric);
 
       if (!in_excision_region) {
-        double q[22];
+        double q[26];
         q[0] = Dx; q[1] = Dy; q[2] = Dz;
         q[3] = Bx; q[4] = By; q[5] = Bz;
         q[6] = phi; q[7] = psi;
@@ -310,6 +316,9 @@ test_gr_maxwell_tetrad_basic_kerr()
         q[18] = spatial_metric[2][0]; q[19] = spatial_metric[2][1]; q[20] = spatial_metric[2][2];
 
         q[21] = 1.0;
+
+        q[22] = 0.0;
+        q[23] = x; q[24] = y; q[25] = 0.0;
 
         double Ex = (lapse * Dx) + ((shift[1] * Bz) - (shift[2] * By));
         double Ey = (lapse * Dy) - ((shift[0] * Bz) - (shift[2] * Bx));
@@ -346,7 +355,7 @@ test_gr_maxwell_tetrad_basic_kerr()
           { 0.0, 1.0, 0.0 },
         };
 
-        double q_local[22], flux_local_sr[22], flux_local_gr[22], flux[22];
+        double q_local[26], flux_local_sr[26], flux_local_gr[26], flux[26];
         for (int d = 0; d < 3; d++) {
           gr_maxwell_tetrad->rotate_to_local_func(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], q, q_local);
           gkyl_gr_maxwell_tetrad_flux(light_speed, e_fact, b_fact, q_local, flux_local_sr);
@@ -358,7 +367,7 @@ test_gr_maxwell_tetrad_basic_kerr()
           }
         }
 
-        double q_l[22], q_g[22];
+        double q_l[26], q_g[26];
         for (int d = 0; d < 3; d++) {
           gkyl_wv_eqn_rotate_to_local(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], q, q_l);
           gkyl_wv_eqn_rotate_to_global(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g);
@@ -367,7 +376,7 @@ test_gr_maxwell_tetrad_basic_kerr()
             TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
           }
 
-          double w1[22], q1[22];
+          double w1[26], q1[26];
           gr_maxwell_tetrad->cons_to_riem(gr_maxwell_tetrad, q_local, q_local, w1);
           gr_maxwell_tetrad->riem_to_cons(gr_maxwell_tetrad, q_local, w1, q1);
 
@@ -396,7 +405,7 @@ test_gr_maxwell_tetrad_waves_minkowski()
   double e_fact = 0.0;
   double b_fact = 0.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
-  struct gkyl_wv_eqn *gr_maxwell_tetrad = gkyl_wv_gr_maxwell_tetrad_new(light_speed, e_fact, b_fact, spacetime, false);
+  struct gkyl_wv_eqn *gr_maxwell_tetrad = gkyl_wv_gr_maxwell_tetrad_new(light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
     for (int y_ind = -10; y_ind < 11; y_ind++) {
@@ -430,7 +439,7 @@ test_gr_maxwell_tetrad_waves_minkowski()
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x - 0.1, y, 0.0, &spatial_metric_l);
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x + 0.1, y, 0.0, &spatial_metric_r);
       
-      double ql[22], qr[22];
+      double ql[26], qr[26];
       ql[0] = Dx_l; ql[1] = Dy_l; ql[2] = Dz_l;
       ql[3] = Bx_l; ql[4] = By_l; ql[5] = Bz_l;
       ql[6] = phi_l; ql[7] = psi_l;
@@ -444,6 +453,9 @@ test_gr_maxwell_tetrad_waves_minkowski()
 
       ql[21] = 1.0;
 
+      ql[22] = 0.0;
+      ql[23] = x - 0.5; ql[24] = y; ql[25] = 0.0;
+
       qr[0] = Dx_r; qr[1] = Dy_r; qr[2] = Dz_r;
       qr[3] = Bx_r; qr[4] = By_r; qr[5] = Bz_r;
       qr[6] = phi_r; qr[7] = psi_r;
@@ -456,6 +468,9 @@ test_gr_maxwell_tetrad_waves_minkowski()
       qr[18] = spatial_metric_r[2][0]; qr[19] = spatial_metric_r[2][1]; qr[20] = spatial_metric_r[2][2];
 
       qr[21] = 1.0;
+
+      qr[22] = 0.0;
+      qr[23] = x + 0.5; qr[24] = y; qr[25] = 0.0;
 
       double norm[3][3] = {
         { 1.0, 0.0, 0.0 },
@@ -476,43 +491,43 @@ test_gr_maxwell_tetrad_waves_minkowski()
       };
 
       for (int d = 0; d < 3; d++) {
-        double speeds[6], waves[6 * 22], waves_local[6 * 22];
+        double speeds[6], waves[6 * 26], waves_local[6 * 26];
 
-        double ql_local[22], qr_local[22];
+        double ql_local[26], qr_local[26];
         gkyl_wv_eqn_rotate_to_local(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], ql, ql_local);
         gkyl_wv_eqn_rotate_to_local(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], qr, qr_local);
 
-        double delta[22];
-        for (int i = 0; i < 22; i++) {
+        double delta[26];
+        for (int i = 0; i < 26; i++) {
           delta[i] = qr_local[i] - ql_local[i];
         }
 
         gkyl_wv_eqn_waves(gr_maxwell_tetrad, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, waves_local, speeds);
 
-        double apdq_local[22], amdq_local[22];
+        double apdq_local[26], amdq_local[26];
         gkyl_wv_eqn_qfluct(gr_maxwell_tetrad, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, waves_local, speeds, amdq_local, apdq_local);
 
         for (int i = 0; i < 2; i++) {
-          gkyl_wv_eqn_rotate_to_global(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], &waves_local[i * 22], &waves[i * 22]);
+          gkyl_wv_eqn_rotate_to_global(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], &waves_local[i * 26], &waves[i * 26]);
         }
 
-        double apdq[22], amdq[22];
+        double apdq[26], amdq[26];
         gkyl_wv_eqn_rotate_to_global(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], apdq_local, apdq);
         gkyl_wv_eqn_rotate_to_global(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], amdq_local, amdq);
 
-        double fl_local_sr[22], fr_local_sr[22];
+        double fl_local_sr[26], fr_local_sr[26];
         gkyl_gr_maxwell_tetrad_flux(light_speed, e_fact, b_fact, ql_local, fl_local_sr);
         gkyl_gr_maxwell_tetrad_flux(light_speed, e_fact, b_fact, qr_local, fr_local_sr);
 
-        double fl_local_gr[22], fr_local_gr[22];
+        double fl_local_gr[26], fr_local_gr[26];
         gkyl_gr_maxwell_tetrad_flux_correction(light_speed, e_fact, b_fact, ql_local, fl_local_sr, fl_local_gr);
         gkyl_gr_maxwell_tetrad_flux_correction(light_speed, e_fact, b_fact, qr_local, fr_local_sr, fr_local_gr);
 
-        double fl[22], fr[22];
+        double fl[26], fr[26];
         gkyl_wv_eqn_rotate_to_global(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], fl_local_gr, fl);
         gkyl_wv_eqn_rotate_to_global(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], fr_local_gr, fr);
 
-        for (int i = 0; i < 22; i++) {
+        for (int i = 0; i < 26; i++) {
           TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-15) );
         }
       }
@@ -539,7 +554,7 @@ test_gr_maxwell_tetrad_waves_schwarzschild()
   double e_fact = 0.0;
   double b_fact = 0.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
-  struct gkyl_wv_eqn *gr_maxwell_tetrad = gkyl_wv_gr_maxwell_tetrad_new(light_speed, e_fact, b_fact, spacetime, false);
+  struct gkyl_wv_eqn *gr_maxwell_tetrad = gkyl_wv_gr_maxwell_tetrad_new(light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
     for (int y_ind = -10; y_ind < 11; y_ind++) {
@@ -577,7 +592,7 @@ test_gr_maxwell_tetrad_waves_schwarzschild()
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x + 0.1, y, 0.0, &spatial_metric_r);
 
       if (!in_excision_region_l && !in_excision_region_r) {
-        double ql[22], qr[22];
+        double ql[26], qr[26];
         ql[0] = Dx_l; ql[1] = Dy_l; ql[2] = Dz_l;
         ql[3] = Bx_l; ql[4] = By_l; ql[5] = Bz_l;
         ql[6] = phi_l; ql[7] = psi_l;
@@ -591,6 +606,9 @@ test_gr_maxwell_tetrad_waves_schwarzschild()
 
         ql[21] = 1.0;
 
+        ql[22] = 0.0;
+        ql[23] = x - 0.5; ql[24] = y; ql[25] = 0.0;
+
         qr[0] = Dx_r; qr[1] = Dy_r; qr[2] = Dz_r;
         qr[3] = Bx_r; qr[4] = By_r; qr[5] = Bz_r;
         qr[6] = phi_r; qr[7] = psi_r;
@@ -603,6 +621,9 @@ test_gr_maxwell_tetrad_waves_schwarzschild()
         qr[18] = spatial_metric_r[2][0]; qr[19] = spatial_metric_r[2][1]; qr[20] = spatial_metric_r[2][2];
 
         qr[21] = 1.0;
+
+        qr[22] = 0.0;
+        qr[23] = x + 0.5; qr[24] = y; qr[25] = 0.0;
 
         double norm[3][3] = {
           { 1.0, 0.0, 0.0 },
@@ -623,43 +644,43 @@ test_gr_maxwell_tetrad_waves_schwarzschild()
         };
 
         for (int d = 0; d < 3; d++) {
-          double speeds[6], waves[6 * 22], waves_local[6 * 22];
+          double speeds[6], waves[6 * 26], waves_local[6 * 26];
 
-          double ql_local[22], qr_local[22];
+          double ql_local[26], qr_local[26];
           gkyl_wv_eqn_rotate_to_local(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], ql, ql_local);
           gkyl_wv_eqn_rotate_to_local(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], qr, qr_local);
 
-          double delta[22];
-          for (int i = 0; i < 22; i++) {
+          double delta[26];
+          for (int i = 0; i < 26; i++) {
             delta[i] = qr_local[i] - ql_local[i];
           }
 
           gkyl_wv_eqn_waves(gr_maxwell_tetrad, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, waves_local, speeds);
 
-          double apdq_local[22], amdq_local[22];
+          double apdq_local[26], amdq_local[26];
           gkyl_wv_eqn_qfluct(gr_maxwell_tetrad, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, waves_local, speeds, amdq_local, apdq_local);
 
           for (int i = 0; i < 2; i++) {
-            gkyl_wv_eqn_rotate_to_global(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], &waves_local[i * 22], &waves[i * 22]);
+            gkyl_wv_eqn_rotate_to_global(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], &waves_local[i * 26], &waves[i * 26]);
           }
 
-          double apdq[22], amdq[22];
+          double apdq[26], amdq[26];
           gkyl_wv_eqn_rotate_to_global(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], apdq_local, apdq);
           gkyl_wv_eqn_rotate_to_global(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], amdq_local, amdq);
 
-          double fl_local_sr[22], fr_local_sr[22];
+          double fl_local_sr[26], fr_local_sr[26];
           gkyl_gr_maxwell_tetrad_flux(light_speed, e_fact, b_fact, ql_local, fl_local_sr);
           gkyl_gr_maxwell_tetrad_flux(light_speed, e_fact, b_fact, qr_local, fr_local_sr);
 
-          double fl_local_gr[22], fr_local_gr[22];
+          double fl_local_gr[26], fr_local_gr[26];
           gkyl_gr_maxwell_tetrad_flux_correction(light_speed, e_fact, b_fact, ql_local, fl_local_sr, fl_local_gr);
           gkyl_gr_maxwell_tetrad_flux_correction(light_speed, e_fact, b_fact, qr_local, fr_local_sr, fr_local_gr);
 
-          double fl[22], fr[22];
+          double fl[26], fr[26];
           gkyl_wv_eqn_rotate_to_global(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], fl_local_gr, fl);
           gkyl_wv_eqn_rotate_to_global(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], fr_local_gr, fr);
 
-          for (int i = 0; i < 22; i++) {
+          for (int i = 0; i < 26; i++) {
             TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-12) );
           }
         }
@@ -687,7 +708,7 @@ test_gr_maxwell_tetrad_waves_kerr()
   double e_fact = 0.0;
   double b_fact = 0.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.9, 0.0, 0.0, 0.0);
-  struct gkyl_wv_eqn *gr_maxwell_tetrad = gkyl_wv_gr_maxwell_tetrad_new(light_speed, e_fact, b_fact, spacetime, false);
+  struct gkyl_wv_eqn *gr_maxwell_tetrad = gkyl_wv_gr_maxwell_tetrad_new(light_speed, e_fact, b_fact, GKYL_STATIC_GAUGE, 0, spacetime, false);
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
     for (int y_ind = -10; y_ind < 11; y_ind++) {
@@ -725,7 +746,7 @@ test_gr_maxwell_tetrad_waves_kerr()
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x + 0.1, y, 0.0, &spatial_metric_r);
 
       if (!in_excision_region_l && !in_excision_region_r) {
-        double ql[22], qr[22];
+        double ql[26], qr[26];
         ql[0] = Dx_l; ql[1] = Dy_l; ql[2] = Dz_l;
         ql[3] = Bx_l; ql[4] = By_l; ql[5] = Bz_l;
         ql[6] = phi_l; ql[7] = psi_l;
@@ -739,6 +760,9 @@ test_gr_maxwell_tetrad_waves_kerr()
 
         ql[21] = 1.0;
 
+        ql[22] = 0.0;
+        ql[23] = x - 0.5; ql[24] = y; ql[25] = 0.0;
+
         qr[0] = Dx_r; qr[1] = Dy_r; qr[2] = Dz_r;
         qr[3] = Bx_r; qr[4] = By_r; qr[5] = Bz_r;
         qr[6] = phi_r; qr[7] = psi_r;
@@ -751,6 +775,9 @@ test_gr_maxwell_tetrad_waves_kerr()
         qr[18] = spatial_metric_r[2][0]; qr[19] = spatial_metric_r[2][1]; qr[20] = spatial_metric_r[2][2];
 
         qr[21] = 1.0;
+
+        qr[22] = 0.0;
+        qr[23] = x + 0.5; qr[24] = y; qr[25] = 0.0;
 
         double norm[3][3] = {
           { 1.0, 0.0, 0.0 },
@@ -771,43 +798,43 @@ test_gr_maxwell_tetrad_waves_kerr()
         };
 
         for (int d = 0; d < 3; d++) {
-          double speeds[6], waves[6 * 22], waves_local[6 * 22];
+          double speeds[6], waves[6 * 26], waves_local[6 * 26];
 
-          double ql_local[22], qr_local[22];
+          double ql_local[26], qr_local[26];
           gkyl_wv_eqn_rotate_to_local(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], ql, ql_local);
           gkyl_wv_eqn_rotate_to_local(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], qr, qr_local);
 
-          double delta[22];
-          for (int i = 0; i < 22; i++) {
+          double delta[26];
+          for (int i = 0; i < 26; i++) {
             delta[i] = qr_local[i] - ql_local[i];
           }
 
           gkyl_wv_eqn_waves(gr_maxwell_tetrad, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, waves_local, speeds);
 
-          double apdq_local[22], amdq_local[22];
+          double apdq_local[26], amdq_local[26];
           gkyl_wv_eqn_qfluct(gr_maxwell_tetrad, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, waves_local, speeds, amdq_local, apdq_local);
 
           for (int i = 0; i < 2; i++) {
-            gkyl_wv_eqn_rotate_to_global(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], &waves_local[i * 22], &waves[i * 22]);
+            gkyl_wv_eqn_rotate_to_global(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], &waves_local[i * 26], &waves[i * 26]);
           }
 
-          double apdq[22], amdq[22];
+          double apdq[26], amdq[26];
           gkyl_wv_eqn_rotate_to_global(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], apdq_local, apdq);
           gkyl_wv_eqn_rotate_to_global(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], amdq_local, amdq);
 
-          double fl_local_sr[22], fr_local_sr[22];
+          double fl_local_sr[26], fr_local_sr[26];
           gkyl_gr_maxwell_tetrad_flux(light_speed, e_fact, b_fact, ql_local, fl_local_sr);
           gkyl_gr_maxwell_tetrad_flux(light_speed, e_fact, b_fact, qr_local, fr_local_sr);
 
-          double fl_local_gr[22], fr_local_gr[22];
+          double fl_local_gr[26], fr_local_gr[26];
           gkyl_gr_maxwell_tetrad_flux_correction(light_speed, e_fact, b_fact, ql_local, fl_local_sr, fl_local_gr);
           gkyl_gr_maxwell_tetrad_flux_correction(light_speed, e_fact, b_fact, qr_local, fr_local_sr, fr_local_gr);
 
-          double fl[22], fr[22];
+          double fl[26], fr[26];
           gkyl_wv_eqn_rotate_to_global(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], fl_local_gr, fl);
           gkyl_wv_eqn_rotate_to_global(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], fr_local_gr, fr);
 
-          for (int i = 0; i < 22; i++) {
+          for (int i = 0; i < 26; i++) {
             TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-13) );
           }
         }

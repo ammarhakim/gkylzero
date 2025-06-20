@@ -30,6 +30,8 @@ Nx = 100 -- Cell count (x-direction).
 Lx = 3.0 -- Domain size (x-direction).
 cfl_frac = 1.0 -- CFL coefficient.
 
+reinit_freq = 10 -- Spacetime reinitialization frequency.
+
 t_end = 1.0 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
@@ -58,7 +60,8 @@ momentApp = Moments.App.new {
     equation = GRMaxwell.new {
       lightSpeed = light_speed,
       elcErrorSpeedFactor = e_fact,
-      mgnErrorSpeedFactor = b_fact
+      mgnErrorSpeedFactor = b_fact,
+      reinitFreq = reinit_freq
     },
   
     -- Initial conditions function.
@@ -99,7 +102,9 @@ momentApp = Moments.App.new {
         spatial_metric[1][1], spatial_metric[1][2], spatial_metric[1][3],
         spatial_metric[2][1], spatial_metric[2][2], spatial_metric[2][3],
         spatial_metric[3][1], spatial_metric[3][2], spatial_metric[3][3],
-        excision
+        excision,
+        0.0,
+        x, 0.0, 0.0
     end,
 
     evolve = true, -- Evolve species?

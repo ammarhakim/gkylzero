@@ -14,6 +14,9 @@ struct wv_gr_euler_tetrad {
   struct gkyl_wv_eqn eqn; // Base equation object.
   struct gkyl_gr_spacetime *spacetime; // Pointer to base spacetime object.
   double gas_gamma; // Adiabatic index.
+
+  enum gkyl_spacetime_gauge spacetime_gauge; // Spacetime gauge choice.
+  int reinit_freq; // Spacetime reinitialization frequency.
 };
 
 /**
@@ -25,7 +28,7 @@ struct wv_gr_euler_tetrad {
 */
 GKYL_CU_D
 void
-gkyl_gr_euler_tetrad_flux(double gas_gamma, const double q[28], double flux[28]);
+gkyl_gr_euler_tetrad_flux(double gas_gamma, const double q[71], double flux[71]);
 
 /**
 * Compute general relativistic correction to special relativistic flux. Assumes rotation to local coordinate system.
@@ -37,7 +40,7 @@ gkyl_gr_euler_tetrad_flux(double gas_gamma, const double q[28], double flux[28])
 */
 GKYL_CU_D
 void
-gkyl_gr_euler_tetrad_flux_correction(double gas_gamma, const double q[28], const double flux_sr[28], double flux_gr[28]);
+gkyl_gr_euler_tetrad_flux_correction(double gas_gamma, const double q[71], const double flux_sr[71], double flux_gr[71]);
 
 /**
 * Compute primitive variables given the conserved variables.
@@ -48,7 +51,7 @@ gkyl_gr_euler_tetrad_flux_correction(double gas_gamma, const double q[28], const
 */
 GKYL_CU_D
 void
-gkyl_gr_euler_tetrad_prim_vars(double gas_gamma, const double q[28], double v[28]);
+gkyl_gr_euler_tetrad_prim_vars(double gas_gamma, const double q[71], double v[71]);
 
 /**
 * Compute inverse spatial metric tensor (in covariant component form) given the conserved variables.
@@ -58,7 +61,7 @@ gkyl_gr_euler_tetrad_prim_vars(double gas_gamma, const double q[28], double v[28
 */
 GKYL_CU_D
 void
-gkyl_gr_euler_tetrad_inv_spatial_metric(const double q[28], double ***inv_spatial_metric);
+gkyl_gr_euler_tetrad_inv_spatial_metric(const double q[71], double ***inv_spatial_metric);
 
 /**
 * Compute perfect fluid stress-energy tensor (in contravariant component form) given the conserved variables.
@@ -69,7 +72,7 @@ gkyl_gr_euler_tetrad_inv_spatial_metric(const double q[28], double ***inv_spatia
 */
 GKYL_CU_D
 void
-gkyl_gr_euler_tetrad_stress_energy_tensor(double gas_gamma, const double q[28], double ***stress_energy);
+gkyl_gr_euler_tetrad_stress_energy_tensor(double gas_gamma, const double q[71], double ***stress_energy);
 
 /**
 * Compute maximum absolute wave speed.
@@ -80,7 +83,7 @@ gkyl_gr_euler_tetrad_stress_energy_tensor(double gas_gamma, const double q[28], 
 */
 GKYL_CU_D
 static inline double
-gkyl_gr_euler_tetrad_max_abs_speed(double gas_gamma, const double q[28]);
+gkyl_gr_euler_tetrad_max_abs_speed(double gas_gamma, const double q[71]);
 
 /**
 * Compute Riemann variables given the conserved variables.
@@ -288,6 +291,69 @@ wave_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const dou
 GKYL_CU_D
 static void
 qfluct_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
+  double* amdq, double* apdq);
+
+/**
+* Compute waves and speeds using HLL fluxes.
+*
+* @param eqn Base equation object.
+* @param delta Jump across interface to split.
+* @param ql Conserved variables on the left of the interface.
+* @param qr Conserved variables on the right of the interface.
+* @param waves Waves (output).
+* @param s Wave speeds (output).
+* @return Maximum wave speed.
+*/
+GKYL_CU_D
+static double
+wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s);
+
+/**
+* Compute fluctuations using HLL fluxes.
+*
+* @param eqn Base equation object.
+* @param ql Conserved variable vector on the left of the interface.
+* @param qr Conserved variable vector on the right of the interface.
+* @param waves Waves (input).
+* @param s Wave speeds (input).
+* @param amdq Left-moving fluctuations (output).
+* @param apdq Right-moving fluctuations (output).
+*/
+GKYL_CU_D
+static void
+qfluct_hll(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq);
+
+/**
+* Compute waves and speeds using HLL fluxes (with potential fallback).
+*
+* @param eqn Base equation object.
+* @param type Type of Riemann-solver flux to use.
+* @param delta Jump across interface to split.
+* @param ql Conserved variables on the left of the interface.
+* @param qr Conserved variables on the right of the interface.
+* @param waves Waves (output).
+* @param s Wave speeds (output).
+* @return Maximum wave speed.
+*/
+GKYL_CU_D
+static double
+wave_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s);
+
+/**
+* Compute fluctuations using HLL fluxes (with potential fallback),
+*
+* @param eqn Base equation object.
+* @param type Type of Riemann-solver flux to use.
+* @param ql Conserved variable vector on the left of the interface.
+* @param qr Conserved variable vector on the right of the interface.
+* @param waves Waves (input).
+* @param s Wave speeds (input).
+* @param amdq Left-moving fluctuations (output).
+* @param apdq Right-moving fluctuations (output).
+*/
+GKYL_CU_D
+static void
+qfluct_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
   double* amdq, double* apdq);
 
 /**

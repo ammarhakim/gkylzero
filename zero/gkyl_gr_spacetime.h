@@ -4,6 +4,12 @@
 #include <gkyl_util.h>
 #include <gkyl_evalf_def.h>
 
+// Spacetime gauge choices.
+enum gkyl_spacetime_gauge {
+  GKYL_STATIC_GAUGE = 0, // Default
+  GKYL_BLACKHOLE_COLLAPSE_GAUGE
+};
+
 // Forward declare the spacetime struct, for use in future function pointers.
 struct gkyl_gr_spacetime;
 

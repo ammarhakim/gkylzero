@@ -17,6 +17,9 @@ struct wv_gr_maxwell {
   double light_speed; // Speed of light.
   double e_fact; // Factor of speed of light for electric field correction.
   double b_fact; // Factor of speed of light for magnetic field correction.
+
+  enum gkyl_spacetime_gauge spacetime_gauge; // Spacetime gauge choice.
+  int reinit_freq; // Spacetime reinitialization frequency.
 };
 
 /**
@@ -30,7 +33,7 @@ struct wv_gr_maxwell {
 */
 GKYL_CU_D
 void
-gkyl_gr_maxwell_flux(double light_speed, double e_fact, double b_fact, const double q[22], double flux[22]);
+gkyl_gr_maxwell_flux(double light_speed, double e_fact, double b_fact, const double q[26], double flux[26]);
 
 /**
 * Compute maximum absolute wave speed.
@@ -41,7 +44,7 @@ gkyl_gr_maxwell_flux(double light_speed, double e_fact, double b_fact, const dou
 */
 GKYL_CU_D
 static inline double
-gkyl_gr_maxwell_max_abs_speed(double light_speed, const double q[22]);
+gkyl_gr_maxwell_max_abs_speed(double light_speed, const double q[26]);
 
 /**
 * Compute Riemann variables given the conserved variables.
