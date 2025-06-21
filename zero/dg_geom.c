@@ -4,9 +4,10 @@
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
+#include <gkyl_dg_geom.h>
+#include <gkyl_gauss_quad_data.h>
 #include <gkyl_math.h>
 #include <gkyl_util.h>
-#include <gkyl_dg_geom.h>
 
 static bool
 dg_geom_is_cu_dev(const struct gkyl_dg_geom* dgg)
@@ -23,6 +24,12 @@ dg_geom_free(const struct gkyl_ref_count *ref)
     gkyl_array_release(dgg->surf_geom[d]);
 
   gkyl_array_release(dgg->vol_geom);
+
+  gkyl_free(dgg->vol_weights);
+  gkyl_free(dgg->vol_ords);
+
+  gkyl_free(dgg->surf_weights);
+  gkyl_free(dgg->surf_ords);
   
   if (dg_geom_is_cu_dev(dgg)) 
     gkyl_cu_free(dgg->on_dev); 
@@ -52,8 +59,17 @@ gkyl_dg_geom_new(const struct gkyl_dg_geom_inp *inp)
 
   dgg->vol_geom = gkyl_array_new(GKYL_USER,
     sizeof(struct gkyl_dg_vol_geom[dgg->vol_quad_range.volume]), dgg->range.volume);
+  
+  // compute surface and volume quadrature weights & ordinates
+  long nsq = dgg->surf_quad_range.volume;
+  dgg->surf_weights = gkyl_malloc(sizeof(double)*nsq);
+  dgg->surf_ords = gkyl_malloc(sizeof(double)*nsq*(ndim-1));
+  gkyl_ndim_ordinates_weights(ndim-1, dgg->surf_ords, dgg->surf_weights, inp->nquad);
 
-  // always compute
+  long nvq = dgg->vol_quad_range.volume;
+  dgg->vol_weights = gkyl_malloc(sizeof(double)*nvq);
+  dgg->vol_ords = gkyl_malloc(sizeof(double)*nvq*ndim);
+  gkyl_ndim_ordinates_weights(ndim, dgg->vol_ords, dgg->vol_weights, inp->nquad);
   
   dgg->flags = 0;
   GKYL_CLEAR_CU_ALLOC(dgg->flags);
