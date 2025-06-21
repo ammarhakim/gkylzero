@@ -33,8 +33,10 @@ eval_on_nodes_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
 static void
 gk_field_calc_energy_dt_active(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced)
 {
+  struct timespec wst = gkyl_wall_clock();
   gkyl_array_integrate_advance(field->calc_em_energy, field->phi_smooth, 
     1.0/dt, field->es_energy_fac, &app->local, &app->local, energy_reduced);
+  app->stat.phidot_tm += gkyl_time_diff_now_sec(wst);
 }
 
 static void
@@ -55,28 +57,8 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
   struct gk_species *gks = &app->species[0];
   // Get the z BC info from the first species in our app
   const struct gkyl_gyrokinetic_bcs *bcz = &gks->info.bcz;
-  // define the parallel direction index (handle 2x and 3x cases)
+  // Define the parallel direction index (handle 2x and 3x cases).
   int zdir = app->cdim - 1;
-
-  // Define sub range of ghost and skin cells that spans only the core
-  double xLCFS = f->info.xLCFS;
-  // Index of the cell that abuts the xLCFS from below.
-  int idxLCFS_m = (xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
-
-  // check that idxLCFS_m is within the local range
-  assert(idxLCFS_m >= app->local.lower[0] && idxLCFS_m <= app->local.upper[0]);
-
-  // Create a core local range, extended in the BC dir.
-  int ndim = app->cdim;
-  int lower_bcdir_ext[ndim], upper_bcdir_ext[ndim];
-  for (int i=0; i<ndim; i++) {
-    lower_bcdir_ext[i] = app->local.lower[i];
-    upper_bcdir_ext[i] = app->local.upper[i];
-  }
-  upper_bcdir_ext[0] = idxLCFS_m;
-  lower_bcdir_ext[zdir] = app->local_ext.lower[zdir];
-  upper_bcdir_ext[zdir] = app->local_ext.upper[zdir];
-  gkyl_sub_range_init(&f->local_par_ext_core, &app->local_ext, lower_bcdir_ext, upper_bcdir_ext);
 
   // TSBC updaters
   int ghost[] = {1, 1, 1};
@@ -89,7 +71,7 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
       .shear_dir = 0, // shift varies with x.
       .edge = GKYL_LOWER_EDGE,
       .cdim = app->cdim,
-      .bcdir_ext_update_r = f->local_par_ext_core,
+      .bcdir_ext_update_r = app->local_par_ext_core,
       .num_ghost = ghost, // one ghost per config direction
       .basis = app->basis,
       .grid = app->grid,
@@ -101,17 +83,9 @@ gk_field_add_TSBC_and_SSFG_updaters(struct gkyl_gyrokinetic_app *app, struct gk_
     f->bc_T_LU_lo = gkyl_bc_twistshift_new(&T_LU_lo);
   }
 
-  // SSFG updaters
-  int ghost_par[] = {0, 0, 0};
-  ghost_par[zdir] = 1;
-  // create lower and upper skin and ghost ranges for the z BC in the core region
-  gkyl_skin_ghost_ranges( &f->lower_skin_core, &f->lower_ghost_core, zdir, 
-                          GKYL_LOWER_EDGE, &f->local_par_ext_core, ghost_par);
-  gkyl_skin_ghost_ranges( &f->upper_skin_core, &f->upper_ghost_core, zdir, 
-                          GKYL_UPPER_EDGE, &f->local_par_ext_core, ghost_par);
-  // add the SSFG updater for lower and upper application
-  f->ssfg_lo = gkyl_skin_surf_from_ghost_new(zdir,GKYL_LOWER_EDGE,
-                app->basis,&f->lower_skin_core,&f->lower_ghost_core,app->use_gpu);
+  // Add the SSFG updater for lower and upper application.
+  f->ssfg_lo = gkyl_skin_surf_from_ghost_new(zdir, GKYL_LOWER_EDGE,
+    app->basis, &app->lower_skin_par_core, &app->lower_ghost_par_core, app->use_gpu);
 }
 
 static void
@@ -306,18 +280,10 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       fem_parproj_bc_core = GKYL_FEM_PARPROJ_NONE;
       fem_parproj_bc_sol = GKYL_FEM_PARPROJ_NONE;
     }
-    // construct core and SOL ranges.
-    double xLCFS = f->info.xLCFS;
-    // Index of the cell that abuts the xLCFS from below.
-    int idxLCFS_m = (xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
-    gkyl_range_shorten_from_below(&f->global_sol, &app->global, 0, app->grid.cells[0]-idxLCFS_m+1);
-    gkyl_range_shorten_from_below(&f->global_ext_sol, &app->global_ext, 0, app->grid.cells[0]-idxLCFS_m+1);
-    gkyl_range_shorten_from_above(&f->global_core, &app->global, 0, idxLCFS_m+1);
-    gkyl_range_shorten_from_above(&f->global_ext_core, &app->global_ext, 0, idxLCFS_m+1);
 
-    f->fem_parproj_core = gkyl_fem_parproj_new(&f->global_core, &app->basis,
+    f->fem_parproj_core = gkyl_fem_parproj_new(&app->global_core, &app->basis,
       fem_parproj_bc_core, 0, 0, app->use_gpu);
-    f->fem_parproj_sol = gkyl_fem_parproj_new(&f->global_sol, &app->basis,
+    f->fem_parproj_sol = gkyl_fem_parproj_new(&app->global_sol, &app->basis,
       fem_parproj_bc_sol, 0, 0, app->use_gpu);
   } 
   else {
@@ -500,6 +466,7 @@ void
 gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field, 
   const struct gkyl_array *fin[])
 {
+  struct timespec wst = gkyl_wall_clock();
   gkyl_array_clear(field->rho_c, 0.0);
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
@@ -532,6 +499,7 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
       }
     }
   } 
+  app->stat.field_phi_rhs_tm += gkyl_time_diff_now_sec(wst);
 }
 
 static void
@@ -648,7 +616,7 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
 
     }
   }
-  app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.field_phi_solve_tm += gkyl_time_diff_now_sec(wst);
 }
 
 static struct gkyl_app_restart_status
@@ -712,6 +680,7 @@ gk_field_project_init(struct gkyl_gyrokinetic_app *app)
 void
 gk_field_calc_energy(gkyl_gyrokinetic_app *app, double tm, const struct gk_field *field)
 {
+  struct timespec wst = gkyl_wall_clock();
   gkyl_array_integrate_advance(field->calc_em_energy, field->phi_smooth, 
     1.0, field->es_energy_fac, &app->local, &app->local, field->em_energy_red);
 
@@ -752,6 +721,7 @@ gk_field_calc_energy(gkyl_gyrokinetic_app *app, double tm, const struct gk_field
 
     gkyl_dynvec_append(field->integ_energy_dot, tm, energy_dot_global);
   }
+  app->stat.field_diag_calc_tm += gkyl_time_diff_now_sec(wst);
 }
 
 // release resources for field
@@ -803,7 +773,6 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
       gkyl_bc_twistshift_release(f->bc_T_LU_lo);
     }
     gkyl_skin_surf_from_ghost_release(f->ssfg_lo);
-    // gkyl_array_release(f->bc_buffer);
   }
 
   gkyl_dynvec_release(f->integ_energy);

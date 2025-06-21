@@ -142,6 +142,7 @@ gkyl_zero_lw_openlibs(lua_State *L)
   rect_decomp_openlibs(L);
 
   // Register types for species, field, and Poisson solver boundary conditions.
+  gkyl_register_distribution_moment_types(L);
   gkyl_register_species_bc_types(L);
   gkyl_register_field_bc_types(L);
 }

@@ -84,6 +84,7 @@ gkyl_multib_comm_conn_array_transfer_nccl(struct gkyl_comm *comm, int num_blocks
       if (nid == my_rank) {
         int bid_src = mbcc_r->comm_conn[nr].block_id;
         struct gkyl_range *range_dest = &mbcc_r->comm_conn[nr].range;
+        int e = mbcc_r->comm_conn[nr].tar_edge;
 
         // The send connections may not be ordered in the same way as the recvs.
         // Loop over the send connections and find the one from the same block.
@@ -97,7 +98,7 @@ gkyl_multib_comm_conn_array_transfer_nccl(struct gkyl_comm *comm, int num_blocks
         struct gkyl_multib_comm_conn *mbcc_s = mbcc_send[bid_src_idx];
         int conn_src_idx = -1;
         for (int ns=0; ns<mbcc_s->num_comm_conn; ++ns) {
-          if (mbcc_s->comm_conn[ns].block_id == bid) {
+          if (mbcc_s->comm_conn[ns].block_id == bid && mbcc_s->comm_conn[ns].src_edge == e) {
             conn_src_idx = ns;
             break;
           }

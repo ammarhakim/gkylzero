@@ -307,17 +307,12 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
   double theta_lo = constB_ctx->theta_min;
   double theta_hi = constB_ctx->theta_max;
   double theta_dxi = (theta_hi - theta_lo) / npts;
-  double bmag_vals[npts];
-  double dbmag_vals[npts];
+  double *bmag_vals = gkyl_malloc(sizeof(double) * (npts + 1));
+  double *dbmag_vals = gkyl_malloc(sizeof(double) * (npts + 1));
 
-  int extrema = 0;
-  double theta_extrema[16];
-  double bmag_extrema[16];
-
-  theta_extrema[0] = theta_lo;
-  xp[Z_IDX] = theta_lo;
-  gkyl_calc_bmag_global(0.0, xp, &bmag_extrema[0], bmag_ctx);
-  extrema++;
+  int extrema = 1; // Offset by 1 for the first point
+  double *theta_extrema = gkyl_malloc(sizeof(double) * (npts + 1));
+  double *bmag_extrema = gkyl_malloc(sizeof(double) * (npts + 1));
 
   for (int i = 0; i <= npts; i++){
     double theta = theta_lo + i * theta_dxi;
@@ -358,9 +353,14 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
       }
     }
   }
+  
+  // Set final extrema after the loop. MR April 22 2025
+  theta_extrema[0] = constB_ctx->theta_min;
+  xp[Z_IDX] = constB_ctx->theta_min;
+  gkyl_calc_bmag_global(0.0, xp, &bmag_extrema[0], bmag_ctx);
 
-  theta_extrema[extrema] = theta_hi;
-  xp[Z_IDX] = theta_hi;
+  theta_extrema[extrema] = constB_ctx->theta_max;
+  xp[Z_IDX] = constB_ctx->theta_max;
   gkyl_calc_bmag_global(0.0, xp, &bmag_extrema[extrema], bmag_ctx);
   extrema++;
 
@@ -399,6 +399,12 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
   {    gpm->constB_ctx->min_or_max[extrema-1] = 0; } // Minimum
   else  
   {    printf("Error: Extrema is not an extrema. Position_map optimization failed\n");  }
+
+  // Free mallocs
+  gkyl_free(bmag_vals);
+  gkyl_free(dbmag_vals);
+  gkyl_free(theta_extrema);
+  gkyl_free(bmag_extrema);
 }
 
 /**
@@ -554,14 +560,9 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
   // Set strict floor and ceiling limits for theta
   // This is to prevent the root finding algorithm from going out of bounds
   // Not fout[0] = theta because of the finite differences and can lead to jumps
-  if (it <=0)
+  if (it <= 0 || it >= num_boundaries)
   {
-    fout[0] = theta_lo;
-    return;
-  }
-  if (it >= num_boundaries)
-  {
-    fout[0] = theta_hi;
+    fout[0] = (it <= 0) ? theta_lo : theta_hi;
     return;
   }
 

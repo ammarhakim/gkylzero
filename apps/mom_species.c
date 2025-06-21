@@ -29,10 +29,14 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
   sp->k0 = 0.0;
   sp->has_grad_closure = false;
+  sp->has_nn_closure = false;
   if (mom_sp->equation->type == GKYL_EQN_TEN_MOMENT) {
     sp->update_sources = true; 
     sp->k0 = gkyl_wv_ten_moment_k0(mom_sp->equation);
     sp->has_grad_closure = gkyl_wv_ten_moment_use_grad_closure(mom_sp->equation);
+    sp->has_nn_closure = gkyl_wv_ten_moment_use_nn_closure(mom_sp->equation);
+    sp->poly_order = gkyl_wv_ten_moment_poly_order(mom_sp->equation);
+    sp->ann = gkyl_wv_ten_moment_ann(mom_sp->equation);
   }
 
   // check if we are running with Braginskii transport and fetch Braginskii type

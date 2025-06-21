@@ -13,8 +13,8 @@ extern "C" {
 __global__ static void
 gkyl_prim_lbo_calc_set_cu_ker(gkyl_prim_lbo_calc* calc,
   struct gkyl_nmat *As, struct gkyl_nmat *xs,
-  struct gkyl_range conf_rng,
-  const struct gkyl_array* moms, const struct gkyl_array* boundary_corrections)
+  struct gkyl_range conf_rng, const struct gkyl_array* moms,
+  const struct gkyl_array* boundary_corrections, const struct gkyl_array* nu)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -36,10 +36,11 @@ gkyl_prim_lbo_calc_set_cu_ker(gkyl_prim_lbo_calc* calc,
 
     const double *moms_d = (const double*) gkyl_array_cfetch(moms, start);
     const double *boundary_corrections_d = (const double*) gkyl_array_cfetch(boundary_corrections, start);
+    const double *nu_d = (const double*) gkyl_array_cfetch(nu, start);
 
     gkyl_mat_clear(&lhs, 0.0); gkyl_mat_clear(&rhs, 0.0);
 
-    calc->prim->self_prim(calc->prim, &lhs, &rhs, idx, moms_d, boundary_corrections_d);
+    calc->prim->self_prim(calc->prim, &lhs, &rhs, idx, moms_d, boundary_corrections_d, nu_d);
   }
 }
 
@@ -73,8 +74,8 @@ gkyl_prim_lbo_copy_sol_cu_ker(struct gkyl_nmat *xs,
 
 void
 gkyl_prim_lbo_calc_advance_cu(struct gkyl_prim_lbo_calc* calc, 
-  const struct gkyl_range *conf_rng, 
-  const struct gkyl_array* moms, const struct gkyl_array* boundary_corrections,
+  const struct gkyl_range *conf_rng, const struct gkyl_array* moms,
+  const struct gkyl_array* boundary_corrections, const struct gkyl_array *nu,
   struct gkyl_array* prim_moms_out)
 {
   int nc = calc->prim->num_config;
@@ -90,7 +91,7 @@ gkyl_prim_lbo_calc_advance_cu(struct gkyl_prim_lbo_calc* calc,
 
   gkyl_prim_lbo_calc_set_cu_ker<<<conf_rng->nblocks, conf_rng->nthreads>>>(calc->on_dev,
     calc->As->on_dev, calc->xs->on_dev, *conf_rng,
-    moms->on_dev, boundary_corrections->on_dev);
+    moms->on_dev, boundary_corrections->on_dev, nu->on_dev);
   
   bool status = gkyl_nmat_linsolve_lu_pa(calc->mem, calc->As, calc->xs);
 

@@ -19,6 +19,13 @@ gkyl_vec3_new(double x, double y, double z)
   return (struct gkyl_vec3) { .x = { x, y, z} };
 }
 
+// scalar*a
+static inline struct gkyl_vec3
+gkyl_vec3_scale(double scalar, struct gkyl_vec3 a)
+{
+  return (struct gkyl_vec3) { .x = { scalar*a.x[0], scalar*a.x[1], scalar*a.x[2] } };
+}
+
 // a+b
 static inline struct gkyl_vec3
 gkyl_vec3_add(struct gkyl_vec3 a, struct gkyl_vec3 b)
@@ -67,8 +74,73 @@ gkyl_vec3_cross(struct gkyl_vec3 a, struct gkyl_vec3 b)
   };
 }
 
+// a \dot (b \times c)
+static inline double
+gkyl_vec3_triple(struct gkyl_vec3 a, struct gkyl_vec3 b, struct gkyl_vec3 c)
+{
+  return gkyl_vec3_dot(a, gkyl_vec3_cross(b, c));
+}
+
+/**
+ * Convert contravariant components of a vector in polar coordinate
+ * basis to Cartesian basis components. Note the polar basis are not
+ * normalized.
+ *
+ * @param r Radial coordinate
+ * @param phi Polar angle
+ * @param pin Input contravariant vector components
+ * @return Cartesian component for @a pin
+ */
+static inline struct gkyl_vec3
+gkyl_vec3_polar_con_to_cart(double r, double phi, struct gkyl_vec3 pin)
+{
+  double c0 = pin.x[0] * cos(phi) - pin.x[1] * sin(phi) * r;
+  double c1 = pin.x[0] * sin(phi) + pin.x[1] * cos(phi) * r;
+  double c2 = pin.x[2];
+  return gkyl_vec3_new(c0, c1, c2);
+}
+
+/**
+ * Convert contravariant components of a vector in polar coordinate
+ * basis to Cartesian basis components. Note the polar basis are not
+ * normalized.
+ *
+ * @param r Radial coordinate
+ * @param phi Polar angle
+ * @param pin Input contravariant vector components
+ * @return Cartesian component for @a pin
+ */
+static inline struct gkyl_vec3
+gkyl_vec3_polar_cov_to_cart(double r, double phi, struct gkyl_vec3 pin)
+{
+  double c0 = pin.x[0]*cos(phi)-(pin.x[1]*sin(phi))/r;
+  double c1 = pin.x[0]*sin(phi)+(pin.x[1]*cos(phi))/r;
+  double c2 = pin.x[2];
+  return gkyl_vec3_new(c0, c1, c2);
+}    
+
+/**
+ * Convert contravariant components of a vector in polar coordinate
+ * basis to Cartesian basis components. Note the polar basis are not
+ * normalized.
+ *
+ * @param r Radial coordinate
+ * @param phi Polar angle
+ * @param pin Input contravariant vector components
+ * @return Cartesian component for @a pin
+ */
+static inline struct gkyl_vec3
+gkyl_vec3_polar_con_to_cov(double r, struct gkyl_vec3 pin)
+{
+  double c0 = pin.x[0];
+  double c1 = pin.x[1] * r * r;
+  double c2 = pin.x[2];
+  return gkyl_vec3_new(c0, c1, c2);
+}
+
 // minmod(a,b,c, ...) returns min of all parameters are positive, max
 // of all parameters if all are negative, and zero otherwise.
+
 
 // minmod(x,y)
 static inline double
@@ -158,12 +230,12 @@ struct gkyl_poly_roots {
 };  
 
 // Quartic polynomial to hand off to ridders
-struct quartic_polynomial {
+struct gkyl_quartic_polynomial {
   double p[4];
 };
 
 // Result polynomials from Sturn Chain
-struct sturn_polynomials {
+struct gkyl_sturm_polynomials {
   double p0[4];
   double p1[4];
   double p2[4];
@@ -180,7 +252,7 @@ struct gkyl_root_intervals {
   int niter; // number of iterations
   int niter_refinement[4]; // number of iterations
   int nroots; // number of distinct-real-roots
-  struct sturn_polynomials sturn_chain;
+  struct gkyl_sturm_polynomials sturn_chain;
   double real_roots_ridders[4]; // Output of the root finding algorithm
   int status_ridders[4]; // Status of the ridders' ability to find the roots 
 };
@@ -298,7 +370,7 @@ void gkyl_refine_root_intervals_bisection(struct gkyl_root_intervals *root_inter
   double tol);
 
 
-  /**
+/**
  * Compute the roots from the intervals given by gkyl_calc_quartic_root_intervals() 
  * using ridders' algorithm. This can handle either refined or unrefined intervals.
  * 

@@ -24,50 +24,56 @@ gk_neut_species_recycle_write_flux_enabled(struct gkyl_gyrokinetic_app *app, str
   struct gkyl_range *cskin_r = edi ==0 ? &app->lower_skin[recyc->dir] : &app->upper_skin[recyc->dir];
   
   for (int i=0; i<recyc->num_species; ++i) {
+    struct timespec wst = gkyl_wall_clock();
     // Write out the particle flux of the impacting species.
     struct gk_species *gks = recyc->impact_species[i];
+
+    gk_species_bflux_get_flux(&gks->bflux, recyc->dir, recyc->edge, recyc->phase_flux_gk[i], &recyc->impact_buff_r[i]);
+    gkyl_dg_updater_moment_gyrokinetic_advance(recyc->m0op_gk[i], &recyc->impact_normal_r[i],
+      &recyc->impact_cbuff_r[i], recyc->phase_flux_gk[i], recyc->m0_flux_gk[i]);
+    app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
+
+    struct timespec wtm = gkyl_wall_clock();
+    // Copy to skin to write it out.
+    gkyl_array_clear(recyc->diag_out, 0.0);
+    gkyl_array_copy_range_to_range(recyc->diag_out, recyc->m0_flux_gk[i], cskin_r, &recyc->impact_cbuff_r[i]);
+
+    if (app->use_gpu)
+      gkyl_array_copy(recyc->diag_out_ho, recyc->diag_out);
 
     const char *fmt = "%s-%s_recycling_%s%s_%s_flux_%d.gkyl";
     int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, vars[dir], edge[edi], gks->info.name, frame);
     char fileNm[sz+1]; // ensures no buffer overflow
     snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, vars[dir], edge[edi], gks->info.name, frame);
     
-    gk_species_bflux_get_flux(&gks->bflux, recyc->dir, recyc->edge, recyc->phase_flux_gk[i], &recyc->impact_buff_r[i]);
-    gkyl_dg_updater_moment_gyrokinetic_advance(recyc->m0op_gk[i], &recyc->impact_normal_r[i],
-      &recyc->impact_cbuff_r[i], recyc->phase_flux_gk[i], recyc->m0_flux_gk[i]);
-    // Copy to skin to write it out.
-    gkyl_array_clear(recyc->diag_out, 0.0);
-    gkyl_array_copy_range_to_range(recyc->diag_out, recyc->m0_flux_gk[i], cskin_r, &recyc->impact_cbuff_r[i]);
-    if (app->use_gpu)
-      gkyl_array_copy(recyc->diag_out_ho, recyc->diag_out);
-
-    struct timespec wtm = gkyl_wall_clock();
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, recyc->diag_out_ho, fileNm);
-    app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
+    app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
   }
 
+  struct timespec wst = gkyl_wall_clock();
   // Write out the particle flux of the emitting neutral species.
-  const char *fmt = "%s-%s_recycling_%s%s_%s_flux_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, vars[dir], edge[edi], s->info.name, frame);
-  char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name, vars[dir], edge[edi], s->info.name, frame);
-  
   gkyl_array_clear(recyc->f_diag, 0.0);
   gkyl_array_copy_range_to_range(recyc->f_diag, recyc->f_emit, recyc->emit_skin_r, &recyc->emit_buff_r);
   gkyl_boundary_flux_advance(recyc->f0_flux_slvr, recyc->f_diag, recyc->f_diag);
   gkyl_array_copy_range_to_range(recyc->unit_phase_flux_neut, recyc->f_diag, &recyc->emit_buff_r, recyc->emit_ghost_r);
   gkyl_dg_updater_moment_advance(recyc->m0op_neut, &recyc->emit_normal_r, &recyc->emit_cbuff_r,
     recyc->unit_phase_flux_neut, recyc->emit_flux);
+  app->stat.neut_species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
 
+  struct timespec wtm = gkyl_wall_clock();
   // Copy to skin to write it out.
   gkyl_array_clear(recyc->diag_out, 0.0);
   gkyl_array_copy_range_to_range(recyc->diag_out, recyc->emit_flux, cskin_r, &recyc->emit_cbuff_r);
   if (app->use_gpu)
     gkyl_array_copy(recyc->diag_out_ho, recyc->diag_out);
   
-  struct timespec wtm = gkyl_wall_clock();
+  const char *fmt = "%s-%s_recycling_%s%s_%s_flux_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, vars[dir], edge[edi], s->info.name, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name, vars[dir], edge[edi], s->info.name, frame);
+  
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, recyc->diag_out_ho, fileNm);
-  app->stat.diag_io_tm += gkyl_time_diff_now_sec(wtm);
+  app->stat.neut_species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
   app->stat.n_diag_io += 1;
 
   gk_array_meta_release(mt); 
@@ -170,7 +176,7 @@ gk_neut_species_recycle_init(struct gkyl_gyrokinetic_app *app, struct gk_recycle
   // Calculate flux associated with unit Maxwellian projected in f0.
   recyc->unit_phase_flux_neut = mkarr(app->use_gpu, s->basis.num_basis, recyc->emit_buff_r.volume);
   recyc->f0_flux_slvr = gkyl_boundary_flux_new(recyc->dir, recyc->edge, &s->grid,
-    recyc->emit_skin_r, recyc->emit_ghost_r, s->eqn_vlasov, true, app->use_gpu);  
+    recyc->emit_skin_r, recyc->emit_ghost_r, s->eqn_vlasov, -1.0, app->use_gpu);  
   gkyl_boundary_flux_advance(recyc->f0_flux_slvr, s->f1, s->f1);
   gkyl_array_copy_range_to_range(recyc->unit_phase_flux_neut, s->f1, &recyc->emit_buff_r,
     recyc->emit_ghost_r);
@@ -212,7 +218,7 @@ gk_neut_species_recycle_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
   struct gkyl_mom_canonical_pb_auxfields can_pb_inp = {.hamil = s->hamil};
   recyc->m0op_neut = gkyl_dg_updater_moment_new(&recyc->emit_grid, &app->basis,
     &s->basis, &recyc->emit_cbuff_r, &s->local_vel, &recyc->emit_buff_r, s->model_id,
-    &can_pb_inp, "M0", false, app->use_gpu);
+    &can_pb_inp, GKYL_F_MOMENT_M0, false, app->use_gpu);
   
   gkyl_dg_updater_moment_advance(recyc->m0op_neut, &recyc->emit_normal_r,
     &recyc->emit_cbuff_r, recyc->unit_phase_flux_neut, recyc->unit_m0_flux_neut);
@@ -255,7 +261,7 @@ gk_neut_species_recycle_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
 
     recyc->m0op_gk[i] = gkyl_dg_updater_moment_gyrokinetic_new(&recyc->impact_grid[i], &app->basis,
       &gks->basis, &recyc->emit_cbuff_r, gks->info.mass, gks->info.charge, gks->vel_map,
-      app->gk_geom, 0, "M0", 0, app->use_gpu);
+      app->gk_geom, 0, GKYL_F_MOMENT_M0, false, app->use_gpu);
     
     // Create a phase-space range that only includes velocities towards the boundary.
     gkyl_bc_emission_flux_ranges(&recyc->impact_normal_r[i], recyc->dir + cdim, &recyc->impact_buff_r[i],

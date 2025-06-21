@@ -4,6 +4,32 @@
 #include <gkyl_lw_priv.h>
 #include <gkyl_util.h>
 
+// Define options for moments of a distribution function.
+static const struct gkyl_str_int_pair distribution_moms[] = {
+  { "M0",                 GKYL_F_MOMENT_M0 }, // Number density.
+  { "M1",                 GKYL_F_MOMENT_M1 }, // Momentum density.
+  { "M2",                 GKYL_F_MOMENT_M2 }, // Kinetic energy density.
+  { "M2par",              GKYL_F_MOMENT_M2PAR }, // Parallel kinetic energy density.
+  { "M2perp",             GKYL_F_MOMENT_M2PERP }, // Perpendicular kinetic energy density.
+  { "M2ij",               GKYL_F_MOMENT_M2IJ }, // Kinetic energy tensor..
+  { "M3",                 GKYL_F_MOMENT_M3 }, // Heat flux.
+  { "M3par",              GKYL_F_MOMENT_M3PAR }, // Parallel energy flux.
+  { "M3perp",             GKYL_F_MOMENT_M3PERP }, // Perpendicular energy flux.
+  { "M3ijk",              GKYL_F_MOMENT_M3IJK }, // Heat flux in lab frame.
+  { "MaxwellianMoments",  GKYL_F_MOMENT_MAXWELLIAN }, // M0, drift speed, T/m.
+  { "BiMaxwellianMoments",GKYL_F_MOMENT_BIMAXWELLIAN }, // M0, drift speed, Tpar/m, Tperp/m.
+  { "LTEMoments",         GKYL_F_MOMENT_LTE }, // Maxwellian or Maxwell-Juttner moments.
+  { "M0M1M2",             GKYL_F_MOMENT_M0M1M2 },  // M0, M1, M2.
+  { "M0M1M2parM2perp",    GKYL_F_MOMENT_M0M1M2PARM2PERP },  // M0, M1, M2par, M2perp.
+  { "HamiltonianMoments", GKYL_F_MOMENT_HAMILTONIAN },  // M0, mass*M1, H moments.
+  { "M1_from_H",          GKYL_F_MOMENT_M1_FROM_H }, // dH/dv / m moment.
+  { "EnergyMoment",       GKYL_F_MOMENT_ENERGY }, // H moment.
+  { "M0EnergyM3",         GKYL_F_MOMENT_M0ENERGYM3 }, // M0, Energy (H) and M3 moments.
+  { "Ni",                 GKYL_F_MOMENT_NI }, // M0, M1i for-vector.
+  { "Tij",                GKYL_F_MOMENT_TIJ }, // Stress-energy tensor.
+  { 0, 0 }
+};
+
 // Species boundary conditions -> enum map.
 static const struct gkyl_str_int_pair species_bcs[] = {
   { "bcCopy", GKYL_SPECIES_COPY },
@@ -32,6 +58,12 @@ static const struct gkyl_str_int_pair field_bcs[] = {
   { "bcFunc", GKYL_FIELD_FUNC },
   { 0, 0 }
 };
+
+void
+gkyl_register_distribution_moment_types(lua_State *L)
+{
+  register_types(L, distribution_moms, "Moment");
+}
 
 void
 gkyl_register_species_bc_types(lua_State *L)

@@ -13,6 +13,7 @@
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_math.h>
 #include <gkyl_nodal_ops.h>
+#include <assert.h>
 
 static
 void gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
@@ -50,14 +51,7 @@ void gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *nrang
   dzc[2] = delta_theta;
   int modifiers[5] = {0, -1, 1, -2, 2};
 
-  position_map->constB_ctx->psi_max   = up->grid.upper[PH_IDX];
-  position_map->constB_ctx->psi_min   = up->grid.lower[PH_IDX];
-  position_map->constB_ctx->alpha_max = up->grid.upper[AL_IDX];
-  position_map->constB_ctx->alpha_min = up->grid.lower[AL_IDX];
-  position_map->constB_ctx->theta_max = up->grid.upper[TH_IDX];
-  position_map->constB_ctx->theta_min = up->grid.lower[TH_IDX];
-  position_map->constB_ctx->N_theta_boundaries = up->global.upper[TH_IDX] - up->global.lower[TH_IDX];
-  gkyl_position_map_optimize(position_map);
+  gkyl_position_map_optimize(position_map, up->grid, up->global);
                                 
   int cidx[3] = { 0 };
   for(int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia){
@@ -191,6 +185,26 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
   up->global = geometry_inp->geo_global;
   up->global_ext = geometry_inp->geo_global_ext;
   up->grid = geometry_inp->geo_grid;
+  up->has_LCFS = geometry_inp->has_LCFS;
+  if (up->has_LCFS) {
+    up->x_LCFS = geometry_inp->x_LCFS;
+    // Check that the split happens within the domain.
+    assert((up->grid.lower[0] <= up->x_LCFS) && (up->x_LCFS <= up->grid.upper[0]));
+    // Check that the split happens at a cell boundary;
+    double needint = (up->x_LCFS - up->grid.lower[0])/up->grid.dx[0];
+    double rem_floor = fabs(needint-floor(needint));
+    double rem_ceil = fabs(needint-ceil(needint));
+    if (rem_floor < 1.0e-12) {
+      up->idx_LCFS_lo = (int) floor(needint);
+    }
+    else if (rem_ceil < 1.0e-12) {
+      up->idx_LCFS_lo = (int) ceil(needint);
+    }
+    else {
+      fprintf(stderr, "x_LCFS = %.9e must be at a cell boundary.\n", up->x_LCFS);
+      assert(false);
+    }
+  }
 
   struct gkyl_range nrange;
   double dzc[3] = {0.0};
@@ -211,9 +225,11 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
   struct gkyl_array* mc2p_nodal_fd = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*num_fd_nodes, nrange.volume);
   struct gkyl_array* mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
   up->mc2p = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
+  up->mc2p_deflated = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
 
   struct gkyl_array* mc2nu_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
   up->mc2nu_pos = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
+  up->mc2nu_pos_deflated = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
 
   // bmag, metrics and derived geo quantities
   up->bmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
@@ -234,11 +250,11 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
   up->jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->bmag_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->bmag_inv_sq = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->gxxj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->gxyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->gyyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->gxzj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  up->eps2= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+  up->gxxj = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+  up->gxyj = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+  up->gyyj = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+  up->gxzj = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+  up->eps2 = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
 
   gk_geometry_mapc2p_advance(up, &nrange, dzc, geometry_inp->mapc2p, geometry_inp->c2p_ctx,
     geometry_inp->bmag_func, geometry_inp->bmag_ctx, mc2p_nodal_fd, mc2p_nodal, up->mc2p,
@@ -263,7 +279,6 @@ gkyl_gk_geometry_mapc2p_new(struct gkyl_gk_geometry_inp *geometry_inp)
   struct gk_geometry* gk_geom_3d;
   struct gk_geometry* gk_geom;
 
-
   if (geometry_inp->position_map == 0){
     geometry_inp->position_map = gkyl_position_map_new((struct gkyl_position_map_inp) {}, \
       geometry_inp->grid, geometry_inp->local, geometry_inp->local_ext, geometry_inp->local, \
@@ -278,14 +293,13 @@ gkyl_gk_geometry_mapc2p_new(struct gkyl_gk_geometry_inp *geometry_inp)
         geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_NUMERIC) {
       // The array mc2nu is computed using the uniform geometry, so we need to deflate it
       // Must deflate the 3D uniform geometry in order for the allgather to work
-      if(geometry_inp->grid.ndim < 3)
+      if (geometry_inp->grid.ndim < 3)
         gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, geometry_inp);
       else
         gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
 
-      geometry_inp->position_map->to_optimize = true;
-      gkyl_comm_array_allgather_host(geometry_inp->comm, &geometry_inp->local, \
-      &geometry_inp->global, gk_geom->bmag, (struct gkyl_array*) geometry_inp->position_map->bmag_ctx->bmag);
+      gkyl_position_map_set_bmag(geometry_inp->position_map, geometry_inp->comm, \
+        gk_geom->bmag);
 
       gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
       gkyl_gk_geometry_release(gk_geom); // release 3d geometry

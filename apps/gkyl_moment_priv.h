@@ -33,6 +33,7 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_ten_moment_grad_closure.h>
+#include <gkyl_ten_moment_nn_closure.h>
 #include <gkyl_util.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wave_prop.h>
@@ -64,10 +65,12 @@ struct moment_species {
   // including app->has_field (because the fluids couple to EM fields via sources)
   // and various moment_species inputs such as has_friction, has_volume_sources, 
   // has_reactivity, has_app_accel, etc. 
-  bool update_sources; 
-
-  double k0; // closure parameter (default is 0.0, used by 10 moment)
-  bool has_grad_closure; // has gradient-based closure (only for 10 moment)
+  bool update_sources;
+  
+  double k0; // Closure parameter (default is 0.0, used by 10 moment).
+  bool has_grad_closure; // Has gradient-based closure (only for 10 moment).
+  kann_t* ann; // Neural network architecture.
+  int poly_order; // Polynomial order of learned DG coefficients.
   enum gkyl_braginskii_type type_brag; // which Braginskii equations
 
   bool has_friction; // Run with frictional sources.
@@ -210,9 +213,11 @@ struct moment_coupling {
   // local, local-ext ranges for braginskii variables (loop over nodes)  
   struct gkyl_range non_ideal_local, non_ideal_local_ext;
 
-  // Gradient-based closure solver (if present)  
+  // Gradient-based closure solver (if present).
   struct gkyl_ten_moment_grad_closure *grad_closure_slvr[GKYL_MAX_SPECIES];
-  // Braginskii solver (if present)
+  // Neural network-based closure solver (if present).
+  struct gkyl_ten_moment_nn_closure *nn_closure_slvr[GKYL_MAX_SPECIES];
+  // Braginskii solver (if present).
   struct gkyl_moment_braginskii *brag_slvr; 
 
   // array for stable time-step from non-ideal terms  

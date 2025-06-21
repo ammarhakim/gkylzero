@@ -12,7 +12,7 @@ gkyl_prim_lbo_calc_new(const struct gkyl_rect_grid *grid,
   struct gkyl_prim_lbo_type *prim, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
+  if (use_gpu) {
     return gkyl_prim_lbo_calc_cu_dev_new(grid, prim);
   } 
 #endif     
@@ -33,10 +33,17 @@ gkyl_prim_lbo_calc_new(const struct gkyl_rect_grid *grid,
 
 void
 gkyl_prim_lbo_calc_advance(struct gkyl_prim_lbo_calc* calc, 
-  const struct gkyl_range *conf_rng,
-  const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections,
+  const struct gkyl_range *conf_rng, const struct gkyl_array *moms,
+  const struct gkyl_array *boundary_corrections, const struct gkyl_array *nu,
   struct gkyl_array *prim_moms_out)
 {
+#ifdef GKYL_HAVE_CUDA
+  if (GKYL_IS_CU_ALLOC(calc->flags)) {
+    gkyl_prim_lbo_calc_advance_cu(calc, conf_rng, moms, boundary_corrections, nu, prim_moms_out);
+    return;
+  }
+#endif     
+
   struct gkyl_range_iter conf_iter;
 
   // allocate memory for use in kernels
@@ -64,7 +71,8 @@ gkyl_prim_lbo_calc_advance(struct gkyl_prim_lbo_calc* calc,
     gkyl_mat_clear(&lhs, 0.0); gkyl_mat_clear(&rhs, 0.0);
 
     calc->prim->self_prim(calc->prim, &lhs, &rhs, conf_iter.idx,
-      gkyl_array_cfetch(moms, midx), gkyl_array_cfetch(boundary_corrections, midx)
+      gkyl_array_cfetch(moms, midx), gkyl_array_cfetch(boundary_corrections, midx),
+      gkyl_array_cfetch(nu, midx)
     );
 
     count += 1;
