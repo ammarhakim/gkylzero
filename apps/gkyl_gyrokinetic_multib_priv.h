@@ -20,7 +20,7 @@ struct gkyl_gyrokinetic_multib_app {
   bool use_gpu; // Whether to use the GPU.
   
   // geometry and topology of all blocks in simulation
-  struct gkyl_gk_block_geom *block_geom;
+  struct gkyl_block_geom *block_geom;
   struct gkyl_block_topo *block_topo;
   
   double cfl_frac; // CFL fraction to use

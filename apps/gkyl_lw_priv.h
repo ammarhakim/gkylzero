@@ -8,6 +8,7 @@
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
+#include <gkyl_mom_type.h>
 
 #include <string.h>
 

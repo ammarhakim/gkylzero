@@ -7,7 +7,7 @@
 #include <gkyl_util.h>
 
 // Geometry info a single config-space block
-struct gkyl_gk_block_geom_info {
+struct gkyl_block_geom_info {
   // lower and upper extents of blocks
   double lower[GKYL_MAX_CDIM], upper[GKYL_MAX_CDIM];
   int cells[GKYL_MAX_CDIM]; // cells extents in each direction
@@ -17,7 +17,7 @@ struct gkyl_gk_block_geom_info {
   struct gkyl_gyrokinetic_geometry geometry; // GK geometry
 };
 
-typedef struct gkyl_gk_block_geom gkyl_gk_block_geom;
+typedef struct gkyl_block_geom gkyl_block_geom;
 
 /**
  * Construct a new empty N-dim block geometry with given total number
@@ -28,7 +28,7 @@ typedef struct gkyl_gk_block_geom gkyl_gk_block_geom;
  * @param nblocks Total number of blocks in geometry
  * @return New block geometry
  */
-struct gkyl_gk_block_geom *gkyl_gk_block_geom_new(int ndim, int nblocks);
+struct gkyl_block_geom *gkyl_block_geom_new(int ndim, int nblocks);
 
 /**
  * Return geometry dimension
@@ -36,7 +36,7 @@ struct gkyl_gk_block_geom *gkyl_gk_block_geom_new(int ndim, int nblocks);
  * @param bgeom Block geometry
  * @return Dimension
  */
-int gkyl_gk_block_geom_ndim(const struct gkyl_gk_block_geom *bgeom);
+int gkyl_block_geom_ndim(const struct gkyl_block_geom *bgeom);
 
 /**
  * Return number of blocks in domain
@@ -44,7 +44,7 @@ int gkyl_gk_block_geom_ndim(const struct gkyl_gk_block_geom *bgeom);
  * @param bgeom Block geometry
  * @return number of blocks
  */
-int gkyl_gk_block_geom_num_blocks(const struct gkyl_gk_block_geom *bgeom);
+int gkyl_block_geom_num_blocks(const struct gkyl_block_geom *bgeom);
 
 /**
  * Acquire pointer to block-geometry. The pointer must be released
@@ -53,7 +53,7 @@ int gkyl_gk_block_geom_num_blocks(const struct gkyl_gk_block_geom *bgeom);
  * @param bgeom Block geometry to which reference is required
  * @return Pointer to acquired block-topo
  */
-struct gkyl_gk_block_geom* gkyl_gk_block_geom_acquire(const struct gkyl_gk_block_geom *bgeom);
+struct gkyl_block_geom* gkyl_block_geom_acquire(const struct gkyl_block_geom *bgeom);
 
 /**
  * Acquire a pointer to the block topology. The caller must release
@@ -62,7 +62,7 @@ struct gkyl_gk_block_geom* gkyl_gk_block_geom_acquire(const struct gkyl_gk_block
  * @param bgeom Geometry object from which to fetch topology
  * @return topology object
  */
-struct gkyl_block_topo* gkyl_gk_block_geom_topo(const struct gkyl_gk_block_geom *bgeom);
+struct gkyl_block_topo* gkyl_block_geom_topo(const struct gkyl_block_geom *bgeom);
 
 /**
  * Set geometry and connectivity information about a block.
@@ -72,8 +72,8 @@ struct gkyl_block_topo* gkyl_gk_block_geom_topo(const struct gkyl_gk_block_geom 
  * @param info Geometry info for block @a bidx
  *
  */
-void gkyl_gk_block_geom_set_block(struct gkyl_gk_block_geom *bgeom, int bidx,
-  const struct gkyl_gk_block_geom_info *info);
+void gkyl_block_geom_set_block(struct gkyl_block_geom *bgeom, int bidx,
+  const struct gkyl_block_geom_info *info);
 
 
 /**
@@ -85,7 +85,7 @@ void gkyl_gk_block_geom_set_block(struct gkyl_gk_block_geom *bgeom, int bidx,
  * @param upper Upper extents
  */
 void
-gkyl_gk_block_geom_reset_block_extents(struct gkyl_gk_block_geom *bgeom, int bidx,
+gkyl_block_geom_reset_block_extents(struct gkyl_block_geom *bgeom, int bidx,
   double *lower, double *upper);
 
 /**
@@ -96,8 +96,8 @@ gkyl_gk_block_geom_reset_block_extents(struct gkyl_gk_block_geom *bgeom, int bid
  * @return Geometry info for block @a bidx
  *
  */
-const struct gkyl_gk_block_geom_info *gkyl_gk_block_geom_get_block(
-  const struct gkyl_gk_block_geom *bgeom, int bidx);
+const struct gkyl_block_geom_info *gkyl_block_geom_get_block(
+  const struct gkyl_block_geom *bgeom, int bidx);
     
 /**
  * Check consistency of block geometry: the geometry typically has
@@ -108,11 +108,11 @@ const struct gkyl_gk_block_geom_info *gkyl_gk_block_geom_get_block(
  * @param bgeom Block geometry to check
  * @return 1 if geometry is consistent, 0 otherwise.
  */
-int gkyl_gk_block_geom_check_consistency(const struct gkyl_gk_block_geom *bgeom);
+int gkyl_block_geom_check_consistency(const struct gkyl_block_geom *bgeom);
 
 /**
  * Free block geometry.
  *
  * @return Block geometry to free
  */
-void gkyl_gk_block_geom_release(struct gkyl_gk_block_geom* bgeom);
+void gkyl_block_geom_release(struct gkyl_block_geom* bgeom);
