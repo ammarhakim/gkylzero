@@ -12,6 +12,7 @@
 #include <gkyl_wv_coldfluid.h>
 #include <gkyl_wv_euler.h>
 #include <gkyl_wv_euler_mixture.h>
+#include <gkyl_wv_euler_rgfm.h>
 #include <gkyl_wv_iso_euler.h>
 #include <gkyl_wv_iso_euler_mixture.h>
 #include <gkyl_wv_mhd.h>
@@ -28,6 +29,7 @@
 #include <gkyl_wv_gr_euler.h>
 #include <gkyl_wv_gr_euler_tetrad.h>
 #include <gkyl_wv_gr_medium.h>
+#include <gkyl_wv_gr_twofluid.h>
 #include <gkyl_wv_advect.h>
 #include <gkyl_wv_burgers.h>
 #include <gkyl_zero_lw.h>
@@ -78,6 +80,12 @@ static const struct gkyl_str_int_pair euler_mixture_rp_type[] = {
   { 0, 0 }
 };
 
+// Euler RGFM Riemann problem -> enum map.
+static const struct gkyl_str_int_pair euler_rgfm_rp_type[] = {
+  { "lax", WV_EULER_RGFM_RP_LAX },
+  { 0, 0 }
+};
+
 // Isothermal Euler mixture Riemann problem -> enum map.
 static const struct gkyl_str_int_pair iso_euler_mixture_rp_type[] = {
   { "roe", WV_ISO_EULER_MIXTURE_RP_ROE },
@@ -101,6 +109,7 @@ static const struct gkyl_str_int_pair gr_maxwell_tetrad_rp_type[] = {
 
 // General relativistic Euler Riemann problem (ultra-relativistic equation of state) -> enum map.
 static const struct gkyl_str_int_pair gr_ultra_rel_euler_rp_type[] = {
+  { "hll", WV_GR_ULTRA_REL_EULER_RP_HLL },
   { "roe", WV_GR_ULTRA_REL_EULER_RP_ROE },
   { "lax", WV_GR_ULTRA_REL_EULER_RP_LAX },
   { 0, 0 }
@@ -108,6 +117,7 @@ static const struct gkyl_str_int_pair gr_ultra_rel_euler_rp_type[] = {
 
 // General relativistic Euler Riemann problem in the tetrad basis (ultra-relativistic equation of state) -> enum map.
 static const struct gkyl_str_int_pair gr_ultra_rel_euler_tetrad_rp_type[] = {
+  { "hll", WV_GR_ULTRA_REL_EULER_TETRAD_RP_HLL },
   { "roe", WV_GR_ULTRA_REL_EULER_TETRAD_RP_ROE },
   { "lax", WV_GR_ULTRA_REL_EULER_TETRAD_RP_LAX },
   { 0, 0 }
@@ -115,6 +125,7 @@ static const struct gkyl_str_int_pair gr_ultra_rel_euler_tetrad_rp_type[] = {
 
 // General relativistic Euler Riemann problem (general equation of state) -> enum map.
 static const struct gkyl_str_int_pair gr_euler_rp_type[] = {
+  { "hll", WV_GR_EULER_RP_HLL },
   { "roe", WV_GR_EULER_RP_ROE },
   { "lax", WV_GR_EULER_RP_LAX },
   { 0, 0 }
@@ -122,6 +133,7 @@ static const struct gkyl_str_int_pair gr_euler_rp_type[] = {
 
 // General relativistic Euler Riemann problem in the tetrad basis (general equation of state) -> enum map.
 static const struct gkyl_str_int_pair gr_euler_tetrad_rp_type[] = {
+  { "hll", WV_GR_EULER_TETRAD_RP_HLL },
   { "roe", WV_GR_EULER_TETRAD_RP_ROE },
   { "lax", WV_GR_EULER_TETRAD_RP_LAX },
   { 0, 0 }
@@ -130,6 +142,13 @@ static const struct gkyl_str_int_pair gr_euler_tetrad_rp_type[] = {
 // Coupled fluid-Einstein Riemann problem (plane-polarized Gowdy spacetimes) -> enum map.
 static const struct gkyl_str_int_pair gr_medium_rp_type[] = {
   { "lax", WV_GR_MEDIUM_RP_LAX },
+  { 0, 0 }
+};
+
+// General relativistic two-fluid Riemann problem -> enum map.
+static const struct gkyl_str_int_pair gr_twofluid_rp_type[] = {
+  { "hll", WV_GR_TWOFLUID_RP_HLL },
+  { "lax", WV_GR_TWOFLUID_RP_LAX },
   { 0, 0 }
 };
 
@@ -524,6 +543,57 @@ static const luaL_Reg eqn_euler_mixture_ctor[] = {
   { 0, 0 }
 };
 
+/* *********************** */
+/* Euler RGFM Equations */
+/* *********************** */
+
+// EulerRGFM.new { numComponents = 2, gasGamma = {1.4, 1.4}, reinitFreq = 3, rpType = "lax" }
+// where rpType is "lax".
+static int
+eqn_euler_rgfm_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *euler_rgfm_lw = gkyl_malloc(sizeof(*euler_rgfm_lw));
+
+  int num_components = glua_tbl_get_integer(L, "numComponents", 2);
+
+  double *gas_gamma_s = gkyl_malloc(sizeof(double[num_components]));
+  with_lua_tbl_tbl(L, "gasGamma") {
+    for (int i = 0; i < num_components; i++) {
+      gas_gamma_s[i] = glua_tbl_iget_number(L, i + 1, 1.4);
+    }
+  }
+  int reinit_freq = glua_tbl_get_integer(L, "reinitFreq", 3);
+  
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
+  enum gkyl_wv_euler_rgfm_rp rp_type = gkyl_search_str_int_pair_by_str(euler_rgfm_rp_type, rp_str, WV_EULER_RGFM_RP_LAX);
+
+  euler_rgfm_lw->magic = MOMENT_EQN_DEFAULT;
+  euler_rgfm_lw->eqn = gkyl_wv_euler_rgfm_inew( & (struct gkyl_wv_euler_rgfm_inp) {
+      .num_species = num_components,
+      .gas_gamma_s = gas_gamma_s,
+      .reinit_freq = reinit_freq,
+      .rp_type = rp_type,
+      .use_gpu = false
+    }
+  );
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_euler_rgfm_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_euler_rgfm_lw = euler_rgfm_lw; // Point userdata to the equation object.
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Equation constructor.
+static const luaL_Reg eqn_euler_rgfm_ctor[] = {
+  { "new", eqn_euler_rgfm_lw_new },
+  { 0, 0 }
+};
+
 /* ********************************** */
 /* Isothermal Euler Mixture Equations */
 /* ********************************** */
@@ -593,12 +663,39 @@ eqn_gr_maxwell_lw_new(lua_State *L)
   const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
   enum gkyl_wv_gr_maxwell_rp rp_type = gkyl_search_str_int_pair_by_str(gr_maxwell_rp_type, rp_str, WV_GR_MAXWELL_RP_LAX);
 
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
+  int reinit_freq = glua_tbl_get_integer(L, "reinitFreq", 100);
+
+  with_lua_tbl_tbl(L, "blackHoleParameters") {
+    double mass = glua_tbl_get_number(L, "mass", 1.0);
+    double spin = glua_tbl_get_number(L, "spin", 0.0);
+    double pos_x = glua_tbl_get_number(L, "posX", 0.0);
+    double pos_y = glua_tbl_get_number(L, "posY", 0.0);
+    double pos_z = glua_tbl_get_number(L, "posZ", 0.0);
+
+    spacetime = gkyl_gr_blackhole_new(false, mass, spin, pos_x, pos_y, pos_z);
+  }
+
+  with_lua_tbl_tbl(L, "neutronStarParameters") {
+    double mass = glua_tbl_get_number(L, "mass", 1.0);
+    double spin = glua_tbl_get_number(L, "spin", 0.0);
+    double mass_quadrupole = glua_tbl_get_number(L, "massQuadrupole", 0.0);
+    double spin_octupole = glua_tbl_get_number(L, "spinOctupole", 0.0);
+    double mass_hexadecapole = glua_tbl_get_number(L, "massHexadecapole", 0.0);
+    double pos_x = glua_tbl_get_number(L, "posX", 0.0);
+    double pos_y = glua_tbl_get_number(L, "posY", 0.0);
+    double pos_z = glua_tbl_get_number(L, "posZ", 0.0);
+
+    spacetime = gkyl_gr_neutronstar_new(false, mass, spin, mass_quadrupole, spin_octupole, mass_hexadecapole, pos_x, pos_y, pos_z);
+  }
+
   gr_maxwell_lw->magic = MOMENT_EQN_DEFAULT;
   gr_maxwell_lw->eqn = gkyl_wv_gr_maxwell_inew( &(struct gkyl_wv_gr_maxwell_inp) {
       .light_speed = light_speed,
       .e_fact = e_fact,
       .b_fact = b_fact,
-      .spacetime = 0,
+      .spacetime = spacetime,
+      .reinit_freq = reinit_freq,
       .rp_type = rp_type,
       .use_gpu = false,
     }
@@ -641,12 +738,39 @@ eqn_gr_maxwell_tetrad_lw_new(lua_State *L)
   const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
   enum gkyl_wv_gr_maxwell_tetrad_rp rp_type = gkyl_search_str_int_pair_by_str(gr_maxwell_tetrad_rp_type, rp_str, WV_GR_MAXWELL_TETRAD_RP_LAX);
 
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
+  int reinit_freq = glua_tbl_get_integer(L, "reinitFreq", 100);
+
+  with_lua_tbl_tbl(L, "blackHoleParameters") {
+    double mass = glua_tbl_get_number(L, "mass", 1.0);
+    double spin = glua_tbl_get_number(L, "spin", 0.0);
+    double pos_x = glua_tbl_get_number(L, "posX", 0.0);
+    double pos_y = glua_tbl_get_number(L, "posY", 0.0);
+    double pos_z = glua_tbl_get_number(L, "posZ", 0.0);
+
+    spacetime = gkyl_gr_blackhole_new(false, mass, spin, pos_x, pos_y, pos_z);
+  }
+
+  with_lua_tbl_tbl(L, "neutronStarParameters") {
+    double mass = glua_tbl_get_number(L, "mass", 1.0);
+    double spin = glua_tbl_get_number(L, "spin", 0.0);
+    double mass_quadrupole = glua_tbl_get_number(L, "massQuadrupole", 0.0);
+    double spin_octupole = glua_tbl_get_number(L, "spinOctupole", 0.0);
+    double mass_hexadecapole = glua_tbl_get_number(L, "massHexadecapole", 0.0);
+    double pos_x = glua_tbl_get_number(L, "posX", 0.0);
+    double pos_y = glua_tbl_get_number(L, "posY", 0.0);
+    double pos_z = glua_tbl_get_number(L, "posZ", 0.0);
+
+    spacetime = gkyl_gr_neutronstar_new(false, mass, spin, mass_quadrupole, spin_octupole, mass_hexadecapole, pos_x, pos_y, pos_z);
+  }
+
   gr_maxwell_tetrad_lw->magic = MOMENT_EQN_DEFAULT;
   gr_maxwell_tetrad_lw->eqn = gkyl_wv_gr_maxwell_tetrad_inew( &(struct gkyl_wv_gr_maxwell_tetrad_inp) {
       .light_speed = light_speed,
       .e_fact = e_fact,
       .b_fact = b_fact,
-      .spacetime = 0,
+      .spacetime = spacetime,
+      .reinit_freq = reinit_freq,
       .rp_type = rp_type,
       .use_gpu = false,
     }
@@ -675,8 +799,8 @@ static struct luaL_Reg eqn_gr_maxwell_tetrad_ctor[] = {
 /* General Relativistic Euler Equations (Ultra-Relativistic Equation of State) */
 /* *************************************************************************** */
 
-// GRUltraRelativisticEuler.new { gasGamma = 4.0 / 3.0, rpType = "roe" }
-// where rpType is one of "roe" or "lax".
+// GRUltraRelativisticEuler.new { gasGamma = 4.0 / 3.0, rpType = "hll" }
+// where rpType is one of "hll", "roe" or "lax".
 static int
 eqn_gr_ultra_rel_euler_lw_new(lua_State *L)
 {
@@ -684,13 +808,40 @@ eqn_gr_ultra_rel_euler_lw_new(lua_State *L)
 
   double gas_gamma = glua_tbl_get_number(L, "gasGamma", 4.0 / 3.0);
 
-  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
-  enum gkyl_wv_gr_ultra_rel_euler_rp rp_type = gkyl_search_str_int_pair_by_str(gr_ultra_rel_euler_rp_type, rp_str, WV_GR_ULTRA_REL_EULER_RP_LAX);
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "hll");
+  enum gkyl_wv_gr_ultra_rel_euler_rp rp_type = gkyl_search_str_int_pair_by_str(gr_ultra_rel_euler_rp_type, rp_str, WV_GR_ULTRA_REL_EULER_RP_HLL);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
+  int reinit_freq = glua_tbl_get_integer(L, "reinitFreq", 100);
+
+  with_lua_tbl_tbl(L, "blackHoleParameters") {
+    double mass = glua_tbl_get_number(L, "mass", 1.0);
+    double spin = glua_tbl_get_number(L, "spin", 0.0);
+    double pos_x = glua_tbl_get_number(L, "posX", 0.0);
+    double pos_y = glua_tbl_get_number(L, "posY", 0.0);
+    double pos_z = glua_tbl_get_number(L, "posZ", 0.0);
+
+    spacetime = gkyl_gr_blackhole_new(false, mass, spin, pos_x, pos_y, pos_z);
+  }
+
+  with_lua_tbl_tbl(L, "neutronStarParameters") {
+    double mass = glua_tbl_get_number(L, "mass", 1.0);
+    double spin = glua_tbl_get_number(L, "spin", 0.0);
+    double mass_quadrupole = glua_tbl_get_number(L, "massQuadrupole", 0.0);
+    double spin_octupole = glua_tbl_get_number(L, "spinOctupole", 0.0);
+    double mass_hexadecapole = glua_tbl_get_number(L, "massHexadecapole", 0.0);
+    double pos_x = glua_tbl_get_number(L, "posX", 0.0);
+    double pos_y = glua_tbl_get_number(L, "posY", 0.0);
+    double pos_z = glua_tbl_get_number(L, "posZ", 0.0);
+
+    spacetime = gkyl_gr_neutronstar_new(false, mass, spin, mass_quadrupole, spin_octupole, mass_hexadecapole, pos_x, pos_y, pos_z);
+  }
 
   gr_ultra_rel_euler_lw->magic = MOMENT_EQN_DEFAULT;
   gr_ultra_rel_euler_lw->eqn = gkyl_wv_gr_ultra_rel_euler_inew( &(struct gkyl_wv_gr_ultra_rel_euler_inp) {
       .gas_gamma = gas_gamma,
-      .spacetime = 0,
+      .spacetime = spacetime,
+      .reinit_freq = reinit_freq,
       .rp_type = rp_type,
       .use_gpu = false,
     }
@@ -719,8 +870,8 @@ static struct luaL_Reg eqn_gr_ultra_rel_euler_ctor[] = {
 /* General Relativistic Euler Equations in the Tetrad Basis (Ultra-Relativistic Equation of State) */
 /* *********************************************************************************************** */
 
-// GRUltraRelativisticEulerTetrad.new { gasGamma = 4.0 / 3.0, rpType = "roe" }
-// where rpType is one of "roe" or "lax".
+// GRUltraRelativisticEulerTetrad.new { gasGamma = 4.0 / 3.0, rpType = "hll" }
+// where rpType is one of "hll", "roe" or "lax".
 static int
 eqn_gr_ultra_rel_euler_tetrad_lw_new(lua_State *L)
 {
@@ -728,13 +879,40 @@ eqn_gr_ultra_rel_euler_tetrad_lw_new(lua_State *L)
 
   double gas_gamma = glua_tbl_get_number(L, "gasGamma", 4.0 / 3.0);
 
-  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
-  enum gkyl_wv_gr_ultra_rel_euler_tetrad_rp rp_type = gkyl_search_str_int_pair_by_str(gr_ultra_rel_euler_tetrad_rp_type, rp_str, WV_GR_ULTRA_REL_EULER_TETRAD_RP_LAX);
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "hll");
+  enum gkyl_wv_gr_ultra_rel_euler_tetrad_rp rp_type = gkyl_search_str_int_pair_by_str(gr_ultra_rel_euler_tetrad_rp_type, rp_str, WV_GR_ULTRA_REL_EULER_TETRAD_RP_HLL);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
+  int reinit_freq = glua_tbl_get_integer(L, "reinitFreq", 100);
+
+  with_lua_tbl_tbl(L, "blackHoleParameters") {
+    double mass = glua_tbl_get_number(L, "mass", 1.0);
+    double spin = glua_tbl_get_number(L, "spin", 0.0);
+    double pos_x = glua_tbl_get_number(L, "posX", 0.0);
+    double pos_y = glua_tbl_get_number(L, "posY", 0.0);
+    double pos_z = glua_tbl_get_number(L, "posZ", 0.0);
+
+    spacetime = gkyl_gr_blackhole_new(false, mass, spin, pos_x, pos_y, pos_z);
+  }
+
+  with_lua_tbl_tbl(L, "neutronStarParameters") {
+    double mass = glua_tbl_get_number(L, "mass", 1.0);
+    double spin = glua_tbl_get_number(L, "spin", 0.0);
+    double mass_quadrupole = glua_tbl_get_number(L, "massQuadrupole", 0.0);
+    double spin_octupole = glua_tbl_get_number(L, "spinOctupole", 0.0);
+    double mass_hexadecapole = glua_tbl_get_number(L, "massHexadecapole", 0.0);
+    double pos_x = glua_tbl_get_number(L, "posX", 0.0);
+    double pos_y = glua_tbl_get_number(L, "posY", 0.0);
+    double pos_z = glua_tbl_get_number(L, "posZ", 0.0);
+
+    spacetime = gkyl_gr_neutronstar_new(false, mass, spin, mass_quadrupole, spin_octupole, mass_hexadecapole, pos_x, pos_y, pos_z);
+  }
 
   gr_ultra_rel_euler_tetrad_lw->magic = MOMENT_EQN_DEFAULT;
   gr_ultra_rel_euler_tetrad_lw->eqn = gkyl_wv_gr_ultra_rel_euler_tetrad_inew( &(struct gkyl_wv_gr_ultra_rel_euler_tetrad_inp) {
       .gas_gamma = gas_gamma,
-      .spacetime = 0,
+      .spacetime = spacetime,
+      .reinit_freq = reinit_freq,
       .rp_type = rp_type,
       .use_gpu = false,
     }
@@ -763,8 +941,8 @@ static struct luaL_Reg eqn_gr_ultra_rel_euler_tetrad_ctor[] = {
 /* General Relativistic Euler Equations (General Equation of State) */
 /* **************************************************************** */
 
-// GREuler.new { gasGamma = 5.0 / 3.0, rpType = "roe" }
-// where rpType is one of "roe" or "lax".
+// GREuler.new { gasGamma = 5.0 / 3.0, rpType = "hll" }
+// where rpType is one of "hll", "roe" or "lax".
 static int
 eqn_gr_euler_lw_new(lua_State *L)
 {
@@ -772,13 +950,40 @@ eqn_gr_euler_lw_new(lua_State *L)
 
   double gas_gamma = glua_tbl_get_number(L, "gasGamma", 5.0 / 3.0);
 
-  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
-  enum gkyl_wv_gr_euler_rp rp_type = gkyl_search_str_int_pair_by_str(gr_euler_rp_type, rp_str, WV_GR_EULER_RP_LAX);
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "hll");
+  enum gkyl_wv_gr_euler_rp rp_type = gkyl_search_str_int_pair_by_str(gr_euler_rp_type, rp_str, WV_GR_EULER_RP_HLL);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
+  int reinit_freq = glua_tbl_get_integer(L, "reinitFreq", 100);
+
+  with_lua_tbl_tbl(L, "blackHoleParameters") {
+    double mass = glua_tbl_get_number(L, "mass", 1.0);
+    double spin = glua_tbl_get_number(L, "spin", 0.0);
+    double pos_x = glua_tbl_get_number(L, "posX", 0.0);
+    double pos_y = glua_tbl_get_number(L, "posY", 0.0);
+    double pos_z = glua_tbl_get_number(L, "posZ", 0.0);
+
+    spacetime = gkyl_gr_blackhole_new(false, mass, spin, pos_x, pos_y, pos_z);
+  }
+
+  with_lua_tbl_tbl(L, "neutronStarParameters") {
+    double mass = glua_tbl_get_number(L, "mass", 1.0);
+    double spin = glua_tbl_get_number(L, "spin", 0.0);
+    double mass_quadrupole = glua_tbl_get_number(L, "massQuadrupole", 0.0);
+    double spin_octupole = glua_tbl_get_number(L, "spinOctupole", 0.0);
+    double mass_hexadecapole = glua_tbl_get_number(L, "massHexadecapole", 0.0);
+    double pos_x = glua_tbl_get_number(L, "posX", 0.0);
+    double pos_y = glua_tbl_get_number(L, "posY", 0.0);
+    double pos_z = glua_tbl_get_number(L, "posZ", 0.0);
+
+    spacetime = gkyl_gr_neutronstar_new(false, mass, spin, mass_quadrupole, spin_octupole, mass_hexadecapole, pos_x, pos_y, pos_z);
+  }
 
   gr_euler_lw->magic = MOMENT_EQN_DEFAULT;
   gr_euler_lw->eqn = gkyl_wv_gr_euler_inew( &(struct gkyl_wv_gr_euler_inp) {
       .gas_gamma = gas_gamma,
-      .spacetime = 0,
+      .spacetime = spacetime,
+      .reinit_freq = reinit_freq,
       .rp_type = rp_type,
       .use_gpu = false,
     }
@@ -807,8 +1012,8 @@ static struct luaL_Reg eqn_gr_euler_ctor[] = {
 /* General Relativistic Euler Equations in the Tetrad Basis (General Equation of State) */
 /* ************************************************************************************ */
 
-// GREulerTetrad.new { gasGamma = 5.0 / 3.0, rpType = "roe" }
-// where rpType is one of "roe" or "lax".
+// GREulerTetrad.new { gasGamma = 5.0 / 3.0, rpType = "hll" }
+// where rpType is one of "hll", "roe" or "lax".
 static int
 eqn_gr_euler_tetrad_lw_new(lua_State *L)
 {
@@ -816,13 +1021,40 @@ eqn_gr_euler_tetrad_lw_new(lua_State *L)
 
   double gas_gamma = glua_tbl_get_number(L, "gasGamma", 5.0 / 3.0);
 
-  const char *rp_str = glua_tbl_get_string(L, "rpType", "lax");
-  enum gkyl_wv_gr_euler_tetrad_rp rp_type = gkyl_search_str_int_pair_by_str(gr_euler_tetrad_rp_type, rp_str, WV_GR_EULER_TETRAD_RP_LAX);
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "hll");
+  enum gkyl_wv_gr_euler_tetrad_rp rp_type = gkyl_search_str_int_pair_by_str(gr_euler_tetrad_rp_type, rp_str, WV_GR_EULER_TETRAD_RP_HLL);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
+  int reinit_freq = glua_tbl_get_integer(L, "reinitFreq", 100);
+
+  with_lua_tbl_tbl(L, "blackHoleParameters") {
+    double mass = glua_tbl_get_number(L, "mass", 1.0);
+    double spin = glua_tbl_get_number(L, "spin", 0.0);
+    double pos_x = glua_tbl_get_number(L, "posX", 0.0);
+    double pos_y = glua_tbl_get_number(L, "posY", 0.0);
+    double pos_z = glua_tbl_get_number(L, "posZ", 0.0);
+
+    spacetime = gkyl_gr_blackhole_new(false, mass, spin, pos_x, pos_y, pos_z);
+  }
+
+  with_lua_tbl_tbl(L, "neutronStarParameters") {
+    double mass = glua_tbl_get_number(L, "mass", 1.0);
+    double spin = glua_tbl_get_number(L, "spin", 0.0);
+    double mass_quadrupole = glua_tbl_get_number(L, "massQuadrupole", 0.0);
+    double spin_octupole = glua_tbl_get_number(L, "spinOctupole", 0.0);
+    double mass_hexadecapole = glua_tbl_get_number(L, "massHexadecapole", 0.0);
+    double pos_x = glua_tbl_get_number(L, "posX", 0.0);
+    double pos_y = glua_tbl_get_number(L, "posY", 0.0);
+    double pos_z = glua_tbl_get_number(L, "posZ", 0.0);
+
+    spacetime = gkyl_gr_neutronstar_new(false, mass, spin, mass_quadrupole, spin_octupole, mass_hexadecapole, pos_x, pos_y, pos_z);
+  }
 
   gr_euler_tetrad_lw->magic = MOMENT_EQN_DEFAULT;
   gr_euler_tetrad_lw->eqn = gkyl_wv_gr_euler_tetrad_inew( &(struct gkyl_wv_gr_euler_tetrad_inp) {
       .gas_gamma = gas_gamma,
-      .spacetime = 0,
+      .spacetime = spacetime,
+      .reinit_freq = reinit_freq,
       .rp_type = rp_type,
       .use_gpu = false,
     }
@@ -888,6 +1120,93 @@ eqn_gr_medium_lw_new(lua_State *L)
 // Equation constructor.
 static struct luaL_Reg eqn_gr_medium_ctor[] = {
   { "new", eqn_gr_medium_lw_new },
+  { 0, 0 }
+};
+
+/* ******************************************************************** */
+/* General Relativistic Two-Fluid Equations (General Equation of State) */
+/* ******************************************************************** */
+
+// GRTwoFluid.new { massElc = 1.0 / 1836.2, massIon = 1.0, chargeElc = -1.0, chargeIon = 1.0, gasGammaElc = 5.0 / 3.0, gasGammaIon = 5.0 / 3.0,
+// lightSpeed = 1.0, elcErrorSpeedFactor = 0.0, mgnErrorSpeedFactor = 0.0, rpType = "hll" }
+// where rpType is one of "hll" or "lax".
+static int
+eqn_gr_twofluid_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *gr_twofluid_lw = gkyl_malloc(sizeof(*gr_twofluid_lw));
+
+  double mass_elc = glua_tbl_get_number(L, "massElc", 1.0 / 1836.2);
+  double mass_ion = glua_tbl_get_number(L, "massIon", 1.0);
+  double charge_elc = glua_tbl_get_number(L, "chargeElc", -1.0);
+  double charge_ion = glua_tbl_get_number(L, "chargeIon", 1.0);
+  double gas_gamma_elc = glua_tbl_get_number(L, "gasGammaElc", 5.0 / 3.0);
+  double gas_gamma_ion = glua_tbl_get_number(L, "gasGammaIon", 5.0 / 3.0);
+
+  double light_speed = glua_tbl_get_number(L, "lightSpeed", 1.0);
+  double e_fact = glua_tbl_get_number(L, "elcErrorSpeedFactor", 0.0);
+  double b_fact = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
+
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "hll");
+  enum gkyl_wv_gr_twofluid_rp rp_type = gkyl_search_str_int_pair_by_str(gr_twofluid_rp_type, rp_str, WV_GR_TWOFLUID_RP_HLL);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
+  int reinit_freq = glua_tbl_get_integer(L, "reinitFreq", 100);
+
+  with_lua_tbl_tbl(L, "blackHoleParameters") {
+    double mass = glua_tbl_get_number(L, "mass", 1.0);
+    double spin = glua_tbl_get_number(L, "spin", 0.0);
+    double pos_x = glua_tbl_get_number(L, "posX", 0.0);
+    double pos_y = glua_tbl_get_number(L, "posY", 0.0);
+    double pos_z = glua_tbl_get_number(L, "posZ", 0.0);
+
+    spacetime = gkyl_gr_blackhole_new(false, mass, spin, pos_x, pos_y, pos_z);
+  }
+
+  with_lua_tbl_tbl(L, "neutronStarParameters") {
+    double mass = glua_tbl_get_number(L, "mass", 1.0);
+    double spin = glua_tbl_get_number(L, "spin", 0.0);
+    double mass_quadrupole = glua_tbl_get_number(L, "massQuadrupole", 0.0);
+    double spin_octupole = glua_tbl_get_number(L, "spinOctupole", 0.0);
+    double mass_hexadecapole = glua_tbl_get_number(L, "massHexadecapole", 0.0);
+    double pos_x = glua_tbl_get_number(L, "posX", 0.0);
+    double pos_y = glua_tbl_get_number(L, "posY", 0.0);
+    double pos_z = glua_tbl_get_number(L, "posZ", 0.0);
+
+    spacetime = gkyl_gr_neutronstar_new(false, mass, spin, mass_quadrupole, spin_octupole, mass_hexadecapole, pos_x, pos_y, pos_z);
+  }
+
+  gr_twofluid_lw->magic = MOMENT_EQN_DEFAULT;
+  gr_twofluid_lw->eqn = gkyl_wv_gr_twofluid_inew( &(struct gkyl_wv_gr_twofluid_inp) {
+      .mass_elc = mass_elc,
+      .mass_ion = mass_ion,
+      .charge_elc = charge_elc,
+      .charge_ion = charge_ion,
+      .gas_gamma_elc = gas_gamma_elc,
+      .gas_gamma_ion = gas_gamma_ion,
+      .light_speed = light_speed,
+      .e_fact = e_fact,
+      .b_fact = b_fact,
+      .spacetime = spacetime,
+      .reinit_freq = reinit_freq,
+      .rp_type = rp_type,
+      .use_gpu = false,
+    }
+  );
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_gr_twofluid_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_gr_twofluid_lw = gr_twofluid_lw;
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_gr_twofluid_ctor[] = {
+  { "new", eqn_gr_twofluid_lw_new },
   { 0, 0 }
 };
 
@@ -975,6 +1294,7 @@ eqn_openlibs(lua_State *L)
   luaL_register(L, "G0.Moments.Eq.MHD", eqn_mhd_ctor);
   luaL_register(L, "G0.Moments.Eq.ReactiveEuler", eqn_reactive_euler_ctor);
   luaL_register(L, "G0.Moments.Eq.EulerMixture", eqn_euler_mixture_ctor);
+  luaL_register(L, "G0.Moments.Eq.EulerRGFM", eqn_euler_rgfm_ctor);
   luaL_register(L, "G0.Moments.Eq.IsoEulerMixture", eqn_iso_euler_mixture_ctor);
   luaL_register(L, "G0.Moments.Eq.GRMaxwell", eqn_gr_maxwell_ctor);
   luaL_register(L, "G0.Moments.Eq.GRMaxwellTetrad", eqn_gr_maxwell_tetrad_ctor);
@@ -983,6 +1303,7 @@ eqn_openlibs(lua_State *L)
   luaL_register(L, "G0.Moments.Eq.GREuler", eqn_gr_euler_ctor);
   luaL_register(L, "G0.Moments.Eq.GREulerTetrad", eqn_gr_euler_tetrad_ctor);
   luaL_register(L, "G0.Moments.Eq.GRMedium", eqn_gr_medium_ctor);
+  luaL_register(L, "G0.Moments.Eq.GRTwoFluid", eqn_gr_twofluid_ctor);
   luaL_register(L, "G0.Moments.Eq.LinearAdvection", eqn_advect_ctor);
   luaL_register(L, "G0.Moments.Eq.Burgers", eqn_burgers_ctor);
 }
@@ -1218,6 +1539,152 @@ spacetime_minkowski_lw_extrinsic_curvature_tensor(lua_State *L)
 }
 
 static int
+spacetime_minkowski_lw_lapse_function_der(lua_State *L)
+{
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_inew( &(struct gkyl_gr_minkowski_inp) {
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 1);
+  double x = luaL_checknumber(L, 2);
+  double y = luaL_checknumber(L, 3);
+  double z = luaL_checknumber(L, 4);
+
+  double dx = luaL_checknumber(L, 5);
+  double dy = luaL_checknumber(L, 6);
+  double dz = luaL_checknumber(L, 7);
+
+  double *lapse_der = gkyl_malloc(sizeof(double[3]));
+  spacetime->lapse_function_der_func(spacetime, t, x, y, z, dx, dy, dz, &lapse_der);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+    lua_pushnumber(L, lapse_der[i]);
+    lua_rawset(L, -3);
+  }
+
+  gkyl_free(lapse_der);
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_minkowski_lw_shift_vector_der(lua_State *L)
+{
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_inew( &(struct gkyl_gr_minkowski_inp) {
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 1);
+  double x = luaL_checknumber(L, 2);
+  double y = luaL_checknumber(L, 3);
+  double z = luaL_checknumber(L, 4);
+
+  double dx = luaL_checknumber(L, 5);
+  double dy = luaL_checknumber(L, 6);
+  double dz = luaL_checknumber(L, 7);
+
+  double **shift_der = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    shift_der[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  spacetime->shift_vector_der_func(spacetime, t, x, y, z, dx, dy, dz, &shift_der);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+
+    lua_createtable(L, 3, 0);
+    for (int j = 0; j < 3; j++) {
+      lua_pushinteger(L, j + 1);
+      lua_pushnumber(L, shift_der[i][j]);
+      lua_rawset(L, -3);
+    }
+
+    lua_rawset(L, -3);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(shift_der[i]);
+  }
+  gkyl_free(shift_der);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_minkowski_lw_spatial_metric_tensor_der(lua_State *L)
+{
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_inew( &(struct gkyl_gr_minkowski_inp) {
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 1);
+  double x = luaL_checknumber(L, 2);
+  double y = luaL_checknumber(L, 3);
+  double z = luaL_checknumber(L, 4);
+
+  double dx = luaL_checknumber(L, 5);
+  double dy = luaL_checknumber(L, 6);
+  double dz = luaL_checknumber(L, 7);
+
+  double ***spatial_metric_der = gkyl_malloc(sizeof(double**[3]));
+  for (int i = 0; i < 3; i++) {
+    spatial_metric_der[i] = gkyl_malloc(sizeof(double*[3]));
+
+    for (int j = 0; j < 3; j++) {
+      spatial_metric_der[i][j] = gkyl_malloc(sizeof(double[3]));
+    }
+  }
+
+  spacetime->spatial_metric_tensor_der_func(spacetime, t, x, y, z, dx, dy, dz, &spatial_metric_der);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+
+    lua_createtable(L, 3, 0);
+    for (int j = 0; j < 3; j++) {
+      lua_pushinteger(L, j + 1);
+
+      lua_createtable(L, 3, 0);
+      for (int k = 0; k < 3; k++) {
+        lua_pushinteger(L, k + 1);
+        lua_pushnumber(L, spatial_metric_der[i][j][k]);
+        lua_rawset(L, -3);
+      }
+
+      lua_rawset(L, -3);
+    }
+
+    lua_rawset(L, -3);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      gkyl_free(spatial_metric_der[i][j]);
+    }
+    gkyl_free(spatial_metric_der[i]);
+  }
+  gkyl_free(spatial_metric_der);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
 spacetime_minkowski_lw_excision_region(lua_State *L)
 {
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_inew( &(struct gkyl_gr_minkowski_inp) {
@@ -1249,6 +1716,9 @@ static struct luaL_Reg spacetime_minkowski_ctor[] = {
   { "shiftVector", spacetime_minkowski_lw_shift_vector },
   { "extrinsicCurvatureTensor", spacetime_minkowski_lw_extrinsic_curvature_tensor },
   { "excisionRegion", spacetime_minkowski_lw_excision_region },
+  { "lapseFunctionDer", spacetime_minkowski_lw_lapse_function_der },
+  { "shiftVectorDer", spacetime_minkowski_lw_shift_vector_der },
+  { "spatialMetricTensorDer", spacetime_minkowski_lw_spatial_metric_tensor_der },
   { 0, 0 }
 };
 
@@ -1477,6 +1947,7 @@ spacetime_blackhole_lw_extrinsic_curvature_tensor(lua_State *L)
   double x = luaL_checknumber(L, 7);
   double y = luaL_checknumber(L, 8);
   double z = luaL_checknumber(L, 9);
+
   double dx = luaL_checknumber(L, 10);
   double dy = luaL_checknumber(L, 11);
   double dz = luaL_checknumber(L, 12);
@@ -1507,6 +1978,185 @@ spacetime_blackhole_lw_extrinsic_curvature_tensor(lua_State *L)
     gkyl_free(extrinsic_curvature[i]);
   }
   gkyl_free(extrinsic_curvature);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_blackhole_lw_lapse_function_der(lua_State *L)
+{
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double pos_x = luaL_checknumber(L, 3);
+  double pos_y = luaL_checknumber(L, 4);
+  double pos_z = luaL_checknumber(L, 5);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew( &(struct gkyl_gr_blackhole_inp) {
+      .mass = mass,
+      .spin = spin,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 6);
+  double x = luaL_checknumber(L, 7);
+  double y = luaL_checknumber(L, 8);
+  double z = luaL_checknumber(L, 9);
+
+  double dx = luaL_checknumber(L, 10);
+  double dy = luaL_checknumber(L, 11);
+  double dz = luaL_checknumber(L, 12);
+
+  double *lapse_der = gkyl_malloc(sizeof(double[3]));
+  spacetime->lapse_function_der_func(spacetime, t, x, y, z, dx, dy, dz, &lapse_der);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+    lua_pushnumber(L, lapse_der[i]);
+    lua_rawset(L, -3);
+  }
+
+  gkyl_free(lapse_der);
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_blackhole_lw_shift_vector_der(lua_State *L)
+{
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double pos_x = luaL_checknumber(L, 3);
+  double pos_y = luaL_checknumber(L, 4);
+  double pos_z = luaL_checknumber(L, 5);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew( &(struct gkyl_gr_blackhole_inp) {
+      .mass = mass,
+      .spin = spin,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 6);
+  double x = luaL_checknumber(L, 7);
+  double y = luaL_checknumber(L, 8);
+  double z = luaL_checknumber(L, 9);
+
+  double dx = luaL_checknumber(L, 10);
+  double dy = luaL_checknumber(L, 11);
+  double dz = luaL_checknumber(L, 12);
+
+  double **shift_der = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    shift_der[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  spacetime->shift_vector_der_func(spacetime, t, x, y, z, dx, dy, dz, &shift_der);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+
+    lua_createtable(L, 3, 0);
+    for (int j = 0; j < 3; j++) {
+      lua_pushinteger(L, j + 1);
+      lua_pushnumber(L, shift_der[i][j]);
+      lua_rawset(L, -3);
+    }
+
+    lua_rawset(L, -3);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(shift_der[i]);
+  }
+  gkyl_free(shift_der);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_blackhole_lw_spatial_metric_tensor_der(lua_State *L)
+{
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double pos_x = luaL_checknumber(L, 3);
+  double pos_y = luaL_checknumber(L, 4);
+  double pos_z = luaL_checknumber(L, 5);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_inew( &(struct gkyl_gr_blackhole_inp) {
+      .mass = mass,
+      .spin = spin,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 6);
+  double x = luaL_checknumber(L, 7);
+  double y = luaL_checknumber(L, 8);
+  double z = luaL_checknumber(L, 9);
+
+  double dx = luaL_checknumber(L, 10);
+  double dy = luaL_checknumber(L, 11);
+  double dz = luaL_checknumber(L, 12);
+
+  double ***spatial_metric_der = gkyl_malloc(sizeof(double**[3]));
+  for (int i = 0; i < 3; i++) {
+    spatial_metric_der[i] = gkyl_malloc(sizeof(double*[3]));
+
+    for (int j = 0; j < 3; j++) {
+      spatial_metric_der[i][j] = gkyl_malloc(sizeof(double[3]));
+    }
+  }
+
+  spacetime->spatial_metric_tensor_der_func(spacetime, t, x, y, z, dx, dy, dz, &spatial_metric_der);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+
+    lua_createtable(L, 3, 0);
+    for (int j = 0; j < 3; j++) {
+      lua_pushinteger(L, j + 1);
+
+      lua_createtable(L, 3, 0);
+      for (int k = 0; k < 3; k++) {
+        lua_pushinteger(L, k + 1);
+        lua_pushnumber(L, spatial_metric_der[i][j][k]);
+        lua_rawset(L, -3);
+      }
+
+      lua_rawset(L, -3);
+    }
+
+    lua_rawset(L, -3);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      gkyl_free(spatial_metric_der[i][j]);
+    }
+    gkyl_free(spatial_metric_der[i]);
+  }
+  gkyl_free(spatial_metric_der);
 
   gkyl_gr_spacetime_release(spacetime);
 
@@ -1555,6 +2205,9 @@ static struct luaL_Reg spacetime_blackhole_ctor[] = {
   { "lapseFunction", spacetime_blackhole_lw_lapse_function },
   { "shiftVector", spacetime_blackhole_lw_shift_vector },
   { "extrinsicCurvatureTensor", spacetime_blackhole_lw_extrinsic_curvature_tensor },
+  { "lapseFunctionDer", spacetime_blackhole_lw_lapse_function_der },
+  { "shiftVectorDer", spacetime_blackhole_lw_shift_vector_der },
+  { "spatialMetricTensorDer", spacetime_blackhole_lw_spatial_metric_tensor_der },
   { "excisionRegion", spacetime_blackhole_lw_excision_region },
   { 0, 0 }
 };
@@ -1820,6 +2473,7 @@ spacetime_neutronstar_lw_extrinsic_curvature_tensor(lua_State *L)
   double x = luaL_checknumber(L, 10);
   double y = luaL_checknumber(L, 11);
   double z = luaL_checknumber(L, 12);
+
   double dx = luaL_checknumber(L, 13);
   double dy = luaL_checknumber(L, 14);
   double dz = luaL_checknumber(L, 15);
@@ -1850,6 +2504,203 @@ spacetime_neutronstar_lw_extrinsic_curvature_tensor(lua_State *L)
     gkyl_free(extrinsic_curvature[i]);
   }
   gkyl_free(extrinsic_curvature);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_neutronstar_lw_lapse_function_der(lua_State *L)
+{
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double mass_quadrupole = luaL_checknumber(L, 3);
+  double spin_octupole = luaL_checknumber(L, 4);
+  double mass_hexadecapole = luaL_checknumber(L, 5);
+  double pos_x = luaL_checknumber(L, 6);
+  double pos_y = luaL_checknumber(L, 7);
+  double pos_z = luaL_checknumber(L, 8);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_inew( &(struct gkyl_gr_neutronstar_inp) {
+      .mass = mass,
+      .spin = spin,
+      .mass_quadrupole = mass_quadrupole,
+      .spin_octupole = spin_octupole,
+      .mass_hexadecapole = mass_hexadecapole,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 9);
+  double x = luaL_checknumber(L, 10);
+  double y = luaL_checknumber(L, 11);
+  double z = luaL_checknumber(L, 12);
+
+  double dx = luaL_checknumber(L, 13);
+  double dy = luaL_checknumber(L, 14);
+  double dz = luaL_checknumber(L, 15);
+
+  double *lapse_der = gkyl_malloc(sizeof(double[3]));
+  spacetime->lapse_function_der_func(spacetime, t, x, y, z, dx, dy, dz, &lapse_der);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+    lua_pushnumber(L, lapse_der[i]);
+    lua_rawset(L, -3);
+  }
+
+  gkyl_free(lapse_der);
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_neutronstar_lw_shift_vector_der(lua_State *L)
+{
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double mass_quadrupole = luaL_checknumber(L, 3);
+  double spin_octupole = luaL_checknumber(L, 4);
+  double mass_hexadecapole = luaL_checknumber(L, 5);
+  double pos_x = luaL_checknumber(L, 6);
+  double pos_y = luaL_checknumber(L, 7);
+  double pos_z = luaL_checknumber(L, 8);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_inew( &(struct gkyl_gr_neutronstar_inp) {
+      .mass = mass,
+      .spin = spin,
+      .mass_quadrupole = mass_quadrupole,
+      .spin_octupole = spin_octupole,
+      .mass_hexadecapole = mass_hexadecapole,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 9);
+  double x = luaL_checknumber(L, 10);
+  double y = luaL_checknumber(L, 11);
+  double z = luaL_checknumber(L, 12);
+
+  double dx = luaL_checknumber(L, 13);
+  double dy = luaL_checknumber(L, 14);
+  double dz = luaL_checknumber(L, 15);
+
+  double **shift_der = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    shift_der[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  spacetime->shift_vector_der_func(spacetime, t, x, y, z, dx, dy, dz, &shift_der);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+
+    lua_createtable(L, 3, 0);
+    for (int j = 0; j < 3; j++) {
+      lua_pushinteger(L, j + 1);
+      lua_pushnumber(L, shift_der[i][j]);
+      lua_rawset(L, -3);
+    }
+
+    lua_rawset(L, -3);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(shift_der[i]);
+  }
+  gkyl_free(shift_der);
+
+  gkyl_gr_spacetime_release(spacetime);
+
+  return 1;
+}
+
+static int
+spacetime_neutronstar_lw_spatial_metric_tensor_der(lua_State *L)
+{
+  double mass = luaL_checknumber(L, 1);
+  double spin = luaL_checknumber(L, 2);
+  double mass_quadrupole = luaL_checknumber(L, 3);
+  double spin_octupole = luaL_checknumber(L, 4);
+  double mass_hexadecapole = luaL_checknumber(L, 5);
+  double pos_x = luaL_checknumber(L, 6);
+  double pos_y = luaL_checknumber(L, 7);
+  double pos_z = luaL_checknumber(L, 8);
+
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_inew( &(struct gkyl_gr_neutronstar_inp) {
+      .mass = mass,
+      .spin = spin,
+      .mass_quadrupole = mass_quadrupole,
+      .spin_octupole = spin_octupole,
+      .mass_hexadecapole = mass_hexadecapole,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z,
+      .use_gpu = false
+    }
+  );
+
+  double t = luaL_checknumber(L, 9);
+  double x = luaL_checknumber(L, 10);
+  double y = luaL_checknumber(L, 11);
+  double z = luaL_checknumber(L, 12);
+
+  double dx = luaL_checknumber(L, 13);
+  double dy = luaL_checknumber(L, 14);
+  double dz = luaL_checknumber(L, 15);
+
+  double ***spatial_metric_der = gkyl_malloc(sizeof(double**[3]));
+  for (int i = 0; i < 3; i++) {
+    spatial_metric_der[i] = gkyl_malloc(sizeof(double*[3]));
+
+    for (int j = 0; j < 3; j++) {
+      spatial_metric_der[i][j] = gkyl_malloc(sizeof(double[3]));
+    }
+  }
+
+  spacetime->spatial_metric_tensor_der_func(spacetime, t, x, y, z, dx, dy, dz, &spatial_metric_der);
+
+  lua_createtable(L, 3, 0);
+
+  for (int i = 0; i < 3; i++) {
+    lua_pushinteger(L, i + 1);
+
+    lua_createtable(L, 3, 0);
+    for (int j = 0; j < 3; j++) {
+      lua_pushinteger(L, j + 1);
+
+      lua_createtable(L, 3, 0);
+      for (int k = 0; k < 3; k++) {
+        lua_pushinteger(L, k + 1);
+        lua_pushnumber(L, spatial_metric_der[i][j][k]);
+        lua_rawset(L, -3);
+      }
+
+      lua_rawset(L, -3);
+    }
+
+    lua_rawset(L, -3);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      gkyl_free(spatial_metric_der[i][j]);
+    }
+    gkyl_free(spatial_metric_der[i]);
+  }
+  gkyl_free(spatial_metric_der);
 
   gkyl_gr_spacetime_release(spacetime);
 
@@ -1904,6 +2755,9 @@ static struct luaL_Reg spacetime_neutronstar_ctor[] = {
   { "lapseFunction", spacetime_neutronstar_lw_lapse_function },
   { "shiftVector", spacetime_neutronstar_lw_shift_vector },
   { "extrinsicCurvatureTensor", spacetime_neutronstar_lw_extrinsic_curvature_tensor },
+  { "lapseFunctionDer", spacetime_neutronstar_lw_lapse_function_der },
+  { "shiftVectorDer", spacetime_neutronstar_lw_shift_vector_der },
+  { "spatialMetricTensorDer", spacetime_neutronstar_lw_spatial_metric_tensor_der },
   { "excisionRegion", spacetime_neutronstar_lw_excision_region },
   { 0, 0 }
 };
@@ -2063,6 +2917,26 @@ moment_species_lw_new(lua_State *L)
     mom_species.medium_kappa = glua_tbl_get_number(L, "mediumKappa", 8.0 * M_PI);
   }
 
+  mom_species.has_gr_ultra_rel = glua_tbl_get_bool(L, "hasGRUltraRel", false);
+  if (mom_species.has_gr_ultra_rel) {
+    mom_species.gr_ultra_rel_gas_gamma = glua_tbl_get_number(L, "GRUltraRelGasGamma", 5.0 / 3.0);
+  }
+
+  mom_species.has_gr_euler = glua_tbl_get_bool(L, "hasGREuler", false);
+  if (mom_species.has_gr_euler) {
+    mom_species.gr_euler_gas_gamma = glua_tbl_get_number(L, "GREulerGasGamma", 5.0 / 3.0);
+  }
+
+  mom_species.has_gr_twofluid = glua_tbl_get_bool(L, "hasGRTwoFluid", false);
+  if (mom_species.has_gr_twofluid) {
+    mom_species.gr_twofluid_mass_elc = glua_tbl_get_number(L, "GRTwoFluidMassElc", 1.0 / 1836.2);
+    mom_species.gr_twofluid_mass_ion = glua_tbl_get_number(L, "GRTwoFluidMassIon", 1.0);
+    mom_species.gr_twofluid_charge_elc = glua_tbl_get_number(L, "GRTwoFluidChargeElc", -1.0);
+    mom_species.gr_twofluid_charge_ion = glua_tbl_get_number(L, "GRTwoFluidChargeIon", 1.0);
+    mom_species.gr_twofluid_gas_gamma_elc = glua_tbl_get_number(L, "GRTwoFluidGasGammaElc", 5.0 / 3.0);
+    mom_species.gr_twofluid_gas_gamma_ion = glua_tbl_get_number(L, "GRTwoFluidGasGammaIon", 5.0 / 3.0);
+  }
+  
   mom_species.type_brag = glua_tbl_get_integer(L, "braginskiiType", 0);
 
   struct moment_species_lw *moms_lw = lua_newuserdata(L, sizeof(*moms_lw));

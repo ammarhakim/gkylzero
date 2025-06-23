@@ -14,6 +14,9 @@ struct wv_gr_ultra_rel_euler_tetrad {
   struct gkyl_wv_eqn eqn; // Base equation object.
   struct gkyl_gr_spacetime *spacetime; // Pointer to base spacetime object.
   double gas_gamma; // Adiabatic index.
+
+  enum gkyl_spacetime_gauge spacetime_gauge; // Spacetime gauge choice.
+  int reinit_freq; // Spacetime reinitialization frequency.
 };
 
 /**
@@ -288,6 +291,69 @@ wave_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const dou
 GKYL_CU_D
 static void
 qfluct_roe_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
+  double* amdq, double* apdq);
+
+/**
+* Compute waves and speeds using HLL fluxes.
+*
+* @param eqn Base equation object.
+* @param delta Jump across interface to split.
+* @param ql Conserved variables on the left of the interface.
+* @param qr Conserved variables on the right of the interface.
+* @param waves Waves (output).
+* @param s Wave speeds (output).
+* @return Maximum wave speed.
+*/
+GKYL_CU_D
+static double
+wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s);
+
+/**
+* Compute fluctuations using HLL fluxes.
+*
+* @param eqn Base equation object.
+* @param ql Conserved variable vector on the left of the interface.
+* @param qr Conserved variable vector on the right of the interface.
+* @param waves Waves (input).
+* @param s Wave speeds (input).
+* @param amdq Left-moving fluctuations (output).
+* @param apdq Right-moving fluctuations (output).
+*/
+GKYL_CU_D
+static void
+qfluct_hll(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq);
+
+/**
+* Compute waves and speeds using HLL fluxes (with potential fallback).
+*
+* @param eqn Base equation object.
+* @param type Type of Riemann-solver flux to use.
+* @param delta Jump across interface to split.
+* @param ql Conserved variables on the left of the interface.
+* @param qr Conserved variables on the right of the interface.
+* @param waves Waves (output).
+* @param s Wave speeds (output).
+* @return Maximum wave speed.
+*/
+GKYL_CU_D
+static double
+wave_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s);
+
+/**
+* Compute fluctuations using HLL fluxes (with potential fallback),
+*
+* @param eqn Base equation object.
+* @param type Type of Riemann-solver flux to use.
+* @param ql Conserved variable vector on the left of the interface.
+* @param qr Conserved variable vector on the right of the interface.
+* @param waves Waves (input).
+* @param s Wave speeds (input).
+* @param amdq Left-moving fluctuations (output).
+* @param apdq Right-moving fluctuations (output).
+*/
+GKYL_CU_D
+static void
+qfluct_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
   double* amdq, double* apdq);
 
 /**
