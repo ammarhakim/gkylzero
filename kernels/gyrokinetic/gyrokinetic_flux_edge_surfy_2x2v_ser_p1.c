@@ -1,7 +1,7 @@
 #include <gkyl_gyrokinetic_kernels.h> 
 GKYL_CU_DH void gyrokinetic_flux_edge_surfy_2x2v_ser_p1(const struct gkyl_basis *basis, const double *w, const double *dxv, const double *vmap, const double *vmapSq,
     const double q_, const double m_,
-    const struct dg_surf_geom *dgs, const struct gk_dg_surf_geom *gkdgs, const double *bmag, 
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs, const double *bmag, 
     const double *phi, const double *JfL, const double *JfR, double* GKYL_RESTRICT flux_surf) 
 { 
   // w[NDIM]: cell-center.
