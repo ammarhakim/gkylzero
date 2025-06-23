@@ -17,7 +17,7 @@ b_fact = 0.0 -- Factor of speed of light for magnetic field correction.
 B0 = 1.0 -- Reference magnetic field strength.
 
 -- Spacetime parameters (using geometric units).
-mass = 1.0 -- Mass of the neutron star.
+mass = 0.5 -- Mass of the neutron star.
 spin = 0.0 -- Spin of the neutron star.
 
 pos_x = 0.0 -- Position of the neutron star (x-direction).
@@ -42,6 +42,8 @@ Ny = 256 -- Cell count (y-direction).
 Lx = 10.0 -- Domain size (x-direction).
 Ly = 10.0 -- Domain size (y-direction).
 cfl_frac = 0.95 -- CFL coefficient.
+
+reinit_freq = 10 -- Spacetime reinitialization frequency.
 
 t_end = 50.0 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
@@ -71,7 +73,18 @@ momentApp = Moments.App.new {
     equation = GRMaxwell.new {
       lightSpeed = light_speed,
       elcErrorSpeedFactor = e_fact,
-      mgnErrorSpeedFactor = b_fact
+      mgnErrorSpeedFactor = b_fact,
+      neutronStarParameters = {
+        mass = mass,
+        spin = spin,
+        massQuadrupole = mass_quadrupole,
+        spinOctupole = spin_octupole,
+        massHexadecapole = mass_hexadecapole,
+        posX = pos_x,
+        posY = pos_y,
+        posZ = pos_z
+      },
+      reinitFreq = reinit_freq
     },
   
     -- Initial conditions function.
@@ -112,7 +125,9 @@ momentApp = Moments.App.new {
         spatial_metric[1][1], spatial_metric[1][2], spatial_metric[1][3],
         spatial_metric[2][1], spatial_metric[2][2], spatial_metric[2][3],
         spatial_metric[3][1], spatial_metric[3][2], spatial_metric[3][3],
-        excision
+        excision,
+        0.0,
+        x, y, 0.0
     end,
 
     evolve = true, -- Evolve species?

@@ -11,6 +11,8 @@
 #include <gkyl_wave_geom.h>
 #include <gkyl_wave_prop.h>
 
+#include <gkyl_level_set.h>
+
 struct gkyl_wave_prop {
   struct gkyl_rect_grid grid; // grid object
   int ndim; // number of dimensions
@@ -518,6 +520,31 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
 
           wv->n_bad_cells += n_bad_cells;
           wv->n_max_bad_cells = wv->n_max_bad_cells >  n_bad_cells ? wv->n_max_bad_cells : n_bad_cells;
+        }
+
+        if (wv->equation->type == GKYL_EQN_EULER_RGFM) {
+          euler_rgfm_reinit_level_set(wv, update_range, idxl, loidx_c, upidx_c, qout, dir);
+        }
+        if (wv->equation->type == GKYL_EQN_GR_MAXWELL) {
+          gr_maxwell_impose_gauge(wv, update_range, idxl, loidx_c, upidx_c, qout, dir);
+        }
+        if (wv->equation->type == GKYL_EQN_GR_MAXWELL_TETRAD) {
+          gr_maxwell_tetrad_impose_gauge(wv, update_range, idxl, loidx_c, upidx_c, qout, dir);
+        }
+        if (wv->equation->type == GKYL_EQN_GR_EULER) {
+          gr_euler_impose_gauge(wv, update_range, idxl, loidx_c, upidx_c, qout, dir);
+        }
+        if (wv->equation->type == GKYL_EQN_GR_EULER_TETRAD) {
+          gr_euler_tetrad_impose_gauge(wv, update_range, idxl, loidx_c, upidx_c, qout, dir);
+        }
+        if (wv->equation->type == GKYL_EQN_GR_ULTRA_REL_EULER) {
+          gr_ultra_rel_euler_impose_gauge(wv, update_range, idxl, loidx_c, upidx_c, qout, dir);
+        }
+        if (wv->equation->type == GKYL_EQN_GR_ULTRA_REL_EULER_TETRAD) {
+          gr_ultra_rel_euler_tetrad_impose_gauge(wv, update_range, idxl, loidx_c, upidx_c, qout, dir);
+        }
+        if (wv->equation->type == GKYL_EQN_GR_TWOFLUID) {
+          gr_twofluid_impose_gauge(wv, update_range, idxl, loidx_c, upidx_c, qout, dir);
         }
 
         state = next_state; // change state for next sweep

@@ -90,6 +90,32 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     sp->medium_kappa = mom_sp->medium_kappa;
   }
 
+  sp->has_gr_ultra_rel = false;
+  if (mom_sp->has_gr_ultra_rel) {
+    sp->has_gr_ultra_rel = true;
+
+    sp->gr_ultra_rel_gas_gamma = mom_sp->gr_ultra_rel_gas_gamma;
+  }
+
+  sp->has_gr_euler = false;
+  if (mom_sp->has_gr_euler) {
+    sp->has_gr_euler = true;
+
+    sp->gr_euler_gas_gamma = mom_sp->gr_euler_gas_gamma;
+  }
+
+  sp->has_gr_twofluid = false;
+  if (mom_sp->has_gr_twofluid) {
+    sp->has_gr_twofluid = true;
+
+    sp->gr_twofluid_mass_elc = mom_sp->gr_twofluid_mass_elc;
+    sp->gr_twofluid_mass_ion = mom_sp->gr_twofluid_mass_ion;
+    sp->gr_twofluid_charge_elc = mom_sp->gr_twofluid_charge_elc;
+    sp->gr_twofluid_charge_ion = mom_sp->gr_twofluid_charge_ion;
+    sp->gr_twofluid_gas_gamma_elc = mom_sp->gr_twofluid_gas_gamma_elc;
+    sp->gr_twofluid_gas_gamma_ion = mom_sp->gr_twofluid_gas_gamma_ion;
+  }
+
   sp->scheme_type = mom->scheme_type;
 
   // choose default limiter
