@@ -60,7 +60,7 @@ gr_euler1d_run_single(int argc, char **argv, struct gr_euler1d_single_init* init
   }
 
   for (int i = 0; i < num_patches; i++) {
-    mesh_pdata[i].euler = gkyl_wv_gr_euler_new(gas_gamma, spacetime, app_args.use_gpu);
+    mesh_pdata[i].euler = gkyl_wv_gr_euler_new(gas_gamma, GKYL_STATIC_GAUGE, 100, spacetime, app_args.use_gpu);
 
     mesh_pdata[i].slvr[0] = gkyl_wave_prop_new(& (struct gkyl_wave_prop_inp) {
         .grid = &mesh_pdata[i].grid,
@@ -264,7 +264,7 @@ gr_euler1d_run_double(int argc, char **argv, struct gr_euler1d_double_init* init
   }
 
   for (int i = 0; i < num_patches; i++) {
-    mesh_pdata[i].euler = gkyl_wv_gr_euler_new(gas_gamma, spacetime, app_args.use_gpu);
+    mesh_pdata[i].euler = gkyl_wv_gr_euler_new(gas_gamma, GKYL_STATIC_GAUGE, 100, spacetime, app_args.use_gpu);
 
     mesh_pdata[i].slvr[0] = gkyl_wave_prop_new(& (struct gkyl_wave_prop_inp) {
         .grid = &mesh_pdata[i].grid,
@@ -504,7 +504,7 @@ gr_euler2d_run_single(int argc, char **argv, struct gr_euler2d_single_init* init
   }
 
   for (int i = 0; i < num_blocks; i++) {
-    mesh_bdata[i].euler = gkyl_wv_gr_euler_new(gas_gamma, spacetime, app_args.use_gpu);
+    mesh_bdata[i].euler = gkyl_wv_gr_euler_new(gas_gamma, GKYL_STATIC_GAUGE, 100, spacetime, app_args.use_gpu);
 
     for (int d = 0; d < ndim; d++) {
       mesh_bdata[i].slvr[d] = gkyl_wave_prop_new(& (struct gkyl_wave_prop_inp) {
@@ -781,7 +781,7 @@ gr_euler2d_run_double(int argc, char **argv, struct gr_euler2d_double_init* init
   }
 
   for (int i = 0; i < num_blocks; i++) {
-    mesh_bdata[i].euler = gkyl_wv_gr_euler_new(gas_gamma, spacetime, app_args.use_gpu);
+    mesh_bdata[i].euler = gkyl_wv_gr_euler_new(gas_gamma, GKYL_STATIC_GAUGE, 100, spacetime, app_args.use_gpu);
 
     for (int d = 0; d < ndim; d++) {
       mesh_bdata[i].slvr[d] = gkyl_wave_prop_new(& (struct gkyl_wave_prop_inp) {

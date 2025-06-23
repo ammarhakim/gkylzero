@@ -45,6 +45,9 @@ struct ultra_rel_shock_ctx
   double Lx; // Domain size (x-direction).
   double cfl_frac; // CFL coefficient.
 
+  enum gkyl_spacetime_gauge spacetime_gauge; // Spacetime gauge choice.
+  int reinit_freq; // Spacetime reinitialization frequency.
+
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
   int field_energy_calcs; // Number of times to calculate field energy.
@@ -75,6 +78,9 @@ create_ctx(void)
   double Lx = 2.0; // Domain size (x-direction).
   double cfl_frac = 0.95; // CFL coefficient.
 
+  enum gkyl_spacetime_gauge spacetime_gauge = GKYL_STATIC_GAUGE; // Spacetime gauge choice.
+  int reinit_freq = 100; // Spacetime reinitialization frequency.
+
   double t_end = 1.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
@@ -94,6 +100,8 @@ create_ctx(void)
     .Nx = Nx,
     .Lx = Lx,
     .cfl_frac = cfl_frac,
+    .spacetime_gauge = spacetime_gauge,
+    .reinit_freq = reinit_freq,
     .t_end = t_end,
     .num_frames = num_frames,
     .field_energy_calcs = field_energy_calcs,
@@ -152,6 +160,21 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
     extrinsic_curvature[i] = gkyl_malloc(sizeof(double[3]));
   }
 
+  double *lapse_der = gkyl_malloc(sizeof(double[3]));
+  double **shift_der = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    shift_der[i] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  double ***spatial_metric_der = gkyl_malloc(sizeof(double**[3]));
+  for (int i = 0; i < 3; i++) {
+    spatial_metric_der[i] = gkyl_malloc(sizeof(double*[3]));
+
+    for (int j = 0; j < 3; j++) {
+      spatial_metric_der[i][j] = gkyl_malloc(sizeof(double[3]));
+    }
+  }
+
   spacetime->spatial_metric_det_func(spacetime, 0.0, x, 0.0, 0.0, &spatial_det);
   spacetime->lapse_function_func(spacetime, 0.0, x, 0.0, 0.0, &lapse);
   spacetime->shift_vector_func(spacetime, 0.0, x, 0.0, 0.0, &shift);
@@ -159,6 +182,10 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   
   spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, 0.0, 0.0, &spatial_metric);
   spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0, &extrinsic_curvature);
+
+  spacetime->lapse_function_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+  spacetime->shift_vector_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
+  spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
 
   double *vel = gkyl_malloc(sizeof(double[3]));
   double v_sq = 0.0;
@@ -204,25 +231,63 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   // Set excision boundary conditions.
   if (in_excision_region) {
-    for (int i = 0; i < 26; i++) {
-      fout[i] = 0.0;
-    }
-
     fout[26] = -1.0;
   }
   else {
     fout[26] = 1.0;
   }
 
+  // Set lapse function derivatives.
+  fout[27] = lapse_der[0]; fout[28] = lapse_der[1]; fout[29] = lapse_der[2];
+  // Set shift vector derivatives.
+  fout[30] = shift_der[0][0]; fout[31] = shift_der[0][1]; fout[32] = shift_der[0][2];
+  fout[33] = shift_der[1][0]; fout[34] = shift_der[1][1]; fout[35] = shift_der[1][2];
+  fout[36] = shift_der[2][0]; fout[37] = shift_der[2][1]; fout[38] = shift_der[2][2];
+
+  // Set spatial metric tensor derivatives.
+  fout[39] = spatial_metric_der[0][0][0]; fout[40] = spatial_metric_der[0][0][1]; fout[41] = spatial_metric_der[0][0][2];
+  fout[42] = spatial_metric_der[0][1][0]; fout[43] = spatial_metric_der[0][1][1]; fout[44] = spatial_metric_der[0][1][2];
+  fout[45] = spatial_metric_der[0][2][0]; fout[46] = spatial_metric_der[0][2][1]; fout[47] = spatial_metric_der[0][2][2];
+
+  fout[48] = spatial_metric_der[1][0][0]; fout[49] = spatial_metric_der[1][0][1]; fout[50] = spatial_metric_der[1][0][2];
+  fout[51] = spatial_metric_der[1][1][0]; fout[52] = spatial_metric_der[1][1][1]; fout[53] = spatial_metric_der[1][1][2];
+  fout[54] = spatial_metric_der[1][2][0]; fout[55] = spatial_metric_der[1][2][1]; fout[56] = spatial_metric_der[1][2][2];
+
+  fout[57] = spatial_metric_der[2][0][0]; fout[58] = spatial_metric_der[2][0][1]; fout[59] = spatial_metric_der[2][0][2];
+  fout[60] = spatial_metric_der[2][1][0]; fout[61] = spatial_metric_der[2][1][1]; fout[62] = spatial_metric_der[2][1][2];
+  fout[63] = spatial_metric_der[2][2][0]; fout[64] = spatial_metric_der[2][2][1]; fout[65] = spatial_metric_der[2][2][2];
+
+  // Set evolution parameter.
+  fout[66] = 0.0;
+
+  // Set spatial coordinates.
+  fout[67] = x; fout[68] = 0.0; fout[69] = 0.0;
+
+  if (in_excision_region) {
+    for (int i = 0; i < 66; i++) {
+      fout[i] = 0.0;
+    }
+    fout[26] = -1.0;
+  }
+
   // Free all tensorial quantities.
   for (int i = 0; i < 3; i++) {
     gkyl_free(spatial_metric[i]);
     gkyl_free(extrinsic_curvature[i]);
+    gkyl_free(shift_der[i]);
+
+    for (int j = 0; j < 3; j++) {
+      gkyl_free(spatial_metric_der[i][j]);
+    }
+    gkyl_free(spatial_metric_der[i]);
   }
   gkyl_free(spatial_metric);
   gkyl_free(extrinsic_curvature);
   gkyl_free(shift);
   gkyl_free(vel);
+  gkyl_free(lapse_der);
+  gkyl_free(shift_der);
+  gkyl_free(spatial_metric_der);
 }
 
 void
@@ -277,7 +342,7 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
   // Fluid equations.
-  struct gkyl_wv_eqn *gr_ultra_rel_euler = gkyl_wv_gr_ultra_rel_euler_new(ctx.gas_gamma, ctx.spacetime, app_args.use_gpu);
+  struct gkyl_wv_eqn *gr_ultra_rel_euler = gkyl_wv_gr_ultra_rel_euler_new(ctx.gas_gamma, ctx.spacetime_gauge, ctx.reinit_freq, ctx.spacetime, app_args.use_gpu);
 
   struct gkyl_moment_species fluid = {
     .name = "gr_ultra_rel_euler",
@@ -286,6 +351,9 @@ main(int argc, char **argv)
     .init = evalGREulerInit,
     .force_low_order_flux = true, // Use Lax fluxes.
     .ctx = &ctx,
+
+    .has_gr_ultra_rel = true,
+    .gr_ultra_rel_gas_gamma = ctx.gas_gamma,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
