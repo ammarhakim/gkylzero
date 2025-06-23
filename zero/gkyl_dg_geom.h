@@ -28,6 +28,13 @@ struct gkyl_dg_geom {
   struct gkyl_range surf_quad_range; // range for indexing surface nodes
   struct gkyl_range vol_quad_range;  // range for indexing volume nodes
 
+  // index weights and ords arrays below using the appropriate
+  // methods below
+  
+  // weights and ordinates for surface quadrature
+  double *surf_weights, *surf_ords;
+  // weights and ordinates for surface quadrature
+  double *vol_weights, *vol_ords;
   
   struct gkyl_array *surf_geom[GKYL_MAX_CDIM]; // surface geometry in dir 'd' in each cell
   struct gkyl_array *vol_geom; // cell geometry
@@ -93,17 +100,48 @@ gkyl_dg_geom_get_surf(const struct gkyl_dg_geom *dgg, int d, const int *idx)
 
 /**
  * Get linear index into surface quadrature node corresponding to
- * multi-dimensional index @a idx.
+ * multi-dimensional index @a sidx.
  *
  * @param dgg DG geometry object
- * @param idx Index (ndim-1) of surface quadrature node
- * @return Linear index for indexing surface quadrature array
+ * @param sidx Index (ndim-1) of surface quadrature node
+ * @return Weight at surface quadrature node
  */
 GKYL_CU_DH
 static inline long
-gkyl_dg_geom_surf_quad_idx(const struct gkyl_dg_geom *dgg, const int *idx)
+gkyl_dg_geom_surf_quad_idx(const struct gkyl_dg_geom *dgg, const int *sidx)
 {
-  return gkyl_range_idx(&dgg->surf_quad_range, idx);
+  return gkyl_range_idx(&dgg->surf_quad_range, sidx);
+}
+
+/**
+ * Get weight for surface quadrature node corresponding to
+ * multi-dimensional surface index @a sidx.
+ *
+ * @param dgg DG geometry object
+ * @param sidx Index (ndim-1) of surface quadrature node
+ * @return Weight at node
+ */
+GKYL_CU_DH
+static inline double
+gkyl_dg_geom_surf_quad_weight(const struct gkyl_dg_geom *dgg, const int *sidx)
+{
+  return dgg->surf_weights[gkyl_dg_geom_surf_quad_idx(dgg, sidx)];
+}
+
+/**
+ * Get ordinates for surface quadrature node corresponding to
+ * multi-dimensional surface index @a sidx.
+ *
+ * @param dgg DG geometry object
+ * @param sidx Index of surface quadrature node
+ * @return Ordinates at nodes: ndim-1 size array
+ */
+GKYL_CU_DH
+static inline const double*
+gkyl_dg_geom_surf_quad_ords(const struct gkyl_dg_geom *dgg, const int *sidx)
+{
+  int sdim = dgg->surf_quad_range.ndim;
+  return &dgg->surf_ords[sdim*gkyl_dg_geom_surf_quad_idx(dgg, sidx)];
 }
 
 /**
@@ -123,18 +161,49 @@ gkyl_dg_geom_get_vol(const struct gkyl_dg_geom *dgg, const int *idx)
 }
 
 /**
- * Get linear index into surface quadrature node corresponding to
- * multi-dimensional index @a idx.
+ * Get linear index into volume quadrature node corresponding to
+ * multi-dimensional index @a vidx.
  *
  * @param dgg DG geometry object
- * @param idx Index (ndim-1) of surface quadrature node
- * @return Linear index for indexing surface quadrature array
+ * @param vidx Index of volume quadrature node
+ * @return Linear index for indexing volume quadrature array
  */
 GKYL_CU_DH
 static inline long
-gkyl_dg_geom_vol_quad_idx(const struct gkyl_dg_geom *dgg, const int *idx)
+gkyl_dg_geom_vol_quad_idx(const struct gkyl_dg_geom *dgg, const int *vidx)
 {
-  return gkyl_range_idx(&dgg->vol_quad_range, idx);
+  return gkyl_range_idx(&dgg->vol_quad_range, vidx);
+}
+
+/**
+ * Get weight for volume quadrature node corresponding to
+ * multi-dimensional vol index @a vidx.
+ *
+ * @param dgg DG geometry object
+ * @param vidx Index of volume quadrature node
+ * @return Weight at node
+ */
+GKYL_CU_DH
+static inline double
+gkyl_dg_geom_vol_quad_weight(const struct gkyl_dg_geom *dgg, const int *vidx)
+{
+  return dgg->vol_weights[gkyl_dg_geom_vol_quad_idx(dgg, vidx)];
+}
+
+/**
+ * Get ordinates for volume quadrature node corresponding to
+ * multi-dimensional volume index @a sidx.
+ *
+ * @param dgg DG geometry object
+ * @param vidx Index of volume quadrature node
+ * @return Ordinates at nodes: ndim size array
+ */
+GKYL_CU_DH
+static inline const double*
+gkyl_dg_geom_vol_quad_ords(const struct gkyl_dg_geom *dgg, const int *vidx)
+{
+  int ndim = dgg->vol_quad_range.ndim;
+  return &dgg->vol_ords[ndim*gkyl_dg_geom_vol_quad_idx(dgg, vidx)];
 }
 
 /**
