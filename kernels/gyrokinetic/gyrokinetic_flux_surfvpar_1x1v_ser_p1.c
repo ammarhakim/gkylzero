@@ -1,8 +1,10 @@
 #include <gkyl_gyrokinetic_kernels.h> 
-GKYL_CU_DH void gyrokinetic_flux_surfvpar_1x1v_ser_p1(const struct gkyl_basis *basis, const double *w, const double *dxv, const double *vmap, const double *vmapSq,
-    const double q_, const double m_,
-    const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv, const double *bmag, 
-    const double *phi, const double *JfL, const double *JfR, double* GKYL_RESTRICT flux_surf) 
+GKYL_CU_DH void gyrokinetic_flux_surfvpar_1x1v_ser_p1(
+    const struct gkyl_basis *basis, const double *w, const double *dxv, 
+    const double *vmap, const double *vmapSq, const double q_, const double m_,
+    const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
+    const double *bmag, const double *phi, const double *JfL, const double *JfR, 
+    double* GKYL_RESTRICT flux_surf) 
 { 
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
