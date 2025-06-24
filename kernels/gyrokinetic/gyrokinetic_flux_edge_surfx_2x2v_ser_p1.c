@@ -61,7 +61,7 @@ bhat_quad[2] = gkdgs[0].bhat.x[2];
 area_elem_quad = dgs[0].area_elem; 
 
 alpha_quad = 0.0  ;
-alpha_quad += ((0.408248290463863*dxv[2]*(0.6123724356957944*hamil[2]-1.837117307087383*hamil[8]))/vmap[1])/m_/bmag_quad * (0.6123724356957944*hamil[2]-1.837117307087383*hamil[8])/q_ * normcurlbhat_quad ;
+alpha_quad += ((0.8164965809277262*(0.6123724356957944*hamil[2]-1.837117307087383*hamil[8]))/vmap[1])/m_/bmag_quad * (0.6123724356957944*hamil[2]-1.837117307087383*hamil[8])/q_ * normcurlbhat_quad ;
 alpha_quad += 1/q_/bmag_quad/area_elem_quad * bhat_quad[1]*(0.6123724356957944*hamil[1]-0.6123724356957944*hamil[5])  ;
 
 alpha_quad = alpha_quad*area_elem_quad/Jc_quad ;
@@ -70,9 +70,9 @@ JfL_quad =  0.04472135954999579*(8.660254037844388*JfL[23]+5.0*JfL[22])-0.044721
 JfR_quad =  (-0.04472135954999579*(8.660254037844388*JfR[23]-5.0*JfR[22]))+0.04472135954999579*(8.660254037844388*JfR[21]-5.0*JfR[19])+0.04472135954999581*(8.660254037844388*JfR[20]-5.0*JfR[18])-0.04472135954999579*(8.660254037844388*JfR[17]-5.0*JfR[16])+0.3354101966249685*(1.732050807568877*JfR[15]-1.0*JfR[14])-0.3354101966249685*(1.732050807568877*JfR[13]-1.0*JfR[10])-0.25*(1.732050807568877*JfR[12]-1.0*JfR[9])-0.3354101966249685*(1.732050807568877*JfR[11]-1.0*JfR[7])+0.25*(1.732050807568877*JfR[8]-1.0*JfR[4])+0.3354101966249685*(1.732050807568877*JfR[6]-1.0*JfR[3])+0.25*(1.732050807568877*JfR[5]-1.0*JfR[2])-0.25*(1.732050807568877*JfR[1]-1.0*JfR[0]);
 Jfavg_quad = (JfL_quad + JfR_quad)/2.0 ;
 Jfjump_quad = (JfR_quad - JfL_quad)/2.0 ;
-flux_surf_nodal[0] = alpha_quad*Jfavg_quad*area_elem_quad - fabs(alpha_quad)*Jfjump_quad*area_elem_quad ;
+flux_surf_nodal[0] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad ;
 alpha_quad = 0.0  ;
-alpha_quad += ((0.2499999999999999*dxv[2]*hamil[2])/vmap[1])/m_/bmag_quad * (0.6123724356957944*hamil[2])/q_ * normcurlbhat_quad ;
+alpha_quad += ((0.5*hamil[2])/vmap[1])/m_/bmag_quad * (0.6123724356957944*hamil[2])/q_ * normcurlbhat_quad ;
 alpha_quad += 1/q_/bmag_quad/area_elem_quad * bhat_quad[1]*(0.6123724356957944*hamil[1]-0.6123724356957944*hamil[5])  ;
 
 alpha_quad = alpha_quad*area_elem_quad/Jc_quad ;
@@ -81,9 +81,9 @@ JfL_quad =  (-0.05590169943749474*(8.660254037844388*JfL[23]+5.0*JfL[22]))+0.055
 JfR_quad =  0.05590169943749474*(8.660254037844388*JfR[23]-5.0*JfR[22])-0.05590169943749476*(8.660254037844388*JfR[21]-5.0*JfR[19])-0.05590169943749476*(8.660254037844388*JfR[20]-5.0*JfR[18])+0.05590169943749474*(8.660254037844388*JfR[17]-5.0*JfR[16])-0.25*(1.732050807568877*JfR[12]-1.0*JfR[9])+0.25*(1.732050807568877*JfR[8]-1.0*JfR[4])+0.25*(1.732050807568877*JfR[5]-1.0*JfR[2])-0.25*(1.732050807568877*JfR[1]-1.0*JfR[0]);
 Jfavg_quad = (JfL_quad + JfR_quad)/2.0 ;
 Jfjump_quad = (JfR_quad - JfL_quad)/2.0 ;
-flux_surf_nodal[1] = alpha_quad*Jfavg_quad*area_elem_quad - fabs(alpha_quad)*Jfjump_quad*area_elem_quad ;
+flux_surf_nodal[1] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad ;
 alpha_quad = 0.0  ;
-alpha_quad += ((0.408248290463863*dxv[2]*(1.837117307087383*hamil[8]+0.6123724356957944*hamil[2]))/vmap[1])/m_/bmag_quad * (1.837117307087383*hamil[8]+0.6123724356957944*hamil[2])/q_ * normcurlbhat_quad ;
+alpha_quad += ((0.8164965809277262*(1.837117307087383*hamil[8]+0.6123724356957944*hamil[2]))/vmap[1])/m_/bmag_quad * (1.837117307087383*hamil[8]+0.6123724356957944*hamil[2])/q_ * normcurlbhat_quad ;
 alpha_quad += 1/q_/bmag_quad/area_elem_quad * bhat_quad[1]*(0.6123724356957944*hamil[1]-0.6123724356957944*hamil[5])  ;
 
 alpha_quad = alpha_quad*area_elem_quad/Jc_quad ;
@@ -92,9 +92,9 @@ JfL_quad =  0.04472135954999579*(8.660254037844388*JfL[23]+5.0*JfL[22])-0.044721
 JfR_quad =  (-0.04472135954999579*(8.660254037844388*JfR[23]-5.0*JfR[22]))+0.04472135954999579*(8.660254037844388*JfR[21]-5.0*JfR[19])+0.04472135954999581*(8.660254037844388*JfR[20]-5.0*JfR[18])-0.04472135954999579*(8.660254037844388*JfR[17]-5.0*JfR[16])-0.3354101966249685*(1.732050807568877*JfR[15]-1.0*JfR[14])+0.3354101966249685*(1.732050807568877*JfR[13]-1.0*JfR[10])-0.25*(1.732050807568877*JfR[12]-1.0*JfR[9])+0.3354101966249685*(1.732050807568877*JfR[11]-1.0*JfR[7])+0.25*(1.732050807568877*JfR[8]-1.0*JfR[4])-0.3354101966249685*(1.732050807568877*JfR[6]-1.0*JfR[3])+0.25*(1.732050807568877*JfR[5]-1.0*JfR[2])-0.25*(1.732050807568877*JfR[1]-1.0*JfR[0]);
 Jfavg_quad = (JfL_quad + JfR_quad)/2.0 ;
 Jfjump_quad = (JfR_quad - JfL_quad)/2.0 ;
-flux_surf_nodal[2] = alpha_quad*Jfavg_quad*area_elem_quad - fabs(alpha_quad)*Jfjump_quad*area_elem_quad ;
+flux_surf_nodal[2] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad ;
 alpha_quad = 0.0  ;
-alpha_quad += ((0.408248290463863*dxv[2]*(0.6123724356957944*hamil[2]-1.837117307087383*hamil[8]))/vmap[1])/m_/bmag_quad * (0.6123724356957944*hamil[2]-1.837117307087383*hamil[8])/q_ * normcurlbhat_quad ;
+alpha_quad += ((0.8164965809277262*(0.6123724356957944*hamil[2]-1.837117307087383*hamil[8]))/vmap[1])/m_/bmag_quad * (0.6123724356957944*hamil[2]-1.837117307087383*hamil[8])/q_ * normcurlbhat_quad ;
 alpha_quad += 1/q_/bmag_quad/area_elem_quad * bhat_quad[1]*(0.6123724356957944*hamil[5]+0.6123724356957944*hamil[1])  ;
 
 alpha_quad = alpha_quad*area_elem_quad/Jc_quad ;
@@ -103,9 +103,9 @@ JfL_quad =  (-0.04472135954999579*(8.660254037844388*JfL[23]+5.0*JfL[22]))+0.044
 JfR_quad =  0.04472135954999579*(8.660254037844388*JfR[23]-5.0*JfR[22])-0.04472135954999579*(8.660254037844388*JfR[21]-5.0*JfR[19])+0.04472135954999581*(8.660254037844388*JfR[20]-5.0*JfR[18])-0.04472135954999579*(8.660254037844388*JfR[17]-5.0*JfR[16])-0.3354101966249685*(1.732050807568877*JfR[15]-1.0*JfR[14])+0.3354101966249685*(1.732050807568877*JfR[13]-1.0*JfR[10])+0.25*(1.732050807568877*JfR[12]-1.0*JfR[9])-0.3354101966249685*(1.732050807568877*JfR[11]-1.0*JfR[7])-0.25*(1.732050807568877*JfR[8]-1.0*JfR[4])+0.3354101966249685*(1.732050807568877*JfR[6]-1.0*JfR[3])+0.25*(1.732050807568877*JfR[5]-1.0*JfR[2])-0.25*(1.732050807568877*JfR[1]-1.0*JfR[0]);
 Jfavg_quad = (JfL_quad + JfR_quad)/2.0 ;
 Jfjump_quad = (JfR_quad - JfL_quad)/2.0 ;
-flux_surf_nodal[3] = alpha_quad*Jfavg_quad*area_elem_quad - fabs(alpha_quad)*Jfjump_quad*area_elem_quad ;
+flux_surf_nodal[3] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad ;
 alpha_quad = 0.0  ;
-alpha_quad += ((0.2499999999999999*dxv[2]*hamil[2])/vmap[1])/m_/bmag_quad * (0.6123724356957944*hamil[2])/q_ * normcurlbhat_quad ;
+alpha_quad += ((0.5*hamil[2])/vmap[1])/m_/bmag_quad * (0.6123724356957944*hamil[2])/q_ * normcurlbhat_quad ;
 alpha_quad += 1/q_/bmag_quad/area_elem_quad * bhat_quad[1]*(0.6123724356957944*hamil[5]+0.6123724356957944*hamil[1])  ;
 
 alpha_quad = alpha_quad*area_elem_quad/Jc_quad ;
@@ -114,9 +114,9 @@ JfL_quad =  0.05590169943749474*(8.660254037844388*JfL[23]+5.0*JfL[22])-0.055901
 JfR_quad =  (-0.05590169943749474*(8.660254037844388*JfR[23]-5.0*JfR[22]))+0.05590169943749476*(8.660254037844388*JfR[21]-5.0*JfR[19])-0.05590169943749476*(8.660254037844388*JfR[20]-5.0*JfR[18])+0.05590169943749474*(8.660254037844388*JfR[17]-5.0*JfR[16])+0.25*(1.732050807568877*JfR[12]-1.0*JfR[9])-0.25*(1.732050807568877*JfR[8]-1.0*JfR[4])+0.25*(1.732050807568877*JfR[5]-1.0*JfR[2])-0.25*(1.732050807568877*JfR[1]-1.0*JfR[0]);
 Jfavg_quad = (JfL_quad + JfR_quad)/2.0 ;
 Jfjump_quad = (JfR_quad - JfL_quad)/2.0 ;
-flux_surf_nodal[4] = alpha_quad*Jfavg_quad*area_elem_quad - fabs(alpha_quad)*Jfjump_quad*area_elem_quad ;
+flux_surf_nodal[4] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad ;
 alpha_quad = 0.0  ;
-alpha_quad += ((0.408248290463863*dxv[2]*(1.837117307087383*hamil[8]+0.6123724356957944*hamil[2]))/vmap[1])/m_/bmag_quad * (1.837117307087383*hamil[8]+0.6123724356957944*hamil[2])/q_ * normcurlbhat_quad ;
+alpha_quad += ((0.8164965809277262*(1.837117307087383*hamil[8]+0.6123724356957944*hamil[2]))/vmap[1])/m_/bmag_quad * (1.837117307087383*hamil[8]+0.6123724356957944*hamil[2])/q_ * normcurlbhat_quad ;
 alpha_quad += 1/q_/bmag_quad/area_elem_quad * bhat_quad[1]*(0.6123724356957944*hamil[5]+0.6123724356957944*hamil[1])  ;
 
 alpha_quad = alpha_quad*area_elem_quad/Jc_quad ;
@@ -125,7 +125,7 @@ JfL_quad =  (-0.04472135954999579*(8.660254037844388*JfL[23]+5.0*JfL[22]))+0.044
 JfR_quad =  0.04472135954999579*(8.660254037844388*JfR[23]-5.0*JfR[22])-0.04472135954999579*(8.660254037844388*JfR[21]-5.0*JfR[19])+0.04472135954999581*(8.660254037844388*JfR[20]-5.0*JfR[18])-0.04472135954999579*(8.660254037844388*JfR[17]-5.0*JfR[16])+0.3354101966249685*(1.732050807568877*JfR[15]-1.0*JfR[14])-0.3354101966249685*(1.732050807568877*JfR[13]-1.0*JfR[10])+0.25*(1.732050807568877*JfR[12]-1.0*JfR[9])+0.3354101966249685*(1.732050807568877*JfR[11]-1.0*JfR[7])-0.25*(1.732050807568877*JfR[8]-1.0*JfR[4])-0.3354101966249685*(1.732050807568877*JfR[6]-1.0*JfR[3])+0.25*(1.732050807568877*JfR[5]-1.0*JfR[2])-0.25*(1.732050807568877*JfR[1]-1.0*JfR[0]);
 Jfavg_quad = (JfL_quad + JfR_quad)/2.0 ;
 Jfjump_quad = (JfR_quad - JfL_quad)/2.0 ;
-flux_surf_nodal[5] = alpha_quad*Jfavg_quad*area_elem_quad - fabs(alpha_quad)*Jfjump_quad*area_elem_quad ;
+flux_surf_nodal[5] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad ;
 
 
 bmag_quad = gkdgs[1].bmag; 
@@ -138,7 +138,7 @@ bhat_quad[2] = gkdgs[1].bhat.x[2];
 area_elem_quad = dgs[1].area_elem; 
 
 alpha_quad = 0.0  ;
-alpha_quad += ((0.408248290463863*dxv[2]*(0.6123724356957944*hamil[2]-1.837117307087383*hamil[8]))/vmap[1])/m_/bmag_quad * (0.6123724356957944*hamil[2]-1.837117307087383*hamil[8])/q_ * normcurlbhat_quad ;
+alpha_quad += ((0.8164965809277262*(0.6123724356957944*hamil[2]-1.837117307087383*hamil[8]))/vmap[1])/m_/bmag_quad * (0.6123724356957944*hamil[2]-1.837117307087383*hamil[8])/q_ * normcurlbhat_quad ;
 alpha_quad += 1/q_/bmag_quad/area_elem_quad * bhat_quad[1]*(0.6123724356957944*hamil[1]-0.6123724356957944*hamil[5])  ;
 
 alpha_quad = alpha_quad*area_elem_quad/Jc_quad ;
@@ -147,9 +147,9 @@ JfL_quad =  (-0.04472135954999579*(8.660254037844388*JfL[23]+5.0*JfL[22]))-0.044
 JfR_quad =  0.04472135954999579*(8.660254037844388*JfR[23]-5.0*JfR[22])+0.04472135954999579*(8.660254037844388*JfR[21]-5.0*JfR[19])-0.04472135954999581*(8.660254037844388*JfR[20]-5.0*JfR[18])-0.04472135954999579*(8.660254037844388*JfR[17]-5.0*JfR[16])-0.3354101966249685*(1.732050807568877*JfR[15]-1.0*JfR[14])-0.3354101966249685*(1.732050807568877*JfR[13]-1.0*JfR[10])+0.25*(1.732050807568877*JfR[12]-1.0*JfR[9])+0.3354101966249685*(1.732050807568877*JfR[11]-1.0*JfR[7])+0.25*(1.732050807568877*JfR[8]-1.0*JfR[4])+0.3354101966249685*(1.732050807568877*JfR[6]-1.0*JfR[3])-0.25*(1.732050807568877*JfR[5]-1.0*JfR[2])-0.25*(1.732050807568877*JfR[1]-1.0*JfR[0]);
 Jfavg_quad = (JfL_quad + JfR_quad)/2.0 ;
 Jfjump_quad = (JfR_quad - JfL_quad)/2.0 ;
-flux_surf_nodal[6] = alpha_quad*Jfavg_quad*area_elem_quad - fabs(alpha_quad)*Jfjump_quad*area_elem_quad ;
+flux_surf_nodal[6] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad ;
 alpha_quad = 0.0  ;
-alpha_quad += ((0.2499999999999999*dxv[2]*hamil[2])/vmap[1])/m_/bmag_quad * (0.6123724356957944*hamil[2])/q_ * normcurlbhat_quad ;
+alpha_quad += ((0.5*hamil[2])/vmap[1])/m_/bmag_quad * (0.6123724356957944*hamil[2])/q_ * normcurlbhat_quad ;
 alpha_quad += 1/q_/bmag_quad/area_elem_quad * bhat_quad[1]*(0.6123724356957944*hamil[1]-0.6123724356957944*hamil[5])  ;
 
 alpha_quad = alpha_quad*area_elem_quad/Jc_quad ;
@@ -158,9 +158,9 @@ JfL_quad =  0.05590169943749474*(8.660254037844388*JfL[23]+5.0*JfL[22])+0.055901
 JfR_quad =  (-0.05590169943749474*(8.660254037844388*JfR[23]-5.0*JfR[22]))-0.05590169943749476*(8.660254037844388*JfR[21]-5.0*JfR[19])+0.05590169943749476*(8.660254037844388*JfR[20]-5.0*JfR[18])+0.05590169943749474*(8.660254037844388*JfR[17]-5.0*JfR[16])+0.25*(1.732050807568877*JfR[12]-1.0*JfR[9])+0.25*(1.732050807568877*JfR[8]-1.0*JfR[4])-0.25*(1.732050807568877*JfR[5]-1.0*JfR[2])-0.25*(1.732050807568877*JfR[1]-1.0*JfR[0]);
 Jfavg_quad = (JfL_quad + JfR_quad)/2.0 ;
 Jfjump_quad = (JfR_quad - JfL_quad)/2.0 ;
-flux_surf_nodal[7] = alpha_quad*Jfavg_quad*area_elem_quad - fabs(alpha_quad)*Jfjump_quad*area_elem_quad ;
+flux_surf_nodal[7] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad ;
 alpha_quad = 0.0  ;
-alpha_quad += ((0.408248290463863*dxv[2]*(1.837117307087383*hamil[8]+0.6123724356957944*hamil[2]))/vmap[1])/m_/bmag_quad * (1.837117307087383*hamil[8]+0.6123724356957944*hamil[2])/q_ * normcurlbhat_quad ;
+alpha_quad += ((0.8164965809277262*(1.837117307087383*hamil[8]+0.6123724356957944*hamil[2]))/vmap[1])/m_/bmag_quad * (1.837117307087383*hamil[8]+0.6123724356957944*hamil[2])/q_ * normcurlbhat_quad ;
 alpha_quad += 1/q_/bmag_quad/area_elem_quad * bhat_quad[1]*(0.6123724356957944*hamil[1]-0.6123724356957944*hamil[5])  ;
 
 alpha_quad = alpha_quad*area_elem_quad/Jc_quad ;
@@ -169,9 +169,9 @@ JfL_quad =  (-0.04472135954999579*(8.660254037844388*JfL[23]+5.0*JfL[22]))-0.044
 JfR_quad =  0.04472135954999579*(8.660254037844388*JfR[23]-5.0*JfR[22])+0.04472135954999579*(8.660254037844388*JfR[21]-5.0*JfR[19])-0.04472135954999581*(8.660254037844388*JfR[20]-5.0*JfR[18])-0.04472135954999579*(8.660254037844388*JfR[17]-5.0*JfR[16])+0.3354101966249685*(1.732050807568877*JfR[15]-1.0*JfR[14])+0.3354101966249685*(1.732050807568877*JfR[13]-1.0*JfR[10])+0.25*(1.732050807568877*JfR[12]-1.0*JfR[9])-0.3354101966249685*(1.732050807568877*JfR[11]-1.0*JfR[7])+0.25*(1.732050807568877*JfR[8]-1.0*JfR[4])-0.3354101966249685*(1.732050807568877*JfR[6]-1.0*JfR[3])-0.25*(1.732050807568877*JfR[5]-1.0*JfR[2])-0.25*(1.732050807568877*JfR[1]-1.0*JfR[0]);
 Jfavg_quad = (JfL_quad + JfR_quad)/2.0 ;
 Jfjump_quad = (JfR_quad - JfL_quad)/2.0 ;
-flux_surf_nodal[8] = alpha_quad*Jfavg_quad*area_elem_quad - fabs(alpha_quad)*Jfjump_quad*area_elem_quad ;
+flux_surf_nodal[8] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad ;
 alpha_quad = 0.0  ;
-alpha_quad += ((0.408248290463863*dxv[2]*(0.6123724356957944*hamil[2]-1.837117307087383*hamil[8]))/vmap[1])/m_/bmag_quad * (0.6123724356957944*hamil[2]-1.837117307087383*hamil[8])/q_ * normcurlbhat_quad ;
+alpha_quad += ((0.8164965809277262*(0.6123724356957944*hamil[2]-1.837117307087383*hamil[8]))/vmap[1])/m_/bmag_quad * (0.6123724356957944*hamil[2]-1.837117307087383*hamil[8])/q_ * normcurlbhat_quad ;
 alpha_quad += 1/q_/bmag_quad/area_elem_quad * bhat_quad[1]*(0.6123724356957944*hamil[5]+0.6123724356957944*hamil[1])  ;
 
 alpha_quad = alpha_quad*area_elem_quad/Jc_quad ;
@@ -180,9 +180,9 @@ JfL_quad =  0.04472135954999579*(8.660254037844388*JfL[23]+5.0*JfL[22])+0.044721
 JfR_quad =  (-0.04472135954999579*(8.660254037844388*JfR[23]-5.0*JfR[22]))-0.04472135954999579*(8.660254037844388*JfR[21]-5.0*JfR[19])-0.04472135954999581*(8.660254037844388*JfR[20]-5.0*JfR[18])-0.04472135954999579*(8.660254037844388*JfR[17]-5.0*JfR[16])+0.3354101966249685*(1.732050807568877*JfR[15]-1.0*JfR[14])+0.3354101966249685*(1.732050807568877*JfR[13]-1.0*JfR[10])-0.25*(1.732050807568877*JfR[12]-1.0*JfR[9])+0.3354101966249685*(1.732050807568877*JfR[11]-1.0*JfR[7])-0.25*(1.732050807568877*JfR[8]-1.0*JfR[4])+0.3354101966249685*(1.732050807568877*JfR[6]-1.0*JfR[3])-0.25*(1.732050807568877*JfR[5]-1.0*JfR[2])-0.25*(1.732050807568877*JfR[1]-1.0*JfR[0]);
 Jfavg_quad = (JfL_quad + JfR_quad)/2.0 ;
 Jfjump_quad = (JfR_quad - JfL_quad)/2.0 ;
-flux_surf_nodal[9] = alpha_quad*Jfavg_quad*area_elem_quad - fabs(alpha_quad)*Jfjump_quad*area_elem_quad ;
+flux_surf_nodal[9] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad ;
 alpha_quad = 0.0  ;
-alpha_quad += ((0.2499999999999999*dxv[2]*hamil[2])/vmap[1])/m_/bmag_quad * (0.6123724356957944*hamil[2])/q_ * normcurlbhat_quad ;
+alpha_quad += ((0.5*hamil[2])/vmap[1])/m_/bmag_quad * (0.6123724356957944*hamil[2])/q_ * normcurlbhat_quad ;
 alpha_quad += 1/q_/bmag_quad/area_elem_quad * bhat_quad[1]*(0.6123724356957944*hamil[5]+0.6123724356957944*hamil[1])  ;
 
 alpha_quad = alpha_quad*area_elem_quad/Jc_quad ;
@@ -191,9 +191,9 @@ JfL_quad =  (-0.05590169943749474*(8.660254037844388*JfL[23]+5.0*JfL[22]))-0.055
 JfR_quad =  0.05590169943749474*(8.660254037844388*JfR[23]-5.0*JfR[22])+0.05590169943749476*(8.660254037844388*JfR[21]-5.0*JfR[19])+0.05590169943749476*(8.660254037844388*JfR[20]-5.0*JfR[18])+0.05590169943749474*(8.660254037844388*JfR[17]-5.0*JfR[16])-0.25*(1.732050807568877*JfR[12]-1.0*JfR[9])-0.25*(1.732050807568877*JfR[8]-1.0*JfR[4])-0.25*(1.732050807568877*JfR[5]-1.0*JfR[2])-0.25*(1.732050807568877*JfR[1]-1.0*JfR[0]);
 Jfavg_quad = (JfL_quad + JfR_quad)/2.0 ;
 Jfjump_quad = (JfR_quad - JfL_quad)/2.0 ;
-flux_surf_nodal[10] = alpha_quad*Jfavg_quad*area_elem_quad - fabs(alpha_quad)*Jfjump_quad*area_elem_quad ;
+flux_surf_nodal[10] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad ;
 alpha_quad = 0.0  ;
-alpha_quad += ((0.408248290463863*dxv[2]*(1.837117307087383*hamil[8]+0.6123724356957944*hamil[2]))/vmap[1])/m_/bmag_quad * (1.837117307087383*hamil[8]+0.6123724356957944*hamil[2])/q_ * normcurlbhat_quad ;
+alpha_quad += ((0.8164965809277262*(1.837117307087383*hamil[8]+0.6123724356957944*hamil[2]))/vmap[1])/m_/bmag_quad * (1.837117307087383*hamil[8]+0.6123724356957944*hamil[2])/q_ * normcurlbhat_quad ;
 alpha_quad += 1/q_/bmag_quad/area_elem_quad * bhat_quad[1]*(0.6123724356957944*hamil[5]+0.6123724356957944*hamil[1])  ;
 
 alpha_quad = alpha_quad*area_elem_quad/Jc_quad ;
@@ -202,7 +202,7 @@ JfL_quad =  0.04472135954999579*(8.660254037844388*JfL[23]+5.0*JfL[22])+0.044721
 JfR_quad =  (-0.04472135954999579*(8.660254037844388*JfR[23]-5.0*JfR[22]))-0.04472135954999579*(8.660254037844388*JfR[21]-5.0*JfR[19])-0.04472135954999581*(8.660254037844388*JfR[20]-5.0*JfR[18])-0.04472135954999579*(8.660254037844388*JfR[17]-5.0*JfR[16])-0.3354101966249685*(1.732050807568877*JfR[15]-1.0*JfR[14])-0.3354101966249685*(1.732050807568877*JfR[13]-1.0*JfR[10])-0.25*(1.732050807568877*JfR[12]-1.0*JfR[9])-0.3354101966249685*(1.732050807568877*JfR[11]-1.0*JfR[7])-0.25*(1.732050807568877*JfR[8]-1.0*JfR[4])-0.3354101966249685*(1.732050807568877*JfR[6]-1.0*JfR[3])-0.25*(1.732050807568877*JfR[5]-1.0*JfR[2])-0.25*(1.732050807568877*JfR[1]-1.0*JfR[0]);
 Jfavg_quad = (JfL_quad + JfR_quad)/2.0 ;
 Jfjump_quad = (JfR_quad - JfL_quad)/2.0 ;
-flux_surf_nodal[11] = alpha_quad*Jfavg_quad*area_elem_quad - fabs(alpha_quad)*Jfjump_quad*area_elem_quad ;
+flux_surf_nodal[11] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad ;
 
 basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[0], 0) ;
 basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[0], 1) ;
