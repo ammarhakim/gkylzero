@@ -188,6 +188,9 @@ ${BUILD_DIR}/pkpm/unit/%:
 all: gkeyll
 	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/share/adas
 
+.PHONY: everything
+everything: gkeyll regression unit ## Build everything, including unit, regression and gkeyll exectuable
+
 ## Core infrastructure targets
 .PHONY: core core-unit core-clean core-install core-check core-valcheck core-regression
 core:  ## Build core infrastructure code
