@@ -61,6 +61,37 @@ gkyl_emission_yield_schou_new(double charge, double int_wall, double a2, double 
 }
 
 struct gkyl_emission_yield_model*
+gkyl_emission_yield_schou_new_srim(double charge, double int_wall, double lorentz_norm, double E0,
+  double tau, double alpha, double beta, double gauss_norm, double gauss_E0, double gauss_tau, bool use_gpu)
+{
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_emission_yield_schou_cu_dev_new_srim(charge, int_wall, lorentz_norm, E0, tau, alpha, beta,
+    gauss_norm, gauss_E0, gauss_tau);
+  }
+#endif
+  struct gkyl_emission_yield_schou_srim *model = gkyl_malloc(sizeof(struct gkyl_emission_yield_schou_srim));
+  
+  model->int_wall = int_wall;
+  model->lorentz_norm = lorentz_norm;
+  model->E0 = E0;
+  model->tau = tau;
+  model->alpha = alpha;
+  model->beta = beta;
+  model->gauss_norm = gauss_norm;
+  model->gauss_E0 = gauss_E0;
+  model->gauss_tau = gauss_tau;
+  model->yield.charge = charge;
+  model->yield.function = gkyl_emission_yield_schou_yield_srim;
+
+  model->yield.flags = 0;
+  GKYL_CLEAR_CU_ALLOC(model->yield.flags);
+  model->yield.ref_count = gkyl_ref_count_init(gkyl_emission_yield_schou_free_srim);
+
+  return &model->yield;
+}
+
+struct gkyl_emission_yield_model*
 gkyl_emission_yield_constant_new(double charge, double delta, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
