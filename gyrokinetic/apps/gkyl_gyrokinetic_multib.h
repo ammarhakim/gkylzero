@@ -1,6 +1,6 @@
 #pragma once
 
-#include <gkyl_block_geom.h>
+#include <gkyl_gk_block_geom.h>
 #include <gkyl_gyrokinetic.h>
 
 typedef struct gkyl_gyrokinetic_multib_app gkyl_gyrokinetic_multib_app;
@@ -184,7 +184,7 @@ struct gkyl_gyrokinetic_multib {
   bool use_gpu; // Flag to indicate if solver should use GPUs
 
   // geometry and topology of all blocks in simulation
-  struct gkyl_block_geom *block_geom;
+  struct gkyl_gk_block_geom *gk_block_geom;
 
   double cfl_frac; // CFL fraction to use (default 1.0)
 

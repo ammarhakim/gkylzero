@@ -26,10 +26,10 @@ void shaped_pfunc_lower_inner(double s, double* RZ){
     RZ[1] = -(6.33 + (6.777 - 6.33)*s);
 }
 
-struct gkyl_block_geom*
-create_block_geom(void)
+struct gkyl_gk_block_geom*
+create_gk_block_geom(void)
 {
-  struct gkyl_block_geom *bgeom = gkyl_block_geom_new(1, 3);
+  struct gkyl_gk_block_geom *bgeom = gkyl_gk_block_geom_new(1, 3);
 
   /* Block layout and coordinates
 
@@ -81,7 +81,7 @@ create_block_geom(void)
   double theta_lo = -M_PI + 1e-14, theta_up = M_PI - 1e-14;
 
   // block 0. Lower outer SOL.
-  gkyl_block_geom_set_block(bgeom, 0, &(struct gkyl_block_geom_info) {
+  gkyl_gk_block_geom_set_block(bgeom, 0, &(struct gkyl_gk_block_geom_info) {
       .lower = { theta_lo },
       .upper = { theta_up },
       .cells = { ntheta_lower},
@@ -112,7 +112,7 @@ create_block_geom(void)
   );
 
   // block 1. Middle outer SOL.
-  gkyl_block_geom_set_block(bgeom, 1, &(struct gkyl_block_geom_info) {
+  gkyl_gk_block_geom_set_block(bgeom, 1, &(struct gkyl_gk_block_geom_info) {
       .lower = { theta_lo },
       .upper = { theta_up },
       .cells = { ntheta_middle},
@@ -143,7 +143,7 @@ create_block_geom(void)
   );
 
   // block 2. Upper outer SOL.
-  gkyl_block_geom_set_block(bgeom, 2, &(struct gkyl_block_geom_info) {
+  gkyl_gk_block_geom_set_block(bgeom, 2, &(struct gkyl_gk_block_geom_info) {
       .lower = { theta_lo },
       .upper = { theta_up },
       .cells = { ntheta_upper},
@@ -462,8 +462,8 @@ main(int argc, char **argv)
   struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
   // construct block geometry
-  struct gkyl_block_geom *bgeom = create_block_geom();
-  int nblocks = gkyl_block_geom_num_blocks(bgeom);
+  struct gkyl_gk_block_geom *bgeom = create_gk_block_geom();
+  int nblocks = gkyl_gk_block_geom_num_blocks(bgeom);
 
   // Elc Species
   // all data is common across blocks
@@ -633,7 +633,7 @@ main(int argc, char **argv)
     .basis_type = app_args.basis_type,
     .use_gpu = app_args.use_gpu,
 
-    .block_geom = bgeom,
+    .gk_block_geom = bgeom,
     .cfl_frac = 0.9,
     
     .enforce_positivity = false,
@@ -749,7 +749,7 @@ main(int argc, char **argv)
   freeresources:
   // Free resources after simulation completion.
   gkyl_gyrokinetic_multib_app_release(app);
-  gkyl_block_geom_release(bgeom);
+  gkyl_gk_block_geom_release(bgeom);
   gkyl_gyrokinetic_comms_release(comm);
 
 #ifdef GKYL_HAVE_MPI
