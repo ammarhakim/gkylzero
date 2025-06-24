@@ -107,29 +107,13 @@ flux_surf_nodal[7] = (0.4330127018922193*hamil[12]+0.4330127018922193*hamil[9]+0
 flux_surf_nodal[7] += (0.4330127018922193*hamil[12]+0.4330127018922193*hamil[8]+0.4330127018922193*hamil[5]+0.4330127018922193*hamil[1])/m_/bmag_quad * dualcurlbhat_quad[0];
 flux_surf_nodal[7] += (0.4330127018922193*hamil[12]+0.4330127018922193*hamil[9]+0.4330127018922193*hamil[5]+0.4330127018922193*hamil[2])/m_/bmag_quad * dualcurlbhat_quad[1];
 flux_surf_nodal[7] = flux_surf_nodal[7]/2.0 * (0.5590169943749476*JfR[23]+0.5590169943749475*JfR[22]+0.5590169943749475*JfR[21]+0.5590169943749475*JfR[20]+0.5590169943749476*JfR[19]+0.5590169943749476*JfR[18]+0.5590169943749476*JfR[17]+0.5590169943749475*JfR[16]-0.4330127018922193*JfR[15]-0.4330127018922193*JfR[14]-0.4330127018922193*JfR[13]+0.25*JfR[12]-0.4330127018922193*JfR[11]-0.4330127018922193*JfR[10]+0.25*JfR[9]+0.25*JfR[8]-0.4330127018922193*JfR[7]-0.4330127018922193*JfR[6]+0.25*JfR[5]+0.25*JfR[4]-0.4330127018922193*JfR[3]+0.25*JfR[2]+0.25*JfR[1]+0.25*JfR[0] + 0.5590169943749476*JfL[23]+0.5590169943749475*JfL[22]+0.5590169943749475*JfL[21]+0.5590169943749475*JfL[20]+0.5590169943749476*JfL[19]+0.5590169943749476*JfL[18]+0.5590169943749476*JfL[17]+0.5590169943749475*JfL[16]-0.4330127018922193*JfL[15]-0.4330127018922193*JfL[14]-0.4330127018922193*JfL[13]+0.25*JfL[12]-0.4330127018922193*JfL[11]-0.4330127018922193*JfL[10]+0.25*JfL[9]+0.25*JfL[8]-0.4330127018922193*JfL[7]-0.4330127018922193*JfL[6]+0.25*JfL[5]+0.25*JfL[4]-0.4330127018922193*JfL[3]+0.25*JfL[2]+0.25*JfL[1]+0.25*JfL[0]) + fabs(flux_surf_nodal[7])/2.0 * (0.5590169943749476*JfR[23]+0.5590169943749475*JfR[22]+0.5590169943749475*JfR[21]+0.5590169943749475*JfR[20]+0.5590169943749476*JfR[19]+0.5590169943749476*JfR[18]+0.5590169943749476*JfR[17]+0.5590169943749475*JfR[16]-0.4330127018922193*JfR[15]-0.4330127018922193*JfR[14]-0.4330127018922193*JfR[13]+0.25*JfR[12]-0.4330127018922193*JfR[11]-0.4330127018922193*JfR[10]+0.25*JfR[9]+0.25*JfR[8]-0.4330127018922193*JfR[7]-0.4330127018922193*JfR[6]+0.25*JfR[5]+0.25*JfR[4]-0.4330127018922193*JfR[3]+0.25*JfR[2]+0.25*JfR[1]+0.25*JfR[0] - (0.5590169943749476*JfL[23]+0.5590169943749475*JfL[22]+0.5590169943749475*JfL[21]+0.5590169943749475*JfL[20]+0.5590169943749476*JfL[19]+0.5590169943749476*JfL[18]+0.5590169943749476*JfL[17]+0.5590169943749475*JfL[16]-0.4330127018922193*JfL[15]-0.4330127018922193*JfL[14]-0.4330127018922193*JfL[13]+0.25*JfL[12]-0.4330127018922193*JfL[11]-0.4330127018922193*JfL[10]+0.25*JfL[9]+0.25*JfL[8]-0.4330127018922193*JfL[7]-0.4330127018922193*JfL[6]+0.25*JfL[5]+0.25*JfL[4]-0.4330127018922193*JfL[3]+0.25*JfL[2]+0.25*JfL[1]+0.25*JfL[0])) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[48], 1) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[48], 2) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[48], 3) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[48], 4) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[48], 5) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[48], 6) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[48], 7) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[48], 8) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[48], 9) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[48], 10) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[48], 11) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[48], 12) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[48], 13) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[48], 14) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[48], 15) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[48], 16) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[48], 17) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[48], 18) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[48], 19) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[48], 20) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[48], 21) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[48], 22) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[48], 23) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[48], 24) ;
+basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[24], 0) ;
+basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[24], 1) ;
+basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[24], 2) ;
+basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[24], 3) ;
+basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[24], 4) ;
+basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[24], 5) ;
+basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[24], 6) ;
+basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[24], 7) ;
 
 } 

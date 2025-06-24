@@ -58,11 +58,7 @@ dualcurlbhat_quad[2] = gkdgv[1].dualcurlbhat.x[2];
 flux_surf_nodal[1] = (0.8660254037844386*hamil[1])/m_/bmag_quad * B3_quad ;
 flux_surf_nodal[1] += (0.8660254037844386*hamil[1])/m_/bmag_quad * dualcurlbhat_quad[0];
 flux_surf_nodal[1] = flux_surf_nodal[1]/2.0 * (1.118033988749895*JfR[5]+1.118033988749895*JfR[4]-0.8660254037844386*JfR[3]-0.8660254037844386*JfR[2]+0.5*JfR[1]+0.5*JfR[0] + 1.118033988749895*JfL[5]+1.118033988749895*JfL[4]-0.8660254037844386*JfL[3]-0.8660254037844386*JfL[2]+0.5*JfL[1]+0.5*JfL[0]) + fabs(flux_surf_nodal[1])/2.0 * (1.118033988749895*JfR[5]+1.118033988749895*JfR[4]-0.8660254037844386*JfR[3]-0.8660254037844386*JfR[2]+0.5*JfR[1]+0.5*JfR[0] - (1.118033988749895*JfL[5]+1.118033988749895*JfL[4]-0.8660254037844386*JfL[3]-0.8660254037844386*JfL[2]+0.5*JfL[1]+0.5*JfL[0])) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[6], 1) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[6], 2) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[6], 3) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[6], 4) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[6], 5) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[6], 6) ;
+basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[3], 0) ;
+basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[3], 1) ;
 
 } 

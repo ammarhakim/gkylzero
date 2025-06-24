@@ -47,6 +47,7 @@ gkyl_gk_dg_geom_new(const struct gkyl_gk_dg_geom_inp *inp)
 
   // NOTE: surfaces are ndim-1 objects
   gkyl_range_init_from_shape(&dgg->surf_quad_range, ndim-1, shape);
+  gkyl_range_init_from_shape(&dgg->vol_quad_range, ndim, shape);
 
   for (int d=0; d<ndim; ++d)
     dgg->surf_geom[d] = gkyl_array_new(GKYL_USER,
@@ -86,7 +87,7 @@ gkyl_gk_dg_geom_release(const struct gkyl_gk_dg_geom *dgg)
 
 
 void
-gkyl_gk_dg_geom_populate_vol(struct gkyl_dg_geom *dg_geom, struct gk_geometry* gk_geom)
+gkyl_gk_dg_geom_populate_vol(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom, struct gk_geometry* gk_geom)
 {
   int ndim = gk_geom->grid.ndim;
   // Populate volume nodes
@@ -96,6 +97,7 @@ gkyl_gk_dg_geom_populate_vol(struct gkyl_dg_geom *dg_geom, struct gk_geometry* g
 
     long loc = gkyl_range_idx(&gk_geom->local, iter.idx);
     struct gkyl_dg_vol_geom *dgv = gkyl_array_fetch(dg_geom->vol_geom, loc);
+    struct gkyl_gk_dg_vol_geom *gkdgv = gkyl_array_fetch(gk_dg_geom->vol_geom, loc);
 
     struct gkyl_range_iter qviter;
     gkyl_range_iter_init(&qviter, &dg_geom->vol_quad_range);
@@ -134,6 +136,23 @@ gkyl_gk_dg_geom_populate_vol(struct gkyl_dg_geom *dg_geom, struct gk_geometry* g
       dgv[qvloc].dual[2].x[1] = global_val[7];
       dgv[qvloc].dual[2].x[2] = global_val[8];
 
+      // set bmag
+      global_val = gkyl_array_cfetch(gk_geom->geo_int.bmag_nodal, global_loc);
+      gkdgv[qvloc].bmag = global_val[0];
+
+      // set bmag
+      global_val = gkyl_array_cfetch(gk_geom->geo_int.bmag_nodal, global_loc);
+      gkdgv[qvloc].bmag = global_val[0];
+
+      // set B3 = e^3 \dot B
+      global_val = gkyl_array_cfetch(gk_geom->geo_int.B3_nodal, global_loc);
+      gkdgv[qvloc].B3= global_val[0];
+
+      // set e^i \dot curl(bhat)
+      global_val = gkyl_array_cfetch(gk_geom->geo_int.dualcurlbhat_nodal, global_loc);
+      gkdgv[qvloc].dualcurlbhat.x[0] = global_val[0];
+      gkdgv[qvloc].dualcurlbhat.x[1] = global_val[1];
+      gkdgv[qvloc].dualcurlbhat.x[2] = global_val[2];
     }
   }
 }
@@ -192,6 +211,10 @@ gkyl_gk_dg_geom_populate_surf(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_ge
         // set |B|
         global_val = gkyl_array_cfetch(gk_geom->geo_surf[dir].bmag_nodal, global_loc);
         gkdgs[qsloc].bmag  = global_val[0];
+
+        // set Jacobgeo
+        global_val = gkyl_array_cfetch(gk_geom->geo_surf[dir].jacobgeo_nodal, global_loc);
+        gkdgs[qsloc].Jc = global_val[0];
 
         // set bhat
         global_val = gkyl_array_cfetch(gk_geom->geo_surf[dir].b_i_nodal, global_loc);

@@ -61,8 +61,8 @@ flux_surf_nodal[2] = ((0.408248290463863*dxv[1]*(3.674234614174767*hamil[2]+1.22
 flux_surf_nodal[2] += ((0.408248290463863*dxv[1]*(3.674234614174767*hamil[2]+1.224744871391589*hamil[1]))/vmap[1])/m_/bmag_quad * (3.674234614174767*hamil[2]+1.224744871391589*hamil[1])/q_ * normcurlbhat_quad ;
 flux_surf_nodal[2] *= area_elem_quad ;
 flux_surf_nodal[2] = flux_surf_nodal[2]/2.0/Jc_quad * (0.08944271909999158*(8.660254037844388*JfR[5]+5.0*JfR[4])+0.6708203932499369*(1.732050807568877*JfR[3]+JfR[2])+0.5*(1.732050807568877*JfR[1]+JfR[0]) + (-0.08944271909999158*(8.660254037844388*JfL[5]-5.0*JfL[4]))-0.6708203932499369*(1.732050807568877*JfL[3]-1.0*JfL[2])-0.5*(1.732050807568877*JfL[1]-1.0*JfL[0])) + fabs(flux_surf_nodal[2])/2.0/Jc_quad * (0.08944271909999158*(8.660254037844388*JfR[5]+5.0*JfR[4])+0.6708203932499369*(1.732050807568877*JfR[3]+JfR[2])+0.5*(1.732050807568877*JfR[1]+JfR[0]) - ((-0.08944271909999158*(8.660254037844388*JfL[5]-5.0*JfL[4]))-0.6708203932499369*(1.732050807568877*JfL[3]-1.0*JfL[2])-0.5*(1.732050807568877*JfL[1]-1.0*JfL[0]))) ;
+basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[0], 0) ;
 basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[0], 1) ;
 basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[0], 2) ;
-basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[0], 3) ;
 
 } 

@@ -412,6 +412,25 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     gkyl_gk_geometry_release(gk_geom_dev);
   }
 
+
+ app->dg_geom = gkyl_dg_geom_new( &(const struct gkyl_dg_geom_inp) {
+        .grid = &app->grid,
+        .range = &app->local_ext,
+        .nquad = 2,
+      }
+    );
+
+  app->gk_dg_geom = gkyl_gk_dg_geom_new( &(const struct gkyl_gk_dg_geom_inp) {
+        .grid = &app->grid,
+        .range = &app->local_ext,
+        .nquad = 2,
+      }
+    );
+
+  gkyl_gk_dg_geom_populate_vol(app->dg_geom, app->gk_dg_geom, app->gk_geom);
+  gkyl_gk_dg_geom_populate_surf(app->dg_geom, app->gk_dg_geom, app->gk_geom);
+
+
   gkyl_gyrokinetic_app_write_geometry(app, &geometry_inp);
 
   // Allocate 1/(J.B) using weak mul/div.

@@ -31,7 +31,7 @@ typedef struct gkyl_dg_calc_gyrokinetic_vars gkyl_dg_calc_gyrokinetic_vars;
 struct gkyl_dg_calc_gyrokinetic_vars* 
 gkyl_dg_calc_gyrokinetic_vars_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const struct gkyl_basis *surf_basis, 
+  const struct gkyl_basis *surf_basis, const struct gkyl_basis *surf_vpar_basis, 
   const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id, 
   const struct gk_geometry *gk_geom, 
   const struct gkyl_dg_geom *dg_geom, 

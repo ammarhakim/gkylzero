@@ -137,6 +137,7 @@ struct gk_geom_int {
                                // Calculated with coord definition alpha = phi for tokamak geometry
   struct gkyl_array* b_i_nodal; // 3 components. Covariant components of magnetic field unit vector b_1, b_2, b_3.
   struct gkyl_array* bcart_nodal; // 3 components. Cartesian components of magnetic field unit vector b_X, b_Y, b_Z.
+  struct gkyl_array* B3_nodal; // 1 component e^3 \dot \vec{B} = 1/g_33 
 
 };
 

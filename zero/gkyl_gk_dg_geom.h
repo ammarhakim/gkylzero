@@ -150,7 +150,7 @@ void gkyl_gk_dg_geom_release(const struct gkyl_gk_dg_geom *dgg);
 
 
 
-void gkyl_gk_dg_geom_populate_vol(struct gkyl_dg_geom *dg_geom, struct gk_geometry* gk_geom);
+void gkyl_gk_dg_geom_populate_vol(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom, struct gk_geometry* gk_geom);
 
 void gkyl_gk_dg_geom_populate_surf(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom, struct gk_geometry* gk_geom);
 
