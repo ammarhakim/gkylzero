@@ -25,18 +25,6 @@ LAPACK_INC = $(PREFIX)/OpenBLAS/include
 LAPACK_LIB_DIR = $(PREFIX)/OpenBLAS/lib
 LAPACK_LIB = -lopenblas
 
-# On OSX we should use Accelerate framework
-ifeq ($(UNAME), Darwin)
-	LAPACK_LIB_DIR = .
-	LAPACK_INC = core # dummy
-	LAPACK_LIB = -framework Accelerate
-	CFLAGS += -DGKYL_USING_FRAMEWORK_ACCELERATE
-endif
-
-# Directory for storing shared data, like ADAS reaction rates and radiation fits
-GKYL_SHARE_DIR ?= "${INSTALL_PREFIX}/${PROJ_NAME}/share"
-CFLAGS += -DGKYL_SHARE_DIR=$(GKYL_SHARE_DIR)
-
 # Read ADAS paths and flags if needed 
 USING_ADAS =
 ADAS_INC_DIR = zero # dummy
@@ -46,8 +34,20 @@ ifeq (${USE_ADAS}, 1)
 	CFLAGS += -DGKYL_HAVE_ADAS
 endif
 
+# Directory for storing shared data, like ADAS reaction rates and radiation fits
+GKYL_SHARE_DIR ?= "${INSTALL_PREFIX}/${PROJ_NAME}/share"
+CFLAGS += -DGKYL_SHARE_DIR=$(GKYL_SHARE_DIR)
+
 # Include config.mak file (if it exists) to overide defaults above
 -include config.mak
+
+# On OSX we should use Accelerate framework
+ifeq ($(UNAME), Darwin)
+	LAPACK_LIB_DIR = .
+	LAPACK_INC = core # dummy
+	LAPACK_LIB = -framework Accelerate
+	CFLAGS += -DGKYL_USING_FRAMEWORK_ACCELERATE
+endif
 
 # CUDA flags
 USING_NVCC =
