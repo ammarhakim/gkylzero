@@ -14,6 +14,10 @@ CUDA_ARCH ?= 70
 CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE="${BUILD_DATE}" -DGKYL_GIT_CHANGESET="${GIT_TIP}"
 LDFLAGS = 
 PREFIX ?= ${HOME}/gkylsoft
+
+# Include config.mak file (if it exists) to overide defaults above
+-include config.mak
+
 INSTALL_PREFIX ?= ${PREFIX}
 PROJ_NAME ?= gkeyll
 
@@ -37,9 +41,6 @@ endif
 # Directory for storing shared data, like ADAS reaction rates and radiation fits
 GKYL_SHARE_DIR ?= "${INSTALL_PREFIX}/${PROJ_NAME}/share"
 CFLAGS += -DGKYL_SHARE_DIR=$(GKYL_SHARE_DIR)
-
-# Include config.mak file (if it exists) to overide defaults above
--include config.mak
 
 # On OSX we should use Accelerate framework
 ifeq ($(UNAME), Darwin)
