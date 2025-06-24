@@ -160,7 +160,14 @@ gk_species_fdot_multiplier_init(struct gkyl_gyrokinetic_app *app, struct gk_spec
         gkyl_free(bmag_max_local);
 
       // Get the location of maximum bmag.
-      double bmag_max_coord_ho[] = {0.98};
+      double bmag_max_coord_ho[GKYL_MAX_CDIM];
+      if (app->cdim == 1) {
+        bmag_max_coord_ho[0] = 0.98;
+      }
+      else if (app->cdim == 2) {
+        bmag_max_coord_ho[0] = 1.0001*2.653090e-05;
+        bmag_max_coord_ho[1] = 0.98;
+      }
       if (app->use_gpu) {
         fdmul->bmag_max_coord = gkyl_cu_malloc(app->cdim*sizeof(double));
 	gkyl_cu_memcpy(fdmul->bmag_max_coord, bmag_max_coord_ho, app->cdim*sizeof(double), GKYL_CU_MEMCPY_H2D);
