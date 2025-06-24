@@ -89,7 +89,7 @@ gk_species_collisionless_rhs_included(gkyl_gyrokinetic_app *app, struct gk_speci
   // where they are not defined.
   gkyl_dg_calc_gyrokinetic_vars_flux_surf(species->calc_gk_vars, 
     &app->local, &species->local, &app->local_ext, &species->local_ext, 
-    species->gyro_phi, fin, species->flux_surf);
+    species->gyro_phi, fin, species->flux_surf, species->cflrate);
 
   gkyl_dg_updater_gyrokinetic_advance(species->slvr, &species->local, 
     fin, species->cflrate, rhs);

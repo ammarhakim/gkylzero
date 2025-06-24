@@ -68,7 +68,7 @@ gkyl_dg_calc_gyrokinetic_vars_new(const struct gkyl_rect_grid *phase_grid,
 void gkyl_dg_calc_gyrokinetic_vars_flux_surf(struct gkyl_dg_calc_gyrokinetic_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
-  const struct gkyl_array *fin, struct gkyl_array* flux_surf)
+  const struct gkyl_array *fin, struct gkyl_array* flux_surf, struct gkyl_array *cflrate)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(alpha_surf)) {
@@ -80,10 +80,23 @@ void gkyl_dg_calc_gyrokinetic_vars_flux_surf(struct gkyl_dg_calc_gyrokinetic_var
   int cdim = up->cdim;
   int idx[GKYL_MAX_DIM], idx_edge[GKYL_MAX_DIM], idx_vel[2];
   int idxL[GKYL_MAX_DIM];
+  int idx_velL[2];
   double xc[GKYL_MAX_DIM];
 
+  // Extend the local range for indexing second order fluxes
+  struct gkyl_range flux_range;
+  int extend_lo[GKYL_MAX_DIM] = {0};
+  int extend_up[GKYL_MAX_DIM] = {0};
+  for (int i = 0; i < cdim; ++i) {
+    extend_lo[i] = 0;
+    extend_up[i] = 0;
+  }
+  extend_lo[cdim] = -1;
+  extend_up[cdim] = 0;
+  gkyl_range_extend(&flux_range, phase_range, extend_lo, extend_up);
+
   struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, phase_range);
+  gkyl_range_iter_init(&iter, &flux_range);
   while (gkyl_range_iter_next(&iter)) {
     gkyl_copy_int_arr(pdim, iter.idx, idx);
 
@@ -105,19 +118,25 @@ void gkyl_dg_calc_gyrokinetic_vars_flux_surf(struct gkyl_dg_calc_gyrokinetic_var
     const double *vmapSq_d = gkyl_array_cfetch(up->vel_map->vmap_sq, loc_vel);
 
     double *flux_surf_d = gkyl_array_fetch(flux_surf, loc_phase);
+    double *cflrate_d = gkyl_array_fetch(cflrate, loc_phase);
 
     for (int dir = 0; dir<cdim+1; ++dir) {
       gkyl_copy_int_arr(pdim, idx, idxL);
-      if (dir < cdim)
-        idxL[dir] = idx[dir] - 1;
+      idxL[dir] = idx[dir] - 1;
+      gkyl_copy_int_arr(pdim-cdim, idx_vel, idx_velL);
+      idx_velL[0] = idx_velL[0]-1;
       long locL = gkyl_range_idx(phase_range, idxL);
+      long loc_velL = gkyl_range_idx(&up->vel_map->local_vel, idxL);
       const double *fL = gkyl_array_cfetch(fin, locL);
       const double *fR = gkyl_array_cfetch(fin, loc_phase);
+
+      const double *vpL = gkyl_array_cfetch(up->vel_map->vmap_prime, loc_velL);
+      const double *vpR = gkyl_array_cfetch(up->vel_map->vmap_prime, loc_vel);
 
       if (dir < cdim) {
         const struct gkyl_dg_surf_geom *dgs = gkyl_dg_geom_get_surf(up->dg_geom, dir, idx);
         const struct gkyl_gk_dg_surf_geom *gkdgs = gkyl_gk_dg_geom_get_surf(up->gk_dg_geom, dir, idx);
-        up->flux_surf[dir](&up->surf_basis, xc, up->phase_grid.dx, 
+        cflrate_d[0] += up->flux_surf[dir](&up->surf_basis, xc, up->phase_grid.dx, 
           vmap_d, vmapSq_d, up->charge, up->mass,
           dgs, gkdgs,
           bmag_d, phi_d,  fL, fR, flux_surf_d);
@@ -125,7 +144,8 @@ void gkyl_dg_calc_gyrokinetic_vars_flux_surf(struct gkyl_dg_calc_gyrokinetic_var
       else {
         const struct gkyl_dg_vol_geom *dgv = gkyl_dg_geom_get_vol(up->dg_geom, idx);
         const struct gkyl_gk_dg_vol_geom *gkdgv = gkyl_gk_dg_geom_get_vol(up->gk_dg_geom, idx);
-        up->flux_surfvpar[0](&up->surf_vpar_basis, xc, up->phase_grid.dx, 
+        cflrate_d[0] += up->flux_surfvpar[0](&up->surf_vpar_basis, xc, up->phase_grid.dx, 
+          vpL, vpR,
           vmap_d, vmapSq_d, up->charge, up->mass,
           dgv, gkdgv, bmag_d, phi_d,  fL, fR, flux_surf_d);
       }
@@ -155,7 +175,7 @@ void gkyl_dg_calc_gyrokinetic_vars_flux_surf(struct gkyl_dg_calc_gyrokinetic_var
 
 
         double* flux_surf_ext_d = gkyl_array_fetch(flux_surf, loc_phase_ext);
-        up->flux_edge_surf[dir](&up->surf_basis, xc, up->phase_grid.dx, 
+        cflrate_d[0] += up->flux_edge_surf[dir](&up->surf_basis, xc, up->phase_grid.dx, 
           vmap_d, vmapSq_d, up->charge, up->mass,
           dgs, gkdgs,
           bmag_d, phi_d, fL, fR, flux_surf_ext_d);

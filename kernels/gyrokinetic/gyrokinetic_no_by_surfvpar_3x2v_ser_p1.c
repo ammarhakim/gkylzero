@@ -65,8 +65,6 @@ GKYL_CU_DH double gyrokinetic_no_by_surfvpar_3x2v_ser_p1(const double *w, const 
   out[46] += (1.58113883008419*GhatL[14]-1.58113883008419*GhatR[14])*rdvpar2; 
   out[47] += (1.58113883008419*GhatL[15]-1.58113883008419*GhatR[15])*rdvpar2; 
 
-  double vmap_prime_min = fmin(fmin(fabs(vmap_prime_l[0]),fabs(vmap_prime_c[0])),fabs(vmap_prime_r[0]));
-  double cflFreq = fmax(fabs(flux_surf_l[0]/vmap_prime_min), fabs(flux_surf_r[0]/vmap_prime_min)); 
-  return 0.625*rdvpar2*cflFreq; 
+  return 0.0; 
 
 } 

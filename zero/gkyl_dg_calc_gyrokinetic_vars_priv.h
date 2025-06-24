@@ -10,13 +10,14 @@
 #include <gkyl_util.h>
 #include <assert.h>
 
-typedef void (*gyrokinetic_flux_surf_t)( const struct gkyl_basis *basis, const double *w, const double *dxv, 
+typedef double (*gyrokinetic_flux_surf_t)( const struct gkyl_basis *basis, const double *w, const double *dxv, 
   const double *vmap, const double *vmapSq, const double q_, const double m_, 
   const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs, 
   const double *bmag, const double *phi, const double *JfL, const double *JfR, double* GKYL_RESTRICT flux_surf); 
 
-typedef void (*gyrokinetic_flux_surfvpar_t)( 
+typedef double (*gyrokinetic_flux_surfvpar_t)( 
   const struct gkyl_basis *basis, const double *w, const double *dxv, 
+  const double *vmap_prime_l, const double *vmap_prime_r,
   const double *vmap, const double *vmapSq, const double q_, const double m_, 
   const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv, 
   const double *bmag, const double *phi, const double *JfL, const double *JfR, double* GKYL_RESTRICT flux_surf); 

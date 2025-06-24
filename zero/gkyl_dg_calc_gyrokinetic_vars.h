@@ -58,7 +58,7 @@ gkyl_dg_calc_gyrokinetic_vars_new(const struct gkyl_rect_grid *phase_grid,
 void gkyl_dg_calc_gyrokinetic_vars_flux_surf(struct gkyl_dg_calc_gyrokinetic_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
-  const struct gkyl_array *fin, struct gkyl_array* flux_surf);
+  const struct gkyl_array *fin, struct gkyl_array* flux_surf, struct gkyl_array *cflrate);
 
 /**
  * Delete pointer to updater to compute gyrokinetic variables.

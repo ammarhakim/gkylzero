@@ -1,6 +1,7 @@
 #include <gkyl_gyrokinetic_kernels.h> 
-GKYL_CU_DH void gyrokinetic_flux_surfvpar_1x1v_ser_p1(
+GKYL_CU_DH double gyrokinetic_flux_surfvpar_1x1v_ser_p1(
     const struct gkyl_basis *basis, const double *w, const double *dxv, 
+    const double *vmap_prime_l, const double *vmap_prime_r,
     const double *vmap, const double *vmapSq, const double q_, const double m_,
     const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv,
     const double *bmag, const double *phi, const double *JfL, const double *JfR, 
@@ -8,6 +9,7 @@ GKYL_CU_DH void gyrokinetic_flux_surfvpar_1x1v_ser_p1(
 { 
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
+  // vmap_prime_l,vmap_prime_r: velocity space mapping derivative in left and right cells.
   // vmap: velocity space mapping.
   // vmapSq: velocity space mapping squared.
   // q_,m_: species charge and mass.
@@ -30,7 +32,9 @@ GKYL_CU_DH void gyrokinetic_flux_surfvpar_1x1v_ser_p1(
   hamil[2] = 0.7071067811865475*vmapSq[1]*m_; 
   hamil[4] = 0.7071067811865475*vmapSq[2]*m_; 
 
+double alpha_surf_nodal[2]= {0.0}; 
 double flux_surf_nodal[2]= {0.0}; 
+double cfl = 0.0; 
 double bmag_quad = 0.0; 
 double B3_quad = 0.0; 
 double Jc_quad = 0.0; 
@@ -46,7 +50,9 @@ dualcurlbhat_quad[2] = gkdgv[0].dualcurlbhat.x[2];
 
 flux_surf_nodal[0] = (0.8660254037844386*hamil[1])/m_/bmag_quad * B3_quad ;
 flux_surf_nodal[0] += (0.8660254037844386*hamil[1])/m_/bmag_quad * dualcurlbhat_quad[0];
-flux_surf_nodal[0] = flux_surf_nodal[0]/2.0 * ((-1.118033988749895*JfR[5])+1.118033988749895*JfR[4]+0.8660254037844386*JfR[3]-0.8660254037844386*JfR[2]-0.5*JfR[1]+0.5*JfR[0] + (-1.118033988749895*JfL[5])+1.118033988749895*JfL[4]+0.8660254037844386*JfL[3]-0.8660254037844386*JfL[2]-0.5*JfL[1]+0.5*JfL[0]) + fabs(flux_surf_nodal[0])/2.0 * ((-1.118033988749895*JfR[5])+1.118033988749895*JfR[4]+0.8660254037844386*JfR[3]-0.8660254037844386*JfR[2]-0.5*JfR[1]+0.5*JfR[0] - ((-1.118033988749895*JfL[5])+1.118033988749895*JfL[4]+0.8660254037844386*JfL[3]-0.8660254037844386*JfL[2]-0.5*JfL[1]+0.5*JfL[0])) ;
+alpha_surf_nodal[0] = flux_surf_nodal[0] ;
+cfl = fmax(fabs(alpha_surf_nodal[0]), fabs(cfl)) ;
+flux_surf_nodal[0] = flux_surf_nodal[0]/2.0 * ((-1.118033988749895*JfR[5])+1.118033988749895*JfR[4]+0.8660254037844386*JfR[3]-0.8660254037844386*JfR[2]-0.5*JfR[1]+0.5*JfR[0] + (-1.118033988749895*JfL[5])+1.118033988749895*JfL[4]-0.8660254037844386*JfL[3]+0.8660254037844386*JfL[2]-0.5*JfL[1]+0.5*JfL[0]) + fabs(flux_surf_nodal[0])/2.0 * ((-1.118033988749895*JfR[5])+1.118033988749895*JfR[4]+0.8660254037844386*JfR[3]-0.8660254037844386*JfR[2]-0.5*JfR[1]+0.5*JfR[0] - ((-1.118033988749895*JfL[5])+1.118033988749895*JfL[4]-0.8660254037844386*JfL[3]+0.8660254037844386*JfL[2]-0.5*JfL[1]+0.5*JfL[0])) ;
 
 bmag_quad = gkdgv[1].bmag; 
 B3_quad = gkdgv[1].B3; 
@@ -57,8 +63,13 @@ dualcurlbhat_quad[2] = gkdgv[1].dualcurlbhat.x[2];
 
 flux_surf_nodal[1] = (0.8660254037844386*hamil[1])/m_/bmag_quad * B3_quad ;
 flux_surf_nodal[1] += (0.8660254037844386*hamil[1])/m_/bmag_quad * dualcurlbhat_quad[0];
-flux_surf_nodal[1] = flux_surf_nodal[1]/2.0 * (1.118033988749895*JfR[5]+1.118033988749895*JfR[4]-0.8660254037844386*JfR[3]-0.8660254037844386*JfR[2]+0.5*JfR[1]+0.5*JfR[0] + 1.118033988749895*JfL[5]+1.118033988749895*JfL[4]-0.8660254037844386*JfL[3]-0.8660254037844386*JfL[2]+0.5*JfL[1]+0.5*JfL[0]) + fabs(flux_surf_nodal[1])/2.0 * (1.118033988749895*JfR[5]+1.118033988749895*JfR[4]-0.8660254037844386*JfR[3]-0.8660254037844386*JfR[2]+0.5*JfR[1]+0.5*JfR[0] - (1.118033988749895*JfL[5]+1.118033988749895*JfL[4]-0.8660254037844386*JfL[3]-0.8660254037844386*JfL[2]+0.5*JfL[1]+0.5*JfL[0])) ;
+alpha_surf_nodal[1] = flux_surf_nodal[1] ;
+cfl = fmax(fabs(alpha_surf_nodal[1]), fabs(cfl)) ;
+flux_surf_nodal[1] = flux_surf_nodal[1]/2.0 * (1.118033988749895*JfR[5]+1.118033988749895*JfR[4]-0.8660254037844386*JfR[3]-0.8660254037844386*JfR[2]+0.5*JfR[1]+0.5*JfR[0] + 1.118033988749895*JfL[5]+1.118033988749895*JfL[4]+0.8660254037844386*JfL[3]+0.8660254037844386*JfL[2]+0.5*JfL[1]+0.5*JfL[0]) + fabs(flux_surf_nodal[1])/2.0 * (1.118033988749895*JfR[5]+1.118033988749895*JfR[4]-0.8660254037844386*JfR[3]-0.8660254037844386*JfR[2]+0.5*JfR[1]+0.5*JfR[0] - (1.118033988749895*JfL[5]+1.118033988749895*JfL[4]+0.8660254037844386*JfL[3]+0.8660254037844386*JfL[2]+0.5*JfL[1]+0.5*JfL[0])) ;
 basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[3], 0) ;
 basis->quad_nodal_to_modal(flux_surf_nodal, &flux_surf[3], 1) ;
+  double vmap_prime_min = fmin(fabs(vmap_prime_l[0]),fabs(vmap_prime_r[0]));
+
+  return cfl/vmap_prime_min*2.5*rdvpar2; 
 
 } 
