@@ -135,6 +135,100 @@ gk_meta_from_mpack(struct gkyl_msgpack_data *mt)
   return meta;
 }
 
+static void
+gkyl_gyrokinetic_app_new_geom_surf(gkyl_gyrokinetic_app *app)
+{
+  // Create a surface ranges, communicators, grids and bases.
+ 
+  for (int dir=0; dir<app->cdim; dir++) {
+    // Identify ranks on the same plane as this one.
+    int num_ranks_surf = 0;
+    int ranks_surf[app->decomp->ndecomp]; 
+    for (int i=0; i<app->decomp->ndecomp; i++) {
+      if (app->decomp->ranges[i].lower[dir] == app->local.lower[dir]) {
+        ranks_surf[num_ranks_surf] = i;
+        num_ranks_surf++;
+      }
+    }
+  
+    // Create a range tangentially global.
+    int surf_dim = app->cdim > 1? app->cdim-1 : 1;
+    int lower_surf[surf_dim], upper_surf[surf_dim];
+    if (app->cdim > 1) {
+      int c = 0;
+      for (int d=0; d<app->cdim; ++d) {
+        if (d != dir || app->cdim == 1) {
+          lower_surf[c] = app->global.lower[d];
+          upper_surf[c] = app->global.upper[d];
+          c++;
+        }
+      }
+    }
+    else {
+      lower_surf[0] = 1;
+      upper_surf[0] = 1;
+    }
+    struct gkyl_range range_surf;
+    gkyl_range_init(&range_surf, surf_dim, lower_surf, upper_surf);
+    
+    // Create decomp.
+    int cuts_plane[GKYL_MAX_CDIM], cuts_surf[surf_dim];
+    gkyl_rect_decomp_get_cuts(app->decomp_plane[dir], cuts_plane);
+    if (app->cdim > 1) {
+      int c = 0;
+      for (int d=0; d<app->cdim; ++d) {
+        if (d != dir) {
+          cuts_surf[c] = cuts_plane[d];
+          c++;
+        }
+      }
+    }
+    else
+      cuts_surf[0] = 1;
+
+    app->decomp_surf[dir] = gkyl_rect_decomp_new_from_cuts(surf_dim, cuts_surf, &range_surf);
+    
+    // Create a new communicator with ranks on surf.
+    bool is_comm_valid;
+    app->comm_surf[dir] = gkyl_comm_create_comm_from_ranks(app->comm, num_ranks_surf,
+      ranks_surf, app->decomp_surf[dir], &is_comm_valid);
+    assert(is_comm_valid);
+  
+    // Local and local extended surface range.
+    int rank;
+    gkyl_comm_get_rank(app->comm_surf[dir], &rank);
+    int ghost[] = { 1, 1, 1 };
+    gkyl_create_ranges(&app->decomp_surf[dir]->ranges[rank], ghost, &app->local_ext_surf[dir], &app->local_surf[dir]);
+  
+    // Create a surface grid.
+    double grid_surf_lower[surf_dim], grid_surf_upper[surf_dim];
+    int grid_surf_cells[surf_dim];
+    if (app->cdim > 1) {
+      int c = 0;
+      for (int d=0; d<app->cdim; ++d) {
+        if (d != dir) {
+          grid_surf_lower[c] = app->grid.lower[d];
+          grid_surf_upper[c] = app->grid.upper[d];
+          grid_surf_cells[c] = app->grid.cells[d];
+          c++;
+        }
+      }
+    }
+    else {
+      grid_surf_lower[0] = -1.0;
+      grid_surf_upper[0] = 1.0;
+      grid_surf_cells[0] = 1;
+    }
+    gkyl_rect_grid_init(&app->grid_surf[dir], surf_dim, grid_surf_lower, grid_surf_upper, grid_surf_cells);
+
+    // Create surface basis.
+    if (app->cdim > 1)
+      gkyl_cart_modal_serendip(&app->basis_surf[dir], app->cdim-1, app->poly_order);
+    else
+      gkyl_cart_modal_serendip(&app->basis_surf[dir], 1, 0);
+  }
+}
+
 gkyl_gyrokinetic_app*
 gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 {
@@ -286,6 +380,9 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     gkyl_sub_range_intersect(&app->global_lower_ghost[dir], &app->local_ext, &app->global_lower_ghost[dir]);
     gkyl_sub_range_intersect(&app->global_upper_ghost[dir], &app->local_ext, &app->global_upper_ghost[dir]);
   }
+
+  // Create surface grids, basis, comms and ranges.
+  gkyl_gyrokinetic_app_new_geom_surf(app);
 
   int comm_sz;
   gkyl_comm_get_size(app->comm, &comm_sz);
@@ -587,6 +684,8 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
   // Allocate space to store species and neutral species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct gk_species[ns])) : 0;
   app->neut_species = neuts>0 ? gkyl_malloc(sizeof(struct gk_neut_species[neuts])) : 0;
+
+  app->enforce_bohm_sheath = gk->enforce_bohm_sheath;
 
   // Copy input parameters for each species
   for (int i=0; i<ns; ++i)
@@ -2605,6 +2704,11 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
 
   if (app->use_gpu) {
     gkyl_cu_free(app->basis_on_dev);
+  }
+
+  for (int dir=0; dir<app->cdim; ++dir) {
+    gkyl_rect_decomp_release(app->decomp_surf[dir]);
+    gkyl_comm_release(app->comm_surf[dir]);
   }
 
   gkyl_dynvec_release(app->dts);

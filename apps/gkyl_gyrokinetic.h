@@ -415,6 +415,8 @@ struct gkyl_gk {
   bool enforce_positivity; // Enforce f>=0 for all species and quasineutrality
                            // of charged species after enforcing f_s>=0.
 
+  bool enforce_bohm_sheath; // Enforce the Bohm sheath criterion u_{\paralleli} >= c_s=sqrt((Te+3*Ti)/mi).
+
   int num_periodic_dir; // Number of periodic directions.
   int periodic_dirs[3]; // List of periodic directions.
 

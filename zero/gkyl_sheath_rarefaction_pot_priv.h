@@ -7,26 +7,25 @@
 #include <assert.h>
 
 // Function pointer type for kernels.
-typedef void (*rarefaction_phimod_t)(double elem_q, double mElc, const double *momsElc, const double *m2parElc, double mIon, const double *momsIon, const double *m2parIon, const double *phiWall, double *phi);
+typedef void (*rarefaction_phimod_t)(double elem_q, double mElc, const double *momsElc,
+  double mIon, const double *momsIon, const double *phiWall, double *phi);
 
-typedef struct { rarefaction_phimod_t kernels[3]; } rarefaction_phimod_kern_list;  // For use in kernel tables.
-typedef struct { rarefaction_phimod_kern_list list[4]; } edged_rarefaction_phimod_kern_list;
+typedef struct { rarefaction_phimod_t kernels[2]; } rarefaction_phimod_kern_list;  // For use in kernel tables.
+typedef struct { rarefaction_phimod_kern_list list[3]; } edged_rarefaction_phimod_kern_list;
 
 // Serendipity  kernels.
 GKYL_CU_D
 static const edged_rarefaction_phimod_kern_list ser_sheath_rarepot_list[] = {
   { .list={
            { sheath_rarefaction_phi_mod_lower_1x_ser_p1, sheath_rarefaction_phi_mod_lower_1x_ser_p2 },
-           { NULL, NULL},
-//           { sheath_rarefaction_phi_mod_lower_3x_ser_p1, sheath_rarefaction_phi_mod_lower_3x_ser_p2 },
-           { NULL, NULL},
+           { sheath_rarefaction_phi_mod_lower_2x_ser_p1, sheath_rarefaction_phi_mod_lower_2x_ser_p2 },
+           { sheath_rarefaction_phi_mod_lower_3x_ser_p1, sheath_rarefaction_phi_mod_lower_3x_ser_p2 },
           },
   },
   { .list={
            { sheath_rarefaction_phi_mod_upper_1x_ser_p1, sheath_rarefaction_phi_mod_upper_1x_ser_p2 },
-           { NULL, NULL},
-//           { sheath_rarefaction_phi_mod_upper_3x_ser_p1, sheath_rarefaction_phi_mod_upper_3x_ser_p2 },
-           { NULL, NULL},
+           { sheath_rarefaction_phi_mod_upper_2x_ser_p1, sheath_rarefaction_phi_mod_upper_2x_ser_p2 },
+           { sheath_rarefaction_phi_mod_upper_3x_ser_p1, sheath_rarefaction_phi_mod_upper_3x_ser_p2 },
           },
   },
 };
@@ -35,15 +34,15 @@ static const edged_rarefaction_phimod_kern_list ser_sheath_rarepot_list[] = {
 GKYL_CU_D
 static const edged_rarefaction_phimod_kern_list tensor_sheath_rarepot_list[] = {
   { .list={
-           { NULL, sheath_rarefaction_phi_mod_lower_1x_tensor_p2 },
-           { NULL, NULL},
-           { NULL, NULL},
+           { NULL, NULL },
+           { NULL, NULL },
+           { NULL, NULL },
           },
   },
   { .list={
-           { NULL, sheath_rarefaction_phi_mod_upper_1x_tensor_p2 },
-           { NULL, NULL},
-           { NULL, NULL},
+           { NULL, NULL },
+           { NULL, NULL },
+           { NULL, NULL },
           },
   },
 };
@@ -54,36 +53,43 @@ struct gkyl_sheath_rarefaction_pot_kernels {
 
 // Primary struct in this updater.
 struct gkyl_sheath_rarefaction_pot {
-  enum gkyl_edge_loc edge;
-  struct gkyl_range skin_r;
-  const struct gkyl_basis *basis;
   bool use_gpu;
   double elem_charge; // elementary charge.
   double mass_e, mass_i; // electron and ion mass.
   struct gkyl_sheath_rarefaction_pot_kernels *kernels;
-  struct gkyl_sheath_rarefaction_pot_kernels *kernels_cu;  // device copy.
-  const struct gkyl_rect_grid *grid;
 };
 
 void
-gkyl_sheath_rarepot_choose_phimod_kernel_cu(const struct gkyl_basis *basis, enum gkyl_edge_loc edge, struct gkyl_sheath_rarefaction_pot_kernels *kers);
+gkyl_sheath_rarepot_choose_phimod_kernel_cu(const struct gkyl_basis *basis, enum gkyl_edge_loc edge,
+  struct gkyl_sheath_rarefaction_pot_kernels *kers);
 
-GKYL_CU_D
-static rarefaction_phimod_t
-sheath_rarepot_choose_phimod_kernel(const struct gkyl_basis *basis, enum gkyl_edge_loc edge)
+void
+sheath_rarepot_choose_phimod_kernel(const struct gkyl_basis *basis, enum gkyl_edge_loc edge,
+  struct gkyl_sheath_rarefaction_pot_kernels *kers, bool use_gpu)
 {
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu) {
+    gkyl_sheath_rarepot_choose_phimod_kernel_cu(basis, edge, kers);
+    return;
+  }
+#endif
+
   int dim = basis->ndim;
   enum gkyl_basis_type basis_type = basis->b_type;
   int poly_order = basis->poly_order;
   switch (basis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      return ser_sheath_rarepot_list[edge].list[dim-1].kernels[poly_order-1];
-    case GKYL_BASIS_MODAL_TENSOR:
-      return tensor_sheath_rarepot_list[edge].list[dim-1].kernels[poly_order-1];
+      kers->phimod = ser_sheath_rarepot_list[edge].list[dim-1].kernels[poly_order-1];
+      break;
+//    case GKYL_BASIS_MODAL_TENSOR:
+//      kers->phimod = tensor_sheath_rarepot_list[edge].list[dim-1].kernels[poly_order-1];
+//      break;
     default:
       assert(false);
       break;
   }
+
+  assert(kers->phimod);
 }
 
 #ifdef GKYL_HAVE_CUDA
@@ -92,16 +98,16 @@ sheath_rarepot_choose_phimod_kernel(const struct gkyl_basis *basis, enum gkyl_ed
  * CUDA device function to modify the potential at the boundary.
 
  * @param up updater object.
- * @param moms_e first threee moments of the electron distribution.
- * @param m2par_e v_par^2 moment of the electron distribution.
- * @param moms_i first threee moments of the ion distribution.
- * @param m2par_i v_par^2 moment of the ion distribution.
+ * @param skin_range Range of the skin where potential is modified.
+ * @param surf_range Surface range the wall potential lives on.
+ * @param moms_e first four moments (m0, m1, m2par, m2perp) of the electron distribution.
+ * @param moms_i first four moments (m0, m1, m2par, m2perp) of the ion distribution.
  * @param phi_wall Wall potential.
  * @param phi Electrostatic potential.
  */
 void gkyl_sheath_rarefaction_pot_advance_cu(const struct gkyl_sheath_rarefaction_pot *up,
-  const struct gkyl_array *moms_e, const struct gkyl_array *m2par_e,
-  const struct gkyl_array *moms_i, const struct gkyl_array *m2par_i,
+  const struct gkyl_range *skin_range, const struct gkyl_range *surf_range,
+  const struct gkyl_array *moms_e, const struct gkyl_array *moms_i,
   const struct gkyl_array *phi_wall, struct gkyl_array *phi);
 
 #endif

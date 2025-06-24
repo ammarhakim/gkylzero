@@ -1685,6 +1685,9 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   // Allocate data for density (for charge density or upar calculation).
   gk_species_moment_init(app, gks, &gks->m0, GKYL_F_MOMENT_M0, false);
 
+  // Allocate operator computing M0, M1, M2par, M2perp.
+  gk_species_moment_init(app, gks, &gks->m0m1m2parm2perp_op, GKYL_F_MOMENT_M0M1M2PARM2PERP, false);
+
   // Allocate data for diagnostic moments.
   int ndm = gks->info.num_diag_moments;
   gks->moms = gkyl_malloc(sizeof(struct gk_species_moment[ndm]));
@@ -2060,6 +2063,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 
   // Release moment data.
   gk_species_moment_release(app, &s->m0);
+  gk_species_moment_release(app, &s->m0m1m2parm2perp_op);
   for (int i=0; i<s->info.num_diag_moments; ++i) {
     gk_species_moment_release(app, &s->moms[i]);
   }

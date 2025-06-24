@@ -15,8 +15,8 @@ gkyl_sheath_rare_pot_set_cu_ker_ptrs(int dim, enum gkyl_basis_type b_type, int p
     case GKYL_BASIS_MODAL_SERENDIPITY:
       kers->phimod = ser_sheath_rarepot_list[edge].list[dim-1].kernels[poly_order-1];
       break;
-    case GKYL_BASIS_MODAL_TENSOR:
-      kers->phimod = tensor_sheath_rarepot_list[edge].list[dim-1].kernels[poly_order-1];
+//    case GKYL_BASIS_MODAL_TENSOR:
+//      kers->phimod = tensor_sheath_rarepot_list[edge].list[dim-1].kernels[poly_order-1];
       break;
     default:
       assert(false);

@@ -103,125 +103,124 @@ GKYL_CU_DH void sheath_rarefaction_phi_mod_lower_3x_ser_p2(double elem_q, double
   phiWallNodal[6] = -(0.9682458365518543*phiWall[6])+1.118033988749895*phiWall[5]-0.5590169943749475*phiWall[4]+0.8660254037844386*phiWall[2]+0.5*phiWall[0]; 
   phiWallNodal[7] = 1.9364916731037085*phiWall[7]+1.9364916731037085*phiWall[6]+1.118033988749895*phiWall[5]+1.118033988749895*phiWall[4]+1.5*phiWall[3]+0.8660254037844386*phiWall[2]+0.8660254037844386*phiWall[1]+0.5*phiWall[0]; 
 
-  double upar_e = m1eSurfNodal[0]/m0eSurfNodal[0];
-  double upar_i = m1iSurfNodal[0]/m0iSurfNodal[0];
-
-  double Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[0]*mElc*upar_e-1.0*m2pareSurfNodal[0]*mElc))/m0eSurfNodal[0]));
-  double Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[0]*mIon*upar_i-1.0*m2pariSurfNodal[0]*mIon))/m0iSurfNodal[0]));
-
-  double c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
+  double upar_e;
+  double upar_i;
+  double Tpar_e;
+  double Tpar_i;
+  double c_s;
   double Delta_phi_r;
+
+  upar_e = m1eSurfNodal[0]/m0eSurfNodal[0];
+  upar_i = m1iSurfNodal[0]/m0iSurfNodal[0];
+
+  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[0]*mElc*upar_e-1.0*m2pareSurfNodal[0]*mElc))/m0eSurfNodal[0]));
+  Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[0]*mIon*upar_i-1.0*m2pariSurfNodal[0]*mIon))/m0iSurfNodal[0]));
+
+  c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
   if (c_s > 0.0)
-    Delta_phi_r = 0;
+    Delta_phi_r = ((fmin(1.0,fabs(upar_i)/c_s)-1.0)*Tpar_e)/elem_q;
   else
     Delta_phi_r = 0.0;
 
-  phiNodal[0] = fmax(phiNodal[0] + Delta_phi_r, phi_wallNodal[0];
+  phiNodal[0] = fmax(phiNodal[0] + Delta_phi_r, phiWallNodal[0]);
 
-  double upar_e = m1eSurfNodal[1]/m0eSurfNodal[1];
-  double upar_i = m1iSurfNodal[1]/m0iSurfNodal[1];
+  upar_e = m1eSurfNodal[1]/m0eSurfNodal[1];
+  upar_i = m1iSurfNodal[1]/m0iSurfNodal[1];
 
-  double Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[1]*mElc*upar_e-1.0*m2pareSurfNodal[1]*mElc))/m0eSurfNodal[1]));
-  double Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[1]*mIon*upar_i-1.0*m2pariSurfNodal[1]*mIon))/m0iSurfNodal[1]));
+  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[1]*mElc*upar_e-1.0*m2pareSurfNodal[1]*mElc))/m0eSurfNodal[1]));
+  Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[1]*mIon*upar_i-1.0*m2pariSurfNodal[1]*mIon))/m0iSurfNodal[1]));
 
-  double c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
-  double Delta_phi_r;
+  c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
   if (c_s > 0.0)
-    Delta_phi_r = 1;
+    Delta_phi_r = ((fmin(1.0,fabs(upar_i)/c_s)-1.0)*Tpar_e)/elem_q;
   else
     Delta_phi_r = 0.0;
 
-  phiNodal[1] = fmax(phiNodal[1] + Delta_phi_r, phi_wallNodal[1];
+  phiNodal[1] = fmax(phiNodal[1] + Delta_phi_r, phiWallNodal[1]);
 
-  double upar_e = m1eSurfNodal[2]/m0eSurfNodal[2];
-  double upar_i = m1iSurfNodal[2]/m0iSurfNodal[2];
+  upar_e = m1eSurfNodal[2]/m0eSurfNodal[2];
+  upar_i = m1iSurfNodal[2]/m0iSurfNodal[2];
 
-  double Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[2]*mElc*upar_e-1.0*m2pareSurfNodal[2]*mElc))/m0eSurfNodal[2]));
-  double Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[2]*mIon*upar_i-1.0*m2pariSurfNodal[2]*mIon))/m0iSurfNodal[2]));
+  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[2]*mElc*upar_e-1.0*m2pareSurfNodal[2]*mElc))/m0eSurfNodal[2]));
+  Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[2]*mIon*upar_i-1.0*m2pariSurfNodal[2]*mIon))/m0iSurfNodal[2]));
 
-  double c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
-  double Delta_phi_r;
+  c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
   if (c_s > 0.0)
-    Delta_phi_r = 2;
+    Delta_phi_r = ((fmin(1.0,fabs(upar_i)/c_s)-1.0)*Tpar_e)/elem_q;
   else
     Delta_phi_r = 0.0;
 
-  phiNodal[2] = fmax(phiNodal[2] + Delta_phi_r, phi_wallNodal[2];
+  phiNodal[2] = fmax(phiNodal[2] + Delta_phi_r, phiWallNodal[2]);
 
-  double upar_e = m1eSurfNodal[3]/m0eSurfNodal[3];
-  double upar_i = m1iSurfNodal[3]/m0iSurfNodal[3];
+  upar_e = m1eSurfNodal[3]/m0eSurfNodal[3];
+  upar_i = m1iSurfNodal[3]/m0iSurfNodal[3];
 
-  double Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[3]*mElc*upar_e-1.0*m2pareSurfNodal[3]*mElc))/m0eSurfNodal[3]));
-  double Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[3]*mIon*upar_i-1.0*m2pariSurfNodal[3]*mIon))/m0iSurfNodal[3]));
+  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[3]*mElc*upar_e-1.0*m2pareSurfNodal[3]*mElc))/m0eSurfNodal[3]));
+  Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[3]*mIon*upar_i-1.0*m2pariSurfNodal[3]*mIon))/m0iSurfNodal[3]));
 
-  double c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
-  double Delta_phi_r;
+  c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
   if (c_s > 0.0)
-    Delta_phi_r = 3;
+    Delta_phi_r = ((fmin(1.0,fabs(upar_i)/c_s)-1.0)*Tpar_e)/elem_q;
   else
     Delta_phi_r = 0.0;
 
-  phiNodal[3] = fmax(phiNodal[3] + Delta_phi_r, phi_wallNodal[3];
+  phiNodal[3] = fmax(phiNodal[3] + Delta_phi_r, phiWallNodal[3]);
 
-  double upar_e = m1eSurfNodal[4]/m0eSurfNodal[4];
-  double upar_i = m1iSurfNodal[4]/m0iSurfNodal[4];
+  upar_e = m1eSurfNodal[4]/m0eSurfNodal[4];
+  upar_i = m1iSurfNodal[4]/m0iSurfNodal[4];
 
-  double Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[4]*mElc*upar_e-1.0*m2pareSurfNodal[4]*mElc))/m0eSurfNodal[4]));
-  double Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[4]*mIon*upar_i-1.0*m2pariSurfNodal[4]*mIon))/m0iSurfNodal[4]));
+  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[4]*mElc*upar_e-1.0*m2pareSurfNodal[4]*mElc))/m0eSurfNodal[4]));
+  Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[4]*mIon*upar_i-1.0*m2pariSurfNodal[4]*mIon))/m0iSurfNodal[4]));
 
-  double c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
-  double Delta_phi_r;
+  c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
   if (c_s > 0.0)
-    Delta_phi_r = 4;
+    Delta_phi_r = ((fmin(1.0,fabs(upar_i)/c_s)-1.0)*Tpar_e)/elem_q;
   else
     Delta_phi_r = 0.0;
 
-  phiNodal[4] = fmax(phiNodal[4] + Delta_phi_r, phi_wallNodal[4];
+  phiNodal[4] = fmax(phiNodal[4] + Delta_phi_r, phiWallNodal[4]);
 
-  double upar_e = m1eSurfNodal[5]/m0eSurfNodal[5];
-  double upar_i = m1iSurfNodal[5]/m0iSurfNodal[5];
+  upar_e = m1eSurfNodal[5]/m0eSurfNodal[5];
+  upar_i = m1iSurfNodal[5]/m0iSurfNodal[5];
 
-  double Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[5]*mElc*upar_e-1.0*m2pareSurfNodal[5]*mElc))/m0eSurfNodal[5]));
-  double Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[5]*mIon*upar_i-1.0*m2pariSurfNodal[5]*mIon))/m0iSurfNodal[5]));
+  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[5]*mElc*upar_e-1.0*m2pareSurfNodal[5]*mElc))/m0eSurfNodal[5]));
+  Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[5]*mIon*upar_i-1.0*m2pariSurfNodal[5]*mIon))/m0iSurfNodal[5]));
 
-  double c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
-  double Delta_phi_r;
+  c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
   if (c_s > 0.0)
-    Delta_phi_r = 5;
+    Delta_phi_r = ((fmin(1.0,fabs(upar_i)/c_s)-1.0)*Tpar_e)/elem_q;
   else
     Delta_phi_r = 0.0;
 
-  phiNodal[5] = fmax(phiNodal[5] + Delta_phi_r, phi_wallNodal[5];
+  phiNodal[5] = fmax(phiNodal[5] + Delta_phi_r, phiWallNodal[5]);
 
-  double upar_e = m1eSurfNodal[6]/m0eSurfNodal[6];
-  double upar_i = m1iSurfNodal[6]/m0iSurfNodal[6];
+  upar_e = m1eSurfNodal[6]/m0eSurfNodal[6];
+  upar_i = m1iSurfNodal[6]/m0iSurfNodal[6];
 
-  double Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[6]*mElc*upar_e-1.0*m2pareSurfNodal[6]*mElc))/m0eSurfNodal[6]));
-  double Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[6]*mIon*upar_i-1.0*m2pariSurfNodal[6]*mIon))/m0iSurfNodal[6]));
+  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[6]*mElc*upar_e-1.0*m2pareSurfNodal[6]*mElc))/m0eSurfNodal[6]));
+  Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[6]*mIon*upar_i-1.0*m2pariSurfNodal[6]*mIon))/m0iSurfNodal[6]));
 
-  double c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
-  double Delta_phi_r;
+  c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
   if (c_s > 0.0)
-    Delta_phi_r = 6;
+    Delta_phi_r = ((fmin(1.0,fabs(upar_i)/c_s)-1.0)*Tpar_e)/elem_q;
   else
     Delta_phi_r = 0.0;
 
-  phiNodal[6] = fmax(phiNodal[6] + Delta_phi_r, phi_wallNodal[6];
+  phiNodal[6] = fmax(phiNodal[6] + Delta_phi_r, phiWallNodal[6]);
 
-  double upar_e = m1eSurfNodal[7]/m0eSurfNodal[7];
-  double upar_i = m1iSurfNodal[7]/m0iSurfNodal[7];
+  upar_e = m1eSurfNodal[7]/m0eSurfNodal[7];
+  upar_i = m1iSurfNodal[7]/m0iSurfNodal[7];
 
-  double Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[7]*mElc*upar_e-1.0*m2pareSurfNodal[7]*mElc))/m0eSurfNodal[7]));
-  double Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[7]*mIon*upar_i-1.0*m2pariSurfNodal[7]*mIon))/m0iSurfNodal[7]));
+  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[7]*mElc*upar_e-1.0*m2pareSurfNodal[7]*mElc))/m0eSurfNodal[7]));
+  Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[7]*mIon*upar_i-1.0*m2pariSurfNodal[7]*mIon))/m0iSurfNodal[7]));
 
-  double c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
-  double Delta_phi_r;
+  c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
   if (c_s > 0.0)
-    Delta_phi_r = 7;
+    Delta_phi_r = ((fmin(1.0,fabs(upar_i)/c_s)-1.0)*Tpar_e)/elem_q;
   else
     Delta_phi_r = 0.0;
 
-  phiNodal[7] = fmax(phiNodal[7] + Delta_phi_r, phi_wallNodal[7];
+  phiNodal[7] = fmax(phiNodal[7] + Delta_phi_r, phiWallNodal[7]);
 
   phi[0] = -(0.3535533905932737*phiNodal[19])+0.4714045207910317*phiNodal[18]-0.3535533905932737*phiNodal[17]+0.4714045207910317*phiNodal[16]+0.4714045207910317*phiNodal[15]-0.3535533905932737*phiNodal[14]+0.4714045207910317*phiNodal[13]-0.3535533905932737*phiNodal[12]+0.4714045207910317*phiNodal[11]+0.4714045207910317*phiNodal[10]+0.4714045207910317*phiNodal[9]+0.4714045207910317*phiNodal[8]-0.3535533905932737*phiNodal[7]+0.4714045207910317*phiNodal[6]-0.3535533905932737*phiNodal[5]+0.4714045207910317*phiNodal[4]+0.4714045207910317*phiNodal[3]-0.3535533905932737*phiNodal[2]+0.4714045207910317*phiNodal[1]-0.3535533905932737*phiNodal[0]; 
   phi[1] = -(0.06804138174397717*phiNodal[19])+0.06804138174397717*phiNodal[17]+0.27216552697590873*phiNodal[16]-0.27216552697590873*phiNodal[15]-0.06804138174397717*phiNodal[14]+0.06804138174397717*phiNodal[12]+0.27216552697590873*phiNodal[11]-0.27216552697590873*phiNodal[10]+0.27216552697590873*phiNodal[9]-0.27216552697590873*phiNodal[8]-0.06804138174397717*phiNodal[7]+0.06804138174397717*phiNodal[5]+0.27216552697590873*phiNodal[4]-0.27216552697590873*phiNodal[3]-0.06804138174397717*phiNodal[2]+0.06804138174397717*phiNodal[0]; 
@@ -348,125 +347,124 @@ GKYL_CU_DH void sheath_rarefaction_phi_mod_upper_3x_ser_p2(double elem_q, double
   phiWallNodal[6] = -(0.9682458365518543*phiWall[6])+1.118033988749895*phiWall[5]-0.5590169943749475*phiWall[4]+0.8660254037844386*phiWall[2]+0.5*phiWall[0]; 
   phiWallNodal[7] = 1.9364916731037085*phiWall[7]+1.9364916731037085*phiWall[6]+1.118033988749895*phiWall[5]+1.118033988749895*phiWall[4]+1.5*phiWall[3]+0.8660254037844386*phiWall[2]+0.8660254037844386*phiWall[1]+0.5*phiWall[0]; 
 
-  double upar_e = m1eSurfNodal[0]/m0eSurfNodal[0];
-  double upar_i = m1iSurfNodal[0]/m0iSurfNodal[0];
-
-  double Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[0]*mElc*upar_e-1.0*m2pareSurfNodal[0]*mElc))/m0eSurfNodal[0]));
-  double Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[0]*mIon*upar_i-1.0*m2pariSurfNodal[0]*mIon))/m0iSurfNodal[0]));
-
-  double c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
+  double upar_e;
+  double upar_i;
+  double Tpar_e;
+  double Tpar_i;
+  double c_s;
   double Delta_phi_r;
+
+  upar_e = m1eSurfNodal[0]/m0eSurfNodal[0];
+  upar_i = m1iSurfNodal[0]/m0iSurfNodal[0];
+
+  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[0]*mElc*upar_e-1.0*m2pareSurfNodal[0]*mElc))/m0eSurfNodal[0]));
+  Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[0]*mIon*upar_i-1.0*m2pariSurfNodal[0]*mIon))/m0iSurfNodal[0]));
+
+  c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
   if (c_s > 0.0)
-    Delta_phi_r = 0;
+    Delta_phi_r = ((fmin(1.0,fabs(upar_i)/c_s)-1.0)*Tpar_e)/elem_q;
   else
     Delta_phi_r = 0.0;
 
-  phiNodal[12] = fmax(phiNodal[12] + Delta_phi_r, phi_wallNodal[0];
+  phiNodal[12] = fmax(phiNodal[12] + Delta_phi_r, phiWallNodal[0]);
 
-  double upar_e = m1eSurfNodal[1]/m0eSurfNodal[1];
-  double upar_i = m1iSurfNodal[1]/m0iSurfNodal[1];
+  upar_e = m1eSurfNodal[1]/m0eSurfNodal[1];
+  upar_i = m1iSurfNodal[1]/m0iSurfNodal[1];
 
-  double Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[1]*mElc*upar_e-1.0*m2pareSurfNodal[1]*mElc))/m0eSurfNodal[1]));
-  double Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[1]*mIon*upar_i-1.0*m2pariSurfNodal[1]*mIon))/m0iSurfNodal[1]));
+  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[1]*mElc*upar_e-1.0*m2pareSurfNodal[1]*mElc))/m0eSurfNodal[1]));
+  Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[1]*mIon*upar_i-1.0*m2pariSurfNodal[1]*mIon))/m0iSurfNodal[1]));
 
-  double c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
-  double Delta_phi_r;
+  c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
   if (c_s > 0.0)
-    Delta_phi_r = 1;
+    Delta_phi_r = ((fmin(1.0,fabs(upar_i)/c_s)-1.0)*Tpar_e)/elem_q;
   else
     Delta_phi_r = 0.0;
 
-  phiNodal[13] = fmax(phiNodal[13] + Delta_phi_r, phi_wallNodal[1];
+  phiNodal[13] = fmax(phiNodal[13] + Delta_phi_r, phiWallNodal[1]);
 
-  double upar_e = m1eSurfNodal[2]/m0eSurfNodal[2];
-  double upar_i = m1iSurfNodal[2]/m0iSurfNodal[2];
+  upar_e = m1eSurfNodal[2]/m0eSurfNodal[2];
+  upar_i = m1iSurfNodal[2]/m0iSurfNodal[2];
 
-  double Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[2]*mElc*upar_e-1.0*m2pareSurfNodal[2]*mElc))/m0eSurfNodal[2]));
-  double Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[2]*mIon*upar_i-1.0*m2pariSurfNodal[2]*mIon))/m0iSurfNodal[2]));
+  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[2]*mElc*upar_e-1.0*m2pareSurfNodal[2]*mElc))/m0eSurfNodal[2]));
+  Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[2]*mIon*upar_i-1.0*m2pariSurfNodal[2]*mIon))/m0iSurfNodal[2]));
 
-  double c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
-  double Delta_phi_r;
+  c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
   if (c_s > 0.0)
-    Delta_phi_r = 2;
+    Delta_phi_r = ((fmin(1.0,fabs(upar_i)/c_s)-1.0)*Tpar_e)/elem_q;
   else
     Delta_phi_r = 0.0;
 
-  phiNodal[14] = fmax(phiNodal[14] + Delta_phi_r, phi_wallNodal[2];
+  phiNodal[14] = fmax(phiNodal[14] + Delta_phi_r, phiWallNodal[2]);
 
-  double upar_e = m1eSurfNodal[3]/m0eSurfNodal[3];
-  double upar_i = m1iSurfNodal[3]/m0iSurfNodal[3];
+  upar_e = m1eSurfNodal[3]/m0eSurfNodal[3];
+  upar_i = m1iSurfNodal[3]/m0iSurfNodal[3];
 
-  double Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[3]*mElc*upar_e-1.0*m2pareSurfNodal[3]*mElc))/m0eSurfNodal[3]));
-  double Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[3]*mIon*upar_i-1.0*m2pariSurfNodal[3]*mIon))/m0iSurfNodal[3]));
+  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[3]*mElc*upar_e-1.0*m2pareSurfNodal[3]*mElc))/m0eSurfNodal[3]));
+  Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[3]*mIon*upar_i-1.0*m2pariSurfNodal[3]*mIon))/m0iSurfNodal[3]));
 
-  double c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
-  double Delta_phi_r;
+  c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
   if (c_s > 0.0)
-    Delta_phi_r = 3;
+    Delta_phi_r = ((fmin(1.0,fabs(upar_i)/c_s)-1.0)*Tpar_e)/elem_q;
   else
     Delta_phi_r = 0.0;
 
-  phiNodal[15] = fmax(phiNodal[15] + Delta_phi_r, phi_wallNodal[3];
+  phiNodal[15] = fmax(phiNodal[15] + Delta_phi_r, phiWallNodal[3]);
 
-  double upar_e = m1eSurfNodal[4]/m0eSurfNodal[4];
-  double upar_i = m1iSurfNodal[4]/m0iSurfNodal[4];
+  upar_e = m1eSurfNodal[4]/m0eSurfNodal[4];
+  upar_i = m1iSurfNodal[4]/m0iSurfNodal[4];
 
-  double Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[4]*mElc*upar_e-1.0*m2pareSurfNodal[4]*mElc))/m0eSurfNodal[4]));
-  double Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[4]*mIon*upar_i-1.0*m2pariSurfNodal[4]*mIon))/m0iSurfNodal[4]));
+  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[4]*mElc*upar_e-1.0*m2pareSurfNodal[4]*mElc))/m0eSurfNodal[4]));
+  Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[4]*mIon*upar_i-1.0*m2pariSurfNodal[4]*mIon))/m0iSurfNodal[4]));
 
-  double c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
-  double Delta_phi_r;
+  c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
   if (c_s > 0.0)
-    Delta_phi_r = 4;
+    Delta_phi_r = ((fmin(1.0,fabs(upar_i)/c_s)-1.0)*Tpar_e)/elem_q;
   else
     Delta_phi_r = 0.0;
 
-  phiNodal[16] = fmax(phiNodal[16] + Delta_phi_r, phi_wallNodal[4];
+  phiNodal[16] = fmax(phiNodal[16] + Delta_phi_r, phiWallNodal[4]);
 
-  double upar_e = m1eSurfNodal[5]/m0eSurfNodal[5];
-  double upar_i = m1iSurfNodal[5]/m0iSurfNodal[5];
+  upar_e = m1eSurfNodal[5]/m0eSurfNodal[5];
+  upar_i = m1iSurfNodal[5]/m0iSurfNodal[5];
 
-  double Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[5]*mElc*upar_e-1.0*m2pareSurfNodal[5]*mElc))/m0eSurfNodal[5]));
-  double Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[5]*mIon*upar_i-1.0*m2pariSurfNodal[5]*mIon))/m0iSurfNodal[5]));
+  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[5]*mElc*upar_e-1.0*m2pareSurfNodal[5]*mElc))/m0eSurfNodal[5]));
+  Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[5]*mIon*upar_i-1.0*m2pariSurfNodal[5]*mIon))/m0iSurfNodal[5]));
 
-  double c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
-  double Delta_phi_r;
+  c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
   if (c_s > 0.0)
-    Delta_phi_r = 5;
+    Delta_phi_r = ((fmin(1.0,fabs(upar_i)/c_s)-1.0)*Tpar_e)/elem_q;
   else
     Delta_phi_r = 0.0;
 
-  phiNodal[17] = fmax(phiNodal[17] + Delta_phi_r, phi_wallNodal[5];
+  phiNodal[17] = fmax(phiNodal[17] + Delta_phi_r, phiWallNodal[5]);
 
-  double upar_e = m1eSurfNodal[6]/m0eSurfNodal[6];
-  double upar_i = m1iSurfNodal[6]/m0iSurfNodal[6];
+  upar_e = m1eSurfNodal[6]/m0eSurfNodal[6];
+  upar_i = m1iSurfNodal[6]/m0iSurfNodal[6];
 
-  double Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[6]*mElc*upar_e-1.0*m2pareSurfNodal[6]*mElc))/m0eSurfNodal[6]));
-  double Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[6]*mIon*upar_i-1.0*m2pariSurfNodal[6]*mIon))/m0iSurfNodal[6]));
+  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[6]*mElc*upar_e-1.0*m2pareSurfNodal[6]*mElc))/m0eSurfNodal[6]));
+  Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[6]*mIon*upar_i-1.0*m2pariSurfNodal[6]*mIon))/m0iSurfNodal[6]));
 
-  double c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
-  double Delta_phi_r;
+  c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
   if (c_s > 0.0)
-    Delta_phi_r = 6;
+    Delta_phi_r = ((fmin(1.0,fabs(upar_i)/c_s)-1.0)*Tpar_e)/elem_q;
   else
     Delta_phi_r = 0.0;
 
-  phiNodal[18] = fmax(phiNodal[18] + Delta_phi_r, phi_wallNodal[6];
+  phiNodal[18] = fmax(phiNodal[18] + Delta_phi_r, phiWallNodal[6]);
 
-  double upar_e = m1eSurfNodal[7]/m0eSurfNodal[7];
-  double upar_i = m1iSurfNodal[7]/m0iSurfNodal[7];
+  upar_e = m1eSurfNodal[7]/m0eSurfNodal[7];
+  upar_i = m1iSurfNodal[7]/m0iSurfNodal[7];
 
-  double Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[7]*mElc*upar_e-1.0*m2pareSurfNodal[7]*mElc))/m0eSurfNodal[7]));
-  double Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[7]*mIon*upar_i-1.0*m2pariSurfNodal[7]*mIon))/m0iSurfNodal[7]));
+  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[7]*mElc*upar_e-1.0*m2pareSurfNodal[7]*mElc))/m0eSurfNodal[7]));
+  Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[7]*mIon*upar_i-1.0*m2pariSurfNodal[7]*mIon))/m0iSurfNodal[7]));
 
-  double c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
-  double Delta_phi_r;
+  c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
   if (c_s > 0.0)
-    Delta_phi_r = 7;
+    Delta_phi_r = ((fmin(1.0,fabs(upar_i)/c_s)-1.0)*Tpar_e)/elem_q;
   else
     Delta_phi_r = 0.0;
 
-  phiNodal[19] = fmax(phiNodal[19] + Delta_phi_r, phi_wallNodal[7];
+  phiNodal[19] = fmax(phiNodal[19] + Delta_phi_r, phiWallNodal[7]);
 
   phi[0] = -(0.3535533905932737*phiNodal[19])+0.4714045207910317*phiNodal[18]-0.3535533905932737*phiNodal[17]+0.4714045207910317*phiNodal[16]+0.4714045207910317*phiNodal[15]-0.3535533905932737*phiNodal[14]+0.4714045207910317*phiNodal[13]-0.3535533905932737*phiNodal[12]+0.4714045207910317*phiNodal[11]+0.4714045207910317*phiNodal[10]+0.4714045207910317*phiNodal[9]+0.4714045207910317*phiNodal[8]-0.3535533905932737*phiNodal[7]+0.4714045207910317*phiNodal[6]-0.3535533905932737*phiNodal[5]+0.4714045207910317*phiNodal[4]+0.4714045207910317*phiNodal[3]-0.3535533905932737*phiNodal[2]+0.4714045207910317*phiNodal[1]-0.3535533905932737*phiNodal[0]; 
   phi[1] = -(0.06804138174397717*phiNodal[19])+0.06804138174397717*phiNodal[17]+0.27216552697590873*phiNodal[16]-0.27216552697590873*phiNodal[15]-0.06804138174397717*phiNodal[14]+0.06804138174397717*phiNodal[12]+0.27216552697590873*phiNodal[11]-0.27216552697590873*phiNodal[10]+0.27216552697590873*phiNodal[9]-0.27216552697590873*phiNodal[8]-0.06804138174397717*phiNodal[7]+0.06804138174397717*phiNodal[5]+0.27216552697590873*phiNodal[4]-0.27216552697590873*phiNodal[3]-0.06804138174397717*phiNodal[2]+0.06804138174397717*phiNodal[0]; 

@@ -26,6 +26,8 @@
 #include <gkyl_bc_twistshift.h>
 #include <gkyl_bgk_collisions.h>
 #include <gkyl_boundary_flux.h>
+#include <gkyl_const.h>
+#include <gkyl_deflated_fem_poisson.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_canonical_pb_vars.h>
@@ -52,9 +54,8 @@
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_fem_parproj.h>
 #include <gkyl_fem_poisson_bctype.h>
-#include <gkyl_deflated_fem_poisson.h>
-#include <gkyl_ghost_surf_calc.h>
 #include <gkyl_fem_poisson_perp.h>
+#include <gkyl_ghost_surf_calc.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_gk_geometry_tok.h>
@@ -62,8 +63,6 @@
 #include <gkyl_gk_maxwellian_correct.h>
 #include <gkyl_gk_maxwellian_proj_on_basis.h>
 #include <gkyl_gk_maxwellian_moments.h>
-#include <gkyl_tok_geo.h>
-#include <gkyl_velocity_map.h>
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_gyrokinetic_cross_prim_moms_bgk.h>
 #include <gkyl_hyper_dg.h>
@@ -74,6 +73,8 @@
 #include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_null_pool.h>
 #include <gkyl_position_map.h>
+#include <gkyl_positivity_shift_gyrokinetic.h>
+#include <gkyl_positivity_shift_vlasov.h>
 #include <gkyl_prim_lbo_calc.h>
 #include <gkyl_prim_lbo_cross_calc.h>
 #include <gkyl_prim_lbo_gyrokinetic.h>
@@ -84,11 +85,11 @@
 #include <gkyl_radiation_read.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_sheath_rarefaction_pot.h>
 #include <gkyl_spitzer_coll_freq.h>
 #include <gkyl_skin_surf_from_ghost.h>
 #include <gkyl_tok_geo.h>
-#include <gkyl_positivity_shift_gyrokinetic.h>
-#include <gkyl_positivity_shift_vlasov.h>
+#include <gkyl_velocity_map.h>
 #include <gkyl_vlasov_lte_correct.h>
 #include <gkyl_vlasov_lte_moments.h>
 #include <gkyl_vlasov_lte_proj_on_basis.h>
@@ -649,6 +650,7 @@ struct gk_species {
   struct gkyl_dg_calc_gyrokinetic_vars *calc_gk_vars;
 
   struct gk_species_moment m0; // for computing charge density
+  struct gk_species_moment m0m1m2parm2perp_op; // Computes M0, M1, M2par, M2perp.
   struct gk_species_moment integ_moms; // integrated moments
   struct gk_species_moment *moms; // diagnostic moments
   double *red_integ_diag, *red_integ_diag_global; // for reduction of integrated moments
@@ -997,9 +999,17 @@ struct gk_field {
   struct gkyl_bc_twistshift *bc_T_LU_lo; // TS BC updater.
   // Objects used by the skin surface to ghost (SSFG) operator.
   struct gkyl_skin_surf_from_ghost *ssfg_lo;
-  
   // Pointer to function for the twist-and-shift BCs.
   void (*enforce_zbc) (const gkyl_gyrokinetic_app *app, const struct gk_field *field, struct gkyl_array *finout);
+
+  // Objects used to modify the sheath potential and launch rarefaction waves
+  // that enforce the Bohm sheath criterion.
+  bool is_bc_sheath_lo, is_bc_sheath_up;
+  struct gkyl_sheath_rarefaction_pot *sheath_rare_pot[2];
+  void (*sheath_rarefaction_moms_func)(const gkyl_gyrokinetic_app *app, const struct gk_field *field,
+    const struct gkyl_array *fin[]);
+  void (*sheath_rarefaction_mod_func)(const gkyl_gyrokinetic_app *app, const struct gk_field *field,
+    struct gkyl_array *phi);
 };
 
 // Gyrokinetic object: used as opaque pointer in user code.
@@ -1054,6 +1064,13 @@ struct gkyl_gyrokinetic_app {
   // (points to host structs if not on GPU)
   struct gkyl_basis *basis_on_dev; 
 
+  // Objects defining surface grids/basis/ranges/comms.
+  struct gkyl_rect_decomp *decomp_surf[GKYL_MAX_CDIM]; // Surface decomposition object.
+  struct gkyl_comm *comm_surf[GKYL_MAX_CDIM]; // Surface communicator object.
+  struct gkyl_range local_surf[GKYL_MAX_CDIM], local_ext_surf[GKYL_MAX_CDIM]; // local, local-ext surface ranges.
+  struct gkyl_rect_grid grid_surf[GKYL_MAX_CDIM]; // Surface grid.
+  struct gkyl_basis basis_surf[GKYL_MAX_CDIM]; // Surface basis.
+
   struct gk_geometry *gk_geom;
   struct gkyl_array *jacobtot_inv_weak; // 1/(J.B) computed via weak mul and div.
   double omegaH_gf; // Geometry and field model dependent part of omega_H.
@@ -1074,6 +1091,9 @@ struct gkyl_gyrokinetic_app {
 
   bool enforce_positivity; // =true enforces positivity for all species and
                            // enforces quasineutrality of the shift for charged species.
+
+  bool enforce_bohm_sheath; // Enforce the Bohm sheath criterion u_{\paralleli} >= c_s=sqrt((Te+3*Ti)/mi).
+
   struct gkyl_array *ps_delta_m0_ions; // Number density of the total ion positivity shift.
   struct gkyl_array *ps_delta_m0_elcs; // Number density of the total elc positivity shift.
   void (*pos_shift_quasineutrality_func)(gkyl_gyrokinetic_app *app);

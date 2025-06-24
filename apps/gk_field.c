@@ -115,6 +115,52 @@ gk_field_enforce_zbc_none(const gkyl_gyrokinetic_app *app, const struct gk_field
 {
 }
 
+static void
+gk_field_sheath_rarefaction_moms_enabled(const gkyl_gyrokinetic_app *app, const struct gk_field *field,
+  const struct gkyl_array *fin[])
+{
+  // Calculate electron and ion moments for sheath rarefaction mod.
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *s = &app->species[i];
+    gk_species_moment_calc(&s->m0m1m2parm2perp_op, s->local, app->local, fin[i]);
+  }
+}
+
+static void
+gk_field_sheath_rarefaction_moms_disabled(const gkyl_gyrokinetic_app *app, const struct gk_field *field,
+  const struct gkyl_array *fin[])
+{
+}
+
+static void
+gk_field_sheath_rarefaction_mod_enabled(const gkyl_gyrokinetic_app *app, const struct gk_field *field,
+  struct gkyl_array *phi)
+{
+  // Calculate moments for electrons and ions:
+  struct gkyl_array *moms_elc, *moms_ion;
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *s = &app->species[i];
+    if (s->info.charge < 0.0)
+      moms_elc = s->m0m1m2parm2perp_op.marr;
+    else
+      moms_ion = s->m0m1m2parm2perp_op.marr;
+  }
+
+  if (field->is_bc_sheath_lo)
+    gkyl_sheath_rarefaction_pot_advance(field->sheath_rare_pot[0], &app->lower_skin[app->cdim-1], &app->local_surf[app->cdim-1],
+      moms_elc, moms_ion, field->phi_wall_lo, phi);
+
+  if (field->is_bc_sheath_up)
+    gkyl_sheath_rarefaction_pot_advance(field->sheath_rare_pot[1], &app->upper_skin[app->cdim-1], &app->local_surf[app->cdim-1],
+      moms_elc, moms_ion, field->phi_wall_up, phi);
+}
+
+static void
+gk_field_sheath_rarefaction_mod_disabled(const gkyl_gyrokinetic_app *app, const struct gk_field *field,
+  struct gkyl_array *phi)
+{
+}
+
 // initialize field object
 struct gk_field* 
 gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
@@ -436,12 +482,53 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       app->local, app->local, f->flr_rhoSq_sum, f->flr_kSq, flr_bc, NULL, app->use_gpu);
   }
 
-    // twist-and-shift boundary condition for phi and skin surface from ghost to impose phi periodicity at z=-pi
+  // Twist-and-shift boundary condition for phi.
   if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL){
     gk_field_add_TSBC_and_SSFG_updaters(app,f);
     f->enforce_zbc = gk_field_enforce_zbc;
   } else {
     f->enforce_zbc = gk_field_enforce_zbc_none;
+  }
+
+  // Enforce Bohm-sheath BC via a modification of the sheath potential.
+  if (app->enforce_bohm_sheath) {
+    // Find electron and ion mass, and determine if BC is sheath.
+    double mass_elc, mass_ion;
+    f->is_bc_sheath_lo = true, f->is_bc_sheath_up = true;
+    for (int i=0; i<app->num_species; ++i) {
+      struct gk_species *gks = &app->species[i];
+      if (gks->info.charge < 0.0)
+        mass_elc = gks->info.mass;
+      else
+        mass_ion = gks->info.mass;
+
+      const struct gkyl_gyrokinetic_bcs *bc;
+      if (app->cdim == 1)
+        bc = &gks->info.bcx;
+      else if (app->cdim == 2)
+        bc = &gks->info.bcy;
+      else
+        bc = &gks->info.bcz;
+
+      f->is_bc_sheath_lo = f->is_bc_sheath_lo && (bc->lower.type == GKYL_SPECIES_GK_SHEATH);
+      f->is_bc_sheath_up = f->is_bc_sheath_up && (bc->upper.type == GKYL_SPECIES_GK_SHEATH);
+    }
+    assert(f->is_bc_sheath_lo || f->is_bc_sheath_up); // Requires at least one sheath BC.
+    
+    if (f->is_bc_sheath_lo) {
+      f->sheath_rare_pot[0] = gkyl_sheath_rarefaction_pot_new(GKYL_LOWER_EDGE, &app->basis,
+        GKYL_ELEMENTARY_CHARGE, mass_elc, mass_ion, app->use_gpu);
+    }
+    if (f->is_bc_sheath_up) {
+      f->sheath_rare_pot[1] = gkyl_sheath_rarefaction_pot_new(GKYL_UPPER_EDGE, &app->basis,
+        GKYL_ELEMENTARY_CHARGE, mass_elc, mass_ion, app->use_gpu);
+    }
+    f->sheath_rarefaction_moms_func = gk_field_sheath_rarefaction_moms_enabled;
+    f->sheath_rarefaction_mod_func = gk_field_sheath_rarefaction_mod_enabled;
+  }
+  else {
+    f->sheath_rarefaction_moms_func = gk_field_sheath_rarefaction_moms_disabled;
+    f->sheath_rarefaction_mod_func = gk_field_sheath_rarefaction_mod_disabled;
   }
   
   return f;
@@ -491,12 +578,16 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
       s->gyroaverage(app, s, s->m0.marr, s->m0_gyroavg);
 
       gkyl_array_accumulate_range(field->rho_c, s->info.charge, s->m0_gyroavg, &app->local);
+
       if (field->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
         // Add the background (electron) charge density.
         double n_s0 = field->info.electron_density;
         double q_s = field->info.electron_charge;
         gkyl_array_shiftc_range(field->rho_c, q_s*n_s0*sqrt(2.0), 0, &app->local);
       }
+
+      // Compute the moments to enforce the Bohm sheath criterion.
+      field->sheath_rarefaction_moms_func(app, field, fin);
     }
   } 
   app->stat.field_phi_rhs_tm += gkyl_time_diff_now_sec(wst);
@@ -615,6 +706,9 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
       field->enforce_zbc(app, field, field->phi_smooth);
 
     }
+
+    // Enforce the Bohm sheath criterion by modifying the sheath potential.
+    field->sheath_rarefaction_mod_func(app, field, field->phi_smooth);
   }
   app->stat.field_phi_solve_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -814,6 +908,14 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
     gkyl_array_release(f->flr_rhoSq_sum);
     gkyl_array_release(f->flr_kSq);
     gkyl_deflated_fem_poisson_release(f->flr_op);
+  }
+
+  if (app->enforce_bohm_sheath) {
+    if (f->is_bc_sheath_lo)
+      gkyl_sheath_rarefaction_pot_release(f->sheath_rare_pot[0]);
+
+    if (f->is_bc_sheath_up)
+      gkyl_sheath_rarefaction_pot_release(f->sheath_rare_pot[1]);
   }
 
   gkyl_free(f);
