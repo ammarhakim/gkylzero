@@ -505,6 +505,11 @@ struct gk_proj_on_basis_c2p_func_ctx {
 struct gk_proj {
   enum gkyl_projection_id proj_id; // type of projection
   struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
+  // Functions chosen at runtime.
+  void (*projection_calc)(gkyl_gyrokinetic_app *app, struct gk_species *s, 
+    struct gk_proj *proj, struct gkyl_array *f, double tm);
+  void (*moms_correct)(gkyl_gyrokinetic_app *app, struct gk_species *s, 
+    struct gk_proj *proj, struct gkyl_array *f, double tm);
   // organization of the different projection objects and the required data and solvers
   union {
     // function projection

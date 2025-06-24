@@ -337,9 +337,13 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     if (app->use_gpu) {
       f->em_energy_red_new = gkyl_cu_malloc(sizeof(double[1]));
       f->em_energy_red_old = gkyl_cu_malloc(sizeof(double[1]));
+      gkyl_cu_memset(f->em_energy_red_new, 0, sizeof(double[1]));
+      gkyl_cu_memset(f->em_energy_red_old, 0, sizeof(double[1]));
     } else {
       f->em_energy_red_new = gkyl_malloc(sizeof(double[1]));
       f->em_energy_red_old = gkyl_malloc(sizeof(double[1]));
+      memset(f->em_energy_red_new, 0, sizeof(double[1]));
+      memset(f->em_energy_red_old, 0, sizeof(double[1]));
     }
     f->integ_energy_dot = gkyl_dynvec_new(GKYL_DOUBLE, 1);
     f->is_first_energy_dot_write_call = true;

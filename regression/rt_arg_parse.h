@@ -31,7 +31,7 @@ struct gkyl_app_args {
   bool skip_limiters; // should we skip limiters?
   bool is_restart; // is this a restarted sim?
   int restart_frame; // frame to restart from
-  char opt_args[1024]; // optional arguments
+  char opt_args[128]; // optional arguments
 };
 
 static int
@@ -203,6 +203,7 @@ parse_app_args(int argc, char **argv)
         break;        
 
       case 'o':
+        assert(strlen(optarg) < sizeof(args.opt_args));
         strcpy(args.opt_args, optarg);
         break;
 

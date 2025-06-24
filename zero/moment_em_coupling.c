@@ -95,6 +95,26 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
     mom_em->medium_kappa = inp.medium_kappa;
   }
 
+  mom_em->has_gr_ultra_rel_sources = inp.has_gr_ultra_rel_sources;
+  if (mom_em->has_gr_ultra_rel_sources) {
+    mom_em->gr_ultra_rel_gas_gamma = inp.gr_ultra_rel_gas_gamma;
+  }
+
+  mom_em->has_gr_euler_sources = inp.has_gr_euler_sources;
+  if (mom_em->has_gr_euler_sources) {
+    mom_em->gr_euler_gas_gamma = inp.gr_euler_gas_gamma;
+  }
+
+  mom_em->has_gr_twofluid_sources = inp.has_gr_twofluid_sources;
+  if (mom_em->has_gr_twofluid_sources) {
+    mom_em->gr_twofluid_mass_elc = inp.gr_twofluid_mass_elc;
+    mom_em->gr_twofluid_mass_ion = inp.gr_twofluid_mass_ion;
+    mom_em->gr_twofluid_charge_elc = inp.gr_twofluid_charge_elc;
+    mom_em->gr_twofluid_charge_ion = inp.gr_twofluid_charge_ion;
+    mom_em->gr_twofluid_gas_gamma_elc = inp.gr_twofluid_gas_gamma_elc;
+    mom_em->gr_twofluid_gas_gamma_ion = inp.gr_twofluid_gas_gamma_ion;
+  }
+
   return mom_em;
 }
 
