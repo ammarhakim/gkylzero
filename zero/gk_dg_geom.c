@@ -25,6 +25,8 @@ gk_dg_geom_free(const struct gkyl_ref_count *ref)
   for (int d=0; d<dgg->range.ndim; ++d)
     gkyl_array_release(dgg->surf_geom[d]);
 
+  gkyl_array_release(dgg->vol_geom);
+
   if (gk_dg_geom_is_cu_dev(dgg)) 
     gkyl_cu_free(dgg->on_dev); 
 
@@ -50,7 +52,9 @@ gkyl_gk_dg_geom_new(const struct gkyl_gk_dg_geom_inp *inp)
     dgg->surf_geom[d] = gkyl_array_new(GKYL_USER,
       sizeof(struct gkyl_dg_surf_geom[dgg->surf_quad_range.volume]), dgg->range.volume);
 
-  // always compute
+  dgg->vol_geom = gkyl_array_new(GKYL_USER,
+    sizeof(struct gkyl_gk_dg_vol_geom[dgg->vol_quad_range.volume]), dgg->range.volume);
+
   
   dgg->flags = 0;
   GKYL_CLEAR_CU_ALLOC(dgg->flags);

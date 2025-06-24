@@ -23,7 +23,7 @@ GKYL_CU_DH double gyrokinetic_surfx_1x1v_ser_p1(const double *w, const double *d
   out[4] += (0.7071067811865475*GhatL[2]-0.7071067811865475*GhatR[2])*rdx2; 
   out[5] += ((-1.224744871391589*GhatR[2])-1.224744871391589*GhatL[2])*rdx2; 
 
-  double cflFreq = fmax(fabs(alphaL[0]), fabs(alphaR[0])); 
+  double cflFreq = fmax(fabs(flux_surf_l[0]), fabs(flux_surf_r[0])); 
   return 1.060660171779821*rdx2*cflFreq; 
 
 } 

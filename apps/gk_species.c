@@ -84,12 +84,12 @@ gk_species_collisionless_rhs_included(gkyl_gyrokinetic_app *app, struct gk_speci
   // Compute the surface expansion of the phase space flux
   // Note: Each cell stores the *lower* surface expansions of the 
   // phase space flux, so local_ext range needed to index the output
-  // values of alpha_surf even though we only loop over local ranges
+  // values of flux_surf even though we only loop over local ranges
   // to avoid evaluating quantities such as geometry in ghost cells
   // where they are not defined.
-  gkyl_dg_calc_gyrokinetic_vars_alpha_surf(species->calc_gk_vars, 
+  gkyl_dg_calc_gyrokinetic_vars_flux_surf(species->calc_gk_vars, 
     &app->local, &species->local, &app->local_ext, &species->local_ext, 
-    species->gyro_phi, species->alpha_surf, species->sgn_alpha_surf, species->const_sgn_alpha);
+    species->gyro_phi, fin, species->flux_surf);
 
   gkyl_dg_updater_gyrokinetic_advance(species->slvr, &species->local, 
     fin, species->cflrate, rhs);
@@ -1636,7 +1636,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     gks->f_host = mkarr(false, gks->basis.num_basis, gks->local_ext.volume);
   }
 
-  // Need to figure out size of alpha_surf and sgn_alpha_surf by finding size of surface basis set 
+  // Need to figure out size of flux_surf by finding size of surface basis set 
   struct gkyl_basis surf_basis, surf_quad_basis;
   if (app->poly_order > 1) {
     gkyl_cart_modal_serendip(&surf_basis, pdim-1, app->poly_order);
@@ -1652,26 +1652,21 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
       gkyl_cart_modal_tensor(&surf_quad_basis, pdim-1, 2); 
     }
   }
-  int alpha_surf_sz = (cdim+1)*surf_basis.num_basis;
-  int sgn_alpha_surf_sz = (cdim+1)*surf_quad_basis.num_basis; // sign(alpha) is store at quadrature points
+  int flux_surf_sz = (cdim+1)*surf_basis.num_basis;
 
   // Allocate arrays to store fields:
-  // 1. alpha_surf (surface phase space flux)
-  // 2. sgn_alpha_surf (sign(alpha_surf) at quadrature points)
-  // 3. const_sgn_alpha (boolean for if sign(alpha_surf) is a constant, either +1 or -1)
-  gks->alpha_surf = mkarr(app->use_gpu, alpha_surf_sz, gks->local_ext.volume);
-  gks->sgn_alpha_surf = mkarr(app->use_gpu, sgn_alpha_surf_sz, gks->local_ext.volume);
-  gks->const_sgn_alpha = mk_int_arr(app->use_gpu, (cdim+1), gks->local_ext.volume);
+  // 1. flux_surf (surface phase space flux)
+  gks->flux_surf = mkarr(app->use_gpu, flux_surf_sz, gks->local_ext.volume);
   // 4. EM fields: phi and (if EM GK) Apar and d/dt Apar  
   gks->gyro_phi = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   gks->apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   gks->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);    
 
   gks->calc_gk_vars = gkyl_dg_calc_gyrokinetic_vars_new(&gks->grid, &app->basis, &gks->basis, 
-    gks->info.charge, gks->info.mass, gks->gkmodel_id, app->gk_geom, gks->vel_map, app->use_gpu);
+    &surf_basis, gks->info.charge, gks->info.mass, gks->gkmodel_id, app->gk_geom, 
+    app->dg_geom, app->gk_dg_geom, gks->vel_map, app->use_gpu);
 
-  struct gkyl_dg_gyrokinetic_auxfields aux_inp = { .alpha_surf = gks->alpha_surf, 
-    .sgn_alpha_surf = gks->sgn_alpha_surf, .const_sgn_alpha = gks->const_sgn_alpha, 
+  struct gkyl_dg_gyrokinetic_auxfields aux_inp = { .flux_surf = gks->flux_surf, 
     .phi = gks->gyro_phi, .apar = gks->apar, .apardot = gks->apardot };
   // Create collisionless solver.
   gks->slvr = gkyl_dg_updater_gyrokinetic_new(&gks->grid, &app->basis, &gks->basis, 
@@ -2050,9 +2045,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 
   gkyl_velocity_map_release(s->vel_map);
 
-  gkyl_array_release(s->alpha_surf);
-  gkyl_array_release(s->sgn_alpha_surf);
-  gkyl_array_release(s->const_sgn_alpha);
+  gkyl_array_release(s->flux_surf);
   gkyl_array_release(s->gyro_phi);
   gkyl_array_release(s->apar);
   gkyl_array_release(s->apardot);

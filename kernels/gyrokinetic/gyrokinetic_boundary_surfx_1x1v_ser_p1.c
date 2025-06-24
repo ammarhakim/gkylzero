@@ -15,8 +15,8 @@ GKYL_CU_DH double gyrokinetic_boundary_surfx_1x1v_ser_p1(const double *w, const 
 
   double rdx2 = 2.0/dxv[0];
 
-  const double *GhatL = &alpha_surf_skin[0];
-  const double *GhatR = &alpha_surf_edge[0];
+  const double *GhatL = &flux_surf_skin[0];
+  const double *GhatR = &flux_surf_edge[0];
 
   if (edge == -1) { 
 
@@ -38,7 +38,7 @@ GKYL_CU_DH double gyrokinetic_boundary_surfx_1x1v_ser_p1(const double *w, const 
 
   } 
 
-  double cflFreq = fmax(fabs(alphaL[0]), fabs(alphaR[0])); 
+  double cflFreq = fmax(fabs(flux_surf_edge[0]), fabs(flux_surf_skin[0])); 
   return 1.060660171779821*rdx2*cflFreq; 
 
 } 

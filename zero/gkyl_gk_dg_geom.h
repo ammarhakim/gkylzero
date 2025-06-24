@@ -14,15 +14,26 @@ struct gkyl_gk_dg_surf_geom {
   double normcurlbhat; // normal to face perp to direction 'd' dotted with curl(bhat)
   double bmag; // |B| 
   struct gkyl_vec3 bhat; // Covariant components of bhat (b_i)
+  double Jc; // J_c
 };
+
+// Geometry information for a single cell
+struct gkyl_gk_dg_vol_geom {
+  double bmag; // |B|
+  double B3; // n^3 \cdot \vec{B}
+  struct gkyl_vec3 dualcurlbhat; // duals dotted with curl(bhat)
+};
+
 
 // geometry information over a range of cells: 
 struct gkyl_gk_dg_geom {
   struct gkyl_range range; // range over which geometry is defined
   struct gkyl_range surf_quad_range; // range for indexing surface nodes
+  struct gkyl_range vol_quad_range;  // range for indexing volume nodes
 
   
   struct gkyl_array *surf_geom[GKYL_MAX_CDIM]; // surface geometry in dir 'd' in each cell
+  struct gkyl_array *vol_geom; // cell geometry
   
   uint32_t flags;
   struct gkyl_ref_count ref_count;  
@@ -96,6 +107,37 @@ static inline long
 gkyl_gk_dg_geom_surf_quad_idx(const struct gkyl_gk_dg_geom *dgg, const int *idx)
 {
   return gkyl_range_idx(&dgg->surf_quad_range, idx);
+}
+
+/**
+ * Get pointer to geometry in cell given by idx into the range over
+ * which the geometry was constructed. The returned array needs to be
+ * further indexed to fetch the specific struct at a quadrature point
+ *
+ * @param dgg DG geometry object
+ * @param idx Index into grid
+ * @return Pointer to cell geometry at all quadrature nodes in cell @a idx
+ */
+GKYL_CU_DH
+static inline const struct gkyl_gk_dg_vol_geom*
+gkyl_gk_dg_geom_get_vol(const struct gkyl_gk_dg_geom *dgg, const int *idx)
+{
+  return (const struct gkyl_gk_dg_vol_geom*) gkyl_array_cfetch(dgg->vol_geom, gkyl_range_idx(&dgg->range, idx));
+}
+
+/**
+ * Get linear index into volume quadrature node corresponding to
+ * multi-dimensional index @a vidx.
+ *
+ * @param dgg DG geometry object
+ * @param vidx Index of volume quadrature node
+ * @return Linear index for indexing volume quadrature array
+ */
+GKYL_CU_DH
+static inline long
+gkyl_gk_dg_geom_vol_quad_idx(const struct gkyl_gk_dg_geom *dgg, const int *vidx)
+{
+  return gkyl_range_idx(&dgg->vol_quad_range, vidx);
 }
 
 /**

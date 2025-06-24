@@ -7,6 +7,7 @@
 #include <gkyl_velocity_map.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_dg_calc_gyrokinetic_vars_priv.h>
 
 // Object type
 typedef struct gkyl_dg_calc_gyrokinetic_vars gkyl_dg_calc_gyrokinetic_vars;
@@ -30,9 +31,12 @@ typedef struct gkyl_dg_calc_gyrokinetic_vars gkyl_dg_calc_gyrokinetic_vars;
 struct gkyl_dg_calc_gyrokinetic_vars* 
 gkyl_dg_calc_gyrokinetic_vars_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
+  const struct gkyl_basis *surf_basis, 
   const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id, 
-  const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map,
-  bool use_gpu);
+  const struct gk_geometry *gk_geom, 
+  const struct gkyl_dg_geom *dg_geom, 
+  const struct gkyl_gk_dg_geom *gk_dg_geom, 
+  const struct gkyl_velocity_map *vel_map, bool use_gpu);
 
 /**
  * Compute surface expansion of phase space flux alpha
@@ -51,10 +55,10 @@ gkyl_dg_calc_gyrokinetic_vars_new(const struct gkyl_rect_grid *phase_grid,
  * @param const_sgn_alpha Output boolean array for if sign(alpha) is a constant on the surface
  *                        If sign(alpha) is a constant, kernels are simpler and we exploit this fact.
  */
-void gkyl_dg_calc_gyrokinetic_vars_alpha_surf(struct gkyl_dg_calc_gyrokinetic_vars *up, 
+void gkyl_dg_calc_gyrokinetic_vars_flux_surf(struct gkyl_dg_calc_gyrokinetic_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
-  struct gkyl_array* alpha_surf, struct gkyl_array* sgn_alpha_surf, struct gkyl_array* const_sgn_alpha);
+  const struct gkyl_array *fin, struct gkyl_array* flux_surf);
 
 /**
  * Delete pointer to updater to compute gyrokinetic variables.

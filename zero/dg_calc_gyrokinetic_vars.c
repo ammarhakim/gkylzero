@@ -12,9 +12,12 @@
 gkyl_dg_calc_gyrokinetic_vars*
 gkyl_dg_calc_gyrokinetic_vars_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
+  const struct gkyl_basis *surf_basis, 
   const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id, 
-  const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map,
-  bool use_gpu)
+  const struct gk_geometry *gk_geom, 
+  const struct gkyl_dg_geom *dg_geom, 
+  const struct gkyl_gk_dg_geom *gk_dg_geom, 
+  const struct gkyl_velocity_map *vel_map, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
@@ -25,6 +28,8 @@ gkyl_dg_calc_gyrokinetic_vars_new(const struct gkyl_rect_grid *phase_grid,
   gkyl_dg_calc_gyrokinetic_vars *up = gkyl_malloc(sizeof(gkyl_dg_calc_gyrokinetic_vars));
 
   up->phase_grid = *phase_grid;
+  up->surf_basis = *surf_basis;
+  up->phase_basis = *phase_basis;
   int cdim = conf_basis->ndim;
   int pdim = phase_basis->ndim;
   int vdim = pdim - cdim;
@@ -35,20 +40,22 @@ gkyl_dg_calc_gyrokinetic_vars_new(const struct gkyl_rect_grid *phase_grid,
   up->charge = charge;
   up->mass = mass;
   up->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
+  up->dg_geom = gkyl_dg_geom_acquire(dg_geom);
+  up->gk_dg_geom = gkyl_gk_dg_geom_acquire(gk_dg_geom);
   up->vel_map = gkyl_velocity_map_acquire(vel_map);
 
   if (gkmodel_id == GKYL_GK_MODEL_NO_BY) {
     for (int d=0; d<cdim; ++d) {
-      up->alpha_surf[d] = choose_gyrokinetic_alpha_no_by_surf_conf_kern(d, cdim, vdim, poly_order);
-      up->alpha_edge_surf[d] = choose_gyrokinetic_alpha_no_by_edge_surf_conf_kern(d, cdim, vdim, poly_order);
+      up->flux_surf[d] = choose_gyrokinetic_flux_no_by_surf_conf_kern(d, cdim, vdim, poly_order);
+      up->flux_edge_surf[d] = choose_gyrokinetic_flux_no_by_edge_surf_conf_kern(d, cdim, vdim, poly_order);
     }
-    up->alpha_surf[cdim] = choose_gyrokinetic_alpha_no_by_surf_vpar_kern(cdim, vdim, poly_order);
+    up->flux_surfvpar[0] = choose_gyrokinetic_flux_no_by_surf_vpar_kern(cdim, vdim, poly_order);
   } else {
     for (int d=0; d<cdim; ++d) {
-      up->alpha_surf[d] = choose_gyrokinetic_alpha_surf_conf_kern(d, cdim, vdim, poly_order);
-      up->alpha_edge_surf[d] = choose_gyrokinetic_alpha_edge_surf_conf_kern(d, cdim, vdim, poly_order);
+      up->flux_surf[d] = choose_gyrokinetic_flux_surf_conf_kern(d, cdim, vdim, poly_order);
+      up->flux_edge_surf[d] = choose_gyrokinetic_flux_edge_surf_conf_kern(d, cdim, vdim, poly_order);
     }
-    up->alpha_surf[cdim] = choose_gyrokinetic_alpha_surf_vpar_kern(cdim, vdim, poly_order);
+    up->flux_surfvpar[0] = choose_gyrokinetic_flux_surf_vpar_kern(cdim, vdim, poly_order);
   }
 
   up->flags = 0;
@@ -58,10 +65,10 @@ gkyl_dg_calc_gyrokinetic_vars_new(const struct gkyl_rect_grid *phase_grid,
   return up;
 }
 
-void gkyl_dg_calc_gyrokinetic_vars_alpha_surf(struct gkyl_dg_calc_gyrokinetic_vars *up, 
+void gkyl_dg_calc_gyrokinetic_vars_flux_surf(struct gkyl_dg_calc_gyrokinetic_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
-  struct gkyl_array* alpha_surf, struct gkyl_array* sgn_alpha_surf, struct gkyl_array* const_sgn_alpha)
+  const struct gkyl_array *fin, struct gkyl_array* flux_surf)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(alpha_surf)) {
@@ -72,6 +79,7 @@ void gkyl_dg_calc_gyrokinetic_vars_alpha_surf(struct gkyl_dg_calc_gyrokinetic_va
   int pdim = up->pdim;
   int cdim = up->cdim;
   int idx[GKYL_MAX_DIM], idx_edge[GKYL_MAX_DIM], idx_vel[2];
+  int idxL[GKYL_MAX_DIM];
   double xc[GKYL_MAX_DIM];
 
   struct gkyl_range_iter iter;
@@ -96,24 +104,31 @@ void gkyl_dg_calc_gyrokinetic_vars_alpha_surf(struct gkyl_dg_calc_gyrokinetic_va
     const double *vmap_d = gkyl_array_cfetch(up->vel_map->vmap, loc_vel);
     const double *vmapSq_d = gkyl_array_cfetch(up->vel_map->vmap_sq, loc_vel);
 
-    double *alpha_surf_d = gkyl_array_fetch(alpha_surf, loc_phase);
-    double *sgn_alpha_surf_d = gkyl_array_fetch(sgn_alpha_surf, loc_phase);
-    int *const_sgn_alpha_d = gkyl_array_fetch(const_sgn_alpha, loc_phase);
+    double *flux_surf_d = gkyl_array_fetch(flux_surf, loc_phase);
 
     for (int dir = 0; dir<cdim+1; ++dir) {
-      const double *bmag_surf_d, *jacobtot_inv_surf_d, *cmag_surf_d, *b_i_surf_d;
-      if (dir < cdim) {
-        bmag_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[dir].bmag, loc_conf);
-        jacobtot_inv_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[dir].jacobtot_inv, loc_conf);
-        cmag_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[dir].cmag, loc_conf);
-        b_i_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[dir].b_i, loc_conf);
-      }
+        gkyl_copy_int_arr(pdim, idx, idxL);
+        if (dir < cdim)
+          idxL[dir] = idx[dir] - 1;
+        long locL = gkyl_range_idx(phase_range, idxL);
+        const double *fL = gkyl_array_cfetch(fin, locL);
+        const double *fR = gkyl_array_cfetch(fin, loc_phase);
+        const struct gkyl_dg_vol_geom *dgv = gkyl_dg_geom_get_vol(up->dg_geom, idx);
+        const struct gkyl_dg_surf_geom *dgs = gkyl_dg_geom_get_surf(up->dg_geom, dir, idx);
+        const struct gkyl_gk_dg_vol_geom *gkdgv = gkyl_gk_dg_geom_get_vol(up->gk_dg_geom, idx);
+        const struct gkyl_gk_dg_surf_geom *gkdgs = gkyl_gk_dg_geom_get_surf(up->gk_dg_geom, dir, idx);
 
-      const_sgn_alpha_d[dir] = up->alpha_surf[dir](xc, up->phase_grid.dx, 
-        vmap_d, vmapSq_d, up->charge, up->mass,
-        bmag_d, jacobtot_inv_d, cmag_d, b_i_d, 
-        bmag_surf_d, jacobtot_inv_surf_d, cmag_surf_d, b_i_surf_d, 
-        phi_d, alpha_surf_d, sgn_alpha_surf_d);
+      if (dir < cdim) {
+        up->flux_surf[dir](&up->surf_basis, xc, up->phase_grid.dx, 
+          vmap_d, vmapSq_d, up->charge, up->mass,
+          dgs, gkdgs,
+          bmag_d, phi_d,  fL, fR, flux_surf_d);
+      }
+      else {
+        up->flux_surfvpar[0](&up->phase_basis, xc, up->phase_grid.dx, 
+          vmap_d, vmapSq_d, up->charge, up->mass,
+          dgv, gkdgv, bmag_d, phi_d,  fL, fR, flux_surf_d);
+      }
 
       // If the phase space index is at the local configuration space upper value, we
       // we are at the configuration space upper edge and we also need to evaluate 
@@ -126,19 +141,24 @@ void gkyl_dg_calc_gyrokinetic_vars_alpha_surf(struct gkyl_dg_calc_gyrokinetic_va
         long loc_conf_ext = gkyl_range_idx(conf_ext_range, idx_edge);
         long loc_phase_ext = gkyl_range_idx(phase_ext_range, idx_edge);
 
-        bmag_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[dir].bmag, loc_conf_ext);
-        jacobtot_inv_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[dir].jacobtot_inv, loc_conf_ext);
-        cmag_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[dir].cmag, loc_conf_ext);
-        b_i_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[dir].b_i, loc_conf_ext);
+        //bmag_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[dir].bmag, loc_conf_ext);
+        //jacobtot_inv_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[dir].jacobtot_inv, loc_conf_ext);
+        //cmag_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[dir].cmag, loc_conf_ext);
+        //b_i_surf_d = gkyl_array_cfetch(up->gk_geom->geo_surf[dir].b_i, loc_conf_ext);
 
-        double* alpha_surf_ext_d = gkyl_array_fetch(alpha_surf, loc_phase_ext);
-        double* sgn_alpha_surf_ext_d = gkyl_array_fetch(sgn_alpha_surf, loc_phase_ext);
-        int* const_sgn_alpha_ext_d = gkyl_array_fetch(const_sgn_alpha, loc_phase_ext);
-        const_sgn_alpha_ext_d[dir] = up->alpha_edge_surf[dir](xc, up->phase_grid.dx, 
+        const double *fL = gkyl_array_cfetch(fin, loc_phase);
+        const double *fR = gkyl_array_cfetch(fin, loc_phase_ext);
+        const struct gkyl_dg_vol_geom *dgv = gkyl_dg_geom_get_vol(up->dg_geom, idx_edge);
+        const struct gkyl_dg_surf_geom *dgs = gkyl_dg_geom_get_surf(up->dg_geom, dir, idx_edge);
+        const struct gkyl_gk_dg_vol_geom *gkdgv = gkyl_gk_dg_geom_get_vol(up->gk_dg_geom, idx_edge);
+        const struct gkyl_gk_dg_surf_geom *gkdgs = gkyl_gk_dg_geom_get_surf(up->gk_dg_geom, dir, idx_edge);
+
+
+        double* flux_surf_ext_d = gkyl_array_fetch(flux_surf, loc_phase_ext);
+        up->flux_edge_surf[dir](&up->surf_basis, xc, up->phase_grid.dx, 
           vmap_d, vmapSq_d, up->charge, up->mass,
-          bmag_d, jacobtot_inv_d, cmag_d, b_i_d,
-          bmag_surf_d, jacobtot_inv_surf_d, cmag_surf_d, b_i_surf_d,
-          phi_d, alpha_surf_ext_d, sgn_alpha_surf_ext_d);
+          dgs, gkdgs,
+          bmag_d, phi_d, fL, fR, flux_surf_ext_d);
       }  
     }
   }

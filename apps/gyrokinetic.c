@@ -822,9 +822,9 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
         struct gk_species *s = &app->species[i];
 
         // Compute advection speeds so we can compute the initial boundary flux.
-        gkyl_dg_calc_gyrokinetic_vars_alpha_surf(s->calc_gk_vars, 
+        gkyl_dg_calc_gyrokinetic_vars_flux_surf(s->calc_gk_vars, 
           &app->local, &s->local, &app->local_ext, &s->local_ext, app->field->phi_smooth,
-          s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
+          distf[i], s->flux_surf);
 
         // Compute and store (in the ghost cell of out) the boundary fluxes.
         gk_species_bflux_rhs(app, &s->bflux, distf[i], distf[i]);
@@ -874,9 +874,9 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
   // diagnostics and emission BCs may need them.
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *gks = &app->species[i];
-    gkyl_dg_calc_gyrokinetic_vars_alpha_surf(gks->calc_gk_vars,
+    gkyl_dg_calc_gyrokinetic_vars_flux_surf(gks->calc_gk_vars,
       &app->local, &gks->local, &app->local_ext, &gks->local_ext, gks->gyro_phi,
-      gks->alpha_surf, gks->sgn_alpha_surf, gks->const_sgn_alpha);
+      distf[i], gks->flux_surf);
     gk_species_bflux_rhs(app, &gks->bflux, gks->f, gks->f);
   }
 
@@ -2617,9 +2617,9 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
           struct gk_species *s = &app->species[i];
 
           // Compute advection speeds so we can compute the initial boundary flux.
-          gkyl_dg_calc_gyrokinetic_vars_alpha_surf(s->calc_gk_vars, 
+          gkyl_dg_calc_gyrokinetic_vars_flux_surf(s->calc_gk_vars, 
             &app->local, &s->local, &app->local_ext, &s->local_ext, app->field->phi_smooth,
-            s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
+            distf[i], s->flux_surf);
 
           // Compute and store (in the ghost cell of of out) the boundary fluxes.
           gk_species_bflux_rhs(app, &s->bflux, distf[i], distf[i]);
@@ -2641,9 +2641,9 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
       struct gk_species *s = &app->species[i];
 
       // Compute advection speeds so we can compute the initial boundary flux.
-      gkyl_dg_calc_gyrokinetic_vars_alpha_surf(s->calc_gk_vars, 
+      gkyl_dg_calc_gyrokinetic_vars_flux_surf(s->calc_gk_vars, 
         &app->local, &s->local, &app->local_ext, &s->local_ext, app->field->phi_smooth,
-        s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
+        distf[i], s->flux_surf);
 
       // Compute and store (in the ghost cell of of out) the boundary fluxes.
       gk_species_bflux_rhs(app, &s->bflux, distf[i], distf[i]);
