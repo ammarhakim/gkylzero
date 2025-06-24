@@ -33,7 +33,7 @@ LUA_UNITS := $(patsubst %.c,../${BUILD_DIR}/vlasov/%,$(wildcard unit/lctest_*.c)
 UNIT_CU_SRCS =
 UNIT_CU_OBJS =
 ifdef USING_NVCC
-    UNIT_CU_SRCS = unit/ctest_dg_maxwell_cu.cu unit/ctest_dg_vlasov_cu.cu unit/ctest_mom_vlasov_cu.cu
+    UNIT_CU_SRCS = 
     UNIT_CU_OBJS = $(UNIT_CU_SRCS:%=../$(BUILD_DIR)/vlasov/%.o)
 endif
 
@@ -41,10 +41,10 @@ REGS := $(patsubst %.c,../${BUILD_DIR}/vlasov/%,$(wildcard creg/rt_*.c))
 
 KERN_INC_DIRS = $(shell find kernels -type d)
 KERN_INCLUDES = $(addprefix -I,$(KERN_INC_DIRS))
-EXT_INCS := -I${MPI_INC_DIR} -I${NCCL_INC_DIR} -I${CUDSS_INC_DIR} -I${LUA_INC_DIR} -I${LAPACK_INC}
+EXT_INCS := -I${MPI_INC_DIR} -I${NCCL_INC_DIR} -I${CUDSS_INC_DIR} -I${LUA_INC_DIR} -I${LAPACK_INC} -I${SUPERLU_INC}
 CORE_INCS := -I../core/kernels/array_average -I../core/kernels/array_integrate -I../core/kernels/basis -I../core/kernels/bin_op -I../core/kernels/dg_interpolate -I../core/kernels/skin_surf_from_ghost -I../core/apps -I../core/zero -I../core/minus -I../core/minus/STC/include -I../zero
 MOMENTS_INCS := -I../moments/kernels/fem_poisson -I../moments/apps -I../moments/zero
-INCS := ${EXT_INCS} ${CORE_INCS} ${MOMENTS_INCS} -Ikernels -Izero -Iapps -Icreg  $(KERN_INCLUDES)
+INCS := ${EXT_INCS} ${CORE_INCS} ${MOMENTS_INCS} -Ikernels -Izero -Iapps -Icreg $(KERN_INCLUDES)
 
 CORE_LIB_DIR := -L../${BUILD_DIR}/core
 CORE_LIB := -lg0core

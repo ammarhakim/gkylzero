@@ -15,6 +15,11 @@ CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKY
 LDFLAGS = 
 PREFIX ?= ${HOME}/gkylsoft
 
+# Default lapack include and libraries: we prefer linking to static library
+LAPACK_INC = $(PREFIX)/OpenBLAS/include
+LAPACK_LIB_DIR = $(PREFIX)/OpenBLAS/lib
+LAPACK_LIB = -lopenblas
+
 # Include config.mak file (if it exists) to overide defaults above
 -include config.mak
 
@@ -23,11 +28,6 @@ PROJ_NAME ?= gkeyll
 
 # Determine OS we are running on
 UNAME = $(shell uname)
-
-# Default lapack include and libraries: we prefer linking to static library
-LAPACK_INC = $(PREFIX)/OpenBLAS/include
-LAPACK_LIB_DIR = $(PREFIX)/OpenBLAS/lib
-LAPACK_LIB = -lopenblas
 
 # Read ADAS paths and flags if needed 
 USING_ADAS =
