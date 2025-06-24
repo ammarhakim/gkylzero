@@ -114,7 +114,7 @@ gkyl_emission_yield_schou_free(const struct gkyl_ref_count *ref)
 
 // SRIM
 static void
-gkyl_emission_yield_schou_free_srim(const struct gkyl_ref_count *ref)
+gkyl_emission_yield_schou_srim_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_emission_yield_model *yield =
     container_of(ref, struct gkyl_emission_yield_model, ref_count);
@@ -220,7 +220,7 @@ gkyl_emission_yield_schou_yield(double *out, struct gkyl_emission_yield_model *y
 // Schou SEY calculation w/ SRIM
 GKYL_CU_D
 static void
-gkyl_emission_yield_schou_yield_srim(double *out, struct gkyl_emission_yield_model *yield,
+gkyl_emission_yield_schou_srim_yield(double *out, struct gkyl_emission_yield_model *yield,
   double xc[GKYL_MAX_DIM])
 // Ion impact model adapted from https://doi.org/10.1103/PhysRevB.22.2141
 { // No angular dependence atm. Will have to add later
@@ -323,7 +323,7 @@ gkyl_emission_yield_schou_new(double charge, double int_wall, double a2, double 
  * @return New model
  */
 struct gkyl_emission_yield_model*
-gkyl_emission_yield_schou_new_srim(double charge, double int_wall, double lorentz_norm, double E0, double tau, double alpha, 
+gkyl_emission_yield_schou_srim_new(double charge, double int_wall, double lorentz_norm, double E0, double tau, double alpha, 
   double beta, double gauss_norm, double gauss_E0, double gauss_tau, bool use_gpu);
 
 /**
@@ -407,7 +407,7 @@ gkyl_emission_yield_schou_cu_dev_new(double charge, double int_wall, double a2, 
  * @return New model
  */
 struct gkyl_emission_yield_model*
-gkyl_emission_yield_schou_cu_dev_new_srim(double charge, double int_wall, double lorentz_norm, double E0, double tau,
+gkyl_emission_yield_schou_srim_cu_dev_new(double charge, double int_wall, double lorentz_norm, double E0, double tau,
   double alpha, double beta, double gauss_norm, double gauss_E0, double gauss_tau);
 
 /**

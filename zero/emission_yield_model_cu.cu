@@ -23,7 +23,7 @@ schou_set_cu_dev_ptrs(struct gkyl_emission_yield_schou *model)
 __global__ static void
 schou_srim_set_cu_dev_ptrs(struct gkyl_emission_yield_schou_srim *model)
 {
-  model->yield.function = gkyl_emission_yield_schou_yield_srim;
+  model->yield.function = gkyl_emission_yield_schou_srim_yield;
 }
 
 __global__ static void
@@ -95,7 +95,7 @@ gkyl_emission_yield_schou_cu_dev_new(double charge, double int_wall, double a2, 
 }
 
 struct gkyl_emission_yield_model*
-gkyl_emission_yield_schou_cu_dev_new_srim(double charge, double int_wall, double lorentz_norm, double E0, double tau,
+gkyl_emission_yield_schou_srim_cu_dev_new(double charge, double int_wall, double lorentz_norm, double E0, double tau,
   double alpha, double beta, double gauss_norm, double gauss_E0, double gauss_tau)
 {
   struct gkyl_emission_yield_schou_srim *model = (struct gkyl_emission_yield_schou_srim*) 
@@ -114,7 +114,7 @@ gkyl_emission_yield_schou_cu_dev_new_srim(double charge, double int_wall, double
 
   model->yield.flags = 0;
   GKYL_SET_CU_ALLOC(model->yield.flags);
-  model->yield.ref_count = gkyl_ref_count_init(gkyl_emission_yield_schou_free_srim);
+  model->yield.ref_count = gkyl_ref_count_init(gkyl_emission_yield_schou_srim_free);
 
   struct gkyl_emission_yield_schou_srim *model_cu = (struct gkyl_emission_yield_schou_srim*)
     gkyl_cu_malloc(sizeof(struct gkyl_emission_yield_schou_srim));
