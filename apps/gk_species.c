@@ -1282,21 +1282,22 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
       //   - 1x2v for a 2x2v sim.
       //   - 2x2v for a 3x2v sim.
       assert(pdim_do == pdim-1);
+      double tol_eq = 1e-10;
       for (int d=0; d<cdim_do-1; d++) {
-        assert(grid_do.lower[d] == grid.lower[d]);
-        assert(grid_do.upper[d] == grid.upper[d]);
+        assert(gkyl_compare_double(grid_do.lower[d], grid.lower[d], tol_eq));
+        assert(gkyl_compare_double(grid_do.upper[d], grid.upper[d], tol_eq));
+        assert(gkyl_compare_double(grid_do.dx[d]   , grid.dx[d]   , tol_eq));
         assert(grid_do.cells[d] == grid.cells[d]);
-        assert(grid_do.dx[d] == grid.dx[d]);
       }
-      assert(grid_do.lower[cdim_do-1] == grid.lower[cdim-1]);
-      assert(grid_do.upper[cdim_do-1] == grid.upper[cdim-1]);
+      assert(gkyl_compare_double(grid_do.lower[cdim_do-1], grid.lower[cdim-1], tol_eq));
+      assert(gkyl_compare_double(grid_do.upper[cdim_do-1], grid.upper[cdim-1], tol_eq));
+      assert(gkyl_compare_double(grid_do.dx[cdim_do-1]   , grid.dx[cdim-1]   , tol_eq));
       assert(grid_do.cells[cdim_do-1] == grid.cells[cdim-1]);
-      assert(grid_do.dx[cdim_do-1] == grid.dx[cdim-1]);
       for (int d=0; d<vdim; d++) {
-        assert(grid_do.lower[cdim_do+d] == grid.lower[cdim+d]);
-        assert(grid_do.upper[cdim_do+d] == grid.upper[cdim+d]);
+        assert(gkyl_compare_double(grid_do.lower[cdim_do+d], grid.lower[cdim+d], tol_eq));
+        assert(gkyl_compare_double(grid_do.upper[cdim_do+d], grid.upper[cdim+d], tol_eq));
+        assert(gkyl_compare_double(grid_do.dx[cdim_do+d]   , grid.dx[cdim+d]   , tol_eq));
         assert(grid_do.cells[cdim_do+d] == grid.cells[cdim+d]);
-        assert(grid_do.dx[cdim_do+d] == grid.dx[cdim+d]);
       }
     }
 
