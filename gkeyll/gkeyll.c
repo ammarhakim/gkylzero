@@ -129,8 +129,8 @@ static void
 show_banner(FILE *fp)
 {
   if (fp) {
-    fprintf(fp, "Gkeyll built with Git changset %s\n", STRINGIFY(GKYL_GIT_CHANGESET));
-    fprintf(fp, "Gkeyll build on %s\n", STRINGIFY(GKYL_BUILD_DATE));
+    fprintf(fp, "Gkeyll built with Git changeset %s\n", STRINGIFY(GKYL_GIT_CHANGESET));
+    fprintf(fp, "Gkeyll built on %s\n", STRINGIFY(GKYL_BUILD_DATE));
 #ifdef GKYL_HAVE_CUDA
     fprintf(fp, "Built with CUDA\n");
 #else
