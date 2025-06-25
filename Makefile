@@ -185,15 +185,15 @@ ${BUILD_DIR}/gyrokinetic/unit/%:
 ${BUILD_DIR}/pkpm/unit/%:
 	cd pkpm && $(MAKE) -f Makefile-pkpm ../$@
 
-.PHONY: all
+# Declare sub-directories as phony targets
+.PHONY: core moments vlasov gyrokinetic pkpm
+
 all: gkeyll
 	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/share/adas
 
-.PHONY: everything
-everything: gkeyll regression unit ## Build everything, including unit, regression and gkeyll exectuable
+everything: regression unit gkeyll ## Build everything, including unit, regression and gkeyll exectuable
 
 ## Core infrastructure targets
-.PHONY: core core-unit core-clean core-install core-check core-valcheck core-regression
 core:  ## Build core infrastructure code
 	cd core && $(MAKE) -f Makefile-core
 
@@ -217,7 +217,6 @@ core-valcheck: core ## Run valgrind on unit tests in core
 	cd core && $(MAKE) -f Makefile-core valcheck
 
 ## Moments infrastructure targets
-.PHONY: moments moments-unit moments-install moments-clean moments-check moments-valcheck moments-regression
 moments: core  ## Build moments infrastructure code
 	cd moments && $(MAKE) -f Makefile-moments
 
@@ -243,7 +242,6 @@ moments-valcheck: moments ## Run valgrind on unit tests in moments
 	cd moments && $(MAKE) -f Makefile-moments valcheck
 
 ## Vlasov infrastructure targets
-.PHONY: vlasov vlasov-unit vlasov-install vlasov-clean vlasov-check vlasov-valcheck vlasov-regression
 vlasov: moments  ## Build Vlasov infrastructure code
 	cd vlasov && $(MAKE) -f Makefile-vlasov
 
@@ -266,7 +264,6 @@ vlasov-valcheck: vlasov ## Run valgrind on unit tests in Vlasov
 	cd vlasov && $(MAKE) -f Makefile-vlasov valcheck
 
 ## Gyrokinetic infrastructure targets
-.PHONY: gyrokinetic gyrokinetic-unit gyrokinetic-install gyrokinetic-clean gyrokinetic-check gyrokinetic-valcheck gyrokinetic-regression
 gyrokinetic: vlasov  ## Build Gyrokinetic infrastructure code
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic
 
@@ -289,7 +286,6 @@ gyrokinetic-valcheck: gyrokinetic ## Run valgrind on unit tests in Gyrokinetics
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic valcheck
 
 ## PKPM infrastructure targets
-.PHONY: pkpm pkpm-unit pkpm-install pkpm-clean pkpm-check pkpm-valcheck pkpm-regression
 pkpm: gyrokinetic  ## Build PKPM infrastructure code
 	cd pkpm && $(MAKE) -f Makefile-pkpm
 
@@ -312,34 +308,28 @@ pkpm-valcheck: pkpm ## Run valgrind on unit tests in PKPM
 	cd pkpm && $(MAKE) -f Makefile-pkpm valcheck
 
 ## Top-level Gkeyll target
-.PHONY: gkeyll gkeyll-install
 gkeyll: pkpm
 	cd gkeyll && ${MAKE} -f Makefile-gkeyll gkeyll
 
-gkeyll-install: gkeyll pkpm-install
+gkeyll-install: pkpm-install gkeyll
 	cd gkeyll && ${MAKE} -f Makefile-gkeyll install
 
 ## Targets to build things all parts of the code
 
 # build all unit tests 
-.PHONY: unit
 unit: pkpm-unit gyrokinetic-unit vlasov-unit moments-unit core-unit ## Build all unit tests
 
 # build all regression tests 
-.PHONY: regression
 regression: pkpm-regression gyrokinetic-regression vlasov-regression moments-regression core-regression ## Build all regression tests
 
 # Install everything
-.PHONY: install
 install: gkeyll-install  ## Install all code
 
 # Clean everything
-.PHONY: clean
 clean:
 	rm -rf ${BUILD_DIR}
 
 # Check everything
-.PHONY: check
 check: core-check moments-check vlasov-check gyrokinetic-check pkpm-check ## Run all unit tests
 
 # From: https://www.client9.com/self-documenting-makefiles/
