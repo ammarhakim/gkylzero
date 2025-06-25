@@ -91,7 +91,7 @@ void gkyl_dg_calc_gyrokinetic_vars_flux_surf(struct gkyl_dg_calc_gyrokinetic_var
     extend_lo[i] = 0;
     extend_up[i] = 0;
   }
-  extend_lo[cdim] = -1;
+  extend_lo[cdim] = 0;
   extend_up[cdim] = 0;
   gkyl_range_extend(&flux_range, phase_range, extend_lo, extend_up);
 
