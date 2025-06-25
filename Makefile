@@ -3,8 +3,8 @@
 # Type "make help" to see help for this Makefile
 
 # determine date of build
-BUILD_DATE = $(shell date)
-GIT_TIP = $(shell git describe --abbrev=12 --always --dirty=+)
+BUILD_DATE := $(shell date)
+GIT_TIP := $(shell git describe --abbrev=12 --always --dirty=+)
 
 # Build directory
 BUILD_DIR ?= build
@@ -334,7 +334,8 @@ install: gkeyll-install  ## Install all code
 
 # Clean everything
 .PHONY: clean
-clean: core-clean moments-clean vlasov-clean gyrokinetic-clean pkpm-clean ## Clean all builds
+clean:
+	rm -rf ${BUILD_DIR}
 
 # Check everything
 .PHONY: check

@@ -1,6 +1,6 @@
 // Gkyl ------------------------------------------------------------------------
 //
-// Top-level entry point into Gkyl
+// Top-level entry point into Gkeyll
 //    _______     ___
 // + 6 @ |||| # P ||| +
 //------------------------------------------------------------------------------
@@ -125,14 +125,40 @@ get_fname_with_dir(const char *fn)
   return fn;
 }
 
+static void
+show_banner(FILE *fp)
+{
+  if (fp) {
+    fprintf(fp, "Gkeyll built with Git changset %s\n", STRINGIFY(GKYL_GIT_CHANGESET));
+    fprintf(fp, "Gkeyll build on %s\n", STRINGIFY(GKYL_BUILD_DATE));
+#ifdef GKYL_HAVE_CUDA
+    fprintf(fp, "Built with CUDA\n");
+#else
+    fprintf(fp, "Built without CUDA\n");
+#endif
+#ifdef GKYL_HAVE_NCCL
+    fprintf(fp, "Built with NCCL\n");
+#else
+    fprintf(fp, "Built without NCCL\n");
+#endif
+#ifdef GKYL_HAVE_MPI
+    fprintf(fp, "Built with MPI\n\n");
+#else
+    fprintf(fp, "Built without MPI\n\n");
+#endif    
+  }
+}
+
 // show usage
 static void
 show_usage()
 {
   fprintf(stdout, "This is the Gkeyll code. See gkeyll.rtfd.io for details.\n");
-  fprintf(stdout, "Type 'gkyl man' for help.\n\n");
+  fprintf(stdout, "Type 'gkeyll man' for help.\n\n");
 
-  fprintf(stdout, "gkyl [OPTIONS] input-file/tool-name [APP-OPTIONS]\n");
+  show_banner(stdout);
+
+  fprintf(stdout, "gkeyll [OPTIONS] input-file/tool-name [APP-OPTIONS]\n");
   fprintf(stdout, "Available options are\n");
   fprintf(stdout, "  -e chunk   Execute string 'chunk'\n");
   fprintf(stdout, "  -t         Show list of registered tools\n");
@@ -294,34 +320,7 @@ parse_app_args(int argc, char **argv)
   return args;
 }
 
-static void
-show_banner(FILE *fp)
-{
-  if (fp) {
-    time_t t = time(NULL);
-    struct tm *tm = localtime(&t);
-    char s[64];
-    size_t ret = strftime(s, sizeof(s), "%c", tm);
-    fprintf(fp, "%s\n", s);
-    fprintf(fp, "Gkyl built with Git changset %s\n", STRINGIFY(GKYL_GIT_CHANGESET));
-    fprintf(fp, "Gkyl build on %s\n", STRINGIFY(GKYL_BUILD_DATE));
-#ifdef GKYL_HAVE_CUDA
-    fprintf(fp, "Built with CUDA\n");
-#else
-    fprintf(fp, "Built without CUDA\n");
-#endif
-#ifdef GKYL_HAVE_NCCL
-    fprintf(fp, "Built with NCCL\n");
-#else
-    fprintf(fp, "Built without NCCL\n");
-#endif
-#ifdef GKYL_HAVE_MPI
-    fprintf(fp, "Built with MPI\n\n");
-#else
-    fprintf(fp, "Built without MPI\n\n");
-#endif    
-  }
-}
+
 
 int
 main(int argc, char **argv)
