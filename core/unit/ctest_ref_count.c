@@ -22,7 +22,7 @@ range_free(const struct gkyl_ref_count* rc)
 struct range*
 range_new(int value)
 {
-  struct range *rng = gkyl_malloc(sizeof(struct range*));
+  struct range *rng = gkyl_malloc(sizeof(*rng));
   rng->value = value;
   rng->ref_count = (struct gkyl_ref_count) { range_free, 1 };
   return rng;
