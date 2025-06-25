@@ -46,7 +46,7 @@ struct gk_geom_surf {
   struct gkyl_array* bcart_nodal; // 3 components. Cartesian components of magnetic field unit vector b_X, b_Y, b_Z.
 
   struct gkyl_array* B3_nodal; // 1 component n^3 \dot \vec{B} = 1/g_33 
-  struct gkyl_array* lenr_nodal; // 3 components Jc|n^i|
+  struct gkyl_array* lenr_nodal; // 1 components Jc|n^i|
 };
 
 struct gk_geom_corn {

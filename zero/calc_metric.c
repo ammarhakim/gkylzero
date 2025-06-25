@@ -383,8 +383,9 @@ gkyl_calc_metric_advance_rz_interior( gkyl_calc_metric *up, struct gk_geometry *
         dualcurlbhat_n[2] = dualFld_n[6]*curlbhat_n[0] +  dualFld_n[7]*curlbhat_n[1] + dualFld_n[8]*curlbhat_n[2];
 
 
+        // Set e^3 \dot B 
         double *B3_n = gkyl_array_fetch(gk_geom->geo_int.B3_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
-        B3_n[0] = bmag_n[0]/sqrt(gFld_n[5])/norm3;
+        B3_n[0] = bmag_n[0]/sqrt(gFld_n[5]);
       }
     }
   }
@@ -542,12 +543,11 @@ void gkyl_calc_metric_advance_rz_surface( gkyl_calc_metric *up, int dir, struct 
 
         // Set lenr
         double *lenr_n = gkyl_array_fetch(gk_geom->geo_surf[dir].lenr_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-        lenr_n[0] = J*dualmagFld_n[0];
-        lenr_n[1] = J*dualmagFld_n[1];
-        lenr_n[2] = J*dualmagFld_n[2];
+        lenr_n[0] = J*dualmagFld_n[dir];
 
+        // Set n^3 \dot B 
         double *B3_n = gkyl_array_fetch(gk_geom->geo_surf[dir].B3_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-        B3_n[0] = bmag_n[0]/sqrt(gFld_n[5]);
+        B3_n[0] = bmag_n[0]/sqrt(gFld_n[5])/norm3;
 
         // Set n^m \dot curl(bhat) 
         double *curlbhat_n = gkyl_array_fetch(gk_geom->geo_surf[dir].curlbhat_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
