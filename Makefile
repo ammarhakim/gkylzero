@@ -185,6 +185,7 @@ ${BUILD_DIR}/gyrokinetic/unit/%:
 ${BUILD_DIR}/pkpm/unit/%:
 	cd pkpm && $(MAKE) -f Makefile-pkpm ../$@
 
+.PHONY: all
 all: gkeyll
 	${MKDIR_P} ${INSTALL_PREFIX}/${PROJ_NAME}/share/adas
 
