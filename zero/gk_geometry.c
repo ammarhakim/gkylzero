@@ -383,7 +383,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
       gkyl_deflate_geo_surf_advance_nodal(deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count], up_3d->geo_surf[dir].bmag_nodal, up->geo_surf[count].bmag_nodal, 1);
       gkyl_deflate_geo_surf_advance_nodal(deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count], up_3d->geo_surf[dir].jacobgeo_nodal, up->geo_surf[count].jacobgeo_nodal, 1);
       gkyl_deflate_geo_surf_advance_nodal(deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count], up_3d->geo_surf[dir].B3_nodal, up->geo_surf[count].B3_nodal, 1);
-      gkyl_deflate_geo_surf_advance_nodal(deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count], up_3d->geo_surf[dir].normcurlbhat_nodal, up->geo_surf[count].normcurlbhat_nodal, 3);
+      gkyl_deflate_geo_surf_advance_nodal(deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count], up_3d->geo_surf[dir].normcurlbhat_nodal, up->geo_surf[count].normcurlbhat_nodal, 1);
       gkyl_deflate_geo_surf_advance_nodal(deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count], up_3d->geo_surf[dir].b_i_nodal, up->geo_surf[count].b_i_nodal, 3);
       gkyl_deflate_geo_surf_advance_nodal(deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count], up_3d->geo_surf[dir].normals_nodal, up->geo_surf[count].normals_nodal, 9);
       gkyl_deflate_geo_surf_advance_nodal(deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count], up_3d->geo_surf[dir].lenr_nodal, up->geo_surf[count].lenr_nodal, 1);

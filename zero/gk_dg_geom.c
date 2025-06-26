@@ -104,7 +104,7 @@ gkyl_gk_dg_geom_populate_vol(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geo
     int global_nodal_idx[ndim];
     while(gkyl_range_iter_next(&qviter)){
       for (int d=0; d<ndim; ++d)
-        global_nodal_idx[d] = (iter.idx[d]-1)*2 + qviter.idx[d];
+        global_nodal_idx[d] = (iter.idx[d]-gk_geom->local.lower[d])*2 + qviter.idx[d];
       long qvloc = gkyl_range_idx(&dg_geom->vol_quad_range, qviter.idx);
       long global_loc = gkyl_range_idx(&gk_geom->nrange_int, global_nodal_idx);
 
@@ -185,7 +185,7 @@ gkyl_gk_dg_geom_populate_surf(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_ge
       while(gkyl_range_iter_next(&qsiter)){
         int count = 0;
         for (int d=0; d<ndim; ++d) {
-          global_nodal_idx[d] = d == dir ? iter.idx[d]-1 : (iter.idx[d]-1)*2 + qsiter.idx[count];
+          global_nodal_idx[d] = d == dir ? iter.idx[d]-gk_geom->local.lower[d] : (iter.idx[d]-gk_geom->local.lower[d])*2 + qsiter.idx[count];
           if (d != dir) count+=1;
         }
         long qsloc = gkyl_range_idx(&dg_geom->surf_quad_range, qsiter.idx);
@@ -206,7 +206,7 @@ gkyl_gk_dg_geom_populate_surf(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_ge
         gkdgs[qsloc].B3  = global_val[0];
         // set n \dot curl(bhat)
         global_val = gkyl_array_cfetch(gk_geom->geo_surf[dir].normcurlbhat_nodal, global_loc);
-        gkdgs[qsloc].normcurlbhat  = global_val[dir];
+        gkdgs[qsloc].normcurlbhat  = global_val[0];
 
         // set |B|
         global_val = gkyl_array_cfetch(gk_geom->geo_surf[dir].bmag_nodal, global_loc);

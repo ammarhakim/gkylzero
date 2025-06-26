@@ -28,7 +28,7 @@ struct gk_geom_surf {
   struct gkyl_array* mc2p_nodal; // 3 components. Cartesian X,Y, and Z at surf  quad nodes
   struct gkyl_array* bmag_nodal; // 1 component. B Magnitude of magnetic field
   struct gkyl_array* curlbhat_nodal; // Cartesian components of curl(bhat)
-  struct gkyl_array* normcurlbhat_nodal; // 3 components, n^m \dot curl(bhat)
+  struct gkyl_array* normcurlbhat_nodal; // 1 component, n^m \dot curl(bhat)
   struct gkyl_array* jacobgeo_nodal; // 1 component. Configuration space jacobian J
   struct gkyl_array* b_i_nodal; // 3 components. Contravariant components of magnetic field vector b_1, b_2, b_3.
   struct gkyl_array* cmag_nodal; // 1 component. C = JB/sqrt(g_33)

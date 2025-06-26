@@ -62,7 +62,7 @@ gk_geometry_surf_alloc_nodal(struct gk_geometry* gk_geom, int dir)
   gk_geom->geo_surf[dir].bmag_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
   gk_geom->geo_surf[dir].ddtheta_nodal = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_surf[dir].volume);
   gk_geom->geo_surf[dir].curlbhat_nodal = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_surf[dir].volume);
-  gk_geom->geo_surf[dir].normcurlbhat_nodal = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_surf[dir].volume);
+  gk_geom->geo_surf[dir].normcurlbhat_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
   gk_geom->geo_surf[dir].jacobgeo_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
   gk_geom->geo_surf[dir].b_i_nodal = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_surf[dir].volume);
   gk_geom->geo_surf[dir].cmag_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);

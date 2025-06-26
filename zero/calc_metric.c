@@ -552,9 +552,7 @@ void gkyl_calc_metric_advance_rz_surface( gkyl_calc_metric *up, int dir, struct 
         // Set n^m \dot curl(bhat) 
         double *curlbhat_n = gkyl_array_fetch(gk_geom->geo_surf[dir].curlbhat_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
         double *normcurlbhat_n = gkyl_array_fetch(gk_geom->geo_surf[dir].normcurlbhat_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-        normcurlbhat_n[0] = normFld_n[0]*curlbhat_n[0] +  normFld_n[1]*curlbhat_n[1] + normFld_n[2]*curlbhat_n[2];
-        normcurlbhat_n[1] = normFld_n[3]*curlbhat_n[0] +  normFld_n[4]*curlbhat_n[1] + normFld_n[5]*curlbhat_n[2];
-        normcurlbhat_n[2] = normFld_n[6]*curlbhat_n[0] +  normFld_n[7]*curlbhat_n[1] + normFld_n[8]*curlbhat_n[2];
+        normcurlbhat_n[0] = normFld_n[3*dir+0]*curlbhat_n[0] +  normFld_n[3*dir+1]*curlbhat_n[1] + normFld_n[3*dir+2]*curlbhat_n[2];
 
       }
     }
