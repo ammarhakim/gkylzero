@@ -308,17 +308,19 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
     app->species[i].nT_source_is_set = true;
   }
 
-  if (app->field.use_explicit_em_coupling)
+  if (app->field.use_explicit_em_coupling) {
     gkyl_moment_em_coupling_explicit_advance(src->slvr, tcurr, dt, &app->local,
       fluids, app_accels, pr_rhs_const, 
       app->field.f[sidx[nstrang]], app->field.app_current, app->field.app_current1,
       app->field.app_current2, app->field.ext_em, 
       nT_sources, app->field.app_current_proj,nstrang);
-  else
+  }
+  else {
     gkyl_moment_em_coupling_implicit_advance(src->slvr, tcurr, dt, &app->local,
       fluids, app_accels, pr_rhs_const, 
       app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em, 
       nT_sources);
+  }
 
   for (int i=0; i<app->num_species; ++i) {
     moment_species_apply_bc(app, tcurr, &app->species[i], fluids[i]);

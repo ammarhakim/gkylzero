@@ -92,6 +92,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
   sp->has_gr_ultra_rel = false;
   if (mom_sp->has_gr_ultra_rel) {
+    sp->update_sources = true; 
     sp->has_gr_ultra_rel = true;
 
     sp->gr_ultra_rel_gas_gamma = mom_sp->gr_ultra_rel_gas_gamma;
@@ -99,6 +100,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
   sp->has_gr_euler = false;
   if (mom_sp->has_gr_euler) {
+    sp->update_sources = true; 
     sp->has_gr_euler = true;
 
     sp->gr_euler_gas_gamma = mom_sp->gr_euler_gas_gamma;
@@ -106,6 +108,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
   sp->has_gr_twofluid = false;
   if (mom_sp->has_gr_twofluid) {
+    sp->update_sources = true; 
     sp->has_gr_twofluid = true;
 
     sp->gr_twofluid_mass_elc = mom_sp->gr_twofluid_mass_elc;
