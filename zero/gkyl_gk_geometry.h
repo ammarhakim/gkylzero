@@ -99,6 +99,9 @@ struct gk_geom_int {
   struct gkyl_array* gxzj; // 1 component. g^{xz} * J. For poisson solve if z derivatives are kept.
   struct gkyl_array* eps2; // 1 component. eps2 = Jg^33 - J/g_33. For poisson if z derivatives are kept.
   struct gkyl_array* dualcurlbhat; // 3 components, e^m \dot curl(bhat)
+  struct gkyl_array* dualcurlbhatoverB; // 3 components, e^m \dot curl(bhat)/|B|
+  struct gkyl_array* rtg33inv; // 1 component 1/sqrt(g_33)
+  struct gkyl_array*  bioverJB; // 1 component b_i/J/|B|
   
   // Arrays below are just for computation of arrays above
   struct gkyl_array *bmag_nodal;
@@ -138,6 +141,9 @@ struct gk_geom_int {
   struct gkyl_array* b_i_nodal; // 3 components. Covariant components of magnetic field unit vector b_1, b_2, b_3.
   struct gkyl_array* bcart_nodal; // 3 components. Cartesian components of magnetic field unit vector b_X, b_Y, b_Z.
   struct gkyl_array* B3_nodal; // 1 component e^3 \dot \vec{B} = 1/g_33 
+  struct gkyl_array* dualcurlbhatoverB_nodal; // 3 components, e^m \dot curl(bhat)/|B|
+  struct gkyl_array* rtg33inv_nodal; // 1 component 1/sqrt(g_33)
+  struct gkyl_array*  bioverJB_nodal; // 3 components b_i/J/|B|
 
 };
 
