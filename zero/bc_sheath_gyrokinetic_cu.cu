@@ -74,7 +74,7 @@ gkyl_bc_sheath_gyrokinetic_advance_cu_ker(int cdim, int dir, const struct gkyl_r
     const double *vmap_p = (const double*) gkyl_array_cfetch(vmap, vel_loc);
 
     sidx[0] = 1;
-    for (int d=0, d<cdim-1; d++) sidx[d] = pidx[d]; 
+    for (int d=0; d<cdim-1; d++) sidx[d] = pidx[d]; 
     long conf_surf_loc = gkyl_range_idx(&surf_r, sidx);
 
     const double *phi_wall_p = (const double*) gkyl_array_cfetch(phi_wall, conf_surf_loc);

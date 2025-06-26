@@ -42,16 +42,17 @@ gkyl_sheath_rarefaction_pot_advance(const struct gkyl_sheath_rarefaction_pot *up
   }
 #endif
 
-  int idx_surf[GKYL_MAX_CDIM-1];
+  int idx_surf[GKYL_MAX_CDIM];
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, skin_range);
   while (gkyl_range_iter_next(&iter)) {
+    idx_surf[0] = 1;
     for (int d=0; d<skin_range->ndim-1; d++)
       idx_surf[d] = iter.idx[d];
 
     long linidx_vol = gkyl_range_idx(skin_range, iter.idx);
-    long linidx_surf = gkyl_range_idx(surf_range, iter.idx);
+    long linidx_surf = gkyl_range_idx(surf_range, idx_surf);
 
     const double *phiwall_p = (const double*) gkyl_array_cfetch(phi_wall, linidx_surf);
 

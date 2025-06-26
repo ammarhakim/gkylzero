@@ -31,14 +31,13 @@ gkyl_sheath_rarepot_choose_phimod_kernel_cu(const struct gkyl_basis *basis,
 }
 
 __global__ static void
-gkyl_sheath_rarefaction_pot_advance_cu_ker(struct gkyl_range skin_r,
-  struct gkyl_sheath_rarefaction_pot_kernels *kers,
-  double elem_charge,
-  double mass_e, const struct gkyl_array *moms_e, const struct gkyl_array *m2par_e,
-  double mass_i, const struct gkyl_array *moms_i, const struct gkyl_array *m2par_i,
+gkyl_sheath_rarefaction_pot_advance_cu_ker(struct gkyl_range skin_r, struct gkyl_range surf_r,
+  struct gkyl_sheath_rarefaction_pot_kernels *kers, double elem_charge,
+  double mass_e, const struct gkyl_array *moms_e, double mass_i, const struct gkyl_array *moms_i, 
   const struct gkyl_array *phi_wall, struct gkyl_array *phi)
 {
-  int cidx[3];
+  int cidx[GKYL_MAX_CDIM];
+  int idx_surf[GKYL_MAX_CDIM];
 
   for(unsigned long linc = threadIdx.x + blockIdx.x*blockDim.x;
       linc < skin_r.volume; linc += blockDim.x*gridDim.x) {
@@ -49,29 +48,33 @@ gkyl_sheath_rarefaction_pot_advance_cu_ker(struct gkyl_range skin_r,
 
     gkyl_sub_range_inv_idx(&skin_r, linc, cidx);
 
-    long loc = gkyl_range_idx(&skin_r, cidx);
+    idx_surf[0] = 1;
+    for (int d=0; d<skin_r.ndim-1; d++)
+      idx_surf[d] = cidx[d];
 
-    const double *momse_p = (const double*) gkyl_array_cfetch(moms_e, loc);
-    const double *m2pare_p = (const double*) gkyl_array_cfetch(m2par_e, loc);
-    const double *momsi_p = (const double*) gkyl_array_cfetch(moms_i, loc);
-    const double *m2pari_p = (const double*) gkyl_array_cfetch(m2par_i, loc);
-    const double *phiwall_p = (const double*) gkyl_array_cfetch(phi_wall, loc);
-    double *phi_p = (double*) gkyl_array_fetch(phi, loc);
+    long linidx_vol = gkyl_range_idx(&skin_r, cidx);
+    long linidx_surf = gkyl_range_idx(&surf_r, idx_surf);
+
+    const double *momse_p = (const double*) gkyl_array_cfetch(moms_e, linidx_vol);
+    const double *momsi_p = (const double*) gkyl_array_cfetch(moms_i, linidx_vol);
+    const double *phiwall_p = (const double*) gkyl_array_cfetch(phi_wall, linidx_surf);
+
+    double *phi_p = (double*) gkyl_array_fetch(phi, linidx_vol);
 
     // Modify the potential at the boundary to account for rarefaction wave.
-    kers->phimod(elem_charge, mass_e, momse_p, m2pare_p, mass_i, momsi_p, m2pari_p, phiwall_p, phi_p);
+    kers->phimod(elem_charge, mass_e, momse_p, mass_i, momsi_p, phiwall_p, phi_p);
   }
 }
 
 void
 gkyl_sheath_rarefaction_pot_advance_cu(const struct gkyl_sheath_rarefaction_pot *up,
-  const struct gkyl_array *moms_e, const struct gkyl_array *m2par_e,
-  const struct gkyl_array *moms_i, const struct gkyl_array *m2par_i,
+  const struct gkyl_range *skin_range, const struct gkyl_range *surf_range,
+  const struct gkyl_array *moms_e, const struct gkyl_array *moms_i,
   const struct gkyl_array *phi_wall, struct gkyl_array *phi)
 {
-  int nblocks = up->skin_r.nblocks, nthreads = up->skin_r.nthreads;
+  int nblocks = skin_range->nblocks, nthreads = skin_range->nthreads;
 
-  gkyl_sheath_rarefaction_pot_advance_cu_ker<<<nblocks, nthreads>>>(up->skin_r, 
-    up->kernels_cu, up->elem_charge, up->mass_e, moms_e->on_dev, m2par_e->on_dev,
-    up->mass_i, moms_i->on_dev, m2par_i->on_dev, phi_wall->on_dev, phi->on_dev);
+  gkyl_sheath_rarefaction_pot_advance_cu_ker<<<nblocks, nthreads>>>(*skin_range,
+    *surf_range, up->kernels, up->elem_charge, up->mass_e, moms_e->on_dev,
+    up->mass_i, moms_i->on_dev, phi_wall->on_dev, phi->on_dev);
 }

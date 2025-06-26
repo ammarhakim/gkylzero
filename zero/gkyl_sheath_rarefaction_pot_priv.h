@@ -59,11 +59,14 @@ struct gkyl_sheath_rarefaction_pot {
   struct gkyl_sheath_rarefaction_pot_kernels *kernels;
 };
 
+#ifdef GKYL_HAVE_CUDA
 void
 gkyl_sheath_rarepot_choose_phimod_kernel_cu(const struct gkyl_basis *basis, enum gkyl_edge_loc edge,
   struct gkyl_sheath_rarefaction_pot_kernels *kers);
+#endif
 
-void
+GKYL_CU_D
+static void
 sheath_rarepot_choose_phimod_kernel(const struct gkyl_basis *basis, enum gkyl_edge_loc edge,
   struct gkyl_sheath_rarefaction_pot_kernels *kers, bool use_gpu)
 {

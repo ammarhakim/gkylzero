@@ -89,8 +89,10 @@ bc_gksheath_reflect(int dir, const struct gkyl_basis *basis, int cdim, double *o
  * @param phi_wall Wall potential.
  * @param distf Distribution function array to apply BC to.
  * @param conf_r Configuration space range (to index phi).
+ * @param surf_r Configuration space surface range (to index phi_wall).
  */
 void gkyl_bc_sheath_gyrokinetic_advance_cu(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi,
-  const struct gkyl_array *phi_wall, struct gkyl_array *distf, const struct gkyl_range *conf_r);
+  const struct gkyl_array *phi_wall, struct gkyl_array *distf, const struct gkyl_range *conf_r,
+  const struct gkyl_range *surf_r);
 
 #endif
