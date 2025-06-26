@@ -59,7 +59,7 @@ unit: ${LLIB} ${SLLIB} $(UNITS) ${MPI_UNITS} ${LUA_UNITS} ## Build unit tests
 regression: ${LLIB} ${SLLIB} ${REGS} ## Build regression tests
 
 .PHONY: all
-all: $(LLIB) $(SLLIB) ## Build all targets
+all: $(LLIB) ## Build all targets
 .DEFAULT_GOAL := all
 
 # SQLITE needs special flags

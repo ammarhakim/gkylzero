@@ -175,7 +175,7 @@ include ../vlasov/vlasovlinkobjs.mak
 include ../gyrokinetic/gyrokineticlinkobjs.mak
 
 # build lib
-$(LLIB): $(OBJS)
+$(LLIB): $(OBJS) ../$(BUILD_DIR)/vlasov/libg0vlasov.so
 	$(MKDIR_P) $(dir $@)
 
 ifeq ($(UNAME),Linux)

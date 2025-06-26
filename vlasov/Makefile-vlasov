@@ -153,7 +153,7 @@ include ../moments/momentslinkobjs.mak
 include ../vlasov/vlasovlinkobjs.mak
 
 # build lib
-$(LLIB): $(OBJS)
+$(LLIB): $(OBJS) ../$(BUILD_DIR)/moments/libg0moments.so
 	$(MKDIR_P) $(dir $@)
 
 ifeq ($(UNAME),Linux)
