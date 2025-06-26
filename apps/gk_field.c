@@ -147,12 +147,12 @@ gk_field_sheath_rarefaction_mod_enabled(const gkyl_gyrokinetic_app *app, const s
   }
 
   if (field->is_bc_sheath_lo)
-    gkyl_sheath_rarefaction_pot_advance(field->sheath_rare_pot[0], &app->lower_skin[app->cdim-1], &app->local_surf[app->cdim-1],
-      moms_elc, moms_ion, field->phi_wall_lo, phi);
+    gkyl_sheath_rarefaction_pot_advance(field->sheath_rare_pot[0], &app->lower_skin[app->cdim-1],
+      &app->local_surf[app->cdim-1], moms_elc, moms_ion, field->phi_wall_lo, phi);
 
   if (field->is_bc_sheath_up)
-    gkyl_sheath_rarefaction_pot_advance(field->sheath_rare_pot[1], &app->upper_skin[app->cdim-1], &app->local_surf[app->cdim-1],
-      moms_elc, moms_ion, field->phi_wall_up, phi);
+    gkyl_sheath_rarefaction_pot_advance(field->sheath_rare_pot[1], &app->upper_skin[app->cdim-1],
+      &app->local_surf[app->cdim-1], moms_elc, moms_ion, field->phi_wall_up, phi);
 }
 
 static void
@@ -392,7 +392,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   }
 
   // setup biased lower wall (same size as electrostatic potential), by default is 0.0
-  f->phi_wall_lo = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  f->phi_wall_lo = mkarr(app->use_gpu, app->basis_surf[app->cdim-1].num_basis, app->local_ext_surf[app->cdim-1].volume);
   f->has_phi_wall_lo = false;
   f->phi_wall_lo_evolve = false;
   if (f->info.phi_wall_lo) {
@@ -404,17 +404,17 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     if (app->use_gpu) 
       f->phi_wall_lo_host = mkarr(false, f->phi_wall_lo->ncomp, f->phi_wall_lo->size);
 
-    f->phi_wall_lo_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis, 
+    f->phi_wall_lo_proj = gkyl_eval_on_nodes_new(&app->grid_surf[app->cdim-1], &app->basis_surf[app->cdim-1], 
       1, f->info.phi_wall_lo, f->info.phi_wall_lo_ctx);
 
     // Compute phi_wall_lo at t = 0
-    gkyl_eval_on_nodes_advance(f->phi_wall_lo_proj, 0.0, &app->local_ext, f->phi_wall_lo_host);
+    gkyl_eval_on_nodes_advance(f->phi_wall_lo_proj, 0.0, &app->local_ext_surf[app->cdim-1], f->phi_wall_lo_host);
     if (app->use_gpu) // note: phi_wall_lo_host is same as phi_wall_lo when not on GPUs
       gkyl_array_copy(f->phi_wall_lo, f->phi_wall_lo_host);
   }
 
   // setup biased upper wall (same size as electrostatic potential), by default is 0.0
-  f->phi_wall_up = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  f->phi_wall_up = mkarr(app->use_gpu, app->basis_surf[app->cdim-1].num_basis, app->local_ext_surf[app->cdim-1].volume);
   f->has_phi_wall_up = false;
   f->phi_wall_up_evolve = false;
   if (f->info.phi_wall_up) {
@@ -426,11 +426,11 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     if (app->use_gpu) 
       f->phi_wall_up_host = mkarr(false, f->phi_wall_up->ncomp, f->phi_wall_up->size);
 
-    f->phi_wall_up_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis,
+    f->phi_wall_up_proj = gkyl_eval_on_nodes_new(&app->grid_surf[app->cdim-1], &app->basis_surf[app->cdim-1],
       1, f->info.phi_wall_up, f->info.phi_wall_up_ctx);
 
     // Compute phi_wall_up at t = 0
-    gkyl_eval_on_nodes_advance(f->phi_wall_up_proj, 0.0, &app->local_ext, f->phi_wall_up_host);
+    gkyl_eval_on_nodes_advance(f->phi_wall_up_proj, 0.0, &app->local_ext_surf[app->cdim-1], f->phi_wall_up_host);
     if (app->use_gpu) // note: phi_wall_up_host is same as phi_wall_up when not on GPUs
       gkyl_array_copy(f->phi_wall_up, f->phi_wall_up_host);
   }
@@ -538,12 +538,12 @@ void
 gk_field_calc_phi_wall(gkyl_gyrokinetic_app *app, struct gk_field *field, double tm)
 {
   if (field->has_phi_wall_lo && field->phi_wall_lo_evolve) {
-    gkyl_eval_on_nodes_advance(field->phi_wall_lo_proj, tm, &app->local_ext, field->phi_wall_lo_host);
+    gkyl_eval_on_nodes_advance(field->phi_wall_lo_proj, tm, &app->local_ext_surf[app->cdim-1], field->phi_wall_lo_host);
     if (app->use_gpu) // note: phi_wall_lo_host is same as phi_wall_lo when not on GPUs
       gkyl_array_copy(field->phi_wall_lo, field->phi_wall_lo_host);
   }
   if (field->has_phi_wall_up && field->phi_wall_up_evolve) {
-    gkyl_eval_on_nodes_advance(field->phi_wall_up_proj, tm, &app->local_ext, field->phi_wall_up_host);
+    gkyl_eval_on_nodes_advance(field->phi_wall_up_proj, tm, &app->local_ext_surf[app->cdim-1], field->phi_wall_up_host);
     if (app->use_gpu) // note: phi_wall_up_host is same as phi_wall_up when not on GPUs
       gkyl_array_copy(field->phi_wall_up, field->phi_wall_up_host);
   }

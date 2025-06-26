@@ -46,17 +46,19 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
 /* Modeled after gkyl_array_flip_copy_to_buffer_fn */
 void
 gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi,
-  const struct gkyl_array *phi_wall, struct gkyl_array *distf, const struct gkyl_range *conf_r)
+  const struct gkyl_array *phi_wall, struct gkyl_array *distf, const struct gkyl_range *conf_r,
+  const struct gkyl_range *surf_r)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    gkyl_bc_sheath_gyrokinetic_advance_cu(up, phi, phi_wall, distf, conf_r);
+    gkyl_bc_sheath_gyrokinetic_advance_cu(up, phi, phi_wall, distf, conf_r, surf_r);
     return;
   }
 #endif
 
   int fidx[GKYL_MAX_DIM]; // Flipped index.
   int vidx[2];
+  int sidx[GKYL_MAX_CDIM]; // Surface index.
 
   int pdim = up->skin_r->ndim; 
   int vpar_dir = up->cdim;
@@ -78,12 +80,18 @@ gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, 
     double *out = (double*) gkyl_array_fetch(distf, ghost_loc);
 
     for (int d=up->cdim; d<pdim; d++) vidx[d-up->cdim] = iter.idx[d]; 
+
     long conf_loc = gkyl_range_idx(conf_r, iter.idx);
     long vel_loc = gkyl_range_idx(&up->vel_map->local_vel, vidx);
 
     const double *phi_p = (const double*) gkyl_array_cfetch(phi, conf_loc);
-    const double *phi_wall_p = (const double*) gkyl_array_cfetch(phi_wall, conf_loc);
     const double *vmap_p = (const double*) gkyl_array_cfetch(up->vel_map->vmap, vel_loc);
+
+    sidx[0] = 1;
+    for (int d=0; d<up->cdim-1; d++) sidx[d] = iter.idx[d]; 
+    long conf_surf_loc = gkyl_range_idx(surf_r, sidx);
+
+    const double *phi_wall_p = (const double*) gkyl_array_cfetch(phi_wall, conf_surf_loc);
 
     // Calculate reflected distribution function fhat.
     // note: reflected distribution can be

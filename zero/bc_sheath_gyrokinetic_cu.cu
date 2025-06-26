@@ -33,13 +33,14 @@ gkyl_bc_gksheath_choose_reflectedf_kernel_cu(const struct gkyl_basis *basis,
 
 __global__ static void
 gkyl_bc_sheath_gyrokinetic_advance_cu_ker(int cdim, int dir, const struct gkyl_range skin_r, const struct gkyl_range ghost_r,
-  const struct gkyl_range conf_r, const struct gkyl_range vel_r, const struct gkyl_basis *basis,
-  const struct gkyl_array *vmap, double q2Dm, const struct gkyl_array *phi,
+  const struct gkyl_range conf_r, const struct gkyl_range surf_r, const struct gkyl_range vel_r,
+  const struct gkyl_basis *basis, const struct gkyl_array *vmap, double q2Dm, const struct gkyl_array *phi,
   const struct gkyl_array *phi_wall, struct gkyl_bc_sheath_gyrokinetic_kernels *kers, struct gkyl_array *distf)
 {
   int fidx[GKYL_MAX_DIM]; // Flipped index.
   int pidx[GKYL_MAX_DIM];
   int vidx[2];
+  int sidx[GKYL_MAX_CDIM]; // Surface index.
 
   int pdim = skin_r.ndim;
   int vpar_dir = cdim;
@@ -70,8 +71,13 @@ gkyl_bc_sheath_gyrokinetic_advance_cu_ker(int cdim, int dir, const struct gkyl_r
     long vel_loc = gkyl_range_idx(&vel_r, vidx);
 
     const double *phi_p = (const double*) gkyl_array_cfetch(phi, conf_loc);
-    const double *phi_wall_p = (const double*) gkyl_array_cfetch(phi_wall, conf_loc);
     const double *vmap_p = (const double*) gkyl_array_cfetch(vmap, vel_loc);
+
+    sidx[0] = 1;
+    for (int d=0, d<cdim-1; d++) sidx[d] = pidx[d]; 
+    long conf_surf_loc = gkyl_range_idx(&surf_r, sidx);
+
+    const double *phi_wall_p = (const double*) gkyl_array_cfetch(phi_wall, conf_surf_loc);
 
     // Calculate reflected distribution function fhat.
     // note: reflected distribution can be
@@ -88,13 +94,14 @@ gkyl_bc_sheath_gyrokinetic_advance_cu_ker(int cdim, int dir, const struct gkyl_r
 
 void
 gkyl_bc_sheath_gyrokinetic_advance_cu(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi,
-  const struct gkyl_array *phi_wall, struct gkyl_array *distf, const struct gkyl_range *conf_r)
+  const struct gkyl_array *phi_wall, struct gkyl_array *distf, const struct gkyl_range *conf_r,
+  const struct gkyl_range *surf_r)
 {
   if (up->skin_r->volume > 0) {
     int nblocks = up->skin_r->nblocks, nthreads = up->skin_r->nthreads;
 
     gkyl_bc_sheath_gyrokinetic_advance_cu_ker<<<nblocks, nthreads>>>(up->cdim, up->dir, *up->skin_r, *up->ghost_r,
-      *conf_r, up->vel_map->local_vel, up->basis, up->vel_map->vmap->on_dev, up->q2Dm, phi->on_dev, phi_wall->on_dev,
-      up->kernels_cu, distf->on_dev);
+      *conf_r, *surf_r, up->vel_map->local_vel, up->basis, up->vel_map->vmap->on_dev, up->q2Dm,
+      phi->on_dev, phi_wall->on_dev, up->kernels_cu, distf->on_dev);
   }
 }

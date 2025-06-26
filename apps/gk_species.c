@@ -237,11 +237,11 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
       switch (species->lower_bc[d].type) {
         case GKYL_SPECIES_GK_SHEATH:
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_lo, app->field->phi_smooth, 
-            app->field->phi_wall_lo, f, &app->local);
+            app->field->phi_wall_lo, f, &app->local, &app->local_surf[d]);
           break;
         case GKYL_SPECIES_GK_IWL:
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_lo, app->field->phi_smooth, 
-            app->field->phi_wall_lo, f, &app->local);
+            app->field->phi_wall_lo, f, &app->local, &app->local_surf[d]);
           if (cdim == 3) {
             gkyl_bc_twistshift_advance(species->bc_ts_lo, f, f);
           }
@@ -263,11 +263,11 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
       switch (species->upper_bc[d].type) {
         case GKYL_SPECIES_GK_SHEATH:
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_up, app->field->phi_smooth, 
-            app->field->phi_wall_up, f, &app->local);
+            app->field->phi_wall_up, f, &app->local, &app->local_surf[d]);
           break;
         case GKYL_SPECIES_GK_IWL:
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_up, app->field->phi_smooth, 
-            app->field->phi_wall_up, f, &app->local);
+            app->field->phi_wall_up, f, &app->local, &app->local_surf[d]);
           if (cdim == 3) {
             gkyl_bc_twistshift_advance(species->bc_ts_up, f, f);
           }
