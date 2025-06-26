@@ -40,6 +40,9 @@ momentApp = Moments.App.new {
   cflFrac = cfl_frac,
   schemeType = G0.SchemeType.MP,
 
+  -- Decomposition for configuration space.
+  decompCuts = { 1 }, -- Cuts in each coodinate direction (x-direction only).
+
   -- Boundary conditions for configuration space.
   periodicDirs = { 1 }, -- Periodic directions (x-direction only).
       

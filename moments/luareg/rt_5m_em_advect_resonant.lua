@@ -51,8 +51,11 @@ momentApp = Moments.App.new {
   cells = { Nx },
   cflFrac = cfl_frac,
 
+  -- Decomposition for configuration space.
+  decompCuts = { 1 }, -- Cuts in each coodinate direction (x-direction only).
+  
   -- Boundary conditions for configuration space.
-  periodicDirs = { 1 }, -- Periodic directions (none).
+  periodicDirs = { 1 }, -- Periodic directions (x-direction only).
 
   -- Electrons.
   elc = Moments.Species.new {

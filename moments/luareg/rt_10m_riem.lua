@@ -67,6 +67,9 @@ momentApp = Moments.App.new {
     { 0.0, nu_base_ei },
     { nu_base_ei, 0.0 }
   },
+
+  -- Decomposition for configuration space.
+  decompCuts = { 1 }, -- Cuts in each coodinate direction (x-direction only).
   
   -- Boundary conditions for configuration space.
   periodicDirs = { }, -- Periodic directions (none).
