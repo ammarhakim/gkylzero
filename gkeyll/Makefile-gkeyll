@@ -40,7 +40,7 @@ LDFLAGS += -Wl,-rpath,./${BUILD_DIR}/pkpm
 
 INSTALLED_LDFLAGS += -Wl,-rpath,${PROJ_INSTALL_LIB_DIR}
 
-gkeyll: gkeyll.c
+gkeyll: gkeyll.c ../$(BUILD_DIR)/pkpm/libg0pkpm.so 
 	$(MKDIR_P) ../${BUILD_DIR}/gkeyll/
 	${CC} ${CFLAGS} ${LDFLAGS} -o ../${BUILD_DIR}/gkeyll/gkeyll $< -I. ${ALL_INCS} ${EXT_INCS} ${APP_LW_INCS} ${LDFLAGS} ${EXEC_LIB_DIRS} ${FINAL_APP_LIB_DIR} ${FINAL_APP_LIB} ${EXEC_EXT_LIBS}
 

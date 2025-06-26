@@ -103,7 +103,7 @@ include ../gyrokinetic/gyrokineticlinkobjs.mak
 include ../pkpm/pkpmlinkobjs.mak
 
 # build lib
-$(LLIB): $(OBJS)
+$(LLIB): $(OBJS) ../$(BUILD_DIR)/gyrokinetic/libg0gyrokinetic.so
 	$(MKDIR_P) $(dir $@)
 
 ifeq ($(UNAME),Linux)

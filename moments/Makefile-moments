@@ -108,7 +108,7 @@ include ../core/corelinkobjs.mak
 include ../moments/momentslinkobjs.mak
 
 # build lib
-$(LLIB): $(OBJS)
+$(LLIB): $(OBJS) ../$(BUILD_DIR)/core/libg0core.so
 	$(MKDIR_P) $(dir $@)
 
 ifeq ($(UNAME),Linux)
