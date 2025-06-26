@@ -47,6 +47,20 @@ struct gkyl_emission_yield_schou {
   double nw;
 };
 
+// Schou model container (SRIM stopping power)
+struct gkyl_emission_yield_schou_srim {
+  struct gkyl_emission_yield_model yield;
+  double int_wall;
+  double lorentz_norm;
+  double E0;
+  double tau;
+  double alpha;
+  double beta;
+  double gauss_norm;
+  double gauss_E0;
+  double gauss_tau;
+};
+
 // Constant yield model container
 struct gkyl_emission_yield_constant {
   struct gkyl_emission_yield_model yield;
@@ -95,6 +109,24 @@ gkyl_emission_yield_schou_free(const struct gkyl_ref_count *ref)
 
   struct gkyl_emission_yield_schou *model = container_of(yield,
     struct gkyl_emission_yield_schou, yield);
+  gkyl_free(model);
+}
+
+// SRIM
+static void
+gkyl_emission_yield_schou_srim_free(const struct gkyl_ref_count *ref)
+{
+  struct gkyl_emission_yield_model *yield =
+    container_of(ref, struct gkyl_emission_yield_model, ref_count);
+
+  if (gkyl_emission_yield_model_is_cu_dev(yield)) {
+    struct gkyl_emission_yield_schou_srim *model = container_of(yield->on_dev,
+      struct gkyl_emission_yield_schou_srim, yield);
+    gkyl_cu_free(model);
+  }
+
+  struct gkyl_emission_yield_schou_srim *model = container_of(yield,
+    struct gkyl_emission_yield_schou_srim, yield);
   gkyl_free(model);
 }
 
@@ -185,6 +217,47 @@ gkyl_emission_yield_schou_yield(double *out, struct gkyl_emission_yield_model *y
   out[0] =  eps*nw*fabs(charge)*int_wall/1.0e19;
 }
 
+// Schou SEY calculation w/ SRIM
+GKYL_CU_D
+static void
+gkyl_emission_yield_schou_srim_yield(double *out, struct gkyl_emission_yield_model *yield,
+  double xc[GKYL_MAX_DIM])
+// Ion impact model adapted from https://doi.org/10.1103/PhysRevB.22.2141
+{ // No angular dependence atm. Will have to add later
+  const struct gkyl_emission_yield_schou_srim *model = container_of(yield,
+    struct gkyl_emission_yield_schou_srim, yield);
+  int cdim = yield->cdim;
+  int vdim = yield->vdim;
+  double mass = yield->mass;
+  double charge = yield->charge;
+  double int_wall = model->int_wall;
+  double lorentz_norm = model->lorentz_norm;
+  double E0 = model->E0;
+  double tau = model->tau;
+  double alpha = model->alpha;
+  double beta = model->beta;
+  double gauss_norm = model->gauss_norm;
+  double gauss_E0 = model->gauss_E0;
+  double gauss_tau = model->gauss_tau;
+
+  double E = 0.0;
+  for (int d=0; d<vdim; d++) {
+    E += 0.5*mass*xc[cdim+d]*xc[cdim+d]/fabs(charge)/1000;  // Calculate energy in keV
+  }
+
+  double Si_e = 1 / (1 + (pow(log(E/E0), 2) / (2.0 * pow(tau, 2)))); // Electronic stopping power
+  if (E <= E0) {
+    Si_e = pow(Si_e, alpha);
+  }
+  else {
+    Si_e = pow(Si_e, beta);
+  }
+
+  double Si_n = exp(-pow(log(E/gauss_E0), 2)/(2.0*pow(gauss_tau, 2))); // Nuclear stopping power
+
+  out[0] = (Si_e*lorentz_norm + Si_n*gauss_norm)*int_wall;
+}
+
 // Fixed constant SEY
 GKYL_CU_D
 static void
@@ -232,6 +305,26 @@ gkyl_emission_yield_furman_pivi_new(double charge, double deltahat_ts, double Eh
 struct gkyl_emission_yield_model*
 gkyl_emission_yield_schou_new(double charge, double int_wall, double a2, double a3, double a4,
   double a5, double nw, bool use_gpu);
+
+/**
+ * Create the emission yield model using Schou (SRIM ion stopping power)
+ *
+ * @param charge Elementary charge, used for eV units
+ * @param int_wall Fitting parameter
+ * @param lorentz_norm Normalization of electronic stopping power
+ * @param E0 Fitting parameter (electronic stopping)
+ * @param tau Fitting parameter (electronic stopping)
+ * @param alpha Fitting parameter (electronic stopping)
+ * @param beta Fitting parameter (electronic stopping)
+ * @param gauss_norm Normaliation of nuclear stopping power
+ * @param gauss_E0 Fitting parameter (nuclear stopping)
+ * @param gauss_tau Fitting parameter (nuclear stopping)
+ * @param use_gpu bool to determine if on GPU
+ * @return New model
+ */
+struct gkyl_emission_yield_model*
+gkyl_emission_yield_schou_srim_new(double charge, double int_wall, double lorentz_norm, double E0, double tau, double alpha, 
+  double beta, double gauss_norm, double gauss_E0, double gauss_tau, bool use_gpu);
 
 /**
  * Create the emission yield model using a constant yield
@@ -296,6 +389,26 @@ gkyl_emission_yield_furman_pivi_cu_dev_new(double charge, double deltahat_ts, do
 struct gkyl_emission_yield_model*
 gkyl_emission_yield_schou_cu_dev_new(double charge, double int_wall, double a2, double a3,
   double a4, double a5, double nw);
+
+/**
+ * Create the emission yield model using Schou (SRIM stopping power) on NV-GPU
+ *
+ * @param charge Elementary charge, used for eV units
+ * @param int_wall Fitting parameter
+ * @param lorentz_norm Normalization of electronic stopping power
+ * @param E0 Fitting parameter (electronic stopping)
+ * @param tau Fitting parameter (electronic stopping)
+ * @param alpha Fitting parameter (electronic stopping)
+ * @param beta Fitting parameter (electronic stopping)
+ * @param gauss_norm Normalization of nuclear stopping power
+ * @param gauss_E0 Fitting parameter (nuclear stopping)
+ * @param gauss_tau Fitting parameter (nuclear stopping)
+ * @param use_gpu bool to determine if on GPU
+ * @return New model
+ */
+struct gkyl_emission_yield_model*
+gkyl_emission_yield_schou_srim_cu_dev_new(double charge, double int_wall, double lorentz_norm, double E0, double tau,
+  double alpha, double beta, double gauss_norm, double gauss_E0, double gauss_tau);
 
 /**
  * Create the emission yield model using a constant yield on NV-GPU

@@ -855,7 +855,8 @@ neutronstar_excision_region(const struct gkyl_gr_spacetime* spacetime, const dou
 
   double r = sqrt(((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z)));
 
-  if (r <= (mass * (1.0 + sqrt(1.0 - (spin * spin))))) {
+  //if (r <= (mass * (1.0 + sqrt(1.0 + (spin * spin))))) {
+  if (r <= mass * 2.0) {
     *in_excision_region = true;
   }
   else {
@@ -902,6 +903,10 @@ gkyl_gr_neutronstar_inew(const struct gkyl_gr_neutronstar_inp* inp)
 
   gr_neutronstar->mass = inp->mass;
   gr_neutronstar->spin = inp->spin;
+
+  gr_neutronstar->mass_quadrupole = inp->mass_quadrupole;
+  gr_neutronstar->spin_octupole = inp->spin_octupole;
+  gr_neutronstar->mass_hexadecapole = inp->mass_hexadecapole;
 
   gr_neutronstar->pos_x = inp->pos_x;
   gr_neutronstar->pos_y = inp->pos_y;

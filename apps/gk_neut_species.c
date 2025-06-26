@@ -750,10 +750,6 @@ gk_neut_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
 
     // Perform some basic checks.
     if (pdim_do == pdim) {
-      for (int d=0; d<pdim; d++) {
-        assert(grid_do.lower[d] == grid.lower[d]);
-        assert(grid_do.upper[d] == grid.upper[d]);
-      }
       // Check if the grid resolution is the same.
       for (int d=0; d<pdim; d++)
         same_res = same_res && (grid_do.cells[d] == grid.cells[d]);
@@ -764,21 +760,22 @@ gk_neut_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
       //   - 1x3v for a 2x3v sim.
       //   - 2x3v for a 3x3v sim.
       assert(pdim_do == pdim-1);
+      double tol_eq = 1e-10;
       for (int d=0; d<cdim_do-1; d++) {
-        assert(grid_do.lower[d] == grid.lower[d]);
-        assert(grid_do.upper[d] == grid.upper[d]);
+        assert(gkyl_compare_double(grid_do.lower[d], grid.lower[d], tol_eq));
+        assert(gkyl_compare_double(grid_do.upper[d], grid.upper[d], tol_eq));
+        assert(gkyl_compare_double(grid_do.dx[d]   , grid.dx[d]   , tol_eq));
         assert(grid_do.cells[d] == grid.cells[d]);
-        assert(grid_do.dx[d] == grid.dx[d]);
       }
-      assert(grid_do.lower[cdim_do-1] == grid.lower[cdim-1]);
-      assert(grid_do.upper[cdim_do-1] == grid.upper[cdim-1]);
+      assert(gkyl_compare_double(grid_do.lower[cdim_do-1], grid.lower[cdim-1], tol_eq));
+      assert(gkyl_compare_double(grid_do.upper[cdim_do-1], grid.upper[cdim-1], tol_eq));
+      assert(gkyl_compare_double(grid_do.dx[cdim_do-1]   , grid.dx[cdim-1]   , tol_eq));
       assert(grid_do.cells[cdim_do-1] == grid.cells[cdim-1]);
-      assert(grid_do.dx[cdim_do-1] == grid.dx[cdim-1]);
       for (int d=0; d<vdim; d++) {
-        assert(grid_do.lower[cdim_do+d] == grid.lower[cdim+d]);
-        assert(grid_do.upper[cdim_do+d] == grid.upper[cdim+d]);
+        assert(gkyl_compare_double(grid_do.lower[cdim_do+d], grid.lower[cdim+d], tol_eq));
+        assert(gkyl_compare_double(grid_do.upper[cdim_do+d], grid.upper[cdim+d], tol_eq));
+        assert(gkyl_compare_double(grid_do.dx[cdim_do+d]   , grid.dx[cdim+d]   , tol_eq));
         assert(grid_do.cells[cdim_do+d] == grid.cells[cdim+d]);
-        assert(grid_do.dx[cdim_do+d] == grid.dx[cdim+d]);
       }
     }
 
@@ -849,7 +846,7 @@ gk_neut_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
   rstat.io_status = gkyl_comm_array_read(comm_do, &grid_do, &local_do, fdo_host, inp.file_name);
 
   bool scale_by_jacobgeo = false;
-  with_file(fp, inp.jacobgeo_inv_file_name, "r") {
+  with_file(fp, inp.jacobtot_inv_file_name, "r") {
     // Set up configuration space donor grid and basis
     struct gkyl_rect_grid conf_grid_do;
     gkyl_rect_grid_init(&conf_grid_do, cdim_do, grid_do.lower, grid_do.upper, grid_do.cells);
@@ -864,7 +861,7 @@ gk_neut_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
     gkyl_cart_modal_serendip(&conf_basis_do, cdim_do, poly_order);
     // Array for Jacobian inverse
     struct gkyl_array *jacobgeo_inv_do_host = mkarr(false, conf_basis_do.num_basis, conf_local_ext_do.volume);
-    rstat.io_status = gkyl_comm_array_read(comm_do, &conf_grid_do, &conf_local_do, jacobgeo_inv_do_host, inp.jacobgeo_inv_file_name);
+    rstat.io_status = gkyl_comm_array_read(comm_do, &conf_grid_do, &conf_local_do, jacobgeo_inv_do_host, inp.jacobtot_inv_file_name);
     gkyl_dg_mul_conf_phase_op_range(&conf_basis_do, &basis_do, fdo_host, jacobgeo_inv_do_host, fdo_host, &conf_local_ext_do, &local_ext_do);
     gkyl_array_release(jacobgeo_inv_do_host);
     gkyl_rect_decomp_release(conf_decomp_do);

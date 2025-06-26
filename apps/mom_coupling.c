@@ -23,8 +23,8 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       .type = app->species[i].eqn_type,
       .charge = app->species[i].charge,
       .mass = app->species[i].mass,
-      // If gradient-based closure is present, k0=0.0 in source solve to avoid applying local closure
-      .k0 = app->species[i].has_grad_closure ? 0.0 : app->species[i].k0,
+      // If gradient-based or neural network-based closure is present, k0=0.0 in source solve to avoid applying local closure.
+      .k0 = (app->species[i].has_grad_closure || app->species[i].has_nn_closure) ? 0.0 : app->species[i].k0,
     };
 
   src_inp.has_collision = app->has_collision;
@@ -112,6 +112,45 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     }
   }
 
+  src_inp.has_gr_ultra_rel_sources = false;
+  for (int i = 0; i < app->num_species; i++) {
+    if (app->species[i].has_gr_ultra_rel) {
+      src_inp.has_gr_ultra_rel_sources = true;
+
+      if (app->species[i].gr_ultra_rel_gas_gamma != 0.0) {
+        src_inp.gr_ultra_rel_gas_gamma = app->species[i].gr_ultra_rel_gas_gamma;
+      }
+    }
+  }
+
+  src_inp.has_gr_euler_sources = false;
+  for (int i = 0; i < app->num_species; i++) {
+    if (app->species[i].has_gr_euler) {
+      src_inp.has_gr_euler_sources = true;
+
+      if (app->species[i].gr_euler_gas_gamma != 0.0) {
+        src_inp.gr_euler_gas_gamma = app->species[i].gr_euler_gas_gamma;
+      }
+    }
+
+    src_inp.has_gr_twofluid_sources = false;
+    for (int i = 0; i < app->num_species; i++) {
+      if (app->species[i].has_gr_twofluid) {
+        src_inp.has_gr_twofluid_sources = true;
+
+        if (app->species[i].gr_twofluid_mass_elc != 0.0 || app->species[i].gr_twofluid_mass_ion != 0.0 || app->species[i].gr_twofluid_charge_elc != 0.0 ||
+          app->species[i].gr_twofluid_charge_ion != 0.0 || app->species[i].gr_twofluid_gas_gamma_elc != 0.0 || app->species[i].gr_twofluid_gas_gamma_ion != 0.0) {
+          src_inp.gr_twofluid_mass_elc = app->species[i].gr_twofluid_mass_elc;
+          src_inp.gr_twofluid_mass_ion = app->species[i].gr_twofluid_mass_ion;
+          src_inp.gr_twofluid_charge_elc = app->species[i].gr_twofluid_charge_elc;
+          src_inp.gr_twofluid_charge_ion = app->species[i].gr_twofluid_charge_ion;
+          src_inp.gr_twofluid_gas_gamma_elc = app->species[i].gr_twofluid_gas_gamma_elc;
+          src_inp.gr_twofluid_gas_gamma_ion = app->species[i].gr_twofluid_gas_gamma_ion;
+        }
+      }
+    }
+  }
+
   // save the use-rel bool
   src_inp.use_rel = use_rel;
 
@@ -138,14 +177,27 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
   for (int n=0;  n<app->num_species; ++n)
     src->non_ideal_vars[n] = mkarr(false, 10, src->non_ideal_local_ext.volume);
 
-  // check if gradient-closure is present
-  for (int i=0; i<app->num_species; ++i) {
+  // Check whether gradient-based closure is present.
+  for (int i = 0; i < app->num_species; i++) {
     if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_grad_closure) {
       struct gkyl_ten_moment_grad_closure_inp grad_closure_inp = {
         .grid = &app->grid,
         .k0 = app->species[i].k0,
       };
       src->grad_closure_slvr[i] = gkyl_ten_moment_grad_closure_new(grad_closure_inp);
+    }
+  }
+
+  // Check whether neural network-based closure is present.
+  for (int i = 0; i < app->num_species; i++) {
+    if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_nn_closure) {
+      struct gkyl_ten_moment_nn_closure_inp nn_closure_inp = {
+        .grid = &app->grid,
+        .k0 = app->species[i].k0,
+        .poly_order = app->species[i].poly_order,
+        .ann = app->species[i].ann,
+      };
+      src->nn_closure_slvr[i] = gkyl_ten_moment_nn_closure_new(nn_closure_inp);
     }
   }
 
@@ -201,12 +253,19 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
     app_accels[i] = app->species[i].app_accel;
 
     if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_grad_closure) {
-      // non-ideal variables defined on an extended range with one additional "cell" in each direction
-      // this additional cell accounts for the fact that non-ideal variables are stored at cell vertices
+      // Non-ideal variables are defined on an extended range with one additional "cell" in each direction.
+      // This additional cell accounts for the fact that non-ideal variables are stored at cell vertices.
       gkyl_ten_moment_grad_closure_advance(src->grad_closure_slvr[i],
         &src->non_ideal_local_ext, &app->local,
         app->species[i].f[sidx[nstrang]], app->field.f[sidx[nstrang]],
         src->non_ideal_cflrate[i], src->non_ideal_vars[i], src->pr_rhs[i]);
+    }
+
+    if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_nn_closure) {
+      // Non-ideal variables are defined on an extended range with one additional "cell" in each direction.
+      // This additional cell accounts for the fact that non-ideal variables are stored at cell vertices.
+      gkyl_ten_moment_nn_closure_advance(src->nn_closure_slvr[i], &src->non_ideal_local_ext, &app->local, app->species[i].f[sidx[nstrang]],
+        app->field.f[sidx[nstrang]], src->non_ideal_vars[i], src->pr_rhs[i]);
     }
   }
 
@@ -278,8 +337,12 @@ moment_coupling_release(const struct gkyl_moment_app *app, const struct moment_c
     gkyl_array_release(src->pr_rhs[i]);
     gkyl_array_release(src->non_ideal_cflrate[i]);
     gkyl_array_release(src->non_ideal_vars[i]);
-    if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_grad_closure)
+    if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_grad_closure) {
       gkyl_ten_moment_grad_closure_release(src->grad_closure_slvr[i]);
+    }
+    if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_nn_closure) {
+      gkyl_ten_moment_nn_closure_release(src->nn_closure_slvr[i]);
+    }
   }
 }
 
