@@ -395,7 +395,7 @@ gkyl_calc_metric_advance_rz_interior( gkyl_calc_metric *up, struct gk_geometry *
 
         // set B^3/B = 1/sqrt(g_33)
         double *rtg33inv_n = gkyl_array_fetch(gk_geom->geo_int.rtg33inv_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
-        rtg33inv_n[0] = 1/sqrt(gFld_n[5]);
+        rtg33inv_n[0] = 1.0/sqrt(gFld_n[5]);
 
         // set b_i/JB
         double* bioverJB_n = gkyl_array_fetch(gk_geom->geo_int.bioverJB_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
