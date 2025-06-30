@@ -31,8 +31,10 @@ GKYL_CU_DH double gyrokinetic_flux_no_by_edge_surfz_3x2v_ser_p1(
   double hamil[48] = {0.}; 
   hamil[0] = 2.449489742783178*phi[3]*q_+1.414213562373095*(phi[0]*q_+vmapSq[0]*m_)+vmap[2]*(1.732050807568877*bmag[3]+bmag[0]); 
   hamil[1] = (2.449489742783178*phi[5]+1.414213562373095*phi[1])*q_+vmap[2]*(1.732050807568877*bmag[5]+bmag[1]); 
+  hamil[2] = (2.449489742783178*phi[6]+1.414213562373095*phi[2])*q_; 
   hamil[3] = 1.414213562373095*vmapSq[1]*m_; 
   hamil[4] = (1.732050807568877*bmag[3]+bmag[0])*vmap[3]; 
+  hamil[5] = (2.449489742783178*phi[7]+1.414213562373095*phi[4])*q_; 
   hamil[8] = vmap[3]*(1.732050807568877*bmag[5]+bmag[1]); 
   hamil[16] = 1.414213562373095*vmapSq[2]*m_; 
 
