@@ -147,11 +147,11 @@ gk_field_sheath_rarefaction_mod_enabled(const gkyl_gyrokinetic_app *app, const s
   }
 
   if (field->is_bc_sheath_lo)
-    gkyl_sheath_rarefaction_pot_advance(field->sheath_rare_pot[0], &app->lower_skin[app->cdim-1],
+    gkyl_sheath_rarefaction_pot_advance(field->sheath_rare_pot[0], &app->global_lower_skin[app->cdim-1],
       &app->local_surf[app->cdim-1], moms_elc, moms_ion, field->phi_wall_lo, phi);
 
   if (field->is_bc_sheath_up)
-    gkyl_sheath_rarefaction_pot_advance(field->sheath_rare_pot[1], &app->upper_skin[app->cdim-1],
+    gkyl_sheath_rarefaction_pot_advance(field->sheath_rare_pot[1], &app->global_upper_skin[app->cdim-1],
       &app->local_surf[app->cdim-1], moms_elc, moms_ion, field->phi_wall_up, phi);
 }
 
