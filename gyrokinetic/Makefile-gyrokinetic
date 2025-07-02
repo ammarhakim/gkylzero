@@ -1,6 +1,6 @@
 # -*- makefile-gmake -*-
 
-SRC_DIRS := kernels zero apps data/adas
+SRC_DIRS := $(KERNELS_DIR) zero apps data/adas
 UNIT_DIRS := unit
 
 PREFIX ?= ${HOME}/gkylsoft
@@ -39,13 +39,10 @@ endif
 
 REGS := $(patsubst %.c,../${BUILD_DIR}/gyrokinetic/%,$(wildcard creg/rt_*.c))
 
-KERN_INC_DIRS = $(shell find kernels -type d)
+KERN_INC_DIRS = $(shell find $(KERNELS_DIR) -type d)
 KERN_INCLUDES = $(addprefix -I,$(KERN_INC_DIRS))
 EXT_INCS := -I${MPI_INC_DIR} -I${NCCL_INC_DIR} -I${CUDSS_INC_DIR} -I${LUA_INC_DIR} -I${LAPACK_INC} -I${SUPERLU_INC}
-CORE_INCS := -I../core/kernels/array_average -I../core/kernels/array_integrate -I../core/kernels/basis -I../core/kernels/bin_op -I../core/kernels/dg_interpolate -I../core/kernels/skin_surf_from_ghost -I../core/apps -I../core/zero -I../core/minus -I../core/minus/STC/include -I../zero
-MOMENTS_INCS := -I../moments/kernels/fem_poisson -I../moments/apps -I../moments/zero
-VLASOV_INCS := -I../vlasov/kernels/advection -I../vlasov/kernels/canonical_pb -I../vlasov/kernels/dg_diffusion_fluid -I../vlasov/kernels/dg_diffusion_gen -I../vlasov/kernels/dg_diffusion_vlasov -I../vlasov/kernels/euler -I../vlasov/kernels/fpo -I../vlasov/kernels/lbo_vlasov -I../vlasov/kernels/maxwell -I../vlasov/kernels/sr_vlasov -I../vlasov/kernels/vlasov -I../vlasov/kernels/vlasov_poisson -I../vlasov/kernels/positivity_shift_vlasov -I../vlasov/apps -I../vlasov/zero
-INCS := ${EXT_INCS} ${CORE_INCS} ${MOMENTS_INCS} ${VLASOV_INCS} -Ikernels -Izero -Iapps -Icreg -Idata/adas $(KERN_INCLUDES)
+INCS := ${EXT_INCS} ${CORE_INCS} ${MOMENTS_INCS} ${VLASOV_INCS} -I$(KERNELS_DIR) -Izero -Iapps -Icreg -Idata/adas $(KERN_INCLUDES)
 
 CORE_LIB_DIR := -L../${BUILD_DIR}/core
 CORE_LIB := -lg0core
@@ -99,71 +96,71 @@ $(REGS): ../${BUILD_DIR}/gyrokinetic/creg/%: creg/%.c $(LLIB) $(SLLIB)
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCS) ${EXEC_LIB_DIRS} ${EXEC_LIBS}
 
 ifdef USING_NVCC
-../$(BUILD_DIR)/gyrokinetic/kernels/ambi_bolt_potential/%.c.o : kernels/ambi_bolt_potential/%.c
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/ambi_bolt_potential/%.c.o : $(KERNELS_DIR)/ambi_bolt_potential/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/gyrokinetic/kernels/bgk_gyrokinetic/%.c.o : kernels/bgk_gyrokinetic/%.c
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/bgk_gyrokinetic/%.c.o : $(KERNELS_DIR)/bgk_gyrokinetic/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/gyrokinetic/kernels/deflate_geo/%.c.o : kernels/deflate_geo/%.c
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/deflate_geo/%.c.o : $(KERNELS_DIR)/deflate_geo/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/gyrokinetic/kernels/deflate_surf/%.c.o : kernels/deflate_surf/%.c
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/deflate_surf/%.c.o : $(KERNELS_DIR)/deflate_surf/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/gyrokinetic/kernels/derived_geo/%.c.o : kernels/derived_geo/%.c
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/derived_geo/%.c.o : $(KERNELS_DIR)/derived_geo/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/gyrokinetic/kernels/dg_diffusion_gyrokinetic/%.c.o : kernels/dg_diffusion_gyrokinetic/%.c
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/dg_diffusion_gyrokinetic/%.c.o : $(KERNELS_DIR)/dg_diffusion_gyrokinetic/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/gyrokinetic/kernels/fem_parproj/%.c.o : kernels/fem_parproj/%.c
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/fem_parproj/%.c.o : $(KERNELS_DIR)/fem_parproj/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/gyrokinetic/kernels/fem_poisson_perp/%.c.o : kernels/fem_poisson_perp/%.c
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/fem_poisson_perp/%.c.o : $(KERNELS_DIR)/fem_poisson_perp/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/gyrokinetic/kernels/gyrokinetic/%.c.o : kernels/gyrokinetic/%.c
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/gyrokinetic/%.c.o : $(KERNELS_DIR)/gyrokinetic/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/gyrokinetic/kernels/gyrokinetic_pol_density/%.c.o : kernels/gyrokinetic_pol_density/%.c
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/gyrokinetic_pol_density/%.c.o : $(KERNELS_DIR)/gyrokinetic_pol_density/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/gyrokinetic/kernels/inflate_surf/%.c.o : kernels/inflate_surf/%.c
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/inflate_surf/%.c.o : $(KERNELS_DIR)/inflate_surf/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/gyrokinetic/kernels/lbo_gyrokinetic/%.c.o : kernels/lbo_gyrokinetic/%.c
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/lbo_gyrokinetic/%.c.o : $(KERNELS_DIR)/lbo_gyrokinetic/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/gyrokinetic/kernels/neutral/%.c.o : kernels/neutral/%.c
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/neutral/%.c.o : $(KERNELS_DIR)/neutral/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/gyrokinetic/kernels/positivity_shift_gyrokinetic/%.c.o : kernels/positivity_shift_gyrokinetic/%.c
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/positivity_shift_gyrokinetic/%.c.o : $(KERNELS_DIR)/positivity_shift_gyrokinetic/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/gyrokinetic/kernels/rad/%.c.o : kernels/rad/%.c
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/rad/%.c.o : $(KERNELS_DIR)/rad/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/gyrokinetic/kernels/translate_dim/%.c.o : kernels/translate_dim/%.c
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/translate_dim/%.c.o : $(KERNELS_DIR)/translate_dim/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/gyrokinetic/kernels/twistshift/%.c.o : kernels/twistshift/%.c
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/twistshift/%.c.o : $(KERNELS_DIR)/twistshift/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 endif
@@ -201,7 +198,7 @@ valcheck: unit ## Run valgrind on unit test
 -include $(DEPS)
 
 # Headers to install
-INSTALL_HEADERS := $(shell ls kernels/*/gkyl_*.h apps/gkyl_*.h zero/gkyl_*.h data/adas/*.h | grep -v "priv" | sort)
+INSTALL_HEADERS := $(shell ls $(KERNELS_DIR)/*/gkyl_*.h apps/gkyl_*.h zero/gkyl_*.h data/adas/*.h | grep -v "priv" | sort)
 
 .PHONY: install
 install: all

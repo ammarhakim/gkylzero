@@ -1,6 +1,6 @@
 # -*- makefile-gmake -*-
 
-SRC_DIRS := zero kernels apps amr
+SRC_DIRS := zero $(KERNELS_DIR) apps amr
 UNIT_DIRS := unit
 
 PREFIX ?= ${HOME}/gkylsoft
@@ -40,11 +40,10 @@ endif
 REGS := $(patsubst %.c,../${BUILD_DIR}/moments/%,$(wildcard creg/rt_*.c))
 AMR_REGS := $(patsubst %.c,../${BUILD_DIR}/moments/%,$(wildcard amr_creg/rt_*.c))
 
-KERN_INC_DIRS = $(shell find kernels -type d)
+KERN_INC_DIRS = $(shell find $(KERNELS_DIR) -type d)
 KERN_INCLUDES = $(addprefix -I,$(KERN_INC_DIRS))
 EXT_INCS := -I${MPI_INC_DIR} -I${NCCL_INC_DIR} -I${CUDSS_INC_DIR} -I${LUA_INC_DIR} -I${LAPACK_INC} -I${SUPERLU_INC}
-CORE_INCS := -I../core/kernels/array_average -I../core/kernels/array_integrate -I../core/kernels/basis -I../core/kernels/bin_op -I../core/kernels/dg_interpolate -I../core/kernels/skin_surf_from_ghost -I../core/apps -I../core/zero -I../core/minus -I../core/minus/STC/include -I../zero
-INCS := ${EXT_INCS} ${CORE_INCS} -Ikernels -Izero -Iapps -Icreg -Iamr $(KERN_INCLUDES)
+INCS := ${EXT_INCS} ${CORE_INCS} -I$(KERNELS_DIR) -Izero -Iapps -Icreg -Iamr $(KERN_INCLUDES)
 
 CORE_LIB_DIR := -L../${BUILD_DIR}/core
 CORE_LIB := -lg0core
@@ -98,7 +97,7 @@ $(AMR_REGS): ../${BUILD_DIR}/moments/amr_creg/%: amr_creg/%.c $(LLIB) $(SLLIB)
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCS) ${EXEC_LIB_DIRS} ${EXEC_LIBS}
 
 ifdef USING_NVCC
-../$(BUILD_DIR)/moments/kernels/fem_poisson/%.c.o : kernels/fem_poisson/%.c
+../$(BUILD_DIR)/moments/$(KERNELS_DIR)/fem_poisson/%.c.o : $(KERNELS_DIR)/fem_poisson/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 endif
@@ -134,7 +133,7 @@ valcheck: unit ## Run valgrind on unit test
 -include $(DEPS)
 
 # Headers to install
-INSTALL_HEADERS := $(shell ls apps/gkyl_*.h zero/gkyl_*.h amr/gkyl_*.h kernels/*/gkyl_*.h | grep -v "priv" | sort)
+INSTALL_HEADERS := $(shell ls apps/gkyl_*.h zero/gkyl_*.h amr/gkyl_*.h $(KERNELS_DIR)/*/gkyl_*.h | grep -v "priv" | sort)
 
 .PHONY: install
 install: all

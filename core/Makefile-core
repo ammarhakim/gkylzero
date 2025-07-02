@@ -3,7 +3,7 @@
 # Sqlite can't use agressive optimization flags
 SQL_CFLAGS ?= -fPIC -Wno-implicit-int-float-conversion
 
-SRC_DIRS := minus kernels zero apps lua/Comm lua/Tool
+SRC_DIRS := minus $(KERNELS_DIR) zero apps lua/Comm lua/Tool
 UNIT_DIRS := unit
 
 PREFIX ?= ${HOME}/gkylsoft
@@ -43,7 +43,7 @@ endif
 
 REGS := $(patsubst %.c,../${BUILD_DIR}/core/%,$(wildcard creg/rt_*.c))
 
-KERN_INC_DIRS = $(shell find kernels -type d)
+KERN_INC_DIRS = $(shell find $(KERNELS_DIR) -type d)
 KERN_INCLUDES = $(addprefix -I,$(KERN_INC_DIRS))
 EXT_INCS := -I${MPI_INC_DIR} -I${NCCL_INC_DIR} -I${CUDSS_INC_DIR} -I${LUA_INC_DIR} -I${LAPACK_INC}
 INCS := ${EXT_INCS} -Iminus -Iminus/STC/include -Izero -Iapps -I${SUPERLU_INC} $(KERN_INCLUDES) -Ilua/Comm -Ilua/Tool
@@ -98,27 +98,27 @@ $(LUA_UNITS): ../${BUILD_DIR}/core/unit/%: unit/%.c $(LLIB) $(SLLIB)
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCS) ${EXEC_LIB_DIRS} ${EXEC_LIBS}
 
 ifdef USING_NVCC
-../$(BUILD_DIR)/core/kernels/array_average/%.c.o : kernels/array_average/%.c
+../$(BUILD_DIR)/core/$(KERNELS_DIR)/array_average/%.c.o : $(KERNELS_DIR)/array_average/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/core/kernels/bin_op/%.c.o : kernels/bin_op/%.c
+../$(BUILD_DIR)/core/$(KERNELS_DIR)/bin_op/%.c.o : $(KERNELS_DIR)/bin_op/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/core/kernels/array_integrate/%.c.o : kernels/array_integrate/%.c
+../$(BUILD_DIR)/core/$(KERNELS_DIR)/array_integrate/%.c.o : $(KERNELS_DIR)/array_integrate/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/core/kernels/basis/%.c.o : kernels/basis/%.c
+../$(BUILD_DIR)/core/$(KERNELS_DIR)/basis/%.c.o : $(KERNELS_DIR)/basis/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/core/kernels/dg_interpolate/%.c.o : kernels/dg_interpolate/%.c
+../$(BUILD_DIR)/core/$(KERNELS_DIR)/dg_interpolate/%.c.o : $(KERNELS_DIR)/dg_interpolate/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/core/kernels/skin_surf_from_ghost/%.c.o : kernels/skin_surf_from_ghost/%.c
+../$(BUILD_DIR)/core/$(KERNELS_DIR)/skin_surf_from_ghost/%.c.o : $(KERNELS_DIR)/skin_surf_from_ghost/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 endif
@@ -153,7 +153,7 @@ valcheck: unit ## Run valgrind on unit test
 -include $(DEPS)
 
 # Headers to install
-INSTALL_HEADERS := $(shell ls apps/gkyl_*.h zero/gkyl_*.h kernels/*/gkyl_*.h | grep -v "priv" | sort)
+INSTALL_HEADERS := $(shell ls apps/gkyl_*.h zero/gkyl_*.h $(KERNELS_DIR)/*/gkyl_*.h | grep -v "priv" | sort)
 INSTALL_HEADERS += $(shell ls minus/*.h)
 
 .PHONY: install

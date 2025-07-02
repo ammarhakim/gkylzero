@@ -1,6 +1,6 @@
 # -*- makefile-gmake -*-
 
-SRC_DIRS := kernels zero apps
+SRC_DIRS := ker zero apps
 UNIT_DIRS := unit
 
 PREFIX ?= ${HOME}/gkylsoft
@@ -23,6 +23,7 @@ ifdef USING_NVCC
 	SRCS += $(shell find $(UNIT_DIRS) -name *.cu)
 endif
 OBJS := $(SRCS:%=../$(BUILD_DIR)/vlasov/%.o)
+
 DEPS := $(OBJS:.o=.d)
 
 UNITS := $(patsubst %.c,../${BUILD_DIR}/vlasov/%,$(wildcard unit/ctest_*.c))
@@ -39,12 +40,10 @@ endif
 
 REGS := $(patsubst %.c,../${BUILD_DIR}/vlasov/%,$(wildcard creg/rt_*.c))
 
-KERN_INC_DIRS = $(shell find kernels -type d)
+KERN_INC_DIRS = $(shell find $(KERNELS_DIR) -type d)
 KERN_INCLUDES = $(addprefix -I,$(KERN_INC_DIRS))
 EXT_INCS := -I${MPI_INC_DIR} -I${NCCL_INC_DIR} -I${CUDSS_INC_DIR} -I${LUA_INC_DIR} -I${LAPACK_INC} -I${SUPERLU_INC}
-CORE_INCS := -I../core/kernels/array_average -I../core/kernels/array_integrate -I../core/kernels/basis -I../core/kernels/bin_op -I../core/kernels/dg_interpolate -I../core/kernels/skin_surf_from_ghost -I../core/apps -I../core/zero -I../core/minus -I../core/minus/STC/include -I../zero
-MOMENTS_INCS := -I../moments/kernels/fem_poisson -I../moments/apps -I../moments/zero
-INCS := ${EXT_INCS} ${CORE_INCS} ${MOMENTS_INCS} -Ikernels -Izero -Iapps -Icreg $(KERN_INCLUDES)
+INCS := ${EXT_INCS} ${CORE_INCS} ${MOMENTS_INCS} -I$(KERNELS_DIR) -Izero -Iapps -Icreg $(KERN_INCLUDES)
 
 CORE_LIB_DIR := -L../${BUILD_DIR}/core
 CORE_LIB := -lg0core
@@ -94,55 +93,55 @@ $(REGS): ../${BUILD_DIR}/vlasov/creg/%: creg/%.c $(LLIB) $(SLLIB)
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCS) ${EXEC_LIB_DIRS} ${EXEC_LIBS}
 
 ifdef USING_NVCC
-../$(BUILD_DIR)/vlasov/kernels/advection/%.c.o : kernels/advection/%.c
+../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/advection/%.c.o : $(KERNELS_DIR)/advection/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/vlasov/kernels/canonical_pb/%.c.o : kernels/canonical_pb/%.c
+../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/canonical_pb/%.c.o : $(KERNELS_DIR)/canonical_pb/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/vlasov/kernels/dg_diffusion_fluid/%.c.o : kernels/dg_diffusion_fluid/%.c
+../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/dg_diffusion_fluid/%.c.o : $(KERNELS_DIR)/dg_diffusion_fluid/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/vlasov/kernels/dg_diffusion_gen/%.c.o : kernels/dg_diffusion_gen/%.c
+../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/dg_diffusion_gen/%.c.o : $(KERNELS_DIR)/dg_diffusion_gen/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/vlasov/kernels/dg_diffusion_vlasov/%.c.o : kernels/dg_diffusion_vlasov/%.c
+../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/dg_diffusion_vlasov/%.c.o : $(KERNELS_DIR)/dg_diffusion_vlasov/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/vlasov/kernels/euler/%.c.o : kernels/euler/%.c
+../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/euler/%.c.o : $(KERNELS_DIR)/euler/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/vlasov/kernels/fpo/%.c.o : kernels/fpo/%.c
+../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/fpo/%.c.o : $(KERNELS_DIR)/fpo/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/vlasov/kernels/lbo_vlasov/%.c.o : kernels/lbo_vlasov/%.c
+../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/lbo_vlasov/%.c.o : $(KERNELS_DIR)/lbo_vlasov/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/vlasov/kernels/maxwell/%.c.o : kernels/maxwell/%.c
+../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/maxwell/%.c.o : $(KERNELS_DIR)/maxwell/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/vlasov/kernels/sr_vlasov/%.c.o : kernels/sr_vlasov/%.c
+../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/sr_vlasov/%.c.o : $(KERNELS_DIR)/sr_vlasov/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/vlasov/kernels/vlasov/%.c.o : kernels/vlasov/%.c
+../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/vlasov/%.c.o : $(KERNELS_DIR)/vlasov/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/vlasov/kernels/vlasov_poisson/%.c.o : kernels/vlasov_poisson/%.c
+../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/vlasov_poisson/%.c.o : $(KERNELS_DIR)/vlasov_poisson/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/vlasov/kernels/positivity_shift_vlasov/%.c.o : kernels/positivity_shift_vlasov/%.c
+../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/positivity_shift_vlasov/%.c.o : $(KERNELS_DIR)/positivity_shift_vlasov/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 endif
@@ -155,7 +154,6 @@ include ../vlasov/vlasovlinkobjs.mak
 # build lib
 $(LLIB): $(OBJS) ../$(BUILD_DIR)/moments/libg0moments.so
 	$(MKDIR_P) $(dir $@)
-
 ifeq ($(UNAME),Linux)
 ifdef USING_NVCC
 	$(CC) -shared -o $@ ${CORE_LINK_OBJS} ${MOMENTS_LINK_OBJS} ${VLASOV_LINK_OBJS} ${VLASOV_CU_LINK_OBJS}  -Xlinker=-soname -Xlinker=libg0vlasov.so -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} -L${LAPACK_LIB_DIR} -lsuperlu ${LAPACK_LIB} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl -arch=sm_${CUDA_ARCH} -rdc=true --compiler-options="-fPIC"
@@ -176,10 +174,11 @@ valcheck: unit ## Run valgrind on unit test
 	$(foreach unit,$(UNITS),valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --show-error-list=yes $(unit) --exec=never 2>$(unit)_val_err 1>/dev/null;)
 	$(foreach unit,$(UNITS),../core/minus/checkval.sh $(unit);)
 
+# load each DEPS fragments
 -include $(DEPS)
 
 # Headers to install
-INSTALL_HEADERS := $(shell ls kernels/*/gkyl_*.h apps/gkyl_*.h zero/gkyl_*.h  | grep -v "priv" | sort)
+INSTALL_HEADERS := $(shell ls $(KERNELS_DIR)/*/gkyl_*.h apps/gkyl_*.h zero/gkyl_*.h  | grep -v "priv" | sort)
 
 .PHONY: install
 install: all

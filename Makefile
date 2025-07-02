@@ -9,6 +9,9 @@ GIT_TIP := $(shell git describe --abbrev=12 --always --dirty=+)
 # Build directory
 BUILD_DIR ?= build
 
+# Name of kernels directory
+KERNELS_DIR := ker
+
 ARCH_FLAGS ?= -march=native
 CUDA_ARCH ?= 70
 CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE="${BUILD_DATE}" -DGKYL_GIT_CHANGESET="${GIT_TIP}"
@@ -142,7 +145,7 @@ endif
 
 # Build directory
 ifdef USING_NVCC
-	BUILD_DIR = cubld
+	BUILD_DIR = cuda-build
 endif
 
 # Command to make dir

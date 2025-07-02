@@ -1,6 +1,6 @@
 # -*- makefile-gmake -*-
 
-SRC_DIRS := kernels zero apps
+SRC_DIRS := $(KERNELS_DIR) zero apps
 UNIT_DIRS := unit
 
 PREFIX ?= ${HOME}/gkylsoft
@@ -29,14 +29,10 @@ LUA_UNITS := $(patsubst %.c,../${BUILD_DIR}/pkpm/%,$(wildcard unit/lctest_*.c))
 
 REGS := $(patsubst %.c,../${BUILD_DIR}/pkpm/%,$(wildcard creg/rt_*.c))
 
-KERN_INC_DIRS = $(shell find kernels -type d)
+KERN_INC_DIRS = $(shell find $(KERNELS_DIR) -type d)
 KERN_INCLUDES = $(addprefix -I,$(KERN_INC_DIRS))
 EXT_INCS := -I${MPI_INC_DIR} -I${NCCL_INC_DIR} -I${CUDSS_INC_DIR} -I${LUA_INC_DIR} -I${LAPACK_INC} -I${SUPERLU_INC}
-CORE_INCS := -I../core/kernels/array_average -I../core/kernels/array_integrate -I../core/kernels/basis -I../core/kernels/bin_op -I../core/kernels/dg_interpolate -I../core/kernels/skin_surf_from_ghost -I../core/apps -I../core/zero -I../core/minus -I../core/minus/STC/include -I../zero
-MOMENTS_INCS := -I../moments/kernels/fem_poisson -I../moments/apps -I../moments/zero
-VLASOV_INCS := -I../vlasov/kernels/advection -I../vlasov/kernels/canonical_pb -I../vlasov/kernels/dg_diffusion_fluid -I../vlasov/kernels/dg_diffusion_gen -I../vlasov/kernels/dg_diffusion_vlasov -I../vlasov/kernels/euler -I../vlasov/kernels/fpo -I../vlasov/kernels/lbo_vlasov -I../vlasov/kernels/maxwell -I../vlasov/kernels/sr_vlasov -I../vlasov/kernels/vlasov -I../vlasov/kernels/vlasov_poisson -I../vlasov/kernels/positivity_shift_vlasov -I../vlasov/apps -I../vlasov/zero
-GYROKINETIC_INCS := -I../gyrokinetic/kernels/ambi_bolt_potential -I../gyrokinetic/kernels/bgk_gyrokinetic -I../gyrokinetic/kernels/deflate_geo -I../gyrokinetic/kernels/deflate_surf -I../gyrokinetic/kernels/derived_geo -I../gyrokinetic/kernels/dg_diffusion_gyrokinetic -I../gyrokinetic/kernels/fem_parproj -I../gyrokinetic/kernels/fem_poisson_perp -I../gyrokinetic/kernels/gyrokinetic -I../gyrokinetic/kernels/gyrokinetic_pol_density -I../gyrokinetic/kernels/inflate_surf -I../gyrokinetic/kernels/lbo_gyrokinetic -I../gyrokinetic/kernels/neutral -I../gyrokinetic/kernels/positivity_shift_gyrokinetic -I../gyrokinetic/kernels/rad -I../gyrokinetic/kernels/translate_dim -I../gyrokinetic/kernels/twistshift -I../gyrokinetic/apps -I../gyrokinetic/zero
-INCS := ${EXT_INCS} ${CORE_INCS} ${MOMENTS_INCS} ${VLASOV_INCS} ${GYROKINETIC_INCS} -Ikernels -Izero -Iapps -Icreg $(KERN_INCLUDES)
+INCS := ${EXT_INCS} ${CORE_INCS} ${MOMENTS_INCS} ${VLASOV_INCS} ${GYROKINETIC_INCS} -I$(KERNELS_DIR) -Izero -Iapps -Icreg $(KERN_INCLUDES)
 
 CORE_LIB_DIR := -L../${BUILD_DIR}/core
 CORE_LIB := -lg0core
@@ -90,7 +86,7 @@ $(REGS): ../${BUILD_DIR}/pkpm/creg/%: creg/%.c $(LLIB) $(SLLIB)
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCS) ${EXEC_LIB_DIRS} ${EXEC_LIBS}
 
 ifdef USING_NVCC
-../$(BUILD_DIR)/pkpm/kernels/pkpm/%.c.o : kernels/pkpm/%.c
+../$(BUILD_DIR)/pkpm/$(KERNELS_DIR)/pkpm/%.c.o : $(KERNELS_DIR)/pkpm/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 endif
@@ -129,7 +125,7 @@ valcheck: unit ## Run valgrind on unit test
 -include $(DEPS)
 
 # Headers to install
-INSTALL_HEADERS := $(shell ls kernels/*/gkyl_*.h apps/gkyl_*.h zero/gkyl_*.h | grep -v "priv" | sort)
+INSTALL_HEADERS := $(shell ls $(KERNELS_DIR)/*/gkyl_*.h apps/gkyl_*.h zero/gkyl_*.h | grep -v "priv" | sort)
 
 .PHONY: install
 install: all
