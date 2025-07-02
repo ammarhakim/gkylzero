@@ -47,6 +47,7 @@ gkyl_ten_moment_grad_closure_new(struct gkyl_ten_moment_grad_closure_inp inp)
   up->ndim = up->grid.ndim;
   up->k0 = inp.k0;
   up->cfl = inp.cfl;
+  up->mag = inp.mag;
 
   if (inp.comm)
     up->comm = gkyl_comm_acquire(inp.comm);
@@ -96,7 +97,7 @@ gkyl_ten_moment_grad_closure_advance(const gkyl_ten_moment_grad_closure *gces,
       rhs_d[i] = gkyl_array_fetch(rhs, linc_center + offsets_vertices[i]);
     }
 
-    cfla = gces->calc_q(gces, fluid_d, gkyl_array_fetch(cflrate, linc_center),
+    cfla = gces->calc_q(gces, fluid_d, em_tot_d, gkyl_array_fetch(cflrate, linc_center),
       cfla, dt, rhs_d);
   }
 
