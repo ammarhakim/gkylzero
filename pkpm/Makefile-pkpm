@@ -1,5 +1,12 @@
 # -*- makefile-gmake -*-
 
+# include link object list
+include ../core/corelinkobjs.mak
+include ../moments/momentslinkobjs.mak
+include ../vlasov/vlasovlinkobjs.mak
+include ../gyrokinetic/gyrokineticlinkobjs.mak
+include ../pkpm/pkpmlinkobjs.mak
+
 SRC_DIRS := $(KERNELS_DIR) zero apps
 UNIT_DIRS := unit
 
@@ -90,13 +97,6 @@ ifdef USING_NVCC
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 endif
-
-# include link object list
-include ../core/corelinkobjs.mak
-include ../moments/momentslinkobjs.mak
-include ../vlasov/vlasovlinkobjs.mak
-include ../gyrokinetic/gyrokineticlinkobjs.mak
-include ../pkpm/pkpmlinkobjs.mak
 
 # build lib
 $(LLIB): $(OBJS) ../$(BUILD_DIR)/gyrokinetic/libg0gyrokinetic.so

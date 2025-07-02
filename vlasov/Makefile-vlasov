@@ -1,5 +1,10 @@
 # -*- makefile-gmake -*-
 
+# include link object list
+include ../core/corelinkobjs.mak
+include ../moments/momentslinkobjs.mak
+include ../vlasov/vlasovlinkobjs.mak
+
 SRC_DIRS := ker zero apps
 UNIT_DIRS := unit
 
@@ -145,11 +150,6 @@ ifdef USING_NVCC
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 endif
-
-# include link object list
-include ../core/corelinkobjs.mak
-include ../moments/momentslinkobjs.mak
-include ../vlasov/vlasovlinkobjs.mak
 
 # build lib
 $(LLIB): $(OBJS) ../$(BUILD_DIR)/moments/libg0moments.so

@@ -1,7 +1,7 @@
 # -*- makefile-gmake -*-
 
 # Moments include paths
-MOMENTS_INCS := -I../moments/$(KERNELS_DIR)/fem_poisson -I../moments/apps -I../moments/zero
+MOMENTS_INCS = -I../moments/$(KERNELS_DIR)/fem_poisson -I../moments/apps -I../moments/zero
 
 # Moments link objects
 
