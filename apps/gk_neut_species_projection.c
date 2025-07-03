@@ -5,8 +5,8 @@ void
 gk_neut_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, 
   struct gkyl_gyrokinetic_projection inp, struct gk_proj *proj)
 {
-  proj->proj_id = inp.proj_id;
-  if (proj->proj_id == GKYL_PROJ_FUNC) {
+  proj->info = inp;
+  if (proj->info.proj_id == GKYL_PROJ_FUNC) {
     proj->proj_func = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
         .grid = &s->grid,
         .basis = &s->basis,
@@ -21,7 +21,7 @@ gk_neut_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
       proj->proj_host = mkarr(false, s->basis.num_basis, s->local_ext.volume);
     }
   }
-  else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
+  else if (proj->info.proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
     int vdim = app->vdim+1; // neutral species are 3v otherwise
     proj->dens = mkarr(false, app->basis.num_basis, app->local_ext.volume);
     proj->udrift = mkarr(false, vdim*app->basis.num_basis, app->local_ext.volume);
@@ -86,7 +86,7 @@ void
 gk_neut_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_neut_species *s, 
   struct gk_proj *proj, struct gkyl_array *f, double tm)
 {
-  if (proj->proj_id == GKYL_PROJ_FUNC) {
+  if (proj->info.proj_id == GKYL_PROJ_FUNC) {
     if (app->use_gpu) {
       gkyl_proj_on_basis_advance(proj->proj_func, tm, &s->local_ext, proj->proj_host);
       gkyl_array_copy(f, proj->proj_host);
@@ -95,7 +95,7 @@ gk_neut_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_neut_
       gkyl_proj_on_basis_advance(proj->proj_func, tm, &s->local_ext, f);
     }
   }
-  else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
+  else if (proj->info.proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
     int vdim = app->vdim+1;
     gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local, proj->dens); 
     gkyl_proj_on_basis_advance(proj->proj_udrift, tm, &app->local, proj->udrift);
@@ -130,13 +130,13 @@ gk_neut_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_neut_
 void
 gk_neut_species_projection_release(const struct gkyl_gyrokinetic_app *app, const struct gk_proj *proj)
 {
-  if (proj->proj_id == GKYL_PROJ_FUNC) {
+  if (proj->info.proj_id == GKYL_PROJ_FUNC) {
     gkyl_proj_on_basis_release(proj->proj_func);
     if (app->use_gpu) {
       gkyl_array_release(proj->proj_host);
     }
   }
-  else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) { 
+  else if (proj->info.proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) { 
     gkyl_array_release(proj->dens);
     gkyl_array_release(proj->udrift); 
     gkyl_array_release(proj->vtsq);

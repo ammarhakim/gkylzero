@@ -15,6 +15,16 @@
 
 #include <stdbool.h>
 
+struct gkyl_gyrokinetic_ic_import {
+  // Inputs to initialize the species with the distribution from a file (f_in)
+  // and to modify that distribution such that f = alpha(x)*f_in+beta(x,v).
+  enum gkyl_ic_import_type type;
+  char file_name[128]; // Name of file that contains IC, J*f_in.
+  char jacobtot_inv_file_name[128]; // Name of file that contains 1/Jacobian. Used to get f from Jf.
+  void *conf_scale_ctx;
+  void (*conf_scale)(double t, const double *xn, double *fout, void *ctx); // alpha(x).
+};
+
 // Parameters for projection
 struct gkyl_gyrokinetic_projection {
   enum gkyl_projection_id proj_id; // type of projection (see gkyl_eqn_type.h)
@@ -23,27 +33,33 @@ struct gkyl_gyrokinetic_projection {
 
   union {
     struct {
-      // pointer and context to initialization function 
+      // Pointer and context to initialization function 
       void *ctx_func; 
       void (*func)(double t, const double *xn, double *fout, void *ctx); 
     };
     struct {
-      // pointers and contexts to initialization functions for gk maxwellian projection
+      // Pointers and contexts for moments of a Maxwellian or BiMaxwellian.
       void *ctx_density;
       void (*density)(double t, const double *xn, double *fout, void *ctx);
       void *ctx_upar;
       void (*upar)(double t, const double *xn, double *fout, void *ctx);
-      void *ctx_udrift;
+      void *ctx_udrift; // For neutrals.
       void (*udrift)(double t, const double *xn, double *fout, void *ctx);
-      // if projection is Maxwellian
       void *ctx_temp;
       void (*temp)(double t, const double *xn, double *fout, void *ctx);
-      // if projection is bi-Maxwellian
       void *ctx_temppar;
       void (*temppar)(double t, const double *xn, double *fout, void *ctx);
       void *ctx_tempperp;
       void (*tempperp)(double t, const double *xn, double *fout, void *ctx);
-      // if projection is a Maxwellian + Gaussian in configuration space.
+      // Files with moments of a Maxwellian or BiMaxwellian. 
+      struct gkyl_gyrokinetic_ic_import density_from_file;
+      struct gkyl_gyrokinetic_ic_import upar_from_file;
+      struct gkyl_gyrokinetic_ic_import udrift_from_file; // For neutrals.
+      struct gkyl_gyrokinetic_ic_import temp_from_file;
+      struct gkyl_gyrokinetic_ic_import temppar_from_file;
+      struct gkyl_gyrokinetic_ic_import tempperp_from_file;
+
+      // If projection is a Maxwellian + Gaussian in configuration space.
       double gaussian_mean[GKYL_MAX_CDIM]; // Center in configuration space.
       double gaussian_std_dev[GKYL_MAX_CDIM]; // Sigma in configuration space, function is constant if sigma is 0.
       double total_num_particles; // Total number of particle (M0 moment).
@@ -225,17 +241,6 @@ struct gkyl_gyrokinetic_flr {
   double Tperp; // Perp temperature used to evaluate gyroradius. 
   double bmag; // Magnetic field used to evaluate gyroradius. If not provided
                // it'll use B in the center of the domain.
-};
-
-struct gkyl_gyrokinetic_ic_import {
-  // Inputs to initialize the species with the distribution from a file (f_in)
-  // and to modify that distribution such that f = alpha(x)*f_in+beta(x,v).
-  enum gkyl_ic_import_type type;
-  char file_name[128]; // Name of file that contains IC, J*f_in.
-  char jacobtot_inv_file_name[128]; // Name of file that contains 1/Jacobian. Used to get f from Jf.
-  void *conf_scale_ctx;
-  void (*conf_scale)(double t, const double *xn, double *fout, void *ctx); // alpha(x).
-  struct gkyl_gyrokinetic_projection phase_add; // beta(x,v).
 };
 
 struct gkyl_gyrokinetic_correct_inp {

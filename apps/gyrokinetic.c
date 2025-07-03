@@ -2238,8 +2238,8 @@ gkyl_gyrokinetic_app_write_dt(gkyl_gyrokinetic_app* app)
   app->stat.n_diag_io += 1;
 }
 
-static struct gkyl_app_restart_status
-header_from_file(gkyl_gyrokinetic_app *app, const char *fname)
+struct gkyl_app_restart_status
+gyrokinetic_header_from_file(const char *fname)
 {
   struct gkyl_app_restart_status rstat = { .io_status = 0 };
   
@@ -2279,7 +2279,7 @@ gyrokinetic_app_geometry_read_and_copy(gkyl_gyrokinetic_app* app, struct gkyl_ar
 {
   cstr fileNm = cstr_from_fmt("%s-%s.gkyl", app->name, varNm);
 
-  struct gkyl_app_restart_status rstat = header_from_file(app, fileNm.str);
+  struct gkyl_app_restart_status rstat = gyrokinetic_header_from_file(fileNm.str);
 
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
     rstat.io_status =
@@ -2333,7 +2333,7 @@ gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
 struct gkyl_app_restart_status
 gkyl_gyrokinetic_app_from_file_field(gkyl_gyrokinetic_app *app, const char *fname)
 {
-  struct gkyl_app_restart_status rstat = header_from_file(app, fname);
+  struct gkyl_app_restart_status rstat = gyrokinetic_header_from_file(fname);
 
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
     rstat.io_status =
@@ -2349,7 +2349,7 @@ struct gkyl_app_restart_status
 gkyl_gyrokinetic_app_from_file_species(gkyl_gyrokinetic_app *app, int sidx,
   const char *fname)
 {
-  struct gkyl_app_restart_status rstat = header_from_file(app, fname);
+  struct gkyl_app_restart_status rstat = gyrokinetic_header_from_file(fname);
 
   struct gk_species *gk_s = &app->species[sidx];
   
@@ -2387,7 +2387,7 @@ struct gkyl_app_restart_status
 gkyl_gyrokinetic_app_from_file_neut_species(gkyl_gyrokinetic_app *app, int sidx,
   const char *fname)
 {
-  struct gkyl_app_restart_status rstat = header_from_file(app, fname);
+  struct gkyl_app_restart_status rstat = gyrokinetic_header_from_file(fname);
 
   struct gk_neut_species *gk_ns = &app->neut_species[sidx];
   

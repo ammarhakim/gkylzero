@@ -502,56 +502,57 @@ struct gk_proj_on_basis_c2p_func_ctx {
 };
 
 struct gk_proj {
-  enum gkyl_projection_id proj_id; // type of projection
+  struct gkyl_gyrokinetic_projection info; // Input data for projection.
+
   struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
+  // Organization of different projection objects.
+  union {
+    // Function projection
+    struct {
+      struct gkyl_proj_on_basis *proj_func; // Projection operator.
+      struct gkyl_array *proj_host; // Host array for projection.
+    };
+    // Maxwellian and Bi-Maxwellian projection from primitive moments
+    struct {
+      struct gkyl_array *prim_moms; // Primitive moments.
+      struct gkyl_array *prim_moms_host; // Host primitive moments.
+
+      bool correct_all_moms; // Whether to correct all the moments.
+
+      struct gkyl_array *dens; // Density (on device for GK Maxwellian Gaussian).
+      struct gkyl_array *vtsq; // Temperature/mass (on device for GK Maxwellian Gaussian).
+      struct gkyl_proj_on_basis *proj_dens; // Projection operator for density.
+      struct gkyl_proj_on_basis *proj_temp; // Projection operator for temperature.
+
+      union {
+        struct { 
+          struct gkyl_array *upar; // Parallel speed (on device for GK Maxwellian Gaussian).
+          struct gkyl_array *vtsqpar; // Host parallel temperature/mass.
+          struct gkyl_array *vtsqperp; // Host perpendicular temperature/mass.
+          struct gkyl_proj_on_basis *proj_upar; // Projection operator for upar.
+          struct gkyl_proj_on_basis *proj_temppar; // Projection operator for vtsqpar.
+          struct gkyl_proj_on_basis *proj_tempperp; // Projection operator for vtsqperp.
+          struct gkyl_gk_maxwellian_proj_on_basis *proj_max; // Maxwellian projection object.
+          struct gkyl_gk_maxwellian_correct *corr_max; // Maxwellian correction object.
+        };
+        struct { 
+          struct gkyl_array *udrift; // Host udrift for Vlasov neutrals LTE projection.
+          struct gkyl_proj_on_basis *proj_udrift; // Projection operator for udrift.
+          struct gkyl_vlasov_lte_proj_on_basis *proj_lte; // Maxwellian projection object for Vlasov neutrals.
+          struct gkyl_vlasov_lte_correct *corr_lte; // Maxwellian correction object for Vlasov neutrals.
+        };     
+      };  
+
+      struct gkyl_array *gaussian_profile; // Shape of the source in configuration space (on device).    
+      struct gkyl_proj_on_basis *proj_gaussian; // Projection operator for gaussian_profile.
+    };
+  };
+
   // Functions chosen at runtime.
   void (*projection_calc)(gkyl_gyrokinetic_app *app, struct gk_species *s, 
     struct gk_proj *proj, struct gkyl_array *f, double tm);
   void (*moms_correct)(gkyl_gyrokinetic_app *app, struct gk_species *s, 
     struct gk_proj *proj, struct gkyl_array *f, double tm);
-  // organization of the different projection objects and the required data and solvers
-  union {
-    // function projection
-    struct {
-      struct gkyl_proj_on_basis *proj_func; // projection operator for specified function
-      struct gkyl_array *proj_host; // array for projection on host-side if running on GPUs
-    };
-    // Maxwellian and Bi-Maxwellian projection from primitive moments
-    struct {
-      struct gkyl_array *dens; // density (on device for GK Maxwellian Gaussian).
-
-      struct gkyl_array *prim_moms_host; // host-side prim_moms for initialization with proj_on_basis
-      struct gkyl_array *prim_moms; // prim_moms we pass to Maxwellian projection object (potentially on device)
-
-      bool correct_all_moms; // boolean if we are correcting all the moments
-
-      struct gkyl_proj_on_basis *proj_dens; // projection operator for density
-      struct gkyl_array *vtsq; // vth^2 = T/m (temperature/mass) (on device for GK Maxwellian Gaussian).
-      struct gkyl_proj_on_basis *proj_temp; // projection operator for temperature
-      struct gkyl_array *vtsqpar; // host-side vth_par^2 = Tpar/m (parallel temperature/mass)
-      struct gkyl_array *vtsqperp; // host-side vth_perp^2 = Tperp/m (perpendicular temperature/mass)
-      struct gkyl_proj_on_basis *proj_temppar; // projection operator for parallel temperature
-      struct gkyl_proj_on_basis *proj_tempperp; // projection operator for parallel temperature
-
-      struct gkyl_array *gaussian_profile; // shape of the source in configuration space (on device).    
-      struct gkyl_proj_on_basis *proj_gaussian; // projection operator for the shape of the source in config space.    
-
-      union {
-        struct { 
-          struct gkyl_array *upar; // upar for GK Maxwellian/Bi-Maxwellian projection (on device for GK Maxwellian Gaussian)
-          struct gkyl_proj_on_basis *proj_upar; // projection operator for upar for GK Maxwellian/Bi-Maxwellian projection
-          struct gkyl_gk_maxwellian_proj_on_basis *proj_max; // Maxwellian projection object for GK
-          struct gkyl_gk_maxwellian_correct *corr_max; // Maxwellian correction object for GK
-        };
-        struct { 
-          struct gkyl_array *udrift; // host-side udrift for Vlasov neutrals LTE projection
-          struct gkyl_proj_on_basis *proj_udrift; // projection operator for udrift for Vlasov neutrals LTE projection
-          struct gkyl_vlasov_lte_proj_on_basis *proj_lte; // Maxwellian projection object for Vlasov neutrals
-          struct gkyl_vlasov_lte_correct *corr_lte; // Maxwellian correction object for Vlasov neutrals
-        };     
-      };  
-    };
-  };
 };
 
 struct gk_adapt_source {
@@ -916,7 +917,7 @@ struct gk_neut_species {
 
 // field data
 struct gk_field {
-  struct gkyl_gyrokinetic_field info; // data for field
+  struct gkyl_gyrokinetic_field info; // Input data for field.
 
   enum gkyl_gkfield_id gkfield_id;
 
@@ -1120,6 +1121,15 @@ gk_array_meta_release(struct gkyl_msgpack_data *mt);
  */
 struct gyrokinetic_output_meta
 gk_meta_from_mpack(struct gkyl_msgpack_data *mt);
+
+/**
+ * Ger the header from a .gkyl file that was created by the gyrokinetic app.
+ *
+ * @param fname String containing the file name.
+ * @return A gyrokinetic app restart status object.
+ */
+struct gkyl_app_restart_status
+gyrokinetic_header_from_file(const char *fname);
 
 /**
  * Allocate a new gyrokinetic app and initialize its conf-space grid and

@@ -25,6 +25,7 @@ struct func_gaussian_ctx {
   double gaussian_std_dev[GKYL_MAX_CDIM]; // Sigma in configuration space, function is constant if sigma is 0.
   double f_floor; // Floor value of the distribution.
 };
+
 static void 
 func_gaussian(double t, const double* xn, double* GKYL_RESTRICT fout, void *ctx)
 {
@@ -45,6 +46,39 @@ func_gaussian(double t, const double* xn, double* GKYL_RESTRICT fout, void *ctx)
   fout[0] = envelope + inp->f_floor;
 }
 
+struct proj_read_field_inp {
+  struct gkyl_gyrokinetic_app *app; // Gyrokinetic app.
+  struct gk_proj *proj; // Projection app.
+  // Function (and context) defining the field in space.
+  void (*mom_func)(double t, const double *xn, double *fout, void *ctx);
+  void *mom_func_ctx;
+  struct gkyl_proj_on_basis *proj_op; // Projection operator.
+  struct gkyl_gyrokinetic_ic_import *ic_import; // Info for reading from file.
+  struct gkyl_array *field_host; // Array on the host to store field.
+};
+
+static void
+proj_read_field(double tm, struct proj_read_field_inp *inp)
+{
+  // Project a field or read it from file.
+  struct gkyl_gyrokinetic_app *app = inp->app;
+
+  if (inp->mom_func && inp->mom_func_ctx) {
+    gkyl_proj_on_basis_advance(inp->proj_op, tm, &app->local, inp->field_host);
+  }
+  else if (inp->ic_import->type) {
+    struct gkyl_app_restart_status rstat = gyrokinetic_header_from_file(inp->ic_import->file_name);
+
+    if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+      struct gkyl_app_restart_status rstat;
+      rstat.io_status = gkyl_comm_array_read(app->comm, &app->grid, &app->local, inp->field_host, inp->ic_import->file_name);
+    }
+    else
+      assert(false);
+  }
+  else
+    assert(false);
+}
 
 static void
 gk_species_projection_calc_proj_func(gkyl_gyrokinetic_app *app, struct gk_species *s, 
@@ -57,9 +91,11 @@ gk_species_projection_calc_proj_func(gkyl_gyrokinetic_app *app, struct gk_specie
   else {
     gkyl_proj_on_basis_advance(proj->proj_func, tm, &s->local, f);
   }
+
   // Multiply by the gyrocenter coord jacobian (bmag).
   gkyl_dg_mul_conf_phase_op_range(&app->basis, &s->basis, f, 
       app->gk_geom->bmag, f, &app->local, &s->local); 
+
   // Multiply by the velocity-space jacobian. 
   gkyl_array_scale_by_cell(f, s->vel_map->jacobvel);
 }
@@ -68,18 +104,42 @@ static void
 gk_species_projection_calc_max_prim(gkyl_gyrokinetic_app *app, struct gk_species *s, 
   struct gk_proj *proj, struct gkyl_array *f, double tm)
 {
-  gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local, proj->dens); 
-  gkyl_proj_on_basis_advance(proj->proj_upar, tm, &app->local, proj->upar);
-  gkyl_proj_on_basis_advance(proj->proj_temp, tm, &app->local, proj->vtsq);
+  proj_read_field(tm, &(struct proj_read_field_inp){
+      .app = app,
+      .mom_func = proj->info.density,
+      .mom_func_ctx = proj->info.ctx_density,
+      .proj_op = proj->proj_dens,
+      .ic_import = &proj->info.density_from_file,
+      .field_host = proj->dens,
+    }
+  );
+  proj_read_field(tm, &(struct proj_read_field_inp){
+      .app = app,
+      .mom_func = proj->info.upar,
+      .mom_func_ctx = proj->info.ctx_upar,
+      .proj_op = proj->proj_upar,
+      .ic_import = &proj->info.upar_from_file,
+      .field_host = proj->upar,
+    }
+  );
+  proj_read_field(tm, &(struct proj_read_field_inp){
+      .app = app,
+      .mom_func = proj->info.temp,
+      .mom_func_ctx = proj->info.ctx_temp,
+      .proj_op = proj->proj_temp,
+      .ic_import = &proj->info.temp_from_file,
+      .field_host = proj->vtsq,
+    }
+  );
+
   gkyl_array_scale(proj->vtsq, 1.0/s->info.mass);
 
-  // proj_maxwellian expects the primitive moments as a single array.
+  // Maxwellian projection expects primitive moments as one array (on GPU).
   gkyl_array_set_offset(proj->prim_moms_host, 1.0, proj->dens, 0*app->basis.num_basis);
   gkyl_array_set_offset(proj->prim_moms_host, 1.0, proj->upar, 1*app->basis.num_basis);
   gkyl_array_set_offset(proj->prim_moms_host, 1.0, proj->vtsq, 2*app->basis.num_basis);
-
-  // Copy the contents into the array we will use (potentially on GPUs).
   gkyl_array_copy(proj->prim_moms, proj->prim_moms_host);
+
   gkyl_gk_maxwellian_proj_on_basis_advance(proj->proj_max,
     &s->local, &app->local, proj->prim_moms, false, f);
 }
@@ -88,21 +148,53 @@ static void
 gk_species_projection_calc_bimax(gkyl_gyrokinetic_app *app, struct gk_species *s, 
   struct gk_proj *proj, struct gkyl_array *f, double tm)
 {
-  gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local, proj->dens); 
-  gkyl_proj_on_basis_advance(proj->proj_upar, tm, &app->local, proj->upar);
-  gkyl_proj_on_basis_advance(proj->proj_temppar, tm, &app->local, proj->vtsqpar);
-  gkyl_proj_on_basis_advance(proj->proj_tempperp, tm, &app->local, proj->vtsqperp);
+  proj_read_field(tm, &(struct proj_read_field_inp){
+      .app = app,
+      .mom_func = proj->info.density,
+      .mom_func_ctx = proj->info.ctx_density,
+      .proj_op = proj->proj_dens,
+      .ic_import = &proj->info.density_from_file,
+      .field_host = proj->dens,
+    }
+  );
+  proj_read_field(tm, &(struct proj_read_field_inp){
+      .app = app,
+      .mom_func = proj->info.upar,
+      .mom_func_ctx = proj->info.ctx_upar,
+      .proj_op = proj->proj_upar,
+      .ic_import = &proj->info.upar_from_file,
+      .field_host = proj->upar,
+    }
+  );
+  proj_read_field(tm, &(struct proj_read_field_inp){
+      .app = app,
+      .mom_func = proj->info.temppar,
+      .mom_func_ctx = proj->info.ctx_temppar,
+      .proj_op = proj->proj_temppar,
+      .ic_import = &proj->info.temppar_from_file,
+      .field_host = proj->vtsqpar,
+    }
+  );
+  proj_read_field(tm, &(struct proj_read_field_inp){
+      .app = app,
+      .mom_func = proj->info.tempperp,
+      .mom_func_ctx = proj->info.ctx_tempperp,
+      .proj_op = proj->proj_tempperp,
+      .ic_import = &proj->info.tempperp_from_file,
+      .field_host = proj->vtsqperp,
+    }
+  );
+
   gkyl_array_scale(proj->vtsqpar, 1.0/s->info.mass);
   gkyl_array_scale(proj->vtsqperp, 1.0/s->info.mass);
 
-  // proj_bimaxwellian expects the primitive moments as a single array.
+  // BiMaxwellian projection expects primitive moments as one array (on GPU).
   gkyl_array_set_offset(proj->prim_moms_host, 1.0, proj->dens, 0*app->basis.num_basis);
   gkyl_array_set_offset(proj->prim_moms_host, 1.0, proj->upar, 1*app->basis.num_basis);
   gkyl_array_set_offset(proj->prim_moms_host, 1.0, proj->vtsqpar , 2*app->basis.num_basis);
   gkyl_array_set_offset(proj->prim_moms_host, 1.0, proj->vtsqperp , 3*app->basis.num_basis);  
-
-  // Copy the contents into the array we will use (potentially on GPUs).
   gkyl_array_copy(proj->prim_moms, proj->prim_moms_host);
+
   gkyl_gk_maxwellian_proj_on_basis_advance(proj->proj_max,
     &s->local, &app->local, proj->prim_moms, false, f);
 }
@@ -117,7 +209,9 @@ gk_species_projection_calc_max_gauss(gkyl_gyrokinetic_app *app, struct gk_specie
 
 static void
 gk_species_projection_calc_none(gkyl_gyrokinetic_app *app, struct gk_species *s, 
-  struct gk_proj *proj, struct gkyl_array *f, double tm) {}
+  struct gk_proj *proj, struct gkyl_array *f, double tm)
+{
+}
 
 static void
 gk_species_projection_correct_all_moms(gkyl_gyrokinetic_app *app, struct gk_species *s, 
@@ -125,57 +219,70 @@ gk_species_projection_correct_all_moms(gkyl_gyrokinetic_app *app, struct gk_spec
 {
   struct gkyl_gk_maxwellian_correct_status status_corr;
   status_corr = gkyl_gk_maxwellian_correct_all_moments(proj->corr_max, 
-  f, proj->prim_moms, &s->local, &app->local);
+    f, proj->prim_moms, &s->local, &app->local);
 }
 
 static void
 gk_species_projection_correct_all_moms_none(gkyl_gyrokinetic_app *app, struct gk_species *s, 
-  struct gk_proj *proj, struct gkyl_array *f, double tm) {}
+  struct gk_proj *proj, struct gkyl_array *f, double tm)
+{
+}
 
-static void
-init_maxwellian_bimaxwellian(struct gkyl_gyrokinetic_app *app, struct gk_species *s, 
-  struct gkyl_gyrokinetic_projection inp, struct gk_proj *proj)
-  {
-  proj->dens = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-  proj->upar = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-  proj->proj_dens = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
-      .grid = &app->grid,
-      .basis = &app->basis,
-      .qtype = GKYL_GAUSS_QUAD,
-      .num_quad = app->basis.poly_order+1,
-      .num_ret_vals = 1,
-      .eval = inp.density,
-      .ctx = inp.ctx_density,
-      .c2p_func = proj_on_basis_c2p_position_func,
-      .c2p_func_ctx = &proj->proj_on_basis_c2p_ctx,
-    }
-  );
-  proj->proj_upar = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
-      .grid = &app->grid,
-      .basis = &app->basis,
-      .qtype = GKYL_GAUSS_QUAD,
-      .num_quad = app->basis.poly_order+1,
-      .num_ret_vals = 1,
-      .eval = inp.upar,
-      .ctx = inp.ctx_upar,
-      .c2p_func = proj_on_basis_c2p_position_func,
-      .c2p_func_ctx = &proj->proj_on_basis_c2p_ctx,
-    }
-  );
+static struct gkyl_proj_on_basis *
+alloc_mom_proj_op(struct proj_read_field_inp *inp)
+{
+  // Allocate operator to project a moment (if needed).
+  struct gkyl_gyrokinetic_app *app = inp->app;
 
-  bool bimaxwellian = false;
-  if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
-    proj->vtsq = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-    proj->proj_temp = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+  struct gkyl_proj_on_basis *proj_out = 0;
+  if (inp->mom_func && inp->mom_func_ctx) {
+    proj_out = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
         .grid = &app->grid,
         .basis = &app->basis,
         .qtype = GKYL_GAUSS_QUAD,
         .num_quad = app->basis.poly_order+1,
         .num_ret_vals = 1,
-        .eval = inp.temp,
-        .ctx = inp.ctx_temp,
+        .eval = inp->mom_func,
+        .ctx = inp->mom_func_ctx,
         .c2p_func = proj_on_basis_c2p_position_func,
-        .c2p_func_ctx = &proj->proj_on_basis_c2p_ctx,
+        .c2p_func_ctx = &inp->proj->proj_on_basis_c2p_ctx,
+      }
+    );
+  }
+
+  return proj_out;
+}
+
+static void
+init_maxwellian_bimaxwellian(struct gkyl_gyrokinetic_app *app, struct gk_species *s, 
+  struct gkyl_gyrokinetic_projection inp, struct gk_proj *proj)
+{
+  proj->dens = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+  proj->proj_dens = alloc_mom_proj_op(&(struct proj_read_field_inp) {
+      .app = app,
+      .proj = proj,
+      .mom_func = inp.density,
+      .mom_func_ctx = inp.ctx_density,
+    }
+  );
+
+  proj->upar = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+  proj->proj_upar = alloc_mom_proj_op(&(struct proj_read_field_inp) {
+      .app = app,
+      .proj = proj,
+      .mom_func = inp.upar,
+      .mom_func_ctx = inp.ctx_upar,
+    }
+  );
+
+  bool bimaxwellian = false;
+  if (proj->info.proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
+    proj->vtsq = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+    proj->proj_temp = alloc_mom_proj_op(&(struct proj_read_field_inp) {
+        .app = app,
+        .proj = proj,
+        .mom_func = inp.temp,
+        .mom_func_ctx = inp.ctx_temp,
       }
     );
 
@@ -185,29 +292,20 @@ init_maxwellian_bimaxwellian(struct gkyl_gyrokinetic_app *app, struct gk_species
   else {
     bimaxwellian = true;
     proj->vtsqpar = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-    proj->vtsqperp = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-    proj->proj_temppar = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
-        .grid = &app->grid,
-        .basis = &app->basis,
-        .qtype = GKYL_GAUSS_QUAD,
-        .num_quad = app->basis.poly_order+1,
-        .num_ret_vals = 1,
-        .eval = inp.temppar,
-        .ctx = inp.ctx_temppar,
-        .c2p_func = proj_on_basis_c2p_position_func,
-        .c2p_func_ctx = &proj->proj_on_basis_c2p_ctx,
+    proj->proj_temppar = alloc_mom_proj_op(&(struct proj_read_field_inp) {
+        .app = app,
+        .proj = proj,
+        .mom_func = inp.temppar,
+        .mom_func_ctx = inp.ctx_temppar,
       }
     );
-    proj->proj_tempperp = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
-        .grid = &app->grid,
-        .basis = &app->basis,
-        .qtype = GKYL_GAUSS_QUAD,
-        .num_quad = app->basis.poly_order+1,
-        .num_ret_vals = 1,
-        .eval = inp.tempperp,
-        .ctx = inp.ctx_tempperp,
-        .c2p_func = proj_on_basis_c2p_position_func,
-        .c2p_func_ctx = &proj->proj_on_basis_c2p_ctx,
+
+    proj->vtsqperp = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+    proj->proj_tempperp = alloc_mom_proj_op(&(struct proj_read_field_inp) {
+        .app = app,
+        .proj = proj,
+        .mom_func = inp.tempperp,
+        .mom_func_ctx = inp.ctx_tempperp,
       }
     );
 
@@ -215,7 +313,7 @@ init_maxwellian_bimaxwellian(struct gkyl_gyrokinetic_app *app, struct gk_species
     proj->prim_moms = mkarr(app->use_gpu, 4*app->basis.num_basis, app->local_ext.volume);      
   }
 
-  // Maxwellian (or bi-Maxwellian) projection updater.
+  // Maxwellian (or BiMaxwellian) projection updater.
   struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = {
     .phase_grid = &s->grid,
     .conf_basis = &app->basis,
@@ -228,7 +326,7 @@ init_maxwellian_bimaxwellian(struct gkyl_gyrokinetic_app *app, struct gk_species
     .quad_type = inp.quad_type,
     .mass = s->info.mass,
     .bimaxwellian = bimaxwellian, 
-    .divide_jacobgeo = false, // final Jacobian multiplication will be handled in advance
+    .divide_jacobgeo = false, // Jacobian multiplication handled in advance.
     .use_gpu = app->use_gpu,
   };
   proj->proj_max = gkyl_gk_maxwellian_proj_on_basis_inew( &inp_proj );
@@ -341,13 +439,14 @@ void
 gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, 
   struct gkyl_gyrokinetic_projection inp, struct gk_proj *proj)
 {
-  proj->proj_id = inp.proj_id;
+  proj->info = inp;
   // Context for c2p function passed to proj_on_basis.
   proj->proj_on_basis_c2p_ctx.cdim = app->cdim;
   proj->proj_on_basis_c2p_ctx.vdim = s->local_vel.ndim;
   proj->proj_on_basis_c2p_ctx.vel_map = s->vel_map;
   proj->proj_on_basis_c2p_ctx.pos_map = app->position_map;
-  if (proj->proj_id == GKYL_PROJ_FUNC) {
+
+  if (proj->info.proj_id == GKYL_PROJ_FUNC) {
     proj->proj_func = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
         .grid = &s->grid,
         .basis = &s->basis,
@@ -365,14 +464,15 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
     }
     proj->projection_calc = gk_species_projection_calc_proj_func;
   }
-  else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
+  else if (proj->info.proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->info.proj_id == GKYL_PROJ_BIMAXWELLIAN) {
     init_maxwellian_bimaxwellian(app, s, inp, proj);
-    proj->projection_calc = proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM ?
+    proj->projection_calc = proj->info.proj_id == GKYL_PROJ_MAXWELLIAN_PRIM ?
       gk_species_projection_calc_max_prim : gk_species_projection_calc_bimax;
-  } else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN) {
+  } else if (proj->info.proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN) {
     init_maxwellian_gaussian(app, s, inp, proj);
     proj->projection_calc = gk_species_projection_calc_max_gauss;
   }
+
   proj->moms_correct = proj->correct_all_moms ? 
     gk_species_projection_correct_all_moms : gk_species_projection_correct_all_moms_none;
 }
@@ -391,37 +491,45 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, struct gk_species *s,
 void
 gk_species_projection_release(const struct gkyl_gyrokinetic_app *app, const struct gk_proj *proj)
 {
-  if (proj->proj_id == GKYL_PROJ_FUNC) {
+  if (proj->info.proj_id == GKYL_PROJ_FUNC) {
     gkyl_proj_on_basis_release(proj->proj_func);
     if (app->use_gpu) {
       gkyl_array_release(proj->proj_host);
     }
   }
-  else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) { 
+  else if (proj->info.proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->info.proj_id == GKYL_PROJ_BIMAXWELLIAN) { 
     gkyl_array_release(proj->dens);
     gkyl_array_release(proj->upar); 
     gkyl_array_release(proj->prim_moms_host);
     gkyl_array_release(proj->prim_moms);
-    gkyl_proj_on_basis_release(proj->proj_dens);
-    gkyl_proj_on_basis_release(proj->proj_upar);
+    if (proj->info.density && proj->info.ctx_density) 
+      gkyl_proj_on_basis_release(proj->proj_dens);
+
+    if (proj->info.upar && proj->info.ctx_upar) 
+      gkyl_proj_on_basis_release(proj->proj_upar);
+
     gkyl_gk_maxwellian_proj_on_basis_release(proj->proj_max);
 
-    if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
+    if (proj->info.proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
       gkyl_array_release(proj->vtsq);
-      gkyl_proj_on_basis_release(proj->proj_temp);
+      if (proj->info.temp && proj->info.ctx_temp) 
+        gkyl_proj_on_basis_release(proj->proj_temp);
     }
-    else if (proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
+    else if (proj->info.proj_id == GKYL_PROJ_BIMAXWELLIAN) {
       gkyl_array_release(proj->vtsqpar);
       gkyl_array_release(proj->vtsqperp);
-      gkyl_proj_on_basis_release(proj->proj_temppar);
-      gkyl_proj_on_basis_release(proj->proj_tempperp);
+      if (proj->info.temppar && proj->info.ctx_temppar)
+        gkyl_proj_on_basis_release(proj->proj_temppar);
+
+      if (proj->info.tempperp && proj->info.ctx_tempperp)
+        gkyl_proj_on_basis_release(proj->proj_tempperp);
     }
 
     if (proj->correct_all_moms) {
-        gkyl_gk_maxwellian_correct_release(proj->corr_max);    
+      gkyl_gk_maxwellian_correct_release(proj->corr_max);    
     }
   } 
-  else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN) {
+  else if (proj->info.proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN) {
     gkyl_array_release(proj->gaussian_profile);
     gkyl_array_release(proj->prim_moms);
   }
