@@ -18,13 +18,16 @@ typedef struct gkyl_gyrokinetic_pol_density gkyl_gyrokinetic_pol_density;
  * recovery. It is only meant for ICs.
  *
  * @param cbasis Configuration-space basis.
+ * @param phi_basis_type Type of basis used to represent the potential.
+ * @param phi_poly_order Polynomial order of the basis presenting the potential.
  * @param cgrid Phase-space grid.
  * @param use_gpu bool to determine if on GPU.
  * @return New polarization density updater pointer.
  */
 struct gkyl_gyrokinetic_pol_density*
-gkyl_gyrokinetic_pol_density_new(struct gkyl_basis cbasis, struct gkyl_rect_grid cgrid,
-  bool use_gpu);
+gkyl_gyrokinetic_pol_density_new(struct gkyl_basis cbasis,
+  enum gkyl_basis_type phi_basis_type, int phi_poly_order,
+  struct gkyl_rect_grid cgrid, bool use_gpu);
 
 /**
  * Run the polarization density updater in the indicated range.

@@ -373,16 +373,15 @@ struct gkyl_gyrokinetic_field {
 
   bool time_rate_diagnostics; // Writes the time rate of change of field energy.
 
-  // Initial potential used to compute the total polarization density.
-  void (*polarization_potential)(double t, const double *xn, double *out, void *ctx);
-  void *polarization_potential_ctx;
-
   // Interface to read a potential from file.
   struct gkyl_gyrokinetic_ic_import init_from_file;
 
   // Profile for the field at t=0.
   void (*init_field_profile)(double t, const double *xn, double *out, void *ctx);
   void *init_field_profile_ctx;
+
+  int init_field_poly_order; // Polynomial order for init_field_profile.
+  enum gkyl_basis_type init_field_basis_type; // Type of basis for init_field_profile.
 
   void *phi_wall_lo_ctx; // context for biased wall potential on lower wall
   // pointer to biased wall potential on lower wall function

@@ -15,10 +15,24 @@ typedef struct { gkpolden_t kernels[3]; } gk_pol_den_kern_list;  // For use in k
 
 // Serendipity  kernels.
 GKYL_CU_D
-static const gk_pol_den_kern_list gk_pol_density_kern_list_ser[] = {
-  { gkyl_gyrokinetic_pol_density_1x_ser_p1, NULL, NULL },
-  { gkyl_gyrokinetic_pol_density_2x_ser_p1, NULL, NULL },
-  { gkyl_gyrokinetic_pol_density_3x_ser_p1, NULL, NULL },
+static const gk_pol_den_kern_list gk_pol_density_kern_list_ser_phi_ser_p[] = {
+  { gkyl_gyrokinetic_pol_density_1x_ser_p1_from_phi_ser_p1, NULL, NULL },
+  { gkyl_gyrokinetic_pol_density_2x_ser_p1_from_phi_ser_p1, NULL, NULL },
+  { gkyl_gyrokinetic_pol_density_3x_ser_p1_from_phi_ser_p1, NULL, NULL },
+};
+
+GKYL_CU_D
+static const gk_pol_den_kern_list gk_pol_density_kern_list_ser_phi_ser_pp1[] = {
+  { gkyl_gyrokinetic_pol_density_1x_ser_p1_from_phi_ser_p2, NULL, NULL },
+  { gkyl_gyrokinetic_pol_density_2x_ser_p1_from_phi_ser_p2, NULL, NULL },
+  { gkyl_gyrokinetic_pol_density_3x_ser_p1_from_phi_ser_p2, NULL, NULL },
+};
+
+GKYL_CU_D
+static const gk_pol_den_kern_list gk_pol_density_kern_list_ser_phi_tensor_pp1[] = {
+  { gkyl_gyrokinetic_pol_density_1x_ser_p1_from_phi_tensor_p2, NULL, NULL },
+  { gkyl_gyrokinetic_pol_density_2x_ser_p1_from_phi_tensor_p2, NULL, NULL },
+  { gkyl_gyrokinetic_pol_density_3x_ser_p1_from_phi_tensor_p2, NULL, NULL },
 };
 
 struct gkyl_gyrokinetic_pol_density_kernels {
@@ -45,11 +59,11 @@ void gkyl_gyrokinetic_pol_density_advance_cu(gkyl_gyrokinetic_pol_density* up,
 
 GKYL_CU_D
 static void gk_pol_den_choose_kernel(struct gkyl_gyrokinetic_pol_density_kernels *kernels,
-  struct gkyl_basis cbasis, bool use_gpu)
+  struct gkyl_basis cbasis, enum gkyl_basis_type phi_basis_type, int phi_poly_order, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    gk_pol_den_choose_kernel_cu(kernels, cbasis);
+    gk_pol_den_choose_kernel_cu(kernels, cbasis, phi_basis_type, phi_poly_order);
     return;
   }
 #endif
@@ -60,7 +74,20 @@ static void gk_pol_den_choose_kernel(struct gkyl_gyrokinetic_pol_density_kernels
 
   switch (basis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      kernels->pol_den = gk_pol_density_kern_list_ser[cdim-1].kernels[poly_order-1];
+      if (phi_basis_type == basis_type) {
+        if (phi_poly_order == poly_order)
+          kernels->pol_den = gk_pol_density_kern_list_ser_phi_ser_p[cdim-1].kernels[poly_order-1];
+        else if (phi_poly_order == poly_order+1)
+          kernels->pol_den = gk_pol_density_kern_list_ser_phi_ser_pp1[cdim-1].kernels[poly_order-1];
+        else
+          assert(false);
+      }
+      else if (phi_basis_type == GKYL_BASIS_MODAL_TENSOR) {
+        if (phi_poly_order == poly_order+1)
+          kernels->pol_den = gk_pol_density_kern_list_ser_phi_tensor_pp1[cdim-1].kernels[poly_order-1];
+        else
+          assert(false);
+      }
       break;
     default:
       assert(false);

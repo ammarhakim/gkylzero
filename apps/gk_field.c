@@ -1,4 +1,5 @@
 #include <gkyl_alloc.h>
+#include <gkyl_basis.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_bc_basic.h>
 #include <gkyl_dg_eqn.h>
@@ -130,55 +131,58 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   // The combination update_field=true, calc_init_field=false is not allowed.
   assert(!(f->update_field && (!f->calc_init_field)));
 
-  // allocate arrays for charge density
+  // Allocate arrays for charge density.
   f->rho_c = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   f->rho_c_global_dg = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
   f->rho_c_global_smooth = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
 
-  // allocate arrays for electrostatic potential
-  // global phi (only used in 1x simulations)
+  // Allocate arrays for electrostatic potential.
+  // Global phi (only used in 1x simulations),
   f->phi_fem = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
-  // local phi (assuming domain decomposition is *only* in z right now)
+  // Local phi (assuming domain decomposition is *only* in z right now).
   f->phi_smooth = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+
+  // Allocate an array for the initial phi in case it is provided by a function
+  // and the user wishes to project it with a different basis.
+  if (f->info.init_field_profile) {
+    enum gkyl_basis_type phi_init_basis_type = f->info.init_field_basis_type?
+      f->info.init_field_basis_type : app->basis.b_type;
+    int phi_init_poly_order = f->info.init_field_poly_order?
+      f->info.init_field_poly_order : app->basis.poly_order;
+
+    if (phi_init_basis_type == app->basis.b_type) 
+      if (phi_init_poly_order == app->basis.poly_order) {
+        f->phi_init_basis = app->basis;
+        f->phi_init = gkyl_array_acquire(f->phi_smooth);
+      }
+      else {
+        assert(phi_init_poly_order < 3);
+        gkyl_cart_modal_serendip(&f->phi_init_basis, app->cdim, phi_init_poly_order);
+        f->phi_init = mkarr(app->use_gpu, f->phi_init_basis.num_basis, app->local_ext.volume);
+      }
+    else if (phi_init_basis_type == GKYL_BASIS_MODAL_TENSOR) {
+      assert(phi_init_poly_order == 2);
+      gkyl_cart_modal_tensor(&f->phi_init_basis, app->cdim, phi_init_poly_order);
+      f->phi_init = mkarr(app->use_gpu, f->phi_init_basis.num_basis, app->local_ext.volume);
+    }
+    else
+      assert(false);
+  }
+  else {
+    f->phi_init_basis = app->basis;
+    f->phi_init = gkyl_array_acquire(f->phi_smooth);
+  }
+
 
   if (f->gkfield_id == GKYL_GK_FIELD_EM) {
     f->apar_fem = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     f->apardot_fem = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   }
 
-  f->init_phi_pol = false;
-  if (f->info.polarization_potential) {
-    // Project the initial potential onto a p+1 tensor basis and compute the polarization
-    // density to use use by species in calculating the initial ion density.
-    f->init_phi_pol = true;
-    struct gkyl_basis phi_pol_basis;
-    gkyl_cart_modal_tensor(&phi_pol_basis, app->cdim, app->poly_order+1);
-
-    f->phi_pol = mkarr(app->use_gpu, phi_pol_basis.num_basis, app->local_ext.volume);
-    struct gkyl_array *phi_pol_ho = app->use_gpu? mkarr(false, f->phi_pol->ncomp, f->phi_pol->size)
-                                                : gkyl_array_acquire(f->phi_pol);
-
-    struct gkyl_eval_on_nodes *phi_pol_proj = gkyl_eval_on_nodes_inew( &(struct gkyl_eval_on_nodes_inp){
-      .grid = &app->grid,
-      .basis = &phi_pol_basis,
-      .num_ret_vals = 1,
-      .eval = f->info.polarization_potential,
-      .ctx = f->info.polarization_potential_ctx,
-      .c2p_func = eval_on_nodes_c2p_position_func,
-      .c2p_func_ctx = app->position_map,
-    });
-
-    gkyl_eval_on_nodes_advance(phi_pol_proj, 0.0, &app->local, phi_pol_ho);
-    gkyl_array_copy(f->phi_pol, phi_pol_ho);
-    
-    gkyl_eval_on_nodes_release(phi_pol_proj);
-    gkyl_array_release(phi_pol_ho);
-  }
-
   // Create global subrange we'll copy the field solver solution from (into local).
   int intersect = gkyl_sub_range_intersect(&f->global_sub_range, &app->global, &app->local);
 
-  // detect if this process contains an edge in the z dimension by comparing the local and global indices
+  // Detect if this process contains an edge in the z dimension by comparing the local and global indices
   // for applying bias plan at the extremal z values only.
   int ndim = app->grid.ndim;
   f->info.poisson_bcs.contains_lower_z_edge = f->global_sub_range.lower[ndim-1] == app->global.lower[ndim-1];
@@ -674,11 +678,30 @@ void
 gk_field_project_init(struct gkyl_gyrokinetic_app *app)
 {
   // Project the initial field.
-  struct gkyl_eval_on_nodes *phi_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis,
-    1, app->field->info.init_field_profile, app->field->info.init_field_profile_ctx);
-  gkyl_eval_on_nodes_advance(phi_proj, 0.0, &app->local, app->field->phi_host);
+  struct gk_field *gkf = app->field;
+
+  struct gkyl_array *phi_ho;
+  if (gkf->phi_host->ncomp == gkf->phi_init->ncomp)
+    phi_ho = gkyl_array_acquire(gkf->phi_host);
+  else
+    phi_ho = app->use_gpu? mkarr(false, gkf->phi_init->ncomp, gkf->phi_init->size)
+                         : gkyl_array_acquire(gkf->phi_init);
+
+  struct gkyl_eval_on_nodes *phi_proj = gkyl_eval_on_nodes_inew( &(struct gkyl_eval_on_nodes_inp){
+    .grid = &app->grid,
+    .basis = &gkf->phi_init_basis,
+    .num_ret_vals = 1,
+    .eval = gkf->info.init_field_profile,
+    .ctx = gkf->info.init_field_profile_ctx,
+    .c2p_func = eval_on_nodes_c2p_position_func,
+    .c2p_func_ctx = app->position_map,
+  });
+
+  gkyl_eval_on_nodes_advance(phi_proj, 0.0, &app->local, phi_ho);
+  gkyl_array_copy(gkf->phi_init, phi_ho);
+
   gkyl_eval_on_nodes_release(phi_proj);
-  gkyl_array_copy(app->field->phi_smooth, app->field->phi_host);
+  gkyl_array_release(phi_ho);
 }
 
 void
@@ -737,14 +760,11 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   gkyl_array_release(f->rho_c_global_smooth);
   gkyl_array_release(f->phi_fem);
   gkyl_array_release(f->phi_smooth);
+  gkyl_array_release(f->phi_init);
 
   if (f->gkfield_id == GKYL_GK_FIELD_EM) {
     gkyl_array_release(f->apar_fem);
     gkyl_array_release(f->apardot_fem);
-  }
-
-  if (f->init_phi_pol) {
-    gkyl_array_release(f->phi_pol);
   }
 
   gkyl_array_release(f->es_energy_fac);

@@ -932,8 +932,8 @@ struct gk_field {
 
   struct gkyl_array *phi_host;  // host copy for use IO and initialization
 
-  bool init_phi_pol; // Whether to use the initial user polarization phi.
-  struct gkyl_array *phi_pol; // Initial polarization density potential.
+  struct gkyl_array *phi_init; // Initial electrostatic potential (possibly higher order).
+  struct gkyl_basis phi_init_basis; // Basis used to represent initial field potential.
 
   struct gkyl_range global_sub_range; // sub range of intersection of global range and local range
                                       // for solving subset of Poisson solves with parallelization in z

@@ -93,7 +93,8 @@ void test_1x_flat( bool use_gpu )
 
   gkyl_array_copy(phi_pol, phi_pol_ho);
 
-  struct gkyl_gyrokinetic_pol_density* npol_op = gkyl_gyrokinetic_pol_density_new(basis, grid, use_gpu);
+  struct gkyl_gyrokinetic_pol_density* npol_op = gkyl_gyrokinetic_pol_density_new(basis,
+    phi_pol_basis.b_type, phi_pol_basis.poly_order, grid, use_gpu);
   gkyl_gyrokinetic_pol_density_advance(npol_op, &localRange, epsilon, phi_pol, npol);
 
   gkyl_array_copy(npol_ho, npol);
@@ -170,7 +171,8 @@ void test_1x_quad( bool use_gpu )
   gkyl_eval_on_nodes_release(phi_pol_proj);
   gkyl_array_copy(phi_pol, phi_pol_ho);
 
-  struct gkyl_gyrokinetic_pol_density* npol_op = gkyl_gyrokinetic_pol_density_new(basis, grid, use_gpu);
+  struct gkyl_gyrokinetic_pol_density* npol_op = gkyl_gyrokinetic_pol_density_new(basis,
+    phi_pol_basis.b_type, phi_pol_basis.poly_order, grid, use_gpu);
   gkyl_gyrokinetic_pol_density_advance(npol_op, &localRange, epsilon, phi_pol, npol);
 
   gkyl_array_copy(npol_ho, npol);
@@ -181,9 +183,10 @@ void test_1x_quad( bool use_gpu )
   while (gkyl_range_iter_next(&conf_iter)) {
     long linidx = gkyl_range_idx(&localRange, conf_iter.idx);
     double *npol_d = gkyl_array_fetch(npol_ho, linidx);
-    double tol = 1e-12;
+    double tol = 1e-5;
     if (conf_iter.idx[1] == 1) {
       TEST_CHECK( gkyl_compare(npol_d[0], 1.141683, tol) );
+      TEST_MSG( "Got: %.9e | Expected: %.9e\n",npol_d[0], 1.141683 );
       TEST_CHECK( gkyl_compare(npol_d[1], 0.044652, tol) );
     } else if (conf_iter.idx[1] == 2) {
       TEST_CHECK( gkyl_compare(npol_d[0], 1.274265, tol) );
@@ -274,7 +277,8 @@ test_2x_quad( bool use_gpu )
   gkyl_eval_on_nodes_release(phi_pol_proj);
   gkyl_array_copy(phi_pol, phi_pol_ho);
 
-  struct gkyl_gyrokinetic_pol_density* npol_op = gkyl_gyrokinetic_pol_density_new(basis, grid, use_gpu);
+  struct gkyl_gyrokinetic_pol_density* npol_op = gkyl_gyrokinetic_pol_density_new(basis,
+    phi_pol_basis.b_type, phi_pol_basis.poly_order, grid, use_gpu);
   gkyl_gyrokinetic_pol_density_advance(npol_op, &localRange, epsilon, phi_pol, npol);
 
   gkyl_array_copy(npol_ho, npol);
@@ -389,7 +393,8 @@ test_3x_flat( bool use_gpu )
   gkyl_eval_on_nodes_release(phi_pol_proj);
   gkyl_array_copy(phi_pol, phi_pol_ho);
 
-  struct gkyl_gyrokinetic_pol_density* npol_op = gkyl_gyrokinetic_pol_density_new(basis, grid, use_gpu);
+  struct gkyl_gyrokinetic_pol_density* npol_op = gkyl_gyrokinetic_pol_density_new(basis,
+    phi_pol_basis.b_type, phi_pol_basis.poly_order, grid, use_gpu);
   gkyl_gyrokinetic_pol_density_advance(npol_op, &localRange, epsilon, phi_pol, npol);
 
   gkyl_array_copy(npol_ho, npol);

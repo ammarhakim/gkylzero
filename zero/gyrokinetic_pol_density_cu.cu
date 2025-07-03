@@ -8,15 +8,28 @@ extern "C" {
 // CUDA kernel to set device pointers to kernels.
 __global__ static void
 gkyl_gk_pol_den_set_cu_ker_ptrs(struct gkyl_gyrokinetic_pol_density_kernels *kernels,
-  struct gkyl_basis cbasis)
+  struct gkyl_basis cbasis, enum gkyl_basis_type phi_basis_type, int phi_poly_order)
 {
-  int pdim = cbasis.ndim;
+  int cdim = cbasis.ndim;
   enum gkyl_basis_type b_type = cbasis.b_type;
   int poly_order = cbasis.poly_order;
 
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      kernels->pol_den = gk_pol_density_kern_list_ser[pdim-1].kernels[poly_order-1];
+      if (phi_basis_type == basis_type) {
+        if (phi_poly_order == poly_order)
+          kernels->pol_den = gk_pol_density_kern_list_ser_phi_ser_p[cdim-1].kernels[poly_order-1];
+        else if (phi_poly_order == poly_order+1)
+          kernels->pol_den = gk_pol_density_kern_list_ser_phi_ser_pp1[cdim-1].kernels[poly_order-1];
+        else
+          assert(false);
+      }
+      else if (phi_basis_type == GKYL_BASIS_MODAL_TENSOR) {
+        if (phi_poly_order == poly_order+1)
+          kernels->pol_den = gk_pol_density_kern_list_ser_phi_tensor_pp1[cdim-1].kernels[poly_order-1];
+        else
+          assert(false);
+      }
       break;
     default:
       assert(false);
@@ -25,9 +38,9 @@ gkyl_gk_pol_den_set_cu_ker_ptrs(struct gkyl_gyrokinetic_pol_density_kernels *ker
 
 void
 gk_pol_den_choose_kernel_cu(struct gkyl_gyrokinetic_pol_density_kernels *kernels,
-  struct gkyl_basis cbasis)
+  struct gkyl_basis cbasis, enum gkyl_basis_type phi_basis_type, int phi_poly_order)
 {
-  gkyl_gk_pol_den_set_cu_ker_ptrs<<<1,1>>>(kernels, cbasis);
+  gkyl_gk_pol_den_set_cu_ker_ptrs<<<1,1>>>(kernels, cbasis, phi_basis_type, phi_poly_order);
 }
 
 __global__ static void

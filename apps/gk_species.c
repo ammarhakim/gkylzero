@@ -1881,15 +1881,16 @@ void
 gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *gks_self, double t0)
 {
   // IC setup step that depends on the IC of other species.
-  if (app->field->init_phi_pol && gks_self->info.scale_with_polarization) {
+  if (gks_self->info.scale_with_polarization) {
     // Scale the distribution function so its guiding center density is computed
     // given the polarization density and the guiding center density of other species.
 
     // Compute the polarization density.
     struct gkyl_array *npol = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
-    struct gkyl_gyrokinetic_pol_density* npol_op = gkyl_gyrokinetic_pol_density_new(app->basis, app->grid, app->use_gpu);
-    gkyl_gyrokinetic_pol_density_advance(npol_op, &app->local, app->field->epsilon, app->field->phi_pol, npol);
+    struct gkyl_gyrokinetic_pol_density* npol_op = gkyl_gyrokinetic_pol_density_new(app->basis,
+      app->field->phi_init_basis.b_type, app->field->phi_init_basis.poly_order, app->grid, app->use_gpu);
+    gkyl_gyrokinetic_pol_density_advance(npol_op, &app->local, app->field->epsilon, app->field->phi_init, npol);
     gkyl_gyrokinetic_pol_density_release(npol_op);
 
     // Calculate the guiding center density of this species: (npol - q_other*n^G_other)/q_self.

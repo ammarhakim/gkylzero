@@ -3,8 +3,9 @@
 #include <gkyl_alloc.h>
 
 struct gkyl_gyrokinetic_pol_density*
-gkyl_gyrokinetic_pol_density_new(struct gkyl_basis cbasis, struct gkyl_rect_grid cgrid,
-  bool use_gpu)
+gkyl_gyrokinetic_pol_density_new(struct gkyl_basis cbasis,
+  enum gkyl_basis_type phi_basis_type, int phi_poly_order,
+  struct gkyl_rect_grid cgrid, bool use_gpu)
 {
   // Allocate space for new updater.
   struct gkyl_gyrokinetic_pol_density *up = gkyl_malloc(sizeof(*up));
@@ -23,7 +24,7 @@ gkyl_gyrokinetic_pol_density_new(struct gkyl_basis cbasis, struct gkyl_rect_grid
 #endif
 
   // Choose kernels that shift f and compute int moms of Deltaf.
-  gk_pol_den_choose_kernel(up->kernels, cbasis, use_gpu);
+  gk_pol_den_choose_kernel(up->kernels, cbasis, phi_basis_type, phi_poly_order, use_gpu);
 
   return up;
 }

@@ -835,27 +835,26 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
         // Project the field.
         gk_field_project_init(app);
     }
+  }
 
-    // Compute necessary moments and boundary corrections for collisions.
-    for (int i=0; i<app->num_species; ++i) {
-      if (app->species[i].lbo.collision_id == GKYL_LBO_COLLISIONS) {
-        gk_species_lbo_moms(app, &app->species[i], 
-          &app->species[i].lbo, distf[i]);
-      }
-      if (app->species[i].bgk.collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
-        gk_species_bgk_moms(app, &app->species[i], 
-          &app->species[i].bgk, distf[i]);
-      }
+  // Compute necessary moments and boundary corrections for collisions.
+  for (int i=0; i<app->num_species; ++i) {
+    if (app->species[i].lbo.collision_id == GKYL_LBO_COLLISIONS) {
+      gk_species_lbo_moms(app, &app->species[i], 
+        &app->species[i].lbo, distf[i]);
     }
-
-    // Compute the cross-species collision frequencies.
-    for (int i=0; i<app->num_species; ++i) {
-      struct gk_species *gk_s = &app->species[i];
-      if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS) { 
-        gk_species_lbo_cross_nu(app, &app->species[i], &gk_s->lbo);
-      }
+    if (app->species[i].bgk.collision_id == GKYL_BGK_COLLISIONS && !app->has_implicit_coll_scheme) {
+      gk_species_bgk_moms(app, &app->species[i], 
+        &app->species[i].bgk, distf[i]);
     }
+  }
 
+  // Compute the cross-species collision frequencies.
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *gk_s = &app->species[i];
+    if (gk_s->lbo.collision_id == GKYL_LBO_COLLISIONS) { 
+      gk_species_lbo_cross_nu(app, &app->species[i], &gk_s->lbo);
+    }
   }
 
   // Compute the phase-space advection speeds and boundary fluxes as t=0

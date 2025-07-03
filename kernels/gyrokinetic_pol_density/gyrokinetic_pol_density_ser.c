@@ -1,6 +1,22 @@
 #include <gkyl_gyrokinetic_pol_density_kernels.h>
 
-void gkyl_gyrokinetic_pol_density_1x_ser_p1(const double *dx, const double *epsilon, const double *phi, double *out) 
+void gkyl_gyrokinetic_pol_density_1x_ser_p1_from_phi_ser_p1(const double *dx, const double *epsilon, const double *phi, double *out) 
+{ 
+  // dx: cell lengths.
+  // epsilon: polarization weight, sum_s jacobgeo*(n_s*m_s/B^2)*g^{ij}.
+  // phi: electrostatic potential.
+  // out: polarization density.
+
+  const double *epsxx = &epsilon[0];
+
+  double rdx00 = 1.0;
+
+  out[0] = 0.7071067811865475*epsxx[1]*phi[1]*rdx00+0.7071067811865475*epsxx[0]*phi[0]*rdx00; 
+  out[1] = 0.7071067811865475*epsxx[0]*phi[1]*rdx00+0.7071067811865475*phi[0]*epsxx[1]*rdx00; 
+
+}
+
+void gkyl_gyrokinetic_pol_density_1x_ser_p1_from_phi_ser_p2(const double *dx, const double *epsilon, const double *phi, double *out) 
 { 
   // dx: cell lengths.
   // epsilon: polarization weight, sum_s jacobgeo*(n_s*m_s/B^2)*g^{ij}.
@@ -16,7 +32,57 @@ void gkyl_gyrokinetic_pol_density_1x_ser_p1(const double *dx, const double *epsi
 
 }
 
-void gkyl_gyrokinetic_pol_density_2x_ser_p1(const double *dx, const double *epsilon, const double *phi, double *out) 
+void gkyl_gyrokinetic_pol_density_1x_ser_p1_from_phi_tensor_p2(const double *dx, const double *epsilon, const double *phi, double *out) 
+{ 
+  // dx: cell lengths.
+  // epsilon: polarization weight, sum_s jacobgeo*(n_s*m_s/B^2)*g^{ij}.
+  // phi: electrostatic potential.
+  // out: polarization density.
+
+  const double *epsxx = &epsilon[0];
+
+  double rdx00 = 1.0;
+
+  out[0] = 0.7071067811865475*epsxx[1]*phi[1]*rdx00+0.7071067811865475*epsxx[0]*phi[0]*rdx00; 
+  out[1] = 0.6324555320336759*epsxx[1]*phi[2]*rdx00+0.7071067811865475*epsxx[0]*phi[1]*rdx00+0.7071067811865475*phi[0]*epsxx[1]*rdx00; 
+
+}
+
+void gkyl_gyrokinetic_pol_density_2x_ser_p1_from_phi_ser_p1(const double *dx, const double *epsilon, const double *phi, double *out) 
+{ 
+  // dx: cell lengths.
+  // epsilon: polarization weight, sum_s jacobgeo*(n_s*m_s/B^2)*g^{ij}.
+  // phi: electrostatic potential.
+  // out: polarization density.
+
+  const double *epsxx = &epsilon[0];
+
+  double rdx00 = 4.0/(dx[0]*dx[0]);
+
+  out[0] = -(1.5*epsxx[3]*phi[3]*rdx00)-1.5*epsxx[1]*phi[1]*rdx00; 
+  out[2] = -(1.5*epsxx[1]*phi[3]*rdx00)-1.5*phi[1]*epsxx[3]*rdx00; 
+
+}
+
+void gkyl_gyrokinetic_pol_density_2x_ser_p1_from_phi_ser_p2(const double *dx, const double *epsilon, const double *phi, double *out) 
+{ 
+  // dx: cell lengths.
+  // epsilon: polarization weight, sum_s jacobgeo*(n_s*m_s/B^2)*g^{ij}.
+  // phi: electrostatic potential.
+  // out: polarization density.
+
+  const double *epsxx = &epsilon[0];
+
+  double rdx00 = 4.0/(dx[0]*dx[0]);
+
+  out[0] = -(3.3541019662496843*epsxx[2]*phi[6]*rdx00)-3.3541019662496847*epsxx[0]*phi[4]*rdx00-1.5*epsxx[3]*phi[3]*rdx00-1.5*epsxx[1]*phi[1]*rdx00; 
+  out[1] = -(6.7082039324993685*epsxx[3]*phi[6]*rdx00)-6.708203932499369*epsxx[1]*phi[4]*rdx00; 
+  out[2] = -(1.3416407864998738*epsxx[3]*phi[7]*rdx00)-3.3541019662496843*epsxx[0]*phi[6]*rdx00-3.3541019662496847*epsxx[2]*phi[4]*rdx00-1.5*epsxx[1]*phi[3]*rdx00-1.5*phi[1]*epsxx[3]*rdx00; 
+  out[3] = -(6.7082039324993685*epsxx[1]*phi[6]*rdx00)-6.708203932499369*epsxx[3]*phi[4]*rdx00; 
+
+}
+
+void gkyl_gyrokinetic_pol_density_2x_ser_p1_from_phi_tensor_p2(const double *dx, const double *epsilon, const double *phi, double *out) 
 { 
   // dx: cell lengths.
   // epsilon: polarization weight, sum_s jacobgeo*(n_s*m_s/B^2)*g^{ij}.
@@ -34,7 +100,59 @@ void gkyl_gyrokinetic_pol_density_2x_ser_p1(const double *dx, const double *epsi
 
 }
 
-void gkyl_gyrokinetic_pol_density_3x_ser_p1(const double *dx, const double *epsilon, const double *phi, double *out) 
+void gkyl_gyrokinetic_pol_density_3x_ser_p1_from_phi_ser_p1(const double *dx, const double *epsilon, const double *phi, double *out) 
+{ 
+  // dx: cell lengths.
+  // epsilon: polarization weight, sum_s jacobgeo*(n_s*m_s/B^2)*g^{ij}.
+  // phi: electrostatic potential.
+  // out: polarization density.
+
+  const double *epsxx = &epsilon[0];
+  const double *epsxy = &epsilon[8];
+  const double *epsyy = &epsilon[16];
+
+  double rdx00 = 4.0/(dx[0]*dx[0]);
+  double rdx01 = 4.0/(dx[0]*dx[1]);
+  double rdx11 = 4.0/(dx[1]*dx[1]);
+
+  out[0] = -(1.060660171779821*epsyy[7]*phi[7]*rdx11)-1.060660171779821*epsyy[6]*phi[6]*rdx11-1.060660171779821*epsyy[4]*phi[4]*rdx11-1.060660171779821*epsyy[2]*phi[2]*rdx11-2.1213203435596424*epsxy[3]*phi[7]*rdx01-1.060660171779821*epsxy[5]*phi[6]*rdx01-1.060660171779821*phi[5]*epsxy[6]*rdx01-2.1213203435596424*epsxy[0]*phi[4]*rdx01-1.060660171779821*epsxy[1]*phi[2]*rdx01-1.060660171779821*phi[1]*epsxy[2]*rdx01-1.060660171779821*epsxx[7]*phi[7]*rdx00-1.060660171779821*epsxx[5]*phi[5]*rdx00-1.060660171779821*epsxx[4]*phi[4]*rdx00-1.060660171779821*epsxx[1]*phi[1]*rdx00; 
+  out[1] = -(1.060660171779821*epsyy[6]*phi[7]*rdx11)-1.060660171779821*phi[6]*epsyy[7]*rdx11-1.060660171779821*epsyy[2]*phi[4]*rdx11-1.060660171779821*phi[2]*epsyy[4]*rdx11-3.1819805153394634*epsxy[5]*phi[7]*rdx01-1.060660171779821*phi[5]*epsxy[7]*rdx01-3.1819805153394634*epsxy[1]*phi[4]*rdx01-1.060660171779821*phi[1]*epsxy[4]*rdx01; 
+  out[2] = -(3.1819805153394634*epsxy[6]*phi[7]*rdx01)-1.060660171779821*phi[6]*epsxy[7]*rdx01-3.1819805153394634*epsxy[2]*phi[4]*rdx01-1.060660171779821*phi[2]*epsxy[4]*rdx01-1.060660171779821*epsxx[5]*phi[7]*rdx00-1.060660171779821*phi[5]*epsxx[7]*rdx00-1.060660171779821*epsxx[1]*phi[4]*rdx00-1.060660171779821*phi[1]*epsxx[4]*rdx00; 
+  out[3] = -(1.060660171779821*epsyy[4]*phi[7]*rdx11)-1.060660171779821*phi[4]*epsyy[7]*rdx11-1.060660171779821*epsyy[2]*phi[6]*rdx11-1.060660171779821*phi[2]*epsyy[6]*rdx11-2.1213203435596424*epsxy[0]*phi[7]*rdx01-1.060660171779821*epsxy[1]*phi[6]*rdx01-1.060660171779821*phi[1]*epsxy[6]*rdx01-1.060660171779821*epsxy[2]*phi[5]*rdx01-1.060660171779821*phi[2]*epsxy[5]*rdx01-2.1213203435596424*epsxy[3]*phi[4]*rdx01-1.060660171779821*epsxx[4]*phi[7]*rdx00-1.060660171779821*phi[4]*epsxx[7]*rdx00-1.060660171779821*epsxx[1]*phi[5]*rdx00-1.060660171779821*phi[1]*epsxx[5]*rdx00; 
+  out[4] = -(4.242640687119286*epsxy[7]*phi[7]*rdx01)-4.242640687119286*epsxy[4]*phi[4]*rdx01; 
+  out[5] = -(1.060660171779821*epsyy[2]*phi[7]*rdx11)-1.060660171779821*phi[2]*epsyy[7]*rdx11-1.060660171779821*epsyy[4]*phi[6]*rdx11-1.060660171779821*phi[4]*epsyy[6]*rdx11-3.1819805153394634*epsxy[1]*phi[7]*rdx01-1.060660171779821*phi[1]*epsxy[7]*rdx01-1.060660171779821*epsxy[4]*phi[5]*rdx01-3.1819805153394634*phi[4]*epsxy[5]*rdx01; 
+  out[6] = -(3.1819805153394634*epsxy[2]*phi[7]*rdx01)-1.060660171779821*phi[2]*epsxy[7]*rdx01-1.060660171779821*epsxy[4]*phi[6]*rdx01-3.1819805153394634*phi[4]*epsxy[6]*rdx01-1.060660171779821*epsxx[1]*phi[7]*rdx00-1.060660171779821*phi[1]*epsxx[7]*rdx00-1.060660171779821*epsxx[4]*phi[5]*rdx00-1.060660171779821*phi[4]*epsxx[5]*rdx00; 
+  out[7] = -(4.242640687119286*epsxy[4]*phi[7]*rdx01)-4.242640687119286*phi[4]*epsxy[7]*rdx01; 
+
+}
+
+void gkyl_gyrokinetic_pol_density_3x_ser_p1_from_phi_ser_p2(const double *dx, const double *epsilon, const double *phi, double *out) 
+{ 
+  // dx: cell lengths.
+  // epsilon: polarization weight, sum_s jacobgeo*(n_s*m_s/B^2)*g^{ij}.
+  // phi: electrostatic potential.
+  // out: polarization density.
+
+  const double *epsxx = &epsilon[0];
+  const double *epsxy = &epsilon[8];
+  const double *epsyy = &epsilon[16];
+
+  double rdx00 = 4.0/(dx[0]*dx[0]);
+  double rdx01 = 4.0/(dx[0]*dx[1]);
+  double rdx11 = 4.0/(dx[1]*dx[1]);
+
+  out[0] = -(2.371708245126284*epsyy[5]*phi[18]*rdx11)-2.371708245126284*epsyy[3]*phi[14]*rdx11-2.371708245126284*epsyy[1]*phi[12]*rdx11-1.060660171779821*epsyy[7]*phi[10]*rdx11-2.371708245126284*epsyy[0]*phi[8]*rdx11-1.060660171779821*epsyy[6]*phi[6]*rdx11-1.060660171779821*epsyy[4]*phi[4]*rdx11-1.060660171779821*epsyy[2]*phi[2]*rdx11-4.743416490252569*epsxy[6]*phi[18]*rdx01-4.743416490252569*epsxy[5]*phi[17]*rdx01-2.371708245126284*epsxy[7]*phi[14]*rdx01-2.371708245126284*epsxy[7]*phi[13]*rdx01-4.743416490252569*epsxy[2]*phi[12]*rdx01-4.743416490252569*epsxy[1]*phi[11]*rdx01-2.1213203435596424*epsxy[3]*phi[10]*rdx01-2.371708245126284*epsxy[4]*phi[8]*rdx01-2.371708245126284*epsxy[4]*phi[7]*rdx01-1.060660171779821*epsxy[5]*phi[6]*rdx01-1.060660171779821*phi[5]*epsxy[6]*rdx01-2.1213203435596424*epsxy[0]*phi[4]*rdx01-1.060660171779821*epsxy[1]*phi[2]*rdx01-1.060660171779821*phi[1]*epsxy[2]*rdx01-2.371708245126284*epsxx[6]*phi[17]*rdx00-2.371708245126284*epsxx[3]*phi[13]*rdx00-2.371708245126284*epsxx[2]*phi[11]*rdx00-1.060660171779821*epsxx[7]*phi[10]*rdx00-2.371708245126284*epsxx[0]*phi[7]*rdx00-1.060660171779821*epsxx[5]*phi[5]*rdx00-1.060660171779821*epsxx[4]*phi[4]*rdx00-1.060660171779821*epsxx[1]*phi[1]*rdx00; 
+  out[1] = -(2.371708245126284*epsyy[3]*phi[18]*rdx11)-0.9486832980505137*epsyy[7]*phi[17]*rdx11-2.371708245126284*epsyy[5]*phi[14]*rdx11-2.371708245126284*epsyy[0]*phi[12]*rdx11-0.9486832980505138*epsyy[4]*phi[11]*rdx11-1.060660171779821*epsyy[6]*phi[10]*rdx11-2.371708245126284*epsyy[1]*phi[8]*rdx11-1.060660171779821*phi[6]*epsyy[7]*rdx11-1.060660171779821*epsyy[2]*phi[4]*rdx11-1.060660171779821*phi[2]*epsyy[4]*rdx11-7.115124735378853*epsxy[7]*phi[18]*rdx01-4.743416490252569*epsxy[3]*phi[17]*rdx01-2.371708245126284*epsxy[6]*phi[13]*rdx01-7.115124735378853*epsxy[4]*phi[12]*rdx01-4.743416490252569*epsxy[0]*phi[11]*rdx01-3.1819805153394634*epsxy[5]*phi[10]*rdx01-2.371708245126284*epsxy[2]*phi[7]*rdx01-1.060660171779821*phi[5]*epsxy[7]*rdx01-3.1819805153394634*epsxy[1]*phi[4]*rdx01-1.060660171779821*phi[1]*epsxy[4]*rdx01-4.743416490252569*epsxx[7]*phi[17]*rdx00-4.743416490252569*epsxx[5]*phi[13]*rdx00-4.743416490252569*epsxx[4]*phi[11]*rdx00-4.743416490252569*epsxx[1]*phi[7]*rdx00; 
+  out[2] = -(4.743416490252569*epsyy[7]*phi[18]*rdx11)-4.743416490252569*epsyy[6]*phi[14]*rdx11-4.743416490252569*epsyy[4]*phi[12]*rdx11-4.743416490252569*epsyy[2]*phi[8]*rdx11-4.743416490252569*epsxy[3]*phi[18]*rdx01-7.115124735378853*epsxy[7]*phi[17]*rdx01-2.371708245126284*epsxy[5]*phi[14]*rdx01-4.743416490252569*epsxy[0]*phi[12]*rdx01-7.115124735378853*epsxy[4]*phi[11]*rdx01-3.1819805153394634*epsxy[6]*phi[10]*rdx01-2.371708245126284*epsxy[1]*phi[8]*rdx01-1.060660171779821*phi[6]*epsxy[7]*rdx01-3.1819805153394634*epsxy[2]*phi[4]*rdx01-1.060660171779821*phi[2]*epsxy[4]*rdx01-0.9486832980505137*epsxx[7]*phi[18]*rdx00-2.371708245126284*epsxx[3]*phi[17]*rdx00-2.371708245126284*epsxx[6]*phi[13]*rdx00-0.9486832980505138*epsxx[4]*phi[12]*rdx00-2.371708245126284*epsxx[0]*phi[11]*rdx00-1.060660171779821*epsxx[5]*phi[10]*rdx00-2.371708245126284*epsxx[2]*phi[7]*rdx00-1.060660171779821*phi[5]*epsxx[7]*rdx00-1.060660171779821*epsxx[1]*phi[4]*rdx00-1.060660171779821*phi[1]*epsxx[4]*rdx00; 
+  out[3] = -(0.9486832980505137*epsyy[7]*phi[19]*rdx11)-2.371708245126284*epsyy[1]*phi[18]*rdx11-0.9486832980505138*epsyy[6]*phi[16]*rdx11-2.371708245126284*epsyy[0]*phi[14]*rdx11-2.371708245126284*epsyy[5]*phi[12]*rdx11-1.060660171779821*epsyy[4]*phi[10]*rdx11-2.371708245126284*epsyy[3]*phi[8]*rdx11-1.060660171779821*phi[4]*epsyy[7]*rdx11-1.060660171779821*epsyy[2]*phi[6]*rdx11-1.060660171779821*phi[2]*epsyy[6]*rdx11-1.8973665961010278*epsxy[3]*phi[19]*rdx01-4.743416490252569*epsxy[2]*phi[18]*rdx01-4.743416490252569*epsxy[1]*phi[17]*rdx01-0.9486832980505138*epsxy[5]*phi[16]*rdx01-0.9486832980505138*epsxy[6]*phi[15]*rdx01-2.371708245126284*epsxy[4]*phi[14]*rdx01-2.371708245126284*epsxy[4]*phi[13]*rdx01-4.743416490252569*epsxy[6]*phi[12]*rdx01-4.743416490252569*epsxy[5]*phi[11]*rdx01-2.1213203435596424*epsxy[0]*phi[10]*rdx01-2.371708245126284*epsxy[7]*phi[8]*rdx01-2.371708245126284*epsxy[7]*phi[7]*rdx01-1.060660171779821*epsxy[1]*phi[6]*rdx01-1.060660171779821*phi[1]*epsxy[6]*rdx01-1.060660171779821*epsxy[2]*phi[5]*rdx01-1.060660171779821*phi[2]*epsxy[5]*rdx01-2.1213203435596424*epsxy[3]*phi[4]*rdx01-0.9486832980505137*epsxx[7]*phi[19]*rdx00-2.371708245126284*epsxx[2]*phi[17]*rdx00-0.9486832980505138*epsxx[5]*phi[15]*rdx00-2.371708245126284*epsxx[0]*phi[13]*rdx00-2.371708245126284*epsxx[6]*phi[11]*rdx00-1.060660171779821*epsxx[4]*phi[10]*rdx00-2.371708245126284*epsxx[3]*phi[7]*rdx00-1.060660171779821*phi[4]*epsxx[7]*rdx00-1.060660171779821*epsxx[1]*phi[5]*rdx00-1.060660171779821*phi[1]*epsxx[5]*rdx00; 
+  out[4] = -(4.743416490252569*epsyy[6]*phi[18]*rdx11)-4.743416490252569*epsyy[7]*phi[14]*rdx11-4.743416490252569*epsyy[2]*phi[12]*rdx11-4.743416490252569*epsyy[4]*phi[8]*rdx11-7.115124735378853*epsxy[5]*phi[18]*rdx01-7.115124735378853*epsxy[6]*phi[17]*rdx01-7.115124735378853*epsxy[1]*phi[12]*rdx01-7.115124735378853*epsxy[2]*phi[11]*rdx01-4.242640687119286*epsxy[7]*phi[10]*rdx01-4.242640687119286*epsxy[4]*phi[4]*rdx01-4.743416490252569*epsxx[5]*phi[17]*rdx00-4.743416490252569*epsxx[7]*phi[13]*rdx00-4.743416490252569*epsxx[1]*phi[11]*rdx00-4.743416490252569*epsxx[4]*phi[7]*rdx00; 
+  out[5] = -(0.9486832980505137*epsyy[6]*phi[19]*rdx11)-2.371708245126284*epsyy[0]*phi[18]*rdx11-0.9486832980505137*epsyy[4]*phi[17]*rdx11-0.9486832980505138*epsyy[7]*phi[16]*rdx11-2.371708245126284*epsyy[1]*phi[14]*rdx11-2.371708245126284*epsyy[3]*phi[12]*rdx11-0.9486832980505138*epsyy[7]*phi[11]*rdx11-1.060660171779821*epsyy[2]*phi[10]*rdx11-2.371708245126284*epsyy[5]*phi[8]*rdx11-1.060660171779821*phi[2]*epsyy[7]*rdx11-1.060660171779821*epsyy[4]*phi[6]*rdx11-1.060660171779821*phi[4]*epsyy[6]*rdx11-2.8460498941515415*epsxy[5]*phi[19]*rdx01-7.115124735378853*epsxy[4]*phi[18]*rdx01-4.743416490252569*epsxy[0]*phi[17]*rdx01-0.9486832980505138*epsxy[7]*phi[15]*rdx01-2.371708245126284*epsxy[2]*phi[13]*rdx01-7.115124735378853*epsxy[7]*phi[12]*rdx01-4.743416490252569*epsxy[3]*phi[11]*rdx01-3.1819805153394634*epsxy[1]*phi[10]*rdx01-2.371708245126284*epsxy[6]*phi[7]*rdx01-1.060660171779821*phi[1]*epsxy[7]*rdx01-1.060660171779821*epsxy[4]*phi[5]*rdx01-3.1819805153394634*phi[4]*epsxy[5]*rdx01-4.743416490252569*epsxx[4]*phi[17]*rdx00-4.743416490252569*epsxx[1]*phi[13]*rdx00-4.743416490252569*epsxx[7]*phi[11]*rdx00-4.743416490252569*epsxx[5]*phi[7]*rdx00; 
+  out[6] = -(4.743416490252569*epsyy[4]*phi[18]*rdx11)-4.743416490252569*epsyy[2]*phi[14]*rdx11-4.743416490252569*epsyy[7]*phi[12]*rdx11-4.743416490252569*epsyy[6]*phi[8]*rdx11-2.8460498941515415*epsxy[6]*phi[19]*rdx01-4.743416490252569*epsxy[0]*phi[18]*rdx01-7.115124735378853*epsxy[4]*phi[17]*rdx01-0.9486832980505138*epsxy[7]*phi[16]*rdx01-2.371708245126284*epsxy[1]*phi[14]*rdx01-4.743416490252569*epsxy[3]*phi[12]*rdx01-7.115124735378853*epsxy[7]*phi[11]*rdx01-3.1819805153394634*epsxy[2]*phi[10]*rdx01-2.371708245126284*epsxy[5]*phi[8]*rdx01-1.060660171779821*phi[2]*epsxy[7]*rdx01-1.060660171779821*epsxy[4]*phi[6]*rdx01-3.1819805153394634*phi[4]*epsxy[6]*rdx01-0.9486832980505137*epsxx[5]*phi[19]*rdx00-0.9486832980505137*epsxx[4]*phi[18]*rdx00-2.371708245126284*epsxx[0]*phi[17]*rdx00-0.9486832980505138*epsxx[7]*phi[15]*rdx00-2.371708245126284*epsxx[2]*phi[13]*rdx00-0.9486832980505138*epsxx[7]*phi[12]*rdx00-2.371708245126284*epsxx[3]*phi[11]*rdx00-1.060660171779821*epsxx[1]*phi[10]*rdx00-2.371708245126284*epsxx[6]*phi[7]*rdx00-1.060660171779821*phi[1]*epsxx[7]*rdx00-1.060660171779821*epsxx[4]*phi[5]*rdx00-1.060660171779821*phi[4]*epsxx[5]*rdx00; 
+  out[7] = -(4.743416490252569*epsyy[2]*phi[18]*rdx11)-4.743416490252569*epsyy[4]*phi[14]*rdx11-4.743416490252569*epsyy[6]*phi[12]*rdx11-4.743416490252569*epsyy[7]*phi[8]*rdx11-3.7947331922020555*epsxy[7]*phi[19]*rdx01-7.115124735378853*epsxy[1]*phi[18]*rdx01-7.115124735378853*epsxy[2]*phi[17]*rdx01-7.115124735378853*epsxy[5]*phi[12]*rdx01-7.115124735378853*epsxy[6]*phi[11]*rdx01-4.242640687119286*epsxy[4]*phi[10]*rdx01-4.242640687119286*phi[4]*epsxy[7]*rdx01-4.743416490252569*epsxx[1]*phi[17]*rdx00-4.743416490252569*epsxx[4]*phi[13]*rdx00-4.743416490252569*epsxx[5]*phi[11]*rdx00-4.743416490252569*epsxx[7]*phi[7]*rdx00; 
+
+}
+
+void gkyl_gyrokinetic_pol_density_3x_ser_p1_from_phi_tensor_p2(const double *dx, const double *epsilon, const double *phi, double *out) 
 { 
   // dx: cell lengths.
   // epsilon: polarization weight, sum_s jacobgeo*(n_s*m_s/B^2)*g^{ij}.
