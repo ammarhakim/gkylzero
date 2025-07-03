@@ -34,23 +34,19 @@ GKYL_CU_DH double gyrokinetic_vol_1x1v_ser_p1(const double *w, const double *dxv
   hamil[2] = 0.7071067811865475*vmapSq[1]*m_; 
   hamil[4] = 0.7071067811865475*vmapSq[2]*m_; 
 
-  double hamil2[6] = {0.}; 
-  hamil2[0] = hamil[0]*hamil[0]; 
-  hamil2[1] = hamil[1]*hamil[1]; 
-  hamil2[2] = hamil[2]*hamil[2]; 
-  hamil2[3] = hamil[3]*hamil[3]; 
-  hamil2[4] = hamil[4]*hamil[4]; 
-  hamil2[5] = hamil[5]*hamil[5]; 
-
   double vmap2 = vmap[1]*vmap[1]; 
 
+  double hamil2[2] = {0.}; 
+  hamil2[0] = hamil[2]*hamil[2]; 
+  hamil2[1] = hamil[4]*hamil[4]; 
+
   double alphax[6] = {0.}; 
-  alphax[0] = (rdx2*((3.535533905932738*dualcurlbhatoverB_x[0]*hamil2[4])/vmap2+(0.7071067811865475*dualcurlbhatoverB_x[0]*hamil2[2])/vmap2))/(m_*q_)+(rtg33inv[0]*vmap[1]*hamil[2]*rdx2)/(m_*vmap2); 
-  alphax[1] = (rdx2*((3.535533905932738*dualcurlbhatoverB_x[1]*hamil2[4])/vmap2+(0.7071067811865475*dualcurlbhatoverB_x[1]*hamil2[2])/vmap2))/(m_*q_)+(rtg33inv[1]*vmap[1]*hamil[2]*rdx2)/(m_*vmap2); 
+  alphax[0] = (rdx2*((3.535533905932738*dualcurlbhatoverB_x[0]*hamil2[1])/vmap2+(0.7071067811865475*dualcurlbhatoverB_x[0]*hamil2[0])/vmap2))/(m_*q_)+(rtg33inv[0]*vmap[1]*hamil[2]*rdx2)/(m_*vmap2); 
+  alphax[1] = (rdx2*((3.535533905932738*dualcurlbhatoverB_x[1]*hamil2[1])/vmap2+(0.7071067811865475*hamil2[0]*dualcurlbhatoverB_x[1])/vmap2))/(m_*q_)+(rtg33inv[1]*vmap[1]*hamil[2]*rdx2)/(m_*vmap2); 
   alphax[2] = (3.16227766016838*dualcurlbhatoverB_x[0]*hamil[2]*hamil[4]*rdx2)/(m_*q_*vmap2)+(2.23606797749979*rtg33inv[0]*vmap[1]*hamil[4]*rdx2)/(m_*vmap2); 
   alphax[3] = (3.16227766016838*dualcurlbhatoverB_x[1]*hamil[2]*hamil[4]*rdx2)/(m_*q_*vmap2)+(2.23606797749979*rtg33inv[1]*vmap[1]*hamil[4]*rdx2)/(m_*vmap2); 
-  alphax[4] = (3.16227766016838*dualcurlbhatoverB_x[0]*hamil2[4]*rdx2)/(m_*q_*vmap2); 
-  alphax[5] = (3.16227766016838*dualcurlbhatoverB_x[1]*hamil2[4]*rdx2)/(m_*q_*vmap2); 
+  alphax[4] = (3.16227766016838*dualcurlbhatoverB_x[0]*hamil2[1]*rdx2)/(m_*q_*vmap2); 
+  alphax[5] = (3.16227766016838*dualcurlbhatoverB_x[1]*hamil2[1]*rdx2)/(m_*q_*vmap2); 
 
 
   out[1] += 0.8660254037844386*alphax[5]*fin[5]+0.8660254037844386*alphax[4]*fin[4]+0.8660254037844386*alphax[3]*fin[3]+0.8660254037844386*alphax[2]*fin[2]+0.8660254037844386*alphax[1]*fin[1]+0.8660254037844386*alphax[0]*fin[0]; 

@@ -37,29 +37,19 @@ GKYL_CU_DH double gyrokinetic_vol_1x2v_ser_p1(const double *w, const double *dxv
   hamil[5] = 1.414213562373095*bmag[1]*vmap[3]; 
   hamil[8] = vmapSq[2]*m_; 
 
-  double hamil2[12] = {0.}; 
-  hamil2[0] = hamil[0]*hamil[0]; 
-  hamil2[1] = hamil[1]*hamil[1]; 
-  hamil2[2] = hamil[2]*hamil[2]; 
-  hamil2[3] = hamil[3]*hamil[3]; 
-  hamil2[4] = hamil[4]*hamil[4]; 
-  hamil2[5] = hamil[5]*hamil[5]; 
-  hamil2[6] = hamil[6]*hamil[6]; 
-  hamil2[7] = hamil[7]*hamil[7]; 
-  hamil2[8] = hamil[8]*hamil[8]; 
-  hamil2[9] = hamil[9]*hamil[9]; 
-  hamil2[10] = hamil[10]*hamil[10]; 
-  hamil2[11] = hamil[11]*hamil[11]; 
-
   double vmap2 = vmap[1]*vmap[1]; 
 
+  double hamil2[2] = {0.}; 
+  hamil2[0] = hamil[2]*hamil[2]; 
+  hamil2[1] = hamil[8]*hamil[8]; 
+
   double alphax[12] = {0.}; 
-  alphax[0] = (rdx2*((2.5*dualcurlbhatoverB_x[0]*hamil2[8])/vmap2+(0.5*dualcurlbhatoverB_x[0]*hamil2[2])/vmap2))/(m_*q_)+(rtg33inv[0]*vmap[1]*hamil[2]*rdx2)/(m_*vmap2); 
-  alphax[1] = (rdx2*((2.5*dualcurlbhatoverB_x[1]*hamil2[8])/vmap2+(0.5*dualcurlbhatoverB_x[1]*hamil2[2])/vmap2))/(m_*q_)+(rtg33inv[1]*vmap[1]*hamil[2]*rdx2)/(m_*vmap2); 
+  alphax[0] = (rdx2*((2.5*dualcurlbhatoverB_x[0]*hamil2[1])/vmap2+(0.5*dualcurlbhatoverB_x[0]*hamil2[0])/vmap2))/(m_*q_)+(rtg33inv[0]*vmap[1]*hamil[2]*rdx2)/(m_*vmap2); 
+  alphax[1] = (rdx2*((2.5*dualcurlbhatoverB_x[1]*hamil2[1])/vmap2+(0.5*hamil2[0]*dualcurlbhatoverB_x[1])/vmap2))/(m_*q_)+(rtg33inv[1]*vmap[1]*hamil[2]*rdx2)/(m_*vmap2); 
   alphax[2] = (2.23606797749979*dualcurlbhatoverB_x[0]*hamil[2]*hamil[8]*rdx2)/(m_*q_*vmap2)+(2.23606797749979*rtg33inv[0]*vmap[1]*hamil[8]*rdx2)/(m_*vmap2); 
   alphax[4] = (2.23606797749979*dualcurlbhatoverB_x[1]*hamil[2]*hamil[8]*rdx2)/(m_*q_*vmap2)+(2.23606797749979*rtg33inv[1]*vmap[1]*hamil[8]*rdx2)/(m_*vmap2); 
-  alphax[8] = (2.23606797749979*dualcurlbhatoverB_x[0]*hamil2[8]*rdx2)/(m_*q_*vmap2); 
-  alphax[9] = (2.23606797749979*dualcurlbhatoverB_x[1]*hamil2[8]*rdx2)/(m_*q_*vmap2); 
+  alphax[8] = (2.23606797749979*dualcurlbhatoverB_x[0]*hamil2[1]*rdx2)/(m_*q_*vmap2); 
+  alphax[9] = (2.23606797749979*dualcurlbhatoverB_x[1]*hamil2[1]*rdx2)/(m_*q_*vmap2); 
 
 
   out[1] += 0.6123724356957944*alphax[9]*fin[9]+0.6123724356957944*alphax[8]*fin[8]+0.6123724356957944*alphax[4]*fin[4]+0.6123724356957944*alphax[2]*fin[2]+0.6123724356957944*alphax[1]*fin[1]+0.6123724356957944*alphax[0]*fin[0]; 

@@ -42,33 +42,11 @@ GKYL_CU_DH double gyrokinetic_no_by_vol_2x2v_ser_p1(const double *w, const doubl
   hamil[12] = 1.414213562373095*bmag[3]*vmap[3]; 
   hamil[16] = 1.414213562373095*vmapSq[2]*m_; 
 
-  double hamil2[24] = {0.}; 
-  hamil2[0] = hamil[0]*hamil[0]; 
-  hamil2[1] = hamil[1]*hamil[1]; 
-  hamil2[2] = hamil[2]*hamil[2]; 
-  hamil2[3] = hamil[3]*hamil[3]; 
-  hamil2[4] = hamil[4]*hamil[4]; 
-  hamil2[5] = hamil[5]*hamil[5]; 
-  hamil2[6] = hamil[6]*hamil[6]; 
-  hamil2[7] = hamil[7]*hamil[7]; 
-  hamil2[8] = hamil[8]*hamil[8]; 
-  hamil2[9] = hamil[9]*hamil[9]; 
-  hamil2[10] = hamil[10]*hamil[10]; 
-  hamil2[11] = hamil[11]*hamil[11]; 
-  hamil2[12] = hamil[12]*hamil[12]; 
-  hamil2[13] = hamil[13]*hamil[13]; 
-  hamil2[14] = hamil[14]*hamil[14]; 
-  hamil2[15] = hamil[15]*hamil[15]; 
-  hamil2[16] = hamil[16]*hamil[16]; 
-  hamil2[17] = hamil[17]*hamil[17]; 
-  hamil2[18] = hamil[18]*hamil[18]; 
-  hamil2[19] = hamil[19]*hamil[19]; 
-  hamil2[20] = hamil[20]*hamil[20]; 
-  hamil2[21] = hamil[21]*hamil[21]; 
-  hamil2[22] = hamil[22]*hamil[22]; 
-  hamil2[23] = hamil[23]*hamil[23]; 
-
   double vmap2 = vmap[1]*vmap[1]; 
+
+  double hamil2[2] = {0.}; 
+  hamil2[0] = hamil[3]*hamil[3]; 
+  hamil2[1] = hamil[16]*hamil[16]; 
 
   double alphax[24] = {0.}; 
 

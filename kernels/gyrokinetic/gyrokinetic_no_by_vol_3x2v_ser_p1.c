@@ -47,57 +47,11 @@ GKYL_CU_DH double gyrokinetic_no_by_vol_3x2v_ser_p1(const double *w, const doubl
   hamil[21] = 1.414213562373095*vmap[3]*bmag[5]; 
   hamil[32] = 2.0*vmapSq[2]*m_; 
 
-  double hamil2[48] = {0.}; 
-  hamil2[0] = hamil[0]*hamil[0]; 
-  hamil2[1] = hamil[1]*hamil[1]; 
-  hamil2[2] = hamil[2]*hamil[2]; 
-  hamil2[3] = hamil[3]*hamil[3]; 
-  hamil2[4] = hamil[4]*hamil[4]; 
-  hamil2[5] = hamil[5]*hamil[5]; 
-  hamil2[6] = hamil[6]*hamil[6]; 
-  hamil2[7] = hamil[7]*hamil[7]; 
-  hamil2[8] = hamil[8]*hamil[8]; 
-  hamil2[9] = hamil[9]*hamil[9]; 
-  hamil2[10] = hamil[10]*hamil[10]; 
-  hamil2[11] = hamil[11]*hamil[11]; 
-  hamil2[12] = hamil[12]*hamil[12]; 
-  hamil2[13] = hamil[13]*hamil[13]; 
-  hamil2[14] = hamil[14]*hamil[14]; 
-  hamil2[15] = hamil[15]*hamil[15]; 
-  hamil2[16] = hamil[16]*hamil[16]; 
-  hamil2[17] = hamil[17]*hamil[17]; 
-  hamil2[18] = hamil[18]*hamil[18]; 
-  hamil2[19] = hamil[19]*hamil[19]; 
-  hamil2[20] = hamil[20]*hamil[20]; 
-  hamil2[21] = hamil[21]*hamil[21]; 
-  hamil2[22] = hamil[22]*hamil[22]; 
-  hamil2[23] = hamil[23]*hamil[23]; 
-  hamil2[24] = hamil[24]*hamil[24]; 
-  hamil2[25] = hamil[25]*hamil[25]; 
-  hamil2[26] = hamil[26]*hamil[26]; 
-  hamil2[27] = hamil[27]*hamil[27]; 
-  hamil2[28] = hamil[28]*hamil[28]; 
-  hamil2[29] = hamil[29]*hamil[29]; 
-  hamil2[30] = hamil[30]*hamil[30]; 
-  hamil2[31] = hamil[31]*hamil[31]; 
-  hamil2[32] = hamil[32]*hamil[32]; 
-  hamil2[33] = hamil[33]*hamil[33]; 
-  hamil2[34] = hamil[34]*hamil[34]; 
-  hamil2[35] = hamil[35]*hamil[35]; 
-  hamil2[36] = hamil[36]*hamil[36]; 
-  hamil2[37] = hamil[37]*hamil[37]; 
-  hamil2[38] = hamil[38]*hamil[38]; 
-  hamil2[39] = hamil[39]*hamil[39]; 
-  hamil2[40] = hamil[40]*hamil[40]; 
-  hamil2[41] = hamil[41]*hamil[41]; 
-  hamil2[42] = hamil[42]*hamil[42]; 
-  hamil2[43] = hamil[43]*hamil[43]; 
-  hamil2[44] = hamil[44]*hamil[44]; 
-  hamil2[45] = hamil[45]*hamil[45]; 
-  hamil2[46] = hamil[46]*hamil[46]; 
-  hamil2[47] = hamil[47]*hamil[47]; 
-
   double vmap2 = vmap[1]*vmap[1]; 
+
+  double hamil2[2] = {0.}; 
+  hamil2[0] = hamil[4]*hamil[4]; 
+  hamil2[1] = hamil[32]*hamil[32]; 
 
   double alphax[48] = {0.}; 
 
