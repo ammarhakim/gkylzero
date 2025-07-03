@@ -518,6 +518,62 @@ kernel_lbo_vlasov_vmap_drag_vol_1x3v_ser_p2(const struct gkyl_dg_eqn *eqn, const
 
 GKYL_CU_DH
 static double
+kernel_lbo_vlasov_vmap_drag_vol_2x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_lbo_vlasov_drag *lbo_vlasov_drag = container_of(eqn, struct dg_lbo_vlasov_drag, eqn);
+  long cidx = gkyl_range_idx(&lbo_vlasov_drag->conf_range, idx);
+  const double* nuSum_p     = (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuSum, cidx);
+  const double* nuPrimMomsSum_p = (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuPrimMomsSum, cidx);
+  const double* nuUSum_p    = nuPrimMomsSum_p;
+  const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo_vlasov_drag->vdim*lbo_vlasov_drag->num_cbasis];
+  bool noPrimMomCross = checkPrimMomCross(lbo_vlasov_drag, nuSum_p, nuUSum_p, nuVtSqSum_p);
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<lbo_vlasov_drag->vdim; ++i)
+    idx_vel[i] = idx[lbo_vlasov_drag->cdim+i];
+  long vidx = gkyl_range_idx(&lbo_vlasov_drag->vel_range, idx_vel);
+
+  if (noPrimMomCross) {
+    return lbo_vlasov_vmap_drag_vol_2x1v_ser_p1(xc, dx,
+        (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.vmap, vidx),
+        (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.jacob_vel_inv, vidx),    
+        nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
+  } else {
+    return 0.;
+  }
+}
+
+GKYL_CU_DH
+static double
+kernel_lbo_vlasov_vmap_drag_vol_2x1v_ser_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_lbo_vlasov_drag *lbo_vlasov_drag = container_of(eqn, struct dg_lbo_vlasov_drag, eqn);
+  long cidx = gkyl_range_idx(&lbo_vlasov_drag->conf_range, idx);
+  const double* nuSum_p     = (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuSum, cidx);
+  const double* nuPrimMomsSum_p = (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuPrimMomsSum, cidx);
+  const double* nuUSum_p    = nuPrimMomsSum_p;
+  const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo_vlasov_drag->vdim*lbo_vlasov_drag->num_cbasis];
+  bool noPrimMomCross = checkPrimMomCross(lbo_vlasov_drag, nuSum_p, nuUSum_p, nuVtSqSum_p);
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<lbo_vlasov_drag->vdim; ++i)
+    idx_vel[i] = idx[lbo_vlasov_drag->cdim+i];
+  long vidx = gkyl_range_idx(&lbo_vlasov_drag->vel_range, idx_vel);
+
+  if (noPrimMomCross) {
+    return lbo_vlasov_vmap_drag_vol_2x1v_ser_p2(xc, dx,
+        (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.vmap, vidx),
+        (const double*) gkyl_array_cfetch(lbo_vlasov_drag->auxfields.jacob_vel_inv, vidx),    
+        nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
+  } else {
+    return 0.;
+  }
+}
+
+GKYL_CU_DH
+static double
 kernel_lbo_vlasov_vmap_drag_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
@@ -636,7 +692,7 @@ static const gkyl_dg_lbo_vlasov_drag_vol_kern_list ser_vmap_vol_kernels[] = {
   { NULL, kernel_lbo_vlasov_vmap_drag_vol_1x2v_ser_p1, kernel_lbo_vlasov_vmap_drag_vol_1x2v_ser_p2 }, // 1
   { NULL, kernel_lbo_vlasov_vmap_drag_vol_1x3v_ser_p1, kernel_lbo_vlasov_vmap_drag_vol_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, NULL, NULL }, // 3
+  { NULL, kernel_lbo_vlasov_vmap_drag_vol_2x1v_ser_p1, kernel_lbo_vlasov_vmap_drag_vol_2x1v_ser_p2 }, // 3
   { NULL, kernel_lbo_vlasov_vmap_drag_vol_2x2v_ser_p1, kernel_lbo_vlasov_vmap_drag_vol_2x2v_ser_p2 }, // 4
   { NULL, kernel_lbo_vlasov_vmap_drag_vol_2x3v_ser_p1, kernel_lbo_vlasov_vmap_drag_vol_2x3v_ser_p2 }, // 5
   // 3x kernels
@@ -883,7 +939,7 @@ static const gkyl_dg_lbo_vlasov_drag_surf_kern_list ser_vmap_surf_vx_kernels[] =
   { NULL, lbo_vlasov_vmap_drag_surfvx_1x2v_ser_p1, lbo_vlasov_vmap_drag_surfvx_1x2v_ser_p2 }, // 1
   { NULL, lbo_vlasov_vmap_drag_surfvx_1x3v_ser_p1, lbo_vlasov_vmap_drag_surfvx_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, NULL, NULL }, // 3
+  { NULL, lbo_vlasov_vmap_drag_surfvx_2x1v_ser_p1, lbo_vlasov_vmap_drag_surfvx_2x1v_ser_p2 }, // 3
   { NULL, lbo_vlasov_vmap_drag_surfvx_2x2v_ser_p1, lbo_vlasov_vmap_drag_surfvx_2x2v_ser_p2 }, // 4
   { NULL, lbo_vlasov_vmap_drag_surfvx_2x3v_ser_p1, lbo_vlasov_vmap_drag_surfvx_2x3v_ser_p2 }, // 5
   // 3x kernels
@@ -928,7 +984,7 @@ static const gkyl_dg_lbo_vlasov_drag_boundary_surf_kern_list ser_vmap_boundary_s
   { NULL, lbo_vlasov_vmap_drag_boundary_surfvx_1x2v_ser_p1, lbo_vlasov_vmap_drag_boundary_surfvx_1x2v_ser_p2 }, // 1
   { NULL, lbo_vlasov_vmap_drag_boundary_surfvx_1x3v_ser_p1, lbo_vlasov_vmap_drag_boundary_surfvx_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, NULL, NULL }, // 3
+  { NULL, lbo_vlasov_vmap_drag_boundary_surfvx_2x1v_ser_p1, lbo_vlasov_vmap_drag_boundary_surfvx_2x1v_ser_p2 }, // 3
   { NULL, lbo_vlasov_vmap_drag_boundary_surfvx_2x2v_ser_p1, lbo_vlasov_vmap_drag_boundary_surfvx_2x2v_ser_p2 }, // 4
   { NULL, lbo_vlasov_vmap_drag_boundary_surfvx_2x3v_ser_p1, lbo_vlasov_vmap_drag_boundary_surfvx_2x3v_ser_p2 }, // 5
   // 3x kernels

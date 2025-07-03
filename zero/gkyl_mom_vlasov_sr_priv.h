@@ -1690,6 +1690,46 @@ kernel_vlasov_sr_vmap_M0_upper_1x1v_ser_p2(const struct gkyl_mom_type *momt, con
 
 GKYL_CU_DH
 static void
+kernel_vlasov_sr_vmap_M0_upper_2x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_vmap_M0_upper_2x1v_ser_p1(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.vmap, vidx),
+    mom_vm_sr->v_thresh, f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_vmap_M0_upper_2x1v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_vmap_M0_upper_2x1v_ser_p2(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.vmap, vidx),
+    mom_vm_sr->v_thresh, f, out);  
+}
+
+GKYL_CU_DH
+static void
 kernel_vlasov_sr_vmap_M0_lower_1x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
@@ -1724,6 +1764,46 @@ kernel_vlasov_sr_vmap_M0_lower_1x1v_ser_p2(const struct gkyl_mom_type *momt, con
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_vmap_M0_lower_1x1v_ser_p2(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.vmap, vidx),
+    mom_vm_sr->v_thresh, f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_vmap_M0_lower_2x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_vmap_M0_lower_2x1v_ser_p1(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.vmap, vidx),
+    mom_vm_sr->v_thresh, f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_vmap_M0_lower_2x1v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_vmap_M0_lower_2x1v_ser_p2(xc, dx, idx, 
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.vmap, vidx),
     mom_vm_sr->v_thresh, f, out);  
 }
@@ -1849,6 +1929,48 @@ kernel_vlasov_sr_vmap_M1i_1x3v_ser_p2(const struct gkyl_mom_type *momt, const do
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
   return vlasov_sr_vmap_M1i_1x3v_ser_p2(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.jacob_vel_inv, vidx),
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
+    f, out);
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_vmap_M1i_2x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_vmap_M1i_2x1v_ser_p1(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.jacob_vel_inv, vidx),
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
+    f, out);
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_vmap_M1i_2x1v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_vmap_M1i_2x1v_ser_p2(xc, dx, idx, 
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.jacob_vel_inv, vidx),
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
@@ -2081,6 +2203,46 @@ kernel_vlasov_sr_vmap_M3i_1x3v_ser_p2(const struct gkyl_mom_type *momt, const do
 
 GKYL_CU_DH
 static void
+kernel_vlasov_sr_vmap_M3i_2x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_vmap_M3i_2x1v_ser_p1(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.vmap, vidx),
+    f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_vmap_M3i_2x1v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_vmap_M3i_2x1v_ser_p2(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.vmap, vidx),
+    f, out);  
+}
+
+GKYL_CU_DH
+static void
 kernel_vlasov_sr_vmap_M3i_2x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
@@ -2307,6 +2469,48 @@ kernel_vlasov_sr_vmap_int_mom_1x3v_ser_p2(const struct gkyl_mom_type *momt, cons
 
 GKYL_CU_DH
 static void
+kernel_vlasov_sr_vmap_int_mom_2x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_vmap_int_mom_2x1v_ser_p1(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.vmap, vidx),
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
+    f, out);
+}
+
+GKYL_CU_DH
+static void
+kernel_vlasov_sr_vmap_int_mom_2x1v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_sr *mom_vm_sr = container_of(momt, struct mom_type_vlasov_sr, momt);
+
+  int cdim = mom_vm_sr->momt.cdim;
+  int pdim = mom_vm_sr->momt.pdim;
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i)
+    idx_vel[i] = idx[cdim+i];
+
+  long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
+
+  return vlasov_sr_vmap_int_mom_2x1v_ser_p2(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.vmap, vidx),
+    (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
+    f, out);
+}
+
+GKYL_CU_DH
+static void
 kernel_vlasov_sr_vmap_int_mom_2x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
@@ -2422,7 +2626,7 @@ static const gkyl_vlasov_sr_mom_kern_list ser_vmap_m0_upper_kernels[] = {
   { NULL, NULL, NULL }, // 1
   { NULL, NULL, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, NULL }, // 3
+  { NULL, kernel_vlasov_sr_vmap_M0_upper_2x1v_ser_p1, kernel_vlasov_sr_vmap_M0_upper_2x1v_ser_p2 }, // 3
   { NULL, NULL, NULL }, // 4
   { NULL, NULL, NULL }, // 5
   // 3x kernels
@@ -2437,7 +2641,7 @@ static const gkyl_vlasov_sr_mom_kern_list ser_vmap_m0_lower_kernels[] = {
   { NULL, NULL, NULL }, // 1
   { NULL, NULL, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, NULL }, // 3
+  { NULL, kernel_vlasov_sr_vmap_M0_lower_2x1v_ser_p1, kernel_vlasov_sr_vmap_M0_lower_2x1v_ser_p2 }, // 3
   { NULL, NULL, NULL }, // 4
   { NULL, NULL, NULL }, // 5
   // 3x kernels
@@ -2452,7 +2656,7 @@ static const gkyl_vlasov_sr_mom_kern_list ser_vmap_m1i_kernels[] = {
   { NULL, kernel_vlasov_sr_vmap_M1i_1x2v_ser_p1, kernel_vlasov_sr_vmap_M1i_1x2v_ser_p2 }, // 1
   { NULL, kernel_vlasov_sr_vmap_M1i_1x3v_ser_p1, kernel_vlasov_sr_vmap_M1i_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, NULL, NULL                             }, // 3
+  { NULL, kernel_vlasov_sr_vmap_M1i_2x1v_ser_p1, kernel_vlasov_sr_vmap_M1i_2x1v_ser_p2 }, // 3
   { NULL, kernel_vlasov_sr_vmap_M1i_2x2v_ser_p1, kernel_vlasov_sr_vmap_M1i_2x2v_ser_p2 }, // 4
   { NULL, kernel_vlasov_sr_vmap_M1i_2x3v_ser_p1, kernel_vlasov_sr_vmap_M1i_2x3v_ser_p2 }, // 5
   // 3x kernels
@@ -2467,7 +2671,7 @@ static const gkyl_vlasov_sr_mom_kern_list ser_vmap_m3i_kernels[] = {
   { NULL, kernel_vlasov_sr_vmap_M3i_1x2v_ser_p1, kernel_vlasov_sr_vmap_M3i_1x2v_ser_p2 }, // 1
   { NULL, kernel_vlasov_sr_vmap_M3i_1x3v_ser_p1, kernel_vlasov_sr_vmap_M3i_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, NULL, NULL                             }, // 3
+  { NULL, kernel_vlasov_sr_vmap_M3i_2x1v_ser_p1, kernel_vlasov_sr_vmap_M3i_2x1v_ser_p2 }, // 3
   { NULL, kernel_vlasov_sr_vmap_M3i_2x2v_ser_p1, kernel_vlasov_sr_vmap_M3i_2x2v_ser_p2 }, // 4
   { NULL, kernel_vlasov_sr_vmap_M3i_2x3v_ser_p1, kernel_vlasov_sr_vmap_M3i_2x3v_ser_p2 }, // 5
   // 3x kernels
@@ -2482,7 +2686,7 @@ static const gkyl_vlasov_sr_mom_kern_list ser_vmap_int_mom_kernels[] = {
   { NULL, kernel_vlasov_sr_vmap_int_mom_1x2v_ser_p1, kernel_vlasov_sr_vmap_int_mom_1x2v_ser_p2 }, // 1
   { NULL, kernel_vlasov_sr_vmap_int_mom_1x3v_ser_p1, kernel_vlasov_sr_vmap_int_mom_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, NULL, NULL                             }, // 3
+  { NULL, kernel_vlasov_sr_vmap_int_mom_2x1v_ser_p1, kernel_vlasov_sr_vmap_int_mom_2x1v_ser_p2 }, // 3
   { NULL, kernel_vlasov_sr_vmap_int_mom_2x2v_ser_p1, kernel_vlasov_sr_vmap_int_mom_2x2v_ser_p2 }, // 4
   { NULL, kernel_vlasov_sr_vmap_int_mom_2x3v_ser_p1, kernel_vlasov_sr_vmap_int_mom_2x3v_ser_p2 }, // 5
   // 3x kernels

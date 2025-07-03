@@ -216,7 +216,7 @@ static const gkyl_dg_sr_vars_pressure_kern_list ser_sr_vars_pressure_vmap_kernel
   { NULL, sr_vars_pressure_vmap_1x2v_ser_p1, sr_vars_pressure_vmap_1x2v_ser_p2 }, // 1
   { NULL, sr_vars_pressure_vmap_1x3v_ser_p1, sr_vars_pressure_vmap_1x3v_ser_p2 }, // 2
   // 2x kernels
-  { NULL, NULL, NULL }, // 3
+  { NULL, sr_vars_pressure_vmap_2x1v_ser_p1, sr_vars_pressure_vmap_2x1v_ser_p2 }, // 3
   { NULL, sr_vars_pressure_vmap_2x2v_ser_p1, sr_vars_pressure_vmap_2x2v_ser_p2 }, // 4
   { NULL, sr_vars_pressure_vmap_2x3v_ser_p1, sr_vars_pressure_vmap_2x3v_ser_p2 }, // 5
   // 3x kernels
