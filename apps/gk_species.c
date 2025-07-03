@@ -351,7 +351,6 @@ gk_species_apply_pos_shift_enabled(gkyl_gyrokinetic_app* app, struct gk_species 
   // Copy f so we can calculate the moments of the change later. 
   gkyl_array_set(gks->fnew, -1.0, gks->f);
 
-  // Shift each species.
   gkyl_positivity_shift_gyrokinetic_advance(gks->pos_shift_op, &app->local, &gks->local,
     gks->f, gks->m0.marr, gks->ps_delta_m0);
   app->stat.species_pos_shift_tm += gkyl_time_diff_now_sec(wtm);
