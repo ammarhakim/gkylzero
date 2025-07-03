@@ -181,31 +181,47 @@ void test_1x_quad( bool use_gpu )
   while (gkyl_range_iter_next(&conf_iter)) {
     long linidx = gkyl_range_idx(&localRange, conf_iter.idx);
     double *npol_d = gkyl_array_fetch(npol_ho, linidx);
-    double tol = 1e-12;
-    if (conf_iter.idx[1] == 1) {
+    double tol = 1e-5;
+    if (conf_iter.idx[0] == 1) {
       TEST_CHECK( gkyl_compare(npol_d[0], 1.141683, tol) );
+      TEST_MSG("npol_d[0] = %g", npol_d[0]);
       TEST_CHECK( gkyl_compare(npol_d[1], 0.044652, tol) );
-    } else if (conf_iter.idx[1] == 2) {
+      TEST_MSG("npol_d[1] = %g", npol_d[1]);
+    } else if (conf_iter.idx[0] == 2) {
       TEST_CHECK( gkyl_compare(npol_d[0], 1.274265, tol) );
+      TEST_MSG("npol_d[0] = %g", npol_d[0]);
       TEST_CHECK( gkyl_compare(npol_d[1], 0.031894, tol) );
-    } else if (conf_iter.idx[1] == 3) {
+      TEST_MSG("npol_d[1] = %g", npol_d[1]);
+    } else if (conf_iter.idx[0] == 3) {
       TEST_CHECK( gkyl_compare(npol_d[0], 1.362654, tol) );
+      TEST_MSG("npol_d[0] = %g", npol_d[0]);
       TEST_CHECK( gkyl_compare(npol_d[1], 0.019137, tol) );
-    } else if (conf_iter.idx[1] == 4) {
+      TEST_MSG("npol_d[1] = %g", npol_d[1]);
+    } else if (conf_iter.idx[0] == 4) {
       TEST_CHECK( gkyl_compare(npol_d[0], 1.406848, tol) );
+      TEST_MSG("npol_d[0] = %g", npol_d[0]);
       TEST_CHECK( gkyl_compare(npol_d[1], 0.006379, tol) );
-    } else if (conf_iter.idx[1] == 5) {
+      TEST_MSG("npol_d[1] = %g", npol_d[1]);
+    } else if (conf_iter.idx[0] == 5) {
       TEST_CHECK( gkyl_compare(npol_d[0], 1.406848, tol) );
+      TEST_MSG("npol_d[0] = %g", npol_d[0]);
       TEST_CHECK( gkyl_compare(npol_d[1], -0.006379, tol) );
-    } else if (conf_iter.idx[1] == 6) {
+      TEST_MSG("npol_d[1] = %g", npol_d[1]);
+    } else if (conf_iter.idx[0] == 6) {
       TEST_CHECK( gkyl_compare(npol_d[0], 1.362654, tol) );
+      TEST_MSG("npol_d[0] = %g", npol_d[0]);
       TEST_CHECK( gkyl_compare(npol_d[1], -0.019137, tol) );
-    } else if (conf_iter.idx[1] == 7) {
+      TEST_MSG("npol_d[1] = %g", npol_d[1]);
+    } else if (conf_iter.idx[0] == 7) {
       TEST_CHECK( gkyl_compare(npol_d[0], 1.274265, tol) );
+      TEST_MSG("npol_d[0] = %g", npol_d[0]);
       TEST_CHECK( gkyl_compare(npol_d[1], -0.031894, tol) );
-    } else if (conf_iter.idx[1] == 8) {
+      TEST_MSG("npol_d[1] = %g", npol_d[1]);
+    } else if (conf_iter.idx[0] == 8) {
       TEST_CHECK( gkyl_compare(npol_d[0], 1.141683, tol) );
+      TEST_MSG("npol_d[0] = %g", npol_d[0]);
       TEST_CHECK( gkyl_compare(npol_d[1], -0.044652, tol) );
+      TEST_MSG("npol_d[1] = %g", npol_d[1]);
     }
   }
 
