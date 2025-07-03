@@ -68,6 +68,7 @@ struct burch_grad_closure_ctx
   double Ly; // Domain size (y-direction).
   double k0_elc; // Closure parameter for electrons.
   double k0_ion; // Closure parameter for ions.
+  double omega;
   double cfl_frac; // CFL coefficient.
 
   double t_end; // Final simulation time.
@@ -126,6 +127,7 @@ create_ctx(void)
   double k0_elc = 10.0; // Closure parameter for electrons.
   double k0_ion = 1.0; // Closure parameter for ions.
   double cfl_frac = 1.0; // CFL coefficient.
+  double omega = 0.0;
 
   double t_end = 250.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
@@ -169,6 +171,7 @@ create_ctx(void)
     .Ly = Ly,
     .k0_elc = k0_elc,
     .k0_ion = k0_ion,
+    .omega = omega,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
     .num_frames = num_frames,
@@ -455,8 +458,8 @@ main(int argc, char **argv)
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
   // Electron/ion equations.
-  struct gkyl_wv_eqn *elc_ten_moment = gkyl_wv_ten_moment_new(ctx.k0_elc, true, app_args.use_gpu);
-  struct gkyl_wv_eqn *ion_ten_moment = gkyl_wv_ten_moment_new(ctx.k0_ion, true, app_args.use_gpu);
+  struct gkyl_wv_eqn *elc_ten_moment = gkyl_wv_ten_moment_new(ctx.k0_elc, ctx.omega, true, app_args.use_gpu);
+  struct gkyl_wv_eqn *ion_ten_moment = gkyl_wv_ten_moment_new(ctx.k0_ion, ctx.omega, true, app_args.use_gpu);
 
   struct gkyl_moment_species elc = {
     .name = "elc",

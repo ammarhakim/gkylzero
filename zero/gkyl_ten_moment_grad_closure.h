@@ -11,6 +11,7 @@
 struct gkyl_ten_moment_grad_closure_inp {
     const struct gkyl_rect_grid *grid; // grid on which to solve equations
     double k0; // inversedamping coefficient
+    double omega;
     double cfl; // CFL number to use
     bool mag;
 

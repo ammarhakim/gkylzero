@@ -46,6 +46,7 @@ gkyl_ten_moment_grad_closure_new(struct gkyl_ten_moment_grad_closure_inp inp)
   up->grid = *(inp.grid);
   up->ndim = up->grid.ndim;
   up->k0 = inp.k0;
+  up->omega = inp.omega;
   up->cfl = inp.cfl;
   up->mag = inp.mag;
 

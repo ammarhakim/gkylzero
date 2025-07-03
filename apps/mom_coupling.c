@@ -145,6 +145,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       struct gkyl_ten_moment_grad_closure_inp grad_closure_inp = {
         .grid = &app->grid,
         .k0 = app->species[i].k0,
+        .omega = app->species[i].omega,
         .cfl = app->cfl,
         .mag = app->has_field == 1 ? true : false, 
         .comm = app->comm,

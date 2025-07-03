@@ -10,7 +10,8 @@
  * @param use_gpu Boolean to determine whether wave equation object is on host or device
  * @return Pointer to Ten moment equation object.
  */
-struct gkyl_wv_eqn* gkyl_wv_ten_moment_new(double k0, bool use_grad_closure, bool use_gpu);
+struct gkyl_wv_eqn* gkyl_wv_ten_moment_new(double k0, double omega, bool use_grad_closure,
+  bool use_gpu);
 
 /**
  * Create a new Ten moment equation object that lives on NV-GPU.
@@ -25,6 +26,14 @@ struct gkyl_wv_eqn* gkyl_wv_ten_moment_cu_dev_new(double k0, bool use_grad_closu
  * @return Closure parameter
  */
 double gkyl_wv_ten_moment_k0(const struct gkyl_wv_eqn* wv);
+
+/**
+ * Get closure anisotropic parameter.
+ * 
+ * @param wv Ten-moment equation object
+ * @return Closure anisotropic parameter
+ */
+double gkyl_wv_ten_moment_omega(const struct gkyl_wv_eqn* wv);
 
 /**
  * Should we use grad-closure?

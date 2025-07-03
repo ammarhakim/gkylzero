@@ -20,9 +20,11 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   sp->equation = gkyl_wv_eqn_acquire(mom_sp->equation);
 
   sp->k0 = 0.0;
+  sp->omega = 0.0;
   sp->has_grad_closure = false;
   if (mom_sp->equation->type == GKYL_EQN_TEN_MOMENT) {
     sp->k0 = gkyl_wv_ten_moment_k0(mom_sp->equation);
+    sp->omega = gkyl_wv_ten_moment_omega(mom_sp->equation);
     sp->has_grad_closure = gkyl_wv_ten_moment_use_grad_closure(mom_sp->equation);
   }
 

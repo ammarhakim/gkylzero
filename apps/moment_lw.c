@@ -313,10 +313,11 @@ eqn_tenmoment_lw_new(lua_State *L)
   struct wv_eqn_lw *tenm_lw = gkyl_malloc(sizeof(*tenm_lw));
 
   double k0 = glua_tbl_get_number(L, "k0", 1.0);
+  double omega = glua_tbl_get_number(L, "omega", 1.0);
   bool has_grad_closure = glua_tbl_get_bool(L, "hasGradClosure", false);
 
   tenm_lw->magic = MOMENT_EQN_DEFAULT;
-  tenm_lw->eqn = gkyl_wv_ten_moment_new(k0, has_grad_closure, false);
+  tenm_lw->eqn = gkyl_wv_ten_moment_new(k0, omega, has_grad_closure, false);
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_tenm_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));

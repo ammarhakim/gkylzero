@@ -171,7 +171,7 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
   // Fluid equations.
-  struct gkyl_wv_eqn *ten_moment = gkyl_wv_ten_moment_new(ctx.k0, false, app_args.use_gpu);
+  struct gkyl_wv_eqn *ten_moment = gkyl_wv_ten_moment_new(ctx.k0, 0.0, false, app_args.use_gpu);
 
   struct gkyl_moment_species fluid = {
     .name = "10m",

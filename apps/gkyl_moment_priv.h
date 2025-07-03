@@ -60,6 +60,7 @@ struct moment_species {
   bool is_static; // is the fluid static?
 
   double k0; // closure parameter (default is 0.0, used by 10 moment)
+  double omega;
   bool has_grad_closure; // has gradient-based closure (only for 10 moment)
   enum gkyl_braginskii_type type_brag; // which Braginskii equations
 
