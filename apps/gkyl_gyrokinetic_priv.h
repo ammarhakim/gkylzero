@@ -808,6 +808,9 @@ struct gk_neut_species {
 
   struct gkyl_array *f, *f1, *fnew; // arrays for updates
 
+  bool is_cartesian; // Create diagonal metric coefficients if true.
+  struct gkyl_array *gij_0; // Used for created diagonal metric coefficients.
+
   struct gkyl_array *cflrate; // CFL rate in each cell
   struct gkyl_array *bc_buffer; // buffer for BCs (used by bc_basic)
   struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // fixed buffers for time independent BCs

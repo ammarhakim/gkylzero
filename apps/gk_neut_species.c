@@ -1059,12 +1059,17 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     s->f_host = mkarr(false, s->basis.num_basis, s->local_ext.volume);
   }
 
+if (s->info.is_cartesian) {
+  s->is_cartesian = s->info.is_cartesian;
+}
+else s->is_cartesian = false; 
+
+s->gij = mkarr(app->use_gpu, app->gk_geom->gij_neut->ncomp, app->gk_geom->gij_neut->size);
+s->g_ij = mkarr(app->use_gpu, app->gk_geom->g_ij_neut->ncomp, app->gk_geom->g_ij_neut->size);
+
   if (app->cdim < 3) {
     // Reorganize g_ij and gij as done in calculation of Hamiltonian to
     // compute momentum and temperature.
-    s->gij = mkarr(app->use_gpu, app->gk_geom->gij_neut->ncomp, app->gk_geom->gij_neut->size);
-    s->g_ij = mkarr(app->use_gpu, app->gk_geom->g_ij_neut->ncomp, app->gk_geom->g_ij_neut->size);
-
     // Reorganize the metric tensor so ignorable coordinates are last.
     int metric_reorg_idxs_1x[] = {5, 2, 4, 0, 1, 3};
     int metric_reorg_idxs_2x[] = {0, 2, 1, 5, 4, 3};
@@ -1078,8 +1083,25 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     gkyl_array_release(tmp_arr);
   }
   else {
-    s->gij = gkyl_array_acquire(app->gk_geom->gij);
-    s->g_ij = gkyl_array_acquire(app->gk_geom->g_ij);
+    gkyl_array_copy(s->gij , app->gk_geom->gij);
+    gkyl_array_copy(s->g_ij, app->gk_geom->g_ij);
+  }
+  if (s->is_cartesian) {
+    // Set metric coefficients to be diagonal.
+    s->gij_0= mkarr(app->use_gpu, app->basis.num_basis, app->gk_geom->gij->size);
+    struct gkyl_array *tmp_arr_1 = mkarr(app->use_gpu, app->basis.num_basis, app->gk_geom->jacobgeo->size);
+    gkyl_array_clear(s->gij_0, 0.0);
+    gkyl_array_clear(tmp_arr_1, 0.0);
+    gkyl_array_shiftc(tmp_arr_1, 1.0*pow(sqrt(2.0),app->cdim), 0);
+    s->g_ij = gkyl_array_acquire(s->gij_0);
+    s->gij = gkyl_array_acquire(s->gij_0);
+    gkyl_array_set_offset(s->g_ij, 1.0, tmp_arr_1, 0*app->basis.num_basis);
+    gkyl_array_set_offset(s->g_ij, 1.0, tmp_arr_1, 3*app->basis.num_basis);
+    gkyl_array_set_offset(s->g_ij, 1.0, tmp_arr_1, 5*app->basis.num_basis);
+    gkyl_array_set_offset(s->gij, 1.0, tmp_arr_1, 0*app->basis.num_basis);
+    gkyl_array_set_offset(s->gij, 1.0, tmp_arr_1, 3*app->basis.num_basis);
+    gkyl_array_set_offset(s->gij, 1.0, tmp_arr_1, 5*app->basis.num_basis);
+    gkyl_array_release(tmp_arr_1);
   }
 
   // Allocate array for the Hamiltonian.
@@ -1340,6 +1362,10 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
   gkyl_array_release(s->alpha_surf);
   gkyl_array_release(s->sgn_alpha_surf);
   gkyl_array_release(s->const_sgn_alpha);
+
+  if (s->is_cartesian) {
+    gkyl_array_release(s->gij_0);
+  }
 
   // Release equation object and solver.
   gkyl_dg_eqn_release(s->eqn_vlasov);

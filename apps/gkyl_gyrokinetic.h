@@ -259,7 +259,7 @@ struct gkyl_gyrokinetic_species {
   struct gkyl_mapc2p_inp mapc2p;
 
   bool is_static; // Set to true if species does not change in time.
-
+  
   bool enforce_positivity; // Positivity enforcement via shift in f.
   
   // Initial conditions using projection routine.
@@ -326,7 +326,7 @@ struct gkyl_gyrokinetic_neut_species {
   struct gkyl_mapc2p_inp mapc2p;
 
   bool is_static; // Set to true if neutral species does not change in time.
-
+  bool is_cartesian; // Set to true if you want a diagonal metric for phase space.
   bool enforce_positivity; // Positivity enforcement via shift in f.
   
   struct gkyl_gyrokinetic_ic_import init_from_file;
