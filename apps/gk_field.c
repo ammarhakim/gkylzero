@@ -712,7 +712,7 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
     }
 
     // Enforce the Bohm sheath criterion by modifying the sheath potential.
-    field->sheath_rarefaction_mod_func(app, field, field->phi_smooth);
+//    field->sheath_rarefaction_mod_func(app, field, field->phi_smooth);
   }
   app->stat.field_phi_solve_tm += gkyl_time_diff_now_sec(wst);
 }

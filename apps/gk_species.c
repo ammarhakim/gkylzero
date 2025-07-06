@@ -116,6 +116,8 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
 {
   // Gyroaverage the potential if needed.
   species->gyroaverage(app, species, app->field->phi_smooth, species->gyro_phi);
+  if (species->info.charge > 0.0) // Apply Bohm enforcement for ions only.
+    app->field->sheath_rarefaction_mod_func(app, app->field, species->gyro_phi);
 
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
