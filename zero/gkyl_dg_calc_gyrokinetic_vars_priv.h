@@ -266,14 +266,16 @@ choose_gyrokinetic_flux_no_by_surf_vpar_kern(int cdim, int vdim, int poly_order)
 struct gkyl_dg_calc_gyrokinetic_vars* 
 gkyl_dg_calc_gyrokinetic_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
+  const struct gkyl_basis *surf_basis, const struct gkyl_basis *surf_vpar_basis, 
   double charge, double mass, enum gkyl_gkmodel_id gkmodel_id, 
-  const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map);
+  const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
+  const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map);
 
 /**
  * Host-side wrappers for gyrokinetic vars operations on device
  */
-void gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu(struct gkyl_dg_calc_gyrokinetic_vars *up, 
+void gkyl_dg_calc_gyrokinetic_vars_flux_surf_cu(struct gkyl_dg_calc_gyrokinetic_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
-  struct gkyl_array* alpha_surf, struct gkyl_array* sgn_alpha_surf, struct gkyl_array* const_sgn_alpha);
+  const struct gkyl_array* fin, struct gkyl_array* flux_surf, struct gkyl_array* cflrate);
 #endif

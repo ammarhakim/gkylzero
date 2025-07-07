@@ -84,7 +84,7 @@ gkyl_dg_geom_new_from_host(const struct gkyl_dg_geom_inp *inp, struct gkyl_dg_ge
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    return gkyl_dg_geom_cu_dev_new_from_host(geo_host, geometry_inp);
+    return gkyl_dg_geom_cu_dev_new_from_host(inp, up_host);
   } 
 #endif 
   return up_host;

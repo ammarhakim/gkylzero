@@ -136,15 +136,15 @@ gkyl_dg_calc_gyrokinetic_vars_flux_surf_cu_kernel(struct gkyl_dg_calc_gyrokineti
 }
 
 // Host-side wrapper for gyrokinetic surface alpha calculation
-void gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu(struct gkyl_dg_calc_gyrokinetic_vars *up, 
+void gkyl_dg_calc_gyrokinetic_vars_flux_surf_cu(struct gkyl_dg_calc_gyrokinetic_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
-  struct gkyl_array* flux_surf, struct gkyl_array* cflrate)
+  const struct gkyl_array *fin, struct gkyl_array* flux_surf, struct gkyl_array* cflrate)
 {
   dim3 dimGrid, dimBlock;
   gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, up->cdim+1);
   gkyl_dg_calc_gyrokinetic_vars_flux_surf_cu_kernel<<<dimGrid, dimBlock>>>(up->on_dev, 
-    *conf_range, *phase_range, *conf_ext_range, *phase_ext_range, phi->on_dev,
+    *conf_range, *phase_range, *conf_ext_range, *phase_ext_range, phi->on_dev, fin->on_dev,
     flux_surf->on_dev, cflrate->on_dev);
 }
 
