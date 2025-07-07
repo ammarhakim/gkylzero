@@ -14,15 +14,14 @@ gkyl_dg_calc_gyrokinetic_vars_new(const struct gkyl_rect_grid *phase_grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
   const struct gkyl_basis *surf_basis,  const struct gkyl_basis *surf_vpar_basis,
   const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id, 
-  const struct gk_geometry *gk_geom, 
-  const struct gkyl_dg_geom *dg_geom, 
-  const struct gkyl_gk_dg_geom *gk_dg_geom, 
-  const struct gkyl_velocity_map *vel_map, bool use_gpu)
+  const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
+  const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
     return gkyl_dg_calc_gyrokinetic_vars_cu_dev_new(phase_grid, conf_basis, phase_basis, 
-      charge, mass, gkmodel_id, gk_geom, vel_map);
+      surf_basis, surf_vpar_basis, charge, mass, gkmodel_id, gk_geom,
+      gk_geom, dg_geom, gk_dg_geom, vel_map);
 #endif     
 
   gkyl_dg_calc_gyrokinetic_vars *up = gkyl_malloc(sizeof(gkyl_dg_calc_gyrokinetic_vars));

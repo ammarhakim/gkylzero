@@ -63,6 +63,15 @@ struct gkyl_dg_geom_inp {
 struct gkyl_dg_geom* gkyl_dg_geom_new(const struct gkyl_dg_geom_inp *inp);
 
 /**
+ * Create a new DG geometry object from host object. 
+ *
+ * @param up_host geometry object on host
+ * @param inp Inputs for use in constructing geometry
+ * @param use_gpu whether to use gpu
+ */
+struct gkyl_dg_geom* gkyl_dg_geom_new_from_host(const struct gkyl_dg_geom_inp *inp, struct gkyl_dg_geom *up_host, bool use_gpu);
+
+/**
  * Acquire pointer to geometry object. The pointer must be released
  * using gkyl_dg_geom_release method.
  *
@@ -212,3 +221,11 @@ gkyl_dg_geom_vol_quad_ords(const struct gkyl_dg_geom *dgg, const int *vidx)
  * @param dgg Dg geometry object to release.
  */
 void gkyl_dg_geom_release(const struct gkyl_dg_geom *dgg);
+
+/**
+ * Release DG geometry object from mapc2p. 
+ *
+ * @param inp Inputs for use in constructing geometry
+ */
+void dg_geom_free(const struct gkyl_ref_count *ref);
+

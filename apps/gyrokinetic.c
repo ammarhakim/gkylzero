@@ -404,32 +404,34 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
   gkyl_position_map_set_mc2nu(app->position_map, app->gk_geom->geo_corn.mc2nu_pos);
 
+  const struct gkyl_dg_geom_inp dg_geom_inp = {
+    .grid = &app->grid,
+    .range = &app->local_ext,
+    .nquad = 2,
+  };
+
+  const struct gkyl_gk_dg_geom_inp gk_dg_geom_inp = {
+    .grid = &app->grid,
+    .range = &app->local_ext,
+    .nquad = 2,
+  };
+
+  // Populate dg_geom and gk_dg_geom objects with geometric quantities
+  app->dg_geom = gkyl_dg_geom_new(&dg_geom_inp);
+  app->gk_dg_geom = gkyl_gk_dg_geom_new(&gk_dg_geom_inp);
+
+  gkyl_gk_dg_geom_populate_vol(app->dg_geom, app->gk_dg_geom, app->gk_geom);
+  gkyl_gk_dg_geom_populate_surf(app->dg_geom, app->gk_dg_geom, app->gk_geom);
+
   // If we are on the gpu, copy from host.
   if (app->use_gpu) {
+    struct gkyl_dg_geom* dg_geom_dev = gkyl_dg_geom_new_from_host(&dg_geom_inp, app->dg_geom, true);
+    struct gkyl_gk_dg_geom* gk_dg_geom_dev = gkyl_gk_dg_geom_new_from_host(&gk_dg_geom_inp, app->gk_dg_geom, true);
     struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_new(app->gk_geom, &geometry_inp, app->use_gpu);
     gkyl_gk_geometry_release(app->gk_geom);
     app->gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
     gkyl_gk_geometry_release(gk_geom_dev);
   }
-
-
- app->dg_geom = gkyl_dg_geom_new( &(const struct gkyl_dg_geom_inp) {
-        .grid = &app->grid,
-        .range = &app->local_ext,
-        .nquad = 2,
-      }
-    );
-
-  app->gk_dg_geom = gkyl_gk_dg_geom_new( &(const struct gkyl_gk_dg_geom_inp) {
-        .grid = &app->grid,
-        .range = &app->local_ext,
-        .nquad = 2,
-      }
-    );
-
-  gkyl_gk_dg_geom_populate_vol(app->dg_geom, app->gk_dg_geom, app->gk_geom);
-  gkyl_gk_dg_geom_populate_surf(app->dg_geom, app->gk_dg_geom, app->gk_geom);
-
 
   gkyl_gyrokinetic_app_write_geometry(app, &geometry_inp);
 

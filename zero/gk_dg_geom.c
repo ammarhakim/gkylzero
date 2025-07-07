@@ -17,7 +17,7 @@ gk_dg_geom_is_cu_dev(const struct gkyl_gk_dg_geom* dgg)
   return GKYL_IS_CU_ALLOC(dgg->flags);
 }
 
-static void
+void
 gk_dg_geom_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_gk_dg_geom *dgg = container_of(ref, struct gkyl_gk_dg_geom, ref_count);
@@ -63,6 +63,17 @@ gkyl_gk_dg_geom_new(const struct gkyl_gk_dg_geom_inp *inp)
   dgg->on_dev = dgg; // CPU eqn obj points to itself
   
   return dgg;
+}
+
+struct gkyl_gk_dg_geom *
+gkyl_gk_dg_geom_new_from_host(const struct gkyl_gk_dg_geom_inp *inp, struct gkyl_gk_dg_geom *up_host, bool use_gpu)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu) {
+    return gkyl_gk_dg_geom_cu_dev_new_from_host(geo_host, geometry_inp);
+  } 
+#endif 
+  return up_host;
 }
 
 
