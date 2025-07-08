@@ -61,7 +61,7 @@ void
 gklbo_cross_greene_num_constNu(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   struct gk_lbo_collisions *lbo, int cross_coll_idx)
 {
-  // Calculate greene_num = m_r * nu_rs * n_r.
+  // Calculate greene_num = n_s * m_r * nu_rs * n_r.
   gkyl_dg_mul_op_range(app->basis, 0, lbo->other_mnu_m0[cross_coll_idx], 0,
     lbo->other_mnu[cross_coll_idx], 0, lbo->collide_with[cross_coll_idx]->lbo.m0, &app->local);
 
@@ -73,7 +73,7 @@ void
 gklbo_cross_greene_num_normNu(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   struct gk_lbo_collisions *lbo, int cross_coll_idx)
 {
-  // Calculate greene_num = nu_sr * m_r * nu_rs * n_r.
+  // Calculate greene_num = n_s * nu_sr * m_r * n_r * nu_rs.
   int my_idx_in_other = -1;
   for (int j=0; j<lbo->collide_with[cross_coll_idx]->lbo.num_cross_collisions; ++j) {
     if (0 == strcmp(species->info.name, lbo->collide_with[cross_coll_idx]->info.collisions.collide_with[j])) {
@@ -214,8 +214,13 @@ gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   lbo->cross_nu_calc = gklbo_cross_nu_calc_constNu; // This method is empty.
 
   if (s->lbo.num_cross_collisions) {
+    lbo->betaGreenep1 = 1.0; // Greene's beta factor + 1.
+      
     lbo->cross_calc = gkyl_prim_lbo_gyrokinetic_cross_calc_new(&s->grid, 
       &app->basis, &s->basis, &app->local, app->use_gpu);
+
+    lbo->prim_cross_m0deltas_op = gkyl_prim_cross_m0deltas_new(s->info.collisions.normNu,
+      &app->basis, &app->local, lbo->betaGreenep1, app->use_gpu);
     
     lbo->cross_nu_prim_moms = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
 
@@ -278,8 +283,6 @@ gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
       lbo->cross_nu_calc = gklbo_cross_nu_calc_constNu;
       lbo->cross_greene_num = gklbo_cross_greene_num_constNu;
     }
-      
-    lbo->betaGreenep1 = 1.0;
   }
 }
 
@@ -328,7 +331,8 @@ gk_species_lbo_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
   struct timespec wst = gkyl_wall_clock();
   
   for (int i=0; i<lbo->num_cross_collisions; ++i) {
-    // Calculate greene_num = m_r * nu_rs * n_r.
+    // Calculate greene_num = n_s * nu_sr * m_r * n_r * nu_rs (normNu).
+    //                      = n_s * m_r * n_r * nu_rs (constNu).
     lbo->cross_greene_num(app, species, lbo, i);
 
     // greene_den = m_s * nu_sr * n_s + m_r * nu_rs * n_r.
@@ -336,18 +340,30 @@ gk_species_lbo_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
       lbo->self_mnu[i], 0, lbo->m0, &app->local);
     gkyl_array_accumulate(lbo->greene_den, 1.0, lbo->other_mnu_m0[i]);
 
-    // greene_fac = 2*(beta+1) * greene_num/greene_den
-    //            = 2*(beta+1) * nu_sr * m_r * nu_rs * n_r / (m_s * nu_sr * n_s + m_r * nu_rs * n_r).
-    gkyl_dg_div_op_range(lbo->dg_div_mem, app->basis, 0, lbo->greene_factor, 0,
-      lbo->greene_num, 0, lbo->greene_den, &app->local);
-    gkyl_array_scale(lbo->greene_factor, 2*lbo->betaGreenep1);
+//    // greene_fac = 2*(beta+1) * greene_num/greene_den
+//    //            = 2*(beta+1) * n_s * nu_sr * m_r * n_r * nu_rs / (m_s * nu_sr * n_s + m_r * nu_rs * n_r) (normNu).
+//    //            = 2*(beta+1) * n_s * m_r * n_r * nu_rs / (m_s * nu_sr * n_s + m_r * nu_rs * n_r) (constNu).
+//    gkyl_dg_div_op_range(lbo->dg_div_mem, app->basis, 0, lbo->greene_factor, 0,
+//      lbo->greene_num, 0, lbo->greene_den, &app->local);
+//    gkyl_array_scale(lbo->greene_factor, 2*lbo->betaGreenep1);
+    int my_idx_in_other = -1;
+    for (int j=0; j<lbo->collide_with[i]->lbo.num_cross_collisions; ++j) {
+      if (0 == strcmp(species->info.name, lbo->collide_with[i]->info.collisions.collide_with[j])) {
+        my_idx_in_other = j;
+        break;
+      }
+    }
+    gkyl_prim_cross_m0deltas_advance(lbo->prim_cross_m0deltas_op, 
+      species->info.mass, lbo->m0, lbo->cross_nu[i],
+      lbo->other_m[i], lbo->collide_with[i]->lbo.m0, lbo->collide_with[i]->lbo.cross_nu[my_idx_in_other],
+      lbo->greene_factor);
 
     // Compute cross primitive moments.
     gkyl_prim_lbo_cross_calc_advance(lbo->cross_calc, &app->local, lbo->greene_factor, species->info.mass,
       lbo->moms_buff, lbo->prim_moms, lbo->other_m[i], lbo->collide_with[i]->lbo.moms_buff,
       lbo->other_prim_moms[i], lbo->boundary_corrections_buff, lbo->cross_nu[i], lbo->cross_prim_moms[i]);
 
-    // Scale upar_{rs} and vtSq_{rs} by nu_{rs}
+    // Scale upar_{sr} and vtSq_{sr} by nu_{sr}
     for (int d=0; d<2; d++)
       gkyl_dg_mul_op(app->basis, d, lbo->cross_nu_prim_moms, d, lbo->cross_prim_moms[i], 0, lbo->cross_nu[i]);
 
@@ -479,6 +495,7 @@ gk_species_lbo_release(const struct gkyl_gyrokinetic_app *app, const struct gk_l
     gkyl_array_release(lbo->greene_num);
     gkyl_array_release(lbo->greene_den);
     gkyl_array_release(lbo->greene_factor);
+    gkyl_prim_cross_m0deltas_release(lbo->prim_cross_m0deltas_op);
     gkyl_prim_lbo_cross_calc_release(lbo->cross_calc);
   }
   gkyl_dg_updater_lbo_gyrokinetic_release(lbo->coll_slvr);

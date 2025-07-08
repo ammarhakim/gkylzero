@@ -74,6 +74,7 @@
 #include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_null_pool.h>
 #include <gkyl_position_map.h>
+#include <gkyl_prim_cross_m0deltas.h>
 #include <gkyl_prim_lbo_calc.h>
 #include <gkyl_prim_lbo_cross_calc.h>
 #include <gkyl_prim_lbo_gyrokinetic.h>
@@ -234,6 +235,10 @@ struct gk_lbo_collisions {
   struct gkyl_array *other_mnu_m0[GKYL_MAX_SPECIES], *other_mnu[GKYL_MAX_SPECIES];
   struct gkyl_array *greene_num, *greene_den;
   struct gkyl_array *greene_factor;
+
+  // Operator that computes factor proportional to
+  // m0_s*delta_s in cross primitive moment calculation.
+  struct gkyl_prim_cross_m0deltas *prim_cross_m0deltas_op;
 
   int num_cross_collisions; // number of species we cross-collide with
   struct gk_species *collide_with[GKYL_MAX_SPECIES]; // pointers to cross-species we collide with
