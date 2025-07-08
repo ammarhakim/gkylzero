@@ -5,7 +5,7 @@ include ../core/corelinkobjs.mak
 include ../moments/momentslinkobjs.mak
 include ../vlasov/vlasovlinkobjs.mak
 
-SRC_DIRS := ker zero apps
+SRC_DIRS := $(KERNELS_DIR) zero apps
 UNIT_DIRS := unit
 
 PREFIX ?= ${HOME}/gkylsoft
