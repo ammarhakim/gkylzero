@@ -521,11 +521,13 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     
     if (f->is_bc_sheath_lo) {
       f->sheath_rare_pot[0] = gkyl_sheath_rarefaction_pot_new(GKYL_LOWER_EDGE, &app->basis,
-        GKYL_ELEMENTARY_CHARGE, mass_elc, mass_ion, app->use_gpu);
+        f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN, GKYL_ELEMENTARY_CHARGE,
+        mass_elc, mass_ion, f->info.electron_temp, app->use_gpu);
     }
     if (f->is_bc_sheath_up) {
       f->sheath_rare_pot[1] = gkyl_sheath_rarefaction_pot_new(GKYL_UPPER_EDGE, &app->basis,
-        GKYL_ELEMENTARY_CHARGE, mass_elc, mass_ion, app->use_gpu);
+        f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN, GKYL_ELEMENTARY_CHARGE,
+        mass_elc, mass_ion, f->info.electron_temp, app->use_gpu);
     }
     f->sheath_rarefaction_moms_func = gk_field_sheath_rarefaction_moms_enabled;
     f->sheath_rarefaction_mod_func = gk_field_sheath_rarefaction_mod_enabled;

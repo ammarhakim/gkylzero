@@ -7,7 +7,7 @@
 #include <assert.h>
 
 // Function pointer type for kernels.
-typedef void (*rarefaction_phimod_t)(double elem_q, double mElc, const double *momsElc,
+typedef void (*rarefaction_phimod_t)(double elem_q, double mElc, double tempElcBoltz, const double *momsElc,
   double mIon, const double *momsIon, const double *phiWall, double *phi);
 
 typedef struct { rarefaction_phimod_t kernels[2]; } rarefaction_phimod_kern_list;  // For use in kernel tables.
@@ -15,17 +15,33 @@ typedef struct { rarefaction_phimod_kern_list list[3]; } edged_rarefaction_phimo
 
 // Serendipity  kernels.
 GKYL_CU_D
-static const edged_rarefaction_phimod_kern_list ser_sheath_rarepot_list[] = {
+static const edged_rarefaction_phimod_kern_list ser_sheath_rarepot_kin_elc_list[] = {
   { .list={
-           { sheath_rarefaction_phi_mod_lower_1x_ser_p1, sheath_rarefaction_phi_mod_lower_1x_ser_p2 },
-           { sheath_rarefaction_phi_mod_lower_2x_ser_p1, sheath_rarefaction_phi_mod_lower_2x_ser_p2 },
-           { sheath_rarefaction_phi_mod_lower_3x_ser_p1, sheath_rarefaction_phi_mod_lower_3x_ser_p2 },
+           { sheath_rarefaction_phi_mod_kinetic_elc_lower_1x_ser_p1, sheath_rarefaction_phi_mod_kinetic_elc_lower_1x_ser_p2 },
+           { sheath_rarefaction_phi_mod_kinetic_elc_lower_2x_ser_p1, sheath_rarefaction_phi_mod_kinetic_elc_lower_2x_ser_p2 },
+           { sheath_rarefaction_phi_mod_kinetic_elc_lower_3x_ser_p1, sheath_rarefaction_phi_mod_kinetic_elc_lower_3x_ser_p2 },
+          },                                                                                                
+  },                                                                                                        
+  { .list={                                                                                                 
+           { sheath_rarefaction_phi_mod_kinetic_elc_upper_1x_ser_p1, sheath_rarefaction_phi_mod_kinetic_elc_upper_1x_ser_p2 },
+           { sheath_rarefaction_phi_mod_kinetic_elc_upper_2x_ser_p1, sheath_rarefaction_phi_mod_kinetic_elc_upper_2x_ser_p2 },
+           { sheath_rarefaction_phi_mod_kinetic_elc_upper_3x_ser_p1, sheath_rarefaction_phi_mod_kinetic_elc_upper_3x_ser_p2 },
           },
   },
+};
+
+GKYL_CU_D
+static const edged_rarefaction_phimod_kern_list ser_sheath_rarepot_boltz_elc_list[] = {
   { .list={
-           { sheath_rarefaction_phi_mod_upper_1x_ser_p1, sheath_rarefaction_phi_mod_upper_1x_ser_p2 },
-           { sheath_rarefaction_phi_mod_upper_2x_ser_p1, sheath_rarefaction_phi_mod_upper_2x_ser_p2 },
-           { sheath_rarefaction_phi_mod_upper_3x_ser_p1, sheath_rarefaction_phi_mod_upper_3x_ser_p2 },
+           { sheath_rarefaction_phi_mod_boltzmann_elc_lower_1x_ser_p1, sheath_rarefaction_phi_mod_boltzmann_elc_lower_1x_ser_p2 },
+           { sheath_rarefaction_phi_mod_boltzmann_elc_lower_2x_ser_p1, sheath_rarefaction_phi_mod_boltzmann_elc_lower_2x_ser_p2 },
+           { sheath_rarefaction_phi_mod_boltzmann_elc_lower_3x_ser_p1, sheath_rarefaction_phi_mod_boltzmann_elc_lower_3x_ser_p2 },
+          },                                                
+  },                                                        
+  { .list={                                                 
+           { sheath_rarefaction_phi_mod_boltzmann_elc_upper_1x_ser_p1, sheath_rarefaction_phi_mod_boltzmann_elc_upper_1x_ser_p2 },
+           { sheath_rarefaction_phi_mod_boltzmann_elc_upper_2x_ser_p1, sheath_rarefaction_phi_mod_boltzmann_elc_upper_2x_ser_p2 },
+           { sheath_rarefaction_phi_mod_boltzmann_elc_upper_3x_ser_p1, sheath_rarefaction_phi_mod_boltzmann_elc_upper_3x_ser_p2 },
           },
   },
 };
@@ -54,25 +70,27 @@ struct gkyl_sheath_rarefaction_pot_kernels {
 // Primary struct in this updater.
 struct gkyl_sheath_rarefaction_pot {
   bool use_gpu;
-  double elem_charge; // elementary charge.
-  double mass_e, mass_i; // electron and ion mass.
+  double elem_charge; // Elementary charge.
+  double mass_e, mass_i; // Electron and ion mass.
+  bool is_elc_boltz; // Whether electrons are Boltzmann.
+  double temp_boltz_elc; // Electron temperature (if Boltzmann).
   struct gkyl_sheath_rarefaction_pot_kernels *kernels;
 };
 
 #ifdef GKYL_HAVE_CUDA
 void
-gkyl_sheath_rarepot_choose_phimod_kernel_cu(const struct gkyl_basis *basis, enum gkyl_edge_loc edge,
-  struct gkyl_sheath_rarefaction_pot_kernels *kers);
+gkyl_sheath_rarepot_choose_phimod_kernel_cu(bool is_elc_boltz, const struct gkyl_basis *basis,
+  enum gkyl_edge_loc edge, struct gkyl_sheath_rarefaction_pot_kernels *kers);
 #endif
 
 GKYL_CU_D
 static void
-sheath_rarepot_choose_phimod_kernel(const struct gkyl_basis *basis, enum gkyl_edge_loc edge,
+sheath_rarepot_choose_phimod_kernel(bool is_elc_boltz, const struct gkyl_basis *basis, enum gkyl_edge_loc edge,
   struct gkyl_sheath_rarefaction_pot_kernels *kers, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    gkyl_sheath_rarepot_choose_phimod_kernel_cu(basis, edge, kers);
+    gkyl_sheath_rarepot_choose_phimod_kernel_cu(is_elc_boltz, basis, edge, kers);
     return;
   }
 #endif
@@ -82,7 +100,8 @@ sheath_rarepot_choose_phimod_kernel(const struct gkyl_basis *basis, enum gkyl_ed
   int poly_order = basis->poly_order;
   switch (basis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      kers->phimod = ser_sheath_rarepot_list[edge].list[dim-1].kernels[poly_order-1];
+      kers->phimod = is_elc_boltz? ser_sheath_rarepot_boltz_elc_list[edge].list[dim-1].kernels[poly_order-1]
+                                 : ser_sheath_rarepot_kin_elc_list[edge].list[dim-1].kernels[poly_order-1];
       break;
 //    case GKYL_BASIS_MODAL_TENSOR:
 //      kers->phimod = tensor_sheath_rarepot_list[edge].list[dim-1].kernels[poly_order-1];

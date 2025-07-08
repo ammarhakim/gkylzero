@@ -1,10 +1,11 @@
 #include <gkyl_sheath_rarefaction_pot_kernels.h> 
 
 
-GKYL_CU_DH void sheath_rarefaction_phi_mod_lower_3x_ser_p1(double elem_q, double mElc, const double *momsElc, double mIon, const double *momsIon, const double *phiWall, double *phi) 
+GKYL_CU_DH void sheath_rarefaction_phi_mod_kinetic_elc_lower_3x_ser_p1(double elem_q, double mElc, double tempElcBoltz, const double *momsElc, double mIon, const double *momsIon, const double *phiWall, double *phi) 
 { 
   // elem_q: elementary charge.
   // mElc: electron mass.
+  // tempElcBoltz: electron temperature in Boltzmann electron model.
   // momsElc: m0, m1, m2par (and m2perp, but not used) moments of electrons.
   // mIon: ion mass.
   // momsIon: m0, m1, m2par (and m2perp, but not used) moments of ions.
@@ -20,60 +21,320 @@ GKYL_CU_DH void sheath_rarefaction_phi_mod_lower_3x_ser_p1(double elem_q, double
   phiNodal[6] = -(1.837117307087383*phi[7])+1.060660171779821*phi[6]-1.060660171779821*phi[5]-1.060660171779821*phi[4]+0.6123724356957944*phi[3]+0.6123724356957944*phi[2]-0.6123724356957944*phi[1]+0.3535533905932737*phi[0]; 
   phiNodal[7] = 1.837117307087383*phi[7]+1.060660171779821*phi[6]+1.060660171779821*phi[5]+1.060660171779821*phi[4]+0.6123724356957944*phi[3]+0.6123724356957944*phi[2]+0.6123724356957944*phi[1]+0.3535533905932737*phi[0]; 
 
-  const double *m0Elc = &momsElc[0];
   const double *m0Ion = &momsIon[0];
-  const double *m1Elc = &momsElc[8];
   const double *m1Ion = &momsIon[8];
-  const double *m2parElc = &momsElc[16];
   const double *m2parIon = &momsIon[16];
 
-  double m0eSurfNodal[4];
   double m0iSurfNodal[4];
-  double m1eSurfNodal[4];
   double m1iSurfNodal[4];
-  double m2pareSurfNodal[4];
   double m2pariSurfNodal[4];
-  double phiWallNodal[4];
-  m0eSurfNodal[0] = -(1.837117307087383*m0Elc[7])+1.060660171779821*m0Elc[6]+1.060660171779821*m0Elc[5]+1.060660171779821*m0Elc[4]-0.6123724356957944*m0Elc[3]-0.6123724356957944*m0Elc[2]-0.6123724356957944*m0Elc[1]+0.3535533905932737*m0Elc[0]; 
-  m0eSurfNodal[1] = 1.837117307087383*m0Elc[7]+1.060660171779821*m0Elc[6]-1.060660171779821*m0Elc[5]-1.060660171779821*m0Elc[4]-0.6123724356957944*m0Elc[3]-0.6123724356957944*m0Elc[2]+0.6123724356957944*m0Elc[1]+0.3535533905932737*m0Elc[0]; 
-  m0eSurfNodal[2] = 1.837117307087383*m0Elc[7]-1.060660171779821*m0Elc[6]+1.060660171779821*m0Elc[5]-1.060660171779821*m0Elc[4]-0.6123724356957944*m0Elc[3]+0.6123724356957944*m0Elc[2]-0.6123724356957944*m0Elc[1]+0.3535533905932737*m0Elc[0]; 
-  m0eSurfNodal[3] = -(1.837117307087383*m0Elc[7])-1.060660171779821*m0Elc[6]-1.060660171779821*m0Elc[5]+1.060660171779821*m0Elc[4]-0.6123724356957944*m0Elc[3]+0.6123724356957944*m0Elc[2]+0.6123724356957944*m0Elc[1]+0.3535533905932737*m0Elc[0]; 
   m0iSurfNodal[0] = -(1.837117307087383*m0Ion[7])+1.060660171779821*m0Ion[6]+1.060660171779821*m0Ion[5]+1.060660171779821*m0Ion[4]-0.6123724356957944*m0Ion[3]-0.6123724356957944*m0Ion[2]-0.6123724356957944*m0Ion[1]+0.3535533905932737*m0Ion[0]; 
   m0iSurfNodal[1] = 1.837117307087383*m0Ion[7]+1.060660171779821*m0Ion[6]-1.060660171779821*m0Ion[5]-1.060660171779821*m0Ion[4]-0.6123724356957944*m0Ion[3]-0.6123724356957944*m0Ion[2]+0.6123724356957944*m0Ion[1]+0.3535533905932737*m0Ion[0]; 
   m0iSurfNodal[2] = 1.837117307087383*m0Ion[7]-1.060660171779821*m0Ion[6]+1.060660171779821*m0Ion[5]-1.060660171779821*m0Ion[4]-0.6123724356957944*m0Ion[3]+0.6123724356957944*m0Ion[2]-0.6123724356957944*m0Ion[1]+0.3535533905932737*m0Ion[0]; 
   m0iSurfNodal[3] = -(1.837117307087383*m0Ion[7])-1.060660171779821*m0Ion[6]-1.060660171779821*m0Ion[5]+1.060660171779821*m0Ion[4]-0.6123724356957944*m0Ion[3]+0.6123724356957944*m0Ion[2]+0.6123724356957944*m0Ion[1]+0.3535533905932737*m0Ion[0]; 
-  m1eSurfNodal[0] = -(1.837117307087383*m1Elc[7])+1.060660171779821*m1Elc[6]+1.060660171779821*m1Elc[5]+1.060660171779821*m1Elc[4]-0.6123724356957944*m1Elc[3]-0.6123724356957944*m1Elc[2]-0.6123724356957944*m1Elc[1]+0.3535533905932737*m1Elc[0]; 
-  m1eSurfNodal[1] = 1.837117307087383*m1Elc[7]+1.060660171779821*m1Elc[6]-1.060660171779821*m1Elc[5]-1.060660171779821*m1Elc[4]-0.6123724356957944*m1Elc[3]-0.6123724356957944*m1Elc[2]+0.6123724356957944*m1Elc[1]+0.3535533905932737*m1Elc[0]; 
-  m1eSurfNodal[2] = 1.837117307087383*m1Elc[7]-1.060660171779821*m1Elc[6]+1.060660171779821*m1Elc[5]-1.060660171779821*m1Elc[4]-0.6123724356957944*m1Elc[3]+0.6123724356957944*m1Elc[2]-0.6123724356957944*m1Elc[1]+0.3535533905932737*m1Elc[0]; 
-  m1eSurfNodal[3] = -(1.837117307087383*m1Elc[7])-1.060660171779821*m1Elc[6]-1.060660171779821*m1Elc[5]+1.060660171779821*m1Elc[4]-0.6123724356957944*m1Elc[3]+0.6123724356957944*m1Elc[2]+0.6123724356957944*m1Elc[1]+0.3535533905932737*m1Elc[0]; 
   m1iSurfNodal[0] = -(1.837117307087383*m1Ion[7])+1.060660171779821*m1Ion[6]+1.060660171779821*m1Ion[5]+1.060660171779821*m1Ion[4]-0.6123724356957944*m1Ion[3]-0.6123724356957944*m1Ion[2]-0.6123724356957944*m1Ion[1]+0.3535533905932737*m1Ion[0]; 
   m1iSurfNodal[1] = 1.837117307087383*m1Ion[7]+1.060660171779821*m1Ion[6]-1.060660171779821*m1Ion[5]-1.060660171779821*m1Ion[4]-0.6123724356957944*m1Ion[3]-0.6123724356957944*m1Ion[2]+0.6123724356957944*m1Ion[1]+0.3535533905932737*m1Ion[0]; 
   m1iSurfNodal[2] = 1.837117307087383*m1Ion[7]-1.060660171779821*m1Ion[6]+1.060660171779821*m1Ion[5]-1.060660171779821*m1Ion[4]-0.6123724356957944*m1Ion[3]+0.6123724356957944*m1Ion[2]-0.6123724356957944*m1Ion[1]+0.3535533905932737*m1Ion[0]; 
   m1iSurfNodal[3] = -(1.837117307087383*m1Ion[7])-1.060660171779821*m1Ion[6]-1.060660171779821*m1Ion[5]+1.060660171779821*m1Ion[4]-0.6123724356957944*m1Ion[3]+0.6123724356957944*m1Ion[2]+0.6123724356957944*m1Ion[1]+0.3535533905932737*m1Ion[0]; 
-  m2pareSurfNodal[0] = -(1.837117307087383*m2parElc[7])+1.060660171779821*m2parElc[6]+1.060660171779821*m2parElc[5]+1.060660171779821*m2parElc[4]-0.6123724356957944*m2parElc[3]-0.6123724356957944*m2parElc[2]-0.6123724356957944*m2parElc[1]+0.3535533905932737*m2parElc[0]; 
-  m2pareSurfNodal[1] = 1.837117307087383*m2parElc[7]+1.060660171779821*m2parElc[6]-1.060660171779821*m2parElc[5]-1.060660171779821*m2parElc[4]-0.6123724356957944*m2parElc[3]-0.6123724356957944*m2parElc[2]+0.6123724356957944*m2parElc[1]+0.3535533905932737*m2parElc[0]; 
-  m2pareSurfNodal[2] = 1.837117307087383*m2parElc[7]-1.060660171779821*m2parElc[6]+1.060660171779821*m2parElc[5]-1.060660171779821*m2parElc[4]-0.6123724356957944*m2parElc[3]+0.6123724356957944*m2parElc[2]-0.6123724356957944*m2parElc[1]+0.3535533905932737*m2parElc[0]; 
-  m2pareSurfNodal[3] = -(1.837117307087383*m2parElc[7])-1.060660171779821*m2parElc[6]-1.060660171779821*m2parElc[5]+1.060660171779821*m2parElc[4]-0.6123724356957944*m2parElc[3]+0.6123724356957944*m2parElc[2]+0.6123724356957944*m2parElc[1]+0.3535533905932737*m2parElc[0]; 
   m2pariSurfNodal[0] = -(1.837117307087383*m2parIon[7])+1.060660171779821*m2parIon[6]+1.060660171779821*m2parIon[5]+1.060660171779821*m2parIon[4]-0.6123724356957944*m2parIon[3]-0.6123724356957944*m2parIon[2]-0.6123724356957944*m2parIon[1]+0.3535533905932737*m2parIon[0]; 
   m2pariSurfNodal[1] = 1.837117307087383*m2parIon[7]+1.060660171779821*m2parIon[6]-1.060660171779821*m2parIon[5]-1.060660171779821*m2parIon[4]-0.6123724356957944*m2parIon[3]-0.6123724356957944*m2parIon[2]+0.6123724356957944*m2parIon[1]+0.3535533905932737*m2parIon[0]; 
   m2pariSurfNodal[2] = 1.837117307087383*m2parIon[7]-1.060660171779821*m2parIon[6]+1.060660171779821*m2parIon[5]-1.060660171779821*m2parIon[4]-0.6123724356957944*m2parIon[3]+0.6123724356957944*m2parIon[2]-0.6123724356957944*m2parIon[1]+0.3535533905932737*m2parIon[0]; 
   m2pariSurfNodal[3] = -(1.837117307087383*m2parIon[7])-1.060660171779821*m2parIon[6]-1.060660171779821*m2parIon[5]+1.060660171779821*m2parIon[4]-0.6123724356957944*m2parIon[3]+0.6123724356957944*m2parIon[2]+0.6123724356957944*m2parIon[1]+0.3535533905932737*m2parIon[0]; 
+
+  const double *m0Elc = &momsElc[0];
+  const double *m1Elc = &momsElc[8];
+  const double *m2parElc = &momsElc[16];
+
+  double m0eSurfNodal[4];
+  double m1eSurfNodal[4];
+  double m2pareSurfNodal[4];
+  m0eSurfNodal[0] = -(1.837117307087383*m0Elc[7])+1.060660171779821*m0Elc[6]+1.060660171779821*m0Elc[5]+1.060660171779821*m0Elc[4]-0.6123724356957944*m0Elc[3]-0.6123724356957944*m0Elc[2]-0.6123724356957944*m0Elc[1]+0.3535533905932737*m0Elc[0]; 
+  m0eSurfNodal[1] = 1.837117307087383*m0Elc[7]+1.060660171779821*m0Elc[6]-1.060660171779821*m0Elc[5]-1.060660171779821*m0Elc[4]-0.6123724356957944*m0Elc[3]-0.6123724356957944*m0Elc[2]+0.6123724356957944*m0Elc[1]+0.3535533905932737*m0Elc[0]; 
+  m0eSurfNodal[2] = 1.837117307087383*m0Elc[7]-1.060660171779821*m0Elc[6]+1.060660171779821*m0Elc[5]-1.060660171779821*m0Elc[4]-0.6123724356957944*m0Elc[3]+0.6123724356957944*m0Elc[2]-0.6123724356957944*m0Elc[1]+0.3535533905932737*m0Elc[0]; 
+  m0eSurfNodal[3] = -(1.837117307087383*m0Elc[7])-1.060660171779821*m0Elc[6]-1.060660171779821*m0Elc[5]+1.060660171779821*m0Elc[4]-0.6123724356957944*m0Elc[3]+0.6123724356957944*m0Elc[2]+0.6123724356957944*m0Elc[1]+0.3535533905932737*m0Elc[0]; 
+  m1eSurfNodal[0] = -(1.837117307087383*m1Elc[7])+1.060660171779821*m1Elc[6]+1.060660171779821*m1Elc[5]+1.060660171779821*m1Elc[4]-0.6123724356957944*m1Elc[3]-0.6123724356957944*m1Elc[2]-0.6123724356957944*m1Elc[1]+0.3535533905932737*m1Elc[0]; 
+  m1eSurfNodal[1] = 1.837117307087383*m1Elc[7]+1.060660171779821*m1Elc[6]-1.060660171779821*m1Elc[5]-1.060660171779821*m1Elc[4]-0.6123724356957944*m1Elc[3]-0.6123724356957944*m1Elc[2]+0.6123724356957944*m1Elc[1]+0.3535533905932737*m1Elc[0]; 
+  m1eSurfNodal[2] = 1.837117307087383*m1Elc[7]-1.060660171779821*m1Elc[6]+1.060660171779821*m1Elc[5]-1.060660171779821*m1Elc[4]-0.6123724356957944*m1Elc[3]+0.6123724356957944*m1Elc[2]-0.6123724356957944*m1Elc[1]+0.3535533905932737*m1Elc[0]; 
+  m1eSurfNodal[3] = -(1.837117307087383*m1Elc[7])-1.060660171779821*m1Elc[6]-1.060660171779821*m1Elc[5]+1.060660171779821*m1Elc[4]-0.6123724356957944*m1Elc[3]+0.6123724356957944*m1Elc[2]+0.6123724356957944*m1Elc[1]+0.3535533905932737*m1Elc[0]; 
+  m2pareSurfNodal[0] = -(1.837117307087383*m2parElc[7])+1.060660171779821*m2parElc[6]+1.060660171779821*m2parElc[5]+1.060660171779821*m2parElc[4]-0.6123724356957944*m2parElc[3]-0.6123724356957944*m2parElc[2]-0.6123724356957944*m2parElc[1]+0.3535533905932737*m2parElc[0]; 
+  m2pareSurfNodal[1] = 1.837117307087383*m2parElc[7]+1.060660171779821*m2parElc[6]-1.060660171779821*m2parElc[5]-1.060660171779821*m2parElc[4]-0.6123724356957944*m2parElc[3]-0.6123724356957944*m2parElc[2]+0.6123724356957944*m2parElc[1]+0.3535533905932737*m2parElc[0]; 
+  m2pareSurfNodal[2] = 1.837117307087383*m2parElc[7]-1.060660171779821*m2parElc[6]+1.060660171779821*m2parElc[5]-1.060660171779821*m2parElc[4]-0.6123724356957944*m2parElc[3]+0.6123724356957944*m2parElc[2]-0.6123724356957944*m2parElc[1]+0.3535533905932737*m2parElc[0]; 
+  m2pareSurfNodal[3] = -(1.837117307087383*m2parElc[7])-1.060660171779821*m2parElc[6]-1.060660171779821*m2parElc[5]+1.060660171779821*m2parElc[4]-0.6123724356957944*m2parElc[3]+0.6123724356957944*m2parElc[2]+0.6123724356957944*m2parElc[1]+0.3535533905932737*m2parElc[0]; 
+
+  double phiWallNodal[4];
   phiWallNodal[0] = 1.5*phiWall[3]-0.8660254037844386*phiWall[2]-0.8660254037844386*phiWall[1]+0.5*phiWall[0]; 
   phiWallNodal[1] = -(1.5*phiWall[3])-0.8660254037844386*phiWall[2]+0.8660254037844386*phiWall[1]+0.5*phiWall[0]; 
   phiWallNodal[2] = -(1.5*phiWall[3])+0.8660254037844386*phiWall[2]-0.8660254037844386*phiWall[1]+0.5*phiWall[0]; 
   phiWallNodal[3] = 1.5*phiWall[3]+0.8660254037844386*phiWall[2]+0.8660254037844386*phiWall[1]+0.5*phiWall[0]; 
 
-  double upar_e;
   double upar_i;
-  double Tpar_e;
   double Tpar_i;
+  double upar_e;
+  double Tpar_e;
   double c_s;
   double Delta_phi_r;
 
-  upar_e = m1eSurfNodal[0]/m0eSurfNodal[0];
   upar_i = m1iSurfNodal[0]/m0iSurfNodal[0];
+  Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[0]*mIon*upar_i-1.0*m2pariSurfNodal[0]*mIon))/m0iSurfNodal[0]));
 
+  upar_e = m1eSurfNodal[0]/m0eSurfNodal[0];
   Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[0]*mElc*upar_e-1.0*m2pareSurfNodal[0]*mElc))/m0eSurfNodal[0]));
+
+  c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
+  if (c_s > 0.0)
+    Delta_phi_r = ((fmin(1.0,fabs(upar_i)/c_s)-1.0)*Tpar_e)/elem_q;
+  else
+    Delta_phi_r = 0.0;
+
+  phiNodal[0] = fmax(phiNodal[0] + Delta_phi_r, phiWallNodal[0]);
+
+  upar_i = m1iSurfNodal[1]/m0iSurfNodal[1];
+  Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[1]*mIon*upar_i-1.0*m2pariSurfNodal[1]*mIon))/m0iSurfNodal[1]));
+
+  upar_e = m1eSurfNodal[1]/m0eSurfNodal[1];
+  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[1]*mElc*upar_e-1.0*m2pareSurfNodal[1]*mElc))/m0eSurfNodal[1]));
+
+  c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
+  if (c_s > 0.0)
+    Delta_phi_r = ((fmin(1.0,fabs(upar_i)/c_s)-1.0)*Tpar_e)/elem_q;
+  else
+    Delta_phi_r = 0.0;
+
+  phiNodal[1] = fmax(phiNodal[1] + Delta_phi_r, phiWallNodal[1]);
+
+  upar_i = m1iSurfNodal[2]/m0iSurfNodal[2];
+  Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[2]*mIon*upar_i-1.0*m2pariSurfNodal[2]*mIon))/m0iSurfNodal[2]));
+
+  upar_e = m1eSurfNodal[2]/m0eSurfNodal[2];
+  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[2]*mElc*upar_e-1.0*m2pareSurfNodal[2]*mElc))/m0eSurfNodal[2]));
+
+  c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
+  if (c_s > 0.0)
+    Delta_phi_r = ((fmin(1.0,fabs(upar_i)/c_s)-1.0)*Tpar_e)/elem_q;
+  else
+    Delta_phi_r = 0.0;
+
+  phiNodal[2] = fmax(phiNodal[2] + Delta_phi_r, phiWallNodal[2]);
+
+  upar_i = m1iSurfNodal[3]/m0iSurfNodal[3];
+  Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[3]*mIon*upar_i-1.0*m2pariSurfNodal[3]*mIon))/m0iSurfNodal[3]));
+
+  upar_e = m1eSurfNodal[3]/m0eSurfNodal[3];
+  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[3]*mElc*upar_e-1.0*m2pareSurfNodal[3]*mElc))/m0eSurfNodal[3]));
+
+  c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
+  if (c_s > 0.0)
+    Delta_phi_r = ((fmin(1.0,fabs(upar_i)/c_s)-1.0)*Tpar_e)/elem_q;
+  else
+    Delta_phi_r = 0.0;
+
+  phiNodal[3] = fmax(phiNodal[3] + Delta_phi_r, phiWallNodal[3]);
+
+  phi[0] = 0.3535533905932737*phiNodal[7]+0.3535533905932737*phiNodal[6]+0.3535533905932737*phiNodal[5]+0.3535533905932737*phiNodal[4]+0.3535533905932737*phiNodal[3]+0.3535533905932737*phiNodal[2]+0.3535533905932737*phiNodal[1]+0.3535533905932737*phiNodal[0]; 
+  phi[1] = 0.20412414523193148*phiNodal[7]-0.20412414523193148*phiNodal[6]+0.20412414523193148*phiNodal[5]-0.20412414523193148*phiNodal[4]+0.20412414523193148*phiNodal[3]-0.20412414523193148*phiNodal[2]+0.20412414523193148*phiNodal[1]-0.20412414523193148*phiNodal[0]; 
+  phi[2] = 0.20412414523193148*phiNodal[7]+0.20412414523193148*phiNodal[6]-0.20412414523193148*phiNodal[5]-0.20412414523193148*phiNodal[4]+0.20412414523193148*phiNodal[3]+0.20412414523193148*phiNodal[2]-0.20412414523193148*phiNodal[1]-0.20412414523193148*phiNodal[0]; 
+  phi[3] = 0.20412414523193148*phiNodal[7]+0.20412414523193148*phiNodal[6]+0.20412414523193148*phiNodal[5]+0.20412414523193148*phiNodal[4]-0.20412414523193148*phiNodal[3]-0.20412414523193148*phiNodal[2]-0.20412414523193148*phiNodal[1]-0.20412414523193148*phiNodal[0]; 
+  phi[4] = 0.11785113019775789*phiNodal[7]-0.11785113019775789*phiNodal[6]-0.11785113019775789*phiNodal[5]+0.11785113019775789*phiNodal[4]+0.11785113019775789*phiNodal[3]-0.11785113019775789*phiNodal[2]-0.11785113019775789*phiNodal[1]+0.11785113019775789*phiNodal[0]; 
+  phi[5] = 0.11785113019775789*phiNodal[7]-0.11785113019775789*phiNodal[6]+0.11785113019775789*phiNodal[5]-0.11785113019775789*phiNodal[4]-0.11785113019775789*phiNodal[3]+0.11785113019775789*phiNodal[2]-0.11785113019775789*phiNodal[1]+0.11785113019775789*phiNodal[0]; 
+  phi[6] = 0.11785113019775789*phiNodal[7]+0.11785113019775789*phiNodal[6]-0.11785113019775789*phiNodal[5]-0.11785113019775789*phiNodal[4]-0.11785113019775789*phiNodal[3]-0.11785113019775789*phiNodal[2]+0.11785113019775789*phiNodal[1]+0.11785113019775789*phiNodal[0]; 
+  phi[7] = 0.06804138174397717*phiNodal[7]-0.06804138174397717*phiNodal[6]-0.06804138174397717*phiNodal[5]+0.06804138174397717*phiNodal[4]-0.06804138174397717*phiNodal[3]+0.06804138174397717*phiNodal[2]+0.06804138174397717*phiNodal[1]-0.06804138174397717*phiNodal[0]; 
+ 
+}
+
+GKYL_CU_DH void sheath_rarefaction_phi_mod_kinetic_elc_upper_3x_ser_p1(double elem_q, double mElc, double tempElcBoltz, const double *momsElc, double mIon, const double *momsIon, const double *phiWall, double *phi) 
+{ 
+  // elem_q: elementary charge.
+  // mElc: electron mass.
+  // tempElcBoltz: electron temperature in Boltzmann electron model.
+  // momsElc: m0, m1, m2par (and m2perp, but not used) moments of electrons.
+  // mIon: ion mass.
+  // momsIon: m0, m1, m2par (and m2perp, but not used) moments of ions.
+  // phi: electrostatic potential.
+
+  double phiNodal[8];
+  phiNodal[0] = -(1.837117307087383*phi[7])+1.060660171779821*phi[6]+1.060660171779821*phi[5]+1.060660171779821*phi[4]-0.6123724356957944*phi[3]-0.6123724356957944*phi[2]-0.6123724356957944*phi[1]+0.3535533905932737*phi[0]; 
+  phiNodal[1] = 1.837117307087383*phi[7]+1.060660171779821*phi[6]-1.060660171779821*phi[5]-1.060660171779821*phi[4]-0.6123724356957944*phi[3]-0.6123724356957944*phi[2]+0.6123724356957944*phi[1]+0.3535533905932737*phi[0]; 
+  phiNodal[2] = 1.837117307087383*phi[7]-1.060660171779821*phi[6]+1.060660171779821*phi[5]-1.060660171779821*phi[4]-0.6123724356957944*phi[3]+0.6123724356957944*phi[2]-0.6123724356957944*phi[1]+0.3535533905932737*phi[0]; 
+  phiNodal[3] = -(1.837117307087383*phi[7])-1.060660171779821*phi[6]-1.060660171779821*phi[5]+1.060660171779821*phi[4]-0.6123724356957944*phi[3]+0.6123724356957944*phi[2]+0.6123724356957944*phi[1]+0.3535533905932737*phi[0]; 
+  phiNodal[4] = 1.837117307087383*phi[7]-1.060660171779821*phi[6]-1.060660171779821*phi[5]+1.060660171779821*phi[4]+0.6123724356957944*phi[3]-0.6123724356957944*phi[2]-0.6123724356957944*phi[1]+0.3535533905932737*phi[0]; 
+  phiNodal[5] = -(1.837117307087383*phi[7])-1.060660171779821*phi[6]+1.060660171779821*phi[5]-1.060660171779821*phi[4]+0.6123724356957944*phi[3]-0.6123724356957944*phi[2]+0.6123724356957944*phi[1]+0.3535533905932737*phi[0]; 
+  phiNodal[6] = -(1.837117307087383*phi[7])+1.060660171779821*phi[6]-1.060660171779821*phi[5]-1.060660171779821*phi[4]+0.6123724356957944*phi[3]+0.6123724356957944*phi[2]-0.6123724356957944*phi[1]+0.3535533905932737*phi[0]; 
+  phiNodal[7] = 1.837117307087383*phi[7]+1.060660171779821*phi[6]+1.060660171779821*phi[5]+1.060660171779821*phi[4]+0.6123724356957944*phi[3]+0.6123724356957944*phi[2]+0.6123724356957944*phi[1]+0.3535533905932737*phi[0]; 
+
+  const double *m0Ion = &momsIon[0];
+  const double *m1Ion = &momsIon[8];
+  const double *m2parIon = &momsIon[16];
+
+  double m0iSurfNodal[4];
+  double m1iSurfNodal[4];
+  double m2pariSurfNodal[4];
+  m0iSurfNodal[0] = 1.837117307087383*m0Ion[7]-1.060660171779821*m0Ion[6]-1.060660171779821*m0Ion[5]+1.060660171779821*m0Ion[4]+0.6123724356957944*m0Ion[3]-0.6123724356957944*m0Ion[2]-0.6123724356957944*m0Ion[1]+0.3535533905932737*m0Ion[0]; 
+  m0iSurfNodal[1] = -(1.837117307087383*m0Ion[7])-1.060660171779821*m0Ion[6]+1.060660171779821*m0Ion[5]-1.060660171779821*m0Ion[4]+0.6123724356957944*m0Ion[3]-0.6123724356957944*m0Ion[2]+0.6123724356957944*m0Ion[1]+0.3535533905932737*m0Ion[0]; 
+  m0iSurfNodal[2] = -(1.837117307087383*m0Ion[7])+1.060660171779821*m0Ion[6]-1.060660171779821*m0Ion[5]-1.060660171779821*m0Ion[4]+0.6123724356957944*m0Ion[3]+0.6123724356957944*m0Ion[2]-0.6123724356957944*m0Ion[1]+0.3535533905932737*m0Ion[0]; 
+  m0iSurfNodal[3] = 1.837117307087383*m0Ion[7]+1.060660171779821*m0Ion[6]+1.060660171779821*m0Ion[5]+1.060660171779821*m0Ion[4]+0.6123724356957944*m0Ion[3]+0.6123724356957944*m0Ion[2]+0.6123724356957944*m0Ion[1]+0.3535533905932737*m0Ion[0]; 
+  m1iSurfNodal[0] = 1.837117307087383*m1Ion[7]-1.060660171779821*m1Ion[6]-1.060660171779821*m1Ion[5]+1.060660171779821*m1Ion[4]+0.6123724356957944*m1Ion[3]-0.6123724356957944*m1Ion[2]-0.6123724356957944*m1Ion[1]+0.3535533905932737*m1Ion[0]; 
+  m1iSurfNodal[1] = -(1.837117307087383*m1Ion[7])-1.060660171779821*m1Ion[6]+1.060660171779821*m1Ion[5]-1.060660171779821*m1Ion[4]+0.6123724356957944*m1Ion[3]-0.6123724356957944*m1Ion[2]+0.6123724356957944*m1Ion[1]+0.3535533905932737*m1Ion[0]; 
+  m1iSurfNodal[2] = -(1.837117307087383*m1Ion[7])+1.060660171779821*m1Ion[6]-1.060660171779821*m1Ion[5]-1.060660171779821*m1Ion[4]+0.6123724356957944*m1Ion[3]+0.6123724356957944*m1Ion[2]-0.6123724356957944*m1Ion[1]+0.3535533905932737*m1Ion[0]; 
+  m1iSurfNodal[3] = 1.837117307087383*m1Ion[7]+1.060660171779821*m1Ion[6]+1.060660171779821*m1Ion[5]+1.060660171779821*m1Ion[4]+0.6123724356957944*m1Ion[3]+0.6123724356957944*m1Ion[2]+0.6123724356957944*m1Ion[1]+0.3535533905932737*m1Ion[0]; 
+  m2pariSurfNodal[0] = 1.837117307087383*m2parIon[7]-1.060660171779821*m2parIon[6]-1.060660171779821*m2parIon[5]+1.060660171779821*m2parIon[4]+0.6123724356957944*m2parIon[3]-0.6123724356957944*m2parIon[2]-0.6123724356957944*m2parIon[1]+0.3535533905932737*m2parIon[0]; 
+  m2pariSurfNodal[1] = -(1.837117307087383*m2parIon[7])-1.060660171779821*m2parIon[6]+1.060660171779821*m2parIon[5]-1.060660171779821*m2parIon[4]+0.6123724356957944*m2parIon[3]-0.6123724356957944*m2parIon[2]+0.6123724356957944*m2parIon[1]+0.3535533905932737*m2parIon[0]; 
+  m2pariSurfNodal[2] = -(1.837117307087383*m2parIon[7])+1.060660171779821*m2parIon[6]-1.060660171779821*m2parIon[5]-1.060660171779821*m2parIon[4]+0.6123724356957944*m2parIon[3]+0.6123724356957944*m2parIon[2]-0.6123724356957944*m2parIon[1]+0.3535533905932737*m2parIon[0]; 
+  m2pariSurfNodal[3] = 1.837117307087383*m2parIon[7]+1.060660171779821*m2parIon[6]+1.060660171779821*m2parIon[5]+1.060660171779821*m2parIon[4]+0.6123724356957944*m2parIon[3]+0.6123724356957944*m2parIon[2]+0.6123724356957944*m2parIon[1]+0.3535533905932737*m2parIon[0]; 
+
+  const double *m0Elc = &momsElc[0];
+  const double *m1Elc = &momsElc[8];
+  const double *m2parElc = &momsElc[16];
+
+  double m0eSurfNodal[4];
+  double m1eSurfNodal[4];
+  double m2pareSurfNodal[4];
+  m0eSurfNodal[0] = 1.837117307087383*m0Elc[7]-1.060660171779821*m0Elc[6]-1.060660171779821*m0Elc[5]+1.060660171779821*m0Elc[4]+0.6123724356957944*m0Elc[3]-0.6123724356957944*m0Elc[2]-0.6123724356957944*m0Elc[1]+0.3535533905932737*m0Elc[0]; 
+  m0eSurfNodal[1] = -(1.837117307087383*m0Elc[7])-1.060660171779821*m0Elc[6]+1.060660171779821*m0Elc[5]-1.060660171779821*m0Elc[4]+0.6123724356957944*m0Elc[3]-0.6123724356957944*m0Elc[2]+0.6123724356957944*m0Elc[1]+0.3535533905932737*m0Elc[0]; 
+  m0eSurfNodal[2] = -(1.837117307087383*m0Elc[7])+1.060660171779821*m0Elc[6]-1.060660171779821*m0Elc[5]-1.060660171779821*m0Elc[4]+0.6123724356957944*m0Elc[3]+0.6123724356957944*m0Elc[2]-0.6123724356957944*m0Elc[1]+0.3535533905932737*m0Elc[0]; 
+  m0eSurfNodal[3] = 1.837117307087383*m0Elc[7]+1.060660171779821*m0Elc[6]+1.060660171779821*m0Elc[5]+1.060660171779821*m0Elc[4]+0.6123724356957944*m0Elc[3]+0.6123724356957944*m0Elc[2]+0.6123724356957944*m0Elc[1]+0.3535533905932737*m0Elc[0]; 
+  m1eSurfNodal[0] = 1.837117307087383*m1Elc[7]-1.060660171779821*m1Elc[6]-1.060660171779821*m1Elc[5]+1.060660171779821*m1Elc[4]+0.6123724356957944*m1Elc[3]-0.6123724356957944*m1Elc[2]-0.6123724356957944*m1Elc[1]+0.3535533905932737*m1Elc[0]; 
+  m1eSurfNodal[1] = -(1.837117307087383*m1Elc[7])-1.060660171779821*m1Elc[6]+1.060660171779821*m1Elc[5]-1.060660171779821*m1Elc[4]+0.6123724356957944*m1Elc[3]-0.6123724356957944*m1Elc[2]+0.6123724356957944*m1Elc[1]+0.3535533905932737*m1Elc[0]; 
+  m1eSurfNodal[2] = -(1.837117307087383*m1Elc[7])+1.060660171779821*m1Elc[6]-1.060660171779821*m1Elc[5]-1.060660171779821*m1Elc[4]+0.6123724356957944*m1Elc[3]+0.6123724356957944*m1Elc[2]-0.6123724356957944*m1Elc[1]+0.3535533905932737*m1Elc[0]; 
+  m1eSurfNodal[3] = 1.837117307087383*m1Elc[7]+1.060660171779821*m1Elc[6]+1.060660171779821*m1Elc[5]+1.060660171779821*m1Elc[4]+0.6123724356957944*m1Elc[3]+0.6123724356957944*m1Elc[2]+0.6123724356957944*m1Elc[1]+0.3535533905932737*m1Elc[0]; 
+  m2pareSurfNodal[0] = 1.837117307087383*m2parElc[7]-1.060660171779821*m2parElc[6]-1.060660171779821*m2parElc[5]+1.060660171779821*m2parElc[4]+0.6123724356957944*m2parElc[3]-0.6123724356957944*m2parElc[2]-0.6123724356957944*m2parElc[1]+0.3535533905932737*m2parElc[0]; 
+  m2pareSurfNodal[1] = -(1.837117307087383*m2parElc[7])-1.060660171779821*m2parElc[6]+1.060660171779821*m2parElc[5]-1.060660171779821*m2parElc[4]+0.6123724356957944*m2parElc[3]-0.6123724356957944*m2parElc[2]+0.6123724356957944*m2parElc[1]+0.3535533905932737*m2parElc[0]; 
+  m2pareSurfNodal[2] = -(1.837117307087383*m2parElc[7])+1.060660171779821*m2parElc[6]-1.060660171779821*m2parElc[5]-1.060660171779821*m2parElc[4]+0.6123724356957944*m2parElc[3]+0.6123724356957944*m2parElc[2]-0.6123724356957944*m2parElc[1]+0.3535533905932737*m2parElc[0]; 
+  m2pareSurfNodal[3] = 1.837117307087383*m2parElc[7]+1.060660171779821*m2parElc[6]+1.060660171779821*m2parElc[5]+1.060660171779821*m2parElc[4]+0.6123724356957944*m2parElc[3]+0.6123724356957944*m2parElc[2]+0.6123724356957944*m2parElc[1]+0.3535533905932737*m2parElc[0]; 
+
+  double phiWallNodal[4];
+  phiWallNodal[0] = 1.5*phiWall[3]-0.8660254037844386*phiWall[2]-0.8660254037844386*phiWall[1]+0.5*phiWall[0]; 
+  phiWallNodal[1] = -(1.5*phiWall[3])-0.8660254037844386*phiWall[2]+0.8660254037844386*phiWall[1]+0.5*phiWall[0]; 
+  phiWallNodal[2] = -(1.5*phiWall[3])+0.8660254037844386*phiWall[2]-0.8660254037844386*phiWall[1]+0.5*phiWall[0]; 
+  phiWallNodal[3] = 1.5*phiWall[3]+0.8660254037844386*phiWall[2]+0.8660254037844386*phiWall[1]+0.5*phiWall[0]; 
+
+  double upar_i;
+  double Tpar_i;
+  double upar_e;
+  double Tpar_e;
+  double c_s;
+  double Delta_phi_r;
+
+  upar_i = m1iSurfNodal[0]/m0iSurfNodal[0];
+  Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[0]*mIon*upar_i-1.0*m2pariSurfNodal[0]*mIon))/m0iSurfNodal[0]));
+
+  upar_e = m1eSurfNodal[0]/m0eSurfNodal[0];
+  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[0]*mElc*upar_e-1.0*m2pareSurfNodal[0]*mElc))/m0eSurfNodal[0]));
+
+  c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
+  if (c_s > 0.0)
+    Delta_phi_r = ((fmin(1.0,fabs(upar_i)/c_s)-1.0)*Tpar_e)/elem_q;
+  else
+    Delta_phi_r = 0.0;
+
+  phiNodal[4] = fmax(phiNodal[4] + Delta_phi_r, phiWallNodal[0]);
+
+  upar_i = m1iSurfNodal[1]/m0iSurfNodal[1];
+  Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[1]*mIon*upar_i-1.0*m2pariSurfNodal[1]*mIon))/m0iSurfNodal[1]));
+
+  upar_e = m1eSurfNodal[1]/m0eSurfNodal[1];
+  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[1]*mElc*upar_e-1.0*m2pareSurfNodal[1]*mElc))/m0eSurfNodal[1]));
+
+  c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
+  if (c_s > 0.0)
+    Delta_phi_r = ((fmin(1.0,fabs(upar_i)/c_s)-1.0)*Tpar_e)/elem_q;
+  else
+    Delta_phi_r = 0.0;
+
+  phiNodal[5] = fmax(phiNodal[5] + Delta_phi_r, phiWallNodal[1]);
+
+  upar_i = m1iSurfNodal[2]/m0iSurfNodal[2];
+  Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[2]*mIon*upar_i-1.0*m2pariSurfNodal[2]*mIon))/m0iSurfNodal[2]));
+
+  upar_e = m1eSurfNodal[2]/m0eSurfNodal[2];
+  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[2]*mElc*upar_e-1.0*m2pareSurfNodal[2]*mElc))/m0eSurfNodal[2]));
+
+  c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
+  if (c_s > 0.0)
+    Delta_phi_r = ((fmin(1.0,fabs(upar_i)/c_s)-1.0)*Tpar_e)/elem_q;
+  else
+    Delta_phi_r = 0.0;
+
+  phiNodal[6] = fmax(phiNodal[6] + Delta_phi_r, phiWallNodal[2]);
+
+  upar_i = m1iSurfNodal[3]/m0iSurfNodal[3];
+  Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[3]*mIon*upar_i-1.0*m2pariSurfNodal[3]*mIon))/m0iSurfNodal[3]));
+
+  upar_e = m1eSurfNodal[3]/m0eSurfNodal[3];
+  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[3]*mElc*upar_e-1.0*m2pareSurfNodal[3]*mElc))/m0eSurfNodal[3]));
+
+  c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
+  if (c_s > 0.0)
+    Delta_phi_r = ((fmin(1.0,fabs(upar_i)/c_s)-1.0)*Tpar_e)/elem_q;
+  else
+    Delta_phi_r = 0.0;
+
+  phiNodal[7] = fmax(phiNodal[7] + Delta_phi_r, phiWallNodal[3]);
+
+  phi[0] = 0.3535533905932737*phiNodal[7]+0.3535533905932737*phiNodal[6]+0.3535533905932737*phiNodal[5]+0.3535533905932737*phiNodal[4]+0.3535533905932737*phiNodal[3]+0.3535533905932737*phiNodal[2]+0.3535533905932737*phiNodal[1]+0.3535533905932737*phiNodal[0]; 
+  phi[1] = 0.20412414523193148*phiNodal[7]-0.20412414523193148*phiNodal[6]+0.20412414523193148*phiNodal[5]-0.20412414523193148*phiNodal[4]+0.20412414523193148*phiNodal[3]-0.20412414523193148*phiNodal[2]+0.20412414523193148*phiNodal[1]-0.20412414523193148*phiNodal[0]; 
+  phi[2] = 0.20412414523193148*phiNodal[7]+0.20412414523193148*phiNodal[6]-0.20412414523193148*phiNodal[5]-0.20412414523193148*phiNodal[4]+0.20412414523193148*phiNodal[3]+0.20412414523193148*phiNodal[2]-0.20412414523193148*phiNodal[1]-0.20412414523193148*phiNodal[0]; 
+  phi[3] = 0.20412414523193148*phiNodal[7]+0.20412414523193148*phiNodal[6]+0.20412414523193148*phiNodal[5]+0.20412414523193148*phiNodal[4]-0.20412414523193148*phiNodal[3]-0.20412414523193148*phiNodal[2]-0.20412414523193148*phiNodal[1]-0.20412414523193148*phiNodal[0]; 
+  phi[4] = 0.11785113019775789*phiNodal[7]-0.11785113019775789*phiNodal[6]-0.11785113019775789*phiNodal[5]+0.11785113019775789*phiNodal[4]+0.11785113019775789*phiNodal[3]-0.11785113019775789*phiNodal[2]-0.11785113019775789*phiNodal[1]+0.11785113019775789*phiNodal[0]; 
+  phi[5] = 0.11785113019775789*phiNodal[7]-0.11785113019775789*phiNodal[6]+0.11785113019775789*phiNodal[5]-0.11785113019775789*phiNodal[4]-0.11785113019775789*phiNodal[3]+0.11785113019775789*phiNodal[2]-0.11785113019775789*phiNodal[1]+0.11785113019775789*phiNodal[0]; 
+  phi[6] = 0.11785113019775789*phiNodal[7]+0.11785113019775789*phiNodal[6]-0.11785113019775789*phiNodal[5]-0.11785113019775789*phiNodal[4]-0.11785113019775789*phiNodal[3]-0.11785113019775789*phiNodal[2]+0.11785113019775789*phiNodal[1]+0.11785113019775789*phiNodal[0]; 
+  phi[7] = 0.06804138174397717*phiNodal[7]-0.06804138174397717*phiNodal[6]-0.06804138174397717*phiNodal[5]+0.06804138174397717*phiNodal[4]-0.06804138174397717*phiNodal[3]+0.06804138174397717*phiNodal[2]+0.06804138174397717*phiNodal[1]-0.06804138174397717*phiNodal[0]; 
+ 
+}
+
+
+GKYL_CU_DH void sheath_rarefaction_phi_mod_boltzmann_elc_lower_3x_ser_p1(double elem_q, double mElc, double tempElcBoltz, const double *momsElc, double mIon, const double *momsIon, const double *phiWall, double *phi) 
+{ 
+  // elem_q: elementary charge.
+  // mElc: electron mass.
+  // tempElcBoltz: electron temperature in Boltzmann electron model.
+  // momsElc: m0, m1, m2par (and m2perp, but not used) moments of electrons.
+  // mIon: ion mass.
+  // momsIon: m0, m1, m2par (and m2perp, but not used) moments of ions.
+  // phi: electrostatic potential.
+
+  double phiNodal[8];
+  phiNodal[0] = -(1.837117307087383*phi[7])+1.060660171779821*phi[6]+1.060660171779821*phi[5]+1.060660171779821*phi[4]-0.6123724356957944*phi[3]-0.6123724356957944*phi[2]-0.6123724356957944*phi[1]+0.3535533905932737*phi[0]; 
+  phiNodal[1] = 1.837117307087383*phi[7]+1.060660171779821*phi[6]-1.060660171779821*phi[5]-1.060660171779821*phi[4]-0.6123724356957944*phi[3]-0.6123724356957944*phi[2]+0.6123724356957944*phi[1]+0.3535533905932737*phi[0]; 
+  phiNodal[2] = 1.837117307087383*phi[7]-1.060660171779821*phi[6]+1.060660171779821*phi[5]-1.060660171779821*phi[4]-0.6123724356957944*phi[3]+0.6123724356957944*phi[2]-0.6123724356957944*phi[1]+0.3535533905932737*phi[0]; 
+  phiNodal[3] = -(1.837117307087383*phi[7])-1.060660171779821*phi[6]-1.060660171779821*phi[5]+1.060660171779821*phi[4]-0.6123724356957944*phi[3]+0.6123724356957944*phi[2]+0.6123724356957944*phi[1]+0.3535533905932737*phi[0]; 
+  phiNodal[4] = 1.837117307087383*phi[7]-1.060660171779821*phi[6]-1.060660171779821*phi[5]+1.060660171779821*phi[4]+0.6123724356957944*phi[3]-0.6123724356957944*phi[2]-0.6123724356957944*phi[1]+0.3535533905932737*phi[0]; 
+  phiNodal[5] = -(1.837117307087383*phi[7])-1.060660171779821*phi[6]+1.060660171779821*phi[5]-1.060660171779821*phi[4]+0.6123724356957944*phi[3]-0.6123724356957944*phi[2]+0.6123724356957944*phi[1]+0.3535533905932737*phi[0]; 
+  phiNodal[6] = -(1.837117307087383*phi[7])+1.060660171779821*phi[6]-1.060660171779821*phi[5]-1.060660171779821*phi[4]+0.6123724356957944*phi[3]+0.6123724356957944*phi[2]-0.6123724356957944*phi[1]+0.3535533905932737*phi[0]; 
+  phiNodal[7] = 1.837117307087383*phi[7]+1.060660171779821*phi[6]+1.060660171779821*phi[5]+1.060660171779821*phi[4]+0.6123724356957944*phi[3]+0.6123724356957944*phi[2]+0.6123724356957944*phi[1]+0.3535533905932737*phi[0]; 
+
+  const double *m0Ion = &momsIon[0];
+  const double *m1Ion = &momsIon[8];
+  const double *m2parIon = &momsIon[16];
+
+  double m0iSurfNodal[4];
+  double m1iSurfNodal[4];
+  double m2pariSurfNodal[4];
+  m0iSurfNodal[0] = -(1.837117307087383*m0Ion[7])+1.060660171779821*m0Ion[6]+1.060660171779821*m0Ion[5]+1.060660171779821*m0Ion[4]-0.6123724356957944*m0Ion[3]-0.6123724356957944*m0Ion[2]-0.6123724356957944*m0Ion[1]+0.3535533905932737*m0Ion[0]; 
+  m0iSurfNodal[1] = 1.837117307087383*m0Ion[7]+1.060660171779821*m0Ion[6]-1.060660171779821*m0Ion[5]-1.060660171779821*m0Ion[4]-0.6123724356957944*m0Ion[3]-0.6123724356957944*m0Ion[2]+0.6123724356957944*m0Ion[1]+0.3535533905932737*m0Ion[0]; 
+  m0iSurfNodal[2] = 1.837117307087383*m0Ion[7]-1.060660171779821*m0Ion[6]+1.060660171779821*m0Ion[5]-1.060660171779821*m0Ion[4]-0.6123724356957944*m0Ion[3]+0.6123724356957944*m0Ion[2]-0.6123724356957944*m0Ion[1]+0.3535533905932737*m0Ion[0]; 
+  m0iSurfNodal[3] = -(1.837117307087383*m0Ion[7])-1.060660171779821*m0Ion[6]-1.060660171779821*m0Ion[5]+1.060660171779821*m0Ion[4]-0.6123724356957944*m0Ion[3]+0.6123724356957944*m0Ion[2]+0.6123724356957944*m0Ion[1]+0.3535533905932737*m0Ion[0]; 
+  m1iSurfNodal[0] = -(1.837117307087383*m1Ion[7])+1.060660171779821*m1Ion[6]+1.060660171779821*m1Ion[5]+1.060660171779821*m1Ion[4]-0.6123724356957944*m1Ion[3]-0.6123724356957944*m1Ion[2]-0.6123724356957944*m1Ion[1]+0.3535533905932737*m1Ion[0]; 
+  m1iSurfNodal[1] = 1.837117307087383*m1Ion[7]+1.060660171779821*m1Ion[6]-1.060660171779821*m1Ion[5]-1.060660171779821*m1Ion[4]-0.6123724356957944*m1Ion[3]-0.6123724356957944*m1Ion[2]+0.6123724356957944*m1Ion[1]+0.3535533905932737*m1Ion[0]; 
+  m1iSurfNodal[2] = 1.837117307087383*m1Ion[7]-1.060660171779821*m1Ion[6]+1.060660171779821*m1Ion[5]-1.060660171779821*m1Ion[4]-0.6123724356957944*m1Ion[3]+0.6123724356957944*m1Ion[2]-0.6123724356957944*m1Ion[1]+0.3535533905932737*m1Ion[0]; 
+  m1iSurfNodal[3] = -(1.837117307087383*m1Ion[7])-1.060660171779821*m1Ion[6]-1.060660171779821*m1Ion[5]+1.060660171779821*m1Ion[4]-0.6123724356957944*m1Ion[3]+0.6123724356957944*m1Ion[2]+0.6123724356957944*m1Ion[1]+0.3535533905932737*m1Ion[0]; 
+  m2pariSurfNodal[0] = -(1.837117307087383*m2parIon[7])+1.060660171779821*m2parIon[6]+1.060660171779821*m2parIon[5]+1.060660171779821*m2parIon[4]-0.6123724356957944*m2parIon[3]-0.6123724356957944*m2parIon[2]-0.6123724356957944*m2parIon[1]+0.3535533905932737*m2parIon[0]; 
+  m2pariSurfNodal[1] = 1.837117307087383*m2parIon[7]+1.060660171779821*m2parIon[6]-1.060660171779821*m2parIon[5]-1.060660171779821*m2parIon[4]-0.6123724356957944*m2parIon[3]-0.6123724356957944*m2parIon[2]+0.6123724356957944*m2parIon[1]+0.3535533905932737*m2parIon[0]; 
+  m2pariSurfNodal[2] = 1.837117307087383*m2parIon[7]-1.060660171779821*m2parIon[6]+1.060660171779821*m2parIon[5]-1.060660171779821*m2parIon[4]-0.6123724356957944*m2parIon[3]+0.6123724356957944*m2parIon[2]-0.6123724356957944*m2parIon[1]+0.3535533905932737*m2parIon[0]; 
+  m2pariSurfNodal[3] = -(1.837117307087383*m2parIon[7])-1.060660171779821*m2parIon[6]-1.060660171779821*m2parIon[5]+1.060660171779821*m2parIon[4]-0.6123724356957944*m2parIon[3]+0.6123724356957944*m2parIon[2]+0.6123724356957944*m2parIon[1]+0.3535533905932737*m2parIon[0]; 
+
+  double phiWallNodal[4];
+  phiWallNodal[0] = 1.5*phiWall[3]-0.8660254037844386*phiWall[2]-0.8660254037844386*phiWall[1]+0.5*phiWall[0]; 
+  phiWallNodal[1] = -(1.5*phiWall[3])-0.8660254037844386*phiWall[2]+0.8660254037844386*phiWall[1]+0.5*phiWall[0]; 
+  phiWallNodal[2] = -(1.5*phiWall[3])+0.8660254037844386*phiWall[2]-0.8660254037844386*phiWall[1]+0.5*phiWall[0]; 
+  phiWallNodal[3] = 1.5*phiWall[3]+0.8660254037844386*phiWall[2]+0.8660254037844386*phiWall[1]+0.5*phiWall[0]; 
+
+  double upar_i;
+  double Tpar_i;
+  double Tpar_e = tempElcBoltz;
+  double c_s;
+  double Delta_phi_r;
+
+  upar_i = m1iSurfNodal[0]/m0iSurfNodal[0];
   Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[0]*mIon*upar_i-1.0*m2pariSurfNodal[0]*mIon))/m0iSurfNodal[0]));
 
   c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
@@ -84,10 +345,7 @@ GKYL_CU_DH void sheath_rarefaction_phi_mod_lower_3x_ser_p1(double elem_q, double
 
   phiNodal[0] = fmax(phiNodal[0] + Delta_phi_r, phiWallNodal[0]);
 
-  upar_e = m1eSurfNodal[1]/m0eSurfNodal[1];
   upar_i = m1iSurfNodal[1]/m0iSurfNodal[1];
-
-  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[1]*mElc*upar_e-1.0*m2pareSurfNodal[1]*mElc))/m0eSurfNodal[1]));
   Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[1]*mIon*upar_i-1.0*m2pariSurfNodal[1]*mIon))/m0iSurfNodal[1]));
 
   c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
@@ -98,10 +356,7 @@ GKYL_CU_DH void sheath_rarefaction_phi_mod_lower_3x_ser_p1(double elem_q, double
 
   phiNodal[1] = fmax(phiNodal[1] + Delta_phi_r, phiWallNodal[1]);
 
-  upar_e = m1eSurfNodal[2]/m0eSurfNodal[2];
   upar_i = m1iSurfNodal[2]/m0iSurfNodal[2];
-
-  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[2]*mElc*upar_e-1.0*m2pareSurfNodal[2]*mElc))/m0eSurfNodal[2]));
   Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[2]*mIon*upar_i-1.0*m2pariSurfNodal[2]*mIon))/m0iSurfNodal[2]));
 
   c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
@@ -112,10 +367,7 @@ GKYL_CU_DH void sheath_rarefaction_phi_mod_lower_3x_ser_p1(double elem_q, double
 
   phiNodal[2] = fmax(phiNodal[2] + Delta_phi_r, phiWallNodal[2]);
 
-  upar_e = m1eSurfNodal[3]/m0eSurfNodal[3];
   upar_i = m1iSurfNodal[3]/m0iSurfNodal[3];
-
-  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[3]*mElc*upar_e-1.0*m2pareSurfNodal[3]*mElc))/m0eSurfNodal[3]));
   Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[3]*mIon*upar_i-1.0*m2pariSurfNodal[3]*mIon))/m0iSurfNodal[3]));
 
   c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
@@ -137,10 +389,11 @@ GKYL_CU_DH void sheath_rarefaction_phi_mod_lower_3x_ser_p1(double elem_q, double
  
 }
 
-GKYL_CU_DH void sheath_rarefaction_phi_mod_upper_3x_ser_p1(double elem_q, double mElc, const double *momsElc, double mIon, const double *momsIon, const double *phiWall, double *phi) 
+GKYL_CU_DH void sheath_rarefaction_phi_mod_boltzmann_elc_upper_3x_ser_p1(double elem_q, double mElc, double tempElcBoltz, const double *momsElc, double mIon, const double *momsIon, const double *phiWall, double *phi) 
 { 
   // elem_q: elementary charge.
   // mElc: electron mass.
+  // tempElcBoltz: electron temperature in Boltzmann electron model.
   // momsElc: m0, m1, m2par (and m2perp, but not used) moments of electrons.
   // mIon: ion mass.
   // momsIon: m0, m1, m2par (and m2perp, but not used) moments of ions.
@@ -156,60 +409,39 @@ GKYL_CU_DH void sheath_rarefaction_phi_mod_upper_3x_ser_p1(double elem_q, double
   phiNodal[6] = -(1.837117307087383*phi[7])+1.060660171779821*phi[6]-1.060660171779821*phi[5]-1.060660171779821*phi[4]+0.6123724356957944*phi[3]+0.6123724356957944*phi[2]-0.6123724356957944*phi[1]+0.3535533905932737*phi[0]; 
   phiNodal[7] = 1.837117307087383*phi[7]+1.060660171779821*phi[6]+1.060660171779821*phi[5]+1.060660171779821*phi[4]+0.6123724356957944*phi[3]+0.6123724356957944*phi[2]+0.6123724356957944*phi[1]+0.3535533905932737*phi[0]; 
 
-  const double *m0Elc = &momsElc[0];
   const double *m0Ion = &momsIon[0];
-  const double *m1Elc = &momsElc[8];
   const double *m1Ion = &momsIon[8];
-  const double *m2parElc = &momsElc[16];
   const double *m2parIon = &momsIon[16];
 
-  double m0eSurfNodal[4];
   double m0iSurfNodal[4];
-  double m1eSurfNodal[4];
   double m1iSurfNodal[4];
-  double m2pareSurfNodal[4];
   double m2pariSurfNodal[4];
-  double phiWallNodal[4];
-  m0eSurfNodal[0] = 1.837117307087383*m0Elc[7]-1.060660171779821*m0Elc[6]-1.060660171779821*m0Elc[5]+1.060660171779821*m0Elc[4]+0.6123724356957944*m0Elc[3]-0.6123724356957944*m0Elc[2]-0.6123724356957944*m0Elc[1]+0.3535533905932737*m0Elc[0]; 
-  m0eSurfNodal[1] = -(1.837117307087383*m0Elc[7])-1.060660171779821*m0Elc[6]+1.060660171779821*m0Elc[5]-1.060660171779821*m0Elc[4]+0.6123724356957944*m0Elc[3]-0.6123724356957944*m0Elc[2]+0.6123724356957944*m0Elc[1]+0.3535533905932737*m0Elc[0]; 
-  m0eSurfNodal[2] = -(1.837117307087383*m0Elc[7])+1.060660171779821*m0Elc[6]-1.060660171779821*m0Elc[5]-1.060660171779821*m0Elc[4]+0.6123724356957944*m0Elc[3]+0.6123724356957944*m0Elc[2]-0.6123724356957944*m0Elc[1]+0.3535533905932737*m0Elc[0]; 
-  m0eSurfNodal[3] = 1.837117307087383*m0Elc[7]+1.060660171779821*m0Elc[6]+1.060660171779821*m0Elc[5]+1.060660171779821*m0Elc[4]+0.6123724356957944*m0Elc[3]+0.6123724356957944*m0Elc[2]+0.6123724356957944*m0Elc[1]+0.3535533905932737*m0Elc[0]; 
   m0iSurfNodal[0] = 1.837117307087383*m0Ion[7]-1.060660171779821*m0Ion[6]-1.060660171779821*m0Ion[5]+1.060660171779821*m0Ion[4]+0.6123724356957944*m0Ion[3]-0.6123724356957944*m0Ion[2]-0.6123724356957944*m0Ion[1]+0.3535533905932737*m0Ion[0]; 
   m0iSurfNodal[1] = -(1.837117307087383*m0Ion[7])-1.060660171779821*m0Ion[6]+1.060660171779821*m0Ion[5]-1.060660171779821*m0Ion[4]+0.6123724356957944*m0Ion[3]-0.6123724356957944*m0Ion[2]+0.6123724356957944*m0Ion[1]+0.3535533905932737*m0Ion[0]; 
   m0iSurfNodal[2] = -(1.837117307087383*m0Ion[7])+1.060660171779821*m0Ion[6]-1.060660171779821*m0Ion[5]-1.060660171779821*m0Ion[4]+0.6123724356957944*m0Ion[3]+0.6123724356957944*m0Ion[2]-0.6123724356957944*m0Ion[1]+0.3535533905932737*m0Ion[0]; 
   m0iSurfNodal[3] = 1.837117307087383*m0Ion[7]+1.060660171779821*m0Ion[6]+1.060660171779821*m0Ion[5]+1.060660171779821*m0Ion[4]+0.6123724356957944*m0Ion[3]+0.6123724356957944*m0Ion[2]+0.6123724356957944*m0Ion[1]+0.3535533905932737*m0Ion[0]; 
-  m1eSurfNodal[0] = 1.837117307087383*m1Elc[7]-1.060660171779821*m1Elc[6]-1.060660171779821*m1Elc[5]+1.060660171779821*m1Elc[4]+0.6123724356957944*m1Elc[3]-0.6123724356957944*m1Elc[2]-0.6123724356957944*m1Elc[1]+0.3535533905932737*m1Elc[0]; 
-  m1eSurfNodal[1] = -(1.837117307087383*m1Elc[7])-1.060660171779821*m1Elc[6]+1.060660171779821*m1Elc[5]-1.060660171779821*m1Elc[4]+0.6123724356957944*m1Elc[3]-0.6123724356957944*m1Elc[2]+0.6123724356957944*m1Elc[1]+0.3535533905932737*m1Elc[0]; 
-  m1eSurfNodal[2] = -(1.837117307087383*m1Elc[7])+1.060660171779821*m1Elc[6]-1.060660171779821*m1Elc[5]-1.060660171779821*m1Elc[4]+0.6123724356957944*m1Elc[3]+0.6123724356957944*m1Elc[2]-0.6123724356957944*m1Elc[1]+0.3535533905932737*m1Elc[0]; 
-  m1eSurfNodal[3] = 1.837117307087383*m1Elc[7]+1.060660171779821*m1Elc[6]+1.060660171779821*m1Elc[5]+1.060660171779821*m1Elc[4]+0.6123724356957944*m1Elc[3]+0.6123724356957944*m1Elc[2]+0.6123724356957944*m1Elc[1]+0.3535533905932737*m1Elc[0]; 
   m1iSurfNodal[0] = 1.837117307087383*m1Ion[7]-1.060660171779821*m1Ion[6]-1.060660171779821*m1Ion[5]+1.060660171779821*m1Ion[4]+0.6123724356957944*m1Ion[3]-0.6123724356957944*m1Ion[2]-0.6123724356957944*m1Ion[1]+0.3535533905932737*m1Ion[0]; 
   m1iSurfNodal[1] = -(1.837117307087383*m1Ion[7])-1.060660171779821*m1Ion[6]+1.060660171779821*m1Ion[5]-1.060660171779821*m1Ion[4]+0.6123724356957944*m1Ion[3]-0.6123724356957944*m1Ion[2]+0.6123724356957944*m1Ion[1]+0.3535533905932737*m1Ion[0]; 
   m1iSurfNodal[2] = -(1.837117307087383*m1Ion[7])+1.060660171779821*m1Ion[6]-1.060660171779821*m1Ion[5]-1.060660171779821*m1Ion[4]+0.6123724356957944*m1Ion[3]+0.6123724356957944*m1Ion[2]-0.6123724356957944*m1Ion[1]+0.3535533905932737*m1Ion[0]; 
   m1iSurfNodal[3] = 1.837117307087383*m1Ion[7]+1.060660171779821*m1Ion[6]+1.060660171779821*m1Ion[5]+1.060660171779821*m1Ion[4]+0.6123724356957944*m1Ion[3]+0.6123724356957944*m1Ion[2]+0.6123724356957944*m1Ion[1]+0.3535533905932737*m1Ion[0]; 
-  m2pareSurfNodal[0] = 1.837117307087383*m2parElc[7]-1.060660171779821*m2parElc[6]-1.060660171779821*m2parElc[5]+1.060660171779821*m2parElc[4]+0.6123724356957944*m2parElc[3]-0.6123724356957944*m2parElc[2]-0.6123724356957944*m2parElc[1]+0.3535533905932737*m2parElc[0]; 
-  m2pareSurfNodal[1] = -(1.837117307087383*m2parElc[7])-1.060660171779821*m2parElc[6]+1.060660171779821*m2parElc[5]-1.060660171779821*m2parElc[4]+0.6123724356957944*m2parElc[3]-0.6123724356957944*m2parElc[2]+0.6123724356957944*m2parElc[1]+0.3535533905932737*m2parElc[0]; 
-  m2pareSurfNodal[2] = -(1.837117307087383*m2parElc[7])+1.060660171779821*m2parElc[6]-1.060660171779821*m2parElc[5]-1.060660171779821*m2parElc[4]+0.6123724356957944*m2parElc[3]+0.6123724356957944*m2parElc[2]-0.6123724356957944*m2parElc[1]+0.3535533905932737*m2parElc[0]; 
-  m2pareSurfNodal[3] = 1.837117307087383*m2parElc[7]+1.060660171779821*m2parElc[6]+1.060660171779821*m2parElc[5]+1.060660171779821*m2parElc[4]+0.6123724356957944*m2parElc[3]+0.6123724356957944*m2parElc[2]+0.6123724356957944*m2parElc[1]+0.3535533905932737*m2parElc[0]; 
   m2pariSurfNodal[0] = 1.837117307087383*m2parIon[7]-1.060660171779821*m2parIon[6]-1.060660171779821*m2parIon[5]+1.060660171779821*m2parIon[4]+0.6123724356957944*m2parIon[3]-0.6123724356957944*m2parIon[2]-0.6123724356957944*m2parIon[1]+0.3535533905932737*m2parIon[0]; 
   m2pariSurfNodal[1] = -(1.837117307087383*m2parIon[7])-1.060660171779821*m2parIon[6]+1.060660171779821*m2parIon[5]-1.060660171779821*m2parIon[4]+0.6123724356957944*m2parIon[3]-0.6123724356957944*m2parIon[2]+0.6123724356957944*m2parIon[1]+0.3535533905932737*m2parIon[0]; 
   m2pariSurfNodal[2] = -(1.837117307087383*m2parIon[7])+1.060660171779821*m2parIon[6]-1.060660171779821*m2parIon[5]-1.060660171779821*m2parIon[4]+0.6123724356957944*m2parIon[3]+0.6123724356957944*m2parIon[2]-0.6123724356957944*m2parIon[1]+0.3535533905932737*m2parIon[0]; 
   m2pariSurfNodal[3] = 1.837117307087383*m2parIon[7]+1.060660171779821*m2parIon[6]+1.060660171779821*m2parIon[5]+1.060660171779821*m2parIon[4]+0.6123724356957944*m2parIon[3]+0.6123724356957944*m2parIon[2]+0.6123724356957944*m2parIon[1]+0.3535533905932737*m2parIon[0]; 
+
+  double phiWallNodal[4];
   phiWallNodal[0] = 1.5*phiWall[3]-0.8660254037844386*phiWall[2]-0.8660254037844386*phiWall[1]+0.5*phiWall[0]; 
   phiWallNodal[1] = -(1.5*phiWall[3])-0.8660254037844386*phiWall[2]+0.8660254037844386*phiWall[1]+0.5*phiWall[0]; 
   phiWallNodal[2] = -(1.5*phiWall[3])+0.8660254037844386*phiWall[2]-0.8660254037844386*phiWall[1]+0.5*phiWall[0]; 
   phiWallNodal[3] = 1.5*phiWall[3]+0.8660254037844386*phiWall[2]+0.8660254037844386*phiWall[1]+0.5*phiWall[0]; 
 
-  double upar_e;
   double upar_i;
-  double Tpar_e;
   double Tpar_i;
+  double Tpar_e = tempElcBoltz;
   double c_s;
   double Delta_phi_r;
 
-  upar_e = m1eSurfNodal[0]/m0eSurfNodal[0];
   upar_i = m1iSurfNodal[0]/m0iSurfNodal[0];
-
-  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[0]*mElc*upar_e-1.0*m2pareSurfNodal[0]*mElc))/m0eSurfNodal[0]));
   Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[0]*mIon*upar_i-1.0*m2pariSurfNodal[0]*mIon))/m0iSurfNodal[0]));
 
   c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
@@ -220,10 +452,7 @@ GKYL_CU_DH void sheath_rarefaction_phi_mod_upper_3x_ser_p1(double elem_q, double
 
   phiNodal[4] = fmax(phiNodal[4] + Delta_phi_r, phiWallNodal[0]);
 
-  upar_e = m1eSurfNodal[1]/m0eSurfNodal[1];
   upar_i = m1iSurfNodal[1]/m0iSurfNodal[1];
-
-  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[1]*mElc*upar_e-1.0*m2pareSurfNodal[1]*mElc))/m0eSurfNodal[1]));
   Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[1]*mIon*upar_i-1.0*m2pariSurfNodal[1]*mIon))/m0iSurfNodal[1]));
 
   c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
@@ -234,10 +463,7 @@ GKYL_CU_DH void sheath_rarefaction_phi_mod_upper_3x_ser_p1(double elem_q, double
 
   phiNodal[5] = fmax(phiNodal[5] + Delta_phi_r, phiWallNodal[1]);
 
-  upar_e = m1eSurfNodal[2]/m0eSurfNodal[2];
   upar_i = m1iSurfNodal[2]/m0iSurfNodal[2];
-
-  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[2]*mElc*upar_e-1.0*m2pareSurfNodal[2]*mElc))/m0eSurfNodal[2]));
   Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[2]*mIon*upar_i-1.0*m2pariSurfNodal[2]*mIon))/m0iSurfNodal[2]));
 
   c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
@@ -248,10 +474,7 @@ GKYL_CU_DH void sheath_rarefaction_phi_mod_upper_3x_ser_p1(double elem_q, double
 
   phiNodal[6] = fmax(phiNodal[6] + Delta_phi_r, phiWallNodal[2]);
 
-  upar_e = m1eSurfNodal[3]/m0eSurfNodal[3];
   upar_i = m1iSurfNodal[3]/m0iSurfNodal[3];
-
-  Tpar_e = fmax(0.0, -((1.0*(m1eSurfNodal[3]*mElc*upar_e-1.0*m2pareSurfNodal[3]*mElc))/m0eSurfNodal[3]));
   Tpar_i = fmax(0.0, -((1.0*(m1iSurfNodal[3]*mIon*upar_i-1.0*m2pariSurfNodal[3]*mIon))/m0iSurfNodal[3]));
 
   c_s = sqrt((3.0*Tpar_i+Tpar_e)/mIon);
@@ -272,3 +495,4 @@ GKYL_CU_DH void sheath_rarefaction_phi_mod_upper_3x_ser_p1(double elem_q, double
   phi[7] = 0.06804138174397717*phiNodal[7]-0.06804138174397717*phiNodal[6]-0.06804138174397717*phiNodal[5]+0.06804138174397717*phiNodal[4]-0.06804138174397717*phiNodal[3]+0.06804138174397717*phiNodal[2]+0.06804138174397717*phiNodal[1]-0.06804138174397717*phiNodal[0]; 
  
 }
+

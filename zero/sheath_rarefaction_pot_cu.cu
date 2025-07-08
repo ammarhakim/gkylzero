@@ -7,13 +7,14 @@ extern "C" {
 
 // CUDA kernel to set device pointers to kernel that computes the reflected f.
 __global__ static void
-gkyl_sheath_rare_pot_set_cu_ker_ptrs(int dim, enum gkyl_basis_type b_type, int poly_order,
+gkyl_sheath_rare_pot_set_cu_ker_ptrs(bool is_elc_boltz, int dim, enum gkyl_basis_type b_type, int poly_order,
   enum gkyl_edge_loc edge, struct gkyl_sheath_rarefaction_pot_kernels *kers)
 {
 
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      kers->phimod = ser_sheath_rarepot_list[edge].list[dim-1].kernels[poly_order-1];
+      kers->phimod = is_elc_boltz? ser_sheath_rarepot_boltzmann_elc_list[edge].list[dim-1].kernels[poly_order-1];
+                                 : ser_sheath_rarepot_kinetic_elc_list[edge].list[dim-1].kernels[poly_order-1];
       break;
 //    case GKYL_BASIS_MODAL_TENSOR:
 //      kers->phimod = tensor_sheath_rarepot_list[edge].list[dim-1].kernels[poly_order-1];
@@ -24,15 +25,15 @@ gkyl_sheath_rare_pot_set_cu_ker_ptrs(int dim, enum gkyl_basis_type b_type, int p
 };
 
 void
-gkyl_sheath_rarepot_choose_phimod_kernel_cu(const struct gkyl_basis *basis,
+gkyl_sheath_rarepot_choose_phimod_kernel_cu(bool is_elc_boltz, const struct gkyl_basis *basis,
   enum gkyl_edge_loc edge, struct gkyl_sheath_rarefaction_pot_kernels *kers)
 {
-  gkyl_sheath_rare_pot_set_cu_ker_ptrs<<<1,1>>>(basis->ndim, basis->b_type, basis->poly_order, edge, kers);
+  gkyl_sheath_rare_pot_set_cu_ker_ptrs<<<1,1>>>(is_elc_boltz, basis->ndim, basis->b_type, basis->poly_order, edge, kers);
 }
 
 __global__ static void
 gkyl_sheath_rarefaction_pot_advance_cu_ker(struct gkyl_range skin_r, struct gkyl_range surf_r,
-  struct gkyl_sheath_rarefaction_pot_kernels *kers, double elem_charge,
+  struct gkyl_sheath_rarefaction_pot_kernels *kers, bool is_elc_boltz, double temp_boltz_elc, double elem_charge,
   double mass_e, const struct gkyl_array *moms_e, double mass_i, const struct gkyl_array *moms_i, 
   const struct gkyl_array *phi_wall, struct gkyl_array *phi)
 {
@@ -55,14 +56,14 @@ gkyl_sheath_rarefaction_pot_advance_cu_ker(struct gkyl_range skin_r, struct gkyl
     long linidx_vol = gkyl_range_idx(&skin_r, cidx);
     long linidx_surf = gkyl_range_idx(&surf_r, idx_surf);
 
-    const double *momse_p = (const double*) gkyl_array_cfetch(moms_e, linidx_vol);
+    const double *momse_p = is_elc_boltz? 0 : (const double*) gkyl_array_cfetch(moms_e, linidx_vol);
     const double *momsi_p = (const double*) gkyl_array_cfetch(moms_i, linidx_vol);
     const double *phiwall_p = (const double*) gkyl_array_cfetch(phi_wall, linidx_surf);
 
     double *phi_p = (double*) gkyl_array_fetch(phi, linidx_vol);
 
     // Modify the potential at the boundary to account for rarefaction wave.
-    kers->phimod(elem_charge, mass_e, momse_p, mass_i, momsi_p, phiwall_p, phi_p);
+    kers->phimod(elem_charge, mass_e, temp_boltz_elc, momse_p, mass_i, momsi_p, phiwall_p, phi_p);
   }
 }
 
@@ -75,6 +76,6 @@ gkyl_sheath_rarefaction_pot_advance_cu(const struct gkyl_sheath_rarefaction_pot 
   int nblocks = skin_range->nblocks, nthreads = skin_range->nthreads;
 
   gkyl_sheath_rarefaction_pot_advance_cu_ker<<<nblocks, nthreads>>>(*skin_range,
-    *surf_range, up->kernels, up->elem_charge, up->mass_e, moms_e->on_dev,
+    *surf_range, up->kernels, up->is_elc_boltz, up->temp_boltz_elc, up->elem_charge, up->mass_e, moms_e->on_dev,
     up->mass_i, moms_i->on_dev, phi_wall->on_dev, phi->on_dev);
 }

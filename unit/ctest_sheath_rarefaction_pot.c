@@ -126,9 +126,9 @@ test_sheath_rarefaction_pot(bool use_gpu)
 
   // Create and use updaters for each boundary.
   struct gkyl_sheath_rarefaction_pot *sheath_pot_lo = gkyl_sheath_rarefaction_pot_new(edge_lo,
-    &local_ext, ghost, &basis, &grid, eV, me, mi, use_gpu);
+    &local_ext, ghost, &basis, false, &grid, eV, me, mi, -1.0, use_gpu);
   struct gkyl_sheath_rarefaction_pot *sheath_pot_up = gkyl_sheath_rarefaction_pot_new(edge_up,
-    &local_ext, ghost, &basis, &grid, eV, me, mi, use_gpu);
+    &local_ext, ghost, &basis, false, &grid, eV, me, mi, -1.0, use_gpu);
 
   gkyl_sheath_rarefaction_pot_advance(sheath_pot_lo, momse, m2pare, momsi, m2pari, phi_wall, phi);
   gkyl_sheath_rarefaction_pot_advance(sheath_pot_up, momse, m2pare, momsi, m2pari, phi_wall, phi);

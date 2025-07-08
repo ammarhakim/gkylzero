@@ -5,7 +5,8 @@
 
 struct gkyl_sheath_rarefaction_pot*
 gkyl_sheath_rarefaction_pot_new(enum gkyl_edge_loc edge, const struct gkyl_basis *basis,
-  double elem_charge, double mass_e, double mass_i, bool use_gpu)
+  bool is_elc_boltz, double elem_charge, double mass_e, double mass_i, double temp_boltz_elc,
+  bool use_gpu)
 {
   // Allocate space for new updater.
   struct gkyl_sheath_rarefaction_pot *up = gkyl_malloc(sizeof(struct gkyl_sheath_rarefaction_pot));
@@ -13,6 +14,8 @@ gkyl_sheath_rarefaction_pot_new(enum gkyl_edge_loc edge, const struct gkyl_basis
   up->elem_charge = elem_charge;
   up->mass_e = mass_e;
   up->mass_i = mass_i;
+  up->is_elc_boltz = is_elc_boltz;
+  up->temp_boltz_elc = is_elc_boltz? temp_boltz_elc : -1.0;
   up->use_gpu = use_gpu;
 
   // Choose the kernel modifies the potential at the boundary.
@@ -24,7 +27,7 @@ gkyl_sheath_rarefaction_pot_new(enum gkyl_edge_loc edge, const struct gkyl_basis
     up->kernels = gkyl_cu_malloc(sizeof(struct gkyl_sheath_rarefaction_pot_kernels));
 #endif
 
-  sheath_rarepot_choose_phimod_kernel(basis, edge, up->kernels, use_gpu);
+  sheath_rarepot_choose_phimod_kernel(is_elc_boltz, basis, edge, up->kernels, use_gpu);
 
   return up;
 }
@@ -54,14 +57,14 @@ gkyl_sheath_rarefaction_pot_advance(const struct gkyl_sheath_rarefaction_pot *up
     long linidx_vol = gkyl_range_idx(skin_range, iter.idx);
     long linidx_surf = gkyl_range_idx(surf_range, idx_surf);
 
-    const double *phiwall_p = (const double*) gkyl_array_cfetch(phi_wall, linidx_surf);
+    const double *phiwall_p = gkyl_array_cfetch(phi_wall, linidx_surf);
 
-    const double *momse_p = (const double*) gkyl_array_cfetch(moms_e, linidx_vol);
-    const double *momsi_p = (const double*) gkyl_array_cfetch(moms_i, linidx_vol);
+    const double *momse_p = up->is_elc_boltz? 0 : gkyl_array_cfetch(moms_e, linidx_vol);
+    const double *momsi_p = gkyl_array_cfetch(moms_i, linidx_vol);
     double *phi_p = (double*) gkyl_array_fetch(phi, linidx_vol);
 
     // Modify the potential at the boundary to account for rarefaction wave.
-    up->kernels->phimod(up->elem_charge, up->mass_e, momse_p, up->mass_i, momsi_p, phiwall_p, phi_p);
+    up->kernels->phimod(up->elem_charge, up->mass_e, up->temp_boltz_elc, momse_p, up->mass_i, momsi_p, phiwall_p, phi_p);
   }
 }
 

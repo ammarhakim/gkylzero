@@ -14,15 +14,18 @@ typedef struct gkyl_sheath_rarefaction_pot gkyl_sheath_rarefaction_pot;
  *
  * @param edge Lower or upper edge at which to apply BC (see gkyl_edge_loc).
  * @param basis Basis on which coefficients in array are expanded (a device pointer if use_gpu=true).
+ * @param is_elc_boltz Whether using the Boltzmann electron model.
  * @param elem_charge elementary charge (i.e. charge of singly ionized ion).
  * @param mass_e electron mass.
  * @param mass_i ion mass.
+ * @param temp_boltz_elc Electron temperature (for Boltzmann electrons).
  * @param use_gpu Boolean to indicate whether to use the GPU.
  * @return New updater pointer.
  */
 struct gkyl_sheath_rarefaction_pot*
 gkyl_sheath_rarefaction_pot_new(enum gkyl_edge_loc edge, const struct gkyl_basis *basis,
-  double elem_charge, double mass_e, double mass_i, bool use_gpu);
+  bool is_elc_boltz, double elem_charge, double mass_e, double mass_i, double temp_boltz_elc,
+  bool use_gpu);
 
 /**
  * Modify the electrostatic potential at the boundary.
