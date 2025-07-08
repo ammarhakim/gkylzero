@@ -16,7 +16,7 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   double cupper[] = { 3.0e-3, 2*M_PI, 2.0 };
   int cells[] = { 10, 16, 32 };
 
-  const char *fname = "data/unit/wham_hires.geqdsk_psi.gkyl";
+  const char *fname = "core/data/unit/wham_hires.geqdsk_psi.gkyl";
   
   // computational grid
   struct gkyl_rect_grid comp_grid;
