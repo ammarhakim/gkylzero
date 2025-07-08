@@ -79,7 +79,7 @@ gkyl_dg_calc_gyrokinetic_vars_flux_surf_cu_kernel(struct gkyl_dg_calc_gyrokineti
 
         const struct gkyl_dg_surf_geom *dgs = gkyl_dg_geom_get_surf(up->dg_geom, dir, idx);
         const struct gkyl_gk_dg_surf_geom *gkdgs = gkyl_gk_dg_geom_get_surf(up->gk_dg_geom, dir, idx);
-        cflrate_d[0] += up->flux_surf[dir](&up->surf_basis, xc, up->phase_grid.dx, 
+        cflrate_d[0] += up->flux_surf[dir](up->surf_basis, xc, up->phase_grid.dx, 
           vmap_d, vmapSq_d, up->charge, up->mass,
           dgs, gkdgs,
           bmag_d, phi_d,  fL, fR, flux_surf_d);
@@ -102,7 +102,7 @@ gkyl_dg_calc_gyrokinetic_vars_flux_surf_cu_kernel(struct gkyl_dg_calc_gyrokineti
           const struct gkyl_gk_dg_surf_geom *gkdgs = gkyl_gk_dg_geom_get_surf(up->gk_dg_geom, dir, idx_edge);
 
           double* flux_surf_ext_d = (double*) gkyl_array_fetch(flux_surf, loc_phase_ext);
-          cflrate_ext_d[dir] = up->flux_edge_surf[dir](&up->surf_basis, xc, up->phase_grid.dx, 
+          cflrate_ext_d[0] = up->flux_edge_surf[dir](up->surf_basis, xc, up->phase_grid.dx, 
             vmap_d, vmapSq_d, up->charge, up->mass,
             dgs, gkdgs,
             bmag_d, phi_d, fL, fR, flux_surf_ext_d);
@@ -127,7 +127,7 @@ gkyl_dg_calc_gyrokinetic_vars_flux_surf_cu_kernel(struct gkyl_dg_calc_gyrokineti
       const struct gkyl_dg_vol_geom *dgv = gkyl_dg_geom_get_vol(up->dg_geom, idx);
       const struct gkyl_gk_dg_vol_geom *gkdgv = gkyl_gk_dg_geom_get_vol(up->gk_dg_geom, idx);
 
-      cflrate_d[0] += up->flux_surfvpar[0](&up->surf_vpar_basis, xc, up->phase_grid.dx, 
+      cflrate_d[0] += up->flux_surfvpar[0](up->surf_vpar_basis, xc, up->phase_grid.dx, 
         vpL, vpR,
         vmap_d, vmapSq_d, up->charge, up->mass,
         dgv, gkdgv, bmag_d, phi_d,  fL, fR, flux_surf_d);
@@ -159,14 +159,14 @@ dg_calc_gyrokinetic_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_gyrokinetic_vars *u
       up->flux_surf[d] = choose_gyrokinetic_flux_no_by_surf_conf_kern(d, cdim, vdim, poly_order);
       up->flux_edge_surf[d] = choose_gyrokinetic_flux_no_by_edge_surf_conf_kern(d, cdim, vdim, poly_order);
     }
-    up->flux_surfvpar[cdim] = choose_gyrokinetic_flux_no_by_surf_vpar_kern(cdim, vdim, poly_order);
+    up->flux_surfvpar[0] = choose_gyrokinetic_flux_no_by_surf_vpar_kern(cdim, vdim, poly_order);
   }
   else {
     for (int d=0; d<cdim; ++d) {
       up->flux_surf[d] = choose_gyrokinetic_flux_surf_conf_kern(d, cdim, vdim, poly_order);
       up->flux_edge_surf[d] = choose_gyrokinetic_flux_edge_surf_conf_kern(d, cdim, vdim, poly_order);
     }
-    up->flux_surfvpar[cdim] = choose_gyrokinetic_flux_surf_vpar_kern(cdim, vdim, poly_order);
+    up->flux_surfvpar[0] = choose_gyrokinetic_flux_surf_vpar_kern(cdim, vdim, poly_order);
   }
 }
 
@@ -181,8 +181,8 @@ gkyl_dg_calc_gyrokinetic_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid
   struct gkyl_dg_calc_gyrokinetic_vars *up = (struct gkyl_dg_calc_gyrokinetic_vars*) gkyl_malloc(sizeof(*up));
 
   up->phase_grid = *phase_grid;
-  up->surf_basis = *surf_basis;
-  up->surf_vpar_basis = *surf_vpar_basis;
+  up->surf_basis = surf_basis;
+  up->surf_vpar_basis = surf_vpar_basis;
   int cdim = conf_basis->ndim;
   int pdim = phase_basis->ndim;
   int vdim = pdim - cdim;

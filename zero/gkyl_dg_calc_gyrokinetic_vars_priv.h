@@ -38,8 +38,8 @@ typedef struct { gyrokinetic_flux_surfvpar_t kernels[3]; } gkyl_dg_gyrokinetic_f
 
 struct gkyl_dg_calc_gyrokinetic_vars {
   struct gkyl_rect_grid phase_grid; // Phase space grid for cell spacing and cell center
-  struct gkyl_basis surf_basis;
-  struct gkyl_basis surf_vpar_basis;
+  const struct gkyl_basis *surf_basis;
+  const struct gkyl_basis *surf_vpar_basis;
   int cdim; // Configuration space dimensionality
   int pdim; // Phase space dimensionality
   gyrokinetic_flux_surf_t flux_surf[3]; // kernel for computing surface expansion of phase space flux alpha

@@ -51,7 +51,7 @@ gkyl_gk_dg_geom_new(const struct gkyl_gk_dg_geom_inp *inp)
 
   for (int d=0; d<ndim; ++d)
     dgg->surf_geom[d] = gkyl_array_new(GKYL_USER,
-      sizeof(struct gkyl_dg_surf_geom[dgg->surf_quad_range.volume]), dgg->range.volume);
+      sizeof(struct gkyl_gk_dg_surf_geom[dgg->surf_quad_range.volume]), dgg->range.volume);
 
   dgg->vol_geom = gkyl_array_new(GKYL_USER,
     sizeof(struct gkyl_gk_dg_vol_geom[dgg->vol_quad_range.volume]), dgg->range.volume);

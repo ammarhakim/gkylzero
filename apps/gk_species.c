@@ -1637,23 +1637,47 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   }
 
   // Need to figure out size of flux_surf by finding size of surface basis set 
-  struct gkyl_basis surf_basis, surf_quad_basis, surf_vpar_basis;
+  struct gkyl_basis surf_quad_basis;
+  // Define surface bases
+  if (app->use_gpu) {
+    // allocate device basis if we are using GPUs
+    gks->surf_basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
+    gks->surf_vpar_basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
+  }
+  else {
+    gks->surf_basis_on_dev = &gks->surf_basis;
+    gks->surf_vpar_basis_on_dev = &gks->surf_vpar_basis;
+  }
   if (app->poly_order > 1) {
-    gkyl_cart_modal_serendip(&surf_basis, pdim-1, app->poly_order);
+    gkyl_cart_modal_serendip(&gks->surf_basis, pdim-1, app->poly_order);
     gkyl_cart_modal_tensor(&surf_quad_basis, pdim-1, app->poly_order);
   }
   else {
-    gkyl_cart_modal_serendip(&surf_vpar_basis, pdim-1, app->poly_order);
+    gkyl_cart_modal_serendip(&gks->surf_vpar_basis, pdim-1, app->poly_order);
     if (vdim>1) {
-      gkyl_cart_modal_gkhybrid(&surf_basis, cdim-1, vdim); // p=2 in vparallel
+      gkyl_cart_modal_gkhybrid(&gks->surf_basis, cdim-1, vdim); // p=2 in vparallel
       gkyl_cart_modal_gkhybrid(&surf_quad_basis, cdim-1, vdim); 
     }
     else {
-      gkyl_cart_modal_serendip(&surf_basis, pdim-1, 2); // p=2 in vparallel
+      gkyl_cart_modal_serendip(&gks->surf_basis, pdim-1, 2); // p=2 in vparallel
       gkyl_cart_modal_tensor(&surf_quad_basis, pdim-1, 2); 
     }
   }
-  int flux_surf_sz = (cdim)*surf_basis.num_basis + surf_vpar_basis.num_basis;
+  if (app->use_gpu) {
+    if (app->poly_order > 1) {
+      gkyl_cart_modal_serendip_cu_dev(gks->surf_basis_on_dev, pdim-1, app->poly_order);
+    }
+    else {
+      gkyl_cart_modal_serendip_cu_dev(gks->surf_vpar_basis_on_dev, pdim-1, app->poly_order);
+      if (vdim>1) {
+        gkyl_cart_modal_gkhybrid_cu_dev(gks->surf_basis_on_dev, cdim-1, vdim); // p=2 in vparallel
+      }
+      else {
+        gkyl_cart_modal_serendip_cu_dev(gks->surf_basis_on_dev, pdim-1, 2); // p=2 in vparallel
+      }
+    }
+  }
+  int flux_surf_sz = (cdim)*gks->surf_basis.num_basis + gks->surf_vpar_basis.num_basis;
 
   // Allocate arrays to store fields:
   // 1. flux_surf (surface phase space flux)
@@ -1664,7 +1688,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);    
 
   gks->calc_gk_vars = gkyl_dg_calc_gyrokinetic_vars_new(&gks->grid, &app->basis, &gks->basis, 
-    &surf_basis, &surf_vpar_basis, gks->info.charge, gks->info.mass, gks->gkmodel_id, app->gk_geom, 
+    gks->surf_basis_on_dev, gks->surf_vpar_basis_on_dev, gks->info.charge, gks->info.mass, gks->gkmodel_id, app->gk_geom, 
     app->dg_geom, app->gk_dg_geom, gks->vel_map, app->use_gpu);
 
   struct gkyl_dg_gyrokinetic_auxfields aux_inp = { .flux_surf = gks->flux_surf, 
@@ -2042,6 +2066,8 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   if (app->use_gpu) {
     gkyl_array_release(s->f_host);
     gkyl_cu_free(s->basis_on_dev);
+    gkyl_cu_free(s->surf_basis_on_dev);
+    gkyl_cu_free(s->surf_vpar_basis_on_dev);
   }
 
   gkyl_velocity_map_release(s->vel_map);
