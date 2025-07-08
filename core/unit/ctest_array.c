@@ -360,7 +360,7 @@ test_grid_array_read_p1(void)
   struct gkyl_rect_grid grid;  
   struct gkyl_array_header_info hdr;
   FILE *fp = 0;  
-  with_file(fp, "data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl", "r") {
+  with_file(fp, "core/data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl", "r") {
     
     int status = gkyl_grid_sub_array_header_read_fp(&grid, &hdr, fp);
     TEST_CHECK( status == 0 );
@@ -413,14 +413,14 @@ test_grid_array_read_p1(void)
   struct gkyl_rect_grid s_grid;
   struct gkyl_array *s_arr = gkyl_array_new(hdr.etype, nc, ext_range.volume);
   int s_status = gkyl_grid_sub_array_read(&s_grid, &range, s_arr,
-    "data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl");
+    "core/data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl");
 
   // read parallel data (whole domain)
   do {
     struct gkyl_rect_grid p_grid;  
     struct gkyl_array *p_arr = gkyl_array_new(hdr.etype,  nc, ext_range.volume);
     int p_status = gkyl_grid_sub_array_read(&p_grid, &range, p_arr,
-      "data/unit/euler_riem_2d_hllc-euler_1.gkyl");
+      "core/data/unit/euler_riem_2d_hllc-euler_1.gkyl");
 
     TEST_CHECK( 0 == p_status );
     
@@ -445,7 +445,7 @@ test_grid_array_read_p1(void)
     struct gkyl_rect_grid p_grid;
     struct gkyl_array *p_arr = gkyl_array_new(hdr.etype,  nc, prange.volume);
     int p_status = gkyl_grid_sub_array_read(&p_grid, &prange, p_arr,
-      "data/unit/euler_riem_2d_hllc-euler_1.gkyl");
+      "core/data/unit/euler_riem_2d_hllc-euler_1.gkyl");
 
     TEST_CHECK( 0 == p_status );
     
@@ -470,7 +470,7 @@ test_grid_array_read_p1(void)
     struct gkyl_rect_grid p_grid;
     struct gkyl_array *p_arr = gkyl_array_new(hdr.etype,  nc, prange.volume);
     int p_status = gkyl_grid_sub_array_read(&p_grid, &prange, p_arr,
-      "data/unit/euler_riem_2d_hllc-euler_1.gkyl");
+      "core/data/unit/euler_riem_2d_hllc-euler_1.gkyl");
 
     TEST_CHECK( 0 == p_status );
     

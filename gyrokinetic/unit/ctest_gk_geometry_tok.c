@@ -99,7 +99,7 @@ test_elliptical()
 
   struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
-      .filepath = "./data/eqdsk/elliptical.geqdsk",
+      .filepath = "gyrokinetic/data/eqdsk/elliptical.geqdsk",
       .rz_poly_order = 2,
       .flux_poly_order = 1,
       .reflect = true,
@@ -250,7 +250,7 @@ test_3x_p1_straight_cylinder()
 
   struct gkyl_efit_inp inp = {
     // psiRZ and related inputs
-    .filepath = "./data/eqdsk/straight_cylinder.geqdsk",
+    .filepath = "gyrokinetic/data/eqdsk/straight_cylinder.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
     .reflect = true,
@@ -761,7 +761,7 @@ test_3x_p1_pmap_straight_cylinder()
 
   struct gkyl_efit_inp inp = {
     // psiRZ and related inputs
-    .filepath = "./data/eqdsk/straight_cylinder.geqdsk",
+    .filepath = "gyrokinetic/data/eqdsk/straight_cylinder.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
     .reflect = true,

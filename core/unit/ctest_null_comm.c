@@ -493,7 +493,7 @@ test_io_p1_p4(void)
   struct gkyl_rect_grid grid;
   struct gkyl_array_header_info hdr;
   gkyl_grid_sub_array_header_read(&grid, &hdr,
-    "data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl");
+    "core/data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl");
 
   size_t nc = hdr.esznc/gkyl_elem_type_size[hdr.etype];  
   
@@ -515,7 +515,7 @@ test_io_p1_p4(void)
 
   int status;
   status = gkyl_grid_sub_array_read(&grid, &range, s_arr,
-    "data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl");
+    "core/data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl");
 
   TEST_CHECK( 0 == status );
 
@@ -523,7 +523,7 @@ test_io_p1_p4(void)
   gkyl_array_clear(p_arr, 0.0);
 
   status = gkyl_comm_array_read(comm, &grid, &range, p_arr,
-    "data/unit/euler_riem_2d_hllc-euler_1.gkyl");
+    "core/data/unit/euler_riem_2d_hllc-euler_1.gkyl");
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);

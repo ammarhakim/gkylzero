@@ -85,7 +85,7 @@ test_load_geometry()
 {
   struct gkyl_efit_inp inp = {
     // psiRZ and related inputs
-    .filepath = "./data/eqdsk/wham.geqdsk",
+    .filepath = "gyrokinetic/data/eqdsk/wham.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
     .reflect = true,
@@ -112,7 +112,7 @@ test_load_geometry()
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
   struct gkyl_mirror_geo_grid_inp ginp = {
-    .filename_psi = "data/unit/wham_hires.geqdsk_psi.gkyl", // psi file to use
+    .filename_psi = "core/data/unit/wham_hires.geqdsk_psi.gkyl", // psi file to use
     .rclose = 0.2, // closest R to region of interest
     .zmin = -2.0,  // Z of lower boundary
     .zmax =  2.0,  // Z of upper boundary 
@@ -247,7 +247,7 @@ test_3x_p1_straight_cylinder()
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
   struct gkyl_mirror_geo_grid_inp ginp = {
-    .filename_psi = "data/unit/straight_cylinder.geqdsk_psi.gkyl", // psi file to use
+    .filename_psi = "core/data/unit/straight_cylinder.geqdsk_psi.gkyl", // psi file to use
     .rclose = 0.5, // closest R to region of interest
     .zmin = -1.0,  // Z of lower boundary
     .zmax =  1.0,  // Z of upper boundary 
@@ -416,7 +416,7 @@ test_3x_p1_straight_cylinder()
         cidx[AL_IDX] = ia;
         cidx[TH_IDX] = it;
         double *eps2_n = gkyl_array_fetch(eps2_nodal, gkyl_range_idx(&nrange, cidx));
-        TEST_CHECK( gkyl_compare( eps2_n[0], 1.0, 1e-7) );
+        TEST_CHECK( gkyl_compare( eps2_n[0], 0.0, 1e-7) );
       }
     }
   }
@@ -734,7 +734,7 @@ test_3x_p1_pmap_straight_cylinder()
     ext_range, range, ext_range, basis);
 
   struct gkyl_mirror_geo_grid_inp ginp = {
-    .filename_psi = "data/unit/wham_hires.geqdsk_psi.gkyl", // psi file to use
+    .filename_psi = "core/data/unit/wham_hires.geqdsk_psi.gkyl", // psi file to use
     .rclose = 0.2, // closest R to region of interest
     .zmin = -2.0,  // Z of lower boundary
     .zmax =  2.0,  // Z of upper boundary 

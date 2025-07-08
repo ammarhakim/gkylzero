@@ -115,7 +115,7 @@ gkyl_mirror_geo_gen_inew(const struct gkyl_mirror_geo_gen_inp *inp)
         // Compute cmag
         g->C = g->JB / sqrt(g->metric_covar[5]); // g_33 is the last element in the covariant metric tensor
         // I think eps2 changed because g^33 = g_33 = 1 unambiguously
-        g->eps2 = g->Jc * g->metric_contr[5] - g->JB / g->metric_covar[5];
+        g->eps2 = g->Jc * (g->metric_contr[5] - 1 / g->metric_covar[5]);
       }
     }
   }
