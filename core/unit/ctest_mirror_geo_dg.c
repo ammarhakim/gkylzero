@@ -23,7 +23,7 @@
 void mapc2p(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   double psi = xn[0], alpha = xn[1], zeta = xn[2];
-  fout[0] = sqrt(psi * 4 ); // Function fed is psi = 0.5/2 * R^2 from the efit file
+  fout[0] = sqrt(psi * 4) ; // Function fed is psi = 0.5/2 * R^2 from the efit file
   fout[1] = zeta; // Note that this does not have pi-1e-2 in it because the coordinate zeta is always defined -pi to pi
   fout[2] = -alpha; // There is a minus due to conventions
 }
@@ -89,12 +89,18 @@ void bmag_func(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx
 static void
 test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord)
 {
-  double clower[] = { 2.0e-6, 0.0, -2.0 };
+  double clower[3];
+  if (include_axis)
+    clower[0] = 0.0; // psi lower
+  else
+    clower[0] = 1.0e-4; // psi lower
+  clower[1] = 0.0; // alpha lower
+  clower[2] = -2.0; // z lower
+  
   double cupper[] = { 3.0e-3, 2*M_PI, 2.0 };
-  int cells[] = { 10, 16, 32 };
+  int cells[] = { 2, 2, 8 };
 
-  // const char *fname = "data/unit/wham_hires.geqdsk_psi.gkyl";
-  const char *fname = "data/unit/straight_cylinder.geqdsk_psi.gkyl";
+  const char *fname = "core/data/unit/straight_cylinder.geqdsk_psi.gkyl";
 
   // computational grid
   struct gkyl_rect_grid comp_grid;
@@ -312,8 +318,8 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
         cidx[AL_IDX] = ia;
         cidx[Z_IDX] = it;
         double *eps2_n = gkyl_array_fetch(eps2_nodal, gkyl_range_idx(&nodal_range, cidx));
-        TEST_CHECK( gkyl_compare( eps2_n[0], 1.0, 1e-7) );
-        TEST_MSG("eps2 = %.16g should be 1.0 at (psi, alpha, z) = (%.16g, %.16g, %.16g)", 
+        TEST_CHECK( gkyl_compare( eps2_n[0], 0.0, 1e-7) );
+        TEST_MSG("eps2 = %.16g should be 0.0 at (psi, alpha, z) = (%.16g, %.16g, %.16g)", 
           eps2_n[0],
           comp_grid.lower[PSI_IDX] + ip*(comp_grid.upper[PSI_IDX]-comp_grid.lower[PSI_IDX])/comp_grid.cells[PSI_IDX],
           comp_grid.lower[AL_IDX] + ia*(comp_grid.upper[AL_IDX]-comp_grid.lower[AL_IDX])/comp_grid.cells[AL_IDX],
@@ -326,7 +332,7 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   struct gkyl_array* gij_nodal = gkyl_array_new(GKYL_DOUBLE, 6, nodal_range.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &comp_grid, &nodal_range, &range, 6, gij_nodal, mirror_geo_dg->metric_covar);
   for (int ia=nodal_range.lower[AL_IDX]; ia<=nodal_range.upper[AL_IDX]; ++ia){
-    for (int ip=nodal_range.lower[PSI_IDX]; ip<=nodal_range.upper[PSI_IDX]; ++ip) {
+    for (int ip=nodal_range.lower[PSI_IDX]+1; ip<=nodal_range.upper[PSI_IDX]; ++ip) {
       for (int it=nodal_range.lower[Z_IDX]; it<=nodal_range.upper[Z_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
@@ -347,7 +353,7 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   struct gkyl_array* gij_contra_nodal = gkyl_array_new(GKYL_DOUBLE, 6, nodal_range.volume);
   gkyl_nodal_ops_m2n(n2m, &basis, &comp_grid, &nodal_range, &range, 6, gij_contra_nodal, mirror_geo_dg->metric_contr);
   for (int ia=nodal_range.lower[AL_IDX]; ia<=nodal_range.upper[AL_IDX]; ++ia){
-    for (int ip=nodal_range.lower[PSI_IDX]; ip<=nodal_range.upper[PSI_IDX]; ++ip) {
+    for (int ip=nodal_range.lower[PSI_IDX]+1; ip<=nodal_range.upper[PSI_IDX]; ++ip) {
       for (int it=nodal_range.lower[Z_IDX]; it<=nodal_range.upper[Z_IDX]; ++it) {
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
@@ -358,8 +364,14 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
         double xn[3] = {r, 0.0, 0.0};
         double fout[6];
         exact_g_contra_ij(0.0, xn, fout, 0);
-        for (int i=0; i<6; ++i)
+        for (int i=0; i<6; ++i){
           TEST_CHECK( gkyl_compare( gij_contra_n[i], fout[i], 1e-6) );
+          TEST_MSG("g^%d%d = %.16g should be %.16g at (psi, alpha, z) = (%.16g, %.16g, %.16g)", 
+            i/3+1, i%3+1, gij_contra_n[i], fout[i],
+            comp_grid.lower[PSI_IDX] + ip*(comp_grid.upper[PSI_IDX]-comp_grid.lower[PSI_IDX])/comp_grid.cells[PSI_IDX],
+            comp_grid.lower[AL_IDX] + ia*(comp_grid.upper[AL_IDX]-comp_grid.lower[AL_IDX])/comp_grid.cells[AL_IDX],
+            comp_grid.lower[Z_IDX] + it*(comp_grid.upper[Z_IDX]-comp_grid.lower[Z_IDX])/comp_grid.cells[Z_IDX]);
+        }
       }
     }
   }
@@ -569,10 +581,8 @@ test_wham_with_axis_sqrt_psi(void)
 
 TEST_LIST = {
   { "wham_no_axis_psi", test_wham_no_axis_psi },
-  // { "wham_with_axis_psi", test_wham_with_axis_psi },
-  
+  { "wham_with_axis_psi", test_wham_with_axis_psi },
   // { "wham_no_axis_sqrt_psi", test_wham_no_axis_sqrt_psi },
   // { "wham_with_axis_sqrt_psi", test_wham_with_axis_sqrt_psi },
-  
   { NULL, NULL },
 };

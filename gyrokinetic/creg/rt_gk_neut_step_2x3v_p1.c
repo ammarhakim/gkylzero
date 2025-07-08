@@ -428,7 +428,7 @@ main(int argc, char **argv)
 
   struct gkyl_efit_inp efit_inp = {
     // psiRZ and related inputs
-    .filepath = "./data/eqdsk/step.geqdsk",   // equilibrium to use
+    .filepath = "gyrokinetic/data/eqdsk/step.geqdsk",   // equilibrium to use
     .rz_poly_order = 2,                       // polynomial order for psi(R,Z) used for field line tracing
     .flux_poly_order = 1,                     // polynomial order for fpol(psi)
     .reflect = true,                          // Reflect lower half of psi(R,Z) for up-down symmetry

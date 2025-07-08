@@ -16,7 +16,7 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   double cupper[] = { 3.0e-3, 2*M_PI, 2.0 };
   int cells[] = { 10, 16, 32 };
 
-  const char *fname = "data/unit/wham_hires.geqdsk_psi.gkyl";
+  const char *fname = "core/data/unit/wham_hires.geqdsk_psi.gkyl";
   
   // computational grid
   struct gkyl_rect_grid comp_grid;
@@ -196,7 +196,7 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
           TEST_CHECK( gkyl_compare_double(g->C, g->Jc*Bmag/sqrt(g33), 1e-14) );
           TEST_CHECK( gkyl_compare_double(g->C, g->Jc*g->Bmag/sqrt(g33), 1e-14) );
           TEST_CHECK( gkyl_compare_double(g->C, g->Jc*g->Bmag/sqrt(g->metric_covar[5]), 1e-14) );
-          TEST_CHECK( gkyl_compare_double(g->eps2, g->Jc*g->metric_contr[5] - g->JB/g->metric_covar[5], 1e-14) );
+          TEST_CHECK( gkyl_compare_double(g->eps2, g->Jc*(g->metric_contr[5] - 1/g->metric_covar[5]), 1e-14) );
         }
       }
     }

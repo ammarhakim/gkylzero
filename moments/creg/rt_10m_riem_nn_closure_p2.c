@@ -112,7 +112,7 @@ create_ctx(void)
   // Neural network parameters.
   bool use_nn_closure = true; // Use neural network-based closure?
   int poly_order = 2; // Polynomial order of learned DG coefficients.
-  const char* nn_closure_file = "data/neural_nets/pkpm_periodic_es_shock_p2_moms_nn_1"; // File path of neural network to use.
+  const char* nn_closure_file = "moments/data/neural_nets/pkpm_periodic_es_shock_p2_moms_nn_1"; // File path of neural network to use.
   
   struct riem_nn_closure_ctx ctx = {
     .epsilon0 = epsilon0,

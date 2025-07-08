@@ -158,7 +158,7 @@ create_ctx(void)
   // Neural network parameters.
   bool use_nn_closure = false; // Use neural network-based closure?
   int poly_order = 1; // Polynomial order of learned DG coefficients.
-  const char* nn_closure_file = "data/neural_nets/pkpm_ot_p1_moms_nn_1"; // File path of neural network to use.
+  const char* nn_closure_file = "moments/data/neural_nets/pkpm_ot_p1_moms_nn_1"; // File path of neural network to use.
 
   struct lhdi_ctx ctx = {
     .pi = pi,

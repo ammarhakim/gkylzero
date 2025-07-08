@@ -84,7 +84,7 @@ write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_basis ba
 
 struct gkyl_efit_inp inp = {
   // psiRZ and related inputs
-  .filepath = "./data/eqdsk/ltx_miller.geqdsk",
+  .filepath = "gyrokinetic/data/eqdsk/ltx_miller.geqdsk",
   .rz_poly_order = 2,
   .flux_poly_order = 1,
   .reflect = true,
