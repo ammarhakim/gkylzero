@@ -47,7 +47,7 @@ num_failures_max = 20 -- Maximum allowable number of consecutive small time-step
 -- Neural network parameters.
 use_nn_closure = true -- Use neural network-based closure?
 poly_order = 1 -- Polynomial order of learned DG coefficients.
-nn_closure_file = "data/neural_nets/pkpm_periodic_es_shock_p1_moms_nn_1" -- File path of neural network to use.
+nn_closure_file = "moments/data/neural_nets/pkpm_periodic_es_shock_p1_moms_nn_1" -- File path of neural network to use.
 
 momentApp = Moments.App.new {
 

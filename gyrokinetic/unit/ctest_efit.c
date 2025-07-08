@@ -18,7 +18,7 @@
 void test_solovev(){
 
   struct gkyl_efit_inp inp  = {
-    .filepath = "./data/eqdsk/solovev.geqdsk",
+    .filepath = "gyrokinetic/data/eqdsk/solovev.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
     .reflect =  true,
@@ -36,7 +36,7 @@ void test_solovev(){
 
 void test_step(){
   struct gkyl_efit_inp inp  = {
-    .filepath = "./data/eqdsk/step.geqdsk",
+    .filepath = "gyrokinetic/data/eqdsk/step.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
     .reflect =  true,
@@ -54,7 +54,7 @@ void test_step(){
 
 void test_asdex(){
   struct gkyl_efit_inp inp  = {
-    .filepath = "./data/eqdsk/asdex.geqdsk",
+    .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
   };
@@ -72,7 +72,7 @@ void test_asdex(){
 void test_cerfon(){
   
   struct gkyl_efit_inp inp  = {
-    .filepath = "./data/eqdsk/cerfon.geqdsk",
+    .filepath = "gyrokinetic/data/eqdsk/cerfon.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
     .reflect =  true,
@@ -90,7 +90,7 @@ void test_cerfon(){
 
 void test_elliptical(){
   struct gkyl_efit_inp inp  = {
-    .filepath = "./data/eqdsk/elliptical.geqdsk",
+    .filepath = "gyrokinetic/data/eqdsk/elliptical.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
     .reflect =  true,
@@ -108,7 +108,7 @@ void test_elliptical(){
 
 void test_wham(){
   struct gkyl_efit_inp inp  = {
-    .filepath = "./data/eqdsk/wham.geqdsk",
+    .filepath = "gyrokinetic/data/eqdsk/wham.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
     //.reflect =  true,
@@ -127,7 +127,7 @@ void test_wham(){
 
 void test_tcv(){
   struct gkyl_efit_inp inp  = {
-    .filepath = "./data/eqdsk/tcv.geqdsk",
+    .filepath = "gyrokinetic/data/eqdsk/tcv.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
   };
@@ -144,7 +144,7 @@ void test_tcv(){
 
 void test_mast(){
   struct gkyl_efit_inp inp  = {
-    .filepath = "./data/eqdsk/mast.geqdsk",
+    .filepath = "gyrokinetic/data/eqdsk/mast.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
     .reflect =  true,
@@ -162,7 +162,7 @@ void test_mast(){
 
 void test_ltx(){
   struct gkyl_efit_inp inp  = {
-    .filepath = "./data/eqdsk/LTX_103955_03.eqdsk",
+    .filepath = "gyrokinetic/data/eqdsk/LTX_103955_03.eqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
     .reflect =  true,

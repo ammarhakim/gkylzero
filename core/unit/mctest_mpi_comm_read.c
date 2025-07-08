@@ -31,7 +31,7 @@ mpi_read(int nrank, int cuts[2])
   struct gkyl_array_header_info hdr;
 
   status = gkyl_grid_sub_array_header_read(&grid, &hdr,
-    "data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl");
+    "core/data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl");
 
   TEST_CHECK( GKYL_ARRAY_RIO_SUCCESS == status );
 
@@ -47,7 +47,7 @@ mpi_read(int nrank, int cuts[2])
   gkyl_array_clear(s_arr, 0.0);
 
   status = gkyl_grid_sub_array_read(&grid, &global, s_arr,
-    "data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl");
+    "core/data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl");
 
   TEST_CHECK( GKYL_ARRAY_RIO_SUCCESS == status );
 
@@ -67,7 +67,7 @@ mpi_read(int nrank, int cuts[2])
   gkyl_array_clear(p_arr, 0.0);
 
   status = gkyl_comm_array_read(comm, &grid, &local, p_arr,
-    "data/unit/euler_riem_2d_hllc-euler_1.gkyl");
+    "core/data/unit/euler_riem_2d_hllc-euler_1.gkyl");
 
   TEST_CHECK( GKYL_ARRAY_RIO_SUCCESS == status );
 

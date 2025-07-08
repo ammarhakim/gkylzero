@@ -181,7 +181,7 @@ void shaped_pfunc_lower_inner(double s, double* RZ){
 
 struct gkyl_efit_inp inp_inner= {
     // psiRZ and related inputs
-    .filepath = "./data/eqdsk/step.geqdsk",
+    .filepath = "gyrokinetic/data/eqdsk/step.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
     .reflect = true,
@@ -189,7 +189,7 @@ struct gkyl_efit_inp inp_inner= {
 
 struct gkyl_efit_inp inp = {
     // psiRZ and related inputs
-    .filepath = "./data/eqdsk/step.geqdsk",
+    .filepath = "gyrokinetic/data/eqdsk/step.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
     .reflect = true,
@@ -197,7 +197,7 @@ struct gkyl_efit_inp inp = {
 
 struct gkyl_efit_inp inp_outer = {
     // psiRZ and related inputs
-    .filepath = "./data/eqdsk/step.geqdsk",
+    .filepath = "gyrokinetic/data/eqdsk/step.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
     .reflect = true,

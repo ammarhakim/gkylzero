@@ -155,7 +155,7 @@ test_fixed_z()
 
   struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
-      .filepath = "./data/eqdsk/step.geqdsk",
+      .filepath = "gyrokinetic/data/eqdsk/step.geqdsk",
       .rz_poly_order = 2,
       .flux_poly_order = 1,
       .reflect = true,
@@ -252,7 +252,7 @@ test_horizontal_plate()
 
   struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
-      .filepath = "./data/eqdsk/step.geqdsk",
+      .filepath = "gyrokinetic/data/eqdsk/step.geqdsk",
       .rz_poly_order = 2,
       .flux_poly_order = 1,
     };
@@ -324,7 +324,7 @@ test_vertical_plate()
 
   struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
-      .filepath = "./data/eqdsk/step.geqdsk",
+      .filepath = "gyrokinetic/data/eqdsk/step.geqdsk",
       .rz_poly_order = 2,
       .flux_poly_order = 1,
     };
@@ -395,7 +395,7 @@ test_shaped_plate()
 
   struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
-      .filepath = "./data/eqdsk/step.geqdsk",
+      .filepath = "gyrokinetic/data/eqdsk/step.geqdsk",
       .rz_poly_order = 2,
       .flux_poly_order = 1,
     };

@@ -429,7 +429,7 @@ int main(int argc, char **argv)
 
   struct gkyl_efit_inp efit_inp = {
     // psiRZ and related inputs
-    .filepath = "./data/eqdsk/LTX_103955_03.eqdsk",
+    .filepath = "gyrokinetic/data/eqdsk/LTX_103955_03.eqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
     .reflect = true,
