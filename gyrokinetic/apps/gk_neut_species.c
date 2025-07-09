@@ -1125,7 +1125,9 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   // Set field type and model id for neutral species in GK system and create solver
   s->field_id = GKYL_FIELD_NULL;
   s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->basis, &s->basis, 
-    &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
+    &app->local, &s->local_vel, &s->local, 
+    is_zero_flux, s->model_id, s->field_id, 
+    &aux_inp, app->use_gpu);
 
   // Acquire equation object.
   s->eqn_vlasov = gkyl_dg_updater_vlasov_acquire_eqn(s->slvr);
