@@ -963,9 +963,11 @@ struct gk_field {
   struct gkyl_fem_parproj *fem_parproj_sol;
   struct gkyl_fem_parproj *fem_parproj_core;
 
-  struct gkyl_deflated_fem_poisson *deflated_fem_poisson; // poisson solver which solves
-  struct gkyl_fem_poisson_perp *fem_poisson; // poisson solver which solves
+  struct gkyl_deflated_fem_poisson *fem_poisson_deflated; // poisson solver which solves
+  struct gkyl_fem_poisson_perp *fem_poisson_perp; // poisson solver which solves
                                              // - nabla . (epsilon * nabla phi) - kSq * phi = rho
+  struct gkyl_fem_poisson *fem_poisson; // Poisson solver which solves
+                                             // - nabla . (epsilon * nabla phi) = rho
 
   // Objects needed for FLR effects.
   bool use_flr;

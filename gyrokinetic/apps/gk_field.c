@@ -181,6 +181,20 @@ gk_field_poisson_solve_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *fie
 }
 
 void
+gk_field_poisson_solve_full_2x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
+{
+  // Solve the Poisson equation.
+  gkyl_fem_poisson_set_rhs(field->fem_poisson, field->rho_c, field->phi_bc);
+  gkyl_fem_poisson_solve(field->fem_poisson, field->phi_smooth);
+
+  // Finish the Poisson solve with FLR effects.
+  field->invert_flr(app, field, field->phi_smooth);
+
+  // Enforce a BC of the field in the parallel direction.
+  field->enforce_zbc(app, field, field->phi_smooth);
+}
+
+void
 gk_field_poisson_solve_es_iwl(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
   // Gather charge density into global array.
@@ -194,7 +208,7 @@ gk_field_poisson_solve_es_iwl(struct gkyl_gyrokinetic_app *app, struct gk_field 
   gkyl_fem_parproj_solve(field->fem_parproj_sol, field->rho_c_global_smooth);
 
   // Solve the Poisson equation.
-  gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth,
+  gkyl_deflated_fem_poisson_advance(field->fem_poisson_deflated, field->rho_c_global_smooth,
     field->phi_bc, field->phi_smooth);
 
   // Finish the Poisson solve with FLR effects.
@@ -211,8 +225,8 @@ gk_field_poisson_solve_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f
   gk_field_fem_projection_par(app, field, field->rho_c, field->rho_c);
 
   // Solve the Poisson equation.
-  gkyl_fem_poisson_perp_set_rhs(field->fem_poisson, field->rho_c);
-  gkyl_fem_poisson_perp_solve(field->fem_poisson, field->phi_smooth);
+  gkyl_fem_poisson_perp_set_rhs(field->fem_poisson_perp, field->rho_c);
+  gkyl_fem_poisson_perp_solve(field->fem_poisson_perp, field->phi_smooth);
 
   // Smooth the potential along z.
   gk_field_fem_projection_par(app, field, field->phi_smooth, field->phi_smooth);
@@ -417,28 +431,38 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     //   // Gather the gij terms
 
     //   // Initilize a fem_poisson_new
-    //   f->fem_poisson = gkyl_fem_poisson_new(&app->local, &app->grid, app->basis,
+    //   f->fem_poisson_perp = gkyl_fem_poisson_new(&app->local, &app->grid, app->basis,
     //     &f->info.poisson_bcs, f->epsilon, NULL, app->use_gpu);
     // }
     else if (app->cdim > 1) {
+
       // Initialize the polarization weight.
-      struct gkyl_array *Jgij[3] = {app->gk_geom->gxxj, app->gk_geom->gxyj, app->gk_geom->gyyj};
-      for (int i=0; i<app->cdim-2/app->cdim; i++) {
-        gkyl_array_set_offset(f->epsilon, polarization_weight, Jgij[i], i*app->basis.num_basis);
+      struct gkyl_array *Jgij[3];
+      if (app->cdim == 2 && f->gkfield_id == GKYL_GK_FIELD_FULL_2X) {
+        Jgij[0] = app->gk_geom->gxxj;
+        Jgij[1] = app->gk_geom->gxzj;
+        Jgij[2] = app->gk_geom->eps2;
+        for (int i=0; i<3; i++) {
+          gkyl_array_set_offset(f->epsilon, polarization_weight, Jgij[i], i*app->basis.num_basis);
+        }
+      }
+      else 
+      {
+        Jgij[0] = app->gk_geom->gxxj;
+        Jgij[1] = app->gk_geom->gxyj;
+        Jgij[2] = app->gk_geom->gyyj;
+        for (int i=0; i<app->cdim-2/app->cdim; i++) {
+          gkyl_array_set_offset(f->epsilon, polarization_weight, Jgij[i], i*app->basis.num_basis);
+        }
       }
 
       // Initialize the Poisson solver.
-      f->deflated_fem_poisson = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev, app->basis,
+      f->fem_poisson_deflated = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev, app->basis,
         app->local, f->global_sub_range, f->epsilon, 0, f->info.poisson_bcs, f->info.bias_plane_list, app->use_gpu);
-      f->fem_poisson = gkyl_fem_poisson_perp_new(&app->local, &app->grid, app->basis,
-        &f->info.poisson_bcs, f->epsilon, NULL, app->use_gpu);
-
-
-
-
-
-
-
+      f->fem_poisson_perp = gkyl_fem_poisson_perp_new(&app->local, &app->grid, app->basis,
+        &f->info.poisson_bcs, f->epsilon, 0, app->use_gpu);
+      f->fem_poisson = gkyl_fem_poisson_new(&app->local, &app->grid, app->basis,
+        &f->info.poisson_bcs, f->info.bias_plane_list, f->epsilon, 0, TRUE, app->use_gpu);
 
       f->phi_bc = 0;
       f->is_dirichletvar = false;
@@ -463,6 +487,9 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
 
   if (f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) { 
     f->field_solve = gk_field_boltzmann_solve;
+  }
+  else if (f->gkfield_id == GKYL_GK_FIELD_FULL_2X && app->cdim == 2) {
+    f->field_solve = gk_field_poisson_solve_full_2x;
   }
   else {
     if (app->cdim == 1) {
@@ -800,8 +827,8 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   else {
     gkyl_array_release(f->epsilon);
     if (app->cdim > 1) {
-      gkyl_deflated_fem_poisson_release(f->deflated_fem_poisson);
-      gkyl_fem_poisson_perp_release(f->fem_poisson);
+      gkyl_deflated_fem_poisson_release(f->fem_poisson_deflated);
+      gkyl_fem_poisson_perp_release(f->fem_poisson_perp);
       if (f->is_dirichletvar) {
         gkyl_array_release(f->phi_bc);
       }
