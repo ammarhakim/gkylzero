@@ -112,8 +112,6 @@ void gkyl_dg_calc_gyrokinetic_vars_flux_surf(struct gkyl_dg_calc_gyrokinetic_var
     for (int dir = 0; dir<cdim; ++dir) {
       gkyl_copy_int_arr(pdim, idx, idxL);
       idxL[dir] = idx[dir] - 1;
-      gkyl_copy_int_arr(pdim-cdim, idx_vel, idx_velL);
-      idx_velL[0] = idx_velL[0]-1;
       long locL = gkyl_range_idx(phase_range, idxL);
       const double *fL = gkyl_array_cfetch(fin, locL);
       const double *fR = gkyl_array_cfetch(fin, loc_phase);
