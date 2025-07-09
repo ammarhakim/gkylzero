@@ -62,8 +62,8 @@ gkyl_prim_cross_m0deltas_set_op_range_cu_kernel(struct gkyl_nmat *As, struct gky
       array_acc1(num_basis, denom, 1.0/betap1T2, numer);
   
       mul_op(m0self_d, numer, numer);
-      if (up->normNu)
-        mul_op(nuself_d, numer, numer);
+      // if (up->normNu)
+      //   mul_op(nuself_d, numer, numer);
     }
     else {
       // Both collision frequencies are zero, so set the numerator and
@@ -117,7 +117,7 @@ gkyl_prim_cross_m0deltas_copy_sol_range_cu_kernel(struct gkyl_nmat *xs,
 void gkyl_prim_cross_m0deltas_advance_cu(gkyl_prim_cross_m0deltas *up,
   double massself, const struct gkyl_array* m0self, const struct gkyl_array* nuself,
   double massother, const struct gkyl_array* m0other, const struct gkyl_array* nuother,
-  struct gkyl_array* out);
+  struct gkyl_array* out)
 {
   int nblocks = up->range->nblocks;
   int nthreads = up->range->nthreads;
