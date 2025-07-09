@@ -71,8 +71,6 @@ gkyl_dg_calc_gyrokinetic_vars_flux_surf_cu_kernel(struct gkyl_dg_calc_gyrokineti
       if (linc2 == dir) {
         gkyl_copy_int_arr(pdim, idx, idxL);
         idxL[dir] = idx[dir] - 1;
-        gkyl_copy_int_arr(pdim-cdim, idx_vel, idx_velL);
-        idx_velL[0] = idx_velL[0]-1;
         long locL = gkyl_range_idx(&phase_range, idxL);
         const double *fL = (const double*) gkyl_array_cfetch(fin, locL);
         const double *fR = (const double*) gkyl_array_cfetch(fin, loc_phase);
@@ -109,29 +107,70 @@ gkyl_dg_calc_gyrokinetic_vars_flux_surf_cu_kernel(struct gkyl_dg_calc_gyrokineti
         }  
       }
     }
+  }
+}
+
+__global__ void
+gkyl_dg_calc_gyrokinetic_vars_flux_surfvpar_cu_kernel(struct gkyl_dg_calc_gyrokinetic_vars *up, 
+  struct gkyl_range conf_range, struct gkyl_range phase_range,
+  struct gkyl_range conf_ext_range, struct gkyl_range phase_ext_range, struct gkyl_range vpar_range,
+  const struct gkyl_array *phi, const struct gkyl_array *fin, 
+  struct gkyl_array* flux_surf, struct gkyl_array *cflrate)
+{ 
+  int pdim = up->pdim;
+  int cdim = up->cdim;
+  int idx[GKYL_MAX_DIM], idx_edge[GKYL_MAX_DIM], idx_vel[2];
+  int idxL[GKYL_MAX_DIM];
+  int idx_velL[2];
+  double xc[GKYL_MAX_DIM];
+
+  // 2D thread grid
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < vpar_range.volume;
+      linc1 += gridDim.x*blockDim.x)
+  {
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&vpar_range, linc1, idx);
+    gkyl_rect_grid_cell_center(&up->phase_grid, idx, xc);
+
+    for (int d=cdim; d<pdim; d++) idx_vel[d-cdim] = idx[d];
+
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long loc_conf = gkyl_range_idx(&conf_range, idx);
+    long loc_vel = gkyl_range_idx(&up->vel_map->local_vel, idx_vel);
+    long loc_phase = gkyl_range_idx(&phase_range, idx);
+
+    const double *bmag_d = (const double*) gkyl_array_cfetch(up->gk_geom->geo_int.bmag, loc_conf);
+    const double *phi_d = (const double*) gkyl_array_cfetch(phi, loc_conf);
+    const double *vmap_d = (const double*) gkyl_array_cfetch(up->vel_map->vmap, loc_vel);
+    const double *vmapSq_d = (const double*) gkyl_array_cfetch(up->vel_map->vmap_sq, loc_vel);
+
+    double* flux_surf_d = (double*) gkyl_array_fetch(flux_surf, loc_phase);
+    double *cflrate_d = (double*) gkyl_array_fetch(cflrate, loc_phase);
 
     int dir = cdim;
-    if (linc2 == dir) {
-      gkyl_copy_int_arr(pdim, idx, idxL);
-      idxL[dir] = idx[dir] - 1;
-      gkyl_copy_int_arr(pdim-cdim, idx_vel, idx_velL);
-      idx_velL[0] = idx_velL[0]-1;
-      long locL = gkyl_range_idx(&phase_range, idxL);
-      long loc_velL = gkyl_range_idx(&up->vel_map->local_vel, idxL);
-      const double *fL = (const double*) gkyl_array_cfetch(fin, locL);
-      const double *fR = (const double*) gkyl_array_cfetch(fin, loc_phase);
+    gkyl_copy_int_arr(pdim, idx, idxL);
+    idxL[dir] = idx[dir] - 1;
+    gkyl_copy_int_arr(pdim-cdim, idx_vel, idx_velL);
+    idx_velL[0] = idx_velL[0]-1;
+    long locL = gkyl_range_idx(&phase_range, idxL);
+    long loc_velL = gkyl_range_idx(&up->vel_map->local_vel, idx_velL);
+    const double *fL = (const double*) gkyl_array_cfetch(fin, locL);
+    const double *fR = (const double*) gkyl_array_cfetch(fin, loc_phase);
 
-      const double *vpL = (const double*) gkyl_array_cfetch(up->vel_map->vmap_prime, loc_velL);
-      const double *vpR = (const double*) gkyl_array_cfetch(up->vel_map->vmap_prime, loc_vel);
+    const double *vpL = (const double*) gkyl_array_cfetch(up->vel_map->vmap_prime, loc_velL);
+    const double *vpR = (const double*) gkyl_array_cfetch(up->vel_map->vmap_prime, loc_vel);
 
-      const struct gkyl_dg_vol_geom *dgv = gkyl_dg_geom_get_vol(up->dg_geom, idx);
-      const struct gkyl_gk_dg_vol_geom *gkdgv = gkyl_gk_dg_geom_get_vol(up->gk_dg_geom, idx);
+    const struct gkyl_dg_vol_geom *dgv = gkyl_dg_geom_get_vol(up->dg_geom, idx);
+    const struct gkyl_gk_dg_vol_geom *gkdgv = gkyl_gk_dg_geom_get_vol(up->gk_dg_geom, idx);
 
-      cflrate_d[0] += up->flux_surfvpar[0](up->surf_vpar_basis, xc, up->phase_grid.dx, 
-        vpL, vpR,
-        vmap_d, vmapSq_d, up->charge, up->mass,
-        dgv, gkdgv, bmag_d, phi_d,  fL, fR, flux_surf_d);
-    }
+    cflrate_d[0] += up->flux_surfvpar[0](up->surf_vpar_basis, xc, up->phase_grid.dx, 
+      vpL, vpR,
+      vmap_d, vmapSq_d, up->charge, up->mass,
+      dgv, gkdgv, bmag_d, phi_d,  fL, fR, flux_surf_d);
   }
 }
 
@@ -142,10 +181,20 @@ void gkyl_dg_calc_gyrokinetic_vars_flux_surf_cu(struct gkyl_dg_calc_gyrokinetic_
   const struct gkyl_array *fin, struct gkyl_array* flux_surf, struct gkyl_array* cflrate)
 {
   dim3 dimGrid, dimBlock;
-  gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, up->cdim+1);
+  gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, up->cdim);
   gkyl_dg_calc_gyrokinetic_vars_flux_surf_cu_kernel<<<dimGrid, dimBlock>>>(up->on_dev, 
     *conf_range, *phase_range, *conf_ext_range, *phase_ext_range, phi->on_dev, fin->on_dev,
     flux_surf->on_dev, cflrate->on_dev);
+
+  struct gkyl_range vpar_range;
+  int extend_lo[GKYL_MAX_DIM] = {0};
+  int extend_up[GKYL_MAX_DIM] = {0};
+  extend_lo[up->cdim] = -1;
+  gkyl_range_extend(&vpar_range, phase_range, extend_lo, extend_up);
+  gkyl_dg_calc_gyrokinetic_vars_flux_surfvpar_cu_kernel<<<vpar_range.volume, GKYL_DEFAULT_NUM_THREADS>>>(up->on_dev, 
+    *conf_range, *phase_range, *conf_ext_range, *phase_ext_range, vpar_range, phi->on_dev, fin->on_dev,
+    flux_surf->on_dev, cflrate->on_dev);
+
 }
 
 // CUDA kernel to set device pointers to gyrokinetic vars kernel functions
