@@ -12,6 +12,125 @@
 #include <float.h>
 #include <time.h>
 
+// Function pointer types for FEM object initialization
+typedef void (*gk_field_fem_init_func_t)(struct gkyl_gyrokinetic_app *app, struct gk_field *f, 
+  double polarization_weight, struct gkyl_array **epsilon_global);
+
+// FEM initialization functions for different field types and dimensions
+static void
+gk_field_fem_init_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *f, 
+  double polarization_weight, struct gkyl_array **epsilon_global)
+{
+  f->ambi_pot = gkyl_ambi_bolt_potential_new(&app->grid, &app->basis, 
+    f->info.electron_mass, f->info.electron_charge, f->info.electron_temp, app->use_gpu);
+  
+  // Sheath_vals contains both the density and potential sheath values.
+  for (int j=0; j<app->cdim; ++j) {
+    f->sheath_vals[2*j]   = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
+    f->sheath_vals[2*j+1] = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
+  }
+}
+
+static void
+gk_field_fem_init_1d(struct gkyl_gyrokinetic_app *app, struct gk_field *f,
+  double polarization_weight, struct gkyl_array **epsilon_global)
+{
+  // Allocate array for the polarization weight times geometric coefficients.
+  f->epsilon = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
+
+  // Need to set weight to kperpsq*polarizationWeight for use in potential smoothing.
+  gkyl_array_copy(f->epsilon, app->gk_geom->jacobgeo);
+  gkyl_array_scale(f->epsilon, polarization_weight);
+  gkyl_array_scale(f->epsilon, f->info.kperpSq);
+
+  if (f->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
+    // Add the contribution from adiabatic electrons
+    double n_s0 = f->info.electron_density;
+    double q_s = f->info.electron_charge;
+    double T_s = f->info.electron_temp;
+    double quasineut_contr = q_s*n_s0*q_s/T_s;
+    
+    struct gkyl_array *epsilon_adiab = mkarr(app->use_gpu, f->epsilon->ncomp, f->epsilon->size);
+    gkyl_array_copy(epsilon_adiab, app->gk_geom->jacobgeo);
+    gkyl_array_scale(epsilon_adiab, quasineut_contr);
+    gkyl_array_accumulate(f->epsilon, 1., epsilon_adiab);
+    gkyl_array_release(epsilon_adiab);
+  }
+
+  // Gather epsilon for (global) smoothing in z.
+  *epsilon_global = mkarr(app->use_gpu, f->epsilon->ncomp, app->global_ext.volume);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, f->epsilon, *epsilon_global);
+}
+
+static void
+gk_field_fem_init_2d3d(struct gkyl_gyrokinetic_app *app, struct gk_field *f, 
+  double polarization_weight, struct gkyl_array **epsilon_global)
+{
+  // Allocate array for the polarization weight times geometric coefficients.
+  f->epsilon = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
+
+  // Initialize the polarization weight.
+  struct gkyl_array *Jgij[3];
+  if (app->cdim == 2 && f->gkfield_id == GKYL_GK_FIELD_FULL_2X) {
+    Jgij[0] = app->gk_geom->gxxj;
+    Jgij[1] = app->gk_geom->gxzj;
+    Jgij[2] = app->gk_geom->eps2;
+    for (int i=0; i<3; i++) {
+      gkyl_array_set_offset(f->epsilon, polarization_weight, Jgij[i], i*app->basis.num_basis);
+    }
+  }
+  else {
+    Jgij[0] = app->gk_geom->gxxj;
+    Jgij[1] = app->gk_geom->gxyj;
+    Jgij[2] = app->gk_geom->gyyj;
+    for (int i=0; i<app->cdim-2/app->cdim; i++) {
+      gkyl_array_set_offset(f->epsilon, polarization_weight, Jgij[i], i*app->basis.num_basis);
+    }
+  }
+
+  // Initialize the Poisson solvers.
+  f->fem_poisson_deflated = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev, app->basis,
+    app->local, f->global_sub_range, f->epsilon, 0, f->info.poisson_bcs, f->info.bias_plane_list, app->use_gpu);
+  f->fem_poisson_perp = gkyl_fem_poisson_perp_new(&app->local, &app->grid, app->basis,
+    &f->info.poisson_bcs, f->epsilon, 0, app->use_gpu);
+  f->fem_poisson = gkyl_fem_poisson_new(&app->local, &app->grid, app->basis,
+    &f->info.poisson_bcs, f->info.bias_plane_list, f->epsilon, 0, TRUE, app->use_gpu);
+
+  // Handle Dirichlet varying BC
+  f->phi_bc = 0;
+  f->is_dirichletvar = false;
+  for (int d=0; d<app->cdim; d++) f->is_dirichletvar = f->is_dirichletvar ||
+    (f->info.poisson_bcs.lo_type[d] == GKYL_POISSON_DIRICHLET_VARYING ||
+     f->info.poisson_bcs.up_type[d] == GKYL_POISSON_DIRICHLET_VARYING);
+  if (f->is_dirichletvar) {
+    // Project the spatially varying BC if the user specifies it.
+    f->phi_bc = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
+    struct gkyl_array *phi_bc_ho = mkarr(false, f->phi_bc->ncomp, f->phi_bc->size);
+
+    gkyl_eval_on_nodes *phibc_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis, 
+      1, f->info.poisson_bcs.bc_value_func, f->info.poisson_bcs.bc_value_func_ctx);
+    gkyl_eval_on_nodes_advance(phibc_proj, 0.0, &app->global, phi_bc_ho);
+    gkyl_array_copy(f->phi_bc, phi_bc_ho);
+
+    gkyl_eval_on_nodes_release(phibc_proj);
+    gkyl_array_release(phi_bc_ho);
+  }
+}
+
+// Function to select the appropriate FEM initialization function
+static gk_field_fem_init_func_t
+gk_field_select_fem_init_func(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+{
+  if (f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
+    return gk_field_fem_init_boltzmann;
+  } else if (app->cdim == 1) {
+    return gk_field_fem_init_1d;
+  } else if (app->cdim > 1) {
+    return gk_field_fem_init_2d3d;
+  }
+  return NULL; // Should not reach here
+}
+
 static void
 gk_field_invert_flr(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi)
 {
@@ -372,117 +491,38 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   f->info.poisson_bcs.contains_lower_z_edge = f->global_sub_range.lower[ndim-1] == app->global.lower[ndim-1];
   f->info.poisson_bcs.contains_upper_z_edge = f->global_sub_range.upper[ndim-1] == app->global.upper[ndim-1];
 
+  // Initialize FEM objects and polarization weights
   f->epsilon = 0;
   struct gkyl_array *epsilon_global = 0;
   f->kSq = 0;  // not currently used by fem_perp_poisson
   double polarization_weight = 0.0; 
-  double es_energy_fac_1d_adiabatic = 0.0; 
+  double es_energy_fac_1d_adiabatic = 0.0;
+
+  // Calculate polarization weight for non-Boltzmann fields
   if (f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
-    polarization_weight = 1.0; 
-    f->ambi_pot = gkyl_ambi_bolt_potential_new(&app->grid, &app->basis, 
-      f->info.electron_mass, f->info.electron_charge, f->info.electron_temp, app->use_gpu);
-    // Sheath_vals contains both the density and potential sheath values.
-    for (int j=0; j<app->cdim; ++j) {
-      f->sheath_vals[2*j]   = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
-      f->sheath_vals[2*j+1] = mkarr(app->use_gpu, 2*app->basis.num_basis, app->local_ext.volume);
-    }
+    polarization_weight = 1.0;
   } else {
-
-    // Allocate array for the polarization weight times geometric coefficients.
-    f->epsilon = mkarr(app->use_gpu, (2*(app->cdim/3)+1)*app->basis.num_basis, app->local_ext.volume);
-
     double polarization_bmag = f->info.polarization_bmag ? f->info.polarization_bmag : app->bmag_ref;
     // Linearized polarization density
     for (int i=0; i<app->num_species; ++i) {
       struct gk_species *s = &app->species[i];
       polarization_weight += s->info.polarization_density*s->info.mass/pow(polarization_bmag,2);
     }
-    if (app->cdim == 1) {
-      // Need to set weight to kperpsq*polarizationWeight for use in potential smoothing.
-      gkyl_array_copy(f->epsilon, app->gk_geom->jacobgeo);
-      gkyl_array_scale(f->epsilon, polarization_weight);
-      gkyl_array_scale(f->epsilon, f->info.kperpSq);
+  }
 
-      if (f->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
-        // Add the contribution from adiabatic electrons (in principle any
-        // species can be adiabatic, which we can add suport for later).
-        double n_s0 = f->info.electron_density;
-        double q_s = f->info.electron_charge;
-        double T_s = f->info.electron_temp;
-        double quasineut_contr = q_s*n_s0*q_s/T_s;
-        
-        struct gkyl_array *epsilon_adiab = mkarr(app->use_gpu, f->epsilon->ncomp, f->epsilon->size);
-        gkyl_array_copy(epsilon_adiab, app->gk_geom->jacobgeo);
-        gkyl_array_scale(epsilon_adiab, quasineut_contr);
-        gkyl_array_accumulate(f->epsilon, 1., epsilon_adiab);
-        gkyl_array_release(epsilon_adiab);
+  // Calculate adiabatic contribution for 1D case
+  if (app->cdim == 1 && f->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
+    double n_s0 = f->info.electron_density;
+    double q_s = f->info.electron_charge;
+    double T_s = f->info.electron_temp;
+    double quasineut_contr = q_s*n_s0*q_s/T_s;
+    es_energy_fac_1d_adiabatic = 0.5*quasineut_contr;
+  }
 
-        es_energy_fac_1d_adiabatic = 0.5*quasineut_contr; 
-      }
-
-      // Gather gather epsilon for (global) smoothing in z.
-      epsilon_global = mkarr(app->use_gpu, f->epsilon->ncomp, app->global_ext.volume);
-      gkyl_comm_array_allgather(app->comm, &app->local, &app->global, f->epsilon, epsilon_global);
-    }
-    // // Else if cdim ==2 and we use special poisson
-    // {
-
-
-    //   // Gather the gij terms
-
-    //   // Initilize a fem_poisson_new
-    //   f->fem_poisson_perp = gkyl_fem_poisson_new(&app->local, &app->grid, app->basis,
-    //     &f->info.poisson_bcs, f->epsilon, NULL, app->use_gpu);
-    // }
-    else if (app->cdim > 1) {
-
-      // Initialize the polarization weight.
-      struct gkyl_array *Jgij[3];
-      if (app->cdim == 2 && f->gkfield_id == GKYL_GK_FIELD_FULL_2X) {
-        Jgij[0] = app->gk_geom->gxxj;
-        Jgij[1] = app->gk_geom->gxzj;
-        Jgij[2] = app->gk_geom->eps2;
-        for (int i=0; i<3; i++) {
-          gkyl_array_set_offset(f->epsilon, polarization_weight, Jgij[i], i*app->basis.num_basis);
-        }
-      }
-      else 
-      {
-        Jgij[0] = app->gk_geom->gxxj;
-        Jgij[1] = app->gk_geom->gxyj;
-        Jgij[2] = app->gk_geom->gyyj;
-        for (int i=0; i<app->cdim-2/app->cdim; i++) {
-          gkyl_array_set_offset(f->epsilon, polarization_weight, Jgij[i], i*app->basis.num_basis);
-        }
-      }
-
-      // Initialize the Poisson solver.
-      f->fem_poisson_deflated = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev, app->basis,
-        app->local, f->global_sub_range, f->epsilon, 0, f->info.poisson_bcs, f->info.bias_plane_list, app->use_gpu);
-      f->fem_poisson_perp = gkyl_fem_poisson_perp_new(&app->local, &app->grid, app->basis,
-        &f->info.poisson_bcs, f->epsilon, 0, app->use_gpu);
-      f->fem_poisson = gkyl_fem_poisson_new(&app->local, &app->grid, app->basis,
-        &f->info.poisson_bcs, f->info.bias_plane_list, f->epsilon, 0, TRUE, app->use_gpu);
-
-      f->phi_bc = 0;
-      f->is_dirichletvar = false;
-      for (int d=0; d<app->cdim; d++) f->is_dirichletvar = f->is_dirichletvar ||
-        (f->info.poisson_bcs.lo_type[d] == GKYL_POISSON_DIRICHLET_VARYING ||
-         f->info.poisson_bcs.up_type[d] == GKYL_POISSON_DIRICHLET_VARYING);
-      if (f->is_dirichletvar) {
-        // Project the spatially varying BC if the user specifies it.
-        f->phi_bc = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
-        struct gkyl_array *phi_bc_ho = mkarr(false, f->phi_bc->ncomp, f->phi_bc->size);
-
-        gkyl_eval_on_nodes *phibc_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis, 
-          1, f->info.poisson_bcs.bc_value_func, f->info.poisson_bcs.bc_value_func_ctx);
-        gkyl_eval_on_nodes_advance(phibc_proj, 0.0, &app->global, phi_bc_ho);
-        gkyl_array_copy(f->phi_bc, phi_bc_ho);
-
-        gkyl_eval_on_nodes_release(phibc_proj);
-        gkyl_array_release(phi_bc_ho);
-      }
-    }
+  // Use function pointer to initialize FEM objects
+  gk_field_fem_init_func_t fem_init_func = gk_field_select_fem_init_func(app, f);
+  if (fem_init_func) {
+    fem_init_func(app, f, polarization_weight, &epsilon_global);
   }
 
   if (f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) { 
