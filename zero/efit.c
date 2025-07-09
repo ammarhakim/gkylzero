@@ -365,6 +365,7 @@ void gkyl_efit_release(gkyl_efit* up){
   gkyl_array_release(up->bmagzr);
   gkyl_dg_basis_ops_evalf_release(up->evf);
   gkyl_array_release(up->fpolflux);
+  gkyl_array_release(up->fpolprimeflux);
   gkyl_array_release(up->qflux);
   gkyl_free(up);
 }

@@ -2719,6 +2719,8 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
 
   gkyl_array_release(app->jacobtot_inv_weak);
   gkyl_gk_geometry_release(app->gk_geom);
+  gkyl_dg_geom_release(app->dg_geom);
+  gkyl_gk_dg_geom_release(app->gk_dg_geom);
 
   gk_field_release(app, app->field);
 

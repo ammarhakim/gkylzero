@@ -199,6 +199,8 @@ void gkyl_dg_calc_gyrokinetic_vars_flux_surf(struct gkyl_dg_calc_gyrokinetic_var
 void gkyl_dg_calc_gyrokinetic_vars_release(gkyl_dg_calc_gyrokinetic_vars *up)
 {
   gkyl_gk_geometry_release(up->gk_geom);
+  gkyl_dg_geom_release(up->dg_geom);
+  gkyl_gk_dg_geom_release(up->gk_dg_geom);
   gkyl_velocity_map_release(up->vel_map);
   
   if (GKYL_IS_CU_ALLOC(up->flags))
