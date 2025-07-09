@@ -151,10 +151,6 @@ gkyl_gk_dg_geom_populate_vol(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geo
       global_val = gkyl_array_cfetch(gk_geom->geo_int.bmag_nodal, global_loc);
       gkdgv[qvloc].bmag = global_val[0];
 
-      // set bmag
-      global_val = gkyl_array_cfetch(gk_geom->geo_int.bmag_nodal, global_loc);
-      gkdgv[qvloc].bmag = global_val[0];
-
       // set B3 = e^3 \dot B
       global_val = gkyl_array_cfetch(gk_geom->geo_int.B3_nodal, global_loc);
       gkdgv[qvloc].B3= global_val[0];
@@ -239,7 +235,7 @@ gkyl_gk_dg_geom_populate_surf(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_ge
 }
 
 void
-gkyl_gk_dg_geom_write_vol(struct gkyl_dg_geom *dg_geom, struct gk_geometry* gk_geom, const char *name)
+gkyl_gk_dg_geom_write_vol(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom, struct gk_geometry* gk_geom, const char *name)
 {
   int cells[GKYL_MAX_DIM];
   double lower[GKYL_MAX_DIM];
@@ -253,8 +249,11 @@ gkyl_gk_dg_geom_write_vol(struct gkyl_dg_geom *dg_geom, struct gk_geometry* gk_g
   gkyl_rect_grid_init(&ngrid, gk_geom->nrange_int.ndim, lower, upper, cells);
 
   struct gkyl_array* nodal_j = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_int.volume);
+  struct gkyl_array* nodal_bmag = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_int.volume);
+  struct gkyl_array* nodal_B3 = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_int.volume);
   struct gkyl_array* nodal_dxdz = gkyl_array_new(GKYL_DOUBLE, 9, gk_geom->nrange_int.volume);
   struct gkyl_array* nodal_dzdx = gkyl_array_new(GKYL_DOUBLE, 9, gk_geom->nrange_int.volume);
+  struct gkyl_array* nodal_dualcurlbhat = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_int.volume);
 
 
   int ndim = gk_geom->grid.ndim;
@@ -265,19 +264,28 @@ gkyl_gk_dg_geom_write_vol(struct gkyl_dg_geom *dg_geom, struct gk_geometry* gk_g
 
     long loc = gkyl_range_idx(&gk_geom->local, iter.idx);
     struct gkyl_dg_vol_geom *dgv = gkyl_array_fetch(dg_geom->vol_geom, loc);
+    struct gkyl_gk_dg_vol_geom *gkdgv = gkyl_array_fetch(gk_dg_geom->vol_geom, loc);
 
     struct gkyl_range_iter qviter;
     gkyl_range_iter_init(&qviter, &dg_geom->vol_quad_range);
     int global_nodal_idx[ndim];
     while(gkyl_range_iter_next(&qviter)){
       for (int d=0; d<ndim; ++d)
-        global_nodal_idx[d] = (iter.idx[d]-1)*2 + qviter.idx[d];
+        global_nodal_idx[d] = (iter.idx[d]-gk_geom->local.lower[d])*2 + qviter.idx[d];
       long qvloc = gkyl_range_idx(&dg_geom->vol_quad_range, qviter.idx);
       long global_loc = gkyl_range_idx(&gk_geom->nrange_int, global_nodal_idx);
 
       // set Jc
       double *global_val = gkyl_array_fetch(nodal_j, global_loc);
       global_val[0]= dgv[qvloc].Jc ;
+
+      // set bmag
+      global_val = gkyl_array_fetch(nodal_bmag, global_loc);
+      global_val[0]= gkdgv[qvloc].bmag ;
+
+      // set Jc
+      global_val = gkyl_array_fetch(nodal_B3, global_loc);
+      global_val[0]= gkdgv[qvloc].B3 ;
 
       // set tangents
       global_val = gkyl_array_fetch(nodal_dxdz, global_loc);
@@ -302,6 +310,13 @@ gkyl_gk_dg_geom_write_vol(struct gkyl_dg_geom *dg_geom, struct gk_geometry* gk_g
       global_val[6] = dgv[qvloc].dual[2].x[0];
       global_val[7] = dgv[qvloc].dual[2].x[1];
       global_val[8] = dgv[qvloc].dual[2].x[2];
+
+
+      // set dualcurlbhat
+      global_val = gkyl_array_fetch(nodal_dualcurlbhat, global_loc);
+      global_val[0] = gkdgv[qvloc].dualcurlbhat.x[0];
+      global_val[1] = gkdgv[qvloc].dualcurlbhat.x[1];
+      global_val[2] = gkdgv[qvloc].dualcurlbhat.x[2];
     }
   }
 
@@ -310,10 +325,16 @@ gkyl_gk_dg_geom_write_vol(struct gkyl_dg_geom *dg_geom, struct gk_geometry* gk_g
   char fileNm[sz+1]; // ensure no buffer overflow
   sprintf(fileNm, fmt, name, "Jc_vol");
   gkyl_grid_sub_array_write(&ngrid, &gk_geom->nrange_int, 0,  nodal_j, fileNm);
+  sprintf(fileNm, fmt, name, "bmag_vol");
+  gkyl_grid_sub_array_write(&ngrid, &gk_geom->nrange_int, 0,  nodal_bmag, fileNm);
+  sprintf(fileNm, fmt, name, "B3_vol");
+  gkyl_grid_sub_array_write(&ngrid, &gk_geom->nrange_int, 0,  nodal_B3, fileNm);
   sprintf(fileNm, fmt, name, "tang_vol");
   gkyl_grid_sub_array_write(&ngrid, &gk_geom->nrange_int, 0,  nodal_dxdz, fileNm);
   sprintf(fileNm, fmt, name, "dual_vol");
   gkyl_grid_sub_array_write(&ngrid, &gk_geom->nrange_int, 0,  nodal_dzdx, fileNm);
+  sprintf(fileNm, fmt, name, "dualcurlbhat_vol");
+  gkyl_grid_sub_array_write(&ngrid, &gk_geom->nrange_int, 0,  nodal_dualcurlbhat, fileNm);
 
   gkyl_array_release(nodal_j);
   gkyl_array_release(nodal_dxdz);
@@ -371,7 +392,7 @@ gkyl_gk_dg_geom_write_surf(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom 
       while(gkyl_range_iter_next(&qsiter)){
         int count = 0;
         for (int d=0; d<ndim; ++d) {
-          global_nodal_idx[d] = d == dir ? iter.idx[d]-1 : (iter.idx[d]-1)*2 + qsiter.idx[count];
+          global_nodal_idx[d] = d == dir ? iter.idx[d]-gk_geom->local.lower[d] : (iter.idx[d]-gk_geom->local.lower[d])*2 + qsiter.idx[count];
           if (d != dir) count+=1;
         }
         long qsloc = gkyl_range_idx(&dg_geom->surf_quad_range, qsiter.idx);

@@ -169,6 +169,6 @@ void gkyl_gk_dg_geom_populate_vol(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_d
 
 void gkyl_gk_dg_geom_populate_surf(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom, struct gk_geometry* gk_geom);
 
-void gkyl_gk_dg_geom_write_vol(struct gkyl_dg_geom *dg_geom, struct gk_geometry* gk_geom, const char *name);
+void gkyl_gk_dg_geom_write_vol(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom, struct gk_geometry* gk_geom, const char *name);
 
 void gkyl_gk_dg_geom_write_surf(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom, struct gk_geometry* gk_geom, const char *name);
