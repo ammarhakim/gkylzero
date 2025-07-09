@@ -591,11 +591,12 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
         double q_s = field->info.electron_charge;
         gkyl_array_shiftc_range(field->rho_c, q_s*n_s0*sqrt(2.0), 0, &app->local);
       }
-
-      // Compute the moments to enforce the Bohm sheath criterion.
-      field->sheath_rarefaction_moms_func(app, field, fin);
     }
   } 
+
+  // Compute the moments to enforce the Bohm sheath criterion.
+  field->sheath_rarefaction_moms_func(app, field, fin);
+
   app->stat.field_phi_rhs_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -712,10 +713,10 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
       field->enforce_zbc(app, field, field->phi_smooth);
 
     }
-
-    // Enforce the Bohm sheath criterion by modifying the sheath potential.
-//    field->sheath_rarefaction_mod_func(app, field, field->phi_smooth);
   }
+
+  // Enforce the Bohm sheath criterion by modifying the sheath potential.
+//  field->sheath_rarefaction_mod_func(app, field, field->phi_smooth);
   app->stat.field_phi_solve_tm += gkyl_time_diff_now_sec(wst);
 }
 
