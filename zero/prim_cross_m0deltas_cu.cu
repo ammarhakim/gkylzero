@@ -12,7 +12,7 @@ extern "C" {
 
 __global__ void
 gkyl_prim_cross_m0deltas_set_op_range_cu_kernel(struct gkyl_nmat *As, struct gkyl_nmat *xs,
-  struct gkyl_basis basis, double betap1T2,
+  struct gkyl_basis basis, bool normNu, double betap1T2,
   double massself, struct gkyl_array* m0self, struct gkyl_array* nuself,
   double massother, struct gkyl_array* m0other, struct gkyl_array* nuother,
   struct gkyl_range range, struct gkyl_array* out)
@@ -62,8 +62,8 @@ gkyl_prim_cross_m0deltas_set_op_range_cu_kernel(struct gkyl_nmat *As, struct gky
       array_acc1(num_basis, denom, 1.0/betap1T2, numer);
   
       mul_op(m0self_d, numer, numer);
-      // if (up->normNu)
-      //   mul_op(nuself_d, numer, numer);
+      if (normNu)
+        mul_op(nuself_d, numer, numer);
     }
     else {
       // Both collision frequencies are zero, so set the numerator and
@@ -127,7 +127,7 @@ void gkyl_prim_cross_m0deltas_advance_cu(gkyl_prim_cross_m0deltas *up,
 
   // Construct matrices using CUDA kernel.
   gkyl_prim_cross_m0deltas_set_op_range_cu_kernel<<<nblocks, nthreads>>>(A_d->on_dev,
-    x_d->on_dev, *up->basis, up->betap1T2, massself, m0self->on_dev, nuself->on_dev,
+    x_d->on_dev, *up->basis, up->normNu, up->betap1T2, massself, m0self->on_dev, nuself->on_dev,
     massother, m0other->on_dev, nuother->on_dev, *up->range, out->on_dev);
 
   // Invert all matrices in batch mode.
