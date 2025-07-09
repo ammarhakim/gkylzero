@@ -83,11 +83,8 @@ void gkyl_dg_calc_gyrokinetic_vars_flux_surf(struct gkyl_dg_calc_gyrokinetic_var
   double xc[GKYL_MAX_DIM];
 
   struct gkyl_range vpar_range;
-  int extend_lo[GKYL_MAX_DIM], extend_up[GKYL_MAX_DIM];
-  for(int i = 0; i < pdim; ++i) {
-    extend_lo[i] = 0;
-    extend_up[i] = 0;
-  }
+  int extend_lo[GKYL_MAX_DIM] = {0};
+  int extend_up[GKYL_MAX_DIM] = {0};
   extend_lo[cdim] = -1;
   gkyl_range_extend(&vpar_range, phase_range, extend_lo, extend_up);
 
