@@ -1005,6 +1005,9 @@ struct gk_field {
   
   // Pointer to function for the twist-and-shift BCs.
   void (*enforce_zbc) (const gkyl_gyrokinetic_app *app, const struct gk_field *field, struct gkyl_array *finout);
+
+  // Pointer to function to solve the poisson equation
+  void (*field_solve) (struct gkyl_gyrokinetic_app *app, struct gk_field *field);
 };
 
 // Gyrokinetic object: used as opaque pointer in user code.
