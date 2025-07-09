@@ -776,6 +776,7 @@ int main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_field field =
   {
+    .gkfield_id = GKYL_GK_FIELD_FULL_2X,
     .polarization_bmag = ctx.B_p,
     .poisson_bcs = {
       .lo_type = {GKYL_POISSON_NEUMANN, GKYL_POISSON_NEUMANN},
