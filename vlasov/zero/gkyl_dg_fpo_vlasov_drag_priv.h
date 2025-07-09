@@ -48,19 +48,6 @@ kernel_fpo_vlasov_drag_vol_1x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const doub
 
 GKYL_CU_DH
 static double
-kernel_fpo_vlasov_drag_vol_1x3v_ser_p2(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, const int* idx, const double *qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_fpo_vlasov_drag* fpo_vlasov_drag = container_of(eqn, struct dg_fpo_vlasov_drag, eqn);
-  
-  long pidx = gkyl_range_idx(&fpo_vlasov_drag->phase_range, idx);
-  
-  return fpo_vlasov_drag_vol_1x3v_ser_p2( dx,
-    (const double*) gkyl_array_cfetch(fpo_vlasov_drag->auxfields.drag_coeff, pidx),
-    qIn, qRhsOut);
-}
-
-GKYL_CU_DH
-static double
 kernel_fpo_vlasov_drag_vol_2x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, const int* idx, const double *qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_fpo_vlasov_drag* fpo_vlasov_drag = container_of(eqn, struct dg_fpo_vlasov_drag, eqn);
@@ -75,7 +62,7 @@ kernel_fpo_vlasov_drag_vol_2x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const doub
 GKYL_CU_D
 static const gkyl_dg_fpo_vlasov_drag_vol_kern_list ser_vol_kernels[] = {
   // 1x kernels
-  { NULL, kernel_fpo_vlasov_drag_vol_1x3v_ser_p1, kernel_fpo_vlasov_drag_vol_1x3v_ser_p2 },
+  { NULL, kernel_fpo_vlasov_drag_vol_1x3v_ser_p1, NULL },
   // 2x kernels
   { NULL, kernel_fpo_vlasov_drag_vol_2x3v_ser_p1, NULL },
   // 3x kernels
@@ -87,7 +74,7 @@ static const gkyl_dg_fpo_vlasov_drag_vol_kern_list ser_vol_kernels[] = {
 GKYL_CU_D
 static const gkyl_dg_fpo_vlasov_drag_surf_kern_list ser_surf_vx_kernels[] = {
   // 1x kernels
-  { NULL, fpo_vlasov_drag_surfvx_1x3v_ser_p1, fpo_vlasov_drag_surfvx_1x3v_ser_p2 },
+  { NULL, fpo_vlasov_drag_surfvx_1x3v_ser_p1, NULL },
   // 2x kernels
   { NULL, fpo_vlasov_drag_surfvx_2x3v_ser_p1, NULL},
   // 3x kernels
@@ -98,7 +85,7 @@ static const gkyl_dg_fpo_vlasov_drag_surf_kern_list ser_surf_vx_kernels[] = {
 GKYL_CU_D
 static const gkyl_dg_fpo_vlasov_drag_surf_kern_list ser_surf_vy_kernels[] = {
   // 1x kernels
-  { NULL, fpo_vlasov_drag_surfvy_1x3v_ser_p1, fpo_vlasov_drag_surfvy_1x3v_ser_p2 },
+  { NULL, fpo_vlasov_drag_surfvy_1x3v_ser_p1, NULL },
   // 2x kernels
   { NULL, fpo_vlasov_drag_surfvy_2x3v_ser_p1, NULL},
   // 3x kernels
@@ -109,7 +96,7 @@ static const gkyl_dg_fpo_vlasov_drag_surf_kern_list ser_surf_vy_kernels[] = {
 GKYL_CU_D
 static const gkyl_dg_fpo_vlasov_drag_surf_kern_list ser_surf_vz_kernels[] = {
   // 1x kernels
-  { NULL, fpo_vlasov_drag_surfvz_1x3v_ser_p1, fpo_vlasov_drag_surfvz_1x3v_ser_p2 },
+  { NULL, fpo_vlasov_drag_surfvz_1x3v_ser_p1, NULL },
   // 2x kernels
   { NULL, fpo_vlasov_drag_surfvz_2x3v_ser_p1, NULL},
   // 3x kernels
@@ -120,7 +107,7 @@ static const gkyl_dg_fpo_vlasov_drag_surf_kern_list ser_surf_vz_kernels[] = {
 GKYL_CU_D
 static const gkyl_dg_fpo_vlasov_drag_boundary_surf_kern_list ser_boundary_surf_vx_kernels[] = {
   // 1x kernels
-  { NULL, fpo_vlasov_drag_boundary_surfvx_1x3v_ser_p1, fpo_vlasov_drag_boundary_surfvx_1x3v_ser_p2 },
+  { NULL, fpo_vlasov_drag_boundary_surfvx_1x3v_ser_p1, NULL },
   // 2x kernels
   { NULL, fpo_vlasov_drag_boundary_surfvx_2x3v_ser_p1, NULL},
   // 3x kernels
@@ -131,7 +118,7 @@ static const gkyl_dg_fpo_vlasov_drag_boundary_surf_kern_list ser_boundary_surf_v
 GKYL_CU_D
 static const gkyl_dg_fpo_vlasov_drag_boundary_surf_kern_list ser_boundary_surf_vy_kernels[] = {
   // 1x kernels
-  { NULL, fpo_vlasov_drag_boundary_surfvy_1x3v_ser_p1, fpo_vlasov_drag_boundary_surfvy_1x3v_ser_p2 },
+  { NULL, fpo_vlasov_drag_boundary_surfvy_1x3v_ser_p1, NULL },
   // 2x kernels
   { NULL, fpo_vlasov_drag_boundary_surfvy_2x3v_ser_p1, NULL},
   // 3x kernels
@@ -142,7 +129,7 @@ static const gkyl_dg_fpo_vlasov_drag_boundary_surf_kern_list ser_boundary_surf_v
 GKYL_CU_D
 static const gkyl_dg_fpo_vlasov_drag_boundary_surf_kern_list ser_boundary_surf_vz_kernels[] = {
   // 1x kernels
-  { NULL, fpo_vlasov_drag_boundary_surfvz_1x3v_ser_p1, fpo_vlasov_drag_boundary_surfvz_1x3v_ser_p2 },
+  { NULL, fpo_vlasov_drag_boundary_surfvz_1x3v_ser_p1, NULL },
   // 2x kernels
   { NULL, fpo_vlasov_drag_boundary_surfvz_2x3v_ser_p1, NULL},
   // 3x kernels
