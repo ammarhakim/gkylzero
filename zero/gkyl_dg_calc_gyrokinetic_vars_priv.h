@@ -10,13 +10,13 @@
 #include <gkyl_util.h>
 #include <assert.h>
 
-typedef double (*gyrokinetic_flux_surf_t)( const struct gkyl_basis *basis, const double *w, const double *dxv, 
+typedef double (*gyrokinetic_flux_surf_t)(const double *w, const double *dxv, 
   const double *vmap, const double *vmapSq, const double q_, const double m_, 
   const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs, 
   const double *bmag, const double *phi, const double *JfL, const double *JfR, double* GKYL_RESTRICT flux_surf); 
 
 typedef double (*gyrokinetic_flux_surfvpar_t)( 
-  const struct gkyl_basis *basis, const double *w, const double *dxv, 
+  const double *w, const double *dxv, 
   const double *vmap_prime_l, const double *vmap_prime_r,
   const double *vmap, const double *vmapSq, const double q_, const double m_, 
   const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv, 
@@ -38,8 +38,6 @@ typedef struct { gyrokinetic_flux_surfvpar_t kernels[3]; } gkyl_dg_gyrokinetic_f
 
 struct gkyl_dg_calc_gyrokinetic_vars {
   struct gkyl_rect_grid phase_grid; // Phase space grid for cell spacing and cell center
-  const struct gkyl_basis *surf_basis;
-  const struct gkyl_basis *surf_vpar_basis;
   int cdim; // Configuration space dimensionality
   int pdim; // Phase space dimensionality
   gyrokinetic_flux_surf_t flux_surf[3]; // kernel for computing surface expansion of phase space flux alpha
@@ -266,7 +264,6 @@ choose_gyrokinetic_flux_no_by_surf_vpar_kern(int cdim, int vdim, int poly_order)
 struct gkyl_dg_calc_gyrokinetic_vars* 
 gkyl_dg_calc_gyrokinetic_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const struct gkyl_basis *surf_basis, const struct gkyl_basis *surf_vpar_basis, 
   double charge, double mass, enum gkyl_gkmodel_id gkmodel_id, 
   const struct gk_geometry *gk_geom, const struct gkyl_dg_geom *dg_geom, 
   const struct gkyl_gk_dg_geom *gk_dg_geom, const struct gkyl_velocity_map *vel_map);

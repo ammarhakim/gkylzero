@@ -1,6 +1,6 @@
 #include <gkyl_gyrokinetic_kernels.h> 
 GKYL_CU_DH double gyrokinetic_flux_surfx_1x1v_ser_p1(
-    const struct gkyl_basis *basis, const double *w, const double *dxv,
+    const double *w, const double *dxv,
     const double *vmap, const double *vmapSq, const double q_, const double m_,
     const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs, 
     const double *bmag, const double *phi, const double *JfL, const double *JfR, 

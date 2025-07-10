@@ -612,14 +612,10 @@ struct gk_species {
   enum gkyl_gkfield_id gkfield_id;
 
   struct gkyl_basis basis; // phase-space basis
-  struct gkyl_basis surf_basis; // surface basis for config space surfaces
-  struct gkyl_basis surf_vpar_basis; // surface basis for vpar surfaces
 
   // pointer to basis on device
   // (points to host structs if not on GPU)
   struct gkyl_basis *basis_on_dev; 
-  struct gkyl_basis *surf_basis_on_dev; 
-  struct gkyl_basis *surf_vpar_basis_on_dev; 
   
   struct gkyl_job_pool *job_pool; // Job pool
   struct gkyl_rect_grid grid;
