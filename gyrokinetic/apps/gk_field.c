@@ -87,13 +87,13 @@ gk_field_fem_init_2d3d(struct gkyl_gyrokinetic_app *app, struct gk_field *f,
     for (int i=0; i<app->cdim-2/app->cdim; i++) {
       gkyl_array_set_offset(f->epsilon, polarization_weight, Jgij[i], i*app->basis.num_basis);
     }
+    // Initialize the Poisson solvers.
+    f->fem_poisson_deflated = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev, app->basis,
+      app->local, f->global_sub_range, f->epsilon, 0, f->info.poisson_bcs, f->info.bias_plane_list, app->use_gpu);
+    f->fem_poisson_perp = gkyl_fem_poisson_perp_new(&app->local, &app->grid, app->basis,
+      &f->info.poisson_bcs, f->epsilon, 0, app->use_gpu);
   }
 
-  // Initialize the Poisson solvers.
-  f->fem_poisson_deflated = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev, app->basis,
-    app->local, f->global_sub_range, f->epsilon, 0, f->info.poisson_bcs, f->info.bias_plane_list, app->use_gpu);
-  f->fem_poisson_perp = gkyl_fem_poisson_perp_new(&app->local, &app->grid, app->basis,
-    &f->info.poisson_bcs, f->epsilon, 0, app->use_gpu);
 
   // Handle Dirichlet varying BC
   f->phi_bc = 0;
@@ -116,19 +116,6 @@ gk_field_fem_init_2d3d(struct gkyl_gyrokinetic_app *app, struct gk_field *f,
   }
 }
 
-// Function to select the appropriate FEM initialization function
-static gk_field_fem_init_func_t
-gk_field_select_fem_init_func(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
-{
-  if (f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
-    return gk_field_fem_init_boltzmann;
-  } else if (app->cdim == 1) {
-    return gk_field_fem_init_1d;
-  } else if (app->cdim > 1) {
-    return gk_field_fem_init_2d3d;
-  }
-  return NULL; // Should not reach here
-}
 
 static void
 gk_field_invert_flr(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi)
@@ -313,7 +300,7 @@ gk_field_poisson_solve_full_2x(struct gkyl_gyrokinetic_app *app, struct gk_field
 }
 
 void
-gk_field_poisson_solve_es_iwl(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
+gk_field_poisson_deflate_solve_es_iwl(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
   // Gather charge density into global array.
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, field->rho_c, field->rho_c_global_dg);
@@ -337,7 +324,7 @@ gk_field_poisson_solve_es_iwl(struct gkyl_gyrokinetic_app *app, struct gk_field 
 }
 
 void
-gk_field_poisson_solve_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
+gk_field_poisson_perp_solve_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
   // Smooth the charge density along z.
   gk_field_fem_projection_par(app, field, field->rho_c, field->rho_c);
@@ -518,27 +505,23 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     es_energy_fac_1d_adiabatic = 0.5*quasineut_contr;
   }
 
-  // Use function pointer to initialize FEM objects
-  gk_field_fem_init_func_t fem_init_func = gk_field_select_fem_init_func(app, f);
-  if (fem_init_func) {
-    fem_init_func(app, f, polarization_weight, &epsilon_global);
-  }
-
   if (f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) { 
+    gk_field_fem_init_boltzmann(app, f, polarization_weight, &epsilon_global);
     f->field_solve = gk_field_boltzmann_solve;
-  }
-  else if (f->gkfield_id == GKYL_GK_FIELD_FULL_2X && app->cdim == 2) {
-    f->field_solve = gk_field_poisson_solve_full_2x;
   }
   else {
     if (app->cdim == 1) {
+      gk_field_fem_init_1d(app, f, polarization_weight, &epsilon_global);
       f->field_solve = gk_field_poisson_solve_1x;
     }
     else if (app->cdim > 1) {
-      if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
-        f->field_solve = gk_field_poisson_solve_es_iwl;
+      gk_field_fem_init_2d3d(app, f, polarization_weight, &epsilon_global);
+      if (f->gkfield_id == GKYL_GK_FIELD_FULL_2X && app->cdim == 2) {
+        f->field_solve = gk_field_poisson_solve_full_2x;
+      } else if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
+        f->field_solve = gk_field_poisson_deflate_solve_es_iwl;
       } else {
-        f->field_solve = gk_field_poisson_solve_2x3x;
+        f->field_solve = gk_field_poisson_perp_solve_2x3x;
       }
     }
   }
