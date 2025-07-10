@@ -187,10 +187,14 @@ void gkyl_dg_calc_gyrokinetic_vars_flux_surf_cu(struct gkyl_dg_calc_gyrokinetic_
     flux_surf->on_dev, cflrate->on_dev);
 
   struct gkyl_range vpar_range;
-  int extend_lo[GKYL_MAX_DIM] = {0};
-  int extend_up[GKYL_MAX_DIM] = {0};
-  extend_lo[up->cdim] = -1;
-  gkyl_range_extend(&vpar_range, phase_range, extend_lo, extend_up);
+  int sublower[GKYL_MAX_DIM];
+  int subupper[GKYL_MAX_DIM];
+  for(int i = 0; i < up->pdim; i++) {
+     sublower[i] = phase_range->lower[i];
+     subupper[i] = phase_range->upper[i];
+  }
+  sublower[up->cdim] += 1;
+  gkyl_sub_range_init(&vpar_range, phase_ext_range, sublower, subupper);
   gkyl_dg_calc_gyrokinetic_vars_flux_surfvpar_cu_kernel<<<vpar_range.volume, GKYL_DEFAULT_NUM_THREADS>>>(up->on_dev, 
     *conf_range, *phase_range, *conf_ext_range, *phase_ext_range, vpar_range, phi->on_dev, fin->on_dev,
     flux_surf->on_dev, cflrate->on_dev);
