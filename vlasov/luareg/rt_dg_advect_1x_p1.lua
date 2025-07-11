@@ -13,6 +13,8 @@ v_advect = 1.0 -- Advection velocity.
 Nx = 16 -- Cell count (configuration space: x-direction).
 Lx = 2.0 * pi -- Domain size (configuration space: x-direction).
 poly_order = 1 -- Polynomial order.
+basis_type = "serendipity" -- Basis function set.
+time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
 t_end = 20.0 * pi -- Final simulation time.
@@ -42,10 +44,10 @@ vlasovApp = Vlasov.App.new {
   timeStepper = time_stepper,
 
   -- Decomposition for configuration space.
-  decompCuts = { 1 }, -- Cuts in each coodinate direction (x-direction only).
+  decompCuts = { 1 }, -- Cuts in each coordinate direction (x-direction only).
 
   -- Boundary conditions for configuration space.
-  periodicDirs = { 1 }, -- Periodic directions.
+  periodicDirs = { 1 }, -- Periodic directions (x-direction only).
   
   -- Fluid.
   fluid = Vlasov.FluidSpecies.new {
@@ -65,9 +67,10 @@ vlasovApp = Vlasov.App.new {
     -- Initial conditions function.
     init = function (t, xn)
       local x = xn[1]
-      
-      -- Set advected quantity.
-      return math.sin(x)
+
+      local f = math.sin(x) -- Advected quantity.
+
+      return f
     end,
 
     evolve = true -- Evolve species?

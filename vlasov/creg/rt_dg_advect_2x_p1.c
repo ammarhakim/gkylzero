@@ -1,4 +1,4 @@
-// Constant advection of a sine wave using a p2 DG discretization of the advection equation.
+// Constant advection in 2x using a p1 DG discretization of the advection equation. 
 
 #include <math.h>
 #include <stdio.h>
@@ -30,9 +30,15 @@ struct advect_ctx
   // Physical constants (using normalized code units).
   double v_advect; // Advection velocity.
 
+  double r0; // Distribution radius.
+  double x0; // Distribution center (x-coordinate).
+  double y0; // Distribution center (y-coordinate).
+
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
+  int Ny; // Cell count (configuration space: y-direction).
   double Lx; // Domain size (configuration space: x-direction).
+  double Ly; // Domain size (configuration space: y-direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
@@ -53,14 +59,20 @@ create_ctx(void)
 
   // Physical constants (using normalized code units).
   double v_advect = 1.0; // Advection velocity.
+  
+  double r0 = 0.2; // Distribution radius.
+  double x0 = 1.0 / 4.0; // Distribution center (x-coordinate).
+  double y0 = 1.0 / 2.0; // Distribution center (y-coordinate).
 
   // Simulation parameters.
   int Nx = 16; // Cell count (configuration space: x-direction).
-  double Lx = 2.0 * pi; // Domain size (configuration space: x-direction).
-  int poly_order = 2; // Polynomial order.
+  int Ny = 16; // Cell count (configuration space: y-direction).
+  double Lx = 1.0; // Domain size (configuration space: x-direction).
+  double Ly = 1.0; // Domain size (configuration space: y-direction).
+  int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 20.0 * pi; // Final simulation time.
+  double t_end = 2.0 * pi; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
@@ -71,8 +83,13 @@ create_ctx(void)
   struct advect_ctx ctx = {
     .pi = pi,
     .v_advect = v_advect,
+    .r0 = r0,
+    .x0 = x0,
+    .y0 = y0,
     .Nx = Nx,
+    .Ny = Ny,
     .Lx = Lx,
+    .Ly = Ly,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -90,9 +107,17 @@ create_ctx(void)
 void
 evalInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double x = xn[0];
+  struct advect_ctx *app = ctx;
+  double x = xn[0], y = xn[1];
 
-  double f = sin(x); // Advected quantity.
+  double pi = app->pi;
+
+  double r0 = app->r0;
+  double x0 = app->x0;
+  double y0 = app->y0;
+
+  double r = fmin(sqrt(((x - x0) * (x - x0)) + ((y - y0) * (y - y0))), r0) / r0;
+  double f = 0.25 * (1.0 + cos(pi * r)); // Advected quantity.
 
   // Set advected quantity.
   fout[0] = f;
@@ -101,12 +126,10 @@ evalInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, v
 void
 eval_advect_vel(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct advect_ctx *app = ctx;
+  double x = xn[0], y = xn[1];
 
-  double v_advect = app->v_advect;
-
-  double ux = v_advect; // Advection velocity (x-direction).
-  double uy = 0.0; // Advection velocity (y-direction).
+  double ux = -y + 0.5; // Advection velocity (x-direction).
+  double uy = x - 0.5; // Advection velocity (y-direction).
   double uz = 0.0; // Advection velocity (z-direction).
 
   // Set advection velocity.
@@ -175,6 +198,7 @@ main(int argc, char **argv)
   struct advect_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
   // Linear advection equation.
   struct gkyl_wv_eqn *advect = gkyl_wv_advect_new(ctx.v_advect, false);
@@ -198,7 +222,7 @@ main(int argc, char **argv)
   }
 #endif  
 
-int ccells[] = { NX };
+int ccells[] = { NX, NY };
 int cdim = sizeof(ccells) / sizeof(ccells[0]);
 
 int cuts[cdim];
@@ -269,19 +293,19 @@ for (int d = 0; d < cdim; d++) {
 
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
-    .name = "dg_advect_1x_p2",
+    .name = "dg_advect_2x_p1",
 
-    .cdim = 1, .vdim = 0,
-    .lower = { 0.0 },
-    .upper = { ctx.Lx },
-    .cells = { NX },
+    .cdim = 2, .vdim = 0,
+    .lower = { 0.0, 0.0 },
+    .upper = { ctx.Lx, ctx.Ly },
+    .cells = { NX, NY },
 
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
 
-    .num_periodic_dir = 1,
-    .periodic_dirs = { 0 },
+    .num_periodic_dir = 2,
+    .periodic_dirs = { 0, 1 },
 
     .num_species = 0,
     .species = { },
@@ -293,7 +317,7 @@ for (int d = 0; d < cdim; d++) {
 
     .parallelism = {
       .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0] },
+      .cuts = { app_args.cuts[0], app_args.cuts[1] },
       .comm = comm,
     },
   };

@@ -92,8 +92,10 @@ evalInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, v
 {
   double x = xn[0];
 
+  double f = sin(x); // Advected quantity.
+
   // Set advected quantity.
-  fout[0] = sin(x);
+  fout[0] = f;
 }
 
 void
@@ -271,7 +273,7 @@ for (int d = 0; d < cdim; d++) {
 
     .cdim = 1, .vdim = 0,
     .lower = { 0.0 },
-    .upper = { ctx.Lx},
+    .upper = { ctx.Lx },
     .cells = { NX },
 
     .poly_order = ctx.poly_order,
