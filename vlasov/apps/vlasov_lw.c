@@ -325,7 +325,7 @@ eqn_openlibs(lua_State *L)
   lua_settable(L, -3);
 
   luaL_register(L, "G0.Vlasov.Eq.Euler", eqn_euler_ctor);
-  luaL_register(L, "G0.Vlasov.Eq.Advect", eqn_advect_ctor);
+  luaL_register(L, "G0.Vlasov.Eq.LinearAdvection", eqn_advect_ctor);
   luaL_register(L, "G0.Vlasov.Eq.IncompressEuler", eqn_incompress_euler_ctor);
   luaL_register(L, "G0.Vlasov.Eq.HasegawaMima", eqn_hasegawa_mima_ctor);
   luaL_register(L, "G0.Vlasov.Eq.HasegawaWakatani", eqn_hasegawa_wakatani_ctor);

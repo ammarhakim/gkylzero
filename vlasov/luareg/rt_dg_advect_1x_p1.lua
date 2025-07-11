@@ -1,17 +1,21 @@
--- Constant advection of a sine wave using a DG discretization of the advection equation. 
+-- Constant advection of a sine wave using a p1 DG discretization of the advection equation.
 
 local Vlasov = G0.Vlasov
-local Advect = G0.Vlasov.Eq.Advect
+local LinearAdvection = G0.Vlasov.Eq.LinearAdvection
+
+-- Mathematical constants (dimensionless).
+pi = math.pi
+
+-- Physical constants (using normalized code units).
+v_advect = 1.0 -- Advection velocity.
 
 -- Simulation parameters.
-Nx = 16 -- Cell count (x-direction).
-Lx = 2.0*math.pi -- Domain size (x-direction).
+Nx = 16 -- Cell count (configuration space: x-direction).
+Lx = 2.0 * pi -- Domain size (configuration space: x-direction).
 poly_order = 1 -- Polynomial order.
-basis_type = "serendipity" -- Basis function set.
-time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 20.0*math.pi -- Final simulation time.
+t_end = 20.0 * pi -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
@@ -45,24 +49,28 @@ vlasovApp = Vlasov.App.new {
   
   -- Fluid.
   fluid = Vlasov.FluidSpecies.new {
-    equation = Advect.new { },
+    equation = LinearAdvection.new { },
 
     -- Constant advection function.
     appAdvect = function (t, xn)
       local x = xn[1]
-      local ux = 1.0
-      local uy = 0.0
-      local uz = 0.0
 
-      return 1.0, 0.0, 0.0
+      local ux = v_advect -- Advection velocity (x-direction).
+      local uy = 0.0 -- Advection velocity (y-direction).
+      local uz = 0.0 -- Advection velocity (z-direction).
+
+      return ux, uy, uz
     end,
     
     -- Initial conditions function.
     init = function (t, xn)
       local x = xn[1]
       
+      -- Set advected quantity.
       return math.sin(x)
     end,
+
+    evolve = true -- Evolve species?
   },
 
   skipField = true
