@@ -783,7 +783,7 @@ struct gk_species {
   double *m0_max; // Maximum number density in this MPI process.
 };
 
-// neutral species data
+// Neutral species data.
 struct gk_neut_species {
   struct gkyl_gyrokinetic_neut_species info; // data for neutral species
 
@@ -912,6 +912,37 @@ struct gk_neut_species {
   void (*calc_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm);
   void (*write_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns);
   void (*release_func)(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s);
+};
+
+// Neutral fluid species data.
+struct gk_fluid_neut_species {
+  struct gkyl_gyrokinetic_fluid_neut_species info; // Input struct.
+
+  enum gkyl_eqn_type eqn_type;  // Type ID of equation.
+
+  int num_moments; // Number of fluid moments.
+  struct gkyl_array *f, *f1, *fnew; // Arrays containing moments.
+  struct gkyl_array *cflrate; // CFL rate in each cell
+  double *omega_cfl; // Max reduced CFL frequency.
+
+  struct gkyl_array *f_host; // Host moments for projecting ICs and I/O.
+
+  int num_prim_var; // Number of primitive variables.
+  struct gkyl_array *prim_var; // Primitive variables (udrift, pressure).
+  struct gkyl_array *prim_var_host; // Host prim_var for I/O. 
+
+  int num_integ_mom; // Number of integrated moments.
+  struct gkyl_array *integ_mom; // Integrated moments
+  double *red_integ_diag; // for reduction on GPU
+  gkyl_dynvec integ_diag; // Integrated moments reduced across grid
+  bool is_first_integ_write_call; // flag for int-moments dynvec written first time
+
+  // Function pointers selected at runtime.
+  void (*prim_var_func)(gkyl_gyrokinetic_app *app, struct gk_fluid_neut_species *fns, const struct gkyl_array *f); 
+  void (*calc_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_fluid_neut_species *fns, double tm); 
+  void (*write_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_fluid_neut_species *fns); 
+  void (*write_func)(gkyl_gyrokinetic_app *app, struct gk_fluid_neut_species *fns, double tm, int frame); 
+  void (*release_func)(const gkyl_gyrokinetic_app *app, struct gk_fluid_neut_species *fns);   
 };
 
 // field data
@@ -1074,6 +1105,9 @@ struct gkyl_gyrokinetic_app {
 
   int num_neut_species; // Number of neutral species.
   struct gk_neut_species *neut_species; // Data for each neutral species.
+
+  int num_fluid_neut_species; // Number of fluid neutral species.
+  struct gk_fluid_neut_species *fluid_neut_species; // Data for each fluid neutral species.
 
   bool has_implicit_coll_scheme; // Boolean for using implicit bgk scheme (over explicit rk3)
 
@@ -2745,6 +2779,7 @@ void gk_neut_species_source_write_integrated_mom(gkyl_gyrokinetic_app* app, stru
 void gk_neut_species_source_release(const struct gkyl_gyrokinetic_app *app, const struct gk_source *src);
 
 /** gk_neut_species API */
+
 /**
  * Initialize neutral species.
  *
@@ -2896,6 +2931,52 @@ void gk_neut_species_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_n
  * @param species Neutral species object to delete.
  */
 void gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s);
+
+/** gk_fluid_neut_species API */
+
+/**
+ * Initialize neutral species.
+ *
+ * @param gk Input gk data.
+ * @param app gyrokinetic app object.
+ * @param s On output, initialized neutral species object.
+ */
+void gk_fluid_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_fluid_neut_species *fns);
+
+/**
+ * Species write function.
+ *
+ * @param app gyrokinetic app object.
+ * @param gkns Neutral species object.
+ * @param tm simulation time.
+ * @param frame simulation frame.
+ */
+void gk_fluid_neut_species_write(gkyl_gyrokinetic_app* app, struct gk_fluid_neut_species *fns, double tm, int frame);
+
+/**
+ * Species calc integrated moment function.
+ *
+ * @param app gyrokinetic app object.
+ * @param gkns Neutral species object.
+ * @param tm simulation time.
+ */
+void gk_fluid_neut_species_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_fluid_neut_species *fns, double tm);
+
+/**
+ * Species write integrated moment function.
+ *
+ * @param app gyrokinetic app object.
+ * @param gkns Neutral species object.
+ */
+void gk_fluid_neut_species_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_fluid_neut_species *fns);
+
+/**
+ * Delete resources used in neutral species.
+ *
+ * @param app gyrokinetic app object.
+ * @param species Neutral species object to delete.
+ */
+void gk_fluid_neut_species_release(const gkyl_gyrokinetic_app* app, struct gk_fluid_neut_species *fns);
 
 /** gk_field API */
 
