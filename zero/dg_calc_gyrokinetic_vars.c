@@ -115,7 +115,7 @@ void gkyl_dg_calc_gyrokinetic_vars_flux_surf(struct gkyl_dg_calc_gyrokinetic_var
 
       const struct gkyl_dg_surf_geom *dgs = gkyl_dg_geom_get_surf(up->dg_geom, dir, idx);
       const struct gkyl_gk_dg_surf_geom *gkdgs = gkyl_gk_dg_geom_get_surf(up->gk_dg_geom, dir, idx);
-      cflrate_d[0] += up->flux_surf[dir](xc, up->phase_grid.dx, 
+      cflrate_d[dir] += up->flux_surf[dir](xc, up->phase_grid.dx, 
         vmap_d, vmapSq_d, up->charge, up->mass,
         dgs, gkdgs,
         bmag_d, phi_d,  fL, fR, flux_surf_d);
@@ -139,7 +139,7 @@ void gkyl_dg_calc_gyrokinetic_vars_flux_surf(struct gkyl_dg_calc_gyrokinetic_var
         const struct gkyl_gk_dg_surf_geom *gkdgs = gkyl_gk_dg_geom_get_surf(up->gk_dg_geom, dir, idx_edge);
 
         double* flux_surf_ext_d = gkyl_array_fetch(flux_surf, loc_phase_ext);
-        cflrate_ext_d[0] += up->flux_edge_surf[dir](xc, up->phase_grid.dx, 
+        cflrate_ext_d[dir] += up->flux_edge_surf[dir](xc, up->phase_grid.dx, 
           vmap_d, vmapSq_d, up->charge, up->mass,
           dgs, gkdgs,
           bmag_d, phi_d, fL, fR, flux_surf_ext_d);
@@ -182,7 +182,7 @@ void gkyl_dg_calc_gyrokinetic_vars_flux_surf(struct gkyl_dg_calc_gyrokinetic_var
 
     const struct gkyl_dg_vol_geom *dgv = gkyl_dg_geom_get_vol(up->dg_geom, idx);
     const struct gkyl_gk_dg_vol_geom *gkdgv = gkyl_gk_dg_geom_get_vol(up->gk_dg_geom, idx);
-    cflrate_d[0] += up->flux_surfvpar[0](xc, up->phase_grid.dx, 
+    cflrate_d[dir] += up->flux_surfvpar[0](xc, up->phase_grid.dx, 
       vpL, vpR,
       vmap_d, vmapSq_d, up->charge, up->mass,
       dgv, gkdgv, bmag_d, phi_d,  fL, fR, flux_surf_d);
