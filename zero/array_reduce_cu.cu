@@ -359,8 +359,6 @@ gkyl_array_reduce_range_sum_cu(double *out_d, const struct gkyl_array* inp, cons
 void
 gkyl_array_reduce_max_sum_comp_cu(double *out_d, const struct gkyl_array* inp)
 {
-  gkyl_cu_memset(out_d, 0, inp->ncomp*sizeof(double));
-  
   const int nthreads = GKYL_DEFAULT_NUM_THREADS;  
   int nblocks = gkyl_int_div_up(inp->size, nthreads);
   arrayMaxSumComp_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_dev, out_d);
@@ -371,8 +369,6 @@ gkyl_array_reduce_max_sum_comp_cu(double *out_d, const struct gkyl_array* inp)
 void
 gkyl_array_reduce_range_max_sum_comp_cu(double *out_d, const struct gkyl_array* inp, const struct gkyl_range *range)
 {
-  gkyl_cu_memset(out_d, 0, inp->ncomp*sizeof(double));
-  
   const int nthreads = GKYL_DEFAULT_NUM_THREADS;
   int nblocks = gkyl_int_div_up(range->volume, nthreads);
   arrayMaxSumComp_range_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_dev, *range, out_d);
