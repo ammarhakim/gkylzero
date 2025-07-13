@@ -21,7 +21,7 @@ gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_array_op 
         gkyl_array_reduce_sum_cu(out, arr);
         break;
       case GKYL_SUM_COMP:
-        gkyl_array_reduce_sum_comp_cu(out, arr);
+        gkyl_array_reduce_max_sum_comp_cu(out, arr);
         break;
     }
     return;
@@ -59,12 +59,14 @@ gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_array_op 
       }
       break;
 
-    case GKYL_SUM_COMP:
-      out[0] = 0;
+    case GKYL_MAX_SUM_COMP:
+      out[0] = -DBL_MAX;
       for (size_t i=0; i<arr->size; ++i) {
         const double *d = gkyl_array_cfetch(arr, i);
+        double sum = 0.0;
         for (long k=0; k<nc; ++k)
-          out[0] += d[k];
+          sum += d[k];
+        out[0] = fmax(out[0], sum);
       }
       break;
   }
@@ -89,7 +91,7 @@ gkyl_array_reduce_range(double *res,
         gkyl_array_reduce_range_sum_cu(res, arr, range);
         break;
       case GKYL_SUM_COMP:
-        gkyl_array_reduce_range_sum_comp_cu(res, arr, range);
+        gkyl_array_reduce_range_max_sum_comp_cu(res, arr, range);
         break;
     }
     return;
@@ -131,14 +133,16 @@ gkyl_array_reduce_range(double *res,
           res[i] += d[i];
       }
       break;
-    case GKYL_SUM_COMP:
-      res[0] = 0;
+    case GKYL_MAX_SUM_COMP:
+      res[0] = -DBL_MAX;
 
       while (gkyl_range_iter_next(&iter)) {
         long start = gkyl_range_idx(range, iter.idx);
         const double *d = gkyl_array_cfetch(arr, start);
+        double sum = 0.0;
         for (long i=0; i<n; ++i)
-          res[0] += d[i];
+          sum += d[i];
+        res[0] = fmax(res[0], sum);
       }
       break;
   }

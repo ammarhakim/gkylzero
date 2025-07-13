@@ -61,7 +61,7 @@ void gkyl_array_reduce_range_sum_cu(double *out_d, const struct gkyl_array* inp,
  * @param inp A gkyl_array to be reduced.
  * @param out_d A device array with one element.
  */
-void gkyl_array_reduce_sum_cu(double *out_d, const struct gkyl_array* inp);
+void gkyl_array_reduce_max_sum_comp_cu(double *out_d, const struct gkyl_array* inp);
 
 /**
  * Reduce a gkyl_array summing over components over a specified range.
@@ -70,6 +70,6 @@ void gkyl_array_reduce_sum_cu(double *out_d, const struct gkyl_array* inp);
  * @param inp A gkyl_array to be reduced.
  * @param range A gkyl_range over which to perform the reduction.
  */
-void gkyl_array_reduce_range_sum_cu(double *out_d, const struct gkyl_array* inp, const struct gkyl_range *range);
+void gkyl_array_reduce_range_max_sum_comp_cu(double *out_d, const struct gkyl_array* inp, const struct gkyl_range *range);
 
 #endif
