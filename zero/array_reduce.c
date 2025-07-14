@@ -20,7 +20,7 @@ gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_array_op 
       case GKYL_SUM:
         gkyl_array_reduce_sum_cu(out, arr);
         break;
-      case GKYL_MAX_SUM_COMP:
+      case GKYL_SUM_COMP:
         gkyl_array_reduce_max_sum_comp_cu(out, arr);
         break;
     }
@@ -90,7 +90,7 @@ gkyl_array_reduce_range(double *res,
       case GKYL_SUM:
         gkyl_array_reduce_range_sum_cu(res, arr, range);
         break;
-      case GKYL_MAX_SUM_COMP:
+      case GKYL_SUM_COMP:
         gkyl_array_reduce_range_max_sum_comp_cu(res, arr, range);
         break;
     }
