@@ -14,8 +14,18 @@ GKYL_CU_DH double gyrokinetic_surfx_1x1v_ser_p1(const double *w, const double *d
 
   double rdx2 = 2.0/dxv[0];
 
-  const double *GhatL = &flux_surf_l[0];
-  const double *GhatR = &flux_surf_r[0];
+  double GhatL[3]= {0.0}; 
+  double GhatR[3]= {0.0}; 
+
+  const double *fnodal_l = &flux_surf_l[0]; 
+  const double *fnodal_r = &flux_surf_r[0]; 
+  GhatL[0] = 0.392837100659193*fnodal_l[2]+0.6285393610547092*fnodal_l[1]+0.392837100659193*fnodal_l[0]; 
+  GhatL[1] = 0.5270462766947298*fnodal_l[2]-0.5270462766947298*fnodal_l[0]; 
+  GhatL[2] = 0.3513641844631533*fnodal_l[2]-0.7027283689263066*fnodal_l[1]+0.3513641844631533*fnodal_l[0]; 
+  GhatR[0] = 0.392837100659193*fnodal_r[2]+0.6285393610547092*fnodal_r[1]+0.392837100659193*fnodal_r[0]; 
+  GhatR[1] = 0.5270462766947298*fnodal_r[2]-0.5270462766947298*fnodal_r[0]; 
+  GhatR[2] = 0.3513641844631533*fnodal_r[2]-0.7027283689263066*fnodal_r[1]+0.3513641844631533*fnodal_r[0]; 
+
   out[0] += (0.7071067811865475*GhatL[0]-0.7071067811865475*GhatR[0])*rdx2; 
   out[1] += ((-1.224744871391589*GhatR[0])-1.224744871391589*GhatL[0])*rdx2; 
   out[2] += (0.7071067811865475*GhatL[1]-0.7071067811865475*GhatR[1])*rdx2; 

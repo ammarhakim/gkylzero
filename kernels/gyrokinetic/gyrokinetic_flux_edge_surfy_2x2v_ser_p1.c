@@ -35,7 +35,7 @@ GKYL_CU_DH double gyrokinetic_flux_edge_surfy_2x2v_ser_p1(
   hamil[5] = (1.732050807568877*bmag[3]+bmag[1])*vmap[3]; 
   hamil[8] = vmapSq[2]*m_; 
 
-  double flux_surf_nodal[12]= {0.0}; 
+  double *flux_surf_nodal = &flux_surf[12]; 
   double cfl = 0.0; 
   double bmag_quad = 0.0; 
   double Jc_quad = 0.0; 
@@ -187,21 +187,6 @@ GKYL_CU_DH double gyrokinetic_flux_edge_surfy_2x2v_ser_p1(
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0 ;
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0 ;
   flux_surf_nodal[11] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad ;
-
-  double *fmodal = &flux_surf[12]; 
-  fmodal[0] = 0.1964185503295965*flux_surf_nodal[11]+0.3142696805273545*flux_surf_nodal[10]+0.1964185503295965*flux_surf_nodal[9]+0.1964185503295965*flux_surf_nodal[8]+0.3142696805273545*flux_surf_nodal[7]+0.1964185503295965*flux_surf_nodal[6]+0.1964185503295965*flux_surf_nodal[5]+0.3142696805273545*flux_surf_nodal[4]+0.1964185503295965*flux_surf_nodal[3]+0.1964185503295965*flux_surf_nodal[2]+0.3142696805273545*flux_surf_nodal[1]+0.1964185503295965*flux_surf_nodal[0]; 
-  fmodal[1] = 0.1964185503295965*flux_surf_nodal[11]+0.3142696805273545*flux_surf_nodal[10]+0.1964185503295965*flux_surf_nodal[9]+0.1964185503295965*flux_surf_nodal[8]+0.3142696805273545*flux_surf_nodal[7]+0.1964185503295965*flux_surf_nodal[6]-0.1964185503295965*flux_surf_nodal[5]-0.3142696805273545*flux_surf_nodal[4]-0.1964185503295965*flux_surf_nodal[3]-0.1964185503295965*flux_surf_nodal[2]-0.3142696805273545*flux_surf_nodal[1]-0.1964185503295965*flux_surf_nodal[0]; 
-  fmodal[2] = 0.2635231383473649*flux_surf_nodal[11]-0.2635231383473649*flux_surf_nodal[9]+0.2635231383473649*flux_surf_nodal[8]-0.2635231383473649*flux_surf_nodal[6]+0.2635231383473649*flux_surf_nodal[5]-0.2635231383473649*flux_surf_nodal[3]+0.2635231383473649*flux_surf_nodal[2]-0.2635231383473649*flux_surf_nodal[0]; 
-  fmodal[3] = 0.1964185503295965*flux_surf_nodal[11]+0.3142696805273545*flux_surf_nodal[10]+0.1964185503295965*flux_surf_nodal[9]-0.1964185503295965*flux_surf_nodal[8]-0.3142696805273545*flux_surf_nodal[7]-0.1964185503295965*flux_surf_nodal[6]+0.1964185503295965*flux_surf_nodal[5]+0.3142696805273545*flux_surf_nodal[4]+0.1964185503295965*flux_surf_nodal[3]-0.1964185503295965*flux_surf_nodal[2]-0.3142696805273545*flux_surf_nodal[1]-0.1964185503295965*flux_surf_nodal[0]; 
-  fmodal[4] = 0.2635231383473649*flux_surf_nodal[11]-0.2635231383473649*flux_surf_nodal[9]+0.2635231383473649*flux_surf_nodal[8]-0.2635231383473649*flux_surf_nodal[6]-0.2635231383473649*flux_surf_nodal[5]+0.2635231383473649*flux_surf_nodal[3]-0.2635231383473649*flux_surf_nodal[2]+0.2635231383473649*flux_surf_nodal[0]; 
-  fmodal[5] = 0.1964185503295965*flux_surf_nodal[11]+0.3142696805273545*flux_surf_nodal[10]+0.1964185503295965*flux_surf_nodal[9]-0.1964185503295965*flux_surf_nodal[8]-0.3142696805273545*flux_surf_nodal[7]-0.1964185503295965*flux_surf_nodal[6]-0.1964185503295965*flux_surf_nodal[5]-0.3142696805273545*flux_surf_nodal[4]-0.1964185503295965*flux_surf_nodal[3]+0.1964185503295965*flux_surf_nodal[2]+0.3142696805273545*flux_surf_nodal[1]+0.1964185503295965*flux_surf_nodal[0]; 
-  fmodal[6] = 0.2635231383473649*flux_surf_nodal[11]-0.2635231383473649*flux_surf_nodal[9]-0.2635231383473649*flux_surf_nodal[8]+0.2635231383473649*flux_surf_nodal[6]+0.2635231383473649*flux_surf_nodal[5]-0.2635231383473649*flux_surf_nodal[3]-0.2635231383473649*flux_surf_nodal[2]+0.2635231383473649*flux_surf_nodal[0]; 
-  fmodal[7] = 0.2635231383473649*flux_surf_nodal[11]-0.2635231383473649*flux_surf_nodal[9]-0.2635231383473649*flux_surf_nodal[8]+0.2635231383473649*flux_surf_nodal[6]-0.2635231383473649*flux_surf_nodal[5]+0.2635231383473649*flux_surf_nodal[3]+0.2635231383473649*flux_surf_nodal[2]-0.2635231383473649*flux_surf_nodal[0]; 
-  fmodal[8] = 0.1756820922315766*flux_surf_nodal[11]-0.3513641844631533*flux_surf_nodal[10]+0.1756820922315766*flux_surf_nodal[9]+0.1756820922315766*flux_surf_nodal[8]-0.3513641844631533*flux_surf_nodal[7]+0.1756820922315766*flux_surf_nodal[6]+0.1756820922315766*flux_surf_nodal[5]-0.3513641844631533*flux_surf_nodal[4]+0.1756820922315766*flux_surf_nodal[3]+0.1756820922315766*flux_surf_nodal[2]-0.3513641844631533*flux_surf_nodal[1]+0.1756820922315766*flux_surf_nodal[0]; 
-  fmodal[9] = 0.1756820922315766*flux_surf_nodal[11]-0.3513641844631533*flux_surf_nodal[10]+0.1756820922315766*flux_surf_nodal[9]+0.1756820922315766*flux_surf_nodal[8]-0.3513641844631533*flux_surf_nodal[7]+0.1756820922315766*flux_surf_nodal[6]-0.1756820922315766*flux_surf_nodal[5]+0.3513641844631533*flux_surf_nodal[4]-0.1756820922315766*flux_surf_nodal[3]-0.1756820922315766*flux_surf_nodal[2]+0.3513641844631533*flux_surf_nodal[1]-0.1756820922315766*flux_surf_nodal[0]; 
-  fmodal[10] = 0.1756820922315766*flux_surf_nodal[11]-0.3513641844631533*flux_surf_nodal[10]+0.1756820922315766*flux_surf_nodal[9]-0.1756820922315766*flux_surf_nodal[8]+0.3513641844631533*flux_surf_nodal[7]-0.1756820922315766*flux_surf_nodal[6]+0.1756820922315766*flux_surf_nodal[5]-0.3513641844631533*flux_surf_nodal[4]+0.1756820922315766*flux_surf_nodal[3]-0.1756820922315766*flux_surf_nodal[2]+0.3513641844631533*flux_surf_nodal[1]-0.1756820922315766*flux_surf_nodal[0]; 
-  fmodal[11] = 0.1756820922315766*flux_surf_nodal[11]-0.3513641844631533*flux_surf_nodal[10]+0.1756820922315766*flux_surf_nodal[9]-0.1756820922315766*flux_surf_nodal[8]+0.3513641844631533*flux_surf_nodal[7]-0.1756820922315766*flux_surf_nodal[6]-0.1756820922315766*flux_surf_nodal[5]+0.3513641844631533*flux_surf_nodal[4]-0.1756820922315766*flux_surf_nodal[3]+0.1756820922315766*flux_surf_nodal[2]-0.3513641844631533*flux_surf_nodal[1]+0.1756820922315766*flux_surf_nodal[0]; 
-
 
   return cfl*1.5*rdz2; 
 

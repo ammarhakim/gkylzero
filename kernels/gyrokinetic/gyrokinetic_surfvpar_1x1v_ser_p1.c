@@ -14,8 +14,16 @@ GKYL_CU_DH double gyrokinetic_surfvpar_1x1v_ser_p1(const double *w, const double
 
   double rdvpar2 = 2.0/dxv[1];
 
-  const double *GhatL = &flux_surf_l[3];
-  const double *GhatR = &flux_surf_r[3];
+  double GhatL[2]= {0.0}; 
+  double GhatR[2]= {0.0}; 
+
+  const double *fnodal_l = &flux_surf_l[3]; 
+  const double *fnodal_r = &flux_surf_r[3]; 
+  GhatL[0] = 0.7071067811865475*fnodal_l[1]+0.7071067811865475*fnodal_l[0]; 
+  GhatL[1] = 0.7071067811865475*fnodal_l[1]-0.7071067811865475*fnodal_l[0]; 
+  GhatR[0] = 0.7071067811865475*fnodal_r[1]+0.7071067811865475*fnodal_r[0]; 
+  GhatR[1] = 0.7071067811865475*fnodal_r[1]-0.7071067811865475*fnodal_r[0]; 
+
   out[0] += (0.7071067811865475*GhatL[0]-0.7071067811865475*GhatR[0])*rdvpar2; 
   out[1] += (0.7071067811865475*GhatL[1]-0.7071067811865475*GhatR[1])*rdvpar2; 
   out[2] += ((-1.224744871391589*GhatR[0])-1.224744871391589*GhatL[0])*rdvpar2; 

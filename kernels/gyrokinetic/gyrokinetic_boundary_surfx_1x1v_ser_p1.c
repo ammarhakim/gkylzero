@@ -15,8 +15,17 @@ GKYL_CU_DH double gyrokinetic_boundary_surfx_1x1v_ser_p1(const double *w, const 
 
   double rdx2 = 2.0/dxv[0];
 
-  const double *GhatL = &flux_surf_skin[0];
-  const double *GhatR = &flux_surf_edge[0];
+  double GhatL[3]= {0.0}; 
+  double GhatR[3]= {0.0}; 
+
+  const double *fnodal_l = &flux_surf_skin[0]; 
+  const double *fnodal_r = &flux_surf_edge[0]; 
+  GhatL[0] = 0.392837100659193*fnodal_l[2]+0.6285393610547092*fnodal_l[1]+0.392837100659193*fnodal_l[0]; 
+  GhatL[1] = 0.5270462766947298*fnodal_l[2]-0.5270462766947298*fnodal_l[0]; 
+  GhatL[2] = 0.3513641844631533*fnodal_l[2]-0.7027283689263066*fnodal_l[1]+0.3513641844631533*fnodal_l[0]; 
+  GhatR[0] = 0.392837100659193*fnodal_r[2]+0.6285393610547092*fnodal_r[1]+0.392837100659193*fnodal_r[0]; 
+  GhatR[1] = 0.5270462766947298*fnodal_r[2]-0.5270462766947298*fnodal_r[0]; 
+  GhatR[2] = 0.3513641844631533*fnodal_r[2]-0.7027283689263066*fnodal_r[1]+0.3513641844631533*fnodal_r[0]; 
 
   if (edge == -1) { 
 

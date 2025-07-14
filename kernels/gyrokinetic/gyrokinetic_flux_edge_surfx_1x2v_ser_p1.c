@@ -32,7 +32,7 @@ GKYL_CU_DH double gyrokinetic_flux_edge_surfx_1x2v_ser_p1(
   hamil[2] = (1.732050807568877*bmag[1]+bmag[0])*vmap[3]; 
   hamil[4] = 0.7071067811865475*vmapSq[2]*m_; 
 
-  double flux_surf_nodal[6]= {0.0}; 
+  double *flux_surf_nodal = &flux_surf[0]; 
   double cfl = 0.0; 
   double bmag_quad = 0.0; 
   double Jc_quad = 0.0; 
@@ -119,15 +119,6 @@ GKYL_CU_DH double gyrokinetic_flux_edge_surfx_1x2v_ser_p1(
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0 ;
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0 ;
   flux_surf_nodal[5] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad ;
-
-  double *fmodal = &flux_surf[0]; 
-  fmodal[0] = 0.2777777777777778*flux_surf_nodal[5]+0.4444444444444444*flux_surf_nodal[4]+0.2777777777777778*flux_surf_nodal[3]+0.2777777777777778*flux_surf_nodal[2]+0.4444444444444444*flux_surf_nodal[1]+0.2777777777777778*flux_surf_nodal[0]; 
-  fmodal[1] = 0.372677996249965*flux_surf_nodal[5]-0.372677996249965*flux_surf_nodal[3]+0.372677996249965*flux_surf_nodal[2]-0.372677996249965*flux_surf_nodal[0]; 
-  fmodal[2] = 0.2777777777777778*flux_surf_nodal[5]+0.4444444444444444*flux_surf_nodal[4]+0.2777777777777778*flux_surf_nodal[3]-0.2777777777777778*flux_surf_nodal[2]-0.4444444444444444*flux_surf_nodal[1]-0.2777777777777778*flux_surf_nodal[0]; 
-  fmodal[3] = 0.372677996249965*flux_surf_nodal[5]-0.372677996249965*flux_surf_nodal[3]-0.372677996249965*flux_surf_nodal[2]+0.372677996249965*flux_surf_nodal[0]; 
-  fmodal[4] = 0.2484519974999766*flux_surf_nodal[5]-0.4969039949999532*flux_surf_nodal[4]+0.2484519974999766*flux_surf_nodal[3]+0.2484519974999766*flux_surf_nodal[2]-0.4969039949999532*flux_surf_nodal[1]+0.2484519974999766*flux_surf_nodal[0]; 
-  fmodal[5] = 0.2484519974999767*flux_surf_nodal[5]-0.4969039949999534*flux_surf_nodal[4]+0.2484519974999767*flux_surf_nodal[3]-0.2484519974999767*flux_surf_nodal[2]+0.4969039949999534*flux_surf_nodal[1]-0.2484519974999767*flux_surf_nodal[0]; 
-
 
   return cfl*1.5*rdx2; 
 

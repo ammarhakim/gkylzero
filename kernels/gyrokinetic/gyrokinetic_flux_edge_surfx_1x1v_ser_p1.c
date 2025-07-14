@@ -31,7 +31,7 @@ GKYL_CU_DH double gyrokinetic_flux_edge_surfx_1x1v_ser_p1(
   hamil[1] = 0.5*vmapSq[1]*m_; 
   hamil[2] = 0.5*vmapSq[2]*m_; 
 
-  double flux_surf_nodal[3]= {0.0}; 
+  double *flux_surf_nodal = &flux_surf[0]; 
   double cfl = 0.0; 
   double bmag_quad = 0.0; 
   double Jc_quad = 0.0; 
@@ -91,12 +91,6 @@ GKYL_CU_DH double gyrokinetic_flux_edge_surfx_1x1v_ser_p1(
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0 ;
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0 ;
   flux_surf_nodal[2] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad ;
-
-  double *fmodal = &flux_surf[0]; 
-  fmodal[0] = 0.392837100659193*flux_surf_nodal[2]+0.6285393610547092*flux_surf_nodal[1]+0.392837100659193*flux_surf_nodal[0]; 
-  fmodal[1] = 0.5270462766947298*flux_surf_nodal[2]-0.5270462766947298*flux_surf_nodal[0]; 
-  fmodal[2] = 0.3513641844631533*flux_surf_nodal[2]-0.7027283689263066*flux_surf_nodal[1]+0.3513641844631533*flux_surf_nodal[0]; 
-
 
   return cfl*1.5*rdx2; 
 
