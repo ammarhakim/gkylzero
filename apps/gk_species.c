@@ -891,7 +891,7 @@ gk_species_new_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *
   gks->fnew = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
 
   // Allocate cflrate (scalar array).
-  gks->cflrate = mkarr(app->use_gpu, cdim+1, gks->local_ext.volume);
+  gks->cflrate = mkarr(app->use_gpu, pdim-1, gks->local_ext.volume);
 
   if (app->use_gpu) {
     gks->omega_cfl = gkyl_cu_malloc(sizeof(double));
