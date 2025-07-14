@@ -849,8 +849,12 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   else {
     gkyl_array_release(f->epsilon);
     if (app->cdim > 1) {
-      gkyl_deflated_fem_poisson_release(f->fem_poisson_deflated);
-      gkyl_fem_poisson_perp_release(f->fem_poisson_perp);
+      if (f->gkfield_id == GKYL_GK_FIELD_FULL_2X) {
+        gkyl_fem_poisson_release(f->fem_poisson);
+      } else {
+        gkyl_deflated_fem_poisson_release(f->fem_poisson_deflated);
+        gkyl_fem_poisson_perp_release(f->fem_poisson_perp);
+      }
       if (f->is_dirichletvar) {
         gkyl_array_release(f->phi_bc);
       }
