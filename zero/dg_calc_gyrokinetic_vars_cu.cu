@@ -38,8 +38,6 @@ gkyl_dg_calc_gyrokinetic_vars_flux_surf_cu_kernel(struct gkyl_dg_calc_gyrokineti
   double xc[GKYL_MAX_DIM];
 
   // 2D thread grid
-  // linc2 = c where c is the component index (from 0 to cdim + 1)
-  long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
       linc1 < phase_range.volume;
       linc1 += gridDim.x*blockDim.x)
@@ -67,45 +65,42 @@ gkyl_dg_calc_gyrokinetic_vars_flux_surf_cu_kernel(struct gkyl_dg_calc_gyrokineti
     double *cflrate_d = (double*) gkyl_array_fetch(cflrate, loc_phase);
 
     for (int dir = 0; dir<cdim; ++dir) {
-      // Each thread in linc2 thread grid handles a different component
-      if (linc2 == dir) {
-        gkyl_copy_int_arr(pdim, idx, idxL);
-        idxL[dir] = idx[dir] - 1;
-        long locL = gkyl_range_idx(&phase_range, idxL);
-        const double *fL = (const double*) gkyl_array_cfetch(fin, locL);
-        const double *fR = (const double*) gkyl_array_cfetch(fin, loc_phase);
+      gkyl_copy_int_arr(pdim, idx, idxL);
+      idxL[dir] = idx[dir] - 1;
+      long locL = gkyl_range_idx(&phase_range, idxL);
+      const double *fL = (const double*) gkyl_array_cfetch(fin, locL);
+      const double *fR = (const double*) gkyl_array_cfetch(fin, loc_phase);
 
-        const struct gkyl_dg_surf_geom *dgs = gkyl_dg_geom_get_surf(up->dg_geom, dir, idx);
-        const struct gkyl_gk_dg_surf_geom *gkdgs = gkyl_gk_dg_geom_get_surf(up->gk_dg_geom, dir, idx);
-        cflrate_d[dir] += up->flux_surf[dir](xc, up->phase_grid.dx, 
+      const struct gkyl_dg_surf_geom *dgs = gkyl_dg_geom_get_surf(up->dg_geom, dir, idx);
+      const struct gkyl_gk_dg_surf_geom *gkdgs = gkyl_gk_dg_geom_get_surf(up->gk_dg_geom, dir, idx);
+      cflrate_d[0] += up->flux_surf[dir](xc, up->phase_grid.dx, 
+        vmap_d, vmapSq_d, up->charge, up->mass,
+        dgs, gkdgs,
+        bmag_d, phi_d,  fL, fR, flux_surf_d);
+
+      // If the phase space index is at the local configuration space upper value, we
+      // we are at the configuration space upper edge and we also need to evaluate 
+      // alpha = +1 to avoid evaluating the geometry information in the ghost cells 
+      // where it is not defined when computing the final surface alpha we need
+      // (since the surface alpha array stores only the *lower* surface expansion)
+      if (idx[dir] == phase_range.upper[dir]) {
+        gkyl_copy_int_arr(pdim, idx, idx_edge);
+        idx_edge[dir] = idx_edge[dir]+1;
+        long loc_conf_ext = gkyl_range_idx(&conf_ext_range, idx_edge);
+        long loc_phase_ext = gkyl_range_idx(&phase_ext_range, idx_edge);
+
+        double *cflrate_ext_d = (double*) gkyl_array_fetch(cflrate, loc_phase_ext);
+        const double *fL = (const double*)  gkyl_array_cfetch(fin, loc_phase);
+        const double *fR = (const double*)  gkyl_array_cfetch(fin, loc_phase_ext);
+        const struct gkyl_dg_surf_geom *dgs = gkyl_dg_geom_get_surf(up->dg_geom, dir, idx_edge);
+        const struct gkyl_gk_dg_surf_geom *gkdgs = gkyl_gk_dg_geom_get_surf(up->gk_dg_geom, dir, idx_edge);
+
+        double* flux_surf_ext_d = (double*) gkyl_array_fetch(flux_surf, loc_phase_ext);
+        cflrate_ext_d[0] = up->flux_edge_surf[dir](xc, up->phase_grid.dx, 
           vmap_d, vmapSq_d, up->charge, up->mass,
           dgs, gkdgs,
-          bmag_d, phi_d,  fL, fR, flux_surf_d);
-
-        // If the phase space index is at the local configuration space upper value, we
-        // we are at the configuration space upper edge and we also need to evaluate 
-        // alpha = +1 to avoid evaluating the geometry information in the ghost cells 
-        // where it is not defined when computing the final surface alpha we need
-        // (since the surface alpha array stores only the *lower* surface expansion)
-        if (idx[dir] == phase_range.upper[dir]) {
-          gkyl_copy_int_arr(pdim, idx, idx_edge);
-          idx_edge[dir] = idx_edge[dir]+1;
-          long loc_conf_ext = gkyl_range_idx(&conf_ext_range, idx_edge);
-          long loc_phase_ext = gkyl_range_idx(&phase_ext_range, idx_edge);
-
-          double *cflrate_ext_d = (double*) gkyl_array_fetch(cflrate, loc_phase_ext);
-          const double *fL = (const double*)  gkyl_array_cfetch(fin, loc_phase);
-          const double *fR = (const double*)  gkyl_array_cfetch(fin, loc_phase_ext);
-          const struct gkyl_dg_surf_geom *dgs = gkyl_dg_geom_get_surf(up->dg_geom, dir, idx_edge);
-          const struct gkyl_gk_dg_surf_geom *gkdgs = gkyl_gk_dg_geom_get_surf(up->gk_dg_geom, dir, idx_edge);
-
-          double* flux_surf_ext_d = (double*) gkyl_array_fetch(flux_surf, loc_phase_ext);
-          cflrate_ext_d[dir] = up->flux_edge_surf[dir](xc, up->phase_grid.dx, 
-            vmap_d, vmapSq_d, up->charge, up->mass,
-            dgs, gkdgs,
-            bmag_d, phi_d, fL, fR, flux_surf_ext_d);
-        }  
-      }
+          bmag_d, phi_d, fL, fR, flux_surf_ext_d);
+      }  
     }
   }
 }
@@ -167,7 +162,7 @@ gkyl_dg_calc_gyrokinetic_vars_flux_surfvpar_cu_kernel(struct gkyl_dg_calc_gyroki
     const struct gkyl_dg_vol_geom *dgv = gkyl_dg_geom_get_vol(up->dg_geom, idx);
     const struct gkyl_gk_dg_vol_geom *gkdgv = gkyl_gk_dg_geom_get_vol(up->gk_dg_geom, idx);
 
-    cflrate_d[dir] += up->flux_surfvpar[0](xc, up->phase_grid.dx, 
+    cflrate_d[0] += up->flux_surfvpar[0](xc, up->phase_grid.dx, 
       vpL, vpR,
       vmap_d, vmapSq_d, up->charge, up->mass,
       dgv, gkdgv, bmag_d, phi_d,  fL, fR, flux_surf_d);
@@ -180,9 +175,7 @@ void gkyl_dg_calc_gyrokinetic_vars_flux_surf_cu(struct gkyl_dg_calc_gyrokinetic_
   const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
   const struct gkyl_array *fin, struct gkyl_array* flux_surf, struct gkyl_array* cflrate)
 {
-  dim3 dimGrid, dimBlock;
-  gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, up->cdim);
-  gkyl_dg_calc_gyrokinetic_vars_flux_surf_cu_kernel<<<dimGrid, dimBlock>>>(up->on_dev, 
+  gkyl_dg_calc_gyrokinetic_vars_flux_surf_cu_kernel<<<phase_range->volume, GKYL_DEFAULT_NUM_THREADS>>>(up->on_dev, 
     *conf_range, *phase_range, *conf_ext_range, *phase_ext_range, phi->on_dev, fin->on_dev,
     flux_surf->on_dev, cflrate->on_dev);
 
