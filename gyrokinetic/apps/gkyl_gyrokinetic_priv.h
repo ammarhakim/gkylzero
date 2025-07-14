@@ -136,7 +136,7 @@ struct gk_species_moment {
       struct gkyl_gk_maxwellian_moments *gyrokinetic_maxwellian_moms; 
     };
     struct {
-      struct gkyl_vlasov_lte_moments *vlasov_lte_moms; // updater for computing LTE moments
+      struct gkyl_vlasov_lte_moments *vlasov_lte_moms; // Updater for computing LTE moments
     };
     struct {
       struct gkyl_dg_updater_moment *mcalc; 
@@ -785,78 +785,32 @@ struct gk_species {
 
 // Neutral species data.
 struct gk_neut_species {
-  struct gkyl_gyrokinetic_neut_species info; // data for neutral species
+  struct gkyl_gyrokinetic_neut_species info; // Data for neutral species.
 
-  struct gkyl_basis basis; // phase-space basis
+  bool is_fluid; // Whether this is a fluid species.
+  enum gkyl_field_id field_id; // Type of Field equation (always GKYL_FIELD_NULL).
+  enum gkyl_model_id model_id; // Type of Vlasov equation (always GKYL_MODEL_CANONICAL_PB)
 
-  // pointer to basis on device
-  // (points to host structs if not on GPU)
-  struct gkyl_basis *basis_on_dev; 
-  
-  struct gkyl_job_pool *job_pool; // Job pool
+  struct gkyl_basis basis; // Species basis.
+  struct gkyl_basis *basis_on_dev; // Species basis on device (or host if use_gpu=false).
+
+  struct gkyl_job_pool *job_pool; // Job pool.
   struct gkyl_rect_grid grid;
-  struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
-  struct gkyl_range global, global_ext; // global, global-ext conf-space ranges    
+  struct gkyl_range local, local_ext; // Local, local-ext species ranges.
+  struct gkyl_range global, global_ext; // Global, global-ext species ranges.
 
-  struct gkyl_comm *comm;   // communicator object for phase-space arrays
-  int nghost[GKYL_MAX_DIM]; // number of ghost-cells in each direction
+  struct gkyl_comm *comm;   // Communicator object for this species.
+  int nghost[GKYL_MAX_DIM]; // Number of ghost-cells in each direction
 
-  struct gkyl_rect_grid grid_vel; // velocity space grid
-  struct gkyl_range local_vel, local_ext_vel; // local, local-ext velocity-space ranges
+  struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
+  struct gkyl_array *f_host; // Host array for initialization and I/O.
 
-  struct gkyl_velocity_map *vel_map; // Velocity mapping objects.
+  struct gkyl_array *cflrate; // CFL rate in each cell.
 
-  struct gkyl_array *f, *f1, *fnew; // arrays for updates
-
-  struct gkyl_array *cflrate; // CFL rate in each cell
-  struct gkyl_array *bc_buffer; // buffer for BCs (used by bc_basic)
-  struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // fixed buffers for time independent BCs
-
-  struct gkyl_array *f_host; // host copy for use IO and initialization
-
-  enum gkyl_field_id field_id; // type of field equation (always GKYL_FIELD_NULL)
-  enum gkyl_model_id model_id; // type of Vlasov equation (always GKYL_MODEL_CANONICAL_PB)
-
-  struct gkyl_array *g_ij, *gij; // Metric tensor and its conjugate.
-  struct gkyl_array *hamil; // Specified hamiltonian function for canonical poisson bracket
-  struct gkyl_array *hamil_host; // Host side hamiltonian array for intial projection
-  struct gkyl_array *alpha_surf; // array for surface phase space flux (v^i = v . e^i)
-  struct gkyl_array *sgn_alpha_surf; // array for the sign of the surface phase space flux at quadrature points
-                                     // utilized for numerical flux function
-                                     // F = alpha_surf/2 ( (f^+ + f^-) - sign_alpha_surf*(f^+ - f^-) )
-  struct gkyl_array *const_sgn_alpha; // boolean array for if the surface phase space flux is single signed
-                                      // if true, numerical flux function inside kernels simplifies to
-                                      // F = alpha_surf*f^- (if sign_alpha_surf = 1), 
-                                      // F = alpha_surf*f^+ (if sign_alpha_surf = -1)
-
-  struct gk_species_moment m0; // for computing density
-  struct gk_species_moment integ_moms; // integrated moments
-  struct gk_species_moment *moms; // diagnostic moments
   double *red_integ_diag, *red_integ_diag_global; // for reduction of integrated moments
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
 
-  gkyl_dg_updater_vlasov *slvr; // Vlasov solver.
-  struct gkyl_dg_eqn *eqn_vlasov; // Vlasov equation object.
-
-  // Boundary fluxes used for other solvers and diagnostics.
-  struct gk_boundary_fluxes bflux;
-
-  // Recycling wall boundaries.
-  struct gk_recycle_wall bc_recycle_lo;
-  struct gk_recycle_wall bc_recycle_up;
-  bool recyc_lo;
-  bool recyc_up;
-  
-  int num_periodic_dir; // number of periodic directions
-  int periodic_dirs[3]; // list of periodic directions
-  bool bc_is_np[3]; // whether BC is nonperiodic.
-
-  // boundary conditions on lower/upper edges in each direction  
-  struct gkyl_gyrokinetic_bc lower_bc[3], upper_bc[3];
-  // Pointers to updaters that apply BC.
-  struct gkyl_bc_basic *bc_lo[3];
-  struct gkyl_bc_basic *bc_up[3];
   // To simplify BC application, store local skin and ghost ranges
   struct gkyl_range lower_skin[GKYL_MAX_DIM];
   struct gkyl_range lower_ghost[GKYL_MAX_DIM];
@@ -870,28 +824,84 @@ struct gk_neut_species {
 
   struct gk_proj proj_init; // Projector for initial conditions.
 
-  struct gk_source src; // External source.
-
-  struct gk_lte lte; // Object needed for the lte equilibrium.
-
-  // Collisions.
   union {
+    // Kinetic neutrals ............................................ //
     struct {
-      struct gk_bgk_collisions bgk; // BGK collisions object
+      struct gkyl_rect_grid grid_vel; // Velocity space grid.
+      struct gkyl_range local_vel, local_ext_vel; // Local, local-ext velocity-space ranges.
+
+      struct gkyl_velocity_map *vel_map; // Velocity mapping objects.
+
+      struct gkyl_array *g_ij, *gij; // Metric tensor and its conjugate.
+      struct gkyl_array *hamil; // Specified hamiltonian function for canonical poisson bracket
+      struct gkyl_array *hamil_host; // Host side hamiltonian array for intial projection
+      struct gkyl_array *alpha_surf; // array for surface phase space flux (v^i = v . e^i)
+      struct gkyl_array *sgn_alpha_surf; // array for the sign of the surface phase space flux at quadrature points
+                                         // utilized for numerical flux function
+                                         // F = alpha_surf/2 ( (f^+ + f^-) - sign_alpha_surf*(f^+ - f^-) )
+      struct gkyl_array *const_sgn_alpha; // boolean array for if the surface phase space flux is single signed
+                                          // if true, numerical flux function inside kernels simplifies to
+                                          // F = alpha_surf*f^- (if sign_alpha_surf = 1), 
+                                          // F = alpha_surf*f^+ (if sign_alpha_surf = -1)
+
+      struct gk_species_moment m0; // Computes density.
+      struct gk_species_moment integ_moms; // Computes integrated moments.
+      struct gk_species_moment *moms; // Compute diagnostic moments.
+
+      gkyl_dg_updater_vlasov *slvr; // Vlasov solver.
+      struct gkyl_dg_eqn *eqn_vlasov; // Vlasov equation object.
+
+      struct gkyl_array *bc_buffer; // Buffer for BCs (used by bc_basic)
+      struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // Buffers for ghost-buffer BCs.
+
+      // Boundary fluxes used for other solvers and diagnostics.
+      struct gk_boundary_fluxes bflux;
+    
+      // Recycling wall boundaries.
+      struct gk_recycle_wall bc_recycle_lo, bc_recycle_up;
+      bool recyc_lo, recyc_up;
+      
+      int num_periodic_dir; // number of periodic directions
+      int periodic_dirs[3]; // list of periodic directions
+      bool bc_is_np[3]; // whether BC is nonperiodic.
+    
+      // Boundary conditions on lower/upper edges in each direction.
+      struct gkyl_gyrokinetic_bc lower_bc[3], upper_bc[3];
+      // Pointers to updaters that apply BC.
+      struct gkyl_bc_basic *bc_lo[3];
+      struct gkyl_bc_basic *bc_up[3];
+
+      struct gk_source src; // External source.
+
+      struct gk_lte lte; // Object needed for the lte equilibrium.
+
+      // Collisions.
+      union {
+        struct {
+          struct gk_bgk_collisions bgk; // BGK collisions object
+        };
+      }; 
+
+      struct gk_react react_neut; // Reaction object.
+
+      double *omega_cfl;
+
+      // Updater that enforces positivity by shifting f.
+      bool enforce_positivity;
+      struct gkyl_positivity_shift_vlasov *pos_shift_op;
+      struct gkyl_array *ps_delta_m0; // Number density of the positivity shift.
+      struct gk_species_moment ps_moms; // Positivity shift diagnostic moments.
+      gkyl_dynvec ps_integ_diag; // Integrated moments of the positivity shift.
+      bool is_first_ps_integ_write_call; // Flag first time writing ps_integ_diag.
+
     };
-  }; 
 
-  struct gk_react react_neut; // Reaction object.
-
-  double *omega_cfl;
-
-  // Updater that enforces positivity by shifting f.
-  bool enforce_positivity;
-  struct gkyl_positivity_shift_vlasov *pos_shift_op;
-  struct gkyl_array *ps_delta_m0; // Number density of the positivity shift.
-  struct gk_species_moment ps_moms; // Positivity shift diagnostic moments.
-  gkyl_dynvec ps_integ_diag; // Integrated moments of the positivity shift.
-  bool is_first_ps_integ_write_call; // Flag first time writing ps_integ_diag.
+    // Fluid neutrals .............................................. //
+    struct {
+      struct gkyl_array *prim_var; // Primitive variables (udrift, pressure).
+      struct gkyl_array *prim_var_host; // prim_var on the host for I/O.
+    };
+  };
 
   // Pointer to various functions selected at runtime.
   double (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
@@ -911,6 +921,8 @@ struct gk_neut_species {
   void (*write_mom_func)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm, int frame);
   void (*calc_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm);
   void (*write_integrated_mom_func)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns);
+  void (*report_n_iter_corr_func)(gkyl_gyrokinetic_app *app, const struct gk_neut_species *gkns, int sidx);
+  void (*release_is_static_func)(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s);
   void (*release_func)(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s);
 };
 
@@ -2319,8 +2331,10 @@ void gk_species_coll_tm(gkyl_gyrokinetic_app *app);
  * Also fills stat object with number of times correction object called. 
  *
  * @param app App object to update stat timers.
+ * @param s Species object.
+ * @param sidx Index of current species.
  */
-void gk_species_n_iter_corr(gkyl_gyrokinetic_app *app);
+void gk_species_n_iter_corr(gkyl_gyrokinetic_app *app, const struct gk_species *gks, int sidx);
 
 /**
  * Species write function.
@@ -2839,8 +2853,10 @@ void gk_neut_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_neut_sp
  * Also fills stat object with number of times correction object called. 
  *
  * @param app App object to update stat timers.
+ * @param s Species object.
+ * @param sidx Index of current species.
  */
-void gk_neut_species_n_iter_corr(gkyl_gyrokinetic_app *app);
+void gk_neut_species_n_iter_corr(gkyl_gyrokinetic_app *app, const struct gk_neut_species *gkns, int sidx);
 
 /**
  * Scale and accumulate for forward euler method.

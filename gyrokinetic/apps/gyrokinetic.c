@@ -2135,9 +2135,15 @@ gkyl_gyrokinetic_app_stat_write(gkyl_gyrokinetic_app* app)
   time_t t = time(NULL);
   struct tm curr_tm = *localtime(&t);
 
-  gk_species_n_iter_corr(app); 
+  for (int i=0; i<app->num_species; ++i) {
+    struct gk_species *gk_s = &app->species[i];
+    gk_species_n_iter_corr(app, gk_s, i); 
+  }
 
-  gk_neut_species_n_iter_corr(app); 
+  for (int i=0; i<app->num_neut_species; ++i) {
+    struct gk_neut_species *gk_ns = &app->neut_species[i];
+    gk_neut_species_n_iter_corr(app, gk_ns, i);
+  }
 
   struct gkyl_gyrokinetic_stat stat = { };
   comm_reduce_app_stat(app, &app->stat, &stat);

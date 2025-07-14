@@ -4,7 +4,7 @@ source ./build-opts.sh
 
 # Install prefix
 PREFIX=$GKYLSOFT
-ADAS_DIR="$GKYLSOFT/greorg/share"
+ADAS_DIR="$GKYLSOFT/gkeyll/share"
 
 mkdir -p $ADAS_DIR/adas
 #cd -

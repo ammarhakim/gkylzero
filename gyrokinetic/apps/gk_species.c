@@ -1969,12 +1969,10 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
 }
 
 void
-gk_species_n_iter_corr(gkyl_gyrokinetic_app *app)
+gk_species_n_iter_corr(gkyl_gyrokinetic_app *app, const struct gk_species *s, int sidx)
 {
-  for (int i=0; i<app->num_species; ++i) {
-    app->stat.num_corr[i] = app->species[i].lte.num_corr;
-    app->stat.n_iter_corr[i] = app->species[i].lte.n_iter;
-  }
+  app->stat.num_corr[sidx] = s->lte.num_corr;
+  app->stat.n_iter_corr[sidx] = s->lte.n_iter;
 }
 
 // write functions
