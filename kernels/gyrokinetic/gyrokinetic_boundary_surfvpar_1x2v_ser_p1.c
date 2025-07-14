@@ -20,14 +20,14 @@ GKYL_CU_DH double gyrokinetic_boundary_surfvpar_1x2v_ser_p1(const double *w, con
 
   const double *fnodal_l = &flux_surf_skin[6]; 
   const double *fnodal_r = &flux_surf_edge[6]; 
-  GhatL[0] = 0.5*(fnodal_l[3]+fnodal_l[2]+fnodal_l[1]+fnodal_l[0]); 
-  GhatL[1] = 0.5*(fnodal_l[3]+fnodal_l[2])-0.5*(fnodal_l[1]+fnodal_l[0]); 
+  GhatL[0] = 0.5*fnodal_l[3]+0.5*fnodal_l[2]+0.5*fnodal_l[1]+0.5*fnodal_l[0]; 
+  GhatL[1] = 0.5*fnodal_l[3]+0.5*fnodal_l[2]-0.5*fnodal_l[1]-0.5*fnodal_l[0]; 
   GhatL[2] = 0.5*fnodal_l[3]-0.5*fnodal_l[2]+0.5*fnodal_l[1]-0.5*fnodal_l[0]; 
-  GhatL[3] = 0.5*fnodal_l[3]-0.5*(fnodal_l[2]+fnodal_l[1])+0.5*fnodal_l[0]; 
-  GhatR[0] = 0.5*(fnodal_r[3]+fnodal_r[2]+fnodal_r[1]+fnodal_r[0]); 
-  GhatR[1] = 0.5*(fnodal_r[3]+fnodal_r[2])-0.5*(fnodal_r[1]+fnodal_r[0]); 
+  GhatL[3] = 0.5*fnodal_l[3]-0.5*fnodal_l[2]-0.5*fnodal_l[1]+0.5*fnodal_l[0]; 
+  GhatR[0] = 0.5*fnodal_r[3]+0.5*fnodal_r[2]+0.5*fnodal_r[1]+0.5*fnodal_r[0]; 
+  GhatR[1] = 0.5*fnodal_r[3]+0.5*fnodal_r[2]-0.5*fnodal_r[1]-0.5*fnodal_r[0]; 
   GhatR[2] = 0.5*fnodal_r[3]-0.5*fnodal_r[2]+0.5*fnodal_r[1]-0.5*fnodal_r[0]; 
-  GhatR[3] = 0.5*fnodal_r[3]-0.5*(fnodal_r[2]+fnodal_r[1])+0.5*fnodal_r[0]; 
+  GhatR[3] = 0.5*fnodal_r[3]-0.5*fnodal_r[2]-0.5*fnodal_r[1]+0.5*fnodal_r[0]; 
 
   if (edge == -1) { 
 
