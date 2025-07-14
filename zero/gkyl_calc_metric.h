@@ -58,9 +58,7 @@ void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange, s
  * interior quadrature nodes then convert to modal
  * See gkyl_calc_metric_advance for details on the inputs
  */
-void gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd,
-    double *dzc, struct gkyl_array *gFld, struct gkyl_array *tanvecFld, struct gkyl_array *dualFld, 
-    struct gkyl_array *dualmagFld, struct gkyl_array *normFld, const struct gkyl_range *update_range);
+void gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry *gk_geom);
 
 /**
  * Use finite differences to calculate metric coefficients and jacobian at 
@@ -80,7 +78,7 @@ void gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gkyl_range *
  * @param jtotinvFld_nodal output field where jtotinv nodal valued will be placed
  * @param update range. Modal range over which metric coefficients and tangent vectors will be calculated
  */
-void gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd, double *dzc, struct gkyl_array *bmag_nodal, struct gkyl_array *jFld_nodal, struct gkyl_array *biFld_nodal, struct gkyl_array *cmagFld_nodal, struct gkyl_array *jtotinvFld_nodal, const struct gkyl_range *update_range);
+void gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_geometry *gk_geom);
 
 
 /**
