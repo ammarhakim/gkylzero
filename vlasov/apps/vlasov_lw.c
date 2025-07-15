@@ -948,6 +948,10 @@ vlasov_fluid_species_lw_new(lua_State *L)
     has_n0_func = true;
   }
 
+  with_lua_tbl_tbl(L, "diffusion") {
+    vm_fluid_species.diffusion.D = glua_tbl_get_number(L, "diffusionCoefficient", 0.0);
+  }
+
   with_lua_tbl_tbl(L, "bcx") {
     int nbc = glua_objlen(L);
 
