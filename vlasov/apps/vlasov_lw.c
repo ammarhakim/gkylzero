@@ -950,6 +950,7 @@ vlasov_fluid_species_lw_new(lua_State *L)
 
   with_lua_tbl_tbl(L, "diffusion") {
     vm_fluid_species.diffusion.D = glua_tbl_get_number(L, "diffusionCoefficient", 0.0);
+    vm_fluid_species.diffusion.order = glua_tbl_get_integer(L, "diffusionOrder", 2);
   }
 
   with_lua_tbl_tbl(L, "bcx") {
