@@ -88,7 +88,7 @@ create_ctx(void)
 }
 
 void
-evalInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalAdvectInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0];
 
@@ -99,7 +99,7 @@ evalInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, v
 }
 
 void
-eval_advect_vel(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalAdvectVel(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct advect_ctx *app = ctx;
 
@@ -183,11 +183,11 @@ main(int argc, char **argv)
     .name = "q",
     .equation = advect,
     .advection = {
-      .velocity = eval_advect_vel,
+      .velocity = evalAdvectVel,
       .velocity_ctx = &ctx,
     },
 
-    .init = evalInit,
+    .init = evalAdvectInit,
     .ctx = &ctx,
   };
 

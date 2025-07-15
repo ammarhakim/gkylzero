@@ -100,7 +100,7 @@ create_ctx(void)
 }
 
 void
-evalInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalAdvectInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0], y = xn[1];
 
@@ -111,7 +111,7 @@ evalInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, v
 }
 
 void
-eval_advect_vel(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalAdvectVel(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double ux = 0.0; // Advection velocity (x-direction).
   double uy = 0.0; // Advection velocity (y-direction).
@@ -192,7 +192,7 @@ main(int argc, char **argv)
     .name = "q",
     .equation = advect,
     .advection = {
-      .velocity = eval_advect_vel,
+      .velocity = evalAdvectVel,
       .velocity_ctx = &ctx,
     },
     .diffusion = {
@@ -200,7 +200,7 @@ main(int argc, char **argv)
       .order = ctx.diffusion_order,
     },
 
-    .init = evalInit,
+    .init = evalAdvectInit,
     .ctx = &ctx,
   };
 
