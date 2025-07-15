@@ -27,10 +27,15 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   gkyl_cart_modal_serendip(&up->fluxbasis, 1, inp->flux_poly_order);
   gkyl_cart_modal_tensor(&up->rzbasis, 2, inp->rz_poly_order);
 
-  FILE *ptr = fopen(up->filepath,"r");
-  size_t status;
+  FILE *ptr = fopen(up->filepath,"r"); 
+  
+  if (ptr == NULL) {
+    fprintf(stderr, " Failed to open the eqdsk file: %s\n",up->filepath);
+    assert(false);
+  }
 
   // Get the dimensions
+  size_t status;
 
   status = fscanf(ptr,"%d%d", &up->nr, &up->nz);
 
