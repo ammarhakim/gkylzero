@@ -1,4 +1,4 @@
-// Constant 6th-order diffusion of a 3D sine wave using a p2 DG discretization of the advection-diffusion equation.
+// General diffusion (with constant diffusion tensor) of a 2D square wave using a p2 DG discretization of the advection-diffusion equation.
 
 #include <math.h>
 #include <stdio.h>
@@ -30,15 +30,12 @@ struct diffusion_ctx
   // Physical constants (using normalized code units).
   double v_advect; // Advection velocity.
   double diffusion_coeff; // Diffusion coefficient.
-  int diffusion_order; // Order of diffusion.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
-  int Ny; // Cell count (configuration space: y-direciton).
-  int Nz; // Cell count (configuration space: z-direction).
+  int Ny; // Cell count (configuration space: y-direction).
   double Lx; // Domain size (configuration space: x-direction).
   double Ly; // Domain size (configuration space: y-direction).
-  double Lz; // Domain size (configuration space: z-direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
@@ -60,19 +57,16 @@ create_ctx(void)
   // Physical constants (using normalized code units).
   double v_advect = 1.0; // Advection velocity.
   double diffusion_coeff = 1.0; // Diffusion coefficient.
-  int diffusion_order = 6; // Order of diffusion.
 
   // Simulation parameters.
-  int Nx = 4; // Cell count (configuration space: x-direction).
-  int Ny = 4; // Cell count (configuration space: y-direction).
-  int Nz = 4; // Cell count (configuration space: z-direction).
-  double Lx = 2.0 * pi; // Domain size (configuration space: x-direction).
-  double Ly = 2.0 * pi; // Domain size (configuration space: y-direction).
-  double Lz = 2.0 * pi; // Domain size (configuration space: z-direction).
+  int Nx = 32; // Cell count (configuration space: x-direction).
+  int Ny = 32; // Cell count (configuration space: y-direction).
+  double Lx = 4.0; // Domain size (configuration space: x-direction).
+  double Ly = 4.0; // Domain size (configuration space: y-direction).
   int poly_order = 2; // Polynomial order.
-  double cfl_frac = 1.0; // CFL coefficient.
+  double cfl_frac = 0.5; // CFL coefficient.
 
-  double t_end = 0.1; // Final simulation time.
+  double t_end = 0.01; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
@@ -84,13 +78,10 @@ create_ctx(void)
     .pi = pi,
     .v_advect = v_advect,
     .diffusion_coeff = diffusion_coeff,
-    .diffusion_order = diffusion_order,
     .Nx = Nx,
     .Ny = Ny,
-    .Nz = Nz,
     .Lx = Lx,
     .Ly = Ly,
-    .Lz = Lz,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -108,9 +99,15 @@ create_ctx(void)
 void
 evalAdvectInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double x = xn[0], y = xn[1], z = xn[2];
+  double x = xn[0], y = xn[1];
 
-  double f = sin(x) * sin(y) * sin(z); // Advected quantity.
+  double f = 0.0;
+  if (fabs(x) < 1.0 && fabs(y) < 1.0) {
+    f = 1.0; // Advected quantity (interior).
+  }
+  else {
+    f = 0.0; // Advected quantity (exterior).
+  }
 
   // Set advected quantity.
   fout[0] = f;
@@ -125,6 +122,21 @@ evalAdvectVel(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 
   // Set advection velocity.
   fout[0] = ux; fout[1] = uy; fout[2] = uz;
+}
+
+void
+evalDiffusionInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct diffusion_ctx *app = ctx;
+
+  double diffusion_coeff = app->diffusion_coeff;
+
+  double diffusion_xx = diffusion_coeff; // Diffusion tensor (xx-component).
+  double diffusion_xy = diffusion_coeff; // Diffusion tensor (xy-component).
+  double diffusion_yy = diffusion_coeff; // Diffusion tensor (yy-component).
+  
+  // Set diffusion tensor.
+  fout[0] = diffusion_xx; fout[1] = diffusion_xy; fout[2] = diffusion_yy;
 }
 
 void
@@ -190,7 +202,6 @@ main(int argc, char **argv)
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
-  int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], ctx.Nz);
 
   // Linear advection equation.
   struct gkyl_wv_eqn *advect = gkyl_wv_advect_new(ctx.v_advect, false);
@@ -203,8 +214,8 @@ main(int argc, char **argv)
       .velocity_ctx = &ctx,
     },
     .diffusion = {
-      .D = ctx.diffusion_coeff,
-      .order = ctx.diffusion_order,
+      .Dij = evalDiffusionInit,
+      .Dij_ctx = &ctx,
     },
 
     .init = evalAdvectInit,
@@ -218,7 +229,7 @@ main(int argc, char **argv)
   }
 #endif  
 
-int ccells[] = { NX, NY, NZ };
+int ccells[] = { NX, NY };
 int cdim = sizeof(ccells) / sizeof(ccells[0]);
 
 int cuts[cdim];
@@ -289,19 +300,19 @@ for (int d = 0; d < cdim; d++) {
 
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
-    .name = "dg_diffusion6_const_3x",
+    .name = "dg_diffusion_gen_2x",
 
-    .cdim = 3, .vdim = 0,
-    .lower = { 0.0, 0.0, 0.0 },
-    .upper = { ctx.Lx, ctx.Ly, ctx.Lz },
-    .cells = { NX, NY, NZ },
+    .cdim = 2, .vdim = 0,
+    .lower = { -0.5 * ctx.Lx, -0.5 * ctx.Ly },
+    .upper = { 0.5 * ctx.Lx, 0.5 * ctx.Ly },
+    .cells = { NX, NY },
 
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
 
-    .num_periodic_dir = 3,
-    .periodic_dirs = { 0, 1, 2 },
+    .num_periodic_dir = 2,
+    .periodic_dirs = { 0, 1 },
 
     .num_species = 0,
     .species = { },
@@ -313,7 +324,7 @@ for (int d = 0; d < cdim; d++) {
 
     .parallelism = {
       .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0], app_args.cuts[1], app_args.cuts[2] },
+      .cuts = { app_args.cuts[0], app_args.cuts[1] },
       .comm = comm,
     },
   };

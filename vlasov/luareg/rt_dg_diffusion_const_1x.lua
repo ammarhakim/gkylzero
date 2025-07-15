@@ -8,7 +8,7 @@ pi = math.pi
 
 -- Physical constants (using normalized code units).
 v_advect = 1.0 -- Advection velocity.
-D_diffusion = 10.0 -- Diffusion coefficient.
+diffusion_coeff = 10.0 -- Diffusion coefficient.
 
 -- Simulation parameters.
 Nx = 4 -- Cell count (configuration space: x-direction).
@@ -74,7 +74,7 @@ vlasovApp = Vlasov.App.new {
 
     -- Diffusion.
     diffusion = {
-      diffusionCoefficient = D_diffusion
+      diffusionCoefficient = diffusion_coeff
     },
 
     evolve = true -- Evolve species?

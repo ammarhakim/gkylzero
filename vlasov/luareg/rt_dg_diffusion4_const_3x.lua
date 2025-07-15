@@ -8,7 +8,7 @@ pi = math.pi
 
 -- Physical constants (using normalized code units).
 v_advect = 1.0 -- Advection velocity.
-D_diffusion = 1.0 -- Diffusion coefficient.
+diffusion_coeff = 1.0 -- Diffusion coefficient.
 diffusion_order = 4 -- Diffusion order.
 
 -- Simulation parameters.
@@ -79,7 +79,7 @@ vlasovApp = Vlasov.App.new {
 
     -- Diffusion.
     diffusion = {
-      diffusionCoefficient = D_diffusion,
+      diffusionCoefficient = diffusion_coeff,
       diffusionOrder = diffusion_order
     },
 

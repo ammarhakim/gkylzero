@@ -29,7 +29,7 @@ struct diffusion_ctx
 
   // Physical constants (using normalized code units).
   double v_advect; // Advection velocity.
-  double D_diffusion; // Diffusion coefficient.
+  double diffusion_coeff; // Diffusion coefficient.
   int diffusion_order; // Order of diffusion.
 
   // Simulation parameters.
@@ -57,7 +57,7 @@ create_ctx(void)
 
   // Physical constants (using normalized code units).
   double v_advect = 1.0; // Advection velocity.
-  double D_diffusion = 1.0; // Diffusion coefficient.
+  double diffusion_coeff = 1.0; // Diffusion coefficient.
   int diffusion_order = 6; // Order of diffusion.
 
   // Simulation parameters.
@@ -79,7 +79,7 @@ create_ctx(void)
   struct diffusion_ctx ctx = {
     .pi = pi,
     .v_advect = v_advect,
-    .D_diffusion = D_diffusion,
+    .diffusion_coeff = diffusion_coeff,
     .diffusion_order = diffusion_order,
     .Nx = Nx,
     .Ny = Ny,
@@ -196,7 +196,7 @@ main(int argc, char **argv)
       .velocity_ctx = &ctx,
     },
     .diffusion = {
-      .D = ctx.D_diffusion,
+      .D = ctx.diffusion_coeff,
       .order = ctx.diffusion_order,
     },
 

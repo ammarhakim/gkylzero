@@ -29,7 +29,7 @@ struct diffusion_ctx
 
   // Physical constants (using normalized code units).
   double v_advect; // Advection velocity.
-  double D_diffusion; // Diffusion coefficient.
+  double diffusion_coeff; // Diffusion coefficient.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
@@ -54,7 +54,7 @@ create_ctx(void)
 
   // Physical constants (using normalized code units).
   double v_advect = 1.0; // Advection velocity.
-  double D_diffusion = 10.0; // Diffusion coefficient.
+  double diffusion_coeff = 10.0; // Diffusion coefficient.
 
   // Simulation parameters.
   int Nx = 4; // Cell count (configuration space: x-direction).
@@ -73,7 +73,7 @@ create_ctx(void)
   struct diffusion_ctx ctx = {
     .pi = pi,
     .v_advect = v_advect,
-    .D_diffusion = D_diffusion,
+    .diffusion_coeff = diffusion_coeff,
     .Nx = Nx,
     .Lx = Lx,
     .poly_order = poly_order,
@@ -186,7 +186,7 @@ main(int argc, char **argv)
       .velocity_ctx = &ctx,
     },
     .diffusion = {
-      .D = ctx.D_diffusion,
+      .D = ctx.diffusion_coeff,
     },
 
     .init = evalAdvectInit,
