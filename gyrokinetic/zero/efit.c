@@ -29,8 +29,9 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
 
   FILE *ptr = fopen(up->filepath,"r"); 
   
-  if (ptr == NULL) {
-    fprintf(stderr, " Failed to open the eqdsk file: %s\n",up->filepath);
+  // Check if file exists using gkyl_check_file_exists and handle error only on rank 0
+  if (!gkyl_check_file_exists(up->filepath)) {
+    fprintf(stderr, "Failed to open the eqdsk file: %s\n", up->filepath);
     assert(false);
   }
 
