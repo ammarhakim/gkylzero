@@ -564,7 +564,7 @@ gk_neut_species_release_static(const gkyl_gyrokinetic_app* app, const struct gk_
 static void
 gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s)
 {
-  // Release resources for neutral species.
+  // Release resources for kinetic neutral species.
 
   gkyl_array_release(s->f);
   if (s->info.init_from_file.type == 0) {
@@ -604,6 +604,24 @@ gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app* app, const struct gk
   gkyl_array_release(s->hamil);
   if (app->use_gpu)
     gkyl_array_release(s->hamil_host);
+
+  s->release_is_static_func(app, s);
+}
+
+static void
+gk_neut_species_fluid_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s)
+{
+  // Release resources for fluid neutral species.
+  gkyl_array_release(s->f);
+  gkyl_array_release(s->f1);
+  gkyl_array_release(s->fnew);
+  if (app->use_gpu)
+    gkyl_array_release(s->f_host);
+
+  if (s->info.init_from_file.type == 0) {
+    gk_neut_species_projection_release(app, &s->proj_init);
+  }
+  gkyl_comm_release(s->comm);
 
   s->release_is_static_func(app, s);
 }
@@ -782,6 +800,30 @@ gk_neut_species_kinetic_init_static(struct gkyl_gk *gk, struct gkyl_gyrokinetic_
   s->rhs_implicit_func = gk_neut_species_rhs_implicit_static;
   s->bc_func = gk_neut_species_apply_bc_static;
   s->release_func = gk_neut_species_kinetic_release;
+  s->release_is_static_func = gk_neut_species_release_static;
+  s->step_f_func = gk_neut_species_step_f_static;
+  s->combine_func = gk_neut_species_combine_static;
+  s->copy_func = gk_neut_species_copy_range_static;
+  s->apply_pos_shift_func = gk_neut_species_apply_pos_shift_disabled;
+  s->write_func = gk_neut_species_write_init_only;
+  s->write_mom_func = gk_neut_species_write_mom_static;
+  s->calc_integrated_mom_func = gk_neut_species_calc_integrated_mom_static;
+  s->write_integrated_mom_func = gk_neut_species_write_integrated_mom_static;
+  s->report_n_iter_corr_func = gk_neut_species_n_iter_corr_disabled;
+}
+
+static void
+gk_neut_species_fluid_init_static(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s)
+{
+  // Set pointers for RK methods.
+  s->f1 = gkyl_array_acquire(s->f);
+  s->fnew = gkyl_array_acquire(s->f);
+
+  // Set function pointers
+  s->rhs_func = gk_neut_species_rhs_static;
+  s->rhs_implicit_func = gk_neut_species_rhs_implicit_static;
+  s->bc_func = gk_neut_species_apply_bc_static;
+  s->release_func = gk_neut_species_fluid_release;
   s->release_is_static_func = gk_neut_species_release_static;
   s->step_f_func = gk_neut_species_step_f_static;
   s->combine_func = gk_neut_species_combine_static;
@@ -1304,6 +1346,9 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
 
   int cdim = app->cdim;
 
+  // Number of moments depends on eqn_type.
+  ns->num_moments = 5; // rho, rho*ux, rho*uy, rho*uy, totE
+
   // Use the same basis as conf-space.
   ns->basis = app->basis;
   ns->basis_on_dev = app->basis_on_dev;
@@ -1321,12 +1366,9 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
   ns->local = app->local;
 
   // Allocate distribution function array for initialization and I/O.
-  ns->f = mkarr(app->use_gpu, ns->basis.num_basis, ns->local_ext.volume);
-
-  ns->f_host = ns->f;
-  if (app->use_gpu) {
-    ns->f_host = mkarr(false, ns->basis.num_basis, ns->local_ext.volume);
-  }
+  ns->f = mkarr(app->use_gpu, ns->num_moments*ns->basis.num_basis, ns->local_ext.volume);
+  ns->f_host = app->use_gpu? mkarr(false, ns->f->ncomp, ns->f->size)
+                           : gkyl_array_acquire(ns->f);
 
   // Create skin/ghost ranges fir applying BCs. Only used for dynamic neutrals but included here to avoid
   // code duplication since the "ghost" array is needed.
@@ -1356,12 +1398,31 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
 
   // Initialize projection routine for initial conditions.
   gk_neut_species_projection_init(app, ns, ns->info.projection, &ns->proj_init);
+
+  // Initialize boundary fluxes.
+  ns->bflux = (struct gk_boundary_fluxes) { };
+  // Additional bflux moments to step in time.
+  struct gkyl_phase_diagnostics_inp add_bflux_moms_inp = (struct gkyl_phase_diagnostics_inp) { };
+  // Set the operation type for the bflux app.
+  enum gkyl_species_bflux_type bflux_type = GK_SPECIES_BFLUX_NONE;
+  gk_neut_species_bflux_init(app, ns, &ns->bflux, bflux_type, add_bflux_moms_inp);
+
+  ns->src = (struct gk_source) { };
+  ns->react_neut = (struct gk_react) { };
+  if (!ns->info.is_static) {
+    // Dynamic fluid neutrals not yet allowed.
+    assert(false);
+//    gk_neut_species_fluid_init_dynamic(gk, app, ns);
+  }
+  else {
+    gk_neut_species_fluid_init_static(gk, app, ns);
+  }
 }
 
 void
 gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns)
 {
-  if (gk->cells[0] == 0) {
+  if (ns->info.cells[0] == 0) {
     // Fluid neutrals.
     gk_neut_species_fluid_init(gk, app, ns);
   }
@@ -1381,56 +1442,53 @@ gk_neut_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_neut_species *spec
   gk_neut_species_source_calc(app, species, &species->src, species->lte.f_lte, t0);
 }
 
-// Compute the RHS for species update, returning maximum stable time-step.
 double
 gk_neut_species_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms) 
 {
+  // Compute the RHS for species update, returning maximum stable time-step.
   return species->rhs_func(app, species, fin, rhs, bflux_moms);
 }
 
-// Compute the implicit RHS for species update, returning maximum stable time-step.
 double
 gk_neut_species_rhs_implicit(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, double dt)
 {
+  // Compute the implicit RHS for species update, returning maximum stable time-step.
   return species->rhs_implicit_func(app, species, fin, rhs, dt);
 }
 
-// Accummulate function for forward euler method.
 void
 gk_neut_species_step_f(struct gk_neut_species *species, struct gkyl_array* out, double a,
   const struct gkyl_array* inp)
 {
+  // Accummulate function for forward euler method.
   species->step_f_func(out, a, inp);
 }
 
-// Combine function for rk3 updates.
 void
 gk_neut_species_combine(struct gk_neut_species *species, struct gkyl_array *out, double c1,
   const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
   const struct gkyl_range *rng)
 {
+  // Combine function for rk3 updates.
   species->combine_func(out, c1, arr1, c2, arr2, rng);
 }
 
-// Copy function for rk3 updates.
 void
 gk_neut_species_copy_range(struct gk_neut_species *species, struct gkyl_array *out,
   const struct gkyl_array *inp, const struct gkyl_range *range)
 {
+  // Copy function for rk3 updates.
   species->copy_func(out, inp, range);
 }
 
-// Determine which directions are periodic and which directions are not periodic,
-// and then apply boundary conditions for distribution function
 void
 gk_neut_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gkyl_array *f)
 {
   species->bc_func(app, species, f);
 }
 
-// Write functions.
 void
 gk_neut_species_write(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns, double tm, int frame)
 {

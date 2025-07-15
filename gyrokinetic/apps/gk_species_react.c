@@ -31,7 +31,7 @@ gk_neut_species_react_get_vt_sq_min(struct gkyl_gyrokinetic_app *app, struct gk_
 {
   double bmag_mid = app->bmag_ref;
 
-  int vdim = app->vdim+1; // neutral species are 3v otherwise
+  int vdim = app->vdim+1; // Neutral species are 3v otherwise.
   double dv_min[vdim];
   gkyl_velocity_map_reduce_dv_range(s->vel_map, GKYL_MIN, dv_min, s->vel_map->local_vel);
 
@@ -172,14 +172,14 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
     struct gk_species *gks_ion = &app->species[react->ion_idx[i]]; 
 
     if (react->react_id[i] == GKYL_REACT_IZ) {
-      // compute needed electron Maxwellian moments (J*n, u_par, T/m) 
+      // Compute needed electron Maxwellian moments (J*n, u_par, T/m).
       gk_species_moment_calc(&gks_elc->lte.moms, 
         gks_elc->local, app->local, fin[react->elc_idx[i]]);
 
       // Copy J*n for use in final update
       gkyl_array_set_range(react->Jm0_elc[i], 1.0, gks_elc->lte.moms.marr, &app->local);
 
-      // divide out the Jacobian from the electron density for computing reaction rates
+      // Divide the electron density by the Jacobian for reaction rates.
       gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, app->basis, 
         0, gks_elc->lte.moms.marr, 0, gks_elc->lte.moms.marr, 0, 
         app->gk_geom->jacobgeo, &app->local); 
@@ -192,7 +192,7 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
         // Copy J*n for use in final update
         gkyl_array_set_range(react->Jm0_donor[i], 1.0, gks_donor->lte.moms.marr, &app->local);
 
-        // divide out the Jacobian from the donor density for use in Maxwellian projection
+        // Divide the donor density by the Jacobian for Maxwellian projection.
         gkyl_dg_div_op_range(gks_donor->lte.moms.mem_geo, app->basis, 
           0, gks_donor->lte.moms.marr, 0, gks_donor->lte.moms.marr, 0, 
           app->gk_geom->jacobgeo, &app->local); 
@@ -208,60 +208,60 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
         // Copy J*n for use in final update
         gkyl_array_set_range(react->Jm0_donor[i], 1.0, gkns_donor->lte.moms.marr, &app->local);
 
-        // divide out the Jacobian from the donor density for use in Maxwellian projection
+        // Divide the donor density by the Jacobian for Maxwellian projection.
         gkyl_dg_div_op_range(gkns_donor->lte.moms.mem_geo, app->basis, 
           0, gkns_donor->lte.moms.marr, 0, gkns_donor->lte.moms.marr, 0, 
           app->gk_geom->jacobgeo, &app->local); 
 
-        // Select component parallel to b
-	// if cdim = 1, uidx = 1, if cdim = 2, udix = 2, if cdim = 3, udix = 3
+        // Select component parallel to b.
+	// If cdim = 1, uidx = 1, if cdim = 2, udix = 2, if cdim = 3, udix = 3.
         gkyl_array_set_offset(react->u_i_dot_b_i[i], 1.0, gkns_donor->lte.moms.marr, app->cdim*app->basis.num_basis);
 
         gkyl_array_set_offset(react->vt_sq_donor[i], 1.0, gkns_donor->lte.moms.marr, 4*app->basis.num_basis);
       }
 
-      // compute ionization reaction rate from input electron primitive moments
+      // Compute ionization reaction rate from electron primitive moments.
       gkyl_dg_iz_coll(react->iz[i], gks_elc->lte.moms.marr, 
         react->vt_sq_iz1[i], react->vt_sq_iz2[i], react->coeff_react[i], 0);
     }
     else if (react->react_id[i] == GKYL_REACT_RECOMB) {
-      // compute needed electron Maxwellian moments (J*n, u_par, T/m) 
+      // Compute needed electron Maxwellian moments (J*n, u_par, T/m).
       gk_species_moment_calc(&gks_elc->lte.moms, 
         gks_elc->local, app->local, fin[react->elc_idx[i]]);
 
       // Copy J*n for use in final update
       gkyl_array_set_range(react->Jm0_elc[i], 1.0, gks_elc->lte.moms.marr, &app->local);
 
-      // divide out the Jacobian from the electron density for computing reaction rates
+      // Divide the electron density by the Jacobian for reaction rates.
       gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, app->basis, 
         0, gks_elc->lte.moms.marr, 0, gks_elc->lte.moms.marr, 0, 
         app->gk_geom->jacobgeo, &app->local); 
 
-      // compute needed ion Maxwellian moments (J*n, u_par, T/m) 
+      // Compute needed ion Maxwellian moments (J*n, u_par, T/m).
       gk_species_moment_calc(&gks_ion->lte.moms, 
         gks_ion->local, app->local, fin[react->ion_idx[i]]);
 
       // Copy J*n for use in final update
       gkyl_array_set_range(react->Jm0_ion[i], 1.0, gks_ion->lte.moms.marr, &app->local);
 
-      // divide out the Jacobian from the ion density for use in Maxwellian projection
+      // Divide the ion density by the Jacobian for Maxwellian projection.
       gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, app->basis, 
         0, gks_ion->lte.moms.marr, 0, gks_ion->lte.moms.marr, 0, 
         app->gk_geom->jacobgeo, &app->local); 
       
-      // compute recombination reaction rate
+      // Compute recombination reaction rate.
       gkyl_dg_recomb_coll(react->recomb[i], gks_elc->lte.moms.marr, 
         react->coeff_react[i], 0);
     }
     else if (react->react_id[i] == GKYL_REACT_CX) {
-      // compute needed ion Maxwellian moments (J*n, u_par, T/m) 
+      // Compute needed ion Maxwellian moments (J*n, u_par, T/m).
       gk_species_moment_calc(&gks_ion->lte.moms, 
         gks_ion->local, app->local, fin[react->ion_idx[i]]);
 
       // Copy J*n for use in final update
       gkyl_array_set_range(react->Jm0_ion[i], 1.0, gks_ion->lte.moms.marr, &app->local);
 
-      // divide out the Jacobian from the ion density
+      // Divide the ion density by the Jacobian.
       gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, app->basis, 
         0, gks_ion->lte.moms.marr, 0, gks_ion->lte.moms.marr, 0, 
         app->gk_geom->jacobgeo, &app->local); 
@@ -273,18 +273,18 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
       gkyl_array_set_offset(react->upar_ion[i], 1.0, react->u_i_dot_b_i[i], (app->cdim-1)*app->basis.num_basis);
       gkyl_array_clear(react->u_i_dot_b_i[i], 0.0);
 
-      // compute needed partner (neutral) Maxwellian moments (J*n, ux, uy, uz, T/m) 
+      // Compute needed partner (neutral) Maxwellian moments (J*n, ux, uy, uz, T/m) .
       struct gk_neut_species *gkns_partner = &app->neut_species[react->partner_idx[i]];
       gk_neut_species_moment_calc(&gkns_partner->lte.moms, 
         gkns_partner->local, app->local, fin_neut[react->partner_idx[i]]);  
 
-      // divide out the Jacobian from the partner density
+      // Divide the partner density by the Jacobian.
       gkyl_dg_div_op_range(gkns_partner->lte.moms.mem_geo, app->basis, 
         0, gkns_partner->lte.moms.marr, 0, gkns_partner->lte.moms.marr, 0, 
         app->gk_geom->jacobgeo, &app->local); 
 
-      // Copy ux, uy, uz for computing dot product u_i . b_i (Cartesian components of b_i)
-      // if cdim = 1, uidx = 1, if cdim = 2, udix = 2, if cdim = 3, udix = 3
+      // Copy ux, uy, uz for computing dot product u_i . b_i (Cartesian components of b_i).
+      // If cdim = 1, uidx = 1, if cdim = 2, udix = 2, if cdim = 3, udix = 3
       gkyl_array_set_offset(react->u_i_dot_b_i[i], 1.0, gkns_partner->lte.moms.marr, app->cdim*app->basis.num_basis);
 
       // Copy vt^2 = T/m of the neutrals (partner of the ions).
@@ -298,7 +298,7 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
   app->stat.species_react_mom_tm += gkyl_time_diff_now_sec(wst);
 }
 
-// updates the reaction terms in the rhs
+// Updates the reaction terms in the rhs.
 void
 gk_species_react_rhs(gkyl_gyrokinetic_app *app, struct gk_species *s,
   struct gk_react *react, const struct gkyl_array *fin, struct gkyl_array *rhs)
@@ -502,7 +502,7 @@ gk_species_react_release(const struct gkyl_gyrokinetic_app *app, const struct gk
   gkyl_array_release(react->f_react);
   for (int i=0; i<react->num_react; ++i) {
     gkyl_array_release(react->coeff_react[i]);
-    if(app->use_gpu) {
+    if (app->use_gpu) {
       gkyl_array_release(react->coeff_react_host[i]);
     }
 

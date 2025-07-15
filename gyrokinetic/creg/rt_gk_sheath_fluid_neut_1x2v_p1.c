@@ -24,6 +24,11 @@ struct sheath_ctx
   double Ti; // Ion temperature.
   double n0; // Reference number density (1 / m^3).
 
+  double mass_neut; // Neut mass.
+  double gas_gamma; // Adiabatic index.
+  double n0_neut; // Reference neutral density.
+  double T0_neut; // Reference neutral temperature.
+
   double B_axis; // Magnetic field axis (simple toroidal coordinates).
   double R0; // Major radius (simple toroidal coordinates).
   double a0; // Minor axis (simple toroidal coordinates).
@@ -92,6 +97,11 @@ create_ctx(void)
   double Ti = 40.0 * GKYL_ELEMENTARY_CHARGE; // Ion temperature.
   double n0 = 7.0e18; //  Reference number density (1 / m^3).
 
+  double mass_neut = mass_ion; // Neutral mass.
+  double gas_gamma = 5.0/3.0; // Adiabatic index.
+  double n0_neut = 1e-4*n0; // Reference neutral number density (1 / m^3).
+  double T0_neut = Ti; // Reference neutral temperature.
+
   double B_axis = 0.5; // Magnetic field axis (simple toroidal coordinates).
   double R0 = 0.85; // Major radius (simple toroidal coordinates).
   double a0 = 0.15; // Minor axis (simple toroidal coordinates).
@@ -155,6 +165,10 @@ create_ctx(void)
     .Te = Te,
     .Ti = Ti,
     .n0 = n0,
+    .mass_neut = mass_neut,
+    .gas_gamma = gas_gamma,
+    .n0_neut = n0_neut,
+    .T0_neut = T0_neut,
     .B_axis = B_axis,
     .R0 = R0,
     .a0 = a0,
@@ -380,6 +394,29 @@ evalIonNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, 
   fout[0] = nu_ion;
 }
 
+void
+eval_neut_mom_init(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  double z = xn[0];
+
+  struct sheath_ctx *app = ctx;
+  double mass_neut = app->mass_neut;
+  double gas_gamma = app->gas_gamma;
+  double n0_neut = app->n0_neut;
+  double T0_neut = app->T0_neut;
+
+  // Mass density.
+  fout[0] = n0_neut;
+
+  // Momentum density.
+  fout[1] = 0.0;
+  fout[2] = 0.0;
+  fout[3] = 0.0;
+
+  // Total energy density.
+  fout[4] = (gas_gamma-1.0)*n0_neut*T0_neut;
+}
+
 static inline void
 mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void* ctx)
 {
@@ -594,20 +631,16 @@ main(int argc, char **argv)
   };
 
   // D0.
-  struct gkyl_gyrokinetic_fluid_neut_species D0 = {
+  struct gkyl_gyrokinetic_neut_species D0 = {
     .name = "D0",
     .mass = ctx.mass_ion,
+    .is_static = true,
 
-//    .projection = {
-//      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
-//      .density = evalIonDensityInit,
-//      .ctx_density = &ctx,
-//      .temp = evalIonTempInit,
-//      .ctx_temp = &ctx,
-//      .upar = evalIonUparInit,
-//      .ctx_upar = &ctx,
-//    },
-
+    .projection = {
+      .proj_id = GKYL_PROJ_FUNC, 
+      .func = eval_neut_mom_init,
+      .ctx_func = &ctx,
+    },
   };
 
   // Field.
@@ -618,11 +651,11 @@ main(int argc, char **argv)
 
   // Gyrokinetic app.
   struct gkyl_gk app_inp = {
-    .name = "gk_sheath_1x2v_p1",
+    .name = "gk_sheath_fluid_neut_1x2v_p1",
 
     .cdim = ctx.cdim, .vdim = ctx.vdim,
-    .lower = { -0.5 * ctx.Lz },
-    .upper = { 0.5 * ctx.Lz },
+    .lower = { -ctx.Lz/2.0 },
+    .upper = {  ctx.Lz/2.0 },
     .cells = { cells_x[0] },
 
     .poly_order = ctx.poly_order,
@@ -645,8 +678,8 @@ main(int argc, char **argv)
     .num_species = 2,
     .species = { elc, ion },
 
-    .num_fluid_neut_species = 1,
-    .fluid_neut_species = { D0 },
+    .num_neut_species = 1,
+    .neut_species = { D0 },
 
     .field = field,
 

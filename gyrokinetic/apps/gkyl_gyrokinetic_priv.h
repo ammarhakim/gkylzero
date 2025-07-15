@@ -898,6 +898,7 @@ struct gk_neut_species {
 
     // Fluid neutrals .............................................. //
     struct {
+      int num_moments; // Number of fluid moments.
       struct gkyl_array *prim_var; // Primitive variables (udrift, pressure).
       struct gkyl_array *prim_var_host; // prim_var on the host for I/O.
     };

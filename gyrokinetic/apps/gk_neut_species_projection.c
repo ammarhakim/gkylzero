@@ -1,8 +1,8 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
 
-void 
-gk_neut_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, 
+static void 
+gk_neut_species_kinetic_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, 
   struct gkyl_gyrokinetic_projection inp, struct gk_proj *proj)
 {
   proj->proj_id = inp.proj_id;
@@ -80,6 +80,42 @@ gk_neut_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
       proj->corr_lte = gkyl_vlasov_lte_correct_inew( &inp_corr );
     }
   }
+}
+
+static void 
+gk_neut_species_fluid_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, 
+  struct gkyl_gyrokinetic_projection inp, struct gk_proj *proj)
+{
+  proj->proj_id = inp.proj_id;
+  if (proj->proj_id == GKYL_PROJ_FUNC) {
+    proj->proj_func = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+        .grid = &s->grid,
+        .basis = &s->basis,
+        .qtype = GKYL_GAUSS_QUAD,
+        .num_quad = s->basis.poly_order+1,
+        .num_ret_vals = s->num_moments,
+        .eval = inp.func,
+        .ctx = inp.ctx_func,
+      }
+    );
+    if (app->use_gpu) {
+      proj->proj_host = mkarr(false, s->num_moments*s->basis.num_basis, s->local_ext.volume);
+    }
+  }
+  else {
+    // Other options not yet implemented.
+    assert(false);
+  }
+}
+
+void 
+gk_neut_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, 
+  struct gkyl_gyrokinetic_projection inp, struct gk_proj *proj)
+{
+  if (s->is_fluid)
+    gk_neut_species_fluid_projection_init(app, s, inp, proj);
+  else
+    gk_neut_species_kinetic_projection_init(app, s, inp, proj);
 }
 
 void

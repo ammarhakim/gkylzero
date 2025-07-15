@@ -25,7 +25,8 @@ struct gkyl_dg_iz_inp {
 typedef struct gkyl_dg_iz gkyl_dg_iz;
 
 /**
- * Create new updater to calculate ionization temperature or reaction rate
+ * Create new updater to calculate ionization temperature or reaction rate.
+ *
  * @param gkyl_dg_iz_inp
  * @param use_gpu Boolean for whether struct is on host or device
  */

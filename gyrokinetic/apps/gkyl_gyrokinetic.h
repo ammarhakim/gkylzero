@@ -23,27 +23,33 @@ struct gkyl_gyrokinetic_projection {
 
   union {
     struct {
-      // pointer and context to initialization function 
-      void *ctx_func; 
+      // Distribution function to project and its context. For fluid neutrals
+      // this function returns mass density, momentum density, and total
+      // energy density.
       void (*func)(double t, const double *xn, double *fout, void *ctx); 
+      void *ctx_func; 
     };
     struct {
-      // pointers and contexts to initialization functions for gk maxwellian projection
-      void *ctx_density;
+      // For Maxwellians (or BiMaxwellians), specify density, parallel speed
+      // and temperature (or parallel and perpendicular temperature) functions,
+      // and their context.
       void (*density)(double t, const double *xn, double *fout, void *ctx);
-      void *ctx_upar;
+      void *ctx_density;
       void (*upar)(double t, const double *xn, double *fout, void *ctx);
+      void *ctx_upar;
+      void (*temp)(double t, const double *xn, double *fout, void *ctx);
+      void *ctx_temp;
+      void (*temppar)(double t, const double *xn, double *fout, void *ctx);
+      void *ctx_temppar;
+      void (*tempperp)(double t, const double *xn, double *fout, void *ctx);
+      void *ctx_tempperp;
+
+      // For kinetic neutrals, specify density, drift velocity (udrift) and
+      // temperature, and their context, if projecting a Maxwellian.
       void *ctx_udrift;
       void (*udrift)(double t, const double *xn, double *fout, void *ctx);
-      // if projection is Maxwellian
-      void *ctx_temp;
-      void (*temp)(double t, const double *xn, double *fout, void *ctx);
-      // if projection is bi-Maxwellian
-      void *ctx_temppar;
-      void (*temppar)(double t, const double *xn, double *fout, void *ctx);
-      void *ctx_tempperp;
-      void (*tempperp)(double t, const double *xn, double *fout, void *ctx);
-      // if projection is a Maxwellian + Gaussian in configuration space.
+
+      // Options for a Maxwellian in vel-space w/ Gaussian shape in conf-space.
       double gaussian_mean[GKYL_MAX_CDIM]; // Center in configuration space.
       double gaussian_std_dev[GKYL_MAX_CDIM]; // Sigma in configuration space, function is constant if sigma is 0.
       double total_num_particles; // Total number of particle (M0 moment).
@@ -51,11 +57,11 @@ struct gkyl_gyrokinetic_projection {
       double temp_max; // Maximum temperature of the Gaussian Maxwellian distribution.
       double temp_min; // Minimum temperature of the Gaussian Maxwellian distribution.
       
-      // boolean if we are correcting all the moments or only density
+      // Boolean if we are correcting all the moments or only density.
       bool correct_all_moms; 
-      double iter_eps; // error tolerance for moment fixes (density is always exact)
-      int max_iter; // maximum number of iteration
-      bool use_last_converged; // use last iteration value regardless of convergence?
+      double iter_eps; // Error tolerance for moment fixes (density is always exact).
+      int max_iter; // Maximum number of iteration.
+      bool use_last_converged; // Use last iteration value regardless of convergence?
     };
   };
 };

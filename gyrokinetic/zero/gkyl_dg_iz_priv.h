@@ -40,4 +40,3 @@ struct gkyl_dg_iz {
   struct gkyl_dg_iz *on_dev; // pointer to itself or device data
 };
 
-
