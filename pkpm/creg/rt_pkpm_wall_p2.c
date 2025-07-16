@@ -283,7 +283,8 @@ calc_integrated_L2_f(struct gkyl_tm_trigger* l2t, gkyl_pkpm_app* app, double t_c
 }
 
 void
-train_mom(struct gkyl_tm_trigger* nn, gkyl_pkpm_app* app, double t_curr, bool force_train, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms)
+train_mom(struct gkyl_tm_trigger* nn, gkyl_pkpm_app* app, double t_curr, bool force_train, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms,
+  float** input_data, float** output_data)
 {
   if (gkyl_tm_trigger_check_and_bump(nn, t_curr) || force_train) {
     int frame = nn->curr - 1;
@@ -291,7 +292,7 @@ train_mom(struct gkyl_tm_trigger* nn, gkyl_pkpm_app* app, double t_curr, bool fo
       frame = nn->curr;
     }
 
-    gkyl_pkpm_app_train(app, t_curr, frame, ann, num_input_moms, input_moms, num_output_moms, output_moms);
+    gkyl_pkpm_app_train(app, t_curr, frame, ann, num_input_moms, input_moms, num_output_moms, output_moms, input_data, output_data);
   }
 }
 
@@ -593,8 +594,46 @@ main(int argc, char **argv)
     }
   }
 
+  int cell_count = 0;
+  if (app_inp.cdim == 1) {
+    cell_count = app_inp.cells[0];
+  }
+  else if (app_inp.cdim == 2) {
+    cell_count = app_inp.cells[0] * app_inp.cells[1];
+  }
+
+  float **input_data = gkyl_malloc(sizeof(float*[cell_count]));
+  for (int i = 0; i < cell_count; i++) {
+    if (app_inp.poly_order == 1) {
+      if (app_inp.cdim == 1) {
+        input_data[i] = gkyl_malloc(sizeof(float[ctx.num_input_moms * 2]));
+      }
+      else if (app_inp.cdim == 2) {
+        input_data[i] = gkyl_malloc(sizeof(float[ctx.num_input_moms * 4]));
+      }
+    }
+    else if (app_inp.poly_order == 2) {
+      input_data[i] = gkyl_malloc(sizeof(float[ctx.num_input_moms * 3]));
+    }
+  }
+
+  float **output_data = gkyl_malloc(sizeof(float*[cell_count]));
+  for (int i = 0; i < cell_count; i++) {
+    if (app_inp.poly_order == 1) {
+      if (app_inp.cdim == 1) {
+        output_data[i] = gkyl_malloc(sizeof(float[ctx.num_output_moms * 2]));
+      }
+      else if (app_inp.cdim == 2) {
+        output_data[i] = gkyl_malloc(sizeof(float[ctx.num_output_moms * 4]));
+      }
+    }
+    else if (app_inp.poly_order == 2) {
+      output_data[i] = gkyl_malloc(sizeof(float[ctx.num_output_moms * 3]));
+    }
+  }
+
   if (ctx.train_nn) {
-    train_mom(&nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
+    train_mom(&nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms, input_data, output_data);
   }
 
   // Create trigger for neural network writing.
@@ -660,7 +699,7 @@ main(int argc, char **argv)
     calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
     write_data(&io_trig, app, t_curr, false);
     if (ctx.train_nn) {
-      train_mom(&nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
+      train_mom(&nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms, input_data, output_data);
       write_nn(&nnw_trig, app, t_curr, false, ann);
     }
     if (ctx.test_nn) {
@@ -685,7 +724,7 @@ main(int argc, char **argv)
         calc_integrated_L2_f(&l2f_trig, app, t_curr, true);
         write_data(&io_trig, app, t_curr, true);
         if (ctx.train_nn) {
-          train_mom(&nn_trig, app, t_curr, true, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
+          train_mom(&nn_trig, app, t_curr, true, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms, input_data, output_data);
           write_nn(&nnw_trig, app, t_curr, true, ann);
         }
         if (ctx.test_nn) {
@@ -707,7 +746,7 @@ main(int argc, char **argv)
   calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
   if (ctx.train_nn) {
-    train_mom(&nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
+    train_mom(&nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms, input_data, output_data);
     write_nn(&nnw_trig, app, t_curr, false, ann);
 
     for (int i = 0; i < app_inp.num_species; i++) {
@@ -753,8 +792,16 @@ freeresources:
   gkyl_pkpm_app_release(app);
   gkyl_free(ctx.input_moms);
   gkyl_free(ctx.output_moms);
+  gkyl_free(t);
   gkyl_free(ann);
   gkyl_free(ann_test);
+
+  for (int i = 0; i < cell_count; i++) {
+    gkyl_free(input_data[i]);
+    gkyl_free(output_data[i]);
+  }
+  gkyl_free(input_data);
+  gkyl_free(output_data);
 
 mpifinalize:
 #ifdef GKYL_HAVE_MPI
