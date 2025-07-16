@@ -404,9 +404,13 @@ gkyl_pkpm_app_write_nn_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, k
  * @param input_moms Array of "input" moments to test on.
  * @param num_output_moms Number of "output" moments to test on.
  * @param output_moms Array of "output" moments to test on.
+ * @param input_data_real Array of real input data to validate against (across the computational domain).
+ * @param output_data_real Array of real output data to validate against (across the computational domain).
+ * @param output_data_predicted Array of predicted output data to validate (across the computational domain).
  */
 void
-gkyl_pkpm_app_test(gkyl_pkpm_app* app, double tm, int frame, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms);
+gkyl_pkpm_app_test(gkyl_pkpm_app* app, double tm, int frame, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms,
+  float** input_data_real, float** output_data_real, float** output_data_predicted);
 
  /**
  * Test neural network on PKPM moments data for a particular fluid species, and write moments to a file.
@@ -420,9 +424,13 @@ gkyl_pkpm_app_test(gkyl_pkpm_app* app, double tm, int frame, kann_t** ann, int n
  * @param input_moms Array of "input" moments to test on.
  * @param num_output_moms Number of "output" moments to test on.
  * @param output_moms Array of "output" moments to test on.
+ * @param input_data_real Array of real input data to validate against (across the computational domain).
+ * @param output_data_real Array of real output data to validate against (across the computational domain).
+ * @param output_data_predicted Array of predicted output data to validate (across the computational domain).
  */
 void
-gkyl_pkpm_app_test_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms);
+gkyl_pkpm_app_test_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms,
+  float** input_data_real, float** output_data_real, float** output_data_predicted);
 
 /**
  * Initialize field from file

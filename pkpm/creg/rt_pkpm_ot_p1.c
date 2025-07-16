@@ -143,7 +143,7 @@ create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   // Training parameters.
-  bool train_nn = true; // Train neural network on simulation data?
+  bool train_nn = false; // Train neural network on simulation data?
   bool train_ab_initio = true; // Train neural network ab initio?
   int nn_width = 256; // Number of neurons to use per layer.
   int nn_depth = 5; // Number of layers to use.
@@ -439,7 +439,8 @@ write_nn(struct gkyl_tm_trigger* nnw, gkyl_pkpm_app* app, double t_curr, bool fo
 }
 
 void
-test_mom(struct gkyl_tm_trigger* nnt, gkyl_pkpm_app* app, double t_curr, bool force_test, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms)
+test_mom(struct gkyl_tm_trigger* nnt, gkyl_pkpm_app* app, double t_curr, bool force_test, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms,
+  float** input_data_real, float** output_data_real, float** output_data_predicted)
 {
   if (gkyl_tm_trigger_check_and_bump(nnt, t_curr) || force_test) {
     int frame = nnt->curr - 1;
@@ -447,7 +448,7 @@ test_mom(struct gkyl_tm_trigger* nnt, gkyl_pkpm_app* app, double t_curr, bool fo
       frame = nnt->curr;
     }
 
-    gkyl_pkpm_app_test(app, t_curr, frame, ann, num_input_moms, input_moms, num_output_moms, output_moms);
+    gkyl_pkpm_app_test(app, t_curr, frame, ann, num_input_moms, input_moms, num_output_moms, output_moms, input_data_real, output_data_real, output_data_predicted);
   }
 }
 
@@ -819,8 +820,43 @@ main(int argc, char **argv)
     }
   }
 
+  float **input_data_real = gkyl_malloc(sizeof(float*[cell_count]));
+  for (int i = 0; i < cell_count; i++) {
+    if (app_inp.poly_order == 1) {
+      if (app_inp.cdim == 1) {
+        input_data_real[i] = gkyl_malloc(sizeof(float[ctx.num_input_moms * 2]));
+      }
+      else if (app_inp.cdim == 2) {
+        input_data_real[i] = gkyl_malloc(sizeof(float[ctx.num_input_moms * 4]));
+      }
+    }
+    else if (app_inp.poly_order == 2) {
+      input_data_real[i] = gkyl_malloc(sizeof(float[ctx.num_input_moms * 3]));
+    }
+  }
+
+  float **output_data_real = gkyl_malloc(sizeof(float*[cell_count]));
+  float **output_data_predicted = gkyl_malloc(sizeof(float*[cell_count]));
+  for (int i = 0; i < cell_count; i++) {
+    if (app_inp.poly_order == 1) {
+      if (app_inp.cdim == 1) {
+        output_data_real[i] = gkyl_malloc(sizeof(float[ctx.num_output_moms * 2]));
+        output_data_predicted[i] = gkyl_malloc(sizeof(float[ctx.num_output_moms * 2]));
+      }
+      else if (app_inp.cdim == 2) {
+        output_data_real[i] = gkyl_malloc(sizeof(float[ctx.num_output_moms * 4]));
+        output_data_predicted[i] = gkyl_malloc(sizeof(float[ctx.num_output_moms * 4]));
+      }
+    }
+    else if (app_inp.poly_order == 2) {
+      output_data_real[i] = gkyl_malloc(sizeof(float[ctx.num_output_moms * 3]));
+      output_data_predicted[i] = gkyl_malloc(sizeof(float[ctx.num_output_moms * 3]));
+    }
+  }
+
   if (ctx.test_nn) {
-    test_mom(&nnt_trig, app, t_curr, false, ann_test, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
+    test_mom(&nnt_trig, app, t_curr, false, ann_test, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms,
+      input_data_real, output_data_real, output_data_predicted);
   }
 
   // Compute initial guess of maximum stable time-step.
@@ -853,7 +889,8 @@ main(int argc, char **argv)
       write_nn(&nnw_trig, app, t_curr, false, ann);
     }
     if (ctx.test_nn) {
-      test_mom(&nnt_trig, app, t_curr, false, ann_test, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
+      test_mom(&nnt_trig, app, t_curr, false, ann_test, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms,
+        input_data_real, output_data_real, output_data_predicted);
     }
 
     if (dt_init < 0.0) {
@@ -878,7 +915,8 @@ main(int argc, char **argv)
           write_nn(&nnw_trig, app, t_curr, true, ann);
         }
         if (ctx.test_nn) {
-          test_mom(&nnt_trig, app, t_curr, true, ann_test, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
+          test_mom(&nnt_trig, app, t_curr, true, ann_test, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms,
+            input_data_real, output_data_real, output_data_predicted);
         }
 
         break;
@@ -904,7 +942,8 @@ main(int argc, char **argv)
     }
   }
   if (ctx.test_nn) {
-    test_mom(&nnt_trig, app, t_curr, false, ann_test, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms);
+    test_mom(&nnt_trig, app, t_curr, false, ann_test, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms, ctx.output_moms,
+      input_data_real, output_data_real, output_data_predicted);
 
     for (int i = 0; i < app_inp.num_species; i++) {
       kann_delete(ann_test[i]);
@@ -952,6 +991,15 @@ freeresources:
   }
   gkyl_free(input_data);
   gkyl_free(output_data);
+
+  for (int i = 0; i < cell_count; i++) {
+    gkyl_free(input_data_real[i]);
+    gkyl_free(output_data_real[i]);
+    gkyl_free(output_data_predicted[i]);
+  }
+  gkyl_free(input_data_real);
+  gkyl_free(output_data_real);
+  gkyl_free(output_data_predicted);
 
 mpifinalize:
 #ifdef GKYL_HAVE_MPI
