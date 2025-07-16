@@ -637,7 +637,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
   gkyl_position_map_optimize(position_map, up->grid, up->global);
 
   int cidx[3] = { 0 };
-  for (int ia=nrange->lower[AL_IDX]; ia<=nrange->lower[AL_IDX]+1; ++ia){
+  for (int ia=nrange->lower[AL_IDX]; ia<nrange->lower[AL_IDX]+1; ++ia){
     cidx[AL_IDX] = ia;
     double alpha_curr = alpha_lo + ia*dalpha;
     // This is the convention described in Noah Mandell's Thesis Eq 5.104. comp coord y = -alpha.
@@ -868,7 +868,7 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
   gkyl_position_map_optimize(position_map, up->grid, up->global);
 
   int cidx[3] = { 0 };
-  for(int ia=nrange->lower[AL_IDX]; ia<=nrange->lower[AL_IDX]+1; ++ia){
+  for(int ia=nrange->lower[AL_IDX]; ia<nrange->lower[AL_IDX]+1; ++ia){
     cidx[AL_IDX] = ia;
     double alpha_curr = calc_running_coord(alpha_lo, ia-nrange->lower[AL_IDX], dalpha);
     // This is the convention described in Noah Mandell's Thesis Eq 5.104. comp coord y = -alpha.
@@ -1111,7 +1111,7 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
   gkyl_position_map_optimize(position_map, up->grid, up->global);
 
   int cidx[3] = { 0 };
-  for(int ia=nrange->lower[AL_IDX]; ia<=nrange->lower[AL_IDX]+1; ++ia){
+  for(int ia=nrange->lower[AL_IDX]; ia<nrange->lower[AL_IDX]+1; ++ia){
     cidx[AL_IDX] = ia;
     double alpha_curr = dir==1 ? alpha_lo + ia*dalpha : calc_running_coord(alpha_lo, ia-nrange->lower[AL_IDX], dalpha);
     // This is the convention described in Noah Mandell's Thesis Eq 5.104. comp coord y = -alpha.
