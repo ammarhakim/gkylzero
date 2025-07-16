@@ -156,9 +156,9 @@ struct gkyl_gyrokinetic_geometry {
   // coordinates.
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
 
-  void *bmag_ctx; // context for bmag function
-  // pointer to bmag function
-  void (*bmag_func)(double t, const double *xc, double *xp, void *ctx);
+  void *bfield_ctx; // context for bfield function
+  // pointer to bfield function
+  void (*bfield_func)(double t, const double *xc, double *xp, void *ctx);
 
   double world[3]; // extra computational coordinates for cases with reduced dimensionality
 

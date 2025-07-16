@@ -31,6 +31,7 @@ struct gk_geom_surf {
   struct gkyl_array* normcurlbhat_nodal; // 1 component, n^m \dot curl(bhat)
   struct gkyl_array* jacobgeo_nodal; // 1 component. Configuration space jacobian J
   struct gkyl_array* b_i_nodal; // 3 components. Contravariant components of magnetic field vector b_1, b_2, b_3.
+  struct gkyl_array* b_i_nodal_fd; // 3 components. b_i at surf quad nodes and nodes epsilon away
   struct gkyl_array* cmag_nodal; // 1 component. C = JB/sqrt(g_33)
   struct gkyl_array* jacobtot_inv_nodal; // 1 component. 1/(JB)
   struct gkyl_array* ddtheta_nodal;   // dphi/dtheta, dR/dtheta, dz/dtheta at surf quad nodes
@@ -139,6 +140,7 @@ struct gk_geom_int {
   struct gkyl_array* gij_neut_nodal; // Metric coefficients g^{ij}. See g_ij for order. 
                                // Calculated with coord definition alpha = phi for tokamak geometry
   struct gkyl_array* b_i_nodal; // 3 components. Covariant components of magnetic field unit vector b_1, b_2, b_3.
+  struct gkyl_array* b_i_nodal_fd; // 3 components. b_i at interior quad nodes and nodes epsilon away
   struct gkyl_array* bcart_nodal; // 3 components. Cartesian components of magnetic field unit vector b_X, b_Y, b_Z.
   struct gkyl_array* B3_nodal; // 1 component e^3 \dot \vec{B} = 1/g_33 
   struct gkyl_array* dualcurlbhatoverB_nodal; // 3 components, e^m \dot curl(bhat)/|B|
@@ -206,9 +208,9 @@ struct gkyl_gk_geometry_inp {
   // coordinates.
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
 
-  void *bmag_ctx; // context for bmag function
-  // pointer to bmag function
-  void (*bmag_func)(double t, const double *xc, double *xp, void *ctx);
+  void *bfield_ctx; // context for bfield function
+  // pointer to bfield function
+  void (*bfield_func)(double t, const double *xc, double *xp, void *ctx);
 
   struct gkyl_efit_inp efit_info; // context with RZ data such as efit file for a tokamak or mirror
   struct gkyl_tok_geo_grid_inp tok_grid_info; // context for tokamak geometry with computational domain info

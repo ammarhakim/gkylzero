@@ -18,13 +18,8 @@
 
 static
 void gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
-  evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx, struct gkyl_position_map *position_map)
+  evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bfield_func, void *bfield_ctx, struct gkyl_position_map *position_map)
 {
-  // First just do bmag
-  struct gkyl_eval_on_nodes *eval_bmag = gkyl_eval_on_nodes_new(&up->grid, &up->basis, 1, bmag_func, bmag_ctx);
-  gkyl_eval_on_nodes_advance(eval_bmag, 0.0, &up->local, up->geo_corn.bmag);
-  gkyl_eval_on_nodes_release(eval_bmag);
-
   //Now project mapc2p and the FD array
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
@@ -59,13 +54,17 @@ void gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *nrang
         position_map->maps[2](0.0, &theta_curr, &theta_curr, position_map->ctxs[2]);
 
         double *mc2p_n = (double *) gkyl_array_fetch(up->geo_corn.mc2p_nodal, gkyl_range_idx(nrange, cidx));
+        double *bmag_n = (double *) gkyl_array_fetch(up->geo_corn.bmag_nodal, gkyl_range_idx(nrange, cidx));
         double xyz[3] = {psi_curr, alpha_curr, theta_curr};
         double XYZ[3] = {0.};
+        double B[3] = {0.};
         mapc2p_func(0.0, xyz, XYZ, mapc2p_ctx);
+        bfield_func(0.0, xyz, B, bfield_ctx);
 
         mc2p_n[X_IDX] = XYZ[X_IDX];
         mc2p_n[Y_IDX] = XYZ[Y_IDX];
         mc2p_n[Z_IDX] = XYZ[Z_IDX];
+        bmag_n[0] = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
 
         double *mc2nu_n = gkyl_array_fetch(up->geo_corn.mc2nu_pos_nodal, gkyl_range_idx(nrange, cidx));
         mc2nu_n[X_IDX] = psi_curr;
@@ -78,12 +77,13 @@ void gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *nrang
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->basis, &up->grid, false);
   gkyl_nodal_ops_n2m(n2m, &up->basis, &up->grid, nrange, &up->local, 3, up->geo_corn.mc2p_nodal, up->geo_corn.mc2p, false);
   gkyl_nodal_ops_n2m(n2m, &up->basis, &up->grid, nrange, &up->local, 3, up->geo_corn.mc2nu_pos_nodal, up->geo_corn.mc2nu_pos, false);
+  gkyl_nodal_ops_n2m(n2m, &up->basis, &up->grid, nrange, &up->local, 1, up->geo_corn.bmag_nodal, up->geo_corn.bmag, false);
   gkyl_nodal_ops_release(n2m);
 }
 
 static
 void gk_geometry_mapc2p_advance_interior(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
-  evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx, struct gkyl_position_map *position_map)
+  evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bfield_func, void *bfield_ctx, struct gkyl_position_map *position_map)
 {
 
   //Now project mapc2p and the FD array
@@ -154,22 +154,29 @@ void gk_geometry_mapc2p_advance_interior(struct gk_geometry* up, struct gkyl_ran
               double *mc2p_quad_fd_n = (double *) gkyl_array_fetch(up->geo_int.mc2p_nodal_fd, gkyl_range_idx(nrange, cidx));
               double *mc2p_quad_n = (double *) gkyl_array_fetch(up->geo_int.mc2p_nodal, gkyl_range_idx(nrange, cidx));
               double *bmag_n = (double *) gkyl_array_fetch(up->geo_int.bmag_nodal, gkyl_range_idx(nrange, cidx));
+              double *bhat_quad_fd_n = (double *) gkyl_array_fetch(up->geo_int.b_i_nodal_fd, gkyl_range_idx(nrange, cidx));
 
               double xyz[3] = {psi_curr, alpha_curr, theta_curr};
               double XYZ[3] = {0.};
-              double B[1] = {0.};
+              double B[3] = {0.};
               mapc2p_func(0.0, xyz, XYZ, mapc2p_ctx);
-              bmag_func(0.0, xyz, B, bmag_ctx);
+              bfield_func(0.0, xyz, B, bfield_ctx);
 
               mc2p_quad_fd_n[lidx+X_IDX] = XYZ[X_IDX];
               mc2p_quad_fd_n[lidx+Y_IDX] = XYZ[Y_IDX];
               mc2p_quad_fd_n[lidx+Z_IDX] = XYZ[Z_IDX];
 
+              double bmag = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
+              bhat_quad_fd_n[lidx+X_IDX] = B[X_IDX]/bmag;
+              bhat_quad_fd_n[lidx+Y_IDX] = B[Y_IDX]/bmag;
+              bhat_quad_fd_n[lidx+Z_IDX] = B[Z_IDX]/bmag;
+
+
               if(ip_delta==0 && ia_delta==0 && it_delta==0){
                 mc2p_quad_n[X_IDX] = XYZ[X_IDX];
                 mc2p_quad_n[Y_IDX] = XYZ[Y_IDX];
                 mc2p_quad_n[Z_IDX] = XYZ[Z_IDX];
-                bmag_n[0] = B[0];
+                bmag_n[0] = bmag;
               }
             }
           }
@@ -180,7 +187,7 @@ void gk_geometry_mapc2p_advance_interior(struct gk_geometry* up, struct gkyl_ran
 
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->basis, &up->grid, false);
   gkyl_nodal_ops_n2m(n2m, &up->basis, &up->grid, nrange, &up->local, 3, up->geo_int.mc2p_nodal, up->geo_int.mc2p, true);
-  gkyl_nodal_ops_n2m(n2m, &up->basis, &up->grid, nrange, &up->local, 3, up->geo_int.bmag_nodal, up->geo_int.bmag, true);
+  gkyl_nodal_ops_n2m(n2m, &up->basis, &up->grid, nrange, &up->local, 1, up->geo_int.bmag_nodal, up->geo_int.bmag, true);
   gkyl_nodal_ops_release(n2m);
 
   // now calculate the metrics
@@ -200,7 +207,7 @@ void gk_geometry_mapc2p_advance_interior(struct gk_geometry* up, struct gkyl_ran
 }
 
 void gk_geometry_mapc2p_advance_surface(struct gk_geometry* up, int dir, struct gkyl_range *nrange, double dzc[3], 
-  evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx, 
+  evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bfield_func, void *bfield_ctx, 
   struct gkyl_position_map *position_map)
 {
 
@@ -311,22 +318,28 @@ void gk_geometry_mapc2p_advance_surface(struct gk_geometry* up, int dir, struct 
               double *mc2p_fd_n = (double *) gkyl_array_fetch(up->geo_surf[dir].mc2p_nodal_fd, gkyl_range_idx(nrange, cidx));
               double *mc2p_n = (double *) gkyl_array_fetch(up->geo_surf[dir].mc2p_nodal, gkyl_range_idx(nrange, cidx));
               double *bmag_n = (double *) gkyl_array_fetch(up->geo_surf[dir].bmag_nodal, gkyl_range_idx(nrange, cidx));
+              double *bhat_fd_n = (double *) gkyl_array_fetch(up->geo_surf[dir].b_i_nodal_fd, gkyl_range_idx(nrange, cidx));
 
               double xyz[3] = {psi_curr, alpha_curr, theta_curr};
               double XYZ[3] = {0.};
-              double B[1] = {0.};
+              double B[3] = {0.};
               mapc2p_func(0.0, xyz, XYZ, mapc2p_ctx);
-              bmag_func(0.0, xyz, B, bmag_ctx);
+              bfield_func(0.0, xyz, B, bfield_ctx);
 
               mc2p_fd_n[lidx+X_IDX] = XYZ[X_IDX];
               mc2p_fd_n[lidx+Y_IDX] = XYZ[Y_IDX];
               mc2p_fd_n[lidx+Z_IDX] = XYZ[Z_IDX];
 
+              double bmag = sqrt(B[0]*B[0] + B[1]*B[1] + B[2]*B[2]);
+              bhat_fd_n[lidx+X_IDX] = B[X_IDX]/bmag;
+              bhat_fd_n[lidx+Y_IDX] = B[Y_IDX]/bmag;
+              bhat_fd_n[lidx+Z_IDX] = B[Z_IDX]/bmag;
+
               if(ip_delta==0 && ia_delta==0 && it_delta==0){
                 mc2p_n[X_IDX] = XYZ[X_IDX];
                 mc2p_n[Y_IDX] = XYZ[Y_IDX];
                 mc2p_n[Z_IDX] = XYZ[Z_IDX];
-                bmag_n[0] = B[0];
+                bmag_n[0] = bmag;
               }
             }
           }
@@ -399,15 +412,15 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
   // calculate mapc2p in cartesian coords at corner nodes for
   // getting cell coordinates (used only for plotting)
   gk_geometry_mapc2p_advance(up, &up->nrange_corn, dzc, geometry_inp->mapc2p, geometry_inp->c2p_ctx,
-    geometry_inp->bmag_func, geometry_inp->bmag_ctx, geometry_inp->position_map);
+    geometry_inp->bfield_func, geometry_inp->bfield_ctx, geometry_inp->position_map);
   // calculate mapc2p in cartesian coords at interior nodes for
   // calculating geo quantity volume expansions 
   gk_geometry_mapc2p_advance_interior(up, &up->nrange_int, dzc, geometry_inp->mapc2p, geometry_inp->c2p_ctx,
-    geometry_inp->bmag_func, geometry_inp->bmag_ctx, geometry_inp->position_map);
+    geometry_inp->bfield_func, geometry_inp->bfield_ctx, geometry_inp->position_map);
   // calculate mapc2p in cylindrical coords at surfaces
   for (int dir = 0; dir <up->grid.ndim; dir++) {
     gk_geometry_mapc2p_advance_surface(up, dir, &up->nrange_surf[dir], dzc, geometry_inp->mapc2p, 
-      geometry_inp->c2p_ctx, geometry_inp->bmag_func, geometry_inp->bmag_ctx, geometry_inp->position_map);
+      geometry_inp->c2p_ctx, geometry_inp->bfield_func, geometry_inp->bfield_ctx, geometry_inp->position_map);
   }
 
   up->flags = 0;

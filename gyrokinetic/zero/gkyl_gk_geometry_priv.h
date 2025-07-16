@@ -65,6 +65,7 @@ gk_geometry_surf_alloc_nodal(struct gk_geometry* gk_geom, int dir)
   gk_geom->geo_surf[dir].normcurlbhat_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
   gk_geom->geo_surf[dir].jacobgeo_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
   gk_geom->geo_surf[dir].b_i_nodal = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_surf[dir].volume);
+  gk_geom->geo_surf[dir].b_i_nodal_fd = gkyl_array_new(GKYL_DOUBLE, 3*num_fd_nodes, gk_geom->nrange_surf[dir].volume);
   gk_geom->geo_surf[dir].cmag_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
   gk_geom->geo_surf[dir].jacobtot_inv_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
   gk_geom->geo_surf[dir].g_ij_nodal = gkyl_array_new(GKYL_DOUBLE, 6, gk_geom->nrange_surf[dir].volume);
@@ -101,6 +102,7 @@ gk_geometry_surf_release_nodal(struct gk_geometry* gk_geom, int dir)
   gkyl_array_release(gk_geom->geo_surf[dir].ddtheta_nodal);
   gkyl_array_release(gk_geom->geo_surf[dir].jacobgeo_nodal);
   gkyl_array_release(gk_geom->geo_surf[dir].b_i_nodal);
+  gkyl_array_release(gk_geom->geo_surf[dir].b_i_nodal_fd);
   gkyl_array_release(gk_geom->geo_surf[dir].cmag_nodal);
   gkyl_array_release(gk_geom->geo_surf[dir].jacobtot_inv_nodal);
   gkyl_array_release(gk_geom->geo_surf[dir].g_ij_nodal);
@@ -134,6 +136,7 @@ gk_geometry_int_alloc_nodal(struct gk_geometry* gk_geom)
   gk_geom->geo_int.normals_nodal = gkyl_array_new(GKYL_DOUBLE, 9, gk_geom->nrange_int.volume);
   gk_geom->geo_int.gij_neut_nodal = gkyl_array_new(GKYL_DOUBLE, 6, gk_geom->nrange_int.volume);
   gk_geom->geo_int.b_i_nodal = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_int.volume);
+  gk_geom->geo_int.b_i_nodal_fd = gkyl_array_new(GKYL_DOUBLE, 3*num_fd_nodes, gk_geom->nrange_int.volume);
   gk_geom->geo_int.bcart_nodal = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_int.volume);
   gk_geom->geo_int.B3_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_int.volume);
   gk_geom->geo_int.dualcurlbhatoverB_nodal = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_int.volume);
@@ -195,6 +198,7 @@ gk_geometry_int_release_nodal(struct gk_geometry* gk_geom)
   gkyl_array_release(gk_geom->geo_int.normals_nodal);
   gkyl_array_release(gk_geom->geo_int.gij_neut_nodal);
   gkyl_array_release(gk_geom->geo_int.b_i_nodal);
+  gkyl_array_release(gk_geom->geo_int.b_i_nodal_fd);
   gkyl_array_release(gk_geom->geo_int.bcart_nodal);
   gkyl_array_release(gk_geom->geo_int.B3_nodal);
   gkyl_array_release(gk_geom->geo_int.dualcurlbhatoverB_nodal);
