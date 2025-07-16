@@ -127,15 +127,8 @@ gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
     else if (react->react_id[i] == GKYL_REACT_CX) {
       struct gk_species *gks = &app->species[react->ion_idx[i]];
       struct gkyl_dg_cx_inp cx_inp = {
-        .grid = &s->grid,
         .cbasis = &app->basis,
-        .pbasis_gk = &gks->basis,
-        .pbasis_vl = &s->basis,
         .conf_rng = &app->local,
-        .conf_rng_ext = &app->local_ext,
-        .phase_rng = &s->local,
-        .mass_ion = react->react_type[i].ion_mass,
-        .mass_neut = react->react_type[i].partner_mass,
         .vt_sq_ion_min = ion_vt_sq_min, 
         .vt_sq_neut_min = neut_vt_sq_min, 
         .type_ion = react->react_type[i].ion_id,
