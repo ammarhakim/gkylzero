@@ -1168,7 +1168,8 @@ calc_integrated_L2_f(struct gkyl_tm_trigger* l2t, gkyl_pkpm_app* app, double t_c
 }
 
 static void
-train_mom(struct gkyl_tm_trigger* nn, gkyl_pkpm_app* app, double t_curr, bool force_train, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms)
+train_mom(struct gkyl_tm_trigger* nn, gkyl_pkpm_app* app, double t_curr, bool force_train, kann_t** ann, int num_input_moms, int* input_moms, int num_output_moms, int* output_moms,
+  float** input_data, float** output_data)
 {
   if (gkyl_tm_trigger_check_and_bump(nn, t_curr) || force_train) {
     int frame = nn->curr - 1;
@@ -1176,7 +1177,7 @@ train_mom(struct gkyl_tm_trigger* nn, gkyl_pkpm_app* app, double t_curr, bool fo
       frame = nn->curr;
     }
 
-    gkyl_pkpm_app_train(app, t_curr, frame, ann, num_input_moms, input_moms, num_output_moms, output_moms);
+    gkyl_pkpm_app_train(app, t_curr, frame, ann, num_input_moms, input_moms, num_output_moms, output_moms, input_data, output_data);
   }
 }
 
@@ -1393,9 +1394,47 @@ pkpm_app_run(lua_State *L)
       }
     }
   }
+
+  int cell_count = 0;
+  if (app->cdim == 1) {
+    cell_count = app->grid.cells[0];
+  }
+  else if (app->cdim == 2) {
+    cell_count = app->grid.cells[0] * app->grid.cells[1];
+  }
+
+  float **input_data = gkyl_malloc(sizeof(float*[cell_count]));
+  for (int i = 0; i < cell_count; i++) {
+    if (app->poly_order == 1) {
+      if (app->cdim == 1) {
+        input_data[i] = gkyl_malloc(sizeof(float[app_lw->num_input_moms * 2]));
+      }
+      else if (app->cdim == 2) {
+        input_data[i] = gkyl_malloc(sizeof(float[app_lw->num_input_moms * 4]));
+      }
+    }
+    else if (app->poly_order == 2) {
+      input_data[i] = gkyl_malloc(sizeof(float[app_lw->num_input_moms * 3]));
+    }
+  }
+
+  float **output_data = gkyl_malloc(sizeof(float*[cell_count]));
+  for (int i = 0; i < cell_count; i++) {
+    if (app->poly_order == 1) {
+      if (app->cdim == 1) {
+        output_data[i] = gkyl_malloc(sizeof(float[app_lw->num_output_moms * 2]));
+      }
+      else if (app->cdim == 2) {
+        output_data[i] = gkyl_malloc(sizeof(float[app_lw->num_output_moms * 4]));
+      }
+    }
+    else if (app->poly_order == 2) {
+      output_data[i] = gkyl_malloc(sizeof(float[app_lw->num_output_moms * 3]));
+    }
+  }
   
   if (app_lw->train_nn) {
-    train_mom(&nn_trig, app, t_curr, false, ann, app_lw->num_input_moms, app_lw->input_moms, app_lw->num_output_moms, app_lw->output_moms);
+    train_mom(&nn_trig, app, t_curr, false, ann, app_lw->num_input_moms, app_lw->input_moms, app_lw->num_output_moms, app_lw->output_moms, input_data, output_data);
   }
 
   // Create trigger for neural network writing.
@@ -1469,7 +1508,7 @@ pkpm_app_run(lua_State *L)
     calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
     write_data(&io_trig, app, t_curr, false);
     if (app_lw->train_nn) {
-      train_mom(&nn_trig, app, t_curr, false, ann, app_lw->num_input_moms, app_lw->input_moms, app_lw->num_output_moms, app_lw->output_moms);
+      train_mom(&nn_trig, app, t_curr, false, ann, app_lw->num_input_moms, app_lw->input_moms, app_lw->num_output_moms, app_lw->output_moms, input_data, output_data);
       write_nn(&nnw_trig, app, t_curr, false, ann);
     }
     if (app_lw->test_nn) {
@@ -1494,7 +1533,7 @@ pkpm_app_run(lua_State *L)
         calc_integrated_L2_f(&l2f_trig, app, t_curr, true);
         write_data(&io_trig, app, t_curr, true);
         if (app_lw->train_nn) {
-          train_mom(&nn_trig, app, t_curr, true, ann, app_lw->num_input_moms, app_lw->input_moms, app_lw->num_output_moms, app_lw->output_moms);
+          train_mom(&nn_trig, app, t_curr, true, ann, app_lw->num_input_moms, app_lw->input_moms, app_lw->num_output_moms, app_lw->output_moms, input_data, output_data);
           write_nn(&nnw_trig, app, t_curr, true, ann);
         }
         if (app_lw->test_nn) {
@@ -1520,7 +1559,7 @@ pkpm_app_run(lua_State *L)
   calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
   if (app_lw->train_nn) {
-    train_mom(&nn_trig, app, t_curr, false, ann, app_lw->num_input_moms, app_lw->input_moms, app_lw->num_output_moms, app_lw->output_moms);
+    train_mom(&nn_trig, app, t_curr, false, ann, app_lw->num_input_moms, app_lw->input_moms, app_lw->num_output_moms, app_lw->output_moms, input_data, output_data);
     write_nn(&nnw_trig, app, t_curr, false, ann);
 
     for (int i = 0; i < app->num_species; i++) {
@@ -1564,8 +1603,16 @@ freeresources:
 
   gkyl_free(app_lw->input_moms);
   gkyl_free(app_lw->output_moms);
+  gkyl_free(t);
   gkyl_free(ann);
   gkyl_free(ann_test);
+
+  for (int i = 0; i < cell_count; i++) {
+    gkyl_free(input_data[i]);
+    gkyl_free(output_data[i]);
+  }
+  gkyl_free(input_data);
+  gkyl_free(output_data);
 
   lua_pushboolean(L, ret_status);
   return 1;
