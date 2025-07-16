@@ -392,7 +392,6 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
     }
   }
 
-  double dzc[3] = {0.0};
   gk_geometry_set_nodal_ranges(up) ;
 
   // Initialize surface basis abd allocate surface geo
@@ -411,15 +410,15 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
 
   // calculate mapc2p in cartesian coords at corner nodes for
   // getting cell coordinates (used only for plotting)
-  gk_geometry_mapc2p_advance(up, &up->nrange_corn, dzc, geometry_inp->mapc2p, geometry_inp->c2p_ctx,
+  gk_geometry_mapc2p_advance(up, &up->nrange_corn, up->dzc, geometry_inp->mapc2p, geometry_inp->c2p_ctx,
     geometry_inp->bfield_func, geometry_inp->bfield_ctx, geometry_inp->position_map);
   // calculate mapc2p in cartesian coords at interior nodes for
   // calculating geo quantity volume expansions 
-  gk_geometry_mapc2p_advance_interior(up, &up->nrange_int, dzc, geometry_inp->mapc2p, geometry_inp->c2p_ctx,
+  gk_geometry_mapc2p_advance_interior(up, &up->nrange_int, up->dzc, geometry_inp->mapc2p, geometry_inp->c2p_ctx,
     geometry_inp->bfield_func, geometry_inp->bfield_ctx, geometry_inp->position_map);
   // calculate mapc2p in cylindrical coords at surfaces
   for (int dir = 0; dir <up->grid.ndim; dir++) {
-    gk_geometry_mapc2p_advance_surface(up, dir, &up->nrange_surf[dir], dzc, geometry_inp->mapc2p, 
+    gk_geometry_mapc2p_advance_surface(up, dir, &up->nrange_surf[dir], up->dzc, geometry_inp->mapc2p, 
       geometry_inp->c2p_ctx, geometry_inp->bfield_func, geometry_inp->bfield_ctx, geometry_inp->position_map);
   }
 
@@ -427,12 +426,6 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->ref_count = gkyl_ref_count_init(gkyl_gk_geometry_free);
   up->on_dev = up; // CPU eqn obj points to itself
-
-  // Release nodal data
-  gk_geometry_corn_release_nodal(up);
-  gk_geometry_int_release_nodal(up);
-  for (int dir=0; dir<up->grid.ndim; ++dir)
-    gk_geometry_surf_release_nodal(up, dir);
 
   return up;
 }

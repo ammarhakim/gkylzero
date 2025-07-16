@@ -1241,7 +1241,7 @@ void gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry 
          dxdz[2][2] = -(mc2p_n[27 +Z_IDX] - mc2p_n[30 +Z_IDX])/2/gk_geom->dzc[2];
 
 
-         const double *bhat_n = gkyl_array_cfetch(gk_geom->geo_int.b_i, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+         const double *bhat_n = gkyl_array_cfetch(gk_geom->geo_int.b_i_nodal_fd, gkyl_range_idx(&gk_geom->nrange_int, cidx));
          double dbhatdz[3][3]; // tan vecs at node
 
          dbhatdz[0][0] = -(bhat_n[3 +X_IDX] -   bhat_n[6+X_IDX])/2/gk_geom->dzc[0];
@@ -1375,85 +1375,194 @@ void gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_g
   for(int ia=gk_geom->nrange_surf[dir].lower[AL_IDX]; ia<=gk_geom->nrange_surf[dir].upper[AL_IDX]; ++ia){
     for (int ip=gk_geom->nrange_surf[dir].lower[PSI_IDX]; ip<=gk_geom->nrange_surf[dir].upper[PSI_IDX]; ++ip) {
       for (int it=gk_geom->nrange_surf[dir].lower[TH_IDX]; it<=gk_geom->nrange_surf[dir].upper[TH_IDX]; ++it) {
-              cidx[PSI_IDX] = ip;
-              cidx[AL_IDX] = ia;
-              cidx[TH_IDX] = it;
-              const double *mc2p_n = gkyl_array_cfetch(gk_geom->geo_surf[dir].mc2p_nodal_fd, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-              double dxdz[3][3]; // tan vecs at node
-              double dzdx[3][3]; // duals at node
+        cidx[PSI_IDX] = ip;
+        cidx[AL_IDX] = ia;
+        cidx[TH_IDX] = it;
+        const double *mc2p_n = gkyl_array_cfetch(gk_geom->geo_surf[dir].mc2p_nodal_fd, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        double dxdz[3][3]; // tan vecs at node
+        double dzdx[3][3]; // duals at node
 
-              if((ip == gk_geom->nrange_surf[dir].lower[PSI_IDX]) && (up->local.lower[PSI_IDX]== up->global.lower[PSI_IDX]) && dir==0) {
-                dxdz[0][0] = (-3*mc2p_n[X_IDX] + 4*mc2p_n[6+X_IDX] - mc2p_n[12+X_IDX] )/gk_geom->dzc[0]/2;
-                dxdz[1][0] = (-3*mc2p_n[Y_IDX] + 4*mc2p_n[6+Y_IDX] - mc2p_n[12+Y_IDX] )/gk_geom->dzc[0]/2;
-                dxdz[2][0] = (-3*mc2p_n[Z_IDX] + 4*mc2p_n[6+Z_IDX] - mc2p_n[12+Z_IDX] )/gk_geom->dzc[0]/2;
-              }
-              else if((ip == gk_geom->nrange_surf[dir].upper[PSI_IDX]) && (up->local.upper[PSI_IDX]== up->global.upper[PSI_IDX]) && dir==0) {
-                dxdz[0][0] = (3*mc2p_n[X_IDX] - 4*mc2p_n[3+X_IDX] + mc2p_n[9+X_IDX] )/gk_geom->dzc[0]/2;
-                dxdz[1][0] = (3*mc2p_n[Y_IDX] - 4*mc2p_n[3+Y_IDX] + mc2p_n[9+Y_IDX] )/gk_geom->dzc[0]/2;
-                dxdz[2][0] = (3*mc2p_n[Z_IDX] - 4*mc2p_n[3+Z_IDX] + mc2p_n[9+Z_IDX] )/gk_geom->dzc[0]/2;
-              }
-              else{
-                dxdz[0][0] = -(mc2p_n[3 +X_IDX] -   mc2p_n[6+X_IDX])/2/gk_geom->dzc[0];
-                dxdz[1][0] = -(mc2p_n[3 +Y_IDX] -   mc2p_n[6+Y_IDX])/2/gk_geom->dzc[0];
-                dxdz[2][0] = -(mc2p_n[3 +Z_IDX] -   mc2p_n[6+Z_IDX])/2/gk_geom->dzc[0];
-              }
+        const double *bhat_n = gkyl_array_cfetch(gk_geom->geo_int.b_i_nodal_fd, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+        double dbhatdz[3][3]; // tan vecs at node
+
+        if((ip == gk_geom->nrange_surf[dir].lower[PSI_IDX]) && (up->local.lower[PSI_IDX]== up->global.lower[PSI_IDX]) && dir==0) {
+          dxdz[0][0] = (-3*mc2p_n[X_IDX] + 4*mc2p_n[6+X_IDX] - mc2p_n[12+X_IDX] )/gk_geom->dzc[0]/2;
+          dxdz[1][0] = (-3*mc2p_n[Y_IDX] + 4*mc2p_n[6+Y_IDX] - mc2p_n[12+Y_IDX] )/gk_geom->dzc[0]/2;
+          dxdz[2][0] = (-3*mc2p_n[Z_IDX] + 4*mc2p_n[6+Z_IDX] - mc2p_n[12+Z_IDX] )/gk_geom->dzc[0]/2;
+
+          dbhatdz[0][0] = (-3*bhat_n[X_IDX] + 4*bhat_n[6+X_IDX] - bhat_n[12+X_IDX] )/gk_geom->dzc[0]/2;
+          dbhatdz[1][0] = (-3*bhat_n[Y_IDX] + 4*bhat_n[6+Y_IDX] - bhat_n[12+Y_IDX] )/gk_geom->dzc[0]/2;
+          dbhatdz[2][0] = (-3*bhat_n[Z_IDX] + 4*bhat_n[6+Z_IDX] - bhat_n[12+Z_IDX] )/gk_geom->dzc[0]/2;
+        }
+        else if((ip == gk_geom->nrange_surf[dir].upper[PSI_IDX]) && (up->local.upper[PSI_IDX]== up->global.upper[PSI_IDX]) && dir==0) {
+          dxdz[0][0] = (3*mc2p_n[X_IDX] - 4*mc2p_n[3+X_IDX] + mc2p_n[9+X_IDX] )/gk_geom->dzc[0]/2;
+          dxdz[1][0] = (3*mc2p_n[Y_IDX] - 4*mc2p_n[3+Y_IDX] + mc2p_n[9+Y_IDX] )/gk_geom->dzc[0]/2;
+          dxdz[2][0] = (3*mc2p_n[Z_IDX] - 4*mc2p_n[3+Z_IDX] + mc2p_n[9+Z_IDX] )/gk_geom->dzc[0]/2;
+
+          dbhatdz[0][0] = (3*bhat_n[X_IDX] - 4*bhat_n[3+X_IDX] + bhat_n[9+X_IDX] )/gk_geom->dzc[0]/2;
+          dbhatdz[1][0] = (3*bhat_n[Y_IDX] - 4*bhat_n[3+Y_IDX] + bhat_n[9+Y_IDX] )/gk_geom->dzc[0]/2;
+          dbhatdz[2][0] = (3*bhat_n[Z_IDX] - 4*bhat_n[3+Z_IDX] + bhat_n[9+Z_IDX] )/gk_geom->dzc[0]/2;
+        }
+        else{
+          dxdz[0][0] = -(mc2p_n[3 +X_IDX] -   mc2p_n[6+X_IDX])/2/gk_geom->dzc[0];
+          dxdz[1][0] = -(mc2p_n[3 +Y_IDX] -   mc2p_n[6+Y_IDX])/2/gk_geom->dzc[0];
+          dxdz[2][0] = -(mc2p_n[3 +Z_IDX] -   mc2p_n[6+Z_IDX])/2/gk_geom->dzc[0];
+
+          dbhatdz[0][0] = -(bhat_n[3 +X_IDX] -   bhat_n[6+X_IDX])/2/gk_geom->dzc[0];
+          dbhatdz[1][0] = -(bhat_n[3 +Y_IDX] -   bhat_n[6+Y_IDX])/2/gk_geom->dzc[0];
+          dbhatdz[2][0] = -(bhat_n[3 +Z_IDX] -   bhat_n[6+Z_IDX])/2/gk_geom->dzc[0];
+        }
 
 
-              if((ia == gk_geom->nrange_surf[dir].lower[AL_IDX]) && (up->local.lower[AL_IDX]== up->global.lower[AL_IDX]) && dir==1 ) {
-                dxdz[0][1] = (-3*mc2p_n[X_IDX] +  4*mc2p_n[18+X_IDX] -  mc2p_n[24+X_IDX])/gk_geom->dzc[1]/2;
-                dxdz[1][1] = (-3*mc2p_n[Y_IDX] +  4*mc2p_n[18+Y_IDX] -  mc2p_n[24+Y_IDX])/gk_geom->dzc[1]/2;
-                dxdz[2][1] = (-3*mc2p_n[Z_IDX] +  4*mc2p_n[18+Z_IDX] -  mc2p_n[24+Z_IDX])/gk_geom->dzc[1]/2;
-              }
-              else if((ia == gk_geom->nrange_surf[dir].upper[AL_IDX])  && (up->local.upper[AL_IDX]== up->global.upper[AL_IDX]) && dir==1 ) {
-                dxdz[0][1] = (3*mc2p_n[X_IDX] -  4*mc2p_n[15+X_IDX] +  mc2p_n[21+X_IDX] )/gk_geom->dzc[1]/2;
-                dxdz[1][1] = (3*mc2p_n[Y_IDX] -  4*mc2p_n[15+Y_IDX] +  mc2p_n[21+Y_IDX] )/gk_geom->dzc[1]/2;
-                dxdz[2][1] = (3*mc2p_n[Z_IDX] -  4*mc2p_n[15+Z_IDX] +  mc2p_n[21+Z_IDX] )/gk_geom->dzc[1]/2;
-              }
-              else {
-                dxdz[0][1] = -(mc2p_n[15 +X_IDX] -  mc2p_n[18 +X_IDX])/2/gk_geom->dzc[1];
-                dxdz[1][1] = -(mc2p_n[15 +Y_IDX] -  mc2p_n[18 +Y_IDX])/2/gk_geom->dzc[1];
-                dxdz[2][1] = -(mc2p_n[15 +Z_IDX] -  mc2p_n[18 +Z_IDX])/2/gk_geom->dzc[1];
-              }
+        if((ia == gk_geom->nrange_surf[dir].lower[AL_IDX]) && (up->local.lower[AL_IDX]== up->global.lower[AL_IDX]) && dir==1 ) {
+          dxdz[0][1] = (-3*mc2p_n[X_IDX] +  4*mc2p_n[18+X_IDX] -  mc2p_n[24+X_IDX])/gk_geom->dzc[1]/2;
+          dxdz[1][1] = (-3*mc2p_n[Y_IDX] +  4*mc2p_n[18+Y_IDX] -  mc2p_n[24+Y_IDX])/gk_geom->dzc[1]/2;
+          dxdz[2][1] = (-3*mc2p_n[Z_IDX] +  4*mc2p_n[18+Z_IDX] -  mc2p_n[24+Z_IDX])/gk_geom->dzc[1]/2;
 
-              if((it == gk_geom->nrange_surf[dir].lower[TH_IDX]) && (up->local.lower[TH_IDX]== up->global.lower[TH_IDX]) && dir==2 ) {
-                dxdz[0][2] = (-3*mc2p_n[X_IDX] + 4*mc2p_n[30+X_IDX] - mc2p_n[36+X_IDX])/gk_geom->dzc[2]/2;
-                dxdz[1][2] = (-3*mc2p_n[Y_IDX] + 4*mc2p_n[30+Y_IDX] - mc2p_n[36+Y_IDX])/gk_geom->dzc[2]/2;
-                dxdz[2][2] = (-3*mc2p_n[Z_IDX] + 4*mc2p_n[30+Z_IDX] - mc2p_n[36+Z_IDX])/gk_geom->dzc[2]/2;
-              }
-              else if((it == gk_geom->nrange_surf[dir].upper[TH_IDX]) && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX]) && dir==2 ) {
-                dxdz[0][2] = (3*mc2p_n[X_IDX] - 4*mc2p_n[27+X_IDX] + mc2p_n[33+X_IDX] )/gk_geom->dzc[2]/2;
-                dxdz[1][2] = (3*mc2p_n[Y_IDX] - 4*mc2p_n[27+Y_IDX] + mc2p_n[33+Y_IDX] )/gk_geom->dzc[2]/2;
-                dxdz[2][2] = (3*mc2p_n[Z_IDX] - 4*mc2p_n[27+Z_IDX] + mc2p_n[33+Z_IDX] )/gk_geom->dzc[2]/2;
-              }
-              else{
-                dxdz[0][2] = -(mc2p_n[27 +X_IDX] - mc2p_n[30 +X_IDX])/2/gk_geom->dzc[2];
-                dxdz[1][2] = -(mc2p_n[27 +Y_IDX] - mc2p_n[30 +Y_IDX])/2/gk_geom->dzc[2];
-                dxdz[2][2] = -(mc2p_n[27 +Z_IDX] - mc2p_n[30 +Z_IDX])/2/gk_geom->dzc[2];
-              }
+          dbhatdz[0][1] = (-3*bhat_n[X_IDX] +  4*bhat_n[18+X_IDX] -  bhat_n[24+X_IDX])/gk_geom->dzc[1]/2;
+          dbhatdz[1][1] = (-3*bhat_n[Y_IDX] +  4*bhat_n[18+Y_IDX] -  bhat_n[24+Y_IDX])/gk_geom->dzc[1]/2;
+          dbhatdz[2][1] = (-3*bhat_n[Z_IDX] +  4*bhat_n[18+Z_IDX] -  bhat_n[24+Z_IDX])/gk_geom->dzc[1]/2;
+        }
+        else if((ia == gk_geom->nrange_surf[dir].upper[AL_IDX])  && (up->local.upper[AL_IDX]== up->global.upper[AL_IDX]) && dir==1 ) {
+          dxdz[0][1] = (3*mc2p_n[X_IDX] -  4*mc2p_n[15+X_IDX] +  mc2p_n[21+X_IDX] )/gk_geom->dzc[1]/2;
+          dxdz[1][1] = (3*mc2p_n[Y_IDX] -  4*mc2p_n[15+Y_IDX] +  mc2p_n[21+Y_IDX] )/gk_geom->dzc[1]/2;
+          dxdz[2][1] = (3*mc2p_n[Z_IDX] -  4*mc2p_n[15+Z_IDX] +  mc2p_n[21+Z_IDX] )/gk_geom->dzc[1]/2;
 
-              double *gFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].g_ij_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-              gFld_n[0] = calc_metric(dxdz, 1, 1); 
-              gFld_n[1] = calc_metric(dxdz, 1, 2); 
-              gFld_n[2] = calc_metric(dxdz, 1, 3); 
-              gFld_n[3] = calc_metric(dxdz, 2, 2); 
-              gFld_n[4] = calc_metric(dxdz, 2, 3); 
-              gFld_n[5] = calc_metric(dxdz, 3, 3); 
+          dbhatdz[0][1] = (3*bhat_n[X_IDX] -  4*bhat_n[15+X_IDX] +  bhat_n[21+X_IDX] )/gk_geom->dzc[1]/2;
+          dbhatdz[1][1] = (3*bhat_n[Y_IDX] -  4*bhat_n[15+Y_IDX] +  bhat_n[21+Y_IDX] )/gk_geom->dzc[1]/2;
+          dbhatdz[2][1] = (3*bhat_n[Z_IDX] -  4*bhat_n[15+Z_IDX] +  bhat_n[21+Z_IDX] )/gk_geom->dzc[1]/2;
+        }
+        else {
+          dxdz[0][1] = -(mc2p_n[15 +X_IDX] -  mc2p_n[18 +X_IDX])/2/gk_geom->dzc[1];
+          dxdz[1][1] = -(mc2p_n[15 +Y_IDX] -  mc2p_n[18 +Y_IDX])/2/gk_geom->dzc[1];
+          dxdz[2][1] = -(mc2p_n[15 +Z_IDX] -  mc2p_n[18 +Z_IDX])/2/gk_geom->dzc[1];
 
-              double Jsq = gFld_n[0]*(gFld_n[3]*gFld_n[5] - gFld_n[4]*gFld_n[4] ) - gFld_n[1]*(gFld_n[1]*gFld_n[5] - gFld_n[4]*gFld_n[2] ) + gFld_n[2]*(gFld_n[1]*gFld_n[4] - gFld_n[3]*gFld_n[2] );
-              double J = sqrt(Jsq);
-              double *jFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].jacobgeo_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-              jFld_n[0] = J;
-              // Calculate cmag, bi, and jtot_inv
-              double *biFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].b_i_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-              biFld_n[0] = gFld_n[2]/sqrt(gFld_n[5]);
-              biFld_n[1] = gFld_n[4]/sqrt(gFld_n[5]);
-              biFld_n[2] = gFld_n[5]/sqrt(gFld_n[5]);
+          dbhatdz[0][1] = -(bhat_n[15 +X_IDX] -  bhat_n[18 +X_IDX])/2/gk_geom->dzc[1];
+          dbhatdz[1][1] = -(bhat_n[15 +Y_IDX] -  bhat_n[18 +Y_IDX])/2/gk_geom->dzc[1];
+          dbhatdz[2][1] = -(bhat_n[15 +Z_IDX] -  bhat_n[18 +Z_IDX])/2/gk_geom->dzc[1];
+        }
 
-              double *bmag_n = gkyl_array_fetch(gk_geom->geo_surf[dir].bmag_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-              double *cmagFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].cmag_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-              cmagFld_n[0] = jFld_n[0]*bmag_n[0]/sqrt(gFld_n[5]);
-              double *jtotinvFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].jacobtot_inv_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-              jtotinvFld_n[0] = 1.0/(jFld_n[0]*bmag_n[0]);
+        if((it == gk_geom->nrange_surf[dir].lower[TH_IDX]) && (up->local.lower[TH_IDX]== up->global.lower[TH_IDX]) && dir==2 ) {
+          dxdz[0][2] = (-3*mc2p_n[X_IDX] + 4*mc2p_n[30+X_IDX] - mc2p_n[36+X_IDX])/gk_geom->dzc[2]/2;
+          dxdz[1][2] = (-3*mc2p_n[Y_IDX] + 4*mc2p_n[30+Y_IDX] - mc2p_n[36+Y_IDX])/gk_geom->dzc[2]/2;
+          dxdz[2][2] = (-3*mc2p_n[Z_IDX] + 4*mc2p_n[30+Z_IDX] - mc2p_n[36+Z_IDX])/gk_geom->dzc[2]/2;
+
+          dbhatdz[0][2] = (-3*bhat_n[X_IDX] + 4*bhat_n[30+X_IDX] - bhat_n[36+X_IDX])/gk_geom->dzc[2]/2;
+          dbhatdz[1][2] = (-3*bhat_n[Y_IDX] + 4*bhat_n[30+Y_IDX] - bhat_n[36+Y_IDX])/gk_geom->dzc[2]/2;
+          dbhatdz[2][2] = (-3*bhat_n[Z_IDX] + 4*bhat_n[30+Z_IDX] - bhat_n[36+Z_IDX])/gk_geom->dzc[2]/2;
+        }
+        else if((it == gk_geom->nrange_surf[dir].upper[TH_IDX]) && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX]) && dir==2 ) {
+          dxdz[0][2] = (3*mc2p_n[X_IDX] - 4*mc2p_n[27+X_IDX] + mc2p_n[33+X_IDX] )/gk_geom->dzc[2]/2;
+          dxdz[1][2] = (3*mc2p_n[Y_IDX] - 4*mc2p_n[27+Y_IDX] + mc2p_n[33+Y_IDX] )/gk_geom->dzc[2]/2;
+          dxdz[2][2] = (3*mc2p_n[Z_IDX] - 4*mc2p_n[27+Z_IDX] + mc2p_n[33+Z_IDX] )/gk_geom->dzc[2]/2;
+
+          dbhatdz[0][2] = (3*bhat_n[X_IDX] - 4*bhat_n[27+X_IDX] + bhat_n[33+X_IDX] )/gk_geom->dzc[2]/2;
+          dbhatdz[1][2] = (3*bhat_n[Y_IDX] - 4*bhat_n[27+Y_IDX] + bhat_n[33+Y_IDX] )/gk_geom->dzc[2]/2;
+          dbhatdz[2][2] = (3*bhat_n[Z_IDX] - 4*bhat_n[27+Z_IDX] + bhat_n[33+Z_IDX] )/gk_geom->dzc[2]/2;
+        }
+        else{
+          dxdz[0][2] = -(mc2p_n[27 +X_IDX] - mc2p_n[30 +X_IDX])/2/gk_geom->dzc[2];
+          dxdz[1][2] = -(mc2p_n[27 +Y_IDX] - mc2p_n[30 +Y_IDX])/2/gk_geom->dzc[2];
+          dxdz[2][2] = -(mc2p_n[27 +Z_IDX] - mc2p_n[30 +Z_IDX])/2/gk_geom->dzc[2];
+
+          dbhatdz[0][2] = -(bhat_n[27 +X_IDX] - bhat_n[30 +X_IDX])/2/gk_geom->dzc[2];
+          dbhatdz[1][2] = -(bhat_n[27 +Y_IDX] - bhat_n[30 +Y_IDX])/2/gk_geom->dzc[2];
+          dbhatdz[2][2] = -(bhat_n[27 +Z_IDX] - bhat_n[30 +Z_IDX])/2/gk_geom->dzc[2];
+        }
+
+        double *gFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].g_ij_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        gFld_n[0] = calc_metric(dxdz, 1, 1); 
+        gFld_n[1] = calc_metric(dxdz, 1, 2); 
+        gFld_n[2] = calc_metric(dxdz, 1, 3); 
+        gFld_n[3] = calc_metric(dxdz, 2, 2); 
+        gFld_n[4] = calc_metric(dxdz, 2, 3); 
+        gFld_n[5] = calc_metric(dxdz, 3, 3); 
+
+        double Jsq = gFld_n[0]*(gFld_n[3]*gFld_n[5] - gFld_n[4]*gFld_n[4] ) - gFld_n[1]*(gFld_n[1]*gFld_n[5] - gFld_n[4]*gFld_n[2] ) + gFld_n[2]*(gFld_n[1]*gFld_n[4] - gFld_n[3]*gFld_n[2] );
+        double J = sqrt(Jsq);
+        double *jFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].jacobgeo_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        jFld_n[0] = J;
+        // Calculate cmag, bi, and jtot_inv
+        double *biFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].b_i_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        biFld_n[0] = gFld_n[2]/sqrt(gFld_n[5]);
+        biFld_n[1] = gFld_n[4]/sqrt(gFld_n[5]);
+        biFld_n[2] = gFld_n[5]/sqrt(gFld_n[5]);
+
+        double *bmag_n = gkyl_array_fetch(gk_geom->geo_surf[dir].bmag_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        double *cmagFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].cmag_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        cmagFld_n[0] = jFld_n[0]*bmag_n[0]/sqrt(gFld_n[5]);
+        double *jtotinvFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].jacobtot_inv_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        jtotinvFld_n[0] = 1.0/(jFld_n[0]*bmag_n[0]);
+
+        double e_1[3], e_2[3], e_3[3];
+        e_1[0] = dxdz[0][0]; e_1[1] = dxdz[1][0]; e_1[2] = dxdz[2][0];
+        e_2[0] = dxdz[0][1]; e_2[1] = dxdz[1][1]; e_2[2] = dxdz[2][1];
+        e_3[0] = dxdz[0][2]; e_3[1] = dxdz[1][2]; e_3[2] = dxdz[2][2];
+        calc_dual(J, e_2, e_3, dzdx[0]);
+        calc_dual(J, e_3, e_1, dzdx[1]);
+        calc_dual(J, e_1, e_2, dzdx[2]);
+
+        double *dualFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].dzdx_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        dualFld_n[0] = dzdx[0][0];
+        dualFld_n[1] = dzdx[0][1];
+        dualFld_n[2] = dzdx[0][2];
+        dualFld_n[3] = dzdx[1][0];
+        dualFld_n[4] = dzdx[1][1];
+        dualFld_n[5] = dzdx[1][2];
+        dualFld_n[6] = dzdx[2][0];
+        dualFld_n[7] = dzdx[2][1];
+        dualFld_n[8] = dzdx[2][2];
+
+        double *tanvecFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].dxdz_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        tanvecFld_n[0] = dxdz[0][0]; 
+        tanvecFld_n[1] = dxdz[1][0]; 
+        tanvecFld_n[2] = dxdz[2][0]; 
+        tanvecFld_n[3] = dxdz[0][1]; 
+        tanvecFld_n[4] = dxdz[1][1]; 
+        tanvecFld_n[5] = dxdz[2][1]; 
+        tanvecFld_n[6] = dxdz[0][2]; 
+        tanvecFld_n[7] = dxdz[1][2]; 
+        tanvecFld_n[8] = dxdz[2][2]; 
+
+        double norm1 = sqrt(dualFld_n[0]*dualFld_n[0] + dualFld_n[1]*dualFld_n[1] + dualFld_n[2]*dualFld_n[2]);
+        double norm2 = sqrt(dualFld_n[3]*dualFld_n[3] + dualFld_n[4]*dualFld_n[4] + dualFld_n[5]*dualFld_n[5]);
+        double norm3 = sqrt(dualFld_n[6]*dualFld_n[6] + dualFld_n[7]*dualFld_n[7] + dualFld_n[8]*dualFld_n[8]);
+
+        double *dualmagFld_n = gkyl_array_fetch(gk_geom->geo_surf[dir].dualmag_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        dualmagFld_n[0] = norm1;
+        dualmagFld_n[1] = norm2;
+        dualmagFld_n[2] = norm3;
+        
+        // Set normal vectors
+        double *normFld_n = gkyl_array_fetch(gk_geom->geo_surf[dir].normals_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        normFld_n[0] = dualFld_n[0]/norm1;
+        normFld_n[1] = dualFld_n[1]/norm1;
+        normFld_n[2] = dualFld_n[2]/norm1;
+
+        normFld_n[3] = dualFld_n[3]/norm2;
+        normFld_n[4] = dualFld_n[4]/norm2;
+        normFld_n[5] = dualFld_n[5]/norm2;
+
+        normFld_n[6] = dualFld_n[6]/norm3;
+        normFld_n[7] = dualFld_n[7]/norm3;
+        normFld_n[8] = dualFld_n[8]/norm3;
+
+        // Set lenr
+        double *lenr_n = gkyl_array_fetch(gk_geom->geo_surf[dir].lenr_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        lenr_n[0] = J*dualmagFld_n[dir];
+
+        // Set n^3 \dot B 
+        double *B3_n = gkyl_array_fetch(gk_geom->geo_surf[dir].B3_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        B3_n[0] = bmag_n[0]/sqrt(gFld_n[5])/norm3;
+
+        // Set n^m \dot curl(bhat) 
+        double *curlbhat_n = gkyl_array_fetch(gk_geom->geo_surf[dir].curlbhat_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        curlbhat_n[0] = (dbhatdz[2][1] - dbhatdz[1][2]);
+        curlbhat_n[1] = (dbhatdz[0][2] - dbhatdz[2][0]);
+        curlbhat_n[2] = (dbhatdz[1][0] - dbhatdz[0][1]);
+        double *normcurlbhat_n = gkyl_array_fetch(gk_geom->geo_surf[dir].normcurlbhat_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        normcurlbhat_n[0] = normFld_n[3*dir+0]*curlbhat_n[0] +  normFld_n[3*dir+1]*curlbhat_n[1] + normFld_n[3*dir+2]*curlbhat_n[2];
+
 
       }
     }
