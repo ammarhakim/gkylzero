@@ -7,7 +7,7 @@ gk_neut_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_specie
 {
   int cdim = app->cdim, vdim = 3;
 
-  // allocate moments needed for lte update
+  // Allocate moments needed for LTE update.
   gk_neut_species_moment_init(app, s, &lte->moms, GKYL_F_MOMENT_LTE, false);
 
   struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = {
@@ -63,11 +63,11 @@ gk_neut_species_lte_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_specie
   lte->f_lte = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
 }
 
-// Compute f_lte from input LTE moments
 void
 gk_neut_species_lte_from_moms(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
   struct gk_lte *lte, const struct gkyl_array *moms_lte)
 {
+  // Compute f_lte from input LTE moments.
   struct timespec wst = gkyl_wall_clock();
 
   gkyl_array_clear(lte->f_lte, 0.0);
@@ -98,15 +98,15 @@ gk_neut_species_lte_from_moms(gkyl_gyrokinetic_app *app, const struct gk_neut_sp
   app->stat.neut_species_lte_tm += gkyl_time_diff_now_sec(wst);   
 }
 
-// Compute equivalent f_lte from fin
 void
 gk_neut_species_lte(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
   struct gk_lte *lte, const struct gkyl_array *fin)
 {
+  // Compute equivalent f_lte from fin.
   struct timespec wst = gkyl_wall_clock();
   gk_neut_species_moment_calc(&lte->moms, species->local, app->local, fin);
 
-  // divide out the Jacobian from the density
+  // Divide out the Jacobian from the density.
   gkyl_dg_div_op_range(lte->moms.mem_geo, app->basis, 
     0, lte->moms.marr, 0, lte->moms.marr, 0, 
     app->gk_geom->jacobgeo, &app->local);  
@@ -124,19 +124,19 @@ gk_neut_species_lte_write_max_corr_status(gkyl_gyrokinetic_app* app, struct gk_n
     int rank;
     gkyl_comm_get_rank(app->comm, &rank);
     if (rank == 0) {
-      // write out correction status 
+      // Write out correction status. 
       const char *fmt = "%s-%s-%s.gkyl";
       int sz = gkyl_calc_strlen(fmt, app->name, gk_ns->info.name, "corr-max-stat");
-      char fileNm[sz+1]; // ensures no buffer overflow
+      char fileNm[sz+1]; // Ensures no buffer overflow.
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gk_ns->info.name, "corr-max-stat");
 
       if (gk_ns->lte.is_first_corr_status_write_call) {
-        // write to a new file (this ensure previous output is removed)
+        // Write to a new file (this ensure previous output is removed).
         gkyl_dynvec_write(gk_ns->lte.corr_stat, fileNm);
         gk_ns->lte.is_first_corr_status_write_call = false;
       }
       else {
-        // append to existing file
+        // Append to existing file.
         gkyl_dynvec_awrite(gk_ns->lte.corr_stat, fileNm);
       }
     }

@@ -29,16 +29,21 @@ gk_species_react_get_vt_sq_min(struct gkyl_gyrokinetic_app *app, struct gk_speci
 static double
 gk_neut_species_react_get_vt_sq_min(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s)
 {
-  double bmag_mid = app->bmag_ref;
-
-  int vdim = app->vdim+1; // Neutral species are 3v otherwise.
-  double dv_min[vdim];
-  gkyl_velocity_map_reduce_dv_range(s->vel_map, GKYL_MIN, dv_min, s->vel_map->local_vel);
-
-  double t_min = 0.0;
-  for (int i=0; i<vdim; i++)
-    t_min += (s->info.mass/6.0)*pow(dv_min[0],2);
-  return t_min/(3.0*s->info.mass);
+  if (s->is_fluid) {
+    return 0.0;
+  }
+  else {
+    double bmag_mid = app->bmag_ref;
+  
+    int vdim = app->vdim+1; // Neutral species are 3v otherwise.
+    double dv_min[vdim];
+    gkyl_velocity_map_reduce_dv_range(s->vel_map, GKYL_MIN, dv_min, s->vel_map->local_vel);
+  
+    double t_min = 0.0;
+    for (int i=0; i<vdim; i++)
+      t_min += (s->info.mass/6.0)*pow(dv_min[0],2);
+    return t_min/(3.0*s->info.mass);
+  }
 }
 
 void 
@@ -137,7 +142,6 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
       react->recomb[i] = gkyl_dg_recomb_new(&recomb_inp, app->use_gpu);
     }
     else if (react->react_id[i] == GKYL_REACT_CX) {
-      struct gk_neut_species *gkns = &app->neut_species[react->partner_idx[i]];
       struct gkyl_dg_cx_inp cx_inp = {
         .grid = &s->grid,
         .cbasis = &app->basis,
@@ -193,7 +197,7 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
       else {
         struct gk_neut_species *gkns_donor = &app->neut_species[react->donor_idx[i]];
         gk_neut_species_moment_calc(&gkns_donor->lte.moms, 
-          gkns_donor->local, app->local, fin_neut[react->donor_idx[i]]);   
+          gkns_donor->local, app->local, fin_neut[react->donor_idx[i]]);
 
         // Copy J*n for use in final update
         gkyl_array_set_range(react->Jm0_donor[i], 1.0, gkns_donor->lte.moms.marr, &app->local);

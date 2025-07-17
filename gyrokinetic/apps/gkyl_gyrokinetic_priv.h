@@ -144,6 +144,11 @@ struct gk_species_moment {
   };
   bool is_maxwellian_moms;
   bool is_bimaxwellian_moms;
+
+  // Methods chosen at runtime.
+  void (*calc_func)(const struct gk_species_moment *sm, const struct gkyl_range phase_rng,
+    const struct gkyl_range conf_rng, const struct gkyl_array *fin);
+  void (*release_func)(const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm);
 };
 
 struct gk_rad_drag {  

@@ -1,14 +1,49 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
 
-// initialize neutral species moment object
-void
-gk_neut_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
+static void
+gk_neut_species_kinetic_moment_calc(const struct gk_species_moment *sm,
+  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
+  const struct gkyl_array *fin)
+{
+  if (sm->is_maxwellian_moms) {
+    gkyl_vlasov_lte_moments_advance(sm->vlasov_lte_moms, 
+      &phase_rng, &conf_rng, fin, sm->marr);
+  }
+  else {
+    gkyl_dg_updater_moment_advance(sm->mcalc, 
+      &phase_rng, &conf_rng, fin, sm->marr);
+  }  
+}
+
+static void
+gk_neut_species_kinetic_moment_release(const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm)
+{
+  gkyl_array_release(sm->marr);
+  if (app->use_gpu)
+    gkyl_array_release(sm->marr_host);
+
+  if (sm->is_integrated) {
+    gkyl_dg_updater_moment_release(sm->mcalc);
+  }
+  else {
+    if (sm->is_maxwellian_moms) {
+      gkyl_vlasov_lte_moments_release(sm->vlasov_lte_moms);
+    }
+    else {
+      gkyl_dg_updater_moment_release(sm->mcalc);
+    }
+
+    // Free the weak division memory.
+    gkyl_dg_bin_op_mem_release(sm->mem_geo);
+  }
+}
+
+static void
+gk_neut_species_kinetic_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
   struct gk_species_moment *sm, enum gkyl_distribution_moments mom_type, bool is_integrated)
 {
-  sm->is_integrated = is_integrated;
-  sm->is_maxwellian_moms = mom_type == GKYL_F_MOMENT_LTE;
-
+  // Initialize kinetic neutral species moment object.
   if (sm->is_integrated) {
     // Create moment operator.
     struct gkyl_mom_canonical_pb_auxfields can_pb_inp = {.hamil = s->hamil};
@@ -70,25 +105,28 @@ gk_neut_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spe
       sm->mem_geo = gkyl_dg_bin_op_mem_new(app->local.volume, app->basis.num_basis);
     }
   }
+
+  sm->calc_func = gk_neut_species_kinetic_moment_calc;
+  sm->release_func = gk_neut_species_kinetic_moment_release;
 }
 
 void
-gk_neut_species_moment_calc(const struct gk_species_moment *sm,
+gk_neut_species_fluid_moment_calc(const struct gk_species_moment *sm,
   const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
   const struct gkyl_array *fin)
 {
   if (sm->is_maxwellian_moms) {
-    gkyl_vlasov_lte_moments_advance(sm->vlasov_lte_moms, 
-      &phase_rng, &conf_rng, fin, sm->marr);
+//    gkyl_vlasov_lte_moments_advance(sm->vlasov_lte_moms, 
+//      &phase_rng, &conf_rng, fin, sm->marr);
   }
   else {
-    gkyl_dg_updater_moment_advance(sm->mcalc, 
-      &phase_rng, &conf_rng, fin, sm->marr);
+    // Not yet implemented.
+    assert(false);
   }  
 }
 
-void
-gk_neut_species_moment_release(const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm)
+static void
+gk_neut_species_fluid_moment_release(const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm)
 {
   gkyl_array_release(sm->marr);
   if (app->use_gpu)
@@ -108,4 +146,76 @@ gk_neut_species_moment_release(const struct gkyl_gyrokinetic_app *app, const str
     // Free the weak division memory.
     gkyl_dg_bin_op_mem_release(sm->mem_geo);
   }
+}
+
+static void
+gk_neut_species_fluid_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
+  struct gk_species_moment *sm, enum gkyl_distribution_moments mom_type, bool is_integrated)
+{
+  // Initialize fluid neutral species moment object.
+  if (sm->is_integrated) {
+    sm->num_mom = s->num_moments;
+
+    // Allocate arrays to hold moments.
+    sm->marr = mkarr(app->use_gpu, sm->num_mom, app->local_ext.volume);
+    sm->marr_host = sm->marr;
+    if (app->use_gpu) {
+      sm->marr_host = mkarr(false, sm->num_mom, app->local_ext.volume); 
+    }
+  }
+  else {
+    if (sm->is_maxwellian_moms) {
+    }
+    else {
+      // Not yet implemented.
+      assert(false);
+    }
+
+    // Allocate arrays to hold moments.
+    sm->marr = mkarr(app->use_gpu, sm->num_mom*app->basis.num_basis, app->local_ext.volume);
+    sm->marr_host = sm->marr;
+    if (app->use_gpu)
+      sm->marr_host = mkarr(false, sm->num_mom*app->basis.num_basis, app->local_ext.volume);
+
+    // Bin Op memory for rescaling moment by inverse of Jacobian
+    if (app->use_gpu) {
+      sm->mem_geo = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->basis.num_basis);
+    }
+    else {
+      sm->mem_geo = gkyl_dg_bin_op_mem_new(app->local.volume, app->basis.num_basis);
+    }
+  }
+
+  sm->calc_func = gk_neut_species_fluid_moment_calc;
+  sm->release_func = gk_neut_species_fluid_moment_release;
+}
+
+void
+gk_neut_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
+  struct gk_species_moment *sm, enum gkyl_distribution_moments mom_type, bool is_integrated)
+{
+  // Initialize neutral species moment object.
+  sm->is_integrated = is_integrated;
+  sm->is_maxwellian_moms = mom_type == GKYL_F_MOMENT_LTE;
+
+  if (s->is_fluid) {
+    gk_neut_species_fluid_moment_init(app, s, sm, mom_type, is_integrated);
+  }
+  else {
+    gk_neut_species_kinetic_moment_init(app, s, sm, mom_type, is_integrated);
+  }
+}
+
+void
+gk_neut_species_moment_calc(const struct gk_species_moment *sm,
+  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
+  const struct gkyl_array *fin)
+{
+  sm->calc_func(sm, phase_rng, conf_rng, fin);
+}
+
+void
+gk_neut_species_moment_release(const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm)
+{
+  sm->release_func(app, sm);
 }
