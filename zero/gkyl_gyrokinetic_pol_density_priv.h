@@ -50,7 +50,7 @@ struct gkyl_gyrokinetic_pol_density {
 // Declaration of cuda device functions.
 
 void gk_pol_den_choose_kernel_cu(struct gkyl_gyrokinetic_pol_density_kernels *kernels,
-  struct gkyl_basis cbasis);
+  struct gkyl_basis cbasis, enum gkyl_basis_type phi_basis_type, int phi_poly_order);
 
 void gkyl_gyrokinetic_pol_density_advance_cu(gkyl_gyrokinetic_pol_density* up,
   const struct gkyl_range *conf_rng, const struct gkyl_array *GKYL_RESTRICT pol_weight,

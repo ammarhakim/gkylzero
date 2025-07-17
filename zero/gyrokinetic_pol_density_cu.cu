@@ -11,10 +11,10 @@ gkyl_gk_pol_den_set_cu_ker_ptrs(struct gkyl_gyrokinetic_pol_density_kernels *ker
   struct gkyl_basis cbasis, enum gkyl_basis_type phi_basis_type, int phi_poly_order)
 {
   int cdim = cbasis.ndim;
-  enum gkyl_basis_type b_type = cbasis.b_type;
+  enum gkyl_basis_type basis_type = cbasis.b_type;
   int poly_order = cbasis.poly_order;
 
-  switch (b_type) {
+  switch (basis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       if (phi_basis_type == basis_type) {
         if (phi_poly_order == poly_order)
