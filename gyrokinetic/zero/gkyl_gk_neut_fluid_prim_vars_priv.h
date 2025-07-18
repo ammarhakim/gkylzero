@@ -59,11 +59,13 @@ struct gkyl_gk_neut_fluid_prim_vars {
   int num_basis; // Number of basis functions.
   struct gkyl_range mem_range; // Configuration space range for linear solve.
 
+  int udrift_ncomp; // Number of components in the drift velocity.
+  double thermalE_fac; // Factor needed to transform p to thermalE.
+  double integrated_fac; // Factor to multiply 0th DG coeff to get integrated quantity.
+  bool is_integrated; // Whether to compute the integrated prim vars.
+
   struct gkyl_nmat *As, *xs; // matrices for LHS and RHS.
   gkyl_nmat_mem *mem; // Memory for use in batched linear solve.
-  int udrift_ncomp; // Number of components in the drift velocity.
-
-  double thermalE_fac; // Factor needed to transform p to thermalE.
 
   gk_nf_udrift_set_prob_t udrift_set_prob_ker; // Kernel for setting matrices for linear solve.
   gk_nf_udrift_get_sol_t udrift_get_sol_ker; // Kernel for copying solution to output.

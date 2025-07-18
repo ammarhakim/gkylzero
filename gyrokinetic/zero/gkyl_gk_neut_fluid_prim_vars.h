@@ -3,6 +3,7 @@
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
 #include <gkyl_range.h>
+#include <gkyl_rect_grid.h>
 
 // Type of prim_vars calculation to perform.
 enum gkyl_gk_neut_fluid_prim_vars_type {
@@ -14,6 +15,7 @@ enum gkyl_gk_neut_fluid_prim_vars_type {
   GKYL_GK_NEUT_FLUID_PRIM_VARS_LTE, // (n, ux, uy, uz, T/m).
   GKYL_GK_NEUT_FLUID_PRIM_VARS_FLOW_ENERGY, // 0.5*rho*u^2.
   GKYL_GK_NEUT_FLUID_PRIM_VARS_THERMAL_ENERGY, // p/(gas_gamma-1)
+  GKYL_GK_NEUT_FLUID_PRIM_VARS_MASS_MOMENTUM_FLOW_THERMAL_ENERGY, // (rho, rho*ux, rho*uy, rho*uz, 0.5*rho*u^2, p/(gas_gamma-1))
 };
 
 // Object type
@@ -31,16 +33,19 @@ typedef struct gkyl_gk_neut_fluid_prim_vars gkyl_gk_neut_fluid_prim_vars;
  * @param gas_gamma Adiabatic index.
  * @param mass Species mass.
  * @param cbasis Configuration space basis functions
+ * @param grid Grid object.
  * @param mem_range Configuration space range that sets the size of the bin_op memory
  *                  for computing primitive moments. Note range is stored so
  *                  updater loops over consistent range for primitive moments
+ * @param prim_vars_type Type of primitive variables to compute.
+ * @param is_integrated Whethe to compute the volume average in each cell.
  * @param use_gpu Whether to run on the GPU.
  * @return New updater pointer.
  */
 struct gkyl_gk_neut_fluid_prim_vars*
 gkyl_gk_neut_fluid_prim_vars_new(double gas_gamma, double mass, const struct gkyl_basis* cbasis,
-  const struct gkyl_range *mem_range, enum gkyl_gk_neut_fluid_prim_vars_type prim_vars_type,
-  bool use_gpu);
+  struct gkyl_rect_grid *grid, const struct gkyl_range *mem_range,
+  enum gkyl_gk_neut_fluid_prim_vars_type prim_vars_type, bool is_integrated, bool use_gpu);
 
 /**
  * Compute the drift velocity vector (ux, uy, uz).
@@ -118,6 +123,22 @@ void gkyl_gk_neut_fluid_prim_vars_udrift_temp_advance(struct gkyl_gk_neut_fluid_
  * @param out_coff Offset in out where to place primitive moments.
  */
 void gkyl_gk_neut_fluid_prim_vars_lte_advance(struct gkyl_gk_neut_fluid_prim_vars *up,
+  const struct gkyl_array* moms, struct gkyl_array *out, int out_coff);
+
+/**
+ * Compute the moments:
+ *   mass density: rho.
+ *   momentum density along x: rho*ux.
+ *   momentum density along y: rho*uy.
+ *   momentum density along z: rho*uz.
+ *   flow energy: 0.5 rho u^2.
+ *   thermal energy: p/(gas_gamma - 1).
+ *
+ * @param up Updater to run.
+ * @param out Output thermal energy.
+ * @param out_coff Offset in out where to place thermal energy.
+ */
+void gkyl_gk_neut_fluid_prim_vars_mass_momentum_flow_thermal_energy_advance(struct gkyl_gk_neut_fluid_prim_vars *up,
   const struct gkyl_array* moms, struct gkyl_array *out, int out_coff);
 
 /**

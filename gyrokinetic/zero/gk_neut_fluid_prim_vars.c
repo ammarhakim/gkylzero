@@ -39,6 +39,7 @@ void gkyl_gk_neut_fluid_prim_vars_udrift_advance(struct gkyl_gk_neut_fluid_prim_
     assert(status);
   }
 
+  double prim_vars_buff[up->udrift_ncomp*up->num_basis]; // Buffer needed for integrated moms.
   gkyl_range_iter_init(&iter, &up->mem_range);
   count = 0;
   while (gkyl_range_iter_next(&iter)) {
@@ -46,7 +47,14 @@ void gkyl_gk_neut_fluid_prim_vars_udrift_advance(struct gkyl_gk_neut_fluid_prim_
 
     double* out_d = gkyl_array_fetch(out, linidx);
 
-    up->udrift_get_sol_ker(count, up->xs, &out_d[out_coff]);
+    double* prim_vars_d = up->is_integrated? prim_vars_buff : &out_d[out_coff];
+
+    up->udrift_get_sol_ker(count, up->xs, prim_vars_d);
+
+    if (up->is_integrated) {
+      for (int i=0; i<up->udrift_ncomp; i++)
+        out_d[out_coff+i] = up->integrated_fac * prim_vars_d[i*up->num_basis];
+    }
 
     count += nprob;
   }
@@ -83,6 +91,7 @@ void gkyl_gk_neut_fluid_prim_vars_pressure_advance(struct gkyl_gk_neut_fluid_pri
     assert(status);
   }
 
+  double prim_vars_buff[up->num_basis]; // Buffer needed for integrated moms.
   gkyl_range_iter_init(&iter, &up->mem_range);
   count = 0;
   while (gkyl_range_iter_next(&iter)) {
@@ -95,11 +104,17 @@ void gkyl_gk_neut_fluid_prim_vars_pressure_advance(struct gkyl_gk_neut_fluid_pri
     const double *moms_d = gkyl_array_cfetch(moms, linidx);
     double* out_d = gkyl_array_fetch(out, linidx);
 
+    double* prim_vars_d = up->is_integrated? prim_vars_buff : &out_d[out_coff];
+
     up->udrift_get_sol_ker(count, up->xs, udrift_d);
-    up->pressure_ker(up->gas_gamma, moms_d, udrift_d, &out_d[out_coff]);
+    up->pressure_ker(up->gas_gamma, moms_d, udrift_d, prim_vars_d);
 
     for (int i=0; i<up->num_basis; i++)
-      out_d[out_coff+i] *= up->thermalE_fac;
+      prim_vars_d[i] *= up->thermalE_fac;
+
+    if (up->is_integrated) {
+      out_d[out_coff] = up->integrated_fac * prim_vars_d[0];
+    }
 
     count += nprob;
   }
@@ -136,6 +151,7 @@ void gkyl_gk_neut_fluid_prim_vars_temp_advance(struct gkyl_gk_neut_fluid_prim_va
     assert(status);
   }
 
+  double prim_vars_buff[up->num_basis]; // Buffer needed for integrated moms.
   gkyl_range_iter_init(&iter, &up->mem_range);
   count = 0;
   while (gkyl_range_iter_next(&iter)) {
@@ -143,7 +159,13 @@ void gkyl_gk_neut_fluid_prim_vars_temp_advance(struct gkyl_gk_neut_fluid_prim_va
 
     double* out_d = gkyl_array_fetch(out, linidx);
 
-    up->temp_get_sol_ker(count, up->xs, &out_d[out_coff]);
+    double* prim_vars_d = up->is_integrated? prim_vars_buff : &out_d[out_coff];
+
+    up->temp_get_sol_ker(count, up->xs, prim_vars_d);
+
+    if (up->is_integrated) {
+      out_d[out_coff] = up->integrated_fac * prim_vars_d[0];
+    }
 
     count += nprob;
   }
@@ -180,6 +202,7 @@ void gkyl_gk_neut_fluid_prim_vars_udrift_pressure_advance(struct gkyl_gk_neut_fl
     assert(status);
   }
 
+  double prim_vars_buff[(up->udrift_ncomp+1)*up->num_basis]; // Buffer needed for integrated moms.
   gkyl_range_iter_init(&iter, &up->mem_range);
   count = 0;
   while (gkyl_range_iter_next(&iter)) {
@@ -188,12 +211,18 @@ void gkyl_gk_neut_fluid_prim_vars_udrift_pressure_advance(struct gkyl_gk_neut_fl
     const double *moms_d = gkyl_array_cfetch(moms, linidx);
     double* out_d = gkyl_array_fetch(out, linidx);
 
-    double* udrift_d = &out_d[out_coff];
-    double* pressure_d = &out_d[up->udrift_ncomp*up->num_basis+out_coff];
+    double* prim_vars_d = up->is_integrated? prim_vars_buff : &out_d[out_coff];
+
+    double* udrift_d = prim_vars_d;
+    double* pressure_d = &prim_vars_d[up->udrift_ncomp*up->num_basis];
 
     up->udrift_get_sol_ker(count, up->xs, udrift_d);
     up->pressure_ker(up->gas_gamma, moms_d, udrift_d, pressure_d);
 
+    if (up->is_integrated) {
+      for (int i=0; i<up->udrift_ncomp+1; i++)
+        out_d[out_coff+i] = up->integrated_fac * prim_vars_d[i*up->num_basis];
+    }
     count += nprob;
   }
 }
@@ -229,6 +258,7 @@ void gkyl_gk_neut_fluid_prim_vars_udrift_temp_advance(struct gkyl_gk_neut_fluid_
     assert(status);
   }
 
+  double prim_vars_buff[(up->udrift_ncomp+1)*up->num_basis]; // Buffer needed for integrated moms.
   gkyl_range_iter_init(&iter, &up->mem_range);
   count = 0;
   while (gkyl_range_iter_next(&iter)) {
@@ -237,8 +267,14 @@ void gkyl_gk_neut_fluid_prim_vars_udrift_temp_advance(struct gkyl_gk_neut_fluid_
     const double *moms_d = gkyl_array_cfetch(moms, linidx);
     double* out_d = gkyl_array_fetch(out, linidx);
 
-    up->udrift_temp_get_sol_ker(count, up->xs, &out_d[out_coff]);
+    double* prim_vars_d = up->is_integrated? prim_vars_buff : &out_d[out_coff];
 
+    up->udrift_temp_get_sol_ker(count, up->xs, prim_vars_d);
+
+    if (up->is_integrated) {
+      for (int i=0; i<up->udrift_ncomp+1; i++)
+        out_d[out_coff+i] = up->integrated_fac * prim_vars_d[i*up->num_basis];
+    }
     count += nprob;
   }
 }
@@ -274,6 +310,7 @@ void gkyl_gk_neut_fluid_prim_vars_lte_advance(struct gkyl_gk_neut_fluid_prim_var
     assert(status);
   }
 
+  double prim_vars_buff[(up->udrift_ncomp+2)*up->num_basis]; // Buffer needed for integrated moms.
   gkyl_range_iter_init(&iter, &up->mem_range);
   count = 0;
   while (gkyl_range_iter_next(&iter)) {
@@ -282,10 +319,17 @@ void gkyl_gk_neut_fluid_prim_vars_lte_advance(struct gkyl_gk_neut_fluid_prim_var
     const double *moms_d = gkyl_array_cfetch(moms, linidx);
     double* out_d = gkyl_array_fetch(out, linidx);
 
-    for (int i=0; i<up->num_basis; i++)
-      out_d[out_coff+i] = moms_d[i]/up->mass;
+    double* prim_vars_d = up->is_integrated? prim_vars_buff : &out_d[out_coff];
 
-    up->udrift_temp_get_sol_ker(count, up->xs, &out_d[out_coff+up->num_basis]);
+    for (int i=0; i<up->num_basis; i++)
+      prim_vars_d[out_coff+i] = moms_d[i]/up->mass;
+
+    up->udrift_temp_get_sol_ker(count, up->xs, &prim_vars_d[up->num_basis]);
+
+    if (up->is_integrated) {
+      for (int i=0; i<up->udrift_ncomp+2; i++)
+        out_d[out_coff+i] = up->integrated_fac * prim_vars_d[i*up->num_basis];
+    }
 
     count += nprob;
   }
@@ -322,6 +366,7 @@ void gkyl_gk_neut_fluid_prim_vars_flow_energy_advance(struct gkyl_gk_neut_fluid_
     assert(status);
   }
 
+  double prim_vars_buff[up->num_basis]; // Buffer needed for integrated moms.
   gkyl_range_iter_init(&iter, &up->mem_range);
   count = 0;
   while (gkyl_range_iter_next(&iter)) {
@@ -330,7 +375,73 @@ void gkyl_gk_neut_fluid_prim_vars_flow_energy_advance(struct gkyl_gk_neut_fluid_
     const double *moms_d = gkyl_array_cfetch(moms, linidx);
     double* out_d = gkyl_array_fetch(out, linidx);
 
-    up->flowE_get_sol_ker(count, up->xs, &out_d[out_coff]);
+    double* prim_vars_d = up->is_integrated? prim_vars_buff : &out_d[out_coff];
+
+    up->flowE_get_sol_ker(count, up->xs, prim_vars_d);
+
+    if (up->is_integrated) {
+      out_d[out_coff] = up->integrated_fac * prim_vars_d[0];
+    }
+
+    count += nprob;
+  }
+}
+
+void gkyl_gk_neut_fluid_prim_vars_mass_momentum_flow_thermal_energy_advance(struct gkyl_gk_neut_fluid_prim_vars *up,
+  const struct gkyl_array* moms, struct gkyl_array *out, int out_coff)
+{
+  int nprob = 1;
+  assert(up->As->num == nprob*up->mem_range.volume);
+
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(u)) {
+    return gkyl_gk_neut_fluid_prim_vars_mass_momentum_thermal_flow_energy_advance_cu(up, moms, out, out_coff);
+  }
+#endif
+
+  // Loop over mem_range for solving linear systems to compute primitive moments.
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &up->mem_range);
+  long count = 0;
+  while (gkyl_range_iter_next(&iter)) {
+    long linidx = gkyl_range_idx(&up->mem_range, iter.idx);
+
+    const double *moms_d = gkyl_array_cfetch(moms, linidx);
+
+    up->flowE_set_prob_ker(count, up->As, up->xs, moms_d);
+
+    count += nprob;
+  }
+
+  if (up->poly_order > 1) {
+    bool status = gkyl_nmat_linsolve_lu_pa(up->mem, up->As, up->xs);
+    assert(status);
+  }
+
+  double prim_vars_buff[(up->udrift_ncomp+3)*up->num_basis]; // Buffer needed for integrated moms.
+  gkyl_range_iter_init(&iter, &up->mem_range);
+  count = 0;
+  while (gkyl_range_iter_next(&iter)) {
+    long linidx = gkyl_range_idx(&up->mem_range, iter.idx);
+
+    const double *moms_d = gkyl_array_cfetch(moms, linidx);
+    double* out_d = gkyl_array_fetch(out, linidx);
+
+    double* prim_vars_d = up->is_integrated? prim_vars_buff : &out_d[out_coff];
+
+    int fourth_comp_off = 4*up->num_basis;
+    for (int i=0; i<fourth_comp_off; i++)
+      prim_vars_d[i] = moms_d[i];
+
+    up->flowE_get_sol_ker(count, up->xs, &prim_vars_d[fourth_comp_off]);
+
+    for (int i=0; i<up->num_basis; i++)
+      prim_vars_d[5*up->num_basis+i] = moms_d[fourth_comp_off+i] - prim_vars_d[fourth_comp_off+i];
+
+    if (up->is_integrated) {
+      for (int i=0; i<up->udrift_ncomp+3; i++)
+        out_d[out_coff+i] = up->integrated_fac * prim_vars_d[i*up->num_basis];
+    }
 
     count += nprob;
   }
@@ -338,12 +449,12 @@ void gkyl_gk_neut_fluid_prim_vars_flow_energy_advance(struct gkyl_gk_neut_fluid_
 
 gkyl_gk_neut_fluid_prim_vars*
 gkyl_gk_neut_fluid_prim_vars_new(double gas_gamma, double mass, const struct gkyl_basis* cbasis,
-  const struct gkyl_range *mem_range, enum gkyl_gk_neut_fluid_prim_vars_type prim_vars_type,
-  bool use_gpu)
+  struct gkyl_rect_grid *grid, const struct gkyl_range *mem_range,
+  enum gkyl_gk_neut_fluid_prim_vars_type prim_vars_type, bool is_integrated, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    return gkyl_gk_neut_fluid_prim_vars_cu_dev_new(gas_gamma, cbasis, mem_range);
+    return gkyl_gk_neut_fluid_prim_vars_cu_dev_new(gas_gamma, mass, cbasis, grid, mem_range, prim_vars_type, is_integrated);
   }
 #endif
   gkyl_gk_neut_fluid_prim_vars *up = gkyl_malloc(sizeof(gkyl_gk_neut_fluid_prim_vars));
@@ -359,6 +470,14 @@ gkyl_gk_neut_fluid_prim_vars_new(double gas_gamma, double mass, const struct gky
   up->num_basis = cbasis->num_basis;
   up->udrift_ncomp = 3;
   up->mem_range = *mem_range;
+  up->is_integrated = is_integrated;
+  
+  up->integrated_fac = 0.0;
+  if (up->is_integrated) {
+    up->integrated_fac = 1.0;
+    for (int d=0; d<up->cdim; d++)
+      up->integrated_fac *= (grid->dx[d]/2.0)*sqrt(2.0);
+  }
 
   // Assign all kernels in case soone can use the updater for multiple calc types.
   up->udrift_set_prob_ker = choose_udrift_set_prob_ker(b_type, cdim, poly_order);
@@ -402,6 +521,10 @@ gkyl_gk_neut_fluid_prim_vars_new(double gas_gamma, double mass, const struct gky
   else if (prim_vars_type == GKYL_GK_NEUT_FLUID_PRIM_VARS_FLOW_ENERGY) {
     nprob = 1;
     up->advance_func = gkyl_gk_neut_fluid_prim_vars_flow_energy_advance;
+  }
+  else if (prim_vars_type == GKYL_GK_NEUT_FLUID_PRIM_VARS_MASS_MOMENTUM_FLOW_THERMAL_ENERGY) {
+    nprob = 1;
+    up->advance_func = gkyl_gk_neut_fluid_prim_vars_mass_momentum_flow_thermal_energy_advance;
   }
 
   // There are udrift_ncomp*range->volume linear systems to be solved

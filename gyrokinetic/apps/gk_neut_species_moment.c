@@ -115,13 +115,18 @@ gk_neut_species_fluid_moment_calc(const struct gk_species_moment *sm,
   const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
   const struct gkyl_array *fin)
 {
-  if (sm->is_maxwellian_moms) {
-    // Get drift velocity vector and temperature.
-    gkyl_gk_neut_fluid_prim_vars_lte_advance(sm->nf_prim_vars, fin, sm->marr, 0);
+  if (sm->is_integrated) {
+    gkyl_gk_neut_fluid_prim_vars_mass_momentum_flow_thermal_energy_advance(sm->nf_prim_vars, fin, sm->marr, 0);
   }
   else {
-    // Not yet implemented.
-    assert(false);
+    if (sm->is_maxwellian_moms) {
+      // Get LTE moments.
+      gkyl_gk_neut_fluid_prim_vars_lte_advance(sm->nf_prim_vars, fin, sm->marr, 0);
+    }
+    else {
+      // Not yet implemented.
+      assert(false);
+    }  
   }  
 }
 
@@ -133,7 +138,7 @@ gk_neut_species_fluid_moment_release(const struct gkyl_gyrokinetic_app *app, con
     gkyl_array_release(sm->marr_host);
 
   if (sm->is_integrated) {
-    gkyl_dg_updater_moment_release(sm->mcalc);
+    gkyl_gk_neut_fluid_prim_vars_release(sm->nf_prim_vars);
   }
   else {
     if (sm->is_maxwellian_moms) {
@@ -155,7 +160,7 @@ gk_neut_species_fluid_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_ne
 {
   // Initialize fluid neutral species moment object.
   if (sm->is_integrated) {
-    sm->num_mom = s->num_moments;
+    sm->num_mom = 6; // rho, rho*ux, rho*uy, rho*uz, flowE, thermalE.
 
     // Allocate arrays to hold moments.
     sm->marr = mkarr(app->use_gpu, sm->num_mom, app->local_ext.volume);
@@ -163,13 +168,17 @@ gk_neut_species_fluid_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_ne
     if (app->use_gpu) {
       sm->marr_host = mkarr(false, sm->num_mom, app->local_ext.volume); 
     }
+
+    sm->nf_prim_vars = gkyl_gk_neut_fluid_prim_vars_new(s->info.gas_gamma, s->info.mass, &app->basis,
+      &app->grid, &app->local_ext, GKYL_GK_NEUT_FLUID_PRIM_VARS_MASS_MOMENTUM_FLOW_THERMAL_ENERGY,
+      true, app->use_gpu);
   }
   else {
     if (sm->is_maxwellian_moms) {
       // Compute (n, ux, uy, uz, T/m) moments.
       sm->num_mom = 5;
       sm->nf_prim_vars = gkyl_gk_neut_fluid_prim_vars_new(s->info.gas_gamma, s->info.mass,
-        &app->basis, &app->local_ext, GKYL_GK_NEUT_FLUID_PRIM_VARS_LTE, app->use_gpu);
+        &app->grid, &app->basis, &app->local_ext, GKYL_GK_NEUT_FLUID_PRIM_VARS_LTE, false, app->use_gpu);
     }
     else {
       // Not yet implemented.
