@@ -615,13 +615,19 @@ gk_neut_species_fluid_release(const gkyl_gyrokinetic_app* app, const struct gk_n
   gkyl_array_release(s->f);
   gkyl_array_release(s->f1);
   gkyl_array_release(s->fnew);
-  if (app->use_gpu)
-    gkyl_array_release(s->f_host);
+  gkyl_array_release(s->f_host);
 
   if (s->info.init_from_file.type == 0) {
     gk_neut_species_projection_release(app, &s->proj_init);
   }
   gkyl_comm_release(s->comm);
+
+  for (int i=0; i<s->info.num_diag_moments; ++i)
+    gk_neut_species_moment_release(app, &s->moms[i]);
+  gkyl_free(s->moms);
+
+  // Free boundary flux memory.
+  gk_neut_species_bflux_release(app, s, &s->bflux);
 
   gk_neut_species_lte_release(app, &s->lte);
 
@@ -1401,6 +1407,12 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
   // Initialize projection routine for initial conditions.
   gk_neut_species_projection_init(app, ns, ns->info.projection, &ns->proj_init);
 
+  // Allocate objects for computing diagnostic moments.
+  int ndm = ns->info.num_diag_moments;
+  ns->moms = gkyl_malloc(sizeof(struct gk_species_moment[ndm]));
+  for (int m=0; m<ndm; ++m)
+    gk_neut_species_moment_init(app, ns, &ns->moms[m], ns->info.diag_moments[m], false);
+
   // Initialize boundary fluxes.
   ns->bflux = (struct gk_boundary_fluxes) { };
   // Additional bflux moments to step in time.
@@ -1417,6 +1429,8 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
     .max_iter = 0, .iter_eps = 10, .use_last_converged = false };
   gk_neut_species_lte_init(app, ns, &ns->lte, corr_inp);
 
+  ns->enforce_positivity = false;
+  
   ns->src = (struct gk_source) { };
   ns->react_neut = (struct gk_react) { };
   if (!ns->info.is_static) {

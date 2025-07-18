@@ -130,6 +130,16 @@ struct gk_species_moment {
   bool is_maxwellian_moms; // =True for Maxwellian moments (n, u, T/m).
   bool is_bimaxwellian_moms; // =True for BiMaxwellian moments (n, u, Tpar/m, Tperp/m).
 
+  // MF 2025/07/18: These two objects shouldn't be here. They are needed by
+  // fluid neutral moments, and we should get them directly from app->basis or
+  // species->info, but these are not passes to some of the methods. Should
+  // change that.
+  int num_basis_conf; // Number of conf-space basis functions.
+  double mass; // Species mass.
+  // This method should probably be replaced by an updater.
+  void (*fluid_calc_M)(const struct gk_species_moment *sm, const struct gkyl_range phase_rng,
+    const struct gkyl_range conf_rng, const struct gkyl_array *fin);
+
   union {
     // Kinetic species .............................................. //
     struct {
@@ -835,6 +845,9 @@ struct gk_neut_species {
 
   struct gkyl_array *cflrate; // CFL rate in each cell.
 
+  struct gk_species_moment *moms; // Compute diagnostic moments.
+  struct gk_species_moment integ_moms; // Computes integrated moments.
+
   double *red_integ_diag, *red_integ_diag_global; // for reduction of integrated moments
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
@@ -855,6 +868,8 @@ struct gk_neut_species {
   struct gk_source src; // External source.
 
   struct gk_lte lte; // Object needed for the lte equilibrium.
+
+  bool enforce_positivity; // Enforces positivity of f or mass/energy density.
 
   union {
     // Kinetic neutrals ............................................ //
@@ -877,8 +892,6 @@ struct gk_neut_species {
                                           // F = alpha_surf*f^+ (if sign_alpha_surf = -1)
 
       struct gk_species_moment m0; // Computes density.
-      struct gk_species_moment integ_moms; // Computes integrated moments.
-      struct gk_species_moment *moms; // Compute diagnostic moments.
 
       gkyl_dg_updater_vlasov *slvr; // Vlasov solver.
       struct gkyl_dg_eqn *eqn_vlasov; // Vlasov equation object.
@@ -915,7 +928,6 @@ struct gk_neut_species {
       double *omega_cfl;
 
       // Updater that enforces positivity by shifting f.
-      bool enforce_positivity;
       struct gkyl_positivity_shift_vlasov *pos_shift_op;
       struct gkyl_array *ps_delta_m0; // Number density of the positivity shift.
       struct gk_species_moment ps_moms; // Positivity shift diagnostic moments.

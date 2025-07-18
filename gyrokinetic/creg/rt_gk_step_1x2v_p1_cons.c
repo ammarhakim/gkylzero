@@ -28,6 +28,7 @@ struct sheath_ctx
   double n0; // Reference number density (1 / m^3).
   double nD0;
   double TD0;
+  double gas_gamma; // Neutral adiabatic index.
 
   double nu_frac; // Collision frequency fraction.
 
@@ -115,6 +116,7 @@ create_ctx(void)
 
   double TD0 = 10.0 * GKYL_ELEMENTARY_CHARGE;
   double nD0 = 1.0*n0;
+  double gas_gamma = 5.0/3.0; // Adiabatic index.
 
 
   double nu_frac = 0.1; // Collision frequency fraction.
@@ -181,6 +183,7 @@ create_ctx(void)
     .TD0 = TD0,
     .n0 = n0,
     .nD0 = nD0,
+    .gas_gamma = gas_gamma,
     .nu_frac = nu_frac,
     .k_perp_rho_s = k_perp_rho_s,
     .B0 = B0,
@@ -563,12 +566,10 @@ main(int argc, char **argv)
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP },
   };
 
-    // neutral Deuterium
+  // Neutral Deuterium
   struct gkyl_gyrokinetic_neut_species D0 = {
     .name = "D0", .mass = ctx.mass_ion,
-    .lower = { -ctx.vpar_max_D0, -ctx.vpar_max_D0, -ctx.vpar_max_D0},
-    .upper = { ctx.vpar_max_D0, ctx.vpar_max_D0, ctx.vpar_max_D0 },
-    .cells = { cells_v[0], cells_v[0], cells_v[0] },
+    .gas_gamma = ctx.gas_gamma,
     .is_static = true,
 
     .projection = {

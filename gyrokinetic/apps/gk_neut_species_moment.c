@@ -110,7 +110,31 @@ gk_neut_species_kinetic_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_
   sm->release_func = gk_neut_species_kinetic_moment_release;
 }
 
-void
+static void
+gk_neut_species_fluid_moment_calc_m0(const struct gk_species_moment *sm,
+  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
+  const struct gkyl_array *fin)
+{
+  gkyl_array_set_offset(sm->marr, 1.0/sm->mass, fin, 0);
+}
+
+static void
+gk_neut_species_fluid_moment_calc_m1(const struct gk_species_moment *sm,
+  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
+  const struct gkyl_array *fin)
+{
+  gkyl_array_set_offset(sm->marr, 1.0/sm->mass, fin, 1*sm->num_basis_conf);
+}
+
+static void
+gk_neut_species_fluid_moment_calc_m2(const struct gk_species_moment *sm,
+  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
+  const struct gkyl_array *fin)
+{
+  gkyl_array_set_offset(sm->marr, 2.0/sm->mass, fin, 4*sm->num_basis_conf);
+}
+
+static void
 gk_neut_species_fluid_moment_calc(const struct gk_species_moment *sm,
   const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
   const struct gkyl_array *fin)
@@ -124,8 +148,7 @@ gk_neut_species_fluid_moment_calc(const struct gk_species_moment *sm,
       gkyl_gk_neut_fluid_prim_vars_lte_advance(sm->nf_prim_vars, fin, sm->marr, 0);
     }
     else {
-      // Not yet implemented.
-      assert(false);
+      sm->fluid_calc_M(sm, phase_rng, conf_rng, fin);
     }  
   }  
 }
@@ -145,8 +168,7 @@ gk_neut_species_fluid_moment_release(const struct gkyl_gyrokinetic_app *app, con
       gkyl_gk_neut_fluid_prim_vars_release(sm->nf_prim_vars);
     }
     else {
-      // Not yet implemented.
-      assert(false);
+      // Nothing to release.
     }
 
     // Free the weak division memory.
@@ -181,8 +203,25 @@ gk_neut_species_fluid_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_ne
         &app->basis, &app->grid, &app->local_ext, GKYL_GK_NEUT_FLUID_PRIM_VARS_LTE, false, app->use_gpu);
     }
     else {
-      // Not yet implemented.
-      assert(false);
+      sm->mass = s->info.mass;
+      sm->num_basis_conf = app->basis.num_basis;
+
+      if (mom_type == GKYL_F_MOMENT_M0) {
+        sm->num_mom = 1;
+        sm->fluid_calc_M = gk_neut_species_fluid_moment_calc_m0;
+      }
+      else if (mom_type == GKYL_F_MOMENT_M1) {
+        sm->num_mom = 3;
+        sm->fluid_calc_M = gk_neut_species_fluid_moment_calc_m1;
+      }
+      else if (mom_type == GKYL_F_MOMENT_M2) {
+        sm->num_mom = 1;
+        sm->fluid_calc_M = gk_neut_species_fluid_moment_calc_m2;
+      }
+      else {
+        // Not yet implemented.
+        assert(false);
+      }
     }
 
     // Allocate arrays to hold moments.
