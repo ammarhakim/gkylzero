@@ -137,10 +137,11 @@ gk_neut_species_fluid_moment_release(const struct gkyl_gyrokinetic_app *app, con
   }
   else {
     if (sm->is_maxwellian_moms) {
-      gkyl_vlasov_lte_moments_release(sm->vlasov_lte_moms);
+      gkyl_gk_neut_fluid_prim_vars_release(sm->nf_prim_vars);
     }
     else {
-      gkyl_dg_updater_moment_release(sm->mcalc);
+      // Not yet implemented.
+      assert(false);
     }
 
     // Free the weak division memory.
@@ -165,7 +166,7 @@ gk_neut_species_fluid_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_ne
   }
   else {
     if (sm->is_maxwellian_moms) {
-      // Compute (n, u, T/m) moments.
+      // Compute (n, ux, uy, uz, T/m) moments.
       sm->num_mom = 5;
       sm->nf_prim_vars = gkyl_gk_neut_fluid_prim_vars_new(s->info.gas_gamma, s->info.mass,
         &app->basis, &app->local_ext, GKYL_GK_NEUT_FLUID_PRIM_VARS_LTE, app->use_gpu);
@@ -179,7 +180,7 @@ gk_neut_species_fluid_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_ne
     sm->marr = mkarr(app->use_gpu, sm->num_mom*app->basis.num_basis, app->local_ext.volume);
     sm->marr_host = sm->marr;
     if (app->use_gpu)
-      sm->marr_host = mkarr(false, sm->num_mom*app->basis.num_basis, app->local_ext.volume);
+      sm->marr_host = mkarr(false, sm->marr->ncomp, sm->marr->size);
 
     // Bin Op memory for rescaling moment by inverse of Jacobian
     if (app->use_gpu) {

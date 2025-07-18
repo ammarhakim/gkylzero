@@ -11,7 +11,9 @@ enum gkyl_gk_neut_fluid_prim_vars_type {
   GKYL_GK_NEUT_FLUID_PRIM_VARS_TEMP,
   GKYL_GK_NEUT_FLUID_PRIM_VARS_UDRIFT_PRESSURE, // (ux, uy, uz, p).
   GKYL_GK_NEUT_FLUID_PRIM_VARS_UDRIFT_TEMP, // (ux, uy, uz, T).
-  GKYL_GK_NEUT_FLUID_PRIM_VARS_LTE, // // (n, ux, uy, uz, T/m).
+  GKYL_GK_NEUT_FLUID_PRIM_VARS_LTE, // (n, ux, uy, uz, T/m).
+  GKYL_GK_NEUT_FLUID_PRIM_VARS_FLOW_ENERGY, // 0.5*rho*u^2.
+  GKYL_GK_NEUT_FLUID_PRIM_VARS_THERMAL_ENERGY, // p/(gas_gamma-1)
 };
 
 // Object type
@@ -70,6 +72,16 @@ void gkyl_gk_neut_fluid_prim_vars_pressure_advance(struct gkyl_gk_neut_fluid_pri
  * @param out_coff Offset in out where to place temperature.
  */
 void gkyl_gk_neut_fluid_prim_vars_temp_advance(struct gkyl_gk_neut_fluid_prim_vars *up,
+  const struct gkyl_array* moms, struct gkyl_array *out, int out_coff);
+
+/**
+ * Compute the thermal energy p/(gas_gamma - 1) = E - 1/2 rho u^2.
+ *
+ * @param up Updater to run.
+ * @param out Output thermal energy.
+ * @param out_coff Offset in out where to place thermal energy.
+ */
+void gkyl_gk_neut_fluid_prim_vars_thermal_energy_advance(struct gkyl_gk_neut_fluid_prim_vars *up,
   const struct gkyl_array* moms, struct gkyl_array *out, int out_coff);
 
 /**

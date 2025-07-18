@@ -99,7 +99,7 @@ static void
 gk_fluid_neut_species_calc_integrated_mom_enabled(struct gkyl_gyrokinetic_app *app,
   struct gk_fluid_neut_species *fns, double tm)
 {
-  // Integrated moments: rho, rho*ux, rho*uy, rho*uy, flowE=0.4*rho*u^2, thermalE=p/(gas_gamma-1).
+  // Integrated moments: rho, rho*ux, rho*uy, rho*uy, flowE=0.5*rho*u^2, thermalE=p/(gas_gamma-1).
   fns->prim_var_func(app, fns, fns->f);
 
   gkyl_array_clear(fns->integ_mom, 0.0);
@@ -174,7 +174,7 @@ gk_fluid_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
   fns->prim_var_host = app->use_gpu? mkarr(false, fns->prim_var->ncomp, fns->prim_var->size)
                                    : gkyl_array_acquire(fns->prim_var);
 
-  // Integrated moments: rho, rho*ux, rho*uy, rho*uy, flowE=0.4*rho*u^2, thermalE=p/(gas_gamma-1).
+  // Integrated moments: rho, rho*ux, rho*uy, rho*uy, flowE=0.5*rho*u^2, thermalE=p/(gas_gamma-1).
   fns->num_integ_mom = 6;
   fns->integ_mom = mkarr(app->use_gpu, fns->num_integ_mom, app->local_ext.volume);
   if (app->use_gpu) {

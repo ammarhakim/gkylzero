@@ -31,7 +31,7 @@ void gkyl_gk_neut_fluid_prim_vars_udrift_advance(struct gkyl_gk_neut_fluid_prim_
 
     up->udrift_set_prob_ker(count, up->As, up->xs, moms_d);
 
-    count += up->udrift_ncomp;
+    count += nprob;
   }
 
   if (up->poly_order > 1) {
@@ -75,7 +75,7 @@ void gkyl_gk_neut_fluid_prim_vars_pressure_advance(struct gkyl_gk_neut_fluid_pri
 
     up->udrift_set_prob_ker(count, up->As, up->xs, moms_d);
 
-    count += up->udrift_ncomp;
+    count += nprob;
   }
 
   if (up->poly_order > 1) {
@@ -97,6 +97,9 @@ void gkyl_gk_neut_fluid_prim_vars_pressure_advance(struct gkyl_gk_neut_fluid_pri
 
     up->udrift_get_sol_ker(count, up->xs, udrift_d);
     up->pressure_ker(up->gas_gamma, moms_d, udrift_d, &out_d[out_coff]);
+
+    for (int i=0; i<up->num_basis; i++)
+      out_d[out_coff+i] *= up->thermalE_fac;
 
     count += nprob;
   }
@@ -288,6 +291,51 @@ void gkyl_gk_neut_fluid_prim_vars_lte_advance(struct gkyl_gk_neut_fluid_prim_var
   }
 }
 
+void gkyl_gk_neut_fluid_prim_vars_flow_energy_advance(struct gkyl_gk_neut_fluid_prim_vars *up,
+  const struct gkyl_array* moms, struct gkyl_array *out, int out_coff)
+{
+  int nprob = 1;
+  assert(up->As->num == nprob*up->mem_range.volume);
+
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(u)) {
+    return gkyl_gk_neut_fluid_prim_vars_flow_energy_advance_cu(up, moms, out, out_coff);
+  }
+#endif
+
+  // Loop over mem_range for solving linear systems to compute primitive moments.
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &up->mem_range);
+  long count = 0;
+  while (gkyl_range_iter_next(&iter)) {
+    long linidx = gkyl_range_idx(&up->mem_range, iter.idx);
+
+    const double *moms_d = gkyl_array_cfetch(moms, linidx);
+
+    up->flowE_set_prob_ker(count, up->As, up->xs, moms_d);
+
+    count += nprob;
+  }
+
+  if (up->poly_order > 1) {
+    bool status = gkyl_nmat_linsolve_lu_pa(up->mem, up->As, up->xs);
+    assert(status);
+  }
+
+  gkyl_range_iter_init(&iter, &up->mem_range);
+  count = 0;
+  while (gkyl_range_iter_next(&iter)) {
+    long linidx = gkyl_range_idx(&up->mem_range, iter.idx);
+
+    const double *moms_d = gkyl_array_cfetch(moms, linidx);
+    double* out_d = gkyl_array_fetch(out, linidx);
+
+    up->flowE_get_sol_ker(count, up->xs, &out_d[out_coff]);
+
+    count += nprob;
+  }
+}
+
 gkyl_gk_neut_fluid_prim_vars*
 gkyl_gk_neut_fluid_prim_vars_new(double gas_gamma, double mass, const struct gkyl_basis* cbasis,
   const struct gkyl_range *mem_range, enum gkyl_gk_neut_fluid_prim_vars_type prim_vars_type,
@@ -320,15 +368,20 @@ gkyl_gk_neut_fluid_prim_vars_new(double gas_gamma, double mass, const struct gky
   up->temp_get_sol_ker = choose_temp_get_sol_ker(b_type, cdim, poly_order);
   up->udrift_temp_set_prob_ker = choose_temp_set_prob_ker(b_type, cdim, poly_order);
   up->udrift_temp_get_sol_ker = choose_temp_get_sol_ker(b_type, cdim, poly_order);
+  up->flowE_set_prob_ker = choose_flowE_set_prob_ker(b_type, cdim, poly_order);
+  up->flowE_get_sol_ker = choose_flowE_get_sol_ker(b_type, cdim, poly_order);
 
   int nprob;
+  up->thermalE_fac = 0.0;
   if (prim_vars_type == GKYL_GK_NEUT_FLUID_PRIM_VARS_UDRIFT) {
     nprob = up->udrift_ncomp;
     up->advance_func = gkyl_gk_neut_fluid_prim_vars_udrift_advance;
   }
-  else if (prim_vars_type == GKYL_GK_NEUT_FLUID_PRIM_VARS_PRESSURE) {
+  else if ( (prim_vars_type == GKYL_GK_NEUT_FLUID_PRIM_VARS_PRESSURE) ||
+            (prim_vars_type == GKYL_GK_NEUT_FLUID_PRIM_VARS_THERMAL_ENERGY) ) {
     nprob = up->udrift_ncomp;
     up->advance_func = gkyl_gk_neut_fluid_prim_vars_pressure_advance;
+    up->thermalE_fac = prim_vars_type == GKYL_GK_NEUT_FLUID_PRIM_VARS_PRESSURE? 1.0 : 1.0/(up->gas_gamma-1.0);
   }
   else if (prim_vars_type == GKYL_GK_NEUT_FLUID_PRIM_VARS_TEMP) {
     nprob = 1;
@@ -345,6 +398,10 @@ gkyl_gk_neut_fluid_prim_vars_new(double gas_gamma, double mass, const struct gky
   else if (prim_vars_type == GKYL_GK_NEUT_FLUID_PRIM_VARS_LTE) {
     nprob = up->udrift_ncomp+1;
     up->advance_func = gkyl_gk_neut_fluid_prim_vars_lte_advance;
+  }
+  else if (prim_vars_type == GKYL_GK_NEUT_FLUID_PRIM_VARS_FLOW_ENERGY) {
+    nprob = 1;
+    up->advance_func = gkyl_gk_neut_fluid_prim_vars_flow_energy_advance;
   }
 
   // There are udrift_ncomp*range->volume linear systems to be solved

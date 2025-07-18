@@ -33,6 +33,12 @@ typedef void (*gk_nf_udrift_temp_set_prob_t)(int count, struct gkyl_nmat *A, str
 typedef void (*gk_nf_udrift_temp_get_sol_t)(int count, struct gkyl_nmat *xsol,
   double* GKYL_RESTRICT out);
 
+typedef void (*gk_nf_flowE_set_prob_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs,
+  const double *moms);
+
+typedef void (*gk_nf_flowE_get_sol_t)(int count, struct gkyl_nmat *xsol,
+  double* GKYL_RESTRICT out);
+
 // For use in kernel tables.
 typedef struct { gk_nf_udrift_set_prob_t kernels[4]; } gkyl_gk_nf_prim_vars_udrift_set_prob_kern_list;
 typedef struct { gk_nf_udrift_get_sol_t kernels[4]; } gkyl_gk_nf_prim_vars_udrift_get_sol_kern_list;
@@ -41,6 +47,8 @@ typedef struct { gk_nf_temp_set_prob_t kernels[4]; } gkyl_gk_nf_prim_vars_temp_s
 typedef struct { gk_nf_temp_get_sol_t kernels[4]; } gkyl_gk_nf_prim_vars_temp_get_sol_kern_list;
 typedef struct { gk_nf_udrift_temp_set_prob_t kernels[4]; } gkyl_gk_nf_prim_vars_udrift_temp_set_prob_kern_list;
 typedef struct { gk_nf_udrift_temp_get_sol_t kernels[4]; } gkyl_gk_nf_prim_vars_udrift_temp_get_sol_kern_list;
+typedef struct { gk_nf_flowE_set_prob_t kernels[4]; } gkyl_gk_nf_prim_vars_flowE_set_prob_kern_list;
+typedef struct { gk_nf_flowE_get_sol_t kernels[4]; } gkyl_gk_nf_prim_vars_flowE_get_sol_kern_list;
 
 struct gkyl_gk_neut_fluid_prim_vars {
   double gas_gamma; // Adiabatic index.
@@ -51,9 +59,11 @@ struct gkyl_gk_neut_fluid_prim_vars {
   int num_basis; // Number of basis functions.
   struct gkyl_range mem_range; // Configuration space range for linear solve.
 
-  struct gkyl_nmat *As, *xs; // matrices for LHS and RHS
-  gkyl_nmat_mem *mem; // memory for use in batched linear solve
-  int udrift_ncomp; // number of components in the linear solve (6 variables being solved for)
+  struct gkyl_nmat *As, *xs; // matrices for LHS and RHS.
+  gkyl_nmat_mem *mem; // Memory for use in batched linear solve.
+  int udrift_ncomp; // Number of components in the drift velocity.
+
+  double thermalE_fac; // Factor needed to transform p to thermalE.
 
   gk_nf_udrift_set_prob_t udrift_set_prob_ker; // Kernel for setting matrices for linear solve.
   gk_nf_udrift_get_sol_t udrift_get_sol_ker; // Kernel for copying solution to output.
@@ -62,9 +72,11 @@ struct gkyl_gk_neut_fluid_prim_vars {
   gk_nf_temp_get_sol_t temp_get_sol_ker; // Kernel for copying solution to output.
   gk_nf_udrift_temp_set_prob_t udrift_temp_set_prob_ker; // Kernel for setting matrices for linear solve.
   gk_nf_udrift_temp_get_sol_t udrift_temp_get_sol_ker; // Kernel for copying solution to output.
+  gk_nf_flowE_set_prob_t flowE_set_prob_ker; // Kernel for setting matrices for linear solve.
+  gk_nf_flowE_get_sol_t flowE_get_sol_ker; // Kernel for copying solution to output.
 
   uint32_t flags;
-  struct gkyl_gk_neut_fluid_prim_vars *on_dev; // pointer to itself or device data
+  struct gkyl_gk_neut_fluid_prim_vars *on_dev; // Pointer to itself or device data.
 
   // Method chosen at runtime.
   void (*advance_func)(struct gkyl_gk_neut_fluid_prim_vars *up,
@@ -125,6 +137,22 @@ static const gkyl_gk_nf_prim_vars_udrift_temp_get_sol_kern_list ser_gk_nf_prim_v
   { gk_neut_fluid_prim_vars_udrift_temp_get_sol_1x_ser_p1, gk_neut_fluid_prim_vars_udrift_temp_get_sol_1x_ser_p2, NULL },
   { gk_neut_fluid_prim_vars_udrift_temp_get_sol_2x_ser_p1, NULL, NULL },
   { gk_neut_fluid_prim_vars_udrift_temp_get_sol_3x_ser_p1, NULL, NULL },
+};
+
+// Set matrices for computing fluid flow energy (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_gk_nf_prim_vars_flowE_set_prob_kern_list ser_gk_nf_prim_vars_flowE_set_prob_kernels[] = {
+  { gk_neut_fluid_prim_vars_flowE_set_prob_1x_ser_p1, gk_neut_fluid_prim_vars_flowE_set_prob_1x_ser_p2, NULL },
+  { gk_neut_fluid_prim_vars_flowE_set_prob_2x_ser_p1, NULL, NULL },
+  { gk_neut_fluid_prim_vars_flowE_set_prob_3x_ser_p1, NULL, NULL },
+};
+
+// Copy solution for fluid flow energy (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_gk_nf_prim_vars_flowE_get_sol_kern_list ser_gk_nf_prim_vars_flowE_get_sol_kernels[] = {
+  { gk_neut_fluid_prim_vars_flowE_get_sol_1x_ser_p1, gk_neut_fluid_prim_vars_flowE_get_sol_1x_ser_p2, NULL },
+  { gk_neut_fluid_prim_vars_flowE_get_sol_2x_ser_p1, NULL, NULL },
+  { gk_neut_fluid_prim_vars_flowE_get_sol_3x_ser_p1, NULL, NULL },
 };
 
 GKYL_CU_D
@@ -224,3 +252,32 @@ choose_udrift_temp_get_sol_ker(enum gkyl_basis_type b_type, int cdim, int poly_o
       break;
   }
 }
+
+GKYL_CU_D
+static gk_nf_flowE_set_prob_t
+choose_flowE_set_prob_ker(enum gkyl_basis_type b_type, int cdim, int poly_order)
+{
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_gk_nf_prim_vars_flowE_set_prob_kernels[cdim-1].kernels[poly_order-1];
+      break;
+    default:
+      assert(false);
+      break;
+  }
+}
+
+GKYL_CU_D
+static gk_nf_flowE_get_sol_t
+choose_flowE_get_sol_ker(enum gkyl_basis_type b_type, int cdim, int poly_order)
+{
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_gk_nf_prim_vars_flowE_get_sol_kernels[cdim-1].kernels[poly_order-1];
+      break;
+    default:
+      assert(false);
+      break;
+  }
+}
+
