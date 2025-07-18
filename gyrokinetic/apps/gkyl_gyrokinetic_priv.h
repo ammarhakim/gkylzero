@@ -519,56 +519,59 @@ struct gk_proj_on_basis_c2p_func_ctx {
 };
 
 struct gk_proj {
-  enum gkyl_projection_id proj_id; // type of projection
+  enum gkyl_projection_id proj_id; // Type of projection.
   struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
-  // Functions chosen at runtime.
-  void (*projection_calc)(gkyl_gyrokinetic_app *app, struct gk_species *s, 
-    struct gk_proj *proj, struct gkyl_array *f, double tm);
-  void (*moms_correct)(gkyl_gyrokinetic_app *app, struct gk_species *s, 
-    struct gk_proj *proj, struct gkyl_array *f, double tm);
-  // organization of the different projection objects and the required data and solvers
   union {
-    // function projection
+    // Function projection.
     struct {
-      struct gkyl_proj_on_basis *proj_func; // projection operator for specified function
-      struct gkyl_array *proj_host; // array for projection on host-side if running on GPUs
+      struct gkyl_proj_on_basis *proj_func; // Projection operator for specified function.
+      struct gkyl_array *proj_host; // Array for projection on host-side if running on GPUs.
     };
-    // Maxwellian and Bi-Maxwellian projection from primitive moments
+    // Maxwellian and Bi-Maxwellian projection from primitive moments.
     struct {
-      struct gkyl_array *dens; // density (on device for GK Maxwellian Gaussian).
+      struct gkyl_array *dens; // Density (on device for GK Maxwellian Gaussian).
 
-      struct gkyl_array *prim_moms_host; // host-side prim_moms for initialization with proj_on_basis
-      struct gkyl_array *prim_moms; // prim_moms we pass to Maxwellian projection object (potentially on device)
+      struct gkyl_array *prim_moms_host; // Host-side prim_moms for initialization with proj_on_basis
+      struct gkyl_array *prim_moms; // Prim_moms we pass to Maxwellian projection object (potentially on device)
 
-      bool correct_all_moms; // boolean if we are correcting all the moments
+      bool correct_all_moms; // Boolean if we are correcting all the moments.
 
-      struct gkyl_proj_on_basis *proj_dens; // projection operator for density
-      struct gkyl_array *vtsq; // vth^2 = T/m (temperature/mass) (on device for GK Maxwellian Gaussian).
-      struct gkyl_proj_on_basis *proj_temp; // projection operator for temperature
-      struct gkyl_array *vtsqpar; // host-side vth_par^2 = Tpar/m (parallel temperature/mass)
-      struct gkyl_array *vtsqperp; // host-side vth_perp^2 = Tperp/m (perpendicular temperature/mass)
-      struct gkyl_proj_on_basis *proj_temppar; // projection operator for parallel temperature
-      struct gkyl_proj_on_basis *proj_tempperp; // projection operator for parallel temperature
+      struct gkyl_proj_on_basis *proj_dens; // Projection operator for density
+      struct gkyl_array *vtsq; // vt^2 = T/m (temperature/mass) (on device for GK Maxwellian Gaussian).
+      struct gkyl_proj_on_basis *proj_temp; // Projection operator for temperature.
+      struct gkyl_array *vtsqpar; // Host-side vt_par^2 = Tpar/m (parallel temperature/mass).
+      struct gkyl_array *vtsqperp; // Host-side vt_perp^2 = Tperp/m (perpendicular temperature/mass).
+      struct gkyl_proj_on_basis *proj_temppar; // Projection operator for parallel temperature.
+      struct gkyl_proj_on_basis *proj_tempperp; // Projection operator for perpendicular temperature.
 
-      struct gkyl_array *gaussian_profile; // shape of the source in configuration space (on device).    
-      struct gkyl_proj_on_basis *proj_gaussian; // projection operator for the shape of the source in config space.    
+      struct gkyl_array *gaussian_profile; // Shape of the source in configuration space (on device).
+      struct gkyl_proj_on_basis *proj_gaussian; // Projection operator for the shape of the source in config space.
 
       union {
         struct { 
           struct gkyl_array *upar; // upar for GK Maxwellian/Bi-Maxwellian projection (on device for GK Maxwellian Gaussian)
-          struct gkyl_proj_on_basis *proj_upar; // projection operator for upar for GK Maxwellian/Bi-Maxwellian projection
-          struct gkyl_gk_maxwellian_proj_on_basis *proj_max; // Maxwellian projection object for GK
-          struct gkyl_gk_maxwellian_correct *corr_max; // Maxwellian correction object for GK
+          struct gkyl_proj_on_basis *proj_upar; // Projection operator for upar for GK Maxwellian/Bi-Maxwellian projection.
+          struct gkyl_gk_maxwellian_proj_on_basis *proj_max; // Maxwellian projection object for GK.
+          struct gkyl_gk_maxwellian_correct *corr_max; // Maxwellian correction object for GK.
         };
         struct { 
-          struct gkyl_array *udrift; // host-side udrift for Vlasov neutrals LTE projection
-          struct gkyl_proj_on_basis *proj_udrift; // projection operator for udrift for Vlasov neutrals LTE projection
-          struct gkyl_vlasov_lte_proj_on_basis *proj_lte; // Maxwellian projection object for Vlasov neutrals
-          struct gkyl_vlasov_lte_correct *corr_lte; // Maxwellian correction object for Vlasov neutrals
+          struct gkyl_array *udrift; // Host-side udrift for Vlasov neutrals LTE projection.
+          struct gkyl_proj_on_basis *proj_udrift; // Projection operator for udrift for Vlasov neutrals LTE projection.
+          struct gkyl_vlasov_lte_proj_on_basis *proj_lte; // Maxwellian projection object for Vlasov neutrals.
+          struct gkyl_vlasov_lte_correct *corr_lte; // Maxwellian correction object for Vlasov neutrals.
         };     
       };  
     };
   };
+
+  // Functions chosen at runtime.
+  void (*projection_calc)(gkyl_gyrokinetic_app *app, struct gk_species *s, 
+    struct gk_proj *proj, struct gkyl_array *f, double tm);
+  void (*neut_calc_func)(gkyl_gyrokinetic_app *app, struct gk_neut_species *s, 
+    struct gk_proj *proj, struct gkyl_array *f, double tm);
+  void (*moms_correct)(gkyl_gyrokinetic_app *app, struct gk_species *s, 
+    struct gk_proj *proj, struct gkyl_array *f, double tm);
+  void (*release_func)(const struct gkyl_gyrokinetic_app *app, const struct gk_proj *proj);
 };
 
 struct gk_adapt_source {
@@ -2718,7 +2721,7 @@ void gk_neut_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk
  * @param f Output Neutral distribution function from projection.
  * @param tm Time for use in projection.
  */
-void gk_neut_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, 
+void gk_neut_species_projection_calc(gkyl_gyrokinetic_app *app, struct gk_neut_species *species, 
   struct gk_proj *proj, struct gkyl_array *f, double tm);
 
 /**

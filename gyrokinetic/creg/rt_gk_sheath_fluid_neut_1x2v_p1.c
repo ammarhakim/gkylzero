@@ -406,7 +406,7 @@ eval_neut_mom_init(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
   double T0_neut = app->T0_neut;
 
   // Mass density.
-  fout[0] = n0_neut;
+  fout[0] = mass_neut * n0_neut;
 
   // Momentum density.
   fout[1] = 0.0;
@@ -414,7 +414,40 @@ eval_neut_mom_init(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
   fout[3] = 0.0;
 
   // Total energy density.
-  fout[4] = (gas_gamma-1.0)*n0_neut*T0_neut;
+  fout[4] = n0_neut*T0_neut/(gas_gamma-1.0);
+}
+
+void
+eval_neut_density_init(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  double z = xn[0];
+
+  struct sheath_ctx *app = ctx;
+  double n0_neut = app->n0_neut;
+
+  fout[0] = n0_neut;
+}
+
+void
+eval_neut_udrift_init(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  double z = xn[0];
+
+  struct sheath_ctx *app = ctx;
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = 0.0;
+}
+
+void
+eval_neut_temp_init(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  double z = xn[0];
+
+  struct sheath_ctx *app = ctx;
+  double T0_neut = app->T0_neut;
+
+  fout[0] = T0_neut;
 }
 
 static inline void
@@ -634,12 +667,20 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_neut_species D0 = {
     .name = "D0",
     .mass = ctx.mass_ion,
+    .gas_gamma = ctx.gas_gamma,
     .is_static = true,
 
     .projection = {
-      .proj_id = GKYL_PROJ_FUNC, 
-      .func = eval_neut_mom_init,
-      .ctx_func = &ctx,
+//      .proj_id = GKYL_PROJ_FUNC, 
+//      .func = eval_neut_mom_init,
+//      .ctx_func = &ctx,
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
+      .density = eval_neut_density_init,
+      .ctx_density = &ctx,
+      .udrift = eval_neut_udrift_init,
+      .ctx_udrift = &ctx,
+      .temp = eval_neut_temp_init,
+      .ctx_temp = &ctx,
     },
   };
 

@@ -178,7 +178,7 @@ gk_neut_species_fluid_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_ne
       // Compute (n, ux, uy, uz, T/m) moments.
       sm->num_mom = 5;
       sm->nf_prim_vars = gkyl_gk_neut_fluid_prim_vars_new(s->info.gas_gamma, s->info.mass,
-        &app->grid, &app->basis, &app->local_ext, GKYL_GK_NEUT_FLUID_PRIM_VARS_LTE, false, app->use_gpu);
+        &app->basis, &app->grid, &app->local_ext, GKYL_GK_NEUT_FLUID_PRIM_VARS_LTE, false, app->use_gpu);
     }
     else {
       // Not yet implemented.
