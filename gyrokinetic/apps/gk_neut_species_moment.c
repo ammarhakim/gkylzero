@@ -116,8 +116,8 @@ gk_neut_species_fluid_moment_calc(const struct gk_species_moment *sm,
   const struct gkyl_array *fin)
 {
   if (sm->is_maxwellian_moms) {
-//    gkyl_vlasov_lte_moments_advance(sm->vlasov_lte_moms, 
-//      &phase_rng, &conf_rng, fin, sm->marr);
+    // Get drift velocity vector and temperature.
+    gkyl_gk_neut_fluid_prim_vars_lte_advance(sm->nf_prim_vars, fin, sm->marr, 0);
   }
   else {
     // Not yet implemented.
@@ -165,6 +165,10 @@ gk_neut_species_fluid_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_ne
   }
   else {
     if (sm->is_maxwellian_moms) {
+      // Compute (n, u, T/m) moments.
+      sm->num_mom = 5;
+      sm->nf_prim_vars = gkyl_gk_neut_fluid_prim_vars_new(s->info.gas_gamma, s->info.mass,
+        &app->basis, &app->local_ext, GKYL_GK_NEUT_FLUID_PRIM_VARS_LTE, app->use_gpu);
     }
     else {
       // Not yet implemented.

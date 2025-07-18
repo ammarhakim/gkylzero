@@ -361,6 +361,8 @@ struct gkyl_gyrokinetic_neut_species {
 
   // Boundary conditions.
   struct gkyl_gyrokinetic_bcs bcx, bcy, bcz;
+
+  double gas_gamma; // Adiabatic index (fluid neutrals).
 };
 
 // Parameters for fluid neutral species.

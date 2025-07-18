@@ -1,5 +1,7 @@
 #include <gkyl_mat.h> 
 #include <gkyl_gk_neut_fluid_prim_vars_kernels.h> 
+#include <gkyl_binop_mul_ser.h> 
+#include <gkyl_basis_ser_1x_p2_inv.h> 
 GKYL_CU_DH void gk_neut_fluid_prim_vars_udrift_set_prob_1x_ser_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
     const double *moms) 
 { 
@@ -80,22 +82,19 @@ GKYL_CU_DH void gk_neut_fluid_prim_vars_udrift_set_prob_1x_ser_p2(int count, str
   gkyl_mat_set(&A_uz,2,2,temp_rho); 
  
 } 
-#include <gkyl_mat.h> 
-#include <gkyl_gk_neut_fluid_prim_vars_kernels.h> 
 GKYL_CU_DH void gk_neut_fluid_prim_vars_udrift_get_sol_1x_ser_p2(int count, struct gkyl_nmat *xsol, 
-    double* GKYL_RESTRICT udrift) 
+    double* GKYL_RESTRICT out) 
 { 
   // count: integer to indicate which matrix being fetched. 
   // xsol: Input solution vector. 
-  // udrift: Output volume expansion of flow velocity: 
-  //         [ux, uy, uz]. 
+  // out: Output volume expansion of flow velocity;
  
   struct gkyl_mat x_ux = gkyl_nmat_get(xsol, count); 
   struct gkyl_mat x_uy = gkyl_nmat_get(xsol, count+1); 
   struct gkyl_mat x_uz = gkyl_nmat_get(xsol, count+2); 
-  double *ux = &udrift[0]; 
-  double *uy = &udrift[3]; 
-  double *uz = &udrift[6]; 
+  double *ux = &out[0]; 
+  double *uy = &out[3]; 
+  double *uz = &out[6]; 
 
   ux[0] = gkyl_mat_get(&x_ux,0,0); 
   uy[0] = gkyl_mat_get(&x_uy,0,0); 

@@ -62,6 +62,7 @@
 #include <gkyl_gk_maxwellian_correct.h>
 #include <gkyl_gk_maxwellian_proj_on_basis.h>
 #include <gkyl_gk_maxwellian_moments.h>
+#include <gkyl_gk_neut_fluid_prim_vars.h>
 #include <gkyl_tok_geo.h>
 #include <gkyl_velocity_map.h>
 #include <gkyl_gyrokinetic.h>
@@ -126,24 +127,35 @@ struct gk_species_moment {
   struct gkyl_array *marr; // array to moment data
   struct gkyl_array *marr_host; // host copy (same as marr if not on GPUs)
 
-  // Options for moment calculation: 
-  // 1. Compute the moment directly with dg_updater_moment_gyrokinetic
-  // 2. Compute the moments of the equivalent Maxwellian (n, u_par, T/m)
-  // 3. Compute the moments of the equivalent Bi-Maxwellian (n, u_par, T_par/m, T_perp/m)
-  //    Latter two options use specialized gkyl_gyrokinetic_maxwellian_moments updater
+  bool is_maxwellian_moms; // =True for Maxwellian moments (n, u, T/m).
+  bool is_bimaxwellian_moms; // =True for BiMaxwellian moments (n, u, Tpar/m, Tperp/m).
+
   union {
+    // Kinetic species .............................................. //
     struct {
-      struct gkyl_gk_maxwellian_moments *gyrokinetic_maxwellian_moms; 
+      // Options for moment calculation: 
+      // 1. Compute the moment directly with dg_updater_moment_gyrokinetic
+      // 2. Compute the moments of the equivalent Maxwellian (n, u_par, T/m)
+      // 3. Compute the moments of the equivalent Bi-Maxwellian (n, u_par, T_par/m, T_perp/m)
+      //    Latter two options use specialized gkyl_gyrokinetic_maxwellian_moments updater
+      union {
+        struct {
+          struct gkyl_gk_maxwellian_moments *gyrokinetic_maxwellian_moms; 
+        };
+        struct {
+          struct gkyl_vlasov_lte_moments *vlasov_lte_moms; // Updater for computing LTE moments
+        };
+        struct {
+          struct gkyl_dg_updater_moment *mcalc; 
+        };
+      };
     };
+
+    // Fluid species .............................................. //
     struct {
-      struct gkyl_vlasov_lte_moments *vlasov_lte_moms; // Updater for computing LTE moments
-    };
-    struct {
-      struct gkyl_dg_updater_moment *mcalc; 
+      struct gkyl_gk_neut_fluid_prim_vars *nf_prim_vars; 
     };
   };
-  bool is_maxwellian_moms;
-  bool is_bimaxwellian_moms;
 
   // Methods chosen at runtime.
   void (*calc_func)(const struct gk_species_moment *sm, const struct gkyl_range phase_rng,
