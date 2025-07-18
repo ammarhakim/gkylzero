@@ -365,13 +365,6 @@ struct gkyl_gyrokinetic_neut_species {
   double gas_gamma; // Adiabatic index (fluid neutrals).
 };
 
-// Parameters for fluid neutral species.
-struct gkyl_gyrokinetic_fluid_neut_species {
-  char name[128]; // Species name.
-
-  double mass; // Species mass.
-};
-
 // Parameter for gk field.
 struct gkyl_gyrokinetic_field {
   enum gkyl_gkfield_id gkfield_id;
@@ -438,9 +431,6 @@ struct gkyl_gk {
 
   int num_neut_species; // Number of species.
   struct gkyl_gyrokinetic_neut_species neut_species[GKYL_MAX_SPECIES]; // Species objects.
-  
-  int num_fluid_neut_species; // Number of species.
-  struct gkyl_gyrokinetic_fluid_neut_species fluid_neut_species[GKYL_MAX_SPECIES]; // Species objects.
   
   struct gkyl_gyrokinetic_field field; // Field object.
 
@@ -665,16 +655,6 @@ void gkyl_gyrokinetic_app_write_species(gkyl_gyrokinetic_app* app, int sidx, dou
 void gkyl_gyrokinetic_app_write_neut_species(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame);
 
 /**
- * Write fluid neutral species data to file.
- * 
- * @param app App object.
- * @param sidx Index of fluid neutral species to write.
- * @param tm Time-stamp
- * @param frame Frame number
- */
-void gkyl_gyrokinetic_app_write_fluid_neut_species(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame);
-
-/**
  * Write diagnostic moments for species to file.
  * 
  * @param app App object.
@@ -711,15 +691,6 @@ void gkyl_gyrokinetic_app_calc_species_integrated_mom(gkyl_gyrokinetic_app* app,
  * @param tm Time at which integrated diagnostics are to be computed
  */
 void gkyl_gyrokinetic_app_calc_neut_species_integrated_mom(gkyl_gyrokinetic_app* app, int sidx, double tm);
-
-/**
- * Calculate integrated diagnostic moments for a fluid neutral species.
- *
- * @param app App object.
- * @param sidx Index of fluid neutral species whose integrated moments to compute.
- * @param tm Time at which integrated diagnostics are to be computed
- */
-void gkyl_gyrokinetic_app_calc_fluid_neut_species_integrated_mom(gkyl_gyrokinetic_app* app, int sidx, double tm);
 
 /**
  * Calculate the L2 norm of a plasma species.
@@ -765,15 +736,6 @@ void gkyl_gyrokinetic_app_write_species_integrated_mom(gkyl_gyrokinetic_app *app
  * @param sidx Index of neutral species whose integrated moments to write.
  */
 void gkyl_gyrokinetic_app_write_neut_species_integrated_mom(gkyl_gyrokinetic_app *app, int sidx);
-
-/**
- * Write integrated diagnostic moments for fluid neutral species to file. Integrated
- * moments are appended to the same file.
- * 
- * @param app App object.
- * @param sidx Index of fluid neutral species whose integrated moments to write.
- */
-void gkyl_gyrokinetic_app_write_fluid_neut_species_integrated_mom(gkyl_gyrokinetic_app *app, int sidx);
 
 /**
  * Write the L2 norm of a charged species to file. Subsequent calculations of
@@ -1036,16 +998,6 @@ void gkyl_gyrokinetic_app_write_species_conf(gkyl_gyrokinetic_app* app, int sidx
  * @param frame Frame number
  */
 void gkyl_gyrokinetic_app_write_neut_species_conf(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame);
-
-/**
- * Write the conf-space diagnostics for a fluid neutral species.
- * 
- * @param app App object.
- * @param sidx Index of fluid neutral species to write.
- * @param tm Time-stamp
- * @param frame Frame number
- */
-void gkyl_gyrokinetic_app_write_fluid_neut_species_conf(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame);
 
 /**
  * Write diagnostic moments for all species (including sources) to file.

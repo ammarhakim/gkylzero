@@ -150,7 +150,6 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   int poly_order = app->poly_order = gk->poly_order;
   int ns = app->num_species = gk->num_species;
   int neuts = app->num_neut_species = gk->num_neut_species;
-  int fluid_neuts = app->num_fluid_neut_species = gk->num_fluid_neut_species;
 
   double cfl_frac = gk->cfl_frac == 0 ? 1.0 : gk->cfl_frac;
   app->cfl = cfl_frac;
@@ -584,12 +583,10 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
 {
   int ns = app->num_species = gk->num_species;
   int neuts = app->num_neut_species = gk->num_neut_species;
-  int fluid_neuts = app->num_fluid_neut_species = gk->num_fluid_neut_species;
 
   // Allocate space to store species and neutral species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct gk_species[ns])) : 0;
   app->neut_species = neuts>0 ? gkyl_malloc(sizeof(struct gk_neut_species[neuts])) : 0;
-  app->fluid_neut_species = fluid_neuts>0 ? gkyl_malloc(sizeof(struct gk_fluid_neut_species[fluid_neuts])) : 0;
 
   // Copy input parameters for each species
   for (int i=0; i<ns; ++i)
@@ -597,9 +594,6 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
 
   for (int i=0; i<neuts; ++i)
     app->neut_species[i].info = gk->neut_species[i];
-
-  for (int i=0; i<fluid_neuts; ++i)
-    app->fluid_neut_species[i].info = gk->fluid_neut_species[i];
 
   app->field = gk_field_new(gk, app); // Initialize field, even if we are  skipping field updates.
 
@@ -626,9 +620,6 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
 
   for (int i=0; i<neuts; ++i)
     gk_neut_species_init(gk, app, &app->neut_species[i]);
-
-  for (int i=0; i<fluid_neuts; ++i)
-    gk_fluid_neut_species_init(gk, app, &app->fluid_neut_species[i]);
 
   // Initialize each species cross-collisions terms.
   for (int i=0; i<ns; ++i) {
@@ -782,29 +773,11 @@ gk_find_neut_species(const gkyl_gyrokinetic_app *app, const char *nm)
   return 0;
 }
 
-struct gk_fluid_neut_species *
-gk_find_fluid_neut_species(const gkyl_gyrokinetic_app *app, const char *nm)
-{
-  for (int i=0; i<app->num_fluid_neut_species; ++i)
-    if (strcmp(nm, app->fluid_neut_species[i].info.name) == 0)
-      return &app->fluid_neut_species[i];
-  return 0;
-}
-
 int
 gk_find_neut_species_idx(const gkyl_gyrokinetic_app *app, const char *nm)
 {
   for (int i=0; i<app->num_neut_species; ++i)
     if (strcmp(nm, app->neut_species[i].info.name) == 0)
-      return i;
-  return -1;
-}
-
-int
-gk_find_fluid_neut_species_idx(const gkyl_gyrokinetic_app *app, const char *nm)
-{
-  for (int i=0; i<app->num_fluid_neut_species; ++i)
-    if (strcmp(nm, app->fluid_neut_species[i].info.name) == 0)
       return i;
   return -1;
 }
@@ -1170,13 +1143,6 @@ gkyl_gyrokinetic_app_write_neut_species(gkyl_gyrokinetic_app* app, int sidx, dou
 }
 
 void
-gkyl_gyrokinetic_app_write_fluid_neut_species(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
-{
-  struct gk_fluid_neut_species *fns = &app->fluid_neut_species[sidx];
-  gk_fluid_neut_species_write(app, fns, tm, frame);
-}
-
-void
 gkyl_gyrokinetic_app_write_species_mom(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
 {
   struct gk_species *gks = &app->species[sidx];
@@ -1205,13 +1171,6 @@ gkyl_gyrokinetic_app_calc_neut_species_integrated_mom(gkyl_gyrokinetic_app* app,
 }
 
 void
-gkyl_gyrokinetic_app_calc_fluid_neut_species_integrated_mom(gkyl_gyrokinetic_app* app, int sidx, double tm)
-{
-  struct gk_fluid_neut_species *fns = &app->fluid_neut_species[sidx];
-  gk_fluid_neut_species_calc_integrated_mom(app, fns, tm);
-}
-
-void
 gkyl_gyrokinetic_app_calc_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_app* app, int sidx, double tm)
 {
   struct gk_species *gks = &app->species[sidx];
@@ -1237,13 +1196,6 @@ gkyl_gyrokinetic_app_write_neut_species_integrated_mom(gkyl_gyrokinetic_app *app
 {
   struct gk_neut_species *gkns = &app->neut_species[sidx];
   gk_neut_species_write_integrated_mom(app, gkns);
-}
-
-void
-gkyl_gyrokinetic_app_write_fluid_neut_species_integrated_mom(gkyl_gyrokinetic_app *app, int sidx)
-{
-  struct gk_fluid_neut_species *fns = &app->fluid_neut_species[sidx];
-  gk_fluid_neut_species_write_integrated_mom(app, fns);
 }
 
 void
@@ -1504,12 +1456,6 @@ gkyl_gyrokinetic_app_write_neut_species_conf(gkyl_gyrokinetic_app* app, int sidx
   gkyl_gyrokinetic_app_write_neut_species_boundary_flux_mom(app, sidx, tm, frame);
 }
 
-void
-gkyl_gyrokinetic_app_write_fluid_neut_species_conf(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
-{
-  gkyl_gyrokinetic_app_write_fluid_neut_species(app, sidx, tm, frame);
-}
-
 //
 // ............. Functions that group several species outputs ............... //
 // 
@@ -1546,10 +1492,6 @@ gkyl_gyrokinetic_app_calc_integrated_mom(gkyl_gyrokinetic_app* app, double tm)
     gkyl_gyrokinetic_app_calc_neut_species_source_integrated_mom(app, i, tm);
     gkyl_gyrokinetic_app_calc_neut_species_boundary_flux_integrated_mom(app, i, tm);
   }
-
-  for (int i=0; i<app->num_fluid_neut_species; ++i) {
-    gkyl_gyrokinetic_app_calc_fluid_neut_species_integrated_mom(app, i, tm);
-  }
 }
 
 void
@@ -1577,10 +1519,6 @@ gkyl_gyrokinetic_app_write_integrated_mom(gkyl_gyrokinetic_app *app)
     gkyl_gyrokinetic_app_write_neut_species_lte_max_corr_status(app, i);
     gkyl_gyrokinetic_app_write_neut_species_boundary_flux_integrated_mom(app, i);
   }
-
-  for (int i=0; i<app->num_fluid_neut_species; ++i) {
-    gkyl_gyrokinetic_app_write_fluid_neut_species_integrated_mom(app, i);
-  }
 }
 
 void
@@ -1602,10 +1540,6 @@ gkyl_gyrokinetic_app_write_conf(gkyl_gyrokinetic_app* app, double tm, int frame)
 
   for (int i=0; i<app->num_neut_species; ++i) {
     gkyl_gyrokinetic_app_write_neut_species_conf(app, i, tm, frame);
-  }
-
-  for (int i=0; i<app->num_fluid_neut_species; ++i) {
-    gkyl_gyrokinetic_app_write_fluid_neut_species(app, i, tm, frame);
   }
 }
 
@@ -2667,11 +2601,6 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
     gk_neut_species_release(app, &app->neut_species[i]);
   if (app->num_neut_species > 0)
     gkyl_free(app->neut_species);
-
-  for (int i=0; i<app->num_fluid_neut_species; ++i)
-    gk_fluid_neut_species_release(app, &app->fluid_neut_species[i]);
-  if (app->num_fluid_neut_species > 0)
-    gkyl_free(app->fluid_neut_species);
 
   for (int dir=0; dir<app->cdim; ++dir) {
     gkyl_rect_decomp_release(app->decomp_plane[dir]);
