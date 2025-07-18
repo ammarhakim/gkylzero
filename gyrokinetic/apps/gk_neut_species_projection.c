@@ -201,7 +201,7 @@ gk_neut_species_projection_fluid_calc(gkyl_gyrokinetic_app *app, struct gk_neut_
 
     // Multiply moments by the conf-space Jacobian.
     for (int d=0; d<s->num_moments; d++) {
-      gkyl_dg_mul_op_range(app->basis, d, proj->f, 0, app->gk_geom->jacobgeo, d, proj->f, &app->local);
+      gkyl_dg_mul_op_range(app->basis, d, f, 0, app->gk_geom->jacobgeo, d, f, &app->local);
     }
 
   }

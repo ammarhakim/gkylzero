@@ -623,6 +623,8 @@ gk_neut_species_fluid_release(const gkyl_gyrokinetic_app* app, const struct gk_n
   }
   gkyl_comm_release(s->comm);
 
+  gk_neut_species_lte_release(app, &s->lte);
+
   s->release_is_static_func(app, s);
 }
 
@@ -1406,6 +1408,14 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
   // Set the operation type for the bflux app.
   enum gkyl_species_bflux_type bflux_type = GK_SPECIES_BFLUX_NONE;
   gk_neut_species_bflux_init(app, ns, &ns->bflux, bflux_type, add_bflux_moms_inp);
+
+  // Initialize a Maxwellian/LTE (local thermodynamic equilibrium) projection routine
+  // Projection routine optionally corrects all the Maxwellian/LTE moments
+  // This routine is utilized by both reactions and BGK collisions
+  ns->lte = (struct gk_lte) { };
+  struct correct_all_moms_inp corr_inp = { .correct_all_moms = false,
+    .max_iter = 0, .iter_eps = 10, .use_last_converged = false };
+  gk_neut_species_lte_init(app, ns, &ns->lte, corr_inp);
 
   ns->src = (struct gk_source) { };
   ns->react_neut = (struct gk_react) { };

@@ -45,7 +45,7 @@ gk_neut_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spe
 }
 
 void
-gk_neut_species_source_calc(gkyl_gyrokinetic_app *app, const struct gk_neut_species *s, 
+gk_neut_species_source_calc(gkyl_gyrokinetic_app *app, struct gk_neut_species *s, 
   struct gk_source *src, struct gkyl_array *f_buffer, double tm)
 {
   if (src->source_id) {

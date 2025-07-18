@@ -291,6 +291,14 @@ struct gk_lte {
   bool correct_all_moms; // boolean if we are correcting all the moments
   gkyl_dynvec corr_stat;
   bool is_first_corr_status_write_call;
+
+  // Methods chosen at runtime.
+  void (*from_moms_func)(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
+    struct gk_lte *lte, const struct gkyl_array *moms_lte);
+  void (*from_f_func)(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
+    struct gk_lte *lte, const struct gkyl_array *fin);
+  void (*write_max_corr_status_func)(gkyl_gyrokinetic_app* app, struct gk_neut_species *gk_ns);
+  void (*release_func)(const struct gkyl_gyrokinetic_app *app, const struct gk_lte *lte);
 };
 
 struct gk_bgk_collisions {  
@@ -844,6 +852,10 @@ struct gk_neut_species {
 
   struct gk_proj proj_init; // Projector for initial conditions.
 
+  struct gk_source src; // External source.
+
+  struct gk_lte lte; // Object needed for the lte equilibrium.
+
   union {
     // Kinetic neutrals ............................................ //
     struct {
@@ -891,10 +903,6 @@ struct gk_neut_species {
       struct gkyl_bc_basic *bc_lo[3];
       struct gkyl_bc_basic *bc_up[3];
 
-      struct gk_source src; // External source.
-
-      struct gk_lte lte; // Object needed for the lte equilibrium.
-
       // Collisions.
       union {
         struct {
@@ -913,7 +921,6 @@ struct gk_neut_species {
       struct gk_species_moment ps_moms; // Positivity shift diagnostic moments.
       gkyl_dynvec ps_integ_diag; // Integrated moments of the positivity shift.
       bool is_first_ps_integ_write_call; // Flag first time writing ps_integ_diag.
-
     };
 
     // Fluid neutrals .............................................. //
@@ -2752,7 +2759,7 @@ void gk_neut_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
  * @param f_buffer Phase-space buffer used to project the source.
  * @param tm Time for use in source.
  */
-void gk_neut_species_source_calc(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, 
+void gk_neut_species_source_calc(gkyl_gyrokinetic_app *app, struct gk_neut_species *species, 
   struct gk_source *src, struct gkyl_array *f_buffer, double tm);
 
 /**
