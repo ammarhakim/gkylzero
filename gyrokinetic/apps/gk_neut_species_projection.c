@@ -199,8 +199,10 @@ gk_neut_species_projection_fluid_calc(gkyl_gyrokinetic_app *app, struct gk_neut_
     // Copy the contents into the array we will use (potentially on GPUs).
     gkyl_array_copy(f, s->f_host);
 
-//    // Multiply density by the conf-space jacobian.
-//    gkyl_dg_mul_op_range(app->basis, 0, proj->f, 0, app->gk_geom->jacobgeo, 0, proj->f, &app->local);
+    // Multiply moments by the conf-space Jacobian.
+    for (int d=0; d<s->num_moments; d++) {
+      gkyl_dg_mul_op_range(app->basis, d, proj->f, 0, app->gk_geom->jacobgeo, d, proj->f, &app->local);
+    }
 
   }
 }
