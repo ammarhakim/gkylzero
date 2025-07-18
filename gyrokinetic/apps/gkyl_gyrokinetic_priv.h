@@ -869,7 +869,16 @@ struct gk_neut_species {
 
   struct gk_lte lte; // Object needed for the lte equilibrium.
 
+  // Boundary fluxes used for other solvers and diagnostics.
+  struct gk_boundary_fluxes bflux;
+    
   bool enforce_positivity; // Enforces positivity of f or mass/energy density.
+
+  int num_periodic_dir; // number of periodic directions
+  int periodic_dirs[3]; // list of periodic directions
+  bool bc_is_np[3]; // whether BC is nonperiodic.
+    
+  double *omega_cfl;
 
   union {
     // Kinetic neutrals ............................................ //
@@ -899,17 +908,10 @@ struct gk_neut_species {
       struct gkyl_array *bc_buffer; // Buffer for BCs (used by bc_basic)
       struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // Buffers for ghost-buffer BCs.
 
-      // Boundary fluxes used for other solvers and diagnostics.
-      struct gk_boundary_fluxes bflux;
-    
       // Recycling wall boundaries.
       struct gk_recycle_wall bc_recycle_lo, bc_recycle_up;
       bool recyc_lo, recyc_up;
       
-      int num_periodic_dir; // number of periodic directions
-      int periodic_dirs[3]; // list of periodic directions
-      bool bc_is_np[3]; // whether BC is nonperiodic.
-    
       // Boundary conditions on lower/upper edges in each direction.
       struct gkyl_gyrokinetic_bc lower_bc[3], upper_bc[3];
       // Pointers to updaters that apply BC.
@@ -924,8 +926,6 @@ struct gk_neut_species {
       }; 
 
       struct gk_react react_neut; // Reaction object.
-
-      double *omega_cfl;
 
       // Updater that enforces positivity by shifting f.
       struct gkyl_positivity_shift_vlasov *pos_shift_op;

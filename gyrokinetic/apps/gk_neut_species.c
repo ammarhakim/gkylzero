@@ -65,6 +65,38 @@ gk_neut_species_kinetic_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_sp
 }
 
 static double
+gk_neut_species_fluid_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+{
+  double omega_cfl = 1/DBL_MAX;   
+  gkyl_array_clear(species->cflrate, 0.0);
+  gkyl_array_clear(rhs, 0.0);
+  
+
+  // Collisionless terms.
+  struct timespec wst = gkyl_wall_clock();
+  // Not ready.
+  app->stat.neut_species_collisionless_tm += gkyl_time_diff_now_sec(wst);
+
+
+  app->stat.n_neut_species_omega_cfl +=1;
+  struct timespec tm = gkyl_wall_clock();
+  gkyl_array_reduce_range(species->omega_cfl, species->cflrate, GKYL_MAX, &species->local);
+  
+  double omega_cfl_ho[1];
+  if (app->use_gpu) {
+    gkyl_cu_memcpy(omega_cfl_ho, species->omega_cfl, sizeof(double), GKYL_CU_MEMCPY_D2H);
+  }
+  else {
+    omega_cfl_ho[0] = species->omega_cfl[0];
+  }
+  omega_cfl = omega_cfl_ho[0];
+  
+  app->stat.neut_species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
+  return app->cfl/omega_cfl;
+}
+
+static double
 gk_neut_species_kinetic_rhs_implicit_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, double dt)
 { 
@@ -556,6 +588,35 @@ gk_neut_species_kinetic_release_dynamic(const gkyl_gyrokinetic_app* app, const s
 }
 
 static void
+gk_neut_species_fluid_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *ns)
+{
+  // Release memory allocated for dynamic neutrals.
+  gkyl_array_release(ns->cflrate);
+  
+  if (app->use_gpu) {
+    gkyl_cu_free(ns->omega_cfl);
+  }
+  else {
+    gkyl_free(ns->omega_cfl);
+  }
+
+  // Release integrated mom data.
+  gk_neut_species_moment_release(app, &ns->integ_moms); 
+
+  // Release integrated mom diag data.
+  gkyl_dynvec_release(ns->integ_diag);
+  
+  if (app->use_gpu) {
+    gkyl_cu_free(ns->red_integ_diag);
+    gkyl_cu_free(ns->red_integ_diag_global);
+  }
+  else {
+    gkyl_free(ns->red_integ_diag);
+    gkyl_free(ns->red_integ_diag_global);
+  }
+}
+
+static void
 gk_neut_species_release_static(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s)
 { 
   // Do nothing.
@@ -818,6 +879,54 @@ gk_neut_species_kinetic_init_static(struct gkyl_gk *gk, struct gkyl_gyrokinetic_
   s->calc_integrated_mom_func = gk_neut_species_calc_integrated_mom_static;
   s->write_integrated_mom_func = gk_neut_species_write_integrated_mom_static;
   s->report_n_iter_corr_func = gk_neut_species_n_iter_corr_disabled;
+}
+
+static void
+gk_neut_species_fluid_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns)
+{
+  int cdim = app->cdim, vdim = app->vdim+1; // Neutral species are 3v.
+  int pdim = cdim+vdim;
+  
+  // Allocate additional moment arrays for time stepping.
+  ns->f1 = mkarr(app->use_gpu, ns->f->ncomp, ns->f->size);
+  ns->fnew = mkarr(app->use_gpu, ns->f->ncomp, ns->f->size);
+  
+  // Allocate cflrate (scalar array).
+  ns->cflrate = mkarr(app->use_gpu, 1, ns->local_ext.volume);
+
+  ns->omega_cfl = app->use_gpu? gkyl_cu_malloc(sizeof(double))
+                              : gkyl_malloc(sizeof(double));
+
+  // Allocate data for integrated moments.
+  gk_neut_species_moment_init(app, ns, &ns->integ_moms, GKYL_F_MOMENT_M0M1M2, true);
+
+  // Allocate data for integrated diagnostics.
+  if (app->use_gpu) {
+    ns->red_integ_diag = gkyl_cu_malloc(sizeof(double[ns->integ_moms.num_mom]));
+    ns->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[ns->integ_moms.num_mom]));
+  } else {
+    ns->red_integ_diag = gkyl_malloc(sizeof(double[ns->integ_moms.num_mom]));
+    ns->red_integ_diag_global = gkyl_malloc(sizeof(double[ns->integ_moms.num_mom]));
+  }
+  // Allocate dynamic-vector to store all-reduced integrated moments.
+  ns->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, ns->integ_moms.num_mom);
+  ns->is_first_integ_write_call = true;
+
+  // Set function pointers
+  ns->rhs_func = gk_neut_species_fluid_rhs_dynamic;
+  ns->rhs_implicit_func = gk_neut_species_rhs_implicit_static; // Not ready.
+  ns->bc_func = gk_neut_species_apply_bc_static; // Not ready.
+  ns->release_func = gk_neut_species_fluid_release;
+  ns->release_is_static_func = gk_neut_species_fluid_release_dynamic;
+  ns->step_f_func = gk_neut_species_step_f_dynamic;
+  ns->combine_func = gk_neut_species_combine_dynamic;
+  ns->copy_func = gk_neut_species_copy_range_dynamic;
+  ns->apply_pos_shift_func = gk_neut_species_apply_pos_shift_disabled;
+  ns->write_func = gk_neut_species_write_dynamic;
+  ns->write_mom_func = gk_neut_species_kinetic_write_mom_dynamic; // MF 2025/07/18: currently works for fluid too.
+  ns->calc_integrated_mom_func = gk_neut_species_kinetic_calc_integrated_mom_dynamic; // MF 2025/07/18: currently works for fluid too.
+  ns->write_integrated_mom_func = gk_neut_species_kinetic_write_integrated_mom_dynamic; // MF 2025/07/18: currently works for fluid too.
+  ns->report_n_iter_corr_func = gk_neut_species_n_iter_corr_disabled;
 }
 
 static void
@@ -1434,9 +1543,7 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
   ns->src = (struct gk_source) { };
   ns->react_neut = (struct gk_react) { };
   if (!ns->info.is_static) {
-    // Dynamic fluid neutrals not yet allowed.
-    assert(false);
-//    gk_neut_species_fluid_init_dynamic(gk, app, ns);
+    gk_neut_species_fluid_init_dynamic(gk, app, ns);
   }
   else {
     gk_neut_species_fluid_init_static(gk, app, ns);
