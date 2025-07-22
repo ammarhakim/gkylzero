@@ -682,6 +682,15 @@ main(int argc, char **argv)
       .temp = eval_neut_temp_init,
       .ctx_temp = &ctx,
     },
+
+    .recycling_reaction_scaling = {
+      .num_impacting_species = 1,
+      .impacting_species = { "ion" },
+      .recycling_coeff = ctx.rec_frac,
+      .num_boundaries = 2,
+      .boundary_dirs = {0, 0,},
+      .boundary_edges = {GKYL_LOWER_EDGE, GKYL_UPPER_EDGE,},
+    }
   };
 
   // Field.

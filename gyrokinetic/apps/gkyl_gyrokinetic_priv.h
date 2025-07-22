@@ -529,6 +529,34 @@ struct gk_react {
   };
 };
 
+struct gk_recycle_react_scale {
+  int num_react; // number of reactions
+  bool write_diagnostics; // Whether to write diagnostics out.
+
+  struct gkyl_array *f_react; // distribution function array which holds update for each reaction
+                              // form depends on type_self, e.g., for ionization and type_self == GKYL_SELF_ELC
+                              // f_react = n_donor*(fmax1(n_elc, upar_elc, vtiz1^2) + fmax2(n_elc, upar_donor, vtiz2^2) - f_elc)
+                              // RHS update is then obtained by incrementing rhs += coeff_react*f_react
+
+  int elc_idx[GKYL_MAX_REACT]; // integer index of electron species being reacted with 
+  int ion_idx[GKYL_MAX_REACT]; // integer index of ion species being reacted with 
+
+  struct gkyl_array *coeff_react[GKYL_MAX_REACT]; // reaction rate
+  struct gkyl_array *coeff_react_host[GKYL_MAX_REACT]; // reaction rate
+
+  struct gkyl_dg_iz *iz[GKYL_MAX_REACT]; // Operator to compute ionization rate.
+
+  int num_boundaries; // Number of boundaries.
+  int boundaries_dir[GKYL_MAX_CDIM*2]; // Direction of boundaries.
+  enum gkyl_edge_loc boundaries_edge[GKYL_MAX_CDIM*2]; // Edge of boundaries.
+  int num_impacting_species; // Number of impacting species.
+  char impacting_species_idx[GKYL_MAX_SPECIES]; // Names of impacting species.
+  double recycling_coeff; // Recycling coefficient.
+ 
+  double *red_integ_mom, *red_integ_mom_global; // For reduction.
+  struct gkyl_range boundaries_conf_ghost[2*GKYL_MAX_CDIM]; // Ghost cells to where integrated M0 is computed.
+};
+
 // Context for c2p function passed to proj_on_basis.
 struct gk_proj_on_basis_c2p_func_ctx {
   int cdim, vdim;

@@ -192,7 +192,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
       coef_iz_d[0] = pow(10.0,adas_eval)/cell_av_fac;
 
       if (up->type_self == GKYL_SELF_ELC) {
-        //calculate vtSq_iz at each cell for primary and secondary elc
+        // Calculate vtSq_iz at each cell for primary and secondary elc.
         if ( 3./2.*temp_elc_av >= 2.*up->E) {
           // T_e2 = 1/3*sqrt(3./2.*T_e*E_iz - E_iz)
           temp_elc_2 = 1.0/3.0*pow(up->E*(3./2.*temp_elc_av - up->E), 0.5);

@@ -102,8 +102,8 @@ struct gkyl_gyrokinetic_collisions {
 // Parameters for species diffusion
 struct gkyl_gyrokinetic_diffusion {
   int num_diff_dir; // number of diffusion directions
-  int diff_dirs[3]; // list of diffusion directions
-  double D[3]; // constant diffusion coefficient in each direction
+  int diff_dirs[GKYL_MAX_CDIM]; // list of diffusion directions
+  double D[GKYL_MAX_CDIM]; // constant diffusion coefficient in each direction
   int order; // integer for order of the diffusion (4 for grad^4, 6 for grad^6, default is grad^2)
 };
 
@@ -113,8 +113,8 @@ struct gkyl_gyrokinetic_adapt_source {
   bool adapt_energy; // Whether to adapt the energy source.
   char adapt_to_species[16]; // Species to adapt the particle loss to ensure quasi neutrality.
   int num_boundaries; // Number of boundaries to adapt.
-  int dir[6]; // Direction to adapt.
-  enum gkyl_edge_loc edge[6]; // Edge to adapt.
+  int dir[GKYL_MAX_CDIM*2]; // Direction to adapt.
+  enum gkyl_edge_loc edge[GKYL_MAX_CDIM*2]; // Edge to adapt.
 };
 
 // Parameters for species source
@@ -223,6 +223,17 @@ struct gkyl_gyrokinetic_react {
   // GKYL_MAX_SPECIES number of reactions supported per species (8 different reactions)
   struct gkyl_gyrokinetic_react_type react_type[GKYL_MAX_REACT];
   bool write_diagnostics; // used to write diagnostics from neutral species
+};
+
+// Input parameters for scaling a species according to recycling at specified
+// boundaries balanced by reactions.
+struct gkyl_gyrokinetic_recycling_reaction_scaling_inp {
+  int num_boundaries; // Number of boundaries.
+  int boundaries_dir[GKYL_MAX_CDIM*2]; // Direction of boundaries.
+  enum gkyl_edge_loc boundaries_edge[GKYL_MAX_CDIM*2]; // Edge of boundaries.
+  int num_impacting_species; // Number of impacting species.
+  char impacting_species[GKYL_MAX_SPECIES][128]; // Names of impacting species.
+  double recycling_coeff; // Recycling coefficient.
 };
 
 // Parameters in FLR effects.
@@ -363,6 +374,10 @@ struct gkyl_gyrokinetic_neut_species {
   struct gkyl_gyrokinetic_bcs bcx, bcy, bcz;
 
   double gas_gamma; // Adiabatic index (fluid neutrals).
+
+  // Inputs to operation that scales the species according to a balance of
+  // recycling and reactions.
+  struct gkyl_gyrokinetic_recycling_reaction_scaling_inp recycling_reaction_scaling;
 };
 
 // Parameter for gk field.
