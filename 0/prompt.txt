@@ -1,0 +1,1 @@
+I think of this issue we are trying to prevent as the candidate not being up to date (or the candidate being behind), not as the baseline being stale. If you agree, please rename ALLOW_STALE_BASELINE to ALLOW_BEHIND_CANDIDATE and --allow-stale-baseline to --allow-behind-candidate.
