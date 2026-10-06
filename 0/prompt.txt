@@ -1,0 +1,1 @@
+Please rename ALLOW_BEHIND_CANDIDATE to LET_OLD_CANDIDATE and --allow-behind-candidate to --let-old-candidate. Or do you have another suggestion that shortens ALLOW_BEHIND_CANDIDATE and --allow-behind-candidate (for ease of use)?
