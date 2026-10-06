@@ -1,0 +1,1 @@
+It looks like you updated ci/jenkins/README.personal.md to mention this new feature. Shouldn't you also update the cluster and workstation READMEs too?
