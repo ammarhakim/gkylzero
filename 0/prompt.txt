@@ -1,0 +1,13 @@
+I have some questions about the plan:
+1. Would it make sense to call the folders just
+$GKEYLL_CI_ROOT/baseline-cache/<platform>/
+$GKEYLL_CI_ROOT/candidate-cache/<platform>/
+for simplicity and symmetry? you could even has the SHA like
+$GKEYLL_CI_ROOT/baseline-cache/<platform>/<SHA>/
+$GKEYLL_CI_ROOT/candidate-cache/<platform>/<SHA>/
+
+2. Where will the cache manifest be stored? can you add an example of its contents in the plan?
+
+3. When you say "Split cluster Slurm regression work", do you mean it will now submit two SLURM jobs?
+
+4. You said "Change all candidate checks to copy baseline accepted-output directories rather than moving them". Why do you need to copy them to another directory? for checking candidate results I would think it is enough and safe to just read (without editing) the candidate results generated.
