@@ -1,0 +1,5 @@
+Gkeyll has a Jenkins-based CI system implemented in ci/jenkins/. At the moment if a user wants to acknowledge deliberate changes in a regression test (say because they deliberately changed the algorithm and the results are expected to change relative to main) they have to list such test in expected_regression_diffs.txt.
+
+One issue we are running into is that a PR (say PR #1) may list some tests in this file. Then this PR gets merged into main and this version of expected_regression_diffs.txt, with some tests listed, is now in main. But then a later PR (say PR #2) is opened by another person completely unaware of the work in PR #1, and that person has to remember to delete the tests that PR #1 placed in expected_regression_diffs.txt. If they don't remember to delete them, PR #2 doesn't run tests that it should've run.
+
+Can you come up with a better system, so that the list of tests expected to produce different results in one PR doesn't get dragged into future PRs, posibly causing some tests to not be run?
