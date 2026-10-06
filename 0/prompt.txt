@@ -1,0 +1,1 @@
+Sorry to go back and forth on this, but I changed my mind. I'd rather use longer more transparent names. So please rename ALLOW_BEHIND to ALLOW_BEHIND_CANDIDATE and --allow-behind to --allow-behind-candidate.
