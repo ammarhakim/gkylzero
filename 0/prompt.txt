@@ -1,0 +1,1 @@
+I thought of something else: if I add a new test (a new filen in a creg/ folder), will Jenkins CI fail? if so I think it should only fail for tests that exist in the baseline ref, not for new ones added in the candidate ref.
