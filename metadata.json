@@ -1,0 +1,56 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M4CAHATE35XC31VZXCATTQSN",
+  "strategy": "manual-commit",
+  "branch": "gk_adiab_elc_2x3v-api_changes-fluid",
+  "checkpoints_count": 6,
+  "files_touched": [
+    ".agents/skills/software-design/SKILL.md",
+    "gyrokinetic/apps/gk_neut_species_react.c",
+    "gyrokinetic/apps/gk_species.c",
+    "gyrokinetic/apps/gk_species_bgk.c",
+    "gyrokinetic/apps/gk_species_fluid.c",
+    "gyrokinetic/apps/gk_species_kinetic.c",
+    "gyrokinetic/apps/gk_species_lbo.c",
+    "gyrokinetic/apps/gk_species_moment.c",
+    "gyrokinetic/apps/gk_species_projection.c",
+    "gyrokinetic/apps/gk_species_react.c",
+    "gyrokinetic/apps/gk_species_scaling.c",
+    "gyrokinetic/apps/gkyl_gk_species_priv.h",
+    "gyrokinetic/apps/gkyl_gyrokinetic.h",
+    "gyrokinetic/apps/gkyl_gyrokinetic_priv.h",
+    "gyrokinetic/apps/gyrokinetic.c",
+    "gyrokinetic/apps/gyrokinetic_lw.c",
+    "gyrokinetic/apps/gyrokinetic_update_implicit_coll.c",
+    "gyrokinetic/creg/rt_gk_cbc_adiabatic_3x2v_p1.c",
+    "gyrokinetic/creg/rt_gk_ion_sound_adiabatic_elc_1x2v_p1.c",
+    "gyrokinetic/creg/rt_gk_rosenbluth_hinton_2x2v_p1.c",
+    "gyrokinetic/unit/ctest_gk_fluid_moments.c",
+    "gyrokinetic/zero/gk_fluid_moments_cu.cu",
+    "gyrokinetic/zero/gkyl_gk_fluid_moments.h",
+    "gyrokinetic/zero/gkyl_gk_fluid_moments_priv.h",
+    "gyrokinetic/zero/gkyl_gyrokinetic_cross_prim_moms_bgk.h",
+    "gyrokinetic/zero/gkyl_gyrokinetic_cross_prim_moms_bgk_priv.h",
+    "gyrokinetic/zero/gkyl_prim_lbo_gyrokinetic.h",
+    "gyrokinetic/zero/gyrokinetic_cross_prim_moms_bgk.c",
+    "gyrokinetic/zero/gyrokinetic_cross_prim_moms_bgk_cu.cu",
+    "gyrokinetic/zero/prim_lbo_gyrokinetic.c",
+    "gyrokinetic/zero/prim_lbo_gyrokinetic_cu.cu"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 855701,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 20641920,
+    "output_tokens": 105128,
+    "api_call_count": 169
+  }
+}
