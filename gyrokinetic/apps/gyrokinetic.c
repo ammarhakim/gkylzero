@@ -1240,6 +1240,9 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app *app, double t0)
   // diagnostics and emission BCs may need them.
   for (int i = 0; i < app->num_species; ++i) {
     struct gk_species *gks = &app->species[i];
+    if (gks->is_fluid) {
+      gk_species_scaling_apply(app, gks, &gks->sca, gks->f, bflux);
+    }
     gk_species_collisionless_flux(app, gks, &gks->collisionless, distf[i]);
     gk_species_bflux_rhs(app, &gks->bflux, gks->f, gks->f);
     gk_species_bflux_calc_moms(app, &gks->bflux, gks->f, bflux[i]);
@@ -4260,6 +4263,10 @@ gkyl_gyrokinetic_app_from_file_species(gkyl_gyrokinetic_app *app, int sidx, cons
   struct gk_species *gk_s = &app->species[sidx];
 
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+    if (gk_s->is_fluid) {
+      rstat.io_status = gk_species_fluid_read(app, gk_s, fname);
+      return rstat;
+    }
     rstat.io_status =
       gkyl_comm_array_read(gk_s->comm, &gk_s->grid, &gk_s->local, gk_s->f_host, fname);
     if (app->use_gpu) {
@@ -4377,7 +4384,7 @@ gkyl_gyrokinetic_app_from_frame_neut_species(gkyl_gyrokinetic_app *app, int sidx
 struct gkyl_app_restart_status
 gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
 {
-  struct gkyl_app_restart_status rstat;
+  struct gkyl_app_restart_status rstat = {.io_status = GKYL_ARRAY_RIO_SUCCESS};
   for (int i = 0; i < app->num_neut_species; i++) {
     if (app->neut_species[i].info.is_static) {
       gk_neut_species_apply_ic(app, &app->neut_species[i], 0.0);
@@ -4395,6 +4402,17 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
 
   // Set up the response of an adiabatic species (static) from its t=0 moments.
   app->field->init_adiab_func(app, app->field);
+
+  // Restore fluid snapshots only after capturing the equilibrium response.
+  // The on-disk state is the same configuration-space moment array as gks->f.
+  for (int i = 0; i < app->num_species; ++i) {
+    if (app->species[i].is_fluid) {
+      rstat = gkyl_gyrokinetic_app_from_frame_species(app, i, frame);
+      if (rstat.io_status != GKYL_ARRAY_RIO_SUCCESS) {
+        return rstat;
+      }
+    }
+  }
 
   // Apply ICs that depend on other species.
   for (int i = 0; i < app->num_neut_species; ++i) {

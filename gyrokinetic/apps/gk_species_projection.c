@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_util.h>
+#include <gkyl_gk_fluid_moments.h>
 
 static void
 load_projection_moment_from_file(
@@ -138,6 +139,43 @@ init_moment_from_import_or_proj(
 }
 
 static void
+gk_species_projection_from_moms_kinetic(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_proj *proj, struct gkyl_array *f,
+  double tm
+)
+{
+  gkyl_gk_maxwellian_proj_on_basis_advance(
+    proj->proj_max, &gks->local, &app->local, proj->prim_moms, false, f
+  );
+}
+
+static void
+gk_species_projection_from_moms_fluid(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_proj *proj, struct gkyl_array *f,
+  double tm
+)
+{
+  int nb = app->basis.num_basis;
+  gkyl_array_clear(f, 0.0);
+  gkyl_array_clear(proj->fluid_host, 0.0);
+  for (int c = 0; c < 3; ++c) {
+    gkyl_array_set_offset_range(proj->fluid_tmp, 1.0, proj->prim_moms_host, c * nb, &app->local);
+    gkyl_array_set_offset_range(proj->fluid_host, 1.0, proj->fluid_tmp, c * nb, &app->local);
+  }
+  // Supply Tperp from T for an isotropic input.
+  int tperp = proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM ? 2 : 3;
+  gkyl_array_set_offset_range(proj->fluid_tmp, 1.0, proj->prim_moms_host, tperp * nb, &app->local);
+  if (gks->info.vdim == 1) {
+    gkyl_array_clear_range(proj->fluid_tmp, 0.0, &app->local);
+  }
+  gkyl_array_set_offset_range(proj->fluid_host, 1.0, proj->fluid_tmp, 3 * nb, &app->local);
+  gkyl_array_copy(proj->fluid_prim, proj->fluid_host);
+  gkyl_gk_fluid_moments_from_prim(
+    gks->m0.gf_moms, &app->local, proj->fluid_prim, app->gk_geom->geo_int.jacobgeo, f
+  );
+}
+
+static void
 gk_species_projection_calc_max_prim(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_proj *proj, struct gkyl_array *f,
   double tm
@@ -145,9 +183,7 @@ gk_species_projection_calc_max_prim(
 {
   if (proj->maxwellian_moms_from_file) {
     gkyl_array_copy(proj->prim_moms, proj->prim_moms_host);
-    gkyl_gk_maxwellian_proj_on_basis_advance(
-      proj->proj_max, &gks->local, &app->local, proj->prim_moms, false, f
-    );
+    proj->from_moms_func(app, gks, proj, f, tm);
     return;
   }
 
@@ -164,9 +200,7 @@ gk_species_projection_calc_max_prim(
 
   // Copy the contents into the array we will use (potentially on GPUs).
   gkyl_array_copy(proj->prim_moms, proj->prim_moms_host);
-  gkyl_gk_maxwellian_proj_on_basis_advance(
-    proj->proj_max, &gks->local, &app->local, proj->prim_moms, false, f
-  );
+  proj->from_moms_func(app, gks, proj, f, tm);
 }
 
 static void
@@ -177,9 +211,7 @@ gk_species_projection_calc_bimax(
 {
   if (proj->bimaxwellian_moms_from_file) {
     gkyl_array_copy(proj->prim_moms, proj->prim_moms_host);
-    gkyl_gk_maxwellian_proj_on_basis_advance(
-      proj->proj_max, &gks->local, &app->local, proj->prim_moms, false, f
-    );
+    proj->from_moms_func(app, gks, proj, f, tm);
     return;
   }
 
@@ -202,9 +234,7 @@ gk_species_projection_calc_bimax(
 
   // Copy the contents into the array we will use (potentially on GPUs).
   gkyl_array_copy(proj->prim_moms, proj->prim_moms_host);
-  gkyl_gk_maxwellian_proj_on_basis_advance(
-    proj->proj_max, &gks->local, &app->local, proj->prim_moms, false, f
-  );
+  proj->from_moms_func(app, gks, proj, f, tm);
 }
 
 static void
@@ -249,11 +279,25 @@ gk_species_projection_correct_all_moms_none(
 }
 
 static void
+gk_species_projection_zero(double tm, const double *xn, double *out, void *ctx)
+{
+  out[0] = 0.0;
+}
+
+static void
 init_maxwellian_bimaxwellian(
   struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gkyl_gyrokinetic_projection inp,
   struct gk_proj *proj
 )
 {
+  if (gks->is_fluid) {
+    if (!inp.upar) {
+      inp.upar = gk_species_projection_zero;
+    }
+    if (gks->info.vdim == 1) {
+      inp.tempperp = gk_species_projection_zero;
+    }
+  }
   bool maxwellian_moms_from_file = proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM &&
                                    inp.maxwellian_moms_import.type != GKYL_IC_IMPORT_NONE;
   proj->maxwellian_moms_from_file = maxwellian_moms_from_file;
@@ -325,6 +369,16 @@ init_maxwellian_bimaxwellian(
         inp.ctx_tempperp, 1.0 / gks->info.mass, &proj->proj_tempperp
       );
     }
+  }
+
+  proj->proj_max = 0;
+  proj->correct_all_moms = false;
+  if (gks->is_fluid) {
+    proj->fluid_host = mkarr(false, 4 * app->basis.num_basis, app->local_ext.volume);
+    proj->fluid_tmp = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+    proj->fluid_prim = app->use_gpu ? mkarr(true, 4 * app->basis.num_basis, app->local_ext.volume) :
+                                      gkyl_array_acquire(proj->fluid_host);
+    return;
   }
 
   // Maxwellian (or bi-Maxwellian) projection updater.
@@ -476,13 +530,38 @@ init_maxwellian_gaussian(
   proj->correct_all_moms = inp.correct_all_moms;
 }
 
+static void gk_species_projection_calc_kinetic(
+  gkyl_gyrokinetic_app *, struct gk_species *, struct gk_proj *, struct gkyl_array *, double
+);
+static void
+gk_species_projection_release_impl(const struct gkyl_gyrokinetic_app *, const struct gk_proj *);
+
+static void
+gk_species_projection_calc_fluid(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_proj *proj, struct gkyl_array *f,
+  double tm
+)
+{
+  proj->projection_calc(app, gks, proj, f, tm);
+}
+
 void
 gk_species_projection_init(
   struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gkyl_gyrokinetic_projection inp,
   struct gk_proj *proj
 )
 {
+  *proj = (struct gk_proj){0};
   proj->proj_id = inp.proj_id;
+  if (gks->is_fluid && inp.proj_id != GKYL_PROJ_MAXWELLIAN_PRIM &&
+      inp.proj_id != GKYL_PROJ_BIMAXWELLIAN) {
+    gkyl_exit("Fluid charged species require Maxwellian or bi-Maxwellian primitive projection.");
+  }
+  proj->calc_func = gks->is_fluid ? gk_species_projection_calc_fluid :
+                                    gk_species_projection_calc_kinetic;
+  proj->from_moms_func = gks->is_fluid ? gk_species_projection_from_moms_fluid :
+                                         gk_species_projection_from_moms_kinetic;
+  proj->release_func = gk_species_projection_release_impl;
   // Context for c2p function passed to proj_on_basis.
   proj->proj_on_basis_c2p_ctx.cdim = app->cdim;
   proj->proj_on_basis_c2p_ctx.vdim = gks->local_vel.ndim;
@@ -521,8 +600,8 @@ gk_species_projection_init(
   }
 }
 
-void
-gk_species_projection_calc(
+static void
+gk_species_projection_calc_kinetic(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_proj *proj, struct gkyl_array *f,
   double tm
 )
@@ -535,8 +614,10 @@ gk_species_projection_calc(
   );
 }
 
-void
-gk_species_projection_release(const struct gkyl_gyrokinetic_app *app, const struct gk_proj *proj)
+static void
+gk_species_projection_release_impl(
+  const struct gkyl_gyrokinetic_app *app, const struct gk_proj *proj
+)
 {
   if (proj->proj_id == GKYL_PROJ_FUNC) {
     gkyl_proj_on_basis_release(proj->proj_func);
@@ -555,7 +636,14 @@ gk_species_projection_release(const struct gkyl_gyrokinetic_app *app, const stru
     if (!proj->upar_from_file) {
       gkyl_proj_on_basis_release(proj->proj_upar);
     }
-    gkyl_gk_maxwellian_proj_on_basis_release(proj->proj_max);
+    if (proj->proj_max) {
+      gkyl_gk_maxwellian_proj_on_basis_release(proj->proj_max);
+    }
+    if (proj->fluid_host) {
+      gkyl_array_release(proj->fluid_host);
+      gkyl_array_release(proj->fluid_tmp);
+      gkyl_array_release(proj->fluid_prim);
+    }
 
     if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
       gkyl_array_release(proj->vtsq);
@@ -580,4 +668,19 @@ gk_species_projection_release(const struct gkyl_gyrokinetic_app *app, const stru
     gkyl_array_release(proj->gaussian_profile);
     gkyl_array_release(proj->prim_moms);
   }
+}
+
+void
+gk_species_projection_calc(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_proj *proj, struct gkyl_array *f,
+  double tm
+)
+{
+  proj->calc_func(app, gks, proj, f, tm);
+}
+
+void
+gk_species_projection_release(const struct gkyl_gyrokinetic_app *app, const struct gk_proj *proj)
+{
+  proj->release_func(app, proj);
 }

@@ -22,3 +22,11 @@ struct gkyl_prim_lbo_type *gkyl_prim_lbo_gyrokinetic_new(
 struct gkyl_prim_lbo_type *gkyl_prim_lbo_gyrokinetic_cu_dev_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis
 );
+
+// Configuration-space primitive moment calculator; no velocity basis is needed.
+struct gkyl_prim_lbo_type *gkyl_prim_lbo_gyrokinetic_new_with_vdim(
+  const struct gkyl_basis *cbasis, int vdim, int num_phase, bool use_gpu
+);
+struct gkyl_prim_lbo_type *gkyl_prim_lbo_gyrokinetic_cu_dev_new_with_vdim(
+  const struct gkyl_basis *cbasis, int vdim, int num_phase
+);

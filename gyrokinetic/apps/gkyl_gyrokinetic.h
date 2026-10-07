@@ -454,9 +454,9 @@ struct gkyl_gyrokinetic_species {
   char name[128]; // Species name.
 
   double charge, mass; // Charge and mass.
-  int vdim; // Velocity-space dimensions.
+  int vdim; // Physical velocity-space dimensions (fluid default: 2).
   double lower[GKYL_MAX_VDIM], upper[GKYL_MAX_VDIM]; // Lower, upper bounds of velocity-space.
-  int cells[GKYL_MAX_VDIM]; // Velocity-space cells.
+  int cells[GKYL_MAX_VDIM]; // Velocity-space cells; cells[0]==0 selects fluid.
 
   struct gkyl_mapc2p_inp mapc2p;
 

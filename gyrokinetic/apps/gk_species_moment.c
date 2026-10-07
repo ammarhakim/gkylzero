@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
+#include <gkyl_gk_fluid_moments.h>
 
 static void
 gk_species_moment_diag_jacobgeo_div_disabled(
@@ -37,6 +38,73 @@ gk_species_moment_diag_jacobgeo_div_enabled_all_comp(
   }
 }
 
+static void
+gk_species_moment_calc_kinetic(const struct gk_species_moment *, const struct gkyl_range, const struct gkyl_range, const struct gkyl_array *);
+static void
+gk_species_moment_release_kinetic(const struct gkyl_gyrokinetic_app *, const struct gk_species_moment *);
+
+static void
+gk_species_moment_calc_fluid(
+  const struct gk_species_moment *sm, const struct gkyl_range species_rng,
+  const struct gkyl_range conf_rng, const struct gkyl_array *fin
+)
+{
+  gkyl_gk_fluid_moments_advance(sm->gf_moms, &conf_rng, fin, sm->fluid_phi, sm->marr);
+}
+
+static void
+gk_species_moment_release_fluid(
+  const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm
+)
+{
+  gkyl_gk_fluid_moments_release(sm->gf_moms);
+  gkyl_array_release(sm->marr);
+  if (app->use_gpu) {
+    gkyl_array_release(sm->marr_host);
+  }
+  if (!sm->is_integrated) {
+    gkyl_dg_bin_op_mem_release(sm->mem_geo);
+  }
+}
+
+static void
+gk_species_moment_init_fluid(
+  struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_moment *sm,
+  enum gkyl_distribution_moments mom_type
+)
+{
+  sm->gf_moms = gkyl_gk_fluid_moments_inew(&(struct gkyl_gk_fluid_moments_inp){
+    .basis = &app->basis,
+    .grid = &app->grid,
+    .range = &app->local,
+    .range_ext = &app->local_ext,
+    .bmag = app->gk_geom->geo_int.bmag,
+    .vdim = gks->info.vdim,
+    .mass = gks->info.mass,
+    .charge = gks->info.charge,
+    .moment = mom_type,
+    .integrated = sm->is_integrated,
+    .use_gpu = app->use_gpu,
+  });
+  sm->fluid_phi = app->field->phi_smooth;
+  sm->num_mom = gkyl_gk_fluid_moments_num_mom(sm->gf_moms);
+  sm->marr = mkarr(
+    app->use_gpu, sm->num_mom * (sm->is_integrated ? 1 : app->basis.num_basis),
+    app->local_ext.volume
+  );
+  sm->marr_host = app->use_gpu ? mkarr(false, sm->marr->ncomp, sm->marr->size) : sm->marr;
+  if (!sm->is_integrated) {
+    sm->mem_geo = app->use_gpu ?
+                    gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->basis.num_basis) :
+                    gkyl_dg_bin_op_mem_new(app->local.volume, app->basis.num_basis);
+    sm->diag_jacobgeo_div_func = sm->is_maxwellian_moms || sm->is_bimaxwellian_moms ?
+                                   gk_species_moment_diag_jacobgeo_div_enabled_1st_comp :
+                                   gk_species_moment_diag_jacobgeo_div_enabled_all_comp;
+  }
+  sm->calc_func = gk_species_moment_calc_fluid;
+  sm->release_func = gk_species_moment_release_fluid;
+}
+
 void
 gk_species_moment_init(
   struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_moment *sm,
@@ -47,6 +115,13 @@ gk_species_moment_init(
   sm->is_maxwellian_moms = mom_type == GKYL_F_MOMENT_MAXWELLIAN;
   sm->is_bimaxwellian_moms = mom_type == GKYL_F_MOMENT_BIMAXWELLIAN;
   sm->diag_jacobgeo_div_func = gk_species_moment_diag_jacobgeo_div_disabled;
+
+  if (gks->is_fluid) {
+    gk_species_moment_init_fluid(app, gks, sm, mom_type);
+    return;
+  }
+  sm->calc_func = gk_species_moment_calc_kinetic;
+  sm->release_func = gk_species_moment_release_kinetic;
 
   if (sm->is_integrated) {
     // Create moment operator.
@@ -111,8 +186,8 @@ gk_species_moment_init(
   }
 }
 
-void
-gk_species_moment_calc(
+static void
+gk_species_moment_calc_kinetic(
   const struct gk_species_moment *sm, const struct gkyl_range phase_rng,
   const struct gkyl_range conf_rng, const struct gkyl_array *fin
 )
@@ -143,8 +218,10 @@ gk_species_moment_diag_jacobgeo_div(
   sm->diag_jacobgeo_div_func(app, sm, Jmom_in, mom_out);
 }
 
-void
-gk_species_moment_release(const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm)
+static void
+gk_species_moment_release_kinetic(
+  const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm
+)
 {
   gkyl_array_release(sm->marr);
   if (app->use_gpu) {
@@ -163,4 +240,19 @@ gk_species_moment_release(const struct gkyl_gyrokinetic_app *app, const struct g
     // Free the weak division memory.
     gkyl_dg_bin_op_mem_release(sm->mem_geo);
   }
+}
+
+void
+gk_species_moment_calc(
+  const struct gk_species_moment *sm, const struct gkyl_range species_rng,
+  const struct gkyl_range conf_rng, const struct gkyl_array *fin
+)
+{
+  sm->calc_func(sm, species_rng, conf_rng, fin);
+}
+
+void
+gk_species_moment_release(const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm)
+{
+  sm->release_func(app, sm);
 }

@@ -43,3 +43,8 @@ void gkyl_gyrokinetic_cross_prim_moms_bgk_advance(
  * @param up Memory to release.
  */
 void gkyl_gyrokinetic_cross_prim_moms_bgk_release(gkyl_gyrokinetic_cross_prim_moms_bgk *up);
+
+// Construct from physical velocity dimension, including fluid collision partners.
+gkyl_gyrokinetic_cross_prim_moms_bgk *gkyl_gyrokinetic_cross_prim_moms_bgk_new_with_vdim(
+  const struct gkyl_basis *conf_basis, int vdim, bool use_gpu
+);

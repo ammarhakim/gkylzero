@@ -135,6 +135,17 @@ gkbgk_cross_moms_enabled(
 }
 
 static void
+gkbgk_cross_moms_fluid(
+  gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_bgk_collisions *bgk,
+  const struct gkyl_array *fin
+)
+{
+  for (int i = 0; i < bgk->num_cross_collisions; ++i) {
+    bgk->cross_moms_func(app, gks, bgk, i);
+  }
+}
+
+static void
 gkbgk_rhs_disabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_bgk_collisions *bgk,
   const struct gkyl_array *fin, double dt, struct gkyl_array *rhs
@@ -241,6 +252,8 @@ gk_species_bgk_init(
 
   // Empty methods.
   bgk->moms_func = gkbgk_moms_disabled;
+  bgk->cross_stage_func = gkbgk_moms_disabled;
+  bgk->cross_stage_implicit_func = gkbgk_moms_disabled;
   bgk->rhs_func = gkbgk_rhs_disabled;
   bgk->moms_func_implicit = gkbgk_moms_disabled;
   bgk->rhs_func_implicit = gkbgk_rhs_disabled;
@@ -290,11 +303,13 @@ gk_species_bgk_init(
 
       // Compute a minimum representable temperature based on the smallest dv in the grid.
       double dv_min[vdim];
-      gkyl_velocity_map_reduce_dv_range(gks->vel_map, GKYL_MIN, dv_min, gks->vel_map->local_vel);
+      if (!gks->is_fluid) {
+        gkyl_velocity_map_reduce_dv_range(gks->vel_map, GKYL_MIN, dv_min, gks->vel_map->local_vel);
 
-      double tpar_min = (gks->info.mass / 6.0) * pow(dv_min[0], 2);
-      double tperp_min = vdim > 1 ? (bmag_ref / 3.0) * dv_min[1] : tpar_min;
-      bgk->vtsq_min = (tpar_min + 2.0 * tperp_min) / (3.0 * gks->info.mass);
+        double tpar_min = (gks->info.mass / 6.0) * pow(dv_min[0], 2);
+        double tperp_min = vdim > 1 ? (bmag_ref / 3.0) * dv_min[1] : tpar_min;
+        bgk->vtsq_min = (tpar_min + 2.0 * tperp_min) / (3.0 * gks->info.mass);
+      }
 
       bgk->spitzer_calc =
         gkyl_spitzer_coll_freq_new(&app->basis, app->poly_order + 1, 1.0, 1.0, 1.0, app->use_gpu);
@@ -324,10 +339,14 @@ gk_species_bgk_init(
     }
 
     // Collision frequency times Maxwellian.
-    bgk->nu_fmax = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
+    if (!gks->is_fluid) {
+      bgk->nu_fmax = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
+    }
 
     // BGK updater.
-    bgk->up_bgk = gkyl_bgk_collisions_new(&app->basis, &gks->basis, app->use_gpu);
+    if (!gks->is_fluid) {
+      bgk->up_bgk = gkyl_bgk_collisions_new(&app->basis, &gks->basis, app->use_gpu);
+    }
 
     // Methods chosen at runtime.
     if (bgk->implicit_step) {
@@ -369,6 +388,11 @@ gk_species_bgk_cross_init(
       int my_idx_in_other[GKYL_MAX_SPECIES];
       for (int i = 0; i < bgk->num_cross_collisions; ++i) {
         bgk->collide_with[i] = gk_find_species(app, gks->info.collisions.collide_with[i]);
+        if (!bgk->collide_with[i] ||
+            bgk->collide_with[i]->info.collisions.collision_id != bgk->collision_id ||
+            bgk->collide_with[i]->info.vdim != gks->info.vdim) {
+          gkyl_exit("Cross collisions require matching collision models and velocity dimensions.");
+        }
         my_idx_in_other[i] = -1;
         for (int j = 0; j < bgk->collide_with[i]->bgk.num_cross_collisions; ++j) {
           if (0 == strcmp(gks->info.name, bgk->collide_with[i]->info.collisions.collide_with[j])) {
@@ -480,11 +504,19 @@ gk_species_bgk_cross_init(
       }
 
       // Cross-primitive moment calculator.
-      bgk->cross_calc =
-        gkyl_gyrokinetic_cross_prim_moms_bgk_new(&gks->basis, &app->basis, app->use_gpu);
+      bgk->cross_calc = gkyl_gyrokinetic_cross_prim_moms_bgk_new_with_vdim(
+        &app->basis, gks->info.vdim, app->use_gpu
+      );
 
       // Methods chosen at runtime.
       bgk->cross_moms_func = gkbgk_cross_moms_enabled;
+      if (gks->is_fluid) {
+        if (bgk->implicit_step) {
+          bgk->cross_stage_implicit_func = gkbgk_cross_moms_fluid;
+        } else {
+          bgk->cross_stage_func = gkbgk_cross_moms_fluid;
+        }
+      }
     }
   }
 }
@@ -513,7 +545,8 @@ gk_species_bgk_cross_moms(
   const struct gkyl_array *fin
 )
 {
-  // Compute this in bgk_rhs
+  // Kinetic species compute this in bgk_rhs; fluids have no collision RHS.
+  bgk->cross_stage_func(app, species, bgk, fin);
 }
 
 void
@@ -522,7 +555,7 @@ gk_species_bgk_cross_moms_implicit(
   const struct gkyl_array *fin
 )
 {
-  // Compute this in bgk_rhs
+  bgk->cross_stage_implicit_func(app, species, bgk, fin);
 }
 
 void
@@ -563,8 +596,12 @@ gk_species_bgk_release(const struct gkyl_gyrokinetic_app *app, const struct gk_b
       gkyl_array_release(bgk->cross_prim_moms);
     }
 
-    gkyl_array_release(bgk->nu_fmax);
-    gkyl_bgk_collisions_release(bgk->up_bgk);
+    if (bgk->nu_fmax) {
+      gkyl_array_release(bgk->nu_fmax);
+    }
+    if (bgk->up_bgk) {
+      gkyl_bgk_collisions_release(bgk->up_bgk);
+    }
 
     if (bgk->write_diagnostics) {
       if (app->use_gpu) {

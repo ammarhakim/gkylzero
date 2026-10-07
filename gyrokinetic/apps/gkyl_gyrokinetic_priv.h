@@ -132,6 +132,7 @@ struct gk_species_moment {
 
   bool is_maxwellian_moms; // =True for Maxwellian moments (n, u, T/m).
   bool is_bimaxwellian_moms; // =True for BiMaxwellian moments (n, u, Tpar/m, Tperp/m).
+  struct gkyl_array *fluid_phi; // Borrowed potential for fluid Hamiltonian moments.
 
   // MF 2025/07/18: These two objects shouldn't be here. They are needed by
   // fluid neutral moments, and we should get them directly from app->basis or
@@ -169,6 +170,7 @@ struct gk_species_moment {
     // Fluid species .............................................. //
     struct {
       struct gkyl_gk_neut_fluid_prim_vars *nf_prim_vars;
+      struct gkyl_gk_fluid_moments *gf_moms;
     };
   };
 
@@ -441,6 +443,9 @@ struct gk_lbo_collisions {
 };
 
 struct gk_bgk_collisions {
+  // Fluid collision partners compute cross moments without entering the kinetic RHS.
+  void (*cross_stage_func)(gkyl_gyrokinetic_app *, const struct gk_species *, struct gk_bgk_collisions *, const struct gkyl_array *);
+  void (*cross_stage_implicit_func)(gkyl_gyrokinetic_app *, const struct gk_species *, struct gk_bgk_collisions *, const struct gkyl_array *);
   enum gkyl_collision_id collision_id; // Type of collisions.
   bool write_diagnostics; // Whether to write diagnostics out.
 
@@ -813,6 +818,7 @@ struct gk_react {
 };
 
 struct gk_scaling {
+  void (*set_density_func)(gkyl_gyrokinetic_app *, struct gk_species *, struct gkyl_array *, struct gkyl_array *);
   bool write_diagnostics; // Whether to write diagnostics.
   enum gkyl_gk_species_scaling_type type; // Type of scaling operation.
 
@@ -900,6 +906,14 @@ struct gk_proj_on_basis_c2p_func_ctx {
 };
 
 struct gk_proj {
+  struct gkyl_array *fluid_host, *fluid_tmp; // Configuration-space fluid projection staging.
+  struct gkyl_array *fluid_prim; // Four primitive fields on the selected device.
+  void (*calc_func)(
+    gkyl_gyrokinetic_app *, struct gk_species *, struct gk_proj *, struct gkyl_array *, double
+  );
+  void (*from_moms_func)(
+    gkyl_gyrokinetic_app *, struct gk_species *, struct gk_proj *, struct gkyl_array *, double
+  );
   enum gkyl_projection_id proj_id; // Type of projection.
   struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
   union {
@@ -1234,18 +1248,20 @@ struct gk_positivity {
 // Species data.
 struct gk_species {
   struct gkyl_gyrokinetic_species info; // Input data.
+  bool is_fluid; // Species grid, basis and ranges describe configuration space.
+  void (*release_species_func)(const gkyl_gyrokinetic_app *, const struct gk_species *);
 
-  struct gkyl_basis basis; // Phase-space basis.
+  struct gkyl_basis basis; // Phase-space basis for kinetic species, conf-space for fluid.
 
   // Basis on device (points to host basis if running w/o GPU).
   struct gkyl_basis *basis_on_dev;
 
   struct gkyl_job_pool *job_pool; // Job pool
   struct gkyl_rect_grid grid;
-  struct gkyl_range local, local_ext; // Local, local-ext phase-space ranges.
-  struct gkyl_range global, global_ext; // Global, global-ext conf-space ranges.
+  struct gkyl_range local, local_ext; // Local ranges in the species grid.
+  struct gkyl_range global, global_ext; // Global ranges in the species grid.
 
-  struct gkyl_comm *comm; // Communicator object for phase-space arrays.
+  struct gkyl_comm *comm; // Communicator for species-state arrays.
   int nghost[GKYL_MAX_DIM]; // Number of ghost-cells in each direction.
 
   struct gkyl_rect_grid grid_vel; // Velocity space grid.
@@ -1260,7 +1276,8 @@ struct gk_species {
   int io_meta_phase_len; // Number of elements in io_meta_phase.
   int io_meta_conf_len; // Number of elements in io_meta_conf.
 
-  struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
+  // Kinetic: distribution. Fluid: J*(rho, Mpar, E, pperp/B) on the conf grid.
+  struct gkyl_array *f, *f1, *fnew; // State and time-stepping arrays.
   struct gkyl_array *cflrate; // CFL rate in each cell.
   struct gkyl_array *cflrate_ho; // CFL rate in each cell on host-side.
 
@@ -3695,6 +3712,11 @@ void gk_species_source_bgk_release(
  * @param gks On output, initialized species object.
  */
 void gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_species *gks);
+
+// Read a packed fluid state, validating its configuration grid and layout first.
+enum gkyl_array_rio_status gk_species_fluid_read(
+  struct gkyl_gyrokinetic_app *app, struct gk_species *gks, const char *fname
+);
 
 /**
  * Compute species initial conditions.

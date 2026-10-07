@@ -407,6 +407,9 @@ gk_neut_species_react_cross_init(
       // Fetch pointers to species objects
       react->species_elc[i] = gk_find_species(app, react->react_type[i].elc_nm);
       react->species_ion[i] = gk_find_species(app, react->react_type[i].ion_nm);
+      if (react->species_elc[i]->is_fluid || react->species_ion[i]->is_fluid) {
+        gkyl_exit("Reactions with charged fluid species are not supported.");
+      }
       // Fetch index of species for indexing arrays
       react->elc_idx[i] = gk_find_species_idx(app, react->react_type[i].elc_nm);
       react->ion_idx[i] = gk_find_species_idx(app, react->react_type[i].ion_nm);

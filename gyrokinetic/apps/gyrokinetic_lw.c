@@ -365,7 +365,7 @@ struct gyrokinetic_species_lw {
 static int
 gyrokinetic_species_lw_new(lua_State *L)
 {
-  int vdim = 0;
+  int vdim = glua_tbl_get_integer(L, "vdim", 2);
   struct gkyl_gyrokinetic_species gk_species = {};
 
   gk_species.charge = glua_tbl_get_number(L, "charge", 0.0);
