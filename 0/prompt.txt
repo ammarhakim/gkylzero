@@ -54,3 +54,7 @@ Implement the plan.
 ---
 
 why is there a gk_species_fluid_read and not a gk_species_kinetic_read ? how would the latter be different from gk_species_file_import_init? And more generally, can we have a single method for reading either a fluid or a kinetic species?
+
+---
+
+ok, create a plan for this change
