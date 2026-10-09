@@ -1,43 +1,22 @@
 #include <gkyl_gk_species_priv.h>
 
-enum gkyl_array_rio_status
-gk_species_fluid_read(gkyl_gyrokinetic_app *app, struct gk_species *gks, const char *fname)
+void
+gk_species_fluid_file_import_init(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gkyl_gyrokinetic_ic_import inp
+)
 {
-  struct gkyl_rect_grid grid;
-  struct gkyl_array_header_info hdr = {0};
-  enum gkyl_array_rio_status status = gkyl_grid_sub_array_header_read(&grid, &hdr, fname);
+  if (inp.type != GKYL_IC_IMPORT_F || inp.enforce_positivity || inp.conf_scale ||
+      inp.jacobtot_inv_file_name[0] || inp.jacobvel_file_name[0]) {
+    gkyl_exit("Fluid initial-state import supports unmodified configuration-space moments only.");
+  }
+  enum gkyl_array_rio_status status = gk_species_read(app, gks, inp.file_name);
   if (status != GKYL_ARRAY_RIO_SUCCESS) {
-    return status;
+    fprintf(
+      stderr, "Unable to import fluid species '%s' from '%s': %s\n", gks->info.name, inp.file_name,
+      gkyl_array_rio_status_msg(status)
+    );
+    gkyl_exit("Fluid initial-state import failed.");
   }
-  bool matches = grid.ndim == gks->grid.ndim && hdr.etype == GKYL_DOUBLE &&
-                 hdr.esznc == gks->f->esznc;
-  for (int d = 0; matches && d < grid.ndim; ++d) {
-    matches = grid.cells[d] == gks->grid.cells[d] &&
-              gkyl_compare(grid.lower[d], gks->grid.lower[d], 1e-12) &&
-              gkyl_compare(grid.upper[d], gks->grid.upper[d], 1e-12);
-  }
-  struct gkyl_msgpack_map_elem layout[] = {
-    {.key = "state_layout", .elem_type = GKYL_MP_STRING, .cval = 0},
-    {.key = "vdim", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
-    {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0}
-  };
-  gkyl_msgpack_to_map_elem_list(
-    &(struct gkyl_msgpack_data){.meta = hdr.meta, .meta_sz = hdr.meta_size}, 3, layout
-  );
-  const char *name = gkyl_msgpack_map_elem_get_string(3, layout, "state_layout");
-  matches = matches && name && strcmp(name, "Jrho,JMpar,JE,Jpperp/B") == 0 &&
-            gkyl_msgpack_map_elem_get_uint(3, layout, "vdim") == gks->info.vdim &&
-            gkyl_msgpack_map_elem_get_uint(3, layout, "poly_order") == gks->basis.poly_order;
-  gkyl_msgpack_map_elem_release_string(3, layout, "state_layout");
-  gkyl_array_header_info_release(&hdr);
-  if (!matches) {
-    return GKYL_ARRAY_RIO_DATA_MISMATCH;
-  }
-  status = gkyl_comm_array_read(gks->comm, &gks->grid, &gks->local, gks->f_host, fname);
-  if (status == GKYL_ARRAY_RIO_SUCCESS && app->use_gpu) {
-    gkyl_array_copy(gks->f, gks->f_host);
-  }
-  return status;
 }
 
 static void
@@ -89,31 +68,21 @@ gk_species_fluid_init(struct gkyl_gk *inp, gkyl_gyrokinetic_app *app, struct gk_
   if (gks->info.scaling.type == GKYL_GK_SPECIES_SCALING_RECYCLING_IZ_BALANCE) {
     gkyl_exit("Recycling/ionization balance is not supported for charged fluid species.");
   }
-  if (gks->info.init_from_file.type != GKYL_IC_IMPORT_NONE &&
-      (gks->info.init_from_file.type != GKYL_IC_IMPORT_F ||
-       gks->info.init_from_file.enforce_positivity || gks->info.init_from_file.conf_scale ||
-       gks->info.init_from_file.jacobtot_inv_file_name[0] ||
-       gks->info.init_from_file.jacobvel_file_name[0])) {
-    gkyl_exit("Fluid initial-state import supports unmodified configuration-space moments only.");
-  }
   for (int d = 0; d < GKYL_MAX_VDIM; ++d) {
     if (gks->info.cells[d] || gks->info.lower[d] || gks->info.upper[d]) {
       gkyl_exit("Fluid gyrokinetic species must omit the velocity grid entirely.");
     }
   }
-  gks->info.vdim = gks->info.vdim ? gks->info.vdim : 2;
-  if (gks->info.collisions.collision_id && app->cdim > 1 && gks->info.vdim == 1) {
-    gkyl_exit("Gyrokinetic collision kernels with one velocity dimension require cdim=1.");
-  }
+  // Fluid moments always represent parallel and perpendicular velocity coordinates.
+  gks->info.vdim = 2;
   for (int b = 0; b < 2 * app->cdim; ++b) {
     if (gks->info.bcs[b].type != GKYL_BC_GK_SKIP &&
         gks->info.bcs[b].type != GKYL_BC_GK_SPECIES_PERIODIC) {
       gkyl_exit("Kinetic boundary conditions are not supported for fluid gyrokinetic species.");
     }
   }
-  if ((gks->info.vdim != 1 && gks->info.vdim != 2) || gks->info.mass <= 0.0 ||
-      gks->info.charge == 0.0) {
-    gkyl_exit("Invalid fluid gyrokinetic species mass, charge, or vdim.");
+  if (gks->info.mass <= 0.0 || gks->info.charge == 0.0) {
+    gkyl_exit("Invalid fluid gyrokinetic species mass or charge.");
   }
   gks->info.is_static = true;
   gks->release_species_func = gk_species_fluid_release;
@@ -158,6 +127,8 @@ gk_species_fluid_init(struct gkyl_gk *inp, gkyl_gyrokinetic_app *app, struct gk_
   }
   if (gks->info.init_from_file.type == GKYL_IC_IMPORT_NONE) {
     gk_species_projection_init(app, gks, gks->info.projection, &gks->proj_init);
+  } else {
+    gk_species_file_import_init(app, gks, gks->info.init_from_file);
   }
   gk_species_collisionless_init(app, gks, &gks->collisionless);
   gk_species_anomalous_diff_init(app, gks, &gks->anom_diff);

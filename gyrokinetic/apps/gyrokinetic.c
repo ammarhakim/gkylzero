@@ -3913,8 +3913,12 @@ header_from_file(gkyl_gyrokinetic_app *app, const char *fname)
   with_file(fp, fname, "r")
   {
     struct gkyl_rect_grid grid;
-    struct gkyl_array_header_info hdr;
+    struct gkyl_array_header_info hdr = {0};
     rstat.io_status = gkyl_grid_sub_array_header_read_fp(&grid, &hdr, fp);
+
+    if (rstat.io_status != GKYL_ARRAY_RIO_SUCCESS) {
+      continue; // with_file closes fp; failed headers must not be parsed.
+    }
 
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
       if (hdr.etype != GKYL_DOUBLE) {
@@ -4263,15 +4267,7 @@ gkyl_gyrokinetic_app_from_file_species(gkyl_gyrokinetic_app *app, int sidx, cons
   struct gk_species *gk_s = &app->species[sidx];
 
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
-    if (gk_s->is_fluid) {
-      rstat.io_status = gk_species_fluid_read(app, gk_s, fname);
-      return rstat;
-    }
-    rstat.io_status =
-      gkyl_comm_array_read(gk_s->comm, &gk_s->grid, &gk_s->local, gk_s->f_host, fname);
-    if (app->use_gpu) {
-      gkyl_array_copy(gk_s->f, gk_s->f_host);
-    }
+    rstat.io_status = gk_species_read(app, gk_s, fname);
 
     if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
       gk_species_source_calc(app, gk_s, &gk_s->src, gk_s->lte.f_lte, 0.0);
@@ -4403,8 +4399,8 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
   // Set up the response of an adiabatic species (static) from its t=0 moments.
   app->field->init_adiab_func(app, app->field);
 
-  // Restore fluid snapshots only after capturing the equilibrium response.
-  // The on-disk state is the same configuration-space moment array as gks->f.
+  // Fluid species use static time stepping, but their algebraic closures change f.
+  // Capture the t=0 equilibrium response before restoring those time-dependent snapshots.
   for (int i = 0; i < app->num_species; ++i) {
     if (app->species[i].is_fluid) {
       rstat = gkyl_gyrokinetic_app_from_frame_species(app, i, frame);

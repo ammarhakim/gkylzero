@@ -3713,8 +3713,14 @@ void gk_species_source_bgk_release(
  */
 void gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_species *gks);
 
-// Read a packed fluid state, validating its configuration grid and layout first.
-enum gkyl_array_rio_status gk_species_fluid_read(
+/**
+ * Read a fluid or kinetic state on the species grid, without import transformations.
+ * @param app Gyrokinetic app.
+ * @param gks Species whose f/f_host arrays receive the state.
+ * @param fname State file to validate and read.
+ * @return I/O status; device state is copied only after a successful read.
+ */
+enum gkyl_array_rio_status gk_species_read(
   struct gkyl_gyrokinetic_app *app, struct gk_species *gks, const char *fname
 );
 

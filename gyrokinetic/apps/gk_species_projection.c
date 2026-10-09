@@ -165,9 +165,6 @@ gk_species_projection_from_moms_fluid(
   // Supply Tperp from T for an isotropic input.
   int tperp = proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM ? 2 : 3;
   gkyl_array_set_offset_range(proj->fluid_tmp, 1.0, proj->prim_moms_host, tperp * nb, &app->local);
-  if (gks->info.vdim == 1) {
-    gkyl_array_clear_range(proj->fluid_tmp, 0.0, &app->local);
-  }
   gkyl_array_set_offset_range(proj->fluid_host, 1.0, proj->fluid_tmp, 3 * nb, &app->local);
   gkyl_array_copy(proj->fluid_prim, proj->fluid_host);
   gkyl_gk_fluid_moments_from_prim(
@@ -293,9 +290,6 @@ init_maxwellian_bimaxwellian(
   if (gks->is_fluid) {
     if (!inp.upar) {
       inp.upar = gk_species_projection_zero;
-    }
-    if (gks->info.vdim == 1) {
-      inp.tempperp = gk_species_projection_zero;
     }
   }
   bool maxwellian_moms_from_file = proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM &&

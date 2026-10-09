@@ -1,4 +1,75 @@
 #include <gkyl_gk_species_priv.h>
+#include <mpack.h>
+
+// Validate supplied metadata for either species model; missing metadata is allowed.
+static bool
+gk_species_read_metadata(const struct gk_species *gks, const struct gkyl_array_header_info *hdr)
+{
+  if (hdr->meta_size == 0) {
+    return true;
+  }
+  mpack_tree_t tree;
+  mpack_tree_init_data(&tree, hdr->meta, hdr->meta_size);
+  mpack_tree_parse(&tree);
+  mpack_node_t root = mpack_tree_root(&tree);
+  bool matches = mpack_node_type(root) == mpack_type_map;
+  if (matches && mpack_node_map_contains_cstr(root, "basis_type")) {
+    mpack_node_t node = mpack_node_map_cstr(root, "basis_type");
+    matches = mpack_node_type(node) == mpack_type_str &&
+              mpack_node_strlen(node) == strlen(gks->basis.id) &&
+              memcmp(mpack_node_str(node), gks->basis.id, strlen(gks->basis.id)) == 0;
+  }
+  const char *int_keys[] = {"vdim", "poly_order"};
+  unsigned int int_values[] = {gks->info.vdim, gks->basis.poly_order};
+  for (int i = 0; matches && i < 2; ++i) {
+    if (mpack_node_map_contains_cstr(root, int_keys[i])) {
+      mpack_node_t node = mpack_node_map_cstr(root, int_keys[i]);
+      matches = mpack_node_u64(node) == int_values[i];
+    }
+  }
+  mpack_error_t error = mpack_tree_destroy(&tree);
+  return matches && error == mpack_ok;
+}
+
+enum gkyl_array_rio_status
+gk_species_read(gkyl_gyrokinetic_app *app, struct gk_species *gks, const char *fname)
+{
+  struct gkyl_rect_grid grid;
+  struct gkyl_array_header_info hdr = {0};
+  enum gkyl_array_rio_status status = gkyl_grid_sub_array_header_read(&grid, &hdr, fname);
+  if (status != GKYL_ARRAY_RIO_SUCCESS) {
+    return status;
+  }
+  bool matches = grid.ndim == gks->grid.ndim && hdr.etype == GKYL_DOUBLE &&
+                 hdr.esznc == gks->f->esznc;
+  for (int d = 0; matches && d < grid.ndim; ++d) {
+    matches = grid.cells[d] == gks->grid.cells[d] &&
+              gkyl_compare(grid.lower[d], gks->grid.lower[d], 1e-12) &&
+              gkyl_compare(grid.upper[d], gks->grid.upper[d], 1e-12);
+  }
+  matches = matches && gk_species_read_metadata(gks, &hdr);
+  gkyl_array_header_info_release(&hdr);
+  if (!matches) {
+    return GKYL_ARRAY_RIO_DATA_MISMATCH;
+  }
+  status = gkyl_comm_array_read(gks->comm, &gks->grid, &gks->local, gks->f_host, fname);
+  if (status == GKYL_ARRAY_RIO_SUCCESS && app->use_gpu) {
+    gkyl_array_copy(gks->f, gks->f_host);
+  }
+  return status;
+}
+
+void
+gk_species_file_import_init(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gkyl_gyrokinetic_ic_import inp
+)
+{
+  if (gks->is_fluid) {
+    gk_species_fluid_file_import_init(app, gks, inp);
+  } else {
+    gk_species_kinetic_file_import_init(app, gks, inp);
+  }
+}
 
 void
 gk_species_gyroaverage_disabled(
@@ -564,12 +635,6 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *gks, double t0
 {
   if (gks->info.init_from_file.type == 0) {
     gk_species_projection_calc(app, gks, &gks->proj_init, gks->f, t0);
-  } else if (gks->is_fluid) {
-    enum gkyl_array_rio_status status =
-      gk_species_fluid_read(app, gks, gks->info.init_from_file.file_name);
-    if (status != GKYL_ARRAY_RIO_SUCCESS) {
-      gkyl_exit("Unable to import fluid configuration-space state.");
-    }
   }
 
   // We are pre-computing source for now as it is time-independent.
@@ -735,12 +800,7 @@ gk_species_init_io(struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
   struct gkyl_msgpack_map_elem io_meta_sprop[] = {
     {.key = "mass", .elem_type = GKYL_MP_DOUBLE, .dval = gks->info.mass},
     {.key = "charge", .elem_type = GKYL_MP_DOUBLE, .dval = gks->info.charge},
-    {.key = "vdim", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = gks->info.vdim},
-    {
-      .key = "species_representation",
-      .elem_type = GKYL_MP_STRING,
-      .cval = gks->is_fluid ? "fluid" : "kinetic",
-    }
+    {.key = "vdim", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = gks->info.vdim}
   };
 
   // Metadata for integrated quantities.
@@ -774,11 +834,6 @@ gk_species_init_io(struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
 
   // Metadata for phase-space quantities.
   struct gkyl_msgpack_map_elem io_meta_phase[] = {
-    {
-      .key = "state_layout",
-      .elem_type = GKYL_MP_STRING,
-      .cval = gks->is_fluid ? "Jrho,JMpar,JE,Jpperp/B" : "f",
-    },
     {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = gks->basis.poly_order},
     {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = gks->basis.id},
     {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0},

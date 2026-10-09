@@ -134,6 +134,36 @@ void gk_species_init_static(
 
 void gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *gks, double t0);
 
+/**
+ * Import an initial state during species construction.
+ * @param app Gyrokinetic app.
+ * @param gks Initialized species state and moment objects.
+ * @param inp Initial-condition import options.
+ */
+void gk_species_file_import_init(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gkyl_gyrokinetic_ic_import inp
+);
+
+/**
+ * Import a kinetic initial state, including requested donor-grid transformations.
+ * @param app Gyrokinetic app.
+ * @param gks Kinetic species receiving the imported distribution.
+ * @param inp Initial-condition import options.
+ */
+void gk_species_kinetic_file_import_init(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gkyl_gyrokinetic_ic_import inp
+);
+
+/**
+ * Import an unmodified, matching-grid conservative fluid state.
+ * @param app Gyrokinetic app.
+ * @param gks Fluid species receiving the imported moments.
+ * @param inp Initial-condition import options.
+ */
+void gk_species_fluid_file_import_init(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gkyl_gyrokinetic_ic_import inp
+);
+
 void gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *gks_self, double t0);
 
 double gk_species_rhs(

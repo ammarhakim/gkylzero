@@ -684,7 +684,7 @@ gk_species_init_dynamic(
 }
 
 void
-gk_species_file_import_init(
+gk_species_kinetic_file_import_init(
   struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gkyl_gyrokinetic_ic_import inp
 )
 {

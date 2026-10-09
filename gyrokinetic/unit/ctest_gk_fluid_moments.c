@@ -10,110 +10,111 @@ static void
 test_moments(bool use_gpu)
 {
   for (int cdim = 1; cdim <= 3; ++cdim) {
-    for (int vdim = 1; vdim <= 2; ++vdim) {
-      struct gkyl_basis basis;
-      gkyl_cart_modal_serendip(&basis, cdim, 1);
-      int nb = basis.num_basis;
-      double lower[] = {-1, -1, -1}, upper[] = {1, 1, 1};
-      int cells[] = {1, 1, 1}, ghost[] = {1, 1, 1};
-      struct gkyl_rect_grid grid;
-      gkyl_rect_grid_init(&grid, cdim, lower, upper, cells);
-      struct gkyl_range ext, local;
-      gkyl_create_grid_ranges(&grid, ghost, &ext, &local);
-      struct gkyl_array *state = gkyl_array_new(GKYL_DOUBLE, 4 * nb, ext.volume);
-      struct gkyl_array *phi = gkyl_array_new(GKYL_DOUBLE, nb, ext.volume);
-      double norm = pow(sqrt(2.0), cdim);
-      // m=2, Jn=2, u=3, Tpar/m=5, Tperp/m=7, B=3.
-      double perp = vdim == 2 ? 28 : 0;
-      gkyl_array_shiftc(state, 4 * norm, 0);
-      gkyl_array_shiftc(state, 12 * norm, nb);
-      gkyl_array_shiftc(state, (28 + perp) * norm, 2 * nb);
-      gkyl_array_shiftc(state, perp / 3 * norm, 3 * nb);
-      gkyl_array_shiftc(phi, 11 * norm, 0);
-      struct gkyl_array *state_dev =
-        use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, state->ncomp, state->size) :
-                  gkyl_array_acquire(state);
-      struct gkyl_array *phi_dev = use_gpu ?
-                                     gkyl_array_cu_dev_new(GKYL_DOUBLE, phi->ncomp, phi->size) :
-                                     gkyl_array_acquire(phi);
-      gkyl_array_copy(state_dev, state);
-      gkyl_array_copy(phi_dev, phi);
-      struct gkyl_array *bmag = use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nb, ext.volume) :
-                                          gkyl_array_new(GKYL_DOUBLE, nb, ext.volume);
-      gkyl_array_clear(bmag, 0);
-      gkyl_array_shiftc(bmag, 3 * norm, 0);
-      enum gkyl_distribution_moments ids[] = {
-        GKYL_F_MOMENT_M0,
-        GKYL_F_MOMENT_M1,
-        GKYL_F_MOMENT_M2,
-        GKYL_F_MOMENT_M2PAR,
-        GKYL_F_MOMENT_M2PERP,
-        GKYL_F_MOMENT_M3PAR,
-        GKYL_F_MOMENT_M3PERP,
-        GKYL_F_MOMENT_MAXWELLIAN,
-        GKYL_F_MOMENT_BIMAXWELLIAN,
-        GKYL_F_MOMENT_M0M1M2,
-        GKYL_F_MOMENT_M0M1M2PARM2PERP,
-        GKYL_F_MOMENT_HAMILTONIAN
-      };
-      double expected[][4] = {
-        {2},
-        {6},
-        {28 + perp},
-        {28},
-        {perp},
-        {144},
-        {3 * perp},
-        {2, 3, vdim == 2 ? 19.0 / 3 : 5},
-        {2, 3, 5, vdim == 2 ? 7 : 0},
-        {2, 6, 28 + perp},
-        {2, 6, 28, perp},
-        {2, 12, 28 + perp - 22}
-      };
-      for (int m = 0; m < sizeof(ids) / sizeof(ids[0]); ++m) {
-        for (int integrated = 0; integrated <= 1; ++integrated) {
-          struct gkyl_gk_fluid_moments *up =
-            gkyl_gk_fluid_moments_inew(&(struct gkyl_gk_fluid_moments_inp){
-              .basis = &basis,
-              .grid = &grid,
-              .range = &local,
-              .range_ext = &ext,
-              .bmag = bmag,
-              .vdim = vdim,
-              .mass = 2,
-              .charge = -1,
-              .moment = ids[m],
-              .integrated = integrated,
-              .use_gpu = use_gpu,
-            });
-          int nm = gkyl_gk_fluid_moments_num_mom(up), nout = integrated ? 1 : nb;
-          struct gkyl_array *out = use_gpu ?
-                                     gkyl_array_cu_dev_new(GKYL_DOUBLE, nm * nout, ext.volume) :
-                                     gkyl_array_new(GKYL_DOUBLE, nm * nout, ext.volume);
-          struct gkyl_array *host = gkyl_array_new(GKYL_DOUBLE, nm * nout, ext.volume);
-          gkyl_gk_fluid_moments_advance(up, &local, state_dev, phi_dev, out);
-          gkyl_array_copy(host, out);
-          const double *data = gkyl_array_cfetch(host, gkyl_range_idx(&local, local.lower));
-          for (int c = 0; c < nm; ++c) {
-            TEST_CHECK(gkyl_compare(
-              data[c * nout], expected[m][c] * (integrated ? norm * norm : norm), 1e-12
-            ));
-            for (int k = 1; k < nout; ++k) {
-              TEST_CHECK(fabs(data[c * nout + k]) < 1e-11);
-            }
-          }
-          gkyl_array_release(host);
-          gkyl_array_release(out);
-          gkyl_gk_fluid_moments_release(up);
+    struct gkyl_basis basis;
+    gkyl_cart_modal_serendip(&basis, cdim, 1);
+    int nb = basis.num_basis;
+    double lower[] = {-1, -1, -1}, upper[] = {1, 1, 1};
+    int cells[] = {1, 1, 1}, ghost[] = {1, 1, 1};
+    struct gkyl_rect_grid grid;
+    gkyl_rect_grid_init(&grid, cdim, lower, upper, cells);
+    struct gkyl_range ext, local;
+    gkyl_create_grid_ranges(&grid, ghost, &ext, &local);
+    struct gkyl_array *state = gkyl_array_new(GKYL_DOUBLE, 4 * nb, ext.volume);
+    struct gkyl_array *phi = gkyl_array_new(GKYL_DOUBLE, nb, ext.volume);
+    double norm = pow(sqrt(2.0), cdim);
+    // m=2, Jn=2, u=3, Tpar/m=5, Tperp/m=7, B=3.
+    double perp = 28;
+    gkyl_array_shiftc(state, 4 * norm, 0);
+    gkyl_array_shiftc(state, 12 * norm, nb);
+    gkyl_array_shiftc(state, (28 + perp) * norm, 2 * nb);
+    gkyl_array_shiftc(state, perp / 3 * norm, 3 * nb);
+    gkyl_array_shiftc(phi, 11 * norm, 0);
+    struct gkyl_array *state_dev = use_gpu ?
+                                     gkyl_array_cu_dev_new(GKYL_DOUBLE, state->ncomp, state->size) :
+                                     gkyl_array_acquire(state);
+    struct gkyl_array *phi_dev =
+      use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, phi->ncomp, phi->size) : gkyl_array_acquire(phi);
+    gkyl_array_copy(state_dev, state);
+    gkyl_array_copy(phi_dev, phi);
+    struct gkyl_array *bmag = use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nb, ext.volume) :
+                                        gkyl_array_new(GKYL_DOUBLE, nb, ext.volume);
+    gkyl_array_clear(bmag, 0);
+    gkyl_array_shiftc(bmag, 3 * norm, 0);
+    enum gkyl_distribution_moments ids[] = {
+      GKYL_F_MOMENT_M0,
+      GKYL_F_MOMENT_M1,
+      GKYL_F_MOMENT_M2,
+      GKYL_F_MOMENT_M2PAR,
+      GKYL_F_MOMENT_M2PERP,
+      GKYL_F_MOMENT_M3PAR,
+      GKYL_F_MOMENT_M3PERP,
+      GKYL_F_MOMENT_MAXWELLIAN,
+      GKYL_F_MOMENT_BIMAXWELLIAN,
+      GKYL_F_MOMENT_M0M1M2,
+      GKYL_F_MOMENT_M0M1M2PARM2PERP,
+      GKYL_F_MOMENT_HAMILTONIAN
+    };
+    double expected[][4] = {
+      {2},
+      {6},
+      {28 + perp},
+      {28},
+      {perp},
+      {144},
+      {3 * perp},
+      {2, 3, 19.0 / 3},
+      {2, 3, 5, 7},
+      {2, 6, 28 + perp},
+      {2, 6, 28, perp},
+      {2, 12, 28 + perp - 22}
+    };
+    for (int m = 0; m < sizeof(ids) / sizeof(ids[0]); ++m) {
+      for (int integrated = 0; integrated <= 1; ++integrated) {
+        TEST_CASE_("moment=%d, cdim=%d, integrated=%d", ids[m], cdim, integrated);
+        struct gkyl_gk_fluid_moments *up =
+          gkyl_gk_fluid_moments_inew(&(struct gkyl_gk_fluid_moments_inp){
+            .basis = &basis,
+            .grid = &grid,
+            .range = &local,
+            .range_ext = &ext,
+            .bmag = bmag,
+            .mass = 2,
+            .charge = -1,
+            .moment = ids[m],
+            .integrated = integrated,
+            .use_gpu = use_gpu,
+          });
+        int nm = gkyl_gk_fluid_moments_num_mom(up), nout = integrated ? 1 : nb;
+        if (ids[m] == GKYL_F_MOMENT_M0M1M2PARM2PERP) {
+          TEST_CHECK(nm == 4);
         }
+        struct gkyl_array *out = use_gpu ?
+                                   gkyl_array_cu_dev_new(GKYL_DOUBLE, nm * nout, ext.volume) :
+                                   gkyl_array_new(GKYL_DOUBLE, nm * nout, ext.volume);
+        struct gkyl_array *host = gkyl_array_new(GKYL_DOUBLE, nm * nout, ext.volume);
+        gkyl_gk_fluid_moments_advance(up, &local, state_dev, phi_dev, out);
+        gkyl_array_copy(host, out);
+        const double *data = gkyl_array_cfetch(host, gkyl_range_idx(&local, local.lower));
+        for (int c = 0; c < nm; ++c) {
+          TEST_CHECK(
+            gkyl_compare(data[c * nout], expected[m][c] * (integrated ? norm * norm : norm), 1e-12)
+          );
+          for (int k = 1; k < nout; ++k) {
+            TEST_CHECK(fabs(data[c * nout + k]) < 1e-11);
+          }
+        }
+        gkyl_array_release(host);
+        gkyl_array_release(out);
+        gkyl_gk_fluid_moments_release(up);
       }
-      gkyl_array_release(state_dev);
-      gkyl_array_release(phi_dev);
-      gkyl_array_release(state);
-      gkyl_array_release(phi);
-      gkyl_array_release(bmag);
     }
+    gkyl_array_release(state_dev);
+    gkyl_array_release(phi_dev);
+    gkyl_array_release(state);
+    gkyl_array_release(phi);
+    gkyl_array_release(bmag);
   }
+  TEST_CASE((const char *)NULL);
 }
 
 // Independent p1 arithmetic in the power representation a+b*x on [-1,1].
@@ -165,7 +166,7 @@ set_linear(struct gkyl_array *array, long loc, int comp, struct linear value)
 }
 
 static void
-test_spatial_products(bool use_gpu, bool isotropic, int vdim)
+test_spatial_products(bool use_gpu, bool isotropic)
 {
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, 1, 1);
@@ -193,7 +194,7 @@ test_spatial_products(bool use_gpu, bool isotropic, int vdim)
   set_linear(host, loc, 0, n);
   set_linear(host, loc, 1, u);
   set_linear(host, loc, 2, tpar);
-  set_linear(host, loc, 3, tperp); // Deliberately nonzero input in 1v: must be ignored.
+  set_linear(host, loc, 3, tperp);
   gkyl_array_copy(prim, host);
   set_linear(scalar, loc, 0, jacob);
   gkyl_array_copy(jac, scalar);
@@ -201,9 +202,6 @@ test_spatial_products(bool use_gpu, bool isotropic, int vdim)
   gkyl_array_copy(bmag, scalar);
   set_linear(scalar, loc, 0, potential);
   gkyl_array_copy(phi, scalar);
-  if (vdim == 1) {
-    tperp = (struct linear){0, 0};
-  }
   double mass = 2;
   struct linear jn = mul(jacob, n), rho = scale(mass, jn), mom = mul(rho, u);
   struct linear ppar = mul(rho, tpar), pperp = mul(rho, tperp);
@@ -215,7 +213,6 @@ test_spatial_products(bool use_gpu, bool isotropic, int vdim)
     .range = &local,
     .range_ext = &ext,
     .bmag = bmag,
-    .vdim = vdim,
     .mass = mass,
     .charge = -1,
     .moment = GKYL_F_MOMENT_BIMAXWELLIAN,
@@ -253,7 +250,7 @@ test_spatial_products(bool use_gpu, bool isotropic, int vdim)
     {m2perp},
     {mul(u, add(m2par, 2 / mass, ppar))},
     {mul(u, m2perp)},
-    {jn, u, scale(1.0 / (2 * vdim - 1), add(tpar, 2, tperp))},
+    {jn, u, scale(1.0 / 3.0, add(tpar, 2, tperp))},
     {jn, u, tpar, tperp},
     {jn, m1, m2},
     {jn, m1, m2par, m2perp},
@@ -261,6 +258,7 @@ test_spatial_products(bool use_gpu, bool isotropic, int vdim)
   };
   for (int m = 0; m < sizeof(ids) / sizeof(ids[0]); ++m) {
     for (int integrated = 0; integrated <= 1; ++integrated) {
+      TEST_CASE_("moment=%d, isotropic=%d, integrated=%d", ids[m], isotropic, integrated);
       inp.moment = ids[m];
       inp.integrated = integrated;
       struct gkyl_gk_fluid_moments *up = gkyl_gk_fluid_moments_inew(&inp);
@@ -282,6 +280,7 @@ test_spatial_products(bool use_gpu, bool isotropic, int vdim)
       gkyl_gk_fluid_moments_release(up);
     }
   }
+  TEST_CASE((const char *)NULL);
   // A spatially varying density ratio multiplies every conserved field weakly.
   struct linear ratio = {1.1, 0.1}, target = mul(jn, ratio);
   set_linear(scalar, loc, 0, target);
@@ -325,10 +324,8 @@ test_spatial_products(bool use_gpu, bool isotropic, int vdim)
 static void
 test_spatial_cpu(void)
 {
-  for (int vdim = 1; vdim <= 2; ++vdim) {
-    for (int iso = 0; iso <= 1; ++iso) {
-      test_spatial_products(false, iso, vdim);
-    }
+  for (int iso = 0; iso <= 1; ++iso) {
+    test_spatial_products(false, iso);
   }
 }
 
@@ -342,10 +339,8 @@ static void
 test_gpu(void)
 {
   test_moments(true);
-  for (int vdim = 1; vdim <= 2; ++vdim) {
-    for (int iso = 0; iso <= 1; ++iso) {
-      test_spatial_products(true, iso, vdim);
-    }
+  for (int iso = 0; iso <= 1; ++iso) {
+    test_spatial_products(true, iso);
   }
 }
 #endif

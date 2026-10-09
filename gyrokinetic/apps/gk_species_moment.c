@@ -79,7 +79,6 @@ gk_species_moment_init_fluid(
     .range = &app->local,
     .range_ext = &app->local_ext,
     .bmag = app->gk_geom->geo_int.bmag,
-    .vdim = gks->info.vdim,
     .mass = gks->info.mass,
     .charge = gks->info.charge,
     .moment = mom_type,
