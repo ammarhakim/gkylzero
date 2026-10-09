@@ -1,0 +1,77 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M4GY5K61V7FMDB4TRCA3M28C",
+  "session_id": "01a11337-d85d-7ad2-9244-05582decd474",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-09T18:17:57.773422Z",
+  "branch": "gk_adiab_elc_2x3v-api_changes-fluid",
+  "checkpoints_count": 6,
+  "save_step_count": 4,
+  "files_touched": [
+    "gyrokinetic/zero/gkyl_gyrokinetic_cross_prim_moms_bgk.h",
+    "gyrokinetic/zero/gkyl_prim_lbo_gyrokinetic.h",
+    "gyrokinetic/zero/gkyl_prim_lbo_gyrokinetic_priv.h"
+  ],
+  "agent": "Codex",
+  "model": "gpt-6-astra",
+  "turn_id": "2186790f3304",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 2140927,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 42290176,
+    "output_tokens": 171930,
+    "api_call_count": 343
+  },
+  "session_metrics": {
+    "turn_count": 36
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-09T18:17:57.37019Z",
+    "agent_lines": 61,
+    "agent_removed": 27,
+    "human_added": 0,
+    "human_modified": 4,
+    "human_removed": 0,
+    "total_committed": 65,
+    "total_lines_changed": 92,
+    "agent_percentage": 95.65217391304348,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 533,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "new_data_flag": 1
+      }
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 2,
+      "user_lines_removed": 1,
+      "agent_lines_added": 595,
+      "agent_lines_removed": 21,
+      "user_added_per_file": {
+        "gyrokinetic/zero/gkyl_prim_lbo_gyrokinetic.h": 1,
+        "new_data_flag": 1
+      },
+      "user_removed_per_file": {
+        "gyrokinetic/zero/gkyl_prim_lbo_gyrokinetic.h": 1
+      }
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 595,
+      "agent_lines_removed": 21,
+      "user_added_per_file": {
+        "new_data_flag": 1
+      }
+    }
+  ]
+}

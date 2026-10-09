@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M4GY5K61V7FMDB4TRCA3M28C",
+  "strategy": "manual-commit",
+  "branch": "gk_adiab_elc_2x3v-api_changes-fluid",
+  "checkpoints_count": 6,
+  "files_touched": [
+    "gyrokinetic/zero/gkyl_gyrokinetic_cross_prim_moms_bgk.h",
+    "gyrokinetic/zero/gkyl_prim_lbo_gyrokinetic.h",
+    "gyrokinetic/zero/gkyl_prim_lbo_gyrokinetic_priv.h"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 2140927,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 42290176,
+    "output_tokens": 171930,
+    "api_call_count": 343
+  }
+}
