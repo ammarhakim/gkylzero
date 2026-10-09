@@ -30,7 +30,7 @@ struct gkyl_gk_fluid_moments {
  * @param range Configuration subrange.
  * @param out Output cell integrals.
  */
-void gkyl_gk_fluid_moments_integrate_cu(
+void gkyl_gk_fluid_moments_final_integrate_cu(
   const struct gkyl_gk_fluid_moments *up, const struct gkyl_range *range, struct gkyl_array *out
 );
 #endif

@@ -3,7 +3,7 @@ extern "C" {
 }
 
 __global__ static void
-gk_fluid_moments_integrate_kernel(
+gk_fluid_moments_final_integrate_kernel(
   int nb, int nm, double rmass_fac, struct gkyl_range range, const struct gkyl_array *result,
   struct gkyl_array *out
 )
@@ -22,11 +22,11 @@ gk_fluid_moments_integrate_kernel(
 }
 
 void
-gkyl_gk_fluid_moments_integrate_cu(
+gkyl_gk_fluid_moments_final_integrate_cu(
   const struct gkyl_gk_fluid_moments *up, const struct gkyl_range *range, struct gkyl_array *out
 )
 {
-  gk_fluid_moments_integrate_kernel<<<range->nblocks, range->nthreads>>>(
+  gk_fluid_moments_final_integrate_kernel<<<range->nblocks, range->nthreads>>>(
     up->basis.num_basis, up->num_mom, up->volnorm_fac, *range, up->result->on_dev, out->on_dev
   );
 }
