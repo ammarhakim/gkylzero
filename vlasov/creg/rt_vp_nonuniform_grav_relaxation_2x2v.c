@@ -9,14 +9,14 @@
 // map in each direction clustering cells at the origin while the box edge sits at ~7.5 a
 // (effectively infinity, with absorbing species boundaries and phi_g = 0 Dirichlet boundaries); the
 // velocity mesh uses the same map so the high-velocity tail of the relaxed distribution is covered.
-// Figures of merit (serendipity p1, 24^2 x 16^2 cells): the kinetic energy relative to its virial
-// value goes from 0.526 (the p1 projection of the initial Maxwellian overestimates K by 5%) to
-// 1.016 +- 0.017 (mean over t = 10-20, final 1.000) and the final density is fit by rho0/(1 +
-// r^2/r0^2)^2 with rho0 = 2.45 and r0 = 1.92 (L2 residual 2.9%, versus 12% for a Gaussian; the
-// isothermal r0 from the final sigma^2 and rho0 is 1.82); the mass changes by +1.1% over the run
-// (streaming on a 2D mesh whose position-map Jacobian varies from cell to cell is not exactly
-// conservative; a constant-stretch map and the 1x1v map are) and the total energy (kinetic minus
-// half the gravitational energy file, int |grad phi_g|^2/alpha_g) by 3e-3.
+// Figures of merit (tensor p1 (hybrid), 16^2 x 16^2 cells, about 4 minutes on one core): the
+// kinetic energy relative to its virial value goes from 0.500 to 0.996 +- 0.027 (mean over t =
+// 10-20, final 0.975) and the final density is fit by rho0/(1 + r^2/r0^2)^2 with rho0 = 2.45 and r0
+// = 1.94 (L2 residual 3.7%, versus 11% for a Gaussian; the isothermal r0 from the final sigma^2 and
+// rho0 is 1.78); the mass changes by +0.05% over the run (the absorbing boundaries sweep out the
+// signed, under-resolved tails of the distribution in the large outer cells; the interior scheme is
+// conservative to round-off, as the same run with periodic boundaries shows) and the total energy
+// (kinetic minus half the gravitational energy file, int |grad phi_g|^2/alpha_g) by 1e-3.
 
 #include <math.h>
 #include <stdio.h>
@@ -98,7 +98,7 @@ create_ctx(void)
   double t_dyn = 1.0 / sqrt(alpha_g * rho0); // Dynamical time 1/sqrt(4 pi G rho0).
 
   // Simulation parameters.
-  int Nx = 24; // Cell count (configuration space: x- and y-directions).
+  int Nx = 16; // Cell count (configuration space: x- and y-directions).
   int Nvx = 16; // Cell count (velocity space: vx- and vy-directions).
   double dx_lin = 0.1; // Configuration map: cell size of the linear part at x = 0.
   double x_exp = 15.0; // Configuration map: the exponential part reaches x_exp - 1 at the boundary.
@@ -383,8 +383,10 @@ main(int argc, char **argv)
       {{.mapc2p_pos_func = mapc2p_pos_x, .mapc2p_pos_ctx = &ctx},
        {.mapc2p_pos_func = mapc2p_pos_x, .mapc2p_pos_ctx = &ctx}},
 
+    // Tensor p=1 is the hybrid basis: p=1 in configuration space, p=2 in velocity
+    // space, which resolves the velocity tails of the relaxing distribution.
     .poly_order = ctx.poly_order,
-    .basis_type = app_args.basis_type,
+    .basis_type = GKYL_BASIS_MODAL_TENSOR,
     .cfl_frac = ctx.cfl_frac,
 
     .num_periodic_dir = 0,

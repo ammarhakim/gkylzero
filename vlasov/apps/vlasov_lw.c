@@ -2781,8 +2781,10 @@ vm_app_new(lua_State *L)
     for (int i = 0; i < species[s]->vdim; i++) {
       if (species[s]->has_mapc2p_vel_func[i]) {
         vm.species[s].kinetic.mapc2p_vel[i].mapc2p_vel_func = gkyl_lw_eval_cb;
+        // Per-direction map: the velocity map evaluates it on a 1D grid with a
+        // one-component coordinate, so the callback must read a single input.
         vm.species[s].kinetic.mapc2p_vel[i].mapc2p_vel_ctx =
-          vm_app_ctx(app_lw, &species[s]->mapc2p_vel_func_ref[i], species[s]->vdim);
+          vm_app_ctx(app_lw, &species[s]->mapc2p_vel_func_ref[i], 1);
       }
     }
 
