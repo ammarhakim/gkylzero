@@ -109,3 +109,12 @@ vlasov/creg/rt_vlasov_sr_twostream_1x1v   # Vlasov rewrite; linear-theory growth
 vlasov/creg/rt_vlasov_sr_twostream_1x3v   # Vlasov rewrite; linear-theory growth-rate figures of merit
 vlasov/creg/rt_vlasov_sr_weibel_1x3v   # Vlasov rewrite; linear-theory growth-rate figures of merit
 
+
+# kitp-hamil-vlasov: gyrokinetic kinetic neutrals moved from the canonical-PB Vlasov solver to
+# the triads Vlasov solver on the tensor p=1 hybrid basis (2^cdim*3^vdim functions instead of the
+# old serendipity hybrid), so neutral distribution and moment files change shape and value.
+gyrokinetic/creg/rt_gk_neut_recycle_1x3v_p1   # kinetic neutrals on triads Vlasov solver; neutral velocity cells 16 -> 12 for CI runtime
+gyrokinetic/creg/rt_gk_rad_low_Te_1x2v_p1   # kinetic neutrals on triads Vlasov solver
+gyrokinetic/creg/rt_gk_sheath_1x2v_p1_cons   # kinetic neutrals on triads Vlasov solver
+gyrokinetic/creg/rt_gk_sheath_cx_2x2v_p1   # kinetic neutrals on triads Vlasov solver; field made toroidal (parallel to e_3) as mapc2p requires
+gyrokinetic/creg/rt_gk_step_2x2v_p1_cons   # kinetic neutrals on triads Vlasov solver; isotropic neutral velocity grid, 12^3 -> 8^3 cells for CI runtime

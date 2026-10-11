@@ -169,6 +169,49 @@ void gkyl_vlasov_triad_geom_from_tangents_interior(
 );
 
 /**
+ * Same b-aligned triad as gkyl_vlasov_triad_geom_from_tangents_interior, for
+ * configuration grids that hold only cdim <= 3 of the three field-aligned
+ * coordinates (e.g. a deflated 1x or 2x gyrokinetic geometry), where the triad
+ * gradients along the coordinates absent from the grid cannot be taken by finite
+ * differences. The caller supplies, at the interior nodes, the Cartesian
+ * tangents of all three coordinates and their gradients along all three
+ * coordinates (e.g. the gyrokinetic geometry's dxdz_nodal and dxdz_grad_nodal),
+ * and the triad gradients follow pointwise from the chain rule of the
+ * Gram-Schmidt construction; nothing is differentiated here. The tangent rows
+ * and gradient directions are in the 3D coordinate order, in which the third
+ * tangent is field-aligned; dir_map gives, for each coordinate index of the
+ * Poisson tensor (grid directions first, then the absent ones), its index in
+ * that 3D order. Construction-time checks as in the finite-difference variant.
+ * p=1 only.
+ *
+ * @param cgrid Configuration-space grid object (cdim <= 3)
+ * @param crange Configuration-space range (cells to update)
+ * @param cbasis Configuration-space basis (p=1)
+ * @param pgrid Phase-space grid object
+ * @param prange Phase-space range
+ * @param pbasis Phase-space basis
+ * @param nrange Nodal range holding the interior nodes (2*cells per direction)
+ * @param cov_tangent_basis_nodal Cartesian covariant tangents on nrange, 9 per node
+ *   (row a = tangent of 3D coordinate a)
+ * @param cov_tangent_basis_grad_nodal d(tangents)/dz^j on nrange, 27 per node,
+ *   gradient direction j (3D order) slowest: [9 j + 3 a + c]
+ * @param bhat_check_nodal Cartesian field direction on nrange, 3 per node, or NULL
+ *   to skip the cross-check
+ * @param dir_map 3D coordinate index of each Poisson-tensor coordinate index, or
+ *   NULL for the identity (cdim = 3)
+ * @param exit_at_checks Assert when a construction-time check fails
+ * @param conf_poisson_tensor The configuration component of the Poisson tensor (output)
+ */
+void gkyl_vlasov_triad_geom_from_tangents_grad_interior(
+  const struct gkyl_rect_grid *cgrid, const struct gkyl_range *crange,
+  const struct gkyl_basis cbasis, const struct gkyl_rect_grid *pgrid,
+  const struct gkyl_range *prange, const struct gkyl_basis pbasis, const struct gkyl_range *nrange,
+  const struct gkyl_array *cov_tangent_basis_nodal,
+  const struct gkyl_array *cov_tangent_basis_grad_nodal, const struct gkyl_array *bhat_check_nodal,
+  const int *dir_map, bool exit_at_checks, struct gkyl_array *conf_poisson_tensor
+);
+
+/**
  * Preset function for the triad hamil
  *
  * @param cdim Number of configuration space dimenions
