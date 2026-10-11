@@ -50,7 +50,7 @@ typedef double (*lax_flux_nodal_t)(
 
 // Stage 3: projection of the nodal buffer onto the surface modal basis, stored
 // at the direction's modal offset of the flux array; item = one inner surface
-// mode (or one surface mode, by the kernel's choice).
+// mode (the inner-node contraction once, then every surface mode sharing it).
 typedef void (*lax_prj_t)(int tid, const double *Fhat_nodal, double *GKYL_RESTRICT flux);
 
 // CFL estimate of the surface from the reduced alpha_max.
