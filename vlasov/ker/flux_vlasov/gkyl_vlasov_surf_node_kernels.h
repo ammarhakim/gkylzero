@@ -12,8 +12,8 @@
 //   _node(i, j, ...)        the node's Lax flux from alpha (by value) and the filled 
 //       G, into the nodal buffer; returns |alpha| for the CFL reduction (_cfl). 
 //   _prj(tid, ...)          projection of the nodal buffer onto the surface modal 
-//       basis: node thread tid does one inner surface mode (all modes sharing 
-//       it) or one surface mode, by the kernel; beyond the count: no-op. 
+//       basis: node thread tid does inner surface mode tid (the inner-node 
+//       contraction once, then every surface mode sharing it); beyond the count: no-op. 
 // tid is the thread's index among the cell's node threads, NOT its node: that 
 // keeps each stage's work in the fewest warps. Only _node is indexed by the 
 // node (i, j). 

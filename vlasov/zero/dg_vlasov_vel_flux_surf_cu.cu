@@ -203,7 +203,7 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(
 
     if (valid && !edge) {
       // Stage 3: projection of the cell's nodal flux onto the surface modal
-      // basis, one item (an inner surface mode or a surface mode) per node thread.
+      // basis, one inner surface mode per node thread.
       up->lax_prj[dir](tid, F_cell, flux);
       // First level of the alpha_max reduction, in the last node threads.
       if (tid >= num_nodes - num_red) {

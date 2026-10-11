@@ -35,19 +35,21 @@ GKYL_CU_DH double ho_lax_flux_nodal_vx_2x2v_ser_p2_node(int i, int j, const doub
 
 GKYL_CU_DH void ho_lax_flux_nodal_vx_2x2v_ser_p2_prj(int tid, const double *Fhat_nodal, double* GKYL_RESTRICT flux) 
 { 
-  if (tid >= 20) return; 
-  const int k = tid; 
-  const int a = vst_2x2v_ser_p2_ho_prj_v0_kamap[k]; 
-  const int b = vst_2x2v_ser_p2_ho_prj_v0_kbmap[k]; 
+  if (tid >= 3) return; 
+  const int b = tid; 
   double t[16]; 
   for (int i = 0; i < 16; ++i) t[i] = 0.0; 
   for (int j = 0; j < 4; ++j) { 
     const double w = vst_2x2v_ser_p2_ho_prj_v0_Vw[j*3 + b]; 
     for (int i = 0; i < 16; ++i) t[i] += w*Fhat_nodal[i*4 + j]; 
   } 
-  double g = 0.0; 
-  for (int i = 0; i < 16; ++i) g += vst_2x2v_ser_p2_ho_prj_v0_Cw[i*8 + a]*t[i]; 
-  flux[0 + k] = g; 
+  for (int q = vst_2x2v_ser_p2_ho_prj_v0_boff[b]; q < vst_2x2v_ser_p2_ho_prj_v0_boff[b+1]; ++q) { 
+    const int k = vst_2x2v_ser_p2_ho_prj_v0_bks[q]; 
+    const int a = vst_2x2v_ser_p2_ho_prj_v0_kamap[k]; 
+    double g = 0.0; 
+    for (int i = 0; i < 16; ++i) g += vst_2x2v_ser_p2_ho_prj_v0_Cw[i*8 + a]*t[i]; 
+    flux[0 + k] = g; 
+  } 
 } 
 
 GKYL_CU_DH double ho_lax_flux_nodal_vx_2x2v_ser_p2_cfl(const double *dxv, const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, double alpha_max) 
