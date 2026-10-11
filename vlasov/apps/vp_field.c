@@ -65,12 +65,10 @@ vp_field_tensor_num_comp(const struct gkyl_vlasov_app *app, bool is_const)
 
 // Set a per-cell constant diagonal tensor (symmetric upper-triangular storage,
 // off-diagonals 0) on the local range of a host array: component (i,i) =
-// scale * J^jpow / J_xi^2, with J_xi the position-map Jacobian in direction i
+// scale * J / J_xi^2, with J_xi the position-map Jacobian in direction i
 // and J = prod_i J_xi the total conf Jacobian.
 static void
-vp_field_set_metric_diag(
-  const struct gkyl_vlasov_app *app, struct gkyl_array *arr_ho, double scale, int jpow
-)
+vp_field_set_metric_diag(const struct gkyl_vlasov_app *app, struct gkyl_array *arr_ho, double scale)
 {
   int cdim = app->cdim, nb = app->basis.num_basis;
   double dg0 = pow(sqrt(2.0), cdim); // 0th DG coeff representing a constant value.
@@ -88,7 +86,7 @@ vp_field_set_metric_diag(
       double Jxi = jacob_pos[i * stride];
       int diag =
         i * cdim - (i * (i - 1)) / 2; // index of (i,i) in symmetric upper-triangular storage.
-      arr_d[diag * nb] = scale * pow(Jtot, jpow) / (Jxi * Jxi) * dg0;
+      arr_d[diag * nb] = scale * Jtot / (Jxi * Jxi) * dg0;
     }
   }
 }
@@ -118,7 +116,7 @@ vp_field_new_epsilon(struct gkyl_vlasov_app *app, double scale)
     struct gkyl_array *eps_local_ho = app->use_gpu ?
                                         mkarr(false, epsnum * nb, app->local_ext.volume) :
                                         gkyl_array_acquire(eps_local);
-    vp_field_set_metric_diag(app, eps_local_ho, scale, 1);
+    vp_field_set_metric_diag(app, eps_local_ho, scale);
     if (app->use_gpu) {
       gkyl_array_copy(eps_local, eps_local_ho);
     }
@@ -473,15 +471,12 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   // identity position map this is the plain |grad phi|^2 operator (GRAD_SQ) with
   // weight 1. For a mapped conf mesh the physical
   //   int |grad_x phi|^2 dx = int sum_i (J/J_xi^2)(d_xi phi)^2 dxi,
-  // i.e. a diagonal metric (J = prod_i J_xi, per-cell constant) folded into the
-  // full-gradient weighted operator (EPS_GRAD_SQ). The weight is J^2/J_xi^2: one
-  // factor of J = sqrt(g) folds the physical volume into the metric
-  // (g^ii = 1/J_xi^2), and a second factor of J corrects the integrate operator's
-  // (computational) cell-volume factor to the physical cell volume J*dxi_comp.
-  // With this weight EPS_GRAD_SQ matches the uniform-grid GRAD_SQ diagnostic
-  // exactly for a constant-Jacobian map (verified for all cdim) and reduces to
-  // GRAD_SQ for the identity map. The weight uses the same symmetric
-  // upper-triangular layout as the Poisson permittivity tensor.
+  // i.e. the diagonal metric J/J_xi^2 (J = prod_i J_xi, per-cell constant; the
+  // same metric as the Poisson permittivity with unit scale) folded into the
+  // full-gradient weighted operator (EPS_GRAD_SQ), which integrates over the
+  // computational cells. The weight uses the same symmetric upper-triangular
+  // layout as the Poisson permittivity tensor. (Verified against the analytic
+  // potential of a Gaussian sheet on a linear-to-exponential 1x map.)
   bool wgt_const = app->pos_map->is_identity;
   int wgtnum = vp_field_tensor_num_comp(app, wgt_const);
   vpf->grad_sq_wgt = mkarr(app->use_gpu, wgtnum * nb, app->local_ext.volume);
@@ -491,7 +486,7 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   } else {
     struct gkyl_array *wgt_ho = app->use_gpu ? mkarr(false, wgtnum * nb, app->local_ext.volume) :
                                                gkyl_array_acquire(vpf->grad_sq_wgt);
-    vp_field_set_metric_diag(app, wgt_ho, 1.0, 2);
+    vp_field_set_metric_diag(app, wgt_ho, 1.0);
     if (app->use_gpu) {
       gkyl_array_copy(vpf->grad_sq_wgt, wgt_ho);
     }
