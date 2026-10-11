@@ -1353,7 +1353,7 @@ void vm_species_proj_conf_func(
 // Reference parameters for Spitzer collision frequencies and Morse's alpha_E.
 struct vm_coll_ref_params {
   double den, temp; // Reference density and temperature.
-  double hbar, eps0, eV; // Planck's constant/2 pi, vacuum permittivity, elementary charge.
+  double hbar, eps0; // Planck's constant/2 pi, vacuum permittivity.
 };
 
 /**

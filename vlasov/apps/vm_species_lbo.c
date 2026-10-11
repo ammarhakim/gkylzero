@@ -255,7 +255,6 @@ vm_species_coll_ref_params(const struct gkyl_vlasov_collisions *coll)
     .temp = coll->temp_ref ? coll->temp_ref : 1.0,
     .hbar = coll->hbar ? coll->hbar : 1.0,
     .eps0 = coll->eps0 ? coll->eps0 : 1.0,
-    .eV = coll->eV ? coll->eV : 1.0,
   };
 }
 
@@ -339,8 +338,7 @@ vm_species_lbo_init(
       // cheaper and yields an electron isotropization rate that agrees better with the FPO's.
       lbo->norm_nu_fac_self = nu_frac * gkyl_calc_Morse_alpha_E_const(
                                           rp.den, rp.den, vms->mass, vms->mass, vms->charge,
-                                          vms->charge, rp.temp, rp.temp, bmag_ref, rp.eps0, rp.hbar,
-                                          rp.eV
+                                          vms->charge, rp.temp, rp.temp, bmag_ref, rp.eps0, rp.hbar
                                         );
 
       // Set pointers to functions chosen at runtime.
@@ -506,7 +504,7 @@ vm_species_lbo_cross_init(
           double alpha_E_norm = nu_frac * gkyl_calc_Morse_alpha_E_const(
                                             rp_s.den, rp_r.den, mass_self, mass_other, vms->charge,
                                             lbo->collide_with[i]->charge, rp_s.temp, rp_r.temp,
-                                            bmag_ref, rp_s.eps0, rp_s.hbar, rp_s.eV
+                                            bmag_ref, rp_s.eps0, rp_s.hbar
                                           );
           lbo->norm_nu_fac_cross[i] = alpha_E_norm / lbo->alpha_E_fac[i];
         }

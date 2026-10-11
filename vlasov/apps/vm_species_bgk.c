@@ -330,8 +330,7 @@ vm_species_bgk_init(
       // cheaper and yields an electron isotropization rate that agrees better with the FPO's.
       bgk->norm_nu_fac_self = nu_frac * gkyl_calc_Morse_alpha_E_const(
                                           rp.den, rp.den, vms->mass, vms->mass, vms->charge,
-                                          vms->charge, rp.temp, rp.temp, bmag_ref, rp.eps0, rp.hbar,
-                                          rp.eV
+                                          vms->charge, rp.temp, rp.temp, bmag_ref, rp.eps0, rp.hbar
                                         );
 
       // Set pointers to functions chosen at runtime.
@@ -444,7 +443,7 @@ vm_species_bgk_cross_init(
         alpha_E_norm[i] = nu_frac * gkyl_calc_Morse_alpha_E_const(
                                       rp_s.den, rp_r.den, mass_self, mass_other, vms->charge,
                                       bgk->collide_with[i]->charge, rp_s.temp, rp_r.temp, bmag_ref,
-                                      rp_s.eps0, rp_s.hbar, rp_s.eV
+                                      rp_s.eps0, rp_s.hbar
                                     );
       }
 

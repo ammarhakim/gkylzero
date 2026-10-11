@@ -65,7 +65,7 @@ struct gkyl_vlasov_collisions {
   // interface.
   double den_ref; // Reference density.
   double temp_ref; // Reference temperature.
-  double hbar, eps0, eV; // Planck's constant/2 pi, vacuum permittivity, elementary charge.
+  double hbar, eps0; // Planck's constant/2 pi, vacuum permittivity.
 
   // BGK collisions specific inputs
   bool fixed_temp_relax; // Are BGK collisions relaxing to a fixed input temperature?

@@ -482,7 +482,7 @@ struct vlasov_species_lw {
   // Parameters used to compute the Coulomb Logarithm.
   double den_ref; // Reference density.
   double temp_ref; // Reference temperature.
-  double hbar, eps0, eV; // Planck's constant/2 pi, vacuum permittivity, elementary charge.
+  double hbar, eps0; // Planck's constant/2 pi, vacuum permittivity.
 
   bool lte_correct_all_moms; // Are we correcting all moments in collisions, or only density?
   double lte_iter_eps; // Error tolerance for moment fixes in collisions (density is always exact).
@@ -875,7 +875,7 @@ vlasov_species_lw_new(lua_State *L)
 
   double den_ref = 0.0;
   double temp_ref = 0.0;
-  double hbar = 0.0, eps0 = 0.0, eV = 0.0;
+  double hbar = 0.0, eps0 = 0.0;
   bool fixed_temp_relax = false;
   bool is_implicit = false;
   with_lua_tbl_tbl(L, "collisions")
@@ -920,7 +920,6 @@ vlasov_species_lw_new(lua_State *L)
     temp_ref = glua_tbl_get_number(L, "T0", 1.0);
     hbar = glua_tbl_get_number(L, "hbar", 1.0);
     eps0 = glua_tbl_get_number(L, "epsilon0", 1.0);
-    eV = glua_tbl_get_number(L, "eV", 1.0);
     // BGK collisions specific inputs
     fixed_temp_relax = glua_tbl_get_bool(L, "fixedTempRelax", false);
     is_implicit = glua_tbl_get_bool(L, "useImplicitCollisionScheme", false);
@@ -1310,7 +1309,6 @@ vlasov_species_lw_new(lua_State *L)
   vms_lw->temp_ref = temp_ref;
   vms_lw->hbar = hbar;
   vms_lw->eps0 = eps0;
-  vms_lw->eV = eV;
   vms_lw->fixed_temp_relax = fixed_temp_relax;
   vms_lw->is_implicit = is_implicit;
 
@@ -2906,7 +2904,6 @@ vm_app_new(lua_State *L)
     vm.species[s].kinetic.collisions.temp_ref = species[s]->temp_ref;
     vm.species[s].kinetic.collisions.hbar = species[s]->hbar;
     vm.species[s].kinetic.collisions.eps0 = species[s]->eps0;
-    vm.species[s].kinetic.collisions.eV = species[s]->eV;
     vm.species[s].kinetic.collisions.fixed_temp_relax = species[s]->fixed_temp_relax;
     vm.species[s].kinetic.collisions.is_implicit = species[s]->is_implicit;
 
