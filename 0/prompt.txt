@@ -1,0 +1,27 @@
+So the last commit we made had to do with supressing some large chunks of text in the github report. I noticed this commit https://github.com/gkeyllorg/gkeyll/commit/3e6a0519acb8396e8c650ed4f0a5bd8790351305#comments which had around 100 comments and several look like
+gkylsoft/gkeyll-results/gyrokinetic/regressiondb:gyrokinetic/creg/rt_gk_cbc_2x2v_p1:607: WARNING: Time-step dt = 1.5263e-14 is below 0.001*dt_init ... num_failures = 1
+
+We do want to report that these happened, but we don't need to report every single one. Make the report more consise, but still report the valuable information
+
+---
+
+So the last commit we made had to do with supressing some large chunks of text in the github report. I noticed this commit https://github.com/gkeyllorg/gkeyll/commit/3e6a0519acb8396e8c650ed4f0a5bd8790351305#comments which had around 100 comments and several look like
+gkylsoft/gkeyll-results/gyrokinetic/regressiondb:gyrokinetic/creg/rt_gk_cbc_2x2v_p1:607: WARNING: Time-step dt = 1.5263e-14 is below 0.001*dt_init ... num_failures = 1
+
+We do want to report that these happened, but we don't need to report every single one. Make the report more consise, but still report the valuable information
+
+---
+
+I want to show all the warnings in the github report, but only show one of the timestep crashing warnings per warning
+
+---
+
+I want to show all the warnings in the github report, but only show one of the timestep crashing warnings per warning
+
+---
+
+I want to show all the compiler warnings in the github report, but only show one of the timestep crashing warnings per warning
+
+---
+
+I want to show all the compiler warnings in the github report, but only show one of the timestep crashing warnings per warning
