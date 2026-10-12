@@ -48,15 +48,13 @@ gpython_spitzer_coll_freq(
 {
   const struct gkyl_basis *b = CBAS(basis);
   size_t nb = b->num_basis, size = CARR(moms_self)->size;
-  if (
-    !physical_parameters(ms, mr, qs, qr, eps0, hbar) || !isfinite(nufrac) || nufrac < 0 ||
-    !isfinite(vtmin_self) || vtmin_self < 0 || !isfinite(vtmin_other) || vtmin_other < 0 ||
-    num_quad < 1 || num_quad > 64 || b->ndim < 1 || b->ndim > 3 || size > INT_MAX || !size ||
-    CARR(moms_self)->ncomp < 3 * nb || CARR(moms_self)->ncomp % nb ||
-    CARR(moms_other)->ncomp != CARR(moms_self)->ncomp || CARR(moms_other)->size != size ||
-    CARR(bmag)->ncomp != nb || CARR(bmag)->size != size || CARR(out)->ncomp != nb ||
-    CARR(out)->size != size
-  ) {
+  if (!physical_parameters(ms, mr, qs, qr, eps0, hbar) || !isfinite(nufrac) || nufrac < 0 ||
+      !isfinite(vtmin_self) || vtmin_self < 0 || !isfinite(vtmin_other) || vtmin_other < 0 ||
+      num_quad < 1 || num_quad > 64 || b->ndim < 1 || b->ndim > 3 || size > INT_MAX || !size ||
+      CARR(moms_self)->ncomp < 3 * nb || CARR(moms_self)->ncomp % nb ||
+      CARR(moms_other)->ncomp != CARR(moms_self)->ncomp || CARR(moms_other)->size != size ||
+      CARR(bmag)->ncomp != nb || CARR(bmag)->size != size || CARR(out)->ncomp != nb ||
+      CARR(out)->size != size) {
     return 1;
   }
   int cells = (int)size;
