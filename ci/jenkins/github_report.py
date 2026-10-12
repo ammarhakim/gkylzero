@@ -417,23 +417,34 @@ def diagnostic_sections(summary_output=None, full_warnings_output=None):
         note = 'Comparison unavailable: no matching completed baseline build logs. Warnings cannot be classified as new.'
     elif unknown:
         note += '\n{} distinct candidate warnings could not be compared because their baseline step did not complete.'.format(len(unknown))
-    title = 'New warnings vs {} ({})'.format(ref, len(new) if comparable else 'unknown')
-    empty = 'No new warnings in comparable steps.' if comparable else ''
-    # Keep the complete formatter and every message for artifact inspection and
-    # a future reporting transport. Only the compact sections become comments.
+    sections, full = [], []
+    for label, timestep in (('compiler and other warnings', False), ('time-step warnings', True)):
+        def in_category(entry):
+            # Classify the diagnostic itself, never its source/caret context.
+            return bool(re.search(r'\bWARNING:\s*Time[- ]step\b',
+                                  entry.split('\n', 1)[0], re.I)) == timestep
+
+        category_new = [entry for entry in new if in_category(entry)]
+        category_all = [entry for entry in warnings if in_category(entry)]
+        title = 'New {} vs {} ({})'.format(label, ref, len(category_new) if comparable else 'unknown')
+        all_title = 'All {} ({})'.format(label, len(category_all))
+        empty = 'No new warnings in comparable steps.' if comparable else ''
+        # Archive every occurrence and its context; grouping affects comments only.
+        if full_warnings_output:
+            full += detail_sections(title, note + '\n\n' + ('\n\n'.join(category_new) or empty))
+            full += detail_sections(all_title, '\n\n'.join(category_all) or 'No warnings found in captured logs.')
+        displayed_new = group_timestep_warnings(category_new) if timestep else category_new
+        displayed_all = group_timestep_warnings(category_all, 'warning occurrences') if timestep else category_all
+        sections += detail_sections(title, note + '\n\n' + ('\n\n'.join(displayed_new) or empty))
+        all_note = 'Warning occurrences across captured candidate, baseline, and shared logs. '
+        if timestep:
+            all_note += 'Repeated time-step warnings are grouped per log/test and threshold. '
+        all_note += 'Every original occurrence and its context is retained in ci-report-warnings.md.'
+        sections += detail_sections(all_title, all_note + '\n\n' + (
+            '\n\n'.join(displayed_all) or 'No warnings found in captured logs.'))
     if full_warnings_output:
-        full = detail_sections(title, note + '\n\n' + ('\n\n'.join(new) or empty))
-        full += detail_sections('All warnings ({})'.format(len(warnings)),
-                                '\n\n'.join(warnings) or 'No warnings found in captured logs.')
         with open(full_warnings_output, 'w', encoding='utf-8') as stream:
             stream.write('\n\n'.join(full))
-    sections = detail_sections(title, note + '\n\n' + ('\n\n'.join(group_timestep_warnings(new)) or empty))
-    all_note = ('Warning occurrences across captured candidate, baseline, and shared logs. '
-                'Repeated time-step warnings are grouped per log/test and threshold. '
-                'Every original occurrence and its context is retained in ci-report-warnings.md.')
-    sections += detail_sections('All warnings ({})'.format(len(warnings)),
-                                all_note + '\n\n' + ('\n\n'.join(group_timestep_warnings(
-                                    warnings, 'warning occurrences')) or 'No warnings found in captured logs.'))
     sections += detail_sections('All errors ({})'.format(len(errors)), '\n\n'.join(errors) or 'No recognised error lines in captured logs; see failure details for command exits and infrastructure failures.')
     if summary_output:
         with open(summary_output, 'w', encoding='utf-8') as stream:

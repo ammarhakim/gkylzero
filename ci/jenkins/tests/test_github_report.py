@@ -95,7 +95,7 @@ class FailureReportTests(unittest.TestCase):
         self.assertEqual(len(pages), 1)
         self.assertNotIn('Captured logs', pages[0])
         self.assertNotIn('regressiondb:test_', pages[0])
-        self.assertIn('All warnings (1)', pages[0])
+        self.assertIn('All compiler and other warnings (1)', pages[0])
         self.assertIn('example warning', pages[0])
         self.assertIn('example warning', Path('ci-report-warnings.md').read_text())
         self.assertIn('All errors (1)', pages[0])
@@ -121,11 +121,35 @@ class FailureReportTests(unittest.TestCase):
         self.assertIn('16999 distinct new warnings grouped', pages[0])
         self.assertIn('warning: introduced', pages[0])
         self.assertIn('warning: existing', pages[0])
-        self.assertIn('All warnings (17004)', pages[0])
+        self.assertIn('All compiler and other warnings (3)', pages[0])
+        self.assertIn('All time-step warnings (17001)', pages[0])
+        self.assertIn('New time-step warnings vs main (16999)', pages[0])
         archived = log_text(Path('ci-report-warnings.md').read_text())
         for warning in warnings:
             self.assertIn(warning, archived)
         self.assertIn('a.c:1: warning: existing', archived)
+
+    def test_warning_categories_are_separate_in_comments_and_archive(self):
+        compiler = 'a.c:7: warning: compiler diagnostic'
+        timestep = 'WARNING: Time-step dt = nan is below 0.001*dt_init ... num_failures = 20'
+        error = 'ERROR: Time-step was below 0.001*dt_init 20 consecutive times. Aborting simulation.'
+        self.write('candidate-build.log', '\n'.join([compiler, timestep, error]))
+        self.write('baseline-build.log', '')
+        self.write('baseline-build.log.exit', '0\n')
+        sections = report.diagnostic_sections('diagnostics.json', 'ci-report-warnings.md')
+        for body in ('\n\n'.join(sections), Path('ci-report-warnings.md').read_text()):
+            for section in body.split('</details>'):
+                if '<summary>New compiler' in section or '<summary>All compiler' in section:
+                    self.assertIn(compiler, log_text(section))
+                    self.assertNotIn(timestep, log_text(section))
+                elif '<summary>New time-step' in section or '<summary>All time-step' in section:
+                    self.assertIn(timestep, log_text(section))
+                    self.assertNotIn(compiler, log_text(section))
+            self.assertIn('New time-step warnings vs main (1)', body)
+            self.assertIn('New compiler and other warnings vs main (1)', body)
+        self.assertIn(error, log_text(sections[-1]))
+        summary = json.loads(Path('diagnostics.json').read_text())
+        self.assertEqual((summary['warnings'], summary['new_warnings'], summary['errors']), (2, 2, 1))
 
     def test_timestep_groups_keep_tests_thresholds_and_other_warnings_separate(self):
         def warning(path, line, dt, threshold='0.001', failures=1):
@@ -152,7 +176,7 @@ class FailureReportTests(unittest.TestCase):
             report.build_report(args)
         pages = json.loads(Path(args.output + '.json').read_text())
         posted = log_text('\n'.join(pages))
-        self.assertIn('New warnings vs main (2000)', pages[0])
+        self.assertIn('New compiler and other warnings vs main (2000)', pages[0])
         self.assertIn('ERROR: useful failure', posted)
         for warning in warnings:
             self.assertIn(warning, posted)
@@ -178,9 +202,9 @@ class FailureReportTests(unittest.TestCase):
     def test_unavailable_baseline_shows_warnings_in_report_and_artifact(self):
         self.write('candidate-build.log', 'a.c:1: warning: cannot classify\n')
         body = '\n'.join(report.diagnostic_sections('diagnostics.json', 'ci-report-warnings.md'))
-        self.assertIn('New warnings vs main (unknown)', body)
+        self.assertIn('New compiler and other warnings vs main (unknown)', body)
         self.assertIn('Comparison unavailable', body)
-        self.assertIn('All warnings (1)', body)
+        self.assertIn('All compiler and other warnings (1)', body)
         self.assertIn('warning: cannot classify', body)
         self.assertIn('warning: cannot classify', Path('ci-report-warnings.md').read_text())
         self.assertIsNone(json.loads(Path('diagnostics.json').read_text())['new_warnings'])
@@ -189,7 +213,9 @@ class FailureReportTests(unittest.TestCase):
         warning = 'WARNING: Time-step dt = 1.5263e-14 is below 0.001*dt_init ... num_failures = 1'
         self.write('candidate-build.log', '\n'.join([warning] * 100) + '\na.c:1: warning: compiler detail\n')
         body = '\n'.join(report.diagnostic_sections('diagnostics.json', 'ci-report-warnings.md'))
-        self.assertIn('All warnings (101)', body)
+        self.assertIn('All compiler and other warnings (1)', body)
+        self.assertIn('All time-step warnings (100)', body)
+        self.assertIn('New time-step warnings vs main (unknown)', body)
         self.assertIn('100 warning occurrences grouped', body)
         self.assertEqual(body.count('Time-step dt'), 1)
         self.assertIn('a.c:1: warning: compiler detail', log_text(body))
@@ -305,7 +331,7 @@ class FailureReportTests(unittest.TestCase):
         self.assertNotIn('build line 17\n', tail)
         self.assertNotIn('<details open', body)
         self.assertLess(body.index('Failed build log'), body.index('Candidate unit tests'))
-        warnings = body.split('<summary>All warnings (1)')[1].split('</details>')[0]
+        warnings = body.split('<summary>All compiler and other warnings (1)')[1].split('</details>')[0]
         errors = body.split('<summary>All errors (2)')[1].split('</details>')[0]
         self.assertNotIn('undeclared identifier', warnings)
         self.assertNotIn('NaN disabled', errors)
@@ -359,7 +385,7 @@ class FailureReportTests(unittest.TestCase):
     def test_warning_mentioning_error_is_not_an_error(self):
         self.write('candidate-unit-build.log', 'a.c:4: warning: error: in diagnostic message\n')
         body = '\n'.join(report.diagnostic_sections())
-        self.assertIn('All warnings (1)', body)
+        self.assertIn('All compiler and other warnings (1)', body)
         self.assertIn('All errors (0)', body)
 
 

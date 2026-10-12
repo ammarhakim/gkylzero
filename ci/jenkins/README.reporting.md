@@ -114,7 +114,7 @@ Reports use collapsed sections for:
   totals and failure details.
 - Stage durations, timings, the 20 slowest candidate regressions, and regression
   timing changes.
-- New warnings relative to the selected baseline, all warnings,
+- New/all compiler and other warnings, separate new/all time-step warnings,
   all errors with log locations and context, and the failed build log's last
   100 lines.
 - Stage history, Slurm details, and artifact retrieval instructions.
@@ -125,17 +125,23 @@ while preserving line breaks and indentation; archived logs remain raw.
 
 Warning comparison uses matching completed baseline steps, ignoring checkout
 paths, ANSI colors, and source line/column changes. Missing or failed steps show
-comparison as unavailable; unmatched/shared warnings remain in **All warnings**.
+comparison as unavailable; unmatched/shared warnings remain in their **All** section.
 HPC builds baseline unit tests too, providing corresponding compiler diagnostics.
 
-**All warnings** includes compiler and other warnings across candidate, baseline,
-and shared logs, without a preview limit. **New warnings** retains the distinct
-new messages per matching build/test step. In both sections, repeated time-step
-warnings are condensed to one entry per log/test and threshold, showing the line
-range, time-step range, and maximum `num_failures`. Counts describe occurrences
-in **All warnings** and distinct new messages in **New warnings**.
-Grouping changes display only; warning counts and baseline comparison stay the
-same. The complete new/all warning sections, including every captured occurrence
+Warnings are split into **Compiler and other warnings** and **Time-step warnings**,
+each with **New ... vs baseline** and **All ...** collapsed sections. Small-time-step
+warnings (`WARNING: Time-step ...`) appear only in the time-step sections, including
+messages with nonfinite time steps. Actual abort diagnostics (`ERROR: Time-step ...`)
+remain in **All errors**.
+
+**All** sections include occurrences across candidate, baseline, and shared logs,
+without a preview limit. **New** sections retain distinct new messages per matching
+build/test step. Repeated time-step warnings are condensed to one entry per log/test
+and threshold, showing the line range, time-step range, and maximum `num_failures`.
+Counts describe occurrences in **All** sections and distinct new messages in **New**
+sections. Grouping changes display only; baseline comparison and aggregate warning
+counts in `ci-diagnostic-summary.json` stay the same. The complete new/all warning
+sections, split into the same categories and including every captured occurrence
 and its context, are retained in `ci-report-warnings.md` in Jenkins artifacts.
 Many compiler warnings or errors can still produce continuation comments; none
 are omitted or truncated to shorten the report.
