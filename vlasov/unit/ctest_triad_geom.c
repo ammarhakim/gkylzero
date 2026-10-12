@@ -1474,6 +1474,205 @@ test_triad_from_tangents_interior_3x3v_cylindrical()
   );
 }
 
+// --- from_tangents_grad_interior (chain-rule gradients, deflated grids) tests ---
+
+// d t_a/dz^j of the cylindrical tangents, 3D order [9 j + 3 a + c].
+static void
+fill_cyl_tangent_grad(const double *xmu, double *dtan)
+{
+  double r = xmu[0], a = xmu[1];
+  for (int k = 0; k < 27; ++k) {
+    dtan[k] = 0.0;
+  }
+  // d/dr of t_alpha
+  dtan[0 * 9 + 3 * 1 + 0] = -sin(a);
+  dtan[0 * 9 + 3 * 1 + 1] = cos(a);
+  // d/dalpha of t_r
+  dtan[1 * 9 + 3 * 0 + 0] = -sin(a);
+  dtan[1 * 9 + 3 * 0 + 1] = cos(a);
+  // d/dalpha of t_alpha
+  dtan[1 * 9 + 3 * 1 + 0] = -r * cos(a);
+  dtan[1 * 9 + 3 * 1 + 1] = -r * sin(a);
+}
+
+// A/B the chain-rule construction against the interior constructor fed the
+// ANALYTIC triad and gradients, on a grid holding cdim of the three
+// coordinates: grid direction d is 3D coordinate dir_map[d], and the removed
+// coordinates sit at xfixed. Nothing is differentiated numerically, so the
+// two agree to round-off.
+static void
+test_triad_from_tangents_grad_interior(
+  nodal_fill_t fill_tan, nodal_fill_t fill_dtan, nodal_fill_t fill_tri, nodal_fill_t fill_grad,
+  nodal_fill_t fill_bhat, int cdim, const int *dir_map, const double *xfixed,
+  const double *confLower, const double *confUpper, const int *confCells, double tol
+)
+{
+  int vdim = 3, poly_order = 1;
+  int ndim = cdim + vdim;
+  int num_pt = 18;
+
+  double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+  int cells[GKYL_MAX_DIM];
+  for (int d = 0; d < cdim; ++d) {
+    lower[d] = confLower[d];
+    upper[d] = confUpper[d];
+    cells[d] = confCells[d];
+  }
+  for (int d = cdim; d < ndim; ++d) {
+    lower[d] = -1.0;
+    upper[d] = 1.0;
+    cells[d] = 2;
+  }
+
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+  struct gkyl_rect_grid confGrid;
+  gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+
+  struct gkyl_basis basis, confBasis;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
+
+  int confGhost[GKYL_MAX_CDIM] = {1, 1, 1};
+  struct gkyl_range confLocal, confLocal_ext;
+  gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
+
+  int ghost[GKYL_MAX_DIM] = {0};
+  for (int d = 0; d < cdim; ++d) {
+    ghost[d] = confGhost[d];
+  }
+  struct gkyl_range local, local_ext;
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+
+  int NC = confBasis.num_basis;
+
+  int nlower[GKYL_MAX_CDIM] = {0}, nupper[GKYL_MAX_CDIM] = {0};
+  for (int d = 0; d < cdim; ++d) {
+    nupper[d] = 2 * confCells[d] - 1;
+  }
+  struct gkyl_range nrange;
+  gkyl_range_init(&nrange, cdim, nlower, nupper);
+
+  struct gkyl_array *tan_n = mkarr(9, nrange.volume);
+  struct gkyl_array *dtan_n = mkarr(27, nrange.volume);
+  struct gkyl_array *bhat_n = mkarr(3, nrange.volume);
+  struct gkyl_array *tanp_n = mkarr(9, nrange.volume);
+  struct gkyl_array *tri_n = mkarr(9, nrange.volume);
+  struct gkyl_array *gradp_n = mkarr(27, nrange.volume);
+
+  double glpt = 1.0 / sqrt(3.0);
+  double xc[GKYL_MAX_DIM], xmu3[3], grad3[27];
+  int nidx[GKYL_MAX_CDIM];
+  struct gkyl_range_iter citer;
+  gkyl_range_iter_init(&citer, &confLocal);
+  while (gkyl_range_iter_next(&citer)) {
+    gkyl_rect_grid_cell_center(&confGrid, citer.idx, xc);
+    for (int i = 0; i < NC; ++i) {
+      for (int q = 0; q < 3; ++q) {
+        xmu3[q] = xfixed[q];
+      }
+      for (int j = 0; j < cdim; ++j) {
+        int b = (i >> (cdim - 1 - j)) & 1;
+        nidx[j] = (citer.idx[j] - confLocal.lower[j]) * 2 + b;
+        xmu3[dir_map[j]] = xc[j] + (2 * b - 1) * 0.5 * confGrid.dx[j] * glpt;
+      }
+      long ln = gkyl_range_idx(&nrange, nidx);
+      double *tan = gkyl_array_fetch(tan_n, ln);
+      double *tanp = gkyl_array_fetch(tanp_n, ln);
+      double *gradp = gkyl_array_fetch(gradp_n, ln);
+      fill_tan(xmu3, tan);
+      fill_dtan(xmu3, gkyl_array_fetch(dtan_n, ln));
+      fill_bhat(xmu3, gkyl_array_fetch(bhat_n, ln));
+      fill_tri(xmu3, gkyl_array_fetch(tri_n, ln));
+      fill_grad(xmu3, grad3);
+      // Analytic reference in Poisson-tensor coordinate order.
+      for (int q = 0; q < 3; ++q) {
+        for (int c = 0; c < 3; ++c) {
+          tanp[3 * q + c] = tan[3 * dir_map[q] + c];
+        }
+        for (int m = 0; m < 9; ++m) {
+          gradp[9 * q + m] = grad3[9 * dir_map[q] + m];
+        }
+      }
+    }
+  }
+
+  struct gkyl_array *pt_a = mkarr(NC * num_pt, confLocal_ext.volume);
+  gkyl_vlasov_triad_geom_from_tangents_grad_interior(
+    &confGrid, &confLocal, confBasis, &grid, &local, basis, &nrange, tan_n, dtan_n, bhat_n, dir_map,
+    true, pt_a
+  );
+
+  struct gkyl_array *pt_b = mkarr(NC * num_pt, confLocal_ext.volume);
+  gkyl_vlasov_triad_geom_from_nodal_interior(
+    &confGrid, &confLocal, confBasis, &grid, &local, basis, &nrange, tanp_n, tri_n, gradp_n, pt_b
+  );
+
+  gkyl_range_iter_init(&citer, &confLocal);
+  while (gkyl_range_iter_next(&citer)) {
+    long lidx = gkyl_range_idx(&confLocal, citer.idx);
+    const double *a_d = gkyl_array_cfetch(pt_a, lidx);
+    const double *b_d = gkyl_array_cfetch(pt_b, lidx);
+    for (int k = 0; k < NC * num_pt; ++k) {
+      TEST_CHECK(gkyl_compare_double(a_d[k], b_d[k], tol));
+      TEST_MSG(
+        "cell (%d,%d,%d), coeff %d: chain rule %1.16e vs analytic %1.16e", citer.idx[0],
+        citer.idx[1], citer.idx[2], k, a_d[k], b_d[k]
+      );
+    }
+  }
+
+  gkyl_array_release(tan_n);
+  gkyl_array_release(dtan_n);
+  gkyl_array_release(bhat_n);
+  gkyl_array_release(tanp_n);
+  gkyl_array_release(tri_n);
+  gkyl_array_release(gradp_n);
+  gkyl_array_release(pt_a);
+  gkyl_array_release(pt_b);
+}
+
+void
+test_triad_from_tangents_grad_interior_3x3v_cylindrical()
+{
+  int dir_map[] = {0, 1, 2};
+  double xfixed[] = {0.0, 0.0, 0.0};
+  double confLower[] = {1.0, 0.0, 0.0}, confUpper[] = {2.0, 0.4, 1.0};
+  int confCells[] = {4, 8, 4};
+  test_triad_from_tangents_grad_interior(
+    fill_cyl_tangents, fill_cyl_tangent_grad, fill_cyl_triad, fill_cyl_triad_grad, fill_cyl_bhat, 3,
+    dir_map, xfixed, confLower, confUpper, confCells, 1e-12
+  );
+}
+
+void
+test_triad_from_tangents_grad_interior_2x3v_cylindrical_deflated()
+{
+  // (r, z) grid; alpha removed, as in a 2x gyrokinetic geometry.
+  int dir_map[] = {0, 2, 1};
+  double xfixed[] = {0.0, 0.3, 0.0};
+  double confLower[] = {1.0, 0.0}, confUpper[] = {2.0, 1.0};
+  int confCells[] = {4, 4};
+  test_triad_from_tangents_grad_interior(
+    fill_cyl_tangents, fill_cyl_tangent_grad, fill_cyl_triad, fill_cyl_triad_grad, fill_cyl_bhat, 2,
+    dir_map, xfixed, confLower, confUpper, confCells, 1e-12
+  );
+}
+
+void
+test_triad_from_tangents_grad_interior_1x3v_cylindrical_deflated()
+{
+  // z grid; r and alpha removed, as in a 1x gyrokinetic geometry.
+  int dir_map[] = {2, 0, 1};
+  double xfixed[] = {1.5, 0.3, 0.0};
+  double confLower[] = {0.0}, confUpper[] = {1.0};
+  int confCells[] = {4};
+  test_triad_from_tangents_grad_interior(
+    fill_cyl_tangents, fill_cyl_tangent_grad, fill_cyl_triad, fill_cyl_triad_grad, fill_cyl_bhat, 1,
+    dir_map, xfixed, confLower, confUpper, confCells, 1e-12
+  );
+}
+
 void
 test_triad_from_nodal_1x2v_annulus_p1()
 {
@@ -1553,6 +1752,12 @@ TEST_LIST = {
   {"test_triad_from_tangents_interior_3x3v_flat", test_triad_from_tangents_interior_3x3v_flat},
   {"test_triad_from_tangents_interior_3x3v_cylindrical",
    test_triad_from_tangents_interior_3x3v_cylindrical},
+  {"test_triad_from_tangents_grad_interior_3x3v_cylindrical",
+   test_triad_from_tangents_grad_interior_3x3v_cylindrical},
+  {"test_triad_from_tangents_grad_interior_2x3v_cylindrical_deflated",
+   test_triad_from_tangents_grad_interior_2x3v_cylindrical_deflated},
+  {"test_triad_from_tangents_grad_interior_1x3v_cylindrical_deflated",
+   test_triad_from_tangents_grad_interior_1x3v_cylindrical_deflated},
   {"test_triad_2v", test_triad_2v},
   {"test_triad_3v", test_triad_3v},
   {NULL, NULL}

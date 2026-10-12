@@ -1566,6 +1566,7 @@ gkyl_gyrokinetic_app_write_geometry(
   struct gkyl_array *arr_ho3 = mkarr(false, 3 * app->basis.num_basis, app->local_ext.volume);
   struct gkyl_array *arr_ho6 = mkarr(false, 6 * app->basis.num_basis, app->local_ext.volume);
   struct gkyl_array *arr_ho9 = mkarr(false, 9 * app->basis.num_basis, app->local_ext.volume);
+  struct gkyl_array *arr_ho27 = mkarr(false, 27 * app->basis.num_basis, app->local_ext.volume);
 
   gyrokinetic_app_geometry_copy_and_write(
     app, app->gk_geom->geo_corn.mc2p, arr_ho3, "geo_corn_mapc2p",
@@ -1615,6 +1616,14 @@ gkyl_gyrokinetic_app_write_geometry(
     app, app->gk_geom->geo_int.dxdz, arr_ho9, "geo_int_dxdz",
     "Cartesian components of tangent vectors."
   );
+  if (app->cdim < 3) {
+    // Deflated geometries also carry the tangent gradients along all three
+    // field-aligned coordinates (needed to read the geometry back from file).
+    gyrokinetic_app_geometry_copy_and_write(
+      app, app->gk_geom->geo_int.dxdz_grad, arr_ho27, "geo_int_dxdz_grad",
+      "Gradients of the Cartesian tangent vectors along the three field-aligned coordinates."
+    );
+  }
   gyrokinetic_app_geometry_copy_and_write(
     app, app->gk_geom->geo_int.dzdx, arr_ho9, "geo_int_dzdx",
     "Cartesian components of dual vectors."
@@ -1888,6 +1897,7 @@ gkyl_gyrokinetic_app_write_geometry(
   gkyl_array_release(arr_ho3);
   gkyl_array_release(arr_ho6);
   gkyl_array_release(arr_ho9);
+  gkyl_array_release(arr_ho27);
   gkyl_array_release(arr_surf_ho1);
   gkyl_array_release(arr_surf_ho2);
   gkyl_array_release(arr_surf_ho3);
@@ -4020,6 +4030,7 @@ gkyl_gyrokinetic_app_read_geometry(
   struct gkyl_array *arr_ho3 = mkarr(false, 3 * app->basis.num_basis, app->local_ext.volume);
   struct gkyl_array *arr_ho6 = mkarr(false, 6 * app->basis.num_basis, app->local_ext.volume);
   struct gkyl_array *arr_ho9 = mkarr(false, 9 * app->basis.num_basis, app->local_ext.volume);
+  struct gkyl_array *arr_ho27 = mkarr(false, 27 * app->basis.num_basis, app->local_ext.volume);
 
   cstr fileNm =
     cstr_from_fmt("%s%s-%s.gkyl", geometry_inp->geometry_path, app->name, "geo_int_jacobgeo");
@@ -4106,6 +4117,23 @@ gkyl_gyrokinetic_app_read_geometry(
   gyrokinetic_app_geometry_read_and_copy(
     app, app->gk_geom->geo_int.dxdz, arr_ho9, geometry_inp->geometry_path, "geo_int_dxdz"
   );
+  if (app->cdim < 3) {
+    // Tangent gradients along the three field-aligned coordinates: written by
+    // deflated geometries, absent from older geometry files. Only kinetic
+    // neutrals need them, so their absence is recorded rather than fatal.
+    cstr gradNm =
+      cstr_from_fmt("%s%s-%s.gkyl", geometry_inp->geometry_path, app->name, "geo_int_dxdz_grad");
+    FILE *fp_grad = fopen(gradNm.str, "r");
+    app->gk_geom->has_dxdz_grad = fp_grad != NULL;
+    if (fp_grad) {
+      fclose(fp_grad);
+      gyrokinetic_app_geometry_read_and_copy(
+        app, app->gk_geom->geo_int.dxdz_grad, arr_ho27, geometry_inp->geometry_path,
+        "geo_int_dxdz_grad"
+      );
+    }
+    cstr_drop(&gradNm);
+  }
   gyrokinetic_app_geometry_read_and_copy(
     app, app->gk_geom->geo_int.dzdx, arr_ho9, geometry_inp->geometry_path, "geo_int_dzdx"
   );
@@ -4242,6 +4270,7 @@ gkyl_gyrokinetic_app_read_geometry(
   gkyl_array_release(arr_ho3);
   gkyl_array_release(arr_ho6);
   gkyl_array_release(arr_ho9);
+  gkyl_array_release(arr_ho27);
   gkyl_array_release(arr_surf_ho1);
   gkyl_array_release(arr_surf_ho2);
   gkyl_array_release(arr_surf_ho3);

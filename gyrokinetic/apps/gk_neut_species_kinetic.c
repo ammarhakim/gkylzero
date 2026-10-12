@@ -684,12 +684,20 @@ gk_neut_species_kinetic_init(
   assert(app->poly_order == 1); // Neutral species are p=1 only.
   gkyl_cart_modal_hybrid(&s->basis, cdim, vdim);
 #ifndef GKYL_BUILD_VLASOV_HYB_3X3V
-  // The 3x3v tensor p=1 hybrid Vlasov kernels are an optional build set; kinetic
-  // neutrals (3x3v phase space) cannot run without them.
-  gkyl_exit(
-    "gk_neut_species: kinetic neutrals need the 3x3v tensor p=1 hybrid Vlasov kernels, which were not built. Reconfigure with --build-vlasov-hyb-3x3v=yes."
-  );
+  // The 3x3v tensor p=1 hybrid Vlasov kernels are an optional build set; the
+  // kinetic neutrals of a 3x simulation (3x3v phase space) cannot run without
+  // them. The 1x3v and 2x3v hybrid kernels are always built.
+  if (cdim == 3) {
+    gkyl_exit(
+      "gk_neut_species: 3x kinetic neutrals need the 3x3v tensor p=1 hybrid Vlasov kernels, which were not built. Reconfigure with --build-vlasov-hyb-3x3v=yes."
+    );
+  }
 #endif
+  if (cdim < 3 && !app->gk_geom->has_dxdz_grad) {
+    gkyl_exit(
+      "gk_neut_species: kinetic neutrals on a 1x/2x geometry need the tangent gradients (geo_int_dxdz_grad), which these geometry files do not carry. Regenerate them with this version."
+    );
+  }
 
   if (app->use_gpu) {
     // Allocate device basis if we are using GPUs.
@@ -914,25 +922,46 @@ gk_neut_species_kinetic_init(
     mkarr(app->use_gpu, app->basis.num_basis * num_pt_indices[vdim - 1], app->local_ext.volume);
   s->conf_poisson_tensor_host = s->conf_poisson_tensor;
   struct gkyl_array *dxdz_nodal_host = app->gk_geom->geo_int.dxdz_nodal;
+  struct gkyl_array *dxdz_grad_nodal_host = app->gk_geom->geo_int.dxdz_grad_nodal;
   struct gkyl_array *bcart_nodal_host = app->gk_geom->geo_int.bcart_nodal;
   if (app->use_gpu) {
     s->conf_poisson_tensor_host =
       mkarr(false, app->basis.num_basis * num_pt_indices[vdim - 1], app->local_ext.volume);
     dxdz_nodal_host =
       mkarr(false, app->gk_geom->geo_int.dxdz_nodal->ncomp, app->gk_geom->geo_int.dxdz_nodal->size);
+    dxdz_grad_nodal_host = mkarr(
+      false, app->gk_geom->geo_int.dxdz_grad_nodal->ncomp,
+      app->gk_geom->geo_int.dxdz_grad_nodal->size
+    );
     bcart_nodal_host = mkarr(
       false, app->gk_geom->geo_int.bcart_nodal->ncomp, app->gk_geom->geo_int.bcart_nodal->size
     );
     gkyl_array_copy(dxdz_nodal_host, app->gk_geom->geo_int.dxdz_nodal);
+    gkyl_array_copy(dxdz_grad_nodal_host, app->gk_geom->geo_int.dxdz_grad_nodal);
     gkyl_array_copy(bcart_nodal_host, app->gk_geom->geo_int.bcart_nodal);
   }
-  gkyl_vlasov_triad_geom_from_tangents_interior(
-    &app->grid, &app->local, app->basis, &s->grid, &s->local, s->basis, &app->gk_geom->nrange_int,
-    dxdz_nodal_host, bcart_nodal_host, true, s->conf_poisson_tensor_host
-  );
+  if (cdim == 3) {
+    // Triad gradients by finite differences across the conf grid.
+    gkyl_vlasov_triad_geom_from_tangents_interior(
+      &app->grid, &app->local, app->basis, &s->grid, &s->local, s->basis, &app->gk_geom->nrange_int,
+      dxdz_nodal_host, bcart_nodal_host, true, s->conf_poisson_tensor_host
+    );
+  } else {
+    // Deflated geometry: the grid lacks the coordinates the geometry is symmetric
+    // in, so the triad gradients come pointwise from the geometry's tangent
+    // gradients (taken on its augmented 3D grid). Poisson-tensor coordinates are
+    // the grid directions followed by the removed ones: (x, z, y) in 2x, (z, x, y) in 1x.
+    int dir_map_2x[3] = {0, 2, 1}, dir_map_1x[3] = {2, 0, 1};
+    gkyl_vlasov_triad_geom_from_tangents_grad_interior(
+      &app->grid, &app->local, app->basis, &s->grid, &s->local, s->basis, &app->gk_geom->nrange_int,
+      dxdz_nodal_host, dxdz_grad_nodal_host, bcart_nodal_host, cdim == 2 ? dir_map_2x : dir_map_1x,
+      true, s->conf_poisson_tensor_host
+    );
+  }
   if (app->use_gpu) {
     gkyl_array_copy(s->conf_poisson_tensor, s->conf_poisson_tensor_host);
     gkyl_array_release(dxdz_nodal_host);
+    gkyl_array_release(dxdz_grad_nodal_host);
     gkyl_array_release(bcart_nodal_host);
   }
 
