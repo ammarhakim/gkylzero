@@ -24,6 +24,7 @@ gk_field_fem_release_1x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   gkyl_array_release(f->rho_c);
   gkyl_array_release(f->rho_c_global_dg);
+  gkyl_array_release(f->rho_c_global_smooth);
   gkyl_array_release(f->phi_smooth);
   gkyl_array_release(f->phi_fem);
 
@@ -52,6 +53,7 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   // Allocate arrays for charge density.
   f->rho_c = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   f->rho_c_global_dg = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
+  f->rho_c_global_smooth = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
 
   // Allocate arrays for electrostatic potential.
   f->phi_fem = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
@@ -83,6 +85,10 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
     polarization_weight += s->info.polarization_density * s->info.mass / pow(polarization_bmag, 2);
   }
   // Need to set weight to kperpsq*polarizationWeight for use in potential smoothing.
+  assert(
+    f->info.kperpSq > 0.0 || f->gkfield_id == GKYL_GK_FIELD_ADIABATIC ||
+    (!f->calc_init_field && !f->update_field)
+  );
   gkyl_array_copy(f->epsilon, app->gk_geom->geo_int.jacobgeo);
   gkyl_array_scale(f->epsilon, polarization_weight);
   gkyl_array_scale(f->epsilon, f->info.kperpSq);

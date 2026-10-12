@@ -233,8 +233,8 @@ gklbo_write_mom_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks, doubl
   struct gkyl_msgpack_map_elem desc_nu_prim[] = {{
     .key = "Description",
     .elem_type = GKYL_MP_STRING,
-    .cval =
-      "Drift velocity and thermal speed squared, times collision frequency, summed over colliding species.",
+    .cval = "Drift velocity and thermal speed squared, times collision frequency, summed over "
+            "colliding species.",
   }};
   int io_meta_nu_prim_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
   const struct gkyl_msgpack_map_elem *io_meta_nu_prim[] = {
@@ -322,7 +322,6 @@ gk_species_lbo_init(
       double eps0 = gks->info.collisions.eps0 ? gks->info.collisions.eps0 : GKYL_EPSILON0;
       double hbar = gks->info.collisions.hbar ? gks->info.collisions.hbar :
                                                 GKYL_PLANCKS_CONSTANT_H / 2 / M_PI;
-      double eV = gks->info.collisions.eV ? gks->info.collisions.eV : GKYL_ELEMENTARY_CHARGE;
       double bmag_ref = gks->info.collisions.bmag_ref ? gks->info.collisions.bmag_ref :
                                                         app->bmag_ref;
 
@@ -337,15 +336,15 @@ gk_species_lbo_init(
       lbo->spitzer_calc =
         gkyl_spitzer_coll_freq_new(&app->basis, app->poly_order + 1, 1.0, 1.0, 1.0, app->use_gpu);
 
-      // We define nu_ss = nu_sr(r=s) = alpha_E/((delta_ss * (1+beta))*n_s), with delta_ss = 2,
-      // beta = 0. This gives a nu_ss that is arguably 2X smaller than it should be, but it's
+      // We define nu_ss = nu_sr(r=s) = alpha_E/((1+beta)*n_s), with beta = 0.
+      // This gives a nu_ss that is arguably 2X smaller than it should be, but it's
       // cheaper and yields an electron isotropization rate that agrees better with the FPO's.
       lbo->norm_nu_fac_self = nu_frac * gkyl_calc_Morse_alpha_E_const(
                                           gks->info.collisions.den_ref,
                                           gks->info.collisions.den_ref, gks->info.mass,
                                           gks->info.mass, gks->info.charge, gks->info.charge,
                                           gks->info.collisions.temp_ref,
-                                          gks->info.collisions.temp_ref, bmag_ref, eps0, hbar, eV
+                                          gks->info.collisions.temp_ref, bmag_ref, eps0, hbar
                                         );
 
       // Set pointers to functions chosen at runtime.
@@ -462,7 +461,6 @@ gk_species_lbo_cross_init(
         double eps0 = gks->info.collisions.eps0 ? gks->info.collisions.eps0 : GKYL_EPSILON0;
         double hbar = gks->info.collisions.hbar ? gks->info.collisions.hbar :
                                                   GKYL_PLANCKS_CONSTANT_H / 2 / M_PI;
-        double eV = gks->info.collisions.eV ? gks->info.collisions.eV : GKYL_ELEMENTARY_CHARGE;
         double bmag_ref = gks->info.collisions.bmag_ref ? gks->info.collisions.bmag_ref :
                                                           app->bmag_ref;
         double mass_self = gks->info.mass, mass_other = lbo->collide_with[i]->info.mass;
@@ -472,7 +470,7 @@ gk_species_lbo_cross_init(
                       gks->info.collisions.den_ref, lbo->collide_with[i]->info.collisions.den_ref,
                       mass_self, mass_other, gks->info.charge, lbo->collide_with[i]->info.charge,
                       gks->info.collisions.temp_ref, lbo->collide_with[i]->info.collisions.temp_ref,
-                      bmag_ref, eps0, hbar, eV
+                      bmag_ref, eps0, hbar
                     );
       }
 
