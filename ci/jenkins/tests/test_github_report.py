@@ -6,6 +6,7 @@ import io
 import json
 import os
 from pathlib import Path
+import re
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -168,6 +169,7 @@ class FailureReportTests(unittest.TestCase):
 
     def test_all_compiler_warnings_are_posted_and_archived(self):
         warnings = ['a.c:{}: warning: distinct message {}'.format(i + 1, i) for i in range(2000)]
+        warnings.append(warnings[0])  # All warnings must retain repeated occurrences too.
         self.write('candidate-build.log', '\n'.join(warnings) + '\nERROR: useful failure\n')
         self.write('baseline-build.log', '')
         self.write('baseline-build.log.exit', '0\n')
@@ -176,10 +178,16 @@ class FailureReportTests(unittest.TestCase):
             report.build_report(args)
         pages = json.loads(Path(args.output + '.json').read_text())
         posted = log_text('\n'.join(pages))
+        all_sections = re.findall(r'<details><summary>All compiler and other warnings.*?</details>',
+                                  '\n'.join(pages), re.S)
+        all_posted = log_text('\n'.join(all_sections))
+        self.assertIn('All compiler and other warnings (2001)', '\n'.join(pages))
+        self.assertEqual(all_posted.count(warnings[0]), 2)
         self.assertIn('New compiler and other warnings vs main (2000)', pages[0])
         self.assertIn('ERROR: useful failure', posted)
         for warning in warnings:
             self.assertIn(warning, posted)
+            self.assertIn(warning, all_posted)
         for page in pages:
             self.assertLessEqual(len(page.encode('utf-8')), report.COMMENT_LIMIT)
         archived = log_text(Path('ci-report-warnings.md').read_text())
