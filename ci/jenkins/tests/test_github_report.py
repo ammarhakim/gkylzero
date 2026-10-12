@@ -96,7 +96,7 @@ class FailureReportTests(unittest.TestCase):
         self.assertNotIn('Captured logs', pages[0])
         self.assertNotIn('regressiondb:test_', pages[0])
         self.assertIn('All warnings (1)', pages[0])
-        self.assertNotIn('example warning', pages[0])
+        self.assertIn('example warning', pages[0])
         self.assertIn('example warning', Path('ci-report-warnings.md').read_text())
         self.assertIn('All errors (1)', pages[0])
         self.assertIn('example error', pages[0])
@@ -120,7 +120,7 @@ class FailureReportTests(unittest.TestCase):
         self.assertEqual(len(pages), 1)
         self.assertIn('16999 distinct new warnings grouped', pages[0])
         self.assertIn('warning: introduced', pages[0])
-        self.assertNotIn('warning: existing', pages[0])
+        self.assertIn('warning: existing', pages[0])
         self.assertIn('All warnings (17004)', pages[0])
         archived = log_text(Path('ci-report-warnings.md').read_text())
         for warning in warnings:
@@ -142,15 +142,58 @@ class FailureReportTests(unittest.TestCase):
         self.assertIn('maximum num_failures = 4', grouped[0])
         self.assertEqual(grouped[1:], [entries[i] for i in (1, 2, 4, 5)])
 
-    def test_unavailable_baseline_preserves_warnings_only_in_artifact(self):
+    def test_all_compiler_warnings_are_posted_and_archived(self):
+        warnings = ['a.c:{}: warning: distinct message {}'.format(i + 1, i) for i in range(2000)]
+        self.write('candidate-build.log', '\n'.join(warnings) + '\nERROR: useful failure\n')
+        self.write('baseline-build.log', '')
+        self.write('baseline-build.log.exit', '0\n')
+        args = argparse.Namespace(platform='personal', context='ci/test', result='failure', pr='', output='ci-report.md')
+        with contextlib.redirect_stdout(io.StringIO()):
+            report.build_report(args)
+        pages = json.loads(Path(args.output + '.json').read_text())
+        posted = log_text('\n'.join(pages))
+        self.assertIn('New warnings vs main (2000)', pages[0])
+        self.assertIn('ERROR: useful failure', posted)
+        for warning in warnings:
+            self.assertIn(warning, posted)
+        for page in pages:
+            self.assertLessEqual(len(page.encode('utf-8')), report.COMMENT_LIMIT)
+        archived = log_text(Path('ci-report-warnings.md').read_text())
+        for warning in warnings:
+            self.assertIn(warning, archived)
+        self.assertEqual(json.loads(Path('ci-diagnostic-summary.json').read_text())['new_warnings'], 2000)
+
+    def test_timestep_grouping_preserves_compiler_warnings(self):
+        path = 'gkylsoft/gkeyll-results/gyrokinetic/regressiondb:gyrokinetic/creg/rt_gk_cbc_2x2v_p1'
+        entries = ['{}:{}: WARNING: Time-step dt = {}e-14 is below 0.001*dt_init ... num_failures = 1'.format(
+            path, i + 607, i + 1) for i in range(100)]
+        entries.append('a.c:1: warning: useful compiler warning')
+        preview = '\n\n'.join(report.group_timestep_warnings(entries))
+        self.assertIn(path + ':607-706:', preview)
+        self.assertIn('100 distinct new warnings grouped', preview)
+        self.assertIn('dt range 1e-14 to 1e-12', preview)
+        self.assertIn(entries[-1], preview)
+        self.assertNotIn('omitted', preview)
+
+    def test_unavailable_baseline_shows_warnings_in_report_and_artifact(self):
         self.write('candidate-build.log', 'a.c:1: warning: cannot classify\n')
         body = '\n'.join(report.diagnostic_sections('diagnostics.json', 'ci-report-warnings.md'))
         self.assertIn('New warnings vs main (unknown)', body)
         self.assertIn('Comparison unavailable', body)
         self.assertIn('All warnings (1)', body)
-        self.assertNotIn('warning: cannot classify', body)
+        self.assertIn('warning: cannot classify', body)
         self.assertIn('warning: cannot classify', Path('ci-report-warnings.md').read_text())
         self.assertIsNone(json.loads(Path('diagnostics.json').read_text())['new_warnings'])
+
+    def test_repeated_identical_timesteps_without_baseline_are_grouped(self):
+        warning = 'WARNING: Time-step dt = 1.5263e-14 is below 0.001*dt_init ... num_failures = 1'
+        self.write('candidate-build.log', '\n'.join([warning] * 100) + '\na.c:1: warning: compiler detail\n')
+        body = '\n'.join(report.diagnostic_sections('diagnostics.json', 'ci-report-warnings.md'))
+        self.assertIn('All warnings (101)', body)
+        self.assertIn('100 warning occurrences grouped', body)
+        self.assertEqual(body.count('Time-step dt'), 1)
+        self.assertIn('a.c:1: warning: compiler detail', log_text(body))
+        self.assertEqual(log_text(Path('ci-report-warnings.md').read_text()).count(warning), 100)
 
     def test_run_header_and_total_use_wall_time_instead_of_overlapping_steps(self):
         self.write('ci-timing-summary.txt', 'candidate_unit_build_seconds=3000\n'

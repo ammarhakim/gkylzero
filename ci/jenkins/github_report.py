@@ -330,7 +330,7 @@ def detail_sections(title, text):
         chunk) for i, chunk in enumerate(chunks or [wrapped_log('None.')])]
 
 
-def group_timestep_warnings(entries):
+def group_timestep_warnings(entries, count_label="distinct new warnings"):
     """Summarize changing time-step values per log/test without changing counts."""
     grouped, groups = [], {}
     pattern = re.compile(r'^(.*):(\d+): .*?\bWARNING:\s*Time-step dt = (\S+) '
@@ -362,9 +362,9 @@ def group_timestep_warnings(entries):
         if group['count'] > 1:
             grouped[group['index']] = (
                 '{}:{}-{}: WARNING: Time-step dt below {}*dt_init: '
-                '{} distinct new warnings grouped; dt range {:.6g} to {:.6g}; '
+                '{} {} grouped; dt range {:.6g} to {:.6g}; '
                 'maximum num_failures = {}. Full messages are archived.').format(
-                    path, group['first'], group['last'], threshold, group['count'],
+                    path, group['first'], group['last'], threshold, group['count'], count_label,
                     group['minimum'], group['maximum'], group['failures'])
     return grouped
 
@@ -428,12 +428,12 @@ def diagnostic_sections(summary_output=None, full_warnings_output=None):
         with open(full_warnings_output, 'w', encoding='utf-8') as stream:
             stream.write('\n\n'.join(full))
     sections = detail_sections(title, note + '\n\n' + ('\n\n'.join(group_timestep_warnings(new)) or empty))
-    sections.append(dropdown('All warnings ({})'.format(len(warnings)),
-                             '{} warning occurrences across captured candidate, baseline, and shared logs. '
-                             'New warnings above count distinct messages per matching build/test step; '
-                             'repeated time-step warnings are grouped for display. '
-                             'Full warning details are retained in the Jenkins artifact '
-                             '`ci-report-warnings.md` and the raw logs.'.format(len(warnings))))
+    all_note = ('Warning occurrences across captured candidate, baseline, and shared logs. '
+                'Repeated time-step warnings are grouped per log/test and threshold. '
+                'Every original occurrence and its context is retained in ci-report-warnings.md.')
+    sections += detail_sections('All warnings ({})'.format(len(warnings)),
+                                all_note + '\n\n' + ('\n\n'.join(group_timestep_warnings(
+                                    warnings, 'warning occurrences')) or 'No warnings found in captured logs.'))
     sections += detail_sections('All errors ({})'.format(len(errors)), '\n\n'.join(errors) or 'No recognised error lines in captured logs; see failure details for command exits and infrastructure failures.')
     if summary_output:
         with open(summary_output, 'w', encoding='utf-8') as stream:

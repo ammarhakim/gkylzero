@@ -114,7 +114,7 @@ Reports use collapsed sections for:
   totals and failure details.
 - Stage durations, timings, the 20 slowest candidate regressions, and regression
   timing changes.
-- New warnings relative to the selected baseline, the total warning count,
+- New warnings relative to the selected baseline, all warnings,
   all errors with log locations and context, and the failed build log's last
   100 lines.
 - Stage history, Slurm details, and artifact retrieval instructions.
@@ -125,21 +125,20 @@ while preserving line breaks and indentation; archived logs remain raw.
 
 Warning comparison uses matching completed baseline steps, ignoring checkout
 paths, ANSI colors, and source line/column changes. Missing or failed steps show
-comparison as unavailable; unmatched/shared warnings remain in the total count
-and full warning artifact.
+comparison as unavailable; unmatched/shared warnings remain in **All warnings**.
 HPC builds baseline unit tests too, providing corresponding compiler diagnostics.
 
-To reduce comment notifications, **All warnings** shows only the total number
-of warning occurrences across candidate, baseline, and shared logs. **New
-warnings** retains the distinct new messages per matching build/test step.
-Repeated time-step warnings are grouped by log/test and threshold, showing their
-distinct-message count, line range, time-step range, and maximum `num_failures`.
+**All warnings** includes compiler and other warnings across candidate, baseline,
+and shared logs, without a preview limit. **New warnings** retains the distinct
+new messages per matching build/test step. In both sections, repeated time-step
+warnings are condensed to one entry per log/test and threshold, showing the line
+range, time-step range, and maximum `num_failures`. Counts describe occurrences
+in **All warnings** and distinct new messages in **New warnings**.
 Grouping changes display only; warning counts and baseline comparison stay the
 same. The complete new/all warning sections, including every captured occurrence
 and its context, are retained in `ci-report-warnings.md` in Jenkins artifacts.
-This artifact uses the full diagnostic formatter for future reporting transports.
-Other large sections, including many distinct non-time-step warnings, can still
-produce continuation comments.
+Many compiler warnings or errors can still produce continuation comments; none
+are omitted or truncated to shorten the report.
 
 Per-test timing uses SQLite `runtime` from the latest finalized invocation per
 suite/layer, excluding compilation and comparison. Incomplete, invalid, or
