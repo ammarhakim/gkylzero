@@ -4,7 +4,7 @@
 -- field must coincide with its initial state. A sinusoidal position map stretches the cells in x by
 -- 40% (endpoints fixed and mirror-symmetric about the center), so the perfectly conducting walls
 -- act on a spatially varying Jacobian. After one period the field returns to its initial state to
--- 4e-5 in the relative L2 norm and remains mirror-symmetric, with the energy conserved to 2e-5.
+-- 4e-5 in the relative L2 norm and remains mirror-symmetric, with the energy conserved to 4e-6.
 local Vlasov = G0.Vlasov
 
 pi = math.pi -- Pi.

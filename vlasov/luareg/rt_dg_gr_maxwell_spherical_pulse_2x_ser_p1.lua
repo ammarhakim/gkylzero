@@ -5,7 +5,7 @@
 -- boundaries and pole conditions at theta = 0 and pi. At t = 1.5 the leading edges of the two
 -- shells have moved by 1.5 to within a cell
 -- (the outgoing one to r = 4.65, the incoming one to r = 2.35), the incoming shell having steepened
--- as it converges; the energy changes by 0.5%.
+-- as it converges; the energy changes by 4.1%.
 local Vlasov = G0.Vlasov
 
 pi = math.pi -- Pi.

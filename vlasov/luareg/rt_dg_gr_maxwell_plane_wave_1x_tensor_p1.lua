@@ -3,7 +3,7 @@
 -- five periods on a periodic domain, after which it must coincide with its initial state. Flat-
 -- space Kerr-Schild geometry with M = 0 and a = 0, so D = E and the solution is that of the Maxwell
 -- solver; the GR solver carries hyperbolic divergence cleaning. After five periods the field
--- returns to its initial state to 9e-5 in the relative L2 norm, with the energy conserved to 2e-4.
+-- returns to its initial state to 4e-3 in the relative L2 norm, with the energy conserved to 7e-3.
 local Vlasov = G0.Vlasov
 
 pi = math.pi -- Pi.

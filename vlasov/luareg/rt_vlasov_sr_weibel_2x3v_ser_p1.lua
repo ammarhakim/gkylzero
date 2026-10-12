@@ -3,7 +3,7 @@
 -- filamentation mode k = 0.5 along x seeded by a magnetic field perturbation, ions as a
 -- neutralizing background) with a single periodic cell in y.
 -- Growth rate of the magnetic energy from linear theory (lab-frame plasma frequency
--- sqrt(gamma_drift)): gamma = 0.525 (measured 0.508 over t = 5-15); the mode saturates at t = 28.
+-- sqrt(gamma_drift)): gamma = 0.525 (measured 0.508 over t = 5-15); the mode saturates at t = 23.
 
 local Vlasov = G0.Vlasov
 

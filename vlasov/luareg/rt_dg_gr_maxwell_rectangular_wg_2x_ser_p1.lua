@@ -2,7 +2,7 @@
 -- space (2x). The TM mode E_z = sin(pi x) sin(pi y) and the TE mode B_z = cos(pi x) cos(pi y) of a
 -- 7 by 5 box with perfectly conducting walls, both at frequency sqrt(2) pi, are advanced for ten
 -- periods, after which the field must coincide with its initial state. After ten periods the field
--- returns to its initial state to 3e-4 in the relative L2 norm, with the energy conserved to 5e-4.
+-- returns to its initial state to 4e-2 in the relative L2 norm, with the energy conserved to 7e-2.
 local Vlasov = G0.Vlasov
 
 pi = math.pi -- Pi.

@@ -1,6 +1,8 @@
 -- Tests skipped by the C regression suite.
 -- Remove an entry manually to re-enable the test.
--- gpu: C tests whose GPU variant timed out (CPU variant still runs).
+-- gpu: C tests whose GPU variant does not run (CPU variant still runs). The general
+-- diffusion tests are listed because the general-stencil hyper DG advance is not
+-- implemented on the device (the updater asserts there), not because of a timeout.
 return {
    ignore = {
       tests = {

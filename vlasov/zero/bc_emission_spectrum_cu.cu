@@ -119,6 +119,11 @@ gkyl_bc_emission_spectrum_advance_cu(
 {
   int nblocks = impact_buff_r->nblocks, nthreads = impact_buff_r->nthreads;
 
+  // The weighted-mean numerator and denominator are accumulated with atomics, so they
+  // must start from zero on every call (as on the host); otherwise the effective yield
+  // becomes a running average over all previous stages.
+  gkyl_array_clear_range(weight, 0.0, impact_cbuff_r);
+
   // Calculate weighted mean numerator and denominator
   gkyl_bc_emission_spectrum_advance_cu_weight_ker<<<nblocks, nthreads>>>(
     up->cdim, up->dir, up->edge, bflux->on_dev, weight->on_dev, *up->grid, yield->on_dev,

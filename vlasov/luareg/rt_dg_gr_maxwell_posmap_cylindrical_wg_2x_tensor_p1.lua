@@ -3,8 +3,8 @@
 -- carries the m = 4 TM mode D_z = R(r) cos(4 phi), R a combination of Bessel functions of order 4
 -- vanishing at both walls, at frequency 2.4303. It is advanced for two periods, after which the
 -- field must coincide with its initial state. A sinusoidal position map stretches the cells in r by
--- 40% with the endpoints fixed. After two periods the field returns to its initial state to 9e-6 in
--- the relative L2 norm, with the energy conserved to 2e-6.
+-- 40% with the endpoints fixed. After two periods the field returns to its initial state to 1e-3 in
+-- the relative L2 norm, with the energy conserved to 1e-3.
 local Vlasov = G0.Vlasov
 
 pi = math.pi -- Pi.

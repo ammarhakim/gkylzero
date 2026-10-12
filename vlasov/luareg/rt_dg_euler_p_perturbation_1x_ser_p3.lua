@@ -2,7 +2,7 @@
 -- density 1 and pressure 1 (gamma = 1.4) carries the pressure perturbation 0.01 sin(x) on a
 -- periodic domain of length 2 pi. The perturbation splits into two sound waves and, after one
 -- acoustic period 2 pi / c_s with c_s = sqrt(1.4), the state must return to its initial one up to
--- the 1e-4 nonlinear correction. Figures of merit (serendipity p3, 128 cells, 715 steps): after one
+-- the 1e-4 nonlinear correction. Figures of merit (serendipity p3, 128 cells, 1001 steps): after one
 -- period the pressure differs from its initial profile by at most 4.5e-5 and the density by 3.2e-5,
 -- both at the 1e-4 level of the second-order correction to the linear wave, the residual velocity
 -- is below 1.2e-4, and mass and energy are conserved to 4e-14.

@@ -3,8 +3,8 @@
 -- field B_0 = 1 threading the hole is an exact stationary vacuum solution
 -- (Komissarov 2004, Eq. 101 with a = 0), held at the radial boundaries by fixed-function conditions
 -- with pole conditions at theta = 0 and pi. Advanced for five time units, the field must remain
--- stationary. Over five time units the field changes by 1.3e-4 in the relative L2 norm, with the
--- energy conserved to 1e-11.
+-- stationary. Over five time units the field changes by 5e-3 in the relative L2 norm, with the
+-- energy conserved to 3e-5.
 local Vlasov = G0.Vlasov
 
 pi = math.pi -- Pi.

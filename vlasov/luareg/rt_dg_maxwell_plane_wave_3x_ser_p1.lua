@@ -1,8 +1,8 @@
 -- Traveling electromagnetic plane wave with the Maxwell solver (3x). A unit-amplitude plane wave
 -- with two wavelengths per box length along the diagonal is advanced for five periods on a periodic
 -- domain, after which it must coincide with its initial state. After five periods on the coarse
--- 16-cube grid the field returns to its initial state to 4e-3 in the relative L2 norm, with the
--- energy conserved to 2e-3.
+-- 16-cube grid the field returns to its initial state to 4e-1 in the relative L2 norm, with the
+-- energy conserved to 1e-2.
 local Vlasov = G0.Vlasov
 
 pi = math.pi -- Pi.

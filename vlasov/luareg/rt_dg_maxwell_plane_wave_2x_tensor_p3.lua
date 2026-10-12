@@ -1,7 +1,7 @@
 -- Traveling electromagnetic plane wave with the Maxwell solver (2x). A unit-amplitude plane wave
 -- with two wavelengths per box length along the diagonal is advanced for five periods on a periodic
 -- domain, after which it must coincide with its initial state. After five periods the field returns
--- to its initial state to 3e-5 in the relative L2 norm, with the energy conserved to 6e-5.
+-- to its initial state to 7e-6 in the relative L2 norm, with the energy conserved to 1e-5.
 local Vlasov = G0.Vlasov
 
 pi = math.pi -- Pi.
