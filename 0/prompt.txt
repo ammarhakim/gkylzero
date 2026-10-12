@@ -1,0 +1,13 @@
+Tell me how the github report reports warnings, including the time step warnings? Can you put the time setep crashing warnings in a seperate section than the compiler warnings?
+
+---
+
+Tell me how the github report reports warnings, including the time step warnings? Can you put the time setep crashing warnings in a seperate section than the compiler warnings?
+
+---
+
+I'd like every compiler warning to appear on the github report, not compacted. We have a section of new warnings versus main, but also put every compiler warning in the report. The timestep warnings should be compacted and condensed though
+
+---
+
+I'd like every compiler warning to appear on the github report, not compacted. We have a section of new warnings versus main, but also put every compiler warning in the report. The timestep warnings should be compacted and condensed though

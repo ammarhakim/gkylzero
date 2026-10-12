@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M4RNXYG40JT4NHMN89Q4NYE0",
+  "strategy": "manual-commit",
+  "branch": "jenkins-github-more-reporting",
+  "checkpoints_count": 4,
+  "files_touched": [
+    "ci/jenkins/tests/test_github_report.py"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 36698,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 415872,
+    "output_tokens": 3477,
+    "api_call_count": 13
+  }
+}
