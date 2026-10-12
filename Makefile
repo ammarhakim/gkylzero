@@ -15,7 +15,7 @@ KERNELS_DIR := ker
 
 ARCH_FLAGS ?= -march=native
 CUDA_ARCH ?= 70
-CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE=\"$(BUILD_DATE_STR)\" -DGKYL_GIT_CHANGESET=\"$(GIT_TIP)\"
+CFLAGS ?= -O3 -g $(FP_FLAGS) -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE=\"$(BUILD_DATE_STR)\" -DGKYL_GIT_CHANGESET=\"$(GIT_TIP)\"
 LDFLAGS = 
 PREFIX ?= ${HOME}/gkylsoft
 
@@ -26,7 +26,36 @@ HAVE_APP_FLAGS = -DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DG
 
 # Include config.mak and alltargets.mak files (if they exists) to overide defaults above
 -include config.mak
+
+# Floating-point model. The default build allows value-changing optimizations
+# (fast math). A strict build (USE_STRICT_FP=1 in config.mak, set by
+# ./configure --strict-fp=yes) keeps IEEE evaluation order and disables FMA
+# contraction, so that results are reproducible across compilers and between
+# CPU and GPU builds.
+ifeq (${USE_STRICT_FP}, 1)
+	FP_FLAGS = -std=gnu11 -ffp-contract=off
+	NVCC_FP_FLAGS = --fmad=false -ffp-contract=off
+else
+	FP_FLAGS = -ffast-math
+	NVCC_FP_FLAGS = --use_fast_math -ffast-math
+endif
 -include alltargets.mak
+
+# Optional heavy kernel set (tensor p=1 hybrid basis in 3x3v). Off by default:
+# it adds tens of MB of generated kernels and, under nvcc, tens of minutes of
+# compile time. Set the knobs in config.mak (see ./configure --help). The
+# corresponding kernel tables get NULL rows when the set is not built, and the
+# apps refuse such configurations with a message pointing here. 
+BUILD_VLASOV_HYB_3X3V ?=
+BUILD_VLASOV_HYB_3X3V_PHASE ?=
+
+ifeq ($(BUILD_VLASOV_HYB_3X3V_PHASE),1)
+ifneq ($(BUILD_VLASOV_HYB_3X3V),1)
+$(error BUILD_VLASOV_HYB_3X3V_PHASE=1 requires BUILD_VLASOV_HYB_3X3V=1: the 3x3v phase-space Hamiltonian kernels run on top of the 3x3v hybrid velocity-map, moment and flux kernels. Reconfigure with --build-vlasov-hyb-3x3v=yes as well)
+endif
+endif
+# (the -D flags for these knobs are added to CFLAGS below, after the compiler
+# specific CFLAGS are set, since the nvcc branch reassigns CFLAGS)
 
 # Default lapack include and libraries: we prefer linking to static library
 LAPACK_INC_DIR ?= $(PREFIX)/OpenBLAS/include/
@@ -80,7 +109,7 @@ CUDA_LIBS =
 SQL_CFLAGS ?= -fPIC -Wno-implicit-int-float-conversion
 ifneq (,$(filter $(CC),nvcc nvc))
 	USING_NVCC = yes
-	CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -ffast-math -MMD -MP -fPIC -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE=\"$(BUILD_DATE_STR)\" -DGKYL_GIT_CHANGESET=\"$(GIT_TIP)\"
+	CFLAGS = -O3 -g --forward-unknown-to-host-compiler $(NVCC_FP_FLAGS) -MMD -MP -fPIC -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE=\"$(BUILD_DATE_STR)\" -DGKYL_GIT_CHANGESET=\"$(GIT_TIP)\"
 	NVCC_FLAGS = -x cu -dc -arch=sm_${CUDA_ARCH} -rdc=true --compiler-options="-fPIC" -Xptxas --disable-optimizer-constants
 	LDFLAGS += -arch=sm_${CUDA_ARCH} -rdc=true
 	ifdef CUDAMATH_LIB_DIR
@@ -92,11 +121,42 @@ ifneq (,$(filter $(CC),nvcc nvc))
 	SQL_CFLAGS = --forward-unknown-to-host-compiler -fPIC
 endif
 
+# Per-kernel-family register caps (GPU builds only). The moment and flux advance
+# kernels dispatch through function pointers, so nvlink sizes them for the largest
+# kernel of the family they can call and, uncapped, they land at ~206-255 registers:
+# one resident 256-thread block per SM. Capping the whole family at a register-cliff
+# value (128 -> 2 blocks/SM, 64 -> 4 blocks/SM) trades a few spills for occupancy,
+# which these latency-bound kernels need. nvlink requires every function a capped
+# kernel can reach (for an indirect call: every address-taken function with the same
+# PTX prototype, see momf_t in core/zero/gkyl_mom_type.h) to fit the cap, so a cap
+# covers a whole family: MOM_MAX_REGS applies to the moment and LBO boundary-correction
+# kernels, wrappers and advance kernels of the vlasov, gyrokinetic and pkpm solvers;
+# FLUX_MAX_REGS to the vlasov flux kernels (ker/flux_vlasov/) and the
+# dg_vlasov_{vel,conf}_flux_surf advance kernels. The hyper_dg volume/surface kernels
+# are dense straight-line code and are left alone. Set MOM_MAX_REGS= or FLUX_MAX_REGS=
+# (empty) in config.mak or on the make command line to disable a cap.
+MOM_MAX_REGS ?= 64
+FLUX_MAX_REGS ?= 128
+NVCC_MOM_FLAGS =
+NVCC_FLUX_FLAGS =
+ifdef USING_NVCC
+	NVCC_MOM_FLAGS = $(if $(MOM_MAX_REGS),-maxrregcount=$(MOM_MAX_REGS))
+	NVCC_FLUX_FLAGS = $(if $(FLUX_MAX_REGS),-maxrregcount=$(FLUX_MAX_REGS))
+endif
+
 CFLAGS += ${HAVE_APP_FLAGS}
 
 # Directory for storing shared data, like ADAS reaction rates and radiation fits
 GKYL_SHARE_DIR ?= "${INSTALL_PREFIX}/${PROJ_NAME}/share"
 CFLAGS += -DGKYL_SHARE_DIR=\"$(GKYL_SHARE_DIR)\"
+
+# Optional heavy kernel set defines (knobs resolved above)
+ifeq ($(BUILD_VLASOV_HYB_3X3V),1)
+	CFLAGS += -DGKYL_BUILD_VLASOV_HYB_3X3V
+endif
+ifeq ($(BUILD_VLASOV_HYB_3X3V_PHASE),1)
+	CFLAGS += -DGKYL_BUILD_VLASOV_HYB_3X3V_PHASE
+endif
 
 # MPI paths and flags
 USING_MPI =
@@ -199,7 +259,7 @@ MKDIR_P ?= mkdir -p
 
 export CC CFLAGS ARCH_FLAGS CUDA_ARCH LDFLAGS BUILD_DIR KERNELS_DIR
 export PREFIX INSTALL_PREFIX PROJ_NAME UNAME
-export USING_NVCC NVCC_FLAGS CUDA_LIBS SQL_CFLAGS CUDAMATH_LIBDIR
+export USING_NVCC NVCC_FLAGS NVCC_MOM_FLAGS NVCC_FLUX_FLAGS CUDA_LIBS SQL_CFLAGS CUDAMATH_LIBDIR
 export USING_MPI MPI_INC_DIR MPI_LIB_DIR MPI_LIBS MPI_RPATH
 export USING_NCCL NCCL_INC_DIR NCCL_LIB_DIR NCCL_LIBS
 export USING_CUDSS CUDSS_INC_DIR CUDSS_LIB_DIR CUDSS_LIBS CUDSS_RPATH
@@ -211,6 +271,7 @@ export FIN_APP_LIB_DIR FIN_APP_LIB HAVE_APP_FLAGS
 export MKDIR_P GKYL_SHARE_DIR BUILD_APP
 export GKEYLL_SHARE_INSTALL_PREFIX SED_REPS_STR1 SED_REPS_STR2 MAKEFILE_FOR_EXT_C_INP_PHONY
 export CONF_MPI_INC_DIR CONF_MPI_LIB_DIR
+export BUILD_VLASOV_HYB_3X3V BUILD_VLASOV_HYB_3X3V_PHASE
 export CONF_NCCL_INC_DIR CONF_NCCL_LIB_DIR
 export CONF_CUDSS_INC_DIR CONF_CUDSS_LIB_DIR
 export CONF_LUA_INC_DIR CONF_LUA_LIB_DIR CONF_LUA_LIB
@@ -349,6 +410,9 @@ vlasov-check: vlasov ## (Re)build and run unit tests in Vlasov
 
 vlasov-unit-run: ## Run Vlasov unit tests
 	cd vlasov && $(MAKE) -f Makefile-vlasov unit-run
+
+vlasov-lua-unit-run: ## Run Vlasov Lua unit tests (unit/lua/ltest_*.lua)
+	cd vlasov && $(MAKE) -f Makefile-vlasov lua-unit-run
 
 vlasov-valcheck: vlasov ## Run valgrind on unit tests in Vlasov
 	cd vlasov && $(MAKE) -f Makefile-vlasov valcheck

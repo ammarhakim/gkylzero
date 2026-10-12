@@ -9,6 +9,10 @@ return {
          "rt_gk_multib_nstx_solonly_3x2v_p1",
          "rt_gk_multib_tcv_x21_3x2v_p1",
          "rt_gk_sheath_3x2v_p1_cons",
+         -- 3x kinetic neutrals need the optional 3x3v hybrid Vlasov kernels
+         -- (configure --build-vlasov-hyb-3x3v=yes), which CI does not build.
+         "rt_gk_mdpx_cart_3x2v_p1",
+         "rt_gk_static_3x2v_p1",
       },
       gpu = {
          "rt_gk_ltx_iwl_num_miller_3x2v_p1",

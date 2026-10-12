@@ -1,5 +1,6 @@
 #pragma once
 
+#include <gkyl_eqn_type.h>
 #include <gkyl_ref_count.h>
 #include <stdint.h>
 
@@ -23,9 +24,12 @@ enum gkyl_distribution_moments {
   GKYL_F_MOMENT_HAMILTONIAN, // M0, mass*M1, H moments.
   GKYL_F_MOMENT_M1_FROM_H, // dH/dv / m moment.
   GKYL_F_MOMENT_ENERGY, // H moment.
+  GKYL_F_MOMENT_ENERGY_FLUX, // H*dH/dv /m moment.
   GKYL_F_MOMENT_M0ENERGYM3, // M0, Energy (H) and M3 moments.
   GKYL_F_MOMENT_NI, // M0, M1i for-vector.
-  GKYL_F_MOMENT_TIJ // Stress-energy tensor.
+  GKYL_F_MOMENT_TIJ, // Stress-energy tensor.
+  GKYL_F_MOMENT_M0_UPPER, // M0 integrated over (part of) the upper half-plane.
+  GKYL_F_MOMENT_M0_LOWER // M0 integrated over (part of) the lower half-plane.
 };
 
 // String names corresponding to the enum options above.
@@ -48,9 +52,12 @@ static const char *gkyl_distribution_moments_strs[] = {
   "HamiltonianMoments",
   "M1_from_H",
   "EnergyMoment",
+  "EnergyFlux",
   "M0EnergyM3",
   "Ni",
-  "Tij"
+  "Tij",
+  "M0_upper",
+  "M0_lower"
 };
 
 // Descriptions for each distribution moment.
@@ -83,11 +90,21 @@ static const char *gkyl_distribution_moments_descriptions[] = {
 struct gkyl_mom_type;
 
 /**
- * Function pointer type to compute the needed moment.
+ * Function pointer type to compute the needed moment. The edge argument is the
+ * velocity-space boundary a boundary-correction moment acts on and GKYL_VEL_EDGE_NONE
+ * for ordinary moments.
+ *
+ * Keep this prototype unique to moment kernels (the enum is its 32-bit argument). The
+ * GPU moment kernels call through this pointer, and the CUDA device linker resolves an
+ * indirect call to every address-taken function with the same PTX prototype (argument
+ * sizes only), which then has to fit the register budget of the register-capped moment
+ * kernels (MOM_MAX_REGS in the Makefile). Seven pointer-sized arguments returning void
+ * is shared by unrelated kernels (GR-Maxwell current deposition, BGK cross primitive
+ * moments, ...) and does not link.
  */
 typedef void (*momf_t)(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 );
 
 struct gkyl_mom_type {
@@ -139,7 +156,7 @@ void gkyl_mom_type_release(const struct gkyl_mom_type *momt);
  */
 void gkyl_mom_type_calc(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *GKYL_RESTRICT out, void *param
+  const double *f, double *GKYL_RESTRICT out, enum gkyl_vel_edge edge
 );
 
 /**

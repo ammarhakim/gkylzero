@@ -74,12 +74,8 @@ static const struct gkyl_str_int_pair gk_field_type[] = {
 };
 
 // Gyrokinetic radiation type -> enum map.
-static const struct gkyl_str_int_pair gk_radiation_type[] = {
-  {"None", GKYL_NO_RADIATION},
-  {"GKRadiation", GKYL_GK_RADIATION},
-  {"VMComptonRadiation", GKYL_VM_COMPTON_RADIATION},
-  {0, 0}
-};
+static const struct gkyl_str_int_pair gk_radiation_type[] =
+  {{"None", GKYL_NO_RADIATION}, {"GKRadiation", GKYL_GK_RADIATION}, {0, 0}};
 
 // Gyrokinetic radiation Te model type -> enum map.
 static const struct gkyl_str_int_pair gk_radiation_te_type[] = {

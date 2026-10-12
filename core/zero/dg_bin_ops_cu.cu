@@ -24,7 +24,20 @@ gkyl_dg_mul_op_cu_kernel(
   int num_basis = basis.num_basis;
   int ndim = basis.ndim;
   int poly_order = basis.poly_order;
-  mul_op_t mul_op = choose_ser_mul_kern(ndim, poly_order);
+  mul_op_t mul_op;
+  switch (basis.b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      mul_op = choose_ser_mul_kern(ndim, poly_order);
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      mul_op = choose_ten_mul_kern(ndim, poly_order);
+
+      break;
+
+    default:
+      assert(false);
+      break;
+  }
 
   for (unsigned long linc = START_ID; linc < NSIZE(out); linc += blockDim.x * gridDim.x) {
     const double *lop_d = (const double *)gkyl_array_cfetch(lop, linc);
@@ -56,7 +69,20 @@ gkyl_dg_mul_op_range_cu_kernel(
   int num_basis = basis.num_basis;
   int ndim = basis.ndim;
   int poly_order = basis.poly_order;
-  mul_op_t mul_op = choose_ser_mul_kern(ndim, poly_order);
+  mul_op_t mul_op;
+  switch (basis.b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      mul_op = choose_ser_mul_kern(ndim, poly_order);
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      mul_op = choose_ten_mul_kern(ndim, poly_order);
+
+      break;
+
+    default:
+      assert(false);
+      break;
+  }
 
   int idx[GKYL_MAX_DIM];
 
@@ -270,7 +296,20 @@ gkyl_dg_dot_product_op_range_cu_kernel(
 {
   int ndim = basis.ndim;
   int poly_order = basis.poly_order;
-  mul_op_t mul_op = choose_ser_mul_kern(ndim, poly_order);
+  mul_op_t mul_op;
+  switch (basis.b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      mul_op = choose_ser_mul_kern(ndim, poly_order);
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      mul_op = choose_ten_mul_kern(ndim, poly_order);
+
+      break;
+
+    default:
+      assert(false);
+      break;
+  }
 
   int num_basis = basis.num_basis;
   int vcomp = lop->ncomp / out->ncomp;
@@ -329,7 +368,22 @@ gkyl_dg_div_set_op_cu_kernel(
   int num_basis = basis.num_basis;
   int ndim = basis.ndim;
   int poly_order = basis.poly_order;
-  div_set_op_t div_set_op = choose_ser_div_set_kern(ndim, poly_order);
+  div_set_op_t div_set_op;
+  switch (basis.b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      div_set_op = choose_ser_div_set_kern(ndim, poly_order);
+
+      break;
+
+    case GKYL_BASIS_MODAL_TENSOR:
+      div_set_op = choose_ten_div_set_kern(ndim, poly_order);
+
+      break;
+
+    default:
+      assert(false);
+      break;
+  }
 
   for (unsigned long linc = START_ID; linc < NSIZE(out); linc += blockDim.x * gridDim.x) {
     const double *lop_d = (const double *)gkyl_array_cfetch(lop, linc);
@@ -390,7 +444,22 @@ gkyl_dg_div_set_op_range_cu_kernel(
   int num_basis = basis.num_basis;
   int ndim = basis.ndim;
   int poly_order = basis.poly_order;
-  div_set_op_t div_set_op = choose_ser_div_set_kern(ndim, poly_order);
+  div_set_op_t div_set_op;
+  switch (basis.b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      div_set_op = choose_ser_div_set_kern(ndim, poly_order);
+
+      break;
+
+    case GKYL_BASIS_MODAL_TENSOR:
+      div_set_op = choose_ten_div_set_kern(ndim, poly_order);
+
+      break;
+
+    default:
+      assert(false);
+      break;
+  }
 
   int idx[GKYL_MAX_DIM];
 
@@ -592,5 +661,48 @@ gkyl_dg_calc_op_range_cu(
 {
   gkyl_dg_calc_op_range_cu_kernel<<<out->nblocks, out->nthreads>>>(
     *basis, c_oop, out->on_dev, c_iop, iop->on_dev, range, op
+  );
+}
+
+__global__ void
+gkyl_dg_calc_prod_op_range_cu_kernel(
+  struct gkyl_basis basis, int c_oop, struct gkyl_array *out, int c_f, const struct gkyl_array *f,
+  int c_g, const struct gkyl_array *g, struct gkyl_range range
+)
+{
+  int num_basis = basis.num_basis;
+  int ndim = basis.ndim;
+  double fact = pow(2, ndim);
+
+  int idx[GKYL_MAX_DIM];
+
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x * blockDim.x; linc1 < range.volume;
+       linc1 += gridDim.x * blockDim.x) {
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&range, linc1, idx);
+
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long start = gkyl_range_idx(&range, idx);
+
+    const double *f_d = (const double *)gkyl_array_cfetch(f, start);
+    const double *g_d = (const double *)gkyl_array_cfetch(g, start);
+    double *out_d = (double *)gkyl_array_fetch(out, start);
+
+    out_d[c_oop] =
+      dg_cell_mean_fg_prod(num_basis, f_d + c_f * num_basis, g_d + c_g * num_basis) / fact;
+  }
+}
+
+void
+gkyl_dg_calc_prod_op_range_cu(
+  struct gkyl_basis basis, int c_oop, struct gkyl_array *out, int c_f, const struct gkyl_array *f,
+  int c_g, const struct gkyl_array *g, struct gkyl_range range
+)
+{
+  gkyl_dg_calc_prod_op_range_cu_kernel<<<out->nblocks, out->nthreads>>>(
+    basis, c_oop, out->on_dev, c_f, f->on_dev, c_g, g->on_dev, range
   );
 }

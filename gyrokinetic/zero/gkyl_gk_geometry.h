@@ -19,7 +19,7 @@ struct gk_geom_surf {
     jacobgeo_ratio; // 1 component. Ratio of jacobgeo from neigboring blocks (valid only at the boundary, stored in ghost cell).
   struct gkyl_array *bmag; // 1 component. B Magnitude of magnetic field.
   struct gkyl_array
-    *b_i; // 3 components. Contravariant components of magnetic field vector b_1, b_2, b_3.
+    *b_i; // 3 components. Covariant components of magnetic field unit vector b_1, b_2, b_3.
   struct gkyl_array *cmag; // 1 component. C = JB/sqrt(g_33).
   struct gkyl_array *jacobtot_inv; // 1 component. 1/(JB).
   struct gkyl_array *B3; // 1 component n^3 \dot \vec{B} = 1/g_33.
@@ -39,7 +39,7 @@ struct gk_geom_surf {
   struct gkyl_array *normcurlbhat_nodal; // 1 component, n^m \dot curl(bhat).
   struct gkyl_array *jacobgeo_nodal; // 1 component. Configuration space jacobian J.
   struct gkyl_array
-    *b_i_nodal; // 3 components. Contravariant components of magnetic field vector b_1, b_2, b_3.
+    *b_i_nodal; // 3 components. Covariant components of magnetic field unit vector b_1, b_2, b_3.
   struct gkyl_array *b_i_nodal_fd; // 3 components. b_i at surf quad nodes and nodes epsilon away.
   struct gkyl_array *cmag_nodal; // 1 component. C = JB/sqrt(g_33).
   struct gkyl_array *jacobtot_inv_nodal; // 1 component. 1/(JB).
@@ -90,6 +90,7 @@ struct gk_geom_int {
   // Calculated with coord definition alpha = phi for tokamak geometry.
   struct gkyl_array
     *dxdz; // 9 components. Cartesian components of tangent Vectors stored in order e_1, e_2, e_3.
+  struct gkyl_array *dxdz_grad; // 27 components. Modal expansion of dxdz_grad_nodal (I/O).
   struct gkyl_array
     *dzdx; // 9 components. Cartesian components of dual vectors stored in order e^1, e^2, e^3.
   struct gkyl_array *dualmag; // 3 components. Norms of the dual vectors: sqrt(e^i.e^i).
@@ -149,6 +150,8 @@ struct gk_geom_int {
   // Calculated with coord definition alpha = phi for tokamak geometry
   struct gkyl_array *dxdz_nodal; // 9 components.
   // Cartesian components of tangent Vectors stored in order e_1, e_2, e_3
+  struct gkyl_array *dxdz_grad_nodal; // 27 components. d(e_i)/dz^j Cartesian, direction j
+  // slowest: [9 j + 3 i + c]. Filled for deflated (cdim<3) geometries only.
   struct gkyl_array *dzdx_nodal; // 9 components.
   // Cartesian components of dual vectors stroed in order e^1, e^2, e^3
   struct gkyl_array *dualmag_nodal; // 3 components
@@ -203,6 +206,9 @@ struct gk_geometry {
   // location of the LCFS. For numerical IWL, it may be stored
   // in the eqdsk.
   int idx_LCFS_lo; // Index of the cell that abuts the LCFS from below.
+
+  bool has_dxdz_grad; // Whether geo_int.dxdz_grad(_nodal) are filled: deflated (cdim<3)
+  // geometries built in-app, or read from files that carry them.
 
   // Functions defining the twistshift for parallel BCs.
   void (*lower_shift_func)(double t, const double *xn, double *fout, void *ctx);

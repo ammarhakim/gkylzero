@@ -42,15 +42,22 @@ static const struct gkyl_str_int_pair species_bcs[] = {
   {"bcFixedFunc", GKYL_SPECIES_FIXED_FUNC},
   {"bcZeroFlux", GKYL_SPECIES_ZERO_FLUX},
   {"bcRecycle", GKYL_SPECIES_RECYCLE},
+  {"bcEmission", GKYL_SPECIES_EMISSION},
   {0, 0}
 };
 
 // Field boundary conditions -> enum map.
 static const struct gkyl_str_int_pair field_bcs[] = {
-  {"bcCopy", GKYL_FIELD_COPY},           {"bcWall", GKYL_FIELD_PEC_WALL},
-  {"bcPECWall", GKYL_FIELD_PEC_WALL},    {"bcSymWall", GKYL_FIELD_SYM_WALL},
-  {"bcReservoir", GKYL_FIELD_RESERVOIR}, {"bcWedge", GKYL_FIELD_WEDGE},
-  {"bcFunc", GKYL_FIELD_FUNC},           {0, 0}
+  {"bcCopy", GKYL_FIELD_COPY},
+  {"bcWall", GKYL_FIELD_PEC_WALL},
+  {"bcPECWall", GKYL_FIELD_PEC_WALL},
+  {"bcSymWall", GKYL_FIELD_SYM_WALL},
+  {"bcReservoir", GKYL_FIELD_RESERVOIR},
+  {"bcWedge", GKYL_FIELD_WEDGE},
+  {"bcFunc", GKYL_FIELD_FUNC},
+  {"bcFixedFunc", GKYL_FIELD_FIXED_FUNC},
+  {"bcThetaPole", GKYL_FIELD_THETA_POLE},
+  {0, 0}
 };
 
 void

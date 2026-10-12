@@ -32,12 +32,9 @@
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_array_mask.h>
 #include <gkyl_dg_bin_ops.h>
-#include <gkyl_dg_calc_canonical_pb_vars.h>
-#include <gkyl_dg_calc_gk_neut_hamil.h>
 #include <gkyl_dg_calc_gk_rad_vars.h>
 #include <gkyl_gk_collisionless_flux.h>
 #include <gkyl_gk_collisionless_passive_flux.h>
-#include <gkyl_dg_canonical_pb.h>
 #include <gkyl_dg_cx.h>
 #include <gkyl_dg_gyrokinetic.h>
 #include <gkyl_dg_gyrokinetic_passive.h>
@@ -49,10 +46,15 @@
 #include <gkyl_dg_updater_gyrokinetic_passive.h>
 #include <gkyl_dg_updater_lbo_gyrokinetic.h>
 #include <gkyl_dg_updater_moment_gyrokinetic.h>
-#include <gkyl_dg_updater_moment.h>
 #include <gkyl_dg_updater_rad_gyrokinetic.h>
-#include <gkyl_dg_updater_vlasov.h>
 #include <gkyl_dg_vlasov.h>
+#include <gkyl_dg_vlasov_calc_hamil.h>
+#include <gkyl_dg_vlasov_conf_flux_surf.h>
+#include <gkyl_dg_vlasov_vel_flux_surf.h>
+#include <gkyl_mom_vlasov.h>
+#include <gkyl_mom_calc.h>
+#include <gkyl_vlasov_position_map.h>
+#include <gkyl_vlasov_triad_geom.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_elem_type.h>
 #include <gkyl_eqn_type.h>
@@ -78,7 +80,6 @@
 #include <gkyl_mom_bcorr_lbo_gyrokinetic.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_calc_bcorr.h>
-#include <gkyl_mom_canonical_pb.h>
 #include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_null_pool.h>
 #include <gkyl_position_map.h>
@@ -102,6 +103,7 @@
 #include <gkyl_vlasov_lte_correct.h>
 #include <gkyl_vlasov_lte_moments.h>
 #include <gkyl_vlasov_lte_proj_on_basis.h>
+#include <gkyl_vlasov_velocity_map.h>
 #include <gkyl_util.h>
 
 // Definitions of private structs and APIs attached to these objects
@@ -159,6 +161,10 @@ struct gk_species_moment {
         };
         struct {
           struct gkyl_dg_updater_moment *mcalc;
+        };
+        struct {
+          struct gkyl_mom_type *mom_type; // Vlasov (triad) moment type for neutrals.
+          struct gkyl_mom_calc *mom_calc; // Vlasov moment calculator for neutrals.
         };
       };
     };
@@ -330,18 +336,19 @@ struct gk_collisionless {
     };
     // Neutral (Vlasov) species ............................................ //
     struct {
-      struct gkyl_array *alpha_surf; // array for surface phase space flux (v^i = v . e^i)
-      struct gkyl_array
-        *sgn_alpha_surf; // array for the sign of the surface phase space flux at quadrature points
-      // utilized for numerical flux function
-      // F = alpha_surf/2 ( (f^+ + f^-) - sign_alpha_surf*(f^+ - f^-) )
-      struct gkyl_array
-        *const_sgn_alpha; // boolean array for if the surface phase space flux is single signed
-      // if true, numerical flux function inside kernels simplifies to
-      // F = alpha_surf*f^- (if sign_alpha_surf = 1),
-      // F = alpha_surf*f^+ (if sign_alpha_surf = -1)
+      int num_surf_conf_nodes; // Number of surface nodes at configuration-space surfaces.
+      int num_surf_vel_nodes; // Number of surface nodes at velocity-space surfaces.
 
-      gkyl_dg_updater_vlasov *vlasov_slvr; // Vlasov solver.
+      struct gkyl_array *conf_flux_surf; // Modal expansion of surface fluxes at conf-space surfaces.
+      struct gkyl_array
+        *vel_flux_surf; // Modal expansion of surface fluxes at velocity-space surfaces.
+      struct gkyl_dg_vlasov_conf_flux_surf
+        *calc_conf_flux; // Updater for computing surface fluxes (conf).
+      struct gkyl_dg_vlasov_vel_flux_surf
+        *calc_vel_flux; // Updater for computing surface fluxes (vel).
+
+      struct gkyl_dg_eqn *eqn_vlasov; // Vlasov (triad) equation object.
+      struct gkyl_hyper_dg *slvr_vlasov; // Vlasov solver.
     };
   };
   void (*rhs_func)(
@@ -705,7 +712,8 @@ struct gk_recycle_wall {
 
   struct gkyl_array *unit_phase_flux_neut; // Unit-density neutral flux.
   struct gkyl_array *unit_m0_flux_neut; // MO moment of unit-density flux.
-  struct gkyl_dg_updater_moment *m0op_neut; // M0 moment solver for unit-density flux.
+  struct gkyl_mom_type *m0op_neut_type; // M0 moment type for unit-density flux.
+  struct gkyl_mom_calc *m0op_neut; // M0 moment solver for unit-density flux.
 
   struct gkyl_array *spectrum[GKYL_MAX_SPECIES]; // Unit-density Maxwellian is copied and scaled here.
   struct gkyl_range
@@ -1414,7 +1422,7 @@ struct gk_neut_species {
 
   bool is_fluid; // Whether this is a fluid species.
   enum gkyl_field_id field_id; // Type of Field equation (always GKYL_FIELD_NULL).
-  enum gkyl_model_id model_id; // Type of Vlasov equation (always GKYL_MODEL_CANONICAL_PB)
+  enum gkyl_model_id model_id; // Type of Vlasov equation (always GKYL_MODEL_TRIAD).
 
   struct gkyl_basis basis; // Species basis.
   struct gkyl_basis *basis_on_dev; // Species basis on device (or host if use_gpu=false).
@@ -1489,10 +1497,22 @@ struct gk_neut_species {
       struct gkyl_range local_vel, local_ext_vel; // Local, local-ext velocity-space ranges.
 
       struct gkyl_velocity_map *vel_map; // Velocity mapping objects.
+      // Identity Vlasov velocity map, passed to the Vlasov moment/LTE updaters.
+      struct gkyl_vlasov_velocity_map *vlasov_vel_map;
+      // Identity Vlasov position map, required by the Vlasov flux updaters.
+      struct gkyl_vlasov_position_map *vlasov_pos_map;
 
       struct gkyl_array *g_ij, *gij; // Metric tensor and its conjugate.
-      struct gkyl_array *hamil; // Specified hamiltonian function for canonical poisson bracket
+      struct gkyl_basis basis_vel; // Velocity-space basis.
+      enum gkyl_hamil_id hamil_id; // Hamiltonian representation (velocity-space sparse for triads).
+      struct gkyl_range hamil_range; // Range the Hamiltonian is defined on (velocity space).
+      struct gkyl_array *hamil; // Hamiltonian H = v^2/2 on the velocity-space grid.
       struct gkyl_array *hamil_host; // Host side hamiltonian array for intial projection
+      struct gkyl_array
+        *conf_poisson_tensor; // Conf-space Poisson tensor from the GK geometry triads.
+      struct gkyl_array
+        *conf_poisson_tensor_host; // Host-side Poisson tensor (built nodally on host).
+      struct gkyl_array *f_no_J; // Distribution function with the velocity Jacobian divided out.
       struct gk_species_moment m0; // Computes density.
 
       struct gkyl_array *bc_buffer; // Buffer for BCs (used by bc_basic)
