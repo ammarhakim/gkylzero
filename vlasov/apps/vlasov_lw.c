@@ -210,6 +210,8 @@ wv_eqn_get(lua_State *L)
 
 // Euler.new { gasGamma = 1.4, rpType = G0.EulerRP.Roe }
 // where rpType is one of G0.EulerRP.Roe, G0.EulerRP.Lax, G0.EulerRP.HLL or G0.EulerRP.HLLC.
+static bool vm_lw_use_gpu(lua_State *L);
+
 static int
 eqn_euler_lw_new(lua_State *L)
 {
@@ -218,11 +220,13 @@ eqn_euler_lw_new(lua_State *L)
   double gas_gamma = glua_tbl_get_number(L, "gasGamma", 1.4);
   enum gkyl_wv_euler_rp rp_type = glua_tbl_get_integer(L, "rpType", WV_EULER_RP_ROE);
 
+  // The fluid-species limiter dereferences the equation on the device, so the
+  // equation needs its device copy whenever the run is on the GPU.
   euler_lw->magic = VLASOV_EQN_DEFAULT;
   euler_lw->eqn = gkyl_wv_euler_inew(&(struct gkyl_wv_euler_inp){
     .gas_gamma = gas_gamma,
     .rp_type = rp_type,
-    .use_gpu = false,
+    .use_gpu = vm_lw_use_gpu(L),
   });
 
   // Create Lua userdata.
