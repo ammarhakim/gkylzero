@@ -343,6 +343,30 @@ gkyl_fem_poisson_new(
     up->bias_plane_src = fem_poisson_bias_src_disabled;
   }
 
+  // A fully periodic (non-Helmholtz) problem is singular: the potential is only
+  // defined up to a constant. A direct factorization of the singular matrix is not
+  // reliable (an exactly zero pivot leaves the solve undone), so fix the gauge by
+  // replacing the equation of global node 0 with phi_0 = 0 (its right side is zeroed
+  // in set_rhs). The constant is removed again after the solve, so the returned
+  // zero-mean potential is unchanged.
+  if (up->isdomperiodic && !(up->ishelmholtz)) {
+    long ncol = 0;
+    long *cols = gkyl_malloc(sizeof(long) * gkyl_mat_triples_size(tri[0]));
+    struct gkyl_mat_triples_iter *it = gkyl_mat_triples_iter_new(tri[0]);
+    while (gkyl_mat_triples_iter_next(it)) {
+      struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(it);
+      if (mt.row == 0) {
+        cols[ncol++] = mt.col;
+      }
+    }
+    gkyl_mat_triples_iter_release(it);
+    for (long k = 0; k < ncol; ++k) {
+      gkyl_mat_triples_insert(tri[0], 0, cols[k], 0.0);
+    }
+    gkyl_mat_triples_insert(tri[0], 0, 0, 1.0);
+    gkyl_free(cols);
+  }
+
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     gkyl_culinsolver_amat_from_triples(up->prob_cu, tri);
@@ -425,6 +449,9 @@ gkyl_fem_poisson_set_rhs(
     // modal-to-nodal operator times the source, modified by BCs in skin cells.
     keri = idx_to_inloup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
     up->kernels->srcker[keri](eps_p, up->dx, rhsin_p, up->bcvals, phibc_p, up->globalidx, brhs_p);
+  }
+  if (up->isdomperiodic && !(up->ishelmholtz)) {
+    brhs_p[0] = 0.0; // gauge equation phi_0 = 0 (see the matrix assembly).
   }
 
   // Set the corresponding entries to the biasing potential.

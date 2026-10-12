@@ -6,9 +6,13 @@
 // Note: the relativistic BGK target matches the pressure of f, not its energy, so the post-shock
 // state drifts from the exact one as energy is not conserved (6% over this run).
 // Quadratic velocity maps cluster the cells at the origin of velocity space.
+// A cubic position map clusters the configuration cells at the initial discontinuity (smallest cell
+// Lx/256, about half a mean free path), which the p = 1 bases need to keep the stationary-frame
+// temperature positive through the first stage.
 // Exact solution at t = 0.3: shock at x = 0.742, contact at 0.635, post-shock lab-frame density
 // 0.282, velocity 0.449.
-// The kinetic shock position agrees within 1%; the measured post-shock lab density is 0.38.
+// The kinetic shock sits at x = 0.729, within 2% of the exact position; the measured post-shock lab
+// density is 0.39 and velocity 0.53.
 
 #include <math.h>
 #include <stdio.h>
@@ -202,6 +206,22 @@ evalNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, voi
 
   // Set collision frequency.
   fout[0] = nu;
+}
+
+// Position map clustering the cells about the initial discontinuity at x = Lx/2:
+// x = Lx/2 + Lx/2 ((1 - a) s + a s^3), s = 2 xc/Lx - 1, with a set so that the smallest
+// cell is Lx/256 (about half a mean free path); the p = 1 bases need the shock cell
+// resolved on that scale to keep the stationary-frame temperature positive through the
+// first stage.
+void
+mapc2p_pos(double t, const double *GKYL_RESTRICT xc, double *GKYL_RESTRICT xp, void *ctx)
+{
+  struct sodshock_ctx *app = ctx;
+  double Lx = app->Lx;
+  double a = 1.0 - app->Nx / 256.0;
+  double s = 2.0 * xc[0] / Lx - 1.0;
+
+  xp[0] = 0.5 * Lx + 0.5 * Lx * ((1.0 - a) * s + a * s * s * s);
 }
 
 void
@@ -420,6 +440,7 @@ main(int argc, char **argv)
     .lower = {0.0},
     .upper = {ctx.Lx},
     .cells = {NX},
+    .mapc2p_pos[0] = {.mapc2p_pos_func = mapc2p_pos, .mapc2p_pos_ctx = &ctx},
 
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
