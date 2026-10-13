@@ -3421,6 +3421,20 @@ void gk_species_source_adapt(
 );
 
 /**
+ * Restore the state (particle rate and temperature) of the adaptive sources
+ * when restarting, by reading the adaptive source diagnostics of the previous
+ * simulation, and reproject the source accordingly.
+ *
+ * @param app gyrokinetic app object.
+ * @param s Species object.
+ * @param src Species source object.
+ * @param tm Restart time.
+ */
+void gk_species_source_read_adapt_state(
+  gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_source *src, double tm
+);
+
+/**
  * Compute RHS contribution from source.
  *
  * @param app Gyrokinetic app object.
