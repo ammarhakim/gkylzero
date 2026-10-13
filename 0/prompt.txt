@@ -1,0 +1,220 @@
+The current branch (gk_adiab_elc_2x3v-api_changes) implements an adiabatic electron model, where the electron density is n_e(t) = n_e(t=0) * (1 + e(phi-<phi>_{fsa})/T_e(t=0), and < >_{fsa} means a flux surface average and phi = phi(t) is the potential.
+
+One issue with this work is that although it only needs the electron density and temperature, which are user inputs, we still need to initialize a whole distribution function in order to take moments of it. This is problematic because it takes up a lot more memory than needed, and the accuracy of the discrete density and temperature depend on our velocity grid extents, mapping and number of cells.
+
+I'd like to instead implement a fluid gk_species option, much like gk_neut_species allows for either kinetic of fluid neutrals. Thinking from the top down, starting from the input file, I would like the electron table in an input file like gyrokinetic/creg/rt_gk_cbc_adiabatic_3x2v_p1.c to instead look like
+
+struct gkyl_gyrokinetic_species elc = {
+  .name = "elc",
+  .charge = ctx.qe,
+  .mass = ctx.me,
+  .projection =
+    {
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+      .density = eval_dens_ic, // Match the ion equilibrium density.
+      .ctx_density = &ctx,
+      .upar = eval_upar_elc_ic,
+      .ctx_upar = &ctx,
+      .temp = eval_temp_elc_ic,
+      .ctx_temp = &ctx,
+    },
+  .scaling = {.type = GKYL_GK_SPECIES_SCALING_ADIABATIC},
+  .num_diag_moments = 1,
+  .diag_moments = {GKYL_F_MOMENT_M0},
+};
+
+That is, to ommit lower, upper and cells. When this happens, gk_species will deflect many of its methods to a gk_species_fluid (and many of the present methods will move to gk_species_kinetic), where it'll initialize moments without allocating a phase-space distribution function. Other methods need to adapt accordingly. For example, gk_species_moment and gk_species_projection need to have support for a fluid species, so that other modules can simply ask for moments or projections without caring if the species is fluid or kinetic (in the fluid case gk_species_projection would actually project moments, not distributions).
+
+You can examine how this works in gk_neut_species.
+
+Can you create a plan for this change?
+
+---
+
+Adapt the plan to indicate that gk_species_write_dynamic should continue writing gks->f, it's just that now this array holds the moments, not the distributions.
+
+In case it wasn't already in your understanding, fluid species should continue allocating things like grid, basis, ranges, etc, it's just that while these are phase-space objects for kinetic species, they will now be configuration space objects for fluid species.
+
+---
+
+Please implement the plan.
+
+---
+
+Actually, I think the fluid moments that the gk_species_fluid should store are the mass density (rho), the parallel momentum density (M_\parallel), the kinetic energy density (0.5*(p_\parallel + u_\parallel * M_\parallel)+p_\perp) and the perpendicular pressure divided by the mangetic field (p_\perp/B), all of them multiplied by the Jacobian.
+
+---
+
+Actually, I think the fluid moments that the gk_species_fluid should store are the mass density (rho), the parallel momentum density (M_\parallel), the kinetic energy density (0.5*(p_\parallel + u_\parallel * M_\parallel)+p_\perp) and the perpendicular pressure divided by the mangetic field (p_\perp/B), all of them multiplied by the Jacobian. This will make it easier to write the collisionless fluid equations in conservative form when we do implement them.
+
+---
+
+Implement the plan.
+
+---
+
+why is there a gk_species_fluid_read and not a gk_species_kinetic_read ? how would the latter be different from gk_species_file_import_init? And more generally, can we have a single method for reading either a fluid or a kinetic species?
+
+---
+
+ok, create a plan for this change
+
+---
+
+Implement the plan.
+
+---
+
+Why are the checks in lines 27 and 37 of gk_species.c needed?
+
+---
+
+There are no older fluid files, we are just implementing the fluid model now (we haven't pushed this branch to main). So can this be simplified?
+
+---
+
+do it
+
+---
+
+Are there other places, in gyrokinetic.c or elsewhere, where you placed guards for supporting old fluid files (which don't exist)? if so, can you remove them?
+
+---
+
+gk_species_read_metadata is also checking whether kinetic species have "state_layout" and "species_model" in its metadata, and older kinetic files won't have that. Then in line 60 you exit gk_species_read if the metadata doesn't match, so this will break support for older kinetic files. Please remove state_layout and species_model from the metadata; we'll introduce that at a later time.
+
+---
+
+sorry please proceed
+
+---
+
+Please add short descriptive comments to the members of struct gkyl_gk_fluid_moments in gyrokinetic/zero/gkyl_gk_fluid_moments_priv.h
+
+---
+
+why does gk_fluid_moments_copy have to use a temporary (up->tmp) array in gk_fluid_moments.c? can you copy directly into "out"?
+
+---
+
+Can you create a new method like gkyl_array_set_offset_range, named gkyl_array_set_offsets_range, which accepts offsets for the input and output arrays? and have gkyl_array_set_offset_range call this new method instead.
+
+---
+
+Could this new method replace lines 15-16 of gk_fluid_moments.c with a single line?
+
+---
+
+ok, please implement this new method and use it in gk_fluid_moments where needed.
+
+---
+
+Implement the plan.
+
+---
+
+Can you delete gkyl_array_set_offset_cu? i don't think anyone is using it anymore
+
+---
+
+Please add short comments describing all the static functions in gk_fluid_moments.c. If the function computes a new quantity (not just perform a copy), add the formula used.
+
+---
+
+In lines 74-75 you used gkyl_array_set_offset_range and gkyl_array_accumulate_range. Couldn't you just use gkyl_array_accumulate_offset_range?
+
+---
+
+Please change it
+
+---
+
+same thing with lines 122 and 123, and 213-214
+
+---
+
+In gk_fluid_moments.c gk_fluid_moments_copy seems to be a wrapper for gkyl_array_set_offset_ncoeff_range. I think it's simpler to just call gkyl_array_set_offset_ncoeff_range instead and delete gk_fluid_moments_copy.
+
+---
+
+In gk_fluid_moments.c you use gk_fluid_moments_calc_Jpperp_from_state_zero and gk_fluid_moments_calc_Jpperp_from_prim_zero when vdim=1 to set pperp to zero. Would it be simpler to set pperp = ppar when vdim=1?
+
+---
+
+I think we should always assume that vdim=2 throughout the fluid gk_species, since that's typically what gyrofluid models assume.
+
+---
+
+Add to the plan: remove vdim input from fluid species in regression tests
+
+---
+
+Implement the plan.
+
+---
+
+In gk_fluid_moments.c replace the alloc function with the mkarr function we use in other parts of gkeyll
+
+---
+
+The gk_fluid_moments updater has a "result" array to store temporary results that ultimately get copied into the "out" array (say in gkyl_gk_fluid_moments_advance). Is it possible to just do everything directly in the "out", and remove the "result" array altogether?
+
+---
+
+let's leave result as it is now.
+
+Separately, rather than re-assigning up->final_func in line 323 of gk_fluid_moments.c to the GPU implementation, can you just detect if running on gpus, call gkyl_gk_fluid_moments_integrate_cu and return at the beginning of gk_fluid_moments_integrate ?
+
+---
+
+Implement the plan.
+
+---
+
+Please improve the comments in the headers
+
+gyrokinetic/zero/gkyl_gyrokinetic_cross_prim_moms_bgk.h
+gyrokinetic/zero/gkyl_prim_lbo_gyrokinetic.h
+
+to adhere to our standards
+
+---
+
+Do
+
+gkyl_prim_lbo_gyrokinetic_cu_dev_new
+gkyl_prim_lbo_gyrokinetic_cu_dev_new_with_vdim
+
+need to be defined in this public header or could we move them down into gyrokinetic/zero/gkyl_prim_lbo_gyrokinetic_priv.h like we do with other updaters?
+
+---
+
+Do it
+
+---
+
+One thing I don't like about the changes made in this branch so far is that they hardcode the fluid gk_species to static (line 71 of gyrokinetic/apps/gk_species_fluid.c). This is not correct, because if we use the scaling operation, the fluid species will change in time. A static species is one that truly doesn't change at all in time, that's how it was previously interpreted in gk_species and gk_neut_species. Please fix this.
+
+---
+
+ok
+
+---
+
+I approve the plan, please implement it.
+
+---
+
+I approve the plan, please implement it.
+
+---
+
+In the gkyl_gyrokinetic_app_apply_ic function of gyrokinetic/apps/gyrokinetic.c gk_species_scaling_apply is within an if (gks->is_fluid). Is that necessary? what if we want to do adiabatic electrons sims with kinetic electrons? furthermore, I think if an input file doesn't have the scaling operator, it's benign to call gk_species_scaling_apply because it should just be an empty method.
+
+---
+
+Please add a brief comment to each local static function in gyrokinetic/apps/gk_species_projection.c, including a description of each argument.
+
+---
+
+Can you move gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars_cu and gkyl_gk_maxwellian_proj_on_basis_advance_cu from the public header gyrokinetic/zero/gkyl_gk_maxwellian_proj_on_basis.h to the private header gyrokinetic/zero/gkyl_gk_maxwellian_proj_on_basis_priv.h as it's done in other objects? I don't think these cuda methods need to be public.
