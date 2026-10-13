@@ -845,6 +845,7 @@ main(int argc, char **argv)
         .ctx_upar = &ctx,
         .temp = eval_temp_elc_ic,
         .ctx_temp = &ctx,
+        .correct_all_moms = true,
       },
     .scaling = {.type = GKYL_GK_SPECIES_SCALING_ADIABATIC},
     .num_diag_moments = 1,

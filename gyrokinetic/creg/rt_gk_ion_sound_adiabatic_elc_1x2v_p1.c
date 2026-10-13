@@ -319,6 +319,7 @@ main(int argc, char **argv)
         .ctx_temp = &ctx,
         .upar = evalElcUparInit,
         .ctx_upar = &ctx,
+        .correct_all_moms = true,
       },
 
     .scaling = {.type = GKYL_GK_SPECIES_SCALING_ADIABATIC},

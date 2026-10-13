@@ -91,6 +91,22 @@ void gk_field_enforce_parallel_bc_disabled(
 /** Adiabatic Species Functions **/
 
 /**
+ * Allocate the background charge density and K of the adiabatic species.
+ *
+ * @param app Gyrokinetic application object.
+ * @param gkf Field object.
+ */
+void gk_field_adiabatic_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf);
+
+/**
+ * Release the background charge density and K of the adiabatic species.
+ *
+ * @param app Gyrokinetic application object.
+ * @param gkf Field object.
+ */
+void gk_field_adiabatic_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *gkf);
+
+/**
  * Compute the background charge density q_s*n_s0*J and K = (q_s^2 n_s0/T_s)*J of the
  * adiabatic species from the moments of its distribution function, which must hold the
  * t=0 initial condition.
@@ -114,39 +130,14 @@ void gk_field_adiab_elc_dphi(
 );
 
 /**
- * Initialize the flux-surface average, the 1D->cdim extension and the zonal
- * (Woodbury) system for the adiabatic electron response. Call after the
- * Helmholtz solver and the parallel smoothers exist.
+ * Initialize the flux-surface average and the field solver with the adiabatic electron
+ * response (fem_poisson_perp_adiabatic). Call after K is computed and the parallel
+ * smoothers exist.
  *
  * @param app Gyrokinetic application object.
  * @param gkf Field object.
  */
 void gk_field_adiab_elc_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf);
-
-/**
- * Compute the flux-surface average <phi> = int J phi dy dz / int J dy dz
- * into gkf->adiab.psi (1D in x).
- *
- * @param app Gyrokinetic application object.
- * @param gkf Field object.
- * @param phi Potential to average.
- */
-void gk_field_adiab_elc_fsa(
-  gkyl_gyrokinetic_app *app, const struct gk_field *gkf, const struct gkyl_array *phi
-);
-
-/**
- * Extend a 1D function of x to a cdim field constant along the other directions.
- *
- * @param app Gyrokinetic application object.
- * @param gkf Field object.
- * @param psi 1D field in x.
- * @param out cdim output field.
- */
-void gk_field_adiab_elc_inflate(
-  gkyl_gyrokinetic_app *app, const struct gk_field *gkf, const struct gkyl_array *psi,
-  struct gkyl_array *out
-);
 
 /**
  * Solve the 2x/3x field equation with adiabatic electrons,

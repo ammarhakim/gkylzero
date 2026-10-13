@@ -503,7 +503,9 @@ gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 
   gkyl_array_release(gkf->epsilon);
 
-  gkyl_fem_poisson_perp_release(gkf->fem_poisson_perp);
+  if (gkf->fem_poisson_perp) {
+    gkyl_fem_poisson_perp_release(gkf->fem_poisson_perp);
+  }
   if (gkf->is_dirichletvar) {
     gkyl_array_release(gkf->phi_bc);
   }
@@ -553,19 +555,12 @@ gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   }
 }
 
-// Set up the adiabatic response from the t=0 moments of the adiabatic species: the Helmholtz
-// solver, with kSq = -K since the solver subtracts kSq*phi, and the model-specific objects.
+// Set up the adiabatic response from the t=0 moments of the adiabatic species, and the
+// model-specific objects (including the field solver).
 static void
 gk_field_adiabatic_init_2x3x(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
   gk_field_adiabatic_profiles_calc(app, gkf);
-
-  gkf->gk_adiab.kSq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  gkyl_array_set(gkf->gk_adiab.kSq, -1.0, gkf->gk_adiab.kJ);
-  gkf->fem_poisson_perp = gkyl_fem_poisson_perp_new(
-    &app->local, &app->grid, app->basis, &gkf->poisson_bcs, gkf->info.bias_line_list, gkf->epsilon,
-    gkf->gk_adiab.kSq, app->use_gpu
-  );
 
   if (app->species[gkf->gk_adiab.species_idx].info.charge < 0.0) {
     gk_field_adiab_elc_new(app, gkf);
@@ -661,9 +656,10 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
     }
   }
 
-  // Initialize the Poisson solver. With an adiabatic species it is a Helmholtz solver that
-  // needs K, so it is created by init_adiab_func.
+  // Initialize the Poisson solver. With an adiabatic species the solver needs K, so it is
+  // created by init_adiab_func.
   gkf->poisson_bcs = poisson_bcs;
+  gkf->fem_poisson_perp = 0;
   if (!gkf->has_adiabatic_species) {
     gkf->fem_poisson_perp = gkyl_fem_poisson_perp_new(
       &app->local, &app->grid, app->basis, &poisson_bcs, gkf->info.bias_line_list, gkf->epsilon,

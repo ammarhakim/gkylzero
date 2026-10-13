@@ -369,8 +369,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   gkf->energy_adiab_func = gk_field_adiabatic_energy_none;
   if (gkf->has_adiabatic_species) {
     assert(gkf->gkfield_id == GKYL_GK_FIELD_ES);
-    gkf->gk_adiab.rho_bg = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    gkf->gk_adiab.kJ = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gk_field_adiabatic_new(app, gkf);
     gkf->accumulate_rhoc_bg_func = gk_field_accumulate_rho_c_bg_adiabatic;
   }
   gkf->num_rhoc_species = 0;
@@ -515,8 +514,7 @@ gk_field_release(const gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   gkf->release_func(app, gkf);
 
   if (gkf->has_adiabatic_species) {
-    gkyl_array_release(gkf->gk_adiab.rho_bg);
-    gkyl_array_release(gkf->gk_adiab.kJ);
+    gk_field_adiabatic_release(app, gkf);
   }
 
   // Release energy diagnostics.
