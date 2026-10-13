@@ -1,7 +1,9 @@
 #include <gkyl_gk_species_priv.h>
 
 static double
-gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin)
+gk_species_kinetic_omegaH_dt(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin
+)
 {
   // Compute the time step under which the omega_H mode is stable, dt_omegaH =
   // omegaH_CFL/omega_H.
@@ -40,7 +42,7 @@ gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const st
 }
 
 static double
-gk_species_rhs_dynamic(
+gk_species_kinetic_rhs_dynamic(
   gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
   struct gkyl_array *rhs, struct gkyl_array **bflux_moms
 )
@@ -107,7 +109,7 @@ gk_species_rhs_dynamic(
   double dt_out = app->cfl / omega_cfl_ho[0];
 
   // Apply omega_H constraint on dt.
-  species->dt_omegaH = gk_species_omegaH_dt(app, species, fin);
+  species->dt_omegaH = gk_species_kinetic_omegaH_dt(app, species, fin);
   dt_out = fmin(dt_out, species->dt_omegaH);
 
   species->dt_cfl_global_ho = dt_out;
@@ -117,7 +119,7 @@ gk_species_rhs_dynamic(
 }
 
 static double
-gk_species_rhs_implicit_dynamic(
+gk_species_kinetic_rhs_implicit_dynamic(
   gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
   struct gkyl_array *rhs, struct gkyl_array **bflux_moms, double dt
 )
@@ -148,7 +150,7 @@ gk_species_rhs_implicit_dynamic(
 }
 
 static void
-gk_species_apply_bc_dynamic(
+gk_species_kinetic_apply_bc_dynamic(
   gkyl_gyrokinetic_app *app, struct gk_species *species, struct gkyl_array *f
 )
 {
@@ -259,7 +261,7 @@ gk_species_apply_bc_dynamic(
 }
 
 static void
-gk_species_release_dynamic(const gkyl_gyrokinetic_app *app, const struct gk_species *gks)
+gk_species_kinetic_release_dynamic(const gkyl_gyrokinetic_app *app, const struct gk_species *gks)
 {
   // Release various arrays and objects for a dynamic species.
   gkyl_array_release(gks->f1);
@@ -340,7 +342,7 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app *app, const struct gk_spec
 }
 
 static void
-gk_species_init_dynamic(
+gk_species_kinetic_init_dynamic(
   struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_species *gks
 )
 {
@@ -657,10 +659,10 @@ gk_species_init_dynamic(
   }
 
   // Set function pointers.
-  gks->rhs_func = gk_species_rhs_dynamic;
-  gks->rhs_implicit_func = gk_species_rhs_implicit_dynamic;
-  gks->bc_func = gk_species_apply_bc_dynamic;
-  gks->release_func = gk_species_release_dynamic;
+  gks->rhs_func = gk_species_kinetic_rhs_dynamic;
+  gks->rhs_implicit_func = gk_species_kinetic_rhs_implicit_dynamic;
+  gks->bc_func = gk_species_kinetic_apply_bc_dynamic;
+  gks->release_func = gk_species_kinetic_release_dynamic;
   gks->step_f_func = gk_species_step_f_dynamic;
   gks->combine_func = gk_species_combine_dynamic;
   gks->copy_func = gk_species_copy_range_dynamic;
@@ -950,7 +952,7 @@ gk_species_kinetic_file_import_init(
 }
 
 static bool
-gk_species_do_I_recycle(struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
+gk_species_kinetic_do_I_recycle(struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
   // Check whether one of the neutral species has recycling BCs that depend on
   // this gyrokinetic species.
@@ -970,7 +972,7 @@ gk_species_do_I_recycle(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
 }
 
 static bool
-gk_species_do_I_recycle_react_scale(struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
+gk_species_kinetic_do_I_recycle_react_scale(struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
   // Check whether one of the neutral species has a recycle_react_scale
   // operation thats depend on this gyrokinetic species.
@@ -989,7 +991,7 @@ gk_species_do_I_recycle_react_scale(struct gkyl_gyrokinetic_app *app, struct gk_
 }
 
 static bool
-gk_species_do_I_adapt_src(struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
+gk_species_kinetic_do_I_adapt_src(struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
   // Check whether one of the species adapts its source depending on
   // this gyrokinetic species.
@@ -1389,11 +1391,11 @@ gk_species_kinetic_init(
   bool ion_in_boltz_elc_field = (gks->info.charge > 0.0) && app->field->update_field &&
                                 (app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN);
   // Check if sources are adaptive.
-  bool adaptive_sources = gk_species_do_I_adapt_src(app, gks);
+  bool adaptive_sources = gk_species_kinetic_do_I_adapt_src(app, gks);
   // Check if other species use the recycle_react_scale operation.
-  bool recycle_react_scale = gk_species_do_I_recycle_react_scale(app, gks);
+  bool recycle_react_scale = gk_species_kinetic_do_I_recycle_react_scale(app, gks);
   // Check if other species have recycling BCs.
-  bool recycling_bcs = gk_species_do_I_recycle(app, gks);
+  bool recycling_bcs = gk_species_kinetic_do_I_recycle(app, gks);
   if (gks->info.boundary_flux_diagnostics.num_diag_moments > 0 ||
       gks->info.boundary_flux_diagnostics.num_integrated_diag_moments > 0) {
     bflux_type = GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS_DIAGS;
@@ -1473,7 +1475,7 @@ gk_species_kinetic_init(
   if (gks->info.is_static) {
     gk_species_init_static(gk_app_inp, app, gks);
   } else {
-    gk_species_init_dynamic(gk_app_inp, app, gks);
+    gk_species_kinetic_init_dynamic(gk_app_inp, app, gks);
   }
 }
 

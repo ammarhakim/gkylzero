@@ -56,6 +56,7 @@ gk_species_fluid_init_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
   gks->f1 = mkarr(app->use_gpu, gks->f->ncomp, gks->f->size);
   gks->fnew = mkarr(app->use_gpu, gks->f->ncomp, gks->f->size);
+
   gk_species_init_integrated_mom(app, gks);
 
   gks->rhs_func = gk_species_fluid_rhs_dynamic;
@@ -79,25 +80,32 @@ static void
 gk_species_fluid_release(const gkyl_gyrokinetic_app *app, const struct gk_species *gks)
 {
   gks->release_func(app, gks);
+
   if (gks->info.init_from_file.type == GKYL_IC_IMPORT_NONE) {
     gk_species_projection_release(app, &gks->proj_init);
   }
+
   gk_species_moment_release(app, &gks->m0);
   gk_species_moment_release(app, &gks->lte.moms);
+
   for (int m = 0; m < gks->info.num_diag_moments; ++m) {
     gk_species_moment_release(app, &gks->moms[m]);
   }
   gkyl_free(gks->moms);
+
   gk_species_scaling_release(app, &gks->sca);
   gk_species_lbo_release(app, &gks->lbo);
   gk_species_bgk_release(app, &gks->bgk);
+
   gkyl_array_release(gks->m0_gyroavg);
   gkyl_array_release(gks->gyro_phi);
   gkyl_array_release(gks->f);
   if (app->use_gpu) {
     gkyl_array_release(gks->f_host);
   }
+
   gkyl_comm_release(gks->comm);
+
   gkyl_msgpack_map_elem_release(gks->io_meta_basic_len, gks->io_meta_basic);
   gkyl_msgpack_map_elem_release(gks->io_meta_conf_len, gks->io_meta_conf);
   gkyl_msgpack_map_elem_release(gks->io_meta_phase_len, gks->io_meta_phase);
@@ -129,9 +137,12 @@ gk_species_fluid_init(struct gkyl_gk *inp, gkyl_gyrokinetic_app *app, struct gk_
       gkyl_exit("Fluid gyrokinetic species must omit the velocity grid entirely.");
     }
   }
+
   // Fluid moments always represent parallel and perpendicular velocity coordinates.
   gks->info.vdim = 2;
+
   gks->num_moments = 4; // rho, Mpar, E, pperp/B (all multiplied by J).
+
   for (int b = 0; b < 2 * app->cdim; ++b) {
     if (gks->info.bcs[b].type != GKYL_BC_GK_SKIP &&
         gks->info.bcs[b].type != GKYL_BC_GK_SPECIES_PERIODIC) {
@@ -141,7 +152,12 @@ gk_species_fluid_init(struct gkyl_gk *inp, gkyl_gyrokinetic_app *app, struct gk_
   if (gks->info.mass <= 0.0 || gks->info.charge == 0.0) {
     gkyl_exit("Invalid fluid gyrokinetic species mass or charge.");
   }
+
   gks->release_species_func = gk_species_fluid_release;
+
+  gks->comm = gkyl_comm_acquire(app->comm); // Species comm, same as app/conf comm.
+
+  // Set grid, basis, and ranges (same as app/conf ones).
   gks->grid = app->grid;
   gks->basis = app->basis;
   gks->basis_on_dev = app->basis_on_dev;
@@ -149,7 +165,7 @@ gk_species_fluid_init(struct gkyl_gk *inp, gkyl_gyrokinetic_app *app, struct gk_
   gks->local_ext = app->local_ext;
   gks->global = app->global;
   gks->global_ext = app->global_ext;
-  gks->comm = gkyl_comm_acquire(app->comm);
+
   int ghost[GKYL_MAX_CDIM] = {1, 1, 1};
   for (int d = 0; d < app->cdim; ++d) {
     gkyl_skin_ghost_ranges(
@@ -169,37 +185,72 @@ gk_species_fluid_init(struct gkyl_gk *inp, gkyl_gyrokinetic_app *app, struct gk_
       ghost
     );
   }
+
+  // Allocte array holding fluid moments.
   gks->f = mkarr(app->use_gpu, gks->num_moments * gks->basis.num_basis, gks->local_ext.volume);
   gks->f_host = app->use_gpu ? mkarr(false, gks->f->ncomp, gks->f->size) : gks->f;
+
   gk_species_init_io(app, gks);
+
+  // Allocate moment operators to compute M0 and Maxwellian moments.
   gk_species_moment_init(app, gks, &gks->m0, GKYL_F_MOMENT_M0, false);
   gk_species_moment_init(app, gks, &gks->lte.moms, GKYL_F_MOMENT_MAXWELLIAN, false);
+
   gks->m0_gyroavg = gkyl_array_acquire(gks->m0.marr);
   gks->gyro_phi = gkyl_array_acquire(app->field->phi_smooth);
   gks->gyroaverage = gk_species_gyroaverage_disabled;
+
   gks->moms = gkyl_malloc(sizeof(struct gk_species_moment) * gks->info.num_diag_moments);
   for (int m = 0; m < gks->info.num_diag_moments; ++m) {
     gk_species_moment_init(app, gks, &gks->moms[m], gks->info.diag_moments[m], false);
   }
+
   if (gks->info.init_from_file.type == GKYL_IC_IMPORT_NONE) {
+    // Set ICs by projecting functions in input file.
     gk_species_projection_init(app, gks, gks->info.projection, &gks->proj_init);
   } else {
+    // Set ICs from file.
     gk_species_file_import_init(app, gks, gks->info.init_from_file);
   }
+
+  // Disable collisionless transport.
   gk_species_collisionless_init(app, gks, &gks->collisionless);
+
+  // Disable anomalous diffusion.
   gk_species_anomalous_diff_init(app, gks, &gks->anom_diff);
+
+  // Disable damping.
   gk_species_damping_init(app, gks, &gks->damping);
+
+  // Disable time-rate multipliers.
   gk_species_fdot_multiplier_init(app, gks, &gks->fdot_mult);
+
+  // Disable the BGK source.
   gk_species_source_bgk_init(app, gks, &gks->bgk_src);
+
+  // Disable positivity correction.
   gk_species_positivity_init(app, gks, &gks->positivity);
+
+  // Disable reactions with charged species.
   gk_species_react_init(app, gks, gks->info.react, &gks->react, true);
+
+  // Disable reactions with neutral species.
   gk_species_react_init(app, gks, gks->info.react_neut, &gks->react_neut, false);
+
+  // Disable boundary-flux calculations.
   gk_species_bflux_init(
     app, gks, &gks->bflux, GK_SPECIES_BFLUX_NONE, (struct gkyl_phase_diagnostics_inp){}
   );
+
+  // Set up density scaling.
   gk_species_scaling_init(app, gks, &gks->sca);
+
+  // Set up LBO collision moments and partners.
   gk_species_lbo_init(app, gks, &gks->lbo);
+
+  // Set up BGK collision moments and partners.
   gk_species_bgk_init(app, gks, &gks->bgk);
+
   if (gks->info.is_static) {
     gk_species_init_static(inp, app, gks);
   } else {
