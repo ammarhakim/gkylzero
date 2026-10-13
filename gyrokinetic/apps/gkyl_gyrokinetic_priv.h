@@ -1656,7 +1656,7 @@ struct gk_field {
   struct gkyl_array *epsilon; // Polarization weight including geometric factors.
   bool has_adiabatic_species; // Whether a species has an adiabatic response.
   struct gkyl_poisson_bc poisson_bcs; // Perpendicular Poisson BCs (2x/3x).
-  struct gk_field_adiabatic adiab; // Adiabatic species response.
+  struct gk_field_adiabatic gk_adiab; // Adiabatic species response.
   int num_rhoc_species; // Number of species whose charge density enters rho_c.
   int rhoc_species_idx[GKYL_MAX_SPECIES]; // Indices of the species whose charge enters rho_c.
 

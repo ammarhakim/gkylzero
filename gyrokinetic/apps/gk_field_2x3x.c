@@ -545,7 +545,7 @@ gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   }
 
   if (gkf->has_adiabatic_species) {
-    if (app->species[gkf->adiab.species_idx].info.charge < 0.0) {
+    if (app->species[gkf->gk_adiab.species_idx].info.charge < 0.0) {
       gk_field_adiab_elc_release(app, gkf);
     } else {
       assert(false); // Not implemented for ions.
@@ -560,14 +560,14 @@ gk_field_adiabatic_init_2x3x(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
   gk_field_adiabatic_profiles_calc(app, gkf);
 
-  gkf->adiab.kSq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  gkyl_array_set(gkf->adiab.kSq, -1.0, gkf->adiab.kJ);
+  gkf->gk_adiab.kSq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  gkyl_array_set(gkf->gk_adiab.kSq, -1.0, gkf->gk_adiab.kJ);
   gkf->fem_poisson_perp = gkyl_fem_poisson_perp_new(
     &app->local, &app->grid, app->basis, &gkf->poisson_bcs, gkf->info.bias_line_list, gkf->epsilon,
-    gkf->adiab.kSq, app->use_gpu
+    gkf->gk_adiab.kSq, app->use_gpu
   );
 
-  if (app->species[gkf->adiab.species_idx].info.charge < 0.0) {
+  if (app->species[gkf->gk_adiab.species_idx].info.charge < 0.0) {
     gk_field_adiab_elc_new(app, gkf);
   } else {
     assert(false); // Not implemented for ions.
@@ -772,13 +772,13 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   gkf->rhs_phi_func = gk_field_rhs_poisson_perp_2x3x;
   if (gkf->has_adiabatic_species) {
     gkf->init_adiab_func = gk_field_adiabatic_init_2x3x;
-    if (app->species[gkf->adiab.species_idx].info.charge < 0.0) {
+    if (app->species[gkf->gk_adiab.species_idx].info.charge < 0.0) {
       // Adiabatic electrons respond to phi - <phi>, only valid on closed field lines.
       assert(!app->gk_geom->has_LCFS);
       assert(!gkf->info.bias_line_list || gkf->info.bias_line_list->num_bias_line == 0);
       gkf->rhs_phi_func = gk_field_adiab_elc_rhs_phi_2x3x;
       gkf->energy_adiab_func = gk_field_adiab_elc_energy_accumulate;
-      gkf->adiab.dphi_func = gk_field_adiab_elc_dphi;
+      gkf->gk_adiab.dphi_func = gk_field_adiab_elc_dphi;
     } else {
       assert(false); // Not implemented for ions.
     }

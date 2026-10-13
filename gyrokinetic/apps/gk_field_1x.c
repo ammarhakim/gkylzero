@@ -108,12 +108,12 @@ gk_field_adiabatic_init_1x(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
   gk_field_adiabatic_profiles_calc(app, gkf);
 
-  gkyl_array_accumulate(gkf->epsilon, 1.0, gkf->adiab.kJ);
+  gkyl_array_accumulate(gkf->epsilon, 1.0, gkf->gk_adiab.kJ);
   gk_field_1x_parproj_new(app, gkf);
 
   // The 1x energy uses a scalar factor, the J-weighted average of q_s^2 n_s0/T_s
   // (exact for uniform profiles).
-  gkf->es_energy_fac_1d += 0.5 * gk_field_1x_integral(app, gkf->adiab.kJ) /
+  gkf->es_energy_fac_1d += 0.5 * gk_field_1x_integral(app, gkf->gk_adiab.kJ) /
                            gk_field_1x_integral(app, app->gk_geom->geo_int.jacobgeo);
 }
 
@@ -171,9 +171,9 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   gkf->accumulate_rhoc_func = gk_field_accumulate_rho_c_poisson;
   gkf->es_energy_fac_1d = 0.5 * polarization_weight * gkf->info.kperpSq;
   if (gkf->has_adiabatic_species) {
-    if (app->species[gkf->adiab.species_idx].info.charge < 0.0) {
+    if (app->species[gkf->gk_adiab.species_idx].info.charge < 0.0) {
       gkf->init_adiab_func = gk_field_adiabatic_init_1x;
-      gkf->adiab.dphi_func = gk_field_adiabatic_dphi_1x;
+      gkf->gk_adiab.dphi_func = gk_field_adiabatic_dphi_1x;
     } else {
       assert(false); // Not implemented for ions.
     }

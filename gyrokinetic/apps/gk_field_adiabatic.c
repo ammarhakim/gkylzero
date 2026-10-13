@@ -58,7 +58,7 @@ gk_field_adiab_elc_fsa(
   gkyl_gyrokinetic_app *app, const struct gk_field *gkf, const struct gkyl_array *phi
 )
 {
-  const struct gk_field_adiabatic *ad = &gkf->adiab;
+  const struct gk_field_adiabatic *ad = &gkf->gk_adiab;
 
   gkyl_dg_mul_op_range(
     &app->basis, 0, ad->jphi, 0, app->gk_geom->geo_int.jacobgeo, 0, phi, &app->local
@@ -83,7 +83,7 @@ gk_field_adiab_elc_inflate(
   struct gkyl_array *out
 )
 {
-  const struct gk_field_adiabatic *ad = &gkf->adiab;
+  const struct gk_field_adiabatic *ad = &gkf->gk_adiab;
   if (app->cdim == 2) {
     gkyl_translate_dim_advance(ad->inflate_lo, &ad->local_x, &app->local, psi, 1, out);
   } else {
@@ -110,7 +110,7 @@ gk_field_adiab_elc_response_solve(
   struct gkyl_array *phi
 )
 {
-  struct gk_field_adiabatic *ad = &gkf->adiab;
+  struct gk_field_adiabatic *ad = &gkf->gk_adiab;
   gk_field_adiab_elc_inflate(app, gkf, psi, phi); // E psi
   gkyl_dg_mul_op_range(&app->basis, 0, ad->rhs2, 0, ad->kJ, 0, phi, &app->local); // K E psi
   gk_field_adiabatic_helmholtz_solve(app, gkf, ad->rhs2, phi); // get phi = H^{-1} K E psi
@@ -121,7 +121,7 @@ gk_field_adiab_elc_response_solve(
 static void
 gk_field_adiab_elc_zonal_solve(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
-  struct gk_field_adiabatic *ad = &gkf->adiab;
+  struct gk_field_adiabatic *ad = &gkf->gk_adiab;
   if (app->use_gpu) {
     gkyl_array_copy(ad->psi_ho, ad->psi);
   }
@@ -138,7 +138,7 @@ gk_field_adiab_elc_zonal_solve(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 void
 gk_field_adiab_elc_rhs_phi_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
-  struct gk_field_adiabatic *ad = &field->adiab;
+  struct gk_field_adiabatic *ad = &field->gk_adiab;
 
   // Solve H phi1 = rho.
   gk_field_adiabatic_helmholtz_solve(app, field, field->rho_c, field->phi_smooth);
@@ -163,7 +163,7 @@ gk_field_adiab_elc_dphi(
 )
 {
   gk_field_adiab_elc_fsa(app, gkf, phi);
-  gk_field_adiab_elc_inflate(app, gkf, gkf->adiab.psi, out);
+  gk_field_adiab_elc_inflate(app, gkf, gkf->gk_adiab.psi, out);
   gkyl_array_scale_range(out, -1.0, &app->local);
   gkyl_array_accumulate_range(out, 1.0, phi, &app->local);
 }
@@ -174,7 +174,7 @@ gk_field_adiab_elc_energy_accumulate(
   gkyl_gyrokinetic_app *app, const struct gk_field *gkf, double factor, double *out
 )
 {
-  const struct gk_field_adiabatic *ad = &gkf->adiab;
+  const struct gk_field_adiabatic *ad = &gkf->gk_adiab;
 
   gk_field_adiab_elc_dphi(app, gkf, gkf->phi_smooth, ad->phi2);
   gkyl_array_integrate_advance(
@@ -197,7 +197,7 @@ gk_field_adiab_elc_energy_accumulate(
 void
 gk_field_adiabatic_profiles_calc(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
-  struct gk_field_adiabatic *ad = &gkf->adiab;
+  struct gk_field_adiabatic *ad = &gkf->gk_adiab;
   struct gk_species *gks = &app->species[ad->species_idx];
   double q_s = gks->info.charge;
 
@@ -215,7 +215,7 @@ gk_field_adiabatic_profiles_calc(struct gkyl_gyrokinetic_app *app, struct gk_fie
 void
 gk_field_adiab_elc_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
-  struct gk_field_adiabatic *ad = &gkf->adiab;
+  struct gk_field_adiabatic *ad = &gkf->gk_adiab;
 
   assert(app->poly_order == 1); // array_average and translate_dim kernels are p=1 only.
 
@@ -369,7 +369,7 @@ gk_field_adiab_elc_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 void
 gk_field_adiab_elc_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
-  struct gk_field_adiabatic *ad = &gkf->adiab;
+  struct gk_field_adiabatic *ad = &gkf->gk_adiab;
 
   gkyl_array_release(ad->kSq);
   gkyl_array_release(ad->phi2);
