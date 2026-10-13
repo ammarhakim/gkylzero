@@ -44,79 +44,6 @@ gk_field_fem_release_1x(const gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   gkyl_array_integrate_release(gkf->calc_em_energy);
 }
 
-// Integral of a conf-space array over the global domain.
-static double
-gk_field_1x_integral(struct gkyl_gyrokinetic_app *app, const struct gkyl_array *arr)
-{
-  double *integ = app->use_gpu ? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
-  double *integ_red = app->use_gpu ? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
-  struct gkyl_array_integrate *int_op = gkyl_array_integrate_new(
-    &app->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_NONE, app->use_gpu
-  );
-  gkyl_array_integrate_advance(int_op, arr, 1.0, NULL, &app->local, NULL, integ);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, integ, integ_red);
-
-  double integ_ho[1];
-  if (app->use_gpu) {
-    gkyl_cu_memcpy(integ_ho, integ_red, sizeof(double), GKYL_CU_MEMCPY_D2H);
-    gkyl_cu_free(integ);
-    gkyl_cu_free(integ_red);
-  } else {
-    integ_ho[0] = integ_red[0];
-    gkyl_free(integ);
-    gkyl_free(integ_red);
-  }
-  gkyl_array_integrate_release(int_op);
-  return integ_ho[0];
-}
-
-// Projection onto the continuous parallel basis, weighted by epsilon (solves the 1x field equation).
-static void
-gk_field_1x_parproj_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
-{
-  // Gather epsilon for (global) smoothing in z.
-  struct gkyl_array *epsilon_global =
-    mkarr(app->use_gpu, gkf->epsilon->ncomp, app->global_ext.volume);
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, gkf->epsilon, epsilon_global);
-
-  enum gkyl_fem_parproj_bc_type fem_parproj_bc = GKYL_FEM_PARPROJ_NONE;
-  for (int d = 0; d < app->num_periodic_dir; ++d) {
-    if (app->periodic_dirs[d] == app->cdim - 1) {
-      fem_parproj_bc = GKYL_FEM_PARPROJ_PERIODIC;
-    }
-  }
-
-  gkf->fem_parproj = gkyl_fem_parproj_new(
-    &app->global, &app->grid, &app->basis, fem_parproj_bc, 0, epsilon_global, 0, app->use_gpu
-  );
-  gkyl_array_release(epsilon_global);
-}
-
-// No flux-surface average in 1x: phi - <phi> = phi.
-static void
-gk_field_adiabatic_dphi_1x(
-  gkyl_gyrokinetic_app *app, const struct gk_field *gkf, const struct gkyl_array *phi,
-  struct gkyl_array *out
-)
-{
-  gkyl_array_copy(out, phi);
-}
-
-// Add K = (q_s^2 n_s0/T_s)*J of the adiabatic species, from its t=0 moments, to the weight.
-static void
-gk_field_adiabatic_init_1x(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
-{
-  gk_field_adiabatic_profiles_calc(app, gkf);
-
-  gkyl_array_accumulate(gkf->epsilon, 1.0, gkf->gk_adiab.kJ);
-  gk_field_1x_parproj_new(app, gkf);
-
-  // The 1x energy uses a scalar factor, the J-weighted average of q_s^2 n_s0/T_s
-  // (exact for uniform profiles).
-  gkf->es_energy_fac_1d += 0.5 * gk_field_1x_integral(app, gkf->gk_adiab.kJ) /
-                           gk_field_1x_integral(app, app->gk_geom->geo_int.jacobgeo);
-}
-
 void
 gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
@@ -170,15 +97,10 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 
   gkf->accumulate_rhoc_func = gk_field_accumulate_rho_c_poisson;
   gkf->es_energy_fac_1d = 0.5 * polarization_weight * gkf->info.kperpSq;
-  if (gkf->has_adiabatic_species) {
-    if (app->species[gkf->gk_adiab.species_idx].info.charge < 0.0) {
-      gkf->init_adiab_func = gk_field_adiabatic_init_1x;
-      gkf->gk_adiab.dphi_func = gk_field_adiabatic_dphi_1x;
-    } else {
-      assert(false); // Not implemented for ions.
-    }
-  } else {
-    gk_field_1x_parproj_new(app, gkf);
+  // The parallel projection solves the field equation with weight epsilon. An adiabatic species
+  // adds K to epsilon, so the projection is then created once K is known.
+  if (!gkf->has_adiabatic_species) {
+    gk_field_fem_parproj_new(app, gkf, gkf->epsilon);
   }
 
   gkf->calc_em_energy =

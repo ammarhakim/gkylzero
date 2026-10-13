@@ -303,12 +303,6 @@ gk_field_energy_release(const struct gkyl_gyrokinetic_app *app, struct gk_field 
 }
 
 static void
-gk_field_accumulate_rho_c_bg_adiabatic(gkyl_gyrokinetic_app *app, struct gk_field *field)
-{
-  gkyl_array_accumulate_range(field->rho_c, 1.0, field->gk_adiab.rho_bg, &app->local);
-}
-
-static void
 gk_field_accumulate_rho_c_bg_none(gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
 }
@@ -352,8 +346,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   gk_field_energy_new(app, gkf);
 
   // A species with an adiabatic response enters the field equation through its background
-  // density and K = (q_s^2 n_s0/T_s)*J instead of its charge density. Both are set from its
-  // t=0 moments by init_adiab_func once the initial conditions are applied.
+  // density and K = (q_s^2 n_s0/T_s)*J instead of its charge density (see gk_field_adiabatic.c).
   memset(&gkf->gk_adiab, 0, sizeof(gkf->gk_adiab));
   gkf->gk_adiab.species_idx = -1;
   for (int i = 0; i < app->num_species; ++i) {
@@ -367,11 +360,6 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   gkf->init_adiab_func = gk_field_adiabatic_init_none;
   gkf->accumulate_rhoc_bg_func = gk_field_accumulate_rho_c_bg_none;
   gkf->energy_adiab_func = gk_field_adiabatic_energy_none;
-  if (gkf->has_adiabatic_species) {
-    assert(gkf->gkfield_id == GKYL_GK_FIELD_ES);
-    gk_field_adiabatic_new(app, gkf);
-    gkf->accumulate_rhoc_bg_func = gk_field_accumulate_rho_c_bg_adiabatic;
-  }
   gkf->num_rhoc_species = 0;
   for (int i = 0; i < app->num_species; ++i) {
     if (i != gkf->gk_adiab.species_idx) {
@@ -390,10 +378,43 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     }
   }
 
+  // Set up the adiabatic response, which may replace the field solve.
+  if (gkf->has_adiabatic_species) {
+    gk_field_adiabatic_new(app, gkf);
+  }
+
   // Initialize biased walls.
   gk_field_biased_wall_new(app, gkf);
 
   return gkf;
+}
+
+void
+gk_field_fem_parproj_new(
+  struct gkyl_gyrokinetic_app *app, struct gk_field *gkf, const struct gkyl_array *weight
+)
+{
+  enum gkyl_fem_parproj_bc_type fem_parproj_bc = GKYL_FEM_PARPROJ_NONE;
+  for (int d = 0; d < app->num_periodic_dir; ++d) {
+    if (app->periodic_dirs[d] == app->cdim - 1) {
+      fem_parproj_bc = GKYL_FEM_PARPROJ_PERIODIC;
+    }
+  }
+
+  // Gather the weight for the (global) projection in z.
+  struct gkyl_array *weight_global = 0;
+  if (weight) {
+    weight_global = mkarr(app->use_gpu, weight->ncomp, app->global_ext.volume);
+    gkyl_comm_array_allgather(app->comm, &app->local, &app->global, weight, weight_global);
+  }
+
+  gkf->fem_parproj = gkyl_fem_parproj_new(
+    &app->global, &app->grid, &app->basis, fem_parproj_bc, 0, weight_global, 0, app->use_gpu
+  );
+
+  if (weight) {
+    gkyl_array_release(weight_global);
+  }
 }
 
 // RHS functions for calculations

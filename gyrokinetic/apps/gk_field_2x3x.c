@@ -545,28 +545,6 @@ gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   if (gkf->use_flr) {
     gk_field_flr_release(app, gkf);
   }
-
-  if (gkf->has_adiabatic_species) {
-    if (app->species[gkf->gk_adiab.species_idx].info.charge < 0.0) {
-      gk_field_adiab_elc_release(app, gkf);
-    } else {
-      assert(false); // Not implemented for ions.
-    }
-  }
-}
-
-// Set up the adiabatic response from the t=0 moments of the adiabatic species, and the
-// model-specific objects (including the field solver).
-static void
-gk_field_adiabatic_init_2x3x(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
-{
-  gk_field_adiabatic_profiles_calc(app, gkf);
-
-  if (app->species[gkf->gk_adiab.species_idx].info.charge < 0.0) {
-    gk_field_adiab_elc_new(app, gkf);
-  } else {
-    assert(false); // Not implemented for ions.
-  }
 }
 
 void
@@ -707,16 +685,7 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   }
 
   // Potential smoothing (in z) updater
-  enum gkyl_fem_parproj_bc_type fem_parproj_bc = GKYL_FEM_PARPROJ_NONE;
-  for (int d = 0; d < app->num_periodic_dir; ++d) {
-    if (app->periodic_dirs[d] == app->cdim - 1) {
-      fem_parproj_bc = GKYL_FEM_PARPROJ_PERIODIC;
-    }
-  }
-
-  gkf->fem_parproj = gkyl_fem_parproj_new(
-    &app->global, &app->grid, &app->basis, fem_parproj_bc, 0, 0, 0, app->use_gpu
-  );
+  gk_field_fem_parproj_new(app, gkf, NULL);
 
   gkf->fem_projection_par_rho_func = gk_field_fem_projection_par;
   gkf->fem_projection_par_phi_func = gk_field_fem_projection_par;
@@ -766,19 +735,6 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 
   // Set the pointer to the function that computes phi.
   gkf->rhs_phi_func = gk_field_rhs_poisson_perp_2x3x;
-  if (gkf->has_adiabatic_species) {
-    gkf->init_adiab_func = gk_field_adiabatic_init_2x3x;
-    if (app->species[gkf->gk_adiab.species_idx].info.charge < 0.0) {
-      // Adiabatic electrons respond to phi - <phi>, only valid on closed field lines.
-      assert(!app->gk_geom->has_LCFS);
-      assert(!gkf->info.bias_line_list || gkf->info.bias_line_list->num_bias_line == 0);
-      gkf->rhs_phi_func = gk_field_adiab_elc_rhs_phi_2x3x;
-      gkf->energy_adiab_func = gk_field_adiab_elc_energy_accumulate;
-      gkf->gk_adiab.dphi_func = gk_field_adiab_elc_dphi;
-    } else {
-      assert(false); // Not implemented for ions.
-    }
-  }
 
   // Set pointer to function that releases memory.
   gkf->release_func = gk_field_fem_release_2x3x;

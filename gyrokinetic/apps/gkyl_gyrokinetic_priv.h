@@ -1581,11 +1581,14 @@ struct gk_field_adiabatic {
   int species_idx; // Index of the adiabatic species.
   struct gkyl_array *kJ; // K = (q_s^2 n_s0/T_s)*J, from the t=0 moments of the species.
   struct gkyl_array *rho_bg; // q_s n_s0 J, background charge density.
-  // Computes out = phi - <phi> (no flux-surface average in 1x).
+  // Methods selected for the dimensionality. They set up the response once K is known,
+  // compute out = phi - <phi> (no flux-surface average in 1x), and release the response.
+  void (*setup_func)(gkyl_gyrokinetic_app *app, struct gk_field *gkf);
   void (*dphi_func)(
     gkyl_gyrokinetic_app *app, const struct gk_field *gkf, const struct gkyl_array *phi,
     struct gkyl_array *out
   );
+  void (*release_func)(const gkyl_gyrokinetic_app *app, struct gk_field *gkf);
 
   // Adiabatic electron objects (2x/3x): flux-surface average and field solver.
   struct gkyl_basis basis_x; // 1D basis in x.

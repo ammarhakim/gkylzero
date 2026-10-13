@@ -45,6 +45,18 @@ void gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *gk
 /** FEM Projection Functions **/
 
 /**
+ * Create the projection onto the continuous parallel (z) FEM basis, field->fem_parproj,
+ * optionally weighted. With a weight it solves the 1x field equation.
+ *
+ * @param app Gyrokinetic application object.
+ * @param gkf Field object.
+ * @param weight Weight of the projection (NULL for none), defined on the local range.
+ */
+void gk_field_fem_parproj_new(
+  struct gkyl_gyrokinetic_app *app, struct gk_field *gkf, const struct gkyl_array *weight
+);
+
+/**
  * Project a DG field onto the parallel FEM basis to enforce continuity
  * along the parallel (z) direction. This is essential for field solves
  * that require C0 continuity in the parallel direction.
@@ -91,7 +103,11 @@ void gk_field_enforce_parallel_bc_disabled(
 /** Adiabatic Species Functions **/
 
 /**
- * Allocate the background charge density and K of the adiabatic species.
+ * Set up the response of the adiabatic species: allocate its background charge density and K,
+ * and select the methods for the dimensionality (a weight in the 1x parallel projection, or a
+ * flux-surface average and the Woodbury solver in 2x/3x). Call after the field solver is
+ * initialized. K and the dimension-specific objects are computed by init_adiab_func once the
+ * initial conditions are applied.
  *
  * @param app Gyrokinetic application object.
  * @param gkf Field object.
@@ -99,74 +115,12 @@ void gk_field_enforce_parallel_bc_disabled(
 void gk_field_adiabatic_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf);
 
 /**
- * Release the background charge density and K of the adiabatic species.
+ * Release the resources of the adiabatic species response.
  *
  * @param app Gyrokinetic application object.
  * @param gkf Field object.
  */
 void gk_field_adiabatic_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *gkf);
-
-/**
- * Compute the background charge density q_s*n_s0*J and K = (q_s^2 n_s0/T_s)*J of the
- * adiabatic species from the moments of its distribution function, which must hold the
- * t=0 initial condition.
- *
- * @param app Gyrokinetic application object.
- * @param gkf Field object.
- */
-void gk_field_adiabatic_profiles_calc(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf);
-
-/**
- * Compute out = phi - <phi>, with <phi> the flux-surface average (2x/3x).
- *
- * @param app Gyrokinetic application object.
- * @param gkf Field object.
- * @param phi Potential.
- * @param out Output phi - <phi>.
- */
-void gk_field_adiab_elc_dphi(
-  gkyl_gyrokinetic_app *app, const struct gk_field *gkf, const struct gkyl_array *phi,
-  struct gkyl_array *out
-);
-
-/**
- * Initialize the flux-surface average and the field solver with the adiabatic electron
- * response (fem_poisson_perp_adiabatic). Call after K is computed and the parallel
- * smoothers exist.
- *
- * @param app Gyrokinetic application object.
- * @param gkf Field object.
- */
-void gk_field_adiab_elc_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf);
-
-/**
- * Solve the 2x/3x field equation with adiabatic electrons,
- * -div(eps grad_perp phi) + K (phi - <phi>) = rho, via the Woodbury identity.
- *
- * @param app Gyrokinetic application object.
- * @param field Field object.
- */
-void gk_field_adiab_elc_rhs_phi_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *field);
-
-/**
- * Add factor*(1/2) int K (phi-<phi>)^2 over the local range to out (2x/3x).
- *
- * @param app Gyrokinetic application object.
- * @param gkf Field object.
- * @param factor Factor multiplying the integral.
- * @param out Scalar to accumulate into (device memory if use_gpu).
- */
-void gk_field_adiab_elc_energy_accumulate(
-  gkyl_gyrokinetic_app *app, const struct gk_field *gkf, double factor, double *out
-);
-
-/**
- * Release the 2x/3x adiabatic electron resources.
- *
- * @param app Gyrokinetic application object.
- * @param gkf Field object.
- */
-void gk_field_adiab_elc_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *gkf);
 
 /** Finite Larmor Radius (FLR) Correction Functions **/
 
