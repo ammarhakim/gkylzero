@@ -18,7 +18,7 @@
 // (y,z), the Woodbury identity gives
 //   phi = phi1 + H^{-1} K E psi,  H phi1 = rho,  (I - G) psi = R phi1,
 // where G = R H^{-1} K E is an m x m matrix (m = Nx*num_basis_x) built
-// at init with Nx*num_basis_x 1D Helmholtz solves.
+// at init with m Helmholtz solves, one per zonal degree of freedom.
 
 // Copy an array w(x,p) into a contiguous vector v(m) with m=1,...,Nx*num_basis_x.
 static void
@@ -52,7 +52,6 @@ gk_field_adiab_elc_zonal_unpack(
   }
 }
 
-// Compute <phi> = int J phi dy dz / int J dy dz into adiab.psi. This is the R operator.
 void
 gk_field_adiab_elc_fsa(
   gkyl_gyrokinetic_app *app, const struct gk_field *gkf, const struct gkyl_array *phi
@@ -293,7 +292,7 @@ gk_field_adiab_elc_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   gkyl_array_clear(ad->rhs2, 0.0);
   gk_field_adiabatic_helmholtz_solve(app, gkf, ad->rhs2, ad->phi_rhs0);
 
-  // Zonal system A = I - G, G = R H^{-1} K E, it requires Nx*num_basis_x 1D Helmholtz solves.
+  // Zonal system A = I - G, G = R H^{-1} K E, it requires m Helmholtz solves, one per zonal degree of freedom.
   int m = ad->local_x.volume * nb_x;
   ad->num_zonal = m;
   ad->A = gkyl_mat_new(m, m, 0.0);
