@@ -1236,13 +1236,12 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app *app, double t0)
     }
   }
 
-  // Compute the phase-space advection speeds and boundary fluxes as t=0
-  // diagnostics and emission BCs may need them.
   for (int i = 0; i < app->num_species; ++i) {
     struct gk_species *gks = &app->species[i];
-    if (gks->is_fluid) {
-      gk_species_scaling_apply(app, gks, &gks->sca, gks->f, bflux);
-    }
+    // Scale the adiabatic species to set its density.
+    gk_species_scaling_apply(app, gks, &gks->sca, gks->f, bflux);
+    // Compute the phase-space advection speeds and boundary fluxes as t=0
+    // diagnostics and emission BCs may need them.
     gk_species_collisionless_flux(app, gks, &gks->collisionless, distf[i]);
     gk_species_bflux_rhs(app, &gks->bflux, gks->f, gks->f);
     gk_species_bflux_calc_moms(app, &gks->bflux, gks->f, bflux[i]);
@@ -4386,23 +4385,22 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
       gk_neut_species_apply_ic(app, &app->neut_species[i], 0.0);
     } else {
       rstat = gkyl_gyrokinetic_app_from_frame_neut_species(app, i, frame);
+      if (rstat.io_status != GKYL_ARRAY_RIO_SUCCESS) {
+        return rstat;
+      }
     }
   }
   for (int i = 0; i < app->num_species; i++) {
-    if (app->species[i].info.is_static) {
+    if (app->species[i].info.is_static || i == app->field->adiab.species_idx) {
       gk_species_apply_ic(app, &app->species[i], 0.0);
-    } else {
-      rstat = gkyl_gyrokinetic_app_from_frame_species(app, i, frame);
     }
   }
 
-  // Set up the response of an adiabatic species (static) from its t=0 moments.
+  // Capture the adiabatic response from the initial state before loading evolved states.
   app->field->init_adiab_func(app, app->field);
 
-  // Fluid species use static time stepping, but their algebraic closures change f.
-  // Capture the t=0 equilibrium response before restoring those time-dependent snapshots.
   for (int i = 0; i < app->num_species; ++i) {
-    if (app->species[i].is_fluid) {
+    if (!app->species[i].info.is_static) {
       rstat = gkyl_gyrokinetic_app_from_frame_species(app, i, frame);
       if (rstat.io_status != GKYL_ARRAY_RIO_SUCCESS) {
         return rstat;

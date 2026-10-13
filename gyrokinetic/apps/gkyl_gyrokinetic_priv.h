@@ -906,16 +906,19 @@ struct gk_proj_on_basis_c2p_func_ctx {
 };
 
 struct gk_proj {
+  enum gkyl_projection_id proj_id; // Type of projection.
+  struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
+
   struct gkyl_array *fluid_host, *fluid_tmp; // Configuration-space fluid projection staging.
   struct gkyl_array *fluid_prim; // Four primitive fields on the selected device.
+  // Function that performs the projection.
   void (*calc_func)(
     gkyl_gyrokinetic_app *, struct gk_species *, struct gk_proj *, struct gkyl_array *, double
   );
   void (*from_moms_func)(
     gkyl_gyrokinetic_app *, struct gk_species *, struct gk_proj *, struct gkyl_array *, double
   );
-  enum gkyl_projection_id proj_id; // Type of projection.
-  struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
+
   union {
     // Function projection.
     struct {

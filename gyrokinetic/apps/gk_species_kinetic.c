@@ -1023,10 +1023,6 @@ gk_species_kinetic_init(
   assert(vdim > 0); // Ensure user provided vdim in input file.
   assert(gks->info.charge != 0.0); // Charged GK operators require a nonzero charge.
 
-  if (gks->info.scaling.type == GKYL_GK_SPECIES_SCALING_ADIABATIC) {
-    gks->info.is_static = true;
-  }
-
   for (int d = 0; d < cdim; ++d) {
     cells[d] = gk_app_inp->cells[d];
     lower[d] = gk_app_inp->lower[d];

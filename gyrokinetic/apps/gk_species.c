@@ -620,9 +620,7 @@ gk_species_init_static(
   gks->copy_func = gk_species_copy_range_static;
   gks->write_func = gk_species_write_static;
   gks->write_cfl_func = gk_species_write_cfl_disabled;
-  gks->write_mom_func = gks->info.scaling.type == GKYL_GK_SPECIES_SCALING_ADIABATIC ?
-                          gk_species_write_mom_dynamic :
-                          gk_species_write_mom_static;
+  gks->write_mom_func = gk_species_write_mom_static;
   gks->calc_integrated_mom_func = gk_species_calc_integrated_mom_static;
   gks->write_integrated_mom_func = gk_species_write_integrated_mom_static;
   gks->calc_L2norm_func = gk_species_calc_L2norm_static;
@@ -916,6 +914,10 @@ void
 gk_species_init(struct gkyl_gk *inp, struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
   struct gkyl_gyrokinetic_species info = gks->info;
+  if (info.is_static && info.scaling.type) {
+    fprintf(stderr, "Static species '%s' cannot use a scaling operation.\n", info.name);
+    gkyl_exit("Static species must remain unchanged in time.");
+  }
   memset(gks, 0, sizeof *gks);
   gks->info = info;
   gks->is_fluid = info.cells[0] == 0;

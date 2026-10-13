@@ -19,10 +19,66 @@ gk_species_fluid_file_import_init(
   }
 }
 
+// No explicit fluid evolution equations are implemented yet: df/dt = 0.
+static double
+gk_species_fluid_rhs_dynamic(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin,
+  struct gkyl_array *rhs, struct gkyl_array **bflux_moms
+)
+{
+  gkyl_array_clear(rhs, 0.0);
+  return DBL_MAX;
+}
+
+// No implicit fluid terms are implemented yet: f_new = f_in.
+static double
+gk_species_fluid_rhs_implicit_dynamic(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin,
+  struct gkyl_array *rhs, struct gkyl_array **bflux_moms, double dt
+)
+{
+  gkyl_array_copy(rhs, fin);
+  return DBL_MAX;
+}
+
+// Release the independently allocated stage arrays and dynamic diagnostics.
+static void
+gk_species_fluid_release_dynamic(const gkyl_gyrokinetic_app *app, const struct gk_species *gks)
+{
+  gkyl_array_release(gks->f1);
+  gkyl_array_release(gks->fnew);
+  gk_species_release_integrated_mom(app, gks);
+}
+
+// Initialize time stepping and diagnostics for a non-static fluid species.
+static void
+gk_species_fluid_init_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *gks)
+{
+  gks->f1 = mkarr(app->use_gpu, gks->f->ncomp, gks->f->size);
+  gks->fnew = mkarr(app->use_gpu, gks->f->ncomp, gks->f->size);
+  gk_species_init_integrated_mom(app, gks);
+
+  gks->rhs_func = gk_species_fluid_rhs_dynamic;
+  gks->rhs_implicit_func = gk_species_fluid_rhs_implicit_dynamic;
+  gks->bc_func = gk_species_apply_bc_static; // No spatial fluid operators yet.
+  gks->release_func = gk_species_fluid_release_dynamic;
+  gks->step_f_func = gk_species_step_f_dynamic;
+  gks->combine_func = gk_species_combine_dynamic;
+  gks->copy_func = gk_species_copy_range_dynamic;
+  gks->write_func = gk_species_write_dynamic;
+  gks->write_cfl_func = gk_species_write_cfl_disabled;
+  gks->write_mom_func = gk_species_write_mom_dynamic;
+  gks->calc_integrated_mom_func = gk_species_calc_integrated_mom_dynamic;
+  gks->write_integrated_mom_func = gk_species_write_integrated_mom_dynamic;
+  gks->calc_L2norm_func = gk_species_calc_L2norm_static;
+  gks->write_L2norm_func = gk_species_write_L2norm_static;
+  gks->calc_int_mom_dt_func = gk_species_calc_int_mom_dt_disabled;
+}
+
 static void
 gk_species_fluid_release(const gkyl_gyrokinetic_app *app, const struct gk_species *gks)
 {
-  gk_species_release_integrated_mom(app, gks);
+  gks->release_func(app, gks);
   if (gks->info.init_from_file.type == GKYL_IC_IMPORT_NONE) {
     gk_species_projection_release(app, &gks->proj_init);
   }
@@ -84,7 +140,6 @@ gk_species_fluid_init(struct gkyl_gk *inp, gkyl_gyrokinetic_app *app, struct gk_
   if (gks->info.mass <= 0.0 || gks->info.charge == 0.0) {
     gkyl_exit("Invalid fluid gyrokinetic species mass or charge.");
   }
-  gks->info.is_static = true;
   gks->release_species_func = gk_species_fluid_release;
   gks->grid = app->grid;
   gks->basis = app->basis;
@@ -144,10 +199,9 @@ gk_species_fluid_init(struct gkyl_gk *inp, gkyl_gyrokinetic_app *app, struct gk_
   gk_species_scaling_init(app, gks, &gks->sca);
   gk_species_lbo_init(app, gks, &gks->lbo);
   gk_species_bgk_init(app, gks, &gks->bgk);
-  gk_species_init_static(inp, app, gks);
-  gk_species_init_integrated_mom(app, gks);
-  gks->write_func = gk_species_write_dynamic;
-  gks->write_mom_func = gk_species_write_mom_dynamic;
-  gks->calc_integrated_mom_func = gk_species_calc_integrated_mom_dynamic;
-  gks->write_integrated_mom_func = gk_species_write_integrated_mom_dynamic;
+  if (gks->info.is_static) {
+    gk_species_init_static(inp, app, gks);
+  } else {
+    gk_species_fluid_init_dynamic(app, gks);
+  }
 }
