@@ -213,9 +213,9 @@ gk_species_scaling_apply_adiabatic(
 
   // n_s*J = n_s0*J*(1 - q_s*(phi-<phi>)/T_s) = (q_s*n_s0*J - K*(phi-<phi>))/q_s, with the
   // background charge density and K of the field (from the t=0 moments of this species).
-  field->adiab.dphi_func(app, field, field->phi_smooth, dens);
-  gkyl_dg_mul_op_range(&app->basis, 0, dens, 0, field->adiab.kJ, 0, dens, &app->local);
-  gkyl_array_accumulate_range(dens, -1.0, field->adiab.rho_bg, &app->local);
+  field->gk_adiab.dphi_func(app, field, field->phi_smooth, dens);
+  gkyl_dg_mul_op_range(&app->basis, 0, dens, 0, field->gk_adiab.kJ, 0, dens, &app->local);
+  gkyl_array_accumulate_range(dens, -1.0, field->gk_adiab.rho_bg, &app->local);
   gkyl_array_scale_range(dens, -1.0 / gks->info.charge, &app->local);
 
   sca->set_density_func(app, gks, fin, dens);

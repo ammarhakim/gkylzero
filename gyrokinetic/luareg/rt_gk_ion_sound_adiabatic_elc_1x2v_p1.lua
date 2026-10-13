@@ -155,7 +155,9 @@ gyrokineticApp = Gyrokinetic.App.new {
       end,
       parallelVelocityInit = function (t, xn)
         return 0.0 -- Electron parallel velocity.
-      end
+      end,
+
+      correctAllMoments = true
     },
 
     scaling = {

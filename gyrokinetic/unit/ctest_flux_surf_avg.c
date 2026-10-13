@@ -1,21 +1,19 @@
-/* Test the ingredients of the flux-surface average (FSA) used by the 2x/3x
- * adiabatic electron field solve: the (y,z) average of J*phi divided by that
- * of J (gkyl_array_average), and the extension of a 1D function of x to a
- * cdim field constant in the other directions (chained gkyl_translate_dim).
- * With J linear in z and a zonal function linear in x, all p=1 operations
+/* Test the flux_surf_avg updater: the flux-surface average (FSA)
+ *   <f>(x) = int J f dy dz / int J dy dz
+ * of a 2x/3x field, and the extension of a 1D function of x to a field constant along the
+ * other directions. With J linear in z and a zonal function linear in x, all p=1 operations
  * are exact, so the checks are to round-off.
  */
 
 #include <acutest.h>
 #include <gkyl_array.h>
-#include <gkyl_array_average.h>
 #include <gkyl_array_ops.h>
-#include <gkyl_dg_bin_ops.h>
+#include <gkyl_flux_surf_avg.h>
+#include <gkyl_null_comm.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_translate_dim.h>
 #include <gkyl_util.h>
 #include <math.h>
 
@@ -56,23 +54,21 @@ eval_zonal_plus_nonzonal(double t, const double *xn, double *fout, void *ctx)
 {
   // Add a function with zero average over a period in y (3x) or z (2x).
   struct fsa_ctx *c = ctx;
-  int d = c->cdim == 3 ? 1 : 1; // Direction of the periodic variation.
+  int d = 1; // Direction of the periodic variation.
   double L = c->upper[d] - c->lower[d];
   double x = xn[0], s = xn[d];
   fout[0] = zonal_func(x) + (1.0 + 0.5 * x * x) * sin(2.0 * M_PI * (s - c->lower[d]) / L);
 }
 
-// Objects needed to compute the FSA and the 1D->cdim extension.
+// Grids, ranges and the updater under test.
 struct fsa_test {
-  int cdim;
   bool use_gpu;
   struct gkyl_rect_grid grid, grid_x;
-  struct gkyl_basis basis, basis_x, basis_xy;
-  struct gkyl_range local, local_ext, local_x, local_x_ext, local_xy, local_xy_ext;
-  struct gkyl_array_average *avg;
-  struct gkyl_translate_dim *infl_lo, *infl_up;
-  struct gkyl_array *jac, *jphi, *avg_jphi, *avg_j, *psi, *tmp_xy;
-  gkyl_dg_bin_op_mem *div_mem;
+  struct gkyl_basis basis, basis_x;
+  struct gkyl_range local, local_ext, local_x, local_x_ext;
+  struct gkyl_array *jac, *psi;
+  struct gkyl_comm *comm;
+  struct gkyl_flux_surf_avg *fsa;
 };
 
 static void
@@ -80,32 +76,23 @@ fsa_test_new(struct fsa_test *t, struct fsa_ctx *ctx, const int *cells, bool use
 {
   int cdim = ctx->cdim;
   int poly_order = 1;
-  t->cdim = cdim;
   t->use_gpu = use_gpu;
 
   gkyl_rect_grid_init(&t->grid, cdim, ctx->lower, ctx->upper, cells);
   gkyl_rect_grid_init(&t->grid_x, 1, ctx->lower, ctx->upper, cells);
   gkyl_cart_modal_serendip(&t->basis, cdim, poly_order);
   gkyl_cart_modal_serendip(&t->basis_x, 1, poly_order);
-  gkyl_cart_modal_serendip(&t->basis_xy, 2, poly_order);
 
   int ghost[] = {1, 1, 1};
   gkyl_create_grid_ranges(&t->grid, ghost, &t->local_ext, &t->local);
   gkyl_range_init(&t->local_x_ext, 1, &t->local_ext.lower[0], &t->local_ext.upper[0]);
   gkyl_sub_range_init(&t->local_x, &t->local_x_ext, &t->local.lower[0], &t->local.upper[0]);
-  gkyl_range_init(&t->local_xy_ext, 2, t->local_ext.lower, t->local_ext.upper);
-  gkyl_sub_range_init(&t->local_xy, &t->local_xy_ext, t->local.lower, t->local.upper);
 
   int nb = t->basis.num_basis, nb_x = t->basis_x.num_basis;
-  t->jac = mkarr(use_gpu, nb, t->local_ext.volume);
-  t->jphi = mkarr(use_gpu, nb, t->local_ext.volume);
-  t->avg_jphi = mkarr(use_gpu, nb_x, t->local_x_ext.volume);
-  t->avg_j = mkarr(use_gpu, nb_x, t->local_x_ext.volume);
   t->psi = mkarr(use_gpu, nb_x, t->local_x_ext.volume);
-  t->div_mem = use_gpu ? gkyl_dg_bin_op_mem_cu_dev_new(t->local_x.volume, nb_x) :
-                         gkyl_dg_bin_op_mem_new(t->local_x.volume, nb_x);
 
   // Jacobian.
+  t->jac = mkarr(use_gpu, nb, t->local_ext.volume);
   struct gkyl_array *jac_ho = use_gpu ? mkarr(false, nb, t->local_ext.volume) :
                                         gkyl_array_acquire(t->jac);
   gkyl_proj_on_basis *proj =
@@ -115,72 +102,36 @@ fsa_test_new(struct fsa_test *t, struct fsa_ctx *ctx, const int *cells, bool use
   gkyl_array_copy(t->jac, jac_ho);
   gkyl_array_release(jac_ho);
 
-  // Average over the directions other than x.
-  int avg_dim[3] = {0};
-  for (int d = 1; d < cdim; d++) {
-    avg_dim[d] = 1;
-  }
-  t->avg = gkyl_array_average_inew(&(struct gkyl_array_average_inp){
+  t->comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = use_gpu});
+  t->fsa = gkyl_flux_surf_avg_inew(&(struct gkyl_flux_surf_avg_inp){
     .grid = &t->grid,
     .basis = t->basis,
-    .basis_avg = t->basis_x,
+    .basis_x = t->basis_x,
     .local = &t->local,
-    .local_avg = &t->local_x,
-    .local_avg_ext = &t->local_x_ext,
-    .weight = NULL,
-    .avg_dim = avg_dim,
+    .local_ext = &t->local_ext,
+    .local_x = &t->local_x,
+    .local_x_ext = &t->local_x_ext,
+    .jacobgeo = t->jac,
+    .comm = t->comm,
     .use_gpu = use_gpu,
   });
-  gkyl_array_average_advance(t->avg, t->jac, t->avg_j);
-
-  // 1D -> cdim extension.
-  t->tmp_xy = 0;
-  t->infl_up = 0;
-  if (cdim == 2) {
-    t->infl_lo = gkyl_translate_dim_new(1, t->basis_x, 2, t->basis, 0, GKYL_NO_EDGE, use_gpu);
-  } else {
-    t->tmp_xy = mkarr(use_gpu, t->basis_xy.num_basis, t->local_xy_ext.volume);
-    t->infl_lo = gkyl_translate_dim_new(1, t->basis_x, 2, t->basis_xy, 0, GKYL_NO_EDGE, use_gpu);
-    t->infl_up = gkyl_translate_dim_new(2, t->basis_xy, 3, t->basis, 0, GKYL_NO_EDGE, use_gpu);
-  }
 }
 
 static void
 fsa_test_release(struct fsa_test *t)
 {
+  gkyl_flux_surf_avg_release(t->fsa);
+  gkyl_comm_release(t->comm);
   gkyl_array_release(t->jac);
-  gkyl_array_release(t->jphi);
-  gkyl_array_release(t->avg_jphi);
-  gkyl_array_release(t->avg_j);
   gkyl_array_release(t->psi);
-  gkyl_dg_bin_op_mem_release(t->div_mem);
-  gkyl_array_average_release(t->avg);
-  gkyl_translate_dim_release(t->infl_lo);
-  if (t->cdim == 3) {
-    gkyl_translate_dim_release(t->infl_up);
-    gkyl_array_release(t->tmp_xy);
-  }
 }
 
+// FSA of phi into psi_ho (host).
 static void
 fsa_test_fsa(struct fsa_test *t, const struct gkyl_array *phi, struct gkyl_array *psi_ho)
 {
-  // psi = int J phi dy dz / int J dy dz (host output).
-  gkyl_dg_mul_op_range(&t->basis, 0, t->jphi, 0, t->jac, 0, phi, &t->local);
-  gkyl_array_average_advance(t->avg, t->jphi, t->avg_jphi);
-  gkyl_dg_div_op_range(t->div_mem, &t->basis_x, 0, t->psi, 0, t->avg_jphi, 0, t->avg_j, &t->local_x);
+  gkyl_flux_surf_avg_advance(t->fsa, phi, t->psi);
   gkyl_array_copy(psi_ho, t->psi);
-}
-
-static void
-fsa_test_inflate(struct fsa_test *t, const struct gkyl_array *psi, struct gkyl_array *out)
-{
-  if (t->cdim == 2) {
-    gkyl_translate_dim_advance(t->infl_lo, &t->local_x, &t->local, psi, 1, out);
-  } else {
-    gkyl_translate_dim_advance(t->infl_lo, &t->local_x, &t->local_xy, psi, 1, t->tmp_xy);
-    gkyl_translate_dim_advance(t->infl_up, &t->local_xy, &t->local, t->tmp_xy, 1, out);
-  }
 }
 
 static double
@@ -273,7 +224,7 @@ test_fsa(int cdim, bool use_gpu)
     c[1] = 0.3 - 0.05 * i;
   }
   gkyl_array_copy(psi, psi_in_ho);
-  fsa_test_inflate(&t, psi, phi);
+  gkyl_flux_surf_avg_inflate(t.fsa, psi, phi);
   gkyl_array_copy(phi_ho, phi);
 
   // The constant extension scales the 1 and x coefficients by sqrt(2)^(cdim-1).

@@ -63,6 +63,8 @@
 #include <gkyl_deflated_fem_poisson.h>
 #include <gkyl_ghost_surf_calc.h>
 #include <gkyl_fem_poisson_perp.h>
+#include <gkyl_fem_poisson_perp_adiabatic.h>
+#include <gkyl_flux_surf_avg.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_gk_geometry_tok.h>
@@ -1598,36 +1600,23 @@ struct gk_field;
 struct gk_field_adiabatic {
   int species_idx; // Index of the adiabatic species.
   struct gkyl_array *kJ; // K = (q_s^2 n_s0/T_s)*J, from the t=0 moments of the species.
-  struct gkyl_array *kSq; // -K, Helmholtz coefficient passed to the solver (2x/3x).
   struct gkyl_array *rho_bg; // q_s n_s0 J, background charge density.
-  // Computes out = phi - <phi> (no flux-surface average in 1x).
+  // Methods selected for the dimensionality. They set up the response once K is known,
+  // compute out = phi - <phi> (no flux-surface average in 1x), and release the response.
+  void (*setup_func)(gkyl_gyrokinetic_app *app, struct gk_field *gkf);
   void (*dphi_func)(
     gkyl_gyrokinetic_app *app, const struct gk_field *gkf, const struct gkyl_array *phi,
     struct gkyl_array *out
   );
+  void (*release_func)(const gkyl_gyrokinetic_app *app, struct gk_field *gkf);
 
-  // Adiabatic electron objects (2x/3x): flux-surface average and zonal (Woodbury) system.
-  struct gkyl_array *phi2, *rhs2; // Scratch fields for the zonal response solve.
-  struct gkyl_array *phi_rhs0; // Solution with rhs = 0.
-
+  // Adiabatic electron objects (2x/3x): flux-surface average and field solver.
   struct gkyl_basis basis_x; // 1D basis in x.
   struct gkyl_range local_x, local_x_ext; // 1D ranges in x.
-  struct gkyl_array_average *fs_avg; // Flux-surface average operator.
-  struct gkyl_array *jphi; // J*phi.
-  struct gkyl_array *avg_jphi, *avg_jphi_red; // (y,z) average of J*phi, MPI-reduced.
-  struct gkyl_array *avg_j; // Global (y,z) average of J.
-  struct gkyl_array *psi, *psi_ho; // Flux-surface averaged potential (1D in x).
-  gkyl_dg_bin_op_mem *div_mem; // Memory for the 1D weak division.
-
-  struct gkyl_range local_xy, local_xy_ext; // 2D (x,y) ranges (3x only).
-  struct gkyl_array *tmp_xy; // 2D scratch for the 1D->3D extension (3x only).
-  struct gkyl_translate_dim *inflate_lo, *inflate_up; // 1D->2D and 2D->3D extension updaters.
-
-  int num_zonal; // m = Nx*num_basis_x zonal degrees of freedom.
-  struct gkyl_mat *A; // I - G.
-  struct gkyl_mat *A_lu; // Work copy of A, LU factored at each solve.
-  struct gkyl_mat *rhs_m; // m x 1 work vector.
-  gkyl_mem_buff ipiv; // Pivots for the LU solve.
+  struct gkyl_flux_surf_avg *fsa; // Flux-surface average and its extension.
+  struct gkyl_fem_poisson_perp_adiabatic *solver; // Poisson solver with the adiabatic response.
+  struct gkyl_array *psi; // Flux-surface averaged potential (1D in x).
+  struct gkyl_array *phi_buff; // Buffer for phi - <phi>.
 
   struct gkyl_array_integrate *calc_energy; // Computes int K (phi-<phi>)^2.
   double *energy_red; // Memory for the energy reduction.
@@ -1676,7 +1665,7 @@ struct gk_field {
   struct gkyl_array *epsilon; // Polarization weight including geometric factors.
   bool has_adiabatic_species; // Whether a species has an adiabatic response.
   struct gkyl_poisson_bc poisson_bcs; // Perpendicular Poisson BCs (2x/3x).
-  struct gk_field_adiabatic adiab; // Adiabatic species response.
+  struct gk_field_adiabatic gk_adiab; // Adiabatic species response.
   int num_rhoc_species; // Number of species whose charge density enters rho_c.
   int rhoc_species_idx[GKYL_MAX_SPECIES]; // Indices of the species whose charge enters rho_c.
 

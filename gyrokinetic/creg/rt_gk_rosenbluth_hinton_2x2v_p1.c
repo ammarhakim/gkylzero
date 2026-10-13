@@ -475,10 +475,10 @@ create_ctx(void)
   double residual_rh =
     1.0 / (1.0 + q0 * q0 * (1.6 / sqrt(inv_asp_ratio) + 0.5 + 0.36 * sqrt(inv_asp_ratio)));
 
-  // Grid parameters
-  int Nx = 16 / 2;
-  int Nz = 8 / 2;
-  int Nvpar = 12 / 2;
+  // Grid parameters (accurate RH test with 32x32x24x12)
+  int Nx = 16;
+  int Nz = 8;
+  int Nvpar = 12;
   int Nmu = 6;
   int poly_order = 1;
   int psi_lut_nfact = 100 * (poly_order + 1); // Resolution factor for the psi lookup table.
@@ -688,6 +688,7 @@ main(int argc, char **argv)
         .ctx_upar = &ctx,
         .temp = eval_temp_elc,
         .ctx_temp = &ctx,
+        .correct_all_moms = true,
       },
     .scaling = {.type = GKYL_GK_SPECIES_SCALING_ADIABATIC},
     .num_diag_moments = 1,
