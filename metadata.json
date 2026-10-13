@@ -1,0 +1,59 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M4VPK72MTWGK269WRXQDBBCB",
+  "strategy": "manual-commit",
+  "branch": "gk_adiab_elc_2x3v-api_changes-fluid",
+  "checkpoints_count": 14,
+  "files_touched": [
+    ".agents/skills/software-design/SKILL.md",
+    "gyrokinetic/apps/gk_field.c",
+    "gyrokinetic/apps/gk_field_adiabatic.c",
+    "gyrokinetic/apps/gk_field_boltzmann.c",
+    "gyrokinetic/apps/gk_neut_species.c",
+    "gyrokinetic/apps/gk_neut_species_bflux.c",
+    "gyrokinetic/apps/gk_neut_species_bgk.c",
+    "gyrokinetic/apps/gk_neut_species_lte.c",
+    "gyrokinetic/apps/gk_neut_species_moment.c",
+    "gyrokinetic/apps/gk_neut_species_positivity.c",
+    "gyrokinetic/apps/gk_neut_species_react.c",
+    "gyrokinetic/apps/gk_neut_species_scaling.c",
+    "gyrokinetic/apps/gk_neut_species_source.c",
+    "gyrokinetic/apps/gk_species.c",
+    "gyrokinetic/apps/gk_species_bflux.c",
+    "gyrokinetic/apps/gk_species_bgk.c",
+    "gyrokinetic/apps/gk_species_fluid.c",
+    "gyrokinetic/apps/gk_species_kinetic.c",
+    "gyrokinetic/apps/gk_species_lbo.c",
+    "gyrokinetic/apps/gk_species_lte.c",
+    "gyrokinetic/apps/gk_species_moment.c",
+    "gyrokinetic/apps/gk_species_positivity.c",
+    "gyrokinetic/apps/gk_species_projection.c",
+    "gyrokinetic/apps/gk_species_radiation.c",
+    "gyrokinetic/apps/gk_species_react.c",
+    "gyrokinetic/apps/gk_species_scaling.c",
+    "gyrokinetic/apps/gk_species_source.c",
+    "gyrokinetic/apps/gk_species_source_bgk.c",
+    "gyrokinetic/apps/gkyl_gyrokinetic_priv.h",
+    "gyrokinetic/unit/ctest_gk_fluid_moments.c",
+    "gyrokinetic/zero/gk_fluid_moments.c",
+    "gyrokinetic/zero/gk_fluid_moments_cu.cu",
+    "gyrokinetic/zero/gkyl_gk_fluid_moments.h",
+    "gyrokinetic/zero/gkyl_gk_fluid_moments_priv.h"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 3082190,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 58482048,
+    "output_tokens": 221877,
+    "api_call_count": 480
+  }
+}
