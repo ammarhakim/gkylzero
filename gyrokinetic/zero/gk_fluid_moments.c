@@ -274,7 +274,7 @@ gkyl_gk_fluid_moments_inew(const struct gkyl_gk_fluid_moments_inp *inp)
     case GKYL_F_MOMENT_M1:
     case GKYL_F_MOMENT_M2:
       up->component = inp->moment == GKYL_F_MOMENT_M0 ? 0 : inp->moment == GKYL_F_MOMENT_M1 ? 1 : 2;
-      up->rmass_fac *= inp->moment == GKYL_F_MOMENT_M1 == 2 ? 2.0 : 1.0;
+      up->rmass_fac *= inp->moment == GKYL_F_MOMENT_M2 ? 2.0 : 1.0;
       up->calc_func = gk_fluid_moments_m0_or_m1_or_m2;
       break;
     case GKYL_F_MOMENT_M2PAR:
