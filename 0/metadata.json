@@ -1,0 +1,51 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M4VPQ4QWJH7NB3NK8JJ9X6J9",
+  "session_id": "01a11337-d85d-7ad2-9244-05582decd474",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-13T22:39:23.360352Z",
+  "branch": "gk_adiab_elc_2x3v-api_changes-fluid",
+  "checkpoints_count": 1,
+  "save_step_count": 2,
+  "files_touched": [
+    "gyrokinetic/zero/gk_fluid_moments.c"
+  ],
+  "agent": "Codex",
+  "model": "gpt-6-sol",
+  "turn_id": "ccc4240d86d2",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 3087746,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 59572224,
+    "output_tokens": 223329,
+    "api_call_count": 488
+  },
+  "session_metrics": {
+    "turn_count": 58
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-13T22:39:22.800317Z",
+    "agent_lines": 1,
+    "agent_removed": 1,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1,
+    "total_lines_changed": 2,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 1,
+      "user_lines_removed": 0,
+      "agent_lines_added": 888,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "new_data_flag": 1
+      }
+    }
+  ]
+}
