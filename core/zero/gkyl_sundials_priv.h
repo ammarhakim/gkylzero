@@ -3,6 +3,7 @@
 // Private header file for SUNDIALS nvector wrapper.
 
 #include <gkyl_sundials.h>
+#include <gkyl_dynvec.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sundials/sundials_context.h>
@@ -56,6 +57,8 @@ struct gkyl_sundials
   void *arkode_mem_sts; // Memory for ARKODE STS stepper.
   struct gkyl_sundials_app_ctx *app_ctx; // App-specific context.
   SUNDomEigEstimator dom_eig_est; // Dominant eigenvalue estimator.
+  gkyl_dynvec diag_dom_eig; // Dominant-eigenvalue diagnostics.
+  bool is_first_diag_write_call;
   bool is_opsplit; // Whether we are using an operator split approach.
   SUNStepper stepper_ssprk, stepper_sts; // Steppers for operator splitting.
   void *arkode_mem_opsplit; // Memory for operator splotting.
