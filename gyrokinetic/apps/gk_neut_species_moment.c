@@ -39,8 +39,8 @@ gk_neut_species_moment_diag_jacobgeo_div_enabled_all_comp(
 
 static void
 gk_neut_species_kinetic_moment_calc(
-  const struct gk_species_moment *sm, const struct gkyl_range phase_rng,
-  const struct gkyl_range conf_rng, const struct gkyl_array *fin
+  const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm,
+  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng, const struct gkyl_array *fin
 )
 {
   if (sm->is_maxwellian_moms) {
@@ -180,8 +180,8 @@ gk_neut_species_fluid_moment_calc_m2(
 
 static void
 gk_neut_species_fluid_moment_calc(
-  const struct gk_species_moment *sm, const struct gkyl_range phase_rng,
-  const struct gkyl_range conf_rng, const struct gkyl_array *fin
+  const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm,
+  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng, const struct gkyl_array *fin
 )
 {
   if (sm->is_integrated) {
@@ -313,11 +313,11 @@ gk_neut_species_moment_init(
 
 void
 gk_neut_species_moment_calc(
-  const struct gk_species_moment *sm, const struct gkyl_range phase_rng,
-  const struct gkyl_range conf_rng, const struct gkyl_array *fin
+  const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm,
+  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng, const struct gkyl_array *fin
 )
 {
-  sm->calc_func(sm, phase_rng, conf_rng, fin);
+  sm->calc_func(app, sm, phase_rng, conf_rng, fin);
 }
 
 void

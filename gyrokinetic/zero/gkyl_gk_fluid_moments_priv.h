@@ -5,7 +5,8 @@
 
 struct gkyl_gk_fluid_moments {
   struct gkyl_basis basis; // Configuration-space basis.
-  int num_mom; // Number of output moments.
+  int num_mom_out; // Number of output moments.
+  int num_mom_in; // Number of conserved fields in the fluid state.
   int component; // Conservative-state component used for M0, M1, or M2.
   long num_cells; // Batch size of the weak division solves.
   double mass, charge; // Species mass and charge.

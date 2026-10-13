@@ -39,17 +39,18 @@ gk_species_moment_diag_jacobgeo_div_enabled_all_comp(
 }
 
 static void
-gk_species_moment_calc_kinetic(const struct gk_species_moment *, const struct gkyl_range, const struct gkyl_range, const struct gkyl_array *);
+gk_species_moment_calc_kinetic(const struct gkyl_gyrokinetic_app *, const struct gk_species_moment *, const struct gkyl_range, const struct gkyl_range, const struct gkyl_array *);
 static void
 gk_species_moment_release_kinetic(const struct gkyl_gyrokinetic_app *, const struct gk_species_moment *);
 
 static void
 gk_species_moment_calc_fluid(
-  const struct gk_species_moment *sm, const struct gkyl_range species_rng,
-  const struct gkyl_range conf_rng, const struct gkyl_array *fin
+  const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm,
+  const struct gkyl_range species_rng, const struct gkyl_range conf_rng,
+  const struct gkyl_array *fin
 )
 {
-  gkyl_gk_fluid_moments_advance(sm->gf_moms, &conf_rng, fin, sm->fluid_phi, sm->marr);
+  gkyl_gk_fluid_moments_advance(sm->gf_moms, &conf_rng, fin, app->field->phi_smooth, sm->marr);
 }
 
 static void
@@ -81,11 +82,11 @@ gk_species_moment_init_fluid(
     .bmag = app->gk_geom->geo_int.bmag,
     .mass = gks->info.mass,
     .charge = gks->info.charge,
+    .num_moments = gks->num_moments,
     .moment = mom_type,
     .integrated = sm->is_integrated,
     .use_gpu = app->use_gpu,
   });
-  sm->fluid_phi = app->field->phi_smooth;
   sm->num_mom = gkyl_gk_fluid_moments_num_mom(sm->gf_moms);
   sm->marr = mkarr(
     app->use_gpu, sm->num_mom * (sm->is_integrated ? 1 : app->basis.num_basis),
@@ -187,8 +188,8 @@ gk_species_moment_init(
 
 static void
 gk_species_moment_calc_kinetic(
-  const struct gk_species_moment *sm, const struct gkyl_range phase_rng,
-  const struct gkyl_range conf_rng, const struct gkyl_array *fin
+  const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm,
+  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng, const struct gkyl_array *fin
 )
 {
   if (sm->is_integrated) {
@@ -243,11 +244,12 @@ gk_species_moment_release_kinetic(
 
 void
 gk_species_moment_calc(
-  const struct gk_species_moment *sm, const struct gkyl_range species_rng,
-  const struct gkyl_range conf_rng, const struct gkyl_array *fin
+  const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm,
+  const struct gkyl_range species_rng, const struct gkyl_range conf_rng,
+  const struct gkyl_array *fin
 )
 {
-  sm->calc_func(sm, species_rng, conf_rng, fin);
+  sm->calc_func(app, sm, species_rng, conf_rng, fin);
 }
 
 void

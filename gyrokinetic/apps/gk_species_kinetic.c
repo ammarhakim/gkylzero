@@ -16,7 +16,7 @@ gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const st
 
   if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || app->field->has_adiabatic_species)) {
     // Obtain the maximum density (using cell centers).
-    gk_species_moment_calc(&gks->m0, gks->local, app->local, fin);
+    gk_species_moment_calc(app, &gks->m0, gks->local, app->local, fin);
     gkyl_array_reduce_range(gks->m0_max, gks->m0.marr, GKYL_MAX, &app->local);
 
     double m0_max[1];
@@ -169,7 +169,7 @@ gk_species_apply_bc_dynamic(
           );
           break;
         case GKYL_BC_GK_SPECIES_SHEATH_SURROGATE:
-          gk_species_moment_calc(&species->sheath_moms, species->local, app->local, f);
+          gk_species_moment_calc(app, &species->sheath_moms, species->local, app->local, f);
           gk_species_moment_diag_jacobgeo_div(
             app, &species->sheath_moms, species->sheath_moms.marr, species->sheath_moms.marr
           );
@@ -211,7 +211,7 @@ gk_species_apply_bc_dynamic(
           );
           break;
         case GKYL_BC_GK_SPECIES_SHEATH_SURROGATE:
-          gk_species_moment_calc(&species->sheath_moms, species->local, app->local, f);
+          gk_species_moment_calc(app, &species->sheath_moms, species->local, app->local, f);
           gk_species_moment_diag_jacobgeo_div(
             app, &species->sheath_moms, species->sheath_moms.marr, species->sheath_moms.marr
           );

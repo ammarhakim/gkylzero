@@ -27,7 +27,7 @@ gks_pos_deltaf_moms_calc(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_positivity *pos
 )
 {
-  gk_species_moment_calc(&pos->moms, gks->local, app->local, pos->fbuffer_ptr);
+  gk_species_moment_calc(app, &pos->moms, gks->local, app->local, pos->fbuffer_ptr);
 
   // Rescale moment by inverse of Jacobian if needed.
   gk_species_moment_diag_jacobgeo_div(app, &pos->moms, pos->moms.marr, pos->moms.marr);
@@ -106,7 +106,7 @@ gks_pos_deltaf_integ_moms_calc(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_positivity *pos
 )
 {
-  gk_species_moment_calc(&pos->integ_moms, gks->local, app->local, pos->fbuffer_ptr);
+  gk_species_moment_calc(app, &pos->integ_moms, gks->local, app->local, pos->fbuffer_ptr);
 }
 
 static void

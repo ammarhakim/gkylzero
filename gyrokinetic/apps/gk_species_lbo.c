@@ -21,7 +21,7 @@ gklbo_moms_enabled(
   struct timespec wst = gkyl_wall_clock();
 
   // Compute J*M0, J*M1, J*M2 moments and separate our M0 and M2.
-  gk_species_moment_calc(&lbo->moms, species->local, app->local, fin);
+  gk_species_moment_calc(app, &lbo->moms, species->local, app->local, fin);
   gkyl_array_set_offset_range(
     lbo->m2self, 1.0, lbo->moms.marr, 2 * app->basis.num_basis, &app->local
   );
@@ -65,11 +65,11 @@ gklbo_moms_fluid(
 )
 {
   struct timespec wst = gkyl_wall_clock();
-  gk_species_moment_calc(&lbo->moms, species->local, app->local, fin);
+  gk_species_moment_calc(app, &lbo->moms, species->local, app->local, fin);
   gkyl_array_set_offset_range(
     lbo->m2self, 1.0, lbo->moms.marr, 2 * app->basis.num_basis, &app->local
   );
-  gk_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
+  gk_species_moment_calc(app, &species->lte.moms, species->local, app->local, fin);
   gkyl_array_set_offset_range(
     lbo->prim_moms, 1.0, species->lte.moms.marr, app->basis.num_basis, &app->local
   );
@@ -98,7 +98,7 @@ gklbo_self_nu_calc_normNu(
 )
 {
   // Calculate nu_ss(x,t).
-  gk_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
+  gk_species_moment_calc(app, &species->lte.moms, species->local, app->local, fin);
   gkyl_dg_div_op_range(
     species->lte.moms.mem_geo, &app->basis, 0, species->lte.moms.marr, 0, species->lte.moms.marr, 0,
     app->gk_geom->geo_int.jacobgeo, &app->local

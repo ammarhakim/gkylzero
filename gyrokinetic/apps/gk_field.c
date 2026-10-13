@@ -446,7 +446,7 @@ gk_field_accumulate_rho_c(
   for (int k = 0; k < field->num_rhoc_species; ++k) {
     int i = field->rhoc_species_idx[k];
     struct gk_species *gks = &app->species[i];
-    gk_species_moment_calc(&gks->m0, gks->local, app->local, fin[i]);
+    gk_species_moment_calc(app, &gks->m0, gks->local, app->local, fin[i]);
     field->accumulate_rhoc_func(app, field, gks, bflux[i]);
   }
   field->accumulate_rhoc_bg_func(app, field);

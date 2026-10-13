@@ -80,6 +80,7 @@ test_moments(bool use_gpu)
             .bmag = bmag,
             .mass = 2,
             .charge = -1,
+            .num_moments = 4,
             .moment = ids[m],
             .integrated = integrated,
             .use_gpu = use_gpu,
@@ -215,6 +216,7 @@ test_spatial_products(bool use_gpu, bool isotropic)
     .bmag = bmag,
     .mass = mass,
     .charge = -1,
+    .num_moments = 4,
     .moment = GKYL_F_MOMENT_BIMAXWELLIAN,
     .use_gpu = use_gpu,
   };
@@ -321,6 +323,82 @@ test_spatial_products(bool use_gpu, bool isotropic)
   gkyl_array_release(scalar);
 }
 
+// Verify scaling of every conserved field, including additional fields and untouched ghosts.
+// use_gpu selects device arrays for the updater operations.
+static void
+test_density_scaling(bool use_gpu)
+{
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, 1, 1);
+  struct gkyl_rect_grid grid;
+  double lower[] = {-1}, upper[] = {1};
+  int cells[] = {1}, ghost[] = {1};
+  gkyl_rect_grid_init(&grid, 1, lower, upper, cells);
+  struct gkyl_range ext, local;
+  gkyl_create_grid_ranges(&grid, ghost, &ext, &local);
+  struct gkyl_array *(*alloc)(enum gkyl_elem_type, size_t, size_t) =
+    use_gpu ? gkyl_array_cu_dev_new : gkyl_array_new;
+  struct gkyl_array *bmag = alloc(GKYL_DOUBLE, basis.num_basis, ext.volume);
+  struct gkyl_array *density = alloc(GKYL_DOUBLE, basis.num_basis, ext.volume);
+  struct gkyl_array *scalar = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, ext.volume);
+  gkyl_array_clear(bmag, 0.0);
+  gkyl_array_shiftc(bmag, sqrt(2.0), 0);
+  double mass = 2.0;
+  long loc = gkyl_range_idx(&local, local.lower);
+  struct linear rho = {3.0, 0.2}, ratio = {1.1, 0.1};
+  set_linear(scalar, loc, 0, scale(1.0 / mass, mul(rho, ratio)));
+  gkyl_array_copy(density, scalar);
+  for (int num_moments = 4; num_moments <= 6; num_moments += 2) {
+    TEST_CASE_("num_moments=%d", num_moments);
+    struct gkyl_gk_fluid_moments *up =
+      gkyl_gk_fluid_moments_inew(&(struct gkyl_gk_fluid_moments_inp){
+        .basis = &basis,
+        .grid = &grid,
+        .range = &local,
+        .range_ext = &ext,
+        .bmag = bmag,
+        .mass = mass,
+        .num_moments = num_moments,
+        .moment = GKYL_F_MOMENT_M0,
+        .use_gpu = use_gpu,
+      });
+    struct gkyl_array *state = alloc(GKYL_DOUBLE, num_moments * basis.num_basis, ext.volume);
+    struct gkyl_array *host = gkyl_array_new(GKYL_DOUBLE, state->ncomp, ext.volume);
+    gkyl_array_clear(host, -17.0);
+    for (int c = 0; c < num_moments; ++c) {
+      set_linear(host, loc, c, scale(c + 1, rho));
+    }
+    gkyl_array_copy(state, host);
+    gkyl_gk_fluid_moments_set_density(up, &local, density, state);
+    gkyl_array_copy(host, state);
+    for (long i = 0; i < ext.volume; ++i) {
+      const double *actual = gkyl_array_cfetch(host, i);
+      if (i == loc) {
+        for (int c = 0; c < num_moments; ++c) {
+          check_linear(actual + c * basis.num_basis, mul(scale(c + 1, rho), ratio));
+        }
+      } else {
+        for (int k = 0; k < host->ncomp; ++k) {
+          TEST_CHECK(actual[k] == -17.0);
+        }
+      }
+    }
+    gkyl_array_release(state);
+    gkyl_array_release(host);
+    gkyl_gk_fluid_moments_release(up);
+  }
+  TEST_CASE((const char *)NULL);
+  gkyl_array_release(bmag);
+  gkyl_array_release(density);
+  gkyl_array_release(scalar);
+}
+
+static void
+test_density_scaling_cpu(void)
+{
+  test_density_scaling(false);
+}
+
 static void
 test_spatial_cpu(void)
 {
@@ -336,6 +414,12 @@ test_cpu(void)
 }
 #ifdef GKYL_HAVE_CUDA
 static void
+test_density_scaling_gpu(void)
+{
+  test_density_scaling(true);
+}
+
+static void
 test_gpu(void)
 {
   test_moments(true);
@@ -347,8 +431,10 @@ test_gpu(void)
 TEST_LIST = {
   {"fluid_moments_cpu", test_cpu},
   {"fluid_moments_spatial_products", test_spatial_cpu},
+  {"fluid_moments_density_scaling_cpu", test_density_scaling_cpu},
 #ifdef GKYL_HAVE_CUDA
   {"fluid_moments_gpu", test_gpu},
+  {"fluid_moments_density_scaling_gpu", test_density_scaling_gpu},
 #endif
   {NULL, NULL}
 };

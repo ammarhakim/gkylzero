@@ -14,6 +14,7 @@ struct gkyl_gk_fluid_moments_inp {
   const struct gkyl_range *range, *range_ext; // Interior and extended ranges.
   const struct gkyl_array *bmag; // Magnetic magnitude (acquired by updater).
   double mass, charge; // Species mass and charge.
+  int num_moments; // Number of conserved fields in the fluid state.
   enum gkyl_distribution_moments moment; // Moment to calculate.
   bool integrated; // Return cell integrals instead of DG coefficients.
   bool use_gpu; // Allocate scratch on the GPU.

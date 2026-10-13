@@ -143,7 +143,9 @@ gk_neut_species_source_write_mom(
 
     for (int m = 0; m < gkns->info.num_diag_moments; ++m) {
       struct timespec wst = gkyl_wall_clock();
-      gk_neut_species_moment_calc(&gkns->src.moms[m], gkns->local, app->local, gkns->src.source);
+      gk_neut_species_moment_calc(
+        app, &gkns->src.moms[m], gkns->local, app->local, gkns->src.source
+      );
       app->stat.n_neut_mom += 1;
 
       // Rescale moment by inverse of Jacobian if needed.
@@ -191,7 +193,9 @@ gk_neut_species_source_calc_integrated_mom(
     int vdim = gkns->info.vdim;
     int num_mom = gkns->src.integ_moms.num_mom;
     double avals_global[num_mom];
-    gk_neut_species_moment_calc(&gkns->src.integ_moms, gkns->local, app->local, gkns->src.source);
+    gk_neut_species_moment_calc(
+      app, &gkns->src.integ_moms, gkns->local, app->local, gkns->src.source
+    );
     app->stat.n_neut_mom += 1;
 
     // reduce to compute sum over whole domain, append to diagnostics

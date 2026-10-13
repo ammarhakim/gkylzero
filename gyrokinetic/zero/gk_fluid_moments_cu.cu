@@ -27,6 +27,6 @@ gkyl_gk_fluid_moments_final_integrate_cu(
 )
 {
   gk_fluid_moments_final_integrate_kernel<<<range->nblocks, range->nthreads>>>(
-    up->basis.num_basis, up->num_mom, up->volnorm_fac, *range, up->result->on_dev, out->on_dev
+    up->basis.num_basis, up->num_mom_out, up->volnorm_fac, *range, up->result->on_dev, out->on_dev
   );
 }

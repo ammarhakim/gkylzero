@@ -12,7 +12,7 @@ gk_neut_species_scaling_cross_moms_enabled(
   struct gk_species *gks_elc = &app->species[sca->elc_idx];
 
   // Compute electron Maxwellian moments (J*n, u_par, T/m).
-  gk_species_moment_calc(&gks_elc->lte.moms, gks_elc->local, app->local, fin[sca->elc_idx]);
+  gk_species_moment_calc(app, &gks_elc->lte.moms, gks_elc->local, app->local, fin[sca->elc_idx]);
 
   // Divide the electron density by the Jacobian.
   gkyl_dg_div_op_range(

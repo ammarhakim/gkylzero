@@ -132,7 +132,6 @@ struct gk_species_moment {
 
   bool is_maxwellian_moms; // =True for Maxwellian moments (n, u, T/m).
   bool is_bimaxwellian_moms; // =True for BiMaxwellian moments (n, u, Tpar/m, Tperp/m).
-  struct gkyl_array *fluid_phi; // Borrowed potential for fluid Hamiltonian moments.
 
   // MF 2025/07/18: These two objects shouldn't be here. They are needed by
   // fluid neutral moments, and we should get them directly from app->basis or
@@ -176,8 +175,9 @@ struct gk_species_moment {
 
   // Methods chosen at runtime.
   void (*calc_func)(
-    const struct gk_species_moment *sm, const struct gkyl_range phase_rng,
-    const struct gkyl_range conf_rng, const struct gkyl_array *fin
+    const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm,
+    const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
+    const struct gkyl_array *fin
   );
   void (*release_func)(const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm);
   void (*diag_jacobgeo_div_func)(
@@ -909,7 +909,6 @@ struct gk_proj {
   enum gkyl_projection_id proj_id; // Type of projection.
   struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
 
-  struct gkyl_array *fluid_host, *fluid_tmp; // Configuration-space fluid projection staging.
   struct gkyl_array *fluid_prim; // Four primitive fields on the selected device.
   // Function that performs the projection.
   void (*calc_func)(
@@ -1252,6 +1251,7 @@ struct gk_positivity {
 struct gk_species {
   struct gkyl_gyrokinetic_species info; // Input data.
   bool is_fluid; // Species grid, basis and ranges describe configuration space.
+  int num_moments; // Number of conservative moments in the fluid species state.
   void (*release_species_func)(const gkyl_gyrokinetic_app *, const struct gk_species *);
 
   struct gkyl_basis basis; // Phase-space basis for kinetic species, conf-space for fluid.
@@ -2046,16 +2046,18 @@ void gk_species_moment_init(
 );
 
 /**
- * Calculate moment, given distribution function @a fin.
+ * Calculate a moment from a kinetic distribution or conservative fluid state.
  * 
+ * @param app Gyrokinetic application providing the current field.
  * @param sm Species moment object.
- * @param phase_rng Phase-space range.
- * @param conf_rng Config-space range.
- * @param fin Input distribution function array
+ * @param species_rng Phase-space range for kinetic species, configuration-space range for fluids.
+ * @param conf_rng Configuration-space range.
+ * @param fin Input distribution function or conservative fluid moment array.
  */
 void gk_species_moment_calc(
-  const struct gk_species_moment *sm, const struct gkyl_range phase_rng,
-  const struct gkyl_range conf_rng, const struct gkyl_array *fin
+  const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm,
+  const struct gkyl_range species_rng, const struct gkyl_range conf_rng,
+  const struct gkyl_array *fin
 );
 
 /**
@@ -3949,14 +3951,15 @@ void gk_neut_species_moment_init(
 /**
  * Calculate neutral species moment, given input neutral distribution function fin.
  * 
+ * @param app Gyrokinetic application.
  * @param sm Neutral species moment object.
  * @param phase_rng Phase-space range.
  * @param conf_rng Config-space range.
  * @param fin Input neutral distribution function array.
  */
 void gk_neut_species_moment_calc(
-  const struct gk_species_moment *sm, const struct gkyl_range phase_rng,
-  const struct gkyl_range conf_rng, const struct gkyl_array *fin
+  const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm,
+  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng, const struct gkyl_array *fin
 );
 
 /**

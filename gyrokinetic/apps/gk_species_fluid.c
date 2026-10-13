@@ -131,6 +131,7 @@ gk_species_fluid_init(struct gkyl_gk *inp, gkyl_gyrokinetic_app *app, struct gk_
   }
   // Fluid moments always represent parallel and perpendicular velocity coordinates.
   gks->info.vdim = 2;
+  gks->num_moments = 4; // rho, Mpar, E, pperp/B (all multiplied by J).
   for (int b = 0; b < 2 * app->cdim; ++b) {
     if (gks->info.bcs[b].type != GKYL_BC_GK_SKIP &&
         gks->info.bcs[b].type != GKYL_BC_GK_SPECIES_PERIODIC) {
@@ -168,7 +169,7 @@ gk_species_fluid_init(struct gkyl_gk *inp, gkyl_gyrokinetic_app *app, struct gk_
       ghost
     );
   }
-  gks->f = mkarr(app->use_gpu, 4 * app->basis.num_basis, app->local_ext.volume);
+  gks->f = mkarr(app->use_gpu, gks->num_moments * gks->basis.num_basis, gks->local_ext.volume);
   gks->f_host = app->use_gpu ? mkarr(false, gks->f->ncomp, gks->f->size) : gks->f;
   gk_species_init_io(app, gks);
   gk_species_moment_init(app, gks, &gks->m0, GKYL_F_MOMENT_M0, false);

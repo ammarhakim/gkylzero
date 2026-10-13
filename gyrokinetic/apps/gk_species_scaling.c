@@ -19,7 +19,7 @@ gk_species_scaling_set_density_kinetic(
   struct gkyl_array *density
 )
 {
-  gk_species_moment_calc(&gks->m0, gks->local, app->local, fin);
+  gk_species_moment_calc(app, &gks->m0, gks->local, app->local, fin);
   gkyl_dg_div_op_range(
     gks->m0.mem_geo, &app->basis, 0, density, 0, density, 0, gks->m0.marr, &app->local
   );
@@ -54,7 +54,7 @@ gk_species_scaling_apply_fixed_fraction_fluid(
 {
   struct gk_species *gks_ref = &app->species[sca->ref_species_idx];
 
-  gk_species_moment_calc(&gks_ref->m0, gks_ref->local, app->local, gks_ref->f);
+  gk_species_moment_calc(app, &gks_ref->m0, gks_ref->local, app->local, gks_ref->f);
   struct gkyl_array *target = sca->buffer_conf;
   gkyl_array_set_range(target, sca->fixed_fraction, gks_ref->m0.marr, &app->local);
   sca->set_density_func(app, gks, fin, target);
@@ -100,7 +100,7 @@ gk_species_scaling_boltzmann_density(
   struct gk_species *gks_ref = &app->species[sca->ref_species_idx];
 
   // Compute density and temperature.
-  gk_species_moment_calc(&gks->lte.moms, gks->local, app->local, fin);
+  gk_species_moment_calc(app, &gks->lte.moms, gks->local, app->local, fin);
   gkyl_dg_div_op_range(
     gks->lte.moms.mem_geo, &app->basis, 0, gks->lte.moms.marr, 0, gks->lte.moms.marr, 0,
     app->gk_geom->geo_int.jacobgeo, &app->local
@@ -162,11 +162,11 @@ gk_species_scaling_apply_fixed_fraction(
 
   // Reciprocal of the density of this species.
   struct gkyl_array *m0_inv = gks->lte.moms.marr;
-  gk_species_moment_calc(&gks->m0, gks->local, app->local, fin);
+  gk_species_moment_calc(app, &gks->m0, gks->local, app->local, fin);
   gkyl_dg_inv_op_range(&app->basis, 0, m0_inv, 0, gks->m0.marr, &app->local);
 
   // Density of the reference species.
-  gk_species_moment_calc(&gks_ref->m0, gks_ref->local, app->local, gks_ref->f);
+  gk_species_moment_calc(app, &gks_ref->m0, gks_ref->local, app->local, gks_ref->f);
 
   // Ratio of the densities.
   struct gkyl_array *m0ratio = gks->m0.marr;

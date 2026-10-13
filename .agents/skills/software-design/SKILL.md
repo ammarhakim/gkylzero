@@ -32,6 +32,10 @@ There may also be some additional auxiliary private or public functions.
 - Comments should follow standard English grammar rules, and culminate with a period (.).
 - Methods to initialize an updater in zero/ which take all arguments inside a
   single input struct should have a name with the suffix _inew (instead of _new).
+- Gkeyll simulations on a GPU run entirely on the device and only copy between device and host (or
+  viceversa) during initialization or for I/O. The only exception are copying very small arrays
+  (1-64 numbers) for things like reducing the CFL constraint or time step. Do not copy between host
+  and device unnecessarily.
 
   time-independent choice or parameter inside the methods called in the time loop of a simulation (e.g. _advance). Instead, use function pointers to set the appropriate method during the initialization of the module, and call that method inside the time loop.
 

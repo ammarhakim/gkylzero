@@ -317,7 +317,7 @@ gk_species_write_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *gks, 
 
   for (int m = 0; m < gks->info.num_diag_moments; ++m) {
     struct timespec wtm = gkyl_wall_clock();
-    gk_species_moment_calc(&gks->moms[m], gks->local, app->local, gks->f);
+    gk_species_moment_calc(app, &gks->moms[m], gks->local, app->local, gks->f);
     app->stat.n_mom += 1;
 
     // Rescale moment by inverse of Jacobian if necessary.
@@ -375,7 +375,7 @@ gk_species_calc_int_mom_dt_enabled(
   struct timespec wst = gkyl_wall_clock();
   // Compute moment of f_new to compute moment of df/dt.
   // Need to do it after the fields are updated.
-  gk_species_moment_calc(&gks->integ_moms, gks->local, app->local, gks->f);
+  gk_species_moment_calc(app, &gks->integ_moms, gks->local, app->local, gks->f);
   gkyl_array_set(fdot_int_mom, 1.0 / dt, gks->integ_moms.marr);
   app->stat.fdot_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -403,7 +403,7 @@ gk_species_calc_integrated_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_spec
   int num_mom = gks->integ_moms.num_mom;
   double avals_global[num_mom];
 
-  gk_species_moment_calc(&gks->integ_moms, gks->local, app->local, gks->f);
+  gk_species_moment_calc(app, &gks->integ_moms, gks->local, app->local, gks->f);
   app->stat.n_mom += 1;
 
   // Reduce (sum) over whole domain, append to diagnostics.
@@ -660,7 +660,7 @@ gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *gks_self
     // Calculate the guiding center density of this species: (npol - q_other*n^G_other)/q_self.
     for (int i = 0; i < app->num_species; ++i) {
       struct gk_species *gks = &app->species[i];
-      gk_species_moment_calc(&gks->m0, gks->local, app->local, gks->f);
+      gk_species_moment_calc(app, &gks->m0, gks->local, app->local, gks->f);
       if (strcmp(gks->info.name, gks_self->info.name)) {
         gkyl_array_accumulate(npol, -gks->info.charge, gks->m0.marr);
       }

@@ -218,7 +218,7 @@ gk_fluid_moments_final_copy(
 )
 {
   int nb = up->basis.num_basis;
-  for (int c = 0; c < up->num_mom; ++c) {
+  for (int c = 0; c < up->num_mom_out; ++c) {
     gkyl_array_set_offset_ncoeff_range(out, 1.0, up->result, nb, c * nb, c * nb, range);
   }
 }
@@ -244,7 +244,7 @@ gk_fluid_moments_final_integrate(
     long loc = gkyl_range_idx(range, iter.idx);
     const double *dg = gkyl_array_cfetch(up->result, loc);
     double *integral = gkyl_array_fetch(out, loc);
-    for (int c = 0; c < up->num_mom; ++c) {
+    for (int c = 0; c < up->num_mom_out; ++c) {
       integral[c] = up->volnorm_fac * dg[c * up->basis.num_basis];
     }
   }
@@ -253,7 +253,7 @@ gk_fluid_moments_final_integrate(
 struct gkyl_gk_fluid_moments *
 gkyl_gk_fluid_moments_inew(const struct gkyl_gk_fluid_moments_inp *inp)
 {
-  assert(inp->mass > 0 && inp->bmag);
+  assert(inp->mass > 0 && inp->bmag && inp->num_moments >= 4);
 
   struct gkyl_gk_fluid_moments *up = gkyl_malloc(sizeof *up);
 
@@ -261,7 +261,8 @@ gkyl_gk_fluid_moments_inew(const struct gkyl_gk_fluid_moments_inp *inp)
     .basis = *inp->basis,
     .mass = inp->mass,
     .charge = inp->charge,
-    .num_mom = 1,
+    .num_mom_out = 1,
+    .num_mom_in = inp->num_moments,
     .num_cells = inp->range->volume,
     .rmass_fac = 1.0 / inp->mass,
     .volnorm_fac = 1.0,
@@ -289,23 +290,23 @@ gkyl_gk_fluid_moments_inew(const struct gkyl_gk_fluid_moments_inp *inp)
       up->calc_func = gk_fluid_moments_m3perp;
       break;
     case GKYL_F_MOMENT_MAXWELLIAN:
-      up->num_mom = 3;
+      up->num_mom_out = 3;
       up->calc_func = gk_fluid_moments_maxwellian;
       break;
     case GKYL_F_MOMENT_BIMAXWELLIAN:
-      up->num_mom = 4;
+      up->num_mom_out = 4;
       up->calc_func = gk_fluid_moments_bimaxwellian;
       break;
     case GKYL_F_MOMENT_M0M1M2:
-      up->num_mom = 3;
+      up->num_mom_out = 3;
       up->calc_func = gk_fluid_moments_m0m1m2;
       break;
     case GKYL_F_MOMENT_M0M1M2PARM2PERP:
-      up->num_mom = 4;
+      up->num_mom_out = 4;
       up->calc_func = gk_fluid_moments_m0m1m2parperp;
       break;
     case GKYL_F_MOMENT_HAMILTONIAN:
-      up->num_mom = 3;
+      up->num_mom_out = 3;
       up->calc_func = gk_fluid_moments_hamiltonian;
       break;
     default:
@@ -332,7 +333,7 @@ gkyl_gk_fluid_moments_inew(const struct gkyl_gk_fluid_moments_inp *inp)
 int
 gkyl_gk_fluid_moments_num_mom(const struct gkyl_gk_fluid_moments *up)
 {
-  return up->num_mom;
+  return up->num_mom_out;
 }
 
 void
@@ -376,9 +377,11 @@ gkyl_gk_fluid_moments_set_density(
 {
   int nb = up->basis.num_basis;
   assert(range->volume == up->num_cells);
+  assert(state->ncomp == up->num_mom_in * nb);
+
   gkyl_array_set_offset_range(up->ppar, up->mass, density, 0, range);
   gkyl_dg_div_op_range(up->mem, &up->basis, 0, up->upar, 0, up->ppar, 0, state, range);
-  for (int c = 1; c < 4; ++c) {
+  for (int c = 1; c < up->num_mom_in; ++c) {
     gkyl_dg_mul_op_range(&up->basis, c, state, 0, up->upar, c, state, range);
   }
   gkyl_array_set_offset_ncoeff_range(state, 1.0, up->ppar, nb, 0, 0, range);
