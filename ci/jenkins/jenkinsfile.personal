@@ -127,6 +127,21 @@ def archiveBootstrap() {
     }
 }
 
+// Reporting may be pinned to a revision predating statistics consolidation.
+// Keep the original artifacts when that optional helper is unavailable.
+def statisticsArchiveExcludes() {
+    try {
+        return reporting.statisticsArchiveExcludes()
+    } catch (MissingMethodException err) {
+        if (err.method != 'statisticsArchiveExcludes') throw err
+    } catch (NoSuchMethodError err) {
+        // Jenkins resolves missing loaded-script methods as Pipeline DSL steps.
+        if (!err.message?.contains("No such DSL method 'statisticsArchiveExcludes'")) throw err
+    }
+    echo 'WARNING: trusted reporting tools lack statistics consolidation; archiving original artifacts.'
+    return ''
+}
+
 def loadReporting(Map settings) {
     bootstrapStage('Load CI reporting') {
         try {
@@ -711,7 +726,7 @@ def runCi = {
                     echo "WARNING: could not publish the GitHub CI report: ${reportError}"
                 }
             }
-            archiveArtifacts allowEmptyArchive: true, excludes: reporting.statisticsArchiveExcludes(), artifacts: 'ci-statistics.md,ci-run-path.txt,ci-*-config.mak,ci-dependencies/**,ci-numerical/*.tar.zst,ci-numerical/*.tar.gz,ci-trusted-ci-commit.txt,ci-reporting-commit.txt,ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-seconds.txt,*-unit-results.txt,candidate-*.log*,baseline-*.log*,ci-failure-detail.txt,ci-report*.md,ci-report*.md.json,ci-report-delivery.json,ci-diagnostic-summary.json,ci-stage-history.txt,ci-stage-timings.json,ci-command-logs/**,ci-timing-summary.txt,ci-regression-summary.txt,ci-parallel-regression-summary.txt,ci-failure-summary.txt,build/**/*.log,cuda-build/**/*.log,_baseline/build/**/*.log,_baseline/cuda-build/**/*.log,_baseline/gkylsoft/gkeyll-results/**,gkylsoft/gkeyll-results/**'
+            archiveArtifacts allowEmptyArchive: true, excludes: statisticsArchiveExcludes(), artifacts: 'ci-statistics.md,ci-run-path.txt,ci-*-config.mak,ci-dependencies/**,ci-numerical/*.tar.zst,ci-numerical/*.tar.gz,ci-trusted-ci-commit.txt,ci-reporting-commit.txt,ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-seconds.txt,*-unit-results.txt,candidate-*.log*,baseline-*.log*,ci-failure-detail.txt,ci-report*.md,ci-report*.md.json,ci-report-delivery.json,ci-diagnostic-summary.json,ci-stage-history.txt,ci-stage-timings.json,ci-command-logs/**,ci-timing-summary.txt,ci-regression-summary.txt,ci-parallel-regression-summary.txt,ci-failure-summary.txt,build/**/*.log,cuda-build/**/*.log,_baseline/build/**/*.log,_baseline/cuda-build/**/*.log,_baseline/gkylsoft/gkeyll-results/**,gkylsoft/gkeyll-results/**'
             if (reportError) description = "${description} (report not posted)".take(140)
         }
         if (candidateDir && baselineCommit) {

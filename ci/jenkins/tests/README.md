@@ -25,6 +25,7 @@ Run offline reporter tests with:
 python3 -m unittest discover -s ci/jenkins/tests -p 'test_*.py'
 java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/tests/test_jenkins_reporting.groovy
 java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/tests/test_bootstrap_reporting.groovy
+java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/tests/test_statistics_archive_compatibility.groovy
 ```
 
 The queue integration test mocks GitHub for all four platforms, checking

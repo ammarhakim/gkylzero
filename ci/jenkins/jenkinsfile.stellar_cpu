@@ -4,6 +4,21 @@ import groovy.transform.Field
 def loggedSh(String label, String command) { reporting.loggedSh(label, command) }
 def timeCommand(String metric, String command) { reporting.timeCommand(metric, command) }
 
+// Reporting may be pinned to a revision predating statistics consolidation.
+// Keep the original artifacts when that optional helper is unavailable.
+def statisticsArchiveExcludes() {
+    try {
+        return reporting.statisticsArchiveExcludes()
+    } catch (MissingMethodException err) {
+        if (err.method != 'statisticsArchiveExcludes') throw err
+    } catch (NoSuchMethodError err) {
+        // Jenkins resolves missing loaded-script methods as Pipeline DSL steps.
+        if (!err.message?.contains("No such DSL method 'statisticsArchiveExcludes'")) throw err
+    }
+    echo 'WARNING: trusted reporting tools lack statistics consolidation; archiving original artifacts.'
+    return ''
+}
+
 def loadReporting(Map settings) {
     def ref = env.CI_TRUSTED_CI_COMMIT?.trim() ?: env.GKEYLL_CI_TRUSTED_REF?.trim() ?: 'main'
     if (!(ref ==~ /[A-Za-z0-9][A-Za-z0-9._\/-]*/) || ref.contains('..') || ref.endsWith('.lock')) {
@@ -953,7 +968,7 @@ node(nodeLabel) {
                             terminalDescription = "${terminalDescription} (report not posted)".take(140)
                         }
                     }
-                    archiveArtifacts allowEmptyArchive: true, excludes: reporting.statisticsArchiveExcludes(),
+                    archiveArtifacts allowEmptyArchive: true, excludes: statisticsArchiveExcludes(),
                         artifacts: 'ci-statistics.md,ci-run-path.txt,ci-*-config.mak,ci-dependencies/**,ci-numerical/*.tar.zst,ci-numerical/*.tar.gz,ci-trusted-ci-commit.txt,ci-reporting-commit.txt,ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,ci-report*.md,ci-report*.md.json,ci-report-delivery.json,ci-diagnostic-summary.json,ci-stage-history.txt,ci-stage-timings.json,ci-command-logs/**,baseline-*.log*,baseline-slurm-*,*-unit-results.txt,*-seconds.txt,ci-timing-summary.txt,ci-regression-summary.txt,ci-failure-summary.txt,slurm-*.out,slurm-*-job-id.txt,slurm-*-job-status.txt,build/**/*.log,cuda-build/**/*.log,_baseline/build/**/*.log,_baseline/cuda-build/**/*.log,_baseline/gkylsoft/gkeyll-results/**,gkylsoft/gkeyll-results/**'
                 } catch (err) {
                     terminalStatus = 'error'
