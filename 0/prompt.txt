@@ -1,0 +1,27 @@
+In regards to 
+
+ // Floor the cell-average of vtSq_{sr} to zero, setting the rest of the coefficients to zero as well
+  gkyl_array_set_offset_range(
+    lbo->cross_vtsq, 1.0, cross_prim_moms, 1 * app->basis.num_basis, &app->local
+  );
+  gkyl_array_max_by_cell_per_cell_avg_range(lbo->cross_vtsq, lbo->cross_vtsq_floor, &app->local);
+  gkyl_array_set_offset_range(
+    cross_prim_moms, 1.0, lbo->cross_vtsq, 1 * app->basis.num_basis, &app->local
+  );
+
+I think the floor should be the minimum representable temperature. It takes 1-3 lines to get that from the nonuniform v map object. See how it's done in gk_species_lbo.
+
+---
+
+In regards to 
+
+ // Floor the cell-average of vtSq_{sr} to zero, setting the rest of the coefficients to zero as well
+  gkyl_array_set_offset_range(
+    lbo->cross_vtsq, 1.0, cross_prim_moms, 1 * app->basis.num_basis, &app->local
+  );
+  gkyl_array_max_by_cell_per_cell_avg_range(lbo->cross_vtsq, lbo->cross_vtsq_floor, &app->local);
+  gkyl_array_set_offset_range(
+    cross_prim_moms, 1.0, lbo->cross_vtsq, 1 * app->basis.num_basis, &app->local
+  );
+
+I think the floor should be the minimum representable temperature. It takes 1-3 lines to get that from the nonuniform v map object. See how it's done in gk_species_lbo.
