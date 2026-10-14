@@ -12,6 +12,7 @@ gk_species_read_metadata(const struct gk_species *gks, const struct gkyl_array_h
   mpack_tree_init_data(&tree, hdr->meta, hdr->meta_size);
   mpack_tree_parse(&tree);
   mpack_node_t root = mpack_tree_root(&tree);
+
   bool matches = mpack_node_type(root) == mpack_type_map;
   if (matches && mpack_node_map_contains_cstr(root, "basis_type")) {
     mpack_node_t node = mpack_node_map_cstr(root, "basis_type");
@@ -19,6 +20,7 @@ gk_species_read_metadata(const struct gk_species *gks, const struct gkyl_array_h
               mpack_node_strlen(node) == strlen(gks->basis.id) &&
               memcmp(mpack_node_str(node), gks->basis.id, strlen(gks->basis.id)) == 0;
   }
+
   const char *int_keys[] = {"vdim", "poly_order"};
   unsigned int int_values[] = {gks->info.vdim, gks->basis.poly_order};
   for (int i = 0; matches && i < 2; ++i) {
@@ -27,7 +29,9 @@ gk_species_read_metadata(const struct gk_species *gks, const struct gkyl_array_h
       matches = mpack_node_u64(node) == int_values[i];
     }
   }
+
   mpack_error_t error = mpack_tree_destroy(&tree);
+
   return matches && error == mpack_ok;
 }
 
@@ -40,6 +44,7 @@ gk_species_read(gkyl_gyrokinetic_app *app, struct gk_species *gks, const char *f
   if (status != GKYL_ARRAY_RIO_SUCCESS) {
     return status;
   }
+
   bool matches = grid.ndim == gks->grid.ndim && hdr.etype == GKYL_DOUBLE &&
                  hdr.esznc == gks->f->esznc;
   for (int d = 0; matches && d < grid.ndim; ++d) {
@@ -52,10 +57,12 @@ gk_species_read(gkyl_gyrokinetic_app *app, struct gk_species *gks, const char *f
   if (!matches) {
     return GKYL_ARRAY_RIO_DATA_MISMATCH;
   }
+
   status = gkyl_comm_array_read(gks->comm, &gks->grid, &gks->local, gks->f_host, fname);
   if (status == GKYL_ARRAY_RIO_SUCCESS && app->use_gpu) {
     gkyl_array_copy(gks->f, gks->f_host);
   }
+
   return status;
 }
 
@@ -918,9 +925,12 @@ gk_species_init(struct gkyl_gk *inp, struct gkyl_gyrokinetic_app *app, struct gk
     fprintf(stderr, "Static species '%s' cannot use a scaling operation.\n", info.name);
     gkyl_exit("Static species must remain unchanged in time.");
   }
+
   memset(gks, 0, sizeof *gks);
+
   gks->info = info;
   gks->is_fluid = info.cells[0] == 0;
+
   if (gks->is_fluid) {
     gk_species_fluid_init(inp, app, gks);
   } else {

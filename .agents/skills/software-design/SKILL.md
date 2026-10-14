@@ -36,6 +36,8 @@ There may also be some additional auxiliary private or public functions.
   viceversa) during initialization or for I/O. The only exception are copying very small arrays
   (1-64 numbers) for things like reducing the CFL constraint or time step. Do not copy between host
   and device unnecessarily.
+- Avoid forward declarations in .c and .cu files; just place functions higher
+  up the file.
 
   time-independent choice or parameter inside the methods called in the time loop of a simulation (e.g. _advance). Instead, use function pointers to set the appropriate method during the initialization of the module, and call that method inside the time loop.
 

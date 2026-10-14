@@ -445,9 +445,6 @@ struct gk_lbo_collisions {
 };
 
 struct gk_bgk_collisions {
-  // Fluid collision partners compute cross moments without entering the kinetic RHS.
-  void (*cross_stage_func)(gkyl_gyrokinetic_app *, const struct gk_species *, struct gk_bgk_collisions *, const struct gkyl_array *);
-  void (*cross_stage_implicit_func)(gkyl_gyrokinetic_app *, const struct gk_species *, struct gk_bgk_collisions *, const struct gkyl_array *);
   enum gkyl_collision_id collision_id; // Type of collisions.
   bool write_diagnostics; // Whether to write diagnostics out.
 
@@ -505,6 +502,13 @@ struct gk_bgk_collisions {
   void (*cross_moms_func)(
     gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_bgk_collisions *bgk,
     int coll_idx
+  );
+  void (*cross_moms_method_func)(
+    gkyl_gyrokinetic_app *, const struct gk_species *, struct gk_bgk_collisions *,
+    const struct gkyl_array *
+  );
+  void (*cross_moms_method_implicit_func)(gkyl_gyrokinetic_app *, const struct gk_species *,
+    struct gk_bgk_collisions *, const struct gkyl_array *
   );
   void (*rhs_func)(
     gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_bgk_collisions *bgk,

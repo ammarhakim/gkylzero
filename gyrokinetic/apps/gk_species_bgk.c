@@ -12,7 +12,7 @@ gkbgk_moms_disabled(
 }
 
 static void
-gkbgk_moms_enabled(
+gkbgk_moms_kinetic(
   gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_bgk_collisions *bgk,
   const struct gkyl_array *fin
 )
@@ -252,8 +252,8 @@ gk_species_bgk_init(
 
   // Empty methods.
   bgk->moms_func = gkbgk_moms_disabled;
-  bgk->cross_stage_func = gkbgk_moms_disabled;
-  bgk->cross_stage_implicit_func = gkbgk_moms_disabled;
+  bgk->cross_moms_method_func = gkbgk_moms_disabled;
+  bgk->cross_moms_method_implicit_func = gkbgk_moms_disabled;
   bgk->rhs_func = gkbgk_rhs_disabled;
   bgk->moms_func_implicit = gkbgk_moms_disabled;
   bgk->rhs_func_implicit = gkbgk_rhs_disabled;
@@ -302,8 +302,8 @@ gk_species_bgk_init(
                                                         app->bmag_ref;
 
       // Compute a minimum representable temperature based on the smallest dv in the grid.
-      double dv_min[vdim];
       if (!gks->is_fluid) {
+        double dv_min[vdim];
         gkyl_velocity_map_reduce_dv_range(gks->vel_map, GKYL_MIN, dv_min, gks->vel_map->local_vel);
 
         double tpar_min = (gks->info.mass / 6.0) * pow(dv_min[0], 2);
@@ -352,12 +352,12 @@ gk_species_bgk_init(
     if (bgk->implicit_step) {
       bgk->moms_func = gkbgk_moms_disabled;
       bgk->rhs_func = gkbgk_rhs_disabled;
-      bgk->moms_func_implicit = gkbgk_moms_enabled;
+      bgk->moms_func_implicit = gkbgk_moms_kinetic;
       if (!gks->info.collisions.not_in_dfdt) {
         bgk->rhs_func_implicit = gkbgk_rhs_enabled;
       }
     } else {
-      bgk->moms_func = gkbgk_moms_enabled;
+      bgk->moms_func = gkbgk_moms_kinetic;
       if (!gks->info.collisions.not_in_dfdt) {
         bgk->rhs_func = gkbgk_rhs_enabled;
       }
@@ -512,9 +512,9 @@ gk_species_bgk_cross_init(
       bgk->cross_moms_func = gkbgk_cross_moms_enabled;
       if (gks->is_fluid) {
         if (bgk->implicit_step) {
-          bgk->cross_stage_implicit_func = gkbgk_cross_moms_fluid;
+          bgk->cross_moms_method_implicit_func = gkbgk_cross_moms_fluid;
         } else {
-          bgk->cross_stage_func = gkbgk_cross_moms_fluid;
+          bgk->cross_moms_method_func = gkbgk_cross_moms_fluid;
         }
       }
     }
@@ -546,7 +546,7 @@ gk_species_bgk_cross_moms(
 )
 {
   // Kinetic species compute this in bgk_rhs; fluids have no collision RHS.
-  bgk->cross_stage_func(app, species, bgk, fin);
+  bgk->cross_moms_method_func(app, species, bgk, fin);
 }
 
 void
@@ -555,7 +555,7 @@ gk_species_bgk_cross_moms_implicit(
   const struct gkyl_array *fin
 )
 {
-  bgk->cross_stage_implicit_func(app, species, bgk, fin);
+  bgk->cross_moms_method_implicit_func(app, species, bgk, fin);
 }
 
 void

@@ -13,7 +13,7 @@ gklbo_moms_disabled(
 }
 
 static void
-gklbo_moms_enabled(
+gklbo_moms_kinetic(
   gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_lbo_collisions *lbo,
   const struct gkyl_array *fin
 )
@@ -65,20 +65,27 @@ gklbo_moms_fluid(
 )
 {
   struct timespec wst = gkyl_wall_clock();
+
   gk_species_moment_calc(app, &lbo->moms, species->local, app->local, fin);
+
   gkyl_array_set_offset_range(
     lbo->m2self, 1.0, lbo->moms.marr, 2 * app->basis.num_basis, &app->local
   );
+
   gk_species_moment_calc(app, &species->lte.moms, species->local, app->local, fin);
+
   gkyl_array_set_offset_range(
     lbo->prim_moms, 1.0, species->lte.moms.marr, app->basis.num_basis, &app->local
   );
+
   lbo->self_nu_func(app, species, lbo, fin);
+
   for (int d = 0; d < 2; ++d) {
     gkyl_dg_mul_op_range(
       &app->basis, d, lbo->nu_prim_moms, d, lbo->prim_moms, 0, lbo->self_nu, &app->local
     );
   }
+
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -356,8 +363,8 @@ gk_species_lbo_init(
                                                         app->bmag_ref;
 
       // Compute a minimum representable temperature based on the smallest dv in the grid.
-      double dv_min[vdim];
       if (!gks->is_fluid) {
+        double dv_min[vdim];
         gkyl_velocity_map_reduce_dv_range(gks->vel_map, GKYL_MIN, dv_min, gks->vel_map->local_vel);
 
         double tpar_min = (gks->info.mass / 6.0) * pow(dv_min[0], 2);
@@ -442,9 +449,8 @@ gk_species_lbo_init(
     }
 
     // Methods chosen at runtime.
-    lbo->moms_func = gks->is_fluid ? gklbo_moms_fluid : gklbo_moms_enabled;
+    lbo->moms_func = gks->is_fluid ? gklbo_moms_fluid : gklbo_moms_kinetic;
     if (!gks->info.collisions.not_in_dfdt) {
-      ;
       lbo->rhs_func = gklbo_rhs_enabled;
     }
     if (lbo->write_diagnostics) {

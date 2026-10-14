@@ -3,7 +3,6 @@
 #include <gkyl_gk_fluid_moments.h>
 
 // The target density includes J. Scale all conserved fields by the density ratio.
-// Spatially varying scaling preserves primitive fields to DG projection accuracy.
 static void
 gk_species_scaling_set_density_fluid(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gkyl_array *fin,
@@ -153,7 +152,7 @@ gk_species_scaling_apply_boltzmann_fluid(
 }
 
 static void
-gk_species_scaling_apply_fixed_fraction(
+gk_species_scaling_apply_fixed_fraction_kinetic(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_scaling *sca, struct gkyl_array *fin,
   struct gkyl_array **bflux[]
 )
@@ -181,7 +180,7 @@ gk_species_scaling_apply_fixed_fraction(
 }
 
 static void
-gk_species_scaling_apply_boltzmann(
+gk_species_scaling_apply_boltzmann_kinetic(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_scaling *sca, struct gkyl_array *fin,
   struct gkyl_array **bflux[]
 )
@@ -274,6 +273,7 @@ gk_species_scaling_init(
 
   sca->set_density_func = gks->is_fluid ? gk_species_scaling_set_density_fluid :
                                           gk_species_scaling_set_density_kinetic;
+
   sca->type = 0;
   sca->cross_moms_func = gk_species_scaling_cross_moms_disabled;
   sca->rhs_func = gk_species_scaling_rhs_disabled;
@@ -288,7 +288,7 @@ gk_species_scaling_init(
     sca->fixed_fraction = sca_inp->fixed_fraction;
 
     sca->apply_func = gks->is_fluid ? gk_species_scaling_apply_fixed_fraction_fluid :
-                                      gk_species_scaling_apply_fixed_fraction;
+                                      gk_species_scaling_apply_fixed_fraction_kinetic;
     if (sca->write_diagnostics) {
       sca->write_func = gk_species_scaling_write_enabled;
     } else {
@@ -302,7 +302,7 @@ gk_species_scaling_init(
       gkyl_proj_exp_on_basis_new(&app->basis, app->basis.poly_order + 1, app->use_gpu);
 
     sca->apply_func = gks->is_fluid ? gk_species_scaling_apply_boltzmann_fluid :
-                                      gk_species_scaling_apply_boltzmann;
+                                      gk_species_scaling_apply_boltzmann_kinetic;
     if (sca->write_diagnostics) {
       sca->write_func = gk_species_scaling_write_enabled;
     } else {

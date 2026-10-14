@@ -39,9 +39,51 @@ gk_species_moment_diag_jacobgeo_div_enabled_all_comp(
 }
 
 static void
-gk_species_moment_calc_kinetic(const struct gkyl_gyrokinetic_app *, const struct gk_species_moment *, const struct gkyl_range, const struct gkyl_range, const struct gkyl_array *);
+gk_species_moment_calc_kinetic(
+  const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm,
+  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng, const struct gkyl_array *fin
+)
+{
+  if (sm->is_integrated) {
+    gkyl_dg_updater_moment_gyrokinetic_advance(sm->mcalc, &phase_rng, &conf_rng, fin, sm->marr);
+  } else {
+    if (sm->is_maxwellian_moms) {
+      gkyl_gk_maxwellian_moments_advance(
+        sm->gyrokinetic_maxwellian_moms, &phase_rng, &conf_rng, fin, sm->marr
+      );
+    } else if (sm->is_bimaxwellian_moms) {
+      gkyl_gk_bimaxwellian_moments_advance(
+        sm->gyrokinetic_maxwellian_moms, &phase_rng, &conf_rng, fin, sm->marr
+      );
+    } else {
+      gkyl_dg_updater_moment_gyrokinetic_advance(sm->mcalc, &phase_rng, &conf_rng, fin, sm->marr);
+    }
+  }
+}
+
 static void
-gk_species_moment_release_kinetic(const struct gkyl_gyrokinetic_app *, const struct gk_species_moment *);
+gk_species_moment_release_kinetic(
+  const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm
+)
+{
+  gkyl_array_release(sm->marr);
+  if (app->use_gpu) {
+    gkyl_array_release(sm->marr_host);
+  }
+
+  if (sm->is_integrated) {
+    gkyl_dg_updater_moment_gyrokinetic_release(sm->mcalc);
+  } else {
+    if (sm->is_maxwellian_moms || sm->is_bimaxwellian_moms) {
+      gkyl_gk_maxwellian_moments_release(sm->gyrokinetic_maxwellian_moms);
+    } else {
+      gkyl_dg_updater_moment_gyrokinetic_release(sm->mcalc);
+    }
+
+    // Free the weak division memory.
+    gkyl_dg_bin_op_mem_release(sm->mem_geo);
+  }
+}
 
 static void
 gk_species_moment_calc_fluid(
@@ -87,12 +129,15 @@ gk_species_moment_init_fluid(
     .integrated = sm->is_integrated,
     .use_gpu = app->use_gpu,
   });
+
   sm->num_mom = gkyl_gk_fluid_moments_num_mom(sm->gf_moms);
+
   sm->marr = mkarr(
     app->use_gpu, sm->num_mom * (sm->is_integrated ? 1 : app->basis.num_basis),
     app->local_ext.volume
   );
   sm->marr_host = app->use_gpu ? mkarr(false, sm->marr->ncomp, sm->marr->size) : sm->marr;
+
   if (!sm->is_integrated) {
     sm->mem_geo = app->use_gpu ?
                     gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->basis.num_basis) :
@@ -101,25 +146,17 @@ gk_species_moment_init_fluid(
                                    gk_species_moment_diag_jacobgeo_div_enabled_1st_comp :
                                    gk_species_moment_diag_jacobgeo_div_enabled_all_comp;
   }
+
   sm->calc_func = gk_species_moment_calc_fluid;
   sm->release_func = gk_species_moment_release_fluid;
 }
 
-void
-gk_species_moment_init(
+static void
+gk_species_moment_init_kinetic(
   struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_moment *sm,
-  enum gkyl_distribution_moments mom_type, bool is_integrated
+  enum gkyl_distribution_moments mom_type
 )
 {
-  sm->is_integrated = is_integrated;
-  sm->is_maxwellian_moms = mom_type == GKYL_F_MOMENT_MAXWELLIAN;
-  sm->is_bimaxwellian_moms = mom_type == GKYL_F_MOMENT_BIMAXWELLIAN;
-  sm->diag_jacobgeo_div_func = gk_species_moment_diag_jacobgeo_div_disabled;
-
-  if (gks->is_fluid) {
-    gk_species_moment_init_fluid(app, gks, sm, mom_type);
-    return;
-  }
   sm->calc_func = gk_species_moment_calc_kinetic;
   sm->release_func = gk_species_moment_release_kinetic;
 
@@ -186,26 +223,21 @@ gk_species_moment_init(
   }
 }
 
-static void
-gk_species_moment_calc_kinetic(
-  const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm,
-  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng, const struct gkyl_array *fin
+void
+gk_species_moment_init(
+  struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_moment *sm,
+  enum gkyl_distribution_moments mom_type, bool is_integrated
 )
 {
-  if (sm->is_integrated) {
-    gkyl_dg_updater_moment_gyrokinetic_advance(sm->mcalc, &phase_rng, &conf_rng, fin, sm->marr);
+  sm->is_integrated = is_integrated;
+  sm->is_maxwellian_moms = mom_type == GKYL_F_MOMENT_MAXWELLIAN;
+  sm->is_bimaxwellian_moms = mom_type == GKYL_F_MOMENT_BIMAXWELLIAN;
+  sm->diag_jacobgeo_div_func = gk_species_moment_diag_jacobgeo_div_disabled;
+
+  if (gks->is_fluid) {
+    gk_species_moment_init_fluid(app, gks, sm, mom_type);
   } else {
-    if (sm->is_maxwellian_moms) {
-      gkyl_gk_maxwellian_moments_advance(
-        sm->gyrokinetic_maxwellian_moms, &phase_rng, &conf_rng, fin, sm->marr
-      );
-    } else if (sm->is_bimaxwellian_moms) {
-      gkyl_gk_bimaxwellian_moments_advance(
-        sm->gyrokinetic_maxwellian_moms, &phase_rng, &conf_rng, fin, sm->marr
-      );
-    } else {
-      gkyl_dg_updater_moment_gyrokinetic_advance(sm->mcalc, &phase_rng, &conf_rng, fin, sm->marr);
-    }
+    gk_species_moment_init_kinetic(app, gks, sm, mom_type);
   }
 }
 
@@ -216,30 +248,6 @@ gk_species_moment_diag_jacobgeo_div(
 )
 {
   sm->diag_jacobgeo_div_func(app, sm, Jmom_in, mom_out);
-}
-
-static void
-gk_species_moment_release_kinetic(
-  const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm
-)
-{
-  gkyl_array_release(sm->marr);
-  if (app->use_gpu) {
-    gkyl_array_release(sm->marr_host);
-  }
-
-  if (sm->is_integrated) {
-    gkyl_dg_updater_moment_gyrokinetic_release(sm->mcalc);
-  } else {
-    if (sm->is_maxwellian_moms || sm->is_bimaxwellian_moms) {
-      gkyl_gk_maxwellian_moments_release(sm->gyrokinetic_maxwellian_moms);
-    } else {
-      gkyl_dg_updater_moment_gyrokinetic_release(sm->mcalc);
-    }
-
-    // Free the weak division memory.
-    gkyl_dg_bin_op_mem_release(sm->mem_geo);
-  }
 }
 
 void
