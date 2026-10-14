@@ -1,0 +1,141 @@
+Several of the files in the artifacts are only digits of bytes. Please combine the ones that only contain a few numbers into some readable format that is nice to look at, particularly for statistics. .md is a good file type
+
+
+ci-dependencies
+ci-numerical
+gkylsoft/gkeyll-results
+baseline-c-compile.log	Oct 14, 2026, 12:39:38 AM	35.81 KiB
+baseline-c-compile.log.exit	Oct 14, 2026, 12:39:38 AM	2 B
+baseline-c-compile-seconds.txt	Oct 14, 2026, 12:39:38 AM	3 B
+baseline-c-regression-create.log	Oct 14, 2026, 12:39:38 AM	65.42 KiB
+baseline-c-regression-create.log.exit	Oct 14, 2026, 12:39:38 AM	2 B
+baseline-c-regression-create-seconds.txt	Oct 14, 2026, 12:39:38 AM	5 B
+baseline-install.log	Oct 14, 2026, 12:39:38 AM	28.91 KiB
+baseline-install.log.exit	Oct 14, 2026, 12:39:38 AM	2 B
+baseline-install-seconds.txt	Oct 14, 2026, 12:39:38 AM	2 B
+baseline-parallel-c-compile-seconds.txt	Oct 14, 2026, 12:39:38 AM	2 B
+baseline-parallel-c-regression-create-seconds.txt	Oct 14, 2026, 12:39:38 AM	4 B
+baseline-regression-build.log	Oct 14, 2026, 12:39:38 AM	1.18 MiB
+baseline-regression-build.log.exit	Oct 14, 2026, 12:39:38 AM	2 B
+baseline-regression-build-seconds.txt	Oct 14, 2026, 12:39:38 AM	2 B
+baseline-unit-build.log	Oct 14, 2026, 12:39:38 AM	5.70 MiB
+baseline-unit-build.log.exit	Oct 14, 2026, 12:39:38 AM	2 B
+baseline-unit-build-seconds.txt	Oct 14, 2026, 12:39:38 AM	4 B
+baseline-unit-results.txt	Oct 14, 2026, 12:39:38 AM	6.36 KiB
+baseline-unit-test.log	Oct 14, 2026, 12:39:38 AM	431.99 KiB
+baseline-unit-test.log.exit	Oct 14, 2026, 12:39:38 AM	2 B
+baseline-unit-test-seconds.txt	Oct 14, 2026, 12:39:38 AM	3 B
+candidate-c-compile.log	Oct 14, 2026, 12:44:22 AM	35.95 KiB
+candidate-c-compile.log.exit	Oct 14, 2026, 12:44:22 AM	2 B
+candidate-c-compile-seconds.txt	Oct 14, 2026, 12:44:22 AM	3 B
+candidate-c-regression-check-seconds.txt	Oct 14, 2026, 1:07:04 AM	5 B
+candidate-install.log	Oct 14, 2026, 12:43:17 AM	31.35 KiB
+candidate-install.log.exit	Oct 14, 2026, 12:43:17 AM	2 B
+candidate-install-seconds.txt	Oct 14, 2026, 12:43:17 AM	2 B
+candidate-parallel-c-compile-seconds.txt	Oct 14, 2026, 1:07:12 AM	2 B
+candidate-parallel-c-regression-check-seconds.txt	Oct 14, 2026, 1:11:35 AM	4 B
+candidate-regression-build.log	Oct 14, 2026, 12:43:10 AM	1.11 MiB
+candidate-regression-build.log.exit	Oct 14, 2026, 12:43:10 AM	2 B
+candidate-regression-build-seconds.txt	Oct 14, 2026, 12:43:10 AM	2 B
+candidate-unit-build.log	Oct 14, 2026, 12:42:09 AM	5.54 MiB
+candidate-unit-build.log.exit	Oct 14, 2026, 12:42:09 AM	2 B
+candidate-unit-build-seconds.txt	Oct 14, 2026, 12:42:09 AM	4 B
+candidate-unit-results.txt	Oct 14, 2026, 12:42:58 AM	6.36 KiB
+candidate-unit-test.log	Oct 14, 2026, 12:42:58 AM	432.30 KiB
+candidate-unit-test.log.exit	Oct 14, 2026, 12:42:58 AM	2 B
+candidate-unit-test-seconds.txt	Oct 14, 2026, 12:42:58 AM	3 B
+ci-baseline-cache.txt	Oct 14, 2026, 12:39:38 AM	184 B
+ci-baseline-commit.txt	Oct 14, 2026, 12:43:19 AM	41 B
+ci-baseline-config.mak	Oct 14, 2026, 1:11:43 AM	4.12 KiB
+ci-baseline-preflight.txt	Oct 14, 2026, 12:39:24 AM	201 B
+ci-candidate-commit.txt	Oct 14, 2026, 12:39:21 AM	41 B
+ci-candidate-config.mak	Oct 14, 2026, 1:11:43 AM	3.85 KiB
+ci-diagnostic-summary.json	Oct 14, 2026, 1:12:18 AM	62.10 KiB
+ci-parallel-regression-summary.txt	Oct 14, 2026, 1:11:35 AM	244 B
+ci-pipeline-source.txt	Oct 14, 2026, 1:16:18 AM	126 B
+ci-regression-summary.txt	Oct 14, 2026, 1:07:05 AM	334 B
+ci-report.md	Oct 14, 2026, 1:12:18 AM	147.73 KiB
+ci-report.md.json	Oct 14, 2026, 1:12:18 AM	149.05 KiB
+ci-report-delivery.json	Oct 14, 2026, 1:12:23 AM	352 B
+ci-reporting-commit.txt	Oct 14, 2026, 1:12:06 AM	41 B
+ci-report-warnings.md	Oct 14, 2026, 1:12:18 AM	113.67 KiB
+ci-run-path.txt	Oct 14, 2026, 12:39:26 AM	73 B
+ci-selection.txt	Oct 14, 2026, 12:39:24 AM	253 B
+ci-stage-history.txt	Oct 14, 2026, 1:12:06 AM	462 B
+ci-stage-timings.json	Oct 14, 2026, 1:12:06 AM	1.24 KiB
+ci-timing-summary.txt	Oct 14, 2026, 1:11:42 AM	934 B
+ci-trusted-checker-commit.txt	Oct 14, 2026, 12:43:21 AM	41 B
+ci-trusted-ci-commit.txt	Oct 14, 2026, 1:16:18 AM	41 B
+(all files in zip)
+
+---
+
+Several of the files in the artifacts are only digits of bytes. Please combine the ones that only contain a few numbers into some readable format that is nice to look at, particularly for statistics. .md is a good file type
+
+
+ci-dependencies
+ci-numerical
+gkylsoft/gkeyll-results
+baseline-c-compile.log	Oct 14, 2026, 12:39:38 AM	35.81 KiB
+baseline-c-compile.log.exit	Oct 14, 2026, 12:39:38 AM	2 B
+baseline-c-compile-seconds.txt	Oct 14, 2026, 12:39:38 AM	3 B
+baseline-c-regression-create.log	Oct 14, 2026, 12:39:38 AM	65.42 KiB
+baseline-c-regression-create.log.exit	Oct 14, 2026, 12:39:38 AM	2 B
+baseline-c-regression-create-seconds.txt	Oct 14, 2026, 12:39:38 AM	5 B
+baseline-install.log	Oct 14, 2026, 12:39:38 AM	28.91 KiB
+baseline-install.log.exit	Oct 14, 2026, 12:39:38 AM	2 B
+baseline-install-seconds.txt	Oct 14, 2026, 12:39:38 AM	2 B
+baseline-parallel-c-compile-seconds.txt	Oct 14, 2026, 12:39:38 AM	2 B
+baseline-parallel-c-regression-create-seconds.txt	Oct 14, 2026, 12:39:38 AM	4 B
+baseline-regression-build.log	Oct 14, 2026, 12:39:38 AM	1.18 MiB
+baseline-regression-build.log.exit	Oct 14, 2026, 12:39:38 AM	2 B
+baseline-regression-build-seconds.txt	Oct 14, 2026, 12:39:38 AM	2 B
+baseline-unit-build.log	Oct 14, 2026, 12:39:38 AM	5.70 MiB
+baseline-unit-build.log.exit	Oct 14, 2026, 12:39:38 AM	2 B
+baseline-unit-build-seconds.txt	Oct 14, 2026, 12:39:38 AM	4 B
+baseline-unit-results.txt	Oct 14, 2026, 12:39:38 AM	6.36 KiB
+baseline-unit-test.log	Oct 14, 2026, 12:39:38 AM	431.99 KiB
+baseline-unit-test.log.exit	Oct 14, 2026, 12:39:38 AM	2 B
+baseline-unit-test-seconds.txt	Oct 14, 2026, 12:39:38 AM	3 B
+candidate-c-compile.log	Oct 14, 2026, 12:44:22 AM	35.95 KiB
+candidate-c-compile.log.exit	Oct 14, 2026, 12:44:22 AM	2 B
+candidate-c-compile-seconds.txt	Oct 14, 2026, 12:44:22 AM	3 B
+candidate-c-regression-check-seconds.txt	Oct 14, 2026, 1:07:04 AM	5 B
+candidate-install.log	Oct 14, 2026, 12:43:17 AM	31.35 KiB
+candidate-install.log.exit	Oct 14, 2026, 12:43:17 AM	2 B
+candidate-install-seconds.txt	Oct 14, 2026, 12:43:17 AM	2 B
+candidate-parallel-c-compile-seconds.txt	Oct 14, 2026, 1:07:12 AM	2 B
+candidate-parallel-c-regression-check-seconds.txt	Oct 14, 2026, 1:11:35 AM	4 B
+candidate-regression-build.log	Oct 14, 2026, 12:43:10 AM	1.11 MiB
+candidate-regression-build.log.exit	Oct 14, 2026, 12:43:10 AM	2 B
+candidate-regression-build-seconds.txt	Oct 14, 2026, 12:43:10 AM	2 B
+candidate-unit-build.log	Oct 14, 2026, 12:42:09 AM	5.54 MiB
+candidate-unit-build.log.exit	Oct 14, 2026, 12:42:09 AM	2 B
+candidate-unit-build-seconds.txt	Oct 14, 2026, 12:42:09 AM	4 B
+candidate-unit-results.txt	Oct 14, 2026, 12:42:58 AM	6.36 KiB
+candidate-unit-test.log	Oct 14, 2026, 12:42:58 AM	432.30 KiB
+candidate-unit-test.log.exit	Oct 14, 2026, 12:42:58 AM	2 B
+candidate-unit-test-seconds.txt	Oct 14, 2026, 12:42:58 AM	3 B
+ci-baseline-cache.txt	Oct 14, 2026, 12:39:38 AM	184 B
+ci-baseline-commit.txt	Oct 14, 2026, 12:43:19 AM	41 B
+ci-baseline-config.mak	Oct 14, 2026, 1:11:43 AM	4.12 KiB
+ci-baseline-preflight.txt	Oct 14, 2026, 12:39:24 AM	201 B
+ci-candidate-commit.txt	Oct 14, 2026, 12:39:21 AM	41 B
+ci-candidate-config.mak	Oct 14, 2026, 1:11:43 AM	3.85 KiB
+ci-diagnostic-summary.json	Oct 14, 2026, 1:12:18 AM	62.10 KiB
+ci-parallel-regression-summary.txt	Oct 14, 2026, 1:11:35 AM	244 B
+ci-pipeline-source.txt	Oct 14, 2026, 1:16:18 AM	126 B
+ci-regression-summary.txt	Oct 14, 2026, 1:07:05 AM	334 B
+ci-report.md	Oct 14, 2026, 1:12:18 AM	147.73 KiB
+ci-report.md.json	Oct 14, 2026, 1:12:18 AM	149.05 KiB
+ci-report-delivery.json	Oct 14, 2026, 1:12:23 AM	352 B
+ci-reporting-commit.txt	Oct 14, 2026, 1:12:06 AM	41 B
+ci-report-warnings.md	Oct 14, 2026, 1:12:18 AM	113.67 KiB
+ci-run-path.txt	Oct 14, 2026, 12:39:26 AM	73 B
+ci-selection.txt	Oct 14, 2026, 12:39:24 AM	253 B
+ci-stage-history.txt	Oct 14, 2026, 1:12:06 AM	462 B
+ci-stage-timings.json	Oct 14, 2026, 1:12:06 AM	1.24 KiB
+ci-timing-summary.txt	Oct 14, 2026, 1:11:42 AM	934 B
+ci-trusted-checker-commit.txt	Oct 14, 2026, 12:43:21 AM	41 B
+ci-trusted-ci-commit.txt	Oct 14, 2026, 1:16:18 AM	41 B
+(all files in zip)

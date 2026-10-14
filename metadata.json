@@ -1,0 +1,34 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M4W2A1NV0X9HAERRHEQ3WJA5",
+  "strategy": "manual-commit",
+  "branch": "jenkins-github-more-reporting",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "ci/jenkins/baseline_cache.sh",
+    "ci/jenkins/github_report.py",
+    "ci/jenkins/jenkins_reporting.groovy",
+    "ci/jenkins/jenkinsfile.perlmutter_gpu",
+    "ci/jenkins/jenkinsfile.personal",
+    "ci/jenkins/jenkinsfile.stellar_cpu",
+    "ci/jenkins/tests/test_github_report.py",
+    "ci/jenkins/tests/test_jenkins_reporting.groovy"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 40255,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 309504,
+    "output_tokens": 3571,
+    "api_call_count": 11,
+    "subagent_tokens_complete": true
+  }
+}
