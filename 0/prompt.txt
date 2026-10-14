@@ -1,0 +1,5 @@
+Resolve the conflicts between main and this branch. Main modified the loss cone mechanisms, while this branch added a low pass filter using the damping modules
+
+---
+
+Resolve the conflicts between main and this branch. Main modified the loss cone mechanisms, while this branch added a low pass filter using the damping modules
