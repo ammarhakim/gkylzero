@@ -1,0 +1,87 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M4XMKRZPPY26RJJS1GT94WY8",
+  "session_id": "01a13b44-5887-7a42-80f3-19941beee7fe",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-14T16:41:01.716401152Z",
+  "branch": "omegaH-diag",
+  "checkpoints_count": 4,
+  "save_step_count": 2,
+  "files_touched": [
+    "gyrokinetic/apps/gk_species.c",
+    "gyrokinetic/apps/gk_species_frequencies.c",
+    "gyrokinetic/apps/gkyl_gyrokinetic.h",
+    "gyrokinetic/apps/gkyl_gyrokinetic_multib.h",
+    "gyrokinetic/apps/gkyl_gyrokinetic_priv.h",
+    "gyrokinetic/apps/gyrokinetic.c",
+    "gyrokinetic/apps/gyrokinetic_lw.c",
+    "gyrokinetic/apps/gyrokinetic_multib.c",
+    "gyrokinetic/creg/check_gk_frequencies.py",
+    "gyrokinetic/creg/rt_gk_sheath_1x2v_p1.c"
+  ],
+  "agent": "Codex",
+  "model": "gpt-6-astra",
+  "turn_id": "9afb5f602682",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 38353,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 553472,
+    "output_tokens": 3964,
+    "api_call_count": 15,
+    "subagent_tokens_complete": true
+  },
+  "session_metrics": {
+    "turn_count": 4
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-14T16:41:01.698828701Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 2,
+    "human_removed": 55,
+    "total_committed": 17,
+    "total_lines_changed": 57,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 437,
+      "user_lines_removed": 57,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "gyrokinetic/apps/gk_species.c": 23,
+        "gyrokinetic/apps/gk_species_frequencies.c": 258,
+        "gyrokinetic/apps/gkyl_gyrokinetic.h": 6,
+        "gyrokinetic/apps/gkyl_gyrokinetic_multib.h": 6,
+        "gyrokinetic/apps/gkyl_gyrokinetic_priv.h": 20,
+        "gyrokinetic/apps/gyrokinetic.c": 2,
+        "gyrokinetic/apps/gyrokinetic_lw.c": 1,
+        "gyrokinetic/apps/gyrokinetic_multib.c": 1,
+        "gyrokinetic/creg/check_gk_frequencies.py": 110,
+        "gyrokinetic/creg/rt_gk_sheath_1x2v_p1.c": 1,
+        "pr-merge.md": 9
+      },
+      "user_removed_per_file": {
+        "gyrokinetic/apps/gk_species.c": 48,
+        "gyrokinetic/apps/gkyl_gyrokinetic.h": 1,
+        "gyrokinetic/apps/gkyl_gyrokinetic_multib.h": 1,
+        "gyrokinetic/apps/gkyl_gyrokinetic_priv.h": 3,
+        "gyrokinetic/apps/gyrokinetic.c": 2,
+        "gyrokinetic/apps/gyrokinetic_lw.c": 1,
+        "gyrokinetic/apps/gyrokinetic_multib.c": 1
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 454,
+      "agent_lines_removed": 57
+    }
+  ]
+}

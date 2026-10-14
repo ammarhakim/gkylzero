@@ -1,0 +1,43 @@
+The function gk_species_frequencies_init looks like it's doing some strange things. Ensure that this function follows the style and consistency of the rest of the codebase.
+
+Particularly, this looks strange.
+
+  struct gkyl_array *cmag = gkyl_array_new(GKYL_DOUBLE, nb, app->local_ext.volume);
+  struct gkyl_array *inv_jb = gkyl_array_new(GKYL_DOUBLE, nb, app->local_ext.volume);
+  struct gkyl_array *parfac = gkyl_array_new(GKYL_DOUBLE, nb, app->local_ext.volume);
+  gkyl_array_copy(cmag, app->gk_geom->geo_int.cmag);
+  gkyl_array_copy(inv_jb, app->gk_geom->geo_int.jacobtot_inv);
+  gkyl_dg_mul_op_range(&app->basis, 0, parfac, 0, cmag, 0, inv_jb, &app->local);
+  struct gkyl_array *bmag = gkyl_array_new(GKYL_DOUBLE, nb, app->local_ext.volume);
+  struct gkyl_array *bi = gkyl_array_new(GKYL_DOUBLE, 3 * nb, app->local_ext.volume);
+  struct gkyl_array *curl = gkyl_array_new(GKYL_DOUBLE, 3 * nb, app->local_ext.volume);
+  gkyl_array_copy(bmag, app->gk_geom->geo_int.bmag);
+  gkyl_array_copy(bi, app->gk_geom->geo_int.b_i);
+  gkyl_array_copy(curl, app->gk_geom->geo_int.dualcurlbhatoverB);
+
+---
+
+The function gk_species_frequencies_init looks like it's doing some strange things. Ensure that this function follows the style and consistency of the rest of the codebase.
+
+Particularly, this looks strange.
+
+  struct gkyl_array *cmag = gkyl_array_new(GKYL_DOUBLE, nb, app->local_ext.volume);
+  struct gkyl_array *inv_jb = gkyl_array_new(GKYL_DOUBLE, nb, app->local_ext.volume);
+  struct gkyl_array *parfac = gkyl_array_new(GKYL_DOUBLE, nb, app->local_ext.volume);
+  gkyl_array_copy(cmag, app->gk_geom->geo_int.cmag);
+  gkyl_array_copy(inv_jb, app->gk_geom->geo_int.jacobtot_inv);
+  gkyl_dg_mul_op_range(&app->basis, 0, parfac, 0, cmag, 0, inv_jb, &app->local);
+  struct gkyl_array *bmag = gkyl_array_new(GKYL_DOUBLE, nb, app->local_ext.volume);
+  struct gkyl_array *bi = gkyl_array_new(GKYL_DOUBLE, 3 * nb, app->local_ext.volume);
+  struct gkyl_array *curl = gkyl_array_new(GKYL_DOUBLE, 3 * nb, app->local_ext.volume);
+  gkyl_array_copy(bmag, app->gk_geom->geo_int.bmag);
+  gkyl_array_copy(bi, app->gk_geom->geo_int.b_i);
+  gkyl_array_copy(curl, app->gk_geom->geo_int.dualcurlbhatoverB);
+
+---
+
+What is the while loop in gk_species_frequencies_init doing?
+
+---
+
+What is the while loop in gk_species_frequencies_init doing?
