@@ -2480,6 +2480,16 @@ jacobgeo_ratio_diag_coeff_is_set(double val)
   return abs_bits < huge.u;
 }
 
+// Host copy of an array (release the result). The diagnostics below read
+// geometry arrays element by element, and in GPU runs those live on the device.
+static struct gkyl_array *
+pointwise_host_copy(const struct gkyl_array *src)
+{
+  struct gkyl_array *dest = gkyl_array_new(src->type, src->ncomp, src->size);
+  gkyl_array_copy(dest, src);
+  return dest;
+}
+
 static void
 gyrokinetic_multib_app_write_jacobgeo_ratio_diag(gkyl_gyrokinetic_multib_app *app)
 {
@@ -2506,6 +2516,8 @@ gyrokinetic_multib_app_write_jacobgeo_ratio_diag(gkyl_gyrokinetic_multib_app *ap
     struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
     int bid = app->local_blocks[b];
     for (int d = 0; d < cdim; ++d) {
+      struct gkyl_array *jacobgeo_ratio =
+        pointwise_host_copy(sbapp->gk_geom->geo_surf[d].jacobgeo_ratio);
       for (int e = 0; e < 2; ++e) {
         const char *edge = e == 0 ? "lower_ghost" : "upper_ghost";
         const struct gkyl_range *range = e == 0 ? &sbapp->local_lower_ghost[d] :
@@ -2519,7 +2531,7 @@ gyrokinetic_multib_app_write_jacobgeo_ratio_diag(gkyl_gyrokinetic_multib_app *ap
         gkyl_range_iter_init(&iter, range);
         while (gkyl_range_iter_next(&iter)) {
           long loc = gkyl_range_idx(&sbapp->local_ext, iter.idx);
-          const double *val = gkyl_array_cfetch(sbapp->gk_geom->geo_surf[d].jacobgeo_ratio, loc);
+          const double *val = gkyl_array_cfetch(jacobgeo_ratio, loc);
           double raw = val[0];
           if (!jacobgeo_ratio_diag_coeff_is_set(raw)) {
             continue;
@@ -2541,6 +2553,7 @@ gyrokinetic_multib_app_write_jacobgeo_ratio_diag(gkyl_gyrokinetic_multib_app *ap
           );
         }
       }
+      gkyl_array_release(jacobgeo_ratio);
     }
   }
 
@@ -2574,14 +2587,15 @@ gyrokinetic_multib_app_write_flux_weight_rescale_diag(gkyl_gyrokinetic_multib_ap
     int bid = app->local_blocks[b];
     for (int d = 0; d < cdim; ++d) {
       const struct gk_geom_surf *geo_surf = &sbapp->gk_geom->geo_surf[d];
+      struct gkyl_array *jacobgeo_ratio = pointwise_host_copy(geo_surf->jacobgeo_ratio);
       struct {
         const char *name;
-        const struct gkyl_array *array;
+        struct gkyl_array *array;
       } quantities[] = {
-        {"jacobtot_inv", geo_surf->jacobtot_inv},
-        {"B3", geo_surf->B3},
-        {"lenr", geo_surf->lenr},
-        {"cmag", geo_surf->cmag}
+        {"jacobtot_inv", pointwise_host_copy(geo_surf->jacobtot_inv)},
+        {"B3", pointwise_host_copy(geo_surf->B3)},
+        {"lenr", pointwise_host_copy(geo_surf->lenr)},
+        {"cmag", pointwise_host_copy(geo_surf->cmag)}
       };
 
       for (int e = 0; e < 2; ++e) {
@@ -2590,7 +2604,7 @@ gyrokinetic_multib_app_write_flux_weight_rescale_diag(gkyl_gyrokinetic_multib_ap
                                                   &sbapp->local_upper_ghost[d];
 
         for (int q = 0; q < sizeof(quantities) / sizeof(quantities[0]); ++q) {
-          int surf_ncomp = geo_surf->jacobgeo_ratio->ncomp;
+          int surf_ncomp = jacobgeo_ratio->ncomp;
           int side_offset =
             quantities[q].array->ncomp == 2 * surf_ncomp ? (e == 0 ? 0 : surf_ncomp) : 0;
           double raw_min = DBL_MAX, raw_max = -DBL_MAX, raw_sum = 0.0;
@@ -2607,7 +2621,7 @@ gyrokinetic_multib_app_write_flux_weight_rescale_diag(gkyl_gyrokinetic_multib_ap
             long skin_loc = gkyl_range_idx(&sbapp->local_ext, skin_idx);
             long ghost_loc = gkyl_range_idx(&sbapp->local_ext, iter.idx);
             const double *raw_val = gkyl_array_cfetch(quantities[q].array, skin_loc);
-            const double *ratio_val = gkyl_array_cfetch(geo_surf->jacobgeo_ratio, ghost_loc);
+            const double *ratio_val = gkyl_array_cfetch(jacobgeo_ratio, ghost_loc);
             double raw = raw_val[side_offset];
             double ratio_raw = ratio_val[0];
             if (!jacobgeo_ratio_diag_coeff_is_set(raw) ||
@@ -2639,6 +2653,10 @@ gyrokinetic_multib_app_write_flux_weight_rescale_diag(gkyl_gyrokinetic_multib_ap
           }
         }
       }
+      for (int q = 0; q < sizeof(quantities) / sizeof(quantities[0]); ++q) {
+        gkyl_array_release(quantities[q].array);
+      }
+      gkyl_array_release(jacobgeo_ratio);
     }
   }
 
@@ -2672,15 +2690,16 @@ gyrokinetic_multib_app_write_flux_weight_modal_product_diag(gkyl_gyrokinetic_mul
     int bid = app->local_blocks[b];
     for (int d = 0; d < cdim; ++d) {
       const struct gk_geom_surf *geo_surf = &sbapp->gk_geom->geo_surf[d];
-      int surf_ncomp = geo_surf->jacobgeo_ratio->ncomp;
+      struct gkyl_array *jacobgeo_ratio = pointwise_host_copy(geo_surf->jacobgeo_ratio);
+      int surf_ncomp = jacobgeo_ratio->ncomp;
       struct {
         const char *name;
-        const struct gkyl_array *array;
+        struct gkyl_array *array;
       } quantities[] = {
-        {"jacobtot_inv", geo_surf->jacobtot_inv},
-        {"B3", geo_surf->B3},
-        {"lenr", geo_surf->lenr},
-        {"cmag", geo_surf->cmag}
+        {"jacobtot_inv", pointwise_host_copy(geo_surf->jacobtot_inv)},
+        {"B3", pointwise_host_copy(geo_surf->B3)},
+        {"lenr", pointwise_host_copy(geo_surf->lenr)},
+        {"cmag", pointwise_host_copy(geo_surf->cmag)}
       };
 
       for (int e = 0; e < 2; ++e) {
@@ -2691,8 +2710,8 @@ gyrokinetic_multib_app_write_flux_weight_modal_product_diag(gkyl_gyrokinetic_mul
         for (int q = 0; q < sizeof(quantities) / sizeof(quantities[0]); ++q) {
           int side_offset =
             quantities[q].array->ncomp == 2 * surf_ncomp ? (e == 0 ? 0 : surf_ncomp) : 0;
-          struct gkyl_array *raw_side = mkarr(app->use_gpu, surf_ncomp, quantities[q].array->size);
-          struct gkyl_array *product = mkarr(app->use_gpu, surf_ncomp, quantities[q].array->size);
+          struct gkyl_array *raw_side = mkarr(false, surf_ncomp, quantities[q].array->size);
+          struct gkyl_array *product = mkarr(false, surf_ncomp, quantities[q].array->size);
           gkyl_array_clear(raw_side, 0.0);
           gkyl_array_clear(product, 0.0);
 
@@ -2712,7 +2731,7 @@ gyrokinetic_multib_app_write_flux_weight_modal_product_diag(gkyl_gyrokinetic_mul
           }
 
           gkyl_dg_mul_op_range(
-            &sbapp->gk_geom->surf_basis, 0, product, 0, raw_side, 0, geo_surf->jacobgeo_ratio, range
+            &sbapp->gk_geom->surf_basis, 0, product, 0, raw_side, 0, jacobgeo_ratio, range
           );
 
           long cell_ord = 0;
@@ -2720,7 +2739,7 @@ gyrokinetic_multib_app_write_flux_weight_modal_product_diag(gkyl_gyrokinetic_mul
           while (gkyl_range_iter_next(&iter)) {
             long ghost_loc = gkyl_range_idx(&sbapp->local_ext, iter.idx);
             const double *raw_side_val = gkyl_array_cfetch(raw_side, ghost_loc);
-            const double *ratio_val = gkyl_array_cfetch(geo_surf->jacobgeo_ratio, ghost_loc);
+            const double *ratio_val = gkyl_array_cfetch(jacobgeo_ratio, ghost_loc);
             const double *product_val = gkyl_array_cfetch(product, ghost_loc);
             for (int k = 0; k < surf_ncomp; ++k) {
               if (!jacobgeo_ratio_diag_coeff_is_set(raw_side_val[k]) ||
@@ -2741,6 +2760,10 @@ gyrokinetic_multib_app_write_flux_weight_modal_product_diag(gkyl_gyrokinetic_mul
           gkyl_array_release(product);
         }
       }
+      for (int q = 0; q < sizeof(quantities) / sizeof(quantities[0]); ++q) {
+        gkyl_array_release(quantities[q].array);
+      }
+      gkyl_array_release(jacobgeo_ratio);
     }
   }
 
@@ -2875,14 +2898,6 @@ pointwise_int_pow(int base, int exponent)
     result *= base;
   }
   return result;
-}
-
-static struct gkyl_array *
-pointwise_host_copy(const struct gkyl_array *src)
-{
-  struct gkyl_array *dest = gkyl_array_new(src->type, src->ncomp, src->size);
-  gkyl_array_copy(dest, src);
-  return dest;
 }
 
 // Evaluate the same equilibrium representation selected by tok_geo.c.  In
@@ -5268,7 +5283,8 @@ gyrokinetic_multib_app_write_interface_partner_diag(gkyl_gyrokinetic_multib_app 
       for (int b = 0; b < app->num_local_blocks; ++b) {
         struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
         int bid = app->local_blocks[b];
-        int ncomp = side[b]->ncomp;
+        struct gkyl_array *side_ho = pointwise_host_copy(side[b]);
+        int ncomp = side_ho->ncomp;
 
         for (int e = 0; e < 2; ++e) {
           const struct gkyl_target_edge *partner = &app->block_topo->conn[bid].connections[d][e];
@@ -5295,8 +5311,8 @@ gyrokinetic_multib_app_write_interface_partner_diag(gkyl_gyrokinetic_multib_app 
 
             long skin_loc = gkyl_range_idx(&sbapp->local_ext, skin_idx);
             long ghost_loc = gkyl_range_idx(&sbapp->local_ext, iter.idx);
-            const double *local_val = gkyl_array_cfetch(side[b], skin_loc);
-            const double *partner_val = gkyl_array_cfetch(side[b], ghost_loc);
+            const double *local_val = gkyl_array_cfetch(side_ho, skin_loc);
+            const double *partner_val = gkyl_array_cfetch(side_ho, ghost_loc);
 
             for (int k = 0; k < ncomp; ++k) {
               double lv = local_val[k], pv = partner_val[k];
@@ -5336,6 +5352,7 @@ gyrokinetic_multib_app_write_interface_partner_diag(gkyl_gyrokinetic_multib_app 
             );
           }
         }
+        gkyl_array_release(side_ho);
       }
 
       for (int b = 0; b < app->num_local_blocks; ++b) {

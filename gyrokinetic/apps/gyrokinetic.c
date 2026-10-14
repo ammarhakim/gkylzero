@@ -1412,7 +1412,11 @@ gyrokinetic_app_geometry_write_surf_nodal(
   struct gkyl_msgpack_data *mt =
     gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
-  gkyl_grid_sub_array_write(&ngrid_surf, &app->gk_geom->nrange_surf[dir], mt, arr, fileNm);
+  // In GPU runs the geometry arrays live on the device; the writer reads host memory.
+  struct gkyl_array *arr_ho = mkarr(false, arr->ncomp, arr->size);
+  gkyl_array_copy(arr_ho, arr);
+  gkyl_grid_sub_array_write(&ngrid_surf, &app->gk_geom->nrange_surf[dir], mt, arr_ho, fileNm);
+  gkyl_array_release(arr_ho);
   gkyl_msgpack_data_release(mt);
 }
 
@@ -1788,7 +1792,8 @@ gkyl_gyrokinetic_app_write_geometry(
     // component file above is thirteen times larger than they are, so it is
     // pruned from large suites. This file is small enough to keep always.
     {
-      struct gkyl_array *pos = mkarr(false, 3, app->gk_geom->geo_surf[dir].mc2p_nodal_fd->size);
+      struct gkyl_array *pos =
+        mkarr(app->use_gpu, 3, app->gk_geom->geo_surf[dir].mc2p_nodal_fd->size);
       gkyl_array_set_offset(pos, 1.0, app->gk_geom->geo_surf[dir].mc2p_nodal_fd, 0);
       gyrokinetic_app_geometry_write_surf_nodal(
         app, pos, "nodes", dir,
