@@ -1,0 +1,5 @@
+Resolve the merge conflicts that occured during the merge of main into this branch. They both modified the non-uniform grid. Take the most correct, most robust fixes to make sure the non-uniform grids are generated correctly
+
+---
+
+Resolve the merge conflicts that occured during the merge of main into this branch. They both modified the non-uniform grid. Take the most correct, most robust fixes to make sure the non-uniform grids are generated correctly
