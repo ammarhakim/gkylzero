@@ -1,0 +1,13 @@
+'/home/maxwell-rosen/Downloads/ci-report-warnings.md' Analyze the most common warnings. Are they fixable simply? What warnings should we ignore. For the github reporting, ignore all warnings from inside all ker/ directories from the kernels
+
+---
+
+'/home/maxwell-rosen/Downloads/ci-report-warnings.md' Analyze the most common warnings. Are they fixable simply? What warnings should we ignore. For the github reporting, ignore all warnings from inside all ker/ directories from the kernels
+
+---
+
+Supress the NaN/infinity with fast-math warning from the post to github
+
+---
+
+Supress the NaN/infinity with fast-math warning from the post to github
