@@ -7,11 +7,10 @@ def shell = new GroovyShell()
 ['personal', 'team_workstation', 'stellar_cpu', 'perlmutter_gpu'].each {
     shell.parse(new File(root, "jenkinsfile.${it}"))
 }
-def helpers = ['personal', 'stellar_cpu', 'perlmutter_gpu'].collect {
-    def source = new File(root, "jenkinsfile.${it}").text
-    source.substring(source.indexOf('def usePrebuiltConfig('), source.indexOf('\n}\n', source.indexOf('def usePrebuiltConfig(')) + 3)
-}
-assert helpers.toSet().size() == 1 : 'Keep trusted helper copies consistent'
+def source = new File(root, 'jenkins_pipeline.groovy').text
+shell.parse(source)
+def helperStart = source.indexOf('def usePrebuiltConfig(')
+def helpers = [source.substring(helperStart, source.indexOf('\n}\n', helperStart) + 3)]
 def tmp = Files.createTempDirectory('gkeyll-prebuilt-test').toFile()
 try {
     def original = new File(tmp, 'installed-config.mak')

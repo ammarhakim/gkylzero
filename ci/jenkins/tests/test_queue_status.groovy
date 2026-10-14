@@ -497,7 +497,7 @@ node('queue-test-runner') {
         git(['config', 'user.email', 'fixture@example.test'])
         def bootstrapSource = new File(source, 'jenkinsfile.personal').text.replace(
             'https://github.com/gkeyllorg/gkeyll.git', 'file://' + repository.absolutePath)
-        ['jenkins_reporting.groovy', 'github_report.py', 'baseline_cache.sh', 'prebuilt_config.py'].each { name ->
+        ['jenkins_reporting.groovy', 'jenkins_pipeline.groovy', 'github_report.py', 'baseline_cache.sh', 'prebuilt_config.py'].each { name ->
             new File(pipeline.parentFile, name).text = new File(source, name).text
         }
         // Use the real helper loader and publisher without a candidate SHA, so

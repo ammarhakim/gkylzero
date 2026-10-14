@@ -101,3 +101,24 @@ downloadable, then removes its temporary workspace.
 Runs and Jenkins artifacts have no automatic retention limit by default.
 See [storage and caching](README.storage.md) for layout, cache invalidation,
 concurrency, and cleanup.
+
+## Shared implementation
+
+The machine entrypoints separate platform policy from reusable operations:
+
+- `jenkins-client-common.sh` provides authentication, job paths, queue lookup,
+  status and console helpers for all four shell clients.
+- `jenkins-cluster.sh` provides the tmux controller lifecycle and cluster command
+  dispatch. `jenkins-perlmutter_gpu.sh` and `jenkins-stellar_cpu.sh` supply machine
+  defaults. Keep these files together with `jenkins-client-artifacts.sh` when
+  installing clients; the wrapper path is used when tmux restarts the controller.
+- `jenkins_pipeline.groovy` provides dependency setup, cluster checkout,
+  regression compilation and Slurm cleanup. The Jenkinsfiles retain machine
+  settings, resource requests and stage orchestration. The workstation continues
+  to use the personal Pipeline through its trusted bootstrap.
+
+Pipeline helpers are fetched alongside reporting from the same trusted revision,
+loaded before candidate checkout, and retained outside that checkout. When using
+these Jenkinsfiles, a pinned `CI_TRUSTED_CI_COMMIT` or `GKEYLL_CI_TRUSTED_REF` must
+include `jenkins_pipeline.groovy`. Deploy the Jenkinsfiles and shared helper
+from the same revision; a missing helper fails during trusted setup.

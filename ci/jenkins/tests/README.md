@@ -107,3 +107,19 @@ Set `GKEYLL` to the installed executable, `GKEYLL_CBC` to the built
 `python3 -m unittest ci.jenkins.tests.test_bgk_source_io`. When using build-tree
 executables, expose their shared libraries through `LD_LIBRARY_PATH`.
 
+
+## Shared clients and Pipeline helpers
+
+These fixtures exercise all four shell clients against a local HTTP server
+(with stubbed tmux/Java), including queue transitions, credential permissions,
+cleanup and help. They do not start Jenkins or submit real builds. Use Python
+3.8 or newer, including for `python3` invoked by the Groovy fixtures.
+
+```sh
+python3 -m unittest -v ci.jenkins.tests.test_shared_clients ci.jenkins.tests.test_personal_client
+java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/tests/test_pipeline_helpers.groovy
+```
+
+The shared Pipeline fixture checks checkout refspecs, explicit compilation
+budgets, Slurm cleanup and trusted helper loading. Run the prebuilt dependency
+and Stellar resource-request fixtures above when changing these helpers too.
