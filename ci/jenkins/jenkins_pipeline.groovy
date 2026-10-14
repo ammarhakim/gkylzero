@@ -1,5 +1,5 @@
-// Shared trusted Pipeline operations. Loaded alongside reporting from the same
-// trusted commit, never from a candidate checkout. Machine-specific resource
+// Shared trusted Pipeline operations. Loaded from the trusted implementation
+// revision, never from a candidate checkout. Machine-specific resource
 // budgets and stage orchestration stay in the entrypoint Jenkinsfiles.
 import groovy.transform.Field
 @Field def reporting

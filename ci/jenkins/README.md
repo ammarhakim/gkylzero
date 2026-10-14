@@ -117,8 +117,10 @@ The machine entrypoints separate platform policy from reusable operations:
   settings, resource requests and stage orchestration. The workstation continues
   to use the personal Pipeline through its trusted bootstrap.
 
-Pipeline helpers are fetched alongside reporting from the same trusted revision,
-loaded before candidate checkout, and retained outside that checkout. When using
-these Jenkinsfiles, a pinned `CI_TRUSTED_CI_COMMIT` or `GKEYLL_CI_TRUSTED_REF` must
-include `jenkins_pipeline.groovy`. Deploy the Jenkinsfiles and shared helper
-from the same revision; a missing helper fails during trusted setup.
+Pipeline helpers are loaded before candidate checkout and retained outside that
+checkout. Stellar and Perlmutter load `jenkins_pipeline.groovy` using the
+administrator-configured Jenkinsfile SCM (`checkout scm`), independently of the
+reporting pin. This lets an older `GKEYLL_CI_TRUSTED_REF` continue to supply
+reporting without requiring it to contain newly introduced Pipeline helpers.
+Personal and workstation jobs load helpers from their selected trusted CI
+implementation commit. Deploy the Jenkinsfiles and shared helper together.
