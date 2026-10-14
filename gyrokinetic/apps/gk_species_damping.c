@@ -103,6 +103,7 @@ gk_species_damping_write_rate_enabled(
     {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = tm},
     {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = frame}
   };
+
   int mpe_drate_len = sizeof(mpe_drate) / sizeof(mpe_drate[0]);
   // Package metadata.
   int io_meta_len[] = {gks->io_meta_basic_len, mpe_drate_len, app->gk_geom->io_meta_basic_len};
