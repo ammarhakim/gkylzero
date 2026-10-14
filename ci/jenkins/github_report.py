@@ -144,6 +144,19 @@ def regression_section(title, summary_file):
     if acked_tests:
         lines += ["", "Acknowledged diffs (new or updated versus the baseline): "
                   + ", ".join(code(t) for t in acked_tests)]
+    listed_passing = [entry.split("|", 2) for entry in values.get("c_regression_listed_passing", [])]
+    listed_passing = [row for row in listed_passing if len(row) == 3]
+    if listed_passing:
+        head += ", {} expected-diff entries with passing tests".format(len(listed_passing))
+        lines += ["", "**Listed in expected_regression_diffs.txt but passing:**",
+                  "These tests agree with the baseline in this run mode. Review these entries for removal; "
+                  "they may be broader than needed or describe a change already in the baseline. "
+                  "Check other modes and platforms before removing shared entries. "
+                  "Inherited entries are unchanged from the baseline. This notice does not fail CI.",
+                  "", "| Passing test | Entry origin | Expected-diff entry |", "| --- | --- | --- |"]
+        for name, origin, entry in listed_passing:
+            lines.append("| {} | {} | {} |".format(
+                *(code(cell).replace('|', r'\|') for cell in (name, origin, entry))))
     candidate_only_tests = values.get("c_regression_candidate_only_test", [])
     if candidate_only_tests:
         lines += ["", "Candidate-only tests (executed but not compared to a baseline): "

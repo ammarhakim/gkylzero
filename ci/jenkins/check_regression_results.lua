@@ -121,6 +121,24 @@ end
 
 local npass, ackedHits, candidateOnly, unacked = 0, {}, {}, {}
 local layerCounts = {}  -- layerCounts[layer] = { passed, acked, failed }
+local listedPassing = {}
+local runModes = { cpu_serial = true, cpu_parallel = true, gpu_serial = true, gpu_parallel = true }
+
+-- Include inherited entries in this advisory: they cannot excuse failures,
+-- but may still be worth removing when their test agrees with the baseline.
+local function recordListedPassing(layer, name, mode)
+   local base = name:match("([^/]+)$") or name
+   for sourceLine, entry in pairs(candidateAcknowledgments) do
+      local test, scope = entry:match("^(%S+)%s*(%S*)")
+      if (test == name or test == layer .. "/" .. base or test == base)
+         and (not runModes[scope] or scope == mode) then
+         table.insert(listedPassing, {
+            key = name, entry = sourceLine,
+            origin = baselineAcknowledgments[sourceLine] and "inherited" or "new or updated",
+         })
+      end
+   end
+end
 
 -- Names are stored layer-qualified ("moments/creg/rt_x"); accept the shorter
 -- spellings in the acknowledgment file too.
@@ -193,6 +211,7 @@ for _, layer in ipairs(LAYERS) do
             if status == 1 then
                npass = npass + 1
                layerCounts[layer].passed = layerCounts[layer].passed + 1
+               recordListedPassing(layer, key, mode)
             elseif BAD_STATUSES[status] then
                -- A new test has no baseline accepted output, which
                -- runregression records as a comparison failure. Ignore only
@@ -220,6 +239,11 @@ end
 print(string.format(
    "Regression results: %d passed, %d candidate-only, %d acknowledged diff(s), %d unacknowledged failure(s)",
    npass, #candidateOnly, #ackedHits, #unacked))
+
+table.sort(listedPassing, function(left, right)
+   if left.key == right.key then return left.entry < right.entry end
+   return left.key < right.key
+end)
 
 if summaryFile then
    local summary, message = io.open(summaryFile, "w")
@@ -250,12 +274,23 @@ if summaryFile then
    for _, key in ipairs(candidateOnly) do
       summary:write(string.format("c_regression_candidate_only_test=%s\n", key))
    end
+   for _, entry in ipairs(listedPassing) do
+      summary:write(string.format("c_regression_listed_passing=%s|%s|%s\n",
+         entry.key, entry.origin, entry.entry))
+   end
    summary:close()
 end
 
 if #ackedHits > 0 then
    print(string.format("Acknowledged (per %s):", tostring(ackFile)))
    for _, key in ipairs(ackedHits) do print("  " .. key) end
+end
+
+if #listedPassing > 0 then
+   print("Expected-diff entries whose tests passed (review for removal in this run mode):")
+   for _, entry in ipairs(listedPassing) do
+      print(string.format("  %s [%s]: %s", entry.key, entry.origin, entry.entry))
+   end
 end
 
 if #candidateOnly > 0 then

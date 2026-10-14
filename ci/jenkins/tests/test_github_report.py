@@ -52,6 +52,20 @@ class FailureReportTests(unittest.TestCase):
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         Path(path).write_text(text)
 
+    def test_expected_diff_entries_for_passing_tests(self):
+        self.write('summary.txt', 'c_regression_passed=2\n'
+                   'c_regression_listed_passing=moments/creg/rt_pass|inherited|rt_pass # old | reason\n'
+                   'c_regression_listed_passing=moments/creg/rt_pass|new or updated|rt_pass cpu_serial out.gkyl\n')
+        text = report.regression_section('Serial C regressions', 'summary.txt')
+        self.assertIn('2 expected-diff entries with passing tests', text)
+        self.assertIn('Listed in expected_regression_diffs.txt but passing', text)
+        self.assertIn('inherited', text)
+        self.assertIn('new or updated', text)
+        self.assertIn(r'old \| reason', text)
+        self.assertIn('This notice does not fail CI.', text)
+        self.write('summary.txt', 'c_regression_passed=2\n')
+        self.assertNotIn('but passing', report.regression_section('Serial', 'summary.txt'))
+
     def test_statistics_preserves_cached_timings_and_failed_command_status(self):
         self.write('ci-timing-summary.txt', 'baseline_install_seconds=0\n'
                    'cached_baseline_install_seconds=3661\ncandidate_install_seconds=61\n')

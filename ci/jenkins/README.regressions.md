@@ -11,6 +11,15 @@ the baseline file. Unchanged inherited entries are inert, so a later PR can
 safely remove stale lines. Updating an inherited line's reason explicitly
 acknowledges a new intentional change for that test.
 
+The GitHub report also lists expected-diff entries whose tests passed in the
+reported run mode, including unchanged entries inherited from the baseline.
+This advisory does not fail CI. Review these entries for removal: they may be
+too broad or describe changes already in the baseline. Check other modes and
+platforms before removing shared entries. Only passing tests are flagged;
+skipped, unrun, candidate-only, and failing tests do not establish agreement.
+File-scoped entries are shown when the entire test passes, not when only some
+of its files agree.
+
 Entries accept four forms, with an optional `# reason` comment:
 
 ```text

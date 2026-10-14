@@ -64,4 +64,22 @@ INSERT INTO RegressionData VALUES ('fixture', 'moments/creg/rt_candidate_only', 
 SQL
 run_case candidate_only '' '' 0 0 0 1
 
+sqlite3 "$results_dir/moments/regressiondb" <<'SQL'
+UPDATE RegressionMeta SET run_mode = 'cpu_serial';
+DELETE FROM RegressionData;
+INSERT INTO RegressionData VALUES ('fixture', 'moments/creg/rt_ack_delta', 1, '');
+INSERT INTO RegressionData VALUES ('fixture', 'moments/creg/rt_skip', -1, '');
+INSERT INTO RegressionData VALUES ('older', 'moments/creg/rt_old', 1, '');
+SQL
+entries=$'rt_ack_delta # inherited\nmoments/rt_ack_delta cpu_serial # active\nmoments/creg/rt_ack_delta out.gkyl # file\nrt_ack_delta cpu_serial out.gkyl # scoped file\nrt_ack_delta gpu_serial # other mode\nrt_ack_delta cpu_parallel out.gkyl # other file mode\nrt_skip\nrt_unrun\nrt_old'
+run_case passing "$entries" 'rt_ack_delta # inherited' 0 0 0 0
+test "$(grep -c '^c_regression_listed_passing=' "$work_dir/passing-summary.txt")" -eq 4
+grep -Fx 'c_regression_listed_passing=moments/creg/rt_ack_delta|inherited|rt_ack_delta # inherited' "$work_dir/passing-summary.txt"
+grep -Fx 'c_regression_listed_passing=moments/creg/rt_ack_delta|new or updated|moments/rt_ack_delta cpu_serial # active' "$work_dir/passing-summary.txt"
+
+# A failed comparison is not evidence that a listed test agrees.
+sqlite3 "$results_dir/moments/regressiondb" "UPDATE RegressionData SET status=0 WHERE guid='fixture' AND name='moments/creg/rt_ack_delta';"
+run_case failing "$entries" '' 0 1 0 0
+test "$(grep -c '^c_regression_listed_passing=' "$work_dir/failing-summary.txt")" -eq 0
+
 echo 'check_regression_results acknowledgment tests passed'
