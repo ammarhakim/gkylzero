@@ -1,0 +1,37 @@
+Regarding the work done in this branch, I've recieved this feedback. Please address this feedback, meaning implement the neccisary changes into the codebase.
+
+We need a more general design and implementation here. We need new infrastructure for calculating, storing and outputting relevant rates to a file so that we can later read the file and understand various rates existing in the sim. For example, we need to capture:
+
+omega_H
+1/(parallel transit time)
+omega_d: magnetic drift frequency
+omega_y: Yushmanov frequency
+nu: collision frequency
+etc
+that way we'd have a dynvec file like -elc_frequencies_max.gkyl (max for maximum) where each component is one of these, and the metadata tells us what each is.
+
+The tricky thing is that we don't yet have the ability to output multiple rates from the GK (and other) kernels. We can leave that for later, but if we are going to output omega_H it should be keeping the above target in mind, and implement it in a way that:
+
+has a general API
+is easily extensible
+So perhaps do it with omega_H and transit frequency first.
+
+---
+
+Regarding the work done in this branch, I've recieved this feedback. Please address this feedback, meaning implement the neccisary changes into the codebase.
+
+We need a more general design and implementation here. We need new infrastructure for calculating, storing and outputting relevant rates to a file so that we can later read the file and understand various rates existing in the sim. For example, we need to capture:
+
+omega_H
+1/(parallel transit time)
+omega_d: magnetic drift frequency
+omega_y: Yushmanov frequency
+nu: collision frequency
+etc
+that way we'd have a dynvec file like -elc_frequencies_max.gkyl (max for maximum) where each component is one of these, and the metadata tells us what each is.
+
+The tricky thing is that we don't yet have the ability to output multiple rates from the GK (and other) kernels. We can leave that for later, but if we are going to output omega_H it should be keeping the above target in mind, and implement it in a way that:
+
+has a general API
+is easily extensible
+So perhaps do it with omega_H and transit frequency first.
