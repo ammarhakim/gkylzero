@@ -1,0 +1,5 @@
+Please rename gkyl_calc_coulomb_log to gkyl_spitzer_coll_freq_calc_coulomb_log
+
+---
+
+Please rename gkyl_calc_coulomb_log to gkyl_spitzer_coll_freq_calc_coulomb_log
