@@ -431,6 +431,8 @@ gk_species_bflux_calc_integrated_mom_enabled(
       // Integrated moment of the boundary flux.
       int dir = bflux->boundaries_dir[b];
 
+      // In 1D, comm_plane[dir] includes every rank, so exclude fluxes at internal MPI
+      // interfaces. In 2D/3D, plane communicators already isolate the physical boundary slabs.
       bool owns_boundary = bflux->boundaries_edge[b] == GKYL_LOWER_EDGE ?
                              app->local.lower[dir] == app->global.lower[dir] :
                              app->local.upper[dir] == app->global.upper[dir];
@@ -474,6 +476,8 @@ gk_species_bflux_calc_voltime_integrated_mom_enabled(
     for (int b = 0; b < bflux->num_boundaries; ++b) {
       // Integrated moment of the boundary flux.
       int dir = bflux->boundaries_dir[b];
+      // In 1D, comm_plane[dir] includes every rank, so exclude fluxes at internal MPI
+      // interfaces. In 2D/3D, plane communicators already isolate the physical boundary slabs.
       bool owns_boundary = bflux->boundaries_edge[b] == GKYL_LOWER_EDGE ?
                              app->local.lower[dir] == app->global.lower[dir] :
                              app->local.upper[dir] == app->global.upper[dir];
