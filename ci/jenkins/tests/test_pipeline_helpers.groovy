@@ -29,13 +29,8 @@ assert calls[-1].contains('scancel "$job_id"')
 ['personal', 'stellar_cpu', 'perlmutter_gpu'].each { platform ->
     def source = new File(root, "jenkinsfile.${platform}").text
     new GroovyShell().parse(source)
-    if (platform == 'personal') {
-        assert source.contains('git show FETCH_HEAD:ci/jenkins/jenkins_pipeline.groovy > jenkins_pipeline.groovy')
-        assert source.contains("pipelineHelpers = load('jenkins_pipeline.groovy')")
-    } else {
-        assert source.contains('checkout(scm)')
-        assert source.contains("pipelineHelpers = load('ci/jenkins/jenkins_pipeline.groovy')")
-    }
+    assert source.contains('git show FETCH_HEAD:ci/jenkins/jenkins_pipeline.groovy > jenkins_pipeline.groovy')
+    assert source.contains("pipelineHelpers = load('jenkins_pipeline.groovy')")
     assert source.contains('pipelineHelpers.configure(reporting)')
     assert source.contains('return pipelineHelpers.usePrebuiltConfig(prefix)')
 }
