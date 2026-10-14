@@ -1,0 +1,25 @@
+In gk_species_frequency, I would have expected the transit frequency to be based on the thermal speed, not the maximum velocity extent. Perhaps several rates should exist, like maximum transit frequency, minimum, thermal. Also, please add some other frequencies, including but not limited to 
+
+omega_d: magnetic drift frequency
+omega_y: Yushmanov frequency
+nu: collision frequency
+
+---
+
+In gk_species_frequency, I would have expected the transit frequency to be based on the thermal speed, not the maximum velocity extent. Perhaps several rates should exist, like maximum transit frequency, minimum, thermal. Also, please add some other frequencies, including but not limited to 
+
+omega_d: magnetic drift frequency
+omega_y: Yushmanov frequency
+nu: collision frequency
+
+---
+
+<send_user_message_question_reply>
+[{"answer":"Not sure. Don't add the yushmanov frequency here","question":"Which definition of the Yushmanov frequency ω_y do you want (formula or reference)? I can proceed with thermal/minimum/maximum transit and collision rates while resolving that convention.","questionItemId":"[\"request_user_input_async\",\"call_f80208b3eff548269d9cd19141a82499\",0]"}]
+</send_user_message_question_reply>
+
+---
+
+<send_user_message_question_reply>
+[{"answer":"Not sure. Don't add the yushmanov frequency here","question":"Which definition of the Yushmanov frequency ω_y do you want (formula or reference)? I can proceed with thermal/minimum/maximum transit and collision rates while resolving that convention.","questionItemId":"[\"request_user_input_async\",\"call_f80208b3eff548269d9cd19141a82499\",0]"}]
+</send_user_message_question_reply>
