@@ -39,8 +39,6 @@ There may also be some additional auxiliary private or public functions.
 - Avoid forward declarations in .c and .cu files; just place functions higher
   up the file.
 
-  time-independent choice or parameter inside the methods called in the time loop of a simulation (e.g. _advance). Instead, use function pointers to set the appropriate method during the initialization of the module, and call that method inside the time loop.
-
 ### Other principles to follow
 
 - Consider extensibility, maintainability, simplicity and how modular design.
