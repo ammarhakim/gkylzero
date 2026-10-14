@@ -665,17 +665,7 @@ gk_species_calc_int_mom_dt_enabled(
   // Need to do it after the fields are updated.
   gk_species_moment_calc(&gks->integ_moms, gks->local, app->local, gks->f);
   gkyl_array_set(fdot_int_mom, 1.0 / dt, gks->integ_moms.marr);
-  if (gks->damping.type == GKYL_GK_DAMPING_LOW_PASS_FILTER) {
-    const struct gkyl_array *fbar = gks->damping.fbar;
-    if (gks->damping.cellwise_const) {
-      // The moment updater expects the species basis: all higher modes are zero.
-      gkyl_array_clear(gks->damping.fbar_mom_buffer, 0.0);
-      gkyl_array_set_offset(gks->damping.fbar_mom_buffer, 1.0, fbar, 0);
-      fbar = gks->damping.fbar_mom_buffer;
-    }
-    gk_species_moment_calc(&gks->integ_moms, gks->local, app->local, fbar);
-    gkyl_array_set(fbardot_int_mom, 1.0 / dt, gks->integ_moms.marr);
-  }
+  gks->damping.calc_fbar_mom_dt_func(app, gks, dt, fbardot_int_mom);
   app->stat.fdot_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -725,14 +715,7 @@ gk_species_calc_integrated_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_spec
     struct gkyl_array *mom_old[] = {gks->fdot_mom_old, gks->fbardot_mom_old};
     struct gkyl_array *mom_new[] = {gks->fdot_mom_new, gks->fbardot_mom_new};
     gkyl_dynvec diags[] = {gks->fdot_integ_diag, gks->fbardot_integ_diag};
-    for (int rate = 0; rate < 2; ++rate) {
-      // Keep both time series aligned, including before the filter is enabled.
-      // Ignore stored filter moments when inactive: they may belong to an earlier step.
-      if (rate == 1 && gks->damping.type != GKYL_GK_DAMPING_LOW_PASS_FILTER) {
-        memset(avals_global, 0, sizeof(double[num_mom]));
-        gkyl_dynvec_append(diags[rate], tm, avals_global);
-        continue;
-      }
+    for (int rate = 0; rate < gks->damping.num_rate_diags; ++rate) {
       // Reduce (sum) over whole domain, append to diagnostics.
       gkyl_array_set(gks->integ_moms.marr, 1.0, mom_new[rate]);
       gkyl_array_accumulate(gks->integ_moms.marr, -1.0, mom_old[rate]);
@@ -806,7 +789,7 @@ gk_species_write_integrated_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_spe
       "Volume integrated moments of time rate of change.",
       "Volume integrated moments of time rate of change of the low-pass-filtered distribution."
     };
-    for (int rate = 0; rate < 2; ++rate) {
+    for (int rate = 0; rate < (gks->fbardot_integ_diag ? 2 : 1); ++rate) {
       if (rank == 0) {
         // Write integrated diagnostic moments.
         const char *fmt = "%s-%s_%s_integrated_moms.gkyl";
@@ -816,9 +799,10 @@ gk_species_write_integrated_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_spe
 
         if (*first_write[rate]) {
           struct gkyl_msgpack_map_elem io_meta_phi[] = {
-            {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = descriptions[rate]}
+            {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = descriptions[rate]},
+            {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "nodal"}
           };
-          int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
+          int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 2};
           const struct gkyl_msgpack_map_elem *io_meta[] = {
             gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi
           };
@@ -1019,6 +1003,8 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app *app, const struct gk_spec
     gkyl_array_release(gks->fdot_mom_old);
     gkyl_array_release(gks->fdot_mom_new);
     gkyl_dynvec_release(gks->fdot_integ_diag);
+  }
+  if (gks->fbardot_integ_diag) {
     gkyl_array_release(gks->fbardot_mom_old);
     gkyl_array_release(gks->fbardot_mom_new);
     gkyl_dynvec_release(gks->fbardot_integ_diag);
@@ -1028,6 +1014,20 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app *app, const struct gk_spec
 static void
 gk_species_release_static(const gkyl_gyrokinetic_app *app, const struct gk_species *s)
 {
+}
+
+void
+gk_species_init_fbar_diagnostics(gkyl_gyrokinetic_app *app, struct gk_species *gks)
+{
+  if (gks->info.time_rate_diagnostics && !gks->info.is_static &&
+      gks->damping.type == GKYL_GK_DAMPING_LOW_PASS_FILTER && !gks->fbardot_integ_diag) {
+    gks->fbardot_mom_old =
+      mkarr(app->use_gpu, gks->integ_moms.marr->ncomp, gks->integ_moms.marr->size);
+    gks->fbardot_mom_new =
+      mkarr(app->use_gpu, gks->integ_moms.marr->ncomp, gks->integ_moms.marr->size);
+    gks->fbardot_integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, gks->integ_moms.num_mom);
+    gks->is_first_fbardot_integ_write_call = true;
+  }
 }
 
 // Initialize species object.
@@ -1088,14 +1088,9 @@ gk_species_init_dynamic(
       mkarr(app->use_gpu, gks->integ_moms.marr->ncomp, gks->integ_moms.marr->size);
     gks->fdot_integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, gks->integ_moms.num_mom);
     gks->is_first_fdot_integ_write_call = true;
-    // Keep diagnostics across runtime damping resets, including enabling the filter later.
-    gks->fbardot_mom_old =
-      mkarr(app->use_gpu, gks->integ_moms.marr->ncomp, gks->integ_moms.marr->size);
-    gks->fbardot_mom_new =
-      mkarr(app->use_gpu, gks->integ_moms.marr->ncomp, gks->integ_moms.marr->size);
-    gks->fbardot_integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, gks->integ_moms.num_mom);
-    gks->is_first_fbardot_integ_write_call = true;
   }
+
+  gk_species_init_fbar_diagnostics(app, gks);
 
   // Objects for L2 norm diagnostic.
   gks->integ_wfsq_op = gkyl_array_integrate_new(
@@ -2038,6 +2033,8 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gk_species_anomalous_diff_init(app, gks, &gks->anom_diff);
 
   // Damping term -nu*f on RHS.
+  gks->fbardot_mom_old = gks->fbardot_mom_new = 0;
+  gks->fbardot_integ_diag = 0;
   gks->damping = (struct gk_damping){};
   gk_species_damping_init(app, gks, &gks->damping);
 

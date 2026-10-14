@@ -1038,12 +1038,16 @@ struct gk_damping {
   struct gkyl_array *rate; // Damping rate.
   struct gkyl_array *rate_host; // Host copy for use in IO and projecting.
   // Low-pass filter variables
+  int num_rate_diags; // Number of active time-rate diagnostic series (f and optionally fbar).
   bool fbar_initialized; // Whether fbar is allocated/owned and should be released.
   struct gkyl_array *fbar; // Filtered/averaged distribution function.
   struct gkyl_array *fbar1, *fbarnew; // SSPRK3 stage arrays for filtered distribution.
   struct gkyl_array *fbar_host; // Host copy of fbar for use in IO.
   struct gkyl_array *fbar_mom_buffer; // Embed p0 fbar in the species basis for moments.
   // Functions chosen at runtime.
+  void (*calc_fbar_mom_dt_func)(
+    gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array *mom
+  );
   void (*write_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame);
   void (*write_rate_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame);
   void (*write_fbar_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame);
@@ -3413,6 +3417,14 @@ void gk_species_damping_init(
 );
 
 /**
+ * Allocate filter time-rate diagnostics on first activation; retain them across resets.
+ *
+ * @param app App object.
+ * @param gks Species with initialized integrated-moment updater.
+ */
+void gk_species_init_fbar_diagnostics(gkyl_gyrokinetic_app *app, struct gk_species *gks);
+
+/**
  * Initialize filtered distribution function from initial distribution.
  * Should be called after initial conditions are applied to f.
  *
@@ -3512,6 +3524,14 @@ void gk_species_damping_forward_euler(
  *
  * This is runtime-dispatched and a no-op unless the damping type enables
  * filtered-state evolution (currently low-pass filter).
+ *
+ * @param gks Species object.
+ * @param fout Output distribution.
+ * @param c1 Coefficient of the first input.
+ * @param f1 First input distribution.
+ * @param c2 Coefficient of the second input.
+ * @param f2 Second input distribution.
+ * @param rng Range to update.
  */
 void gk_species_damping_combine(
   struct gk_species *gks, struct gkyl_array *fout, double c1, const struct gkyl_array *f1,
@@ -3523,6 +3543,11 @@ void gk_species_damping_combine(
  *
  * This is runtime-dispatched and a no-op unless the damping type enables
  * filtered-state evolution (currently low-pass filter).
+ *
+ * @param gks Species object.
+ * @param fout Output distribution.
+ * @param fin Input distribution.
+ * @param range Range to copy.
  */
 void gk_species_damping_copy_range(
   struct gk_species *gks, struct gkyl_array *fout, const struct gkyl_array *fin,
