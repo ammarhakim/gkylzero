@@ -1,0 +1,56 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M4XH9JEV7KGS7G1JQT02CN03",
+  "session_id": "01a13b0c-f694-7f20-84e1-1391097d058b",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-14T15:43:01.270489542Z",
+  "branch": "low-pass-filter",
+  "checkpoints_count": 4,
+  "save_step_count": 1,
+  "files_touched": [
+    "gyrokinetic/apps/gk_species.c",
+    "gyrokinetic/apps/gk_species_damping.c",
+    "gyrokinetic/apps/gkyl_gyrokinetic.h",
+    "gyrokinetic/apps/gkyl_gyrokinetic_priv.h",
+    "gyrokinetic/creg/rt_gk_low_pass_filter.c"
+  ],
+  "agent": "Codex",
+  "model": "gpt-6-astra",
+  "turn_id": "79d24e08dbca",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 93004,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 2166784,
+    "output_tokens": 13031,
+    "api_call_count": 31,
+    "subagent_tokens_complete": true
+  },
+  "session_metrics": {
+    "turn_count": 4
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-14T15:43:01.24636821Z",
+    "agent_lines": 297,
+    "agent_removed": 39,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 297,
+    "total_lines_changed": 336,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 9,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "pr-merge.md": 9
+      }
+    }
+  ]
+}

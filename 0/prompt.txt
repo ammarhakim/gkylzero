@@ -1,0 +1,13 @@
+Review this branch. Is additional memory created which is unnecisary when the low pass filter is not being used? Does it conform to the coding style and standards of the project?
+
+---
+
+Review this branch. Is additional memory created which is unnecisary when the low pass filter is not being used? Does it conform to the coding style and standards of the project?
+
+---
+
+Address these improvements. Ensure the diagnostics are written with the appropriate metadata, including value_form.
+
+---
+
+Address these improvements. Ensure the diagnostics are written with the appropriate metadata, including value_form.
