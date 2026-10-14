@@ -6,7 +6,7 @@ int gpython_vlasov_api_version(void);
 
 /* samples contains n rows of [ns, nr, Ts, Tr, |B|]. Temperatures are energies.
  * Return 1 for invalid physical parameters, otherwise 0. */
-int gpython_coulomb_log(
+int gpython_spitzer_coll_freq_calc_coulomb_log(
   size_t n, const double *samples, double ms, double mr, double qs, double qr, double eps0,
   double hbar, double *out
 );

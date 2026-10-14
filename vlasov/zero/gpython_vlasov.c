@@ -19,7 +19,7 @@ physical_parameters(double ms, double mr, double qs, double qr, double eps0, dou
 }
 
 int
-gpython_coulomb_log(
+gpython_spitzer_coll_freq_calc_coulomb_log(
   size_t n, const double *samples, double ms, double mr, double qs, double qr, double eps0,
   double hbar, double *out
 )
@@ -34,7 +34,9 @@ gpython_coulomb_log(
         return 1;
       }
     }
-    out[i] = gkyl_calc_coulomb_log(p[0], p[1], ms, mr, p[2], p[3], qs, qr, p[4], eps0, hbar);
+    out[i] = gkyl_spitzer_coll_freq_calc_coulomb_log(
+      p[0], p[1], ms, mr, p[2], p[3], qs, qr, p[4], eps0, hbar
+    );
   }
   return 0;
 }
