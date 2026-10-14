@@ -367,8 +367,8 @@ create_ctx(void)
   double gamma = 0.226381;
   double Z_m = 0.98;
 
-  // Factor multiplying collisionless terms.
-  double alpha_oap = 0.1;
+  // POA parameters
+  double alpha_oap = 5e-5; // Factor multiplying collisionless terms.
   double alpha_fdp = 1.0;
 
   // Duration of each phase.
