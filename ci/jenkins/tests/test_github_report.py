@@ -52,6 +52,34 @@ class FailureReportTests(unittest.TestCase):
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         Path(path).write_text(text)
 
+    def test_statistics_preserves_cached_timings_and_failed_command_status(self):
+        self.write('ci-timing-summary.txt', 'baseline_install_seconds=0\n'
+                   'cached_baseline_install_seconds=3661\ncandidate_install_seconds=61\n')
+        self.write('baseline-install-seconds.txt', '3661\n')
+        self.write('candidate-install-seconds.txt', '61\n')
+        self.write('candidate-install.log', 'failure details')
+        self.write('candidate-install.log.exit', '2\n')
+        self.write('ci-command-logs/configure.log.exit', '0\n')
+        report.main(['statistics'])
+        text = Path('ci-statistics.md').read_text()
+        self.assertIn('| baseline install seconds | 0 | 0m 0s |', text)
+        self.assertIn('| cached baseline install seconds | 3661 | 1h 1m 1s |', text)
+        self.assertIn('| candidate install | 61 | 1m 1s |', text)
+        self.assertIn('[candidate-install.log](candidate-install.log) | 2 | Failed', text)
+        self.assertIn('ci-command-logs/configure.log | 0 | Success', text)
+        self.assertEqual(Path('baseline-install-seconds.txt').read_text(), '3661\n')
+        self.assertEqual(Path('candidate-install.log.exit').read_text(), '2\n')
+
+    def test_statistics_handles_early_failure_and_malformed_measurements(self):
+        report.main(['statistics'])
+        self.assertIn('# CI statistics', Path('ci-statistics.md').read_text())
+        self.write('candidate-install-seconds.txt', '<unknown>|\nmore')
+        self.write('candidate-install.log.exit', '')
+        report.main(['statistics'])
+        text = Path('ci-statistics.md').read_text()
+        self.assertIn('&lt;unknown&gt;&#124;<br>more | —', text)
+        self.assertIn('| candidate-install.log |  | Unknown |', text)
+
     def test_baseline_cache_status_is_on_baseline_line(self):
         sha = 'a' * 40
         self.write('ci-baseline-commit.txt', sha)

@@ -40,6 +40,19 @@ def runReporter(String arguments, boolean authenticated = false) {
     }
 }
 
+def statisticsArchiveExcludes() {
+    try {
+        dir(settings.workspace) {
+            runReporter('statistics')
+        }
+        return '*-seconds.txt,*.log.exit,ci-command-logs/*.log.exit,ci-timing-summary.txt'
+    } catch (err) {
+        // Preserve the original artifacts if consolidation is unavailable.
+        echo "WARNING: could not consolidate CI statistics: ${err}"
+        return ''
+    }
+}
+
 def publish(String result, String description = '', boolean detailed = false) {
     // Commands can execute in cached candidate/baseline trees; report artifacts
     // always belong to the build workspace, never to one of those shared trees.

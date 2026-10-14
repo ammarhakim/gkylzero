@@ -236,7 +236,7 @@ finalize_candidate() {
   [[ -d "$target/gkeyll/.git" ]] || die "candidate checkout is missing: $target/gkeyll"
   [[ -d "$workspace" ]] || die "Jenkins workspace is missing: $workspace"
   [[ "$(git -C "$target/gkeyll" rev-parse HEAD 2>/dev/null || true)" == "$sha" ]] || die "candidate checkout does not match $sha"
-  for file in "$workspace"/ci-*.txt "$workspace"/ci-*-config.mak "$workspace"/*-unit-results.txt "$workspace"/*-seconds.txt "$workspace"/candidate-*.log* "$workspace"/baseline-*.log* "$workspace"/baseline-slurm-* "$workspace"/slurm-*.out "$workspace"/ci-report*.md "$workspace"/ci-report*.md.json; do
+  for file in "$workspace"/ci-*.txt "$workspace"/ci-*-config.mak "$workspace"/*-unit-results.txt "$workspace"/*-seconds.txt "$workspace"/candidate-*.log* "$workspace"/baseline-*.log* "$workspace"/baseline-slurm-* "$workspace"/slurm-*.out "$workspace"/ci-report*.md "$workspace"/ci-statistics.md "$workspace"/ci-report*.md.json; do
     [[ -f "$file" && ! -L "$file" ]] || continue
     destination="$target/$(basename "$file")"
     rm -f "$destination"

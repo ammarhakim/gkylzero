@@ -40,6 +40,13 @@ assert files['/workspace@tmp/github_report.py'] == '# trusted source'
 assert files['ci-trusted-ci-commit.txt'] == 'b' * 40 + '\n'
 assert files['ci-reporting-commit.txt'] == 'c' * 40 + '\n'
 
+assert script.statisticsArchiveExcludes() == '*-seconds.txt,*.log.exit,ci-command-logs/*.log.exit,ci-timing-summary.txt'
+assert commands.last().endsWith(' statistics')
+def originalShell = binding.getVariable('sh')
+binding.setVariable('sh', { String command -> throw new RuntimeException('statistics fixture') })
+assert script.statisticsArchiveExcludes() == ''
+binding.setVariable('sh', originalShell)
+
 try {
     script.ciStage('Failed stage') { throw new RuntimeException('stage fixture') }
     assert false

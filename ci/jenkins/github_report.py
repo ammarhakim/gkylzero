@@ -620,6 +620,59 @@ def failure_sections():
     return sections
 
 
+def write_statistics(args):
+    """Consolidate scalar artifacts without removing inputs used by CI/cache readers."""
+    def cell(value):
+        return html.escape(str(value)).replace('|', '&#124;').replace('\n', '<br>')
+
+    def duration(value):
+        try:
+            seconds = float(value)
+            if not math.isfinite(seconds) or seconds < 0:
+                return '—'
+            minutes, seconds = divmod(seconds, 60)
+            hours, minutes = divmod(int(minutes), 60)
+            return '{}h {}m {:g}s'.format(hours, minutes, seconds) if hours else '{}m {:g}s'.format(minutes, seconds)
+        except ValueError:
+            return '—'
+
+    lines = ['# CI statistics', '',
+             'Durations are wall-clock measurements. Overlapping steps and aggregate '
+             'metrics must not be added together.', '']
+    values = read_kv('ci-timing-summary.txt')
+    if values:
+        lines += ['## Timing summary', '', '| Metric | Seconds / value | Duration |',
+                  '| --- | ---: | ---: |']
+        for key, entries in values.items():
+            for value in entries:
+                lines.append('| {} | {} | {} |'.format(
+                    cell(key.replace('_', ' ')), cell(value),
+                    duration(value) if key.endswith('_seconds') else '—'))
+        lines.append('')
+    lines += ['## Recorded step timings', '',
+              'Baseline measurements may come from an earlier cached run. '
+              'On a cache hit, use the timing summary above for current-run costs.', '',
+              '| Measurement | Seconds | Duration |', '| --- | ---: | ---: |']
+    for path in sorted(glob.glob('*-seconds.txt')):
+        value = read_text(path).strip()
+        lines.append('| {} | {} | {} |'.format(
+            cell(path[:-len('-seconds.txt')].replace('-', ' ')), cell(value), duration(value)))
+    lines += ['', '## Command outcomes', '',
+              'Exit code 0 means success; other codes indicate failure. '
+              'Only commands with a recorded exit status are listed.', '',
+              '| Log | Exit code | Result |', '| --- | ---: | --- |']
+    for path in sorted(glob.glob('*.log.exit') + glob.glob('ci-command-logs/*.log.exit')):
+        value = read_text(path).strip()
+        log = path[:-len('.exit')]
+        label = cell(log)
+        if os.path.isfile(log):
+            label = '[{}]({})'.format(label, urllib.parse.quote(log))
+        result = 'Success' if value == '0' else ('Failed' if re.fullmatch(r'-?\d+', value) else 'Unknown')
+        lines.append('| {} | {} | {} |'.format(label, cell(value), result))
+    with open('ci-statistics.md', 'w', encoding='utf-8') as stream:
+        stream.write('\n'.join(lines) + '\n')
+
+
 def timing_section(elapsed=None):
     values = read_kv("ci-timing-summary.txt")
     rows = [(k, first(values, k)) for k in values if k.endswith("_seconds")]
@@ -1034,6 +1087,9 @@ def update_report(args):
 def main(argv):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
+
+    statistics = sub.add_parser('statistics', help='combine scalar artifacts into ci-statistics.md')
+    statistics.set_defaults(func=write_statistics)
 
     build = sub.add_parser("build", help="write the Markdown report from workspace artifacts")
     build.add_argument("--platform", required=True, help="CI platform name, e.g. personal, team, stellar_cpu")
