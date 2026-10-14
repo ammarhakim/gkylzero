@@ -60,8 +60,11 @@ gkeyll runregression run --c-only --parallel --execute-only --jobs 8 check
 A test requiring more ranks than the budget runs alone, so `--jobs 1` still
 executes MPI tests sequentially. Compilation uses one worker per test.
 The MPI launcher controls CPU/GPU placement; worker counts must fit allocated
-devices and memory. Stellar allocates at least four MPI tasks, growing to the
-regression budget, and uses `srun --exact` to reserve each test's resources.
+devices and memory. Stellar defaults to eight login-node compilation workers and 16 regression
+workers. Serial allocations request one CPU per worker. MPI allocations request
+at least four tasks, growing to the regression budget, and use `srun --exact`
+to reserve each test's resources. A 16-CPU allocation can run four four-rank
+tests concurrently.
 Perlmutter caps the MPI budget at four allocated GPUs, so its four-rank tests
 run one at a time. HPC compilation uses the configured build worker count.
 

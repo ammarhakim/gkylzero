@@ -157,12 +157,13 @@ set the following values. Paste an expanded scratch path, not a literal `$USER`.
 | `STELLAR_CPU_GITHUB_CREDENTIAL_ID` | GitHub status/API credential ID, e.g. `gkeyll-github-stellar-cpu` |
 | `STELLAR_CPU_SLURM_QOS` | A valid CPU QoS for your group |
 | `STELLAR_CPU_SLURM_ACCOUNT` | Project account when required; otherwise omit it |
-| `STELLAR_CPU_BUILD_JOBS` | Optional compilation workers, including C regressions; default `3` |
+| `STELLAR_CPU_BUILD_JOBS` | Optional login-node compilation workers, including C regressions; default `8` |
 | `STELLAR_CPU_UNIT_TIME` | Optional unit-test allocation limit; default `00:30:00` |
 | `STELLAR_CPU_REGRESSION_TIME` | Optional C-regression allocation limit; default `04:00:00` |
-| `STELLAR_CPU_REGRESSION_JOBS` | Optional regression worker budget (one per serial test or MPI rank); default `4` |
+| `STELLAR_CPU_REGRESSION_JOBS` | Optional regression worker budget (one per serial test or MPI rank); default `16` |
 | `STELLAR_CPU_REGRESSION_TEST_TIMEOUT` | Optional per-test limit in seconds; default `900` |
 | `STELLAR_CPU_NODE_LABEL` | Optional node label; default `stellar_cpu` |
+| `PERL5LIB` | Shared Perl library path when compute nodes lack `Time::HiRes`; see [runtime verification](#verify-the-compute-node-perl-runtime) |
 | `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for `github_report.py`, `jenkins_reporting.groovy`, and `check_regression_results.lua`; default `main`. Set it only while staging a CI change |
 
 Do not set a broad global `PATH` to an interactive shell configuration. The
@@ -171,6 +172,69 @@ Pipeline initializes Stellar modules for each build and Slurm job. Its
 It retains a separate directory for each build under `runs/stellar-cpu/`;
 see [persistent regression data](README.storage.md). After an intentional in-place toolchain or dependency upgrade, change
 `GKEYLL_CI_CACHE_REVISION` to force baseline regeneration in either dependency mode.
+
+Serial regressions request one CPU per worker: the default is 16 concurrent
+tests on 16 CPUs. MPI regressions request one CPU per rank slot (at least four
+slots) and reserve each test's manifest rank count until it finishes. With the
+default 16-slot budget, four four-rank tests can run concurrently; available
+slots are reused as tests finish. These settings apply to both baseline and
+candidate runs.
+
+### Verify the compute-node Perl runtime
+
+The regression runner uses Perl's `Time::HiRes` module for execution timings.
+Stellar login and compute nodes can have different Perl packages: a successful
+login-node check does not establish that this module is available in Slurm.
+Verify it before the first CI build and after runtime upgrades, using the same
+account, QoS, modules, and `PERL5LIB` as Jenkins.
+
+From the reviewed checkout, create and submit this preflight script. Replace
+`<qos>` and `<account>` with the Jenkins settings (omit `--account` if unused):
+
+```sh
+mkdir -p "$GKEYLL_CI_ROOT/tmp" "$GKEYLL_CI_ROOT/logs"
+cat > "$GKEYLL_CI_ROOT/tmp/perl-preflight.sh" <<'EOF'
+#!/bin/bash -l
+set -euo pipefail
+. machines/module_load.stellar-intel.sh
+hostname
+perl -V:version -V:archname
+perl -MTime::HiRes=time -e 'printf "%.6f\n", time'
+EOF
+sbatch --wait --account <account> --qos <qos> \
+  --nodes 1 --ntasks 1 --cpus-per-task 1 --time 00:05:00 \
+  --chdir "$PWD" --export=ALL \
+  --output "$GKEYLL_CI_ROOT/logs/perl-preflight-%j.log" \
+  "$GKEYLL_CI_ROOT/tmp/perl-preflight.sh"
+```
+
+Require a successful job and a numeric timestamp in its log. If it reports
+`Can't locate Time/HiRes.pm`, install `Time::HiRes` for the compute node's Perl
+in shared storage, such as `$GKEYLL_CI_ROOT/runtime/perl5`. Do not install it
+only on the login node or in a node-local temporary directory.
+
+For matching system Perl versions and architectures, the login node's existing
+module can be copied into this account-local directory. Compare the preflight's
+`version` and `archname` with `perl -V:version -V:archname` on the login node
+first. The following paths apply to Stellar's system Perl 5.26.3 installation;
+use a compatible module installation if the paths or runtime differ:
+
+```sh
+mkdir -p "$GKEYLL_CI_ROOT/runtime/perl5/Time" \
+  "$GKEYLL_CI_ROOT/runtime/perl5/auto/Time/HiRes"
+cp /usr/lib64/perl5/vendor_perl/Time/HiRes.pm \
+  "$GKEYLL_CI_ROOT/runtime/perl5/Time/"
+cp /usr/lib64/perl5/vendor_perl/auto/Time/HiRes/HiRes.so \
+  "$GKEYLL_CI_ROOT/runtime/perl5/auto/Time/HiRes/"
+export PERL5LIB="$GKEYLL_CI_ROOT/runtime/perl5${PERL5LIB:+:$PERL5LIB}"
+```
+
+Repeat the Slurm preflight with this environment. Once it passes, set Jenkins's
+**global environment variable** `PERL5LIB` to the same expanded absolute path
+(or colon-separated paths if preserving an existing value). A terminal-only
+`export` does not update an already running Jenkins controller. The Pipeline
+passes its environment to Slurm with `--export=ALL`. Revalidate the module,
+including its compiled `HiRes.so`, after a system Perl upgrade.
 
 ### Create the one parameterized Pipeline job
 
@@ -284,6 +348,19 @@ Do not remove a workspace while its Slurm job appears in `squeue`. After it
 stops, it is safe to remove the abandoned workspace below
 `$GKEYLL_CI_ROOT/workspaces` and restart Jenkins. Jenkins archives artifacts
 before removing completed workspaces; see [retention settings](README.storage.md#retention).
+
+## Every regression reported as a crash
+
+Inspect the per-test `runlog` in the retained regression databases. Missing
+`Time::HiRes` can produce empty `__START__:`/`__END__:` markers and Perl errors
+after a successful `__EXIT__:0`. The runner's exit-marker parsing can then
+misclassify successful executions as crashes, with no completed timings.
+Passing unit tests do not validate this regression-runner dependency.
+
+Follow [runtime verification](#verify-the-compute-node-perl-runtime), persist
+the repaired environment in Jenkins, and rerun the PR. Do not acknowledge
+these failures in `expected_regression_diffs.txt`; numerical comparisons still
+need to run successfully after the runtime is repaired.
 
 ## Numerical regression differences
 

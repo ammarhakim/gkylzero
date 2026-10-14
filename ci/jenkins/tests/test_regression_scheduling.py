@@ -72,6 +72,12 @@ local starts, ends, completions = run({4, 4, 4, 4}, 8, {0.8, 0.1, 0.1, 0.1})
 assert(completions[1] == "job2")
 assert(starts[2] < ends[1] and starts[3] < ends[1] and starts[4] < ends[1])
 assert(starts[3] >= ends[2] and starts[4] >= ends[3])
+-- Stellar's 16-rank allocation runs four four-rank tests, then refills.
+starts, ends = run({4, 4, 4, 4, 4}, 16, {0.8, 0.8, 0.8, 0.1, 0.1})
+assert(math.max(starts[1], starts[2], starts[3], starts[4])
+   < math.min(ends[1], ends[2], ends[3], ends[4]), "four MPI tests did not overlap")
+assert(starts[5] >= ends[4] and starts[5] < math.min(ends[1], ends[2], ends[3]),
+   "finished MPI test did not release its slots")
 -- Different decompositions consume their actual rank counts.
 starts, ends = run({4, 2, 2, 4}, 8, {0.8, 0.1, 0.1, 0.1})
 assert(starts[3] < ends[2], "smaller decompositions did not share capacity")

@@ -86,7 +86,7 @@ def requireValue(String name, String value) {
 }
 
 def buildJobs() {
-    def value = (env.STELLAR_CPU_BUILD_JOBS ?: '3').trim()
+    def value = (env.STELLAR_CPU_BUILD_JOBS ?: '8').trim()
     return positiveInteger('STELLAR_CPU_BUILD_JOBS', value)
 }
 
@@ -100,7 +100,7 @@ def positiveInteger(String name, String value) {
 def regressionJobs() {
     return positiveInteger(
         'STELLAR_CPU_REGRESSION_JOBS',
-        (env.STELLAR_CPU_REGRESSION_JOBS ?: '4').trim()
+        (env.STELLAR_CPU_REGRESSION_JOBS ?: '16').trim()
     )
 }
 
@@ -383,7 +383,7 @@ def submitRegressionTests(String mode, String baselineDir, String candidateDir) 
     submitSlurmJob(
         'regression',
         'ci/jenkins/slurm-regression-tests.stellar_cpu.sh',
-        '8',
+        jobs,
         (env.STELLAR_CPU_REGRESSION_TIME ?: '04:00:00').trim(),
         [
             "CI_BASELINE_DIR=${baselineDir}/gkeyll",
