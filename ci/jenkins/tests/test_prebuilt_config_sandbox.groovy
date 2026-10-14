@@ -33,7 +33,7 @@ Thread.start('gkeyll-prebuilt-sandbox-tests') {
             new EnvironmentVariablesNodeProperty.Entry('CI_CACHE_TEST_SCRIPT',
                 new File(source, 'baseline_cache.sh').absolutePath)))
         ['personal', 'stellar_cpu', 'perlmutter_gpu'].each { platform ->
-            def pipeline = new File(source, 'jenkins_pipeline.groovy').text
+            def pipeline = new File(source, "jenkinsfile.${platform}").text
             def start = pipeline.indexOf('def usePrebuiltConfig(')
             def helper = pipeline.substring(start, pipeline.indexOf('\n}\n', start) + 3)
             def reporting = new File(source, 'jenkins_reporting.groovy').text

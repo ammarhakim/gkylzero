@@ -1,6 +1,5 @@
 import groovy.transform.Field
 @Field def reporting
-@Field def pipelineHelpers
 
 def loggedSh(String label, String command) { reporting.loggedSh(label, command) }
 def timeCommand(String metric, String command) { reporting.timeCommand(metric, command) }
@@ -158,7 +157,6 @@ def loadReporting(Map settings) {
                         git init --quiet
                         git fetch --quiet --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_TRUSTED_REPORT_REF"
                         git show FETCH_HEAD:ci/jenkins/jenkins_reporting.groovy > jenkins_reporting.groovy
-                        git show FETCH_HEAD:ci/jenkins/jenkins_pipeline.groovy > jenkins_pipeline.groovy
                         git show FETCH_HEAD:ci/jenkins/github_report.py > github_report.py
                         git show FETCH_HEAD:ci/jenkins/prebuilt_config.py > prebuilt_config.py
                         git show FETCH_HEAD:ci/jenkins/baseline_cache.sh > baseline_cache.sh
@@ -170,8 +168,6 @@ def loadReporting(Map settings) {
                 reporting = load('jenkins_reporting.groovy')
                 settings.prebuiltScript = pwd() + '/prebuilt_config.py'
                 reporting.configure(settings)
-                pipelineHelpers = load('jenkins_pipeline.groovy')
-                pipelineHelpers.configure(reporting)
                 env.CI_BOOTSTRAP_COMPLETE = 'true'
             }
         } finally { archiveBootstrap() }
@@ -348,7 +344,56 @@ def prepareTrustedRegressionChecker() {
 // The config is supplied by the machine owner, outside disposable workspaces.
 // Keep this helper in the trusted Pipeline so older candidate/baseline refs work.
 def usePrebuiltConfig(String prefix) {
-    return pipelineHelpers.usePrebuiltConfig(prefix)
+    def source = env.GKEYLL_CI_PREBUILT_CONFIG?.trim()
+    if (!source) return false
+    if (!source.startsWith('/') || !fileExists(source)) {
+        error('GKEYLL_CI_PREBUILT_CONFIG must name an existing absolute config.mak path on the agent.')
+    }
+    if (!env.CI_RUN_DIR?.trim()) error('CI_RUN_DIR must be prepared before copying dependencies.')
+    def launcher = env.PERSONAL_MPIEXEC?.trim()
+        ?: (env.PERSONAL_MPI_HOME?.trim() ? "${env.PERSONAL_MPI_HOME.trim()}/bin/mpiexec" : '')
+    // Keep the owner's launcher across candidate/baseline environment changes.
+    if (!env.CI_PREBUILT_SOURCE_MPIEXEC) env.CI_PREBUILT_SOURCE_MPIEXEC = launcher ?: 'auto'
+    launcher = env.CI_PREBUILT_SOURCE_MPIEXEC == 'auto' ? '' : env.CI_PREBUILT_SOURCE_MPIEXEC
+    def dependencies = env.CI_BASELINE_DEPENDENCIES ?: "${env.CI_RUN_DIR}/dependencies"
+    def runtime = [:]
+    withEnv(["CI_PREBUILT_SOURCE=${source}", "CI_PREBUILT_PREFIX=${prefix}",
+             "CI_PREBUILT_DEPENDENCIES=${dependencies}",
+             "CI_PREBUILT_SCRIPT=${reporting.settings.prebuiltScript}",
+             "CI_PREBUILT_MPIEXEC=${launcher}"]) {
+        // Literal KEY=value lines avoid JSON APIs that need sandbox approval.
+        def output = sh(returnStdout: true, script: '''#!/bin/bash
+            set -euo pipefail
+            if [[ -n "${CI_BASELINE_DEPENDENCIES:-}" ]]; then
+                cmp "$CI_PREBUILT_SOURCE" "$CI_RUN_DIR/dependencies/source-config.mak" || {
+                    echo 'Prebuilt config changed during this run; start a new CI run.' >&2
+                    exit 1
+                }
+            fi
+            python3 -I "$CI_PREBUILT_SCRIPT" --config "$CI_PREBUILT_SOURCE" \
+                --prefix "$CI_PREBUILT_PREFIX" --dependencies "$CI_PREBUILT_DEPENDENCIES" \
+                --mpiexec "${CI_PREBUILT_MPIEXEC:-}" --format env
+        ''')
+        output.readLines().each { line ->
+            def fields = line.split('=', 2)
+            runtime[fields[0]] = fields[1]
+        }
+    }
+    env.LD_LIBRARY_PATH = runtime.LD_LIBRARY_PATH
+    env.GKEYLL_CI_DEPENDENCY_ENV = runtime.GKEYLL_CI_DEPENDENCY_ENV
+    if (runtime.MPI_HOME) {
+        env.MPI_HOME = runtime.MPI_HOME
+        env.OPAL_PREFIX = runtime.OPAL_PREFIX
+        env.PERSONAL_MPI_HOME = runtime.MPI_HOME
+    }
+    if (runtime.MPIEXEC) env.PERSONAL_MPIEXEC = runtime.MPIEXEC
+    writeFile file: 'alltargets.mak', text: '''.PHONY: all install
+all: gkeyll
+install: gkeyll
+	$(MAKE) gkeyll-install
+'''
+    echo "Using dependency copy at ${dependencies}; installing Gkeyll in ${prefix}"
+    return true
 }
 
 def buildTree(String label, String prefix, String mkdeps, String configure, String jobs, String metricDirectory = '') {

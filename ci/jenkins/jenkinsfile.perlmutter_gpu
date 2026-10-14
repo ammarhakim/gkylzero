@@ -1,6 +1,5 @@
 import groovy.transform.Field
 @Field def reporting
-@Field def pipelineHelpers
 
 def loggedSh(String label, String command) { reporting.loggedSh(label, command) }
 def timeCommand(String metric, String command) { reporting.timeCommand(metric, command) }
@@ -34,7 +33,6 @@ def loadReporting(Map settings) {
                 git init --quiet
                 git fetch --quiet --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_TRUSTED_REPORT_REF"
                 git show FETCH_HEAD:ci/jenkins/jenkins_reporting.groovy > jenkins_reporting.groovy
-                git show FETCH_HEAD:ci/jenkins/jenkins_pipeline.groovy > jenkins_pipeline.groovy
                 git show FETCH_HEAD:ci/jenkins/github_report.py > github_report.py
                 git show FETCH_HEAD:ci/jenkins/baseline_cache.sh > baseline_cache.sh
                 chmod +x baseline_cache.sh
@@ -46,8 +44,6 @@ def loadReporting(Map settings) {
         settings.cacheScript = pwd() + '/baseline_cache.sh'
         settings.prebuiltScript = pwd() + '/prebuilt_config.py'
         reporting.configure(settings)
-        pipelineHelpers = load('jenkins_pipeline.groovy')
-        pipelineHelpers.configure(reporting)
     }
 }
 
@@ -153,15 +149,45 @@ def validateRefSelector(String name, String value) {
 }
 
 def checkoutPullRequest(String prNumber) {
-    return pipelineHelpers.checkoutPullRequest(prNumber)
+    checkout([
+        $class: 'GitSCM',
+        branches: [[name: "refs/remotes/origin/candidate"]],
+        doGenerateSubmoduleConfigurations: false,
+        extensions: [
+            [$class: 'CleanBeforeCheckout'],
+            [$class: 'CloneOption', depth: 1, honorRefspec: true, noTags: true, shallow: true]
+        ],
+        userRemoteConfigs: [[
+            refspec: "+refs/pull/${prNumber}/head:refs/remotes/origin/candidate",
+            url: 'https://github.com/gkeyllorg/gkeyll.git'
+        ]]
+    ])
 }
 
 def checkoutRef(String selector, String localRef) {
-    return pipelineHelpers.checkoutRef(selector, localRef)
+    def refspec = isCommitSha(selector)
+        ? "+${selector}:refs/remotes/origin/${localRef}"
+        : "+refs/heads/${selector}:refs/remotes/origin/${localRef}"
+    checkout([
+        $class: 'GitSCM',
+        branches: [[name: "refs/remotes/origin/${localRef}"]],
+        doGenerateSubmoduleConfigurations: false,
+        extensions: [
+            [$class: 'CleanBeforeCheckout'],
+            [$class: 'CloneOption', depth: 1, honorRefspec: true, noTags: true, shallow: true]
+        ],
+        userRemoteConfigs: [[
+            refspec: refspec,
+            url: 'https://github.com/gkeyllorg/gkeyll.git'
+        ]]
+    ])
 }
 
 def resolveRefCommit(String selector) {
-    return pipelineHelpers.resolveRefCommit(selector)
+    if (isCommitSha(selector)) return selector.toLowerCase()
+    def commit = sh(returnStdout: true, script: "git ls-remote https://github.com/gkeyllorg/gkeyll.git refs/heads/${selector} | cut -f1 | head -n 1").trim()
+    if (!(commit ==~ /[0-9a-f]{40}/)) error("Could not resolve baseline ref '${selector}' to a commit SHA.")
+    return commit
 }
 
 def baselineBehindCount(String statusCredentialsId, String baseline, String candidate) {
@@ -409,15 +435,118 @@ def submitParallelRegressionTests(String mode, String baselineDir, String candid
 // The config is supplied by the machine owner, outside disposable workspaces.
 // Keep this helper in the trusted Pipeline so older candidate/baseline refs work.
 def usePrebuiltConfig(String prefix) {
-    return pipelineHelpers.usePrebuiltConfig(prefix)
+    def source = env.GKEYLL_CI_PREBUILT_CONFIG?.trim()
+    if (!source) return false
+    if (!source.startsWith('/') || !fileExists(source)) {
+        error('GKEYLL_CI_PREBUILT_CONFIG must name an existing absolute config.mak path on the agent.')
+    }
+    if (!env.CI_RUN_DIR?.trim()) error('CI_RUN_DIR must be prepared before copying dependencies.')
+    def launcher = env.PERSONAL_MPIEXEC?.trim()
+        ?: (env.PERSONAL_MPI_HOME?.trim() ? "${env.PERSONAL_MPI_HOME.trim()}/bin/mpiexec" : '')
+    // Keep the owner's launcher across candidate/baseline environment changes.
+    if (!env.CI_PREBUILT_SOURCE_MPIEXEC) env.CI_PREBUILT_SOURCE_MPIEXEC = launcher ?: 'auto'
+    launcher = env.CI_PREBUILT_SOURCE_MPIEXEC == 'auto' ? '' : env.CI_PREBUILT_SOURCE_MPIEXEC
+    def dependencies = env.CI_BASELINE_DEPENDENCIES ?: "${env.CI_RUN_DIR}/dependencies"
+    def runtime = [:]
+    withEnv(["CI_PREBUILT_SOURCE=${source}", "CI_PREBUILT_PREFIX=${prefix}",
+             "CI_PREBUILT_DEPENDENCIES=${dependencies}",
+             "CI_PREBUILT_SCRIPT=${reporting.settings.prebuiltScript}",
+             "CI_PREBUILT_MPIEXEC=${launcher}"]) {
+        // Literal KEY=value lines avoid JSON APIs that need sandbox approval.
+        def output = sh(returnStdout: true, script: '''#!/bin/bash
+            set -euo pipefail
+            if [[ -n "${CI_BASELINE_DEPENDENCIES:-}" ]]; then
+                cmp "$CI_PREBUILT_SOURCE" "$CI_RUN_DIR/dependencies/source-config.mak" || {
+                    echo 'Prebuilt config changed during this run; start a new CI run.' >&2
+                    exit 1
+                }
+            fi
+            python3 -I "$CI_PREBUILT_SCRIPT" --config "$CI_PREBUILT_SOURCE" \
+                --prefix "$CI_PREBUILT_PREFIX" --dependencies "$CI_PREBUILT_DEPENDENCIES" \
+                --mpiexec "${CI_PREBUILT_MPIEXEC:-}" --format env
+        ''')
+        output.readLines().each { line ->
+            def fields = line.split('=', 2)
+            runtime[fields[0]] = fields[1]
+        }
+    }
+    env.LD_LIBRARY_PATH = runtime.LD_LIBRARY_PATH
+    env.GKEYLL_CI_DEPENDENCY_ENV = runtime.GKEYLL_CI_DEPENDENCY_ENV
+    if (runtime.MPI_HOME) {
+        env.MPI_HOME = runtime.MPI_HOME
+        env.OPAL_PREFIX = runtime.OPAL_PREFIX
+        env.PERSONAL_MPI_HOME = runtime.MPI_HOME
+    }
+    if (runtime.MPIEXEC) env.PERSONAL_MPIEXEC = runtime.MPIEXEC
+    writeFile file: 'alltargets.mak', text: '''.PHONY: all install
+all: gkeyll
+install: gkeyll
+	$(MAKE) gkeyll-install
+'''
+    echo "Using dependency copy at ${dependencies}; installing Gkeyll in ${prefix}"
+    return true
 }
 
 def configureAndCompileCRegressions(String label, String driver, String sourceDir, String prefix, String moduleFile, String runOptions = '', String configureOptions = '') {
-    return pipelineHelpers.configureAndCompileCRegressions(label, driver, sourceDir, prefix, moduleFile, buildJobs(), runOptions, configureOptions)
+    withEnv([
+        "CI_REGRESSION_LABEL=${label}",
+        "CI_REGRESSION_COMPILE_JOBS=${buildJobs()}",
+        "CI_REGRESSION_DRIVER=${driver}",
+        "CI_REGRESSION_SOURCE_DIR=${sourceDir}",
+        "CI_REGRESSION_PREFIX=${prefix}",
+        "CI_REGRESSION_MODULE_FILE=${moduleFile}",
+        "CI_REGRESSION_RUN_OPTIONS=${runOptions}",
+        "CI_REGRESSION_CONFIGURE_OPTIONS=${configureOptions}",
+        "CI_WORKSPACE=${env.WORKSPACE}"
+    ]) {
+        loggedSh("${label}-c-compile", '''#!/bin/bash -l
+            set -euo pipefail
+            . "$CI_REGRESSION_MODULE_FILE"
+            if [ -n "${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "$GKEYLL_CI_DEPENDENCY_ENV"; fi
+            "$CI_REGRESSION_DRIVER" runregression configure \
+                --source-dir "$CI_REGRESSION_SOURCE_DIR" \
+                --prefix "$CI_REGRESSION_PREFIX" ${CI_REGRESSION_CONFIGURE_OPTIONS:-}
+            started="$(date +%s)"
+            "$CI_REGRESSION_DRIVER" runregression run -c ${CI_REGRESSION_RUN_OPTIONS:-} --jobs "$CI_REGRESSION_COMPILE_JOBS" compile
+            elapsed="$(( $(date +%s) - started ))"
+            printf '%s\n' "$elapsed" > "$CI_WORKSPACE/$CI_REGRESSION_LABEL-c-compile-seconds.txt"
+            echo "$CI_REGRESSION_LABEL C-regression compile time: $elapsed seconds"
+        ''')
+    }
 }
 
 def finalizeUnfinishedSlurmJob() {
-    return pipelineHelpers.finalizeUnfinishedSlurmJob()
+    // Jenkins may terminate a durable-task process tree before its shell trap
+    // completes. Run this from the Pipeline finally block as a second chance
+    // to cancel a submitted job and preserve an abort-status artifact.
+    sh '''#!/bin/bash -l
+        set -euo pipefail
+
+        for id_file in slurm-*-job-id.txt; do
+            [[ -e "$id_file" ]] || continue
+            status_file="${id_file%-id.txt}-status.txt"
+            [[ -e "$status_file" ]] && continue
+
+            job_id="$(<"$id_file")"
+            if [[ ! "$job_id" =~ ^[0-9]+(_[0-9]+)?$ ]]; then
+                printf 'job_id=%s\nstate=UNKNOWN\nexit_code=\n' "$job_id" > "$status_file"
+                echo "WARNING: Cannot cancel malformed Slurm job ID '$job_id'" >&2
+                continue
+            fi
+
+            echo "Pipeline finalizer: cancelling unfinished Slurm job $job_id"
+            scancel "$job_id" || true
+            while :; do
+                state="$(squeue --noheader --jobs="$job_id" --format='%T' | head -n 1 || true)"
+                if [[ -z "$state" ]]; then
+                    break
+                fi
+                echo "Pipeline finalizer: waiting for job $job_id to stop (state: $state)"
+                sleep 5
+            done
+            printf 'job_id=%s\nstate=CANCELLED_BY_JENKINS\nexit_code=\n' "$job_id" > "$status_file"
+        done
+    '''
 }
 
 def writeCiTimingSummary() {
