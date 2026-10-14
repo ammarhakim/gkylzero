@@ -4391,7 +4391,8 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
     }
   }
   for (int i = 0; i < app->num_species; i++) {
-    if (app->species[i].info.is_static || i == app->field->adiab.species_idx) {
+    if (app->species[i].info.is_static || 
+        (app->field->has_adiabatic_species && i == app->field->gk_adiab.species_idx)) {
       gk_species_apply_ic(app, &app->species[i], 0.0);
     }
   }
