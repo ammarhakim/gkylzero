@@ -152,6 +152,71 @@ class FailureReportTests(unittest.TestCase):
         summary = json.loads(Path('diagnostics.json').read_text())
         self.assertEqual((summary['warnings'], summary['new_warnings'], summary['errors']), (2, 2, 1))
 
+    def test_kernel_warnings_are_excluded_but_errors_and_other_warnings_remain(self):
+        kernel = [
+            'ker/example.c:12:3: warning: generated kernel warning',
+            './core/ker/example.h:12: warning: generated kernel warning',
+            '../moments/ker/example.c:12:3: warning: generated kernel warning',
+            '/ci/run/vlasov/ker/example.c:12:3: warning: generated kernel warning',
+            'gyrokinetic/ker/example.cu(12): warning #177-D: generated kernel warning',
+            '"pkpm/ker/example.c"(12, 3): warning #167: generated kernel warning',
+            '\x1b[33mcustom/nested/ker/example.cpp:12:3: warning: generated kernel warning\x1b[0m',
+        ]
+        retained = [
+            'core/zero/example.c:12:3: warning: refers to ker/example.h',
+            'worker/example.c:12:3: warning: worker diagnostic',
+            'core/kernels/example.c:12:3: warning: different directory',
+            'core/zero/example.c:14:3: warning: outside kernel',
+            'warning: unknown source location',
+        ]
+        output = '\n'.join(kernel + retained + [
+            'In file included from core/ker/example.h:1:',
+            'core/zero/example.c:15:3: warning: included nonkernel header',
+            '  #include "ker/example.h"',
+            'core/ker/example.c:16:3: error: kernel compilation failed',
+        ])
+        for tree in ('candidate', 'baseline'):
+            self.write(tree + '-build.log', output)
+        self.write('baseline-build.log.exit', '0\n')
+        body = '\n'.join(report.diagnostic_sections('diagnostics.json', 'warnings.md'))
+        for rendered in (body, Path('warnings.md').read_text()):
+            self.assertNotIn('generated kernel warning', rendered)
+            for warning in retained:
+                self.assertIn(warning, log_text(rendered))
+            self.assertIn('included nonkernel header', rendered)
+        self.assertIn('kernel compilation failed', body)
+        summary = json.loads(Path('diagnostics.json').read_text())
+        self.assertEqual((summary['warnings'], summary['new_warnings'], summary['errors']), (12, 0, 2))
+        self.assertEqual(Path('candidate-build.log').read_text(), output)
+
+    def test_candidate_only_kernel_warning_is_not_new(self):
+        self.write('baseline-build.log', '')
+        self.write('baseline-build.log.exit', '0\n')
+        self.write('candidate-build.log', 'ker/example.c:1: warning: generated warning\n')
+        report.diagnostic_sections('diagnostics.json')
+        summary = json.loads(Path('diagnostics.json').read_text())
+        self.assertEqual((summary['warnings'], summary['new_warnings']), (0, 0))
+
+    def test_fast_math_warnings_are_archived_but_not_posted_or_counted(self):
+        suppressed = 'zero/math.c:51:13: warning: use of infinity is undefined behavior [-Wnan-infinity-disabled]'
+        retained = 'zero/util.c:269:12: warning: discards qualifiers [-Wincompatible-pointer-types-discards-qualifiers]'
+        self.write('baseline-build.log', suppressed)
+        self.write('baseline-build.log.exit', '0\n')
+        self.write('candidate-build.log', suppressed + '\n' + retained)
+        self.write('candidate-unmatched.log', suppressed)
+        self.write('candidate-test.log', 'WARNING: runtime NaN detected\nERROR: infinity detected\n')
+        body = '\n'.join(report.diagnostic_sections('diagnostics.json', 'warnings.md'))
+        self.assertNotIn('[-Wnan-infinity-disabled]', body)
+        self.assertIn(retained, log_text(body))
+        self.assertIn('WARNING: runtime NaN detected', body)
+        self.assertIn('ERROR: infinity detected', body)
+        self.assertIn('All compiler and other warnings (2)', body)
+        self.assertIn('New compiler and other warnings vs main (1)', body)
+        self.assertIn(suppressed, log_text(Path('warnings.md').read_text()))
+        summary = json.loads(Path('diagnostics.json').read_text())
+        self.assertEqual((summary['warnings'], summary['new_warnings'],
+                          summary['unclassified_warnings'], summary['errors']), (2, 1, 1, 1))
+
     def test_timestep_groups_keep_tests_thresholds_and_other_warnings_separate(self):
         def warning(path, line, dt, threshold='0.001', failures=1):
             return '{}:{}: WARNING: Time-step dt = {} is below {}*dt_init ... num_failures = {}'.format(

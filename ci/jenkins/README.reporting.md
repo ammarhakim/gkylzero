@@ -128,6 +128,21 @@ paths, ANSI colors, and source line/column changes. Missing or failed steps show
 comparison as unavailable; unmatched/shared warnings remain in their **All** section.
 HPC builds baseline unit tests too, providing corresponding compiler diagnostics.
 
+Compiler warnings whose source path contains a `ker/` directory component are
+excluded from warning sections, comparisons, counts, and `ci-report-warnings.md`.
+This applies to all layers and both candidate and baseline builds. Kernel errors
+are still reported, and raw logs (including failure excerpts) remain unfiltered.
+Only identifiable source locations are filtered; diagnostics whose paths were
+destroyed by interleaved compiler output remain visible rather than guessing
+their origin. Paths mentioned in messages or include context do not suppress
+warnings originating outside `ker/`.
+
+Warnings tagged `[-Wnan-infinity-disabled]` are omitted from GitHub warning
+sections and the counts in `ci-diagnostic-summary.json`, including new and
+unclassified warning counts. They remain in `ci-report-warnings.md` (unless
+excluded by the kernel rule above) and raw logs. This reporting filter does not
+change compiler flags or suppress runtime NaN/infinity diagnostics or errors.
+
 Warnings are split into **Compiler and other warnings** and **Time-step warnings**,
 each with **New ... vs baseline** and **All ...** collapsed sections. Small-time-step
 warnings (`WARNING: Time-step ...`) appear only in the time-step sections, including
@@ -141,7 +156,7 @@ and threshold, showing the line range, time-step range, and maximum `num_failure
 Counts describe occurrences in **All** sections and distinct new messages in **New**
 sections. Grouping changes display only; baseline comparison and aggregate warning
 counts in `ci-diagnostic-summary.json` stay the same. The complete new/all warning
-sections, split into the same categories and including every captured occurrence
+sections, split into the same categories and including every nonexcluded occurrence
 and its context, are retained in `ci-report-warnings.md` in Jenkins artifacts.
 Many compiler warnings or errors can still produce continuation comments; none
 are omitted or truncated to shorten the report.

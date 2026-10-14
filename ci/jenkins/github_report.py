@@ -264,6 +264,22 @@ ERROR_LINE = re.compile(
 # Compiler and runtime diagnostics, including GCC/Clang, NVCC and Intel forms.
 WARNING_LINE = re.compile(r"\bwarning\b(?:\s*#?\d+)?\s*[:\[]|\bWARNING\b", re.I)
 ANSI = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
+# Source locations in GCC/Clang and NVCC/Intel diagnostics. Match the
+# originating file, not paths mentioned in the message or include context.
+WARNING_SOURCE = re.compile(
+    r'^\s*"?(?P<path>[^"\n]+?)"?(?::\d+(?::\d+)?|\(\d+(?:,\s*\d+)?\))\s*:\s*'
+    r'warning\b', re.I)
+
+
+def kernel_warning(line):
+    match = WARNING_SOURCE.match(line)
+    return bool(match and 'ker' in match.group('path').replace('\\', '/').split('/'))
+
+
+def github_warning(entry):
+    # Inspect only the diagnostic, not source/caret context. Keep these
+    # compiler warnings in the archive, but omit them from GitHub reporting.
+    return '[-Wnan-infinity-disabled]' not in entry.split('\n', 1)[0]
 
 
 def log_paths():
@@ -394,7 +410,7 @@ def diagnostic_sections(summary_output=None, full_warnings_output=None):
                 context.append(following)
             if context:
                 entry += '\n' + '\n'.join(context)
-            if WARNING_LINE.search(line):
+            if WARNING_LINE.search(line) and not kernel_warning(line):
                 warnings.append(entry)
                 key = warning_key(line)
                 if is_baseline:
@@ -415,8 +431,9 @@ def diagnostic_sections(summary_output=None, full_warnings_output=None):
         note += ' This run selected a baseline other than main.'
     if not comparable:
         note = 'Comparison unavailable: no matching completed baseline build logs. Warnings cannot be classified as new.'
-    elif unknown:
-        note += '\n{} distinct candidate warnings could not be compared because their baseline step did not complete.'.format(len(unknown))
+    elif any(github_warning(entry) for entry in unknown):
+        note += '\n{} distinct candidate warnings could not be compared because their baseline step did not complete.'.format(
+            sum(github_warning(entry) for entry in unknown))
     sections, full = [], []
     for label, timestep in (('compiler and other warnings', False), ('time-step warnings', True)):
         def in_category(entry):
@@ -433,13 +450,19 @@ def diagnostic_sections(summary_output=None, full_warnings_output=None):
         if full_warnings_output:
             full += detail_sections(title, note + '\n\n' + ('\n\n'.join(category_new) or empty))
             full += detail_sections(all_title, '\n\n'.join(category_all) or 'No warnings found in captured logs.')
+        category_new = [entry for entry in category_new if github_warning(entry)]
+        category_all = [entry for entry in category_all if github_warning(entry)]
+        title = 'New {} vs {} ({})'.format(label, ref, len(category_new) if comparable else 'unknown')
+        all_title = 'All {} ({})'.format(label, len(category_all))
         displayed_new = group_timestep_warnings(category_new) if timestep else category_new
         displayed_all = group_timestep_warnings(category_all, 'warning occurrences') if timestep else category_all
         sections += detail_sections(title, note + '\n\n' + ('\n\n'.join(displayed_new) or empty))
         all_note = 'Warning occurrences across captured candidate, baseline, and shared logs. '
         if timestep:
             all_note += 'Repeated time-step warnings are grouped per log/test and threshold. '
-        all_note += 'Every original occurrence and its context is retained in ci-report-warnings.md.'
+        all_note += ('Warnings originating in ker/ directories are excluded; raw logs retain them. '
+                     'NaN/infinity fast-math compiler warnings are omitted from GitHub reporting. '
+                     'Every reported occurrence and its context is retained in ci-report-warnings.md.')
         sections += detail_sections(all_title, all_note + '\n\n' + (
             '\n\n'.join(displayed_all) or 'No warnings found in captured logs.'))
     if full_warnings_output:
@@ -448,8 +471,9 @@ def diagnostic_sections(summary_output=None, full_warnings_output=None):
     sections += detail_sections('All errors ({})'.format(len(errors)), '\n\n'.join(errors) or 'No recognised error lines in captured logs; see failure details for command exits and infrastructure failures.')
     if summary_output:
         with open(summary_output, 'w', encoding='utf-8') as stream:
-            json.dump({'warnings': len(warnings), 'new_warnings': len(new) if comparable else None,
-                       'unclassified_warnings': len(unknown), 'errors': len(errors),
+            json.dump({'warnings': sum(github_warning(entry) for entry in warnings),
+                       'new_warnings': sum(github_warning(entry) for entry in new) if comparable else None,
+                       'unclassified_warnings': sum(github_warning(entry) for entry in unknown), 'errors': len(errors),
                        'captured_logs': len(paths), 'captured_log_paths': paths}, stream)
     return sections
 
