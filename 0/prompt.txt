@@ -1,0 +1,31 @@
+I recieved this comment. Please explain if these changes are neccisary. If there is an issue, please provide an example
+
+Collapse commentComment on line R433manauref commented on Oct 14, 2026 manaurefon Oct 14, 2026CollaboratorMore actionsI don't think the changes in this file are warranted. I've produced exact particle and energy balance on multiple GPUs (see nonuniform v paper).ReactWrite a replyResolve commentFix with CopilotAdd to batch
+      bool owns_boundary = bflux->boundaries_edge[b] == GKYL_LOWER_EDGE ?
+                             app->local.lower[dir] == app->global.lower[dir] :
+                             app->local.upper[dir] == app->global.upper[dir];
+      gkyl_array_integrate_advance(
+        bflux->integ_op[m], bflux->f[b * bflux->num_calc_moms + int_mom_idx],
+        owns_boundary ? 1.0 : 0.0, 0, bflux->boundaries_conf_ghost[b], 0, bflux->int_moms_local
+      );
+
+---
+
+I recieved this comment. Please explain if these changes are neccisary. If there is an issue, please provide an example
+
+Collapse commentComment on line R433manauref commented on Oct 14, 2026 manaurefon Oct 14, 2026CollaboratorMore actionsI don't think the changes in this file are warranted. I've produced exact particle and energy balance on multiple GPUs (see nonuniform v paper).ReactWrite a replyResolve commentFix with CopilotAdd to batch
+      bool owns_boundary = bflux->boundaries_edge[b] == GKYL_LOWER_EDGE ?
+                             app->local.lower[dir] == app->global.lower[dir] :
+                             app->local.upper[dir] == app->global.upper[dir];
+      gkyl_array_integrate_advance(
+        bflux->integ_op[m], bflux->f[b * bflux->num_calc_moms + int_mom_idx],
+        owns_boundary ? 1.0 : 0.0, 0, bflux->boundaries_conf_ghost[b], 0, bflux->int_moms_local
+      );
+
+---
+
+Clarify the comment
+
+---
+
+Clarify the comment
