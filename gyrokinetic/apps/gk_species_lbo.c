@@ -170,7 +170,7 @@ gklbo_calc_cross_prim_moms(
 
   struct gkyl_array *cross_prim_moms = lbo->nu_boundary_corrections;
 
-  // Floor the cell-average of vtSq_{sr} to zero, setting the rest of the coefficients to zero as well
+  // Floor vtSq_{sr} to the minimum representable value, zeroing higher coefficients when floored.
   gkyl_array_set_offset_range(
     lbo->cross_vtsq, 1.0, cross_prim_moms, 1 * app->basis.num_basis, &app->local
   );
@@ -401,6 +401,16 @@ gk_species_lbo_init(
 
     double nu_frac = gks->info.collisions.nu_frac ? gks->info.collisions.nu_frac : 1.0;
 
+    double bmag_ref = gks->info.collisions.bmag_ref ? gks->info.collisions.bmag_ref : app->bmag_ref;
+
+    // Compute a minimum representable temperature based on the smallest dv in the grid.
+    double dv_min[vdim];
+    gkyl_velocity_map_reduce_dv_range(gks->vel_map, GKYL_MIN, dv_min, gks->vel_map->local_vel);
+
+    double tpar_min = (gks->info.mass / 6.0) * pow(dv_min[0], 2);
+    double tperp_min = vdim > 1 ? (bmag_ref / 3.0) * dv_min[1] : tpar_min;
+    lbo->vtsq_min = (tpar_min + 2.0 * tperp_min) / (3.0 * gks->info.mass);
+
     if (gks->info.collisions.self_nu) {
       // Project user's self-species collision frequency.
       lbo->norm_nu_self = false;
@@ -427,16 +437,6 @@ gk_species_lbo_init(
       double eps0 = gks->info.collisions.eps0 ? gks->info.collisions.eps0 : GKYL_EPSILON0;
       double hbar = gks->info.collisions.hbar ? gks->info.collisions.hbar :
                                                 GKYL_PLANCKS_CONSTANT_H / 2 / M_PI;
-      double bmag_ref = gks->info.collisions.bmag_ref ? gks->info.collisions.bmag_ref :
-                                                        app->bmag_ref;
-
-      // Compute a minimum representable temperature based on the smallest dv in the grid.
-      double dv_min[vdim];
-      gkyl_velocity_map_reduce_dv_range(gks->vel_map, GKYL_MIN, dv_min, gks->vel_map->local_vel);
-
-      double tpar_min = (gks->info.mass / 6.0) * pow(dv_min[0], 2);
-      double tperp_min = vdim > 1 ? (bmag_ref / 3.0) * dv_min[1] : tpar_min;
-      lbo->vtsq_min = (tpar_min + 2.0 * tperp_min) / (3.0 * gks->info.mass);
 
       lbo->spitzer_calc =
         gkyl_spitzer_coll_freq_new(&app->basis, app->poly_order + 1, 1.0, 1.0, 1.0, app->use_gpu);
@@ -555,7 +555,8 @@ gk_species_lbo_cross_init(
       // Scratch space for flooring the vtSq component of the cross-prim moments.
       lbo->cross_vtsq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
       lbo->cross_vtsq_floor = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-      gkyl_array_clear(lbo->cross_vtsq_floor, 0.0); // Floor value of zero.
+      gkyl_array_clear(lbo->cross_vtsq_floor, 0.0);
+      gkyl_array_shiftc(lbo->cross_vtsq_floor, lbo->vtsq_min * pow(sqrt(2.0), app->cdim), 0);
 
       for (int i = 0; i < lbo->num_cross_collisions; ++i) {
         // Cross-species collision frequency, nu_sr.
