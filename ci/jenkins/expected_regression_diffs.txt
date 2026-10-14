@@ -84,3 +84,7 @@
   gyrokinetic/creg/rt_gk_wham_nonuniformx_1x2v_p1   # Bugs were fixed in the geometry modules
   gyrokinetic/creg/rt_gk_wham_nonuniformx_2x2v_p1   # Bugs were fixed in the geometry modules
   gyrokinetic/creg/rt_gk_wham_nonuniformx_3x2v_p1   # Bugs were fixed in the geometry modules
+  gyrokinetic/creg/rt_gk_mirror_boltz_elc_poa_2x2v_p1	# Bugs were fixed in the geometry modules
+gyrokinetic/creg/rt_gk_mirror_kinetic_elc_poa_1x2v_p1	# Bugs were fixed in the geometry modules
+gyrokinetic/creg/rt_gk_mirror_tandem_boltz_elc_poa_1x2v	# Bugs were fixed in the geometry modules
+gyrokinetic/creg/rt_gk_wham_kinetic_poa_1x2v_p1 # Bugs were fixed in the geometry modules
