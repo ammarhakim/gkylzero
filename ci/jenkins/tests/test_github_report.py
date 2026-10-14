@@ -84,6 +84,29 @@ class FailureReportTests(unittest.TestCase):
         self.assertEqual(Path('baseline-install-seconds.txt').read_text(), '3661\n')
         self.assertEqual(Path('candidate-install.log.exit').read_text(), '2\n')
 
+    def test_statistics_preserves_run_metadata(self):
+        metadata = {
+            'baseline-slurm-parallel-regression-job-id.txt': '2963900\n',
+            'slurm-regression-job-id.txt': '2963976\n',
+            'slurm-parallel-regression-job-status.txt': 'State=FAILED\nExitCode=1:0\n',
+            'ci-regression-summary.txt': 'passed=3\nfailed=1\n',
+            'ci-parallel-regression-summary.txt': 'passed=2\n',
+            'ci-failure-summary.txt': 'failure <detail> | context\n',
+            'ci-report-delivery.json': '{"comment": false, "errors": ["offline"]}',
+            'ci-candidate-commit.txt': 'a' * 40 + '\n',
+            'ci-run-path.txt': '/runs/11\n',
+            'ci-baseline-cache.txt': 'hit\n',
+        }
+        for path, value in metadata.items():
+            self.write(path, value)
+        report.main(['statistics'])
+        text = Path('ci-statistics.md').read_text()
+        for path, value in metadata.items():
+            escaped = report.html.escape(value.rstrip('\n')).replace('|', '&#124;').replace('\n', '<br>')
+            self.assertIn('| {} | {} |'.format(path, escaped), text)
+            self.assertEqual(Path(path).read_text(), value)
+        self.assertIn('State=FAILED<br>ExitCode=1:0', text)
+
     def test_statistics_handles_early_failure_and_malformed_measurements(self):
         report.main(['statistics'])
         self.assertIn('# CI statistics', Path('ci-statistics.md').read_text())

@@ -45,7 +45,7 @@ def statisticsArchiveExcludes() {
         dir(settings.workspace) {
             runReporter('statistics')
         }
-        return '*-seconds.txt,*.log.exit,ci-command-logs/*.log.exit,ci-timing-summary.txt'
+        return '*-seconds.txt,*.log.exit,ci-command-logs/*.log.exit,ci-timing-summary.txt,slurm-*-job-id.txt,slurm-*-job-status.txt,baseline-slurm-*-job-id.txt,baseline-slurm-*-job-status.txt,ci-*-summary.txt,ci-report-delivery.json,ci-run-path.txt,ci-*-commit.txt,ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt'
     } catch (err) {
         // Preserve the original artifacts if consolidation is unavailable.
         echo "WARNING: could not consolidate CI statistics: ${err}"

@@ -40,7 +40,7 @@ assert files['/workspace@tmp/github_report.py'] == '# trusted source'
 assert files['ci-trusted-ci-commit.txt'] == 'b' * 40 + '\n'
 assert files['ci-reporting-commit.txt'] == 'c' * 40 + '\n'
 
-assert script.statisticsArchiveExcludes() == '*-seconds.txt,*.log.exit,ci-command-logs/*.log.exit,ci-timing-summary.txt'
+assert script.statisticsArchiveExcludes() == '*-seconds.txt,*.log.exit,ci-command-logs/*.log.exit,ci-timing-summary.txt,slurm-*-job-id.txt,slurm-*-job-status.txt,baseline-slurm-*-job-id.txt,baseline-slurm-*-job-status.txt,ci-*-summary.txt,ci-report-delivery.json,ci-run-path.txt,ci-*-commit.txt,ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt'
 assert commands.last().endsWith(' statistics')
 def originalShell = binding.getVariable('sh')
 binding.setVariable('sh', { String command -> throw new RuntimeException('statistics fixture') })

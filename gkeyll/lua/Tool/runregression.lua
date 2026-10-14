@@ -1479,22 +1479,20 @@ local function compareFiles(f1, f2, absTol, relTol)
       end
 
       if f1type == "dynvector" then
-         local diff = G0.Zero.dynvecDiff(f1, f2)
+         local diff = G0.Zero.dynvecDiff(f1, f2, absTol, relTol)
          if not diff.is_compatible then
             verboseLog("    ... dynvector files not compatible (size/type mismatch or read failure)\n")
             return false, "dynvec not compatible"
          end
-         -- Combined tolerance: fail only when BOTH absolute and relative
-         -- thresholds are exceeded.  This avoids false failures for near-zero
-         -- values (tiny abs but large rel%) and for large values (large abs but
-         -- tiny rel%).  When max_abs_diff is 0, the abs check is false so the
-         -- condition short-circuits (handles the 0/0 → DBL_MAX rel case).
-         if diff.max_abs_diff > absTol and diff.max_rel_diff > relTol then
+         local maxAbsDiff = math.max(math.abs(diff.max_abs_diff), math.abs(diff.min_abs_diff))
+         -- Extrema may come from different components or times. The native
+         -- reader applies both tolerances to each value before reducing.
+         if not diff.within_tolerance then
             verboseLog(string.format(
                "    ... dynvec max abs diff %g (tol %g), max rel diff %g (tol %g)\n",
-               diff.max_abs_diff, absTol, diff.max_rel_diff, relTol))
+               maxAbsDiff, absTol, diff.max_rel_diff, relTol))
             return false, string.format("dynvec max_abs=%.3g max_rel=%.3g",
-               diff.max_abs_diff, diff.max_rel_diff)
+               maxAbsDiff, diff.max_rel_diff)
          end
          if diff.tm_max_abs_diff > 1e-10 then
             verboseLog(string.format(
@@ -1548,20 +1546,14 @@ local function compareFiles(f1, f2, absTol, relTol)
       local r1, er1 = G0.Zero.createGridRanges(g1, nghost)
       local r2, er2 = G0.Zero.createGridRanges(g2, nghost)
 
-      local diff = G0.Zero.arrayDiff(a1, a2, r1)
+      local diff = G0.Zero.arrayDiff(a1, a2, r1, absTol, relTol)
 
       if not diff.is_compatible then return false, "incompatible arrays" end
       -- arrayDiff returns signed extrema of (accepted - candidate). Use both
       -- ends so increases in candidate values cannot evade the absolute check.
       local maxAbsDiff = math.max(math.abs(diff.max_abs_diff), math.abs(diff.min_abs_diff))
-      -- Combined tolerance: fail only when BOTH absolute and relative thresholds
-      -- are exceeded.  Near-zero values naturally have large relative differences
-      -- (e.g. 1e-15 vs -1e-15 → rel=200%) but negligible absolute differences;
-      -- large values can have large absolute differences but tiny relative
-      -- differences.  Failing on either alone produces false positives.
-      -- When max_abs_diff is 0, the condition short-circuits safely (handles the
-      -- 0/0 → DBL_MAX rel case from gkyl_array_diff).
-      if maxAbsDiff > absTol and diff.max_rel_diff > relTol then
+      -- Apply absolute and relative tolerances to the same array element.
+      if not diff.within_tolerance then
          verboseLog(string.format(
             "    ... max abs diff %g (tol %g), max rel diff %g (tol %g)\n",
             maxAbsDiff, absTol, diff.max_rel_diff, relTol))

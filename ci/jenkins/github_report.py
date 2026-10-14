@@ -682,6 +682,20 @@ def write_statistics(args):
             label = '[{}]({})'.format(label, urllib.parse.quote(log))
         result = 'Success' if value == '0' else ('Failed' if re.fullmatch(r'-?\d+', value) else 'Unknown')
         lines.append('| {} | {} | {} |'.format(label, cell(value), result))
+    # Preserve complete metadata, including repeated keys and multiline statuses.
+    metadata_patterns = (
+        'slurm-*-job-id.txt', 'slurm-*-job-status.txt',
+        'baseline-slurm-*-job-id.txt', 'baseline-slurm-*-job-status.txt',
+        'ci-*-summary.txt', 'ci-report-delivery.json', 'ci-run-path.txt',
+        'ci-*-commit.txt', 'ci-selection.txt', 'ci-baseline-preflight.txt',
+        'ci-baseline-cache.txt',
+    )
+    paths = sorted({path for pattern in metadata_patterns for path in glob.glob(pattern)}
+                   - {'ci-timing-summary.txt'})
+    if paths:
+        lines += ['', '## Run metadata', '', '| Source file | Contents |', '| --- | --- |']
+        for path in paths:
+            lines.append('| {} | {} |'.format(cell(path), cell(read_text(path).rstrip('\n'))))
     with open('ci-statistics.md', 'w', encoding='utf-8') as stream:
         stream.write('\n'.join(lines) + '\n')
 

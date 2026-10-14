@@ -180,6 +180,14 @@ default 16-slot budget, four four-rank tests can run concurrently; available
 slots are reused as tests finish. These settings apply to both baseline and
 candidate runs.
 
+Parallel regressions disable Open MPI's HCOLL component and select tuned
+recursive-doubling allreduce (`coll_tuned_allreduce_algorithm=3`) for both baseline
+creation and candidate checks. This fixes the rank-based summation order for a
+given rank count; reduction roundoff can otherwise affect integrated diagnostics
+and feed back into adaptive sources. The parallel Slurm payload is included in
+the baseline-cache fingerprint, so changing this policy regenerates the baseline
+once. Existing baselines made with another reduction policy must not be reused.
+
 ### Verify the compute-node Perl runtime
 
 The regression runner uses Perl's `Time::HiRes` module for execution timings.

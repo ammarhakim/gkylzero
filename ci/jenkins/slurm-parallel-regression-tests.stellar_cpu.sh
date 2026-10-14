@@ -10,6 +10,16 @@ cd "$CI_WORKSPACE"
 . machines/module_load.stellar-intel.sh
 if [ -n "${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "$GKEYLL_CI_DEPENDENCY_ENV"; fi
 
+# Collective implementations can use different floating-point sum trees. Use
+# Open MPI's rank-ordered recursive doubling for reproducible CI baselines
+# and candidate runs, including reductions feeding adaptive sources.
+export OMPI_MCA_coll_hcoll_enable=0
+export OMPI_MCA_coll_tuned_use_dynamic_rules=1
+export OMPI_MCA_coll_tuned_allreduce_algorithm=3
+printf 'MPI regression policy: hcoll=%s tuned_dynamic=%s allreduce=%s\n' \
+  "$OMPI_MCA_coll_hcoll_enable" "$OMPI_MCA_coll_tuned_use_dynamic_rules" \
+  "$OMPI_MCA_coll_tuned_allreduce_algorithm"
+
 baseline_gkeyll="$CI_BASELINE_PREFIX/gkeyll/bin/gkeyll"
 regression_jobs="${CI_REGRESSION_JOBS:-4}"
 

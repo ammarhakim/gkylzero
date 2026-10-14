@@ -88,10 +88,12 @@ GKEYLL=/path/to/gkeyll/bin/gkeyll python3 -m unittest -v ci.jenkins.tests.test_r
 ## Regression scheduling and output
 
 The Stellar resource-request fixture checks that serial CPU allocations match
-the worker budget and MPI allocations provide one CPU per rank slot:
+the worker budget and MPI allocations provide one CPU per rank slot. The MPI
+policy fixtures also check baseline/candidate environments and cache invalidation:
 
 ```sh
 java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/tests/test_stellar_resources.groovy
+python3 -m unittest -v ci.jenkins.tests.test_stellar_mpi_policy
 ```
 
 The scheduler fixtures use tiny shell/make jobs, not plasma simulations:

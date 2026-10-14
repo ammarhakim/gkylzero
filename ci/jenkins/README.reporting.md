@@ -189,6 +189,19 @@ Artifacts include `ci-report.md` (posted report), `ci-report.md.json` (pages),
 `ci-stage-timings.json`. The captured-log inventory is artifact-only, in
 `ci-diagnostic-summary.json` as `captured_log_paths` and count `captured_logs`.
 
+Small timing, command-exit, Slurm job-ID/status, regression/failure-summary,
+provenance, cache, and report-delivery files are consolidated into
+`ci-statistics.md` before archiving. The original files remain in the workspace
+for CI and cache readers, but are excluded from Jenkins artifacts only after
+consolidation succeeds. Full logs, result databases, and detailed report JSON
+remain separate artifacts.
+
+Deploy both `jenkins_reporting.groovy` and `github_report.py` in the trusted
+reporting revision to enable consolidation; updating only the candidate checkout
+is insufficient. If the trusted reporter is older or consolidation fails, Jenkins
+logs a warning and archives the original files to preserve diagnostics. Existing
+build artifacts are not rewritten by this change.
+
 ## Setup resource failures and early reports
 
 Containerized personal/team agents need an init process to reap orphaned

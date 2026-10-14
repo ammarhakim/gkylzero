@@ -44,6 +44,20 @@ def field_file(value):
             1, 1, 0, 2, 1, 1, 0., 1., 8, 1, value))
 
 
+def vector_field_file(values):
+    # One cell with several components (potentially different physical units).
+    return (b'gkyl0' + struct.pack('=QQQQQQddQQ',
+            1, 1, 0, 2, 1, 1, 0., 1., 8 * len(values), 1)
+            + struct.pack('=%dd' % len(values), *values))
+
+
+def dynvector_file(values):
+    # One timestamp with several integrated diagnostics.
+    return (b'gkyl0' + struct.pack('=QQQQQQd',
+            1, 2, 0, 2, 8 * len(values), 1, 0.)
+            + struct.pack('=%dd' % len(values), *values))
+
+
 def parallel_field_file(tot_cells=6):
     # Two uneven MPI blocks, with a 2D grid and two values per cell.
     header = (b'gkyl0' + struct.pack('=QQQ', 1, 3, 0)
@@ -138,6 +152,37 @@ assert(detail:find(%s, 1, true), detail)
     def test_block_data_within_tolerance(self):
         (self.run / 'rt_fixture_b0-euler_0.gkyl').write_bytes(field_file(1. + 1e-13))
         self.check()
+
+    def test_tolerances_are_applied_to_each_value(self):
+        name = 'rt_fixture_b0-euler_0.gkyl'
+        for writer in (vector_field_file, dynvector_file):
+            with self.subTest(writer=writer.__name__):
+                (self.accepted / name).write_bytes(writer([1e18, 1e-20]))
+                (self.run / name).write_bytes(writer([1e18 + 256, 2e-20]))
+                self.check()
+
+    def test_real_difference_in_either_direction(self):
+        name = 'rt_fixture_b0-euler_0.gkyl'
+        for writer in (vector_field_file, dynvector_file):
+            for value in (1. - 1e-6, 1. + 1e-6):
+                with self.subTest(writer=writer.__name__, value=value):
+                    (self.accepted / name).write_bytes(writer([1e18, 1.]))
+                    (self.run / name).write_bytes(writer([1e18, value]))
+                    self.check(False, name + '  [DIFF]')
+
+    def test_nonfinite_values_must_match(self):
+        name = 'rt_fixture_b0-euler_0.gkyl'
+        for writer in (vector_field_file, dynvector_file):
+            for value in (float('nan'), float('inf'), -float('inf')):
+                with self.subTest(writer=writer.__name__, value=value):
+                    for directory in (self.accepted, self.run):
+                        (directory / name).write_bytes(writer([1., value]))
+                    self.check()
+                    (self.run / name).write_bytes(writer([1., 0.]))
+                    self.check(False, name + '  [DIFF]')
+                    (self.accepted / name).write_bytes(writer([1., 0.]))
+                    (self.run / name).write_bytes(writer([1., value]))
+                    self.check(False, name + '  [DIFF]')
 
     def test_parallel_arrays(self):
         for directory in (self.accepted, self.run):
