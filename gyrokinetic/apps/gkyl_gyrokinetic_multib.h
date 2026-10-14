@@ -34,7 +34,12 @@ struct gkyl_gyrokinetic_multib_species {
   enum gkyl_distribution_moments
     integrated_diag_moments[12]; // List of integrated diagnostic moments.
   bool time_rate_diagnostics; // Whether to ouput df/dt diagnostics.
-  bool omegaH_dt_diagnostic; // Whether to output the omega_H stable time step as a dynvector.
+  // Write <app>-<species>_frequencies_max.gkyl at integrated diagnostic times
+  // for evolving species. Components: omega_H, thermal transit, transit_max,
+  // transit_min, omega_d (thermal magnetic drift), and nu (collisions), in 1/s.
+  // File metadata defines scales and reductions for each component.
+  // Reductions are within each block in multiblock runs.
+  bool frequency_diagnostics;
 
   struct gkyl_phase_diagnostics_inp boundary_flux_diagnostics;
 

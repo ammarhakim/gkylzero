@@ -40,12 +40,13 @@ gk_species_gyroaverage_enabled(
   app->stat.species_gyroavg_tm += gkyl_time_diff_now_sec(wst);
 }
 
-// Begin static function definitions.
-static double
-gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin)
+double
+gk_species_omegaH_frequency(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin
+)
 {
-  // Compute the time step under which the omega_H mode is stable, dt_omegaH =
-  // omegaH_CFL/omega_H.
+  // Compute omega_H without a CFL factor; the time-step constraint uses
+  // dt_omegaH = omegaH_CFL/omega_H.
   // Each species computes its own omega_H as:
   //   omega_H = q_e*sqrt(jacobgeo*n_{s0}/m_s) * omegaH_gf
   // where
@@ -75,10 +76,17 @@ gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const st
     double omegaH = fabs(gks->info.charge) * sqrt(GKYL_MAX2(0.0, m0_max[0]) / gks->info.mass) *
                     app->omegaH_gf * time_dilation_scale_const * gks->collisionless.scale_fac;
 
-    return omegaH > 1e-20 ? app->cfl_omegaH / omegaH : DBL_MAX;
+    return omegaH;
   } else {
-    return DBL_MAX;
+    return 0.0;
   }
+}
+
+static double
+gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin)
+{
+  double omegaH = gk_species_omegaH_frequency(app, gks, fin);
+  return omegaH > 1e-20 ? app->cfl_omegaH / omegaH : DBL_MAX;
 }
 
 static double
@@ -707,13 +715,8 @@ gk_species_calc_integrated_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_spec
   }
   gkyl_dynvec_append(gks->integ_diag, tm, avals_global);
 
-  if (gks->info.omegaH_dt_diagnostic) {
-    double omegaH_dt_local = gk_species_omegaH_dt(app, gks, gks->f);
-    double omegaH_dt_global = DBL_MAX;
-    gkyl_comm_allreduce_host(
-      app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &omegaH_dt_local, &omegaH_dt_global
-    );
-    gkyl_dynvec_append(gks->omegaH_dt, tm, &omegaH_dt_global);
+  if (gks->info.frequency_diagnostics) {
+    gk_species_frequencies_calc(app, gks, tm);
   }
 
   if (gks->info.time_rate_diagnostics) {
@@ -778,35 +781,8 @@ gk_species_write_integrated_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_spe
   gkyl_dynvec_clear(gks->integ_diag);
   app->stat.n_diag_io += 1;
 
-  if (gks->info.omegaH_dt_diagnostic) {
-    if (rank == 0) {
-      const char *fmt = "%s-%s_omegaH_dt.gkyl";
-      int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name);
-      char fileNm[sz + 1];
-      snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name);
-
-      if (gks->is_first_omegaH_dt_write_call) {
-        struct gkyl_msgpack_map_elem io_meta_omegaH_dt[] = {{
-          .key = "Description",
-          .elem_type = GKYL_MP_STRING,
-          .cval = "Stable time step for the omega_H mode for this charged species.",
-        }};
-        int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
-        const struct gkyl_msgpack_map_elem *io_meta[] = {
-          gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_omegaH_dt
-        };
-        struct gkyl_msgpack_data *mt =
-          gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
-
-        gkyl_dynvec_write_wmeta(gks->omegaH_dt, fileNm, mt);
-        gks->is_first_omegaH_dt_write_call = false;
-        gkyl_msgpack_data_release(mt);
-      } else {
-        gkyl_dynvec_awrite(gks->omegaH_dt, fileNm);
-      }
-    }
-    gkyl_dynvec_clear(gks->omegaH_dt);
-    app->stat.n_diag_io += 1;
+  if (gks->info.frequency_diagnostics) {
+    gk_species_frequencies_write(app, gks);
   }
 
   if (gks->info.time_rate_diagnostics) {
@@ -999,8 +975,8 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app *app, const struct gk_spec
 
   // Release integrated diag memory.
   gkyl_dynvec_release(gks->integ_diag);
-  if (gks->info.omegaH_dt_diagnostic) {
-    gkyl_dynvec_release(gks->omegaH_dt);
+  if (gks->info.frequency_diagnostics) {
+    gk_species_frequencies_release(app, gks);
   }
   if (app->use_gpu) {
     gkyl_cu_free(gks->red_integ_diag);
@@ -1084,9 +1060,8 @@ gk_species_init_dynamic(
   gks->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, gks->integ_moms.num_mom);
   gks->is_first_integ_write_call = true;
 
-  if (gks->info.omegaH_dt_diagnostic) {
-    gks->omegaH_dt = gkyl_dynvec_new(GKYL_DOUBLE, 1);
-    gks->is_first_omegaH_dt_write_call = true;
+  if (gks->info.frequency_diagnostics) {
+    gk_species_frequencies_init(app, gks);
   }
 
   // Allocate dynamic-vector to store Delta f integrated moments.
