@@ -4,15 +4,6 @@
 #include <gkyl_dg_gr_maxwell_surf_and_vol_nodes.h>
 #include <gkyl_vlasov_triad_geom.h>
 
-// Configuration-space c2p for sampling the GR geometry at physical coordinates
-// on a non-uniform conf mesh via the position map (identity map => identity
-// c2p, so uniform grids are unaffected).
-static void
-vm_geom_pos_c2p(const double *xcomp, double *xphys, void *ctx)
-{
-  gkyl_vlasov_position_map_eval_mc2p((struct gkyl_vlasov_position_map *)ctx, xcomp, xphys);
-}
-
 // Create the dg-gr-maxwell geometry
 static void
 vm_dg_maxwell_geom_new(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct vm_geom *vmg)
@@ -25,14 +16,18 @@ vm_dg_maxwell_geom_new(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, 
     is_np[app->periodic_dirs[d]] = 0;
   }
 
-  // Record which configured field boundaries use the theta-pole BC.
+  // Record which field boundaries of this rank's local range are theta poles:
+  // the boundary must use the theta-pole BC and lie on the global domain edge
+  // (a rank boundary inside a decomposed theta direction is not a pole).
   for (int i = 0; i < app->cdim; ++i) {
     const enum gkyl_field_bc_type *bc = i == 0 ? vm_app_inp->field.bcx :
                                         i == 1 ? vm_app_inp->field.bcy :
                                                  vm_app_inp->field.bcz;
 
-    vmg->theta_pole_lo[i] = is_np[i] && bc[0] == GKYL_FIELD_THETA_POLE;
-    vmg->theta_pole_up[i] = is_np[i] && bc[1] == GKYL_FIELD_THETA_POLE;
+    vmg->theta_pole_lo[i] = is_np[i] && bc[0] == GKYL_FIELD_THETA_POLE &&
+                            app->local.lower[i] == app->global.lower[i];
+    vmg->theta_pole_up[i] = is_np[i] && bc[1] == GKYL_FIELD_THETA_POLE &&
+                            app->local.upper[i] == app->global.upper[i];
   }
 
   // Evaluation of geometry at surface and volume nodal points.
@@ -46,7 +41,7 @@ vm_dg_maxwell_geom_new(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, 
       .eval = gkyl_dg_gr_maxwell_preset_lapse(vmg->triad_preset_geom_type),
       .ctx = &ctx,
       // Sample the GR geometry at physical conf coordinates on mapped meshes.
-      .c2p_func = vm_geom_pos_c2p,
+      .c2p_func = vm_pos_c2p,
       .c2p_func_ctx = app->pos_map,
     });
   vmg->lapse_init =
@@ -69,7 +64,7 @@ vm_dg_maxwell_geom_new(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, 
       .eval = gkyl_dg_gr_maxwell_preset_shift(vmg->triad_preset_geom_type),
       .ctx = &ctx,
       // Sample the GR geometry at physical conf coordinates on mapped meshes.
-      .c2p_func = vm_geom_pos_c2p,
+      .c2p_func = vm_pos_c2p,
       .c2p_func_ctx = app->pos_map,
     });
   vmg->shift_init =
@@ -92,7 +87,7 @@ vm_dg_maxwell_geom_new(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, 
       .eval = gkyl_dg_gr_maxwell_preset_geom_factor_con(vmg->triad_preset_geom_type),
       .ctx = &ctx,
       // Sample the GR geometry at physical conf coordinates on mapped meshes.
-      .c2p_func = vm_geom_pos_c2p,
+      .c2p_func = vm_pos_c2p,
       .c2p_func_ctx = app->pos_map,
     });
   vmg->geom_factor_con_init =
@@ -119,7 +114,7 @@ vm_dg_maxwell_geom_new(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, 
       .eval = gkyl_dg_gr_maxwell_preset_h_ij(vmg->triad_preset_geom_type),
       .ctx = &ctx,
       // Sample the GR geometry at physical conf coordinates on mapped meshes.
-      .c2p_func = vm_geom_pos_c2p,
+      .c2p_func = vm_pos_c2p,
       .c2p_func_ctx = app->pos_map,
     });
   vmg->h_ij_init =
@@ -144,7 +139,7 @@ vm_dg_maxwell_geom_new(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, 
       .eval = gkyl_dg_gr_maxwell_preset_h_ij_inv(vmg->triad_preset_geom_type),
       .ctx = &ctx,
       // Sample the GR geometry at physical conf coordinates on mapped meshes.
-      .c2p_func = vm_geom_pos_c2p,
+      .c2p_func = vm_pos_c2p,
       .c2p_func_ctx = app->pos_map,
     });
   vmg->h_ij_inv_init =
@@ -169,7 +164,7 @@ vm_dg_maxwell_geom_new(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, 
       .eval = gkyl_dg_gr_maxwell_preset_det_h(vmg->triad_preset_geom_type),
       .ctx = &ctx,
       // Sample the GR geometry at physical conf coordinates on mapped meshes.
-      .c2p_func = vm_geom_pos_c2p,
+      .c2p_func = vm_pos_c2p,
       .c2p_func_ctx = app->pos_map,
     });
   vmg->det_h_init =
@@ -198,7 +193,7 @@ vm_dg_maxwell_geom_new(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, 
         .eval = gkyl_vlasov_triad_preset_vierbein(vdim, vmg->triad_preset_geom_type),
         .ctx = &triad_ctx,
         // Sample the GR geometry at physical conf coordinates on mapped meshes.
-        .c2p_func = vm_geom_pos_c2p,
+        .c2p_func = vm_pos_c2p,
         .c2p_func_ctx = app->pos_map,
       });
     vmg->vierb_cov_init =
@@ -223,7 +218,7 @@ vm_dg_maxwell_geom_new(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, 
         .eval = gkyl_vlasov_triad_preset_vierbein_inv(vdim, vmg->triad_preset_geom_type),
         .ctx = &triad_ctx,
         // Sample the GR geometry at physical conf coordinates on mapped meshes.
-        .c2p_func = vm_geom_pos_c2p,
+        .c2p_func = vm_pos_c2p,
         .c2p_func_ctx = app->pos_map,
       });
     vmg->vierb_con_init =

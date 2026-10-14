@@ -47,6 +47,7 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *vms, stru
       .phase_basis = &vms->basis,
       .vel_range = &vms->local_vel,
       .vel_map = vms->vel_map,
+      .pos_map = vms->pos_map,
       .hamil_range = &vms->mom_hamil_range,
       .hamil = vms->mom_hamil,
       .model_id = vms->model_id,
@@ -199,6 +200,14 @@ vm_species_source_adapt_moms(
   if (vms->source_id == GKYL_PROJ_ADAPT_DENSITY_SOURCE) {
     for (int i = 0; i < src->num_cross_source; i++) {
       gkyl_mom_calc_advance(src->m0_reduced[i], &vms->local, &app->local, fin, src->scale_m0[i]);
+      // The reduced density of the stored J_x*J_v*f carries the conf Jacobian (the moment applies
+      // f_thresh to the physical f), while the projected source profile is already J_x*J_v-weighted:
+      // scale it by the physical density (which is also what the filter smooths and what is written).
+      if (!vms->pos_map->is_identity) {
+        gkyl_vlasov_position_map_divide_jacobpos_conf(
+          vms->pos_map, &app->local, app->basis.num_basis, src->scale_m0[i], src->scale_m0[i]
+        );
+      }
       if (src->filter) {
         // Optionally filter repeatedly.
         for (int j = 0; j < src->num_filters; j++) {
@@ -386,6 +395,9 @@ vm_species_source_write_mom(
     if (app->use_gpu) {
       gkyl_array_copy(src->moms[m].marr_host, src->moms[m].marr);
     }
+
+    // Write the physical moment (the source is J_x*J_v-weighted like the species).
+    vm_species_moment_divide_Jx(app, vms, &src->moms[m], src->moms[m].marr_host);
 
     const char *fmt = "%s-%s_source_%s_%d.gkyl";
     int sz = gkyl_calc_strlen(

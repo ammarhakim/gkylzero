@@ -257,6 +257,20 @@ struct vm_species *vm_find_species(const gkyl_vlasov_app *app, const char *nm);
  */
 int vm_find_species_idx(const gkyl_vlasov_app *app, const char *nm);
 
+/**
+ * Configuration-space computational-to-physical map for projections
+ * (proj_on_basis_c2p_t / eval_on_nodes_c2p_t): maps the computational
+ * coordinates of the projection's nodes to physical ones with the position map,
+ * so user functions of physical coordinates mean the same thing with and without
+ * a map (the identity map returns xcomp unchanged). Phase-space projections use
+ * vm_proj_c2p_phase.
+ *
+ * @param xcomp Computational coordinates
+ * @param xphys On output, physical coordinates
+ * @param ctx Position map (const struct gkyl_vlasov_position_map *)
+ */
+void vm_pos_c2p(const double *xcomp, double *xphys, void *ctx);
+
 /** vm_fluid_em_coupling API */
 
 /**

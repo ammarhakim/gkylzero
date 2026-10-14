@@ -371,6 +371,12 @@ vm_find_species_idx(const gkyl_vlasov_app *app, const char *nm)
 }
 
 void
+vm_pos_c2p(const double *xcomp, double *xphys, void *ctx)
+{
+  gkyl_vlasov_position_map_eval_mc2p(ctx, xcomp, xphys);
+}
+
+void
 vm_apply_bc(
   gkyl_vlasov_app *app, double tcurr, struct gkyl_array *distf[], struct gkyl_array *fluid[],
   struct gkyl_array *emfield

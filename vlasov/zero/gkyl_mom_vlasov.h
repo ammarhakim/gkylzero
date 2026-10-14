@@ -4,6 +4,7 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_mom_type.h>
 #include <gkyl_range.h>
+#include <gkyl_vlasov_position_map.h>
 #include <gkyl_vlasov_velocity_map.h>
 
 // Input packaged as a struct
@@ -17,6 +18,8 @@ struct gkyl_mom_vlasov_inp {
   const struct gkyl_range *vel_range; // Range for indexing velocity-space Jacobian and velocity map.
   const struct gkyl_vlasov_velocity_map
     *vel_map; // Velocity-space mapping object. NULL => uniform velocity grid.
+  const struct gkyl_vlasov_position_map *pos_map; // Configuration-space mapping object (used by the
+  // f_thresh test of M0_UPPER and M0_LOWER). NULL => uniform configuration grid.
   const struct gkyl_range *
     hamil_range; // Range for indexing Hamiltonian (either velocity-space range or full phase-space range).
   const struct gkyl_array

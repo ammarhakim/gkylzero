@@ -12,28 +12,6 @@
 #include <assert.h>
 #include <time.h>
 
-// Configuration-space c2p: sample geometry/metric functions at physical conf
-// coordinates on non-uniform meshes via the position map (identity map =>
-// identity c2p, so uniform grids are unaffected).
-static void
-vm_species_c2p_conf(const double *xcomp, double *xphys, void *ctx)
-{
-  struct vm_proj_c2p_ctx *c = (struct vm_proj_c2p_ctx *)ctx;
-  gkyl_vlasov_position_map_eval_mc2p(c->pos_map, xcomp, xphys);
-}
-
-// Phase-space c2p: conf coords via the position map, velocity coords via the
-// velocity map. Used for the phase-space Hamiltonian nodal projection so H is
-// sampled at the physical coordinates the mapped mesh represents (nodes shared
-// between cells map to the same physical point, preserving C^0 continuity).
-static void
-vm_species_c2p_phase(const double *xcomp, double *xphys, void *ctx)
-{
-  struct vm_proj_c2p_ctx *c = (struct vm_proj_c2p_ctx *)ctx;
-  gkyl_vlasov_position_map_eval_mc2p(c->pos_map, xcomp, xphys);
-  gkyl_vlasov_velocity_map_eval_c2p(c->vel_map, &xcomp[c->cdim], &xphys[c->cdim]);
-}
-
 static void
 vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct vm_species *vms)
 {
@@ -139,8 +117,8 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     }
 
     // Sample the triad geometry at physical conf coordinates on non-uniform meshes.
-    inp_triad_geom.c2p_func = vm_species_c2p_conf;
-    inp_triad_geom.c2p_func_ctx = &c2p_ctx;
+    inp_triad_geom.c2p_func = vm_pos_c2p;
+    inp_triad_geom.c2p_func_ctx = vms->pos_map;
 
     // The geometry comes from the tangents and triads
     gkyl_vlasov_triad_geom_new(
@@ -203,7 +181,7 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
         .num_ret_vals = 1,
         .eval = gkyl_vlasov_triad_preset_hamil(cdim, vdim, vms->geom->triad_preset_geom_type),
         .ctx = &preset_geom_ctx,
-        .c2p_func = vm_species_c2p_phase,
+        .c2p_func = vm_proj_c2p_phase,
         .c2p_func_ctx = &c2p_ctx,
       });
     gkyl_eval_on_nodes_advance(hamil_proj, 0.0, &vms->local_ext, vms->hamil_host);
@@ -225,8 +203,8 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     }
 
     // Sample the triad geometry at physical conf coordinates on non-uniform meshes.
-    inp_triad_geom.c2p_func = vm_species_c2p_conf;
-    inp_triad_geom.c2p_func_ctx = &c2p_ctx;
+    inp_triad_geom.c2p_func = vm_pos_c2p;
+    inp_triad_geom.c2p_func_ctx = vms->pos_map;
 
     // The geometry comes from the tangents and triads
     gkyl_vlasov_triad_geom_new(
@@ -316,7 +294,7 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
         .num_ret_vals = 1,
         .eval = vms->info.hamil,
         .ctx = vms->info.hamil_ctx,
-        .c2p_func = vm_species_c2p_phase,
+        .c2p_func = vm_proj_c2p_phase,
         .c2p_func_ctx = &c2p_ctx,
       });
     gkyl_eval_on_nodes_advance(hamil_proj, 0.0, &vms->local_ext, vms->hamil_host);
@@ -332,8 +310,8 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
       .num_ret_vals = vdim * (vdim + 1) / 2,
       .eval = vms->info.h_ij,
       .ctx = vms->info.h_ij_ctx,
-      .c2p_func = vm_species_c2p_conf,
-      .c2p_func_ctx = &c2p_ctx,
+      .c2p_func = vm_pos_c2p,
+      .c2p_func_ctx = vms->pos_map,
     });
     gkyl_eval_on_nodes_advance(h_ij_proj, 0.0, &app->local, vms->h_ij_host);
     if (app->use_gpu) {
@@ -349,8 +327,8 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
         .num_ret_vals = vdim * (vdim + 1) / 2,
         .eval = vms->info.h_ij_inv,
         .ctx = vms->info.h_ij_inv_ctx,
-        .c2p_func = vm_species_c2p_conf,
-        .c2p_func_ctx = &c2p_ctx,
+        .c2p_func = vm_pos_c2p,
+        .c2p_func_ctx = vms->pos_map,
       });
     gkyl_eval_on_nodes_advance(h_ij_inv_proj, 0.0, &app->local, vms->h_ij_inv_host);
     if (app->use_gpu) {
@@ -366,8 +344,8 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
         .num_ret_vals = 1,
         .eval = vms->info.det_h,
         .ctx = vms->info.det_h_ctx,
-        .c2p_func = vm_species_c2p_conf,
-        .c2p_func_ctx = &c2p_ctx,
+        .c2p_func = vm_pos_c2p,
+        .c2p_func_ctx = vms->pos_map,
       });
     gkyl_eval_on_nodes_advance(det_h_proj, 0.0, &app->local, vms->det_h_host);
     if (app->use_gpu) {
@@ -388,8 +366,8 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
           .num_ret_vals = vdim,
           .eval = vms->info.background_flows,
           .ctx = vms->info.background_flows_ctx,
-          .c2p_func = vm_species_c2p_conf,
-          .c2p_func_ctx = &c2p_ctx,
+          .c2p_func = vm_pos_c2p,
+          .c2p_func_ctx = vms->pos_map,
         });
       gkyl_eval_on_nodes_advance(
         background_flows_proj, 0.0, &app->local, vms->background_flows_host
@@ -407,8 +385,8 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
           .num_ret_vals = 1,
           .eval = vms->info.effective_potential,
           .ctx = vms->info.effective_potential_ctx,
-          .c2p_func = vm_species_c2p_conf,
-          .c2p_func_ctx = &c2p_ctx,
+          .c2p_func = vm_pos_c2p,
+          .c2p_func_ctx = vms->pos_map,
         });
       gkyl_eval_on_nodes_advance(
         effective_potential_proj, 0.0, &app->local, vms->effective_potential_host
@@ -894,21 +872,8 @@ vm_species_write_mom_dynamic(gkyl_vlasov_app *app, struct vm_species *vms, doubl
       gkyl_array_copy(vms->moms[m].marr_host, vms->moms[m].marr);
     }
 
-    // Moments of the stored J_x J_v f carry the configuration-space Jacobian J
-    // (it factors out of the velocity integral). Divide it out so the written
-    // moment field is physical. The map is C^0 linear, so this is an exact
-    // per-cell scalar division. For the LTE moment diagnostic (n, V_drift, T/m)
-    // only the density n (the first num_basis coefficients) carries J; V_drift
-    // and T/m are velocity ratios in which J cancels, so they are left alone.
-    // Pure moments (M0, M1i, M2, ...) carry J in every component. (Identity
-    // map: skip, leaving output unchanged.)
-    if (!vms->pos_map->is_identity) {
-      int num_coeff_divide = vms->moms[m].is_vlasov_lte_moms ? app->basis.num_basis :
-                                                               vms->moms[m].marr_host->ncomp;
-      gkyl_vlasov_position_map_divide_jacobpos_conf(
-        vms->pos_map, &app->local, num_coeff_divide, vms->moms[m].marr_host, vms->moms[m].marr_host
-      );
-    }
+    // Write the physical moment.
+    vm_species_moment_divide_Jx(app, vms, &vms->moms[m], vms->moms[m].marr_host);
 
     const char *fmt = "%s-%s_%s_%d.gkyl";
     int sz = gkyl_calc_strlen(

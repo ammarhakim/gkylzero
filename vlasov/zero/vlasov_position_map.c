@@ -310,20 +310,13 @@ gkyl_vlasov_position_map_eval_mc2p(
   struct gkyl_basis b1;
   gkyl_cart_modal_tensor(&b1, 1, 3);
 
-  // Find the index of the (interior) cell containing xc. grid_pos.lower is the
-  // interior lower edge, so the base must be the interior range's lower index
-  // (mirrors gkyl_vlasov_velocity_map_eval_c2p, which uses local_vel). Using the
-  // extended range's lower here would shift every cell into its lower neighbour
-  // (the first interior cell would resolve to the lower ghost). Coordinates in
-  // the ghost region clamp to the nearest interior cell, so they pick up the
-  // skin cell's map (the ghost-copies-skin convention).
+  // Find the (global) index of the cell containing xc, then clamp it to this
+  // rank's interior range: coordinates outside it (ghost cells, whose values the
+  // BCs and the sync overwrite) pick up the nearest local cell's map.
   int idx_xc[GKYL_MAX_CDIM];
+  gkyl_rect_grid_coord_idx(&vpm->grid_pos, xc, idx_xc);
   for (int d = 0; d < cdim; ++d) {
-    int idx =
-      vpm->local_pos.lower[d] + (int)floor((xc[d] - vpm->grid_pos.lower[d]) / vpm->grid_pos.dx[d]);
-    idx = GKYL_MIN2(idx, vpm->local_pos.upper[d]);
-    idx = GKYL_MAX2(idx, vpm->local_pos.lower[d]);
-    idx_xc[d] = idx;
+    idx_xc[d] = GKYL_MAX2(GKYL_MIN2(idx_xc[d], vpm->local_pos.upper[d]), vpm->local_pos.lower[d]);
   }
 
   // Fetch DG coefficients of the position map in idx_xc.

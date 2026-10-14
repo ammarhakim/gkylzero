@@ -146,10 +146,18 @@ vm_species_collisionless_init(
     // Host-side distribution function for projection on GPUs.
     cls->app_accel_host = app->use_gpu ? mkarr(false, cls->app_accel->ncomp, cls->app_accel->size) :
                                          gkyl_array_acquire(cls->app_accel);
-    cls->app_accel_proj = gkyl_proj_on_basis_new(
-      &app->grid, &app->basis, app->basis.poly_order + 1, 3, vms->info.app_accel,
-      vms->info.app_accel_ctx
-    );
+    // The acceleration enters the force as a physical quantity, sampled at physical coordinates.
+    cls->app_accel_proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+      .grid = &app->grid,
+      .basis = &app->basis,
+      .qtype = GKYL_GAUSS_QUAD,
+      .num_quad = app->basis.poly_order + 1,
+      .num_ret_vals = 3,
+      .eval = vms->info.app_accel,
+      .ctx = vms->info.app_accel_ctx,
+      .c2p_func = vm_pos_c2p,
+      .c2p_func_ctx = vms->pos_map,
+    });
   }
 
   // Determine which forces we need based on combination of field ID and presence

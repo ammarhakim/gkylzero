@@ -417,14 +417,11 @@ gkyl_vlasov_velocity_map_eval_c2p(
   struct gkyl_basis b1;
   gkyl_cart_modal_tensor(&b1, 1, 3);
 
-  // Find the index of the cell containing vc.
+  // Find the index of the cell containing vc, clamped to the velocity range.
   int idx_vc[GKYL_MAX_VDIM];
+  gkyl_rect_grid_coord_idx(&vvm->grid_vel, vc, idx_vc);
   for (int d = 0; d < vdim; ++d) {
-    int idx =
-      vvm->local_vel.lower[d] + (int)floor((vc[d] - vvm->grid_vel.lower[d]) / vvm->grid_vel.dx[d]);
-    idx = GKYL_MIN2(idx, vvm->local_vel.upper[d]);
-    idx = GKYL_MAX2(idx, vvm->local_vel.lower[d]);
-    idx_vc[d] = idx;
+    idx_vc[d] = GKYL_MAX2(GKYL_MIN2(idx_vc[d], vvm->local_vel.upper[d]), vvm->local_vel.lower[d]);
   }
 
   // Fetch DG coefficients of the velocity map in idx_vc.

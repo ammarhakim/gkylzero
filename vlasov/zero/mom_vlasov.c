@@ -23,6 +23,9 @@ gkyl_mom_vlasov_free(const struct gkyl_ref_count *ref)
   if (mom_vlasov->vel_map) {
     gkyl_vlasov_velocity_map_release(mom_vlasov->vel_map);
   }
+  if (mom_vlasov->pos_map) {
+    gkyl_vlasov_position_map_release(mom_vlasov->pos_map);
+  }
   gkyl_array_release(mom_vlasov->hamil);
   gkyl_free(mom_vlasov);
 }
@@ -72,6 +75,14 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
       mom_vlasov->vmap = inp->vel_map->vmap;
       mom_vlasov->jacob_vel = inp->vel_map->jacob_vel;
     }
+  }
+  mom_vlasov->pos_map = 0;
+  mom_vlasov->jacob_pos = 0;
+  if (inp->pos_map && !inp->pos_map->is_identity) {
+    mom_vlasov->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);
+    mom_vlasov->conf_range = inp->pos_map->local_pos;
+    // Borrowed pointer; kept alive by the acquired pos_map.
+    mom_vlasov->jacob_pos = inp->pos_map->jacob_pos_gauss;
   }
 
   // Threshold velocity for integration of moments over a subset of the domain.
@@ -282,6 +293,14 @@ gkyl_int_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
       mom_vlasov->vmap = inp->vel_map->vmap;
       mom_vlasov->jacob_vel = inp->vel_map->jacob_vel;
     }
+  }
+  mom_vlasov->pos_map = 0;
+  mom_vlasov->jacob_pos = 0;
+  if (inp->pos_map && !inp->pos_map->is_identity) {
+    mom_vlasov->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);
+    mom_vlasov->conf_range = inp->pos_map->local_pos;
+    // Borrowed pointer; kept alive by the acquired pos_map.
+    mom_vlasov->jacob_pos = inp->pos_map->jacob_pos_gauss;
   }
 
   // Sparse (separable) vs. dense velocity-space Hamiltonian kernel selection.

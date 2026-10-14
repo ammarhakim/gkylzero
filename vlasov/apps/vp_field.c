@@ -11,18 +11,6 @@
 #include <string.h>
 #include <time.h>
 
-// Configuration-space c2p for external-field/potential projection: map the
-// projection's computational quadrature coordinates to physical ones via the
-// position map, so the user-supplied function (defined in physical space) is
-// sampled at the correct locations on a non-uniform conf mesh. For an identity
-// map eval_mc2p is the identity, leaving uniform-grid behavior unchanged.
-static void
-vp_field_ext_c2p(const double *xcomp, double *xphys, void *ctx)
-{
-  struct vm_field_proj_c2p_ctx *c = ctx;
-  gkyl_vlasov_position_map_eval_mc2p(c->pos_map, xcomp, xphys);
-}
-
 // --- Species coupling laws of the potentials ----------------------------------
 
 // Electrostatic potential: source q*n, acceleration -(q/m)*grad(phi).
@@ -401,12 +389,6 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     vp_potential_init(app, vpf, pot, -1.0, 0.0);
   }
 
-  // Coordinate map for projecting external fields/potentials: their user
-  // functions are defined in physical space, so the projection must map its
-  // computational quadrature points through the position map first. Identity map
-  // -> identity c2p, so uniform grids are unaffected.
-  vpf->ext_c2p_ctx = (struct vm_field_proj_c2p_ctx){.pos_map = app->pos_map};
-
   // Initialize external potentials.
   vpf->ext_pot = mkarr(app->use_gpu, 4 * app->basis.num_basis, app->local_ext.volume);
   gkyl_array_clear(vpf->ext_pot, 0.0);
@@ -429,8 +411,8 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       .num_ret_vals = 4,
       .eval = vpf->info.external_potentials,
       .ctx = vpf->info.external_potentials_ctx,
-      .c2p_func = vp_field_ext_c2p,
-      .c2p_func_ctx = &vpf->ext_c2p_ctx,
+      .c2p_func = vm_pos_c2p,
+      .c2p_func_ctx = app->pos_map,
     });
   }
 
@@ -457,8 +439,8 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       .num_ret_vals = 6,
       .eval = vpf->info.ext_em,
       .ctx = vpf->info.ext_em_ctx,
-      .c2p_func = vp_field_ext_c2p,
-      .c2p_func_ctx = &vpf->ext_c2p_ctx,
+      .c2p_func = vm_pos_c2p,
+      .c2p_func_ctx = app->pos_map,
     });
   }
 

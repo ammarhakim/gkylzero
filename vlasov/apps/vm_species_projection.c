@@ -1,15 +1,6 @@
 #include <assert.h>
 #include <gkyl_vlasov_priv.h>
 
-// Configuration-space c2p: map computational conf coords to physical via the
-// position map. Used by conf-space projections (e.g. LTE moments).
-static void
-vm_proj_c2p_conf(const double *xcomp, double *xphys, void *ctx)
-{
-  struct vm_proj_c2p_ctx *c = ctx;
-  gkyl_vlasov_position_map_eval_mc2p(c->pos_map, xcomp, xphys);
-}
-
 // Phase-space c2p: map conf coords via the position map and velocity coords via
 // the velocity map (the DG maps the solver kernels assume). Used by the FUNC
 // initial-condition projection.
@@ -29,11 +20,6 @@ vm_species_proj_conf_func(
 {
   // Sample the function at physical coordinates, as the initial conditions and
   // sources are, so that it means the same thing with and without a position map.
-  struct vm_proj_c2p_ctx c2p_ctx = {
-    .cdim = app->cdim,
-    .pos_map = vms->pos_map,
-    .vel_map = vms->vel_map,
-  };
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
     .grid = &app->grid,
     .basis = &app->basis,
@@ -42,8 +28,8 @@ vm_species_proj_conf_func(
     .num_ret_vals = 1,
     .eval = func,
     .ctx = ctx,
-    .c2p_func = vm_proj_c2p_conf,
-    .c2p_func_ctx = &c2p_ctx,
+    .c2p_func = vm_pos_c2p,
+    .c2p_func_ctx = vms->pos_map,
   });
   gkyl_proj_on_basis_advance(proj, 0.0, &app->local, fout_ho);
   gkyl_proj_on_basis_release(proj);
@@ -95,8 +81,8 @@ vm_species_projection_init(
       .num_ret_vals = 1,
       .eval = inp.density,
       .ctx = inp.ctx_density,
-      .c2p_func = vm_proj_c2p_conf,
-      .c2p_func_ctx = &proj->c2p_ctx,
+      .c2p_func = vm_pos_c2p,
+      .c2p_func_ctx = vms->pos_map,
     });
     proj->proj_V_drift = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
       .grid = &app->grid,
@@ -106,8 +92,8 @@ vm_species_projection_init(
       .num_ret_vals = vdim,
       .eval = inp.V_drift,
       .ctx = inp.ctx_V_drift,
-      .c2p_func = vm_proj_c2p_conf,
-      .c2p_func_ctx = &proj->c2p_ctx,
+      .c2p_func = vm_pos_c2p,
+      .c2p_func_ctx = vms->pos_map,
     });
     proj->proj_temp = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
       .grid = &app->grid,
@@ -117,8 +103,8 @@ vm_species_projection_init(
       .num_ret_vals = 1,
       .eval = inp.temp,
       .ctx = inp.ctx_temp,
-      .c2p_func = vm_proj_c2p_conf,
-      .c2p_func_ctx = &proj->c2p_ctx,
+      .c2p_func = vm_pos_c2p,
+      .c2p_func_ctx = vms->pos_map,
     });
 
     proj->vlasov_lte_moms =

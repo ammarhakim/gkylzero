@@ -6,6 +6,7 @@
 #include <gkyl_mom_type.h>
 #include <gkyl_ref_count.h>
 #include <gkyl_mom_vlasov_kernels.h>
+#include <gkyl_vlasov_position_map.h>
 #include <gkyl_vlasov_velocity_map.h>
 #include <gkyl_vlasov_hyb_build.h>
 
@@ -26,7 +27,25 @@ struct mom_type_vlasov {
     *jacob_vel; // Velocity-space Jacobian (borrowed from vel_map; device pointer on GPUs).
   double v_thresh; // Threshold velocity for integration of moments over a subset of the domain.
   double f_thresh; // Threshold for whether we accumulate moment over subset of the domain.
+  struct gkyl_range conf_range; // Range for indexing the conf-space Jacobian of the position map.
+  const struct gkyl_vlasov_position_map
+    *pos_map; // Configuration-space mapping object (acquired host-side; 0 if not mapped).
+  const struct gkyl_array *jacob_pos; // Conf-space Jacobian (borrowed from pos_map; device pointer on
+  // GPUs; 0 if not mapped).
 };
+
+// Threshold on the stored f used by the M0_UPPER and M0_LOWER kernels in the cell with phase-space
+// index idx. f_thresh is a threshold on the physical f: the kernels weight it by the velocity-space
+// Jacobian, and on a mapped conf mesh the stored f also carries the (per-cell constant) conf Jacobian.
+GKYL_CU_DH static inline double
+mom_vlasov_f_thresh(const struct mom_type_vlasov *mom_vlasov, const int *idx)
+{
+  if (!mom_vlasov->jacob_pos) {
+    return mom_vlasov->f_thresh;
+  }
+  long cidx = gkyl_range_idx(&mom_vlasov->conf_range, idx);
+  return mom_vlasov->f_thresh * ((const double *)gkyl_array_cfetch(mom_vlasov->jacob_pos, cidx))[0];
+}
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
@@ -10098,7 +10117,7 @@ kernel_mom_vlasov_M0_upper_1x1v_tensor_p2(
   return mom_vlasov_M0_upper_1x1v_tensor_p2(
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vlasov->vmap, vidx),
     (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx), mom_vlasov->v_thresh,
-    mom_vlasov->f_thresh, f, out
+    mom_vlasov_f_thresh(mom_vlasov, idx), f, out
   );
 }
 
@@ -10121,7 +10140,7 @@ kernel_mom_vlasov_M0_upper_1x1v_tensor_p1(
   return mom_vlasov_M0_upper_1x1v_tensor_p1(
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vlasov->vmap, vidx),
     (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx), mom_vlasov->v_thresh,
-    mom_vlasov->f_thresh, f, out
+    mom_vlasov_f_thresh(mom_vlasov, idx), f, out
   );
 }
 
@@ -10144,7 +10163,7 @@ kernel_mom_vlasov_M0_upper_1x1v_tensor_p3(
   return mom_vlasov_M0_upper_1x1v_tensor_p3(
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vlasov->vmap, vidx),
     (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx), mom_vlasov->v_thresh,
-    mom_vlasov->f_thresh, f, out
+    mom_vlasov_f_thresh(mom_vlasov, idx), f, out
   );
 }
 
@@ -10167,7 +10186,7 @@ kernel_mom_vlasov_M0_upper_2x1v_tensor_p2(
   return mom_vlasov_M0_upper_2x1v_tensor_p2(
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vlasov->vmap, vidx),
     (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx), mom_vlasov->v_thresh,
-    mom_vlasov->f_thresh, f, out
+    mom_vlasov_f_thresh(mom_vlasov, idx), f, out
   );
 }
 
@@ -10190,7 +10209,7 @@ kernel_mom_vlasov_M0_upper_2x1v_tensor_p1(
   return mom_vlasov_M0_upper_2x1v_tensor_p1(
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vlasov->vmap, vidx),
     (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx), mom_vlasov->v_thresh,
-    mom_vlasov->f_thresh, f, out
+    mom_vlasov_f_thresh(mom_vlasov, idx), f, out
   );
 }
 
@@ -10213,7 +10232,7 @@ kernel_mom_vlasov_M0_upper_2x1v_tensor_p3(
   return mom_vlasov_M0_upper_2x1v_tensor_p3(
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vlasov->vmap, vidx),
     (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx), mom_vlasov->v_thresh,
-    mom_vlasov->f_thresh, f, out
+    mom_vlasov_f_thresh(mom_vlasov, idx), f, out
   );
 }
 
@@ -10236,7 +10255,7 @@ kernel_mom_vlasov_M0_lower_1x1v_tensor_p2(
   return mom_vlasov_M0_lower_1x1v_tensor_p2(
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vlasov->vmap, vidx),
     (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx), mom_vlasov->v_thresh,
-    mom_vlasov->f_thresh, f, out
+    mom_vlasov_f_thresh(mom_vlasov, idx), f, out
   );
 }
 
@@ -10259,7 +10278,7 @@ kernel_mom_vlasov_M0_lower_1x1v_tensor_p1(
   return mom_vlasov_M0_lower_1x1v_tensor_p1(
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vlasov->vmap, vidx),
     (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx), mom_vlasov->v_thresh,
-    mom_vlasov->f_thresh, f, out
+    mom_vlasov_f_thresh(mom_vlasov, idx), f, out
   );
 }
 
@@ -10282,7 +10301,7 @@ kernel_mom_vlasov_M0_lower_1x1v_tensor_p3(
   return mom_vlasov_M0_lower_1x1v_tensor_p3(
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vlasov->vmap, vidx),
     (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx), mom_vlasov->v_thresh,
-    mom_vlasov->f_thresh, f, out
+    mom_vlasov_f_thresh(mom_vlasov, idx), f, out
   );
 }
 
@@ -10305,7 +10324,7 @@ kernel_mom_vlasov_M0_lower_2x1v_tensor_p2(
   return mom_vlasov_M0_lower_2x1v_tensor_p2(
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vlasov->vmap, vidx),
     (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx), mom_vlasov->v_thresh,
-    mom_vlasov->f_thresh, f, out
+    mom_vlasov_f_thresh(mom_vlasov, idx), f, out
   );
 }
 
@@ -10328,7 +10347,7 @@ kernel_mom_vlasov_M0_lower_2x1v_tensor_p1(
   return mom_vlasov_M0_lower_2x1v_tensor_p1(
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vlasov->vmap, vidx),
     (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx), mom_vlasov->v_thresh,
-    mom_vlasov->f_thresh, f, out
+    mom_vlasov_f_thresh(mom_vlasov, idx), f, out
   );
 }
 
@@ -10351,7 +10370,7 @@ kernel_mom_vlasov_M0_lower_2x1v_tensor_p3(
   return mom_vlasov_M0_lower_2x1v_tensor_p3(
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vlasov->vmap, vidx),
     (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx), mom_vlasov->v_thresh,
-    mom_vlasov->f_thresh, f, out
+    mom_vlasov_f_thresh(mom_vlasov, idx), f, out
   );
 }
 
@@ -10376,7 +10395,7 @@ kernel_mom_vlasov_M0_upper_1x1v_ser_p2(
   return mom_vlasov_M0_upper_1x1v_ser_p2(
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vlasov->vmap, vidx),
     (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx), mom_vlasov->v_thresh,
-    mom_vlasov->f_thresh, f, out
+    mom_vlasov_f_thresh(mom_vlasov, idx), f, out
   );
 }
 
@@ -10399,7 +10418,7 @@ kernel_mom_vlasov_M0_upper_1x1v_ser_p1(
   return mom_vlasov_M0_upper_1x1v_ser_p1(
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vlasov->vmap, vidx),
     (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx), mom_vlasov->v_thresh,
-    mom_vlasov->f_thresh, f, out
+    mom_vlasov_f_thresh(mom_vlasov, idx), f, out
   );
 }
 
@@ -10422,7 +10441,7 @@ kernel_mom_vlasov_M0_upper_1x1v_ser_p3(
   return mom_vlasov_M0_upper_1x1v_ser_p3(
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vlasov->vmap, vidx),
     (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx), mom_vlasov->v_thresh,
-    mom_vlasov->f_thresh, f, out
+    mom_vlasov_f_thresh(mom_vlasov, idx), f, out
   );
 }
 
@@ -10445,7 +10464,7 @@ kernel_mom_vlasov_M0_upper_2x1v_ser_p2(
   return mom_vlasov_M0_upper_2x1v_ser_p2(
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vlasov->vmap, vidx),
     (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx), mom_vlasov->v_thresh,
-    mom_vlasov->f_thresh, f, out
+    mom_vlasov_f_thresh(mom_vlasov, idx), f, out
   );
 }
 
@@ -10468,7 +10487,7 @@ kernel_mom_vlasov_M0_upper_2x1v_ser_p1(
   return mom_vlasov_M0_upper_2x1v_ser_p1(
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vlasov->vmap, vidx),
     (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx), mom_vlasov->v_thresh,
-    mom_vlasov->f_thresh, f, out
+    mom_vlasov_f_thresh(mom_vlasov, idx), f, out
   );
 }
 
@@ -10491,7 +10510,7 @@ kernel_mom_vlasov_M0_upper_2x1v_ser_p3(
   return mom_vlasov_M0_upper_2x1v_ser_p3(
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vlasov->vmap, vidx),
     (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx), mom_vlasov->v_thresh,
-    mom_vlasov->f_thresh, f, out
+    mom_vlasov_f_thresh(mom_vlasov, idx), f, out
   );
 }
 
@@ -10514,7 +10533,7 @@ kernel_mom_vlasov_M0_lower_1x1v_ser_p2(
   return mom_vlasov_M0_lower_1x1v_ser_p2(
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vlasov->vmap, vidx),
     (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx), mom_vlasov->v_thresh,
-    mom_vlasov->f_thresh, f, out
+    mom_vlasov_f_thresh(mom_vlasov, idx), f, out
   );
 }
 
@@ -10537,7 +10556,7 @@ kernel_mom_vlasov_M0_lower_1x1v_ser_p1(
   return mom_vlasov_M0_lower_1x1v_ser_p1(
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vlasov->vmap, vidx),
     (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx), mom_vlasov->v_thresh,
-    mom_vlasov->f_thresh, f, out
+    mom_vlasov_f_thresh(mom_vlasov, idx), f, out
   );
 }
 
@@ -10560,7 +10579,7 @@ kernel_mom_vlasov_M0_lower_1x1v_ser_p3(
   return mom_vlasov_M0_lower_1x1v_ser_p3(
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vlasov->vmap, vidx),
     (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx), mom_vlasov->v_thresh,
-    mom_vlasov->f_thresh, f, out
+    mom_vlasov_f_thresh(mom_vlasov, idx), f, out
   );
 }
 
@@ -10583,7 +10602,7 @@ kernel_mom_vlasov_M0_lower_2x1v_ser_p2(
   return mom_vlasov_M0_lower_2x1v_ser_p2(
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vlasov->vmap, vidx),
     (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx), mom_vlasov->v_thresh,
-    mom_vlasov->f_thresh, f, out
+    mom_vlasov_f_thresh(mom_vlasov, idx), f, out
   );
 }
 
@@ -10606,7 +10625,7 @@ kernel_mom_vlasov_M0_lower_2x1v_ser_p1(
   return mom_vlasov_M0_lower_2x1v_ser_p1(
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vlasov->vmap, vidx),
     (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx), mom_vlasov->v_thresh,
-    mom_vlasov->f_thresh, f, out
+    mom_vlasov_f_thresh(mom_vlasov, idx), f, out
   );
 }
 
@@ -10629,7 +10648,7 @@ kernel_mom_vlasov_M0_lower_2x1v_ser_p3(
   return mom_vlasov_M0_lower_2x1v_ser_p3(
     xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vlasov->vmap, vidx),
     (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx), mom_vlasov->v_thresh,
-    mom_vlasov->f_thresh, f, out
+    mom_vlasov_f_thresh(mom_vlasov, idx), f, out
   );
 }
 
