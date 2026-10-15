@@ -12,37 +12,16 @@
 
 #include <rt_arg_parse.h>
 
-// Regression coverage for the relaxed X-point seam diagnostic optimizer and
-// guarded production apply (improve-xpt-finder branch, commits "Optimize
-// smooth bounded delta-s for X-point interfaces" and "Use relaxed X-point
-// seams with guarded fallback").
+// Geometry-only regression for the relaxed X-point seam optimizer
+// (relaxed_xpt_seam_optimize): a two-block private-flux seam pair on one of
+// three NSTX-U shots (EQDSKs in gyrokinetic/data/eqdsk), built with
+// gkyl_gyrokinetic_multib_app_new_geom; no species.
 //
-// Builds a minimal, self-contained 2-block half-domain PF seam pair -- the
-// smallest X-point seam pair type -- for one of three NSTX-U shots, so the
-// optimizer's pair-discovery/search/apply machinery is exercised end to end
-// without the unrelated complexity of a full 8-block mesh or any
-// species/velocity-space setup. Geometry-only: gkyl_gyrokinetic_multib_app_new_geom
-// is what already runs the optimizer internally during block construction;
-// no species are needed to exercise it.
-//
-// Shots (geqdsk data bundled under gyrokinetic/data/eqdsk/):
-//   203877 ms655 (default) -- known difficult physical-boundary case
-//   203742 ms480           -- smoother control
-//   203730 ms839            -- used at higher resolution for folded-cell
-//                              detection
-//
-// Usage: -o "shot=203742" selects a shot (default 203877); -o "bound=0.001"
-// overrides the delta-s bound (default 0.005 m); -o "optimize=0" disables
-// relaxed_xpt_seam_optimize on both blocks (so the CSV output can be
-// compared to the exact same zero-coefficient straight-map construction).
-// Standard -x/-y override the psi/theta cell counts (default 8x6 per
-// block); -M requests MPI; -d requests theta ("z") decomposition. Radial
-// decomposition (-c) is intentionally rejected by the optimizer itself, not
-// by this test -- see the unsupported_configuration guard added for
-// cuts[0] != 1 in gyrokinetic_multib.c.
+// Options: -o "shot=203742|203730|203877" (default 203877), -o "bound=<m>"
+// (delta-s bound, default 0.005), -o "optimize=0" (straight seam, for
+// comparison); -x/-y set the psi/theta cells per block (default 8x6).
 
-// ---- plate shape helpers, verbatim from the validated NSTX-U elong_tri_scan
-// research harness (private-flux boundary plates near the lower divertor) ----
+// ---- plate shape helpers (private-flux plates near the lower divertor) ----
 static void
 extend_segment_eval(
   double R0, double R1, double Z0, double Z1, double alpha, double s, double *R, double *Z
