@@ -529,6 +529,11 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp *inp)
   struct timespec tm_init = gkyl_wall_clock();
 
   gkyl_gyrokinetic_multib_app *app = gkyl_gyrokinetic_multib_app_new(&inp->multib_app_inp);
+  if (!app) {
+    // The app refuses an input it cannot build (preflight, wall adjustment)
+    // and has said why on stderr.
+    gkyl_exit("gyrokinetic_run: the multiblock app could not be created.");
+  }
 
   if (verbose.enabled) {
     gkyl_gyrokinetic_multib_app_cout(app, stdout, "Gyrokinetic simulation initialized...\n");
