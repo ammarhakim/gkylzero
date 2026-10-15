@@ -491,15 +491,8 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   up->geometry_id = geometry_inp->geometry_id;
   up->basis = geometry_inp->geo_basis;
 
-  // Construction forms bmag_inv = 1/|B| with gkyl_dg_inv_op_range, whose
-  // kernel table is sparse. Ask before building rather than discovering it as a
-  // NULL function pointer several thousand nodes in: at poly_order 2 the DG
-  // inverse kernel does not exist in 3x, so a p2 tokamak geometry cannot be
-  // completed no matter what the gridding does. Refuse here, while nothing has
-  // been allocated and no geometry file has been written.
-  //
-  // This asks whether the kernel exists rather than testing the order, so the
-  // refusal lifts by itself once the kernel is generated.
+  // bmag_inv needs a DG inverse kernel, which does not exist for every basis
+  // (e.g. 3x p2). Refuse before anything is built.
   if (!gkyl_dg_inv_op_supported(&up->basis)) {
     fprintf(
       stderr,
