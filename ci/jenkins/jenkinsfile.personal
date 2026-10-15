@@ -189,9 +189,9 @@ if (env.CI_TEAM_WORKSTATION_BOOTSTRAPPED != 'true') {
     ciParameters += [string(name: 'CI_REF', defaultValue: '', trim: true,
         description: 'CI implementation branch or full SHA; blank uses GKEYLL_CI_TRUSTED_REF, then main. Independent of the candidate.')]
 }
-def buildsToKeep = env.GKEYLL_CI_BUILDS_TO_KEEP?.trim() ?: ''
+def buildsToKeep = env.GKEYLL_CI_BUILDS_TO_KEEP?.trim() ?: '2'
 if (buildsToKeep && !(buildsToKeep ==~ /[1-9][0-9]*/)) {
-    error('GKEYLL_CI_BUILDS_TO_KEEP must be a positive build count, or empty for no limit.')
+    error('GKEYLL_CI_BUILDS_TO_KEEP must be a positive build count (default: 2).')
 }
 def jobProperties = [
     buildDiscarder(logRotator(numToKeepStr: buildsToKeep, artifactNumToKeepStr: buildsToKeep)),
@@ -709,7 +709,9 @@ def runCi = {
             echo "WARNING: could not write CI timings: ${err}"
         } finally {
             try {
-                if (candidateDir) sh "'${cacheScript}' stage-candidate-artifacts '${gkeyllCiRoot}' '${cachePlatform}' '${commit}' '${env.WORKSPACE}' '${baselineCommit}'"
+                withEnv(["CI_COMPRESSION_JOBS=${regressionJobs}"]) {
+                    if (candidateDir) sh "'${cacheScript}' stage-candidate-artifacts '${gkeyllCiRoot}' '${cachePlatform}' '${commit}' '${env.WORKSPACE}' '${baselineCommit}'"
+                }
             } catch (err) {
                 echo "WARNING: could not stage CI report artifacts: ${err}"
             }
@@ -731,6 +733,11 @@ def runCi = {
         }
         if (candidateDir && baselineCommit) {
             sh "'${cacheScript}' finalize-candidate '${gkeyllCiRoot}' '${cachePlatform}' '${commit}' '${baselineCommit}' '${status}' '${env.CI_FAILURE_STAGE ?: ''}' '${env.WORKSPACE}'"
+            if (env.GKEYLL_CI_COMPACT_RUNS == '1') {
+                withEnv(["CI_COMPRESSION_JOBS=${regressionJobs}"]) {
+                    sh "'${cacheScript}' compact-run '${gkeyllCiRoot}' '${cachePlatform}'"
+                }
+            }
         }
         deleteDir()
     }

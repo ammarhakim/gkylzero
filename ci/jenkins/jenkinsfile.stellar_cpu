@@ -55,9 +55,9 @@ def loadReporting(Map settings) {
 // pipeline that decides what SLURM work to submit. Once validated, the job can
 // move to main without changing this file.
 
-def buildsToKeep = env.GKEYLL_CI_BUILDS_TO_KEEP?.trim() ?: ''
+def buildsToKeep = env.GKEYLL_CI_BUILDS_TO_KEEP?.trim() ?: '2'
 if (buildsToKeep && !(buildsToKeep ==~ /[1-9][0-9]*/)) {
-    error('GKEYLL_CI_BUILDS_TO_KEEP must be a positive build count, or empty for no limit.')
+    error('GKEYLL_CI_BUILDS_TO_KEEP must be a positive build count (default: 2).')
 }
 properties([
     buildDiscarder(logRotator(
@@ -937,8 +937,10 @@ node(nodeLabel) {
             if (terminalStatus in ['cancelled', 'timed_out']) terminalDescription = "CI ${terminalStatus}."
             throw err
         } finally {
+            def slurmFinalized = false
             try {
                 finalizeUnfinishedSlurmJob()
+                slurmFinalized = true
             } catch (err) {
                 terminalStatus = 'cancelled'
                 terminalDescription = 'Stellar CPU CPU CI cleanup failed.'
@@ -967,7 +969,9 @@ node(nodeLabel) {
                 }
                 try {
                     try {
-                        if (candidateDir) sh "'${reporting.settings.cacheScript}' stage-candidate-artifacts '${gkeyllCiRoot}' 'stellar-cpu' '${candidateCommit}' '${env.WORKSPACE}' '${baselineCommit}'"
+                        withEnv(["CI_COMPRESSION_JOBS=${regressionJobs()}"]) {
+                            if (candidateDir) sh "'${reporting.settings.cacheScript}' stage-candidate-artifacts '${gkeyllCiRoot}' 'stellar-cpu' '${candidateCommit}' '${env.WORKSPACE}' '${baselineCommit}'"
+                        }
                     } catch (err) {
                         echo "WARNING: could not stage CI report artifacts: ${err}"
                     }
@@ -992,6 +996,11 @@ node(nodeLabel) {
                     try {
                         if (candidateDir && baselineCommit) {
                             sh "'${reporting.settings.cacheScript}' finalize-candidate '${gkeyllCiRoot}' 'stellar-cpu' '${candidateCommit}' '${baselineCommit}' '${terminalStatus}' '${env.CI_FAILURE_STAGE ?: ''}' '${env.WORKSPACE}'"
+                            if (slurmFinalized && env.GKEYLL_CI_COMPACT_RUNS == '1') {
+                                withEnv(["CI_COMPRESSION_JOBS=${regressionJobs()}"]) {
+                                    sh "'${reporting.settings.cacheScript}' compact-run '${gkeyllCiRoot}' 'stellar-cpu'"
+                                }
+                            }
                         }
                     } finally {
                         deleteDir()

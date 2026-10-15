@@ -14,7 +14,7 @@ baseline snapshots without running simulations:
 
 ```sh
 bash ci/jenkins/tests/test_baseline_cache.sh
-python3 -m unittest -v ci.jenkins.tests.test_artifact_staging
+python3 -m unittest -v ci.jenkins.tests.test_artifact_staging ci.jenkins.tests.test_run_compaction
 ```
 
 ## Reporting and queue listener

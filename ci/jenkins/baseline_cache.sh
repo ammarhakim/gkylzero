@@ -255,6 +255,75 @@ finalize_candidate() {
     "$sha" "$baseline_sha" "$result" "$stage" "${BUILD_TAG:-manual}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$target/candidate-manifest.txt"
 }
 
+# Caller-local arrays and extension are populated using Bash dynamic scope.
+# Pipelines supply the same worker budget used by serial regressions.
+configure_compression() {
+  local jobs="${CI_COMPRESSION_JOBS:-2}"
+  [[ "$jobs" =~ ^[1-9][0-9]*$ ]] || die 'CI_COMPRESSION_JOBS must be a positive integer'
+  if command -v zstd >/dev/null 2>&1; then
+    compressor=(zstd -q -1 "-T$jobs" -c)
+    decompressor=(zstd -q -dc)
+    extension=zst
+  elif command -v pigz >/dev/null 2>&1; then
+    compressor=(pigz -1 -p "$jobs" -c)
+    decompressor=(pigz -dc -p "$jobs")
+    extension=gz
+  else
+    compressor=(gzip -1 -c)
+    decompressor=(gzip -dc)
+    extension=gz
+  fi
+}
+
+# Verification requires GNU tar. Keep the archive beside its original payload so
+# extracting it in this directory restores embedded absolute build paths.
+compact_run() (
+  local root="$1" platform="$2" run parent owner manifest archive_tar=tar extension archive started
+  local -a compressor decompressor
+  run="$(run_path "$root" "$platform")" || exit
+  parent="$(baseline_path "$root" "$platform")" || exit
+  [[ -d "$run" && ! -L "$run" ]] || die "run directory is missing or a symlink: $run"
+  if [[ -d "$parent/.lock" ]]; then
+    owner="$(cat "$parent/.lock/owner")"
+    [[ "$owner" == "$BUILD_TAG" ]] || die "another run holds the cache lease: $owner"
+  fi
+  mkdir "$run/.compact-lock" || die "run compaction is already locked: $run"
+  trap 'rmdir "$run/.compact-lock"' EXIT
+  cd "$run"
+  if [[ ! -e candidate && ( -f run.tar.gz || -f run.tar.zst ) ]]; then exit 0; fi
+  [[ -d candidate && ! -L candidate ]] || die 'candidate directory is missing or a symlink'
+  [[ ! -e run.tar.gz && ! -L run.tar.gz && ! -e run.tar.zst && ! -L run.tar.zst ]] || die 'archive already exists; inspect it before removing any remaining payload'
+  local -a manifests=(candidate/*/candidate-manifest.txt) payload=(candidate)
+  [[ "${#manifests[@]}" == 1 ]] || die 'expected exactly one candidate manifest'
+  manifest="${manifests[0]}"
+  [[ -f "$manifest" && ! -L "$manifest" ]] || die 'candidate manifest is missing or a symlink'
+  grep -q '^finished_utc=.' "$manifest" || die 'candidate has not finished'
+  if grep -q '^result=building$' "$manifest"; then die 'candidate is still building'; fi
+  if [[ -e dependencies || -L dependencies ]]; then payload+=(dependencies); fi
+  # macOS ships BSD tar, which lacks --compare; Homebrew GNU tar is gtar.
+  if ! tar --version 2>/dev/null | grep -q 'GNU tar'; then
+    archive_tar=gtar
+    "$archive_tar" --version 2>/dev/null | grep -q 'GNU tar' ||
+      die 'run compaction requires GNU tar (tar or gtar); install it or disable GKEYLL_CI_COMPACT_RUNS'
+  fi
+  # Never follow symlinks, and never remove sources if creation or byte-for-byte
+  # comparison fails. The partial file is deliberately not a published archive.
+  configure_compression
+  archive="run.tar.$extension"
+  rm -f "$archive.tmp"
+  started=$SECONDS
+  "$archive_tar" -cf - -- "${payload[@]}" | "${compressor[@]}" > "$archive.tmp"
+  echo "Run compression: $((SECONDS - started)) s (${compressor[*]})"
+  started=$SECONDS
+  "${decompressor[@]}" "$archive.tmp" | "$archive_tar" -df -
+  echo "Run verification: $((SECONDS - started)) s"
+  mv "$archive.tmp" "$archive"
+  started=$SECONDS
+  rm -rf -- "${payload[@]}"
+  echo "Run file removal: $((SECONDS - started)) s"
+  echo "Compacted $run into $archive"
+)
+
 restore_diagnostics() {
   local baseline="$1" workspace="$2" file relative
     for file in "$baseline"/baseline-*.log* "$baseline"/baseline-*.txt "$baseline"/baseline-*.out "$baseline"/ci-command-logs/baseline-*.log*; do
@@ -285,17 +354,9 @@ copy_artifact_files() {
 
 pack_numerical_outputs() {
   local source="$1" destination="$2" extension started=$SECONDS
-  local -a compressor
+  local -a compressor decompressor
   [[ -d "$source/gkylsoft/gkeyll-results" && ! -L "$source/gkylsoft" && ! -L "$source/gkylsoft/gkeyll-results" ]] || return 0
-  # Bound compression workers on shared agents. Gzip keeps agents without zstd
-  # usable, including personal macOS installations.
-  if command -v zstd >/dev/null 2>&1; then
-    compressor=(zstd -q -1 -T2 -c)
-    extension=zst
-  else
-    compressor=(gzip -1 -c)
-    extension=gz
-  fi
+  configure_compression
   destination="$destination.tar.$extension"
   # Publish only a complete archive. Jenkins excludes the temporary filename.
   if (
@@ -372,6 +433,7 @@ stage_candidate_artifacts() {
 }
 
 case "${1:-}" in
+  compact-run) compact_run "$2" "$3" ;;
   context) cache_context ;;
   acquire) acquire_cache "$2" "$3" ;;
   release) release_cache "$2" "$3" ;;
@@ -384,5 +446,5 @@ case "${1:-}" in
   prepare-candidate) prepare_candidate "$2" "$3" "$4" "$5" "$6"; echo ;;
   finalize-candidate) finalize_candidate "$2" "$3" "$4" "$5" "$6" "$7" "$8" ;;
   stage-candidate-artifacts) stage_candidate_artifacts "$2" "$3" "$4" "$5" "${6:-}" ;;
-  *) die 'usage: baseline_cache.sh {context|acquire|release|restore-diagnostics|run-path|valid|baseline-path|prepare-baseline|publish-baseline|prepare-candidate|finalize-candidate|stage-candidate-artifacts} ...' ;;
+  *) die 'usage: baseline_cache.sh {compact-run|context|acquire|release|restore-diagnostics|run-path|valid|baseline-path|prepare-baseline|publish-baseline|prepare-candidate|finalize-candidate|stage-candidate-artifacts} ...' ;;
 esac

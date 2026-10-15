@@ -76,8 +76,9 @@ into two artifacts under `ci-numerical/`: `candidate.tar.zst` and
 including serial and parallel results. Symlinks and special files are excluded
 from both staging and packaging. There is no filtering of successful tests.
 
-Packaging uses zstd level 1 with two compression workers when `zstd` is on the
-agent's PATH; otherwise it uses gzip level 1 and the names end in `.tar.gz`.
+Packaging uses zstd level 1 with the serial regression worker budget when
+`zstd` is on the agent's PATH; otherwise it uses parallel pigz or serial gzip
+level 1 and the names end in `.tar.gz`.
 Install `zstd` on agents for faster compression. A missing results tree (for
 example, after an early build failure) produces no numerical archive. The helper
 logs staging time, packaging time, and compressed sizes separately.
@@ -98,8 +99,57 @@ Use the build's actual archive names (`artifact --build NUMBER --list` lists
 them). For `.tar.gz` archives, substitute `gzip -dc` and `.tar.gz` above. Builds
 created before this packaging change retain their original loose `.gkyl` files.
 
-Jenkins builds and artifacts have no automatic count limit by default. Set
-`GKEYLL_CI_BUILDS_TO_KEEP` to a positive count to limit Jenkins retention.
+All four platforms default to retaining two Jenkins builds and their artifacts.
+Set `GKEYLL_CI_BUILDS_TO_KEEP` to a positive count to override it. Jenkins may
+preserve protected builds in addition to this count. Retention takes effect
+when the updated pipeline runs.
 This does not remove `runs/` directories; delete those explicitly when no longer
 needed. Use the [artifact command](README.md#unified-local-command) to retrieve
 archived files.
+
+## Optional run compaction
+
+Run compaction is disabled by default. Set `GKEYLL_CI_COMPACT_RUNS=1` to
+compact finalized runs after artifact archival. Personal, team workstation,
+Stellar, and Perlmutter produce `runs/<platform>/<BUILD_TAG>/run.tar.zst`
+(or `run.tar.gz`), containing the candidate tree and any run-local dependencies.
+This includes source, build objects, installed binaries, diagnostics, numerical
+outputs, and the independent baseline snapshot. Cluster pipelines require
+successful Slurm cleanup before compaction.
+
+The helper compares the archive against the original files before publishing
+it and removing the loose trees. Creation or verification failures preserve
+the originals. Compaction requires GNU tar (`tar`, or `gtar` on macOS), and
+uses zstd level 1, falling back to pigz level 1 and then serial gzip level 1.
+Both compaction and numerical artifact packaging use the serial regression
+worker count: `STELLAR_CPU_REGRESSION_JOBS` (default 16),
+`PERLMUTTER_GPU_REGRESSION_JOBS` (default 4), or `PERSONAL_REGRESSION_JOBS`
+(defaulting to `PERSONAL_BUILD_JOBS`, then 3). Team workstation settings are
+forwarded to the personal workflow. Manual helper invocations accept
+`CI_COMPRESSION_JOBS` (default 2).
+
+Compaction needs room for the archive alongside the original files. It reduces
+retained file counts, not peak compilation/test storage. The baseline cache
+remains unpacked. Run archives have no automatic count limit; Jenkins build
+retention does not delete them.
+
+Restore in the original run directory to preserve embedded absolute paths:
+
+```sh
+cd "$GKEYLL_CI_ROOT/runs/stellar-cpu/<BUILD_TAG>"
+zstd -dc run.tar.zst | tar -xf -
+# For the gzip fallback: tar -xzf run.tar.gz
+```
+
+An existing finalized run can also be compacted explicitly after confirming
+Jenkins and Slurm have finished using it:
+
+```sh
+BUILD_TAG=jenkins-gkeyll-ci-stellar_cpu-9 \
+  ci/jenkins/baseline_cache.sh compact-run "$GKEYLL_CI_ROOT" stellar-cpu
+```
+
+The helper refuses unfinished manifests and another build's active cache lease.
+An interrupted compaction can leave `.compact-lock` or `run.tar.*.tmp`; remove
+these only when no compactor is running. If both the published archive and
+payload remain, verify the archive before removing either.

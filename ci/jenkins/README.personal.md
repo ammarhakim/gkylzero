@@ -227,3 +227,13 @@ If diagnostics show `pids.current` reaching `pids.max` and many zombies parented
 by PID 1, apply the [containerized build-agent configuration](#containerized-build-agents)
 and recreate the worker. Raising the limit or adding retries only postpones
 failure when exited children are not being reaped.
+
+## Run storage
+
+Jenkins defaults to retaining two builds and their artifacts;
+`GKEYLL_CI_BUILDS_TO_KEEP` overrides this count. The team workstation uses
+this same workflow. Run directories remain until explicitly removed;
+see [storage and retention](README.storage.md#retention).
+
+Run compaction is disabled by default. Set `GKEYLL_CI_COMPACT_RUNS=1` to
+archive completed run trees; see [compaction](README.storage.md#optional-run-compaction).

@@ -164,6 +164,8 @@ System → Global properties → Environment variables**, set:
 `runs/perlmutter-gpu/`, visible to GPU nodes; see
 [persistent regression data](README.storage.md). After an intentional in-place toolchain or dependency upgrade, change
 `GKEYLL_CI_CACHE_REVISION` to force baseline regeneration in either dependency mode.
+Jenkins defaults to retaining two builds and their artifacts;
+`GKEYLL_CI_BUILDS_TO_KEEP` overrides this count.
 
 ### Create the one parameterized Pipeline job
 
@@ -235,3 +237,6 @@ then submit `slurm-unit-tests.perlmutter_gpu.sh` using your account, `shared`
 QoS, `--constraint gpu`, 32 CPUs, and one GPU. Build a separate baseline prefix
 and compile C regressions in both trees before submitting the regression
 Slurm script. This separates NERSC toolchain/allocation failures from Jenkins setup.
+
+Run compaction is disabled by default. Set `GKEYLL_CI_COMPACT_RUNS=1` to
+archive completed run trees; see [compaction](README.storage.md#optional-run-compaction).

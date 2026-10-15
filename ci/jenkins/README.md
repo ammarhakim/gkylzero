@@ -98,6 +98,10 @@ baseline is reused from `baseline-cache/<platform>/<baseline-sha>/`.
 Jenkins archives full regression results, packing numerical outputs into
 candidate and baseline archives while leaving diagnostics individually
 downloadable, then removes its temporary workspace.
-Runs and Jenkins artifacts have no automatic retention limit by default.
+Jenkins defaults to retaining two builds and their artifacts.
+Run directories have no automatic retention limit.
 See [storage and caching](README.storage.md) for layout, cache invalidation,
 concurrency, and cleanup.
+
+Run compaction is disabled by default. Set `GKEYLL_CI_COMPACT_RUNS=1` to
+archive completed run trees; see [compaction](README.storage.md#optional-run-compaction).

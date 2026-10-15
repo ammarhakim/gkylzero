@@ -172,6 +172,8 @@ Pipeline initializes Stellar modules for each build and Slurm job. Its
 It retains a separate directory for each build under `runs/stellar-cpu/`;
 see [persistent regression data](README.storage.md). After an intentional in-place toolchain or dependency upgrade, change
 `GKEYLL_CI_CACHE_REVISION` to force baseline regeneration in either dependency mode.
+Jenkins defaults to retaining two builds and their artifacts;
+`GKEYLL_CI_BUILDS_TO_KEEP` overrides this count.
 
 Serial regressions request one CPU per worker: the default is 16 concurrent
 tests on 16 CPUs. MPI regressions request one CPU per rank slot (at least four
@@ -446,3 +448,6 @@ sbatch --wait --qos <qos> --nodes 1 --ntasks 1 --cpus-per-task 8 \
 
 The baseline's accepted C-regression output is linked into the candidate
 results tree for checking. These manual checkouts are disposable.
+
+Run compaction is disabled by default. Set `GKEYLL_CI_COMPACT_RUNS=1` to
+archive completed run trees; see [compaction](README.storage.md#optional-run-compaction).
