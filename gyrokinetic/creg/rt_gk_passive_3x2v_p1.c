@@ -85,8 +85,8 @@ create_ctx(void)
   // Closed geometry: circular flux surfaces, with y spanning the whole torus (Ly = 2*pi*Cy).
   double R0 = 10.0, r0 = 0.5; // Major radius, and minor radius at x = 0.
   double Cy = Ly / (2.0 * M_PI); // Binormal normalization.
-  // q(x) = 2.5 - x, so the twist-shift shift has magnitude 2*pi*Cy*q(x) = (2.5 - x)*Ly.
-  double q0 = 2.5, q_shear = -1.0;
+  // q(x) = 2.5 + x, so the twist-shift shift is S_lo = -2*pi*Cy*q(x) = -(2.5 + x)*Ly.
+  double q0 = 2.5, q_shear = 1.0;
   double vpar_max_elc =
     4.0 * vte; // Domain boundary (electron velocity space: parallel velocity direction).
   double mu_max_elc =

@@ -773,12 +773,14 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
       gkyl_array_copy_range_to_range(
         buffer, delta_ts, &app->local_upper_skin[par_dir], &app->local_upper_ghost[par_dir]
       );
-      gkyl_array_accumulate_range(delta_ts, -1.0, buffer, &app->local_upper_skin[par_dir]);
+      gkyl_array_scale_range(delta_ts, -1.0, &app->local_upper_skin[par_dir]);
+      gkyl_array_accumulate_range(delta_ts, 1.0, buffer, &app->local_upper_skin[par_dir]);
 
       gkyl_array_copy_range_to_range(
         buffer, delta_ts, &app->local_lower_skin[par_dir], &app->local_lower_ghost[par_dir]
       );
-      gkyl_array_accumulate_range(delta_ts, -1.0, buffer, &app->local_lower_skin[par_dir]);
+      gkyl_array_scale_range(delta_ts, -1.0, &app->local_lower_skin[par_dir]);
+      gkyl_array_accumulate_range(delta_ts, 1.0, buffer, &app->local_lower_skin[par_dir]);
       gkyl_array_release(buffer);
 
       // Deflate delta_ts.
