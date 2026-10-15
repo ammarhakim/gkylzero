@@ -1,0 +1,62 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M503VFZNVQWG8XG0R5RYJRTQ",
+  "session_id": "01a136e5-0dc6-7b81-8d17-1596f9fbb761",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-15T15:45:56.068121562Z",
+  "branch": "debug-nunif-grid",
+  "checkpoints_count": 2,
+  "save_step_count": 1,
+  "files_touched": [
+    "gkeyll/gkeyll.c",
+    "gkeyll/lua/Tool/queryrdb.lua",
+    "gkeyll/lua/Tool/runregression.lua"
+  ],
+  "agent": "Codex",
+  "model": "gpt-6-astra",
+  "turn_id": "311ba8e04e86",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 26845,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 107136,
+    "output_tokens": 1177,
+    "api_call_count": 5,
+    "subagent_tokens_complete": true
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-15T15:45:56.059466861Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 8078,
+    "human_modified": 486,
+    "human_removed": 0,
+    "total_committed": 8078,
+    "total_lines_changed": 11719,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 291,
+      "user_lines_removed": 204,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "gkeyll/gkeyll.c": 9,
+        "gkeyll/lua/Tool/queryrdb.lua": 4,
+        "gkeyll/lua/Tool/runregression.lua": 269,
+        "pr-merge.md": 9
+      },
+      "user_removed_per_file": {
+        "gkeyll/gkeyll.c": 6,
+        "gkeyll/lua/Tool/queryrdb.lua": 10,
+        "gkeyll/lua/Tool/runregression.lua": 188
+      }
+    }
+  ]
+}
