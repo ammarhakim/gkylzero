@@ -249,6 +249,9 @@ struct gkyl_gk_geometry_inp {
   void (*upper_shift_func)(double t, const double *xn, double *fout, void *ctx);
   void *lower_shift_ctx; // Context for lower_shift_func.
   void *upper_shift_ctx; // Context for upper_shift_func.
+  // Compute deltats at the parallel boundaries (used to get the twist-shift shift)
+  // from mapc2p, like the tokamak geometry does. MAPC2P geometry only.
+  bool calc_deltats_mapc2p;
 
   struct gkyl_efit_inp efit_info; // Context with RZ data such as efit file for a tokamak or mirror.
   struct gkyl_tok_geo_grid_inp

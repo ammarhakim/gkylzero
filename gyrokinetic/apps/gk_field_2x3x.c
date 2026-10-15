@@ -315,7 +315,7 @@ gk_field_2x3x_add_TS_updaters(
       .filter_half_width = app->core_parallel_bcs.ts_filter_half_width,
       .filter_cutoff_wavelength = app->core_parallel_bcs.ts_filter_cutoff_wavelength,
     };
-    if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
+    if (app->ts_shift_from_geom) {
       T_LU_lo.shift_dg = app->delta_ts_x_lo;
     } else {
       T_LU_lo.shift_func = app->gk_geom->lower_shift_func;
@@ -339,7 +339,7 @@ gk_field_2x3x_add_TS_updaters(
       .filter_half_width = app->core_parallel_bcs.ts_filter_half_width,
       .filter_cutoff_wavelength = app->core_parallel_bcs.ts_filter_cutoff_wavelength,
     };
-    if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
+    if (app->ts_shift_from_geom) {
       T_UL_up.shift_dg = app->delta_ts_x_up;
     } else {
       T_UL_up.shift_func = app->gk_geom->upper_shift_func;
@@ -425,7 +425,7 @@ gk_field_2x3x_add_IWL_updaters(
       .filter_half_width = app->core_parallel_bcs.ts_filter_half_width,
       .filter_cutoff_wavelength = app->core_parallel_bcs.ts_filter_cutoff_wavelength,
     };
-    if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
+    if (app->ts_shift_from_geom) {
       T_LU_lo.shift_dg = app->delta_ts_x_lo;
     } else {
       T_LU_lo.shift_func = app->gk_geom->lower_shift_func;

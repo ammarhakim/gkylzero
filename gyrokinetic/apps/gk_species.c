@@ -1159,7 +1159,7 @@ gk_species_init_dynamic(
         .filter_half_width = app->core_parallel_bcs.ts_filter_half_width,
         .filter_cutoff_wavelength = app->core_parallel_bcs.ts_filter_cutoff_wavelength,
       };
-      if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
+      if (app->ts_shift_from_geom) {
         tsinp.shift_dg = app->delta_ts_x_lo;
       } else {
         tsinp.shift_func = app->gk_geom->lower_shift_func;
@@ -1234,7 +1234,7 @@ gk_species_init_dynamic(
         .filter_half_width = app->core_parallel_bcs.ts_filter_half_width,
         .filter_cutoff_wavelength = app->core_parallel_bcs.ts_filter_cutoff_wavelength,
       };
-      if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
+      if (app->ts_shift_from_geom) {
         tsinp.shift_dg = app->delta_ts_x_up;
       } else {
         tsinp.shift_func = app->gk_geom->upper_shift_func;
@@ -1295,7 +1295,7 @@ gk_species_init_dynamic(
       .filter_half_width = app->core_parallel_bcs.ts_filter_half_width,
       .filter_cutoff_wavelength = app->core_parallel_bcs.ts_filter_cutoff_wavelength,
     };
-    if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
+    if (app->ts_shift_from_geom) {
       tsinp_lo.shift_dg = app->delta_ts_x_lo;
     } else {
       tsinp_lo.shift_func = app->gk_geom->lower_shift_func;
@@ -1318,7 +1318,7 @@ gk_species_init_dynamic(
       .filter_half_width = app->core_parallel_bcs.ts_filter_half_width,
       .filter_cutoff_wavelength = app->core_parallel_bcs.ts_filter_cutoff_wavelength,
     };
-    if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
+    if (app->ts_shift_from_geom) {
       tsinp_up.shift_dg = app->delta_ts_x_up;
     } else {
       tsinp_up.shift_func = app->gk_geom->upper_shift_func;

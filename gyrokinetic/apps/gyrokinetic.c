@@ -354,6 +354,35 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     app->global_ext, app->basis
   );
 
+  // Check if we need to use twist-shift BCs. (I'm sure the following logic can be simpler.)
+  bool uses_twistshift;
+  if (gk->cdim < 3) { // No twist-shift in 1D or 2D.
+    uses_twistshift = false;
+  } else {
+    if (gk->geometry.has_LCFS) { // Clopen setup.
+      uses_twistshift = true;
+    } else { // Closed flux surface setup.
+      for (int s = 0; s < gk->num_species; s++) {
+        for (int i = 0; i < 2 * gk->cdim; i++) {
+          if (gk->species[s].bcs[i].dir == gk->cdim - 1 &&
+              gk->species[s].bcs[i].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
+            uses_twistshift = true;
+          }
+        }
+      }
+    }
+  }
+  // Check if we provide shift functions. (Should be removed eventually)
+  bool has_shift_funcs = gk->geometry.core_parallel_bcs.lower_shift_func &&
+                         gk->geometry.core_parallel_bcs.upper_shift_func;
+  // Check if we should compute self-consistently the shift for mapc2p.
+  bool calc_deltats_mapc2p = gk->geometry.geometry_id == GKYL_GEOMETRY_MAPC2P && !has_shift_funcs &&
+                             uses_twistshift;
+  // Multiblock should not use mapc2p.
+  assert(!(calc_deltats_mapc2p && app->is_multib));
+  app->ts_shift_from_geom =
+    cdim == 3 && (gk->geometry.geometry_id == GKYL_GEOMETRY_TOKAMAK || calc_deltats_mapc2p);
+
   // Initialize the input struct from user side input struct
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id = gk->geometry.geometry_id,
@@ -378,6 +407,7 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     .upper_shift_func = gk->geometry.core_parallel_bcs.upper_shift_func,
     .lower_shift_ctx = gk->geometry.core_parallel_bcs.lower_shift_ctx,
     .upper_shift_ctx = gk->geometry.core_parallel_bcs.upper_shift_ctx,
+    .calc_deltats_mapc2p = calc_deltats_mapc2p,
   };
   strcpy(geometry_inp.geometry_path, gk->geometry.geometry_path);
   for (int i = 0; i < 3; i++) {
@@ -717,7 +747,7 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     );
   }
 
-  if (app->cdim == 3 && (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK ||
+  if (app->cdim == 3 && (app->ts_shift_from_geom ||
                          (app->gk_geom->geometry_id == GKYL_GEOMETRY_MAPC2P &&
                           app->gk_geom->lower_shift_func && app->gk_geom->upper_shift_func))) {
     // Create grid, range and basis on which the 1D shift will be defined.
@@ -1467,7 +1497,7 @@ gyrokinetic_app_write_ts_shift(gkyl_gyrokinetic_app *app)
   if (app->gk_geom->geometry_id == GKYL_GEOMETRY_MAPC2P &&
       (app->gk_geom->lower_shift_func && app->gk_geom->upper_shift_func)) {
     gyrokinetic_app_write_ts_shift_mapc2p(app);
-  } else if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
+  } else if (app->ts_shift_from_geom) {
     int comm_rank, comm_size;
     ;
     gkyl_comm_get_rank(app->comm, &comm_rank);
@@ -4511,16 +4541,15 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app *app)
   gyrokinetic_post_positivity_quasineut_release(app);
 
   gkyl_array_release(app->jacobtot_inv_weak);
-  gkyl_gk_geometry_release(app->gk_geom);
-  gkyl_dg_geom_release(app->dg_geom);
-  gkyl_gk_dg_geom_release(app->gk_dg_geom);
-
-  if (app->cdim == 3 && (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK ||
+  if (app->cdim == 3 && (app->ts_shift_from_geom ||
                          (app->gk_geom->geometry_id == GKYL_GEOMETRY_MAPC2P &&
                           app->gk_geom->lower_shift_func && app->gk_geom->upper_shift_func))) {
     gkyl_array_release(app->delta_ts_x_lo);
     gkyl_array_release(app->delta_ts_x_up);
   }
+  gkyl_gk_geometry_release(app->gk_geom);
+  gkyl_dg_geom_release(app->dg_geom);
+  gkyl_gk_dg_geom_release(app->gk_dg_geom);
   gk_field_release(app, app->field);
   gk_eirene_release(app, app->eirene);
 
