@@ -811,6 +811,33 @@ GKYL_CU_DH double ho_lax_flux_nodal_vz_2x3v_tensor_p1_node(int i, int j, const d
 GKYL_CU_DH void ho_lax_flux_nodal_vz_2x3v_tensor_p1_prj(int tid, const double *Fhat_nodal, double* GKYL_RESTRICT flux); 
 GKYL_CU_DH double ho_lax_flux_nodal_vz_2x3v_tensor_p1_cfl(const double *dxv, const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, double alpha_max); 
 
+GKYL_CU_DH int phi_alpha_quad_vx_2x3v_tensor_p2_shared(int tid, int off, const double *dxv, const double *jacob_pos, const double *phi, double* GKYL_RESTRICT O, double* GKYL_RESTRICT I); 
+GKYL_CU_DH int phi_alpha_quad_vy_2x3v_tensor_p2_shared(int tid, int off, const double *dxv, const double *jacob_pos, const double *phi, double* GKYL_RESTRICT O, double* GKYL_RESTRICT I); 
+GKYL_CU_DH int E_alpha_quad_vx_2x3v_tensor_p2_shared(int tid, int off, const double *dxv, const double *qmem, double* GKYL_RESTRICT O, double* GKYL_RESTRICT I); 
+GKYL_CU_DH int rad_alpha_quad_vx_2x3v_tensor_p2_shared(int tid, int off, const double *dxv, const double *rad, double* GKYL_RESTRICT O, double* GKYL_RESTRICT I); 
+GKYL_CU_DH int B_hamil_vel_dense_alpha_quad_vx_2x3v_tensor_p2_shared(int tid, int off, const double *dxv, const double *jacob_vel_surf, const double *hamil, const double *qmem, double* GKYL_RESTRICT O, double* GKYL_RESTRICT I); 
+GKYL_CU_DH int B_hamil_vel_sparse_alpha_quad_vx_2x3v_tensor_p2_shared(int tid, int off, const double *dxv, const double *jacob_vel_surf, const double *hamil, const double *qmem, double* GKYL_RESTRICT O, double* GKYL_RESTRICT I); 
+GKYL_CU_DH void lax_flux_nodal_vx_2x3v_tensor_p2_g(int tid, const double *f_l, const double *f_r, double* GKYL_RESTRICT G_l, double* GKYL_RESTRICT G_r); 
+GKYL_CU_DH double lax_flux_nodal_vx_2x3v_tensor_p2_node(int i, int j, const double *jacob_vel_surf_r, double alpha, const double *G_l, const double *G_r, double* GKYL_RESTRICT Fhat_nodal); 
+GKYL_CU_DH void lax_flux_nodal_vx_2x3v_tensor_p2_prj(int tid, const double *Fhat_nodal, double* GKYL_RESTRICT flux); 
+GKYL_CU_DH double lax_flux_nodal_vx_2x3v_tensor_p2_cfl(const double *dxv, const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, double alpha_max); 
+GKYL_CU_DH int E_alpha_quad_vy_2x3v_tensor_p2_shared(int tid, int off, const double *dxv, const double *qmem, double* GKYL_RESTRICT O, double* GKYL_RESTRICT I); 
+GKYL_CU_DH int rad_alpha_quad_vy_2x3v_tensor_p2_shared(int tid, int off, const double *dxv, const double *rad, double* GKYL_RESTRICT O, double* GKYL_RESTRICT I); 
+GKYL_CU_DH int B_hamil_vel_dense_alpha_quad_vy_2x3v_tensor_p2_shared(int tid, int off, const double *dxv, const double *jacob_vel_surf, const double *hamil, const double *qmem, double* GKYL_RESTRICT O, double* GKYL_RESTRICT I); 
+GKYL_CU_DH int B_hamil_vel_sparse_alpha_quad_vy_2x3v_tensor_p2_shared(int tid, int off, const double *dxv, const double *jacob_vel_surf, const double *hamil, const double *qmem, double* GKYL_RESTRICT O, double* GKYL_RESTRICT I); 
+GKYL_CU_DH void lax_flux_nodal_vy_2x3v_tensor_p2_g(int tid, const double *f_l, const double *f_r, double* GKYL_RESTRICT G_l, double* GKYL_RESTRICT G_r); 
+GKYL_CU_DH double lax_flux_nodal_vy_2x3v_tensor_p2_node(int i, int j, const double *jacob_vel_surf_r, double alpha, const double *G_l, const double *G_r, double* GKYL_RESTRICT Fhat_nodal); 
+GKYL_CU_DH void lax_flux_nodal_vy_2x3v_tensor_p2_prj(int tid, const double *Fhat_nodal, double* GKYL_RESTRICT flux); 
+GKYL_CU_DH double lax_flux_nodal_vy_2x3v_tensor_p2_cfl(const double *dxv, const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, double alpha_max); 
+GKYL_CU_DH int E_alpha_quad_vz_2x3v_tensor_p2_shared(int tid, int off, const double *dxv, const double *qmem, double* GKYL_RESTRICT O, double* GKYL_RESTRICT I); 
+GKYL_CU_DH int rad_alpha_quad_vz_2x3v_tensor_p2_shared(int tid, int off, const double *dxv, const double *rad, double* GKYL_RESTRICT O, double* GKYL_RESTRICT I); 
+GKYL_CU_DH int B_hamil_vel_dense_alpha_quad_vz_2x3v_tensor_p2_shared(int tid, int off, const double *dxv, const double *jacob_vel_surf, const double *hamil, const double *qmem, double* GKYL_RESTRICT O, double* GKYL_RESTRICT I); 
+GKYL_CU_DH int B_hamil_vel_sparse_alpha_quad_vz_2x3v_tensor_p2_shared(int tid, int off, const double *dxv, const double *jacob_vel_surf, const double *hamil, const double *qmem, double* GKYL_RESTRICT O, double* GKYL_RESTRICT I); 
+GKYL_CU_DH void lax_flux_nodal_vz_2x3v_tensor_p2_g(int tid, const double *f_l, const double *f_r, double* GKYL_RESTRICT G_l, double* GKYL_RESTRICT G_r); 
+GKYL_CU_DH double lax_flux_nodal_vz_2x3v_tensor_p2_node(int i, int j, const double *jacob_vel_surf_r, double alpha, const double *G_l, const double *G_r, double* GKYL_RESTRICT Fhat_nodal); 
+GKYL_CU_DH void lax_flux_nodal_vz_2x3v_tensor_p2_prj(int tid, const double *Fhat_nodal, double* GKYL_RESTRICT flux); 
+GKYL_CU_DH double lax_flux_nodal_vz_2x3v_tensor_p2_cfl(const double *dxv, const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, double alpha_max); 
+
 GKYL_CU_DH int phi_alpha_quad_vx_3x3v_tensor_p1_shared(int tid, int off, const double *dxv, const double *jacob_pos, const double *phi, double* GKYL_RESTRICT O, double* GKYL_RESTRICT I); 
 GKYL_CU_DH int hamil_phase_alpha_quad_vx_3x3v_tensor_p1_shared(int tid, int off, const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT O, double* GKYL_RESTRICT I); 
 GKYL_CU_DH int phi_alpha_quad_vy_3x3v_tensor_p1_shared(int tid, int off, const double *dxv, const double *jacob_pos, const double *phi, double* GKYL_RESTRICT O, double* GKYL_RESTRICT I); 

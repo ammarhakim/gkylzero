@@ -17,8 +17,9 @@ LLIB := ../$(BUILD_DIR)/vlasov/libg0vlasov.so
 SLLIB := 
 # Optional heavy kernel sets: exclude the generated kernels of a set from the
 # build unless its knob is set (see the top-level Makefile). The name patterns
-# select exactly the tensor p=1 hybrid kernels of the given dimensionality; the
-# 3x3v phase-space Hamiltonian kernels are a subset of the 3x3v set.
+# select exactly the tensor p=1 hybrid kernels of the given dimensionality (the
+# 3x3v phase-space Hamiltonian kernels are a subset of the 3x3v set) and the
+# tensor p=2 kernels in 2x3v.
 # KER_PRUNE lists the same sets as object-file patterns: the library link
 # globs every object under the build directory, so objects of a set that was
 # built earlier and is now switched off are deleted before linking.
@@ -30,6 +31,10 @@ KER_PRUNE += -o -name '*3x3v_tensor_p1*.o'
 else ifneq ($(BUILD_VLASOV_HYB_3X3V_PHASE),1)
 KER_EXCLUDE += -not -name '*hamil_phase*3x3v_tensor_p1*'
 KER_PRUNE += -o -name '*hamil_phase*3x3v_tensor_p1*.o'
+endif
+ifneq ($(BUILD_VLASOV_TEN_2X3V_P2),1)
+KER_EXCLUDE += -not -name '*2x3v_tensor_p2*' -not -name '*2x_3v_tensor_p2*'
+KER_PRUNE += -o -name '*2x3v_tensor_p2*.o' -o -name '*2x_3v_tensor_p2*.o'
 endif
 SRCS := $(shell find $(SRC_DIRS) -name '*.c' $(KER_EXCLUDE))
 ifdef USING_NVCC

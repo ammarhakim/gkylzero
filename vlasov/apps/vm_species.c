@@ -1273,17 +1273,24 @@ vm_species_new_static(
 // End static function definitions.
 
 // Initialize species object.
-// The 2x3v and 3x3v tensor p=1 hybrid kernels are optional build sets (see
-// ./configure --help and the top-level Makefile). Refuse a configuration whose
-// kernels were not built with an actionable message instead of a NULL kernel
-// pointer assert deep in a constructor.
+// The 3x3v tensor p=1 hybrid kernels and the 2x3v tensor p=2 kernels are
+// optional build sets (see ./configure --help and the top-level Makefile).
+// Refuse a configuration whose kernels were not built with an actionable
+// message instead of a NULL kernel pointer assert deep in a constructor.
 static void
 vm_species_check_hyb_build(struct gkyl_vlasov_app *app, struct vm_species *vms)
 {
+  int cdim = app->cdim, vdim = vms->basis.ndim - cdim;
+#ifndef GKYL_BUILD_VLASOV_TEN_2X3V_P2
+  if (vms->basis.b_type == GKYL_BASIS_MODAL_TENSOR && vms->basis.poly_order == 2 && cdim == 2 && vdim == 3) {
+    gkyl_exit(
+      "vm_species: the 2x3v tensor p=2 kernels were not built. Reconfigure with --build-vlasov-ten-2x3v-p2=yes."
+    );
+  }
+#endif
   if (vms->basis.b_type != GKYL_BASIS_MODAL_HYBRID) {
     return;
   }
-  int cdim = app->cdim, vdim = vms->basis.ndim - cdim;
 #ifndef GKYL_BUILD_VLASOV_HYB_3X3V
   if (cdim == 3 && vdim == 3) {
     gkyl_exit(

@@ -517,6 +517,29 @@ kernel_lbo_vlasov_diff_vol_2x3v_tensor_p1(
     return 0.;
   }
 }
+
+#ifdef GKYL_BUILD_VLASOV_TEN_2X3V_P2
+GKYL_CU_DH static double
+kernel_lbo_vlasov_diff_vol_2x3v_tensor_p2(
+  const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
+  const double *qIn, double *GKYL_RESTRICT qRhsOut
+)
+{
+  struct dg_lbo_vlasov_diff *lbo_vlasov_diff = container_of(eqn, struct dg_lbo_vlasov_diff, eqn);
+  long cidx = gkyl_range_idx(&lbo_vlasov_diff->conf_range, idx);
+  const double *nuSum_p = (const double *)gkyl_array_cfetch(lbo_vlasov_diff->auxfields.nuSum, cidx);
+  const double *nuPrimMomsSum_p =
+    (const double *)gkyl_array_cfetch(lbo_vlasov_diff->auxfields.nuPrimMomsSum, cidx);
+  const double *nuUSum_p = nuPrimMomsSum_p;
+  const double *nuVtSqSum_p = &nuPrimMomsSum_p[lbo_vlasov_diff->vdim * lbo_vlasov_diff->num_cbasis];
+  bool noPrimMomCross = checkPrimMomCross(lbo_vlasov_diff, nuSum_p, nuUSum_p, nuVtSqSum_p);
+  if (noPrimMomCross) {
+    return lbo_vlasov_diff_vol_2x3v_tensor_p2(xc, dx, nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
+  } else {
+    return 0.;
+  }
+}
+#endif
 #ifdef GKYL_BUILD_VLASOV_HYB_3X3V
 GKYL_CU_DH static double
 kernel_lbo_vlasov_diff_vol_3x3v_tensor_p1(
@@ -568,7 +591,7 @@ GKYL_CU_D static const gkyl_dg_lbo_vlasov_diff_vol_kern_list ten_vol_kernels[] =
    kernel_lbo_vlasov_diff_vol_2x1v_tensor_p3}, // 3
   {NULL, kernel_lbo_vlasov_diff_vol_2x2v_tensor_p1, kernel_lbo_vlasov_diff_vol_2x2v_tensor_p2, NULL
   }, // 4
-  {NULL, kernel_lbo_vlasov_diff_vol_2x3v_tensor_p1, NULL, NULL}, // 5
+  {NULL, kernel_lbo_vlasov_diff_vol_2x3v_tensor_p1, GKYL_TEN_2X3V_P2(kernel_lbo_vlasov_diff_vol_2x3v_tensor_p2), NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(kernel_lbo_vlasov_diff_vol_3x3v_tensor_p1), NULL, NULL} // 6
 };
@@ -598,7 +621,7 @@ GKYL_CU_D static const gkyl_dg_lbo_vlasov_diff_surf_kern_list ten_surf_vx_kernel
   {NULL, lbo_vlasov_diff_surfvx_2x1v_tensor_p1, lbo_vlasov_diff_surfvx_2x1v_tensor_p2,
    lbo_vlasov_diff_surfvx_2x1v_tensor_p3}, // 3
   {NULL, lbo_vlasov_diff_surfvx_2x2v_tensor_p1, lbo_vlasov_diff_surfvx_2x2v_tensor_p2, NULL}, // 4
-  {NULL, lbo_vlasov_diff_surfvx_2x3v_tensor_p1, NULL, NULL}, // 5
+  {NULL, lbo_vlasov_diff_surfvx_2x3v_tensor_p1, GKYL_TEN_2X3V_P2(lbo_vlasov_diff_surfvx_2x3v_tensor_p2), NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(lbo_vlasov_diff_surfvx_3x3v_tensor_p1), NULL, NULL} // 6
 };
@@ -693,7 +716,7 @@ GKYL_CU_D static const gkyl_dg_lbo_vlasov_diff_boundary_surf_kern_list
      lbo_vlasov_diff_boundary_surfvx_2x1v_tensor_p3}, // 3
     {NULL, lbo_vlasov_diff_boundary_surfvx_2x2v_tensor_p1,
      lbo_vlasov_diff_boundary_surfvx_2x2v_tensor_p2, NULL}, // 4
-    {NULL, lbo_vlasov_diff_boundary_surfvx_2x3v_tensor_p1, NULL, NULL}, // 5
+    {NULL, lbo_vlasov_diff_boundary_surfvx_2x3v_tensor_p1, GKYL_TEN_2X3V_P2(lbo_vlasov_diff_boundary_surfvx_2x3v_tensor_p2), NULL}, // 5
     // 3x kernels
     {NULL, GKYL_HYB_3X3V(lbo_vlasov_diff_boundary_surfvx_3x3v_tensor_p1), NULL, NULL} // 6
 };
@@ -726,7 +749,7 @@ GKYL_CU_D static const gkyl_dg_lbo_vlasov_diff_boundary_surf_kern_list
     {NULL, NULL, NULL, NULL}, // 3
     {NULL, lbo_vlasov_diff_boundary_surfvy_2x2v_tensor_p1,
      lbo_vlasov_diff_boundary_surfvy_2x2v_tensor_p2, NULL}, // 4
-    {NULL, lbo_vlasov_diff_boundary_surfvy_2x3v_tensor_p1, NULL, NULL}, // 5
+    {NULL, lbo_vlasov_diff_boundary_surfvy_2x3v_tensor_p1, GKYL_TEN_2X3V_P2(lbo_vlasov_diff_boundary_surfvy_2x3v_tensor_p2), NULL}, // 5
     // 3x kernels
     {NULL, GKYL_HYB_3X3V(lbo_vlasov_diff_boundary_surfvy_3x3v_tensor_p1), NULL, NULL} // 6
 };
@@ -757,7 +780,7 @@ GKYL_CU_D static const gkyl_dg_lbo_vlasov_diff_boundary_surf_kern_list
     // 2x kernels
     {NULL, NULL, NULL, NULL}, // 3
     {NULL, NULL, NULL, NULL}, // 4
-    {NULL, lbo_vlasov_diff_boundary_surfvz_2x3v_tensor_p1, NULL, NULL}, // 5
+    {NULL, lbo_vlasov_diff_boundary_surfvz_2x3v_tensor_p1, GKYL_TEN_2X3V_P2(lbo_vlasov_diff_boundary_surfvz_2x3v_tensor_p2), NULL}, // 5
     // 3x kernels
     {NULL, GKYL_HYB_3X3V(lbo_vlasov_diff_boundary_surfvz_3x3v_tensor_p1), NULL, NULL} // 6
 };

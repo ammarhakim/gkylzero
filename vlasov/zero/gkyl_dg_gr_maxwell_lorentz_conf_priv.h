@@ -70,7 +70,7 @@ GKYL_CU_D static const gkyl_dg_gr_maxwell_lorentz_conf_kern_list tensor_lorentz_
   {NULL, dg_gr_maxwell_lorentz_conf_2x2v_tensor_p1, dg_gr_maxwell_lorentz_conf_2x2v_tensor_p2, NULL
   }, // 3
   {NULL, dg_gr_maxwell_lorentz_conf_2x3v_tensor_p1,
-   dg_gr_maxwell_lorentz_conf_2x3v_tensor_p2, NULL}, // 4
+   GKYL_TEN_2X3V_P2(dg_gr_maxwell_lorentz_conf_2x3v_tensor_p2), NULL}, // 4
   {NULL, GKYL_HYB_3X3V(dg_gr_maxwell_lorentz_conf_3x3v_tensor_p1),
    dg_gr_maxwell_lorentz_conf_3x3v_tensor_p2, NULL} // 5
 };
