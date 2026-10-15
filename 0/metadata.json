@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M503VMVW8HQ7XK6JW6WVZW2G",
+  "session_id": "01a13822-0d8c-73e2-96ce-2e7194edc0d4",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-15T15:46:01.256092065Z",
+  "branch": "debug-nunif-grid",
+  "checkpoints_count": 2,
+  "save_step_count": 1,
+  "files_touched": [
+    "ci/jenkins/README.reporting.md"
+  ],
+  "agent": "Codex",
+  "model": "gpt-6-astra",
+  "turn_id": "b873f7a2900b",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 40255,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 309504,
+    "output_tokens": 3571,
+    "api_call_count": 11
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-15T15:46:01.238973974Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 9367,
+    "human_modified": 245,
+    "human_removed": 0,
+    "total_committed": 9367,
+    "total_lines_changed": 20818,
+    "agent_percentage": 0,
+    "metric_version": 2
+  }
+}
