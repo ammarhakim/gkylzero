@@ -22,7 +22,7 @@ gks_rad_moms_enabled(
   struct timespec wst = gkyl_wall_clock();
 
   // Compute Maxwellian moments (n, u_par, T/m) (without Jacobian).
-  gk_species_moment_calc(&rad->prim_moms, species->local, app->local, species->f);
+  gk_species_moment_calc(app, &rad->prim_moms, species->local, app->local, species->f);
 
   gkyl_array_set_offset(rad->m0, 1.0, rad->prim_moms.marr, 0 * app->basis.num_basis);
   gkyl_array_set_offset(rad->vtsq, 1.0, rad->prim_moms.marr, 2 * app->basis.num_basis);
@@ -36,12 +36,12 @@ gks_rad_moms_enabled(
     // Compute needed moments.
     if (rad->is_neut_species[i]) {
       gk_neut_species_moment_calc(
-        &rad->moms[i], rad->collide_with_neut[i]->local, app->local,
+        app, &rad->moms[i], rad->collide_with_neut[i]->local, app->local,
         fin_neut[rad->collide_with_idx[i]]
       );
     } else {
       gk_species_moment_calc(
-        &rad->moms[i], rad->collide_with[i]->local, app->local, fin[rad->collide_with_idx[i]]
+        app, &rad->moms[i], rad->collide_with[i]->local, app->local, fin[rad->collide_with_idx[i]]
       );
     }
 
@@ -231,7 +231,7 @@ gk_species_radiation_emissivity(
   struct timespec wst = gkyl_wall_clock();
 
   // Compute Maxwellian moments (n, u_par, T/m) (without Jacobian).
-  gk_species_moment_calc(&rad->prim_moms, species->local, app->local, species->f);
+  gk_species_moment_calc(app, &rad->prim_moms, species->local, app->local, species->f);
 
   gkyl_array_set_offset(rad->m0, 1.0, rad->prim_moms.marr, 0 * app->basis.num_basis);
   gkyl_array_set_offset(rad->vtsq, 1.0, rad->prim_moms.marr, 2 * app->basis.num_basis);
@@ -247,12 +247,12 @@ gk_species_radiation_emissivity(
 
     if (rad->is_neut_species[i]) {
       gk_neut_species_moment_calc(
-        &rad->moms[i], rad->collide_with_neut[i]->local, app->local,
+        app, &rad->moms[i], rad->collide_with_neut[i]->local, app->local,
         fin_neut[rad->collide_with_idx[i]]
       );
     } else {
       gk_species_moment_calc(
-        &rad->moms[i], rad->collide_with[i]->local, app->local, fin[rad->collide_with_idx[i]]
+        app, &rad->moms[i], rad->collide_with[i]->local, app->local, fin[rad->collide_with_idx[i]]
       );
     }
 
@@ -272,7 +272,7 @@ gk_species_radiation_emissivity(
     gkyl_dg_updater_rad_gyrokinetic_advance(
       rad->drag_slvr, &species->local, species->f, species->cflrate, rad->emissivity_rhs
     );
-    gk_species_moment_calc(&rad->m2, species->local, app->local, rad->emissivity_rhs);
+    gk_species_moment_calc(app, &rad->m2, species->local, app->local, rad->emissivity_rhs);
 
     gkyl_dg_mul_op(&app->basis, 0, rad->emissivity_denominator, 0, rad->m0, 0, rad->moms[i].marr);
     gkyl_dg_mul_op(
@@ -394,7 +394,7 @@ gk_species_radiation_integrated_moms(
   gkyl_dg_updater_rad_gyrokinetic_advance(
     rad->drag_slvr, &species->local, species->f, species->cflrate, rad->emissivity_rhs
   );
-  gk_species_moment_calc(&rad->integ_moms, species->local, app->local, rad->emissivity_rhs);
+  gk_species_moment_calc(app, &rad->integ_moms, species->local, app->local, rad->emissivity_rhs);
 }
 
 static void

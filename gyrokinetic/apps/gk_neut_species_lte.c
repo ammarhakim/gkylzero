@@ -66,7 +66,7 @@ gk_neut_species_lte_kinetic(
 {
   // Compute equivalent f_lte from fin.
   struct timespec wst = gkyl_wall_clock();
-  gk_neut_species_moment_calc(&lte->moms, gkns->local, app->local, fin);
+  gk_neut_species_moment_calc(app, &lte->moms, gkns->local, app->local, fin);
 
   // Divide the density by the Jacobian.
   gkyl_dg_div_op_range(

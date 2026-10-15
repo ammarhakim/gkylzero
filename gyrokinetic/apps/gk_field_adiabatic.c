@@ -35,7 +35,7 @@ gk_field_adiabatic_init(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 
   // Maxwellian moments n_s0*J, upar and T_s/m_s.
   struct gk_species_moment *moms = &gks->lte.moms;
-  gk_species_moment_calc(moms, gks->local, app->local, gks->f);
+  gk_species_moment_calc(app, moms, gks->local, app->local, gks->f);
 
   gkyl_array_set_offset(ad->rho_bg, q_s, moms->marr, 0);
   gkyl_dg_div_op_range(

@@ -23,7 +23,9 @@ gkns_react_cross_moms_enabled(
 
     if (react->react_id[i] == GKYL_REACT_IZ) {
       // compute needed electron Maxwellian moments (J*n, u_par, T/m)
-      gk_species_moment_calc(&gks_elc->lte.moms, gks_elc->local, app->local, fin[react->elc_idx[i]]);
+      gk_species_moment_calc(
+        app, &gks_elc->lte.moms, gks_elc->local, app->local, fin[react->elc_idx[i]]
+      );
 
       // divide out the Jacobian from the electron density for computing reaction rates
       gkyl_dg_div_op_range(
@@ -38,7 +40,9 @@ gkns_react_cross_moms_enabled(
       );
     } else if (react->react_id[i] == GKYL_REACT_RECOMB) {
       // compute needed electron Maxwellian moments (J*n, u_par, T/m)
-      gk_species_moment_calc(&gks_elc->lte.moms, gks_elc->local, app->local, fin[react->elc_idx[i]]);
+      gk_species_moment_calc(
+        app, &gks_elc->lte.moms, gks_elc->local, app->local, fin[react->elc_idx[i]]
+      );
 
       // Copy J*n for use in final update
       gkyl_array_set_range(react->Jm0_elc[i], 1.0, gks_elc->lte.moms.marr, &app->local);
@@ -50,7 +54,9 @@ gkns_react_cross_moms_enabled(
       );
 
       // compute needed ion Maxwellian moments (J*n, u_par, T/m)
-      gk_species_moment_calc(&gks_ion->lte.moms, gks_ion->local, app->local, fin[react->ion_idx[i]]);
+      gk_species_moment_calc(
+        app, &gks_ion->lte.moms, gks_ion->local, app->local, fin[react->ion_idx[i]]
+      );
 
       // divide out the Jacobian from the ion density for use in Maxwellian projection
       gkyl_dg_div_op_range(
@@ -78,7 +84,9 @@ gkns_react_cross_moms_enabled(
       gkyl_dg_recomb_coll(react->recomb[i], gks_elc->lte.moms.marr, react->coeff_react[i], 0);
     } else if (react->react_id[i] == GKYL_REACT_CX) {
       // compute needed ion Maxwellian moments (J*n, u_par, T/m)
-      gk_species_moment_calc(&gks_ion->lte.moms, gks_ion->local, app->local, fin[react->ion_idx[i]]);
+      gk_species_moment_calc(
+        app, &gks_ion->lte.moms, gks_ion->local, app->local, fin[react->ion_idx[i]]
+      );
 
       // divide out the Jacobian from the ion density
       gkyl_dg_div_op_range(
@@ -105,7 +113,8 @@ gkns_react_cross_moms_enabled(
       // compute needed partner (neutral) Maxwellian moments (J*n, ux, uy, uz, T/m)
       struct gk_neut_species *gkns_partner = &app->neut_species[react->partner_idx[i]];
       gk_neut_species_moment_calc(
-        &gkns_partner->lte.moms, gkns_partner->local, app->local, fin_neut[react->partner_idx[i]]
+        app, &gkns_partner->lte.moms, gkns_partner->local, app->local,
+        fin_neut[react->partner_idx[i]]
       );
 
       // Copy J*n for use in final update
@@ -407,6 +416,14 @@ gk_neut_species_react_cross_init(
       // Fetch pointers to species objects
       react->species_elc[i] = gk_find_species(app, react->react_type[i].elc_nm);
       react->species_ion[i] = gk_find_species(app, react->react_type[i].ion_nm);
+      if (!react->species_ion[i] ||
+          (react->react_id[i] != GKYL_REACT_CX && !react->species_elc[i])) {
+        gkyl_exit("Reaction references a missing charged species.");
+      }
+      if ((react->species_elc[i] && react->species_elc[i]->is_fluid) ||
+          react->species_ion[i]->is_fluid) {
+        gkyl_exit("Reactions with charged fluid species are not supported.");
+      }
       // Fetch index of species for indexing arrays
       react->elc_idx[i] = gk_find_species_idx(app, react->react_type[i].elc_nm);
       react->ion_idx[i] = gk_find_species_idx(app, react->react_type[i].ion_nm);

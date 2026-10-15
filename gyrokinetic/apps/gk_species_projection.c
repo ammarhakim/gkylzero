@@ -1,7 +1,15 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_util.h>
+#include <gkyl_gk_fluid_moments.h>
 
+/**
+ * Read a configuration-space moment array from a file when import is enabled.
+ *
+ * @param app Gyrokinetic app object.
+ * @param arr Output moment array.
+ * @param inp Import settings; NULL or GKYL_IC_IMPORT_NONE leaves arr unchanged.
+ */
 static void
 load_projection_moment_from_file(
   struct gkyl_gyrokinetic_app *app, struct gkyl_array *arr,
@@ -24,6 +32,13 @@ load_projection_moment_from_file(
   gkyl_array_release(arr_host);
 }
 
+/**
+ * Map computational phase-space coordinates using the position and velocity maps.
+ *
+ * @param xcomp Input computational phase-space coordinates.
+ * @param xphys Output mapped position and velocity coordinates.
+ * @param ctx Mapping context of type gk_proj_on_basis_c2p_func_ctx.
+ */
 static void
 proj_on_basis_c2p_phase_func(const double *xcomp, double *xphys, void *ctx)
 {
@@ -33,6 +48,13 @@ proj_on_basis_c2p_phase_func(const double *xcomp, double *xphys, void *ctx)
   gkyl_velocity_map_eval_c2p(c2p_ctx->vel_map, &xcomp[cdim], &xphys[cdim]);
 }
 
+/**
+ * Map computational configuration-space coordinates using the position map.
+ *
+ * @param xcomp Input computational configuration-space coordinates.
+ * @param xphys Output mapped configuration-space coordinates.
+ * @param ctx Mapping context of type gk_proj_on_basis_c2p_func_ctx.
+ */
 static void
 proj_on_basis_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
 {
@@ -49,6 +71,15 @@ struct func_gaussian_ctx {
     [GKYL_MAX_CDIM]; // Sigma in configuration space, function is constant if sigma is 0.
   double f_floor; // Floor value of the distribution.
 };
+
+/**
+ * Evaluate a Gaussian envelope plus a floor, wrapping distances in periodic directions.
+ *
+ * @param t Evaluation time.
+ * @param xn Configuration-space coordinates.
+ * @param fout Output profile value in fout[0].
+ * @param ctx Gaussian parameters and periodicity, of type func_gaussian_ctx.
+ */
 static void
 func_gaussian(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 {
@@ -73,6 +104,15 @@ func_gaussian(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
   fout[0] = envelope + inp->f_floor;
 }
 
+/**
+ * Project a prescribed distribution (multiplied by bmag and jacobvel).
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species being projected.
+ * @param proj Projection object.
+ * @param f Output distribution.
+ * @param tm Simulation time.
+ */
 static void
 gk_species_projection_calc_proj_func(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_proj *proj, struct gkyl_array *f,
@@ -93,6 +133,16 @@ gk_species_projection_calc_proj_func(
   gkyl_array_scale_by_cell(f, gks->vel_map->jacobvel);
 }
 
+/**
+ * Project and scale a moment unless its values were already imported.
+ *
+ * @param from_file Whether the moment was imported.
+ * @param proj_op Moment projection operator.
+ * @param tm Simulation time.
+ * @param conf_range Configuration-space range.
+ * @param arr Output moment array.
+ * @param scale_fac Multiplicative factor applied after projection.
+ */
 static void
 project_moment_if_needed(
   bool from_file, struct gkyl_proj_on_basis *proj_op, double tm,
@@ -109,6 +159,19 @@ project_moment_if_needed(
   }
 }
 
+/**
+ * Import and scale a moment, or create an operator to project it later.
+ *
+ * @param app Gyrokinetic app object.
+ * @param proj Projection data providing the position-map context.
+ * @param from_file Whether to import the moment instead of creating a projection operator.
+ * @param arr Output moment array for an imported moment.
+ * @param import_inp File-import settings, used when from_file is true.
+ * @param eval Moment evaluation callback, used when from_file is false.
+ * @param ctx Context passed to the evaluation.
+ * @param scale_fac Multiplicative factor applied to imported values.
+ * @param proj_on_basis Output projection operator, set only when from_file is false.
+ */
 static void
 init_moment_from_import_or_proj(
   struct gkyl_gyrokinetic_app *app, struct gk_proj *proj, bool from_file, struct gkyl_array *arr,
@@ -137,6 +200,66 @@ init_moment_from_import_or_proj(
   });
 }
 
+/**
+ * Project a Maxwellian or bi-Maxwellian distribution from primitive moments.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species being projected.
+ * @param proj Projection object.
+ * @param f Output distribution.
+ * @param tm Evaluation time.
+ */
+static void
+gk_species_projection_from_prim_moms_kinetic(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_proj *proj, struct gkyl_array *f,
+  double tm
+)
+{
+  gkyl_gk_maxwellian_proj_on_basis_advance(
+    proj->proj_max, &gks->local, &app->local, proj->prim_moms, false, f
+  );
+}
+
+/**
+ * Convert primitive moments to J*(rho, M_parallel, E, p_perp/B), using T_perp=T for isotropy.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species being projected.
+ * @param proj Projection data and selected operators.
+ * @param f Output configuration-space array of Jacobian-weighted conservative moments.
+ * @param tm Evaluation time.
+ */
+static void
+gk_species_projection_from_prim_moms_fluid(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_proj *proj, struct gkyl_array *f,
+  double tm
+)
+{
+  int nb = app->basis.num_basis;
+  gkyl_array_clear(f, 0.0);
+  gkyl_array_clear(proj->fluid_prim, 0.0);
+  gkyl_array_set_offset_ncoeff_range(
+    proj->fluid_prim, 1.0, proj->prim_moms, 3 * nb, 0, 0, &app->local
+  );
+  // Supply Tperp from T for an isotropic input.
+  int tperp = proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM ? 2 : 3;
+  gkyl_array_set_offset_ncoeff_range(
+    proj->fluid_prim, 1.0, proj->prim_moms, nb, tperp * nb, 3 * nb, &app->local
+  );
+  gkyl_gk_fluid_moments_from_prim(
+    gks->m0.gf_moms, &app->local, proj->fluid_prim, app->gk_geom->geo_int.jacobgeo, f
+  );
+}
+
+/**
+ * Prepare density, parallel flow, and T/m, then construct the (Maxwellian) kinetic or fluid state.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species being projected.
+ * @param proj Projection object.
+ * @param f Output distribution or conservative fluid moments.
+ * @param tm Simulation time.
+ */
 static void
 gk_species_projection_calc_max_prim(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_proj *proj, struct gkyl_array *f,
@@ -145,9 +268,7 @@ gk_species_projection_calc_max_prim(
 {
   if (proj->maxwellian_moms_from_file) {
     gkyl_array_copy(proj->prim_moms, proj->prim_moms_host);
-    gkyl_gk_maxwellian_proj_on_basis_advance(
-      proj->proj_max, &gks->local, &app->local, proj->prim_moms, false, f
-    );
+    proj->from_moms_func(app, gks, proj, f, tm);
     return;
   }
 
@@ -164,11 +285,18 @@ gk_species_projection_calc_max_prim(
 
   // Copy the contents into the array we will use (potentially on GPUs).
   gkyl_array_copy(proj->prim_moms, proj->prim_moms_host);
-  gkyl_gk_maxwellian_proj_on_basis_advance(
-    proj->proj_max, &gks->local, &app->local, proj->prim_moms, false, f
-  );
+  proj->from_moms_func(app, gks, proj, f, tm);
 }
 
+/**
+ * Prepare density, parallel flow, T_parallel/m, and T_perp/m, then construct the state.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species being projected.
+ * @param proj Projection object.
+ * @param f Output distribution or conservative fluid moments.
+ * @param tm Simulation time.
+ */
 static void
 gk_species_projection_calc_bimax(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_proj *proj, struct gkyl_array *f,
@@ -177,9 +305,7 @@ gk_species_projection_calc_bimax(
 {
   if (proj->bimaxwellian_moms_from_file) {
     gkyl_array_copy(proj->prim_moms, proj->prim_moms_host);
-    gkyl_gk_maxwellian_proj_on_basis_advance(
-      proj->proj_max, &gks->local, &app->local, proj->prim_moms, false, f
-    );
+    proj->from_moms_func(app, gks, proj, f, tm);
     return;
   }
 
@@ -202,11 +328,18 @@ gk_species_projection_calc_bimax(
 
   // Copy the contents into the array we will use (potentially on GPUs).
   gkyl_array_copy(proj->prim_moms, proj->prim_moms_host);
-  gkyl_gk_maxwellian_proj_on_basis_advance(
-    proj->proj_max, &gks->local, &app->local, proj->prim_moms, false, f
-  );
+  proj->from_moms_func(app, gks, proj, f, tm);
 }
 
+/**
+ * Construct a Maxwellian from Gaussian-profile moments, temporarily disabling LTE correction.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species being projected.
+ * @param proj Projection data and selected operators.
+ * @param f Output Maxwellian distribution copied from the LTE array.
+ * @param tm Simulation time.
+ */
 static void
 gk_species_projection_calc_max_gauss(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_proj *proj, struct gkyl_array *f,
@@ -221,13 +354,22 @@ gk_species_projection_calc_max_gauss(
 }
 
 static void
-gk_species_projection_calc_none(
+gk_species_projection_calc_disabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_proj *proj, struct gkyl_array *f,
   double tm
 )
 {
 }
 
+/**
+ * Correct the projected distribution to match the requested primitive moments.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species being projected.
+ * @param proj Projection object.
+ * @param f Distribution to correct in place.
+ * @param tm Simulation time.
+ */
 static void
 gk_species_projection_correct_all_moms(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_proj *proj, struct gkyl_array *f,
@@ -241,7 +383,7 @@ gk_species_projection_correct_all_moms(
 }
 
 static void
-gk_species_projection_correct_all_moms_none(
+gk_species_projection_correct_all_moms_disabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_proj *proj, struct gkyl_array *f,
   double tm
 )
@@ -249,11 +391,30 @@ gk_species_projection_correct_all_moms_none(
 }
 
 static void
+gk_species_projection_zero(double tm, const double *xn, double *out, void *ctx)
+{
+  out[0] = 0.0;
+}
+
+/**
+ * Initialize primitive-moment imports or projections and kinetic or fluid conversion data.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species object.
+ * @param inp Projection inputs.
+ * @param proj Projection object to initialize.
+ */
+static void
 init_maxwellian_bimaxwellian(
   struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gkyl_gyrokinetic_projection inp,
   struct gk_proj *proj
 )
 {
+  if (gks->is_fluid) {
+    if (!inp.upar) {
+      inp.upar = gk_species_projection_zero;
+    }
+  }
   bool maxwellian_moms_from_file = proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM &&
                                    inp.maxwellian_moms_import.type != GKYL_IC_IMPORT_NONE;
   proj->maxwellian_moms_from_file = maxwellian_moms_from_file;
@@ -327,6 +488,13 @@ init_maxwellian_bimaxwellian(
     }
   }
 
+  proj->proj_max = 0;
+  proj->correct_all_moms = false;
+  if (gks->is_fluid) {
+    proj->fluid_prim = mkarr(app->use_gpu, 4 * app->basis.num_basis, app->local_ext.volume);
+    return;
+  }
+
   // Maxwellian (or bi-Maxwellian) projection updater.
   struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = {
     .phase_grid = &gks->grid,
@@ -375,6 +543,14 @@ init_maxwellian_bimaxwellian(
   }
 }
 
+/**
+ * Initialize a normalized Gaussian density profile and its Maxwellian primitive moments.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species object.
+ * @param inp Projection inputs.
+ * @param proj Projection object to initialize.
+ */
 static void
 init_maxwellian_gaussian(
   struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gkyl_gyrokinetic_projection inp,
@@ -476,53 +652,17 @@ init_maxwellian_gaussian(
   proj->correct_all_moms = inp.correct_all_moms;
 }
 
-void
-gk_species_projection_init(
-  struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gkyl_gyrokinetic_projection inp,
-  struct gk_proj *proj
-)
-{
-  proj->proj_id = inp.proj_id;
-  // Context for c2p function passed to proj_on_basis.
-  proj->proj_on_basis_c2p_ctx.cdim = app->cdim;
-  proj->proj_on_basis_c2p_ctx.vdim = gks->local_vel.ndim;
-  proj->proj_on_basis_c2p_ctx.vel_map = gks->vel_map;
-  proj->proj_on_basis_c2p_ctx.pos_map = app->position_map;
-  if (proj->proj_id == GKYL_PROJ_FUNC) {
-    proj->proj_func = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
-      .grid = &gks->grid,
-      .basis = &gks->basis,
-      .qtype = GKYL_GAUSS_QUAD,
-      .num_quad = app->basis.poly_order + 1,
-      .num_ret_vals = 1,
-      .eval = inp.func,
-      .ctx = inp.ctx_func,
-      .c2p_func = proj_on_basis_c2p_phase_func,
-      .c2p_func_ctx = &proj->proj_on_basis_c2p_ctx,
-    });
-    if (app->use_gpu) {
-      proj->proj_host = mkarr(false, gks->basis.num_basis, gks->local_ext.volume);
-    }
-
-    proj->projection_calc = gk_species_projection_calc_proj_func;
-    proj->moms_correct = gk_species_projection_correct_all_moms_none;
-  } else {
-    if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
-      init_maxwellian_bimaxwellian(app, gks, inp, proj);
-      proj->projection_calc = proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM ?
-                                gk_species_projection_calc_max_prim :
-                                gk_species_projection_calc_bimax;
-    } else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN) {
-      init_maxwellian_gaussian(app, gks, inp, proj);
-      proj->projection_calc = gk_species_projection_calc_max_gauss;
-    }
-    proj->moms_correct = proj->correct_all_moms ? gk_species_projection_correct_all_moms :
-                                                  gk_species_projection_correct_all_moms_none;
-  }
-}
-
-void
-gk_species_projection_calc(
+/**
+ * Project a distribution, apply optional moment correction, and multiply by the configuration Jacobian.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species being projected.
+ * @param proj Projection data and selected operators.
+ * @param f Output Jacobian-weighted phase-space distribution.
+ * @param tm Time at which to evaluate the projection.
+ */
+static void
+gk_species_projection_calc_kinetic(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_proj *proj, struct gkyl_array *f,
   double tm
 )
@@ -535,8 +675,16 @@ gk_species_projection_calc(
   );
 }
 
-void
-gk_species_projection_release(const struct gkyl_gyrokinetic_app *app, const struct gk_proj *proj)
+/**
+ * Release arrays and operators allocated for the selected projection.
+ *
+ * @param app Gyrokinetic app object.
+ * @param proj Projection object whose resources are released.
+ */
+static void
+gk_species_projection_release_impl(
+  const struct gkyl_gyrokinetic_app *app, const struct gk_proj *proj
+)
 {
   if (proj->proj_id == GKYL_PROJ_FUNC) {
     gkyl_proj_on_basis_release(proj->proj_func);
@@ -555,7 +703,12 @@ gk_species_projection_release(const struct gkyl_gyrokinetic_app *app, const stru
     if (!proj->upar_from_file) {
       gkyl_proj_on_basis_release(proj->proj_upar);
     }
-    gkyl_gk_maxwellian_proj_on_basis_release(proj->proj_max);
+    if (proj->proj_max) {
+      gkyl_gk_maxwellian_proj_on_basis_release(proj->proj_max);
+    }
+    if (proj->fluid_prim) {
+      gkyl_array_release(proj->fluid_prim);
+    }
 
     if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
       gkyl_array_release(proj->vtsq);
@@ -580,4 +733,95 @@ gk_species_projection_release(const struct gkyl_gyrokinetic_app *app, const stru
     gkyl_array_release(proj->gaussian_profile);
     gkyl_array_release(proj->prim_moms);
   }
+}
+
+/**
+ * Apply the selected projection to produce Jacobian-weighted conservative fluid moments.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species being projected.
+ * @param proj Projection data and selected operators.
+ * @param f Output configuration-space array of conservative moments.
+ * @param tm Time at which to evaluate the projection.
+ */
+static void
+gk_species_projection_calc_fluid(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_proj *proj, struct gkyl_array *f,
+  double tm
+)
+{
+  proj->projection_calc(app, gks, proj, f, tm);
+}
+
+void
+gk_species_projection_init(
+  struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gkyl_gyrokinetic_projection inp,
+  struct gk_proj *proj
+)
+{
+  *proj = (struct gk_proj){0};
+  proj->proj_id = inp.proj_id;
+
+  if (gks->is_fluid && inp.proj_id != GKYL_PROJ_MAXWELLIAN_PRIM &&
+      inp.proj_id != GKYL_PROJ_BIMAXWELLIAN) {
+    gkyl_exit("Fluid charged species require Maxwellian or bi-Maxwellian primitive projection.");
+  }
+
+  proj->calc_func = gks->is_fluid ? gk_species_projection_calc_fluid :
+                                    gk_species_projection_calc_kinetic;
+  proj->from_moms_func = gks->is_fluid ? gk_species_projection_from_prim_moms_fluid :
+                                         gk_species_projection_from_prim_moms_kinetic;
+  proj->release_func = gk_species_projection_release_impl;
+
+  // Context for c2p function passed to proj_on_basis.
+  proj->proj_on_basis_c2p_ctx.cdim = app->cdim;
+  proj->proj_on_basis_c2p_ctx.vdim = gks->local_vel.ndim;
+  proj->proj_on_basis_c2p_ctx.vel_map = gks->vel_map;
+  proj->proj_on_basis_c2p_ctx.pos_map = app->position_map;
+  if (proj->proj_id == GKYL_PROJ_FUNC) {
+    proj->proj_func = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+      .grid = &gks->grid,
+      .basis = &gks->basis,
+      .qtype = GKYL_GAUSS_QUAD,
+      .num_quad = app->basis.poly_order + 1,
+      .num_ret_vals = 1,
+      .eval = inp.func,
+      .ctx = inp.ctx_func,
+      .c2p_func = proj_on_basis_c2p_phase_func,
+      .c2p_func_ctx = &proj->proj_on_basis_c2p_ctx,
+    });
+    if (app->use_gpu) {
+      proj->proj_host = mkarr(false, gks->basis.num_basis, gks->local_ext.volume);
+    }
+
+    proj->projection_calc = gk_species_projection_calc_proj_func;
+    proj->moms_correct = gk_species_projection_correct_all_moms_disabled;
+  } else {
+    if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
+      init_maxwellian_bimaxwellian(app, gks, inp, proj);
+      proj->projection_calc = proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM ?
+                                gk_species_projection_calc_max_prim :
+                                gk_species_projection_calc_bimax;
+    } else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN) {
+      init_maxwellian_gaussian(app, gks, inp, proj);
+      proj->projection_calc = gk_species_projection_calc_max_gauss;
+    }
+    proj->moms_correct = proj->correct_all_moms ? gk_species_projection_correct_all_moms :
+                                                  gk_species_projection_correct_all_moms_disabled;
+  }
+}
+
+void
+gk_species_projection_calc(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_proj *proj, struct gkyl_array *f,
+  double tm
+)
+{
+  proj->calc_func(app, gks, proj, f, tm);
+}
+
+void
+gk_species_projection_release(const struct gkyl_gyrokinetic_app *app, const struct gk_proj *proj)
+{
+  proj->release_func(app, proj);
 }

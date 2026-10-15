@@ -171,13 +171,15 @@ struct gk_species_moment {
     // Fluid species .............................................. //
     struct {
       struct gkyl_gk_neut_fluid_prim_vars *nf_prim_vars;
+      struct gkyl_gk_fluid_moments *gf_moms;
     };
   };
 
   // Methods chosen at runtime.
   void (*calc_func)(
-    const struct gk_species_moment *sm, const struct gkyl_range phase_rng,
-    const struct gkyl_range conf_rng, const struct gkyl_array *fin
+    const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm,
+    const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
+    const struct gkyl_array *fin
   );
   void (*release_func)(const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm);
   void (*diag_jacobgeo_div_func)(
@@ -501,6 +503,13 @@ struct gk_bgk_collisions {
     gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_bgk_collisions *bgk,
     int coll_idx
   );
+  void (*cross_moms_method_func)(
+    gkyl_gyrokinetic_app *, const struct gk_species *, struct gk_bgk_collisions *,
+    const struct gkyl_array *
+  );
+  void (*cross_moms_method_implicit_func)(gkyl_gyrokinetic_app *, const struct gk_species *,
+    struct gk_bgk_collisions *, const struct gkyl_array *
+  );
   void (*rhs_func)(
     gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_bgk_collisions *bgk,
     const struct gkyl_array *fin, double dt, struct gkyl_array *rhs
@@ -815,6 +824,7 @@ struct gk_react {
 };
 
 struct gk_scaling {
+  void (*set_density_func)(gkyl_gyrokinetic_app *, struct gk_species *, struct gkyl_array *, struct gkyl_array *);
   bool write_diagnostics; // Whether to write diagnostics.
   enum gkyl_gk_species_scaling_type type; // Type of scaling operation.
 
@@ -904,6 +914,16 @@ struct gk_proj_on_basis_c2p_func_ctx {
 struct gk_proj {
   enum gkyl_projection_id proj_id; // Type of projection.
   struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
+
+  struct gkyl_array *fluid_prim; // Four primitive fields on the selected device.
+  // Function that performs the projection.
+  void (*calc_func)(
+    gkyl_gyrokinetic_app *, struct gk_species *, struct gk_proj *, struct gkyl_array *, double
+  );
+  void (*from_moms_func)(
+    gkyl_gyrokinetic_app *, struct gk_species *, struct gk_proj *, struct gkyl_array *, double
+  );
+
   union {
     // Function projection.
     struct {
@@ -1236,18 +1256,21 @@ struct gk_positivity {
 // Species data.
 struct gk_species {
   struct gkyl_gyrokinetic_species info; // Input data.
+  bool is_fluid; // Species grid, basis and ranges describe configuration space.
+  int num_moments; // Number of conservative moments in the fluid species state.
+  void (*release_species_func)(const gkyl_gyrokinetic_app *, const struct gk_species *);
 
-  struct gkyl_basis basis; // Phase-space basis.
+  struct gkyl_basis basis; // Phase-space basis for kinetic species, conf-space for fluid.
 
   // Basis on device (points to host basis if running w/o GPU).
   struct gkyl_basis *basis_on_dev;
 
   struct gkyl_job_pool *job_pool; // Job pool
   struct gkyl_rect_grid grid;
-  struct gkyl_range local, local_ext; // Local, local-ext phase-space ranges.
-  struct gkyl_range global, global_ext; // Global, global-ext conf-space ranges.
+  struct gkyl_range local, local_ext; // Local ranges in the species grid.
+  struct gkyl_range global, global_ext; // Global ranges in the species grid.
 
-  struct gkyl_comm *comm; // Communicator object for phase-space arrays.
+  struct gkyl_comm *comm; // Communicator for species-state arrays.
   int nghost[GKYL_MAX_DIM]; // Number of ghost-cells in each direction.
 
   struct gkyl_rect_grid grid_vel; // Velocity space grid.
@@ -1262,7 +1285,8 @@ struct gk_species {
   int io_meta_phase_len; // Number of elements in io_meta_phase.
   int io_meta_conf_len; // Number of elements in io_meta_conf.
 
-  struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
+  // Kinetic: distribution. Fluid: J*(rho, Mpar, E, pperp/B) on the conf grid.
+  struct gkyl_array *f, *f1, *fnew; // State and time-stepping arrays.
   struct gkyl_array *cflrate; // CFL rate in each cell.
   struct gkyl_array *cflrate_ho; // CFL rate in each cell on host-side.
 
@@ -2015,16 +2039,18 @@ void gk_species_moment_init(
 );
 
 /**
- * Calculate moment, given distribution function @a fin.
+ * Calculate a moment from a kinetic distribution or conservative fluid state.
  * 
+ * @param app Gyrokinetic application providing the current field.
  * @param sm Species moment object.
- * @param phase_rng Phase-space range.
- * @param conf_rng Config-space range.
- * @param fin Input distribution function array
+ * @param species_rng Phase-space range for kinetic species, configuration-space range for fluids.
+ * @param conf_rng Configuration-space range.
+ * @param fin Input distribution function or conservative fluid moment array.
  */
 void gk_species_moment_calc(
-  const struct gk_species_moment *sm, const struct gkyl_range phase_rng,
-  const struct gkyl_range conf_rng, const struct gkyl_array *fin
+  const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm,
+  const struct gkyl_range species_rng, const struct gkyl_range conf_rng,
+  const struct gkyl_array *fin
 );
 
 /**
@@ -3686,6 +3712,17 @@ void gk_species_source_bgk_release(
 void gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_species *gks);
 
 /**
+ * Read a fluid or kinetic state on the species grid, without import transformations.
+ * @param app Gyrokinetic app.
+ * @param gks Species whose f/f_host arrays receive the state.
+ * @param fname State file to validate and read.
+ * @return I/O status; device state is copied only after a successful read.
+ */
+enum gkyl_array_rio_status gk_species_read(
+  struct gkyl_gyrokinetic_app *app, struct gk_species *gks, const char *fname
+);
+
+/**
  * Compute species initial conditions.
  *
  * @param app gyrokinetic app object.
@@ -3907,14 +3944,15 @@ void gk_neut_species_moment_init(
 /**
  * Calculate neutral species moment, given input neutral distribution function fin.
  * 
+ * @param app Gyrokinetic application.
  * @param sm Neutral species moment object.
  * @param phase_rng Phase-space range.
  * @param conf_rng Config-space range.
  * @param fin Input neutral distribution function array.
  */
 void gk_neut_species_moment_calc(
-  const struct gk_species_moment *sm, const struct gkyl_range phase_rng,
-  const struct gkyl_range conf_rng, const struct gkyl_array *fin
+  const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm,
+  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng, const struct gkyl_array *fin
 );
 
 /**

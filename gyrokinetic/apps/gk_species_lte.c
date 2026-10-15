@@ -106,7 +106,7 @@ gk_species_lte(
 {
   struct timespec wst = gkyl_wall_clock();
   // Compute needed Maxwellian moments (J*n, u_par, T/m).
-  gk_species_moment_calc(&lte->moms, species->local, app->local, fin);
+  gk_species_moment_calc(app, &lte->moms, species->local, app->local, fin);
 
   // Divide out the Jacobian from the density.
   gkyl_dg_div_op_range(

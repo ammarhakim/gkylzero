@@ -305,10 +305,6 @@ main(int argc, char **argv)
     .name = "elc",
     .charge = ctx.charge_elc,
     .mass = ctx.mass_elc,
-    .vdim = ctx.vdim,
-    .lower = {-ctx.vpar_max_elc, 0.0},
-    .upper = {ctx.vpar_max_elc, ctx.mu_max_elc},
-    .cells = {cells_v[0], cells_v[1]},
 
     .projection =
       {

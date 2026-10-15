@@ -56,7 +56,7 @@ gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *f
 
     if (gks->info.charge > 0.0) {
       // Assumes symmetric sheath BCs for now only in 1D
-      // NOTE: this relies on the accumulate_rho_c calling gk_species_moment_calc(s->m0)
+      // NOTE: this relies on the accumulate_rho_c calling gk_species_moment_calc
       // to calculate the particle flux and place it in the ghost cells of s->m0.marr.
       gkyl_ambi_bolt_potential_sheath_calc(
         field->ambi_pot, GKYL_LOWER_EDGE, &app->local_lower_skin[idx_par],
