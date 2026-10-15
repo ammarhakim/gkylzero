@@ -222,12 +222,15 @@ gk_species_write_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *gks, doub
   // Metadata from app and geo object.
   gkyl_msgpack_map_elem_set_double(gks->io_meta_phase_len, gks->io_meta_phase, "time", tm);
   gkyl_msgpack_map_elem_set_uint(gks->io_meta_phase_len, gks->io_meta_phase, "frame", frame);
-  struct gkyl_msgpack_map_elem io_meta_f[] = {{
-    .key = "Description",
-    .elem_type = GKYL_MP_STRING,
-    .cval = gks->is_fluid ? "Fluid moments: J*rho, J*Mpar, J*E, J*pperp/B." :
-                            "Distribution function times Jacobians.",
-  }};
+  struct gkyl_msgpack_map_elem io_meta_f[] = {
+    {
+      .key = "Description",
+      .elem_type = GKYL_MP_STRING,
+      .cval = gks->is_fluid ? "Fluid moments: J*rho, J*Mpar, J*E, J*pperp/B." :
+                              "Distribution function times Jacobians.",
+    },
+    {.key = "is_fluid", .elem_type = GKYL_MP_BOOL, .bval = gks->is_fluid}
+  };
   int io_meta_f_len = sizeof(io_meta_f) / sizeof(io_meta_f[0]);
   int io_meta_len[] = {gks->io_meta_phase_len, app->gk_geom->io_meta_basic_len, io_meta_f_len};
   const struct gkyl_msgpack_map_elem *io_meta[] = {
