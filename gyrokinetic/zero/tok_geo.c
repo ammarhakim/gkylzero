@@ -1031,14 +1031,16 @@ tok_build_contour_candidate(
     return false;
   }
   if (first_step_verified) {
-    fprintf(
-      stderr,
-      "TOK_TRACE_CUSP_STEP trace=%s ftype_param=%c psi=%.17g first_step=%.17g "
-      "sub_arc=%.17g excess=%.17g max_after_first=%.17g mean=%.17g "
-      "fixed=(%.17g,%.17g)\n",
-      name, param_is_r ? 'R' : 'Z', psi, first_step, skipped_arc, skipped_arc - first_step,
-      max_step_after_first, mean, rfixed, zfixed
-    );
+    if (geo->is_verbose) {
+      fprintf(
+        stderr,
+        "TOK_TRACE_CUSP_STEP trace=%s ftype_param=%c psi=%.17g first_step=%.17g "
+        "sub_arc=%.17g excess=%.17g max_after_first=%.17g mean=%.17g "
+        "fixed=(%.17g,%.17g)\n",
+        name, param_is_r ? 'R' : 'Z', psi, first_step, skipped_arc, skipped_arc - first_step,
+        max_step_after_first, mean, rfixed, zfixed
+      );
+    }
   }
   *score = max_step / mean + 4.0 * final_step / mean;
   return isfinite(*score);
@@ -1291,11 +1293,13 @@ tok_plate_flux_intersection(
         pick = k;
       }
     }
-    fprintf(
-      stderr,
-      "TOK_ORDERED_MAP plate root count=%d ftype=%d psi=%.17g hint=%.17g picked=%d rz=(%.17g,%.17g)\n",
-      nroots, ftype, psi, hint, pick, roots_r[pick], roots_z[pick]
-    );
+    if (geo->is_verbose) {
+      fprintf(
+        stderr,
+        "TOK_ORDERED_MAP plate root count=%d ftype=%d psi=%.17g hint=%.17g picked=%d rz=(%.17g,%.17g)\n",
+        nroots, ftype, psi, hint, pick, roots_r[pick], roots_z[pick]
+      );
+    }
   }
   *r = roots_r[pick];
   *z = roots_z[pick];
@@ -2005,11 +2009,13 @@ tok_divertor_material_cap(
       }
     }
   }
-  fprintf(
-    stderr,
-    "TOK_GEO_DIVERTOR_CAP trial=%d ftype=%d theta_edge=%d slot=%d psi0=%.17g psi1=%.17g R0=%.17g Z0=%.17g R1=%.17g Z1=%.17g s0=%.17g s1=%.17g straight_chord_outside=1 native_arc=validated\n",
-    wall_trial_active, inp->ftype, theta_edge, slot, psi_p, psi_q, p[0], p[1], q[0], q[1], sp, sq
-  );
+  if (geo->is_verbose) {
+    fprintf(
+      stderr,
+      "TOK_GEO_DIVERTOR_CAP trial=%d ftype=%d theta_edge=%d slot=%d psi0=%.17g psi1=%.17g R0=%.17g Z0=%.17g R1=%.17g Z1=%.17g s0=%.17g s1=%.17g straight_chord_outside=1 native_arc=validated\n",
+      wall_trial_active, inp->ftype, theta_edge, slot, psi_p, psi_q, p[0], p[1], q[0], q[1], sp, sq
+    );
+  }
   return true;
 }
 
@@ -2089,13 +2095,15 @@ tok_wall_block_pockets(
         abort();
       }
     } else if (rep.beyond_band && !tok_wall_trial_is_active()) {
-      fprintf(
-        stderr,
-        "TOK_GEO_WALL_PLATE_BEYOND_OUTLINE ftype=%d theta_edge=%d rz=(%.17g,%.17g) "
-        "outside_m=%.6g beyond_band_m=%.6g report_only=1: the declared plate leaves the vessel "
-        "outline by more than the outline resolves there; the legs are judged against the plate\n",
-        inp->ftype, end, rep.rz[0], rep.rz[1], rep.outside_m, rep.beyond_m
-      );
+      if (geo->is_verbose) {
+        fprintf(
+          stderr,
+          "TOK_GEO_WALL_PLATE_BEYOND_OUTLINE ftype=%d theta_edge=%d rz=(%.17g,%.17g) "
+          "outside_m=%.6g beyond_band_m=%.6g report_only=1: the declared plate leaves the vessel "
+          "outline by more than the outline resolves there; the legs are judged against the plate\n",
+          inp->ftype, end, rep.rz[0], rep.rz[1], rep.outside_m, rep.beyond_m
+        );
+      }
     }
     if (xy) {
       gkyl_free(xy);
@@ -2410,7 +2418,7 @@ tok_ext_fixed_ray_endpoint(
   if (ambiguous) {
     *ambiguous = upward > 1;
   }
-  if (upward > 1) {
+  if (upward > 1 && arc_ctx->geo->is_verbose) {
     fprintf(
       stderr,
       "TOK_EXT_RAY_CROSSINGS ftype=%d sector=%d psi=%.17g qtarget=%.17g "
@@ -2436,12 +2444,14 @@ tok_ext_fixed_ray_endpoint(
   bool last_crossing_ok = use_last && upward >= 1 && slo >= 0.0;
   bool first_crossing_ok = !use_last && upward > 1 && slo >= 0.0 && qmin_before_first >= -band_tol;
   if (first_crossing_ok) {
-    fprintf(
-      stderr,
-      "TOK_EXT_RAY first_crossing_anchor ftype=%d sector=%d psi=%.17g "
-      "target=%.17g upward=%d downward=%d qmin_before_first=%.6e\n",
-      inp->ftype, endpoint->sector, psi, qtarget, upward, downward, qmin_before_first
-    );
+    if (arc_ctx->geo->is_verbose) {
+      fprintf(
+        stderr,
+        "TOK_EXT_RAY first_crossing_anchor ftype=%d sector=%d psi=%.17g "
+        "target=%.17g upward=%d downward=%d qmin_before_first=%.6e\n",
+        inp->ftype, endpoint->sector, psi, qtarget, upward, downward, qmin_before_first
+      );
+    }
   }
   if (!first_crossing_ok && !last_crossing_ok && (upward != 1 || downward != 0 || slo < 0.0)) {
     fprintf(
@@ -2586,11 +2596,13 @@ tok_ext_finalize_trace_tol(
   for (int i = 0; i < n; ++i) {
     double residual = tok_eval_psi_rz_local(geo, r[i], z[i]) - psi;
     if (!isfinite(r[i]) || !isfinite(z[i]) || !isfinite(residual) || fabs(residual) > tol) {
-      fprintf(
-        stderr,
-        "TOK_EXT_TRACE invalid point ftype=%d i=%d psi=%.17g R=%.17g Z=%.17g residual=%.17g\n",
-        ftype, i, psi, r[i], z[i], residual
-      );
+      if (geo->is_verbose) {
+        fprintf(
+          stderr,
+          "TOK_EXT_TRACE invalid point ftype=%d i=%d psi=%.17g R=%.17g Z=%.17g residual=%.17g\n",
+          ftype, i, psi, r[i], z[i], residual
+        );
+      }
       return false;
     }
     if (i > 0) {
@@ -2606,6 +2618,9 @@ tok_ext_finalize_trace_tol(
   double mean = total / (n - 1);
   double cell_diag = hypot(geo->rzgrid.dx[0], geo->rzgrid.dx[1]);
   if (!(total > 0.0) || max_step > 4.0 * cell_diag || max_step > 32.0 * mean) {
+    if (!geo->is_verbose) {
+      return false;
+    }
     int imax = 0;
     double smax = 0.0;
     for (int i = 1; i < n; ++i) {
@@ -4214,10 +4229,12 @@ tok_ext_build_domain_trace(
     if (ok) {
       route = TOK_EXT_ROUTE_GENERIC;
       arc_ctx->ext_force_generic_route = true;
-      fprintf(
-        stderr, "TOK_EXT_TRACE route_fallback ftype=%d route=%d psi=%.17g separatrix=%d\n",
-        inp->ftype, top.route, psi, separatrix
-      );
+      if (arc_ctx->geo->is_verbose) {
+        fprintf(
+          stderr, "TOK_EXT_TRACE route_fallback ftype=%d route=%d psi=%.17g separatrix=%d\n",
+          inp->ftype, top.route, psi, separatrix
+        );
+      }
     }
   }
   arc_ctx->ext_last_trace_used_generic = (route == TOK_EXT_ROUTE_GENERIC);
@@ -4252,12 +4269,14 @@ tok_ext_build_domain_trace(
       );
       arc_ctx->ext_ray_use_last_crossing = false;
       if (retry_ok) {
-        fprintf(
-          stderr,
-          "TOK_EXT_RAY_RETRY ftype=%d psi=%.17g separatrix=%d "
-          "anchored at last ray crossing\n",
-          inp->ftype, psi, separatrix
-        );
+        if (arc_ctx->geo->is_verbose) {
+          fprintf(
+            stderr,
+            "TOK_EXT_RAY_RETRY ftype=%d psi=%.17g separatrix=%d "
+            "anchored at last ray crossing\n",
+            inp->ftype, psi, separatrix
+          );
+        }
         return true;
       }
     }
@@ -4324,13 +4343,15 @@ tok_ext_build_domain_trace(
           *param_is_r = alt_param;
           *closed = alt_closed;
           gkyl_free(alt);
-          fprintf(
-            stderr,
-            "TOK_EXT_RAY_PEER_REANCHOR ftype=%d sector=%d psi=%.17g -- the "
-            "first-crossing anchor is unreachable from the block across this "
-            "ray; both sides take the last crossing\n",
-            inp->ftype, ray->sector, psi
-          );
+          if (arc_ctx->geo->is_verbose) {
+            fprintf(
+              stderr,
+              "TOK_EXT_RAY_PEER_REANCHOR ftype=%d sector=%d psi=%.17g -- the "
+              "first-crossing anchor is unreachable from the block across this "
+              "ray; both sides take the last crossing\n",
+              inp->ftype, ray->sector, psi
+            );
+          }
           return true;
         }
         gkyl_free(alt);
@@ -5805,13 +5826,15 @@ tok_ext_build_theta_rows(const struct gkyl_tok_geo_grid_inp *inp, struct arc_len
   arc_ctx->ext_ladder_m = m;
   arc_ctx->ext_ladder_n = n;
   arc_ctx->ext_ladder_initialized = true;
-  // Always reported: one line per block, so a run can be audited for how much
+  // One line per block, so a verbose run can be audited for how much
   // absorption the rule actually needed.
-  fprintf(
-    stderr,
-    "TOK_EXT_ROW_RULE built ftype=%d rows=%d nodes=%d ncell=%d rows_shortened=%d lambda_min=%.4g max_endpoint_offset_m=%.6g\n",
-    inp->ftype, m, n, ncell, n_short, lam_min, off_max
-  );
+  if (arc_ctx->geo->is_verbose) {
+    fprintf(
+      stderr,
+      "TOK_EXT_ROW_RULE built ftype=%d rows=%d nodes=%d ncell=%d rows_shortened=%d lambda_min=%.4g max_endpoint_offset_m=%.6g\n",
+      inp->ftype, m, n, ncell, n_short, lam_min, off_max
+    );
+  }
   return true;
 }
 
@@ -5914,10 +5937,12 @@ tok_build_trace_correspondence(
           );
           return false;
         }
-        fprintf(
-          stderr, "TOK_EXT_TRACE sep_rebuilt_generic ftype=%d psisep=%.17g\n", inp->ftype,
-          arc_ctx->geo->psisep
-        );
+        if (arc_ctx->geo->is_verbose) {
+          fprintf(
+            stderr, "TOK_EXT_TRACE sep_rebuilt_generic ftype=%d psisep=%.17g\n", inp->ftype,
+            arc_ctx->geo->psisep
+          );
+        }
       }
     } else {
       struct tok_ext_topology top;
@@ -5995,9 +6020,12 @@ tok_build_trace_correspondence(
           return false;
         }
         arc_ctx->ext_ladder_failed = true;
-        fprintf(
-          stderr, "TOK_EXT_LADDER reason=build_failed ftype=%d falling back to blend\n", inp->ftype
-        );
+        if (arc_ctx->geo->is_verbose) {
+          fprintf(
+            stderr, "TOK_EXT_LADDER reason=build_failed ftype=%d falling back to blend\n",
+            inp->ftype
+          );
+        }
       }
     }
     arc_ctx->ordered_boundaries_initialized = true;
@@ -6483,12 +6511,15 @@ tok_relax_xpt_seam_point(
 
   double q = 0.0, delta_s = 0.0;
   if (!tok_xpt_seam_delta_s(inp, arc_ctx, psi, &q, &delta_s)) {
-    fprintf(
-      stderr,
-      "TOK_XPT_SEAM_DIAG mode=rejected ftype=%d psi=%.17g q=%.17g coefficient=%.17g bound=%.17g reason=invalid_delta_s action=%s\n",
-      inp->ftype, psi, q, inp->relaxed_xpt_seam_delta_s_coeff, inp->relaxed_xpt_seam_delta_s_bound,
-      inp->relaxed_xpt_seam_sweep ? "reject_candidate" : "retain_straight"
-    );
+    if (arc_ctx->geo->is_verbose) {
+      fprintf(
+        stderr,
+        "TOK_XPT_SEAM_DIAG mode=rejected ftype=%d psi=%.17g q=%.17g coefficient=%.17g bound=%.17g reason=invalid_delta_s action=%s\n",
+        inp->ftype, psi, q, inp->relaxed_xpt_seam_delta_s_coeff,
+        inp->relaxed_xpt_seam_delta_s_bound,
+        inp->relaxed_xpt_seam_sweep ? "reject_candidate" : "retain_straight"
+      );
+    }
     if (tok_xpt_seam_optimizer_trial(inp)) {
       tok_xpt_seam_trial_reject(inp, GKYL_XPT_SEAM_TRIAL_INVALID_PARAMETER);
       return true;
@@ -6505,11 +6536,13 @@ tok_relax_xpt_seam_point(
   }
 
   if (!inp->relaxed_xpt_seam_sweep || !inp->straight_xpt_ray) {
-    fprintf(
-      stderr,
-      "TOK_XPT_SEAM_DIAG mode=rejected ftype=%d psi=%.17g q=%.17g s0=%.17g delta_s=%.17g reason=diagnostic_sweep_not_enabled fallback=straight\n",
-      inp->ftype, psi, q, s0, delta_s
-    );
+    if (arc_ctx->geo->is_verbose) {
+      fprintf(
+        stderr,
+        "TOK_XPT_SEAM_DIAG mode=rejected ftype=%d psi=%.17g q=%.17g s0=%.17g delta_s=%.17g reason=diagnostic_sweep_not_enabled fallback=straight\n",
+        inp->ftype, psi, q, s0, delta_s
+      );
+    }
     return true;
   }
 
@@ -6777,10 +6810,12 @@ tok_ext_set_phi_reference(const struct gkyl_tok_geo_grid_inp *inp, struct arc_le
                )) {
       best_phi = arc_ctx->map_trace_phi[best_i] + d;
     } else {
-      fprintf(
-        stderr, "TOK_PHI_EXACT_FALLBACK stage=reference ftype=%d psi=%.17g i=%d\n", inp->ftype,
-        arc_ctx->psi, best_i
-      );
+      if (arc_ctx->geo->is_verbose) {
+        fprintf(
+          stderr, "TOK_PHI_EXACT_FALLBACK stage=reference ftype=%d psi=%.17g i=%d\n", inp->ftype,
+          arc_ctx->psi, best_i
+        );
+      }
     }
   }
   arc_ctx->map_trace_phi_ref = best_phi;
@@ -7067,7 +7102,9 @@ tok_lsn_exact_row(
   }
   b->phi_valid = pok;
   if (!pok) {
-    fprintf(stderr, "TOK_PHI_EXACT_FALLBACK stage=lsn_row psi=%.17g n=%d\n", psi, b->n);
+    if (geo->is_verbose) {
+      fprintf(stderr, "TOK_PHI_EXACT_FALLBACK stage=lsn_row psi=%.17g n=%d\n", psi, b->n);
+    }
   }
   b->psi = psi;
   b->valid = true;
@@ -7321,12 +7358,14 @@ tok_logical_trace_sample(
   // interpolated node is acceptable.
   double residual = tok_eval_psi_rz_local(geo, rlin, zlin) - psi;
   if (isfinite(rlin) && isfinite(zlin) && isfinite(residual)) {
-    fprintf(
-      stderr,
-      "TOK_LOGSAMP_CHORD_FALLBACK u=%.17g i=%d chord=(%.17g,%.17g) "
-      "residual=%.17g seglen=%.17g psi=%.17g\n",
-      u, i, rlin, zlin, residual, seglen, psi
-    );
+    if (geo->is_verbose) {
+      fprintf(
+        stderr,
+        "TOK_LOGSAMP_CHORD_FALLBACK u=%.17g i=%d chord=(%.17g,%.17g) "
+        "residual=%.17g seglen=%.17g psi=%.17g\n",
+        u, i, rlin, zlin, residual, seglen, psi
+      );
+    }
     *r = rlin;
     *z = zlin;
     return true;
@@ -7557,13 +7596,15 @@ tok_ext_strike_step_check(
       continue;
     }
     const bool trial = tok_wall_trial_record_scope(false, false);
-    fprintf(
-      stderr,
-      "TOK_STRIKE_FOLD ftype=%d psi=%.17g strike=(%.17g,%.17g) neighbour_psi=%.17g "
-      "neighbour_strike=(%.17g,%.17g) reversal_psi=%.6g reversal_of_spacing=%.6g at=(%.17g,%.17g) trial=%d\n",
-      inp->ftype, psi, re, ze, psi_nb, rn, zn, rev, rev / fabs(psi_nb - psi), at[0], at[1],
-      (int)trial
-    );
+    if (arc_ctx->geo->is_verbose || !trial) {
+      fprintf(
+        stderr,
+        "TOK_STRIKE_FOLD ftype=%d psi=%.17g strike=(%.17g,%.17g) neighbour_psi=%.17g "
+        "neighbour_strike=(%.17g,%.17g) reversal_psi=%.6g reversal_of_spacing=%.6g at=(%.17g,%.17g) trial=%d\n",
+        inp->ftype, psi, re, ze, psi_nb, rn, zn, rev, rev / fabs(psi_nb - psi), at[0], at[1],
+        (int)trial
+      );
+    }
     if (!trial) {
       return false;
     }
@@ -7771,10 +7812,12 @@ tok_build_current_ordered_trace(
           arc_ctx->geo, psi, fpol, arc_ctx->map_trace_r[i - 1], arc_ctx->map_trace_z[i - 1],
           arc_ctx->map_trace_r[i], arc_ctx->map_trace_z[i], &d
         )) {
-      fprintf(
-        stderr, "TOK_PHI_EXACT_FALLBACK stage=trace ftype=%d psi=%.17g i=%d n=%d\n", inp->ftype,
-        psi, i, n
-      );
+      if (arc_ctx->geo->is_verbose) {
+        fprintf(
+          stderr, "TOK_PHI_EXACT_FALLBACK stage=trace ftype=%d psi=%.17g i=%d n=%d\n", inp->ftype,
+          psi, i, n
+        );
+      }
       d = cur - prev;
     }
     arc_ctx->map_trace_phi[i] = arc_ctx->map_trace_phi[i - 1] + d;
@@ -7936,10 +7979,12 @@ tok_ordered_map_lookup(
              )) {
     path_phi = arc_ctx->map_trace_phi[i] + d;
   } else {
-    fprintf(
-      stderr, "TOK_PHI_EXACT_FALLBACK stage=node ftype=%d psi=%.17g u=%.17g i=%d\n", inp->ftype,
-      arc_ctx->psi, u, i
-    );
+    if (arc_ctx->geo->is_verbose) {
+      fprintf(
+        stderr, "TOK_PHI_EXACT_FALLBACK stage=node ftype=%d psi=%.17g u=%.17g i=%d\n", inp->ftype,
+        arc_ctx->psi, u, i
+      );
+    }
   }
   if (grad > 1e-14 && out->r > 0.0) {
     out->dphi_dtheta = fpol / (out->r * grad) * speed_u / dtheta;
@@ -8712,7 +8757,7 @@ gkyl_tok_geo_new(const struct gkyl_efit_inp *inp, const struct gkyl_tok_geo_grid
     int *segments = gkyl_malloc(target->num_segments * sizeof(int));
     memcpy(segments, target->segments, target->num_segments * sizeof(int));
     geo->divertor_wall[slot] = (struct gkyl_tok_geo_wall_target){target->num_segments, segments};
-    if (geo->extend_to_limiter) {
+    if (geo->extend_to_limiter && ginp->is_verbose) {
       fprintf(stderr, "TOK_GEO_DIVERTOR_TARGET slot=%d segments=", slot);
       for (int k = 0; k < target->num_segments; ++k) {
         fprintf(stderr, "%s%d", k ? "," : "", segments[k]);
@@ -8754,6 +8799,7 @@ gkyl_tok_geo_new(const struct gkyl_efit_inp *inp, const struct gkyl_tok_geo_grid
   geo->zmaxis = geo->efit->zmaxis;
 
   geo->use_cubics = ginp->use_cubics;
+  geo->is_verbose = ginp->is_verbose;
   geo->use_hyperbolic_numbers = ginp->use_hyperbolic_numbers;
   geo->root_param.eps = ginp->root_param.eps > 0 ? ginp->root_param.eps : 1e-10;
   geo->root_param.max_iter = ginp->root_param.max_iter > 0 ? ginp->root_param.max_iter : 100;
@@ -8885,11 +8931,13 @@ tok_wall_enforced(const struct gkyl_tok_geo *geo, const struct gkyl_tok_geo_grid
     return true;
   }
   if (policy == GKYL_TOK_WALL_NOT_ENFORCED) {
-    fprintf(
-      stderr, "TOK_GEO_WALL_NOT_ENFORCED ftype=%d limiter_status=%d vertices=%d reason=%s\n",
-      inp->ftype, geo->efit->limiter_status, geo->efit->limiter_n,
-      gkyl_tok_wall_policy_reason(policy)
-    );
+    if (geo->is_verbose) {
+      fprintf(
+        stderr, "TOK_GEO_WALL_NOT_ENFORCED ftype=%d limiter_status=%d vertices=%d reason=%s\n",
+        inp->ftype, geo->efit->limiter_status, geo->efit->limiter_n,
+        gkyl_tok_wall_policy_reason(policy)
+      );
+    }
     return false;
   }
   fprintf(
@@ -9223,7 +9271,7 @@ gkyl_tok_geo_calc(
   // target uses its native material arc; all other edges retain chord checks.
   // Capture only diagnostic requested-boundary curves from the native corner
   // array. Reduced-dimensional app arrays have not retained these nodal data.
-  if (wall_trial_active && wall_trial_capture) {
+  if (wall_trial_active && wall_trial_capture && geo->is_verbose) {
     int ip = wall_trial_movable_edge ? nrange->upper[PSI_IDX] : nrange->lower[PSI_IDX];
     for (int it = nrange->lower[TH_IDX]; it <= nrange->upper[TH_IDX]; ++it) {
       int idx[3] = {ip, nrange->lower[AL_IDX], it};
@@ -9312,13 +9360,15 @@ gkyl_tok_geo_calc(
           bool far_inside = tok_wall_point_inside(geo->efit, fail_q);
           bool segment_bulge = far_inside && strncmp(fail_scope, "segment_", 8) == 0;
           double excursion = segment_bulge ? tok_wall_segment_excursion(geo->efit, p, fail_q) : 0.0;
-          fprintf(
-            stderr,
-            "TOK_GEO_WALL_DOMAIN_FAILED ftype=%d ip=%d it=%d rz=(%.17g,%.17g) "
-            "scope=%s to_rz=(%.17g,%.17g) limiter_status=%d endpoints=%s excursion_m=%.17g\n",
-            inp->ftype, ip, it, p[0], p[1], fail_scope, fail_q[0], fail_q[1],
-            geo->efit->limiter_status, far_inside ? "inside" : "node_outside", excursion
-          );
+          if (geo->is_verbose || !tok_wall_trial_is_active()) {
+            fprintf(
+              stderr,
+              "TOK_GEO_WALL_DOMAIN_FAILED ftype=%d ip=%d it=%d rz=(%.17g,%.17g) "
+              "scope=%s to_rz=(%.17g,%.17g) limiter_status=%d endpoints=%s excursion_m=%.17g\n",
+              inp->ftype, ip, it, p[0], p[1], fail_scope, fail_q[0], fail_q[1],
+              geo->efit->limiter_status, far_inside ? "inside" : "node_outside", excursion
+            );
+          }
           // strcmp, not the boolean above: `fail_scope` is "corner_node" only
           // when the node itself failed tok_wall_point_inside, as opposed to an
           // edge between two inside nodes bulging out.
@@ -9406,12 +9456,14 @@ gkyl_tok_geo_calc(
       }
     }
     if (nfold > 0) {
-      fprintf(
-        stderr,
-        "TOK_GEO_FOLDED_CELLS ftype=%d nfold=%d of %d quads "
-        "worst_area=%.17g at (ip=%d,it=%d) node=(%.17g,%.17g)\n",
-        inp->ftype, nfold, nquad, worst, worst_ip, worst_it, worst_r, worst_z
-      );
+      if (geo->is_verbose) {
+        fprintf(
+          stderr,
+          "TOK_GEO_FOLDED_CELLS ftype=%d nfold=%d of %d quads "
+          "worst_area=%.17g at (ip=%d,it=%d) node=(%.17g,%.17g)\n",
+          inp->ftype, nfold, nquad, worst, worst_ip, worst_it, worst_r, worst_z
+        );
+      }
       // DIAGNOSTIC, not the verdict. This area is a shoelace over the four
       // CORNER nodes, but a cell edge is a curve: corner -> 2 Gauss surface
       // nodes -> corner. At the aspect ratios psi refinement produces at the
@@ -9476,12 +9528,14 @@ gkyl_tok_geo_calc(
       }
     }
     if (nrev > 0) {
-      fprintf(
-        stderr,
-        "TOK_GEO_SURFACE_CROSS ftype=%d nrev=%d of %d radial step pairs "
-        "worst_cos=%.17g at (ip=%d,it=%d) node=(%.17g,%.17g)\n",
-        inp->ftype, nrev, npair, worst_cos, worst_ip, worst_it, worst_r, worst_z
-      );
+      if (geo->is_verbose) {
+        fprintf(
+          stderr,
+          "TOK_GEO_SURFACE_CROSS ftype=%d nrev=%d of %d radial step pairs "
+          "worst_cos=%.17g at (ip=%d,it=%d) node=(%.17g,%.17g)\n",
+          inp->ftype, nrev, npair, worst_cos, worst_ip, worst_it, worst_r, worst_z
+        );
+      }
       // REPORTED, NOT GATING since 2026-09-21, for the same reason the fold
       // check above was demoted: the criterion is a proxy that cannot answer
       // the question it is named for.
@@ -9547,11 +9601,13 @@ gkyl_tok_geo_calc(
           }
         }
         if (!tok_wall_curve_inside(geo->efit, points[0], points[1], points[2])) {
-          fprintf(
-            stderr,
-            "TOK_GEO_WALL_DOMAIN_FAILED ftype=%d scope=radial_boundary_curve side=%d theta_cell=%d\n",
-            inp->ftype, side, idx[TH_IDX]
-          );
+          if (geo->is_verbose || !tok_wall_trial_is_active()) {
+            fprintf(
+              stderr,
+              "TOK_GEO_WALL_DOMAIN_FAILED ftype=%d scope=radial_boundary_curve side=%d theta_cell=%d\n",
+              inp->ftype, side, idx[TH_IDX]
+            );
+          }
           if (!tok_wall_trial_record_where(
                 side != wall_trial_movable_edge, false, side == wall_trial_movable_edge
               )) {
@@ -10014,10 +10070,12 @@ gkyl_tok_geo_calc_interior(
     const double *p =
       gkyl_array_cfetch(up->geo_int.mc2p_nodal, gkyl_range_idx(nrange, wall_iter.idx));
     if (!tok_wall_point_inside(geo->efit, p)) {
-      fprintf(
-        stderr, "TOK_GEO_WALL_DOMAIN_FAILED ftype=%d scope=interior rz=(%.17g,%.17g)\n", inp->ftype,
-        p[0], p[1]
-      );
+      if (geo->is_verbose || !tok_wall_trial_is_active()) {
+        fprintf(
+          stderr, "TOK_GEO_WALL_DOMAIN_FAILED ftype=%d scope=interior rz=(%.17g,%.17g)\n",
+          inp->ftype, p[0], p[1]
+        );
+      }
       // the node's radial coordinate, as the construction loop placed it
       double x = calc_running_coord(psi_lo, wall_iter.idx[PSI_IDX] - nrange->lower[PSI_IDX], dpsi);
       if (!tok_wall_trial_record_where(
@@ -10401,11 +10459,13 @@ gkyl_tok_geo_calc_surface(
               bool inside = on_plate || tok_wall_point_inside(geo->efit, wall_point);
               tok_wall_pockets_set(0, 0);
               if (!inside) {
-                fprintf(
-                  stderr,
-                  "TOK_GEO_WALL_DOMAIN_FAILED ftype=%d scope=face dir=%d rz=(%.17g,%.17g)\n",
-                  inp->ftype, dir, r_curr, z_curr
-                );
+                if (geo->is_verbose || !tok_wall_trial_is_active()) {
+                  fprintf(
+                    stderr,
+                    "TOK_GEO_WALL_DOMAIN_FAILED ftype=%d scope=face dir=%d rz=(%.17g,%.17g)\n",
+                    inp->ftype, dir, r_curr, z_curr
+                  );
+                }
                 // the point's radial coordinate, as this loop placed it
                 double x = dir == 0 ? psi_lo + ip * dpsi :
                                       calc_running_coord(psi_lo, ip - nrange->lower[PSI_IDX], dpsi);

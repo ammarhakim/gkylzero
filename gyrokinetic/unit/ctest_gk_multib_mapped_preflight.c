@@ -53,6 +53,7 @@ make_block(double lo, double hi, enum gkyl_position_map_id id, double *shift)
     .geometry =
       {
         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
+        .is_verbose = true, // the tests read the preflight report
         .efit_info =
           {
             .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",

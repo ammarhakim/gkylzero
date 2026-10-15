@@ -55,13 +55,16 @@ efit_xpt_value(const double *arr, int n, int idx)
 static void
 write_xpt_diag_once(const struct gkyl_efit *up)
 {
-  static char last_filepath[1024] = {0};
-  if (strncmp(last_filepath, up->filepath, sizeof(last_filepath)) == 0) {
+  // Each output once per file; a quiet construction does not use up the
+  // verbose report.
+  static char last_printed[1024] = {0}, last_written[1024] = {0};
+  const char *csv_path = getenv("GKYL_EFIT_XPT_DIAG_CSV");
+  bool print = up->is_verbose && strncmp(last_printed, up->filepath, sizeof(last_printed)) != 0;
+  bool append_csv = csv_path && csv_path[0] &&
+                    strncmp(last_written, up->filepath, sizeof(last_written)) != 0;
+  if (!print && !append_csv) {
     return;
   }
-
-  strncpy(last_filepath, up->filepath, sizeof(last_filepath) - 1);
-  last_filepath[sizeof(last_filepath) - 1] = '\0';
 
   double cubic_R0 = efit_xpt_value(up->Rxpt_cubic, up->num_xpts_cubic, 0);
   double cubic_Z0 = efit_xpt_value(up->Zxpt_cubic, up->num_xpts_cubic, 0);
@@ -72,23 +75,28 @@ write_xpt_diag_once(const struct gkyl_efit *up)
   double quad_R1 = efit_xpt_value(up->Rxpt, up->num_xpts, 1);
   double quad_Z1 = efit_xpt_value(up->Zxpt, up->num_xpts, 1);
 
-  fprintf(
-    stderr,
-    "XPT_DIAG name=%s filepath=%s reflect=%d cubic_n=%d cubic_psisep=%.16e "
-    "cubic0=(%.16e,%.16e) cubic1=(%.16e,%.16e) quad_n=%d quad_psisep=%.16e "
-    "quad0=(%.16e,%.16e) quad1=(%.16e,%.16e) raw_quad_found=%d "
-    "raw_quad=(%.16e,%.16e) raw_quad_psi=%.16e raw_quad_dist_cell=%.16e "
-    "fallback_to_cubic=%d\n",
-    up->name, up->filepath, up->reflect, up->num_xpts_cubic, up->psisep_cubic, cubic_R0, cubic_Z0,
-    cubic_R1, cubic_Z1, up->num_xpts, up->psisep, quad_R0, quad_Z0, quad_R1, quad_Z1,
-    up->xpt_diag_quadratic_found, up->xpt_diag_quad_R, up->xpt_diag_quad_Z, up->xpt_diag_quad_psi,
-    up->xpt_diag_quad_dist_cell, up->xpt_diag_fallback_to_cubic
-  );
+  if (print) {
+    strncpy(last_printed, up->filepath, sizeof(last_printed) - 1);
+    last_printed[sizeof(last_printed) - 1] = '\0';
+    fprintf(
+      stderr,
+      "XPT_DIAG name=%s filepath=%s reflect=%d cubic_n=%d cubic_psisep=%.16e "
+      "cubic0=(%.16e,%.16e) cubic1=(%.16e,%.16e) quad_n=%d quad_psisep=%.16e "
+      "quad0=(%.16e,%.16e) quad1=(%.16e,%.16e) raw_quad_found=%d "
+      "raw_quad=(%.16e,%.16e) raw_quad_psi=%.16e raw_quad_dist_cell=%.16e "
+      "fallback_to_cubic=%d\n",
+      up->name, up->filepath, up->reflect, up->num_xpts_cubic, up->psisep_cubic, cubic_R0, cubic_Z0,
+      cubic_R1, cubic_Z1, up->num_xpts, up->psisep, quad_R0, quad_Z0, quad_R1, quad_Z1,
+      up->xpt_diag_quadratic_found, up->xpt_diag_quad_R, up->xpt_diag_quad_Z, up->xpt_diag_quad_psi,
+      up->xpt_diag_quad_dist_cell, up->xpt_diag_fallback_to_cubic
+    );
+  }
 
-  const char *csv_path = getenv("GKYL_EFIT_XPT_DIAG_CSV");
-  if (!csv_path || !csv_path[0]) {
+  if (!append_csv) {
     return;
   }
+  strncpy(last_written, up->filepath, sizeof(last_written) - 1);
+  last_written[sizeof(last_written) - 1] = '\0';
 
   FILE *csv = fopen(csv_path, "a");
   if (!csv) {
@@ -183,6 +191,7 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
 
   up->reflect = inp->reflect;
   up->use_gpu = inp->use_gpu;
+  up->is_verbose = inp->is_verbose;
   up->filepath = inp->filepath;
 
   // Copy the optional X-point search outline; the caller's arrays need not outlive us.
@@ -543,10 +552,12 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
           // limiter_status: this reports, it does not decide.
           up->limiter_self_intersections = gkyl_efit_limiter_self_intersections(up);
           if (up->limiter_self_intersections > 0) {
-            fprintf(
-              stderr, "TOK_GEO_WALL_MALFORMED_SHAPE name=%s vertices=%d self_intersections=%d\n",
-              up->name, up->limiter_n, up->limiter_self_intersections
-            );
+            if (up->is_verbose) {
+              fprintf(
+                stderr, "TOK_GEO_WALL_MALFORMED_SHAPE name=%s vertices=%d self_intersections=%d\n",
+                up->name, up->limiter_n, up->limiter_self_intersections
+              );
+            }
           }
         } else if (valid) {
           // Readable, but too few vertices to bound a region. Keep the count
@@ -694,11 +705,13 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
     up->Zxpt[i] = NAN;
   }
   if (up->num_xpts == 0) {
-    fprintf(
-      stderr,
-      "EFIT_XPT no X-point found inside the supplied search region name=%s bound_n=%d cubic_n=%d\n",
-      up->name, up->xpt_bound_n, up->num_xpts_cubic
-    );
+    if (up->is_verbose) {
+      fprintf(
+        stderr,
+        "EFIT_XPT no X-point found inside the supplied search region name=%s bound_n=%d cubic_n=%d\n",
+        up->name, up->xpt_bound_n, up->num_xpts_cubic
+      );
+    }
   }
   for (int i = 0; i < up->num_xpts; i++) {
     up->Rxpt[i] = Rxpt[i];
@@ -752,7 +765,7 @@ gkyl_efit_new(const struct gkyl_efit_inp *inp)
   bool use_hi = hi_ok && !tie && (!lo_ok || fabs(psi_hi - hi->simag) < fabs(psi_lo - lo->simag));
 
   static char last_filepath[1024] = {0};
-  if (strncmp(last_filepath, inp->filepath, sizeof(last_filepath)) != 0) {
+  if (inp->is_verbose && strncmp(last_filepath, inp->filepath, sizeof(last_filepath)) != 0) {
     strncpy(last_filepath, inp->filepath, sizeof(last_filepath) - 1);
     last_filepath[sizeof(last_filepath) - 1] = '\0';
     fprintf(

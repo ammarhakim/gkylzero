@@ -152,6 +152,7 @@ struct gkyl_tok_geo {
   bool use_cubics; // If true will use the cubic rep of psi rather than the quadratic representation
   bool
     use_hyperbolic_numbers; // If true will use the hyperbolic numbers to do cubic root finding (much faster)
+  bool is_verbose; // Print construction diagnostics (gkyl_tok_geo_grid_inp.is_verbose).
 
   // pointer to root finder (depends on polyorder)
   struct RdRdZ_sol (*calc_roots)(
@@ -238,9 +239,8 @@ struct gkyl_tok_geo_grid_inp {
   struct gkyl_tok_geo_wall_target divertor_wall[2];
 
   // Reject a grid that leaves the equilibrium's vessel outline. Default off:
-  // the outline is then not consulted for containment, and every block reports
-  // TOK_GEO_WALL_NOT_ENFORCED so an unenforced wall is visible in the run log.
-  // When on, the outline must be usable (gkyl_tok_wall_usable); an absent,
+  // the outline is then not consulted for containment (reported as
+  // TOK_GEO_WALL_NOT_ENFORCED when is_verbose is set). When on, the outline must be usable (gkyl_tok_wall_usable); an absent,
   // degenerate or malformed outline is rejected, since containment cannot be
   // judged against it. Every tokamak block of a multiblock app must declare
   // the same value.
@@ -254,6 +254,10 @@ struct gkyl_tok_geo_grid_inp {
   bool use_cubics; // If true will use the cubic rep of psi rather than the quadratic representation
   bool
     use_hyperbolic_numbers; // If true will use the hyperbolic numbers to do cubic root finding (much faster)
+  // Print construction diagnostics to stderr. Default off: only errors and
+  // warnings are printed. The gyrokinetic app sets it from
+  // gkyl_gyrokinetic_geometry.is_verbose.
+  bool is_verbose;
   bool straight_xpt_ray; // Align supported half-domain, full-domain double-null,
     // and lower-single-null block interfaces on straight,
     // flux-surface-intersecting rays from their X points to

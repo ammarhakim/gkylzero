@@ -19,6 +19,7 @@ make_pair_dir(int dir, bool extended0, bool extended1)
           .geometry_id = GKYL_GEOMETRY_TOKAMAK,
           .tok_grid_info =
             {.ftype = GKYL_GEOMETRY_TOKAMAK_CORE_L, .straight_xpt_ray = b ? extended1 : extended0},
+          .is_verbose = true, // the tests read the preflight report
         },
     };
     for (int d = 0; d < 2; ++d) {

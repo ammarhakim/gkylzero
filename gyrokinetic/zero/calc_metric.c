@@ -38,6 +38,7 @@ gkyl_calc_metric_new(
   up->rz_expected_jacobian_sign = 0;
   up->rz_jacobian_valid = true;
   up->rz_jacobian_guard_nonfatal = false;
+  up->is_verbose = false;
 
   return up;
 }
@@ -46,6 +47,12 @@ void
 gkyl_calc_metric_set_signed_jacobian_guard_nonfatal(gkyl_calc_metric *up, bool nonfatal)
 {
   up->rz_jacobian_guard_nonfatal = nonfatal;
+}
+
+void
+gkyl_calc_metric_set_verbose(gkyl_calc_metric *up, bool is_verbose)
+{
+  up->is_verbose = is_verbose;
 }
 
 bool
@@ -111,21 +118,15 @@ struct signed_jacobian_guard_state {
 static bool
 signed_jacobian_guard_enabled(void)
 {
-  static int enabled = -1;
-  if (enabled < 0) {
-    // Always on. This is the criterion that matters: J is what enters the
-    // equations, and it is evaluated here at the quadrature points from the
-    // map's own derivatives. The corner-node shoelace in tok_geo.c cannot
-    // decide this -- it joins the corners with CHORDS, and where a radial band
-    // is ~1e-4 m against a ~1 m poloidal cell the chord quadrilateral inverts
-    // while the curved cell does not. Measured on STEP psi x8/x16 and ASDEX
-    // psi x2/x4/x8 theta x1: the shoelace reports a fold, this guard reports
-    // none, and jacobgeo is +1.64 or better at every corner of every cell.
-    enabled = 1;
-    fprintf(stderr, "GKYL_SIGNED_JACOBIAN_GUARD enabled version=1\n");
-    fflush(stderr);
-  }
-  return enabled != 0;
+  // Always on. This is the criterion that matters: J is what enters the
+  // equations, and it is evaluated here at the quadrature points from the
+  // map's own derivatives. The corner-node shoelace in tok_geo.c cannot
+  // decide this -- it joins the corners with CHORDS, and where a radial band
+  // is ~1e-4 m against a ~1 m poloidal cell the chord quadrilateral inverts
+  // while the curved cell does not. Measured on STEP psi x8/x16 and ASDEX
+  // psi x2/x4/x8 theta x1: the shoelace reports a fold, this guard reports
+  // none, and jacobgeo is +1.64 or better at every corner of every cell.
+  return true;
 }
 
 static void
@@ -185,7 +186,7 @@ cross(const double a[3], const double b[3], double c[3])
 }
 
 static inline void
-check_orthonormality(const double tan[9], const double dual[9], bool exit_at_check)
+check_orthonormality(const double tan[9], const double dual[9], bool exit_at_check, bool verbose)
 {
   // Check that the coordinate system has tangent/dual vectors
   // satisfying orthonormality.
@@ -272,12 +273,12 @@ check_orthonormality(const double tan[9], const double dual[9], bool exit_at_che
     // Reporting only on a NEW maximum means the last line emitted IS the worst
     // residual encountered, so nothing is skipped. Requiring each report to
     // double the previous one bounds the output to roughly log2 of the observed
-    // range (tens of lines at most) without a magic count, and surfaces the
-    // magnitude even when every value is comfortably inside tolerance.
+    // range (tens of lines at most) without a magic count. A residual over
+    // tolerance is always reported; one inside it only when verbose.
     if (worst > worst_seen) {
       worst_seen = worst;
       bool over_tol = worst > tol;
-      if (over_tol || worst >= 2.0 * last_reported) {
+      if (over_tol || (verbose && worst >= 2.0 * last_reported)) {
         fprintf(
           stderr,
           "TOK_METRIC_ORTHONORMALITY_MAX residual=%.9e at e_%d.e^%d tol=%.3e "
@@ -960,7 +961,7 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
 
         // Check that the coordinate system has tangent/dual vectors
         // satisfying orthonormality, and that it's right handed.
-        check_orthonormality(tanvecFld_n, dualFld_n, up->exit_at_checks);
+        check_orthonormality(tanvecFld_n, dualFld_n, up->exit_at_checks, up->is_verbose);
         check_right_handed(tanvecFld_n, dualFld_n, up->exit_at_checks);
 
         double norm1 = sqrt(
@@ -1298,7 +1299,7 @@ gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct gk_geo
 
         // Check that the coordinate system has tangent/dual vectors
         // satisfying orthonormality, and that it's right handed.
-        check_orthonormality(tanvecFld_n, dualFld_n, up->exit_at_checks);
+        check_orthonormality(tanvecFld_n, dualFld_n, up->exit_at_checks, up->is_verbose);
         check_right_handed(tanvecFld_n, dualFld_n, up->exit_at_checks);
 
         double norm1 = sqrt(
@@ -2218,7 +2219,7 @@ gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry *gk_g
 
         // Check that the coordinate system has tangent/dual vectors
         // satisfying orthonormality, and that it's right handed.
-        check_orthonormality(tanvecFld_n, dualFld_n, up->exit_at_checks);
+        check_orthonormality(tanvecFld_n, dualFld_n, up->exit_at_checks, up->is_verbose);
         check_right_handed(tanvecFld_n, dualFld_n, up->exit_at_checks);
 
         // Check if bhat and e_3 are parallel.
@@ -2588,7 +2589,7 @@ gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_geomet
 
         // Check that the coordinate system has tangent/dual vectors
         // satisfying orthonormality, and that it's right handed.
-        check_orthonormality(tanvecFld_n, dualFld_n, up->exit_at_checks);
+        check_orthonormality(tanvecFld_n, dualFld_n, up->exit_at_checks, up->is_verbose);
         check_right_handed(tanvecFld_n, dualFld_n, up->exit_at_checks);
 
         double norm1 = sqrt(

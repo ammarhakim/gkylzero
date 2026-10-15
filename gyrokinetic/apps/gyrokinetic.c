@@ -383,6 +383,8 @@ gyrokinetic_app_new_geom_impl(struct gkyl_gk *gk, bool write_geometry)
   for (int i = 0; i < 3; i++) {
     geometry_inp.world[i] = gk->geometry.world[i];
   }
+  geometry_inp.efit_info.is_verbose |= gk->geometry.is_verbose;
+  geometry_inp.tok_grid_info.is_verbose |= gk->geometry.is_verbose;
 
   if (app->cdim < 3) {
     geometry_inp.geo_grid = gkyl_gk_geometry_augment_grid(app->grid, geometry_inp);

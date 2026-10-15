@@ -61,6 +61,11 @@ gkyl_gk_block_geom_set_block(
 )
 {
   memcpy(&bgeom->blocks[bidx], info, sizeof(struct gkyl_gk_block_geom_info));
+  // The multiblock app builds EFIT and tok_geo objects from these inputs
+  // directly, so they carry the geometry's verbosity themselves.
+  struct gkyl_gyrokinetic_geometry *geo = &bgeom->blocks[bidx].geometry;
+  geo->efit_info.is_verbose |= geo->is_verbose;
+  geo->tok_grid_info.is_verbose |= geo->is_verbose;
 
   for (int d = 0; d < bgeom->ndim; ++d) {
     bgeom->blocks[bidx].cuts[d] = info->cuts[d] > 0 ? info->cuts[d] : 1;
@@ -208,6 +213,7 @@ gk_block_geom_check_seam_participation(
 {
   const char *diag_env = getenv("GKYL_TOK_SEAM_PARTICIPATION_DIAG");
   bool diag = diag_env && diag_env[0] != '\0' && diag_env[0] != '0';
+  bool verbose = gkyl_gk_block_geom_is_verbose(bgeom);
   int nmixed = 0, nunshared = 0, nchecked = 0;
 
   // "No mixed interface" and "the check never ran" look identical from the
@@ -280,7 +286,7 @@ gk_block_geom_check_seam_participation(
         // fail only on those.
         bool shared_row = gk_block_geom_seam_row_is_shared(bgeom, ext_i ? j : i, ext_i ? i : j);
 
-        if (nmixed == 0) {
+        if (verbose && nmixed == 0) {
           fprintf(
             stderr, "TOK_SEAM_PARTICIPATION mixed extended construction across a declared "
                     "interface: the blocks may parameterize their shared row "
@@ -290,14 +296,16 @@ gk_block_geom_check_seam_participation(
           );
         }
 
-        fprintf(
-          stderr,
-          "TOK_SEAM_PARTICIPATION block=%d ftype=%d extended=%d <-> block=%d "
-          "ftype=%d extended=%d dir=%d edge=%s shared_row=%d\n",
-          i, (int)bi->geometry.tok_grid_info.ftype, (int)ext_i, j,
-          (int)bj->geometry.tok_grid_info.ftype, (int)ext_j, d, e ? "upper" : "lower",
-          (int)shared_row
-        );
+        if (verbose || !shared_row) {
+          fprintf(
+            stderr,
+            "TOK_SEAM_PARTICIPATION block=%d ftype=%d extended=%d <-> block=%d "
+            "ftype=%d extended=%d dir=%d edge=%s shared_row=%d\n",
+            i, (int)bi->geometry.tok_grid_info.ftype, (int)ext_i, j,
+            (int)bj->geometry.tok_grid_info.ftype, (int)ext_j, d, e ? "upper" : "lower",
+            (int)shared_row
+          );
+        }
         nmixed += 1;
         if (!shared_row) {
           nunshared += 1;
@@ -317,7 +325,7 @@ gk_block_geom_check_seam_participation(
   *mixed = nmixed;
   *unshared = nunshared;
 
-  if (nmixed > nunshared) {
+  if (verbose && nmixed > nunshared) {
     fprintf(
       stderr,
       "TOK_SEAM_PARTICIPATION %d of %d mixed interface(s) trace the same curve "
@@ -414,6 +422,17 @@ gk_block_geom_check_consistency(
   return topo_ok && seam_ok;
 }
 
+bool
+gkyl_gk_block_geom_is_verbose(const struct gkyl_gk_block_geom *bgeom)
+{
+  for (int i = 0; bgeom && i < bgeom->num_blocks; ++i) {
+    if (bgeom->blocks[i].geometry.is_verbose) {
+      return true;
+    }
+  }
+  return false;
+}
+
 int
 gkyl_gk_block_geom_check_consistency(const struct gkyl_gk_block_geom *bgeom)
 {
@@ -455,13 +474,15 @@ gkyl_gyrokinetic_multib_app_geometry_preflight(const struct gkyl_gyrokinetic_mul
       break;
     }
   }
-  fprintf(
-    stderr,
-    "GKYL_GEOMETRY_PREFLIGHT status=%s scope=declaration num_blocks=%d "
-    "strict=1 interfaces_examined=%d mixed=%d unshared=%d\n",
-    ok ? "PASS" : "FAIL", bgeom ? bgeom->num_blocks : 0, interfaces_examined, mixed, unshared
-  );
-  fflush(stderr);
+  if (!ok || gkyl_gk_block_geom_is_verbose(bgeom)) {
+    fprintf(
+      stderr,
+      "GKYL_GEOMETRY_PREFLIGHT status=%s scope=declaration num_blocks=%d "
+      "strict=1 interfaces_examined=%d mixed=%d unshared=%d\n",
+      ok ? "PASS" : "FAIL", bgeom ? bgeom->num_blocks : 0, interfaces_examined, mixed, unshared
+    );
+    fflush(stderr);
+  }
   return ok;
 }
 

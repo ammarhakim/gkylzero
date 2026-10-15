@@ -531,6 +531,7 @@ static bool
 gyrokinetic_multib_opoint_preflight(const struct gkyl_gyrokinetic_multib *inp)
 {
   const struct gkyl_gk_block_geom *bg = inp->gk_block_geom;
+  const bool verbose = gkyl_gk_block_geom_is_verbose(bg);
   const int n = gkyl_gk_block_geom_num_blocks(bg);
   const struct gkyl_gk_block_geom_info *first = 0;
   double psi_lo = DBL_MAX, psi_hi = -DBL_MAX;
@@ -587,12 +588,14 @@ gyrokinetic_multib_opoint_preflight(const struct gkyl_gyrokinetic_multib *inp)
                     gyrokinetic_multib_inside_outline(e, R[k], Z[k]) :
                     (R[k] >= box_rlo && R[k] <= box_rhi && Z[k] >= box_zlo && Z[k] <= box_zhi);
     double psin = (psi[k] - e->simag) / (sep - e->simag);
-    fprintf(
-      stderr,
-      "TOK_GEO_OPOINT name=%s R=%.17g Z=%.17g psi=%.17g rho=%.17g in_requested_range=%d inside_machine=%d spatial_test=%s\n",
-      e->name, R[k], Z[k], psi[k], psin > 0.0 ? sqrt(psin) : -1.0, (int)in_range, (int)inside,
-      outline ? "vessel_outline" : "declared_boxes"
-    );
+    if (verbose) {
+      fprintf(
+        stderr,
+        "TOK_GEO_OPOINT name=%s R=%.17g Z=%.17g psi=%.17g rho=%.17g in_requested_range=%d inside_machine=%d spatial_test=%s\n",
+        e->name, R[k], Z[k], psi[k], psin > 0.0 ? sqrt(psin) : -1.0, (int)in_range, (int)inside,
+        outline ? "vessel_outline" : "declared_boxes"
+      );
+    }
     if (in_range && inside) {
       ++offenders;
     }
@@ -600,13 +603,15 @@ gyrokinetic_multib_opoint_preflight(const struct gkyl_gyrokinetic_multib *inp)
   const bool refuse = offenders > 0;
   // Its own marker: the harness validator requires every GKYL_GEOMETRY_PREFLIGHT
   // line to be the declaration record and calls the log malformed otherwise.
-  fprintf(
-    stderr,
-    "GKYL_OPOINT_PREFLIGHT status=%s scope=opoint name=%s critical_points=%d o_points_besides_axis=%d in_range_and_inside=%d psi_lo=%.17g psi_hi=%.17g%s\n",
-    refuse ? "FAIL" : "PASS", e->name, nc, nopts, offenders, psi_lo, psi_hi,
-    refuse ? " reason=o_point_in_requested_range" : ""
-  );
-  fflush(stderr);
+  if (refuse || verbose) {
+    fprintf(
+      stderr,
+      "GKYL_OPOINT_PREFLIGHT status=%s scope=opoint name=%s critical_points=%d o_points_besides_axis=%d in_range_and_inside=%d psi_lo=%.17g psi_hi=%.17g%s\n",
+      refuse ? "FAIL" : "PASS", e->name, nc, nopts, offenders, psi_lo, psi_hi,
+      refuse ? " reason=o_point_in_requested_range" : ""
+    );
+    fflush(stderr);
+  }
   gkyl_free(R);
   gkyl_free(Z);
   gkyl_free(psi);
@@ -621,6 +626,7 @@ static bool
 gyrokinetic_multib_material_preflight(const struct gkyl_gyrokinetic_multib *inp)
 {
   const struct gkyl_gk_block_geom *bg = inp->gk_block_geom;
+  const bool verbose = gkyl_gk_block_geom_is_verbose(bg);
   for (int b = 0; b < gkyl_gk_block_geom_num_blocks(bg); ++b) {
     const struct gkyl_gk_block_geom_info *bi = gkyl_gk_block_geom_get_block(bg, b);
     if (bi->geometry.geometry_id != GKYL_GEOMETRY_TOKAMAK) {
@@ -636,9 +642,8 @@ gyrokinetic_multib_material_preflight(const struct gkyl_gyrokinetic_multib *inp)
         geo->efit->limiter_status, geo->efit->limiter_n, gkyl_tok_wall_policy_reason(policy)
       );
     }
-    // A block that did not ask for containment builds without it. Say so on
-    // every such block, so an unenforced wall is never silent in the log.
-    if (policy == GKYL_TOK_WALL_NOT_ENFORCED) {
+    // A block that did not ask for containment builds without it.
+    if (verbose && policy == GKYL_TOK_WALL_NOT_ENFORCED) {
       fprintf(
         stderr, "TOK_GEO_WALL_NOT_ENFORCED block=%d limiter_status=%d vertices=%d reason=%s\n", b,
         geo->efit->limiter_status, geo->efit->limiter_n, gkyl_tok_wall_policy_reason(policy)
@@ -651,7 +656,7 @@ gyrokinetic_multib_material_preflight(const struct gkyl_gyrokinetic_multib *inp)
     void *pmctx = 0;
     mc2nu_t pmap = tok_preflight_radial_map(bi, &pmctx);
     bool unresolved = tok_preflight_map_unresolved(bi);
-    if (unresolved) {
+    if (verbose && unresolved) {
       fprintf(
         stderr,
         "GKYL_MATERIAL_PREFLIGHT scope=advisory block=%d "
@@ -674,7 +679,9 @@ gyrokinetic_multib_material_preflight(const struct gkyl_gyrokinetic_multib *inp)
       return false;
     }
   }
-  fprintf(stderr, "GKYL_MATERIAL_PREFLIGHT status=PASS\n");
+  if (verbose) {
+    fprintf(stderr, "GKYL_MATERIAL_PREFLIGHT status=PASS\n");
+  }
   return true;
 }
 
@@ -733,6 +740,7 @@ static struct gkyl_gk_block_geom *
 gyrokinetic_multib_adjust_wall(const struct gkyl_gyrokinetic_multib *inp)
 {
   const int n = gkyl_gk_block_geom_num_blocks(inp->gk_block_geom);
+  const bool verbose = gkyl_gk_block_geom_is_verbose(inp->gk_block_geom);
   const int ndim = gkyl_gk_block_geom_ndim(inp->gk_block_geom);
   // Every allocation below is sized by n, and n reaches memset() as
   // n*sizeof(*p). Nothing here bounded n, so the compiler had to assume a
@@ -921,11 +929,13 @@ gyrokinetic_multib_adjust_wall(const struct gkyl_gyrokinetic_multib *inp)
         failed[bounds[b].group] = true;
         bad_block[b] = true;
         any = true;
-        fprintf(
-          stderr,
-          "TOK_RHO_WALL_TARGET_RETRY block=%d family=%s psi=%.17g reason=explicit_target_root_unavailable\n",
-          b, bounds[b].family == 1 ? "SOL" : "PF", psi
-        );
+        if (verbose) {
+          fprintf(
+            stderr,
+            "TOK_RHO_WALL_TARGET_RETRY block=%d family=%s psi=%.17g reason=explicit_target_root_unavailable\n",
+            b, bounds[b].family == 1 ? "SOL" : "PF", psi
+          );
+        }
         // Other active endpoints/fluxes are checked on the next candidate;
         // no geometry is constructed while any target lacks coverage.
         break;
@@ -965,7 +975,9 @@ gyrokinetic_multib_adjust_wall(const struct gkyl_gyrokinetic_multib *inp)
       // ordinary path below.
       bi.geometry.tok_grid_info.relaxed_xpt_seam_optimize = false;
       bi.geometry.tok_grid_info.relaxed_xpt_seam_trial_status = 0;
-      fprintf(stderr, "TOK_RHO_WALL_TRIAL iteration=%d block=%d\n", iteration, b);
+      if (verbose) {
+        fprintf(stderr, "TOK_RHO_WALL_TRIAL iteration=%d block=%d\n", iteration, b);
+      }
       tok_wall_trial_begin(bounds[b].family ? bounds[b].edge : -1);
       if (iteration == 0 && bounds[b].family) {
         tok_wall_trial_capture_requested(b, bounds[b].requested);
@@ -996,17 +1008,21 @@ gyrokinetic_multib_adjust_wall(const struct gkyl_gyrokinetic_multib *inp)
       // and the production build keeps the fatal guard: a geometry that really
       // folds still fails, loudly, with the guard's own line.
       if (rule_refused || jac_invalid) {
-        fprintf(
-          stderr,
-          "TOK_RHO_WALL_TRIAL_CONSTRUCTION_NOTE iteration=%d block=%d row_rule_refused=%d jacobian_invalid=%d diagnostic_only=1\n",
-          iteration, b, (int)rule_refused, (int)jac_invalid
-        );
+        if (verbose) {
+          fprintf(
+            stderr,
+            "TOK_RHO_WALL_TRIAL_CONSTRUCTION_NOTE iteration=%d block=%d row_rule_refused=%d jacobian_invalid=%d diagnostic_only=1\n",
+            iteration, b, (int)rule_refused, (int)jac_invalid
+          );
+        }
       }
       if (violations) {
-        fprintf(
-          stderr, "TOK_RHO_WALL_TRIAL_REJECTED iteration=%d block=%d wall_checks_failed=%ld\n",
-          iteration, b, violations
-        );
+        if (verbose) {
+          fprintf(
+            stderr, "TOK_RHO_WALL_TRIAL_REJECTED iteration=%d block=%d wall_checks_failed=%ld\n",
+            iteration, b, violations
+          );
+        }
         if (plate_invalid) {
           // A plate the driver declared is not finite (TOK_GEO_WALL_PLATE_INVALID).
           // The declaration is wrong; no boundary the adjuster moves changes it.
@@ -1064,12 +1080,14 @@ gyrokinetic_multib_adjust_wall(const struct gkyl_gyrokinetic_multib *inp)
         bounds[g].polishing = true;
         bounds[g].polished = true;
         owed_polish = true;
-        fprintf(
-          stderr,
-          "TOK_RHO_WALL_POLISH group=%d bracket_coarse=%d; "
-          "re-approaching at the fine step\n",
-          g, bounds[g].coarse + 1
-        );
+        if (verbose) {
+          fprintf(
+            stderr,
+            "TOK_RHO_WALL_POLISH group=%d bracket_coarse=%d; "
+            "re-approaching at the fine step\n",
+            g, bounds[g].coarse + 1
+          );
+        }
       }
     }
     if (owed_polish) {
@@ -1107,12 +1125,14 @@ gyrokinetic_multib_adjust_wall(const struct gkyl_gyrokinetic_multib *inp)
           const struct gkyl_gk_block_geom_info *bi = gkyl_gk_block_geom_get_block(bg, b);
           double psi = bounds[b].edge ? bi->upper[0] : bi->lower[0];
           double rho = sqrt((psi - bounds[b].axis) / (bounds[b].sep - bounds[b].axis));
-          fprintf(
-            stderr,
-            "TOK_RHO_WALL_BOUND block=%d family=%s edge=%d requested_rho=%.17g effective_rho=%.17g requested_psi=%.17g effective_psi=%.17g steps=%d\n",
-            b, bounds[b].family == 1 ? "SOL" : "PF", bounds[b].edge, bounds[b].requested, rho,
-            bounds[b].requested_psi, psi, bounds[bounds[b].group].steps
-          );
+          if (verbose) {
+            fprintf(
+              stderr,
+              "TOK_RHO_WALL_BOUND block=%d family=%s edge=%d requested_rho=%.17g effective_rho=%.17g requested_psi=%.17g effective_psi=%.17g steps=%d\n",
+              b, bounds[b].family == 1 ? "SOL" : "PF", bounds[b].edge, bounds[b].requested, rho,
+              bounds[b].requested_psi, psi, bounds[bounds[b].group].steps
+            );
+          }
           // A region the wall pushed all the way down to the adjuster's own
           // resolution -- one fine step from the boundary it may not cross -- is
           // not a region the grid can represent (user decision 2026-09-30):
@@ -1135,11 +1155,13 @@ gyrokinetic_multib_adjust_wall(const struct gkyl_gyrokinetic_multib *inp)
           }
         }
       }
-      fprintf(
-        stderr,
-        "TOK_RHO_WALL_ADJUST_SELECTED iterations=%d step_rho=%g; rebuilding with hard wall guards\n",
-        iteration, GKYL_RHO_WALL_STEP
-      );
+      if (verbose) {
+        fprintf(
+          stderr,
+          "TOK_RHO_WALL_ADJUST_SELECTED iterations=%d step_rho=%g; rebuilding with hard wall guards\n",
+          iteration, GKYL_RHO_WALL_STEP
+        );
+      }
       ok = true;
       break;
     }
@@ -1197,12 +1219,14 @@ advance_wall_bounds:
           bounds[g].fine = 1;
           bounds[g].polishing = true;
           bounds[g].polished = true;
-          fprintf(
-            stderr,
-            "TOK_RHO_WALL_COARSE_EXHAUSTED group=%d at_coarse=%d; "
-            "falling back to the fine step\n",
-            g, bounds[g].coarse + 1
-          );
+          if (verbose) {
+            fprintf(
+              stderr,
+              "TOK_RHO_WALL_COARSE_EXHAUSTED group=%d at_coarse=%d; "
+              "falling back to the fine step\n",
+              g, bounds[g].coarse + 1
+            );
+          }
           fell_back = gkyl_rho_wall_next_phased(
             bounds[g].requested, bounds[g].other, bounds[g].axis, bounds[g].sep, bounds[g].family,
             bounds[g].coarse, bounds[g].fine, &rho, &psi
@@ -1245,12 +1269,14 @@ advance_wall_bounds:
         bi.lower[0] = psi;
       }
       gkyl_gk_block_geom_set_block(bg, b, &bi);
-      fprintf(
-        stderr,
-        "TOK_RHO_WALL_ADJUST_STEP block=%d family=%s step=%d phase=%s coarse=%d fine=%d rho=%.17g psi=%.17g\n",
-        b, bounds[b].family == 1 ? "SOL" : "PF", bounds[g].steps,
-        bounds[g].polishing ? "fine" : "coarse", bounds[g].coarse, bounds[g].fine, rho, psi
-      );
+      if (verbose) {
+        fprintf(
+          stderr,
+          "TOK_RHO_WALL_ADJUST_STEP block=%d family=%s step=%d phase=%s coarse=%d fine=%d rho=%.17g psi=%.17g\n",
+          b, bounds[b].family == 1 ? "SOL" : "PF", bounds[g].steps,
+          bounds[g].polishing ? "fine" : "coarse", bounds[g].coarse, bounds[g].fine, rho, psi
+        );
+      }
     }
   }
 
@@ -3363,6 +3389,12 @@ pointwise_write_xpt_objective_node(
 static void
 gyrokinetic_multib_app_write_interface_pointwise_diag(gkyl_gyrokinetic_multib_app *app)
 {
+  // Interfaces are pointwise surfaces only in 2x and 3x.
+  int cdim = gkyl_gk_block_geom_ndim(app->gk_block_geom);
+  if (cdim < 2 || cdim > 3) {
+    return;
+  }
+
   int rank;
   gkyl_comm_get_rank(app->comm, &rank);
 
@@ -3397,18 +3429,6 @@ gyrokinetic_multib_app_write_interface_pointwise_diag(gkyl_gyrokinetic_multib_ap
     pointwise_write_xpt_objective_header(objective_fp);
   }
   cstr_drop(&objective_file_name);
-
-  int cdim = gkyl_gk_block_geom_ndim(app->gk_block_geom);
-  if (cdim < 2 || cdim > 3) {
-    fprintf(
-      stderr, "Pointwise interface geometry diagnostic supports cdim=2 or 3; got cdim=%d\n", cdim
-    );
-    if (objective_fp) {
-      fclose(objective_fp);
-    }
-    fclose(fp);
-    return;
-  }
 
   struct gkyl_efit *efit[app->num_local_blocks];
   struct gkyl_efit_inp efit_inp[app->num_local_blocks];
@@ -4477,8 +4497,10 @@ xpt_optimizer_evaluate_candidate(
     return result;
   }
 
-  fprintf(stderr, "TOK_GEO_OPTIMIZER_SCOPE kind=candidate event=begin\n");
-  fflush(stderr);
+  if (gkyl_gk_block_geom_is_verbose(app->gk_block_geom)) {
+    fprintf(stderr, "TOK_GEO_OPTIMIZER_SCOPE kind=candidate event=begin\n");
+    fflush(stderr);
+  }
   struct gkyl_gyrokinetic_app **trial_apps =
     gkyl_malloc(sizeof(*trial_apps) * app->num_local_blocks);
   bool *owned = gkyl_calloc(app->num_local_blocks, sizeof(bool));
@@ -4600,8 +4622,10 @@ xpt_optimizer_evaluate_candidate(
   }
   gkyl_free(owned);
   gkyl_free(trial_apps);
-  fprintf(stderr, "TOK_GEO_OPTIMIZER_SCOPE kind=candidate event=end accepted=0\n");
-  fflush(stderr);
+  if (gkyl_gk_block_geom_is_verbose(app->gk_block_geom)) {
+    fprintf(stderr, "TOK_GEO_OPTIMIZER_SCOPE kind=candidate event=end accepted=0\n");
+    fflush(stderr);
+  }
   return result;
 }
 
@@ -4869,8 +4893,10 @@ xpt_optimizer_apply_selection(
   const struct xpt_optimizer_pair *pair, double coefficient
 )
 {
-  fprintf(stderr, "TOK_GEO_OPTIMIZER_SCOPE kind=revalidation event=begin\n");
-  fflush(stderr);
+  if (gkyl_gk_block_geom_is_verbose(app->gk_block_geom)) {
+    fprintf(stderr, "TOK_GEO_OPTIMIZER_SCOPE kind=revalidation event=begin\n");
+    fflush(stderr);
+  }
   struct gkyl_gyrokinetic_app **candidate_apps =
     gkyl_malloc(sizeof(*candidate_apps) * app->num_local_blocks);
   bool *owned = gkyl_calloc(app->num_local_blocks, sizeof(bool));
@@ -4959,8 +4985,12 @@ xpt_optimizer_apply_selection(
       app->gk_block_geom, pair->bid[1], coefficient, pair->bound
     );
   }
-  fprintf(stderr, "TOK_GEO_OPTIMIZER_SCOPE kind=revalidation event=end accepted=%d\n", (int)success);
-  fflush(stderr);
+  if (gkyl_gk_block_geom_is_verbose(app->gk_block_geom)) {
+    fprintf(
+      stderr, "TOK_GEO_OPTIMIZER_SCOPE kind=revalidation event=end accepted=%d\n", (int)success
+    );
+    fflush(stderr);
+  }
   return success ? XPT_APPLY_APPLIED : XPT_APPLY_REVALIDATION_FAILED;
 }
 

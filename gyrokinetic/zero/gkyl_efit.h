@@ -26,6 +26,8 @@ struct gkyl_efit_inp {
   int xpt_bound_n; // number of polygon vertices (0 disables the filter)
   const double *xpt_bound_R; // vertex R coordinates
   const double *xpt_bound_Z; // vertex Z coordinates (all <= 0)
+
+  bool is_verbose; // Print X-point and equilibrium diagnostics to stderr (default off).
 };
 
 struct gkyl_efit {
@@ -103,6 +105,7 @@ struct gkyl_efit {
 
   bool reflect;
   bool use_gpu;
+  bool is_verbose; // Print X-point and equilibrium diagnostics (gkyl_efit_inp.is_verbose).
 
   // Copy of the optional X-point search bounds (see struct gkyl_efit_inp).
   int xpt_bound_n;

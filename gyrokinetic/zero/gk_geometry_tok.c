@@ -594,6 +594,7 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
     struct gkyl_calc_metric *mcalc = gkyl_calc_metric_new(
       &up->basis, &up->grid, &up->global, &up->global_ext, &up->local, &up->local_ext, true, false
     );
+    gkyl_calc_metric_set_verbose(mcalc, geometry_inp->tok_grid_info.is_verbose);
     if (candidate_pass) {
       gkyl_calc_metric_set_signed_jacobian_guard_nonfatal(mcalc, true);
     }

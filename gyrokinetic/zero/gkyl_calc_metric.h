@@ -33,6 +33,15 @@ gkyl_calc_metric *gkyl_calc_metric_new(
  */
 void gkyl_calc_metric_set_signed_jacobian_guard_nonfatal(gkyl_calc_metric *up, bool nonfatal);
 
+/**
+ * Also report metric-identity residuals that are inside tolerance (residuals
+ * over tolerance are always reported).
+ *
+ * @param up Metric updater.
+ * @param is_verbose Whether to report in-tolerance residuals.
+ */
+void gkyl_calc_metric_set_verbose(gkyl_calc_metric *up, bool is_verbose);
+
 /** Return whether all signed R-Z Jacobians seen so far were finite, nonzero,
  * and consistently oriented. */
 bool gkyl_calc_metric_signed_jacobian_valid(const gkyl_calc_metric *up);

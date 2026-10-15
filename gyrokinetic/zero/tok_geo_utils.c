@@ -1056,7 +1056,7 @@ tok_limiter_plate_intersection(
   *r = best_r;
   *z = best_z;
   static int nreport = 0;
-  if (nreport++ < 8) {
+  if (geo->is_verbose && nreport++ < 8) {
     fprintf(
       stderr, "TOK_GEO_PLATE_EXTENDED psi=%.17g endpoint=%d rz=(%.17g,%.17g) wall_distance=%.17g\n",
       psi, picked_end, *r, *z, best_dist
@@ -1532,12 +1532,14 @@ tok_xpt_initialize_branch(
   }
   bool selected_right = n_right != n_left ? n_right > n_left : smax_right > smax_left;
   if (n_right > 0 && n_left > 0) {
-    fprintf(
-      stderr,
-      "TOK_XPT_RAY_DIAG reason=ray_branch_probe_disagreement ftype=%d "
-      "n_right=%d n_left=%d smax_right=%.17g smax_left=%.17g selected_right=%d\n",
-      inp->ftype, n_right, n_left, smax_right, smax_left, (int)selected_right
-    );
+    if (arc_ctx->geo->is_verbose) {
+      fprintf(
+        stderr,
+        "TOK_XPT_RAY_DIAG reason=ray_branch_probe_disagreement ftype=%d "
+        "n_right=%d n_left=%d smax_right=%.17g smax_left=%.17g selected_right=%d\n",
+        inp->ftype, n_right, n_left, smax_right, smax_left, (int)selected_right
+      );
+    }
   }
   arc_ctx->xpt_ray_on_right = selected_right;
   arc_ctx->xpt_ray_branch_valid = true;
@@ -1639,14 +1641,16 @@ tok_xpt_ray_reanchor_in_band(
   }
   double r_new = rx + best_s * cos(best_angle);
   double z_new = zx + best_s * sin(best_angle);
-  fprintf(
-    stderr,
-    "TOK_XPT_RAY_DIAG reason=reanchored_in_band ftype=%d old_angle=%.6f "
-    "new_angle=%.6f old_s=%.17g new_s=%.17g new_qmin=%.6e "
-    "old_endpoint=(%.17g,%.17g) new_endpoint=(%.17g,%.17g)\n",
-    inp->ftype, angle0 * 180.0 / M_PI, best_angle * 180.0 / M_PI, s0, best_s, best_qmin,
-    arc_ctx->xpt_ray_r0, arc_ctx->xpt_ray_z0, r_new, z_new
-  );
+  if (arc_ctx->geo->is_verbose) {
+    fprintf(
+      stderr,
+      "TOK_XPT_RAY_DIAG reason=reanchored_in_band ftype=%d old_angle=%.6f "
+      "new_angle=%.6f old_s=%.17g new_s=%.17g new_qmin=%.6e "
+      "old_endpoint=(%.17g,%.17g) new_endpoint=(%.17g,%.17g)\n",
+      inp->ftype, angle0 * 180.0 / M_PI, best_angle * 180.0 / M_PI, s0, best_s, best_qmin,
+      arc_ctx->xpt_ray_r0, arc_ctx->xpt_ray_z0, r_new, z_new
+    );
+  }
   arc_ctx->xpt_ray_r0 = r_new;
   arc_ctx->xpt_ray_z0 = z_new;
   return true;
@@ -1726,12 +1730,14 @@ tok_xpt_ray_anchor(
     const double ray_band_tol = 3.0e-3;
     if (ray_qmin < -ray_band_tol &&
         !tok_xpt_ray_reanchor_in_band(inp, arc_ctx, rx, zx, delta, ray_band_tol)) {
-      fprintf(
-        stderr,
-        "TOK_XPT_RAY_DIAG reason=no_in_band_reanchor ftype=%d ray_qmin=%.6e "
-        "endpoint=(%.17g,%.17g)\n",
-        inp->ftype, ray_qmin, arc_ctx->xpt_ray_r0, arc_ctx->xpt_ray_z0
-      );
+      if (arc_ctx->geo->is_verbose) {
+        fprintf(
+          stderr,
+          "TOK_XPT_RAY_DIAG reason=no_in_band_reanchor ftype=%d ray_qmin=%.6e "
+          "endpoint=(%.17g,%.17g)\n",
+          inp->ftype, ray_qmin, arc_ctx->xpt_ray_r0, arc_ctx->xpt_ray_z0
+        );
+      }
     }
     if (!tok_xpt_initialize_branch(inp, arc_ctx, sector, rx, zx)) {
       return false;
@@ -1868,12 +1874,14 @@ tok_xpt_ray_anchor(
   // crosses into the confined region dips by 1800% of qtarget.
   double band_tol = fmax(crossing_tol, 0.05 * fabs(qtarget));
   if (upward_crossings > 1 && qmin_before_first >= -band_tol) {
-    fprintf(
-      stderr,
-      "TOK_XPT_RAY_DIAG reason=first_crossing_anchor ftype=%d qtarget=%.17g "
-      "upward_crossings=%d bracket=(%.17g,%.17g) qmin_before_first=%.6e\n",
-      inp->ftype, qtarget, upward_crossings, slo, sup, qmin_before_first
-    );
+    if (arc_ctx->geo->is_verbose) {
+      fprintf(
+        stderr,
+        "TOK_XPT_RAY_DIAG reason=first_crossing_anchor ftype=%d qtarget=%.17g "
+        "upward_crossings=%d bracket=(%.17g,%.17g) qmin_before_first=%.6e\n",
+        inp->ftype, qtarget, upward_crossings, slo, sup, qmin_before_first
+      );
+    }
   } else if (upward_crossings != 1) {
     double crossing_span = slast_up - slo;
     double dip_below = qtarget - qmin_after_first;
@@ -1969,12 +1977,14 @@ tok_xpt_anchor_on_right(
   // abort the whole build; the cached value is the better-supported answer and is
   // what this function returns either way.
   if (resolved && on_right != arc_ctx->xpt_ray_on_right) {
-    fprintf(
-      stderr,
-      "TOK_XPT_RAY_DIAG reason=anchor_branch_disagrees_with_cached ftype=%d psi=%.17g anchor=(%.17g,%.17g) cached_right=%d resolved_right=%d action=keep_cached\n",
-      inp->ftype, arc_ctx->psi, arc_ctx->xpt_anchor_r, arc_ctx->xpt_anchor_z,
-      arc_ctx->xpt_ray_on_right, on_right
-    );
+    if (arc_ctx->geo->is_verbose) {
+      fprintf(
+        stderr,
+        "TOK_XPT_RAY_DIAG reason=anchor_branch_disagrees_with_cached ftype=%d psi=%.17g anchor=(%.17g,%.17g) cached_right=%d resolved_right=%d action=keep_cached\n",
+        inp->ftype, arc_ctx->psi, arc_ctx->xpt_anchor_r, arc_ctx->xpt_anchor_z,
+        arc_ctx->xpt_ray_on_right, on_right
+      );
+    }
   }
   return arc_ctx->xpt_ray_on_right;
 }
@@ -2350,53 +2360,6 @@ tok_check_xpt_span(
   );
 }
 
-// Diagnostic only: enumerate every sign change of psi(plate(s))-psi_curr over
-// s in [0,1], so a plate that the flux surface crosses more than once (where
-// gkyl_ridders returns just one of the roots) is visible.
-static void
-tok_plate_scan_diag(
-  struct gkyl_tok_geo *geo, struct plate_ctx *pctx, const char *side, int ftype, double psi_curr
-)
-{
-  enum { NSAMP = 4001 };
-  double rzplate[2];
-  double s_prev = 0.0, f_prev = tok_plate_psi_func(0.0, pctx);
-  int ncross = 0;
-  for (int i = 1; i < NSAMP; ++i) {
-    double s = (double)i / (NSAMP - 1);
-    double f = tok_plate_psi_func(s, pctx);
-    if (f_prev == 0.0 || (f_prev < 0.0) != (f < 0.0)) {
-      // Bisect the bracket to locate the crossing well enough to report R,Z.
-      double a = s_prev, b = s, fa = f_prev;
-      for (int it = 0; it < 60; ++it) {
-        double m = 0.5 * (a + b), fm = tok_plate_psi_func(m, pctx);
-        if ((fa < 0.0) != (fm < 0.0)) {
-          b = m;
-        } else {
-          a = m;
-          fa = fm;
-        }
-      }
-      double sroot = 0.5 * (a + b);
-      if (pctx->lower) {
-        geo->plate_func_lower(sroot, rzplate);
-      } else {
-        geo->plate_func_upper(sroot, rzplate);
-      }
-      fprintf(
-        stderr, "TOK_PLATE_SCAN side=%s ftype=%d idx=%d s=%.17g rz=(%.17g,%.17g)\n", side, ftype,
-        ncross, sroot, rzplate[0], rzplate[1]
-      );
-      ncross++;
-    }
-    s_prev = s;
-    f_prev = f;
-  }
-  fprintf(
-    stderr, "TOK_PLATE_SCAN side=%s ftype=%d ncross=%d psi=%.17g\n", side, ftype, ncross, psi_curr
-  );
-}
-
 // A divertor plate that reaches past the X-point in |Z| (e.g. an inner plate
 // continued onto the floor) can be crossed by one flux surface more than once:
 // once by the main-SOL boundary and once by the divertor leg itself. gkyl_ridders
@@ -2679,12 +2642,14 @@ tok_plate_extent_root_s(
     } else {
       geo->plate_func_upper(s_hint, rz);
     }
-    fprintf(
-      stderr,
-      "TOK_GEO_PLATE_ROOT_MULTI plate=%s psi=%.17g hint_r=%.17g s=%.17g "
-      "rz=(%.17g,%.17g)\n",
-      lower ? "lower" : "upper", psi, hint_r, s_hint, rz[0], rz[1]
-    );
+    if (geo->is_verbose) {
+      fprintf(
+        stderr,
+        "TOK_GEO_PLATE_ROOT_MULTI plate=%s psi=%.17g hint_r=%.17g s=%.17g "
+        "rz=(%.17g,%.17g)\n",
+        lower ? "lower" : "upper", psi, hint_r, s_hint, rz[0], rz[1]
+      );
+    }
     return s_hint;
   }
   return tok_plate_root_s(res, lower, psi);

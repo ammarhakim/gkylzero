@@ -316,15 +316,17 @@ find_quadratic_xpt_near_target(
     // that had to be clamped onto a cell face. The distance-only pick is
     // reported where it differs.
     if (bd_R != bu_R || bd_Z != bu_Z) {
-      fprintf(
-        stderr,
-        "EFIT_XPT_CLAMP_PREF target=(%.17g,%.17g) "
-        "dist_pick=(%.17g,%.17g) dist_clamped=%d dist_psi=%.17g "
-        "unclamped_pick=(%.17g,%.17g) unclamped_psi=%.17g "
-        "separation=%.17g dpsi=%.17g active=unclamped\n",
-        Rtar, Ztar, bd_R, bd_Z, (int)bd_clamped, bd_psi, bu_R, bu_Z, bu_psi,
-        sqrt(efit_dist2(bd_R, bd_Z, bu_R, bu_Z)), bu_psi - bd_psi
-      );
+      if (up->is_verbose) {
+        fprintf(
+          stderr,
+          "EFIT_XPT_CLAMP_PREF target=(%.17g,%.17g) "
+          "dist_pick=(%.17g,%.17g) dist_clamped=%d dist_psi=%.17g "
+          "unclamped_pick=(%.17g,%.17g) unclamped_psi=%.17g "
+          "separation=%.17g dpsi=%.17g active=unclamped\n",
+          Rtar, Ztar, bd_R, bd_Z, (int)bd_clamped, bd_psi, bu_R, bu_Z, bu_psi,
+          sqrt(efit_dist2(bd_R, bd_Z, bu_R, bu_Z)), bu_psi - bd_psi
+        );
+      }
     }
 
     *Rout = bu_R;

@@ -156,6 +156,15 @@ enum gkyl_gk_shared_sep_row_status gkyl_gk_block_geom_shared_sep_row_status(
 int gkyl_gk_block_geom_check_consistency(const struct gkyl_gk_block_geom *bgeom);
 
 /**
+ * Whether any block's geometry asks for construction diagnostics
+ * (gkyl_gyrokinetic_geometry.is_verbose). Multiblock-level reports follow it.
+ *
+ * @param bgeom Block geometry (may be NULL).
+ * @return true if some block sets is_verbose.
+ */
+bool gkyl_gk_block_geom_is_verbose(const struct gkyl_gk_block_geom *bgeom);
+
+/**
  * Free block geometry.
  *
  * @return Block geometry to free

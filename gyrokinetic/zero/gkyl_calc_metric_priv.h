@@ -23,4 +23,5 @@ struct gkyl_calc_metric {
   int rz_expected_jacobian_sign;
   bool rz_jacobian_valid;
   bool rz_jacobian_guard_nonfatal;
+  bool is_verbose; // Report metric-identity residuals inside tolerance too.
 };
