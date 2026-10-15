@@ -1159,12 +1159,7 @@ gk_species_init_dynamic(
         .filter_half_width = app->core_parallel_bcs.ts_filter_half_width,
         .filter_cutoff_wavelength = app->core_parallel_bcs.ts_filter_cutoff_wavelength,
       };
-      if (app->ts_shift_from_geom) {
-        tsinp.shift_dg = app->delta_ts_x_lo;
-      } else {
-        tsinp.shift_func = app->gk_geom->lower_shift_func;
-        tsinp.shift_func_ctx = app->gk_geom->lower_shift_ctx;
-      }
+      tsinp.shift_dg = app->delta_ts_x_lo;
 
       gks->bc_ts_lo = gkyl_bc_twistshift_inew(&tsinp);
 
@@ -1234,12 +1229,7 @@ gk_species_init_dynamic(
         .filter_half_width = app->core_parallel_bcs.ts_filter_half_width,
         .filter_cutoff_wavelength = app->core_parallel_bcs.ts_filter_cutoff_wavelength,
       };
-      if (app->ts_shift_from_geom) {
-        tsinp.shift_dg = app->delta_ts_x_up;
-      } else {
-        tsinp.shift_func = app->gk_geom->upper_shift_func;
-        tsinp.shift_func_ctx = app->gk_geom->upper_shift_ctx;
-      }
+      tsinp.shift_dg = app->delta_ts_x_up;
 
       gks->bc_ts_up = gkyl_bc_twistshift_inew(&tsinp);
     } else if ((gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_COPY) ||
@@ -1295,12 +1285,7 @@ gk_species_init_dynamic(
       .filter_half_width = app->core_parallel_bcs.ts_filter_half_width,
       .filter_cutoff_wavelength = app->core_parallel_bcs.ts_filter_cutoff_wavelength,
     };
-    if (app->ts_shift_from_geom) {
-      tsinp_lo.shift_dg = app->delta_ts_x_lo;
-    } else {
-      tsinp_lo.shift_func = app->gk_geom->lower_shift_func;
-      tsinp_lo.shift_func_ctx = app->gk_geom->lower_shift_ctx;
-    }
+    tsinp_lo.shift_dg = app->delta_ts_x_lo;
     gks->bc_ts_lo = gkyl_bc_twistshift_inew(&tsinp_lo);
 
     struct gkyl_bc_twistshift_inp tsinp_up = {
@@ -1318,12 +1303,7 @@ gk_species_init_dynamic(
       .filter_half_width = app->core_parallel_bcs.ts_filter_half_width,
       .filter_cutoff_wavelength = app->core_parallel_bcs.ts_filter_cutoff_wavelength,
     };
-    if (app->ts_shift_from_geom) {
-      tsinp_up.shift_dg = app->delta_ts_x_up;
-    } else {
-      tsinp_up.shift_func = app->gk_geom->upper_shift_func;
-      tsinp_up.shift_func_ctx = app->gk_geom->upper_shift_ctx;
-    }
+    tsinp_up.shift_dg = app->delta_ts_x_up;
     gks->bc_ts_up = gkyl_bc_twistshift_inew(&tsinp_up);
   }
 

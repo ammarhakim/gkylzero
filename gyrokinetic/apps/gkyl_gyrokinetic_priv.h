@@ -1772,8 +1772,6 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_basis delta_ts_x_basis;
   struct gkyl_rect_grid delta_ts_x_grid;
   struct gkyl_array *delta_ts_x_lo, *delta_ts_x_up; // Should live on the host.
-  bool
-    ts_shift_from_geom; // Twist-shift uses delta_ts_x_lo/up (from the geometry), not shift functions.
 
   struct gkyl_position_map *position_map; // Position mapping object.
 
