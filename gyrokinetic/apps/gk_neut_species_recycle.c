@@ -92,7 +92,7 @@ gk_neut_species_recycle_write_flux_enabled(
     recyc->unit_phase_flux_neut, recyc->f_diag, &recyc->emit_buff_r, recyc->emit_ghost_r
   );
   gkyl_mom_calc_advance(
-    recyc->m0op_neut, &recyc->emit_normal_r, &recyc->emit_cbuff_r, recyc->unit_phase_flux_neut,
+    recyc->m0op_neut, &recyc->emit_buff_r, &recyc->emit_cbuff_r, recyc->unit_phase_flux_neut,
     recyc->emit_flux
   );
   app->stat.neut_species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
@@ -238,6 +238,8 @@ gk_neut_species_recycle_init(
   };
   struct gk_proj proj_unit_maxwellian;
   gk_neut_species_projection_init(app, s, recyc_proj_inp, &proj_unit_maxwellian);
+  // The ghost must be empty so the boundary flux below only has the skin's outflow.
+  gkyl_array_clear(s->f1, 0.0);
   gk_neut_species_projection_calc(app, s, &proj_unit_maxwellian, s->f1, 0.0); // Temporarily use f1.
 
   // Calculate flux associated with unit Maxwellian projected in f0.
@@ -308,11 +310,6 @@ gk_neut_species_recycle_cross_init(
     ghost[cdim + d] = 0;
   }
 
-  // Calculate the flux associated with unit-density Maxwellian.
-  gkyl_bc_emission_flux_ranges(
-    &recyc->emit_normal_r, recyc->dir + cdim, &recyc->emit_buff_r, ghost, recyc->edge
-  );
-
   recyc->unit_m0_flux_neut = mkarr(app->use_gpu, app->basis.num_basis, recyc->emit_cbuff_r.volume);
 
   struct gkyl_mom_vlasov_inp inp_mom = {
@@ -330,8 +327,12 @@ gk_neut_species_recycle_cross_init(
   recyc->m0op_neut_type = gkyl_mom_vlasov_inew(&inp_mom);
   recyc->m0op_neut = gkyl_mom_calc_new(&recyc->emit_grid, recyc->m0op_neut_type, app->use_gpu);
 
+  // Particle flux of the unit-density Maxwellian. The boundary flux was computed with
+  // an empty ghost and the nodal Lax flux is upwinded node by node, so it only holds
+  // velocities leaving the skin: integrate over all velocities (a half range in one
+  // velocity component is wrong when the boundary normal is not that triad axis).
   gkyl_mom_calc_advance(
-    recyc->m0op_neut, &recyc->emit_normal_r, &recyc->emit_cbuff_r, recyc->unit_phase_flux_neut,
+    recyc->m0op_neut, &recyc->emit_buff_r, &recyc->emit_cbuff_r, recyc->unit_phase_flux_neut,
     recyc->unit_m0_flux_neut
   );
 
@@ -385,9 +386,10 @@ gk_neut_species_recycle_cross_init(
       gks->info.charge, gks->vel_map, app->gk_geom, 0, GKYL_F_MOMENT_M0, false, app->use_gpu
     );
 
-    // Create a phase-space range that only includes velocities towards the boundary.
+    // Create a phase-space range that only includes velocities towards the boundary
+    // (half of the vpar range; vpar is phase-space direction cdim).
     gkyl_bc_emission_flux_ranges(
-      &recyc->impact_normal_r[i], recyc->dir + cdim, &recyc->impact_buff_r[i], ghost, recyc->edge
+      &recyc->impact_normal_r[i], cdim, &recyc->impact_buff_r[i], ghost, recyc->edge
     );
   }
 
