@@ -134,10 +134,13 @@ gkyl_ridders(
 
     double d = x2 - x1;
     double x3 = x1 + dsign(f0) * f1 * d / sqrt(W);
-    if (!isfinite(x3) || x3 < x0 || x3 > x2) {
+    if (!isfinite(x3)) {
       iterating = 0;
       break;
     }
+    // x3 lies in [x0, x2] in exact arithmetic; a root at an end of the
+    // bracket can put it an ulp outside.
+    x3 = fmin(fmax(x3, x0), x2);
     double f3 = func(x3, ctx);
     nev += 1;
 
