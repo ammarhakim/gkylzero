@@ -104,7 +104,7 @@ in the configure command:
 ./configure --app=vlasov
 ```
 
-### Optional heavy kernel set (Vlasov tensor p=1 hybrid basis in 3x3v)
+### Optional heavy kernel sets (Vlasov tensor p=1 hybrid basis in 3x3v, tensor p=2 in 2x3v)
 
 The Vlasov kernels for the tensor p=1 hybrid basis (p=1 in configuration space,
 p=2 in velocity space) in 3x3v are large: the set adds tens of MB of generated
@@ -116,6 +116,15 @@ therefore not built unless requested at configure time:
 ./configure --build-vlasov-hyb-3x3v=yes        # 3x3v tensor p=1 hybrid, velocity-space Hamiltonians
                                                # (needed by gyrokinetic kinetic neutrals)
 ./configure --build-vlasov-hyb-3x3v-phase=yes  # 3x3v phase-space Hamiltonian kernels; requires the previous flag
+```
+
+The Vlasov kernels for the tensor p=2 basis in 2x3v (velocity-space Hamiltonians,
+E/phi/B/radiation forces, moments, LBO and BGK collisions) are likewise optional.
+They add ~30 MB of generated code; there are no 2x3v tensor p=2 phase-space
+Hamiltonian or triad kernels:
+
+```
+./configure --build-vlasov-ten-2x3v-p2=yes     # 2x3v tensor p=2 Vlasov kernels
 ```
 
 A simulation that needs a set which was not built stops immediately with a

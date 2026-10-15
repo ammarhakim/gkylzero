@@ -312,6 +312,17 @@ kernel_mom_vlasov_M0_2x3v_tensor_p1(
   return mom_vlasov_M0_2x3v_tensor_p1(xc, dx, idx, f, out);
 }
 
+#ifdef GKYL_BUILD_VLASOV_TEN_2X3V_P2
+GKYL_CU_DH static void
+kernel_mom_vlasov_M0_2x3v_tensor_p2(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, enum gkyl_vel_edge edge
+)
+{
+  return mom_vlasov_M0_2x3v_tensor_p2(xc, dx, idx, f, out);
+}
+#endif
+
 #ifdef GKYL_BUILD_VLASOV_HYB_3X3V
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_3x3v_tensor_p1(
@@ -334,7 +345,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list tensor_m0_kernels[] = {
   {NULL, kernel_mom_vlasov_M0_2x1v_tensor_p1, kernel_mom_vlasov_M0_2x1v_tensor_p2,
    kernel_mom_vlasov_M0_2x1v_tensor_p3}, // 3
   {NULL, kernel_mom_vlasov_M0_2x2v_tensor_p1, kernel_mom_vlasov_M0_2x2v_tensor_p2, NULL}, // 4
-  {NULL, kernel_mom_vlasov_M0_2x3v_tensor_p1, NULL, NULL}, // 5
+  {NULL, kernel_mom_vlasov_M0_2x3v_tensor_p1, GKYL_TEN_2X3V_P2(kernel_mom_vlasov_M0_2x3v_tensor_p2), NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(kernel_mom_vlasov_M0_3x3v_tensor_p1), NULL, NULL} // 6
 };
@@ -971,6 +982,30 @@ kernel_mom_vlasov_M2ij_2x3v_tensor_p1(
   );
 }
 
+#ifdef GKYL_BUILD_VLASOV_TEN_2X3V_P2
+GKYL_CU_DH static void
+kernel_mom_vlasov_M2ij_2x3v_tensor_p2(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, enum gkyl_vel_edge edge
+)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i = 0; i < pdim - cdim; ++i) {
+    idx_vel[i] = idx[cdim + i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  return mom_vlasov_M2ij_2x3v_tensor_p2(
+    xc, dx, idx, mom_vlasov->vmap ? (const double *)gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out
+  );
+}
+#endif
+
 #ifdef GKYL_BUILD_VLASOV_HYB_3X3V
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_3x3v_tensor_p1(
@@ -1006,7 +1041,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list tensor_m2ij_kernels[] = {
   {NULL, kernel_mom_vlasov_M2ij_2x1v_tensor_p1, kernel_mom_vlasov_M2ij_2x1v_tensor_p2,
    kernel_mom_vlasov_M2ij_2x1v_tensor_p3}, // 3
   {NULL, kernel_mom_vlasov_M2ij_2x2v_tensor_p1, kernel_mom_vlasov_M2ij_2x2v_tensor_p2, NULL}, // 4
-  {NULL, kernel_mom_vlasov_M2ij_2x3v_tensor_p1, NULL, NULL}, // 5
+  {NULL, kernel_mom_vlasov_M2ij_2x3v_tensor_p1, GKYL_TEN_2X3V_P2(kernel_mom_vlasov_M2ij_2x3v_tensor_p2), NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(kernel_mom_vlasov_M2ij_3x3v_tensor_p1), NULL, NULL} // 6
 };
@@ -1643,6 +1678,30 @@ kernel_mom_vlasov_M3ijk_2x3v_tensor_p1(
   );
 }
 
+#ifdef GKYL_BUILD_VLASOV_TEN_2X3V_P2
+GKYL_CU_DH static void
+kernel_mom_vlasov_M3ijk_2x3v_tensor_p2(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, enum gkyl_vel_edge edge
+)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i = 0; i < pdim - cdim; ++i) {
+    idx_vel[i] = idx[cdim + i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  return mom_vlasov_M3ijk_2x3v_tensor_p2(
+    xc, dx, idx, mom_vlasov->vmap ? (const double *)gkyl_array_cfetch(mom_vlasov->vmap, vidx) : 0,
+    f, out
+  );
+}
+#endif
+
 #ifdef GKYL_BUILD_VLASOV_HYB_3X3V
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_3x3v_tensor_p1(
@@ -1678,7 +1737,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list tensor_m3ijk_kernels[] = {
   {NULL, kernel_mom_vlasov_M3ijk_2x1v_tensor_p1, kernel_mom_vlasov_M3ijk_2x1v_tensor_p2,
    kernel_mom_vlasov_M3ijk_2x1v_tensor_p3}, // 3
   {NULL, kernel_mom_vlasov_M3ijk_2x2v_tensor_p1, kernel_mom_vlasov_M3ijk_2x2v_tensor_p2, NULL}, // 4
-  {NULL, kernel_mom_vlasov_M3ijk_2x3v_tensor_p1, NULL, NULL}, // 5
+  {NULL, kernel_mom_vlasov_M3ijk_2x3v_tensor_p1, GKYL_TEN_2X3V_P2(kernel_mom_vlasov_M3ijk_2x3v_tensor_p2), NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(kernel_mom_vlasov_M3ijk_3x3v_tensor_p1), NULL, NULL} // 6
 };
@@ -2916,6 +2975,37 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_2x3v_tensor_p1(
   );
 }
 
+#ifdef GKYL_BUILD_VLASOV_TEN_2X3V_P2
+GKYL_CU_DH static void
+kernel_mom_vlasov_hamil_vel_dense_M1i_2x3v_tensor_p2(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, enum gkyl_vel_edge edge
+)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i = 0; i < pdim - cdim; ++i) {
+    idx_vel[i] = idx[cdim + i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i = 0; i < mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset + i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_vel_dense_M1i_2x3v_tensor_p2(
+    xc, dx, idx,
+    mom_vlasov->jacob_vel ? (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double *)gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out
+  );
+}
+#endif
+
 #ifdef GKYL_BUILD_VLASOV_HYB_3X3V
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_3x3v_tensor_p1(
@@ -3034,6 +3124,37 @@ kernel_mom_vlasov_hamil_vel_sparse_M1i_2x3v_tensor_p1(
   );
 }
 
+#ifdef GKYL_BUILD_VLASOV_TEN_2X3V_P2
+GKYL_CU_DH static void
+kernel_mom_vlasov_hamil_vel_sparse_M1i_2x3v_tensor_p2(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, enum gkyl_vel_edge edge
+)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i = 0; i < pdim - cdim; ++i) {
+    idx_vel[i] = idx[cdim + i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i = 0; i < mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset + i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_vel_sparse_M1i_2x3v_tensor_p2(
+    xc, dx, idx,
+    mom_vlasov->jacob_vel ? (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double *)gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out
+  );
+}
+#endif
+
 #ifdef GKYL_BUILD_VLASOV_HYB_3X3V
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M1i_3x3v_tensor_p1(
@@ -3081,7 +3202,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_dense_m1i_kern
    kernel_mom_vlasov_hamil_vel_dense_M1i_2x1v_tensor_p3}, // 3
   {NULL, kernel_mom_vlasov_hamil_vel_dense_M1i_2x2v_tensor_p1,
    kernel_mom_vlasov_hamil_vel_dense_M1i_2x2v_tensor_p2, NULL}, // 4
-  {NULL, kernel_mom_vlasov_hamil_vel_dense_M1i_2x3v_tensor_p1, NULL, NULL}, // 5
+  {NULL, kernel_mom_vlasov_hamil_vel_dense_M1i_2x3v_tensor_p1, GKYL_TEN_2X3V_P2(kernel_mom_vlasov_hamil_vel_dense_M1i_2x3v_tensor_p2), NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(kernel_mom_vlasov_hamil_vel_dense_M1i_3x3v_tensor_p1), NULL, NULL} // 6
 };
@@ -3102,7 +3223,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_sparse_m1i_ker
    kernel_mom_vlasov_hamil_vel_dense_M1i_2x1v_tensor_p3}, // 3
   {NULL, kernel_mom_vlasov_hamil_vel_sparse_M1i_2x2v_tensor_p1,
    kernel_mom_vlasov_hamil_vel_sparse_M1i_2x2v_tensor_p2, NULL}, // 4
-  {NULL, kernel_mom_vlasov_hamil_vel_sparse_M1i_2x3v_tensor_p1, NULL, NULL}, // 5
+  {NULL, kernel_mom_vlasov_hamil_vel_sparse_M1i_2x3v_tensor_p1, GKYL_TEN_2X3V_P2(kernel_mom_vlasov_hamil_vel_sparse_M1i_2x3v_tensor_p2), NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(kernel_mom_vlasov_hamil_vel_sparse_M1i_3x3v_tensor_p1), NULL, NULL} // 6
 };
@@ -4562,6 +4683,27 @@ kernel_mom_vlasov_hamil_vel_dense_M2_2x3v_tensor_p1(
   );
 }
 
+#ifdef GKYL_BUILD_VLASOV_TEN_2X3V_P2
+GKYL_CU_DH static void
+kernel_mom_vlasov_hamil_vel_dense_M2_2x3v_tensor_p2(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, enum gkyl_vel_edge edge
+)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i = 0; i < mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset + i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_vel_dense_M2_2x3v_tensor_p2(
+    xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out
+  );
+}
+#endif
+
 #ifdef GKYL_BUILD_VLASOV_HYB_3X3V
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_3x3v_tensor_p1(
@@ -4640,6 +4782,27 @@ kernel_mom_vlasov_hamil_vel_sparse_M2_2x3v_tensor_p1(
   );
 }
 
+#ifdef GKYL_BUILD_VLASOV_TEN_2X3V_P2
+GKYL_CU_DH static void
+kernel_mom_vlasov_hamil_vel_sparse_M2_2x3v_tensor_p2(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, enum gkyl_vel_edge edge
+)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i = 0; i < mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset + i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_vel_sparse_M2_2x3v_tensor_p2(
+    xc, dx, idx, (const double *)gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out
+  );
+}
+#endif
+
 #ifdef GKYL_BUILD_VLASOV_HYB_3X3V
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M2_3x3v_tensor_p1(
@@ -4677,7 +4840,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_dense_m2_kerne
    kernel_mom_vlasov_hamil_vel_dense_M2_2x1v_tensor_p3}, // 3
   {NULL, kernel_mom_vlasov_hamil_vel_dense_M2_2x2v_tensor_p1,
    kernel_mom_vlasov_hamil_vel_dense_M2_2x2v_tensor_p2, NULL}, // 4
-  {NULL, kernel_mom_vlasov_hamil_vel_dense_M2_2x3v_tensor_p1, NULL, NULL}, // 5
+  {NULL, kernel_mom_vlasov_hamil_vel_dense_M2_2x3v_tensor_p1, GKYL_TEN_2X3V_P2(kernel_mom_vlasov_hamil_vel_dense_M2_2x3v_tensor_p2), NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(kernel_mom_vlasov_hamil_vel_dense_M2_3x3v_tensor_p1), NULL, NULL} // 6
 };
@@ -4698,7 +4861,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_sparse_m2_kern
    kernel_mom_vlasov_hamil_vel_dense_M2_2x1v_tensor_p3}, // 3
   {NULL, kernel_mom_vlasov_hamil_vel_sparse_M2_2x2v_tensor_p1,
    kernel_mom_vlasov_hamil_vel_sparse_M2_2x2v_tensor_p2, NULL}, // 4
-  {NULL, kernel_mom_vlasov_hamil_vel_sparse_M2_2x3v_tensor_p1, NULL, NULL}, // 5
+  {NULL, kernel_mom_vlasov_hamil_vel_sparse_M2_2x3v_tensor_p1, GKYL_TEN_2X3V_P2(kernel_mom_vlasov_hamil_vel_sparse_M2_2x3v_tensor_p2), NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(kernel_mom_vlasov_hamil_vel_sparse_M2_3x3v_tensor_p1), NULL, NULL} // 6
 };
@@ -7126,6 +7289,37 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_2x3v_tensor_p1(
   );
 }
 
+#ifdef GKYL_BUILD_VLASOV_TEN_2X3V_P2
+GKYL_CU_DH static void
+kernel_mom_vlasov_hamil_vel_dense_five_moments_2x3v_tensor_p2(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, enum gkyl_vel_edge edge
+)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i = 0; i < pdim - cdim; ++i) {
+    idx_vel[i] = idx[cdim + i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i = 0; i < mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset + i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_vel_dense_five_moments_2x3v_tensor_p2(
+    xc, dx, idx,
+    mom_vlasov->jacob_vel ? (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double *)gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out
+  );
+}
+#endif
+
 #ifdef GKYL_BUILD_VLASOV_HYB_3X3V
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_3x3v_tensor_p1(
@@ -7244,6 +7438,37 @@ kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x3v_tensor_p1(
   );
 }
 
+#ifdef GKYL_BUILD_VLASOV_TEN_2X3V_P2
+GKYL_CU_DH static void
+kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x3v_tensor_p2(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, enum gkyl_vel_edge edge
+)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i = 0; i < pdim - cdim; ++i) {
+    idx_vel[i] = idx[cdim + i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i = 0; i < mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset + i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_vel_sparse_five_moments_2x3v_tensor_p2(
+    xc, dx, idx,
+    mom_vlasov->jacob_vel ? (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double *)gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out
+  );
+}
+#endif
+
 #ifdef GKYL_BUILD_VLASOV_HYB_3X3V
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_five_moments_3x3v_tensor_p1(
@@ -7292,7 +7517,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_dense_five_mom
    kernel_mom_vlasov_hamil_vel_dense_five_moments_2x1v_tensor_p3}, // 3
   {NULL, kernel_mom_vlasov_hamil_vel_dense_five_moments_2x2v_tensor_p1,
    kernel_mom_vlasov_hamil_vel_dense_five_moments_2x2v_tensor_p2, NULL}, // 4
-  {NULL, kernel_mom_vlasov_hamil_vel_dense_five_moments_2x3v_tensor_p1, NULL, NULL
+  {NULL, kernel_mom_vlasov_hamil_vel_dense_five_moments_2x3v_tensor_p1, GKYL_TEN_2X3V_P2(kernel_mom_vlasov_hamil_vel_dense_five_moments_2x3v_tensor_p2), NULL
   }, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(kernel_mom_vlasov_hamil_vel_dense_five_moments_3x3v_tensor_p1), NULL, NULL
@@ -7315,7 +7540,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_sparse_five_mo
    kernel_mom_vlasov_hamil_vel_dense_five_moments_2x1v_tensor_p3}, // 3
   {NULL, kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x2v_tensor_p1,
    kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x2v_tensor_p2, NULL}, // 4
-  {NULL, kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x3v_tensor_p1, NULL, NULL
+  {NULL, kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x3v_tensor_p1, GKYL_TEN_2X3V_P2(kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x3v_tensor_p2), NULL
   }, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(kernel_mom_vlasov_hamil_vel_sparse_five_moments_3x3v_tensor_p1), NULL, NULL
@@ -9189,6 +9414,37 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x3v_tensor_p1(
   );
 }
 
+#ifdef GKYL_BUILD_VLASOV_TEN_2X3V_P2
+GKYL_CU_DH static void
+kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x3v_tensor_p2(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, enum gkyl_vel_edge edge
+)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i = 0; i < pdim - cdim; ++i) {
+    idx_vel[i] = idx[cdim + i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i = 0; i < mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset + i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_vel_dense_int_five_moments_2x3v_tensor_p2(
+    xc, dx, idx,
+    mom_vlasov->jacob_vel ? (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double *)gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out
+  );
+}
+#endif
+
 #ifdef GKYL_BUILD_VLASOV_HYB_3X3V
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_3x3v_tensor_p1(
@@ -9307,6 +9563,37 @@ kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x3v_tensor_p1(
   );
 }
 
+#ifdef GKYL_BUILD_VLASOV_TEN_2X3V_P2
+GKYL_CU_DH static void
+kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x3v_tensor_p2(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, enum gkyl_vel_edge edge
+)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i = 0; i < pdim - cdim; ++i) {
+    idx_vel[i] = idx[cdim + i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i = 0; i < mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset + i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_vel_sparse_int_five_moments_2x3v_tensor_p2(
+    xc, dx, idx,
+    mom_vlasov->jacob_vel ? (const double *)gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double *)gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out
+  );
+}
+#endif
+
 #ifdef GKYL_BUILD_VLASOV_HYB_3X3V
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_3x3v_tensor_p1(
@@ -9356,7 +9643,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_dense_int_five
      kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x1v_tensor_p3}, // 3
     {NULL, kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x2v_tensor_p1,
      kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x2v_tensor_p2, NULL}, // 4
-    {NULL, kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x3v_tensor_p1, NULL,
+    {NULL, kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x3v_tensor_p1, GKYL_TEN_2X3V_P2(kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x3v_tensor_p2),
      NULL}, // 5
     // 3x kernels
     {NULL, GKYL_HYB_3X3V(kernel_mom_vlasov_hamil_vel_dense_int_five_moments_3x3v_tensor_p1), NULL,
@@ -9380,7 +9667,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list
      kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x1v_tensor_p3}, // 3
     {NULL, kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x2v_tensor_p1,
      kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x2v_tensor_p2, NULL}, // 4
-    {NULL, kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x3v_tensor_p1, NULL,
+    {NULL, kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x3v_tensor_p1, GKYL_TEN_2X3V_P2(kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x3v_tensor_p2),
      NULL}, // 5
     // 3x kernels
     {NULL, GKYL_HYB_3X3V(kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_3x3v_tensor_p1), NULL,
