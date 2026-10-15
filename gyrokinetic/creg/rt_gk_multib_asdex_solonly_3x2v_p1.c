@@ -371,8 +371,8 @@ create_gk_block_geom(void *ctx)
         },
       .connections[2] =
         {// z-direction.
-         {.bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-         {.bid = 2, .dir = 1, .edge = GKYL_PHYSICAL}
+         {.bid = 1, .dir = 2, .edge = GKYL_UPPER_POSITIVE},
+         {.bid = 2, .dir = 2, .edge = GKYL_PHYSICAL}
         },
     }
   );

@@ -484,8 +484,10 @@ mapc2p_vel_elc(double t, const double *vc, double *vp, void *ctx)
 
   double cvpar = vc[0], cmu = vc[1];
 
-  // Cubic map in vpar.
-  if (cvpar < -0.5) {
+  // Linear map up to vpar_max/2, then quadratic.
+  if (fabs(cvpar) <= 0.5) {
+    vp[0] = vpar_max_elc * cvpar;
+  } else if (cvpar < -0.5) {
     vp[0] = -vpar_max_elc * 2.0 * pow(cvpar, 2);
   } else {
     vp[0] = vpar_max_elc * 2.0 * pow(cvpar, 2);
@@ -504,8 +506,10 @@ mapc2p_vel_ion(double t, const double *vc, double *vp, void *ctx)
 
   double cvpar = vc[0], cmu = vc[1];
 
-  // Cubic map in vpar.
-  if (cvpar < -0.5) {
+  // Linear map up to vpar_max/2, then quadratic.
+  if (fabs(cvpar) <= 0.5) {
+    vp[0] = vpar_max_ion * cvpar;
+  } else if (cvpar < -0.5) {
     vp[0] = -vpar_max_ion * 2.0 * pow(cvpar, 2);
   } else {
     vp[0] = vpar_max_ion * 2.0 * pow(cvpar, 2);
