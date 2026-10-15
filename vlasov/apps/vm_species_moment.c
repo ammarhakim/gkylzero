@@ -86,6 +86,21 @@ vm_species_moment_calc(
   }
 }
 
+void
+vm_species_moment_divide_Jx(
+  const struct gkyl_vlasov_app *app, const struct vm_species *s, const struct vm_species_moment *sm,
+  struct gkyl_array *mom
+)
+{
+  if (s->pos_map->is_identity) {
+    return;
+  }
+  // J_x is constant in each cell (C^0 linear map), so this is an exact per-cell division. In the LTE
+  // moments V_drift and T/m are velocity ratios in which J_x cancels.
+  int num_coeff_divide = sm->is_vlasov_lte_moms ? app->basis.num_basis : mom->ncomp;
+  gkyl_vlasov_position_map_divide_jacobpos_conf(s->pos_map, &app->local, num_coeff_divide, mom, mom);
+}
+
 // release memory for moment data object
 void
 vm_species_moment_release(const struct gkyl_vlasov_app *app, const struct vm_species_moment *sm)

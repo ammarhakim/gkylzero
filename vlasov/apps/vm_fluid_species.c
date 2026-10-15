@@ -779,6 +779,11 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   if (f->eqn_type == GKYL_EQN_ISO_EULER) {
     gkyl_exit("vm_fluid_species: isothermal Euler fluid species are not supported yet.");
   }
+  // The fluid solvers (and their initial conditions, sources and coefficients) work on the
+  // computational grid and do not use the position map.
+  if (!app->pos_map->is_identity) {
+    gkyl_exit("vm_fluid_species: fluid species do not support a position map.");
+  }
   f->num_equations = f->info.equation->num_equations;
   f->equation = gkyl_wv_eqn_acquire(f->info.equation);
   if (f->eqn_type == GKYL_EQN_ADVECTION) {

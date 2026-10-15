@@ -91,14 +91,9 @@ gkyl_dg_gr_maxwell_conf_flux_surf_advance_cu_kernel(
       const double *jacob_pos_l = (const double *)gkyl_array_cfetch(jacob_pos, cidx_l);
       const double *jacob_pos_c = (const double *)gkyl_array_cfetch(jacob_pos, cidx);
 
-      // For Points not along the domain-edge in theta, compute the left hand surface
-      // conf-flux.
-      int theta_pole = 0;
-
-      // If at the left edge in the theta dir
-      if (idx[dir] == conf_range.lower[dir] && up->theta_pole_lo[dir]) {
-        theta_pole = 1;
-      }
+      // Lower-face flux; the face is a theta pole only on the global lower edge
+      // (theta_pole_lo is already false for ranks not touching it).
+      int theta_pole = idx[dir] == conf_range.lower[dir] && up->theta_pole_lo[dir];
 
       cflrate_d[0] += up->conf_flux_surf(
         up, dir, xcC, up->conf_grid.dx, theta_pole, jacob_pos_l, jacob_pos_c, lapse_d, shift_d,
@@ -139,10 +134,9 @@ gkyl_dg_gr_maxwell_conf_flux_surf_advance_cu_kernel(
           det_h_d = (const double *)gkyl_array_cfetch(det_h->nodal_arr_surf_z, cidx_r);
         }
 
-        // If at the upper surface (in the ghost cell, computing the left edge)
-        if (idx[dir] == conf_range.upper[dir] && up->theta_pole_up[dir]) {
-          theta_pole = 1;
-        }
+        // Upper-face flux (owned by the ghost cell): a theta pole only on the
+        // global upper edge, independent of whether the lower face was one.
+        theta_pole = up->theta_pole_up[dir];
 
         gkyl_rect_grid_cell_center(&up->conf_grid, idx_r, xcR);
         const double *jacob_pos_r = (const double *)gkyl_array_cfetch(jacob_pos, cidx_r);

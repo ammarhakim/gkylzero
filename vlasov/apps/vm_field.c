@@ -9,17 +9,6 @@
 #include <float.h>
 #include <time.h>
 
-// Configuration-space c2p for projecting the (physical-space) EM field initial
-// condition on a non-uniform conf mesh: maps the projection's computational
-// quadrature points to physical coordinates via the position map. Identity map
-// => identity c2p, so uniform grids are unaffected.
-static void
-vm_field_pos_c2p(const double *xcomp, double *xphys, void *ctx)
-{
-  struct vm_field_proj_c2p_ctx *c = ctx;
-  gkyl_vlasov_position_map_eval_mc2p(c->pos_map, xcomp, xphys);
-}
-
 static bool
 vm_field_is_fixed_func_bc(const struct vm_field *field, int d)
 {
@@ -98,8 +87,6 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   // consistent) and keeps the physical E, B in em_no_J for the Lorentz force and
   // I/O. The GR path uses the same em_no_J array (un-weighted by det_h instead).
   f->weight_by_pos_jacob = (f->field_id == GKYL_FIELD_E_B) && (!app->pos_map->is_identity);
-  // c2p for projecting the (physical) EM field IC on a mapped conf mesh.
-  f->ext_c2p_ctx = (struct vm_field_proj_c2p_ctx){.pos_map = app->pos_map};
   if (f->field_id == GKYL_FIELD_GR_D_B) {
     f->geom = app->vm_geom;
     f->em_no_J = mkarr(app->use_gpu, 8 * app->basis.num_basis, app->local_ext.volume);
@@ -137,9 +124,19 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   if (f->info.sigma) {
     f->has_sigma = true;
     struct gkyl_array *sigma_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-    // Evaluate resistive layer function at nodes to insure positivite-definiteness of resistivity
+    // Evaluate resistive layer function at nodes to insure positivite-definiteness of resistivity.
+    // sigma multiplies the evolved (J-weighted on a mapped mesh) field, so it only needs to be
+    // sampled at physical coordinates.
     struct gkyl_eval_on_nodes *sigma_proj =
-      gkyl_eval_on_nodes_new(&app->grid, &app->basis, 1, f->info.sigma, f->info.sigma_ctx);
+      gkyl_eval_on_nodes_inew(&(struct gkyl_eval_on_nodes_inp){
+        .grid = &app->grid,
+        .basis = &app->basis,
+        .num_ret_vals = 1,
+        .eval = f->info.sigma,
+        .ctx = f->info.sigma_ctx,
+        .c2p_func = vm_pos_c2p,
+        .c2p_func_ctx = app->pos_map,
+      });
     gkyl_eval_on_nodes_advance(sigma_proj, 0.0, &app->local_ext, sigma_host);
     gkyl_array_copy(f->sigma, sigma_host);
     gkyl_eval_on_nodes_release(sigma_proj);
@@ -160,9 +157,19 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 
     f->ext_em_host = app->use_gpu ? mkarr(false, f->ext_em->ncomp, f->ext_em->size) :
                                     gkyl_array_acquire(f->ext_em);
-    f->ext_em_proj = gkyl_proj_on_basis_new(
-      &app->grid, &app->basis, app->basis.poly_order + 1, 6, f->info.ext_em, f->info.ext_em_ctx
-    );
+    // The external field enters the Lorentz force as a physical field, sampled at physical
+    // coordinates.
+    f->ext_em_proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+      .grid = &app->grid,
+      .basis = &app->basis,
+      .qtype = GKYL_GAUSS_QUAD,
+      .num_quad = app->basis.poly_order + 1,
+      .num_ret_vals = 6,
+      .eval = f->info.ext_em,
+      .ctx = f->info.ext_em_ctx,
+      .c2p_func = vm_pos_c2p,
+      .c2p_func_ctx = app->pos_map,
+    });
   }
 
   // Vlasov-Maxwell doesn't presently use external potentials.
@@ -175,17 +182,30 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   f->app_current_evolve = false;
   // setup external currents
   if (f->info.app_current) {
+    if (f->field_id == GKYL_FIELD_GR_D_B) {
+      gkyl_exit("vm_field: applied currents are not supported with GR-Maxwell fields.");
+    }
     f->has_app_current = true;
     if (f->info.app_current_evolve) {
       f->app_current_evolve = f->info.app_current_evolve;
     }
 
-    f->app_current_host = app->use_gpu ? mkarr(false, f->app_current->ncomp, f->app_current->size) :
-                                         gkyl_array_acquire(f->app_current);
-    f->app_current_proj = gkyl_proj_on_basis_new(
-      &app->grid, &app->basis, app->basis.poly_order + 1, 3, f->info.app_current,
-      f->info.app_current_ctx
-    );
+    // Separate host array (also on CPUs): it holds the physical applied current for I/O, while
+    // app_current carries the conf-Jacobian weight on a mapped mesh.
+    f->app_current_host = mkarr(false, f->app_current->ncomp, f->app_current->size);
+    // Sampled at physical coordinates; vm_field_calc_app_current weights it by the conf
+    // Jacobian when the field evolves J*E.
+    f->app_current_proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+      .grid = &app->grid,
+      .basis = &app->basis,
+      .qtype = GKYL_GAUSS_QUAD,
+      .num_quad = app->basis.poly_order + 1,
+      .num_ret_vals = 3,
+      .eval = f->info.app_current,
+      .ctx = f->info.app_current_ctx,
+      .c2p_func = vm_pos_c2p,
+      .c2p_func_ctx = app->pos_map,
+    });
   }
 
   // allocate cflrate (scalar array)
@@ -438,8 +458,8 @@ vm_field_apply_ic(
     .num_ret_vals = 8,
     .eval = field->info.init,
     .ctx = field->info.ctx,
-    .c2p_func = vm_field_pos_c2p,
-    .c2p_func_ctx = &field->ext_c2p_ctx,
+    .c2p_func = vm_pos_c2p,
+    .c2p_func_ctx = app->pos_map,
   });
 
   // run updater; need to project onto extended range for ease of handling
@@ -509,9 +529,13 @@ vm_field_calc_app_current(gkyl_vlasov_app *app, struct vm_field *field, double t
     gkyl_proj_on_basis_advance(
       field->app_current_proj, tm, &app->local_ext, field->app_current_host
     );
-    if (app->use_gpu) {
-      // Note: app_current_host is same as app_current when not on GPUs.
-      gkyl_array_copy(field->app_current, field->app_current_host);
+    gkyl_array_copy(field->app_current, field->app_current_host);
+    // On a mapped mesh the field evolves J*E, so the current it is driven by is J*J_app (like the
+    // species current, a moment of J_x*J_v*f); app_current_host keeps the physical current.
+    if (field->weight_by_pos_jacob) {
+      gkyl_vlasov_position_map_rescale_jacobpos_conf(
+        app->pos_map, &app->local_ext, field->app_current, field->app_current
+      );
     }
   }
 }

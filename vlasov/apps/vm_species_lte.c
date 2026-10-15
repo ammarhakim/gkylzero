@@ -91,14 +91,7 @@ vm_species_lte_moms(
 )
 {
   vm_species_moment_calc(&lte->moms, vms->local, app->local, fin);
-
-  // Divide the configuration-space Jacobian out of the density (the first
-  // num_basis coefficients); V_drift and T/m are velocity ratios in which J cancels.
-  if (!vms->pos_map->is_identity) {
-    gkyl_vlasov_position_map_divide_jacobpos_conf(
-      vms->pos_map, &app->local, app->basis.num_basis, lte->moms.marr, lte->moms.marr
-    );
-  }
+  vm_species_moment_divide_Jx(app, vms, &lte->moms, lte->moms.marr);
 }
 
 // Compute f_lte from input LTE moments

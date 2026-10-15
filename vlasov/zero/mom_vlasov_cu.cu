@@ -237,6 +237,15 @@ gkyl_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
       mom_vlasov->jacob_vel = inp->vel_map->jacob_vel->on_dev;
     }
   }
+  bool use_pmap = inp->pos_map && !inp->pos_map->is_identity;
+  mom_vlasov->pos_map = 0;
+  mom_vlasov->jacob_pos = 0;
+  if (use_pmap) {
+    // Raw device pointer for use inside kernels; lifetime is guaranteed by
+    // acquiring the pos_map object on the host side below.
+    mom_vlasov->conf_range = inp->pos_map->local_pos;
+    mom_vlasov->jacob_pos = inp->pos_map->jacob_pos_gauss->on_dev;
+  }
 
   // Threshold velocity for integration of moments over a subset of the domain.
   // Also set threshold for whether we accumulate moment over subset of the domain.
@@ -265,6 +274,8 @@ gkyl_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
   mom_vlasov->vel_map = inp->vel_map ? gkyl_vlasov_velocity_map_acquire(inp->vel_map) : 0;
   mom_vlasov->vmap = (inp->vel_map && mom_vlasov->use_vmap) ? inp->vel_map->vmap : 0;
   mom_vlasov->jacob_vel = (inp->vel_map && mom_vlasov->use_vmap) ? inp->vel_map->jacob_vel : 0;
+  mom_vlasov->pos_map = use_pmap ? gkyl_vlasov_position_map_acquire(inp->pos_map) : 0;
+  mom_vlasov->jacob_pos = use_pmap ? inp->pos_map->jacob_pos_gauss : 0;
   mom_vlasov->hamil = hamil_ho;
 
   return &mom_vlasov->momt;
@@ -364,6 +375,15 @@ gkyl_int_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
       mom_vlasov->jacob_vel = inp->vel_map->jacob_vel->on_dev;
     }
   }
+  bool use_pmap = inp->pos_map && !inp->pos_map->is_identity;
+  mom_vlasov->pos_map = 0;
+  mom_vlasov->jacob_pos = 0;
+  if (use_pmap) {
+    // Raw device pointer for use inside kernels; lifetime is guaranteed by
+    // acquiring the pos_map object on the host side below.
+    mom_vlasov->conf_range = inp->pos_map->local_pos;
+    mom_vlasov->jacob_pos = inp->pos_map->jacob_pos_gauss->on_dev;
+  }
 
   mom_vlasov->momt.num_mom = v_num_mom(vdim, inp->mom_type); // Number of moments.
 
@@ -387,6 +407,8 @@ gkyl_int_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
   mom_vlasov->vel_map = inp->vel_map ? gkyl_vlasov_velocity_map_acquire(inp->vel_map) : 0;
   mom_vlasov->vmap = (inp->vel_map && mom_vlasov->use_vmap) ? inp->vel_map->vmap : 0;
   mom_vlasov->jacob_vel = (inp->vel_map && mom_vlasov->use_vmap) ? inp->vel_map->jacob_vel : 0;
+  mom_vlasov->pos_map = use_pmap ? gkyl_vlasov_position_map_acquire(inp->pos_map) : 0;
+  mom_vlasov->jacob_pos = use_pmap ? inp->pos_map->jacob_pos_gauss : 0;
   mom_vlasov->hamil = hamil_ho;
 
   return &mom_vlasov->momt;

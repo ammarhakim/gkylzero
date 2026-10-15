@@ -1323,6 +1323,21 @@ void vm_species_moment_calc(
 );
 
 /**
+ * Divide the configuration-space Jacobian J_x of the position map out of a moment of the stored
+ * J_x*J_v*f, giving the physical moment (no-op on an identity map). Such moments carry J_x in every
+ * component, except the LTE moments (n, V_drift, T/m), where only the density does.
+ *
+ * @param app Vlasov app object
+ * @param s Species object
+ * @param sm Species moment object @a mom holds a moment of
+ * @param mom Moment array (sm->marr or sm->marr_host), divided in place over the local range
+ */
+void vm_species_moment_divide_Jx(
+  const struct gkyl_vlasov_app *app, const struct vm_species *s, const struct vm_species_moment *sm,
+  struct gkyl_array *mom
+);
+
+/**
  * Release species moment object.
  *
  * @param app Vlasov app object
