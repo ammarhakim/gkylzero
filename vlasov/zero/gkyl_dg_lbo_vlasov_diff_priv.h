@@ -649,7 +649,7 @@ GKYL_CU_D static const gkyl_dg_lbo_vlasov_diff_surf_kern_list ten_surf_vy_kernel
   // 2x kernels
   {NULL, NULL, NULL, NULL}, // 3
   {NULL, lbo_vlasov_diff_surfvy_2x2v_tensor_p1, lbo_vlasov_diff_surfvy_2x2v_tensor_p2, NULL}, // 4
-  {NULL, lbo_vlasov_diff_surfvy_2x3v_tensor_p1, NULL, NULL}, // 5
+  {NULL, lbo_vlasov_diff_surfvy_2x3v_tensor_p1, GKYL_TEN_2X3V_P2(lbo_vlasov_diff_surfvy_2x3v_tensor_p2), NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(lbo_vlasov_diff_surfvy_3x3v_tensor_p1), NULL, NULL} // 6
 };
@@ -677,7 +677,7 @@ GKYL_CU_D static const gkyl_dg_lbo_vlasov_diff_surf_kern_list ten_surf_vz_kernel
   // 2x kernels
   {NULL, NULL, NULL, NULL}, // 3
   {NULL, NULL, NULL, NULL}, // 4
-  {NULL, lbo_vlasov_diff_surfvz_2x3v_tensor_p1, NULL, NULL}, // 5
+  {NULL, lbo_vlasov_diff_surfvz_2x3v_tensor_p1, GKYL_TEN_2X3V_P2(lbo_vlasov_diff_surfvz_2x3v_tensor_p2), NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(lbo_vlasov_diff_surfvz_3x3v_tensor_p1), NULL, NULL} // 6
 };
