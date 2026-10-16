@@ -354,15 +354,17 @@ gk_geometry_mapc2p_calc_deltats(
         gk_geometry_mapc2p_toroidal_angle(mapc2p_func, mapc2p_ctx, position_map, x, y, z_lo);
       double phi = dphidy * y + gk_geometry_mapc2p_wrap(phi_raw - dphidy * y, 2.0 * M_PI);
 
-      // Follow phi along the field line to each local z face.
+      // Follow phi along the field line to each local z face. Evaluate mapc2p only inside
+      // [z_lo, z_up]: inputs may wrap theta at the ends of the domain, so a point a round-off
+      // above z_up could jump phi by a non-multiple of 2*pi.
       double z = z_lo;
       for (int it = nrange->lower[TH_IDX]; it <= nrange->upper[TH_IDX]; ++it) {
         cidx[TH_IDX] = it;
-        double z_face = theta_lo + it * dtheta;
+        double z_face = fmin(theta_lo + it * dtheta, z_up); // Avoid the Lz != 2pi case.
         int num_sub = (int)ceil((z_face - z) / dz_max);
         double z_start = z;
         for (int k = 1; k <= num_sub; k++) {
-          z = z_start + k * (z_face - z_start) / num_sub;
+          z = k < num_sub ? z_start + k * (z_face - z_start) / num_sub : z_face;
           double phi_new =
             gk_geometry_mapc2p_toroidal_angle(mapc2p_func, mapc2p_ctx, position_map, x, y, z);
           phi += gk_geometry_mapc2p_wrap(phi_new - phi_raw, 2.0 * M_PI);
@@ -628,7 +630,7 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
     up, &up->nrange_int, up->dzc, geometry_inp->mapc2p, geometry_inp->c2p_ctx,
     geometry_inp->bfield_func, geometry_inp->bfield_ctx, geometry_inp->position_map
   );
-  // calculate mapc2p in cylindrical coords at surfaces
+  // calculate mapc2p in cartesian coords at surfaces
   for (int dir = 0; dir < up->grid.ndim; dir++) {
     gk_geometry_mapc2p_advance_surface(
       up, dir, &up->nrange_surf[dir], up->dzc, geometry_inp->mapc2p, geometry_inp->c2p_ctx,
