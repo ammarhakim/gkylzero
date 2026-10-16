@@ -20,10 +20,26 @@ gk_neut_species_source_init(
     src->evolve = gkns->info.source.evolve; // Whether the source is time dependent.
 
     src->num_sources = gkns->info.source.num_sources;
-    for (int k = 0; k < gkns->info.source.num_sources; k++) {
-      gk_neut_species_projection_init(
-        app, gkns, gkns->info.source.projection[k], &src->proj_source[k]
-      );
+    if (src->source_id == GKYL_SOURCE_FROMFILE) {
+      // A file-imported source shape is static: no time dependence.
+      assert(!src->evolve);
+      struct gkyl_array *fdo = mkarr(app->use_gpu, gkns->basis.num_basis, gkns->local_ext.volume);
+      gkyl_array_clear(src->source, 0.0);
+      for (int k = 0; k < gkns->info.source.num_sources; k++) {
+        assert(!gkns->info.source.source_import[k].enforce_positivity
+        ); // Not supported for sources yet.
+        gk_neut_species_kinetic_read_distf_from_file(
+          app, gkns, gkns->info.source.source_import[k], fdo
+        );
+        gkyl_array_accumulate(src->source, 1., fdo);
+      }
+      gkyl_array_release(fdo);
+    } else {
+      for (int k = 0; k < gkns->info.source.num_sources; k++) {
+        gk_neut_species_projection_init(
+          app, gkns, gkns->info.source.projection[k], &src->proj_source[k]
+        );
+      }
     }
 
     // Allocate data and updaters for diagnostic moments.
@@ -55,7 +71,8 @@ gk_neut_species_source_calc(
   struct gkyl_array *f_buffer, double tm
 )
 {
-  if (src->source_id) {
+  // A file-imported source's shape was already read once in gk_neut_species_source_init.
+  if (src->source_id && src->source_id != GKYL_SOURCE_FROMFILE) {
     for (int k = 0; k < gkns->info.source.num_sources; k++) {
       gk_neut_species_projection_calc(app, gkns, &src->proj_source[k], f_buffer, tm);
       gkyl_array_accumulate(src->source, 1., f_buffer);
@@ -271,8 +288,10 @@ gk_neut_species_source_release(const struct gkyl_gyrokinetic_app *app, const str
     if (app->use_gpu) {
       gkyl_array_release(src->source_host);
     }
-    for (int k = 0; k < src->num_sources; k++) {
-      gk_neut_species_projection_release(app, &src->proj_source[k]);
+    if (src->source_id != GKYL_SOURCE_FROMFILE) {
+      for (int k = 0; k < src->num_sources; k++) {
+        gk_neut_species_projection_release(app, &src->proj_source[k]);
+      }
     }
 
     // Release moment data.

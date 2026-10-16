@@ -528,6 +528,7 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
   // Metadata for grid quantities (including metadata optional from user).
   struct gkyl_msgpack_map_elem io_meta_dg[] = {
+    {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "modal"},
     {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0},
     {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
     {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order},
@@ -776,13 +777,6 @@ gyrokinetic_calc_field_enabled(
   struct timespec wtm = gkyl_wall_clock();
   // Compute electrostatic potential from gyrokinetic Poisson's equation.
   gk_field_accumulate_rho_c(app, app->field, fin, bflux);
-
-  // Compute biased wall potential if present and time-dependent.
-  // Note: biased wall potential use eval_on_nodes.
-  // so does copy to GPU every call if app->use_gpu = true.
-  if (app->field->phi_wall_lo_evolve || app->field->phi_wall_up_evolve) {
-    gk_field_calc_phi_wall(app, app->field, tcurr);
-  }
 
   // Solve the field equation.
   gk_field_rhs(app, app->field);
@@ -1117,7 +1111,7 @@ gyrokinetic_calc_field_and_apply_bc(
   // Apply boundary conditions.
   struct timespec wst = gkyl_wall_clock();
   for (int i = 0; i < app->num_species; ++i) {
-    gk_species_apply_bc(app, &app->species[i], distf[i]);
+    gk_species_apply_bc(app, &app->species[i], tcurr, distf[i]);
   }
   for (int i = 0; i < app->num_neut_species; ++i) {
     gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
@@ -1251,7 +1245,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app *app, double t0)
 
   // Apply boundary conditions.
   for (int i = 0; i < app->num_species; ++i) {
-    gk_species_apply_bc(app, &app->species[i], distf[i]);
+    gk_species_apply_bc(app, &app->species[i], t0, distf[i]);
   }
   for (int i = 0; i < app->num_neut_species; ++i) {
     if (!app->neut_species[i].info.is_static) {
@@ -1437,6 +1431,7 @@ gyrokinetic_app_write_ts_shift_mapc2p(struct gkyl_gyrokinetic_app *app)
 
     // Package metadata for shift file.
     struct gkyl_msgpack_map_elem io_meta_shift_dg[] = {
+      {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "modal"},
       {
         .key = "poly_order",
         .elem_type = GKYL_MP_UNSIGNED_INT,
@@ -1486,6 +1481,7 @@ gyrokinetic_app_write_ts_shift(gkyl_gyrokinetic_app *app)
 
     // Write the shift for TS BCs.
     struct gkyl_msgpack_map_elem io_meta_x[] = {
+      {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "modal"},
       {
         .key = "poly_order",
         .elem_type = GKYL_MP_UNSIGNED_INT,
@@ -1799,11 +1795,14 @@ gkyl_gyrokinetic_app_write_geometry(
     sprintf(fileNm, fmt, app->name, "geo_corn_nodes");
 
     // Package metadata for node file.
-    struct gkyl_msgpack_map_elem desc_nodes[] = {{
-      .key = "Description",
-      .elem_type = GKYL_MP_STRING,
-      .cval = "Physical coordinates of grid corner nodes.",
-    }};
+    struct gkyl_msgpack_map_elem desc_nodes[] = {
+      {
+        .key = "Description",
+        .elem_type = GKYL_MP_STRING,
+        .cval = "Physical coordinates of grid corner nodes.",
+      },
+      {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "nodal"}
+    };
     int io_meta_nodes_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
     const struct gkyl_msgpack_map_elem *io_meta_nodes[] = {
       app->io_meta_dg, app->gk_geom->io_meta_basic, desc_nodes
@@ -1844,14 +1843,24 @@ gkyl_gyrokinetic_app_write_geometry(
     char fileNm[sz + 1]; // ensures no buffer overflow
     sprintf(fileNm, fmt, app->name, "geo_int_nodes");
 
-    struct gkyl_msgpack_map_elem desc_nodesint[] = {{
-      .key = "Description",
-      .elem_type = GKYL_MP_STRING,
-      .cval = "Physical coordinates of grid interior nodes.",
-    }};
-    int io_meta_nodesint_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
+    struct gkyl_msgpack_map_elem desc_nodesint[] = {
+      {
+        .key = "Description",
+        .elem_type = GKYL_MP_STRING,
+        .cval = "Physical coordinates of grid interior nodes.",
+      },
+      {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "quad"},
+      {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order},
+      {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->basis.id},
+      {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0},
+      {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0}
+    };
+    int io_meta_nodesint_len[] = {
+      app->io_meta_basic_len, app->gk_geom->io_meta_basic_len,
+      sizeof(desc_nodesint) / sizeof(desc_nodesint[0])
+    };
     const struct gkyl_msgpack_map_elem *io_meta_nodesint[] = {
-      app->io_meta_dg, app->gk_geom->io_meta_basic, desc_nodesint
+      app->io_meta_basic, app->gk_geom->io_meta_basic, desc_nodesint
     };
     struct gkyl_msgpack_data *mt_nodesint = gkyl_msgpack_create_union(
       sizeof(io_meta_nodesint_len) / sizeof(int), io_meta_nodesint_len, io_meta_nodesint
@@ -4469,7 +4478,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
 
     // Apply boundary conditions.
     for (int i = 0; i < app->num_species; ++i) {
-      gk_species_apply_bc(app, &app->species[i], distf[i]);
+      gk_species_apply_bc(app, &app->species[i], rstat.stime, distf[i]);
     }
     for (int i = 0; i < app->num_neut_species; ++i) {
       gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);

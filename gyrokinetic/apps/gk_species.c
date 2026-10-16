@@ -121,9 +121,81 @@ gk_species_rhs_implicit_static(
   return app->cfl / omega_cfl;
 }
 
+static void
+gk_species_phi_wall_advance_disabled(
+  gkyl_gyrokinetic_app *app, const struct gk_species_wall_potential *wall, double tm
+)
+{
+}
+
+static void
+gk_species_phi_wall_advance_enabled(
+  gkyl_gyrokinetic_app *app, const struct gk_species_wall_potential *wall, double tm
+)
+{
+  gkyl_eval_on_nodes_advance(wall->projector, tm, &app->local_ext, wall->phi_host);
+  if (app->use_gpu) {
+    gkyl_array_copy(wall->phi, wall->phi_host);
+  }
+}
+
+void
+gk_species_phi_wall_init(
+  gkyl_gyrokinetic_app *app, const struct gkyl_gyrokinetic_bc *bc,
+  struct gk_species_wall_potential *wall
+)
+{
+  *wall = (struct gk_species_wall_potential){.advance_func = gk_species_phi_wall_advance_disabled};
+  if (bc->type != GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING &&
+      bc->type != GKYL_BC_GK_SPECIES_SHEATH_SURROGATE) {
+    return;
+  }
+
+  wall->phi = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  gkyl_array_clear(wall->phi, 0.0);
+
+  wall->phi_host = wall->phi;
+  if (bc->aux_profile) {
+    if (app->use_gpu) {
+      wall->phi_host = mkarr(false, wall->phi->ncomp, wall->phi->size);
+    }
+
+    wall->projector =
+      gkyl_eval_on_nodes_new(&app->grid, &app->basis, 1, bc->aux_profile, bc->aux_ctx);
+    wall->advance_func = gk_species_phi_wall_advance_enabled;
+    gk_species_phi_wall_advance(app, wall, 0.0);
+  }
+}
+
+void
+gk_species_phi_wall_advance(
+  gkyl_gyrokinetic_app *app, const struct gk_species_wall_potential *wall, double tm
+)
+{
+  wall->advance_func(app, wall, tm);
+}
+
+void
+gk_species_phi_wall_release(
+  const gkyl_gyrokinetic_app *app, const struct gk_species_wall_potential *wall
+)
+{
+  if (!wall->phi) {
+    return;
+  }
+
+  gkyl_array_release(wall->phi);
+  if (wall->projector) {
+    gkyl_eval_on_nodes_release(wall->projector);
+    if (app->use_gpu) {
+      gkyl_array_release(wall->phi_host);
+    }
+  }
+}
+
 void
 gk_species_apply_bc_static(
-  gkyl_gyrokinetic_app *app, struct gk_species *species, struct gkyl_array *f
+  gkyl_gyrokinetic_app *app, struct gk_species *species, double tm, struct gkyl_array *f
 )
 {
   // do nothing
@@ -256,13 +328,17 @@ gk_species_write_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *gks, doub
   app->stat.n_io += 1;
 
   // Write out the sheath BC velocity cutoff (vcutsq).
+  // Every rank has local skin ranges, but only physical boundary ranks may
+  // write these serial files. Decomposition is only along the parallel direction.
   int par_dir = app->cdim - 1; // Sheath BC acts in the parallel direction.
-  if (gks->lower_bc[par_dir].type == GKYL_BC_GK_SPECIES_SHEATH_SURROGATE ||
-      gks->lower_bc[par_dir].type == GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING) {
+  if (gks->local.lower[par_dir] == gks->global.lower[par_dir] &&
+      (gks->lower_bc[par_dir].type == GKYL_BC_GK_SPECIES_SHEATH_SURROGATE ||
+       gks->lower_bc[par_dir].type == GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING)) {
     gk_species_write_vcutsq(app, gks, gks->bc_sheath_lo, "z", "lower", tm, frame);
   }
-  if (gks->upper_bc[par_dir].type == GKYL_BC_GK_SPECIES_SHEATH_SURROGATE ||
-      gks->upper_bc[par_dir].type == GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING) {
+  if (gks->local.upper[par_dir] == gks->global.upper[par_dir] &&
+      (gks->upper_bc[par_dir].type == GKYL_BC_GK_SPECIES_SHEATH_SURROGATE ||
+       gks->upper_bc[par_dir].type == GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING)) {
     gk_species_write_vcutsq(app, gks, gks->bc_sheath_up, "z", "upper", tm, frame);
   }
 }
@@ -283,7 +359,8 @@ gk_species_write_cfl_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks, 
   struct gkyl_msgpack_map_elem mpe_cfl[] = {
     {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
     {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity"},
-    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "CFL frequency."}
+    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "CFL frequency."},
+    {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "nodal"}
   };
   int mpe_cfl_len = sizeof(mpe_cfl) / sizeof(mpe_cfl[0]);
   // Update app basic metada with time/frame.
@@ -745,9 +822,11 @@ gk_species_copy_range(
 }
 
 void
-gk_species_apply_bc(gkyl_gyrokinetic_app *app, struct gk_species *species, struct gkyl_array *f)
+gk_species_apply_bc(
+  gkyl_gyrokinetic_app *app, struct gk_species *species, double tm, struct gkyl_array *f
+)
 {
-  species->bc_func(app, species, f);
+  species->bc_func(app, species, tm, f);
 }
 
 void
@@ -823,6 +902,7 @@ gk_species_init_io(struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
 
   // Metadata for conf-space quantities.
   struct gkyl_msgpack_map_elem io_meta_conf[] = {
+    {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "modal"},
     {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order},
     {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->basis.id},
     {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0},
@@ -842,6 +922,7 @@ gk_species_init_io(struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
 
   // Metadata for phase-space quantities.
   struct gkyl_msgpack_map_elem io_meta_phase[] = {
+    {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "modal"},
     {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = gks->basis.poly_order},
     {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = gks->basis.id},
     {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0},

@@ -372,9 +372,6 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     gk_field_adiabatic_new(app, gkf);
   }
 
-  // Initialize biased walls.
-  gk_field_biased_wall_new(app, gkf);
-
   return gkf;
 }
 
@@ -529,9 +526,6 @@ gk_field_release(const gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 
   // Release energy diagnostics.
   gk_field_energy_release(app, gkf);
-
-  // Release biased walls.
-  gk_field_biased_wall_release(app, gkf);
 
   gkyl_free(gkf);
 }

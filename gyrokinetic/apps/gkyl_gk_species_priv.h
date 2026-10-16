@@ -40,7 +40,7 @@ double gk_species_rhs_implicit_static(
 );
 
 void gk_species_apply_bc_static(
-  gkyl_gyrokinetic_app *app, struct gk_species *species, struct gkyl_array *f
+  gkyl_gyrokinetic_app *app, struct gk_species *species, double tm, struct gkyl_array *f
 );
 
 void gk_species_step_f_dynamic(struct gkyl_array *out, double dt, const struct gkyl_array *inp);
@@ -191,7 +191,7 @@ void gk_species_copy_range(
 );
 
 void gk_species_apply_bc(
-  gkyl_gyrokinetic_app *app, struct gk_species *species, struct gkyl_array *f
+  gkyl_gyrokinetic_app *app, struct gk_species *species, double tm, struct gkyl_array *f
 );
 
 void gk_species_n_iter_corr(gkyl_gyrokinetic_app *app, const struct gk_species *gks, int sidx);

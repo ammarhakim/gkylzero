@@ -297,7 +297,6 @@ gk_species_bgk_init(
       double eps0 = gks->info.collisions.eps0 ? gks->info.collisions.eps0 : GKYL_EPSILON0;
       double hbar = gks->info.collisions.hbar ? gks->info.collisions.hbar :
                                                 GKYL_PLANCKS_CONSTANT_H / 2 / M_PI;
-      double eV = gks->info.collisions.eV ? gks->info.collisions.eV : GKYL_ELEMENTARY_CHARGE;
       double bmag_ref = gks->info.collisions.bmag_ref ? gks->info.collisions.bmag_ref :
                                                         app->bmag_ref;
 
@@ -322,7 +321,7 @@ gk_species_bgk_init(
                                           gks->info.collisions.den_ref, gks->info.mass,
                                           gks->info.mass, gks->info.charge, gks->info.charge,
                                           gks->info.collisions.temp_ref,
-                                          gks->info.collisions.temp_ref, bmag_ref, eps0, hbar, eV
+                                          gks->info.collisions.temp_ref, bmag_ref, eps0, hbar
                                         );
 
       // Set pointers to functions chosen at runtime.
@@ -421,7 +420,6 @@ gk_species_bgk_cross_init(
         double eps0 = gks->info.collisions.eps0 ? gks->info.collisions.eps0 : GKYL_EPSILON0;
         double hbar = gks->info.collisions.hbar ? gks->info.collisions.hbar :
                                                   GKYL_PLANCKS_CONSTANT_H / 2 / M_PI;
-        double eV = gks->info.collisions.eV ? gks->info.collisions.eV : GKYL_ELEMENTARY_CHARGE;
         double bmag_ref = gks->info.collisions.bmag_ref ? gks->info.collisions.bmag_ref :
                                                           app->bmag_ref;
         double mass_self = gks->info.mass, mass_other = bgk->collide_with[i]->info.mass;
@@ -431,7 +429,7 @@ gk_species_bgk_cross_init(
                       gks->info.collisions.den_ref, bgk->collide_with[i]->info.collisions.den_ref,
                       mass_self, mass_other, gks->info.charge, bgk->collide_with[i]->info.charge,
                       gks->info.collisions.temp_ref, bgk->collide_with[i]->info.collisions.temp_ref,
-                      bmag_ref, eps0, hbar, eV
+                      bmag_ref, eps0, hbar
                     );
       }
 
