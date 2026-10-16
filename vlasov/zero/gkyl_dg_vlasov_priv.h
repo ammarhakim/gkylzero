@@ -6,6 +6,7 @@
 #include <gkyl_dg_eqn.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_vlasov_kernels.h>
+#include <gkyl_vlasov_triad_nodal_kernels.h>
 #include <gkyl_vlasov_velocity_map.h>
 #include <gkyl_vlasov_position_map.h>
 #include <gkyl_range.h>
@@ -412,43 +413,43 @@ GKYL_CU_D static const gkyl_dg_vlasov_hamil_vol_kern_list ser_nc_hamil_vel_spars
 GKYL_CU_D static const gkyl_dg_vlasov_hamil_vol_kern_list tensor_nc_hamil_vel_sparse_vol_kernels[] =
   {
     // 1x kernels
-    {NULL, vlasov_nc_hamil_vel_dense_vol_1x1v_tensor_p1, NULL, NULL}, // 0
-    {NULL, vlasov_nc_hamil_vel_sparse_vol_1x2v_tensor_p1, NULL, NULL}, // 1
-    {NULL, vlasov_nc_hamil_vel_sparse_vol_1x3v_tensor_p1, NULL, NULL}, // 2
+    {NULL, vlasov_triad_nodal_vel_dense_vol_1x1v_tensor_p1, NULL, NULL}, // 0
+    {NULL, vlasov_triad_nodal_vel_sparse_vol_1x2v_tensor_p1, NULL, NULL}, // 1
+    {NULL, vlasov_triad_nodal_vel_sparse_vol_1x3v_tensor_p1, NULL, NULL}, // 2
     // 2x kernels
     {NULL, NULL, NULL, NULL}, // 3
-    {NULL, vlasov_nc_hamil_vel_sparse_vol_2x2v_tensor_p1, NULL, NULL}, // 4
-    {NULL, vlasov_nc_hamil_vel_sparse_vol_2x3v_tensor_p1, NULL, NULL}, // 5
+    {NULL, vlasov_triad_nodal_vel_sparse_vol_2x2v_tensor_p1, NULL, NULL}, // 4
+    {NULL, vlasov_triad_nodal_vel_sparse_vol_2x3v_tensor_p1, NULL, NULL}, // 5
     // 3x kernels
-    {NULL, GKYL_HYB_3X3V(vlasov_nc_hamil_vel_sparse_vol_3x3v_tensor_p1), NULL, NULL} // 6
+    {NULL, GKYL_HYB_3X3V(vlasov_triad_nodal_vel_sparse_vol_3x3v_tensor_p1), NULL, NULL} // 6
 };
 
 // Tensor p=1 hybrid triad volumes, dense velocity-space Hamiltonian.
 GKYL_CU_D static const gkyl_dg_vlasov_hamil_vol_kern_list tensor_nc_hamil_vel_dense_vol_kernels[] = {
   // 1x kernels
-  {NULL, vlasov_nc_hamil_vel_dense_vol_1x1v_tensor_p1, NULL, NULL}, // 0
-  {NULL, vlasov_nc_hamil_vel_dense_vol_1x2v_tensor_p1, NULL, NULL}, // 1
-  {NULL, vlasov_nc_hamil_vel_dense_vol_1x3v_tensor_p1, NULL, NULL}, // 2
+  {NULL, vlasov_triad_nodal_vel_dense_vol_1x1v_tensor_p1, NULL, NULL}, // 0
+  {NULL, vlasov_triad_nodal_vel_dense_vol_1x2v_tensor_p1, NULL, NULL}, // 1
+  {NULL, vlasov_triad_nodal_vel_dense_vol_1x3v_tensor_p1, NULL, NULL}, // 2
   // 2x kernels
   {NULL, NULL, NULL, NULL}, // 3
-  {NULL, vlasov_nc_hamil_vel_dense_vol_2x2v_tensor_p1, NULL, NULL}, // 4
-  {NULL, vlasov_nc_hamil_vel_dense_vol_2x3v_tensor_p1, NULL, NULL}, // 5
+  {NULL, vlasov_triad_nodal_vel_dense_vol_2x2v_tensor_p1, NULL, NULL}, // 4
+  {NULL, vlasov_triad_nodal_vel_dense_vol_2x3v_tensor_p1, NULL, NULL}, // 5
   // 3x kernels
-  {NULL, GKYL_HYB_3X3V(vlasov_nc_hamil_vel_dense_vol_3x3v_tensor_p1), NULL, NULL} // 6
+  {NULL, GKYL_HYB_3X3V(vlasov_triad_nodal_vel_dense_vol_3x3v_tensor_p1), NULL, NULL} // 6
 };
 
 // Tensor p=1 hybrid triad volumes, phase-space Hamiltonian (GR triads).
 GKYL_CU_D static const gkyl_dg_vlasov_hamil_vol_kern_list tensor_nc_hamil_phase_vol_kernels[] = {
   // 1x kernels
-  {NULL, vlasov_nc_hamil_phase_vol_1x1v_tensor_p1, NULL, NULL}, // 0
-  {NULL, vlasov_nc_hamil_phase_vol_1x2v_tensor_p1, NULL, NULL}, // 1
-  {NULL, vlasov_nc_hamil_phase_vol_1x3v_tensor_p1, NULL, NULL}, // 2
+  {NULL, vlasov_triad_nodal_phase_vol_1x1v_tensor_p1, NULL, NULL}, // 0
+  {NULL, vlasov_triad_nodal_phase_vol_1x2v_tensor_p1, NULL, NULL}, // 1
+  {NULL, vlasov_triad_nodal_phase_vol_1x3v_tensor_p1, NULL, NULL}, // 2
   // 2x kernels
   {NULL, NULL, NULL, NULL}, // 3
-  {NULL, vlasov_nc_hamil_phase_vol_2x2v_tensor_p1, NULL, NULL}, // 4
-  {NULL, vlasov_nc_hamil_phase_vol_2x3v_tensor_p1, NULL, NULL}, // 5
+  {NULL, vlasov_triad_nodal_phase_vol_2x2v_tensor_p1, NULL, NULL}, // 4
+  {NULL, vlasov_triad_nodal_phase_vol_2x3v_tensor_p1, NULL, NULL}, // 5
   // 3x kernels
-  {NULL, GKYL_HYB_3X3V_PHASE(vlasov_nc_hamil_phase_vol_3x3v_tensor_p1), NULL, NULL} // 6
+  {NULL, GKYL_HYB_3X3V_PHASE(vlasov_triad_nodal_phase_vol_3x3v_tensor_p1), NULL, NULL} // 6
 };
 
 // Non-canonical Poisson Bracket, hamil phase space dependance, volume kernels (Serendipity basis).

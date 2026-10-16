@@ -3,6 +3,7 @@
 #include <assert.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_comm.h>
 #include <gkyl_array.h>
 #include <gkyl_dg_basis_ops.h>
 #include <gkyl_eval_on_nodes.h>
@@ -552,6 +553,269 @@ gkyl_vlasov_triad_geom_from_tangents_grad_interior(
   gkyl_array_release(tangent_nodal);
   gkyl_array_release(triad_nodal);
   gkyl_array_release(triad_grad_nodal);
+}
+
+// Index of interior node `q` (lexicographic, first direction slowest) of cell idx
+// in a nodal range whose first cell is cell_lo.
+static void
+nodal_interior_idx(int cdim, const int *idx, const int *cell_lo, int q, int *nidx)
+{
+  for (int j = 0; j < cdim; ++j) {
+    nidx[j] = (idx[j] - cell_lo[j]) * 2 + ((q >> (cdim - 1 - j)) & 1);
+  }
+}
+
+void
+gkyl_vlasov_triad_geom_nodal_from_tangents(
+  const struct gkyl_rect_grid *cgrid, const struct gkyl_range *local,
+  const struct gkyl_range *local_ext, const struct gkyl_range *global, struct gkyl_comm *comm,
+  bool use_gpu, const struct gkyl_range *nrange_int, const struct gkyl_array *tan_nodal,
+  const struct gkyl_array *tan_grad_nodal, const struct gkyl_array *bhat_nodal,
+  const struct gkyl_range *nrange_surf, struct gkyl_array *const *tan_surf_nodal,
+  const int *dir_map, bool exit_at_checks, struct gkyl_array *pt_vol, struct gkyl_array *pt_surf
+)
+{
+  const int vdim = 3, num_pt = 18;
+  int cdim = cgrid->ndim;
+  int num_nodes = 1 << cdim, num_face_nodes = 1 << (cdim - 1);
+  assert(cdim == 3 || tan_grad_nodal);
+  assert(tan_nodal->ncomp == 9);
+  assert(pt_vol->ncomp == num_nodes * num_pt);
+  assert(pt_surf->ncomp == cdim * 2 * num_face_nodes * vdim);
+
+  int map[3] = {0, 1, 2};
+  if (dir_map) {
+    for (int q = 0; q < 3; ++q) {
+      map[q] = dir_map[q];
+    }
+  }
+
+  metric_t compute_h_ij = choose_metric_kern(vdim);
+  metric_inv_t compute_h_ij_inv = choose_metric_inv_kern(vdim);
+  conf_poisson_tensor_t compute_pt = choose_conf_poisson_tensor_kern(vdim);
+
+  // Pass 1: the triad at the interior nodes of the local cells, stored per cell
+  // ([node][9]) so that the halo can be exchanged like any conf-space array.
+  struct gkyl_array *triad_cell = gkyl_array_new(GKYL_DOUBLE, num_nodes * 9, local_ext->volume);
+  gkyl_array_clear(triad_cell, 0.0);
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, local);
+  while (gkyl_range_iter_next(&iter)) {
+    double *tri_c = gkyl_array_fetch(triad_cell, gkyl_range_idx(local_ext, iter.idx));
+    for (int q = 0; q < num_nodes; ++q) {
+      int nidx[GKYL_MAX_CDIM];
+      nodal_interior_idx(cdim, iter.idx, local->lower, q, nidx);
+      long nl = gkyl_range_idx(nrange_int, nidx);
+      double gs_ratio = triad_gs(gkyl_array_cfetch(tan_nodal, nl), &tri_c[9 * q]);
+      const double *bc = bhat_nodal ? gkyl_array_cfetch(bhat_nodal, nl) : NULL;
+      triad_gs_check(gs_ratio, &tri_c[9 * q], bc, nidx, cdim, exit_at_checks);
+    }
+  }
+  if (use_gpu) {
+    struct gkyl_array *triad_cell_dev =
+      gkyl_array_cu_dev_new(GKYL_DOUBLE, num_nodes * 9, local_ext->volume);
+    gkyl_array_copy(triad_cell_dev, triad_cell);
+    gkyl_comm_array_sync(comm, local, local_ext, triad_cell_dev);
+    gkyl_array_copy(triad_cell, triad_cell_dev);
+    gkyl_array_release(triad_cell_dev);
+  } else {
+    gkyl_comm_array_sync(comm, local, local_ext, triad_cell);
+  }
+
+  // Pass 2: triad gradients along the grid directions by finite differences over
+  // the interior nodes of the local cells plus one exchanged cell across each
+  // internal decomposition boundary. Ends at the global boundary stay one sided,
+  // exactly as in an undecomposed run.
+  int cell_lo[GKYL_MAX_CDIM], cell_up[GKYL_MAX_CDIM], nshape[GKYL_MAX_CDIM];
+  for (int j = 0; j < cdim; ++j) {
+    cell_lo[j] = local->lower[j] - (local->lower[j] > global->lower[j] ? 1 : 0);
+    cell_up[j] = local->upper[j] + (local->upper[j] < global->upper[j] ? 1 : 0);
+    nshape[j] = 2 * (cell_up[j] - cell_lo[j] + 1);
+  }
+  struct gkyl_range halo_cells, nrange_halo;
+  gkyl_sub_range_init(&halo_cells, local_ext, cell_lo, cell_up);
+  gkyl_range_init_from_shape(&nrange_halo, cdim, nshape);
+  struct gkyl_array *triad_nodal = gkyl_array_new(GKYL_DOUBLE, 9, nrange_halo.volume);
+  struct gkyl_array *triad_grad_nodal = gkyl_array_new(GKYL_DOUBLE, 9 * cdim, nrange_halo.volume);
+  gkyl_range_iter_init(&iter, &halo_cells);
+  while (gkyl_range_iter_next(&iter)) {
+    const double *tri_c = gkyl_array_cfetch(triad_cell, gkyl_range_idx(local_ext, iter.idx));
+    for (int q = 0; q < num_nodes; ++q) {
+      int nidx[GKYL_MAX_CDIM];
+      nodal_interior_idx(cdim, iter.idx, cell_lo, q, nidx);
+      memcpy(
+        gkyl_array_fetch(triad_nodal, gkyl_range_idx(&nrange_halo, nidx)), &tri_c[9 * q],
+        9 * sizeof(double)
+      );
+    }
+  }
+  gkyl_nodal_ops_grad_interior(cgrid, &nrange_halo, 9, triad_nodal, triad_grad_nodal);
+
+  // Pass 3: the Poisson tensor at the interior nodes. Tangent rows and gradient
+  // directions are in Poisson-tensor order (grid directions first).
+  gkyl_range_iter_init(&iter, local);
+  while (gkyl_range_iter_next(&iter)) {
+    long lin = gkyl_range_idx(local_ext, iter.idx);
+    const double *tri_c = gkyl_array_cfetch(triad_cell, lin);
+    double *pt_c = gkyl_array_fetch(pt_vol, lin);
+    for (int q = 0; q < num_nodes; ++q) {
+      int nidx[GKYL_MAX_CDIM], hidx[GKYL_MAX_CDIM];
+      nodal_interior_idx(cdim, iter.idx, local->lower, q, nidx);
+      nodal_interior_idx(cdim, iter.idx, cell_lo, q, hidx);
+      long nl = gkyl_range_idx(nrange_int, nidx);
+      const double *tan = gkyl_array_cfetch(tan_nodal, nl);
+      const double *tri = &tri_c[9 * q];
+      const double *grad_grid =
+        gkyl_array_cfetch(triad_grad_nodal, gkyl_range_idx(&nrange_halo, hidx));
+
+      double tan_p[9], grad[27], h_ij[6], h_ij_inv[6];
+      for (int r = 0; r < 3; ++r) {
+        for (int c = 0; c < 3; ++c) {
+          tan_p[3 * r + c] = tan[3 * map[r] + c];
+        }
+        if (r < cdim) {
+          memcpy(&grad[9 * r], &grad_grid[9 * r], 9 * sizeof(double));
+        } else {
+          triad_gs_grad(
+            tan, tri, &((const double *)gkyl_array_cfetch(tan_grad_nodal, nl))[9 * map[r]],
+            &grad[9 * r]
+          );
+        }
+      }
+      compute_h_ij(tan_p, h_ij);
+      compute_h_ij_inv(h_ij, h_ij_inv);
+      compute_pt(h_ij_inv, tri, tan_p, grad, &pt_c[q * num_pt]);
+    }
+  }
+
+  // Faces: row dir of the conf-velocity block from the geometry at the face nodes
+  // (no gradients enter it).
+  for (int dir = 0; dir < cdim; ++dir) {
+    gkyl_range_iter_init(&iter, local);
+    while (gkyl_range_iter_next(&iter)) {
+      double *ps = gkyl_array_fetch(pt_surf, gkyl_range_idx(local_ext, iter.idx));
+      for (int e = 0; e < 2; ++e) {
+        for (int s = 0; s < num_face_nodes; ++s) {
+          int nidx[GKYL_MAX_CDIM];
+          for (int j = 0, t = 0; j < cdim; ++j) {
+            if (j == dir) {
+              nidx[j] = iter.idx[j] - local->lower[j] + e;
+            } else {
+              nidx[j] = (iter.idx[j] - local->lower[j]) * 2 + ((s >> (cdim - 2 - t)) & 1);
+              t += 1;
+            }
+          }
+          const double *tan =
+            gkyl_array_cfetch(tan_surf_nodal[dir], gkyl_range_idx(&nrange_surf[dir], nidx));
+          double tri[9], tan_p[9], grad[27] = {0.0}, h_ij[6], h_ij_inv[6], pt[18];
+          double gs_ratio = triad_gs(tan, tri);
+          triad_gs_check(gs_ratio, tri, NULL, nidx, cdim, exit_at_checks);
+          for (int r = 0; r < 3; ++r) {
+            for (int c = 0; c < 3; ++c) {
+              tan_p[3 * r + c] = tan[3 * map[r] + c];
+            }
+          }
+          compute_h_ij(tan_p, h_ij);
+          compute_h_ij_inv(h_ij, h_ij_inv);
+          compute_pt(h_ij_inv, tri, tan_p, grad, pt);
+          for (int b = 0; b < vdim; ++b) {
+            ps[((dir * 2 + e) * num_face_nodes + s) * vdim + b] = pt[vdim * dir + b];
+          }
+        }
+      }
+    }
+  }
+
+  gkyl_array_release(triad_cell);
+  gkyl_array_release(triad_nodal);
+  gkyl_array_release(triad_grad_nodal);
+}
+
+// Configuration-space Poisson tensor at the logical point xlog of the cell with
+// center xc, from the geometry evaluation functions.
+static void
+triad_pt_at_point(
+  const struct gkyl_rect_grid *cgrid, const double *xc, const double *xlog, int vdim,
+  const struct gkyl_vlasov_triad_geom_inp *inp, double *pt
+)
+{
+  double xmu[GKYL_MAX_DIM];
+  log_to_comp(cgrid->ndim, xlog, cgrid->dx, xc, xmu);
+  if (inp->c2p_func) {
+    inp->c2p_func(xmu, xmu, inp->c2p_func_ctx);
+  }
+  if (inp->use_vierbein || inp->use_preset_geom) {
+    double vb[9], vb_inv[9], vb_grad[27];
+    inp->eval_vierbein(0.0, xmu, vb, inp->eval_vierbein_ctx);
+    inp->eval_vierbein_gradient(0.0, xmu, vb_grad, inp->eval_vierbein_gradient_ctx);
+    choose_vierbein_inv_kern(vdim)(vb, vb_inv);
+    choose_conf_poisson_tensor_vierbein_kern(vdim)(vb_inv, vb_grad, pt);
+  } else {
+    double tan[9], tri[9], tri_grad[27], h_ij[6], h_ij_inv[6];
+    inp->eval_cov_tangent_basis(0.0, xmu, tan, inp->eval_cov_tangent_basis_ctx);
+    inp->eval_triad_basis(0.0, xmu, tri, inp->eval_triad_basis_ctx);
+    inp->eval_triad_basis_gradient(0.0, xmu, tri_grad, inp->eval_triad_basis_gradient_ctx);
+    choose_metric_kern(vdim)(tan, h_ij);
+    choose_metric_inv_kern(vdim)(h_ij, h_ij_inv);
+    choose_conf_poisson_tensor_kern(vdim)(h_ij_inv, tri, tan, tri_grad, pt);
+  }
+}
+
+void
+gkyl_vlasov_triad_geom_nodal_new(
+  const struct gkyl_rect_grid *cgrid, const struct gkyl_range *crange, int vdim,
+  struct gkyl_vlasov_triad_geom_inp inp_triad_geom, struct gkyl_array *pt_vol,
+  struct gkyl_array *pt_surf
+)
+{
+  int num_pt_indices[3] = {1, 6, 18};
+  int cdim = cgrid->ndim, num_pt = num_pt_indices[vdim - 1];
+  int num_nodes = 1 << cdim, num_face_nodes = 1 << (cdim - 1);
+  assert(pt_vol->ncomp == num_nodes * num_pt);
+  assert(pt_surf->ncomp == cdim * 2 * num_face_nodes * vdim);
+  if (inp_triad_geom.use_preset_geom) {
+    inp_triad_geom.eval_vierbein =
+      choose_vierbein_kern(inp_triad_geom.triad_preset_geom_type, vdim);
+    inp_triad_geom.eval_vierbein_gradient =
+      choose_vierbein_gradient_kern(inp_triad_geom.triad_preset_geom_type, vdim);
+    assert(inp_triad_geom.eval_vierbein);
+    assert(inp_triad_geom.eval_vierbein_gradient);
+  }
+
+  const double glpt = 1.0 / sqrt(3.0);
+  double xc[GKYL_MAX_DIM], xlog[GKYL_MAX_DIM], pt[18];
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, crange);
+  while (gkyl_range_iter_next(&iter)) {
+    gkyl_rect_grid_cell_center(cgrid, iter.idx, xc);
+    long lin = gkyl_range_idx(crange, iter.idx);
+    double *pv = gkyl_array_fetch(pt_vol, lin);
+    double *ps = gkyl_array_fetch(pt_surf, lin);
+    for (int q = 0; q < num_nodes; ++q) {
+      for (int j = 0; j < cdim; ++j) {
+        xlog[j] = ((q >> (cdim - 1 - j)) & 1) ? glpt : -glpt;
+      }
+      triad_pt_at_point(cgrid, xc, xlog, vdim, &inp_triad_geom, &pv[q * num_pt]);
+    }
+    for (int dir = 0; dir < cdim; ++dir) {
+      for (int e = 0; e < 2; ++e) {
+        for (int s = 0; s < num_face_nodes; ++s) {
+          for (int j = 0, t = 0; j < cdim; ++j) {
+            if (j == dir) {
+              xlog[j] = e == 0 ? -1.0 : 1.0;
+            } else {
+              xlog[j] = ((s >> (cdim - 2 - t)) & 1) ? glpt : -glpt;
+              t += 1;
+            }
+          }
+          triad_pt_at_point(cgrid, xc, xlog, vdim, &inp_triad_geom, pt);
+          for (int b = 0; b < vdim; ++b) {
+            ps[((dir * 2 + e) * num_face_nodes + s) * vdim + b] = pt[vdim * dir + b];
+          }
+        }
+      }
+    }
+  }
 }
 
 void

@@ -234,9 +234,7 @@ gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app *app, const struct gk
     gkyl_array_release(ns->hamil_host);
   }
   gkyl_array_release(ns->conf_poisson_tensor);
-  if (app->use_gpu) {
-    gkyl_array_release(ns->conf_poisson_tensor_host);
-  }
+  gkyl_array_release(ns->conf_poisson_tensor_surf);
   gkyl_array_release(ns->f_no_J);
 
   gk_neut_species_collisionless_release(app, &ns->collisionless);
@@ -921,56 +919,49 @@ gk_neut_species_kinetic_init(
     gkyl_array_copy(s->hamil_host, s->hamil);
   }
 
-  // Conf-space Poisson tensor: assembled from the GK geometry's nodal Cartesian
-  // tangents via the b-aligned triad construction. The construction runs on
-  // the host; on GPUs the geometry's nodal arrays live on the device, so take
-  // host copies of the tangents and bhat first, and copy the result back.
-  int num_pt_indices[3] = {1, 6, 18};
-  s->conf_poisson_tensor =
-    mkarr(app->use_gpu, app->basis.num_basis * num_pt_indices[vdim - 1], app->local_ext.volume);
-  s->conf_poisson_tensor_host = s->conf_poisson_tensor;
-  struct gkyl_array *dxdz_nodal_host = app->gk_geom->geo_int.dxdz_nodal;
-  struct gkyl_array *dxdz_grad_nodal_host = app->gk_geom->geo_int.dxdz_grad_nodal;
-  struct gkyl_array *bcart_nodal_host = app->gk_geom->geo_int.bcart_nodal;
-  if (app->use_gpu) {
-    s->conf_poisson_tensor_host =
-      mkarr(false, app->basis.num_basis * num_pt_indices[vdim - 1], app->local_ext.volume);
-    dxdz_nodal_host =
-      mkarr(false, app->gk_geom->geo_int.dxdz_nodal->ncomp, app->gk_geom->geo_int.dxdz_nodal->size);
-    dxdz_grad_nodal_host = mkarr(
-      false, app->gk_geom->geo_int.dxdz_grad_nodal->ncomp,
-      app->gk_geom->geo_int.dxdz_grad_nodal->size
-    );
-    bcart_nodal_host = mkarr(
-      false, app->gk_geom->geo_int.bcart_nodal->ncomp, app->gk_geom->geo_int.bcart_nodal->size
-    );
-    gkyl_array_copy(dxdz_nodal_host, app->gk_geom->geo_int.dxdz_nodal);
-    gkyl_array_copy(dxdz_grad_nodal_host, app->gk_geom->geo_int.dxdz_grad_nodal);
-    gkyl_array_copy(bcart_nodal_host, app->gk_geom->geo_int.bcart_nodal);
+  // Poisson tensor of the b-aligned triad, stored at the configuration-space
+  // Gauss-Legendre nodes (interior nodes and face nodes), built on the host from
+  // the GK geometry's nodal Cartesian tangents. On GPUs the geometry's nodal
+  // arrays live on the device, so take host copies first and copy the result back.
+  int num_nodes = 1 << cdim, num_face_nodes = 1 << (cdim - 1);
+  struct gkyl_array *pt_vol_host = mkarr(false, num_nodes * 18, app->local_ext.volume);
+  struct gkyl_array *pt_surf_host =
+    mkarr(false, cdim * 2 * num_face_nodes * 3, app->local_ext.volume);
+  struct gk_geometry *geom = app->gk_geom;
+  struct gkyl_array *dxdz_nodal_host = mkarr(false, 9, geom->nrange_int.volume);
+  struct gkyl_array *dxdz_grad_nodal_host = cdim < 3 ? mkarr(false, 27, geom->nrange_int.volume) :
+                                                       NULL;
+  struct gkyl_array *bcart_nodal_host = mkarr(false, 3, geom->nrange_int.volume);
+  struct gkyl_array *dxdz_surf_nodal_host[3] = {NULL};
+  gkyl_array_copy(dxdz_nodal_host, geom->geo_int.dxdz_nodal);
+  if (cdim < 3) {
+    gkyl_array_copy(dxdz_grad_nodal_host, geom->geo_int.dxdz_grad_nodal);
   }
-  if (cdim == 3) {
-    // Triad gradients by finite differences across the conf grid.
-    gkyl_vlasov_triad_geom_from_tangents_interior(
-      &app->grid, &app->local, app->basis, &s->grid, &s->local, s->basis, &app->gk_geom->nrange_int,
-      dxdz_nodal_host, bcart_nodal_host, true, s->conf_poisson_tensor_host
-    );
-  } else {
-    // Deflated geometry: the grid lacks the coordinates the geometry is symmetric
-    // in, so the triad gradients come pointwise from the geometry's tangent
-    // gradients (taken on its augmented 3D grid). Poisson-tensor coordinates are
-    // the grid directions followed by the removed ones: (x, z, y) in 2x, (z, x, y) in 1x.
-    int dir_map_2x[3] = {0, 2, 1}, dir_map_1x[3] = {2, 0, 1};
-    gkyl_vlasov_triad_geom_from_tangents_grad_interior(
-      &app->grid, &app->local, app->basis, &s->grid, &s->local, s->basis, &app->gk_geom->nrange_int,
-      dxdz_nodal_host, dxdz_grad_nodal_host, bcart_nodal_host, cdim == 2 ? dir_map_2x : dir_map_1x,
-      true, s->conf_poisson_tensor_host
-    );
+  gkyl_array_copy(bcart_nodal_host, geom->geo_int.bcart_nodal);
+  for (int dir = 0; dir < cdim; ++dir) {
+    dxdz_surf_nodal_host[dir] = mkarr(false, 9, geom->nrange_surf[dir].volume);
+    gkyl_array_copy(dxdz_surf_nodal_host[dir], geom->geo_surf[dir].dxdz_nodal);
   }
-  if (app->use_gpu) {
-    gkyl_array_copy(s->conf_poisson_tensor, s->conf_poisson_tensor_host);
-    gkyl_array_release(dxdz_nodal_host);
-    gkyl_array_release(dxdz_grad_nodal_host);
-    gkyl_array_release(bcart_nodal_host);
+  // Deflated geometry: Poisson-tensor coordinates are the grid directions followed
+  // by the removed ones, (x, z, y) in 2x and (z, x, y) in 1x.
+  int dir_map_2x[3] = {0, 2, 1}, dir_map_1x[3] = {2, 0, 1};
+  const int *dir_map = cdim == 3 ? NULL : (cdim == 2 ? dir_map_2x : dir_map_1x);
+  gkyl_vlasov_triad_geom_nodal_from_tangents(
+    &app->grid, &app->local, &app->local_ext, &app->global, app->comm, app->use_gpu,
+    &geom->nrange_int, dxdz_nodal_host, dxdz_grad_nodal_host, bcart_nodal_host, geom->nrange_surf,
+    dxdz_surf_nodal_host, dir_map, true, pt_vol_host, pt_surf_host
+  );
+  s->conf_poisson_tensor = mkarr(app->use_gpu, pt_vol_host->ncomp, app->local_ext.volume);
+  s->conf_poisson_tensor_surf = mkarr(app->use_gpu, pt_surf_host->ncomp, app->local_ext.volume);
+  gkyl_array_copy(s->conf_poisson_tensor, pt_vol_host);
+  gkyl_array_copy(s->conf_poisson_tensor_surf, pt_surf_host);
+  gkyl_array_release(pt_vol_host);
+  gkyl_array_release(pt_surf_host);
+  gkyl_array_release(dxdz_nodal_host);
+  gkyl_array_release(dxdz_grad_nodal_host);
+  gkyl_array_release(bcart_nodal_host);
+  for (int dir = 0; dir < cdim; ++dir) {
+    gkyl_array_release(dxdz_surf_nodal_host[dir]);
   }
 
   // Distribution function with the velocity-space Jacobian divided out,

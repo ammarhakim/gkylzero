@@ -84,8 +84,9 @@ gk_neut_species_recycle_write_flux_enabled(
   // surface fluxes, so compute them for this distribution first (cflrate is
   // scratch here; it is cleared at the start of every RHS evaluation).
   gkyl_dg_vlasov_conf_flux_surf_advance(
-    s->collisionless.calc_conf_flux, &app->local, &s->local, &s->local_ext, s->conf_poisson_tensor,
-    s->hamil, recyc->f_diag, s->cflrate, s->collisionless.conf_flux_surf
+    s->collisionless.calc_conf_flux, &app->local, &s->local, &s->local_ext,
+    s->conf_poisson_tensor_surf, s->hamil, recyc->f_diag, s->cflrate,
+    s->collisionless.conf_flux_surf
   );
   gkyl_boundary_flux_advance(recyc->f0_flux_slvr, recyc->f_diag, recyc->f_diag);
   gkyl_array_copy_range_to_range(
@@ -270,8 +271,8 @@ gk_neut_species_recycle_init(
   // surface fluxes, so compute them for the unit Maxwellian first (cflrate is
   // scratch here; it is cleared at the start of every RHS evaluation).
   gkyl_dg_vlasov_conf_flux_surf_advance(
-    s->collisionless.calc_conf_flux, &app->local, &s->local, &s->local_ext, s->conf_poisson_tensor,
-    s->hamil, s->f1, s->cflrate, s->collisionless.conf_flux_surf
+    s->collisionless.calc_conf_flux, &app->local, &s->local, &s->local_ext,
+    s->conf_poisson_tensor_surf, s->hamil, s->f1, s->cflrate, s->collisionless.conf_flux_surf
   );
   gkyl_boundary_flux_advance(recyc->f0_flux_slvr, s->f1, s->f1);
   recyc->unit_phase_flux_neut = mkarr(app->use_gpu, s->basis.num_basis, recyc->emit_buff_r.volume);

@@ -25,7 +25,7 @@ gk_neut_species_collisionless_rhs_enabled(
   // Compute the surface expansion of the phase space flux in configuration space.
   gkyl_dg_vlasov_conf_flux_surf_advance(
     gkcls->calc_conf_flux, &app->local, &species->local, &species->local_ext,
-    species->conf_poisson_tensor, species->hamil, fin, species->cflrate, gkcls->conf_flux_surf
+    species->conf_poisson_tensor_surf, species->hamil, fin, species->cflrate, gkcls->conf_flux_surf
   );
 
   // Compute the surface expansion of the phase space flux in velocity space.

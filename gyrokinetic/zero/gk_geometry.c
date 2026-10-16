@@ -880,6 +880,16 @@ gkyl_gk_geometry_deflate(const struct gk_geometry *up_3d, struct gkyl_gk_geometr
         deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count],
         up_3d->geo_surf[dir].bimpactangle_nodal, up->geo_surf[count].bimpactangle_nodal, 1
       );
+      // Cartesian tangents and field direction at the face nodes (3D order), for
+      // consumers that build frames on the faces (e.g. the kinetic-neutral triads).
+      gkyl_deflate_geo_surf_advance_nodal(
+        deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count],
+        up_3d->geo_surf[dir].dxdz_nodal, up->geo_surf[count].dxdz_nodal, 9
+      );
+      gkyl_deflate_geo_surf_advance_nodal(
+        deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count],
+        up_3d->geo_surf[dir].bcart_nodal, up->geo_surf[count].bcart_nodal, 3
+      );
       count += 1;
       gkyl_deflate_geo_surf_release(deflator_surf);
     }

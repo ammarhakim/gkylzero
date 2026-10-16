@@ -436,12 +436,11 @@ gkyl_dg_vlasov_conf_flux_surf_set_cu_dev_ptrs(
         up->lax_cfl[2] = tensor_ho_lax_flux_nodal_z_cfl_kernels[kernel_index].kernels[poly_order];
       }
 
-      if (model_id == GKYL_MODEL_TRIAD_GR || model_id == GKYL_MODEL_CANONICAL_PB ||
-          model_id == GKYL_MODEL_CANONICAL_PB_GR) {
-        // Full phase-space Hamiltonian: alpha_dir = P . grad_v H evaluated at
-        // the surface nodes. Canonical-PB models supply the identity Poisson
-        // tensor, reducing this to the canonical streaming speed dH/dv_dir.
-        // Only the p=1 tensor hybrid has a phase-space Hamiltonian representation.
+      if (model_id == GKYL_MODEL_CANONICAL_PB || model_id == GKYL_MODEL_CANONICAL_PB_GR) {
+        // Canonical-PB models: full phase-space Hamiltonian with the identity
+        // Poisson tensor (modal storage), alpha_dir = dH/dv_dir at the surface
+        // nodes. Only the p=1 tensor hybrid has a phase-space Hamiltonian
+        // representation.
         if (use_lo) {
           up->hamil_alpha_shared[0] =
             tensor_hamil_phase_alpha_quad_x_kernels[kernel_index].kernels[poly_order];
@@ -456,6 +455,24 @@ gkyl_dg_vlasov_conf_flux_surf_set_cu_dev_ptrs(
             tensor_hamil_phase_ho_alpha_quad_y_kernels[kernel_index].kernels[poly_order];
           up->hamil_alpha_shared[2] =
             tensor_hamil_phase_ho_alpha_quad_z_kernels[kernel_index].kernels[poly_order];
+        }
+      } else if (model_id == GKYL_MODEL_TRIAD_GR) {
+        // GR triads: phase-space Hamiltonian with the Poisson tensor stored at the
+        // face Gauss-Legendre nodes.
+        if (use_lo) {
+          up->hamil_alpha_shared[0] =
+            tensor_triad_hamil_phase_alpha_quad_x_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_shared[1] =
+            tensor_triad_hamil_phase_alpha_quad_y_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_shared[2] =
+            tensor_triad_hamil_phase_alpha_quad_z_kernels[kernel_index].kernels[poly_order];
+        } else {
+          up->hamil_alpha_shared[0] =
+            tensor_triad_hamil_phase_ho_alpha_quad_x_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_shared[1] =
+            tensor_triad_hamil_phase_ho_alpha_quad_y_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_shared[2] =
+            tensor_triad_hamil_phase_ho_alpha_quad_z_kernels[kernel_index].kernels[poly_order];
         }
       } else if (model_id == GKYL_MODEL_TRIAD) {
         // Triad bracket on the tensor p=1 hybrid (sparse or dense velocity-space

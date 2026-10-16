@@ -12,6 +12,54 @@
 #include <assert.h>
 #include <time.h>
 
+// Configuration-space Poisson tensor of the triads from the geometry inputs.
+static void
+vm_species_triad_poisson_tensor(
+  struct gkyl_vlasov_app *app, struct vm_species *vms, struct gkyl_vlasov_triad_geom_inp inp_triad_geom
+)
+{
+  int cdim = app->cdim, vdim = app->vdim;
+  int num_pt_indices[3] = {1, 6, 18};
+  if (vms->basis.b_type == GKYL_BASIS_MODAL_HYBRID) {
+    // Tensor hybrid p=1: the Poisson tensor is stored at the configuration-space
+    // Gauss-Legendre nodes (interior nodes, and face nodes for the configuration-
+    // space surface flux), evaluated pointwise from the geometry.
+    int num_nodes = 1 << cdim, num_face_nodes = 1 << (cdim - 1);
+    gkyl_array_release(vms->conf_poisson_tensor);
+    if (app->use_gpu) {
+      gkyl_array_release(vms->conf_poisson_tensor_host);
+    }
+    vms->conf_poisson_tensor_host =
+      mkarr(false, num_nodes * num_pt_indices[vdim - 1], app->local_ext.volume);
+    struct gkyl_array *pt_surf_host =
+      mkarr(false, cdim * 2 * num_face_nodes * vdim, app->local_ext.volume);
+    gkyl_vlasov_triad_geom_nodal_new(
+      &app->grid, &app->local, vdim, inp_triad_geom, vms->conf_poisson_tensor_host, pt_surf_host
+    );
+    vms->conf_poisson_tensor = vms->conf_poisson_tensor_host;
+    vms->conf_poisson_tensor_surf = pt_surf_host;
+    if (app->use_gpu) {
+      vms->conf_poisson_tensor =
+        mkarr(true, vms->conf_poisson_tensor_host->ncomp, app->local_ext.volume);
+      gkyl_array_copy(vms->conf_poisson_tensor, vms->conf_poisson_tensor_host);
+      vms->conf_poisson_tensor_surf = mkarr(true, pt_surf_host->ncomp, app->local_ext.volume);
+      gkyl_array_copy(vms->conf_poisson_tensor_surf, pt_surf_host);
+      gkyl_array_release(pt_surf_host);
+    }
+  } else {
+    // The geometry comes from the tangents and triads
+    gkyl_vlasov_triad_geom_new(
+      &app->grid, &app->local, app->basis, &vms->grid, &vms->local, vms->basis, inp_triad_geom,
+      vms->conf_poisson_tensor_host
+    );
+
+    // Copy Pi_conf onto the device.
+    if (app->use_gpu) {
+      gkyl_array_copy(vms->conf_poisson_tensor, vms->conf_poisson_tensor_host);
+    }
+  }
+}
+
 static void
 vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct vm_species *vms)
 {
@@ -26,6 +74,7 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     vms->conf_poisson_tensor_host =
       mkarr(false, app->basis.num_basis * num_pt_indices[vdim - 1], app->local_ext.volume);
   }
+  vms->conf_poisson_tensor_surf = NULL;
 
   // Coordinate-map context for sampling geometry/Hamiltonians at physical
   // coordinates on non-uniform meshes. All uses complete within this function,
@@ -120,16 +169,7 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     inp_triad_geom.c2p_func = vm_pos_c2p;
     inp_triad_geom.c2p_func_ctx = vms->pos_map;
 
-    // The geometry comes from the tangents and triads
-    gkyl_vlasov_triad_geom_new(
-      &app->grid, &app->local, app->basis, &vms->grid, &vms->local, vms->basis, inp_triad_geom,
-      vms->conf_poisson_tensor_host
-    );
-
-    // Copy Pi_conf onto the device.
-    if (app->use_gpu) {
-      gkyl_array_copy(vms->conf_poisson_tensor, vms->conf_poisson_tensor_host);
-    }
+    vm_species_triad_poisson_tensor(app, vms, inp_triad_geom);
 
   } else if (vms->model_id == GKYL_MODEL_TRIAD_GR) {
     int cdim = app->cdim;
@@ -206,16 +246,7 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     inp_triad_geom.c2p_func = vm_pos_c2p;
     inp_triad_geom.c2p_func_ctx = vms->pos_map;
 
-    // The geometry comes from the tangents and triads
-    gkyl_vlasov_triad_geom_new(
-      &app->grid, &app->local, app->basis, &vms->grid, &vms->local, vms->basis, inp_triad_geom,
-      vms->conf_poisson_tensor_host
-    );
-
-    // Copy Pi_conf onto the device.
-    if (app->use_gpu) {
-      gkyl_array_copy(vms->conf_poisson_tensor, vms->conf_poisson_tensor_host);
-    }
+    vm_species_triad_poisson_tensor(app, vms, inp_triad_geom);
 
   } else {
     // Canonical-PB models carry a general phase-space Hamiltonian.
@@ -396,6 +427,12 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
       }
       gkyl_eval_on_nodes_release(effective_potential_proj);
     }
+  }
+
+  // Without nodal face storage the configuration-space surface flux reads the same
+  // Poisson tensor as the volume and velocity-space updates.
+  if (!vms->conf_poisson_tensor_surf) {
+    vms->conf_poisson_tensor_surf = gkyl_array_acquire(vms->conf_poisson_tensor);
   }
 }
 
@@ -1282,7 +1319,8 @@ vm_species_check_hyb_build(struct gkyl_vlasov_app *app, struct vm_species *vms)
 {
   int cdim = app->cdim, vdim = vms->basis.ndim - cdim;
 #ifndef GKYL_BUILD_VLASOV_TEN_2X3V_P2
-  if (vms->basis.b_type == GKYL_BASIS_MODAL_TENSOR && vms->basis.poly_order == 2 && cdim == 2 && vdim == 3) {
+  if (vms->basis.b_type == GKYL_BASIS_MODAL_TENSOR && vms->basis.poly_order == 2 && cdim == 2 &&
+      vdim == 3) {
     gkyl_exit(
       "vm_species: the 2x3v tensor p=2 kernels were not built. Reconfigure with --build-vlasov-ten-2x3v-p2=yes."
     );
@@ -1756,6 +1794,7 @@ vm_species_release(const gkyl_vlasov_app *app, const struct vm_species *vms)
   gkyl_array_release(vms->mom_hamil);
 
   gkyl_array_release(vms->conf_poisson_tensor);
+  gkyl_array_release(vms->conf_poisson_tensor_surf);
   if (app->use_gpu) {
     gkyl_array_release(vms->conf_poisson_tensor_host);
   }

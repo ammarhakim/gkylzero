@@ -72,7 +72,7 @@ vm_species_collisionless_rhs_enabled(
   // Compute the surface expansion of the phase space flux in configuration space.
   if (vms->model_id == GKYL_MODEL_TRIAD || vms->hamil_id == GKYL_HAMIL_PHASE) {
     gkyl_dg_vlasov_conf_flux_surf_advance(
-      cls->calc_conf_flux, &app->local, &vms->local, &vms->local_ext, vms->conf_poisson_tensor,
+      cls->calc_conf_flux, &app->local, &vms->local, &vms->local_ext, vms->conf_poisson_tensor_surf,
       vms->hamil, fin, vms->cflrate, cls->conf_flux_surf
     );
   }

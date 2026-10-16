@@ -1,5 +1,7 @@
 #pragma once
 
+#include <gkyl_comm.h>
+
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
 #include <gkyl_evalf_def.h>
@@ -209,6 +211,72 @@ void gkyl_vlasov_triad_geom_from_tangents_grad_interior(
   const struct gkyl_array *cov_tangent_basis_nodal,
   const struct gkyl_array *cov_tangent_basis_grad_nodal, const struct gkyl_array *bhat_check_nodal,
   const int *dir_map, bool exit_at_checks, struct gkyl_array *conf_poisson_tensor
+);
+
+/**
+ * Poisson tensor of a triad given by evaluation functions (vierbein, preset vierbein,
+ * or tangent basis + triad + triad gradient, as in gkyl_vlasov_triad_geom_new), stored
+ * at the configuration-space Gauss-Legendre nodes for the nodal (tensor hybrid p=1,
+ * sparse velocity Hamiltonian) triad kernels, vdim = 2 or 3. pt_vol and pt_surf have
+ * the layout of gkyl_vlasov_triad_geom_nodal_from_tangents; every value is evaluated
+ * pointwise (at the physical coordinates of the node if a c2p map is given), so the
+ * face values are single valued.
+ *
+ * @param cgrid Configuration-space grid
+ * @param crange Configuration-space range to fill
+ * @param vdim Number of velocity dimensions
+ * @param inp_triad_geom Geometry evaluation functions
+ * @param pt_vol Volume storage (output, host)
+ * @param pt_surf Face storage (output, host)
+ */
+void gkyl_vlasov_triad_geom_nodal_new(
+  const struct gkyl_rect_grid *cgrid, const struct gkyl_range *crange, int vdim,
+  struct gkyl_vlasov_triad_geom_inp inp_triad_geom, struct gkyl_array *pt_vol,
+  struct gkyl_array *pt_surf
+);
+
+/**
+ * Poisson tensor of the b-aligned triad (e1, e2, bhat) of a field-aligned geometry,
+ * vdim = 3, stored at the configuration-space Gauss-Legendre nodes for the nodal
+ * (tensor hybrid p=1, sparse velocity Hamiltonian) triad kernels:
+ *   pt_vol:  per cell, [node][component] at the 2^cdim interior nodes (18 components),
+ *            nodes in lexicographic order with the first direction slowest and the
+ *            -1/sqrt(3) node first;
+ *   pt_surf: per cell, [dir][face][face node][b] with face 0 the lower and 1 the upper
+ *            face of the cell, the 2^(cdim-1) face nodes of the transverse directions
+ *            in the same order, and b the conf-velocity row of dir (Pi^{dir,b}),
+ *            evaluated from the geometry at the face (single valued across the face).
+ * Triad gradients along the grid directions are finite differences across the
+ * interior nodes; one cell of nodes is exchanged across every internal decomposition
+ * boundary, so the result does not depend on the decomposition. Along the coordinates
+ * removed from a deflated geometry they come from the tangent gradients.
+ *
+ * @param cgrid Configuration-space grid
+ * @param local Local configuration-space range
+ * @param local_ext Local extended configuration-space range
+ * @param global Global configuration-space range
+ * @param comm Communicator used to exchange the halo
+ * @param use_gpu Whether comm exchanges device arrays (the construction itself is on host)
+ * @param nrange_int Nodal range of the interior nodes (2*cells of local per direction)
+ * @param tan_nodal Cartesian covariant tangents on nrange_int, 9 per node (3D order)
+ * @param tan_grad_nodal d(tangents)/dz^j on nrange_int, 27 per node, or NULL when
+ *   cdim = 3 (only read along removed coordinates)
+ * @param bhat_nodal Cartesian field direction on nrange_int, or NULL to skip the check
+ * @param nrange_surf Nodal ranges of the face nodes of each grid direction
+ * @param tan_surf_nodal Cartesian covariant tangents at the face nodes of each direction
+ * @param dir_map 3D coordinate index of each Poisson-tensor coordinate index (grid
+ *   directions first), or NULL for the identity (cdim = 3)
+ * @param exit_at_checks Assert when a construction-time check fails
+ * @param pt_vol Volume storage (output, host, on local_ext)
+ * @param pt_surf Face storage (output, host, on local_ext)
+ */
+void gkyl_vlasov_triad_geom_nodal_from_tangents(
+  const struct gkyl_rect_grid *cgrid, const struct gkyl_range *local,
+  const struct gkyl_range *local_ext, const struct gkyl_range *global, struct gkyl_comm *comm,
+  bool use_gpu, const struct gkyl_range *nrange_int, const struct gkyl_array *tan_nodal,
+  const struct gkyl_array *tan_grad_nodal, const struct gkyl_array *bhat_nodal,
+  const struct gkyl_range *nrange_surf, struct gkyl_array *const *tan_surf_nodal,
+  const int *dir_map, bool exit_at_checks, struct gkyl_array *pt_vol, struct gkyl_array *pt_surf
 );
 
 /**

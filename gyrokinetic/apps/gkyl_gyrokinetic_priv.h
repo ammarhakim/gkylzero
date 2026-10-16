@@ -1476,10 +1476,11 @@ struct gk_neut_species {
       struct gkyl_range hamil_range; // Range the Hamiltonian is defined on (velocity space).
       struct gkyl_array *hamil; // Hamiltonian H = v^2/2 on the velocity-space grid.
       struct gkyl_array *hamil_host; // Host side hamiltonian array for intial projection
-      struct gkyl_array
-        *conf_poisson_tensor; // Conf-space Poisson tensor from the GK geometry triads.
-      struct gkyl_array
-        *conf_poisson_tensor_host; // Host-side Poisson tensor (built nodally on host).
+      // Poisson tensor of the GK geometry triads at the configuration-space
+      // Gauss-Legendre nodes: interior nodes (volume and velocity-surface updates)
+      // and face nodes (configuration-surface updates).
+      struct gkyl_array *conf_poisson_tensor; // [node][component] at the interior nodes.
+      struct gkyl_array *conf_poisson_tensor_surf; // [dir][face][face node][component].
       struct gkyl_array *f_no_J; // Distribution function with the velocity Jacobian divided out.
       struct gk_species_moment m0; // Computes density.
 

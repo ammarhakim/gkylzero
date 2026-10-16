@@ -560,6 +560,9 @@ struct vm_species {
   struct gkyl_array *hamil; // Specified Hamiltonian function for canonical poisson bracket.
   struct gkyl_array *hamil_host; // Host-side Hamiltonian array for initial projection.
   struct gkyl_array *conf_poisson_tensor; // Configuration space Poisson tensor representation
+  // Poisson tensor read by the configuration-space surface flux: the face-node storage
+  // of the nodal triad kernels, otherwise the same array as conf_poisson_tensor.
+  struct gkyl_array *conf_poisson_tensor_surf;
   struct gkyl_array
     *conf_poisson_tensor_host; // Host-side configuration space Poisson tensor representation
   union {
