@@ -87,3 +87,4 @@ gyrokinetic/creg/rt_gk_wham_boltz_elc_poa_1x2v_p1   # change to coulomb log
 gyrokinetic/creg/rt_gk_wham_nonuniformx_1x2v_p1   # change to coulomb log
 gyrokinetic/creg/rt_gk_wham_nonuniformx_3x2v_p1   # change to coulomb log
 gyrokinetic/creg/rt_gk_wham_nonuniformx_2x2v_p1   # change to coulomb log
+gyrokinetic/creg/rt_gk_sheath_1x2v_p1_source_import   # New regression test
