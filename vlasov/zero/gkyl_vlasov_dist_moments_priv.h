@@ -63,7 +63,18 @@ struct gkyl_vlasov_dist_moments
 */
 struct gkyl_vlasov_dist_moments * gkyl_vlasov_lte_moments_new(const struct gkyl_vlasov_dist_moments_inp *inp);
 
+/**
+* Create an multi-temperature Maxwellian distribution moments updater.
+*
+* @param inp Input parameters.
+* @return New generic distribution moments updater.
+*/
+struct gkyl_vlasov_dist_moments * gkyl_vlasov_multi_temp_max_moments_new(const struct gkyl_vlasov_dist_moments_inp *inp);
 
-
-// struct gkyl_vlasov_dist_moments * gkyl_vlasov_multitemp_max_moments_new(const struct gkyl_vlasov_dist_moments_inp *inp);
-// struct gkyl_vlasov_dist_moments * gkyl_vlasov_kappa_moments_new(const struct gkyl_vlasov_dist_moments_inp *inp);
+/**
+* Create an kappa distribution moments updater.
+*
+* @param inp Input parameters.
+* @return New generic distribution moments updater.
+*/
+struct gkyl_vlasov_dist_moments * gkyl_vlasov_kappa_moments_new(const struct gkyl_vlasov_dist_moments_inp *inp);

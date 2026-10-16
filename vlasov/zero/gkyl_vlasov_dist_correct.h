@@ -14,6 +14,7 @@ typedef struct gkyl_vlasov_dist_correct gkyl_vlasov_dist_correct;
 // input packaged as a struct
 struct gkyl_vlasov_dist_correct_inp {
   const struct gkyl_dist_proj_type *dist_proj; // Distribution projection object
+  const double *param; // Array of unique distribution-specific parameters
   const struct gkyl_rect_grid *phase_grid; // Phase-space grid on which to compute moments
   const struct gkyl_rect_grid *vel_grid; // Velocity-space grid
   const struct gkyl_basis *conf_basis; // Configuration space basis functions

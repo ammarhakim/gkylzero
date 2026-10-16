@@ -3,6 +3,8 @@
 
 static dist_moments_new_t dist_moments_new[] ={
   [GKYL_DIST_TYPE_LTE] = gkyl_vlasov_lte_moments_new,
+  [GKYL_DIST_TYPE_MULTI_TEMP_MAX] = gkyl_vlasov_multi_temp_max_moments_new,
+  [GKYL_DIST_TYPE_KAPPA] = gkyl_vlasov_kappa_moments_new,  
 };
 
 struct gkyl_vlasov_dist_moments* gkyl_vlasov_dist_moments_inew(const struct gkyl_vlasov_dist_moments_inp *inp) 

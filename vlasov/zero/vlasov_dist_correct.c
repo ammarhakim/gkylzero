@@ -81,6 +81,7 @@ gkyl_vlasov_dist_correct_inew(const struct gkyl_vlasov_dist_correct_inp *inp)
   // Generalized distribution projection updater.
   struct gkyl_vlasov_dist_proj_on_basis_inp inp_proj = {
     .dist_proj = up->dist_proj,
+    .param = inp->param,
     .phase_grid = inp->phase_grid,
     .vel_grid = inp->vel_grid,
     .conf_basis = inp->conf_basis,

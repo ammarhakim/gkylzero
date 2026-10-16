@@ -74,8 +74,7 @@ vlasov_lte_moments_advance(struct gkyl_vlasov_dist_moments *dist_moms,
   // Compute scalar pressure.
   gkyl_dg_vlasov_pressure_scalar(lte_moms->pressure_calc, conf_local, lte_moms->M2, lte_moms->M1i,
   lte_moms->V_drift, lte_moms->pressure);
-  gkyl_array_set_range(moms_out, 1.0, lte_moms->M0, conf_local);
-
+  
   // T = P/n.
   gkyl_dg_div_op_range(lte_moms->mem, &dist_moms->conf_basis,
     0, lte_moms->temperature,
@@ -84,13 +83,13 @@ vlasov_lte_moments_advance(struct gkyl_vlasov_dist_moments *dist_moms,
   // T/m = P/(mn).
   gkyl_array_scale_range(lte_moms->temperature, 1.0/dist_moms->mass, conf_local);
   // Save the outputs to moms_out (n, V_drift, T/m).
+  gkyl_array_set_range(moms_out, 1.0, lte_moms->M0, conf_local);
   gkyl_array_set_offset_range(moms_out, 1.0, lte_moms->V_drift, 1*num_conf_basis, conf_local);
   gkyl_array_set_offset_range(moms_out, 1.0, lte_moms->temperature, (vdim+1)*num_conf_basis, conf_local);
 }
 
 static void
-vlasov_lte_moments_release(
-  struct gkyl_vlasov_dist_moments *dist_moms)
+vlasov_lte_moments_release(struct gkyl_vlasov_dist_moments *dist_moms)
 {
   struct gkyl_vlasov_lte_moments *lte_moms = (struct gkyl_vlasov_lte_moments *) dist_moms;
 
@@ -108,8 +107,7 @@ vlasov_lte_moments_release(
 }
 
 
-struct gkyl_vlasov_dist_moments*
-gkyl_vlasov_lte_moments_new(
+struct gkyl_vlasov_dist_moments*gkyl_vlasov_lte_moments_new(
   const struct gkyl_vlasov_dist_moments_inp *inp)
 {
   struct gkyl_vlasov_lte_moments *lte_moms = gkyl_malloc(sizeof(*lte_moms));
