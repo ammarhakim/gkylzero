@@ -2345,33 +2345,6 @@ gkyl_gyrokinetic_app_write_species_positivity_integrated_diagnostics(
   gk_species_positivity_write_integrated_diags(app, gks, &gks->positivity);
 }
 
-void
-gkyl_gyrokinetic_app_write_neut_species_positivity_diagnostics(
-  gkyl_gyrokinetic_app *app, int sidx, double tm, int frame
-)
-{
-  struct gk_neut_species *gkns = &app->neut_species[sidx];
-  gk_neut_species_positivity_write_diags(app, gkns, &gkns->positivity, tm, frame);
-}
-
-void
-gkyl_gyrokinetic_app_calc_neut_species_positivity_integrated_diagnostics(
-  gkyl_gyrokinetic_app *app, int sidx, double tm
-)
-{
-  struct gk_neut_species *gkns = &app->neut_species[sidx];
-  gk_neut_species_positivity_calc_integrated_diags(app, gkns, &gkns->positivity, tm);
-}
-
-void
-gkyl_gyrokinetic_app_write_neut_species_positivity_integrated_diagnostics(
-  gkyl_gyrokinetic_app *app, int sidx
-)
-{
-  struct gk_neut_species *gkns = &app->neut_species[sidx];
-  gk_neut_species_positivity_write_integrated_diags(app, gkns, &gkns->positivity);
-}
-
 //
 // ............. LTE outputs ............... //
 //
@@ -2541,8 +2514,6 @@ gkyl_gyrokinetic_app_write_neut_species_conf(
 
   gkyl_gyrokinetic_app_write_neut_species_source_mom(app, sidx, tm, frame);
 
-  gkyl_gyrokinetic_app_write_neut_species_positivity_diagnostics(app, sidx, tm, frame);
-
   struct gk_neut_species *gkns = &app->neut_species[sidx];
 
   for (int j = 0; j < gkns->react_neut.num_react; ++j) {
@@ -2579,7 +2550,6 @@ gkyl_gyrokinetic_app_write_mom(gkyl_gyrokinetic_app *app, double tm, int frame)
   for (int i = 0; i < app->num_neut_species; ++i) {
     gkyl_gyrokinetic_app_write_neut_species_mom(app, i, tm, frame);
     gkyl_gyrokinetic_app_write_neut_species_source_mom(app, i, tm, frame);
-    gkyl_gyrokinetic_app_write_neut_species_positivity_diagnostics(app, i, tm, frame);
     gkyl_gyrokinetic_app_write_neut_species_boundary_flux_mom(app, i, tm, frame);
   }
 }
@@ -2599,7 +2569,6 @@ gkyl_gyrokinetic_app_calc_integrated_mom(gkyl_gyrokinetic_app *app, double tm)
   for (int i = 0; i < app->num_neut_species; ++i) {
     gkyl_gyrokinetic_app_calc_neut_species_integrated_mom(app, i, tm);
     gkyl_gyrokinetic_app_calc_neut_species_source_integrated_mom(app, i, tm);
-    gkyl_gyrokinetic_app_calc_neut_species_positivity_integrated_diagnostics(app, i, tm);
     gkyl_gyrokinetic_app_calc_neut_species_boundary_flux_integrated_mom(app, i, tm);
   }
 
@@ -2630,7 +2599,6 @@ gkyl_gyrokinetic_app_write_integrated_mom(gkyl_gyrokinetic_app *app)
   for (int i = 0; i < app->num_neut_species; ++i) {
     gkyl_gyrokinetic_app_write_neut_species_integrated_mom(app, i);
     gkyl_gyrokinetic_app_write_neut_species_source_integrated_mom(app, i);
-    gkyl_gyrokinetic_app_write_neut_species_positivity_integrated_diagnostics(app, i);
     gkyl_gyrokinetic_app_write_neut_species_lte_max_corr_status(app, i);
     gkyl_gyrokinetic_app_write_neut_species_boundary_flux_integrated_mom(app, i);
   }
@@ -4406,9 +4374,6 @@ gkyl_gyrokinetic_app_from_frame_neut_species(gkyl_gyrokinetic_app *app, int sidx
   gk_ns->is_first_integ_write_call = false;
   if (gk_ns->src.source_id) {
     gk_ns->src.is_first_integ_write_call = false;
-  }
-  if (gk_ns->positivity.type) {
-    gk_ns->positivity.is_first_integ_write_call = false;
   }
   if (gk_ns->lte.correct_all_moms) {
     gk_ns->lte.is_first_corr_status_write_call = false;

@@ -118,8 +118,6 @@ gk_neut_species_fluid_release(const gkyl_gyrokinetic_app *app, const struct gk_n
 
   gk_neut_species_bgk_release(app, &ns->bgk);
 
-  gk_neut_species_positivity_release(app, &ns->positivity);
-
   gk_neut_species_react_release(app, &ns->react_neut);
 
   // Free boundary flux memory.
@@ -390,10 +388,6 @@ gk_neut_species_fluid_init(
   ns->bgk = (struct gk_bgk_collisions){};
   ns->info.collisions.collision_id = 0;
   gk_neut_species_bgk_init(app, ns, &ns->bgk);
-
-  // Initialize positivity enforcing operator with null type (NYI for fluids).
-  ns->positivity = (struct gk_positivity){};
-  gk_neut_species_positivity_init(app, ns, &ns->positivity);
 
   // Initialize reactions with charged species (NYI for fluids).
   ns->react_neut = (struct gk_react){};

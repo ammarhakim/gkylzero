@@ -219,8 +219,6 @@ gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app *app, const struct gk
 
   gk_neut_species_bgk_release(app, &ns->bgk);
 
-  gk_neut_species_positivity_release(app, &ns->positivity);
-
   // Free boundary flux memory.
   gk_neut_species_bflux_release(app, ns, &ns->bflux);
 
@@ -299,6 +297,16 @@ gk_neut_species_kinetic_init_dynamic(
   s->bc_recycle_lo = (struct gk_recycle_wall){};
   s->bc_recycle_up = (struct gk_recycle_wall){};
   for (int d = 0; d < cdim; ++d) {
+    // Reflection flips velocity component d. In the triad frame (e1, e2, bhat) the
+    // velocity along z is component 2 for any cdim, so in 1x/2x it is not component d.
+    if (cdim < 3 && d == cdim - 1 &&
+        (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT ||
+         s->upper_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT)) {
+      gkyl_exit(
+        "gk_neut_species: reflecting BCs along z are only supported for 3x kinetic neutrals (in 1x/2x the velocity along z is the third triad component, not the one the reflection flips)."
+      );
+    }
+
     // Copy BCs by default.
     if (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_RECYCLE) {
       // Initialize recycling object.
@@ -1048,10 +1056,6 @@ gk_neut_species_kinetic_init(
   // Initialize elastic collisions.
   s->bgk = (struct gk_bgk_collisions){};
   gk_neut_species_bgk_init(app, s, &s->bgk);
-
-  // Initialize positivity enforcing operator.
-  s->positivity = (struct gk_positivity){};
-  gk_neut_species_positivity_init(app, s, &s->positivity);
 
   // Initialize the object that scales the species according to a balance
   // between recycling and reactions (meant for fluid neutrals for now).
