@@ -1186,9 +1186,19 @@ gk_species_kinetic_init(
     gks->flr_kSq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     gkyl_array_shiftc(gks->flr_kSq, -pow(sqrt(2.0), app->cdim), 0); // Sets kSq=-1.
 
-    // If domain is not periodic use Dirichlet BCs.
-    struct gkyl_poisson_bc flr_bc;
+    // Periodic along the periodic directions and Dirichlet otherwise, unless the field BCs say so.
+    struct gkyl_poisson_bc flr_bc = {};
     for (int d = 0; d < app->cdim - 1; d++) {
+      enum gkyl_poisson_bc_type bc_default =
+        gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_DIRICHLET_VARYING);
+      for (int i = 0; i < app->num_periodic_dir; i++) {
+        if (app->periodic_dirs[i] == d) {
+          bc_default = gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
+        }
+      }
+      flr_bc.lo_type[d] = bc_default;
+      flr_bc.up_type[d] = bc_default;
+
       struct gkyl_gyrokinetic_bc *bc_lo =
         gk_fetch_bc_with_dir_edge(app->field->info.poisson_bcs, 2 * app->cdim, d, GKYL_LOWER_EDGE);
       if (bc_lo != 0) {
