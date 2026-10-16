@@ -69,12 +69,13 @@ This command takes no options.
 EOF
         ;;
         run) cat <<EOF
-Usage: $script run (--pr NUMBER | --candidate-ref REF --baseline-ref REF) [--follow]
+Usage: $script run (--pr NUMBER | --candidate-ref REF --baseline-ref REF) [--allow-behind-candidate] [--follow]
 
 Flags:
   --pr NUMBER           Build GitHub pull request NUMBER.
   --candidate-ref REF   Candidate branch or commit; requires --baseline-ref.
   --baseline-ref REF    Baseline branch or commit; requires --candidate-ref.
+  --allow-behind-candidate  Permit a candidate that does not contain the baseline.
   --follow              Stream the build console after Jenkins queues it.
 EOF
         ;;
@@ -386,7 +387,8 @@ wait_for_build_number() {
             die "Queue item $queue_id is unavailable and no matching Jenkins build was found"
         fi
         IFS=$'\t' read -r number cancelled why <<< "$state"
-        [[ "$cancelled" == false ]] || die "Queue item $queue_id was cancelled"
+        # Jenkins can report cancelled=true briefly while the item becomes a build.
+        if [[ "$cancelled" == true ]]; then for attempt in {1..12}; do if number="$(build_for_queue "$queue_id")" && [[ "$number" =~ ^[1-9][0-9]*$ ]]; then RESOLVED_BUILD_NUMBER="$number"; return 0; fi; sleep 5; done; die "Queue item $queue_id was cancelled"; fi
         if [[ -n "$number" ]]; then
             RESOLVED_BUILD_NUMBER="$number"
             return 0
@@ -433,7 +435,7 @@ follow_build() {
 }
 
 submit_build() {
-    local candidate_pr="$1" candidate_ref="$2" baseline_ref="$3"
+    local candidate_pr="$1" candidate_ref="$2" baseline_ref="$3" allow_behind="$4"
     local headers queue_url queue_id
     headers="$(mktemp "$JENKINS_TMPDIR/jenkins-headers.XXXXXX")"
 
@@ -441,6 +443,7 @@ submit_build() {
         --data-urlencode "CANDIDATE_PR=$candidate_pr" \
         --data-urlencode "CANDIDATE_REF=$candidate_ref" \
         --data-urlencode "BASELINE_REF=$baseline_ref" \
+        --data-urlencode "ALLOW_BEHIND_CANDIDATE=$allow_behind" \
         "$JENKINS_URL/job/$JENKINS_JOB/buildWithParameters"; then
         rm -f "$headers"
         die 'Jenkins rejected the build submission'
@@ -457,7 +460,7 @@ submit_build() {
 }
 
 run_command() {
-    local candidate_pr='' candidate_ref='' baseline_ref='' follow=false queue_id
+    local candidate_pr='' candidate_ref='' baseline_ref='' allow_behind=false follow=false queue_id
     while (($#)); do
         case "$1" in
             --pr)
@@ -474,6 +477,10 @@ run_command() {
                 (($# >= 2)) || die '--baseline-ref requires a ref'
                 baseline_ref="$2"
                 shift 2
+                ;;
+            --allow-behind-candidate)
+                allow_behind=true
+                shift
                 ;;
             --follow)
                 follow=true
@@ -492,7 +499,7 @@ run_command() {
 
     start_controller
     prepare_auth
-    submit_build "$candidate_pr" "$candidate_ref" "$baseline_ref"
+    submit_build "$candidate_pr" "$candidate_ref" "$baseline_ref" "$allow_behind"
     queue_id="$SUBMITTED_QUEUE_ID"
     if [[ "$follow" == true ]]; then
         local build_number

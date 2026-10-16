@@ -270,7 +270,7 @@ create_ctx(void)
   int num_frames = num_cycles * (num_frames_oap + num_frames_fdp) + num_frames_fdp_extra;
 
   struct gk_poa_phase_params *poa_phases =
-    gkyl_malloc(num_phases * sizeof(struct gk_poa_phase_params));
+    gkyl_calloc(num_phases, sizeof(struct gk_poa_phase_params));
   for (int i = 0; i < (num_phases - 1) / 2; i++) {
     // OAPs.
     poa_phases[2 * i].phase = GK_POA_OAP;
@@ -640,8 +640,8 @@ main(int argc, char **argv)
     .positivity = {.type = GKYL_GK_POSITIVITY_SHIFT, .write_diagnostics = true},
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH}},
+      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
 
     .write_omega_cfl = true,
     .num_diag_moments = 8,

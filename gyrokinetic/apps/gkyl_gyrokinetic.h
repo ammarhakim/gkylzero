@@ -131,7 +131,7 @@ struct gkyl_gyrokinetic_collisions {
   double den_ref; // Reference density.
   double temp_ref; // Regerence temperature.
   double bmag_ref; // Reference magnetic field magnitude.
-  double hbar, eps0, eV; // Planck's constant/2 pi, vacuum permittivity, elementary charge.
+  double hbar, eps0; // Planck's constant/2 pi, vacuum permittivity.
 
   // Boolean for using implicit BGK collisions (replaces rk3).
   bool is_implicit;
@@ -171,6 +171,9 @@ struct gkyl_gyrokinetic_source {
   struct gkyl_gyrokinetic_adapt_source adapt[GKYL_MAX_SOURCES]; // Adaptive source parameters
   // sources using projection routine
   struct gkyl_gyrokinetic_projection projection[GKYL_MAX_SOURCES];
+  // Sources whose shape is imported directly from a file (used only when
+  // source_id == GKYL_SOURCE_FROMFILE).
+  struct gkyl_gyrokinetic_ic_import source_import[GKYL_MAX_SOURCES];
 
   struct gkyl_phase_diagnostics_inp diagnostics;
 };
@@ -221,15 +224,30 @@ struct gkyl_gyrokinetic_bc {
   enum gkyl_edge_loc edge; // Which edge this BC is for.
   enum gkyl_gyrokinetic_bc_type type; // BC type flag.
   double value[3]; // Meaning depends on type.
-  void (*aux_profile)(
-    double t, const double *xn, double *fout,
-    void *ctx
-  ); // Auxiliary function (e.g. wall potential).
+  // Auxiliary profile. For a species sheath BC, this is the material-wall potential.
+  void (*aux_profile)(double t, const double *xn, double *fout, void *ctx);
   void *aux_ctx; // Context for aux_profile.
   struct gkyl_gyrokinetic_projection projection; // Projection object input (e.g. for FIXED_FUNC).
   struct gkyl_gyrokinetic_emission_inp emission;
   bool write_diagnostics; // Whether to output diagnostics.
   int bidx; // Block index (for multiblock solver).
+  char aux_str[128]; // Auxiliary string (e.g. path to surrogate model for sheath BCs).
+};
+
+// Parameters for BCs in closed flux surfaces.
+struct gkyl_gyrokinetic_core_parallel_bcs {
+  void (*lower_shift_func)(
+    double t, const double *xn, double *fout, void *ctx
+  ); // Lower twist-shift function.
+  void (*upper_shift_func)(
+    double t, const double *xn, double *fout, void *ctx
+  ); // Upper twist-shift function.
+  void *lower_shift_ctx; // Context for lower twist-shift function.
+  void *upper_shift_ctx; // Context for upper twist-shift function.
+  int ts_upsample_factor; // Twist-shift supersampling factor (default 4), set to -1 to disable filter.
+  int ts_filter_half_width; // Twist-shift filter stencil half-width in cells of the simulation grid (default 1), set to -1 to disable filter.
+  double
+    ts_filter_cutoff_wavelength; // Twist-shift filter cutoff wavelength (default 2*dx, the coarse mesh Nyquist), set to -1 to disable filter.
 };
 
 struct gkyl_gyrokinetic_geometry {
@@ -251,11 +269,8 @@ struct gkyl_gyrokinetic_geometry {
   bool has_LCFS; // Whether the geometry has a last closed flux surface (LCFS).
   double x_LCFS; // x coordinate of the LCFS.
 
-  // Twist-shift functions for the tokamak core.
-  void (*parallel_lower_bc_shift_func)(double t, const double *xn, double *fout, void *ctx);
-  void (*parallel_upper_bc_shift_func)(double t, const double *xn, double *fout, void *ctx);
-  void *parallel_lower_bc_shift_ctx; // Context for parallel_lower_bc_shift_func.
-  void *parallel_upper_bc_shift_ctx; // Context for parallel_upper_bc_shift_func.
+  struct gkyl_gyrokinetic_core_parallel_bcs
+    core_parallel_bcs; // BCs info in closed flux surface region.
 
   struct gkyl_efit_inp efit_info; // Context with RZ data such as efit file for a tokamak or mirror.
   struct gkyl_tok_geo_grid_inp
@@ -370,19 +385,13 @@ struct gkyl_gyrokinetic_positivity {
   bool write_diagnostics; // Whether to output diagnostics.
 };
 
-enum gkyl_gyrokinetic_damping_type {
-  GKYL_GK_DAMPING_NONE = 0,
-  GKYL_GK_DAMPING_USER_INPUT,
-  GKYL_GK_DAMPING_LOSS_CONE
-};
+enum gkyl_gyrokinetic_damping_type { GKYL_GK_DAMPING_NONE = 0, GKYL_GK_DAMPING_USER_INPUT };
 
 struct gkyl_gyrokinetic_damping {
   // Add a damping term to the RHS of the gyrokinetic equation
   //   df/dt = - rate(z) * f
   // with the function rate(z) being:
-  //   - a function given by the user (type = GKYL_PROPORTIONAL_TERM_USER_INPUT).
-  //   - I_loss(z) * scale_factor * scale_profile(z), where I_loss(z) is =1 in the loss
-  //     cone and 0 in the confined region (type = GKYL_PROPORTIONAL_TERM_LOSS_CONE).
+  //   - a function given by the user (type = GKYL_GK_DAMPING_USER_INPUT).
   enum gkyl_gyrokinetic_damping_type type;
   void (*rate_profile)(double t, const double *xn, double *fout, void *ctx);
   void *rate_profile_ctx; // Context for rate_profile function.
@@ -393,7 +402,7 @@ struct gkyl_gyrokinetic_damping {
 enum gkyl_gyrokinetic_fdot_multiplier_type {
   GKYL_GK_FDOT_MULTIPLIER_NONE = 0, // No multiplier applied.
   GKYL_GK_FDOT_MULTIPLIER_USER_INPUT, // User-provided static profile M(z) via function pointer.
-  GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE, // M=1 in loss cone, M=0 in confined region.
+  GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE, // M=1 in confined region, M=0 in the loss cone.
   GKYL_GK_FDOT_MULTIPLIER_CONSTANT, // Dilates time by a fixed constant, time_dilation_scale_const.
   GKYL_GK_FDOT_MULTIPLIER_FIXED_DT, // dt floor from user-specified cfl_dt_min_value.
   GKYL_GK_FDOT_MULTIPLIER_FIXED_FACTOR_TIMES_OMEGA_MAX, // dt floor from user-specified factor times maximum characteristic frequency. Specify cfl_factor_times_omega_max.
@@ -588,18 +597,6 @@ struct gkyl_gyrokinetic_field {
   // Profile for the field at t=0.
   void (*init_field_profile)(double t, const double *xn, double *out, void *ctx);
   void *init_field_profile_ctx;
-
-  void *phi_wall_lo_ctx; // context for biased wall potential on lower wall
-  // pointer to biased wall potential on lower wall function
-  void (*phi_wall_lo)(double t, const double *xn, double *phi_wall_lo_out, void *ctx);
-  bool
-    phi_wall_lo_evolve; // set to true if biased wall potential on lower wall function is time dependent
-
-  void *phi_wall_up_ctx; // context for biased wall potential on upper wall
-  // pointer to biased wall potential on upper wall function
-  void (*phi_wall_up)(double t, const double *xn, double *phi_wall_up_out, void *ctx);
-  bool
-    phi_wall_up_evolve; // set to true if biased wall potential on upper wall function is time dependent
 
   struct gkyl_poisson_bias_line_list *bias_line_list; // Biased lines constraining the solution.
 };

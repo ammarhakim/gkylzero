@@ -703,17 +703,14 @@ main(int argc, char **argv)
 
     .damping =
       {
-        //      .type = GKYL_GK_DAMPING_USER_INPUT,
-        //      .rate_profile = loss_cone_damping_rate_profile,
-        //      .rate_profile_ctx = &ctx,
-        .type = GKYL_GK_DAMPING_LOSS_CONE,
+        .type = GKYL_GK_DAMPING_USER_INPUT,
         .rate_profile = loss_cone_damping_rate_scaling,
         .rate_profile_ctx = &ctx,
       },
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH}},
+      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
 
     .num_diag_moments = 4,
     .diag_moments =

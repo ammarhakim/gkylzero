@@ -42,12 +42,13 @@ EOF
 command_usage() {
     case "$1" in
         run) cat <<'EOF'
-Usage: jenkins-personal.sh run (--pr NUMBER | --candidate-ref REF --baseline-ref REF) [--follow]
+Usage: jenkins-personal.sh run (--pr NUMBER | --candidate-ref REF --baseline-ref REF) [--allow-behind-candidate] [--follow]
 
 Flags:
   --pr NUMBER           Build GitHub pull request NUMBER.
   --candidate-ref REF   Candidate branch or commit; requires --baseline-ref.
   --baseline-ref REF    Baseline branch or commit; requires --candidate-ref.
+  --allow-behind-candidate  Permit a candidate that does not contain the baseline.
   --follow              Stream the build console after Jenkins queues it.
 EOF
         ;;
@@ -124,8 +125,14 @@ curl_auth() { curl --fail --silent --show-error --globoff --config "$CURL_CONFIG
 curl_auth_quiet() { curl --fail --silent --globoff --config "$CURL_CONFIG" "$@"; }
 positive() { [[ "$2" =~ ^[1-9][0-9]*$ ]] || die "$1 must be a positive integer"; }
 java_command() {
+    local candidate
     if [[ -n "${JAVA_HOME:-}" && -x "$JAVA_HOME/bin/java" ]]; then
         printf '%s' "$JAVA_HOME/bin/java"
+    elif candidate="$(/usr/libexec/java_home 2>/dev/null)" && [[ -x "$candidate/bin/java" ]]; then
+        printf '%s' "$candidate/bin/java"
+    elif candidate="$(ls -d /opt/homebrew/opt/openjdk*/bin/java /usr/local/opt/openjdk*/bin/java 2>/dev/null | sort -V | tail -n 1)" && [[ -x "$candidate" ]]; then
+        # Homebrew's JDK (the one Jenkins itself runs on); macOS's /usr/bin/java is only a stub.
+        printf '%s' "$candidate"
     else
         command -v java || die 'Set JAVA_HOME or put Java 21 or newer on PATH to stream the Jenkins console'
     fi
@@ -179,7 +186,8 @@ wait_for_build_number() {
             die "Queue item $queue_id is unavailable and no matching Jenkins build was found"
         fi
         IFS=$'\t' read -r number cancelled why <<< "$record"
-        [[ "$cancelled" == false ]] || die "Queue item $queue_id was cancelled"
+        # Jenkins can report cancelled=true briefly while the item becomes a build.
+        if [[ "$cancelled" == true ]]; then for attempt in {1..12}; do if number="$(build_for_queue "$queue_id")" && [[ "$number" =~ ^[1-9][0-9]*$ ]]; then RESOLVED_BUILD_NUMBER="$number"; return 0; fi; sleep 5; done; die "Queue item $queue_id was cancelled"; fi
         if [[ -n "$number" ]]; then
             RESOLVED_BUILD_NUMBER="$number"
             return 0
@@ -271,16 +279,16 @@ follow() {
 follow_command() {
     [[ $# == 2 ]] || die 'usage: follow --queue ID | follow --build NUMBER'
     case "$1" in
-        --queue) positive 'queue ID' "$2"; wait_for_build_number "$2"; follow "$RESOLVED_BUILD_NUMBER" ;;
+        --queue) positive 'queue ID' "$2"; wait_for_build_number "$2"; [[ "$RESOLVED_BUILD_NUMBER" =~ ^[1-9][0-9]*$ ]] || die "Queue item $2 did not resolve to a build number (got '$RESOLVED_BUILD_NUMBER')"; follow "$RESOLVED_BUILD_NUMBER" ;;
         --build) follow "$2" ;;
         *) die 'usage: follow --queue ID | follow --build NUMBER' ;;
     esac
 }
 submit() {
-    local pr="$1" candidate="$2" baseline="$3" headers queue
+    local pr="$1" candidate="$2" baseline="$3" allow_behind="$4" headers queue
     headers="$(mktemp "${TMPDIR:-/tmp}/gkeyll-jenkins-headers.XXXXXX")"
     curl_auth --dump-header "$headers" --output /dev/null --request POST \
-        --data-urlencode "CANDIDATE_PR=$pr" --data-urlencode "CANDIDATE_REF=$candidate" --data-urlencode "BASELINE_REF=$baseline" \
+        --data-urlencode "CANDIDATE_PR=$pr" --data-urlencode "CANDIDATE_REF=$candidate" --data-urlencode "BASELINE_REF=$baseline" --data-urlencode "ALLOW_BEHIND_CANDIDATE=$allow_behind" \
         "${JENKINS_URL}$(job_path)/buildWithParameters" || { rm -f "$headers"; die 'Jenkins rejected the build'; }
     queue="$(awk 'BEGIN{IGNORECASE=1} /^Location:/{sub(/^[^:]*: /,""); sub(/\r$/,""); print; exit}' "$headers")"; rm -f "$headers"
     [[ "$queue" =~ /queue/item/([0-9]+)/ ]] || die 'Jenkins accepted the build but returned no queue ID'
@@ -288,10 +296,10 @@ submit() {
     echo "Queued $JENKINS_JOB as queue item $QUEUE_ID"
 }
 run() {
-    local pr='' candidate='' baseline='' want_follow=false
-    while (($#)); do case "$1" in --pr) (($#>=2))||die '--pr requires a number'; pr="$2"; shift 2;; --candidate-ref) (($#>=2))||die '--candidate-ref requires a ref'; candidate="$2"; shift 2;; --baseline-ref) (($#>=2))||die '--baseline-ref requires a ref'; baseline="$2"; shift 2;; --follow) want_follow=true; shift;; *) die "unknown run option: $1";; esac; done
+    local pr='' candidate='' baseline='' allow_behind=false want_follow=false
+    while (($#)); do case "$1" in --pr) (($#>=2))||die '--pr requires a number'; pr="$2"; shift 2;; --candidate-ref) (($#>=2))||die '--candidate-ref requires a ref'; candidate="$2"; shift 2;; --baseline-ref) (($#>=2))||die '--baseline-ref requires a ref'; baseline="$2"; shift 2;; --allow-behind-candidate) allow_behind=true; shift;; --follow) want_follow=true; shift;; *) die "unknown run option: $1";; esac; done
     if [[ -n "$pr" ]]; then positive '--pr' "$pr"; [[ -z "$candidate$baseline" ]] || die '--pr cannot be combined with refs'; else [[ -n "$candidate" && -n "$baseline" ]] || die 'provide --pr, or both --candidate-ref and --baseline-ref'; fi
-    submit "$pr" "$candidate" "$baseline"
+    submit "$pr" "$candidate" "$baseline" "$allow_behind"
     if [[ "$want_follow" == true ]]; then
         wait_for_build_number "$QUEUE_ID"
         follow "$RESOLVED_BUILD_NUMBER"

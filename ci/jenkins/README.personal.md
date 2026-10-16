@@ -33,9 +33,12 @@ chmod 600 "$HOME/.config/gkeyll/jenkins/personal.auth"
 
 ### Create the GitHub credential
 
-Create a classic GitHub PAT with only the `repo:status` scope and a short
-expiration. Its owner must have push access to `gkeyllorg/gkeyll`, which GitHub
-requires to publish commit statuses. In **Manage Jenkins → Credentials**, add
+Create a classic GitHub PAT with only the `public_repo` scope and a short
+expiration. That scope covers commit statuses and pull-request or commit
+comments on the public repository; a fine-grained token needs **Commit
+statuses: write**, **Pull requests: write**, and **Contents: write** (commit
+comments) on `gkeyllorg/gkeyll` instead. Its owner must have push access to
+`gkeyllorg/gkeyll`, which GitHub requires to publish commit statuses. In **Manage Jenkins → Credentials**, add
 it to this controller as a **Username with password** credential: use the
 owner's GitHub username and the PAT as the password, then record its ID.
 Organization membership is not required.
@@ -60,9 +63,15 @@ and Python with NumPy. Set these global environment variables:
 | `PERSONAL_REGRESSION_JOBS` | Optional; default `1` |
 | `PERSONAL_MPI_HOME` | Optional MPI installation path for both trees; default is each tree's `gkylsoft/openmpi` |
 | `PERSONAL_MPIEXEC` | Optional launcher override for both trees; default is `bin/mpiexec` under the selected MPI installation |
+| `PERSONAL_STATUS_CONTEXT` | Optional GitHub status context; default `continuous-integration/jenkins/personal-<hostname>` so each computer's status and report stay distinct |
+| `GKEYLL_CI_ROOT` | Required persistent writable root for baseline and candidate source, build, and regression data |
+| `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for `github_report.py` and `check_regression_results.lua`; default `main`. Set it only while staging a CI change |
+
+The selected dependency script must pass `--build-adas=yes` to
+`install-deps/mkdeps.sh` so ADAS data is available before unit tests run.
 
 The workflow sets `MPI_HOME` to `PERSONAL_MPI_HOME` while building each tree.
-If `PERSONAL_MPI_HOME` is unset or blank, it uses that tree's workspace-local
+If `PERSONAL_MPI_HOME` is unset or blank, it uses that tree's SHA-local
 `gkylsoft/openmpi`. Set `PERSONAL_MPI_HOME` (for example, `/opt/openmpi`) to use
 an existing MPI installation for both builds and parallel regressions.
 An ambient `MPI_HOME` does not select the CI installation.
@@ -103,8 +112,13 @@ PR number or both candidate and baseline references.
 Confirm the token file is user-owned and mode 600, Jenkins is running, and the
 user can read/build `gkeyll-ci-personal`. `follow` and `status` accept queue or
 build IDs; `abort --queue` cancels waiting work and `abort --build` stops it.
+CI rejects a candidate that does not contain its baseline before building. Use
+`--allow-behind-candidate` only for an intentional historical comparison.
 
 ## Numerical regression differences
 
-Expected numerical changes require a reviewed entry in
+Expected numerical changes require a reviewed, new or updated entry in
 `ci/jenkins/expected_regression_diffs.txt`; unlisted differences fail CI.
+Entries unchanged from the baseline are inert, so stale entries may safely be
+removed in any later PR. Update the reason on a baseline entry to acknowledge
+a new intentional change for that same test.

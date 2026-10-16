@@ -120,9 +120,12 @@ chmod 600 "$GKEYLL_CI_ROOT/jenkins_home/jenkins-cli.auth"
 
 ### Create the GitHub credential
 
-Create a classic GitHub PAT with only the `repo:status` scope and a short
-expiration. Its owner must have push access to `gkeyllorg/gkeyll`, which GitHub
-requires to publish commit statuses. In **Manage Jenkins → Credentials**, add
+Create a classic GitHub PAT with only the `public_repo` scope and a short
+expiration. That scope covers commit statuses and pull-request or commit
+comments on the public repository; a fine-grained token needs **Commit
+statuses: write**, **Pull requests: write**, and **Contents: write** (commit
+comments) on `gkeyllorg/gkeyll` instead. Its owner must have push access to
+`gkeyllorg/gkeyll`, which GitHub requires to publish commit statuses. In **Manage Jenkins → Credentials**, add
 it to this controller as a **Username with password** credential: use the
 owner's GitHub username and the PAT as the password, then record its ID.
 Organization membership is not required.
@@ -149,13 +152,18 @@ System → Global properties → Environment variables**, set:
 | `PERLMUTTER_GPU_REGRESSION_TIME` | Optional; default `04:00:00` |
 | `PERLMUTTER_GPU_REGRESSION_JOBS` | Optional; default `4` |
 | `PERLMUTTER_GPU_REGRESSION_TEST_TIMEOUT` | Optional; default `900` |
+| `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for `github_report.py` and `check_regression_results.lua`; default `main`. Set it only while staging a CI change |
+
+`GKEYLL_CI_ROOT` retains SHA-addressed baseline and candidate build/result directories
+visible to GPU nodes. Remove `baseline-cache/perlmutter-gpu` manually after an
+intentional toolchain change that must force baseline regeneration.
 
 ### Create the one parameterized Pipeline job
 
 Create **New Item → Pipeline** named `gkeyll-ci-perlmutter_gpu`. Use
 **Pipeline script from SCM** with repository `https://github.com/gkeyllorg/gkeyll.git`,
 no SCM credential, branch `*/main`, and script path
-`ci/jenkins/Jenkinsfile.perlmutter_gpu`. The public repository is fetched
+`ci/jenkins/jenkinsfile.perlmutter_gpu`. The public repository is fetched
 anonymously; use node label `perlmutter_gpu`.
 
 Leave **This project is parameterized** unchecked. Click **Build Now** once to
@@ -182,6 +190,24 @@ Open the job through the tunnel, select **Build with Parameters**, and set
 either `CANDIDATE_PR` or both `CANDIDATE_REF` and `BASELINE_REF`.
 
 # Troubleshooting
+
+## Candidate freshness
+
+Before dependency builds or Slurm submission, CI resolves both references to
+commits and rejects a candidate that does not contain its baseline. Merge or
+rebase the baseline into the candidate before rerunning. For an intentional
+historical comparison, use `--allow-behind-candidate` or enable `ALLOW_BEHIND_CANDIDATE` in
+**Build with Parameters**; the resulting artifact
+and GitHub report record the override.
+
+## Numerical regression differences
+
+An unlisted numerical regression difference fails CI. Review a genuine change
+and add a new or updated accepted difference to
+`ci/jenkins/expected_regression_diffs.txt`; do not acknowledge output
+differences merely to make a build pass. Entries unchanged from the baseline
+are inert, so stale entries may safely be removed in any later PR. Updating a
+baseline entry's reason acknowledges a new intentional change for that test.
 
 ## Controller and Slurm jobs
 

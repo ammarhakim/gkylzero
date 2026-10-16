@@ -56,10 +56,10 @@ gkyl_gk_geometry_new(
   }
 
   // Function pointers to twistshift function.
-  up->parallel_lower_bc_shift_func = geometry_inp->parallel_lower_bc_shift_func;
-  up->parallel_upper_bc_shift_func = geometry_inp->parallel_upper_bc_shift_func;
-  up->parallel_lower_bc_shift_ctx = geometry_inp->parallel_lower_bc_shift_ctx;
-  up->parallel_upper_bc_shift_ctx = geometry_inp->parallel_upper_bc_shift_ctx;
+  up->lower_shift_func = geometry_inp->lower_shift_func;
+  up->upper_shift_func = geometry_inp->upper_shift_func;
+  up->lower_shift_ctx = geometry_inp->lower_shift_ctx;
+  up->upper_shift_ctx = geometry_inp->upper_shift_ctx;
 
   if (up->grid.ndim > 1) {
     gkyl_cart_modal_serendip(&up->surf_basis, up->grid.ndim - 1, up->basis.poly_order);
@@ -879,6 +879,7 @@ gkyl_gk_geometry_write_efit(
   char geqdsk_file_name[128];
   get_filename_from_path(efit->filepath, geqdsk_file_name, sizeof(geqdsk_file_name));
   struct gkyl_msgpack_map_elem io_meta_basic_rz[] = {
+    {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "modal"},
     {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = efit->rzbasis.poly_order},
     {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = efit->rzbasis.id},
     {.key = "geqdsk_file", .elem_type = GKYL_MP_STRING, .cval = geqdsk_file_name},

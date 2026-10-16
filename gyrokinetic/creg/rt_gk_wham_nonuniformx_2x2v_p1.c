@@ -678,8 +678,8 @@ main(int argc, char **argv)
          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
          .projection = elc_ic,
        },
-       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
-       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH}},
+       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
 
     .num_diag_moments = 8,
     .diag_moments =
@@ -760,8 +760,8 @@ main(int argc, char **argv)
          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
          .projection = ion_ic,
        },
-       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
-       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH}},
+       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
 
     .num_diag_moments = 8,
     .diag_moments =
@@ -807,7 +807,7 @@ main(int argc, char **argv)
             .map_strength = 0.5,
             .maximum_slope_at_min_B = 2,
             .gaussian_std = 0.2,
-            .gaussian_max_integration_width = 1.0,
+            .gaussian_max_integration_width = 0.5,
           },
       },
 
