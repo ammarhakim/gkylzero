@@ -360,7 +360,7 @@ gk_geometry_mapc2p_calc_deltats(
       double z = z_lo;
       for (int it = nrange->lower[TH_IDX]; it <= nrange->upper[TH_IDX]; ++it) {
         cidx[TH_IDX] = it;
-        double z_face = fmin(theta_lo + it * dtheta, z_up); // Avoid the Lz != 2pi case.
+        double z_face = fmin(theta_lo + it * dtheta, z_up); // Avoid the Lz == 2pi case.
         int num_sub = (int)ceil((z_face - z) / dz_max);
         double z_start = z;
         for (int k = 1; k <= num_sub; k++) {
