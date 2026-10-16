@@ -25,9 +25,9 @@ void
 gkyl_dist_proj_type_calc(const struct gkyl_dist_proj_type *dist_proj,
   const double *xc, const double *dx,
   const int *idx, const double *moms,
-  double *GKYL_RESTRICT out)
+  const double *param, double *GKYL_RESTRICT out)
 {
-  dist_proj->proj_kernel(dist_proj, xc, dx, idx, moms, out);
+  dist_proj->proj_kernel(dist_proj, xc, dx, idx, moms, param, out);
 }
 
 int

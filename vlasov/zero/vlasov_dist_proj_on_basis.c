@@ -214,7 +214,8 @@ gkyl_vlasov_dist_proj_on_basis_inew(const struct gkyl_vlasov_dist_proj_on_basis_
   gkyl_vlasov_dist_proj_on_basis *up = gkyl_malloc(sizeof(*up));
 
   up->dist_proj = gkyl_dist_proj_type_acquire(inp->dist_proj);
-  up->num_comp_mom = gkyl_dist_proj_type_num_mom(up->dist_proj);
+  up->param = inp->param;
+  up->num_mom = gkyl_dist_proj_type_num_mom(up->dist_proj);
   up->phase_grid = *inp->phase_grid;
   up->conf_basis = *inp->conf_basis;
   up->phase_basis = *inp->phase_basis;
@@ -269,7 +270,7 @@ gkyl_vlasov_dist_proj_on_basis_inew(const struct gkyl_vlasov_dist_proj_on_basis_
   else {
     up->num_ratio = gkyl_array_new(GKYL_DOUBLE, up->conf_basis.num_basis, conf_local_ext_ncells);
     up->mem = gkyl_dg_bin_op_mem_new(conf_local_ncells, up->conf_basis.num_basis);
-    up->moms_dist_quad = gkyl_array_new(GKYL_DOUBLE, up->tot_conf_quad*up->num_comp_mom, conf_local_ext_ncells);
+    up->moms_dist_quad = gkyl_array_new(GKYL_DOUBLE, up->tot_conf_quad*up->num_mom, conf_local_ext_ncells);
   }
     
 
@@ -285,7 +286,7 @@ gkyl_vlasov_dist_proj_on_basis_inew(const struct gkyl_vlasov_dist_proj_on_basis_
     up->f_dist_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, 
       up->tot_quad, inp->conf_range_ext->volume*inp->vel_range->volume);
     up->moms_dist_quad = gkyl_array_cu_dev_new(GKYL_DOUBLE, 
-      up->tot_conf_quad*up->num_comp_mom, inp->conf_range_ext->volume);
+      up->tot_conf_quad*up->num_mom, inp->conf_range_ext->volume);
 
     // Allocate the memory for computing the specific phase nodal to modal calculation
     struct gkyl_mat_mm_array_mem *phase_nodal_to_modal_mem_ho;
@@ -365,7 +366,7 @@ gkyl_vlasov_dist_proj_on_basis_moments_advance(gkyl_vlasov_dist_proj_on_basis *u
   {
     int num_conf_basis = up->num_conf_basis;
     int tot_conf_quad = up->tot_conf_quad;
-    int num_comp_mom = up->num_comp_mom;
+    int num_mom = up->num_mom;
 
     struct gkyl_range_iter conf_iter;
     gkyl_range_iter_init(&conf_iter, conf_range);
@@ -382,7 +383,7 @@ gkyl_vlasov_dist_proj_on_basis_moments_advance(gkyl_vlasov_dist_proj_on_basis *u
     for (int n=0; n<tot_conf_quad; ++n) {
       const double *b_ord = gkyl_array_cfetch(up->conf_basis_at_ords, n);
 
-      for (int m=0; m<num_comp_mom; ++m) {
+      for (int m=0; m<num_mom; ++m) {
         double mom_quad = 0.0;
 
         for (int k=0; k<num_conf_basis; ++k) {
@@ -390,7 +391,7 @@ gkyl_vlasov_dist_proj_on_basis_moments_advance(gkyl_vlasov_dist_proj_on_basis *u
         }
 
         //Store all moments for quadrature point n contiguously.
-        moms_dist_quad[n*num_comp_mom+m] = mom_quad;
+        moms_dist_quad[n*num_mom+m] = mom_quad;
       }
     }
   }
@@ -409,7 +410,7 @@ gkyl_vlasov_dist_proj_on_basis_advance(gkyl_vlasov_dist_proj_on_basis *up,
 #endif
 
   int pdim = up->pdim;
-  int num_comp_mom = up->num_comp_mom;
+  int num_mom = up->num_mom;
 
   struct gkyl_range vel_rng;
   struct gkyl_range_iter conf_iter, vel_iter;
@@ -447,12 +448,12 @@ gkyl_vlasov_dist_proj_on_basis_advance(gkyl_vlasov_dist_proj_on_basis *up,
         comp_to_phys(pdim, xcomp_d, up->phase_grid.dx, xc, xmu);
         
         // All distribution parameters corresponding to this configuration-space quadrature point.
-        const double *moms = &moms_dist_quad[cqidx*num_comp_mom];
+        const double *moms = &moms_dist_quad[cqidx*num_mom];
 
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
         
         // Generic distribution evaluation.
-        gkyl_dist_proj_type_calc(up->dist_proj, xmu, up->phase_grid.dx, pidx, moms, fq);
+        gkyl_dist_proj_type_calc(up->dist_proj, xmu, up->phase_grid.dx, pidx, moms, up->param, fq);
       }      
       
       // compute expansion coefficients of distributiuon function on basis

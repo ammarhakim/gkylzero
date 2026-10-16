@@ -36,10 +36,10 @@ gkyl_vlasov_lte_new(
   enum gkyl_model_id model_id);
   
 /**
- * Create a bi-Maxwellian distribution projection object.
+ * Create a multi-temperature Maxwellian distribution projection object.
  */
 struct gkyl_dist_proj_type*
-gkyl_vlasov_bimax_new(
+gkyl_vlasov_multi_temp_max_new(
   int cdim,
   int pdim,
   int poly_order,

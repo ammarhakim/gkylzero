@@ -45,6 +45,7 @@ vlasov_lte_default(
   const double *dx,
   const int *idx,
   const double *moms,
+  const double *param,
   double *out)
 
 {
@@ -96,6 +97,7 @@ vlasov_lte_sr(
   const double *dx,
   const int *idx,
   const double *moms,
+  const double *param,
   double *out)
 {
   const struct gkyl_vlasov_lte *lte =
@@ -156,6 +158,7 @@ vlasov_lte_canonical_pb(
   const double *dx,
   const int *idx,
   const double *moms,
+  const double *param,
   double *out)
 {
   assert(false && "Canonical-PB LTE missing params");

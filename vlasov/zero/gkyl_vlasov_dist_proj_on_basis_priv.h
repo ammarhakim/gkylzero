@@ -36,6 +36,8 @@ copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
 struct gkyl_vlasov_dist_proj_on_basis {
   struct gkyl_dist_proj_type *dist_proj;
 
+  const double *param; // Array of unique distribution-specific parameters
+
   struct gkyl_rect_grid phase_grid;
   int cdim; // Configuration-space dimension
   int pdim; // Phase-space dimension
@@ -46,7 +48,7 @@ struct gkyl_vlasov_dist_proj_on_basis {
   int num_conf_basis; // number of Configuration-space basis functions
   int num_phase_basis; // number of Phase-space basis functions
 
-  int num_comp_mom; // Number of output moment components
+  int num_mom; // Number of output moment components
   bool is_relativistic; // Boolean for if we are projecting the relativistic LTE
   bool is_canonical_pb; // Boolean for if we are projecting the canonical-pb LTE
   bool use_gpu; // Boolean if we are performing projection on device.

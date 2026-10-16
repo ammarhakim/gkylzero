@@ -9,7 +9,7 @@
 
 enum gkyl_distribution_projection {
     GKYL_DIST_TYPE_LTE = 0 ,  // Local thermodynamic equilibirum
-    GKYL_DIST_TYPE_BIMAX,  // Bi-Maxwellain
+    GKYL_DIST_TYPE_MULTI_TEMP_MAX,  // Multi-temperature Maxwellian
     GKYL_DIST_TYPE_KAPPA,  // Kappa 
 };
 
@@ -22,7 +22,7 @@ struct gkyl_dist_proj_type;
 typedef void (*dist_proj_t)(const struct gkyl_dist_proj_type *dist_proj,
   const double *xc, const double *dx,   
   const int *idx, const double *moms,
-  double* out);
+  const double *param, double* out);
 
 struct gkyl_dist_proj_type {
   enum gkyl_distribution_projection dist_id; // selected distribution
@@ -84,8 +84,8 @@ void gkyl_dist_proj_type_release(const struct gkyl_dist_proj_type* dist_proj);
 void gkyl_dist_proj_type_calc(
   const struct gkyl_dist_proj_type *dist_proj,
   const double *xc, const double *dx,
-  const int *idx, const double *moms,
-  double *GKYL_RESTRICT out);
+  const int *idx, const double *moms, 
+  const double *param, double *GKYL_RESTRICT out);
 
 /**
  * Get the number of moments required by a distribution projection object.

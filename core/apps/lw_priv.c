@@ -35,11 +35,9 @@ static const struct gkyl_str_int_pair distribution_moms[] = {
 // Define distribution functions.
 static const struct gkyl_str_int_pair dist_types[] ={
   {"LTE", GKYL_DIST_TYPE_LTE}, // local thermodynamic equilibrium
-  {"BiMax", GKYL_DIST_TYPE_BIMAX}, // Bi-Maxwellian
+  {"MultiTempMax", GKYL_DIST_TYPE_MULTI_TEMP_MAX}, // Multi-temperature Maxwellian
   {"Kappa", GKYL_DIST_TYPE_KAPPA}, // Kappa 
 };
-
-
 
 // Species boundary conditions -> enum map.
 static const struct gkyl_str_int_pair species_bcs[] = {
