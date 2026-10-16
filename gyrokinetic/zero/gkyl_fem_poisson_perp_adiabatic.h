@@ -24,10 +24,10 @@ struct gkyl_fem_poisson_perp_adiabatic_inp {
   struct gkyl_poisson_bias_line_list *bias_line_list; // Biased lines (NULL if none).
   struct gkyl_array *epsilon; // Polarization weight (permittivity) tensor.
   const struct gkyl_array *kJ; // Adiabatic response coefficient K.
-  // Optional in-place projection of every right-hand side before the perpendicular solve,
-  // e.g. a smoothing along the field line (NULL for none), and its context.
-  void (*rhs_proj)(void *ctx, struct gkyl_array *rhs);
-  void *rhs_proj_ctx;
+  // Optional in-place parallel projection (e.g. a smoothing along the field line) of every
+  // right-hand side before the perpendicular solve (NULL for none), and its context.
+  void (*fem_parproj_op)(struct gkyl_array *rhs, void *ctx);
+  void *fem_parproj_ctx;
   bool use_gpu; // Whether to run on the GPU.
 };
 
@@ -49,7 +49,7 @@ struct gkyl_fem_poisson_perp_adiabatic *gkyl_fem_poisson_perp_adiabatic_inew(
 );
 
 /**
- * Solve for phi given rho. rho is overwritten by its projection if rhs_proj is set.
+ * Solve for phi given rho. rho is overwritten by its projection if fem_parproj_op is set.
  *
  * @param up Updater object.
  * @param rho Right-hand side (DG, on local).

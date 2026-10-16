@@ -314,11 +314,6 @@ gk_field_adiabatic_energy_none(
 {
 }
 
-static void
-gk_field_adiabatic_init_none(gkyl_gyrokinetic_app *app, struct gk_field *field)
-{
-}
-
 // Initialize field object.
 struct gk_field *
 gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
@@ -345,27 +340,21 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   // Initialize energy diagnostics.
   gk_field_energy_new(app, gkf);
 
-  // A species with an adiabatic response enters the field equation through its background
-  // density and K = (q_s^2 n_s0/T_s)*J instead of its charge density (see gk_field_adiabatic.c).
+  // Species with an adiabatic response enter the field equation through their background
+  // density and K = sum_s (q_s^2 n_s0/T_s)*J instead of their charge density (see
+  // gk_field_adiabatic.c).
   memset(&gkf->gk_adiab, 0, sizeof(gkf->gk_adiab));
-  gkf->gk_adiab.species_idx = -1;
-  for (int i = 0; i < app->num_species; ++i) {
-    const struct gkyl_gyrokinetic_species *inp = &app->species[i].info;
-    if (inp->scaling.type == GKYL_GK_SPECIES_SCALING_ADIABATIC) {
-      assert(gkf->gk_adiab.species_idx < 0); // Only one adiabatic species is supported.
-      gkf->gk_adiab.species_idx = i;
-    }
-  }
-  gkf->has_adiabatic_species = gkf->gk_adiab.species_idx >= 0;
-  gkf->init_adiab_func = gk_field_adiabatic_init_none;
-  gkf->accumulate_rhoc_bg_func = gk_field_accumulate_rho_c_bg_none;
-  gkf->energy_adiab_func = gk_field_adiabatic_energy_none;
   gkf->num_rhoc_species = 0;
   for (int i = 0; i < app->num_species; ++i) {
-    if (i != gkf->gk_adiab.species_idx) {
+    if (app->species[i].info.scaling.type == GKYL_GK_SPECIES_SCALING_ADIABATIC) {
+      gkf->gk_adiab.species_idx[gkf->gk_adiab.num_species++] = i;
+    } else {
       gkf->rhoc_species_idx[gkf->num_rhoc_species++] = i;
     }
   }
+  gkf->has_adiabatic_species = gkf->gk_adiab.num_species > 0;
+  gkf->accumulate_rhoc_bg_func = gk_field_accumulate_rho_c_bg_none;
+  gkf->energy_adiab_func = gk_field_adiabatic_energy_none;
 
   // Initialize the field solver
   if (gkf->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {

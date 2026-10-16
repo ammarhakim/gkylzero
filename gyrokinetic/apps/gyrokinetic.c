@@ -1178,8 +1178,10 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app *app, double t0)
     gkyl_gyrokinetic_app_apply_ic_species(app, i, t0);
   }
 
-  // Set up the response of an adiabatic species from its t=0 moments.
-  app->field->init_adiab_func(app, app->field);
+  // Set up the response of the adiabatic species from their t=0 moments.
+  if (app->field->has_adiabatic_species) {
+    gk_field_adiabatic_init(app, app->field);
+  }
 
   for (int i = 0; i < app->num_neut_species; ++i) {
     gkyl_gyrokinetic_app_apply_ic_neut_species(app, i, t0);
@@ -4391,14 +4393,16 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
     }
   }
   for (int i = 0; i < app->num_species; i++) {
-    if (app->species[i].info.is_static || 
-        (app->field->has_adiabatic_species && i == app->field->gk_adiab.species_idx)) {
+    if (app->species[i].info.is_static ||
+        app->species[i].sca.type == GKYL_GK_SPECIES_SCALING_ADIABATIC) {
       gk_species_apply_ic(app, &app->species[i], 0.0);
     }
   }
 
   // Capture the adiabatic response from the initial state before loading evolved states.
-  app->field->init_adiab_func(app, app->field);
+  if (app->field->has_adiabatic_species) {
+    gk_field_adiabatic_init(app, app->field);
+  }
 
   for (int i = 0; i < app->num_species; ++i) {
     if (!app->species[i].info.is_static) {

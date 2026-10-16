@@ -210,11 +210,11 @@ gk_species_scaling_apply_adiabatic(
   const struct gk_field *field = app->field;
   struct gkyl_array *dens = sca->dens_adiab;
 
-  // n_s*J = n_s0*J*(1 - q_s*(phi-<phi>)/T_s) = (q_s*n_s0*J - K*(phi-<phi>))/q_s, with the
-  // background charge density and K of the field (from the t=0 moments of this species).
+  // n_s*J = n_s0*J*(1 - q_s*(phi-<phi>)/T_s) = (q_s*n_s0*J - K_s*(phi-<phi>))/q_s, with the
+  // background charge density and K_s of this species (from its t=0 moments).
   field->gk_adiab.dphi_func(app, field, field->phi_smooth, dens);
-  gkyl_dg_mul_op_range(&app->basis, 0, dens, 0, field->gk_adiab.kJ, 0, dens, &app->local);
-  gkyl_array_accumulate_range(dens, -1.0, field->gk_adiab.rho_bg, &app->local);
+  gkyl_dg_mul_op_range(&app->basis, 0, dens, 0, sca->kJ, 0, dens, &app->local);
+  gkyl_array_accumulate_range(dens, -1.0, sca->rho_bg, &app->local);
   gkyl_array_scale_range(dens, -1.0 / gks->info.charge, &app->local);
 
   sca->set_density_func(app, gks, fin, dens);
@@ -310,9 +310,29 @@ gk_species_scaling_init(
     }
   } else if (sca_inp->type == GKYL_GK_SPECIES_SCALING_ADIABATIC) {
     sca->type = sca_inp->type;
+    sca->rho_bg = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    sca->kJ = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     sca->dens_adiab = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     sca->apply_func = gk_species_scaling_apply_adiabatic;
   }
+}
+
+void
+gk_species_scaling_adiabatic_init(
+  struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_scaling *sca
+)
+{
+  double q_s = gks->info.charge;
+
+  // Maxwellian moments n_s0*J, upar and T_s/m_s.
+  struct gk_species_moment *moms = &gks->lte.moms;
+  gk_species_moment_calc(app, moms, gks->local, app->local, gks->f);
+
+  gkyl_array_set_offset(sca->rho_bg, q_s, moms->marr, 0);
+  gkyl_dg_div_op_range(
+    moms->mem_geo, &app->basis, 0, sca->kJ, 0, moms->marr, 2, moms->marr, &app->local
+  );
+  gkyl_array_scale(sca->kJ, q_s * q_s / gks->info.mass);
 }
 
 void
@@ -383,6 +403,8 @@ gk_species_scaling_release(const struct gkyl_gyrokinetic_app *app, const struct 
     gkyl_array_release(sca->sheath_val);
     gkyl_array_release(sca->buffer_conf);
   } else if (sca->type == GKYL_GK_SPECIES_SCALING_ADIABATIC) {
+    gkyl_array_release(sca->rho_bg);
+    gkyl_array_release(sca->kJ);
     gkyl_array_release(sca->dens_adiab);
   }
 }

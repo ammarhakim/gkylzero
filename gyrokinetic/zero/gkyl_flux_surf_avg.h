@@ -19,16 +19,22 @@ struct gkyl_flux_surf_avg_inp {
   const struct gkyl_range *local_x; // 1D range in x of the averages.
   const struct gkyl_range *local_x_ext; // 1D extended range in x of the averages.
   const struct gkyl_array *jacobgeo; // Jacobian J weighting the average.
-  struct gkyl_comm *comm; // Communicator of the ranks decomposing the averaged directions.
+  // Whether the average is returned as a 1D (x) field. By default it is extended to a
+  // configuration-space field constant along the averaged directions.
+  bool is_deflated;
+  // Optional communicator of the ranks decomposing the averaged directions (NULL if the
+  // averaged directions are not decomposed).
+  struct gkyl_comm *comm;
   bool use_gpu; // Whether to run on the GPU.
 };
 
 /**
  * Create a new updater computing the flux-surface average (FSA)
  *   <f>(x) = int J f dy dz / int J dy dz
- * of a 2x or 3x field (R operator), and the extension of a function of x to a field constant
- * along the other directions (E operator). The averaged directions may be decomposed across
- * the ranks of comm. Free using gkyl_flux_surf_avg_release.
+ * of a 2x or 3x field (R operator). The average is returned as a 1D (x) field if is_deflated,
+ * or extended to a configuration-space field constant along the averaged directions (E
+ * operator) otherwise. The averaged directions may be decomposed across the ranks of comm.
+ * Free using gkyl_flux_surf_avg_release.
  *
  * @param inp Input parameters.
  * @return New updater pointer.
@@ -40,14 +46,14 @@ struct gkyl_flux_surf_avg *gkyl_flux_surf_avg_inew(const struct gkyl_flux_surf_a
  *
  * @param up Updater object.
  * @param fin Input field (cdim, on local).
- * @param avg Output average (1D in x, on local_x).
+ * @param out Output average (1D in x, on local_x, if is_deflated; cdim, on local, otherwise).
  */
 void gkyl_flux_surf_avg_advance(
-  struct gkyl_flux_surf_avg *up, const struct gkyl_array *fin, struct gkyl_array *avg
+  struct gkyl_flux_surf_avg *up, const struct gkyl_array *fin, struct gkyl_array *out
 );
 
 /**
- * Extend a function of x to a field constant along the other directions.
+ * Extend a function of x to a field constant along the other directions (E operator).
  *
  * @param up Updater object.
  * @param avg Input function of x (on local_x).

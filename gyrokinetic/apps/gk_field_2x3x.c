@@ -635,7 +635,7 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   }
 
   // Initialize the Poisson solver. With an adiabatic species the solver needs K, so it is
-  // created by init_adiab_func.
+  // created by gk_field_adiabatic_init.
   gkf->poisson_bcs = poisson_bcs;
   gkf->fem_poisson_perp = 0;
   if (!gkf->has_adiabatic_species) {

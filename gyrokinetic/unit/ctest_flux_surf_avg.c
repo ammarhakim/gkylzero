@@ -112,6 +112,7 @@ fsa_test_new(struct fsa_test *t, struct fsa_ctx *ctx, const int *cells, bool use
     .local_x = &t->local_x,
     .local_x_ext = &t->local_x_ext,
     .jacobgeo = t->jac,
+    .is_deflated = true,
     .comm = t->comm,
     .use_gpu = use_gpu,
   });
@@ -247,6 +248,42 @@ test_fsa(int cdim, bool use_gpu)
   err = max_abs_diff_1x(&t, psi_ho, psi_in_ho);
   TEST_CHECK(err < 1e-12);
   TEST_MSG("FSA of extension: max error %g", err);
+
+  // 4) Without is_deflated (and without a comm) the average is returned extended to cdim, so
+  // the FSA of the extension is the extension itself.
+  struct gkyl_flux_surf_avg *fsa_infl = gkyl_flux_surf_avg_inew(&(struct gkyl_flux_surf_avg_inp){
+    .grid = &t.grid,
+    .basis = t.basis,
+    .basis_x = t.basis_x,
+    .local = &t.local,
+    .local_ext = &t.local_ext,
+    .local_x = &t.local_x,
+    .local_x_ext = &t.local_x_ext,
+    .jacobgeo = t.jac,
+    .is_deflated = false,
+    .comm = NULL,
+    .use_gpu = use_gpu,
+  });
+  struct gkyl_array *phi_infl = mkarr(use_gpu, nb, t.local_ext.volume);
+  struct gkyl_array *phi_infl_ho = use_gpu ? mkarr(false, nb, t.local_ext.volume) :
+                                             gkyl_array_acquire(phi_infl);
+  gkyl_flux_surf_avg_advance(fsa_infl, phi, phi_infl);
+  gkyl_array_copy(phi_infl_ho, phi_infl);
+  err = 0.0;
+  gkyl_range_iter_init(&iter, &t.local);
+  while (gkyl_range_iter_next(&iter)) {
+    long lidx = gkyl_range_idx(&t.local, iter.idx);
+    const double *p = gkyl_array_cfetch(phi_ho, lidx);
+    const double *q = gkyl_array_cfetch(phi_infl_ho, lidx);
+    for (int k = 0; k < nb; k++) {
+      err = GKYL_MAX2(err, fabs(p[k] - q[k]));
+    }
+  }
+  TEST_CHECK(err < 1e-12);
+  TEST_MSG("Extended FSA of extension: max error %g", err);
+  gkyl_flux_surf_avg_release(fsa_infl);
+  gkyl_array_release(phi_infl);
+  gkyl_array_release(phi_infl_ho);
 
   gkyl_array_release(phi);
   gkyl_array_release(phi_ho);

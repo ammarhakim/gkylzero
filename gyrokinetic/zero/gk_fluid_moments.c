@@ -5,7 +5,7 @@
 #include <gkyl_gk_fluid_moments_priv.h>
 
 // Allocate a double array on the requested device.
-static struct gkyl_array *
+static inline struct gkyl_array *
 mkarr(bool use_gpu, long nc, long size)
 {
   return use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size) :

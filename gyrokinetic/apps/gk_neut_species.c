@@ -220,12 +220,17 @@ gk_neut_species_write_dynamic(
   // Package metadata.
   gkyl_msgpack_map_elem_set_double(gkns->io_meta_phase_len, gkns->io_meta_phase, "time", tm);
   gkyl_msgpack_map_elem_set_uint(gkns->io_meta_phase_len, gkns->io_meta_phase, "frame", frame);
-  struct gkyl_msgpack_map_elem desc_f[] = {{
-    .key = "Description",
-    .elem_type = GKYL_MP_STRING,
-    .cval = "Neutral species distribution times Jacobians.",
-  }};
-  int io_meta_len[] = {gkns->io_meta_phase_len, app->gk_geom->io_meta_basic_len, 1};
+  struct gkyl_msgpack_map_elem desc_f[] = {
+    {
+      .key = "Description",
+      .elem_type = GKYL_MP_STRING,
+      .cval = gkns->is_fluid ? "Neutral fluid moments times Jacobians." :
+                               "Neutral species distribution times Jacobians.",
+    },
+    {.key = "is_fluid", .elem_type = GKYL_MP_BOOL, .bval = gkns->is_fluid}
+  };
+  int desc_f_len = sizeof(desc_f) / sizeof(desc_f[0]);
+  int io_meta_len[] = {gkns->io_meta_phase_len, app->gk_geom->io_meta_basic_len, desc_f_len};
   const struct gkyl_msgpack_map_elem *io_meta[] = {
     gkns->io_meta_phase, app->gk_geom->io_meta_basic, desc_f
   };

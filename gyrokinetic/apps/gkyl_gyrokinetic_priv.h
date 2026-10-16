@@ -503,13 +503,8 @@ struct gk_bgk_collisions {
     gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_bgk_collisions *bgk,
     int coll_idx
   );
-  void (*cross_moms_method_func)(
-    gkyl_gyrokinetic_app *, const struct gk_species *, struct gk_bgk_collisions *,
-    const struct gkyl_array *
-  );
-  void (*cross_moms_method_implicit_func)(gkyl_gyrokinetic_app *, const struct gk_species *,
-    struct gk_bgk_collisions *, const struct gkyl_array *
-  );
+  void (*cross_moms_method_func)(gkyl_gyrokinetic_app *, const struct gk_species *, struct gk_bgk_collisions *, const struct gkyl_array *);
+  void (*cross_moms_method_implicit_func)(gkyl_gyrokinetic_app *, const struct gk_species *, struct gk_bgk_collisions *, const struct gkyl_array *);
   void (*rhs_func)(
     gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_bgk_collisions *bgk,
     const struct gkyl_array *fin, double dt, struct gkyl_array *rhs
@@ -864,6 +859,8 @@ struct gk_scaling {
     };
     struct {
       // Objects for GKYL_GK_SPECIES_SCALING_ADIABATIC.
+      struct gkyl_array *rho_bg; // Background charge density q_s n_s0 J (t=0 moments).
+      struct gkyl_array *kJ; // K_s = (q_s^2 n_s0/T_s)*J (t=0 moments).
       struct gkyl_array *dens_adiab; // Adiabatic density times J (and density ratio).
     };
   };
@@ -1602,12 +1599,13 @@ struct gk_field;
 
 // Adiabatic species response.
 struct gk_field_adiabatic {
-  int species_idx; // Index of the adiabatic species.
-  struct gkyl_array *kJ; // K = (q_s^2 n_s0/T_s)*J, from the t=0 moments of the species.
-  struct gkyl_array *rho_bg; // q_s n_s0 J, background charge density.
-  // Methods selected for the dimensionality. They set up the response once K is known,
+  int num_species; // Number of adiabatic species.
+  int species_idx[GKYL_MAX_SPECIES]; // Indices of the adiabatic species.
+  struct gkyl_array *kJ; // K = sum_s (q_s^2 n_s0/T_s)*J over the adiabatic species.
+  struct gkyl_array *rho_bg; // sum_s q_s n_s0 J, background charge density.
+  // Methods selected for the dimensionality. They initialize the response once K is known,
   // compute out = phi - <phi> (no flux-surface average in 1x), and release the response.
-  void (*setup_func)(gkyl_gyrokinetic_app *app, struct gk_field *gkf);
+  void (*init_func)(gkyl_gyrokinetic_app *app, struct gk_field *gkf);
   void (*dphi_func)(
     gkyl_gyrokinetic_app *app, const struct gk_field *gkf, const struct gkyl_array *phi,
     struct gkyl_array *out
@@ -1619,7 +1617,7 @@ struct gk_field_adiabatic {
   struct gkyl_range local_x, local_x_ext; // 1D ranges in x.
   struct gkyl_flux_surf_avg *fsa; // Flux-surface average and its extension.
   struct gkyl_fem_poisson_perp_adiabatic *solver; // Poisson solver with the adiabatic response.
-  struct gkyl_array *psi; // Flux-surface averaged potential (1D in x).
+  struct gkyl_array *phi_fsa; // Flux-surface average of phi (1D in x).
   struct gkyl_array *phi_buff; // Buffer for phi - <phi>.
 
   struct gkyl_array_integrate *calc_energy; // Computes int K (phi-<phi>)^2.
@@ -1757,8 +1755,6 @@ struct gk_field {
     gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *gks,
     struct gkyl_array **bflux
   );
-  // Pointer to function that sets up the adiabatic response from the t=0 species moments.
-  void (*init_adiab_func)(gkyl_gyrokinetic_app *app, struct gk_field *field);
   // Pointer to function that adds a background charge density (e.g. of an adiabatic species).
   void (*accumulate_rhoc_bg_func)(gkyl_gyrokinetic_app *app, struct gk_field *field);
   // Pointer to function that adds the adiabatic species energy, factor*(1/2) int K (phi-<phi>)^2.
@@ -4312,6 +4308,18 @@ void gk_species_scaling_init(
 );
 
 /**
+ * Compute the adiabatic response coefficients of the species from its current (t=0) moments:
+ * the background charge density q_s n_s0 J and K_s = (q_s^2 n_s0/T_s) J.
+ *
+ * @param app gyrokinetic app object.
+ * @param gks Species object.
+ * @param sca Recycle react scale object.
+ */
+void gk_species_scaling_adiabatic_init(
+  struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_scaling *sca
+);
+
+/**
  * Initialize the part of scaling that depends on other species.
  *
  * @param app gyrokinetic app object.
@@ -4857,6 +4865,16 @@ void gk_field_accumulate_rho_c(
   gkyl_gyrokinetic_app *app, struct gk_field *field, const struct gkyl_array *fin[],
   struct gkyl_array **bflux[]
 );
+
+/**
+ * Compute the adiabatic response (K and the background charge density) from the t=0 moments
+ * of the adiabatic species, and initialize the field solver that depends on it. Call once
+ * the species initial conditions are applied.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gkf Field object.
+ */
+void gk_field_adiabatic_init(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf);
 
 /**
  * Compute EM field.

@@ -6,9 +6,11 @@
 #include <assert.h>
 #include <time.h>
 
-// Adiabatic species response in the field equation. The species enters through its background
-// charge density and K = (q_s^2 n_s0/T_s)*J, computed from its t=0 moments. The dimensionality
-// is selected once in gk_field_adiabatic_new, which sets the methods used afterwards:
+// Adiabatic species response in the field equation. Each adiabatic species s enters through
+// its background charge density q_s n_s0 J and K_s = (q_s^2 n_s0/T_s)*J, computed from its
+// t=0 moments (see gk_species_scaling_adiabatic_init); the field holds their sums rho_bg and
+// K. The dimensionality is selected once in gk_field_adiabatic_new, which sets the methods
+// used afterwards:
 // - 1x: there is no flux-surface average and K is added to the weight of the parallel
 //   projection that solves the field equation.
 // - 2x/3x: the field equation
@@ -16,34 +18,14 @@
 //   with <phi> = int J phi dy dz / int J dy dz, is solved by the fem_poisson_perp_adiabatic
 //   updater (Woodbury identity), and the flux-surface average (FSA) and its extension are
 //   computed by flux_surf_avg.
-// Only adiabatic electrons are implemented; methods specific to them are named gk_field_adiab_elc_*.
+// Only adiabatic electrons are implemented in 2x/3x; methods specific to them are named
+// gk_field_adiab_elc_*.
 
+// Add the background charge density of the adiabatic species to rho_c.
 static void
 gk_field_adiabatic_accumulate_rho_c_bg(gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
   gkyl_array_accumulate_range(field->rho_c, 1.0, field->gk_adiab.rho_bg, &app->local);
-}
-
-// Compute the background charge density q_s*n_s0*J and K = (q_s^2 n_s0/T_s)*J from the t=0
-// moments of the adiabatic species, and set up the response for the dimensionality.
-static void
-gk_field_adiabatic_init(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
-{
-  struct gk_field_adiabatic *ad = &gkf->gk_adiab;
-  struct gk_species *gks = &app->species[ad->species_idx];
-  double q_s = gks->info.charge;
-
-  // Maxwellian moments n_s0*J, upar and T_s/m_s.
-  struct gk_species_moment *moms = &gks->lte.moms;
-  gk_species_moment_calc(app, moms, gks->local, app->local, gks->f);
-
-  gkyl_array_set_offset(ad->rho_bg, q_s, moms->marr, 0);
-  gkyl_dg_div_op_range(
-    moms->mem_geo, &app->basis, 0, ad->kJ, 0, moms->marr, 2, moms->marr, &app->local
-  );
-  gkyl_array_scale(ad->kJ, q_s * q_s / gks->info.mass);
-
-  ad->setup_func(app, gkf);
 }
 
 /** 1x: K is added to the weight of the parallel projection. **/
@@ -75,7 +57,7 @@ gk_field_adiabatic_integral(struct gkyl_gyrokinetic_app *app, const struct gkyl_
 }
 
 static void
-gk_field_adiabatic_setup_1x(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
+gk_field_adiabatic_init_1x(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
   gkyl_array_accumulate(gkf->epsilon, 1.0, gkf->gk_adiab.kJ);
   gk_field_fem_parproj_new(app, gkf, gkf->epsilon);
@@ -105,14 +87,14 @@ gk_field_adiabatic_release_1x(const gkyl_gyrokinetic_app *app, struct gk_field *
 
 // Smooth a right-hand side along z like the charge density, before each perpendicular solve.
 static void
-gk_field_adiab_elc_rhs_proj(void *ctx, struct gkyl_array *rhs)
+gk_field_adiab_elc_fem_parproj_op(struct gkyl_array *rhs, void *ctx)
 {
   gkyl_gyrokinetic_app *app = ctx;
   app->field->fem_projection_par_rho_func(app, app->field, rhs, rhs);
 }
 
 static void
-gk_field_adiab_elc_setup_2x3x(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
+gk_field_adiab_elc_init_2x3x(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
   struct gk_field_adiabatic *ad = &gkf->gk_adiab;
 
@@ -120,10 +102,10 @@ gk_field_adiab_elc_setup_2x3x(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   gkyl_cart_modal_serendip(&ad->basis_x, 1, app->poly_order);
   gkyl_range_init(&ad->local_x_ext, 1, &app->local_ext.lower[0], &app->local_ext.upper[0]);
   gkyl_sub_range_init(&ad->local_x, &ad->local_x_ext, &app->local.lower[0], &app->local.upper[0]);
-  ad->psi = mkarr(app->use_gpu, ad->basis_x.num_basis, ad->local_x_ext.volume);
+  ad->phi_fsa = mkarr(app->use_gpu, ad->basis_x.num_basis, ad->local_x_ext.volume);
   ad->phi_buff = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
-  // Flux-surface average and its extension, reduced over the ranks decomposing z.
+  // Flux-surface average (1D in x) and its extension, reduced over the ranks decomposing z.
   ad->fsa = gkyl_flux_surf_avg_inew(&(struct gkyl_flux_surf_avg_inp){
     .grid = &app->grid,
     .basis = app->basis,
@@ -133,6 +115,7 @@ gk_field_adiab_elc_setup_2x3x(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
     .local_x = &ad->local_x,
     .local_x_ext = &ad->local_x_ext,
     .jacobgeo = app->gk_geom->geo_int.jacobgeo,
+    .is_deflated = true,
     .comm = app->comm,
     .use_gpu = app->use_gpu,
   });
@@ -158,18 +141,20 @@ gk_field_adiab_elc_setup_2x3x(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
     .bias_line_list = gkf->info.bias_line_list,
     .epsilon = gkf->epsilon,
     .kJ = ad->kJ,
-    .rhs_proj = gk_field_adiab_elc_rhs_proj,
-    .rhs_proj_ctx = app,
+    .fem_parproj_op = gk_field_adiab_elc_fem_parproj_op,
+    .fem_parproj_ctx = app,
     .use_gpu = app->use_gpu,
   });
 
   gkyl_gyrokinetic_app_cout(
-    app, stdout, "Adiabatic species '%s' with FSA: m = %ld, cond_1(I-G) = %.4e, setup %.3e sec.\n",
-    app->species[ad->species_idx].info.name, ad->local_x.volume * ad->basis_x.num_basis,
-    gkyl_fem_poisson_perp_adiabatic_cond(ad->solver), gkyl_time_diff_now_sec(wst)
+    app, stdout, "Adiabatic response with FSA: m = %ld, cond_1(I-G) = %.4e, setup %.3e sec.\n",
+    ad->local_x.volume * ad->basis_x.num_basis, gkyl_fem_poisson_perp_adiabatic_cond(ad->solver),
+    gkyl_time_diff_now_sec(wst)
   );
 }
 
+// Solve the field equation with the adiabatic response, then smooth phi along z and apply the
+// FLR correction.
 static void
 gk_field_adiab_elc_rhs_phi_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
@@ -182,6 +167,7 @@ gk_field_adiab_elc_rhs_phi_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_fiel
   field->invert_flr(app, field, field->phi_smooth);
 }
 
+// Compute out = phi - <phi>, with <phi> the flux-surface average of phi.
 static void
 gk_field_adiab_elc_dphi_2x3x(
   gkyl_gyrokinetic_app *app, const struct gk_field *gkf, const struct gkyl_array *phi,
@@ -189,8 +175,8 @@ gk_field_adiab_elc_dphi_2x3x(
 )
 {
   const struct gk_field_adiabatic *ad = &gkf->gk_adiab;
-  gkyl_flux_surf_avg_advance(ad->fsa, phi, ad->psi);
-  gkyl_flux_surf_avg_inflate(ad->fsa, ad->psi, out);
+  gkyl_flux_surf_avg_advance(ad->fsa, phi, ad->phi_fsa);
+  gkyl_flux_surf_avg_inflate(ad->fsa, ad->phi_fsa, out);
   gkyl_array_scale_range(out, -1.0, &app->local);
   gkyl_array_accumulate_range(out, 1.0, phi, &app->local);
 }
@@ -226,7 +212,7 @@ gk_field_adiab_elc_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field
 
   gkyl_fem_poisson_perp_adiabatic_release(ad->solver);
   gkyl_flux_surf_avg_release(ad->fsa);
-  gkyl_array_release(ad->psi);
+  gkyl_array_release(ad->phi_fsa);
   gkyl_array_release(ad->phi_buff);
   gkyl_array_integrate_release(ad->calc_energy);
   if (app->use_gpu) {
@@ -242,27 +228,47 @@ gk_field_adiabatic_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   struct gk_field_adiabatic *ad = &gkf->gk_adiab;
 
   assert(gkf->gkfield_id == GKYL_GK_FIELD_ES);
-  assert(app->species[ad->species_idx].info.charge < 0.0); // Adiabatic ions not implemented.
 
   ad->rho_bg = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   ad->kJ = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
-  gkf->init_adiab_func = gk_field_adiabatic_init;
   gkf->accumulate_rhoc_bg_func = gk_field_adiabatic_accumulate_rho_c_bg;
   if (app->cdim > 1) {
     // Adiabatic electrons respond to phi - <phi>, only valid on closed field lines.
     assert(!app->gk_geom->has_LCFS);
     assert(!gkf->info.bias_line_list || gkf->info.bias_line_list->num_bias_line == 0);
-    ad->setup_func = gk_field_adiab_elc_setup_2x3x;
+    for (int k = 0; k < ad->num_species; k++) {
+      assert(app->species[ad->species_idx[k]].info.charge < 0.0); // Adiabatic ions not implemented.
+    }
+    ad->init_func = gk_field_adiab_elc_init_2x3x;
     ad->dphi_func = gk_field_adiab_elc_dphi_2x3x;
     ad->release_func = gk_field_adiab_elc_release_2x3x;
     gkf->rhs_phi_func = gk_field_adiab_elc_rhs_phi_2x3x;
     gkf->energy_adiab_func = gk_field_adiab_elc_energy_2x3x;
   } else {
-    ad->setup_func = gk_field_adiabatic_setup_1x;
+    ad->init_func = gk_field_adiabatic_init_1x;
     ad->dphi_func = gk_field_adiabatic_dphi_1x;
     ad->release_func = gk_field_adiabatic_release_1x;
   }
+}
+
+void
+gk_field_adiabatic_init(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
+{
+  struct gk_field_adiabatic *ad = &gkf->gk_adiab;
+
+  // Response coefficients of each adiabatic species from its t=0 moments, summed into K and
+  // the background charge density.
+  gkyl_array_clear(ad->rho_bg, 0.0);
+  gkyl_array_clear(ad->kJ, 0.0);
+  for (int k = 0; k < ad->num_species; k++) {
+    struct gk_species *gks = &app->species[ad->species_idx[k]];
+    gk_species_scaling_adiabatic_init(app, gks, &gks->sca);
+    gkyl_array_accumulate(ad->rho_bg, 1.0, gks->sca.rho_bg);
+    gkyl_array_accumulate(ad->kJ, 1.0, gks->sca.kJ);
+  }
+
+  ad->init_func(app, gkf);
 }
 
 void

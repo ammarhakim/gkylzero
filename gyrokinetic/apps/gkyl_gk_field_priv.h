@@ -103,11 +103,11 @@ void gk_field_enforce_parallel_bc_disabled(
 /** Adiabatic Species Functions **/
 
 /**
- * Set up the response of the adiabatic species: allocate its background charge density and K,
- * and select the methods for the dimensionality (a weight in the 1x parallel projection, or a
- * flux-surface average and the Woodbury solver in 2x/3x). Call after the field solver is
- * initialized. K and the dimension-specific objects are computed by init_adiab_func once the
- * initial conditions are applied.
+ * Set up the response of the adiabatic species: allocate their background charge density and
+ * K, and select the methods for the dimensionality (a weight in the 1x parallel projection, or
+ * a flux-surface average and the Woodbury solver in 2x/3x). Call after the field solver is
+ * initialized. K and the dimension-specific objects are computed by gk_field_adiabatic_init
+ * once the initial conditions are applied.
  *
  * @param app Gyrokinetic application object.
  * @param gkf Field object.

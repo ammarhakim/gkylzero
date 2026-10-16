@@ -42,8 +42,6 @@ struct ion_sound_ctx {
   double Lz; // Domain size (configuration space: z-direction).
   double vpar_max_ion; // Domain boundary (ion velocity space: parallel velocity direction).
   double mu_max_ion; // Domain boundary (ion velocity space: magnetic moment direction).
-  double vpar_max_elc; // Domain boundary (electron velocity space: parallel velocity direction).
-  double mu_max_elc; // Domain boundary (electron velocity space: magnetic moment direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
@@ -91,12 +89,6 @@ create_ctx(void)
   double mu_max_ion =
     mass_ion * pow(5.0 * vti, 2.0) /
     (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
-  double vte = sqrt(Te / mass_elc); // Electron thermal velocity.
-  double vpar_max_elc =
-    6.0 * vte; // Domain boundary (electron velocity space: parallel velocity direction).
-  double mu_max_elc =
-    mass_elc * pow(5.0 * vte, 2.0) /
-    (2.0 * B0); // Domain boundary (electron velocity space: magnetic moment direction).
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
@@ -131,8 +123,6 @@ create_ctx(void)
     .Lz = Lz,
     .vpar_max_ion = vpar_max_ion,
     .mu_max_ion = mu_max_ion,
-    .vpar_max_elc = vpar_max_elc,
-    .mu_max_elc = mu_max_elc,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,

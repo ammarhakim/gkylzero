@@ -8,15 +8,15 @@
 #include <assert.h>
 #include <math.h>
 
-static struct gkyl_array *
-fem_poisson_perp_adiabatic_mkarr(bool use_gpu, long ncomp, long size)
+static inline struct gkyl_array *
+mkarr(bool use_gpu, long ncomp, long size)
 {
   return use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, ncomp, size) :
                    gkyl_array_new(GKYL_DOUBLE, ncomp, size);
 }
 
 static void
-fem_poisson_perp_adiabatic_rhs_proj_none(void *ctx, struct gkyl_array *rhs)
+fem_poisson_perp_adiabatic_fem_parproj_op_none(struct gkyl_array *rhs, void *ctx)
 {
 }
 
@@ -26,7 +26,7 @@ fem_poisson_perp_adiabatic_helmholtz_solve(
   struct gkyl_fem_poisson_perp_adiabatic *up, struct gkyl_array *rhs, struct gkyl_array *phi
 )
 {
-  up->rhs_proj(up->rhs_proj_ctx, rhs);
+  up->fem_parproj_op(rhs, up->fem_parproj_ctx);
   gkyl_fem_poisson_perp_set_rhs(up->helmholtz, rhs);
   gkyl_fem_poisson_perp_solve(up->helmholtz, phi);
 }
@@ -82,19 +82,20 @@ gkyl_fem_poisson_perp_adiabatic_inew(const struct gkyl_fem_poisson_perp_adiabati
   up->local_x = *inp->local_x;
   up->fsa = inp->fsa;
   up->kJ = gkyl_array_acquire(inp->kJ);
-  up->rhs_proj = inp->rhs_proj ? inp->rhs_proj : fem_poisson_perp_adiabatic_rhs_proj_none;
-  up->rhs_proj_ctx = inp->rhs_proj_ctx;
+  up->fem_parproj_op = inp->fem_parproj_op ? inp->fem_parproj_op :
+                                             fem_poisson_perp_adiabatic_fem_parproj_op_none;
+  up->fem_parproj_ctx = inp->fem_parproj_ctx;
 
   int nb = up->basis.num_basis, nb_x = inp->basis_x.num_basis;
   long vol = inp->local_ext->volume;
-  up->phi_buff = fem_poisson_perp_adiabatic_mkarr(use_gpu, nb, vol);
-  up->rhs_buff = fem_poisson_perp_adiabatic_mkarr(use_gpu, nb, vol);
-  up->phi_rhs0 = fem_poisson_perp_adiabatic_mkarr(use_gpu, nb, vol);
-  up->psi = fem_poisson_perp_adiabatic_mkarr(use_gpu, nb_x, inp->local_x_ext->volume);
+  up->phi_buff = mkarr(use_gpu, nb, vol);
+  up->rhs_buff = mkarr(use_gpu, nb, vol);
+  up->phi_rhs0 = mkarr(use_gpu, nb, vol);
+  up->psi = mkarr(use_gpu, nb_x, inp->local_x_ext->volume);
 
   // Helmholtz solver for H = L + K. The solver subtracts kSq*phi, so kSq = -K; it keeps its
   // own copy of kSq.
-  struct gkyl_array *kSq = fem_poisson_perp_adiabatic_mkarr(use_gpu, nb, vol);
+  struct gkyl_array *kSq = mkarr(use_gpu, nb, vol);
   gkyl_array_set(kSq, -1.0, up->kJ);
   up->helmholtz = gkyl_fem_poisson_perp_new(
     &up->local, inp->grid, up->basis, inp->bcs, inp->bias_line_list, inp->epsilon, kSq, use_gpu
@@ -108,15 +109,15 @@ gkyl_fem_poisson_perp_adiabatic_inew(const struct gkyl_fem_poisson_perp_adiabati
   // Zonal system A = I - G, G = R H^{-1} K E. Column j of G is R H^{-1} K E e_j, so assembling
   // it requires m Helmholtz solves, one per zonal degree of freedom.
   int m = up->local_x.volume * nb_x;
-  up->zonal_rhs = fem_poisson_perp_adiabatic_mkarr(use_gpu, m, 1);
-  up->zonal_sol = fem_poisson_perp_adiabatic_mkarr(use_gpu, m, 1);
-  struct gkyl_array *zonal_ho = fem_poisson_perp_adiabatic_mkarr(false, m, 1);
-  double *zonal_vec = zonal_ho->data;
+  up->zonal_rhs = mkarr(use_gpu, m, 1);
+  up->zonal_sol = mkarr(use_gpu, m, 1);
+  struct gkyl_array *zonal_ho = mkarr(false, m, 1);
+  double *zonal_vec_ho = zonal_ho->data;
   struct gkyl_mat *zonal_mat = gkyl_mat_new(m, m, 0.0);
   for (int j = 0; j < m; j++) {
     // psi = e_j.
     gkyl_array_clear(zonal_ho, 0.0);
-    zonal_vec[j] = 1.0;
+    zonal_vec_ho[j] = 1.0;
     gkyl_array_copy(up->zonal_sol, zonal_ho);
     gkyl_array_copy_from_buffer(up->psi, up->zonal_sol->data, &up->local_x);
 
@@ -131,7 +132,7 @@ gkyl_fem_poisson_perp_adiabatic_inew(const struct gkyl_fem_poisson_perp_adiabati
     gkyl_array_copy_to_buffer(up->zonal_rhs->data, up->psi, &up->local_x);
     gkyl_array_copy(zonal_ho, up->zonal_rhs);
     for (int i = 0; i < m; i++) {
-      gkyl_mat_set(zonal_mat, i, j, (i == j ? 1.0 : 0.0) - zonal_vec[i]);
+      gkyl_mat_set(zonal_mat, i, j, (i == j ? 1.0 : 0.0) - zonal_vec_ho[i]);
     }
   }
 

@@ -70,7 +70,6 @@ struct gk_app_ctx {
   int Nx, Ny, Nz, Nvpar, Nmu;
   int cells[GKYL_MAX_DIM], poly_order;
   double vpar_max_ion, mu_max_ion;
-  double vpar_max_elc, mu_max_elc;
   // Simulation control parameters
   double t_end, write_phase_freq;
   int num_frames, int_diag_calc_num, num_failures_max;
@@ -428,7 +427,7 @@ temp_init_ion(double x, void *ctx)
 }
 
 double
-maxellian(double m, double n, double T, double E)
+maxwellian(double m, double n, double T, double E)
 {
   return n / pow(2 * M_PI * T / m, 1.5) * exp(-E / T);
 }
@@ -459,7 +458,7 @@ eval_canon_maxwellian_i(
 
   double energy = 0.5 * m * pow(vpar, 2) + mu * Bmag(r, theta, ctx);
 
-  fout[0] = maxellian(m, dens, temp, energy);
+  fout[0] = maxwellian(m, dens, temp, energy);
 }
 
 void
@@ -636,9 +635,6 @@ create_ctx(void)
   // Velocity box dimensions
   double vpar_max_ion = 4. * vti;
   double mu_max_ion = 7 * Ti0 / B0;
-  // Adiabatic electron velocity box.
-  double vpar_max_elc = 4. * vte;
-  double mu_max_elc = 7 * Te0 / B0;
   double t_end = 0.01 * t_itg;
   int num_frames = 1;
   double write_phase_freq = 1.0;
@@ -705,8 +701,6 @@ create_ctx(void)
     .poly_order = poly_order,
     .vpar_max_ion = vpar_max_ion,
     .mu_max_ion = mu_max_ion,
-    .vpar_max_elc = vpar_max_elc,
-    .mu_max_elc = mu_max_elc,
     .write_phase_freq = write_phase_freq,
     .t_end = t_end,
     .num_frames = num_frames,

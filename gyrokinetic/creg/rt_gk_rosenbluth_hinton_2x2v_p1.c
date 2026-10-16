@@ -67,7 +67,6 @@ struct gk_app_ctx {
   int Nx, Nz, Nvpar, Nmu;
   int cells[GKYL_MAX_DIM], poly_order;
   double vpar_max_ion, mu_max_ion;
-  double vpar_max_elc, mu_max_elc;
   double nu_star,
     nu_ion; // Ion collisionality nu_ii q R_axis/(eps^{3/2} v_ti) and the LBO frequency; 0 = collisionless.
   // Simulation control parameters
@@ -436,7 +435,7 @@ create_ctx(void)
   double Ti0 = 2000 * eV;
   double n0 = 4.5e19; // [1/m^3] according to Fig 5 of Greenfield et al. 1997.
 
-  double vte = sqrt(Te0 / me), vti = sqrt(Ti0 / mi); // Thermal speeds.
+  double vti = sqrt(Ti0 / mi); // Ion thermal speed.
   double c_s = sqrt(Te0 / mi);
   double omega_ci = fabs(qi * B_axis / mi);
   double rho_s = c_s / omega_ci;
@@ -486,9 +485,6 @@ create_ctx(void)
   // Velocity box dimensions
   double vpar_max_ion = 3. * vti * sqrt(2); // GENE normalizes with sqrt(2T/m)
   double mu_max_ion = 9. * Ti0 / B_axis; // GENE uses B_axis as reference field.
-  // Adiabatic electron velocity box.
-  double vpar_max_elc = 3. * vte * sqrt(2);
-  double mu_max_elc = 9. * Te0 / B_axis;
   // Optional ion-ion LBO collisions, nu_star = nu_ii q R_axis/(eps^{3/2} v_ti) with v_ti = sqrt(Ti/mi).
   double nu_star = 0.0;
   double nu_ion = nu_star * pow(inv_asp_ratio, 1.5) * vti / (q0 * R_axis);
@@ -541,8 +537,6 @@ create_ctx(void)
     .poly_order = poly_order,
     .vpar_max_ion = vpar_max_ion,
     .mu_max_ion = mu_max_ion,
-    .vpar_max_elc = vpar_max_elc,
-    .mu_max_elc = mu_max_elc,
     .nu_star = nu_star,
     .nu_ion = nu_ion,
     .write_phase_freq = write_phase_freq,

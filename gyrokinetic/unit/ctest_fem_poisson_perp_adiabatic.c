@@ -180,6 +180,7 @@ slab_new(struct slab *sl, const struct sol_ctx *ctx, const int *cells, bool use_
     .local_x = &sl->local_x,
     .local_x_ext = &sl->local_x_ext,
     .jacobgeo = sl->jac,
+    .is_deflated = true,
     .comm = sl->comm,
     .use_gpu = use_gpu,
   });
