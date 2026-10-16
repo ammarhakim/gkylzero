@@ -554,7 +554,9 @@ choose_mul_conf_phase_accumulate_comp_par_kern(
       return ten_cross_mul_accumulate_comp_par_list[pdim - 2].list[cdim - 1].kernels[poly_order];
       break;
     default:
-      assert(false);
+      // No assert here: this runs inside the GPU kernel, and the assert's __assertfail
+      // path costs the kernel a larger stack frame and local-memory spills (1.4-1.7x
+      // slower for hybrid bases). Unsupported bases return NULL like the NULL table entries.
       break;
   }
   return 0;

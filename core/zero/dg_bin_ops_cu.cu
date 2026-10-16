@@ -174,17 +174,29 @@ gkyl_dg_mul_conf_phase_op_range_cu(
   );
 }
 
+// Maximum number of components (rows of 32 cells) in a block of the comp_par launches.
+// The comp_par kernels are register-capped (BINOP_MAX_REGS=64 in the top-level
+// Makefile), so 512-thread blocks keep two blocks resident per SM.
+#define DG_BIN_OPS_COMP_PAR_ROWS 16
+
 static void
 gkyl_parallelize_components_kernel_launch_dims(
-  dim3 *dimGrid, dim3 *dimBlock, gkyl_range range, int ncomp
+  dim3 *dimGrid, dim3 *dimBlock, gkyl_range range, int ncomp, int max_threads
 )
 {
   // Create a 2D thread grid so we launch ncomp*range.volume number of threads
-  // so we can parallelize over components too
-  dimBlock->y = ncomp; // ncomp *must* be less than 256
-  dimGrid->y = 1;
-  dimBlock->x = GKYL_DEFAULT_NUM_THREADS / ncomp;
-  dimGrid->x = gkyl_int_div_up(range.volume, dimBlock->x);
+  // so we can parallelize over components too. Each warp covers 32 cells of a single
+  // component, so the per-component branches of the comp_par kernels don't diverge, and a
+  // block covers up to DG_BIN_OPS_COMP_PAR_ROWS consecutive components of the same cells,
+  // so its warps share the cache lines of those cells' coefficients.
+  // Component groups run along the grid x and cells along the grid y (grid-stride), so the
+  // blocks covering all components of the same cells run together and share their data in cache.
+  // max_threads is the largest block the compiled kernel can launch with; a larger block
+  // (e.g. a build without the register cap) would fail to launch without an error.
+  dimBlock->x = 32;
+  dimBlock->y = GKYL_MIN2(GKYL_MIN2(ncomp, DG_BIN_OPS_COMP_PAR_ROWS), max_threads / 32);
+  dimGrid->x = gkyl_int_div_up(ncomp, dimBlock->y);
+  dimGrid->y = GKYL_MIN2(gkyl_int_div_up(range.volume, dimBlock->x), 65535);
 }
 
 __global__ void
@@ -202,9 +214,10 @@ gkyl_dg_mul_conf_phase_op_accumulate_range_cu_kernel(
     choose_mul_conf_phase_accumulate_comp_par_kern(pbasis.b_type, cdim, vdim, poly_order);
 
   int pidx[GKYL_MAX_DIM];
-  long linc2 = threadIdx.y + blockIdx.y * blockDim.y;
-  for (unsigned long linc1 = threadIdx.x + blockIdx.x * blockDim.x; linc1 < prange.volume;
-       linc1 += gridDim.x * blockDim.x) {
+  // Components along the grid x, cells along the grid y (see gkyl_parallelize_components_kernel_launch_dims).
+  long linc2 = threadIdx.y + blockIdx.x * blockDim.y;
+  for (unsigned long linc1 = threadIdx.x + blockIdx.y * blockDim.x; linc1 < prange.volume;
+       linc1 += gridDim.y * blockDim.x) {
     // inverse index from linc1 to idx
     // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
     // since update_range is a subrange
@@ -236,9 +249,17 @@ gkyl_dg_mul_conf_phase_op_accumulate_range_cu(
   const struct gkyl_range *crange, const struct gkyl_range *prange
 )
 {
+  // Largest block the kernel can launch with its (link-time) register count.
+  static int max_threads = 0;
+  if (max_threads == 0) {
+    struct cudaFuncAttributes attr;
+    checkCuda(cudaFuncGetAttributes(&attr, gkyl_dg_mul_conf_phase_op_accumulate_range_cu_kernel));
+    max_threads = attr.maxThreadsPerBlock;
+  }
   dim3 dimGrid, dimBlock;
   int num_phase_basis = pbasis->num_basis;
-  gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *prange, num_phase_basis);
+  gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *prange, num_phase_basis,
+    max_threads);
   gkyl_dg_mul_conf_phase_op_accumulate_range_cu_kernel<<<dimGrid, dimBlock>>>(
     *cbasis, *pbasis, pout->on_dev, a, cop->on_dev, pop->on_dev, *crange, *prange
   );

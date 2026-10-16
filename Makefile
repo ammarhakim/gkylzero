@@ -135,16 +135,22 @@ endif
 # covers a whole family: MOM_MAX_REGS applies to the moment and LBO boundary-correction
 # kernels, wrappers and advance kernels of the vlasov, gyrokinetic and pkpm solvers;
 # FLUX_MAX_REGS to the vlasov flux kernels (ker/flux_vlasov/) and the
-# dg_vlasov_{vel,conf}_flux_surf advance kernels. The hyper_dg volume/surface kernels
-# are dense straight-line code and are left alone. Set MOM_MAX_REGS= or FLUX_MAX_REGS=
-# (empty) in config.mak or on the make command line to disable a cap.
+# dg_vlasov_{vel,conf}_flux_surf advance kernels; BINOP_MAX_REGS to the bin_op
+# conf*phase multiply-accumulate kernels parallelized over components (the largest,
+# 3x1v ser p3, otherwise sets every basis to 156 registers). The hyper_dg
+# volume/surface kernels are dense straight-line code and are left alone. Set
+# MOM_MAX_REGS=, FLUX_MAX_REGS= or BINOP_MAX_REGS= (empty) in config.mak or on the make
+# command line to disable a cap.
 MOM_MAX_REGS ?= 64
 FLUX_MAX_REGS ?= 128
+BINOP_MAX_REGS ?= 64
 NVCC_MOM_FLAGS =
 NVCC_FLUX_FLAGS =
+NVCC_BINOP_FLAGS =
 ifdef USING_NVCC
 	NVCC_MOM_FLAGS = $(if $(MOM_MAX_REGS),-maxrregcount=$(MOM_MAX_REGS))
 	NVCC_FLUX_FLAGS = $(if $(FLUX_MAX_REGS),-maxrregcount=$(FLUX_MAX_REGS))
+	NVCC_BINOP_FLAGS = $(if $(BINOP_MAX_REGS),-maxrregcount=$(BINOP_MAX_REGS))
 endif
 
 CFLAGS += ${HAVE_APP_FLAGS}
@@ -265,7 +271,7 @@ MKDIR_P ?= mkdir -p
 
 export CC CFLAGS ARCH_FLAGS CUDA_ARCH LDFLAGS BUILD_DIR KERNELS_DIR
 export PREFIX INSTALL_PREFIX PROJ_NAME UNAME
-export USING_NVCC NVCC_FLAGS NVCC_MOM_FLAGS NVCC_FLUX_FLAGS CUDA_LIBS SQL_CFLAGS CUDAMATH_LIBDIR
+export USING_NVCC NVCC_FLAGS NVCC_MOM_FLAGS NVCC_FLUX_FLAGS NVCC_BINOP_FLAGS CUDA_LIBS SQL_CFLAGS CUDAMATH_LIBDIR
 export USING_MPI MPI_INC_DIR MPI_LIB_DIR MPI_LIBS MPI_RPATH
 export USING_NCCL NCCL_INC_DIR NCCL_LIB_DIR NCCL_LIBS
 export USING_CUDSS CUDSS_INC_DIR CUDSS_LIB_DIR CUDSS_LIBS CUDSS_RPATH
