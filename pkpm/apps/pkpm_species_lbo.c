@@ -28,6 +28,7 @@ pkpm_species_lbo_init(
   gkyl_proj_on_basis_release(proj);
   gkyl_array_copy(lbo->self_nu, self_nu);
   gkyl_array_copy(lbo->nu_sum, self_nu);
+  // The configuration pass of the kinetic update reads the collisionality sum.
   gkyl_array_release(self_nu);
 
   lbo->spitzer_calc = 0;

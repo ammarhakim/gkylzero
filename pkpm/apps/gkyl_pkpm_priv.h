@@ -20,15 +20,18 @@
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_em_vars.h>
 #include <gkyl_dg_calc_pkpm_em_coupling.h>
+#include <gkyl_dg_calc_pkpm_bvar.h>
 #include <gkyl_dg_calc_pkpm_vars.h>
-#include <gkyl_dg_calc_pkpm_dist_vars.h>
-#include <gkyl_dg_euler_pkpm.h>
+#include <gkyl_dg_pkpm_conf_flux_surf.h>
+#include <gkyl_dg_pkpm_fluid.h>
+#include <gkyl_dg_pkpm_fluid_flux_surf.h>
+#include <gkyl_dg_pkpm_kinetic_conf.h>
+#include <gkyl_dg_pkpm_kinetic_vel.h>
+#include <gkyl_dg_pkpm_vel_flux_surf.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_updater_diffusion_fluid.h>
 #include <gkyl_dg_updater_lbo_pkpm.h>
 #include <gkyl_dg_updater_moment_pkpm.h>
-#include <gkyl_dg_updater_pkpm.h>
-#include <gkyl_dg_vlasov_pkpm.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_eval_on_nodes.h>
@@ -168,47 +171,41 @@ struct pkpm_species {
   struct pkpm_species_moment pkpm_moms; // for computing pkpm moments needed in update
   struct pkpm_species_moment pkpm_moms_diag; // for computing pkpm moments diagnostics
 
-  // PKPM distribution function variables
+  // Refactored (p=1) PKPM update variables.
+  struct gkyl_array *pkpm_u; // flow velocity [ux, uy, uz] by weak division
+  struct gkyl_array *pkpm_grad_u; // weak (surface-averaged) gradient of u, cdim x 3 expansions
+  struct gkyl_array *pkpm_theta; // T_perp/m by nodal quotient
+  struct gkyl_array *pkpm_a_P; // pressure force closing the first v_par moment
+  struct gkyl_array *pkpm_rhs_moms; // moments of the configuration-pass right-hand side (separate scratch)
+  struct gkyl_array *pkpm_p_ij; // p=1 projection of the pressure tensor (limiter scratch only)
+  struct gkyl_array *pkpm_nu_sum; // collisionality sum (alias of the LBO array, or zeros)
+  struct gkyl_array *pkpm_nu_vthsq_sum; // (nu vth^2)_sum for the G source (from the LBO, or zeros)
   struct gkyl_array
-    *g_dist_source; // g_dist_source = [2.0*T_perp/m*(2.0*T_perp/m G + T_perp/m (F_2 - F_0)),
-  //                 (-vpar div(b) + bb:grad(u) - div(u) - 2 nu) T_perp/m G + 2 nu vth^2 F_0 ]
-  struct gkyl_array *F_k_p_1; // k+1 distribution function (first NP components are F_2)
-  struct gkyl_array *F_k_m_1; // k-1 distribution function (first NP components are F_1)
-
-  // PKPM variables
-  struct gkyl_array
-    *pkpm_div_ppar; // div(p_parallel b_hat) used for computing self-consistent total pressure force
-  struct gkyl_array *pkpm_prim; // [ux, uy, uz, 1/rho*div(p_par b), T_perp/m, m/T_perp]
-  struct gkyl_array *pkpm_prim_surf; // Surface primitive variables. Ordered as:
-    // [ux_xl, ux_xr, uy_xl, uy_xr, uz_xl, uz_xr, 3.0*Txx_xl/m, 3.0*Txx_xr/m,
-    //  ux_yl, ux_yr, uy_yl, uy_yr, uz_yl, uz_yr, 3.0*Tyy_yl/m, 3.0*Tyy_yr/m,
-    //  ux_zl, ux_zr, uy_zl, uy_zr, uz_zl, uz_zr, 3.0*Tzz_zl/m, 3.0*Tzz_zr/m]
-  struct gkyl_array *pkpm_u; // [ux, uy, uz]
-  struct gkyl_array *pkpm_p_ij; // (p_par - p_perp) b_i b_j + p_perp g_ij
-  struct gkyl_array
-    *cell_avg_prim; // Integer array for whether rho, p_par, or p_perp < 0.0 at control points
-  // *only* currently used for diagnostic purposes
-  struct gkyl_array *pkpm_accel; // Acceleration variables for PKPM, pkpm_accel:
-    // 0: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
-    // 1: bb_grad_u (bb : grad(u))
-    // 2: p_force (total pressure forces in kinetic equation 1/rho div(p_parallel b_hat) - T_perp/m*div(b)
-    // 3: p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - 2*nu)
+    *cell_avg_prim; // Integer array for whether rho is negative at control points (diagnostic only)
+  struct gkyl_array *conf_flux_surf; // stored modal configuration-space kinetic fluxes
+  struct gkyl_array *vel_flux_surf; // stored modal v_par kinetic fluxes
+  struct gkyl_array *fluid_flux_surf; // stored modal momentum fluxes
+  struct gkyl_array *pkpm_roe_mass_flux; // mass flux of the momentum solve, per configuration face
+  struct gkyl_array *pkpm_kin_mass_flux; // kinetic mass flux share of each phase-space cell
+  struct gkyl_array *pkpm_kin_mass_flux_face; // kinetic mass flux per configuration face
   struct gkyl_array *
     integ_pkpm_mom; // integrated PKPM variables [rho, rho ux, rho uy, rho uz, rho ux^2, rho uy^2, rho uz^2, p_par, p_perp]
 
-  // Note: Each cell owns the *lower* surface expansions for pkpm_lax and pkpm_penalization
-  struct gkyl_array
-    *pkpm_lax; // Surface expansion of Lax penalization lambda_i = |u_i| + sqrt(3.0*T_ii/m)
-  struct gkyl_array *pkpm_penalization; // Surface expansion of total momentum penalization
-
+  struct gkyl_dg_calc_pkpm_vars *calc_pkpm_vars; // Updater for primitive variables over the local range
   struct gkyl_dg_calc_pkpm_vars
-    *calc_pkpm_vars; // Updater to compute PKPM variables (primitive and acceleration variables)
-  struct gkyl_dg_calc_pkpm_vars
-    *calc_pkpm_vars_ext; // Updater to compute PKPM variables (primitive and acceleration variables)
-  // over extended range (used when BCs are not absorbing to minimize apply BCs calls)
-  struct gkyl_dg_calc_pkpm_dist_vars
-    *calc_pkpm_dist_vars; // Updater to compute PKPM distribution function variables
-  // div(p_parallel b_hat) and distribution function sources
+    *calc_pkpm_vars_ext; // Same over the extended range (used when BCs are not absorbing)
+  struct gkyl_dg_pkpm_conf_flux_surf *calc_conf_flux; // configuration-space HLL flux updater
+  struct gkyl_dg_pkpm_vel_flux_surf *calc_vel_flux; // v_par flux updater
+  struct gkyl_dg_pkpm_fluid_flux_surf *calc_fluid_flux; // momentum flux updater
+  struct gkyl_dg_eqn *eqn_kinetic_conf; // configuration pass (stage A) equation object
+  struct gkyl_dg_eqn *eqn_kinetic_vel; // velocity pass (stage B) equation object
+  struct gkyl_dg_eqn *eqn_fluid; // momentum equation object
+  gkyl_hyper_dg *slvr_kinetic_conf; // hyper_dg over the configuration directions
+  gkyl_hyper_dg *slvr_kinetic_vel; // hyper_dg over v_par
+  gkyl_hyper_dg *slvr_fluid; // hyper_dg for the momentum equation
+  double kinetic_tm; // time spent in the kinetic right-hand side
+  double fluid_tm; // time spent in the momentum right-hand side
+  long num_null_rho; // accumulated count of nodes with an inadmissible density in the closure
 
   bool limit_fluid; // boolean for whether or not we are limiting fluid variables
 
@@ -227,8 +224,6 @@ struct pkpm_species {
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
   bool is_first_integ_L2_write_call; // flag for integrated L^2 norm dynvec written first time
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
-
-  gkyl_dg_updater_pkpm *slvr; // PKPM solver for both momentum and kinetic equation
 
   // boundary conditions on lower/upper edges in each direction
   enum gkyl_species_bc_type lower_bc[3], upper_bc[3];
@@ -297,16 +292,9 @@ struct pkpm_field {
   struct gkyl_array *app_current_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *app_current_proj; // projector for applied current
 
-  struct gkyl_array
-    *cell_avg_magB2; // Integer array for whether |B|^2 *only* uses cell averages for weak division
-  // Determined when constructing the matrix if |B|^2 < 0.0 at control points
-  struct gkyl_array
-    *bvar; // magnetic field unit vector and tensor (diagnostic and for use in pkpm model)
-  struct gkyl_array
-    *bvar_surf; // Surface expansion magnetic field unit vector and tensor (for use in pkpm model)
-  struct gkyl_array *div_b; // Volume expansion of div(b) (for use in pkpm model)
-  struct gkyl_array *max_b; // max(|b_i|) penalization (for use in pkpm model)
-  struct gkyl_dg_calc_em_vars *calc_bvar; // Updater to compute magnetic field unit vector and tensor
+  struct gkyl_array *bvar; // magnetic field unit vector b = B/|B| [bx, by, bz] (p=1)
+  struct gkyl_array *grad_b; // weak (surface-averaged) gradient of b, cdim x 3 expansions
+  struct gkyl_dg_calc_pkpm_bvar *calc_bvar; // Updater computing b by nodal normalization
 
   bool limit_em; // boolean for whether or not we are limiting EM fields
   struct gkyl_dg_calc_em_vars *calc_em_vars; // Updater to limit EM fields
@@ -450,6 +438,20 @@ void pkpm_species_moment_calc(
 );
 
 /**
+ * Calculate moments of an arbitrary phase-space array into a separate output array.
+ *
+ * @param sm Species moment object
+ * @param phase_rng Phase-space range
+ * @param conf_rng Configuration-space range
+ * @param fin Input phase-space array
+ * @param mout Output moment array
+ */
+void pkpm_species_moment_calc_into(
+  const struct pkpm_species_moment *sm, const struct gkyl_range phase_rng,
+  const struct gkyl_range conf_rng, const struct gkyl_array *fin, struct gkyl_array *mout
+);
+
+/**
  * Release species moment object.
  *
  * @param app PKPM app object
@@ -583,16 +585,17 @@ void pkpm_species_calc_pkpm_vars(
 );
 
 /**
- * Compute parallel-kinetic-perpendicular-moment (pkpm) model update variables
- * These are the acceleration variables in the kinetic equation and 
- * the source distribution functions for Laguerre couplings.
+ * Compute the diagnostic variables that need the configuration pass (the pressure
+ * force a_P), for output. Uses the species scratch arrays.
  *
  * @param app PKPM app object
  * @param species Species object
  * @param fin Input distribution function
+ * @param fluidin Input fluid species array
  */
-void pkpm_species_calc_pkpm_update_vars(
-  gkyl_pkpm_app *app, struct pkpm_species *species, const struct gkyl_array *fin
+void pkpm_species_calc_diag_vars(
+  gkyl_pkpm_app *app, struct pkpm_species *species, const struct gkyl_array *fin,
+  const struct gkyl_array *fluidin
 );
 
 /**

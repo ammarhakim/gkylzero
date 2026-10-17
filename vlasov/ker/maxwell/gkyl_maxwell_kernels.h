@@ -17,6 +17,7 @@ GKYL_CU_DH double maxwell_surfx_1x_ser_p2(const gkyl_maxwell_inp *meq, const dou
 GKYL_CU_DH double maxwell_vol_1x_ser_p3(const gkyl_maxwell_inp *meq, const double *w, const double *dx, const double *jacob_pos, const double *q, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double maxwell_surfx_1x_ser_p3(const gkyl_maxwell_inp *meq, const double *w, const double *dx, const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r, const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out); 
 
+GKYL_CU_DH int em_bvar_nodal_1x_ser_p1(const double *em, double* GKYL_RESTRICT b); 
 GKYL_CU_DH void em_calc_BB_1x_ser_p1(const double *em, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void em_calc_num_ExB_1x_ser_p1(const double *em, double* GKYL_RESTRICT out); 
 GKYL_CU_DH int em_set_bvar_1x_ser_p1(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *BB); 
@@ -68,6 +69,7 @@ GKYL_CU_DH double maxwell_vol_2x_ser_p3(const gkyl_maxwell_inp *meq, const doubl
 GKYL_CU_DH double maxwell_surfx_2x_ser_p3(const gkyl_maxwell_inp *meq, const double *w, const double *dx, const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r, const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double maxwell_surfy_2x_ser_p3(const gkyl_maxwell_inp *meq, const double *w, const double *dx, const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r, const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out); 
 
+GKYL_CU_DH int em_bvar_nodal_2x_ser_p1(const double *em, double* GKYL_RESTRICT b); 
 GKYL_CU_DH void em_calc_BB_2x_ser_p1(const double *em, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void em_calc_num_ExB_2x_ser_p1(const double *em, double* GKYL_RESTRICT out); 
 GKYL_CU_DH int em_set_bvar_2x_ser_p1(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *BB); 
@@ -95,6 +97,7 @@ GKYL_CU_DH double maxwell_surfx_3x_ser_p2(const gkyl_maxwell_inp *meq, const dou
 GKYL_CU_DH double maxwell_surfy_3x_ser_p2(const gkyl_maxwell_inp *meq, const double *w, const double *dx, const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r, const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double maxwell_surfz_3x_ser_p2(const gkyl_maxwell_inp *meq, const double *w, const double *dx, const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r, const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out); 
 
+GKYL_CU_DH int em_bvar_nodal_3x_ser_p1(const double *em, double* GKYL_RESTRICT b); 
 GKYL_CU_DH void em_calc_BB_3x_ser_p1(const double *em, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void em_calc_num_ExB_3x_ser_p1(const double *em, double* GKYL_RESTRICT out); 
 GKYL_CU_DH int em_set_bvar_3x_ser_p1(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *BB); 

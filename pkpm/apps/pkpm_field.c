@@ -128,24 +128,11 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
     &app->grid, &app->confBasis, eqn, app->cdim, up_dirs, zero_flux_flags, 1, app->use_gpu
   );
 
-  // Allocate arrays for diagonstics/parallel-kinetic-perpendicular-moment arrays:
-  // bvar = magnetic field unit vector (first 3 components) and unit tensor (last 6 components)
-  // ExB = E x B velocity, E x B/|B|^2
-  f->cell_avg_magB2 = mk_int_arr(app->use_gpu, 1, app->local_ext.volume);
-  f->bvar = mkarr(app->use_gpu, 9 * app->confBasis.num_basis, app->local_ext.volume);
-  // Surface magnetic field vector organized as:
-  // [bx_xl, bx_xr, bxbx_xl, bxbx_xr, bxby_xl, bxby_xr, bxbz_xl, bxbz_xr,
-  //  by_yl, by_yr, bxby_yl, bxby_yr, byby_yl, byby_yr, bybz_yl, bybz_yr,
-  //  bz_zl, bz_zr, bxbz_zl, bxbz_zr, bybz_zl, bybz_zr, bzbz_zl, bzbz_zr]
-  int cdim = app->cdim;
-  int Ncomp_surf = 2 * cdim * 4;
-  int Nbasis_surf = app->confBasis.num_basis /
-                    (app->confBasis.poly_order + 1); // *only valid for tensor bases for cdim > 1*
-  f->bvar_surf = mkarr(app->use_gpu, Ncomp_surf * Nbasis_surf, app->local_ext.volume);
-  // Volume expansion of div(b)
-  f->div_b = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  // Surface expansion of max b penalization for streaming in PKPM system max(|b_i_l|, |b_i_r|)
-  f->max_b = mkarr(app->use_gpu, 2 * cdim * Nbasis_surf, app->local_ext.volume);
+  // Magnetic field unit vector b = B/|B| (p=1) by nodal normalization, for the PKPM model.
+  f->bvar = mkarr(app->use_gpu, 3 * app->confBasis.num_basis, app->local_ext.volume);
+  f->grad_b = mkarr(app->use_gpu, app->cdim * 3 * app->confBasis.num_basis, app->local_ext.volume);
+  gkyl_array_clear(f->grad_b, 0.0);
+  f->calc_bvar = gkyl_dg_calc_pkpm_bvar_new(&app->grid, &app->confBasis, app->use_gpu);
 
   // Check if limiter_fac is specified for adjusting how much diffusion is applied through slope limiter
   // If not specified, set to 0.0 and updater sets default behavior (1/sqrt(3); see gkyl_dg_calc_em_vars.h)
@@ -153,10 +140,6 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   f->limit_em = f->info.limit_em;
 
   struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c, ef, mf, app->use_gpu);
-  // Create updaters for bvar (needed by PKPM model)
-  f->calc_bvar = gkyl_dg_calc_em_vars_new(
-    &app->grid, &app->confBasis, &app->local_ext, maxwell, app->geom, limiter_fac, 0, app->use_gpu
-  );
   // Create updaters for limiting EM fields
   f->calc_em_vars = gkyl_dg_calc_em_vars_new(
     &app->grid, &app->confBasis, &app->local_ext, maxwell, app->geom, limiter_fac, 0, app->use_gpu
@@ -297,17 +280,11 @@ pkpm_field_calc_bvar(gkyl_pkpm_app *app, struct pkpm_field *field, const struct 
   if (field->has_ext_em) {
     gkyl_array_accumulate_range(field->tot_em, 1.0, field->ext_em, &app->local_ext);
   }
-  // Assumes magnetic field boundary conditions applied so magnetic field
-  // unit vector and unit tensor are defined everywhere in the domain
-  gkyl_dg_calc_em_vars_advance(
-    field->calc_bvar, field->tot_em, field->cell_avg_magB2, field->bvar, field->bvar_surf
-  );
-
-  // Compute div(b) and max_b = max(|b_i_l|, |b_i_r|)
-  gkyl_array_clear(field->div_b, 0.0); // Incremented in each dimension, so clear beforehand
-  gkyl_dg_calc_em_vars_div_b(
-    field->calc_bvar, &app->local, field->bvar_surf, field->bvar, field->max_b, field->div_b
-  );
+  // Assumes magnetic field boundary conditions applied so the unit vector is
+  // defined everywhere in the extended domain.
+  gkyl_dg_calc_pkpm_bvar_advance(field->calc_bvar, &app->local_ext, field->tot_em, field->bvar);
+  // Weak gradient of b for the mirror terms (div b), from b in the ghost cells.
+  gkyl_dg_calc_pkpm_bvar_grad(field->calc_bvar, &app->local, field->bvar, field->grad_b);
 
   app->stat.field_em_vars_tm += gkyl_time_diff_now_sec(tm);
 }
@@ -477,12 +454,9 @@ pkpm_field_release(const gkyl_pkpm_app *app, struct pkpm_field *f)
   gkyl_array_release(f->em_energy);
   gkyl_dynvec_release(f->integ_energy);
 
-  gkyl_array_release(f->cell_avg_magB2);
   gkyl_array_release(f->bvar);
-  gkyl_array_release(f->bvar_surf);
-  gkyl_array_release(f->div_b);
-  gkyl_array_release(f->max_b);
-  gkyl_dg_calc_em_vars_release(f->calc_bvar);
+  gkyl_array_release(f->grad_b);
+  gkyl_dg_calc_pkpm_bvar_release(f->calc_bvar);
   gkyl_dg_calc_em_vars_release(f->calc_em_vars);
 
   gkyl_array_release(f->ext_em);

@@ -31,14 +31,13 @@ pkpm_forward_euler(
     }
   }
 
-  // Compute magnetic field unit vector and tensor, and div(b)
+  // Compute the magnetic field unit vector b = B/|B|
   pkpm_field_calc_bvar(app, app->field, emin);
 
   // Two separate loops over number of species to compute needed auxiliary quantities.
   for (int i = 0; i < app->num_species; ++i) {
-    // Compute parallel-kinetic-perpendicular moment (pkpm) variables.
-    // These are the coupling moments [rho, p_par, p_perp], the self-consistent
-    // pressure force (div(p_par b_hat)), and the primitive variables
+    // Compute parallel-kinetic-perpendicular moment (pkpm) variables:
+    // the moments [rho, p_par, p_perp, M1], the flow velocity and T_perp/m.
     pkpm_species_calc_pkpm_vars(app, &app->species[i], fin[i], fluidin[i]);
     // compute necessary moments and boundary corrections for collisions
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
@@ -52,12 +51,6 @@ pkpm_forward_euler(
         app->species[i].lbo.num_cross_collisions) {
       pkpm_species_lbo_cross_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
     }
-    // Finish computing parallel-kinetic-perpendicular moment (pkpm) variables.
-    // These are the update variables including the acceleration variables in the kinetic
-    // equation and the source distribution functions for Laguerre couplings.
-    // Needs to be done after all collisional moment computations for collisional sources
-    // in Laguerre couplings.
-    pkpm_species_calc_pkpm_update_vars(app, &app->species[i], fin[i]);
   }
 
   // compute RHS of pkpm equations

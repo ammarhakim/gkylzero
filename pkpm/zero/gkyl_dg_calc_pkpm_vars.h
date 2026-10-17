@@ -101,6 +101,104 @@ void gkyl_dg_calc_pkpm_vars_u(
 );
 
 /**
+ * Compute theta = T_perp/m = p_perp/rho by a pointwise quotient at the 2^cdim
+ * Gauss-Legendre nodes interpolated to the p=1 basis (algebraically identical to weak
+ * division for a p=1 density that is positive at the nodes). At a node with rho <= 0
+ * theta is set to zero; the number of such nodes is returned. p=1 serendipity only.
+ *
+ * @param up               Updater for computing pkpm variables 
+ * @param conf_range       Configuration space range
+ * @param vlasov_pkpm_moms Input array of pkpm kinetic moments [rho, p_parallel, p_perp, M1]
+ * @param theta            Output array of volume expansion of T_perp/m
+ * @return Number of nodes where rho <= 0 in this call
+ */
+int gkyl_dg_calc_pkpm_vars_theta(
+  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *vlasov_pkpm_moms, struct gkyl_array *theta
+);
+
+/**
+ * Compute the weak (surface-averaged) gradient of the flow velocity, the p=1 expansions
+ * of d_i u_j for every configuration direction i and component j, stored per cell as
+ * [direction][component][mode] (cdim * 3 * num_basis entries). The gradient uses the
+ * average of the two traces at each face, so it needs u in the neighbors of every cell
+ * of conf_range (the ghost cells). It is the gradient the kinetic sources bb:grad(u)
+ * and div(u) are formed from. p=1 serendipity only.
+ *
+ * @param up         Updater for computing pkpm variables
+ * @param conf_range Configuration space range (interior cells)
+ * @param u          Input flow velocity [ux, uy, uz], defined on the extended range
+ * @param grad_u     Output weak gradient of u
+ */
+void gkyl_dg_calc_pkpm_vars_grad_u(
+  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *u, struct gkyl_array *grad_u
+);
+
+/**
+ * Close the pressure force a_P of the refactored update from the first v_par moment
+ * of the stage-A right-hand side of F_0: rho a_P = -M1(rhs_A) weakly in every p=1
+ * mode (the nodal quotient at the 2^cdim Gauss-Legendre nodes). In a cell where rho <= 0
+ * at any node the system is not solved and a_P is set to zero; the number of such
+ * nodes is returned. p=1 serendipity only.
+ *
+ * @param up               Updater for computing pkpm variables 
+ * @param conf_range       Configuration space range
+ * @param vlasov_pkpm_moms Input array of pkpm kinetic moments [rho, p_parallel, p_perp, M1] of the stage state
+ * @param rhs_moms         Input array of the same moments of the stage-A right-hand side of F_0
+ * @param a_P              Output array of volume expansion of the pressure force
+ * @return Number of nodes where rho <= 0 in this call
+ */
+int gkyl_dg_calc_pkpm_vars_p_force(
+  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *rhs_moms,
+  struct gkyl_array *a_P
+);
+
+/**
+ * Project the pressure tensor p_perp delta_ij + (p_par - p_perp) b_i b_j, formed from its
+ * primitive factors, onto the p=1 basis (six components). Limiter scratch and output
+ * only; the update never uses a projected pressure. p=1 serendipity only.
+ *
+ * @param up               Updater for computing pkpm variables 
+ * @param conf_range       Configuration space range
+ * @param vlasov_pkpm_moms Input array of pkpm kinetic moments [rho, p_parallel, p_perp, M1]
+ * @param bvar             Input magnetic field unit vector [bx, by, bz]
+ * @param p_ij             Output array [Pxx, Pxy, Pxz, Pyy, Pyz, Pzz]
+ */
+void gkyl_dg_calc_pkpm_vars_pressure_proj(
+  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *bvar, struct gkyl_array *p_ij
+);
+
+/**
+ * Construct the diagnostic arrays of the refactored solver:
+ * fluid_io = [rho, M_i, P_ij + M_i u_j] (10 components) and
+ * pkpm_vars_io = [u_x, u_y, u_z, theta, a_P, div b, bb:grad u, theta div b] (8 components),
+ * with the products projected onto p=1. p=1 serendipity only.
+ *
+ * @param up               Updater for computing pkpm variables 
+ * @param conf_range       Configuration space range
+ * @param vlasov_pkpm_moms Input array of pkpm kinetic moments [rho, p_parallel, p_perp, M1]
+ * @param euler_pkpm       Input momentum [rho ux, rho uy, rho uz]
+ * @param bvar             Input magnetic field unit vector [bx, by, bz]
+ * @param grad_b           Input weak gradient of b (gkyl_dg_calc_pkpm_bvar_grad)
+ * @param u                Input flow velocity [ux, uy, uz]
+ * @param grad_u           Input weak gradient of u (gkyl_dg_calc_pkpm_vars_grad_u)
+ * @param theta            Input T_perp/m
+ * @param a_P              Input pressure force
+ * @param fluid_io         Output conserved fluid variables (10 components)
+ * @param pkpm_vars_io     Output pkpm variables (8 components)
+ */
+void gkyl_dg_calc_pkpm_vars_diag(
+  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *euler_pkpm,
+  const struct gkyl_array *bvar, const struct gkyl_array *grad_b, const struct gkyl_array *u,
+  const struct gkyl_array *grad_u, const struct gkyl_array *theta, const struct gkyl_array *a_P, struct gkyl_array *fluid_io,
+  struct gkyl_array *pkpm_vars_io
+);
+
+/**
  * Compute pkpm pressure p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij in the volume 
  *
  * @param up Updater for computing pkpm variables 
@@ -264,6 +362,35 @@ void gkyl_dg_calc_pkpm_vars_advance_cu(
 void gkyl_dg_calc_pkpm_vars_u_cu(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_array *vlasov_pkpm_moms,
   const struct gkyl_array *euler_pkpm, struct gkyl_array *cell_avg_prim, struct gkyl_array *pkpm_u
+);
+
+int gkyl_dg_calc_pkpm_vars_theta_cu(
+  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *vlasov_pkpm_moms, struct gkyl_array *theta
+);
+
+int gkyl_dg_calc_pkpm_vars_p_force_cu(
+  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *rhs_moms,
+  struct gkyl_array *a_P
+);
+
+void gkyl_dg_calc_pkpm_vars_pressure_proj_cu(
+  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *bvar, struct gkyl_array *p_ij
+);
+
+void gkyl_dg_calc_pkpm_vars_diag_cu(
+  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *euler_pkpm,
+  const struct gkyl_array *bvar, const struct gkyl_array *grad_b, const struct gkyl_array *u,
+  const struct gkyl_array *grad_u, const struct gkyl_array *theta, const struct gkyl_array *a_P, struct gkyl_array *fluid_io,
+  struct gkyl_array *pkpm_vars_io
+);
+
+void gkyl_dg_calc_pkpm_vars_grad_u_cu(
+  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *u, struct gkyl_array *grad_u
 );
 
 void gkyl_dg_calc_pkpm_vars_pressure_cu(

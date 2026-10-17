@@ -133,7 +133,12 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
     app->basis_on_dev.confBasis = &app->confBasis;
   }
 
-  // basis functions
+  // basis functions: the PKPM solver supports p=1 serendipity configuration space
+  // (tensored with p=2 in v_par) only; p=2 and tensor bases are retired.
+  if (poly_order != 1 || pkpm->basis_type != GKYL_BASIS_MODAL_SERENDIPITY) {
+    fprintf(stderr, "PKPM: only polyOrder = 1 with the serendipity basis is supported.\n");
+    assert(false);
+  }
   switch (pkpm->basis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       gkyl_cart_modal_serendip(&app->confBasis, cdim, poly_order);
@@ -373,7 +378,7 @@ gkyl_pkpm_app_calc_integrated_mom(gkyl_pkpm_app *app, double tm)
 
     pkpm_species_calc_pkpm_vars(app, s, s->f, s->fluid);
     gkyl_dg_calc_pkpm_integrated_vars(
-      s->calc_pkpm_vars, &app->local, s->pkpm_moms.marr, s->fluid, s->pkpm_prim, s->integ_pkpm_mom
+      s->calc_pkpm_vars, &app->local, s->pkpm_moms.marr, s->fluid, s->pkpm_u, s->integ_pkpm_mom
     );
     gkyl_array_scale_range(s->integ_pkpm_mom, app->grid.cellVolume, &(app->local));
     if (app->use_gpu) {
@@ -540,11 +545,11 @@ gkyl_pkpm_app_write_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame)
   // Compute the PKPM variables including moments and primitive variables
   // and construct arrays for writing out fluid and other pkpm variables.
   pkpm_species_moment_calc(&s->pkpm_moms_diag, s->local, app->local, s->f);
-  pkpm_species_calc_pkpm_vars(app, s, s->f, s->fluid);
-  pkpm_species_calc_pkpm_update_vars(app, s, s->f);
-  gkyl_dg_calc_pkpm_vars_io(
-    s->calc_pkpm_vars, &app->local, s->pkpm_moms.marr, s->fluid, s->pkpm_p_ij, s->pkpm_prim,
-    s->pkpm_accel, s->fluid_io, s->pkpm_vars_io
+  pkpm_species_calc_diag_vars(app, s, s->f, s->fluid);
+  gkyl_dg_calc_pkpm_vars_diag(
+    s->calc_pkpm_vars, &app->local, s->pkpm_moms.marr, s->fluid, app->field->bvar,
+    app->field->grad_b, s->pkpm_u, s->pkpm_grad_u, s->pkpm_theta, s->pkpm_a_P, s->fluid_io,
+    s->pkpm_vars_io
   );
 
   // copy data from device to host before writing it out

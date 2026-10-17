@@ -6,6 +6,7 @@
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
 #include <gkyl_euler_pkpm_kernels.h>
+#include <gkyl_pkpm_vars_kernels.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_eqn.h>
@@ -26,6 +27,31 @@ typedef int (*pkpm_u_set_t)(
 );
 
 typedef void (*pkpm_u_copy_t)(int count, struct gkyl_nmat *x, double *GKYL_RESTRICT pkpm_u);
+
+typedef int (*pkpm_theta_t)(const double *vlasov_pkpm_moms, double *GKYL_RESTRICT theta);
+
+typedef void (*pkpm_grad_u_t)(
+  const double *dxv, const double *u_l, const double *u_c, const double *u_r,
+  double *GKYL_RESTRICT grad_u
+);
+
+typedef struct {
+  pkpm_grad_u_t kernels[3];
+} gkyl_dg_pkpm_grad_u_kern_list;
+
+typedef void (*pkpm_pressure_proj_t)(
+  const double *vlasov_pkpm_moms, const double *bvar, double *GKYL_RESTRICT p_ij
+);
+
+typedef void (*pkpm_diag_t)(
+  const double *dxv, const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *bvar,
+  const double *grad_b, const double *u, const double *grad_u, const double *theta,
+  const double *a_P, double *GKYL_RESTRICT fluid_io, double *GKYL_RESTRICT pkpm_vars_io
+);
+
+typedef int (*pkpm_p_force_new_t)(
+  const double *vlasov_pkpm_moms, const double *rhs_moms, double *GKYL_RESTRICT a_P
+);
 
 typedef void (*pkpm_pressure_t)(
   const double *bvar, const double *vlasov_pkpm_moms, double *GKYL_RESTRICT p_ij
@@ -140,6 +166,14 @@ struct gkyl_dg_calc_pkpm_vars {
     pkpm_copy; // kernel for copying solution to output; also computed needed surface expansions
   pkpm_u_set_t pkpm_u_set; // kernel for setting matrices for linear solve for flow velocity
   pkpm_u_copy_t pkpm_u_copy; // kernel for copying solution for flow velocity to output
+  pkpm_theta_t pkpm_theta; // kernel computing theta = T_perp/m = p_perp/rho by nodal quotient (p=1 only)
+  pkpm_grad_u_t pkpm_grad_u[3]; // weak (surface-averaged) gradient of u in each direction (p=1 only)
+  pkpm_p_force_new_t
+    pkpm_p_force_new; // kernel closing a_P from the first moment of the stage-A rhs (p=1 only)
+  pkpm_pressure_proj_t pkpm_pressure_proj; // p=1 projection of the pressure tensor (limiter/output, p=1 only)
+  pkpm_diag_t pkpm_diag; // diagnostic arrays of the refactored solver (p=1 only)
+  int num_null_rho; // number of nodes with rho <= 0 in the last theta computation (host copy)
+  int *num_null_rho_dev; // device counter for num_null_rho (0 on host)
   pkpm_pressure_t pkpm_pressure; // kernel for computing pressure (Volume and surface expansion)
   pkpm_p_force_t
     pkpm_p_force; // kernel for computing pressure force p_force = 1/rho div(p_par b) - T_perp/m div(b)
@@ -469,6 +503,86 @@ choose_pkpm_u_set_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
       assert(false);
       break;
   }
+}
+
+// theta = T_perp/m by nodal quotient (p=1 serendipity only; indexed by cdim-1)
+GKYL_CU_D static const pkpm_theta_t ser_pkpm_theta_kernels[] = {
+  pkpm_vars_theta_1x_ser_p1,
+  pkpm_vars_theta_2x_ser_p1,
+  pkpm_vars_theta_3x_ser_p1,
+};
+
+GKYL_CU_D static pkpm_theta_t
+choose_pkpm_theta_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+{
+  // Only the refactored p=1 path computes theta this way; other bases get no kernel.
+  if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
+    return ser_pkpm_theta_kernels[cdim - 1];
+  }
+  return 0;
+}
+
+// Pressure projection and diagnostic kernels (p=1 serendipity only; indexed by cdim-1)
+GKYL_CU_D static const pkpm_pressure_proj_t ser_pkpm_pressure_proj_kernels[] = {
+  pkpm_vars_pressure_proj_1x_ser_p1,
+  pkpm_vars_pressure_proj_2x_ser_p1,
+  pkpm_vars_pressure_proj_3x_ser_p1,
+};
+
+GKYL_CU_D static const pkpm_diag_t ser_pkpm_diag_kernels[] = {
+  pkpm_vars_diag_1x_ser_p1,
+  pkpm_vars_diag_2x_ser_p1,
+  pkpm_vars_diag_3x_ser_p1,
+};
+
+// Weak gradient of u (p=1 serendipity only; indexed [cdim-1].kernels[dir])
+GKYL_CU_D static const gkyl_dg_pkpm_grad_u_kern_list ser_pkpm_grad_u_kernels[] = {
+  {pkpm_vars_grad_u_x_1x_ser_p1, NULL, NULL}, // 0
+  {pkpm_vars_grad_u_x_2x_ser_p1, pkpm_vars_grad_u_y_2x_ser_p1, NULL}, // 1
+  {pkpm_vars_grad_u_x_3x_ser_p1, pkpm_vars_grad_u_y_3x_ser_p1, pkpm_vars_grad_u_z_3x_ser_p1}, // 2
+};
+
+GKYL_CU_D static pkpm_grad_u_t
+choose_pkpm_grad_u_kern(enum gkyl_basis_type b_type, int cdim, int poly_order, int dir)
+{
+  if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
+    return ser_pkpm_grad_u_kernels[cdim - 1].kernels[dir];
+  }
+  return 0;
+}
+
+GKYL_CU_D static pkpm_pressure_proj_t
+choose_pkpm_pressure_proj_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+{
+  if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
+    return ser_pkpm_pressure_proj_kernels[cdim - 1];
+  }
+  return 0;
+}
+
+GKYL_CU_D static pkpm_diag_t
+choose_pkpm_diag_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+{
+  if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
+    return ser_pkpm_diag_kernels[cdim - 1];
+  }
+  return 0;
+}
+
+// a_P closure kernels (p=1 serendipity only; indexed by cdim-1)
+GKYL_CU_D static const pkpm_p_force_new_t ser_pkpm_p_force_new_kernels[] = {
+  pkpm_vars_p_force_closure_1x_ser_p1,
+  pkpm_vars_p_force_closure_2x_ser_p1,
+  pkpm_vars_p_force_closure_3x_ser_p1,
+};
+
+GKYL_CU_D static pkpm_p_force_new_t
+choose_pkpm_p_force_new_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+{
+  if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
+    return ser_pkpm_p_force_new_kernels[cdim - 1];
+  }
+  return 0;
 }
 
 GKYL_CU_D static pkpm_u_copy_t

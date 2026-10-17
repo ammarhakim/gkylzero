@@ -60,6 +60,15 @@ gkyl_dg_calc_pkpm_vars_new(
   up->pkpm_copy = choose_pkpm_copy_kern(b_type, cdim, poly_order);
   up->pkpm_u_set = choose_pkpm_u_set_kern(b_type, cdim, poly_order);
   up->pkpm_u_copy = choose_pkpm_u_copy_kern(b_type, cdim, poly_order);
+  up->pkpm_theta = choose_pkpm_theta_kern(b_type, cdim, poly_order);
+  for (int d = 0; d < cdim; ++d) {
+    up->pkpm_grad_u[d] = choose_pkpm_grad_u_kern(b_type, cdim, poly_order, d);
+  }
+  up->pkpm_p_force_new = choose_pkpm_p_force_new_kern(b_type, cdim, poly_order);
+  up->pkpm_pressure_proj = choose_pkpm_pressure_proj_kern(b_type, cdim, poly_order);
+  up->pkpm_diag = choose_pkpm_diag_kern(b_type, cdim, poly_order);
+  up->num_null_rho = 0;
+  up->num_null_rho_dev = 0;
   up->pkpm_pressure = choose_pkpm_pressure_kern(b_type, cdim, poly_order);
   up->pkpm_p_force = choose_pkpm_p_force_kern(b_type, cdim, poly_order);
   up->pkpm_source = choose_pkpm_source_kern(b_type, cdim, poly_order);
@@ -191,6 +200,145 @@ gkyl_dg_calc_pkpm_vars_u(
     up->pkpm_u_copy(count, up->xs_u, pkpm_u_d);
 
     count += 3;
+  }
+}
+
+int
+gkyl_dg_calc_pkpm_vars_theta(
+  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *vlasov_pkpm_moms, struct gkyl_array *theta
+)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(theta)) {
+    return gkyl_dg_calc_pkpm_vars_theta_cu(up, conf_range, vlasov_pkpm_moms, theta);
+  }
+#endif
+  assert(up->pkpm_theta);
+  int num_null_rho = 0;
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, conf_range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(conf_range, iter.idx);
+    num_null_rho +=
+      up->pkpm_theta(gkyl_array_cfetch(vlasov_pkpm_moms, loc), gkyl_array_fetch(theta, loc));
+  }
+  up->num_null_rho = num_null_rho;
+  return num_null_rho;
+}
+
+int
+gkyl_dg_calc_pkpm_vars_p_force(
+  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *rhs_moms,
+  struct gkyl_array *a_P
+)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(a_P)) {
+    return gkyl_dg_calc_pkpm_vars_p_force_cu(up, conf_range, vlasov_pkpm_moms, rhs_moms, a_P);
+  }
+#endif
+  assert(up->pkpm_p_force_new);
+  int num_null_rho = 0;
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, conf_range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(conf_range, iter.idx);
+    num_null_rho += up->pkpm_p_force_new(
+      gkyl_array_cfetch(vlasov_pkpm_moms, loc), gkyl_array_cfetch(rhs_moms, loc),
+      gkyl_array_fetch(a_P, loc)
+    );
+  }
+  up->num_null_rho = num_null_rho;
+  return num_null_rho;
+}
+
+void
+gkyl_dg_calc_pkpm_vars_pressure_proj(
+  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *bvar, struct gkyl_array *p_ij
+)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(p_ij)) {
+    return gkyl_dg_calc_pkpm_vars_pressure_proj_cu(up, conf_range, vlasov_pkpm_moms, bvar, p_ij);
+  }
+#endif
+  assert(up->pkpm_pressure_proj);
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, conf_range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(conf_range, iter.idx);
+    up->pkpm_pressure_proj(
+      gkyl_array_cfetch(vlasov_pkpm_moms, loc), gkyl_array_cfetch(bvar, loc),
+      gkyl_array_fetch(p_ij, loc)
+    );
+  }
+}
+
+void
+gkyl_dg_calc_pkpm_vars_diag(
+  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *euler_pkpm,
+  const struct gkyl_array *bvar, const struct gkyl_array *grad_b, const struct gkyl_array *u,
+  const struct gkyl_array *grad_u, const struct gkyl_array *theta, const struct gkyl_array *a_P, struct gkyl_array *fluid_io,
+  struct gkyl_array *pkpm_vars_io
+)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(fluid_io)) {
+    return gkyl_dg_calc_pkpm_vars_diag_cu(
+      up, conf_range, vlasov_pkpm_moms, euler_pkpm, bvar, grad_b, u, grad_u, theta, a_P,
+      fluid_io, pkpm_vars_io
+    );
+  }
+#endif
+  assert(up->pkpm_diag);
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, conf_range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(conf_range, iter.idx);
+    up->pkpm_diag(
+      up->conf_grid.dx, gkyl_array_cfetch(vlasov_pkpm_moms, loc), gkyl_array_cfetch(euler_pkpm, loc),
+      gkyl_array_cfetch(bvar, loc), gkyl_array_cfetch(grad_b, loc), gkyl_array_cfetch(u, loc),
+      gkyl_array_cfetch(grad_u, loc), gkyl_array_cfetch(theta, loc), gkyl_array_cfetch(a_P, loc),
+      gkyl_array_fetch(fluid_io, loc),
+      gkyl_array_fetch(pkpm_vars_io, loc)
+    );
+  }
+}
+
+void
+gkyl_dg_calc_pkpm_vars_grad_u(
+  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *u, struct gkyl_array *grad_u
+)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(grad_u)) {
+    return gkyl_dg_calc_pkpm_vars_grad_u_cu(up, conf_range, u, grad_u);
+  }
+#endif
+  int cdim = up->cdim;
+  int idx_l[GKYL_MAX_DIM], idx_r[GKYL_MAX_DIM];
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, conf_range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(conf_range, iter.idx);
+    const double *u_c = gkyl_array_cfetch(u, loc);
+    double *gu = gkyl_array_fetch(grad_u, loc);
+    for (int d = 0; d < cdim; ++d) {
+      assert(up->pkpm_grad_u[d]);
+      gkyl_copy_int_arr(cdim, iter.idx, idx_l);
+      gkyl_copy_int_arr(cdim, iter.idx, idx_r);
+      idx_l[d] = idx_l[d] - 1;
+      idx_r[d] = idx_r[d] + 1;
+      up->pkpm_grad_u[d](
+        up->conf_grid.dx, gkyl_array_cfetch(u, gkyl_range_idx(conf_range, idx_l)), u_c,
+        gkyl_array_cfetch(u, gkyl_range_idx(conf_range, idx_r)), gu
+      );
+    }
   }
 }
 
@@ -523,6 +671,7 @@ gkyl_dg_calc_pkpm_vars_release(gkyl_dg_calc_pkpm_vars *up)
   gkyl_nmat_linsolve_lu_release(up->mem_u);
 
   if (GKYL_IS_CU_ALLOC(up->flags)) {
+    gkyl_cu_free(up->num_null_rho_dev);
     gkyl_cu_free(up->on_dev);
   }
   gkyl_free(up);

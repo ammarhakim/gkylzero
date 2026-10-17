@@ -29,6 +29,17 @@ pkpm_species_moment_calc(
   gkyl_dg_updater_moment_pkpm_advance(sm->mcalc, &phase_rng, &conf_rng, fin, sm->marr);
 }
 
+// compute moments of an arbitrary phase-space array into a separate output array
+// (for the moments of the stage-A right-hand side, keeping marr untouched)
+void
+pkpm_species_moment_calc_into(
+  const struct pkpm_species_moment *sm, const struct gkyl_range phase_rng,
+  const struct gkyl_range conf_rng, const struct gkyl_array *fin, struct gkyl_array *mout
+)
+{
+  gkyl_dg_updater_moment_pkpm_advance(sm->mcalc, &phase_rng, &conf_rng, fin, mout);
+}
+
 // release memory for moment data object
 void
 pkpm_species_moment_release(const struct gkyl_pkpm_app *app, const struct pkpm_species_moment *sm)

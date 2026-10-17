@@ -1,0 +1,427 @@
+#pragma once 
+// Generated nodal surface-evaluation tables of the PKPM surface-flux kernels 
+// (see gkylcas/pkpm/pkpm/pkpm-flux-tables.mac): three Gauss-Legendre points 
+// per surface direction. Header-static so both host and device 
+// instantiations of GKYL_CU_DH kernels can read them; unused arrays are 
+// elided per TU. 
+#include <gkyl_util.h> 
+#include <gkyl_vlasov_flux_surf_mod2nod_meta.h> 
+#include <gkyl_vlasov_surf_nod2mod_meta.h> 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_pkpm_1x1v_p1_ph_x0_Cm[1] = { 
+  1.0, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_pkpm_1x1v_p1_ph_x0_V[18] = { 
+  1.0, 
+  2.5, 
+  -1.9364916731037085, 
+  -4.841229182759272, 
+  -1.5384615384615385, 
+  -3.8461538461538463, 
+  1.0, 
+  2.5, 
+  0.0, 
+  0.0, 
+  1.9230769230769231, 
+  4.8076923076923075, 
+  1.0, 
+  2.5, 
+  1.9364916731037085, 
+  4.841229182759272, 
+  -1.5384615384615385, 
+  -3.8461538461538463, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_pkpm_1x1v_p1_ph_x0_Wl[18] = { 
+  0.5, 
+  0.5, 
+  0.5, 
+  0.8660254037844386, 
+  0.8660254037844386, 
+  0.8660254037844386, 
+  -0.6708203932499369, 
+  0.0, 
+  0.6708203932499369, 
+  -1.1618950038622249, 
+  0.0, 
+  1.1618950038622249, 
+  0.4472135954999579, 
+  -0.5590169943749475, 
+  0.4472135954999579, 
+  0.7745966692414833, 
+  -0.9682458365518543, 
+  0.7745966692414833, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_pkpm_1x1v_p1_ph_x0_Wr[18] = { 
+  0.5, 
+  0.5, 
+  0.5, 
+  -0.8660254037844386, 
+  -0.8660254037844386, 
+  -0.8660254037844386, 
+  -0.6708203932499369, 
+  0.0, 
+  0.6708203932499369, 
+  1.1618950038622249, 
+  0.0, 
+  -1.1618950038622249, 
+  0.4472135954999579, 
+  -0.5590169943749475, 
+  0.4472135954999579, 
+  -0.7745966692414833, 
+  0.9682458365518543, 
+  -0.7745966692414833, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_pkpm_1x1v_p1_ph_x0_coefl[6] = { 
+  0.5, 
+  0.34641016151377546, 
+  0.34641016151377546, 
+  0.24, 
+  -0.2906888370749726, 
+  -0.20139513400278566, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_pkpm_1x1v_p1_ph_x0_coefr[6] = { 
+  0.5, 
+  -0.34641016151377546, 
+  0.34641016151377546, 
+  -0.24, 
+  -0.2906888370749726, 
+  0.20139513400278566, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_pkpm_1x1v_p1_ph_x0_cmap[6] = { 
+  0, 
+  0, 
+  0, 
+  0, 
+  0, 
+  0, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_pkpm_1x1v_p1_ph_x0_aoff[2] = { 
+  0, 
+  6, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_pkpm_1x1v_p1_ph_x0_aks[6] = { 
+  0, 
+  1, 
+  2, 
+  3, 
+  4, 
+  5, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_pkpm_1x1v_p1_ph_x0_vlmap[6] = { 
+  0, 
+  1, 
+  2, 
+  3, 
+  4, 
+  5, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_pkpm_1x1v_p1_ph_x0_vrmap[6] = { 
+  0, 
+  1, 
+  2, 
+  3, 
+  4, 
+  5, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_pkpm_1x1v_p1_ph_x0_meta = { .nb = 6, .na = 1, .nmv = 6, .no = 1, .ni = 3, .ns = 0, .fhat_off = 0 }; 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_pkpm_1x1v_p1_prj_x0_Cw[1] = { 
+  1.0, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_pkpm_1x1v_p1_prj_x0_Vw[9] = { 
+  0.5555555555555556, 
+  -1.0758287072798385, 
+  -0.8547008547008547, 
+  0.8888888888888888, 
+  0.0, 
+  1.7094017094017093, 
+  0.5555555555555556, 
+  1.0758287072798385, 
+  -0.8547008547008547, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_pkpm_1x1v_p1_prj_x0_kamap[3] = { 
+  0, 
+  0, 
+  0, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_pkpm_1x1v_p1_prj_x0_kbmap[3] = { 
+  0, 
+  1, 
+  2, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_pkpm_1x1v_p1_prj_x0_boff[4] = { 
+  0, 
+  1, 
+  2, 
+  3, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_pkpm_1x1v_p1_prj_x0_bks[3] = { 
+  0, 
+  1, 
+  2, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_pkpm_1x1v_p1_prj_x0_out_off[4] = { 
+  0, 
+  2, 
+  4, 
+  6, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_pkpm_1x1v_p1_prj_x0_out_mode[6] = { 
+  0, 
+  1, 
+  2, 
+  3, 
+  4, 
+  5, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_pkpm_1x1v_p1_prj_x0_out_cl[6] = { 
+  0.5, 
+  -0.8660254037844386, 
+  0.34641016151377546, 
+  -0.6, 
+  -0.2906888370749726, 
+  0.503487835006964, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_pkpm_1x1v_p1_prj_x0_out_cr[6] = { 
+  -0.5, 
+  -0.8660254037844386, 
+  -0.34641016151377546, 
+  -0.6, 
+  0.2906888370749726, 
+  0.503487835006964, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_pkpm_1x1v_p1_prj_x0_pm_s[6] = { 
+  0, 
+  0, 
+  1, 
+  1, 
+  2, 
+  2, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_pkpm_1x1v_p1_prj_x0_pm_a[6] = { 
+  0, 
+  0, 
+  0, 
+  0, 
+  0, 
+  0, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_pkpm_1x1v_p1_prj_x0_pm_b[6] = { 
+  0, 
+  0, 
+  1, 
+  1, 
+  2, 
+  2, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_pkpm_1x1v_p1_prj_x0_pm_cl[6] = { 
+  0.5, 
+  -0.8660254037844386, 
+  0.34641016151377546, 
+  -0.6, 
+  -0.2906888370749726, 
+  0.503487835006964, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_pkpm_1x1v_p1_prj_x0_pm_cr[6] = { 
+  -0.5, 
+  -0.8660254037844386, 
+  -0.34641016151377546, 
+  -0.6, 
+  0.2906888370749726, 
+  0.503487835006964, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const struct gkyl_vlasov_prj_meta vst_pkpm_1x1v_p1_prj_x0_meta = { .nk = 3, .np = 6, .na = 1, .nmv = 3, .no = 1, .ni = 3, .fhat_off = 0 }; 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_pkpm_1x1v_p1_conf_ev[6] = { 
+  0.7071067811865475, 
+  -0.9486832980505137, 
+  0.7071067811865475, 
+  0.0, 
+  0.7071067811865475, 
+  0.9486832980505137, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_pkpm_1x1v_p1_conf_dx0[6] = { 
+  0.0, 
+  1.224744871391589, 
+  0.0, 
+  1.224744871391589, 
+  0.0, 
+  1.224744871391589, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_pkpm_1x1v_p1_ph_v0_Cm[6] = { 
+  1.0, 
+  -1.9364916731037085, 
+  1.0, 
+  0.0, 
+  1.0, 
+  1.9364916731037085, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_pkpm_1x1v_p1_ph_v0_V[3] = { 
+  1.0, 
+  2.5, 
+  -3.8461538461538463, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_pkpm_1x1v_p1_ph_v0_Wl[6] = { 
+  0.5, 
+  0.34641016151377546, 
+  0.8660254037844386, 
+  0.6, 
+  1.118033988749895, 
+  0.7745966692414833, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_pkpm_1x1v_p1_ph_v0_Wr[6] = { 
+  0.5, 
+  0.34641016151377546, 
+  -0.8660254037844386, 
+  -0.6, 
+  1.118033988749895, 
+  0.7745966692414833, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_pkpm_1x1v_p1_ph_v0_coefl[6] = { 
+  0.5, 
+  0.34641016151377546, 
+  0.34641016151377546, 
+  0.24, 
+  -0.2906888370749726, 
+  -0.20139513400278566, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_pkpm_1x1v_p1_ph_v0_coefr[6] = { 
+  0.5, 
+  0.34641016151377546, 
+  -0.34641016151377546, 
+  -0.24, 
+  -0.2906888370749726, 
+  -0.20139513400278566, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_pkpm_1x1v_p1_ph_v0_cmap[6] = { 
+  0, 
+  1, 
+  0, 
+  1, 
+  0, 
+  1, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_pkpm_1x1v_p1_ph_v0_aoff[3] = { 
+  0, 
+  3, 
+  6, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_pkpm_1x1v_p1_ph_v0_aks[6] = { 
+  0, 
+  2, 
+  4, 
+  1, 
+  3, 
+  5, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_pkpm_1x1v_p1_ph_v0_vlmap[6] = { 
+  0, 
+  0, 
+  1, 
+  1, 
+  2, 
+  2, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_pkpm_1x1v_p1_ph_v0_vrmap[6] = { 
+  0, 
+  0, 
+  1, 
+  1, 
+  2, 
+  2, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_pkpm_1x1v_p1_ph_v0_meta = { .nb = 6, .na = 2, .nmv = 3, .no = 3, .ni = 1, .ns = 0, .fhat_off = 0 }; 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_pkpm_1x1v_p1_prj_v0_Cw[6] = { 
+  0.5555555555555556, 
+  -1.0758287072798385, 
+  0.8888888888888888, 
+  0.0, 
+  0.5555555555555556, 
+  1.0758287072798385, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_pkpm_1x1v_p1_prj_v0_Vw[1] = { 
+  1.0, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_pkpm_1x1v_p1_prj_v0_kamap[2] = { 
+  0, 
+  1, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_pkpm_1x1v_p1_prj_v0_kbmap[2] = { 
+  0, 
+  0, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_pkpm_1x1v_p1_prj_v0_boff[2] = { 
+  0, 
+  2, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_pkpm_1x1v_p1_prj_v0_bks[2] = { 
+  0, 
+  1, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_pkpm_1x1v_p1_prj_v0_out_off[3] = { 
+  0, 
+  3, 
+  6, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_pkpm_1x1v_p1_prj_v0_out_mode[6] = { 
+  0, 
+  2, 
+  4, 
+  1, 
+  3, 
+  5, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_pkpm_1x1v_p1_prj_v0_out_cl[6] = { 
+  0.5, 
+  -0.8660254037844386, 
+  1.118033988749895, 
+  0.34641016151377546, 
+  -0.6, 
+  0.7745966692414833, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_pkpm_1x1v_p1_prj_v0_out_cr[6] = { 
+  -0.5, 
+  -0.8660254037844386, 
+  -1.118033988749895, 
+  -0.34641016151377546, 
+  -0.6, 
+  -0.7745966692414833, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_pkpm_1x1v_p1_prj_v0_pm_s[6] = { 
+  0, 
+  1, 
+  0, 
+  1, 
+  0, 
+  1, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_pkpm_1x1v_p1_prj_v0_pm_a[6] = { 
+  0, 
+  1, 
+  0, 
+  1, 
+  0, 
+  1, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_pkpm_1x1v_p1_prj_v0_pm_b[6] = { 
+  0, 
+  0, 
+  0, 
+  0, 
+  0, 
+  0, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_pkpm_1x1v_p1_prj_v0_pm_cl[6] = { 
+  0.5, 
+  0.34641016151377546, 
+  -0.8660254037844386, 
+  -0.6, 
+  1.118033988749895, 
+  0.7745966692414833, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_pkpm_1x1v_p1_prj_v0_pm_cr[6] = { 
+  -0.5, 
+  -0.34641016151377546, 
+  -0.8660254037844386, 
+  -0.6, 
+  -1.118033988749895, 
+  -0.7745966692414833, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const struct gkyl_vlasov_prj_meta vst_pkpm_1x1v_p1_prj_v0_meta = { .nk = 2, .np = 6, .na = 2, .nmv = 1, .no = 3, .ni = 1, .fhat_off = 0 }; 
