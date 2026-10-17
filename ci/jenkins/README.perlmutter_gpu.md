@@ -19,6 +19,20 @@ Use a controller only in an authenticated Perlmutter session and as permitted
 by NERSC policy. Set a project scratch root visible to compute nodes; do not
 use `/tmp` or retain durable credentials only there.
 
+Keep the controller's `JENKINS_HOME`, plugins, extracted WAR, logs, and build
+artifacts on the shared CI scratch filesystem too, not just its workspaces.
+An exhausted home quota prevents Jenkins from saving Pipeline state and can
+produce misleading `cannot find current thread in CpsStepContext` or agent
+offline messages even when the agent is connected. Check `showquota` and the
+controller log for `Disk quota exceeded` before treating these as network errors.
+The launcher defaults `JENKINS_HOME` to `$GKEYLL_CI_ROOT/jenkins_home`; verify
+that an inherited `JENKINS_HOME` does not override it with a home-directory path.
+
+Scratch storage is subject to purge. Keep a private backup of controller
+configuration, job definitions, users, `credentials.xml`, and the complete
+`secrets/` directory on durable storage. Back up after stopping the controller
+for consistency, and refresh the backup after credential or configuration changes.
+
 An existing Java 21 (or newer) installation is sufficient. To install Java 21
 through the NERSC Spack module, use the following once:
 
