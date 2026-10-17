@@ -1,0 +1,53 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M553PZFBQ480W66GVGYGQTZC",
+  "strategy": "manual-commit",
+  "branch": "debug-nunif-grid",
+  "checkpoints_count": 10,
+  "files_touched": [
+    ".agents/skills/software-design/SKILL.md",
+    "gyrokinetic/apps/gk_field.c",
+    "gyrokinetic/apps/gk_field_1x.c",
+    "gyrokinetic/apps/gk_field_2x3x.c",
+    "gyrokinetic/apps/gk_field_adiabatic.c",
+    "gyrokinetic/apps/gk_species.c",
+    "gyrokinetic/apps/gk_species_bgk.c",
+    "gyrokinetic/apps/gk_species_fluid.c",
+    "gyrokinetic/apps/gk_species_kinetic.c",
+    "gyrokinetic/apps/gk_species_lbo.c",
+    "gyrokinetic/apps/gk_species_moment.c",
+    "gyrokinetic/apps/gk_species_scaling.c",
+    "gyrokinetic/apps/gkyl_gk_field_priv.h",
+    "gyrokinetic/apps/gkyl_gyrokinetic_priv.h",
+    "gyrokinetic/creg/rt_gk_cbc_adiabatic_3x2v_p1.c",
+    "gyrokinetic/creg/rt_gk_fluid_species.c",
+    "gyrokinetic/creg/rt_gk_ion_sound_adiabatic_elc_1x2v_p1.c",
+    "gyrokinetic/creg/rt_gk_rosenbluth_hinton_2x2v_p1.c",
+    "gyrokinetic/luareg/rt_gk_ion_sound_adiabatic_elc_1x2v_p1.lua",
+    "gyrokinetic/unit/ctest_fem_poisson_perp_adiabatic.c",
+    "gyrokinetic/unit/ctest_flux_surf_avg.c",
+    "gyrokinetic/unit/ctest_gk_field_adiabatic_fsa.c",
+    "gyrokinetic/zero/fem_poisson_perp_adiabatic.c",
+    "gyrokinetic/zero/flux_surf_avg.c",
+    "gyrokinetic/zero/gkyl_fem_poisson_perp_adiabatic.h",
+    "gyrokinetic/zero/gkyl_fem_poisson_perp_adiabatic_priv.h",
+    "gyrokinetic/zero/gkyl_flux_surf_avg.h",
+    "gyrokinetic/zero/gkyl_flux_surf_avg_priv.h"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 3595307,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 66547456,
+    "output_tokens": 241967,
+    "api_call_count": 555
+  }
+}
