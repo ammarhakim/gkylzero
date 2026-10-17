@@ -2509,6 +2509,11 @@ tok_ext_fixed_z(const struct gkyl_tok_geo_grid_inp *inp, enum tok_ext_fixed_z_sl
   return 0.0;
 }
 
+static bool tok_ext_arc_cut_point(
+  const struct gkyl_tok_geo_grid_inp *inp, const struct arc_length_ctx *arc_ctx,
+  const struct tok_ext_endpoint *endpoint, double psi, double *r, double *z
+);
+
 static bool
 tok_ext_endpoint_point(
   const struct gkyl_tok_geo_grid_inp *inp, const struct arc_length_ctx *arc_ctx,
@@ -2524,6 +2529,11 @@ tok_ext_endpoint_point(
     if (separatrix) {
       // The separatrix anchor IS the X point; there is nothing to choose.
       return tok_ext_xpoint_rz(geo, endpoint->xpoint, r, z);
+    }
+    if (!arc_ctx->ext_raw_ray_endpoints) {
+      // Both blocks at the face place this point from the same chain, so the
+      // crossing ambiguity below is resolved inside the cut, symmetrically.
+      return tok_ext_arc_cut_point(inp, arc_ctx, endpoint, psi, r, z);
     }
     return tok_ext_fixed_ray_endpoint(inp, arc_ctx, endpoint, psi, r, z, ambiguous);
   }
@@ -4150,6 +4160,41 @@ tok_ext_build_core_half_trace(
   return tok_ext_finalize_trace_tol(geo, psi, inp->ftype, n, r, z, s, 2.0 * gap_resid);
 }
 
+// Trace psi from (r0, z0) to (r1, z1) by one route of the topology `top`.
+static bool
+tok_ext_route_trace(
+  const struct gkyl_tok_geo_grid_inp *inp, const struct gkyl_tok_geo *geo,
+  const struct tok_ext_topology *top, enum tok_ext_route route, double psi, bool separatrix, int n,
+  double r0, double z0, double r1, double z1, double *r, double *z, double *s, bool *param_is_r
+)
+{
+  switch (route) {
+    case TOK_EXT_ROUTE_GENERIC:
+      return tok_ext_build_open_trace(inp, geo, psi, n, r0, z0, r1, z1, r, z, s, param_is_r);
+    case TOK_EXT_ROUTE_OUTBOARD:
+      return tok_ext_build_z_branch_trace(
+        inp, geo, psi, n, r0, z0, r1, z1, true, top->seed_names_side, r, z, s, param_is_r
+      );
+    case TOK_EXT_ROUTE_INBOARD:
+      return tok_ext_build_z_branch_trace(
+        inp, geo, psi, n, r0, z0, r1, z1, false, top->seed_names_side, r, z, s, param_is_r
+      );
+    case TOK_EXT_ROUTE_VIA_UPPER:
+      return tok_ext_build_via_turning_trace(
+        inp, geo, psi, n, r0, z0, r1, z1, true, top->seed_names_side, r, z, s, param_is_r
+      );
+    case TOK_EXT_ROUTE_CLOSED_CORE:
+      return tok_ext_build_closed_core_trace(
+        inp, geo, psi, separatrix, n, r0, z0, r, z, s, param_is_r
+      );
+    case TOK_EXT_ROUTE_CORE_HALF:
+      return tok_ext_build_core_half_trace(
+        inp, geo, psi, separatrix, n, r0, z0, r1, z1, r, z, s, param_is_r
+      );
+  }
+  return false;
+}
+
 static bool
 tok_ext_build_domain_trace(
   const struct gkyl_tok_geo_grid_inp *inp, struct arc_length_ctx *arc_ctx, double psi,
@@ -4181,43 +4226,15 @@ tok_ext_build_domain_trace(
     return false;
   }
   int n = tok_reference_trace_nodes(inp, arc_ctx->sep_trace_capacity);
-  bool ok = false;
   // Once any surface in this block has needed the generic route, use it for
   // every surface: see ext_force_generic_route in the context definition.
   enum tok_ext_route route = top.route;
   if (arc_ctx->ext_force_generic_route && !top.closed) {
     route = TOK_EXT_ROUTE_GENERIC;
   }
-  switch (route) {
-    case TOK_EXT_ROUTE_GENERIC:
-      ok = tok_ext_build_open_trace(inp, arc_ctx->geo, psi, n, r0, z0, r1, z1, r, z, s, param_is_r);
-      break;
-    case TOK_EXT_ROUTE_OUTBOARD:
-      ok = tok_ext_build_z_branch_trace(
-        inp, arc_ctx->geo, psi, n, r0, z0, r1, z1, true, top.seed_names_side, r, z, s, param_is_r
-      );
-      break;
-    case TOK_EXT_ROUTE_INBOARD:
-      ok = tok_ext_build_z_branch_trace(
-        inp, arc_ctx->geo, psi, n, r0, z0, r1, z1, false, top.seed_names_side, r, z, s, param_is_r
-      );
-      break;
-    case TOK_EXT_ROUTE_VIA_UPPER:
-      ok = tok_ext_build_via_turning_trace(
-        inp, arc_ctx->geo, psi, n, r0, z0, r1, z1, true, top.seed_names_side, r, z, s, param_is_r
-      );
-      break;
-    case TOK_EXT_ROUTE_CLOSED_CORE:
-      ok = tok_ext_build_closed_core_trace(
-        inp, arc_ctx->geo, psi, separatrix, n, r0, z0, r, z, s, param_is_r
-      );
-      break;
-    case TOK_EXT_ROUTE_CORE_HALF:
-      ok = tok_ext_build_core_half_trace(
-        inp, arc_ctx->geo, psi, separatrix, n, r0, z0, r1, z1, r, z, s, param_is_r
-      );
-      break;
-  }
+  bool ok = tok_ext_route_trace(
+    inp, arc_ctx->geo, &top, route, psi, separatrix, n, r0, z0, r1, z1, r, z, s, param_is_r
+  );
   if (!ok && !top.closed && route != TOK_EXT_ROUTE_GENERIC) {
     // Each topology names the parameterization that suits it, but a suitable
     // parameterization is not always a usable one: on a separatrix whose
@@ -4801,6 +4818,63 @@ tok_contour_leaves(
          tok_contour_leaves(geo, psi, mr, mz, r1, z1, depth + 1, lv);
 }
 
+// The trace (tr, tz) refined to the contour's true arc: lv->arc holds the
+// CUMULATIVE true arc from the trace's first point.
+static bool
+tok_trace_leaves(
+  const struct gkyl_tok_geo *geo, double psi, const double *tr, const double *tz, int n,
+  struct tok_leaves *lv
+)
+{
+  lv->n = 0;
+  tok_leaves_push(lv, tr[0], tz[0], 0.0);
+  for (int i = 1; i < n; ++i) {
+    if (!tok_contour_leaves(geo, psi, lv->r[lv->n - 1], lv->z[lv->n - 1], tr[i], tz[i], 0, lv)) {
+      return false;
+    }
+  }
+  for (int j = 1; j < lv->n; ++j) {
+    lv->arc[j] += lv->arc[j - 1];
+  }
+  return true;
+}
+
+// The point of psi at cumulative true arc `want` along the leaves lv.  False
+// only when the solve inside a piece fails.
+static bool
+tok_leaves_point(
+  const struct gkyl_tok_geo *geo, double psi, const struct tok_leaves *lv, double want, double *r,
+  double *z
+)
+{
+  int a = 0, b = lv->n - 1;
+  while (b - a > 1) {
+    int mid = (a + b) / 2;
+    if (lv->arc[mid] < want) {
+      a = mid;
+    } else {
+      b = mid;
+    }
+  }
+  const double whole = lv->arc[b] - lv->arc[a], into = want - lv->arc[a];
+  if (!(into > 0.0)) {
+    *r = lv->r[a];
+    *z = lv->z[a];
+    return true;
+  }
+  if (!(into < whole)) {
+    *r = lv->r[b];
+    *z = lv->z[b];
+    return true;
+  }
+  // inside a piece the chord and the arc agree to roundoff (see above)
+  const double f = into / whole;
+  const double cdr = lv->r[b] - lv->r[a], cdz = lv->z[b] - lv->z[a];
+  return tok_chord_normal_solve(
+    geo, psi, lv->r[a] + f * cdr, lv->z[a] + f * cdz, cdr, cdz, 0.5 * hypot(cdr, cdz), r, z
+  );
+}
+
 // A trace refined to its true arc, cached: tok_trace_sample is called many
 // times with the same trace (the row rule alone, thousands per row). A few
 // slots, keyed by the arrays and a signature of their contents, so a buffer
@@ -4836,19 +4910,9 @@ tok_trace_true_arc(
     }
   }
   slot->valid = false;
-  slot->lv.n = 0;
-  tok_leaves_push(&slot->lv, tr[0], tz[0], 0.0);
-  for (int i = 1; i < n; ++i) {
-    if (!tok_contour_leaves(
-          geo, psi, slot->lv.r[slot->lv.n - 1], slot->lv.z[slot->lv.n - 1], tr[i], tz[i], 0,
-          &slot->lv
-        )) {
-      slot->used = 0;
-      return 0;
-    }
-  }
-  for (int j = 1; j < slot->lv.n; ++j) {
-    slot->lv.arc[j] += slot->lv.arc[j - 1];
+  if (!tok_trace_leaves(geo, psi, tr, tz, n, &slot->lv)) {
+    slot->used = 0;
+    return 0;
   }
   slot->tr = tr;
   slot->tz = tz;
@@ -4859,6 +4923,535 @@ tok_trace_true_arc(
   slot->valid = true;
   slot->used = ++tok_arc_cache_clock;
   return &slot->lv;
+}
+
+// ---------------------------------------------------------------------------
+// The arc-fraction cut at X-point faces (2026-10-16).
+//
+// A theta CHAIN is the run of blocks one flux surface passes through between
+// two ends that are not X-point rays (plates, the midplane), or all the way
+// round a closed surface: a private-flux leg pair, a SOL run, the core halves.
+// Theta is chain-global -- each block's interval is its share of the
+// SEPARATRIX arc -- so with uniform arc in every block the Jacobian ratio of
+// one row at a theta face is
+//
+//     J_A / J_B = (L_A / Theta_A) / (L_B / Theta_B),
+//
+// and that equals the separatrix row's value on every row only if every row
+// is cut in the separatrix row's proportions.  The straight X-point ray cuts a
+// row wherever it happens to cross it, which divides the row differently
+// (NSTX-U 204051: the ratio ran from 0.68 to 1.52 across its faces).  So a row
+// off the separatrix is cut where its arc along the chain, as a fraction of
+// the chain's arc, equals the separatrix row's fraction at that face.  The
+// straight-ray crossings still do the first job: they split the row into
+// segments that each block's own route can trace.  The cut then slides along
+// the row from there.
+//
+// A chain with two fixed ends has exactly one such cut per face.  A closed
+// chain can rotate as a whole, and takes the rotation that moves its cuts
+// least (their mean slide along the row is zero).  Every block of a chain
+// evaluates the same chain, from the static topology table, with the same
+// scratch traces, so the blocks at a face place their shared node without
+// talking to each other: the construction the ray-crossing probe in
+// tok_ext_build_domain_trace already relies on.  The separatrix row is not
+// cut here; its ends are the X points.
+
+#define TOK_EXT_CHAIN_MAX 6
+
+struct tok_ext_chain {
+  enum gkyl_tok_geo_type ftype[TOK_EXT_CHAIN_MAX];
+  struct tok_ext_topology top[TOK_EXT_CHAIN_MAX];
+  // The chain runs through block k from its upper end to its lower end.
+  bool reversed[TOK_EXT_CHAIN_MAX];
+  int nseg, self;
+  bool cyclic;
+};
+
+// Which multiblock layout declares an ftype: +1 single null only, -1 double
+// null only, 0 both (the private-flux legs).  The lower outboard ray is an end
+// of LSN_SOL_MID and of DN_SOL_OUT_MID alike, so the block across a ray is the
+// one in the asking block's own layout.
+static int
+tok_ext_null_layout(enum gkyl_tok_geo_type ftype)
+{
+  switch (ftype) {
+    case GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO:
+    case GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID:
+    case GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP:
+    case GKYL_GEOMETRY_TOKAMAK_CORE:
+      return 1;
+    case GKYL_GEOMETRY_TOKAMAK_PF_LO_L:
+    case GKYL_GEOMETRY_TOKAMAK_PF_LO_R:
+    case GKYL_GEOMETRY_TOKAMAK_PF_UP_L:
+    case GKYL_GEOMETRY_TOKAMAK_PF_UP_R:
+      return 0;
+    default:
+      return -1;
+  }
+}
+
+static bool
+tok_ext_same_ray(const struct tok_ext_endpoint *a, const struct tok_ext_endpoint *b)
+{
+  return a->kind == TOK_EXT_XPT_RAY && b->kind == TOK_EXT_XPT_RAY && a->xpoint == b->xpoint &&
+         a->sector == b->sector;
+}
+
+// The one block across `ray` from `ftype`, and whether it meets the ray with
+// its upper end.  False when there is no such block or more than one.
+static bool
+tok_ext_chain_peer(
+  enum gkyl_tok_geo_type ftype, bool half_domain, const struct tok_ext_endpoint *ray,
+  enum gkyl_tok_geo_type *peer, struct tok_ext_topology *peer_top, bool *at_upper
+)
+{
+  int found = 0;
+  for (int f = 0; f <= (int)GKYL_GEOMETRY_TOKAMAK_IWL; ++f) {
+    enum gkyl_tok_geo_type ft = (enum gkyl_tok_geo_type)f;
+    struct tok_ext_topology t;
+    if (ft == ftype || !tok_ext_topology_from_ftype(ft, half_domain, &t) || t.closed ||
+        tok_ext_null_layout(ft) * tok_ext_null_layout(ftype) < 0) {
+      continue;
+    }
+    bool lo = tok_ext_same_ray(&t.lower, ray), up = tok_ext_same_ray(&t.upper, ray);
+    if (lo || up) {
+      ++found;
+      *peer = ft;
+      *peer_top = t;
+      *at_upper = up;
+    }
+  }
+  return found == 1;
+}
+
+// The chain through `ftype`, in increasing theta.  A closed chain starts at its
+// smallest ftype, so every block of it numbers the points alike.
+static bool
+tok_ext_build_chain(enum gkyl_tok_geo_type ftype, bool half_domain, struct tok_ext_chain *ch)
+{
+  enum gkyl_tok_geo_type ft[2 * TOK_EXT_CHAIN_MAX];
+  struct tok_ext_topology tp[2 * TOK_EXT_CHAIN_MAX];
+  bool rev[2 * TOK_EXT_CHAIN_MAX];
+  const int home = TOK_EXT_CHAIN_MAX;
+  int lo = home, hi = home + 1;
+  ft[home] = ftype;
+  rev[home] = false;
+  if (!tok_ext_topology_from_ftype(ftype, half_domain, &tp[home]) || tp[home].closed) {
+    return false;
+  }
+  bool cyclic = false;
+  for (;;) {
+    const int k = hi - 1;
+    const struct tok_ext_endpoint *e = rev[k] ? &tp[k].lower : &tp[k].upper;
+    if (e->kind != TOK_EXT_XPT_RAY) {
+      break;
+    }
+    enum gkyl_tok_geo_type pf;
+    struct tok_ext_topology pt;
+    bool at_upper = false;
+    if (!tok_ext_chain_peer(ft[k], half_domain, e, &pf, &pt, &at_upper)) {
+      return false;
+    }
+    if (pf == ftype) {
+      cyclic = true;
+      break;
+    }
+    if (hi - lo == TOK_EXT_CHAIN_MAX) {
+      return false;
+    }
+    ft[hi] = pf;
+    tp[hi] = pt;
+    rev[hi] = at_upper;
+    ++hi;
+  }
+  while (!cyclic) {
+    const struct tok_ext_endpoint *e = rev[lo] ? &tp[lo].upper : &tp[lo].lower;
+    if (e->kind != TOK_EXT_XPT_RAY) {
+      break;
+    }
+    enum gkyl_tok_geo_type pf;
+    struct tok_ext_topology pt;
+    bool at_upper = false;
+    if (!tok_ext_chain_peer(ft[lo], half_domain, e, &pf, &pt, &at_upper) || pf == ftype ||
+        hi - lo == TOK_EXT_CHAIN_MAX) {
+      return false;
+    }
+    --lo;
+    ft[lo] = pf;
+    tp[lo] = pt;
+    rev[lo] = !at_upper;
+  }
+  ch->nseg = hi - lo;
+  ch->cyclic = cyclic;
+  int first = lo;
+  if (cyclic) {
+    for (int k = lo + 1; k < hi; ++k) {
+      if (ft[k] < ft[first]) {
+        first = k;
+      }
+    }
+  }
+  for (int j = 0; j < ch->nseg; ++j) {
+    const int k = lo + (first - lo + j) % ch->nseg;
+    ch->ftype[j] = ft[k];
+    ch->top[j] = tp[k];
+    ch->reversed[j] = rev[k];
+    if (k == home) {
+      ch->self = j;
+    }
+  }
+  return true;
+}
+
+// Point k of a chain: the start of segment k, or for k == nseg the end of the
+// last segment (on a closed chain, point 0 again).
+static const struct tok_ext_endpoint *
+tok_ext_chain_end(const struct tok_ext_chain *ch, int k)
+{
+  if (k < ch->nseg) {
+    return ch->reversed[k] ? &ch->top[k].upper : &ch->top[k].lower;
+  }
+  const int j = ch->nseg - 1;
+  return ch->reversed[j] ? &ch->top[j].lower : &ch->top[j].upper;
+}
+
+// One row of a chain: its points, with the faces at the straight-ray
+// crossings, and the true arc S[k] from point 0 to point k along the row.  The
+// segments' true-arc refinements stay in tok_ext_chain_leaves until the next
+// row is built.
+struct tok_ext_chain_row {
+  double r[TOK_EXT_CHAIN_MAX + 1], z[TOK_EXT_CHAIN_MAX + 1];
+  double s[TOK_EXT_CHAIN_MAX + 1];
+};
+static _Thread_local struct tok_leaves tok_ext_chain_leaves[TOK_EXT_CHAIN_MAX];
+
+static bool
+tok_ext_chain_row_build(
+  const struct gkyl_tok_geo_grid_inp *inp, const struct arc_length_ctx *arc_ctx,
+  const struct tok_ext_chain *ch, double psi, bool separatrix, bool use_last,
+  struct tok_ext_chain_row *row
+)
+{
+  const struct gkyl_tok_geo *geo = arc_ctx->geo;
+  // Fresh per-call state, and raw ray ends: see ext_raw_ray_endpoints.
+  struct arc_length_ctx sc = {
+    .geo = geo,
+    .sep_trace_capacity = arc_ctx->sep_trace_capacity,
+    .xpt_ray_psi0 = arc_ctx->xpt_ray_psi0,
+    .ext_ray_use_last_crossing = use_last,
+    .ext_raw_ray_endpoints = true,
+    .ftype = inp->ftype,
+    .zmaxis = arc_ctx->zmaxis,
+  };
+  const int npts = ch->cyclic ? ch->nseg : ch->nseg + 1;
+  for (int k = 0; k < npts; ++k) {
+    struct gkyl_tok_geo_grid_inp pin = *inp;
+    pin.ftype = ch->ftype[k < ch->nseg ? k : ch->nseg - 1];
+    if (!tok_ext_endpoint_point(
+          &pin, &sc, tok_ext_chain_end(ch, k), psi, separatrix, &row->r[k], &row->z[k], 0
+        )) {
+      return false;
+    }
+  }
+  if (ch->cyclic) {
+    row->r[ch->nseg] = row->r[0];
+    row->z[ch->nseg] = row->z[0];
+  }
+  const int cap = arc_ctx->sep_trace_capacity;
+  const int n = tok_reference_trace_nodes(inp, cap);
+  double *buf = gkyl_malloc(sizeof(double[3 * (size_t)cap]));
+  bool ok = true;
+  row->s[0] = 0.0;
+  for (int j = 0; j < ch->nseg && ok; ++j) {
+    struct gkyl_tok_geo_grid_inp pin = *inp;
+    pin.ftype = ch->ftype[j];
+    const struct tok_ext_topology *top = &ch->top[j];
+    // each block's trace runs its own way, lower end -> upper end
+    const int a = ch->reversed[j] ? j + 1 : j, b = ch->reversed[j] ? j : j + 1;
+    bool param = false;
+    ok = tok_ext_route_trace(
+      &pin, geo, top, top->route, psi, separatrix, n, row->r[a], row->z[a], row->r[b], row->z[b],
+      buf, buf + cap, buf + 2 * cap, &param
+    );
+    if (!ok && top->route != TOK_EXT_ROUTE_GENERIC) {
+      ok = tok_ext_build_open_trace(
+        &pin, geo, psi, n, row->r[a], row->z[a], row->r[b], row->z[b], buf, buf + cap,
+        buf + 2 * cap, &param
+      );
+    }
+    struct tok_leaves *lv = &tok_ext_chain_leaves[j];
+    ok = ok && tok_trace_leaves(geo, psi, buf, buf + cap, n, lv) && lv->n > 1 &&
+         lv->arc[lv->n - 1] > 0.0;
+    if (ok) {
+      row->s[j + 1] = row->s[j] + lv->arc[lv->n - 1];
+    }
+  }
+  gkyl_free(buf);
+  return ok;
+}
+
+// The point at true arc `at` (0 <= at <= s[nseg]) along the row just built.
+static bool
+tok_ext_chain_point_at(
+  const struct gkyl_tok_geo *geo, double psi, const struct tok_ext_chain *ch,
+  const struct tok_ext_chain_row *row, double at, double *r, double *z
+)
+{
+  int j = 0;
+  while (j < ch->nseg - 1 && at > row->s[j + 1]) {
+    ++j;
+  }
+  const double len = row->s[j + 1] - row->s[j];
+  const double into = fmin(len, fmax(0.0, at - row->s[j]));
+  return tok_leaves_point(
+    geo, psi, &tok_ext_chain_leaves[j], ch->reversed[j] ? len - into : into, r, z
+  );
+}
+
+// What a chain row's cut depends on besides the chain and psi: the
+// equilibrium, the plates, and the declared sides and fixed Z's.  Keyed by
+// value rather than by the geo object, so that the blocks of a chain -- each
+// built with its own geo -- share one computation of every row.
+struct tok_ext_cut_key {
+  double psisep, psi0, psi;
+  double rleft, rright, zmin, zmax, zmin_left, zmin_right, zmax_left, zmax_right;
+  plate_func plate_lower, plate_upper;
+  enum gkyl_tok_geo_type chain; // the chain's first block
+  bool half_domain, use_cubics, plate_spec;
+};
+
+static struct tok_ext_cut_key
+tok_ext_cut_key_of(
+  const struct gkyl_tok_geo_grid_inp *inp, const struct gkyl_tok_geo *geo, double psi0, double psi,
+  enum gkyl_tok_geo_type chain
+)
+{
+  return (struct tok_ext_cut_key){
+    .psisep = geo->psisep,
+    .psi0 = psi0,
+    .psi = psi,
+    .rleft = inp->rleft,
+    .rright = inp->rright,
+    .zmin = inp->zmin,
+    .zmax = inp->zmax,
+    .zmin_left = inp->zmin_left,
+    .zmin_right = inp->zmin_right,
+    .zmax_left = inp->zmax_left,
+    .zmax_right = inp->zmax_right,
+    .plate_lower = geo->plate_func_lower,
+    .plate_upper = geo->plate_func_upper,
+    .chain = chain,
+    .half_domain = inp->half_domain,
+    .use_cubics = geo->use_cubics,
+    .plate_spec = geo->plate_spec,
+  };
+}
+
+static bool
+tok_ext_cut_key_eq(const struct tok_ext_cut_key *a, const struct tok_ext_cut_key *b)
+{
+  return a->psisep == b->psisep && a->psi0 == b->psi0 && a->psi == b->psi && a->rleft == b->rleft &&
+         a->rright == b->rright && a->zmin == b->zmin && a->zmax == b->zmax &&
+         a->zmin_left == b->zmin_left && a->zmin_right == b->zmin_right &&
+         a->zmax_left == b->zmax_left && a->zmax_right == b->zmax_right &&
+         a->plate_lower == b->plate_lower && a->plate_upper == b->plate_upper &&
+         a->chain == b->chain && a->half_domain == b->half_domain &&
+         a->use_cubics == b->use_cubics && a->plate_spec == b->plate_spec;
+}
+
+// Cut points of built rows, per chain.  A block asks for every row's cut in
+// its row rule and again in each node pass, at every psi a pass evaluates
+// (nodes, Gauss points, the metric's finite-difference neighbours: ~10 per
+// row), and every block of the chain asks for the same rows; NSTX-U's core
+// halves need ~1400 distinct psi.  A set-associative table hashed on the key
+// holds them all, so each row is traced once per chain.  The separatrix
+// fractions live in a small table of their own.
+#define TOK_EXT_CUT_SETS 4096
+#define TOK_EXT_CUT_WAYS 4
+struct tok_ext_cut_slot {
+  struct tok_ext_cut_key key;
+  bool valid;
+  double r[TOK_EXT_CHAIN_MAX + 1], z[TOK_EXT_CHAIN_MAX + 1];
+  unsigned long used;
+};
+static _Thread_local struct tok_ext_cut_slot *tok_ext_cut_table;
+static _Thread_local struct tok_ext_cut_slot tok_ext_cut_sep_cache[4];
+static _Thread_local unsigned long tok_ext_cut_clock;
+
+static uint64_t
+tok_ext_cut_hash(const struct tok_ext_cut_key *key)
+{
+  uint64_t h = (uint64_t)key->chain * 0x9e3779b97f4a7c15ULL;
+  const double v[3] = {key->psi, key->psi0, key->psisep};
+  for (int i = 0; i < 3; ++i) {
+    uint64_t x;
+    memcpy(&x, &v[i], sizeof x);
+    h ^= x + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2);
+  }
+  h ^= h >> 31;
+  h *= 0xbf58476d1ce4e5b9ULL;
+  h ^= h >> 27;
+  return h;
+}
+
+// The slot holding `key` (hit), else the least recently used of the nslot,
+// reset to `key` (miss).
+static struct tok_ext_cut_slot *
+tok_ext_cut_lookup(
+  struct tok_ext_cut_slot *slots, int nslot, const struct tok_ext_cut_key *key, bool *hit
+)
+{
+  struct tok_ext_cut_slot *lru = &slots[0];
+  for (int k = 0; k < nslot; ++k) {
+    struct tok_ext_cut_slot *c = &slots[k];
+    if (c->valid && tok_ext_cut_key_eq(&c->key, key)) {
+      c->used = ++tok_ext_cut_clock;
+      *hit = true;
+      return c;
+    }
+    if (c->used < lru->used) {
+      lru = c;
+    }
+  }
+  *lru = (struct tok_ext_cut_slot){.key = *key, .used = ++tok_ext_cut_clock};
+  *hit = false;
+  return lru;
+}
+
+static struct tok_ext_cut_slot *
+tok_ext_cut_table_lookup(const struct tok_ext_cut_key *key, bool *hit)
+{
+  if (!tok_ext_cut_table) {
+    // per thread, for the life of the process, like the true-arc cache
+    tok_ext_cut_table =
+      gkyl_calloc((size_t)TOK_EXT_CUT_SETS * TOK_EXT_CUT_WAYS, sizeof(struct tok_ext_cut_slot));
+  }
+  const size_t set = (size_t)(tok_ext_cut_hash(key) % TOK_EXT_CUT_SETS);
+  return tok_ext_cut_lookup(tok_ext_cut_table + set * TOK_EXT_CUT_WAYS, TOK_EXT_CUT_WAYS, key, hit);
+}
+
+static bool
+tok_ext_arc_cut_point(
+  const struct gkyl_tok_geo_grid_inp *inp, const struct arc_length_ctx *arc_ctx,
+  const struct tok_ext_endpoint *endpoint, double psi, double *r, double *z
+)
+{
+  const struct gkyl_tok_geo *geo = arc_ctx->geo;
+  if (tok_geo_same_flux(psi, geo->psisep)) {
+    return tok_ext_xpoint_rz(geo, endpoint->xpoint, r, z);
+  }
+  struct tok_ext_topology top;
+  if (!tok_ext_topology_from_ftype(inp->ftype, inp->half_domain, &top)) {
+    return false;
+  }
+  if (top.closed) {
+    // A single block round the whole surface is its own chain: any cut gives
+    // the same arc per radian at both of its ends.
+    return tok_ext_fixed_ray_endpoint(inp, arc_ctx, endpoint, psi, r, z, 0);
+  }
+  struct tok_ext_chain ch;
+  if (!tok_ext_build_chain(inp->ftype, inp->half_domain, &ch)) {
+    fprintf(
+      stderr, "TOK_EXT_ARC_CUT REFUSED ftype=%d reason=no_unique_theta_chain half_domain=%d\n",
+      inp->ftype, (int)inp->half_domain
+    );
+    return false;
+  }
+  int k = ch.self + (tok_ext_same_ray(endpoint, &top.upper) ? 1 : 0);
+  if (ch.cyclic) {
+    k %= ch.nseg;
+  }
+
+  bool hit = false;
+  const struct tok_ext_cut_key key =
+    tok_ext_cut_key_of(inp, geo, arc_ctx->xpt_ray_psi0, psi, ch.ftype[0]);
+  struct tok_ext_cut_slot *cut = tok_ext_cut_table_lookup(&key, &hit);
+  if (hit) {
+    *r = cut->r[k];
+    *z = cut->z[k];
+    return true;
+  }
+
+  // The separatrix row's fractions F[k] = s[k] / s[nseg] (kept in sep->r).
+  const struct tok_ext_cut_key sep_key =
+    tok_ext_cut_key_of(inp, geo, 0.0, geo->psisep, ch.ftype[0]);
+  struct tok_ext_cut_slot *sep = tok_ext_cut_lookup(tok_ext_cut_sep_cache, 4, &sep_key, &hit);
+  struct tok_ext_chain_row row;
+  if (!hit) {
+    if (!tok_ext_chain_row_build(inp, arc_ctx, &ch, geo->psisep, true, false, &row)) {
+      fprintf(
+        stderr, "TOK_EXT_ARC_CUT REFUSED ftype=%d reason=separatrix_chain_untraceable psi=%.17g\n",
+        inp->ftype, geo->psisep
+      );
+      sep->valid = false;
+      return false;
+    }
+    for (int j = 0; j <= ch.nseg; ++j) {
+      sep->r[j] = row.s[j] / row.s[ch.nseg];
+    }
+    sep->valid = true;
+  }
+
+  // Straight-ray crossings first; if a segment cannot be traced from them,
+  // both blocks retry the whole chain at the last crossings (see
+  // tok_ext_build_domain_trace on why the ray alone cannot choose).
+  if (!tok_ext_chain_row_build(inp, arc_ctx, &ch, psi, false, false, &row) &&
+      !tok_ext_chain_row_build(inp, arc_ctx, &ch, psi, false, true, &row)) {
+    fprintf(
+      stderr, "TOK_EXT_ARC_CUT REFUSED ftype=%d reason=chain_untraceable psi=%.17g segments=%d\n",
+      inp->ftype, psi, ch.nseg
+    );
+    cut->valid = false;
+    return false;
+  }
+  const double len = row.s[ch.nseg];
+  double at[TOK_EXT_CHAIN_MAX + 1];
+  if (ch.cyclic) {
+    double mean = 0.0;
+    for (int j = 0; j < ch.nseg; ++j) {
+      mean += row.s[j] - sep->r[j] * len;
+    }
+    mean /= ch.nseg;
+    for (int j = 0; j < ch.nseg; ++j) {
+      at[j] = sep->r[j] * len + mean;
+      at[j] = at[j] < 0.0 ? at[j] + len : (at[j] > len ? at[j] - len : at[j]);
+    }
+  } else {
+    for (int j = 1; j < ch.nseg; ++j) {
+      at[j] = sep->r[j] * len;
+    }
+  }
+  // an open chain's two ends stay where they are
+  for (int j = 0; j <= ch.nseg; ++j) {
+    cut->r[j] = row.r[j];
+    cut->z[j] = row.z[j];
+  }
+  for (int j = ch.cyclic ? 0 : 1; j < ch.nseg; ++j) {
+    if (!tok_ext_chain_point_at(geo, psi, &ch, &row, at[j], &cut->r[j], &cut->z[j])) {
+      fprintf(
+        stderr, "TOK_EXT_ARC_CUT REFUSED ftype=%d reason=cut_unsolved psi=%.17g point=%d\n",
+        inp->ftype, psi, j
+      );
+      cut->valid = false;
+      return false;
+    }
+    if (geo->is_verbose) {
+      fprintf(
+        stderr,
+        "TOK_EXT_ARC_CUT ftype=%d psi=%.17g point=%d of %d cyclic=%d fraction=%.17g "
+        "slide_m=%.6e chain_m=%.17g\n",
+        inp->ftype, psi, j, ch.nseg, (int)ch.cyclic, sep->r[j], at[j] - row.s[j], len
+      );
+    }
+  }
+  if (ch.cyclic) {
+    cut->r[ch.nseg] = cut->r[0];
+    cut->z[ch.nseg] = cut->z[0];
+  }
+  cut->valid = true;
+  *r = cut->r[k];
+  *z = cut->z[k];
+  return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -5064,36 +5657,9 @@ tok_trace_sample(
   // Arc-exact first (see the arc-exact sampling section): the trace
   // refined to the contour's true arc, the point at its true arc fraction.
   const struct tok_leaves *lv = tok_trace_true_arc(geo, psi, tr, tz, ts, n);
-  if (lv && lv->n > 1 && lv->arc[lv->n - 1] > 0.0) {
-    const double want = u * lv->arc[lv->n - 1];
-    int a = 0, b = lv->n - 1;
-    while (b - a > 1) {
-      int mid = (a + b) / 2;
-      if (lv->arc[mid] < want) {
-        a = mid;
-      } else {
-        b = mid;
-      }
-    }
-    const double whole = lv->arc[b] - lv->arc[a], into = want - lv->arc[a];
-    if (!(into > 0.0)) {
-      *r = lv->r[a];
-      *z = lv->z[a];
-      return true;
-    }
-    if (!(into < whole)) {
-      *r = lv->r[b];
-      *z = lv->z[b];
-      return true;
-    }
-    // inside a piece the chord and the arc agree to roundoff (see above)
-    const double f = into / whole;
-    const double cdr = lv->r[b] - lv->r[a], cdz = lv->z[b] - lv->z[a];
-    if (tok_chord_normal_solve(
-          geo, psi, lv->r[a] + f * cdr, lv->z[a] + f * cdz, cdr, cdz, 0.5 * hypot(cdr, cdz), r, z
-        )) {
-      return true;
-    }
+  if (lv && lv->n > 1 && lv->arc[lv->n - 1] > 0.0 &&
+      tok_leaves_point(geo, psi, lv, u * lv->arc[lv->n - 1], r, z)) {
+    return true;
   }
   double target = u * ts[n - 1];
   int lo = 0, hi = n - 1;
@@ -6527,8 +7093,8 @@ tok_relax_xpt_seam_point(
     return !inp->relaxed_xpt_seam_sweep;
   }
 
-  // Use signed local contour arc length, with s0=0 at the straight-ray
-  // intersection. Return before doing coordinate arithmetic so zero mode is
+  // Use signed local contour arc length, with s0=0 at the face point (the
+  // arc-fraction cut). Return before doing coordinate arithmetic so zero mode is
   // bitwise identical to the existing construction.
   const double s0 = 0.0;
   if (delta_s == 0.0) {
@@ -10600,12 +11166,95 @@ gkyl_tok_geo_calc_surface(
   tok_wall_pocket_release(&pocket[1]);
 }
 
+// An extended block's theta interval as exactly its share of its chain's
+// separatrix arc, measured the way the arc-fraction cut measures it
+// (tok_ext_arc_cut_point).  The cut makes (L_A/Theta_A)/(L_B/Theta_B) the same
+// on every row of a face; this makes that value 1.  tok_geo_set_extent's
+// z-span quadratures agree with the trace's true arc only to ~1e-6 (and a half
+// domain takes its share of the FULL surface), which left the ratio up to
+// 7.5e-5 off one.  Theta labels an extended block's row rather than
+// addressing it -- nodes sit at fractions of the row -- so this moves no node;
+// it rescales d(arc)/d(theta).  The chain keeps its total extent, and the face
+// where theta wraps through +-pi (else the chain's first point) keeps its value.
+static void
+tok_ext_set_extent_by_arc(
+  struct gkyl_tok_geo_grid_inp *inp, struct gkyl_tok_geo *geo, double *theta_lo, double *theta_up
+)
+{
+  struct tok_ext_topology top;
+  struct tok_ext_chain ch;
+  if (!tok_ext_construction(inp) ||
+      !tok_ext_topology_from_ftype(inp->ftype, inp->half_domain, &top) || top.closed ||
+      !tok_ext_build_chain(inp->ftype, inp->half_domain, &ch)) {
+    return; // a block with no chain is refused by the cut, loudly, when it is built
+  }
+  for (int j = 0; j < ch.nseg; ++j) {
+    if (ch.reversed[j]) {
+      return; // no topology runs a block against its chain's theta
+    }
+  }
+  // every block's extent as tok_geo_set_extent gives it
+  double lo[TOK_EXT_CHAIN_MAX], up[TOK_EXT_CHAIN_MAX];
+  for (int j = 0; j < ch.nseg; ++j) {
+    if (j == ch.self) {
+      lo[j] = *theta_lo;
+      up[j] = *theta_up;
+    } else {
+      struct gkyl_tok_geo_grid_inp pin = *inp;
+      pin.ftype = ch.ftype[j];
+      tok_geo_set_extent(&pin, geo, &lo[j], &up[j]);
+    }
+  }
+  int nzcells = geo->use_cubics ? geo->rzgrid_cubic.cells[1] : geo->rzgrid.cells[1];
+  struct arc_length_ctx actx = {
+    .geo = geo,
+    .sep_trace_capacity = tok_sep_trace_capacity(inp, nzcells),
+    .ftype = inp->ftype,
+    .zmaxis = geo->zmaxis,
+  };
+  struct tok_ext_chain_row row;
+  if (!tok_ext_chain_row_build(inp, &actx, &ch, geo->psisep, true, false, &row)) {
+    fprintf(
+      stderr, "TOK_EXT_ARC_EXTENT REFUSED ftype=%d reason=separatrix_chain_untraceable\n",
+      inp->ftype
+    );
+    return;
+  }
+  // Unwrap theta along the chain: it can jump by 2 pi at most once, at a face.
+  double off[TOK_EXT_CHAIN_MAX], span = up[0] - lo[0];
+  int wrap = -1;
+  off[0] = 0.0;
+  for (int j = 1; j < ch.nseg; ++j) {
+    off[j] = off[j - 1];
+    double jump = (lo[j] + off[j]) - (up[j - 1] + off[j - 1]);
+    if (fabs(jump) > M_PI) {
+      off[j] -= copysign(2.0 * M_PI, jump);
+      wrap = j;
+    }
+    span += up[j] - lo[j];
+  }
+  if (wrap < 0 && ch.cyclic) {
+    wrap = 0; // the closing face is where a closed chain wraps
+  }
+  const int anchor = wrap < 0 ? 0 : wrap;
+  const double total = row.s[ch.nseg], fa = row.s[anchor] / total;
+  const double ua = lo[anchor] + off[anchor];
+  const int k = ch.self;
+  *theta_lo = ua + span * (row.s[k] / total - fa) - off[k];
+  *theta_up = ua + span * (row.s[k + 1] / total - fa) - off[k];
+  inp->arc_frac_lo = (*theta_lo + M_PI) / (2.0 * M_PI);
+  inp->arc_frac_hi = (*theta_up + M_PI) / (2.0 * M_PI);
+  inp->arc_frac_valid = isfinite(inp->arc_frac_lo) && isfinite(inp->arc_frac_hi) &&
+                        inp->arc_frac_hi > inp->arc_frac_lo;
+}
+
 void
 gkyl_tok_geo_set_extent(
   struct gkyl_tok_geo_grid_inp *inp, struct gkyl_tok_geo *geo, double *theta_lo, double *theta_up
 )
 {
   tok_geo_set_extent(inp, geo, theta_lo, theta_up);
+  tok_ext_set_extent_by_arc(inp, geo, theta_lo, theta_up);
 }
 
 struct gkyl_tok_geo_stat

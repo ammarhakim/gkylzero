@@ -70,6 +70,11 @@ struct arc_length_ctx {
   // retry, after the first-crossing anchor has produced a trace that no route
   // could build; see the retry's comment for why the ray cannot decide this.
   bool ext_ray_use_last_crossing;
+  // An X-point-ray end off the separatrix is the arc-fraction cut
+  // (tok_ext_arc_cut_point), which starts from the straight-ray crossing.  Set
+  // only on the scratch contexts that cut builds its chain with, so that there
+  // the end IS the straight-ray crossing and the cut never recurses.
+  bool ext_raw_ray_endpoints;
   // Ordered trace of the opposite (far) radial boundary and a monotone
   // correspondence v=g(u) from the separatrix trace to that boundary.
   // Intermediate flux surfaces are obtained by intersecting the resulting
