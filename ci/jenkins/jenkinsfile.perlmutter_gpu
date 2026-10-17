@@ -700,6 +700,17 @@ def ciStage(String name, Closure body) { reporting.ciStage(name, body) }
 def writeCiFailureSummary(String result, String name, String message) { reporting.writeCiFailureSummary(result, name, message) }
 
 node(nodeLabel) {
+    stage('Initialize Python') {
+        // Module activation is shell-local. Export its interpreter directory
+        // so later non-login reporting and cache steps use the same Python.
+        def pythonBin = sh(returnStdout: true, script: '''#!/bin/bash -l
+            set -e -o pipefail
+            module load python/3.13-26.1.0
+            python3 -I -c 'import os, sys; assert sys.version_info[:2] == (3, 13); print(os.path.dirname(sys.executable))'
+        ''').trim()
+        env.PATH = "${pythonBin}:${env.PATH}"
+        sh 'python3 --version'
+    }
     // Perlmutter compute nodes must see this path. Configure the root on a shared
     // filesystem such as the project's /scratch/gpfs location, never /tmp.
     ws("${workspaceRoot}/${env.JOB_NAME}/${env.BUILD_TAG}") {
