@@ -17,12 +17,12 @@
 # reason; that changed line is a fresh acknowledgment.
 #
 # Examples (replace test/file names; separate fields with spaces or tabs):
-# rt_example # entire test, all modes
-# rt_example cpu_parallel # entire test, CPU MPI only
-# rt_example gpu_parallel # entire test, GPU MPI only
-# rt_example out.gkyl # one file, all modes
-# rt_example cpu_parallel out.gkyl # one file, CPU MPI only
-# rt_example gpu_parallel out.gkyl # one file, GPU MPI only
+# moments/creg/rt_euler_sodshock # entire test, all modes
+# moments/creg/rt_euler_sodshock cpu_parallel # entire test, CPU MPI only
+# moments/creg/rt_euler_sodshock gpu_parallel # entire test, GPU MPI only
+# moments/creg/rt_euler_sodshock out.gkyl # one file, all modes
+# moments/creg/rt_euler_sodshock cpu_parallel out.gkyl # one file, CPU MPI only
+# moments/creg/rt_euler_sodshock gpu_parallel out.gkyl # one file, GPU MPI only
 # Modes: cpu_serial, cpu_parallel, gpu_serial, gpu_parallel.
 # File entries cover any comparison failure; list every failing file.
 # Execution failures require an entire-test or entire-mode entry. Tests still run.
