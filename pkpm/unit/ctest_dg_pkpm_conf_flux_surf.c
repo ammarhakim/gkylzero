@@ -26,6 +26,17 @@ mkarr(long nc, long size)
   return gkyl_array_new(GKYL_DOUBLE, nc, size);
 }
 
+// Identity configuration-space position map (the updaters always take one).
+static struct gkyl_vlasov_position_map *
+identity_pos_map(
+  const struct gkyl_rect_grid *cgrid, const struct gkyl_range *clocal, const struct gkyl_range *clocal_ext,
+  const struct gkyl_basis *cbasis
+)
+{
+  struct gkyl_vlasov_position_map_inp inp[GKYL_MAX_CDIM] = {0};
+  return gkyl_vlasov_position_map_new(cgrid, clocal, clocal_ext, cbasis, inp, false);
+}
+
 // Periodic smooth fields on [-pi, pi]^cdim so that projection on the extended
 // range fills the ghost cells with their periodic values.
 static void
@@ -86,6 +97,7 @@ hll_ref(double a_l, double a_r, double f_l, double f_r)
 }
 
 struct test_setup {
+  struct gkyl_vlasov_position_map *pos_map; // identity configuration-space map
   int cdim, pdim;
   struct gkyl_rect_grid cgrid, pgrid;
   struct gkyl_basis cbasis, pbasis;
@@ -116,6 +128,7 @@ setup(struct test_setup *s, int cdim)
   gkyl_cart_modal_serendip(&s->cbasis, cdim, 1);
   gkyl_cart_modal_hybrid(&s->pbasis, cdim, 1);
   gkyl_create_grid_ranges(&s->cgrid, cghost, &s->clocal_ext, &s->clocal);
+  s->pos_map = identity_pos_map(&s->cgrid, &s->clocal, &s->clocal_ext, &s->cbasis);
   gkyl_create_grid_ranges(&s->pgrid, pghost, &s->plocal_ext, &s->plocal);
 
   int nc = s->cbasis.num_basis, np = s->pbasis.num_basis;
@@ -140,7 +153,7 @@ setup(struct test_setup *s, int cdim)
   gkyl_proj_on_basis_advance(proj, 0.0, &s->plocal_ext, s->f);
   gkyl_proj_on_basis_release(proj);
 
-  s->calc_b = gkyl_dg_calc_pkpm_bvar_new(&s->cgrid, &s->cbasis, false);
+  s->calc_b = gkyl_dg_calc_pkpm_bvar_new(&s->cgrid, &s->cbasis, s->pos_map, false);
   gkyl_dg_calc_pkpm_bvar_advance(s->calc_b, &s->clocal_ext, em, s->bvar);
   gkyl_array_release(em);
 
@@ -148,7 +161,7 @@ setup(struct test_setup *s, int cdim)
     .phase_grid = &s->pgrid,
     .conf_basis = &s->cbasis,
     .phase_basis = &s->pbasis,
-    .use_gpu = false,
+    .pos_map = s->pos_map, .use_gpu = false,
   };
   s->calc_flux = gkyl_dg_pkpm_conf_flux_surf_inew(&inp);
   int nk = gkyl_dg_pkpm_conf_flux_surf_num_surf_basis(s->calc_flux);
@@ -164,6 +177,7 @@ setup(struct test_setup *s, int cdim)
 static void
 teardown(struct test_setup *s)
 {
+  gkyl_vlasov_position_map_release(s->pos_map);
   gkyl_dg_pkpm_conf_flux_surf_release(s->calc_flux);
   gkyl_dg_calc_pkpm_bvar_release(s->calc_b);
   gkyl_array_release(s->flux);
@@ -342,7 +356,7 @@ test_scatter(int cdim)
         .theta = zeros,
         .conf_flux_surf = s.flux,
       },
-    .use_gpu = false,
+    .pos_map = s.pos_map, .use_gpu = false,
   };
   struct gkyl_dg_eqn *eqn = gkyl_dg_pkpm_kinetic_conf_inew(&inp);
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux[2 * GKYL_MAX_DIM] = {0};
@@ -408,7 +422,7 @@ test_scatter_ref(int cdim)
     .auxfields =
       {.bvar = s.bvar, .grad_b = zeros_g, .u = s.u, .grad_u = zeros_g, .xi = s.xi, .grad_xi = zeros_g, .grad_ln_n = zeros_g, .theta = zeros,
         .conf_flux_surf = s.flux},
-    .use_gpu = false,
+    .pos_map = s.pos_map, .use_gpu = false,
   };
   struct gkyl_dg_eqn *eqn = gkyl_dg_pkpm_kinetic_conf_inew(&inp);
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux[2 * GKYL_MAX_DIM] = {0};
@@ -431,12 +445,13 @@ test_scatter_ref(int cdim)
     const double *bv = gkyl_array_cfetch(s.bvar, cidx), *uv = gkyl_array_cfetch(s.u, cidx);
     const double *zg = gkyl_array_cfetch(zeros_g, cidx), *z = gkyl_array_cfetch(zeros, cidx);
     const double *fv = gkyl_array_cfetch(s.f, pidx), *xv = gkyl_array_cfetch(s.xi, cidx);
+    const double *jac = gkyl_array_cfetch(s.pos_map->jacob_pos, cidx); // identity map: ones
     if (cdim == 1) {
-      pkpm_kinetic_conf_vol_1x1v_ser_p1(xc, s.pgrid.dx, bv, zg, uv, zg, xv, zg, zg, z, fv, ref);
+      pkpm_kinetic_conf_vol_1x1v_ser_p1(xc, s.pgrid.dx, jac, bv, zg, uv, zg, xv, zg, zg, z, fv, ref);
     } else if (cdim == 2) {
-      pkpm_kinetic_conf_vol_2x1v_ser_p1(xc, s.pgrid.dx, bv, zg, uv, zg, xv, zg, zg, z, fv, ref);
+      pkpm_kinetic_conf_vol_2x1v_ser_p1(xc, s.pgrid.dx, jac, bv, zg, uv, zg, xv, zg, zg, z, fv, ref);
     } else {
-      pkpm_kinetic_conf_vol_3x1v_ser_p1(xc, s.pgrid.dx, bv, zg, uv, zg, xv, zg, zg, z, fv, ref);
+      pkpm_kinetic_conf_vol_3x1v_ser_p1(xc, s.pgrid.dx, jac, bv, zg, uv, zg, xv, zg, zg, z, fv, ref);
     }
     for (int dir = 0; dir < cdim; ++dir) {
       int idx_r[4];

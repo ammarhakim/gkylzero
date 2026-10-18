@@ -19,10 +19,10 @@ gkyl_dg_pkpm_kinetic_conf_set_auxfields_cu_kernel(
   pkpm->auxfields.grad_b = auxin.grad_b;
   pkpm->auxfields.u = auxin.u;
   pkpm->auxfields.grad_u = auxin.grad_u;
+  pkpm->auxfields.xi = auxin.xi;
+  pkpm->auxfields.grad_xi = auxin.grad_xi;
   pkpm->auxfields.grad_ln_n = auxin.grad_ln_n;
   pkpm->auxfields.theta = auxin.theta;
-  pkpm->auxfields.nu_sum = auxin.nu_sum;
-  pkpm->auxfields.nu_vthsq_sum = auxin.nu_vthsq_sum;
   pkpm->auxfields.conf_flux_surf = auxin.conf_flux_surf;
 }
 
@@ -37,10 +37,10 @@ gkyl_dg_pkpm_kinetic_conf_set_auxfields_cu(
     .grad_b = auxin.grad_b ? auxin.grad_b->on_dev : 0,
     .u = auxin.u ? auxin.u->on_dev : 0,
     .grad_u = auxin.grad_u ? auxin.grad_u->on_dev : 0,
+    .xi = auxin.xi ? auxin.xi->on_dev : 0,
+    .grad_xi = auxin.grad_xi ? auxin.grad_xi->on_dev : 0,
     .grad_ln_n = auxin.grad_ln_n ? auxin.grad_ln_n->on_dev : 0,
     .theta = auxin.theta ? auxin.theta->on_dev : 0,
-    .nu_sum = auxin.nu_sum ? auxin.nu_sum->on_dev : 0,
-    .nu_vthsq_sum = auxin.nu_vthsq_sum ? auxin.nu_vthsq_sum->on_dev : 0,
     .conf_flux_surf = auxin.conf_flux_surf ? auxin.conf_flux_surf->on_dev : 0,
   };
   gkyl_dg_pkpm_kinetic_conf_set_auxfields_cu_kernel<<<1, 1>>>(eqn, auxin_dev);
@@ -75,6 +75,9 @@ gkyl_dg_pkpm_kinetic_conf_cu_dev_inew(const struct gkyl_dg_pkpm_kinetic_conf_inp
   pkpm->conf_range = *inp->conf_range;
   pkpm->phase_range = *inp->phase_range;
   pkpm->auxfields = inp->auxfields;
+  assert(inp->pos_map);
+  pkpm->pos_map = 0; // host pointer set after the device memcpy below
+  pkpm->jacob_pos = inp->pos_map->jacob_pos->on_dev;
 
   pkpm->eqn.flags = 0;
   GKYL_SET_CU_ALLOC(pkpm->eqn.flags);
@@ -89,5 +92,7 @@ gkyl_dg_pkpm_kinetic_conf_cu_dev_inew(const struct gkyl_dg_pkpm_kinetic_conf_inp
   );
 
   pkpm->eqn.on_dev = &pkpm_cu->eqn;
+  pkpm->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);
+  pkpm->jacob_pos = inp->pos_map->jacob_pos;
   return &pkpm->eqn;
 }

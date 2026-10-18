@@ -26,6 +26,9 @@ gkyl_dg_pkpm_fluid_flux_surf_inew(const struct gkyl_dg_pkpm_fluid_flux_surf_inp 
   up->num_surf_basis = inp->conf_basis->num_basis / 2;
   up->wv_eqn = gkyl_wv_eqn_acquire(inp->wv_eqn);
   up->geom = gkyl_wave_geom_acquire(inp->geom);
+  assert(inp->pos_map);
+  up->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);
+  up->jacob_pos = inp->pos_map->jacob_pos;
 
   for (int d = 0; d < cdim; ++d) {
     up->fluid_flux[d] = choose_pkpm_fluid_flux_kern(
@@ -86,6 +89,7 @@ gkyl_dg_pkpm_fluid_flux_surf_advance(
     const double *b_c = gkyl_array_cfetch(bvar, cidx);
     const double *u_c = gkyl_array_cfetch(u, cidx);
     const double *fluid_c = gkyl_array_cfetch(fluid, cidx);
+    const double *jac_c = gkyl_array_cfetch(up->jacob_pos, cidx);
     double *cflrate_d = gkyl_array_fetch(cflrate, cidx);
     double *flux = gkyl_array_fetch(fluid_flux_surf, cidx);
 
@@ -95,7 +99,8 @@ gkyl_dg_pkpm_fluid_flux_surf_advance(
       idx_l[dir] = idx_l[dir] - 1;
       long cidx_l = gkyl_range_idx(conf_range, idx_l);
       cflrate_d[0] += up->fluid_flux[dir](
-        up->wv_eqn, geom_c, xc, up->conf_grid.dx, gkyl_array_cfetch(vlasov_pkpm_moms, cidx_l), moms_c,
+        up->wv_eqn, geom_c, xc, up->conf_grid.dx, gkyl_array_cfetch(up->jacob_pos, cidx_l), jac_c,
+        gkyl_array_cfetch(vlasov_pkpm_moms, cidx_l), moms_c,
         gkyl_array_cfetch(bvar, cidx_l), b_c, gkyl_array_cfetch(u, cidx_l), u_c,
         gkyl_array_cfetch(fluid, cidx_l), fluid_c, &flux[dir * nflux]
       );
@@ -110,7 +115,8 @@ gkyl_dg_pkpm_fluid_flux_surf_advance(
         const struct gkyl_wave_cell_geom *geom_r = gkyl_wave_geom_get(up->geom, idx_r);
         double *flux_r = gkyl_array_fetch(fluid_flux_surf, cidx_r);
         cflrate_d[0] += up->fluid_flux[dir](
-          up->wv_eqn, geom_r, xc_r, up->conf_grid.dx, moms_c, gkyl_array_cfetch(vlasov_pkpm_moms, cidx_r),
+          up->wv_eqn, geom_r, xc_r, up->conf_grid.dx, jac_c, gkyl_array_cfetch(up->jacob_pos, cidx_r),
+          moms_c, gkyl_array_cfetch(vlasov_pkpm_moms, cidx_r),
           b_c, gkyl_array_cfetch(bvar, cidx_r), u_c, gkyl_array_cfetch(u, cidx_r), fluid_c,
           gkyl_array_cfetch(fluid, cidx_r), &flux_r[dir * nflux]
         );
@@ -160,7 +166,8 @@ gkyl_dg_pkpm_fluid_flux_surf_absorb(
     }
     double *flux = gkyl_array_fetch(fluid_flux_surf, gkyl_range_idx(conf_range_ext, idx_f));
     up->fluid_flux_absorb[dir](
-      edge_sign, b_c, u_c, xi_c, gkyl_array_cfetch(fluid, cidx), I, &flux[dir * nflux]
+      edge_sign, gkyl_array_cfetch(up->jacob_pos, cidx), b_c, u_c, xi_c, gkyl_array_cfetch(fluid, cidx), I,
+      &flux[dir * nflux]
     );
   }
 }
@@ -176,6 +183,7 @@ gkyl_dg_pkpm_fluid_flux_surf_release(struct gkyl_dg_pkpm_fluid_flux_surf *up)
 {
   gkyl_wv_eqn_release(up->wv_eqn);
   gkyl_wave_geom_release(up->geom);
+  gkyl_vlasov_position_map_release(up->pos_map);
   if (GKYL_IS_CU_ALLOC(up->flags)) {
     gkyl_cu_free(up->on_dev);
   }

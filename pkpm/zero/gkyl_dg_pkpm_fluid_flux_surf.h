@@ -5,6 +5,7 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
+#include <gkyl_vlasov_position_map.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wv_eqn.h>
 
@@ -18,6 +19,7 @@ struct gkyl_dg_pkpm_fluid_flux_surf_inp {
   const struct gkyl_wv_eqn *wv_eqn; // Ten-moment wave equation for the Roe fluctuations.
   const struct gkyl_wave_geom *geom; // Wave geometry (face normals and tangents).
   const struct gkyl_rect_grid *phase_grid; // Phase-space grid (optional; needed for absorbing fluxes).
+  const struct gkyl_vlasov_position_map *pos_map; // Configuration-space position map (REQUIRED; per-direction Jacobians of the cells).
   bool use_gpu; // bool to determine if on GPU.
 };
 
@@ -97,8 +99,8 @@ void gkyl_dg_pkpm_fluid_flux_surf_advance_cu(
  * @param bvar Input magnetic field unit vector [bx, by, bz].
  * @param u Input flow velocity [ux, uy, uz].
  * @param xi Input thermal speed [xi, xi^2, p].
- * @param fluid Input fluid state [rho, rho ux, rho uy, rho uz, E].
- * @param f Input normalized distribution functions [F, G].
+ * @param fluid Input PHYSICAL fluid state [rho, rho ux, rho uy, rho uz, E] (position-map Jacobian divided out).
+ * @param f Input Jacobian-weighted normalized distribution functions J [F, G].
  * @param fluid_flux_surf Modal fluxes, overwritten on the boundary faces.
  */
 void gkyl_dg_pkpm_fluid_flux_surf_absorb(

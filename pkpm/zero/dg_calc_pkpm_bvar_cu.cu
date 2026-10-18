@@ -74,7 +74,8 @@ gkyl_dg_calc_pkpm_bvar_grad_cu_kernel(
       idx_l[d] = idx_l[d] - 1;
       idx_r[d] = idx_r[d] + 1;
       up->pkpm_grad[d](
-        up->dx, (const double *)gkyl_array_cfetch(bvar, gkyl_range_idx(&conf_range, idx_l)), b_c,
+        up->dx, (const double *)gkyl_array_cfetch(up->jacob_pos, loc),
+        (const double *)gkyl_array_cfetch(bvar, gkyl_range_idx(&conf_range, idx_l)), b_c,
         (const double *)gkyl_array_cfetch(bvar, gkyl_range_idx(&conf_range, idx_r)), gb
       );
     }
@@ -105,7 +106,9 @@ dg_calc_pkpm_bvar_set_cu_dev_ptrs(
 }
 
 gkyl_dg_calc_pkpm_bvar *
-gkyl_dg_calc_pkpm_bvar_cu_dev_new(const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis)
+gkyl_dg_calc_pkpm_bvar_cu_dev_new(
+  const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis, const struct gkyl_vlasov_position_map *pos_map
+)
 {
   struct gkyl_dg_calc_pkpm_bvar *up =
     (struct gkyl_dg_calc_pkpm_bvar *)gkyl_malloc(sizeof(gkyl_dg_calc_pkpm_bvar));
@@ -116,6 +119,9 @@ gkyl_dg_calc_pkpm_bvar_cu_dev_new(const struct gkyl_rect_grid *conf_grid, const 
   }
   up->num_null_b = 0;
   up->num_null_b_dev = (int *)gkyl_cu_malloc(sizeof(int));
+  assert(pos_map);
+  up->pos_map = 0; // host pointer set after the device memcpy below
+  up->jacob_pos = pos_map->jacob_pos->on_dev;
 
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
@@ -130,6 +136,8 @@ gkyl_dg_calc_pkpm_bvar_cu_dev_new(const struct gkyl_rect_grid *conf_grid, const 
 
   // set parent on_dev pointer
   up->on_dev = up_cu;
+  up->pos_map = gkyl_vlasov_position_map_acquire(pos_map);
+  up->jacob_pos = pos_map->jacob_pos;
 
   return up;
 }

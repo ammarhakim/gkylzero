@@ -10,12 +10,13 @@
 
 gkyl_dg_calc_pkpm_bvar *
 gkyl_dg_calc_pkpm_bvar_new(
-  const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis, bool use_gpu
+  const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis,
+  const struct gkyl_vlasov_position_map *pos_map, bool use_gpu
 )
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    return gkyl_dg_calc_pkpm_bvar_cu_dev_new(conf_grid, cbasis);
+    return gkyl_dg_calc_pkpm_bvar_cu_dev_new(conf_grid, cbasis, pos_map);
   }
 #endif
   gkyl_dg_calc_pkpm_bvar *up = gkyl_malloc(sizeof(gkyl_dg_calc_pkpm_bvar));
@@ -24,6 +25,9 @@ gkyl_dg_calc_pkpm_bvar_new(
   for (int d = 0; d < cbasis->ndim; ++d) {
     up->dx[d] = conf_grid->dx[d];
   }
+  assert(pos_map);
+  up->pos_map = gkyl_vlasov_position_map_acquire(pos_map);
+  up->jacob_pos = pos_map->jacob_pos;
   up->pkpm_bvar = choose_pkpm_bvar_kern(cbasis->b_type, cbasis->ndim, cbasis->poly_order);
   for (int d = 0; d < cbasis->ndim; ++d) {
     up->pkpm_grad[d] = choose_pkpm_bvar_grad_kern(cbasis->b_type, cbasis->ndim, cbasis->poly_order, d);
@@ -91,7 +95,7 @@ gkyl_dg_calc_pkpm_bvar_grad(
       idx_l[d] = idx_l[d] - 1;
       idx_r[d] = idx_r[d] + 1;
       up->pkpm_grad[d](
-        up->dx, gkyl_array_cfetch(bvar, gkyl_range_idx(conf_range, idx_l)), b_c,
+        up->dx, gkyl_array_cfetch(up->jacob_pos, loc), gkyl_array_cfetch(bvar, gkyl_range_idx(conf_range, idx_l)), b_c,
         gkyl_array_cfetch(bvar, gkyl_range_idx(conf_range, idx_r)), gb
       );
     }
@@ -101,6 +105,7 @@ gkyl_dg_calc_pkpm_bvar_grad(
 void
 gkyl_dg_calc_pkpm_bvar_release(gkyl_dg_calc_pkpm_bvar *up)
 {
+  gkyl_vlasov_position_map_release(up->pos_map);
   if (GKYL_IS_CU_ALLOC(up->flags)) {
     gkyl_cu_free(up->num_null_b_dev);
     gkyl_cu_free(up->on_dev);
@@ -111,7 +116,9 @@ gkyl_dg_calc_pkpm_bvar_release(gkyl_dg_calc_pkpm_bvar *up)
 #ifndef GKYL_HAVE_CUDA
 
 gkyl_dg_calc_pkpm_bvar *
-gkyl_dg_calc_pkpm_bvar_cu_dev_new(const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis)
+gkyl_dg_calc_pkpm_bvar_cu_dev_new(
+  const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis, const struct gkyl_vlasov_position_map *pos_map
+)
 {
   assert(false);
   return 0;

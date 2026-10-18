@@ -22,6 +22,7 @@
 #include <gkyl_dg_calc_pkpm_em_coupling.h>
 #include <gkyl_dg_calc_pkpm_bvar.h>
 #include <gkyl_dg_calc_pkpm_vars.h>
+#include <gkyl_vlasov_position_map.h>
 #include <gkyl_dg_pkpm_conf_flux_surf.h>
 #include <gkyl_dg_pkpm_fluid.h>
 #include <gkyl_dg_pkpm_fluid_flux_surf.h>
@@ -140,6 +141,8 @@ struct pkpm_species {
   struct gkyl_range local_vel, local_ext_vel; // local, local-ext velocity-space ranges
 
   struct gkyl_array *f, *f1, *fnew; // normalized distributions [F, G] on the w = v_par/xi grid
+  struct gkyl_array *f_no_J; // physical distributions [F, G] (position-map Jacobian divided out; output and L2)
+  struct gkyl_array *f_no_J_host; // host copy of f_no_J for I/O
   struct gkyl_array *fluid, *fluid1, *fluidnew; // fluid state [rho, rho ux, rho uy, rho uz, E]
 
   struct gkyl_array *cflrate_f; // CFL rate in each cell for distribution function update
@@ -184,7 +187,9 @@ struct pkpm_species {
   struct gkyl_array *pkpm_xi3; // copy of pkpm_xi for the weak-gradient kernels (only the first block is used)
   struct gkyl_array *pkpm_grad_xi; // weak gradient of [xi, ...] (pkpm_vars_grad_u layout; blocks (d, 0) hold d_d xi)
   struct gkyl_array *pkpm_scratch; // one-expansion scratch for weak products
-  struct gkyl_array *pkpm_rho; // mass density (copy of the leading block of the fluid array)
+  struct gkyl_array *fluid_no_J; // PHYSICAL fluid state [rho, M, E] of the stage (position-map Jacobian divided out)
+  struct gkyl_array *pkpm_moms_no_J; // physical coupling moments (diagnostics)
+  struct gkyl_array *pkpm_rho; // physical mass density (leading block of fluid_no_J)
   struct gkyl_array *pkpm_rho3; // [rho, 0, 0] for the weak-gradient kernels
   struct gkyl_array *pkpm_mom3; // momentum block of the fluid array (scratch for the 3-component consumers)
   struct gkyl_array *pkpm_mom3_rhs; // 3-component right-hand-side scratch (momentum diffusion)
@@ -287,8 +292,6 @@ struct pkpm_field {
   struct gkyl_array *em_dup;
 
   // Identity position map (PKPM runs on uniform grids); the Maxwell curl
-  // kernels index its configuration-space Jacobian per conf cell.
-  struct gkyl_vlasov_position_map *pos_map;
 
   bool has_ext_em; // flag to indicate there is external electromagnetic field
   bool ext_em_evolve; // flag to indicate external electromagnetic field is time dependent
@@ -301,6 +304,10 @@ struct pkpm_field {
   bool app_current_evolve; // flag to indicate applied current is time dependent
   struct gkyl_array *app_current; // applied current
   struct gkyl_array *app_current_host; // host copy for use in IO and projecting
+  struct gkyl_array *app_current_no_J; // physical applied current (the implicit coupling); app_current carries J
+  struct gkyl_array *em_no_J; // physical E, B of the stage (the evolved em carries the position-map Jacobian)
+  struct gkyl_array *em_no_J_host; // host copy of em_no_J for I/O
+  struct gkyl_vlasov_position_map *pos_map; // acquired reference to the app's position map
   gkyl_proj_on_basis *app_current_proj; // projector for applied current
 
   struct gkyl_array *bvar; // magnetic field unit vector b = B/|B| [bx, by, bz] (p=1)
@@ -370,6 +377,8 @@ struct gkyl_pkpm_app {
 
   struct gkyl_wave_geom
     *geom; // geometry needed for species and field solvers (*only* p=1 right now JJ: 05/03/24)
+  struct gkyl_vlasov_position_map
+    *pos_map; // configuration-space position map (always created; identity by default); shared by the field and species
 
   // pointers to basis on device (these point to host structs if not
   // on GPU)
@@ -599,6 +608,16 @@ void pkpm_species_calc_app_accel(gkyl_pkpm_app *app, struct pkpm_species *specie
  * @param fin Input distribution function
  * @param fluidin Input fluid species array (size: num_fluid_species)
  */
+/**
+ * Computational-to-physical coordinate transform of the position map, for projecting
+ * initial conditions and sources on a non-uniform configuration grid.
+ *
+ * @param xcomp Computational coordinates (the leading cdim entries are mapped in place)
+ * @param xphys Physical coordinates on output
+ * @param ctx Position map (const struct gkyl_vlasov_position_map *)
+ */
+void pkpm_pos_c2p(const double *xcomp, double *xphys, void *ctx);
+
 void pkpm_species_calc_pkpm_vars(
   gkyl_pkpm_app *app, struct pkpm_species *species, const struct gkyl_array *fin,
   const struct gkyl_array *fluidin

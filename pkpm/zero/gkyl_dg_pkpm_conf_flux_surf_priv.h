@@ -11,7 +11,7 @@
 #include <gkyl_util.h>
 
 typedef double (*pkpm_conf_flux_t)(
-  const double *w, const double *dxv, const double *b_l, const double *b_r, const double *u_l,
+  const double *w, const double *dxv, const double *jacob_pos_l, const double *jacob_pos_r, const double *b_l, const double *b_r, const double *u_l,
   const double *u_r, const double *xi_l, const double *xi_r, const double *f_l,
   const double *f_r, double *GKYL_RESTRICT flux
 );
@@ -27,6 +27,8 @@ struct gkyl_dg_pkpm_conf_flux_surf {
   int pdim; // Phase-space dimensions.
   int num_surf_basis; // Phase-space surface basis size per component and direction.
   bool use_gpu; // bool to determine if on GPU.
+  const struct gkyl_vlasov_position_map *pos_map; // Position map (acquired; host pointer).
+  const struct gkyl_array *jacob_pos; // Per-direction Jacobians (borrowed from pos_map; device pointer on device).
   pkpm_conf_flux_t conf_flux[3]; // Flux kernel in each configuration direction.
 
   uint32_t flags;

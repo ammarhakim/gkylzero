@@ -4,6 +4,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_vlasov_position_map.h>
 
 // Object type
 typedef struct gkyl_dg_calc_pkpm_vars gkyl_dg_calc_pkpm_vars;
@@ -17,12 +18,13 @@ typedef struct gkyl_dg_calc_pkpm_vars gkyl_dg_calc_pkpm_vars;
  * @param conf_grid Configuration space grid (for getting cell spacing and cell center)
  * @param cbasis    Configuration space basis functions
  * @param mem_range Configuration space range of the weak divisions (the cells updated)
+ * @param pos_map   Configuration-space position map (REQUIRED; the weak gradients carry 1/J_d)
  * @param use_gpu   Whether to run on host or device
  * @return New updater pointer.
  */
 struct gkyl_dg_calc_pkpm_vars *gkyl_dg_calc_pkpm_vars_new(
   const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis,
-  const struct gkyl_range *mem_range, bool use_gpu
+  const struct gkyl_range *mem_range, const struct gkyl_vlasov_position_map *pos_map, bool use_gpu
 );
 
 /**
@@ -30,7 +32,7 @@ struct gkyl_dg_calc_pkpm_vars *gkyl_dg_calc_pkpm_vars_new(
  */
 struct gkyl_dg_calc_pkpm_vars *gkyl_dg_calc_pkpm_vars_cu_dev_new(
   const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis,
-  const struct gkyl_range *mem_range
+  const struct gkyl_range *mem_range, const struct gkyl_vlasov_position_map *pos_map
 );
 
 /**

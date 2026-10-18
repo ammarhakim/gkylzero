@@ -55,8 +55,10 @@ pkpm_forward_euler(
 
   // compute RHS of pkpm equations
   for (int i = 0; i < app->num_species; ++i) {
-    double dt1 =
-      pkpm_species_rhs(app, &app->species[i], fin[i], fluidin[i], emin, fout[i], fluidout[i]);
+    // the species see the physical fields of the stage (computed by pkpm_field_calc_bvar)
+    double dt1 = pkpm_species_rhs(
+      app, &app->species[i], fin[i], fluidin[i], app->field->em_no_J, fout[i], fluidout[i]
+    );
     dtmin = fmin(dtmin, dt1);
   }
 

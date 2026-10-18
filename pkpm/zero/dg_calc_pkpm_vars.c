@@ -12,12 +12,12 @@
 gkyl_dg_calc_pkpm_vars *
 gkyl_dg_calc_pkpm_vars_new(
   const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis,
-  const struct gkyl_range *mem_range, bool use_gpu
+  const struct gkyl_range *mem_range, const struct gkyl_vlasov_position_map *pos_map, bool use_gpu
 )
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    return gkyl_dg_calc_pkpm_vars_cu_dev_new(conf_grid, cbasis, mem_range);
+    return gkyl_dg_calc_pkpm_vars_cu_dev_new(conf_grid, cbasis, mem_range, pos_map);
   }
 #endif
   gkyl_dg_calc_pkpm_vars *up = gkyl_malloc(sizeof(gkyl_dg_calc_pkpm_vars));
@@ -30,6 +30,9 @@ gkyl_dg_calc_pkpm_vars_new(
   up->cdim = cdim;
   up->poly_order = poly_order;
   up->mem_range = *mem_range;
+  assert(pos_map);
+  up->pos_map = gkyl_vlasov_position_map_acquire(pos_map);
+  up->jacob_pos = pos_map->jacob_pos;
 
   up->pkpm_u_set = choose_pkpm_u_set_kern(b_type, cdim, poly_order);
   up->pkpm_u_copy = choose_pkpm_u_copy_kern(b_type, cdim, poly_order);
@@ -330,7 +333,7 @@ gkyl_dg_calc_pkpm_vars_grad_u(
       idx_l[d] = idx_l[d] - 1;
       idx_r[d] = idx_r[d] + 1;
       up->pkpm_grad_u[d](
-        up->conf_grid.dx, gkyl_array_cfetch(u, gkyl_range_idx(conf_range, idx_l)), u_c,
+        up->conf_grid.dx, gkyl_array_cfetch(up->jacob_pos, loc), gkyl_array_cfetch(u, gkyl_range_idx(conf_range, idx_l)), u_c,
         gkyl_array_cfetch(u, gkyl_range_idx(conf_range, idx_r)), gu
       );
     }
@@ -360,6 +363,7 @@ gkyl_dg_calc_pkpm_vars_source(
 void
 gkyl_dg_calc_pkpm_vars_release(gkyl_dg_calc_pkpm_vars *up)
 {
+  gkyl_vlasov_position_map_release(up->pos_map);
   gkyl_nmat_release(up->As_u);
   gkyl_nmat_release(up->xs_u);
   gkyl_nmat_linsolve_lu_release(up->mem_u);

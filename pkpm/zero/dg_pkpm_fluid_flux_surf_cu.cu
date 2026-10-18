@@ -47,6 +47,7 @@ gkyl_dg_pkpm_fluid_flux_surf_advance_cu_kernel(
       long cidx_l = gkyl_range_idx(&conf_range, idx_l);
       cflrate_d[0] += up->fluid_flux[dir](
         up->wv_eqn, geom_c, xc, up->conf_grid.dx,
+        (const double *)gkyl_array_cfetch(up->jacob_pos, cidx_l), (const double *)gkyl_array_cfetch(up->jacob_pos, cidx),
         (const double *)gkyl_array_cfetch(vlasov_pkpm_moms, cidx_l), moms_c,
         (const double *)gkyl_array_cfetch(bvar, cidx_l), b_c,
         (const double *)gkyl_array_cfetch(u, cidx_l), u_c,
@@ -61,7 +62,9 @@ gkyl_dg_pkpm_fluid_flux_surf_advance_cu_kernel(
         const struct gkyl_wave_cell_geom *geom_r = gkyl_wave_geom_get(up->geom, idx_r);
         double *flux_r = (double *)gkyl_array_fetch(fluid_flux_surf, cidx_r);
         cflrate_d[0] += up->fluid_flux[dir](
-          up->wv_eqn, geom_r, xc_r, up->conf_grid.dx, moms_c,
+          up->wv_eqn, geom_r, xc_r, up->conf_grid.dx,
+          (const double *)gkyl_array_cfetch(up->jacob_pos, cidx), (const double *)gkyl_array_cfetch(up->jacob_pos, cidx_r),
+          moms_c,
           (const double *)gkyl_array_cfetch(vlasov_pkpm_moms, cidx_r), b_c,
           (const double *)gkyl_array_cfetch(bvar, cidx_r), u_c,
           (const double *)gkyl_array_cfetch(u, cidx_r), fluid_c,
@@ -124,6 +127,9 @@ gkyl_dg_pkpm_fluid_flux_surf_cu_dev_inew(const struct gkyl_dg_pkpm_fluid_flux_su
   struct gkyl_wave_geom *geom = gkyl_wave_geom_acquire(inp->geom);
   up->wv_eqn = eqn->on_dev;
   up->geom = geom->on_dev;
+  assert(inp->pos_map);
+  up->pos_map = 0;
+  up->jacob_pos = inp->pos_map->jacob_pos->on_dev;
 
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
@@ -139,6 +145,8 @@ gkyl_dg_pkpm_fluid_flux_surf_cu_dev_inew(const struct gkyl_dg_pkpm_fluid_flux_su
   up->on_dev = up_cu;
   up->wv_eqn = eqn;
   up->geom = geom;
+  up->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);
+  up->jacob_pos = inp->pos_map->jacob_pos;
   return up;
 }
 
@@ -168,7 +176,8 @@ gkyl_dg_pkpm_fluid_flux_surf_absorb_cu_kernel(
     }
     double *flux = (double *)gkyl_array_fetch(fluid_flux_surf, gkyl_range_idx(&conf_range_ext, idx_f));
     up->fluid_flux_absorb[dir](
-      edge_sign, b_c, u_c, xi_c, (const double *)gkyl_array_cfetch(fluid, cidx), I, &flux[dir * nflux]
+      edge_sign, (const double *)gkyl_array_cfetch(up->jacob_pos, cidx), b_c, u_c, xi_c,
+      (const double *)gkyl_array_cfetch(fluid, cidx), I, &flux[dir * nflux]
     );
   }
 }

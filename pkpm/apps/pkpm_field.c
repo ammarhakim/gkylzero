@@ -31,6 +31,15 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
     f->em_host = mkarr(false, 8 * app->confBasis.num_basis, app->local_ext.volume);
     f->em_energy_red = gkyl_cu_malloc(sizeof(double[6]));
   }
+  // The evolved field carries the position-map Jacobian (J E, J B: the convention of the
+  // mapped Maxwell kernels); em_no_J holds the physical fields of the stage for the
+  // magnetic unit vector, the sources and the output. Identity map: a copy.
+  f->em_no_J = mkarr(app->use_gpu, 8 * app->confBasis.num_basis, app->local_ext.volume);
+  f->em_no_J_host = f->em_no_J;
+  if (app->use_gpu) {
+    f->em_no_J_host = mkarr(false, 8 * app->confBasis.num_basis, app->local_ext.volume);
+  }
+  f->pos_map = gkyl_vlasov_position_map_acquire(app->pos_map);
 
   // Duplicate copy of EM data in case time step fails.
   // Needed because of implicit source split which modifies solution and
@@ -57,15 +66,25 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
     if (app->use_gpu) {
       f->ext_em_host = mkarr(false, 6 * app->confBasis.num_basis, app->local_ext.volume);
     }
-    f->ext_em_proj = gkyl_proj_on_basis_new(
-      &app->grid, &app->confBasis, app->confBasis.poly_order + 1, 6, f->info.ext_em,
-      f->info.ext_em_ctx
-    );
+    f->ext_em_proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+      .grid = &app->grid,
+      .basis = &app->confBasis,
+      .num_quad = app->confBasis.poly_order + 1,
+      .num_ret_vals = 6,
+      .eval = f->info.ext_em,
+      .ctx = f->info.ext_em_ctx,
+      .c2p_func = pkpm_pos_c2p,
+      .c2p_func_ctx = app->pos_map,
+    });
   }
 
   // Initialize applied currents (always used by implicit fluid sources, so always initialize)
   f->app_current = mkarr(app->use_gpu, 3 * app->confBasis.num_basis, app->local_ext.volume);
   gkyl_array_clear(f->app_current, 0.0);
+  // app_current drives the J-weighted field equation and carries J; the implicit coupling
+  // works with the physical current.
+  f->app_current_no_J = mkarr(app->use_gpu, 3 * app->confBasis.num_basis, app->local_ext.volume);
+  gkyl_array_clear(f->app_current_no_J, 0.0);
   f->has_app_current = false;
   f->app_current_evolve = false;
   // setup external currents
@@ -79,10 +98,16 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
     if (app->use_gpu) {
       f->app_current_host = mkarr(false, 3 * app->confBasis.num_basis, app->local_ext.volume);
     }
-    f->app_current_proj = gkyl_proj_on_basis_new(
-      &app->grid, &app->confBasis, app->confBasis.poly_order + 1, 3, f->info.app_current,
-      f->info.app_current_ctx
-    );
+    f->app_current_proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+      .grid = &app->grid,
+      .basis = &app->confBasis,
+      .num_quad = app->confBasis.poly_order + 1,
+      .num_ret_vals = 3,
+      .eval = f->info.app_current,
+      .ctx = f->info.app_current_ctx,
+      .c2p_func = pkpm_pos_c2p,
+      .c2p_func_ctx = app->pos_map,
+    });
   }
 
   // allocate cflrate (scalar array)
@@ -99,15 +124,8 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
 
   struct gkyl_dg_eqn *eqn;
 
-  // Input structure for building the dg eqn object
-  // Identity position map (PKPM runs on uniform grids): the Maxwell curl
-  // kernels always index a position-map Jacobian, which is 1 everywhere for
-  // the identity map so they stay bit-identical to the uniform-grid kernels.
-  struct gkyl_vlasov_position_map_inp inp_pmap[GKYL_MAX_CDIM] = {0};
-  f->pos_map = gkyl_vlasov_position_map_new(
-    &app->grid, &app->local, &app->local_ext, &app->confBasis, inp_pmap, app->use_gpu
-  );
-
+  // Input structure for building the dg eqn object: the Maxwell curl kernels take the
+  // position-map Jacobian of the app (1 everywhere for the identity map).
   struct gkyl_dg_maxwell_inp inp_dg_maxwell = {
     .cbasis = &app->confBasis,
     .crange = &app->local,
@@ -132,7 +150,7 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   f->bvar = mkarr(app->use_gpu, 3 * app->confBasis.num_basis, app->local_ext.volume);
   f->grad_b = mkarr(app->use_gpu, app->cdim * 3 * app->confBasis.num_basis, app->local_ext.volume);
   gkyl_array_clear(f->grad_b, 0.0);
-  f->calc_bvar = gkyl_dg_calc_pkpm_bvar_new(&app->grid, &app->confBasis, app->use_gpu);
+  f->calc_bvar = gkyl_dg_calc_pkpm_bvar_new(&app->grid, &app->confBasis, app->pos_map, app->use_gpu);
 
   // Check if limiter_fac is specified for adjusting how much diffusion is applied through slope limiter
   // If not specified, set to 0.0 and updater sets default behavior (1/sqrt(3); see gkyl_dg_calc_em_vars.h)
@@ -222,20 +240,30 @@ void
 pkpm_field_apply_ic(gkyl_pkpm_app *app, struct pkpm_field *field, double t0)
 {
   int poly_order = app->poly_order;
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(
-    &app->grid, &app->confBasis, poly_order + 1, 8, field->info.init, field->info.ctx
-  );
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+    .grid = &app->grid,
+    .basis = &app->confBasis,
+    .num_quad = poly_order + 1,
+    .num_ret_vals = 8,
+    .eval = field->info.init,
+    .ctx = field->info.ctx,
+    .c2p_func = pkpm_pos_c2p,
+    .c2p_func_ctx = app->pos_map,
+  });
 
   // run updater; need to project onto extended range for ease of handling
   // subsequent operations over extended range such as magnetic field unit vector computation
   // This is needed to fill the corner cells as the corner cells may not be filled by
   // boundary conditions and we cannot divide by 0 anywhere or the weak divisions will fail
-  gkyl_proj_on_basis_advance(proj, t0, &app->local_ext, field->em_host);
+  // The user gives the physical fields at the physical coordinates of the map; the
+  // evolved field carries the position-map Jacobian.
+  gkyl_proj_on_basis_advance(proj, t0, &app->local_ext, field->em_no_J_host);
   gkyl_proj_on_basis_release(proj);
 
   if (app->use_gpu) {
-    gkyl_array_copy(field->em, field->em_host);
+    gkyl_array_copy(field->em_no_J, field->em_no_J_host);
   }
+  gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local_ext, field->em_no_J, field->em);
 
   // pre-compute external EM field and applied current if present
   // pre-computation necessary in case external EM field or applied current
@@ -267,6 +295,11 @@ pkpm_field_calc_app_current(gkyl_pkpm_app *app, struct pkpm_field *field, double
       // note: app_current_host is same as app_current when not on GPUs
       gkyl_array_copy(field->app_current, field->app_current_host);
     }
+    // Physical current for the implicit coupling; the field equation (J E) is driven by J J_app.
+    gkyl_array_copy(field->app_current_no_J, field->app_current);
+    gkyl_vlasov_position_map_rescale_jacobpos_conf(
+      app->pos_map, &app->local_ext, field->app_current_no_J, field->app_current
+    );
   }
 }
 
@@ -275,8 +308,10 @@ pkpm_field_calc_bvar(gkyl_pkpm_app *app, struct pkpm_field *field, const struct 
 {
   struct timespec tm = gkyl_wall_clock();
 
+  // Physical fields of the stage (the evolved em carries the position-map Jacobian).
+  gkyl_vlasov_position_map_divide_jacobpos_conf(app->pos_map, &app->local_ext, em->ncomp, em, field->em_no_J);
   gkyl_array_clear(field->tot_em, 0.0);
-  gkyl_array_set(field->tot_em, 1.0, em);
+  gkyl_array_set(field->tot_em, 1.0, field->em_no_J);
   if (field->has_ext_em) {
     gkyl_array_accumulate_range(field->tot_em, 1.0, field->ext_em, &app->local_ext);
   }
@@ -426,6 +461,11 @@ pkpm_field_calc_energy(gkyl_pkpm_app *app, double tm, const struct pkpm_field *f
     gkyl_dg_calc_l2_range(&app->confBasis, i, field->em_energy, i, field->em, app->local);
   }
   gkyl_array_scale_range(field->em_energy, app->grid.cellVolume, &app->local);
+  // The field stores J E, J B: the L2 carries J^2 and the computational cell volume
+  // under-counts the physical one by J; divide the net extra J out (identity map: no-op).
+  gkyl_vlasov_position_map_divide_jacobpos_conf(
+    app->pos_map, &app->local, field->em_energy->ncomp, field->em_energy, field->em_energy
+  );
 
   double energy[6] = {0.0};
   if (app->use_gpu) {
@@ -469,6 +509,11 @@ pkpm_field_release(const gkyl_pkpm_app *app, struct pkpm_field *f)
     gkyl_proj_on_basis_release(f->ext_em_proj);
   }
   gkyl_array_release(f->app_current);
+  gkyl_array_release(f->app_current_no_J);
+  gkyl_array_release(f->em_no_J);
+  if (app->use_gpu) {
+    gkyl_array_release(f->em_no_J_host);
+  }
   if (f->has_app_current) {
     if (app->use_gpu) {
       gkyl_array_release(f->app_current_host);

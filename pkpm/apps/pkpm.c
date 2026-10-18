@@ -92,6 +92,12 @@ pkpm_meta_from_mpack(struct gkyl_msgpack_data *mt)
   return meta;
 }
 
+void
+pkpm_pos_c2p(const double *xcomp, double *xphys, void *ctx)
+{
+  gkyl_vlasov_position_map_eval_mc2p(ctx, xcomp, xphys);
+}
+
 gkyl_pkpm_app *
 gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
 {
@@ -218,6 +224,33 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
       &app->upper_skin[dir], &app->upper_ghost[dir], dir, GKYL_UPPER_EDGE, &app->local_ext, ghost
     );
   }
+
+  // Configuration-space position map (C^0 piecewise linear, diagonal; always created,
+  // directions without a user map are the identity). Shared by the field and the species.
+  struct gkyl_vlasov_position_map_inp inp_pmap[GKYL_MAX_CDIM] = {0};
+  for (int d = 0; d < cdim; ++d) {
+    inp_pmap[d].eval_pmap = pkpm->mapc2p_pos[d].mapc2p_pos_func;
+    inp_pmap[d].ctx = pkpm->mapc2p_pos[d].mapc2p_pos_ctx;
+  }
+  app->pos_map = gkyl_vlasov_position_map_new(
+    &app->grid, &app->local, &app->local_ext, &app->confBasis, inp_pmap, app->use_gpu
+  );
+  // Finalize the ghost cells of the map: the constructor filled them with the adjacent skin
+  // values (a copy, valid at physical boundaries); periodic and inter-rank ghosts get the
+  // wrapped/neighbor values.
+  struct gkyl_array *pos_map_arrs[] = {
+    app->pos_map->pmap, app->pos_map->jacob_pos, app->pos_map->jacob_pos_surf,
+    app->pos_map->jacob_pos_gauss
+  };
+  for (int ia = 0; ia < 4; ++ia) {
+    gkyl_comm_array_per_sync(
+      app->comm, &app->local, &app->local_ext, app->num_periodic_dir, app->periodic_dirs,
+      pos_map_arrs[ia]
+    );
+    gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, pos_map_arrs[ia]);
+  }
+  // The map is static: written once, uniform grids included.
+  gkyl_vlasov_position_map_write(app->pos_map, app->comm, app->name, "position-map");
 
   // Configuration space geometry initialization
   // Note: *only* uses a p=1 DG representation of the geometry (JJ: 05/03/24)
@@ -448,11 +481,15 @@ gkyl_pkpm_app_write_field(gkyl_pkpm_app *app, double tm, int frame)
   char fileNm[sz + 1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, frame);
 
+  // The evolved field carries the position-map Jacobian; write the physical E, B.
+  gkyl_vlasov_position_map_divide_jacobpos_conf(
+    app->pos_map, &app->local, app->field->em->ncomp, app->field->em, app->field->em_no_J
+  );
   if (app->use_gpu) {
     // copy data from device to host before writing it out
-    gkyl_array_copy(app->field->em_host, app->field->em);
+    gkyl_array_copy(app->field->em_no_J_host, app->field->em_no_J);
   }
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->em_host, fileNm);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->em_no_J_host, fileNm);
 
   if (app->field->has_ext_em) {
     // Only write out external fields at t=0 or if they are time-dependent
@@ -506,11 +543,13 @@ gkyl_pkpm_app_write_species(gkyl_pkpm_app *app, int sidx, double tm, int frame)
   char fileNm[sz + 1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name, frame);
 
+  // The evolved distributions carry the position-map Jacobian; write the physical ones.
+  gkyl_vlasov_position_map_divide_jacobpos(app->pos_map, &app->basis, &s->local, s->f, s->f_no_J);
   if (app->use_gpu) {
     // copy data from device to host before writing it out
-    gkyl_array_copy(s->f_host, s->f);
+    gkyl_array_copy(s->f_no_J_host, s->f_no_J);
   }
-  gkyl_comm_array_write(s->comm, &s->grid, &s->local, mt, s->f_host, fileNm);
+  gkyl_comm_array_write(s->comm, &s->grid, &s->local, mt, s->f_no_J_host, fileNm);
 
   pkpm_array_meta_release(mt);
 }
@@ -547,8 +586,13 @@ gkyl_pkpm_app_write_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame)
   // and construct arrays for writing out fluid and other pkpm variables.
   pkpm_species_calc_diag_vars(app, s, s->f, s->fluid);
   pkpm_species_moment_diag_calc(app, s, s->local, app->local, s->f, s->fluid);
+  // Physical fluid state and coupling moments for the diagnostics (the evolved ones carry
+  // the position-map Jacobian; fluid_no_J is current from pkpm_species_calc_pkpm_vars).
+  gkyl_vlasov_position_map_divide_jacobpos_conf(
+    app->pos_map, &app->local, s->pkpm_moms->ncomp, s->pkpm_moms, s->pkpm_moms_no_J
+  );
   gkyl_dg_calc_pkpm_vars_diag(
-    s->calc_pkpm_vars, &app->local, s->pkpm_moms, s->fluid, app->field->bvar,
+    s->calc_pkpm_vars, &app->local, s->pkpm_moms_no_J, s->fluid_no_J, app->field->bvar,
     app->field->grad_b, s->pkpm_u, s->pkpm_grad_u, s->pkpm_theta, s->pkpm_alpha_0, s->pkpm_xi,
     s->pkpm_c_h, s->fluid_io, s->pkpm_vars_io
   );
@@ -1290,6 +1334,8 @@ gkyl_pkpm_app_from_file_field(gkyl_pkpm_app *app, const char *fname)
     if (app->use_gpu) {
       gkyl_array_copy(app->field->em, app->field->em_host);
     }
+    // The file holds the physical E, B; the evolved field carries the Jacobian.
+    gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local, app->field->em, app->field->em);
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
       pkpm_field_apply_bc(app, app->field, app->field->em);
     }
@@ -1318,6 +1364,8 @@ gkyl_pkpm_app_from_file_species(gkyl_pkpm_app *app, int sidx, const char *fname)
       gkyl_array_copy(s->f, s->f_host);
     }
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+      // The file holds the physical distributions; the evolved ones carry the Jacobian.
+      gkyl_vlasov_position_map_rescale_jacobpos(app->pos_map, &app->basis, &s->local, s->f, s->f);
       pkpm_species_apply_bc(app, s, s->f);
     }
   }
@@ -1355,6 +1403,8 @@ gkyl_pkpm_app_from_file_fluid_species(gkyl_pkpm_app *app, int sidx, const char *
     gkyl_array_set_offset(s->pkpm_rho, 1.0, s->fluid_io, 10 * nc);
     gkyl_array_set_offset(s->fluid, 1.0, s->pkpm_rho, 4 * nc);
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+      // The file holds the physical state; the evolved one carries the Jacobian.
+      gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local, s->fluid, s->fluid);
       pkpm_fluid_species_apply_bc(app, s, s->fluid);
     }
   }
@@ -1446,6 +1496,7 @@ gkyl_pkpm_app_release(gkyl_pkpm_app *app)
   gkyl_rect_decomp_release(app->decomp);
 
   gkyl_wave_geom_release(app->geom);
+  gkyl_vlasov_position_map_release(app->pos_map);
 
   if (app->use_gpu) {
     gkyl_cu_free(app->basis_on_dev.basis);

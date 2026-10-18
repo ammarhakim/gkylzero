@@ -51,6 +51,17 @@ mkarr(long nc, long size)
   return gkyl_array_new(GKYL_DOUBLE, nc, size);
 }
 
+// Identity configuration-space position map (the updaters always take one).
+static struct gkyl_vlasov_position_map *
+identity_pos_map(
+  const struct gkyl_rect_grid *cgrid, const struct gkyl_range *clocal, const struct gkyl_range *clocal_ext,
+  const struct gkyl_basis *cbasis
+)
+{
+  struct gkyl_vlasov_position_map_inp inp[GKYL_MAX_CDIM] = {0};
+  return gkyl_vlasov_position_map_new(cgrid, clocal, clocal_ext, cbasis, inp, false);
+}
+
 static void
 eval_em(double t, const double *xn, double *restrict fout, void *ctx)
 {
@@ -116,6 +127,7 @@ struct run_opts {
 };
 
 struct sim {
+  struct gkyl_vlasov_position_map *pos_map; // identity configuration-space map
   struct gkyl_rect_grid cgrid, pgrid;
   struct gkyl_basis cbasis, pbasis;
   struct gkyl_range clocal, clocal_ext, plocal, plocal_ext, plocal_ext_conf, vlocal, vlocal_ext;
@@ -188,6 +200,7 @@ sim_init(struct sim *s, const struct run_opts *o)
   gkyl_cart_modal_serendip(&s->cbasis, 1, 1);
   gkyl_cart_modal_hybrid(&s->pbasis, 1, 1);
   gkyl_create_grid_ranges(&s->cgrid, cghost, &s->clocal_ext, &s->clocal);
+  s->pos_map = identity_pos_map(&s->cgrid, &s->clocal, &s->clocal_ext, &s->cbasis);
   phase_ranges(&s->pgrid, 1, &s->plocal_ext, &s->plocal, &s->plocal_ext_conf);
   struct gkyl_rect_grid vgrid;
   gkyl_rect_grid_init(&vgrid, 1, &lower[1], &upper[1], &cells[1]);
@@ -237,7 +250,7 @@ sim_init(struct sim *s, const struct run_opts *o)
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&s->cgrid, &s->cbasis, 8, 8, eval_em, &bctx);
   gkyl_proj_on_basis_advance(proj, 0.0, &s->clocal_ext, em);
   gkyl_proj_on_basis_release(proj);
-  s->calc_b = gkyl_dg_calc_pkpm_bvar_new(&s->cgrid, &s->cbasis, false);
+  s->calc_b = gkyl_dg_calc_pkpm_bvar_new(&s->cgrid, &s->cbasis, s->pos_map, false);
   gkyl_dg_calc_pkpm_bvar_advance(s->calc_b, &s->clocal_ext, em, s->bvar);
   s->grad_b = mkarr(3 * nc, cvol);
   gkyl_array_clear(s->grad_b, 0.0);
@@ -247,13 +260,13 @@ sim_init(struct sim *s, const struct run_opts *o)
   s->ten = gkyl_wv_ten_moment_new(0.0, false, false, 0, 0, false);
   s->geom = gkyl_wave_geom_new(&s->cgrid, &s->clocal_ext, 0, 0, false);
   s->vars =
-    gkyl_dg_calc_pkpm_vars_new(&s->cgrid, &s->cbasis, &s->clocal_ext, false);
+    gkyl_dg_calc_pkpm_vars_new(&s->cgrid, &s->cbasis, &s->clocal_ext, s->pos_map, false);
   s->mcalc = gkyl_dg_updater_moment_pkpm_new(
     &s->pgrid, &s->cbasis, &s->pbasis, &s->clocal_ext, &s->vlocal, 1.0, false, false
   );
 
   struct gkyl_dg_pkpm_conf_flux_surf_inp cinp = {
-    .phase_grid = &s->pgrid, .conf_basis = &s->cbasis, .phase_basis = &s->pbasis, .use_gpu = false};
+    .phase_grid = &s->pgrid, .conf_basis = &s->cbasis, .phase_basis = &s->pbasis, .pos_map = s->pos_map, .use_gpu = false};
   s->calc_cflux = gkyl_dg_pkpm_conf_flux_surf_inew(&cinp);
   s->nkc = gkyl_dg_pkpm_conf_flux_surf_num_surf_basis(s->calc_cflux);
   s->cflux = mkarr(2 * s->nkc, pvol);
@@ -274,7 +287,7 @@ sim_init(struct sim *s, const struct run_opts *o)
         .theta = s->theta,
         .conf_flux_surf = s->cflux,
       },
-    .use_gpu = false,
+    .pos_map = s->pos_map, .use_gpu = false,
   };
   s->eqn_a = gkyl_dg_pkpm_kinetic_conf_inew(&ainp);
   int up_dirs_a[GKYL_MAX_DIM] = {0}, zero_flux_a[2 * GKYL_MAX_DIM] = {0};
@@ -302,7 +315,7 @@ sim_init(struct sim *s, const struct run_opts *o)
     .conf_basis = &s->cbasis,
     .wv_eqn = s->ten,
     .geom = s->geom,
-    .use_gpu = false,
+    .pos_map = s->pos_map, .use_gpu = false,
   };
   s->calc_fflux = gkyl_dg_pkpm_fluid_flux_surf_inew(&finp);
   s->nkf = gkyl_dg_pkpm_fluid_flux_surf_num_surf_basis(s->calc_fflux);
@@ -311,7 +324,7 @@ sim_init(struct sim *s, const struct run_opts *o)
     .conf_basis = &s->cbasis,
     .conf_range = &s->clocal,
     .auxfields = {.vlasov_pkpm_moms = s->moms, .bvar = s->bvar, .u = s->u, .fluid_flux_surf = s->fflux},
-    .use_gpu = false,
+    .pos_map = s->pos_map, .use_gpu = false,
   };
   s->eqn_m = gkyl_dg_pkpm_fluid_inew(&minp);
   int up_dirs_m[GKYL_MAX_DIM] = {0}, zero_flux_m[2 * GKYL_MAX_DIM] = {0};
@@ -321,6 +334,7 @@ sim_init(struct sim *s, const struct run_opts *o)
 static void
 sim_release(struct sim *s)
 {
+  gkyl_vlasov_position_map_release(s->pos_map);
   gkyl_hyper_dg_release(s->slvr_m);
   gkyl_dg_eqn_release(s->eqn_m);
   gkyl_array_release(s->fflux);
@@ -856,7 +870,8 @@ steady_gradient_residual(int Nx, int Nv, double alpha, bool verbose)
       long pidx = gkyl_range_idx(&s.plocal_ext, it.idx), cidx = gkyl_range_idx(&s.clocal_ext, it.idx);
       double xc[2];
       gkyl_rect_grid_cell_center(&s.pgrid, it.idx, xc);
-      pkpm_kinetic_conf_vol_1x1v_ser_p1(xc, s.pgrid.dx, gkyl_array_cfetch(s.bvar, cidx), gkyl_array_cfetch(s.grad_b, cidx),
+      pkpm_kinetic_conf_vol_1x1v_ser_p1(xc, s.pgrid.dx, gkyl_array_cfetch(s.pos_map->jacob_pos, cidx),
+        gkyl_array_cfetch(s.bvar, cidx), gkyl_array_cfetch(s.grad_b, cidx),
         gkyl_array_cfetch(s.u, cidx), gkyl_array_cfetch(s.grad_u, cidx), gkyl_array_cfetch(s.xi, cidx), gkyl_array_cfetch(s.grad_xi, cidx),
         gkyl_array_cfetch(s.grad_ln_n, cidx), gkyl_array_cfetch(s.theta, cidx), gkyl_array_cfetch(f, pidx), gkyl_array_fetch(vol, pidx));
     }

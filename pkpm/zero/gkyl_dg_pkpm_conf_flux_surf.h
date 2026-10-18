@@ -4,6 +4,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_vlasov_position_map.h>
 
 // Object type
 typedef struct gkyl_dg_pkpm_conf_flux_surf gkyl_dg_pkpm_conf_flux_surf;
@@ -13,6 +14,7 @@ struct gkyl_dg_pkpm_conf_flux_surf_inp {
   const struct gkyl_rect_grid *phase_grid; // Phase-space grid.
   const struct gkyl_basis *conf_basis; // Configuration-space basis functions (p=1 serendipity).
   const struct gkyl_basis *phase_basis; // Phase-space basis functions (p=1 hybrid, one velocity dimension).
+  const struct gkyl_vlasov_position_map *pos_map; // Configuration-space position map (REQUIRED; per-direction Jacobians of the cells).
   bool use_gpu; // bool to determine if on GPU.
 };
 
@@ -30,7 +32,10 @@ struct gkyl_dg_pkpm_conf_flux_surf_inp {
  * direction.
  *
  * In the factored update the distributions are the normalized [F_0/n, G/n]: the flux
- * moves only the shape; the density is moved by the fluid system.
+ * moves only the shape; the density is moved by the fluid system. The stored
+ * distributions carry the position-map Jacobian J of their cell: the kernels divide
+ * the traces by J_d of the owning cell, which equals forming the physical flux of the
+ * physical traces and multiplying by the face Jacobian J/J_d.
  *
  * @param inp Input parameters defined in gkyl_dg_pkpm_conf_flux_surf_inp struct.
  * @return Pointer to configuration-space surface flux updater.

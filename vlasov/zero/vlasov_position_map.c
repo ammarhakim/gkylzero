@@ -131,8 +131,11 @@ vlasov_position_map_c0_linear(
       p[3] = 0.0;
 
       // Piecewise constant Jacobian: (2/dx)*d/dz of the linear map, with
-      // sqrt(3/2) from the derivative of the 1D linear basis function.
-      double jac = (2.0 / cgrid->dx[i]) * 1.224744871391589 * p[1];
+      // sqrt(3/2) from the derivative of the 1D linear basis function. An
+      // identity direction gets exactly 1 (that expression is only
+      // 1 to round-off), so a uniform grid is bitwise unaffected by the map.
+      double jac = inp_pmap[i].eval_pmap == vlasov_pmap_identity
+        ? 1.0 : (2.0 / cgrid->dx[i]) * 1.224744871391589 * p[1];
       jacob_tot *= jac;
       for (int q = 0; q < num_quad_vol; ++q) {
         jacob_pos_d[i * num_quad_vol + q] = jac;
@@ -402,8 +405,6 @@ gkyl_vlasov_position_map_divide_jacobpos(
   }
 #endif
 
-  int num_basis = phase_basis->num_basis;
-
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, phase_range);
   int idx_conf[GKYL_MAX_CDIM];
@@ -419,7 +420,7 @@ gkyl_vlasov_position_map_divide_jacobpos(
     double jacob_inv = 1.0 / jacob_pos_gauss_d[0];
     const double *Jf_d = gkyl_array_cfetch(Jf, pidx);
     double *f_no_J_d = gkyl_array_fetch(f_no_J, pidx);
-    for (int k = 0; k < num_basis; ++k) {
+    for (int k = 0; k < Jf->ncomp; ++k) {
       f_no_J_d[k] = jacob_inv * Jf_d[k];
     }
   }
@@ -443,8 +444,6 @@ gkyl_vlasov_position_map_rescale_jacobpos(
   }
 #endif
 
-  int num_basis = phase_basis->num_basis;
-
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, phase_range);
   int idx_conf[GKYL_MAX_CDIM];
@@ -460,7 +459,7 @@ gkyl_vlasov_position_map_rescale_jacobpos(
     double jacob = jacob_pos_gauss_d[0];
     const double *f_no_J_d = gkyl_array_cfetch(f_no_J, pidx);
     double *Jf_d = gkyl_array_fetch(Jf, pidx);
-    for (int k = 0; k < num_basis; ++k) {
+    for (int k = 0; k < f_no_J->ncomp; ++k) {
       Jf_d[k] = jacob * f_no_J_d[k];
     }
   }

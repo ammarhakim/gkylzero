@@ -21,6 +21,7 @@ gkyl_dg_pkpm_fluid_free(const struct gkyl_ref_count *ref)
   }
 
   struct dg_pkpm_fluid *pkpm = container_of(base, struct dg_pkpm_fluid, eqn);
+  gkyl_vlasov_position_map_release(pkpm->pos_map);
   gkyl_free(pkpm);
 }
 
@@ -65,6 +66,9 @@ gkyl_dg_pkpm_fluid_inew(const struct gkyl_dg_pkpm_fluid_inp *inp)
 
   pkpm->auxfields = inp->auxfields;
   pkpm->conf_range = *inp->conf_range;
+  assert(inp->pos_map);
+  pkpm->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);
+  pkpm->jacob_pos = inp->pos_map->jacob_pos;
 
   pkpm->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(pkpm->eqn.flags);

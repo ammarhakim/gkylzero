@@ -1,16 +1,21 @@
 #include <gkyl_pkpm_fluid_kernels.h> 
-GKYL_CU_DH void pkpm_fluid_flux_absorb_x_3x_ser_p1(int edge, const double *bvar, const double *u,
+GKYL_CU_DH void pkpm_fluid_flux_absorb_x_3x_ser_p1(int edge, const double *jacob_pos, const double *bvar, const double *u,
   const double *xi, const double *fluid, const double *I, double* GKYL_RESTRICT flux) 
 { 
   // edge:  -1 for the lower boundary (face at z_x = -1 of the skin cell), +1 for the upper. 
+  // jacob_pos: Position-map Jacobian per configuration direction of the skin cell (cdim blocks of 2 equal entries). 
   // bvar:  Magnetic field unit vector [bx, by, bz] of the skin cell. 
   // u:     Flow velocity [ux, uy, uz] of the skin cell. 
   // xi:    Thermal speed [xi, xi^2, p] of the skin cell. 
-  // fluid: Fluid state [rho, rho ux, rho uy, rho uz, E] of the skin cell. 
-  // I:     Nodal moments [I_0, I_1, I_2, J_0] of the kinetic upwind flux at the 9 face nodes 
-  //        (pkpm_fluid_flux_absorb_accum_x_3x1v_ser_p1 summed over the velocity cells). 
-  // flux:  Output modal surface fluxes [F_rho, F_x, F_y, F_z, F_E] of the face. 
+  // fluid: PHYSICAL fluid state [rho, rho ux, rho uy, rho uz, E] of the skin cell (Jacobian divided out). 
+  // I:     Nodal moments [I_0, I_1, I_2, J_0] of the kinetic upwind flux of the Jacobian-weighted 
+  //        J [F, G] at the 9 face nodes (pkpm_fluid_flux_absorb_accum_x_3x1v_ser_p1 summed over 
+  //        the velocity cells); they carry one factor of J. 
+  // flux:  Output modal surface fluxes [F_rho, F_x, F_y, F_z, F_E] of the face for the evolved 
+  //        J-weighted fluid: the physical flux times the face Jacobian J/J_x, i.e. the 
+  //        J-carrying nodal fluxes divided by J_x. 
   const double ze = edge < 0 ? -1.0 : 1.0; 
+  const double jdinv = 1.0/jacob_pos[0]; 
   const double *rho = &fluid[0]; 
   const double *xd = &xi[0]; 
   const double *x2d = &xi[8]; 
@@ -124,6 +129,7 @@ GKYL_CU_DH void pkpm_fluid_flux_absorb_x_3x_ser_p1(int edge, const double *bvar,
     Fq[18 + n] = rq[n]*(uq1[n]*I0 + xq[n]*bq1[n]*I1) + rq[n]*x2q[n]*(0.0 - bq1[n]*bn)*J0; 
     Fq[27 + n] = rq[n]*(uq2[n]*I0 + xq[n]*bq2[n]*I1) + rq[n]*x2q[n]*(0.0 - bq2[n]*bn)*J0; 
     Fq[36 + n] = 0.5*rq[n]*(uu*I0 + 2.0*xq[n]*bu*I1 + x2q[n]*I2) + rq[n]*x2q[n]*J0; 
+    for (int c = 0; c < 5; ++c) Fq[c*9 + n] *= jdinv; 
   } 
  
   // Projection of the nodal fluxes onto the surface basis. 

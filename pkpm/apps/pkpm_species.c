@@ -84,6 +84,8 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   // PKPM has two distribution functions F_0 and T_perp*G, first two Laguerre moments
   s->f = mkarr(app->use_gpu, 2 * app->basis.num_basis, s->local_ext.volume);
   s->f1 = mkarr(app->use_gpu, 2 * app->basis.num_basis, s->local_ext.volume);
+  // physical distributions (position-map Jacobian divided out) for the output and the L2 norm
+  s->f_no_J = mkarr(app->use_gpu, 2 * app->basis.num_basis, s->local_ext.volume);
   s->fnew = mkarr(app->use_gpu, 2 * app->basis.num_basis, s->local_ext.volume);
   // allocate fluid arrays [rho, rho ux, rho uy, rho uz, E]
   s->fluid = mkarr(app->use_gpu, 5 * app->confBasis.num_basis, app->local_ext.volume);
@@ -92,9 +94,11 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
 
   // create host arrays if on GPUs so initialization occurs host-side
   s->f_host = s->f;
+  s->f_no_J_host = s->f_no_J;
   s->fluid_host = s->fluid;
   if (app->use_gpu) {
     s->f_host = mkarr(false, 2 * app->basis.num_basis, s->local_ext.volume);
+    s->f_no_J_host = mkarr(false, 2 * app->basis.num_basis, s->local_ext.volume);
     s->fluid_host = mkarr(false, 5 * app->confBasis.num_basis, app->local_ext.volume);
   }
 
@@ -133,6 +137,8 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   // moments [p_par, p_perp, q_par, q_perp] formed from them and the constraints
   pkpm_species_moment_init_mass(app, s, &s->pkpm_nmoms, false, 1.0);
   s->pkpm_moms = mkarr(app->use_gpu, 4 * nc, app->local_ext.volume);
+  s->pkpm_moms_no_J = mkarr(app->use_gpu, 4 * nc, app->local_ext.volume);
+  s->fluid_no_J = mkarr(app->use_gpu, 5 * nc, app->local_ext.volume);
   gkyl_array_clear(s->pkpm_moms, 0.0);
   s->pkpm_cmoms = mkarr(app->use_gpu, 3 * nc, app->local_ext.volume);
   s->pkpm_cmoms_host = s->pkpm_cmoms;
@@ -179,8 +185,10 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   // Updaters for the configuration-space variables (weak division u, nodal primitive
   // variables, closures, weak gradients, sources, diagnostics). Two instances, one over
   // the extended range and one over the local range, for ease of handling boundary conditions.
-  s->calc_pkpm_vars_ext = gkyl_dg_calc_pkpm_vars_new(&app->grid, &app->confBasis, &app->local_ext, app->use_gpu);
-  s->calc_pkpm_vars = gkyl_dg_calc_pkpm_vars_new(&app->grid, &app->confBasis, &app->local, app->use_gpu);
+  s->calc_pkpm_vars_ext =
+    gkyl_dg_calc_pkpm_vars_new(&app->grid, &app->confBasis, &app->local_ext, app->pos_map, app->use_gpu);
+  s->calc_pkpm_vars =
+    gkyl_dg_calc_pkpm_vars_new(&app->grid, &app->confBasis, &app->local, app->pos_map, app->use_gpu);
 
   // array for storing integrated fluid variables in each cell
   // integ_pkpm_mom : integral[rho, rhoux, rhouy, rhouz, rhoux^2, rhouy^2, rhouz^2, p_par, p_perp]
@@ -202,6 +210,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     .phase_grid = &s->grid,
     .conf_basis = &app->confBasis,
     .phase_basis = &app->basis,
+    .pos_map = app->pos_map,
     .use_gpu = app->use_gpu,
   };
   s->calc_conf_flux = gkyl_dg_pkpm_conf_flux_surf_inew(&conf_flux_inp);
@@ -224,6 +233,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     .wv_eqn = s->equation,
     .geom = app->geom,
     .phase_grid = &s->grid,
+    .pos_map = app->pos_map,
     .use_gpu = app->use_gpu,
   };
   s->calc_fluid_flux = gkyl_dg_pkpm_fluid_flux_surf_inew(&fluid_flux_inp);
@@ -236,6 +246,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     .phase_basis = &app->basis,
     .conf_range = &app->local,
     .phase_range = &s->local,
+    .pos_map = app->pos_map,
     .auxfields =
       {
         .bvar = app->field->bvar,
@@ -265,6 +276,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   struct gkyl_dg_pkpm_fluid_inp fluid_inp = {
     .conf_basis = &app->confBasis,
     .conf_range = &app->local,
+    .pos_map = app->pos_map,
     .auxfields =
       {
         .vlasov_pkpm_moms = s->pkpm_moms,
@@ -322,10 +334,16 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     if (app->use_gpu) {
       s->app_accel_host = mkarr(false, 3 * app->confBasis.num_basis, app->local_ext.volume);
     }
-    s->app_accel_proj = gkyl_proj_on_basis_new(
-      &app->grid, &app->confBasis, app->confBasis.poly_order + 1, 3, s->info.app_accel,
-      s->info.app_accel_ctx
-    );
+    s->app_accel_proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+      .grid = &app->grid,
+      .basis = &app->confBasis,
+      .num_quad = app->confBasis.poly_order + 1,
+      .num_ret_vals = 3,
+      .eval = s->info.app_accel,
+      .ctx = s->info.app_accel_ctx,
+      .c2p_func = pkpm_pos_c2p,
+      .c2p_func_ctx = app->pos_map,
+    });
   }
 
   // determine collision type to use in PKPM update
@@ -338,6 +356,10 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   s->has_diffusion = false;
   if (s->info.diffusion.D) {
     s->has_diffusion = true;
+    // The momentum-diffusion operator works on the computational grid and does not use the position map.
+    if (!app->pos_map->is_identity) {
+      gkyl_exit("pkpm_species: momentum diffusion does not support a position map.");
+    }
     s->info.diffusion.order = s->info.diffusion.order < 2 ? 2 : s->info.diffusion.order;
     int num_eqn = 3;
 
@@ -494,15 +516,27 @@ pkpm_species_apply_ic(gkyl_pkpm_app *app, struct pkpm_species *species, double t
   // (w = v_par/xi; F a probability density in w, G its perpendicular-energy partner so
   // that M0(F) = 1, M1(F) = 0 and M2(F) + 2 M0(G) = 3) and the fluid state
   // [rho, rho ux, rho uy, rho uz, E].
-  gkyl_proj_on_basis *proj_dist;
-  proj_dist = gkyl_proj_on_basis_new(
-    &species->grid, &app->basis, 8, 2, species->info.init_dist, species->info.ctx_dist
-  );
-  gkyl_proj_on_basis *proj_fluid;
-  proj_fluid = gkyl_proj_on_basis_new(
-    &app->grid, &app->confBasis, poly_order + 1, 5, species->info.init_fluid,
-    species->info.ctx_fluid
-  );
+  // Both are sampled at the physical coordinates of the position map (identity: unchanged).
+  gkyl_proj_on_basis *proj_dist = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+    .grid = &species->grid,
+    .basis = &app->basis,
+    .num_quad = 8,
+    .num_ret_vals = 2,
+    .eval = species->info.init_dist,
+    .ctx = species->info.ctx_dist,
+    .c2p_func = pkpm_pos_c2p,
+    .c2p_func_ctx = app->pos_map,
+  });
+  gkyl_proj_on_basis *proj_fluid = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+    .grid = &app->grid,
+    .basis = &app->confBasis,
+    .num_quad = poly_order + 1,
+    .num_ret_vals = 5,
+    .eval = species->info.init_fluid,
+    .ctx = species->info.ctx_fluid,
+    .c2p_func = pkpm_pos_c2p,
+    .c2p_func_ctx = app->pos_map,
+  });
 
   // run updaters; need to project onto extended range for ease of handling
   // subsequent operations over extended range such as primitive variable computations
@@ -529,8 +563,13 @@ pkpm_species_apply_ic(gkyl_pkpm_app *app, struct pkpm_species *species, double t
     species->calc_pkpm_vars_ext, &app->local_ext, &species->local_ext, species->pkpm_nmoms.marr,
     species->f1, species->f
   );
+  // The evolved quantities carry the position-map Jacobian: J [F, G] and J [rho, M, E]
+  // (identity map: no change). The velocity ghost row of f stays empty.
+  gkyl_vlasov_position_map_rescale_jacobpos(app->pos_map, &app->basis, &species->local_ext_conf, species->f, species->f);
+  gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local_ext, species->fluid, species->fluid);
   if (app->use_gpu) {
     gkyl_array_copy(species->f_host, species->f);
+    gkyl_array_copy(species->fluid_host, species->fluid);
   }
 
   // we are pre-computing acceleration for now in case is time-independent
@@ -595,6 +634,10 @@ pkpm_species_coupling_moms(gkyl_pkpm_app *app, struct pkpm_species *species)
   gkyl_dg_calc_pkpm_vars_constraints(
     species->calc_pkpm_vars, &app->local_ext, nc, species->pkpm_nmoms.marr, species->pkpm_cmoms
   );
+  // the constraints of the physical distributions ([1, 0, 1]): the moments of J [F, G] carry J
+  gkyl_vlasov_position_map_divide_jacobpos_conf(
+    app->pos_map, &app->local_ext, species->pkpm_cmoms->ncomp, species->pkpm_cmoms, species->pkpm_cmoms
+  );
 }
 
 void
@@ -610,11 +653,16 @@ pkpm_species_calc_pkpm_vars(
   // after the boundary conditions, the fluid state is extrapolated into the ghost cells
   // of absorbing boundaries), the nodal primitive variables [xi, xi^2, p] of the fluid
   // state, then the coupling moments. theta = T_perp/T is the zeroth moment of G directly.
+  // The evolved fluid and distributions carry the position-map Jacobian J. The primitive
+  // variables, the flow and grad(ln n) need the PHYSICAL fluid (a weak gradient of J rho
+  // across cells of different J is not J grad rho); the moments of J [F, G] carry J and
+  // the coupling moments p (physical) x M_k(J F) are the J-weighted ones the fluid needs.
+  gkyl_vlasov_position_map_divide_jacobpos_conf(app->pos_map, &app->local_ext, fluidin->ncomp, fluidin, species->fluid_no_J);
   pkpm_species_moment_calc(&species->pkpm_nmoms, species->local_ext_conf, app->local_ext, fin);
-  gkyl_array_set_offset(species->pkpm_rho, 1.0, fluidin, 0);
-  gkyl_array_set_offset(species->pkpm_mom3, 1.0, fluidin, nc);
+  gkyl_array_set_offset(species->pkpm_rho, 1.0, species->fluid_no_J, 0);
+  gkyl_array_set_offset(species->pkpm_mom3, 1.0, species->fluid_no_J, nc);
   species->num_null_rho += gkyl_dg_calc_pkpm_vars_prim(
-    species->calc_pkpm_vars_ext, &app->local_ext, fluidin, species->pkpm_u_nodal, species->pkpm_xi
+    species->calc_pkpm_vars_ext, &app->local_ext, species->fluid_no_J, species->pkpm_u_nodal, species->pkpm_xi
   );
   // The flow of the update is the weak quotient M/rho (the implicit field coupling
   // forms the new momentum as rho (2 u_half - u) and conserves momentum only if
@@ -623,7 +671,9 @@ pkpm_species_calc_pkpm_vars(
     species->calc_pkpm_vars_ext, species->pkpm_rho, species->pkpm_mom3, species->cell_avg_prim, species->pkpm_u
   );
   pkpm_species_coupling_moms(app, species);
+  // theta = M0(G) of the physical G: M0(J G)/J.
   gkyl_array_set_offset(species->pkpm_theta, 1.0, species->pkpm_nmoms.marr, 2 * nc);
+  gkyl_vlasov_position_map_divide_jacobpos_conf(app->pos_map, &app->local_ext, nc, species->pkpm_theta, species->pkpm_theta);
   // Weak gradient of u for the kinetic sources (bb:grad u); needs u in the ghost cells
   // (with absorbing boundaries the ghost u is the last value computed there).
   gkyl_dg_calc_pkpm_vars_grad_u(species->calc_pkpm_vars, &app->local, species->pkpm_u, species->pkpm_grad_u);
@@ -673,14 +723,14 @@ pkpm_species_fluid_flux(
       gkyl_dg_pkpm_fluid_flux_surf_absorb(
         species->calc_fluid_flux, d, GKYL_LOWER_EDGE, &app->lower_skin[d], &app->local_ext,
         &species->local, &species->local_ext, app->field->bvar, species->pkpm_u, species->pkpm_xi,
-        fluidin, fin, species->fluid_flux_surf
+        species->fluid_no_J, fin, species->fluid_flux_surf
       );
     }
     if (on_upper && species->upper_bc[d] == GKYL_SPECIES_ABSORB) {
       gkyl_dg_pkpm_fluid_flux_surf_absorb(
         species->calc_fluid_flux, d, GKYL_UPPER_EDGE, &app->upper_skin[d], &app->local_ext,
         &species->local, &species->local_ext, app->field->bvar, species->pkpm_u, species->pkpm_xi,
-        fluidin, fin, species->fluid_flux_surf
+        species->fluid_no_J, fin, species->fluid_flux_surf
       );
     }
   }
@@ -964,7 +1014,9 @@ pkpm_fluid_species_apply_bc(
 void
 pkpm_species_calc_L2(gkyl_pkpm_app *app, double tm, const struct pkpm_species *species)
 {
-  gkyl_dg_calc_l2_range(&app->basis, 0, species->L2_f, 0, species->f, species->local);
+  // The evolved f carries the position-map Jacobian: int f^2 dx = int (f/J) f dxi.
+  gkyl_vlasov_position_map_divide_jacobpos(app->pos_map, &app->basis, &species->local, species->f, species->f_no_J);
+  gkyl_dg_calc_prod_op_range(app->basis, 0, species->L2_f, 0, species->f_no_J, 0, species->f, species->local);
   gkyl_array_scale_range(species->L2_f, species->grid.cellVolume, &species->local);
 
   double L2[1] = {0.0};
@@ -1010,6 +1062,7 @@ pkpm_species_release(const gkyl_pkpm_app *app, const struct pkpm_species *s)
 {
   // release various arrays
   gkyl_array_release(s->f);
+  gkyl_array_release(s->f_no_J);
   gkyl_array_release(s->f1);
   gkyl_array_release(s->fnew);
   gkyl_array_release(s->fluid);
@@ -1033,6 +1086,7 @@ pkpm_species_release(const gkyl_pkpm_app *app, const struct pkpm_species *s)
 
   if (app->use_gpu) {
     gkyl_array_release(s->f_host);
+    gkyl_array_release(s->f_no_J_host);
     gkyl_array_release(s->fluid_host);
   }
 
@@ -1053,6 +1107,8 @@ pkpm_species_release(const gkyl_pkpm_app *app, const struct pkpm_species *s)
   gkyl_array_release(s->pkpm_grad_xi);
   gkyl_array_release(s->pkpm_scratch);
   gkyl_array_release(s->pkpm_moms);
+  gkyl_array_release(s->pkpm_moms_no_J);
+  gkyl_array_release(s->fluid_no_J);
   gkyl_array_release(s->pkpm_cmoms);
   gkyl_array_release(s->pkpm_mom3_rhs);
   gkyl_array_release(s->pkpm_u_nodal);

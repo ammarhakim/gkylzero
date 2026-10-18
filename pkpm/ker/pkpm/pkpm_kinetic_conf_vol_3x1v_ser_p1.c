@@ -1,11 +1,13 @@
 #include <gkyl_pkpm_kinetic_kernels.h> 
-GKYL_CU_DH double pkpm_kinetic_conf_vol_3x1v_ser_p1(const double *w, const double *dxv,
+GKYL_CU_DH double pkpm_kinetic_conf_vol_3x1v_ser_p1(const double *w, const double *dxv, const double *jacob_pos,
   const double *bvar, const double *grad_b, const double *u, const double *grad_u,
   const double *xi, const double *grad_xi, const double *grad_ln_n,
   const double *theta, const double *f, double* GKYL_RESTRICT out) 
 { 
-  // w[NDIM]:      Cell-center coordinates. 
-  // dxv[NDIM]:    Cell spacing. 
+  // w[NDIM]:      Cell-center coordinates (computational). 
+  // dxv[NDIM]:    Cell spacing (computational). 
+  // jacob_pos:    Position-map Jacobian per configuration direction (cdim blocks of 2 equal 
+  //               entries); the streaming divergence in direction d carries 1/J_d. 
   // bvar:         Magnetic field unit vector [bx, by, bz]. 
   // grad_b:       Weak gradient of b, [d_i bx, d_i by, d_i bz] per direction i. 
   // u:            Flow velocity [ux, uy, uz]. 
@@ -14,12 +16,12 @@ GKYL_CU_DH double pkpm_kinetic_conf_vol_3x1v_ser_p1(const double *w, const doubl
   // grad_xi:      Weak gradient of [xi, 0, 0] (pkpm_vars_grad_u_* layout). 
   // grad_ln_n:    grad(ln n) = grad(rho)/rho, cdim expansions. 
   // theta:        T_perp/T = M0(G). 
-  // f:            Input normalized distribution functions [F, G]. 
-  // out:          Incremented output [F, G]. 
+  // f:            Input Jacobian-weighted normalized distribution functions J [F, G]. 
+  // out:          Incremented output for J [F, G]. 
   // Returns the CFL frequency estimate of the source rates. 
-  const double dx10 = 2.0/dxv[0]; 
-  const double dx11 = 2.0/dxv[1]; 
-  const double dx12 = 2.0/dxv[2]; 
+  const double dx10 = 2.0/(dxv[0]*jacob_pos[0]); 
+  const double dx11 = 2.0/(dxv[1]*jacob_pos[2]); 
+  const double dx12 = 2.0/(dxv[2]*jacob_pos[4]); 
   const double dv1 = 2.0/dxv[3]; 
   const double dvpar = dxv[3], wvpar = w[3]; 
   const double *bx = &bvar[0]; 

@@ -169,9 +169,10 @@ void gkyl_vlasov_position_map_write(
 /**
  * Divide out the configuration-space Jacobian from Jf to obtain f. The conf
  * Jacobian is a per-cell constant (C^0 linear map), so the division is exact
- * both modally and nodally: each phase-space coefficient is divided by the
- * total conf Jacobian of its configuration cell. Runs on device when the map
- * was created with use_gpu=true.
+ * both modally and nodally: every component of the array (all of them, so an
+ * array holding several distributions, e.g. PKPM's [F, G], is handled) is
+ * divided by the total conf Jacobian of its configuration cell. Runs on device
+ * when the map was created with use_gpu=true.
  *
  * @param vpm Position map object.
  * @param phase_basis Phase-space basis.

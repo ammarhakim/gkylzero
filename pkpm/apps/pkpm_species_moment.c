@@ -65,7 +65,10 @@ pkpm_species_moment_diag_calc(
   int nc = app->confBasis.num_basis;
   int num_mom = gkyl_dg_updater_moment_pkpm_num_mom(s->pkpm_moms_diag.mcalc);
   static const int xi_pow[8] = {0, 1, 2, 2, 3, 3, 4, 4};
-  gkyl_array_set_offset(s->pkpm_rho, 1.0 / s->info.mass, fluid, 0);
+  // n = rho/m from the PHYSICAL density; the moments of the evolved J [F, G] carry one factor
+  // of the position-map Jacobian, divided out at the end.
+  gkyl_vlasov_position_map_divide_jacobpos_conf(app->pos_map, &conf_rng, fluid->ncomp, fluid, s->fluid_no_J);
+  gkyl_array_set_offset(s->pkpm_rho, 1.0 / s->info.mass, s->fluid_no_J, 0);
   gkyl_dg_updater_moment_pkpm_advance(s->pkpm_moms_diag.mcalc, &phase_rng, &conf_rng, fin, s->fluid_io);
   for (int c = 0; c < num_mom; ++c) {
     gkyl_dg_mul_op_range(
@@ -79,6 +82,9 @@ pkpm_species_moment_diag_calc(
       gkyl_array_set_offset_range(s->pkpm_moms_diag.marr, 1.0, s->pkpm_scratch, c * nc, &conf_rng);
     }
   }
+  gkyl_vlasov_position_map_divide_jacobpos_conf(
+    app->pos_map, &conf_rng, s->pkpm_moms_diag.marr->ncomp, s->pkpm_moms_diag.marr, s->pkpm_moms_diag.marr
+  );
 }
 
 // release memory for moment data object

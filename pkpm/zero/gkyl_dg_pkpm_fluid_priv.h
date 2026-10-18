@@ -11,7 +11,7 @@
 #include <gkyl_util.h>
 
 typedef double (*pkpm_fluid_vol_t)(
-  const double *w, const double *dxv, const double *vlasov_pkpm_moms, const double *bvar,
+  const double *w, const double *dxv, const double *jacob_pos, const double *vlasov_pkpm_moms, const double *bvar,
   const double *u, const double *fluid, double *GKYL_RESTRICT out
 );
 
@@ -32,6 +32,8 @@ struct dg_pkpm_fluid {
   pkpm_fluid_vol_t vol_kern; // Volume kernel
   pkpm_fluid_surf_t fluid_surf[3]; // Surface kernels scattering stored fluxes
   struct gkyl_range conf_range; // Configuration-space range
+  const struct gkyl_vlasov_position_map *pos_map; // Position map (acquired; host pointer, 0 on the device copy)
+  const struct gkyl_array *jacob_pos; // Per-direction Jacobians (borrowed from pos_map; device pointer on device)
   struct gkyl_dg_pkpm_fluid_auxfields auxfields; // Auxiliary fields.
 };
 
@@ -78,7 +80,8 @@ vol(
   struct dg_pkpm_fluid *pkpm = container_of(eqn, struct dg_pkpm_fluid, eqn);
   long cidx = gkyl_range_idx(&pkpm->conf_range, idx);
   return pkpm->vol_kern(
-    xc, dx, (const double *)gkyl_array_cfetch(pkpm->auxfields.vlasov_pkpm_moms, cidx),
+    xc, dx, (const double *)gkyl_array_cfetch(pkpm->jacob_pos, cidx),
+    (const double *)gkyl_array_cfetch(pkpm->auxfields.vlasov_pkpm_moms, cidx),
     (const double *)gkyl_array_cfetch(pkpm->auxfields.bvar, cidx),
     (const double *)gkyl_array_cfetch(pkpm->auxfields.u, cidx), qIn, qRhsOut
   );

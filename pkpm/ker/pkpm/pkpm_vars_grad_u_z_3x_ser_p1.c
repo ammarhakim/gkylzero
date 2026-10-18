@@ -1,10 +1,11 @@
 #include <gkyl_pkpm_vars_kernels.h> 
-GKYL_CU_DH void pkpm_vars_grad_u_z_3x_ser_p1(const double *dxv, const double *u_l, const double *u_c, const double *u_r, double* GKYL_RESTRICT grad_u) 
+GKYL_CU_DH void pkpm_vars_grad_u_z_3x_ser_p1(const double *dxv, const double *jacob_pos, const double *u_l, const double *u_c, const double *u_r, double* GKYL_RESTRICT grad_u) 
 { 
-  // dxv[NDIM]: Cell spacing. 
+  // dxv[NDIM]: Cell spacing (computational). 
+  // jacob_pos: Position-map Jacobian per configuration direction (cdim blocks of 2 equal entries). 
   // u_l/u_c/u_r: Flow velocity [ux, uy, uz] in the left/current/right cell in direction z. 
   // grad_u:    Output weak gradient of u, block of direction z: [d_z ux, d_z uy, d_z uz]. 
-  const double dx1 = 2.0/dxv[2]; 
+  const double dx1 = 2.0/(dxv[2]*jacob_pos[4]); 
   const double *ux_l = &u_l[0]; 
   const double *ux_c = &u_c[0]; 
   const double *ux_r = &u_r[0]; 

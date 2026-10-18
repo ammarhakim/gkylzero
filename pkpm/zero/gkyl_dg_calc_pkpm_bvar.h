@@ -4,6 +4,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_vlasov_position_map.h>
 
 // Object type
 typedef struct gkyl_dg_calc_pkpm_bvar gkyl_dg_calc_pkpm_bvar;
@@ -23,7 +24,8 @@ typedef struct gkyl_dg_calc_pkpm_bvar gkyl_dg_calc_pkpm_bvar;
  * @return New updater pointer.
  */
 struct gkyl_dg_calc_pkpm_bvar *gkyl_dg_calc_pkpm_bvar_new(
-  const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis, bool use_gpu
+  const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis,
+  const struct gkyl_vlasov_position_map *pos_map, bool use_gpu
 );
 
 /**
@@ -31,7 +33,7 @@ struct gkyl_dg_calc_pkpm_bvar *gkyl_dg_calc_pkpm_bvar_new(
  * See new() method for documentation.
  */
 struct gkyl_dg_calc_pkpm_bvar *gkyl_dg_calc_pkpm_bvar_cu_dev_new(
-  const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis
+  const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis, const struct gkyl_vlasov_position_map *pos_map
 );
 
 /**

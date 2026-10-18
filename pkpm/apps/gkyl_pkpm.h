@@ -103,6 +103,17 @@ struct gkyl_pkpm_field {
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
 };
 
+// Per-direction configuration-space position map (non-uniform grid). The map in each
+// direction is a function of the (scalar) computational coordinate of that direction; its
+// C^0 piecewise linear representation gives a per-cell constant Jacobian J, and the
+// evolved quantities carry J (J [F, G], J [rho, M, E], J [E, B]) while all output is physical.
+struct pkpm_mapc2p_pos {
+  void *mapc2p_pos_ctx; // context for the mapping function
+  // pointer to the per-direction mapping: xc is the computational coordinate and on output
+  // xp the corresponding physical coordinate. NULL => identity map in that direction.
+  void (*mapc2p_pos_func)(double t, const double *xc, double *xp, void *ctx);
+};
+
 // Top-level app parameters
 struct gkyl_pkpm {
   char name[128]; // name of app: used as output prefix
@@ -118,6 +129,11 @@ struct gkyl_pkpm {
   // coordinates and on output xp are the corresponding physical space
   // coordinates.
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
+
+  // Per-direction non-uniform configuration-space mapping (diagonal coordinate
+  // stretch, independent of the general curvilinear mapc2p above which feeds the
+  // wave geometry of the EM limiter). Directions without a function use the identity.
+  struct pkpm_mapc2p_pos mapc2p_pos[GKYL_MAX_CDIM];
 
   double cfl_frac; // CFL fraction to use (default 1.0)
 

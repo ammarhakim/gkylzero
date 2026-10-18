@@ -26,6 +26,17 @@ mkarr(long nc, long size)
   return gkyl_array_new(GKYL_DOUBLE, nc, size);
 }
 
+// Identity configuration-space position map (the updaters always take one).
+static struct gkyl_vlasov_position_map *
+identity_pos_map(
+  const struct gkyl_rect_grid *cgrid, const struct gkyl_range *clocal, const struct gkyl_range *clocal_ext,
+  const struct gkyl_basis *cbasis
+)
+{
+  struct gkyl_vlasov_position_map_inp inp[GKYL_MAX_CDIM] = {0};
+  return gkyl_vlasov_position_map_new(cgrid, clocal, clocal_ext, cbasis, inp, false);
+}
+
 // Smooth, non-trivial field with all three components varying in every direction.
 static void
 eval_em(double t, const double *xn, double *restrict fout, void *ctx)
@@ -83,6 +94,7 @@ test_bvar(int cdim)
 
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+  struct gkyl_vlasov_position_map *pm = identity_pos_map(&grid, &local, &local_ext, &basis);
 
   struct gkyl_array *em = mkarr(8 * nb, local_ext.volume);
   struct gkyl_array *bvar = mkarr(3 * nb, local_ext.volume);
@@ -91,7 +103,7 @@ test_bvar(int cdim)
   gkyl_proj_on_basis_advance(proj, 0.0, &local_ext, em);
   gkyl_proj_on_basis_release(proj);
 
-  struct gkyl_dg_calc_pkpm_bvar *up = gkyl_dg_calc_pkpm_bvar_new(&grid, &basis, false);
+  struct gkyl_dg_calc_pkpm_bvar *up = gkyl_dg_calc_pkpm_bvar_new(&grid, &basis, pm, false);
   gkyl_dg_calc_pkpm_bvar_advance(up, &local_ext, em, bvar);
   TEST_CHECK(gkyl_dg_calc_pkpm_bvar_num_null_b(up) == 0);
 
@@ -170,6 +182,7 @@ test_bvar(int cdim)
   gkyl_wave_geom_release(geom);
   gkyl_wv_eqn_release(maxwell);
   gkyl_dg_calc_pkpm_bvar_release(up);
+  gkyl_vlasov_position_map_release(pm);
   gkyl_array_release(bvar);
   gkyl_array_release(em);
 }

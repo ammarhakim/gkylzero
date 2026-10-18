@@ -59,6 +59,9 @@ gkyl_dg_pkpm_fluid_cu_dev_inew(const struct gkyl_dg_pkpm_fluid_inp *inp)
   pkpm->eqn.num_equations = 5;
   pkpm->conf_range = *inp->conf_range;
   pkpm->auxfields = inp->auxfields;
+  assert(inp->pos_map);
+  pkpm->pos_map = 0; // host pointer set after the device memcpy below
+  pkpm->jacob_pos = inp->pos_map->jacob_pos->on_dev;
 
   pkpm->eqn.flags = 0;
   GKYL_SET_CU_ALLOC(pkpm->eqn.flags);
@@ -72,5 +75,7 @@ gkyl_dg_pkpm_fluid_cu_dev_inew(const struct gkyl_dg_pkpm_fluid_inp *inp)
   );
 
   pkpm->eqn.on_dev = &pkpm_cu->eqn;
+  pkpm->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);
+  pkpm->jacob_pos = inp->pos_map->jacob_pos;
   return &pkpm->eqn;
 }

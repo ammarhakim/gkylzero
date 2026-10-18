@@ -423,6 +423,8 @@ struct pkpm_app_lw {
                    [128]; // Names of species that we cross-collide with.
 
   struct lua_func_ctx field_func_ctx; // Function context for field.
+  bool has_mapc2p_pos_func[GKYL_MAX_CDIM]; // Is there a (per-direction) configuration-space mapping?
+  struct lua_func_ctx mapc2p_pos_func_ctx[GKYL_MAX_CDIM]; // Lua registry reference to the configuration-space mapping.
   struct lua_func_ctx external_field_func_ctx; // Function context for external field.
   struct lua_func_ctx applied_current_func_ctx; // Function context for applied current.
 
@@ -726,6 +728,33 @@ pkpm_app_new(lua_State *L)
 
   pkpm.cfl_frac = glua_tbl_get_number(L, "cflFrac", 0.95);
   pkpm.poly_order = glua_tbl_get_integer(L, "polyOrder", 1);
+
+  // Per-direction non-uniform configuration-space mapping: each entry of the mapc2pPos
+  // table is a per-direction table with a "pmap" function mapping the (scalar)
+  // computational coordinate to the physical coordinate in that direction. Directions
+  // without an entry use the identity map.
+  for (int d = 0; d < cdim; d++) {
+    app_lw->has_mapc2p_pos_func[d] = false;
+  }
+  with_lua_tbl_tbl(L, "mapc2pPos")
+  {
+    for (int d = 0; d < cdim; d++) {
+      if (glua_tbl_iget_tbl(L, d + 1)) {
+        if (glua_tbl_get_func(L, "pmap")) {
+          app_lw->has_mapc2p_pos_func[d] = true;
+          app_lw->mapc2p_pos_func_ctx[d] = (struct lua_func_ctx){
+            .func_ref = luaL_ref(L, LUA_REGISTRYINDEX),
+            .ndim = 1, // per-direction map: one (scalar) computational coordinate
+            .nret = 1,
+            .L = L,
+          };
+          pkpm.mapc2p_pos[d].mapc2p_pos_func = gkyl_lw_eval_cb;
+          pkpm.mapc2p_pos[d].mapc2p_pos_ctx = &app_lw->mapc2p_pos_func_ctx[d];
+        }
+      }
+      lua_pop(L, 1);
+    }
+  }
 
   pkpm.use_explicit_source = glua_tbl_get_bool(L, "useExplicitSource", false);
 

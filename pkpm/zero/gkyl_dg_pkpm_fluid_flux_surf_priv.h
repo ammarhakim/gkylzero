@@ -14,7 +14,7 @@
 
 typedef double (*pkpm_fluid_flux_t)(
   const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, const double *w,
-  const double *dxv, const double *moms_l, const double *moms_r, const double *bvar_l,
+  const double *dxv, const double *jacob_pos_l, const double *jacob_pos_r, const double *moms_l, const double *moms_r, const double *bvar_l,
   const double *bvar_r, const double *u_l, const double *u_r, const double *fluid_l,
   const double *fluid_r, double *GKYL_RESTRICT flux
 );
@@ -24,7 +24,7 @@ typedef void (*pkpm_fluid_flux_absorb_accum_t)(
   const double *xi, const double *f, double *GKYL_RESTRICT I
 );
 typedef void (*pkpm_fluid_flux_absorb_t)(
-  int edge, const double *bvar, const double *u, const double *xi, const double *fluid,
+  int edge, const double *jacob_pos, const double *bvar, const double *u, const double *xi, const double *fluid,
   const double *I, double *GKYL_RESTRICT flux
 );
 
@@ -46,6 +46,8 @@ struct gkyl_dg_pkpm_fluid_flux_surf {
   bool use_gpu; // bool to determine if on GPU.
   const struct gkyl_wv_eqn *wv_eqn; // Ten-moment wave equation (device pointer on device).
   const struct gkyl_wave_geom *geom; // Wave geometry (device pointer on device).
+  const struct gkyl_vlasov_position_map *pos_map; // Position map (acquired; host pointer).
+  const struct gkyl_array *jacob_pos; // Per-direction Jacobians (borrowed from pos_map; device pointer on device).
   pkpm_fluid_flux_t fluid_flux[3]; // Flux kernel in each direction.
   struct gkyl_rect_grid phase_grid; // Phase-space grid (absorbing fluxes only).
   bool has_phase_grid; // Whether the phase-space grid was given (absorbing fluxes available).

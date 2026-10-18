@@ -39,6 +39,7 @@ gkyl_dg_pkpm_conf_flux_surf_advance_cu_kernel(
     const double *b_c = (const double *)gkyl_array_cfetch(bvar, cidx);
     const double *u_c = (const double *)gkyl_array_cfetch(u, cidx);
     const double *xi_c = (const double *)gkyl_array_cfetch(xi, cidx);
+    const double *jac_c = (const double *)gkyl_array_cfetch(up->jacob_pos, cidx);
     const double *f_c = (const double *)gkyl_array_cfetch(fin, pidx);
     double *cflrate_d = (double *)gkyl_array_fetch(cflrate, pidx);
     double *flux = (double *)gkyl_array_fetch(conf_flux_surf, pidx);
@@ -49,7 +50,8 @@ gkyl_dg_pkpm_conf_flux_surf_advance_cu_kernel(
       long cidx_l = gkyl_range_idx(&conf_range, idx_l);
       long pidx_l = gkyl_range_idx(&phase_range, idx_l);
       cflrate_d[0] += up->conf_flux[dir](
-        xc, up->phase_grid.dx, (const double *)gkyl_array_cfetch(bvar, cidx_l), b_c,
+        xc, up->phase_grid.dx, (const double *)gkyl_array_cfetch(up->jacob_pos, cidx_l), jac_c,
+        (const double *)gkyl_array_cfetch(bvar, cidx_l), b_c,
         (const double *)gkyl_array_cfetch(u, cidx_l), u_c,
         (const double *)gkyl_array_cfetch(xi, cidx_l), xi_c,
         (const double *)gkyl_array_cfetch(fin, pidx_l), f_c, &flux[dir * nflux]
@@ -63,7 +65,8 @@ gkyl_dg_pkpm_conf_flux_surf_advance_cu_kernel(
         gkyl_rect_grid_cell_center(&up->phase_grid, idx_r, xc_r);
         double *flux_r = (double *)gkyl_array_fetch(conf_flux_surf, pidx_r);
         cflrate_d[0] += up->conf_flux[dir](
-          xc_r, up->phase_grid.dx, b_c, (const double *)gkyl_array_cfetch(bvar, cidx_r), u_c,
+          xc_r, up->phase_grid.dx, jac_c, (const double *)gkyl_array_cfetch(up->jacob_pos, cidx_r),
+          b_c, (const double *)gkyl_array_cfetch(bvar, cidx_r), u_c,
           (const double *)gkyl_array_cfetch(u, cidx_r), xi_c,
           (const double *)gkyl_array_cfetch(xi, cidx_r), f_c,
           (const double *)gkyl_array_cfetch(fin, pidx_r), &flux_r[dir * nflux]
@@ -109,6 +112,11 @@ gkyl_dg_pkpm_conf_flux_surf_cu_dev_inew(const struct gkyl_dg_pkpm_conf_flux_surf
   up->pdim = pdim;
   up->use_gpu = inp->use_gpu;
   up->num_surf_basis = inp->phase_basis->num_basis / 2;
+  // The device copy needs the device pointer of the Jacobian array; the host object keeps the
+  // acquired map for its own lifetime management.
+  assert(inp->pos_map);
+  up->pos_map = 0;
+  up->jacob_pos = inp->pos_map->jacob_pos->on_dev;
 
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
@@ -122,5 +130,7 @@ gkyl_dg_pkpm_conf_flux_surf_cu_dev_inew(const struct gkyl_dg_pkpm_conf_flux_surf
   );
 
   up->on_dev = up_cu;
+  up->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);
+  up->jacob_pos = inp->pos_map->jacob_pos;
   return up;
 }

@@ -23,6 +23,17 @@ mkarr(long nc, long size)
   return gkyl_array_new(GKYL_DOUBLE, nc, size);
 }
 
+// Identity configuration-space position map (the updaters always take one).
+static struct gkyl_vlasov_position_map *
+identity_pos_map(
+  const struct gkyl_rect_grid *cgrid, const struct gkyl_range *clocal, const struct gkyl_range *clocal_ext,
+  const struct gkyl_basis *cbasis
+)
+{
+  struct gkyl_vlasov_position_map_inp inp[GKYL_MAX_CDIM] = {0};
+  return gkyl_vlasov_position_map_new(cgrid, clocal, clocal_ext, cbasis, inp, false);
+}
+
 // set cell-average physical value `val` of block `blk` for cdim=2 (factor 2).
 static void
 set_const_block_2x(struct gkyl_array *arr, int blk, int nb, double val)
@@ -52,10 +63,11 @@ test_u_2x_p1()
   struct gkyl_basis cbasis;
   struct gkyl_range local, local_ext;
   mk_setup(&grid, &cbasis, &local, &local_ext);
+  struct gkyl_vlasov_position_map *pm = identity_pos_map(&grid, &local, &local_ext, &cbasis);
   int nb = cbasis.num_basis;
 
   struct gkyl_dg_calc_pkpm_vars *up =
-    gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis, &local, false);
+    gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis, &local, pm, false);
 
   struct gkyl_array *moms = mkarr(3 * nb, local_ext.volume);
   struct gkyl_array *euler = mkarr(3 * nb, local_ext.volume);
@@ -91,6 +103,7 @@ test_u_2x_p1()
   gkyl_array_release(euler);
   gkyl_array_release(moms);
   gkyl_dg_calc_pkpm_vars_release(up);
+  gkyl_vlasov_position_map_release(pm);
 }
 
 TEST_LIST = {

@@ -28,6 +28,17 @@ mkarr(long nc, long size)
   return gkyl_array_new(GKYL_DOUBLE, nc, size);
 }
 
+// Identity configuration-space position map (the updaters always take one).
+static struct gkyl_vlasov_position_map *
+identity_pos_map(
+  const struct gkyl_rect_grid *cgrid, const struct gkyl_range *clocal, const struct gkyl_range *clocal_ext,
+  const struct gkyl_basis *cbasis
+)
+{
+  struct gkyl_vlasov_position_map_inp inp[GKYL_MAX_CDIM] = {0};
+  return gkyl_vlasov_position_map_new(cgrid, clocal, clocal_ext, cbasis, inp, false);
+}
+
 // Set the cell-average (physical) value of block `blk` (each block has
 // `nb` basis components) to `val` for *every* cell.  For a 1D p1 orthonormal
 // basis psi_0 = 1/sqrt(2), so component 0 must hold val*sqrt(2).
@@ -55,11 +66,12 @@ test_u_1x_p1()
   int ghost[] = {1};
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+  struct gkyl_vlasov_position_map *pm = identity_pos_map(&grid, &local, &local_ext, &cbasis);
 
 
   // Updater built over local (this is the mem_range used for the u solve).
   struct gkyl_dg_calc_pkpm_vars *up =
-    gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis, &local, false);
+    gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis, &local, pm, false);
 
   struct gkyl_array *moms = mkarr(3 * nb, local_ext.volume);
   struct gkyl_array *euler = mkarr(3 * nb, local_ext.volume); // [rhoux, rhouy, rhouz]
@@ -102,6 +114,7 @@ test_u_1x_p1()
   gkyl_array_release(euler);
   gkyl_array_release(moms);
   gkyl_dg_calc_pkpm_vars_release(up);
+  gkyl_vlasov_position_map_release(pm);
 }
 
 void
@@ -122,10 +135,11 @@ test_source_1x_p1()
   int ghost[] = {1};
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+  struct gkyl_vlasov_position_map *pm = identity_pos_map(&grid, &local, &local_ext, &cbasis);
 
 
   struct gkyl_dg_calc_pkpm_vars *up =
-    gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis, &local, false);
+    gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis, &local, pm, false);
 
   // qmem = q/m*[Ex,Ey,Ez,Bx,By,Bz,phi,psi] (8 blocks).
   struct gkyl_array *qmem = mkarr(8 * nb, local_ext.volume);
@@ -181,6 +195,7 @@ test_source_1x_p1()
   gkyl_array_release(euler);
   gkyl_array_release(qmem);
   gkyl_dg_calc_pkpm_vars_release(up);
+  gkyl_vlasov_position_map_release(pm);
 }
 
 TEST_LIST = {

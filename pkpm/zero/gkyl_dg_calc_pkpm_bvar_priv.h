@@ -13,7 +13,7 @@
 typedef int (*pkpm_bvar_t)(const double *em, double *GKYL_RESTRICT b);
 
 typedef void (*pkpm_bvar_grad_t)(
-  const double *dxv, const double *b_l, const double *b_c, const double *b_r,
+  const double *dxv, const double *jacob_pos, const double *b_l, const double *b_c, const double *b_r,
   double *GKYL_RESTRICT grad_b
 );
 
@@ -26,6 +26,8 @@ struct gkyl_dg_calc_pkpm_bvar {
   pkpm_bvar_t pkpm_bvar; // kernel computing b = B/|B| at the Gauss-Legendre nodes
   pkpm_bvar_grad_t pkpm_grad[3]; // weak (surface-averaged) gradient of b in each direction
   double dx[GKYL_MAX_CDIM]; // configuration-space cell spacing (for the gradient)
+  const struct gkyl_vlasov_position_map *pos_map; // Position map (acquired; host pointer, 0 on the device copy)
+  const struct gkyl_array *jacob_pos; // Per-direction Jacobians (borrowed from pos_map; device pointer on device)
   int num_null_b; // number of null-field nodes in the last advance (host copy)
   int *num_null_b_dev; // device counter (0 on host)
 

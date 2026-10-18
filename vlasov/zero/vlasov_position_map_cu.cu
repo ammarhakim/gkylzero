@@ -15,7 +15,7 @@ extern "C" {
 
 __global__ void
 gkyl_vlasov_position_map_divide_jacobpos_cu_kernel(
-  int cdim, int num_basis, struct gkyl_range conf_range, struct gkyl_range phase_range,
+  int cdim, int ncomp, struct gkyl_range conf_range, struct gkyl_range phase_range,
   const struct gkyl_array *jacob_pos_gauss, const struct gkyl_array *Jf, struct gkyl_array *f_no_J
 )
 {
@@ -37,7 +37,7 @@ gkyl_vlasov_position_map_divide_jacobpos_cu_kernel(
     double jacob_inv = 1.0 / ((const double *)gkyl_array_cfetch(jacob_pos_gauss, cidx))[0];
     const double *Jf_d = (const double *)gkyl_array_cfetch(Jf, pidx);
     double *f_no_J_d = (double *)gkyl_array_fetch(f_no_J, pidx);
-    for (int k = 0; k < num_basis; ++k) {
+    for (int k = 0; k < ncomp; ++k) {
       f_no_J_d[k] = jacob_inv * Jf_d[k];
     }
   }
@@ -110,14 +110,14 @@ gkyl_vlasov_position_map_divide_jacobpos_cu(
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
   gkyl_vlasov_position_map_divide_jacobpos_cu_kernel<<<nblocks, nthreads>>>(
-    cdim, phase_basis->num_basis, *conf_range, *phase_range, jacob_pos_gauss->on_dev, Jf->on_dev,
+    cdim, Jf->ncomp, *conf_range, *phase_range, jacob_pos_gauss->on_dev, Jf->on_dev,
     f_no_J->on_dev
   );
 }
 
 __global__ void
 gkyl_vlasov_position_map_rescale_jacobpos_cu_kernel(
-  int cdim, int num_basis, struct gkyl_range conf_range, struct gkyl_range phase_range,
+  int cdim, int ncomp, struct gkyl_range conf_range, struct gkyl_range phase_range,
   const struct gkyl_array *jacob_pos_gauss, const struct gkyl_array *f_no_J, struct gkyl_array *Jf
 )
 {
@@ -139,7 +139,7 @@ gkyl_vlasov_position_map_rescale_jacobpos_cu_kernel(
     double jacob = ((const double *)gkyl_array_cfetch(jacob_pos_gauss, cidx))[0];
     const double *f_no_J_d = (const double *)gkyl_array_cfetch(f_no_J, pidx);
     double *Jf_d = (double *)gkyl_array_fetch(Jf, pidx);
-    for (int k = 0; k < num_basis; ++k) {
+    for (int k = 0; k < ncomp; ++k) {
       Jf_d[k] = jacob * f_no_J_d[k];
     }
   }
@@ -156,7 +156,7 @@ gkyl_vlasov_position_map_rescale_jacobpos_cu(
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
   gkyl_vlasov_position_map_rescale_jacobpos_cu_kernel<<<nblocks, nthreads>>>(
-    cdim, phase_basis->num_basis, *conf_range, *phase_range, jacob_pos_gauss->on_dev,
+    cdim, f_no_J->ncomp, *conf_range, *phase_range, jacob_pos_gauss->on_dev,
     f_no_J->on_dev, Jf->on_dev
   );
 }

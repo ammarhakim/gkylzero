@@ -27,6 +27,9 @@ gkyl_dg_pkpm_conf_flux_surf_inew(const struct gkyl_dg_pkpm_conf_flux_surf_inp *i
   // p=1 configuration space: the surface basis of a configuration face is the
   // phase basis with one p=1 configuration direction removed.
   up->num_surf_basis = inp->phase_basis->num_basis / 2;
+  assert(inp->pos_map);
+  up->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);
+  up->jacob_pos = inp->pos_map->jacob_pos;
 
   for (int d = 0; d < cdim; ++d) {
     up->conf_flux[d] = choose_pkpm_conf_flux_kern(
@@ -73,6 +76,7 @@ gkyl_dg_pkpm_conf_flux_surf_advance(
     const double *b_c = gkyl_array_cfetch(bvar, cidx);
     const double *u_c = gkyl_array_cfetch(u, cidx);
     const double *xi_c = gkyl_array_cfetch(xi, cidx);
+    const double *jac_c = gkyl_array_cfetch(up->jacob_pos, cidx);
     const double *f_c = gkyl_array_cfetch(fin, pidx);
     double *cflrate_d = gkyl_array_fetch(cflrate, pidx);
     double *flux = gkyl_array_fetch(conf_flux_surf, pidx);
@@ -84,7 +88,7 @@ gkyl_dg_pkpm_conf_flux_surf_advance(
       long cidx_l = gkyl_range_idx(conf_range, idx_l);
       long pidx_l = gkyl_range_idx(phase_range, idx_l);
       cflrate_d[0] += up->conf_flux[dir](
-        xc, up->phase_grid.dx, gkyl_array_cfetch(bvar, cidx_l), b_c, gkyl_array_cfetch(u, cidx_l),
+        xc, up->phase_grid.dx, gkyl_array_cfetch(up->jacob_pos, cidx_l), jac_c, gkyl_array_cfetch(bvar, cidx_l), b_c, gkyl_array_cfetch(u, cidx_l),
         u_c, gkyl_array_cfetch(xi, cidx_l), xi_c, gkyl_array_cfetch(fin, pidx_l), f_c,
         &flux[dir * nflux]
       );
@@ -101,7 +105,7 @@ gkyl_dg_pkpm_conf_flux_surf_advance(
         double *flux_r = gkyl_array_fetch(conf_flux_surf, pidx_r);
         // The ghost face bounds the current cell: its speed enters this cell's cflrate.
         cflrate_d[0] += up->conf_flux[dir](
-          xc_r, up->phase_grid.dx, b_c, gkyl_array_cfetch(bvar, cidx_r), u_c,
+          xc_r, up->phase_grid.dx, jac_c, gkyl_array_cfetch(up->jacob_pos, cidx_r), b_c, gkyl_array_cfetch(bvar, cidx_r), u_c,
           gkyl_array_cfetch(u, cidx_r), xi_c, gkyl_array_cfetch(xi, cidx_r), f_c,
           gkyl_array_cfetch(fin, pidx_r), &flux_r[dir * nflux]
         );
@@ -119,6 +123,7 @@ gkyl_dg_pkpm_conf_flux_surf_num_surf_basis(const struct gkyl_dg_pkpm_conf_flux_s
 void
 gkyl_dg_pkpm_conf_flux_surf_release(struct gkyl_dg_pkpm_conf_flux_surf *up)
 {
+  gkyl_vlasov_position_map_release(up->pos_map);
   if (GKYL_IS_CU_ALLOC(up->flags)) {
     gkyl_cu_free(up->on_dev);
   }

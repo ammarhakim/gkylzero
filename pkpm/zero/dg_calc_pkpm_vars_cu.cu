@@ -464,7 +464,8 @@ gkyl_dg_calc_pkpm_vars_grad_u_cu_kernel(
       idx_l[d] = idx_l[d] - 1;
       idx_r[d] = idx_r[d] + 1;
       up->pkpm_grad_u[d](
-        up->conf_grid.dx, (const double *)gkyl_array_cfetch(u, gkyl_range_idx(&conf_range, idx_l)),
+        up->conf_grid.dx, (const double *)gkyl_array_cfetch(up->jacob_pos, loc),
+        (const double *)gkyl_array_cfetch(u, gkyl_range_idx(&conf_range, idx_l)),
         u_c, (const double *)gkyl_array_cfetch(u, gkyl_range_idx(&conf_range, idx_r)), gu
       );
     }
@@ -546,7 +547,7 @@ dg_calc_pkpm_vars_set_cu_dev_ptrs(
 gkyl_dg_calc_pkpm_vars *
 gkyl_dg_calc_pkpm_vars_cu_dev_new(
   const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis,
-  const struct gkyl_range *mem_range
+  const struct gkyl_range *mem_range, const struct gkyl_vlasov_position_map *pos_map
 )
 {
   struct gkyl_dg_calc_pkpm_vars *up =
@@ -560,6 +561,9 @@ gkyl_dg_calc_pkpm_vars_cu_dev_new(
   up->cdim = cdim;
   up->poly_order = poly_order;
   up->mem_range = *mem_range;
+  assert(pos_map);
+  up->pos_map = 0; // host pointer set after the device memcpy below
+  up->jacob_pos = pos_map->jacob_pos->on_dev;
 
   // Linear system for the weak division of the momentum by the density (ux, uy, uz)
   up->As_u = gkyl_nmat_cu_dev_new(3 * mem_range->volume, nc, nc);
@@ -580,6 +584,8 @@ gkyl_dg_calc_pkpm_vars_cu_dev_new(
 
   // set parent on_dev pointer
   up->on_dev = up_cu;
+  up->pos_map = gkyl_vlasov_position_map_acquire(pos_map);
+  up->jacob_pos = pos_map->jacob_pos;
 
   return up;
 }

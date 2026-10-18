@@ -11,7 +11,7 @@
 #include <gkyl_util.h>
 
 typedef double (*pkpm_kinetic_conf_vol_t)(
-  const double *w, const double *dxv, const double *bvar, const double *grad_b, const double *u, const double *grad_u,
+  const double *w, const double *dxv, const double *jacob_pos, const double *bvar, const double *grad_b, const double *u, const double *grad_u,
   const double *xi, const double *grad_xi, const double *grad_ln_n, const double *theta,
   const double *f, double *GKYL_RESTRICT out
 );
@@ -35,6 +35,8 @@ struct dg_pkpm_kinetic_conf {
   pkpm_stream_surf_t stream_surf[3]; // Surface kernels scattering stored fluxes
   struct gkyl_range conf_range; // Configuration-space range
   struct gkyl_range phase_range; // Phase-space range
+  const struct gkyl_vlasov_position_map *pos_map; // Position map (acquired; host pointer, 0 on the device copy)
+  const struct gkyl_array *jacob_pos; // Per-direction Jacobians (borrowed from pos_map; device pointer on device)
   struct gkyl_dg_pkpm_kinetic_conf_auxfields auxfields; // Auxiliary fields.
 };
 
@@ -95,7 +97,8 @@ vol(
   struct dg_pkpm_kinetic_conf *pkpm = container_of(eqn, struct dg_pkpm_kinetic_conf, eqn);
   long cidx = gkyl_range_idx(&pkpm->conf_range, idx);
   return pkpm->vol_kern(
-    xc, dx, (const double *)gkyl_array_cfetch(pkpm->auxfields.bvar, cidx),
+    xc, dx, (const double *)gkyl_array_cfetch(pkpm->jacob_pos, cidx),
+    (const double *)gkyl_array_cfetch(pkpm->auxfields.bvar, cidx),
     (const double *)gkyl_array_cfetch(pkpm->auxfields.grad_b, cidx),
     (const double *)gkyl_array_cfetch(pkpm->auxfields.u, cidx),
     (const double *)gkyl_array_cfetch(pkpm->auxfields.grad_u, cidx),

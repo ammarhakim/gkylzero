@@ -19,7 +19,7 @@ typedef int (*pkpm_u_set_t)(
 typedef void (*pkpm_u_copy_t)(int count, struct gkyl_nmat *x, double *GKYL_RESTRICT pkpm_u);
 
 typedef void (*pkpm_grad_u_t)(
-  const double *dxv, const double *u_l, const double *u_c, const double *u_r,
+  const double *dxv, const double *jacob_pos, const double *u_l, const double *u_c, const double *u_r,
   double *GKYL_RESTRICT grad_u
 );
 
@@ -58,6 +58,8 @@ struct gkyl_dg_calc_pkpm_vars {
   int cdim; // Configuration space dimensionality
   int poly_order; // polynomial order (p=1 serendipity only)
   struct gkyl_range mem_range; // Configuration space range for the linear solve of the flow
+  const struct gkyl_vlasov_position_map *pos_map; // Position map (acquired; host pointer, 0 on the device copy)
+  const struct gkyl_array *jacob_pos; // Per-direction Jacobians (borrowed from pos_map; device pointer on device)
 
   struct gkyl_nmat *As_u, *xs_u; // matrices for LHS and RHS for flow velocity solve
   gkyl_nmat_mem *mem_u; // memory for use in batched linear solve for velocity

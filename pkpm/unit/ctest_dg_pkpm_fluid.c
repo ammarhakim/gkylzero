@@ -31,6 +31,17 @@ mkarr(long nc, long size)
   return gkyl_array_new(GKYL_DOUBLE, nc, size);
 }
 
+// Identity configuration-space position map (the updaters always take one).
+static struct gkyl_vlasov_position_map *
+identity_pos_map(
+  const struct gkyl_rect_grid *cgrid, const struct gkyl_range *clocal, const struct gkyl_range *clocal_ext,
+  const struct gkyl_basis *cbasis
+)
+{
+  struct gkyl_vlasov_position_map_inp inp[GKYL_MAX_CDIM] = {0};
+  return gkyl_vlasov_position_map_new(cgrid, clocal, clocal_ext, cbasis, inp, false);
+}
+
 struct field_ctx {
   int cdim;
   bool uniform_rho; // for the legacy comparison
@@ -155,6 +166,7 @@ static const double gl4_w[4] = {0.3478548451374538, 0.6521451548625461, 0.652145
   0.3478548451374538};
 
 struct test_setup {
+  struct gkyl_vlasov_position_map *pos_map; // identity configuration-space map
   int cdim;
   struct gkyl_rect_grid grid;
   struct gkyl_basis basis;
@@ -177,6 +189,7 @@ setup(struct test_setup *s, struct field_ctx *ctx)
   gkyl_rect_grid_init(&s->grid, cdim, lower, upper, cells);
   gkyl_cart_modal_serendip(&s->basis, cdim, 1);
   gkyl_create_grid_ranges(&s->grid, ghost, &s->local_ext, &s->local);
+  s->pos_map = identity_pos_map(&s->grid, &s->local, &s->local_ext, &s->basis);
   int nc = s->basis.num_basis;
 
   s->moms = mkarr(6 * nc, s->local_ext.volume);
@@ -212,13 +225,13 @@ setup(struct test_setup *s, struct field_ctx *ctx)
   gkyl_proj_on_basis_advance(proj, 0.0, &s->local_ext, em);
   gkyl_proj_on_basis_release(proj);
 
-  s->calc_b = gkyl_dg_calc_pkpm_bvar_new(&s->grid, &s->basis, false);
+  s->calc_b = gkyl_dg_calc_pkpm_bvar_new(&s->grid, &s->basis, s->pos_map, false);
   gkyl_dg_calc_pkpm_bvar_advance(s->calc_b, &s->local_ext, em, s->bvar);
   gkyl_array_release(em);
 
   s->ten = gkyl_wv_ten_moment_new(0.0, false, false, 0, 0, false);
   s->geom = gkyl_wave_geom_new(&s->grid, &s->local_ext, 0, 0, false);
-  s->vars = gkyl_dg_calc_pkpm_vars_new(&s->grid, &s->basis, &s->local_ext, false);
+  s->vars = gkyl_dg_calc_pkpm_vars_new(&s->grid, &s->basis, &s->local_ext, s->pos_map, false);
   struct gkyl_array *cell_avg = gkyl_array_new(GKYL_INT, 1, s->local_ext.volume);
   gkyl_dg_calc_pkpm_vars_u(s->vars, s->moms, s->euler, cell_avg, s->u);
   gkyl_array_release(cell_avg);
@@ -227,6 +240,7 @@ setup(struct test_setup *s, struct field_ctx *ctx)
 static void
 teardown(struct test_setup *s)
 {
+  gkyl_vlasov_position_map_release(s->pos_map);
   gkyl_dg_calc_pkpm_bvar_release(s->calc_b);
   gkyl_dg_calc_pkpm_vars_release(s->vars);
   gkyl_wave_geom_release(s->geom);
@@ -248,7 +262,7 @@ make_eqn(struct test_setup *s, const struct gkyl_array *flux)
     .conf_basis = &s->basis,
     .conf_range = &s->local,
     .auxfields = {.vlasov_pkpm_moms = s->cmoms, .bvar = s->bvar, .u = s->u, .fluid_flux_surf = flux},
-    .use_gpu = false,
+    .pos_map = s->pos_map, .use_gpu = false,
   };
   return gkyl_dg_pkpm_fluid_inew(&inp);
 }
@@ -456,7 +470,7 @@ test_flux_ctx(int cdim, bool inadmissible)
     .conf_basis = &s.basis,
     .wv_eqn = s.ten,
     .geom = s.geom,
-    .use_gpu = false,
+    .pos_map = s.pos_map, .use_gpu = false,
   };
   struct gkyl_dg_pkpm_fluid_flux_surf *up = gkyl_dg_pkpm_fluid_flux_surf_inew(&inp);
   int ns = gkyl_dg_pkpm_fluid_flux_surf_num_surf_basis(up);
@@ -614,6 +628,7 @@ test_absorb(int cdim)
   gkyl_cart_modal_hybrid(&pbasis, cdim, 1);
   struct gkyl_range clocal, clocal_ext, plocal, plocal_ext;
   gkyl_create_grid_ranges(&cgrid, ghost, &clocal_ext, &clocal);
+  struct gkyl_vlasov_position_map *pm = identity_pos_map(&cgrid, &clocal, &clocal_ext, &cbasis);
   gkyl_create_grid_ranges(&pgrid, ghost, &plocal_ext, &plocal);
   int nc = cbasis.num_basis, np = pbasis.num_basis;
 
@@ -639,7 +654,7 @@ test_absorb(int cdim)
   struct gkyl_wv_eqn *ten = gkyl_wv_ten_moment_new(0.0, false, false, 0, 0, false);
   struct gkyl_wave_geom *geom = gkyl_wave_geom_new(&cgrid, &clocal_ext, 0, 0, false);
   struct gkyl_dg_pkpm_fluid_flux_surf_inp inp = {
-    .conf_grid = &cgrid, .conf_basis = &cbasis, .wv_eqn = ten, .geom = geom, .phase_grid = &pgrid, .use_gpu = false};
+    .conf_grid = &cgrid, .conf_basis = &cbasis, .wv_eqn = ten, .geom = geom, .phase_grid = &pgrid, .pos_map = pm, .use_gpu = false};
   struct gkyl_dg_pkpm_fluid_flux_surf *up = gkyl_dg_pkpm_fluid_flux_surf_inew(&inp);
   int ns = gkyl_dg_pkpm_fluid_flux_surf_num_surf_basis(up);
   struct gkyl_array *flux = mkarr(5 * cdim * ns, clocal_ext.volume);
@@ -701,6 +716,7 @@ test_absorb(int cdim)
 
   gkyl_array_release(flux);
   gkyl_dg_pkpm_fluid_flux_surf_release(up);
+  gkyl_vlasov_position_map_release(pm);
   gkyl_wave_geom_release(geom);
   gkyl_wv_eqn_release(ten);
   gkyl_array_release(f);

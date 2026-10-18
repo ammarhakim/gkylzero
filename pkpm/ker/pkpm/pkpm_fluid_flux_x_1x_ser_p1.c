@@ -1,21 +1,29 @@
 #include <gkyl_pkpm_fluid_kernels.h> 
 GKYL_CU_DH double pkpm_fluid_flux_x_1x_ser_p1(
   const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom,
-  const double *w, const double *dxv,
+  const double *w, const double *dxv, const double *jacob_pos_l, const double *jacob_pos_r,
   const double *moms_l, const double *moms_r, const double *bvar_l, const double *bvar_r,
   const double *u_l, const double *u_r, const double *fluid_l, const double *fluid_r,
   double* GKYL_RESTRICT flux) 
 { 
   // wv_eqn:      Ten-moment wave equation (unused; kept for the limiter interface). 
   // geom:        Wave geometry of the current cell (unused). 
-  // w/dxv:       Cell center and spacing of the current cell. 
-  // moms_l/r:    Kinetic coupling moments [p_par, p_perp, q_par, q_perp] in the left/current cell. 
+  // w/dxv:       Cell center and spacing of the current cell (computational). 
+  // jacob_pos_l/r: Position-map Jacobian per configuration direction (cdim blocks of 2 equal 
+  //              entries) of the left/current cell; the total Jacobian J is their product. 
+  // moms_l/r:    Jacobian-weighted kinetic coupling moments J [p_par, p_perp, q_par, q_perp] in the left/current cell. 
   // bvar_l/r:    Magnetic field unit vector [bx, by, bz] in the left/current cell. 
   // u_l/r:       Flow velocity [ux, uy, uz] in the left/current cell. 
-  // fluid_l/r:   Evolved fluid state [rho, rho ux, rho uy, rho uz, E] in the left/current cell. 
-  // flux:        Output fluxes [F_rho, F_x, F_y, F_z, F_E] on the lower face, surface modal. 
+  // fluid_l/r:   Evolved Jacobian-weighted fluid state J [rho, rho ux, rho uy, rho uz, E] in the left/current cell. 
+  // flux:        Output fluxes of the evolved J-weighted state [F_rho, F_x, F_y, F_z, F_E] on the 
+  //              lower face, surface modal: the physical HLL flux of the physical traces q/J times 
+  //              the face Jacobian J/J_x. 
   // Returns the stable time-step estimate from the normal speed bound at the nodes. 
   const double dx1 = 2.0/dxv[0]; 
+  const double jtot_l = jacob_pos_l[0]; 
+  const double jtot_r = jacob_pos_r[0]; 
+  const double jinv_l = 1.0/jtot_l, jinv_r = 1.0/jtot_r; 
+  const double jdinv_r = 1.0/jacob_pos_r[0], jperp = jtot_r*jdinv_r; 
   const double *rho_l = &fluid_l[0]; 
   const double *E_l = &fluid_l[8]; 
   const double *ppar_l = &moms_l[0]; 
@@ -107,6 +115,18 @@ GKYL_CU_DH double pkpm_fluid_flux_x_1x_ser_p1(
   My_rq[0] = 0.7071067811865475*My_r[0]-1.224744871391589*My_r[1]; 
   Mz_lq[0] = 1.224744871391589*Mz_l[1]+0.7071067811865475*Mz_l[0]; 
   Mz_rq[0] = 0.7071067811865475*Mz_r[0]-1.224744871391589*Mz_r[1]; 
+  // Physical traces: the extensive quantities carry the Jacobian of their cell. 
+  for (int n = 0; n < 1; ++n) { 
+    rho_lq[n] *= jinv_l; rho_rq[n] *= jinv_r; 
+    E_lq[n] *= jinv_l; E_rq[n] *= jinv_r; 
+    ppar_lq[n] *= jinv_l; ppar_rq[n] *= jinv_r; 
+    pperp_lq[n] *= jinv_l; pperp_rq[n] *= jinv_r; 
+    qpar_lq[n] *= jinv_l; qpar_rq[n] *= jinv_r; 
+    qperp_lq[n] *= jinv_l; qperp_rq[n] *= jinv_r; 
+    Mx_lq[n] *= jinv_l; Mx_rq[n] *= jinv_r; 
+    My_lq[n] *= jinv_l; My_rq[n] *= jinv_r; 
+    Mz_lq[n] *= jinv_l; Mz_rq[n] *= jinv_r; 
+  } 
   double F_q[5][1] = {{0.0}}; 
   double lambda_max = 0.0; 
   for (int n = 0; n < 1; ++n) { 
@@ -149,6 +169,7 @@ GKYL_CU_DH double pkpm_fluid_flux_x_1x_ser_p1(
       if (S_L >= 0.0) F_q[i][n] = F_lv[i]; 
       else if (S_R <= 0.0) F_q[i][n] = F_rv[i]; 
       else F_q[i][n] = (S_R*F_lv[i] - S_L*F_rv[i] + S_L*S_R*(q_rv[i] - q_lv[i]))/(S_R - S_L); 
+      F_q[i][n] *= jperp; 
     } 
   } 
  
@@ -158,5 +179,5 @@ GKYL_CU_DH double pkpm_fluid_flux_x_1x_ser_p1(
   flux[2] = F_q[2][0]; 
   flux[3] = F_q[3][0]; 
   flux[4] = F_q[4][0]; 
-  return 1.5*dx1*lambda_max; 
+  return 1.5*dx1*jdinv_r*lambda_max; 
 } 

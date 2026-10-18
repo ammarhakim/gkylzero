@@ -1,16 +1,18 @@
 #include <gkyl_pkpm_fluid_kernels.h> 
-GKYL_CU_DH double pkpm_fluid_vol_1x_ser_p1(const double *w, const double *dxv,
+GKYL_CU_DH double pkpm_fluid_vol_1x_ser_p1(const double *w, const double *dxv, const double *jacob_pos,
   const double *vlasov_pkpm_moms, const double *bvar, const double *u, const double *fluid,
   double* GKYL_RESTRICT out) 
 { 
-  // w[NDIM]:          Cell-center coordinates. 
-  // dxv[NDIM]:        Cell spacing. 
-  // vlasov_pkpm_moms: Kinetic coupling moments [p_par, p_perp, q_par, q_perp]. 
+  // w[NDIM]:          Cell-center coordinates (computational). 
+  // dxv[NDIM]:        Cell spacing (computational). 
+  // jacob_pos:        Position-map Jacobian per configuration direction (cdim blocks of 2 equal 
+  //                   entries); the divergence in direction d carries 1/J_d. 
+  // vlasov_pkpm_moms: Jacobian-weighted kinetic coupling moments J [p_par, p_perp, q_par, q_perp]. 
   // bvar:             Magnetic field unit vector [bx, by, bz]. 
   // u:                Flow velocity [ux, uy, uz]. 
-  // fluid:            Evolved fluid state [rho, rho ux, rho uy, rho uz, E]. 
-  // out:              Incremented increment of [rho, rho ux, rho uy, rho uz, E]. 
-  const double dx10 = 2.0/dxv[0]; 
+  // fluid:            Evolved Jacobian-weighted fluid state J [rho, rho ux, rho uy, rho uz, E]. 
+  // out:              Incremented increment of the evolved J [rho, rho ux, rho uy, rho uz, E]. 
+  const double dx10 = 2.0/(dxv[0]*jacob_pos[0]); 
   const double *ppar = &vlasov_pkpm_moms[0]; 
   const double *pperp = &vlasov_pkpm_moms[2]; 
   const double *qpar = &vlasov_pkpm_moms[4]; 

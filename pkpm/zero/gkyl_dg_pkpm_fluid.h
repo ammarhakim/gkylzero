@@ -6,6 +6,7 @@
 #include <gkyl_dg_eqn.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
+#include <gkyl_vlasov_position_map.h>
 
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_pkpm_fluid_auxfields {
@@ -19,6 +20,7 @@ struct gkyl_dg_pkpm_fluid_auxfields {
 struct gkyl_dg_pkpm_fluid_inp {
   const struct gkyl_basis *conf_basis; // Configuration-space basis functions.
   const struct gkyl_range *conf_range; // Configuration-space range for indexing auxiliary fields.
+  const struct gkyl_vlasov_position_map *pos_map; // Configuration-space position map (REQUIRED; the divergence carries 1/J_d).
   struct gkyl_dg_pkpm_fluid_auxfields auxfields; // Auxiliary fields.
   bool use_gpu; // bool to determine if on GPU.
 };

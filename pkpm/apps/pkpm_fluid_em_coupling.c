@@ -39,11 +39,18 @@ pkpm_fluid_em_coupling_update(
   struct gkyl_array *fluids[GKYL_MAX_SPECIES];
   const struct gkyl_array *app_accels[GKYL_MAX_SPECIES];
 
+  // The nodal implicit solve advances the fluid state [rho, M, E] (momentum by the solve,
+  // energy by the work of the field) and the electric field in place. It works with the
+  // PHYSICAL state: the evolved fluid and field carry the position-map Jacobian, which is
+  // divided out before and restored after (identity map: copies).
   for (int i = 0; i < num_species; ++i) {
-    // The nodal implicit solve advances the fluid state [rho, M, E] (momentum by the
-    // solve, energy by the work of the field) and the electric field in place.
-    fluids[i] = app->species[i].fluid;
+    struct pkpm_species *s = &app->species[i];
+    gkyl_vlasov_position_map_divide_jacobpos_conf(app->pos_map, &app->local, s->fluid->ncomp, s->fluid, s->fluid_no_J);
+    fluids[i] = s->fluid_no_J;
   }
+  gkyl_vlasov_position_map_divide_jacobpos_conf(
+    app->pos_map, &app->local, app->field->em->ncomp, app->field->em, app->field->em_no_J
+  );
 
   // Compute applied acceleration, external EM fields, and applied currents if present.
   // Note: these quantities use proj_on_basis so we copy to GPU every call if app->use_gpu = true.
@@ -62,13 +69,18 @@ pkpm_fluid_em_coupling_update(
   }
 
   gkyl_dg_calc_pkpm_em_coupling_advance(
-    pkpm_em->slvr, dt, app_accels, app->field->ext_em, app->field->app_current, fluids, app->field->em
+    pkpm_em->slvr, dt, app_accels, app->field->ext_em, app->field->app_current_no_J, fluids,
+    app->field->em_no_J
   );
 
   for (int i = 0; i < num_species; ++i) {
     struct pkpm_species *s = &app->species[i];
+    gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local, s->fluid_no_J, s->fluid);
     pkpm_fluid_species_apply_bc(app, s, s->fluid);
   }
+  gkyl_vlasov_position_map_rescale_jacobpos_conf(
+    app->pos_map, &app->local, app->field->em_no_J, app->field->em
+  );
   pkpm_field_apply_bc(app, app->field, app->field->em);
 }
 
