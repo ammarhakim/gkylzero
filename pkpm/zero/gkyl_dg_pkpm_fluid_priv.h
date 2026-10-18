@@ -11,8 +11,8 @@
 #include <gkyl_util.h>
 
 typedef double (*pkpm_fluid_vol_t)(
-  const double *w, const double *dxv, const double *moms, const double *bvar, const double *u,
-  const double *euler, double *GKYL_RESTRICT out
+  const double *w, const double *dxv, const double *vlasov_pkpm_moms, const double *bvar,
+  const double *u, const double *fluid, double *GKYL_RESTRICT out
 );
 
 typedef double (*pkpm_fluid_surf_t)(
@@ -78,7 +78,7 @@ vol(
   struct dg_pkpm_fluid *pkpm = container_of(eqn, struct dg_pkpm_fluid, eqn);
   long cidx = gkyl_range_idx(&pkpm->conf_range, idx);
   return pkpm->vol_kern(
-    xc, dx, (const double *)gkyl_array_cfetch(pkpm->auxfields.moms, cidx),
+    xc, dx, (const double *)gkyl_array_cfetch(pkpm->auxfields.vlasov_pkpm_moms, cidx),
     (const double *)gkyl_array_cfetch(pkpm->auxfields.bvar, cidx),
     (const double *)gkyl_array_cfetch(pkpm->auxfields.u, cidx), qIn, qRhsOut
   );
@@ -96,7 +96,7 @@ surf(
 )
 {
   struct dg_pkpm_fluid *pkpm = container_of(eqn, struct dg_pkpm_fluid, eqn);
-  int off = dir * 3 * pkpm->num_surf_basis;
+  int off = dir * 5 * pkpm->num_surf_basis;
   long cidxC = gkyl_range_idx(&pkpm->conf_range, idxC);
   long cidxR = gkyl_range_idx(&pkpm->conf_range, idxR);
   const double *flux_l = (const double *)gkyl_array_cfetch(pkpm->auxfields.fluid_flux_surf, cidxC);

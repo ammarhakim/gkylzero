@@ -1,3 +1,5 @@
+#include <math.h>
+#include <stdlib.h>
 #include <gkyl_alloc.h>
 #include <gkyl_app.h>
 #include <gkyl_array.h>
@@ -33,6 +35,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   }
   for (int d = 0; d < vdim; ++d) {
     // full phase space grid
+    // full phase space grid (the velocity coordinate is w = v_par/xi, normalized)
     cells[cdim + d] = s->info.cells[d];
     lower[cdim + d] = s->info.lower[d];
     upper[cdim + d] = s->info.upper[d];
@@ -55,35 +58,51 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   // phase-space communicator
   s->comm = gkyl_comm_extend_comm(app->comm, &s->local_vel);
 
-  // create local and local_ext from app local range
+  // create local and local_ext from app local range: local = conf-local X local_vel.
+  // The extended range has the configuration ghost cells and ONE velocity ghost cell
+  // above w_max: the empty state beyond the characteristic velocity edge, whose face slot
+  // holds the upper-edge flux (the lower edge is the lowest cell's own slot).
+  // local_ext_conf is extended in configuration space only: the range of everything that
+  // integrates, projects, syncs or reflects the distribution.
   struct gkyl_range local;
-  // local = conf-local X local_vel
   gkyl_range_ten_prod(&local, &app->local, &s->local_vel);
-  gkyl_create_ranges(&local, ghost, &s->local_ext, &s->local);
+  int elo[GKYL_MAX_DIM] = {0}, eup[GKYL_MAX_DIM] = {0};
+  for (int d = 0; d < cdim; ++d) {
+    elo[d] = eup[d] = 1;
+  }
+  eup[cdim] = 1;
+  gkyl_range_extend(&s->local_ext, &local, elo, eup);
+  gkyl_sub_range_init(&s->local, &s->local_ext, local.lower, local.upper);
+  int lower_conf[GKYL_MAX_DIM], upper_conf[GKYL_MAX_DIM];
+  for (int d = 0; d < pdim; ++d) {
+    lower_conf[d] = d < cdim ? s->local_ext.lower[d] : local.lower[d];
+    upper_conf[d] = d < cdim ? s->local_ext.upper[d] : local.upper[d];
+  }
+  gkyl_sub_range_init(&s->local_ext_conf, &s->local_ext, lower_conf, upper_conf);
 
   // allocate distribution function arrays
   // PKPM has two distribution functions F_0 and T_perp*G, first two Laguerre moments
   s->f = mkarr(app->use_gpu, 2 * app->basis.num_basis, s->local_ext.volume);
   s->f1 = mkarr(app->use_gpu, 2 * app->basis.num_basis, s->local_ext.volume);
   s->fnew = mkarr(app->use_gpu, 2 * app->basis.num_basis, s->local_ext.volume);
-  // allocate momentum arrays (rho ux, rho uy, rho uz)
-  s->fluid = mkarr(app->use_gpu, 3 * app->confBasis.num_basis, app->local_ext.volume);
-  s->fluid1 = mkarr(app->use_gpu, 3 * app->confBasis.num_basis, app->local_ext.volume);
-  s->fluidnew = mkarr(app->use_gpu, 3 * app->confBasis.num_basis, app->local_ext.volume);
+  // allocate fluid arrays [rho, rho ux, rho uy, rho uz, E]
+  s->fluid = mkarr(app->use_gpu, 5 * app->confBasis.num_basis, app->local_ext.volume);
+  s->fluid1 = mkarr(app->use_gpu, 5 * app->confBasis.num_basis, app->local_ext.volume);
+  s->fluidnew = mkarr(app->use_gpu, 5 * app->confBasis.num_basis, app->local_ext.volume);
 
   // create host arrays if on GPUs so initialization occurs host-side
   s->f_host = s->f;
   s->fluid_host = s->fluid;
   if (app->use_gpu) {
     s->f_host = mkarr(false, 2 * app->basis.num_basis, s->local_ext.volume);
-    s->fluid_host = mkarr(false, 3 * app->confBasis.num_basis, app->local_ext.volume);
+    s->fluid_host = mkarr(false, 5 * app->confBasis.num_basis, app->local_ext.volume);
   }
 
   // Duplicate copy of momentum data in case time step fails.
   // Needed because of implicit source split which modifies solution and
   // is always successful, so if a time step fails due to the SSP RK3
   // we must restore the old solution before restarting the time step
-  s->fluid_dup = mkarr(app->use_gpu, 3 * app->confBasis.num_basis, app->local_ext.volume);
+  s->fluid_dup = mkarr(app->use_gpu, 5 * app->confBasis.num_basis, app->local_ext.volume);
 
   // Wave equation object for upwinding fluid equations
   // We use the 10 moment system since PKPM model generates a full pressure tensor
@@ -107,81 +126,87 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   s->qmem = mkarr(app->use_gpu, 8 * app->confBasis.num_basis, app->local_ext.volume);
 
   int nc = app->confBasis.num_basis;
-  // pkpm moments for the update [rho, p_par, p_perp, M1]
-  pkpm_species_moment_init(app, s, &s->pkpm_moms, false);
   // pkpm moments for diagnostics [rho, M1, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp]
   // (the is_integrated flag selects the diagnostic moment set)
   pkpm_species_moment_init(app, s, &s->pkpm_moms_diag, true);
+  // raw moments of the normalized distributions [F, G] (mass 1), the kinetic coupling
+  // moments [p_par, p_perp, q_par, q_perp] formed from them and the constraints
+  pkpm_species_moment_init_mass(app, s, &s->pkpm_nmoms, false, 1.0);
+  s->pkpm_moms = mkarr(app->use_gpu, 4 * nc, app->local_ext.volume);
+  gkyl_array_clear(s->pkpm_moms, 0.0);
+  s->pkpm_cmoms = mkarr(app->use_gpu, 3 * nc, app->local_ext.volume);
+  s->pkpm_cmoms_host = s->pkpm_cmoms;
+  if (app->use_gpu) {
+    s->pkpm_cmoms_host = mkarr(false, 3 * nc, app->local_ext.volume);
+  }
 
   // Refactored update variables (p=1 configuration space only).
   s->pkpm_u = mkarr(app->use_gpu, 3 * nc, app->local_ext.volume);
   s->pkpm_grad_u = mkarr(app->use_gpu, cdim * 3 * nc, app->local_ext.volume);
   gkyl_array_clear(s->pkpm_grad_u, 0.0);
   s->pkpm_theta = mkarr(app->use_gpu, nc, app->local_ext.volume);
-  s->pkpm_a_P = mkarr(app->use_gpu, nc, app->local_ext.volume);
-  s->pkpm_rhs_moms = mkarr(app->use_gpu, 4 * nc, app->local_ext.volume);
+  s->pkpm_rho = mkarr(app->use_gpu, nc, app->local_ext.volume);
+  s->pkpm_rho3 = mkarr(app->use_gpu, 3 * nc, app->local_ext.volume);
+  gkyl_array_clear(s->pkpm_rho3, 0.0);
+  s->pkpm_mom3 = mkarr(app->use_gpu, 3 * nc, app->local_ext.volume);
+  s->pkpm_mom3_rhs = mkarr(app->use_gpu, 3 * nc, app->local_ext.volume);
+  s->pkpm_u_nodal = mkarr(app->use_gpu, 3 * nc, app->local_ext.volume);
+  s->pkpm_grad_rho = mkarr(app->use_gpu, cdim * 3 * nc, app->local_ext.volume);
+  gkyl_array_clear(s->pkpm_grad_rho, 0.0);
+  s->pkpm_grad_ln_n = mkarr(app->use_gpu, cdim * nc, app->local_ext.volume);
+  gkyl_array_clear(s->pkpm_grad_ln_n, 0.0);
+  s->pkpm_c_0 = mkarr(app->use_gpu, nc, app->local_ext.volume);
+  gkyl_array_clear(s->pkpm_c_0, 0.0);
+  s->pkpm_alpha_0 = mkarr(app->use_gpu, nc, app->local_ext.volume);
+  gkyl_array_clear(s->pkpm_alpha_0, 0.0);
+  s->pkpm_c_h = mkarr(app->use_gpu, nc, app->local_ext.volume);
+  gkyl_array_clear(s->pkpm_alpha_0, 0.0);
+  gkyl_array_clear(s->pkpm_c_h, 0.0);
+  gkyl_array_clear(s->pkpm_c_h, 0.0);
+  s->pkpm_xi = mkarr(app->use_gpu, 3 * nc, app->local_ext.volume);
+  gkyl_array_clear(s->pkpm_xi, 0.0);
+  s->pkpm_xi3 = mkarr(app->use_gpu, 3 * nc, app->local_ext.volume);
+  gkyl_array_clear(s->pkpm_xi3, 0.0);
+  s->pkpm_grad_xi = mkarr(app->use_gpu, cdim * 3 * nc, app->local_ext.volume);
+  gkyl_array_clear(s->pkpm_grad_xi, 0.0);
+  s->pkpm_scratch = mkarr(app->use_gpu, nc, app->local_ext.volume);
+  s->pkpm_rhs_moms = mkarr(app->use_gpu, 6 * nc, app->local_ext.volume);
   s->pkpm_p_ij = mkarr(app->use_gpu, 6 * nc, app->local_ext.volume);
-  s->pkpm_nu_vthsq_sum = mkarr(app->use_gpu, nc, app->local_ext.volume);
-  gkyl_array_clear(s->pkpm_nu_vthsq_sum, 0.0);
   s->cell_avg_prim = mk_int_arr(app->use_gpu, 1, app->local_ext.volume);
-  gkyl_array_clear(s->pkpm_a_P, 0.0);
   gkyl_array_clear(s->pkpm_theta, 0.0);
   s->num_null_rho = 0;
 
-  // Check if limiter_fac is specified for adjusting how much diffusion is applied through slope limiter
-  // If not specified, set to 0.0 and updater sets default behavior (1/sqrt(3); see gkyl_dg_calc_pkpm_vars.h)
-  double limiter_fac = s->info.limiter_fac == 0 ? 0.0 : s->info.limiter_fac;
-  s->limit_fluid = s->info.limit_fluid;
-
-  // Updaters for the primitive variables (weak division u, nodal theta, the a_P
-  // closure, limiter pressure projection, integrated variables, sources, diagnostics).
-  // Two instances, one over the extended range and one over the local range, for ease of handling boundary conditions.
-  s->calc_pkpm_vars_ext = gkyl_dg_calc_pkpm_vars_new(
-    &app->grid, &app->confBasis, &app->local_ext, s->equation, app->geom, limiter_fac, app->use_gpu
-  );
-  s->calc_pkpm_vars = gkyl_dg_calc_pkpm_vars_new(
-    &app->grid, &app->confBasis, &app->local, s->equation, app->geom, limiter_fac, app->use_gpu
-  );
+  // Updaters for the configuration-space variables (weak division u, nodal primitive
+  // variables, closures, weak gradients, sources, diagnostics). Two instances, one over
+  // the extended range and one over the local range, for ease of handling boundary conditions.
+  s->calc_pkpm_vars_ext = gkyl_dg_calc_pkpm_vars_new(&app->grid, &app->confBasis, &app->local_ext, app->use_gpu);
+  s->calc_pkpm_vars = gkyl_dg_calc_pkpm_vars_new(&app->grid, &app->confBasis, &app->local, app->use_gpu);
 
   // array for storing integrated fluid variables in each cell
   // integ_pkpm_mom : integral[rho, rhoux, rhouy, rhouz, rhoux^2, rhouy^2, rhouz^2, p_par, p_perp]
   s->integ_pkpm_mom = mkarr(app->use_gpu, 9, app->local_ext.volume);
   // arrays for I/O, fluid_io and pkpm_vars_io
-  // fluid_io : [rho, rhoux, rhouy, rhouz, P_xx+rhoux^2, P_xy+rhouxuy, P_xz+rhouxuz, P_yy+rhouy^2, P_yz+rhouyuz, P_zz+rhouz^2]
-  // pkpm_vars_io : [ux, uy, uz, T_perp/m, a_P, div(b), bb:grad(u), T_perp/m div(b)]
-  s->fluid_io = mkarr(app->use_gpu, 10 * nc, app->local_ext.volume);
-  s->pkpm_vars_io = mkarr(app->use_gpu, 8 * nc, app->local_ext.volume);
+  // fluid_io : [rho, rhoux, rhouy, rhouz, P_xx+rhoux^2, P_xy+rhouxuy, P_xz+rhouxuz, P_yy+rhouy^2, P_yz+rhouyuz, P_zz+rhouz^2, E]
+  // pkpm_vars_io : [ux, uy, uz, T_perp/m, a_P, div(b), bb:grad(u), T_perp/m div(b), xi, c]
+  s->fluid_io = mkarr(app->use_gpu, 11 * nc, app->local_ext.volume);
+  s->pkpm_vars_io = mkarr(app->use_gpu, 10 * nc, app->local_ext.volume);
   s->fluid_io_host = s->fluid_io;
   s->pkpm_vars_io_host = s->pkpm_vars_io;
   if (app->use_gpu) {
-    s->fluid_io_host = mkarr(false, 10 * nc, app->local_ext.volume);
-    s->pkpm_vars_io_host = mkarr(false, 8 * nc, app->local_ext.volume);
+    s->fluid_io_host = mkarr(false, 11 * nc, app->local_ext.volume);
+    s->pkpm_vars_io_host = mkarr(false, 10 * nc, app->local_ext.volume);
   }
 
   // Surface-flux updaters and stored modal fluxes (each cell owns its lower faces).
-  // The mass-flux constraint leaves the domain faces of non-periodic directions alone:
-  // there the ghost state is a boundary construct and the kinetic flux is the physical one.
   struct gkyl_dg_pkpm_conf_flux_surf_inp conf_flux_inp = {
     .phase_grid = &s->grid,
     .conf_basis = &app->confBasis,
     .phase_basis = &app->basis,
-    .acoustic_floor = false,
     .use_gpu = app->use_gpu,
   };
-  for (int d = 0; d < cdim; ++d) {
-    conf_flux_inp.skip_domain_faces[d] = true;
-  }
-  for (int d = 0; d < app->num_periodic_dir; ++d) {
-    conf_flux_inp.skip_domain_faces[app->periodic_dirs[d]] = false;
-  }
   s->calc_conf_flux = gkyl_dg_pkpm_conf_flux_surf_inew(&conf_flux_inp);
   int nkc = gkyl_dg_pkpm_conf_flux_surf_num_surf_basis(s->calc_conf_flux);
   s->conf_flux_surf = mkarr(app->use_gpu, 2 * cdim * nkc, s->local_ext.volume);
-  int nmf = gkyl_dg_pkpm_conf_flux_surf_num_face_basis(s->calc_conf_flux);
-  s->pkpm_kin_mass_flux = mkarr(app->use_gpu, cdim * nmf, s->local_ext.volume);
-  s->pkpm_kin_mass_flux_face = mkarr(app->use_gpu, cdim * nmf, app->local_ext.volume);
-  s->pkpm_roe_mass_flux = mkarr(app->use_gpu, cdim * nmf, app->local_ext.volume);
-  gkyl_array_clear(s->pkpm_roe_mass_flux, 0.0);
 
   struct gkyl_dg_pkpm_vel_flux_surf_inp vel_flux_inp = {
     .phase_grid = &s->grid,
@@ -198,17 +223,12 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     .conf_basis = &app->confBasis,
     .wv_eqn = s->equation,
     .geom = app->geom,
+    .phase_grid = &s->grid,
     .use_gpu = app->use_gpu,
   };
   s->calc_fluid_flux = gkyl_dg_pkpm_fluid_flux_surf_inew(&fluid_flux_inp);
   int nkf = gkyl_dg_pkpm_fluid_flux_surf_num_surf_basis(s->calc_fluid_flux);
-  assert(nkf == nmf); // the two flux updaters share the configuration face basis
-  s->fluid_flux_surf = mkarr(app->use_gpu, 3 * cdim * nkf, app->local_ext.volume);
-
-  // Collision coefficients consumed by the configuration pass (G source): copied from
-  // the LBO arrays at each stage when collisions are on, zeros otherwise.
-  s->pkpm_nu_sum = mkarr(app->use_gpu, nc, app->local_ext.volume);
-  gkyl_array_clear(s->pkpm_nu_sum, 0.0);
+  s->fluid_flux_surf = mkarr(app->use_gpu, 5 * cdim * nkf, app->local_ext.volume);
 
   // Equation objects and hyper_dg solvers of the three passes.
   struct gkyl_dg_pkpm_kinetic_conf_inp kinetic_conf_inp = {
@@ -222,9 +242,10 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
         .grad_b = app->field->grad_b,
         .u = s->pkpm_u,
         .grad_u = s->pkpm_grad_u,
+        .xi = s->pkpm_xi,
+        .grad_xi = s->pkpm_grad_xi,
+        .grad_ln_n = s->pkpm_grad_ln_n,
         .theta = s->pkpm_theta,
-        .nu_sum = s->pkpm_nu_sum,
-        .nu_vthsq_sum = s->pkpm_nu_vthsq_sum,
         .conf_flux_surf = s->conf_flux_surf,
       },
     .use_gpu = app->use_gpu,
@@ -235,7 +256,9 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     .phase_basis = &app->basis,
     .conf_range = &app->local,
     .phase_range = &s->local,
-    .auxfields = {.a_P = s->pkpm_a_P, .vel_flux_surf = s->vel_flux_surf},
+    .auxfields =
+      {.c_0 = s->pkpm_c_0, .alpha_0 = s->pkpm_alpha_0, .c_h = s->pkpm_c_h, .vel_flux_surf = s->vel_flux_surf,
+        },
     .use_gpu = app->use_gpu,
   };
   s->eqn_kinetic_vel = gkyl_dg_pkpm_kinetic_vel_inew(&kinetic_vel_inp);
@@ -244,7 +267,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     .conf_range = &app->local,
     .auxfields =
       {
-        .moms = s->pkpm_moms.marr,
+        .vlasov_pkpm_moms = s->pkpm_moms,
         .bvar = app->field->bvar,
         .u = s->pkpm_u,
         .fluid_flux_surf = s->fluid_flux_surf,
@@ -258,7 +281,10 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     &s->grid, &app->basis, s->eqn_kinetic_conf, cdim, up_dirs_conf, zero_flux_conf, 1, app->use_gpu
   );
   int up_dirs_vel[GKYL_MAX_DIM] = {cdim}, zero_flux_vel[2 * GKYL_MAX_DIM] = {0};
-  zero_flux_vel[cdim] = zero_flux_vel[cdim + pdim] = 1; // zero flux at the velocity domain edges
+  // The lower velocity edge has no ghost cell (boundary term with the lowest cell's own
+  // flux slot); the upper edge is the regular face between the uppermost cell and the
+  // velocity ghost cell, whose slot the closure fills.
+  zero_flux_vel[cdim] = 1;
   s->slvr_kinetic_vel = gkyl_hyper_dg_new(
     &s->grid, &app->basis, s->eqn_kinetic_vel, 1, up_dirs_vel, zero_flux_vel, 1, app->use_gpu
   );
@@ -363,12 +389,12 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     }
     // Create local lower skin and ghost ranges for distribution function
     gkyl_skin_ghost_ranges(
-      &s->lower_skin_dist[dir], &s->lower_ghost_dist[dir], dir, GKYL_LOWER_EDGE, &s->local_ext,
+      &s->lower_skin_dist[dir], &s->lower_ghost_dist[dir], dir, GKYL_LOWER_EDGE, &s->local_ext_conf,
       ghost
     );
     // Create local upper skin and ghost ranges for distribution function
     gkyl_skin_ghost_ranges(
-      &s->upper_skin_dist[dir], &s->upper_ghost_dist[dir], dir, GKYL_UPPER_EDGE, &s->local_ext,
+      &s->upper_skin_dist[dir], &s->upper_ghost_dist[dir], dir, GKYL_UPPER_EDGE, &s->local_ext_conf,
       ghost
     );
   }
@@ -389,13 +415,17 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   s->bc_buffer_lo_fixed_dist = mkarr(app->use_gpu, 2 * app->basis.num_basis, buff_sz_dist);
   s->bc_buffer_up_fixed_dist = mkarr(app->use_gpu, 2 * app->basis.num_basis, buff_sz_dist);
 
-  s->bc_buffer_fluid = mkarr(app->use_gpu, 3 * app->confBasis.num_basis, buff_sz_fluid);
+  s->bc_buffer_fluid = mkarr(app->use_gpu, 5 * app->confBasis.num_basis, buff_sz_fluid);
   // buffer arrays for fixed function boundary conditions on momentum
-  s->bc_buffer_lo_fixed_fluid = mkarr(app->use_gpu, 3 * app->confBasis.num_basis, buff_sz_fluid);
-  s->bc_buffer_up_fixed_fluid = mkarr(app->use_gpu, 3 * app->confBasis.num_basis, buff_sz_fluid);
+  s->bc_buffer_lo_fixed_fluid = mkarr(app->use_gpu, 5 * app->confBasis.num_basis, buff_sz_fluid);
+  s->bc_buffer_up_fixed_fluid = mkarr(app->use_gpu, 5 * app->confBasis.num_basis, buff_sz_fluid);
 
-  // Certain operations fail if absorbing BCs used because absorbing BCs
-  // means the mass density is 0 in the ghost cells (divide by zero)
+  // Absorbing boundaries: the distribution functions vanish in the ghost cells; the
+  // fluid state is extrapolated (zero gradient) so that the primitive variables and
+  // their weak gradients are one-sided at the wall (a zero ghost state would be a huge
+  // gradient of xi, n and u that drives spurious forces in the wall cell), while the
+  // fluid fluxes through the wall are the moments of the kinetic upwind flux
+  // (gkyl_dg_pkpm_fluid_flux_surf_absorb), not the HLL flux against the ghost state.
   s->bc_is_absorb = false;
   for (int d = 0; d < cdim; ++d) {
     // Lower BC updater. Copy BCs by default.
@@ -406,7 +436,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
       bctype_fluid = GKYL_BC_COPY;
     } else if (s->lower_bc[d] == GKYL_SPECIES_ABSORB) {
       bctype_dist = GKYL_BC_ABSORB;
-      bctype_fluid = GKYL_BC_ABSORB;
+      bctype_fluid = GKYL_BC_COPY;
       s->bc_is_absorb = true;
     } else if (s->lower_bc[d] == GKYL_SPECIES_REFLECT) {
       bctype_dist = GKYL_BC_PKPM_SPECIES_REFLECT;
@@ -433,7 +463,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
       bctype_fluid = GKYL_BC_COPY;
     } else if (s->upper_bc[d] == GKYL_SPECIES_ABSORB) {
       bctype_dist = GKYL_BC_ABSORB;
-      bctype_fluid = GKYL_BC_ABSORB;
+      bctype_fluid = GKYL_BC_COPY;
       s->bc_is_absorb = true;
     } else if (s->upper_bc[d] == GKYL_SPECIES_REFLECT) {
       bctype_dist = GKYL_BC_PKPM_SPECIES_REFLECT;
@@ -460,13 +490,17 @@ void
 pkpm_species_apply_ic(gkyl_pkpm_app *app, struct pkpm_species *species, double t0)
 {
   int poly_order = app->poly_order;
+  // The user provides the normalized distributions [F, G] on the normalized velocity grid
+  // (w = v_par/xi; F a probability density in w, G its perpendicular-energy partner so
+  // that M0(F) = 1, M1(F) = 0 and M2(F) + 2 M0(G) = 3) and the fluid state
+  // [rho, rho ux, rho uy, rho uz, E].
   gkyl_proj_on_basis *proj_dist;
   proj_dist = gkyl_proj_on_basis_new(
     &species->grid, &app->basis, 8, 2, species->info.init_dist, species->info.ctx_dist
   );
   gkyl_proj_on_basis *proj_fluid;
   proj_fluid = gkyl_proj_on_basis_new(
-    &app->grid, &app->confBasis, poly_order + 1, 3, species->info.init_fluid,
+    &app->grid, &app->confBasis, poly_order + 1, 5, species->info.init_fluid,
     species->info.ctx_fluid
   );
 
@@ -474,7 +508,9 @@ pkpm_species_apply_ic(gkyl_pkpm_app *app, struct pkpm_species *species, double t
   // subsequent operations over extended range such as primitive variable computations
   // This is needed to fill the corner cells as the corner cells may not be filled by
   // boundary conditions and we cannot divide by 0 anywhere or the weak divisions will fail
-  gkyl_proj_on_basis_advance(proj_dist, t0, &species->local_ext, species->f_host);
+  // (the velocity ghost cell stays empty)
+  gkyl_array_clear(species->f_host, 0.0);
+  gkyl_proj_on_basis_advance(proj_dist, t0, &species->local_ext_conf, species->f_host);
   gkyl_proj_on_basis_release(proj_dist);
   gkyl_proj_on_basis_advance(proj_fluid, t0, &app->local_ext, species->fluid_host);
   gkyl_proj_on_basis_release(proj_fluid);
@@ -483,6 +519,18 @@ pkpm_species_apply_ic(gkyl_pkpm_app *app, struct pkpm_species *species, double t
   if (app->use_gpu) {
     gkyl_array_copy(species->f, species->f_host);
     gkyl_array_copy(species->fluid, species->fluid_host);
+  }
+
+  // Constraints M0(F) = 1 and M2(F) + 2 M0(G) = 3 exactly: nodal rescaling of the
+  // projected distributions by their own moments (removes the projection error).
+  pkpm_species_moment_calc(&species->pkpm_nmoms, species->local_ext_conf, app->local_ext, species->f);
+  gkyl_array_copy(species->f1, species->f);
+  gkyl_dg_calc_pkpm_vars_normalize_dist(
+    species->calc_pkpm_vars_ext, &app->local_ext, &species->local_ext, species->pkpm_nmoms.marr,
+    species->f1, species->f
+  );
+  if (app->use_gpu) {
+    gkyl_array_copy(species->f_host, species->f);
   }
 
   // we are pre-computing acceleration for now in case is time-independent
@@ -518,6 +566,37 @@ pkpm_species_calc_app_accel(gkyl_pkpm_app *app, struct pkpm_species *species, do
   }
 }
 
+// Physical moments [rho, p_par, p_perp, M1] of the factored state over the extended
+// range: rho is the trailing block of the fluid array, the others are rho times the
+// normalized moments [1, T_par/m, theta, 0] of [F_0/n, G/n] (weak products). The
+// normalized moments must have been computed for the same stage.
+// Kinetic coupling moments [p_par, p_perp, q_par, q_perp] = [p M2, p M0_G, p xi M3, p xi M1_G]
+// from the raw normalized moments [M0, M2, M0_G, M1, M3, M1_G], the nodal scalar pressure
+// p = rho xi^2 and the thermal speed xi (weak products projected onto p=1): the pressures
+// and heat fluxes the fluid system needs, as in the original PKPM. The constraints
+// [M0, M1, (M2 + 2 M0_G)/3] are copied out for the diagnostics.
+static void
+pkpm_species_coupling_moms(gkyl_pkpm_app *app, struct pkpm_species *species)
+{
+  int nc = app->confBasis.num_basis;
+  static const int raw[4] = {1, 2, 4, 5}; // M2, M0_G, M3, M1_G
+  for (int c = 0; c < 4; ++c) {
+    gkyl_dg_mul_op_range(
+      &app->confBasis, c, species->pkpm_moms, 2, species->pkpm_xi, raw[c], species->pkpm_nmoms.marr,
+      &app->local_ext
+    );
+    if (c >= 2) {
+      gkyl_dg_mul_op_range(
+        &app->confBasis, 0, species->pkpm_scratch, c, species->pkpm_moms, 0, species->pkpm_xi, &app->local_ext
+      );
+      gkyl_array_set_offset(species->pkpm_moms, 1.0, species->pkpm_scratch, c * nc);
+    }
+  }
+  gkyl_dg_calc_pkpm_vars_constraints(
+    species->calc_pkpm_vars, &app->local_ext, nc, species->pkpm_nmoms.marr, species->pkpm_cmoms
+  );
+}
+
 void
 pkpm_species_calc_pkpm_vars(
   gkyl_pkpm_app *app, struct pkpm_species *species, const struct gkyl_array *fin,
@@ -525,55 +604,92 @@ pkpm_species_calc_pkpm_vars(
 )
 {
   struct timespec tm = gkyl_wall_clock();
+  int nc = app->confBasis.num_basis;
 
-  // Compute rho, p_par, p_perp, M1 over the extended range (ghost cells hold valid
-  // data after the boundary conditions), then u by weak division and theta = p_perp/rho
-  // by the nodal quotient. With absorbing BCs rho vanishes in the ghost cells, so the
-  // quotients are restricted to the local range.
-  pkpm_species_moment_calc(&species->pkpm_moms, species->local_ext, app->local_ext, fin);
-  if (species->bc_is_absorb) {
-    gkyl_dg_calc_pkpm_vars_u(
-      species->calc_pkpm_vars, species->pkpm_moms.marr, fluidin, species->cell_avg_prim,
-      species->pkpm_u
-    );
-    gkyl_dg_calc_pkpm_vars_theta(
-      species->calc_pkpm_vars, &app->local, species->pkpm_moms.marr, species->pkpm_theta
-    );
-  } else {
-    gkyl_dg_calc_pkpm_vars_u(
-      species->calc_pkpm_vars_ext, species->pkpm_moms.marr, fluidin, species->cell_avg_prim,
-      species->pkpm_u
-    );
-    gkyl_dg_calc_pkpm_vars_theta(
-      species->calc_pkpm_vars_ext, &app->local_ext, species->pkpm_moms.marr, species->pkpm_theta
-    );
-  }
-  // Weak gradient of u for the kinetic sources (bb:grad u, div u); needs u in the ghost
-  // cells (with absorbing boundaries the ghost u is the last value computed there).
+  // Raw normalized moments of [F, G] over the extended range (ghost cells hold valid data
+  // after the boundary conditions, the fluid state is extrapolated into the ghost cells
+  // of absorbing boundaries), the nodal primitive variables [xi, xi^2, p] of the fluid
+  // state, then the coupling moments. theta = T_perp/T is the zeroth moment of G directly.
+  pkpm_species_moment_calc(&species->pkpm_nmoms, species->local_ext_conf, app->local_ext, fin);
+  gkyl_array_set_offset(species->pkpm_rho, 1.0, fluidin, 0);
+  gkyl_array_set_offset(species->pkpm_mom3, 1.0, fluidin, nc);
+  species->num_null_rho += gkyl_dg_calc_pkpm_vars_prim(
+    species->calc_pkpm_vars_ext, &app->local_ext, fluidin, species->pkpm_u_nodal, species->pkpm_xi
+  );
+  // The flow of the update is the weak quotient M/rho (the implicit field coupling
+  // forms the new momentum as rho (2 u_half - u) and conserves momentum only if
+  // rho u = M weakly); the nodal flow of the kernel above only serves xi.
+  gkyl_dg_calc_pkpm_vars_u(
+    species->calc_pkpm_vars_ext, species->pkpm_rho, species->pkpm_mom3, species->cell_avg_prim, species->pkpm_u
+  );
+  pkpm_species_coupling_moms(app, species);
+  gkyl_array_set_offset(species->pkpm_theta, 1.0, species->pkpm_nmoms.marr, 2 * nc);
+  // Weak gradient of u for the kinetic sources (bb:grad u); needs u in the ghost cells
+  // (with absorbing boundaries the ghost u is the last value computed there).
   gkyl_dg_calc_pkpm_vars_grad_u(species->calc_pkpm_vars, &app->local, species->pkpm_u, species->pkpm_grad_u);
+  // grad(ln n) for the density-gradient source: weak gradient of [rho, 0, 0] divided by rho.
+  gkyl_array_set_offset(species->pkpm_rho3, 1.0, species->pkpm_rho, 0);
+  gkyl_dg_calc_pkpm_vars_grad_u(species->calc_pkpm_vars, &app->local, species->pkpm_rho3, species->pkpm_grad_rho);
+  species->num_null_rho += gkyl_dg_calc_pkpm_vars_grad_ln_n(
+    species->calc_pkpm_vars, &app->local, species->pkpm_rho, species->pkpm_grad_rho,
+    species->pkpm_grad_ln_n
+  );
+  // Weak gradient of xi for the forces -w^2 b.grad xi and -2 w b.grad xi G (the second
+  // block of pkpm_xi3 receives xi^2 and is never read).
+  gkyl_array_set_offset(species->pkpm_xi3, 1.0, species->pkpm_xi, 0);
+  gkyl_dg_calc_pkpm_vars_grad_u(species->calc_pkpm_vars, &app->local, species->pkpm_xi3, species->pkpm_grad_xi);
 
   app->stat.species_pkpm_vars_tm += gkyl_time_diff_now_sec(tm);
 }
 
-// Face fluxes of the momentum equation (Roe on the nodal states), including the mass
-// flux of the same Riemann solve to which the kinetic configuration-space flux is
-// constrained. Needs the stage moments, b and u.
+// Face fluxes of the fluid system [rho, M, E] (HLL on the nodal states; needs the
+// coupling moments, b and u of the stage). On absorbing boundaries the HLL flux against
+// the zero ghost state is replaced by the moments of the kinetic upwind flux of the skin
+// cells, so the fluid loses exactly what the distribution functions lose through the wall.
 static void
 pkpm_species_fluid_flux(
-  gkyl_pkpm_app *app, struct pkpm_species *species, const struct gkyl_array *fluidin
+  gkyl_pkpm_app *app, struct pkpm_species *species, const struct gkyl_array *fin,
+  const struct gkyl_array *fluidin
 )
 {
   gkyl_dg_pkpm_fluid_flux_surf_advance(
-    species->calc_fluid_flux, &app->local, &app->local_ext, species->pkpm_moms.marr,
-    app->field->bvar, species->pkpm_u, fluidin, species->cflrate_fluid, species->fluid_flux_surf,
-    species->pkpm_roe_mass_flux
+    species->calc_fluid_flux, &app->local, &app->local_ext, species->pkpm_moms,
+    app->field->bvar, species->pkpm_u, fluidin, species->cflrate_fluid, species->fluid_flux_surf
   );
+  int is_np_bc[3] = {1, 1, 1};
+  for (int d = 0; d < app->num_periodic_dir; ++d) {
+    is_np_bc[app->periodic_dirs[d]] = 0;
+  }
+  // Wall fluxes only on the ranks whose sub-domain touches the global boundary: unlike
+  // the ghost-cell fills (overwritten by the sync on interior ranks), a stored face flux
+  // at a sub-domain edge is final.
+  for (int d = 0; d < app->cdim; ++d) {
+    if (!is_np_bc[d]) {
+      continue;
+    }
+    bool on_lower = app->local.lower[d] == app->global.lower[d];
+    bool on_upper = app->local.upper[d] == app->global.upper[d];
+    if (on_lower && species->lower_bc[d] == GKYL_SPECIES_ABSORB) {
+      gkyl_dg_pkpm_fluid_flux_surf_absorb(
+        species->calc_fluid_flux, d, GKYL_LOWER_EDGE, &app->lower_skin[d], &app->local_ext,
+        &species->local, &species->local_ext, app->field->bvar, species->pkpm_u, species->pkpm_xi,
+        fluidin, fin, species->fluid_flux_surf
+      );
+    }
+    if (on_upper && species->upper_bc[d] == GKYL_SPECIES_ABSORB) {
+      gkyl_dg_pkpm_fluid_flux_surf_absorb(
+        species->calc_fluid_flux, d, GKYL_UPPER_EDGE, &app->upper_skin[d], &app->local_ext,
+        &species->local, &species->local_ext, app->field->bvar, species->pkpm_u, species->pkpm_xi,
+        fluidin, fin, species->fluid_flux_surf
+      );
+    }
+  }
 }
 
-// Configuration-space pass of the kinetic update into rhs (cleared here), followed by
-// the closure of the pressure force from the first moment of that partial right-hand side.
-// The kinetic face fluxes are constrained so that the density flux equals the mass flux
-// of the momentum solve (pkpm_species_fluid_flux must have run for this stage).
+// Collisionless configuration-space pass of the kinetic update into rhs (cleared here):
+// the HLL streaming fluxes, the exact volume terms and the explicit sources. The closures
+// are computed from the moments of this partial right-hand side; the collision operator
+// (which conserves the constraints on its own) is accumulated after the velocity pass.
 static void
 pkpm_species_kinetic_conf_pass(
   gkyl_pkpm_app *app, struct pkpm_species *species, const struct gkyl_array *fin,
@@ -583,24 +699,30 @@ pkpm_species_kinetic_conf_pass(
   gkyl_array_clear(rhs, 0.0);
   gkyl_dg_pkpm_conf_flux_surf_advance(
     species->calc_conf_flux, &app->local, &species->local, &species->local_ext, app->field->bvar,
-    species->pkpm_u, species->pkpm_theta, fin, species->cflrate_f, species->conf_flux_surf,
-    species->pkpm_kin_mass_flux
-  );
-  gkyl_dg_pkpm_conf_flux_surf_constrain(
-    species->calc_conf_flux, &app->local, &species->local, &species->local_ext,
-    species->info.mass, species->pkpm_moms.marr, species->pkpm_roe_mass_flux,
-    species->pkpm_kin_mass_flux, species->pkpm_kin_mass_flux_face, fin, species->conf_flux_surf
+    species->pkpm_u, species->pkpm_xi, fin, species->cflrate_f, species->conf_flux_surf
   );
   gkyl_hyper_dg_advance(species->slvr_kinetic_conf, &species->local, fin, species->cflrate_f, rhs);
+}
 
-  // Closure: rho a_P = -M1(rhs_A) weakly, from the moments of the partial right-hand side.
+// Closures from the moments of the partial right-hand side rhs_A (configuration pass):
+// c_0 M0 = -M0(rhs_A), and (alpha_0, c) from the first and scalar second moments
+// (pkpm-vars-closure.mac).
+static void
+pkpm_species_kinetic_closure(gkyl_pkpm_app *app, struct pkpm_species *species, const struct gkyl_array *fin, const struct gkyl_array *rhs)
+{
+  // Closures from the moments of the configuration pass, with the characteristic
+  // velocity-edge fluxes inside the 3x3 solve (upwind switch from the closures of the
+  // previous stage): the edge fluxes are written for the velocity pass, so that the
+  // complete right-hand side keeps the constraints exactly.
   gkyl_array_clear(species->pkpm_rhs_moms, 0.0);
   pkpm_species_moment_calc_into(
-    &species->pkpm_moms, species->local, app->local, rhs, species->pkpm_rhs_moms
+    &species->pkpm_nmoms, species->local, app->local, rhs, species->pkpm_rhs_moms
   );
-  species->num_null_rho += gkyl_dg_calc_pkpm_vars_p_force(
-    species->calc_pkpm_vars, &app->local, species->pkpm_moms.marr, species->pkpm_rhs_moms,
-    species->pkpm_a_P
+  species->num_null_rho += gkyl_dg_calc_pkpm_vars_closure(
+    species->calc_pkpm_vars, &app->local, &species->local, &species->grid, species->pkpm_nmoms.marr,
+    species->pkpm_rhs_moms, app->field->bvar, app->field->grad_b, species->pkpm_grad_u, species->pkpm_xi,
+    species->pkpm_grad_xi, species->pkpm_theta, fin, species->pkpm_c_0, species->pkpm_alpha_0, species->pkpm_c_h,
+    species->vel_flux_surf, species->cflrate_f
   );
 }
 
@@ -611,53 +733,14 @@ pkpm_species_calc_diag_vars(
 )
 {
   pkpm_species_calc_pkpm_vars(app, species, fin, fluidin);
-  // The configuration pass needs the collision coefficients of this stage.
-  if (species->collision_id == GKYL_LBO_COLLISIONS) {
-    gkyl_array_set(species->pkpm_nu_sum, 1.0, species->lbo.nu_sum);
-    gkyl_array_set_offset(
-      species->pkpm_nu_vthsq_sum, 1.0, species->lbo.nu_prim_moms, app->vdim * app->confBasis.num_basis
-    );
-  }
   gkyl_array_clear(species->cflrate_f, 0.0);
   gkyl_array_clear(species->cflrate_fluid, 0.0);
-  pkpm_species_fluid_flux(app, species, fluidin);
+  pkpm_species_fluid_flux(app, species, fin, fluidin);
   // fnew is free scratch between time steps.
   pkpm_species_kinetic_conf_pass(app, species, fin, species->fnew);
+  pkpm_species_kinetic_closure(app, species, fin, species->fnew);
 }
 
-void
-pkpm_fluid_species_limiter(
-  gkyl_pkpm_app *app, struct pkpm_species *species, struct gkyl_array *fin, struct gkyl_array *fluid
-)
-{
-  if (species->limit_fluid) {
-    struct timespec tm = gkyl_wall_clock();
-
-    // Compute the PKPM moments from the kinetic equation and the flow velocity
-    pkpm_species_moment_calc(&species->pkpm_moms, species->local, app->local, fin);
-    gkyl_dg_calc_pkpm_vars_u(
-      species->calc_pkpm_vars, species->pkpm_moms.marr, fluid, species->cell_avg_prim,
-      species->pkpm_u
-    );
-    // The characteristic limiter consumes a p=1 projection of the pressure tensor,
-    // built from the same stage moments and field being limited (limiter scratch only).
-    gkyl_dg_calc_pkpm_vars_pressure_proj(
-      species->calc_pkpm_vars, &app->local_ext, species->pkpm_moms.marr, app->field->bvar,
-      species->pkpm_p_ij
-    );
-
-    // Limit the slopes of the solution of the fluid system
-    gkyl_dg_calc_pkpm_vars_limiter(
-      species->calc_pkpm_vars, &app->local, species->pkpm_u, species->pkpm_moms.marr,
-      species->pkpm_p_ij, fluid
-    );
-
-    app->stat.species_pkpm_vars_tm += gkyl_time_diff_now_sec(tm);
-
-    // Apply boundary conditions after limiting solution
-    pkpm_fluid_species_apply_bc(app, species, fluid);
-  }
-}
 
 // Compute the RHS for species update, returning maximum stable
 // time-step.
@@ -672,28 +755,23 @@ pkpm_species_rhs(
   gkyl_array_clear(species->cflrate_fluid, 0.0);
   gkyl_array_clear(rhs_fluid, 0.0);
 
-  // Collision coefficients of this stage for the G source (zeros without collisions).
-  if (species->collision_id == GKYL_LBO_COLLISIONS) {
-    gkyl_array_set(species->pkpm_nu_sum, 1.0, species->lbo.nu_sum);
-    gkyl_array_set_offset(
-      species->pkpm_nu_vthsq_sum, 1.0, species->lbo.nu_prim_moms, app->vdim * app->confBasis.num_basis
-    );
-  }
-
-  // Momentum face fluxes first: the kinetic configuration pass is constrained to
-  // their mass flux.
+  // Fluid face fluxes (momentum and mass) of this stage.
   struct timespec tm = gkyl_wall_clock();
-  pkpm_species_fluid_flux(app, species, fluidin);
+  pkpm_species_fluid_flux(app, species, fin, fluidin);
   species->fluid_tm += gkyl_time_diff_now_sec(tm);
 
   tm = gkyl_wall_clock();
-  // Kinetic equations: configuration pass (clears rhs_f), closure of a_P from its
-  // first moment, then the velocity pass accumulating into the same rhs_f.
+  // Kinetic equations: the collisionless configuration pass (clears rhs_f), the closures
+  // from the moments of that partial right-hand side, the velocity pass accumulating
+  // into the same rhs_f, then the collision operator, which conserves the constraints
+  // on its own (conservative LBO with boundary corrections, G source included).
   pkpm_species_kinetic_conf_pass(app, species, fin, rhs_f);
+  pkpm_species_kinetic_closure(app, species, fin, rhs_f);
   gkyl_dg_pkpm_vel_flux_surf_advance(
     species->calc_vel_flux, &app->local, &species->local, app->field->bvar, app->field->grad_b,
-    species->pkpm_u, species->pkpm_grad_u, species->pkpm_theta, species->pkpm_a_P, fin,
-    species->cflrate_f, species->vel_flux_surf
+    species->pkpm_u, species->pkpm_grad_u, species->pkpm_xi, species->pkpm_grad_xi,
+    species->pkpm_theta, species->pkpm_alpha_0, species->pkpm_c_h, fin, species->cflrate_f,
+    species->vel_flux_surf
   );
   gkyl_hyper_dg_advance(species->slvr_kinetic_vel, &species->local, fin, species->cflrate_f, rhs_f);
   species->kinetic_tm += gkyl_time_diff_now_sec(tm);
@@ -708,9 +786,15 @@ pkpm_species_rhs(
   species->fluid_tm += gkyl_time_diff_now_sec(tm);
 
   if (species->has_diffusion) {
+    // momentum diffusion only: the momentum block through 3-component scratch arrays
+    int nc = app->confBasis.num_basis;
+    gkyl_array_set_offset(species->pkpm_mom3, 1.0, fluidin, nc);
+    gkyl_array_clear(species->pkpm_mom3_rhs, 0.0);
     gkyl_dg_updater_diffusion_fluid_advance(
-      species->diff_slvr, &app->local, species->diffD, fluidin, species->cflrate_fluid, rhs_fluid
+      species->diff_slvr, &app->local, species->diffD, species->pkpm_mom3, species->cflrate_fluid,
+      species->pkpm_mom3_rhs
     );
+    gkyl_array_accumulate_offset(rhs_fluid, 1.0, species->pkpm_mom3_rhs, nc);
   }
 
   // If PKPM update is fully explicit, include the fluid-EM coupling in fluid update
@@ -727,10 +811,7 @@ pkpm_species_rhs(
       gkyl_array_accumulate_range(species->qmem, qbym, app->field->ext_em, &app->local);
     }
 
-    gkyl_dg_calc_pkpm_vars_source(
-      species->calc_pkpm_vars, &app->local, species->qmem, species->pkpm_moms.marr, fluidin,
-      rhs_fluid
-    );
+    gkyl_dg_calc_pkpm_vars_source(species->calc_pkpm_vars, &app->local, species->qmem, fluidin, rhs_fluid);
   }
 
   app->stat.n_species_omega_cfl += 1;
@@ -767,7 +848,7 @@ pkpm_species_apply_bc(gkyl_pkpm_app *app, const struct pkpm_species *species, st
 
   int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim;
   gkyl_comm_array_per_sync(
-    species->comm, &species->local, &species->local_ext, num_periodic_dir, app->periodic_dirs, f
+    species->comm, &species->local, &species->local_ext_conf, num_periodic_dir, app->periodic_dirs, f
   );
 
   int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is periodic
@@ -813,7 +894,7 @@ pkpm_species_apply_bc(gkyl_pkpm_app *app, const struct pkpm_species *species, st
     }
   }
 
-  gkyl_comm_array_sync(species->comm, &species->local, &species->local_ext, f);
+  gkyl_comm_array_sync(species->comm, &species->local, &species->local_ext_conf, f);
 
   app->stat.species_bc_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -958,25 +1039,38 @@ pkpm_species_release(const gkyl_pkpm_app *app, const struct pkpm_species *s)
   gkyl_array_release(s->qmem);
 
   // release moment data
-  pkpm_species_moment_release(app, &s->pkpm_moms);
   pkpm_species_moment_release(app, &s->pkpm_moms_diag);
+  pkpm_species_moment_release(app, &s->pkpm_nmoms);
 
   // release pkpm arrays data and updaters
   gkyl_array_release(s->pkpm_u);
   gkyl_array_release(s->pkpm_grad_u);
   gkyl_array_release(s->pkpm_theta);
-  gkyl_array_release(s->pkpm_a_P);
+  gkyl_array_release(s->pkpm_alpha_0);
+  gkyl_array_release(s->pkpm_c_h);
+  gkyl_array_release(s->pkpm_xi);
+  gkyl_array_release(s->pkpm_xi3);
+  gkyl_array_release(s->pkpm_grad_xi);
+  gkyl_array_release(s->pkpm_scratch);
+  gkyl_array_release(s->pkpm_moms);
+  gkyl_array_release(s->pkpm_cmoms);
+  gkyl_array_release(s->pkpm_mom3_rhs);
+  gkyl_array_release(s->pkpm_u_nodal);
+  if (app->use_gpu) {
+    gkyl_array_release(s->pkpm_cmoms_host);
+  }
   gkyl_array_release(s->pkpm_rhs_moms);
   gkyl_array_release(s->pkpm_p_ij);
-  gkyl_array_release(s->pkpm_nu_sum);
-  gkyl_array_release(s->pkpm_nu_vthsq_sum);
   gkyl_array_release(s->cell_avg_prim);
   gkyl_array_release(s->conf_flux_surf);
   gkyl_array_release(s->vel_flux_surf);
   gkyl_array_release(s->fluid_flux_surf);
-  gkyl_array_release(s->pkpm_roe_mass_flux);
-  gkyl_array_release(s->pkpm_kin_mass_flux);
-  gkyl_array_release(s->pkpm_kin_mass_flux_face);
+  gkyl_array_release(s->pkpm_rho);
+  gkyl_array_release(s->pkpm_rho3);
+  gkyl_array_release(s->pkpm_mom3);
+  gkyl_array_release(s->pkpm_grad_rho);
+  gkyl_array_release(s->pkpm_grad_ln_n);
+  gkyl_array_release(s->pkpm_c_0);
   gkyl_array_release(s->integ_pkpm_mom);
   gkyl_array_release(s->fluid_io);
   gkyl_array_release(s->pkpm_vars_io);

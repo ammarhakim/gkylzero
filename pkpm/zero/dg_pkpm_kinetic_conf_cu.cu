@@ -19,6 +19,7 @@ gkyl_dg_pkpm_kinetic_conf_set_auxfields_cu_kernel(
   pkpm->auxfields.grad_b = auxin.grad_b;
   pkpm->auxfields.u = auxin.u;
   pkpm->auxfields.grad_u = auxin.grad_u;
+  pkpm->auxfields.grad_ln_n = auxin.grad_ln_n;
   pkpm->auxfields.theta = auxin.theta;
   pkpm->auxfields.nu_sum = auxin.nu_sum;
   pkpm->auxfields.nu_vthsq_sum = auxin.nu_vthsq_sum;
@@ -36,6 +37,7 @@ gkyl_dg_pkpm_kinetic_conf_set_auxfields_cu(
     .grad_b = auxin.grad_b ? auxin.grad_b->on_dev : 0,
     .u = auxin.u ? auxin.u->on_dev : 0,
     .grad_u = auxin.grad_u ? auxin.grad_u->on_dev : 0,
+    .grad_ln_n = auxin.grad_ln_n ? auxin.grad_ln_n->on_dev : 0,
     .theta = auxin.theta ? auxin.theta->on_dev : 0,
     .nu_sum = auxin.nu_sum ? auxin.nu_sum->on_dev : 0,
     .nu_vthsq_sum = auxin.nu_vthsq_sum ? auxin.nu_vthsq_sum->on_dev : 0,

@@ -1,7 +1,7 @@
 // Tests of the configuration-space pass (stage A) of the refactored PKPM kinetic
 // update: the exact modal volume kernel against an independent Gauss-Legendre
 // quadrature of the same terms, and the a_P force closure (weak residual of
-// rho a_P + M1(rhs_A) = 0 in every mode).
+// M0(f) c_0 + M0(rhs_A) = 0 and M0(f) a_P + M1(rhs_A) + c_0 M1(f) = 0 in every mode).
 #include <math.h>
 
 #include <acutest.h>
@@ -60,8 +60,6 @@ eval_conf_scalars(double t, const double *xn, double *restrict fout, void *ctx)
   int cdim = *(int *)ctx;
   double x = xn[0], y = cdim > 1 ? xn[1] : 0.3, z = cdim > 2 ? xn[2] : -0.2;
   fout[0] = 0.7 + 0.2 * cos(x) * sin(y) + 0.1 * z; // theta
-  fout[1] = 0.3 + 0.1 * sin(x); // nu_sum
-  fout[2] = 0.2 + 0.05 * cos(y) + 0.03 * sin(z); // nu_vthsq_sum
 }
 
 static void
@@ -82,14 +80,58 @@ static const double gl4_x[4] = {-0.8611363115940526, -0.3399810435848563, 0.3399
 static const double gl4_w[4] = {0.3478548451374538, 0.6521451548625461, 0.6521451548625461,
   0.3478548451374538};
 
+// Phase-space ranges with configuration ghosts on both sides and ONE velocity ghost cell
+// above w_max (the empty state beyond the characteristic velocity edge, whose flux slot
+// holds the upper-edge flux); plocal_ext_conf is extended in configuration space only.
+static void
+phase_ranges(
+  const struct gkyl_rect_grid *pgrid, int cdim, struct gkyl_range *plocal_ext, struct gkyl_range *plocal,
+  struct gkyl_range *plocal_ext_conf
+)
+{
+  int pdim = pgrid->ndim, lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+  int elo[GKYL_MAX_DIM] = {0}, eup[GKYL_MAX_DIM] = {0};
+  for (int d = 0; d < pdim; ++d) {
+    lower[d] = 1;
+    upper[d] = pgrid->cells[d];
+  }
+  for (int d = 0; d < cdim; ++d) {
+    elo[d] = eup[d] = 1;
+  }
+  eup[cdim] = 1;
+  struct gkyl_range local;
+  gkyl_range_init(&local, pdim, lower, upper);
+  gkyl_range_extend(plocal_ext, &local, elo, eup);
+  gkyl_sub_range_init(plocal, plocal_ext, lower, upper);
+  int lo_c[GKYL_MAX_DIM], up_c[GKYL_MAX_DIM];
+  for (int d = 0; d < pdim; ++d) {
+    lo_c[d] = d < cdim ? plocal_ext->lower[d] : lower[d];
+    up_c[d] = d < cdim ? plocal_ext->upper[d] : upper[d];
+  }
+  gkyl_sub_range_init(plocal_ext_conf, plocal_ext, lo_c, up_c);
+}
+
 struct test_setup {
   int cdim, pdim;
   struct gkyl_rect_grid cgrid, pgrid;
   struct gkyl_basis cbasis, pbasis;
-  struct gkyl_range clocal, clocal_ext, plocal, plocal_ext, vlocal, vlocal_ext;
-  struct gkyl_array *bvar, *grad_b, *u, *grad_u, *theta, *nu_sum, *nu_vthsq_sum, *f;
+  struct gkyl_range clocal, clocal_ext, plocal, plocal_ext, plocal_ext_conf, vlocal, vlocal_ext;
+  struct gkyl_array *bvar, *grad_b, *u, *grad_u, *grad_ln_n, *theta, *f;
+  struct gkyl_array *xi, *grad_xi;
   struct gkyl_dg_calc_pkpm_bvar *calc_b;
 };
+
+// Thermal speed [xi, xi^2, p] (positive; p is not used by the kinetic kernels).
+static void
+eval_xi(double t, const double *xn, double *restrict fout, void *ctx)
+{
+  int cdim = *(int *)ctx;
+  double x = xn[0], y = cdim > 1 ? xn[1] : 0.3, z = cdim > 2 ? xn[2] : -0.2;
+  double xi = 1.0 + 0.2 * cos(x) * sin(y) + 0.05 * z;
+  fout[0] = xi;
+  fout[1] = xi * xi;
+  fout[2] = 0.9 * xi * xi;
+}
 
 // Weak gradient of u on the interior cells (u is projected on the extended range).
 static void
@@ -97,15 +139,16 @@ compute_grad_u(struct test_setup *s)
 {
   int cdim = s->cdim, nc = s->cbasis.num_basis;
   s->grad_u = mkarr(cdim * 3 * nc, s->clocal_ext.volume);
+  s->grad_xi = mkarr(cdim * 3 * nc, s->clocal_ext.volume);
+  s->grad_ln_n = mkarr(cdim * nc, s->clocal_ext.volume);
+  gkyl_array_clear(s->grad_ln_n, 0.0);
   gkyl_array_clear(s->grad_u, 0.0);
-  struct gkyl_wv_eqn *ten = gkyl_wv_ten_moment_new(0.0, false, false, 0, 0, false);
-  struct gkyl_wave_geom *geom = gkyl_wave_geom_new(&s->cgrid, &s->clocal_ext, 0, 0, false);
+  gkyl_array_clear(s->grad_xi, 0.0);
   struct gkyl_dg_calc_pkpm_vars *vars =
-    gkyl_dg_calc_pkpm_vars_new(&s->cgrid, &s->cbasis, &s->clocal_ext, ten, geom, 0.0, false);
+    gkyl_dg_calc_pkpm_vars_new(&s->cgrid, &s->cbasis, &s->clocal_ext, false);
   gkyl_dg_calc_pkpm_vars_grad_u(vars, &s->clocal, s->u, s->grad_u);
+  gkyl_dg_calc_pkpm_vars_grad_u(vars, &s->clocal, s->xi, s->grad_xi);
   gkyl_dg_calc_pkpm_vars_release(vars);
-  gkyl_wave_geom_release(geom);
-  gkyl_wv_eqn_release(ten);
 }
 
 static void
@@ -117,31 +160,29 @@ setup(struct test_setup *s, int cdim)
   double lower[4] = {-M_PI, -M_PI, -M_PI, -4.0}, upper[4] = {M_PI, M_PI, M_PI, 4.0};
   int cells[4] = {6, 4, 3, 8};
   int ccells[3] = {6, 4, 3};
-  int cghost[3] = {1, 1, 1}, pghost[4] = {1, 1, 1, 0}, vghost[1] = {0};
+  int cghost[3] = {1, 1, 1}, vghost[1] = {0};
   if (cdim < 3) {
     lower[cdim] = -4.0;
     upper[cdim] = 4.0;
     cells[cdim] = 8;
-    pghost[cdim] = 0;
   }
   gkyl_rect_grid_init(&s->cgrid, cdim, lower, upper, ccells);
   gkyl_rect_grid_init(&s->pgrid, pdim, lower, upper, cells);
   gkyl_cart_modal_serendip(&s->cbasis, cdim, 1);
   gkyl_cart_modal_hybrid(&s->pbasis, cdim, 1);
   gkyl_create_grid_ranges(&s->cgrid, cghost, &s->clocal_ext, &s->clocal);
-  gkyl_create_grid_ranges(&s->pgrid, pghost, &s->plocal_ext, &s->plocal);
+  phase_ranges(&s->pgrid, cdim, &s->plocal_ext, &s->plocal, &s->plocal_ext_conf);
   struct gkyl_rect_grid vgrid;
   gkyl_rect_grid_init(&vgrid, 1, &lower[cdim], &upper[cdim], &cells[cdim]);
   gkyl_create_grid_ranges(&vgrid, vghost, &s->vlocal_ext, &s->vlocal);
 
   int nc = s->cbasis.num_basis, np = s->pbasis.num_basis;
   struct gkyl_array *em = mkarr(8 * nc, s->clocal_ext.volume);
-  struct gkyl_array *scal = mkarr(3 * nc, s->clocal_ext.volume);
+  struct gkyl_array *scal = mkarr(nc, s->clocal_ext.volume);
   s->bvar = mkarr(3 * nc, s->clocal_ext.volume);
   s->u = mkarr(3 * nc, s->clocal_ext.volume);
+  s->xi = mkarr(3 * nc, s->clocal_ext.volume);
   s->theta = mkarr(nc, s->clocal_ext.volume);
-  s->nu_sum = mkarr(nc, s->clocal_ext.volume);
-  s->nu_vthsq_sum = mkarr(nc, s->clocal_ext.volume);
   s->f = mkarr(2 * np, s->plocal_ext.volume);
 
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&s->cgrid, &s->cbasis, 8, 8, eval_em, &cdim);
@@ -150,14 +191,15 @@ setup(struct test_setup *s, int cdim)
   proj = gkyl_proj_on_basis_new(&s->cgrid, &s->cbasis, 8, 3, eval_u, &cdim);
   gkyl_proj_on_basis_advance(proj, 0.0, &s->clocal_ext, s->u);
   gkyl_proj_on_basis_release(proj);
-  proj = gkyl_proj_on_basis_new(&s->cgrid, &s->cbasis, 8, 3, eval_conf_scalars, &cdim);
+  proj = gkyl_proj_on_basis_new(&s->cgrid, &s->cbasis, 8, 1, eval_conf_scalars, &cdim);
   gkyl_proj_on_basis_advance(proj, 0.0, &s->clocal_ext, scal);
   gkyl_proj_on_basis_release(proj);
   gkyl_array_set_offset(s->theta, 1.0, scal, 0 * nc);
-  gkyl_array_set_offset(s->nu_sum, 1.0, scal, 1 * nc);
-  gkyl_array_set_offset(s->nu_vthsq_sum, 1.0, scal, 2 * nc);
+  proj = gkyl_proj_on_basis_new(&s->cgrid, &s->cbasis, 8, 3, eval_xi, &cdim);
+  gkyl_proj_on_basis_advance(proj, 0.0, &s->clocal_ext, s->xi);
+  gkyl_proj_on_basis_release(proj);
   proj = gkyl_proj_on_basis_new(&s->pgrid, &s->pbasis, 8, 2, eval_f, &cdim);
-  gkyl_proj_on_basis_advance(proj, 0.0, &s->plocal_ext, s->f);
+  gkyl_proj_on_basis_advance(proj, 0.0, &s->plocal_ext_conf, s->f);
   gkyl_proj_on_basis_release(proj);
 
   s->calc_b = gkyl_dg_calc_pkpm_bvar_new(&s->cgrid, &s->cbasis, false);
@@ -177,9 +219,9 @@ teardown(struct test_setup *s)
   gkyl_array_release(s->grad_b);
   gkyl_array_release(s->grad_u);
   gkyl_array_release(s->f);
-  gkyl_array_release(s->nu_vthsq_sum);
-  gkyl_array_release(s->nu_sum);
   gkyl_array_release(s->theta);
+  gkyl_array_release(s->xi);
+  gkyl_array_release(s->grad_xi);
   gkyl_array_release(s->u);
   gkyl_array_release(s->bvar);
 }
@@ -198,9 +240,10 @@ make_eqn(struct test_setup *s, const struct gkyl_array *flux)
         .grad_b = s->grad_b,
         .u = s->u,
         .grad_u = s->grad_u,
+        .xi = s->xi,
+        .grad_xi = s->grad_xi,
+        .grad_ln_n = s->grad_ln_n,
         .theta = s->theta,
-        .nu_sum = s->nu_sum,
-        .nu_vthsq_sum = s->nu_vthsq_sum,
         .conf_flux_surf = flux,
       },
     .use_gpu = false,
@@ -219,8 +262,9 @@ reference_vol(struct test_setup *s, const int *idx, double *out_ref)
   long cidx = gkyl_range_idx(&s->clocal_ext, idx), pidx = gkyl_range_idx(&s->plocal_ext, idx);
   const double *b = gkyl_array_cfetch(s->bvar, cidx), *u = gkyl_array_cfetch(s->u, cidx);
   const double *gu = gkyl_array_cfetch(s->grad_u, cidx), *gb = gkyl_array_cfetch(s->grad_b, cidx);
-  const double *th = gkyl_array_cfetch(s->theta, cidx), *nu = gkyl_array_cfetch(s->nu_sum, cidx);
-  const double *nuvt = gkyl_array_cfetch(s->nu_vthsq_sum, cidx);
+  const double *gln = gkyl_array_cfetch(s->grad_ln_n, cidx), *gxi = gkyl_array_cfetch(s->grad_xi, cidx);
+  const double *xi = gkyl_array_cfetch(s->xi, cidx);
+  const double *th = gkyl_array_cfetch(s->theta, cidx);
   const double *f = gkyl_array_cfetch(s->f, pidx);
   double xc[4];
   gkyl_rect_grid_cell_center(&s->pgrid, idx, xc);
@@ -253,21 +297,23 @@ reference_vol(struct test_setup *s, const int *idx, double *out_ref)
         gradu[d][i] = d < cdim ? s->cbasis.eval_expand(z, &gu[(d * 3 + i) * nc]) : 0.0;
       }
     }
-    double K = 0.0, divu = 0.0, divb = 0.0;
+    double K = 0.0, divb = 0.0, bgn = 0.0, bgx = 0.0;
     for (int i = 0; i < 3; ++i) {
       for (int j = 0; j < 3; ++j) {
         K += bq[i] * bq[j] * gradu[i][j];
       }
     }
     for (int d = 0; d < cdim; ++d) {
-      divu += gradu[d][d];
       divb += s->cbasis.eval_expand(z, &gb[(d * 3 + d) * nc]);
+      bgn += bq[d] * s->cbasis.eval_expand(z, &gln[d * nc]);
+      bgx += bq[d] * s->cbasis.eval_expand(z, &gxi[(d * 3 + 0) * nc]);
     }
-    double thq = s->cbasis.eval_expand(z, th), nuq = s->cbasis.eval_expand(z, nu);
-    double nuvtq = s->cbasis.eval_expand(z, nuvt);
+    double xiq = s->cbasis.eval_expand(z, xi);
+    double thq = s->cbasis.eval_expand(z, th);
     double Fq = s->pbasis.eval_expand(z, &f[0]), Gq = s->pbasis.eval_expand(z, &f[np]);
     double Hq = 4.0 * thq * Gq - 2.0 * thq * thq * Fq;
-    double src_G = (K - divu - 2.0 * nuq - v * divb) * Gq + 2.0 * nuvtq * Fq;
+    double src_F = -xiq * v * bgn * Fq;
+    double src_G = (K - xiq * v * divb - 2.0 * v * bgx - xiq * v * bgn) * Gq;
 
     for (int k = 0; k < np; ++k) {
       double unit[64] = {0.0};
@@ -277,11 +323,11 @@ reference_vol(struct test_setup *s, const int *idx, double *out_ref)
       double stream_F = 0.0, stream_G = 0.0;
       for (int d = 0; d < cdim; ++d) {
         double dphi = dx1[d] * s->pbasis.eval_grad_expand(d, z, unit);
-        stream_F += dphi * (v * bq[d] + uq[d]) * Fq;
-        stream_G += dphi * (v * bq[d] + uq[d]) * Gq;
+        stream_F += dphi * (xiq * v * bq[d] + uq[d]) * Fq;
+        stream_G += dphi * (xiq * v * bq[d] + uq[d]) * Gq;
       }
-      out_ref[k] += w * (stream_F + dphi_v * (-v * K * Fq + divb * Gq));
-      out_ref[np + k] += w * (stream_G + dphi_v * (-v * K * Gq + divb * Hq) + phi * src_G);
+      out_ref[k] += w * (stream_F + dphi_v * (-(v * K + v * v * bgx) * Fq + xiq * divb * Gq) + phi * src_F);
+      out_ref[np + k] += w * (stream_G + dphi_v * (-(v * K + v * v * bgx) * Gq + xiq * divb * Hq) + phi * src_G);
     }
   }
 }
@@ -324,14 +370,19 @@ test_vol(int cdim)
   teardown(&s);
 }
 
-// Full stage-A right-hand side (fluxes + volume) through hyper_dg, then the a_P
-// closure: the weak residual <psi_k, rho a_P + M1(rhs_A)> vanishes in every mode.
+// Full stage-A right-hand side (fluxes + volume) through hyper_dg, then the closures of
+// the factored update: the weak residuals <psi_k, M0(f) c_0 + M0(rhs_A)> and
+// <psi_k, M0(f) a_P + M1(rhs_A) + c_0 M1(f)> vanish in every mode (f need not be normalized
+// for this: the closures are weak divisions by its zeroth moment).
 static void
-test_p_force(int cdim)
+test_closure(int cdim)
 {
   struct test_setup s;
   setup(&s, cdim);
   int nc = s.cbasis.num_basis, np = s.pbasis.num_basis;
+  // No mirror force: its velocity-edge flux (xi div b) H is switched by the sign of
+  // xi div b alone, which would spoil the edge-free closure checked here.
+  gkyl_array_clear(s.grad_b, 0.0);
 
   struct gkyl_dg_pkpm_conf_flux_surf_inp finp = {
     .phase_grid = &s.pgrid,
@@ -342,12 +393,11 @@ test_p_force(int cdim)
   struct gkyl_dg_pkpm_conf_flux_surf *calc_flux = gkyl_dg_pkpm_conf_flux_surf_inew(&finp);
   int nk = gkyl_dg_pkpm_conf_flux_surf_num_surf_basis(calc_flux);
   struct gkyl_array *flux = mkarr(2 * cdim * nk, s.plocal_ext.volume);
-  struct gkyl_array *mflux = mkarr(cdim * gkyl_dg_pkpm_conf_flux_surf_num_face_basis(calc_flux), s.plocal_ext.volume);
   struct gkyl_array *cflrate = mkarr(1, s.plocal_ext.volume);
   gkyl_array_clear(flux, 0.0);
   gkyl_array_clear(cflrate, 0.0);
   gkyl_dg_pkpm_conf_flux_surf_advance(
-    calc_flux, &s.clocal, &s.plocal, &s.plocal_ext, s.bvar, s.u, s.theta, s.f, cflrate, flux, mflux
+    calc_flux, &s.clocal, &s.plocal, &s.plocal_ext, s.bvar, s.u, s.xi, s.f, cflrate, flux
   );
 
   struct gkyl_dg_eqn *eqn = make_eqn(&s, flux);
@@ -362,51 +412,126 @@ test_p_force(int cdim)
   struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_pkpm_new(
     &s.pgrid, &s.cbasis, &s.pbasis, &s.clocal, &s.vlocal, mass, false, false
   );
-  struct gkyl_array *moms = mkarr(4 * nc, s.clocal_ext.volume);
-  struct gkyl_array *rhs_moms = mkarr(4 * nc, s.clocal_ext.volume);
+  struct gkyl_array *moms = mkarr(6 * nc, s.clocal_ext.volume);
+  struct gkyl_array *rhs_moms = mkarr(6 * nc, s.clocal_ext.volume);
   gkyl_array_clear(moms, 0.0);
   gkyl_array_clear(rhs_moms, 0.0);
   gkyl_dg_updater_moment_pkpm_advance(mcalc, &s.plocal, &s.clocal, s.f, moms);
   gkyl_dg_updater_moment_pkpm_advance(mcalc, &s.plocal, &s.clocal, rhs, rhs_moms);
 
-  struct gkyl_wv_eqn *ten = gkyl_wv_ten_moment_new(0.0, false, false, 0, 0, false);
-  struct gkyl_wave_geom *geom = gkyl_wave_geom_new(&s.cgrid, &s.clocal_ext, 0, 0, false);
   struct gkyl_dg_calc_pkpm_vars *vars =
-    gkyl_dg_calc_pkpm_vars_new(&s.cgrid, &s.cbasis, &s.clocal_ext, ten, geom, 0.0, false);
+    gkyl_dg_calc_pkpm_vars_new(&s.cgrid, &s.cbasis, &s.clocal_ext, false);
   struct gkyl_array *a_P = mkarr(nc, s.clocal_ext.volume);
+  struct gkyl_array *c_h = mkarr(nc, s.clocal_ext.volume);
+  struct gkyl_array *c_0 = mkarr(nc, s.clocal_ext.volume);
+  // Previous closures alpha_0 = 0, c = -100 make both velocity edges inflow at every node
+  // (the known forces are far smaller than 100 w_max), so the edge fluxes vanish and the
+  // closure is the edge-free solve whose weak residuals are checked below.
   gkyl_array_clear(a_P, 0.0);
-  int num_null = gkyl_dg_calc_pkpm_vars_p_force(vars, &s.clocal, moms, rhs_moms, a_P);
+  gkyl_array_clear(c_h, 0.0);
+  gkyl_array_shiftc(c_h, -100.0 * pow(sqrt(2.0), cdim), 0);
+  gkyl_array_clear(c_0, 0.0);
+  struct gkyl_array *vflux = mkarr(2 * nc, s.plocal_ext.volume);
+  gkyl_array_clear(vflux, 0.0);
+  int num_null = gkyl_dg_calc_pkpm_vars_closure(
+    vars, &s.clocal, &s.plocal, &s.pgrid, moms, rhs_moms, s.bvar, s.grad_b, s.grad_u, s.xi, s.grad_xi, s.theta,
+    s.f, c_0, a_P, c_h, vflux, cflrate
+  );
+  // both edge slots (lowest cell, velocity ghost cell) must hold no flux
+  double edge_max = 0.0;
+  struct gkyl_range_iter eit;
+  gkyl_range_iter_init(&eit, &s.clocal);
+  while (gkyl_range_iter_next(&eit)) {
+    int idx[GKYL_MAX_DIM];
+    gkyl_copy_int_arr(cdim, eit.idx, idx);
+    for (int e = 0; e < 2; ++e) {
+      idx[cdim] = e == 0 ? s.plocal.lower[cdim] : s.plocal.upper[cdim] + 1;
+      const double *fe = gkyl_array_cfetch(vflux, gkyl_range_idx(&s.plocal_ext, idx));
+      for (int k = 0; k < 2 * nc; ++k) edge_max = fmax(edge_max, fabs(fe[k]));
+    }
+  }
+  TEST_CHECK(edge_max == 0.0);
+  gkyl_array_release(vflux);
   TEST_CHECK(num_null == 0);
 
-  // Weak residual: rho a_P (weak product) + M1(rhs) in every mode.
-  struct gkyl_array *rho_aP = mkarr(nc, s.clocal_ext.volume);
-  gkyl_array_clear(rho_aP, 0.0);
-  gkyl_dg_mul_op_range(&s.cbasis, 0, rho_aP, 0, moms, 0, a_P, &s.clocal);
-  double max_res = 0.0, max_m1 = 0.0, max_aP = 0.0;
+  // Weak residuals in every mode: M0 c_0 + r0, M0 alpha_0 + M1 c + r1 + c_0 M1 and
+  // 2 M1 alpha_0 + 2 (M2 + 2 M0G) c + r2 + 2 r0G + c_0 M2.
+  struct gkyl_array *n_c0 = mkarr(nc, s.clocal_ext.volume);
+  struct gkyl_array *n_aP = mkarr(nc, s.clocal_ext.volume);
+  struct gkyl_array *c0_m1 = mkarr(nc, s.clocal_ext.volume);
+  struct gkyl_array *ch_m1 = mkarr(nc, s.clocal_ext.volume);
+  struct gkyl_array *m1_aP = mkarr(nc, s.clocal_ext.volume);
+  struct gkyl_array *s2 = mkarr(nc, s.clocal_ext.volume);
+  struct gkyl_array *ch_s2 = mkarr(nc, s.clocal_ext.volume);
+  struct gkyl_array *c0_m2 = mkarr(nc, s.clocal_ext.volume);
+  gkyl_array_clear(n_c0, 0.0);
+  gkyl_array_clear(n_aP, 0.0);
+  gkyl_array_clear(c0_m1, 0.0);
+  gkyl_array_clear(ch_m1, 0.0);
+  gkyl_array_clear(m1_aP, 0.0);
+  gkyl_array_clear(ch_s2, 0.0);
+  gkyl_array_clear(c0_m2, 0.0);
+  gkyl_array_set_offset(s2, 1.0, moms, nc);
+  gkyl_array_accumulate_offset(s2, 2.0, moms, 2 * nc);
+  gkyl_dg_mul_op_range(&s.cbasis, 0, n_c0, 0, moms, 0, c_0, &s.clocal);
+  gkyl_dg_mul_op_range(&s.cbasis, 0, n_aP, 0, moms, 0, a_P, &s.clocal);
+  gkyl_dg_mul_op_range(&s.cbasis, 0, c0_m1, 0, c_0, 3, moms, &s.clocal);
+  gkyl_dg_mul_op_range(&s.cbasis, 0, ch_m1, 0, c_h, 3, moms, &s.clocal);
+  gkyl_dg_mul_op_range(&s.cbasis, 0, m1_aP, 0, a_P, 3, moms, &s.clocal);
+  gkyl_dg_mul_op_range(&s.cbasis, 0, ch_s2, 0, c_h, 0, s2, &s.clocal);
+  gkyl_dg_mul_op_range(&s.cbasis, 0, c0_m2, 0, c_0, 1, moms, &s.clocal);
+  double max_res = 0.0, max_m1 = 0.0, max_aP = 0.0, max_res0 = 0.0, max_m0 = 0.0;
+  double max_res2 = 0.0, max_m2 = 0.0, max_ch = 0.0;
   struct gkyl_range_iter citer;
   gkyl_range_iter_init(&citer, &s.clocal);
   while (gkyl_range_iter_next(&citer)) {
     long cidx = gkyl_range_idx(&s.clocal_ext, citer.idx);
-    const double *ra = gkyl_array_cfetch(rho_aP, cidx);
+    const double *na = gkyl_array_cfetch(n_aP, cidx);
+    const double *nc0 = gkyl_array_cfetch(n_c0, cidx);
+    const double *cm1 = gkyl_array_cfetch(c0_m1, cidx), *chm1 = gkyl_array_cfetch(ch_m1, cidx);
+    const double *m1a = gkyl_array_cfetch(m1_aP, cidx), *chs = gkyl_array_cfetch(ch_s2, cidx);
+    const double *cm2 = gkyl_array_cfetch(c0_m2, cidx);
     const double *rm = gkyl_array_cfetch(rhs_moms, cidx);
-    const double *ap = gkyl_array_cfetch(a_P, cidx);
+    const double *ap = gkyl_array_cfetch(a_P, cidx), *ch = gkyl_array_cfetch(c_h, cidx);
     for (int k = 0; k < nc; ++k) {
-      double res = fabs(ra[k] + rm[3 * nc + k]);
+      double res0 = fabs(nc0[k] + rm[k]);
+      max_res0 = res0 > max_res0 ? res0 : max_res0;
+      max_m0 = fabs(rm[k]) > max_m0 ? fabs(rm[k]) : max_m0;
+      double res = fabs(na[k] + chm1[k] + rm[3 * nc + k] + cm1[k]);
       max_res = res > max_res ? res : max_res;
       max_m1 = fabs(rm[3 * nc + k]) > max_m1 ? fabs(rm[3 * nc + k]) : max_m1;
       max_aP = fabs(ap[k]) > max_aP ? fabs(ap[k]) : max_aP;
+      double r2 = rm[nc + k] + 2.0 * rm[2 * nc + k];
+      double res2 = fabs(2.0 * m1a[k] + 2.0 * chs[k] + r2 + cm2[k]);
+      max_res2 = res2 > max_res2 ? res2 : max_res2;
+      max_m2 = fabs(r2) > max_m2 ? fabs(r2) : max_m2;
+      max_ch = fabs(ch[k]) > max_ch ? fabs(ch[k]) : max_ch;
     }
   }
+  TEST_CHECK(max_m0 > 0.0);
+  TEST_CHECK(max_res0 < 1e-12 * max_m0);
+  TEST_MSG("cdim=%d: max normalization residual %g (max M0(rhs) %g)", cdim, max_res0, max_m0);
+  gkyl_array_release(n_c0);
+  gkyl_array_release(n_aP);
+  gkyl_array_release(c0_m1);
+  gkyl_array_release(ch_m1);
+  gkyl_array_release(m1_aP);
+  gkyl_array_release(s2);
+  gkyl_array_release(ch_s2);
+  gkyl_array_release(c0_m2);
+  gkyl_array_release(c_0);
   TEST_CHECK(max_m1 > 0.0);
   TEST_CHECK(max_aP > 0.0);
   TEST_CHECK(max_res < 1e-12 * max_m1);
-  TEST_MSG("cdim=%d: weak residual %g (max |M1(rhs)| %g, max |a_P| %g)", cdim, max_res, max_m1, max_aP);
+  TEST_MSG("cdim=%d: first-moment residual %g (max |M1(rhs)| %g, max |alpha_0| %g)", cdim, max_res, max_m1, max_aP);
+  TEST_CHECK(max_m2 > 0.0);
+  TEST_CHECK(max_ch > 0.0);
+  TEST_CHECK(max_res2 < 1e-12 * max_m2);
+  TEST_MSG("cdim=%d: second-moment residual %g (max |M2 + 2 M0G (rhs)| %g, max |c| %g)", cdim, max_res2, max_m2, max_ch);
 
-  gkyl_array_release(rho_aP);
   gkyl_array_release(a_P);
+  gkyl_array_release(c_h);
   gkyl_dg_calc_pkpm_vars_release(vars);
-  gkyl_wave_geom_release(geom);
-  gkyl_wv_eqn_release(ten);
   gkyl_array_release(rhs_moms);
   gkyl_array_release(moms);
   gkyl_dg_updater_moment_pkpm_release(mcalc);
@@ -415,7 +540,6 @@ test_p_force(int cdim)
   gkyl_dg_eqn_release(eqn);
   gkyl_array_release(cflrate);
   gkyl_array_release(flux);
-  gkyl_array_release(mflux);
   gkyl_dg_pkpm_conf_flux_surf_release(calc_flux);
   teardown(&s);
 }
@@ -511,9 +635,9 @@ void test_grad_u_3x() { test_grad_u(3); }
 void test_vol_1x() { test_vol(1); }
 void test_vol_2x() { test_vol(2); }
 void test_vol_3x() { test_vol(3); }
-void test_p_force_1x() { test_p_force(1); }
-void test_p_force_2x() { test_p_force(2); }
-void test_p_force_3x() { test_p_force(3); }
+void test_closure_1x() { test_closure(1); }
+void test_closure_2x() { test_closure(2); }
+void test_closure_3x() { test_closure(3); }
 
 TEST_LIST = {
   {"test_grad_u_1x", test_grad_u_1x},
@@ -522,8 +646,8 @@ TEST_LIST = {
   {"test_vol_1x", test_vol_1x},
   {"test_vol_2x", test_vol_2x},
   {"test_vol_3x", test_vol_3x},
-  {"test_p_force_1x", test_p_force_1x},
-  {"test_p_force_2x", test_p_force_2x},
-  {"test_p_force_3x", test_p_force_3x},
+  {"test_closure_1x", test_closure_1x},
+  {"test_closure_2x", test_closure_2x},
+  {"test_closure_3x", test_closure_3x},
   {NULL, NULL},
 };

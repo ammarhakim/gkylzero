@@ -29,12 +29,6 @@ set_cu_ptrs(
 
       break;
 
-    case GKYL_BASIS_MODAL_TENSOR:
-      mom_pkpm_kernels = ten_mom_pkpm_kernels;
-      mom_pkpm_diag_kernels = ten_mom_pkpm_diag_kernels;
-
-      break;
-
     default:
       assert(false);
       break;
@@ -71,7 +65,7 @@ gkyl_mom_pkpm_cu_dev_new(
   if (diag) {
     mom_pkpm->momt.num_mom = 8; // rho, M1, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp
   } else {
-    mom_pkpm->momt.num_mom = 4; // rho, p_par, p_perp, M1
+    mom_pkpm->momt.num_mom = 6; // rho, p_par, p_perp, M1, q_par, q_perp
   }
   mom_pkpm->mass = mass;
 

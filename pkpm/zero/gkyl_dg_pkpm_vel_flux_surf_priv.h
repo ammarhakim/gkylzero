@@ -12,7 +12,8 @@
 
 typedef double (*pkpm_vel_flux_t)(
   const double *w, const double *dxv, const double *bvar, const double *grad_b, const double *u,
-  const double *grad_u, const double *theta, const double *a_P, const double *f_l,
+  const double *grad_u, const double *xi, const double *grad_xi, const double *theta,
+  const double *alpha_0, const double *c_h, const double *f_l,
   const double *f_r, double *GKYL_RESTRICT flux
 );
 

@@ -1,5 +1,4 @@
-// Tests of the PKPM configuration-space HLL surface flux (dg_pkpm_conf_flux_surf), of its
-// mass-flux constraint,
+// Tests of the PKPM configuration-space HLL surface flux (dg_pkpm_conf_flux_surf)
 // against an independent nodal evaluation, and of the stored-flux scatter of the
 // configuration pass (dg_pkpm_kinetic_conf) through hyper_dg: conservation on a
 // periodic domain.
@@ -13,7 +12,6 @@
 #include <gkyl_dg_calc_pkpm_bvar.h>
 #include <gkyl_dg_pkpm_conf_flux_surf.h>
 #include <gkyl_dg_pkpm_kinetic_conf.h>
-#include <gkyl_dg_updater_moment_pkpm.h>
 #include <gkyl_pkpm_kinetic_kernels.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_proj_on_basis.h>
@@ -92,8 +90,7 @@ struct test_setup {
   struct gkyl_rect_grid cgrid, pgrid;
   struct gkyl_basis cbasis, pbasis;
   struct gkyl_range clocal, clocal_ext, plocal, plocal_ext;
-  struct gkyl_array *bvar, *u, *theta, *f, *cflrate, *flux, *mass_flux;
-  int nmf;
+  struct gkyl_array *bvar, *u, *xi, *f, *cflrate, *flux;
   struct gkyl_dg_calc_pkpm_bvar *calc_b;
   struct gkyl_dg_pkpm_conf_flux_surf *calc_flux;
 };
@@ -125,8 +122,11 @@ setup(struct test_setup *s, int cdim)
   struct gkyl_array *em = mkarr(8 * nc, s->clocal_ext.volume);
   s->bvar = mkarr(3 * nc, s->clocal_ext.volume);
   s->u = mkarr(3 * nc, s->clocal_ext.volume);
-  s->theta = mkarr(nc, s->clocal_ext.volume);
-  gkyl_array_clear(s->theta, 0.0);
+  // thermal speed [xi, xi^2, p] = [1, 1, 0]: the streaming speed is v b + u as in the reference
+  s->xi = mkarr(3 * nc, s->clocal_ext.volume);
+  gkyl_array_clear(s->xi, 0.0);
+  gkyl_array_shiftc(s->xi, pow(sqrt(2.0), cdim), 0 * nc);
+  gkyl_array_shiftc(s->xi, pow(sqrt(2.0), cdim), 1 * nc);
   s->f = mkarr(2 * np, s->plocal_ext.volume);
   s->cflrate = mkarr(1, s->plocal_ext.volume);
 
@@ -154,15 +154,10 @@ setup(struct test_setup *s, int cdim)
   int nk = gkyl_dg_pkpm_conf_flux_surf_num_surf_basis(s->calc_flux);
   TEST_CHECK(nk == np / 2);
   s->flux = mkarr(2 * cdim * nk, s->plocal_ext.volume);
-  s->nmf = gkyl_dg_pkpm_conf_flux_surf_num_face_basis(s->calc_flux);
-  TEST_CHECK(s->nmf == nc / 2);
-  s->mass_flux = mkarr(cdim * s->nmf, s->plocal_ext.volume);
   gkyl_array_clear(s->flux, 0.0);
-  gkyl_array_clear(s->mass_flux, 0.0);
   gkyl_array_clear(s->cflrate, 0.0);
   gkyl_dg_pkpm_conf_flux_surf_advance(
-    s->calc_flux, &s->clocal, &s->plocal, &s->plocal_ext, s->bvar, s->u, s->theta, s->f, s->cflrate, s->flux,
-    s->mass_flux
+    s->calc_flux, &s->clocal, &s->plocal, &s->plocal_ext, s->bvar, s->u, s->xi, s->f, s->cflrate, s->flux
   );
 }
 
@@ -172,11 +167,10 @@ teardown(struct test_setup *s)
   gkyl_dg_pkpm_conf_flux_surf_release(s->calc_flux);
   gkyl_dg_calc_pkpm_bvar_release(s->calc_b);
   gkyl_array_release(s->flux);
-  gkyl_array_release(s->mass_flux);
   gkyl_array_release(s->cflrate);
   gkyl_array_release(s->f);
   gkyl_array_release(s->u);
-  gkyl_array_release(s->theta);
+  gkyl_array_release(s->xi);
   gkyl_array_release(s->bvar);
 }
 
@@ -342,9 +336,10 @@ test_scatter(int cdim)
         .grad_b = zeros_g,
         .u = s.u,
         .grad_u = zeros_g,
+        .xi = s.xi,
+        .grad_xi = zeros_g,
+        .grad_ln_n = zeros_g,
         .theta = zeros,
-        .nu_sum = zeros,
-        .nu_vthsq_sum = zeros,
         .conf_flux_surf = s.flux,
       },
     .use_gpu = false,
@@ -411,8 +406,8 @@ test_scatter_ref(int cdim)
     .conf_range = &s.clocal,
     .phase_range = &s.plocal,
     .auxfields =
-      {.bvar = s.bvar, .grad_b = zeros_g, .u = s.u, .grad_u = zeros_g, .theta = zeros, .nu_sum = zeros,
-        .nu_vthsq_sum = zeros, .conf_flux_surf = s.flux},
+      {.bvar = s.bvar, .grad_b = zeros_g, .u = s.u, .grad_u = zeros_g, .xi = s.xi, .grad_xi = zeros_g, .grad_ln_n = zeros_g, .theta = zeros,
+        .conf_flux_surf = s.flux},
     .use_gpu = false,
   };
   struct gkyl_dg_eqn *eqn = gkyl_dg_pkpm_kinetic_conf_inew(&inp);
@@ -435,13 +430,13 @@ test_scatter_ref(int cdim)
     double ref[64] = {0.0};
     const double *bv = gkyl_array_cfetch(s.bvar, cidx), *uv = gkyl_array_cfetch(s.u, cidx);
     const double *zg = gkyl_array_cfetch(zeros_g, cidx), *z = gkyl_array_cfetch(zeros, cidx);
-    const double *fv = gkyl_array_cfetch(s.f, pidx);
+    const double *fv = gkyl_array_cfetch(s.f, pidx), *xv = gkyl_array_cfetch(s.xi, cidx);
     if (cdim == 1) {
-      pkpm_kinetic_conf_vol_1x1v_ser_p1(xc, s.pgrid.dx, bv, zg, uv, zg, z, z, z, fv, ref);
+      pkpm_kinetic_conf_vol_1x1v_ser_p1(xc, s.pgrid.dx, bv, zg, uv, zg, xv, zg, zg, z, fv, ref);
     } else if (cdim == 2) {
-      pkpm_kinetic_conf_vol_2x1v_ser_p1(xc, s.pgrid.dx, bv, zg, uv, zg, z, z, z, fv, ref);
+      pkpm_kinetic_conf_vol_2x1v_ser_p1(xc, s.pgrid.dx, bv, zg, uv, zg, xv, zg, zg, z, fv, ref);
     } else {
-      pkpm_kinetic_conf_vol_3x1v_ser_p1(xc, s.pgrid.dx, bv, zg, uv, zg, z, z, z, fv, ref);
+      pkpm_kinetic_conf_vol_3x1v_ser_p1(xc, s.pgrid.dx, bv, zg, uv, zg, xv, zg, zg, z, fv, ref);
     }
     for (int dir = 0; dir < cdim; ++dir) {
       int idx_r[4];
@@ -521,291 +516,6 @@ test_scatter_ref(int cdim)
 }
 
 
-// The mass-flux constraint. With a defect that is diffusive for the density on every face
-// (dm = -beta (n_r - n_l), beta > 0), the velocity integral of the stored F_0 flux equals
-// the prescribed mass flux (in number units) on every face after constrain(). This is
-// checked through the density moment of the scattered right-hand side: between the
-// unconstrained and the constrained fluxes the cell moments change by minus the weak
-// divergence of the face-modal defect roe/mass - kin, expanded in the configuration face
-// basis of the momentum solve (p=1 serendipity in the transverse variables). The volume
-// term is the same for both and drops out. With an anti-diffusive defect (beta < 0) the
-// one-sided constraint must leave the fluxes unchanged. The updater's column sums of the
-// per-cell mass fluxes are compared with an independent sum as well.
-static void
-test_constraint(int cdim, double beta)
-{
-  struct test_setup s;
-  setup(&s, cdim);
-  int nc = s.cbasis.num_basis, np = s.pbasis.num_basis, nmf = s.nmf;
-  double mass = 2.5;
-
-  // Moments (mass densities) over the extended range: the constraint reads them in the
-  // ghost cells of the domain faces.
-  struct gkyl_rect_grid vgrid;
-  struct gkyl_range vlocal, vlocal_ext;
-  int vghost[1] = {0};
-  gkyl_rect_grid_init(&vgrid, 1, &s.pgrid.lower[cdim], &s.pgrid.upper[cdim], &s.pgrid.cells[cdim]);
-  gkyl_create_grid_ranges(&vgrid, vghost, &vlocal_ext, &vlocal);
-  struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_pkpm_new(
-    &s.pgrid, &s.cbasis, &s.pbasis, &s.clocal_ext, &vlocal, mass, false, false
-  );
-  struct gkyl_array *moms = mkarr(4 * nc, s.clocal_ext.volume);
-  gkyl_array_clear(moms, 0.0);
-  gkyl_dg_updater_moment_pkpm_advance(mcalc, &s.plocal_ext, &s.clocal_ext, s.f, moms);
-
-  // Independent column sums of the per-cell kinetic mass fluxes.
-  struct gkyl_array *kin_ref = mkarr(cdim * nmf, s.clocal_ext.volume);
-  gkyl_array_clear(kin_ref, 0.0);
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &s.plocal_ext);
-  while (gkyl_range_iter_next(&iter)) {
-    long pidx = gkyl_range_idx(&s.plocal_ext, iter.idx), cidx = gkyl_range_idx(&s.clocal_ext, iter.idx);
-    const double *mf = gkyl_array_cfetch(s.mass_flux, pidx);
-    double *kr = gkyl_array_fetch(kin_ref, cidx);
-    for (int k = 0; k < cdim * nmf; ++k) {
-      kr[k] += mf[k];
-    }
-  }
-  double scale = 0.0;
-  gkyl_range_iter_init(&iter, &s.clocal_ext);
-  while (gkyl_range_iter_next(&iter)) {
-    const double *kr = gkyl_array_cfetch(kin_ref, gkyl_range_idx(&s.clocal_ext, iter.idx));
-    for (int k = 0; k < cdim * nmf; ++k) {
-      scale = fmax(scale, fabs(kr[k]));
-    }
-  }
-  TEST_CHECK(scale > 0.0);
-
-  // Prescribed mass flux: the kinetic one plus the defect -beta (n_r - n_l) on every
-  // stored face, with the density jump of the two traces projected on the face basis.
-  struct gkyl_basis sbasis;
-  int ns = 1;
-  if (cdim > 1) {
-    gkyl_cart_modal_serendip(&sbasis, cdim - 1, 1);
-    ns = sbasis.num_basis;
-  }
-  TEST_CHECK(ns == nmf);
-  struct gkyl_array *roe = mkarr(cdim * nmf, s.clocal_ext.volume);
-  gkyl_array_clear(roe, 0.0);
-  gkyl_range_iter_init(&iter, &s.clocal_ext);
-  while (gkyl_range_iter_next(&iter)) {
-    long cidx = gkyl_range_idx(&s.clocal_ext, iter.idx);
-    const double *kr = gkyl_array_cfetch(kin_ref, cidx);
-    const double *rho_r = gkyl_array_cfetch(moms, cidx);
-    double *r = gkyl_array_fetch(roe, cidx);
-    for (int dir = 0; dir < cdim; ++dir) {
-      int idx_l[3];
-      gkyl_copy_int_arr(cdim, iter.idx, idx_l);
-      idx_l[dir] -= 1;
-      if (idx_l[dir] < s.clocal_ext.lower[dir]) {
-        continue;
-      }
-      const double *rho_l = gkyl_array_cfetch(moms, gkyl_range_idx(&s.clocal_ext, idx_l));
-      int nnodes = 1;
-      for (int d = 0; d < cdim - 1; ++d) {
-        nnodes *= 3;
-      }
-      double dn[4] = {0.0};
-      for (int n = 0; n < nnodes; ++n) {
-        double zs[3], zl[3], zr[3], w = 1.0;
-        int m = n;
-        for (int d = cdim - 2; d >= 0; --d) {
-          zs[d] = gl3_x[m % 3];
-          w *= gl3_w[m % 3];
-          m /= 3;
-        }
-        int tr = 0;
-        for (int d = 0; d < cdim; ++d) {
-          if (d == dir) {
-            zl[d] = 1.0;
-            zr[d] = -1.0;
-          } else {
-            zl[d] = zr[d] = zs[tr++];
-          }
-        }
-        double jump = (s.cbasis.eval_expand(zr, rho_r) - s.cbasis.eval_expand(zl, rho_l)) / mass;
-        for (int k = 0; k < nmf; ++k) {
-          double chi = 1.0;
-          if (cdim > 1) {
-            double unit[4] = {0.0};
-            unit[k] = 1.0;
-            chi = sbasis.eval_expand(zs, unit);
-          }
-          dn[k] += w * chi * jump;
-        }
-      }
-      for (int k = 0; k < nmf; ++k) {
-        r[dir * nmf + k] = mass * (kr[dir * nmf + k] - beta * dn[k]);
-      }
-    }
-  }
-
-  struct gkyl_array *flux0 = mkarr(s.flux->ncomp, s.plocal_ext.volume);
-  gkyl_array_copy(flux0, s.flux);
-  struct gkyl_array *kin_face = mkarr(cdim * nmf, s.clocal_ext.volume);
-  gkyl_dg_pkpm_conf_flux_surf_constrain(
-    s.calc_flux, &s.clocal, &s.plocal, &s.plocal_ext, mass, moms, roe, s.mass_flux, kin_face, s.f,
-    s.flux
-  );
-
-  // Column sums of the updater on every stored face.
-  double max_kin_err = 0.0;
-  gkyl_range_iter_init(&iter, &s.clocal);
-  while (gkyl_range_iter_next(&iter)) {
-    long cidx = gkyl_range_idx(&s.clocal_ext, iter.idx);
-    const double *kr = gkyl_array_cfetch(kin_ref, cidx), *kf = gkyl_array_cfetch(kin_face, cidx);
-    for (int k = 0; k < cdim * nmf; ++k) {
-      max_kin_err = fmax(max_kin_err, fabs(kr[k] - kf[k]));
-    }
-    for (int dir = 0; dir < cdim; ++dir) {
-      if (iter.idx[dir] == s.clocal.upper[dir]) {
-        int idx_r[3];
-        gkyl_copy_int_arr(cdim, iter.idx, idx_r);
-        idx_r[dir] += 1;
-        long cidx_r = gkyl_range_idx(&s.clocal_ext, idx_r);
-        const double *kr_r = gkyl_array_cfetch(kin_ref, cidx_r), *kf_r = gkyl_array_cfetch(kin_face, cidx_r);
-        for (int k = 0; k < nmf; ++k) {
-          max_kin_err = fmax(max_kin_err, fabs(kr_r[dir * nmf + k] - kf_r[dir * nmf + k]));
-        }
-      }
-    }
-  }
-  TEST_CHECK(max_kin_err < 1e-13 * scale);
-  TEST_MSG("cdim=%d: max column-sum error %g (scale %g)", cdim, max_kin_err, scale);
-
-  // Right-hand sides of the configuration pass with both flux sets (zero auxiliary
-  // fields: the volume term is identical for both).
-  struct gkyl_array *zeros = mkarr(nc, s.clocal_ext.volume);
-  gkyl_array_clear(zeros, 0.0);
-  struct gkyl_array *zeros_g = mkarr(3 * cdim * nc, s.clocal_ext.volume);
-  gkyl_array_clear(zeros_g, 0.0);
-  struct gkyl_array *rhs[2] = {mkarr(2 * np, s.plocal_ext.volume), mkarr(2 * np, s.plocal_ext.volume)};
-  struct gkyl_array *mom[2] = {mkarr(4 * nc, s.clocal_ext.volume), mkarr(4 * nc, s.clocal_ext.volume)};
-  for (int pass = 0; pass < 2; ++pass) {
-    struct gkyl_dg_pkpm_kinetic_conf_inp inp = {
-      .conf_basis = &s.cbasis,
-      .phase_basis = &s.pbasis,
-      .conf_range = &s.clocal,
-      .phase_range = &s.plocal,
-      .auxfields =
-        {.bvar = s.bvar, .grad_b = zeros_g, .u = s.u, .grad_u = zeros_g, .theta = zeros, .nu_sum = zeros,
-          .nu_vthsq_sum = zeros, .conf_flux_surf = pass == 0 ? flux0 : s.flux},
-      .use_gpu = false,
-    };
-    struct gkyl_dg_eqn *eqn = gkyl_dg_pkpm_kinetic_conf_inew(&inp);
-    int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux[2 * GKYL_MAX_DIM] = {0};
-    gkyl_hyper_dg *slvr = gkyl_hyper_dg_new(&s.pgrid, &s.pbasis, eqn, cdim, up_dirs, zero_flux, 1, false);
-    gkyl_array_clear(rhs[pass], 0.0);
-    gkyl_array_clear(s.cflrate, 0.0);
-    gkyl_hyper_dg_advance(slvr, &s.plocal, s.f, s.cflrate, rhs[pass]);
-    gkyl_array_clear(mom[pass], 0.0);
-    gkyl_dg_updater_moment_pkpm_advance(mcalc, &s.plocal, &s.clocal, rhs[pass], mom[pass]);
-    gkyl_hyper_dg_release(slvr);
-    gkyl_dg_eqn_release(eqn);
-  }
-
-  // Expected change of the density moment: minus the weak divergence of the defect for a
-  // diffusive defect, none for an anti-diffusive one.
-  double max_err = 0.0, max_ref = 0.0;
-  gkyl_range_iter_init(&iter, &s.clocal);
-  while (gkyl_range_iter_next(&iter)) {
-    long cidx = gkyl_range_idx(&s.clocal_ext, iter.idx);
-    const double *a = gkyl_array_cfetch(mom[0], cidx), *b = gkyl_array_cfetch(mom[1], cidx);
-    double expect[8] = {0.0};
-    for (int dir = 0; dir < cdim; ++dir) {
-      double dx1 = 2.0 / s.cgrid.dx[dir];
-      for (int side = 0; side < 2; ++side) {
-        // side 0: the cell's own lower face; side 1: the upper face, owned by the neighbor.
-        int idx_f[3];
-        gkyl_copy_int_arr(cdim, iter.idx, idx_f);
-        if (side == 1) {
-          idx_f[dir] += 1;
-        }
-        long cidx_f = gkyl_range_idx(&s.clocal_ext, idx_f);
-        const double *r = gkyl_array_cfetch(roe, cidx_f), *kf = gkyl_array_cfetch(kin_face, cidx_f);
-        double dm[4];
-        for (int k = 0; k < nmf; ++k) {
-          dm[k] = beta > 0.0 ? r[dir * nmf + k] / mass - kf[dir * nmf + k] : 0.0;
-        }
-        int nnodes = 1;
-        for (int d = 0; d < cdim - 1; ++d) {
-          nnodes *= 3;
-        }
-        for (int n = 0; n < nnodes; ++n) {
-          double zs[3], z[3], w = 1.0;
-          int m = n;
-          for (int d = cdim - 2; d >= 0; --d) {
-            zs[d] = gl3_x[m % 3];
-            w *= gl3_w[m % 3];
-            m /= 3;
-          }
-          int tr = 0;
-          for (int d = 0; d < cdim; ++d) {
-            z[d] = d == dir ? (side == 1 ? 1.0 : -1.0) : zs[tr++];
-          }
-          double F = 0.0;
-          for (int k = 0; k < nmf; ++k) {
-            double chi = 1.0;
-            if (cdim > 1) {
-              double unit[4] = {0.0};
-              unit[k] = 1.0;
-              chi = sbasis.eval_expand(zs, unit);
-            }
-            F += dm[k] * chi;
-          }
-          for (int mm = 0; mm < nc; ++mm) {
-            double unit[8] = {0.0};
-            unit[mm] = 1.0;
-            double psi = s.cbasis.eval_expand(z, unit);
-            expect[mm] += (side == 1 ? -1.0 : 1.0) * dx1 * w * psi * F;
-          }
-        }
-      }
-    }
-    // The density moment carries the mass; the defect is a number flux.
-    for (int mm = 0; mm < nc; ++mm) {
-      double d = (b[mm] - a[mm]) - mass * expect[mm];
-      max_err = fmax(max_err, fabs(d));
-      max_ref = fmax(max_ref, fabs(mass * expect[mm]));
-    }
-  }
-  if (beta > 0.0) {
-    TEST_CHECK(max_ref > 0.0);
-    TEST_CHECK(max_err < 1e-10 * max_ref);
-    TEST_MSG("cdim=%d: max density-moment error %g (max reference %g)", cdim, max_err, max_ref);
-  } else {
-    double max_rhs = 0.0;
-    gkyl_range_iter_init(&iter, &s.clocal);
-    while (gkyl_range_iter_next(&iter)) {
-      const double *a = gkyl_array_cfetch(mom[0], gkyl_range_idx(&s.clocal_ext, iter.idx));
-      for (int mm = 0; mm < nc; ++mm) {
-        max_rhs = fmax(max_rhs, fabs(a[mm]));
-      }
-    }
-    TEST_CHECK(max_rhs > 0.0);
-    TEST_CHECK(max_err < 1e-13 * max_rhs);
-    TEST_MSG("cdim=%d: anti-diffusive defect changed the moments by %g (scale %g)", cdim, max_err, max_rhs);
-  }
-
-  for (int pass = 0; pass < 2; ++pass) {
-    gkyl_array_release(rhs[pass]);
-    gkyl_array_release(mom[pass]);
-  }
-  gkyl_array_release(zeros);
-  gkyl_array_release(zeros_g);
-  gkyl_array_release(flux0);
-  gkyl_array_release(kin_face);
-  gkyl_array_release(roe);
-  gkyl_array_release(kin_ref);
-  gkyl_array_release(moms);
-  gkyl_dg_updater_moment_pkpm_release(mcalc);
-  teardown(&s);
-}
-
-void test_constraint_1x() { test_constraint(1, 0.3); }
-void test_constraint_2x() { test_constraint(2, 0.3); }
-void test_constraint_3x() { test_constraint(3, 0.3); }
-void test_constraint_antidiffusive_2x() { test_constraint(2, -0.3); }
 void test_scatter_ref_1x() { test_scatter_ref(1); }
 void test_scatter_ref_2x() { test_scatter_ref(2); }
 void test_scatter_ref_3x() { test_scatter_ref(3); }
@@ -824,10 +534,6 @@ TEST_LIST = {
   {"test_scatter_ref_1x", test_scatter_ref_1x},
   {"test_scatter_ref_2x", test_scatter_ref_2x},
   {"test_scatter_ref_3x", test_scatter_ref_3x},
-  {"test_constraint_1x", test_constraint_1x},
-  {"test_constraint_2x", test_constraint_2x},
-  {"test_constraint_3x", test_constraint_3x},
-  {"test_constraint_antidiffusive_2x", test_constraint_antidiffusive_2x},
   {"test_scatter_1x", test_scatter_1x},
   {"test_scatter_2x", test_scatter_2x},
   {"test_scatter_3x", test_scatter_3x},

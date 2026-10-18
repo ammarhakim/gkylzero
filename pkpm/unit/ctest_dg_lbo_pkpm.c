@@ -84,26 +84,6 @@ test_lbo_pkpm_diff_1x1v_p1()
 }
 
 void
-test_lbo_pkpm_drag_1x1v_p2()
-{
-  int poly_order = 2;
-  struct gkyl_basis cbasis, pbasis;
-  gkyl_cart_modal_serendip(&cbasis, 1, poly_order);
-  gkyl_cart_modal_serendip(&pbasis, 2, poly_order);
-
-  struct gkyl_range conf, conf_ext;
-  struct gkyl_rect_grid pgrid;
-  mk_setup(1, &conf, &conf_ext, &pgrid);
-
-  struct gkyl_dg_eqn *drag = gkyl_dg_lbo_pkpm_drag_new(&cbasis, &pbasis, &conf, &pgrid, false);
-  struct gkyl_dg_eqn *diff = gkyl_dg_lbo_pkpm_diff_new(&cbasis, &pbasis, &conf, &pgrid, false);
-  TEST_CHECK(drag->num_equations == 2);
-  TEST_CHECK(diff->num_equations == 2);
-  gkyl_dg_eqn_release(drag);
-  gkyl_dg_eqn_release(diff);
-}
-
-void
 test_lbo_pkpm_2x1v_p1()
 {
   int poly_order = 1;
@@ -128,7 +108,6 @@ test_lbo_pkpm_2x1v_p1()
 TEST_LIST = {
   {"lbo_pkpm_drag_1x1v_p1", test_lbo_pkpm_drag_1x1v_p1},
   {"lbo_pkpm_diff_1x1v_p1", test_lbo_pkpm_diff_1x1v_p1},
-  {"lbo_pkpm_drag_1x1v_p2", test_lbo_pkpm_drag_1x1v_p2},
   {"lbo_pkpm_2x1v_p1", test_lbo_pkpm_2x1v_p1},
   {NULL, NULL}
 };

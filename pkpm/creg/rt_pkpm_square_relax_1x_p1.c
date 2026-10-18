@@ -92,7 +92,7 @@ create_ctx(void)
   int Nx = 2; // Cell count (configuration space: x-direction).
   int Nvx = 32; // Cell count (velocity space: vx-direction).
   double Lx = 1.0; // Domain size (configuration space: x-direction).
-  double vx_max = 6.0 * vt; // Domain boundary (velocity space: vx-direction).
+  double vx_max = 6.0; // Domain boundary (normalized velocity w = v_par/xi).
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
@@ -175,26 +175,24 @@ void
 evalDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct square_relax_ctx *app = ctx;
-  double vx = xn[1];
+  double w = xn[1]; // Normalized parallel velocity w = v_par/xi.
 
-  double n0 = app->n0;
   double T0 = app->T0;
 
-  double F0 = 0.0;
-  double T = 0.0;
+  // Square parallel distribution F_0 = n0/2 on |v| < 1 (T_par/m = 1/3) with G = T0^2 F_0
+  // (T_perp/m = T0^2): T/m = (1/3 + 2 T0^2)/3, xi = sqrt(T/m), and the normalized
+  // F = xi F_0/n0 = xi/2, G = G_phys/(n0 xi) = T0^2/(2 xi) on |w| < 1/xi.
+  double xi = sqrt((1.0 / 3.0 + 2.0 * T0 * T0) / 3.0);
 
-  if (fabs(vx) < 1.0) {
-    F0 = 0.5 * n0; // Distribution function (F0, low velocity).
-    T = 0.5 * T0; // Isotropic temperature (low velocity).
-  } else {
-    F0 = 0.0; // Distribution function (F0, high velocity).
-    T = 0.0; // Isotropic temperature (high velocity).
+  double F = 0.0;
+  double G = 0.0;
+  if (fabs(w) < 1.0 / xi) {
+    F = 0.5 * xi;
+    G = 0.5 * T0 * T0 / xi;
   }
 
-  double G = (T0 * T0) * F0; // Distribution function (G).
-
-  // Set distribution function.
-  fout[0] = F0;
+  // Set normalized distribution functions.
+  fout[0] = F;
   fout[1] = G;
 }
 
@@ -202,17 +200,25 @@ void
 evalFluidInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct square_relax_ctx *app = ctx;
-
+  double n0 = app->n0;
+  double T0 = app->T0;
   double mom_x0 = app->mom_x0;
+  double mass = app->mass;
 
   double mom_x = mom_x0; // Total momentum density (x-direction).
   double mom_y = 0.0; // Total momentum density (y-direction).
   double mom_z = 0.0; // Total momentum density (z-direction).
 
-  // Set total momentum density.
-  fout[0] = mom_x;
-  fout[1] = mom_y;
-  fout[2] = mom_z;
+  double rho = mass * n0; // Neutral mass density.
+  double vtsq = (1.0 / 3.0 + 2.0 * T0 * T0) / 3.0; // Neutral T/m.
+  double E = 0.5 * (mom_x * mom_x + mom_y * mom_y + mom_z * mom_z) / rho + 1.5 * rho * vtsq; // Neutral total energy density.
+
+  // Set Neutral fluid state [rho, rho ux, rho uy, rho uz, E].
+  fout[0] = rho;
+  fout[1] = mom_x;
+  fout[2] = mom_y;
+  fout[3] = mom_z;
+  fout[4] = E;
 }
 
 void

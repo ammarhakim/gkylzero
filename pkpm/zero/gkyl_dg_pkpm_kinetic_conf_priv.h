@@ -11,8 +11,9 @@
 #include <gkyl_util.h>
 
 typedef double (*pkpm_kinetic_conf_vol_t)(
-  const double *w, const double *dxv, const double *bvar, const double *grad_b, const double *u, const double *grad_u, const double *theta,
-  const double *nu_sum, const double *nu_vthsq_sum, const double *f, double *GKYL_RESTRICT out
+  const double *w, const double *dxv, const double *bvar, const double *grad_b, const double *u, const double *grad_u,
+  const double *xi, const double *grad_xi, const double *grad_ln_n, const double *theta,
+  const double *f, double *GKYL_RESTRICT out
 );
 
 typedef double (*pkpm_stream_surf_t)(
@@ -98,9 +99,10 @@ vol(
     (const double *)gkyl_array_cfetch(pkpm->auxfields.grad_b, cidx),
     (const double *)gkyl_array_cfetch(pkpm->auxfields.u, cidx),
     (const double *)gkyl_array_cfetch(pkpm->auxfields.grad_u, cidx),
-    (const double *)gkyl_array_cfetch(pkpm->auxfields.theta, cidx),
-    (const double *)gkyl_array_cfetch(pkpm->auxfields.nu_sum, cidx),
-    (const double *)gkyl_array_cfetch(pkpm->auxfields.nu_vthsq_sum, cidx), qIn, qRhsOut
+    (const double *)gkyl_array_cfetch(pkpm->auxfields.xi, cidx),
+    (const double *)gkyl_array_cfetch(pkpm->auxfields.grad_xi, cidx),
+    (const double *)gkyl_array_cfetch(pkpm->auxfields.grad_ln_n, cidx),
+    (const double *)gkyl_array_cfetch(pkpm->auxfields.theta, cidx), qIn, qRhsOut
   );
 }
 

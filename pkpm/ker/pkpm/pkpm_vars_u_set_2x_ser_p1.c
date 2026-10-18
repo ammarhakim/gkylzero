@@ -1,5 +1,5 @@
 #include <gkyl_mat.h> 
-#include <gkyl_euler_pkpm_kernels.h> 
+#include <gkyl_pkpm_vars_kernels.h> 
 #include <gkyl_binop_mul_ser.h> 
 #include <gkyl_basis_ser_2x_p1_inv.h> 
 GKYL_CU_DH int pkpm_vars_u_set_2x_ser_p1(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
@@ -27,8 +27,8 @@ GKYL_CU_DH int pkpm_vars_u_set_2x_ser_p1(int count, struct gkyl_nmat *A, struct 
   // Check if rho < 0 at control points. 
   // *THIS IS ONLY A CHECK RIGHT NOW AND UNUSED* 
   if (1.5*rho[3]-0.8660254037844386*rho[2]-0.8660254037844386*rho[1]+0.5*rho[0] < 0.0) cell_avg = 1; 
-  if ((-1.5*rho[3])-0.8660254037844386*rho[2]+0.8660254037844386*rho[1]+0.5*rho[0] < 0.0) cell_avg = 1; 
-  if ((-1.5*rho[3])+0.8660254037844386*rho[2]-0.8660254037844386*rho[1]+0.5*rho[0] < 0.0) cell_avg = 1; 
+  if (-(1.5*rho[3])-0.8660254037844386*rho[2]+0.8660254037844386*rho[1]+0.5*rho[0] < 0.0) cell_avg = 1; 
+  if (-(1.5*rho[3])+0.8660254037844386*rho[2]-0.8660254037844386*rho[1]+0.5*rho[0] < 0.0) cell_avg = 1; 
   if (1.5*rho[3]+0.8660254037844386*rho[2]+0.8660254037844386*rho[1]+0.5*rho[0] < 0.0) cell_avg = 1; 
   double rho_inv[4] = {0.0}; 
   ser_2x_p1_inv(rho, rho_inv); 

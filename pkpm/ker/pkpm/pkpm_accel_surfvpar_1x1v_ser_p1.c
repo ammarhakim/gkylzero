@@ -20,28 +20,3 @@ GKYL_CU_DH double pkpm_accel_surfvpar_1x1v_ser_p1(const double *w, const double 
   } 
   return 0.0; 
 } 
-GKYL_CU_DH double pkpm_accel_boundary_surfvpar_1x1v_ser_p1(const double *w, const double *dxv,
-  const int edge, const double *flux, double* GKYL_RESTRICT out) 
-{ 
-  // edge: -1 for the lowest cell (flux is the lower-face flux of the cell above), 
-  //       +1 for the uppermost cell (flux is its own lower-face flux). 
-  // out:  Incremented output [F_0, G]. 
-  const double dx1 = 2.0/dxv[1]; 
-  for (int c = 0; c < 2; ++c) { 
-    const double *fc = &flux[c*2]; 
-    double *o = &out[c*6]; 
-    for (int k = 0; k < 2; ++k) { 
-      const double g = fc[k]; 
-      if (edge == -1) { 
-        for (int q = vst_pkpm_1x1v_p1_prj_v0_out_off[k]; q < vst_pkpm_1x1v_p1_prj_v0_out_off[k+1]; ++q) { 
-          o[vst_pkpm_1x1v_p1_prj_v0_out_mode[q]] += dx1*vst_pkpm_1x1v_p1_prj_v0_out_cr[q]*g; 
-        } 
-      } else { 
-        for (int q = vst_pkpm_1x1v_p1_prj_v0_out_off[k]; q < vst_pkpm_1x1v_p1_prj_v0_out_off[k+1]; ++q) { 
-          o[vst_pkpm_1x1v_p1_prj_v0_out_mode[q]] += dx1*vst_pkpm_1x1v_p1_prj_v0_out_cl[q]*g; 
-        } 
-      } 
-    } 
-  } 
-  return 0.0; 
-} 

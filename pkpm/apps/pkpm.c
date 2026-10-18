@@ -290,6 +290,7 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
     // to implicitly treat the momentum-EM field coupling.
     app->pkpm_em = pkpm_fluid_em_coupling_init(app);
     app->update_func = pkpm_update_op_split;
+    app->op_split_dt_prev = 0.0;
   }
 
   // initialize stat object
@@ -377,8 +378,8 @@ gkyl_pkpm_app_calc_integrated_mom(gkyl_pkpm_app *app, double tm)
     gkyl_array_clear(s->integ_pkpm_mom, 0.0);
 
     pkpm_species_calc_pkpm_vars(app, s, s->f, s->fluid);
-    gkyl_dg_calc_pkpm_integrated_vars(
-      s->calc_pkpm_vars, &app->local, s->pkpm_moms.marr, s->fluid, s->pkpm_u, s->integ_pkpm_mom
+    gkyl_dg_calc_pkpm_vars_int(
+      s->calc_pkpm_vars, &app->local, s->fluid, s->pkpm_moms, s->pkpm_u, s->integ_pkpm_mom
     );
     gkyl_array_scale_range(s->integ_pkpm_mom, app->grid.cellVolume, &(app->local));
     if (app->use_gpu) {
@@ -544,12 +545,12 @@ gkyl_pkpm_app_write_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame)
 
   // Compute the PKPM variables including moments and primitive variables
   // and construct arrays for writing out fluid and other pkpm variables.
-  pkpm_species_moment_calc(&s->pkpm_moms_diag, s->local, app->local, s->f);
   pkpm_species_calc_diag_vars(app, s, s->f, s->fluid);
+  pkpm_species_moment_diag_calc(app, s, s->local, app->local, s->f, s->fluid);
   gkyl_dg_calc_pkpm_vars_diag(
-    s->calc_pkpm_vars, &app->local, s->pkpm_moms.marr, s->fluid, app->field->bvar,
-    app->field->grad_b, s->pkpm_u, s->pkpm_grad_u, s->pkpm_theta, s->pkpm_a_P, s->fluid_io,
-    s->pkpm_vars_io
+    s->calc_pkpm_vars, &app->local, s->pkpm_moms, s->fluid, app->field->bvar,
+    app->field->grad_b, s->pkpm_u, s->pkpm_grad_u, s->pkpm_theta, s->pkpm_alpha_0, s->pkpm_xi,
+    s->pkpm_c_h, s->fluid_io, s->pkpm_vars_io
   );
 
   // copy data from device to host before writing it out
@@ -557,6 +558,7 @@ gkyl_pkpm_app_write_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame)
     gkyl_array_copy(s->pkpm_moms_diag.marr_host, s->pkpm_moms_diag.marr);
     gkyl_array_copy(s->fluid_io_host, s->fluid_io);
     gkyl_array_copy(s->pkpm_vars_io_host, s->pkpm_vars_io);
+    gkyl_array_copy(s->pkpm_cmoms_host, s->pkpm_cmoms);
   }
 
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, s->pkpm_moms_diag.marr_host, fileNm);
@@ -564,6 +566,13 @@ gkyl_pkpm_app_write_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame)
   gkyl_comm_array_write(
     app->comm, &app->grid, &app->local, mt, s->pkpm_vars_io_host, fileNm_pkpm_vars
   );
+  // The constraints [M0(F), M1(F), (M2(F) + 2 M0(G))/3] of the normalized distributions,
+  // [1, 0, 1] in every mode when the closures hold.
+  const char *fmt_cons = "%s-%s_pkpm_constraints_%d.gkyl";
+  int sz_cons = gkyl_calc_strlen(fmt_cons, app->name, s->info.name, frame);
+  char fileNm_cons[sz_cons + 1];
+  snprintf(fileNm_cons, sizeof fileNm_cons, fmt_cons, app->name, s->info.name, frame);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, s->pkpm_cmoms_host, fileNm_cons);
 
   pkpm_array_meta_release(mt);
 }
@@ -666,7 +675,9 @@ gkyl_pkpm_app_train_mom(
 )
 {
   struct pkpm_species *s = &app->species[sidx];
-  pkpm_species_moment_calc(&s->pkpm_moms_diag, s->local, app->local, s->f);
+  // the diagnostic moments need the thermal speed of the current state
+  pkpm_species_calc_pkpm_vars(app, s, s->f, s->fluid);
+  pkpm_species_moment_diag_calc(app, s, s->local, app->local, s->f, s->fluid);
 
   if (app->use_gpu) {
     gkyl_array_copy(s->pkpm_moms_diag.marr_host, s->pkpm_moms_diag.marr);
@@ -804,7 +815,9 @@ gkyl_pkpm_app_test_mom(
   });
 
   struct pkpm_species *s = &app->species[sidx];
-  pkpm_species_moment_calc(&s->pkpm_moms_diag, s->local, app->local, s->f);
+  // the diagnostic moments need the thermal speed of the current state
+  pkpm_species_calc_pkpm_vars(app, s, s->f, s->fluid);
+  pkpm_species_moment_diag_calc(app, s, s->local, app->local, s->f, s->fluid);
 
   if (app->use_gpu) {
     gkyl_array_copy(s->pkpm_moms_diag.marr_host, s->pkpm_moms_diag.marr);
@@ -1326,14 +1339,21 @@ gkyl_pkpm_app_from_file_fluid_species(gkyl_pkpm_app *app, int sidx, const char *
   struct pkpm_species *s = &app->species[sidx];
 
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
-    // Read in the full 10 component fluid array
+    // Read in the full 11 component fluid array
     rstat.io_status =
       gkyl_comm_array_read(app->comm, &app->grid, &app->local, s->fluid_io_host, fname);
     if (app->use_gpu) {
       gkyl_array_copy(s->fluid_io, s->fluid_io_host);
     }
-    // Copy the relevant components of 10 component fluid array (components 1-4)
-    gkyl_array_set_offset(s->fluid, 1.0, s->fluid_io, app->confBasis.num_basis);
+    // The density and momentum (components 0-3 of the 11 component array) are the
+    // leading blocks of the fluid array; the energy (component 10) its trailing block.
+    int nc = app->confBasis.num_basis;
+    gkyl_array_set_offset(s->pkpm_rho, 1.0, s->fluid_io, 0);
+    gkyl_array_set_offset(s->fluid, 1.0, s->pkpm_rho, 0);
+    gkyl_array_set_offset(s->pkpm_mom3, 1.0, s->fluid_io, nc);
+    gkyl_array_set_offset(s->fluid, 1.0, s->pkpm_mom3, nc);
+    gkyl_array_set_offset(s->pkpm_rho, 1.0, s->fluid_io, 10 * nc);
+    gkyl_array_set_offset(s->fluid, 1.0, s->pkpm_rho, 4 * nc);
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
       pkpm_fluid_species_apply_bc(app, s, s->fluid);
     }

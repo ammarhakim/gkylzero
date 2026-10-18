@@ -315,9 +315,11 @@ pkpm_field_explicit_accumulate_current(
   if (!field->info.is_static) {
     for (int i = 0; i < app->num_species; ++i) {
       struct pkpm_species *s = &app->species[i];
-      // Need to divide out the mass in pkpm model since we evolve momentum
+      // Need to divide out the mass in pkpm model since we evolve momentum. The fluid
+      // array is [rho, rho ux, rho uy, rho uz, E]: only its momentum block is the current.
       double qbymeps = s->info.charge / (s->info.mass * field->info.epsilon0);
-      gkyl_array_accumulate_range(emout, -qbymeps, fluidin[i], &app->local);
+      gkyl_array_set_offset(s->pkpm_mom3, 1.0, fluidin[i], app->confBasis.num_basis);
+      gkyl_array_accumulate_range(emout, -qbymeps, s->pkpm_mom3, &app->local);
     }
     // Accumulate applied current to electric field terms
     if (field->has_app_current) {

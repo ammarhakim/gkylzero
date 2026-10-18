@@ -49,24 +49,6 @@ test_prim_lbo_pkpm_1x1v_p1()
 }
 
 void
-test_prim_lbo_pkpm_1x1v_p2()
-{
-  int poly_order = 2;
-  struct gkyl_basis cbasis, pbasis;
-  gkyl_cart_modal_serendip(&cbasis, 1, poly_order);
-  gkyl_cart_modal_serendip(&pbasis, 2, poly_order);
-
-  struct gkyl_range local, local_ext;
-  mk_conf_range(1, &local, &local_ext);
-
-  struct gkyl_prim_lbo_type *prim = gkyl_prim_lbo_pkpm_new(&cbasis, &pbasis, &local, false);
-  TEST_CHECK(prim->poly_order == 2);
-  TEST_CHECK(prim->udim == 1);
-  TEST_CHECK(prim->self_prim != NULL);
-  gkyl_prim_lbo_type_release(prim);
-}
-
-void
 test_prim_lbo_pkpm_2x1v_p1()
 {
   int poly_order = 1;
@@ -86,7 +68,6 @@ test_prim_lbo_pkpm_2x1v_p1()
 
 TEST_LIST = {
   {"prim_lbo_pkpm_1x1v_p1", test_prim_lbo_pkpm_1x1v_p1},
-  {"prim_lbo_pkpm_1x1v_p2", test_prim_lbo_pkpm_1x1v_p2},
   {"prim_lbo_pkpm_2x1v_p1", test_prim_lbo_pkpm_2x1v_p1},
   {NULL, NULL}
 };

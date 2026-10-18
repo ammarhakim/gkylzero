@@ -44,14 +44,18 @@ struct gkyl_pkpm_species {
     // (e.g., SR, general geometry, PKPM, see gkyl_eqn_type.h)
 
   double charge, mass; // charge and mass
-  double lower[3], upper[3]; // lower, upper bounds of velocity-space
+  double lower[3], upper[3]; // lower, upper bounds of the NORMALIZED velocity w = v_par/xi
   int cells[3]; // velocity-space cells
 
   void *ctx_dist; // context for initial condition init function
   void *ctx_fluid; // context for initial condition init function
-  // pointer to initialization distribution function
+  // pointer to the initialization function of the normalized distributions [F, G]:
+  // F is a probability density in w (M0 = 1, M1 = 0) and G its perpendicular-energy
+  // partner (M0(G) = T_perp/T) with M2(F) + 2 M0(G) = 3; e.g. a bi-Maxwellian is
+  // F = exp(-w^2/(2 r))/sqrt(2 pi r), G = (T_perp/T) F with r = T_par/T, T = (T_par + 2 T_perp)/3.
   void (*init_dist)(double t, const double *xn, double *fout, void *ctx);
-  // pointer to initialization momentum
+  // pointer to the initialization function of the fluid state
+  // [rho, rho ux, rho uy, rho uz, E], E = rho |u|^2/2 + 3 p/2 = rho |u|^2/2 + (p_par + 2 p_perp)/2
   void (*init_fluid)(double t, const double *xn, double *fout, void *ctx);
 
   // collisions to include
@@ -64,9 +68,6 @@ struct gkyl_pkpm_species {
   // pointer to applied acceleration function
   void (*app_accel)(double t, const double *xn, double *app_accel_out, void *ctx);
   bool app_accel_evolve; // set to true if applied acceleration function is time dependent
-
-  double limiter_fac; // Optional input parameter for adjusting diffusion in slope limiter
-  bool limit_fluid; // Optional input parameter for applying limiters to fluid variables
 
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];

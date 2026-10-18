@@ -15,7 +15,7 @@ gkyl_dg_pkpm_fluid_set_auxfields_cu_kernel(
 )
 {
   struct dg_pkpm_fluid *pkpm = container_of(eqn, struct dg_pkpm_fluid, eqn);
-  pkpm->auxfields.moms = auxin.moms;
+  pkpm->auxfields.nmoms = auxin.nmoms;
   pkpm->auxfields.bvar = auxin.bvar;
   pkpm->auxfields.u = auxin.u;
   pkpm->auxfields.fluid_flux_surf = auxin.fluid_flux_surf;
@@ -28,7 +28,7 @@ gkyl_dg_pkpm_fluid_set_auxfields_cu(
 )
 {
   struct gkyl_dg_pkpm_fluid_auxfields auxin_dev = {
-    .moms = auxin.moms ? auxin.moms->on_dev : 0,
+    .nmoms = auxin.nmoms ? auxin.nmoms->on_dev : 0,
     .bvar = auxin.bvar ? auxin.bvar->on_dev : 0,
     .u = auxin.u ? auxin.u->on_dev : 0,
     .fluid_flux_surf = auxin.fluid_flux_surf ? auxin.fluid_flux_surf->on_dev : 0,
@@ -56,7 +56,7 @@ gkyl_dg_pkpm_fluid_cu_dev_inew(const struct gkyl_dg_pkpm_fluid_inp *inp)
   int cdim = inp->conf_basis->ndim;
   pkpm->cdim = cdim;
   pkpm->num_surf_basis = inp->conf_basis->num_basis / 2;
-  pkpm->eqn.num_equations = 3;
+  pkpm->eqn.num_equations = 5;
   pkpm->conf_range = *inp->conf_range;
   pkpm->auxfields = inp->auxfields;
 

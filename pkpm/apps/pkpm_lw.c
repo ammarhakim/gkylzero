@@ -220,7 +220,7 @@ pkpm_species_lw_new(lua_State *L)
   pkpm_s_lw->fluid_init_func_ref = (struct lua_func_ctx){
     .func_ref = fluid_init_func_ref,
     .ndim = 0, // This will be set later.
-    .nret = 3,
+    .nret = 5,
     .L = L,
   };
 

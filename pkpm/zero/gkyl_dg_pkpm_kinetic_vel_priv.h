@@ -11,17 +11,12 @@
 #include <gkyl_util.h>
 
 typedef double (*pkpm_kinetic_vel_vol_t)(
-  const double *w, const double *dxv, const double *a_P, const double *f,
-  double *GKYL_RESTRICT out
+  const double *w, const double *dxv, const double *c_0, const double *alpha_0, const double *c_h,
+  const double *f, double *GKYL_RESTRICT out
 );
 
 typedef double (*pkpm_accel_surf_t)(
   const double *w, const double *dxv, const double *flux_l, const double *flux_r,
-  double *GKYL_RESTRICT out
-);
-
-typedef double (*pkpm_accel_boundary_surf_t)(
-  const double *w, const double *dxv, const int edge, const double *flux,
   double *GKYL_RESTRICT out
 );
 
@@ -31,7 +26,6 @@ struct dg_pkpm_kinetic_vel {
   int pdim; // Phase-space dimensions
   pkpm_kinetic_vel_vol_t vol_kern; // Volume kernel (pressure-force term)
   pkpm_accel_surf_t accel_surf; // Surface kernel scattering stored v_par fluxes
-  pkpm_accel_boundary_surf_t accel_boundary_surf; // Velocity domain edge version
   struct gkyl_range conf_range; // Configuration-space range
   struct gkyl_range phase_range; // Phase-space range
   struct gkyl_dg_pkpm_kinetic_vel_auxfields auxfields; // Auxiliary fields.
@@ -50,11 +44,6 @@ GKYL_CU_D static const pkpm_accel_surf_t ser_pkpm_accel_surf_kernels[] = {
   pkpm_accel_surfvpar_3x1v_ser_p1,
 };
 
-GKYL_CU_D static const pkpm_accel_boundary_surf_t ser_pkpm_accel_boundary_surf_kernels[] = {
-  pkpm_accel_boundary_surfvpar_1x1v_ser_p1,
-  pkpm_accel_boundary_surfvpar_2x1v_ser_p1,
-  pkpm_accel_boundary_surfvpar_3x1v_ser_p1,
-};
 
 GKYL_CU_D
 static void
@@ -67,7 +56,6 @@ choose_pkpm_kinetic_vel_kerns(
     case GKYL_BASIS_MODAL_SERENDIPITY:
       pkpm->vol_kern = ser_pkpm_kinetic_vel_vol_kernels[cdim - 1];
       pkpm->accel_surf = ser_pkpm_accel_surf_kernels[cdim - 1];
-      pkpm->accel_boundary_surf = ser_pkpm_accel_boundary_surf_kernels[cdim - 1];
       break;
     default:
       assert(false);
@@ -86,7 +74,9 @@ vol(
   struct dg_pkpm_kinetic_vel *pkpm = container_of(eqn, struct dg_pkpm_kinetic_vel, eqn);
   long cidx = gkyl_range_idx(&pkpm->conf_range, idx);
   return pkpm->vol_kern(
-    xc, dx, (const double *)gkyl_array_cfetch(pkpm->auxfields.a_P, cidx), qIn, qRhsOut
+    xc, dx, (const double *)gkyl_array_cfetch(pkpm->auxfields.c_0, cidx),
+    (const double *)gkyl_array_cfetch(pkpm->auxfields.alpha_0, cidx),
+    (const double *)gkyl_array_cfetch(pkpm->auxfields.c_h, cidx), qIn, qRhsOut
   );
 }
 
@@ -112,9 +102,11 @@ surf(
   return 0.0;
 }
 
-// Velocity domain edges (no ghost cells): the lowest cell uses the lower-face flux
-// of the cell above it (edge = -1), the uppermost cell its own lower-face flux
-// (edge = +1); the domain-edge face itself carries zero flux.
+// Lower velocity domain edge (no ghost cell below w = -w_max): the lowest cell's own slot
+// holds the characteristic edge flux written by the closure, so the cell is scattered by
+// the regular surface kernel with its slot and the slot of the cell above (the edge
+// cell). The upper edge is a regular face against the velocity ghost cell, whose slot the
+// closure fills too; it never comes through here.
 GKYL_CU_D
 static double
 boundary_surf(
@@ -124,10 +116,11 @@ boundary_surf(
 )
 {
   struct dg_pkpm_kinetic_vel *pkpm = container_of(eqn, struct dg_pkpm_kinetic_vel, eqn);
-  if (dir == pkpm->cdim) {
-    long pidx = gkyl_range_idx(&pkpm->phase_range, edge == -1 ? idxEdge : idxSkin);
-    const double *flux = (const double *)gkyl_array_cfetch(pkpm->auxfields.vel_flux_surf, pidx);
-    return pkpm->accel_boundary_surf(xcSkin, dxSkin, edge, flux, qRhsOut);
+  if (dir == pkpm->cdim && edge == -1) {
+    long pidxSkin = gkyl_range_idx(&pkpm->phase_range, idxSkin);
+    const double *flux_l = (const double *)gkyl_array_cfetch(pkpm->auxfields.vel_flux_surf, pidxSkin);
+    const double *flux_r = (const double *)gkyl_array_cfetch(pkpm->auxfields.vel_flux_surf, gkyl_range_idx(&pkpm->phase_range, idxEdge));
+    return pkpm->accel_surf(xcSkin, dxSkin, flux_l, flux_r, qRhsOut);
   }
   return 0.0;
 }

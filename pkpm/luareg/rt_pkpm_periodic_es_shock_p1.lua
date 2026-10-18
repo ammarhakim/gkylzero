@@ -34,8 +34,8 @@ nu_ion = 1.0e-4 / math.sqrt(mass_ion) * (Te_over_Ti * math.sqrt(Te_over_Ti)) -- 
 Nx = 256 -- Cell count (configuration space: x-direction).
 Nvx = 48 -- Cell count (velocity space: vx-direction).
 Lx = 256.0 -- Domain size (configuration space: x-direction).
-vx_max_elc = 6.0 * vte -- Domain boundary (electron velocity space: vx-direction).
-vx_max_ion = 24.0 * vti -- Domain boundary (ion velocity space: vx-direction).
+vx_max_elc = 6.0 -- Domain boundary (normalized velocity w = v_par/xi).
+vx_max_ion = 24.0 -- Domain boundary (normalized velocity w = v_par/xi).
 poly_order = 1 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
@@ -101,31 +101,35 @@ pkpmApp = PKPM.App.new {
 
     -- Initial conditions (distribution function).
     initDist = function (t, xn)
-      local x, vx = xn[1], xn[2]
+      local w = xn[2] -- Normalized parallel velocity w = v_par/xi.
 
-      local F0 = 0.0
-      local T = 0.0
-    
-      if math.abs(x) < 0.25 * Lx then
-        F0 = (n0_l / math.sqrt(2.0 * pi * Te_l * Te_l)) * (math.exp(-(vx * vx) / (2.0 * Te_l * Te_l))) -- Left electron distribution function (F0).
-        T = Te_l -- Left electron temperature.
-      else
-        F0 = (n0_r / math.sqrt(2.0 * pi * Te_r * Te_r)) * (math.exp(-(vx * vx) / (2.0 * Te_r * Te_r))) -- Right electron distribution function (F0).
-        T = Te_r -- Right electron temperature.
-      end
-    
-      local G = (T * T) * F0 -- Electron distribution function (G).
-      
-      return F0, G
+      -- Normalized isotropic Maxwellian: F = exp(-w^2/2)/sqrt(2 pi) (M0 = 1, M2 = 1) and
+      -- G = (T_perp/T) F = F, independent of position; the density, flow and temperature
+      -- enter through the fluid state.
+      local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * math.pi)
+
+      return F, F
     end,
 
     -- Initial conditions (fluid).
     initFluid = function (t, xn)
+      local x = xn[1]
+      local n = n0_l
+      local vt = Te_l
+      if math.abs(x) >= 0.25 * Lx then
+        n = n0_r
+        vt = Te_r
+      end
       local mom_x = 0.0 -- Total momentum density (x-direction).
       local mom_y = 0.0 -- Total momentum density (y-direction).
       local mom_z = 0.0 -- Total momentum density (z-direction).
 
-      return mom_x, mom_y, mom_z
+
+      local rho = mass_elc * n -- Electron mass density.
+      local vtsq = vt * vt -- Electron T/m.
+      local E = 0.5 * (mom_x * mom_x + mom_y * mom_y + mom_z * mom_z) / rho + 1.5 * rho * vtsq -- Electron total energy density.
+
+      return rho, mom_x, mom_y, mom_z, E
     end,
 
     collisions = {
@@ -151,31 +155,35 @@ pkpmApp = PKPM.App.new {
 
     -- Initial conditions (distribution function).
     initDist = function (t, xn)
-      local x, vx = xn[1], xn[2]
+      local w = xn[2] -- Normalized parallel velocity w = v_par/xi.
 
-      local F0 = 0.0
-      local T = 0.0
-    
-      if math.abs(x) < 0.25 * Lx then
-        F0 = (n0_l / math.sqrt(2.0 * pi * Ti_l * Ti_l)) * (math.exp(-(vx * vx) / (2.0 * Ti_l * Ti_l))) -- Left ion distribution function (F0).
-        T = Ti_l -- Left ion temperature.
-      else
-        F0 = (n0_r / math.sqrt(2.0 * pi * Ti_r * Ti_r)) * (math.exp(-(vx * vx) / (2.0 * Ti_r * Ti_r))) -- Right ion distribution function (F0).
-        T = Ti_r -- Right ion temperature.
-      end
-    
-      local G = (T * T) * F0 -- Ion distribution function (G).
-      
-      return F0, G
+      -- Normalized isotropic Maxwellian: F = exp(-w^2/2)/sqrt(2 pi) (M0 = 1, M2 = 1) and
+      -- G = (T_perp/T) F = F, independent of position; the density, flow and temperature
+      -- enter through the fluid state.
+      local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * math.pi)
+
+      return F, F
     end,
 
     -- Initial conditions (fluid).
     initFluid = function (t, xn)
+      local x = xn[1]
+      local n = n0_l
+      local vt = Ti_l
+      if math.abs(x) >= 0.25 * Lx then
+        n = n0_r
+        vt = Ti_r
+      end
       local mom_x = 0.0 -- Total momentum density (x-direction).
       local mom_y = 0.0 -- Total momentum density (y-direction).
       local mom_z = 0.0 -- Total momentum density (z-direction).
 
-      return mom_x, mom_y, mom_z
+
+      local rho = mass_ion * n -- Ion mass density.
+      local vtsq = vt * vt -- Ion T/m.
+      local E = 0.5 * (mom_x * mom_x + mom_y * mom_y + mom_z * mom_z) / rho + 1.5 * rho * vtsq -- Ion total energy density.
+
+      return rho, mom_x, mom_y, mom_z, E
     end,
 
     collisions = {

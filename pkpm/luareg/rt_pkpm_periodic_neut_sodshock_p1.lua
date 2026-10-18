@@ -24,7 +24,7 @@ B0 = 1.0 -- Reference magnetic field strength.
 Nx = 128 -- Cell count (configuration space: x-direction).
 Nvx = 16 -- Cell count (velocity space: vx-direction).
 Lx = 2.0 -- Domain size (configuration space: x-direction).
-vx_max = 6.0 * vt -- Domain boundary (velocity space: vx-direction).
+vx_max = 6.0 -- Domain boundary (normalized velocity w = v_par/xi).
 poly_order = 1 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
@@ -88,31 +88,35 @@ pkpmApp = PKPM.App.new {
 
     -- Initial conditions (distribution function).
     initDist = function (t, xn)
-      local x, vx = xn[1], xn[2]
+      local w = xn[2] -- Normalized parallel velocity w = v_par/xi.
 
-      local F0 = 0.0
-      local T = 0.0
-      
-      if math.abs(x) < 0.5 then
-        F0 = (nl / math.sqrt(2.0 * pi * Tl * Tl)) * (math.exp(-(vx * vx) / (2.0 * Tl * Tl))) -- Distribution function (F0, left).
-        T = Tl -- Isotropic temperature (left).
-      else
-        F0 = (nr / math.sqrt(2.0 * pi * Tr * Tr)) * (math.exp(-(vx * vx) / (2.0 * Tr * Tr))) -- Distribution function (F0, right).
-        T = Tr -- Isotropic temperature (right).
-      end
+      -- Normalized isotropic Maxwellian: F = exp(-w^2/2)/sqrt(2 pi) (M0 = 1, M2 = 1) and
+      -- G = (T_perp/T) F = F, independent of position; the density, flow and temperature
+      -- enter through the fluid state.
+      local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * math.pi)
 
-      local G = (T * T) * F0 -- Distribution function (G).
-      
-      return F0, G
+      return F, F
     end,
 
     -- Initial conditions (fluid).
     initFluid = function (t, xn)
+      local x = xn[1]
+      local n = nl
+      local vt = Tl
+      if math.abs(x) >= 0.5 then
+        n = nr
+        vt = Tr
+      end
       local mom_x = 0.0 -- Total momentum density (x-direction).
       local mom_y = 0.0 -- Total momentum density (y-direction).
       local mom_z = 0.0 -- Total momentum density (z-direction).
 
-      return mom_x, mom_y, mom_z
+
+      local rho = mass * n -- Neutral mass density.
+      local vtsq = vt * vt -- Neutral T/m.
+      local E = 0.5 * (mom_x * mom_x + mom_y * mom_y + mom_z * mom_z) / rho + 1.5 * rho * vtsq -- Neutral total energy density.
+
+      return rho, mom_x, mom_y, mom_z, E
     end,
 
     collisions = {

@@ -70,42 +70,41 @@ maxwellian(double n, double v, double vth)
 void
 evalDistFuncElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct pkpm_kalf_ctx *app = ctx;
+  double w = xn[2]; // Normalized parallel velocity w = v_par/xi.
 
-  double x = xn[0], y = xn[1], vx = xn[2];
+  // Normalized isotropic Maxwellian: F = exp(-w^2/2)/sqrt(2 pi) (M0 = 1, M2 = 1) and
+  // G = (T_perp/T) F = F, independent of position; the density, flow and temperature
+  // enter through the fluid state.
+  double F = exp(-0.5 * w * w) / sqrt(2.0 * M_PI);
 
-  double qe = app->chargeElc;
-  double qi = app->chargeIon;
-
-  double fv = maxwellian(app->n0, vx, app->vtElc);
-
-  fout[0] = fv;
-  fout[1] = app->vtElc * app->vtElc * fv;
+  // Set normalized electron distribution functions.
+  fout[0] = F;
+  fout[1] = F;
 }
 void
 evalDistFuncIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct pkpm_kalf_ctx *app = ctx;
+  double w = xn[2]; // Normalized parallel velocity w = v_par/xi.
 
-  double x = xn[0], y = xn[1], vx = xn[2];
+  // Normalized isotropic Maxwellian: F = exp(-w^2/2)/sqrt(2 pi) (M0 = 1, M2 = 1) and
+  // G = (T_perp/T) F = F, independent of position; the density, flow and temperature
+  // enter through the fluid state.
+  double F = exp(-0.5 * w * w) / sqrt(2.0 * M_PI);
 
-  double qe = app->chargeElc;
-  double qi = app->chargeIon;
-
-  double fv = maxwellian(app->n0, vx, app->vtIon);
-
-  fout[0] = fv;
-  fout[1] = app->vtIon * app->vtIon * fv;
+  // Set normalized ion distribution functions.
+  fout[0] = F;
+  fout[1] = F;
 }
 
 void
 evalFluidElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_kalf_ctx *app = ctx;
-
   double x = xn[0], y = xn[1];
 
   double me = app->massElc;
+  double n0 = app->n0;
+  double vtElc = app->vtElc;
   double kpar = app->kpar;
   double kperp = app->kperp;
   double uxe = app->uxe;
@@ -120,20 +119,31 @@ evalFluidElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fou
   double u_ye = uze * cos(kperp * x + kpar * y + uzePhi);
   double u_ze = -uye * cos(kperp * x + kpar * y + uyePhi);
 
-  // n0 = 1, so initially uniform density
-  fout[0] = me * u_xe;
-  fout[1] = me * u_ye;
-  fout[2] = me * u_ze;
+  double mom_x = me * n0 * u_xe;
+  double mom_y = me * n0 * u_ye;
+  double mom_z = me * n0 * u_ze;
+
+  double rho = me * n0; // Electron mass density.
+  double vtsq = vtElc * vtElc; // Electron T/m.
+  double E = 0.5 * (mom_x * mom_x + mom_y * mom_y + mom_z * mom_z) / rho + 1.5 * rho * vtsq; // Electron total energy density.
+
+  // Set Electron fluid state [rho, rho ux, rho uy, rho uz, E].
+  fout[0] = rho;
+  fout[1] = mom_x;
+  fout[2] = mom_y;
+  fout[3] = mom_z;
+  fout[4] = E;
 }
 
 void
 evalFluidIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_kalf_ctx *app = ctx;
-
   double x = xn[0], y = xn[1];
 
   double mi = app->massIon;
+  double n0 = app->n0;
+  double vtIon = app->vtIon;
   double kpar = app->kpar;
   double kperp = app->kperp;
   double uxi = app->uxi;
@@ -148,10 +158,20 @@ evalFluidIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fou
   double u_yi = uzi * cos(kperp * x + kpar * y + uziPhi);
   double u_zi = -uyi * cos(kperp * x + kpar * y + uyiPhi);
 
-  // n0 = 1, so initially uniform density
-  fout[0] = mi * u_xi;
-  fout[1] = mi * u_yi;
-  fout[2] = mi * u_zi;
+  double mom_x = mi * n0 * u_xi;
+  double mom_y = mi * n0 * u_yi;
+  double mom_z = mi * n0 * u_zi;
+
+  double rho = mi * n0; // Ion mass density.
+  double vtsq = vtIon * vtIon; // Ion T/m.
+  double E = 0.5 * (mom_x * mom_x + mom_y * mom_y + mom_z * mom_z) / rho + 1.5 * rho * vtsq; // Ion total energy density.
+
+  // Set Ion fluid state [rho, rho ux, rho uy, rho uz, E].
+  fout[0] = rho;
+  fout[1] = mom_x;
+  fout[2] = mom_y;
+  fout[3] = mom_z;
+  fout[4] = E;
 }
 
 void
@@ -379,8 +399,8 @@ main(int argc, char **argv)
     .name = "elc",
     .charge = ctx.chargeElc,
     .mass = ctx.massElc,
-    .lower = {-6.0 * ctx.vtElc},
-    .upper = {6.0 * ctx.vtElc},
+    .lower = {-6.0},
+    .upper = {6.0},
     .cells = {VX},
 
     .ctx_dist = &ctx,
@@ -402,8 +422,8 @@ main(int argc, char **argv)
     .name = "ion",
     .charge = ctx.chargeIon,
     .mass = ctx.massIon,
-    .lower = {-6.0 * ctx.vtIon},
-    .upper = {6.0 * ctx.vtIon},
+    .lower = {-6.0},
+    .upper = {6.0},
     .cells = {VX},
 
     .ctx_dist = &ctx,

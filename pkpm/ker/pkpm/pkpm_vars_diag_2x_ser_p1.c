@@ -1,33 +1,35 @@
 #include <gkyl_pkpm_vars_kernels.h> 
 GKYL_CU_DH void pkpm_vars_diag_2x_ser_p1(const double *dxv, const double *vlasov_pkpm_moms, const double *euler_pkpm,
-  const double *bvar, const double *grad_b, const double *u, const double *grad_u, const double *theta, const double *a_P,
-  double* GKYL_RESTRICT fluid_io, double* GKYL_RESTRICT pkpm_vars_io) 
+  const double *bvar, const double *grad_b, const double *u, const double *grad_u, const double *theta, const double *alpha_0,
+  const double *xi, const double *c_h, double* GKYL_RESTRICT fluid_io, double* GKYL_RESTRICT pkpm_vars_io) 
 { 
   // dxv[NDIM]:        Cell spacing. 
-  // vlasov_pkpm_moms: [rho, p_parallel, p_perp, M1], moments of the kinetic equation. 
-  // euler_pkpm:       Momentum [rho ux, rho uy, rho uz]. 
+  // vlasov_pkpm_moms: Kinetic coupling moments [p_par, p_perp, q_par, q_perp]. 
+  // euler_pkpm:       Fluid state [rho, rho ux, rho uy, rho uz, E]. 
   // bvar:             Magnetic field unit vector [bx, by, bz]. 
   // grad_b:           Weak gradient of b, [d_i bx, d_i by, d_i bz] per direction i. 
   // u:                Flow velocity [ux, uy, uz]. 
   // grad_u:           Weak gradient of u, [d_i ux, d_i uy, d_i uz] per direction i. 
-  // theta:            T_perp/m. 
-  // a_P:              Pressure force closing the first moment. 
-  // fluid_io:         Output [rho, M_i, P_ij + M_i u_j] (10 components). 
-  // pkpm_vars_io:     Output [u_x, u_y, u_z, theta, a_P, div b, bb:grad u, theta div b] (8 components). 
+  // theta:            T_perp/T = M0(G). 
+  // alpha_0:          Pressure force a_P/xi closing the first moment. 
+  // xi:               Thermal speed [xi, xi^2]. 
+  // c_h:              Heating rate closing the scalar second moment. 
+  // fluid_io:         Output [rho, M_i, P_ij + M_i u_j, E] (11 components). 
+  // pkpm_vars_io:     Output [u_x, u_y, u_z, T_perp/m, a_P, div b, bb:grad u, T_perp/m div b, xi, c] (10 components). 
   const double dx10 = 2.0/dxv[0]; 
   const double dx11 = 2.0/dxv[1]; 
-  const double *rho = &vlasov_pkpm_moms[0]; 
-  const double *ppar = &vlasov_pkpm_moms[4]; 
-  const double *pperp = &vlasov_pkpm_moms[8]; 
+  const double *rho = &euler_pkpm[0]; 
+  const double *ppar = &vlasov_pkpm_moms[0]; 
+  const double *pperp = &vlasov_pkpm_moms[4]; 
   const double *bx = &bvar[0]; 
   const double *ux = &u[0]; 
-  const double *Mx = &euler_pkpm[0]; 
+  const double *Mx = &euler_pkpm[4]; 
   const double *by = &bvar[4]; 
   const double *uy = &u[4]; 
-  const double *My = &euler_pkpm[4]; 
+  const double *My = &euler_pkpm[8]; 
   const double *bz = &bvar[8]; 
   const double *uz = &u[8]; 
-  const double *Mz = &euler_pkpm[8]; 
+  const double *Mz = &euler_pkpm[12]; 
   const double *guxx = &grad_u[0]; 
   const double *guxy = &grad_u[4]; 
   const double *guxz = &grad_u[8]; 
@@ -42,22 +44,35 @@ GKYL_CU_DH void pkpm_vars_diag_2x_ser_p1(const double *dxv, const double *vlasov
   double *fluid_io_Syy = &fluid_io[28]; 
   double *fluid_io_Syz = &fluid_io[32]; 
   double *fluid_io_Szz = &fluid_io[36]; 
+  double *pkpm_vars_io_tperp = &pkpm_vars_io[12]; 
+  double *pkpm_vars_io_a_P = &pkpm_vars_io[16]; 
   double *pkpm_vars_io_div_b = &pkpm_vars_io[20]; 
   double *pkpm_vars_io_bb_grad_u = &pkpm_vars_io[24]; 
   double *pkpm_vars_io_theta_div_b = &pkpm_vars_io[28]; 
+  const double *xi_1 = &xi[0]; 
+  const double *xi_sq = &xi[4]; 
  
   for (int k = 0; k < 4; ++k) { 
     fluid_io[0 + k] = rho[k]; 
     fluid_io[4 + k] = Mx[k]; 
     fluid_io[8 + k] = My[k]; 
     fluid_io[12 + k] = Mz[k]; 
+    fluid_io[40 + k] = euler_pkpm[16 + k]; 
     pkpm_vars_io[0 + k] = ux[k]; 
     pkpm_vars_io[4 + k] = uy[k]; 
     pkpm_vars_io[8 + k] = uz[k]; 
-    pkpm_vars_io[12 + k] = theta[k]; 
-    pkpm_vars_io[16 + k] = a_P[k]; 
+    pkpm_vars_io[32 + k] = xi_1[k]; 
+    pkpm_vars_io[36 + k] = c_h[k]; 
   } 
  
+  pkpm_vars_io_tperp[0] = 0.5*theta[3]*xi_sq[3]+0.5*theta[2]*xi_sq[2]+0.5*theta[1]*xi_sq[1]+0.5*theta[0]*xi_sq[0]; 
+  pkpm_vars_io_tperp[1] = 0.5*theta[2]*xi_sq[3]+0.5*xi_sq[2]*theta[3]+0.5*theta[0]*xi_sq[1]+0.5*xi_sq[0]*theta[1]; 
+  pkpm_vars_io_tperp[2] = 0.5*theta[1]*xi_sq[3]+0.5*xi_sq[1]*theta[3]+0.5*theta[0]*xi_sq[2]+0.5*xi_sq[0]*theta[2]; 
+  pkpm_vars_io_tperp[3] = 0.5*theta[0]*xi_sq[3]+0.5*xi_sq[0]*theta[3]+0.5*theta[1]*xi_sq[2]+0.5*xi_sq[1]*theta[2]; 
+  pkpm_vars_io_a_P[0] = 0.5*alpha_0[3]*xi_1[3]+0.5*alpha_0[2]*xi_1[2]+0.5*alpha_0[1]*xi_1[1]+0.5*alpha_0[0]*xi_1[0]; 
+  pkpm_vars_io_a_P[1] = 0.5*alpha_0[2]*xi_1[3]+0.5*xi_1[2]*alpha_0[3]+0.5*alpha_0[0]*xi_1[1]+0.5*xi_1[0]*alpha_0[1]; 
+  pkpm_vars_io_a_P[2] = 0.5*alpha_0[1]*xi_1[3]+0.5*xi_1[1]*alpha_0[3]+0.5*alpha_0[0]*xi_1[2]+0.5*xi_1[0]*alpha_0[2]; 
+  pkpm_vars_io_a_P[3] = 0.5*alpha_0[0]*xi_1[3]+0.5*xi_1[0]*alpha_0[3]+0.5*alpha_0[1]*xi_1[2]+0.5*xi_1[1]*alpha_0[2]; 
   fluid_io_Sxx[0] = -(0.25*pperp[0]*pow(bx[3],2))+0.25*ppar[0]*pow(bx[3],2)-0.25*pperp[0]*pow(bx[2],2)+0.25*ppar[0]*pow(bx[2],2)-0.25*pperp[0]*pow(bx[1],2)+0.25*ppar[0]*pow(bx[1],2)-0.25*pperp[0]*pow(bx[0],2)+0.25*ppar[0]*pow(bx[0],2)+0.5*Mx[3]*ux[3]-0.5*bx[0]*bx[3]*pperp[3]-0.5*bx[1]*bx[2]*pperp[3]+0.5*bx[0]*bx[3]*ppar[3]+0.5*bx[1]*bx[2]*ppar[3]-0.5*bx[1]*pperp[2]*bx[3]+0.5*bx[1]*ppar[2]*bx[3]-0.5*pperp[1]*bx[2]*bx[3]+0.5*ppar[1]*bx[2]*bx[3]+0.5*Mx[2]*ux[2]-0.5*bx[0]*bx[2]*pperp[2]+0.5*bx[0]*bx[2]*ppar[2]+0.5*Mx[1]*ux[1]-0.5*bx[0]*bx[1]*pperp[1]+0.5*bx[0]*bx[1]*ppar[1]+0.5*Mx[0]*ux[0]+pperp[0]; 
   fluid_io_Sxx[1] = -(0.45*pperp[1]*pow(bx[3],2))+0.45*ppar[1]*pow(bx[3],2)-0.25*pperp[1]*pow(bx[2],2)+0.25*ppar[1]*pow(bx[2],2)-0.45*pperp[1]*pow(bx[1],2)+0.45*ppar[1]*pow(bx[1],2)-0.25*pperp[1]*pow(bx[0],2)+0.25*ppar[1]*pow(bx[0],2)+0.5*Mx[2]*ux[3]-0.9*bx[1]*bx[3]*pperp[3]-0.5*bx[0]*bx[2]*pperp[3]+0.9*bx[1]*bx[3]*ppar[3]+0.5*bx[0]*bx[2]*ppar[3]-0.5*bx[0]*pperp[2]*bx[3]+0.5*bx[0]*ppar[2]*bx[3]-0.5*pperp[0]*bx[2]*bx[3]+0.5*ppar[0]*bx[2]*bx[3]+0.5*ux[2]*Mx[3]-0.5*bx[1]*bx[2]*pperp[2]+0.5*bx[1]*bx[2]*ppar[2]+0.5*Mx[0]*ux[1]+pperp[1]-0.5*bx[0]*pperp[0]*bx[1]+0.5*bx[0]*ppar[0]*bx[1]+0.5*ux[0]*Mx[1]; 
   fluid_io_Sxx[2] = -(0.45*pperp[2]*pow(bx[3],2))+0.45*ppar[2]*pow(bx[3],2)-0.45*pperp[2]*pow(bx[2],2)+0.45*ppar[2]*pow(bx[2],2)-0.25*pperp[2]*pow(bx[1],2)+0.25*ppar[2]*pow(bx[1],2)-0.25*pperp[2]*pow(bx[0],2)+0.25*ppar[2]*pow(bx[0],2)+0.5*Mx[1]*ux[3]-0.9*bx[2]*bx[3]*pperp[3]-0.5*bx[0]*bx[1]*pperp[3]+0.9*bx[2]*bx[3]*ppar[3]+0.5*bx[0]*bx[1]*ppar[3]-0.5*bx[0]*pperp[1]*bx[3]+0.5*bx[0]*ppar[1]*bx[3]-0.5*pperp[0]*bx[1]*bx[3]+0.5*ppar[0]*bx[1]*bx[3]+0.5*ux[1]*Mx[3]+0.5*Mx[0]*ux[2]+pperp[2]-0.5*bx[1]*pperp[1]*bx[2]+0.5*bx[1]*ppar[1]*bx[2]-0.5*bx[0]*pperp[0]*bx[2]+0.5*bx[0]*ppar[0]*bx[2]+0.5*ux[0]*Mx[2]; 
@@ -91,8 +106,8 @@ GKYL_CU_DH void pkpm_vars_diag_2x_ser_p1(const double *dxv, const double *vlasov
   pkpm_vars_io_bb_grad_u[1] = 0.45*guyy[1]*pow(by[3],2)+0.45*guxx[1]*pow(bx[3],2)+0.25*guyy[1]*pow(by[2],2)+0.25*guxx[1]*pow(bx[2],2)+0.45*guyy[1]*pow(by[1],2)+0.45*guxx[1]*pow(bx[1],2)+0.25*guyy[1]*pow(by[0],2)+0.25*guxx[1]*pow(bx[0],2)+0.45*by[1]*bz[3]*guyz[3]+0.45*bz[1]*by[3]*guyz[3]+0.25*by[0]*bz[2]*guyz[3]+0.25*bz[0]*by[2]*guyz[3]+0.9*by[1]*by[3]*guyy[3]+0.5*by[0]*by[2]*guyy[3]+0.45*bx[1]*by[3]*guyx[3]+0.45*by[1]*bx[3]*guyx[3]+0.25*bx[0]*by[2]*guyx[3]+0.25*by[0]*bx[2]*guyx[3]+0.45*bx[1]*bz[3]*guxz[3]+0.45*bz[1]*bx[3]*guxz[3]+0.25*bx[0]*bz[2]*guxz[3]+0.25*bz[0]*bx[2]*guxz[3]+0.45*bx[1]*by[3]*guxy[3]+0.45*by[1]*bx[3]*guxy[3]+0.25*bx[0]*by[2]*guxy[3]+0.25*by[0]*bx[2]*guxy[3]+0.9*bx[1]*bx[3]*guxx[3]+0.5*bx[0]*bx[2]*guxx[3]+0.45*guyz[1]*by[3]*bz[3]+0.45*guxz[1]*bx[3]*bz[3]+0.25*by[0]*guyz[2]*bz[3]+0.25*bx[0]*guxz[2]*bz[3]+0.25*guyz[0]*by[2]*bz[3]+0.25*guxz[0]*bx[2]*bz[3]+0.45*guyx[1]*bx[3]*by[3]+0.45*guxy[1]*bx[3]*by[3]+0.25*bz[0]*guyz[2]*by[3]+0.5*by[0]*guyy[2]*by[3]+0.25*bx[0]*guyx[2]*by[3]+0.25*bx[0]*guxy[2]*by[3]+0.25*guyz[0]*bz[2]*by[3]+0.5*guyy[0]*by[2]*by[3]+0.25*guyx[0]*bx[2]*by[3]+0.25*guxy[0]*bx[2]*by[3]+0.25*by[0]*guyx[2]*bx[3]+0.25*bz[0]*guxz[2]*bx[3]+0.25*by[0]*guxy[2]*bx[3]+0.5*bx[0]*guxx[2]*bx[3]+0.25*guxz[0]*bz[2]*bx[3]+0.25*guyx[0]*by[2]*bx[3]+0.25*guxy[0]*by[2]*bx[3]+0.5*guxx[0]*bx[2]*bx[3]+0.25*by[1]*bz[2]*guyz[2]+0.25*bz[1]*by[2]*guyz[2]+0.5*by[1]*by[2]*guyy[2]+0.25*bx[1]*by[2]*guyx[2]+0.25*by[1]*bx[2]*guyx[2]+0.25*bx[1]*bz[2]*guxz[2]+0.25*bz[1]*bx[2]*guxz[2]+0.25*bx[1]*by[2]*guxy[2]+0.25*by[1]*bx[2]*guxy[2]+0.5*bx[1]*bx[2]*guxx[2]+0.25*guyz[1]*by[2]*bz[2]+0.25*guxz[1]*bx[2]*bz[2]+0.25*guyx[1]*bx[2]*by[2]+0.25*guxy[1]*bx[2]*by[2]+0.45*by[1]*bz[1]*guyz[1]+0.25*by[0]*bz[0]*guyz[1]+0.45*bx[1]*by[1]*guyx[1]+0.25*bx[0]*by[0]*guyx[1]+0.45*bx[1]*bz[1]*guxz[1]+0.25*bx[0]*bz[0]*guxz[1]+0.45*bx[1]*by[1]*guxy[1]+0.25*bx[0]*by[0]*guxy[1]+0.25*by[0]*guyz[0]*bz[1]+0.25*bx[0]*guxz[0]*bz[1]+0.25*bz[0]*guyz[0]*by[1]+0.5*by[0]*guyy[0]*by[1]+0.25*bx[0]*guyx[0]*by[1]+0.25*bx[0]*guxy[0]*by[1]+0.25*by[0]*guyx[0]*bx[1]+0.25*bz[0]*guxz[0]*bx[1]+0.25*by[0]*guxy[0]*bx[1]+0.5*bx[0]*guxx[0]*bx[1]; 
   pkpm_vars_io_bb_grad_u[2] = 0.45*guyy[2]*pow(by[3],2)+0.45*guxx[2]*pow(bx[3],2)+0.45*guyy[2]*pow(by[2],2)+0.45*guxx[2]*pow(bx[2],2)+0.25*guyy[2]*pow(by[1],2)+0.25*guxx[2]*pow(bx[1],2)+0.25*guyy[2]*pow(by[0],2)+0.25*guxx[2]*pow(bx[0],2)+0.45*by[2]*bz[3]*guyz[3]+0.45*bz[2]*by[3]*guyz[3]+0.25*by[0]*bz[1]*guyz[3]+0.25*bz[0]*by[1]*guyz[3]+0.9*by[2]*by[3]*guyy[3]+0.5*by[0]*by[1]*guyy[3]+0.45*bx[2]*by[3]*guyx[3]+0.45*by[2]*bx[3]*guyx[3]+0.25*bx[0]*by[1]*guyx[3]+0.25*by[0]*bx[1]*guyx[3]+0.45*bx[2]*bz[3]*guxz[3]+0.45*bz[2]*bx[3]*guxz[3]+0.25*bx[0]*bz[1]*guxz[3]+0.25*bz[0]*bx[1]*guxz[3]+0.45*bx[2]*by[3]*guxy[3]+0.45*by[2]*bx[3]*guxy[3]+0.25*bx[0]*by[1]*guxy[3]+0.25*by[0]*bx[1]*guxy[3]+0.9*bx[2]*bx[3]*guxx[3]+0.5*bx[0]*bx[1]*guxx[3]+0.45*guyz[2]*by[3]*bz[3]+0.45*guxz[2]*bx[3]*bz[3]+0.25*by[0]*guyz[1]*bz[3]+0.25*bx[0]*guxz[1]*bz[3]+0.25*guyz[0]*by[1]*bz[3]+0.25*guxz[0]*bx[1]*bz[3]+0.45*guyx[2]*bx[3]*by[3]+0.45*guxy[2]*bx[3]*by[3]+0.25*bz[0]*guyz[1]*by[3]+0.5*by[0]*guyy[1]*by[3]+0.25*bx[0]*guyx[1]*by[3]+0.25*bx[0]*guxy[1]*by[3]+0.25*guyz[0]*bz[1]*by[3]+0.5*guyy[0]*by[1]*by[3]+0.25*guyx[0]*bx[1]*by[3]+0.25*guxy[0]*bx[1]*by[3]+0.25*by[0]*guyx[1]*bx[3]+0.25*bz[0]*guxz[1]*bx[3]+0.25*by[0]*guxy[1]*bx[3]+0.5*bx[0]*guxx[1]*bx[3]+0.25*guxz[0]*bz[1]*bx[3]+0.25*guyx[0]*by[1]*bx[3]+0.25*guxy[0]*by[1]*bx[3]+0.5*guxx[0]*bx[1]*bx[3]+0.45*by[2]*bz[2]*guyz[2]+0.25*by[1]*bz[1]*guyz[2]+0.25*by[0]*bz[0]*guyz[2]+0.45*bx[2]*by[2]*guyx[2]+0.25*bx[1]*by[1]*guyx[2]+0.25*bx[0]*by[0]*guyx[2]+0.45*bx[2]*bz[2]*guxz[2]+0.25*bx[1]*bz[1]*guxz[2]+0.25*bx[0]*bz[0]*guxz[2]+0.45*bx[2]*by[2]*guxy[2]+0.25*bx[1]*by[1]*guxy[2]+0.25*bx[0]*by[0]*guxy[2]+0.25*by[1]*guyz[1]*bz[2]+0.25*bx[1]*guxz[1]*bz[2]+0.25*by[0]*guyz[0]*bz[2]+0.25*bx[0]*guxz[0]*bz[2]+0.25*bz[1]*guyz[1]*by[2]+0.5*by[1]*guyy[1]*by[2]+0.25*bx[1]*guyx[1]*by[2]+0.25*bx[1]*guxy[1]*by[2]+0.25*bz[0]*guyz[0]*by[2]+0.5*by[0]*guyy[0]*by[2]+0.25*bx[0]*guyx[0]*by[2]+0.25*bx[0]*guxy[0]*by[2]+0.25*by[1]*guyx[1]*bx[2]+0.25*bz[1]*guxz[1]*bx[2]+0.25*by[1]*guxy[1]*bx[2]+0.5*bx[1]*guxx[1]*bx[2]+0.25*by[0]*guyx[0]*bx[2]+0.25*bz[0]*guxz[0]*bx[2]+0.25*by[0]*guxy[0]*bx[2]+0.5*bx[0]*guxx[0]*bx[2]; 
   pkpm_vars_io_bb_grad_u[3] = 0.81*guyy[3]*pow(by[3],2)+0.81*guxx[3]*pow(bx[3],2)+0.45*guyy[3]*pow(by[2],2)+0.45*guxx[3]*pow(bx[2],2)+0.45*guyy[3]*pow(by[1],2)+0.45*guxx[3]*pow(bx[1],2)+0.25*guyy[3]*pow(by[0],2)+0.25*guxx[3]*pow(bx[0],2)+0.81*by[3]*bz[3]*guyz[3]+0.45*by[2]*bz[2]*guyz[3]+0.45*by[1]*bz[1]*guyz[3]+0.25*by[0]*bz[0]*guyz[3]+0.81*bx[3]*by[3]*guyx[3]+0.45*bx[2]*by[2]*guyx[3]+0.45*bx[1]*by[1]*guyx[3]+0.25*bx[0]*by[0]*guyx[3]+0.81*bx[3]*bz[3]*guxz[3]+0.45*bx[2]*bz[2]*guxz[3]+0.45*bx[1]*bz[1]*guxz[3]+0.25*bx[0]*bz[0]*guxz[3]+0.81*bx[3]*by[3]*guxy[3]+0.45*bx[2]*by[2]*guxy[3]+0.45*bx[1]*by[1]*guxy[3]+0.25*bx[0]*by[0]*guxy[3]+0.45*by[2]*guyz[2]*bz[3]+0.45*bx[2]*guxz[2]*bz[3]+0.45*by[1]*guyz[1]*bz[3]+0.45*bx[1]*guxz[1]*bz[3]+0.25*by[0]*guyz[0]*bz[3]+0.25*bx[0]*guxz[0]*bz[3]+0.45*bz[2]*guyz[2]*by[3]+0.9*by[2]*guyy[2]*by[3]+0.45*bx[2]*guyx[2]*by[3]+0.45*bx[2]*guxy[2]*by[3]+0.45*bz[1]*guyz[1]*by[3]+0.9*by[1]*guyy[1]*by[3]+0.45*bx[1]*guyx[1]*by[3]+0.45*bx[1]*guxy[1]*by[3]+0.25*bz[0]*guyz[0]*by[3]+0.5*by[0]*guyy[0]*by[3]+0.25*bx[0]*guyx[0]*by[3]+0.25*bx[0]*guxy[0]*by[3]+0.45*by[2]*guyx[2]*bx[3]+0.45*bz[2]*guxz[2]*bx[3]+0.45*by[2]*guxy[2]*bx[3]+0.9*bx[2]*guxx[2]*bx[3]+0.45*by[1]*guyx[1]*bx[3]+0.45*bz[1]*guxz[1]*bx[3]+0.45*by[1]*guxy[1]*bx[3]+0.9*bx[1]*guxx[1]*bx[3]+0.25*by[0]*guyx[0]*bx[3]+0.25*bz[0]*guxz[0]*bx[3]+0.25*by[0]*guxy[0]*bx[3]+0.5*bx[0]*guxx[0]*bx[3]+0.25*by[0]*bz[1]*guyz[2]+0.25*bz[0]*by[1]*guyz[2]+0.5*by[0]*by[1]*guyy[2]+0.25*bx[0]*by[1]*guyx[2]+0.25*by[0]*bx[1]*guyx[2]+0.25*bx[0]*bz[1]*guxz[2]+0.25*bz[0]*bx[1]*guxz[2]+0.25*bx[0]*by[1]*guxy[2]+0.25*by[0]*bx[1]*guxy[2]+0.5*bx[0]*bx[1]*guxx[2]+0.25*by[0]*guyz[1]*bz[2]+0.25*bx[0]*guxz[1]*bz[2]+0.25*guyz[0]*by[1]*bz[2]+0.25*guxz[0]*bx[1]*bz[2]+0.25*bz[0]*guyz[1]*by[2]+0.5*by[0]*guyy[1]*by[2]+0.25*bx[0]*guyx[1]*by[2]+0.25*bx[0]*guxy[1]*by[2]+0.25*guyz[0]*bz[1]*by[2]+0.5*guyy[0]*by[1]*by[2]+0.25*guyx[0]*bx[1]*by[2]+0.25*guxy[0]*bx[1]*by[2]+0.25*by[0]*guyx[1]*bx[2]+0.25*bz[0]*guxz[1]*bx[2]+0.25*by[0]*guxy[1]*bx[2]+0.5*bx[0]*guxx[1]*bx[2]+0.25*guxz[0]*bz[1]*bx[2]+0.25*guyx[0]*by[1]*bx[2]+0.25*guxy[0]*by[1]*bx[2]+0.5*guxx[0]*bx[1]*bx[2]; 
-  pkpm_vars_io_theta_div_b[0] = 0.5*gbyy[3]*theta[3]+0.5*gbxx[3]*theta[3]+0.5*gbyy[2]*theta[2]+0.5*gbxx[2]*theta[2]+0.5*gbyy[1]*theta[1]+0.5*gbxx[1]*theta[1]+0.5*gbyy[0]*theta[0]+0.5*gbxx[0]*theta[0]; 
-  pkpm_vars_io_theta_div_b[1] = 0.5*gbyy[2]*theta[3]+0.5*gbxx[2]*theta[3]+0.5*theta[2]*gbyy[3]+0.5*theta[2]*gbxx[3]+0.5*gbyy[0]*theta[1]+0.5*gbxx[0]*theta[1]+0.5*theta[0]*gbyy[1]+0.5*theta[0]*gbxx[1]; 
-  pkpm_vars_io_theta_div_b[2] = 0.5*gbyy[1]*theta[3]+0.5*gbxx[1]*theta[3]+0.5*theta[1]*gbyy[3]+0.5*theta[1]*gbxx[3]+0.5*gbyy[0]*theta[2]+0.5*gbxx[0]*theta[2]+0.5*theta[0]*gbyy[2]+0.5*theta[0]*gbxx[2]; 
-  pkpm_vars_io_theta_div_b[3] = 0.5*gbyy[0]*theta[3]+0.5*gbxx[0]*theta[3]+0.5*theta[0]*gbyy[3]+0.5*theta[0]*gbxx[3]+0.5*gbyy[1]*theta[2]+0.5*gbxx[1]*theta[2]+0.5*theta[1]*gbyy[2]+0.5*theta[1]*gbxx[2]; 
+  pkpm_vars_io_theta_div_b[0] = 0.25*gbyy[0]*theta[3]*xi_sq[3]+0.25*gbxx[0]*theta[3]*xi_sq[3]+0.25*theta[0]*gbyy[3]*xi_sq[3]+0.25*theta[0]*gbxx[3]*xi_sq[3]+0.25*gbyy[1]*theta[2]*xi_sq[3]+0.25*gbxx[1]*theta[2]*xi_sq[3]+0.25*theta[1]*gbyy[2]*xi_sq[3]+0.25*theta[1]*gbxx[2]*xi_sq[3]+0.25*xi_sq[0]*gbyy[3]*theta[3]+0.25*xi_sq[0]*gbxx[3]*theta[3]+0.25*gbyy[1]*xi_sq[2]*theta[3]+0.25*gbxx[1]*xi_sq[2]*theta[3]+0.25*xi_sq[1]*gbyy[2]*theta[3]+0.25*xi_sq[1]*gbxx[2]*theta[3]+0.25*theta[1]*xi_sq[2]*gbyy[3]+0.25*xi_sq[1]*theta[2]*gbyy[3]+0.25*theta[1]*xi_sq[2]*gbxx[3]+0.25*xi_sq[1]*theta[2]*gbxx[3]+0.25*gbyy[0]*theta[2]*xi_sq[2]+0.25*gbxx[0]*theta[2]*xi_sq[2]+0.25*theta[0]*gbyy[2]*xi_sq[2]+0.25*theta[0]*gbxx[2]*xi_sq[2]+0.25*xi_sq[0]*gbyy[2]*theta[2]+0.25*xi_sq[0]*gbxx[2]*theta[2]+0.25*gbyy[0]*theta[1]*xi_sq[1]+0.25*gbxx[0]*theta[1]*xi_sq[1]+0.25*theta[0]*gbyy[1]*xi_sq[1]+0.25*theta[0]*gbxx[1]*xi_sq[1]+0.25*xi_sq[0]*gbyy[1]*theta[1]+0.25*xi_sq[0]*gbxx[1]*theta[1]+0.25*gbyy[0]*theta[0]*xi_sq[0]+0.25*gbxx[0]*theta[0]*xi_sq[0]; 
+  pkpm_vars_io_theta_div_b[1] = 0.45*gbyy[1]*theta[3]*xi_sq[3]+0.45*gbxx[1]*theta[3]*xi_sq[3]+0.45*theta[1]*gbyy[3]*xi_sq[3]+0.45*theta[1]*gbxx[3]*xi_sq[3]+0.25*gbyy[0]*theta[2]*xi_sq[3]+0.25*gbxx[0]*theta[2]*xi_sq[3]+0.25*theta[0]*gbyy[2]*xi_sq[3]+0.25*theta[0]*gbxx[2]*xi_sq[3]+0.45*xi_sq[1]*gbyy[3]*theta[3]+0.45*xi_sq[1]*gbxx[3]*theta[3]+0.25*gbyy[0]*xi_sq[2]*theta[3]+0.25*gbxx[0]*xi_sq[2]*theta[3]+0.25*xi_sq[0]*gbyy[2]*theta[3]+0.25*xi_sq[0]*gbxx[2]*theta[3]+0.25*theta[0]*xi_sq[2]*gbyy[3]+0.25*xi_sq[0]*theta[2]*gbyy[3]+0.25*theta[0]*xi_sq[2]*gbxx[3]+0.25*xi_sq[0]*theta[2]*gbxx[3]+0.25*gbyy[1]*theta[2]*xi_sq[2]+0.25*gbxx[1]*theta[2]*xi_sq[2]+0.25*theta[1]*gbyy[2]*xi_sq[2]+0.25*theta[1]*gbxx[2]*xi_sq[2]+0.25*xi_sq[1]*gbyy[2]*theta[2]+0.25*xi_sq[1]*gbxx[2]*theta[2]+0.45*gbyy[1]*theta[1]*xi_sq[1]+0.45*gbxx[1]*theta[1]*xi_sq[1]+0.25*gbyy[0]*theta[0]*xi_sq[1]+0.25*gbxx[0]*theta[0]*xi_sq[1]+0.25*gbyy[0]*xi_sq[0]*theta[1]+0.25*gbxx[0]*xi_sq[0]*theta[1]+0.25*theta[0]*xi_sq[0]*gbyy[1]+0.25*theta[0]*xi_sq[0]*gbxx[1]; 
+  pkpm_vars_io_theta_div_b[2] = 0.45*gbyy[2]*theta[3]*xi_sq[3]+0.45*gbxx[2]*theta[3]*xi_sq[3]+0.45*theta[2]*gbyy[3]*xi_sq[3]+0.45*theta[2]*gbxx[3]*xi_sq[3]+0.25*gbyy[0]*theta[1]*xi_sq[3]+0.25*gbxx[0]*theta[1]*xi_sq[3]+0.25*theta[0]*gbyy[1]*xi_sq[3]+0.25*theta[0]*gbxx[1]*xi_sq[3]+0.45*xi_sq[2]*gbyy[3]*theta[3]+0.45*xi_sq[2]*gbxx[3]*theta[3]+0.25*gbyy[0]*xi_sq[1]*theta[3]+0.25*gbxx[0]*xi_sq[1]*theta[3]+0.25*xi_sq[0]*gbyy[1]*theta[3]+0.25*xi_sq[0]*gbxx[1]*theta[3]+0.25*theta[0]*xi_sq[1]*gbyy[3]+0.25*xi_sq[0]*theta[1]*gbyy[3]+0.25*theta[0]*xi_sq[1]*gbxx[3]+0.25*xi_sq[0]*theta[1]*gbxx[3]+0.45*gbyy[2]*theta[2]*xi_sq[2]+0.45*gbxx[2]*theta[2]*xi_sq[2]+0.25*gbyy[1]*theta[1]*xi_sq[2]+0.25*gbxx[1]*theta[1]*xi_sq[2]+0.25*gbyy[0]*theta[0]*xi_sq[2]+0.25*gbxx[0]*theta[0]*xi_sq[2]+0.25*gbyy[1]*xi_sq[1]*theta[2]+0.25*gbxx[1]*xi_sq[1]*theta[2]+0.25*gbyy[0]*xi_sq[0]*theta[2]+0.25*gbxx[0]*xi_sq[0]*theta[2]+0.25*theta[1]*xi_sq[1]*gbyy[2]+0.25*theta[0]*xi_sq[0]*gbyy[2]+0.25*theta[1]*xi_sq[1]*gbxx[2]+0.25*theta[0]*xi_sq[0]*gbxx[2]; 
+  pkpm_vars_io_theta_div_b[3] = 0.81*gbyy[3]*theta[3]*xi_sq[3]+0.81*gbxx[3]*theta[3]*xi_sq[3]+0.45*gbyy[2]*theta[2]*xi_sq[3]+0.45*gbxx[2]*theta[2]*xi_sq[3]+0.45*gbyy[1]*theta[1]*xi_sq[3]+0.45*gbxx[1]*theta[1]*xi_sq[3]+0.25*gbyy[0]*theta[0]*xi_sq[3]+0.25*gbxx[0]*theta[0]*xi_sq[3]+0.45*gbyy[2]*xi_sq[2]*theta[3]+0.45*gbxx[2]*xi_sq[2]*theta[3]+0.45*gbyy[1]*xi_sq[1]*theta[3]+0.45*gbxx[1]*xi_sq[1]*theta[3]+0.25*gbyy[0]*xi_sq[0]*theta[3]+0.25*gbxx[0]*xi_sq[0]*theta[3]+0.45*theta[2]*xi_sq[2]*gbyy[3]+0.45*theta[1]*xi_sq[1]*gbyy[3]+0.25*theta[0]*xi_sq[0]*gbyy[3]+0.45*theta[2]*xi_sq[2]*gbxx[3]+0.45*theta[1]*xi_sq[1]*gbxx[3]+0.25*theta[0]*xi_sq[0]*gbxx[3]+0.25*gbyy[0]*theta[1]*xi_sq[2]+0.25*gbxx[0]*theta[1]*xi_sq[2]+0.25*theta[0]*gbyy[1]*xi_sq[2]+0.25*theta[0]*gbxx[1]*xi_sq[2]+0.25*gbyy[0]*xi_sq[1]*theta[2]+0.25*gbxx[0]*xi_sq[1]*theta[2]+0.25*xi_sq[0]*gbyy[1]*theta[2]+0.25*xi_sq[0]*gbxx[1]*theta[2]+0.25*theta[0]*xi_sq[1]*gbyy[2]+0.25*xi_sq[0]*theta[1]*gbyy[2]+0.25*theta[0]*xi_sq[1]*gbxx[2]+0.25*xi_sq[0]*theta[1]*gbxx[2]; 
 } 

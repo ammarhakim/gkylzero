@@ -4,6 +4,7 @@ GKYL_CU_DH void mom_pkpm_2x1v_ser_p1(const double *w, const double *dxv, const i
   const double volFact = dxv[2]/2.0; 
   const double wvpar = w[2], dvpar = dxv[2]; 
   const double wvpar_sq = wvpar*wvpar, dvpar_sq = dvpar*dvpar; 
+  const double wvpar_cu = wvpar*wvpar*wvpar, dvpar_cu = dvpar*dvpar*dvpar; 
 
   const double *F_0 = &f[0]; 
   const double *G_1 = &f[12]; 
@@ -23,6 +24,14 @@ GKYL_CU_DH void mom_pkpm_2x1v_ser_p1(const double *w, const double *dxv, const i
   out[13] += mass*volFact*(1.4142135623730951*F_0[1]*wvpar+0.408248290463863*F_0[5]*dvpar); 
   out[14] += mass*volFact*(1.4142135623730951*F_0[2]*wvpar+0.408248290463863*F_0[6]*dvpar); 
   out[15] += mass*volFact*(1.4142135623730951*F_0[4]*wvpar+0.408248290463863*F_0[8]*dvpar); 
+  out[16] += mass*volFact*(1.224744871391589*F_0[3]*dvpar*wvpar_sq+1.4142135623730951*F_0[0]*wvpar_cu+0.3162277660168379*F_0[7]*dvpar_sq*wvpar+0.3535533905932737*F_0[0]*dvpar_sq*wvpar+0.06123724356957942*F_0[3]*dvpar_cu); 
+  out[17] += mass*volFact*(1.224744871391589*F_0[5]*dvpar*wvpar_sq+1.4142135623730951*F_0[1]*wvpar_cu+0.31622776601683794*F_0[9]*dvpar_sq*wvpar+0.3535533905932737*F_0[1]*dvpar_sq*wvpar+0.06123724356957942*F_0[5]*dvpar_cu); 
+  out[18] += mass*volFact*(1.224744871391589*F_0[6]*dvpar*wvpar_sq+1.4142135623730951*F_0[2]*wvpar_cu+0.31622776601683794*F_0[10]*dvpar_sq*wvpar+0.3535533905932737*F_0[2]*dvpar_sq*wvpar+0.06123724356957942*F_0[6]*dvpar_cu); 
+  out[19] += mass*volFact*(1.224744871391589*F_0[8]*dvpar*wvpar_sq+1.4142135623730951*F_0[4]*wvpar_cu+0.3162277660168379*F_0[11]*dvpar_sq*wvpar+0.3535533905932737*F_0[4]*dvpar_sq*wvpar+0.06123724356957942*F_0[8]*dvpar_cu); 
+  out[20] += mass*volFact*(1.4142135623730951*G_1[0]*wvpar+0.408248290463863*G_1[3]*dvpar); 
+  out[21] += mass*volFact*(1.4142135623730951*G_1[1]*wvpar+0.408248290463863*G_1[5]*dvpar); 
+  out[22] += mass*volFact*(1.4142135623730951*G_1[2]*wvpar+0.408248290463863*G_1[6]*dvpar); 
+  out[23] += mass*volFact*(1.4142135623730951*G_1[4]*wvpar+0.408248290463863*G_1[8]*dvpar); 
 } 
 GKYL_CU_DH void mom_pkpm_diag_2x1v_ser_p1(const double *w, const double *dxv, const int *idx, double mass, const double *f, double* GKYL_RESTRICT out) 
 { 

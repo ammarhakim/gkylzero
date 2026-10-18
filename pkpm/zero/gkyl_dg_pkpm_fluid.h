@@ -9,7 +9,7 @@
 
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_pkpm_fluid_auxfields {
-  const struct gkyl_array *moms; // Kinetic moments [rho, p_parallel, p_perp, M1].
+  const struct gkyl_array *vlasov_pkpm_moms; // Kinetic coupling moments [p_par, p_perp, q_par, q_perp].
   const struct gkyl_array *bvar; // Magnetic field unit vector [bx, by, bz].
   const struct gkyl_array *u; // Flow velocity [ux, uy, uz].
   const struct gkyl_array *fluid_flux_surf; // Modal expansion of the momentum fluxes on the faces.
@@ -24,10 +24,11 @@ struct gkyl_dg_pkpm_fluid_inp {
 };
 
 /**
- * Create a new equation object for the momentum equation of the refactored PKPM
- * solver: the exact volume term integral(d_d phi (M_i u_d + P_id)) with the pressure
- * tensor formed from its primitive factors, and the surface term scattering the stored
- * momentum fluxes.
+ * Create a new equation object for the fluid system [rho, rho ux, rho uy, rho uz, E] of the
+ * factored PKPM solver: the exact volume terms integral(d_d phi (M_i u_d + P_id)) and
+ * integral(d_d phi M_d) with the pressure tensor formed from its factors (the evolved
+ * rho and the normalized kinetic moments), and the surface term scattering the stored
+ * fluxes [F_rho, F_x, F_y, F_z, F_E].
  *
  * @param inp Input parameters defined in gkyl_dg_pkpm_fluid_inp struct.
  * @return Pointer to the equation object.

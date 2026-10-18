@@ -76,13 +76,6 @@ gkyl_dg_lbo_pkpm_diff_new(
 
       break;
 
-    case GKYL_BASIS_MODAL_TENSOR:
-      vol_kernels = ten_vol_kernels;
-      surf_vpar_kernels = ten_surf_vpar_kernels;
-      boundary_surf_vpar_kernels = ten_boundary_surf_vpar_kernels;
-
-      break;
-
     default:
       assert(false);
       break;

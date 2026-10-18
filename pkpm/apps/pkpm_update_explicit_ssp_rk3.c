@@ -33,10 +33,7 @@ pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app *app, double dt0)
           pkpm_forward_euler(
             app, tcurr, dt, fin, fluidin, app->field->em, fout, fluidout, app->field->em1, &st
           );
-          // Limit fluid and EM solutions if desired (done after update as post-hoc fix)
-          for (int i = 0; i < ns; ++i) {
-            pkpm_fluid_species_limiter(app, &app->species[i], fout[i], fluidout[i]);
-          }
+          // Limit the EM solution if desired (done after update as post-hoc fix)
           pkpm_field_limiter(app, app->field, app->field->emnew);
 
           dt = st.dt_actual;
@@ -60,10 +57,7 @@ pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app *app, double dt0)
             app, tcurr + dt, dt, fin, fluidin, app->field->em1, fout, fluidout, app->field->emnew,
             &st
           );
-          // Limit fluid and EM solutions if desired (done after update as post-hoc fix)
-          for (int i = 0; i < ns; ++i) {
-            pkpm_fluid_species_limiter(app, &app->species[i], fout[i], fluidout[i]);
-          }
+          // Limit the EM solution if desired (done after update as post-hoc fix)
           pkpm_field_limiter(app, app->field, app->field->emnew);
 
           if (st.dt_actual < dt) {
@@ -114,10 +108,7 @@ pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app *app, double dt0)
             app, tcurr + dt / 2, dt, fin, fluidin, app->field->em1, fout, fluidout,
             app->field->emnew, &st
           );
-          // Limit fluid and EM solutions if desired (done after update as post-hoc fix)
-          for (int i = 0; i < ns; ++i) {
-            pkpm_fluid_species_limiter(app, &app->species[i], fout[i], fluidout[i]);
-          }
+          // Limit the EM solution if desired (done after update as post-hoc fix)
           pkpm_field_limiter(app, app->field, app->field->emnew);
 
           if (st.dt_actual < dt) {

@@ -40,8 +40,8 @@ nu_ion = 0.01 * omega_ci / math.sqrt(mass_ion) -- Ion collision frequency.
 Nx = 16 -- Cell count (configuration space: x-direction).
 Nvx = 32 -- Cell count (velocity space: vx-direction).
 Lx = 2.0 * pi / k -- Domain size (configuration space: x-direction).
-vx_max_elc = 6.0 * vte -- Domain boundary (electron velocity space: vx-direction).
-vx_max_ion = 6.0 * vti -- Domain boundary (ion velocity space: vx-direction).
+vx_max_elc = 6.0 -- Domain boundary (normalized velocity w = v_par/xi).
+vx_max_ion = 6.0 -- Domain boundary (normalized velocity w = v_par/xi).
 poly_order = 1 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
@@ -107,12 +107,14 @@ pkpmApp = PKPM.App.new {
 
     -- Initial conditions (distribution function).
     initDist = function (t, xn)
-      local vx = xn[2]
+      local w = xn[2] -- Normalized parallel velocity w = v_par/xi.
 
-      local F0 = (n0 / math.sqrt(2.0 * pi * vte * vte)) * (math.exp(-(vx * vx) / (2.0 * vte * vte))) -- Electron distribution function (F0).
-      local G = (vte * vte) * F0 -- Electron distribution function (G).
-      
-      return F0, G
+      -- Normalized isotropic Maxwellian: F = exp(-w^2/2)/sqrt(2 pi) (M0 = 1, M2 = 1) and
+      -- G = (T_perp/T) F = F, independent of position; the density, flow and temperature
+      -- enter through the fluid state.
+      local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * math.pi)
+
+      return F, F
     end,
 
     -- Initial conditions (fluid).
@@ -129,7 +131,12 @@ pkpmApp = PKPM.App.new {
       local mom_y = mass_elc * vy_drift -- Electron total momentum density (y-direction).
       local mom_z = mass_elc * vz_drift -- Electron total momentum density (z-direction).
 
-      return mom_x, mom_y, mom_z
+
+      local rho = mass_elc * n0 -- Electron mass density.
+      local vtsq = vte * vte -- Electron T/m.
+      local E = 0.5 * (mom_x * mom_x + mom_y * mom_y + mom_z * mom_z) / rho + 1.5 * rho * vtsq -- Electron total energy density.
+
+      return rho, mom_x, mom_y, mom_z, E
     end,
 
     collisions = {
@@ -155,12 +162,14 @@ pkpmApp = PKPM.App.new {
 
     -- Initial conditions (distribution function).
     initDist = function (t, xn)
-      local vx = xn[2]
+      local w = xn[2] -- Normalized parallel velocity w = v_par/xi.
 
-      local F0 = (n0 / math.sqrt(2.0 * pi * vti * vti)) * (math.exp(-(vx * vx) / (2.0 * vti * vti))) -- Ion distribution function (F0).
-      local G = (vti * vti) * F0 -- Ion distribution function (G).
-      
-      return F0, G
+      -- Normalized isotropic Maxwellian: F = exp(-w^2/2)/sqrt(2 pi) (M0 = 1, M2 = 1) and
+      -- G = (T_perp/T) F = F, independent of position; the density, flow and temperature
+      -- enter through the fluid state.
+      local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * math.pi)
+
+      return F, F
     end,
 
     -- Initial conditions (fluid).
@@ -175,7 +184,12 @@ pkpmApp = PKPM.App.new {
       local mom_y = mass_ion * vy_drift -- Ion total momentum density (y-direction).
       local mom_z = mass_ion * vz_drift -- Ion total momentum density (z-direction).
 
-      return mom_x, mom_y, mom_z
+
+      local rho = mass_ion * n0 -- Ion mass density.
+      local vtsq = vti * vti -- Ion T/m.
+      local E = 0.5 * (mom_x * mom_x + mom_y * mom_y + mom_z * mom_z) / rho + 1.5 * rho * vtsq -- Ion total energy density.
+
+      return rho, mom_x, mom_y, mom_z, E
     end,
 
     collisions = {

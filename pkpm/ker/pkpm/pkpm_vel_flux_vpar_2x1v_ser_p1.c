@@ -37,8 +37,9 @@ GKYL_CU_DH void pkpm_vel_flux_vpar_2x1v_ser_p1_prj(int tid, const double *Fhat_n
 } 
 
 GKYL_CU_DH double pkpm_vel_flux_vpar_2x1v_ser_p1(const double *w, const double *dxv,
-  const double *bvar, const double *grad_b, const double *u, const double *grad_u, const double *theta,
-  const double *a_P, const double *f_l, const double *f_r, double* GKYL_RESTRICT flux) 
+  const double *bvar, const double *grad_b, const double *u, const double *grad_u,
+  const double *xi, const double *grad_xi, const double *theta,
+  const double *alpha_0, const double *c_h, const double *f_l, const double *f_r, double* GKYL_RESTRICT flux) 
 { 
   // w[NDIM]:   Cell-center coordinates (current cell). 
   // dxv[NDIM]: Cell spacing (current cell). 
@@ -46,10 +47,13 @@ GKYL_CU_DH double pkpm_vel_flux_vpar_2x1v_ser_p1(const double *w, const double *
   // grad_b:    Weak gradient of b, [d_i bx, d_i by, d_i bz] per direction i. 
   // u:         Flow velocity [ux, uy, uz]. 
   // grad_u:    Weak gradient of u, [d_i ux, d_i uy, d_i uz] per direction i. 
-  // theta:     T_perp/m. 
-  // a_P:       Pressure force closing the first moment. 
-  // f_l/f_r:   Distribution functions [F_0, G] in the cell below/current cell. 
-  // flux:      Output modal surface fluxes [F_0 flux, G flux] on the lower v_par face. 
+  // xi:        Thermal speed [xi, xi^2] (the first expansion is used). 
+  // grad_xi:   Weak gradient of [xi, 0, 0] (pkpm_vars_grad_u_* layout). 
+  // theta:     T_perp/T. 
+  // alpha_0:   Pressure force a_P/xi closing the first moment. 
+  // c_h:       Heating rate closing the scalar second moment. 
+  // f_l/f_r:   Distribution functions [F, G] in the cell below/current cell. 
+  // flux:      Output modal surface fluxes [F flux, G flux] on the lower w face. 
   // Returns the stable time-step estimate over the face nodes. 
   const double dx10 = 2.0/dxv[0]; 
   const double dx11 = 2.0/dxv[1]; 
@@ -72,18 +76,22 @@ GKYL_CU_DH double pkpm_vel_flux_vpar_2x1v_ser_p1(const double *w, const double *
   double cfl_max = 0.0; 
   for (int i = 0; i < 9; ++i) { 
     // Configuration-space coefficients at node i. 
-    double b_q[3] = {0.0}, u_q[3] = {0.0}, gradu_q[3][3] = {{0.0}}, div_b = 0.0, theta_q = 0.0, aP_q = 0.0; 
+    double b_q[3] = {0.0}, u_q[3] = {0.0}, gradu_q[3][3] = {{0.0}}, gradxi_q[3] = {0.0}, div_b = 0.0, theta_q = 0.0, a0_q = 0.0, ch_q = 0.0, xi_q = 0.0; 
     for (int a = 0; a < 4; ++a) { 
       const double ev = vst_pkpm_2x1v_p1_conf_ev[i*4 + a]; 
       b_q[0] += ev*bx[a]; b_q[1] += ev*by[a]; b_q[2] += ev*bz[a]; 
       u_q[0] += ev*ux[a]; u_q[1] += ev*uy[a]; u_q[2] += ev*uz[a]; 
       theta_q += ev*theta[a]; 
-      aP_q += ev*a_P[a]; 
+      a0_q += ev*alpha_0[a]; 
+      ch_q += ev*c_h[a]; 
+      xi_q += ev*xi[a]; 
       div_b += ev*grad_b[0 + a]; 
+      gradxi_q[0] += ev*grad_xi[0 + a]; 
       gradu_q[0][0] += ev*grad_u[0 + a]; 
       gradu_q[0][1] += ev*grad_u[4 + a]; 
       gradu_q[0][2] += ev*grad_u[8 + a]; 
       div_b += ev*grad_b[16 + a]; 
+      gradxi_q[1] += ev*grad_xi[12 + a]; 
       gradu_q[1][0] += ev*grad_u[12 + a]; 
       gradu_q[1][1] += ev*grad_u[16 + a]; 
       gradu_q[1][2] += ev*grad_u[20 + a]; 
@@ -92,8 +100,10 @@ GKYL_CU_DH double pkpm_vel_flux_vpar_2x1v_ser_p1(const double *w, const double *
     for (int d = 0; d < 2; ++d) { 
       for (int j = 0; j < 3; ++j) K += b_q[d]*b_q[j]*gradu_q[d][j]; 
     } 
-    const double alpha = aP_q - v_face*K; 
-    const double beta = div_b; 
+    double bgx = 0.0; 
+    for (int d = 0; d < 2; ++d) bgx += b_q[d]*gradxi_q[d]; 
+    const double alpha = a0_q + (ch_q - K)*v_face - bgx*v_face*v_face; 
+    const double beta = xi_q*div_b; 
     // Nodal traces of F and G on both sides of the face. 
     double F_l = 0.0, F_r = 0.0, G_l = 0.0, G_r = 0.0; 
     for (int a = 0; a < 4; ++a) { 

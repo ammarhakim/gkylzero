@@ -13,9 +13,10 @@ struct gkyl_dg_pkpm_kinetic_conf_auxfields {
   const struct gkyl_array *grad_b; // Weak gradient of b (gkyl_dg_calc_pkpm_bvar_grad).
   const struct gkyl_array *u; // Flow velocity [ux, uy, uz].
   const struct gkyl_array *grad_u; // Weak gradient of u (gkyl_dg_calc_pkpm_vars_grad_u).
-  const struct gkyl_array *theta; // T_perp/m.
-  const struct gkyl_array *nu_sum; // Collisionality (sum over self and cross collisions).
-  const struct gkyl_array *nu_vthsq_sum; // Sum of nu*vth^2 over self and cross collisions.
+  const struct gkyl_array *xi; // Thermal speed [xi, xi^2] (gkyl_dg_calc_pkpm_vars_xi).
+  const struct gkyl_array *grad_xi; // Weak gradient of [xi, 0, 0] (gkyl_dg_calc_pkpm_vars_grad_u).
+  const struct gkyl_array *grad_ln_n; // grad(ln n) (gkyl_dg_calc_pkpm_vars_grad_ln_n).
+  const struct gkyl_array *theta; // T_perp/T = M0(G).
   const struct gkyl_array
     *conf_flux_surf; // Modal expansion of the fluxes on the configuration-space faces.
 };

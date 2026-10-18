@@ -2,8 +2,8 @@
 GKYL_CU_DH double pkpm_fluid_surfz_3x_ser_p1(const double *w, const double *dxv,
   const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out) 
 { 
-  // flux_l/flux_r: Stored momentum fluxes [F_x, F_y, F_z] on the lower/upper face of the cell. 
-  // out:           Incremented momentum increment [rho ux, rho uy, rho uz]. 
+  // flux_l/flux_r: Stored fluxes [F_rho, F_x, F_y, F_z, F_E] on the lower/upper face of the cell. 
+  // out:           Incremented increment of [rho, rho ux, rho uy, rho uz, E]. 
   const double dx1 = 2.0/dxv[2]; 
   const double *gl0 = &flux_l[0]; 
   const double *gr0 = &flux_r[0]; 
@@ -14,6 +14,12 @@ GKYL_CU_DH double pkpm_fluid_surfz_3x_ser_p1(const double *w, const double *dxv,
   const double *gl2 = &flux_l[8]; 
   const double *gr2 = &flux_r[8]; 
   double *out2 = &out[16]; 
+  const double *gl3 = &flux_l[12]; 
+  const double *gr3 = &flux_r[12]; 
+  double *out3 = &out[24]; 
+  const double *gl4 = &flux_l[16]; 
+  const double *gr4 = &flux_r[16]; 
+  double *out4 = &out[32]; 
   out0[0] += (0.7071067811865475*gl0[0]-0.7071067811865475*gr0[0])*dx1; 
   out0[1] += (0.7071067811865475*gl0[1]-0.7071067811865475*gr0[1])*dx1; 
   out0[2] += (0.7071067811865475*gl0[2]-0.7071067811865475*gr0[2])*dx1; 
@@ -38,5 +44,21 @@ GKYL_CU_DH double pkpm_fluid_surfz_3x_ser_p1(const double *w, const double *dxv,
   out2[5] += (-(1.224744871391589*gr2[1])-1.224744871391589*gl2[1])*dx1; 
   out2[6] += (-(1.224744871391589*gr2[2])-1.224744871391589*gl2[2])*dx1; 
   out2[7] += (-(1.224744871391589*gr2[3])-1.224744871391589*gl2[3])*dx1; 
+  out3[0] += (0.7071067811865475*gl3[0]-0.7071067811865475*gr3[0])*dx1; 
+  out3[1] += (0.7071067811865475*gl3[1]-0.7071067811865475*gr3[1])*dx1; 
+  out3[2] += (0.7071067811865475*gl3[2]-0.7071067811865475*gr3[2])*dx1; 
+  out3[3] += (-(1.224744871391589*gr3[0])-1.224744871391589*gl3[0])*dx1; 
+  out3[4] += (0.7071067811865475*gl3[3]-0.7071067811865475*gr3[3])*dx1; 
+  out3[5] += (-(1.224744871391589*gr3[1])-1.224744871391589*gl3[1])*dx1; 
+  out3[6] += (-(1.224744871391589*gr3[2])-1.224744871391589*gl3[2])*dx1; 
+  out3[7] += (-(1.224744871391589*gr3[3])-1.224744871391589*gl3[3])*dx1; 
+  out4[0] += (0.7071067811865475*gl4[0]-0.7071067811865475*gr4[0])*dx1; 
+  out4[1] += (0.7071067811865475*gl4[1]-0.7071067811865475*gr4[1])*dx1; 
+  out4[2] += (0.7071067811865475*gl4[2]-0.7071067811865475*gr4[2])*dx1; 
+  out4[3] += (-(1.224744871391589*gr4[0])-1.224744871391589*gl4[0])*dx1; 
+  out4[4] += (0.7071067811865475*gl4[3]-0.7071067811865475*gr4[3])*dx1; 
+  out4[5] += (-(1.224744871391589*gr4[1])-1.224744871391589*gl4[1])*dx1; 
+  out4[6] += (-(1.224744871391589*gr4[2])-1.224744871391589*gl4[2])*dx1; 
+  out4[7] += (-(1.224744871391589*gr4[3])-1.224744871391589*gl4[3])*dx1; 
   return 0.0; 
 } 

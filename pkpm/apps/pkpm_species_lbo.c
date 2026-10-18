@@ -64,8 +64,11 @@ pkpm_species_lbo_init(
 
   // edge of velocity space corrections to momentum and energy
   // Note: PKPM model still has a momentum correction to insure M1 = 0 from collisions
+  // The collision operator acts on the normalized distributions on the w grid: the
+  // boundary corrections and primitive moments are formed from the mass-1 normalized
+  // moments (self collisions: u = 0 and vth^2 = 1 up to the corrections).
   lbo->bcorr_calc = gkyl_mom_calc_bcorr_lbo_pkpm_new(
-    &s->grid, &app->confBasis, &app->basis, v_bounds, s->info.mass, app->use_gpu
+    &s->grid, &app->confBasis, &app->basis, v_bounds, 1.0, app->use_gpu
   );
   // primitive moment calculators
   lbo->coll_pcalc =
@@ -107,6 +110,9 @@ pkpm_species_lbo_cross_init(
     lbo->greene_factor_mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
   }
 
+  // Cross-species collisions are not supported in the thermal-velocity normalized
+  // formulation yet (the other species' primitive moments would need the frame change).
+  assert(lbo->num_cross_collisions == 0);
   // set pointers to species we cross-collide with
   for (int i = 0; i < lbo->num_cross_collisions; ++i) {
     lbo->collide_with[i] = pkpm_find_species(app, s->info.collisions.collide_with[i]);
@@ -154,16 +160,16 @@ pkpm_species_lbo_moms(
 {
   struct timespec wst = gkyl_wall_clock();
 
-  gkyl_array_set_range(lbo->m0, 1.0, species->pkpm_moms.marr, &app->local);
+  gkyl_array_set_range(lbo->m0, 1.0, species->pkpm_rho, &app->local);
 
   // construct boundary corrections
   gkyl_mom_calc_bcorr_advance(
     lbo->bcorr_calc, &species->local, &app->local, fin, lbo->boundary_corrections
   );
 
-  // Compute primitive moments.
+  // Compute primitive moments of the normalized distributions.
   gkyl_prim_lbo_calc_advance(
-    lbo->coll_pcalc, &app->local, species->pkpm_moms.marr, lbo->boundary_corrections, lbo->self_nu,
+    lbo->coll_pcalc, &app->local, species->pkpm_nmoms.marr, lbo->boundary_corrections, lbo->self_nu,
     lbo->prim_moms
   );
 
@@ -174,10 +180,17 @@ pkpm_species_lbo_moms(
       gkyl_array_clear(lbo->self_nu, 0.0);
       // Get density information (and scale out mass factor in PKPM moments)
       gkyl_array_set_range(
-        lbo->maxwellian_moms, 1.0 / species->info.mass, species->pkpm_moms.marr, &app->local
+        lbo->maxwellian_moms, 1.0 / species->info.mass, species->pkpm_rho, &app->local
       );
       gkyl_array_set_offset_range(
         lbo->maxwellian_moms, 1.0, lbo->prim_moms, app->confBasis.num_basis, &app->local
+      );
+      // physical thermal speed squared for the Spitzer frequency: xi^2 times the normalized one
+      gkyl_dg_mul_op_range(
+        &app->confBasis, 0, species->pkpm_scratch, app->vdim, lbo->prim_moms, 1, species->pkpm_xi, &app->local
+      );
+      gkyl_array_set_offset_range(
+        lbo->maxwellian_moms, 1.0, species->pkpm_scratch, (1 + app->vdim) * app->confBasis.num_basis, &app->local
       );
       gkyl_spitzer_coll_freq_advance_normnu(
         lbo->spitzer_calc, &app->local, lbo->maxwellian_moms, 0., lbo->maxwellian_moms, 0., 1.0,
@@ -192,10 +205,17 @@ pkpm_species_lbo_moms(
       gkyl_array_clear(lbo->self_nu, 0.0);
       // Get density information (and scale out mass factor in PKPM moments)
       gkyl_array_set_range(
-        lbo->maxwellian_moms, 1.0 / species->info.mass, species->pkpm_moms.marr, &app->local
+        lbo->maxwellian_moms, 1.0 / species->info.mass, species->pkpm_rho, &app->local
       );
       gkyl_array_set_offset_range(
         lbo->maxwellian_moms, 1.0, lbo->prim_moms, app->confBasis.num_basis, &app->local
+      );
+      // physical thermal speed squared for the Spitzer frequency: xi^2 times the normalized one
+      gkyl_dg_mul_op_range(
+        &app->confBasis, 0, species->pkpm_scratch, app->vdim, lbo->prim_moms, 1, species->pkpm_xi, &app->local
+      );
+      gkyl_array_set_offset_range(
+        lbo->maxwellian_moms, 1.0, species->pkpm_scratch, (1 + app->vdim) * app->confBasis.num_basis, &app->local
       );
       gkyl_spitzer_coll_freq_advance_normnu(
         lbo->spitzer_calc, &app->local, lbo->maxwellian_moms, 0., lbo->maxwellian_moms, 0.0, 1.0,

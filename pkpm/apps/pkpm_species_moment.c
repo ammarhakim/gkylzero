@@ -1,14 +1,16 @@
 #include <assert.h>
 #include <gkyl_pkpm_priv.h>
 
-// initialize species moment object
+// initialize species moment object with the given mass factor (1.0 for the moments of
+// the normalized distributions of the factored update)
 void
-pkpm_species_moment_init(
-  struct gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_species_moment *sm, bool is_diag
+pkpm_species_moment_init_mass(
+  struct gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_species_moment *sm, bool is_diag,
+  double mass
 )
 {
   sm->mcalc = gkyl_dg_updater_moment_pkpm_new(
-    &s->grid, &app->confBasis, &app->basis, &app->local, &s->local_vel, s->info.mass, is_diag,
+    &s->grid, &app->confBasis, &app->basis, &app->local, &s->local_vel, mass, is_diag,
     app->use_gpu
   );
   int num_mom = gkyl_dg_updater_moment_pkpm_num_mom(sm->mcalc);
@@ -18,6 +20,15 @@ pkpm_species_moment_init(
   if (app->use_gpu) {
     sm->marr_host = mkarr(false, num_mom * app->confBasis.num_basis, app->local_ext.volume);
   }
+}
+
+// initialize species moment object with the species mass
+void
+pkpm_species_moment_init(
+  struct gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_species_moment *sm, bool is_diag
+)
+{
+  pkpm_species_moment_init_mass(app, s, sm, is_diag, s->info.mass);
 }
 
 void
@@ -38,6 +49,36 @@ pkpm_species_moment_calc_into(
 )
 {
   gkyl_dg_updater_moment_pkpm_advance(sm->mcalc, &phase_rng, &conf_rng, fin, mout);
+}
+
+// Diagnostic moments of the normalized state: the moments [rho, M1, p_par, p_perp, q_par,
+// q_perp, r_parpar, r_parperp] of the normalized distributions [F, G] (mass-weighted)
+// times n xi^k, k = [0, 1, 2, 2, 3, 3, 4, 4], n = rho/m from the fluid array (leading block) and xi the
+// nodal thermal speed (weak products projected onto p=1). fluid_io is used as scratch
+// (it is rebuilt by the diagnostics afterwards); pkpm_xi must be current.
+void
+pkpm_species_moment_diag_calc(
+  struct gkyl_pkpm_app *app, struct pkpm_species *s, const struct gkyl_range phase_rng,
+  const struct gkyl_range conf_rng, const struct gkyl_array *fin, const struct gkyl_array *fluid
+)
+{
+  int nc = app->confBasis.num_basis;
+  int num_mom = gkyl_dg_updater_moment_pkpm_num_mom(s->pkpm_moms_diag.mcalc);
+  static const int xi_pow[8] = {0, 1, 2, 2, 3, 3, 4, 4};
+  gkyl_array_set_offset(s->pkpm_rho, 1.0 / s->info.mass, fluid, 0);
+  gkyl_dg_updater_moment_pkpm_advance(s->pkpm_moms_diag.mcalc, &phase_rng, &conf_rng, fin, s->fluid_io);
+  for (int c = 0; c < num_mom; ++c) {
+    gkyl_dg_mul_op_range(
+      &app->confBasis, c, s->pkpm_moms_diag.marr, 0, s->pkpm_rho, c, s->fluid_io, &conf_rng
+    );
+    for (int k = xi_pow[c]; k > 0; k -= 2) {
+      gkyl_dg_mul_op_range(
+        &app->confBasis, 0, s->pkpm_scratch, c, s->pkpm_moms_diag.marr, k > 1 ? 1 : 0, s->pkpm_xi,
+        &conf_rng
+      );
+      gkyl_array_set_offset_range(s->pkpm_moms_diag.marr, 1.0, s->pkpm_scratch, c * nc, &conf_rng);
+    }
+  }
 }
 
 // release memory for moment data object

@@ -55,11 +55,6 @@ gkyl_prim_lbo_pkpm_new(
 
       break;
 
-    case GKYL_BASIS_MODAL_TENSOR:
-      self_prim_kernels = ten_self_prim_kernels;
-
-      break;
-
     default:
       assert(false);
       break;

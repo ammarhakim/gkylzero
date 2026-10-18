@@ -57,11 +57,6 @@ gkyl_mom_bcorr_lbo_pkpm_new(
 
       break;
 
-    case GKYL_BASIS_MODAL_TENSOR:
-      mom_bcorr_lbo_pkpm_kernels = ten_mom_bcorr_lbo_pkpm_kernels;
-
-      break;
-
     default:
       assert(false);
       break;

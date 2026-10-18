@@ -129,8 +129,8 @@ create_ctx(void)
   int Nvx = 16; // Cell count (velocity space: vx-direction).
   double Lx = 20.48 * d_i; // Domain size (configuration space: x-direction).
   double Ly = 20.48 * d_i; // Domain size (configuration space: y-direction).
-  double vx_max_elc = 6.0 * vte; // Domain boundary (electron velocity space: vx-direction).
-  double vx_max_ion = 6.0 * vti; // Domain boundary (ion velocity space: vx-direction).
+  double vx_max_elc = 6.0; // Domain boundary (normalized velocity w = v_par/xi).
+  double vx_max_ion = 6.0; // Domain boundary (normalized velocity w = v_par/xi).
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
@@ -224,21 +224,16 @@ create_ctx(void)
 void
 evalElcDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct ot_ctx *app = ctx;
-  double vx = xn[2];
+  double w = xn[2]; // Normalized parallel velocity w = v_par/xi.
 
-  double pi = app->pi;
+  // Normalized isotropic Maxwellian: F = exp(-w^2/2)/sqrt(2 pi) (M0 = 1, M2 = 1) and
+  // G = (T_perp/T) F = F, independent of position; the density, flow and temperature
+  // enter through the fluid state.
+  double F = exp(-0.5 * w * w) / sqrt(2.0 * M_PI);
 
-  double n0 = app->n0;
-  double vte = app->vte;
-
-  double F0 = (n0 / sqrt(2.0 * pi * vte * vte)) *
-              (exp(-(vx * vx) / (2.0 * vte * vte))); // Electron distribution function (F0).
-  double G = (vte * vte) * F0; // Electron distribution function (G).
-
-  // Set electron distribution function.
-  fout[0] = F0;
-  fout[1] = G;
+  // Set normalized electron distribution functions.
+  fout[0] = F;
+  fout[1] = F;
 }
 
 void
@@ -251,6 +246,8 @@ evalElcFluidInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   double mu0 = app->mu0;
   double mass_elc = app->mass_elc;
   double charge_ion = app->charge_ion;
+  double n0 = app->n0;
+  double vte = app->vte;
 
   double delta_B0 = app->delta_B0;
   double delta_u0 = app->delta_u0;
@@ -266,34 +263,35 @@ evalElcFluidInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   double vy_drift = delta_u0 * sin(2.0 * pi * x / Lx); // Electron drift velocity (y-direction).
   double vz_drift = -Jz / charge_ion; // Electron drift velocity (z-direction).
 
-  double mom_x = mass_elc * vx_drift; // Electron total momentum density (x-direction).
-  double mom_y = mass_elc * vy_drift; // Electron total momentum density (y-direction).
-  double mom_z = mass_elc * vz_drift; // Electron total momentum density (z-direction).
+  double mom_x = mass_elc * n0 * vx_drift; // Electron total momentum density (x-direction).
+  double mom_y = mass_elc * n0 * vy_drift; // Electron total momentum density (y-direction).
+  double mom_z = mass_elc * n0 * vz_drift; // Electron total momentum density (z-direction).
 
-  // Set electron total momentum density.
-  fout[0] = mom_x;
-  fout[1] = mom_y;
-  fout[2] = mom_z;
+  double rho = mass_elc * n0; // Electron mass density.
+  double vtsq = vte * vte; // Electron T/m.
+  double E = 0.5 * (mom_x * mom_x + mom_y * mom_y + mom_z * mom_z) / rho + 1.5 * rho * vtsq; // Electron total energy density.
+
+  // Set Electron fluid state [rho, rho ux, rho uy, rho uz, E].
+  fout[0] = rho;
+  fout[1] = mom_x;
+  fout[2] = mom_y;
+  fout[3] = mom_z;
+  fout[4] = E;
 }
 
 void
 evalIonDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct ot_ctx *app = ctx;
-  double vx = xn[2];
+  double w = xn[2]; // Normalized parallel velocity w = v_par/xi.
 
-  double pi = app->pi;
+  // Normalized isotropic Maxwellian: F = exp(-w^2/2)/sqrt(2 pi) (M0 = 1, M2 = 1) and
+  // G = (T_perp/T) F = F, independent of position; the density, flow and temperature
+  // enter through the fluid state.
+  double F = exp(-0.5 * w * w) / sqrt(2.0 * M_PI);
 
-  double n0 = app->n0;
-  double vti = app->vti;
-
-  double F0 = (n0 / sqrt(2.0 * pi * vti * vti)) *
-              (exp(-(vx * vx) / (2.0 * vti * vti))); // Ion distribution function (F0).
-  double G = (vti * vti) * F0; // Ion distribution function (G).
-
-  // Set ion distribution function.
-  fout[0] = F0;
-  fout[1] = G;
+  // Set normalized ion distribution functions.
+  fout[0] = F;
+  fout[1] = F;
 }
 
 void
@@ -304,6 +302,8 @@ evalIonFluidInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
 
   double pi = app->pi;
   double mass_ion = app->mass_ion;
+  double n0 = app->n0;
+  double vti = app->vti;
 
   double delta_u0 = app->delta_u0;
 
@@ -314,14 +314,20 @@ evalIonFluidInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   double vy_drift = delta_u0 * sin(2.0 * pi * x / Lx); // Ion drift velocity (y-direction).
   double vz_drift = 0.0; // Ion drift velocity (z-direction).
 
-  double mom_x = mass_ion * vx_drift; // Ion total momentum density (x-direction).
-  double mom_y = mass_ion * vy_drift; // Ion total momentum density (y-direction).
-  double mom_z = mass_ion * vz_drift; // Ion total momentum density (z-direction).
+  double mom_x = mass_ion * n0 * vx_drift; // Ion total momentum density (x-direction).
+  double mom_y = mass_ion * n0 * vy_drift; // Ion total momentum density (y-direction).
+  double mom_z = mass_ion * n0 * vz_drift; // Ion total momentum density (z-direction).
 
-  // Set ion total momentum density.
-  fout[0] = mom_x;
-  fout[1] = mom_y;
-  fout[2] = mom_z;
+  double rho = mass_ion * n0; // Ion mass density.
+  double vtsq = vti * vti; // Ion T/m.
+  double E = 0.5 * (mom_x * mom_x + mom_y * mom_y + mom_z * mom_z) / rho + 1.5 * rho * vtsq; // Ion total energy density.
+
+  // Set Ion fluid state [rho, rho ux, rho uy, rho uz, E].
+  fout[0] = rho;
+  fout[1] = mom_x;
+  fout[2] = mom_y;
+  fout[3] = mom_z;
+  fout[4] = E;
 }
 
 void

@@ -15,7 +15,9 @@ gkyl_dg_pkpm_kinetic_vel_set_auxfields_cu_kernel(
 )
 {
   struct dg_pkpm_kinetic_vel *pkpm = container_of(eqn, struct dg_pkpm_kinetic_vel, eqn);
-  pkpm->auxfields.a_P = auxin.a_P;
+  pkpm->auxfields.c_0 = auxin.c_0;
+  pkpm->auxfields.alpha_0 = auxin.alpha_0;
+  pkpm->auxfields.c_h = auxin.c_h;
   pkpm->auxfields.vel_flux_surf = auxin.vel_flux_surf;
 }
 
@@ -26,6 +28,7 @@ gkyl_dg_pkpm_kinetic_vel_set_auxfields_cu(
 )
 {
   struct gkyl_dg_pkpm_kinetic_vel_auxfields auxin_dev = {
+    .c_0 = auxin.c_0 ? auxin.c_0->on_dev : 0,
     .a_P = auxin.a_P ? auxin.a_P->on_dev : 0,
     .vel_flux_surf = auxin.vel_flux_surf ? auxin.vel_flux_surf->on_dev : 0,
   };

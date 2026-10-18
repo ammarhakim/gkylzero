@@ -1,5 +1,5 @@
 #include <gkyl_mat.h> 
-#include <gkyl_euler_pkpm_kernels.h> 
+#include <gkyl_pkpm_vars_kernels.h> 
 GKYL_CU_DH void pkpm_vars_u_copy_2x_ser_p1(int count, struct gkyl_nmat *x, 
     double* GKYL_RESTRICT pkpm_u) 
 { 

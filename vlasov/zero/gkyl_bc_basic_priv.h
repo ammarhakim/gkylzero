@@ -310,10 +310,13 @@ pkpm_mom_reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
   int dir = mc->dir;
   int nbasis = mc->basis->num_basis;
 
-  // reflect normal component (zero normal) and zero gradient in other components
-  for (int i = 0; i < 3; ++i) {
+  // The PKPM fluid array is [rho, rho ux, rho uy, rho uz, E]: the normal momentum
+  // component is odd (block 1 + dir), every other block (density, tangential momenta,
+  // energy) is even.
+  int ncomp = nc / nbasis;
+  for (int i = 0; i < ncomp; ++i) {
     int loc = nbasis * i;
-    if (i == dir) {
+    if (i == dir + 1) {
       mc->basis->flip_even_sign(dir, &inp[loc], &out[loc]);
     } else {
       mc->basis->flip_odd_sign(dir, &inp[loc], &out[loc]);

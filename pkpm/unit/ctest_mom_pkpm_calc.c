@@ -82,7 +82,7 @@ test_mom_pkpm_calc_1x1v_p1()
   gkyl_proj_on_basis_advance(proj, 0.0, &local, distf);
 
   struct gkyl_mom_type *mt = gkyl_mom_pkpm_new(&confBasis, &basis, mass, false, false);
-  TEST_CHECK(mt->num_mom == 4);
+  TEST_CHECK(mt->num_mom == 6);
   gkyl_mom_calc *mcalc = gkyl_mom_calc_new(&grid, mt, false);
 
   struct gkyl_array *mom = mkarr(mt->num_mom * confBasis.num_basis, confLocal_ext.volume);

@@ -124,8 +124,8 @@ create_ctx(void)
   int Nx = 128; // Cell count (configuration space: x-direction).
   int Nvx = 48; // Cell count (velocity space: vx-direction).
   double Lx = 256.0; // Domain size (configuration space: x-direction).
-  double vx_max_elc = 6.0 * vte; // Domain boundary (electron velocity space: vx-direction).
-  double vx_max_ion = 24.0 * vti; // Domain boundary (ion velocity space: vx-direction).
+  double vx_max_elc = 6.0; // Domain boundary (normalized velocity w = v_par/xi).
+  double vx_max_ion = 24.0; // Domain boundary (normalized velocity w = v_par/xi).
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
@@ -217,99 +217,95 @@ create_ctx(void)
 void
 evalElcDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct es_shock_ctx *app = ctx;
-  double x = xn[0], vx = xn[1];
+  double w = xn[1]; // Normalized parallel velocity w = v_par/xi.
 
-  double pi = app->pi;
+  // Normalized isotropic Maxwellian: F = exp(-w^2/2)/sqrt(2 pi) (M0 = 1, M2 = 1) and
+  // G = (T_perp/T) F = F, independent of position; the density, flow and temperature
+  // enter through the fluid state.
+  double F = exp(-0.5 * w * w) / sqrt(2.0 * M_PI);
 
-  double n0_l = app->n0_l;
-  double n0_r = app->n0_r;
-
-  double Te_l = app->Te_l;
-  double Te_r = app->Te_r;
-
-  double Lx = app->Lx;
-
-  double F0 = 0.0;
-  double T = 0.0;
-
-  if (fabs(x) < 0.25 * Lx) {
-    F0 = (n0_l / sqrt(2.0 * pi * Te_l * Te_l)) *
-         (exp(-(vx * vx) / (2.0 * Te_l * Te_l))); // Left electron distribution function (F0).
-    T = Te_l; // Left electron temperature.
-  } else {
-    F0 = (n0_r / sqrt(2.0 * pi * Te_r * Te_r)) *
-         (exp(-(vx * vx) / (2.0 * Te_r * Te_r))); // Right electron distribution function (F0).
-    T = Te_r; // Right electron temperature.
-  }
-
-  double G = (T * T) * F0; // Electron distribution function (G).
-
-  // Set electron distribution function.
-  fout[0] = F0;
-  fout[1] = G;
+  // Set normalized electron distribution functions.
+  fout[0] = F;
+  fout[1] = F;
 }
 
 void
 evalElcFluidInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  double mom_x = 0.0; // Electron total momentum density (x-direction).
-  double mom_y = 0.0; // Electron total momentum density (y-direction).
-  double mom_z = 0.0; // Electron total momentum density (z-direction).
+  struct es_shock_ctx *app = ctx;
+  double x = xn[0];
 
-  // Set electron total momentum density.
-  fout[0] = mom_x;
-  fout[1] = mom_y;
-  fout[2] = mom_z;
+  double n0_l = app->n0_l;
+  double n0_r = app->n0_r;
+  double Te_l = app->Te_l;
+  double Te_r = app->Te_r;
+  double mass_elc = app->mass_elc;
+  double Lx = app->Lx;
+
+  double n = fabs(x) < 0.25 * Lx ? n0_l : n0_r; // Number density.
+  double vt = fabs(x) < 0.25 * Lx ? Te_l : Te_r; // Thermal speed.
+
+  double mom_x = 0.0; // Total momentum density (x-direction).
+  double mom_y = 0.0; // Total momentum density (y-direction).
+  double mom_z = 0.0; // Total momentum density (z-direction).
+
+  double rho = mass_elc * n; // Electron mass density.
+  double vtsq = vt * vt; // Electron T/m.
+  double E = 0.5 * (mom_x * mom_x + mom_y * mom_y + mom_z * mom_z) / rho + 1.5 * rho * vtsq; // Electron total energy density.
+
+  // Set Electron fluid state [rho, rho ux, rho uy, rho uz, E].
+  fout[0] = rho;
+  fout[1] = mom_x;
+  fout[2] = mom_y;
+  fout[3] = mom_z;
+  fout[4] = E;
 }
 
 void
 evalIonDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct es_shock_ctx *app = ctx;
-  double x = xn[0], vx = xn[1];
+  double w = xn[1]; // Normalized parallel velocity w = v_par/xi.
 
-  double pi = app->pi;
+  // Normalized isotropic Maxwellian: F = exp(-w^2/2)/sqrt(2 pi) (M0 = 1, M2 = 1) and
+  // G = (T_perp/T) F = F, independent of position; the density, flow and temperature
+  // enter through the fluid state.
+  double F = exp(-0.5 * w * w) / sqrt(2.0 * M_PI);
 
-  double n0_l = app->n0_l;
-  double n0_r = app->n0_r;
-
-  double Ti_l = app->Ti_l;
-  double Ti_r = app->Ti_r;
-
-  double Lx = app->Lx;
-
-  double F0 = 0.0;
-  double T = 0.0;
-
-  if (fabs(x) < 0.25 * Lx) {
-    F0 = (n0_l / sqrt(2.0 * pi * Ti_l * Ti_l)) *
-         (exp(-(vx * vx) / (2.0 * Ti_l * Ti_l))); // Left ion distribution function (F0).
-    T = Ti_l; // Left ion temperature.
-  } else {
-    F0 = (n0_r / sqrt(2.0 * pi * Ti_r * Ti_r)) *
-         (exp(-(vx * vx) / (2.0 * Ti_r * Ti_r))); // Right ion distribution function (F0).
-    T = Ti_r; // Right ion temperature.
-  }
-
-  double G = (T * T) * F0; // Ion distribution function (G).
-
-  // Set ion distribution function.
-  fout[0] = F0;
-  fout[1] = G;
+  // Set normalized ion distribution functions.
+  fout[0] = F;
+  fout[1] = F;
 }
 
 void
 evalIonFluidInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  double mom_x = 0.0; // Ion total momentum density (x-direction).
-  double mom_y = 0.0; // Ion total momentum density (y-direction).
-  double mom_z = 0.0; // Ion total momentum density (z-direction).
+  struct es_shock_ctx *app = ctx;
+  double x = xn[0];
 
-  // Set ion total momentum density.
-  fout[0] = mom_x;
-  fout[1] = mom_y;
-  fout[2] = mom_z;
+  double n0_l = app->n0_l;
+  double n0_r = app->n0_r;
+  double Ti_l = app->Ti_l;
+  double Ti_r = app->Ti_r;
+  double mass_ion = app->mass_ion;
+  double Lx = app->Lx;
+
+  double n = fabs(x) < 0.25 * Lx ? n0_l : n0_r; // Number density.
+  double vt = fabs(x) < 0.25 * Lx ? Ti_l : Ti_r; // Thermal speed.
+
+  double mom_x = 0.0; // Total momentum density (x-direction).
+  double mom_y = 0.0; // Total momentum density (y-direction).
+  double mom_z = 0.0; // Total momentum density (z-direction).
+
+  double rho = mass_ion * n; // Ion mass density.
+  double vtsq = vt * vt; // Ion T/m.
+  double E = 0.5 * (mom_x * mom_x + mom_y * mom_y + mom_z * mom_z) / rho + 1.5 * rho * vtsq; // Ion total energy density.
+
+  // Set Ion fluid state [rho, rho ux, rho uy, rho uz, E].
+  fout[0] = rho;
+  fout[1] = mom_x;
+  fout[2] = mom_y;
+  fout[3] = mom_z;
+  fout[4] = E;
 }
 
 void
