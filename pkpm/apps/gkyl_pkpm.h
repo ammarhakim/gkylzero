@@ -149,6 +149,17 @@ struct gkyl_pkpm {
     // Default is a first-order operator split with
     // implicit fluid-EM coupling.
 
+  // Vertex positivity limiter of the fluid state [rho, M, E] (Zhang-Shu scaling of the
+  // slopes toward the cell averages, applied after every forward-Euler stage, the implicit
+  // coupling and the initial condition): the vertex density and internal energy are kept
+  // above fluid_positivity_eps times the cell values (default 1e-2). The cells it acts on
+  // are recorded in <name>-<species>_pkpm_positivity_<frame>.gkyl (cumulative counts per
+  // cell) and the counts per integrated-moment interval in the dynvec
+  // <name>-<species>-positivity-stat.gkyl ([cells scaled for the density, for the internal
+  // energy, cells with an inadmissible average, limiter applications], summed over ranks).
+  bool no_fluid_positivity; // Disable the limiter.
+  double fluid_positivity_eps; // Relative floor (0 => default 1e-2).
+
   struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
 };
 

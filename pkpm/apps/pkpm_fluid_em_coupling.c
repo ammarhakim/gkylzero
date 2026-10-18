@@ -76,6 +76,7 @@ pkpm_fluid_em_coupling_update(
   for (int i = 0; i < num_species; ++i) {
     struct pkpm_species *s = &app->species[i];
     gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local, s->fluid_no_J, s->fluid);
+    pkpm_species_apply_positivity(app, s, s->fluid);
     pkpm_fluid_species_apply_bc(app, s, s->fluid);
   }
   gkyl_vlasov_position_map_rescale_jacobpos_conf(

@@ -286,6 +286,9 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
     gkyl_wave_geom_new(&app->grid, &app->local_ext, app->mapc2p, app->c2p_ctx, app->use_gpu);
 
   // PKPM system *always* has a field to define the local magnetic field direction
+  app->fluid_positivity = !pkpm->no_fluid_positivity;
+  app->fluid_positivity_eps = pkpm->fluid_positivity_eps > 0.0 ? pkpm->fluid_positivity_eps : 1.0e-2;
+
   app->field = pkpm_field_new(pkpm, app);
 
   // allocate space to store species objects
@@ -393,6 +396,7 @@ gkyl_pkpm_app_apply_ic_species(gkyl_pkpm_app *app, int sidx, double t0)
   app->tcurr = t0;
   struct timespec wtm = gkyl_wall_clock();
   pkpm_species_apply_ic(app, &app->species[sidx], t0);
+  pkpm_species_apply_positivity(app, &app->species[sidx], app->species[sidx].fluid);
   app->stat.init_species_tm += gkyl_time_diff_now_sec(wtm);
 
   pkpm_species_apply_bc(app, &app->species[sidx], app->species[sidx].f);
@@ -424,6 +428,18 @@ gkyl_pkpm_app_calc_integrated_mom(gkyl_pkpm_app *app, double tm)
 
     gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 9, avals, avals_global);
     gkyl_dynvec_append(s->integ_diag, tm, avals_global);
+
+    // Positivity limiter statistics since the previous call: [cells scaled for the
+    // density, for the internal energy, cells with an inadmissible average, applications].
+    if (app->fluid_positivity) {
+      double pos[4], pos_global[4];
+      for (int c = 0; c < 4; ++c) {
+        pos[c] = s->pos_count_since[c];
+        s->pos_count_since[c] = 0;
+      }
+      gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 4, pos, pos_global);
+      gkyl_dynvec_append(s->pos_stat, tm, pos_global);
+    }
   }
 
   app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
@@ -617,6 +633,36 @@ gkyl_pkpm_app_write_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame)
   char fileNm_cons[sz_cons + 1];
   snprintf(fileNm_cons, sizeof fileNm_cons, fmt_cons, app->name, s->info.name, frame);
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, s->pkpm_cmoms_host, fileNm_cons);
+  // The cumulative record of the positivity limiter as the cell averages of a p=1 field:
+  // [cells scaled for the density, for the internal energy, inadmissible averages].
+  if (app->fluid_positivity) {
+    const char *fmt_pos = "%s-%s_pkpm_positivity_%d.gkyl";
+    int sz_pos = gkyl_calc_strlen(fmt_pos, app->name, s->info.name, frame);
+    char fileNm_pos[sz_pos + 1];
+    snprintf(fileNm_pos, sizeof fileNm_pos, fmt_pos, app->name, s->info.name, frame);
+    int nc = app->confBasis.num_basis;
+    struct gkyl_array *count_host = s->pkpm_pos_count;
+    if (app->use_gpu) {
+      count_host = mkarr(false, 3, app->local_ext.volume);
+      gkyl_array_copy(count_host, s->pkpm_pos_count);
+    }
+    gkyl_array_clear(s->pkpm_pos_io_host, 0.0);
+    double c0 = sqrt(pow(2.0, app->cdim)); // constant-mode coefficient of a unit cell average
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &app->local);
+    while (gkyl_range_iter_next(&iter)) {
+      long loc = gkyl_range_idx(&app->local_ext, iter.idx);
+      const double *cnt = gkyl_array_cfetch(count_host, loc);
+      double *io = gkyl_array_fetch(s->pkpm_pos_io_host, loc);
+      for (int c = 0; c < 3; ++c) {
+        io[c * nc] = c0 * cnt[c];
+      }
+    }
+    if (app->use_gpu) {
+      gkyl_array_release(count_host);
+    }
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, s->pkpm_pos_io_host, fileNm_pos);
+  }
 
   pkpm_array_meta_release(mt);
 }
@@ -640,8 +686,22 @@ gkyl_pkpm_app_write_integrated_mom(gkyl_pkpm_app *app)
       } else {
         gkyl_dynvec_awrite(app->species[i].integ_diag, fileNm);
       }
+
+      if (app->fluid_positivity) {
+        // positivity limiter statistics on the same cadence as the integrated moments
+        int sz_pos = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name, "positivity-stat");
+        char fileNm_pos[sz_pos + 1];
+        snprintf(fileNm_pos, sizeof fileNm_pos, fmt, app->name, app->species[i].info.name, "positivity-stat");
+        if (app->species[i].is_first_pos_stat_write_call) {
+          gkyl_dynvec_write(app->species[i].pos_stat, fileNm_pos);
+          app->species[i].is_first_pos_stat_write_call = false;
+        } else {
+          gkyl_dynvec_awrite(app->species[i].pos_stat, fileNm_pos);
+        }
+      }
     }
     gkyl_dynvec_clear(app->species[i].integ_diag);
+    gkyl_dynvec_clear(app->species[i].pos_stat);
   }
 }
 

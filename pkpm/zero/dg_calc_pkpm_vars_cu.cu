@@ -349,6 +349,53 @@ gkyl_dg_calc_pkpm_vars_grad_ln_n_cu(
 }
 
 __global__ void
+gkyl_dg_calc_pkpm_vars_positivity_cu_kernel(
+  struct gkyl_dg_calc_pkpm_vars *up, struct gkyl_range conf_range, double eps,
+  struct gkyl_array *fluid, struct gkyl_array *count, int *num_pos
+)
+{
+  int idx[GKYL_MAX_DIM];
+
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x * blockDim.x; linc1 < conf_range.volume;
+       linc1 += gridDim.x * blockDim.x) {
+    gkyl_sub_range_inv_idx(&conf_range, linc1, idx);
+    long loc = gkyl_range_idx(&conf_range, idx);
+
+    int flag = up->pkpm_fluid_positivity(eps, (double *)gkyl_array_fetch(fluid, loc));
+    double *cnt = (double *)gkyl_array_fetch(count, loc);
+    if (flag < 0) {
+      cnt[2] += 1.0;
+      atomicAdd(&num_pos[2], 1);
+    }
+    if (flag > 0 && (flag & 1)) {
+      cnt[0] += 1.0;
+      atomicAdd(&num_pos[0], 1);
+    }
+    if (flag > 0 && (flag & 2)) {
+      cnt[1] += 1.0;
+      atomicAdd(&num_pos[1], 1);
+    }
+  }
+}
+// Host-side wrapper for the fluid positivity limiter
+void
+gkyl_dg_calc_pkpm_vars_positivity_cu(
+  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, double eps,
+  struct gkyl_array *fluid, struct gkyl_array *count, int *num_rho, int *num_e, int *num_avg
+)
+{
+  gkyl_cu_memset(up->num_pos_dev, 0, sizeof(int[3]));
+  gkyl_dg_calc_pkpm_vars_positivity_cu_kernel<<<conf_range->nblocks, conf_range->nthreads>>>(
+    up->on_dev, *conf_range, eps, fluid->on_dev, count->on_dev, up->num_pos_dev
+  );
+  int num_pos[3] = {0, 0, 0};
+  gkyl_cu_memcpy(num_pos, up->num_pos_dev, sizeof(int[3]), GKYL_CU_MEMCPY_D2H);
+  *num_rho = num_pos[0];
+  *num_e = num_pos[1];
+  *num_avg = num_pos[2];
+}
+
+__global__ void
 gkyl_dg_calc_pkpm_vars_normalize_dist_cu_kernel(
   struct gkyl_dg_calc_pkpm_vars *up, struct gkyl_range conf_range, struct gkyl_range phase_range,
   const struct gkyl_array *n, const struct gkyl_array *f, struct gkyl_array *fbar, int *num_null
@@ -539,6 +586,7 @@ dg_calc_pkpm_vars_set_cu_dev_ptrs(
   up->pkpm_prim = choose_pkpm_prim_kern(b_type, cdim, poly_order);
   up->pkpm_int = choose_pkpm_int_kern(b_type, cdim, poly_order);
   up->pkpm_grad_ln_n = choose_pkpm_grad_ln_n_kern(b_type, cdim, poly_order);
+  up->pkpm_fluid_positivity = choose_pkpm_fluid_positivity_kern(b_type, cdim, poly_order);
   up->pkpm_normalize = choose_pkpm_normalize_kern(b_type, cdim, poly_order);
   up->pkpm_source = choose_pkpm_source_kern(b_type, cdim, poly_order);
   up->pkpm_diag = choose_pkpm_diag_kern(b_type, cdim, poly_order);
@@ -572,6 +620,7 @@ gkyl_dg_calc_pkpm_vars_cu_dev_new(
 
   up->num_null_rho = 0;
   up->num_null_rho_dev = (int *)gkyl_cu_malloc(sizeof(int));
+  up->num_pos_dev = (int *)gkyl_cu_malloc(sizeof(int[3]));
 
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);

@@ -223,6 +223,11 @@ struct pkpm_species {
   double kinetic_tm; // time spent in the kinetic right-hand side
   double fluid_tm; // time spent in the momentum right-hand side
   long num_null_rho; // accumulated count of nodes with an inadmissible density in the closure
+  struct gkyl_array *pkpm_pos_count; // per-cell record of the positivity limiter [rho, e, avg] (cumulative)
+  struct gkyl_array *pkpm_pos_io, *pkpm_pos_io_host; // the record as cell averages of a p=1 field for IO
+  long pos_count_since[4]; // limiter counts [rho, e, avg, applications] since the last integrated-moment call
+  gkyl_dynvec pos_stat; // the counts per integrated-moment interval, summed over ranks
+  bool is_first_pos_stat_write_call; // flag for the positivity statistics dynvec written first time
 
 
   // Pointers for io for PKPM fluid variables, handled by kinetic species because of fluid-kinetic coupling.
@@ -392,6 +397,8 @@ struct gkyl_pkpm_app {
   struct pkpm_species *species; // data for each species
 
   bool use_explicit_source; // Boolean to turn on explicit fluid-EM coupling
+  bool fluid_positivity; // Apply the vertex positivity limiter to the fluid state
+  double fluid_positivity_eps; // Relative floor of the limiter
   struct pkpm_fluid_em_coupling *pkpm_em; // fluid-EM coupling data
   // pointer to function that takes a single-step of simulation
   struct gkyl_update_status (*update_func)(gkyl_pkpm_app *app, double dt0);
@@ -621,6 +628,18 @@ void pkpm_pos_c2p(const double *xcomp, double *xphys, void *ctx);
 void pkpm_species_calc_pkpm_vars(
   gkyl_pkpm_app *app, struct pkpm_species *species, const struct gkyl_array *fin,
   const struct gkyl_array *fluidin
+);
+
+/**
+ * Apply the vertex positivity limiter to a fluid state over the local range (no-op when
+ * disabled), recording the cells it acted on and the run totals.
+ *
+ * @param app PKPM app object
+ * @param species Species object
+ * @param fluid Fluid state [rho, M, E] to limit in place
+ */
+void pkpm_species_apply_positivity(
+  gkyl_pkpm_app *app, struct pkpm_species *species, struct gkyl_array *fluid
 );
 
 /**

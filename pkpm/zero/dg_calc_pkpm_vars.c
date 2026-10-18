@@ -43,11 +43,13 @@ gkyl_dg_calc_pkpm_vars_new(
   up->pkpm_prim = choose_pkpm_prim_kern(b_type, cdim, poly_order);
   up->pkpm_int = choose_pkpm_int_kern(b_type, cdim, poly_order);
   up->pkpm_grad_ln_n = choose_pkpm_grad_ln_n_kern(b_type, cdim, poly_order);
+  up->pkpm_fluid_positivity = choose_pkpm_fluid_positivity_kern(b_type, cdim, poly_order);
   up->pkpm_normalize = choose_pkpm_normalize_kern(b_type, cdim, poly_order);
   up->pkpm_source = choose_pkpm_source_kern(b_type, cdim, poly_order);
   up->pkpm_diag = choose_pkpm_diag_kern(b_type, cdim, poly_order);
   up->num_null_rho = 0;
   up->num_null_rho_dev = 0;
+  up->num_pos_dev = 0;
 
   // Linear system for the weak division of the momentum by the density (ux, uy, uz)
   up->As_u = gkyl_nmat_new(3 * mem_range->volume, nc, nc);
@@ -248,6 +250,43 @@ gkyl_dg_calc_pkpm_vars_grad_ln_n(
   return num_null;
 }
 
+void
+gkyl_dg_calc_pkpm_vars_positivity(
+  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, double eps,
+  struct gkyl_array *fluid, struct gkyl_array *count, int *num_rho, int *num_e, int *num_avg
+)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(fluid)) {
+    return gkyl_dg_calc_pkpm_vars_positivity_cu(up, conf_range, eps, fluid, count, num_rho, num_e, num_avg);
+  }
+#endif
+  assert(up->pkpm_fluid_positivity);
+  int nrho = 0, ne = 0, navg = 0;
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, conf_range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(conf_range, iter.idx);
+    int flag = up->pkpm_fluid_positivity(eps, gkyl_array_fetch(fluid, loc));
+    double *cnt = gkyl_array_fetch(count, loc);
+    if (flag < 0) {
+      cnt[2] += 1.0;
+      navg += 1;
+    }
+    if (flag > 0 && (flag & 1)) {
+      cnt[0] += 1.0;
+      nrho += 1;
+    }
+    if (flag > 0 && (flag & 2)) {
+      cnt[1] += 1.0;
+      ne += 1;
+    }
+  }
+  *num_rho = nrho;
+  *num_e = ne;
+  *num_avg = navg;
+}
+
 int
 gkyl_dg_calc_pkpm_vars_normalize_dist(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
@@ -370,6 +409,7 @@ gkyl_dg_calc_pkpm_vars_release(gkyl_dg_calc_pkpm_vars *up)
 
   if (GKYL_IS_CU_ALLOC(up->flags)) {
     gkyl_cu_free(up->num_null_rho_dev);
+    gkyl_cu_free(up->num_pos_dev);
     gkyl_cu_free(up->on_dev);
   }
   gkyl_free(up);

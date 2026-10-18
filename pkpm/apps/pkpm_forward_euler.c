@@ -87,6 +87,7 @@ pkpm_forward_euler(
   for (int i = 0; i < app->num_species; ++i) {
     gkyl_array_accumulate(gkyl_array_scale(fout[i], dta), 1.0, fin[i]);
     gkyl_array_accumulate(gkyl_array_scale(fluidout[i], dta), 1.0, fluidin[i]);
+    pkpm_species_apply_positivity(app, &app->species[i], fluidout[i]);
     pkpm_species_apply_bc(app, &app->species[i], fout[i]);
     pkpm_fluid_species_apply_bc(app, &app->species[i], fluidout[i]);
   }

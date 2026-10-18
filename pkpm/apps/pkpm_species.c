@@ -204,6 +204,15 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     s->fluid_io_host = mkarr(false, 11 * nc, app->local_ext.volume);
     s->pkpm_vars_io_host = mkarr(false, 10 * nc, app->local_ext.volume);
   }
+  // Record of the positivity limiter: per cell [density scalings, energy scalings,
+  // inadmissible averages] accumulated over the run, and its p=1 image for IO.
+  s->pkpm_pos_count = mkarr(app->use_gpu, 3, app->local_ext.volume);
+  gkyl_array_clear(s->pkpm_pos_count, 0.0);
+  s->pkpm_pos_io = mkarr(app->use_gpu, 3 * nc, app->local_ext.volume);
+  s->pkpm_pos_io_host = s->pkpm_pos_io;
+  if (app->use_gpu) {
+    s->pkpm_pos_io_host = mkarr(false, 3 * nc, app->local_ext.volume);
+  }
 
   // Surface-flux updaters and stored modal fluxes (each cell owns its lower faces).
   struct gkyl_dg_pkpm_conf_flux_surf_inp conf_flux_inp = {
@@ -315,6 +324,11 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   // allocate dynamic-vector to store all-reduced integrated moments and F_0^2
   s->integ_L2_f = gkyl_dynvec_new(GKYL_DOUBLE, 1);
   s->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, 9);
+  s->pos_stat = gkyl_dynvec_new(GKYL_DOUBLE, 4);
+  s->is_first_pos_stat_write_call = true;
+  for (int c = 0; c < 4; ++c) {
+    s->pos_count_since[c] = 0;
+  }
   s->is_first_integ_L2_write_call = true;
   s->is_first_integ_write_call = true;
 
@@ -689,6 +703,27 @@ pkpm_species_calc_pkpm_vars(
   gkyl_array_set_offset(species->pkpm_xi3, 1.0, species->pkpm_xi, 0);
   gkyl_dg_calc_pkpm_vars_grad_u(species->calc_pkpm_vars, &app->local, species->pkpm_xi3, species->pkpm_grad_xi);
 
+  app->stat.species_pkpm_vars_tm += gkyl_time_diff_now_sec(tm);
+}
+
+void
+pkpm_species_apply_positivity(
+  gkyl_pkpm_app *app, struct pkpm_species *species, struct gkyl_array *fluid
+)
+{
+  if (!app->fluid_positivity) {
+    return;
+  }
+  struct timespec tm = gkyl_wall_clock();
+  int num_rho = 0, num_e = 0, num_avg = 0;
+  gkyl_dg_calc_pkpm_vars_positivity(
+    species->calc_pkpm_vars, &app->local, app->fluid_positivity_eps, fluid, species->pkpm_pos_count,
+    &num_rho, &num_e, &num_avg
+  );
+  species->pos_count_since[0] += num_rho;
+  species->pos_count_since[1] += num_e;
+  species->pos_count_since[2] += num_avg;
+  species->pos_count_since[3] += 1;
   app->stat.species_pkpm_vars_tm += gkyl_time_diff_now_sec(tm);
 }
 
@@ -1130,6 +1165,11 @@ pkpm_species_release(const gkyl_pkpm_app *app, const struct pkpm_species *s)
   gkyl_array_release(s->integ_pkpm_mom);
   gkyl_array_release(s->fluid_io);
   gkyl_array_release(s->pkpm_vars_io);
+  gkyl_array_release(s->pkpm_pos_count);
+  gkyl_array_release(s->pkpm_pos_io);
+  if (app->use_gpu) {
+    gkyl_array_release(s->pkpm_pos_io_host);
+  }
   gkyl_dg_calc_pkpm_vars_release(s->calc_pkpm_vars);
   gkyl_dg_calc_pkpm_vars_release(s->calc_pkpm_vars_ext);
   gkyl_dg_pkpm_conf_flux_surf_release(s->calc_conf_flux);
@@ -1145,6 +1185,7 @@ pkpm_species_release(const gkyl_pkpm_app *app, const struct pkpm_species *s)
   gkyl_array_release(s->L2_f);
   gkyl_dynvec_release(s->integ_L2_f);
   gkyl_dynvec_release(s->integ_diag);
+  gkyl_dynvec_release(s->pos_stat);
 
   gkyl_array_release(s->app_accel);
   if (s->has_app_accel) {

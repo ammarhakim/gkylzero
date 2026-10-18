@@ -46,6 +46,7 @@ typedef void (*pkpm_int_t)(
   const double *fluid, const double *vlasov_pkpm_moms, const double *u, double *GKYL_RESTRICT int_pkpm_vars
 );
 
+typedef int (*pkpm_fluid_positivity_t)(double eps, double *GKYL_RESTRICT fluid);
 typedef int (*pkpm_grad_ln_n_t)(
   const double *rho, const double *grad_rho, double *GKYL_RESTRICT grad_ln_n
 );
@@ -71,11 +72,13 @@ struct gkyl_dg_calc_pkpm_vars {
   pkpm_prim_t pkpm_prim; // nodal flow and thermal speed [xi, xi^2, p] of the fluid state
   pkpm_int_t pkpm_int; // cell integrals of the diagnostics of the [rho, M, E] state
   pkpm_grad_ln_n_t pkpm_grad_ln_n; // grad(ln n) by nodal quotient of the weak gradient of rho
+  pkpm_fluid_positivity_t pkpm_fluid_positivity; // vertex positivity limiter of the fluid state
   pkpm_normalize_t pkpm_normalize; // nodal constraint enforcement of the initial distributions
   pkpm_source_t pkpm_source; // explicit electromagnetic source of [rho, M, E]
   pkpm_diag_t pkpm_diag; // diagnostic arrays
   int num_null_rho; // number of nodes with rho <= 0 in the last nodal computation (host copy)
   int *num_null_rho_dev; // device counter for num_null_rho (0 on host)
+  int *num_pos_dev; // device counters [rho, e, avg] of the positivity limiter (0 on host)
 
   uint32_t flags;
   struct gkyl_dg_calc_pkpm_vars *on_dev; // pointer to itself or device data
@@ -187,6 +190,21 @@ choose_pkpm_int_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
   return 0;
 }
 // grad(ln n) from the weak gradient of rho over the cell average (p=1 serendipity)
+GKYL_CU_D static const pkpm_fluid_positivity_t ser_pkpm_fluid_positivity_kernels[] = {
+  pkpm_fluid_positivity_1x_ser_p1,
+  pkpm_fluid_positivity_2x_ser_p1,
+  pkpm_fluid_positivity_3x_ser_p1,
+};
+GKYL_CU_D
+static pkpm_fluid_positivity_t
+choose_pkpm_fluid_positivity_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+{
+  if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
+    return ser_pkpm_fluid_positivity_kernels[cdim - 1];
+  }
+  return 0;
+}
+
 GKYL_CU_D static const pkpm_grad_ln_n_t ser_pkpm_grad_ln_n_kernels[] = {
   pkpm_vars_grad_ln_n_1x_ser_p1,
   pkpm_vars_grad_ln_n_2x_ser_p1,

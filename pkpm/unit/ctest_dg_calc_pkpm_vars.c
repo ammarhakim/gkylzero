@@ -198,7 +198,144 @@ test_source_1x_p1()
   gkyl_vlasov_position_map_release(pm);
 }
 
+// Vertex values of a p=1 serendipity expansion.
+static void
+vertex_values(const struct gkyl_basis *b, const double *c, double *v)
+{
+  int cdim = b->ndim, nv = 1 << cdim;
+  for (int k = 0; k < nv; ++k) {
+    double z[3];
+    for (int d = 0; d < cdim; ++d) {
+      z[d] = (k >> d) & 1 ? 1.0 : -1.0;
+    }
+    v[k] = b->eval_expand(z, c);
+  }
+}
+
+// The positivity limiter: a cell with admissible vertices is untouched; a cell whose
+// vertex density and one whose vertex internal energy are inadmissible get their slopes
+// scaled to the floor with the cell averages preserved; a cell with an inadmissible
+// average is left as is and counted.
+static void
+test_positivity(int cdim)
+{
+  int poly_order = 1;
+  double lower[3] = {-1.0, -1.0, -1.0}, upper[3] = {1.0, 1.0, 1.0};
+  int cells[3] = {4, 2, 2}, ghost[3] = {1, 1, 1};
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, cdim, lower, upper, cells);
+  struct gkyl_basis cbasis;
+  gkyl_cart_modal_serendip(&cbasis, cdim, poly_order);
+  int nb = cbasis.num_basis, nv = 1 << cdim;
+  struct gkyl_range local, local_ext;
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+  struct gkyl_vlasov_position_map *pm = identity_pos_map(&grid, &local, &local_ext, &cbasis);
+  struct gkyl_dg_calc_pkpm_vars *vars = gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis, &local, pm, false);
+
+  struct gkyl_array *fluid = mkarr(5 * nb, local_ext.volume), *count = mkarr(3, local_ext.volume);
+  gkyl_array_clear(fluid, 0.0);
+  gkyl_array_clear(count, 0.0);
+  double c0 = sqrt(pow(2.0, cdim)); // constant-mode coefficient of a unit cell average
+  // Every cell starts smooth and admissible; along x (other indices at their lower bound)
+  // cells 2, 3 and 4 become steep density, steep energy (large momentum slope) and
+  // inadmissible average.
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &local);
+  while (gkyl_range_iter_next(&iter)) {
+    double *f = gkyl_array_fetch(fluid, gkyl_range_idx(&local_ext, iter.idx));
+    f[0] = c0;
+    f[nb] = 0.3 * c0;
+    f[4 * nb] = c0 * (0.5 + 0.5 * 0.3 * 0.3);
+    f[1] = 0.1 * c0;
+    f[4 * nb + 1] = 0.05 * c0;
+  }
+  int idx[3] = {1, 1, 1};
+  double eps = 1.0e-2;
+  for (int i = 2; i <= 4; ++i) {
+    idx[0] = i;
+    double *f = gkyl_array_fetch(fluid, gkyl_range_idx(&local_ext, idx));
+    double rho = 1.0, ux = 0.3; // averages: rho, flow
+    f[1] = 0.0;
+    f[4 * nb + 1] = 0.0;
+    if (i == 2) {
+      f[1] = 1.2 * c0; // vertex density of about -1
+    } else if (i == 3) {
+      f[nb + 1] = 1.5 * c0; // vertex |u| of about 2.9 with the same E: negative internal energy
+    } else {
+      f[4 * nb] = c0 * rho * (0.5 * ux * ux - 0.1); // average internal energy negative
+    }
+  }
+  double avg_before[4][5];
+  for (int i = 1; i <= 4; ++i) {
+    idx[0] = i;
+    const double *f = gkyl_array_cfetch(fluid, gkyl_range_idx(&local_ext, idx));
+    for (int c = 0; c < 5; ++c) {
+      avg_before[i - 1][c] = f[c * nb];
+    }
+  }
+  int num_rho = -1, num_e = -1, num_avg = -1;
+  gkyl_dg_calc_pkpm_vars_positivity(vars, &local, eps, fluid, count, &num_rho, &num_e, &num_avg);
+  TEST_CHECK(num_rho == 1);
+  TEST_CHECK(num_e == 2); // the steep-density cell also needs the energy scaling after step 1
+  TEST_CHECK(num_avg == 1);
+
+  for (int i = 1; i <= 4; ++i) {
+    idx[0] = i;
+    long loc = gkyl_range_idx(&local_ext, idx);
+    const double *f = gkyl_array_cfetch(fluid, loc), *cnt = gkyl_array_cfetch(count, loc);
+    // averages preserved
+    for (int c = 0; c < 5; ++c) {
+      TEST_CHECK(f[c * nb] == avg_before[i - 1][c]);
+    }
+    if (i == 4) {
+      TEST_CHECK(cnt[2] == 1.0 && cnt[0] == 0.0 && cnt[1] == 0.0);
+      continue;
+    }
+    double rho_v[8], M_v[3][8], E_v[8];
+    vertex_values(&cbasis, &f[0], rho_v);
+    for (int d = 0; d < 3; ++d) {
+      vertex_values(&cbasis, &f[(1 + d) * nb], M_v[d]);
+    }
+    vertex_values(&cbasis, &f[4 * nb], E_v);
+    // internal energies per volume, E - |M|^2/(2 rho), of the average and of the vertices
+    double rho_avg = f[0] / c0, e_avg = f[4 * nb] / c0 - 0.5 * pow(f[nb] / c0, 2) / rho_avg;
+    double rho_min = 1.0, e_min = 1.0;
+    for (int k = 0; k < nv; ++k) {
+      double e_v = E_v[k] - 0.5 * (M_v[0][k] * M_v[0][k] + M_v[1][k] * M_v[1][k] + M_v[2][k] * M_v[2][k]) / rho_v[k];
+      rho_min = fmin(rho_min, rho_v[k] / rho_avg);
+      e_min = fmin(e_min, e_v / e_avg);
+    }
+    TEST_CHECK(rho_min >= eps * (1.0 - 1e-12));
+    TEST_CHECK(e_min >= eps * (1.0 - 1e-10));
+    TEST_MSG("cdim=%d cell %d: vertex rho/avg min %g, e/avg min %g", cdim, i, rho_min, e_min);
+    if (i == 1) {
+      TEST_CHECK(cnt[0] == 0.0 && cnt[1] == 0.0 && cnt[2] == 0.0);
+      TEST_CHECK(f[1] == 0.1 * c0); // untouched
+    } else if (i == 2) {
+      // density scaled to the floor, then all slopes scaled again for the energy
+      TEST_CHECK(cnt[0] == 1.0 && cnt[1] == 1.0);
+      TEST_CHECK(rho_min > eps);
+      TEST_CHECK(gkyl_compare(e_min, eps, 1e-8));
+    } else {
+      TEST_CHECK(cnt[0] == 0.0 && cnt[1] == 1.0);
+      TEST_CHECK(gkyl_compare(e_min, eps, 1e-8)); // scaled exactly to the floor
+    }
+  }
+
+  gkyl_array_release(count);
+  gkyl_array_release(fluid);
+  gkyl_dg_calc_pkpm_vars_release(vars);
+  gkyl_vlasov_position_map_release(pm);
+}
+
+void test_positivity_1x() { test_positivity(1); }
+void test_positivity_2x() { test_positivity(2); }
+void test_positivity_3x() { test_positivity(3); }
+
 TEST_LIST = {
+  {"test_positivity_1x", test_positivity_1x},
+  {"test_positivity_2x", test_positivity_2x},
+  {"test_positivity_3x", test_positivity_3x},
   {"u_1x_p1", test_u_1x_p1},
   {"source_1x_p1", test_source_1x_p1},
   {NULL, NULL}

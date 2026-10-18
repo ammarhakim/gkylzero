@@ -15,6 +15,7 @@ GKYL_CU_DH int pkpm_vars_closure_1x_ser_p1(double w_lo, double w_up, double dv, 
   double* GKYL_RESTRICT flux_lo, double* GKYL_RESTRICT flux_up, double* GKYL_RESTRICT cfl); 
 GKYL_CU_DH int pkpm_vars_grad_ln_n_1x_ser_p1(const double *rho, const double *grad_rho, double* GKYL_RESTRICT grad_ln_n); 
 GKYL_CU_DH int pkpm_vars_prim_1x_ser_p1(const double *fluid, double* GKYL_RESTRICT u, double* GKYL_RESTRICT xi); 
+GKYL_CU_DH int pkpm_fluid_positivity_1x_ser_p1(double eps, double* GKYL_RESTRICT fluid); 
 GKYL_CU_DH void pkpm_vars_int_1x_ser_p1(const double *fluid, const double *vlasov_pkpm_moms, const double *u, double* GKYL_RESTRICT int_pkpm_vars); 
 GKYL_CU_DH void pkpm_vars_source_1x_ser_p1(const double *qmem, const double *fluid, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_vars_diag_1x_ser_p1(const double *dxv, const double *vlasov_pkpm_moms, const double *euler_pkpm,
@@ -32,6 +33,7 @@ GKYL_CU_DH int pkpm_vars_closure_2x_ser_p1(double w_lo, double w_up, double dv, 
   double* GKYL_RESTRICT flux_lo, double* GKYL_RESTRICT flux_up, double* GKYL_RESTRICT cfl); 
 GKYL_CU_DH int pkpm_vars_grad_ln_n_2x_ser_p1(const double *rho, const double *grad_rho, double* GKYL_RESTRICT grad_ln_n); 
 GKYL_CU_DH int pkpm_vars_prim_2x_ser_p1(const double *fluid, double* GKYL_RESTRICT u, double* GKYL_RESTRICT xi); 
+GKYL_CU_DH int pkpm_fluid_positivity_2x_ser_p1(double eps, double* GKYL_RESTRICT fluid); 
 GKYL_CU_DH void pkpm_vars_int_2x_ser_p1(const double *fluid, const double *vlasov_pkpm_moms, const double *u, double* GKYL_RESTRICT int_pkpm_vars); 
 GKYL_CU_DH void pkpm_vars_source_2x_ser_p1(const double *qmem, const double *fluid, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_vars_diag_2x_ser_p1(const double *dxv, const double *vlasov_pkpm_moms, const double *euler_pkpm,
@@ -50,6 +52,7 @@ GKYL_CU_DH int pkpm_vars_closure_3x_ser_p1(double w_lo, double w_up, double dv, 
   double* GKYL_RESTRICT flux_lo, double* GKYL_RESTRICT flux_up, double* GKYL_RESTRICT cfl); 
 GKYL_CU_DH int pkpm_vars_grad_ln_n_3x_ser_p1(const double *rho, const double *grad_rho, double* GKYL_RESTRICT grad_ln_n); 
 GKYL_CU_DH int pkpm_vars_prim_3x_ser_p1(const double *fluid, double* GKYL_RESTRICT u, double* GKYL_RESTRICT xi); 
+GKYL_CU_DH int pkpm_fluid_positivity_3x_ser_p1(double eps, double* GKYL_RESTRICT fluid); 
 GKYL_CU_DH void pkpm_vars_int_3x_ser_p1(const double *fluid, const double *vlasov_pkpm_moms, const double *u, double* GKYL_RESTRICT int_pkpm_vars); 
 GKYL_CU_DH void pkpm_vars_source_3x_ser_p1(const double *qmem, const double *fluid, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_vars_diag_3x_ser_p1(const double *dxv, const double *vlasov_pkpm_moms, const double *euler_pkpm,
