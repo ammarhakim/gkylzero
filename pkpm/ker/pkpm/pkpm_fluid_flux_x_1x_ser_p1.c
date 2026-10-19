@@ -7,7 +7,8 @@ GKYL_CU_DH double pkpm_fluid_flux_x_1x_ser_p1(const double *jacob_pos, const dou
   //            either cell (the face Jacobian J/J_x is the same on both sides). 
   // bvar_l/r:  Magnetic field unit vector [bx, by, bz] of the left/right cell. 
   // u_l/r:     Flow velocity [ux, uy, uz] of the left/right cell. 
-  // xi_l/r:    Thermal speed [xi, xi^2, p] of the left/right cell. 
+  // xi_l/r:    Thermal speed [xi, xi^2, p] of the left/right cell (the first expansion is used: 
+  //            xi^2 is the square of its trace, the xi of the streaming speed). 
   // theta_l/r: T_perp/T = M0(G) of the left/right cell (p_perp = rho xi^2 theta). 
   // fluid_l/r: PHYSICAL fluid state [rho, rho ux, rho uy, rho uz, E] of the left/right cell (Jacobian divided out). 
   // I:         Nodal moments [I_0, I_1, I_2, J]^l, [I_0, I_1, I_2, J]^r of the kinetic HLL flux at the 
@@ -27,7 +28,6 @@ GKYL_CU_DH double pkpm_fluid_flux_x_1x_ser_p1(const double *jacob_pos, const dou
   const double *q3_l = &fluid_l[6]; 
   const double *q4_l = &fluid_l[8]; 
   const double *xd_l = &xi_l[0]; 
-  const double *x2d_l = &xi_l[2]; 
   const double *thd_l = &theta_l[0]; 
   const double *b0_l = &bvar_l[0]; 
   const double *u0_l = &u_l[0]; 
@@ -41,7 +41,6 @@ GKYL_CU_DH double pkpm_fluid_flux_x_1x_ser_p1(const double *jacob_pos, const dou
   const double *q3_r = &fluid_r[6]; 
   const double *q4_r = &fluid_r[8]; 
   const double *xd_r = &xi_r[0]; 
-  const double *x2d_r = &xi_r[2]; 
   const double *thd_r = &theta_r[0]; 
   const double *b0_r = &bvar_r[0]; 
   const double *u0_r = &u_r[0]; 
@@ -52,7 +51,6 @@ GKYL_CU_DH double pkpm_fluid_flux_x_1x_ser_p1(const double *jacob_pos, const dou
  
   double rq_l[1] = {0.0}; 
   double xq_l[1] = {0.0}; 
-  double x2q_l[1] = {0.0}; 
   double thq_l[1] = {0.0}; 
   double qq1_l[1] = {0.0}; 
   double qq2_l[1] = {0.0}; 
@@ -66,7 +64,6 @@ GKYL_CU_DH double pkpm_fluid_flux_x_1x_ser_p1(const double *jacob_pos, const dou
   double uq2_l[1] = {0.0}; 
   rq_l[0] = 1.224744871391589*rho_l[1]+0.7071067811865475*rho_l[0]; 
   xq_l[0] = 1.224744871391589*xd_l[1]+0.7071067811865475*xd_l[0]; 
-  x2q_l[0] = 1.224744871391589*x2d_l[1]+0.7071067811865475*x2d_l[0]; 
   thq_l[0] = 1.224744871391589*thd_l[1]+0.7071067811865475*thd_l[0]; 
   qq1_l[0] = 1.224744871391589*q1_l[1]+0.7071067811865475*q1_l[0]; 
   qq2_l[0] = 1.224744871391589*q2_l[1]+0.7071067811865475*q2_l[0]; 
@@ -80,7 +77,6 @@ GKYL_CU_DH double pkpm_fluid_flux_x_1x_ser_p1(const double *jacob_pos, const dou
   uq2_l[0] = 1.224744871391589*u2_l[1]+0.7071067811865475*u2_l[0]; 
   double rq_r[1] = {0.0}; 
   double xq_r[1] = {0.0}; 
-  double x2q_r[1] = {0.0}; 
   double thq_r[1] = {0.0}; 
   double qq1_r[1] = {0.0}; 
   double qq2_r[1] = {0.0}; 
@@ -94,7 +90,6 @@ GKYL_CU_DH double pkpm_fluid_flux_x_1x_ser_p1(const double *jacob_pos, const dou
   double uq2_r[1] = {0.0}; 
   rq_r[0] = 0.7071067811865475*rho_r[0]-1.224744871391589*rho_r[1]; 
   xq_r[0] = 0.7071067811865475*xd_r[0]-1.224744871391589*xd_r[1]; 
-  x2q_r[0] = 0.7071067811865475*x2d_r[0]-1.224744871391589*x2d_r[1]; 
   thq_r[0] = 0.7071067811865475*thd_r[0]-1.224744871391589*thd_r[1]; 
   qq1_r[0] = 0.7071067811865475*q1_r[0]-1.224744871391589*q1_r[1]; 
   qq2_r[0] = 0.7071067811865475*q2_r[0]-1.224744871391589*q2_r[1]; 
@@ -112,7 +107,7 @@ GKYL_CU_DH double pkpm_fluid_flux_x_1x_ser_p1(const double *jacob_pos, const dou
   for (int n = 0; n < 1; ++n) { 
     { 
       const double I0 = I[0 + n], I1 = I[1 + n], I2 = I[2 + n], J0 = I[3 + n]; 
-      const double rq = rq_l[n], xq = xq_l[n], x2q = x2q_l[n]; 
+      const double rq = rq_l[n], xq = xq_l[n], x2q = xq*xq; 
       const double pperp = 0.5*jperp*rq*x2q*thq_l[n]; // half: the central average of the two traces 
       cfl_max = fmax(cfl_max, fabs(uq0_l[n]) + xq*sqrt(fmax(2.0*thq_l[n]*(1.0 - bq0_l[n]*bq0_l[n]), 0.0))); 
       const double bn = bq0_l[n]; 
@@ -126,7 +121,7 @@ GKYL_CU_DH double pkpm_fluid_flux_x_1x_ser_p1(const double *jacob_pos, const dou
     } 
     { 
       const double I0 = I[4 + n], I1 = I[5 + n], I2 = I[6 + n], J0 = I[7 + n]; 
-      const double rq = rq_r[n], xq = xq_r[n], x2q = x2q_r[n]; 
+      const double rq = rq_r[n], xq = xq_r[n], x2q = xq*xq; 
       const double pperp = 0.5*jperp*rq*x2q*thq_r[n]; // half: the central average of the two traces 
       cfl_max = fmax(cfl_max, fabs(uq0_r[n]) + xq*sqrt(fmax(2.0*thq_r[n]*(1.0 - bq0_r[n]*bq0_r[n]), 0.0))); 
       const double bn = bq0_r[n]; 
