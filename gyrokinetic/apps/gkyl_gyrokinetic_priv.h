@@ -1225,22 +1225,22 @@ struct gk_positivity {
 // Moment balance diagnostics.
 struct gk_species_balance {
   bool enabled; // =true if requested and the species is dynamic.
-  enum gkyl_distribution_moments mom_type; // Moment whose balance is computed.
-  int f_comp; // Component of mom_type in the integrated moments of f and df/dt.
+  int num_moms; // Number of moments whose balance is computed (only 1 for now).
+  enum gkyl_distribution_moments
+    mom_types[12]; // Moments whose balance is computed (only GKYL_F_MOMENT_M0 for now).
+  int f_comp[12]; // Component of each moment in the integrated moments of f and df/dt.
   bool has_source; // Whether the species has a source.
-  int src_comp; // Component of mom_type in the integrated moments of the source.
+  int src_comp[12]; // Component of each moment in the integrated moments of the source.
   int num_boundaries; // Number of boundaries with a boundary flux.
-  int bflux_int_mom; // Index of the bflux integrated diag moment containing mom_type.
-  int bflux_comp; // Component of mom_type in that bflux integrated diag moment.
-  int num_comp; // Number of components in the balance diagnostic.
-  gkyl_dynvec diag; // Balance diagnostic.
-  bool is_first_write; // Whether the diagnostic is being written for the first time.
-  // Functions chosen at runtime.
-  void (*calc_func)(
-    gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal, double tm
-  );
-  void (*write_func)(
-    gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal
+  int bflux_int_mom[12]; // Index of the bflux integrated diag moment containing each moment.
+  int bflux_comp[12]; // Component of each moment in that bflux integrated diag moment.
+  int num_comp; // Number of components in each balance diagnostic.
+  gkyl_dynvec diag[12]; // Balance diagnostic of each moment.
+  bool is_first_write[12]; // Whether each diagnostic is being written for the first time.
+  // Recipe computing the balance of each moment, chosen at runtime.
+  void (*calc_func[12])(
+    gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal, int m,
+    double tm
   );
 };
 
