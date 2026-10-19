@@ -1,7 +1,7 @@
 // Private header: not for direct use
 #pragma once
 
-#include <gkyl_vlasov_hyb_build.h>
+#include <gkyl_vlasov_kernel_sets.h>
 
 #include <math.h>
 

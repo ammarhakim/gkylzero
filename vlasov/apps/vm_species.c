@@ -1310,36 +1310,19 @@ vm_species_new_static(
 // End static function definitions.
 
 // Initialize species object.
-// The 3x3v tensor p=1 hybrid kernels and the 2x3v tensor p=2 kernels are
-// optional build sets (see ./configure --help and the top-level Makefile).
-// Refuse a configuration whose kernels were not built with an actionable
-// message instead of a NULL kernel pointer assert deep in a constructor.
+// The 2x3v tensor p=2 kernels are an optional build set (see ./configure --help
+// and the top-level Makefile). Refuse a configuration whose kernels were not
+// built with an actionable message instead of a NULL kernel pointer assert deep
+// in a constructor.
 static void
-vm_species_check_hyb_build(struct gkyl_vlasov_app *app, struct vm_species *vms)
+vm_species_check_build(struct gkyl_vlasov_app *app, struct vm_species *vms)
 {
-  int cdim = app->cdim, vdim = vms->basis.ndim - cdim;
 #ifndef GKYL_BUILD_VLASOV_TEN_2X3V_P2
+  int cdim = app->cdim, vdim = vms->basis.ndim - cdim;
   if (vms->basis.b_type == GKYL_BASIS_MODAL_TENSOR && vms->basis.poly_order == 2 && cdim == 2 &&
       vdim == 3) {
     gkyl_exit(
       "vm_species: the 2x3v tensor p=2 kernels were not built. Reconfigure with --build-vlasov-ten-2x3v-p2=yes."
-    );
-  }
-#endif
-  if (vms->basis.b_type != GKYL_BASIS_MODAL_HYBRID) {
-    return;
-  }
-#ifndef GKYL_BUILD_VLASOV_HYB_3X3V
-  if (cdim == 3 && vdim == 3) {
-    gkyl_exit(
-      "vm_species: the 3x3v tensor p=1 hybrid kernels were not built. Reconfigure with --build-vlasov-hyb-3x3v=yes."
-    );
-  }
-#endif
-#ifndef GKYL_BUILD_VLASOV_HYB_3X3V_PHASE
-  if (cdim == 3 && vdim == 3 && vms->hamil_id == GKYL_HAMIL_PHASE) {
-    gkyl_exit(
-      "vm_species: the 3x3v tensor p=1 hybrid phase-space Hamiltonian kernels were not built. Reconfigure with --build-vlasov-hyb-3x3v-phase=yes (and --build-vlasov-hyb-3x3v=yes)."
     );
   }
 #endif
@@ -1510,7 +1493,7 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
 
   // Construct Hamiltonian.
   vm_species_new_hamil(vm_app_inp, app, vms);
-  vm_species_check_hyb_build(app, vms);
+  vm_species_check_build(app, vms);
 
   // Determine whether we have radiation.
   vm_species_new_radiation(vm_app_inp, app, vms);

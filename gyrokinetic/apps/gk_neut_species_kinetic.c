@@ -689,16 +689,6 @@ gk_neut_species_kinetic_init(
   // energy diagnostics are wrong at the O(1) level.
   assert(app->poly_order == 1); // Neutral species are p=1 only.
   gkyl_cart_modal_hybrid(&s->basis, cdim, vdim);
-#ifndef GKYL_BUILD_VLASOV_HYB_3X3V
-  // The 3x3v tensor p=1 hybrid Vlasov kernels are an optional build set; the
-  // kinetic neutrals of a 3x simulation (3x3v phase space) cannot run without
-  // them. The 1x3v and 2x3v hybrid kernels are always built.
-  if (cdim == 3) {
-    gkyl_exit(
-      "gk_neut_species: 3x kinetic neutrals need the 3x3v tensor p=1 hybrid Vlasov kernels, which were not built. Reconfigure with --build-vlasov-hyb-3x3v=yes."
-    );
-  }
-#endif
   if (cdim < 3 && !app->gk_geom->has_dxdz_grad) {
     gkyl_exit(
       "gk_neut_species: kinetic neutrals on a 1x/2x geometry need the tangent gradients (geo_int_dxdz_grad), which these geometry files do not carry. Regenerate them with this version."

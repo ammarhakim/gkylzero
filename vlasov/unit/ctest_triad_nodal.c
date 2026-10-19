@@ -115,35 +115,17 @@ enum tn_rep { TN_SPARSE, TN_DENSE, TN_PHASE };
 static const char *tn_rep_name[3] = { "vel_sparse", "vel_dense", "phase" };
 static const int tn_cv[6][2] = { {1, 1}, {1, 2}, {2, 2}, {1, 3}, {2, 3}, {3, 3} };
 
-// [Hamiltonian][cv]; sparse is not generated in 1V (it aliases dense there), and the 3x3v
-// kernels only exist in builds configured with them.
+// [Hamiltonian][cv]; sparse is not generated in 1V (it aliases dense there).
 static const struct tn_kernels tn_tab[3][6] = {
   { {0}, TN_SET(vel_sparse, 1x2v, TN_C1, TN_V2), TN_SET(vel_sparse, 2x2v, TN_C2, TN_V2),
     TN_SET(vel_sparse, 1x3v, TN_C1, TN_V3), TN_SET(vel_sparse, 2x3v, TN_C2, TN_V3),
-#ifdef GKYL_BUILD_VLASOV_HYB_3X3V
-    TN_SET(vel_sparse, 3x3v, TN_C3, TN_V3),
-#else
-    {0},
-#endif
-  },
+    TN_SET(vel_sparse, 3x3v, TN_C3, TN_V3) },
   { TN_SET(vel_dense, 1x1v, TN_C1, TN_V1), TN_SET(vel_dense, 1x2v, TN_C1, TN_V2),
     TN_SET(vel_dense, 2x2v, TN_C2, TN_V2), TN_SET(vel_dense, 1x3v, TN_C1, TN_V3),
-    TN_SET(vel_dense, 2x3v, TN_C2, TN_V3),
-#ifdef GKYL_BUILD_VLASOV_HYB_3X3V
-    TN_SET(vel_dense, 3x3v, TN_C3, TN_V3),
-#else
-    {0},
-#endif
-  },
+    TN_SET(vel_dense, 2x3v, TN_C2, TN_V3), TN_SET(vel_dense, 3x3v, TN_C3, TN_V3) },
   { TN_SET(phase, 1x1v, TN_C1, TN_V1), TN_SET(phase, 1x2v, TN_C1, TN_V2),
     TN_SET(phase, 2x2v, TN_C2, TN_V2), TN_SET(phase, 1x3v, TN_C1, TN_V3),
-    TN_SET(phase, 2x3v, TN_C2, TN_V3),
-#ifdef GKYL_BUILD_VLASOV_HYB_3X3V_PHASE
-    TN_SET(phase, 3x3v, TN_C3, TN_V3),
-#else
-    {0},
-#endif
-  },
+    TN_SET(phase, 2x3v, TN_C2, TN_V3), TN_SET(phase, 3x3v, TN_C3, TN_V3) },
 };
 
 // Number of Poisson-tensor components (conf-vel block vdim x vdim, then the vel-vel block).
@@ -705,22 +687,11 @@ typedef void (*tn_bvol_t)(const double *w, const double *dxv, const double *jaco
 #define TN_B3(r, cv) { TN_B(r, x, cv), TN_B(r, y, cv), TN_B(r, z, cv) }
 static const tn_bvol_t tn_bvol[3][6][3] = {
   { {0}, TN_B2(vel_sparse, 1x2v), TN_B2(vel_sparse, 2x2v), TN_B3(vel_sparse, 1x3v),
-    TN_B3(vel_sparse, 2x3v),
-#ifdef GKYL_BUILD_VLASOV_HYB_3X3V
-    TN_B3(vel_sparse, 3x3v),
-#else
-    {0},
-#endif
-  },
+    TN_B3(vel_sparse, 2x3v), TN_B3(vel_sparse, 3x3v) },
   { {0}, TN_B2(vel_dense, 1x2v), TN_B2(vel_dense, 2x2v), TN_B3(vel_dense, 1x3v),
-    TN_B3(vel_dense, 2x3v),
-#ifdef GKYL_BUILD_VLASOV_HYB_3X3V
-    TN_B3(vel_dense, 3x3v),
-#else
-    {0},
-#endif
-  },
-  { {0}, TN_B2(phase, 1x2v), TN_B2(phase, 2x2v), TN_B3(phase, 1x3v), TN_B3(phase, 2x3v), {0} },
+    TN_B3(vel_dense, 2x3v), TN_B3(vel_dense, 3x3v) },
+  { {0}, TN_B2(phase, 1x2v), TN_B2(phase, 2x2v), TN_B3(phase, 1x3v), TN_B3(phase, 2x3v),
+    TN_B3(phase, 3x3v) },
 };
 
 // f times the velocity-map Jacobian at the 3 Gauss-Legendre points along velocity
@@ -823,16 +794,11 @@ test_triad_nodal_bvol(void)
 typedef void (*tn_jv_t)(const double *jacob_vel_gauss, const double *in, double *out);
 static const int tn_mcv[7][2] = { {1, 1}, {1, 2}, {2, 1}, {2, 2}, {1, 3}, {2, 3}, {3, 3} };
 #define TN_JV(op, cv) vlasov_##op##_Jv_##cv##_tensor_p1
-#ifdef GKYL_BUILD_VLASOV_HYB_3X3V
-#define TN_JV33(op) TN_JV(op, 3x3v)
-#else
-#define TN_JV33(op) NULL
-#endif
 static const tn_jv_t tn_jv[2][7] = {
   { TN_JV(divide, 1x1v), TN_JV(divide, 1x2v), TN_JV(divide, 2x1v), TN_JV(divide, 2x2v),
-    TN_JV(divide, 1x3v), TN_JV(divide, 2x3v), TN_JV33(divide) },
+    TN_JV(divide, 1x3v), TN_JV(divide, 2x3v), TN_JV(divide, 3x3v) },
   { TN_JV(rescale, 1x1v), TN_JV(rescale, 1x2v), TN_JV(rescale, 2x1v), TN_JV(rescale, 2x2v),
-    TN_JV(rescale, 1x3v), TN_JV(rescale, 2x3v), TN_JV33(rescale) },
+    TN_JV(rescale, 1x3v), TN_JV(rescale, 2x3v), TN_JV(rescale, 3x3v) },
 };
 
 void
@@ -878,15 +844,10 @@ test_jacob_vel_factored(void)
 typedef void (*tn_mom_t)(const double *w, const double *dxv, const int *idx, const double *jacob_vel,
   const double *hamil, const double *f, double *out);
 #define TN_MOM(r, m, cv) mom_vlasov_hamil_##r##_##m##_##cv##_tensor_p1
-#ifdef GKYL_BUILD_VLASOV_HYB_3X3V
-#define TN_MOM33(r, m) TN_MOM(r, m, 3x3v)
-#else
-#define TN_MOM33(r, m) NULL
-#endif
 #define TN_MOMS(r, m) { TN_MOM(r, m, 1x1v), TN_MOM(r, m, 1x2v), TN_MOM(r, m, 2x1v), \
-  TN_MOM(r, m, 2x2v), TN_MOM(r, m, 1x3v), TN_MOM(r, m, 2x3v), TN_MOM33(r, m) }
+  TN_MOM(r, m, 2x2v), TN_MOM(r, m, 1x3v), TN_MOM(r, m, 2x3v), TN_MOM(r, m, 3x3v) }
 #define TN_MOMS_NO1V(r, m) { NULL, TN_MOM(r, m, 1x2v), NULL, TN_MOM(r, m, 2x2v), \
-  TN_MOM(r, m, 1x3v), TN_MOM(r, m, 2x3v), TN_MOM33(r, m) }
+  TN_MOM(r, m, 1x3v), TN_MOM(r, m, 2x3v), TN_MOM(r, m, 3x3v) }
 static const tn_mom_t tn_mom[3][3][7] = {
   { TN_MOMS_NO1V(vel_sparse, M1i), TN_MOMS_NO1V(vel_sparse, five_moments),
     TN_MOMS_NO1V(vel_sparse, int_five_moments) },
@@ -982,32 +943,25 @@ typedef void (*tn_phivol_t)(const double *w, const double *dxv, const double *ja
   const double *jacob_vel, const double *phi, const double *f, double *out);
 #define TN_SK(r, k, cv) vlasov_hamil_##r##_##k##_##cv##_tensor_p1
 #define TN_S3(r, k) { NULL, TN_SK(r, k ## x, 1x2v), NULL, TN_SK(r, k ## x, 2x2v), TN_SK(r, k ## x, 1x3v), \
-  TN_SK(r, k ## x, 2x3v), TN_SK33(r, k ## x) }, { NULL, NULL, NULL, TN_SK(r, k ## y, 2x2v), NULL, \
-  TN_SK(r, k ## y, 2x3v), TN_SK33(r, k ## y) }, { NULL, NULL, NULL, NULL, NULL, NULL, TN_SK33(r, k ## z) }
+  TN_SK(r, k ## x, 2x3v), TN_SK(r, k ## x, 3x3v) }, { NULL, NULL, NULL, TN_SK(r, k ## y, 2x2v), NULL, \
+  TN_SK(r, k ## y, 2x3v), TN_SK(r, k ## y, 3x3v) }, { NULL, NULL, NULL, NULL, NULL, NULL, TN_SK(r, k ## z, 3x3v) }
 #define TN_D3(r, k) { TN_SK(r, k ## x, 1x1v), TN_SK(r, k ## x, 1x2v), TN_SK(r, k ## x, 2x1v), \
-  TN_SK(r, k ## x, 2x2v), TN_SK(r, k ## x, 1x3v), TN_SK(r, k ## x, 2x3v), TN_SK33(r, k ## x) }, \
-  { NULL, NULL, NULL, TN_SK(r, k ## y, 2x2v), NULL, TN_SK(r, k ## y, 2x3v), TN_SK33(r, k ## y) }, \
-  { NULL, NULL, NULL, NULL, NULL, NULL, TN_SK33(r, k ## z) }
-#ifdef GKYL_BUILD_VLASOV_HYB_3X3V
-#define TN_SK33(r, k) TN_SK(r, k, 3x3v)
-#define TN_F33(k) vlasov_##k##_vol_3x3v_tensor_p1
-#else
-#define TN_SK33(r, k) NULL
-#define TN_F33(k) NULL
-#endif
+  TN_SK(r, k ## x, 2x2v), TN_SK(r, k ## x, 1x3v), TN_SK(r, k ## x, 2x3v), TN_SK(r, k ## x, 3x3v) }, \
+  { NULL, NULL, NULL, TN_SK(r, k ## y, 2x2v), NULL, TN_SK(r, k ## y, 2x3v), TN_SK(r, k ## y, 3x3v) }, \
+  { NULL, NULL, NULL, NULL, NULL, NULL, TN_SK(r, k ## z, 3x3v) }
 static const tn_svol_t tn_svol[2][7] = {
   { NULL, TN_SK(vel_sparse, vol, 1x2v), NULL, TN_SK(vel_sparse, vol, 2x2v), TN_SK(vel_sparse, vol, 1x3v),
-    TN_SK(vel_sparse, vol, 2x3v), TN_SK33(vel_sparse, vol) },
+    TN_SK(vel_sparse, vol, 2x3v), TN_SK(vel_sparse, vol, 3x3v) },
   { TN_SK(vel_dense, vol, 1x1v), TN_SK(vel_dense, vol, 1x2v), TN_SK(vel_dense, vol, 2x1v),
     TN_SK(vel_dense, vol, 2x2v), TN_SK(vel_dense, vol, 1x3v), TN_SK(vel_dense, vol, 2x3v),
-    TN_SK33(vel_dense, vol) },
+    TN_SK(vel_dense, vol, 3x3v) },
 };
 static const tn_ssurf_t tn_ssurf[2][3][7] = { { TN_S3(vel_sparse, surf) }, { TN_D3(vel_dense, surf) } };
 static const tn_sbnd_t tn_sbnd[2][3][7] = { { TN_S3(vel_sparse, boundary_surf) },
   { TN_D3(vel_dense, boundary_surf) } };
 #define TN_FV(k) { vlasov_##k##_vol_1x1v_tensor_p1, vlasov_##k##_vol_1x2v_tensor_p1, \
   vlasov_##k##_vol_2x1v_tensor_p1, vlasov_##k##_vol_2x2v_tensor_p1, vlasov_##k##_vol_1x3v_tensor_p1, \
-  vlasov_##k##_vol_2x3v_tensor_p1, TN_F33(k) }
+  vlasov_##k##_vol_2x3v_tensor_p1, vlasov_##k##_vol_3x3v_tensor_p1 }
 static const tn_fvol_t tn_evol[7] = TN_FV(E), tn_radvol[7] = TN_FV(rad);
 static const tn_phivol_t tn_phivol[7] = TN_FV(phi);
 
@@ -1228,12 +1182,7 @@ static const tn_vol_t tn_canon_vol[7] = {
   vlasov_hamil_phase_vol_1x1v_tensor_p1, vlasov_hamil_phase_vol_2x1v_tensor_p1,
   vlasov_hamil_phase_vol_1x2v_tensor_p1, vlasov_hamil_phase_vol_2x2v_tensor_p1,
   vlasov_hamil_phase_vol_1x3v_tensor_p1, vlasov_hamil_phase_vol_2x3v_tensor_p1,
-#ifdef GKYL_BUILD_VLASOV_HYB_3X3V_PHASE
-  vlasov_hamil_phase_vol_3x3v_tensor_p1,
-#else
-  NULL,
-#endif
-};
+  vlasov_hamil_phase_vol_3x3v_tensor_p1 };
 
 void
 test_canonical_phase_vol(void)
