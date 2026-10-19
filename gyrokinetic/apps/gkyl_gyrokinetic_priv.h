@@ -2063,7 +2063,7 @@ void gk_species_balance_init(
 );
 
 /**
- * Store dt and the integrated M0 of f/dt at the beginning (is_old=true) or
+ * Store dt and the integrated moments of f/dt at the beginning (is_old=true) or
  * end of a time step.
  *
  * @param app Gyrokinetic app object.
@@ -2079,8 +2079,7 @@ void gk_species_balance_step(
 
 /**
  * Compute the particle balance of the last time step and append it to the
- * diagnostic: [fdot, src, bflux_tot, mom_err, mom_err_norm], with
- * mom_err = src - bflux_tot - fdot and mom_err_norm = mom_err*dt/N.
+ * diagnostic: [fdot, src, bflux_tot, mom_err, mom_err_norm].
  *
  * @param app Gyrokinetic app object.
  * @param gks Species object.
@@ -2092,7 +2091,7 @@ void gk_species_balance_calc(
 );
 
 /**
- * Write the particle (M0) balance diagnostic to <name>-<species>_balance_M0.gkyl.
+ * Write the balance diagnostic to <name>-<species>_balance_<mom_name>.gkyl.
  *
  * @param app Gyrokinetic app object.
  * @param gks Species object.
@@ -2105,7 +2104,7 @@ void gk_species_balance_write(
 );
 
 /**
- * Release the particle (M0) balance diagnostic.
+ * Release the balance diagnostic.
  *
  * @param app Gyrokinetic app object.
  * @param bal Balance diagnostic object.
