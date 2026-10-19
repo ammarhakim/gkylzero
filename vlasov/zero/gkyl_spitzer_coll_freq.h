@@ -121,7 +121,8 @@ double gkyl_calc_Morse_alpha_E(
   double bmag, double eps0, double hbar
 );
 
-/** Species-ordered Coulomb logarithm; temperatures are energies (T/m = v_t^2).
+/**
+ * Species-ordered Coulomb logarithm; temperatures are energies (T/m = v_t^2).
  * This is the native one-sided expression. Collision frequencies use the
  * average of the s,r and r,s expressions. All parameters use consistent units.
  */
