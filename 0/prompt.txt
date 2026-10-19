@@ -1,0 +1,105 @@
+Help me respond to these comments on the pull request. It may require changes to the codebase, or commenting with clarity and responding to the comment manauref requested changes 10 hours ago
+manauref
+left a comment
+Collaborator
+There are changes to some formulas used by c2p, tokamak and mirror. Those need to be explained. For example, bcart in rt_gk_cbc_3x2v_p1 changed. Can you explain what was wrong with the previous formula and what the new/correct one is?
+
+Also, I opened a separate PR simplifying the changes to gk_species_bflux
+
+gyrokinetic/zero/mirror_grid_gen.c
+Comment on lines +191 to 197
+            status = false;
+            goto cleanup;
+          }
+          radius = root.res;
+        } else {
+          status = false;
+          goto cleanup;
+@manauref
+manauref
+2 days ago
+Collaborator
+seems to me there are a couple of reasons the code can get status = false here, and then return 0 in line 263.
+
+But if you look at gyrokinetic/zero/gk_geometry_mirror.c lines 61-127, the
+struct gkyl_mirror_grid_gen * objects are created and never checked whether they are nonzero or non-NULL, so the code proceeds even though these objects were not created.
+
+I think there should be an assert, either in this file or in gyrokinetic/zero/gk_geometry_mirror.c to avoid this.
+
+@Maxwell-Rosen	Reply...
+gyrokinetic/creg/rt_gk_mirror_boltz_elc_1x2v_p1.c
+        .c2p_ctx = &ctx,
+        .bfield_func = bfield_func, // magnetic field
+        .bfield_ctx = &ctx,
+        .position_map_info =
+@manauref
+manauref
+2 days ago
+Collaborator
+should we really add these here (and in the wham_1x2v_p1 test)? I thought we had nonuniformx equivalents for this purpose. I'd prefer to have uniform and nonuniform tests.
+
+@Maxwell-Rosen	Reply...
+gyrokinetic/zero/calc_metric_mirror.c
+        bcartFld_n[0] = dualFld_n[0] * bi[0] + dualFld_n[3] * bi[1] + dualFld_n[6] * bi[2];
+        bcartFld_n[1] = dualFld_n[1] * bi[0] + dualFld_n[4] * bi[1] + dualFld_n[7] * bi[2];
+        bcartFld_n[2] = dualFld_n[2] * bi[0] + dualFld_n[5] * bi[1] + dualFld_n[8] * bi[2];
+        // Use the magnetic vector: bhat can oppose the third coordinate tangent.
+@manauref
+manauref
+11 hours ago
+Collaborator
+can you clarify what this comment "bhat can oppose the third coordinate tangent" means ?
+
+---
+
+Help me respond to these comments on the pull request. It may require changes to the codebase, or commenting with clarity and responding to the comment manauref requested changes 10 hours ago
+manauref
+left a comment
+Collaborator
+There are changes to some formulas used by c2p, tokamak and mirror. Those need to be explained. For example, bcart in rt_gk_cbc_3x2v_p1 changed. Can you explain what was wrong with the previous formula and what the new/correct one is?
+
+Also, I opened a separate PR simplifying the changes to gk_species_bflux
+
+gyrokinetic/zero/mirror_grid_gen.c
+Comment on lines +191 to 197
+            status = false;
+            goto cleanup;
+          }
+          radius = root.res;
+        } else {
+          status = false;
+          goto cleanup;
+@manauref
+manauref
+2 days ago
+Collaborator
+seems to me there are a couple of reasons the code can get status = false here, and then return 0 in line 263.
+
+But if you look at gyrokinetic/zero/gk_geometry_mirror.c lines 61-127, the
+struct gkyl_mirror_grid_gen * objects are created and never checked whether they are nonzero or non-NULL, so the code proceeds even though these objects were not created.
+
+I think there should be an assert, either in this file or in gyrokinetic/zero/gk_geometry_mirror.c to avoid this.
+
+@Maxwell-Rosen	Reply...
+gyrokinetic/creg/rt_gk_mirror_boltz_elc_1x2v_p1.c
+        .c2p_ctx = &ctx,
+        .bfield_func = bfield_func, // magnetic field
+        .bfield_ctx = &ctx,
+        .position_map_info =
+@manauref
+manauref
+2 days ago
+Collaborator
+should we really add these here (and in the wham_1x2v_p1 test)? I thought we had nonuniformx equivalents for this purpose. I'd prefer to have uniform and nonuniform tests.
+
+@Maxwell-Rosen	Reply...
+gyrokinetic/zero/calc_metric_mirror.c
+        bcartFld_n[0] = dualFld_n[0] * bi[0] + dualFld_n[3] * bi[1] + dualFld_n[6] * bi[2];
+        bcartFld_n[1] = dualFld_n[1] * bi[0] + dualFld_n[4] * bi[1] + dualFld_n[7] * bi[2];
+        bcartFld_n[2] = dualFld_n[2] * bi[0] + dualFld_n[5] * bi[1] + dualFld_n[8] * bi[2];
+        // Use the magnetic vector: bhat can oppose the third coordinate tangent.
+@manauref
+manauref
+11 hours ago
+Collaborator
+can you clarify what this comment "bhat can oppose the third coordinate tangent" means ?
