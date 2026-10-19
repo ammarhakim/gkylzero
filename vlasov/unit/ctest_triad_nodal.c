@@ -22,7 +22,24 @@
 //    phase == dense for an H independent of the configuration-space coordinates;
 //  - the canonical-PB phase-space Hamiltonian volume kernels of the tensor p=1 basis
 //    (vlasov_hamil_phase_vol_*_tensor_p1, same generator): the volume term above with the
-//    canonical bracket, Pi_db = delta_db, no Jacobians and no velocity-velocity block.
+//    canonical bracket, Pi_db = delta_db, no Jacobians and no velocity-velocity block;
+//  - the magnetic-field force volume kernels (vlasov_B<d>_hamil_<rep>_vol_*_tensor_p1):
+//    (2/dv_a)(2/dv_b) int [d_va(psi) I[B d_vb(H)] - d_vb(psi) I[B d_va(H)]] F for B along d,
+//    (a, b) the transverse velocity directions, F = f times the velocity-map Jacobian of the
+//    third direction (nodally for a velocity Hamiltonian, the cell-constant J for a
+//    phase-space Hamiltonian; F = f in 2V);
+//  - the velocity-Jacobian division and rescaling kernels (vlasov_{divide,rescale}_Jv_*_tensor_p1):
+//    at any configuration-space point and every velocity Gauss-Legendre node, J times the
+//    output equals the input (output equals J times the input);
+//  - the moment kernels (mom_vlasov_hamil_<rep>_{M1i,five_moments,int_five_moments}_*_tensor_p1):
+//    M0 = int psi_k Jf, M1i = (2/dv_i) int psi_k d_vi(H) F_i and M2 = int psi_k H Jf over the
+//    velocity cell (and the configuration-space cell for the integrated moments, psi_k = 1),
+//    F_i = Jf divided by the velocity-map Jacobian at the 3 Gauss-Legendre points along v_i;
+//  - the velocity-space Hamiltonian streaming kernels (vlasov_hamil_<rep>_{vol,surf<d>,boundary_surf<d>}):
+//    sum_d (2/dx_d)(2/dv_d)/J_xd int d_xd(psi) d_vd(H) F_d over the cell, and on the faces x_d = -1, +1
+//    (2/dx_d)(2/dv_d) int psi d_vd(H) U with U the upwinded (on the sign of w_vd) F_d/J_xd of the cell
+//    on the left or right of the face; the force kernels vlasov_{E,phi,rad}_vol: (2/dv_d) int d_vd(psi) a_d F_d
+//    with a_d = E_d(x), -(2/dx_d)/J_xd d_xd(phi) and the radiation drag rad_d(v).
 // Velocity maps are random cubics, Poisson tensors and Hamiltonians random. With CUDA, the
 // triad updaters (conf/vel surface fluxes and hyper_dg) are also run on CPU and GPU and
 // compared, which also exercises the kernel selection of the tensor p=1 triads.
@@ -39,6 +56,7 @@
 #include <gkyl_dg_vlasov_conf_flux_surf.h>
 #include <gkyl_dg_vlasov_vel_flux_surf.h>
 #include <gkyl_hyper_dg.h>
+#include <gkyl_mom_vlasov_kernels.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
@@ -156,9 +174,10 @@ struct tn_case {
   enum tn_rep rep;
   bool canonical; // canonical bracket (canonical-PB phase-space Hamiltonian volume)
   int cdim, vdim;
-  struct gkyl_basis pbasis, vbasis; // phase (tensor hybrid) and velocity (tensor p=2) bases
+  struct gkyl_basis pbasis, vbasis, cbasis; // phase (tensor hybrid), velocity (tensor p=2), conf
   double w[6], dxv[6], vmap[12], jacob_pos[6], jacob_vel[9], jvs[2][12]; // jvs[ho]
   double pt_vol[8 * 18], pt_surf[3 * 2 * 4 * 3], hamil[216], f[216];
+  double qmem[6 * 8]; // E and B, configuration-space expansions
 };
 
 // Physical velocity of the cubic map of one direction (1D p=3 modal expansion) and its
@@ -208,6 +227,7 @@ tn_case_init(struct tn_case *cs, enum tn_rep rep, int cdim, int vdim)
   cs->rep = rep; cs->canonical = false; cs->cdim = cdim; cs->vdim = vdim;
   gkyl_cart_modal_hybrid(&cs->pbasis, cdim, vdim);
   gkyl_cart_modal_tensor(&cs->vbasis, vdim, 2);
+  gkyl_cart_modal_tensor(&cs->cbasis, cdim, 1);
   int pdim = cdim + vdim, np = cs->pbasis.num_basis, nv = cs->vbasis.num_basis;
   for (int d = 0; d < pdim; ++d) {
     cs->w[d] = tn_rnd(-1.0, 1.0);
@@ -236,6 +256,7 @@ tn_case_init(struct tn_case *cs, enum tn_rep rep, int cdim, int vdim)
   for (int i = 0; i < (1 << cdim) * npt; ++i) cs->pt_vol[i] = tn_rnd(-1.0, 1.0);
   for (int i = 0; i < cdim * 2 * (1 << (cdim - 1)) * vdim; ++i) cs->pt_surf[i] = tn_rnd(-1.0, 1.0);
   for (int k = 0; k < np; ++k) cs->f[k] = tn_rnd(-1.0, 1.0);
+  for (int k = 0; k < 6 * cs->cbasis.num_basis; ++k) cs->qmem[k] = tn_rnd(-1.0, 1.0);
   int nh = rep == TN_PHASE ? np : nv;
   for (int k = 0; k < nh; ++k) cs->hamil[k] = tn_rnd(-1.0, 1.0);
   if (rep == TN_SPARSE) {
@@ -676,6 +697,531 @@ test_triad_nodal_vel_force(void)
     }
 }
 
+// Magnetic-field force volume kernels, [Hamiltonian][cv][B direction].
+typedef void (*tn_bvol_t)(const double *w, const double *dxv, const double *jacob_vel,
+  const double *hamil, const double *qmem, const double *f, double *out);
+#define TN_B(r, d, cv) vlasov_B##d##_hamil_##r##_vol_##cv##_tensor_p1
+#define TN_B2(r, cv) { NULL, NULL, TN_B(r, z, cv) }
+#define TN_B3(r, cv) { TN_B(r, x, cv), TN_B(r, y, cv), TN_B(r, z, cv) }
+static const tn_bvol_t tn_bvol[3][6][3] = {
+  { {0}, TN_B2(vel_sparse, 1x2v), TN_B2(vel_sparse, 2x2v), TN_B3(vel_sparse, 1x3v),
+    TN_B3(vel_sparse, 2x3v),
+#ifdef GKYL_BUILD_VLASOV_HYB_3X3V
+    TN_B3(vel_sparse, 3x3v),
+#else
+    {0},
+#endif
+  },
+  { {0}, TN_B2(vel_dense, 1x2v), TN_B2(vel_dense, 2x2v), TN_B3(vel_dense, 1x3v),
+    TN_B3(vel_dense, 2x3v),
+#ifdef GKYL_BUILD_VLASOV_HYB_3X3V
+    TN_B3(vel_dense, 3x3v),
+#else
+    {0},
+#endif
+  },
+  { {0}, TN_B2(phase, 1x2v), TN_B2(phase, 2x2v), TN_B3(phase, 1x3v), TN_B3(phase, 2x3v), {0} },
+};
+
+// f times the velocity-map Jacobian at the 3 Gauss-Legendre points along velocity
+// direction t, re-interpolated, at the phase-space point z.
+static double
+tn_f_mul(const struct tn_case *cs, const double *z, int t)
+{
+  const double *xi = tn_gl_x[3];
+  int it = cs->cdim + t;
+  double zz[6], sum = 0.0;
+  memcpy(zz, z, sizeof zz);
+  for (int i = 0; i < 3; ++i) {
+    double l = 1.0;
+    for (int m = 0; m < 3; ++m)
+      if (m != i) l *= (z[it] - xi[m]) / (xi[i] - xi[m]);
+    zz[it] = xi[i];
+    sum += l * cs->pbasis.eval_expand(zz, cs->f) * cs->jacob_vel[3 * t + i];
+  }
+  return sum;
+}
+
+// Brute-force magnetic-field force volume term (see the file comment) for B along bdir.
+static void
+tn_ref_bvol(const struct tn_case *cs, int bdir, double *out)
+{
+  const int cdim = cs->cdim, vdim = cs->vdim, pdim = cdim + vdim, np = cs->pbasis.num_basis;
+  const int nq = 1 << cdim;
+  const int cyc[3][3] = { {1, 2, 0}, {2, 0, 1}, {0, 1, 2} };
+  int a = vdim == 2 ? 0 : cyc[bdir][0], b = vdim == 2 ? 1 : cyc[bdir][1], t = vdim == 2 ? -1 : cyc[bdir][2];
+  const double *Bc = &cs->qmem[(3 + bdir) * cs->cbasis.num_basis];
+  double dv1a = 2.0 / cs->dxv[cdim + a], dv1b = 2.0 / cs->dxv[cdim + b];
+  for (int k = 0; k < np; ++k) out[k] = 0.0;
+
+  int nquad[6];
+  long ntot = 1;
+  for (int d = 0; d < pdim; ++d) {
+    nquad[d] = d < cdim ? 3 : 5;
+    ntot *= nquad[d];
+  }
+  for (long p = 0; p < ntot; ++p) {
+    double z[6], wgt = 1.0;
+    long rem = p;
+    for (int d = pdim - 1; d >= 0; --d) {
+      int i = rem % nquad[d];
+      rem /= nquad[d];
+      z[d] = tn_gl_x[nquad[d]][i];
+      wgt *= tn_gl_w[nquad[d]][i];
+    }
+    const double *eta = &z[cdim];
+    double ga = 0.0, gb = 0.0; // I[B d_vb(H)], I[B d_va(H)]
+    for (int q = 0; q < nq; ++q) {
+      double xq[3], lq = 1.0;
+      tn_node(cdim, q, xq);
+      for (int d = 0; d < cdim; ++d)
+        lq *= 0.5 * (1.0 + (xq[d] > 0 ? 1.0 : -1.0) * sqrt(3.0) * z[d]);
+      double Bq = cs->cbasis.eval_expand(xq, Bc);
+      ga += lq * Bq * tn_ham_grad(cs, cdim + b, xq, eta);
+      gb += lq * Bq * tn_ham_grad(cs, cdim + a, xq, eta);
+    }
+    double F = t < 0 ? cs->pbasis.eval_expand(z, cs->f) :
+      (cs->rep == TN_PHASE ? cs->pbasis.eval_expand(z, cs->f) * cs->jacob_vel[3 * t] :
+                             tn_f_mul(cs, z, t));
+    double bp[216], bm[216], zp[6], zm[6];
+    for (int s = 0; s < 2; ++s) {
+      int d = cdim + (s == 0 ? a : b);
+      memcpy(zp, z, sizeof zp); memcpy(zm, z, sizeof zm);
+      zp[d] += 0.5; zm[d] -= 0.5;
+      cs->pbasis.eval(zp, bp); cs->pbasis.eval(zm, bm);
+      double g = s == 0 ? ga : -gb;
+      for (int k = 0; k < np; ++k) out[k] += wgt * dv1a * dv1b * (bp[k] - bm[k]) * g * F;
+    }
+  }
+}
+
+void
+test_triad_nodal_bvol(void)
+{
+  srand(8086);
+  for (int r = 0; r < 3; ++r)
+    for (int i = 1; i < 6; ++i)
+      for (int bdir = 0; bdir < 3; ++bdir) {
+        tn_bvol_t kern = tn_bvol[r][i][bdir];
+        if (!kern) continue;
+        int cdim = tn_cv[i][0], vdim = tn_cv[i][1], ncase = cdim + vdim == 6 ? 1 : 2;
+        for (int n = 0; n < ncase; ++n) {
+          struct tn_case cs;
+          tn_case_init(&cs, (enum tn_rep)r, cdim, vdim);
+          double out[216] = {0}, ref[216];
+          kern(cs.w, cs.dxv, cs.jacob_vel, cs.hamil, cs.qmem, cs.f, out);
+          tn_ref_bvol(&cs, bdir, ref);
+          double rel = tn_rel_diff(out, ref, cs.pbasis.num_basis);
+          TEST_CHECK(rel < tn_tol);
+          TEST_MSG("%s %dx%dv B%c volume vs definition: rel diff %.2e", tn_rep_name[r], cdim, vdim,
+            "xyz"[bdir], rel);
+        }
+      }
+}
+
+// Velocity-Jacobian division and rescaling kernels, [cv] over tn_mcv.
+typedef void (*tn_jv_t)(const double *jacob_vel_gauss, const double *in, double *out);
+static const int tn_mcv[7][2] = { {1, 1}, {1, 2}, {2, 1}, {2, 2}, {1, 3}, {2, 3}, {3, 3} };
+#define TN_JV(op, cv) vlasov_##op##_Jv_##cv##_tensor_p1
+#ifdef GKYL_BUILD_VLASOV_HYB_3X3V
+#define TN_JV33(op) TN_JV(op, 3x3v)
+#else
+#define TN_JV33(op) NULL
+#endif
+static const tn_jv_t tn_jv[2][7] = {
+  { TN_JV(divide, 1x1v), TN_JV(divide, 1x2v), TN_JV(divide, 2x1v), TN_JV(divide, 2x2v),
+    TN_JV(divide, 1x3v), TN_JV(divide, 2x3v), TN_JV33(divide) },
+  { TN_JV(rescale, 1x1v), TN_JV(rescale, 1x2v), TN_JV(rescale, 2x1v), TN_JV(rescale, 2x2v),
+    TN_JV(rescale, 1x3v), TN_JV(rescale, 2x3v), TN_JV33(rescale) },
+};
+
+void
+test_jacob_vel_factored(void)
+{
+  srand(4242);
+  for (int op = 0; op < 2; ++op)
+    for (int i = 0; i < 7; ++i) {
+      if (!tn_jv[op][i]) continue;
+      int cdim = tn_mcv[i][0], vdim = tn_mcv[i][1], pdim = cdim + vdim, nqv = 1;
+      for (int d = 0; d < vdim; ++d) nqv *= 3;
+      struct gkyl_basis pb;
+      gkyl_cart_modal_hybrid(&pb, cdim, vdim);
+      double in[216], out[216], jac[27];
+      for (int k = 0; k < pb.num_basis; ++k) in[k] = tn_rnd(-1.0, 1.0);
+      for (int j = 0; j < nqv; ++j) jac[j] = tn_rnd(0.5, 1.5);
+      tn_jv[op][i](jac, in, out);
+      double err = 0.0, nrm = 0.0;
+      for (int r = 0; r < 4; ++r) {
+        double z[6];
+        for (int d = 0; d < cdim; ++d) z[d] = tn_rnd(-1.0, 1.0);
+        // Velocity nodes in jacob_vel_gauss order (first direction slowest).
+        for (int j = 0; j < nqv; ++j) {
+          for (int d = 0; d < vdim; ++d) {
+            int s = 1;
+            for (int e = d + 1; e < vdim; ++e) s *= 3;
+            z[cdim + d] = tn_gl_x[3][(j / s) % 3];
+          }
+          double a = pb.eval_expand(z, in), b = pb.eval_expand(z, out);
+          double want = op == 0 ? a : b, got = op == 0 ? jac[j] * b : jac[j] * a;
+          err = fmax(err, fabs(got - want));
+          nrm = fmax(nrm, fabs(want));
+        }
+      }
+      (void)pdim;
+      TEST_CHECK(err / nrm < tn_tol);
+      TEST_MSG("%s %dx%dv: J*out vs in at the velocity nodes, rel diff %.2e", op == 0 ? "divide" :
+        "rescale", cdim, vdim, err / nrm);
+    }
+}
+
+// Moment kernels, [rep][moment: M1i, five, int_five][cv] over tn_mcv.
+typedef void (*tn_mom_t)(const double *w, const double *dxv, const int *idx, const double *jacob_vel,
+  const double *hamil, const double *f, double *out);
+#define TN_MOM(r, m, cv) mom_vlasov_hamil_##r##_##m##_##cv##_tensor_p1
+#ifdef GKYL_BUILD_VLASOV_HYB_3X3V
+#define TN_MOM33(r, m) TN_MOM(r, m, 3x3v)
+#else
+#define TN_MOM33(r, m) NULL
+#endif
+#define TN_MOMS(r, m) { TN_MOM(r, m, 1x1v), TN_MOM(r, m, 1x2v), TN_MOM(r, m, 2x1v), \
+  TN_MOM(r, m, 2x2v), TN_MOM(r, m, 1x3v), TN_MOM(r, m, 2x3v), TN_MOM33(r, m) }
+#define TN_MOMS_NO1V(r, m) { NULL, TN_MOM(r, m, 1x2v), NULL, TN_MOM(r, m, 2x2v), \
+  TN_MOM(r, m, 1x3v), TN_MOM(r, m, 2x3v), TN_MOM33(r, m) }
+static const tn_mom_t tn_mom[3][3][7] = {
+  { TN_MOMS_NO1V(vel_sparse, M1i), TN_MOMS_NO1V(vel_sparse, five_moments),
+    TN_MOMS_NO1V(vel_sparse, int_five_moments) },
+  { TN_MOMS(vel_dense, M1i), TN_MOMS(vel_dense, five_moments), TN_MOMS(vel_dense, int_five_moments) },
+  { TN_MOMS(phase, M1i), TN_MOMS(phase, five_moments), TN_MOMS(phase, int_five_moments) },
+};
+
+// H at the phase-space point z.
+static double
+tn_ham_val(const struct tn_case *cs, const double *z)
+{
+  return cs->rep == TN_PHASE ? cs->pbasis.eval_expand(z, cs->hamil) :
+    cs->vbasis.eval_expand(&z[cs->cdim], cs->hamil);
+}
+
+// Brute-force moments (see the file comment): mom 0 = M1i, 1 = five moments, 2 = integrated.
+static void
+tn_ref_mom(const struct tn_case *cs, int mom, double *out)
+{
+  const int cdim = cs->cdim, vdim = cs->vdim, pdim = cdim + vdim, nc = cs->cbasis.num_basis;
+  int nk = mom == 2 ? 1 : nc, nout = mom == 0 ? vdim * nc : mom == 1 ? (vdim + 2) * nc : vdim + 2;
+  double volFact = 1.0;
+  for (int d = (mom == 2 ? 0 : cdim); d < pdim; ++d) volFact *= 0.5 * cs->dxv[d];
+  for (int k = 0; k < nout; ++k) out[k] = 0.0;
+  int nquad[6];
+  long ntot = 1;
+  for (int d = 0; d < pdim; ++d) {
+    nquad[d] = d < cdim ? 3 : 5;
+    ntot *= nquad[d];
+  }
+  for (long p = 0; p < ntot; ++p) {
+    double z[6], wgt = 1.0, bc[8];
+    long rem = p;
+    for (int d = pdim - 1; d >= 0; --d) {
+      int i = rem % nquad[d];
+      rem /= nquad[d];
+      z[d] = tn_gl_x[nquad[d]][i];
+      wgt *= tn_gl_w[nquad[d]][i];
+    }
+    cs->cbasis.eval(z, bc);
+    double f = cs->pbasis.eval_expand(z, cs->f), h = tn_ham_val(cs, z);
+    for (int k = 0; k < nk; ++k) {
+      double psi = mom == 2 ? 1.0 : bc[k], c = wgt * volFact * psi;
+      int stride = mom == 2 ? 1 : nc, m1 = mom == 0 ? 0 : 1;
+      if (mom > 0) out[k] += c * f;
+      for (int d = 0; d < vdim; ++d)
+        out[(m1 + d) * stride + k] += c * (2.0 / cs->dxv[cdim + d]) *
+          tn_ham_grad(cs, cdim + d, z, &z[cdim]) * tn_f_div(cs, z, d, -1);
+      if (mom > 0) out[(vdim + 1) * stride + k] += c * h * f;
+    }
+  }
+}
+
+void
+test_mom_factored(void)
+{
+  static const char *tn_mom_name[3] = { "M1i", "five_moments", "int_five_moments" };
+  srand(2718);
+  for (int r = 0; r < 3; ++r)
+    for (int mom = 0; mom < 3; ++mom)
+      for (int i = 0; i < 7; ++i) {
+        tn_mom_t kern = tn_mom[r][mom][i];
+        if (!kern) continue;
+        int cdim = tn_mcv[i][0], vdim = tn_mcv[i][1];
+        struct tn_case cs;
+        tn_case_init(&cs, (enum tn_rep)r, cdim, vdim);
+        double out[64] = {0}, ref[64];
+        int idx[6] = {0};
+        kern(cs.w, cs.dxv, idx, cs.jacob_vel, cs.hamil, cs.f, out);
+        tn_ref_mom(&cs, mom, ref);
+        int nc = cs.cbasis.num_basis, nout = mom == 0 ? vdim * nc : mom == 1 ? (vdim + 2) * nc : vdim + 2;
+        double rel = tn_rel_diff(out, ref, nout);
+        TEST_CHECK(rel < tn_tol);
+        TEST_MSG("%s %s %dx%dv vs definition: rel diff %.2e", tn_rep_name[r], tn_mom_name[mom], cdim,
+          vdim, rel);
+      }
+}
+
+// Velocity-space Hamiltonian streaming and force kernels, [rep: sparse, dense][cv over tn_mcv].
+typedef void (*tn_svol_t)(const double *w, const double *dxv, const double *vmap, const double *jacob_pos,
+  const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, const double *f,
+  const double *f_no_J, double *out);
+typedef double (*tn_ssurf_t)(const double *w, const double *dxv, const double *jacob_pos_l,
+  const double *jacob_pos_c, const double *jacob_pos_r, const double *jacob_vel,
+  const double *poisson_tensor_conf, const double *hamil, const double *fl, const double *fc,
+  const double *fr, double *out);
+typedef double (*tn_sbnd_t)(const double *w, const double *dxv, const double *jacob_pos_edge,
+  const double *jacob_pos_skin, const double *jacob_vel, const double *poisson_tensor_conf,
+  const double *hamil, const int edge, const double *fedge, const double *fskin, double *out);
+typedef void (*tn_fvol_t)(const double *w, const double *dxv, const double *jacob_vel, const double *a,
+  const double *f, double *out);
+typedef void (*tn_phivol_t)(const double *w, const double *dxv, const double *jacob_pos,
+  const double *jacob_vel, const double *phi, const double *f, double *out);
+#define TN_SK(r, k, cv) vlasov_hamil_##r##_##k##_##cv##_tensor_p1
+#define TN_S3(r, k) { NULL, TN_SK(r, k ## x, 1x2v), NULL, TN_SK(r, k ## x, 2x2v), TN_SK(r, k ## x, 1x3v), \
+  TN_SK(r, k ## x, 2x3v), TN_SK33(r, k ## x) }, { NULL, NULL, NULL, TN_SK(r, k ## y, 2x2v), NULL, \
+  TN_SK(r, k ## y, 2x3v), TN_SK33(r, k ## y) }, { NULL, NULL, NULL, NULL, NULL, NULL, TN_SK33(r, k ## z) }
+#define TN_D3(r, k) { TN_SK(r, k ## x, 1x1v), TN_SK(r, k ## x, 1x2v), TN_SK(r, k ## x, 2x1v), \
+  TN_SK(r, k ## x, 2x2v), TN_SK(r, k ## x, 1x3v), TN_SK(r, k ## x, 2x3v), TN_SK33(r, k ## x) }, \
+  { NULL, NULL, NULL, TN_SK(r, k ## y, 2x2v), NULL, TN_SK(r, k ## y, 2x3v), TN_SK33(r, k ## y) }, \
+  { NULL, NULL, NULL, NULL, NULL, NULL, TN_SK33(r, k ## z) }
+#ifdef GKYL_BUILD_VLASOV_HYB_3X3V
+#define TN_SK33(r, k) TN_SK(r, k, 3x3v)
+#define TN_F33(k) vlasov_##k##_vol_3x3v_tensor_p1
+#else
+#define TN_SK33(r, k) NULL
+#define TN_F33(k) NULL
+#endif
+static const tn_svol_t tn_svol[2][7] = {
+  { NULL, TN_SK(vel_sparse, vol, 1x2v), NULL, TN_SK(vel_sparse, vol, 2x2v), TN_SK(vel_sparse, vol, 1x3v),
+    TN_SK(vel_sparse, vol, 2x3v), TN_SK33(vel_sparse, vol) },
+  { TN_SK(vel_dense, vol, 1x1v), TN_SK(vel_dense, vol, 1x2v), TN_SK(vel_dense, vol, 2x1v),
+    TN_SK(vel_dense, vol, 2x2v), TN_SK(vel_dense, vol, 1x3v), TN_SK(vel_dense, vol, 2x3v),
+    TN_SK33(vel_dense, vol) },
+};
+static const tn_ssurf_t tn_ssurf[2][3][7] = { { TN_S3(vel_sparse, surf) }, { TN_D3(vel_dense, surf) } };
+static const tn_sbnd_t tn_sbnd[2][3][7] = { { TN_S3(vel_sparse, boundary_surf) },
+  { TN_D3(vel_dense, boundary_surf) } };
+#define TN_FV(k) { vlasov_##k##_vol_1x1v_tensor_p1, vlasov_##k##_vol_1x2v_tensor_p1, \
+  vlasov_##k##_vol_2x1v_tensor_p1, vlasov_##k##_vol_2x2v_tensor_p1, vlasov_##k##_vol_1x3v_tensor_p1, \
+  vlasov_##k##_vol_2x3v_tensor_p1, TN_F33(k) }
+static const tn_fvol_t tn_evol[7] = TN_FV(E), tn_radvol[7] = TN_FV(rad);
+static const tn_phivol_t tn_phivol[7] = TN_FV(phi);
+
+// F_d (f divided by J_vd at the 3 Gauss-Legendre points along v_d, re-interpolated) of the
+// expansion fa at z.
+static double
+tn_fdiv_arr(const struct tn_case *cs, const double *fa, const double *z, int d)
+{
+  const double *xi = tn_gl_x[3];
+  int id = cs->cdim + d;
+  double zz[6], sum = 0.0;
+  memcpy(zz, z, sizeof zz);
+  for (int i = 0; i < 3; ++i) {
+    double l = 1.0;
+    for (int m = 0; m < 3; ++m)
+      if (m != i) l *= (z[id] - xi[m]) / (xi[i] - xi[m]);
+    zz[id] = xi[i];
+    sum += l * cs->pbasis.eval_expand(zz, fa) / cs->jacob_vel[3 * d + i];
+  }
+  return sum;
+}
+
+// Gauss quadrature over the phase-space cell (3 points per configuration-space, 5 per velocity-space
+// direction), with direction fix (if >= 0) held at fixv: calls integrand(z, wgt, ctx).
+static void
+tn_quad(const struct tn_case *cs, int fix, double fixv, void (*integrand)(const double *z, double wgt, void *ctx),
+  void *ctx)
+{
+  int pdim = cs->cdim + cs->vdim, nquad[6];
+  long ntot = 1;
+  for (int d = 0; d < pdim; ++d) {
+    nquad[d] = d == fix ? 1 : d < cs->cdim ? 3 : 5;
+    ntot *= nquad[d];
+  }
+  for (long p = 0; p < ntot; ++p) {
+    double z[6], wgt = 1.0;
+    long rem = p;
+    for (int d = pdim - 1; d >= 0; --d) {
+      int i = rem % nquad[d];
+      rem /= nquad[d];
+      if (d == fix) { z[d] = fixv; continue; }
+      z[d] = tn_gl_x[nquad[d]][i];
+      wgt *= tn_gl_w[nquad[d]][i];
+    }
+    integrand(z, wgt, ctx);
+  }
+}
+
+struct tn_sctx {
+  const struct tn_case *cs;
+  int kind, d; // kind: 0 streaming vol, 1 E, 2 phi, 3 rad, 4 face
+  const double *a, *U, *fu; // force coefficients; face: upwind expansion fu divided by U[0]
+  double scale, *out;
+};
+
+static void
+tn_sint(const double *z, double wgt, void *ctx)
+{
+  struct tn_sctx *c = ctx;
+  const struct tn_case *cs = c->cs;
+  int cdim = cs->cdim, d = c->d, np = cs->pbasis.num_basis;
+  double b[216], g;
+  if (c->kind == 0 || c->kind == 2) { // derivative of psi along x_d (streaming) or v_d (phi)
+    int dd = c->kind == 0 ? d : cdim + d;
+    double zp[6], zm[6], bp[216], bm[216];
+    memcpy(zp, z, sizeof zp); memcpy(zm, z, sizeof zm);
+    zp[dd] += 0.5; zm[dd] -= 0.5;
+    cs->pbasis.eval(zp, bp); cs->pbasis.eval(zm, bm);
+    for (int k = 0; k < np; ++k) b[k] = bp[k] - bm[k]; // exact derivative (at most quadratic)
+  } else if (c->kind == 1 || c->kind == 3) {
+    double zp[6], zm[6], bp[216], bm[216];
+    memcpy(zp, z, sizeof zp); memcpy(zm, z, sizeof zm);
+    zp[cdim + d] += 0.5; zm[cdim + d] -= 0.5;
+    cs->pbasis.eval(zp, bp); cs->pbasis.eval(zm, bm);
+    for (int k = 0; k < np; ++k) b[k] = bp[k] - bm[k];
+  } else {
+    cs->pbasis.eval(z, b);
+  }
+  if (c->kind == 0 || c->kind == 4)
+    g = tn_ham_grad(cs, cdim + d, z, &z[cdim]) *
+      (c->kind == 4 ? tn_fdiv_arr(cs, c->fu, c->U, d) * c->U[6] : tn_fdiv_arr(cs, cs->f, z, d));
+  else if (c->kind == 1)
+    g = cs->cbasis.eval_expand(z, &c->a[cs->cbasis.num_basis * d]) * tn_fdiv_arr(cs, cs->f, z, d);
+  else if (c->kind == 2)
+    g = -cs->cbasis.eval_grad_expand(d, z, c->a) * tn_fdiv_arr(cs, cs->f, z, d);
+  else
+    g = cs->vbasis.eval_expand(&z[cdim], &c->a[cs->vbasis.num_basis * d]) * tn_fdiv_arr(cs, cs->f, z, d);
+  for (int k = 0; k < np; ++k) c->out[k] += wgt * c->scale * b[k] * g;
+}
+
+// Face contribution: scale int over x_d = side of psi d_vd(H) U, U = F_d of fu at the point with x_d
+// replaced by uside, divided by jinv^-1 (the cell's conf-space Jacobian).
+static void
+tn_face(const struct tn_case *cs, int d, double side, const double *fu, double uside, double jinv,
+  double scale, double *out)
+{
+  // The integrand evaluates F_d of fu at U (z with x_d -> uside); U[6] carries jinv.
+  struct tn_sctx c = { .cs = cs, .kind = 4, .d = d, .fu = fu, .scale = scale, .out = out };
+  int pdim = cs->cdim + cs->vdim, nquad[6];
+  long ntot = 1;
+  for (int e = 0; e < pdim; ++e) {
+    nquad[e] = e == d ? 1 : e < cs->cdim ? 3 : 5;
+    ntot *= nquad[e];
+  }
+  for (long p = 0; p < ntot; ++p) {
+    double z[6], U[7], wgt = 1.0;
+    long rem = p;
+    for (int e = pdim - 1; e >= 0; --e) {
+      int i = rem % nquad[e];
+      rem /= nquad[e];
+      if (e == d) { z[e] = side; continue; }
+      z[e] = tn_gl_x[nquad[e]][i];
+      wgt *= tn_gl_w[nquad[e]][i];
+    }
+    memcpy(U, z, 6 * sizeof(double));
+    U[d] = uside; U[6] = jinv;
+    c.U = U;
+    tn_sint(z, wgt, &c);
+  }
+}
+
+void
+test_stream_factored(void)
+{
+  srand(1618);
+  for (int i = 0; i < 7; ++i) {
+    int cdim = tn_mcv[i][0], vdim = tn_mcv[i][1], nd = cdim < vdim ? cdim : vdim;
+    for (int r = 0; r < 2; ++r) {
+      struct tn_case cs;
+      tn_case_init(&cs, (enum tn_rep)r, cdim, vdim);
+      int np = cs.pbasis.num_basis;
+      double jp[3][9], fa[3][216], out[216], ref[216];
+      for (int s = 0; s < 3; ++s) {
+        for (int k = 0; k < 9; ++k) jp[s][k] = tn_rnd(0.5, 1.5);
+        for (int k = 0; k < np; ++k) fa[s][k] = tn_rnd(-1.0, 1.0);
+      }
+      memcpy(fa[1], cs.f, np * sizeof(double));
+      // Streaming volume.
+      if (tn_svol[r][i]) {
+        for (int k = 0; k < np; ++k) out[k] = ref[k] = 0.0;
+        tn_svol[r][i](cs.w, cs.dxv, cs.vmap, jp[1], cs.jacob_vel, cs.pt_vol, cs.hamil, cs.f, cs.f, out);
+        for (int d = 0; d < nd; ++d) {
+          struct tn_sctx c = { .cs = &cs, .kind = 0, .d = d, .out = ref,
+            .scale = (2.0 / cs.dxv[d]) * (2.0 / cs.dxv[cdim + d]) / jp[1][3 * d] };
+          tn_quad(&cs, -1, 0.0, tn_sint, &c);
+        }
+        double rel = tn_rel_diff(out, ref, np);
+        TEST_CHECK(rel < tn_tol);
+        TEST_MSG("%s streaming vol %dx%dv vs definition: rel diff %.2e", tn_rep_name[r], cdim, vdim, rel);
+      }
+      // Interior and boundary faces, both upwind directions.
+      for (int d = 0; d < nd; ++d) for (int sgn = -1; sgn <= 1; sgn += 2) {
+        double w[6];
+        memcpy(w, cs.w, sizeof w);
+        w[cdim + d] = sgn * fabs(w[cdim + d]) + 0.25 * sgn;
+        double sc = (2.0 / cs.dxv[d]) * (2.0 / cs.dxv[cdim + d]);
+        if (tn_ssurf[r][d][i]) {
+          for (int k = 0; k < np; ++k) out[k] = ref[k] = 0.0;
+          tn_ssurf[r][d][i](w, cs.dxv, jp[0], jp[1], jp[2], cs.jacob_vel, cs.pt_vol, cs.hamil, fa[0], fa[1],
+            fa[2], out);
+          // Left face (x_d = -1): upwind from the left cell (+1 side) or this cell (-1 side).
+          if (sgn > 0) tn_face(&cs, d, -1.0, fa[0], 1.0, 1.0 / jp[0][3 * d], sc, ref);
+          else tn_face(&cs, d, -1.0, fa[1], -1.0, 1.0 / jp[1][3 * d], sc, ref);
+          if (sgn > 0) tn_face(&cs, d, 1.0, fa[1], 1.0, 1.0 / jp[1][3 * d], -sc, ref);
+          else tn_face(&cs, d, 1.0, fa[2], -1.0, 1.0 / jp[2][3 * d], -sc, ref);
+          double rel = tn_rel_diff(out, ref, np);
+          TEST_CHECK(rel < tn_tol);
+          TEST_MSG("%s surf%c %dx%dv (w_v %+d) vs definition: rel diff %.2e", tn_rep_name[r], "xyz"[d], cdim,
+            vdim, sgn, rel);
+        }
+        if (tn_sbnd[r][d][i]) for (int edge = -1; edge <= 1; edge += 2) {
+          // fedge = fa[0], fskin = fa[1]; the face is the skin cell's upper (edge = -1) or lower face.
+          for (int k = 0; k < np; ++k) out[k] = ref[k] = 0.0;
+          tn_sbnd[r][d][i](w, cs.dxv, jp[0], jp[1], cs.jacob_vel, cs.pt_vol, cs.hamil, edge, fa[0], fa[1], out);
+          if (edge == -1) {
+            if (sgn > 0) tn_face(&cs, d, 1.0, fa[1], 1.0, 1.0 / jp[1][3 * d], -sc, ref);
+            else tn_face(&cs, d, 1.0, fa[0], -1.0, 1.0 / jp[0][3 * d], -sc, ref);
+          } else {
+            if (sgn > 0) tn_face(&cs, d, -1.0, fa[0], 1.0, 1.0 / jp[0][3 * d], sc, ref);
+            else tn_face(&cs, d, -1.0, fa[1], -1.0, 1.0 / jp[1][3 * d], sc, ref);
+          }
+          double rel = tn_rel_diff(out, ref, np);
+          TEST_CHECK(rel < tn_tol);
+          TEST_MSG("%s boundary_surf%c %dx%dv (edge %+d, w_v %+d) vs definition: rel diff %.2e", tn_rep_name[r],
+            "xyz"[d], cdim, vdim, edge, sgn, rel);
+        }
+      }
+    }
+    // Force kernels (independent of the Hamiltonian representation).
+    struct tn_case cs;
+    tn_case_init(&cs, TN_DENSE, cdim, vdim);
+    int np = cs.pbasis.num_basis;
+    double a[96], jp[9], out[216], ref[216];
+    for (int k = 0; k < 96; ++k) a[k] = tn_rnd(-1.0, 1.0);
+    for (int k = 0; k < 9; ++k) jp[k] = tn_rnd(0.5, 1.5);
+    for (int kind = 1; kind <= 3; ++kind) {
+      if ((kind == 1 && !tn_evol[i]) || (kind == 2 && !tn_phivol[i]) || (kind == 3 && !tn_radvol[i])) continue;
+      for (int k = 0; k < np; ++k) out[k] = ref[k] = 0.0;
+      if (kind == 1) tn_evol[i](cs.w, cs.dxv, cs.jacob_vel, a, cs.f, out);
+      else if (kind == 2) tn_phivol[i](cs.w, cs.dxv, jp, cs.jacob_vel, a, cs.f, out);
+      else tn_radvol[i](cs.w, cs.dxv, cs.jacob_vel, a, cs.f, out);
+      for (int d = 0; d < (kind == 2 ? nd : vdim); ++d) {
+        struct tn_sctx c = { .cs = &cs, .kind = kind, .d = d, .a = a, .out = ref,
+          .scale = (2.0 / cs.dxv[cdim + d]) * (kind == 2 ? (2.0 / cs.dxv[d]) / jp[3 * d] : 1.0) };
+        tn_quad(&cs, -1, 0.0, tn_sint, &c);
+      }
+      double rel = tn_rel_diff(out, ref, np);
+      TEST_CHECK(rel < tn_tol);
+      TEST_MSG("%s vol %dx%dv vs definition: rel diff %.2e", kind == 1 ? "E" : kind == 2 ? "phi" : "rad", cdim,
+        vdim, rel);
+    }
+  }
+}
+
 // Canonical-PB phase-space Hamiltonian volume kernels of the tensor p=1 basis.
 static const int tn_canon_cv[7][2] = { {1, 1}, {2, 1}, {1, 2}, {2, 2}, {1, 3}, {2, 3}, {3, 3} };
 static const tn_vol_t tn_canon_vol[7] = {
@@ -904,6 +1450,10 @@ TEST_LIST = {
   { "test_triad_nodal_conf_force", test_triad_nodal_conf_force },
   { "test_triad_nodal_vel_force", test_triad_nodal_vel_force },
   { "test_canonical_phase_vol", test_canonical_phase_vol },
+  { "test_triad_nodal_bvol", test_triad_nodal_bvol },
+  { "test_jacob_vel_factored", test_jacob_vel_factored },
+  { "test_mom_factored", test_mom_factored },
+  { "test_stream_factored", test_stream_factored },
 #ifdef GKYL_HAVE_CUDA
   { "test_triad_nodal_updaters_dev", test_triad_nodal_updaters_dev },
 #endif

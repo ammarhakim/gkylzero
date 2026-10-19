@@ -6,9 +6,10 @@
 -- the inner boundary at r = 1.8 M, inside the horizon, absorbs the inflow. The accretion rate r^2 n
 -- U^r computed from the rest-frame LTE moments must equal the exact -16 M^2 at every radius, and
 -- the profile must stay stationary over the run. Figures of merit (tensor p1, 16 x 6 x 6 x 6 cells
--- on cubic velocity maps): accretion rate -16.006 at t = 0 (exact -16) and -16.03 at t = 20 M; the
--- density, temperature and drift profiles change by at most 2.5e-2, 5.4e-2 and 1.9e-2 inside r = 12
--- M.
+-- on cubic velocity maps; values at the radial Gauss-Legendre nodes inside r = 12 M): accretion
+-- rate -16.006 at t = 0 (exact -16) and -16.03 at t = 20 M; the density and temperature profiles
+-- change by at most 3.3e-2 and 4.3e-2 (relative) and the drift (radial spatial four-velocity) by
+-- 2.2e-2.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.
