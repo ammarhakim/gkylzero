@@ -44,3 +44,17 @@ gyrokinetic/creg/rt_gk_wham_3x2v_p1
 gyrokinetic/creg/rt_gk_wham_nonuniformx_1x2v_p1	 
 gyrokinetic/creg/rt_gk_wham_nonuniformx_2x2v_p1	 
 gyrokinetic/creg/rt_gk_wham_nonuniformx_3x2v_p1
+gyrokinetic/creg/rt_gk_d3d_iwl_2x2v_p1	
+gyrokinetic/creg/rt_gk_helical_2x2v_p1	
+gyrokinetic/creg/rt_gk_helical_3x2v_p1	
+gyrokinetic/creg/rt_gk_helical_adapt_src_sheath_surr_3x2v_p1	
+gyrokinetic/creg/rt_gk_helical_sheath_surr_2x2v_p1	
+gyrokinetic/creg/rt_gk_lapd_cart_3x2v_p1	
+gyrokinetic/creg/rt_gk_lapd_cyl_3x2v_p1	
+gyrokinetic/creg/rt_gk_mirror_boltz_elc_1x2v_p1	
+gyrokinetic/creg/rt_gk_mirror_kinetic_elc_poa_1x2v_p1	
+gyrokinetic/creg/rt_gk_sheath_3x2v_p1
+gyrokinetic/creg/rt_gk_sheath_cx_2x2v_p1	
+gyrokinetic/creg/rt_gk_tcv_core_3x2v_p1	
+gyrokinetic/creg/rt_gk_tcv_iwl_adapt_source_3x2v_p1	
+gyrokinetic/creg/rt_gk_wham_kinetic_poa_1x2v_p1	
