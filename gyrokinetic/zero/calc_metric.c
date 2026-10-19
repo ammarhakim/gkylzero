@@ -2319,6 +2319,8 @@ gkyl_calc_metric_advance_bcart(
       }
     }
   }
+  // The m2n calls above evaluate at interior Gauss nodes; use the matching
+  // quadrature projection here, rather than treating these as corner values.
   gkyl_nodal_ops_n2m(
     up->n2m, up->cbasis, up->grid, nrange, update_range, 3, bcartFld_nodal, bcartFld, true
   );

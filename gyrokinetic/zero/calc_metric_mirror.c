@@ -238,7 +238,9 @@ gkyl_calc_metric_mirror_advance_interior(
         double phi = mc2p_n[PHI_IDX];
         double J = jFld_n[0];
 
-        // Use the magnetic vector: bhat can oppose the third coordinate tangent.
+        // e_3 = dX/dz points toward increasing computational z. For Z = M(z),
+        // B = [psi_R/(R M'(z))] e_3, so B and e_3 are antiparallel when
+        // psi_R/M'(z) < 0. Use B/|B| instead of assuming bhat = e_3/sqrt(g_33).
         for (int i = 0; i < 3; ++i) {
           bcartFld_n[i] = B_cart.x[i] / bmag_n[0];
         }
