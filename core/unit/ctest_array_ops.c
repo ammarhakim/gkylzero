@@ -465,7 +465,6 @@ array_set_offset_ncoeff_test(bool use_gpu, bool use_range)
                {6, 6, 6, 0, 0, false, true, false},  {6, 8, 2, 1, 3, false, false, true}};
 
   for (int tc = 0; tc < sizeof cases / sizeof cases[0]; ++tc) {
-
     if (cases[tc].empty_range && !use_range) {
       continue;
     }
