@@ -973,6 +973,23 @@ void gkyl_gyrokinetic_app_calc_neut_species_boundary_flux_integrated_mom(
 void gkyl_gyrokinetic_app_write_species_integrated_mom(gkyl_gyrokinetic_app *app, int sidx);
 
 /**
+ * Compute the moment balance of a plasma species from its integrated moment diagnostics.
+ *
+ * @param app App object.
+ * @param sidx Index of species whose balance to compute.
+ * @param tm Time at which integrated diagnostics are to be computed
+ */
+void gkyl_gyrokinetic_app_calc_species_balance(gkyl_gyrokinetic_app *app, int sidx, double tm);
+
+/**
+ * Write the balance diagnostic of a plasma species to file.
+ *
+ * @param app App object.
+ * @param sidx Index of species whose balance to write.
+ */
+void gkyl_gyrokinetic_app_write_species_balance(gkyl_gyrokinetic_app *app, int sidx);
+
+/**
  * Write integrated diagnostic moments for neutral species to file. Integrated
  * moments are appended to the same file.
  * 

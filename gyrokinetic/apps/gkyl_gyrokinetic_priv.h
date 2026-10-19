@@ -1222,32 +1222,25 @@ struct gk_positivity {
   );
 };
 
-// Balance of the moments in balance_moments (only M0 for now).
+// Moment balance diagnostics.
 struct gk_species_balance {
   bool enabled; // =true if requested and the species is dynamic.
   enum gkyl_distribution_moments mom_type; // Moment whose balance is computed.
+  int f_comp; // Component of mom_type in the integrated moments of f and df/dt.
+  bool has_source; // Whether the species has a source.
+  int src_comp; // Component of mom_type in the integrated moments of the source.
   int num_boundaries; // Number of boundaries with a boundary flux.
+  int bflux_int_mom; // Index of the bflux integrated diag moment containing mom_type.
+  int bflux_comp; // Component of mom_type in that bflux integrated diag moment.
   int num_comp; // Number of components in the balance diagnostic.
   gkyl_dynvec diag; // Balance diagnostic.
-  double dt; // Last timestep.
-  bool has_source; // Whether the species has a source.
-  struct gk_species_moment src_mom; // Integrated moment of the source.
-  struct gkyl_array_integrate *integ_op; // Volume integral of the bflux moment.
-  struct gkyl_array *bflux_mom; // Moment of the bflux through one boundary.
-  double *red_local, *red_global; // Reduction buffers (on device if using GPUs).
-  struct gk_species_moment f_mom; // Integrated moment of f.
-  struct gkyl_array *mom_old, *mom_new; // Integrated moment of f_old/dt and f_new/dt.
+  bool is_first_write; // Whether the diagnostic is being written for the first time.
   // Functions chosen at runtime.
-  void (*step_func)(
-    gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal, double dt,
-    bool is_old
-  );
   void (*calc_func)(
     gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal, double tm
   );
   void (*write_func)(
-    gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal,
-    bool is_first_write
+    gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal
   );
 };
 
@@ -1315,6 +1308,7 @@ struct gk_species {
   bool is_first_integ_write_call; // Whether dynvec is being written for the first time.
 
   struct gkyl_array *fdot_mom_old, *fdot_mom_new; // Moments of f_old and f_new.
+  double fdot_dt; // Time step the df/dt moments were last computed with.
   gkyl_dynvec fdot_integ_diag; // Integrated moments of Delta f=f_new - f_old..
   bool is_first_fdot_integ_write_call; // Whether dynvec is being written for the first time.
 
@@ -2035,51 +2029,22 @@ void gk_species_moment_release(
 /** gk_species_balance API */
 
 /**
- * Prepare the balance diagnostic. Must be called before
- * the boundary fluxes and the df/dt diagnostics are initialized: it ensures that
- * the df/dt diagnostics and moments of the boundary fluxes are computed.
+ * Initialize the balance diagnostic. Check that the required diagnostics are
+ * requested, and request them otherwise.
  *
  * @param app Gyrokinetic app object.
  * @param gks Species object.
  * @param bal Balance diagnostic object.
- * @param bflux_type Boundary flux type, raised to step the bflux moments if needed.
- * @param add_bflux_moms_inp Additional bflux moments (M0 appended if needed).
- */
-void gk_species_balance_pre_init(
-  struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal,
-  enum gkyl_species_bflux_type *bflux_type, struct gkyl_phase_diagnostics_inp *add_bflux_moms_inp
-);
-
-/**
- * Initialize the particle (M0) balance diagnostic. Must be called after
- * the boundary fluxes are initialized.
- *
- * @param app Gyrokinetic app object.
- * @param gks Species object.
- * @param bal Balance diagnostic object.
+ * @param bflux_type Boundary flux type, raised to compute bflux diagnostics if needed.
  */
 void gk_species_balance_init(
-  struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal
+  struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal,
+  enum gkyl_species_bflux_type *bflux_type
 );
 
 /**
- * Store dt and the integrated moments of f/dt at the beginning (is_old=true) or
- * end of a time step.
- *
- * @param app Gyrokinetic app object.
- * @param gks Species object.
- * @param bal Balance diagnostic object.
- * @param dt Time step.
- * @param is_old Whether this is the beginning of the time step.
- */
-void gk_species_balance_step(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal, double dt,
-  bool is_old
-);
-
-/**
- * Compute the particle balance of the last time step and append it to the
- * diagnostic: [fdot, src, bflux_tot, mom_err, mom_err_norm].
+ * Compute the balance of the last time step from the integrated moment
+ * diagnostics and append it to the balance diagnostic.
  *
  * @param app Gyrokinetic app object.
  * @param gks Species object.
@@ -2096,11 +2061,9 @@ void gk_species_balance_calc(
  * @param app Gyrokinetic app object.
  * @param gks Species object.
  * @param bal Balance diagnostic object.
- * @param is_first_write Whether to create the file (otherwise append to it).
  */
 void gk_species_balance_write(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal,
-  bool is_first_write
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal
 );
 
 /**

@@ -477,6 +477,28 @@ void gkyl_gyrokinetic_multib_app_write_species_boundary_flux_integrated_mom(
 );
 
 /**
+ * Compute the moment balance of a charged species from its
+ * integrated moment diagnostics (f, df/dt, source and boundary fluxes), which
+ * must have been computed first.
+ *
+ * @param app App object.
+ * @param sidx Index of species whose balance to compute.
+ * @param tm Time at which integrated diagnostics are to be computed
+ */
+void gkyl_gyrokinetic_multib_app_calc_species_balance(
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm
+);
+
+/**
+ * Write the balance diagnostic of a charged species to file. Appended to the
+ * same file after the first write.
+ *
+ * @param app App object.
+ * @param sidx Index of species whose balance to write.
+ */
+void gkyl_gyrokinetic_multib_app_write_species_balance(gkyl_gyrokinetic_multib_app *app, int sidx);
+
+/**
  * Write species source to file.
  * 
  * @param app App object.
