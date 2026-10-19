@@ -771,11 +771,10 @@ gk_field_accumulate_ohms_kSq(
   for (int i = 0; i < app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
     gk_species_moment_calc(&s->m0, s->local, app->local, fin[i]);
-    // Gyroaverage the density if needed.
-    s->gyroaverage_density(app, s, s->m0.marr, s->m0_gyroavg);
-    // Use m0 to update also update the kSq matrix for the Ohm's law solver.
+    // We use m0 instead of J0[n J0[dApar/dt]], which creates and error of order O(k_perp^2 rho^2).
+    // Using m0_gyroavg is worse because it should be pulled back from the gyrocenter coordinates.
     double fac = -s->info.charge * s->info.charge / s->info.mass;
-    gkyl_array_accumulate_range(field->dApartdtSlvr_kSq, fac, s->m0_gyroavg, &app->local);
+    gkyl_array_accumulate_range(field->dApartdtSlvr_kSq, fac, s->m0.marr, &app->local);
   }
   app->stat.field_apar_rhs_tm += gkyl_time_diff_now_sec(wst);
 }

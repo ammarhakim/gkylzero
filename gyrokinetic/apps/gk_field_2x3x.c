@@ -1,5 +1,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_position_map.h>
 #include <gkyl_util.h>
@@ -100,11 +101,6 @@ gk_field_fem_projection_par_phi_ts_3x(
   gk_field_2x3x_par_ghosts_ts(
     field, field->rho_c_global_dg, &app->global_lower_ghost[par_dir],
     &app->global_upper_skin[par_dir]
-  );
-  gkyl_bc_twistshift_advance(field->bc_ts_lo, field->rho_c_global_dg, field->rho_c_global_dg);
-  // Fill upper parallel boundary ghost with skin boundary value.
-  gkyl_bc_basic_gyrokinetic_advance(
-    field->gfss_bc_op_core_up, field->bc_buffer, field->rho_c_global_dg
   );
 
   // Smooth the the DG array.
@@ -467,6 +463,7 @@ gk_field_2x3x_add_TS_updaters(
 
     long buff_sz = app->global_lower_ghost[par_dir].volume;
     gkf->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
+    gkf->ts_ghost_tmp = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
 
     gkf->gfss_bc_op_core_up = gkyl_bc_basic_gyrokinetic_new(
       par_dir, GKYL_UPPER_EDGE, GKYL_BC_GK_FIELD_BOUNDARY_VALUE, app->basis_on_dev,
@@ -612,8 +609,6 @@ gk_field_ohm_solve(struct gkyl_gyrokinetic_app *app, struct gk_field *field, str
   gkyl_fem_poisson_perp_set_rhs(field->fem_apardot_solver, field->currentDensdot);
   gkyl_fem_poisson_perp_solve(field->fem_apardot_solver, out);
 
-  field->invert_flr(app, field, field->apardot);
-
   field->remove_em_zonal_func(app, field, field->apardot);
 
   app->stat.field_apar_solve_tm += gkyl_time_diff_now_sec(wst);
@@ -628,8 +623,6 @@ gk_field_ampere_solve_enabled(
 
   gkyl_fem_poisson_perp_set_rhs(field->fem_apar_solver, field->currentDens);
   gkyl_fem_poisson_perp_solve(field->fem_apar_solver, out);
-
-  field->invert_flr(app, field, out);
 
   // Smooth Apar along z with the same parallel BCs used during time stepping.
   field->fem_projection_par_apar_func(app, field, out, out);
@@ -649,9 +642,55 @@ gk_field_em_rhs_enabled(
   struct gkyl_array *rhs_in[]
 )
 {
+  // Solve Ohm's law a first time (no FLR version).
   gk_field_accumulate_current_dens_dot(app, field, rhs_in);
   gk_field_accumulate_ohms_kSq(app, field, f_in);
   gk_field_ohm_solve(app, field, field->apardot);
+
+  // If we use FLR effects, we need to correct the Ohm solve because
+  // the inductive term uses the <dApar/dt>, while the solution
+  // yields the dApar/dt. We hence propose to iterate the Ohm solve, for now only once.
+  int num_iter = field->use_flr ? 1 : 0; // This need to go to the field struct to avoid run loop logic.
+  if (field->use_flr) {
+    gkyl_array_copy(field->flr_ohm_rhs, field->currentDensdot);
+  }
+  for (int k = 0; k <= num_iter; ++k) {
+    if (k > 0) {
+      struct timespec wst = gkyl_wall_clock();
+      gkyl_array_copy(field->currentDensdot, field->flr_ohm_rhs);
+      for (int i = 0; i < app->num_species; ++i) {
+        struct gk_species *s = &app->species[i];
+        if (s->use_flr && s->info.collisionless.type == GKYL_GK_COLLISIONLESS_EM) {
+          double fac = s->info.charge * s->info.charge / s->info.mass;
+          // m0 holds the (J-weighted) density of the kSq accumulation.
+          gkyl_dg_mul_op_range(
+            &app->basis, 0, field->flr_buff, 0, s->m0.marr, 0, s->gyro_apardot, &app->local
+          );
+          s->gyroaverage_density(app, s, field->flr_buff, s->m1_gyroavg);
+          gkyl_array_accumulate_range(field->currentDensdot, -fac, s->m1_gyroavg, &app->local);
+          gkyl_dg_mul_op_range(
+            &app->basis, 0, field->flr_buff, 0, s->m0.marr, 0, field->apardot, &app->local
+          );
+          gkyl_array_accumulate_range(field->currentDensdot, fac, field->flr_buff, &app->local);
+        }
+      }
+      gkyl_fem_poisson_perp_set_rhs(field->fem_apardot_solver, field->currentDensdot);
+      gkyl_fem_poisson_perp_solve(field->fem_apardot_solver, field->apardot);
+      field->remove_em_zonal_func(app, field, field->apardot);
+      app->stat.field_apar_solve_tm += gkyl_time_diff_now_sec(wst);
+    }
+
+    // Gyroaverage dApar/dt obtained from last Ohm solve to get the correct <dApar/dt> for the inductive term.
+    for (int i = 0; i < app->num_species; ++i) {
+      struct gk_species *s = &app->species[i];
+      if (s->use_flr && s->info.collisionless.type == GKYL_GK_COLLISIONLESS_EM) {
+        field->fem_projection_par_apar_func(app, field, field->apardot, s->flr_buff_dens);
+        s->gyroaverage(app, s, s->flr_buff_dens, s->gyro_apardot);
+        gkyl_array_accumulate_range(s->gyro_apardot, 1.0, field->apardot, &app->local);
+        gkyl_array_accumulate_range(s->gyro_apardot, -1.0, s->flr_buff_dens, &app->local);
+      }
+    }
+  }
 }
 
 static void
@@ -768,6 +807,7 @@ gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
       gkyl_bc_basic_gyrokinetic_release(f->gfss_bc_op_core_up);
       gkyl_bc_basic_gyrokinetic_release(f->gfss_bc_op_core_lo);
       gkyl_array_release(f->bc_buffer);
+      gkyl_array_release(f->ts_ghost_tmp);
     }
   }
 

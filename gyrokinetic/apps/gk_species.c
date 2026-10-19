@@ -2025,14 +2025,20 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     gks->m1_gyroavg = gkyl_array_acquire(gks->m1.marr);
   }
 
-  // We do not have FLR effects for EM yet.
   // Only EM uses A_parallel at the current RK stage (apar_curr only exists if EM).
+  // With FLR effects an EM species uses its own gyroaveraged Apar and dApar/dt.
   if (gks->info.collisionless.type == GKYL_GK_COLLISIONLESS_EM) {
-    gks->gyro_apar = gkyl_array_acquire(app->field->apar_curr);
+    if (gks->use_flr) {
+      gks->gyro_apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+      gks->gyro_apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    } else {
+      gks->gyro_apar = gkyl_array_acquire(app->field->apar_curr);
+      gks->gyro_apardot = gkyl_array_acquire(app->field->apardot);
+    }
   } else {
     gks->gyro_apar = gkyl_array_acquire(app->field->apar);
+    gks->gyro_apardot = gkyl_array_acquire(app->field->apardot);
   }
-  gks->gyro_apardot = gkyl_array_acquire(app->field->apardot);
 
   // Initialize the collisionless solver.
   gks->collisionless = (struct gk_collisionless){};

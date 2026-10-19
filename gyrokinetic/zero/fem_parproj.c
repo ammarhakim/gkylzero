@@ -86,7 +86,8 @@ gkyl_fem_parproj_new(
   up->poly_order = basis->poly_order;
   up->pardir = up->ndim - 1; // Assume parallel direction is always the last.
   up->isperiodic = bctype == GKYL_FEM_PARPROJ_PERIODIC;
-  up->isdirichlet = bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST || GKYL_FEM_PARPROJ_DIRICHLET_SKIN;
+  up->isdirichlet =
+    bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST || bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN;
   up->use_gpu = use_gpu;
 
   up->has_weight_rhs = false;

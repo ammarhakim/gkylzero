@@ -2855,6 +2855,14 @@ gyrokinetic_rhs(
 {
   double dtmin = DBL_MAX;
 
+  // Gyroaverage A_parallel of this stage for EM species with FLR effects.
+  for (int i = 0; i < app->num_species; ++i) {
+    struct gk_species *gk_s = &app->species[i];
+    if (gk_s->use_flr && gk_s->info.collisionless.type == GKYL_GK_COLLISIONLESS_EM) {
+      gk_s->gyroaverage(app, gk_s, app->field->apar_curr, gk_s->gyro_apar);
+    }
+  }
+
   // Compute moments needed by various modules.
   for (int i = 0; i < app->num_species; ++i) {
     struct gk_species *gk_s = &app->species[i];
