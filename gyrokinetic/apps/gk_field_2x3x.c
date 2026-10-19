@@ -38,6 +38,34 @@ gk_field_2x3x_par_ghosts_ts(
   gkyl_bc_basic_gyrokinetic_advance(field->gfss_bc_op_core_up, field->bc_buffer, arr_global);
 }
 
+// Symmetric twist-shift end values (1/2 of the upper skin + 1/2 of the lower skin) into both parallel ghosts.
+static void
+gk_field_2x3x_par_ghosts_ts_sym(
+  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *arr_global
+)
+{
+  int par_dir = app->cdim - 1;
+  const struct gkyl_range *ghost_lo = &app->global_lower_ghost[par_dir];
+  const struct gkyl_range *ghost_up = &app->global_upper_ghost[par_dir];
+  const struct gkyl_range *skin_lo = &app->global_lower_skin[par_dir];
+  const struct gkyl_range *skin_up = &app->global_upper_skin[par_dir];
+  struct gkyl_array *tmp = field->ts_ghost_tmp;
+
+  // Twist-shifted opposite skins into the ghosts of tmp.
+  gkyl_array_copy_range_to_range(tmp, arr_global, ghost_lo, skin_up);
+  gkyl_bc_twistshift_advance(field->bc_ts_lo, tmp, tmp);
+  gkyl_array_copy_range_to_range(tmp, arr_global, ghost_up, skin_lo);
+  gkyl_bc_twistshift_advance(field->bc_ts_up, tmp, tmp);
+
+  // Own-skin boundary values into the ghosts of arr_global, then average the two.
+  gkyl_bc_basic_gyrokinetic_advance(field->gfss_bc_op_core_lo, field->bc_buffer, arr_global);
+  gkyl_bc_basic_gyrokinetic_advance(field->gfss_bc_op_core_up, field->bc_buffer, arr_global);
+  gkyl_array_scale_range(arr_global, 0.5, ghost_lo);
+  gkyl_array_accumulate_range(arr_global, 0.5, tmp, ghost_lo);
+  gkyl_array_scale_range(arr_global, 0.5, ghost_up);
+  gkyl_array_accumulate_range(arr_global, 0.5, tmp, ghost_up);
+}
+
 // Project a DG charge density onto the parallel FEM basis to make it
 // continuous along z using different BCs in the core and SOL.
 static void
@@ -95,13 +123,8 @@ gk_field_fem_projection_par_phi_ts_3x(
   // Gather the DG array into a global (in z) array.
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
 
-  // Apply TS BC in the lower parallel boundary, and
-  // fill upper parallel boundary ghost with skin boundary value.
-  int par_dir = app->cdim - 1; // Parallel direction index.
-  gk_field_2x3x_par_ghosts_ts(
-    field, field->rho_c_global_dg, &app->global_lower_ghost[par_dir],
-    &app->global_upper_skin[par_dir]
-  );
+  // Fill both parallel ghosts with the symmetric twist-shift end values.
+  gk_field_2x3x_par_ghosts_ts_sym(app, field, field->rho_c_global_dg);
 
   // Smooth the the DG array.
   gkyl_fem_parproj_set_rhs(
@@ -228,13 +251,8 @@ gk_field_fem_projection_par_apar_ts_3x(
   // Gather the DG array into a global (in z) array.
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
 
-  // Apply TS BC in the lower parallel boundary, and
-  // fill upper parallel boundary ghost with skin boundary value.
-  int par_dir = app->cdim - 1; // Parallel direction index.
-  gk_field_2x3x_par_ghosts_ts(
-    field, field->rho_c_global_dg, &app->global_lower_ghost[par_dir],
-    &app->global_upper_skin[par_dir]
-  );
+  // Fill both parallel ghosts with the symmetric twist-shift end values.
+  gk_field_2x3x_par_ghosts_ts_sym(app, field, field->rho_c_global_dg);
 
   // Smooth the the DG array.
   gkyl_fem_parproj_set_rhs(field->fem_apar_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
