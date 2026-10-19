@@ -190,7 +190,7 @@ create_gk_block_geom(void)
               // as contradictory, and every block reports TOK_GEO_WALL_NOT_ENFORCED.
               .straight_xpt_ray = true,
               .relaxed_xpt_seam = true,
-              .relaxed_xpt_seam_optimize = true,
+              .relaxed_xpt_seam_optimize = false,
               .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rright = rright_out,
               .rleft = 0.0,
@@ -242,7 +242,7 @@ create_gk_block_geom(void)
               .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO,
               .straight_xpt_ray = true,
               .relaxed_xpt_seam = true,
-              .relaxed_xpt_seam_optimize = true,
+              .relaxed_xpt_seam_optimize = false,
               .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rclose = 6.2, // Closest R to region of interest
               .rright = rright_out, // Closest R to outboard SOL
@@ -296,7 +296,7 @@ create_gk_block_geom(void)
               .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID,
               .straight_xpt_ray = true,
               .relaxed_xpt_seam = true,
-              .relaxed_xpt_seam_optimize = true,
+              .relaxed_xpt_seam_optimize = false,
               .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rclose = 6.2, // Closest R to region of interest
               .rright = rright_out, // Closest R to outboard SOL
@@ -350,7 +350,7 @@ create_gk_block_geom(void)
               .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP,
               .straight_xpt_ray = true,
               .relaxed_xpt_seam = true,
-              .relaxed_xpt_seam_optimize = true,
+              .relaxed_xpt_seam_optimize = false,
               .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rclose = 6.2, // Closest R to region of interest
               .rright = rright_out, // Closest R to outboard SOL
@@ -405,7 +405,7 @@ create_gk_block_geom(void)
               .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
               .straight_xpt_ray = true,
               .relaxed_xpt_seam = true,
-              .relaxed_xpt_seam_optimize = true,
+              .relaxed_xpt_seam_optimize = false,
               .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rright = rright_out,
               .rleft = 0.0,
@@ -459,7 +459,7 @@ create_gk_block_geom(void)
               .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
               .straight_xpt_ray = true,
               .relaxed_xpt_seam = true,
-              .relaxed_xpt_seam_optimize = true,
+              .relaxed_xpt_seam_optimize = false,
               .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rright = rright_out,
               .rleft = 0.0,
@@ -512,7 +512,7 @@ create_gk_block_geom(void)
               .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
               .straight_xpt_ray = true,
               .relaxed_xpt_seam = true,
-              .relaxed_xpt_seam_optimize = true,
+              .relaxed_xpt_seam_optimize = false,
               .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rleft = 2.0,
               .rright = rright_out,
@@ -564,7 +564,7 @@ create_gk_block_geom(void)
               .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
               .straight_xpt_ray = true,
               .relaxed_xpt_seam = true,
-              .relaxed_xpt_seam_optimize = true,
+              .relaxed_xpt_seam_optimize = false,
               .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rleft = 2.0,
               .rright = rright_out,
@@ -616,7 +616,7 @@ create_gk_block_geom(void)
               .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
               .straight_xpt_ray = true,
               .relaxed_xpt_seam = true,
-              .relaxed_xpt_seam_optimize = true,
+              .relaxed_xpt_seam_optimize = false,
               .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rleft = 2.0,
               .rright = rright_out,
@@ -668,7 +668,7 @@ create_gk_block_geom(void)
               .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
               .straight_xpt_ray = true,
               .relaxed_xpt_seam = true,
-              .relaxed_xpt_seam_optimize = true,
+              .relaxed_xpt_seam_optimize = false,
               .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rright = rright_out,
               .rleft = 0.0,
@@ -721,7 +721,7 @@ create_gk_block_geom(void)
               .ftype = GKYL_GEOMETRY_TOKAMAK_CORE_R,
               .straight_xpt_ray = true,
               .relaxed_xpt_seam = true,
-              .relaxed_xpt_seam_optimize = true,
+              .relaxed_xpt_seam_optimize = false,
               .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rclose = 6.2, // Closest R to region of interest
               .rright = rright_out, // Closest R to outboard SOL
@@ -771,7 +771,7 @@ create_gk_block_geom(void)
               .ftype = GKYL_GEOMETRY_TOKAMAK_CORE_L,
               .straight_xpt_ray = true,
               .relaxed_xpt_seam = true,
-              .relaxed_xpt_seam_optimize = true,
+              .relaxed_xpt_seam_optimize = false,
               .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rclose = 0.0, // Closest R to region of interest
               .rright = rright_out, // Closest R to outboard SOL

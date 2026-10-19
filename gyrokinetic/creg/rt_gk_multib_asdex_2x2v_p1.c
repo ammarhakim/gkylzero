@@ -453,7 +453,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
               .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
               .straight_xpt_ray = true,
               .relaxed_xpt_seam = true,
-              .relaxed_xpt_seam_optimize = true,
+              .relaxed_xpt_seam_optimize = false,
               .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rleft = 1.1,
               .rright = 1.7,
@@ -634,7 +634,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
               .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
               .straight_xpt_ray = true,
               .relaxed_xpt_seam = true,
-              .relaxed_xpt_seam_optimize = true,
+              .relaxed_xpt_seam_optimize = false,
               .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rleft = 1.1,
               .rright = 1.7,
@@ -682,7 +682,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
               .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
               .straight_xpt_ray = true,
               .relaxed_xpt_seam = true,
-              .relaxed_xpt_seam_optimize = true,
+              .relaxed_xpt_seam_optimize = false,
               .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rclose = 2.0,
               .rleft = 0.8,
