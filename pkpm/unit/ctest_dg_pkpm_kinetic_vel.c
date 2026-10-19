@@ -484,7 +484,7 @@ test_vel_vol(int cdim)
         double phi = s.pbasis.eval_expand(z, unit);
         double dphi_v = dv1 * s.pbasis.eval_grad_expand(cdim, z, unit);
         ref[k] += w * (dphi_v * (aPq + chq * v) * Fq + phi * c0q * Fq);
-        ref[np + k] += w * (dphi_v * (aPq + chq * v) * Gq + phi * 2.0 * chq * Gq);
+        ref[np + k] += w * (dphi_v * (aPq + chq * v) * Gq + phi * (c0q + 2.0 * chq) * Gq);
       }
     }
     for (int k = 0; k < 2 * np; ++k) {

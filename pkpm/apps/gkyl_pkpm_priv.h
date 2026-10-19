@@ -83,6 +83,58 @@ struct pkpm_species_moment {
 // forward declare species struct
 struct pkpm_species;
 
+// Context of the host-side projections of the source and BGK target distributions: the
+// p=1 configuration fields are evaluated at the computational coordinates of the
+// phase-space quadrature points.
+struct pkpm_source_eval_ctx {
+  int cdim;
+  double mass;
+  const struct gkyl_rect_grid *conf_grid;
+  const struct gkyl_basis *conf_basis;
+  const struct gkyl_range *local_ext;
+  const struct gkyl_pkpm_source *info;
+  const struct gkyl_array *prof; // [n_s, T_s, u_s] of the source (physical)
+  const struct gkyl_array *rho, *u, *xi, *bvar; // nodal state of the stage (host)
+};
+
+struct pkpm_source {
+  enum gkyl_source_id source_id;
+  bool calc_bflux; // rate from the wall losses of source_species
+  double source_length;
+  struct pkpm_species *source_species;
+  double scale; // rate factor of the stage (1 for a projected source)
+  struct gkyl_array *prof_host; // [n_s, T_s, u_s] (host)
+  struct gkyl_array *fluid_src, *fluid_src_host; // J [rho, M, E] of the profile; physical copy for IO
+  struct gkyl_array *f_src, *f_src_host; // J [S_F, S_G] of the stage
+  struct gkyl_array *n_src; // m n_s (physical)
+  struct gkyl_array *n_ratio; // m n_s / rho
+  struct gkyl_array *rho_host, *u_host, *xi_host, *bvar_host; // host mirrors (GPU only)
+  gkyl_dg_bin_op_mem *div_mem;
+  gkyl_proj_on_basis *proj_f;
+  struct pkpm_source_eval_ctx eval_ctx;
+};
+
+struct pkpm_bgk_eval_ctx {
+  int cdim;
+  const struct gkyl_rect_grid *conf_grid;
+  const struct gkyl_basis *conf_basis;
+  const struct gkyl_range *local_ext;
+  bool fixed_temp_relax;
+  const struct gkyl_array *fixed_vtsq; // xi_0^2 (host)
+  const struct gkyl_array *xi; // [xi, xi^2, p] of the stage (host)
+};
+
+struct pkpm_bgk_collisions {
+  struct gkyl_array *nu; // collision frequency
+  bool fixed_temp_relax;
+  struct gkyl_array *fixed_vtsq, *fixed_vtsq_host; // xi_0^2 of the initial state
+  struct gkyl_array *xi_host; // host mirror (GPU only)
+  struct gkyl_array *f_target, *f_target_host; // J [F_t, G_t] of the stage
+  struct gkyl_array *E_target, *scratch, *uu; // fluid energy relaxation scratch
+  gkyl_proj_on_basis *proj_target;
+  struct pkpm_bgk_eval_ctx eval_ctx;
+};
+
 struct pkpm_lbo_collisions {
   struct gkyl_array *boundary_corrections; // LBO boundary corrections
   struct gkyl_mom_calc_bcorr *bcorr_calc; // LBO boundary corrections calculator
@@ -141,6 +193,7 @@ struct pkpm_species {
   struct gkyl_range local_vel, local_ext_vel; // local, local-ext velocity-space ranges
 
   struct gkyl_array *f, *f1, *fnew; // normalized distributions [F, G] on the w = v_par/xi grid
+  struct gkyl_array *blk_in, *blk_out; // one-block (F or G) scratch for configuration x phase products
   struct gkyl_array *f_no_J; // physical distributions [F, G] (position-map Jacobian divided out; output and L2)
   struct gkyl_array *f_no_J_host; // host copy of f_no_J for I/O
   struct gkyl_array *fluid, *fluid1, *fluidnew; // fluid state [rho, rho ux, rho uy, rho uz, E]
@@ -269,6 +322,13 @@ struct pkpm_species {
 
   enum gkyl_collision_id collision_id; // type of collisions
   struct pkpm_lbo_collisions lbo; // collisions object
+  struct pkpm_bgk_collisions bgk; // BGK collisions object
+
+  struct pkpm_source src; // source object
+  double bflux[2 * GKYL_MAX_CDIM]; // particle loss rate through the absorbing walls [lower, upper] per direction (stage)
+  gkyl_dynvec bflux_diag; // the loss rates on the cadence of the integrated moments
+  bool is_first_bflux_write_call;
+  struct gkyl_array *fluid_flux_surf_host; // host mirror of the stored fluid fluxes (GPU only)
 
   // fluid diffusion
   bool has_diffusion; // flag to indicate there is applied diffusion
@@ -629,6 +689,57 @@ void pkpm_species_calc_pkpm_vars(
   gkyl_pkpm_app *app, struct pkpm_species *species, const struct gkyl_array *fin,
   const struct gkyl_array *fluidin
 );
+
+/**
+ * Fluid face fluxes of the stage (HLL on the stored nodal states; the absorbing walls'
+ * fluxes from the kinetic upwind flux of the skin cells).
+ */
+void pkpm_species_fluid_flux(
+  gkyl_pkpm_app *app, struct pkpm_species *species, const struct gkyl_array *fin,
+  const struct gkyl_array *fluidin
+);
+
+/** Particle loss rates through the absorbing walls from the stored fluxes (into species->bflux). */
+void pkpm_species_calc_bflux(gkyl_pkpm_app *app, struct pkpm_species *s);
+
+// Source object: see gkyl_pkpm_source in gkyl_pkpm.h.
+void pkpm_species_source_init(gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source *src);
+void pkpm_species_source_calc_rate(gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source *src);
+void pkpm_species_source_kinetic_rhs(
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source *src, const struct gkyl_array *fin,
+  struct gkyl_array *rhs
+);
+void pkpm_species_source_fluid_rhs(
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source *src, struct gkyl_array *rhs
+);
+void pkpm_species_source_write(
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source *src, double tm, int frame
+);
+void pkpm_species_source_release(const gkyl_pkpm_app *app, const struct pkpm_source *src);
+
+// BGK collisions: nu (f_target - f) with the normalized Maxwellian target, optionally at
+// the initial temperature (then the fluid energy relaxes at the same rate).
+void pkpm_species_bgk_init(gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk);
+void pkpm_species_bgk_set_fixed_temp(gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk);
+// out += a conf * phase for both blocks of a [F, G] phase array (the bin-op kernels act on
+// one block of num_basis components).
+void pkpm_species_accumulate_conf_phase(
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct gkyl_array *out, double a,
+  const struct gkyl_array *conf, const struct gkyl_array *phase
+);
+
+void pkpm_species_bgk_kinetic_rhs(
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk,
+  const struct gkyl_array *fin, struct gkyl_array *rhs
+);
+void pkpm_species_bgk_fluid_rhs(
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk, struct gkyl_array *rhs
+);
+void pkpm_species_bgk_release(const gkyl_pkpm_app *app, const struct pkpm_bgk_collisions *bgk);
+
+// Output metadata helpers (pkpm.c).
+struct gkyl_msgpack_data *pkpm_array_meta_new(struct pkpm_output_meta meta);
+void pkpm_array_meta_release(struct gkyl_msgpack_data *mt);
 
 /**
  * Apply the vertex positivity limiter to a fluid state over the local range (no-op when

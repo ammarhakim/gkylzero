@@ -14,7 +14,7 @@
 #include <mpack.h>
 
 // returned gkyl_array_meta must be freed using pkpm_array_meta_release
-static struct gkyl_msgpack_data *
+struct gkyl_msgpack_data *
 pkpm_array_meta_new(struct pkpm_output_meta meta)
 {
   struct gkyl_msgpack_data *mt = gkyl_malloc(sizeof(*mt));
@@ -51,7 +51,7 @@ pkpm_array_meta_new(struct pkpm_output_meta meta)
   return mt;
 }
 
-static void
+void
 pkpm_array_meta_release(struct gkyl_msgpack_data *mt)
 {
   if (!mt) {
@@ -304,6 +304,10 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
   for (int i = 0; i < ns; ++i) {
     pkpm_species_init(pkpm, app, &app->species[i]);
   }
+  // Sources refer to other species (the boundary-flux rate): after every species exists.
+  for (int i = 0; i < ns; ++i) {
+    pkpm_species_source_init(app, &app->species[i], &app->species[i].src);
+  }
 
   // initialize each species cross-species terms: this has to be done here
   // as need pointers to colliding species' collision objects
@@ -401,6 +405,13 @@ gkyl_pkpm_app_apply_ic_species(gkyl_pkpm_app *app, int sidx, double t0)
 
   pkpm_species_apply_bc(app, &app->species[sidx], app->species[sidx].f);
   pkpm_fluid_species_apply_bc(app, &app->species[sidx], app->species[sidx].fluid);
+
+  // BGK collisions at a fixed temperature relax to the initial one.
+  if (app->species[sidx].collision_id == GKYL_BGK_COLLISIONS && app->species[sidx].bgk.fixed_temp_relax) {
+    pkpm_species_calc_pkpm_vars(app, &app->species[sidx], app->species[sidx].f, app->species[sidx].fluid);
+    pkpm_species_bgk_set_fixed_temp(app, &app->species[sidx], &app->species[sidx].bgk);
+  }
+  pkpm_species_source_write(app, &app->species[sidx], &app->species[sidx].src, t0, 0);
 }
 
 void
@@ -428,6 +439,8 @@ gkyl_pkpm_app_calc_integrated_mom(gkyl_pkpm_app *app, double tm)
 
     gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 9, avals, avals_global);
     gkyl_dynvec_append(s->integ_diag, tm, avals_global);
+    // particle loss rates through the absorbing walls of the last stage
+    gkyl_dynvec_append(s->bflux_diag, tm, s->bflux);
 
     // Positivity limiter statistics since the previous call: [cells scaled for the
     // density, for the internal energy, cells with an inadmissible average, applications].
@@ -687,6 +700,18 @@ gkyl_pkpm_app_write_integrated_mom(gkyl_pkpm_app *app)
         gkyl_dynvec_awrite(app->species[i].integ_diag, fileNm);
       }
 
+      {
+        // wall loss rates on the same cadence as the integrated moments
+        int sz_bf = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name, "bflux");
+        char fileNm_bf[sz_bf + 1];
+        snprintf(fileNm_bf, sizeof fileNm_bf, fmt, app->name, app->species[i].info.name, "bflux");
+        if (app->species[i].is_first_bflux_write_call) {
+          gkyl_dynvec_write(app->species[i].bflux_diag, fileNm_bf);
+          app->species[i].is_first_bflux_write_call = false;
+        } else {
+          gkyl_dynvec_awrite(app->species[i].bflux_diag, fileNm_bf);
+        }
+      }
       if (app->fluid_positivity) {
         // positivity limiter statistics on the same cadence as the integrated moments
         int sz_pos = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name, "positivity-stat");
@@ -702,6 +727,7 @@ gkyl_pkpm_app_write_integrated_mom(gkyl_pkpm_app *app)
     }
     gkyl_dynvec_clear(app->species[i].integ_diag);
     gkyl_dynvec_clear(app->species[i].pos_stat);
+    gkyl_dynvec_clear(app->species[i].bflux_diag);
   }
 }
 

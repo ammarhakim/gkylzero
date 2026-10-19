@@ -25,6 +25,30 @@ struct gkyl_pkpm_collisions {
 
   int num_cross_collisions; // number of species to cross-collide with
   char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
+
+  // BGK collisions: relax to a Maxwellian at the INITIAL temperature of the species
+  // instead of the local one (the fluid energy then relaxes at the rate nu as well).
+  bool fixed_temp_relax;
+};
+
+// Parameters for a species source: an LTE profile [density, isotropic temperature, drift]
+// injected into the normalized kinetic equations (through the configuration pass, so the
+// closures keep the constraints exact) and into the fluid state [rho, M, E]. With
+// GKYL_PROJ_SOURCE the profile is added as given; with GKYL_BFLUX_SOURCE it is scaled every
+// stage by the particle loss rate of `source_species` through its absorbing walls divided
+// by `source_length` (so a density profile integrating to source_length replaces the
+// losses exactly). The drift enters the parallel Maxwellian through its component along b;
+// a perpendicular drift relative to the local flow is not carried by G.
+struct gkyl_pkpm_source {
+  enum gkyl_source_id source_id; // GKYL_NO_SOURCE (default), GKYL_PROJ_SOURCE, GKYL_BFLUX_SOURCE
+  double source_length; // bflux: the length the density profile integrates to
+  char source_species[128]; // bflux: species whose wall losses set the rate
+  bool write_source; // write the fluid image of the profile at frame 0
+
+  void *ctx_density, *ctx_temp, *ctx_V_drift; // contexts
+  void (*density)(double t, const double *xn, double *fout, void *ctx); // number density
+  void (*temp)(double t, const double *xn, double *fout, void *ctx); // isotropic temperature
+  void (*V_drift)(double t, const double *xn, double *fout, void *ctx); // drift velocity (3 components); optional
 };
 
 // Parameters for fluid species diffusion
@@ -60,6 +84,9 @@ struct gkyl_pkpm_species {
 
   // collisions to include
   struct gkyl_pkpm_collisions collisions;
+
+  // source to include
+  struct gkyl_pkpm_source source;
 
   // diffusion coupling to include for momentum
   struct gkyl_pkpm_fluid_diffusion diffusion;

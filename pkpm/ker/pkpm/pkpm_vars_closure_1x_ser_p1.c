@@ -92,7 +92,7 @@ GKYL_CU_DH int pkpm_vars_closure_1x_ser_p1(double w_lo, double w_up, double dv, 
     // 3x3 system A [c_0, alpha_0, c] = rhs: stage-A rates + interior stage-B rates + edge rates = 0 
     const double A00 = n0_q, A01 = eF0, A02 = eF1; 
     const double A10 = n1_q, A11 = n0_q + eF1, A12 = n1_q + eF2; 
-    const double A20 = n2_q, A21 = 2.0*n1_q + eF2 + 2.0*eG0, A22 = 2.0*(n2_q + 2.0*nG_q) + eF3 + 2.0*eG1; 
+    const double A20 = n2_q + 2.0*nG_q, A21 = 2.0*n1_q + eF2 + 2.0*eG0, A22 = 2.0*(n2_q + 2.0*nG_q) + eF3 + 2.0*eG1; 
     const double b0 = -r0_q - kF0, b1 = -r1_q - kF1, b2 = -r2_q - kF2 - 2.0*kG0 - 2.0*bH0; 
     const double det = A00*(A11*A22 - A12*A21) - A01*(A10*A22 - A12*A20) + A02*(A10*A21 - A11*A20); 
     if (n0_q > 0.0 && det > 0.0) { 
@@ -158,7 +158,7 @@ GKYL_CU_DH int pkpm_vars_closure_1x_ser_p1(double w_lo, double w_up, double dv, 
     // 3x3 system A [c_0, alpha_0, c] = rhs: stage-A rates + interior stage-B rates + edge rates = 0 
     const double A00 = n0_q, A01 = eF0, A02 = eF1; 
     const double A10 = n1_q, A11 = n0_q + eF1, A12 = n1_q + eF2; 
-    const double A20 = n2_q, A21 = 2.0*n1_q + eF2 + 2.0*eG0, A22 = 2.0*(n2_q + 2.0*nG_q) + eF3 + 2.0*eG1; 
+    const double A20 = n2_q + 2.0*nG_q, A21 = 2.0*n1_q + eF2 + 2.0*eG0, A22 = 2.0*(n2_q + 2.0*nG_q) + eF3 + 2.0*eG1; 
     const double b0 = -r0_q - kF0, b1 = -r1_q - kF1, b2 = -r2_q - kF2 - 2.0*kG0 - 2.0*bH0; 
     const double det = A00*(A11*A22 - A12*A21) - A01*(A10*A22 - A12*A20) + A02*(A10*A21 - A11*A20); 
     if (n0_q > 0.0 && det > 0.0) { 

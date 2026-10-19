@@ -327,7 +327,13 @@ reference_vol(struct test_setup *s, const int *idx, double *out_ref)
     double Fq = s->pbasis.eval_expand(z, &f[0]), Gq = s->pbasis.eval_expand(z, &f[np]);
     double Hq = 4.0 * thq * Gq - 2.0 * thq * thq * Fq;
     double src_F = -xiq * v * bgn * Fq;
-    double src_G = (K - xiq * v * divb - 2.0 * v * bgx - xiq * v * bgn) * Gq;
+    // The density renormalization is the closure c_0 G of the velocity pass; only the
+    // perpendicular compression (K - div u) G is a source of this pass.
+    double divu = 0.0;
+    for (int d = 0; d < cdim; ++d) {
+      divu += gradu[d][d];
+    }
+    double src_G = (K - divu - xiq * v * divb - 2.0 * v * bgx - xiq * v * bgn) * Gq;
 
     for (int k = 0; k < np; ++k) {
       double unit[64] = {0.0};
@@ -469,7 +475,7 @@ test_closure(int cdim)
   TEST_CHECK(num_null == 0);
 
   // Weak residuals in every mode: M0 c_0 + r0, M0 alpha_0 + M1 c + r1 + c_0 M1 and
-  // 2 M1 alpha_0 + 2 (M2 + 2 M0G) c + r2 + 2 r0G + c_0 M2.
+  // 2 M1 alpha_0 + 2 (M2 + 2 M0G) c + r2 + 2 r0G + c_0 (M2 + 2 M0G).
   struct gkyl_array *n_c0 = mkarr(nc, s.clocal_ext.volume);
   struct gkyl_array *n_aP = mkarr(nc, s.clocal_ext.volume);
   struct gkyl_array *c0_m1 = mkarr(nc, s.clocal_ext.volume);
@@ -493,7 +499,7 @@ test_closure(int cdim)
   gkyl_dg_mul_op_range(&s.cbasis, 0, ch_m1, 0, c_h, 3, moms, &s.clocal);
   gkyl_dg_mul_op_range(&s.cbasis, 0, m1_aP, 0, a_P, 3, moms, &s.clocal);
   gkyl_dg_mul_op_range(&s.cbasis, 0, ch_s2, 0, c_h, 0, s2, &s.clocal);
-  gkyl_dg_mul_op_range(&s.cbasis, 0, c0_m2, 0, c_0, 1, moms, &s.clocal);
+  gkyl_dg_mul_op_range(&s.cbasis, 0, c0_m2, 0, c_0, 0, s2, &s.clocal);
   double max_res = 0.0, max_m1 = 0.0, max_aP = 0.0, max_res0 = 0.0, max_m0 = 0.0;
   double max_res2 = 0.0, max_m2 = 0.0, max_ch = 0.0;
   struct gkyl_range_iter citer;
