@@ -34,9 +34,6 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
-#include <gkyl_wave_geom.h>
-#include <gkyl_wv_eqn.h>
-#include <gkyl_wv_ten_moment.h>
 
 struct wave_ctx {
   double u0, alpha, vt;
@@ -139,8 +136,6 @@ struct sim {
   struct gkyl_array *cflux, *vflux, *fflux, *cflrate_f, *cflrate_m, *cell_avg;
   struct gkyl_dg_calc_pkpm_bvar *calc_b;
   struct gkyl_dg_calc_pkpm_vars *vars;
-  struct gkyl_wv_eqn *ten;
-  struct gkyl_wave_geom *geom;
   struct gkyl_dg_updater_moment *mcalc;
   struct gkyl_dg_pkpm_conf_flux_surf *calc_cflux;
   struct gkyl_dg_pkpm_vel_flux_surf *calc_vflux;
@@ -257,8 +252,6 @@ sim_init(struct sim *s, const struct run_opts *o)
   gkyl_dg_calc_pkpm_bvar_grad(s->calc_b, &s->clocal, s->bvar, s->grad_b);
   gkyl_array_release(em);
 
-  s->ten = gkyl_wv_ten_moment_new(0.0, false, false, 0, 0, false);
-  s->geom = gkyl_wave_geom_new(&s->cgrid, &s->clocal_ext, 0, 0, false);
   s->vars =
     gkyl_dg_calc_pkpm_vars_new(&s->cgrid, &s->cbasis, &s->clocal_ext, s->pos_map, false);
   s->mcalc = gkyl_dg_updater_moment_pkpm_new(
@@ -313,8 +306,7 @@ sim_init(struct sim *s, const struct run_opts *o)
   struct gkyl_dg_pkpm_fluid_flux_surf_inp finp = {
     .conf_grid = &s->cgrid,
     .conf_basis = &s->cbasis,
-    .wv_eqn = s->ten,
-    .geom = s->geom,
+    .phase_grid = &s->pgrid,
     .pos_map = s->pos_map, .use_gpu = false,
   };
   s->calc_fflux = gkyl_dg_pkpm_fluid_flux_surf_inew(&finp);
@@ -349,8 +341,6 @@ sim_release(struct sim *s)
   gkyl_dg_pkpm_conf_flux_surf_release(s->calc_cflux);
   gkyl_dg_updater_moment_pkpm_release(s->mcalc);
   gkyl_dg_calc_pkpm_vars_release(s->vars);
-  gkyl_wave_geom_release(s->geom);
-  gkyl_wv_eqn_release(s->ten);
   gkyl_dg_calc_pkpm_bvar_release(s->calc_b);
   gkyl_array_release(s->cell_avg);
   gkyl_array_release(s->cflrate_m);
@@ -426,7 +416,8 @@ sim_rhs(
   // Fluid face fluxes [F_rho, F_x, F_y, F_z, F_E] of the stage.
   gkyl_array_clear(s->fflux, 0.0);
   gkyl_dg_pkpm_fluid_flux_surf_advance(
-    s->calc_fflux, &s->clocal, &s->clocal_ext, s->moms, s->bvar, s->u, M, s->cflrate_m, s->fflux
+    s->calc_fflux, &s->clocal, &s->clocal_ext, &s->plocal, &s->plocal_ext, s->bvar, s->u, s->xi, s->theta,
+    M, f, s->cflrate_m, s->fflux
   );
   if (!o->freeze_kinetic) {
     gkyl_array_clear(s->cflux, 0.0);

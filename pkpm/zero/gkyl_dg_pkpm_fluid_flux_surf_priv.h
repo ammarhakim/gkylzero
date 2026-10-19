@@ -9,62 +9,71 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
-#include <gkyl_wave_geom.h>
-#include <gkyl_wv_eqn.h>
 
+typedef double (*pkpm_fluid_flux_accum_t)(
+  const double *w, const double *dxv, const double *jacob_pos_l, const double *jacob_pos_r,
+  const double *bvar_l, const double *bvar_r, const double *u_l, const double *u_r, const double *xi_l,
+  const double *xi_r, const double *f_l, const double *f_r, double *GKYL_RESTRICT I
+);
 typedef double (*pkpm_fluid_flux_t)(
-  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom, const double *w,
-  const double *dxv, const double *jacob_pos_l, const double *jacob_pos_r, const double *moms_l, const double *moms_r, const double *bvar_l,
-  const double *bvar_r, const double *u_l, const double *u_r, const double *fluid_l,
-  const double *fluid_r, double *GKYL_RESTRICT flux
-);
-
-typedef void (*pkpm_fluid_flux_absorb_accum_t)(
-  int edge, const double *w, const double *dxv, const double *bvar, const double *u,
-  const double *xi, const double *f, double *GKYL_RESTRICT I
-);
-typedef void (*pkpm_fluid_flux_absorb_t)(
-  int edge, const double *jacob_pos, const double *bvar, const double *u, const double *xi, const double *fluid,
-  const double *I, double *GKYL_RESTRICT flux
+  const double *jacob_pos, const double *bvar_l, const double *bvar_r, const double *u_l, const double *u_r, const double *xi_l,
+  const double *xi_r, const double *theta_l, const double *theta_r, const double *fluid_l,
+  const double *fluid_r, const double *I, double *GKYL_RESTRICT flux
 );
 
 // for use in kernel tables
 typedef struct {
+  pkpm_fluid_flux_accum_t kernels[3];
+} gkyl_dg_pkpm_fluid_flux_accum_kern_list;
+typedef struct {
   pkpm_fluid_flux_t kernels[3];
 } gkyl_dg_pkpm_fluid_flux_kern_list;
-typedef struct {
-  pkpm_fluid_flux_absorb_accum_t kernels[3];
-} gkyl_dg_pkpm_fluid_flux_absorb_accum_kern_list;
-typedef struct {
-  pkpm_fluid_flux_absorb_t kernels[3];
-} gkyl_dg_pkpm_fluid_flux_absorb_kern_list;
 
 struct gkyl_dg_pkpm_fluid_flux_surf {
   struct gkyl_rect_grid conf_grid; // Configuration-space grid.
+  struct gkyl_rect_grid phase_grid; // Phase-space grid.
   int cdim; // Configuration-space dimensions.
   int num_surf_basis; // Surface modal basis size per component and direction.
+  int num_face_nodes; // Transverse nodes of a face (3^(cdim-1)).
   bool use_gpu; // bool to determine if on GPU.
-  const struct gkyl_wv_eqn *wv_eqn; // Ten-moment wave equation (device pointer on device).
-  const struct gkyl_wave_geom *geom; // Wave geometry (device pointer on device).
   const struct gkyl_vlasov_position_map *pos_map; // Position map (acquired; host pointer).
   const struct gkyl_array *jacob_pos; // Per-direction Jacobians (borrowed from pos_map; device pointer on device).
-  pkpm_fluid_flux_t fluid_flux[3]; // Flux kernel in each direction.
-  struct gkyl_rect_grid phase_grid; // Phase-space grid (absorbing fluxes only).
-  bool has_phase_grid; // Whether the phase-space grid was given (absorbing fluxes available).
-  int num_face_nodes; // Transverse nodes of a face (3^(cdim-1)) of the absorbing-flux kernels.
-  pkpm_fluid_flux_absorb_accum_t fluid_flux_absorb_accum[3]; // Upwind-flux moment kernel per direction.
-  pkpm_fluid_flux_absorb_t fluid_flux_absorb[3]; // Absorbing-face flux kernel per direction.
-
+  pkpm_fluid_flux_accum_t fluid_flux_accum[3]; // Kinetic-flux moment kernel per direction.
+  pkpm_fluid_flux_t fluid_flux[3]; // Flux assembly kernel per direction.
   uint32_t flags;
   struct gkyl_dg_pkpm_fluid_flux_surf *on_dev; // pointer to itself or device data
 };
 
-// Momentum flux kernels (p=1 serendipity only; indexed [cdim-1].kernels[dir])
+// Kinetic-flux moment kernels (p=1 serendipity only; indexed [cdim-1].kernels[dir])
+GKYL_CU_D static const gkyl_dg_pkpm_fluid_flux_accum_kern_list ser_pkpm_fluid_flux_accum_kernels[] = {
+  {pkpm_fluid_flux_accum_x_1x1v_ser_p1, NULL, NULL}, // 0
+  {pkpm_fluid_flux_accum_x_2x1v_ser_p1, pkpm_fluid_flux_accum_y_2x1v_ser_p1, NULL}, // 1
+  {pkpm_fluid_flux_accum_x_3x1v_ser_p1, pkpm_fluid_flux_accum_y_3x1v_ser_p1,
+    pkpm_fluid_flux_accum_z_3x1v_ser_p1}, // 2
+};
+
+// Flux assembly kernels (p=1 serendipity only; indexed [cdim-1].kernels[dir])
 GKYL_CU_D static const gkyl_dg_pkpm_fluid_flux_kern_list ser_pkpm_fluid_flux_kernels[] = {
   {pkpm_fluid_flux_x_1x_ser_p1, NULL, NULL}, // 0
   {pkpm_fluid_flux_x_2x_ser_p1, pkpm_fluid_flux_y_2x_ser_p1, NULL}, // 1
   {pkpm_fluid_flux_x_3x_ser_p1, pkpm_fluid_flux_y_3x_ser_p1, pkpm_fluid_flux_z_3x_ser_p1}, // 2
 };
+
+GKYL_CU_D
+static pkpm_fluid_flux_accum_t
+choose_pkpm_fluid_flux_accum_kern(enum gkyl_basis_type b_type, int cdim, int poly_order, int dir)
+{
+  assert(poly_order == 1);
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_pkpm_fluid_flux_accum_kernels[cdim - 1].kernels[dir];
+      break;
+    default:
+      assert(false);
+      break;
+  }
+  return 0;
+}
 
 GKYL_CU_D
 static pkpm_fluid_flux_t
@@ -82,73 +91,51 @@ choose_pkpm_fluid_flux_kern(enum gkyl_basis_type b_type, int cdim, int poly_orde
   return 0;
 }
 
-// Absorbing-boundary flux kernels (p=1 serendipity only; indexed [cdim-1].kernels[dir])
-GKYL_CU_D static const gkyl_dg_pkpm_fluid_flux_absorb_accum_kern_list ser_pkpm_fluid_flux_absorb_accum_kernels[] = {
-  {pkpm_fluid_flux_absorb_accum_x_1x1v_ser_p1, NULL, NULL}, // 0
-  {pkpm_fluid_flux_absorb_accum_x_2x1v_ser_p1, pkpm_fluid_flux_absorb_accum_y_2x1v_ser_p1, NULL}, // 1
-  {pkpm_fluid_flux_absorb_accum_x_3x1v_ser_p1, pkpm_fluid_flux_absorb_accum_y_3x1v_ser_p1,
-    pkpm_fluid_flux_absorb_accum_z_3x1v_ser_p1}, // 2
-};
-GKYL_CU_D static const gkyl_dg_pkpm_fluid_flux_absorb_kern_list ser_pkpm_fluid_flux_absorb_kernels[] = {
-  {pkpm_fluid_flux_absorb_x_1x_ser_p1, NULL, NULL}, // 0
-  {pkpm_fluid_flux_absorb_x_2x_ser_p1, pkpm_fluid_flux_absorb_y_2x_ser_p1, NULL}, // 1
-  {pkpm_fluid_flux_absorb_x_3x_ser_p1, pkpm_fluid_flux_absorb_y_3x_ser_p1, pkpm_fluid_flux_absorb_z_3x_ser_p1}, // 2
-};
-
-GKYL_CU_D
-static pkpm_fluid_flux_absorb_accum_t
-choose_pkpm_fluid_flux_absorb_accum_kern(enum gkyl_basis_type b_type, int cdim, int poly_order, int dir)
-{
-  assert(poly_order == 1);
-  switch (b_type) {
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-      return ser_pkpm_fluid_flux_absorb_accum_kernels[cdim - 1].kernels[dir];
-      break;
-    default:
-      assert(false);
-      break;
-  }
-  return 0;
-}
-
-GKYL_CU_D
-static pkpm_fluid_flux_absorb_t
-choose_pkpm_fluid_flux_absorb_kern(enum gkyl_basis_type b_type, int cdim, int poly_order, int dir)
-{
-  assert(poly_order == 1);
-  switch (b_type) {
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-      return ser_pkpm_fluid_flux_absorb_kernels[cdim - 1].kernels[dir];
-      break;
-    default:
-      assert(false);
-      break;
-  }
-  return 0;
-}
-
-// Moments of the kinetic upwind flux through the absorbing face (dir, edge) of the skin
-// cell idx, summed over the velocity cells of the phase-space range: I[4 * num_face_nodes].
-GKYL_CU_DH static inline void
-pkpm_fluid_flux_absorb_moments(
-  const struct gkyl_dg_pkpm_fluid_flux_surf *up, int dir, int edge, const int *idx,
-  const struct gkyl_range *phase_range, const struct gkyl_range *phase_range_ext,
-  const double *b_c, const double *u_c, const double *xi_c, const struct gkyl_array *f, double *I
+// Flux of the face between the configuration cells idx_l (lower) and idx_r (upper) in
+// direction dir: the one-sided moments of the kinetic HLL flux summed over the velocity
+// cells of phase_range, then the assembly from the physical traces of both cells. Either
+// cell may be a ghost cell (indexed through the extended ranges). Returns the largest speed
+// bound of the face (kinetic streaming or perpendicular sound) for the CFL rate.
+GKYL_CU_DH static inline double
+pkpm_fluid_flux_face(
+  const struct gkyl_dg_pkpm_fluid_flux_surf *up, int dir, const int *idx_l, const int *idx_r,
+  const struct gkyl_range *conf_range_ext, const struct gkyl_range *phase_range,
+  const struct gkyl_range *phase_range_ext, const struct gkyl_array *bvar, const struct gkyl_array *u,
+  const struct gkyl_array *xi, const struct gkyl_array *theta, const struct gkyl_array *fluid,
+  const struct gkyl_array *f, double *flux
 )
 {
   int cdim = up->cdim;
-  int pidx[GKYL_MAX_DIM];
+  int pidx_l[GKYL_MAX_DIM], pidx_r[GKYL_MAX_DIM];
   double xc[GKYL_MAX_DIM];
-  for (int k = 0; k < 4 * up->num_face_nodes; ++k) {
+  double I[8 * 9];
+  for (int k = 0; k < 8 * up->num_face_nodes; ++k) {
     I[k] = 0.0;
   }
-  gkyl_copy_int_arr(cdim, idx, pidx);
-  for (int iv = phase_range->lower[cdim]; iv <= phase_range->upper[cdim]; ++iv) {
-    pidx[cdim] = iv;
-    long ploc = gkyl_range_idx(phase_range_ext, pidx);
-    gkyl_rect_grid_cell_center(&up->phase_grid, pidx, xc);
-    up->fluid_flux_absorb_accum[dir](
-      edge, xc, up->phase_grid.dx, b_c, u_c, xi_c, (const double *)gkyl_array_cfetch(f, ploc), I
-    );
+  long cidx_l = gkyl_range_idx(conf_range_ext, idx_l), cidx_r = gkyl_range_idx(conf_range_ext, idx_r);
+  const double *jac_l = (const double *)gkyl_array_cfetch(up->jacob_pos, cidx_l);
+  const double *jac_r = (const double *)gkyl_array_cfetch(up->jacob_pos, cidx_r);
+  const double *b_l = (const double *)gkyl_array_cfetch(bvar, cidx_l), *b_r = (const double *)gkyl_array_cfetch(bvar, cidx_r);
+  const double *u_l = (const double *)gkyl_array_cfetch(u, cidx_l), *u_r = (const double *)gkyl_array_cfetch(u, cidx_r);
+  const double *xi_l = (const double *)gkyl_array_cfetch(xi, cidx_l), *xi_r = (const double *)gkyl_array_cfetch(xi, cidx_r);
+  double amax = 0.0;
+  gkyl_copy_int_arr(cdim, idx_l, pidx_l);
+  gkyl_copy_int_arr(cdim, idx_r, pidx_r);
+  for (int jv = phase_range->lower[cdim]; jv <= phase_range->upper[cdim]; ++jv) {
+    pidx_l[cdim] = jv;
+    pidx_r[cdim] = jv;
+    gkyl_rect_grid_cell_center(&up->phase_grid, pidx_r, xc);
+    amax = fmax(amax, up->fluid_flux_accum[dir](
+      xc, up->phase_grid.dx, jac_l, jac_r, b_l, b_r, u_l, u_r, xi_l, xi_r,
+      (const double *)gkyl_array_cfetch(f, gkyl_range_idx(phase_range_ext, pidx_l)),
+      (const double *)gkyl_array_cfetch(f, gkyl_range_idx(phase_range_ext, pidx_r)), I
+    ));
   }
+  double cmax = up->fluid_flux[dir](
+    jac_r, b_l, b_r, u_l, u_r, xi_l, xi_r, (const double *)gkyl_array_cfetch(theta, cidx_l),
+    (const double *)gkyl_array_cfetch(theta, cidx_r), (const double *)gkyl_array_cfetch(fluid, cidx_l),
+    (const double *)gkyl_array_cfetch(fluid, cidx_r), I, flux
+  );
+  // CFL rate of the r cell: (2p+1)/2 dx1 / J_d, as the kinetic flux
+  return 1.5 * (2.0 / up->conf_grid.dx[dir]) / jac_r[2 * dir] * fmax(amax, cmax);
 }

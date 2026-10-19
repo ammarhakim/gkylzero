@@ -119,6 +119,19 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   }
 
   // equation object
+  f->use_ghost_current = false;
+  if (f->info.use_ghost_current) {
+    // 1D periodic electrostatics only: the mean current is a single number.
+    assert(app->cdim == 1 && app->num_periodic_dir == 1);
+    f->use_ghost_current = true;
+    f->ghost_current = mkarr(app->use_gpu, 1, app->local_ext.volume);
+    gkyl_array_clear(f->ghost_current, 0.0);
+    f->app_current_tot = mkarr(app->use_gpu, 3 * app->confBasis.num_basis, app->local_ext.volume);
+    if (app->use_gpu) {
+      f->red_ghost_current = gkyl_cu_malloc(sizeof(double[1]));
+    }
+  }
+
   double c = 1 / sqrt(f->info.epsilon0 * f->info.mu0);
   double ef = f->info.elcErrorSpeedFactor, mf = f->info.mgnErrorSpeedFactor;
 
@@ -341,6 +354,32 @@ pkpm_field_limiter(gkyl_pkpm_app *app, struct pkpm_field *field, struct gkyl_arr
 }
 
 void
+pkpm_field_calc_ghost_current(
+  gkyl_pkpm_app *app, struct pkpm_field *field, const struct gkyl_array *fluidin[]
+)
+{
+  int nc = app->confBasis.num_basis;
+  double mean_local = 0.0, mean_global = 0.0;
+  for (int i = 0; i < app->num_species; ++i) {
+    struct pkpm_species *s = &app->species[i];
+    double qbym_nx = s->info.charge / (s->info.mass * app->grid.cells[0]);
+    // ghost_current has one component: coefficient 0 of M_x, scaled by q/(m N_x).
+    gkyl_array_set_offset(s->pkpm_mom3, 1.0, fluidin[i], nc);
+    gkyl_array_set_range(field->ghost_current, qbym_nx, s->pkpm_mom3, &app->local);
+    double red[1];
+    if (app->use_gpu) {
+      gkyl_array_reduce_range(field->red_ghost_current, field->ghost_current, GKYL_SUM, &app->local);
+      gkyl_cu_memcpy(red, field->red_ghost_current, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
+    } else {
+      gkyl_array_reduce_range(red, field->ghost_current, GKYL_SUM, &app->local);
+    }
+    mean_local += red[0];
+  }
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &mean_local, &mean_global);
+  gkyl_array_clear(field->ghost_current, mean_global);
+}
+
+void
 pkpm_field_explicit_accumulate_current(
   gkyl_pkpm_app *app, struct pkpm_field *field, const struct gkyl_array *fluidin[],
   struct gkyl_array *emout
@@ -355,6 +394,11 @@ pkpm_field_explicit_accumulate_current(
       double qbymeps = s->info.charge / (s->info.mass * field->info.epsilon0);
       gkyl_array_set_offset(s->pkpm_mom3, 1.0, fluidin[i], app->confBasis.num_basis);
       gkyl_array_accumulate_range(emout, -qbymeps, s->pkpm_mom3, &app->local);
+    }
+    // Ghost current: add back the domain-mean current (coefficient 0 of E_x).
+    if (field->use_ghost_current) {
+      pkpm_field_calc_ghost_current(app, field, fluidin);
+      gkyl_array_accumulate_range(emout, 1.0 / field->info.epsilon0, field->ghost_current, &app->local);
     }
     // Accumulate applied current to electric field terms
     if (field->has_app_current) {
@@ -509,6 +553,13 @@ pkpm_field_release(const gkyl_pkpm_app *app, struct pkpm_field *f)
     gkyl_proj_on_basis_release(f->ext_em_proj);
   }
   gkyl_array_release(f->app_current);
+  if (f->use_ghost_current) {
+    gkyl_array_release(f->ghost_current);
+    gkyl_array_release(f->app_current_tot);
+    if (app->use_gpu) {
+      gkyl_cu_free(f->red_ghost_current);
+    }
+  }
   gkyl_array_release(f->app_current_no_J);
   gkyl_array_release(f->em_no_J);
   if (app->use_gpu) {

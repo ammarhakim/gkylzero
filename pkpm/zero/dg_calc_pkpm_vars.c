@@ -49,6 +49,8 @@ gkyl_dg_calc_pkpm_vars_new(
   up->pkpm_diag = choose_pkpm_diag_kern(b_type, cdim, poly_order);
   up->num_null_rho = 0;
   up->num_null_rho_dev = 0;
+  up->closure_cond_min = 1.0;
+  up->closure_cond_min_dev = 0;
   up->num_pos_dev = 0;
 
   // Linear system for the weak division of the momentum by the density (ux, uy, uz)
@@ -128,8 +130,9 @@ gkyl_dg_calc_pkpm_vars_closure(
   int cdim = conf_range->ndim;
   double w_lo = phase_grid->lower[cdim], w_up = phase_grid->upper[cdim], dv = phase_grid->dx[cdim];
   int idx[GKYL_MAX_DIM];
-  double cfl[2];
+  double cfl[2], cond[1];
   int num_null = 0;
+  double cond_min = 1.0;
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, conf_range);
   while (gkyl_range_iter_next(&iter)) {
@@ -147,13 +150,15 @@ gkyl_dg_calc_pkpm_vars_closure(
       gkyl_array_cfetch(xi, loc), gkyl_array_cfetch(grad_xi, loc), gkyl_array_cfetch(theta, loc),
       gkyl_array_cfetch(alpha_0, loc), gkyl_array_cfetch(c_h, loc), gkyl_array_cfetch(fin, plo),
       gkyl_array_cfetch(fin, pup), gkyl_array_fetch(c_0, loc), gkyl_array_fetch(alpha_0, loc),
-      gkyl_array_fetch(c_h, loc), gkyl_array_fetch(vel_flux_surf, plo), gkyl_array_fetch(vel_flux_surf, pgh), cfl
+      gkyl_array_fetch(c_h, loc), gkyl_array_fetch(vel_flux_surf, plo), gkyl_array_fetch(vel_flux_surf, pgh), cfl, cond
     );
+    cond_min = fmin(cond_min, cond[0]);
     double *cfl_lo = gkyl_array_fetch(cflrate, plo), *cfl_up = gkyl_array_fetch(cflrate, pup);
     cfl_lo[0] += cfl[0];
     cfl_up[0] += cfl[1];
   }
   up->num_null_rho = num_null;
+  up->closure_cond_min = cond_min;
   return num_null;
 }
 
@@ -224,6 +229,12 @@ gkyl_dg_calc_pkpm_vars_constraints(
       c[2 * num_basis + k] = (m[num_basis + k] + 2.0 * m[2 * num_basis + k]) / 3.0;
     }
   }
+}
+
+double
+gkyl_dg_calc_pkpm_vars_closure_cond_min(const struct gkyl_dg_calc_pkpm_vars *up)
+{
+  return up->closure_cond_min;
 }
 
 int
@@ -409,6 +420,7 @@ gkyl_dg_calc_pkpm_vars_release(gkyl_dg_calc_pkpm_vars *up)
 
   if (GKYL_IS_CU_ALLOC(up->flags)) {
     gkyl_cu_free(up->num_null_rho_dev);
+    gkyl_cu_free(up->closure_cond_min_dev);
     gkyl_cu_free(up->num_pos_dev);
     gkyl_cu_free(up->on_dev);
   }

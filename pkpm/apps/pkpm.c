@@ -1369,6 +1369,14 @@ gkyl_pkpm_app_stat_write(gkyl_pkpm_app *app)
   gkyl_pkpm_app_cout(app, fp, " nfield_omega_cfl : %ld,\n", stat.n_field_omega_cfl);
   gkyl_pkpm_app_cout(app, fp, " field_omega_cfl_tm : %lg\n", stat.field_omega_cfl_tm);
 
+  for (int i = 0; i < app->num_species; ++i) {
+    struct pkpm_species *s = &app->species[i];
+    double null_loc = (double)s->num_null_closure, null_glob = 0.0, cond_loc = s->closure_cond_min, cond_glob = 1.0;
+    gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &null_loc, &null_glob);
+    gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &cond_loc, &cond_glob);
+    gkyl_pkpm_app_cout(app, fp, " %s_closure_null_nodes : %ld,\n", s->info.name, (long)null_glob);
+    gkyl_pkpm_app_cout(app, fp, " %s_closure_cond_min : %lg,\n", s->info.name, cond_glob);
+  }
   gkyl_pkpm_app_cout(app, fp, " nio : %ld,\n", stat.n_io);
   gkyl_pkpm_app_cout(app, fp, " io_tm : %lg\n", stat.io_tm);
 

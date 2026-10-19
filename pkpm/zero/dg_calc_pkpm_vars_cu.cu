@@ -1,6 +1,7 @@
 /* -*- c++ -*- */
 
 #include <math.h>
+#include <string.h>
 #include <time.h>
 
 extern "C" {
@@ -97,12 +98,12 @@ gkyl_dg_calc_pkpm_vars_closure_cu_kernel(
   const struct gkyl_array *bvar, const struct gkyl_array *grad_b, const struct gkyl_array *grad_u,
   const struct gkyl_array *xi, const struct gkyl_array *grad_xi, const struct gkyl_array *theta,
   const struct gkyl_array *fin, struct gkyl_array *c_0, struct gkyl_array *alpha_0, struct gkyl_array *c_h,
-  struct gkyl_array *vel_flux_surf, struct gkyl_array *cflrate, int *num_null
+  struct gkyl_array *vel_flux_surf, struct gkyl_array *cflrate, int *num_null, unsigned long long *cond_min
 )
 {
   int cdim = conf_range.ndim;
   int idx[GKYL_MAX_DIM];
-  double cfl[2];
+  double cfl[2], cond[1];
   for (unsigned long linc1 = threadIdx.x + blockIdx.x * blockDim.x; linc1 < conf_range.volume;
        linc1 += gridDim.x * blockDim.x) {
     gkyl_sub_range_inv_idx(&conf_range, linc1, idx);
@@ -121,7 +122,7 @@ gkyl_dg_calc_pkpm_vars_closure_cu_kernel(
       (const double *)gkyl_array_cfetch(alpha_0, loc), (const double *)gkyl_array_cfetch(c_h, loc),
       (const double *)gkyl_array_cfetch(fin, plo), (const double *)gkyl_array_cfetch(fin, pup),
       (double *)gkyl_array_fetch(c_0, loc), (double *)gkyl_array_fetch(alpha_0, loc), (double *)gkyl_array_fetch(c_h, loc),
-      (double *)gkyl_array_fetch(vel_flux_surf, plo), (double *)gkyl_array_fetch(vel_flux_surf, pgh), cfl
+      (double *)gkyl_array_fetch(vel_flux_surf, plo), (double *)gkyl_array_fetch(vel_flux_surf, pgh), cfl, cond
     );
     double *cfl_lo = (double *)gkyl_array_fetch(cflrate, plo), *cfl_up = (double *)gkyl_array_fetch(cflrate, pup);
     cfl_lo[0] += cfl[0];
@@ -129,50 +130,13 @@ gkyl_dg_calc_pkpm_vars_closure_cu_kernel(
     if (null > 0) {
       atomicAdd(num_null, null);
     }
+    // minimum of the conditioning: for non-negative doubles the bit pattern orders like the
+    // value; a negative ratio (a nulled node) is recorded as 0
+    double cpos = cond[0] > 0.0 ? cond[0] : 0.0;
+    atomicMin(cond_min, (unsigned long long)__double_as_longlong(cpos));
   }
 }
 
-__global__ void
-gkyl_dg_calc_pkpm_vars_closure_cu_kernel(
-  struct gkyl_dg_calc_pkpm_vars *up, struct gkyl_range conf_range, struct gkyl_range phase_range,
-  double w_lo, double w_up, double dv, const struct gkyl_array *norm_moms, const struct gkyl_array *rhs_moms,
-  const struct gkyl_array *bvar, const struct gkyl_array *grad_b, const struct gkyl_array *grad_u,
-  const struct gkyl_array *xi, const struct gkyl_array *grad_xi, const struct gkyl_array *theta,
-  const struct gkyl_array *fin, struct gkyl_array *c_0, struct gkyl_array *alpha_0, struct gkyl_array *c_h,
-  struct gkyl_array *vel_flux_surf, struct gkyl_array *cflrate, int *num_null
-)
-{
-  int cdim = conf_range.ndim;
-  int idx[GKYL_MAX_DIM];
-  double cfl[2];
-  for (unsigned long linc1 = threadIdx.x + blockIdx.x * blockDim.x; linc1 < conf_range.volume;
-       linc1 += gridDim.x * blockDim.x) {
-    gkyl_sub_range_inv_idx(&conf_range, linc1, idx);
-    long loc = gkyl_range_idx(&conf_range, idx);
-    idx[cdim] = phase_range.lower[cdim];
-    long plo = gkyl_range_idx(&phase_range, idx);
-    idx[cdim] = phase_range.upper[cdim];
-    long pup = gkyl_range_idx(&phase_range, idx);
-    idx[cdim] = phase_range.upper[cdim] + 1; // velocity ghost cell: its slot is the upper edge face
-    long pgh = gkyl_range_idx(&phase_range, idx);
-    int null = up->pkpm_closure(
-      w_lo, w_up, dv, (const double *)gkyl_array_cfetch(norm_moms, loc), (const double *)gkyl_array_cfetch(rhs_moms, loc),
-      (const double *)gkyl_array_cfetch(bvar, loc), (const double *)gkyl_array_cfetch(grad_b, loc),
-      (const double *)gkyl_array_cfetch(grad_u, loc), (const double *)gkyl_array_cfetch(xi, loc),
-      (const double *)gkyl_array_cfetch(grad_xi, loc), (const double *)gkyl_array_cfetch(theta, loc),
-      (const double *)gkyl_array_cfetch(alpha_0, loc), (const double *)gkyl_array_cfetch(c_h, loc),
-      (const double *)gkyl_array_cfetch(fin, plo), (const double *)gkyl_array_cfetch(fin, pup),
-      (double *)gkyl_array_fetch(c_0, loc), (double *)gkyl_array_fetch(alpha_0, loc), (double *)gkyl_array_fetch(c_h, loc),
-      (double *)gkyl_array_fetch(vel_flux_surf, plo), (double *)gkyl_array_fetch(vel_flux_surf, pgh), cfl
-    );
-    double *cfl_lo = (double *)gkyl_array_fetch(cflrate, plo), *cfl_up = (double *)gkyl_array_fetch(cflrate, pup);
-    cfl_lo[0] += cfl[0];
-    cfl_up[0] += cfl[1];
-    if (null > 0) {
-      atomicAdd(num_null, null);
-    }
-  }
-}
 // Host-side wrapper for the closures
 int
 gkyl_dg_calc_pkpm_vars_closure_cu(
@@ -186,14 +150,21 @@ gkyl_dg_calc_pkpm_vars_closure_cu(
 {
   int cdim = conf_range->ndim;
   gkyl_cu_memset(up->num_null_rho_dev, 0, sizeof(int));
+  unsigned long long one = 0x3FF0000000000000ULL; // bit pattern of 1.0
+  gkyl_cu_memcpy(up->closure_cond_min_dev, &one, sizeof(unsigned long long), GKYL_CU_MEMCPY_H2D);
   gkyl_dg_calc_pkpm_vars_closure_cu_kernel<<<conf_range->nblocks, conf_range->nthreads>>>(
     up->on_dev, *conf_range, *phase_range, phase_grid->lower[cdim], phase_grid->upper[cdim], phase_grid->dx[cdim],
     norm_moms->on_dev, rhs_moms->on_dev, bvar->on_dev, grad_b->on_dev, grad_u->on_dev, xi->on_dev, grad_xi->on_dev,
     theta->on_dev, fin->on_dev, c_0->on_dev, alpha_0->on_dev, c_h->on_dev, vel_flux_surf->on_dev,
-    cflrate->on_dev, up->num_null_rho_dev
+    cflrate->on_dev, up->num_null_rho_dev, up->closure_cond_min_dev
   );
   int num_null = 0;
   gkyl_cu_memcpy(&num_null, up->num_null_rho_dev, sizeof(int), GKYL_CU_MEMCPY_D2H);
+  unsigned long long cmin = 0;
+  gkyl_cu_memcpy(&cmin, up->closure_cond_min_dev, sizeof(unsigned long long), GKYL_CU_MEMCPY_D2H);
+  double cmin_d;
+  memcpy(&cmin_d, &cmin, sizeof(double));
+  up->closure_cond_min = cmin_d;
   return num_null;
 }
 
@@ -217,25 +188,6 @@ gkyl_dg_calc_pkpm_vars_prim_cu_kernel(
   }
 }
 
-__global__ void
-gkyl_dg_calc_pkpm_vars_prim_cu_kernel(
-  struct gkyl_dg_calc_pkpm_vars *up, struct gkyl_range conf_range, const struct gkyl_array *fluid,
-  struct gkyl_array *u, struct gkyl_array *xi, int *num_null
-)
-{
-  int idx[GKYL_MAX_DIM];
-  for (unsigned long linc1 = threadIdx.x + blockIdx.x * blockDim.x; linc1 < conf_range.volume;
-       linc1 += gridDim.x * blockDim.x) {
-    gkyl_sub_range_inv_idx(&conf_range, linc1, idx);
-    long loc = gkyl_range_idx(&conf_range, idx);
-    int null = up->pkpm_prim(
-      (const double *)gkyl_array_cfetch(fluid, loc), (double *)gkyl_array_fetch(u, loc), (double *)gkyl_array_fetch(xi, loc)
-    );
-    if (null > 0) {
-      atomicAdd(num_null, null);
-    }
-  }
-}
 // Host-side wrapper for the nodal primitive variables
 int
 gkyl_dg_calc_pkpm_vars_prim_cu(
@@ -270,23 +222,6 @@ gkyl_dg_calc_pkpm_vars_int_cu_kernel(
   }
 }
 
-__global__ void
-gkyl_dg_calc_pkpm_vars_int_cu_kernel(
-  struct gkyl_dg_calc_pkpm_vars *up, struct gkyl_range conf_range, const struct gkyl_array *fluid,
-  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *u, struct gkyl_array *int_pkpm_vars
-)
-{
-  int idx[GKYL_MAX_DIM];
-  for (unsigned long linc1 = threadIdx.x + blockIdx.x * blockDim.x; linc1 < conf_range.volume;
-       linc1 += gridDim.x * blockDim.x) {
-    gkyl_sub_range_inv_idx(&conf_range, linc1, idx);
-    long loc = gkyl_range_idx(&conf_range, idx);
-    up->pkpm_int(
-      (const double *)gkyl_array_cfetch(fluid, loc), (const double *)gkyl_array_cfetch(vlasov_pkpm_moms, loc),
-      (const double *)gkyl_array_cfetch(u, loc), (double *)gkyl_array_fetch(int_pkpm_vars, loc)
-    );
-  }
-}
 // Host-side wrapper for the integrated diagnostics
 void
 gkyl_dg_calc_pkpm_vars_int_cu(
@@ -620,6 +555,8 @@ gkyl_dg_calc_pkpm_vars_cu_dev_new(
 
   up->num_null_rho = 0;
   up->num_null_rho_dev = (int *)gkyl_cu_malloc(sizeof(int));
+  up->closure_cond_min = 1.0;
+  up->closure_cond_min_dev = (unsigned long long *)gkyl_cu_malloc(sizeof(unsigned long long));
   up->num_pos_dev = (int *)gkyl_cu_malloc(sizeof(int[3]));
 
   up->flags = 0;

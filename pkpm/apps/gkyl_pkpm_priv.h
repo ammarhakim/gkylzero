@@ -276,6 +276,9 @@ struct pkpm_species {
   double kinetic_tm; // time spent in the kinetic right-hand side
   double fluid_tm; // time spent in the momentum right-hand side
   long num_null_rho; // accumulated count of nodes with an inadmissible density in the closure
+  long num_null_closure; // accumulated count of closure nodes nulled (M0 <= 0 or a non-positive determinant)
+  double closure_cond_min; // smallest det/det0 of the closure solves over the run
+  bool closure_null_warned; // the velocity-extent warning was printed
   struct gkyl_array *pkpm_pos_count; // per-cell record of the positivity limiter [rho, e, avg] (cumulative)
   struct gkyl_array *pkpm_pos_io, *pkpm_pos_io_host; // the record as cell averages of a p=1 field for IO
   long pos_count_since[4]; // limiter counts [rho, e, avg, applications] since the last integrated-moment call
@@ -374,6 +377,11 @@ struct pkpm_field {
   struct gkyl_array *em_no_J_host; // host copy of em_no_J for I/O
   struct gkyl_vlasov_position_map *pos_map; // acquired reference to the app's position map
   gkyl_proj_on_basis *app_current_proj; // projector for applied current
+
+  bool use_ghost_current; // 1D periodic: subtract the domain-mean x current from Ampere's law
+  struct gkyl_array *ghost_current; // one component: the mean current (coefficient 0), constant
+  double *red_ghost_current; // device reduction scratch
+  struct gkyl_array *app_current_tot; // applied current plus the ghost current (implicit coupling)
 
   struct gkyl_array *bvar; // magnetic field unit vector b = B/|B| [bx, by, bz] (p=1)
   struct gkyl_array *grad_b; // weak (surface-averaged) gradient of b, cdim x 3 expansions
@@ -874,6 +882,12 @@ void pkpm_field_calc_ext_em(gkyl_pkpm_app *app, struct pkpm_field *field, double
  * @param tm Time for use in applied current computation
  */
 void pkpm_field_calc_app_current(gkyl_pkpm_app *app, struct pkpm_field *field, double tm);
+
+// Domain mean of the species x current (coefficient 0 of sum_s q_s M_x/m_s over the fluid
+// arrays given), stored as a constant in field->ghost_current.
+void pkpm_field_calc_ghost_current(
+  gkyl_pkpm_app *app, struct pkpm_field *field, const struct gkyl_array *fluidin[]
+);
 
 /**
  * Compute magnetic field unit vector and unit tensor

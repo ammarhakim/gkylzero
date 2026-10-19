@@ -299,6 +299,7 @@ pkpm_field_lw_new(lua_State *L)
 
   bool evolve = glua_tbl_get_bool(L, "evolve", true);
   pkpm_field.is_static = !evolve;
+  pkpm_field.use_ghost_current = glua_tbl_get_bool(L, "useGhostCurrent", false);
 
   int init_ref = LUA_NOREF;
   if (glua_tbl_get_func(L, "init")) {

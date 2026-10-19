@@ -114,7 +114,6 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   // We use the 10 moment system since PKPM model generates a full pressure tensor
   // k0 = 0.0 and use_grad_closure = false because we do not need a closure
   // (the kinetic equations are the closure)
-  s->equation = gkyl_wv_ten_moment_new(0.0, false, false, 0, 0, app->use_gpu);
 
   // allocate cflrate for distribution function and momentum updates (scalar arrays)
   s->cflrate_f = mkarr(app->use_gpu, 1, s->local_ext.volume);
@@ -183,6 +182,9 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   s->cell_avg_prim = mk_int_arr(app->use_gpu, 1, app->local_ext.volume);
   gkyl_array_clear(s->pkpm_theta, 0.0);
   s->num_null_rho = 0;
+  s->num_null_closure = 0;
+  s->closure_cond_min = 1.0;
+  s->closure_null_warned = false;
 
   // Updaters for the configuration-space variables (weak division u, nodal primitive
   // variables, closures, weak gradients, sources, diagnostics). Two instances, one over
@@ -241,8 +243,6 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   struct gkyl_dg_pkpm_fluid_flux_surf_inp fluid_flux_inp = {
     .conf_grid = &app->grid,
     .conf_basis = &app->confBasis,
-    .wv_eqn = s->equation,
-    .geom = app->geom,
     .phase_grid = &s->grid,
     .pos_map = app->pos_map,
     .use_gpu = app->use_gpu,
@@ -738,10 +738,11 @@ pkpm_species_apply_positivity(
   app->stat.species_pkpm_vars_tm += gkyl_time_diff_now_sec(tm);
 }
 
-// Face fluxes of the fluid system [rho, M, E] (HLL on the nodal states; needs the
-// coupling moments, b and u of the stage). On absorbing boundaries the HLL flux against
-// the zero ghost state is replaced by the moments of the kinetic upwind flux of the skin
-// cells, so the fluid loses exactly what the distribution functions lose through the wall.
+// Face fluxes of the fluid system [rho, M, E] of the stage: the moments of the kinetic
+// configuration-space flux of the stage distributions (physical traces of rho, u, xi, b
+// on both sides), so the fluid and the distributions see one discrete transport. The
+// walls need no special case: an absorbing ghost (F = 0, fluid copied) gives the
+// one-sided upwind flux and a reflecting ghost cancels the mass and energy fluxes.
 void
 pkpm_species_fluid_flux(
   gkyl_pkpm_app *app, struct pkpm_species *species, const struct gkyl_array *fin,
@@ -749,37 +750,10 @@ pkpm_species_fluid_flux(
 )
 {
   gkyl_dg_pkpm_fluid_flux_surf_advance(
-    species->calc_fluid_flux, &app->local, &app->local_ext, species->pkpm_moms,
-    app->field->bvar, species->pkpm_u, fluidin, species->cflrate_fluid, species->fluid_flux_surf
+    species->calc_fluid_flux, &app->local, &app->local_ext, &species->local, &species->local_ext,
+    app->field->bvar, species->pkpm_u, species->pkpm_xi, species->pkpm_theta, species->fluid_no_J, fin,
+    species->cflrate_fluid, species->fluid_flux_surf
   );
-  int is_np_bc[3] = {1, 1, 1};
-  for (int d = 0; d < app->num_periodic_dir; ++d) {
-    is_np_bc[app->periodic_dirs[d]] = 0;
-  }
-  // Wall fluxes only on the ranks whose sub-domain touches the global boundary: unlike
-  // the ghost-cell fills (overwritten by the sync on interior ranks), a stored face flux
-  // at a sub-domain edge is final.
-  for (int d = 0; d < app->cdim; ++d) {
-    if (!is_np_bc[d]) {
-      continue;
-    }
-    bool on_lower = app->local.lower[d] == app->global.lower[d];
-    bool on_upper = app->local.upper[d] == app->global.upper[d];
-    if (on_lower && species->lower_bc[d] == GKYL_SPECIES_ABSORB) {
-      gkyl_dg_pkpm_fluid_flux_surf_absorb(
-        species->calc_fluid_flux, d, GKYL_LOWER_EDGE, &app->lower_skin[d], &app->local_ext,
-        &species->local, &species->local_ext, app->field->bvar, species->pkpm_u, species->pkpm_xi,
-        species->fluid_no_J, fin, species->fluid_flux_surf
-      );
-    }
-    if (on_upper && species->upper_bc[d] == GKYL_SPECIES_ABSORB) {
-      gkyl_dg_pkpm_fluid_flux_surf_absorb(
-        species->calc_fluid_flux, d, GKYL_UPPER_EDGE, &app->upper_skin[d], &app->local_ext,
-        &species->local, &species->local_ext, app->field->bvar, species->pkpm_u, species->pkpm_xi,
-        species->fluid_no_J, fin, species->fluid_flux_surf
-      );
-    }
-  }
 }
 
 // Collisionless configuration-space pass of the kinetic update into rhs (cleared here):
@@ -831,12 +805,28 @@ pkpm_species_kinetic_closure(gkyl_pkpm_app *app, struct pkpm_species *species, c
   pkpm_species_moment_calc_into(
     &species->pkpm_nmoms, species->local, app->local, rhs, species->pkpm_rhs_moms
   );
-  species->num_null_rho += gkyl_dg_calc_pkpm_vars_closure(
+  int num_null = gkyl_dg_calc_pkpm_vars_closure(
     species->calc_pkpm_vars, &app->local, &species->local, &species->grid, species->pkpm_nmoms.marr,
     species->pkpm_rhs_moms, app->field->bvar, app->field->grad_b, species->pkpm_grad_u, species->pkpm_xi,
     species->pkpm_grad_xi, species->pkpm_theta, fin, species->pkpm_c_0, species->pkpm_alpha_0, species->pkpm_c_h,
     species->vel_flux_surf, species->cflrate_f
   );
+  species->num_null_rho += num_null;
+  species->num_null_closure += num_null;
+  species->closure_cond_min =
+    fmin(species->closure_cond_min, gkyl_dg_calc_pkpm_vars_closure_cond_min(species->calc_pkpm_vars));
+  // A nulled node means the traces at the velocity-domain edges are large enough to make the
+  // closure system singular: the constraints drift in that cell. Say so once, with the proxy.
+  if (num_null > 0 && !species->closure_null_warned) {
+    species->closure_null_warned = true;
+    int rank = 0;
+    gkyl_comm_get_rank(app->comm, &rank);
+    fprintf(stderr,
+      "WARNING (rank %d): species %s at t = %g: the closure solve was nulled at %d nodes (min det/det0 so far %g).\n"
+      "  The normalized distribution is not negligible at the velocity-space boundary; the constraints drift there.\n"
+      "  The velocity extents are likely too small for this species.\n",
+      rank, species->info.name, app->tcurr, num_null, species->closure_cond_min);
+  }
 }
 
 void
@@ -1144,7 +1134,6 @@ pkpm_species_release(const gkyl_pkpm_app *app, const struct pkpm_species *s)
   gkyl_array_release(s->cflrate_f);
   gkyl_array_release(s->cflrate_fluid);
 
-  gkyl_wv_eqn_release(s->equation);
 
   gkyl_array_release(s->bc_buffer_dist);
   gkyl_array_release(s->bc_buffer_lo_fixed_dist);

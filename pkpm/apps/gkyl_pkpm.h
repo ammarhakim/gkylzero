@@ -123,6 +123,11 @@ struct gkyl_pkpm_field {
   void (*app_current)(double t, const double *xn, double *app_current_out, void *ctx);
   bool app_current_evolve; // set to true if applied current function is time dependent
 
+  // 1D periodic electrostatics: subtract the domain-mean current from Ampere's law, so that
+  // the Maxwell field equals the Poisson field (cancels the current of a drifting
+  // initial state, e.g. the Buneman instability).
+  bool use_ghost_current;
+
   double limiter_fac; // Optional input parameter for adjusting diffusion in slope limiter
   bool limit_em; // Optional input parameter for applying limiters to EM fields
 

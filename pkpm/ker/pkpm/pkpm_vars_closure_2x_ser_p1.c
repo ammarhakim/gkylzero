@@ -3,7 +3,8 @@ GKYL_CU_DH int pkpm_vars_closure_2x_ser_p1(double w_lo, double w_up, double dv, 
   const double *bvar, const double *grad_b, const double *grad_u, const double *xi, const double *grad_xi, const double *theta,
   const double *alpha_0_prev, const double *c_h_prev, const double *f_lo, const double *f_up,
   double* GKYL_RESTRICT c_0, double* GKYL_RESTRICT alpha_0, double* GKYL_RESTRICT c_h,
-  double* GKYL_RESTRICT flux_lo, double* GKYL_RESTRICT flux_up, double* GKYL_RESTRICT cfl) 
+  double* GKYL_RESTRICT flux_lo, double* GKYL_RESTRICT flux_up, double* GKYL_RESTRICT cfl,
+  double* GKYL_RESTRICT cond) 
 { 
   // w_lo, w_up:   Velocity domain edges; dv: velocity cell size. 
   // norm_moms:    Input [M0, M2, M0_G, M1, ...] moments of the normalized distributions (stage state). 
@@ -14,6 +15,9 @@ GKYL_CU_DH int pkpm_vars_closure_2x_ser_p1(double w_lo, double w_up, double dv, 
   // c_0, alpha_0, c_h: Output closures at the 4 Gauss-Legendre nodes, interpolated to p=1. 
   // flux_lo, flux_up: Output edge fluxes [F flux, G flux] in the stored face format. 
   // cfl:          Output [lower, upper] edge-flux time-step rates. 
+  // cond:         Output [1]: the smallest determinant of the 3x3 system over the nodes relative to 
+  //               its edge-free value (1 when the edge terms vanish; small or negative when the 
+  //               velocity-domain edges carry a non-negligible trace: too small velocity extents). 
   // Returns the number of nodes where the closures are undefined (everything is zero in the cell then). 
  
   const double dv1 = 2.0/dv; 
@@ -48,6 +52,7 @@ GKYL_CU_DH int pkpm_vars_closure_2x_ser_p1(double w_lo, double w_up, double dv, 
   double flo_n[4] = {0.0}, glo_n[4] = {0.0}, fup_n[4] = {0.0}, gup_n[4] = {0.0}; 
   double cfl_lo = 0.0, cfl_up = 0.0; 
   int num_null = 0; 
+  double cond_min = 1.0; 
  
   { 
     const double n0_q = 0.5*n0[3]-0.5*n0[2]-0.5*n0[1]+0.5*n0[0]; 
@@ -105,6 +110,11 @@ GKYL_CU_DH int pkpm_vars_closure_2x_ser_p1(double w_lo, double w_up, double dv, 
     const double A20 = n2_q + 2.0*nG_q, A21 = 2.0*n1_q + eF2 + 2.0*eG0, A22 = 2.0*(n2_q + 2.0*nG_q) + eF3 + 2.0*eG1; 
     const double b0 = -r0_q - kF0, b1 = -r1_q - kF1, b2 = -r2_q - kF2 - 2.0*kG0 - 2.0*bH0; 
     const double det = A00*(A11*A22 - A12*A21) - A01*(A10*A22 - A12*A20) + A02*(A10*A21 - A11*A20); 
+    // conditioning proxy: the determinant relative to its edge-free value 
+    // n0 (2 n0 (M2 + 2 M0G) - 2 M1^2) (positive for admissible moments); a small or negative 
+    // ratio means the traces at the velocity-domain edges are not small 
+    const double det0 = n0_q*(2.0*n0_q*(n2_q + 2.0*nG_q) - 2.0*n1_q*n1_q); 
+    if (det0 > 0.0) cond_min = fmin(cond_min, det/det0); 
     if (n0_q > 0.0 && det > 0.0) { 
       c0_n[0] = (b0*(A11*A22 - A12*A21) - A01*(b1*A22 - A12*b2) + A02*(b1*A21 - A11*b2))/det; 
       a0_n[0] = (A00*(b1*A22 - A12*b2) - b0*(A10*A22 - A12*A20) + A02*(A10*b2 - b1*A20))/det; 
@@ -176,6 +186,11 @@ GKYL_CU_DH int pkpm_vars_closure_2x_ser_p1(double w_lo, double w_up, double dv, 
     const double A20 = n2_q + 2.0*nG_q, A21 = 2.0*n1_q + eF2 + 2.0*eG0, A22 = 2.0*(n2_q + 2.0*nG_q) + eF3 + 2.0*eG1; 
     const double b0 = -r0_q - kF0, b1 = -r1_q - kF1, b2 = -r2_q - kF2 - 2.0*kG0 - 2.0*bH0; 
     const double det = A00*(A11*A22 - A12*A21) - A01*(A10*A22 - A12*A20) + A02*(A10*A21 - A11*A20); 
+    // conditioning proxy: the determinant relative to its edge-free value 
+    // n0 (2 n0 (M2 + 2 M0G) - 2 M1^2) (positive for admissible moments); a small or negative 
+    // ratio means the traces at the velocity-domain edges are not small 
+    const double det0 = n0_q*(2.0*n0_q*(n2_q + 2.0*nG_q) - 2.0*n1_q*n1_q); 
+    if (det0 > 0.0) cond_min = fmin(cond_min, det/det0); 
     if (n0_q > 0.0 && det > 0.0) { 
       c0_n[1] = (b0*(A11*A22 - A12*A21) - A01*(b1*A22 - A12*b2) + A02*(b1*A21 - A11*b2))/det; 
       a0_n[1] = (A00*(b1*A22 - A12*b2) - b0*(A10*A22 - A12*A20) + A02*(A10*b2 - b1*A20))/det; 
@@ -247,6 +262,11 @@ GKYL_CU_DH int pkpm_vars_closure_2x_ser_p1(double w_lo, double w_up, double dv, 
     const double A20 = n2_q + 2.0*nG_q, A21 = 2.0*n1_q + eF2 + 2.0*eG0, A22 = 2.0*(n2_q + 2.0*nG_q) + eF3 + 2.0*eG1; 
     const double b0 = -r0_q - kF0, b1 = -r1_q - kF1, b2 = -r2_q - kF2 - 2.0*kG0 - 2.0*bH0; 
     const double det = A00*(A11*A22 - A12*A21) - A01*(A10*A22 - A12*A20) + A02*(A10*A21 - A11*A20); 
+    // conditioning proxy: the determinant relative to its edge-free value 
+    // n0 (2 n0 (M2 + 2 M0G) - 2 M1^2) (positive for admissible moments); a small or negative 
+    // ratio means the traces at the velocity-domain edges are not small 
+    const double det0 = n0_q*(2.0*n0_q*(n2_q + 2.0*nG_q) - 2.0*n1_q*n1_q); 
+    if (det0 > 0.0) cond_min = fmin(cond_min, det/det0); 
     if (n0_q > 0.0 && det > 0.0) { 
       c0_n[2] = (b0*(A11*A22 - A12*A21) - A01*(b1*A22 - A12*b2) + A02*(b1*A21 - A11*b2))/det; 
       a0_n[2] = (A00*(b1*A22 - A12*b2) - b0*(A10*A22 - A12*A20) + A02*(A10*b2 - b1*A20))/det; 
@@ -318,6 +338,11 @@ GKYL_CU_DH int pkpm_vars_closure_2x_ser_p1(double w_lo, double w_up, double dv, 
     const double A20 = n2_q + 2.0*nG_q, A21 = 2.0*n1_q + eF2 + 2.0*eG0, A22 = 2.0*(n2_q + 2.0*nG_q) + eF3 + 2.0*eG1; 
     const double b0 = -r0_q - kF0, b1 = -r1_q - kF1, b2 = -r2_q - kF2 - 2.0*kG0 - 2.0*bH0; 
     const double det = A00*(A11*A22 - A12*A21) - A01*(A10*A22 - A12*A20) + A02*(A10*A21 - A11*A20); 
+    // conditioning proxy: the determinant relative to its edge-free value 
+    // n0 (2 n0 (M2 + 2 M0G) - 2 M1^2) (positive for admissible moments); a small or negative 
+    // ratio means the traces at the velocity-domain edges are not small 
+    const double det0 = n0_q*(2.0*n0_q*(n2_q + 2.0*nG_q) - 2.0*n1_q*n1_q); 
+    if (det0 > 0.0) cond_min = fmin(cond_min, det/det0); 
     if (n0_q > 0.0 && det > 0.0) { 
       c0_n[3] = (b0*(A11*A22 - A12*A21) - A01*(b1*A22 - A12*b2) + A02*(b1*A21 - A11*b2))/det; 
       a0_n[3] = (A00*(b1*A22 - A12*b2) - b0*(A10*A22 - A12*A20) + A02*(A10*b2 - b1*A20))/det; 
@@ -336,7 +361,11 @@ GKYL_CU_DH int pkpm_vars_closure_2x_ser_p1(double w_lo, double w_up, double dv, 
  
   cfl[0] = 2.5*dv1*cfl_lo; 
   cfl[1] = 2.5*dv1*cfl_up; 
+  cond[0] = cond_min; 
   if (num_null > 0) { 
+    // a node with M0 <= 0 or a non-positive determinant zeroes everything in the cell, its 
+    // CFL rate included (the closures it would have needed are not applied) 
+    cfl[0] = 0.0; cfl[1] = 0.0; 
     c_0[0] = 0.0; alpha_0[0] = 0.0; c_h[0] = 0.0; 
     c_0[1] = 0.0; alpha_0[1] = 0.0; c_h[1] = 0.0; 
     c_0[2] = 0.0; alpha_0[2] = 0.0; c_h[2] = 0.0; 

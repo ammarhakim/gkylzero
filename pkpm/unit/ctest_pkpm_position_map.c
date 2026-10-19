@@ -34,8 +34,6 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 #include <gkyl_vlasov_position_map.h>
-#include <gkyl_wave_geom.h>
-#include <gkyl_wv_ten_moment.h>
 
 static struct gkyl_array *
 mkarr(long nc, long size)
@@ -177,11 +175,9 @@ struct sim {
   struct gkyl_array *fluid_phys, *fluid, *cmoms, *f;
   struct gkyl_dg_calc_pkpm_bvar *calc_b;
   struct gkyl_dg_calc_pkpm_vars *vars;
-  struct gkyl_wv_eqn *ten;
-  struct gkyl_wave_geom *geom;
   struct gkyl_dg_pkpm_conf_flux_surf *kin_flux_up;
   struct gkyl_dg_pkpm_fluid_flux_surf *fl_flux_up;
-  struct gkyl_array *kin_flux, *kin_cfl, *kin_rhs, *fl_flux, *fl_cfl, *fl_rhs, *absorb_flux;
+  struct gkyl_array *kin_flux, *kin_cfl, *kin_rhs, *fl_flux, *fl_cfl, *fl_rhs;
 };
 
 // Phase-space ranges with the app's layout: conf ghost cells and one velocity ghost cell
@@ -408,15 +404,11 @@ advance(struct sim *s)
   gkyl_hyper_dg_release(kin_slvr);
   gkyl_dg_eqn_release(kin_eqn);
 
-  // Fluid: the absorbing-wall fluxes take the physical fluid state and the weighted
+  // Fluid: the kinetic-moment fluxes take the physical fluid state and the weighted
   // distribution.
-  s->ten = gkyl_wv_ten_moment_new(0.0, false, false, 0, 0, false);
-  s->geom = gkyl_wave_geom_new(&s->cgrid, &s->clocal_ext, 0, 0, false);
   struct gkyl_dg_pkpm_fluid_flux_surf_inp fl_inp = {
     .conf_grid = &s->cgrid,
     .conf_basis = &s->cbasis,
-    .wv_eqn = s->ten,
-    .geom = s->geom,
     .phase_grid = &s->pgrid,
     .pos_map = s->pos_map,
     .use_gpu = false,
@@ -424,15 +416,14 @@ advance(struct sim *s)
   s->fl_flux_up = gkyl_dg_pkpm_fluid_flux_surf_inew(&fl_inp);
   int nkf = gkyl_dg_pkpm_fluid_flux_surf_num_surf_basis(s->fl_flux_up);
   s->fl_flux = mkarr(5 * cdim * nkf, cvol);
-  s->absorb_flux = mkarr(5 * cdim * nkf, cvol);
   s->fl_cfl = mkarr(1, cvol);
   s->fl_rhs = mkarr(5 * nc, cvol);
   gkyl_array_clear(s->fl_flux, 0.0);
-  gkyl_array_clear(s->absorb_flux, 0.0);
   gkyl_array_clear(s->fl_cfl, 0.0);
   gkyl_array_clear(s->fl_rhs, 0.0);
   gkyl_dg_pkpm_fluid_flux_surf_advance(
-    s->fl_flux_up, &s->clocal, &s->clocal_ext, s->cmoms, s->bvar, s->u, s->fluid, s->fl_cfl, s->fl_flux
+    s->fl_flux_up, &s->clocal, &s->clocal_ext, &s->plocal, &s->plocal_ext, s->bvar, s->u, s->xi, s->theta,
+    s->fluid_phys, s->f, s->fl_cfl, s->fl_flux
   );
   struct gkyl_dg_pkpm_fluid_inp fl_eqn_inp = {
     .conf_basis = &s->cbasis,
@@ -446,15 +437,6 @@ advance(struct sim *s)
   gkyl_hyper_dg_advance(fl_slvr, &s->clocal, s->fluid, s->fl_cfl, s->fl_rhs);
   gkyl_hyper_dg_release(fl_slvr);
   gkyl_dg_eqn_release(fl_eqn);
-  for (int e = 0; e < 2; ++e) {
-    enum gkyl_edge_loc edge = e == 0 ? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
-    struct gkyl_range skin, ghost;
-    gkyl_skin_ghost_ranges(&skin, &ghost, 0, edge, &s->clocal_ext, cghost);
-    gkyl_dg_pkpm_fluid_flux_surf_absorb(
-      s->fl_flux_up, 0, edge, &skin, &s->clocal_ext, &s->plocal, &s->plocal_ext, s->bvar, s->u, s->xi,
-      s->fluid_phys, s->f, s->absorb_flux
-    );
-  }
 }
 
 static void
@@ -462,14 +444,12 @@ teardown(struct sim *s)
 {
   gkyl_dg_pkpm_fluid_flux_surf_release(s->fl_flux_up);
   gkyl_dg_pkpm_conf_flux_surf_release(s->kin_flux_up);
-  gkyl_wave_geom_release(s->geom);
-  gkyl_wv_eqn_release(s->ten);
   gkyl_dg_calc_pkpm_vars_release(s->vars);
   gkyl_dg_calc_pkpm_bvar_release(s->calc_b);
   gkyl_vlasov_position_map_release(s->pos_map);
   struct gkyl_array *arrs[] = {s->em, s->bvar, s->grad_b, s->u, s->grad_u, s->xi, s->grad_xi, s->rho, s->rho3,
     s->grad_rho, s->grad_ln_n, s->theta, s->fluid_phys, s->fluid, s->cmoms, s->f, s->kin_flux, s->kin_cfl,
-    s->kin_rhs, s->fl_flux, s->fl_cfl, s->fl_rhs, s->absorb_flux};
+    s->kin_rhs, s->fl_flux, s->fl_cfl, s->fl_rhs};
   for (int i = 0; i < sizeof(arrs) / sizeof(arrs[0]); ++i) {
     gkyl_array_release(arrs[i]);
   }
@@ -571,7 +551,6 @@ test_stretch(int cdim)
     {"kinetic cfl", a.kin_cfl, b.kin_cfl, &a.plocal, &a.plocal_ext, W_ONE, 1},
     {"fluid flux", a.fl_flux, b.fl_flux, &a.clocal_ext, &a.clocal_ext, W_JPERP, cdim},
     {"fluid cfl", a.fl_cfl, b.fl_cfl, &a.clocal, &a.clocal_ext, W_ONE, 1},
-    {"absorb flux", a.absorb_flux, b.absorb_flux, &a.clocal_ext, &a.clocal_ext, W_JPERP, cdim},
     // right-hand sides of the evolved J q
     {"kinetic rhs", a.kin_rhs, b.kin_rhs, &a.plocal, &a.plocal_ext, W_JAC, 1},
     {"fluid rhs", a.fl_rhs, b.fl_rhs, &a.clocal, &a.clocal_ext, W_JAC, 1},

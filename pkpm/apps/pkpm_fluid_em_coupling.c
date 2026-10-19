@@ -68,9 +68,17 @@ pkpm_fluid_em_coupling_update(
     app_accels[i] = s->app_accel;
   }
 
+  // The ghost current enters the implicit solve as an applied current -<J_x> (frozen over
+  // the step, like the applied current itself).
+  const struct gkyl_array *app_current = app->field->app_current_no_J;
+  if (app->field->use_ghost_current) {
+    pkpm_field_calc_ghost_current(app, app->field, (const struct gkyl_array **)fluids);
+    gkyl_array_set(app->field->app_current_tot, 1.0, app->field->app_current_no_J);
+    gkyl_array_accumulate_range(app->field->app_current_tot, -1.0, app->field->ghost_current, &app->local);
+    app_current = app->field->app_current_tot;
+  }
   gkyl_dg_calc_pkpm_em_coupling_advance(
-    pkpm_em->slvr, dt, app_accels, app->field->ext_em, app->field->app_current_no_J, fluids,
-    app->field->em_no_J
+    pkpm_em->slvr, dt, app_accels, app->field->ext_em, app_current, fluids, app->field->em_no_J
   );
 
   for (int i = 0; i < num_species; ++i) {

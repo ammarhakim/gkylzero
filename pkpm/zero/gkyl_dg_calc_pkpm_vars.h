@@ -167,6 +167,17 @@ void gkyl_dg_calc_pkpm_vars_constraints(
 );
 
 /**
+ * Conditioning of the closure solves of the last gkyl_dg_calc_pkpm_vars_closure call: the
+ * smallest determinant of the per-node 3x3 system relative to its edge-free value (1 when
+ * the velocity-domain edges carry no trace; small or negative when they do, i.e. the
+ * velocity extents are too small for the distribution).
+ *
+ * @param up Updater.
+ * @return Minimum det/det0 over the nodes of the last call.
+ */
+double gkyl_dg_calc_pkpm_vars_closure_cond_min(const struct gkyl_dg_calc_pkpm_vars *up);
+
+/**
  * Compute grad(ln n) = grad(rho)/rho, the configuration-space factor of the source
  * -v_par b.grad(ln n) of the factored kinetic equations, by the nodal quotient of the
  * weak gradient of rho (computed with gkyl_dg_calc_pkpm_vars_grad_u on the array

@@ -1,183 +1,161 @@
 #include <gkyl_pkpm_fluid_kernels.h> 
-GKYL_CU_DH double pkpm_fluid_flux_x_1x_ser_p1(
-  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_cell_geom *geom,
-  const double *w, const double *dxv, const double *jacob_pos_l, const double *jacob_pos_r,
-  const double *moms_l, const double *moms_r, const double *bvar_l, const double *bvar_r,
-  const double *u_l, const double *u_r, const double *fluid_l, const double *fluid_r,
-  double* GKYL_RESTRICT flux) 
+GKYL_CU_DH double pkpm_fluid_flux_x_1x_ser_p1(const double *jacob_pos, const double *bvar_l, const double *bvar_r,
+  const double *u_l, const double *u_r, const double *xi_l, const double *xi_r, const double *theta_l,
+  const double *theta_r, const double *fluid_l, const double *fluid_r, const double *I, double* GKYL_RESTRICT flux) 
 { 
-  // wv_eqn:      Ten-moment wave equation (unused; kept for the limiter interface). 
-  // geom:        Wave geometry of the current cell (unused). 
-  // w/dxv:       Cell center and spacing of the current cell (computational). 
-  // jacob_pos_l/r: Position-map Jacobian per configuration direction (cdim blocks of 2 equal 
-  //              entries) of the left/current cell; the total Jacobian J is their product. 
-  // moms_l/r:    Jacobian-weighted kinetic coupling moments J [p_par, p_perp, q_par, q_perp] in the left/current cell. 
-  // bvar_l/r:    Magnetic field unit vector [bx, by, bz] in the left/current cell. 
-  // u_l/r:       Flow velocity [ux, uy, uz] in the left/current cell. 
-  // fluid_l/r:   Evolved Jacobian-weighted fluid state J [rho, rho ux, rho uy, rho uz, E] in the left/current cell. 
-  // flux:        Output fluxes of the evolved J-weighted state [F_rho, F_x, F_y, F_z, F_E] on the 
-  //              lower face, surface modal: the physical HLL flux of the physical traces q/J times 
-  //              the face Jacobian J/J_x. 
-  // Returns the stable time-step estimate from the normal speed bound at the nodes. 
-  const double dx1 = 2.0/dxv[0]; 
-  const double jtot_l = jacob_pos_l[0]; 
-  const double jtot_r = jacob_pos_r[0]; 
-  const double jinv_l = 1.0/jtot_l, jinv_r = 1.0/jtot_r; 
-  const double jdinv_r = 1.0/jacob_pos_r[0], jperp = jtot_r*jdinv_r; 
+  // jacob_pos: Position-map Jacobian per configuration direction (cdim blocks of 2 equal entries) of 
+  //            either cell (the face Jacobian J/J_x is the same on both sides). 
+  // bvar_l/r:  Magnetic field unit vector [bx, by, bz] of the left/right cell. 
+  // u_l/r:     Flow velocity [ux, uy, uz] of the left/right cell. 
+  // xi_l/r:    Thermal speed [xi, xi^2, p] of the left/right cell. 
+  // theta_l/r: T_perp/T = M0(G) of the left/right cell (p_perp = rho xi^2 theta). 
+  // fluid_l/r: PHYSICAL fluid state [rho, rho ux, rho uy, rho uz, E] of the left/right cell (Jacobian divided out). 
+  // I:         Nodal moments [I_0, I_1, I_2, J]^l, [I_0, I_1, I_2, J]^r of the kinetic HLL flux at the 
+  //            1 face nodes (pkpm_fluid_flux_accum_x_1x1v_ser_p1 summed over the velocity cells); 
+  //            they carry the face Jacobian J/J_x. 
+  // flux:      Output modal surface fluxes [F_rho, F_x, F_y, F_z, F_E] of the lower face of the right 
+  //            cell for the evolved J-weighted fluid. 
+  // Returns the largest perpendicular-sound bound |u_n| + xi sqrt(2 theta (1 - b_n^2)) over the 
+  //            nodes and traces (the perpendicular pressure is a central flux; its waves need 
+  //            their own CFL bound, the parallel streaming has the kinetic one). 
+  double cfl_max = 0.0; 
+  // face Jacobian J/J_x of the perpendicular-pressure terms (the moments carry it already) 
+  const double jperp = 1.0; 
   const double *rho_l = &fluid_l[0]; 
-  const double *E_l = &fluid_l[8]; 
-  const double *ppar_l = &moms_l[0]; 
-  const double *pperp_l = &moms_l[2]; 
-  const double *qpar_l = &moms_l[4]; 
-  const double *qperp_l = &moms_l[6]; 
+  const double *q1_l = &fluid_l[2]; 
+  const double *q2_l = &fluid_l[4]; 
+  const double *q3_l = &fluid_l[6]; 
+  const double *q4_l = &fluid_l[8]; 
+  const double *xd_l = &xi_l[0]; 
+  const double *x2d_l = &xi_l[2]; 
+  const double *thd_l = &theta_l[0]; 
+  const double *b0_l = &bvar_l[0]; 
+  const double *u0_l = &u_l[0]; 
+  const double *b1_l = &bvar_l[2]; 
+  const double *u1_l = &u_l[2]; 
+  const double *b2_l = &bvar_l[4]; 
+  const double *u2_l = &u_l[4]; 
   const double *rho_r = &fluid_r[0]; 
-  const double *E_r = &fluid_r[8]; 
-  const double *ppar_r = &moms_r[0]; 
-  const double *pperp_r = &moms_r[2]; 
-  const double *qpar_r = &moms_r[4]; 
-  const double *qperp_r = &moms_r[6]; 
-  const double *bx_l = &bvar_l[0]; 
-  const double *bx_r = &bvar_r[0]; 
-  const double *ux_l = &u_l[0]; 
-  const double *ux_r = &u_r[0]; 
-  const double *Mx_l = &fluid_l[2]; 
-  const double *Mx_r = &fluid_r[2]; 
-  const double *by_l = &bvar_l[2]; 
-  const double *by_r = &bvar_r[2]; 
-  const double *uy_l = &u_l[2]; 
-  const double *uy_r = &u_r[2]; 
-  const double *My_l = &fluid_l[4]; 
-  const double *My_r = &fluid_r[4]; 
-  const double *bz_l = &bvar_l[4]; 
-  const double *bz_r = &bvar_r[4]; 
-  const double *uz_l = &u_l[4]; 
-  const double *uz_r = &u_r[4]; 
-  const double *Mz_l = &fluid_l[6]; 
-  const double *Mz_r = &fluid_r[6]; 
+  const double *q1_r = &fluid_r[2]; 
+  const double *q2_r = &fluid_r[4]; 
+  const double *q3_r = &fluid_r[6]; 
+  const double *q4_r = &fluid_r[8]; 
+  const double *xd_r = &xi_r[0]; 
+  const double *x2d_r = &xi_r[2]; 
+  const double *thd_r = &theta_r[0]; 
+  const double *b0_r = &bvar_r[0]; 
+  const double *u0_r = &u_r[0]; 
+  const double *b1_r = &bvar_r[2]; 
+  const double *u1_r = &u_r[2]; 
+  const double *b2_r = &bvar_r[4]; 
+  const double *u2_r = &u_r[4]; 
  
-  double rho_lq[1] = {0.0}; 
-  double rho_rq[1] = {0.0}; 
-  double E_lq[1] = {0.0}; 
-  double E_rq[1] = {0.0}; 
-  double ppar_lq[1] = {0.0}; 
-  double ppar_rq[1] = {0.0}; 
-  double pperp_lq[1] = {0.0}; 
-  double pperp_rq[1] = {0.0}; 
-  double qpar_lq[1] = {0.0}; 
-  double qpar_rq[1] = {0.0}; 
-  double qperp_lq[1] = {0.0}; 
-  double qperp_rq[1] = {0.0}; 
-  double bx_lq[1] = {0.0}; 
-  double bx_rq[1] = {0.0}; 
-  double by_lq[1] = {0.0}; 
-  double by_rq[1] = {0.0}; 
-  double bz_lq[1] = {0.0}; 
-  double bz_rq[1] = {0.0}; 
-  double ux_lq[1] = {0.0}; 
-  double ux_rq[1] = {0.0}; 
-  double uy_lq[1] = {0.0}; 
-  double uy_rq[1] = {0.0}; 
-  double uz_lq[1] = {0.0}; 
-  double uz_rq[1] = {0.0}; 
-  double Mx_lq[1] = {0.0}; 
-  double Mx_rq[1] = {0.0}; 
-  double My_lq[1] = {0.0}; 
-  double My_rq[1] = {0.0}; 
-  double Mz_lq[1] = {0.0}; 
-  double Mz_rq[1] = {0.0}; 
-  rho_lq[0] = 1.224744871391589*rho_l[1]+0.7071067811865475*rho_l[0]; 
-  rho_rq[0] = 0.7071067811865475*rho_r[0]-1.224744871391589*rho_r[1]; 
-  E_lq[0] = 1.224744871391589*E_l[1]+0.7071067811865475*E_l[0]; 
-  E_rq[0] = 0.7071067811865475*E_r[0]-1.224744871391589*E_r[1]; 
-  ppar_lq[0] = 1.224744871391589*ppar_l[1]+0.7071067811865475*ppar_l[0]; 
-  ppar_rq[0] = 0.7071067811865475*ppar_r[0]-1.224744871391589*ppar_r[1]; 
-  pperp_lq[0] = 1.224744871391589*pperp_l[1]+0.7071067811865475*pperp_l[0]; 
-  pperp_rq[0] = 0.7071067811865475*pperp_r[0]-1.224744871391589*pperp_r[1]; 
-  qpar_lq[0] = 1.224744871391589*qpar_l[1]+0.7071067811865475*qpar_l[0]; 
-  qpar_rq[0] = 0.7071067811865475*qpar_r[0]-1.224744871391589*qpar_r[1]; 
-  qperp_lq[0] = 1.224744871391589*qperp_l[1]+0.7071067811865475*qperp_l[0]; 
-  qperp_rq[0] = 0.7071067811865475*qperp_r[0]-1.224744871391589*qperp_r[1]; 
-  bx_lq[0] = 1.224744871391589*bx_l[1]+0.7071067811865475*bx_l[0]; 
-  bx_rq[0] = 0.7071067811865475*bx_r[0]-1.224744871391589*bx_r[1]; 
-  by_lq[0] = 1.224744871391589*by_l[1]+0.7071067811865475*by_l[0]; 
-  by_rq[0] = 0.7071067811865475*by_r[0]-1.224744871391589*by_r[1]; 
-  bz_lq[0] = 1.224744871391589*bz_l[1]+0.7071067811865475*bz_l[0]; 
-  bz_rq[0] = 0.7071067811865475*bz_r[0]-1.224744871391589*bz_r[1]; 
-  ux_lq[0] = 1.224744871391589*ux_l[1]+0.7071067811865475*ux_l[0]; 
-  ux_rq[0] = 0.7071067811865475*ux_r[0]-1.224744871391589*ux_r[1]; 
-  uy_lq[0] = 1.224744871391589*uy_l[1]+0.7071067811865475*uy_l[0]; 
-  uy_rq[0] = 0.7071067811865475*uy_r[0]-1.224744871391589*uy_r[1]; 
-  uz_lq[0] = 1.224744871391589*uz_l[1]+0.7071067811865475*uz_l[0]; 
-  uz_rq[0] = 0.7071067811865475*uz_r[0]-1.224744871391589*uz_r[1]; 
-  Mx_lq[0] = 1.224744871391589*Mx_l[1]+0.7071067811865475*Mx_l[0]; 
-  Mx_rq[0] = 0.7071067811865475*Mx_r[0]-1.224744871391589*Mx_r[1]; 
-  My_lq[0] = 1.224744871391589*My_l[1]+0.7071067811865475*My_l[0]; 
-  My_rq[0] = 0.7071067811865475*My_r[0]-1.224744871391589*My_r[1]; 
-  Mz_lq[0] = 1.224744871391589*Mz_l[1]+0.7071067811865475*Mz_l[0]; 
-  Mz_rq[0] = 0.7071067811865475*Mz_r[0]-1.224744871391589*Mz_r[1]; 
-  // Physical traces: the extensive quantities carry the Jacobian of their cell. 
+  double rq_l[1] = {0.0}; 
+  double xq_l[1] = {0.0}; 
+  double x2q_l[1] = {0.0}; 
+  double thq_l[1] = {0.0}; 
+  double qq1_l[1] = {0.0}; 
+  double qq2_l[1] = {0.0}; 
+  double qq3_l[1] = {0.0}; 
+  double qq4_l[1] = {0.0}; 
+  double bq0_l[1] = {0.0}; 
+  double uq0_l[1] = {0.0}; 
+  double bq1_l[1] = {0.0}; 
+  double uq1_l[1] = {0.0}; 
+  double bq2_l[1] = {0.0}; 
+  double uq2_l[1] = {0.0}; 
+  rq_l[0] = 1.224744871391589*rho_l[1]+0.7071067811865475*rho_l[0]; 
+  xq_l[0] = 1.224744871391589*xd_l[1]+0.7071067811865475*xd_l[0]; 
+  x2q_l[0] = 1.224744871391589*x2d_l[1]+0.7071067811865475*x2d_l[0]; 
+  thq_l[0] = 1.224744871391589*thd_l[1]+0.7071067811865475*thd_l[0]; 
+  qq1_l[0] = 1.224744871391589*q1_l[1]+0.7071067811865475*q1_l[0]; 
+  qq2_l[0] = 1.224744871391589*q2_l[1]+0.7071067811865475*q2_l[0]; 
+  qq3_l[0] = 1.224744871391589*q3_l[1]+0.7071067811865475*q3_l[0]; 
+  qq4_l[0] = 1.224744871391589*q4_l[1]+0.7071067811865475*q4_l[0]; 
+  bq0_l[0] = 1.224744871391589*b0_l[1]+0.7071067811865475*b0_l[0]; 
+  uq0_l[0] = 1.224744871391589*u0_l[1]+0.7071067811865475*u0_l[0]; 
+  bq1_l[0] = 1.224744871391589*b1_l[1]+0.7071067811865475*b1_l[0]; 
+  uq1_l[0] = 1.224744871391589*u1_l[1]+0.7071067811865475*u1_l[0]; 
+  bq2_l[0] = 1.224744871391589*b2_l[1]+0.7071067811865475*b2_l[0]; 
+  uq2_l[0] = 1.224744871391589*u2_l[1]+0.7071067811865475*u2_l[0]; 
+  double rq_r[1] = {0.0}; 
+  double xq_r[1] = {0.0}; 
+  double x2q_r[1] = {0.0}; 
+  double thq_r[1] = {0.0}; 
+  double qq1_r[1] = {0.0}; 
+  double qq2_r[1] = {0.0}; 
+  double qq3_r[1] = {0.0}; 
+  double qq4_r[1] = {0.0}; 
+  double bq0_r[1] = {0.0}; 
+  double uq0_r[1] = {0.0}; 
+  double bq1_r[1] = {0.0}; 
+  double uq1_r[1] = {0.0}; 
+  double bq2_r[1] = {0.0}; 
+  double uq2_r[1] = {0.0}; 
+  rq_r[0] = 0.7071067811865475*rho_r[0]-1.224744871391589*rho_r[1]; 
+  xq_r[0] = 0.7071067811865475*xd_r[0]-1.224744871391589*xd_r[1]; 
+  x2q_r[0] = 0.7071067811865475*x2d_r[0]-1.224744871391589*x2d_r[1]; 
+  thq_r[0] = 0.7071067811865475*thd_r[0]-1.224744871391589*thd_r[1]; 
+  qq1_r[0] = 0.7071067811865475*q1_r[0]-1.224744871391589*q1_r[1]; 
+  qq2_r[0] = 0.7071067811865475*q2_r[0]-1.224744871391589*q2_r[1]; 
+  qq3_r[0] = 0.7071067811865475*q3_r[0]-1.224744871391589*q3_r[1]; 
+  qq4_r[0] = 0.7071067811865475*q4_r[0]-1.224744871391589*q4_r[1]; 
+  bq0_r[0] = 0.7071067811865475*b0_r[0]-1.224744871391589*b0_r[1]; 
+  uq0_r[0] = 0.7071067811865475*u0_r[0]-1.224744871391589*u0_r[1]; 
+  bq1_r[0] = 0.7071067811865475*b1_r[0]-1.224744871391589*b1_r[1]; 
+  uq1_r[0] = 0.7071067811865475*u1_r[0]-1.224744871391589*u1_r[1]; 
+  bq2_r[0] = 0.7071067811865475*b2_r[0]-1.224744871391589*b2_r[1]; 
+  uq2_r[0] = 0.7071067811865475*u2_r[0]-1.224744871391589*u2_r[1]; 
+ 
+  // Nodal fluxes [F_rho, F_x, F_y, F_z, F_E]: the two one-sided contributions. 
+  double Fq[5] = {0.0}; 
   for (int n = 0; n < 1; ++n) { 
-    rho_lq[n] *= jinv_l; rho_rq[n] *= jinv_r; 
-    E_lq[n] *= jinv_l; E_rq[n] *= jinv_r; 
-    ppar_lq[n] *= jinv_l; ppar_rq[n] *= jinv_r; 
-    pperp_lq[n] *= jinv_l; pperp_rq[n] *= jinv_r; 
-    qpar_lq[n] *= jinv_l; qpar_rq[n] *= jinv_r; 
-    qperp_lq[n] *= jinv_l; qperp_rq[n] *= jinv_r; 
-    Mx_lq[n] *= jinv_l; Mx_rq[n] *= jinv_r; 
-    My_lq[n] *= jinv_l; My_rq[n] *= jinv_r; 
-    Mz_lq[n] *= jinv_l; Mz_rq[n] *= jinv_r; 
+    { 
+      const double I0 = I[0 + n], I1 = I[1 + n], I2 = I[2 + n], J0 = I[3 + n]; 
+      const double rq = rq_l[n], xq = xq_l[n], x2q = x2q_l[n]; 
+      const double pperp = 0.5*jperp*rq*x2q*thq_l[n]; // half: the central average of the two traces 
+      cfl_max = fmax(cfl_max, fabs(uq0_l[n]) + xq*sqrt(fmax(2.0*thq_l[n]*(1.0 - bq0_l[n]*bq0_l[n]), 0.0))); 
+      const double bn = bq0_l[n]; 
+      const double bu = bq0_l[n]*uq0_l[n] + bq1_l[n]*uq1_l[n] + bq2_l[n]*uq2_l[n]; 
+      const double uu = uq0_l[n]*uq0_l[n] + uq1_l[n]*uq1_l[n] + uq2_l[n]*uq2_l[n]; 
+      Fq[n] += rq*I0; 
+      Fq[1 + n] += rq*(uq0_l[n]*I0 + xq*bq0_l[n]*I1) + pperp*(1.0 - bq0_l[n]*bn); 
+      Fq[2 + n] += rq*(uq1_l[n]*I0 + xq*bq1_l[n]*I1) + pperp*(0.0 - bq1_l[n]*bn); 
+      Fq[3 + n] += rq*(uq2_l[n]*I0 + xq*bq2_l[n]*I1) + pperp*(0.0 - bq2_l[n]*bn); 
+      Fq[4 + n] += 0.5*rq*(uu*I0 + 2.0*xq*bu*I1 + x2q*I2) + rq*x2q*J0 + pperp*(uq0_l[n] - bu*bn); 
+    } 
+    { 
+      const double I0 = I[4 + n], I1 = I[5 + n], I2 = I[6 + n], J0 = I[7 + n]; 
+      const double rq = rq_r[n], xq = xq_r[n], x2q = x2q_r[n]; 
+      const double pperp = 0.5*jperp*rq*x2q*thq_r[n]; // half: the central average of the two traces 
+      cfl_max = fmax(cfl_max, fabs(uq0_r[n]) + xq*sqrt(fmax(2.0*thq_r[n]*(1.0 - bq0_r[n]*bq0_r[n]), 0.0))); 
+      const double bn = bq0_r[n]; 
+      const double bu = bq0_r[n]*uq0_r[n] + bq1_r[n]*uq1_r[n] + bq2_r[n]*uq2_r[n]; 
+      const double uu = uq0_r[n]*uq0_r[n] + uq1_r[n]*uq1_r[n] + uq2_r[n]*uq2_r[n]; 
+      Fq[n] += rq*I0; 
+      Fq[1 + n] += rq*(uq0_r[n]*I0 + xq*bq0_r[n]*I1) + pperp*(1.0 - bq0_r[n]*bn); 
+      Fq[2 + n] += rq*(uq1_r[n]*I0 + xq*bq1_r[n]*I1) + pperp*(0.0 - bq1_r[n]*bn); 
+      Fq[3 + n] += rq*(uq2_r[n]*I0 + xq*bq2_r[n]*I1) + pperp*(0.0 - bq2_r[n]*bn); 
+      Fq[4 + n] += 0.5*rq*(uu*I0 + 2.0*xq*bu*I1 + x2q*I2) + rq*x2q*J0 + pperp*(uq0_r[n] - bu*bn); 
+    } 
   } 
-  double F_q[5][1] = {{0.0}}; 
-  double lambda_max = 0.0; 
+  // Rusanov dissipation of the perpendicular sound waves of the central pressure flux. 
   for (int n = 0; n < 1; ++n) { 
-    // Pressure tensor and heat flux from the primitive factors at the node. 
-    const double b_l[3] = {bx_lq[n], by_lq[n], bz_lq[n]}, b_r[3] = {bx_rq[n], by_rq[n], bz_rq[n]}; 
-    const double u_lv[3] = {ux_lq[n], uy_lq[n], uz_lq[n]}, u_rv[3] = {ux_rq[n], uy_rq[n], uz_rq[n]}; 
-    const double M_lv[3] = {Mx_lq[n], My_lq[n], Mz_lq[n]}, M_rv[3] = {Mx_rq[n], My_rq[n], Mz_rq[n]}; 
-    const double dp_l = ppar_lq[n] - pperp_lq[n], dp_r = ppar_rq[n] - pperp_rq[n]; 
-    const double pperp_l = pperp_lq[n], pperp_r = pperp_rq[n]; 
-    double P_l[3][3], P_r[3][3]; 
-    for (int i = 0; i < 3; ++i) { 
-      for (int j = 0; j < 3; ++j) { 
-        P_l[i][j] = dp_l*b_l[i]*b_l[j] + (i == j ? pperp_l : 0.0); 
-        P_r[i][j] = dp_r*b_r[i]*b_r[j] + (i == j ? pperp_r : 0.0); 
-      } 
-    } 
-    const int d = 0; 
-    const double qn_l = 0.5*b_l[d]*(qpar_lq[n] + 2.0*qperp_lq[n]); 
-    const double qn_r = 0.5*b_r[d]*(qpar_rq[n] + 2.0*qperp_rq[n]); 
-    // Admissibility of both traces, decided before any division or square root. 
-    const bool ok_l = rho_lq[n] > 0.0 && P_l[d][d] > 0.0; 
-    const bool ok_r = rho_rq[n] > 0.0 && P_r[d][d] > 0.0; 
-    const double c_l = ok_l ? sqrt((3.0 + 2.0*b_l[d]*b_l[d])*P_l[d][d]/rho_lq[n]) : 0.0; 
-    const double c_r = ok_r ? sqrt((3.0 + 2.0*b_r[d]*b_r[d])*P_r[d][d]/rho_rq[n]) : 0.0; 
-    lambda_max = fmax(lambda_max, fmax(fabs(u_lv[d]) + c_l, fabs(u_rv[d]) + c_r)); 
-    double F_lv[5], F_rv[5], q_lv[5], q_rv[5]; 
-    double Pu_l = 0.0, Pu_r = 0.0; 
-    for (int i = 0; i < 3; ++i) { 
-      F_lv[1+i] = M_lv[i]*u_lv[d] + P_l[i][d]; 
-      F_rv[1+i] = M_rv[i]*u_rv[d] + P_r[i][d]; 
-      q_lv[1+i] = M_lv[i]; q_rv[1+i] = M_rv[i]; 
-      Pu_l += P_l[i][d]*u_lv[i]; Pu_r += P_r[i][d]*u_rv[i]; 
-    } 
-    F_lv[0] = M_lv[d]; F_rv[0] = M_rv[d]; q_lv[0] = rho_lq[n]; q_rv[0] = rho_rq[n]; 
-    F_lv[4] = u_lv[d]*E_lq[n] + Pu_l + qn_l; F_rv[4] = u_rv[d]*E_rq[n] + Pu_r + qn_r; q_lv[4] = E_lq[n]; q_rv[4] = E_rq[n]; 
-    // HLL flux with the normal speed bounds (c = 0 on an inadmissible trace). 
-    const double S_L = fmin(u_lv[d] - c_l, u_rv[d] - c_r); 
-    const double S_R = fmax(u_lv[d] + c_l, u_rv[d] + c_r); 
-    for (int i = 0; i < 5; ++i) { 
-      if (S_L >= 0.0) F_q[i][n] = F_lv[i]; 
-      else if (S_R <= 0.0) F_q[i][n] = F_rv[i]; 
-      else F_q[i][n] = (S_R*F_lv[i] - S_L*F_rv[i] + S_L*S_R*(q_rv[i] - q_lv[i]))/(S_R - S_L); 
-      F_q[i][n] *= jperp; 
-    } 
+    const double s_l = xq_l[n]*sqrt(fmax(2.0*thq_l[n]*(1.0 - bq0_l[n]*bq0_l[n]), 0.0)); 
+    const double s_r = xq_r[n]*sqrt(fmax(2.0*thq_r[n]*(1.0 - bq0_r[n]*bq0_r[n]), 0.0)); 
+    const double s = 0.5*jperp*fmax(s_l, s_r); 
+    Fq[n] -= s*(rq_r[n] - rq_l[n]); 
+    Fq[1 + n] -= s*(qq1_r[n] - qq1_l[n]); 
+    Fq[2 + n] -= s*(qq2_r[n] - qq2_l[n]); 
+    Fq[3 + n] -= s*(qq3_r[n] - qq3_l[n]); 
+    Fq[4 + n] -= s*(qq4_r[n] - qq4_l[n]); 
   } 
  
   // Projection of the nodal fluxes onto the surface basis. 
-  flux[0] = F_q[0][0]; 
-  flux[1] = F_q[1][0]; 
-  flux[2] = F_q[2][0]; 
-  flux[3] = F_q[3][0]; 
-  flux[4] = F_q[4][0]; 
-  return 1.5*dx1*jdinv_r*lambda_max; 
+  flux[0] = 1.0*Fq[0]; 
+  flux[1] = 1.0*Fq[1]; 
+  flux[2] = 1.0*Fq[2]; 
+  flux[3] = 1.0*Fq[3]; 
+  flux[4] = 1.0*Fq[4]; 
+  return cfl_max; 
 } 
