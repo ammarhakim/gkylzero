@@ -57,6 +57,8 @@ def prepareTrustedCacheTools(String root) {
             git -C "$CI_CONTROL_DIR" fetch --quiet --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_TRUSTED_CACHE_REF"
             git -C "$CI_CONTROL_DIR" show FETCH_HEAD:ci/jenkins/cache_manager.py > "$CI_CONTROL_DIR/cache_manager.py"
             git -C "$CI_CONTROL_DIR" show FETCH_HEAD:ci/jenkins/baseline_cache.sh > "$CI_CONTROL_DIR/baseline_cache.sh"
+            git -C "$CI_CONTROL_DIR" show FETCH_HEAD:machines/module_load.perlmutter-gpu.sh > "$CI_CONTROL_DIR/module_load.sh"
+            test -s "$CI_CONTROL_DIR/module_load.sh"
             chmod +x "$CI_CONTROL_DIR/baseline_cache.sh"
             rm -rf "$CI_CONTROL_DIR/.git"
         '''
@@ -69,6 +71,8 @@ def cacheManager(String command, String sha = '') {
     withEnv(["CI_CACHE_COMMAND=${command}", "CI_CACHE_SHA=${sha}"]) {
         return sh(returnStdout: true, script: '''#!/bin/bash -l
             set -euo pipefail
+            . "$(dirname "$CI_CACHE_MANAGER")/module_load.sh" >&2
+            if [[ "$CI_CACHE_COMMAND" == begin ]]; then python3 --version >&2; fi
             python3 "$CI_CACHE_MANAGER" "$CI_CACHE_COMMAND" \
                 --root "$GKEYLL_CI_ROOT" --platform "$CI_CACHE_PLATFORM" \
                 --tag "$BUILD_TAG" --job "$JOB_NAME" --number "$BUILD_NUMBER" \
@@ -175,8 +179,9 @@ def baselineBehindCount(String statusCredentialsId, String baseline, String cand
         passwordVariable: 'GITHUB_STATUS_TOKEN'
     )]) {
         withEnv(["CI_BASELINE_COMMIT=${baseline}", "CI_CANDIDATE_COMMIT=${candidate}"]) {
-            return sh(returnStdout: true, script: '''#!/bin/bash
+            return sh(returnStdout: true, script: '''#!/bin/bash -l
                 set -euo pipefail
+                . "$(dirname "$CI_CACHE_MANAGER")/module_load.sh" >&2
                 curl --fail --silent --show-error \
                     --retry 2 --connect-timeout 15 --max-time 45 \
                     --header 'Accept: application/vnd.github+json' \
@@ -196,8 +201,9 @@ def resolvePullRequestBase(String statusCredentialsId, String prNumber) {
         passwordVariable: 'GITHUB_STATUS_TOKEN'
     )]) {
         withEnv(["GITHUB_PR_NUMBER=${prNumber}"]) {
-            baseRef = sh(returnStdout: true, script: '''#!/bin/bash
+            baseRef = sh(returnStdout: true, script: '''#!/bin/bash -l
                 set -euo pipefail
+                . "$(dirname "$CI_CACHE_MANAGER")/module_load.sh" >&2
                 curl --fail --silent --show-error \
                     --retry 2 --connect-timeout 15 --max-time 45 \
                     --header 'Accept: application/vnd.github+json' \
@@ -294,14 +300,22 @@ def publishGitHubReport(String statusCredentialsId, String commit, String state,
     // pull-request comment (or commit comment) that later runs update in place.
     def script = trustedReportScript()
     withEnv(["CI_REPORT_CONTEXT=continuous-integration/jenkins/perlmutter_gpu", "CI_REPORT_PLATFORM=perlmutter_gpu", "CI_REPORT_RESULT=${state}",
-             "CI_REPORT_PR=${candidatePr ?: ''}", "CI_REPORT_COMMIT=${commit}"]) {
-        sh "python3 ${script} build --platform \"\$CI_REPORT_PLATFORM\" --context \"\$CI_REPORT_CONTEXT\" --result \"\$CI_REPORT_RESULT\" --pr \"\$CI_REPORT_PR\" --output ci-report.md"
+             "CI_REPORT_PR=${candidatePr ?: ''}", "CI_REPORT_COMMIT=${commit}", "CI_REPORT_SCRIPT=${script}"]) {
+        sh '''#!/bin/bash -l
+            set -euo pipefail
+            . "$(dirname "$CI_CACHE_MANAGER")/module_load.sh" >&2
+            python3 "$CI_REPORT_SCRIPT" build --platform "$CI_REPORT_PLATFORM" --context "$CI_REPORT_CONTEXT" --result "$CI_REPORT_RESULT" --pr "${CI_REPORT_PR:-}" --output ci-report.md
+        '''
         withCredentials([usernamePassword(
             credentialsId: statusCredentialsId,
             usernameVariable: 'GITHUB_USERNAME',
             passwordVariable: 'GITHUB_TOKEN'
         )]) {
-            sh "python3 ${script} publish --report ci-report.md --commit \"\$CI_REPORT_COMMIT\" --context \"\$CI_REPORT_CONTEXT\" --pr \"\$CI_REPORT_PR\""
+            sh '''#!/bin/bash -l
+                set -euo pipefail
+                . "$(dirname "$CI_CACHE_MANAGER")/module_load.sh" >&2
+                python3 "$CI_REPORT_SCRIPT" publish --report ci-report.md --commit "$CI_REPORT_COMMIT" --context "$CI_REPORT_CONTEXT" --pr "${CI_REPORT_PR:-}"
+            '''
         }
     }
 }
