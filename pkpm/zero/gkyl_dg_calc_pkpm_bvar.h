@@ -51,6 +51,32 @@ void gkyl_dg_calc_pkpm_bvar_advance(
 );
 
 /**
+ * Compute d_t B/|B| at the 2^cdim Gauss-Legendre nodes where b = B/|B| is defined,
+ * interpolated to p=1 with the same rule (the division by |B| is done at those nodes, as for b).
+ * The first-harmonic force kernels form d_t b = (I - b b) . (d_t B/|B|) from it as a product
+ * with the p=1 b at their own points. Zero at nodes where |B| = 0.
+ *
+ * @param up         Updater for computing the magnetic field unit vector.
+ * @param conf_range Configuration space range.
+ * @param em         Input physical electromagnetic field [Ex, Ey, Ez, Bx, By, Bz, phi, psi].
+ * @param dt_em      Input time derivative of the physical field (the Maxwell right-hand side).
+ * @param dtB_over_magB Output d_t B/|B| [x, y, z].
+ * @return Number of null-field nodes.
+ */
+int gkyl_dg_calc_pkpm_bvar_dtB_over_magB(
+  struct gkyl_dg_calc_pkpm_bvar *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *em, const struct gkyl_array *dt_em, struct gkyl_array *dtB_over_magB
+);
+
+/**
+ * Host-side wrapper for computing d_t B/|B| on device.
+ */
+int gkyl_dg_calc_pkpm_bvar_dtB_over_magB_cu(
+  struct gkyl_dg_calc_pkpm_bvar *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *em, const struct gkyl_array *dt_em, struct gkyl_array *dtB_over_magB
+);
+
+/**
  * Number of Gauss-Legendre nodes at which |B| vanished in the last advance
  * (b was set to zero there).
  *

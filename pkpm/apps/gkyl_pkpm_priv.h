@@ -402,6 +402,13 @@ struct pkpm_field {
 
   struct gkyl_array *bvar; // magnetic field unit vector b = B/|B| [bx, by, bz] (p=1)
   struct gkyl_array *grad_b; // weak (surface-averaged) gradient of b, cdim x 3 expansions
+  // physical time derivative [E, B, phi, psi] of the stage fields, the Maxwell right-hand side
+  // divided by the position-map Jacobian (computed first in each stage; zero for a static field;
+  // its E part lacks the explicit current, which is added after the species update)
+  struct gkyl_array *dt_em_no_J;
+  // d_t B/|B| of the stage at the Gauss-Legendre nodes of b, interpolated to p=1: the force
+  // kernels of the first harmonic form d_t b = (I - b b) . (d_t B/|B|) from it
+  struct gkyl_array *dtB_over_magB;
   struct gkyl_dg_calc_pkpm_bvar *calc_bvar; // Updater computing b by nodal normalization
 
   bool limit_em; // boolean for whether or not we are limiting EM fields

@@ -34,6 +34,10 @@ pkpm_forward_euler(
   // Compute the magnetic field unit vector b = B/|B|
   pkpm_field_calc_bvar(app, app->field, emin);
 
+  // RHS of Maxwell's equations first: it does not depend on the species, and its magnetic part
+  // (stored physical in field->dt_em_no_J) is the d_t B of the first-harmonic force terms.
+  double dtmin_field = pkpm_field_rhs(app, app->field, emin, emout);
+
   // Two separate loops over number of species to compute needed auxiliary quantities.
   for (int i = 0; i < app->num_species; ++i) {
     // Compute parallel-kinetic-perpendicular moment (pkpm) variables:
@@ -75,9 +79,7 @@ pkpm_forward_euler(
     dtmin = fmin(dtmin, dt1);
   }
 
-  // compute RHS of Maxwell equations
-  double dt1 = pkpm_field_rhs(app, app->field, emin, emout);
-  dtmin = fmin(dtmin, dt1);
+  dtmin = fmin(dtmin, dtmin_field);
 
   double dt_max_rel_diff = 0.01;
   // check if dtmin is slightly smaller than dt. Use dt if it is

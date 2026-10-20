@@ -163,6 +163,11 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   f->bvar = mkarr(app->use_gpu, 3 * app->confBasis.num_basis, app->local_ext.volume);
   f->grad_b = mkarr(app->use_gpu, app->cdim * 3 * app->confBasis.num_basis, app->local_ext.volume);
   gkyl_array_clear(f->grad_b, 0.0);
+  // physical time derivative of the fields of the stage (zero for a static field)
+  f->dt_em_no_J = mkarr(app->use_gpu, 8 * app->confBasis.num_basis, app->local_ext.volume);
+  gkyl_array_clear(f->dt_em_no_J, 0.0);
+  f->dtB_over_magB = mkarr(app->use_gpu, 3 * app->confBasis.num_basis, app->local_ext.volume);
+  gkyl_array_clear(f->dtB_over_magB, 0.0);
   f->calc_bvar = gkyl_dg_calc_pkpm_bvar_new(&app->grid, &app->confBasis, app->pos_map, app->use_gpu);
 
   // Check if limiter_fac is specified for adjusting how much diffusion is applied through slope limiter
@@ -426,6 +431,10 @@ pkpm_field_rhs(
 
   if (!field->info.is_static) {
     gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
+    // physical time derivative of the fields (the evolved em carries the position-map Jacobian)
+    // and d_t B/|B| at the nodes of b (tot_em holds the physical fields of the stage)
+    gkyl_vlasov_position_map_divide_jacobpos_conf(app->pos_map, &app->local, rhs->ncomp, rhs, field->dt_em_no_J);
+    gkyl_dg_calc_pkpm_bvar_dtB_over_magB(field->calc_bvar, &app->local, field->tot_em, field->dt_em_no_J, field->dtB_over_magB);
 
     gkyl_array_reduce_range(field->omegaCfl_ptr, field->cflrate, GKYL_MAX, &app->local);
 
@@ -542,6 +551,8 @@ pkpm_field_release(const gkyl_pkpm_app *app, struct pkpm_field *f)
 
   gkyl_array_release(f->bvar);
   gkyl_array_release(f->grad_b);
+  gkyl_array_release(f->dt_em_no_J);
+  gkyl_array_release(f->dtB_over_magB);
   gkyl_dg_calc_pkpm_bvar_release(f->calc_bvar);
   gkyl_dg_calc_em_vars_release(f->calc_em_vars);
 

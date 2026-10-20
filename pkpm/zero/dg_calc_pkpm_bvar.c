@@ -29,6 +29,7 @@ gkyl_dg_calc_pkpm_bvar_new(
   up->pos_map = gkyl_vlasov_position_map_acquire(pos_map);
   up->jacob_pos = pos_map->jacob_pos;
   up->pkpm_bvar = choose_pkpm_bvar_kern(cbasis->b_type, cbasis->ndim, cbasis->poly_order);
+  up->pkpm_dtB_over_magB = choose_pkpm_dtB_over_magB_kern(cbasis->b_type, cbasis->ndim, cbasis->poly_order);
   for (int d = 0; d < cbasis->ndim; ++d) {
     up->pkpm_grad[d] = choose_pkpm_bvar_grad_kern(cbasis->b_type, cbasis->ndim, cbasis->poly_order, d);
   }
@@ -61,6 +62,30 @@ gkyl_dg_calc_pkpm_bvar_advance(
     num_null_b += up->pkpm_bvar(gkyl_array_cfetch(em, loc), gkyl_array_fetch(bvar, loc));
   }
   up->num_null_b = num_null_b;
+}
+
+int
+gkyl_dg_calc_pkpm_bvar_dtB_over_magB(
+  struct gkyl_dg_calc_pkpm_bvar *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *em, const struct gkyl_array *dt_em, struct gkyl_array *dtB_over_magB
+)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(dtB_over_magB)) {
+    return gkyl_dg_calc_pkpm_bvar_dtB_over_magB_cu(up, conf_range, em, dt_em, dtB_over_magB);
+  }
+#endif
+  assert(up->pkpm_dtB_over_magB);
+  int num_null = 0;
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, conf_range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(conf_range, iter.idx);
+    num_null += up->pkpm_dtB_over_magB(
+      gkyl_array_cfetch(em, loc), gkyl_array_cfetch(dt_em, loc), gkyl_array_fetch(dtB_over_magB, loc)
+    );
+  }
+  return num_null;
 }
 
 int

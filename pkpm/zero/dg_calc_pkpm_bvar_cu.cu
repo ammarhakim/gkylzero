@@ -53,6 +53,43 @@ gkyl_dg_calc_pkpm_bvar_advance_cu(
   gkyl_cu_memcpy(&up->num_null_b, up->num_null_b_dev, sizeof(int), GKYL_CU_MEMCPY_D2H);
 }
 
+__global__ void
+gkyl_dg_calc_pkpm_bvar_dtB_over_magB_cu_kernel(
+  struct gkyl_dg_calc_pkpm_bvar *up, struct gkyl_range conf_range, const struct gkyl_array *em,
+  const struct gkyl_array *dt_em, struct gkyl_array *out, int *num_null
+)
+{
+  int idx[GKYL_MAX_DIM];
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x * blockDim.x; linc1 < conf_range.volume;
+       linc1 += gridDim.x * blockDim.x) {
+    gkyl_sub_range_inv_idx(&conf_range, linc1, idx);
+    long loc = gkyl_range_idx(&conf_range, idx);
+    int null = up->pkpm_dtB_over_magB(
+      (const double *)gkyl_array_cfetch(em, loc), (const double *)gkyl_array_cfetch(dt_em, loc),
+      (double *)gkyl_array_fetch(out, loc)
+    );
+    if (null > 0) {
+      atomicAdd(num_null, null);
+    }
+  }
+}
+
+// Host-side wrapper for d_t B/|B| (reuses the null-node counter of b)
+int
+gkyl_dg_calc_pkpm_bvar_dtB_over_magB_cu(
+  struct gkyl_dg_calc_pkpm_bvar *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *em, const struct gkyl_array *dt_em, struct gkyl_array *dtB_over_magB
+)
+{
+  gkyl_cu_memset(up->num_null_b_dev, 0, sizeof(int));
+  gkyl_dg_calc_pkpm_bvar_dtB_over_magB_cu_kernel<<<conf_range->nblocks, conf_range->nthreads>>>(
+    up->on_dev, *conf_range, em->on_dev, dt_em->on_dev, dtB_over_magB->on_dev, up->num_null_b_dev
+  );
+  int num_null = 0;
+  gkyl_cu_memcpy(&num_null, up->num_null_b_dev, sizeof(int), GKYL_CU_MEMCPY_D2H);
+  return num_null;
+}
+
 // One thread per interior cell: the weak gradient of b in every direction.
 __global__ void
 gkyl_dg_calc_pkpm_bvar_grad_cu_kernel(
@@ -100,6 +137,7 @@ dg_calc_pkpm_bvar_set_cu_dev_ptrs(
 )
 {
   up->pkpm_bvar = choose_pkpm_bvar_kern(b_type, cdim, poly_order);
+  up->pkpm_dtB_over_magB = choose_pkpm_dtB_over_magB_kern(b_type, cdim, poly_order);
   for (int d = 0; d < cdim; ++d) {
     up->pkpm_grad[d] = choose_pkpm_bvar_grad_kern(b_type, cdim, poly_order, d);
   }
