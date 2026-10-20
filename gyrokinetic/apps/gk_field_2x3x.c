@@ -463,7 +463,6 @@ gk_field_2x3x_add_TS_updaters(
 
     long buff_sz = app->global_lower_ghost[par_dir].volume;
     gkf->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
-    gkf->ts_ghost_tmp = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
 
     gkf->gfss_bc_op_core_up = gkyl_bc_basic_gyrokinetic_new(
       par_dir, GKYL_UPPER_EDGE, GKYL_BC_GK_FIELD_BOUNDARY_VALUE, app->basis_on_dev,
@@ -809,7 +808,6 @@ gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *gkf)
       gkyl_bc_basic_gyrokinetic_release(gkf->gfss_bc_op_core_up);
       gkyl_bc_basic_gyrokinetic_release(gkf->gfss_bc_op_core_lo);
       gkyl_array_release(gkf->bc_buffer);
-      gkyl_array_release(gkf->ts_ghost_tmp);
     }
   }
 

@@ -1821,7 +1821,6 @@ struct gk_field {
   struct gkyl_bc_basic_gyrokinetic
     *gfss_bc_op_core_lo; // Fills lower core  z-ghost with skin  boundary value.
   struct gkyl_array *bc_buffer; // Buffer for bc_basic.
-  struct gkyl_array *ts_ghost_tmp; // Twist-shifted opposite skins for the symmetric TS end values.
 
   // Pointer to functions that make phi continuous along z.
   void (*fem_projection_par_rho_func)(
