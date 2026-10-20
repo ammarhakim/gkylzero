@@ -126,9 +126,11 @@ gk_species_fluid_release(const gkyl_gyrokinetic_app *app, const struct gk_specie
 void
 gk_species_fluid_init(struct gkyl_gk *inp, gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
-  // Fluid species currently have algebraic density closures, not transport equations.
-  if (gks->info.collisionless.type || gks->info.flr.gyroradius > 0.0 ||
-      gks->info.flr.Tperp > 0.0 || gks->info.source.source_id ||
+  // Fluid species currently have algebraic density closures, not transport equations (an
+  // adiabatic species uses flr.Tperp in the FLR term of its response).
+  bool is_adiabatic = gks->info.scaling.type == GKYL_GK_SPECIES_SCALING_ADIABATIC;
+  if (gks->info.collisionless.type || (gks->info.flr.Tperp > 0.0 && !is_adiabatic) ||
+      gks->info.flr.gyroradius > 0.0 || gks->info.source.source_id ||
       gks->info.source_bgk.source_bgk_id || gks->info.radiation.radiation_id ||
       gks->info.react.num_react || gks->info.react_neut.num_react || gks->info.positivity.type ||
       gks->info.positivity.quasineutrality_rescale || gks->info.damping.type ||
@@ -205,14 +207,17 @@ gk_species_fluid_init(struct gkyl_gk *inp, gkyl_gyrokinetic_app *app, struct gk_
 
   gk_species_init_io(app, gks);
 
+  // Fluid species are not gyroaveraged.
+  gks->use_flr = false;
+  gks->gyro_phi = gkyl_array_acquire(app->field->phi_smooth);
+  gks->gyroaverage = gk_species_gyroaverage_disabled;
+  gks->gyroaverage_density = gk_species_gyroaverage_disabled;
+
   // Allocate moment operators to compute M0 and Maxwellian moments.
   gk_species_moment_init(app, gks, &gks->m0, GKYL_F_MOMENT_M0, false);
   gk_species_moment_init(app, gks, &gks->lte.moms, GKYL_F_MOMENT_MAXWELLIAN, false);
 
   gks->m0_gyroavg = gkyl_array_acquire(gks->m0.marr);
-  gks->gyro_phi = gkyl_array_acquire(app->field->phi_smooth);
-  gks->gyroaverage = gk_species_gyroaverage_disabled;
-  gks->gyroaverage_density = gk_species_gyroaverage_disabled;
 
   gks->moms = gkyl_malloc(sizeof(struct gk_species_moment) * gks->info.num_diag_moments);
   for (int m = 0; m < gks->info.num_diag_moments; ++m) {

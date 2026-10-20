@@ -1,7 +1,7 @@
 #include <gkyl_gk_species_priv.h>
 
 static void
-gk_species_flr_smooth_coeff(
+gk_species_kinetic_flr_smooth_coeff(
   gkyl_gyrokinetic_app *app, struct gkyl_array *coeff, struct gkyl_array *tmp
 )
 {
@@ -238,8 +238,8 @@ gk_species_kinetic_apply_bc_dynamic(
         case GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING:
           gk_species_phi_wall_advance(app, &species->phi_wall_lo, tm);
           gkyl_bc_sheath_gyrokinetic_advance(
-            species->bc_sheath_lo, species->gyro_phi, species->phi_wall_lo.phi, NULL, NULL,
-            NULL, NULL, f, &app->local
+            species->bc_sheath_lo, species->gyro_phi, species->phi_wall_lo.phi, NULL, NULL, NULL,
+            NULL, f, &app->local
           );
           break;
         case GKYL_BC_GK_SPECIES_SHEATH_SURROGATE:
@@ -282,8 +282,8 @@ gk_species_kinetic_apply_bc_dynamic(
         case GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING:
           gk_species_phi_wall_advance(app, &species->phi_wall_up, tm);
           gkyl_bc_sheath_gyrokinetic_advance(
-            species->bc_sheath_up, species->gyro_phi, species->phi_wall_up.phi, NULL, NULL,
-            NULL, NULL, f, &app->local
+            species->bc_sheath_up, species->gyro_phi, species->phi_wall_up.phi, NULL, NULL, NULL,
+            NULL, f, &app->local
           );
           break;
         case GKYL_BC_GK_SPECIES_SHEATH_SURROGATE:
@@ -1304,8 +1304,8 @@ gk_species_kinetic_init(
     // Initialize the factor multiplying the field in the FLR operator.
     gks->flr_kSq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     gkyl_array_set(gks->flr_kSq, -1.0, app->gk_geom->geo_int.jacobgeo);
-    gk_species_flr_smooth_coeff(app, gks->flr_rhoSqD2, gks->flr_buff_dens);
-    gk_species_flr_smooth_coeff(app, gks->flr_kSq, gks->flr_buff_dens);
+    gk_species_kinetic_flr_smooth_coeff(app, gks->flr_rhoSqD2, gks->flr_buff_dens);
+    gk_species_kinetic_flr_smooth_coeff(app, gks->flr_kSq, gks->flr_buff_dens);
 
     // Gyroaverage BCs: the input field is its own boundary value at
     // non-periodic boundaries.

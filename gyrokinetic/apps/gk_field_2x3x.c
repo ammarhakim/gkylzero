@@ -46,7 +46,6 @@ gk_field_fem_projection_par_rho_ts_2x(
   struct gkyl_array *arr_fem
 )
 {
-
   // Gather the DG array into a global (in z) array.
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
 
@@ -91,7 +90,6 @@ gk_field_fem_projection_par_phi_ts_3x(
   struct gkyl_array *arr_fem
 )
 {
-
   // Gather the DG array into a global (in z) array.
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
 
@@ -649,7 +647,8 @@ gk_field_em_rhs_enabled(
   // If we use FLR effects, we need to correct the Ohm solve because
   // the inductive term uses the <dApar/dt>, while the solution
   // yields the dApar/dt. We hence propose to iterate the Ohm solve, for now only once.
-  int num_iter = field->use_flr ? 1 : 0; // This need to go to the field struct to avoid run loop logic.
+  // This needs to go to the field struct to avoid run loop logic.
+  int num_iter = field->use_flr ? 1 : 0;
   if (field->use_flr) {
     gkyl_array_copy(field->flr_ohm_rhs, field->currentDensdot);
   }
@@ -868,9 +867,9 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   double polarization_weight = 0.0;
   double polarization_bmag = gkf->info.polarization_bmag ? gkf->info.polarization_bmag :
                                                            app->bmag_ref;
-  // Linearized polarization density
-  for (int i = 0; i < app->num_species; ++i) {
-    struct gk_species *gks = &app->species[i];
+  // Linearized polarization density (adiabatic species have none).
+  for (int i = 0; i < gkf->num_rhoc_species; ++i) {
+    struct gk_species *gks = &app->species[gkf->rhoc_species_idx[i]];
     polarization_weight +=
       gks->info.polarization_density * gks->info.mass / pow(polarization_bmag, 2);
   }
@@ -1022,7 +1021,8 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
     }
     // FEM solver for Ampere equation (solved at IC only).
     gkf->fem_apar_solver = gkyl_fem_poisson_perp_new(
-      &app->local, &app->grid, app->basis, &gkf->ampere_bcs, 0, gkf->lapWeightAmpere, NULL, app->use_gpu
+      &app->local, &app->grid, app->basis, &gkf->ampere_bcs, 0, gkf->lapWeightAmpere, NULL,
+      app->use_gpu
     );
     // FEM solver for Ohm's law (evolves d(Apart)/dt).
     gkf->fem_apardot_solver = gkyl_fem_poisson_perp_new(
@@ -1126,7 +1126,8 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
         gkf->fem_projection_par_apar_func = gk_field_fem_projection_par_apar_iwl_3x;
       }
       gkf->fem_apar_parproj = gkyl_fem_parproj_new(
-        &app->global_core, &app->grid, &app->basis, gkf->fem_parproj_ampere_bc, 0, 0, 0, app->use_gpu
+        &app->global_core, &app->grid, &app->basis, gkf->fem_parproj_ampere_bc, 0, 0, 0,
+        app->use_gpu
       );
       gkf->fem_apar_parproj_sol = gkyl_fem_parproj_new(
         &app->global_sol, &app->grid, &app->basis, GKYL_FEM_PARPROJ_NONE, 0, 0, 0, app->use_gpu

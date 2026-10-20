@@ -672,8 +672,8 @@ gk_field_gyroaverage_phi(gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
   // Gyroaverage the potential (used in the Hamiltonian) for each species.
   for (int i = 0; i < app->num_species; ++i) {
-    struct gk_species *s = &app->species[i];
-    s->gyroaverage(app, s, field->phi_smooth, s->gyro_phi);
+    struct gk_species *gks = &app->species[i];
+    gks->gyroaverage(app, gks, field->phi_smooth, gks->gyro_phi);
   }
 }
 
@@ -749,7 +749,6 @@ gk_field_calc_apar_energy_dt(
 {
   field->calc_apar_energy_dt_func(app, field, dt, energy_reduced);
 }
-
 
 void
 gk_field_accumulate_rho_c_poisson(

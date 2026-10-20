@@ -11,36 +11,36 @@ void
 gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
   assert(app->cdim > 1);
-  gkf->invert_flr = gkf->info.flr.use_fem_operator ? gk_field_invert_flr_op : gk_field_invert_flr_const;
+  gkf->invert_flr = gkf->info.flr.use_fem_operator ? gk_field_invert_flr_op :
+                                                     gk_field_invert_flr_const;
 
   // Reference (squared) gyroradius in the operator A = 1 - rho^2*nabla_perp^2
   // used to retrieve phi from the modified potential Phi_0 (step 4 of the
-  // algorithm in DR #797).
-  double polarization_bmag = gkf->info.polarization_bmag ? gkf->info.polarization_bmag : app->bmag_ref;
-  double rhoSq_ref = 0.0;
+  // algorithm in DR #797). Adiabatic species have no polarization, so the
+  // sums run over the species in rho_c.
+  double polarization_bmag = gkf->info.polarization_bmag ? gkf->info.polarization_bmag :
+                                                           app->bmag_ref;
+  double rhoSq_ref = 0.0, polarization_weight = 0.0;
   if (gkf->info.flr.avg_gyroradius) {
     // Polarization-weighted average of the species gyroradii,
     //   rho^2 = sum_s eps_s0*rho_s0^2 / sum_s eps_s0,  eps_s0 = n_s0*m_s/B^2,
-    double eps_sum = 0.0;
-    for (int i = 0; i < app->num_species; ++i) {
-      struct gk_species *gks = &app->species[i];
+    for (int i = 0; i < gkf->num_rhoc_species; ++i) {
+      struct gk_species *gks = &app->species[gkf->rhoc_species_idx[i]];
       double eps_s0 = gks->info.polarization_density * gks->info.mass / pow(polarization_bmag, 2.0);
       rhoSq_ref += eps_s0 * gks->flr_rhoSq_ref;
-      eps_sum += eps_s0;
+      polarization_weight += eps_s0;
     }
-    assert(eps_sum > 0.0);
-    rhoSq_ref /= eps_sum;
+    assert(polarization_weight > 0.0);
+    rhoSq_ref /= polarization_weight;
   } else {
     // Gyroradius of the gyroaveraged species with the largest polarization
     // weight (the main ion), so steps 2-5 of DR #797 use the same rho.
     double eps_max = -1.0;
-    for (int i = 0; i < app->num_species; ++i) {
-      struct gk_species *gks = &app->species[i];
-      if (!gks->use_flr) {
-        continue;
-      }
+    for (int i = 0; i < gkf->num_rhoc_species; ++i) {
+      struct gk_species *gks = &app->species[gkf->rhoc_species_idx[i]];
       double eps_s0 = gks->info.polarization_density * gks->info.mass / pow(polarization_bmag, 2.0);
-      if (eps_s0 > eps_max) {
+      polarization_weight += eps_s0;
+      if (gks->use_flr && eps_s0 > eps_max) {
         rhoSq_ref = gks->flr_rhoSq_ref;
         eps_max = eps_s0;
       }
@@ -48,6 +48,8 @@ gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   }
   // At least one species must provide a reference gyroradius.
   assert(rhoSq_ref > 0.0);
+  // rho_i^2/eps_pol, used in the local term and in the response of an adiabatic species.
+  gkf->flr_local_fac = rhoSq_ref / polarization_weight;
 
   // Modified potential Phi_0 and a buffer, used in the local term and the
   // field energy diagnostic.
@@ -57,18 +59,10 @@ gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
     gkf->flr_ohm_rhs = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   }
   gkf->flr_energy_red = app->use_gpu ? gkyl_cu_malloc(sizeof(double[1])) :
-                                     gkyl_malloc(sizeof(double[1]));
+                                       gkyl_malloc(sizeof(double[1]));
 
   if (!gkf->info.flr.use_fem_operator) {
-    // Use the simplification phi = Phi_0 + (rho_i^2/eps_pol)*rho_c/J
-    double polarization_weight = 0.0;
-    for (int i = 0; i < app->num_species; ++i) {
-      struct gk_species *gks = &app->species[i];
-      polarization_weight +=
-        gks->info.polarization_density * gks->info.mass / pow(polarization_bmag, 2);
-    }
-    gkf->flr_local_fac = rhoSq_ref / polarization_weight;
-    return;
+    return; // The local term phi = Phi_0 + (rho_i^2/eps_pol)*rho_c/J needs no operator.
   }
 
   // Spatially varying Dirichlet BCs are not supported with the FEM operator.
@@ -92,8 +86,8 @@ gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   gkyl_array_set(gkf->flr_kSq, -1.0, app->gk_geom->geo_int.jacobgeo);
 
   gkf->flr_op = gkyl_fem_poisson_perp_new(
-    &app->local, &app->grid, app->basis, &gkf->poisson_bcs, gkf->info.bias_line_list, gkf->flr_rhoSq,
-    gkf->flr_kSq, app->use_gpu
+    &app->local, &app->grid, app->basis, &gkf->poisson_bcs, gkf->info.bias_line_list,
+    gkf->flr_rhoSq, gkf->flr_kSq, app->use_gpu
   );
 }
 
