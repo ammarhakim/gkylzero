@@ -1,0 +1,42 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M5DT4WYX1T1JK7W30GK76KP0",
+  "strategy": "manual-commit",
+  "branch": "debug-nunif-grid_cyl_map",
+  "checkpoints_count": 4,
+  "files_touched": [
+    "core/zero/gkyl_eqn_type.h",
+    "gyrokinetic/apps/gk_field_2x3x.c",
+    "gyrokinetic/apps/gk_species.c",
+    "gyrokinetic/apps/gk_species_collisionless.c",
+    "gyrokinetic/apps/gkyl_gyrokinetic_priv.h",
+    "gyrokinetic/apps/gyrokinetic.c",
+    "gyrokinetic/apps/gyrokinetic_lw.c",
+    "gyrokinetic/unit/ctest_fem_poisson_perp_cylindrical.c",
+    "gyrokinetic/unit/ctest_gk_geometry_cylindrical.c",
+    "gyrokinetic/zero/fem_poisson_perp.c",
+    "gyrokinetic/zero/gk_geometry_cylindrical.c",
+    "gyrokinetic/zero/gk_geometry_mapc2p.c",
+    "gyrokinetic/zero/gkyl_fem_poisson_perp.h",
+    "gyrokinetic/zero/gkyl_fem_poisson_perp_priv.h",
+    "gyrokinetic/zero/gkyl_gk_bc_type.h",
+    "gyrokinetic/zero/gkyl_gk_geometry_cylindrical.h",
+    "gyrokinetic/zero/gkyl_gk_geometry_cylindrical_priv.h"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 1027559,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 18530560,
+    "output_tokens": 66602,
+    "api_call_count": 137
+  }
+}

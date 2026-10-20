@@ -1,0 +1,88 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M5DT4WYX1T1JK7W30GK76KP0",
+  "session_id": "01a15848-3876-71d0-bc6b-705318f7e58f",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-20T23:25:38.085568Z",
+  "branch": "debug-nunif-grid_cyl_map",
+  "checkpoints_count": 4,
+  "save_step_count": 3,
+  "files_touched": [
+    "core/zero/gkyl_eqn_type.h",
+    "gyrokinetic/apps/gk_field_2x3x.c",
+    "gyrokinetic/apps/gk_species.c",
+    "gyrokinetic/apps/gk_species_collisionless.c",
+    "gyrokinetic/apps/gkyl_gyrokinetic_priv.h",
+    "gyrokinetic/apps/gyrokinetic.c",
+    "gyrokinetic/apps/gyrokinetic_lw.c",
+    "gyrokinetic/unit/ctest_fem_poisson_perp_cylindrical.c",
+    "gyrokinetic/unit/ctest_gk_geometry_cylindrical.c",
+    "gyrokinetic/zero/fem_poisson_perp.c",
+    "gyrokinetic/zero/gk_geometry_cylindrical.c",
+    "gyrokinetic/zero/gk_geometry_mapc2p.c",
+    "gyrokinetic/zero/gkyl_fem_poisson_perp.h",
+    "gyrokinetic/zero/gkyl_fem_poisson_perp_priv.h",
+    "gyrokinetic/zero/gkyl_gk_bc_type.h",
+    "gyrokinetic/zero/gkyl_gk_geometry_cylindrical.h",
+    "gyrokinetic/zero/gkyl_gk_geometry_cylindrical_priv.h"
+  ],
+  "agent": "Codex",
+  "model": "gpt-6-astra",
+  "turn_id": "ee4796610ba5",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 1027559,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 18530560,
+    "output_tokens": 66602,
+    "api_call_count": 137
+  },
+  "session_metrics": {
+    "turn_count": 4
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-20T23:25:37.930827Z",
+    "agent_lines": 759,
+    "agent_removed": 19,
+    "human_added": 1316,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 2075,
+    "total_lines_changed": 2094,
+    "agent_percentage": 37.15377268385864,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 889,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "gyrokinetic/creg/rt_gk_fluid_species.c": 888,
+        "new_data_flag": 1
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 658,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1648,
+      "agent_lines_removed": 19,
+      "user_added_per_file": {
+        "gyrokinetic/creg/rt_gk_lapd_cyl_axis_3x2v_p1.c": 658
+      }
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 658,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2208,
+      "agent_lines_removed": 19,
+      "user_added_per_file": {
+        "gyrokinetic/creg/rt_gk_lapd_cyl_axis_3x2v_p1.c": 658
+      }
+    }
+  ]
+}

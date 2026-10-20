@@ -1,0 +1,20 @@
+In the gyrokinetic solver gyrokinetic/creg/rt_gk_lapd_cyl_3x2v_p1.c uses a cylindrical mapping in mapc2p, with a minimum radius (currently (2.5 * ctx.rho_s)) to avoid placing the innermost radial boundary at r=0 where some geometric quantities may diverge. I'm interested in going down to r=0, however. I've noticed that when I set the minimum radius to 0 some of the geometric quantities gxxj, gxyj or gyyj diverge, but I don't think they should. I think this may because the mapc2p program flow first divides by radius and later multiples by radius, or viceversa.
+
+Would it be possible to create a separate geometry object, like gyrokinetic/zero/gk_geometry_mapc2p.c, solely for cylindrical coordinates that allows one to go down to r=0?
+
+---
+
+Implement the plan.
+
+---
+
+Please review the changes made (by another model) in the current code, checking for correctness, simplicity, modularity, maintainability and being mindful of performance.
+
+Also, please write out (to a .md file) a detailed description of what was changed in the code so far, with plenty of detail about:
+- How the geometric quantities at the axis are discretized.
+- How the field solver handls the axis.
+- How the collisionless terms handle the lower radial boundary.
+
+---
+
+Regarding the first finding: would it be sufficient to change gkyl_gk_collisionless_flux so that if the BC is zero flux, it selects a kernel that sets the flux to zero?
