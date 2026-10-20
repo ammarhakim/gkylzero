@@ -664,7 +664,6 @@ gk_species_calc_int_mom_dt_enabled(
   // Need to do it after the fields are updated.
   gk_species_moment_calc(&gks->integ_moms, gks->local, app->local, gks->f);
   gkyl_array_set(fdot_int_mom, 1.0 / dt, gks->integ_moms.marr);
-  gks->fdot_dt = dt;
   app->stat.fdot_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -1053,6 +1052,9 @@ gk_species_init_dynamic(
     gks->fdot_integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, gks->integ_moms.num_mom);
     gks->is_first_fdot_integ_write_call = true;
   }
+
+  // Balance diagnostics (need the bfluxes, initialized earlier).
+  gk_species_balance_init(app, gks, &gks->bal);
 
   // Objects for L2 norm diagnostic.
   gks->integ_wfsq_op = gkyl_array_integrate_new(
@@ -2193,8 +2195,8 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   if (adaptive_sources) {
     add_bflux_moms_inp.diag_moments[nmom_extra[0]++] = GKYL_F_MOMENT_M2;
   }
-  // Initialize the balance first as it may request additional diagnostics.
-  gk_species_balance_init(app, gks, &gks->bal, &bflux_type);
+  // The balance diagnostics may need to step moments of the boundary fluxes.
+  gk_species_balance_pre_init(app, gks, &gks->bal, &bflux_type, &add_bflux_moms_inp);
   // Introduce new moments into moms_inp if needed.
   gk_species_bflux_init(app, gks, &gks->bflux, bflux_type, add_bflux_moms_inp);
 

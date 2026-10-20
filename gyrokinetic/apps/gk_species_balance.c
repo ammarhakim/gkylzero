@@ -1,38 +1,28 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
 
-// Only the particle (M0) balance is available: M0 is always component 0. Balances of
-// other moments (e.g. toroidal momentum or energy) need more machinery to reuse
-// the existing diagnostics without redundancy, or their own diagnostics here.
-static bool
-gk_species_balance_has_m0(enum gkyl_distribution_moments mom_type)
+// Sum a single-component array over the local range and across ranks.
+static double
+gk_species_balance_reduce(
+  gkyl_gyrokinetic_app *app, struct gk_species_balance *bal, const struct gkyl_array *arr
+)
 {
-  return mom_type == GKYL_F_MOMENT_M0 || mom_type == GKYL_F_MOMENT_M0M1M2 ||
-         mom_type == GKYL_F_MOMENT_M0M1M2PARM2PERP || mom_type == GKYL_F_MOMENT_HAMILTONIAN;
-}
-
-// Whether this rank reports the integrated bflux through the boundary at
-// (dir, edge). The bflux diagnostic sums over the ranks of a boundary plane
-// (comm_plane), so only one rank per plane must contribute to the total.
-static bool
-gk_species_balance_owns_boundary(gkyl_gyrokinetic_app *app, int dir, enum gkyl_edge_loc edge)
-{
-  bool at_boundary = edge == GKYL_LOWER_EDGE ? app->local.lower[dir] == app->global.lower[dir] :
-                                               app->local.upper[dir] == app->global.upper[dir];
-  for (int d = 0; d < app->cdim; d++) {
-    if (d != dir) {
-      at_boundary = at_boundary && app->local.lower[d] == app->global.lower[d];
-    }
+  double out;
+  gkyl_array_reduce_range(bal->red_local, arr, GKYL_SUM, &app->local);
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, bal->red_local, bal->red_global);
+  if (app->use_gpu) {
+    gkyl_cu_memcpy(&out, bal->red_global, sizeof(double), GKYL_CU_MEMCPY_D2H);
+  } else {
+    memcpy(&out, bal->red_global, sizeof(double));
   }
-  return at_boundary;
+  return out;
 }
 
-// Particle balance of balance moment m: dN/dt = source - boundary fluxes.
-// Combines the last entries of the integrated moment diagnostics of f, df/dt,
-// the source and the boundary fluxes, all computed before this is called.
+// Particle balance: dN/dt = source - boundary fluxes, from the balance's own
+// moments of f, of the source and of the stepped boundary-flux moments.
 static void
 gk_species_balance_calc_particle(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal, int m,
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal, int d,
   double tm
 )
 {
@@ -41,33 +31,48 @@ gk_species_balance_calc_particle(
     row[k] = 0.0;
   }
 
-  if (gks->fdot_dt > 0.0) {
+  // Particle number.
+  gk_species_moment_calc(&bal->f_mom[d], gks->local, app->local, gks->f);
+  double N = gk_species_balance_reduce(app, bal, bal->f_mom[d].marr);
+  bal->mom[d] = N;
+
+  if (bal->dt > 0.0) {
     // Rates are only defined once a step has been taken.
-    double f_mom[gks->integ_moms.num_mom];
-    gkyl_dynvec_getlast(gks->integ_diag, f_mom);
-    double N = f_mom[bal->f_comp[m]];
-    gkyl_dynvec_getlast(gks->fdot_integ_diag, f_mom);
-    double dNdt = f_mom[bal->f_comp[m]];
+    gkyl_array_set(bal->f_mom[d].marr, 1.0, bal->mom_new[d]);
+    gkyl_array_accumulate(bal->f_mom[d].marr, -1.0, bal->mom_old[d]);
+    double dNdt = gk_species_balance_reduce(app, bal, bal->f_mom[d].marr);
 
     double src = 0.0;
     if (bal->has_source) {
-      double src_mom[gks->src.integ_moms.num_mom];
-      gkyl_dynvec_getlast(gks->src.integ_diag, src_mom);
-      src = src_mom[bal->src_comp[m]];
+      gk_species_moment_calc(&bal->src_mom[d], gks->local, app->local, gks->src.source);
+      src = gk_species_balance_reduce(app, bal, bal->src_mom[d].marr);
     }
 
     // Total flux through the boundaries.
     struct gk_boundary_fluxes *bflux = &gks->bflux;
-    int num_int_mom = gks->info.boundary_flux_diagnostics.num_integrated_diag_moments;
     double bflux_tot_local = 0.0, bflux_tot = 0.0;
     for (int b = 0; b < bal->num_boundaries; ++b) {
-      if (gk_species_balance_owns_boundary(
-            app, bflux->boundaries_dir[b], bflux->boundaries_edge[b]
-          )) {
-        int mom_idx = bflux->diag_int_mom_idx[bal->bflux_int_mom[m]];
-        double bflux_mom[bflux->moms_op[mom_idx].num_mom];
-        gkyl_dynvec_getlast(bflux->intmom[b * num_int_mom + bal->bflux_int_mom[m]], bflux_mom);
-        bflux_tot_local += bflux_mom[bal->bflux_comp[m]];
+      int dir = bflux->boundaries_dir[b];
+      enum gkyl_edge_loc edge = bflux->boundaries_edge[b];
+      // Local ghost ranges also exist at inter-rank boundaries: only count the
+      // contribution of ranks that touch the boundary.
+      bool at_boundary = edge == GKYL_LOWER_EDGE ? app->local.lower[dir] == app->global.lower[dir] :
+                                                   app->local.upper[dir] == app->global.upper[dir];
+      if (at_boundary) {
+        gk_species_bflux_get_flux_mom(
+          bflux, dir, edge, bal->mom_types[d], bflux->f, bal->bflux_mom,
+          bflux->boundaries_conf_ghost[b]
+        );
+        gkyl_array_integrate_advance(
+          bal->integ_op, bal->bflux_mom, 1.0, 0, bflux->boundaries_conf_ghost[b], 0, bal->red_local
+        );
+        double flux_b;
+        if (app->use_gpu) {
+          gkyl_cu_memcpy(&flux_b, bal->red_local, sizeof(double), GKYL_CU_MEMCPY_D2H);
+        } else {
+          memcpy(&flux_b, bal->red_local, sizeof(double));
+        }
+        bflux_tot_local += flux_b;
       }
     }
     gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &bflux_tot_local, &bflux_tot);
@@ -78,54 +83,60 @@ gk_species_balance_calc_particle(
     row[1] = src;
     row[2] = bflux_tot;
     row[3] = mom_err;
-    row[4] = mom_err * gks->fdot_dt / N;
+    row[4] = mom_err * bal->dt / N;
   }
 
-  gkyl_dynvec_append(bal->diag[m], tm, row);
+  gkyl_dynvec_append(bal->diag[d], tm, row);
 }
 
 void
-gk_species_balance_init(
+gk_species_balance_pre_init(
   struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal,
-  enum gkyl_species_bflux_type *bflux_type
+  enum gkyl_species_bflux_type *bflux_type, struct gkyl_phase_diagnostics_inp *add_bflux_moms_inp
 )
 {
-  struct gkyl_gyrokinetic_species *info = &gks->info;
-  // Check that the diagnostics the balance is computed from are requested, and
-  // request them otherwise.
+  // Collect the balances requested by the species (written) and by the app
+  // (only computed, for the sum over species), and request the stepping of
+  // the boundary-flux moments they need.
   *bal = (struct gk_species_balance){};
-  bal->enabled = info->num_balance_moments > 0 && !info->is_static;
+  struct gkyl_gyrokinetic_species *info = &gks->info;
+  for (int d = 0; d < info->num_balance_diags; d++) {
+    bal->diag_types[d] = info->balance_diags[d];
+    bal->write[d] = true;
+    bal->num_diags++;
+  }
+  for (int d = 0; d < app->bal.num_diags; d++) {
+    bool found = false;
+    for (int k = 0; k < bal->num_diags; k++) {
+      found = found || bal->diag_types[k] == app->bal.diag_types[d];
+    }
+    if (!found) {
+      assert(bal->num_diags < 12);
+      bal->diag_types[bal->num_diags] = app->bal.diag_types[d];
+      bal->write[bal->num_diags] = false;
+      bal->num_diags++;
+    }
+  }
+  bal->enabled = bal->num_diags > 0 && !info->is_static;
   if (!bal->enabled) {
+    bal->num_diags = 0;
     return;
   }
-  bal->num_moms = info->num_balance_moments;
-  for (int m = 0; m < bal->num_moms; m++) {
-    bal->mom_types[m] = info->balance_moments[m];
-    assert(bal->mom_types[m] == GKYL_F_MOMENT_M0); // Only the particle balance is available.
-    bal->f_comp[m] = 0; // M0 is always component 0.
-    bal->src_comp[m] = 0; // M0 is always component 0.
-  }
 
-  // Integrated moments of f and df/dt (the default set contains M0).
-  assert(
-    info->num_integrated_diag_moments == 0 ||
-    gk_species_balance_has_m0(info->integrated_diag_moments[0])
-  );
-  info->time_rate_diagnostics = true;
-
-  // Integrated moments of the source.
-  bal->has_source = info->source.source_id != 0;
-  if (bal->has_source) {
-    struct gkyl_phase_diagnostics_inp *src_diag = &info->source.diagnostics;
-    assert(!src_diag->time_integrated); // The balance needs rates.
-    if (src_diag->num_integrated_diag_moments == 0) {
-      src_diag->num_integrated_diag_moments = 1;
-      src_diag->integrated_diag_moments[0] = GKYL_F_MOMENT_M0M1M2PARM2PERP; // The default set.
+  for (int d = 0; d < bal->num_diags; d++) {
+    switch (bal->diag_types[d]) {
+      case GKYL_BALANCE_GK_PARTICLE:
+        bal->mom_types[d] = GKYL_F_MOMENT_M0;
+        bal->calc_func[d] = gk_species_balance_calc_particle;
+        break;
+      default:
+        assert(false); // Balance diagnostic not available.
     }
-    assert(gk_species_balance_has_m0(src_diag->integrated_diag_moments[0]));
   }
 
-  // Integrated moments of the boundary fluxes (same boundaries as gk_species_bflux_init).
+  bal->has_source = info->source.source_id != 0;
+
+  // Boundaries with a boundary flux (same as in gk_species_bflux_init).
   bal->num_boundaries = 0;
   for (int d = 0; d < app->cdim; ++d) {
     if (gks->bc_is_np[d]) {
@@ -138,35 +149,68 @@ gk_species_balance_init(
     }
   }
   if (bal->num_boundaries > 0) {
-    struct gkyl_phase_diagnostics_inp *bflux_diag = &info->boundary_flux_diagnostics;
-    assert(!bflux_diag->time_integrated); // The balance needs rates.
-    for (int m = 0; m < bal->num_moms; m++) {
-      bal->bflux_int_mom[m] = -1;
-      for (int i = 0; i < bflux_diag->num_integrated_diag_moments; i++) {
-        if (gk_species_balance_has_m0(bflux_diag->integrated_diag_moments[i])) {
-          bal->bflux_int_mom[m] = i;
-          bal->bflux_comp[m] = 0;
-          break;
-        }
-      }
-      if (bal->bflux_int_mom[m] < 0) {
-        // Request the integrated moment of the bflux.
-        assert(bflux_diag->num_integrated_diag_moments < 12);
-        bal->bflux_int_mom[m] = bflux_diag->num_integrated_diag_moments;
-        bal->bflux_comp[m] = 0;
-        bflux_diag->integrated_diag_moments[bflux_diag->num_integrated_diag_moments++] =
-          bal->mom_types[m];
-      }
+    // Step the balanced moments of the boundary fluxes (without writing them).
+    if (*bflux_type == GK_SPECIES_BFLUX_NONE || *bflux_type == GK_SPECIES_BFLUX_CALC_FLUX) {
+      *bflux_type = GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS;
     }
-    *bflux_type = GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS_DIAGS;
+    for (int d = 0; d < bal->num_diags; d++) {
+      add_bflux_moms_inp->diag_moments[add_bflux_moms_inp->num_diag_moments++] = bal->mom_types[d];
+    }
+  }
+}
+
+void
+gk_species_balance_init(
+  struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal
+)
+{
+  if (!bal->enabled) {
+    return;
   }
 
   bal->num_comp = 5; // mom_dot, src, bflux_tot, mom_err, mom_err_norm=mom_err*dt/N.
-  for (int m = 0; m < bal->num_moms; m++) {
-    bal->diag[m] = gkyl_dynvec_new(GKYL_DOUBLE, bal->num_comp);
-    bal->is_first_write[m] = true;
-    // Momentum and energy balances will need their own recipe.
-    bal->calc_func[m] = gk_species_balance_calc_particle;
+  bal->dt = 0.0;
+  int max_num_mom = 1;
+  for (int d = 0; d < bal->num_diags; d++) {
+    gk_species_moment_init(app, gks, &bal->f_mom[d], bal->mom_types[d], true);
+    bal->mom_old[d] = mkarr(app->use_gpu, bal->f_mom[d].marr->ncomp, bal->f_mom[d].marr->size);
+    bal->mom_new[d] = mkarr(app->use_gpu, bal->f_mom[d].marr->ncomp, bal->f_mom[d].marr->size);
+    if (bal->has_source) {
+      gk_species_moment_init(app, gks, &bal->src_mom[d], bal->mom_types[d], true);
+    }
+    max_num_mom = GKYL_MAX2(max_num_mom, bal->f_mom[d].num_mom);
+    bal->diag[d] = gkyl_dynvec_new(GKYL_DOUBLE, bal->num_comp);
+    bal->is_first_write[d] = true;
+  }
+
+  if (bal->num_boundaries > 0) {
+    bal->integ_op = gkyl_array_integrate_new(
+      &app->grid, &app->basis, max_num_mom, GKYL_ARRAY_INTEGRATE_OP_NONE, app->use_gpu
+    );
+    bal->bflux_mom = mkarr(app->use_gpu, max_num_mom * app->basis.num_basis, app->local_ext.volume);
+  }
+
+  if (app->use_gpu) {
+    bal->red_local = gkyl_cu_malloc(max_num_mom * sizeof(double));
+    bal->red_global = gkyl_cu_malloc(max_num_mom * sizeof(double));
+  } else {
+    bal->red_local = gkyl_malloc(max_num_mom * sizeof(double));
+    bal->red_global = gkyl_malloc(max_num_mom * sizeof(double));
+  }
+}
+
+void
+gk_species_balance_step(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal, double dt,
+  bool is_old
+)
+{
+  // Store dt and the balanced moments of f/dt at the beginning (is_old=true)
+  // or end of the time step.
+  bal->dt = dt;
+  for (int d = 0; d < bal->num_diags; d++) {
+    gk_species_moment_calc(&bal->f_mom[d], gks->local, app->local, gks->f);
+    gkyl_array_set(is_old ? bal->mom_old[d] : bal->mom_new[d], 1.0 / dt, bal->f_mom[d].marr);
   }
 }
 
@@ -175,8 +219,8 @@ gk_species_balance_calc(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal, double tm
 )
 {
-  for (int m = 0; m < bal->num_moms; m++) {
-    bal->calc_func[m](app, gks, bal, m, tm);
+  for (int d = 0; d < bal->num_diags; d++) {
+    bal->calc_func[d](app, gks, bal, d, tm);
   }
 }
 
@@ -188,18 +232,18 @@ gk_species_balance_write(
   struct timespec wst = gkyl_wall_clock();
   int rank;
   gkyl_comm_get_rank(app->comm, &rank);
-  for (int m = 0; m < bal->num_moms; m++) {
-    if (rank == 0) {
-      // File named after the moment, e.g. <name>-<species>_balance_M0.gkyl.
-      const char *mom_name = gkyl_distribution_moments_strs[bal->mom_types[m]];
+  for (int d = 0; d < bal->num_diags; d++) {
+    if (bal->write[d] && rank == 0) {
+      // File named after the balance, e.g. <name>-<species>_balance_particle.gkyl.
       const char *fmt = "%s-%s_balance_%s.gkyl";
-      int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, mom_name);
+      const char *diag_name = gkyl_gyrokinetic_balance_diag_strs[bal->diag_types[d]];
+      int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, diag_name);
       char fileNm[sz + 1]; // ensures no buffer overflow
-      snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, mom_name);
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, diag_name);
 
-      if (bal->is_first_write[m]) {
+      if (bal->is_first_write[d]) {
         struct gkyl_msgpack_map_elem io_meta_bal[] = {
-          {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Species moment balance."},
+          {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Species balance."},
           {
             .key = "Columns",
             .elem_type = GKYL_MP_STRING,
@@ -213,15 +257,15 @@ gk_species_balance_write(
         struct gkyl_msgpack_data *mt =
           gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
-        gkyl_dynvec_write_wmeta(bal->diag[m], fileNm, mt);
+        gkyl_dynvec_write_wmeta(bal->diag[d], fileNm, mt);
         gkyl_msgpack_data_release(mt);
-        bal->is_first_write[m] = false;
+        bal->is_first_write[d] = false;
       } else {
-        gkyl_dynvec_awrite(bal->diag[m], fileNm);
+        gkyl_dynvec_awrite(bal->diag[d], fileNm);
       }
+      app->stat.n_diag_io += 1;
     }
-    gkyl_dynvec_clear(bal->diag[m]);
-    app->stat.n_diag_io += 1;
+    gkyl_dynvec_clear(bal->diag[d]);
   }
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -231,9 +275,133 @@ gk_species_balance_release(
   const struct gkyl_gyrokinetic_app *app, const struct gk_species_balance *bal
 )
 {
-  if (bal->enabled) {
-    for (int m = 0; m < bal->num_moms; m++) {
-      gkyl_dynvec_release(bal->diag[m]);
+  if (!bal->enabled) {
+    return;
+  }
+
+  for (int d = 0; d < bal->num_diags; d++) {
+    gk_species_moment_release(app, &bal->f_mom[d]);
+    gkyl_array_release(bal->mom_old[d]);
+    gkyl_array_release(bal->mom_new[d]);
+    if (bal->has_source) {
+      gk_species_moment_release(app, &bal->src_mom[d]);
     }
+    gkyl_dynvec_release(bal->diag[d]);
+  }
+  if (bal->num_boundaries > 0) {
+    gkyl_array_integrate_release(bal->integ_op);
+    gkyl_array_release(bal->bflux_mom);
+  }
+  if (app->use_gpu) {
+    gkyl_cu_free(bal->red_local);
+    gkyl_cu_free(bal->red_global);
+  } else {
+    gkyl_free(bal->red_local);
+    gkyl_free(bal->red_global);
+  }
+}
+
+void
+gk_app_balance_init(struct gkyl_gyrokinetic_app *app, const struct gkyl_gyrokinetic_diagnostics *inp)
+{
+  // Must be called before the species are initialized, as they compute the
+  // balances summed here.
+  app->bal = (struct gk_app_balance){};
+  app->bal.num_diags = inp->num_balance_diags;
+  app->bal.num_comp = 5; // Same as the species balance.
+  for (int d = 0; d < app->bal.num_diags; d++) {
+    app->bal.diag_types[d] = inp->balance_diags[d];
+    app->bal.diag[d] = gkyl_dynvec_new(GKYL_DOUBLE, app->bal.num_comp);
+    app->bal.is_first_write[d] = true;
+  }
+}
+
+void
+gk_app_balance_calc(gkyl_gyrokinetic_app *app, double tm)
+{
+  // Sum the balance of each dynamic species. Must be called after the species
+  // balances are computed.
+  for (int d = 0; d < app->bal.num_diags; d++) {
+    double row[app->bal.num_comp];
+    for (int k = 0; k < app->bal.num_comp; k++) {
+      row[k] = 0.0;
+    }
+    double mom_tot = 0.0, dt = 0.0;
+    for (int i = 0; i < app->num_species; ++i) {
+      struct gk_species_balance *sbal = &app->species[i].bal;
+      if (!sbal->enabled) {
+        continue;
+      }
+      int sd = -1;
+      for (int k = 0; k < sbal->num_diags; k++) {
+        sd = sbal->diag_types[k] == app->bal.diag_types[d] ? k : sd;
+      }
+      assert(sd >= 0); // The species computes every balance of the app.
+      double srow[sbal->num_comp];
+      gkyl_dynvec_getlast(sbal->diag[sd], srow);
+      for (int k = 0; k < 4; k++) {
+        row[k] += srow[k];
+      }
+      mom_tot += sbal->mom[sd];
+      dt = sbal->dt;
+    }
+    if (dt > 0.0) {
+      row[4] = row[3] * dt / mom_tot;
+    }
+    gkyl_dynvec_append(app->bal.diag[d], tm, row);
+  }
+}
+
+void
+gk_app_balance_write(gkyl_gyrokinetic_app *app)
+{
+  struct timespec wst = gkyl_wall_clock();
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+  for (int d = 0; d < app->bal.num_diags; d++) {
+    if (rank == 0) {
+      // File named after the balance, e.g. <name>-balance_particle.gkyl.
+      const char *fmt = "%s-balance_%s.gkyl";
+      const char *diag_name = gkyl_gyrokinetic_balance_diag_strs[app->bal.diag_types[d]];
+      int sz = gkyl_calc_strlen(fmt, app->name, diag_name);
+      char fileNm[sz + 1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, diag_name);
+
+      if (app->bal.is_first_write[d]) {
+        struct gkyl_msgpack_map_elem io_meta_bal[] = {
+          {
+            .key = "Description",
+            .elem_type = GKYL_MP_STRING,
+            .cval = "Balance summed over species.",
+          },
+          {
+            .key = "Columns",
+            .elem_type = GKYL_MP_STRING,
+            .cval = "mom_dot, src_mom, bflux_tot_mom, mom_err, mom_err_norm",
+          }
+        };
+        int io_meta_len[] = {app->gk_geom->io_meta_basic_len, 2};
+        const struct gkyl_msgpack_map_elem *io_meta[] = {app->gk_geom->io_meta_basic, io_meta_bal};
+        struct gkyl_msgpack_data *mt =
+          gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
+
+        gkyl_dynvec_write_wmeta(app->bal.diag[d], fileNm, mt);
+        gkyl_msgpack_data_release(mt);
+        app->bal.is_first_write[d] = false;
+      } else {
+        gkyl_dynvec_awrite(app->bal.diag[d], fileNm);
+      }
+      app->stat.n_diag_io += 1;
+    }
+    gkyl_dynvec_clear(app->bal.diag[d]);
+  }
+  app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
+}
+
+void
+gk_app_balance_release(const struct gkyl_gyrokinetic_app *app)
+{
+  for (int d = 0; d < app->bal.num_diags; d++) {
+    gkyl_dynvec_release(app->bal.diag[d]);
   }
 }

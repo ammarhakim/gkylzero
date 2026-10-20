@@ -550,8 +550,8 @@ main(int argc, char **argv)
       },
 
     .time_rate_diagnostics = true,
-    .num_balance_moments = 1,
-    .balance_moments = {GKYL_F_MOMENT_M0},
+    .num_balance_diags = 1,
+    .balance_diags = {GKYL_BALANCE_GK_PARTICLE},
   };
 
   // Projection parameters for the sources.
@@ -697,8 +697,8 @@ main(int argc, char **argv)
       },
 
     .time_rate_diagnostics = true,
-    .num_balance_moments = 1,
-    .balance_moments = {GKYL_F_MOMENT_M0},
+    .num_balance_diags = 1,
+    .balance_diags = {GKYL_BALANCE_GK_PARTICLE},
   };
 
   // field
@@ -731,6 +731,8 @@ main(int argc, char **argv)
         .bfield_ctx = &ctx,
         .world = {0.},
       },
+
+    .diagnostics = {.num_balance_diags = 1, .balance_diags = {GKYL_BALANCE_GK_PARTICLE}},
 
     .num_species = 2,
     .species = {elc, ion},
