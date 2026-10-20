@@ -6,10 +6,12 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
-// Construct a node from its global cell index. Avoid accumulating quadrature
-// increments from a rank-local origin: the same node must have the same value
-// on either side of an MPI face. num_nodes is the number of Gauss nodes per
-// cell, or the number of equal intervals per cell for corner/face nodes.
+/**
+ * Construct a node from its global cell index. Avoid accumulating quadrature
+ * increments from a rank-local origin: the same node must have the same value
+ * on either side of an MPI face. num_nodes is the number of Gauss nodes per
+ * cell, or the number of equal intervals per cell for corner/face nodes.
+ */
 static inline double
 gk_geometry_node_coord(
   const struct gkyl_rect_grid *grid, const struct gkyl_range *local,
