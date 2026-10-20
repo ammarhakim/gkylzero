@@ -579,9 +579,9 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   double polarization_weight = 0.0;
   double polarization_bmag = gkf->info.polarization_bmag ? gkf->info.polarization_bmag :
                                                            app->bmag_ref;
-  // Linearized polarization density
-  for (int i = 0; i < app->num_species; ++i) {
-    struct gk_species *gks = &app->species[i];
+  // Linearized polarization density (adiabatic species have none).
+  for (int i = 0; i < gkf->num_rhoc_species; ++i) {
+    struct gk_species *gks = &app->species[gkf->rhoc_species_idx[i]];
     polarization_weight +=
       gks->info.polarization_density * gks->info.mass / pow(polarization_bmag, 2);
   }
