@@ -57,7 +57,14 @@ class CacheManager:
         self.url = args.url.rstrip("/")
         parsed = urllib.parse.urlsplit(self.url)
         require(parsed.scheme in ("http", "https") and parsed.netloc and "/job/" in parsed.path, "invalid BUILD_URL")
-        self.controller = urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, parsed.path.split("/job/", 1)[0], "", ""))
+        build_controller = urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, parsed.path.split("/job/", 1)[0], "", ""))
+        controller = urllib.parse.urlsplit(args.controller_url or build_controller)
+        require(controller.scheme in ("http", "https") and controller.netloc
+                and not controller.username and not controller.password
+                and not controller.query and not controller.fragment and "/job/" not in controller.path,
+                "invalid controller URL")
+        self.controller = urllib.parse.urlunsplit((controller.scheme, controller.netloc,
+                                                   controller.path.rstrip("/"), "", ""))
         self.auth_file = Path(args.auth_file) if args.auth_file else None
         self.candidates = self.root / "candidate-cache" / self.platform
         self.baselines = self.root / "baseline-cache" / self.platform
@@ -339,6 +346,7 @@ def main():
     parser.add_argument("--job", required=True)
     parser.add_argument("--number", required=True)
     parser.add_argument("--url", required=True)
+    parser.add_argument("--controller-url", default="")
     parser.add_argument("--auth-file", default="")
     parser.add_argument("--sha", default="")
     args = parser.parse_args()

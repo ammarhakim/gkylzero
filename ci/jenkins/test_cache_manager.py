@@ -41,7 +41,7 @@ class CacheManagerTests(unittest.TestCase):
     def args(self, tag=None, number="2"):
         return types.SimpleNamespace(root=str(self.root), platform=self.platform,
             tag=tag or self.current, job="test", number=number,
-            url=f"http://jenkins.invalid/job/test/{number}/", auth_file="")
+            url=f"http://jenkins.invalid/job/test/{number}/", controller_url="", auth_file="")
 
     def manager(self, tag=None, number="2"):
         return cache_manager.CacheManager(self.args(tag, number))
@@ -107,6 +107,19 @@ class CacheManagerTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "unavailable"):
             self.manager().begin()
         self.assertTrue(path.exists())
+
+    def test_controller_query_uses_local_url_instead_of_browser_tunnel(self):
+        self.register("jenkins-test-1", "1")
+        self.candidate("jenkins-test-1")
+        args = self.args()
+        args.url = "http://127.0.0.1:8083/job/test/2/"
+        args.controller_url = "http://127.0.0.1:8080"
+        manager = cache_manager.CacheManager(args)
+        with patch.object(manager, "active_slurm_directories", return_value=set()), \
+             patch("cache_manager.urllib.request.urlopen", wraps=self.api) as query:
+            manager.begin()
+        self.assertEqual(query.call_args.args[0].full_url,
+                         "http://127.0.0.1:8080/job/test/1/api/json?tree=building,result")
 
     def test_different_runs_of_same_commit_keep_separate_directories(self):
         sha = "a" * 40

@@ -159,6 +159,7 @@ set the following values. Paste an expanded scratch path, not a literal `$USER`.
 | `STELLAR_CPU_NODE_LABEL` | Optional node label; default `stellar_cpu` |
 | `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for CI reporting, regression checking, and cache tools; default `main`. Set it only while staging a CI change |
 | `CI_JENKINS_READ_AUTH_FILE` | Optional agent-readable Jenkins `user:api-token` file; default `$GKEYLL_CI_ROOT/jenkins_home/jenkins-cli.auth` |
+| `CI_JENKINS_LOCAL_URL` | Optional Jenkins API URL reachable from the login-side agent; default `http://127.0.0.1:8080`. Use the server port, not the laptop SSH tunnel port |
 
 Do not set a broad global `PATH` to an interactive shell configuration. The
 Pipeline initializes Stellar modules for each build and Slurm job. Its

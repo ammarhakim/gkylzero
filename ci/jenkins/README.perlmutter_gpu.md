@@ -154,6 +154,7 @@ System → Global properties → Environment variables**, set:
 | `PERLMUTTER_GPU_REGRESSION_TEST_TIMEOUT` | Optional; default `900` |
 | `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for CI reporting, regression checking, and cache tools; default `main`. Set it only while staging a CI change |
 | `CI_JENKINS_READ_AUTH_FILE` | Optional agent-readable Jenkins `user:api-token` file; default `$GKEYLL_CI_ROOT/jenkins_home/jenkins-cli.auth` |
+| `CI_JENKINS_LOCAL_URL` | Optional Jenkins API URL reachable from the login-side agent; default `http://127.0.0.1:8080`. Use the server port, not the laptop SSH tunnel port |
 
 `GKEYLL_CI_ROOT` retains the baseline and latest candidate build/results visible
 to GPU nodes. The next run removes inactive old candidates and build-tag
