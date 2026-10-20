@@ -51,17 +51,6 @@ get_filename_from_path(const char *filepath, char *out_buffer, size_t out_size)
   }
 }
 
-static double
-calc_running_surf_coord(double coord_lo, int i, double dx)
-{
-  double dels[3] = {(1.0 - 1.0 / sqrt(3)) / 2.0, 1.0 / sqrt(3), (1.0 - 1.0 / sqrt(3)) / 2.0};
-  double coord = coord_lo;
-  for (int j = 0; j < i; j++) {
-    coord += dels[j % 3] * dx;
-  }
-  return coord;
-}
-
 static void
 gk_geometry_set_nodal_ranges(struct gk_geometry *up)
 {
