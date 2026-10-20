@@ -1678,7 +1678,7 @@ gkyl_gyrokinetic_app_write_geometry(
     app, app->gk_geom->geo_int.qprofile, arr_ho1, "geo_int_qprofile", "Safety factor."
   );
   gyrokinetic_app_geometry_copy_and_write(
-    app, app->gk_geom->geo_int.rtg33inv, arr_ho1, "geo_int_rtg33inv",
+    app, app->gk_geom->geo_int.B3overB, arr_ho1, "geo_int_B3overB",
     "Reciprocal square root of the zz covariant metric component."
   );
   gyrokinetic_app_geometry_copy_and_write(
@@ -4159,7 +4159,7 @@ gkyl_gyrokinetic_app_read_geometry(
     app, app->gk_geom->geo_int.qprofile, arr_ho1, geometry_inp->geometry_path, "geo_int_qprofile"
   );
   gyrokinetic_app_geometry_read_and_copy(
-    app, app->gk_geom->geo_int.rtg33inv, arr_ho1, geometry_inp->geometry_path, "geo_int_rtg33inv"
+    app, app->gk_geom->geo_int.B3overB, arr_ho1, geometry_inp->geometry_path, "geo_int_B3overB"
   );
   gyrokinetic_app_geometry_read_and_copy(
     app, app->gk_geom->geo_int.dualcurlbhatoverB, arr_ho3, geometry_inp->geometry_path,
