@@ -15,6 +15,27 @@
 #include <time.h>
 
 // initialize species object
+
+// Reflecting wall of the distributions on the lower or upper edge of direction dir.
+static struct gkyl_bc_pkpm_species_reflect *
+pkpm_species_reflect_new(gkyl_pkpm_app *app, struct pkpm_species *s, int dir, enum gkyl_edge_loc edge)
+{
+  return gkyl_bc_pkpm_species_reflect_inew(&(struct gkyl_bc_pkpm_species_reflect_inp){
+    .dir = dir,
+    .edge = edge,
+    .cdim = app->cdim,
+    .phase_basis = &app->basis,
+    .phase_basis_on_dev = app->basis_on_dev.basis,
+    .conf_num_basis = app->confBasis.num_basis,
+    .num_blocks = PKPM_DIST_NUM_BLOCKS,
+    .skin_r = edge == GKYL_LOWER_EDGE ? &s->lower_skin_dist[dir] : &s->upper_skin_dist[dir],
+    .ghost_r = edge == GKYL_LOWER_EDGE ? &s->lower_ghost_dist[dir] : &s->upper_ghost_dist[dir],
+    .phase_range_ext = &s->local_ext,
+    .conf_range_ext = &app->local_ext,
+    .use_gpu = app->use_gpu,
+  });
+}
+
 void
 pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm_species *s)
 {
@@ -80,13 +101,18 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   }
   gkyl_sub_range_init(&s->local_ext_conf, &s->local_ext, lower_conf, upper_conf);
 
-  // allocate distribution function arrays
-  // PKPM has two distribution functions F_0 and T_perp*G, first two Laguerre moments
-  s->f = mkarr(app->use_gpu, 2 * app->basis.num_basis, s->local_ext.volume);
-  s->f1 = mkarr(app->use_gpu, 2 * app->basis.num_basis, s->local_ext.volume);
+  // allocate distribution function arrays: the normalized distributions
+  // [F, G, M0_perp (x, y, z), N_perp (x, y, z)] (enum pkpm_dist_block)
+  int nc_dist = PKPM_DIST_NUM_BLOCKS * app->basis.num_basis;
+  s->f = mkarr(app->use_gpu, nc_dist, s->local_ext.volume);
+  s->f1 = mkarr(app->use_gpu, nc_dist, s->local_ext.volume);
   // physical distributions (position-map Jacobian divided out) for the output and the L2 norm
-  s->f_no_J = mkarr(app->use_gpu, 2 * app->basis.num_basis, s->local_ext.volume);
-  s->fnew = mkarr(app->use_gpu, 2 * app->basis.num_basis, s->local_ext.volume);
+  s->f_no_J = mkarr(app->use_gpu, nc_dist, s->local_ext.volume);
+  s->fnew = mkarr(app->use_gpu, nc_dist, s->local_ext.volume);
+  gkyl_array_clear(s->f, 0.0);
+  gkyl_array_clear(s->f1, 0.0);
+  gkyl_array_clear(s->f_no_J, 0.0);
+  gkyl_array_clear(s->fnew, 0.0);
   s->blk_in = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
   s->blk_out = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
   // allocate fluid arrays [rho, rho ux, rho uy, rho uz, E]
@@ -99,8 +125,8 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   s->f_no_J_host = s->f_no_J;
   s->fluid_host = s->fluid;
   if (app->use_gpu) {
-    s->f_host = mkarr(false, 2 * app->basis.num_basis, s->local_ext.volume);
-    s->f_no_J_host = mkarr(false, 2 * app->basis.num_basis, s->local_ext.volume);
+    s->f_host = mkarr(false, nc_dist, s->local_ext.volume);
+    s->f_no_J_host = mkarr(false, nc_dist, s->local_ext.volume);
     s->fluid_host = mkarr(false, 5 * app->confBasis.num_basis, app->local_ext.volume);
   }
 
@@ -457,10 +483,12 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     buff_sz_fluid = buff_sz_fluid > vol_fluid ? buff_sz_fluid : vol_fluid;
   }
 
-  s->bc_buffer_dist = mkarr(app->use_gpu, 2 * app->basis.num_basis, buff_sz_dist);
+  s->bc_buffer_dist = mkarr(app->use_gpu, s->f->ncomp, buff_sz_dist);
   // buffer arrays for fixed function boundary conditions on distribution function
-  s->bc_buffer_lo_fixed_dist = mkarr(app->use_gpu, 2 * app->basis.num_basis, buff_sz_dist);
-  s->bc_buffer_up_fixed_dist = mkarr(app->use_gpu, 2 * app->basis.num_basis, buff_sz_dist);
+  s->bc_buffer_lo_fixed_dist = mkarr(app->use_gpu, s->f->ncomp, buff_sz_dist);
+  s->bc_buffer_up_fixed_dist = mkarr(app->use_gpu, s->f->ncomp, buff_sz_dist);
+  gkyl_array_clear(s->bc_buffer_lo_fixed_dist, 0.0);
+  gkyl_array_clear(s->bc_buffer_up_fixed_dist, 0.0);
 
   s->bc_buffer_fluid = mkarr(app->use_gpu, 5 * app->confBasis.num_basis, buff_sz_fluid);
   // buffer arrays for fixed function boundary conditions on momentum
@@ -475,6 +503,8 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   // (gkyl_dg_pkpm_fluid_flux_surf_absorb), not the HLL flux against the ghost state.
   s->bc_is_absorb = false;
   for (int d = 0; d < cdim; ++d) {
+    s->bc_lo_reflect[d] = 0;
+    s->bc_up_reflect[d] = 0;
     // Lower BC updater. Copy BCs by default.
     enum gkyl_bc_basic_type bctype_dist = GKYL_BC_COPY;
     enum gkyl_bc_basic_type bctype_fluid = GKYL_BC_COPY;
@@ -486,8 +516,10 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
       bctype_fluid = GKYL_BC_COPY;
       s->bc_is_absorb = true;
     } else if (s->lower_bc[d] == GKYL_SPECIES_REFLECT) {
-      bctype_dist = GKYL_BC_PKPM_SPECIES_REFLECT;
+      // the distributions use bc_lo_reflect; the basic updater is not applied there
+      bctype_dist = GKYL_BC_COPY;
       bctype_fluid = GKYL_BC_PKPM_MOM_REFLECT;
+      s->bc_lo_reflect[d] = pkpm_species_reflect_new(app, s, d, GKYL_LOWER_EDGE);
     } else if (s->lower_bc[d] == GKYL_SPECIES_FIXED_FUNC) {
       bctype_dist = GKYL_BC_FIXED_FUNC;
       bctype_fluid = GKYL_BC_FIXED_FUNC;
@@ -513,8 +545,9 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
       bctype_fluid = GKYL_BC_COPY;
       s->bc_is_absorb = true;
     } else if (s->upper_bc[d] == GKYL_SPECIES_REFLECT) {
-      bctype_dist = GKYL_BC_PKPM_SPECIES_REFLECT;
+      bctype_dist = GKYL_BC_COPY;
       bctype_fluid = GKYL_BC_PKPM_MOM_REFLECT;
+      s->bc_up_reflect[d] = pkpm_species_reflect_new(app, s, d, GKYL_UPPER_EDGE);
     } else if (s->upper_bc[d] == GKYL_SPECIES_FIXED_FUNC) {
       bctype_dist = GKYL_BC_FIXED_FUNC;
       bctype_fluid = GKYL_BC_FIXED_FUNC;
@@ -781,7 +814,7 @@ pkpm_species_accumulate_conf_phase(
 )
 {
   int np = app->basis.num_basis;
-  for (int b = 0; b < 2; ++b) {
+  for (int b = 0; b < phase->ncomp / np; ++b) {
     gkyl_array_set_offset(s->blk_in, 1.0, phase, b * np);
     gkyl_array_clear(s->blk_out, 0.0);
     gkyl_dg_mul_conf_phase_op_accumulate_range(
@@ -969,9 +1002,11 @@ pkpm_species_apply_bc(gkyl_pkpm_app *app, const struct pkpm_species *species, st
     if (is_np_bc[d]) {
       switch (species->lower_bc[d]) {
         case GKYL_SPECIES_COPY:
-        case GKYL_SPECIES_REFLECT:
         case GKYL_SPECIES_ABSORB:
           gkyl_bc_basic_advance(species->bc_lo_dist[d], species->bc_buffer_dist, f);
+          break;
+        case GKYL_SPECIES_REFLECT:
+          gkyl_bc_pkpm_species_reflect_advance(species->bc_lo_reflect[d], app->field->bvar, f);
           break;
         case GKYL_SPECIES_FIXED_FUNC:
           gkyl_bc_basic_advance(species->bc_lo_dist[d], species->bc_buffer_lo_fixed_dist, f);
@@ -986,9 +1021,11 @@ pkpm_species_apply_bc(gkyl_pkpm_app *app, const struct pkpm_species *species, st
 
       switch (species->upper_bc[d]) {
         case GKYL_SPECIES_COPY:
-        case GKYL_SPECIES_REFLECT:
         case GKYL_SPECIES_ABSORB:
           gkyl_bc_basic_advance(species->bc_up_dist[d], species->bc_buffer_dist, f);
+          break;
+        case GKYL_SPECIES_REFLECT:
+          gkyl_bc_pkpm_species_reflect_advance(species->bc_up_reflect[d], app->field->bvar, f);
           break;
         case GKYL_SPECIES_FIXED_FUNC:
           gkyl_bc_basic_advance(species->bc_up_dist[d], species->bc_buffer_up_fixed_dist, f);
@@ -1236,6 +1273,12 @@ pkpm_species_release(const gkyl_pkpm_app *app, const struct pkpm_species *s)
   for (int d = 0; d < app->cdim; ++d) {
     gkyl_bc_basic_release(s->bc_lo_dist[d]);
     gkyl_bc_basic_release(s->bc_up_dist[d]);
+    if (s->bc_lo_reflect[d]) {
+      gkyl_bc_pkpm_species_reflect_release(s->bc_lo_reflect[d]);
+    }
+    if (s->bc_up_reflect[d]) {
+      gkyl_bc_pkpm_species_reflect_release(s->bc_up_reflect[d]);
+    }
     gkyl_bc_basic_release(s->bc_lo_fluid[d]);
     gkyl_bc_basic_release(s->bc_up_fluid[d]);
   }

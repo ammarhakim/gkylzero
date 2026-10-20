@@ -256,8 +256,10 @@ pkpm_species_source_kinetic_rhs(
     gkyl_array_copy(src->f_src, src->f_src_host);
   }
   gkyl_vlasov_position_map_rescale_jacobpos(app->pos_map, &app->basis, &s->local, src->f_src, src->f_src);
-  gkyl_array_accumulate_range(rhs, src->scale, src->f_src, &s->local);
-  // Normalization change: the density source removes (m n_s / rho) [F, G].
+  // the source distribution is gyrotropic: it adds to the [F, G] blocks only
+  gkyl_array_accumulate_offset_range(rhs, src->scale, src->f_src, PKPM_DIST_F * app->basis.num_basis, &s->local);
+  // Normalization change: the density source removes (m n_s / rho) of every normalized
+  // distribution [F, G, M0_perp, N_perp].
   gkyl_dg_div_op_range(src->div_mem, &app->confBasis, 0, src->n_ratio, 0, src->n_src, 0, s->pkpm_rho, &app->local);
   pkpm_species_accumulate_conf_phase(app, s, rhs, -src->scale, src->n_ratio, fin);
   app->stat.species_rhs_tm += gkyl_time_diff_now_sec(tm);

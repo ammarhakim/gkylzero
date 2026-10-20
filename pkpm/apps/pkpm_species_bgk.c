@@ -99,7 +99,8 @@ pkpm_species_bgk_set_fixed_temp(gkyl_pkpm_app *app, struct pkpm_species *s, stru
   gkyl_array_copy(bgk->fixed_vtsq_host, bgk->fixed_vtsq);
 }
 
-// nu (f_target - f) into the configuration-pass right-hand side (before the closures:
+// nu (f_target - f) into the configuration-pass right-hand side; the target is gyrotropic
+// ([F, G] only), so the first harmonic [M0_perp, N_perp] relaxes to zero (before the closures:
 // with a fixed temperature the target's energy differs from the state's and the closures
 // keep the constraints exact while the fluid energy carries the change).
 void

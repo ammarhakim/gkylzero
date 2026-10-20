@@ -38,6 +38,15 @@ pkpm_array_meta_new(struct pkpm_output_meta meta)
   mpack_write_cstr(&writer, "basisType");
   mpack_write_cstr(&writer, meta.basis_type);
 
+  // The phase-space split of a hybrid basis: the distribution files hold
+  // PKPM_DIST_NUM_BLOCKS blocks, whose component count alone does not determine it.
+  if (meta.num_vdim > 0) {
+    mpack_write_cstr(&writer, "num_cdim");
+    mpack_write_i64(&writer, meta.num_cdim);
+    mpack_write_cstr(&writer, "num_vdim");
+    mpack_write_i64(&writer, meta.num_vdim);
+  }
+
   mpack_complete_map(&writer);
 
   int status = mpack_writer_destroy(&writer);
@@ -563,6 +572,8 @@ gkyl_pkpm_app_write_species(gkyl_pkpm_app *app, int sidx, double tm, int frame)
     .stime = tm,
     .poly_order = app->poly_order,
     .basis_type = app->basis.id,
+    .num_cdim = app->cdim,
+    .num_vdim = 1,
   });
 
   struct pkpm_species *s = &app->species[sidx];
@@ -1432,6 +1443,9 @@ gkyl_pkpm_app_from_file_field(gkyl_pkpm_app *app, const char *fname)
     gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local, app->field->em, app->field->em);
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
       pkpm_field_apply_bc(app, app->field, app->field->em);
+      // b of the restart field, over the extended range (the species reflecting walls read
+      // it in the ghost cells)
+      pkpm_field_calc_bvar(app, app->field, app->field->em);
     }
   }
 

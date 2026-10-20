@@ -339,24 +339,6 @@ pkpm_mom_no_slip_bc(size_t nc, double *out, const double *inp, void *ctx)
   }
 }
 
-GKYL_CU_D static void
-pkpm_species_reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
-{
-  struct dg_bc_ctx *mc = (struct dg_bc_ctx *)ctx;
-  int dir = mc->dir, cdim = mc->cdim;
-  int nbasis = mc->basis->num_basis;
-
-  int f_loc = 0 * nbasis;
-  int g_loc = 1 * nbasis;
-
-  // reflect F_0
-  mc->basis->flip_odd_sign(dir, &inp[f_loc], &out[f_loc]);
-  mc->basis->flip_odd_sign(dir + cdim, &out[f_loc], &out[f_loc]);
-  // reflect G
-  mc->basis->flip_odd_sign(dir, &inp[g_loc], &out[g_loc]);
-  mc->basis->flip_odd_sign(dir + cdim, &out[g_loc], &out[g_loc]);
-}
-
 // Reflecting wall BCs for Euler equations
 GKYL_CU_D static void
 euler_reflect_bc(size_t nc, double *out, const double *inp, void *ctx)

@@ -69,11 +69,6 @@ gkyl_bc_basic_create_arr_copy_func(
       fout->func = maxwell_theta_pole_bc;
       break;
 
-    // PKPM Reflecting wall for distribution function
-    case GKYL_BC_PKPM_SPECIES_REFLECT:
-      fout->func = pkpm_species_reflect_bc;
-      break;
-
     // PKPM Reflecting wall for momentum
     case GKYL_BC_PKPM_MOM_REFLECT:
       fout->func = pkpm_mom_reflect_bc;
@@ -165,7 +160,6 @@ gkyl_bc_basic_advance(
       break;
 
     case GKYL_BC_DISTF_REFLECT:
-    case GKYL_BC_PKPM_SPECIES_REFLECT:
       gkyl_array_flip_copy_to_buffer_fn(
         buff_arr->data, f_arr, up->dir + up->cdim, up->skin_r, up->array_copy_func->on_dev
       );

@@ -17,6 +17,7 @@
 #include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_bc_basic.h>
+#include <gkyl_bc_pkpm_species_reflect.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_em_vars.h>
 #include <gkyl_dg_calc_pkpm_em_coupling.h>
@@ -70,6 +71,7 @@ struct pkpm_output_meta {
   int poly_order; // polynomial order
   const char *basis_type; // name of basis functions
   char basis_type_nm[64]; // used during read
+  int num_cdim, num_vdim; // phase-space split of a hybrid basis (written when num_vdim > 0)
 };
 
 // data for moments
@@ -176,6 +178,17 @@ struct pkpm_lbo_collisions {
   gkyl_dg_updater_collisions *coll_slvr; // collision solver
 };
 
+// Blocks of the evolved normalized distributions, one phase-space expansion each:
+// [F, G, M0_perp (x, y, z), N_perp (x, y, z)]. M0_perp and N_perp are the first gyroangle
+// harmonic as Cartesian vectors perpendicular to b (normalized_first_harmonic.tex).
+enum pkpm_dist_block {
+  PKPM_DIST_F = 0,
+  PKPM_DIST_G = 1,
+  PKPM_DIST_M0 = 2, // first of the three Cartesian components of M0_perp
+  PKPM_DIST_N = 5, // first of the three Cartesian components of N_perp
+  PKPM_DIST_NUM_BLOCKS = 8,
+};
+
 // species data
 struct pkpm_species {
   struct gkyl_pkpm_species info; // data for species
@@ -192,9 +205,9 @@ struct pkpm_species {
   struct gkyl_rect_grid grid_vel; // velocity space grid
   struct gkyl_range local_vel, local_ext_vel; // local, local-ext velocity-space ranges
 
-  struct gkyl_array *f, *f1, *fnew; // normalized distributions [F, G] on the w = v_par/xi grid
+  struct gkyl_array *f, *f1, *fnew; // normalized distributions [F, G, M0_perp, N_perp] on the w = v_par/xi grid
   struct gkyl_array *blk_in, *blk_out; // one-block (F or G) scratch for configuration x phase products
-  struct gkyl_array *f_no_J; // physical distributions [F, G] (position-map Jacobian divided out; output and L2)
+  struct gkyl_array *f_no_J; // physical distributions (position-map Jacobian divided out; output and L2)
   struct gkyl_array *f_no_J_host; // host copy of f_no_J for I/O
   struct gkyl_array *fluid, *fluid1, *fluidnew; // fluid state [rho, rho ux, rho uy, rho uz, E]
 
@@ -307,6 +320,10 @@ struct pkpm_species {
   // Pointers to updaters that apply BC on distribution functions and momentum.
   struct gkyl_bc_basic *bc_lo_dist[3];
   struct gkyl_bc_basic *bc_up_dist[3];
+  // reflecting walls of the distributions (0 at other walls): the mirror image in the ghost
+  // cell's field-aligned coordinates, from b in the skin and ghost cells
+  struct gkyl_bc_pkpm_species_reflect *bc_lo_reflect[3];
+  struct gkyl_bc_pkpm_species_reflect *bc_up_reflect[3];
   struct gkyl_bc_basic *bc_lo_fluid[3];
   struct gkyl_bc_basic *bc_up_fluid[3];
   // To simplify BC application, store local skin and ghost ranges for distribution functions
@@ -729,8 +746,8 @@ void pkpm_species_source_release(const gkyl_pkpm_app *app, const struct pkpm_sou
 // the initial temperature (then the fluid energy relaxes at the same rate).
 void pkpm_species_bgk_init(gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk);
 void pkpm_species_bgk_set_fixed_temp(gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk);
-// out += a conf * phase for both blocks of a [F, G] phase array (the bin-op kernels act on
-// one block of num_basis components).
+// out += a conf * phase for every block of a phase array (the bin-op kernels act on one
+// block of num_basis components); phase may hold fewer blocks than out (e.g. [F, G] only).
 void pkpm_species_accumulate_conf_phase(
   gkyl_pkpm_app *app, struct pkpm_species *s, struct gkyl_array *out, double a,
   const struct gkyl_array *conf, const struct gkyl_array *phase
