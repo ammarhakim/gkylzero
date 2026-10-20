@@ -1,0 +1,12 @@
+gyrokinetic/zero/gkyl_gk_geometry_priv.h
+}
+
+static double
+calc_running_coord(double coord_lo, int i, double dx)
+@manauref
+manauref
+10 hours ago
+Collaborator
+this function is no longer needed. Delete.
+
+Also, if you look at the unit tests, this function is used a bunch still. I think those unit tests should be changed to use gk_geometry_node_coord instead.
