@@ -1,0 +1,9 @@
+In these files, use git rename or git mv to rename all files that have rtg33inv to B3overB. This diagnostic was renamed in this PR and we want to rename all the files for this test here
+
+---
+
+Do the command again. I accidently deleted the changes
+
+---
+
+Do the command again. I accidently deleted the changes

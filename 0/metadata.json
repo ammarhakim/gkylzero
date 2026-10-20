@@ -1,0 +1,71 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M5DCZWMJFT8ZNZVB243VZW2S",
+  "session_id": "01a15ace-0f97-7062-a70e-3518265d7b8a",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-20T19:35:40.188385036Z",
+  "branch": "debug-nunif-grid",
+  "checkpoints_count": 4,
+  "save_step_count": 2,
+  "files_touched": [
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b0-geo_int_B3overB.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b0-geo_int_rtg33inv.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b1-geo_int_B3overB.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b1-geo_int_rtg33inv.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b2-geo_int_B3overB.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b2-geo_int_rtg33inv.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b3-geo_int_B3overB.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b3-geo_int_rtg33inv.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b4-geo_int_B3overB.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b4-geo_int_rtg33inv.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b5-geo_int_B3overB.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b5-geo_int_rtg33inv.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b6-geo_int_B3overB.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b6-geo_int_rtg33inv.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b7-geo_int_B3overB.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b7-geo_int_rtg33inv.gkyl"
+  ],
+  "agent": "Codex",
+  "model": "gpt-6-astra",
+  "turn_id": "d68c38d85ae4",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 17635,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 149120,
+    "output_tokens": 1280,
+    "api_call_count": 9,
+    "subagent_tokens_complete": true
+  },
+  "session_metrics": {
+    "turn_count": 4
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-20T19:35:40.17550148Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 0,
+    "total_lines_changed": 0,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
