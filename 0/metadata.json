@@ -1,0 +1,67 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M5C4RJC9Z3T7PA3M0C5HPJA0",
+  "session_id": "01a13933-5499-7a22-bd72-cedde1f49b8e",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-20T07:52:41.109706Z",
+  "branch": "debug-nunif-grid",
+  "checkpoints_count": 6,
+  "save_step_count": 2,
+  "files_touched": [
+    "gyrokinetic/apps/gk_neut_species_react.c",
+    "gyrokinetic/apps/gk_species_react.c"
+  ],
+  "agent": "Codex",
+  "model": "gpt-6-sol",
+  "turn_id": "990fe1c744f8",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 350877,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 12668800,
+    "output_tokens": 40555,
+    "api_call_count": 138
+  },
+  "session_metrics": {
+    "turn_count": 6
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-20T07:52:40.983712Z",
+    "agent_lines": 0,
+    "agent_removed": 2,
+    "human_added": 33077,
+    "human_modified": 131,
+    "human_removed": 0,
+    "total_committed": 33089,
+    "total_lines_changed": 46722,
+    "agent_percentage": 0.004280638671289757,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 889,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "gyrokinetic/creg/rt_gk_fluid_species.c": 888,
+        "new_data_flag": 1
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 901,
+      "agent_lines_removed": 2
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 889,
+      "agent_lines_removed": 0
+    }
+  ]
+}
