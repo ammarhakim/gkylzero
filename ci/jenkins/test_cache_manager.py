@@ -130,6 +130,24 @@ class CacheManagerTests(unittest.TestCase):
         self.assertFalse((self.root / "baseline-cache" / self.platform / sha).exists())
         self.assertEqual(self.manager().claim_baseline(sha), "build")
 
+    def test_second_run_waits_then_reuses_published_baseline(self):
+        sha = "c" * 40
+        first = self.manager("jenkins-test-1", "1")
+        second = self.manager("jenkins-test-2", "2")
+        self.states = {"1": "building", "2": "building"}
+        first.begin()
+        second.begin()
+        self.assertEqual(first.claim_baseline(sha), "build")
+        self.assertEqual(second.claim_baseline(sha), "wait")
+        baseline = self.root / "baseline-cache" / self.platform / sha
+        with patch.object(cache_manager.CacheManager, "baseline_valid",
+                          side_effect=lambda path, commit: path == baseline and
+                          (path / "cache-manifest.txt").exists()):
+            (baseline / "cache-manifest.txt").write_text("complete")
+            first.publish_baseline(sha)
+            self.assertEqual(second.claim_baseline(sha), "hit")
+            self.assertFalse((baseline / "cache-owner.txt").exists())
+
     def test_symlink_is_not_followed(self):
         outside = self.root / "outside"
         outside.mkdir()
