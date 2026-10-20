@@ -1687,7 +1687,7 @@ check_mirror_field_direction(double curvature)
            surface ? face->normcurlbhat : vol->dualcurlbhat},
           {"dualcurlbhatoverB", 3, surface ? NULL : vol->dualcurlbhatoverB_nodal,
            surface ? NULL : vol->dualcurlbhatoverB},
-          {"rtg33inv", 1, surface ? NULL : vol->rtg33inv_nodal, surface ? NULL : vol->rtg33inv},
+          {"B3overB", 1, surface ? NULL : vol->B3overB_nodal, surface ? NULL : vol->B3overB},
           {"bioverJB", 3, surface ? NULL : vol->bioverJB_nodal, surface ? NULL : vol->bioverJB},
           {"cmag", 1, surface ? face->cmag_nodal : NULL, surface ? face->cmag : vol->cmag}
         };
