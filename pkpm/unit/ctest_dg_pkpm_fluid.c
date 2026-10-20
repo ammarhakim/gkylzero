@@ -1,8 +1,7 @@
-// Tests of the momentum solve of the refactored PKPM solver: the exact modal volume
-// kernel against quadrature, the face flux (dg_pkpm_fluid_flux_surf) against an
-// independent nodal assembly sharing only the ten-moment Riemann solver, and the
-// complete 1x momentum right-hand side against the legacy solver for b along x with
-// uniform density, where the two formulations coincide.
+// Tests of the momentum solve of the refactored PKPM solver: the exact modal volume kernel (with
+// the first-harmonic stress and heat flux) against quadrature, and the face flux
+// (dg_pkpm_fluid_flux_surf, the moment map of the eight-block kinetic HLL flux) against an
+// independent reference at interior faces, an absorbing wall and a reflecting wall.
 #include <math.h>
 
 #include <acutest.h>
@@ -141,16 +140,26 @@ eval_fluid(double t, const double *xn, double *restrict fout, void *ctx)
   fout[4] = 0.5 * (M[0] * M[0] + M[1] * M[1] + M[2] * M[2]) / m[0] + 0.5 * (m[1] + 2.0 * m[2]);
 }
 
-// Kinetic coupling moments [p_par, p_perp, q_par, q_perp] of the same state.
+// Kinetic coupling moments [p_par, p_perp, q_par, q_perp, s (3), r (3)] of the same state: s the
+// parallel-perpendicular stress and r the perpendicular heat flux of the first harmonic.
 static void
 eval_cmoms(double t, const double *xn, double *restrict fout, void *ctx)
 {
+  struct field_ctx *c = ctx;
+  int cdim = c->cdim;
+  double x = xn[0], y = cdim > 1 ? xn[1] : 0.3, z = cdim > 2 ? xn[2] : -0.2;
   double m[6];
   eval_moms(t, xn, m, ctx);
   fout[0] = m[1];
   fout[1] = m[2];
   fout[2] = m[4];
   fout[3] = m[5];
+  fout[4] = 0.1 * sin(x) * cos(y);
+  fout[5] = -0.15 * cos(z) + 0.05 * sin(y);
+  fout[6] = 0.08 * cos(x + y);
+  fout[7] = 0.2 * sin(y) * cos(z);
+  fout[8] = -0.1 * cos(x) + 0.05 * sin(z);
+  fout[9] = 0.12 * sin(x - y);
 }
 
 
@@ -187,7 +196,7 @@ setup(struct test_setup *s, struct field_ctx *ctx)
   int nc = s->basis.num_basis;
 
   s->moms = mkarr(6 * nc, s->local_ext.volume);
-  s->cmoms = mkarr(4 * nc, s->local_ext.volume);
+  s->cmoms = mkarr(10 * nc, s->local_ext.volume);
   s->euler = mkarr(3 * nc, s->local_ext.volume);
   s->nmoms = mkarr(6 * nc, s->local_ext.volume);
   s->fluid = mkarr(5 * nc, s->local_ext.volume);
@@ -200,7 +209,7 @@ setup(struct test_setup *s, struct field_ctx *ctx)
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&s->grid, &s->basis, 8, 6, eval_moms, ctx);
   gkyl_proj_on_basis_advance(proj, 0.0, &s->local_ext, s->moms);
   gkyl_proj_on_basis_release(proj);
-  proj = gkyl_proj_on_basis_new(&s->grid, &s->basis, 8, 4, eval_cmoms, ctx);
+  proj = gkyl_proj_on_basis_new(&s->grid, &s->basis, 8, 10, eval_cmoms, ctx);
   gkyl_proj_on_basis_advance(proj, 0.0, &s->local_ext, s->cmoms);
   gkyl_proj_on_basis_release(proj);
   proj = gkyl_proj_on_basis_new(&s->grid, &s->basis, 8, 3, eval_euler, ctx);
@@ -257,8 +266,9 @@ make_eqn(struct test_setup *s, const struct gkyl_array *flux)
   return gkyl_dg_pkpm_fluid_inew(&inp);
 }
 
-// Pressure tensor P = p_perp I + (p_par - p_perp) b b, heat flux q = b (q_par + 2 q_perp)/2,
-// density and energy at reference point z of cell cidx from the p=1 factors.
+// Pressure tensor P = p_perp I + (p_par - p_perp) b b + s b + b s, heat flux
+// q = b (q_par + 2 q_perp)/2 + r, density and energy at reference point z of cell cidx from the p=1
+// factors.
 static void
 pressure_at(
   const struct test_setup *s, long cidx, const double *z, double P[3][3], double q[3], double *rho,
@@ -267,10 +277,12 @@ pressure_at(
 {
   int nc = s->basis.num_basis;
   const double *m = gkyl_array_cfetch(s->moms, cidx), *b = gkyl_array_cfetch(s->bvar, cidx);
-  const double *fl = gkyl_array_cfetch(s->fluid, cidx);
-  double bq[3];
+  const double *fl = gkyl_array_cfetch(s->fluid, cidx), *cm = gkyl_array_cfetch(s->cmoms, cidx);
+  double bq[3], sq[3], rq[3];
   for (int i = 0; i < 3; ++i) {
     bq[i] = s->basis.eval_expand(z, &b[i * nc]);
+    sq[i] = s->basis.eval_expand(z, &cm[(4 + i) * nc]);
+    rq[i] = s->basis.eval_expand(z, &cm[(7 + i) * nc]);
   }
   *rho = s->basis.eval_expand(z, &fl[0]);
   *E = s->basis.eval_expand(z, &fl[4 * nc]);
@@ -278,9 +290,9 @@ pressure_at(
   double h = s->basis.eval_expand(z, &m[4 * nc]) + 2.0 * s->basis.eval_expand(z, &m[5 * nc]);
   for (int i = 0; i < 3; ++i) {
     for (int j = 0; j < 3; ++j) {
-      P[i][j] = (ppar - pperp) * bq[i] * bq[j] + (i == j ? pperp : 0.0);
+      P[i][j] = (ppar - pperp) * bq[i] * bq[j] + (i == j ? pperp : 0.0) + sq[i] * bq[j] + bq[i] * sq[j];
     }
-    q[i] = 0.5 * bq[i] * h;
+    q[i] = 0.5 * bq[i] * h + rq[i];
   }
 }
 
@@ -351,11 +363,7 @@ test_vol(int cdim)
   teardown(&s);
 }
 
-// Absorbing-boundary fluxes (dg_pkpm_fluid_flux_surf_absorb): for a uniform state with
-// Maxwellian [F, G] the moments of the kinetic upwind flux through the wall have the
-// closed form I_k = int_{a > 0} w^k a M(w) dw (a = xi b_n w + u_n), integrated here by
-// Simpson's rule; u_n is chosen so that the switch a = 0 lies on a velocity cell edge,
-// where the 3-point Gauss-Legendre integration of the projected Maxwellian is exact.
+// Uniform state of the face-flux tests.
 struct absorb_ctx {
   int cdim;
   double rho, xi, u[3], b[3];
@@ -408,43 +416,122 @@ eval_absorb_f(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = fout[1] = exp(-0.5 * w * w) / sqrt(2.0 * M_PI);
 }
 
-// I_k = int w^k phi(w) M(w) dw over w in [wa, wb] by Simpson's rule, phi = xi b_n w + u_n.
-static double
-absorb_moment(int k, double wa, double wb, double xibn, double un)
-{
-  int n = 20000;
-  double h = (wb - wa) / n, sum = 0.0;
-  for (int i = 0; i <= n; ++i) {
-    double w = wa + i * h, wt = (i == 0 || i == n) ? 1.0 : (i % 2 ? 4.0 : 2.0);
-    sum += wt * pow(w, k) * (xibn * w + un) * exp(-0.5 * w * w) / sqrt(2.0 * M_PI);
-  }
-  return sum * h / 3.0;
-}
-
 static void
 eval_one(double t, const double *xn, double *restrict fout, void *ctx)
 {
   fout[0] = 1.0;
 }
 
-// Fluid fluxes as moments of the kinetic flux (pkpm-fluid-flux-kinetic.mac) for a uniform
-// isotropic state (Maxwellian F = G, theta = 1): (a) interior faces, where the HLL flux
-// reduces to the exact flux function and the moments to u_n, xi b_n, u_n, u_n; (b) an
-// absorbing wall (ghost F = 0), where the one-sided moments are integrated by Simpson's
-// rule as before; (c) a reflecting wall (mirrored ghost), where the mass and energy fluxes
-// cancel exactly and the normal momentum flux is twice the one-sided one plus the perp
-// pressure. u_n is chosen so that the switch a = 0 lies on a velocity cell edge.
+// One side of a face for the reference flux: the uniform traces of a cell and whether it holds the
+// Maxwellian distribution F = G = M(w), M0_perp = N_perp = 0 (or is an empty absorbing ghost).
+struct ref_side {
+  double rho, xi, theta, u[3], b[3];
+  bool full;
+};
+
+// Reference fluid flux through a face with normal e_d between two uniform sides (notes, eqs.
+// kinetic-face-flux, vector-HLL and fluid-flux-map), written out independently of the kernels:
+// per w the side contributions of the eight-block HLL Phi^l = (S_R J_l - S_L S_R X_l)/ds,
+// Phi^r = (-S_L J_r + S_L S_R X_r)/ds with S_L = min(V_l - c_l, V_r - c_r, 0),
+// S_R = max(V_l + c_l, V_r + c_r, 0), c = xi |b x e_d| sqrt((2 + sqrt 2) theta), then the moment map
+// of each contribution with its own frame, integrated over w in [-wmax, wmax] by Simpson's rule.
+static void
+ref_kinetic_flux(int d, const struct ref_side *sl, const struct ref_side *sr, double wmax, double *F)
+{
+  const struct ref_side *sd[2] = {sl, sr};
+  double mom[2][7] = {{0.0}}; // per side: int Phi_F, int w Phi_F, int w^2 Phi_F, int Phi_G, int Phi_M0
+  int n = 48000;
+  double hw = 2.0 * wmax / n;
+  for (int i = 0; i <= n; ++i) {
+    double w = -wmax + i * hw, wt = (i == 0 || i == n) ? 1.0 : (i % 2 ? 4.0 : 2.0);
+    double maxw = exp(-0.5 * w * w) / sqrt(2.0 * M_PI);
+    double X[2][8], J[2][8], V[2], c[2];
+    for (int k = 0; k < 2; ++k) {
+      const struct ref_side *q = sd[k];
+      for (int m = 0; m < 8; ++m) {
+        X[k][m] = 0.0;
+      }
+      if (q->full) {
+        X[k][0] = X[k][1] = maxw;
+      }
+      V[k] = q->u[d] + q->xi * w * q->b[d];
+      double bx[3], e[3] = {0.0, 0.0, 0.0};
+      e[d] = 1.0;
+      for (int a = 0; a < 3; ++a) {
+        bx[a] = q->b[(a + 1) % 3] * e[(a + 2) % 3] - q->b[(a + 2) % 3] * e[(a + 1) % 3];
+      }
+      c[k] = q->xi * sqrt(bx[0] * bx[0] + bx[1] * bx[1] + bx[2] * bx[2]) * sqrt((2.0 + sqrt(2.0)) * q->theta);
+      J[k][0] = V[k] * X[k][0] + q->xi * X[k][2 + d];
+      J[k][1] = V[k] * X[k][1] + q->xi * X[k][5 + d];
+      for (int a = 0; a < 3; ++a) {
+        double pn = (a == d ? 1.0 : 0.0) - q->b[a] * q->b[d];
+        J[k][2 + a] = V[k] * X[k][2 + a] + q->xi * X[k][1] * pn;
+        J[k][5 + a] = V[k] * X[k][5 + a] +
+          q->xi * (4.0 * q->theta * X[k][1] - 2.0 * q->theta * q->theta * X[k][0]) * pn;
+      }
+    }
+    double s_l = fmin(fmin(V[0] - c[0], V[1] - c[1]), 0.0), s_r = fmax(fmax(V[0] + c[0], V[1] + c[1]), 0.0);
+    double ds = s_r - s_l;
+    if (!(ds > 0.0)) {
+      continue;
+    }
+    for (int k = 0; k < 2; ++k) {
+      double phi[8];
+      for (int m = 0; m < 8; ++m) {
+        phi[m] = k == 0 ? (s_r * J[0][m] - s_l * s_r * X[0][m]) / ds : (-s_l * J[1][m] + s_l * s_r * X[1][m]) / ds;
+      }
+      mom[k][0] += wt * phi[0];
+      mom[k][1] += wt * w * phi[0];
+      mom[k][2] += wt * w * w * phi[0];
+      mom[k][3] += wt * phi[1];
+      for (int a = 0; a < 3; ++a) {
+        mom[k][4 + a] += wt * phi[2 + a];
+      }
+    }
+  }
+  for (int m = 0; m < 5; ++m) {
+    F[m] = 0.0;
+  }
+  for (int k = 0; k < 2; ++k) {
+    const struct ref_side *q = sd[k];
+    double I[7];
+    for (int m = 0; m < 7; ++m) {
+      I[m] = mom[k][m] * hw / 3.0;
+    }
+    double bu = 0.0, uu = 0.0, uIM = 0.0;
+    for (int a = 0; a < 3; ++a) {
+      bu += q->b[a] * q->u[a];
+      uu += q->u[a] * q->u[a];
+      uIM += q->u[a] * I[4 + a];
+    }
+    F[0] += q->rho * I[0];
+    for (int a = 0; a < 3; ++a) {
+      F[1 + a] += q->rho * (q->u[a] * I[0] + q->xi * q->b[a] * I[1] + q->xi * I[4 + a]);
+    }
+    F[4] += q->rho * (0.5 * uu * I[0] + q->xi * bu * I[1] + q->xi * uIM + q->xi * q->xi * (0.5 * I[2] + I[3]));
+  }
+}
+
+// Fluid fluxes as moments of the kinetic flux of the eight blocks (pkpm-fluid-flux-kinetic.mac,
+// plan 17.14) for a uniform isotropic state (Maxwellian F = G, theta = 1, no first harmonic) against
+// the independent reference above: (a) interior faces, where the HLL flux reduces to the exact flux
+// function, so that the fluid flux is the ideal one (isotropic pressure, its work); (b) an absorbing
+// wall (ghost F = 0, theta = 0); (c) a reflecting wall (mirrored ghost), where the mass, energy and
+// tangential momentum fluxes cancel exactly. The flow and the field angle put the kinks of the HLL
+// weights (V = 0, V = +-c) on velocity cell edges, so the kernels' Gauss-Legendre integration of the
+// projected Maxwellian is exact and the reference differs from them by the projection error only.
 static void
 test_kinetic_flux(int cdim)
 {
   double wmax = 8.0;
   int nv = 96; // dv = 1/6
   struct absorb_ctx ctx = {.cdim = cdim, .rho = 2.0, .xi = 1.5};
-  double angle = cdim > 1 ? 0.4 : 0.0;
+  // c/(xi b_x) = tan(angle) sqrt(2 + sqrt 2) = 2/3 in 2x (a whole number of velocity cells)
+  double angle = cdim > 1 ? atan(2.0 / (3.0 * sqrt(2.0 + sqrt(2.0)))) : 0.0;
   ctx.b[0] = cos(angle);
   ctx.b[1] = sin(angle);
   ctx.b[2] = 0.0;
-  // a = 0 at w0 = 1/3 (a velocity cell edge): u_n = -xi b_n w0
+  // V = 0 at w0 = 1/3 (a velocity cell edge): u_n = -xi b_n w0
   ctx.u[0] = -ctx.xi * ctx.b[0] / 3.0;
   ctx.u[1] = 0.1;
   ctx.u[2] = -0.2;
@@ -465,12 +552,12 @@ test_kinetic_flux(int cdim)
   gkyl_create_grid_ranges(&cgrid, ghost, &clocal_ext, &clocal);
   struct gkyl_vlasov_position_map *pm = identity_pos_map(&cgrid, &clocal, &clocal_ext, &cbasis);
   gkyl_create_grid_ranges(&pgrid, ghost, &plocal_ext, &plocal);
-  int nc = cbasis.num_basis, np = pbasis.num_basis;
+  int nc = cbasis.num_basis;
 
   struct gkyl_array *fluid = mkarr(5 * nc, clocal_ext.volume), *u = mkarr(3 * nc, clocal_ext.volume);
   struct gkyl_array *bvar = mkarr(3 * nc, clocal_ext.volume), *xi = mkarr(3 * nc, clocal_ext.volume);
   struct gkyl_array *theta = mkarr(nc, clocal_ext.volume);
-  struct gkyl_array *f = mkarr(2 * np, plocal_ext.volume);
+  struct gkyl_array *f = mkarr(8 * pbasis.num_basis, plocal_ext.volume);
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&cgrid, &cbasis, 8, 5, eval_absorb_fluid, &ctx);
   gkyl_proj_on_basis_advance(proj, 0.0, &clocal_ext, fluid);
   gkyl_proj_on_basis_release(proj);
@@ -486,6 +573,7 @@ test_kinetic_flux(int cdim)
   proj = gkyl_proj_on_basis_new(&cgrid, &cbasis, 8, 1, eval_one, &ctx);
   gkyl_proj_on_basis_advance(proj, 0.0, &clocal_ext, theta);
   gkyl_proj_on_basis_release(proj);
+  gkyl_array_clear(f, 0.0);
   proj = gkyl_proj_on_basis_new(&pgrid, &pbasis, 8, 2, eval_absorb_f, &ctx);
   gkyl_proj_on_basis_advance(proj, 0.0, &plocal_ext, f);
   gkyl_proj_on_basis_release(proj);
@@ -500,14 +588,18 @@ test_kinetic_flux(int cdim)
   gkyl_array_clear(cfl, 0.0);
   // modal coefficient of a constant on the surface basis: sqrt(2)^(cdim-1)
   double c0 = pow(sqrt(2.0), cdim - 1);
-  double bu = 0.0, uu = 0.0;
+  double uu = 0.0;
   for (int i = 0; i < 3; ++i) {
-    bu += ctx.b[i] * ctx.u[i];
     uu += ctx.u[i] * ctx.u[i];
   }
   double scale = ctx.rho * (uu + ctx.xi * ctx.xi) * (fabs(ctx.u[0]) + ctx.xi);
+  struct ref_side in = {.rho = ctx.rho, .xi = ctx.xi, .theta = 1.0, .full = true};
+  for (int i = 0; i < 3; ++i) {
+    in.u[i] = ctx.u[i];
+    in.b[i] = ctx.b[i];
+  }
 
-  // (a) uniform interior faces in every direction
+  // (a) uniform interior faces in every direction: the exact flux, P = rho xi^2 I
   gkyl_array_clear(flux, 0.0);
   gkyl_dg_pkpm_fluid_flux_surf_advance(up, &clocal, &clocal_ext, &plocal, &plocal_ext, bvar, u, xi, theta, fluid, f, cfl, flux);
   {
@@ -516,16 +608,17 @@ test_kinetic_flux(int cdim)
     while (gkyl_range_iter_next(&iter)) {
       const double *fl = gkyl_array_cfetch(flux, gkyl_range_idx(&clocal_ext, iter.idx));
       for (int dir = 0; dir < cdim; ++dir) {
-        double un = ctx.u[dir], ref[5];
+        double un = ctx.u[dir], ref[5], refk[5];
         ref[0] = ctx.rho * un;
         for (int i = 0; i < 3; ++i) {
           ref[1 + i] = ctx.rho * ctx.u[i] * un + (i == dir ? ctx.rho * ctx.xi * ctx.xi : 0.0);
         }
         ref[4] = un * (0.5 * ctx.rho * uu + 2.5 * ctx.rho * ctx.xi * ctx.xi);
+        ref_kinetic_flux(dir, &in, &in, wmax, refk);
         for (int c = 0; c < 5; ++c) {
           double got = fl[dir * 5 * ns + c * ns] / c0;
-          TEST_CHECK(gkyl_compare(got, ref[c], 2e-4 * scale));
-          TEST_MSG("cdim=%d dir=%d comp=%d: got %g expected %g", cdim, dir, c, got, ref[c]);
+          TEST_CHECK(gkyl_compare(got, ref[c], 2e-4 * scale) && gkyl_compare(refk[c], ref[c], 2e-4 * scale));
+          TEST_MSG("cdim=%d dir=%d comp=%d: got %g expected %g (reference %g)", cdim, dir, c, got, ref[c], refk[c]);
           for (int k = 1; k < ns; ++k) {
             TEST_CHECK(fabs(fl[dir * 5 * ns + c * ns + k]) < 1e-12 * scale);
           }
@@ -534,39 +627,31 @@ test_kinetic_flux(int cdim)
     }
   }
 
-  // (b) absorbing wall in x: zero distribution in the x ghost cells (fluid, u, b, xi copied)
+  // (b) absorbing wall in x: zero distribution and theta in the x ghost cells (fluid, u, b, xi
+  // copied, as in the app)
   int dir = 0;
-  double xibn = ctx.xi * ctx.b[dir], un = ctx.u[dir], w0 = -un / xibn;
   for (int e = 0; e < 2; ++e) {
     struct gkyl_range skin, ghost_r;
     gkyl_skin_ghost_ranges(&skin, &ghost_r, dir, e == 0 ? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE, &plocal_ext, ghost);
     gkyl_array_clear_range(f, 0.0, &ghost_r);
-    // and theta = M0(G) = 0 there, as in the app
     gkyl_skin_ghost_ranges(&skin, &ghost_r, dir, e == 0 ? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE, &clocal_ext, ghost);
     gkyl_array_clear_range(theta, 0.0, &ghost_r);
   }
   gkyl_array_clear(flux, 0.0);
   gkyl_dg_pkpm_fluid_flux_surf_advance(up, &clocal, &clocal_ext, &plocal, &plocal_ext, bvar, u, xi, theta, fluid, f, cfl, flux);
+  struct ref_side empty = in;
+  empty.full = false;
+  empty.theta = 0.0;
   for (int e = 0; e < 2; ++e) {
     enum gkyl_edge_loc edge = e == 0 ? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
     struct gkyl_range skin, ghost_r;
     gkyl_skin_ghost_ranges(&skin, &ghost_r, dir, edge, &clocal_ext, ghost);
-    // outflow: a < 0 (w < w0) through the lower wall, a > 0 (w > w0) through the upper
-    double I[3], J0;
-    for (int k = 0; k < 3; ++k) {
-      I[k] = e == 0 ? absorb_moment(k, -wmax, w0, xibn, un) : absorb_moment(k, w0, wmax, xibn, un);
-    }
-    J0 = I[0];
     double ref[5];
-    ref[0] = ctx.rho * I[0];
-    for (int i = 0; i < 3; ++i) {
-      double delta = i == dir ? 1.0 : 0.0;
-      // the perp pressure of the skin trace, averaged with the zero of the ghost
-      ref[1 + i] = ctx.rho * (ctx.u[i] * I[0] + ctx.xi * ctx.b[i] * I[1])
-        + 0.5 * ctx.rho * ctx.xi * ctx.xi * (delta - ctx.b[i] * ctx.b[dir]);
+    if (e == 0) {
+      ref_kinetic_flux(dir, &empty, &in, wmax, ref);
+    } else {
+      ref_kinetic_flux(dir, &in, &empty, wmax, ref);
     }
-    ref[4] = 0.5 * ctx.rho * (uu * I[0] + 2.0 * ctx.xi * bu * I[1] + ctx.xi * ctx.xi * I[2])
-      + ctx.rho * ctx.xi * ctx.xi * J0 + 0.5 * ctx.rho * ctx.xi * ctx.xi * (un - bu * ctx.b[dir]);
     // the flux of the lower wall is stored in the skin cell, that of the upper wall in
     // the ghost cell beyond it
     struct gkyl_range_iter iter;
@@ -614,20 +699,19 @@ test_kinetic_flux(int cdim)
   }
   gkyl_array_clear(flux, 0.0);
   gkyl_dg_pkpm_fluid_flux_surf_advance(up, &clocal, &clocal_ext, &plocal, &plocal_ext, bvar, u, xi, theta, fluid, f, cfl, flux);
+  struct ref_side mirror = in;
+  mirror.u[dir] = -in.u[dir];
+  mirror.b[dir] = -in.b[dir];
   for (int e = 0; e < 2; ++e) {
     enum gkyl_edge_loc edge = e == 0 ? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
     struct gkyl_range skin, ghost_r;
     gkyl_skin_ghost_ranges(&skin, &ghost_r, dir, edge, &clocal_ext, ghost);
-    double I[2];
-    for (int k = 0; k < 2; ++k) {
-      I[k] = e == 0 ? absorb_moment(k, -wmax, w0, xibn, un) : absorb_moment(k, w0, wmax, xibn, un);
+    double ref[5];
+    if (e == 0) {
+      ref_kinetic_flux(dir, &mirror, &in, wmax, ref);
+    } else {
+      ref_kinetic_flux(dir, &in, &mirror, wmax, ref);
     }
-    // normal momentum: twice the one-sided streaming part, plus the perp pressure (equal on both
-    // sides), plus the Rusanov term of the perpendicular sound on the mirrored M_n (the ghost is
-    // the l side of the lower face and the r side of the upper one)
-    double s_perp = ctx.xi * sqrt(2.0 * (1.0 - ctx.b[dir] * ctx.b[dir]));
-    double ref_mn = 2.0 * ctx.rho * (un * I[0] + xibn * I[1]) + ctx.rho * ctx.xi * ctx.xi * (1.0 - ctx.b[dir] * ctx.b[dir])
-      + (e == 0 ? -1.0 : 1.0) * s_perp * ctx.rho * un;
     struct gkyl_range_iter iter;
     gkyl_range_iter_init(&iter, &skin);
     while (gkyl_range_iter_next(&iter)) {
@@ -641,11 +725,12 @@ test_kinetic_flux(int cdim)
       TEST_CHECK(fabs(got_rho) < 1e-12 * scale);
       TEST_CHECK(fabs(got_e) < 1e-12 * scale);
       TEST_MSG("cdim=%d reflect edge=%d: mass flux %g energy flux %g", cdim, e, got_rho, got_e);
-      TEST_CHECK(gkyl_compare(got_mn, ref_mn, 1e-4 * scale));
-      TEST_MSG("cdim=%d reflect edge=%d: normal momentum flux %g expected %g", cdim, e, got_mn, ref_mn);
+      TEST_CHECK(gkyl_compare(got_mn, ref[1 + dir], 1e-4 * scale));
+      TEST_MSG("cdim=%d reflect edge=%d: normal momentum flux %g expected %g", cdim, e, got_mn, ref[1 + dir]);
       for (int i = 0; i < 3; ++i) {
         if (i != dir) {
           TEST_CHECK(fabs(fl[dir * 5 * ns + (1 + i) * ns]) < 1e-12 * scale);
+          TEST_MSG("cdim=%d reflect edge=%d: tangential momentum flux %d: %g", cdim, e, i, fl[dir * 5 * ns + (1 + i) * ns]);
         }
       }
     }

@@ -288,13 +288,30 @@ evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = 0.0;
-  // Set magnetic field (along x, so that b = x_hat).
-  fout[3] = app->B0;
+  // Set magnetic field (the guide field is external, see evalExternalFieldInit).
+  fout[3] = 0.0;
   fout[4] = 0.0;
   fout[5] = 0.0;
   // Set correction potentials.
   fout[6] = 0.0;
   fout[7] = 0.0;
+}
+
+// Static external guide field along x (b = x_hat): not subject to the field boundary
+// conditions, so the wall's image field does not reverse it.
+void
+evalExternalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct sheath_ctx *app = ctx;
+
+  // Set external electric field.
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = 0.0;
+  // Set external magnetic field.
+  fout[3] = app->B0;
+  fout[4] = 0.0;
+  fout[5] = 0.0;
 }
 
 // Collision frequencies: nu_ee and nu_ii upstream (x < L_nu), vanishing over 6 lambda_D
@@ -627,6 +644,8 @@ main(int argc, char **argv)
 
     .init = evalFieldInit,
     .ctx = &ctx,
+    .ext_em = evalExternalFieldInit,
+    .ext_em_ctx = &ctx,
 
     .bcx = {GKYL_FIELD_SYM_WALL, GKYL_FIELD_PEC_WALL},
   };

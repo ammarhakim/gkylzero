@@ -20,19 +20,20 @@ struct gkyl_dg_pkpm_conf_flux_surf_inp {
 
 /**
  * Create a new updater computing the configuration-space surface fluxes of the PKPM
- * kinetic equations. On the lower face of every cell in every configuration direction,
- * and on the upper ghost-owned face of the last interior cell, the two traces of the
- * streaming speed a = v_par b_n + u_n are evaluated at the face Gauss-Legendre nodes
- * (three per transverse configuration direction and in v_par) from the modal b and u
- * of the two cells, the HLL flux with the speed bounds S_L = min(a_l - c_l, a_r - c_r, 0),
- * S_R = max(a_l + c_l, a_r + c_r, 0) is formed for F_0 and G (c = 0 without the acoustic
- * floor, which gives max(a_l, 0) f_l + min(a_r, 0) f_r), and the nodal flux is projected
- * onto the surface modal basis. Each cell owns its *lower* face; the stored layout per
- * cell is [direction][component][surface mode] with 2 * num_surf_basis entries per
- * direction.
+ * kinetic equations of the eight blocks [F, G, M0_perp, N_perp] (plan 17.14). On the lower
+ * face of every cell in every configuration direction, and on the upper ghost-owned face of
+ * the last interior cell, the traces of the blocks and of the streaming speed
+ * V_n = u_n + xi w b_n are evaluated at the face Gauss-Legendre nodes (five per transverse
+ * configuration direction, three in w) from the modal fields of the two cells, the HLL flux
+ * of J = V_n X + T(X) (T the first-harmonic coupling xi M0_n, xi N_n, xi G (n - b b_n),
+ * xi H (n - b b_n)) with the speed bounds S_L = min(V_n^l - c^l, V_n^r - c^r, 0),
+ * S_R = max(V_n^l + c^l, V_n^r + c^r, 0), c = xi |b x n| sqrt((2 + sqrt 2) theta), is formed
+ * (pkpm_harm_conf_flux), and the nodal flux is projected onto the surface modal basis. Each
+ * cell owns its *lower* face; the stored layout per cell is [direction][block][surface mode]
+ * with 8 * num_surf_basis entries per direction.
  *
- * In the factored update the distributions are the normalized [F_0/n, G/n]: the flux
- * moves only the shape; the density is moved by the fluid system. The stored
+ * In the factored update the distributions are normalized: the flux moves only the shape;
+ * the density is moved by the fluid system. The stored
  * distributions carry the position-map Jacobian J of their cell: the kernels divide
  * the traces by J_d of the owning cell, which equals forming the physical flux of the
  * physical traces and multiplying by the face Jacobian J/J_d.
@@ -63,7 +64,8 @@ struct gkyl_dg_pkpm_conf_flux_surf *gkyl_dg_pkpm_conf_flux_surf_cu_dev_inew(
  * @param bvar Input magnetic field unit vector [bx, by, bz].
  * @param u Input flow velocity [ux, uy, uz].
  * @param xi Input thermal speed [xi, xi^2] (the streaming speed is xi w b_n + u_n).
- * @param fin Input normalized distribution functions [F_0/n, G/n].
+ * @param theta Input T_perp/T (the closure H and the speed bounds).
+ * @param fin Input normalized distributions [F, G, M0_perp, N_perp].
  * @param cflrate Input cflrate. Accumulated to from the maximum speed bound at the face nodes.
  * @param conf_flux_surf Output modal configuration-space fluxes.
  */
@@ -71,7 +73,8 @@ void gkyl_dg_pkpm_conf_flux_surf_advance(
   struct gkyl_dg_pkpm_conf_flux_surf *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_range *phase_range_ext,
   const struct gkyl_array *bvar, const struct gkyl_array *u, const struct gkyl_array *xi,
-  const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *conf_flux_surf
+  const struct gkyl_array *theta, const struct gkyl_array *fin, struct gkyl_array *cflrate,
+  struct gkyl_array *conf_flux_surf
 );
 
 /**
@@ -81,12 +84,13 @@ void gkyl_dg_pkpm_conf_flux_surf_advance_cu(
   struct gkyl_dg_pkpm_conf_flux_surf *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_range *phase_range_ext,
   const struct gkyl_array *bvar, const struct gkyl_array *u, const struct gkyl_array *xi,
-  const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *conf_flux_surf
+  const struct gkyl_array *theta, const struct gkyl_array *fin, struct gkyl_array *cflrate,
+  struct gkyl_array *conf_flux_surf
 );
 
 /**
  * Number of surface modal basis functions per component and direction in the flux
- * array this updater fills (the array needs 2 * cdim times this many components per cell).
+ * array this updater fills (the array needs 8 * cdim times this many components per cell).
  *
  * @param up Updater.
  * @return Surface modal basis size.

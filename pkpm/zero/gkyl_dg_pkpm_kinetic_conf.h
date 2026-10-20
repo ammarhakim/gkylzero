@@ -35,9 +35,11 @@ struct gkyl_dg_pkpm_kinetic_conf_inp {
 
 /**
  * Create a new equation object for the configuration-space pass (stage A) of the
- * PKPM kinetic update: the volume terms of the streaming, of the -v_par (bb:grad u)
- * and mirror forces in v_par, and of the G perpendicular source, together with the
- * surface term scattering the stored configuration-space fluxes. Everything except
+ * PKPM kinetic update of the eight blocks [F, G, M0_perp, N_perp]: the volume terms of the
+ * streaming of every block, of the -v_par (bb:grad u) and mirror forces in v_par and of the G
+ * perpendicular source, together with the surface term scattering the stored
+ * configuration-space fluxes of the eight blocks (the first-harmonic coupling volume terms are
+ * in gkyl_dg_pkpm_harm_vol). Everything except
  * the pressure-force volume term and the v_par surface term, which belong to the
  * velocity-space pass (stage B) once the force closure is known.
  *

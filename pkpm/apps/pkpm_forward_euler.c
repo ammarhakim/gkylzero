@@ -6,7 +6,7 @@
 // The actual time-step and dt_suggested are returned in the status object.
 void
 pkpm_forward_euler(
-  gkyl_pkpm_app *app, double tcurr, double dt, const struct gkyl_array *fin[],
+  gkyl_pkpm_app *app, double tcurr, double dt, struct gkyl_array *fin[],
   const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *fout[],
   struct gkyl_array *fluidout[], struct gkyl_array *emout, struct gkyl_update_status *st
 )
@@ -33,6 +33,12 @@ pkpm_forward_euler(
 
   // Compute the magnetic field unit vector b = B/|B|
   pkpm_field_calc_bvar(app, app->field, emin);
+
+  // Every kernel of the stage sees first-harmonic blocks perpendicular to the stage's b: project
+  // M0_perp and N_perp of the stage state at the Gauss-Legendre nodes of b (plan 17.11).
+  for (int i = 0; i < app->num_species; ++i) {
+    pkpm_species_project_transverse(app, &app->species[i], fin[i]);
+  }
 
   // RHS of Maxwell's equations first: it does not depend on the species, and its magnetic part
   // (stored physical in field->dt_em_no_J) is the d_t B of the first-harmonic force terms.

@@ -18,6 +18,7 @@ gkyl_dg_pkpm_kinetic_vel_set_auxfields_cu_kernel(
   pkpm->auxfields.c_0 = auxin.c_0;
   pkpm->auxfields.alpha_0 = auxin.alpha_0;
   pkpm->auxfields.c_h = auxin.c_h;
+  pkpm->auxfields.a_perp = auxin.a_perp;
   pkpm->auxfields.vel_flux_surf = auxin.vel_flux_surf;
 }
 
@@ -29,7 +30,9 @@ gkyl_dg_pkpm_kinetic_vel_set_auxfields_cu(
 {
   struct gkyl_dg_pkpm_kinetic_vel_auxfields auxin_dev = {
     .c_0 = auxin.c_0 ? auxin.c_0->on_dev : 0,
-    .a_P = auxin.a_P ? auxin.a_P->on_dev : 0,
+    .alpha_0 = auxin.alpha_0 ? auxin.alpha_0->on_dev : 0,
+    .c_h = auxin.c_h ? auxin.c_h->on_dev : 0,
+    .a_perp = auxin.a_perp ? auxin.a_perp->on_dev : 0,
     .vel_flux_surf = auxin.vel_flux_surf ? auxin.vel_flux_surf->on_dev : 0,
   };
   gkyl_dg_pkpm_kinetic_vel_set_auxfields_cu_kernel<<<1, 1>>>(eqn, auxin_dev);
@@ -56,7 +59,7 @@ gkyl_dg_pkpm_kinetic_vel_cu_dev_inew(const struct gkyl_dg_pkpm_kinetic_vel_inp *
   int cdim = inp->conf_basis->ndim, pdim = inp->phase_basis->ndim;
   pkpm->cdim = cdim;
   pkpm->pdim = pdim;
-  pkpm->eqn.num_equations = 2;
+  pkpm->eqn.num_equations = 8;
   pkpm->conf_range = *inp->conf_range;
   pkpm->phase_range = *inp->phase_range;
   pkpm->auxfields = inp->auxfields;

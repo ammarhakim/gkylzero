@@ -1,16 +1,19 @@
 // Test actual computation of PKPM moments via gkyl_mom_calc.
 //
-// The PKPM distribution f is a 2-component vector [F_0, G_1] (each with
-// num_basis components).  The non-diagnostic moment kernel produces
-//   out = [rho, p_par, p_perp, M1]   (mass weighted)
+// The PKPM distribution f is the eight blocks [F_0, G_1, M0_perp (x, y, z), N_perp (x, y, z)]
+// (each with num_basis components). The non-diagnostic moment kernel produces
+//   out = [rho, p_par, p_perp, M1, q_par, q_perp, mu (3), m1 (3), m2 (3), n0 (3)]   (mass weighted)
 // where
 //   rho     = mass * \int F_0 dvpar
 //   p_par   = mass * \int vpar^2 F_0 dvpar
 //   p_perp  = mass * \int G_1   dvpar
 //   M1      = mass * \int vpar  F_0 dvpar
+//   mu      = mass * \int M0_perp dvpar
+//   m1, m2  = mass * \int vpar M0_perp dvpar, mass * \int vpar^2 M0_perp dvpar
+//   n0      = mass * \int N_perp dvpar
 //
 // We project a distribution that is constant in velocity:
-//   F_0 = a,  G_1 = b
+//   F_0 = a,  G_1 = b,  M0_perp = (c_x, c_y, c_z), N_perp = (d_x, d_y, d_z)
 // over a symmetric velocity domain [-V, V] (so M1 = 0), and check the
 // resulting moments against the exact analytic integrals.
 #include <acutest.h>
@@ -27,13 +30,18 @@
 
 static const double AVAL = 0.75; // F_0 amplitude
 static const double BVAL = 0.40; // G_1 amplitude
+static const double CVAL[3] = {0.3, -0.2, 0.15}; // M0_perp amplitudes
 
 static void
 eval_distf(double t, const double *xn, double *restrict fout, void *ctx)
 {
-  // 2-component distribution: F_0 (constant), G_1 (constant).
+  // Eight blocks, constant in velocity: F_0, G_1, M0_perp, N_perp.
   fout[0] = AVAL;
   fout[1] = BVAL;
+  for (int i = 0; i < 3; ++i) {
+    fout[2 + i] = CVAL[i];
+    fout[5 + i] = 10.0 * (i + 1);
+  }
 }
 
 static struct gkyl_array *
@@ -75,14 +83,14 @@ test_mom_pkpm_calc_1x1v_p1()
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
-  // Distribution function: 2 components per basis function (F_0, G_1).
+  // Distribution function: eight blocks of num_basis components.
   gkyl_proj_on_basis *proj =
-    gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 2, eval_distf, NULL);
-  struct gkyl_array *distf = mkarr(2 * basis.num_basis, local_ext.volume);
+    gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 8, eval_distf, NULL);
+  struct gkyl_array *distf = mkarr(8 * basis.num_basis, local_ext.volume);
   gkyl_proj_on_basis_advance(proj, 0.0, &local, distf);
 
   struct gkyl_mom_type *mt = gkyl_mom_pkpm_new(&confBasis, &basis, mass, false, false);
-  TEST_CHECK(mt->num_mom == 6);
+  TEST_CHECK(mt->num_mom == 18);
   gkyl_mom_calc *mcalc = gkyl_mom_calc_new(&grid, mt, false);
 
   struct gkyl_array *mom = mkarr(mt->num_mom * confBasis.num_basis, confLocal_ext.volume);
@@ -96,7 +104,8 @@ test_mom_pkpm_calc_1x1v_p1()
   double pperp_exp = mass * BVAL * Lv; // \int b dv
   double m1_exp = 0.0; // symmetric => 0
 
-  // moment block layout: [rho(2), p_par(2), p_perp(2), M1(2)] per conf cell.
+  // moment block layout: [rho(2), p_par(2), p_perp(2), M1(2), q_par(2), q_perp(2), mu(3 x 2), m1(3 x 2),
+  // m2(3 x 2), n0(3 x 2)] per conf cell.
   for (int i = 1; i <= cells[0]; ++i) {
     int cidx[] = {i};
     long lidx = gkyl_range_idx(&confLocal, cidx);
@@ -110,6 +119,13 @@ test_mom_pkpm_calc_1x1v_p1()
     TEST_CHECK(gkyl_compare(ppar_exp, ppar, 1e-12));
     TEST_CHECK(gkyl_compare(pperp_exp, pperp, 1e-12));
     TEST_CHECK(gkyl_compare(m1_exp, m1, 1e-12));
+    for (int c = 0; c < 3; ++c) {
+      TEST_CHECK(gkyl_compare(mass * CVAL[c] * Lv, m[12 + 2 * c] / sqrt2, 1e-12));
+      TEST_CHECK(gkyl_compare(0.0, m[12 + 2 * c + 1], 1e-12));
+      TEST_CHECK(gkyl_compare(0.0, m[18 + 2 * c] / sqrt2, 1e-12)); // symmetric
+      TEST_CHECK(gkyl_compare(mass * CVAL[c] * (Vhi * Vhi * Vhi - Vlo * Vlo * Vlo) / 3.0, m[24 + 2 * c] / sqrt2, 1e-12));
+      TEST_CHECK(gkyl_compare(mass * 10.0 * (c + 1) * Lv, m[30 + 2 * c] / sqrt2, 1e-12));
+    }
     // x-slope (component 1 of each block) should be ~0 for uniform profile.
     TEST_CHECK(gkyl_compare(0.0, m[1], 1e-12));
     TEST_CHECK(gkyl_compare(0.0, m[5], 1e-12));

@@ -3,10 +3,10 @@
 GKYL_CU_DH double pkpm_accel_surfvpar_3x1v_ser_p1(const double *w, const double *dxv,
   const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out) 
 { 
-  // flux_l/flux_r: Stored modal fluxes [F_0, G] on the lower/upper face of the cell. 
-  // out:           Incremented output [F_0, G]. 
+  // flux_l/flux_r: Stored modal fluxes [F, G, M0_perp, N_perp] on the lower/upper face of the cell. 
+  // out:           Incremented output [F, G, M0_perp, N_perp]. 
   const double dx1 = 2.0/dxv[3]; 
-  for (int c = 0; c < 2; ++c) { 
+  for (int c = 0; c < 8; ++c) { 
     const double *fl = &flux_l[c*8]; 
     const double *fr = &flux_r[c*8]; 
     double *o = &out[c*24]; 

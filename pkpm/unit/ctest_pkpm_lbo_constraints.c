@@ -88,10 +88,12 @@ test_lbo_constraints(int cdim, double nu_amp)
   int nc = cbasis.num_basis, np = pbasis.num_basis;
   int vdim = 1;
 
-  struct gkyl_array *f = mkarr(2 * np, plocal_ext.volume), *rhs = mkarr(2 * np, plocal_ext.volume);
+  // eight blocks [F, G, M0_perp, N_perp]; the LBO acts on [F, G] (the first harmonic is zero here)
+  struct gkyl_array *f = mkarr(8 * np, plocal_ext.volume), *rhs = mkarr(8 * np, plocal_ext.volume);
+  gkyl_array_clear(f, 0.0);
   struct gkyl_array *cflrate = mkarr(1, plocal_ext.volume);
   struct gkyl_array *nu = mkarr(nc, clocal_ext.volume);
-  struct gkyl_array *nmoms = mkarr(6 * nc, clocal_ext.volume), *rhs_moms = mkarr(6 * nc, clocal_ext.volume);
+  struct gkyl_array *nmoms = mkarr(18 * nc, clocal_ext.volume), *rhs_moms = mkarr(18 * nc, clocal_ext.volume);
   struct gkyl_array *bcorr = mkarr((vdim + 1) * nc, clocal_ext.volume);
   struct gkyl_array *prim = mkarr((vdim + 1) * nc, clocal_ext.volume);
   struct gkyl_array *nu_prim = mkarr((vdim + 1) * nc, clocal_ext.volume);
@@ -103,7 +105,7 @@ test_lbo_constraints(int cdim, double nu_amp)
   gkyl_proj_on_basis_advance(proj, 0.0, &clocal_ext, nu);
   gkyl_proj_on_basis_release(proj);
 
-  // Raw normalized moments [M0, M2, M0_G, M1, M3, M1_G] (mass 1), the boundary
+  // Raw normalized moments [M0, M2, M0_G, M1, M3, M1_G, mu] (mass 1), the boundary
   // corrections, the primitive moments [u_par, vth^2] and nu times them.
   struct gkyl_dg_updater_moment *mcalc =
     gkyl_dg_updater_moment_pkpm_new(&pgrid, &cbasis, &pbasis, &clocal_ext, &vlocal, 1.0, false, false);

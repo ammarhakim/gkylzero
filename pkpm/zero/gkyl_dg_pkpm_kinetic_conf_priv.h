@@ -86,7 +86,8 @@ choose_pkpm_stream_surf_kern(enum gkyl_basis_type b_type, int cdim, int poly_ord
   return 0;
 }
 
-// Volume term: streaming, v_par force and mirror volume fluxes, and the G source.
+// Volume term: streaming of the eight blocks, v_par force and mirror volume fluxes of F and G, and
+// the G source.
 GKYL_CU_D
 static double
 vol(
@@ -122,7 +123,7 @@ surf(
 {
   struct dg_pkpm_kinetic_conf *pkpm = container_of(eqn, struct dg_pkpm_kinetic_conf, eqn);
   if (dir < pkpm->cdim) {
-    int off = dir * 2 * pkpm->num_surf_basis;
+    int off = dir * 8 * pkpm->num_surf_basis;
     long pidxC = gkyl_range_idx(&pkpm->phase_range, idxC);
     long pidxR = gkyl_range_idx(&pkpm->phase_range, idxR);
     const double *flux_l = (const double *)gkyl_array_cfetch(pkpm->auxfields.conf_flux_surf, pidxC);

@@ -12,7 +12,7 @@
 
 typedef double (*pkpm_kinetic_vel_vol_t)(
   const double *w, const double *dxv, const double *c_0, const double *alpha_0, const double *c_h,
-  const double *f, double *GKYL_RESTRICT out
+  const double *a_perp, const double *f, double *GKYL_RESTRICT out
 );
 
 typedef double (*pkpm_accel_surf_t)(
@@ -24,7 +24,7 @@ struct dg_pkpm_kinetic_vel {
   struct gkyl_dg_eqn eqn; // Base object
   int cdim; // Configuration-space dimensions
   int pdim; // Phase-space dimensions
-  pkpm_kinetic_vel_vol_t vol_kern; // Volume kernel (pressure-force term)
+  pkpm_kinetic_vel_vol_t vol_kern; // Volume kernel (closure terms)
   pkpm_accel_surf_t accel_surf; // Surface kernel scattering stored v_par fluxes
   struct gkyl_range conf_range; // Configuration-space range
   struct gkyl_range phase_range; // Phase-space range
@@ -63,7 +63,7 @@ choose_pkpm_kinetic_vel_kerns(
   }
 }
 
-// Volume term: the pressure-force term in v_par.
+// Volume term: the closure terms.
 GKYL_CU_D
 static double
 vol(
@@ -76,7 +76,8 @@ vol(
   return pkpm->vol_kern(
     xc, dx, (const double *)gkyl_array_cfetch(pkpm->auxfields.c_0, cidx),
     (const double *)gkyl_array_cfetch(pkpm->auxfields.alpha_0, cidx),
-    (const double *)gkyl_array_cfetch(pkpm->auxfields.c_h, cidx), qIn, qRhsOut
+    (const double *)gkyl_array_cfetch(pkpm->auxfields.c_h, cidx),
+    (const double *)gkyl_array_cfetch(pkpm->auxfields.a_perp, cidx), qIn, qRhsOut
   );
 }
 

@@ -12,6 +12,7 @@ struct gkyl_dg_pkpm_kinetic_vel_auxfields {
   const struct gkyl_array *c_0; // Normalization closure (c_0 F source).
   const struct gkyl_array *alpha_0; // Pressure force a_P/xi closing the first moment.
   const struct gkyl_array *c_h; // Heating rate closing the scalar second moment.
+  const struct gkyl_array *a_perp; // Perpendicular force closing int M0_perp dw [x, y, z].
   const struct gkyl_array *vel_flux_surf; // Modal expansion of the fluxes on the v_par faces (each cell's lower face; the velocity ghost cell's slot is the upper domain edge).
 };
 
@@ -27,10 +28,11 @@ struct gkyl_dg_pkpm_kinetic_vel_inp {
 
 /**
  * Create a new equation object for the velocity-space pass (stage B) of the PKPM
- * kinetic update: the pressure-force volume term integral(d_v phi a_P [F_0, G]) and
- * the surface term scattering the stored v_par fluxes (characteristic outflow fluxes at
- * the velocity domain edges). Run after the configuration-space pass and the a_P closure, accumulating
- * into the same right-hand side.
+ * kinetic update of the eight blocks [F, G, M0_perp, N_perp]: the volume terms of the closures
+ * (forces (alpha_0 + c w) U, sources c_0 U, k c U and the a_perp couplings,
+ * pkpm-kinetic-vel-vol.mac) and the surface term scattering the stored v_par fluxes (the HLL
+ * edge fluxes of the closure at the velocity domain edges). Run after the configuration-space
+ * pass and the closures, accumulating into the same right-hand side.
  *
  * @param inp Input parameters defined in gkyl_dg_pkpm_kinetic_vel_inp struct.
  * @return Pointer to the equation object.

@@ -41,14 +41,15 @@ gkyl_dg_pkpm_vel_flux_surf_advance(
   struct gkyl_dg_pkpm_vel_flux_surf *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_array *bvar, const struct gkyl_array *grad_b,
   const struct gkyl_array *u, const struct gkyl_array *grad_u, const struct gkyl_array *xi, const struct gkyl_array *grad_xi,
-  const struct gkyl_array *theta, const struct gkyl_array *alpha_0, const struct gkyl_array *c_h,
+  const struct gkyl_array *theta, const struct gkyl_array *dtB_over_magB,
+  const struct gkyl_array *alpha_0, const struct gkyl_array *c_h,
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *vel_flux_surf
 )
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(vel_flux_surf)) {
     return gkyl_dg_pkpm_vel_flux_surf_advance_cu(
-      up, conf_range, phase_range, bvar, grad_b, u, grad_u, xi, grad_xi, theta, alpha_0, c_h, fin, cflrate, vel_flux_surf
+      up, conf_range, phase_range, bvar, grad_b, u, grad_u, xi, grad_xi, theta, dtB_over_magB, alpha_0, c_h, fin, cflrate, vel_flux_surf
     );
   }
 #endif
@@ -74,7 +75,8 @@ gkyl_dg_pkpm_vel_flux_surf_advance(
     cflrate_d[0] += up->vel_flux(
       xc, up->phase_grid.dx, gkyl_array_cfetch(bvar, cidx), gkyl_array_cfetch(grad_b, cidx),
       gkyl_array_cfetch(u, cidx), gkyl_array_cfetch(grad_u, cidx), gkyl_array_cfetch(xi, cidx),
-      gkyl_array_cfetch(grad_xi, cidx), gkyl_array_cfetch(theta, cidx), gkyl_array_cfetch(alpha_0, cidx),
+      gkyl_array_cfetch(grad_xi, cidx), gkyl_array_cfetch(theta, cidx),
+      gkyl_array_cfetch(dtB_over_magB, cidx), gkyl_array_cfetch(alpha_0, cidx),
       gkyl_array_cfetch(c_h, cidx), gkyl_array_cfetch(fin, pidx_l), gkyl_array_cfetch(fin, pidx),
       gkyl_array_fetch(vel_flux_surf, pidx)
     );
@@ -112,7 +114,8 @@ gkyl_dg_pkpm_vel_flux_surf_advance_cu(
   struct gkyl_dg_pkpm_vel_flux_surf *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_array *bvar, const struct gkyl_array *grad_b,
   const struct gkyl_array *u, const struct gkyl_array *grad_u, const struct gkyl_array *xi, const struct gkyl_array *grad_xi,
-  const struct gkyl_array *theta, const struct gkyl_array *alpha_0, const struct gkyl_array *c_h,
+  const struct gkyl_array *theta, const struct gkyl_array *dtB_over_magB,
+  const struct gkyl_array *alpha_0, const struct gkyl_array *c_h,
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *vel_flux_surf
 )
 {

@@ -10,7 +10,7 @@
 
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_pkpm_fluid_auxfields {
-  const struct gkyl_array *vlasov_pkpm_moms; // Kinetic coupling moments [p_par, p_perp, q_par, q_perp].
+  const struct gkyl_array *vlasov_pkpm_moms; // Kinetic coupling moments [p_par, p_perp, q_par, q_perp, s (3), r (3)] (plan 17.14).
   const struct gkyl_array *bvar; // Magnetic field unit vector [bx, by, bz].
   const struct gkyl_array *u; // Flow velocity [ux, uy, uz].
   const struct gkyl_array *fluid_flux_surf; // Modal expansion of the momentum fluxes on the faces.

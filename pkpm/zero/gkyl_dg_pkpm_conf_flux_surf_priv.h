@@ -11,8 +11,9 @@
 #include <gkyl_util.h>
 
 typedef double (*pkpm_conf_flux_t)(
-  const double *w, const double *dxv, const double *jacob_pos_l, const double *jacob_pos_r, const double *b_l, const double *b_r, const double *u_l,
-  const double *u_r, const double *xi_l, const double *xi_r, const double *f_l,
+  const double *w, const double *dxv, const double *jacob_pos_l, const double *jacob_pos_r,
+  const double *b_l, const double *b_r, const double *u_l, const double *u_r, const double *xi_l,
+  const double *xi_r, const double *theta_l, const double *theta_r, const double *f_l,
   const double *f_r, double *GKYL_RESTRICT flux
 );
 
@@ -35,7 +36,7 @@ struct gkyl_dg_pkpm_conf_flux_surf {
   struct gkyl_dg_pkpm_conf_flux_surf *on_dev; // pointer to itself or device data
 };
 
-// Configuration-space HLL flux kernels (p=1 serendipity only; indexed [cdim-1].kernels[dir])
+// Configuration-space HLL flux kernels of the eight blocks (p=1 serendipity only; indexed [cdim-1].kernels[dir])
 GKYL_CU_D static const gkyl_dg_pkpm_conf_flux_kern_list ser_pkpm_conf_flux_kernels[] = {
   {pkpm_conf_flux_x_1x1v_ser_p1, NULL, NULL}, // 0
   {pkpm_conf_flux_x_2x1v_ser_p1, pkpm_conf_flux_y_2x1v_ser_p1, NULL}, // 1

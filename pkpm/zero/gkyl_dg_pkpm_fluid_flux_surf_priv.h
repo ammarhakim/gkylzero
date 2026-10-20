@@ -12,14 +12,20 @@
 
 typedef double (*pkpm_fluid_flux_accum_t)(
   const double *w, const double *dxv, const double *jacob_pos_l, const double *jacob_pos_r,
+  const double *b_l, const double *b_r, const double *u_l, const double *u_r, const double *xi_l,
+  const double *xi_r, const double *theta_l, const double *theta_r, const double *f_l,
+  const double *f_r, double *GKYL_RESTRICT I
+);
+typedef void (*pkpm_fluid_flux_t)(
   const double *bvar_l, const double *bvar_r, const double *u_l, const double *u_r, const double *xi_l,
-  const double *xi_r, const double *f_l, const double *f_r, double *GKYL_RESTRICT I
+  const double *xi_r, const double *fluid_l, const double *fluid_r, const double *I,
+  double *GKYL_RESTRICT flux
 );
-typedef double (*pkpm_fluid_flux_t)(
-  const double *jacob_pos, const double *bvar_l, const double *bvar_r, const double *u_l, const double *u_r, const double *xi_l,
-  const double *xi_r, const double *theta_l, const double *theta_r, const double *fluid_l,
-  const double *fluid_r, const double *I, double *GKYL_RESTRICT flux
-);
+
+// Nodal moments per side and transverse face node: [I_0, I_1, I_2, I_G, I_M (3)].
+#define PKPM_FLUID_FLUX_NUM_MOMS 7
+// Largest number of transverse face nodes (5^(cdim-1), cdim <= 3).
+#define PKPM_FLUID_FLUX_MAX_NODES 25
 
 // for use in kernel tables
 typedef struct {
@@ -34,7 +40,7 @@ struct gkyl_dg_pkpm_fluid_flux_surf {
   struct gkyl_rect_grid phase_grid; // Phase-space grid.
   int cdim; // Configuration-space dimensions.
   int num_surf_basis; // Surface modal basis size per component and direction.
-  int num_face_nodes; // Transverse nodes of a face (3^(cdim-1)).
+  int num_face_nodes; // Transverse nodes of a face (5^(cdim-1)).
   bool use_gpu; // bool to determine if on GPU.
   const struct gkyl_vlasov_position_map *pos_map; // Position map (acquired; host pointer).
   const struct gkyl_array *jacob_pos; // Per-direction Jacobians (borrowed from pos_map; device pointer on device).
@@ -92,10 +98,10 @@ choose_pkpm_fluid_flux_kern(enum gkyl_basis_type b_type, int cdim, int poly_orde
 }
 
 // Flux of the face between the configuration cells idx_l (lower) and idx_r (upper) in
-// direction dir: the one-sided moments of the kinetic HLL flux summed over the velocity
-// cells of phase_range, then the assembly from the physical traces of both cells. Either
-// cell may be a ghost cell (indexed through the extended ranges). Returns the largest speed
-// bound of the face (kinetic streaming or perpendicular sound) for the CFL rate.
+// direction dir: the one-sided moments of the kinetic HLL flux of the eight blocks summed over
+// the velocity cells of phase_range, then the moment map with the physical traces of both cells.
+// Either cell may be a ghost cell (indexed through the extended ranges). Returns the CFL rate of
+// the r cell from the widest speed bounds of the face.
 GKYL_CU_DH static inline double
 pkpm_fluid_flux_face(
   const struct gkyl_dg_pkpm_fluid_flux_surf *up, int dir, const int *idx_l, const int *idx_r,
@@ -108,8 +114,8 @@ pkpm_fluid_flux_face(
   int cdim = up->cdim;
   int pidx_l[GKYL_MAX_DIM], pidx_r[GKYL_MAX_DIM];
   double xc[GKYL_MAX_DIM];
-  double I[8 * 9];
-  for (int k = 0; k < 8 * up->num_face_nodes; ++k) {
+  double I[2 * PKPM_FLUID_FLUX_NUM_MOMS * PKPM_FLUID_FLUX_MAX_NODES];
+  for (int k = 0; k < 2 * PKPM_FLUID_FLUX_NUM_MOMS * up->num_face_nodes; ++k) {
     I[k] = 0.0;
   }
   long cidx_l = gkyl_range_idx(conf_range_ext, idx_l), cidx_r = gkyl_range_idx(conf_range_ext, idx_r);
@@ -118,6 +124,7 @@ pkpm_fluid_flux_face(
   const double *b_l = (const double *)gkyl_array_cfetch(bvar, cidx_l), *b_r = (const double *)gkyl_array_cfetch(bvar, cidx_r);
   const double *u_l = (const double *)gkyl_array_cfetch(u, cidx_l), *u_r = (const double *)gkyl_array_cfetch(u, cidx_r);
   const double *xi_l = (const double *)gkyl_array_cfetch(xi, cidx_l), *xi_r = (const double *)gkyl_array_cfetch(xi, cidx_r);
+  const double *th_l = (const double *)gkyl_array_cfetch(theta, cidx_l), *th_r = (const double *)gkyl_array_cfetch(theta, cidx_r);
   double amax = 0.0;
   gkyl_copy_int_arr(cdim, idx_l, pidx_l);
   gkyl_copy_int_arr(cdim, idx_r, pidx_r);
@@ -126,16 +133,15 @@ pkpm_fluid_flux_face(
     pidx_r[cdim] = jv;
     gkyl_rect_grid_cell_center(&up->phase_grid, pidx_r, xc);
     amax = fmax(amax, up->fluid_flux_accum[dir](
-      xc, up->phase_grid.dx, jac_l, jac_r, b_l, b_r, u_l, u_r, xi_l, xi_r,
+      xc, up->phase_grid.dx, jac_l, jac_r, b_l, b_r, u_l, u_r, xi_l, xi_r, th_l, th_r,
       (const double *)gkyl_array_cfetch(f, gkyl_range_idx(phase_range_ext, pidx_l)),
       (const double *)gkyl_array_cfetch(f, gkyl_range_idx(phase_range_ext, pidx_r)), I
     ));
   }
-  double cmax = up->fluid_flux[dir](
-    jac_r, b_l, b_r, u_l, u_r, xi_l, xi_r, (const double *)gkyl_array_cfetch(theta, cidx_l),
-    (const double *)gkyl_array_cfetch(theta, cidx_r), (const double *)gkyl_array_cfetch(fluid, cidx_l),
+  up->fluid_flux[dir](
+    b_l, b_r, u_l, u_r, xi_l, xi_r, (const double *)gkyl_array_cfetch(fluid, cidx_l),
     (const double *)gkyl_array_cfetch(fluid, cidx_r), I, flux
   );
   // CFL rate of the r cell: (2p+1)/2 dx1 / J_d, as the kinetic flux
-  return 1.5 * (2.0 / up->conf_grid.dx[dir]) / jac_r[2 * dir] * fmax(amax, cmax);
+  return 1.5 * (2.0 / up->conf_grid.dx[dir]) / jac_r[2 * dir] * amax;
 }

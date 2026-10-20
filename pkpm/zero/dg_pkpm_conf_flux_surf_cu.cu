@@ -20,12 +20,13 @@ gkyl_dg_pkpm_conf_flux_surf_advance_cu_kernel(
   struct gkyl_dg_pkpm_conf_flux_surf *up, struct gkyl_range conf_range,
   struct gkyl_range phase_range, struct gkyl_range phase_range_ext,
   const struct gkyl_array *bvar, const struct gkyl_array *u, const struct gkyl_array *xi,
-  const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *conf_flux_surf
+  const struct gkyl_array *theta, const struct gkyl_array *fin, struct gkyl_array *cflrate,
+  struct gkyl_array *conf_flux_surf
 )
 {
   int pdim = up->pdim;
   int cdim = up->cdim;
-  int nflux = 2 * up->num_surf_basis;
+  int nflux = 8 * up->num_surf_basis;
   int idx[GKYL_MAX_DIM], idx_l[GKYL_MAX_DIM], idx_r[GKYL_MAX_DIM];
   double xc[GKYL_MAX_DIM], xc_r[GKYL_MAX_DIM];
 
@@ -39,6 +40,7 @@ gkyl_dg_pkpm_conf_flux_surf_advance_cu_kernel(
     const double *b_c = (const double *)gkyl_array_cfetch(bvar, cidx);
     const double *u_c = (const double *)gkyl_array_cfetch(u, cidx);
     const double *xi_c = (const double *)gkyl_array_cfetch(xi, cidx);
+    const double *theta_c = (const double *)gkyl_array_cfetch(theta, cidx);
     const double *jac_c = (const double *)gkyl_array_cfetch(up->jacob_pos, cidx);
     const double *f_c = (const double *)gkyl_array_cfetch(fin, pidx);
     double *cflrate_d = (double *)gkyl_array_fetch(cflrate, pidx);
@@ -54,6 +56,7 @@ gkyl_dg_pkpm_conf_flux_surf_advance_cu_kernel(
         (const double *)gkyl_array_cfetch(bvar, cidx_l), b_c,
         (const double *)gkyl_array_cfetch(u, cidx_l), u_c,
         (const double *)gkyl_array_cfetch(xi, cidx_l), xi_c,
+        (const double *)gkyl_array_cfetch(theta, cidx_l), theta_c,
         (const double *)gkyl_array_cfetch(fin, pidx_l), f_c, &flux[dir * nflux]
       );
 
@@ -68,7 +71,8 @@ gkyl_dg_pkpm_conf_flux_surf_advance_cu_kernel(
           xc_r, up->phase_grid.dx, jac_c, (const double *)gkyl_array_cfetch(up->jacob_pos, cidx_r),
           b_c, (const double *)gkyl_array_cfetch(bvar, cidx_r), u_c,
           (const double *)gkyl_array_cfetch(u, cidx_r), xi_c,
-          (const double *)gkyl_array_cfetch(xi, cidx_r), f_c,
+          (const double *)gkyl_array_cfetch(xi, cidx_r), theta_c,
+          (const double *)gkyl_array_cfetch(theta, cidx_r), f_c,
           (const double *)gkyl_array_cfetch(fin, pidx_r), &flux_r[dir * nflux]
         );
       }
@@ -81,12 +85,13 @@ gkyl_dg_pkpm_conf_flux_surf_advance_cu(
   struct gkyl_dg_pkpm_conf_flux_surf *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_range *phase_range_ext,
   const struct gkyl_array *bvar, const struct gkyl_array *u, const struct gkyl_array *xi,
-  const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *conf_flux_surf
+  const struct gkyl_array *theta, const struct gkyl_array *fin, struct gkyl_array *cflrate,
+  struct gkyl_array *conf_flux_surf
 )
 {
   gkyl_dg_pkpm_conf_flux_surf_advance_cu_kernel<<<phase_range->nblocks, phase_range->nthreads>>>(
     up->on_dev, *conf_range, *phase_range, *phase_range_ext, bvar->on_dev, u->on_dev,
-    xi->on_dev, fin->on_dev, cflrate->on_dev, conf_flux_surf->on_dev
+    xi->on_dev, theta->on_dev, fin->on_dev, cflrate->on_dev, conf_flux_surf->on_dev
   );
 }
 

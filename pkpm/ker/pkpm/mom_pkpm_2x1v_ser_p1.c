@@ -8,6 +8,12 @@ GKYL_CU_DH void mom_pkpm_2x1v_ser_p1(const double *w, const double *dxv, const i
 
   const double *F_0 = &f[0]; 
   const double *G_1 = &f[12]; 
+  const double *M0x = &f[24]; 
+  const double *M0y = &f[36]; 
+  const double *M0z = &f[48]; 
+  const double *Nx = &f[60]; 
+  const double *Ny = &f[72]; 
+  const double *Nz = &f[84]; 
   out[0] += 1.4142135623730951*F_0[0]*mass*volFact; 
   out[1] += 1.4142135623730951*F_0[1]*mass*volFact; 
   out[2] += 1.4142135623730951*F_0[2]*mass*volFact; 
@@ -32,6 +38,54 @@ GKYL_CU_DH void mom_pkpm_2x1v_ser_p1(const double *w, const double *dxv, const i
   out[21] += mass*volFact*(1.4142135623730951*G_1[1]*wvpar+0.408248290463863*G_1[5]*dvpar); 
   out[22] += mass*volFact*(1.4142135623730951*G_1[2]*wvpar+0.408248290463863*G_1[6]*dvpar); 
   out[23] += mass*volFact*(1.4142135623730951*G_1[4]*wvpar+0.408248290463863*G_1[8]*dvpar); 
+  out[24] += 1.4142135623730951*M0x[0]*mass*volFact; 
+  out[25] += 1.4142135623730951*M0x[1]*mass*volFact; 
+  out[26] += 1.4142135623730951*M0x[2]*mass*volFact; 
+  out[27] += 1.4142135623730951*M0x[4]*mass*volFact; 
+  out[28] += 1.4142135623730951*M0y[0]*mass*volFact; 
+  out[29] += 1.4142135623730951*M0y[1]*mass*volFact; 
+  out[30] += 1.4142135623730951*M0y[2]*mass*volFact; 
+  out[31] += 1.4142135623730951*M0y[4]*mass*volFact; 
+  out[32] += 1.4142135623730951*M0z[0]*mass*volFact; 
+  out[33] += 1.4142135623730951*M0z[1]*mass*volFact; 
+  out[34] += 1.4142135623730951*M0z[2]*mass*volFact; 
+  out[35] += 1.4142135623730951*M0z[4]*mass*volFact; 
+  out[36] += mass*volFact*(1.4142135623730951*M0x[0]*wvpar+0.408248290463863*M0x[3]*dvpar); 
+  out[37] += mass*volFact*(1.4142135623730951*M0x[1]*wvpar+0.408248290463863*M0x[5]*dvpar); 
+  out[38] += mass*volFact*(1.4142135623730951*M0x[2]*wvpar+0.408248290463863*M0x[6]*dvpar); 
+  out[39] += mass*volFact*(1.4142135623730951*M0x[4]*wvpar+0.408248290463863*M0x[8]*dvpar); 
+  out[40] += mass*volFact*(1.4142135623730951*M0y[0]*wvpar+0.408248290463863*M0y[3]*dvpar); 
+  out[41] += mass*volFact*(1.4142135623730951*M0y[1]*wvpar+0.408248290463863*M0y[5]*dvpar); 
+  out[42] += mass*volFact*(1.4142135623730951*M0y[2]*wvpar+0.408248290463863*M0y[6]*dvpar); 
+  out[43] += mass*volFact*(1.4142135623730951*M0y[4]*wvpar+0.408248290463863*M0y[8]*dvpar); 
+  out[44] += mass*volFact*(1.4142135623730951*M0z[0]*wvpar+0.408248290463863*M0z[3]*dvpar); 
+  out[45] += mass*volFact*(1.4142135623730951*M0z[1]*wvpar+0.408248290463863*M0z[5]*dvpar); 
+  out[46] += mass*volFact*(1.4142135623730951*M0z[2]*wvpar+0.408248290463863*M0z[6]*dvpar); 
+  out[47] += mass*volFact*(1.4142135623730951*M0z[4]*wvpar+0.408248290463863*M0z[8]*dvpar); 
+  out[48] += mass*volFact*(1.4142135623730951*M0x[0]*wvpar_sq+0.8164965809277261*M0x[3]*dvpar*wvpar+0.10540925533894596*M0x[7]*dvpar_sq+0.11785113019775789*M0x[0]*dvpar_sq); 
+  out[49] += mass*volFact*(1.4142135623730951*M0x[1]*wvpar_sq+0.8164965809277261*M0x[5]*dvpar*wvpar+0.105409255338946*M0x[9]*dvpar_sq+0.11785113019775789*M0x[1]*dvpar_sq); 
+  out[50] += mass*volFact*(1.4142135623730951*M0x[2]*wvpar_sq+0.8164965809277261*M0x[6]*dvpar*wvpar+0.105409255338946*M0x[10]*dvpar_sq+0.11785113019775789*M0x[2]*dvpar_sq); 
+  out[51] += mass*volFact*(1.4142135623730951*M0x[4]*wvpar_sq+0.8164965809277261*M0x[8]*dvpar*wvpar+0.10540925533894596*M0x[11]*dvpar_sq+0.11785113019775789*M0x[4]*dvpar_sq); 
+  out[52] += mass*volFact*(1.4142135623730951*M0y[0]*wvpar_sq+0.8164965809277261*M0y[3]*dvpar*wvpar+0.10540925533894596*M0y[7]*dvpar_sq+0.11785113019775789*M0y[0]*dvpar_sq); 
+  out[53] += mass*volFact*(1.4142135623730951*M0y[1]*wvpar_sq+0.8164965809277261*M0y[5]*dvpar*wvpar+0.105409255338946*M0y[9]*dvpar_sq+0.11785113019775789*M0y[1]*dvpar_sq); 
+  out[54] += mass*volFact*(1.4142135623730951*M0y[2]*wvpar_sq+0.8164965809277261*M0y[6]*dvpar*wvpar+0.105409255338946*M0y[10]*dvpar_sq+0.11785113019775789*M0y[2]*dvpar_sq); 
+  out[55] += mass*volFact*(1.4142135623730951*M0y[4]*wvpar_sq+0.8164965809277261*M0y[8]*dvpar*wvpar+0.10540925533894596*M0y[11]*dvpar_sq+0.11785113019775789*M0y[4]*dvpar_sq); 
+  out[56] += mass*volFact*(1.4142135623730951*M0z[0]*wvpar_sq+0.8164965809277261*M0z[3]*dvpar*wvpar+0.10540925533894596*M0z[7]*dvpar_sq+0.11785113019775789*M0z[0]*dvpar_sq); 
+  out[57] += mass*volFact*(1.4142135623730951*M0z[1]*wvpar_sq+0.8164965809277261*M0z[5]*dvpar*wvpar+0.105409255338946*M0z[9]*dvpar_sq+0.11785113019775789*M0z[1]*dvpar_sq); 
+  out[58] += mass*volFact*(1.4142135623730951*M0z[2]*wvpar_sq+0.8164965809277261*M0z[6]*dvpar*wvpar+0.105409255338946*M0z[10]*dvpar_sq+0.11785113019775789*M0z[2]*dvpar_sq); 
+  out[59] += mass*volFact*(1.4142135623730951*M0z[4]*wvpar_sq+0.8164965809277261*M0z[8]*dvpar*wvpar+0.10540925533894596*M0z[11]*dvpar_sq+0.11785113019775789*M0z[4]*dvpar_sq); 
+  out[60] += 1.4142135623730951*Nx[0]*mass*volFact; 
+  out[61] += 1.4142135623730951*Nx[1]*mass*volFact; 
+  out[62] += 1.4142135623730951*Nx[2]*mass*volFact; 
+  out[63] += 1.4142135623730951*Nx[4]*mass*volFact; 
+  out[64] += 1.4142135623730951*Ny[0]*mass*volFact; 
+  out[65] += 1.4142135623730951*Ny[1]*mass*volFact; 
+  out[66] += 1.4142135623730951*Ny[2]*mass*volFact; 
+  out[67] += 1.4142135623730951*Ny[4]*mass*volFact; 
+  out[68] += 1.4142135623730951*Nz[0]*mass*volFact; 
+  out[69] += 1.4142135623730951*Nz[1]*mass*volFact; 
+  out[70] += 1.4142135623730951*Nz[2]*mass*volFact; 
+  out[71] += 1.4142135623730951*Nz[4]*mass*volFact; 
 } 
 GKYL_CU_DH void mom_pkpm_diag_2x1v_ser_p1(const double *w, const double *dxv, const int *idx, double mass, const double *f, double* GKYL_RESTRICT out) 
 { 

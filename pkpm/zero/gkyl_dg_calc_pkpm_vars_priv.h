@@ -36,11 +36,11 @@ typedef void (*pkpm_diag_t)(
 
 typedef int (*pkpm_closure_t)(
   double w_lo, double w_up, double dv, const double *norm_moms, const double *rhs_moms, const double *bvar,
-  const double *grad_b, const double *grad_u, const double *xi, const double *grad_xi, const double *theta,
-  const double *alpha_0_prev, const double *c_h_prev, const double *f_lo, const double *f_up,
-  double *GKYL_RESTRICT c_0, double *GKYL_RESTRICT alpha_0, double *GKYL_RESTRICT c_h,
-  double *GKYL_RESTRICT flux_lo, double *GKYL_RESTRICT flux_up, double *GKYL_RESTRICT cfl,
-  double *GKYL_RESTRICT cond
+  const double *grad_b, const double *u, const double *grad_u, const double *xi, const double *grad_xi,
+  const double *theta, const double *dtB_over_magB, const double *alpha_0_prev, const double *c_h_prev,
+  const double *f_lo, const double *f_up, double *GKYL_RESTRICT c_0, double *GKYL_RESTRICT alpha_0,
+  double *GKYL_RESTRICT c_h, double *GKYL_RESTRICT a_perp, double *GKYL_RESTRICT flux_lo,
+  double *GKYL_RESTRICT flux_up, double *GKYL_RESTRICT cfl, double *GKYL_RESTRICT cond
 );
 typedef int (*pkpm_prim_t)(const double *fluid, double *GKYL_RESTRICT u, double *GKYL_RESTRICT xi);
 typedef void (*pkpm_int_t)(
@@ -53,6 +53,7 @@ typedef int (*pkpm_grad_ln_n_t)(
 );
 
 typedef int (*pkpm_normalize_t)(const double *n, const double *f, double *GKYL_RESTRICT fbar);
+typedef void (*pkpm_transverse_t)(const double *bvar, double *GKYL_RESTRICT f);
 typedef void (*pkpm_source_t)(const double *qmem, const double *fluid, double *GKYL_RESTRICT out);
 
 struct gkyl_dg_calc_pkpm_vars {
@@ -75,6 +76,7 @@ struct gkyl_dg_calc_pkpm_vars {
   pkpm_grad_ln_n_t pkpm_grad_ln_n; // grad(ln n) by nodal quotient of the weak gradient of rho
   pkpm_fluid_positivity_t pkpm_fluid_positivity; // vertex positivity limiter of the fluid state
   pkpm_normalize_t pkpm_normalize; // nodal constraint enforcement of the initial distributions
+  pkpm_transverse_t pkpm_transverse; // transversality projection of the first-harmonic blocks
   pkpm_source_t pkpm_source; // explicit electromagnetic source of [rho, M, E]
   pkpm_diag_t pkpm_diag; // diagnostic arrays
   int num_null_rho; // number of nodes with rho <= 0 in the last nodal computation (host copy)
@@ -234,6 +236,21 @@ choose_pkpm_normalize_kern(enum gkyl_basis_type b_type, int cdim, int poly_order
 {
   if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
     return ser_pkpm_normalize_kernels[cdim - 1];
+  }
+  return 0;
+}
+// Transversality projection of the first-harmonic blocks (p=1 serendipity)
+GKYL_CU_D static const pkpm_transverse_t ser_pkpm_transverse_kernels[] = {
+  pkpm_dist_transverse_1x1v_ser_p1,
+  pkpm_dist_transverse_2x1v_ser_p1,
+  pkpm_dist_transverse_3x1v_ser_p1,
+};
+GKYL_CU_D
+static pkpm_transverse_t
+choose_pkpm_transverse_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+{
+  if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
+    return ser_pkpm_transverse_kernels[cdim - 1];
   }
   return 0;
 }

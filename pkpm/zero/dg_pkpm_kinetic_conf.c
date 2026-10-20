@@ -59,7 +59,7 @@ gkyl_dg_pkpm_kinetic_conf_inew(const struct gkyl_dg_pkpm_kinetic_conf_inp *inp)
   pkpm->pdim = pdim;
   pkpm->num_surf_basis = inp->phase_basis->num_basis / 2;
 
-  pkpm->eqn.num_equations = 2;
+  pkpm->eqn.num_equations = 8;
   pkpm->eqn.vol_term = vol;
   pkpm->eqn.surf_term = surf;
   pkpm->eqn.boundary_surf_term = boundary_surf;

@@ -71,7 +71,7 @@ gkyl_dg_pkpm_kinetic_conf_cu_dev_inew(const struct gkyl_dg_pkpm_kinetic_conf_inp
   pkpm->cdim = cdim;
   pkpm->pdim = pdim;
   pkpm->num_surf_basis = inp->phase_basis->num_basis / 2;
-  pkpm->eqn.num_equations = 2;
+  pkpm->eqn.num_equations = 8;
   pkpm->conf_range = *inp->conf_range;
   pkpm->phase_range = *inp->phase_range;
   pkpm->auxfields = inp->auxfields;

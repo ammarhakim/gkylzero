@@ -29,6 +29,7 @@
 #include <gkyl_dg_pkpm_fluid_flux_surf.h>
 #include <gkyl_dg_pkpm_kinetic_conf.h>
 #include <gkyl_dg_pkpm_kinetic_vel.h>
+#include <gkyl_dg_pkpm_harm_vol.h>
 #include <gkyl_dg_pkpm_vel_flux_surf.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_updater_diffusion_fluid.h>
@@ -240,7 +241,7 @@ struct pkpm_species {
 
   struct pkpm_species_moment pkpm_moms_diag; // for computing pkpm moments diagnostics
   struct pkpm_species_moment pkpm_nmoms; // raw moments [M0, M2, M0_G, M1, M3, M1_G] of the normalized [F, G] (mass 1)
-  struct gkyl_array *pkpm_moms; // kinetic coupling moments [p_par, p_perp, q_par, q_perp] = [p M2, p M0_G, p xi M3, p xi M1_G]
+  struct gkyl_array *pkpm_moms; // kinetic coupling moments [p_par, p_perp, q_par, q_perp, s (3), r (3)] = [p M2, p M0_G, p xi M3, p xi M1_G, p m1, p xi (m2/2 + n0)]
   struct gkyl_array *pkpm_cmoms; // the constraints [M0(F), M1(F), (M2(F) + 2 M0(G))/3], [1, 0, 1] when the closures hold
   struct gkyl_array *pkpm_cmoms_host; // host copy for output
 
@@ -264,12 +265,14 @@ struct pkpm_species {
   struct gkyl_array *pkpm_c_0; // normalization closure of the factored update
   struct gkyl_array *pkpm_alpha_0; // pressure force a_P/xi closing the first w moment
   struct gkyl_array *pkpm_c_h; // heating rate closing the scalar second moment M2(F) + 2 M0(G)
+  struct gkyl_array *pkpm_a_perp; // perpendicular force closing int M0_perp dw [x, y, z]
   struct gkyl_array *pkpm_rhs_moms; // moments of the configuration-pass right-hand side (separate scratch)
   struct gkyl_array *pkpm_p_ij; // p=1 projection of the pressure tensor (limiter scratch only)
   struct gkyl_array
     *cell_avg_prim; // Integer array for whether rho is negative at control points (diagnostic only)
   struct gkyl_array *conf_flux_surf; // stored modal configuration-space kinetic fluxes
   struct gkyl_array *vel_flux_surf; // stored modal v_par kinetic fluxes
+  struct gkyl_dg_pkpm_harm_vol *harm_vol; // modal volume integrals of the first-harmonic terms (stage A)
   struct gkyl_array *fluid_flux_surf; // stored modal fluid fluxes [F_rho, F_x, F_y, F_z, F_E]
   struct gkyl_array *
     integ_pkpm_mom; // integrated PKPM variables [rho, rho ux, rho uy, rho uz, rho ux^2, rho uy^2, rho uz^2, p_par, p_perp]
@@ -498,9 +501,11 @@ struct gkyl_pkpm_app {
   struct gkyl_pkpm_stat stat; // statistics
 };
 
-// Take a single forward Euler step of the PKPM system with the suggested time-step dt.
+// Take a single forward Euler step of the PKPM system with the suggested time-step dt. The
+// first-harmonic blocks of the stage state fin are projected onto the plane perpendicular to the
+// stage's b first (in place).
 void pkpm_forward_euler(
-  gkyl_pkpm_app *app, double tcurr, double dt, const struct gkyl_array *fin[],
+  gkyl_pkpm_app *app, double tcurr, double dt, struct gkyl_array *fin[],
   const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *fout[],
   struct gkyl_array *fluidout[], struct gkyl_array *emout, struct gkyl_update_status *st
 );
@@ -753,6 +758,10 @@ void pkpm_species_source_release(const gkyl_pkpm_app *app, const struct pkpm_sou
 // the initial temperature (then the fluid energy relaxes at the same rate).
 void pkpm_species_bgk_init(gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk);
 void pkpm_species_bgk_set_fixed_temp(gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk);
+// Project M0_perp and N_perp of the distributions f onto the plane perpendicular to the current b
+// at the Gauss-Legendre nodes of b, in place, over the extended ranges (plan 17.11).
+void pkpm_species_project_transverse(gkyl_pkpm_app *app, struct pkpm_species *species, struct gkyl_array *f);
+
 // out += a conf * phase for every block of a phase array (the bin-op kernels act on one
 // block of num_basis components); phase may hold fewer blocks than out (e.g. [F, G] only).
 void pkpm_species_accumulate_conf_phase(

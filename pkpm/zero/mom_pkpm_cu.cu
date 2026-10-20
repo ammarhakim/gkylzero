@@ -39,7 +39,7 @@ set_cu_ptrs(
     mom_pkpm->momt.num_mom = 8; // rho, M1, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp
   } else {
     mom_pkpm->momt.kernel = CK(mom_pkpm_kernels, cdim, poly_order);
-    mom_pkpm->momt.num_mom = 3; // rho, p_par, p_perp
+    mom_pkpm->momt.num_mom = 18; // rho, p_par, p_perp, M1, q_par, q_perp, int (1, w, w^2) M0_perp dw (3 each), int N_perp dw (3)
   }
 }
 
@@ -65,7 +65,7 @@ gkyl_mom_pkpm_cu_dev_new(
   if (diag) {
     mom_pkpm->momt.num_mom = 8; // rho, M1, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp
   } else {
-    mom_pkpm->momt.num_mom = 6; // rho, p_par, p_perp, M1, q_par, q_perp
+    mom_pkpm->momt.num_mom = 18; // rho, p_par, p_perp, M1, q_par, q_perp, int (1, w, w^2) M0_perp dw (3 each), int N_perp dw (3)
   }
   mom_pkpm->mass = mass;
 

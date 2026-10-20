@@ -21,16 +21,16 @@ struct gkyl_dg_pkpm_fluid_flux_surf_inp {
 
 /**
  * Create a new updater computing the fluid face fluxes of the factored PKPM model as the
- * moments of the kinetic configuration-space flux (pkpm-fluid-flux-kinetic.mac): on the
- * lower face of every cell in every direction, and on the upper ghost-owned face of the
- * last interior cell, the HLL flux of the two-valued speed xi w b_n + u_n is formed per
- * normalized velocity and face node from the traces of [F, G] of the two cells, its
- * one-sided moments are accumulated over the velocity cells, and the fluxes of
- * [rho, M, E] are assembled from them with the physical traces (rho, u, xi, b) of each
- * side. The fluid system and the distributions thus see one discrete transport; with a
- * zero trace on one side (absorbing wall) the flux is the one-sided upwind flux, and with
- * mirrored traces (reflecting wall) the mass and energy fluxes vanish exactly. Each cell
- * owns its *lower* face; the stored layout per cell is [direction][component][surface
+ * moments of the kinetic configuration-space flux (pkpm-fluid-flux-kinetic.mac, plan 17.14):
+ * on the lower face of every cell in every direction, and on the upper ghost-owned face of the
+ * last interior cell, the HLL flux of the eight blocks [F, G, M0_perp, N_perp] is formed per
+ * normalized velocity and face node from the traces of the two cells (pkpm_harm_conf_flux, the
+ * kinetic flux itself), the w moments of its two one-sided contributions are accumulated over
+ * the velocity cells, and the fluxes of [rho, M, E] are their moment maps with the physical
+ * traces (rho, u, xi, b) of each side. The fluid system and the distributions thus see one
+ * discrete transport, the perpendicular pressure included (no separate pressure term); with a
+ * zero trace on one side (absorbing wall) the flux is the one-sided flux of the interior side.
+ * Each cell owns its *lower* face; the stored layout per cell is [direction][component][surface
  * mode] with 5 * num_surf_basis entries per direction.
  *
  * @param inp Input parameters defined in gkyl_dg_pkpm_fluid_flux_surf_inp struct.
@@ -61,8 +61,8 @@ struct gkyl_dg_pkpm_fluid_flux_surf *gkyl_dg_pkpm_fluid_flux_surf_cu_dev_inew(
  * @param xi Input thermal speed [xi, xi^2, p] (ghost cells filled).
  * @param theta Input T_perp/T = M0(G) (ghost cells filled).
  * @param fluid Input PHYSICAL fluid state [rho, rho ux, rho uy, rho uz, E] (Jacobian divided out; ghost cells filled).
- * @param f Input Jacobian-weighted normalized distributions J [F, G] (ghost cells filled).
- * @param cflrate Input cflrate. Accumulated to from the speed bounds (kinetic streaming and perpendicular sound) of the faces.
+ * @param f Input Jacobian-weighted normalized distributions J [F, G, M0_perp, N_perp] (ghost cells filled).
+ * @param cflrate Input cflrate. Accumulated to from the speed bounds of the faces.
  * @param fluid_flux_surf Output modal fluxes [F_rho, F_x, F_y, F_z, F_E] per direction, for the evolved J-weighted fluid.
  */
 void gkyl_dg_pkpm_fluid_flux_surf_advance(

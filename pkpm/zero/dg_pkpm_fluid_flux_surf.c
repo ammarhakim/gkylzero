@@ -28,7 +28,7 @@ gkyl_dg_pkpm_fluid_flux_surf_inew(const struct gkyl_dg_pkpm_fluid_flux_surf_inp 
   up->num_surf_basis = inp->conf_basis->num_basis / 2;
   up->num_face_nodes = 1;
   for (int d = 1; d < cdim; ++d) {
-    up->num_face_nodes *= 3;
+    up->num_face_nodes *= 5; // the transverse nodes of the kinetic face flux
   }
   assert(inp->pos_map);
   up->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);

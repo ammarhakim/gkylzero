@@ -57,7 +57,7 @@ gkyl_dg_pkpm_kinetic_vel_inew(const struct gkyl_dg_pkpm_kinetic_vel_inp *inp)
   pkpm->cdim = cdim;
   pkpm->pdim = pdim;
 
-  pkpm->eqn.num_equations = 2;
+  pkpm->eqn.num_equations = 8;
   pkpm->eqn.vol_term = vol;
   pkpm->eqn.surf_term = surf;
   pkpm->eqn.boundary_surf_term = boundary_surf;

@@ -19,7 +19,8 @@ gkyl_dg_pkpm_vel_flux_surf_advance_cu_kernel(
   struct gkyl_dg_pkpm_vel_flux_surf *up, struct gkyl_range conf_range,
   struct gkyl_range phase_range, const struct gkyl_array *bvar, const struct gkyl_array *grad_b,
   const struct gkyl_array *u, const struct gkyl_array *grad_u, const struct gkyl_array *xi, const struct gkyl_array *grad_xi,
-  const struct gkyl_array *theta, const struct gkyl_array *alpha_0, const struct gkyl_array *c_h,
+  const struct gkyl_array *theta, const struct gkyl_array *dtB_over_magB,
+  const struct gkyl_array *alpha_0, const struct gkyl_array *c_h,
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *vel_flux_surf
 )
 {
@@ -46,7 +47,8 @@ gkyl_dg_pkpm_vel_flux_surf_advance_cu_kernel(
       (const double *)gkyl_array_cfetch(grad_b, cidx),
       (const double *)gkyl_array_cfetch(u, cidx), (const double *)gkyl_array_cfetch(grad_u, cidx),
       (const double *)gkyl_array_cfetch(xi, cidx), (const double *)gkyl_array_cfetch(grad_xi, cidx),
-      (const double *)gkyl_array_cfetch(theta, cidx), (const double *)gkyl_array_cfetch(alpha_0, cidx),
+      (const double *)gkyl_array_cfetch(theta, cidx),
+      (const double *)gkyl_array_cfetch(dtB_over_magB, cidx), (const double *)gkyl_array_cfetch(alpha_0, cidx),
       (const double *)gkyl_array_cfetch(c_h, cidx), (const double *)gkyl_array_cfetch(fin, pidx_l),
       (const double *)gkyl_array_cfetch(fin, pidx), (double *)gkyl_array_fetch(vel_flux_surf, pidx)
     );
@@ -60,13 +62,14 @@ gkyl_dg_pkpm_vel_flux_surf_advance_cu(
   struct gkyl_dg_pkpm_vel_flux_surf *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_array *bvar, const struct gkyl_array *grad_b,
   const struct gkyl_array *u, const struct gkyl_array *grad_u, const struct gkyl_array *xi, const struct gkyl_array *grad_xi,
-  const struct gkyl_array *theta, const struct gkyl_array *alpha_0, const struct gkyl_array *c_h,
+  const struct gkyl_array *theta, const struct gkyl_array *dtB_over_magB,
+  const struct gkyl_array *alpha_0, const struct gkyl_array *c_h,
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *vel_flux_surf
 )
 {
   gkyl_dg_pkpm_vel_flux_surf_advance_cu_kernel<<<phase_range->nblocks, phase_range->nthreads>>>(
     up->on_dev, *conf_range, *phase_range, bvar->on_dev, grad_b->on_dev, u->on_dev, grad_u->on_dev,
-    xi->on_dev, grad_xi->on_dev, theta->on_dev,
+    xi->on_dev, grad_xi->on_dev, theta->on_dev, dtB_over_magB->on_dev,
     alpha_0->on_dev, c_h->on_dev, fin->on_dev, cflrate->on_dev, vel_flux_surf->on_dev
   );
 }

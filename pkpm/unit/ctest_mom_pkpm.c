@@ -13,14 +13,14 @@ test_mom_pkpm_1x1v_p1()
   gkyl_cart_modal_serendip(&cbasis, 1, poly_order); // 1X
   gkyl_cart_modal_serendip(&pbasis, 2, poly_order); // 1X1V
 
-  // Non-diagnostic moments (rho, p_par, p_perp, M1).
+  // Non-diagnostic moments (rho, p_par, p_perp, M1, q_par, q_perp, int M0_perp dw).
   struct gkyl_mom_type *m = gkyl_mom_pkpm_new(&cbasis, &pbasis, 1.0, false, false);
   TEST_CHECK(m->cdim == 1);
   TEST_CHECK(m->pdim == 2);
   TEST_CHECK(m->poly_order == 1);
   TEST_CHECK(m->num_config == cbasis.num_basis);
   TEST_CHECK(m->num_phase == pbasis.num_basis);
-  TEST_CHECK(m->num_mom == 6);
+  TEST_CHECK(m->num_mom == 18);
   TEST_CHECK(m->kernel != NULL);
 
   // Diagnostic moments has 8 components.
@@ -44,7 +44,7 @@ test_mom_pkpm_2x1v_p1()
   struct gkyl_mom_type *m = gkyl_mom_pkpm_new(&cbasis, &pbasis, 1.0, false, false);
   TEST_CHECK(m->cdim == 2);
   TEST_CHECK(m->pdim == 3);
-  TEST_CHECK(m->num_mom == 6);
+  TEST_CHECK(m->num_mom == 18);
   struct gkyl_mom_type *md = gkyl_mom_pkpm_new(&cbasis, &pbasis, 1.0, true, false);
   TEST_CHECK(md->num_mom == 8);
   gkyl_mom_type_release(m);
@@ -62,7 +62,7 @@ test_mom_pkpm_3x1v_p1()
   struct gkyl_mom_type *m = gkyl_mom_pkpm_new(&cbasis, &pbasis, 1.0, false, false);
   TEST_CHECK(m->cdim == 3);
   TEST_CHECK(m->pdim == 4);
-  TEST_CHECK(m->num_mom == 6);
+  TEST_CHECK(m->num_mom == 18);
   TEST_CHECK(m->kernel != NULL);
   gkyl_mom_type_release(m);
 }

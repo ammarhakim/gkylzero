@@ -25,6 +25,7 @@
 #include <gkyl_dg_pkpm_conf_flux_surf.h>
 #include <gkyl_dg_pkpm_fluid.h>
 #include <gkyl_dg_pkpm_fluid_flux_surf.h>
+#include <gkyl_dg_pkpm_harm_vol.h>
 #include <gkyl_dg_pkpm_kinetic_conf.h>
 #include <gkyl_evalf_def.h>
 #include <gkyl_hyper_dg.h>
@@ -138,6 +139,13 @@ eval_cmoms(double t, const double *xn, double *restrict fout, void *ctx)
   fout[1] = 0.8 * rho * xi * xi;
   fout[2] = 0.1 * sin(x);
   fout[3] = 0.05 * cos(y);
+  // first-harmonic stress s and heat flux r
+  fout[4] = 0.05 * cos(x);
+  fout[5] = -0.03 * sin(y);
+  fout[6] = 0.02 * sin(x + y);
+  fout[7] = 0.04 * cos(x - y);
+  fout[8] = 0.03 * sin(x);
+  fout[9] = -0.02 * cos(y);
 }
 
 // Position maps: a constant stretch x = s xi (s from the context) and the sinusoid
@@ -170,7 +178,7 @@ struct sim {
   struct gkyl_range clocal, clocal_ext, plocal, plocal_ext, plocal_ext_conf;
   struct gkyl_vlasov_position_map *pos_map;
   // intensive fields
-  struct gkyl_array *em, *bvar, *grad_b, *u, *grad_u, *xi, *grad_xi, *rho, *rho3, *grad_rho, *grad_ln_n, *theta;
+  struct gkyl_array *em, *dtb, *bvar, *grad_b, *u, *grad_u, *xi, *grad_xi, *rho, *rho3, *grad_rho, *grad_ln_n, *theta;
   // physical fluid state and the J-weighted evolved quantities
   struct gkyl_array *fluid_phys, *fluid, *cmoms, *f;
   struct gkyl_dg_calc_pkpm_bvar *calc_b;
@@ -299,8 +307,10 @@ setup(struct sim *s, int cdim, enum map_kind kind)
   s->theta = mkarr(nc, cvol);
   s->fluid_phys = mkarr(5 * nc, cvol);
   s->fluid = mkarr(5 * nc, cvol);
-  s->cmoms = mkarr(4 * nc, cvol);
-  s->f = mkarr(2 * np, pvol);
+  s->cmoms = mkarr(10 * nc, cvol);
+  s->dtb = mkarr(3 * nc, cvol); // a static field
+  gkyl_array_clear(s->dtb, 0.0);
+  s->f = mkarr(8 * np, pvol); // [F, G, M0_perp, N_perp]; the first harmonic is zero here
   gkyl_array_clear(s->grad_b, 0.0);
   gkyl_array_clear(s->grad_u, 0.0);
   gkyl_array_clear(s->grad_xi, 0.0);
@@ -314,7 +324,7 @@ setup(struct sim *s, int cdim, enum map_kind kind)
   project_conf(s, 3, eval_xi, s->xi);
   project_conf(s, 1, eval_theta, s->theta);
   project_conf(s, 5, eval_fluid, s->fluid_phys);
-  project_conf(s, 4, eval_cmoms, s->cmoms);
+  project_conf(s, 10, eval_cmoms, s->cmoms);
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
     .grid = &s->pgrid,
     .basis = &s->pbasis,
@@ -368,14 +378,15 @@ advance(struct sim *s)
   };
   s->kin_flux_up = gkyl_dg_pkpm_conf_flux_surf_inew(&kin_inp);
   int nkc = gkyl_dg_pkpm_conf_flux_surf_num_surf_basis(s->kin_flux_up);
-  s->kin_flux = mkarr(2 * cdim * nkc, pvol);
+  s->kin_flux = mkarr(8 * cdim * nkc, pvol);
   s->kin_cfl = mkarr(1, pvol);
-  s->kin_rhs = mkarr(2 * np, pvol);
+  s->kin_rhs = mkarr(8 * np, pvol);
   gkyl_array_clear(s->kin_flux, 0.0);
   gkyl_array_clear(s->kin_cfl, 0.0);
   gkyl_array_clear(s->kin_rhs, 0.0);
   gkyl_dg_pkpm_conf_flux_surf_advance(
-    s->kin_flux_up, &s->clocal, &s->plocal, &s->plocal_ext, s->bvar, s->u, s->xi, s->f, s->kin_cfl, s->kin_flux
+    s->kin_flux_up, &s->clocal, &s->plocal, &s->plocal_ext, s->bvar, s->u, s->xi, s->theta, s->f, s->kin_cfl,
+    s->kin_flux
   );
   struct gkyl_dg_pkpm_kinetic_conf_inp kin_eqn_inp = {
     .conf_basis = &s->cbasis,
@@ -403,6 +414,13 @@ advance(struct sim *s)
   gkyl_hyper_dg_advance(kin_slvr, &s->plocal, s->f, s->kin_cfl, s->kin_rhs);
   gkyl_hyper_dg_release(kin_slvr);
   gkyl_dg_eqn_release(kin_eqn);
+  // the first-harmonic terms of the pass (their configuration-flux couplings carry 1/J_d)
+  struct gkyl_dg_pkpm_harm_vol *harm = gkyl_dg_pkpm_harm_vol_inew(&(struct gkyl_dg_pkpm_harm_vol_inp){
+    .phase_grid = &s->pgrid, .conf_basis = &s->cbasis, .phase_basis = &s->pbasis, .qbym = 1.0,
+    .pos_map = s->pos_map, .use_gpu = false});
+  gkyl_dg_pkpm_harm_vol_advance(harm, &s->clocal, &s->plocal, s->bvar, s->grad_b, s->u, s->grad_u, s->xi,
+    s->grad_xi, s->grad_ln_n, s->theta, s->dtb, s->em, s->f, s->kin_cfl, s->kin_rhs);
+  gkyl_dg_pkpm_harm_vol_release(harm);
 
   // Fluid: the kinetic-moment fluxes take the physical fluid state and the weighted
   // distribution.
@@ -447,7 +465,7 @@ teardown(struct sim *s)
   gkyl_dg_calc_pkpm_vars_release(s->vars);
   gkyl_dg_calc_pkpm_bvar_release(s->calc_b);
   gkyl_vlasov_position_map_release(s->pos_map);
-  struct gkyl_array *arrs[] = {s->em, s->bvar, s->grad_b, s->u, s->grad_u, s->xi, s->grad_xi, s->rho, s->rho3,
+  struct gkyl_array *arrs[] = {s->em, s->dtb, s->bvar, s->grad_b, s->u, s->grad_u, s->xi, s->grad_xi, s->rho, s->rho3,
     s->grad_rho, s->grad_ln_n, s->theta, s->fluid_phys, s->fluid, s->cmoms, s->f, s->kin_flux, s->kin_cfl,
     s->kin_rhs, s->fl_flux, s->fl_cfl, s->fl_rhs};
   for (int i = 0; i < sizeof(arrs) / sizeof(arrs[0]); ++i) {
