@@ -1,4 +1,5 @@
 #include <gkyl_gk_neut_species_priv.h>
+#include <gk_neut_species_fluid_cu.h>
 
 static void
 gk_neut_species_fluid_diffusion_dirichlet_ghost(
@@ -17,6 +18,15 @@ gk_neut_species_fluid_diffusion_dirichlet_ghost(
 
   const int skin_idx_dir = edge == GKYL_LOWER_EDGE ? species->local.lower[dir] :
                                                      species->local.upper[dir];
+#ifdef GKYL_HAVE_CUDA
+  if (app->use_gpu) {
+    gk_neut_fluid_diffusion_dirichlet_ghost_cu(
+      app->cdim, dir, skin_idx_dir, species->info.mass, number_density, &species->local_ext, ghost,
+      number_density_field, density, tensor
+    );
+    return;
+  }
+#endif
   const int nb = app->basis.num_basis;
   const int nK = app->cdim * app->cdim;
   const double rho_b_modal = pow(sqrt(2.0), app->cdim) * species->info.mass * number_density;
@@ -147,22 +157,32 @@ gk_neut_species_fluid_rhs_dynamic(
       // that is positive at every vertex is positive throughout the cell.
       const double nu_min = species->info.diffusion.min_collision_frequency;
       if (nu_min > 0.0) {
-        double nodes[8 * GKYL_MAX_CDIM] = {0.0};
-        double D_nodal[8] = {0.0};
-        app->basis.node_list(nodes);
-        struct gkyl_range_iter iter;
-        gkyl_range_iter_init(&iter, &species->local);
-        while (gkyl_range_iter_next(&iter)) {
-          long loc = gkyl_range_idx(&species->local, iter.idx);
-          const double *vt_sq = gkyl_array_cfetch(react->vt_sq_ion[cx_idx], loc);
-          const double *nu = gkyl_array_cfetch(species->diffusion_moment_ratio, loc);
-          double *D = gkyl_array_fetch(species->diffusion_coeff, loc);
-          for (int q = 0; q < app->basis.num_basis; ++q) {
-            double vt_sq_q = app->basis.eval_expand(&nodes[q * app->cdim], vt_sq);
-            double nu_q = app->basis.eval_expand(&nodes[q * app->cdim], nu);
-            D_nodal[q] = fmax(vt_sq_q, 0.0) / fmax(nu_q, nu_min);
+#ifdef GKYL_HAVE_CUDA
+        if (app->use_gpu) {
+          gk_neut_fluid_diffusion_floor_cu(
+            app->cdim, nu_min, &species->local, react->vt_sq_ion[cx_idx],
+            species->diffusion_moment_ratio, species->diffusion_coeff
+          );
+        } else
+#endif
+        {
+          double nodes[8 * GKYL_MAX_CDIM] = {0.0};
+          double D_nodal[8] = {0.0};
+          app->basis.node_list(nodes);
+          struct gkyl_range_iter iter;
+          gkyl_range_iter_init(&iter, &species->local);
+          while (gkyl_range_iter_next(&iter)) {
+            long loc = gkyl_range_idx(&species->local, iter.idx);
+            const double *vt_sq = gkyl_array_cfetch(react->vt_sq_ion[cx_idx], loc);
+            const double *nu = gkyl_array_cfetch(species->diffusion_moment_ratio, loc);
+            double *D = gkyl_array_fetch(species->diffusion_coeff, loc);
+            for (int q = 0; q < app->basis.num_basis; ++q) {
+              double vt_sq_q = app->basis.eval_expand(&nodes[q * app->cdim], vt_sq);
+              double nu_q = app->basis.eval_expand(&nodes[q * app->cdim], nu);
+              D_nodal[q] = fmax(vt_sq_q, 0.0) / fmax(nu_q, nu_min);
+            }
+            app->basis.nodal_to_modal(D_nodal, D);
           }
-          app->basis.nodal_to_modal(D_nodal, D);
         }
       } else {
         // With no floor requested, retain the original weak quotient.
@@ -333,6 +353,15 @@ fluid_diffusion_dot(
   const struct gkyl_array *b
 )
 {
+#ifdef GKYL_HAVE_CUDA
+  if (app->use_gpu) {
+    double local_sum =
+      gk_neut_fluid_diffusion_dot_cu(&species->local, a, b, species->diffusion_implicit_dot);
+    double global_sum = 0.0;
+    gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &local_sum, &global_sum);
+    return global_sum;
+  }
+#endif
   double local_sum = 0.0;
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &species->local);
@@ -355,6 +384,12 @@ fluid_diffusion_vec_set(
   double a, const struct gkyl_array *x, double b, const struct gkyl_array *y
 )
 {
+#ifdef GKYL_HAVE_CUDA
+  if (app->use_gpu) {
+    gk_neut_fluid_diffusion_vec_set_cu(&species->local, out, a, x, b, y);
+    return;
+  }
+#endif
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &species->local);
   while (gkyl_range_iter_next(&iter)) {
@@ -387,21 +422,31 @@ fluid_diffusion_prepare_implicit(gkyl_gyrokinetic_app *app, struct gk_neut_speci
 
     const double nu_min = species->info.diffusion.min_collision_frequency;
     if (nu_min > 0.0) {
-      double nodes[8 * GKYL_MAX_CDIM] = {0.0}, D_nodal[8] = {0.0};
-      app->basis.node_list(nodes);
-      struct gkyl_range_iter iter;
-      gkyl_range_iter_init(&iter, &species->local);
-      while (gkyl_range_iter_next(&iter)) {
-        long loc = gkyl_range_idx(&species->local, iter.idx);
-        const double *vt_sq = gkyl_array_cfetch(react->vt_sq_ion[cx_idx], loc);
-        const double *nu = gkyl_array_cfetch(species->diffusion_moment_ratio, loc);
-        double *D = gkyl_array_fetch(species->diffusion_coeff, loc);
-        for (int q = 0; q < app->basis.num_basis; ++q) {
-          double vtq = app->basis.eval_expand(&nodes[q * app->cdim], vt_sq);
-          double nuq = app->basis.eval_expand(&nodes[q * app->cdim], nu);
-          D_nodal[q] = fmax(vtq, 0.0) / fmax(nuq, nu_min);
+#ifdef GKYL_HAVE_CUDA
+      if (app->use_gpu) {
+        gk_neut_fluid_diffusion_floor_cu(
+          app->cdim, nu_min, &species->local, react->vt_sq_ion[cx_idx],
+          species->diffusion_moment_ratio, species->diffusion_coeff
+        );
+      } else
+#endif
+      {
+        double nodes[8 * GKYL_MAX_CDIM] = {0.0}, D_nodal[8] = {0.0};
+        app->basis.node_list(nodes);
+        struct gkyl_range_iter iter;
+        gkyl_range_iter_init(&iter, &species->local);
+        while (gkyl_range_iter_next(&iter)) {
+          long loc = gkyl_range_idx(&species->local, iter.idx);
+          const double *vt_sq = gkyl_array_cfetch(react->vt_sq_ion[cx_idx], loc);
+          const double *nu = gkyl_array_cfetch(species->diffusion_moment_ratio, loc);
+          double *D = gkyl_array_fetch(species->diffusion_coeff, loc);
+          for (int q = 0; q < app->basis.num_basis; ++q) {
+            double vtq = app->basis.eval_expand(&nodes[q * app->cdim], vt_sq);
+            double nuq = app->basis.eval_expand(&nodes[q * app->cdim], nu);
+            D_nodal[q] = fmax(vtq, 0.0) / fmax(nuq, nu_min);
+          }
+          app->basis.nodal_to_modal(D_nodal, D);
         }
-        app->basis.nodal_to_modal(D_nodal, D);
       }
     } else {
       gkyl_dg_div_op_range(
@@ -519,6 +564,12 @@ fluid_diffusion_enforce_positivity(
   if (app->basis.poly_order != 1) {
     return;
   }
+#ifdef GKYL_HAVE_CUDA
+  if (app->use_gpu) {
+    gk_neut_fluid_diffusion_positivity_cu(app->cdim, &species->local, rho);
+    return;
+  }
+#endif
 
   double nodes[8 * GKYL_MAX_CDIM] = {0.0};
   double center[GKYL_MAX_CDIM] = {0.0};
@@ -586,15 +637,22 @@ gk_neut_species_fluid_rhs_implicit_dynamic(
   // (J-dt*L_h)rho_new=N_old+dt*c.
   gkyl_array_clear(s, 0.0);
   fluid_diffusion_apply_L(app, species, s, v, false);
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &species->local);
-  while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(&species->local, iter.idx);
-    double *bp = gkyl_array_fetch(b, loc);
-    const double *fp = gkyl_array_cfetch(fin, loc);
-    const double *cp = gkyl_array_cfetch(v, loc);
-    for (int k = 0; k < app->basis.num_basis; ++k) {
-      bp[k] = fp[k] + dt * cp[k];
+#ifdef GKYL_HAVE_CUDA
+  if (app->use_gpu) {
+    gk_neut_fluid_diffusion_vec_set_cu(&species->local, b, 1.0, fin, dt, v);
+  } else
+#endif
+  {
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &species->local);
+    while (gkyl_range_iter_next(&iter)) {
+      long loc = gkyl_range_idx(&species->local, iter.idx);
+      double *bp = gkyl_array_fetch(b, loc);
+      const double *fp = gkyl_array_cfetch(fin, loc);
+      const double *cp = gkyl_array_cfetch(v, loc);
+      for (int k = 0; k < app->basis.num_basis; ++k) {
+        bp[k] = fp[k] + dt * cp[k];
+      }
     }
   }
 
@@ -619,15 +677,22 @@ gk_neut_species_fluid_rhs_implicit_dynamic(
     }
     double beta = (rho_new / rho_old) * (alpha / omega);
     // p = r + beta*(p-omega*v).
-    struct gkyl_range_iter vit;
-    gkyl_range_iter_init(&vit, &species->local);
-    while (gkyl_range_iter_next(&vit)) {
-      long loc = gkyl_range_idx(&species->local, vit.idx);
-      double *pp = gkyl_array_fetch(p, loc);
-      const double *rp = gkyl_array_cfetch(r, loc);
-      const double *vp = gkyl_array_cfetch(v, loc);
-      for (int k = 0; k < app->basis.num_basis; ++k) {
-        pp[k] = rp[k] + beta * (pp[k] - omega * vp[k]);
+#ifdef GKYL_HAVE_CUDA
+    if (app->use_gpu) {
+      gk_neut_fluid_diffusion_p_update_cu(&species->local, p, r, v, beta, omega);
+    } else
+#endif
+    {
+      struct gkyl_range_iter vit;
+      gkyl_range_iter_init(&vit, &species->local);
+      while (gkyl_range_iter_next(&vit)) {
+        long loc = gkyl_range_idx(&species->local, vit.idx);
+        double *pp = gkyl_array_fetch(p, loc);
+        const double *rp = gkyl_array_cfetch(r, loc);
+        const double *vp = gkyl_array_cfetch(v, loc);
+        for (int k = 0; k < app->basis.num_basis; ++k) {
+          pp[k] = rp[k] + beta * (pp[k] - omega * vp[k]);
+        }
       }
     }
     fluid_diffusion_apply_A(app, species, dt, p, v);
@@ -712,6 +777,9 @@ gk_neut_species_fluid_release_dynamic(
       gkyl_array_release(ns->diffusion_implicit_s);
       gkyl_array_release(ns->diffusion_implicit_t);
       gkyl_array_release(ns->diffusion_implicit_work);
+      if (app->use_gpu) {
+        gkyl_cu_free(ns->diffusion_implicit_dot);
+      }
     }
     if (ns->diffusion_bc_density) {
       gkyl_array_release(ns->diffusion_bc_density);
@@ -845,23 +913,25 @@ gk_neut_species_fluid_init_dynamic(
     // cover 1x-3x serendipity p1.
     assert(cdim > 0 && cdim <= 3);
     assert(app->basis.poly_order == 1);
-    assert(!app->use_gpu);
-
-    ns->diffusion_coeff = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-    ns->diffusion_tensor = mkarr(false, cdim * cdim * app->basis.num_basis, app->local_ext.volume);
-    ns->diffusion_geom_factor = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-    ns->diffusion_density = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-    ns->diffusion_cflrate = mkarr(false, 1, app->local_ext.volume);
+    ns->diffusion_coeff = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    ns->diffusion_tensor =
+      mkarr(app->use_gpu, cdim * cdim * app->basis.num_basis, app->local_ext.volume);
+    ns->diffusion_geom_factor = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    ns->diffusion_density = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    ns->diffusion_cflrate = mkarr(app->use_gpu, 1, app->local_ext.volume);
     if (ns->implicit_diffusion) {
-      ns->diffusion_implicit_rhs = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-      ns->diffusion_implicit_x = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-      ns->diffusion_implicit_r = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-      ns->diffusion_implicit_rhat = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-      ns->diffusion_implicit_p = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-      ns->diffusion_implicit_v = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-      ns->diffusion_implicit_s = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-      ns->diffusion_implicit_t = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-      ns->diffusion_implicit_work = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+      ns->diffusion_implicit_rhs = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+      ns->diffusion_implicit_x = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+      ns->diffusion_implicit_r = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+      ns->diffusion_implicit_rhat =
+        mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+      ns->diffusion_implicit_p = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+      ns->diffusion_implicit_v = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+      ns->diffusion_implicit_s = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+      ns->diffusion_implicit_t = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+      ns->diffusion_implicit_work =
+        mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+      ns->diffusion_implicit_dot = app->use_gpu ? gkyl_cu_malloc(sizeof(double)) : 0;
       ns->diffusion_implicit_last_iter = 0;
       ns->diffusion_implicit_last_residual = 0.0;
     }
@@ -870,8 +940,9 @@ gk_neut_species_fluid_init_dynamic(
     const bool recycle_lo = ns->lower_bc[par_dir].type == GKYL_BC_GK_SPECIES_RECYCLE;
     const bool recycle_up = ns->upper_bc[par_dir].type == GKYL_BC_GK_SPECIES_RECYCLE;
     if (recycle_lo || recycle_up) {
-      ns->diffusion_bc_density = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-      ns->diffusion_bc_density_tmp = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+      ns->diffusion_bc_density = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+      ns->diffusion_bc_density_tmp =
+        mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
       gkyl_array_clear(ns->diffusion_bc_density, 0.0);
       gkyl_array_clear(ns->diffusion_bc_density_tmp, 0.0);
     }

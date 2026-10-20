@@ -72,14 +72,18 @@ gkyl_dg_cx_coll(
   }
 }
 
-void gkyl_dg_cx_coll_rate(const struct gkyl_dg_cx *up,
-  struct gkyl_array *maxwellian_moms_ion, struct gkyl_array *maxwellian_moms_neut,
-  struct gkyl_array *upar_b_i, struct gkyl_array *coef_cx)
+void
+gkyl_dg_cx_coll_rate(
+  const struct gkyl_dg_cx *up, struct gkyl_array *maxwellian_moms_ion,
+  struct gkyl_array *maxwellian_moms_neut, struct gkyl_array *upar_b_i, struct gkyl_array *coef_cx
+)
 {
-  // The diffusion solver is CPU-only at present. Keep this entry point
-  // explicitly host-only until the configuration-space diffusion GPU path is
-  // implemented.
-  assert(!gkyl_array_is_cu_dev(coef_cx));
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(coef_cx)) {
+    gkyl_dg_cx_coll_rate_cu(up, maxwellian_moms_ion, maxwellian_moms_neut, upar_b_i, coef_cx);
+    return;
+  }
+#endif
 
   struct gkyl_range_iter conf_iter;
   gkyl_range_iter_init(&conf_iter, up->conf_rng);
@@ -90,18 +94,21 @@ void gkyl_dg_cx_coll_rate(const struct gkyl_dg_cx *up,
     const double *moms_neut = gkyl_array_cfetch(maxwellian_moms_neut, linidx);
     const double *upar_b_i_d = gkyl_array_cfetch(upar_b_i, linidx);
     double *coef_cx_d = gkyl_array_fetch(coef_cx, linidx);
-    for (int k=0; k<coef_cx->ncomp; ++k) coef_cx_d[k] = 0.0;
+    for (int k = 0; k < coef_cx->ncomp; ++k) {
+      coef_cx_d[k] = 0.0;
+    }
 
     // Neutral density enters the generated kernels only as a validity guard
     // and in the returned reaction CFL frequency. Supply a positive dummy
     // density while preserving all drift and temperature moments.
     double moms_neut_rate[maxwellian_moms_neut->ncomp];
-    memcpy(moms_neut_rate, moms_neut,
-      maxwellian_moms_neut->ncomp*sizeof(double));
+    memcpy(moms_neut_rate, moms_neut, maxwellian_moms_neut->ncomp * sizeof(double));
     moms_neut_rate[0] = 1.0;
 
-    up->react_rate(up->a, up->b, up->vt_sq_ion_min, up->vt_sq_neut_min,
-      moms_ion, moms_neut_rate, upar_b_i_d, coef_cx_d);
+    up->react_rate(
+      up->a, up->b, up->vt_sq_ion_min, up->vt_sq_neut_min, moms_ion, moms_neut_rate, upar_b_i_d,
+      coef_cx_d
+    );
   }
 }
 

@@ -108,4 +108,9 @@ void gkyl_dg_cx_coll_cu(
   struct gkyl_array *maxwellian_moms_neut, struct gkyl_array *upar_b_i, struct gkyl_array *coef_cx,
   struct gkyl_array *cflrate
 );
+
+void gkyl_dg_cx_coll_rate_cu(
+  const struct gkyl_dg_cx *up, struct gkyl_array *maxwellian_moms_ion,
+  struct gkyl_array *maxwellian_moms_neut, struct gkyl_array *upar_b_i, struct gkyl_array *coef_cx
+);
 #endif
