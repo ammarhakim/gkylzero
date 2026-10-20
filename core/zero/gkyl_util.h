@@ -276,6 +276,20 @@ struct gkyl_tm_trigger {
 int gkyl_tm_trigger_check_and_bump(struct gkyl_tm_trigger *tmt, double tcurr);
 
 /**
+ * Initial tcurr of a trigger with time-interval dt in a simulation that starts
+ * (or restarts) at tstart: the last point k*dt (k integer) of the trigger's grid
+ * at or before tstart, so the trigger fires at tstart and then on its grid up to
+ * t_end. Restart frames are written slightly after their nominal time, and dt
+ * may differ from the run that wrote them (e.g. a new output cadence). A tstart
+ * short of a grid point only by round-off counts as on that point.
+ *
+ * @param dt Time-interval of the trigger.
+ * @param tstart Start time of the simulation.
+ * @return Initial tcurr for the trigger.
+ */
+double gkyl_tm_trigger_anchor(double dt, double tstart);
+
+/**
  * Print error message to stderr and exit.
  *
  * @param msg Error message.
