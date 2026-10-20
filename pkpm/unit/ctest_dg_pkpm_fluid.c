@@ -232,10 +232,11 @@ setup(struct test_setup *s, struct field_ctx *ctx)
   gkyl_dg_calc_pkpm_bvar_advance(s->calc_b, &s->local_ext, em, s->bvar);
   gkyl_array_release(em);
 
-  s->vars = gkyl_dg_calc_pkpm_vars_new(&s->grid, &s->basis, &s->local_ext, s->pos_map, false);
-  struct gkyl_array *cell_avg = gkyl_array_new(GKYL_INT, 1, s->local_ext.volume);
-  gkyl_dg_calc_pkpm_vars_u(s->vars, s->moms, s->euler, cell_avg, s->u);
-  gkyl_array_release(cell_avg);
+  s->vars = gkyl_dg_calc_pkpm_vars_new(&s->grid, &s->basis, s->pos_map, false);
+  // the flow M/rho by the nodal quotient (the weak division at p=1); xi is set above
+  struct gkyl_array *xi_scratch = mkarr(3 * nc, s->local_ext.volume);
+  gkyl_dg_calc_pkpm_vars_prim(s->vars, &s->local_ext, s->fluid, s->u, xi_scratch);
+  gkyl_array_release(xi_scratch);
 }
 
 static void

@@ -5,7 +5,24 @@
 #include <gkyl_dg_pkpm_harm_vol.h>
 #include <gkyl_dg_pkpm_harm_vol_priv.h>
 
-// Basis maps, degree <= 2 modes and the nonzero configuration triples of the tables.
+// Add the slot term gain * (slot) to the stored-operator entry [o, i, kind, j] (kind 0 source,
+// 1 w flux; gkyl_pkpm_harm_ops.h).
+static void
+pkpm_hm_ent_term(struct gkyl_dg_pkpm_harm_vol *up, int o, int i, int kind, int j, int slot, double gain)
+{
+  int e = 0;
+  while (e < PKPM_HO_NENT && !(pkpm_ho_ent[e][0] == o && pkpm_ho_ent[e][1] == i &&
+    pkpm_ho_ent[e][2] == kind && pkpm_ho_ent[e][3] == j)) {
+    ++e;
+  }
+  assert(e < PKPM_HO_NENT);
+  int t = up->ent_nterm[e];
+  assert(t < PKPM_HM_ENTTERM);
+  up->ent_slot[e][t] = slot;
+  up->ent_gain[e][t] = gain;
+  up->ent_nterm[e] = t + 1;
+}
+
 void
 gkyl_dg_pkpm_harm_vol_setup(struct gkyl_dg_pkpm_harm_vol *up, const struct gkyl_dg_pkpm_harm_vol_inp *inp)
 {
@@ -14,7 +31,6 @@ gkyl_dg_pkpm_harm_vol_setup(struct gkyl_dg_pkpm_harm_vol *up, const struct gkyl_
   up->phase_grid = *inp->phase_grid;
   up->cdim = cdim;
   up->nc = inp->conf_basis->num_basis;
-  up->np = inp->phase_basis->num_basis;
   up->qbym = inp->qbym;
   up->use_gpu = inp->use_gpu;
   assert(inp->pos_map);
@@ -22,16 +38,14 @@ gkyl_dg_pkpm_harm_vol_setup(struct gkyl_dg_pkpm_harm_vol *up, const struct gkyl_
   up->jacob_pos = inp->pos_map->jacob_pos;
   const int *cdeg = cdim == 1 ? pkpm_harm_1x1v_p1_conf_deg :
     cdim == 2 ? pkpm_harm_2x1v_p1_conf_deg : pkpm_harm_3x1v_p1_conf_deg;
-  const int *pconf = cdim == 1 ? pkpm_harm_1x1v_p1_phase_conf :
-    cdim == 2 ? pkpm_harm_2x1v_p1_phase_conf : pkpm_harm_3x1v_p1_phase_conf;
-  const int *pwdeg = cdim == 1 ? pkpm_harm_1x1v_p1_phase_wdeg :
-    cdim == 2 ? pkpm_harm_2x1v_p1_phase_wdeg : pkpm_harm_3x1v_p1_phase_wdeg;
   for (int k = 0; k < 3 * up->nc; ++k) {
     up->conf_deg[k] = cdeg[k];
   }
-  for (int p = 0; p < up->np; ++p) {
-    up->phase_of[pconf[p]][pwdeg[p]] = p;
+  for (int q = 0; q < up->nc; ++q) {
+    up->conf_of[cdeg[3 * q] + 2 * cdeg[3 * q + 1] + 4 * cdeg[3 * q + 2]] = q;
   }
+  up->nslot = PKPM_HS_NSLOT(cdim);
+  up->nop = PKPM_HO_NOP(cdim);
   // degree <= 2 modes, k = k0 + 3 k1 + 9 k2
   up->n2 = 1;
   up->n5 = 1;
@@ -45,55 +59,73 @@ gkyl_dg_pkpm_harm_vol_setup(struct gkyl_dg_pkpm_harm_vol *up, const struct gkyl_
     kd[k][1] = cdim > 1 ? (k / 3) % 3 : 0;
     kd[k][2] = cdim > 2 ? k / 9 : 0;
     up->p2_idx[k] = kd[k][0] + 5 * kd[k][1] + 25 * kd[k][2];
+    // Phat_0(0) = 1/sqrt 2, Phat_1(0) = 0, Phat_2(0) = -sqrt(5/2)/2
+    const double c1[3] = {0.7071067811865475, 0.0, -0.7905694150420949};
+    up->cen[k] = 1.0;
+    for (int d = 0; d < cdim; ++d) {
+      up->cen[k] *= c1[kd[k][d]];
+    }
   }
-  // nonzero int phi_m Q_k phi_l = prod_d t1(m_d, k_d, l_d)
-  up->ntrip = 0;
-  for (int m = 0; m < up->nc; ++m) {
-    for (int k = 0; k < up->n2; ++k) {
-      for (int l = 0; l < up->nc; ++l) {
-        double v = 1.0;
-        for (int d = 0; d < cdim; ++d) {
-          v *= pkpm_harm_t1[(up->conf_deg[3 * m + d] * 3 + kd[k][d]) * 2 + up->conf_deg[3 * l + d]];
-        }
-        if (v != 0.0) {
-          assert(up->ntrip < PKPM_HM_NTRIP);
-          up->trip_m[up->ntrip] = m;
-          up->trip_k[up->ntrip] = k;
-          up->trip_l[up->ntrip] = l;
-          up->trip_v[up->ntrip] = v;
-          up->ntrip += 1;
-        }
+  // the slot terms of the stored-operator entries (the w-flux couplings of F and G with themselves
+  // are the configuration-pass kernel's)
+  for (int e = 0; e < PKPM_HO_NENT; ++e) {
+    up->ent_nterm[e] = 0;
+  }
+  for (int b = 2; b < 8; ++b) {
+    pkpm_hm_ent_term(up, b, b, 1, 1, PKPM_HS_KW, 1.0);
+    pkpm_hm_ent_term(up, b, b, 1, 2, PKPM_HS_BG, 1.0);
+  }
+  for (int a = 0; a < 3; ++a) {
+    for (int j = 0; j < 2; ++j) {
+      pkpm_hm_ent_term(up, 0, 2 + a, 1, j, PKPM_HS_TF(a, j), 1.0);
+      pkpm_hm_ent_term(up, 1, 5 + a, 1, j, PKPM_HS_TG(a, j), 1.0);
+      pkpm_hm_ent_term(up, 2 + a, 1, 1, j, PKPM_HS_TM(a, j), 1.0);
+      pkpm_hm_ent_term(up, 5 + a, 1, 1, j, PKPM_HS_TNG(a, j), 1.0);
+      pkpm_hm_ent_term(up, 5 + a, 0, 1, j, PKPM_HS_TNF(a, j), 1.0);
+    }
+    for (int c = 0; c < 3; ++c) {
+      pkpm_hm_ent_term(up, 2 + a, 5 + c, 1, 0, PKPM_HS_RMN(a, c), 1.0);
+      pkpm_hm_ent_term(up, 5 + a, 5 + c, 1, 0, PKPM_HS_RNN(a, c), 1.0);
+      pkpm_hm_ent_term(up, 5 + a, 2 + c, 1, 0, PKPM_HS_RNM(a, c), 1.0);
+    }
+    pkpm_hm_ent_term(up, 0, 2 + a, 0, 0, PKPM_HS_SFM(a), 1.0);
+    pkpm_hm_ent_term(up, 1, 5 + a, 0, 0, PKPM_HS_SGN(a), 1.0);
+    pkpm_hm_ent_term(up, 2 + a, 1, 0, 0, PKPM_HS_SMG(a), 1.0);
+    pkpm_hm_ent_term(up, 5 + a, 1, 0, 0, PKPM_HS_SNG0(a), 1.0);
+    pkpm_hm_ent_term(up, 5 + a, 0, 0, 0, PKPM_HS_SNF(a), 1.0);
+    for (int j = 1; j < 3; ++j) {
+      pkpm_hm_ent_term(up, 1, 2 + a, 0, j, PKPM_HS_SGM(a, j), 1.0);
+      pkpm_hm_ent_term(up, 2 + a, 0, 0, j, PKPM_HS_SMF(a, j), 1.0);
+      pkpm_hm_ent_term(up, 5 + a, 1, 0, j, PKPM_HS_SNG1(a, j), 1.0);
+    }
+    for (int c = 0; c < 3; ++c) {
+      for (int j = 0; j < 2; ++j) {
+        pkpm_hm_ent_term(up, 2 + a, 2 + c, 0, j, PKPM_HS_SMM(a, c, j), 1.0);
+        pkpm_hm_ent_term(up, 5 + a, 5 + c, 0, j, PKPM_HS_SNN(a, c, j), 1.0);
       }
     }
   }
-  // nonzero int d_d phi_m Q_k phi_l = sqrt 3 prod_e t1(m'_e, k_e, l_e), m' = m with m'_d = 0
-  // (d_d Phat_1 = sqrt 3 Phat_0 on the reference cell)
-  for (int d = 0; d < 3; ++d) {
-    up->ntripd[d] = 0;
+  for (int e = 0; e < PKPM_HO_NENT; ++e) {
+    assert(up->ent_nterm[e] > 0);
   }
-  for (int d = 0; d < cdim; ++d) {
-    for (int m = 0; m < up->nc; ++m) {
-      if (up->conf_deg[3 * m + d] != 1) {
-        continue;
-      }
-      for (int k = 0; k < up->n2; ++k) {
-        for (int l = 0; l < up->nc; ++l) {
-          double v = 1.7320508075688772;
-          for (int e = 0; e < cdim; ++e) {
-            int me = e == d ? 0 : up->conf_deg[3 * m + e];
-            v *= pkpm_harm_t1[(me * 3 + kd[k][e]) * 2 + up->conf_deg[3 * l + e]];
-          }
-          if (v != 0.0) {
-            assert(up->ntripd[d] < PKPM_HM_NTRIPD);
-            up->tripd_m[d][up->ntripd[d]] = m;
-            up->tripd_k[d][up->ntripd[d]] = k;
-            up->tripd_l[d][up->ntripd[d]] = l;
-            up->tripd_v[d][up->ntripd[d]] = v;
-            up->ntripd[d] += 1;
-          }
-        }
-      }
+  // the source pairs of the rate estimate
+  up->nsrc = 0;
+  for (int e = 0; e < PKPM_HO_NENT; ++e) {
+    if (pkpm_ho_ent[e][2] != 0) {
+      continue;
     }
+    int p = 0;
+    while (p < up->nsrc && !(up->src_o[p] == pkpm_ho_ent[e][0] && up->src_i[p] == pkpm_ho_ent[e][1])) {
+      ++p;
+    }
+    if (p == up->nsrc) {
+      assert(up->nsrc < PKPM_HM_MAXSRC);
+      up->src_o[p] = pkpm_ho_ent[e][0];
+      up->src_i[p] = pkpm_ho_ent[e][1];
+      up->src_ent[p][0] = up->src_ent[p][1] = up->src_ent[p][2] = -1;
+      up->nsrc += 1;
+    }
+    up->src_ent[p][pkpm_ho_ent[e][3]] = e;
   }
 }
 
@@ -107,6 +139,8 @@ gkyl_dg_pkpm_harm_vol_inew(const struct gkyl_dg_pkpm_harm_vol_inp *inp)
 #endif
   struct gkyl_dg_pkpm_harm_vol *up = gkyl_malloc(sizeof(*up));
   gkyl_dg_pkpm_harm_vol_setup(up, inp);
+  up->mat_kern = ser_pkpm_harm_mat_kernels[up->cdim - 1];
+  up->vol_kern = ser_pkpm_harm_vol_kernels[up->cdim - 1];
   up->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
@@ -114,54 +148,77 @@ gkyl_dg_pkpm_harm_vol_inew(const struct gkyl_dg_pkpm_harm_vol_inp *inp)
   return up;
 }
 
+int
+gkyl_dg_pkpm_harm_vol_num_coef(const struct gkyl_dg_pkpm_harm_vol *up)
+{
+  return up->nslot * up->n2;
+}
+
+void
+gkyl_dg_pkpm_harm_vol_coef(
+  const struct gkyl_dg_pkpm_harm_vol *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *bvar, const struct gkyl_array *grad_b, const struct gkyl_array *u,
+  const struct gkyl_array *grad_u, const struct gkyl_array *xi, const struct gkyl_array *grad_xi,
+  const struct gkyl_array *grad_ln_n, const struct gkyl_array *theta,
+  const struct gkyl_array *dtB_over_magB, const struct gkyl_array *em, struct gkyl_array *coef
+)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(coef)) {
+    gkyl_dg_pkpm_harm_vol_coef_cu(
+      up, conf_range, bvar, grad_b, u, grad_u, xi, grad_xi, grad_ln_n, theta, dtB_over_magB, em, coef
+    );
+    return;
+  }
+#endif
+  struct gkyl_range_iter citer;
+  gkyl_range_iter_init(&citer, conf_range);
+  while (gkyl_range_iter_next(&citer)) {
+    long cidx = gkyl_range_idx(conf_range, citer.idx);
+    pkpm_hm_build(up, gkyl_array_cfetch(bvar, cidx), gkyl_array_cfetch(grad_b, cidx),
+      gkyl_array_cfetch(u, cidx), gkyl_array_cfetch(grad_u, cidx), gkyl_array_cfetch(xi, cidx),
+      gkyl_array_cfetch(grad_xi, cidx), gkyl_array_cfetch(grad_ln_n, cidx),
+      gkyl_array_cfetch(theta, cidx), gkyl_array_cfetch(dtB_over_magB, cidx),
+      gkyl_array_cfetch(em, cidx), gkyl_array_fetch(coef, cidx));
+  }
+}
+
 void
 gkyl_dg_pkpm_harm_vol_advance(
   const struct gkyl_dg_pkpm_harm_vol *up, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, const struct gkyl_array *bvar, const struct gkyl_array *grad_b,
-  const struct gkyl_array *u, const struct gkyl_array *grad_u, const struct gkyl_array *xi,
-  const struct gkyl_array *grad_xi, const struct gkyl_array *grad_ln_n, const struct gkyl_array *theta,
-  const struct gkyl_array *dtB_over_magB, const struct gkyl_array *em, const struct gkyl_array *fin,
+  const struct gkyl_range *phase_range, const struct gkyl_array *coef, const struct gkyl_array *fin,
   struct gkyl_array *cflrate, struct gkyl_array *rhs
 )
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(rhs)) {
-    gkyl_dg_pkpm_harm_vol_advance_cu(
-      up, conf_range, phase_range, bvar, grad_b, u, grad_u, xi, grad_xi, grad_ln_n, theta,
-      dtB_over_magB, em, fin, cflrate, rhs
-    );
+    gkyl_dg_pkpm_harm_vol_advance_cu(up, conf_range, phase_range, coef, fin, cflrate, rhs);
     return;
   }
 #endif
   int cdim = up->cdim;
-  struct pkpm_hm_coeffs *hc = gkyl_malloc(sizeof(*hc));
   int idx[GKYL_MAX_DIM];
+  double ho[PKPM_HO_NOP_MAX * PKPM_HM_N2], mat[PKPM_HM_MAT], poly[PKPM_HM_MAXSRC][3];
+  double dw = up->phase_grid.dx[cdim];
   struct gkyl_range_iter citer;
   gkyl_range_iter_init(&citer, conf_range);
   while (gkyl_range_iter_next(&citer)) {
     long cidx = gkyl_range_idx(conf_range, citer.idx);
-    const double *bvar_d = gkyl_array_cfetch(bvar, cidx), *grad_b_d = gkyl_array_cfetch(grad_b, cidx);
-    const double *u_d = gkyl_array_cfetch(u, cidx), *grad_u_d = gkyl_array_cfetch(grad_u, cidx);
-    const double *xi_d = gkyl_array_cfetch(xi, cidx), *grad_xi_d = gkyl_array_cfetch(grad_xi, cidx);
-    const double *gln_d = gkyl_array_cfetch(grad_ln_n, cidx), *theta_d = gkyl_array_cfetch(theta, cidx);
-    const double *dtb_d = gkyl_array_cfetch(dtB_over_magB, cidx), *em_d = gkyl_array_cfetch(em, cidx);
-    const double *jac_d = gkyl_array_cfetch(up->jacob_pos, cidx);
-    pkpm_hm_build(up, bvar_d, grad_b_d, u_d, grad_u_d, xi_d, grad_xi_d, gln_d, theta_d, dtb_d, em_d, hc);
+    // the stored operator of the configuration cell, its matrices and its source rate
+    pkpm_hm_pack(up, gkyl_array_cfetch(coef, cidx), ho);
+    up->mat_kern(up->phase_grid.dx, gkyl_array_cfetch(up->jacob_pos, cidx), ho, mat);
+    pkpm_hm_rate_poly(up, ho, poly);
     gkyl_copy_int_arr(cdim, citer.idx, idx);
     for (int v = phase_range->lower[cdim]; v <= phase_range->upper[cdim]; ++v) {
       idx[cdim] = v;
       long pidx = gkyl_range_idx(phase_range, idx);
       double xc[GKYL_MAX_DIM];
       gkyl_rect_grid_cell_center(&up->phase_grid, idx, xc);
-      double dw = up->phase_grid.dx[cdim];
-      pkpm_hm_apply(up, hc, xc[cdim], dw, gkyl_array_cfetch(fin, pidx), gkyl_array_fetch(rhs, pidx));
-      pkpm_hm_apply_cf(up, hc, jac_d, gkyl_array_cfetch(fin, pidx), gkyl_array_fetch(rhs, pidx));
+      up->vol_kern(xc, up->phase_grid.dx, mat, gkyl_array_cfetch(fin, pidx), gkyl_array_fetch(rhs, pidx));
       double *cfl = gkyl_array_fetch(cflrate, pidx);
-      cfl[0] += pkpm_hm_rate(up, bvar_d, grad_b_d, u_d, grad_u_d, xi_d, grad_xi_d, gln_d, theta_d,
-        dtb_d, em_d, xc[cdim] - 0.5 * dw, xc[cdim] + 0.5 * dw);
+      cfl[0] += pkpm_hm_rate(up, poly, xc[cdim] - 0.5 * dw, xc[cdim] + 0.5 * dw);
     }
   }
-  gkyl_free(hc);
 }
 
 void
@@ -184,12 +241,21 @@ gkyl_dg_pkpm_harm_vol_cu_dev_inew(const struct gkyl_dg_pkpm_harm_vol_inp *inp)
 }
 
 void
+gkyl_dg_pkpm_harm_vol_coef_cu(
+  const struct gkyl_dg_pkpm_harm_vol *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *bvar, const struct gkyl_array *grad_b, const struct gkyl_array *u,
+  const struct gkyl_array *grad_u, const struct gkyl_array *xi, const struct gkyl_array *grad_xi,
+  const struct gkyl_array *grad_ln_n, const struct gkyl_array *theta,
+  const struct gkyl_array *dtB_over_magB, const struct gkyl_array *em, struct gkyl_array *coef
+)
+{
+  assert(false);
+}
+
+void
 gkyl_dg_pkpm_harm_vol_advance_cu(
   const struct gkyl_dg_pkpm_harm_vol *up, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, const struct gkyl_array *bvar, const struct gkyl_array *grad_b,
-  const struct gkyl_array *u, const struct gkyl_array *grad_u, const struct gkyl_array *xi,
-  const struct gkyl_array *grad_xi, const struct gkyl_array *grad_ln_n, const struct gkyl_array *theta,
-  const struct gkyl_array *dtB_over_magB, const struct gkyl_array *em, const struct gkyl_array *fin,
+  const struct gkyl_range *phase_range, const struct gkyl_array *coef, const struct gkyl_array *fin,
   struct gkyl_array *cflrate, struct gkyl_array *rhs
 )
 {

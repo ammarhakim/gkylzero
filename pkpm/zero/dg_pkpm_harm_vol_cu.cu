@@ -7,49 +7,74 @@ extern "C" {
 #include <gkyl_dg_pkpm_harm_vol_priv.h>
 }
 
-// One thread per configuration cell: its coefficients (local memory), then its velocity cells.
+// One thread per configuration cell: its stored coefficients.
+__global__ static void
+gkyl_dg_pkpm_harm_vol_coef_cu_kernel(
+  const struct gkyl_dg_pkpm_harm_vol *up, struct gkyl_range conf_range, const struct gkyl_array *bvar,
+  const struct gkyl_array *grad_b, const struct gkyl_array *u, const struct gkyl_array *grad_u,
+  const struct gkyl_array *xi, const struct gkyl_array *grad_xi, const struct gkyl_array *grad_ln_n,
+  const struct gkyl_array *theta, const struct gkyl_array *dtb, const struct gkyl_array *em,
+  struct gkyl_array *coef
+)
+{
+  int idx[GKYL_MAX_DIM];
+  for (unsigned long linc = threadIdx.x + blockIdx.x * blockDim.x; linc < conf_range.volume;
+       linc += gridDim.x * blockDim.x) {
+    gkyl_sub_range_inv_idx(&conf_range, linc, idx);
+    long cidx = gkyl_range_idx(&conf_range, idx);
+    pkpm_hm_build(up, (const double *)gkyl_array_cfetch(bvar, cidx),
+      (const double *)gkyl_array_cfetch(grad_b, cidx), (const double *)gkyl_array_cfetch(u, cidx),
+      (const double *)gkyl_array_cfetch(grad_u, cidx), (const double *)gkyl_array_cfetch(xi, cidx),
+      (const double *)gkyl_array_cfetch(grad_xi, cidx), (const double *)gkyl_array_cfetch(grad_ln_n, cidx),
+      (const double *)gkyl_array_cfetch(theta, cidx), (const double *)gkyl_array_cfetch(dtb, cidx),
+      (const double *)gkyl_array_cfetch(em, cidx), (double *)gkyl_array_fetch(coef, cidx));
+  }
+}
+
+void
+gkyl_dg_pkpm_harm_vol_coef_cu(
+  const struct gkyl_dg_pkpm_harm_vol *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *bvar, const struct gkyl_array *grad_b, const struct gkyl_array *u,
+  const struct gkyl_array *grad_u, const struct gkyl_array *xi, const struct gkyl_array *grad_xi,
+  const struct gkyl_array *grad_ln_n, const struct gkyl_array *theta,
+  const struct gkyl_array *dtB_over_magB, const struct gkyl_array *em, struct gkyl_array *coef
+)
+{
+  gkyl_dg_pkpm_harm_vol_coef_cu_kernel<<<conf_range->nblocks, conf_range->nthreads>>>(
+    up->on_dev, *conf_range, bvar->on_dev, grad_b->on_dev, u->on_dev, grad_u->on_dev, xi->on_dev,
+    grad_xi->on_dev, grad_ln_n->on_dev, theta->on_dev, dtB_over_magB->on_dev, em->on_dev, coef->on_dev
+  );
+}
+
+// One thread per configuration cell: its velocity cells from the stored coefficients.
 __global__ static void
 gkyl_dg_pkpm_harm_vol_advance_cu_kernel(
   const struct gkyl_dg_pkpm_harm_vol *up, struct gkyl_range conf_range, struct gkyl_range phase_range,
-  const struct gkyl_array *bvar, const struct gkyl_array *grad_b, const struct gkyl_array *u,
-  const struct gkyl_array *grad_u, const struct gkyl_array *xi, const struct gkyl_array *grad_xi,
-  const struct gkyl_array *grad_ln_n, const struct gkyl_array *theta, const struct gkyl_array *dtb,
-  const struct gkyl_array *em, const struct gkyl_array *fin, struct gkyl_array *cflrate,
+  const struct gkyl_array *coef, const struct gkyl_array *fin, struct gkyl_array *cflrate,
   struct gkyl_array *rhs
 )
 {
   int cdim = up->cdim;
   int idx[GKYL_MAX_DIM];
-  struct pkpm_hm_coeffs hc;
+  double ho[PKPM_HO_NOP_MAX * PKPM_HM_N2], mat[PKPM_HM_MAT], poly[PKPM_HM_MAXSRC][3];
+  double dw = up->phase_grid.dx[cdim];
   for (unsigned long linc = threadIdx.x + blockIdx.x * blockDim.x; linc < conf_range.volume;
        linc += gridDim.x * blockDim.x) {
     gkyl_sub_range_inv_idx(&conf_range, linc, idx);
     long cidx = gkyl_range_idx(&conf_range, idx);
-    const double *bvar_d = (const double *)gkyl_array_cfetch(bvar, cidx);
-    const double *grad_b_d = (const double *)gkyl_array_cfetch(grad_b, cidx);
-    const double *u_d = (const double *)gkyl_array_cfetch(u, cidx);
-    const double *grad_u_d = (const double *)gkyl_array_cfetch(grad_u, cidx);
-    const double *xi_d = (const double *)gkyl_array_cfetch(xi, cidx);
-    const double *grad_xi_d = (const double *)gkyl_array_cfetch(grad_xi, cidx);
-    const double *gln_d = (const double *)gkyl_array_cfetch(grad_ln_n, cidx);
-    const double *theta_d = (const double *)gkyl_array_cfetch(theta, cidx);
-    const double *dtb_d = (const double *)gkyl_array_cfetch(dtb, cidx);
-    const double *em_d = (const double *)gkyl_array_cfetch(em, cidx);
-    const double *jac_d = (const double *)gkyl_array_cfetch(up->jacob_pos, cidx);
-    pkpm_hm_build(up, bvar_d, grad_b_d, u_d, grad_u_d, xi_d, grad_xi_d, gln_d, theta_d, dtb_d, em_d, &hc);
+    // the stored operator of the configuration cell, its matrices and its source rate
+    pkpm_hm_pack(up, (const double *)gkyl_array_cfetch(coef, cidx), ho);
+    up->mat_kern(up->phase_grid.dx, (const double *)gkyl_array_cfetch(up->jacob_pos, cidx), ho, mat);
+    pkpm_hm_rate_poly(up, ho, poly);
     for (int v = phase_range.lower[cdim]; v <= phase_range.upper[cdim]; ++v) {
       idx[cdim] = v;
       long pidx = gkyl_range_idx(&phase_range, idx);
       double xc[GKYL_MAX_DIM];
       gkyl_rect_grid_cell_center(&up->phase_grid, idx, xc);
-      double dw = up->phase_grid.dx[cdim];
-      pkpm_hm_apply(up, &hc, xc[cdim], dw, (const double *)gkyl_array_cfetch(fin, pidx),
-        (double *)gkyl_array_fetch(rhs, pidx));
-      pkpm_hm_apply_cf(up, &hc, jac_d, (const double *)gkyl_array_cfetch(fin, pidx),
+      up->vol_kern(xc, up->phase_grid.dx, mat, (const double *)gkyl_array_cfetch(fin, pidx),
         (double *)gkyl_array_fetch(rhs, pidx));
       double *cfl = (double *)gkyl_array_fetch(cflrate, pidx);
-      cfl[0] += pkpm_hm_rate(up, bvar_d, grad_b_d, u_d, grad_u_d, xi_d, grad_xi_d, gln_d, theta_d,
-        dtb_d, em_d, xc[cdim] - 0.5 * dw, xc[cdim] + 0.5 * dw);
+      cfl[0] += pkpm_hm_rate(up, poly, xc[cdim] - 0.5 * dw, xc[cdim] + 0.5 * dw);
     }
   }
 }
@@ -57,18 +82,21 @@ gkyl_dg_pkpm_harm_vol_advance_cu_kernel(
 void
 gkyl_dg_pkpm_harm_vol_advance_cu(
   const struct gkyl_dg_pkpm_harm_vol *up, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, const struct gkyl_array *bvar, const struct gkyl_array *grad_b,
-  const struct gkyl_array *u, const struct gkyl_array *grad_u, const struct gkyl_array *xi,
-  const struct gkyl_array *grad_xi, const struct gkyl_array *grad_ln_n, const struct gkyl_array *theta,
-  const struct gkyl_array *dtB_over_magB, const struct gkyl_array *em, const struct gkyl_array *fin,
+  const struct gkyl_range *phase_range, const struct gkyl_array *coef, const struct gkyl_array *fin,
   struct gkyl_array *cflrate, struct gkyl_array *rhs
 )
 {
   gkyl_dg_pkpm_harm_vol_advance_cu_kernel<<<conf_range->nblocks, conf_range->nthreads>>>(
-    up->on_dev, *conf_range, *phase_range, bvar->on_dev, grad_b->on_dev, u->on_dev, grad_u->on_dev,
-    xi->on_dev, grad_xi->on_dev, grad_ln_n->on_dev, theta->on_dev, dtB_over_magB->on_dev, em->on_dev,
-    fin->on_dev, cflrate->on_dev, rhs->on_dev
+    up->on_dev, *conf_range, *phase_range, coef->on_dev, fin->on_dev, cflrate->on_dev, rhs->on_dev
   );
+}
+
+// The device kernel pointers of the generated kernels.
+__global__ static void
+dg_pkpm_harm_vol_set_cu_dev_ptrs(struct gkyl_dg_pkpm_harm_vol *up, int cdim)
+{
+  up->mat_kern = ser_pkpm_harm_mat_kernels[cdim - 1];
+  up->vol_kern = ser_pkpm_harm_vol_kernels[cdim - 1];
 }
 
 struct gkyl_dg_pkpm_harm_vol *
@@ -84,6 +112,7 @@ gkyl_dg_pkpm_harm_vol_cu_dev_inew(const struct gkyl_dg_pkpm_harm_vol_inp *inp)
   struct gkyl_dg_pkpm_harm_vol *up_cu =
     (struct gkyl_dg_pkpm_harm_vol *)gkyl_cu_malloc(sizeof(*up_cu));
   gkyl_cu_memcpy(up_cu, up, sizeof(*up), GKYL_CU_MEMCPY_H2D);
+  dg_pkpm_harm_vol_set_cu_dev_ptrs<<<1, 1>>>(up_cu, up->cdim);
   up->on_dev = up_cu;
   up->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);
   up->jacob_pos = inp->pos_map->jacob_pos;

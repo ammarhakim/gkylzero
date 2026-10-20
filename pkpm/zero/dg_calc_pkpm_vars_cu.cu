@@ -14,90 +14,12 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-__global__ static void
-gkyl_dg_calc_pkpm_vars_u_set_cu_kernel(
-  gkyl_dg_calc_pkpm_vars *up, struct gkyl_nmat *As, struct gkyl_nmat *xs,
-  struct gkyl_range conf_range, const struct gkyl_array *vlasov_pkpm_moms,
-  const struct gkyl_array *euler_pkpm, struct gkyl_array *cell_avg_prim
-)
-{
-  int idx[GKYL_MAX_DIM];
-
-  for (unsigned long linc1 = threadIdx.x + blockIdx.x * blockDim.x; linc1 < conf_range.volume;
-       linc1 += gridDim.x * blockDim.x) {
-    // inverse index from linc1 to idx
-    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
-    // since update_range is a subrange
-    gkyl_sub_range_inv_idx(&conf_range, linc1, idx);
-
-    // convert back to a linear index on the super-range (with ghost cells)
-    // linc will have jumps in it to jump over ghost cells
-    long loc = gkyl_range_idx(&conf_range, idx);
-    // fetch the correct count in the matrix (since we solve Ncomp systems in each cell)
-    long count = linc1 * 3;
-
-    const double *vlasov_pkpm_moms_d = (const double *)gkyl_array_cfetch(vlasov_pkpm_moms, loc);
-    const double *euler_pkpm_d = (const double *)gkyl_array_cfetch(euler_pkpm, loc);
-
-    int *cell_avg_prim_d = (int *)gkyl_array_fetch(cell_avg_prim, loc);
-
-    cell_avg_prim_d[0] = up->pkpm_u_set(count, As, xs, vlasov_pkpm_moms_d, euler_pkpm_d);
-  }
-}
-
-__global__ static void
-gkyl_dg_calc_pkpm_vars_u_copy_cu_kernel(
-  gkyl_dg_calc_pkpm_vars *up, struct gkyl_nmat *xs, struct gkyl_range conf_range,
-  struct gkyl_array *pkpm_u
-)
-{
-  int idx[GKYL_MAX_DIM];
-
-  for (unsigned long linc1 = threadIdx.x + blockIdx.x * blockDim.x; linc1 < conf_range.volume;
-       linc1 += gridDim.x * blockDim.x) {
-    // inverse index from linc1 to idx
-    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
-    // since update_range is a subrange
-    gkyl_sub_range_inv_idx(&conf_range, linc1, idx);
-
-    // convert back to a linear index on the super-range (with ghost cells)
-    // linc will have jumps in it to jump over ghost cells
-    long loc = gkyl_range_idx(&conf_range, idx);
-    // fetch the correct count in the matrix (since we solve Ncomp systems in each cell)
-    long count = linc1 * 3;
-
-    double *pkpm_u_d = (double *)gkyl_array_fetch(pkpm_u, loc);
-
-    up->pkpm_u_copy(count, xs, pkpm_u_d);
-  }
-}
-
-// Host-side wrapper for pkpm flow velocity calculation
-void
-gkyl_dg_calc_pkpm_vars_u_cu(
-  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_array *vlasov_pkpm_moms,
-  const struct gkyl_array *euler_pkpm, struct gkyl_array *cell_avg_prim, struct gkyl_array *pkpm_u
-)
-{
-  struct gkyl_range conf_range = up->mem_range;
-
-  gkyl_dg_calc_pkpm_vars_u_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
-    up->on_dev, up->As_u->on_dev, up->xs_u->on_dev, conf_range, vlasov_pkpm_moms->on_dev,
-    euler_pkpm->on_dev, cell_avg_prim->on_dev
-  );
-
-  gkyl_dg_calc_pkpm_vars_u_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
-    up->on_dev, up->xs_u->on_dev, conf_range, pkpm_u->on_dev
-  );
-}
-
 __global__ void
 gkyl_dg_calc_pkpm_vars_closure_cu_kernel(
   struct gkyl_dg_calc_pkpm_vars *up, struct gkyl_range conf_range, struct gkyl_range phase_range,
   double w_lo, double w_up, double dv, const struct gkyl_array *norm_moms, const struct gkyl_array *rhs_moms,
-  const struct gkyl_array *bvar, const struct gkyl_array *grad_b, const struct gkyl_array *u,
-  const struct gkyl_array *grad_u, const struct gkyl_array *xi, const struct gkyl_array *grad_xi,
-  const struct gkyl_array *theta, const struct gkyl_array *dtB_over_magB, const struct gkyl_array *fin,
+  const struct gkyl_array *bvar, const struct gkyl_array *coef, const struct gkyl_array *theta,
+  const struct gkyl_array *fin,
   struct gkyl_array *c_0, struct gkyl_array *alpha_0, struct gkyl_array *c_h, struct gkyl_array *a_perp,
   struct gkyl_array *vel_flux_surf, struct gkyl_array *cflrate, int *num_null, unsigned long long *cond_min
 )
@@ -117,10 +39,8 @@ gkyl_dg_calc_pkpm_vars_closure_cu_kernel(
     long pgh = gkyl_range_idx(&phase_range, idx);
     int null = up->pkpm_closure(
       w_lo, w_up, dv, (const double *)gkyl_array_cfetch(norm_moms, loc), (const double *)gkyl_array_cfetch(rhs_moms, loc),
-      (const double *)gkyl_array_cfetch(bvar, loc), (const double *)gkyl_array_cfetch(grad_b, loc),
-      (const double *)gkyl_array_cfetch(u, loc), (const double *)gkyl_array_cfetch(grad_u, loc),
-      (const double *)gkyl_array_cfetch(xi, loc), (const double *)gkyl_array_cfetch(grad_xi, loc),
-      (const double *)gkyl_array_cfetch(theta, loc), (const double *)gkyl_array_cfetch(dtB_over_magB, loc),
+      (const double *)gkyl_array_cfetch(bvar, loc), (const double *)gkyl_array_cfetch(coef, loc),
+      (const double *)gkyl_array_cfetch(theta, loc),
       (const double *)gkyl_array_cfetch(alpha_0, loc), (const double *)gkyl_array_cfetch(c_h, loc),
       (const double *)gkyl_array_cfetch(fin, plo), (const double *)gkyl_array_cfetch(fin, pup),
       (double *)gkyl_array_fetch(c_0, loc), (double *)gkyl_array_fetch(alpha_0, loc), (double *)gkyl_array_fetch(c_h, loc),
@@ -145,9 +65,8 @@ int
 gkyl_dg_calc_pkpm_vars_closure_cu(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_rect_grid *phase_grid, const struct gkyl_array *norm_moms, const struct gkyl_array *rhs_moms,
-  const struct gkyl_array *bvar, const struct gkyl_array *grad_b, const struct gkyl_array *u,
-  const struct gkyl_array *grad_u, const struct gkyl_array *xi, const struct gkyl_array *grad_xi,
-  const struct gkyl_array *theta, const struct gkyl_array *dtB_over_magB, const struct gkyl_array *fin,
+  const struct gkyl_array *bvar, const struct gkyl_array *coef, const struct gkyl_array *theta,
+  const struct gkyl_array *fin,
   struct gkyl_array *c_0, struct gkyl_array *alpha_0, struct gkyl_array *c_h, struct gkyl_array *a_perp,
   struct gkyl_array *vel_flux_surf, struct gkyl_array *cflrate
 )
@@ -158,8 +77,8 @@ gkyl_dg_calc_pkpm_vars_closure_cu(
   gkyl_cu_memcpy(up->closure_cond_min_dev, &one, sizeof(unsigned long long), GKYL_CU_MEMCPY_H2D);
   gkyl_dg_calc_pkpm_vars_closure_cu_kernel<<<conf_range->nblocks, conf_range->nthreads>>>(
     up->on_dev, *conf_range, *phase_range, phase_grid->lower[cdim], phase_grid->upper[cdim], phase_grid->dx[cdim],
-    norm_moms->on_dev, rhs_moms->on_dev, bvar->on_dev, grad_b->on_dev, u->on_dev, grad_u->on_dev, xi->on_dev,
-    grad_xi->on_dev, theta->on_dev, dtB_over_magB->on_dev, fin->on_dev, c_0->on_dev, alpha_0->on_dev, c_h->on_dev,
+    norm_moms->on_dev, rhs_moms->on_dev, bvar->on_dev, coef->on_dev, theta->on_dev, fin->on_dev, c_0->on_dev,
+    alpha_0->on_dev, c_h->on_dev,
     a_perp->on_dev, vel_flux_surf->on_dev,
     cflrate->on_dev, up->num_null_rho_dev, up->closure_cond_min_dev
   );
@@ -564,7 +483,7 @@ dg_calc_pkpm_vars_set_cu_dev_ptrs(
 gkyl_dg_calc_pkpm_vars *
 gkyl_dg_calc_pkpm_vars_cu_dev_new(
   const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis,
-  const struct gkyl_range *mem_range, const struct gkyl_vlasov_position_map *pos_map
+  const struct gkyl_vlasov_position_map *pos_map
 )
 {
   struct gkyl_dg_calc_pkpm_vars *up =
@@ -577,15 +496,9 @@ gkyl_dg_calc_pkpm_vars_cu_dev_new(
   enum gkyl_basis_type b_type = cbasis->b_type;
   up->cdim = cdim;
   up->poly_order = poly_order;
-  up->mem_range = *mem_range;
   assert(pos_map);
   up->pos_map = 0; // host pointer set after the device memcpy below
   up->jacob_pos = pos_map->jacob_pos->on_dev;
-
-  // Linear system for the weak division of the momentum by the density (ux, uy, uz)
-  up->As_u = gkyl_nmat_cu_dev_new(3 * mem_range->volume, nc, nc);
-  up->xs_u = gkyl_nmat_cu_dev_new(3 * mem_range->volume, nc, 1);
-  up->mem_u = gkyl_nmat_linsolve_lu_cu_dev_new(up->As_u->num, up->As_u->nr);
 
   up->num_null_rho = 0;
   up->num_null_rho_dev = (int *)gkyl_cu_malloc(sizeof(int));

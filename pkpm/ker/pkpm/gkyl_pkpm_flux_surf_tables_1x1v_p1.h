@@ -230,6 +230,13 @@ GKYL_CU_TABLE __attribute__((unused)) static const double vst_pkpm_1x1v_p1_prj_x
   0.503487835006964, 
 }; 
 GKYL_CU_TABLE __attribute__((unused)) static const struct gkyl_vlasov_prj_meta vst_pkpm_1x1v_p1_prj_x0_meta = { .nk = 3, .np = 6, .na = 1, .nmv = 3, .no = 1, .ni = 3, .fhat_off = 0 }; 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_pkpm_1x1v_p1_conf_nodes[5] = { 
+  -0.906179845938664, 
+  -0.5384693101056831, 
+  0.0, 
+  0.5384693101056831, 
+  0.906179845938664, 
+}; 
 GKYL_CU_TABLE __attribute__((unused)) static const double vst_pkpm_1x1v_p1_conf_ev[10] = { 
   0.7071067811865475, 
   -1.1098391188717989, 

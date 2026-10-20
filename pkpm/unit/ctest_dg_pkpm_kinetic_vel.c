@@ -193,8 +193,24 @@ struct test_setup {
   struct gkyl_range clocal, clocal_ext, plocal, plocal_ext, plocal_ext_conf, vlocal, vlocal_ext;
   struct gkyl_array *bvar, *grad_b, *u, *grad_u, *grad_ln_n, *theta, *nu_sum, *nu_vthsq_sum, *alpha_0, *c_h, *c_0, *f;
   struct gkyl_array *xi, *grad_xi, *a_perp, *em, *dtb;
+  struct gkyl_array *hcoef; // stored first-harmonic coefficients of the fields
   struct gkyl_dg_calc_pkpm_bvar *calc_b;
 };
+
+// The stored first-harmonic coefficients of the current fields (gkyl_dg_pkpm_harm_vol_coef).
+static void
+build_coef(struct test_setup *s)
+{
+  struct gkyl_dg_pkpm_harm_vol_inp hinp = {.phase_grid = &s->pgrid, .conf_basis = &s->cbasis,
+    .phase_basis = &s->pbasis, .qbym = qbym_test, .pos_map = s->pos_map, .use_gpu = false};
+  struct gkyl_dg_pkpm_harm_vol *harm = gkyl_dg_pkpm_harm_vol_inew(&hinp);
+  if (!s->hcoef) {
+    s->hcoef = mkarr(gkyl_dg_pkpm_harm_vol_num_coef(harm), s->clocal_ext.volume);
+  }
+  gkyl_dg_pkpm_harm_vol_coef(harm, &s->clocal, s->bvar, s->grad_b, s->u, s->grad_u, s->xi, s->grad_xi,
+    s->grad_ln_n, s->theta, s->dtb, s->em, s->hcoef);
+  gkyl_dg_pkpm_harm_vol_release(harm);
+}
 
 // Weak gradients of u and of [xi, xi^2, p] on the interior cells (both projected on the
 // extended range); only the first block of grad_xi is used by the kernels.
@@ -207,7 +223,7 @@ compute_grad_u(struct test_setup *s)
   gkyl_array_clear(s->grad_u, 0.0);
   gkyl_array_clear(s->grad_xi, 0.0);
   struct gkyl_dg_calc_pkpm_vars *vars =
-    gkyl_dg_calc_pkpm_vars_new(&s->cgrid, &s->cbasis, &s->clocal_ext, s->pos_map, false);
+    gkyl_dg_calc_pkpm_vars_new(&s->cgrid, &s->cbasis, s->pos_map, false);
   gkyl_dg_calc_pkpm_vars_grad_u(vars, &s->clocal, s->u, s->grad_u);
   gkyl_dg_calc_pkpm_vars_grad_u(vars, &s->clocal, s->xi, s->grad_xi);
   gkyl_dg_calc_pkpm_vars_release(vars);
@@ -297,9 +313,11 @@ setup(struct test_setup *s, int cdim)
   compute_grad_u(s);
   // the stage state is transverse at the nodes of b (as at the start of every app stage)
   struct gkyl_dg_calc_pkpm_vars *vars =
-    gkyl_dg_calc_pkpm_vars_new(&s->cgrid, &s->cbasis, &s->clocal_ext, s->pos_map, false);
+    gkyl_dg_calc_pkpm_vars_new(&s->cgrid, &s->cbasis, s->pos_map, false);
   gkyl_dg_calc_pkpm_vars_transverse(vars, &s->clocal_ext, &s->plocal_ext_conf, s->bvar, s->f);
   gkyl_dg_calc_pkpm_vars_release(vars);
+  s->hcoef = 0;
+  build_coef(s);
 }
 
 static void
@@ -324,15 +342,54 @@ teardown(struct test_setup *s)
   gkyl_array_release(s->em);
   gkyl_array_release(s->dtb);
   gkyl_array_release(s->grad_ln_n);
+  gkyl_array_release(s->hcoef);
 }
 
-// First-harmonic coefficients at reference point z of cell cidx (fields evaluated independently
-// of the kernel's tables), and alpha(w) = alpha_0 + (c - K) w - (b.grad xi) w^2.
+// Orthonormal Legendre polynomial of degree n <= 2 on [-1, 1].
+static double
+leg2(int n, double z)
+{
+  return n == 0 ? 1.0 / sqrt(2.0) : n == 1 ? sqrt(1.5) * z : sqrt(2.5) * 0.5 * (3.0 * z * z - 1.0);
+}
+
+// Node values of the w flux at reference point z of cell cidx (PKPM_HS_NODE_NV): the stored
+// coefficients evaluated there (degree <= 2 tensor Legendre modes k = k0 + 3 k1 + 9 k2), theta, b
+// and the closures.
 static void
-conf_coeffs(
+node_values(
   struct test_setup *s, long cidx, const double *z, const struct gkyl_array *alpha_0,
-  const struct gkyl_array *c_h, struct pkpm_harm_coeffs *hc, double *aP_q, double *ch_q
+  const struct gkyl_array *c_h, double *nv
 )
+{
+  int cdim = s->cdim, nc = s->cbasis.num_basis, n2 = 1;
+  for (int d = 0; d < cdim; ++d) {
+    n2 *= 3;
+  }
+  const double *coef = gkyl_array_cfetch(s->hcoef, cidx);
+  for (int sl = 0; sl < PKPM_HS_W_END; ++sl) {
+    double v = 0.0;
+    for (int k = 0; k < n2; ++k) {
+      double ph = 1.0;
+      for (int d = 0, kk = k; d < cdim; ++d, kk /= 3) {
+        ph *= leg2(kk % 3, z[d]);
+      }
+      v += ph * coef[sl * n2 + k];
+    }
+    nv[sl] = v;
+  }
+  const double *b = gkyl_array_cfetch(s->bvar, cidx);
+  nv[PKPM_HS_NODE_THETA] = s->cbasis.eval_expand(z, gkyl_array_cfetch(s->theta, cidx));
+  for (int a = 0; a < 3; ++a) {
+    nv[PKPM_HS_NODE_B + a] = s->cbasis.eval_expand(z, &b[a * nc]);
+  }
+  nv[PKPM_HS_NODE_A0] = s->cbasis.eval_expand(z, gkyl_array_cfetch(alpha_0, cidx));
+  nv[PKPM_HS_NODE_CH] = s->cbasis.eval_expand(z, gkyl_array_cfetch(c_h, cidx));
+}
+
+// Pointwise first-harmonic coefficients at reference point z of cell cidx (the definitions of
+// gkyl_pkpm_harm_coeffs.h from the fields, not the stored projections).
+static void
+conf_coeffs(struct test_setup *s, long cidx, const double *z, struct pkpm_harm_coeffs *hc)
 {
   int cdim = s->cdim, nc = s->cbasis.num_basis;
   const double *b = gkyl_array_cfetch(s->bvar, cidx), *u = gkyl_array_cfetch(s->u, cidx);
@@ -353,13 +410,12 @@ conf_coeffs(
   }
   pkpm_harm_coeffs_set(hc, cdim, bq, uq, s->cbasis.eval_expand(z, gkyl_array_cfetch(s->xi, cidx)),
     s->cbasis.eval_expand(z, gkyl_array_cfetch(s->theta, cidx)), dq, guq, gbq, gxq, 0, 0.0, 0);
-  *aP_q = s->cbasis.eval_expand(z, gkyl_array_cfetch(alpha_0, cidx));
-  *ch_q = s->cbasis.eval_expand(z, gkyl_array_cfetch(c_h, cidx));
 }
 
-// Independent reference of the stored v_par flux on the lower face of cell idx
-// (idx_l is the cell below): the HLL flux of alpha U + T(U) with the speeds alpha + the bounds of
-// the spectrum of T. Returns the CFL speed estimate at the nodes.
+// Independent reference of the stored v_par flux on the lower face of cell idx (idx_l is the cell
+// below): the HLL flux of the node values of the stored coefficients (node_values,
+// pkpm_harm_node_wflux) at the 5-point Gauss-Legendre nodes of every configuration direction,
+// projected with that rule. Returns the CFL speed estimate at the nodes.
 static double
 reference_vel_face(
   struct test_setup *s, const struct gkyl_array *alpha_0, const struct gkyl_array *c_h,
@@ -396,30 +452,13 @@ reference_vel_face(
     }
     zl[cdim] = 1.0;
     zr[cdim] = -1.0;
-    struct pkpm_harm_coeffs hc;
-    double aPq, chq;
-    conf_coeffs(s, cidx, zs, alpha_0, c_h, &hc, &aPq, &chq);
-    double alpha = aPq + (chq - hc.K) * v_face - hc.bg * v_face * v_face;
-    double Ul[8], Ur[8], Tl[8], Tr[8], lo, hi, ghat[8];
+    double nv[PKPM_HS_NODE_NV], Ul[8], Ur[8], ghat[8];
+    node_values(s, cidx, zs, alpha_0, c_h, nv);
     for (int c = 0; c < 8; ++c) {
       Ul[c] = s->pbasis.eval_expand(zl, &f_l[c * np]);
       Ur[c] = s->pbasis.eval_expand(zr, &f_r[c * np]);
     }
-    pkpm_harm_coupling_flux(&hc, v_face, Ul, Tl);
-    pkpm_harm_coupling_flux(&hc, v_face, Ur, Tr);
-    pkpm_harm_speed_bounds(&hc, v_face, &lo, &hi);
-    double sl = alpha + lo, sr = alpha + hi;
-    for (int c = 0; c < 8; ++c) {
-      double phil = alpha * Ul[c] + Tl[c], phir = alpha * Ur[c] + Tr[c];
-      if (sl >= 0.0) {
-        ghat[c] = phil;
-      } else if (sr <= 0.0) {
-        ghat[c] = phir;
-      } else {
-        ghat[c] = (sr * phil - sl * phir + sl * sr * (Ur[c] - Ul[c])) / (sr - sl);
-      }
-    }
-    cfl_max = fmax(cfl_max, fmax(fabs(sl), fabs(sr)));
+    cfl_max = fmax(cfl_max, pkpm_harm_node_wflux(nv, v_face, Ul, Ur, ghat));
     for (int c = 0; c < 8; ++c) {
       for (int k = 0; k < nc; ++k) {
         double unit[8] = {0.0};
@@ -454,8 +493,7 @@ test_vel_flux(int cdim)
   gkyl_array_clear(flux, 1.0e30); // every interior face must be overwritten; the edge slot is left alone
   gkyl_array_clear(cflrate, 0.0);
   gkyl_dg_pkpm_vel_flux_surf_advance(
-    up, &s.clocal, &s.plocal, s.bvar, s.grad_b, s.u, s.grad_u, s.xi, s.grad_xi, s.theta, s.dtb,
-    s.alpha_0, s.c_h, s.f, cflrate, flux
+    up, &s.clocal, &s.plocal, s.hcoef, s.theta, s.bvar, s.alpha_0, s.c_h, s.f, cflrate, flux
   );
 
   double flux_ref[64];
@@ -491,6 +529,102 @@ test_vel_flux(int cdim)
   TEST_MSG("cdim=%d: max flux error %g (max flux %g)", cdim, max_err, max_flux);
   TEST_CHECK(max_cfl_err < 1e-11);
   TEST_MSG("cdim=%d: max cflrate error %g", cdim, max_cfl_err);
+
+  gkyl_array_release(cflrate);
+  gkyl_array_release(flux);
+  gkyl_dg_pkpm_vel_flux_surf_release(up);
+  teardown(&s);
+}
+
+// The P2 property of the stored coefficients on the w faces: where the flux is upwind over the
+// whole face (alpha_0 large, every speed positive), the stored flux equals the exact Galerkin
+// projection of the POINTWISE flux alpha U_l + T(U_l) (pointwise coefficients of
+// gkyl_pkpm_harm_coeffs.h, integrated with 6 Gauss-Legendre points per configuration direction,
+// exact for its degree <= 11): the higher-degree parts of the coefficients are orthogonal to the
+// test function times the trace.
+static void
+test_vel_flux_exact(int cdim)
+{
+  struct test_setup s;
+  setup(&s, cdim);
+  int nc = s.cbasis.num_basis, np = s.pbasis.num_basis;
+  double c0 = pow(sqrt(2.0), cdim);
+  gkyl_array_clear(s.alpha_0, 0.0);
+  gkyl_array_shiftc(s.alpha_0, 30.0 * c0, 0);
+  gkyl_array_clear(s.c_h, 0.0);
+
+  struct gkyl_dg_pkpm_vel_flux_surf_inp inp = {
+    .phase_grid = &s.pgrid, .conf_basis = &s.cbasis, .phase_basis = &s.pbasis, .use_gpu = false};
+  struct gkyl_dg_pkpm_vel_flux_surf *up = gkyl_dg_pkpm_vel_flux_surf_inew(&inp);
+  struct gkyl_array *flux = mkarr(8 * nc, s.plocal_ext.volume), *cflrate = mkarr(1, s.plocal_ext.volume);
+  gkyl_array_clear(flux, 0.0);
+  gkyl_array_clear(cflrate, 0.0);
+  gkyl_dg_pkpm_vel_flux_surf_advance(up, &s.clocal, &s.plocal, s.hcoef, s.theta, s.bvar, s.alpha_0, s.c_h,
+    s.f, cflrate, flux);
+
+  static const double gl6_x[6] = {-0.9324695142031521, -0.6612093864662645, -0.2386191860831969,
+    0.2386191860831969, 0.6612093864662645, 0.9324695142031521};
+  static const double gl6_w[6] = {0.1713244923791704, 0.3607615730481386, 0.4679139345726910,
+    0.4679139345726910, 0.3607615730481386, 0.1713244923791704};
+  double max_err = 0.0, max_ref = 0.0, max_ref_h = 0.0;
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &s.plocal);
+  while (gkyl_range_iter_next(&iter)) {
+    if (iter.idx[cdim] == s.plocal.lower[cdim]) {
+      continue;
+    }
+    int idx_l[4];
+    gkyl_copy_int_arr(s.pdim, iter.idx, idx_l);
+    idx_l[cdim] -= 1;
+    long cidx = gkyl_range_idx(&s.clocal_ext, iter.idx);
+    const double *f_l = gkyl_array_cfetch(s.f, gkyl_range_idx(&s.plocal_ext, idx_l));
+    double xc[4];
+    gkyl_rect_grid_cell_center(&s.pgrid, iter.idx, xc);
+    double v_face = xc[cdim] - 0.5 * s.pgrid.dx[cdim], ref[8 * 8] = {0.0};
+    int nnodes = 1;
+    for (int d = 0; d < cdim; ++d) {
+      nnodes *= 6;
+    }
+    for (int n = 0; n < nnodes; ++n) {
+      double z[4], zl[4], w = 1.0;
+      for (int d = cdim - 1, m = n; d >= 0; --d, m /= 6) {
+        z[d] = zl[d] = gl6_x[m % 6];
+        w *= gl6_w[m % 6];
+      }
+      zl[cdim] = 1.0;
+      struct pkpm_harm_coeffs hc;
+      conf_coeffs(&s, cidx, z, &hc);
+      double alpha = s.cbasis.eval_expand(z, gkyl_array_cfetch(s.alpha_0, cidx)) - hc.K * v_face -
+        hc.bg * v_face * v_face;
+      TEST_CHECK(alpha > 0.0);
+      double Ul[8], T[8];
+      for (int c = 0; c < 8; ++c) {
+        Ul[c] = s.pbasis.eval_expand(zl, &f_l[c * np]);
+      }
+      pkpm_harm_coupling_flux(&hc, v_face, Ul, T);
+      for (int c = 0; c < 8; ++c) {
+        for (int k = 0; k < nc; ++k) {
+          double unit[8] = {0.0};
+          unit[k] = 1.0;
+          double znorm[3] = {0.4, 0.4, 0.4};
+          double chi_k = s.cbasis.eval_expand(z, unit) / s.cbasis.eval_expand(znorm, unit);
+          ref[c * nc + k] += w * chi_k * (alpha * Ul[c] + T[c]);
+        }
+      }
+    }
+    const double *fl = gkyl_array_cfetch(flux, gkyl_range_idx(&s.plocal_ext, iter.idx));
+    for (int k = 0; k < 8 * nc; ++k) {
+      max_err = fmax(max_err, fabs(fl[k] - ref[k]));
+      max_ref = fmax(max_ref, fabs(ref[k]));
+      if (k >= 2 * nc) {
+        max_ref_h = fmax(max_ref_h, fabs(ref[k]));
+      }
+    }
+  }
+  TEST_CHECK(max_ref_h > 0.0);
+  TEST_CHECK(max_err < 1e-12 * max_ref);
+  TEST_MSG("cdim=%d: upwind w faces against the exact projection of the pointwise flux: max error %g (max %g)",
+    cdim, max_err, max_ref);
 
   gkyl_array_release(cflrate);
   gkyl_array_release(flux);
@@ -663,8 +797,9 @@ test_m1_invariant(int cdim)
   struct gkyl_dg_pkpm_harm_vol_inp hinp = {
     .phase_grid = &s.pgrid, .conf_basis = &s.cbasis, .phase_basis = &s.pbasis, .qbym = qbym_test, .pos_map = s.pos_map, .use_gpu = false};
   struct gkyl_dg_pkpm_harm_vol *harm = gkyl_dg_pkpm_harm_vol_inew(&hinp);
-  gkyl_dg_pkpm_harm_vol_advance(harm, &s.clocal, &s.plocal, s.bvar, s.grad_b, s.u, s.grad_u, s.xi,
-    s.grad_xi, s.grad_ln_n, s.theta, s.dtb, s.em, s.f, cflrate, rhs);
+  {
+    gkyl_dg_pkpm_harm_vol_advance(harm, &s.clocal, &s.plocal, s.hcoef, s.f, cflrate, rhs);
+  }
   gkyl_dg_pkpm_harm_vol_release(harm);
 
   // Closure.
@@ -685,7 +820,7 @@ test_m1_invariant(int cdim)
   gkyl_array_clear(vflux, 0.0);
 
   struct gkyl_dg_calc_pkpm_vars *vars =
-    gkyl_dg_calc_pkpm_vars_new(&s.cgrid, &s.cbasis, &s.clocal_ext, s.pos_map, false);
+    gkyl_dg_calc_pkpm_vars_new(&s.cgrid, &s.cbasis, s.pos_map, false);
   struct gkyl_array *a_P = mkarr(nc, s.clocal_ext.volume);
   struct gkyl_array *c_h = mkarr(nc, s.clocal_ext.volume);
   struct gkyl_array *c_0 = mkarr(nc, s.clocal_ext.volume);
@@ -695,8 +830,8 @@ test_m1_invariant(int cdim)
   gkyl_array_copy(c_h, s.c_h);
   gkyl_array_clear(c_0, 0.0);
   int num_null = gkyl_dg_calc_pkpm_vars_closure(
-    vars, &s.clocal, &s.plocal, &s.pgrid, moms, rhs_moms, s.bvar, s.grad_b, s.u, s.grad_u, s.xi, s.grad_xi,
-    s.theta, s.dtb, s.f, c_0, a_P, c_h, a_perp, vflux, cflrate
+    vars, &s.clocal, &s.plocal, &s.pgrid, moms, rhs_moms, s.bvar, s.hcoef, s.theta, s.f, c_0, a_P, c_h, a_perp,
+    vflux, cflrate
   );
   TEST_CHECK(num_null == 0);
 
@@ -718,8 +853,7 @@ test_m1_invariant(int cdim)
 
   // Stage B (interior faces with the closures; the edge faces were set above).
   gkyl_dg_pkpm_vel_flux_surf_advance(
-    calc_vflux, &s.clocal, &s.plocal, s.bvar, s.grad_b, s.u, s.grad_u, s.xi, s.grad_xi, s.theta, s.dtb,
-    a_P, c_h, s.f, cflrate, vflux
+    calc_vflux, &s.clocal, &s.plocal, s.hcoef, s.theta, s.bvar, a_P, c_h, s.f, cflrate, vflux
   );
   struct gkyl_dg_pkpm_kinetic_vel_inp binp = {
     .conf_basis = &s.cbasis,
@@ -789,6 +923,9 @@ test_m1_invariant(int cdim)
 }
 
 void test_vel_flux_1x() { test_vel_flux(1); }
+void test_vel_flux_exact_1x() { test_vel_flux_exact(1); }
+void test_vel_flux_exact_2x() { test_vel_flux_exact(2); }
+void test_vel_flux_exact_3x() { test_vel_flux_exact(3); }
 void test_vel_flux_2x() { test_vel_flux(2); }
 void test_vel_flux_3x() { test_vel_flux(3); }
 void test_vel_vol_1x() { test_vel_vol(1); }
@@ -834,10 +971,12 @@ test_edge_closure(int cdim)
   gkyl_array_clear(s.theta, 0.0);
   gkyl_array_shiftc(s.theta, c0, 0);
   gkyl_array_clear(s.dtb, 0.0); // a static field: no first-harmonic coupling, plain upwind edges
+  gkyl_array_clear(s.grad_ln_n, 0.0);
   gkyl_array_clear(s.f, 0.0);
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&s.pgrid, &s.pbasis, 8, 2, eval_edge_f, &cdim);
   gkyl_proj_on_basis_advance(proj, 0.0, &s.plocal_ext_conf, s.f);
   gkyl_proj_on_basis_release(proj);
+  build_coef(&s);
   int idx_top[GKYL_MAX_DIM];
   gkyl_copy_int_arr(s.pdim, s.plocal.lower, idx_top);
   idx_top[cdim] = s.plocal.upper[cdim];
@@ -854,7 +993,7 @@ test_edge_closure(int cdim)
   struct gkyl_array *b_moms = mkarr(18 * nc, s.clocal_ext.volume);
   gkyl_array_clear(moms, 0.0);
   gkyl_dg_updater_moment_pkpm_advance(mcalc, &s.plocal, &s.clocal, s.f, moms);
-  struct gkyl_dg_calc_pkpm_vars *vars = gkyl_dg_calc_pkpm_vars_new(&s.cgrid, &s.cbasis, &s.clocal_ext, s.pos_map, false);
+  struct gkyl_dg_calc_pkpm_vars *vars = gkyl_dg_calc_pkpm_vars_new(&s.cgrid, &s.cbasis, s.pos_map, false);
   struct gkyl_array *rhs = mkarr(8 * np, s.plocal_ext.volume), *cflrate = mkarr(1, s.plocal_ext.volume);
   struct gkyl_dg_pkpm_vel_flux_surf_inp vinp = {
     .phase_grid = &s.pgrid, .conf_basis = &s.cbasis, .phase_basis = &s.pbasis, .use_gpu = false};
@@ -885,13 +1024,12 @@ test_edge_closure(int cdim)
     gkyl_array_clear(vflux, 0.0);
     gkyl_array_clear(cflrate, 0.0);
     int num_null = gkyl_dg_calc_pkpm_vars_closure(
-      vars, &s.clocal, &s.plocal, &s.pgrid, moms, rhs_moms, s.bvar, s.grad_b, s.u, s.grad_u, s.xi, s.grad_xi,
-      s.theta, s.dtb, s.f, s.c_0, s.alpha_0, s.c_h, s.a_perp, vflux, cflrate
+      vars, &s.clocal, &s.plocal, &s.pgrid, moms, rhs_moms, s.bvar, s.hcoef, s.theta, s.f, s.c_0, s.alpha_0,
+      s.c_h, s.a_perp, vflux, cflrate
     );
     TEST_CHECK(num_null == 0);
     gkyl_dg_pkpm_vel_flux_surf_advance(
-      calc_vflux, &s.clocal, &s.plocal, s.bvar, s.grad_b, s.u, s.grad_u, s.xi, s.grad_xi, s.theta, s.dtb,
-      s.alpha_0, s.c_h, s.f, cflrate, vflux
+      calc_vflux, &s.clocal, &s.plocal, s.hcoef, s.theta, s.bvar, s.alpha_0, s.c_h, s.f, cflrate, vflux
     );
     gkyl_array_clear(rhs, 0.0);
     gkyl_hyper_dg_advance(slvr_b, &s.plocal, s.f, cflrate, rhs);
@@ -967,7 +1105,7 @@ test_transverse(int cdim)
   struct gkyl_array *f0 = mkarr(8 * np, s.plocal_ext.volume), *f1 = mkarr(8 * np, s.plocal_ext.volume);
   gkyl_array_copy(f0, s.f);
   struct gkyl_dg_calc_pkpm_vars *vars =
-    gkyl_dg_calc_pkpm_vars_new(&s.cgrid, &s.cbasis, &s.clocal_ext, s.pos_map, false);
+    gkyl_dg_calc_pkpm_vars_new(&s.cgrid, &s.cbasis, s.pos_map, false);
   gkyl_dg_calc_pkpm_vars_transverse(vars, &s.clocal_ext, &s.plocal_ext_conf, s.bvar, s.f);
   gkyl_array_copy(f1, s.f);
   gkyl_dg_calc_pkpm_vars_transverse(vars, &s.clocal_ext, &s.plocal_ext_conf, s.bvar, f1);
@@ -1037,6 +1175,9 @@ TEST_LIST = {
   {"test_vel_flux_1x", test_vel_flux_1x},
   {"test_vel_flux_2x", test_vel_flux_2x},
   {"test_vel_flux_3x", test_vel_flux_3x},
+  {"test_vel_flux_exact_1x", test_vel_flux_exact_1x},
+  {"test_vel_flux_exact_2x", test_vel_flux_exact_2x},
+  {"test_vel_flux_exact_3x", test_vel_flux_exact_3x},
   {"test_vel_vol_1x", test_vel_vol_1x},
   {"test_vel_vol_2x", test_vel_vol_2x},
   {"test_vel_vol_3x", test_vel_vol_3x},

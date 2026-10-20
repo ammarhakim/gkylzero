@@ -11,20 +11,20 @@ typedef struct gkyl_dg_calc_pkpm_vars gkyl_dg_calc_pkpm_vars;
 
 /**
  * Create new updater for the configuration-space variables of the energy-constrained PKPM
- * solver (p=1 serendipity): the weak division M/rho for the flow, the nodal primitive
- * variables, the closures with the velocity-space edges, the weak gradients, the explicit
- * source, the initial-condition normalization and the diagnostics.
+ * solver (p=1 serendipity): the nodal primitive variables (the flow M/rho and the thermal
+ * speed; nodal quotients, the weak division at p=1), the closures with the velocity-space
+ * edges, the weak gradients, the explicit source, the initial-condition normalization and
+ * the diagnostics.
  *
  * @param conf_grid Configuration space grid (for getting cell spacing and cell center)
  * @param cbasis    Configuration space basis functions
- * @param mem_range Configuration space range of the weak divisions (the cells updated)
  * @param pos_map   Configuration-space position map (REQUIRED; the weak gradients carry 1/J_d)
  * @param use_gpu   Whether to run on host or device
  * @return New updater pointer.
  */
 struct gkyl_dg_calc_pkpm_vars *gkyl_dg_calc_pkpm_vars_new(
   const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis,
-  const struct gkyl_range *mem_range, const struct gkyl_vlasov_position_map *pos_map, bool use_gpu
+  const struct gkyl_vlasov_position_map *pos_map, bool use_gpu
 );
 
 /**
@@ -32,22 +32,7 @@ struct gkyl_dg_calc_pkpm_vars *gkyl_dg_calc_pkpm_vars_new(
  */
 struct gkyl_dg_calc_pkpm_vars *gkyl_dg_calc_pkpm_vars_cu_dev_new(
   const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis,
-  const struct gkyl_range *mem_range, const struct gkyl_vlasov_position_map *pos_map
-);
-
-/**
- * Compute volume expansion of flow velocity u in the PKPM system.
- *
- * @param up Updater for computing pkpm variables 
- * @param vlasov_pkpm_moms Input array of pkpm kinetic moments [rho, p_parallel, p_perp]
- * @param euler_pkpm Input array of pkpm fluid variables [rho ux, rho uy, rho uz]
- * @param cell_avg_prim Array for storing boolean value of whether rho, p_parallel, p_perp are negative at corners 
- *                      Note: Only used for diagnostic purposes (not for adjusting solution)
- * @param pkpm_u        Output array of volume expansion of flow velocity [ux, uy, uz]
- */
-void gkyl_dg_calc_pkpm_vars_u(
-  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_array *vlasov_pkpm_moms,
-  const struct gkyl_array *euler_pkpm, struct gkyl_array *cell_avg_prim, struct gkyl_array *pkpm_u
+  const struct gkyl_vlasov_position_map *pos_map
 );
 
 /**
@@ -91,13 +76,8 @@ void gkyl_dg_calc_pkpm_vars_grad_u(
  *                      distributions
  * @param rhs_moms      The same moments of the configuration-pass right-hand side
  * @param bvar          Magnetic field unit vector
- * @param grad_b        Weak gradient of b
- * @param u             Flow velocity
- * @param grad_u        Weak gradient of u
- * @param xi            Thermal speed [xi, xi^2, p]
- * @param grad_xi       Weak gradient of [xi, 0, 0]
+ * @param coef          Stored first-harmonic coefficients of the stage (gkyl_dg_pkpm_harm_vol_coef)
  * @param theta         T_perp/T
- * @param dtB_over_magB d_t B/|B| of the stage
  * @param fin           Normalized distributions [F, G, M0_perp, N_perp]
  * @param c_0           Output normalization closure (input: previous stage)
  * @param alpha_0       Output pressure force a_P/xi (input: previous stage)
@@ -113,9 +93,8 @@ void gkyl_dg_calc_pkpm_vars_grad_u(
 int gkyl_dg_calc_pkpm_vars_closure(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_rect_grid *phase_grid, const struct gkyl_array *norm_moms, const struct gkyl_array *rhs_moms,
-  const struct gkyl_array *bvar, const struct gkyl_array *grad_b, const struct gkyl_array *u,
-  const struct gkyl_array *grad_u, const struct gkyl_array *xi, const struct gkyl_array *grad_xi,
-  const struct gkyl_array *theta, const struct gkyl_array *dtB_over_magB, const struct gkyl_array *fin,
+  const struct gkyl_array *bvar, const struct gkyl_array *coef, const struct gkyl_array *theta,
+  const struct gkyl_array *fin,
   struct gkyl_array *c_0, struct gkyl_array *alpha_0, struct gkyl_array *c_h, struct gkyl_array *a_perp,
   struct gkyl_array *vel_flux_surf, struct gkyl_array *cflrate
 );
@@ -124,8 +103,10 @@ int gkyl_dg_calc_pkpm_vars_closure(
  * Compute the nodal primitive variables of the energy-constrained fluid state
  * [rho, rho ux, rho uy, rho uz, E]: the flow u = M/rho and [xi, xi^2, p] with
  * xi^2 = (2 E/rho - |u|^2)/3, p = rho xi^2, by the nodal quotient at the 2^cdim
- * Gauss-Legendre nodes interpolated to p=1. Nodes with rho <= 0 or xi^2 <= 0 get zero
- * and are counted. p=1 serendipity only.
+ * Gauss-Legendre nodes interpolated to p=1. For p=1 the nodal quotient is the weak
+ * division: int phi rho u = int phi M for every p=1 phi (the 2-point rule integrates
+ * rho u phi exactly). Nodes with rho <= 0 get zero, nodes with xi^2 <= 0 zero [xi, xi^2, p];
+ * both are counted. p=1 serendipity only.
  *
  * @param up         Updater for computing pkpm variables
  * @param conf_range Configuration space range
@@ -334,17 +315,11 @@ void gkyl_dg_calc_pkpm_vars_release(struct gkyl_dg_calc_pkpm_vars *up);
  * Host-side wrappers for pkpm vars operations on device
  */
 
-void gkyl_dg_calc_pkpm_vars_u_cu(
-  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_array *vlasov_pkpm_moms,
-  const struct gkyl_array *euler_pkpm, struct gkyl_array *cell_avg_prim, struct gkyl_array *pkpm_u
-);
-
 int gkyl_dg_calc_pkpm_vars_closure_cu(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_rect_grid *phase_grid, const struct gkyl_array *norm_moms, const struct gkyl_array *rhs_moms,
-  const struct gkyl_array *bvar, const struct gkyl_array *grad_b, const struct gkyl_array *u,
-  const struct gkyl_array *grad_u, const struct gkyl_array *xi, const struct gkyl_array *grad_xi,
-  const struct gkyl_array *theta, const struct gkyl_array *dtB_over_magB, const struct gkyl_array *fin,
+  const struct gkyl_array *bvar, const struct gkyl_array *coef, const struct gkyl_array *theta,
+  const struct gkyl_array *fin,
   struct gkyl_array *c_0, struct gkyl_array *alpha_0, struct gkyl_array *c_h, struct gkyl_array *a_perp,
   struct gkyl_array *vel_flux_surf, struct gkyl_array *cflrate
 );

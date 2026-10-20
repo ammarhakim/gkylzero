@@ -2,10 +2,10 @@
 GKYL_CU_DH int pkpm_vars_prim_3x_ser_p1(const double *fluid, double* GKYL_RESTRICT u, double* GKYL_RESTRICT xi) 
 { 
   // fluid: Input fluid state [rho, rho ux, rho uy, rho uz, E]. 
-  // u:     Output flow velocity [ux, uy, uz] (nodal quotient M/rho). 
+  // u:     Output flow velocity [ux, uy, uz]: the nodal quotient M/rho, the weak division at p=1. 
   // xi:    Output [xi, xi^2, p], xi^2 = (2 E/rho - |u|^2)/3, p = rho xi^2, at the 8 Gauss-Legendre nodes, 
   //        interpolated to the p=1 basis. 
-  // Returns the number of nodes where rho <= 0 or xi^2 <= 0 (all outputs are zero there). 
+  // Returns the number of nodes where rho <= 0 (all outputs zero there) or xi^2 <= 0 ([xi, xi^2, p] zero there). 
  
   const double *rho = &fluid[0]; 
   const double *Mx = &fluid[8]; 
@@ -33,8 +33,8 @@ GKYL_CU_DH int pkpm_vars_prim_3x_ser_p1(const double *fluid, double* GKYL_RESTRI
     if (rho_q > 0.0) { 
       const double inv_rho = 1.0/rho_q; 
       const double xisq = (2.0*E_q - (M0_q*M0_q + M1_q*M1_q + M2_q*M2_q)*inv_rho)*inv_rho/3.0; 
+      u_n[0][0] = M0_q*inv_rho; u_n[1][0] = M1_q*inv_rho; u_n[2][0] = M2_q*inv_rho; 
       if (xisq > 0.0) { 
-        u_n[0][0] = M0_q*inv_rho; u_n[1][0] = M1_q*inv_rho; u_n[2][0] = M2_q*inv_rho; 
         xisq_n[0] = xisq; xi_n[0] = sqrt(xisq); p_n[0] = rho_q*xisq; 
       } else { num_null += 1; } 
     } else { 
@@ -50,8 +50,8 @@ GKYL_CU_DH int pkpm_vars_prim_3x_ser_p1(const double *fluid, double* GKYL_RESTRI
     if (rho_q > 0.0) { 
       const double inv_rho = 1.0/rho_q; 
       const double xisq = (2.0*E_q - (M0_q*M0_q + M1_q*M1_q + M2_q*M2_q)*inv_rho)*inv_rho/3.0; 
+      u_n[0][1] = M0_q*inv_rho; u_n[1][1] = M1_q*inv_rho; u_n[2][1] = M2_q*inv_rho; 
       if (xisq > 0.0) { 
-        u_n[0][1] = M0_q*inv_rho; u_n[1][1] = M1_q*inv_rho; u_n[2][1] = M2_q*inv_rho; 
         xisq_n[1] = xisq; xi_n[1] = sqrt(xisq); p_n[1] = rho_q*xisq; 
       } else { num_null += 1; } 
     } else { 
@@ -67,8 +67,8 @@ GKYL_CU_DH int pkpm_vars_prim_3x_ser_p1(const double *fluid, double* GKYL_RESTRI
     if (rho_q > 0.0) { 
       const double inv_rho = 1.0/rho_q; 
       const double xisq = (2.0*E_q - (M0_q*M0_q + M1_q*M1_q + M2_q*M2_q)*inv_rho)*inv_rho/3.0; 
+      u_n[0][2] = M0_q*inv_rho; u_n[1][2] = M1_q*inv_rho; u_n[2][2] = M2_q*inv_rho; 
       if (xisq > 0.0) { 
-        u_n[0][2] = M0_q*inv_rho; u_n[1][2] = M1_q*inv_rho; u_n[2][2] = M2_q*inv_rho; 
         xisq_n[2] = xisq; xi_n[2] = sqrt(xisq); p_n[2] = rho_q*xisq; 
       } else { num_null += 1; } 
     } else { 
@@ -84,8 +84,8 @@ GKYL_CU_DH int pkpm_vars_prim_3x_ser_p1(const double *fluid, double* GKYL_RESTRI
     if (rho_q > 0.0) { 
       const double inv_rho = 1.0/rho_q; 
       const double xisq = (2.0*E_q - (M0_q*M0_q + M1_q*M1_q + M2_q*M2_q)*inv_rho)*inv_rho/3.0; 
+      u_n[0][3] = M0_q*inv_rho; u_n[1][3] = M1_q*inv_rho; u_n[2][3] = M2_q*inv_rho; 
       if (xisq > 0.0) { 
-        u_n[0][3] = M0_q*inv_rho; u_n[1][3] = M1_q*inv_rho; u_n[2][3] = M2_q*inv_rho; 
         xisq_n[3] = xisq; xi_n[3] = sqrt(xisq); p_n[3] = rho_q*xisq; 
       } else { num_null += 1; } 
     } else { 
@@ -101,8 +101,8 @@ GKYL_CU_DH int pkpm_vars_prim_3x_ser_p1(const double *fluid, double* GKYL_RESTRI
     if (rho_q > 0.0) { 
       const double inv_rho = 1.0/rho_q; 
       const double xisq = (2.0*E_q - (M0_q*M0_q + M1_q*M1_q + M2_q*M2_q)*inv_rho)*inv_rho/3.0; 
+      u_n[0][4] = M0_q*inv_rho; u_n[1][4] = M1_q*inv_rho; u_n[2][4] = M2_q*inv_rho; 
       if (xisq > 0.0) { 
-        u_n[0][4] = M0_q*inv_rho; u_n[1][4] = M1_q*inv_rho; u_n[2][4] = M2_q*inv_rho; 
         xisq_n[4] = xisq; xi_n[4] = sqrt(xisq); p_n[4] = rho_q*xisq; 
       } else { num_null += 1; } 
     } else { 
@@ -118,8 +118,8 @@ GKYL_CU_DH int pkpm_vars_prim_3x_ser_p1(const double *fluid, double* GKYL_RESTRI
     if (rho_q > 0.0) { 
       const double inv_rho = 1.0/rho_q; 
       const double xisq = (2.0*E_q - (M0_q*M0_q + M1_q*M1_q + M2_q*M2_q)*inv_rho)*inv_rho/3.0; 
+      u_n[0][5] = M0_q*inv_rho; u_n[1][5] = M1_q*inv_rho; u_n[2][5] = M2_q*inv_rho; 
       if (xisq > 0.0) { 
-        u_n[0][5] = M0_q*inv_rho; u_n[1][5] = M1_q*inv_rho; u_n[2][5] = M2_q*inv_rho; 
         xisq_n[5] = xisq; xi_n[5] = sqrt(xisq); p_n[5] = rho_q*xisq; 
       } else { num_null += 1; } 
     } else { 
@@ -135,8 +135,8 @@ GKYL_CU_DH int pkpm_vars_prim_3x_ser_p1(const double *fluid, double* GKYL_RESTRI
     if (rho_q > 0.0) { 
       const double inv_rho = 1.0/rho_q; 
       const double xisq = (2.0*E_q - (M0_q*M0_q + M1_q*M1_q + M2_q*M2_q)*inv_rho)*inv_rho/3.0; 
+      u_n[0][6] = M0_q*inv_rho; u_n[1][6] = M1_q*inv_rho; u_n[2][6] = M2_q*inv_rho; 
       if (xisq > 0.0) { 
-        u_n[0][6] = M0_q*inv_rho; u_n[1][6] = M1_q*inv_rho; u_n[2][6] = M2_q*inv_rho; 
         xisq_n[6] = xisq; xi_n[6] = sqrt(xisq); p_n[6] = rho_q*xisq; 
       } else { num_null += 1; } 
     } else { 
@@ -152,8 +152,8 @@ GKYL_CU_DH int pkpm_vars_prim_3x_ser_p1(const double *fluid, double* GKYL_RESTRI
     if (rho_q > 0.0) { 
       const double inv_rho = 1.0/rho_q; 
       const double xisq = (2.0*E_q - (M0_q*M0_q + M1_q*M1_q + M2_q*M2_q)*inv_rho)*inv_rho/3.0; 
+      u_n[0][7] = M0_q*inv_rho; u_n[1][7] = M1_q*inv_rho; u_n[2][7] = M2_q*inv_rho; 
       if (xisq > 0.0) { 
-        u_n[0][7] = M0_q*inv_rho; u_n[1][7] = M1_q*inv_rho; u_n[2][7] = M2_q*inv_rho; 
         xisq_n[7] = xisq; xi_n[7] = sqrt(xisq); p_n[7] = rho_q*xisq; 
       } else { num_null += 1; } 
     } else { 

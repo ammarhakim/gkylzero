@@ -19,13 +19,15 @@ struct gkyl_dg_pkpm_vel_flux_surf_inp {
 /**
  * Create a new updater computing the v_par surface fluxes of the PKPM kinetic
  * equations (velocity-space pass, stage B) of the eight blocks U = [F, G, M0_perp, N_perp].
- * On the lower v_par face of every cell the single-valued configuration-space coefficients
- * alpha = a_P/xi + (c - bb:grad(u)) w_face - (b.grad xi) w_face^2 and the first-harmonic coupling
- * T (beta = xi div(b), t, R_B1 with the closures H and O, gkyl_pkpm_harm_coeffs.h) are evaluated
- * at the 3^cdim face nodes, the HLL flux of alpha U + T(U) with the speeds alpha + the bounds of
- * the spectrum of T is formed (exact upwinding when the speeds share a sign), and the nodal
- * fluxes are projected onto the surface modal basis. Each cell owns its *lower* face, stored as
- * [block][surface mode]; the faces at the two velocity domain edges are the closure's.
+ * Per configuration cell the w flux is formed at the 5^cdim face nodes once from the stored
+ * first-harmonic coefficients of the stage (exact projections onto degree <= 2 per configuration
+ * direction, gkyl_pkpm_harm_slots.h; built by gkyl_dg_pkpm_harm_vol_coef), theta, b and the
+ * closures: alpha = alpha_0 + (c - K) w_face - (b.grad xi) w_face^2 and the coupling T (beta, t,
+ * R_B1 with the closures H and O). On the lower v_par face of every velocity cell the HLL flux of
+ * alpha U + T(U) with the speeds alpha + the bounds of the spectrum of T is formed at the nodes
+ * (pkpm_harm_node_wflux; exact upwinding when the speeds share a sign) and projected onto the
+ * surface modal basis. Each cell owns its *lower* face, stored as [block][surface mode]; the faces
+ * at the two velocity domain edges are the closure's.
  *
  * @param inp Input parameters defined in gkyl_dg_pkpm_vel_flux_surf_inp struct.
  * @return Pointer to v_par surface flux updater.
@@ -43,23 +45,16 @@ struct gkyl_dg_pkpm_vel_flux_surf *gkyl_dg_pkpm_vel_flux_surf_cu_dev_inew(
 );
 
 /**
- * Compute the v_par surface fluxes on the INTERIOR faces (the lower face of every cell but
- * the lowest and of the velocity ghost cell; the domain-edge faces are set by the closure updater gkyl_dg_calc_pkpm_vars_closure and left
- * untouched here).
- *
-.
+ * Compute the v_par surface fluxes on the INTERIOR faces (the lower face of every cell but the
+ * lowest; the domain-edge faces are set by the closure updater gkyl_dg_calc_pkpm_vars_closure and
+ * left untouched here).
  *
  * @param up v_par surface flux updater.
  * @param conf_range Configuration-space range for indexing the configuration fields.
  * @param phase_range Phase-space range to compute fluxes over.
- * @param bvar Input magnetic field unit vector [bx, by, bz].
- * @param grad_b Input weak gradient of b (gkyl_dg_calc_pkpm_bvar_grad).
- * @param u Input flow velocity [ux, uy, uz].
- * @param grad_u Input weak gradient of u (gkyl_dg_calc_pkpm_vars_grad_u).
- * @param xi Input thermal speed [xi, xi^2].
- * @param grad_xi Input weak gradient of [xi, 0, 0].
+ * @param coef Input stored first-harmonic coefficients of the stage (gkyl_dg_pkpm_harm_vol_coef).
  * @param theta Input T_perp/T.
- * @param dtB_over_magB Input d_t B/|B| of the stage.
+ * @param bvar Input magnetic field unit vector [bx, by, bz].
  * @param alpha_0 Input pressure force a_P/xi closing the first moment.
  * @param c_h Input heating rate closing the scalar second moment.
  * @param fin Input distribution functions [F, G, M0_perp, N_perp].
@@ -68,10 +63,8 @@ struct gkyl_dg_pkpm_vel_flux_surf *gkyl_dg_pkpm_vel_flux_surf_cu_dev_inew(
  */
 void gkyl_dg_pkpm_vel_flux_surf_advance(
   struct gkyl_dg_pkpm_vel_flux_surf *up, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, const struct gkyl_array *bvar, const struct gkyl_array *grad_b,
-  const struct gkyl_array *u, const struct gkyl_array *grad_u, const struct gkyl_array *xi, const struct gkyl_array *grad_xi,
-  const struct gkyl_array *theta, const struct gkyl_array *dtB_over_magB,
-  const struct gkyl_array *alpha_0, const struct gkyl_array *c_h,
+  const struct gkyl_range *phase_range, const struct gkyl_array *coef, const struct gkyl_array *theta,
+  const struct gkyl_array *bvar, const struct gkyl_array *alpha_0, const struct gkyl_array *c_h,
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *vel_flux_surf
 );
 
@@ -80,10 +73,8 @@ void gkyl_dg_pkpm_vel_flux_surf_advance(
  */
 void gkyl_dg_pkpm_vel_flux_surf_advance_cu(
   struct gkyl_dg_pkpm_vel_flux_surf *up, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, const struct gkyl_array *bvar, const struct gkyl_array *grad_b,
-  const struct gkyl_array *u, const struct gkyl_array *grad_u, const struct gkyl_array *xi, const struct gkyl_array *grad_xi,
-  const struct gkyl_array *theta, const struct gkyl_array *dtB_over_magB,
-  const struct gkyl_array *alpha_0, const struct gkyl_array *c_h,
+  const struct gkyl_range *phase_range, const struct gkyl_array *coef, const struct gkyl_array *theta,
+  const struct gkyl_array *bvar, const struct gkyl_array *alpha_0, const struct gkyl_array *c_h,
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *vel_flux_surf
 );
 

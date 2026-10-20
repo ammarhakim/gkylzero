@@ -15,6 +15,7 @@
 // kernels.
 
 #include <math.h>
+#include <gkyl_pkpm_harm_slots.h>
 #include <gkyl_util.h>
 
 struct pkpm_harm_coeffs {
@@ -464,4 +465,130 @@ pkpm_harm_conf_flux(
     phi_l[c] = A_l * X_l[c] + w_l * T_l[c];
     phi_r[c] = A_r * X_r[c] + w_r * T_r[c];
   }
+}
+
+// ---- The w flux from the stored coefficients (gkyl_pkpm_harm_slots.h) at a node: nv holds the
+// w-flux slots evaluated at the node, theta, b, alpha_0 and c there (PKPM_HS_NODE_*). These are the
+// single definition used by the w-face kernels and the closure kernels (plan 17.15).
+
+// alpha = alpha_0 + (c - K) w - (b.grad xi) w^2 at a node.
+GKYL_CU_DH static inline double
+pkpm_harm_node_alpha(const double *nv, double w)
+{
+  return nv[PKPM_HS_NODE_A0] + (nv[PKPM_HS_NODE_CH] + nv[PKPM_HS_KW]) * w + nv[PKPM_HS_BG] * w * w;
+}
+
+// The known part of alpha, -K w - (b.grad xi) w^2, at a node.
+GKYL_CU_DH static inline double
+pkpm_harm_node_alpha_k(const double *nv, double w)
+{
+  return nv[PKPM_HS_KW] * w + nv[PKPM_HS_BG] * w * w;
+}
+
+// Coupling part T(U) of the w flux at a node: F <- t.M0 + beta G, G <- t.N + beta H,
+// M0 <- G t + R_B1 N, N <- H t + R_B1 O, each coefficient the stored projection of its product.
+GKYL_CU_DH static inline void
+pkpm_harm_node_coupling(const double *nv, double w, const double *U, double *T)
+{
+  double F = U[0], G = U[1];
+  const double *M = &U[2], *N = &U[5];
+  double tF = nv[PKPM_HS_BF] * G, tG = nv[PKPM_HS_BGG] * G + nv[PKPM_HS_BGF] * F;
+  for (int a = 0; a < 3; ++a) {
+    tF += (nv[PKPM_HS_TF(a, 0)] + w * nv[PKPM_HS_TF(a, 1)]) * M[a];
+    tG += (nv[PKPM_HS_TG(a, 0)] + w * nv[PKPM_HS_TG(a, 1)]) * N[a];
+  }
+  T[0] = tF;
+  T[1] = tG;
+  for (int a = 0; a < 3; ++a) {
+    double tM = (nv[PKPM_HS_TM(a, 0)] + w * nv[PKPM_HS_TM(a, 1)]) * G;
+    double tN = (nv[PKPM_HS_TNG(a, 0)] + w * nv[PKPM_HS_TNG(a, 1)]) * G +
+      (nv[PKPM_HS_TNF(a, 0)] + w * nv[PKPM_HS_TNF(a, 1)]) * F;
+    for (int c = 0; c < 3; ++c) {
+      tM += nv[PKPM_HS_RMN(a, c)] * N[c];
+      tN += nv[PKPM_HS_RNN(a, c)] * N[c] + nv[PKPM_HS_RNM(a, c)] * M[c];
+    }
+    T[2 + a] = tM;
+    T[5 + a] = tN;
+  }
+}
+
+/**
+ * Bounds of the spectrum of the coupling at a node (as pkpm_harm_speed_bounds, plan 17.11):
+ *   [min(cand) - |t| sqrt((2 + sqrt 2) theta), max(cand) + |t| sqrt((2 + sqrt 2) theta)],
+ *   cand = {beta theta (2 +- sqrt 2), r theta (3 +- sqrt 3)}, r the eigenvalues of R_B1 on the
+ * plane perpendicular to b, from t = t0 + w t1, beta, R_B1 and theta at the node.
+ */
+GKYL_CU_DH static inline void
+pkpm_harm_node_bounds(const double *nv, double w, double *lo, double *hi)
+{
+  double th = fmax(nv[PKPM_HS_NODE_THETA], 0.0), t[3];
+  for (int a = 0; a < 3; ++a) {
+    t[a] = nv[PKPM_HS_TF(a, 0)] + w * nv[PKPM_HS_TF(a, 1)];
+  }
+  double tn = sqrt(pkpm_harm_dot(t, t)), beta = nv[PKPM_HS_BF];
+  // M = P R_B1 P on the plane perpendicular to the unit direction of b (its third eigenvalue is
+  // 0), P = I - bh bh: tr M = tr(R P) and tr M^2 = tr((R P)^2) (P is a projector), R P = R - (R bh) bh.
+  const double *b = &nv[PKPM_HS_NODE_B];
+  double bb = pkpm_harm_dot(b, b), ib = bb > 0.0 ? 1.0 / sqrt(bb) : 0.0, bh[3], Rb[3], RP[3][3];
+  for (int a = 0; a < 3; ++a) {
+    bh[a] = b[a] * ib;
+  }
+  for (int a = 0; a < 3; ++a) {
+    Rb[a] = nv[PKPM_HS_RMN(a, 0)] * bh[0] + nv[PKPM_HS_RMN(a, 1)] * bh[1] + nv[PKPM_HS_RMN(a, 2)] * bh[2];
+  }
+  double trM = 0.0, trM2 = 0.0;
+  for (int a = 0; a < 3; ++a) {
+    for (int c = 0; c < 3; ++c) {
+      RP[a][c] = nv[PKPM_HS_RMN(a, c)] - Rb[a] * bh[c];
+    }
+    trM += RP[a][a];
+  }
+  for (int a = 0; a < 3; ++a) {
+    for (int c = 0; c < 3; ++c) {
+      trM2 += RP[a][c] * RP[c][a];
+    }
+  }
+  double disc = sqrt(fmax(2.0 * trM2 - trM * trM, 0.0));
+  double r_lo = 0.5 * (trM - disc), r_hi = 0.5 * (trM + disc);
+  const double s2m = 0.5857864376269049, s2p = 3.414213562373095; // 2 -+ sqrt 2
+  const double s3m = 1.2679491924311228, s3p = 4.732050807568877; // 3 -+ sqrt 3
+  double cand[6] = {beta * th * s2m, beta * th * s2p, r_lo * th * s3m, r_lo * th * s3p, r_hi * th * s3m,
+    r_hi * th * s3p};
+  double cmin = cand[0], cmax = cand[0];
+  for (int k = 1; k < 6; ++k) {
+    cmin = fmin(cmin, cand[k]);
+    cmax = fmax(cmax, cand[k]);
+  }
+  double ts = tn * sqrt(s2p * th);
+  *lo = cmin - ts;
+  *hi = cmax + ts;
+}
+
+/**
+ * HLL flux of the eight blocks at a w face, at a node: the flux alpha U + T(U) with the speeds
+ * S_L, S_R = alpha + the bounds of T's spectrum, exact upwinding when S_L >= 0 (left state) or
+ * S_R <= 0 (right state), the HLL average otherwise. Returns max(|S_L|, |S_R|).
+ */
+GKYL_CU_DH static inline double
+pkpm_harm_node_wflux(const double *nv, double w, const double *U_l, const double *U_r, double *Fhat)
+{
+  double alpha = pkpm_harm_node_alpha(nv, w), T_l[8], T_r[8], lo, hi;
+  pkpm_harm_node_coupling(nv, w, U_l, T_l);
+  pkpm_harm_node_coupling(nv, w, U_r, T_r);
+  pkpm_harm_node_bounds(nv, w, &lo, &hi);
+  double sl = alpha + lo, sr = alpha + hi;
+  if (sl >= 0.0) {
+    for (int c = 0; c < 8; ++c) {
+      Fhat[c] = alpha * U_l[c] + T_l[c];
+    }
+  } else if (sr <= 0.0) {
+    for (int c = 0; c < 8; ++c) {
+      Fhat[c] = alpha * U_r[c] + T_r[c];
+    }
+  } else {
+    for (int c = 0; c < 8; ++c) {
+      Fhat[c] = (sr * (alpha * U_l[c] + T_l[c]) - sl * (alpha * U_r[c] + T_r[c]) + sl * sr * (U_r[c] - U_l[c])) / (sr - sl);
+    }
+  }
+  return fmax(fabs(sl), fabs(sr));
 }

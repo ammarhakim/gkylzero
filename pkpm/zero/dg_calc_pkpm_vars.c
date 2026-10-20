@@ -12,12 +12,12 @@
 gkyl_dg_calc_pkpm_vars *
 gkyl_dg_calc_pkpm_vars_new(
   const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis,
-  const struct gkyl_range *mem_range, const struct gkyl_vlasov_position_map *pos_map, bool use_gpu
+  const struct gkyl_vlasov_position_map *pos_map, bool use_gpu
 )
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    return gkyl_dg_calc_pkpm_vars_cu_dev_new(conf_grid, cbasis, mem_range, pos_map);
+    return gkyl_dg_calc_pkpm_vars_cu_dev_new(conf_grid, cbasis, pos_map);
   }
 #endif
   gkyl_dg_calc_pkpm_vars *up = gkyl_malloc(sizeof(gkyl_dg_calc_pkpm_vars));
@@ -29,13 +29,10 @@ gkyl_dg_calc_pkpm_vars_new(
   enum gkyl_basis_type b_type = cbasis->b_type;
   up->cdim = cdim;
   up->poly_order = poly_order;
-  up->mem_range = *mem_range;
   assert(pos_map);
   up->pos_map = gkyl_vlasov_position_map_acquire(pos_map);
   up->jacob_pos = pos_map->jacob_pos;
 
-  up->pkpm_u_set = choose_pkpm_u_set_kern(b_type, cdim, poly_order);
-  up->pkpm_u_copy = choose_pkpm_u_copy_kern(b_type, cdim, poly_order);
   for (int d = 0; d < cdim; ++d) {
     up->pkpm_grad_u[d] = choose_pkpm_grad_u_kern(b_type, cdim, poly_order, d);
   }
@@ -54,11 +51,6 @@ gkyl_dg_calc_pkpm_vars_new(
   up->closure_cond_min_dev = 0;
   up->num_pos_dev = 0;
 
-  // Linear system for the weak division of the momentum by the density (ux, uy, uz)
-  up->As_u = gkyl_nmat_new(3 * mem_range->volume, nc, nc);
-  up->xs_u = gkyl_nmat_new(3 * mem_range->volume, nc, 1);
-  up->mem_u = gkyl_nmat_linsolve_lu_new(up->As_u->num, up->As_u->nr);
-
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->on_dev = up; // self-reference on host
@@ -66,56 +58,12 @@ gkyl_dg_calc_pkpm_vars_new(
   return up;
 }
 
-void
-gkyl_dg_calc_pkpm_vars_u(
-  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_array *vlasov_pkpm_moms,
-  const struct gkyl_array *euler_pkpm, struct gkyl_array *cell_avg_prim, struct gkyl_array *pkpm_u
-)
-{
-#ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(pkpm_u)) {
-    return gkyl_dg_calc_pkpm_vars_u_cu(up, vlasov_pkpm_moms, euler_pkpm, cell_avg_prim, pkpm_u);
-  }
-#endif
-
-  // First loop over mem_range for solving linear systems to compute primitive moments
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &up->mem_range);
-  long count = 0;
-  while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(&up->mem_range, iter.idx);
-
-    const double *vlasov_pkpm_moms_d = gkyl_array_cfetch(vlasov_pkpm_moms, loc);
-    const double *euler_pkpm_d = gkyl_array_cfetch(euler_pkpm, loc);
-
-    int *cell_avg_prim_d = gkyl_array_fetch(cell_avg_prim, loc);
-
-    cell_avg_prim_d[0] =
-      up->pkpm_u_set(count, up->As_u, up->xs_u, vlasov_pkpm_moms_d, euler_pkpm_d);
-
-    count += 3;
-  }
-
-  gkyl_range_iter_init(&iter, &up->mem_range);
-  count = 0;
-  while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(&up->mem_range, iter.idx);
-
-    double *pkpm_u_d = gkyl_array_fetch(pkpm_u, loc);
-
-    up->pkpm_u_copy(count, up->xs_u, pkpm_u_d);
-
-    count += 3;
-  }
-}
-
 int
 gkyl_dg_calc_pkpm_vars_closure(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_rect_grid *phase_grid, const struct gkyl_array *norm_moms, const struct gkyl_array *rhs_moms,
-  const struct gkyl_array *bvar, const struct gkyl_array *grad_b, const struct gkyl_array *u,
-  const struct gkyl_array *grad_u, const struct gkyl_array *xi, const struct gkyl_array *grad_xi,
-  const struct gkyl_array *theta, const struct gkyl_array *dtB_over_magB, const struct gkyl_array *fin,
+  const struct gkyl_array *bvar, const struct gkyl_array *coef, const struct gkyl_array *theta,
+  const struct gkyl_array *fin,
   struct gkyl_array *c_0, struct gkyl_array *alpha_0, struct gkyl_array *c_h, struct gkyl_array *a_perp,
   struct gkyl_array *vel_flux_surf, struct gkyl_array *cflrate
 )
@@ -123,8 +71,8 @@ gkyl_dg_calc_pkpm_vars_closure(
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(alpha_0)) {
     return gkyl_dg_calc_pkpm_vars_closure_cu(
-      up, conf_range, phase_range, phase_grid, norm_moms, rhs_moms, bvar, grad_b, u, grad_u, xi, grad_xi, theta,
-      dtB_over_magB, fin, c_0, alpha_0, c_h, a_perp, vel_flux_surf, cflrate
+      up, conf_range, phase_range, phase_grid, norm_moms, rhs_moms, bvar, coef, theta, fin, c_0, alpha_0, c_h,
+      a_perp, vel_flux_surf, cflrate
     );
   }
 #endif
@@ -148,9 +96,8 @@ gkyl_dg_calc_pkpm_vars_closure(
     long pgh = gkyl_range_idx(phase_range, idx);
     num_null += up->pkpm_closure(
       w_lo, w_up, dv, gkyl_array_cfetch(norm_moms, loc), gkyl_array_cfetch(rhs_moms, loc),
-      gkyl_array_cfetch(bvar, loc), gkyl_array_cfetch(grad_b, loc), gkyl_array_cfetch(u, loc),
-      gkyl_array_cfetch(grad_u, loc), gkyl_array_cfetch(xi, loc), gkyl_array_cfetch(grad_xi, loc),
-      gkyl_array_cfetch(theta, loc), gkyl_array_cfetch(dtB_over_magB, loc), gkyl_array_cfetch(alpha_0, loc),
+      gkyl_array_cfetch(bvar, loc), gkyl_array_cfetch(coef, loc), gkyl_array_cfetch(theta, loc),
+      gkyl_array_cfetch(alpha_0, loc),
       gkyl_array_cfetch(c_h, loc), gkyl_array_cfetch(fin, plo), gkyl_array_cfetch(fin, pup),
       gkyl_array_fetch(c_0, loc), gkyl_array_fetch(alpha_0, loc), gkyl_array_fetch(c_h, loc),
       gkyl_array_fetch(a_perp, loc), gkyl_array_fetch(vel_flux_surf, plo), gkyl_array_fetch(vel_flux_surf, pgh),
@@ -440,9 +387,6 @@ void
 gkyl_dg_calc_pkpm_vars_release(gkyl_dg_calc_pkpm_vars *up)
 {
   gkyl_vlasov_position_map_release(up->pos_map);
-  gkyl_nmat_release(up->As_u);
-  gkyl_nmat_release(up->xs_u);
-  gkyl_nmat_linsolve_lu_release(up->mem_u);
 
   if (GKYL_IS_CU_ALLOC(up->flags)) {
     gkyl_cu_free(up->num_null_rho_dev);

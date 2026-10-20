@@ -2,7 +2,7 @@
 // dimensions (gkyl_dg_calc_pkpm_vars, 2x p1).  These complement the 1x tests
 // by exercising the 2x kernels and a different magnetic-field orientation.
 //
-//   u : weak divide rhou_i / rho with uniform fields.
+//   u : the flow M/rho of the primitive variables (nodal quotient) with uniform fields.
 //
 // For a 2x p1 orthonormal basis the cell-average basis is 1/sqrt(2^2) = 1/2,
 // so a field with physical value V has component-0 equal to V*sqrt(4).
@@ -67,24 +67,22 @@ test_u_2x_p1()
   int nb = cbasis.num_basis;
 
   struct gkyl_dg_calc_pkpm_vars *up =
-    gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis, &local, pm, false);
+    gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis, pm, false);
 
-  struct gkyl_array *moms = mkarr(3 * nb, local_ext.volume);
-  struct gkyl_array *euler = mkarr(3 * nb, local_ext.volume);
+  struct gkyl_array *fluid = mkarr(5 * nb, local_ext.volume); // [rho, rho ux, rho uy, rho uz, E]
   struct gkyl_array *pkpm_u = mkarr(3 * nb, local_ext.volume);
-  struct gkyl_array *cell_avg_prim = gkyl_array_new(GKYL_INT, 1, local_ext.volume);
-  memset(cell_avg_prim->data, 0, cell_avg_prim->size * cell_avg_prim->esznc);
+  struct gkyl_array *xi = mkarr(3 * nb, local_ext.volume);
 
-  double rho = 5.0, rhoux = 10.0, rhouy = -5.0, rhouz = 15.0;
-  gkyl_array_clear(moms, 0.0);
-  set_const_block_2x(moms, 0, nb, rho);
-  gkyl_array_clear(euler, 0.0);
-  set_const_block_2x(euler, 0, nb, rhoux);
-  set_const_block_2x(euler, 1, nb, rhouy);
-  set_const_block_2x(euler, 2, nb, rhouz);
+  double rho = 5.0, rhoux = 10.0, rhouy = -5.0, rhouz = 15.0, energy = 100.0;
+  gkyl_array_clear(fluid, 0.0);
+  set_const_block_2x(fluid, 0, nb, rho);
+  set_const_block_2x(fluid, 1, nb, rhoux);
+  set_const_block_2x(fluid, 2, nb, rhouy);
+  set_const_block_2x(fluid, 3, nb, rhouz);
+  set_const_block_2x(fluid, 4, nb, energy);
 
   gkyl_array_clear(pkpm_u, 0.0);
-  gkyl_dg_calc_pkpm_vars_u(up, moms, euler, cell_avg_prim, pkpm_u);
+  TEST_CHECK(gkyl_dg_calc_pkpm_vars_prim(up, &local, fluid, pkpm_u, xi) == 0);
 
   double s = 2.0;
   double ux_exp = rhoux / rho, uy_exp = rhouy / rho, uz_exp = rhouz / rho;
@@ -98,10 +96,9 @@ test_u_2x_p1()
     TEST_CHECK(gkyl_compare(u[2 * nb] / s, uz_exp, 1e-12));
   }
 
-  gkyl_array_release(cell_avg_prim);
+  gkyl_array_release(xi);
   gkyl_array_release(pkpm_u);
-  gkyl_array_release(euler);
-  gkyl_array_release(moms);
+  gkyl_array_release(fluid);
   gkyl_dg_calc_pkpm_vars_release(up);
   gkyl_vlasov_position_map_release(pm);
 }

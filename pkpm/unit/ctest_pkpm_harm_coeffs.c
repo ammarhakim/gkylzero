@@ -2,7 +2,8 @@
 // (gkyl_pkpm_harm_coeffs.h): every coefficient and term against an independent construction with
 // explicit 3x3 matrices (I_perp = I - b b^T, U, B_1 = xi grad b), the bounds of the spectrum of the
 // coupling part of the w flux (sign changes of det(T - lambda I): all six roots real and inside),
-// and the pairing that keeps d_t b out of the energy row.
+// the pairing that keeps d_t b out of the energy row, and the w flux from node values (the stored
+// coefficients evaluated at a node) against the pointwise definitions.
 #include <math.h>
 #include <stdlib.h>
 
@@ -393,6 +394,80 @@ test_energy_pairing(int cdim)
   TEST_MSG("cdim=%d: energy-row dependence on d_t B/|B| %g (scale %g)", cdim, max_diff, max_val);
 }
 
+// The w flux from node values (pkpm_harm_node_*, what the w-face and closure kernels use): with the
+// node values formed from the pointwise coefficients, alpha, the coupling T and the speed bounds
+// equal the pointwise definitions above.
+static void
+test_node_functions(int cdim)
+{
+  unsigned st = 4242u + cdim;
+  double max_err_T = 0.0, max_T = 0.0, max_err_b = 0.0, max_b = 0.0, max_err_a = 0.0;
+  for (int it = 0; it < 40; ++it) {
+    struct point p;
+    random_point(&p, cdim, &st, true);
+    struct pkpm_harm_coeffs c;
+    set_coeffs(&c, &p);
+    double th = c.theta, a0 = rnd(&st), ch = rnd(&st), w = 3.0 * rnd(&st);
+    double nv[PKPM_HS_NODE_NV] = {0.0};
+    nv[PKPM_HS_KW] = -c.K;
+    nv[PKPM_HS_BG] = -c.bg;
+    for (int a = 0; a < 3; ++a) {
+      double tj[2] = {c.t0[a], c.t1[a]};
+      for (int j = 0; j < 2; ++j) {
+        nv[PKPM_HS_TF(a, j)] = tj[j];
+        nv[PKPM_HS_TG(a, j)] = tj[j];
+        nv[PKPM_HS_TM(a, j)] = tj[j];
+        nv[PKPM_HS_TNG(a, j)] = 4.0 * th * tj[j];
+        nv[PKPM_HS_TNF(a, j)] = -2.0 * th * th * tj[j];
+      }
+    }
+    for (int col = 0; col < 3; ++col) {
+      double e[3] = {0.0, 0.0, 0.0}, Re[3];
+      e[col] = 1.0;
+      pkpm_harm_rb1(&c, e, Re);
+      for (int a = 0; a < 3; ++a) {
+        nv[PKPM_HS_RMN(a, col)] = Re[a];
+        nv[PKPM_HS_RNN(a, col)] = 6.0 * th * Re[a];
+        nv[PKPM_HS_RNM(a, col)] = -6.0 * th * th * Re[a];
+      }
+    }
+    nv[PKPM_HS_BF] = c.beta;
+    nv[PKPM_HS_BGG] = 4.0 * th * c.beta;
+    nv[PKPM_HS_BGF] = -2.0 * th * th * c.beta;
+    nv[PKPM_HS_NODE_THETA] = th;
+    for (int a = 0; a < 3; ++a) {
+      nv[PKPM_HS_NODE_B + a] = p.b[a];
+    }
+    nv[PKPM_HS_NODE_A0] = a0;
+    nv[PKPM_HS_NODE_CH] = ch;
+
+    double U[8], T[8], Tref[8], lo, hi, lo_ref, hi_ref;
+    for (int k = 0; k < 8; ++k) {
+      U[k] = rnd(&st);
+    }
+    pkpm_harm_node_coupling(nv, w, U, T);
+    pkpm_harm_coupling_flux(&c, w, U, Tref);
+    for (int k = 0; k < 8; ++k) {
+      max_err_T = fmax(max_err_T, fabs(T[k] - Tref[k]));
+      max_T = fmax(max_T, fabs(Tref[k]));
+    }
+    pkpm_harm_node_bounds(nv, w, &lo, &hi);
+    pkpm_harm_speed_bounds(&c, w, &lo_ref, &hi_ref);
+    max_err_b = fmax(max_err_b, fmax(fabs(lo - lo_ref), fabs(hi - hi_ref)));
+    max_b = fmax(max_b, fmax(fabs(lo_ref), fabs(hi_ref)));
+    max_err_a = fmax(max_err_a, fabs(pkpm_harm_node_alpha(nv, w) - (a0 + (ch - c.K) * w - c.bg * w * w)));
+  }
+  TEST_CHECK(max_err_T < 1e-13 * max_T);
+  TEST_MSG("cdim=%d: coupling from node values, max error %g (max %g)", cdim, max_err_T, max_T);
+  TEST_CHECK(max_err_b < 1e-12 * max_b);
+  TEST_MSG("cdim=%d: speed bounds from node values, max error %g (max %g)", cdim, max_err_b, max_b);
+  TEST_CHECK(max_err_a < 1e-13);
+  TEST_MSG("cdim=%d: alpha from node values, max error %g", cdim, max_err_a);
+}
+
+void test_node_functions_1x() { test_node_functions(1); }
+void test_node_functions_2x() { test_node_functions(2); }
+void test_node_functions_3x() { test_node_functions(3); }
 void test_terms_1x() { test_terms(1); }
 void test_terms_2x() { test_terms(2); }
 void test_terms_3x() { test_terms(3); }
@@ -411,5 +486,8 @@ TEST_LIST = {
   {"test_speed_bounds_3x", test_speed_bounds_3x},
   {"test_energy_pairing_1x", test_energy_pairing_1x},
   {"test_energy_pairing_3x", test_energy_pairing_3x},
+  {"test_node_functions_1x", test_node_functions_1x},
+  {"test_node_functions_2x", test_node_functions_2x},
+  {"test_node_functions_3x", test_node_functions_3x},
   {NULL, NULL},
 };

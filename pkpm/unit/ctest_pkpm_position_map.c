@@ -348,7 +348,7 @@ setup(struct sim *s, int cdim, enum map_kind kind)
   s->calc_b = gkyl_dg_calc_pkpm_bvar_new(&s->cgrid, &s->cbasis, s->pos_map, false);
   gkyl_dg_calc_pkpm_bvar_advance(s->calc_b, &s->clocal_ext, s->em, s->bvar);
   gkyl_dg_calc_pkpm_bvar_grad(s->calc_b, &s->clocal, s->bvar, s->grad_b);
-  s->vars = gkyl_dg_calc_pkpm_vars_new(&s->cgrid, &s->cbasis, &s->clocal_ext, s->pos_map, false);
+  s->vars = gkyl_dg_calc_pkpm_vars_new(&s->cgrid, &s->cbasis, s->pos_map, false);
   gkyl_dg_calc_pkpm_vars_grad_u(s->vars, &s->clocal, s->u, s->grad_u);
   gkyl_dg_calc_pkpm_vars_grad_u(s->vars, &s->clocal, s->xi, s->grad_xi);
   gkyl_array_set_offset(s->rho, 1.0, s->fluid_phys, 0);
@@ -418,8 +418,13 @@ advance(struct sim *s)
   struct gkyl_dg_pkpm_harm_vol *harm = gkyl_dg_pkpm_harm_vol_inew(&(struct gkyl_dg_pkpm_harm_vol_inp){
     .phase_grid = &s->pgrid, .conf_basis = &s->cbasis, .phase_basis = &s->pbasis, .qbym = 1.0,
     .pos_map = s->pos_map, .use_gpu = false});
-  gkyl_dg_pkpm_harm_vol_advance(harm, &s->clocal, &s->plocal, s->bvar, s->grad_b, s->u, s->grad_u, s->xi,
-    s->grad_xi, s->grad_ln_n, s->theta, s->dtb, s->em, s->f, s->kin_cfl, s->kin_rhs);
+  {
+    struct gkyl_array *hcoef = mkarr(gkyl_dg_pkpm_harm_vol_num_coef(harm), s->clocal_ext.volume);
+    gkyl_dg_pkpm_harm_vol_coef(harm, &s->clocal, s->bvar, s->grad_b, s->u, s->grad_u, s->xi,
+      s->grad_xi, s->grad_ln_n, s->theta, s->dtb, s->em, hcoef);
+    gkyl_dg_pkpm_harm_vol_advance(harm, &s->clocal, &s->plocal, hcoef, s->f, s->kin_cfl, s->kin_rhs);
+    gkyl_array_release(hcoef);
+  }
   gkyl_dg_pkpm_harm_vol_release(harm);
 
   // Fluid: the kinetic-moment fluxes take the physical fluid state and the weighted

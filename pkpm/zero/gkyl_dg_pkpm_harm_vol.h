@@ -25,12 +25,15 @@ struct gkyl_dg_pkpm_harm_vol_inp {
  * [F, G, M0_perp (x, y, z), N_perp (x, y, z)]: the w-flux volume terms int d_w phi Phi, the
  * sources int phi S and the configuration-space flux couplings int d_x phi . T of the
  * first-harmonic terms (the two-field terms of F and G and the streaming of all eight blocks stay
- * in the configuration-pass equation object), with the definitions of gkyl_pkpm_harm_coeffs.h. The
- * integrals are exact and modal: per configuration cell every coefficient is built as a tensor
- * Legendre expansion one p=1 factor at a time (1D recurrences, direction by direction), keeping
- * only its projection onto degree <= 2 per direction, which is all that the integral against
- * (test function) x (distribution) sees; per phase cell the projections are contracted with the
- * distribution through exact 1D tables. p=1 serendipity only.
+ * in the configuration-pass equation object), with the definitions of gkyl_pkpm_harm_coeffs.h.
+ *
+ * The coefficients are built once per stage into a configuration-space array (the coef method):
+ * per configuration cell every coefficient is a tensor Legendre expansion built one p=1 factor at a
+ * time (1D recurrences, direction by direction, sum factorized over the factor's basis functions),
+ * of which only the projection onto degree <= 2 per direction is stored (gkyl_pkpm_harm_slots.h):
+ * that is all that any Galerkin integral against (test function) x (distribution) sees. The
+ * advance method contracts the stored projections with the distribution through exact 1D tables.
+ * p=1 serendipity only.
  *
  * @param inp Input parameters.
  * @return New updater pointer.
@@ -45,11 +48,18 @@ struct gkyl_dg_pkpm_harm_vol *gkyl_dg_pkpm_harm_vol_cu_dev_inew(
 );
 
 /**
- * Accumulate the first-harmonic volume terms into rhs and their source rates into cflrate.
+ * Number of components per configuration cell of the coefficient array (slots x 3^cdim modes).
  *
  * @param up Updater.
- * @param conf_range Configuration-space range indexing the configuration fields.
- * @param phase_range Phase-space range of the cells to update.
+ * @return Number of components.
+ */
+int gkyl_dg_pkpm_harm_vol_num_coef(const struct gkyl_dg_pkpm_harm_vol *up);
+
+/**
+ * Build the stored first-harmonic coefficients of the configuration cells of conf_range.
+ *
+ * @param up Updater.
+ * @param conf_range Configuration-space range of the cells to build.
  * @param bvar Magnetic field unit vector [bx, by, bz].
  * @param grad_b Weak gradient of b, [d_i bx, d_i by, d_i bz] per direction i.
  * @param u Flow velocity [ux, uy, uz].
@@ -60,16 +70,41 @@ struct gkyl_dg_pkpm_harm_vol *gkyl_dg_pkpm_harm_vol_cu_dev_inew(
  * @param theta T_perp/T.
  * @param dtB_over_magB d_t B/|B| of the stage.
  * @param em Total physical electromagnetic field of the stage (B at component 3).
+ * @param coef Output coefficients (gkyl_dg_pkpm_harm_vol_num_coef components).
+ */
+void gkyl_dg_pkpm_harm_vol_coef(
+  const struct gkyl_dg_pkpm_harm_vol *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *bvar, const struct gkyl_array *grad_b, const struct gkyl_array *u,
+  const struct gkyl_array *grad_u, const struct gkyl_array *xi, const struct gkyl_array *grad_xi,
+  const struct gkyl_array *grad_ln_n, const struct gkyl_array *theta,
+  const struct gkyl_array *dtB_over_magB, const struct gkyl_array *em, struct gkyl_array *coef
+);
+
+/**
+ * Host-side wrapper of the coef method on NV-GPU.
+ */
+void gkyl_dg_pkpm_harm_vol_coef_cu(
+  const struct gkyl_dg_pkpm_harm_vol *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *bvar, const struct gkyl_array *grad_b, const struct gkyl_array *u,
+  const struct gkyl_array *grad_u, const struct gkyl_array *xi, const struct gkyl_array *grad_xi,
+  const struct gkyl_array *grad_ln_n, const struct gkyl_array *theta,
+  const struct gkyl_array *dtB_over_magB, const struct gkyl_array *em, struct gkyl_array *coef
+);
+
+/**
+ * Accumulate the first-harmonic volume terms into rhs and their source rates into cflrate.
+ *
+ * @param up Updater.
+ * @param conf_range Configuration-space range indexing the coefficients.
+ * @param phase_range Phase-space range of the cells to update.
+ * @param coef Stored coefficients of the stage (gkyl_dg_pkpm_harm_vol_coef).
  * @param fin Distributions [F, G, M0_perp, N_perp].
  * @param cflrate Phase-space time-step rates, incremented.
  * @param rhs Right-hand side, incremented.
  */
 void gkyl_dg_pkpm_harm_vol_advance(
   const struct gkyl_dg_pkpm_harm_vol *up, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, const struct gkyl_array *bvar, const struct gkyl_array *grad_b,
-  const struct gkyl_array *u, const struct gkyl_array *grad_u, const struct gkyl_array *xi,
-  const struct gkyl_array *grad_xi, const struct gkyl_array *grad_ln_n, const struct gkyl_array *theta,
-  const struct gkyl_array *dtB_over_magB, const struct gkyl_array *em, const struct gkyl_array *fin,
+  const struct gkyl_range *phase_range, const struct gkyl_array *coef, const struct gkyl_array *fin,
   struct gkyl_array *cflrate, struct gkyl_array *rhs
 );
 
@@ -78,10 +113,7 @@ void gkyl_dg_pkpm_harm_vol_advance(
  */
 void gkyl_dg_pkpm_harm_vol_advance_cu(
   const struct gkyl_dg_pkpm_harm_vol *up, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, const struct gkyl_array *bvar, const struct gkyl_array *grad_b,
-  const struct gkyl_array *u, const struct gkyl_array *grad_u, const struct gkyl_array *xi,
-  const struct gkyl_array *grad_xi, const struct gkyl_array *grad_ln_n, const struct gkyl_array *theta,
-  const struct gkyl_array *dtB_over_magB, const struct gkyl_array *em, const struct gkyl_array *fin,
+  const struct gkyl_range *phase_range, const struct gkyl_array *coef, const struct gkyl_array *fin,
   struct gkyl_array *cflrate, struct gkyl_array *rhs
 );
 

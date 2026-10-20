@@ -246,8 +246,7 @@ struct pkpm_species {
   struct gkyl_array *pkpm_cmoms_host; // host copy for output
 
   // Refactored (p=1) PKPM update variables.
-  struct gkyl_array *pkpm_u; // flow velocity [ux, uy, uz] by weak division
-  struct gkyl_array *pkpm_u_nodal; // nodal flow of the primitive-variable kernel (serves only xi)
+  struct gkyl_array *pkpm_u; // flow velocity [ux, uy, uz], nodal quotient M/rho (the weak division at p=1)
   struct gkyl_array *pkpm_grad_u; // weak (surface-averaged) gradient of u, cdim x 3 expansions
   struct gkyl_array *pkpm_theta; // T_perp/T = M0(G)
   struct gkyl_array *pkpm_xi; // thermal speed and scalar pressure [xi, xi^2, p] of the fluid state (nodal)
@@ -268,18 +267,15 @@ struct pkpm_species {
   struct gkyl_array *pkpm_a_perp; // perpendicular force closing int M0_perp dw [x, y, z]
   struct gkyl_array *pkpm_rhs_moms; // moments of the configuration-pass right-hand side (separate scratch)
   struct gkyl_array *pkpm_p_ij; // p=1 projection of the pressure tensor (limiter scratch only)
-  struct gkyl_array
-    *cell_avg_prim; // Integer array for whether rho is negative at control points (diagnostic only)
   struct gkyl_array *conf_flux_surf; // stored modal configuration-space kinetic fluxes
   struct gkyl_array *vel_flux_surf; // stored modal v_par kinetic fluxes
   struct gkyl_dg_pkpm_harm_vol *harm_vol; // modal volume integrals of the first-harmonic terms (stage A)
+  struct gkyl_array *harm_coef; // stored first-harmonic coefficients of the stage (gkyl_pkpm_harm_slots.h)
   struct gkyl_array *fluid_flux_surf; // stored modal fluid fluxes [F_rho, F_x, F_y, F_z, F_E]
   struct gkyl_array *
     integ_pkpm_mom; // integrated PKPM variables [rho, rho ux, rho uy, rho uz, rho ux^2, rho uy^2, rho uz^2, p_par, p_perp]
 
-  struct gkyl_dg_calc_pkpm_vars *calc_pkpm_vars; // Updater for primitive variables over the local range
-  struct gkyl_dg_calc_pkpm_vars
-    *calc_pkpm_vars_ext; // Same over the extended range (used when BCs are not absorbing)
+  struct gkyl_dg_calc_pkpm_vars *calc_pkpm_vars; // Updater for the configuration-space variables
   struct gkyl_dg_pkpm_conf_flux_surf *calc_conf_flux; // configuration-space HLL flux updater
   struct gkyl_dg_pkpm_vel_flux_surf *calc_vel_flux; // v_par flux updater
   struct gkyl_dg_pkpm_fluid_flux_surf *calc_fluid_flux; // momentum flux updater

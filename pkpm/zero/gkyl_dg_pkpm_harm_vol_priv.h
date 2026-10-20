@@ -5,8 +5,10 @@
 
 #include <gkyl_array.h>
 #include <gkyl_dg_pkpm_harm_vol.h>
-#include <gkyl_pkpm_harm_coeffs.h>
 #include <gkyl_pkpm_harm_modal_tables.h>
+#include <gkyl_pkpm_harm_ops.h>
+#include <gkyl_pkpm_harm_slots.h>
+#include <gkyl_pkpm_kinetic_kernels.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
@@ -17,27 +19,43 @@
 #define PKPM_HM_N 125
 // Projections onto tensor degree <= 2 per direction (3^cdim modes, k0 + 3 k1 + 9 k2).
 #define PKPM_HM_N2 27
-// Nonzero (test, coefficient, distribution) configuration triples of int phi_m Q_k phi_l.
-#define PKPM_HM_NTRIP 125
-// Nonzero triples of int d_d phi_m Q_k phi_l per direction (phi_m linear in x_d).
-#define PKPM_HM_NTRIPD 50
+// Slot terms of a stored-operator entry (the stored slots packed into the operator,
+// gkyl_pkpm_harm_ops.h) and (output, input) block pairs of the source-rate estimate.
+#define PKPM_HM_ENTTERM 4
+#define PKPM_HM_MAXSRC 64
+// The nc x nc matrices of the stored operator of a configuration cell (pkpm_harm_mat_*).
+#define PKPM_HM_MAT (PKPM_HO_NOP_MAX * 64)
+
+// Generated kernels: the matrices of the stored operator of a configuration cell, and the volume
+// terms of a phase cell from them.
+typedef void (*pkpm_harm_mat_t)(
+  const double *dxv, const double *jacob_pos, const double *ho, double *GKYL_RESTRICT mat
+);
+typedef void (*pkpm_harm_vol_t)(
+  const double *w, const double *dxv, const double *mat, const double *f, double *GKYL_RESTRICT out
+);
 
 struct gkyl_dg_pkpm_harm_vol {
   struct gkyl_rect_grid phase_grid; // Phase-space grid.
   int cdim; // Configuration-space dimensions.
-  int nc, np; // Configuration and phase basis sizes.
+  int nc; // Configuration basis size.
   int n2; // Number of degree <= 2 tensor modes (3^cdim).
   int n5; // Number of expansion slots in use (5^cdim; the higher ones belong to absent directions).
+  int nslot; // Number of stored coefficient slots (gkyl_pkpm_harm_slots.h).
+  int nop; // Number of entries of the stored operator (gkyl_pkpm_harm_ops.h).
   double qbym; // Charge to mass ratio (gyration).
   int conf_deg[8 * 3]; // 1D Legendre degrees of each configuration basis function.
-  int phase_of[8][3]; // Phase basis index of (configuration basis function, Legendre degree in w).
+  int conf_of[8]; // Configuration basis function of each degree pattern s0 + 2 s1 + 4 s2.
   int p2_idx[PKPM_HM_N2]; // Expansion index of each degree <= 2 mode.
-  int ntrip; // Number of nonzero configuration triples.
-  int trip_m[PKPM_HM_NTRIP], trip_k[PKPM_HM_NTRIP], trip_l[PKPM_HM_NTRIP];
-  double trip_v[PKPM_HM_NTRIP]; // int phi_m Q_k phi_l over the reference cell.
-  int ntripd[3]; // Number of nonzero derivative triples per direction.
-  int tripd_m[3][PKPM_HM_NTRIPD], tripd_k[3][PKPM_HM_NTRIPD], tripd_l[3][PKPM_HM_NTRIPD];
-  double tripd_v[3][PKPM_HM_NTRIPD]; // int d_d phi_m Q_k phi_l over the reference cell.
+  double cen[PKPM_HM_N2]; // Value of each degree <= 2 mode at the cell center.
+  // the slot terms of each operator entry: entry e = sum_t ent_gain[e][t] (slot ent_slot[e][t])
+  int ent_nterm[PKPM_HO_NENT], ent_slot[PKPM_HO_NENT][PKPM_HM_ENTTERM];
+  double ent_gain[PKPM_HO_NENT][PKPM_HM_ENTTERM];
+  // the (output, input) source pairs of the rate estimate: the source entry of each power of w
+  // (-1 if absent); the gyration is not rated (it is the exponential part of the time integrator)
+  int nsrc, src_o[PKPM_HM_MAXSRC], src_i[PKPM_HM_MAXSRC], src_ent[PKPM_HM_MAXSRC][3];
+  pkpm_harm_mat_t mat_kern; // matrices of the stored operator of a configuration cell
+  pkpm_harm_vol_t vol_kern; // volume terms of a phase cell
   const struct gkyl_vlasov_position_map *pos_map; // Position map (acquired; host pointer, 0 on the device copy).
   const struct gkyl_array *jacob_pos; // Per-direction Jacobians (borrowed from pos_map; device pointer on device).
   bool use_gpu; // Whether the updater runs on the GPU.
@@ -45,44 +63,22 @@ struct gkyl_dg_pkpm_harm_vol {
   struct gkyl_dg_pkpm_harm_vol *on_dev; // pointer to itself or device data
 };
 
-// The (output block, input block) pairs with nonzero coefficients.
-#define PKPM_HM_NPAIR 57
-GKYL_CU_TABLE __attribute__((unused)) static const int pkpm_hm_pairs[PKPM_HM_NPAIR][2] = {
-  {0, 2}, {0, 3}, {0, 4}, {1, 2}, {1, 3}, {1, 4}, {1, 5}, {1, 6}, {1, 7},
-  {2, 0}, {3, 0}, {4, 0}, {2, 1}, {3, 1}, {4, 1},
-  {2, 2}, {2, 3}, {2, 4}, {3, 2}, {3, 3}, {3, 4}, {4, 2}, {4, 3}, {4, 4},
-  {2, 5}, {2, 6}, {2, 7}, {3, 5}, {3, 6}, {3, 7}, {4, 5}, {4, 6}, {4, 7},
-  {5, 0}, {6, 0}, {7, 0}, {5, 1}, {6, 1}, {7, 1},
-  {5, 2}, {5, 3}, {5, 4}, {6, 2}, {6, 3}, {6, 4}, {7, 2}, {7, 3}, {7, 4},
-  {5, 5}, {5, 6}, {5, 7}, {6, 5}, {6, 6}, {6, 7}, {7, 5}, {7, 6}, {7, 7},
-};
-
-// Coupling pairs (output block, input block) of the configuration-space fluxes (plan 17.14):
-// F <- xi M0_d, G <- xi N_d, M0_a <- xi G (e_d - b b_d)_a, N_a <- xi H (e_d - b b_d)_a with
-// H = 4 theta G - 2 theta^2 F.
-#define PKPM_HM_NCF 15
-GKYL_CU_TABLE __attribute__((unused)) static const int pkpm_hm_cf_pairs[PKPM_HM_NCF][2] = {
-  {0, 2}, {0, 3}, {0, 4}, {1, 5}, {1, 6}, {1, 7}, {2, 1}, {3, 1}, {4, 1},
-  {5, 1}, {6, 1}, {7, 1}, {5, 0}, {6, 0}, {7, 0},
-};
-
-// Coefficients of the first-harmonic terms of one configuration cell: the known w flux
-// Phi_o = sum_i phi[o][i] U_i and source S_o = sum_i src[o][i] U_i, each coefficient a polynomial
-// sum_j w^j c_j(x) whose c_j is kept as its exact projection onto degree <= 2 per direction (all
-// that the integrals against (test function) x (distribution), degree 2 per direction, see), and
-// the configuration-space flux couplings cf[d][p] of the pairs pkpm_hm_cf_pairs in direction d
-// (w independent, projected likewise).
-struct pkpm_hm_coeffs {
-  double phi[8][8][3][PKPM_HM_N2];
-  double src[8][8][3][PKPM_HM_N2];
-  double cf[3][PKPM_HM_NCF][PKPM_HM_N2];
-  int jmax[PKPM_HM_NPAIR]; // Highest w power with a nonzero coefficient per pair (-1: none).
-};
-
-// Fill the updater (sizes, basis maps, degree <= 2 modes, nonzero configuration triples) from
-// the input and the generated tables; host function shared by the host and device constructors.
+// Fill the updater (sizes, basis maps, degree <= 2 modes, the slot terms of the operator entries
+// and the source pairs of the rate) from the input and the generated tables; host function shared
+// by the host and device constructors (the kernel pointers are set by each).
 void gkyl_dg_pkpm_harm_vol_setup(struct gkyl_dg_pkpm_harm_vol *up, const struct gkyl_dg_pkpm_harm_vol_inp *inp);
 
+// Generated kernels (p=1 serendipity; indexed by cdim-1).
+GKYL_CU_D static const pkpm_harm_mat_t ser_pkpm_harm_mat_kernels[] = {
+  pkpm_harm_mat_1x_ser_p1,
+  pkpm_harm_mat_2x_ser_p1,
+  pkpm_harm_mat_3x_ser_p1,
+};
+GKYL_CU_D static const pkpm_harm_vol_t ser_pkpm_harm_vol_kernels[] = {
+  pkpm_harm_vol_1x1v_ser_p1,
+  pkpm_harm_vol_2x1v_ser_p1,
+  pkpm_harm_vol_3x1v_ser_p1,
+};
 
 GKYL_CU_DH static inline void
 pkpm_hm_zero(const struct gkyl_dg_pkpm_harm_vol *up, double *e)
@@ -112,73 +108,134 @@ pkpm_hm_p1(const struct gkyl_dg_pkpm_harm_vol *up, const double *f, double *out)
   }
 }
 
+// One direction of a p=1 Legendre factor: out = Phat_s(x_d) in on the box of limits olim
+// (s = 0: Phat_0 = 1/sqrt 2, olim_d = min(lim_d, wout); s = 1: Phat_1 Phat_n = up[n] Phat_{n+1} +
+// dn[n] Phat_{n-1}, olim_d = min(lim_d + 1, wout)); in is read on its box lim.
+GKYL_CU_DH static inline void
+pkpm_hm_dir(const int *lim, int d, int s, int wout, const double *in, double *out, int *olim)
+{
+  const int stride[3] = {1, 5, 25};
+  for (int e = 0; e < 3; ++e) {
+    olim[e] = lim[e];
+  }
+  int ld = lim[d] + s;
+  olim[d] = ld < wout ? ld : wout;
+  for (int n2 = 0; n2 <= olim[2]; ++n2) {
+    for (int n1 = 0; n1 <= olim[1]; ++n1) {
+      for (int n0 = 0; n0 <= olim[0]; ++n0) {
+        int n[3] = {n0, n1, n2}, idx = n0 + 5 * n1 + 25 * n2, m = n[d];
+        double v;
+        if (s == 0) {
+          v = 0.7071067811865475 * in[idx];
+        } else {
+          v = 0.0;
+          if (m >= 1) {
+            v += pkpm_harm_xp_up[m - 1] * in[idx - stride[d]];
+          }
+          if (m + 1 <= lim[d]) {
+            v += pkpm_harm_xp_dn[m + 1] * in[idx + stride[d]];
+          }
+        }
+        out[idx] = v;
+      }
+    }
+  }
+}
+
+// out = c0 x0 + c1 x1 on the union of the boxes l0, l1 (each read on its own box, zero outside);
+// ol receives the union.
+GKYL_CU_DH static inline void
+pkpm_hm_comb(
+  double c0, const double *x0, const int *l0, double c1, const double *x1, const int *l1, double *out,
+  int *ol
+)
+{
+  for (int e = 0; e < 3; ++e) {
+    ol[e] = l0[e] > l1[e] ? l0[e] : l1[e];
+  }
+  for (int n2 = 0; n2 <= ol[2]; ++n2) {
+    for (int n1 = 0; n1 <= ol[1]; ++n1) {
+      for (int n0 = 0; n0 <= ol[0]; ++n0) {
+        int idx = n0 + 5 * n1 + 25 * n2;
+        double v = 0.0;
+        if (n0 <= l0[0] && n1 <= l0[1] && n2 <= l0[2]) {
+          v += c0 * x0[idx];
+        }
+        if (n0 <= l1[0] && n1 <= l1[1] && n2 <= l1[2]) {
+          v += c1 * x1[idx];
+        }
+        out[idx] = v;
+      }
+    }
+  }
+}
+
 // out += coef P_wout[a f]: a an expansion exact through degree wa per direction, f a p=1
-// configuration field (gkyl basis coefficients). Each basis function of f is a product of 1D
-// Legendre factors, applied direction by direction (Phat_0 = 1/sqrt 2; Phat_1 by the recurrence);
-// the result is exact through degree min(wout, wa - 1 + [a complete]) as the caller plans.
+// configuration field (gkyl basis coefficients). f = sum_s f_s prod_d Phat_{s_d}(x_d) is applied
+// direction by direction with its coefficients contracted as early as possible (sum
+// factorization): two 1D operations in the first direction, then one per remaining coefficient
+// pattern. The result is exact through degree min(wout, wa - 1 + [a complete]) as the caller plans.
 GKYL_CU_DH static inline void
 pkpm_hm_mul_acc(
   const struct gkyl_dg_pkpm_harm_vol *up, const double *a, int wa, const double *f, double coef,
   double *out, int wout
 )
 {
-  int cdim = up->cdim;
-  const int stride[3] = {1, 5, 25};
-  double t1[PKPM_HM_N], t2[PKPM_HM_N];
-  for (int q = 0; q < up->nc; ++q) {
-    if (f[q] == 0.0) {
-      continue;
+  int cdim = up->cdim, ns = 1 << cdim;
+  double fs[8];
+  bool any = false;
+  for (int s = 0; s < ns; ++s) {
+    fs[s] = f[up->conf_of[s]];
+    any = any || fs[s] != 0.0;
+  }
+  if (!any) {
+    return;
+  }
+  int lim[3] = {0, 0, 0};
+  for (int d = 0; d < cdim; ++d) {
+    lim[d] = wa;
+  }
+  // first direction: a/sqrt 2 and Phat_1(x_0) a
+  double A0[PKPM_HM_N], A1[PKPM_HM_N];
+  int l0[3], l1[3];
+  pkpm_hm_dir(lim, 0, 0, wout, a, A0, l0);
+  pkpm_hm_dir(lim, 0, 1, wout, a, A1, l1);
+  double R[PKPM_HM_N];
+  int lr[3];
+  if (cdim == 1) {
+    pkpm_hm_comb(fs[0], A0, l0, fs[1], A1, l1, R, lr);
+  } else {
+    // contract the first direction, apply the second
+    double C[2][PKPM_HM_N], D0[PKPM_HM_N], D1[PKPM_HM_N], E[2][PKPM_HM_N];
+    int lc[2][3], ld0[3], ld1[3], le[2][3];
+    int nz = cdim > 2 ? 2 : 1;
+    for (int s2 = 0; s2 < nz; ++s2) {
+      for (int s1 = 0; s1 < 2; ++s1) {
+        pkpm_hm_comb(fs[2 * s1 + 4 * s2], A0, l0, fs[1 + 2 * s1 + 4 * s2], A1, l1, C[s1], lc[s1]);
+      }
+      pkpm_hm_dir(lc[0], 1, 0, wout, C[0], D0, ld0);
+      pkpm_hm_dir(lc[1], 1, 1, wout, C[1], D1, ld1);
+      pkpm_hm_comb(1.0, D0, ld0, 1.0, D1, ld1, E[s2], le[s2]);
     }
-    int lim[3] = {0, 0, 0};
-    for (int d = 0; d < cdim; ++d) {
-      lim[d] = wa;
-    }
-    for (int n = 0; n < up->n5; ++n) {
-      t1[n] = a[n];
-    }
-    for (int d = 0; d < cdim; ++d) {
-      int s = up->conf_deg[3 * q + d];
-      int nlim[3] = {lim[0], lim[1], lim[2]};
-      nlim[d] = lim[d] + s < wout ? lim[d] + s : wout;
-      for (int n2 = 0; n2 <= nlim[2]; ++n2) {
-        for (int n1 = 0; n1 <= nlim[1]; ++n1) {
-          for (int n0 = 0; n0 <= nlim[0]; ++n0) {
-            int n[3] = {n0, n1, n2}, idx = n0 + 5 * n1 + 25 * n2, m = n[d];
-            double v = 0.0;
-            if (s == 0) {
-              v = m <= lim[d] ? 0.7071067811865475 * t1[idx] : 0.0;
-            } else {
-              if (m >= 1 && m - 1 <= lim[d]) {
-                v += pkpm_harm_xp_up[m - 1] * t1[idx - stride[d]];
-              }
-              if (m + 1 <= lim[d]) {
-                v += pkpm_harm_xp_dn[m + 1] * t1[idx + stride[d]];
-              }
-            }
-            t2[idx] = v;
-          }
-        }
+    if (cdim == 2) {
+      for (int e = 0; e < 3; ++e) {
+        lr[e] = le[0][e];
       }
       for (int n = 0; n < up->n5; ++n) {
-        t1[n] = 0.0;
+        R[n] = E[0][n];
       }
-      for (int n2 = 0; n2 <= nlim[2]; ++n2) {
-        for (int n1 = 0; n1 <= nlim[1]; ++n1) {
-          for (int n0 = 0; n0 <= nlim[0]; ++n0) {
-            int idx = n0 + 5 * n1 + 25 * n2;
-            t1[idx] = t2[idx];
-          }
-        }
-      }
-      lim[d] = nlim[d];
+    } else {
+      // third direction
+      pkpm_hm_dir(le[0], 2, 0, wout, E[0], D0, ld0);
+      pkpm_hm_dir(le[1], 2, 1, wout, E[1], D1, ld1);
+      pkpm_hm_comb(1.0, D0, ld0, 1.0, D1, ld1, R, lr);
     }
-    // directions not touched by f keep the window wa: truncate them to wout
-    for (int n2 = 0; n2 <= lim[2] && n2 <= (cdim > 2 ? wout : 0); ++n2) {
-      for (int n1 = 0; n1 <= lim[1] && n1 <= (cdim > 1 ? wout : 0); ++n1) {
-        for (int n0 = 0; n0 <= lim[0] && n0 <= wout; ++n0) {
-          int idx = n0 + 5 * n1 + 25 * n2;
-          out[idx] += coef * f[q] * t1[idx];
-        }
+  }
+  for (int n2 = 0; n2 <= lr[2]; ++n2) {
+    for (int n1 = 0; n1 <= lr[1]; ++n1) {
+      for (int n0 = 0; n0 <= lr[0]; ++n0) {
+        int idx = n0 + 5 * n1 + 25 * n2;
+        out[idx] += coef * R[idx];
       }
     }
   }
@@ -195,10 +252,11 @@ pkpm_hm_mul(
   pkpm_hm_mul_acc(up, a, wa, f, 1.0, out, wout);
 }
 
-// dst[k] += coef (degree <= 2 projection of e)[k].
+// Slot s of the cell's coefficient array += coef (degree <= 2 projection of e).
 GKYL_CU_DH static inline void
-pkpm_hm_p2_acc(const struct gkyl_dg_pkpm_harm_vol *up, const double *e, double coef, double *dst)
+pkpm_hm_put(const struct gkyl_dg_pkpm_harm_vol *up, const double *e, double coef, double *cell, int s)
 {
+  double *dst = &cell[s * up->n2];
   for (int k = 0; k < up->n2; ++k) {
     dst[k] += coef * e[up->p2_idx[k]];
   }
@@ -226,21 +284,23 @@ pkpm_hm_perp(
 }
 
 /**
- * Coefficients of the first-harmonic terms of one configuration cell (definitions of
- * gkyl_pkpm_harm_coeffs.h, plan 17.11; all products exact, each coefficient kept as its projection
- * onto degree <= 2 per direction):
- *   flux:   F: t.M0; G: t.N; M0: alpha_k M0 + G t + R_B1 N; N: alpha_k N + H t + R_B1 O
+ * Coefficients of the first-harmonic terms of one configuration cell into its slots
+ * (gkyl_pkpm_harm_slots.h; definitions of gkyl_pkpm_harm_coeffs.h, plan 17.11; all products exact,
+ * each coefficient kept as its projection onto degree <= 2 per direction):
+ *   w flux: alpha_k = -K w - (b.grad xi) w^2; F: t.M0 + beta G; G: t.N + beta H;
+ *           M0: G t + R_B1 N; N: H t + R_B1 O
  *   source: F: -ell_xi.M0; G: f_perp.M0 - (ell_xi + 2g).N;
  *           M0: f_perp F - w b.ell_xi M0 + L_perp M0 - G I_perp(ell_xi + g) - b(C.M0 + beta G);
  *           N: 2 G f_perp - w b.ell_xi N + L_perp N - R_E1 N - H I_perp(ell_xi + 3g) - b(C.N + beta H)
- * with H = 4 theta G - 2 theta^2 F, O = 6 theta N - 6 theta^2 M0.
+ *   (the gyration of L_perp as the field B), configuration-flux couplings,
+ * with H = 4 theta G - 2 theta^2 F, O = 6 theta N - 6 theta^2 M0. cell holds nslot n2 doubles.
  */
 GKYL_CU_DH static inline void
 pkpm_hm_build(
   const struct gkyl_dg_pkpm_harm_vol *up, const double *bvar, const double *grad_b,
   const double *u, const double *grad_u, const double *xi, const double *grad_xi,
   const double *grad_ln_n, const double *theta, const double *dtb, const double *em,
-  struct pkpm_hm_coeffs *hc
+  double *cell
 )
 {
   int cdim = up->cdim, nc = up->nc;
@@ -261,16 +321,8 @@ pkpm_hm_build(
       Db[a][c] = c < cdim ? &grad_b[(c * 3 + a) * nc] : zero_p1;
     }
   }
-
-  for (int o = 0; o < 8; ++o) {
-    for (int i = 0; i < 8; ++i) {
-      for (int j = 0; j < 3; ++j) {
-        for (int k = 0; k < PKPM_HM_N2; ++k) {
-          hc->phi[o][i][j][k] = 0.0;
-          hc->src[o][i][j][k] = 0.0;
-        }
-      }
-    }
+  for (int k = 0; k < up->nslot * up->n2; ++k) {
+    cell[k] = 0.0;
   }
 
   double e1[PKPM_HM_N], e2[PKPM_HM_N], e3[PKPM_HM_N];
@@ -359,39 +411,38 @@ pkpm_hm_build(
   }
 
   // ===== w fluxes =====
+  // alpha_k = -w K - w^2 b.g on every block
+  pkpm_hm_put(up, K, -1.0, cell, PKPM_HS_KW);
+  pkpm_hm_put(up, bg, -1.0, cell, PKPM_HS_BG);
+  // two-field couplings: F <- beta G, G <- beta H = 4 theta beta G - 2 theta^2 beta F
+  pkpm_hm_put(up, beta, 1.0, cell, PKPM_HS_BF);
+  pkpm_hm_mul(up, beta, 2, theta, e1, 3); // theta beta (complete)
+  pkpm_hm_put(up, e1, 4.0, cell, PKPM_HS_BGG);
+  pkpm_hm_mul(up, e1, 3, theta, e2, 2);
+  pkpm_hm_put(up, e2, -2.0, cell, PKPM_HS_BGF);
   for (int a = 0; a < 3; ++a) {
-    // F: t.M0; G: t.N
-    pkpm_hm_p2_acc(up, t0[a], 1.0, hc->phi[0][2 + a][0]);
-    pkpm_hm_p2_acc(up, t1[a], 1.0, hc->phi[0][2 + a][1]);
-    pkpm_hm_p2_acc(up, t0[a], 1.0, hc->phi[1][5 + a][0]);
-    pkpm_hm_p2_acc(up, t1[a], 1.0, hc->phi[1][5 + a][1]);
-    // alpha_k = -w K - w^2 b.g on the M0 and N diagonals
-    pkpm_hm_p2_acc(up, K, -1.0, hc->phi[2 + a][2 + a][1]);
-    pkpm_hm_p2_acc(up, bg, -1.0, hc->phi[2 + a][2 + a][2]);
-    pkpm_hm_p2_acc(up, K, -1.0, hc->phi[5 + a][5 + a][1]);
-    pkpm_hm_p2_acc(up, bg, -1.0, hc->phi[5 + a][5 + a][2]);
-    // M0: G t
-    pkpm_hm_p2_acc(up, t0[a], 1.0, hc->phi[2 + a][1][0]);
-    pkpm_hm_p2_acc(up, t1[a], 1.0, hc->phi[2 + a][1][1]);
-    // N: H t = (4 theta G - 2 theta^2 F) t
-    pkpm_hm_mul(up, t0[a], 4, theta, e1, 3);
-    pkpm_hm_p2_acc(up, e1, 4.0, hc->phi[5 + a][1][0]);
-    pkpm_hm_mul(up, e1, 3, theta, e2, 2);
-    pkpm_hm_p2_acc(up, e2, -2.0, hc->phi[5 + a][0][0]);
-    pkpm_hm_mul(up, t1[a], 4, theta, e1, 3);
-    pkpm_hm_p2_acc(up, e1, 4.0, hc->phi[5 + a][1][1]);
-    pkpm_hm_mul(up, e1, 3, theta, e2, 2);
-    pkpm_hm_p2_acc(up, e2, -2.0, hc->phi[5 + a][0][1]);
+    double *tj[2] = {t0[a], t1[a]};
+    for (int j = 0; j < 2; ++j) {
+      // F: t.M0; G: t.N; M0: G t
+      pkpm_hm_put(up, tj[j], 1.0, cell, PKPM_HS_TF(a, j));
+      pkpm_hm_put(up, tj[j], 1.0, cell, PKPM_HS_TG(a, j));
+      pkpm_hm_put(up, tj[j], 1.0, cell, PKPM_HS_TM(a, j));
+      // N: H t = (4 theta G - 2 theta^2 F) t
+      pkpm_hm_mul(up, tj[j], 4, theta, e1, 3);
+      pkpm_hm_put(up, e1, 4.0, cell, PKPM_HS_TNG(a, j));
+      pkpm_hm_mul(up, e1, 3, theta, e2, 2);
+      pkpm_hm_put(up, e2, -2.0, cell, PKPM_HS_TNF(a, j));
+    }
     // M0: R_B1 N; N: R_B1 O = 6 theta R N - 6 theta^2 R M0
     for (int c = 0; c < 3; ++c) {
       for (int n = 0; n < up->n5; ++n) {
         e3[n] = 0.5 * PS[a][c][n] + (a == c ? 0.5 * beta[n] : 0.0);
       }
-      pkpm_hm_p2_acc(up, e3, 1.0, hc->phi[2 + a][5 + c][0]);
+      pkpm_hm_put(up, e3, 1.0, cell, PKPM_HS_RMN(a, c));
       pkpm_hm_mul(up, e3, 4, theta, e1, 3);
-      pkpm_hm_p2_acc(up, e1, 6.0, hc->phi[5 + a][5 + c][0]);
+      pkpm_hm_put(up, e1, 6.0, cell, PKPM_HS_RNN(a, c));
       pkpm_hm_mul(up, e1, 3, theta, e2, 2);
-      pkpm_hm_p2_acc(up, e2, -6.0, hc->phi[5 + a][2 + c][0]);
+      pkpm_hm_put(up, e2, -6.0, cell, PKPM_HS_RNM(a, c));
     }
   }
 
@@ -437,43 +488,43 @@ pkpm_hm_build(
   }
   for (int a = 0; a < 3; ++a) {
     // F: -ell_xi.M0; G: f_perp.M0 - (ell_xi + 2 g).N
-    pkpm_hm_p2_acc(up, xil[a], -1.0, hc->src[0][2 + a][0]);
-    pkpm_hm_p2_acc(up, fp1[a], 1.0, hc->src[1][2 + a][1]);
-    pkpm_hm_p2_acc(up, fp2[a], 1.0, hc->src[1][2 + a][2]);
-    pkpm_hm_p2_acc(up, xil[a], -1.0, hc->src[1][5 + a][0]);
+    pkpm_hm_put(up, xil[a], -1.0, cell, PKPM_HS_SFM(a));
+    pkpm_hm_put(up, fp1[a], 1.0, cell, PKPM_HS_SGM(a, 1));
+    pkpm_hm_put(up, fp2[a], 1.0, cell, PKPM_HS_SGM(a, 2));
+    pkpm_hm_put(up, xil[a], -1.0, cell, PKPM_HS_SGN(a));
     pkpm_hm_p1(up, g[a], e1);
-    pkpm_hm_p2_acc(up, e1, -2.0, hc->src[1][5 + a][0]);
+    pkpm_hm_put(up, e1, -2.0, cell, PKPM_HS_SGN(a));
     // M0: f_perp F; N: 2 G f_perp
-    pkpm_hm_p2_acc(up, fp1[a], 1.0, hc->src[2 + a][0][1]);
-    pkpm_hm_p2_acc(up, fp2[a], 1.0, hc->src[2 + a][0][2]);
-    pkpm_hm_p2_acc(up, fp1[a], 2.0, hc->src[5 + a][1][1]);
-    pkpm_hm_p2_acc(up, fp2[a], 2.0, hc->src[5 + a][1][2]);
+    pkpm_hm_put(up, fp1[a], 1.0, cell, PKPM_HS_SMF(a, 1));
+    pkpm_hm_put(up, fp2[a], 1.0, cell, PKPM_HS_SMF(a, 2));
+    pkpm_hm_put(up, fp1[a], 2.0, cell, PKPM_HS_SNG1(a, 1));
+    pkpm_hm_put(up, fp2[a], 2.0, cell, PKPM_HS_SNG1(a, 2));
     // M0: -G I_perp(ell_xi + g) - b beta G
     pkpm_hm_mul(up, beta, 2, b[a], e3, 3); // b_a beta (complete)
-    pkpm_hm_p2_acc(up, plg[a], -1.0, hc->src[2 + a][1][0]);
-    pkpm_hm_p2_acc(up, e3, -1.0, hc->src[2 + a][1][0]);
+    pkpm_hm_put(up, plg[a], -1.0, cell, PKPM_HS_SMG(a));
+    pkpm_hm_put(up, e3, -1.0, cell, PKPM_HS_SMG(a));
     // N: -H I_perp(ell_xi + 3 g) - b beta H, H = 4 theta G - 2 theta^2 F
     for (int n = 0; n < up->n5; ++n) {
       e2[n] = pl3g[a][n] + e3[n]; // I_perp(ell_xi + 3 g) + b beta: degree 4, complete
     }
     pkpm_hm_mul(up, e2, 4, theta, e1, 3);
-    pkpm_hm_p2_acc(up, e1, -4.0, hc->src[5 + a][1][0]);
+    pkpm_hm_put(up, e1, -4.0, cell, PKPM_HS_SNG0(a));
     pkpm_hm_mul(up, e1, 3, theta, e2, 2);
-    pkpm_hm_p2_acc(up, e2, 2.0, hc->src[5 + a][0][0]);
+    pkpm_hm_put(up, e2, 2.0, cell, PKPM_HS_SNF(a));
     // diagonal of M0 and N: sigma_0 = -w b.ell_xi, -w b.g from L_perp; N also -R_E1's
     // (1/2)(eta + 2 w b.g) = (1/2)(div u - K) + (1/2) w beta + 2 w b.g
-    pkpm_hm_p2_acc(up, xibl, -1.0, hc->src[2 + a][2 + a][1]);
-    pkpm_hm_p2_acc(up, bg, -1.0, hc->src[2 + a][2 + a][1]);
-    pkpm_hm_p2_acc(up, xibl, -1.0, hc->src[5 + a][5 + a][1]);
-    pkpm_hm_p2_acc(up, bg, -3.0, hc->src[5 + a][5 + a][1]);
-    pkpm_hm_p2_acc(up, beta, -0.5, hc->src[5 + a][5 + a][1]);
-    pkpm_hm_p2_acc(up, K, 0.5, hc->src[5 + a][5 + a][0]);
+    pkpm_hm_put(up, xibl, -1.0, cell, PKPM_HS_SMM(a, a, 1));
+    pkpm_hm_put(up, bg, -1.0, cell, PKPM_HS_SMM(a, a, 1));
+    pkpm_hm_put(up, xibl, -1.0, cell, PKPM_HS_SNN(a, a, 1));
+    pkpm_hm_put(up, bg, -3.0, cell, PKPM_HS_SNN(a, a, 1));
+    pkpm_hm_put(up, beta, -0.5, cell, PKPM_HS_SNN(a, a, 1));
+    pkpm_hm_put(up, K, 0.5, cell, PKPM_HS_SNN(a, a, 0));
     for (int c = 0; c < cdim; ++c) {
       pkpm_hm_p1(up, U[c][c], e1);
-      pkpm_hm_p2_acc(up, e1, -0.5, hc->src[5 + a][5 + a][0]);
+      pkpm_hm_put(up, e1, -0.5, cell, PKPM_HS_SNN(a, a, 0));
     }
   }
-  // Matrix couplings M0 <- M0 and N <- N: L_perp = -I_perp U - w I_perp B_1 + (q/m)(. x B),
+  // Matrix couplings M0 <- M0 and N <- N: L_perp = -I_perp U - w I_perp B_1 (+ the gyration),
   // -b C. (both), and for N -(1/2) I_perp(U + U^T) - (1/2) w I_perp(B_1 + B_1^T)
   for (int c = 0; c < 3; ++c) {
     double col[3][PKPM_HM_N], pcol[3][PKPM_HM_N];
@@ -483,8 +534,8 @@ pkpm_hm_build(
     }
     pkpm_hm_perp(up, b, col, 1, pcol, 2);
     for (int a = 0; a < 3; ++a) {
-      pkpm_hm_p2_acc(up, pcol[a], -1.0, hc->src[2 + a][2 + c][0]);
-      pkpm_hm_p2_acc(up, pcol[a], -1.0, hc->src[5 + a][5 + c][0]);
+      pkpm_hm_put(up, pcol[a], -1.0, cell, PKPM_HS_SMM(a, c, 0));
+      pkpm_hm_put(up, pcol[a], -1.0, cell, PKPM_HS_SNN(a, c, 0));
     }
     // -(1/2) I_perp(U + U^T) for N
     for (int a = 0; a < 3; ++a) {
@@ -494,7 +545,7 @@ pkpm_hm_build(
     }
     pkpm_hm_perp(up, b, col, 1, pcol, 2);
     for (int a = 0; a < 3; ++a) {
-      pkpm_hm_p2_acc(up, pcol[a], -0.5, hc->src[5 + a][5 + c][0]);
+      pkpm_hm_put(up, pcol[a], -0.5, cell, PKPM_HS_SNN(a, c, 0));
     }
     // -w I_perp B_1 (column c): B_1 = xi grad b, degree 4
     for (int a = 0; a < 3; ++a) {
@@ -503,34 +554,32 @@ pkpm_hm_build(
     }
     pkpm_hm_perp(up, b, col, 2, pcol, 2);
     for (int a = 0; a < 3; ++a) {
-      pkpm_hm_p2_acc(up, pcol[a], -1.0, hc->src[2 + a][2 + c][1]);
-      pkpm_hm_p2_acc(up, pcol[a], -1.0, hc->src[5 + a][5 + c][1]);
+      pkpm_hm_put(up, pcol[a], -1.0, cell, PKPM_HS_SMM(a, c, 1));
+      pkpm_hm_put(up, pcol[a], -1.0, cell, PKPM_HS_SNN(a, c, 1));
       // -(1/2) w I_perp(B_1 + B_1^T) for N
-      pkpm_hm_p2_acc(up, PS[a][c], -0.5, hc->src[5 + a][5 + c][1]);
+      pkpm_hm_put(up, PS[a][c], -0.5, cell, PKPM_HS_SNN(a, c, 1));
     }
     // -b_a C_c (powers 0 and 1)
     for (int a = 0; a < 3; ++a) {
       pkpm_hm_mul(up, C0[c], 3, b[a], e1, 2);
-      pkpm_hm_p2_acc(up, e1, -1.0, hc->src[2 + a][2 + c][0]);
-      pkpm_hm_p2_acc(up, e1, -1.0, hc->src[5 + a][5 + c][0]);
+      pkpm_hm_put(up, e1, -1.0, cell, PKPM_HS_SMM(a, c, 0));
+      pkpm_hm_put(up, e1, -1.0, cell, PKPM_HS_SNN(a, c, 0));
       pkpm_hm_mul(up, C1[c], 3, b[a], e1, 2);
-      pkpm_hm_p2_acc(up, e1, -1.0, hc->src[2 + a][2 + c][1]);
-      pkpm_hm_p2_acc(up, e1, -1.0, hc->src[5 + a][5 + c][1]);
+      pkpm_hm_put(up, e1, -1.0, cell, PKPM_HS_SMM(a, c, 1));
+      pkpm_hm_put(up, e1, -1.0, cell, PKPM_HS_SNN(a, c, 1));
     }
+  }
+  // gyration (q/m) v x B: the field B (the pair terms carry q/m and the cross product)
+  for (int e = 0; e < 3; ++e) {
+    pkpm_hm_p1(up, &em[(3 + e) * nc], e1);
+    pkpm_hm_put(up, e1, 1.0, cell, PKPM_HS_GYR(e));
   }
   // configuration-space flux couplings in direction d: xi e_d (F <- M0, G <- N), xi (e_d - b b_d),
   // 4 xi theta (e_d - b b_d) and -2 xi theta^2 (e_d - b b_d) (M0 <- G, N <- G, N <- F)
-  for (int d = 0; d < 3; ++d) {
-    for (int p = 0; p < PKPM_HM_NCF; ++p) {
-      for (int k = 0; k < PKPM_HM_N2; ++k) {
-        hc->cf[d][p][k] = 0.0;
-      }
-    }
-  }
   for (int d = 0; d < cdim; ++d) {
     pkpm_hm_p1(up, xi, e1);
-    pkpm_hm_p2_acc(up, e1, 1.0, hc->cf[d][d]);
-    pkpm_hm_p2_acc(up, e1, 1.0, hc->cf[d][3 + d]);
+    pkpm_hm_put(up, e1, 1.0, cell, PKPM_HS_CF(d, 0));
+    pkpm_hm_put(up, e1, 1.0, cell, PKPM_HS_CF(d, 1));
     pkpm_hm_p1(up, b[d], e2);
     for (int a = 0; a < 3; ++a) {
       pkpm_hm_mul(up, e2, 1, b[a], e3, 2); // b_a b_d (complete)
@@ -545,167 +594,84 @@ pkpm_hm_build(
         e3[0] += one;
       }
       pkpm_hm_mul(up, e3, 2, xi, e1, 3); // xi (e_d - b b_d)_a (complete)
-      pkpm_hm_p2_acc(up, e1, 1.0, hc->cf[d][6 + a]);
+      pkpm_hm_put(up, e1, 1.0, cell, PKPM_HS_CF(d, 2 + a));
       double ex[PKPM_HM_N];
       pkpm_hm_mul(up, e1, 3, theta, ex, 3); // exact through 3
-      pkpm_hm_p2_acc(up, ex, 4.0, hc->cf[d][9 + a]);
+      pkpm_hm_put(up, ex, 4.0, cell, PKPM_HS_CF(d, 5 + a));
       pkpm_hm_mul(up, ex, 3, theta, e1, 2);
-      pkpm_hm_p2_acc(up, e1, -2.0, hc->cf[d][12 + a]);
-    }
-  }
-  // gyration (q/m) v x B: (v x B)_a = eps_{a c e} v_c B_e
-  for (int a = 0; a < 3; ++a) {
-    int c1 = (a + 1) % 3, c2 = (a + 2) % 3;
-    // (v x B)_a = v_{a+1} B_{a+2} - v_{a+2} B_{a+1}
-    pkpm_hm_p1(up, &em[(3 + c2) * nc], e1);
-    pkpm_hm_p2_acc(up, e1, up->qbym, hc->src[2 + a][2 + c1][0]);
-    pkpm_hm_p2_acc(up, e1, up->qbym, hc->src[5 + a][5 + c1][0]);
-    pkpm_hm_p1(up, &em[(3 + c1) * nc], e1);
-    pkpm_hm_p2_acc(up, e1, -up->qbym, hc->src[2 + a][2 + c2][0]);
-    pkpm_hm_p2_acc(up, e1, -up->qbym, hc->src[5 + a][5 + c2][0]);
-  }
-  // highest w power in use per pair (the apply skips the others)
-  for (int p = 0; p < PKPM_HM_NPAIR; ++p) {
-    int o = pkpm_hm_pairs[p][0], i = pkpm_hm_pairs[p][1];
-    hc->jmax[p] = -1;
-    for (int j = 0; j < 3; ++j) {
-      for (int k = 0; k < up->n2; ++k) {
-        if (hc->src[o][i][j][k] != 0.0 || hc->phi[o][i][j][k] != 0.0) {
-          hc->jmax[p] = j;
-        }
-      }
+      pkpm_hm_put(up, e1, -2.0, cell, PKPM_HS_CF(d, 8 + a));
     }
   }
 }
 
-/**
- * Volume integrals of one phase cell (center w_c, size dw in w) from the coefficients of its
- * configuration cell: out[o] += int psi_m S_o + dv1 int d_eta psi_m Phi_o, exact. The w part of
- * each coefficient sum_j w^j c_j with w = w_c + (dw/2) eta becomes sum_r (binomial weights) eta^r
- * against the 1D tables mw (int Phat_a eta^r Phat_b) and nw (int Phat_a' eta^r Phat_b); the
- * configuration part is the sum over the nonzero triples int phi_m Q_k phi_l.
- */
+// The stored operator of a configuration cell (gkyl_pkpm_harm_ops.h) from its stored slots: every
+// entry the sum of its slot terms, the gyration entries qbym B_e, the configuration-flux couplings.
 GKYL_CU_DH static inline void
-pkpm_hm_apply(
-  const struct gkyl_dg_pkpm_harm_vol *up, const struct pkpm_hm_coeffs *hc, double wc, double dw,
-  const double *f, double *out
-)
+pkpm_hm_pack(const struct gkyl_dg_pkpm_harm_vol *up, const double *cell, double *ho)
 {
-  int nc = up->nc, np = up->np, n2 = up->n2;
-  double h = 0.5 * dw, dv1 = 2.0 / dw;
-  const double bw[3][3] = {{1.0, 0.0, 0.0}, {wc, h, 0.0}, {wc * wc, 2.0 * wc * h, h * h}};
-  // distribution blocks contracted with the w tables: UM[i][r][mw][l], UN likewise
-  double UM[8][3][3][8], UN[8][3][3][8];
-  for (int i = 0; i < 8; ++i) {
-    for (int r = 0; r < 3; ++r) {
-      for (int mw = 0; mw < 3; ++mw) {
-        for (int lc = 0; lc < nc; ++lc) {
-          double sm = 0.0, sn = 0.0;
-          for (int lw = 0; lw < 3; ++lw) {
-            double ul = f[i * np + up->phase_of[lc][lw]];
-            sm += pkpm_harm_mw[(r * 3 + mw) * 3 + lw] * ul;
-            sn += pkpm_harm_nw[(r * 3 + mw) * 3 + lw] * ul;
-          }
-          UM[i][r][mw][lc] = sm;
-          UN[i][r][mw][lc] = dv1 * sn;
-        }
-      }
+  int n2 = up->n2;
+  for (int e = 0; e < PKPM_HO_NENT; ++e) {
+    double *out = &ho[e * n2];
+    for (int k = 0; k < n2; ++k) {
+      out[k] = 0.0;
     }
-  }
-  for (int p = 0; p < PKPM_HM_NPAIR; ++p) {
-    int o = pkpm_hm_pairs[p][0], i = pkpm_hm_pairs[p][1], jm = hc->jmax[p];
-    if (jm < 0) {
-      continue;
-    }
-    double eS[3][PKPM_HM_N2], eF[3][PKPM_HM_N2];
-    for (int r = 0; r <= jm; ++r) {
+    for (int t = 0; t < up->ent_nterm[e]; ++t) {
+      const double *c = &cell[up->ent_slot[e][t] * n2];
+      double g = up->ent_gain[e][t];
       for (int k = 0; k < n2; ++k) {
-        double ss = 0.0, sf = 0.0;
-        for (int j = r; j <= jm; ++j) {
-          ss += bw[j][r] * hc->src[o][i][j][k];
-          sf += bw[j][r] * hc->phi[o][i][j][k];
-        }
-        eS[r][k] = ss;
-        eF[r][k] = sf;
-      }
-    }
-    for (int t = 0; t < up->ntrip; ++t) {
-      int mc = up->trip_m[t], k = up->trip_k[t], lc = up->trip_l[t];
-      for (int mw = 0; mw < 3; ++mw) {
-        double v = 0.0;
-        for (int r = 0; r <= jm; ++r) {
-          v += eS[r][k] * UM[i][r][mw][lc] + eF[r][k] * UN[i][r][mw][lc];
-        }
-        out[o * np + up->phase_of[mc][mw]] += up->trip_v[t] * v;
+        out[k] += g * c[k];
       }
     }
   }
-}
-
-/**
- * Volume integrals of the configuration-space flux couplings of one phase cell: out[o] +=
- * sum_d 2/(dx_d J_d) int d_d psi_m cf[d] U_i for the pairs (o, i) of pkpm_hm_cf_pairs; the w part
- * is the identity (the couplings are w independent), the configuration part the derivative
- * triples int d_d phi_m Q_k phi_l. jac holds the per-direction Jacobians J_d of the cell.
- */
-GKYL_CU_DH static inline void
-pkpm_hm_apply_cf(
-  const struct gkyl_dg_pkpm_harm_vol *up, const struct pkpm_hm_coeffs *hc, const double *jac,
-  const double *f, double *out
-)
-{
-  int np = up->np;
+  for (int e = 0; e < 3; ++e) {
+    for (int k = 0; k < n2; ++k) {
+      ho[PKPM_HO_GYR(e) * n2 + k] = up->qbym * cell[PKPM_HS_GYR(e) * n2 + k];
+    }
+  }
   for (int d = 0; d < up->cdim; ++d) {
-    double dfac = 2.0 / (up->phase_grid.dx[d] * jac[2 * d]);
-    for (int p = 0; p < PKPM_HM_NCF; ++p) {
-      int o = pkpm_hm_cf_pairs[p][0], i = pkpm_hm_cf_pairs[p][1];
-      const double *c = hc->cf[d][p];
-      for (int t = 0; t < up->ntripd[d]; ++t) {
-        double cv = c[up->tripd_k[d][t]];
-        if (cv == 0.0) {
-          continue;
-        }
-        cv *= dfac * up->tripd_v[d][t];
-        int mc = up->tripd_m[d][t], lc = up->tripd_l[d][t];
-        for (int mw = 0; mw < 3; ++mw) {
-          out[o * np + up->phase_of[mc][mw]] += cv * f[i * np + up->phase_of[lc][mw]];
-        }
+    for (int q = 0; q < 11; ++q) {
+      for (int k = 0; k < n2; ++k) {
+        ho[PKPM_HO_CF(d, q) * n2 + k] = cell[PKPM_HS_CF(d, q) * n2 + k];
       }
     }
   }
 }
 
-// Rate estimate of the known first-harmonic sources of a phase cell (time-step bound): the
-// estimator of gkyl_pkpm_harm_coeffs.h at the configuration cell center and the two w edges.
-GKYL_CU_DH static inline double
-pkpm_hm_rate(
-  const struct gkyl_dg_pkpm_harm_vol *up, const double *bvar, const double *grad_b,
-  const double *u, const double *grad_u, const double *xi, const double *grad_xi,
-  const double *grad_ln_n, const double *theta, const double *dtb, const double *em, double wlo,
-  double wup
-)
+// The source polynomials of the rate estimate at the cell center: poly[p][j] = the source entry of
+// pair p with power j at the center (0 where absent).
+GKYL_CU_DH static inline void
+pkpm_hm_rate_poly(const struct gkyl_dg_pkpm_harm_vol *up, const double *ho, double (*poly)[3])
 {
-  int cdim = up->cdim, nc = up->nc;
-  double c0 = 1.0;
-  for (int d = 0; d < cdim; ++d) {
-    c0 *= 0.7071067811865475;
-  }
-  double b[3], uq[3], dq[3], B[3], gu[9], gb[9], gx[3], gl[3];
-  for (int a = 0; a < 3; ++a) {
-    b[a] = c0 * bvar[a * nc];
-    uq[a] = c0 * u[a * nc];
-    dq[a] = c0 * dtb[a * nc];
-    B[a] = c0 * em[(3 + a) * nc];
-  }
-  for (int d = 0; d < cdim; ++d) {
-    gx[d] = c0 * grad_xi[(d * 3) * nc];
-    gl[d] = c0 * grad_ln_n[d * nc];
-    for (int a = 0; a < 3; ++a) {
-      gu[d * 3 + a] = c0 * grad_u[(d * 3 + a) * nc];
-      gb[d * 3 + a] = c0 * grad_b[(d * 3 + a) * nc];
+  int n2 = up->n2;
+  for (int p = 0; p < up->nsrc; ++p) {
+    for (int j = 0; j < 3; ++j) {
+      double v = 0.0;
+      if (up->src_ent[p][j] >= 0) {
+        const double *c = &ho[up->src_ent[p][j] * n2];
+        for (int k = 0; k < n2; ++k) {
+          v += up->cen[k] * c[k];
+        }
+      }
+      poly[p][j] = v;
     }
   }
-  struct pkpm_harm_coeffs hc;
-  pkpm_harm_coeffs_set(&hc, cdim, b, uq, c0 * xi[0], c0 * theta[0], dq, gu, gb, gx, gl, up->qbym, B);
-  return fmax(pkpm_harm_source_rate(&hc, wlo), pkpm_harm_source_rate(&hc, wup));
+}
+
+// Rate estimate of the known first-harmonic sources of a phase cell (time-step bound): the largest
+// absolute row sum (Gershgorin) of the source matrix at the configuration cell center, at the two
+// w edges of the cell.
+GKYL_CU_DH static inline double
+pkpm_hm_rate(const struct gkyl_dg_pkpm_harm_vol *up, double (*poly)[3], double wlo, double wup)
+{
+  double rate = 0.0;
+  for (int e = 0; e < 2; ++e) {
+    double w = e == 0 ? wlo : wup, row[8] = {0.0};
+    for (int p = 0; p < up->nsrc; ++p) {
+      row[up->src_o[p]] += fabs(poly[p][0] + w * (poly[p][1] + w * poly[p][2]));
+    }
+    for (int o = 0; o < 8; ++o) {
+      rate = fmax(rate, row[o]);
+    }
+  }
+  return rate;
 }

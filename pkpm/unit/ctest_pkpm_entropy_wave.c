@@ -135,7 +135,7 @@ struct sim {
   struct gkyl_array *a_perp, *em, *dtb; // perpendicular force closure, static field, d_t B/|B| = 0
   struct gkyl_array *xi, *grad_xi, *scratch;
   struct gkyl_array *nmoms, *moms, *rhs_moms, *rho, *rho3, *grad_rho, *grad_ln_n;
-  struct gkyl_array *cflux, *vflux, *fflux, *cflrate_f, *cflrate_m, *cell_avg;
+  struct gkyl_array *cflux, *vflux, *fflux, *cflrate_f, *cflrate_m;
   struct gkyl_dg_calc_pkpm_bvar *calc_b;
   struct gkyl_dg_calc_pkpm_vars *vars;
   struct gkyl_dg_updater_moment *mcalc;
@@ -143,6 +143,7 @@ struct sim {
   struct gkyl_dg_pkpm_vel_flux_surf *calc_vflux;
   struct gkyl_dg_pkpm_fluid_flux_surf *calc_fflux;
   struct gkyl_dg_pkpm_harm_vol *harm;
+  struct gkyl_array *hcoef; // stored first-harmonic coefficients of the stage
   struct gkyl_dg_eqn *eqn_a, *eqn_b, *eqn_m;
   gkyl_hyper_dg *slvr_a, *slvr_b, *slvr_m;
 };
@@ -242,7 +243,6 @@ sim_init(struct sim *s, const struct run_opts *o)
   gkyl_array_clear(s->grad_ln_n, 0.0);
   s->cflrate_f = mkarr(1, pvol);
   s->cflrate_m = mkarr(1, cvol);
-  s->cell_avg = gkyl_array_new(GKYL_INT, 1, cvol);
   gkyl_array_clear(s->nu_sum, 0.0);
   gkyl_array_clear(s->nu_vthsq_sum, 0.0);
   gkyl_array_clear(s->alpha_0, 0.0);
@@ -259,7 +259,7 @@ sim_init(struct sim *s, const struct run_opts *o)
   gkyl_dg_calc_pkpm_bvar_grad(s->calc_b, &s->clocal, s->bvar, s->grad_b);
 
   s->vars =
-    gkyl_dg_calc_pkpm_vars_new(&s->cgrid, &s->cbasis, &s->clocal_ext, s->pos_map, false);
+    gkyl_dg_calc_pkpm_vars_new(&s->cgrid, &s->cbasis, s->pos_map, false);
   s->mcalc = gkyl_dg_updater_moment_pkpm_new(
     &s->pgrid, &s->cbasis, &s->pbasis, &s->clocal_ext, &s->vlocal, 1.0, false, false
   );
@@ -296,6 +296,7 @@ sim_init(struct sim *s, const struct run_opts *o)
   struct gkyl_dg_pkpm_harm_vol_inp hinp = {
     .phase_grid = &s->pgrid, .conf_basis = &s->cbasis, .phase_basis = &s->pbasis, .qbym = 20.0, .pos_map = s->pos_map, .use_gpu = false};
   s->harm = gkyl_dg_pkpm_harm_vol_inew(&hinp);
+  s->hcoef = mkarr(gkyl_dg_pkpm_harm_vol_num_coef(s->harm), s->clocal_ext.volume);
   int up_dirs_a[GKYL_MAX_DIM] = {0}, zero_flux_a[2 * GKYL_MAX_DIM] = {0};
   s->slvr_a = gkyl_hyper_dg_new(&s->pgrid, &s->pbasis, s->eqn_a, 1, up_dirs_a, zero_flux_a, 1, false);
 
@@ -351,12 +352,12 @@ sim_release(struct sim *s)
   gkyl_hyper_dg_release(s->slvr_a);
   gkyl_dg_eqn_release(s->eqn_a);
   gkyl_dg_pkpm_harm_vol_release(s->harm);
+  gkyl_array_release(s->hcoef);
   gkyl_array_release(s->cflux);
   gkyl_dg_pkpm_conf_flux_surf_release(s->calc_cflux);
   gkyl_dg_updater_moment_pkpm_release(s->mcalc);
   gkyl_dg_calc_pkpm_vars_release(s->vars);
   gkyl_dg_calc_pkpm_bvar_release(s->calc_b);
-  gkyl_array_release(s->cell_avg);
   gkyl_array_release(s->cflrate_m);
   gkyl_array_release(s->cflrate_f);
   gkyl_array_release(s->rhs_moms);
@@ -453,18 +454,19 @@ sim_rhs(
       s->cflux
     );
     gkyl_hyper_dg_advance(s->slvr_a, &s->plocal, f, s->cflrate_f, rhs_f);
-    gkyl_dg_pkpm_harm_vol_advance(s->harm, &s->clocal, &s->plocal, s->bvar, s->grad_b, s->u, s->grad_u,
-      s->xi, s->grad_xi, s->grad_ln_n, s->theta, s->dtb, s->em, f, s->cflrate_f, rhs_f);
+    gkyl_dg_pkpm_harm_vol_coef(s->harm, &s->clocal, s->bvar, s->grad_b, s->u, s->grad_u, s->xi, s->grad_xi,
+      s->grad_ln_n, s->theta, s->dtb, s->em, s->hcoef);
+    gkyl_dg_pkpm_harm_vol_advance(s->harm, &s->clocal, &s->plocal, s->hcoef, f, s->cflrate_f, rhs_f);
     gkyl_array_clear(s->rhs_moms, 0.0);
     gkyl_dg_updater_moment_pkpm_advance(s->mcalc, &s->plocal, &s->clocal, rhs_f, s->rhs_moms);
     // closures with the characteristic velocity edges (the switch from the previous stage)
     gkyl_dg_calc_pkpm_vars_closure(
-      s->vars, &s->clocal, &s->plocal, &s->pgrid, s->nmoms, s->rhs_moms, s->bvar, s->grad_b, s->u, s->grad_u,
-      s->xi, s->grad_xi, s->theta, s->dtb, f, s->c_0, s->alpha_0, s->c_h, s->a_perp, s->vflux, s->cflrate_f
+      s->vars, &s->clocal, &s->plocal, &s->pgrid, s->nmoms, s->rhs_moms, s->bvar, s->hcoef, s->theta, f, s->c_0,
+      s->alpha_0, s->c_h, s->a_perp, s->vflux, s->cflrate_f
     );
     gkyl_dg_pkpm_vel_flux_surf_advance(
-      s->calc_vflux, &s->clocal, &s->plocal, s->bvar, s->grad_b, s->u, s->grad_u, s->xi, s->grad_xi,
-      s->theta, s->dtb, s->alpha_0, s->c_h, f, s->cflrate_f, s->vflux
+      s->calc_vflux, &s->clocal, &s->plocal, s->hcoef, s->theta, s->bvar, s->alpha_0, s->c_h, f, s->cflrate_f,
+      s->vflux
     );
     gkyl_hyper_dg_advance(s->slvr_b, &s->plocal, f, s->cflrate_f, rhs_f);
   }
@@ -609,7 +611,6 @@ run(const struct run_opts *o, bool verbose)
     // Cell averages and slopes of rho and u_x at the end: a slope much larger than the
     // neighbor difference / 2 sqrt(3/2) is a sub-cell sawtooth.
     sim_moms(&s, f, M, &s.plocal, &s.clocal);
-    gkyl_dg_calc_pkpm_vars_u(s.vars, s.moms, M, s.cell_avg, s.u);
     printf("  final rho avg / slope, ux avg / slope per cell:\n");
     struct gkyl_range_iter it;
     gkyl_range_iter_init(&it, &s.clocal);
@@ -961,18 +962,22 @@ static void
 test_steady_gradient()
 {
   bool verbose = test_verbose_level_ > 2;
-  // The residual of the exact steady state is truncation error only: the cell-average
-  // residual converges with the velocity resolution (dv^2), the slope residual with the
-  // spatial resolution, and the unconstrained third moment is small at every resolution.
+  // The residual of the exact steady state is truncation error only. The closure force
+  // alpha_0 = xi grad(ln n) cancels the density-gradient source up to the error of the w
+  // discretization, so the residual is grad(ln n)(x) E(w) with E = O(dv^2): the cell-average
+  // residual converges with dv^2, the slope residual is the in-cell slope of grad(ln n)
+  // (O(dx)) times E, and the unconstrained third moment is small at every resolution.
   struct steady_res r16 = steady_gradient_residual(16, 16, 0.6, verbose);
   struct steady_res r32 = steady_gradient_residual(16, 32, 0.6, verbose);
   struct steady_res r64 = steady_gradient_residual(16, 64, 0.6, verbose);
   TEST_CHECK(r16.avg / r32.avg > 3.0 && r32.avg / r64.avg > 3.0);
   TEST_MSG("average residual vs Nv: %g %g %g", r16.avg, r32.avg, r64.avg);
   TEST_CHECK(r64.avg < 5e-3);
+  TEST_CHECK(r16.slope / r32.slope > 3.0 && r32.slope / r64.slope > 3.0);
+  TEST_MSG("slope residual vs Nv: %g %g %g", r16.slope, r32.slope, r64.slope);
   struct steady_res x8 = steady_gradient_residual(8, 32, 0.6, verbose);
   struct steady_res x32 = steady_gradient_residual(32, 32, 0.6, verbose);
-  TEST_CHECK(x8.slope / r32.slope > 3.0 && r32.slope / x32.slope > 3.0);
+  TEST_CHECK(x8.slope / r32.slope > 1.7 && r32.slope / x32.slope > 1.7);
   TEST_MSG("slope residual vs Nx: %g %g %g", x8.slope, r32.slope, x32.slope);
   TEST_CHECK(r32.m3_total < 1e-4 && x32.m3_total < 1e-4);
   TEST_MSG("third moment of the total right-hand side: %g %g", r32.m3_total, x32.m3_total);

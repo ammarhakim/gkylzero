@@ -11,13 +11,6 @@
 #include <gkyl_util.h>
 #include <assert.h>
 
-typedef int (*pkpm_u_set_t)(
-  int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *vlasov_pkpm_moms,
-  const double *euler_pkpm
-);
-
-typedef void (*pkpm_u_copy_t)(int count, struct gkyl_nmat *x, double *GKYL_RESTRICT pkpm_u);
-
 typedef void (*pkpm_grad_u_t)(
   const double *dxv, const double *jacob_pos, const double *u_l, const double *u_c, const double *u_r,
   double *GKYL_RESTRICT grad_u
@@ -36,8 +29,7 @@ typedef void (*pkpm_diag_t)(
 
 typedef int (*pkpm_closure_t)(
   double w_lo, double w_up, double dv, const double *norm_moms, const double *rhs_moms, const double *bvar,
-  const double *grad_b, const double *u, const double *grad_u, const double *xi, const double *grad_xi,
-  const double *theta, const double *dtB_over_magB, const double *alpha_0_prev, const double *c_h_prev,
+  const double *coef, const double *theta, const double *alpha_0_prev, const double *c_h_prev,
   const double *f_lo, const double *f_up, double *GKYL_RESTRICT c_0, double *GKYL_RESTRICT alpha_0,
   double *GKYL_RESTRICT c_h, double *GKYL_RESTRICT a_perp, double *GKYL_RESTRICT flux_lo,
   double *GKYL_RESTRICT flux_up, double *GKYL_RESTRICT cfl, double *GKYL_RESTRICT cond
@@ -60,15 +52,9 @@ struct gkyl_dg_calc_pkpm_vars {
   struct gkyl_rect_grid conf_grid; // Configuration space grid for cell spacing and cell center
   int cdim; // Configuration space dimensionality
   int poly_order; // polynomial order (p=1 serendipity only)
-  struct gkyl_range mem_range; // Configuration space range for the linear solve of the flow
   const struct gkyl_vlasov_position_map *pos_map; // Position map (acquired; host pointer, 0 on the device copy)
   const struct gkyl_array *jacob_pos; // Per-direction Jacobians (borrowed from pos_map; device pointer on device)
 
-  struct gkyl_nmat *As_u, *xs_u; // matrices for LHS and RHS for flow velocity solve
-  gkyl_nmat_mem *mem_u; // memory for use in batched linear solve for velocity
-
-  pkpm_u_set_t pkpm_u_set; // kernel for setting matrices for linear solve for flow velocity
-  pkpm_u_copy_t pkpm_u_copy; // kernel for copying solution for flow velocity to output
   pkpm_grad_u_t pkpm_grad_u[3]; // weak (surface-averaged) gradient of a 3-vector in each direction
   pkpm_closure_t pkpm_closure; // closures c_0, a_P/xi and c from the moments of the stage-A rhs, with the velocity edges
   pkpm_prim_t pkpm_prim; // nodal flow and thermal speed [xi, xi^2, p] of the fluid state
@@ -89,35 +75,6 @@ struct gkyl_dg_calc_pkpm_vars {
   struct gkyl_dg_calc_pkpm_vars *on_dev; // pointer to itself or device data
 };
 
-// Weak division M/rho for the flow velocity (p=1 serendipity, basis inverse)
-GKYL_CU_D static const pkpm_u_set_t ser_pkpm_u_set_kernels[] = {
-  pkpm_vars_u_set_1x_ser_p1,
-  pkpm_vars_u_set_2x_ser_p1,
-  pkpm_vars_u_set_3x_ser_p1,
-};
-GKYL_CU_D static const pkpm_u_copy_t ser_pkpm_u_copy_kernels[] = {
-  pkpm_vars_u_copy_1x_ser_p1,
-  pkpm_vars_u_copy_2x_ser_p1,
-  pkpm_vars_u_copy_3x_ser_p1,
-};
-GKYL_CU_D
-static pkpm_u_set_t
-choose_pkpm_u_set_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
-{
-  if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-    return ser_pkpm_u_set_kernels[cdim - 1];
-  }
-  return 0;
-}
-GKYL_CU_D
-static pkpm_u_copy_t
-choose_pkpm_u_copy_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
-{
-  if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-    return ser_pkpm_u_copy_kernels[cdim - 1];
-  }
-  return 0;
-}
 
 GKYL_CU_D static const pkpm_diag_t ser_pkpm_diag_kernels[] = {
   pkpm_vars_diag_1x_ser_p1,

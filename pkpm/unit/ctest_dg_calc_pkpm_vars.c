@@ -1,23 +1,25 @@
 // Tests for the PKPM variables updater (gkyl_dg_calc_pkpm_vars).
 //
-// We exercise two host-side compute methods with analytically known inputs
-// that are *uniform* in configuration space (only the cell-average / 0th
-// orthonormal basis component is non-zero in each block).  For a 1D p1 conf
-// basis the orthonormal cell-average basis is psi_0 = 1/sqrt(2), so a field
-// with physical value V is represented by setting component 0 to V*sqrt(2).
+// The source test uses inputs that are uniform in configuration space (only the cell-average
+// / 0th orthonormal basis component is non-zero in each block): for a 1D p1 conf basis the
+// orthonormal cell-average basis is psi_0 = 1/sqrt(2), so a field with physical value V is
+// represented by setting component 0 to V*sqrt(2).
 //
 // Methods tested:
-//   u      : weak-divide rhou_i / rho.  With uniform rho and rhou_i,
-//            u_i = rhou_i / rho (constant).
+//   prim, grad_ln_n : the nodal quotients u = M/rho and grad(ln n) = grad(rho)/rho are the
+//            weak divisions at p=1 (rho times the quotient, projected, is the numerator).
 //   source : Lorentz force q/m (rho E + M x B) momentum source and M.E work.
 //
 #include <acutest.h>
+#include <math.h>
 #include <string.h>
 
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_basis.h>
+#include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_pkpm_vars.h>
+#include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
@@ -48,74 +50,102 @@ set_const_block(struct gkyl_array *arr, int blk, int nb, double val)
   gkyl_array_shiftc(arr, val * sqrt(2.0), blk * nb);
 }
 
-void
-test_u_1x_p1()
+// Smooth positive state [rho, rho ux, rho uy, rho uz, E] for the quotient test.
+static void
+eval_quot_fluid(double t, const double *xn, double *restrict fout, void *ctx)
 {
-  int poly_order = 1;
-  double lower[] = {-1.0}, upper[] = {1.0};
-  int cells[] = {6};
-  int cdim = 1;
+  int cdim = *(int *)ctx;
+  double x = xn[0], y = cdim > 1 ? xn[1] : 0.3, z = cdim > 2 ? xn[2] : -0.2;
+  double rho = 1.5 + 0.6 * sin(2.0 * x) * cos(y) + 0.3 * cos(3.0 * z);
+  fout[0] = rho;
+  fout[1] = rho * (0.4 + 0.5 * cos(x + y));
+  fout[2] = 0.7 * sin(y - z) + 0.2 * x;
+  fout[3] = -0.3 + 0.4 * x * y;
+  fout[4] = 3.0 + rho;
+}
 
+// The nodal quotients are the weak divisions at p=1: for a non-uniform positive rho the p=1
+// projection of rho times the quotient reproduces the numerator, rho u = M (the flow of the
+// primitive variables) and rho grad(ln n) = grad(rho) (the weak gradient of rho).
+static void
+test_quotients(int cdim)
+{
+  double lower[3] = {-1.0, -1.0, -1.0}, upper[3] = {1.0, 1.0, 1.0};
+  int cells[3] = {5, 3, 2}, ghost[3] = {1, 1, 1};
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, cdim, lower, upper, cells);
-
   struct gkyl_basis cbasis;
-  gkyl_cart_modal_serendip(&cbasis, cdim, poly_order);
+  gkyl_cart_modal_serendip(&cbasis, cdim, 1);
   int nb = cbasis.num_basis;
-
-  int ghost[] = {1};
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
   struct gkyl_vlasov_position_map *pm = identity_pos_map(&grid, &local, &local_ext, &cbasis);
+  struct gkyl_dg_calc_pkpm_vars *up = gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis, pm, false);
 
+  struct gkyl_array *fluid = mkarr(5 * nb, local_ext.volume), *u = mkarr(3 * nb, local_ext.volume);
+  struct gkyl_array *xi = mkarr(3 * nb, local_ext.volume), *rho3 = mkarr(3 * nb, local_ext.volume);
+  struct gkyl_array *grad_rho = mkarr(cdim * 3 * nb, local_ext.volume), *gln = mkarr(cdim * nb, local_ext.volume);
+  struct gkyl_array *prod = mkarr(nb, local_ext.volume);
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &cbasis, 4, 5, eval_quot_fluid, &cdim);
+  gkyl_proj_on_basis_advance(proj, 0.0, &local_ext, fluid);
+  gkyl_proj_on_basis_release(proj);
 
-  // Updater built over local (this is the mem_range used for the u solve).
-  struct gkyl_dg_calc_pkpm_vars *up =
-    gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis, &local, pm, false);
+  int num_null = gkyl_dg_calc_pkpm_vars_prim(up, &local_ext, fluid, u, xi);
+  TEST_CHECK(num_null == 0);
+  gkyl_array_clear(rho3, 0.0);
+  gkyl_array_set_offset(rho3, 1.0, fluid, 0);
+  gkyl_array_clear(grad_rho, 0.0);
+  gkyl_dg_calc_pkpm_vars_grad_u(up, &local, rho3, grad_rho);
+  num_null = gkyl_dg_calc_pkpm_vars_grad_ln_n(up, &local, fluid, grad_rho, gln);
+  TEST_CHECK(num_null == 0);
 
-  struct gkyl_array *moms = mkarr(3 * nb, local_ext.volume);
-  struct gkyl_array *euler = mkarr(3 * nb, local_ext.volume); // [rhoux, rhouy, rhouz]
-  struct gkyl_array *pkpm_u = mkarr(3 * nb, local_ext.volume);
-  struct gkyl_array *cell_avg_prim = gkyl_array_new(GKYL_INT, 1, local_ext.volume);
-  // Int array: zero it via memset (gkyl_array_clear only supports GKYL_DOUBLE).
-  memset(cell_avg_prim->data, 0, cell_avg_prim->size * cell_avg_prim->esznc);
-
-  double rho = 4.0;
-  double rhoux = 6.0, rhouy = -2.0, rhouz = 10.0;
-  gkyl_array_clear(moms, 0.0);
-  set_const_block(moms, 0, nb, rho);
-
-  gkyl_array_clear(euler, 0.0);
-  set_const_block(euler, 0, nb, rhoux);
-  set_const_block(euler, 1, nb, rhouy);
-  set_const_block(euler, 2, nb, rhouz);
-
-  gkyl_array_clear(pkpm_u, 0.0);
-  gkyl_dg_calc_pkpm_vars_u(up, moms, euler, cell_avg_prim, pkpm_u);
-
-  double ux_exp = rhoux / rho, uy_exp = rhouy / rho, uz_exp = rhouz / rho;
-  double s2 = sqrt(2.0);
+  double err_u = 0.0, max_m = 0.0, err_g = 0.0, max_g = 0.0;
   struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &local);
-  while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(&local, iter.idx);
-    const double *u = gkyl_array_cfetch(pkpm_u, loc);
-    TEST_CHECK(gkyl_compare(u[0 * nb] / s2, ux_exp, 1e-12));
-    TEST_CHECK(gkyl_compare(u[1 * nb] / s2, uy_exp, 1e-12));
-    TEST_CHECK(gkyl_compare(u[2 * nb] / s2, uz_exp, 1e-12));
-    // Slopes should vanish for a uniform field.
-    TEST_CHECK(gkyl_compare(u[0 * nb + 1], 0.0, 1e-12));
-    TEST_CHECK(gkyl_compare(u[1 * nb + 1], 0.0, 1e-12));
-    TEST_CHECK(gkyl_compare(u[2 * nb + 1], 0.0, 1e-12));
+  for (int i = 0; i < 3 + cdim; ++i) {
+    // rho (block 0 of the fluid) times u_i or grad(ln n)_d, projected onto p=1
+    if (i < 3) {
+      gkyl_dg_mul_op_range(&cbasis, 0, prod, 0, fluid, i, u, &local);
+    }
+    else {
+      gkyl_dg_mul_op_range(&cbasis, 0, prod, 0, fluid, i - 3, gln, &local);
+    }
+    gkyl_range_iter_init(&iter, &local);
+    while (gkyl_range_iter_next(&iter)) {
+      long loc = gkyl_range_idx(&local, iter.idx);
+      const double *pr = gkyl_array_cfetch(prod, loc);
+      const double *num = i < 3 ? (const double *)gkyl_array_cfetch(fluid, loc) + (1 + i) * nb :
+        (const double *)gkyl_array_cfetch(grad_rho, loc) + (i - 3) * 3 * nb;
+      for (int k = 0; k < nb; ++k) {
+        if (i < 3) {
+          err_u = fmax(err_u, fabs(pr[k] - num[k]));
+          max_m = fmax(max_m, fabs(num[k]));
+        }
+        else {
+          err_g = fmax(err_g, fabs(pr[k] - num[k]));
+          max_g = fmax(max_g, fabs(num[k]));
+        }
+      }
+    }
   }
+  TEST_CHECK(err_u < 1e-14 * max_m);
+  TEST_MSG("cdim=%d: rho u - M = %g (|M| %g)", cdim, err_u, max_m);
+  TEST_CHECK(max_g > 0.0 && err_g < 1e-14 * max_g);
+  TEST_MSG("cdim=%d: rho grad(ln n) - grad(rho) = %g (|grad rho| %g)", cdim, err_g, max_g);
 
-  gkyl_array_release(cell_avg_prim);
-  gkyl_array_release(pkpm_u);
-  gkyl_array_release(euler);
-  gkyl_array_release(moms);
+  gkyl_array_release(prod);
+  gkyl_array_release(gln);
+  gkyl_array_release(grad_rho);
+  gkyl_array_release(rho3);
+  gkyl_array_release(xi);
+  gkyl_array_release(u);
+  gkyl_array_release(fluid);
   gkyl_dg_calc_pkpm_vars_release(up);
   gkyl_vlasov_position_map_release(pm);
 }
+
+void test_quotients_1x() { test_quotients(1); }
+void test_quotients_2x() { test_quotients(2); }
+void test_quotients_3x() { test_quotients(3); }
 
 void
 test_source_1x_p1()
@@ -139,7 +169,7 @@ test_source_1x_p1()
 
 
   struct gkyl_dg_calc_pkpm_vars *up =
-    gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis, &local, pm, false);
+    gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis, pm, false);
 
   // qmem = q/m*[Ex,Ey,Ez,Bx,By,Bz,phi,psi] (8 blocks).
   struct gkyl_array *qmem = mkarr(8 * nb, local_ext.volume);
@@ -230,7 +260,7 @@ test_positivity(int cdim)
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
   struct gkyl_vlasov_position_map *pm = identity_pos_map(&grid, &local, &local_ext, &cbasis);
-  struct gkyl_dg_calc_pkpm_vars *vars = gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis, &local, pm, false);
+  struct gkyl_dg_calc_pkpm_vars *vars = gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis, pm, false);
 
   struct gkyl_array *fluid = mkarr(5 * nb, local_ext.volume), *count = mkarr(3, local_ext.volume);
   gkyl_array_clear(fluid, 0.0);
@@ -336,7 +366,9 @@ TEST_LIST = {
   {"test_positivity_1x", test_positivity_1x},
   {"test_positivity_2x", test_positivity_2x},
   {"test_positivity_3x", test_positivity_3x},
-  {"u_1x_p1", test_u_1x_p1},
+  {"test_quotients_1x", test_quotients_1x},
+  {"test_quotients_2x", test_quotients_2x},
+  {"test_quotients_3x", test_quotients_3x},
   {"source_1x_p1", test_source_1x_p1},
   {NULL, NULL}
 };

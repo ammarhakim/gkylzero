@@ -37,34 +37,17 @@ GKYL_CU_DH void pkpm_vel_flux_vpar_1x1v_ser_p1_prj(int tid, const double *Fhat_n
   } 
 } 
 
-GKYL_CU_DH double pkpm_vel_flux_vpar_1x1v_ser_p1(const double *w, const double *dxv,
-  const double *bvar, const double *grad_b, const double *u, const double *grad_u,
-  const double *xi, const double *grad_xi, const double *theta, const double *dtB_over_magB,
-  const double *alpha_0, const double *c_h, const double *f_l, const double *f_r, double* GKYL_RESTRICT flux) 
+GKYL_CU_DH double pkpm_vel_flux_vpar_1x1v_ser_p1(const double *w, const double *dxv, const double *nv,
+  const double *f_l, const double *f_r, double* GKYL_RESTRICT flux) 
 { 
-  // w[NDIM]:       Cell-center coordinates (current cell). 
-  // dxv[NDIM]:     Cell spacing (current cell). 
-  // bvar:          Magnetic field unit vector [bx, by, bz]. 
-  // grad_b:        Weak gradient of b, [d_i bx, d_i by, d_i bz] per direction i. 
-  // u:             Flow velocity [ux, uy, uz]. 
-  // grad_u:        Weak gradient of u, [d_i ux, d_i uy, d_i uz] per direction i. 
-  // xi:            Thermal speed [xi, xi^2] (the first expansion is used). 
-  // grad_xi:       Weak gradient of [xi, 0, 0] (pkpm_vars_grad_u_* layout). 
-  // theta:         T_perp/T. 
-  // dtB_over_magB: d_t B/|B| of the stage. 
-  // alpha_0:       Pressure force a_P/xi closing the first moment. 
-  // c_h:           Heating rate closing the scalar second moment. 
-  // f_l/f_r:       Distributions [F, G, M0_perp, N_perp] in the cell below/current cell. 
-  // flux:          Output modal surface fluxes [8 blocks] on the lower w face. 
+  // w[NDIM]:   Cell-center coordinates (current cell). 
+  // dxv[NDIM]: Cell spacing (current cell). 
+  // nv:        Node values [5 nodes][PKPM_HS_NODE_NV] of the w flux of the configuration cell. 
+  // f_l/f_r:   Distributions [F, G, M0_perp, N_perp] in the cell below/current cell. 
+  // flux:      Output modal surface fluxes [8 blocks] on the lower w face. 
   // Returns the stable time-step estimate over the face nodes. 
   const double dv1 = 2.0/dxv[1]; 
   const double v_face = w[1] - 0.5*dxv[1]; 
-  const double *bx = &bvar[0]; 
-  const double *by = &bvar[2]; 
-  const double *bz = &bvar[4]; 
-  const double *ux = &u[0]; 
-  const double *uy = &u[2]; 
-  const double *uz = &u[4]; 
  
   double GU_l[8][2], GU_r[8][2]; 
   for (int tid = 0; tid < 2; ++tid) { 
@@ -76,51 +59,16 @@ GKYL_CU_DH double pkpm_vel_flux_vpar_1x1v_ser_p1(const double *w, const double *
   double Fhat[8][5]; 
   double cfl_max = 0.0; 
   for (int i = 0; i < 5; ++i) { 
-    // Configuration-space coefficients at node i. 
-    double b_q[3] = {0.0}, u_q[3] = {0.0}, d_q[3] = {0.0}, theta_q = 0.0, a0_q = 0.0, ch_q = 0.0, xi_q = 0.0; 
-    double gu_q[3] = {0.0}, gb_q[3] = {0.0}, gx_q[1] = {0.0}; 
-    for (int a = 0; a < 2; ++a) { 
-      const double ev = vst_pkpm_1x1v_p1_conf_ev[i*2 + a]; 
-      b_q[0] += ev*bx[a]; b_q[1] += ev*by[a]; b_q[2] += ev*bz[a]; 
-      u_q[0] += ev*ux[a]; u_q[1] += ev*uy[a]; u_q[2] += ev*uz[a]; 
-      for (int j = 0; j < 3; ++j) d_q[j] += ev*dtB_over_magB[j*2 + a]; 
-      theta_q += ev*theta[a]; 
-      a0_q += ev*alpha_0[a]; 
-      ch_q += ev*c_h[a]; 
-      xi_q += ev*xi[a]; 
-      for (int d = 0; d < 1; ++d) { 
-        gx_q[d] += ev*grad_xi[(d*3)*2 + a]; 
-        for (int j = 0; j < 3; ++j) { 
-          gu_q[d*3 + j] += ev*grad_u[(d*3 + j)*2 + a]; 
-          gb_q[d*3 + j] += ev*grad_b[(d*3 + j)*2 + a]; 
-        } 
-      } 
-    } 
-    struct pkpm_harm_coeffs hc; 
-    pkpm_harm_coeffs_set(&hc, 1, b_q, u_q, xi_q, theta_q, d_q, gu_q, gb_q, gx_q, 0, 0.0, 0); 
-    const double alpha = a0_q + (ch_q - hc.K)*v_face - hc.bg*v_face*v_face; 
     // Nodal traces of the eight blocks on both sides of the face. 
-    double U_l[8] = {0.0}, U_r[8] = {0.0}; 
+    double U_l[8] = {0.0}, U_r[8] = {0.0}, Fn[8]; 
     for (int c = 0; c < 8; ++c) { 
       for (int a = 0; a < 2; ++a) { 
         const double cm = vst_pkpm_1x1v_p1_ph_v0_Cm[i*2 + a]; 
         U_l[c] += cm*GU_l[c][a]; U_r[c] += cm*GU_r[c][a]; 
       } 
     } 
-    double T_l[8], T_r[8], lam_lo, lam_hi; 
-    pkpm_harm_coupling_flux(&hc, v_face, U_l, T_l); 
-    pkpm_harm_coupling_flux(&hc, v_face, U_r, T_r); 
-    pkpm_harm_speed_bounds(&hc, v_face, &lam_lo, &lam_hi); 
-    const double sl = alpha + lam_lo, sr = alpha + lam_hi; 
-    if (sl >= 0.0) { 
-      for (int c = 0; c < 8; ++c) Fhat[c][i] = alpha*U_l[c] + T_l[c]; 
-    } else if (sr <= 0.0) { 
-      for (int c = 0; c < 8; ++c) Fhat[c][i] = alpha*U_r[c] + T_r[c]; 
-    } else { 
-      for (int c = 0; c < 8; ++c) 
-        Fhat[c][i] = (sr*(alpha*U_l[c] + T_l[c]) - sl*(alpha*U_r[c] + T_r[c]) + sl*sr*(U_r[c] - U_l[c]))/(sr - sl); 
-    } 
-    cfl_max = fmax(cfl_max, fmax(fabs(sl), fabs(sr))); 
+    cfl_max = fmax(cfl_max, pkpm_harm_node_wflux(&nv[i*PKPM_HS_NODE_NV], v_face, U_l, U_r, Fn)); 
+    for (int c = 0; c < 8; ++c) Fhat[c][i] = Fn[c]; 
   } 
  
   for (int tid = 0; tid < 5; ++tid) { 
