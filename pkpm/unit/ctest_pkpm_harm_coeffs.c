@@ -440,6 +440,7 @@ test_node_functions(int cdim)
     }
     nv[PKPM_HS_NODE_A0] = a0;
     nv[PKPM_HS_NODE_CH] = ch;
+    pkpm_harm_node_spec(nv);
 
     double U[8], T[8], Tref[8], lo, hi, lo_ref, hi_ref;
     for (int k = 0; k < 8; ++k) {

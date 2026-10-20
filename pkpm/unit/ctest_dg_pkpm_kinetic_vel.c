@@ -22,7 +22,6 @@
 #include <gkyl_dg_updater_moment_pkpm.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_pkpm_harm_coeffs.h>
-#include <gkyl_pkpm_harm_ops.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -194,11 +193,13 @@ struct test_setup {
   struct gkyl_range clocal, clocal_ext, plocal, plocal_ext, plocal_ext_conf, vlocal, vlocal_ext;
   struct gkyl_array *bvar, *grad_b, *u, *grad_u, *grad_ln_n, *theta, *nu_sum, *nu_vthsq_sum, *alpha_0, *c_h, *c_0, *f;
   struct gkyl_array *xi, *grad_xi, *a_perp, *em, *dtb;
-  struct gkyl_array *hcoef; // stored first-harmonic coefficients of the fields
+  struct gkyl_array *hcoef; // stored first-harmonic operator of the fields
+  struct gkyl_array *hwn, *hwc; // raw w-flux values at the w-face and closure nodes
   struct gkyl_dg_calc_pkpm_bvar *calc_b;
 };
 
-// The stored first-harmonic coefficients of the current fields (gkyl_dg_pkpm_harm_vol_coef).
+// The stored first-harmonic operator and the raw w-flux node values of the current fields
+// (gkyl_dg_pkpm_harm_vol_coef).
 static void
 build_coef(struct test_setup *s)
 {
@@ -207,9 +208,11 @@ build_coef(struct test_setup *s)
   struct gkyl_dg_pkpm_harm_vol *harm = gkyl_dg_pkpm_harm_vol_inew(&hinp);
   if (!s->hcoef) {
     s->hcoef = mkarr(gkyl_dg_pkpm_harm_vol_num_coef(harm), s->clocal_ext.volume);
+    s->hwn = mkarr(gkyl_dg_pkpm_harm_vol_num_wnode(harm), s->clocal_ext.volume);
+    s->hwc = mkarr(gkyl_dg_pkpm_harm_vol_num_wclos(harm), s->clocal_ext.volume);
   }
   gkyl_dg_pkpm_harm_vol_coef(harm, &s->clocal, s->bvar, s->grad_b, s->u, s->grad_u, s->xi, s->grad_xi,
-    s->grad_ln_n, s->theta, s->dtb, s->em, s->hcoef);
+    s->grad_ln_n, s->theta, s->dtb, s->em, s->hcoef, s->hwn, s->hwc);
   gkyl_dg_pkpm_harm_vol_release(harm);
 }
 
@@ -317,7 +320,7 @@ setup(struct test_setup *s, int cdim)
     gkyl_dg_calc_pkpm_vars_new(&s->cgrid, &s->cbasis, s->pos_map, false);
   gkyl_dg_calc_pkpm_vars_transverse(vars, &s->clocal_ext, &s->plocal_ext_conf, s->bvar, s->f);
   gkyl_dg_calc_pkpm_vars_release(vars);
-  s->hcoef = 0;
+  s->hcoef = s->hwn = s->hwc = 0;
   build_coef(s);
 }
 
@@ -344,47 +347,8 @@ teardown(struct test_setup *s)
   gkyl_array_release(s->dtb);
   gkyl_array_release(s->grad_ln_n);
   gkyl_array_release(s->hcoef);
-}
-
-// Orthonormal Legendre polynomial of degree n <= 2 on [-1, 1].
-static double
-leg2(int n, double z)
-{
-  return n == 0 ? 1.0 / sqrt(2.0) : n == 1 ? sqrt(1.5) * z : sqrt(2.5) * 0.5 * (3.0 * z * z - 1.0);
-}
-
-// Node values of the w flux at reference point z of cell cidx (PKPM_HS_NODE_NV): the w-flux entries
-// of the stored operator (pkpm_ho_wslot) evaluated there (degree <= 2 tensor Legendre modes
-// k = k0 + 3 k1 + 9 k2), theta, b and the closures.
-static void
-node_values(
-  struct test_setup *s, long cidx, const double *z, const struct gkyl_array *alpha_0,
-  const struct gkyl_array *c_h, double *nv
-)
-{
-  int cdim = s->cdim, nc = s->cbasis.num_basis, n2 = 1;
-  for (int d = 0; d < cdim; ++d) {
-    n2 *= 3;
-  }
-  const double *coef = gkyl_array_cfetch(s->hcoef, cidx);
-  for (int sl = 0; sl < PKPM_HS_W_END; ++sl) {
-    double v = 0.0;
-    for (int k = 0; k < n2; ++k) {
-      double ph = 1.0;
-      for (int d = 0, kk = k; d < cdim; ++d, kk /= 3) {
-        ph *= leg2(kk % 3, z[d]);
-      }
-      v += ph * coef[pkpm_ho_wslot[sl] * n2 + k];
-    }
-    nv[sl] = v;
-  }
-  const double *b = gkyl_array_cfetch(s->bvar, cidx);
-  nv[PKPM_HS_NODE_THETA] = s->cbasis.eval_expand(z, gkyl_array_cfetch(s->theta, cidx));
-  for (int a = 0; a < 3; ++a) {
-    nv[PKPM_HS_NODE_B + a] = s->cbasis.eval_expand(z, &b[a * nc]);
-  }
-  nv[PKPM_HS_NODE_A0] = s->cbasis.eval_expand(z, gkyl_array_cfetch(alpha_0, cidx));
-  nv[PKPM_HS_NODE_CH] = s->cbasis.eval_expand(z, gkyl_array_cfetch(c_h, cidx));
+  gkyl_array_release(s->hwn);
+  gkyl_array_release(s->hwc);
 }
 
 // Pointwise first-harmonic coefficients at reference point z of cell cidx (the definitions of
@@ -413,9 +377,62 @@ conf_coeffs(struct test_setup *s, long cidx, const double *z, struct pkpm_harm_c
     s->cbasis.eval_expand(z, gkyl_array_cfetch(s->theta, cidx)), dq, guq, gbq, gxq, 0, 0.0, 0);
 }
 
+// Node values of the w flux at reference point z of cell cidx (PKPM_HS_NODE_NV): the w-flux
+// coefficients from the pointwise definitions of gkyl_pkpm_harm_coeffs.h (conf_coeffs; the build
+// writes these raw values at its nodes), theta, b, the closures and the spectrum part of the bounds.
+static void
+node_values(
+  struct test_setup *s, long cidx, const double *z, const struct gkyl_array *alpha_0,
+  const struct gkyl_array *c_h, double *nv
+)
+{
+  int nc = s->cbasis.num_basis;
+  struct pkpm_harm_coeffs hc;
+  conf_coeffs(s, cidx, z, &hc);
+  double th = hc.theta, th2 = th * th, t[2][3], R[3][3];
+  pkpm_harm_t(&hc, 0.0, t[0]);
+  for (int a = 0; a < 3; ++a) {
+    t[1][a] = hc.t1[a];
+  }
+  for (int c = 0; c < 3; ++c) {
+    double e[3] = {0.0}, Re[3];
+    e[c] = 1.0;
+    pkpm_harm_rb1(&hc, e, Re);
+    for (int a = 0; a < 3; ++a) {
+      R[a][c] = Re[a];
+    }
+  }
+  nv[PKPM_HS_KW] = -hc.K;
+  nv[PKPM_HS_BG] = -hc.bg;
+  for (int a = 0; a < 3; ++a) {
+    for (int j = 0; j < 2; ++j) {
+      nv[PKPM_HS_TF(a, j)] = t[j][a];
+      nv[PKPM_HS_TG(a, j)] = t[j][a];
+      nv[PKPM_HS_TM(a, j)] = t[j][a];
+      nv[PKPM_HS_TNG(a, j)] = 4.0 * th * t[j][a];
+      nv[PKPM_HS_TNF(a, j)] = -2.0 * th2 * t[j][a];
+    }
+    for (int c = 0; c < 3; ++c) {
+      nv[PKPM_HS_RMN(a, c)] = R[a][c];
+      nv[PKPM_HS_RNN(a, c)] = 6.0 * th * R[a][c];
+      nv[PKPM_HS_RNM(a, c)] = -6.0 * th2 * R[a][c];
+    }
+  }
+  nv[PKPM_HS_BF] = hc.beta;
+  nv[PKPM_HS_BGG] = 4.0 * th * hc.beta;
+  nv[PKPM_HS_BGF] = -2.0 * th2 * hc.beta;
+  const double *b = gkyl_array_cfetch(s->bvar, cidx);
+  nv[PKPM_HS_NODE_THETA] = th;
+  for (int a = 0; a < 3; ++a) {
+    nv[PKPM_HS_NODE_B + a] = s->cbasis.eval_expand(z, &b[a * nc]);
+  }
+  nv[PKPM_HS_NODE_A0] = s->cbasis.eval_expand(z, gkyl_array_cfetch(alpha_0, cidx));
+  nv[PKPM_HS_NODE_CH] = s->cbasis.eval_expand(z, gkyl_array_cfetch(c_h, cidx));
+  pkpm_harm_node_spec(nv);
+}
+
 // Independent reference of the stored v_par flux on the lower face of cell idx (idx_l is the cell
-// below): the HLL flux of the node values of the stored coefficients (node_values,
-// pkpm_harm_node_wflux) at the 5-point Gauss-Legendre nodes of every configuration direction,
+// below): the HLL flux of the pointwise node values (node_values, pkpm_harm_node_wflux) at the 5-point Gauss-Legendre nodes of every configuration direction,
 // projected with that rule. Returns the CFL speed estimate at the nodes.
 static double
 reference_vel_face(
@@ -473,6 +490,47 @@ reference_vel_face(
   return cfl_max;
 }
 
+// The raw w-flux values the build writes (gkyl_dg_pkpm_harm_vol_coef): at the 5^cdim w-face nodes
+// (node i0 + 5 i1 + 25 i2) and the 2^cdim closure nodes (j0 + 2 j1 + 4 j2) they are the pointwise
+// definitions of gkyl_pkpm_harm_coeffs.h (node_values) at those points.
+static void
+test_build_nodes(int cdim)
+{
+  struct test_setup s;
+  setup(&s, cdim);
+  const double gl2 = 1.0 / sqrt(3.0);
+  double max_err = 0.0, max_ref = 0.0;
+  struct gkyl_range_iter it;
+  gkyl_range_iter_init(&it, &s.clocal);
+  while (gkyl_range_iter_next(&it)) {
+    long cidx = gkyl_range_idx(&s.clocal_ext, it.idx);
+    const double *wn = gkyl_array_cfetch(s.hwn, cidx), *wc = gkyl_array_cfetch(s.hwc, cidx);
+    for (int set = 0; set < 2; ++set) {
+      int np1 = set == 0 ? 5 : 2, nn = 1;
+      for (int d = 0; d < cdim; ++d) {
+        nn *= np1;
+      }
+      for (int n = 0; n < nn; ++n) {
+        double z[3], nv[PKPM_HS_NODE_NV];
+        for (int d = 0, q = n; d < cdim; ++d, q /= np1) {
+          z[d] = set == 0 ? gl5_x[q % 5] : (q % 2 == 0 ? -gl2 : gl2);
+        }
+        node_values(&s, cidx, z, s.alpha_0, s.c_h, nv);
+        const double *raw = set == 0 ? &wn[n * PKPM_HS_W_END] : &wc[n * PKPM_HS_W_END];
+        for (int sl = 0; sl < PKPM_HS_W_END; ++sl) {
+          max_err = fmax(max_err, fabs(raw[sl] - nv[sl]));
+          max_ref = fmax(max_ref, fabs(nv[sl]));
+        }
+      }
+    }
+  }
+  TEST_CHECK(max_ref > 0.0);
+  TEST_CHECK(max_err < 1e-13 * max_ref);
+  TEST_MSG("cdim=%d: raw node values against the pointwise definitions, max error %g (max %g)", cdim,
+    max_err, max_ref);
+  teardown(&s);
+}
+
 static void
 test_vel_flux(int cdim)
 {
@@ -494,7 +552,7 @@ test_vel_flux(int cdim)
   gkyl_array_clear(flux, 1.0e30); // every interior face must be overwritten; the edge slot is left alone
   gkyl_array_clear(cflrate, 0.0);
   gkyl_dg_pkpm_vel_flux_surf_advance(
-    up, &s.clocal, &s.plocal, s.hcoef, s.theta, s.bvar, s.alpha_0, s.c_h, s.f, cflrate, flux
+    up, &s.clocal, &s.plocal, s.hwn, s.theta, s.bvar, s.alpha_0, s.c_h, s.f, cflrate, flux
   );
 
   double flux_ref[64];
@@ -537,12 +595,11 @@ test_vel_flux(int cdim)
   teardown(&s);
 }
 
-// The P2 property of the stored coefficients on the w faces: where the flux is upwind over the
-// whole face (alpha_0 large, every speed positive), the stored flux equals the exact Galerkin
-// projection of the POINTWISE flux alpha U_l + T(U_l) (pointwise coefficients of
-// gkyl_pkpm_harm_coeffs.h, integrated with 6 Gauss-Legendre points per configuration direction,
-// exact for its degree <= 11): the higher-degree parts of the coefficients are orthogonal to the
-// test function times the trace.
+// Exactness of the w faces: where the flux is upwind over the whole face (alpha_0 large, every
+// speed positive), the stored flux equals the exact Galerkin projection of the POINTWISE flux
+// alpha U_l + T(U_l) (pointwise coefficients of gkyl_pkpm_harm_coeffs.h, integrated with 6
+// Gauss-Legendre points per configuration direction): the face rule integrates the raw node
+// values exactly (degree 1 + 7 + 1 <= 9 per direction with 5 points).
 static void
 test_vel_flux_exact(int cdim)
 {
@@ -560,7 +617,7 @@ test_vel_flux_exact(int cdim)
   struct gkyl_array *flux = mkarr(8 * nc, s.plocal_ext.volume), *cflrate = mkarr(1, s.plocal_ext.volume);
   gkyl_array_clear(flux, 0.0);
   gkyl_array_clear(cflrate, 0.0);
-  gkyl_dg_pkpm_vel_flux_surf_advance(up, &s.clocal, &s.plocal, s.hcoef, s.theta, s.bvar, s.alpha_0, s.c_h,
+  gkyl_dg_pkpm_vel_flux_surf_advance(up, &s.clocal, &s.plocal, s.hwn, s.theta, s.bvar, s.alpha_0, s.c_h,
     s.f, cflrate, flux);
 
   static const double gl6_x[6] = {-0.9324695142031521, -0.6612093864662645, -0.2386191860831969,
@@ -826,7 +883,7 @@ test_m1_invariant(int cdim)
   gkyl_array_copy(c_h, s.c_h);
   gkyl_array_clear(c_0, 0.0);
   int num_null = gkyl_dg_calc_pkpm_vars_closure(
-    vars, &s.clocal, &s.plocal, &s.pgrid, moms, rhs_moms, s.bvar, s.hcoef, s.theta, s.f, c_0, a_P, c_h, a_perp,
+    vars, &s.clocal, &s.plocal, &s.pgrid, moms, rhs_moms, s.bvar, s.hwc, s.theta, s.f, c_0, a_P, c_h, a_perp,
     vflux, cflrate
   );
   TEST_CHECK(num_null == 0);
@@ -849,7 +906,7 @@ test_m1_invariant(int cdim)
 
   // Stage B (interior faces with the closures; the edge faces were set above).
   gkyl_dg_pkpm_vel_flux_surf_advance(
-    calc_vflux, &s.clocal, &s.plocal, s.hcoef, s.theta, s.bvar, a_P, c_h, s.f, cflrate, vflux
+    calc_vflux, &s.clocal, &s.plocal, s.hwn, s.theta, s.bvar, a_P, c_h, s.f, cflrate, vflux
   );
   struct gkyl_dg_pkpm_kinetic_vel_inp binp = {
     .conf_basis = &s.cbasis,
@@ -918,6 +975,9 @@ test_m1_invariant(int cdim)
   teardown(&s);
 }
 
+void test_build_nodes_1x() { test_build_nodes(1); }
+void test_build_nodes_2x() { test_build_nodes(2); }
+void test_build_nodes_3x() { test_build_nodes(3); }
 void test_vel_flux_1x() { test_vel_flux(1); }
 void test_vel_flux_exact_1x() { test_vel_flux_exact(1); }
 void test_vel_flux_exact_2x() { test_vel_flux_exact(2); }
@@ -1020,12 +1080,12 @@ test_edge_closure(int cdim)
     gkyl_array_clear(vflux, 0.0);
     gkyl_array_clear(cflrate, 0.0);
     int num_null = gkyl_dg_calc_pkpm_vars_closure(
-      vars, &s.clocal, &s.plocal, &s.pgrid, moms, rhs_moms, s.bvar, s.hcoef, s.theta, s.f, s.c_0, s.alpha_0,
+      vars, &s.clocal, &s.plocal, &s.pgrid, moms, rhs_moms, s.bvar, s.hwc, s.theta, s.f, s.c_0, s.alpha_0,
       s.c_h, s.a_perp, vflux, cflrate
     );
     TEST_CHECK(num_null == 0);
     gkyl_dg_pkpm_vel_flux_surf_advance(
-      calc_vflux, &s.clocal, &s.plocal, s.hcoef, s.theta, s.bvar, s.alpha_0, s.c_h, s.f, cflrate, vflux
+      calc_vflux, &s.clocal, &s.plocal, s.hwn, s.theta, s.bvar, s.alpha_0, s.c_h, s.f, cflrate, vflux
     );
     gkyl_array_clear(rhs, 0.0);
     gkyl_hyper_dg_advance(slvr_b, &s.plocal, s.f, cflrate, rhs);
@@ -1168,6 +1228,9 @@ void test_transverse_3x() { test_transverse(3); }
 TEST_LIST = {
   {"test_edge_closure_1x", test_edge_closure_1x},
   {"test_edge_closure_2x", test_edge_closure_2x},
+  {"test_build_nodes_1x", test_build_nodes_1x},
+  {"test_build_nodes_2x", test_build_nodes_2x},
+  {"test_build_nodes_3x", test_build_nodes_3x},
   {"test_vel_flux_1x", test_vel_flux_1x},
   {"test_vel_flux_2x", test_vel_flux_2x},
   {"test_vel_flux_3x", test_vel_flux_3x},

@@ -29,7 +29,7 @@ typedef void (*pkpm_diag_t)(
 
 typedef int (*pkpm_closure_t)(
   double w_lo, double w_up, double dv, const double *norm_moms, const double *rhs_moms, const double *bvar,
-  const double *coef, const double *theta, const double *alpha_0_prev, const double *c_h_prev,
+  const double *wc, const double *theta, const double *alpha_0_prev, const double *c_h_prev,
   const double *f_lo, const double *f_up, double *GKYL_RESTRICT c_0, double *GKYL_RESTRICT alpha_0,
   double *GKYL_RESTRICT c_h, double *GKYL_RESTRICT a_perp, double *GKYL_RESTRICT flux_lo,
   double *GKYL_RESTRICT flux_up, double *GKYL_RESTRICT cfl, double *GKYL_RESTRICT cond

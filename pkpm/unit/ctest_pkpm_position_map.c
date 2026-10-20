@@ -415,10 +415,14 @@ advance(struct sim *s)
     .pos_map = s->pos_map, .use_gpu = false});
   {
     struct gkyl_array *hcoef = mkarr(gkyl_dg_pkpm_harm_vol_num_coef(harm), s->clocal_ext.volume);
+    struct gkyl_array *hwn = mkarr(gkyl_dg_pkpm_harm_vol_num_wnode(harm), s->clocal_ext.volume);
+    struct gkyl_array *hwc = mkarr(gkyl_dg_pkpm_harm_vol_num_wclos(harm), s->clocal_ext.volume);
     gkyl_dg_pkpm_harm_vol_coef(harm, &s->clocal, s->bvar, s->grad_b, s->u, s->grad_u, s->xi,
-      s->grad_xi, s->grad_ln_n, s->theta, s->dtb, s->em, hcoef);
+      s->grad_xi, s->grad_ln_n, s->theta, s->dtb, s->em, hcoef, hwn, hwc);
     gkyl_dg_pkpm_harm_vol_advance(harm, &s->clocal, &s->plocal, hcoef, s->f, s->kin_cfl, s->kin_rhs);
     gkyl_array_release(hcoef);
+    gkyl_array_release(hwn);
+    gkyl_array_release(hwc);
   }
   gkyl_dg_pkpm_harm_vol_release(harm);
 

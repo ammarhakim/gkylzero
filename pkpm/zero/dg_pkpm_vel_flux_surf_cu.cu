@@ -17,7 +17,7 @@ extern "C" {
 __global__ void
 gkyl_dg_pkpm_vel_flux_surf_advance_cu_kernel(
   struct gkyl_dg_pkpm_vel_flux_surf *up, struct gkyl_range conf_range, struct gkyl_range phase_range,
-  const struct gkyl_array *coef, const struct gkyl_array *theta, const struct gkyl_array *bvar,
+  const struct gkyl_array *wnode, const struct gkyl_array *theta, const struct gkyl_array *bvar,
   const struct gkyl_array *alpha_0, const struct gkyl_array *c_h, const struct gkyl_array *fin,
   struct gkyl_array *cflrate, struct gkyl_array *vel_flux_surf
 )
@@ -30,7 +30,7 @@ gkyl_dg_pkpm_vel_flux_surf_advance_cu_kernel(
        linc += gridDim.x * blockDim.x) {
     gkyl_sub_range_inv_idx(&conf_range, linc, idx);
     long cidx = gkyl_range_idx(&conf_range, idx);
-    pkpm_vf_node_values(up, (const double *)gkyl_array_cfetch(coef, cidx),
+    up->vel_nodes((const double *)gkyl_array_cfetch(wnode, cidx),
       (const double *)gkyl_array_cfetch(theta, cidx), (const double *)gkyl_array_cfetch(bvar, cidx),
       (const double *)gkyl_array_cfetch(alpha_0, cidx), (const double *)gkyl_array_cfetch(c_h, cidx), nv);
     gkyl_copy_int_arr(cdim, idx, idx_l);
@@ -49,13 +49,13 @@ gkyl_dg_pkpm_vel_flux_surf_advance_cu_kernel(
 void
 gkyl_dg_pkpm_vel_flux_surf_advance_cu(
   struct gkyl_dg_pkpm_vel_flux_surf *up, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, const struct gkyl_array *coef, const struct gkyl_array *theta,
+  const struct gkyl_range *phase_range, const struct gkyl_array *wnode, const struct gkyl_array *theta,
   const struct gkyl_array *bvar, const struct gkyl_array *alpha_0, const struct gkyl_array *c_h,
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *vel_flux_surf
 )
 {
   gkyl_dg_pkpm_vel_flux_surf_advance_cu_kernel<<<conf_range->nblocks, conf_range->nthreads>>>(
-    up->on_dev, *conf_range, *phase_range, coef->on_dev, theta->on_dev, bvar->on_dev, alpha_0->on_dev,
+    up->on_dev, *conf_range, *phase_range, wnode->on_dev, theta->on_dev, bvar->on_dev, alpha_0->on_dev,
     c_h->on_dev, fin->on_dev, cflrate->on_dev, vel_flux_surf->on_dev
   );
 }
@@ -65,6 +65,7 @@ dg_pkpm_vel_flux_surf_set_cu_dev_ptrs(
   struct gkyl_dg_pkpm_vel_flux_surf *up, enum gkyl_basis_type b_type, int cdim, int poly_order
 )
 {
+  up->vel_nodes = ser_pkpm_vel_flux_nodes_kernels[cdim - 1];
   up->vel_flux = choose_pkpm_vel_flux_kern(b_type, cdim, poly_order);
 }
 

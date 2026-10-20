@@ -271,6 +271,8 @@ struct pkpm_species {
   struct gkyl_array *vel_flux_surf; // stored modal v_par kinetic fluxes
   struct gkyl_dg_pkpm_harm_vol *harm_vol; // modal volume integrals of the first-harmonic terms (stage A)
   struct gkyl_array *harm_coef; // stored operator of the stage (gkyl_pkpm_harm_ops.h)
+  struct gkyl_array *harm_wnode; // raw w-flux values of the stage at the w-face nodes
+  struct gkyl_array *harm_wclos; // raw w-flux values of the stage at the closure nodes
   struct gkyl_array *fluid_flux_surf; // stored modal fluid fluxes [F_rho, F_x, F_y, F_z, F_E]
   struct gkyl_array *
     integ_pkpm_mom; // integrated PKPM variables [rho, rho ux, rho uy, rho uz, rho ux^2, rho uy^2, rho uz^2, p_par, p_perp]

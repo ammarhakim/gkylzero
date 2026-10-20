@@ -55,7 +55,28 @@ struct gkyl_dg_pkpm_harm_vol *gkyl_dg_pkpm_harm_vol_cu_dev_inew(
 int gkyl_dg_pkpm_harm_vol_num_coef(const struct gkyl_dg_pkpm_harm_vol *up);
 
 /**
- * Build the stored operator of the configuration cells of conf_range.
+ * Number of components per configuration cell of the raw w-flux values at the w-face nodes
+ * (PKPM_HS_W_END values at each of the 5^cdim nodes; gkyl_pkpm_harm_slots.h).
+ *
+ * @param up Updater.
+ * @return Number of components.
+ */
+int gkyl_dg_pkpm_harm_vol_num_wnode(const struct gkyl_dg_pkpm_harm_vol *up);
+
+/**
+ * Number of components per configuration cell of the raw w-flux values at the closure nodes
+ * (PKPM_HS_W_END values at each of the 2^cdim Gauss-Legendre nodes).
+ *
+ * @param up Updater.
+ * @return Number of components.
+ */
+int gkyl_dg_pkpm_harm_vol_num_wclos(const struct gkyl_dg_pkpm_harm_vol *up);
+
+/**
+ * Build the stored operator of the configuration cells of conf_range, and the raw values of the
+ * w-flux coefficients (the same pointwise products, before projection) at the w-face nodes and at
+ * the closure nodes: the speeds, the branch of the HLL flux and the closure see the actual local
+ * operator there.
  *
  * @param up Updater.
  * @param conf_range Configuration-space range of the cells to build.
@@ -70,13 +91,16 @@ int gkyl_dg_pkpm_harm_vol_num_coef(const struct gkyl_dg_pkpm_harm_vol *up);
  * @param dtB_over_magB d_t B/|B| of the stage.
  * @param em Total physical electromagnetic field of the stage (B at component 3).
  * @param coef Output coefficients (gkyl_dg_pkpm_harm_vol_num_coef components).
+ * @param wnode Output w-flux values at the w-face nodes (gkyl_dg_pkpm_harm_vol_num_wnode components).
+ * @param wclos Output w-flux values at the closure nodes (gkyl_dg_pkpm_harm_vol_num_wclos components).
  */
 void gkyl_dg_pkpm_harm_vol_coef(
   const struct gkyl_dg_pkpm_harm_vol *up, const struct gkyl_range *conf_range,
   const struct gkyl_array *bvar, const struct gkyl_array *grad_b, const struct gkyl_array *u,
   const struct gkyl_array *grad_u, const struct gkyl_array *xi, const struct gkyl_array *grad_xi,
   const struct gkyl_array *grad_ln_n, const struct gkyl_array *theta,
-  const struct gkyl_array *dtB_over_magB, const struct gkyl_array *em, struct gkyl_array *coef
+  const struct gkyl_array *dtB_over_magB, const struct gkyl_array *em, struct gkyl_array *coef,
+  struct gkyl_array *wnode, struct gkyl_array *wclos
 );
 
 /**
@@ -87,7 +111,8 @@ void gkyl_dg_pkpm_harm_vol_coef_cu(
   const struct gkyl_array *bvar, const struct gkyl_array *grad_b, const struct gkyl_array *u,
   const struct gkyl_array *grad_u, const struct gkyl_array *xi, const struct gkyl_array *grad_xi,
   const struct gkyl_array *grad_ln_n, const struct gkyl_array *theta,
-  const struct gkyl_array *dtB_over_magB, const struct gkyl_array *em, struct gkyl_array *coef
+  const struct gkyl_array *dtB_over_magB, const struct gkyl_array *em, struct gkyl_array *coef,
+  struct gkyl_array *wnode, struct gkyl_array *wclos
 );
 
 /**

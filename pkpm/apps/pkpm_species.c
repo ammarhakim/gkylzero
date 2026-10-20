@@ -305,6 +305,8 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   };
   s->harm_vol = gkyl_dg_pkpm_harm_vol_inew(&harm_vol_inp);
   s->harm_coef = mkarr(app->use_gpu, gkyl_dg_pkpm_harm_vol_num_coef(s->harm_vol), app->local_ext.volume);
+  s->harm_wnode = mkarr(app->use_gpu, gkyl_dg_pkpm_harm_vol_num_wnode(s->harm_vol), app->local_ext.volume);
+  s->harm_wclos = mkarr(app->use_gpu, gkyl_dg_pkpm_harm_vol_num_wclos(s->harm_vol), app->local_ext.volume);
   struct gkyl_dg_pkpm_kinetic_vel_inp kinetic_vel_inp = {
     .conf_basis = &app->confBasis,
     .phase_basis = &app->basis,
@@ -823,7 +825,8 @@ pkpm_species_kinetic_conf_pass(
   gkyl_dg_pkpm_harm_vol_coef(
     species->harm_vol, &app->local, app->field->bvar, app->field->grad_b, species->pkpm_u,
     species->pkpm_grad_u, species->pkpm_xi, species->pkpm_grad_xi, species->pkpm_grad_ln_n,
-    species->pkpm_theta, app->field->dtB_over_magB, app->field->tot_em, species->harm_coef
+    species->pkpm_theta, app->field->dtB_over_magB, app->field->tot_em, species->harm_coef,
+    species->harm_wnode, species->harm_wclos
   );
   gkyl_dg_pkpm_harm_vol_advance(
     species->harm_vol, &app->local, &species->local, species->harm_coef, fin, species->cflrate_f, rhs
@@ -873,7 +876,7 @@ pkpm_species_kinetic_closure(gkyl_pkpm_app *app, struct pkpm_species *species, c
   );
   int num_null = gkyl_dg_calc_pkpm_vars_closure(
     species->calc_pkpm_vars, &app->local, &species->local, &species->grid, species->pkpm_nmoms.marr,
-    species->pkpm_rhs_moms, app->field->bvar, species->harm_coef, species->pkpm_theta, fin,
+    species->pkpm_rhs_moms, app->field->bvar, species->harm_wclos, species->pkpm_theta, fin,
     species->pkpm_c_0, species->pkpm_alpha_0, species->pkpm_c_h, species->pkpm_a_perp,
     species->vel_flux_surf, species->cflrate_f
   );
@@ -939,7 +942,7 @@ pkpm_species_rhs(
   }
   pkpm_species_kinetic_closure(app, species, fin, rhs_f);
   gkyl_dg_pkpm_vel_flux_surf_advance(
-    species->calc_vel_flux, &app->local, &species->local, species->harm_coef, species->pkpm_theta,
+    species->calc_vel_flux, &app->local, &species->local, species->harm_wnode, species->pkpm_theta,
     app->field->bvar, species->pkpm_alpha_0, species->pkpm_c_h, fin,
     species->cflrate_f, species->vel_flux_surf
   );
@@ -1268,6 +1271,8 @@ pkpm_species_release(const gkyl_pkpm_app *app, const struct pkpm_species *s)
   gkyl_dg_pkpm_vel_flux_surf_release(s->calc_vel_flux);
   gkyl_dg_pkpm_harm_vol_release(s->harm_vol);
   gkyl_array_release(s->harm_coef);
+  gkyl_array_release(s->harm_wnode);
+  gkyl_array_release(s->harm_wclos);
   gkyl_dg_pkpm_fluid_flux_surf_release(s->calc_fluid_flux);
   gkyl_hyper_dg_release(s->slvr_kinetic_conf);
   gkyl_hyper_dg_release(s->slvr_kinetic_vel);

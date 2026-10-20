@@ -76,7 +76,7 @@ void gkyl_dg_calc_pkpm_vars_grad_u(
  *                      distributions
  * @param rhs_moms      The same moments of the configuration-pass right-hand side
  * @param bvar          Magnetic field unit vector
- * @param coef          Stored operator of the stage (gkyl_dg_pkpm_harm_vol_coef)
+ * @param wclos         Raw w-flux values at the closure nodes (gkyl_dg_pkpm_harm_vol_coef)
  * @param theta         T_perp/T
  * @param fin           Normalized distributions [F, G, M0_perp, N_perp]
  * @param c_0           Output normalization closure (input: previous stage)
@@ -93,7 +93,7 @@ void gkyl_dg_calc_pkpm_vars_grad_u(
 int gkyl_dg_calc_pkpm_vars_closure(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_rect_grid *phase_grid, const struct gkyl_array *norm_moms, const struct gkyl_array *rhs_moms,
-  const struct gkyl_array *bvar, const struct gkyl_array *coef, const struct gkyl_array *theta,
+  const struct gkyl_array *bvar, const struct gkyl_array *wclos, const struct gkyl_array *theta,
   const struct gkyl_array *fin,
   struct gkyl_array *c_0, struct gkyl_array *alpha_0, struct gkyl_array *c_h, struct gkyl_array *a_perp,
   struct gkyl_array *vel_flux_surf, struct gkyl_array *cflrate
@@ -318,7 +318,7 @@ void gkyl_dg_calc_pkpm_vars_release(struct gkyl_dg_calc_pkpm_vars *up);
 int gkyl_dg_calc_pkpm_vars_closure_cu(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_rect_grid *phase_grid, const struct gkyl_array *norm_moms, const struct gkyl_array *rhs_moms,
-  const struct gkyl_array *bvar, const struct gkyl_array *coef, const struct gkyl_array *theta,
+  const struct gkyl_array *bvar, const struct gkyl_array *wclos, const struct gkyl_array *theta,
   const struct gkyl_array *fin,
   struct gkyl_array *c_0, struct gkyl_array *alpha_0, struct gkyl_array *c_h, struct gkyl_array *a_perp,
   struct gkyl_array *vel_flux_surf, struct gkyl_array *cflrate

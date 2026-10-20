@@ -78,19 +78,37 @@ gkyl_dg_pkpm_harm_vol_num_coef(const struct gkyl_dg_pkpm_harm_vol *up)
   return up->nop * up->n2;
 }
 
+int
+gkyl_dg_pkpm_harm_vol_num_wnode(const struct gkyl_dg_pkpm_harm_vol *up)
+{
+  int nn = 1;
+  for (int d = 0; d < up->cdim; ++d) {
+    nn *= 5;
+  }
+  return PKPM_HS_W_END * nn;
+}
+
+int
+gkyl_dg_pkpm_harm_vol_num_wclos(const struct gkyl_dg_pkpm_harm_vol *up)
+{
+  return PKPM_HS_W_END * (1 << up->cdim);
+}
+
 void
 gkyl_dg_pkpm_harm_vol_coef(
   const struct gkyl_dg_pkpm_harm_vol *up, const struct gkyl_range *conf_range,
   const struct gkyl_array *bvar, const struct gkyl_array *grad_b, const struct gkyl_array *u,
   const struct gkyl_array *grad_u, const struct gkyl_array *xi, const struct gkyl_array *grad_xi,
   const struct gkyl_array *grad_ln_n, const struct gkyl_array *theta,
-  const struct gkyl_array *dtB_over_magB, const struct gkyl_array *em, struct gkyl_array *coef
+  const struct gkyl_array *dtB_over_magB, const struct gkyl_array *em, struct gkyl_array *coef,
+  struct gkyl_array *wnode, struct gkyl_array *wclos
 )
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(coef)) {
     gkyl_dg_pkpm_harm_vol_coef_cu(
-      up, conf_range, bvar, grad_b, u, grad_u, xi, grad_xi, grad_ln_n, theta, dtB_over_magB, em, coef
+      up, conf_range, bvar, grad_b, u, grad_u, xi, grad_xi, grad_ln_n, theta, dtB_over_magB, em, coef,
+      wnode, wclos
     );
     return;
   }
@@ -102,7 +120,8 @@ gkyl_dg_pkpm_harm_vol_coef(
     up->build_kern(up->qbym, gkyl_array_cfetch(bvar, cidx), gkyl_array_cfetch(grad_b, cidx),
       gkyl_array_cfetch(u, cidx), gkyl_array_cfetch(grad_u, cidx), gkyl_array_cfetch(xi, cidx),
       gkyl_array_cfetch(grad_xi, cidx), gkyl_array_cfetch(grad_ln_n, cidx), gkyl_array_cfetch(theta, cidx),
-      gkyl_array_cfetch(dtB_over_magB, cidx), gkyl_array_cfetch(em, cidx), gkyl_array_fetch(coef, cidx));
+      gkyl_array_cfetch(dtB_over_magB, cidx), gkyl_array_cfetch(em, cidx), gkyl_array_fetch(coef, cidx),
+      gkyl_array_fetch(wnode, cidx), gkyl_array_fetch(wclos, cidx));
   }
 }
 
@@ -169,7 +188,8 @@ gkyl_dg_pkpm_harm_vol_coef_cu(
   const struct gkyl_array *bvar, const struct gkyl_array *grad_b, const struct gkyl_array *u,
   const struct gkyl_array *grad_u, const struct gkyl_array *xi, const struct gkyl_array *grad_xi,
   const struct gkyl_array *grad_ln_n, const struct gkyl_array *theta,
-  const struct gkyl_array *dtB_over_magB, const struct gkyl_array *em, struct gkyl_array *coef
+  const struct gkyl_array *dtB_over_magB, const struct gkyl_array *em, struct gkyl_array *coef,
+  struct gkyl_array *wnode, struct gkyl_array *wclos
 )
 {
   assert(false);

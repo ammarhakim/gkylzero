@@ -7,9 +7,6 @@
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_dg_pkpm_vel_flux_surf.h>
 #include <gkyl_dg_pkpm_vel_flux_surf_priv.h>
-#include <gkyl_pkpm_flux_surf_tables_1x1v_p1.h>
-#include <gkyl_pkpm_flux_surf_tables_2x1v_p1.h>
-#include <gkyl_pkpm_flux_surf_tables_3x1v_p1.h>
 #include <gkyl_util.h>
 
 void
@@ -26,35 +23,6 @@ gkyl_dg_pkpm_vel_flux_surf_setup(
   up->use_gpu = inp->use_gpu;
   // The surface basis of the v_par face is the p=1 configuration basis.
   up->num_surf_basis = inp->conf_basis->num_basis;
-  up->nc = inp->conf_basis->num_basis;
-  up->n2 = 1;
-  up->nnode = 1;
-  for (int d = 0; d < cdim; ++d) {
-    up->n2 *= 3;
-    up->nnode *= 5;
-  }
-  // the face nodes of the kernels (table header): the tensor product of the 1D nodes, the last
-  // direction fastest (checked), and the bases there
-  const double *nodes = cdim == 1 ? vst_pkpm_1x1v_p1_conf_nodes :
-    cdim == 2 ? vst_pkpm_2x1v_p1_conf_nodes : vst_pkpm_3x1v_p1_conf_nodes;
-  const double *cev = cdim == 1 ? vst_pkpm_1x1v_p1_conf_ev :
-    cdim == 2 ? vst_pkpm_2x1v_p1_conf_ev : vst_pkpm_3x1v_p1_conf_ev;
-  int stride0 = up->nnode / 5; // node stride of the first direction
-  for (int i = 0; i < 5; ++i) {
-    double z = nodes[i * stride0 * cdim];
-    // orthonormal Legendre polynomials of degree 0, 1, 2
-    up->e1[i][0] = 0.7071067811865475;
-    up->e1[i][1] = 1.224744871391589 * z;
-    up->e1[i][2] = 0.7905694150420949 * (3.0 * z * z - 1.0);
-  }
-  for (int i = 0; i < up->nnode; ++i) {
-    for (int d = 0, str = stride0; d < cdim; ++d, str /= 5) {
-      assert(nodes[i * cdim + d] == nodes[((i / str) % 5) * stride0 * cdim]);
-    }
-    for (int a = 0; a < up->nc; ++a) {
-      up->ev[i][a] = cev[i * up->nc + a];
-    }
-  }
 }
 
 gkyl_dg_pkpm_vel_flux_surf *
@@ -67,6 +35,7 @@ gkyl_dg_pkpm_vel_flux_surf_inew(const struct gkyl_dg_pkpm_vel_flux_surf_inp *inp
 #endif
   struct gkyl_dg_pkpm_vel_flux_surf *up = gkyl_malloc(sizeof(*up));
   gkyl_dg_pkpm_vel_flux_surf_setup(up, inp);
+  up->vel_nodes = ser_pkpm_vel_flux_nodes_kernels[up->cdim - 1];
   up->vel_flux =
     choose_pkpm_vel_flux_kern(inp->conf_basis->b_type, up->cdim, inp->conf_basis->poly_order);
   up->flags = 0;
@@ -78,7 +47,7 @@ gkyl_dg_pkpm_vel_flux_surf_inew(const struct gkyl_dg_pkpm_vel_flux_surf_inp *inp
 void
 gkyl_dg_pkpm_vel_flux_surf_advance(
   struct gkyl_dg_pkpm_vel_flux_surf *up, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, const struct gkyl_array *coef, const struct gkyl_array *theta,
+  const struct gkyl_range *phase_range, const struct gkyl_array *wnode, const struct gkyl_array *theta,
   const struct gkyl_array *bvar, const struct gkyl_array *alpha_0, const struct gkyl_array *c_h,
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *vel_flux_surf
 )
@@ -86,7 +55,7 @@ gkyl_dg_pkpm_vel_flux_surf_advance(
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(vel_flux_surf)) {
     return gkyl_dg_pkpm_vel_flux_surf_advance_cu(
-      up, conf_range, phase_range, coef, theta, bvar, alpha_0, c_h, fin, cflrate, vel_flux_surf
+      up, conf_range, phase_range, wnode, theta, bvar, alpha_0, c_h, fin, cflrate, vel_flux_surf
     );
   }
 #endif
@@ -99,7 +68,7 @@ gkyl_dg_pkpm_vel_flux_surf_advance(
   while (gkyl_range_iter_next(&citer)) {
     long cidx = gkyl_range_idx(conf_range, citer.idx);
     // the node values of the configuration cell, once for all its velocity faces
-    pkpm_vf_node_values(up, gkyl_array_cfetch(coef, cidx), gkyl_array_cfetch(theta, cidx),
+    up->vel_nodes(gkyl_array_cfetch(wnode, cidx), gkyl_array_cfetch(theta, cidx),
       gkyl_array_cfetch(bvar, cidx), gkyl_array_cfetch(alpha_0, cidx), gkyl_array_cfetch(c_h, cidx), nv);
     gkyl_copy_int_arr(cdim, citer.idx, idx);
     gkyl_copy_int_arr(cdim, citer.idx, idx_l);
@@ -143,7 +112,7 @@ gkyl_dg_pkpm_vel_flux_surf_cu_dev_inew(const struct gkyl_dg_pkpm_vel_flux_surf_i
 void
 gkyl_dg_pkpm_vel_flux_surf_advance_cu(
   struct gkyl_dg_pkpm_vel_flux_surf *up, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, const struct gkyl_array *coef, const struct gkyl_array *theta,
+  const struct gkyl_range *phase_range, const struct gkyl_array *wnode, const struct gkyl_array *theta,
   const struct gkyl_array *bvar, const struct gkyl_array *alpha_0, const struct gkyl_array *c_h,
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *vel_flux_surf
 )
