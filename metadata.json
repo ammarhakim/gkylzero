@@ -1,0 +1,48 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M5CSN8MEANFY9VQX5ZQT19WJ",
+  "strategy": "manual-commit",
+  "branch": "debug-nunif-grid-rtg33",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "gyrokinetic/apps/gyrokinetic.c",
+    "gyrokinetic/ker/dg_gyrokinetic/dg_gyrokinetic_no_by_vol_2x2v_ser_p1.c",
+    "gyrokinetic/ker/dg_gyrokinetic/dg_gyrokinetic_no_by_vol_3x2v_ser_p1.c",
+    "gyrokinetic/ker/dg_gyrokinetic/dg_gyrokinetic_vol_1x1v_ser_p1.c",
+    "gyrokinetic/ker/dg_gyrokinetic/dg_gyrokinetic_vol_1x2v_ser_p1.c",
+    "gyrokinetic/ker/dg_gyrokinetic/dg_gyrokinetic_vol_2x2v_ser_p1.c",
+    "gyrokinetic/ker/dg_gyrokinetic/dg_gyrokinetic_vol_3x2v_ser_p1.c",
+    "gyrokinetic/ker/dg_gyrokinetic/gkyl_dg_gyrokinetic_kernels.h",
+    "gyrokinetic/ker/dg_gyrokinetic_passive/dg_gyrokinetic_passive_vol_1x1v_ser_p1.c",
+    "gyrokinetic/ker/dg_gyrokinetic_passive/dg_gyrokinetic_passive_vol_1x2v_ser_p1.c",
+    "gyrokinetic/ker/dg_gyrokinetic_passive/dg_gyrokinetic_passive_vol_2x2v_ser_p1.c",
+    "gyrokinetic/ker/dg_gyrokinetic_passive/dg_gyrokinetic_passive_vol_3x2v_ser_p1.c",
+    "gyrokinetic/ker/dg_gyrokinetic_passive/gkyl_dg_gyrokinetic_passive_kernels.h",
+    "gyrokinetic/unit/ctest_gk_geometry_mirror.c",
+    "gyrokinetic/zero/calc_metric.c",
+    "gyrokinetic/zero/calc_metric_mirror.c",
+    "gyrokinetic/zero/gk_geometry.c",
+    "gyrokinetic/zero/gk_geometry_cu.cu",
+    "gyrokinetic/zero/gkyl_dg_gyrokinetic_passive_priv.h",
+    "gyrokinetic/zero/gkyl_dg_gyrokinetic_priv.h",
+    "gyrokinetic/zero/gkyl_gk_geometry.h",
+    "gyrokinetic/zero/gkyl_gk_geometry_priv.h"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 75377,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 4472320,
+    "output_tokens": 10065,
+    "api_call_count": 79,
+    "subagent_tokens_complete": true
+  }
+}

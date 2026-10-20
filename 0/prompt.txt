@@ -1,0 +1,37 @@
+gyrokinetic/zero/calc_metric_mirror.c
+        // set B^3/B = 1/sqrt(g_33)
+        rtg33inv_n[0] = 1.0 / sqrt(gFld_n[5]);
+        // Signed B^3/|B| controls streaming along the third coordinate.
+        rtg33inv_n[0] = B3_n[0] / bmag_n[0];
+@manauref
+manauref
+15 hours ago
+• 
+Collaborator
+we should then change the name of rtg33inv throughout, because if this is allowed to be signed, it doesn't make sense to call it the (square) root of G^33. Maybe just call it B3overB.
+
+Note, I think you are gonna have to change the collisionless GK maxima and associated kernels. It's a bit of work, but it's important for these things to be consistent.
+
+please do this in a separate sub-PR into this branch, and a separate gkylcas PR
+
+I have already checked out a new branch. Do not make any commits. you can find gkylcas in ~/gkylcas. Do not open any PRs. Just make the changes  in the working trees and do not commit anything
+
+---
+
+gyrokinetic/zero/calc_metric_mirror.c
+        // set B^3/B = 1/sqrt(g_33)
+        rtg33inv_n[0] = 1.0 / sqrt(gFld_n[5]);
+        // Signed B^3/|B| controls streaming along the third coordinate.
+        rtg33inv_n[0] = B3_n[0] / bmag_n[0];
+@manauref
+manauref
+15 hours ago
+• 
+Collaborator
+we should then change the name of rtg33inv throughout, because if this is allowed to be signed, it doesn't make sense to call it the (square) root of G^33. Maybe just call it B3overB.
+
+Note, I think you are gonna have to change the collisionless GK maxima and associated kernels. It's a bit of work, but it's important for these things to be consistent.
+
+please do this in a separate sub-PR into this branch, and a separate gkylcas PR
+
+I have already checked out a new branch. Do not make any commits. you can find gkylcas in ~/gkylcas. Do not open any PRs. Just make the changes  in the working trees and do not commit anything
