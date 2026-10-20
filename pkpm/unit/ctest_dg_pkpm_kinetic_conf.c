@@ -306,13 +306,8 @@ make_eqn(struct test_setup *s, const struct gkyl_array *flux)
     .auxfields =
       {
         .bvar = s->bvar,
-        .grad_b = s->grad_b,
         .u = s->u,
-        .grad_u = s->grad_u,
         .xi = s->xi,
-        .grad_xi = s->grad_xi,
-        .grad_ln_n = s->grad_ln_n,
-        .theta = s->theta,
         .conf_flux_surf = flux,
       },
     .pos_map = s->pos_map, .use_gpu = false,
@@ -403,9 +398,8 @@ reference_harm_vol(struct test_setup *s, const int *idx, double *out_ref)
   }
 }
 
-// Independent evaluation of the two-field stage-A volume terms of one cell by 4-point
-// Gauss-Legendre quadrature in every phase-space direction (exact for every polynomial product
-// of the two-field kernel).
+// Independent evaluation of the stage-A volume terms of one cell, the streaming of every block, by
+// 4-point Gauss-Legendre quadrature in every phase-space direction (exact for the products).
 static void
 reference_vol(struct test_setup *s, const int *idx, double *out_ref)
 {
@@ -413,10 +407,7 @@ reference_vol(struct test_setup *s, const int *idx, double *out_ref)
   int nc = s->cbasis.num_basis, np = s->pbasis.num_basis;
   long cidx = gkyl_range_idx(&s->clocal_ext, idx), pidx = gkyl_range_idx(&s->plocal_ext, idx);
   const double *b = gkyl_array_cfetch(s->bvar, cidx), *u = gkyl_array_cfetch(s->u, cidx);
-  const double *gu = gkyl_array_cfetch(s->grad_u, cidx), *gb = gkyl_array_cfetch(s->grad_b, cidx);
-  const double *gln = gkyl_array_cfetch(s->grad_ln_n, cidx), *gxi = gkyl_array_cfetch(s->grad_xi, cidx);
   const double *xi = gkyl_array_cfetch(s->xi, cidx);
-  const double *th = gkyl_array_cfetch(s->theta, cidx);
   const double *f = gkyl_array_cfetch(s->f, pidx);
   double xc[4];
   gkyl_rect_grid_cell_center(&s->pgrid, idx, xc);
@@ -441,53 +432,16 @@ reference_vol(struct test_setup *s, const int *idx, double *out_ref)
       m /= 4;
     }
     double v = wv + 0.5 * dv * z[cdim];
-    double bq[3], uq[3], gradu[3][3];
+    double bq[3], uq[3];
     for (int i = 0; i < 3; ++i) {
       bq[i] = s->cbasis.eval_expand(z, &b[i * nc]);
       uq[i] = s->cbasis.eval_expand(z, &u[i * nc]);
-      for (int d = 0; d < 3; ++d) {
-        gradu[d][i] = d < cdim ? s->cbasis.eval_expand(z, &gu[(d * 3 + i) * nc]) : 0.0;
-      }
-    }
-    double K = 0.0, divb = 0.0, bgn = 0.0, bgx = 0.0;
-    for (int i = 0; i < 3; ++i) {
-      for (int j = 0; j < 3; ++j) {
-        K += bq[i] * bq[j] * gradu[i][j];
-      }
-    }
-    for (int d = 0; d < cdim; ++d) {
-      divb += s->cbasis.eval_expand(z, &gb[(d * 3 + d) * nc]);
-      bgn += bq[d] * s->cbasis.eval_expand(z, &gln[d * nc]);
-      bgx += bq[d] * s->cbasis.eval_expand(z, &gxi[(d * 3 + 0) * nc]);
     }
     double xiq = s->cbasis.eval_expand(z, xi);
-    double thq = s->cbasis.eval_expand(z, th);
-    double Fq = s->pbasis.eval_expand(z, &f[0]), Gq = s->pbasis.eval_expand(z, &f[np]);
-    double Hq = 4.0 * thq * Gq - 2.0 * thq * thq * Fq;
-    double src_F = -xiq * v * bgn * Fq;
-    // The density renormalization is the closure c_0 G of the velocity pass; only the
-    // perpendicular compression (K - div u) G is a source of this pass.
-    double divu = 0.0;
-    for (int d = 0; d < cdim; ++d) {
-      divu += gradu[d][d];
-    }
-    double src_G = (K - divu - xiq * v * divb - 2.0 * v * bgx - xiq * v * bgn) * Gq;
-
     for (int k = 0; k < np; ++k) {
       double unit[64] = {0.0};
       unit[k] = 1.0;
-      double phi = s->pbasis.eval_expand(z, unit);
-      double dphi_v = dx1[cdim] * s->pbasis.eval_grad_expand(cdim, z, unit);
-      double stream_F = 0.0, stream_G = 0.0;
-      for (int d = 0; d < cdim; ++d) {
-        double dphi = dx1[d] * s->pbasis.eval_grad_expand(d, z, unit);
-        stream_F += dphi * (xiq * v * bq[d] + uq[d]) * Fq;
-        stream_G += dphi * (xiq * v * bq[d] + uq[d]) * Gq;
-      }
-      out_ref[k] += w * (stream_F + dphi_v * (-(v * K + v * v * bgx) * Fq + xiq * divb * Gq) + phi * src_F);
-      out_ref[np + k] += w * (stream_G + dphi_v * (-(v * K + v * v * bgx) * Gq + xiq * divb * Hq) + phi * src_G);
-      // the first-harmonic blocks stream with the same operator
-      for (int c = 2; c < 8; ++c) {
+      for (int c = 0; c < 8; ++c) {
         double Xq = s->pbasis.eval_expand(z, &f[c * np]);
         for (int d = 0; d < cdim; ++d) {
           out_ref[c * np + k] += w * dx1[d] * s->pbasis.eval_grad_expand(d, z, unit) * (xiq * v * bq[d] + uq[d]) * Xq;

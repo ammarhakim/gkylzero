@@ -76,7 +76,7 @@ void gkyl_dg_calc_pkpm_vars_grad_u(
  *                      distributions
  * @param rhs_moms      The same moments of the configuration-pass right-hand side
  * @param bvar          Magnetic field unit vector
- * @param coef          Stored first-harmonic coefficients of the stage (gkyl_dg_pkpm_harm_vol_coef)
+ * @param coef          Stored operator of the stage (gkyl_dg_pkpm_harm_vol_coef)
  * @param theta         T_perp/T
  * @param fin           Normalized distributions [F, G, M0_perp, N_perp]
  * @param c_0           Output normalization closure (input: previous stage)

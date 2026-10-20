@@ -7,7 +7,7 @@ extern "C" {
 #include <gkyl_dg_pkpm_harm_vol_priv.h>
 }
 
-// One thread per configuration cell: its stored coefficients.
+// One thread per configuration cell: its stored operator.
 __global__ static void
 gkyl_dg_pkpm_harm_vol_coef_cu_kernel(
   const struct gkyl_dg_pkpm_harm_vol *up, struct gkyl_range conf_range, const struct gkyl_array *bvar,
@@ -22,7 +22,7 @@ gkyl_dg_pkpm_harm_vol_coef_cu_kernel(
        linc += gridDim.x * blockDim.x) {
     gkyl_sub_range_inv_idx(&conf_range, linc, idx);
     long cidx = gkyl_range_idx(&conf_range, idx);
-    pkpm_hm_build(up, (const double *)gkyl_array_cfetch(bvar, cidx),
+    up->build_kern(up->qbym, (const double *)gkyl_array_cfetch(bvar, cidx),
       (const double *)gkyl_array_cfetch(grad_b, cidx), (const double *)gkyl_array_cfetch(u, cidx),
       (const double *)gkyl_array_cfetch(grad_u, cidx), (const double *)gkyl_array_cfetch(xi, cidx),
       (const double *)gkyl_array_cfetch(grad_xi, cidx), (const double *)gkyl_array_cfetch(grad_ln_n, cidx),
@@ -56,14 +56,14 @@ gkyl_dg_pkpm_harm_vol_advance_cu_kernel(
 {
   int cdim = up->cdim;
   int idx[GKYL_MAX_DIM];
-  double ho[PKPM_HO_NOP_MAX * PKPM_HM_N2], mat[PKPM_HM_MAT], poly[PKPM_HM_MAXSRC][3];
+  double mat[PKPM_HM_MAT], poly[PKPM_HM_MAXSRC][3];
   double dw = up->phase_grid.dx[cdim];
   for (unsigned long linc = threadIdx.x + blockIdx.x * blockDim.x; linc < conf_range.volume;
        linc += gridDim.x * blockDim.x) {
     gkyl_sub_range_inv_idx(&conf_range, linc, idx);
     long cidx = gkyl_range_idx(&conf_range, idx);
-    // the stored operator of the configuration cell, its matrices and its source rate
-    pkpm_hm_pack(up, (const double *)gkyl_array_cfetch(coef, cidx), ho);
+    // the matrices of the stored operator of the configuration cell and its source rate
+    const double *ho = (const double *)gkyl_array_cfetch(coef, cidx);
     up->mat_kern(up->phase_grid.dx, (const double *)gkyl_array_cfetch(up->jacob_pos, cidx), ho, mat);
     pkpm_hm_rate_poly(up, ho, poly);
     for (int v = phase_range.lower[cdim]; v <= phase_range.upper[cdim]; ++v) {
@@ -95,6 +95,7 @@ gkyl_dg_pkpm_harm_vol_advance_cu(
 __global__ static void
 dg_pkpm_harm_vol_set_cu_dev_ptrs(struct gkyl_dg_pkpm_harm_vol *up, int cdim)
 {
+  up->build_kern = ser_pkpm_harm_build_kernels[cdim - 1];
   up->mat_kern = ser_pkpm_harm_mat_kernels[cdim - 1];
   up->vol_kern = ser_pkpm_harm_vol_kernels[cdim - 1];
 }

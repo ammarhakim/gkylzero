@@ -16,13 +16,8 @@ gkyl_dg_pkpm_kinetic_conf_set_auxfields_cu_kernel(
 {
   struct dg_pkpm_kinetic_conf *pkpm = container_of(eqn, struct dg_pkpm_kinetic_conf, eqn);
   pkpm->auxfields.bvar = auxin.bvar;
-  pkpm->auxfields.grad_b = auxin.grad_b;
   pkpm->auxfields.u = auxin.u;
-  pkpm->auxfields.grad_u = auxin.grad_u;
   pkpm->auxfields.xi = auxin.xi;
-  pkpm->auxfields.grad_xi = auxin.grad_xi;
-  pkpm->auxfields.grad_ln_n = auxin.grad_ln_n;
-  pkpm->auxfields.theta = auxin.theta;
   pkpm->auxfields.conf_flux_surf = auxin.conf_flux_surf;
 }
 
@@ -34,13 +29,8 @@ gkyl_dg_pkpm_kinetic_conf_set_auxfields_cu(
 {
   struct gkyl_dg_pkpm_kinetic_conf_auxfields auxin_dev = {
     .bvar = auxin.bvar ? auxin.bvar->on_dev : 0,
-    .grad_b = auxin.grad_b ? auxin.grad_b->on_dev : 0,
     .u = auxin.u ? auxin.u->on_dev : 0,
-    .grad_u = auxin.grad_u ? auxin.grad_u->on_dev : 0,
     .xi = auxin.xi ? auxin.xi->on_dev : 0,
-    .grad_xi = auxin.grad_xi ? auxin.grad_xi->on_dev : 0,
-    .grad_ln_n = auxin.grad_ln_n ? auxin.grad_ln_n->on_dev : 0,
-    .theta = auxin.theta ? auxin.theta->on_dev : 0,
     .conf_flux_surf = auxin.conf_flux_surf ? auxin.conf_flux_surf->on_dev : 0,
   };
   gkyl_dg_pkpm_kinetic_conf_set_auxfields_cu_kernel<<<1, 1>>>(eqn, auxin_dev);

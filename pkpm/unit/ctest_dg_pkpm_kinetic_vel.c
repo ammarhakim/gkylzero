@@ -22,6 +22,7 @@
 #include <gkyl_dg_updater_moment_pkpm.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_pkpm_harm_coeffs.h>
+#include <gkyl_pkpm_harm_ops.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -352,9 +353,9 @@ leg2(int n, double z)
   return n == 0 ? 1.0 / sqrt(2.0) : n == 1 ? sqrt(1.5) * z : sqrt(2.5) * 0.5 * (3.0 * z * z - 1.0);
 }
 
-// Node values of the w flux at reference point z of cell cidx (PKPM_HS_NODE_NV): the stored
-// coefficients evaluated there (degree <= 2 tensor Legendre modes k = k0 + 3 k1 + 9 k2), theta, b
-// and the closures.
+// Node values of the w flux at reference point z of cell cidx (PKPM_HS_NODE_NV): the w-flux entries
+// of the stored operator (pkpm_ho_wslot) evaluated there (degree <= 2 tensor Legendre modes
+// k = k0 + 3 k1 + 9 k2), theta, b and the closures.
 static void
 node_values(
   struct test_setup *s, long cidx, const double *z, const struct gkyl_array *alpha_0,
@@ -373,7 +374,7 @@ node_values(
       for (int d = 0, kk = k; d < cdim; ++d, kk /= 3) {
         ph *= leg2(kk % 3, z[d]);
       }
-      v += ph * coef[sl * n2 + k];
+      v += ph * coef[pkpm_ho_wslot[sl] * n2 + k];
     }
     nv[sl] = v;
   }
@@ -778,13 +779,8 @@ test_m1_invariant(int cdim)
     .auxfields =
       {
         .bvar = s.bvar,
-        .grad_b = s.grad_b,
         .u = s.u,
-        .grad_u = s.grad_u,
         .xi = s.xi,
-        .grad_xi = s.grad_xi,
-        .grad_ln_n = s.grad_ln_n,
-        .theta = s.theta,
         .conf_flux_surf = cflux,
       },
     .pos_map = s.pos_map, .use_gpu = false,

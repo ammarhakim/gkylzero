@@ -183,10 +183,10 @@ reference_terms(const struct point *p, double w, const double *Ux, struct ref_te
   double ak = -w * bUb - w * w * bg, gam = w * bg, sig = -w * bl;
   r->T[0] = beta * G + tM;
   r->T[1] = beta * H + tN;
-  r->flux[0] = tM;
-  r->flux[1] = tN;
-  r->src[0] = -lM;
-  r->src[1] = fM - l2gN;
+  r->flux[0] = ak * F + r->T[0];
+  r->flux[1] = ak * G + r->T[1];
+  r->src[0] = sig * F - lM;
+  r->src[1] = (bUb - trU - w * (beta + 2.0 * bg + bl)) * G + fM - l2gN;
   for (int a = 0; a < 3; ++a) {
     r->T[2 + a] = G * t[a] + RN[a];
     r->T[5 + a] = H * t[a] + RO[a];

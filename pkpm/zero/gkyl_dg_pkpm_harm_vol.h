@@ -20,20 +20,19 @@ struct gkyl_dg_pkpm_harm_vol_inp {
 };
 
 /**
- * Create a new updater for the volume integrals of the known first-harmonic terms of the
+ * Create a new updater for the volume integrals of the known velocity-space terms of the
  * configuration-space pass (stage A) of the normalized PKPM kinetic update, on the eight blocks
  * [F, G, M0_perp (x, y, z), N_perp (x, y, z)]: the w-flux volume terms int d_w phi Phi, the
- * sources int phi S and the configuration-space flux couplings int d_x phi . T of the
- * first-harmonic terms (the two-field terms of F and G and the streaming of all eight blocks stay
- * in the configuration-pass equation object), with the definitions of gkyl_pkpm_harm_coeffs.h.
+ * sources int phi S and the configuration-space flux couplings int d_x phi . T of the first
+ * harmonic (the streaming of all eight blocks stays in the configuration-pass equation object).
  *
- * The coefficients are built once per stage into a configuration-space array (the coef method):
- * per configuration cell every coefficient is a tensor Legendre expansion built one p=1 factor at a
- * time (1D recurrences, direction by direction, sum factorized over the factor's basis functions),
- * of which only the projection onto degree <= 2 per direction is stored (gkyl_pkpm_harm_slots.h):
- * that is all that any Galerkin integral against (test function) x (distribution) sees. The
- * advance method contracts the stored projections with the distribution through exact 1D tables.
- * p=1 serendipity only.
+ * The stored operator (gkyl_pkpm_harm_ops.h) is built once per stage into a configuration-space
+ * array (the coef method, generated kernels pkpm_harm_build_*): every coefficient is a product of
+ * the precomputed p=1 fields, stored as its exact projection onto degree <= 2 per direction (by
+ * Gauss-Legendre quadrature exact for its degree): that is all that any Galerkin integral against
+ * (test function) x (distribution) sees. The advance method forms the matrices of each
+ * configuration cell (pkpm_harm_mat_*) and applies them per phase cell (pkpm_harm_vol_*). p=1
+ * serendipity only.
  *
  * @param inp Input parameters.
  * @return New updater pointer.
@@ -48,7 +47,7 @@ struct gkyl_dg_pkpm_harm_vol *gkyl_dg_pkpm_harm_vol_cu_dev_inew(
 );
 
 /**
- * Number of components per configuration cell of the coefficient array (slots x 3^cdim modes).
+ * Number of components per configuration cell of the stored operator (entries x 3^cdim modes).
  *
  * @param up Updater.
  * @return Number of components.
@@ -56,7 +55,7 @@ struct gkyl_dg_pkpm_harm_vol *gkyl_dg_pkpm_harm_vol_cu_dev_inew(
 int gkyl_dg_pkpm_harm_vol_num_coef(const struct gkyl_dg_pkpm_harm_vol *up);
 
 /**
- * Build the stored first-harmonic coefficients of the configuration cells of conf_range.
+ * Build the stored operator of the configuration cells of conf_range.
  *
  * @param up Updater.
  * @param conf_range Configuration-space range of the cells to build.

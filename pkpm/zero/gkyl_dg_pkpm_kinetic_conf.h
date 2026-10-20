@@ -11,13 +11,8 @@
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_pkpm_kinetic_conf_auxfields {
   const struct gkyl_array *bvar; // Magnetic field unit vector [bx, by, bz].
-  const struct gkyl_array *grad_b; // Weak gradient of b (gkyl_dg_calc_pkpm_bvar_grad).
   const struct gkyl_array *u; // Flow velocity [ux, uy, uz].
-  const struct gkyl_array *grad_u; // Weak gradient of u (gkyl_dg_calc_pkpm_vars_grad_u).
-  const struct gkyl_array *xi; // Thermal speed [xi, xi^2] (gkyl_dg_calc_pkpm_vars_xi).
-  const struct gkyl_array *grad_xi; // Weak gradient of [xi, 0, 0] (gkyl_dg_calc_pkpm_vars_grad_u).
-  const struct gkyl_array *grad_ln_n; // grad(ln n) (gkyl_dg_calc_pkpm_vars_grad_ln_n).
-  const struct gkyl_array *theta; // T_perp/T = M0(G).
+  const struct gkyl_array *xi; // Thermal speed [xi, xi^2, p] (gkyl_dg_calc_pkpm_vars_prim).
   const struct gkyl_array
     *conf_flux_surf; // Modal expansion of the fluxes on the configuration-space faces.
 };
@@ -35,13 +30,11 @@ struct gkyl_dg_pkpm_kinetic_conf_inp {
 
 /**
  * Create a new equation object for the configuration-space pass (stage A) of the
- * PKPM kinetic update of the eight blocks [F, G, M0_perp, N_perp]: the volume terms of the
- * streaming of every block, of the -v_par (bb:grad u) and mirror forces in v_par and of the G
- * perpendicular source, together with the surface term scattering the stored
- * configuration-space fluxes of the eight blocks (the first-harmonic coupling volume terms are
- * in gkyl_dg_pkpm_harm_vol). Everything except
- * the pressure-force volume term and the v_par surface term, which belong to the
- * velocity-space pass (stage B) once the force closure is known.
+ * PKPM kinetic update of the eight blocks [F, G, M0_perp, N_perp]: the streaming volume term of
+ * every block and the surface term scattering the stored configuration-space fluxes of the eight
+ * blocks. The known velocity-space terms of the pass (w forces, mirror and coupling terms,
+ * sources) are the stored operator of gkyl_dg_pkpm_harm_vol; the closure terms and the v_par
+ * surface term belong to the velocity-space pass (stage B).
  *
  * @param inp Input parameters defined in gkyl_dg_pkpm_kinetic_conf_inp struct.
  * @return Pointer to the equation object.

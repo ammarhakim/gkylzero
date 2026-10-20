@@ -5,6 +5,7 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
+#include <gkyl_pkpm_harm_ops.h>
 #include <gkyl_pkpm_harm_slots.h>
 #include <gkyl_pkpm_kinetic_kernels.h>
 #include <gkyl_range.h>
@@ -66,9 +67,10 @@ choose_pkpm_vel_flux_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 }
 
 // Node values of the w flux of one configuration cell at the face nodes (PKPM_HS_NODE_NV per node):
-// the w-flux slots of the stored coefficients, theta, b, alpha_0 and c. The face nodes are the tensor
-// product of the 1D five-point nodes, node i = i_{cdim-1} + 5 i_{cdim-2} + 25 i_{cdim-3}, and the
-// slots are evaluated there direction by direction (sum factorization; mode k = k_0 + 3 k_1 + 9 k_2).
+// the w-flux entries of the stored operator (pkpm_ho_wslot), theta, b, alpha_0 and c. The face
+// nodes are the tensor product of the 1D five-point nodes, node i = i_{cdim-1} + 5 i_{cdim-2} +
+// 25 i_{cdim-3}, and the entries are evaluated there direction by direction (sum factorization;
+// mode k = k_0 + 3 k_1 + 9 k_2).
 GKYL_CU_DH static inline void
 pkpm_vf_node_values(
   const struct gkyl_dg_pkpm_vel_flux_surf *up, const double *coef, const double *theta,
@@ -78,7 +80,7 @@ pkpm_vf_node_values(
   int cdim = up->cdim, nc = up->nc, n2 = up->n2;
   const int nn = PKPM_HS_NODE_NV;
   for (int s = 0; s < PKPM_HS_W_END; ++s) {
-    const double *c = &coef[s * n2];
+    const double *c = &coef[pkpm_ho_wslot[s] * n2];
     if (cdim == 1) {
       for (int i0 = 0; i0 < 5; ++i0) {
         nv[i0 * nn + s] = up->e1[i0][0] * c[0] + up->e1[i0][1] * c[1] + up->e1[i0][2] * c[2];

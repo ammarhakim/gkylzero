@@ -11,9 +11,8 @@
 #include <gkyl_util.h>
 
 typedef double (*pkpm_kinetic_conf_vol_t)(
-  const double *w, const double *dxv, const double *jacob_pos, const double *bvar, const double *grad_b, const double *u, const double *grad_u,
-  const double *xi, const double *grad_xi, const double *grad_ln_n, const double *theta,
-  const double *f, double *GKYL_RESTRICT out
+  const double *w, const double *dxv, const double *jacob_pos, const double *bvar, const double *u,
+  const double *xi, const double *f, double *GKYL_RESTRICT out
 );
 
 typedef double (*pkpm_stream_surf_t)(
@@ -86,8 +85,7 @@ choose_pkpm_stream_surf_kern(enum gkyl_basis_type b_type, int cdim, int poly_ord
   return 0;
 }
 
-// Volume term: streaming of the eight blocks, v_par force and mirror volume fluxes of F and G, and
-// the G source.
+// Volume term: streaming of the eight blocks.
 GKYL_CU_D
 static double
 vol(
@@ -100,13 +98,8 @@ vol(
   return pkpm->vol_kern(
     xc, dx, (const double *)gkyl_array_cfetch(pkpm->jacob_pos, cidx),
     (const double *)gkyl_array_cfetch(pkpm->auxfields.bvar, cidx),
-    (const double *)gkyl_array_cfetch(pkpm->auxfields.grad_b, cidx),
     (const double *)gkyl_array_cfetch(pkpm->auxfields.u, cidx),
-    (const double *)gkyl_array_cfetch(pkpm->auxfields.grad_u, cidx),
-    (const double *)gkyl_array_cfetch(pkpm->auxfields.xi, cidx),
-    (const double *)gkyl_array_cfetch(pkpm->auxfields.grad_xi, cidx),
-    (const double *)gkyl_array_cfetch(pkpm->auxfields.grad_ln_n, cidx),
-    (const double *)gkyl_array_cfetch(pkpm->auxfields.theta, cidx), qIn, qRhsOut
+    (const double *)gkyl_array_cfetch(pkpm->auxfields.xi, cidx), qIn, qRhsOut
   );
 }
 

@@ -277,13 +277,8 @@ sim_init(struct sim *s, const struct run_opts *o)
     .auxfields =
       {
         .bvar = s->bvar,
-        .grad_b = s->grad_b,
         .u = s->u,
-        .grad_u = s->grad_u,
         .xi = s->xi,
-        .grad_xi = s->grad_xi,
-        .grad_ln_n = s->grad_ln_n,
-        .theta = s->theta,
         .conf_flux_surf = s->cflux,
       },
     .pos_map = s->pos_map, .use_gpu = false,
@@ -893,9 +888,8 @@ steady_gradient_residual(int Nx, int Nv, double alpha, bool verbose)
       double xc[2];
       gkyl_rect_grid_cell_center(&s.pgrid, it.idx, xc);
       pkpm_kinetic_conf_vol_1x1v_ser_p1(xc, s.pgrid.dx, gkyl_array_cfetch(s.pos_map->jacob_pos, cidx),
-        gkyl_array_cfetch(s.bvar, cidx), gkyl_array_cfetch(s.grad_b, cidx),
-        gkyl_array_cfetch(s.u, cidx), gkyl_array_cfetch(s.grad_u, cidx), gkyl_array_cfetch(s.xi, cidx), gkyl_array_cfetch(s.grad_xi, cidx),
-        gkyl_array_cfetch(s.grad_ln_n, cidx), gkyl_array_cfetch(s.theta, cidx), gkyl_array_cfetch(f, pidx), gkyl_array_fetch(vol, pidx));
+        gkyl_array_cfetch(s.bvar, cidx), gkyl_array_cfetch(s.u, cidx), gkyl_array_cfetch(s.xi, cidx),
+        gkyl_array_cfetch(f, pidx), gkyl_array_fetch(vol, pidx));
     }
     gkyl_array_clear(mv, 0.0);
     gkyl_array_clear(ma, 0.0);

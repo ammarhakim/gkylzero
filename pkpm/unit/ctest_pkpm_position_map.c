@@ -396,13 +396,8 @@ advance(struct sim *s)
     .auxfields =
       {
         .bvar = s->bvar,
-        .grad_b = s->grad_b,
         .u = s->u,
-        .grad_u = s->grad_u,
         .xi = s->xi,
-        .grad_xi = s->grad_xi,
-        .grad_ln_n = s->grad_ln_n,
-        .theta = s->theta,
         .conf_flux_surf = s->kin_flux,
       },
     .pos_map = s->pos_map,

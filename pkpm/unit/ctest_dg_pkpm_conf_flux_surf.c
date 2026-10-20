@@ -417,14 +417,8 @@ test_scatter(int cdim)
 {
   struct test_setup s;
   setup(&s, cdim);
-  int nc = s.cbasis.num_basis, np = s.pbasis.num_basis;
+  int np = s.pbasis.num_basis;
 
-  // The volume term needs theta and the collision coefficients; zeros here (the
-  // conservation check below holds for any values).
-  struct gkyl_array *zeros = mkarr(nc, s.clocal_ext.volume);
-  gkyl_array_clear(zeros, 0.0);
-  struct gkyl_array *zeros_g = mkarr(3 * s.cdim * nc, s.clocal_ext.volume);
-  gkyl_array_clear(zeros_g, 0.0);
   struct gkyl_dg_pkpm_kinetic_conf_inp inp = {
     .conf_basis = &s.cbasis,
     .phase_basis = &s.pbasis,
@@ -433,13 +427,8 @@ test_scatter(int cdim)
     .auxfields =
       {
         .bvar = s.bvar,
-        .grad_b = zeros_g,
         .u = s.u,
-        .grad_u = zeros_g,
         .xi = s.xi,
-        .grad_xi = zeros_g,
-        .grad_ln_n = zeros_g,
-        .theta = zeros,
         .conf_flux_surf = s.flux,
       },
     .pos_map = s.pos_map, .use_gpu = false,
@@ -472,8 +461,6 @@ test_scatter(int cdim)
   gkyl_array_release(rhs);
   gkyl_hyper_dg_release(slvr);
   gkyl_dg_eqn_release(eqn);
-  gkyl_array_release(zeros_g);
-  gkyl_array_release(zeros);
   teardown(&s);
 }
 
@@ -488,7 +475,7 @@ test_scatter_ref(int cdim)
 {
   struct test_setup s;
   setup(&s, cdim);
-  int pdim = s.pdim, nc = s.cbasis.num_basis, np = s.pbasis.num_basis, nk = np / 2;
+  int pdim = s.pdim, np = s.pbasis.num_basis, nk = np / 2;
   struct gkyl_basis sbasis;
   if (cdim == 1) {
     gkyl_cart_modal_serendip(&sbasis, 1, 2);
@@ -497,17 +484,13 @@ test_scatter_ref(int cdim)
   }
   TEST_CHECK(sbasis.num_basis == nk);
 
-  struct gkyl_array *zeros = mkarr(nc, s.clocal_ext.volume);
-  gkyl_array_clear(zeros, 0.0);
-  struct gkyl_array *zeros_g = mkarr(3 * cdim * nc, s.clocal_ext.volume);
-  gkyl_array_clear(zeros_g, 0.0);
   struct gkyl_dg_pkpm_kinetic_conf_inp inp = {
     .conf_basis = &s.cbasis,
     .phase_basis = &s.pbasis,
     .conf_range = &s.clocal,
     .phase_range = &s.plocal,
     .auxfields =
-      {.bvar = s.bvar, .grad_b = zeros_g, .u = s.u, .grad_u = zeros_g, .xi = s.xi, .grad_xi = zeros_g, .grad_ln_n = zeros_g, .theta = zeros,
+      {.bvar = s.bvar, .u = s.u, .xi = s.xi,
         .conf_flux_surf = s.flux},
     .pos_map = s.pos_map, .use_gpu = false,
   };
@@ -530,15 +513,14 @@ test_scatter_ref(int cdim)
     gkyl_rect_grid_cell_center(&s.pgrid, iter.idx, xc);
     double ref[8 * 48] = {0.0};
     const double *bv = gkyl_array_cfetch(s.bvar, cidx), *uv = gkyl_array_cfetch(s.u, cidx);
-    const double *zg = gkyl_array_cfetch(zeros_g, cidx), *z = gkyl_array_cfetch(zeros, cidx);
     const double *fv = gkyl_array_cfetch(s.f, pidx), *xv = gkyl_array_cfetch(s.xi, cidx);
     const double *jac = gkyl_array_cfetch(s.pos_map->jacob_pos, cidx); // identity map: ones
     if (cdim == 1) {
-      pkpm_kinetic_conf_vol_1x1v_ser_p1(xc, s.pgrid.dx, jac, bv, zg, uv, zg, xv, zg, zg, z, fv, ref);
+      pkpm_kinetic_conf_vol_1x1v_ser_p1(xc, s.pgrid.dx, jac, bv, uv, xv, fv, ref);
     } else if (cdim == 2) {
-      pkpm_kinetic_conf_vol_2x1v_ser_p1(xc, s.pgrid.dx, jac, bv, zg, uv, zg, xv, zg, zg, z, fv, ref);
+      pkpm_kinetic_conf_vol_2x1v_ser_p1(xc, s.pgrid.dx, jac, bv, uv, xv, fv, ref);
     } else {
-      pkpm_kinetic_conf_vol_3x1v_ser_p1(xc, s.pgrid.dx, jac, bv, zg, uv, zg, xv, zg, zg, z, fv, ref);
+      pkpm_kinetic_conf_vol_3x1v_ser_p1(xc, s.pgrid.dx, jac, bv, uv, xv, fv, ref);
     }
     for (int dir = 0; dir < cdim; ++dir) {
       int idx_r[4];
@@ -612,8 +594,6 @@ test_scatter_ref(int cdim)
   gkyl_array_release(rhs);
   gkyl_hyper_dg_release(slvr);
   gkyl_dg_eqn_release(eqn);
-  gkyl_array_release(zeros_g);
-  gkyl_array_release(zeros);
   teardown(&s);
 }
 

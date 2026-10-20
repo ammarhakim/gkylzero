@@ -19,10 +19,10 @@ struct gkyl_dg_pkpm_vel_flux_surf_inp {
 /**
  * Create a new updater computing the v_par surface fluxes of the PKPM kinetic
  * equations (velocity-space pass, stage B) of the eight blocks U = [F, G, M0_perp, N_perp].
- * Per configuration cell the w flux is formed at the 5^cdim face nodes once from the stored
- * first-harmonic coefficients of the stage (exact projections onto degree <= 2 per configuration
- * direction, gkyl_pkpm_harm_slots.h; built by gkyl_dg_pkpm_harm_vol_coef), theta, b and the
- * closures: alpha = alpha_0 + (c - K) w_face - (b.grad xi) w_face^2 and the coupling T (beta, t,
+ * Per configuration cell the w flux is formed at the 5^cdim face nodes once from the w-flux
+ * entries of the stored operator of the stage (exact projections onto degree <= 2 per
+ * configuration direction, gkyl_pkpm_harm_ops.h; built by gkyl_dg_pkpm_harm_vol_coef), theta, b
+ * and the closures: alpha = alpha_0 + (c - K) w_face - (b.grad xi) w_face^2 and the coupling T (beta, t,
  * R_B1 with the closures H and O). On the lower v_par face of every velocity cell the HLL flux of
  * alpha U + T(U) with the speeds alpha + the bounds of the spectrum of T is formed at the nodes
  * (pkpm_harm_node_wflux; exact upwinding when the speeds share a sign) and projected onto the
@@ -52,7 +52,7 @@ struct gkyl_dg_pkpm_vel_flux_surf *gkyl_dg_pkpm_vel_flux_surf_cu_dev_inew(
  * @param up v_par surface flux updater.
  * @param conf_range Configuration-space range for indexing the configuration fields.
  * @param phase_range Phase-space range to compute fluxes over.
- * @param coef Input stored first-harmonic coefficients of the stage (gkyl_dg_pkpm_harm_vol_coef).
+ * @param coef Input stored operator of the stage (gkyl_dg_pkpm_harm_vol_coef).
  * @param theta Input T_perp/T.
  * @param bvar Input magnetic field unit vector [bx, by, bz].
  * @param alpha_0 Input pressure force a_P/xi closing the first moment.

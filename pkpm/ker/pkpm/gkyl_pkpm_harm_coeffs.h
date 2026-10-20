@@ -308,29 +308,25 @@ pkpm_harm_speed_bounds(const struct pkpm_harm_coeffs *c, double w, double *lo, d
 }
 
 /**
- * Known part of the w flux of the first-harmonic terms at w, as the stage-A volume kernel applies
- * it: F: t.M0, G: t.N (their alpha_k and beta parts are in the two-field kernel); M0: alpha_k M0 +
- * G t + R_B1 N; N: alpha_k N + H t + R_B1 O; alpha_k = -w K - w^2 b.grad xi.
+ * Known part of the w flux of the eight blocks at w (the w-flux entries of the stored operator,
+ * pkpm-harm-ops.mac): alpha_k U + T(U) for every block, alpha_k = -w K - w^2 b.grad xi.
  */
 GKYL_CU_DH static inline void
 pkpm_harm_flux_known(const struct pkpm_harm_coeffs *c, double w, const double *U, double *out)
 {
-  double T[8], t[3];
+  double T[8];
   pkpm_harm_coupling_flux(c, w, U, T);
-  pkpm_harm_t(c, w, t);
   double ak = -w * c->K - w * w * c->bg;
-  out[0] = pkpm_harm_dot(t, &U[2]);
-  out[1] = pkpm_harm_dot(t, &U[5]);
-  for (int a = 0; a < 3; ++a) {
-    out[2 + a] = ak * U[2 + a] + T[2 + a];
-    out[5 + a] = ak * U[5 + a] + T[5 + a];
+  for (int k = 0; k < 8; ++k) {
+    out[k] = ak * U[k] + T[k];
   }
 }
 
 /**
- * Known part of the sources of the first-harmonic terms at w (stage A):
- *   F:  -ell_xi.M0
- *   G:  f_perp.M0 - (ell_xi + 2 g).N
+ * Known part of the sources of the eight blocks at w (the source entries of the stored operator,
+ * pkpm-harm-ops.mac; the gyration included):
+ *   F:  sigma_0 F - ell_xi.M0
+ *   G:  (K - div u - w (beta + 2 b.grad xi + b.ell_xi)) G + f_perp.M0 - (ell_xi + 2 g).N
  *   M0: f_perp F + sigma_0 M0 + L_perp M0 - G I_perp (ell_xi + g) - b (C.M0 + beta G)
  *   N:  2 G f_perp + sigma_0 N + L_perp N - R_E1 N - H I_perp (ell_xi + 3 g) - b (C.N + beta H)
  * with sigma_0 = -w b.ell_xi, f_perp = -w I_perp (U b + C) and the known L_perp, R_E1.
@@ -353,8 +349,9 @@ pkpm_harm_source(const struct pkpm_harm_coeffs *c, double w, const double *U, do
   pkpm_harm_lperp(c, w, N, LN);
   pkpm_harm_re1(c, w, N, RN);
   double CM = pkpm_harm_dot(C, M), CN = pkpm_harm_dot(C, N);
-  out[0] = -pkpm_harm_dot(c->ell, M);
-  out[1] = pkpm_harm_dot(fp, M) - pkpm_harm_dot(l2g, N);
+  out[0] = sig * F - pkpm_harm_dot(c->ell, M);
+  out[1] = (c->K - c->divu - w * (c->beta + 2.0 * c->bg + c->bl)) * G + pkpm_harm_dot(fp, M) -
+    pkpm_harm_dot(l2g, N);
   for (int a = 0; a < 3; ++a) {
     out[2 + a] =
       fp[a] * F + sig * M[a] + LM[a] - G * c->plg[a] - c->b[a] * (CM + c->beta * G);

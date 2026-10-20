@@ -288,13 +288,8 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     .auxfields =
       {
         .bvar = app->field->bvar,
-        .grad_b = app->field->grad_b,
         .u = s->pkpm_u,
-        .grad_u = s->pkpm_grad_u,
         .xi = s->pkpm_xi,
-        .grad_xi = s->pkpm_grad_xi,
-        .grad_ln_n = s->pkpm_grad_ln_n,
-        .theta = s->pkpm_theta,
         .conf_flux_surf = s->conf_flux_surf,
       },
     .use_gpu = app->use_gpu,

@@ -6,12 +6,22 @@
 // direction d (q = 0 F <- M0_d, 1 G <- N_d, 2 + a M0_a <- G, 5 + a N_a <- G, 8 + a N_a <- F). Each 
 // entry holds the 3^cdim tensor Legendre modes of degree <= 2 (k = k0 + 3 k1 + 9 k2). 
 #include <gkyl_util.h> 
-#define PKPM_HO_NENT 138 
-#define PKPM_HO_GYR(e) (138 + (e)) 
-#define PKPM_HO_CF(d, q) (141 + 11 * (d) + (q)) 
-#define PKPM_HO_NOP(cdim) (141 + 11 * (cdim)) 
-#define PKPM_HO_NOP_MAX 174 
-GKYL_CU_TABLE __attribute__((unused)) static const int pkpm_ho_ent[138][4] = { 
+#define PKPM_HO_NENT 148 
+#define PKPM_HO_GYR(e) (148 + (e)) 
+#define PKPM_HO_CF(d, q) (151 + 11 * (d) + (q)) 
+#define PKPM_HO_NOP(cdim) (151 + 11 * (cdim)) 
+#define PKPM_HO_NOP_MAX 184 
+GKYL_CU_TABLE __attribute__((unused)) static const int pkpm_ho_ent[148][4] = { 
+  {0, 0, 1, 1}, 
+  {0, 0, 1, 2}, 
+  {1, 1, 1, 1}, 
+  {1, 1, 1, 2}, 
+  {0, 1, 1, 0}, 
+  {1, 1, 1, 0}, 
+  {1, 0, 1, 0}, 
+  {0, 0, 0, 1}, 
+  {1, 1, 0, 0}, 
+  {1, 1, 0, 1}, 
   {2, 2, 1, 1}, 
   {2, 2, 1, 2}, 
   {3, 3, 1, 1}, 
@@ -150,4 +160,9 @@ GKYL_CU_TABLE __attribute__((unused)) static const int pkpm_ho_ent[138][4] = {
   {7, 7, 0, 0}, 
   {4, 4, 0, 1}, 
   {7, 7, 0, 1}, 
+}; 
+// The entry of each w-flux node value of the w-face and closure kernels (gkyl_pkpm_harm_slots.h, 
+// slots [0, 62)). 
+GKYL_CU_TABLE __attribute__((unused)) static const int pkpm_ho_wslot[62] = { 
+  0, 1, 22, 27, 64, 69, 106, 111, 23, 28, 65, 70, 107, 112, 24, 29,  66, 71, 108, 113, 25, 30, 67, 72, 109, 114, 26, 31, 68, 73, 110, 115,  32, 35, 38, 74, 77, 80, 116, 119, 122, 33, 36, 39, 75, 78, 81, 117,  120, 123, 34, 37, 40, 76, 79, 82, 118, 121, 124, 4, 5, 6, 
 }; 
