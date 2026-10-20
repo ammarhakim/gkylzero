@@ -144,7 +144,7 @@ struct sim {
   struct gkyl_dg_pkpm_fluid_flux_surf *calc_fflux;
   struct gkyl_dg_pkpm_harm_vol *harm;
   struct gkyl_array *hcoef; // stored first-harmonic operator of the stage
-  struct gkyl_array *hwn, *hwc; // raw w-flux values of the stage at the w-face and closure nodes
+  struct gkyl_array *hwn; // raw w-flux values of the stage at the w-face nodes
   struct gkyl_dg_eqn *eqn_a, *eqn_b, *eqn_m;
   gkyl_hyper_dg *slvr_a, *slvr_b, *slvr_m;
 };
@@ -294,7 +294,6 @@ sim_init(struct sim *s, const struct run_opts *o)
   s->harm = gkyl_dg_pkpm_harm_vol_inew(&hinp);
   s->hcoef = mkarr(gkyl_dg_pkpm_harm_vol_num_coef(s->harm), s->clocal_ext.volume);
   s->hwn = mkarr(gkyl_dg_pkpm_harm_vol_num_wnode(s->harm), s->clocal_ext.volume);
-  s->hwc = mkarr(gkyl_dg_pkpm_harm_vol_num_wclos(s->harm), s->clocal_ext.volume);
   int up_dirs_a[GKYL_MAX_DIM] = {0}, zero_flux_a[2 * GKYL_MAX_DIM] = {0};
   s->slvr_a = gkyl_hyper_dg_new(&s->pgrid, &s->pbasis, s->eqn_a, 1, up_dirs_a, zero_flux_a, 1, false);
 
@@ -352,7 +351,6 @@ sim_release(struct sim *s)
   gkyl_dg_pkpm_harm_vol_release(s->harm);
   gkyl_array_release(s->hcoef);
   gkyl_array_release(s->hwn);
-  gkyl_array_release(s->hwc);
   gkyl_array_release(s->cflux);
   gkyl_dg_pkpm_conf_flux_surf_release(s->calc_cflux);
   gkyl_dg_updater_moment_pkpm_release(s->mcalc);
@@ -455,13 +453,13 @@ sim_rhs(
     );
     gkyl_hyper_dg_advance(s->slvr_a, &s->plocal, f, s->cflrate_f, rhs_f);
     gkyl_dg_pkpm_harm_vol_coef(s->harm, &s->clocal, s->bvar, s->grad_b, s->u, s->grad_u, s->xi, s->grad_xi,
-      s->grad_ln_n, s->theta, s->dtb, s->em, s->hcoef, s->hwn, s->hwc);
+      s->grad_ln_n, s->theta, s->dtb, s->em, s->hcoef, s->hwn);
     gkyl_dg_pkpm_harm_vol_advance(s->harm, &s->clocal, &s->plocal, s->hcoef, f, s->cflrate_f, rhs_f);
     gkyl_array_clear(s->rhs_moms, 0.0);
     gkyl_dg_updater_moment_pkpm_advance(s->mcalc, &s->plocal, &s->clocal, rhs_f, s->rhs_moms);
     // closures with the characteristic velocity edges (the switch from the previous stage)
     gkyl_dg_calc_pkpm_vars_closure(
-      s->vars, &s->clocal, &s->plocal, &s->pgrid, s->nmoms, s->rhs_moms, s->bvar, s->hwc, s->theta, f, s->c_0,
+      s->vars, &s->clocal, &s->plocal, &s->pgrid, s->nmoms, s->rhs_moms, s->bvar, s->hwn, s->theta, f, s->c_0,
       s->alpha_0, s->c_h, s->a_perp, s->vflux, s->cflrate_f
     );
     gkyl_dg_pkpm_vel_flux_surf_advance(

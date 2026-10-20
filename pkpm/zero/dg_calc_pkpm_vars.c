@@ -62,7 +62,7 @@ int
 gkyl_dg_calc_pkpm_vars_closure(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_rect_grid *phase_grid, const struct gkyl_array *norm_moms, const struct gkyl_array *rhs_moms,
-  const struct gkyl_array *bvar, const struct gkyl_array *wclos, const struct gkyl_array *theta,
+  const struct gkyl_array *bvar, const struct gkyl_array *wnode, const struct gkyl_array *theta,
   const struct gkyl_array *fin,
   struct gkyl_array *c_0, struct gkyl_array *alpha_0, struct gkyl_array *c_h, struct gkyl_array *a_perp,
   struct gkyl_array *vel_flux_surf, struct gkyl_array *cflrate
@@ -71,7 +71,7 @@ gkyl_dg_calc_pkpm_vars_closure(
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(alpha_0)) {
     return gkyl_dg_calc_pkpm_vars_closure_cu(
-      up, conf_range, phase_range, phase_grid, norm_moms, rhs_moms, bvar, wclos, theta, fin, c_0, alpha_0, c_h,
+      up, conf_range, phase_range, phase_grid, norm_moms, rhs_moms, bvar, wnode, theta, fin, c_0, alpha_0, c_h,
       a_perp, vel_flux_surf, cflrate
     );
   }
@@ -96,7 +96,7 @@ gkyl_dg_calc_pkpm_vars_closure(
     long pgh = gkyl_range_idx(phase_range, idx);
     num_null += up->pkpm_closure(
       w_lo, w_up, dv, gkyl_array_cfetch(norm_moms, loc), gkyl_array_cfetch(rhs_moms, loc),
-      gkyl_array_cfetch(bvar, loc), gkyl_array_cfetch(wclos, loc), gkyl_array_cfetch(theta, loc),
+      gkyl_array_cfetch(bvar, loc), gkyl_array_cfetch(wnode, loc), gkyl_array_cfetch(theta, loc),
       gkyl_array_cfetch(alpha_0, loc),
       gkyl_array_cfetch(c_h, loc), gkyl_array_cfetch(fin, plo), gkyl_array_cfetch(fin, pup),
       gkyl_array_fetch(c_0, loc), gkyl_array_fetch(alpha_0, loc), gkyl_array_fetch(c_h, loc),

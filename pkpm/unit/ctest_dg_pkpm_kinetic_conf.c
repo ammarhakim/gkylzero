@@ -510,13 +510,11 @@ test_harm_vol(int cdim)
   {
     struct gkyl_array *hcoef = mkarr(gkyl_dg_pkpm_harm_vol_num_coef(harm), s.clocal_ext.volume);
     struct gkyl_array *hwn = mkarr(gkyl_dg_pkpm_harm_vol_num_wnode(harm), s.clocal_ext.volume);
-    struct gkyl_array *hwc = mkarr(gkyl_dg_pkpm_harm_vol_num_wclos(harm), s.clocal_ext.volume);
     gkyl_dg_pkpm_harm_vol_coef(harm, &s.clocal, s.bvar, s.grad_b, s.u, s.grad_u, s.xi,
-      s.grad_xi, s.grad_ln_n, s.theta, s.dtb, s.em, hcoef, hwn, hwc);
+      s.grad_xi, s.grad_ln_n, s.theta, s.dtb, s.em, hcoef, hwn);
     gkyl_dg_pkpm_harm_vol_advance(harm, &s.clocal, &s.plocal, hcoef, s.f, cflrate, rhs);
     gkyl_array_release(hcoef);
     gkyl_array_release(hwn);
-    gkyl_array_release(hwc);
   }
 
   double out_ref[8 * 24], max_err[8] = {0.0}, max_ref[8] = {0.0}, min_cfl = 1e300;
@@ -597,9 +595,8 @@ test_closure(int cdim)
   struct gkyl_dg_pkpm_harm_vol *harm = gkyl_dg_pkpm_harm_vol_inew(&hinp);
   struct gkyl_array *hcoef = mkarr(gkyl_dg_pkpm_harm_vol_num_coef(harm), s.clocal_ext.volume);
   struct gkyl_array *hwn = mkarr(gkyl_dg_pkpm_harm_vol_num_wnode(harm), s.clocal_ext.volume);
-  struct gkyl_array *hwc = mkarr(gkyl_dg_pkpm_harm_vol_num_wclos(harm), s.clocal_ext.volume);
   gkyl_dg_pkpm_harm_vol_coef(harm, &s.clocal, s.bvar, s.grad_b, s.u, s.grad_u, s.xi, s.grad_xi, s.grad_ln_n,
-    s.theta, s.dtb, s.em, hcoef, hwn, hwc);
+    s.theta, s.dtb, s.em, hcoef, hwn);
   gkyl_dg_pkpm_harm_vol_advance(harm, &s.clocal, &s.plocal, hcoef, s.f, cflrate, rhs);
   gkyl_dg_pkpm_harm_vol_release(harm);
 
@@ -631,12 +628,11 @@ test_closure(int cdim)
   struct gkyl_array *vflux = mkarr(8 * nc, s.plocal_ext.volume);
   gkyl_array_clear(vflux, 0.0);
   int num_null = gkyl_dg_calc_pkpm_vars_closure(
-    vars, &s.clocal, &s.plocal, &s.pgrid, moms, rhs_moms, s.bvar, hwc, s.theta, s.f, c_0, a_P, c_h, a_perp,
+    vars, &s.clocal, &s.plocal, &s.pgrid, moms, rhs_moms, s.bvar, hwn, s.theta, s.f, c_0, a_P, c_h, a_perp,
     vflux, cflrate
   );
   gkyl_array_release(hcoef);
   gkyl_array_release(hwn);
-  gkyl_array_release(hwc);
   // both edge slots (lowest cell, velocity ghost cell) must hold no flux
   double edge_max = 0.0;
   struct gkyl_range_iter eit;

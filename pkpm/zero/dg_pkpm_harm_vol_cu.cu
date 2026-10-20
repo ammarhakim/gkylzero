@@ -14,7 +14,7 @@ gkyl_dg_pkpm_harm_vol_coef_cu_kernel(
   const struct gkyl_array *grad_b, const struct gkyl_array *u, const struct gkyl_array *grad_u,
   const struct gkyl_array *xi, const struct gkyl_array *grad_xi, const struct gkyl_array *grad_ln_n,
   const struct gkyl_array *theta, const struct gkyl_array *dtb, const struct gkyl_array *em,
-  struct gkyl_array *coef, struct gkyl_array *wnode, struct gkyl_array *wclos
+  struct gkyl_array *coef, struct gkyl_array *wnode
 )
 {
   int idx[GKYL_MAX_DIM];
@@ -28,7 +28,7 @@ gkyl_dg_pkpm_harm_vol_coef_cu_kernel(
       (const double *)gkyl_array_cfetch(grad_xi, cidx), (const double *)gkyl_array_cfetch(grad_ln_n, cidx),
       (const double *)gkyl_array_cfetch(theta, cidx), (const double *)gkyl_array_cfetch(dtb, cidx),
       (const double *)gkyl_array_cfetch(em, cidx), (double *)gkyl_array_fetch(coef, cidx),
-      (double *)gkyl_array_fetch(wnode, cidx), (double *)gkyl_array_fetch(wclos, cidx));
+      (double *)gkyl_array_fetch(wnode, cidx));
   }
 }
 
@@ -39,13 +39,13 @@ gkyl_dg_pkpm_harm_vol_coef_cu(
   const struct gkyl_array *grad_u, const struct gkyl_array *xi, const struct gkyl_array *grad_xi,
   const struct gkyl_array *grad_ln_n, const struct gkyl_array *theta,
   const struct gkyl_array *dtB_over_magB, const struct gkyl_array *em, struct gkyl_array *coef,
-  struct gkyl_array *wnode, struct gkyl_array *wclos
+  struct gkyl_array *wnode
 )
 {
   gkyl_dg_pkpm_harm_vol_coef_cu_kernel<<<conf_range->nblocks, conf_range->nthreads>>>(
     up->on_dev, *conf_range, bvar->on_dev, grad_b->on_dev, u->on_dev, grad_u->on_dev, xi->on_dev,
     grad_xi->on_dev, grad_ln_n->on_dev, theta->on_dev, dtB_over_magB->on_dev, em->on_dev, coef->on_dev,
-    wnode->on_dev, wclos->on_dev
+    wnode->on_dev
   );
 }
 

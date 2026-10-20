@@ -21,13 +21,11 @@
 #define PKPM_HM_MAT (PKPM_HO_NOP_MAX * 64)
 
 // Generated kernels: the stored operator of a configuration cell from the p=1 fields (with the raw
-// w-flux values at the w-face and closure nodes), its matrices, and the volume terms of a phase
-// cell from them.
+// w-flux values at the w-face nodes), its matrices, and the volume terms of a phase cell from them.
 typedef void (*pkpm_harm_build_t)(
   double qbym, const double *bvar, const double *grad_b, const double *u, const double *grad_u,
   const double *xi, const double *grad_xi, const double *grad_ln_n, const double *theta,
-  const double *dtb, const double *em, double *GKYL_RESTRICT ho, double *GKYL_RESTRICT wn,
-  double *GKYL_RESTRICT wc
+  const double *dtb, const double *em, double *GKYL_RESTRICT ho, double *GKYL_RESTRICT wn
 );
 typedef void (*pkpm_harm_mat_t)(
   const double *dxv, const double *jacob_pos, const double *ho, double *GKYL_RESTRICT mat

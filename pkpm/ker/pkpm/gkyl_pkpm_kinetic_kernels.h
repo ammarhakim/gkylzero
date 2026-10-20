@@ -25,8 +25,7 @@ GKYL_CU_DH double pkpm_kinetic_vel_vol_1x1v_ser_p1(const double *w, const double
   const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_harm_build_1x_ser_p1(double qbym, const double *bvar, const double *grad_b, const double *u,
   const double *grad_u, const double *xi, const double *grad_xi, const double *grad_ln_n, const double *theta,
-  const double *dtb, const double *em, double* GKYL_RESTRICT ho, double* GKYL_RESTRICT wn,
-  double* GKYL_RESTRICT wc); 
+  const double *dtb, const double *em, double* GKYL_RESTRICT ho, double* GKYL_RESTRICT wn); 
 GKYL_CU_DH void pkpm_harm_mat_1x_ser_p1(const double *dxv, const double *jacob_pos, const double *ho,
   double* GKYL_RESTRICT mat); 
 GKYL_CU_DH void pkpm_harm_vol_1x1v_ser_p1(const double *w, const double *dxv, const double *mat, const double *f,
@@ -61,8 +60,7 @@ GKYL_CU_DH double pkpm_kinetic_vel_vol_2x1v_ser_p1(const double *w, const double
   const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_harm_build_2x_ser_p1(double qbym, const double *bvar, const double *grad_b, const double *u,
   const double *grad_u, const double *xi, const double *grad_xi, const double *grad_ln_n, const double *theta,
-  const double *dtb, const double *em, double* GKYL_RESTRICT ho, double* GKYL_RESTRICT wn,
-  double* GKYL_RESTRICT wc); 
+  const double *dtb, const double *em, double* GKYL_RESTRICT ho, double* GKYL_RESTRICT wn); 
 GKYL_CU_DH void pkpm_harm_mat_2x_ser_p1(const double *dxv, const double *jacob_pos, const double *ho,
   double* GKYL_RESTRICT mat); 
 GKYL_CU_DH void pkpm_harm_vol_2x1v_ser_p1(const double *w, const double *dxv, const double *mat, const double *f,
@@ -104,8 +102,7 @@ GKYL_CU_DH double pkpm_kinetic_vel_vol_3x1v_ser_p1(const double *w, const double
   const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_harm_build_3x_ser_p1(double qbym, const double *bvar, const double *grad_b, const double *u,
   const double *grad_u, const double *xi, const double *grad_xi, const double *grad_ln_n, const double *theta,
-  const double *dtb, const double *em, double* GKYL_RESTRICT ho, double* GKYL_RESTRICT wn,
-  double* GKYL_RESTRICT wc); 
+  const double *dtb, const double *em, double* GKYL_RESTRICT ho, double* GKYL_RESTRICT wn); 
 GKYL_CU_DH void pkpm_harm_mat_3x_ser_p1(const double *dxv, const double *jacob_pos, const double *ho,
   double* GKYL_RESTRICT mat); 
 GKYL_CU_DH void pkpm_harm_vol_3x1v_ser_p1(const double *w, const double *dxv, const double *mat, const double *f,

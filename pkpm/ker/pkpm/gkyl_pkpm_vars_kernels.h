@@ -7,7 +7,7 @@ EXTERN_C_BEG
 
 GKYL_CU_DH void pkpm_vars_grad_u_x_1x_ser_p1(const double *dxv, const double *jacob_pos, const double *u_l, const double *u_c, const double *u_r, double* GKYL_RESTRICT grad_u); 
 GKYL_CU_DH int pkpm_vars_closure_1x_ser_p1(double w_lo, double w_up, double dv, const double *norm_moms, const double *rhs_moms,
-  const double *bvar, const double *wc, const double *theta, const double *alpha_0_prev, const double *c_h_prev,
+  const double *bvar, const double *wn, const double *theta, const double *alpha_0_prev, const double *c_h_prev,
   const double *f_lo, const double *f_up,
   double* GKYL_RESTRICT c_0, double* GKYL_RESTRICT alpha_0, double* GKYL_RESTRICT c_h, double* GKYL_RESTRICT a_perp,
   double* GKYL_RESTRICT flux_lo, double* GKYL_RESTRICT flux_up, double* GKYL_RESTRICT cfl, double* GKYL_RESTRICT cond); 
@@ -24,7 +24,7 @@ GKYL_CU_DH void pkpm_vars_diag_1x_ser_p1(const double *dxv, const double *vlasov
 GKYL_CU_DH void pkpm_vars_grad_u_x_2x_ser_p1(const double *dxv, const double *jacob_pos, const double *u_l, const double *u_c, const double *u_r, double* GKYL_RESTRICT grad_u); 
 GKYL_CU_DH void pkpm_vars_grad_u_y_2x_ser_p1(const double *dxv, const double *jacob_pos, const double *u_l, const double *u_c, const double *u_r, double* GKYL_RESTRICT grad_u); 
 GKYL_CU_DH int pkpm_vars_closure_2x_ser_p1(double w_lo, double w_up, double dv, const double *norm_moms, const double *rhs_moms,
-  const double *bvar, const double *wc, const double *theta, const double *alpha_0_prev, const double *c_h_prev,
+  const double *bvar, const double *wn, const double *theta, const double *alpha_0_prev, const double *c_h_prev,
   const double *f_lo, const double *f_up,
   double* GKYL_RESTRICT c_0, double* GKYL_RESTRICT alpha_0, double* GKYL_RESTRICT c_h, double* GKYL_RESTRICT a_perp,
   double* GKYL_RESTRICT flux_lo, double* GKYL_RESTRICT flux_up, double* GKYL_RESTRICT cfl, double* GKYL_RESTRICT cond); 
@@ -42,7 +42,7 @@ GKYL_CU_DH void pkpm_vars_grad_u_x_3x_ser_p1(const double *dxv, const double *ja
 GKYL_CU_DH void pkpm_vars_grad_u_y_3x_ser_p1(const double *dxv, const double *jacob_pos, const double *u_l, const double *u_c, const double *u_r, double* GKYL_RESTRICT grad_u); 
 GKYL_CU_DH void pkpm_vars_grad_u_z_3x_ser_p1(const double *dxv, const double *jacob_pos, const double *u_l, const double *u_c, const double *u_r, double* GKYL_RESTRICT grad_u); 
 GKYL_CU_DH int pkpm_vars_closure_3x_ser_p1(double w_lo, double w_up, double dv, const double *norm_moms, const double *rhs_moms,
-  const double *bvar, const double *wc, const double *theta, const double *alpha_0_prev, const double *c_h_prev,
+  const double *bvar, const double *wn, const double *theta, const double *alpha_0_prev, const double *c_h_prev,
   const double *f_lo, const double *f_up,
   double* GKYL_RESTRICT c_0, double* GKYL_RESTRICT alpha_0, double* GKYL_RESTRICT c_h, double* GKYL_RESTRICT a_perp,
   double* GKYL_RESTRICT flux_lo, double* GKYL_RESTRICT flux_up, double* GKYL_RESTRICT cfl, double* GKYL_RESTRICT cond); 

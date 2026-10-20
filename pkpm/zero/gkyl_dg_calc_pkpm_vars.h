@@ -58,7 +58,8 @@ void gkyl_dg_calc_pkpm_vars_grad_u(
  * the eight blocks [F, G, M0_perp, N_perp], with the characteristic velocity-space edges: per
  * Gauss-Legendre node, the constraints M0(F) = 1, M1(F) = 0, M2(F) + 2 M0(G) = 3 and
  * I_perp int M0_perp dw = 0 of the complete right-hand side (configuration pass + closure terms +
- * the HLL edge fluxes against an empty state outside the velocity domain), a 3x3 solve after the
+ * the HLL edge fluxes against an empty state outside the velocity domain, constructed at the
+ * w-face nodes as on the interior w faces and projected onto p=1), a 3x3 solve after the
  * perpendicular rows are eliminated, see pkpm-vars-closure.mac. The edge fluxes of all eight
  * blocks are written in the stored face format: the lower one into the lowest velocity cell's
  * slot of vel_flux_surf, the upper one into the slot of the velocity ghost cell above the
@@ -76,7 +77,7 @@ void gkyl_dg_calc_pkpm_vars_grad_u(
  *                      distributions
  * @param rhs_moms      The same moments of the configuration-pass right-hand side
  * @param bvar          Magnetic field unit vector
- * @param wclos         Raw w-flux values at the closure nodes (gkyl_dg_pkpm_harm_vol_coef)
+ * @param wnode         Raw w-flux values at the w-face nodes (gkyl_dg_pkpm_harm_vol_coef)
  * @param theta         T_perp/T
  * @param fin           Normalized distributions [F, G, M0_perp, N_perp]
  * @param c_0           Output normalization closure (input: previous stage)
@@ -93,7 +94,7 @@ void gkyl_dg_calc_pkpm_vars_grad_u(
 int gkyl_dg_calc_pkpm_vars_closure(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_rect_grid *phase_grid, const struct gkyl_array *norm_moms, const struct gkyl_array *rhs_moms,
-  const struct gkyl_array *bvar, const struct gkyl_array *wclos, const struct gkyl_array *theta,
+  const struct gkyl_array *bvar, const struct gkyl_array *wnode, const struct gkyl_array *theta,
   const struct gkyl_array *fin,
   struct gkyl_array *c_0, struct gkyl_array *alpha_0, struct gkyl_array *c_h, struct gkyl_array *a_perp,
   struct gkyl_array *vel_flux_surf, struct gkyl_array *cflrate
@@ -318,7 +319,7 @@ void gkyl_dg_calc_pkpm_vars_release(struct gkyl_dg_calc_pkpm_vars *up);
 int gkyl_dg_calc_pkpm_vars_closure_cu(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_rect_grid *phase_grid, const struct gkyl_array *norm_moms, const struct gkyl_array *rhs_moms,
-  const struct gkyl_array *bvar, const struct gkyl_array *wclos, const struct gkyl_array *theta,
+  const struct gkyl_array *bvar, const struct gkyl_array *wnode, const struct gkyl_array *theta,
   const struct gkyl_array *fin,
   struct gkyl_array *c_0, struct gkyl_array *alpha_0, struct gkyl_array *c_h, struct gkyl_array *a_perp,
   struct gkyl_array *vel_flux_surf, struct gkyl_array *cflrate

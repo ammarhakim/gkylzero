@@ -88,12 +88,6 @@ gkyl_dg_pkpm_harm_vol_num_wnode(const struct gkyl_dg_pkpm_harm_vol *up)
   return PKPM_HS_W_END * nn;
 }
 
-int
-gkyl_dg_pkpm_harm_vol_num_wclos(const struct gkyl_dg_pkpm_harm_vol *up)
-{
-  return PKPM_HS_W_END * (1 << up->cdim);
-}
-
 void
 gkyl_dg_pkpm_harm_vol_coef(
   const struct gkyl_dg_pkpm_harm_vol *up, const struct gkyl_range *conf_range,
@@ -101,14 +95,14 @@ gkyl_dg_pkpm_harm_vol_coef(
   const struct gkyl_array *grad_u, const struct gkyl_array *xi, const struct gkyl_array *grad_xi,
   const struct gkyl_array *grad_ln_n, const struct gkyl_array *theta,
   const struct gkyl_array *dtB_over_magB, const struct gkyl_array *em, struct gkyl_array *coef,
-  struct gkyl_array *wnode, struct gkyl_array *wclos
+  struct gkyl_array *wnode
 )
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(coef)) {
     gkyl_dg_pkpm_harm_vol_coef_cu(
       up, conf_range, bvar, grad_b, u, grad_u, xi, grad_xi, grad_ln_n, theta, dtB_over_magB, em, coef,
-      wnode, wclos
+      wnode
     );
     return;
   }
@@ -121,7 +115,7 @@ gkyl_dg_pkpm_harm_vol_coef(
       gkyl_array_cfetch(u, cidx), gkyl_array_cfetch(grad_u, cidx), gkyl_array_cfetch(xi, cidx),
       gkyl_array_cfetch(grad_xi, cidx), gkyl_array_cfetch(grad_ln_n, cidx), gkyl_array_cfetch(theta, cidx),
       gkyl_array_cfetch(dtB_over_magB, cidx), gkyl_array_cfetch(em, cidx), gkyl_array_fetch(coef, cidx),
-      gkyl_array_fetch(wnode, cidx), gkyl_array_fetch(wclos, cidx));
+      gkyl_array_fetch(wnode, cidx));
   }
 }
 
@@ -189,7 +183,7 @@ gkyl_dg_pkpm_harm_vol_coef_cu(
   const struct gkyl_array *grad_u, const struct gkyl_array *xi, const struct gkyl_array *grad_xi,
   const struct gkyl_array *grad_ln_n, const struct gkyl_array *theta,
   const struct gkyl_array *dtB_over_magB, const struct gkyl_array *em, struct gkyl_array *coef,
-  struct gkyl_array *wnode, struct gkyl_array *wclos
+  struct gkyl_array *wnode
 )
 {
   assert(false);
