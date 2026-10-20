@@ -1,0 +1,65 @@
+Either make a relevant change or suggest a defensive response to this comment on the pull request
+
+gyrokinetic/zero/efit.c
+  for (int i = 0; i < up->nr; ++i) {
+    const double *fpol_n = gkyl_array_cfetch(fpolflux_n, i);
+    double *fpolprime_n = gkyl_array_fetch(fpolprimeflux_n, i);
+    if (fpol_n[0] != 0.0) {
+@manauref
+manauref
+15 hours ago
+Collaborator
+should this really compare against 0 or should it compare against some small number? or since I don't know a priori what a "small number" means, should it be something like fabs(fpol_n[0]/fpol_max) < fpol_tol where fpol_tol is something small like 1e-10.
+
+---
+
+Either make a relevant change or suggest a defensive response to this comment on the pull request
+
+gyrokinetic/zero/efit.c
+  for (int i = 0; i < up->nr; ++i) {
+    const double *fpol_n = gkyl_array_cfetch(fpolflux_n, i);
+    double *fpolprime_n = gkyl_array_fetch(fpolprimeflux_n, i);
+    if (fpol_n[0] != 0.0) {
+@manauref
+manauref
+15 hours ago
+Collaborator
+should this really compare against 0 or should it compare against some small number? or since I don't know a priori what a "small number" means, should it be something like fabs(fpol_n[0]/fpol_max) < fpol_tol where fpol_tol is something small like 1e-10.
+
+---
+
+Is this chunk doing lhopital's rule or something if F=0?
+
+---
+
+Is this chunk doing lhopital's rule or something if F=0?
+
+---
+
+gyrokinetic/zero/efit.c
+    if (fpol_n[0] != 0.0) {
+      fpolprime_n[0] /= fpol_n[0];
+    } else {
+      int left = i == 0 ? 0 : i - 1, right = i == up->nr - 1 ? i : i + 1;
+@manauref
+manauref
+15 hours ago
+Collaborator
+this assumes there's no parallelization in x, right? maybe add a comment about that.
+
+also, it seems to assume the lower and upper indices are 0 and nr-1. Maybe this is unavoidable at this point, but I would think it'd be better to use something like range->lower[0] and range->upper[0]
+
+---
+
+gyrokinetic/zero/efit.c
+    if (fpol_n[0] != 0.0) {
+      fpolprime_n[0] /= fpol_n[0];
+    } else {
+      int left = i == 0 ? 0 : i - 1, right = i == up->nr - 1 ? i : i + 1;
+@manauref
+manauref
+15 hours ago
+Collaborator
+this assumes there's no parallelization in x, right? maybe add a comment about that.
+
+also, it seems to assume the lower and upper indices are 0 and nr-1. Maybe this is unavoidable at this point, but I would think it'd be better to use something like range->lower[0] and range->upper[0]

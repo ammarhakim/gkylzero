@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M5CT7ZG51HS6NA0G03W6YSKF",
+  "strategy": "manual-commit",
+  "branch": "debug-nunif-grid",
+  "checkpoints_count": 6,
+  "files_touched": [
+    "gyrokinetic/zero/efit.c"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 13647,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 230656,
+    "output_tokens": 1319,
+    "api_call_count": 10,
+    "subagent_tokens_complete": true
+  }
+}
