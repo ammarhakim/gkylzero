@@ -590,8 +590,8 @@ TEST_LIST = {
   {"test_bc_twistshift_plain_matches_twistshift_dg_ho",
    test_bc_twistshift_plain_matches_twistshift_dg_ho},
   {"test_bc_twistshift_conserves_particles_ho", test_bc_twistshift_conserves_particles_ho},
-  {"test_bc_twistshift_only_ghost_plane_written_ho",
-   test_bc_twistshift_only_ghost_plane_written_ho},
+  {"test_bc_twistshift_only_ghost_plane_written_ho", test_bc_twistshift_only_ghost_plane_written_ho
+  },
   {"test_bc_twistshift_identity_filter_matches_plain_ho",
    test_bc_twistshift_identity_filter_matches_plain_ho},
   {"test_bc_twistshift_upsample_no_shear_matches_plain_ho",

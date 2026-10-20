@@ -299,7 +299,7 @@ gk_field_fem_projection_par_apar_iwl_3x(
 
 static void
 gk_field_2x3x_fill_fem_parproj_bias_lines(
-  struct gkyl_gyrokinetic_app *app, struct gk_field *f, struct gkyl_poisson_bc *poisson_bcs
+  struct gkyl_gyrokinetic_app *app, struct gk_field *gkf, struct gkyl_poisson_bc *poisson_bcs
 )
 {
   // Create a bias line list that includes the perpendicular BCs if
@@ -310,8 +310,8 @@ gk_field_2x3x_fill_fem_parproj_bias_lines(
   int num_bias_line = 0;
   int bl_idx = 0;
   int num_bias_line_in = 0;
-  if (f->info.bias_line_list) {
-    num_bias_line_in = f->info.bias_line_list->num_bias_line;
+  if (gkf->info.bias_line_list) {
+    num_bias_line_in = gkf->info.bias_line_list->num_bias_line;
   }
 
   int num_bc_bias = 4; // Number of biases for Dirichlet BCs below.
@@ -363,7 +363,7 @@ gk_field_2x3x_fill_fem_parproj_bias_lines(
   }
   for (int i = 0; i < num_bias_line_in; i++) {
     struct gkyl_poisson_bias_line *bl = &(bias_lines_buff[bl_idx]);
-    struct gkyl_poisson_bias_line *bl_inp = &(f->info.bias_line_list->bl[i]);
+    struct gkyl_poisson_bias_line *bl_inp = &(gkf->info.bias_line_list->bl[i]);
     bl->perp_dirs[0] = bl_inp->perp_dirs[0];
     bl->perp_dirs[1] = bl_inp->perp_dirs[1];
     bl->perp_coords[0] = bl_inp->perp_coords[0];
@@ -376,10 +376,10 @@ gk_field_2x3x_fill_fem_parproj_bias_lines(
   // Copy temporary bias line list into app.
   bl_sz = GKYL_MAX2(1, num_bias_line) *
           sizeof(struct gkyl_poisson_bias_line); // max avoids allocating 0 memory.
-  f->fem_parproj_bias_line_list.num_bias_line = num_bias_line;
-  f->fem_parproj_bias_line_list.bl = gkyl_malloc(bl_sz);
+  gkf->fem_parproj_bias_line_list.num_bias_line = num_bias_line;
+  gkf->fem_parproj_bias_line_list.bl = gkyl_malloc(bl_sz);
   if (num_bias_line) {
-    memcpy(f->fem_parproj_bias_line_list.bl, bias_lines_buff, bl_sz);
+    memcpy(gkf->fem_parproj_bias_line_list.bl, bias_lines_buff, bl_sz);
   }
 
   gkyl_free(bias_lines_buff);
@@ -724,160 +724,160 @@ gk_field_em_zonal_component_none(
 }
 
 static void
-gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
+gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
-  gkyl_array_release(f->rho_c);
-  gkyl_array_release(f->rho_c_global_dg);
-  gkyl_array_release(f->rho_c_global_smooth);
-  gkyl_array_release(f->phi_fem);
-  gkyl_array_release(f->phi_smooth);
-  gkyl_array_release(f->apar);
-  gkyl_array_release(f->apardot);
+  gkyl_array_release(gkf->rho_c);
+  gkyl_array_release(gkf->rho_c_global_dg);
+  gkyl_array_release(gkf->rho_c_global_smooth);
+  gkyl_array_release(gkf->phi_fem);
+  gkyl_array_release(gkf->phi_smooth);
+  gkyl_array_release(gkf->apar);
+  gkyl_array_release(gkf->apardot);
 
-  if (f->is_em) {
-    gkyl_array_release(f->amperesol);
-    gkyl_array_release(f->apar_curr);
-    gkyl_array_release(f->apar1);
-    gkyl_array_release(f->aparnew);
-    gkyl_array_release(f->apar_smooth_aux);
-    gkyl_array_release(f->currentDens);
-    gkyl_array_release(f->currentDensdot);
-    gkyl_array_release(f->lapWeightAmpere);
-    gkyl_array_release(f->dApartdtSlvr_kSq);
-    gkyl_fem_parproj_release(f->fem_apar_parproj);
+  if (gkf->is_em) {
+    gkyl_array_release(gkf->amperesol);
+    gkyl_array_release(gkf->apar_curr);
+    gkyl_array_release(gkf->apar1);
+    gkyl_array_release(gkf->aparnew);
+    gkyl_array_release(gkf->apar_smooth_aux);
+    gkyl_array_release(gkf->currentDens);
+    gkyl_array_release(gkf->currentDensdot);
+    gkyl_array_release(gkf->lapWeightAmpere);
+    gkyl_array_release(gkf->dApartdtSlvr_kSq);
+    gkyl_fem_parproj_release(gkf->fem_apar_parproj);
     if (app->gk_geom->has_LCFS) {
-      gkyl_fem_parproj_release(f->fem_apar_parproj_sol);
+      gkyl_fem_parproj_release(gkf->fem_apar_parproj_sol);
     }
-    gkyl_fem_poisson_perp_release(f->fem_apar_solver);
-    gkyl_fem_poisson_perp_release(f->fem_apardot_solver);
+    gkyl_fem_poisson_perp_release(gkf->fem_apar_solver);
+    gkyl_fem_poisson_perp_release(gkf->fem_apardot_solver);
     if (app->use_gpu) {
-      gkyl_array_release(f->apar_host);
-      gkyl_array_release(f->apardot_host);
-      gkyl_array_release(f->amperesol_host);
+      gkyl_array_release(gkf->apar_host);
+      gkyl_array_release(gkf->apardot_host);
+      gkyl_array_release(gkf->amperesol_host);
     }
-    if (f->info.remove_em_zonal) {
-      gkyl_array_average_release(f->fs_avg_op);
-      gkyl_array_release(f->fs_avg);
-      gkyl_array_release(f->fs_avg_conf_one);
+    if (gkf->info.remove_em_zonal) {
+      gkyl_array_average_release(gkf->fs_avg_op);
+      gkyl_array_release(gkf->fs_avg);
+      gkyl_array_release(gkf->fs_avg_conf_one);
       if (app->use_gpu) {
-        gkyl_cu_free(f->fs_avg_subdir);
+        gkyl_cu_free(gkf->fs_avg_subdir);
       } else {
-        gkyl_free(f->fs_avg_subdir);
+        gkyl_free(gkf->fs_avg_subdir);
       }
     }
   }
 
   if (app->use_gpu) {
-    gkyl_array_release(f->phi_host);
+    gkyl_array_release(gkf->phi_host);
   }
 
-  gkyl_array_release(f->epsilon);
+  gkyl_array_release(gkf->epsilon);
 
-  gkyl_fem_poisson_perp_release(f->fem_poisson_perp);
-  if (f->is_dirichletvar) {
-    gkyl_array_release(f->phi_bc);
+  if (gkf->fem_poisson_perp) {
+    gkyl_fem_poisson_perp_release(gkf->fem_poisson_perp);
+  }
+  if (gkf->is_dirichletvar) {
+    gkyl_array_release(gkf->phi_bc);
   }
 
-  gkyl_fem_parproj_release(f->fem_parproj);
+  gkyl_fem_parproj_release(gkf->fem_parproj);
 
-  gkyl_array_integrate_release(f->calc_em_energy);
+  gkyl_array_integrate_release(gkf->calc_em_energy);
 
   if (app->gk_geom->has_LCFS) {
     // Release updaters for solve with a LCFS/separatrix.
-    gkyl_free(f->fem_parproj_bias_line_list.bl);
-    gkyl_fem_parproj_release(f->fem_parproj_rho_core);
-    gkyl_fem_parproj_release(f->fem_parproj_phi_core);
-    gkyl_fem_parproj_release(f->fem_parproj_rho_sol);
-    gkyl_fem_parproj_release(f->fem_parproj_phi_sol);
+    gkyl_free(gkf->fem_parproj_bias_line_list.bl);
+    gkyl_fem_parproj_release(gkf->fem_parproj_rho_core);
+    gkyl_fem_parproj_release(gkf->fem_parproj_phi_core);
+    gkyl_fem_parproj_release(gkf->fem_parproj_rho_sol);
+    gkyl_fem_parproj_release(gkf->fem_parproj_phi_sol);
 
     if (app->cdim == 3) {
-      gkyl_bc_twistshift_release(f->bc_ts_lo);
-      gkyl_bc_basic_gyrokinetic_release(f->gfss_bc_op_core_up);
-      gkyl_array_release(f->bc_buffer);
+      gkyl_bc_twistshift_release(gkf->bc_ts_lo);
+      gkyl_bc_basic_gyrokinetic_release(gkf->gfss_bc_op_core_up);
+      gkyl_array_release(gkf->bc_buffer);
     }
-  } else if (f->bc_par_phi == GKYL_BC_GK_FIELD_TWISTSHIFT) {
+  } else if (gkf->bc_par_phi == GKYL_BC_GK_FIELD_TWISTSHIFT) {
     // Release TS updaters.
-    gkyl_free(f->fem_parproj_bias_line_list.bl);
-    gkyl_fem_parproj_release(f->fem_parproj_rho_core);
-    gkyl_fem_parproj_release(f->fem_parproj_phi_core);
+    gkyl_free(gkf->fem_parproj_bias_line_list.bl);
+    gkyl_fem_parproj_release(gkf->fem_parproj_rho_core);
+    gkyl_fem_parproj_release(gkf->fem_parproj_phi_core);
 
     if (app->cdim == 3) {
-      gkyl_bc_twistshift_release(f->bc_ts_lo);
-      gkyl_bc_twistshift_release(f->bc_ts_up);
-      gkyl_bc_basic_gyrokinetic_release(f->gfss_bc_op_core_up);
-      gkyl_bc_basic_gyrokinetic_release(f->gfss_bc_op_core_lo);
-      gkyl_array_release(f->bc_buffer);
-      gkyl_array_release(f->ts_ghost_tmp);
+      gkyl_bc_twistshift_release(gkf->bc_ts_lo);
+      gkyl_bc_twistshift_release(gkf->bc_ts_up);
+      gkyl_bc_basic_gyrokinetic_release(gkf->gfss_bc_op_core_up);
+      gkyl_bc_basic_gyrokinetic_release(gkf->gfss_bc_op_core_lo);
+      gkyl_array_release(gkf->bc_buffer);
+      gkyl_array_release(gkf->ts_ghost_tmp);
     }
   }
 
-  if (f->use_flr) {
-    gk_field_flr_release(app, f);
+  if (gkf->use_flr) {
+    gk_field_flr_release(app, gkf);
   }
 }
 
 void
-gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
   // Create global subrange we'll copy the field solver solution from (into local).
-  gkyl_sub_range_intersect(&f->global_sub_range, &app->global, &app->local);
+  gkyl_sub_range_intersect(&gkf->global_sub_range, &app->global, &app->local);
 
   // Allocate arrays for charge density.
-  f->rho_c = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  f->rho_c_global_dg = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
-  f->rho_c_global_smooth = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
+  gkf->rho_c = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  gkf->rho_c_global_dg = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
+  gkf->rho_c_global_smooth = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
 
   // Allocate arrays for electrostatic potential.
-  f->phi_fem = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
-  f->phi_smooth = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  f->apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  f->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  gkf->phi_fem = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
+  gkf->phi_smooth = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  gkf->apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  gkf->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
   // Setup electromagnetic variables if needed.
-  if (f->is_em) {
+  if (gkf->is_em) {
     // Arrays for A_parallel RK stages and Ampere's law solution.
-    f->apar_curr = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    f->apar1 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    f->aparnew = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    f->amperesol = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    f->apar_host = f->apar;
-    f->apardot_host = f->apardot;
-    f->amperesol_host = f->amperesol;
+    gkf->apar_curr = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gkf->apar1 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gkf->aparnew = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gkf->amperesol = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gkf->apar_host = gkf->apar;
+    gkf->apardot_host = gkf->apardot;
+    gkf->amperesol_host = gkf->amperesol;
     if (app->use_gpu) {
-      f->apar_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-      f->apardot_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-      f->amperesol_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+      gkf->apar_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+      gkf->apardot_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+      gkf->amperesol_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
     }
 
-    f->apar_smooth_aux = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    f->currentDens = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    f->currentDensdot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    f->lapWeightAmpere =
+    gkf->apar_smooth_aux = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gkf->currentDens = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gkf->currentDensdot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gkf->lapWeightAmpere =
       mkarr(app->use_gpu, (2 * (app->cdim / 3) + 1) * app->basis.num_basis, app->local_ext.volume);
-    f->dApartdtSlvr_kSq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gkf->dApartdtSlvr_kSq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   }
 
   // Allocate phi_host for I/O.
-  f->phi_host = f->phi_smooth;
+  gkf->phi_host = gkf->phi_smooth;
   if (app->use_gpu) {
-    f->phi_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+    gkf->phi_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
   }
 
-  if (f->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
-    f->accumulate_rhoc_func = gk_field_accumulate_rho_c_adiabatic;
-  } else {
-    f->accumulate_rhoc_func = gk_field_accumulate_rho_c_poisson;
-  }
+  gkf->accumulate_rhoc_func = gk_field_accumulate_rho_c_poisson;
 
   double polarization_weight = 0.0;
-  double polarization_bmag = f->info.polarization_bmag ? f->info.polarization_bmag : app->bmag_ref;
+  double polarization_bmag = gkf->info.polarization_bmag ? gkf->info.polarization_bmag :
+                                                           app->bmag_ref;
   // Linearized polarization density
   for (int i = 0; i < app->num_species; ++i) {
-    struct gk_species *s = &app->species[i];
-    polarization_weight += s->info.polarization_density * s->info.mass / pow(polarization_bmag, 2);
+    struct gk_species *gks = &app->species[i];
+    polarization_weight +=
+      gks->info.polarization_density * gks->info.mass / pow(polarization_bmag, 2);
   }
   // Allocate array for the polarization weight times geometric coefficients.
-  f->epsilon =
+  gkf->epsilon =
     mkarr(app->use_gpu, (2 * (app->cdim / 3) + 1) * app->basis.num_basis, app->local_ext.volume);
 
   // Initialize the polarization weight.
@@ -885,17 +885,17 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
     app->gk_geom->geo_int.gxxj, app->gk_geom->geo_int.gxyj, app->gk_geom->geo_int.gyyj
   };
   for (int i = 0; i < app->cdim - 2 / app->cdim; i++) {
-    gkyl_array_set_offset(f->epsilon, polarization_weight, Jgij[i], i * app->basis.num_basis);
+    gkyl_array_set_offset(gkf->epsilon, polarization_weight, Jgij[i], i * app->basis.num_basis);
   }
 
-  if (f->is_em) {
+  if (gkf->is_em) {
     // Compute the weights in front of the laplacian operator (metric x 1/mu0)
     for (int i = 0; i < app->cdim - 2 / app->cdim; i++) {
       gkyl_array_set_offset(
-        f->lapWeightAmpere, 1.0 / f->info.mu0, Jgij[i], i * app->basis.num_basis
+        gkf->lapWeightAmpere, 1.0 / gkf->info.mu0, Jgij[i], i * app->basis.num_basis
       );
     }
-    gkyl_array_set(f->apar_energy_fac, -0.5, f->lapWeightAmpere);
+    gkyl_array_set(gkf->apar_energy_fac, -0.5, gkf->lapWeightAmpere);
   }
 
   bool bc_is_np[GKYL_MAX_CDIM]; // Is the BC in this direction non-periodic?
@@ -910,52 +910,56 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   for (int d = 0; d < app->cdim - 1; d++) {
     if (bc_is_np[d]) {
       struct gkyl_gyrokinetic_bc *bc_lo =
-        gk_fetch_bc_with_dir_edge(f->info.poisson_bcs, 2 * app->cdim, d, GKYL_LOWER_EDGE);
+        gk_fetch_bc_with_dir_edge(gkf->info.poisson_bcs, 2 * app->cdim, d, GKYL_LOWER_EDGE);
       if (bc_lo != 0) {
-        f->poisson_bcs.lo_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_lo->type);
+        gkf->poisson_bcs.lo_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_lo->type);
         for (int i = 0; i < 3; i++) {
-          f->poisson_bcs.lo_value[d].v[i] = bc_lo->value[i];
+          gkf->poisson_bcs.lo_value[d].v[i] = bc_lo->value[i];
         }
       }
 
       struct gkyl_gyrokinetic_bc *bc_up =
-        gk_fetch_bc_with_dir_edge(f->info.poisson_bcs, 2 * app->cdim, d, GKYL_UPPER_EDGE);
+        gk_fetch_bc_with_dir_edge(gkf->info.poisson_bcs, 2 * app->cdim, d, GKYL_UPPER_EDGE);
       if (bc_up != 0) {
-        f->poisson_bcs.up_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_up->type);
+        gkf->poisson_bcs.up_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_up->type);
         for (int i = 0; i < 3; i++) {
-          f->poisson_bcs.up_value[d].v[i] = bc_up->value[i];
+          gkf->poisson_bcs.up_value[d].v[i] = bc_up->value[i];
         }
       }
     } else {
-      f->poisson_bcs.lo_type[d] =
+      gkf->poisson_bcs.lo_type[d] =
         gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
-      f->poisson_bcs.up_type[d] =
+      gkf->poisson_bcs.up_type[d] =
         gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
     }
   }
 
-  // Initialize the Poisson solver.
-  f->fem_poisson_perp = gkyl_fem_poisson_perp_new(
-    &app->local, &app->grid, app->basis, &f->poisson_bcs, f->info.bias_line_list, f->epsilon, NULL,
-    app->use_gpu
-  );
-
-  f->phi_bc = 0;
-  f->is_dirichletvar = false;
-  for (int i = 0; i < 2 * app->cdim; i++) {
-    f->is_dirichletvar = f->is_dirichletvar ||
-                         (f->info.poisson_bcs[i].type == GKYL_BC_GK_FIELD_DIRICHLET_VARYING ||
-                          f->info.poisson_bcs[i].type == GKYL_BC_GK_FIELD_DIRICHLET_VARYING);
+  // Initialize the Poisson solver. With an adiabatic species the solver needs K, so it is
+  // created by gk_field_adiabatic_init.
+  gkf->fem_poisson_perp = 0;
+  if (!gkf->has_adiabatic_species) {
+    gkf->fem_poisson_perp = gkyl_fem_poisson_perp_new(
+      &app->local, &app->grid, app->basis, &gkf->poisson_bcs, gkf->info.bias_line_list,
+      gkf->epsilon, NULL, app->use_gpu
+    );
   }
 
-  if (f->is_dirichletvar) {
+  gkf->phi_bc = 0;
+  gkf->is_dirichletvar = false;
+  for (int i = 0; i < 2 * app->cdim; i++) {
+    gkf->is_dirichletvar = gkf->is_dirichletvar ||
+                           (gkf->info.poisson_bcs[i].type == GKYL_BC_GK_FIELD_DIRICHLET_VARYING ||
+                            gkf->info.poisson_bcs[i].type == GKYL_BC_GK_FIELD_DIRICHLET_VARYING);
+  }
+
+  if (gkf->is_dirichletvar) {
     // Project the spatially varying BC if the user specifies it.
-    f->phi_bc = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
-    struct gkyl_array *phi_bc_ho = mkarr(false, f->phi_bc->ncomp, f->phi_bc->size);
+    gkf->phi_bc = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
+    struct gkyl_array *phi_bc_ho = mkarr(false, gkf->phi_bc->ncomp, gkf->phi_bc->size);
 
     for (int d = 0; d < app->cdim; d++) {
       struct gkyl_gyrokinetic_bc *bc_lo =
-        gk_fetch_bc_with_dir_edge(f->info.poisson_bcs, 2 * app->cdim, d, GKYL_LOWER_EDGE);
+        gk_fetch_bc_with_dir_edge(gkf->info.poisson_bcs, 2 * app->cdim, d, GKYL_LOWER_EDGE);
       if (bc_lo != 0) {
         if (bc_lo->type == GKYL_BC_GK_FIELD_DIRICHLET_VARYING) {
           gkyl_eval_on_nodes *phibc_proj =
@@ -965,7 +969,7 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
         }
       }
       struct gkyl_gyrokinetic_bc *bc_up =
-        gk_fetch_bc_with_dir_edge(f->info.poisson_bcs, 2 * app->cdim, d, GKYL_UPPER_EDGE);
+        gk_fetch_bc_with_dir_edge(gkf->info.poisson_bcs, 2 * app->cdim, d, GKYL_UPPER_EDGE);
       if (bc_up != 0) {
         if (bc_up->type == GKYL_BC_GK_FIELD_DIRICHLET_VARYING) {
           gkyl_eval_on_nodes *phibc_proj =
@@ -975,93 +979,84 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
         }
       }
     }
-    gkyl_array_copy(f->phi_bc, phi_bc_ho);
+    gkyl_array_copy(gkf->phi_bc, phi_bc_ho);
     gkyl_array_release(phi_bc_ho);
   }
 
   // Potential smoothing (in z) updater
-  enum gkyl_fem_parproj_bc_type fem_parproj_bc = GKYL_FEM_PARPROJ_NONE;
-  for (int d = 0; d < app->num_periodic_dir; ++d) {
-    if (app->periodic_dirs[d] == app->cdim - 1) {
-      fem_parproj_bc = GKYL_FEM_PARPROJ_PERIODIC;
-    }
-  }
+  gk_field_fem_parproj_new(app, gkf, NULL);
 
-  f->fem_parproj = gkyl_fem_parproj_new(
-    &app->global, &app->grid, &app->basis, fem_parproj_bc, 0, 0, 0, app->use_gpu
-  );
-
-  f->fem_projection_par_rho_func = gk_field_fem_projection_par;
-  f->fem_projection_par_phi_func = gk_field_fem_projection_par;
+  gkf->fem_projection_par_rho_func = gk_field_fem_projection_par;
+  gkf->fem_projection_par_phi_func = gk_field_fem_projection_par;
 
   // Setup EM solvers.
-  f->ampere_solve = gk_field_ampere_solve_none;
-  f->em_rhs_func = gk_field_em_rhs_none;
-  f->remove_em_zonal_func = gk_field_em_zonal_component_none;
-  f->fem_projection_par_apar_func = gk_field_fem_projection_par_none;
-  if (f->is_em) {
+  gkf->ampere_solve = gk_field_ampere_solve_none;
+  gkf->em_rhs_func = gk_field_em_rhs_none;
+  gkf->remove_em_zonal_func = gk_field_em_zonal_component_none;
+  gkf->fem_projection_par_apar_func = gk_field_fem_projection_par_none;
+  if (gkf->is_em) {
     // Translate input file BCs into Ampere BCs.
     for (int d = 0; d < app->cdim - 1; d++) {
       if (bc_is_np[d]) {
         struct gkyl_gyrokinetic_bc *bc_lo =
-          gk_fetch_bc_with_dir_edge(f->info.ampere_bcs, 2 * app->cdim, d, GKYL_LOWER_EDGE);
+          gk_fetch_bc_with_dir_edge(gkf->info.ampere_bcs, 2 * app->cdim, d, GKYL_LOWER_EDGE);
         if (bc_lo != 0) {
-          f->ampere_bcs.lo_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_lo->type);
+          gkf->ampere_bcs.lo_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_lo->type);
           for (int i = 0; i < 3; i++) {
-            f->ampere_bcs.lo_value[d].v[i] = bc_lo->value[i];
+            gkf->ampere_bcs.lo_value[d].v[i] = bc_lo->value[i];
           }
         }
 
         struct gkyl_gyrokinetic_bc *bc_up =
-          gk_fetch_bc_with_dir_edge(f->info.ampere_bcs, 2 * app->cdim, d, GKYL_UPPER_EDGE);
+          gk_fetch_bc_with_dir_edge(gkf->info.ampere_bcs, 2 * app->cdim, d, GKYL_UPPER_EDGE);
         if (bc_up != 0) {
-          f->ampere_bcs.up_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_up->type);
+          gkf->ampere_bcs.up_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_up->type);
           for (int i = 0; i < 3; i++) {
-            f->ampere_bcs.up_value[d].v[i] = bc_up->value[i];
+            gkf->ampere_bcs.up_value[d].v[i] = bc_up->value[i];
           }
         }
       } else {
-        f->ampere_bcs.lo_type[d] =
+        gkf->ampere_bcs.lo_type[d] =
           gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
-        f->ampere_bcs.up_type[d] =
+        gkf->ampere_bcs.up_type[d] =
           gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
       }
     }
     // FEM solver for Ampere equation (solved at IC only).
-    f->fem_apar_solver = gkyl_fem_poisson_perp_new(
-      &app->local, &app->grid, app->basis, &f->ampere_bcs, 0, f->lapWeightAmpere, NULL, app->use_gpu
+    gkf->fem_apar_solver = gkyl_fem_poisson_perp_new(
+      &app->local, &app->grid, app->basis, &gkf->ampere_bcs, 0, gkf->lapWeightAmpere, NULL, app->use_gpu
     );
     // FEM solver for Ohm's law (evolves d(Apart)/dt).
-    f->fem_apardot_solver = gkyl_fem_poisson_perp_new(
-      &app->local, &app->grid, app->basis, &f->ampere_bcs, 0, f->lapWeightAmpere,
-      f->dApartdtSlvr_kSq, app->use_gpu
+    gkf->fem_apardot_solver = gkyl_fem_poisson_perp_new(
+      &app->local, &app->grid, app->basis, &gkf->ampere_bcs, 0, gkf->lapWeightAmpere,
+      gkf->dApartdtSlvr_kSq, app->use_gpu
     );
 
     // We have to advance the updater once to be able to update the kSq later.
-    gkyl_fem_poisson_perp_set_rhs(f->fem_apardot_solver, f->currentDensdot);
-    gkyl_fem_poisson_perp_solve(f->fem_apardot_solver, f->apardot);
+    gkyl_fem_poisson_perp_set_rhs(gkf->fem_apardot_solver, gkf->currentDensdot);
+    gkyl_fem_poisson_perp_solve(gkf->fem_apardot_solver, gkf->apardot);
 
-    f->ampere_solve = gk_field_ampere_solve_enabled;
-    f->em_rhs_func = f->info.is_apar_static ? gk_field_em_rhs_none : gk_field_em_rhs_enabled;
+    gkf->ampere_solve = gk_field_ampere_solve_enabled;
+    gkf->em_rhs_func = gkf->info.is_apar_static ? gk_field_em_rhs_none : gk_field_em_rhs_enabled;
 
-    if (f->info.remove_em_zonal) {
-      f->remove_em_zonal_func = gk_field_remove_em_zonal_enabled;
+    if (gkf->info.remove_em_zonal) {
+      gkf->remove_em_zonal_func = gk_field_remove_em_zonal_enabled;
       // define the reduced range and basis for averaging along x only
       struct gkyl_rect_grid grid_x;
       gkyl_rect_grid_init(&grid_x, 1, &app->grid.lower[0], &app->grid.upper[0], &app->grid.cells[0]);
       int ghost_x[] = {1};
-      gkyl_create_grid_ranges(&grid_x, ghost_x, &f->fs_avg_range_ext, &f->fs_avg_range);
-      gkyl_cart_modal_serendip(&f->fs_avg_basis, 1, app->basis.poly_order);
+      gkyl_create_grid_ranges(&grid_x, ghost_x, &gkf->fs_avg_range_ext, &gkf->fs_avg_range);
+      gkyl_cart_modal_serendip(&gkf->fs_avg_basis, 1, app->basis.poly_order);
       // create and run the array average updater to average y and z
       // Not that in 2x, it will only average over z.
       int avg_dim_yz[] = {0, 1, 1};
       struct gkyl_array_average_inp inp_avg_xyz_to_x = {
         .grid = &app->grid,
         .basis = app->basis,
-        .basis_avg = f->fs_avg_basis,
+        .basis_avg = gkf->fs_avg_basis,
         .local = &app->local,
-        .local_avg = &f->fs_avg_range,
-        .local_avg_ext = &f->fs_avg_range_ext,
+        .local_avg = &gkf->fs_avg_range,
+        .local_avg_ext = &gkf->fs_avg_range_ext,
         .weight = app->gk_geom->geo_int.jacobgeo,
         .avg_dim = avg_dim_yz,
         .use_gpu = app->use_gpu,
@@ -1069,96 +1064,102 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
       int fs_avg_subdir[GKYL_MAX_CDIM];
       fs_avg_subdir[0] = 0; // Average along x only, so subdir is just 0.
       if (app->use_gpu) {
-        f->fs_avg_subdir = gkyl_cu_malloc(GKYL_MAX_CDIM * sizeof(int));
+        gkf->fs_avg_subdir = gkyl_cu_malloc(GKYL_MAX_CDIM * sizeof(int));
         gkyl_cu_memcpy(
-          f->fs_avg_subdir, fs_avg_subdir, GKYL_MAX_CDIM * sizeof(int), GKYL_CU_MEMCPY_H2D
+          gkf->fs_avg_subdir, fs_avg_subdir, GKYL_MAX_CDIM * sizeof(int), GKYL_CU_MEMCPY_H2D
         );
       } else {
-        f->fs_avg_subdir = gkyl_malloc(GKYL_MAX_CDIM * sizeof(int));
+        gkf->fs_avg_subdir = gkyl_malloc(GKYL_MAX_CDIM * sizeof(int));
         for (int i = 0; i < GKYL_MAX_CDIM; i++) {
-          f->fs_avg_subdir[i] = fs_avg_subdir[i];
+          gkf->fs_avg_subdir[i] = fs_avg_subdir[i];
         }
       }
-      f->fs_avg_op = gkyl_array_average_inew(&inp_avg_xyz_to_x);
-      f->fs_avg = mkarr(app->use_gpu, f->fs_avg_basis.num_basis, f->fs_avg_range_ext.volume);
-      f->fs_avg_conf_one = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+      gkf->fs_avg_op = gkyl_array_average_inew(&inp_avg_xyz_to_x);
+      gkf->fs_avg = mkarr(app->use_gpu, gkf->fs_avg_basis.num_basis, gkf->fs_avg_range_ext.volume);
+      gkf->fs_avg_conf_one = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
       double dg_norm = pow(sqrt(2.0), app->basis.ndim);
-      gkyl_array_shiftc_range(f->fs_avg_conf_one, dg_norm, 0, &app->local);
+      gkyl_array_shiftc_range(gkf->fs_avg_conf_one, dg_norm, 0, &app->local);
     }
   }
 
   // Updater for field energy calculation.
-  gkyl_array_set(f->es_energy_fac, 0.5, f->epsilon);
-  f->calc_em_energy = gkyl_array_integrate_new(
+  gkyl_array_set(gkf->es_energy_fac, 0.5, gkf->epsilon);
+  gkf->calc_em_energy = gkyl_array_integrate_new(
     &app->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ, app->use_gpu
   );
 
   // FLR effects (operators created in gk_field_flr_new once the species,
   // which provide the reference gyroradii, are initialized).
-  f->use_flr = f->info.flr.type != GKYL_GK_FLR_NONE;
-  f->invert_flr = gk_field_invert_flr_none;
+  gkf->use_flr = gkf->info.flr.type != GKYL_GK_FLR_NONE;
+  gkf->invert_flr = gk_field_invert_flr_none;
 
-  f->bc_par_phi = 0;
+  gkf->bc_par_phi = 0;
   // Deterime if we need IWL or TWISTSHIFT BCs on phi fro the species BCs.
   for (int s = 0; s < app->num_species; s++) {
     struct gk_species *gks = &app->species[s];
     for (int i = 0; i < 2 * app->cdim; i++) {
       if (gks->info.bcs[i].dir == app->cdim - 1 &&
           gks->info.bcs[i].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
-        f->bc_par_phi = GKYL_BC_GK_FIELD_TWISTSHIFT;
+        gkf->bc_par_phi = GKYL_BC_GK_FIELD_TWISTSHIFT;
         break;
       }
     }
-    if (f->bc_par_phi) {
+    if (gkf->bc_par_phi) {
       break;
     }
   }
 
   if (app->gk_geom->has_LCFS) {
     // Updaters to enforce twist-and-shift and sheath BCs.
-    gk_field_2x3x_add_IWL_updaters(app, f, &f->poisson_bcs);
-  } else if (f->bc_par_phi == GKYL_BC_GK_FIELD_TWISTSHIFT) {
+    gk_field_2x3x_add_IWL_updaters(app, gkf, &gkf->poisson_bcs);
+  } else if (gkf->bc_par_phi == GKYL_BC_GK_FIELD_TWISTSHIFT) {
     // Updaters to enforce twist-and-shift BCs.
-    gk_field_2x3x_add_TS_updaters(app, f, &f->poisson_bcs);
+    gk_field_2x3x_add_TS_updaters(app, gkf, &gkf->poisson_bcs);
   }
 
-  if (f->is_em) {
+  if (gkf->is_em) {
     // FEM smoother for Apar.
     if (app->gk_geom->has_LCFS) {
       if (app->cdim == 2) {
-        f->fem_parproj_ampere_bc = GKYL_FEM_PARPROJ_PERIODIC;
-        f->fem_projection_par_apar_func = gk_field_fem_projection_par_apar_iwl_2x;
+        gkf->fem_parproj_ampere_bc = GKYL_FEM_PARPROJ_PERIODIC;
+        gkf->fem_projection_par_apar_func = gk_field_fem_projection_par_apar_iwl_2x;
       } else {
-        f->fem_parproj_ampere_bc = GKYL_FEM_PARPROJ_DIRICHLET_GHOST;
-        f->fem_projection_par_apar_func = gk_field_fem_projection_par_apar_iwl_3x;
+        gkf->fem_parproj_ampere_bc = GKYL_FEM_PARPROJ_DIRICHLET_GHOST;
+        gkf->fem_projection_par_apar_func = gk_field_fem_projection_par_apar_iwl_3x;
       }
-      f->fem_apar_parproj = gkyl_fem_parproj_new(
-        &app->global_core, &app->grid, &app->basis, f->fem_parproj_ampere_bc, 0, 0, 0, app->use_gpu
+      gkf->fem_apar_parproj = gkyl_fem_parproj_new(
+        &app->global_core, &app->grid, &app->basis, gkf->fem_parproj_ampere_bc, 0, 0, 0, app->use_gpu
       );
-      f->fem_apar_parproj_sol = gkyl_fem_parproj_new(
+      gkf->fem_apar_parproj_sol = gkyl_fem_parproj_new(
         &app->global_sol, &app->grid, &app->basis, GKYL_FEM_PARPROJ_NONE, 0, 0, 0, app->use_gpu
       );
     } else {
-      f->fem_parproj_ampere_bc = fem_parproj_bc;
-      f->fem_projection_par_apar_func = gk_field_fem_projection_par_apar;
-      if (f->bc_par_phi == GKYL_BC_GK_FIELD_TWISTSHIFT) {
-        if (app->cdim == 2) {
-          // 2x TS reduces to periodic in z.
-          f->fem_parproj_ampere_bc = GKYL_FEM_PARPROJ_PERIODIC;
-        } else {
-          f->fem_parproj_ampere_bc = GKYL_FEM_PARPROJ_DIRICHLET_GHOST;
-          f->fem_projection_par_apar_func = gk_field_fem_projection_par_apar_ts_3x;
+      // Periodic along z unless the parallel direction is not periodic (twist-shift below).
+      gkf->fem_parproj_ampere_bc = GKYL_FEM_PARPROJ_NONE;
+      for (int d = 0; d < app->num_periodic_dir; ++d) {
+        if (app->periodic_dirs[d] == app->cdim - 1) {
+          gkf->fem_parproj_ampere_bc = GKYL_FEM_PARPROJ_PERIODIC;
         }
       }
-      f->fem_apar_parproj = gkyl_fem_parproj_new(
-        &app->global, &app->grid, &app->basis, f->fem_parproj_ampere_bc, 0, 0, 0, app->use_gpu
+      gkf->fem_projection_par_apar_func = gk_field_fem_projection_par_apar;
+      if (gkf->bc_par_phi == GKYL_BC_GK_FIELD_TWISTSHIFT) {
+        if (app->cdim == 2) {
+          // 2x TS reduces to periodic in z.
+          gkf->fem_parproj_ampere_bc = GKYL_FEM_PARPROJ_PERIODIC;
+        } else {
+          gkf->fem_parproj_ampere_bc = GKYL_FEM_PARPROJ_DIRICHLET_GHOST;
+          gkf->fem_projection_par_apar_func = gk_field_fem_projection_par_apar_ts_3x;
+        }
+      }
+      gkf->fem_apar_parproj = gkyl_fem_parproj_new(
+        &app->global, &app->grid, &app->basis, gkf->fem_parproj_ampere_bc, 0, 0, 0, app->use_gpu
       );
     }
   }
 
   // Set the pointer to the function that computes phi.
-  f->rhs_phi_func = gk_field_rhs_poisson_perp_2x3x;
+  gkf->rhs_phi_func = gk_field_rhs_poisson_perp_2x3x;
 
   // Set pointer to function that releases memory.
-  f->release_func = gk_field_fem_release_2x3x;
+  gkf->release_func = gk_field_fem_release_2x3x;
 }

@@ -3,6 +3,7 @@
 // Private header for the bc_twistshift orchestrator, not for direct use in
 // user code.
 
+#include <gkyl_array_average.h>
 #include <gkyl_bc_twistshift.h>
 #include <gkyl_twistshift_dg.h>
 #include <gkyl_dg_lowpass_filter.h>
@@ -41,15 +42,6 @@ struct gkyl_bc_twistshift {
   void (*prolong_func)(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo);
   void (*coarsen_func)(struct gkyl_bc_twistshift *up, struct gkyl_array *ftar);
 
-  // To be removed once we have adapted DG average updater to treat phase space.
-  int shift_dir; // Direction of the shift.
-  int *shift_indep; // 1 for basis functions independent of shift_dir, 0 otherwise.
-  int *shift_indep_cu; // Device copy of shift_indep.
-  struct gkyl_range ghost_avg_r; // ghost_r with shift_dir collapsed to its lower cell.
+  struct gkyl_array_average *shift_avg; // Average along shift_dir over the ghost plane.
   struct gkyl_array *favg; // shift_dir average of fprolong, repeated in every shift_dir cell.
 };
-
-#ifdef GKYL_HAVE_CUDA
-// Declaration of cuda device function.
-void gkyl_bc_twistshift_shift_dir_avg_cu(struct gkyl_bc_twistshift *up);
-#endif

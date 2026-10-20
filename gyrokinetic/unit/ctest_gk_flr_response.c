@@ -206,7 +206,7 @@ run_case(
   };
 
   struct gkyl_gyrokinetic_field field = {
-    .gkfield_id = GKYL_GK_FIELD,
+    .gkfield_id = GKYL_GK_FIELD_ES,
     .polarization_bmag = ctx->B0,
     .poisson_bcs =
       {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
