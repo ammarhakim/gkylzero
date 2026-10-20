@@ -32,7 +32,7 @@ gk_species_balance_calc_particle(
   }
 
   // Particle number.
-  gk_species_moment_calc(&bal->f_mom[d], gks->local, app->local, gks->f);
+  gk_species_moment_calc(app, &bal->f_mom[d], gks->local, app->local, gks->f);
   double N = gk_species_balance_reduce(app, bal, bal->f_mom[d].marr);
   bal->mom[d] = N;
 
@@ -44,7 +44,7 @@ gk_species_balance_calc_particle(
 
     double src = 0.0;
     if (bal->has_source) {
-      gk_species_moment_calc(&bal->src_mom[d], gks->local, app->local, gks->src.source);
+      gk_species_moment_calc(app, &bal->src_mom[d], gks->local, app->local, gks->src.source);
       src = gk_species_balance_reduce(app, bal, bal->src_mom[d].marr);
     }
 
@@ -209,7 +209,7 @@ gk_species_balance_step(
   // or end of the time step.
   bal->dt = dt;
   for (int d = 0; d < bal->num_diags; d++) {
-    gk_species_moment_calc(&bal->f_mom[d], gks->local, app->local, gks->f);
+    gk_species_moment_calc(app, &bal->f_mom[d], gks->local, app->local, gks->f);
     gkyl_array_set(is_old ? bal->mom_old[d] : bal->mom_new[d], 1.0 / dt, bal->f_mom[d].marr);
   }
 }
