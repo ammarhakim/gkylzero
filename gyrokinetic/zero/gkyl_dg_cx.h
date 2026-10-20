@@ -48,6 +48,17 @@ void gkyl_dg_cx_coll(
 );
 
 /**
+ * Compute the CX rate coefficient without requiring positive neutral density.
+ * This is intended for closures, such as neutral diffusion, in which
+ * <sigma v> depends on temperatures and relative drift but not neutral
+ * density. The ordinary reaction updater retains its density validity check.
+ * Host arrays only for now.
+ */
+void gkyl_dg_cx_coll_rate(const struct gkyl_dg_cx *up,
+  struct gkyl_array *maxwellian_moms_ion, struct gkyl_array *maxwellian_moms_neut,
+  struct gkyl_array *upar_b_i, struct gkyl_array *coef_cx);
+
+/**
  * Delete updater.
  *
  * @param cx Updater to delete.
