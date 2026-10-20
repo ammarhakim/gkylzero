@@ -523,12 +523,21 @@ struct gkyl_gyrokinetic_species {
 
 enum gkyl_gyrokinetic_neut_fluid_diffusion_bc_type {
   GKYL_NEUT_FLUID_DIFFUSION_ZERO_FLUX = 0,
-  GKYL_NEUT_FLUID_DIFFUSION_DIRICHLET,
+  GKYL_NEUT_FLUID_DIFFUSION_DIRICHLET
 };
 
 // Parameters for diffusion of a fluid neutral species.
 struct gkyl_gyrokinetic_neut_fluid_diffusion {
   double D; // Constant diffusion coefficient.
+  // Write the computed coefficient and the diffusion/ionization CFL rates.
+  bool write_diagnostics;
+  // Advance diffusion with backward Euler in the operator-split implicit
+  // stage. The same DG spatial operator and boundary conditions are used.
+  bool is_implicit;
+  // Relative residual tolerance and iteration limit for the matrix-free
+  // implicit solve. Zero selects defaults of 1e-10 and 200.
+  double implicit_tol;
+  int implicit_max_iter;
   // Compute D = vti^2/(ne*<sigma v>_cx) from the IZ electron density and
   // the CX rate. Requires one GKYL_REACT_IZ and one GKYL_REACT_CX entry.
   bool use_reaction_rates;
@@ -738,6 +747,7 @@ struct gkyl_gyrokinetic_stat {
   double neut_species_react_tm; // total time for neutral reactions updaters
   double neut_species_src_tm; // Time to accumulate neutral species source onto RHS.
   double neut_species_omega_cfl_tm; // time spent in all-reduce for omega-cfl for neutrals
+  double neut_species_implicit_diffusion_tm; // Time spent solving implicit fluid-neutral diffusion.
 
   double time_rate_diags_tm; // Time spent on time rate of change diagnostics.
   double fdot_tm; // Time spent on computing \dot{f} diagnostics.
