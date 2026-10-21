@@ -676,7 +676,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry *up_3d, struct gkyl_gk_geometr
     up->geo_int.dualcurlbhatoverB, 3
   );
   gkyl_deflate_geo_advance(
-    deflator, &up_3d->local, &up->local, up_3d->geo_int.rtg33inv, up->geo_int.rtg33inv, 1
+    deflator, &up_3d->local, &up->local, up_3d->geo_int.B3overB, up->geo_int.B3overB, 1
   );
   gkyl_deflate_geo_advance(
     deflator, &up_3d->local, &up->local, up_3d->geo_int.bioverJB, up->geo_int.bioverJB, 3
@@ -949,7 +949,7 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(up->geo_int.eps2);
   gkyl_array_release(up->geo_int.dualcurlbhat);
   gkyl_array_release(up->geo_int.dualcurlbhatoverB);
-  gkyl_array_release(up->geo_int.rtg33inv);
+  gkyl_array_release(up->geo_int.B3overB);
   gkyl_array_release(up->geo_int.bioverJB);
   gkyl_array_release(up->geo_int.B3);
   gkyl_array_release(up->geo_int.qprofile);
