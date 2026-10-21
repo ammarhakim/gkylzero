@@ -54,6 +54,38 @@ class RegressionAcknowledgmentTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0 if passed else 1, result.stdout + result.stderr)
         self.assertTrue(summary.exists(), result.stdout + result.stderr)
         self.assertIn(f'c_regression_unacknowledged={0 if passed else 1}', summary.read_text())
+        return summary.read_text()
+
+    def test_complete_file_details_for_both_acknowledgment_groups(self):
+        lines = [f'frame_{index}.gkyl  [DIFF]  max_abs=1 max_rel=2' for index in range(25)]
+        lines.append('missing.gkyl  [MISSING]')
+        for acknowledged in (False, True):
+            with self.subTest(acknowledged=acknowledged):
+                self.ack.write_text(TEST + ' # intentional change' if acknowledged else '')
+                summary = self.check(lines, passed=acknowledged)
+                key = 'acknowledged' if acknowledged else 'failure'
+                for line in lines:
+                    self.assertIn(f'c_regression_{key}_detail={TEST}|{line}\n', summary)
+                self.assertNotIn('|...\n', summary)
+                if acknowledged:
+                    self.assertIn(f'c_regression_acknowledged_test={TEST}\n', summary)
+                    self.assertIn(f'c_regression_acknowledged_status={TEST}:fail\n', summary)
+                # Exercise the checker-to-report contract, including files past
+                # the former ten-file preview limit.
+                from ci.jenkins import github_report as report
+                previews, full_lists = report.regression_sections('Parallel C regressions', self.root / 'summary.txt')
+                rendered = '\n'.join(previews + full_lists)
+                self.assertEqual(rendered.count('<details>'), 2)
+                for line in lines:
+                    self.assertIn(line, rendered)
+
+    def test_acknowledged_execution_status_is_preserved(self):
+        self.ack.write_text(TEST + ' # expected failure')
+        for status, label in [(-3, 'timeout'), (-4, 'compile_fail'), (-5, 'no_output'), (-6, 'crash')]:
+            with self.subTest(status=status):
+                summary = self.check([], status=status, passed=True)
+                self.assertIn(f'c_regression_acknowledged_status={TEST}:{label}\n', summary)
+                self.assertNotIn('c_regression_acknowledged_detail=', summary)
 
     def test_named_baseline_arrays(self):
         self.check(passed=True)

@@ -56,7 +56,7 @@ class FailureReportTests(unittest.TestCase):
         self.write('summary.txt', 'c_regression_passed=2\n'
                    'c_regression_listed_passing=moments/creg/rt_pass|inherited|rt_pass # old | reason\n'
                    'c_regression_listed_passing=moments/creg/rt_pass|new or updated|rt_pass cpu_serial out.gkyl\n')
-        text = report.regression_section('Serial C regressions', 'summary.txt')
+        text = '\n'.join(report.regression_sections('Serial C regressions', 'summary.txt')[0])
         self.assertIn('2 expected-diff entries with passing tests', text)
         self.assertIn('Listed in expected_regression_diffs.txt but passing', text)
         self.assertIn('inherited', text)
@@ -64,7 +64,155 @@ class FailureReportTests(unittest.TestCase):
         self.assertIn(r'old \| reason', text)
         self.assertIn('This notice does not fail CI.', text)
         self.write('summary.txt', 'c_regression_passed=2\n')
-        self.assertNotIn('but passing', report.regression_section('Serial', 'summary.txt'))
+        self.assertNotIn('but passing', '\n'.join(report.regression_sections('Serial', 'summary.txt')[0]))
+
+    def regression_fixture(self, files=15):
+        lines = ['c_regression_passed=3', 'c_regression_acknowledged=2',
+                 'c_regression_unacknowledged=2', 'c_regression_layer=moments:3:2:2',
+                 'c_regression_acknowledged_test=moments/creg/rt_ack',
+                 'c_regression_acknowledged_status=moments/creg/rt_ack:fail',
+                 'c_regression_acknowledged_test=moments/creg/rt_timeout',
+                 'c_regression_acknowledged_status=moments/creg/rt_timeout:timeout',
+                 'c_regression_failure=moments/creg/rt_diff:fail',
+                 'c_regression_failure=moments/creg/rt_crash:crash']
+        for kind, name in [('acknowledged', 'ack'), ('failure', 'diff')]:
+            for index in range(files):
+                lines.append('c_regression_{}_detail=moments/creg/rt_{}|'
+                             '{}_{}.gkyl  [DIFF]  max_abs=1 max_rel=2 <&>'.format(
+                                 kind, name, name, index))
+            lines.append('c_regression_{}_detail=moments/creg/rt_{}|'
+                         '{}_missing.gkyl  [MISSING]'.format(kind, name, name))
+        self.write('ci-regression-summary.txt', '\n'.join(lines))
+
+    def test_regressions_have_two_groups_with_all_files_and_instructions(self):
+        self.regression_fixture()
+        sections, full_lists = report.regression_sections('Serial C regressions', 'ci-regression-summary.txt')
+        text = '\n'.join(sections)
+        self.assertEqual(text.count('<details>'), 2)
+        self.assertIn('| moments | 3 | 2 | 2 :x: |', text)
+        self.assertIn('Acknowledged tests (2)', sections[1])
+        self.assertIn('Unacknowledged tests (2)', sections[2])
+        for section, name, failure, status in [(sections[1], 'ack', 'timeout', 'timeout'),
+                                              (sections[2], 'diff', 'crash', 'crash')]:
+            displayed = log_text(section)
+            self.assertIn('rt_' + failure, displayed)
+            self.assertIn(status, displayed)
+            self.assertIn(name + '_{0, 1, …, 14}.gkyl', displayed)
+            self.assertIn('15 differing files, 1 missing file.', section)
+            self.assertIn('max_abs=1 ({}_0.gkyl)'.format(name), displayed)
+            self.assertIn(name + '_missing.gkyl', displayed)
+            self.assertLess(section.index(name + '_missing.gkyl'), section.index(name + '_{'))
+            self.assertLess(section.index('rt_' + failure), section.index('rt_' + name))
+        for name in ('ack', 'diff'):
+            for index in range(15):
+                self.assertIn('{}_{}.gkyl  [DIFF]  max_abs=1 max_rel=2 <&>'.format(name, index),
+                              log_text('\n'.join(full_lists)))
+        self.assertNotIn('diff_0.gkyl', sections[1])
+        self.assertNotIn('ack_0.gkyl', sections[2])
+        self.assertIn('ci/jenkins/expected_regression_diffs.txt', sections[2])
+        self.assertIn('moments/creg/rt_diff   # <why this changed>', log_text(sections[2]))
+        self.assertIn('moments/creg/rt_crash   # <why this changed>', log_text(sections[2]))
+        self.assertNotIn('rt_ack   #', log_text(text))
+        self.assertIn('Only entries new or changed relative to the baseline', text)
+
+    def test_regression_groups_with_empty_or_legacy_summaries(self):
+        self.assertEqual(report.regression_sections('Serial', 'absent'), ([], []))
+        self.write('summary.txt', 'c_regression_passed=1\n')
+        sections, full_lists = report.regression_sections('Serial', 'summary.txt')
+        self.assertEqual(full_lists, [])
+        self.assertEqual(len(sections), 3)
+        for section in sections[1:]:
+            self.assertIn('None.', section)
+        self.write('summary.txt', 'c_regression_acknowledged=1\n'
+                   'c_regression_acknowledged_test=moments/creg/rt_legacy\n')
+        text = '\n'.join(report.regression_sections('Serial', 'summary.txt')[0])
+        self.assertIn('rt_legacy', text)
+        self.assertIn('status unavailable', text)
+        self.assertIn('No per-file comparison details recorded.', text)
+
+    def test_large_regression_report_keeps_all_files_rendered_on_github(self):
+        self.regression_fixture(files=1000)
+        args = argparse.Namespace(platform='personal', context='ci/test', result='failure', pr='', output='ci-report.md')
+        with contextlib.redirect_stdout(io.StringIO()):
+            report.build_report(args)
+        pages = json.loads(Path(args.output + '.json').read_text())
+        self.assertGreater(len(pages), 1)
+        for page in pages:
+            self.assertLessEqual(len(page.encode('utf-8')), report.COMMENT_LIMIT)
+            for tag in ('details', 'div', 'code'):
+                self.assertEqual(page.count('<' + tag + '>'), page.count('</' + tag + '>'))
+        text = '\n'.join(pages)
+        self.assertEqual(pages[0].count('<details><summary>Serial C regressions:'), 2)
+        self.assertIn('ack_{0, 1, …, 999}.gkyl', pages[0])
+        self.assertNotIn('ack_500.gkyl', pages[0])
+        self.assertTrue(any('ack_500.gkyl' in page for page in pages[1:]))
+        self.assertNotIn('Extended CI summary (Markdown)', text)
+        self.assertNotIn('Fetch full logs', text)
+        self.assertNotIn('artifact --build', text)
+        displayed = log_text(text)
+        for name in ('ack', 'diff'):
+            for index in range(1000):
+                self.assertEqual(displayed.count('{}_{}.gkyl  [DIFF]'.format(name, index)), 1)
+        self.assertIn('moments/creg/rt_diff   # <why this changed>', displayed)
+
+    def test_frame_ranges_are_exact_and_preserve_padding(self):
+        for frames, expected in [(['0', '20', '10', '40'], '0, 10, …, 20, 40'),
+                                 (['001', '002', '003', '007'], '001, 002, …, 003, 007'),
+                                 (['1', '3'], '1, 3'), (['9'], '9')]:
+            self.assertEqual(report.frame_ranges(frames), expected)
+
+    def test_grouping_preserves_failure_kinds_reasons_and_distinct_extrema(self):
+        lines = ['elc_0.gkyl [DIFF] max_abs=9 max_rel=0.1',
+                 'elc_10.gkyl [DIFF] max_abs=1 max_rel=0.9',
+                 'elc_20.gkyl [MISSING]', 'elc_30.gkyl [DIFF] shape mismatch',
+                 'elc_001.gkyl [DIFF] max_abs=2 max_rel=0.2',
+                 'elc_40.gkyl [DIFF] max_abs=nan max_rel=inf',
+                 'unrecognized <diagnostic> | reason']
+        groups = report.regression_file_groups(lines)
+        self.assertEqual(len(groups), 6)
+        self.assertEqual(groups[0]['kind'], 'MISSING')
+        combined = next(group for group in groups if len(group['files']) == 2)
+        self.assertEqual(combined['files'], ['elc_0.gkyl', 'elc_10.gkyl'])
+        self.assertEqual(combined['metrics']['max_abs'][2], 'elc_0.gkyl')
+        self.assertEqual(combined['metrics']['max_rel'][2], 'elc_10.gkyl')
+        preview = report.regression_preview('rt_test', 'fail', lines)
+        self.assertIn('max_abs=9 (elc_0.gkyl)', preview)
+        self.assertIn('max_rel=0.9 (elc_10.gkyl)', preview)
+        self.assertIn('max_rel=inf (elc_40.gkyl)', preview)
+        self.assertIn('max_abs=nan', preview)
+        self.assertNotIn('<diagnostic>', preview)
+        self.assertIn('&#124;', preview)
+
+    def test_preview_limits_groups_and_includes_omitted_worst_file(self):
+        lines = ['species_{}_frame_0.gkyl [DIFF] max_abs={} max_rel={}'.format(i, i, i / 100)
+                 for i in range(20)] + ['geometry.gkyl [MISSING]']
+        preview = report.regression_preview('rt_test', 'fail', lines)
+        rows = [line for line in preview.splitlines() if line.startswith('| <code>')]
+        self.assertEqual(len(rows), 10)
+        self.assertIn('geometry.gkyl', rows[0])
+        self.assertIn('11 additional files in 11 groups omitted', preview)
+        self.assertIn('20 differing files, 1 missing file.', preview)
+        self.assertIn('max_abs=19 (species_19_frame_0.gkyl)', preview)
+        self.assertIn('max_rel=0.19 (species_19_frame_0.gkyl)', preview)
+
+    def test_irregular_frame_groups_are_bounded_but_full_lists_remain_complete(self):
+        lines = ['elc_{}.gkyl [DIFF] max_abs=1'.format(i * i) for i in range(500)]
+        preview = report.regression_preview('rt_test', 'fail', lines)
+        self.assertLess(len(preview), 1500)
+        self.assertIn('(500 files)', preview)
+        self.assertIn('…', preview)
+
+    def test_many_test_previews_paginate_without_splitting_tables(self):
+        lines = ['species_{}_0.gkyl [DIFF] {}'.format(i, 'long reason ' * 30) for i in range(10)]
+        blocks = [report.regression_preview('rt_test_{}'.format(i), 'fail', lines) for i in range(40)]
+        sections = report.regression_dropdowns('Unacknowledged tests', blocks)
+        pages = report.report_pages('Summary', sections, 'ci/test')
+        self.assertGreater(len(pages), 1)
+        for block in blocks:
+            self.assertEqual(sum(block in page for page in pages), 1)
+        for page in pages:
+            self.assertLessEqual(len(page.encode('utf-8')), report.COMMENT_LIMIT)
+            self.assertEqual(page.count('<details>'), page.count('</details>'))
 
     def test_statistics_preserves_cached_timings_and_failed_command_status(self):
         self.write('ci-timing-summary.txt', 'baseline_install_seconds=0\n'

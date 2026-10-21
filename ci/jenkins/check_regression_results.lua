@@ -170,12 +170,11 @@ local function isAcked(layer, name, mode, status, runlog)
 end
 
 -- Per-file comparison lines from the stored run log, for the CI report.
-local function comparisonLines(runlog, maxLines)
+local function comparisonLines(runlog)
    local lines = {}
    local body = runlog and runlog:match("%-%-%- Comparison failures %-%-%-\n(.*)$")
    if body then
       for line in body:gmatch("[^\n]+") do
-         if #lines >= maxLines then table.insert(lines, "..."); break end
          table.insert(lines, line)
       end
    end
@@ -220,13 +219,16 @@ for _, layer in ipairs(LAYERS) do
                if status == 0 and isCandidateOnly(layer, key) then
                   table.insert(candidateOnly, key)
                elseif isAcked(layer, key, mode, status, t.runlog[i]) then
-                  table.insert(ackedHits, key)
+                  table.insert(ackedHits, {
+                     key = key, status = statusToString[status] or tostring(status),
+                     detail = comparisonLines(t.runlog[i]),
+                  })
                   layerCounts[layer].acked = layerCounts[layer].acked + 1
                else
                   layerCounts[layer].failed = layerCounts[layer].failed + 1
                   table.insert(unacked, {
                      key = key, status = statusToString[status] or tostring(status),
-                     detail = comparisonLines(t.runlog[i], 10),
+                     detail = comparisonLines(t.runlog[i]),
                   })
                end
             end
@@ -268,8 +270,12 @@ if summaryFile then
          summary:write(string.format("c_regression_failure_detail=%s|%s\n", u.key, line))
       end
    end
-   for _, key in ipairs(ackedHits) do
-      summary:write(string.format("c_regression_acknowledged_test=%s\n", key))
+   for _, entry in ipairs(ackedHits) do
+      summary:write(string.format("c_regression_acknowledged_test=%s\n", entry.key))
+      summary:write(string.format("c_regression_acknowledged_status=%s:%s\n", entry.key, entry.status))
+      for _, line in ipairs(entry.detail) do
+         summary:write(string.format("c_regression_acknowledged_detail=%s|%s\n", entry.key, line))
+      end
    end
    for _, key in ipairs(candidateOnly) do
       summary:write(string.format("c_regression_candidate_only_test=%s\n", key))
@@ -283,7 +289,7 @@ end
 
 if #ackedHits > 0 then
    print(string.format("Acknowledged (per %s):", tostring(ackFile)))
-   for _, key in ipairs(ackedHits) do print("  " .. key) end
+   for _, entry in ipairs(ackedHits) do print("  " .. entry.key) end
 end
 
 if #listedPassing > 0 then

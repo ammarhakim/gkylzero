@@ -17,6 +17,7 @@ import argparse
 from contextlib import closing
 import datetime
 import glob
+import hashlib
 import html
 import json
 import math
@@ -107,10 +108,134 @@ STATE_LABEL = {
 }
 
 
-def regression_section(title, summary_file):
+REGRESSION_GROUP_LIMIT = 10
+
+
+def regression_file_groups(lines):
+    """Group final frame numbers only, keeping failure kinds/reasons separate."""
+    groups = {}
+    for line in lines:
+        match = re.fullmatch(r'(\S+)\s+\[(DIFF|MISSING)\](.*)', line)
+        if not match:
+            groups.setdefault(('unknown', line), dict(kind='OTHER', files=[], reason=line,
+                                                     prefix='', frames=[], metrics={}))
+            continue
+        filename, kind, reason = match.groups()
+        metrics = {}
+        for metric, value in re.findall(r'\b(max_abs|max_rel)=(\S+)', reason):
+            try:
+                number = float(value)
+            except ValueError:
+                continue
+            # NaN is not an orderable maximum; retain it in the reason instead.
+            if not math.isnan(number):
+                metrics[metric] = (number, value, filename)
+        for metric in metrics:
+            reason = re.sub(r'\b' + metric + r'=\S+', '', reason)
+        reason = ' '.join(reason.split())
+        frame = re.fullmatch(r'(.*_)(\d+)\.gkyl', filename)
+        # Preserve zero padding and never merge a non-frame filename.
+        prefix, digits = frame.groups() if frame else (filename, '')
+        width = len(digits) if digits.startswith('0') and len(digits) > 1 else 0
+        key = (kind, prefix, bool(frame), width, reason)
+        group = groups.setdefault(key, dict(kind=kind, files=[], reason=reason,
+                                            prefix=prefix, frames=[], metrics={}))
+        group['files'].append(filename)
+        if frame:
+            group['frames'].append(digits)
+        for metric, observation in metrics.items():
+            if metric not in group['metrics'] or observation[0] > group['metrics'][metric][0]:
+                group['metrics'][metric] = observation
+    return sorted(groups.values(), key=lambda group: (
+        {'MISSING': 0, 'OTHER': 1, 'DIFF': 2}[group['kind']], group['prefix'], group['reason']))
+
+
+def frame_ranges(frames):
+    """Exact arithmetic runs: never imply that a missing frame was observed."""
+    frames = sorted(set(frames), key=int)
+    parts, index = [], 0
+    while index < len(frames):
+        end = index + 1
+        if end < len(frames):
+            step = int(frames[end]) - int(frames[index])
+            while end + 1 < len(frames) and int(frames[end + 1]) - int(frames[end]) == step:
+                end += 1
+        if end - index >= 2:
+            parts.append('{}, {}, …, {}'.format(frames[index], frames[index + 1], frames[end]))
+            index = end + 1
+        else:
+            parts.append(frames[index])
+            index += 1
+    return ', '.join(parts)
+
+
+def regression_preview(name, status, lines):
+    groups = regression_file_groups(lines)
+
+    def cell(value):
+        # Bound irregular frame lists and unexpected diagnostic text too.
+        value = value if len(value) <= 200 else value[:197] + '…'
+        return '<code>{}</code>'.format(html.escape(value).replace('|', '&#124;'))
+
+    def worst_metrics(items):
+        maxima = {}
+        for group in items:
+            for metric, observation in group['metrics'].items():
+                if metric not in maxima or observation[0] > maxima[metric][0]:
+                    maxima[metric] = observation
+        return '; '.join(cell('{}={} ({})'.format(metric, value, filename))
+                         for metric, (_, value, filename) in sorted(maxima.items()))
+
+    counts = {kind: sum(len(group['files']) for group in groups if group['kind'] == kind)
+              for kind in ('DIFF', 'MISSING')}
+    body = ['**{} [{}]**'.format(cell(name), cell(status))]
+    if not lines:
+        return '\n\n'.join(body + ['No per-file comparison details recorded.'])
+    body += ['{} differing file{}, {} missing file{}.'.format(
+        counts['DIFF'], '' if counts['DIFF'] == 1 else 's',
+        counts['MISSING'], '' if counts['MISSING'] == 1 else 's')]
+    worst = worst_metrics(groups)
+    if worst:
+        body += ['Largest differences across all files: ' + worst]
+    rows = ['| Files | Result | Largest differences / details |', '| --- | --- | --- |']
+    for group in groups[:REGRESSION_GROUP_LIMIT]:
+        files = group['files']
+        filename = (group['prefix'] + '{' + frame_ranges(group['frames']) + '}.gkyl'
+                    if len(files) > 1 and group['frames'] else (files[0] if files else 'Unparsed diagnostic'))
+        label = cell(filename) + (' ({} files)'.format(len(files)) if len(files) > 1 else '')
+        detail = '; '.join(value for value in (worst_metrics([group]), cell(group['reason'])
+                                               if group['reason'] else '') if value)
+        rows.append('| {} | {} | {} |'.format(label, group['kind'], detail or '—'))
+    body += ['\n'.join(rows)]
+    omitted = groups[REGRESSION_GROUP_LIMIT:]
+    if omitted:
+        body += ['{} additional files in {} groups omitted from this preview.'.format(
+            sum(len(group['files']) for group in omitted), len(omitted))]
+    return '\n\n'.join(body)
+
+
+def regression_dropdowns(title, blocks):
+    """Keep test previews intact when a group spans GitHub comments."""
+    chunks, current = [], []
+    size = 0
+    for block in blocks:
+        block_size = len(block.encode('utf-8')) + 2
+        if current and size + block_size > 40000:
+            chunks.append('\n\n'.join(current))
+            current, size = [], 0
+        current.append(block)
+        size += block_size
+    if current:
+        chunks.append('\n\n'.join(current))
+    return [dropdown(title + (' (part {})'.format(i + 1) if len(chunks) > 1 else ''), chunk)
+            for i, chunk in enumerate(chunks)]
+
+
+def regression_sections(title, summary_file):
+    """Return compact preview sections and complete file-list continuations."""
     values = read_kv(summary_file)
     if not values:
-        return ""
+        return [], []
     passed = first(values, "c_regression_passed", "?")
     candidate_only = first(values, "c_regression_candidate_only", "0")
     acked = first(values, "c_regression_acknowledged", "0")
@@ -125,25 +250,6 @@ def regression_section(title, summary_file):
         for layer, p, a, f in layers:
             mark = " :x:" if f != "0" else ""
             lines.append("| {} | {} | {} | {}{} |".format(layer, p, a, f, mark))
-    failures = values.get("c_regression_failure", [])
-    if failures:
-        details = {}
-        for entry in values.get("c_regression_failure_detail", []):
-            name, _, line = entry.partition("|")
-            details.setdefault(name, []).append(line)
-        lines += ["", "| Failing test | Status |", "| --- | --- |"]
-        for entry in failures:
-            name, _, status = entry.rpartition(":")
-            lines.append("| {} | {} |".format(code(name or entry), status or "fail"))
-        for entry in failures:
-            name = entry.rpartition(":")[0] or entry
-            if details.get(name):
-                lines += ["", dropdown(name + ': files that differ from the baseline',
-                                       wrapped_log("\n".join(details[name])))]
-    acked_tests = values.get("c_regression_acknowledged_test", [])
-    if acked_tests:
-        lines += ["", "Acknowledged diffs (new or updated versus the baseline): "
-                  + ", ".join(code(t) for t in acked_tests)]
     listed_passing = [entry.split("|", 2) for entry in values.get("c_regression_listed_passing", [])]
     listed_passing = [row for row in listed_passing if len(row) == 3]
     if listed_passing:
@@ -161,7 +267,64 @@ def regression_section(title, summary_file):
     if candidate_only_tests:
         lines += ["", "Candidate-only tests (executed but not compared to a baseline): "
                   + ", ".join(code(t) for t in candidate_only_tests)]
-    return dropdown(head, "\n".join(lines).strip() or 'No per-test details recorded.')
+    # Keep the totals visible and the two failure groups independently accessible.
+    # Return separate sections so large file lists paginate as rendered content,
+    # rather than being escaped as an "Extended CI summary (Markdown)" log.
+    sections = ['**{}**\n\n{}'.format(head, "\n".join(lines).strip())]
+    full_sections = []
+    acked_status = dict(entry.rsplit(':', 1) for entry in
+                        values.get('c_regression_acknowledged_status', []) if ':' in entry)
+    acked_tests = [(name, acked_status.get(name, 'status unavailable')) for name in
+                   values.get('c_regression_acknowledged_test', [])]
+    failures = []
+    for entry in values.get('c_regression_failure', []):
+        name, _, status = entry.rpartition(':')
+        failures.append((name or entry, status or 'fail'))
+    for label, tests, detail_key, count in (
+            ('Acknowledged tests', acked_tests, 'c_regression_acknowledged_detail', acked),
+            ('Unacknowledged tests', failures, 'c_regression_failure_detail', unacked)):
+        details = {}
+        for entry in values.get(detail_key, []):
+            name, _, line = entry.partition('|')
+            details.setdefault(name, []).append(line)
+        tests = sorted(tests, key=lambda item: (item[1] in ('fail', 'status unavailable'), item[0]))
+        body = []
+        if label == 'Acknowledged tests':
+            body += ['Acknowledgments are new or updated relative to the baseline.']
+        group_title = '{}: {} ({})'.format(title, label, count)
+        full_start = len(full_sections)
+        if any(details.get(name) for name, _ in tests):
+            token = hashlib.sha256((title + '/' + label).encode('utf-8')).hexdigest()[:16]
+            body += ['Up to {} file groups per test; numbered ranges contain only observed frames. '
+                     'Long labels are shortened. '
+                     '[Full file lists and comparison details](#ci-regression-files-{}).'.format(
+                         REGRESSION_GROUP_LIMIT, token)]
+        for name, status in tests:
+            test_details = details.get(name, [])
+            body.append(regression_preview(name, status, test_details))
+            if test_details:
+                for chunk in wrapped_log_chunks('\n'.join(test_details)):
+                    # Repeat identity on every chunk, including splits within a test.
+                    full_sections.append('**{} — {} [{}]**\n\n{}'.format(
+                        html.escape(group_title), code(name), code(status), chunk))
+        if len(full_sections) > full_start:
+            full_sections[full_start] = '<!-- ci-regression-files-{} -->\n\n{}'.format(
+                token, full_sections[full_start])
+        if not tests:
+            body.append('None.' if count == '0' else 'Per-test details unavailable from the regression checker.')
+        if label == 'Unacknowledged tests' and tests:
+            instructions = ['If these are expected/intentional changes (e.g. a physics or algorithm change),',
+                     'add the applicable lines to ci/jenkins/expected_regression_diffs.txt',
+                     'and replace each placeholder with a short reason:', '']
+            instructions += [name + '   # <why this changed>' for name, _ in tests]
+            instructions += ['', 'Only entries new or changed relative to the baseline acknowledge failures.',
+                     'For an inherited entry, update its reason to acknowledge the new change.',
+                     'These example lines cover the entire test in all modes. To narrow the scope,',
+                     'add a run mode and/or filename after the test name; list every differing file.',
+                     'File-scoped entries cannot acknowledge execution failures.']
+            body.extend(wrapped_log_chunks('\n'.join(instructions)))
+        sections.extend(regression_dropdowns(group_title, body))
+    return sections, full_sections
 
 
 def regression_timings(root):
@@ -339,7 +502,7 @@ def byte_prefix(text, limit):
     return text.encode('utf-8')[:limit].decode('utf-8', errors='ignore')
 
 
-def detail_sections(title, text):
+def wrapped_log_chunks(text):
     """Split inside the log, keeping rendered HTML within the comment limit."""
     chunks = []
     while text:
@@ -354,9 +517,14 @@ def detail_sections(title, text):
             end //= 2
         chunks.append(chunk)
         text = text[end:]
+    return chunks or [wrapped_log('None.')]
+
+
+def detail_sections(title, text):
+    chunks = wrapped_log_chunks(text)
     return ['<details><summary>{}{}</summary>\n\n{}\n\n</details>'.format(
         html.escape(title), ' (part {})'.format(i + 1) if len(chunks) > 1 else '',
-        chunk) for i, chunk in enumerate(chunks or [wrapped_log('None.')])]
+        chunk) for i, chunk in enumerate(chunks)]
 
 
 def group_timestep_warnings(entries, count_label="distinct new warnings"):
@@ -491,13 +659,14 @@ def diagnostic_sections(summary_output=None, full_warnings_output=None):
     return sections
 
 
-def report_pages(summary, sections, context):
+def report_pages(summary, sections, context, continuation_sections=()):
     pages, current = [], summary
-    for section in sections:
-        if len((current + '\n\n' + section).encode('utf-8')) > COMMENT_LIMIT:
+    for section in list(sections) + ([None] + list(continuation_sections) if continuation_sections else []):
+        if section is None or len((current + '\n\n' + section).encode('utf-8')) > COMMENT_LIMIT:
             pages.append(current)
             current = MARKER_FORMAT.format(context + '/part-{}'.format(len(pages) + 1)) + '\n\n### CI diagnostics (continued)'
-        current += '\n\n' + section
+        if section is not None:
+            current += '\n\n' + section
     pages.append(current)
     return pages
 
@@ -774,8 +943,8 @@ def build_report(args):
                 source = code(pipeline_ref) + ' @ ' + source
             meta.append('**{}:** {}'.format(label, source))
     # No controller URL: every controller is loopback-only, so a link would be
-    # dead for everyone but the machine owner. The build number is what that
-    # owner needs to fetch artifacts (see the footer).
+    # dead for everyone but the machine owner. Retain the build number to
+    # identify the run.
     started, finished, elapsed = run_timing()
     timestamp_format = "%Y-%m-%d %H:%M:%S UTC"
     meta.append("**Run:** {} build #{} on {}".format(code(args.platform), build_number, code(node)))
@@ -818,11 +987,12 @@ def build_report(args):
             unit_fail += nfail
             unit_failing += failing
 
+    regression_files = []
     for title, path in (("Serial C regressions", "ci-regression-summary.txt"),
                         ("Parallel C regressions", "ci-parallel-regression-summary.txt")):
-        section = regression_section(title, path)
-        if section:
-            parts.append(section)
+        previews, full_lists = regression_sections(title, path)
+        parts.extend(previews)
+        regression_files.extend(full_lists)
 
     parts.extend(regression_timing_sections())
 
@@ -836,10 +1006,6 @@ def build_report(args):
     if timings:
         parts.append(timings)
 
-    parts.append(dropdown('Fetch full logs and regression databases',
-                 "_Full raw logs and regression databases stay on that machine; its owner can fetch them with "
-                 "`./ci/jenkins/gkeyll-ci.sh {} artifact --build {} --fetch`._".format(args.platform, build_number)))
-
     progress = read_text('ci-stage-history.txt').strip()
     if progress:
         parts += detail_sections('Stage history (UTC)', progress)
@@ -848,10 +1014,10 @@ def build_report(args):
 
     summary_sections = []
     for part in parts[1:]:
-        summary_sections.extend([part] if len(part.encode('utf-8')) <= 48000 else
+        summary_sections.extend([part] if len(part.encode('utf-8')) <= COMMENT_LIMIT - 2000 else
                                 detail_sections('Extended CI summary (Markdown)', part))
     pages = report_pages(parts[0], summary_sections + diagnostic_sections(
-        'ci-diagnostic-summary.json', 'ci-report-warnings.md'), args.context)
+        'ci-diagnostic-summary.json', 'ci-report-warnings.md'), args.context, regression_files)
     with open(args.output + '.json', 'w', encoding='utf-8') as f:
         json.dump(pages, f)
     report = '\n\n'.join(pages)
@@ -992,12 +1158,21 @@ def publish_report(args, token=None):
         return {'skipped': True, 'html_url': ''}
 
     published = {}
+    file_pages = {token: index for index, page in enumerate(pages)
+                  for token in re.findall(r'<!-- ci-regression-files-([0-9a-f]{16}) -->', page)}
+
+    def file_list_link(match):
+        target = published.get(file_pages.get(match.group(1)))
+        return '[Full file lists and comparison details]({})'.format(target['html_url']) if target else match.group(0)
+
     # Publish continuations first so a completed main report never points to
     # missing diagnostics. Reuse those comments and clear obsolete pages.
     for index in reversed(range(len(pages))):
         page, page_marker = pages[index], markers[index]
         existing = next((c for c in reversed(comments) if (c.get('body') or '').startswith(page_marker + '\n')), None)
         content = page.replace(page_marker, page_marker + '\n' + RUN_MARKER.format(json.dumps(metadata)), 1)
+        content = re.sub(r'\[Full file lists and comparison details\]\(#ci-regression-files-([0-9a-f]{16})\)',
+                         file_list_link, content)
         if index > 0 and index + 1 in published:
             content += '\n\n[Next diagnostics page]({})'.format(published[index + 1]['html_url'])
         if index == 0 and published:

@@ -4,6 +4,7 @@ import contextlib
 import io
 import json
 import os
+import re
 from pathlib import Path
 import tempfile
 import unittest
@@ -91,6 +92,42 @@ class ReportingTests(unittest.TestCase):
         self.assertIn('Jenkins build #11; ID 42', self.statuses[0]['description'])
         self.assertNotIn('queue', self.statuses[0]['description'])
         self.assertTrue(any('/statuses/' + self.args.commit in c[1] for c in self.calls))
+
+    def test_regression_previews_link_to_their_complete_github_file_lists(self):
+        for path, mode in [('ci-regression-summary.txt', 'serial'),
+                           ('ci-parallel-regression-summary.txt', 'parallel')]:
+            lines = ['c_regression_acknowledged=1', 'c_regression_unacknowledged=1',
+                     'c_regression_acknowledged_test=moments/creg/rt_ack',
+                     'c_regression_acknowledged_status=moments/creg/rt_ack:fail',
+                     'c_regression_failure=moments/creg/rt_diff:fail']
+            for key, name in [('acknowledged', 'ack'), ('failure', 'diff')]:
+                lines += ['c_regression_{}_detail=moments/creg/rt_{}|'
+                          '{}_{}_{}.gkyl [DIFF] max_abs={} max_rel=0.1'.format(
+                              key, name, mode, name, i, i) for i in range(1000)]
+            Path(path).write_text('\n'.join(lines))
+        build_args = argparse.Namespace(platform='personal', context=self.args.context,
+                                        result='failure', pr='', output=self.args.report)
+        with contextlib.redirect_stdout(io.StringIO()):
+            report.build_report(build_args)
+            report.publish_report(self.args)
+        previews = [comment for comment in self.comments
+                    if '[Full file lists and comparison details]' in comment['body']]
+        self.assertTrue(previews)
+        links = []
+        for comment in previews:
+            self.assertNotIn('](#ci-regression-files-', comment['body'])
+            links += re.findall(r'\[Full file lists and comparison details\]\(([^)]+)\)', comment['body'])
+        self.assertEqual(len(links), 4)
+        for url in links:
+            destination = next(comment for comment in self.comments if comment['html_url'] == url)
+            self.assertIn('<!-- ci-regression-files-', destination['body'])
+            self.assertNotIn('<details>', destination['body'])
+        for mode in ('serial', 'parallel'):
+            for name in ('ack', 'diff'):
+                for i in range(1000):
+                    self.assertTrue(any('{}_{}_{}.gkyl [DIFF]'.format(mode, name, i) in comment['body']
+                                        for comment in self.comments))
+        self.assertTrue(all(len(comment['body'].encode('utf-8')) <= 65000 for comment in self.comments))
 
     def test_retries_update_existing_comment_and_do_not_repeat_status(self):
         self.update()

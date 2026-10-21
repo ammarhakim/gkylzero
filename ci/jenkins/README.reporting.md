@@ -110,14 +110,41 @@ Reports use collapsed sections for:
 
 - Run details: candidate/baseline, machine, build/queue IDs, status context,
   trusted code commits, UTC timestamps, and queue/execution times.
-- Candidate/baseline unit tests and serial/parallel C regressions, with layer
-  totals and failure details.
+- Candidate/baseline unit tests, with layer totals and failure details.
+- Acknowledged and unacknowledged regression tests, grouped separately for each
+  serial/parallel suite, with every failing test's status and differing or
+  missing files. Regression totals are visible above these two dropdowns;
+  individual tests do not have dropdowns.
 - Stage durations, timings, the 20 slowest candidate regressions, and regression
   timing changes.
 - New/all compiler and other warnings, separate new/all time-step warnings,
   all errors with log locations and context, and the failed build log's last
   100 lines.
-- Stage history, Slurm details, and artifact retrieval instructions.
+- Stage history and Slurm details.
+
+The unacknowledged group includes copyable lines for
+`ci/jenkins/expected_regression_diffs.txt` and explains how to add a reason,
+refresh inherited acknowledgments, or narrow them to a run mode or file.
+Each test preview shows differing/missing file counts and at most ten file
+groups. Execution failures appear first; missing files precede numerical
+differences. Final numbered outputs with the same failure kind and reason are
+grouped into exact arithmetic ranges (for example, `elc_{0,10,…,100}.gkyl`);
+gaps and zero padding are preserved. Each group and test shows the largest
+absolute and relative differences with their filenames, including maxima from
+groups omitted from the preview. Unavailable metrics are not invented.
+
+Omitted file/group counts are explicit. Long labels and diagnostic text are
+shortened in previews. Each acknowledgment group links directly to its complete
+file lists and original comparison details in GitHub continuation comments,
+with test identities repeated across page splits and no per-test dropdowns.
+No files are discarded from the checker summary or the full GitHub report.
+The report includes the regression information directly, without a fetch-logs
+dropdown.
+
+Deploy both `github_report.py` and `check_regression_results.lua` in the trusted
+CI revision for complete acknowledged-file details. Older summaries remain
+readable, but details that the old checker omitted cannot be recovered from
+those summaries.
 
 The failed-log excerpt preserves output order, compiler commands, source lines,
 and carets; duplicate paths to one log share an excerpt. Displayed logs wrap
