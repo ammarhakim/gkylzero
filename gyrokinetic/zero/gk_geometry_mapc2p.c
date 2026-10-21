@@ -438,7 +438,9 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
   up->geqdsk_sign_convention = 0;
   up->half_domain = 0;
 
-  for (int d=0; d<3; d++) up->is_periodic[d] = geometry_inp->geo_is_periodic[d];
+  for (int d = 0; d < 3; d++) {
+    up->is_periodic[d] = geometry_inp->geo_is_periodic[d];
+  }
   up->has_LCFS = geometry_inp->has_LCFS;
   if (up->has_LCFS) {
     up->x_LCFS = geometry_inp->x_LCFS;
