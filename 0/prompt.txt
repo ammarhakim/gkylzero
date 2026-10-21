@@ -1,0 +1,44 @@
+In the gyrokinetic solver gyrokinetic/creg/rt_gk_lapd_cyl_3x2v_p1.c uses a cylindrical mapping in mapc2p, with a minimum radius (currently (2.5 * ctx.rho_s)) to avoid placing the innermost radial boundary at r=0 where some geometric quantities may diverge. I'm interested in going down to r=0, however. I've noticed that when I set the minimum radius to 0 some of the geometric quantities gxxj, gxyj or gyyj diverge, but I don't think they should. I think this may because the mapc2p program flow first divides by radius and later multiples by radius, or viceversa.
+
+Would it be possible to create a separate geometry object, like gyrokinetic/zero/gk_geometry_mapc2p.c, solely for cylindrical coordinates that allows one to go down to r=0?
+
+---
+
+Implement the plan.
+
+---
+
+Please review the changes made (by another model) in the current code, checking for correctness, simplicity, modularity, maintainability and being mindful of performance.
+
+Also, please write out (to a .md file) a detailed description of what was changed in the code so far, with plenty of detail about:
+- How the geometric quantities at the axis are discretized.
+- How the field solver handls the axis.
+- How the collisionless terms handle the lower radial boundary.
+
+---
+
+Regarding the first finding: would it be sufficient to change gkyl_gk_collisionless_flux so that if the BC is zero flux, it selects a kernel that sets the flux to zero?
+
+---
+
+Can you make a plan for this change please?
+
+---
+
+Rather than coding zero-flux kernels directly into gkeyll/ I think you should modify the Maxima in /Users/mfrancis/Documents/gkeyll/code/gkeyll_v4/gkylcas/gyrokinetic/gk_collisionless and generate additional, new zero-flux kernels, and generate a new header, then copy those into gkeyll and select them accordingly.
+
+---
+
+Implement the plan.
+
+---
+
+I think your changes in gkylcas are unnecessarily complex. Instead of gk_collisionless_flux-zero.mac couldn't you have added a function in gk_collisionless_flux-surf-conf.mac, say named buildGKFluxConfZerooKernel, which loads the corresponding basis (to know the number of components) and sets flux_surf to zero? Then instead of ms-gk_collisionless_flux-zero.mac, you'd just call buildGKFluxConfZerooKernel from ms-gk_collisionless_flux.mac inside the polyOrder loop but outside the byI and mbI loops.
+
+---
+
+likewise, i'd rather you add the corresponding header entries in gkyl_gk_collisionless_flux_kernels.h rather than gkyl_gk_collisionless_zero_flux_kernels.h by modifying ms-gk_collisionless_flux-header.mac instead of adding ms-gk_collisionless_flux-zero-header.mac.
+
+---
+
+I tried merging main into this branch and there were some conflicts. I resolved some, but there are still some in gyrokinetic/apps/gk_species.c, I think because PR #1138 split gk_species.c into gk_species_fluid.c and gk_species_kinetic.c, so some (maybe all) changes to gk_species.c in the current branch should have gone into gk_species_kinetic.c, but the attempted merge put a lot of code in gk_species.c instead. Can you resolve this please?
