@@ -181,8 +181,8 @@ gkyl_calc_metric_mirror_advance_interior(
         double *dualcurlbhatoverB_n = gkyl_array_fetch(
           gk_geom->geo_int.dualcurlbhatoverB_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx)
         );
-        double *rtg33inv_n = gkyl_array_fetch(
-          gk_geom->geo_int.rtg33inv_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx)
+        double *B3overB_n = gkyl_array_fetch(
+          gk_geom->geo_int.B3overB_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx)
         );
         double *bioverJB_n = gkyl_array_fetch(
           gk_geom->geo_int.bioverJB_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx)
@@ -294,7 +294,7 @@ gkyl_calc_metric_mirror_advance_interior(
         dualcurlbhatoverB_n[2] = dualcurlbhat_n[2] / bmag_n[0];
 
         // Signed B^3/|B| controls streaming along the third coordinate.
-        rtg33inv_n[0] = B3_n[0] / bmag_n[0];
+        B3overB_n[0] = B3_n[0] / bmag_n[0];
 
         // set b_i/JB
         for (int i = 0; i < 3; ++i) {
@@ -350,7 +350,7 @@ gkyl_calc_metric_mirror_advance_interior(
   );
   gkyl_nodal_ops_n2m(
     up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 1,
-    gk_geom->geo_int.rtg33inv_nodal, gk_geom->geo_int.rtg33inv, true
+    gk_geom->geo_int.B3overB_nodal, gk_geom->geo_int.B3overB, true
   );
   gkyl_nodal_ops_n2m(
     up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 3,

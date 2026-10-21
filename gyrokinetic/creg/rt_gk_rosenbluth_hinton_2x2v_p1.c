@@ -489,7 +489,7 @@ create_ctx(void)
   double nu_star = 0.0;
   double nu_ion = nu_star * pow(inv_asp_ratio, 1.5) * vti / (q0 * R_axis);
   double t_end = 20.0 * t_gam;
-  int num_frames = 100;
+  int num_frames = 1;
   double write_phase_freq = 0.1;
   int int_diag_calc_num = num_frames * 100;
   double dt_failure_tol = 1.0e-3; // Minimum allowable fraction of initial time-step.

@@ -16,7 +16,7 @@
 typedef double (*dg_gyrokinetic_vol_es_t)(
   const double *w, const double *dxv, const double *vmap, const double *vmapSq, const double q_,
   const double m_, const double *bmag, const double *phi, const double *dualcurlbhatoverB,
-  const double *rtg33inv, const double *bioverJB, const double *fin, double *GKYL_RESTRICT out
+  const double *B3overB, const double *bioverJB, const double *fin, double *GKYL_RESTRICT out
 );
 
 typedef double (*dg_gyrokinetic_vol_add_apar_t)(
@@ -127,15 +127,15 @@ kernel_dg_gyrokinetic_vol(
   const double *b_i = (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.b_i, cidx);
   const double *dualcurlbhatoverB =
     (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx);
-  const double *rtg33inv =
-    (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx);
+  const double *B3overB =
+    (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.B3overB, cidx);
   const double *bioverJB =
     (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx);
 
   // Electrostatic contribution to volume term.
   cfl += gyrokinetic->vol_es_kernel(
     xc, dx, vm, vm_sq, gyrokinetic->charge, gyrokinetic->mass, bmag, phi, dualcurlbhatoverB,
-    rtg33inv, bioverJB, qIn, qRhsOut
+    B3overB, bioverJB, qIn, qRhsOut
   );
   // Add Apar contribution to volume term if needed.
   cfl += gyrokinetic->vol_add_apar_kernel(
@@ -155,7 +155,7 @@ GKYL_CU_DH static double
 dg_gyrokinetic_vol_none(
   const double *w, const double *dxv, const double *vmap, const double *vmapSq, const double q_,
   const double m_, const double *bmag, const double *phi, const double *dualcurlbhatoverB,
-  const double *rtg33inv, const double *bioverJB, const double *fin, double *GKYL_RESTRICT out
+  const double *B3overB, const double *bioverJB, const double *fin, double *GKYL_RESTRICT out
 )
 {
   return 0.;
