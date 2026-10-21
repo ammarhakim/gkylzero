@@ -607,7 +607,7 @@ flash_species_interp_rhou_to_dg(struct gkyl_flash_app *app,
     &app->local_kinetic, &app->local_fluid, fv_fluidin, species->fluid_rhou);  
 
   for (int d=0; d<3; ++d)
-    gkyl_dg_mul_op(app->confBasis, d, species->fluid_rhou, d, species->fluid_rhou, 0, species->pkpm_moms);
+    gkyl_dg_mul_op(&app->confBasis, d, species->fluid_rhou, d, species->fluid_rhou, 0, species->pkpm_moms);
 
   // Apply boundary conditions to rho*u
   flash_species_apply_bc_rhou(app, species, species->fluid_rhou);
@@ -627,9 +627,6 @@ flash_species_calc_coupling_fluxes(struct gkyl_flash_app *app,
     species->pkpm_div_ppar, app->field->bvar, 
     app->field->bvar_surf, app->field->max_b,
     species->flash_coupling_fluxes);
-
-  // gkyl_grid_sub_array_write(&app->grid_kinetic, &app->local_kinetic, 0, species->flash_coupling_fluxes, "coupling.gkyl");
-  // gkyl_grid_sub_array_write(&app->grid_kinetic, &app->local_kinetic, 0, species->fluid_rhou, "fluid_rhou.gkyl");
 }
 
 void
@@ -742,7 +739,7 @@ flash_species_calc_pkpm_diags(gkyl_flash_app *app, struct flash_species *species
 void
 flash_species_calc_L2(gkyl_flash_app *app, double tm, const struct flash_species *species)
 {
-  gkyl_dg_calc_l2_range(app->basis, 0, species->L2_f, 0, species->f, species->local);
+  gkyl_dg_calc_l2_range(&app->basis, 0, species->L2_f, 0, species->f, species->local);
   gkyl_array_scale_range(species->L2_f, species->grid.cellVolume, &species->local);
   
   double L2[1] = { 0.0 };

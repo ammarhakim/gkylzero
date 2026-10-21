@@ -27,7 +27,7 @@ gkyl_flash_app_set_fluid_vel(gkyl_flash_app *app, struct gkyl_array *fluid_vel_i
 
     // Multiply by density because the PKPM updater looks for momentum density instead of velocity
     for (int d=0; d<3; ++d)
-      gkyl_dg_mul_op(app->confBasis, d, s->fluid_rhou, d, s->fluid_rhou, 0, s->pkpm_moms);
+      gkyl_dg_mul_op(&app->confBasis, d, s->fluid_rhou, d, s->fluid_rhou, 0, s->pkpm_moms);
   }
 }
 
@@ -311,7 +311,7 @@ gkyl_flash_app_kinetic_update(gkyl_flash_app *app, double dt)
     flash_vlasov_forward_euler(app, app->tcurr, dt, fin, fout, &status);
 
     // gkyl_array_copy_range(app->species[i].f, fout[i], &app->species[i].local_ext);
-    // gkyl_array_copy_range(app->species[i].f, fout[i], &app->species[i].local);
+    gkyl_array_copy_range(app->species[i].f, fout[i], &app->species[i].local);
   }
 
   app->tcurr += status.dt_actual;

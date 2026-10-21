@@ -105,7 +105,6 @@ flash_vlasov_forward_euler(gkyl_flash_app *app, double tcurr, double dt0,
     // // Compute flux contributions to Euler system from kinetic closure.
     // flash_species_calc_coupling_fluxes(app, &app->species[i], fin[i]);
   }
-  gkyl_grid_sub_array_write(&app->grid_kinetic, &app->local_kinetic, 0, app->species[0].lbo.nu_sum, "pkpm_nu_sum.gkyl");
 
   // Compute RHS of PKPM kinetic system.
   for (int i=0; i<app->num_species; ++i) {

@@ -72,8 +72,8 @@ flash_species_lbo_moms(gkyl_flash_app *app, const struct flash_species *species,
     species->pkpm_moms, lbo->boundary_corrections, lbo->self_nu, lbo->prim_moms);
 
   for (int d=0; d<app->vdim; d++)
-    gkyl_dg_mul_op(app->confBasis, d, lbo->nu_prim_moms, d, lbo->prim_moms, 0, lbo->self_nu);
-  gkyl_dg_mul_op(app->confBasis, app->vdim, lbo->nu_prim_moms, app->vdim, lbo->prim_moms, 0, lbo->self_nu);
+    gkyl_dg_mul_op(&app->confBasis, d, lbo->nu_prim_moms, d, lbo->prim_moms, 0, lbo->self_nu);
+  gkyl_dg_mul_op(&app->confBasis, app->vdim, lbo->nu_prim_moms, app->vdim, lbo->prim_moms, 0, lbo->self_nu);
   
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);   
 }

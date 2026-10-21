@@ -1,5 +1,8 @@
 # -*- makefile-gmake -*-
 
+# Pkpm include paths
+PKPM_INCS = -I../pkpm/$(KERNELS_DIR)/pkpm -I../pkpm/apps -I../pkpm/zero
+
 # Pkpm link objects
 
 PKPM_LINK_OBJS = ../$(BUILD_DIR)/pkpm/zero/*.o ../$(BUILD_DIR)/pkpm/apps/*.o ../$(BUILD_DIR)/pkpm/$(KERNELS_DIR)/*/*.o

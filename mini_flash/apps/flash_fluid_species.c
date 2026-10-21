@@ -27,6 +27,8 @@ void flash_fluid_species_init(struct gkyl_flash_inp *inp,
   // Primitive variables, [rho, ux, uy, uz, p]
   s->fluid_prim = mkarr(app->use_gpu, 5, app->local_fluid_ext.volume);
 
+  s->fluid_phi = mkarr(app->use_gpu, 1, app->local_fluid_ext.volume);
+
   // Array for storing cellwise CFL contributions
   s->cflrate = mkarr(app->use_gpu, 1, app->local_fluid_ext.volume);
 
@@ -237,7 +239,7 @@ flash_fluid_species_update(gkyl_flash_app *app, double tcurr, double dt0,
 
   // Compute fluid update to next time step with wave propagation updater
   wv_status = gkyl_wave_prop_advance(fs->up_wave_prop, tcurr, dt0, 
-      &app->local_fluid, fluidin, fluidout);
+      &app->local_fluid, fs->fluid_phi, fluidin, fluidout);
 
   // Interpolate kinetic flux contributions onto fluid grid
   gkyl_flash_interp_vars_coupling_fluxes_to_fv(app->interp_vars,

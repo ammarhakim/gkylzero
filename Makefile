@@ -22,7 +22,7 @@ PREFIX ?= ${HOME}/gkylsoft
 FIN_APP_LIB_DIR = -L../${BUILD_DIR}/pkpm
 FIN_APP_LIB = -lg0pkpm
 
-HAVE_APP_FLAGS = -DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS
+HAVE_APP_FLAGS = -DGKYL_HAVE_MINI_FLASH -DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS
 
 # Include config.mak and alltargets.mak files (if they exists) to overide defaults above
 -include config.mak
@@ -45,6 +45,9 @@ ifeq (${BUILD_APP}, gyrokinetic)
 endif
 ifeq (${BUILD_APP}, pkpm)
 	HAVE_APP_FLAGS = -DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS
+endif
+ifeq (${BUILD_APP}, mini_flash)
+	HAVE_APP_FLAGS = -DGKYL_HAVE_MINI_FLASH -DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS
 endif
 
 INSTALL_PREFIX ?= ${PREFIX}
@@ -231,6 +234,9 @@ ${BUILD_DIR}/gyrokinetic/creg/%: gyrokinetic/creg/%.c ${BUILD_DIR}/gyrokinetic/l
 ${BUILD_DIR}/pkpm/creg/%: pkpm/creg/%.c ${BUILD_DIR}/pkpm/libg0pkpm.so
 	cd pkpm && $(MAKE) -f Makefile-pkpm ../$@
 
+${BUILD_DIR}/mini_flash/creg/%: mini_flash/creg/%.c ${BUILD_DIR}/mini_flash/libg0mini_flash.so
+	cd mini_flash && $(MAKE) -f Makefile-mini_flash ../$@
+
 # Unit tests
 ${BUILD_DIR}/core/unit/%: core/unit/%.c ${BUILD_DIR}/core/libg0core.so
 	cd core && $(MAKE) -f Makefile-core ../$@
@@ -247,8 +253,11 @@ ${BUILD_DIR}/gyrokinetic/unit/%: gyrokinetic/unit/%.c ${BUILD_DIR}/gyrokinetic/l
 ${BUILD_DIR}/pkpm/unit/%: pkpm/unit/%.c ${BUILD_DIR}/pkpm/libg0pkpm.so
 	cd pkpm && $(MAKE) -f Makefile-pkpm ../$@
 
+${BUILD_DIR}/mini_flash/unit/%: mini_flash/unit/%.c ${BUILD_DIR}/mini_flash/libg0mini_flash.so
+	cd mini_flash && $(MAKE) -f Makefile-mini_flash ../$@
+
 # Declare sub-directories as phony targets
-.PHONY: core moments vlasov gyrokinetic pkpm
+.PHONY: core moments vlasov gyrokinetic pkpm mini_flash
 
 # sed argument to replace path in Makefile for C input files outside gkeyll/.
 GKEYLL_SHARE_INSTALL_PREFIX=${INSTALL_PREFIX}/${PROJ_NAME}/share
@@ -405,6 +414,23 @@ pkpm-unit-run: ## Run PKPM unit tests
 pkpm-valcheck: pkpm ## Run valgrind on unit tests in PKPM
 	cd pkpm && $(MAKE) -f Makefile-pkpm valcheck
 
+## Mini-FLASH infrastructure targets
+mini_flash: pkpm  ## Build mini-FLASH infrastructure code
+	cd mini_flash && $(MAKE) -f Makefile-mini_flash
+
+mini_flash-unit: pkpm-unit  ## Build mini-FLASH unit tests
+	cd mini_flash && $(MAKE) -f Makefile-mini_flash unit
+
+mini_flash-regression: pkpm-regression  ## Build mini-FLASH regression tests
+	cd mini_flash && $(MAKE) -f Makefile-mini_flash regression
+
+mini_flash-install: pkpm-install ## Install PKPM infrastructure code
+	cd mini_flash && $(MAKE) -f Makefile-mini_flash install
+	cp -f mini_flash/creg/rt_arg_parse.h ${INSTALL_PREFIX}/${PROJ_NAME}/include/rt_arg_parse.h
+
+mini_flash-clean: ## Clean PKPM infrastructure code
+	cd mini_flash && $(MAKE) -f Makefile-mini_flash clean
+
 ## Top-level Gkeyll target
 gkeyll: ${BUILD_APP} ## Build Gkeyll executable
 	cd gkeyll && ${MAKE} -f Makefile-gkeyll gkeyll
@@ -415,10 +441,10 @@ gkeyll-install: ${BUILD_APP}-install ## Install Gkeyll executable
 ## Targets to build things all parts of the code
 
 # build all unit tests
-unit: pkpm-unit gyrokinetic-unit vlasov-unit moments-unit core-unit ## Build all unit tests
+unit: mini_flash-unit pkpm-unit gyrokinetic-unit vlasov-unit moments-unit core-unit ## Build all unit tests
 
 # build all regression tests 
-regression: pkpm-regression gyrokinetic-regression vlasov-regression moments-regression core-regression ## Build all regression tests
+regression: mini_flash-regression pkpm-regression gyrokinetic-regression vlasov-regression moments-regression core-regression ## Build all regression tests
 
 # Clean everything
 clean:

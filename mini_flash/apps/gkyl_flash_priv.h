@@ -89,6 +89,7 @@ struct flash_fluid_species {
   struct gkyl_array *fluid, *fluid1, *fluidnew, *fluidtmp; // Fluid variable arrays.
   struct gkyl_array *fluid_prim; // (rho, ux, uy, uz, p) for diagnositcs.
   struct gkyl_array *cflrate; // CFL contributions per cell
+  struct gkyl_array *fluid_phi;
 
   struct gkyl_array *flash_coupling_fluxes; // Flux contribution terms, [div(P)-grad(p), (P - pI) : grad(u)].
 
