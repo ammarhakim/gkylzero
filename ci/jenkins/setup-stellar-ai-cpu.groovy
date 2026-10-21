@@ -56,7 +56,7 @@ variables.envVars.putAll([
     GKEYLL_CI_BUILDS_TO_KEEP: '2',
     STELLAR_AI_CPU_GITHUB_CREDENTIAL_ID: 'gkeyll-github-stellar-ai-cpu',
     STELLAR_AI_CPU_SLURM_ACCOUNT: 'csd',
-    STELLAR_AI_CPU_SLURM_QOS: 'short',
+    STELLAR_AI_CPU_SLURM_QOS: 'pppl-short',
     STELLAR_AI_CPU_NODE_LABEL: 'stellar-ai-cpu',
     STELLAR_AI_CPU_BUILD_JOBS: '8',
     STELLAR_AI_CPU_REGRESSION_JOBS: '16'

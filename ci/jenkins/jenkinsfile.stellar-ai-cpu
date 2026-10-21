@@ -270,7 +270,7 @@ def prepareClusterScripts() {
 }
 
 def submitSlurmJob(String kind, String payload, String cpus, String timeLimit, List<String> extraExports = [], String tasks = '1') {
-    def qos = requireValue('STELLAR_AI_CPU_SLURM_QOS', env.STELLAR_AI_CPU_SLURM_QOS)
+    def qos = (env.STELLAR_AI_CPU_SLURM_QOS ?: 'pppl-short').trim()
     def account = env.STELLAR_AI_CPU_SLURM_ACCOUNT?.trim()
     def idFile = "slurm-${kind}-job-id.txt"
     def statusFile = "slurm-${kind}-job-status.txt"
@@ -401,7 +401,7 @@ def submitUnitTests(String candidateDir) {
         'unit',
         'ci/jenkins/slurm-unit-tests.stellar-ai-cpu.sh',
         '4',
-        (env.STELLAR_AI_CPU_UNIT_TIME ?: '00:30:00').trim(),
+        (env.STELLAR_AI_CPU_UNIT_TIME ?: '04:00:00').trim(),
         ["CI_CANDIDATE_DIR=${candidateDir}/gkeyll"]
     )
 }

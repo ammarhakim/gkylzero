@@ -35,13 +35,26 @@ and tmux must be installed. The defaults are:
 - Java: `/usr/lib/jvm/jre-21-openjdk`
 - tmux session: `gkeyll_ci_stellar_ai_cpu`
 - Job and node label: `gkeyll-ci-stellar-ai-cpu` and `stellar-ai-cpu`
-- Slurm: partition `cpu`, account `csd`, QoS `short`
+- Slurm: partition `cpu`, account `csd`, QoS `pppl-short`
+- Four-hour allocations (`04:00:00`) for unit, serial regression, and MPI regression jobs
 - Eight compilation workers and sixteen regression worker/rank slots
 
 Override `GKEYLL_CI_ROOT` or `JAVA_HOME` before installation if necessary.
 Change the account, QoS, or worker budgets in Jenkins global environment
 variables (`STELLAR_AI_CPU_SLURM_ACCOUNT`, `STELLAR_AI_CPU_SLURM_QOS`,
 `STELLAR_AI_CPU_BUILD_JOBS`, `STELLAR_AI_CPU_REGRESSION_JOBS`).
+
+The pipeline defaults to `pppl-short` and requests its full four-hour limit
+for each test allocation. `STELLAR_AI_CPU_UNIT_TIME` and
+`STELLAR_AI_CPU_REGRESSION_TIME` override the unit and regression allocation
+limits; keep them at or below `04:00:00` for this QoS.
+
+For an existing controller, set `STELLAR_AI_CPU_SLURM_QOS=pppl-short` in
+**Manage Jenkins → System → Global properties → Environment variables**.
+Remove any shorter `STELLAR_AI_CPU_UNIT_TIME` or
+`STELLAR_AI_CPU_REGRESSION_TIME` overrides, or set them to `04:00:00`.
+The bootstrap hook preserves existing settings, so updating the checkout or
+restarting Jenkins alone does not replace a configured QoS or time override.
 
 On a virtual desktop on the **same host as Jenkins**, open
 `http://127.0.0.1:8080`. Sign in as `admin`; read the password locally:
