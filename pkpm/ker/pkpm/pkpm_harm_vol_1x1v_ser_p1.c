@@ -1,4 +1,71 @@
 #include <gkyl_pkpm_kinetic_kernels.h> 
+
+// a[mw][mc] += sg sum_lc m[mc][lc] v[mw][lc], w modes [1,2], rows [0,1] 
+GKYL_CU_DH static inline void pkpm_harm_vol_1x1v_ser_p1_blk0(double* GKYL_RESTRICT a, const double* GKYL_RESTRICT m,
+  const double* GKYL_RESTRICT v, double sg) 
+{ 
+  { 
+    double t1_0 = 0.0, t1_1 = 0.0, t2_0 = 0.0, t2_1 = 0.0; 
+    t1_0 += m[0]*v[2]; 
+    t2_0 += m[0]*v[4]; 
+    t1_1 += m[2]*v[2]; 
+    t2_1 += m[2]*v[4]; 
+    t1_0 += m[1]*v[3]; 
+    t2_0 += m[1]*v[5]; 
+    t1_1 += m[3]*v[3]; 
+    t2_1 += m[3]*v[5]; 
+    a[2] += sg*t1_0; 
+    a[3] += sg*t1_1; 
+    a[4] += sg*t2_0; 
+    a[5] += sg*t2_1; 
+  } 
+} 
+
+// a[mw][mc] += sg sum_lc m[mc][lc] v[mw][lc], w modes [0,1,2], rows [0,1] 
+GKYL_CU_DH static inline void pkpm_harm_vol_1x1v_ser_p1_blk1(double* GKYL_RESTRICT a, const double* GKYL_RESTRICT m,
+  const double* GKYL_RESTRICT v, double sg) 
+{ 
+  { 
+    double t0_0 = 0.0, t0_1 = 0.0, t1_0 = 0.0, t1_1 = 0.0, t2_0 = 0.0, t2_1 = 0.0; 
+    t0_0 += m[0]*v[0]; 
+    t1_0 += m[0]*v[2]; 
+    t2_0 += m[0]*v[4]; 
+    t0_1 += m[2]*v[0]; 
+    t1_1 += m[2]*v[2]; 
+    t2_1 += m[2]*v[4]; 
+    t0_0 += m[1]*v[1]; 
+    t1_0 += m[1]*v[3]; 
+    t2_0 += m[1]*v[5]; 
+    t0_1 += m[3]*v[1]; 
+    t1_1 += m[3]*v[3]; 
+    t2_1 += m[3]*v[5]; 
+    a[0] += sg*t0_0; 
+    a[1] += sg*t0_1; 
+    a[2] += sg*t1_0; 
+    a[3] += sg*t1_1; 
+    a[4] += sg*t2_0; 
+    a[5] += sg*t2_1; 
+  } 
+} 
+
+// a[mw][mc] += sg sum_lc m[mc][lc] v[mw][lc], w modes [0,1,2], rows [1] 
+GKYL_CU_DH static inline void pkpm_harm_vol_1x1v_ser_p1_blk2(double* GKYL_RESTRICT a, const double* GKYL_RESTRICT m,
+  const double* GKYL_RESTRICT v, double sg) 
+{ 
+  { 
+    double t0_1 = 0.0, t1_1 = 0.0, t2_1 = 0.0; 
+    t0_1 += m[2]*v[0]; 
+    t1_1 += m[2]*v[2]; 
+    t2_1 += m[2]*v[4]; 
+    t0_1 += m[3]*v[1]; 
+    t1_1 += m[3]*v[3]; 
+    t2_1 += m[3]*v[5]; 
+    a[1] += sg*t0_1; 
+    a[3] += sg*t1_1; 
+    a[5] += sg*t2_1; 
+  } 
+} 
+
 GKYL_CU_DH void pkpm_harm_vol_1x1v_ser_p1(const double *w, const double *dxv, const double *mat, const double *f,
   double* GKYL_RESTRICT out) 
 { 
@@ -250,60 +317,235 @@ GKYL_CU_DH void pkpm_harm_vol_1x1v_ser_p1(const double *w, const double *dxv, co
   vS4_2[4] = f[28]*tS222+f[26]*tS221+f[24]*tS220; 
   vS4_2[5] = f[29]*tS222+f[27]*tS221+f[25]*tS220; 
  
-  // output block 0 
-  out[0] += f[25]*mat[501]+f[24]*mat[500]+f[19]*mat[333]+f[18]*mat[332]+f[13]*mat[165]+f[12]*mat[164]+vS0_1[1]*mat[29]+vS0_1[0]*mat[28]; 
-  out[1] += f[13]*mat[607]+f[12]*mat[606]+f[25]*mat[503]+f[24]*mat[502]+f[19]*mat[335]+f[18]*mat[334]+f[13]*mat[167]+f[12]*mat[166]+vS0_1[1]*mat[31]+vS0_1[0]*mat[30]; 
-  out[2] += f[27]*mat[501]+f[26]*mat[500]+vF4_1[3]*mat[445]+vF4_1[2]*mat[444]+vF4_0[3]*mat[425]+vF4_0[2]*mat[424]+f[21]*mat[333]+f[20]*mat[332]+vF3_1[3]*mat[277]+vF3_1[2]*mat[276]+vF3_0[3]*mat[257]+vF3_0[2]*mat[256]+f[15]*mat[165]+f[14]*mat[164]+vF2_1[3]*mat[109]+vF2_1[2]*mat[108]+vF2_0[3]*mat[89]+vF2_0[2]*mat[88]+vS0_1[3]*mat[29]+vS0_1[2]*mat[28]+vF1_0[3]*mat[17]+vF1_0[2]*mat[16]+vF0_2[3]*mat[5]+vF0_2[2]*mat[4]+mat[1]*vF0_1[3]+mat[0]*vF0_1[2]; 
-  out[3] += f[15]*mat[607]+f[14]*mat[606]+f[27]*mat[503]+f[26]*mat[502]+vF4_1[3]*mat[447]+vF4_1[2]*mat[446]+vF4_0[3]*mat[427]+vF4_0[2]*mat[426]+f[21]*mat[335]+f[20]*mat[334]+vF3_1[3]*mat[279]+vF3_1[2]*mat[278]+vF3_0[3]*mat[259]+vF3_0[2]*mat[258]+f[15]*mat[167]+f[14]*mat[166]+vF2_1[3]*mat[111]+vF2_1[2]*mat[110]+vF2_0[3]*mat[91]+vF2_0[2]*mat[90]+vS0_1[3]*mat[31]+vS0_1[2]*mat[30]+vF1_0[3]*mat[19]+vF1_0[2]*mat[18]+vF0_2[3]*mat[7]+vF0_2[2]*mat[6]+mat[3]*vF0_1[3]+mat[2]*vF0_1[2]; 
-  out[4] += f[29]*mat[501]+f[28]*mat[500]+vF4_1[5]*mat[445]+vF4_1[4]*mat[444]+vF4_0[5]*mat[425]+vF4_0[4]*mat[424]+f[23]*mat[333]+f[22]*mat[332]+vF3_1[5]*mat[277]+vF3_1[4]*mat[276]+vF3_0[5]*mat[257]+vF3_0[4]*mat[256]+f[17]*mat[165]+f[16]*mat[164]+vF2_1[5]*mat[109]+vF2_1[4]*mat[108]+vF2_0[5]*mat[89]+vF2_0[4]*mat[88]+vS0_1[5]*mat[29]+vS0_1[4]*mat[28]+vF1_0[5]*mat[17]+vF1_0[4]*mat[16]+mat[5]*vF0_2[5]+mat[1]*vF0_1[5]+mat[4]*vF0_2[4]+mat[0]*vF0_1[4]; 
-  out[5] += f[17]*mat[607]+f[16]*mat[606]+f[29]*mat[503]+f[28]*mat[502]+vF4_1[5]*mat[447]+vF4_1[4]*mat[446]+vF4_0[5]*mat[427]+vF4_0[4]*mat[426]+f[23]*mat[335]+f[22]*mat[334]+vF3_1[5]*mat[279]+vF3_1[4]*mat[278]+vF3_0[5]*mat[259]+vF3_0[4]*mat[258]+f[17]*mat[167]+f[16]*mat[166]+vF2_1[5]*mat[111]+vF2_1[4]*mat[110]+vF2_0[5]*mat[91]+vF2_0[4]*mat[90]+vS0_1[5]*mat[31]+vS0_1[4]*mat[30]+vF1_0[5]*mat[19]+vF1_0[4]*mat[18]+vF0_2[5]*mat[7]+vF0_2[4]*mat[6]+mat[3]*vF0_1[5]+mat[2]*vF0_1[4]; 
-  // output block 1 
-  out[6] += vS4_2[1]*mat[533]+vS4_2[0]*mat[532]+vS4_1[1]*mat[521]+vS4_1[0]*mat[520]+f[43]*mat[505]+f[42]*mat[504]+vS3_2[1]*mat[365]+vS3_2[0]*mat[364]+vS3_1[1]*mat[353]+vS3_1[0]*mat[352]+f[37]*mat[337]+f[36]*mat[336]+vS2_2[1]*mat[197]+vS2_2[0]*mat[196]+vS2_1[1]*mat[185]+vS2_1[0]*mat[184]+f[31]*mat[169]+f[30]*mat[168]+vS1_1[1]*mat[37]+vS1_1[0]*mat[36]+f[7]*mat[33]+f[6]*mat[32]; 
-  out[7] += f[31]*mat[611]+f[30]*mat[610]+vS4_2[1]*mat[535]+vS4_2[0]*mat[534]+vS4_1[1]*mat[523]+vS4_1[0]*mat[522]+f[43]*mat[507]+f[42]*mat[506]+vS3_2[1]*mat[367]+vS3_2[0]*mat[366]+vS3_1[1]*mat[355]+vS3_1[0]*mat[354]+f[37]*mat[339]+f[36]*mat[338]+vS2_2[1]*mat[199]+vS2_2[0]*mat[198]+vS2_1[1]*mat[187]+vS2_1[0]*mat[186]+f[31]*mat[171]+f[30]*mat[170]+vS1_1[1]*mat[39]+vS1_1[0]*mat[38]+f[7]*mat[35]+f[6]*mat[34]; 
-  out[8] += vS4_2[3]*mat[533]+vS4_2[2]*mat[532]+vS4_1[3]*mat[521]+vS4_1[2]*mat[520]+f[45]*mat[505]+f[44]*mat[504]+vF7_1[3]*mat[449]+vF7_1[2]*mat[448]+vF7_0[3]*mat[429]+vF7_0[2]*mat[428]+vS3_2[3]*mat[365]+vS3_2[2]*mat[364]+vS3_1[3]*mat[353]+vS3_1[2]*mat[352]+f[39]*mat[337]+f[38]*mat[336]+vF6_1[3]*mat[281]+vF6_1[2]*mat[280]+vF6_0[3]*mat[261]+vF6_0[2]*mat[260]+vS2_2[3]*mat[197]+vS2_2[2]*mat[196]+vS2_1[3]*mat[185]+vS2_1[2]*mat[184]+f[33]*mat[169]+f[32]*mat[168]+vF5_1[3]*mat[113]+vF5_1[2]*mat[112]+vF5_0[3]*mat[93]+vF5_0[2]*mat[92]+vS1_1[3]*mat[37]+vS1_1[2]*mat[36]+f[9]*mat[33]+f[8]*mat[32]+vF0_0[3]*mat[25]+vF0_0[2]*mat[24]+vF1_0[3]*mat[21]+vF1_0[2]*mat[20]+vF1_2[3]*mat[13]+vF1_2[2]*mat[12]+vF1_1[3]*mat[9]+vF1_1[2]*mat[8]; 
-  out[9] += f[33]*mat[611]+f[32]*mat[610]+vS4_2[3]*mat[535]+vS4_2[2]*mat[534]+vS4_1[3]*mat[523]+vS4_1[2]*mat[522]+f[45]*mat[507]+f[44]*mat[506]+vF7_1[3]*mat[451]+vF7_1[2]*mat[450]+vF7_0[3]*mat[431]+vF7_0[2]*mat[430]+vS3_2[3]*mat[367]+vS3_2[2]*mat[366]+vS3_1[3]*mat[355]+vS3_1[2]*mat[354]+f[39]*mat[339]+f[38]*mat[338]+vF6_1[3]*mat[283]+vF6_1[2]*mat[282]+vF6_0[3]*mat[263]+vF6_0[2]*mat[262]+vS2_2[3]*mat[199]+vS2_2[2]*mat[198]+vS2_1[3]*mat[187]+vS2_1[2]*mat[186]+f[33]*mat[171]+f[32]*mat[170]+vF5_1[3]*mat[115]+vF5_1[2]*mat[114]+vF5_0[3]*mat[95]+vF5_0[2]*mat[94]+vS1_1[3]*mat[39]+vS1_1[2]*mat[38]+f[9]*mat[35]+f[8]*mat[34]+vF0_0[3]*mat[27]+vF0_0[2]*mat[26]+vF1_0[3]*mat[23]+vF1_0[2]*mat[22]+vF1_2[3]*mat[15]+vF1_2[2]*mat[14]+vF1_1[3]*mat[11]+vF1_1[2]*mat[10]; 
-  out[10] += vS4_2[5]*mat[533]+vS4_2[4]*mat[532]+vS4_1[5]*mat[521]+vS4_1[4]*mat[520]+f[47]*mat[505]+f[46]*mat[504]+vF7_1[5]*mat[449]+vF7_1[4]*mat[448]+vF7_0[5]*mat[429]+vF7_0[4]*mat[428]+vS3_2[5]*mat[365]+vS3_2[4]*mat[364]+vS3_1[5]*mat[353]+vS3_1[4]*mat[352]+f[41]*mat[337]+f[40]*mat[336]+vF6_1[5]*mat[281]+vF6_1[4]*mat[280]+vF6_0[5]*mat[261]+vF6_0[4]*mat[260]+vS2_2[5]*mat[197]+vS2_2[4]*mat[196]+vS2_1[5]*mat[185]+vS2_1[4]*mat[184]+f[35]*mat[169]+f[34]*mat[168]+vF5_1[5]*mat[113]+vF5_1[4]*mat[112]+vF5_0[5]*mat[93]+vF5_0[4]*mat[92]+vS1_1[5]*mat[37]+vS1_1[4]*mat[36]+f[11]*mat[33]+f[10]*mat[32]+vF0_0[5]*mat[25]+vF0_0[4]*mat[24]+vF1_0[5]*mat[21]+vF1_0[4]*mat[20]+vF1_2[5]*mat[13]+vF1_2[4]*mat[12]+vF1_1[5]*mat[9]+vF1_1[4]*mat[8]; 
-  out[11] += f[35]*mat[611]+f[34]*mat[610]+vS4_2[5]*mat[535]+vS4_2[4]*mat[534]+vS4_1[5]*mat[523]+vS4_1[4]*mat[522]+f[47]*mat[507]+f[46]*mat[506]+vF7_1[5]*mat[451]+vF7_1[4]*mat[450]+vF7_0[5]*mat[431]+vF7_0[4]*mat[430]+vS3_2[5]*mat[367]+vS3_2[4]*mat[366]+vS3_1[5]*mat[355]+vS3_1[4]*mat[354]+f[41]*mat[339]+f[40]*mat[338]+vF6_1[5]*mat[283]+vF6_1[4]*mat[282]+vF6_0[5]*mat[263]+vF6_0[4]*mat[262]+vS2_2[5]*mat[199]+vS2_2[4]*mat[198]+vS2_1[5]*mat[187]+vS2_1[4]*mat[186]+f[35]*mat[171]+f[34]*mat[170]+vF5_1[5]*mat[115]+vF5_1[4]*mat[114]+vF5_0[5]*mat[95]+vF5_0[4]*mat[94]+vS1_1[5]*mat[39]+vS1_1[4]*mat[38]+f[11]*mat[35]+f[10]*mat[34]+vF0_0[5]*mat[27]+vF0_0[4]*mat[26]+vF1_0[5]*mat[23]+vF1_0[4]*mat[22]+vF1_2[5]*mat[15]+vF1_2[4]*mat[14]+vF1_1[5]*mat[11]+vF1_1[4]*mat[10]; 
-  // output block 2 
-  out[12] += f[19]*mat[601]+f[18]*mat[600]-f[25]*mat[597]-f[24]*mat[596]+vS4_1[1]*mat[249]+vS4_1[0]*mat[248]+f[25]*mat[241]+f[24]*mat[240]+vS3_1[1]*mat[233]+vS3_1[0]*mat[232]+f[19]*mat[225]+f[18]*mat[224]+vS2_1[1]*mat[217]+vS2_1[0]*mat[216]+f[13]*mat[209]+f[12]*mat[208]+vS0_2[1]*mat[201]+vS0_2[0]*mat[200]+vS0_1[1]*mat[189]+vS0_1[0]*mat[188]+f[7]*mat[173]+f[6]*mat[172]; 
-  out[13] += f[7]*mat[615]+f[6]*mat[614]+f[19]*mat[603]+f[18]*mat[602]-f[25]*mat[599]-f[24]*mat[598]+vS4_1[1]*mat[251]+vS4_1[0]*mat[250]+f[25]*mat[243]+f[24]*mat[242]+vS3_1[1]*mat[235]+vS3_1[0]*mat[234]+f[19]*mat[227]+f[18]*mat[226]+vS2_1[1]*mat[219]+vS2_1[0]*mat[218]+f[13]*mat[211]+f[12]*mat[210]+vS0_2[1]*mat[203]+vS0_2[0]*mat[202]+vS0_1[1]*mat[191]+vS0_1[0]*mat[190]+f[7]*mat[175]+f[6]*mat[174]; 
-  out[14] += f[21]*mat[601]+f[20]*mat[600]-f[27]*mat[597]-f[26]*mat[596]+vS4_1[3]*mat[249]+vS4_1[2]*mat[248]+f[27]*mat[241]+f[26]*mat[240]+vS3_1[3]*mat[233]+vS3_1[2]*mat[232]+f[21]*mat[225]+f[20]*mat[224]+vS2_1[3]*mat[217]+vS2_1[2]*mat[216]+f[15]*mat[209]+f[14]*mat[208]+vS0_2[3]*mat[201]+vS0_2[2]*mat[200]+vS0_1[3]*mat[189]+vS0_1[2]*mat[188]+f[9]*mat[173]+f[8]*mat[172]+vF7_0[3]*mat[153]+vF7_0[2]*mat[152]+vF6_0[3]*mat[141]+vF6_0[2]*mat[140]+vF5_0[3]*mat[129]+vF5_0[2]*mat[128]+vF1_1[3]*mat[117]+vF1_1[2]*mat[116]+vF1_0[3]*mat[97]+vF1_0[2]*mat[96]+vF2_2[3]*mat[45]+vF2_2[2]*mat[44]+vF2_1[3]*mat[41]+vF2_1[2]*mat[40]; 
-  out[15] += f[9]*mat[615]+f[8]*mat[614]+f[21]*mat[603]+f[20]*mat[602]-f[27]*mat[599]-f[26]*mat[598]+vS4_1[3]*mat[251]+vS4_1[2]*mat[250]+f[27]*mat[243]+f[26]*mat[242]+vS3_1[3]*mat[235]+vS3_1[2]*mat[234]+f[21]*mat[227]+f[20]*mat[226]+vS2_1[3]*mat[219]+vS2_1[2]*mat[218]+f[15]*mat[211]+f[14]*mat[210]+vS0_2[3]*mat[203]+vS0_2[2]*mat[202]+vS0_1[3]*mat[191]+vS0_1[2]*mat[190]+f[9]*mat[175]+f[8]*mat[174]+vF7_0[3]*mat[155]+vF7_0[2]*mat[154]+vF6_0[3]*mat[143]+vF6_0[2]*mat[142]+vF5_0[3]*mat[131]+vF5_0[2]*mat[130]+vF1_1[3]*mat[119]+vF1_1[2]*mat[118]+vF1_0[3]*mat[99]+vF1_0[2]*mat[98]+vF2_2[3]*mat[47]+vF2_2[2]*mat[46]+vF2_1[3]*mat[43]+vF2_1[2]*mat[42]; 
-  out[16] += f[23]*mat[601]+f[22]*mat[600]-f[29]*mat[597]-f[28]*mat[596]+vS4_1[5]*mat[249]+vS4_1[4]*mat[248]+f[29]*mat[241]+f[28]*mat[240]+vS3_1[5]*mat[233]+vS3_1[4]*mat[232]+f[23]*mat[225]+f[22]*mat[224]+vS2_1[5]*mat[217]+vS2_1[4]*mat[216]+f[17]*mat[209]+f[16]*mat[208]+vS0_2[5]*mat[201]+vS0_2[4]*mat[200]+vS0_1[5]*mat[189]+vS0_1[4]*mat[188]+f[11]*mat[173]+f[10]*mat[172]+vF7_0[5]*mat[153]+vF7_0[4]*mat[152]+vF6_0[5]*mat[141]+vF6_0[4]*mat[140]+vF5_0[5]*mat[129]+vF5_0[4]*mat[128]+vF1_1[5]*mat[117]+vF1_1[4]*mat[116]+vF1_0[5]*mat[97]+vF1_0[4]*mat[96]+vF2_2[5]*mat[45]+vF2_2[4]*mat[44]+vF2_1[5]*mat[41]+vF2_1[4]*mat[40]; 
-  out[17] += f[11]*mat[615]+f[10]*mat[614]+f[23]*mat[603]+f[22]*mat[602]-f[29]*mat[599]-f[28]*mat[598]+vS4_1[5]*mat[251]+vS4_1[4]*mat[250]+f[29]*mat[243]+f[28]*mat[242]+vS3_1[5]*mat[235]+vS3_1[4]*mat[234]+f[23]*mat[227]+f[22]*mat[226]+vS2_1[5]*mat[219]+vS2_1[4]*mat[218]+f[17]*mat[211]+f[16]*mat[210]+vS0_2[5]*mat[203]+vS0_2[4]*mat[202]+vS0_1[5]*mat[191]+vS0_1[4]*mat[190]+f[11]*mat[175]+f[10]*mat[174]+vF7_0[5]*mat[155]+vF7_0[4]*mat[154]+vF6_0[5]*mat[143]+vF6_0[4]*mat[142]+vF5_0[5]*mat[131]+vF5_0[4]*mat[130]+vF1_1[5]*mat[119]+vF1_1[4]*mat[118]+vF1_0[5]*mat[99]+vF1_0[4]*mat[98]+vF2_2[5]*mat[47]+vF2_2[4]*mat[46]+vF2_1[5]*mat[43]+vF2_1[4]*mat[42]; 
-  // output block 3 
-  out[18] += -(f[13]*mat[601])-f[12]*mat[600]+f[25]*mat[593]+f[24]*mat[592]+vS4_1[1]*mat[417]+vS4_1[0]*mat[416]+f[25]*mat[409]+f[24]*mat[408]+vS3_1[1]*mat[401]+vS3_1[0]*mat[400]+f[19]*mat[393]+f[18]*mat[392]+vS2_1[1]*mat[385]+vS2_1[0]*mat[384]+f[13]*mat[377]+f[12]*mat[376]+vS0_2[1]*mat[369]+vS0_2[0]*mat[368]+vS0_1[1]*mat[357]+vS0_1[0]*mat[356]+f[7]*mat[341]+f[6]*mat[340]; 
-  out[19] += f[7]*mat[619]+f[6]*mat[618]-f[13]*mat[603]-f[12]*mat[602]+f[25]*mat[595]+f[24]*mat[594]+vS4_1[1]*mat[419]+vS4_1[0]*mat[418]+f[25]*mat[411]+f[24]*mat[410]+vS3_1[1]*mat[403]+vS3_1[0]*mat[402]+f[19]*mat[395]+f[18]*mat[394]+vS2_1[1]*mat[387]+vS2_1[0]*mat[386]+f[13]*mat[379]+f[12]*mat[378]+vS0_2[1]*mat[371]+vS0_2[0]*mat[370]+vS0_1[1]*mat[359]+vS0_1[0]*mat[358]+f[7]*mat[343]+f[6]*mat[342]; 
-  out[20] += -(f[15]*mat[601])-f[14]*mat[600]+f[27]*mat[593]+f[26]*mat[592]+vS4_1[3]*mat[417]+vS4_1[2]*mat[416]+f[27]*mat[409]+f[26]*mat[408]+vS3_1[3]*mat[401]+vS3_1[2]*mat[400]+f[21]*mat[393]+f[20]*mat[392]+vS2_1[3]*mat[385]+vS2_1[2]*mat[384]+f[15]*mat[377]+f[14]*mat[376]+vS0_2[3]*mat[369]+vS0_2[2]*mat[368]+vS0_1[3]*mat[357]+vS0_1[2]*mat[356]+f[9]*mat[341]+f[8]*mat[340]+vF7_0[3]*mat[321]+vF7_0[2]*mat[320]+vF6_0[3]*mat[309]+vF6_0[2]*mat[308]+vF5_0[3]*mat[297]+vF5_0[2]*mat[296]+vF1_1[3]*mat[285]+vF1_1[2]*mat[284]+vF1_0[3]*mat[265]+vF1_0[2]*mat[264]+vF3_2[3]*mat[53]+vF3_2[2]*mat[52]+vF3_1[3]*mat[49]+vF3_1[2]*mat[48]; 
-  out[21] += f[9]*mat[619]+f[8]*mat[618]-f[15]*mat[603]-f[14]*mat[602]+f[27]*mat[595]+f[26]*mat[594]+vS4_1[3]*mat[419]+vS4_1[2]*mat[418]+f[27]*mat[411]+f[26]*mat[410]+vS3_1[3]*mat[403]+vS3_1[2]*mat[402]+f[21]*mat[395]+f[20]*mat[394]+vS2_1[3]*mat[387]+vS2_1[2]*mat[386]+f[15]*mat[379]+f[14]*mat[378]+vS0_2[3]*mat[371]+vS0_2[2]*mat[370]+vS0_1[3]*mat[359]+vS0_1[2]*mat[358]+f[9]*mat[343]+f[8]*mat[342]+vF7_0[3]*mat[323]+vF7_0[2]*mat[322]+vF6_0[3]*mat[311]+vF6_0[2]*mat[310]+vF5_0[3]*mat[299]+vF5_0[2]*mat[298]+vF1_1[3]*mat[287]+vF1_1[2]*mat[286]+vF1_0[3]*mat[267]+vF1_0[2]*mat[266]+vF3_2[3]*mat[55]+vF3_2[2]*mat[54]+vF3_1[3]*mat[51]+vF3_1[2]*mat[50]; 
-  out[22] += -(f[17]*mat[601])-f[16]*mat[600]+f[29]*mat[593]+f[28]*mat[592]+vS4_1[5]*mat[417]+vS4_1[4]*mat[416]+f[29]*mat[409]+f[28]*mat[408]+vS3_1[5]*mat[401]+vS3_1[4]*mat[400]+f[23]*mat[393]+f[22]*mat[392]+vS2_1[5]*mat[385]+vS2_1[4]*mat[384]+f[17]*mat[377]+f[16]*mat[376]+vS0_2[5]*mat[369]+vS0_2[4]*mat[368]+vS0_1[5]*mat[357]+vS0_1[4]*mat[356]+f[11]*mat[341]+f[10]*mat[340]+vF7_0[5]*mat[321]+vF7_0[4]*mat[320]+vF6_0[5]*mat[309]+vF6_0[4]*mat[308]+vF5_0[5]*mat[297]+vF5_0[4]*mat[296]+vF1_1[5]*mat[285]+vF1_1[4]*mat[284]+vF1_0[5]*mat[265]+vF1_0[4]*mat[264]+vF3_2[5]*mat[53]+vF3_2[4]*mat[52]+vF3_1[5]*mat[49]+vF3_1[4]*mat[48]; 
-  out[23] += f[11]*mat[619]+f[10]*mat[618]-f[17]*mat[603]-f[16]*mat[602]+f[29]*mat[595]+f[28]*mat[594]+vS4_1[5]*mat[419]+vS4_1[4]*mat[418]+f[29]*mat[411]+f[28]*mat[410]+vS3_1[5]*mat[403]+vS3_1[4]*mat[402]+f[23]*mat[395]+f[22]*mat[394]+vS2_1[5]*mat[387]+vS2_1[4]*mat[386]+f[17]*mat[379]+f[16]*mat[378]+vS0_2[5]*mat[371]+vS0_2[4]*mat[370]+vS0_1[5]*mat[359]+vS0_1[4]*mat[358]+f[11]*mat[343]+f[10]*mat[342]+vF7_0[5]*mat[323]+vF7_0[4]*mat[322]+vF6_0[5]*mat[311]+vF6_0[4]*mat[310]+vF5_0[5]*mat[299]+vF5_0[4]*mat[298]+vF1_1[5]*mat[287]+vF1_1[4]*mat[286]+vF1_0[5]*mat[267]+vF1_0[4]*mat[266]+vF3_2[5]*mat[55]+vF3_2[4]*mat[54]+vF3_1[5]*mat[51]+vF3_1[4]*mat[50]; 
-  // output block 4 
-  out[24] += f[13]*mat[597]+f[12]*mat[596]-f[19]*mat[593]-f[18]*mat[592]+vS4_1[1]*mat[585]+vS4_1[0]*mat[584]+f[25]*mat[577]+f[24]*mat[576]+vS3_1[1]*mat[569]+vS3_1[0]*mat[568]+f[19]*mat[561]+f[18]*mat[560]+vS2_1[1]*mat[553]+vS2_1[0]*mat[552]+f[13]*mat[545]+f[12]*mat[544]+vS0_2[1]*mat[537]+vS0_2[0]*mat[536]+vS0_1[1]*mat[525]+vS0_1[0]*mat[524]+f[7]*mat[509]+f[6]*mat[508]; 
-  out[25] += f[7]*mat[623]+f[6]*mat[622]+f[13]*mat[599]+f[12]*mat[598]-f[19]*mat[595]-f[18]*mat[594]+vS4_1[1]*mat[587]+vS4_1[0]*mat[586]+f[25]*mat[579]+f[24]*mat[578]+vS3_1[1]*mat[571]+vS3_1[0]*mat[570]+f[19]*mat[563]+f[18]*mat[562]+vS2_1[1]*mat[555]+vS2_1[0]*mat[554]+f[13]*mat[547]+f[12]*mat[546]+vS0_2[1]*mat[539]+vS0_2[0]*mat[538]+vS0_1[1]*mat[527]+vS0_1[0]*mat[526]+f[7]*mat[511]+f[6]*mat[510]; 
-  out[26] += f[15]*mat[597]+f[14]*mat[596]-f[21]*mat[593]-f[20]*mat[592]+vS4_1[3]*mat[585]+vS4_1[2]*mat[584]+f[27]*mat[577]+f[26]*mat[576]+vS3_1[3]*mat[569]+vS3_1[2]*mat[568]+f[21]*mat[561]+f[20]*mat[560]+vS2_1[3]*mat[553]+vS2_1[2]*mat[552]+f[15]*mat[545]+f[14]*mat[544]+vS0_2[3]*mat[537]+vS0_2[2]*mat[536]+vS0_1[3]*mat[525]+vS0_1[2]*mat[524]+f[9]*mat[509]+f[8]*mat[508]+vF7_0[3]*mat[489]+vF7_0[2]*mat[488]+vF6_0[3]*mat[477]+vF6_0[2]*mat[476]+vF5_0[3]*mat[465]+vF5_0[2]*mat[464]+vF1_1[3]*mat[453]+vF1_1[2]*mat[452]+vF1_0[3]*mat[433]+vF1_0[2]*mat[432]+vF4_2[3]*mat[61]+vF4_2[2]*mat[60]+vF4_1[3]*mat[57]+vF4_1[2]*mat[56]; 
-  out[27] += f[9]*mat[623]+f[8]*mat[622]+f[15]*mat[599]+f[14]*mat[598]-f[21]*mat[595]-f[20]*mat[594]+vS4_1[3]*mat[587]+vS4_1[2]*mat[586]+f[27]*mat[579]+f[26]*mat[578]+vS3_1[3]*mat[571]+vS3_1[2]*mat[570]+f[21]*mat[563]+f[20]*mat[562]+vS2_1[3]*mat[555]+vS2_1[2]*mat[554]+f[15]*mat[547]+f[14]*mat[546]+vS0_2[3]*mat[539]+vS0_2[2]*mat[538]+vS0_1[3]*mat[527]+vS0_1[2]*mat[526]+f[9]*mat[511]+f[8]*mat[510]+vF7_0[3]*mat[491]+vF7_0[2]*mat[490]+vF6_0[3]*mat[479]+vF6_0[2]*mat[478]+vF5_0[3]*mat[467]+vF5_0[2]*mat[466]+vF1_1[3]*mat[455]+vF1_1[2]*mat[454]+vF1_0[3]*mat[435]+vF1_0[2]*mat[434]+vF4_2[3]*mat[63]+vF4_2[2]*mat[62]+vF4_1[3]*mat[59]+vF4_1[2]*mat[58]; 
-  out[28] += f[17]*mat[597]+f[16]*mat[596]-f[23]*mat[593]-f[22]*mat[592]+vS4_1[5]*mat[585]+vS4_1[4]*mat[584]+f[29]*mat[577]+f[28]*mat[576]+vS3_1[5]*mat[569]+vS3_1[4]*mat[568]+f[23]*mat[561]+f[22]*mat[560]+vS2_1[5]*mat[553]+vS2_1[4]*mat[552]+f[17]*mat[545]+f[16]*mat[544]+vS0_2[5]*mat[537]+vS0_2[4]*mat[536]+vS0_1[5]*mat[525]+vS0_1[4]*mat[524]+f[11]*mat[509]+f[10]*mat[508]+vF7_0[5]*mat[489]+vF7_0[4]*mat[488]+vF6_0[5]*mat[477]+vF6_0[4]*mat[476]+vF5_0[5]*mat[465]+vF5_0[4]*mat[464]+vF1_1[5]*mat[453]+vF1_1[4]*mat[452]+vF1_0[5]*mat[433]+vF1_0[4]*mat[432]+vF4_2[5]*mat[61]+vF4_2[4]*mat[60]+vF4_1[5]*mat[57]+vF4_1[4]*mat[56]; 
-  out[29] += f[11]*mat[623]+f[10]*mat[622]+f[17]*mat[599]+f[16]*mat[598]-f[23]*mat[595]-f[22]*mat[594]+vS4_1[5]*mat[587]+vS4_1[4]*mat[586]+f[29]*mat[579]+f[28]*mat[578]+vS3_1[5]*mat[571]+vS3_1[4]*mat[570]+f[23]*mat[563]+f[22]*mat[562]+vS2_1[5]*mat[555]+vS2_1[4]*mat[554]+f[17]*mat[547]+f[16]*mat[546]+vS0_2[5]*mat[539]+vS0_2[4]*mat[538]+vS0_1[5]*mat[527]+vS0_1[4]*mat[526]+f[11]*mat[511]+f[10]*mat[510]+vF7_0[5]*mat[491]+vF7_0[4]*mat[490]+vF6_0[5]*mat[479]+vF6_0[4]*mat[478]+vF5_0[5]*mat[467]+vF5_0[4]*mat[466]+vF1_1[5]*mat[455]+vF1_1[4]*mat[454]+vF1_0[5]*mat[435]+vF1_0[4]*mat[434]+vF4_2[5]*mat[63]+vF4_2[4]*mat[62]+vF4_1[5]*mat[59]+vF4_1[4]*mat[58]; 
-  // output block 5 
-  out[30] += f[37]*mat[601]+f[36]*mat[600]-f[43]*mat[597]-f[42]*mat[596]+vS7_1[1]*mat[253]+vS7_1[0]*mat[252]+f[43]*mat[245]+f[42]*mat[244]+vS6_1[1]*mat[237]+vS6_1[0]*mat[236]+f[37]*mat[229]+f[36]*mat[228]+vS5_1[1]*mat[221]+vS5_1[0]*mat[220]+f[31]*mat[213]+f[30]*mat[212]+vS1_2[1]*mat[205]+vS1_2[0]*mat[204]+vS1_1[1]*mat[193]+vS1_1[0]*mat[192]+f[1]*mat[181]+f[0]*mat[180]+f[7]*mat[177]+f[6]*mat[176]; 
-  out[31] += f[1]*mat[639]+f[0]*mat[638]+f[7]*mat[627]+f[6]*mat[626]+f[37]*mat[603]+f[36]*mat[602]-f[43]*mat[599]-f[42]*mat[598]+vS7_1[1]*mat[255]+vS7_1[0]*mat[254]+f[43]*mat[247]+f[42]*mat[246]+vS6_1[1]*mat[239]+vS6_1[0]*mat[238]+f[37]*mat[231]+f[36]*mat[230]+vS5_1[1]*mat[223]+vS5_1[0]*mat[222]+f[31]*mat[215]+f[30]*mat[214]+vS1_2[1]*mat[207]+vS1_2[0]*mat[206]+vS1_1[1]*mat[195]+vS1_1[0]*mat[194]+f[1]*mat[183]+f[0]*mat[182]+f[7]*mat[179]+f[6]*mat[178]; 
-  out[32] += f[39]*mat[601]+f[38]*mat[600]-f[45]*mat[597]-f[44]*mat[596]+vS7_1[3]*mat[253]+vS7_1[2]*mat[252]+f[45]*mat[245]+f[44]*mat[244]+vS6_1[3]*mat[237]+vS6_1[2]*mat[236]+f[39]*mat[229]+f[38]*mat[228]+vS5_1[3]*mat[221]+vS5_1[2]*mat[220]+f[33]*mat[213]+f[32]*mat[212]+vS1_2[3]*mat[205]+vS1_2[2]*mat[204]+vS1_1[3]*mat[193]+vS1_1[2]*mat[192]+f[3]*mat[181]+f[2]*mat[180]+f[9]*mat[177]+f[8]*mat[176]+vF4_0[3]*mat[161]+vF4_0[2]*mat[160]+vF7_0[3]*mat[157]+vF7_0[2]*mat[156]+vF3_0[3]*mat[149]+vF3_0[2]*mat[148]+vF6_0[3]*mat[145]+vF6_0[2]*mat[144]+vF2_0[3]*mat[137]+vF2_0[2]*mat[136]+vF5_0[3]*mat[133]+vF5_0[2]*mat[132]+vF0_1[3]*mat[125]+vF0_1[2]*mat[124]+vF1_1[3]*mat[121]+vF1_1[2]*mat[120]+vF0_0[3]*mat[105]+vF0_0[2]*mat[104]+vF1_0[3]*mat[101]+vF1_0[2]*mat[100]+vF5_2[3]*mat[69]+vF5_2[2]*mat[68]+vF5_1[3]*mat[65]+vF5_1[2]*mat[64]; 
-  out[33] += f[3]*mat[639]+f[2]*mat[638]+f[9]*mat[627]+f[8]*mat[626]+f[39]*mat[603]+f[38]*mat[602]-f[45]*mat[599]-f[44]*mat[598]+vS7_1[3]*mat[255]+vS7_1[2]*mat[254]+f[45]*mat[247]+f[44]*mat[246]+vS6_1[3]*mat[239]+vS6_1[2]*mat[238]+f[39]*mat[231]+f[38]*mat[230]+vS5_1[3]*mat[223]+vS5_1[2]*mat[222]+f[33]*mat[215]+f[32]*mat[214]+vS1_2[3]*mat[207]+vS1_2[2]*mat[206]+vS1_1[3]*mat[195]+vS1_1[2]*mat[194]+f[3]*mat[183]+f[2]*mat[182]+f[9]*mat[179]+f[8]*mat[178]+vF4_0[3]*mat[163]+vF4_0[2]*mat[162]+vF7_0[3]*mat[159]+vF7_0[2]*mat[158]+vF3_0[3]*mat[151]+vF3_0[2]*mat[150]+vF6_0[3]*mat[147]+vF6_0[2]*mat[146]+vF2_0[3]*mat[139]+vF2_0[2]*mat[138]+vF5_0[3]*mat[135]+vF5_0[2]*mat[134]+vF0_1[3]*mat[127]+vF0_1[2]*mat[126]+vF1_1[3]*mat[123]+vF1_1[2]*mat[122]+vF0_0[3]*mat[107]+vF0_0[2]*mat[106]+vF1_0[3]*mat[103]+vF1_0[2]*mat[102]+vF5_2[3]*mat[71]+vF5_2[2]*mat[70]+vF5_1[3]*mat[67]+vF5_1[2]*mat[66]; 
-  out[34] += f[41]*mat[601]+f[40]*mat[600]-f[47]*mat[597]-f[46]*mat[596]+vS7_1[5]*mat[253]+vS7_1[4]*mat[252]+f[47]*mat[245]+f[46]*mat[244]+vS6_1[5]*mat[237]+vS6_1[4]*mat[236]+f[41]*mat[229]+f[40]*mat[228]+vS5_1[5]*mat[221]+vS5_1[4]*mat[220]+f[35]*mat[213]+f[34]*mat[212]+vS1_2[5]*mat[205]+vS1_2[4]*mat[204]+vS1_1[5]*mat[193]+vS1_1[4]*mat[192]+f[5]*mat[181]+f[4]*mat[180]+f[11]*mat[177]+f[10]*mat[176]+vF4_0[5]*mat[161]+vF4_0[4]*mat[160]+vF7_0[5]*mat[157]+vF7_0[4]*mat[156]+vF3_0[5]*mat[149]+vF3_0[4]*mat[148]+vF6_0[5]*mat[145]+vF6_0[4]*mat[144]+vF2_0[5]*mat[137]+vF2_0[4]*mat[136]+vF5_0[5]*mat[133]+vF5_0[4]*mat[132]+vF0_1[5]*mat[125]+vF0_1[4]*mat[124]+vF1_1[5]*mat[121]+vF1_1[4]*mat[120]+vF0_0[5]*mat[105]+vF0_0[4]*mat[104]+vF1_0[5]*mat[101]+vF1_0[4]*mat[100]+vF5_2[5]*mat[69]+vF5_2[4]*mat[68]+vF5_1[5]*mat[65]+vF5_1[4]*mat[64]; 
-  out[35] += f[5]*mat[639]+f[4]*mat[638]+f[11]*mat[627]+f[10]*mat[626]+f[41]*mat[603]+f[40]*mat[602]-f[47]*mat[599]-f[46]*mat[598]+vS7_1[5]*mat[255]+vS7_1[4]*mat[254]+f[47]*mat[247]+f[46]*mat[246]+vS6_1[5]*mat[239]+vS6_1[4]*mat[238]+f[41]*mat[231]+f[40]*mat[230]+vS5_1[5]*mat[223]+vS5_1[4]*mat[222]+f[35]*mat[215]+f[34]*mat[214]+vS1_2[5]*mat[207]+vS1_2[4]*mat[206]+vS1_1[5]*mat[195]+vS1_1[4]*mat[194]+f[5]*mat[183]+f[4]*mat[182]+f[11]*mat[179]+f[10]*mat[178]+vF4_0[5]*mat[163]+vF4_0[4]*mat[162]+vF7_0[5]*mat[159]+vF7_0[4]*mat[158]+vF3_0[5]*mat[151]+vF3_0[4]*mat[150]+vF6_0[5]*mat[147]+vF6_0[4]*mat[146]+vF2_0[5]*mat[139]+vF2_0[4]*mat[138]+vF5_0[5]*mat[135]+vF5_0[4]*mat[134]+vF0_1[5]*mat[127]+vF0_1[4]*mat[126]+vF1_1[5]*mat[123]+vF1_1[4]*mat[122]+vF0_0[5]*mat[107]+vF0_0[4]*mat[106]+vF1_0[5]*mat[103]+vF1_0[4]*mat[102]+vF5_2[5]*mat[71]+vF5_2[4]*mat[70]+vF5_1[5]*mat[67]+vF5_1[4]*mat[66]; 
-  // output block 6 
-  out[36] += -(f[31]*mat[601])-f[30]*mat[600]+f[43]*mat[593]+f[42]*mat[592]+vS7_1[1]*mat[421]+vS7_1[0]*mat[420]+f[43]*mat[413]+f[42]*mat[412]+vS6_1[1]*mat[405]+vS6_1[0]*mat[404]+f[37]*mat[397]+f[36]*mat[396]+vS5_1[1]*mat[389]+vS5_1[0]*mat[388]+f[31]*mat[381]+f[30]*mat[380]+vS1_2[1]*mat[373]+vS1_2[0]*mat[372]+vS1_1[1]*mat[361]+vS1_1[0]*mat[360]+f[1]*mat[349]+f[0]*mat[348]+f[7]*mat[345]+f[6]*mat[344]; 
-  out[37] += f[1]*mat[643]+f[0]*mat[642]+f[7]*mat[631]+f[6]*mat[630]-f[31]*mat[603]-f[30]*mat[602]+f[43]*mat[595]+f[42]*mat[594]+vS7_1[1]*mat[423]+vS7_1[0]*mat[422]+f[43]*mat[415]+f[42]*mat[414]+vS6_1[1]*mat[407]+vS6_1[0]*mat[406]+f[37]*mat[399]+f[36]*mat[398]+vS5_1[1]*mat[391]+vS5_1[0]*mat[390]+f[31]*mat[383]+f[30]*mat[382]+vS1_2[1]*mat[375]+vS1_2[0]*mat[374]+vS1_1[1]*mat[363]+vS1_1[0]*mat[362]+f[1]*mat[351]+f[0]*mat[350]+f[7]*mat[347]+f[6]*mat[346]; 
-  out[38] += -(f[33]*mat[601])-f[32]*mat[600]+f[45]*mat[593]+f[44]*mat[592]+vS7_1[3]*mat[421]+vS7_1[2]*mat[420]+f[45]*mat[413]+f[44]*mat[412]+vS6_1[3]*mat[405]+vS6_1[2]*mat[404]+f[39]*mat[397]+f[38]*mat[396]+vS5_1[3]*mat[389]+vS5_1[2]*mat[388]+f[33]*mat[381]+f[32]*mat[380]+vS1_2[3]*mat[373]+vS1_2[2]*mat[372]+vS1_1[3]*mat[361]+vS1_1[2]*mat[360]+f[3]*mat[349]+f[2]*mat[348]+f[9]*mat[345]+f[8]*mat[344]+vF4_0[3]*mat[329]+vF4_0[2]*mat[328]+vF7_0[3]*mat[325]+vF7_0[2]*mat[324]+vF3_0[3]*mat[317]+vF3_0[2]*mat[316]+vF6_0[3]*mat[313]+vF6_0[2]*mat[312]+vF2_0[3]*mat[305]+vF2_0[2]*mat[304]+vF5_0[3]*mat[301]+vF5_0[2]*mat[300]+vF0_1[3]*mat[293]+vF0_1[2]*mat[292]+vF1_1[3]*mat[289]+vF1_1[2]*mat[288]+vF0_0[3]*mat[273]+vF0_0[2]*mat[272]+vF1_0[3]*mat[269]+vF1_0[2]*mat[268]+vF6_2[3]*mat[77]+vF6_2[2]*mat[76]+vF6_1[3]*mat[73]+vF6_1[2]*mat[72]; 
-  out[39] += f[3]*mat[643]+f[2]*mat[642]+f[9]*mat[631]+f[8]*mat[630]-f[33]*mat[603]-f[32]*mat[602]+f[45]*mat[595]+f[44]*mat[594]+vS7_1[3]*mat[423]+vS7_1[2]*mat[422]+f[45]*mat[415]+f[44]*mat[414]+vS6_1[3]*mat[407]+vS6_1[2]*mat[406]+f[39]*mat[399]+f[38]*mat[398]+vS5_1[3]*mat[391]+vS5_1[2]*mat[390]+f[33]*mat[383]+f[32]*mat[382]+vS1_2[3]*mat[375]+vS1_2[2]*mat[374]+vS1_1[3]*mat[363]+vS1_1[2]*mat[362]+f[3]*mat[351]+f[2]*mat[350]+f[9]*mat[347]+f[8]*mat[346]+vF4_0[3]*mat[331]+vF4_0[2]*mat[330]+vF7_0[3]*mat[327]+vF7_0[2]*mat[326]+vF3_0[3]*mat[319]+vF3_0[2]*mat[318]+vF6_0[3]*mat[315]+vF6_0[2]*mat[314]+vF2_0[3]*mat[307]+vF2_0[2]*mat[306]+vF5_0[3]*mat[303]+vF5_0[2]*mat[302]+vF0_1[3]*mat[295]+vF0_1[2]*mat[294]+vF1_1[3]*mat[291]+vF1_1[2]*mat[290]+vF0_0[3]*mat[275]+vF0_0[2]*mat[274]+vF1_0[3]*mat[271]+vF1_0[2]*mat[270]+vF6_2[3]*mat[79]+vF6_2[2]*mat[78]+vF6_1[3]*mat[75]+vF6_1[2]*mat[74]; 
-  out[40] += -(f[35]*mat[601])-f[34]*mat[600]+f[47]*mat[593]+f[46]*mat[592]+vS7_1[5]*mat[421]+vS7_1[4]*mat[420]+f[47]*mat[413]+f[46]*mat[412]+vS6_1[5]*mat[405]+vS6_1[4]*mat[404]+f[41]*mat[397]+f[40]*mat[396]+vS5_1[5]*mat[389]+vS5_1[4]*mat[388]+f[35]*mat[381]+f[34]*mat[380]+vS1_2[5]*mat[373]+vS1_2[4]*mat[372]+vS1_1[5]*mat[361]+vS1_1[4]*mat[360]+f[5]*mat[349]+f[4]*mat[348]+f[11]*mat[345]+f[10]*mat[344]+vF4_0[5]*mat[329]+vF4_0[4]*mat[328]+vF7_0[5]*mat[325]+vF7_0[4]*mat[324]+vF3_0[5]*mat[317]+vF3_0[4]*mat[316]+vF6_0[5]*mat[313]+vF6_0[4]*mat[312]+vF2_0[5]*mat[305]+vF2_0[4]*mat[304]+vF5_0[5]*mat[301]+vF5_0[4]*mat[300]+vF0_1[5]*mat[293]+vF0_1[4]*mat[292]+vF1_1[5]*mat[289]+vF1_1[4]*mat[288]+vF0_0[5]*mat[273]+vF0_0[4]*mat[272]+vF1_0[5]*mat[269]+vF1_0[4]*mat[268]+vF6_2[5]*mat[77]+vF6_2[4]*mat[76]+vF6_1[5]*mat[73]+vF6_1[4]*mat[72]; 
-  out[41] += f[5]*mat[643]+f[4]*mat[642]+f[11]*mat[631]+f[10]*mat[630]-f[35]*mat[603]-f[34]*mat[602]+f[47]*mat[595]+f[46]*mat[594]+vS7_1[5]*mat[423]+vS7_1[4]*mat[422]+f[47]*mat[415]+f[46]*mat[414]+vS6_1[5]*mat[407]+vS6_1[4]*mat[406]+f[41]*mat[399]+f[40]*mat[398]+vS5_1[5]*mat[391]+vS5_1[4]*mat[390]+f[35]*mat[383]+f[34]*mat[382]+vS1_2[5]*mat[375]+vS1_2[4]*mat[374]+vS1_1[5]*mat[363]+vS1_1[4]*mat[362]+f[5]*mat[351]+f[4]*mat[350]+f[11]*mat[347]+f[10]*mat[346]+vF4_0[5]*mat[331]+vF4_0[4]*mat[330]+vF7_0[5]*mat[327]+vF7_0[4]*mat[326]+vF3_0[5]*mat[319]+vF3_0[4]*mat[318]+vF6_0[5]*mat[315]+vF6_0[4]*mat[314]+vF2_0[5]*mat[307]+vF2_0[4]*mat[306]+vF5_0[5]*mat[303]+vF5_0[4]*mat[302]+vF0_1[5]*mat[295]+vF0_1[4]*mat[294]+vF1_1[5]*mat[291]+vF1_1[4]*mat[290]+vF0_0[5]*mat[275]+vF0_0[4]*mat[274]+vF1_0[5]*mat[271]+vF1_0[4]*mat[270]+vF6_2[5]*mat[79]+vF6_2[4]*mat[78]+vF6_1[5]*mat[75]+vF6_1[4]*mat[74]; 
-  // output block 7 
-  out[42] += f[31]*mat[597]+f[30]*mat[596]-f[37]*mat[593]-f[36]*mat[592]+vS7_1[1]*mat[589]+vS7_1[0]*mat[588]+f[43]*mat[581]+f[42]*mat[580]+vS6_1[1]*mat[573]+vS6_1[0]*mat[572]+f[37]*mat[565]+f[36]*mat[564]+vS5_1[1]*mat[557]+vS5_1[0]*mat[556]+f[31]*mat[549]+f[30]*mat[548]+vS1_2[1]*mat[541]+vS1_2[0]*mat[540]+vS1_1[1]*mat[529]+vS1_1[0]*mat[528]+f[1]*mat[517]+f[0]*mat[516]+f[7]*mat[513]+f[6]*mat[512]; 
-  out[43] += f[1]*mat[647]+f[0]*mat[646]+f[7]*mat[635]+f[6]*mat[634]+f[31]*mat[599]+f[30]*mat[598]-f[37]*mat[595]-f[36]*mat[594]+vS7_1[1]*mat[591]+vS7_1[0]*mat[590]+f[43]*mat[583]+f[42]*mat[582]+vS6_1[1]*mat[575]+vS6_1[0]*mat[574]+f[37]*mat[567]+f[36]*mat[566]+vS5_1[1]*mat[559]+vS5_1[0]*mat[558]+f[31]*mat[551]+f[30]*mat[550]+vS1_2[1]*mat[543]+vS1_2[0]*mat[542]+vS1_1[1]*mat[531]+vS1_1[0]*mat[530]+f[1]*mat[519]+f[0]*mat[518]+f[7]*mat[515]+f[6]*mat[514]; 
-  out[44] += f[33]*mat[597]+f[32]*mat[596]-f[39]*mat[593]-f[38]*mat[592]+vS7_1[3]*mat[589]+vS7_1[2]*mat[588]+f[45]*mat[581]+f[44]*mat[580]+vS6_1[3]*mat[573]+vS6_1[2]*mat[572]+f[39]*mat[565]+f[38]*mat[564]+vS5_1[3]*mat[557]+vS5_1[2]*mat[556]+f[33]*mat[549]+f[32]*mat[548]+vS1_2[3]*mat[541]+vS1_2[2]*mat[540]+vS1_1[3]*mat[529]+vS1_1[2]*mat[528]+f[3]*mat[517]+f[2]*mat[516]+f[9]*mat[513]+f[8]*mat[512]+vF4_0[3]*mat[497]+vF4_0[2]*mat[496]+vF7_0[3]*mat[493]+vF7_0[2]*mat[492]+vF3_0[3]*mat[485]+vF3_0[2]*mat[484]+vF6_0[3]*mat[481]+vF6_0[2]*mat[480]+vF2_0[3]*mat[473]+vF2_0[2]*mat[472]+vF5_0[3]*mat[469]+vF5_0[2]*mat[468]+vF0_1[3]*mat[461]+vF0_1[2]*mat[460]+vF1_1[3]*mat[457]+vF1_1[2]*mat[456]+vF0_0[3]*mat[441]+vF0_0[2]*mat[440]+vF1_0[3]*mat[437]+vF1_0[2]*mat[436]+vF7_2[3]*mat[85]+vF7_2[2]*mat[84]+vF7_1[3]*mat[81]+vF7_1[2]*mat[80]; 
-  out[45] += f[3]*mat[647]+f[2]*mat[646]+f[9]*mat[635]+f[8]*mat[634]+f[33]*mat[599]+f[32]*mat[598]-f[39]*mat[595]-f[38]*mat[594]+vS7_1[3]*mat[591]+vS7_1[2]*mat[590]+f[45]*mat[583]+f[44]*mat[582]+vS6_1[3]*mat[575]+vS6_1[2]*mat[574]+f[39]*mat[567]+f[38]*mat[566]+vS5_1[3]*mat[559]+vS5_1[2]*mat[558]+f[33]*mat[551]+f[32]*mat[550]+vS1_2[3]*mat[543]+vS1_2[2]*mat[542]+vS1_1[3]*mat[531]+vS1_1[2]*mat[530]+f[3]*mat[519]+f[2]*mat[518]+f[9]*mat[515]+f[8]*mat[514]+vF4_0[3]*mat[499]+vF4_0[2]*mat[498]+vF7_0[3]*mat[495]+vF7_0[2]*mat[494]+vF3_0[3]*mat[487]+vF3_0[2]*mat[486]+vF6_0[3]*mat[483]+vF6_0[2]*mat[482]+vF2_0[3]*mat[475]+vF2_0[2]*mat[474]+vF5_0[3]*mat[471]+vF5_0[2]*mat[470]+vF0_1[3]*mat[463]+vF0_1[2]*mat[462]+vF1_1[3]*mat[459]+vF1_1[2]*mat[458]+vF0_0[3]*mat[443]+vF0_0[2]*mat[442]+vF1_0[3]*mat[439]+vF1_0[2]*mat[438]+vF7_2[3]*mat[87]+vF7_2[2]*mat[86]+vF7_1[3]*mat[83]+vF7_1[2]*mat[82]; 
-  out[46] += f[35]*mat[597]+f[34]*mat[596]-f[41]*mat[593]-f[40]*mat[592]+vS7_1[5]*mat[589]+vS7_1[4]*mat[588]+f[47]*mat[581]+f[46]*mat[580]+vS6_1[5]*mat[573]+vS6_1[4]*mat[572]+f[41]*mat[565]+f[40]*mat[564]+vS5_1[5]*mat[557]+vS5_1[4]*mat[556]+f[35]*mat[549]+f[34]*mat[548]+vS1_2[5]*mat[541]+vS1_2[4]*mat[540]+vS1_1[5]*mat[529]+vS1_1[4]*mat[528]+f[5]*mat[517]+f[4]*mat[516]+f[11]*mat[513]+f[10]*mat[512]+vF4_0[5]*mat[497]+vF4_0[4]*mat[496]+vF7_0[5]*mat[493]+vF7_0[4]*mat[492]+vF3_0[5]*mat[485]+vF3_0[4]*mat[484]+vF6_0[5]*mat[481]+vF6_0[4]*mat[480]+vF2_0[5]*mat[473]+vF2_0[4]*mat[472]+vF5_0[5]*mat[469]+vF5_0[4]*mat[468]+vF0_1[5]*mat[461]+vF0_1[4]*mat[460]+vF1_1[5]*mat[457]+vF1_1[4]*mat[456]+vF0_0[5]*mat[441]+vF0_0[4]*mat[440]+vF1_0[5]*mat[437]+vF1_0[4]*mat[436]+vF7_2[5]*mat[85]+vF7_2[4]*mat[84]+vF7_1[5]*mat[81]+vF7_1[4]*mat[80]; 
-  out[47] += f[5]*mat[647]+f[4]*mat[646]+f[11]*mat[635]+f[10]*mat[634]+f[35]*mat[599]+f[34]*mat[598]-f[41]*mat[595]-f[40]*mat[594]+vS7_1[5]*mat[591]+vS7_1[4]*mat[590]+f[47]*mat[583]+f[46]*mat[582]+vS6_1[5]*mat[575]+vS6_1[4]*mat[574]+f[41]*mat[567]+f[40]*mat[566]+vS5_1[5]*mat[559]+vS5_1[4]*mat[558]+f[35]*mat[551]+f[34]*mat[550]+vS1_2[5]*mat[543]+vS1_2[4]*mat[542]+vS1_1[5]*mat[531]+vS1_1[4]*mat[530]+f[5]*mat[519]+f[4]*mat[518]+f[11]*mat[515]+f[10]*mat[514]+vF4_0[5]*mat[499]+vF4_0[4]*mat[498]+vF7_0[5]*mat[495]+vF7_0[4]*mat[494]+vF3_0[5]*mat[487]+vF3_0[4]*mat[486]+vF6_0[5]*mat[483]+vF6_0[4]*mat[482]+vF2_0[5]*mat[475]+vF2_0[4]*mat[474]+vF5_0[5]*mat[471]+vF5_0[4]*mat[470]+vF0_1[5]*mat[463]+vF0_1[4]*mat[462]+vF1_1[5]*mat[459]+vF1_1[4]*mat[458]+vF0_0[5]*mat[443]+vF0_0[4]*mat[442]+vF1_0[5]*mat[439]+vF1_0[4]*mat[438]+vF7_2[5]*mat[87]+vF7_2[4]*mat[86]+vF7_1[5]*mat[83]+vF7_1[4]*mat[82]; 
+  // input blocks used as they are, in [w mode][configuration mode] order 
+  const double fc0[6] = {f[0], f[1], f[2], f[3], f[4], f[5]}; 
+  const double fc1[6] = {f[6], f[7], f[8], f[9], f[10], f[11]}; 
+  const double fc2[6] = {f[12], f[13], f[14], f[15], f[16], f[17]}; 
+  const double fc3[6] = {f[18], f[19], f[20], f[21], f[22], f[23]}; 
+  const double fc4[6] = {f[24], f[25], f[26], f[27], f[28], f[29]}; 
+  const double fc5[6] = {f[30], f[31], f[32], f[33], f[34], f[35]}; 
+  const double fc6[6] = {f[36], f[37], f[38], f[39], f[40], f[41]}; 
+  const double fc7[6] = {f[42], f[43], f[44], f[45], f[46], f[47]}; 
+ 
+  // the blocks of the eight output blocks, then the scatter to the phase basis 
+  double acc[48] = {0.0}; 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[0], &mat[0], vF0_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[0], &mat[4], vF0_2, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[0], &mat[16], vF1_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[0], &mat[28], vS0_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[0], &mat[88], vF2_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[0], &mat[108], vF2_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[0], &mat[164], fc2, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[0], &mat[256], vF3_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[0], &mat[276], vF3_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[0], &mat[332], fc3, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[0], &mat[424], vF4_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[0], &mat[444], vF4_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[0], &mat[500], fc4, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk2(&acc[0], &mat[604], fc2, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[6], &mat[8], vF1_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[6], &mat[12], vF1_2, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[6], &mat[20], vF1_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[6], &mat[24], vF0_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[6], &mat[32], fc1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[6], &mat[36], vS1_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[6], &mat[92], vF5_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[6], &mat[112], vF5_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[6], &mat[168], fc5, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[6], &mat[184], vS2_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[6], &mat[196], vS2_2, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[6], &mat[260], vF6_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[6], &mat[280], vF6_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[6], &mat[336], fc6, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[6], &mat[352], vS3_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[6], &mat[364], vS3_2, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[6], &mat[428], vF7_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[6], &mat[448], vF7_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[6], &mat[504], fc7, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[6], &mat[520], vS4_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[6], &mat[532], vS4_2, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk2(&acc[6], &mat[608], fc5, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[12], &mat[40], vF2_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[12], &mat[44], vF2_2, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[12], &mat[96], vF1_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[12], &mat[116], vF1_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[12], &mat[128], vF5_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[12], &mat[140], vF6_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[12], &mat[152], vF7_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[12], &mat[172], fc1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[12], &mat[188], vS0_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[12], &mat[200], vS0_2, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[12], &mat[208], fc2, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[12], &mat[216], vS2_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[12], &mat[224], fc3, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[12], &mat[232], vS3_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[12], &mat[240], fc4, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[12], &mat[248], vS4_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[12], &mat[600], fc3, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[12], &mat[596], fc4, -1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk2(&acc[12], &mat[612], fc1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[18], &mat[48], vF3_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[18], &mat[52], vF3_2, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[18], &mat[264], vF1_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[18], &mat[284], vF1_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[18], &mat[296], vF5_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[18], &mat[308], vF6_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[18], &mat[320], vF7_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[18], &mat[340], fc1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[18], &mat[356], vS0_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[18], &mat[368], vS0_2, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[18], &mat[376], fc2, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[18], &mat[384], vS2_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[18], &mat[392], fc3, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[18], &mat[400], vS3_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[18], &mat[408], fc4, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[18], &mat[416], vS4_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[18], &mat[592], fc4, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[18], &mat[600], fc2, -1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk2(&acc[18], &mat[616], fc1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[24], &mat[56], vF4_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[24], &mat[60], vF4_2, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[24], &mat[432], vF1_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[24], &mat[452], vF1_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[24], &mat[464], vF5_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[24], &mat[476], vF6_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[24], &mat[488], vF7_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[24], &mat[508], fc1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[24], &mat[524], vS0_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[24], &mat[536], vS0_2, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[24], &mat[544], fc2, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[24], &mat[552], vS2_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[24], &mat[560], fc3, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[24], &mat[568], vS3_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[24], &mat[576], fc4, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[24], &mat[584], vS4_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[24], &mat[596], fc2, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[24], &mat[592], fc3, -1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk2(&acc[24], &mat[620], fc1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[30], &mat[64], vF5_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[30], &mat[68], vF5_2, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[30], &mat[100], vF1_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[30], &mat[104], vF0_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[30], &mat[120], vF1_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[30], &mat[124], vF0_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[30], &mat[132], vF5_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[30], &mat[136], vF2_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[30], &mat[144], vF6_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[30], &mat[148], vF3_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[30], &mat[156], vF7_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[30], &mat[160], vF4_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[30], &mat[176], fc1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[30], &mat[180], fc0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[30], &mat[192], vS1_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[30], &mat[204], vS1_2, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[30], &mat[212], fc5, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[30], &mat[220], vS5_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[30], &mat[228], fc6, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[30], &mat[236], vS6_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[30], &mat[244], fc7, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[30], &mat[252], vS7_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[30], &mat[600], fc6, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[30], &mat[596], fc7, -1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk2(&acc[30], &mat[624], fc1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk2(&acc[30], &mat[636], fc0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[36], &mat[72], vF6_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[36], &mat[76], vF6_2, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[36], &mat[268], vF1_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[36], &mat[272], vF0_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[36], &mat[288], vF1_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[36], &mat[292], vF0_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[36], &mat[300], vF5_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[36], &mat[304], vF2_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[36], &mat[312], vF6_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[36], &mat[316], vF3_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[36], &mat[324], vF7_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[36], &mat[328], vF4_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[36], &mat[344], fc1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[36], &mat[348], fc0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[36], &mat[360], vS1_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[36], &mat[372], vS1_2, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[36], &mat[380], fc5, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[36], &mat[388], vS5_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[36], &mat[396], fc6, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[36], &mat[404], vS6_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[36], &mat[412], fc7, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[36], &mat[420], vS7_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[36], &mat[592], fc7, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[36], &mat[600], fc5, -1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk2(&acc[36], &mat[628], fc1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk2(&acc[36], &mat[640], fc0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[42], &mat[80], vF7_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[42], &mat[84], vF7_2, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[42], &mat[436], vF1_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[42], &mat[440], vF0_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[42], &mat[456], vF1_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[42], &mat[460], vF0_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[42], &mat[468], vF5_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[42], &mat[472], vF2_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[42], &mat[480], vF6_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[42], &mat[484], vF3_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[42], &mat[492], vF7_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk0(&acc[42], &mat[496], vF4_0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[42], &mat[512], fc1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[42], &mat[516], fc0, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[42], &mat[528], vS1_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[42], &mat[540], vS1_2, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[42], &mat[548], fc5, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[42], &mat[556], vS5_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[42], &mat[564], fc6, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[42], &mat[572], vS6_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[42], &mat[580], fc7, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[42], &mat[588], vS7_1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[42], &mat[596], fc5, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk1(&acc[42], &mat[592], fc6, -1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk2(&acc[42], &mat[632], fc1, 1.0); 
+  pkpm_harm_vol_1x1v_ser_p1_blk2(&acc[42], &mat[644], fc0, 1.0); 
+  out[0] += acc[0]; 
+  out[1] += acc[1]; 
+  out[2] += acc[2]; 
+  out[3] += acc[3]; 
+  out[4] += acc[4]; 
+  out[5] += acc[5]; 
+  out[6] += acc[6]; 
+  out[7] += acc[7]; 
+  out[8] += acc[8]; 
+  out[9] += acc[9]; 
+  out[10] += acc[10]; 
+  out[11] += acc[11]; 
+  out[12] += acc[12]; 
+  out[13] += acc[13]; 
+  out[14] += acc[14]; 
+  out[15] += acc[15]; 
+  out[16] += acc[16]; 
+  out[17] += acc[17]; 
+  out[18] += acc[18]; 
+  out[19] += acc[19]; 
+  out[20] += acc[20]; 
+  out[21] += acc[21]; 
+  out[22] += acc[22]; 
+  out[23] += acc[23]; 
+  out[24] += acc[24]; 
+  out[25] += acc[25]; 
+  out[26] += acc[26]; 
+  out[27] += acc[27]; 
+  out[28] += acc[28]; 
+  out[29] += acc[29]; 
+  out[30] += acc[30]; 
+  out[31] += acc[31]; 
+  out[32] += acc[32]; 
+  out[33] += acc[33]; 
+  out[34] += acc[34]; 
+  out[35] += acc[35]; 
+  out[36] += acc[36]; 
+  out[37] += acc[37]; 
+  out[38] += acc[38]; 
+  out[39] += acc[39]; 
+  out[40] += acc[40]; 
+  out[41] += acc[41]; 
+  out[42] += acc[42]; 
+  out[43] += acc[43]; 
+  out[44] += acc[44]; 
+  out[45] += acc[45]; 
+  out[46] += acc[46]; 
+  out[47] += acc[47]; 
 } 
