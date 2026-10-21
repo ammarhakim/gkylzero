@@ -18,19 +18,21 @@ gkyl_dg_pkpm_harm_vol_setup(struct gkyl_dg_pkpm_harm_vol *up, const struct gkyl_
   up->pos_map = 0;
   up->jacob_pos = inp->pos_map->jacob_pos;
   up->nop = PKPM_HO_NOP(cdim);
-  // degree <= 2 modes k = k0 + 3 k1 + 9 k2 at the cell center:
-  // Phat_0(0) = 1/sqrt 2, Phat_1(0) = 0, Phat_2(0) = -sqrt(5/2)/2
-  const double c1[3] = {0.7071067811865475, 0.0, -0.7905694150420949};
+  // the largest |value| over the cell of the degree <= 2 modes k = k0 + 3 k1 + 9 k2, products of
+  // the orthonormal Legendre polynomials, whose largest values are at the cell edges:
+  // |Phat_0| = 1/sqrt 2, |Phat_1(1)| = sqrt(3/2), |Phat_2(1)| = sqrt(5/2)
+  const double m1[3] = {0.7071067811865475, 1.224744871391589, 1.5811388300841898};
   up->n2 = 1;
   for (int d = 0; d < cdim; ++d) {
     up->n2 *= 3;
   }
   for (int k = 0; k < up->n2; ++k) {
-    up->cen[k] = 1.0;
+    up->bmax[k] = 1.0;
     for (int d = 0, kk = k; d < cdim; ++d, kk /= 3) {
-      up->cen[k] *= c1[kk % 3];
+      up->bmax[k] *= m1[kk % 3];
     }
   }
+  up->wmax = fmax(fabs(inp->phase_grid->lower[cdim]), fabs(inp->phase_grid->upper[cdim]));
   // the source pairs of the rate estimate
   up->nsrc = 0;
   for (int e = 0; e < PKPM_HO_NENT; ++e) {
@@ -134,16 +136,15 @@ gkyl_dg_pkpm_harm_vol_advance(
 #endif
   int cdim = up->cdim;
   int idx[GKYL_MAX_DIM];
-  double mat[PKPM_HM_MAT], poly[PKPM_HM_MAXSRC][3];
-  double dw = up->phase_grid.dx[cdim];
+  double mat[PKPM_HM_MAT];
   struct gkyl_range_iter citer;
   gkyl_range_iter_init(&citer, conf_range);
   while (gkyl_range_iter_next(&citer)) {
     long cidx = gkyl_range_idx(conf_range, citer.idx);
-    // the matrices of the stored operator of the configuration cell and its source rate
+    // the matrices of the stored operator of the configuration cell and the source rate of its column
     const double *ho = gkyl_array_cfetch(coef, cidx);
     up->mat_kern(up->phase_grid.dx, gkyl_array_cfetch(up->jacob_pos, cidx), ho, mat);
-    pkpm_hm_rate_poly(up, ho, poly);
+    double rate = pkpm_hm_src_bound(up, ho);
     gkyl_copy_int_arr(cdim, citer.idx, idx);
     for (int v = phase_range->lower[cdim]; v <= phase_range->upper[cdim]; ++v) {
       idx[cdim] = v;
@@ -152,7 +153,7 @@ gkyl_dg_pkpm_harm_vol_advance(
       gkyl_rect_grid_cell_center(&up->phase_grid, idx, xc);
       up->vol_kern(xc, up->phase_grid.dx, mat, gkyl_array_cfetch(fin, pidx), gkyl_array_fetch(rhs, pidx));
       double *cfl = gkyl_array_fetch(cflrate, pidx);
-      cfl[0] += pkpm_hm_rate(up, poly, xc[cdim] - 0.5 * dw, xc[cdim] + 0.5 * dw);
+      cfl[0] += rate;
     }
   }
 }

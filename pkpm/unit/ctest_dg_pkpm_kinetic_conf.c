@@ -17,6 +17,7 @@
 #include <gkyl_dg_calc_pkpm_vars.h>
 #include <gkyl_dg_pkpm_conf_flux_surf.h>
 #include <gkyl_dg_pkpm_harm_vol.h>
+#include <gkyl_dg_pkpm_harm_vol_priv.h>
 #include <gkyl_dg_pkpm_kinetic_conf.h>
 #include <gkyl_dg_updater_moment_pkpm.h>
 #include <gkyl_hyper_dg.h>
@@ -513,6 +514,55 @@ test_harm_vol(int cdim)
     gkyl_dg_pkpm_harm_vol_coef(harm, &s.clocal, s.bvar, s.grad_b, s.u, s.grad_u, s.xi,
       s.grad_xi, s.grad_ln_n, s.theta, s.dtb, s.em, hcoef, hwn);
     gkyl_dg_pkpm_harm_vol_advance(harm, &s.clocal, &s.plocal, hcoef, s.f, cflrate, rhs);
+    // the column source bound (plan 17.27) against the Gershgorin row sums of the stored source
+    // entries sampled over the cell (corners included) and over |w| <= W
+    double W = harm->wmax, max_ratio = 0.0;
+    int ns = 1;
+    for (int d = 0; d < cdim; ++d) {
+      ns *= 5;
+    }
+    struct gkyl_range_iter cit;
+    gkyl_range_iter_init(&cit, &s.clocal);
+    while (gkyl_range_iter_next(&cit)) {
+      const double *ho = gkyl_array_cfetch(hcoef, gkyl_range_idx(&s.clocal_ext, cit.idx));
+      double bound = pkpm_hm_src_bound(harm, ho);
+      for (int m = 0; m < ns; ++m) {
+        // the degree <= 2 modes at the sample point (1D orthonormal Legendre per direction)
+        double ph[3][3], mode[27];
+        for (int d = 0, mm = m; d < cdim; ++d, mm /= 5) {
+          double z = -1.0 + 0.5 * (mm % 5);
+          ph[d][0] = 0.7071067811865475;
+          ph[d][1] = 1.224744871391589 * z;
+          ph[d][2] = 0.7905694150420949 * (3.0 * z * z - 1.0);
+        }
+        for (int k = 0; k < harm->n2; ++k) {
+          mode[k] = 1.0;
+          for (int d = 0, kk = k; d < cdim; ++d, kk /= 3) {
+            mode[k] *= ph[d][kk % 3];
+          }
+        }
+        for (int iw = 0; iw <= 8; ++iw) {
+          double w = -W + 0.25 * W * iw, row[8] = {0.0};
+          for (int p = 0; p < harm->nsrc; ++p) {
+            double v = 0.0, wj = 1.0;
+            for (int j = 0; j < 3; ++j, wj *= w) {
+              if (harm->src_ent[p][j] >= 0) {
+                const double *c = &ho[harm->src_ent[p][j] * harm->n2];
+                for (int k = 0; k < harm->n2; ++k) {
+                  v += wj * c[k] * mode[k];
+                }
+              }
+            }
+            row[harm->src_o[p]] += fabs(v);
+          }
+          for (int o = 0; o < 8; ++o) {
+            max_ratio = fmax(max_ratio, row[o] / bound);
+          }
+        }
+      }
+    }
+    TEST_CHECK(max_ratio <= 1.0 + 1e-12);
+    TEST_MSG("cdim=%d: largest sampled source row sum / column bound %g", cdim, max_ratio);
     gkyl_array_release(hcoef);
     gkyl_array_release(hwn);
   }

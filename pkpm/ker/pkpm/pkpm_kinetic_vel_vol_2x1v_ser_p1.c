@@ -11,7 +11,7 @@ GKYL_CU_DH double pkpm_kinetic_vel_vol_2x1v_ser_p1(const double *w, const double
   // a_perp:    Perpendicular force closing int M0_perp dw [x, y, z]. 
   // f:         Input normalized distribution functions [F, G, M0_perp, N_perp]. 
   // out:       Incremented output [F, G, M0_perp, N_perp]. 
-  // Returns the CFL frequency estimate of the closure rates. 
+  // Returns 0: the closure rates enter the column rate of the closure kernel. 
   const double dv1 = 2.0/dxv[2]; 
   const double dvpar = dxv[2], wvpar = w[2]; 
   const double *F_0 = &f[0]; 
@@ -139,5 +139,5 @@ GKYL_CU_DH double pkpm_kinetic_vel_vol_2x1v_ser_p1(const double *w, const double
   out[94] += (1.9364916731037085*c_h[1]*Nz[8]+1.9364916731037085*c_h[0]*Nz[6]+1.9364916731037085*c_h[3]*Nz[5]+1.9364916731037085*c_h[2]*Nz[3])*dv1*wvpar+(0.5000000000000001*c_h[1]*Nz[11]+0.5*c_h[0]*Nz[10]+0.5*c_h[3]*Nz[9]+0.5000000000000001*c_h[2]*Nz[7]+0.5590169943749476*c_h[1]*Nz[4]+0.5590169943749476*Nz[1]*c_h[3]+0.5590169943749476*Nz[0]*c_h[2]+0.5590169943749476*c_h[0]*Nz[2])*dv1*dvpar+(1.9364916731037085*alpha_0[1]*Nz[8]+1.9364916731037085*alpha_0[0]*Nz[6]+1.9364916731037085*alpha_0[3]*Nz[5]+1.9364916731037085*alpha_0[2]*Nz[3])*dv1+1.5*c_h[1]*Nz[11]+0.5000000000000001*c_0[1]*Nz[11]+1.0000000000000002*apz[1]*G_1[11]+1.5*c_h[0]*Nz[10]+0.5*c_0[0]*Nz[10]+apz[0]*G_1[10]+1.5*c_h[3]*Nz[9]+0.5*c_0[3]*Nz[9]+apz[3]*G_1[9]+1.5*c_h[2]*Nz[7]+0.5000000000000001*c_0[2]*Nz[7]+1.0000000000000002*apz[2]*G_1[7]; 
   out[95] += (1.9364916731037085*c_h[0]*Nz[8]+1.9364916731037085*c_h[1]*Nz[6]+1.9364916731037085*c_h[2]*Nz[5]+1.9364916731037085*Nz[3]*c_h[3])*dv1*wvpar+(0.5*c_h[0]*Nz[11]+0.5000000000000001*c_h[1]*Nz[10]+0.5000000000000001*c_h[2]*Nz[9]+0.5*c_h[3]*Nz[7]+0.5590169943749475*c_h[0]*Nz[4]+0.5590169943749475*Nz[0]*c_h[3]+0.5590169943749475*Nz[1]*c_h[2]+0.5590169943749475*c_h[1]*Nz[2])*dv1*dvpar+(1.9364916731037085*alpha_0[0]*Nz[8]+1.9364916731037085*alpha_0[1]*Nz[6]+1.9364916731037085*alpha_0[2]*Nz[5]+1.9364916731037085*Nz[3]*alpha_0[3])*dv1+1.5*c_h[0]*Nz[11]+0.5*c_0[0]*Nz[11]+apz[0]*G_1[11]+1.5*c_h[1]*Nz[10]+0.5000000000000001*c_0[1]*Nz[10]+1.0000000000000002*apz[1]*G_1[10]+1.5*c_h[2]*Nz[9]+0.5000000000000001*c_0[2]*Nz[9]+1.0000000000000002*apz[2]*G_1[9]+1.5*c_h[3]*Nz[7]+0.5*c_0[3]*Nz[7]+apz[3]*G_1[7]; 
  
-  return fabs(0.5*c_0[0]) + 3.0*fabs(0.5*c_h[0]); 
+  return 0.0; 
 } 

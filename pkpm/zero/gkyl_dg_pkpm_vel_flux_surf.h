@@ -57,14 +57,16 @@ struct gkyl_dg_pkpm_vel_flux_surf *gkyl_dg_pkpm_vel_flux_surf_cu_dev_inew(
  * @param alpha_0 Input pressure force a_P/xi closing the first moment.
  * @param c_h Input heating rate closing the scalar second moment.
  * @param fin Input distribution functions [F, G, M0_perp, N_perp].
- * @param cflrate Input cflrate. Accumulated to from the maximum speed at the face nodes.
  * @param vel_flux_surf Output modal v_par fluxes.
+ *
+ * No time-step rate: that of the w fluxes is the column rate of gkyl_dg_calc_pkpm_vars_closure
+ * (plan 17.27).
  */
 void gkyl_dg_pkpm_vel_flux_surf_advance(
   struct gkyl_dg_pkpm_vel_flux_surf *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_array *wnode, const struct gkyl_array *theta,
   const struct gkyl_array *bvar, const struct gkyl_array *alpha_0, const struct gkyl_array *c_h,
-  const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *vel_flux_surf
+  const struct gkyl_array *fin, struct gkyl_array *vel_flux_surf
 );
 
 /**
@@ -74,7 +76,7 @@ void gkyl_dg_pkpm_vel_flux_surf_advance_cu(
   struct gkyl_dg_pkpm_vel_flux_surf *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_array *wnode, const struct gkyl_array *theta,
   const struct gkyl_array *bvar, const struct gkyl_array *alpha_0, const struct gkyl_array *c_h,
-  const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *vel_flux_surf
+  const struct gkyl_array *fin, struct gkyl_array *vel_flux_surf
 );
 
 /**

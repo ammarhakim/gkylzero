@@ -59,16 +59,15 @@ gkyl_dg_pkpm_harm_vol_advance_cu_kernel(
 {
   int cdim = up->cdim;
   int idx[GKYL_MAX_DIM];
-  double mat[PKPM_HM_MAT], poly[PKPM_HM_MAXSRC][3];
-  double dw = up->phase_grid.dx[cdim];
+  double mat[PKPM_HM_MAT];
   for (unsigned long linc = threadIdx.x + blockIdx.x * blockDim.x; linc < conf_range.volume;
        linc += gridDim.x * blockDim.x) {
     gkyl_sub_range_inv_idx(&conf_range, linc, idx);
     long cidx = gkyl_range_idx(&conf_range, idx);
-    // the matrices of the stored operator of the configuration cell and its source rate
+    // the matrices of the stored operator of the configuration cell and the source rate of its column
     const double *ho = (const double *)gkyl_array_cfetch(coef, cidx);
     up->mat_kern(up->phase_grid.dx, (const double *)gkyl_array_cfetch(up->jacob_pos, cidx), ho, mat);
-    pkpm_hm_rate_poly(up, ho, poly);
+    double rate = pkpm_hm_src_bound(up, ho);
     for (int v = phase_range.lower[cdim]; v <= phase_range.upper[cdim]; ++v) {
       idx[cdim] = v;
       long pidx = gkyl_range_idx(&phase_range, idx);
@@ -77,7 +76,7 @@ gkyl_dg_pkpm_harm_vol_advance_cu_kernel(
       up->vol_kern(xc, up->phase_grid.dx, mat, (const double *)gkyl_array_cfetch(fin, pidx),
         (double *)gkyl_array_fetch(rhs, pidx));
       double *cfl = (double *)gkyl_array_fetch(cflrate, pidx);
-      cfl[0] += pkpm_hm_rate(up, poly, xc[cdim] - 0.5 * dw, xc[cdim] + 0.5 * dw);
+      cfl[0] += rate;
     }
   }
 }

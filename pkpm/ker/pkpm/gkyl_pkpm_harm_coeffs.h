@@ -577,6 +577,27 @@ pkpm_harm_node_bounds(const double *nv, double w, double *lo, double *hi)
 }
 
 /**
+ * The part of a bound over |w| <= W of the w-flux speeds at a node that does not involve the
+ * closures (pkpm_harm_node_spec must have been called). The speeds are alpha(w) + s, s in the
+ * spectrum bounds of the coupling, alpha(w) = alpha_0 + (c - K) w - (b.grad xi) w^2 and t = t0 + w t1;
+ * with absolute coefficients evaluated at W no |w| <= W exceeds
+ *   |alpha_0| + |c - K| W + |b.grad xi| W^2 + max(|SLO|, |SHI|) + (|t0| + |t1| W) sqrt((2 + sqrt 2) theta),
+ * of which this returns everything after the first two terms (the column time-step rate of the
+ * velocity-space terms, plan 17.27).
+ */
+GKYL_CU_DH static inline double
+pkpm_harm_node_speed_rest(const double *nv, double W)
+{
+  double t0[3], t1[3];
+  for (int a = 0; a < 3; ++a) {
+    t0[a] = nv[PKPM_HS_TF(a, 0)];
+    t1[a] = nv[PKPM_HS_TF(a, 1)];
+  }
+  return fabs(nv[PKPM_HS_BG]) * W * W + fmax(fabs(nv[PKPM_HS_NODE_SLO]), fabs(nv[PKPM_HS_NODE_SHI]))
+    + (sqrt(pkpm_harm_dot(t0, t0)) + W * sqrt(pkpm_harm_dot(t1, t1))) * nv[PKPM_HS_NODE_ST];
+}
+
+/**
  * HLL flux of the eight blocks at a w face, at a node: the flux alpha U + T(U) with the speeds
  * S_L, S_R = alpha + the bounds of T's spectrum, exact upwinding when S_L >= 0 (left state) or
  * S_R <= 0 (right state), the HLL average otherwise. T is linear, so the HLL average is

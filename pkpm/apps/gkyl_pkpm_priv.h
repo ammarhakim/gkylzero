@@ -275,6 +275,9 @@ struct pkpm_species {
   struct gkyl_dg_pkpm_harm_exp *harm_exp; // exponential update of the first-harmonic blocks (plan 17.6)
   struct gkyl_array *harm_exp_coef; // its linear part frozen at the start of the step
   struct gkyl_array *harm_exp_S, *harm_exp_A; // nodal N_1 (+ N_2) and the final weighted sum
+  struct gkyl_array *harm_exp_nu; // gyrophase-mixing rate at the phase nodes, frozen per step
+  struct gkyl_array *harm_exp_act; // configuration cells with a damped node (momentum restoration)
+  struct gkyl_array *harm_exp_col; // w integrals of F and M0_perp of the restoration
   struct gkyl_array *fluid_flux_surf; // stored modal fluid fluxes [F_rho, F_x, F_y, F_z, F_E]
   struct gkyl_array *
     integ_pkpm_mom; // integrated PKPM variables [rho, rho ux, rho uy, rho uz, rho ux^2, rho uy^2, rho uz^2, p_par, p_perp]
@@ -401,6 +404,15 @@ struct pkpm_field {
   struct gkyl_array *ghost_current; // one component: the mean current (coefficient 0), constant
   double *red_ghost_current; // device reduction scratch
   struct gkyl_array *app_current_tot; // applied current plus the ghost current (implicit coupling)
+
+  // Operator split (plan 17.29): Stormer-Verlet in the curl terms. E is advanced only by the
+  // implicit source half steps, with curl B (at the half step's start, known) as an effective
+  // current; B drifts over the transport step with the E of the first half kick, so the field
+  // right-hand side of the transport step is that of RK stage 1 with its E rows zeroed.
+  struct gkyl_array *rhs_split; // field right-hand side of the transport step (stage 1, E rows zero)
+  double omega_cfl_split; // its time-step rate
+  struct gkyl_array *curl_rhs, *curl_rhs_no_J; // field right-hand side at a source half step (E rows: c^2 curl B)
+  struct gkyl_array *curl_current; // applied current - eps0 c^2 curl B (physical), for the implicit solve
 
   struct gkyl_array *bvar; // magnetic field unit vector b = B/|B| [bx, by, bz] (p=1)
   struct gkyl_array *grad_b; // weak (surface-averaged) gradient of b, cdim x 3 expansions
@@ -762,10 +774,12 @@ void pkpm_species_bgk_set_fixed_temp(gkyl_pkpm_app *app, struct pkpm_species *s,
 // Project M0_perp and N_perp of the distributions f onto the plane perpendicular to the current b
 // at the Gauss-Legendre nodes of b, in place, over the extended ranges (plan 17.11).
 void pkpm_species_project_transverse(gkyl_pkpm_app *app, struct pkpm_species *species, struct gkyl_array *f);
-// Exponential update of the first-harmonic blocks (plan 17.6, 17.7). Before the forward Euler
-// accumulate of stage s: freeze the linear part (q/m) (.) x B_n of the step (s = 1) and accumulate the
-// stage right-hand side rhs - L_n fin. After it: write the first-harmonic blocks of fout as the
-// value whose SSP-RK3 combination with the state at the start of the step is the exponential stage.
+// Exponential update of the first-harmonic blocks (plan 17.6, 17.7, 17.24). Before the forward
+// Euler accumulate of stage s: freeze the linear part of the step (s = 1: the gyration (q/m) (.) x B_n
+// and the gyrophase-mixing rate at the phase nodes) and accumulate the stage right-hand side
+// rhs - L_n fin. After it: write the first-harmonic blocks of fout as the value whose SSP-RK3
+// combination with the state at the start of the step is the exponential stage, and restore
+// int M0_perp dw = 0 where the mixing acted.
 void pkpm_species_harm_exp_accum(gkyl_pkpm_app *app, struct pkpm_species *species, int stage, double h,
   const struct gkyl_array *fin, const struct gkyl_array *rhs);
 void pkpm_species_harm_exp_state(gkyl_pkpm_app *app, struct pkpm_species *species, int stage, double h,
@@ -988,12 +1002,14 @@ void pkpm_field_explicit_accumulate_current(
  *
  * @param app PKPM app object
  * @param field Pointer to field
+ * @param stage SSP-RK3 stage (1, 2 or 3). With the operator split the right-hand side of stage 1
+ *   (E rows zeroed: B drifts with the E of the source half kick) is kept for stages 2 and 3.
  * @param em Input field
  * @param rhs On output, the RHS from the field solver
  * @return Maximum stable time-step
  */
 double pkpm_field_rhs(
-  gkyl_pkpm_app *app, struct pkpm_field *field, const struct gkyl_array *em, struct gkyl_array *rhs
+  gkyl_pkpm_app *app, struct pkpm_field *field, int stage, const struct gkyl_array *em, struct gkyl_array *rhs
 );
 
 /**

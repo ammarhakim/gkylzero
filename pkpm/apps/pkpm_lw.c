@@ -85,6 +85,7 @@ pkpm_species_lw_new(lua_State *L)
 
   pkpm_species.charge = glua_tbl_get_number(L, "charge", 0.0);
   pkpm_species.mass = glua_tbl_get_number(L, "mass", 1.0);
+  pkpm_species.gyro_mix = glua_tbl_get_number(L, "gyroMix", 0.0);
 
   with_lua_tbl_tbl(L, "cells")
   {

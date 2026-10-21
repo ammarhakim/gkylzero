@@ -305,11 +305,18 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   s->harm_vol = gkyl_dg_pkpm_harm_vol_inew(&harm_vol_inp);
   s->harm_coef = mkarr(app->use_gpu, gkyl_dg_pkpm_harm_vol_num_coef(s->harm_vol), app->local_ext.volume);
   s->harm_wnode = mkarr(app->use_gpu, gkyl_dg_pkpm_harm_vol_num_wnode(s->harm_vol), app->local_ext.volume);
+  // gyrophase mixing: default rate 10 |Omega| (plan 17.31: the bulk overshoot is ~(drive/Omega)/c, and
+  // problems driven at the ion gyroscale drive agyrotropy at ~Omega), switched off by a negative input
+  double gyro_mix = s->info.gyro_mix == 0.0 ? 10.0 : s->info.gyro_mix;
   s->harm_exp = gkyl_dg_pkpm_harm_exp_new(&(struct gkyl_dg_pkpm_harm_exp_inp) {
-    .conf_basis = &app->confBasis, .qbym = s->info.charge / s->info.mass, .use_gpu = app->use_gpu});
+    .phase_grid = &s->grid, .conf_basis = &app->confBasis, .qbym = s->info.charge / s->info.mass,
+    .mix = gyro_mix, .use_gpu = app->use_gpu});
   s->harm_exp_coef = mkarr(app->use_gpu, gkyl_dg_pkpm_harm_exp_num_coef(s->harm_exp), app->local_ext.volume);
   s->harm_exp_S = mkarr(app->use_gpu, gkyl_dg_pkpm_harm_exp_num_stage(s->harm_exp), s->local_ext.volume);
   s->harm_exp_A = mkarr(app->use_gpu, gkyl_dg_pkpm_harm_exp_num_stage(s->harm_exp), s->local_ext.volume);
+  s->harm_exp_nu = mkarr(app->use_gpu, gkyl_dg_pkpm_harm_exp_num_stage(s->harm_exp) / 6, s->local_ext.volume);
+  s->harm_exp_act = mkarr(app->use_gpu, 1, app->local_ext.volume);
+  s->harm_exp_col = mkarr(app->use_gpu, gkyl_dg_pkpm_harm_exp_num_col(s->harm_exp), app->local_ext.volume);
   struct gkyl_dg_pkpm_kinetic_vel_inp kinetic_vel_inp = {
     .conf_basis = &app->confBasis,
     .phase_basis = &app->basis,
@@ -857,9 +864,11 @@ pkpm_species_harm_exp_accum(gkyl_pkpm_app *app, struct pkpm_species *species, in
   // the step); a restarted step freezes it again with the new step.
   if (stage == 1) {
     gkyl_dg_pkpm_harm_exp_coef(species->harm_exp, &app->local, h, app->field->tot_em, species->harm_exp_coef);
+    gkyl_array_clear(species->harm_exp_act, 0.0);
   }
   gkyl_dg_pkpm_harm_exp_accum(species->harm_exp, stage, h, &app->local, &species->local,
-    species->harm_exp_coef, fin, rhs, species->harm_exp_S, species->harm_exp_A);
+    species->harm_exp_coef, fin, rhs, species->harm_exp_nu, species->harm_exp_act, species->harm_exp_S,
+    species->harm_exp_A);
 }
 
 void
@@ -867,7 +876,9 @@ pkpm_species_harm_exp_state(gkyl_pkpm_app *app, struct pkpm_species *species, in
   struct gkyl_array *fout)
 {
   gkyl_dg_pkpm_harm_exp_state(species->harm_exp, stage, h, &app->local, &species->local,
-    species->harm_exp_coef, species->f, species->harm_exp_S, species->harm_exp_A, fout);
+    species->harm_exp_coef, species->harm_exp_nu, species->f, species->harm_exp_S, species->harm_exp_A, fout);
+  gkyl_dg_pkpm_harm_exp_restore(species->harm_exp, &app->local, &species->local, species->harm_exp_act,
+    species->harm_exp_col, fout);
 }
 
 // Closures from the moments of the partial right-hand side rhs_A (configuration pass):
@@ -953,8 +964,7 @@ pkpm_species_rhs(
   pkpm_species_kinetic_closure(app, species, fin, rhs_f);
   gkyl_dg_pkpm_vel_flux_surf_advance(
     species->calc_vel_flux, &app->local, &species->local, species->harm_wnode, species->pkpm_theta,
-    app->field->bvar, species->pkpm_alpha_0, species->pkpm_c_h, fin,
-    species->cflrate_f, species->vel_flux_surf
+    app->field->bvar, species->pkpm_alpha_0, species->pkpm_c_h, fin, species->vel_flux_surf
   );
   gkyl_hyper_dg_advance(species->slvr_kinetic_vel, &species->local, fin, species->cflrate_f, rhs_f);
   species->kinetic_tm += gkyl_time_diff_now_sec(tm);
@@ -1280,6 +1290,9 @@ pkpm_species_release(const gkyl_pkpm_app *app, const struct pkpm_species *s)
   gkyl_array_release(s->harm_exp_coef);
   gkyl_array_release(s->harm_exp_S);
   gkyl_array_release(s->harm_exp_A);
+  gkyl_array_release(s->harm_exp_nu);
+  gkyl_array_release(s->harm_exp_act);
+  gkyl_array_release(s->harm_exp_col);
   gkyl_dg_pkpm_fluid_flux_surf_release(s->calc_fluid_flux);
   gkyl_hyper_dg_release(s->slvr_kinetic_conf);
   gkyl_hyper_dg_release(s->slvr_kinetic_vel);

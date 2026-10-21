@@ -163,6 +163,13 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   f->bvar = mkarr(app->use_gpu, 3 * app->confBasis.num_basis, app->local_ext.volume);
   f->grad_b = mkarr(app->use_gpu, app->cdim * 3 * app->confBasis.num_basis, app->local_ext.volume);
   gkyl_array_clear(f->grad_b, 0.0);
+  // operator split: the frozen transport right-hand side and the curl B current of the source
+  // half steps (plan 17.29)
+  f->rhs_split = mkarr(app->use_gpu, 8 * app->confBasis.num_basis, app->local_ext.volume);
+  f->omega_cfl_split = 1.0 / DBL_MAX;
+  f->curl_rhs = mkarr(app->use_gpu, 8 * app->confBasis.num_basis, app->local_ext.volume);
+  f->curl_rhs_no_J = mkarr(app->use_gpu, 8 * app->confBasis.num_basis, app->local_ext.volume);
+  f->curl_current = mkarr(app->use_gpu, 3 * app->confBasis.num_basis, app->local_ext.volume);
   // physical time derivative of the fields of the stage (zero for a static field)
   f->dt_em_no_J = mkarr(app->use_gpu, 8 * app->confBasis.num_basis, app->local_ext.volume);
   gkyl_array_clear(f->dt_em_no_J, 0.0);
@@ -427,7 +434,7 @@ pkpm_field_explicit_accumulate_current(
 // time-step.
 double
 pkpm_field_rhs(
-  gkyl_pkpm_app *app, struct pkpm_field *field, const struct gkyl_array *em, struct gkyl_array *rhs
+  gkyl_pkpm_app *app, struct pkpm_field *field, int stage, const struct gkyl_array *em, struct gkyl_array *rhs
 )
 {
   struct timespec wst = gkyl_wall_clock();
@@ -437,8 +444,24 @@ pkpm_field_rhs(
   gkyl_array_clear(field->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
+  if (!field->info.is_static && !app->use_explicit_source && stage > 1) {
+    // operator split: B drifts with the E of the source half kick over the whole transport step
+    gkyl_array_copy(rhs, field->rhs_split);
+    gkyl_vlasov_position_map_divide_jacobpos_conf(app->pos_map, &app->local, rhs->ncomp, rhs, field->dt_em_no_J);
+    gkyl_dg_calc_pkpm_bvar_dtB_over_magB(field->calc_bvar, &app->local, field->tot_em, field->dt_em_no_J, field->dtB_over_magB);
+    app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
+    return app->cfl / field->omega_cfl_split;
+  }
+
   if (!field->info.is_static) {
     gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
+    if (!app->use_explicit_source) {
+      // operator split: E is advanced only by the implicit source half steps (Stormer-Verlet in the
+      // curl terms, plan 17.29); zero the E rows (the first 3 components) and keep the right-hand
+      // side for stages 2 and 3
+      gkyl_array_set_offset(rhs, 0.0, field->curl_current, 0);
+      gkyl_array_copy(field->rhs_split, rhs);
+    }
     // physical time derivative of the fields (the evolved em carries the position-map Jacobian)
     // and d_t B/|B| at the nodes of b (tot_em holds the physical fields of the stage)
     gkyl_vlasov_position_map_divide_jacobpos_conf(app->pos_map, &app->local, rhs->ncomp, rhs, field->dt_em_no_J);
@@ -456,6 +479,7 @@ pkpm_field_rhs(
       omegaCfl_ho[0] = field->omegaCfl_ptr[0];
     }
     omegaCfl = omegaCfl_ho[0];
+    field->omega_cfl_split = omegaCfl;
 
     app->stat.field_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
   }
@@ -559,6 +583,10 @@ pkpm_field_release(const gkyl_pkpm_app *app, struct pkpm_field *f)
 
   gkyl_array_release(f->bvar);
   gkyl_array_release(f->grad_b);
+  gkyl_array_release(f->rhs_split);
+  gkyl_array_release(f->curl_rhs);
+  gkyl_array_release(f->curl_rhs_no_J);
+  gkyl_array_release(f->curl_current);
   gkyl_array_release(f->dt_em_no_J);
   gkyl_array_release(f->dtB_over_magB);
   gkyl_dg_calc_pkpm_bvar_release(f->calc_bvar);

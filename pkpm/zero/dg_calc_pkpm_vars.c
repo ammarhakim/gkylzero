@@ -104,9 +104,12 @@ gkyl_dg_calc_pkpm_vars_closure(
       cfl, cond
     );
     cond_min = fmin(cond_min, cond[0]);
-    double *cfl_lo = gkyl_array_fetch(cflrate, plo), *cfl_up = gkyl_array_fetch(cflrate, pup);
-    cfl_lo[0] += cfl[0];
-    cfl_up[0] += cfl[1];
+    // the column rate of the velocity-space terms, the same in every cell of the column
+    for (int v = phase_range->lower[cdim]; v <= phase_range->upper[cdim]; ++v) {
+      idx[cdim] = v;
+      double *c = gkyl_array_fetch(cflrate, gkyl_range_idx(phase_range, idx));
+      c[0] += cfl[0];
+    }
   }
   up->num_null_rho = num_null;
   up->closure_cond_min = cond_min;

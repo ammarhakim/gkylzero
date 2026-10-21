@@ -40,7 +40,8 @@ struct gkyl_dg_pkpm_harm_vol {
   int n2; // Number of degree <= 2 tensor modes (3^cdim).
   int nop; // Number of entries of the stored operator (gkyl_pkpm_harm_ops.h).
   double qbym; // Charge to mass ratio (gyration).
-  double cen[PKPM_HM_N2]; // Value of each degree <= 2 mode at the cell center.
+  double bmax[PKPM_HM_N2]; // Largest |value| over the cell of each degree <= 2 mode.
+  double wmax; // Larger |w| edge of the velocity domain.
   // the (output, input) source pairs of the rate estimate: the source entry of each power of w
   // (-1 if absent); the gyration is not rated (it is the exponential part of the time integrator)
   int nsrc, src_o[PKPM_HM_MAXSRC], src_i[PKPM_HM_MAXSRC], src_ent[PKPM_HM_MAXSRC][3];
@@ -54,7 +55,7 @@ struct gkyl_dg_pkpm_harm_vol {
   struct gkyl_dg_pkpm_harm_vol *on_dev; // pointer to itself or device data
 };
 
-// Fill the updater (sizes, the degree <= 2 modes at the cell center, the source pairs of the
+// Fill the updater (sizes, the largest values of the degree <= 2 modes, the source pairs of the
 // rate) from the input and the generated tables; host function shared by the host and device
 // constructors (the kernel pointers are set by each).
 void gkyl_dg_pkpm_harm_vol_setup(struct gkyl_dg_pkpm_harm_vol *up, const struct gkyl_dg_pkpm_harm_vol_inp *inp);
@@ -76,41 +77,30 @@ GKYL_CU_D static const pkpm_harm_vol_t ser_pkpm_harm_vol_kernels[] = {
   pkpm_harm_vol_3x1v_ser_p1,
 };
 
-// The source polynomials of the rate estimate at the cell center: poly[p][j] = the source entry of
-// pair p with power j at the center (0 where absent).
-GKYL_CU_DH static inline void
-pkpm_hm_rate_poly(const struct gkyl_dg_pkpm_harm_vol *up, const double *ho, double (*poly)[3])
+// Bound of the source rate of the column of a configuration cell (time-step rate, plan 17.27): the
+// largest row sum (Gershgorin) of the source matrix with every entry bounded over the column by
+// its absolute coefficients, sum_j W^j sum_k |e_jk| max|mode_k|, W the larger |w| edge (no w of the
+// column and no point of the cell exceeds it).
+GKYL_CU_DH static inline double
+pkpm_hm_src_bound(const struct gkyl_dg_pkpm_harm_vol *up, const double *ho)
 {
   int n2 = up->n2;
+  double row[8] = {0.0}, wj[3] = {1.0, up->wmax, up->wmax * up->wmax};
   for (int p = 0; p < up->nsrc; ++p) {
     for (int j = 0; j < 3; ++j) {
-      double v = 0.0;
       if (up->src_ent[p][j] >= 0) {
         const double *c = &ho[up->src_ent[p][j] * n2];
+        double v = 0.0;
         for (int k = 0; k < n2; ++k) {
-          v += up->cen[k] * c[k];
+          v += up->bmax[k] * fabs(c[k]);
         }
+        row[up->src_o[p]] += wj[j] * v;
       }
-      poly[p][j] = v;
     }
   }
-}
-
-// Rate estimate of the known first-harmonic sources of a phase cell (time-step bound): the largest
-// absolute row sum (Gershgorin) of the source matrix at the configuration cell center, at the two
-// w edges of the cell.
-GKYL_CU_DH static inline double
-pkpm_hm_rate(const struct gkyl_dg_pkpm_harm_vol *up, double (*poly)[3], double wlo, double wup)
-{
   double rate = 0.0;
-  for (int e = 0; e < 2; ++e) {
-    double w = e == 0 ? wlo : wup, row[8] = {0.0};
-    for (int p = 0; p < up->nsrc; ++p) {
-      row[up->src_o[p]] += fabs(poly[p][0] + w * (poly[p][1] + w * poly[p][2]));
-    }
-    for (int o = 0; o < 8; ++o) {
-      rate = fmax(rate, row[o]);
-    }
+  for (int o = 0; o < 8; ++o) {
+    rate = fmax(rate, row[o]);
   }
   return rate;
 }

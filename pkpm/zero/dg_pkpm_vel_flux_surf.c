@@ -49,13 +49,13 @@ gkyl_dg_pkpm_vel_flux_surf_advance(
   struct gkyl_dg_pkpm_vel_flux_surf *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_array *wnode, const struct gkyl_array *theta,
   const struct gkyl_array *bvar, const struct gkyl_array *alpha_0, const struct gkyl_array *c_h,
-  const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *vel_flux_surf
+  const struct gkyl_array *fin, struct gkyl_array *vel_flux_surf
 )
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(vel_flux_surf)) {
     return gkyl_dg_pkpm_vel_flux_surf_advance_cu(
-      up, conf_range, phase_range, wnode, theta, bvar, alpha_0, c_h, fin, cflrate, vel_flux_surf
+      up, conf_range, phase_range, wnode, theta, bvar, alpha_0, c_h, fin, vel_flux_surf
     );
   }
 #endif
@@ -78,8 +78,7 @@ gkyl_dg_pkpm_vel_flux_surf_advance(
       idx_l[cdim] = v - 1;
       long pidx = gkyl_range_idx(phase_range, idx), pidx_l = gkyl_range_idx(phase_range, idx_l);
       gkyl_rect_grid_cell_center(&up->phase_grid, idx, xc);
-      double *cflrate_d = gkyl_array_fetch(cflrate, pidx);
-      cflrate_d[0] += up->vel_flux(xc, up->phase_grid.dx, nv, gkyl_array_cfetch(fin, pidx_l),
+      up->vel_flux(xc, up->phase_grid.dx, nv, gkyl_array_cfetch(fin, pidx_l),
         gkyl_array_cfetch(fin, pidx), gkyl_array_fetch(vel_flux_surf, pidx));
     }
   }
@@ -114,7 +113,7 @@ gkyl_dg_pkpm_vel_flux_surf_advance_cu(
   struct gkyl_dg_pkpm_vel_flux_surf *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_array *wnode, const struct gkyl_array *theta,
   const struct gkyl_array *bvar, const struct gkyl_array *alpha_0, const struct gkyl_array *c_h,
-  const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *vel_flux_surf
+  const struct gkyl_array *fin, struct gkyl_array *vel_flux_surf
 )
 {
   assert(false);

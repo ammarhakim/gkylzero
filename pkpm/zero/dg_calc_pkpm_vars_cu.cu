@@ -47,9 +47,12 @@ gkyl_dg_calc_pkpm_vars_closure_cu_kernel(
       (double *)gkyl_array_fetch(a_perp, loc), (double *)gkyl_array_fetch(vel_flux_surf, plo),
       (double *)gkyl_array_fetch(vel_flux_surf, pgh), cfl, cond
     );
-    double *cfl_lo = (double *)gkyl_array_fetch(cflrate, plo), *cfl_up = (double *)gkyl_array_fetch(cflrate, pup);
-    cfl_lo[0] += cfl[0];
-    cfl_up[0] += cfl[1];
+    // the column rate of the velocity-space terms, the same in every cell of the column
+    for (int v = phase_range.lower[cdim]; v <= phase_range.upper[cdim]; ++v) {
+      idx[cdim] = v;
+      double *c = (double *)gkyl_array_fetch(cflrate, gkyl_range_idx(&phase_range, idx));
+      c[0] += cfl[0];
+    }
     if (null > 0) {
       atomicAdd(num_null, null);
     }

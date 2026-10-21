@@ -42,7 +42,7 @@ pkpm_forward_euler(
 
   // RHS of Maxwell's equations first: it does not depend on the species, and its magnetic part
   // (stored physical in field->dt_em_no_J) is the d_t B of the first-harmonic force terms.
-  double dtmin_field = pkpm_field_rhs(app, app->field, emin, emout);
+  double dtmin_field = pkpm_field_rhs(app, app->field, stage, emin, emout);
 
   // Two separate loops over number of species to compute needed auxiliary quantities.
   for (int i = 0; i < app->num_species; ++i) {

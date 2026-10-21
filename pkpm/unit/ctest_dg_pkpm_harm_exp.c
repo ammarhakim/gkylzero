@@ -7,19 +7,22 @@
 
 #include <acutest.h>
 #include <gkyl_array.h>
+#include <gkyl_array_ops.h>
 #include <gkyl_basis.h>
 #include <gkyl_dg_pkpm_harm_exp.h>
 #include <gkyl_dg_pkpm_harm_exp_priv.h>
 #include <gkyl_range.h>
+#include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 
 // One phase cell of 8 blocks (the first-harmonic blocks are 2-7) and its configuration cell.
 struct hx_cell {
   int cdim, np, nc;
   struct gkyl_basis cbasis;
+  struct gkyl_rect_grid pgrid;
   struct gkyl_range crange, prange;
   struct gkyl_dg_pkpm_harm_exp *up;
-  struct gkyl_array *em, *coef, *S, *A;
+  struct gkyl_array *em, *coef, *S, *A, *nu, *act;
 };
 
 static struct hx_cell
@@ -35,12 +38,17 @@ hx_cell_new(int cdim)
   }
   gkyl_range_init(&c.crange, cdim, lo, hi);
   gkyl_range_init(&c.prange, cdim + 1, lo, hi);
+  double plo[GKYL_MAX_DIM] = {0.0}, pup[GKYL_MAX_DIM] = {1.0, 1.0, 1.0, 1.0};
+  int pcells[GKYL_MAX_DIM] = {1, 1, 1, 1};
+  gkyl_rect_grid_init(&c.pgrid, cdim + 1, plo, pup, pcells);
   c.up = gkyl_dg_pkpm_harm_exp_new(&(struct gkyl_dg_pkpm_harm_exp_inp) {
-    .conf_basis = &c.cbasis, .qbym = 1.0, .use_gpu = false});
+    .phase_grid = &c.pgrid, .conf_basis = &c.cbasis, .qbym = 1.0, .mix = 0.0, .use_gpu = false});
   c.em = gkyl_array_new(GKYL_DOUBLE, 8 * c.nc, 1);
   c.coef = gkyl_array_new(GKYL_DOUBLE, gkyl_dg_pkpm_harm_exp_num_coef(c.up), 1);
   c.S = gkyl_array_new(GKYL_DOUBLE, gkyl_dg_pkpm_harm_exp_num_stage(c.up), 1);
   c.A = gkyl_array_new(GKYL_DOUBLE, gkyl_dg_pkpm_harm_exp_num_stage(c.up), 1);
+  c.nu = gkyl_array_new(GKYL_DOUBLE, gkyl_dg_pkpm_harm_exp_num_stage(c.up) / 6, 1);
+  c.act = gkyl_array_new(GKYL_DOUBLE, 1, 1);
   return c;
 }
 
@@ -52,6 +60,8 @@ hx_cell_release(struct hx_cell *c)
   gkyl_array_release(c->coef);
   gkyl_array_release(c->S);
   gkyl_array_release(c->A);
+  gkyl_array_release(c->nu);
+  gkyl_array_release(c->act);
 }
 
 // A spatially uniform field B (only the constant mode of the configuration basis).
@@ -146,8 +156,8 @@ hx_step(struct hx_cell *c, const struct hx_problem *pb, double t, double h, bool
       ((double *)gkyl_array_fetch(ra, 0))[k] = rhs[k];
       ((double *)gkyl_array_fetch(oa, 0))[k] = f1[k];
     }
-    gkyl_dg_pkpm_harm_exp_accum(c->up, 1, h, &c->crange, &c->prange, c->coef, fa, ra, c->S, c->A);
-    gkyl_dg_pkpm_harm_exp_state(c->up, 1, h, &c->crange, &c->prange, c->coef, fa, c->S, c->A, oa);
+    gkyl_dg_pkpm_harm_exp_accum(c->up, 1, h, &c->crange, &c->prange, c->coef, fa, ra, c->nu, c->act, c->S, c->A);
+    gkyl_dg_pkpm_harm_exp_state(c->up, 1, h, &c->crange, &c->prange, c->coef, c->nu, fa, c->S, c->A, oa);
     for (int k = 0; k < n; ++k) {
       f1[k] = ((double *)gkyl_array_fetch(oa, 0))[k];
     }
@@ -163,8 +173,8 @@ hx_step(struct hx_cell *c, const struct hx_problem *pb, double t, double h, bool
       ((double *)gkyl_array_fetch(ra, 0))[k] = rhs[k];
       ((double *)gkyl_array_fetch(oa, 0))[k] = fnew[k];
     }
-    gkyl_dg_pkpm_harm_exp_accum(c->up, 2, h, &c->crange, &c->prange, c->coef, f1a, ra, c->S, c->A);
-    gkyl_dg_pkpm_harm_exp_state(c->up, 2, h, &c->crange, &c->prange, c->coef, fa, c->S, c->A, oa);
+    gkyl_dg_pkpm_harm_exp_accum(c->up, 2, h, &c->crange, &c->prange, c->coef, f1a, ra, c->nu, c->act, c->S, c->A);
+    gkyl_dg_pkpm_harm_exp_state(c->up, 2, h, &c->crange, &c->prange, c->coef, c->nu, fa, c->S, c->A, oa);
     for (int k = 0; k < n; ++k) {
       fnew[k] = ((double *)gkyl_array_fetch(oa, 0))[k];
     }
@@ -183,8 +193,8 @@ hx_step(struct hx_cell *c, const struct hx_problem *pb, double t, double h, bool
       ((double *)gkyl_array_fetch(ra, 0))[k] = rhs[k];
       ((double *)gkyl_array_fetch(oa, 0))[k] = fnew[k];
     }
-    gkyl_dg_pkpm_harm_exp_accum(c->up, 3, h, &c->crange, &c->prange, c->coef, f1a, ra, c->S, c->A);
-    gkyl_dg_pkpm_harm_exp_state(c->up, 3, h, &c->crange, &c->prange, c->coef, fa, c->S, c->A, oa);
+    gkyl_dg_pkpm_harm_exp_accum(c->up, 3, h, &c->crange, &c->prange, c->coef, f1a, ra, c->nu, c->act, c->S, c->A);
+    gkyl_dg_pkpm_harm_exp_state(c->up, 3, h, &c->crange, &c->prange, c->coef, c->nu, fa, c->S, c->A, oa);
     for (int k = 0; k < n; ++k) {
       fnew[k] = ((double *)gkyl_array_fetch(oa, 0))[k];
     }
@@ -368,8 +378,8 @@ test_zero(void)
   }
   bool ok = true;
   for (int s = 1; s <= 3; ++s) {
-    gkyl_dg_pkpm_harm_exp_accum(c.up, s, 0.3, &c.crange, &c.prange, c.coef, fa, ra, c.S, c.A);
-    gkyl_dg_pkpm_harm_exp_state(c.up, s, 0.3, &c.crange, &c.prange, c.coef, fa, c.S, c.A, oa);
+    gkyl_dg_pkpm_harm_exp_accum(c.up, s, 0.3, &c.crange, &c.prange, c.coef, fa, ra, c.nu, c.act, c.S, c.A);
+    gkyl_dg_pkpm_harm_exp_state(c.up, s, 0.3, &c.crange, &c.prange, c.coef, c.nu, fa, c.S, c.A, oa);
     const double *o = gkyl_array_cfetch(oa, 0);
     for (int k = 0; k < 8 * c.np; ++k) {
       ok = ok && (k < 2 * c.np ? o[k] == 7.0 : o[k] == 0.0);
@@ -406,6 +416,252 @@ test_order(void)
   hx_cell_release(&c);
 }
 
+// The mixing rate of one node: zero inside the bound, mix |Omega| (1 - 1/r) beyond it, the full rate
+// where F or G <= 0, capped at ln(r)/h.
+static void
+test_rate(void)
+{
+  double m0[3] = {0.0, 0.0, 0.0}, n[3] = {0.0, 0.0, 0.0};
+  // r_M = sqrt2 |M0|/sqrt(F G) = 3 with F = G = 1
+  m0[0] = 3.0 / sqrt(2.0);
+  TEST_CHECK(fabs(pkpm_hx_rate(1.0, 2.0, 1e-3, 1.0, 1.0, m0, n) - 2.0 * (1.0 - 1.0 / 3.0)) < 1e-14);
+  // capped: ln(3)/h < 2 (1 - 1/3) for h = 1
+  TEST_CHECK(fabs(pkpm_hx_rate(1.0, 2.0, 1.0, 1.0, 1.0, m0, n) - log(3.0)) < 1e-14);
+  // r_N = |N| sqrt(F)/G^(3/2) = 2 with F = 1, G = 4: |N| = 16
+  m0[0] = 0.0;
+  n[1] = 16.0;
+  TEST_CHECK(fabs(pkpm_hx_rate(1.0, 1.0, 1e-3, 1.0, 4.0, m0, n) - 0.5) < 1e-14);
+  // realizable: no damping
+  n[1] = 7.0;
+  TEST_CHECK(pkpm_hx_rate(1.0, 1.0, 1e-3, 1.0, 4.0, m0, n) == 0.0);
+  // F or G <= 0: the full rate; no gyration: none
+  TEST_CHECK(pkpm_hx_rate(2.0, 3.0, 1e-3, -1e-9, 4.0, m0, n) == 6.0);
+  TEST_CHECK(pkpm_hx_rate(2.0, 0.0, 1e-3, -1e-9, 4.0, m0, n) == 0.0);
+}
+
+// A column of w cells (1x1v, one configuration cell) driven by the gyration alone, with the mixing.
+struct hx_col {
+  int nv, np;
+  struct gkyl_basis cbasis;
+  struct gkyl_rect_grid pgrid;
+  struct gkyl_range crange, prange;
+  struct gkyl_dg_pkpm_harm_exp *up;
+  struct gkyl_array *em, *coef, *S, *A, *nu, *act, *col;
+  struct gkyl_array *f, *f1, *fnew, *rhs;
+};
+
+static struct hx_col
+hx_col_new(int nv, double mix)
+{
+  struct hx_col c = {.nv = nv};
+  gkyl_cart_modal_serendip(&c.cbasis, 1, 1);
+  c.np = 3 * c.cbasis.num_basis;
+  int lo[2] = {1, 1}, chi[1] = {1}, phi[2] = {1, nv};
+  gkyl_range_init(&c.crange, 1, lo, chi);
+  gkyl_range_init(&c.prange, 2, lo, phi);
+  double plo[2] = {0.0, -0.5 * nv}, pup[2] = {1.0, 0.5 * nv};
+  int pcells[2] = {1, nv};
+  gkyl_rect_grid_init(&c.pgrid, 2, plo, pup, pcells);
+  c.up = gkyl_dg_pkpm_harm_exp_new(&(struct gkyl_dg_pkpm_harm_exp_inp) {
+    .phase_grid = &c.pgrid, .conf_basis = &c.cbasis, .qbym = 1.0, .mix = mix, .use_gpu = false});
+  c.em = gkyl_array_new(GKYL_DOUBLE, 8 * c.cbasis.num_basis, 1);
+  c.coef = gkyl_array_new(GKYL_DOUBLE, gkyl_dg_pkpm_harm_exp_num_coef(c.up), 1);
+  c.col = gkyl_array_new(GKYL_DOUBLE, gkyl_dg_pkpm_harm_exp_num_col(c.up), 1);
+  c.act = gkyl_array_new(GKYL_DOUBLE, 1, 1);
+  c.S = gkyl_array_new(GKYL_DOUBLE, gkyl_dg_pkpm_harm_exp_num_stage(c.up), nv);
+  c.A = gkyl_array_new(GKYL_DOUBLE, gkyl_dg_pkpm_harm_exp_num_stage(c.up), nv);
+  c.nu = gkyl_array_new(GKYL_DOUBLE, gkyl_dg_pkpm_harm_exp_num_stage(c.up) / 6, nv);
+  c.f = gkyl_array_new(GKYL_DOUBLE, 8 * c.np, nv);
+  c.f1 = gkyl_array_new(GKYL_DOUBLE, 8 * c.np, nv);
+  c.fnew = gkyl_array_new(GKYL_DOUBLE, 8 * c.np, nv);
+  c.rhs = gkyl_array_new(GKYL_DOUBLE, 8 * c.np, nv);
+  // B along z with (q/m)|B| = 1
+  double *em = gkyl_array_fetch(c.em, 0);
+  for (int k = 0; k < 8 * c.cbasis.num_basis; ++k) em[k] = 0.0;
+  em[5 * c.cbasis.num_basis] = sqrt(2.0);
+  return c;
+}
+
+static void
+hx_col_release(struct hx_col *c)
+{
+  gkyl_dg_pkpm_harm_exp_release(c->up);
+  struct gkyl_array *arrs[] = {c->em, c->coef, c->col, c->act, c->S, c->A, c->nu, c->f, c->f1, c->fnew, c->rhs};
+  for (int i = 0; i < 11; ++i) gkyl_array_release(arrs[i]);
+}
+
+// rhs = U x (q/m) B (the gyration) in the first-harmonic blocks.
+static void
+hx_col_rhs(const struct hx_col *c, const struct gkyl_array *f, struct gkyl_array *rhs)
+{
+  for (int iv = 0; iv < c->nv; ++iv) {
+    const double *u = gkyl_array_cfetch(f, iv);
+    double *r = gkyl_array_fetch(rhs, iv);
+    for (int k = 0; k < 8 * c->np; ++k) r[k] = 0.0;
+    for (int v = 0; v < 2; ++v) {
+      for (int k = 0; k < c->np; ++k) {
+        // om = (0, 0, 1): U x om = (U_y, -U_x, 0)
+        r[(2 + 3 * v) * c->np + k] = u[(3 + 3 * v) * c->np + k];
+        r[(3 + 3 * v) * c->np + k] = -u[(2 + 3 * v) * c->np + k];
+      }
+    }
+  }
+}
+
+// One forward Euler stage of the driver with the exponential update and the restoration.
+static void
+hx_col_stage(struct hx_col *c, int stage, double h, struct gkyl_array *fin, struct gkyl_array *fout)
+{
+  if (stage == 1) {
+    gkyl_dg_pkpm_harm_exp_coef(c->up, &c->crange, h, c->em, c->coef);
+    gkyl_array_clear(c->act, 0.0);
+  }
+  hx_col_rhs(c, fin, c->rhs);
+  gkyl_dg_pkpm_harm_exp_accum(c->up, stage, h, &c->crange, &c->prange, c->coef, fin, c->rhs, c->nu, c->act, c->S, c->A);
+  gkyl_array_set(fout, 1.0, fin);
+  gkyl_array_accumulate(fout, h, c->rhs);
+  gkyl_dg_pkpm_harm_exp_state(c->up, stage, h, &c->crange, &c->prange, c->coef, c->nu, c->f, c->S, c->A, fout);
+  gkyl_dg_pkpm_harm_exp_restore(c->up, &c->crange, &c->prange, c->act, c->col, fout);
+}
+
+static void
+hx_col_step(struct hx_col *c, double h)
+{
+  hx_col_stage(c, 1, h, c->f, c->f1);
+  hx_col_stage(c, 2, h, c->f1, c->fnew);
+  gkyl_array_set(c->f1, 0.75, c->f);
+  gkyl_array_accumulate(c->f1, 0.25, c->fnew);
+  hx_col_stage(c, 3, h, c->f1, c->fnew);
+  gkyl_array_scale(c->f, 1.0 / 3.0);
+  gkyl_array_accumulate(c->f, 2.0 / 3.0, c->fnew);
+}
+
+// F = G = a Gaussian of the cell centers (cell-constant), M0_perp along x: 3 F/sqrt2 in cell k0 minus
+// the F-shaped compensation that makes int M0_perp dw = 0 (r = 2.61 in cell k0 of 8, k0 = 2).
+static void
+hx_col_init(struct hx_col *c, int k0)
+{
+  double c0 = 2.0; // the constant mode of the orthonormal 1x1v basis is 1/2
+  double sF = 0.0, sM = 0.0;
+  for (int iv = 0; iv < c->nv; ++iv) {
+    double *f = gkyl_array_fetch(c->f, iv);
+    for (int k = 0; k < 8 * c->np; ++k) f[k] = 0.0;
+    double w = -0.5 * c->nv + iv + 0.5, F = exp(-0.5 * w * w);
+    f[0] = c0 * F;
+    f[c->np] = c0 * F;
+    if (iv == k0) {
+      f[2 * c->np] = c0 * 3.0 * F / sqrt(2.0);
+    }
+    sF += F;
+    sM += iv == k0 ? 3.0 * F / sqrt(2.0) : 0.0;
+  }
+  for (int iv = 0; iv < c->nv; ++iv) {
+    double *f = gkyl_array_fetch(c->f, iv);
+    f[2 * c->np] -= sM / sF * f[0];
+  }
+}
+
+// max r over the nodes, and int M0_x dw relative to its largest cell value
+static void
+hx_col_diag(const struct hx_col *c, double *rmax, double *mom)
+{
+  *rmax = 0.0;
+  double s = 0.0, smax = 0.0;
+  for (int iv = 0; iv < c->nv; ++iv) {
+    const double *f = gkyl_array_cfetch(c->f, iv);
+    double fn[24 * 6], fgn[24 * 2];
+    pkpm_hx_to_nodes(1, f, fn);
+    pkpm_hx_fg_to_nodes(1, f, fgn);
+    for (int p = 0; p < 6; ++p) {
+      double F = fgn[2 * p], G = fgn[2 * p + 1];
+      double am = sqrt(fn[6 * p] * fn[6 * p] + fn[6 * p + 1] * fn[6 * p + 1] + fn[6 * p + 2] * fn[6 * p + 2]);
+      *rmax = fmax(*rmax, sqrt(2.0) * am / sqrt(F * G));
+    }
+    s += f[2 * c->np];
+    smax = fmax(smax, fabs(f[2 * c->np]));
+  }
+  *mom = fabs(s) / smax;
+}
+
+// Mixing at mix |Omega| h = 0.01: the excess decays to the bound (dr/dt = -(r - 1) unforced, here
+// with the gyration and the restoration), int M0_perp dw stays zero, F and G are untouched.
+static void
+test_mix_relax(void)
+{
+  struct hx_col c = hx_col_new(8, 1.0);
+  hx_col_init(&c, 2);
+  struct gkyl_array *f0 = gkyl_array_new(GKYL_DOUBLE, 8 * c.np, c.nv);
+  gkyl_array_copy(f0, c.f);
+  double rmax, mom, mom_max = 0.0;
+  hx_col_diag(&c, &rmax, &mom);
+  TEST_CHECK(rmax > 2.6 && rmax < 2.62);
+  for (int s = 0; s < 1000; ++s) {
+    hx_col_step(&c, 0.01);
+    hx_col_diag(&c, &rmax, &mom);
+    mom_max = fmax(mom_max, mom);
+  }
+  TEST_CHECK(rmax < 1.0 + 1e-3);
+  TEST_MSG("max r after 10/Omega: %g", rmax);
+  TEST_CHECK(mom_max < 1e-13);
+  TEST_MSG("max |int M0 dw|/max|M0| over the run: %g", mom_max);
+  bool fg_same = true;
+  for (int iv = 0; iv < c.nv; ++iv) {
+    const double *a = gkyl_array_cfetch(c.f, iv), *b = gkyl_array_cfetch(f0, iv);
+    for (int k = 0; k < 2 * c.np; ++k) fg_same = fg_same && a[k] == b[k];
+  }
+  TEST_CHECK(fg_same);
+  gkyl_array_release(f0);
+  hx_col_release(&c);
+}
+
+// Stiff mixing (mix |Omega| h = 50): every step takes the excess to the bound (the cap ln(r)/h); what
+// is left is the share of the restoration's frame shift that returns to the damped cell, which
+// shrinks geometrically (2.61 -> 1.21 -> 1.027 -> 1.0035).
+static void
+test_mix_stiff(void)
+{
+  struct hx_col c = hx_col_new(8, 100.0);
+  hx_col_init(&c, 2);
+  double rmax, mom, r[3];
+  for (int s = 0; s < 3; ++s) {
+    hx_col_step(&c, 0.5);
+    hx_col_diag(&c, &r[s], &mom);
+    TEST_CHECK(mom < 1e-13);
+    TEST_MSG("step %d: |int M0 dw|/max|M0|: %g", s + 1, mom);
+  }
+  TEST_CHECK(r[0] < 1.25 && r[1] < 1.05 && r[2] < 1.01);
+  TEST_MSG("max r after 1, 2, 3 steps: %g %g %g", r[0], r[1], r[2]);
+  hx_col_release(&c);
+}
+
+// Realizable everywhere: with mixing on the update is that without it, bit for bit.
+static void
+test_mix_inactive(void)
+{
+  struct hx_col a = hx_col_new(8, 1.0), b = hx_col_new(8, 0.0);
+  hx_col_init(&a, 2);
+  hx_col_init(&b, 2);
+  for (int iv = 0; iv < 8; ++iv) {
+    double *fa = gkyl_array_fetch(a.f, iv), *fb = gkyl_array_fetch(b.f, iv);
+    for (int k = 2 * a.np; k < 8 * a.np; ++k) {
+      fa[k] *= 0.2;
+      fb[k] *= 0.2;
+    }
+  }
+  for (int s = 0; s < 50; ++s) {
+    hx_col_step(&a, 0.05);
+    hx_col_step(&b, 0.05);
+  }
+  bool same = true;
+  for (int iv = 0; iv < 8; ++iv) {
+    const double *fa = gkyl_array_cfetch(a.f, iv), *fb = gkyl_array_cfetch(b.f, iv);
+    for (int k = 0; k < 8 * a.np; ++k) same = same && fa[k] == fb[k];
+  }
+  TEST_CHECK(same);
+  hx_col_release(&a);
+  hx_col_release(&b);
+}
+
 TEST_LIST = {
   {"test_transforms_1x", test_transforms_1x},
   {"test_transforms_2x", test_transforms_2x},
@@ -416,5 +672,9 @@ TEST_LIST = {
   {"test_no_field", test_no_field},
   {"test_zero", test_zero},
   {"test_order", test_order},
+  {"test_rate", test_rate},
+  {"test_mix_relax", test_mix_relax},
+  {"test_mix_stiff", test_mix_stiff},
+  {"test_mix_inactive", test_mix_inactive},
   {NULL, NULL},
 };

@@ -11,7 +11,7 @@ GKYL_CU_DH double pkpm_kinetic_vel_vol_1x1v_ser_p1(const double *w, const double
   // a_perp:    Perpendicular force closing int M0_perp dw [x, y, z]. 
   // f:         Input normalized distribution functions [F, G, M0_perp, N_perp]. 
   // out:       Incremented output [F, G, M0_perp, N_perp]. 
-  // Returns the CFL frequency estimate of the closure rates. 
+  // Returns 0: the closure rates enter the column rate of the closure kernel. 
   const double dv1 = 2.0/dxv[1]; 
   const double dvpar = dxv[1], wvpar = w[1]; 
   const double *F_0 = &f[0]; 
@@ -85,5 +85,5 @@ GKYL_CU_DH double pkpm_kinetic_vel_vol_1x1v_ser_p1(const double *w, const double
   out[46] += (2.7386127875258306*c_h[1]*Nz[3]+2.7386127875258306*c_h[0]*Nz[2])*dv1*wvpar+(0.7071067811865475*c_h[1]*Nz[5]+0.7071067811865475*c_h[0]*Nz[4]+0.7905694150420947*Nz[1]*c_h[1]+0.7905694150420947*Nz[0]*c_h[0])*dv1*dvpar+(2.7386127875258306*alpha_0[1]*Nz[3]+2.7386127875258306*alpha_0[0]*Nz[2])*dv1+2.1213203435596424*c_h[1]*Nz[5]+0.7071067811865475*c_0[1]*Nz[5]+1.4142135623730951*apz[1]*G_1[5]+2.1213203435596424*c_h[0]*Nz[4]+0.7071067811865475*c_0[0]*Nz[4]+1.4142135623730951*apz[0]*G_1[4]; 
   out[47] += (2.7386127875258306*c_h[0]*Nz[3]+2.7386127875258306*c_h[1]*Nz[2])*dv1*wvpar+(0.7071067811865475*c_h[0]*Nz[5]+0.7071067811865475*c_h[1]*Nz[4]+0.7905694150420948*Nz[0]*c_h[1]+0.7905694150420948*c_h[0]*Nz[1])*dv1*dvpar+(2.7386127875258306*alpha_0[0]*Nz[3]+2.7386127875258306*alpha_0[1]*Nz[2])*dv1+2.1213203435596424*c_h[0]*Nz[5]+0.7071067811865475*c_0[0]*Nz[5]+1.4142135623730951*apz[0]*G_1[5]+2.1213203435596424*c_h[1]*Nz[4]+0.7071067811865475*c_0[1]*Nz[4]+1.4142135623730951*apz[1]*G_1[4]; 
  
-  return fabs(0.7071067811865475*c_0[0]) + 3.0*fabs(0.7071067811865475*c_h[0]); 
+  return 0.0; 
 } 

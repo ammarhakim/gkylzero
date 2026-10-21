@@ -63,8 +63,10 @@ void gkyl_dg_calc_pkpm_vars_grad_u(
  * perpendicular rows are eliminated, see pkpm-vars-closure.mac. The edge fluxes of all eight
  * blocks are written in the stored face format: the lower one into the lowest velocity cell's
  * slot of vel_flux_surf, the upper one into the slot of the velocity ghost cell above the
- * uppermost cell (the array layout must have that ghost cell), and their time-step rates are
- * added to cflrate in the two edge cells. The edge speeds use the closures of the previous stage
+ * uppermost cell (the array layout must have that ghost cell). The time-step rate of all the
+ * velocity-space terms of the column (the w fluxes with the new closures and the closure sources,
+ * bounded with absolute coefficients at the larger |w| edge: no w of the column exceeds it, plan
+ * 17.27) is added to cflrate in every cell of the column. The edge speeds use the closures of the previous stage
  * (the output arrays on input). At a node with M0(F) <= 0 or a non-positive determinant all
  * closures and edge fluxes of the cell are zero; the number of such nodes is returned. p=1
  * serendipity only.
@@ -88,7 +90,7 @@ void gkyl_dg_calc_pkpm_vars_grad_u(
  *                      edge) and of the velocity ghost cells above the uppermost cells
  *                      (upper edge) are written; phase_range must be laid out with that
  *                      ghost cell
- * @param cflrate       Phase-space time-step rates, incremented in the edge cells
+ * @param cflrate       Phase-space time-step rates, incremented in every cell of each column
  * @return Number of nodes where the closures are undefined
  */
 int gkyl_dg_calc_pkpm_vars_closure(

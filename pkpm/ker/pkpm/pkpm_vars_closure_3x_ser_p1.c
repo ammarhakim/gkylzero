@@ -306,7 +306,8 @@ GKYL_CU_DH int pkpm_vars_closure_3x_ser_p1(double w_lo, double w_up, double dv, 
   // f_lo, f_up:   [F, G, M0_perp, N_perp] of the lowest and uppermost velocity cells of this configuration cell. 
   // c_0, alpha_0, c_h, a_perp: Output closures at the 8 Gauss-Legendre nodes, interpolated to p=1. 
   // flux_lo, flux_up: Output edge fluxes [8 blocks] in the stored face format. 
-  // cfl:          Output [lower, upper] edge-flux time-step rates. 
+  // cfl:          Output [0]: the time-step rate of the w fluxes and closure sources of the whole column 
+  //               (absolute coefficients at the larger |w| edge, plan 17.27); [1] = 0. 
   // cond:         Output [1]: the smallest determinant of the 3x3 system over the nodes relative to 
   //               its edge-free value (1 when the edge terms vanish; small or negative when the 
   //               velocity-domain edges carry a non-negligible trace: too small velocity extents). 
@@ -491,7 +492,8 @@ GKYL_CU_DH int pkpm_vars_closure_3x_ser_p1(double w_lo, double w_up, double dv, 
   pkpm_vars_closure_3x_ser_p1_p1(alpha_0_prev, a0_n); 
   double ch_n[125]; 
   pkpm_vars_closure_3x_ser_p1_p1(c_h_prev, ch_n); 
-  double Kn[2][8][125], gn[2][8][125], kn[2][125], lon[2][125], hin[2][125]; 
+  double Kn[2][8][125], gn[2][8][125], kw[125], rest[125]; 
+  const double wm = fmax(fabs(w_lo), fabs(w_up)); 
   for (int n = 0; n < 125; ++n) { 
     double nv[PKPM_HS_NODE_NV]; 
     for (int s = 0; s < PKPM_HS_W_END; ++s) nv[s] = wn[n*PKPM_HS_W_END + s]; 
@@ -499,6 +501,8 @@ GKYL_CU_DH int pkpm_vars_closure_3x_ser_p1(double w_lo, double w_up, double dv, 
     nv[PKPM_HS_NODE_B] = b0_n[n]; nv[PKPM_HS_NODE_B + 1] = b1_n[n]; nv[PKPM_HS_NODE_B + 2] = b2_n[n]; 
     nv[PKPM_HS_NODE_A0] = a0_n[n]; nv[PKPM_HS_NODE_CH] = ch_n[n]; 
     pkpm_harm_node_spec(nv); 
+    kw[n] = nv[PKPM_HS_KW]; 
+    rest[n] = pkpm_harm_node_speed_rest(nv, wm); 
     for (int e = 0; e < 2; ++e) { 
       const double w = e == 0 ? w_lo : w_up; 
       double U[8], T[8], lo, hi; 
@@ -528,7 +532,6 @@ GKYL_CU_DH int pkpm_vars_closure_3x_ser_p1(double w_lo, double w_up, double dv, 
         Kn[e][c][n] = wf*(k*U[c] + T[c]) + wu*U[c]; 
         gn[e][c][n] = wf*U[c]; 
       } 
-      kn[e][n] = k; lon[e][n] = lo; hin[e][n] = hi; 
     } 
   } 
   double Kh[2][64], gh[2][64]; 
@@ -1124,9 +1127,13 @@ GKYL_CU_DH int pkpm_vars_closure_3x_ser_p1(double w_lo, double w_up, double dv, 
  
   cond[0] = cond_min; 
   if (num_null > 0) { 
-    // a node with M0 <= 0 or a non-positive determinant zeroes everything in the cell, its 
-    // CFL rate included (the closures it would have needed are not applied) 
-    cfl[0] = 0.0; cfl[1] = 0.0; 
+    // a node with M0 <= 0 or a non-positive determinant zeroes everything in the cell (the 
+    // closures it would have needed are not applied); the rate is that of the known w fluxes 
+    double rate = 0.0; 
+    for (int n = 0; n < 125; ++n) { 
+      rate = fmax(rate, fabs(kw[n])*wm + rest[n]); 
+    } 
+    cfl[0] = 2.5*dv1*rate; cfl[1] = 0.0; 
     for (int k = 0; k < 8; ++k) { 
       c_0[k] = 0.0; alpha_0[k] = 0.0; c_h[k] = 0.0; 
     } 
@@ -1193,18 +1200,25 @@ GKYL_CU_DH int pkpm_vars_closure_3x_ser_p1(double w_lo, double w_up, double dv, 
     flux_up[c*8 + 7] = (-3.0070326520293014)*fup_s[c][0] + (3.0070326520293014)*fup_s[c][1] + (3.0070326520293014)*fup_s[c][2] + (-3.0070326520293014)*fup_s[c][3] + (3.0070326520293014)*fup_s[c][4] + (-3.0070326520293014)*fup_s[c][5] + (-3.0070326520293014)*fup_s[c][6] + (3.0070326520293014)*fup_s[c][7]; 
   } 
  
-  // the time-step rates of the edge fluxes with the new closures, at the w-face nodes 
+  // the column time-step rate with the new closures (plan 17.27) 
   double a0f[125], cf[125]; 
   pkpm_vars_closure_3x_ser_p1_p1(alpha_0, a0f); 
   pkpm_vars_closure_3x_ser_p1_p1(c_h, cf); 
-  double cfl_lo = 0.0, cfl_up = 0.0; 
+  double rate = 0.0; 
   for (int n = 0; n < 125; ++n) { 
-    const double al_lo = a0f[n] + cf[n]*w_lo + kn[0][n], al_up = a0f[n] + cf[n]*w_up + kn[1][n]; 
-    cfl_lo = fmax(cfl_lo, fmax(fabs(al_lo + lon[0][n]), fabs(al_lo + hin[0][n]))); 
-    cfl_up = fmax(cfl_up, fmax(fabs(al_up + lon[1][n]), fabs(al_up + hin[1][n]))); 
+    rate = fmax(rate, fabs(a0f[n]) + fabs(cf[n] + kw[n])*wm + rest[n]); 
   } 
-  cfl[0] = 2.5*dv1*cfl_lo; 
-  cfl[1] = 2.5*dv1*cfl_up; 
+  double src = 0.0; 
+  src += 0.3535533905932737*(fabs(c_0[0]) + 3.0*fabs(c_h[0])); 
+  src += 0.6123724356957944*(fabs(c_0[1]) + 3.0*fabs(c_h[1])); 
+  src += 0.6123724356957944*(fabs(c_0[2]) + 3.0*fabs(c_h[2])); 
+  src += 0.6123724356957944*(fabs(c_0[3]) + 3.0*fabs(c_h[3])); 
+  src += 1.060660171779821*(fabs(c_0[4]) + 3.0*fabs(c_h[4])); 
+  src += 1.060660171779821*(fabs(c_0[5]) + 3.0*fabs(c_h[5])); 
+  src += 1.060660171779821*(fabs(c_0[6]) + 3.0*fabs(c_h[6])); 
+  src += 1.837117307087383*(fabs(c_0[7]) + 3.0*fabs(c_h[7])); 
+  cfl[0] = 2.5*dv1*rate + src; 
+  cfl[1] = 0.0; 
  
   return 0; 
 } 

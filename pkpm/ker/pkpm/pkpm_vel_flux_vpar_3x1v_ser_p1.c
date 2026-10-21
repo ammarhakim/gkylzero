@@ -289,7 +289,7 @@ GKYL_CU_DH static inline void pkpm_vel_flux_vpar_3x1v_ser_p1_prj(const double *v
   out[7] = 0.5367459204973624*pr2[19]+0.6443171250014853*pr2[15]-0.6443171250014853*pr2[7]-0.5367459204973624*pr2[3]; 
 } 
 
-GKYL_CU_DH double pkpm_vel_flux_vpar_3x1v_ser_p1(const double *w, const double *dxv, const double *nv,
+GKYL_CU_DH void pkpm_vel_flux_vpar_3x1v_ser_p1(const double *w, const double *dxv, const double *nv,
   const double *f_l, const double *f_r, double* GKYL_RESTRICT flux) 
 { 
   // w[NDIM]:   Cell-center coordinates (current cell). 
@@ -297,8 +297,7 @@ GKYL_CU_DH double pkpm_vel_flux_vpar_3x1v_ser_p1(const double *w, const double *
   // nv:        Node values [125 nodes][PKPM_HS_NODE_NV] of the w flux of the configuration cell. 
   // f_l/f_r:   Distributions [F, G, M0_perp, N_perp] in the cell below/current cell. 
   // flux:      Output surface fluxes [8 blocks] on the lower w face (stored face format). 
-  // Returns the stable time-step estimate over the face nodes. 
-  const double dv1 = 2.0/dxv[3]; 
+  // (The time-step rate of the w fluxes is the column rate of the closure kernel, plan 17.27.) 
   const double v_face = w[3] - 0.5*dxv[3]; 
   double tl[8], tr[8], ul[8][125], ur[8][125]; 
   tl[0] = 1.5811388300841895*f_l[11]+1.224744871391589*f_l[4]+0.7071067811865475*f_l[0]; 
@@ -438,13 +437,11 @@ GKYL_CU_DH double pkpm_vel_flux_vpar_3x1v_ser_p1(const double *w, const double *
   tr[7] = 1.5811388300841895*f_r[191]-1.224744871391589*f_r[187]+0.7071067811865475*f_r[180]; 
   pkpm_vel_flux_vpar_3x1v_ser_p1_p1(tl, ul[7]); pkpm_vel_flux_vpar_3x1v_ser_p1_p1(tr, ur[7]); 
   double Fhat[8][125]; 
-  double cfl_max = 0.0; 
   for (int n = 0; n < 125; ++n) { 
     double U_l[8], U_r[8], Fn[8]; 
     for (int c = 0; c < 8; ++c) { U_l[c] = ul[c][n]; U_r[c] = ur[c][n]; } 
-    cfl_max = fmax(cfl_max, pkpm_harm_node_wflux(&nv[n*PKPM_HS_NODE_NV], v_face, U_l, U_r, Fn)); 
+    pkpm_harm_node_wflux(&nv[n*PKPM_HS_NODE_NV], v_face, U_l, U_r, Fn); 
     for (int c = 0; c < 8; ++c) Fhat[c][n] = Fn[c]; 
   } 
   for (int c = 0; c < 8; ++c) pkpm_vel_flux_vpar_3x1v_ser_p1_prj(Fhat[c], &flux[c*8]); 
-  return 2.5*dv1*cfl_max; 
 } 

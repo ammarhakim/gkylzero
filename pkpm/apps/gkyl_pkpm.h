@@ -91,6 +91,12 @@ struct gkyl_pkpm_species {
   // diffusion coupling to include for momentum
   struct gkyl_pkpm_fluid_diffusion diffusion;
 
+  // Gyrophase-mixing closure of the first harmonic: rate, in units of the species' local |Omega|, at
+  // which agyrotropy beyond what one harmonic can represent relaxes back to that bound (0: the
+  // default 10; a negative value switches the closure off). The overshoot above the bound is about
+  // (drive rate/|Omega|)/gyro_mix; a drive the default cannot hold calls for more Fourier harmonics.
+  double gyro_mix;
+
   void *app_accel_ctx; // context for applied acceleration function
   // pointer to applied acceleration function
   void (*app_accel)(double t, const double *xn, double *app_accel_out, void *ctx);

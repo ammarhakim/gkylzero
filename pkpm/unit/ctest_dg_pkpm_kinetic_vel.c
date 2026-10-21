@@ -435,7 +435,7 @@ node_values(
 static double
 reference_vel_face(
   struct test_setup *s, const struct gkyl_array *alpha_0, const struct gkyl_array *c_h,
-  const int *idx_l, const int *idx, double *flux_ref
+  const int *idx_l, const int *idx, double *flux_ref, double *ratio
 )
 {
   int cdim = s->cdim;
@@ -451,6 +451,9 @@ reference_vel_face(
     flux_ref[k] = 0.0;
   }
   double cfl_max = 0.0;
+  // the column bound of the w-flux speeds (absolute coefficients at the larger |w| edge, plan 17.27)
+  double wm = fmax(fabs(s->pgrid.lower[cdim]), fabs(s->pgrid.upper[cdim]));
+  *ratio = 0.0;
   int nnodes = 1;
   for (int d = 0; d < cdim; ++d) {
     nnodes *= 5;
@@ -474,7 +477,11 @@ reference_vel_face(
       Ul[c] = s->pbasis.eval_expand(zl, &f_l[c * np]);
       Ur[c] = s->pbasis.eval_expand(zr, &f_r[c * np]);
     }
-    cfl_max = fmax(cfl_max, pkpm_harm_node_wflux(nv, v_face, Ul, Ur, ghat));
+    double speed = pkpm_harm_node_wflux(nv, v_face, Ul, Ur, ghat);
+    cfl_max = fmax(cfl_max, speed);
+    double bound = fabs(nv[PKPM_HS_NODE_A0]) + fabs(nv[PKPM_HS_NODE_CH] + nv[PKPM_HS_KW]) * wm +
+      pkpm_harm_node_speed_rest(nv, wm);
+    *ratio = fmax(*ratio, speed / bound);
     for (int c = 0; c < 8; ++c) {
       for (int k = 0; k < nc; ++k) {
         double unit[8] = {0.0};
@@ -542,48 +549,44 @@ test_vel_flux(int cdim)
   int nk = gkyl_dg_pkpm_vel_flux_surf_num_surf_basis(up);
   TEST_CHECK(nk == nc);
   struct gkyl_array *flux = mkarr(8 * nk, s.plocal_ext.volume);
-  struct gkyl_array *cflrate = mkarr(1, s.plocal_ext.volume);
   gkyl_array_clear(flux, 1.0e30); // every interior face must be overwritten; the edge slot is left alone
-  gkyl_array_clear(cflrate, 0.0);
   gkyl_dg_pkpm_vel_flux_surf_advance(
-    up, &s.clocal, &s.plocal, s.hwn, s.theta, s.bvar, s.alpha_0, s.c_h, s.f, cflrate, flux
+    up, &s.clocal, &s.plocal, s.hwn, s.theta, s.bvar, s.alpha_0, s.c_h, s.f, flux
   );
 
   double flux_ref[64];
-  double max_err = 0.0, max_flux = 0.0, max_cfl_err = 0.0;
+  double max_err = 0.0, max_flux = 0.0, max_ratio = 0.0;
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &s.plocal);
   while (gkyl_range_iter_next(&iter)) {
     long pidx = gkyl_range_idx(&s.plocal_ext, iter.idx);
     const double *fl = gkyl_array_cfetch(flux, pidx);
-    const double *cfl = gkyl_array_cfetch(cflrate, pidx);
     // The lowest cell's slot is the velocity domain edge, written by the closure updater.
     if (iter.idx[cdim] == s.plocal.lower[cdim]) {
       for (int k = 0; k < 8 * nk; ++k) {
         TEST_CHECK(fl[k] == 1.0e30);
       }
-      TEST_CHECK(cfl[0] == 0.0);
       continue;
     }
     int idx_l[4];
     gkyl_copy_int_arr(s.pdim, iter.idx, idx_l);
     idx_l[cdim] -= 1;
-    double cfl_max = reference_vel_face(&s, s.alpha_0, s.c_h, idx_l, iter.idx, flux_ref);
+    double ratio;
+    reference_vel_face(&s, s.alpha_0, s.c_h, idx_l, iter.idx, flux_ref, &ratio);
+    max_ratio = fmax(max_ratio, ratio);
     for (int k = 0; k < 8 * nk; ++k) {
       double err = fabs(fl[k] - flux_ref[k]);
       max_err = err > max_err ? err : max_err;
       max_flux = fabs(flux_ref[k]) > max_flux ? fabs(flux_ref[k]) : max_flux;
     }
-    double cerr = fabs(cfl[0] - 2.5 * 2.0 / s.pgrid.dx[cdim] * cfl_max);
-    max_cfl_err = cerr > max_cfl_err ? cerr : max_cfl_err;
   }
   TEST_CHECK(max_flux > 0.0);
   TEST_CHECK(max_err < 1e-12 * max_flux);
   TEST_MSG("cdim=%d: max flux error %g (max flux %g)", cdim, max_err, max_flux);
-  TEST_CHECK(max_cfl_err < 1e-11);
-  TEST_MSG("cdim=%d: max cflrate error %g", cdim, max_cfl_err);
+  // no interior face speed exceeds the column bound at the edges (plan 17.27)
+  TEST_CHECK(max_ratio <= 1.0 + 1e-12);
+  TEST_MSG("cdim=%d: largest face speed / column bound %g", cdim, max_ratio);
 
-  gkyl_array_release(cflrate);
   gkyl_array_release(flux);
   gkyl_dg_pkpm_vel_flux_surf_release(up);
   teardown(&s);
@@ -612,7 +615,7 @@ test_vel_flux_exact(int cdim)
   gkyl_array_clear(flux, 0.0);
   gkyl_array_clear(cflrate, 0.0);
   gkyl_dg_pkpm_vel_flux_surf_advance(up, &s.clocal, &s.plocal, s.hwn, s.theta, s.bvar, s.alpha_0, s.c_h,
-    s.f, cflrate, flux);
+    s.f, flux);
 
   static const double gl6_x[6] = {-0.9324695142031521, -0.6612093864662645, -0.2386191860831969,
     0.2386191860831969, 0.6612093864662645, 0.9324695142031521};
@@ -1002,7 +1005,7 @@ test_m1_invariant(int cdim)
 
   // Stage B (interior faces with the closures; the edge faces were set above).
   gkyl_dg_pkpm_vel_flux_surf_advance(
-    calc_vflux, &s.clocal, &s.plocal, s.hwn, s.theta, s.bvar, a_P, c_h, s.f, cflrate, vflux
+    calc_vflux, &s.clocal, &s.plocal, s.hwn, s.theta, s.bvar, a_P, c_h, s.f, vflux
   );
   struct gkyl_dg_pkpm_kinetic_vel_inp binp = {
     .conf_basis = &s.cbasis,
@@ -1184,7 +1187,7 @@ test_edge_closure(int cdim)
     );
     TEST_CHECK(num_null == 0);
     gkyl_dg_pkpm_vel_flux_surf_advance(
-      calc_vflux, &s.clocal, &s.plocal, s.hwn, s.theta, s.bvar, s.alpha_0, s.c_h, s.f, cflrate, vflux
+      calc_vflux, &s.clocal, &s.plocal, s.hwn, s.theta, s.bvar, s.alpha_0, s.c_h, s.f, vflux
     );
     gkyl_array_clear(rhs, 0.0);
     gkyl_hyper_dg_advance(slvr_b, &s.plocal, s.f, cflrate, rhs);

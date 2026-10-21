@@ -18,7 +18,7 @@ typedef void (*pkpm_vel_flux_nodes_t)(
   const double *wn, const double *theta, const double *bvar, const double *alpha_0, const double *c_h,
   double *GKYL_RESTRICT nv
 );
-typedef double (*pkpm_vel_flux_t)(
+typedef void (*pkpm_vel_flux_t)(
   const double *w, const double *dxv, const double *nv, const double *f_l, const double *f_r,
   double *GKYL_RESTRICT flux
 );

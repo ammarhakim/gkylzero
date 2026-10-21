@@ -463,7 +463,7 @@ sim_rhs(
       s->alpha_0, s->c_h, s->a_perp, s->vflux, s->cflrate_f
     );
     gkyl_dg_pkpm_vel_flux_surf_advance(
-      s->calc_vflux, &s->clocal, &s->plocal, s->hwn, s->theta, s->bvar, s->alpha_0, s->c_h, f, s->cflrate_f,
+      s->calc_vflux, &s->clocal, &s->plocal, s->hwn, s->theta, s->bvar, s->alpha_0, s->c_h, f,
       s->vflux
     );
     gkyl_hyper_dg_advance(s->slvr_b, &s->plocal, f, s->cflrate_f, rhs_f);
