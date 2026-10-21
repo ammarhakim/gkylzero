@@ -14,6 +14,7 @@ baseline snapshots without running simulations:
 
 ```sh
 bash ci/jenkins/tests/test_baseline_cache.sh
+TEST_CACHE_PLATFORM=stellar-ai-cpu bash ci/jenkins/tests/test_baseline_cache.sh
 python3 -m unittest -v ci.jenkins.tests.test_artifact_staging ci.jenkins.tests.test_run_compaction
 ```
 
@@ -93,7 +94,7 @@ policy fixtures also check baseline/candidate environments and cache invalidatio
 
 ```sh
 java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/tests/test_stellar_resources.groovy
-python3 -m unittest -v ci.jenkins.tests.test_stellar_mpi_policy
+python3 -m unittest -v ci.jenkins.tests.test_stellar_mpi_policy ci.jenkins.tests.test_stellar_ai_mpi_policy
 ```
 
 The scheduler fixtures use tiny shell/make jobs, not plasma simulations:

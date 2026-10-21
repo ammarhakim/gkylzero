@@ -8,7 +8,7 @@ work_dir="$(mktemp -d "${TMPDIR:-/tmp}/gkeyll-baseline-cache.XXXXXX")"
 trap 'rm -rf "$work_dir"' EXIT
 
 root="$work_dir/root"
-platform=personal
+platform=${TEST_CACHE_PLATFORM:-personal}
 export BUILD_TAG=fixture-run-1
 unset GKEYLL_CI_PREBUILT_CONFIG CI_BASELINE_CACHE_CONTEXT GKEYLL_CI_CACHE_REVISION
 

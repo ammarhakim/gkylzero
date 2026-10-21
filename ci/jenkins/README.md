@@ -8,6 +8,7 @@ credentials, and command-line client.
   pull request or candidate/baseline branch or commit on a local computer.
 - [Stellar CPU CI](README.stellar_cpu.md): manual CPU-only Slurm CI at
   Princeton Stellar.
+- [Stellar AI CPU CI](README.stellar-ai-cpu.md): private CPU-only Slurm CI on Stellar AI.
 - [Perlmutter GPU CI](README.perlmutter_gpu.md): manual GPU Slurm CI at NERSC.
 - [Team workstation CI](README.team_workstation.md): periodically discover
   pull requests into `main` from every author, with optional selected runs.

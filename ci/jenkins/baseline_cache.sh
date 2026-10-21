@@ -14,7 +14,7 @@ cache_root() {
 platform_dir() {
   local root
   case "$3" in
-    personal|team-workstation|stellar-cpu|perlmutter-gpu) ;;
+    personal|team-workstation|stellar-cpu|stellar-ai-cpu|perlmutter-gpu) ;;
     *) die "invalid CI platform: $3" ;;
   esac
   root="$(cache_root "$1")" || return
@@ -174,7 +174,7 @@ PYTHON
       cp "$file" "$target/ci-command-logs/"
     done
   fi
-  if [[ "$platform" == stellar-cpu || "$platform" == perlmutter-gpu ]]; then
+  if [[ "$platform" == stellar-cpu || "$platform" == stellar-ai-cpu || "$platform" == perlmutter-gpu ]]; then
     for file in "$workspace"/slurm-regression-* "$workspace"/slurm-parallel-regression-*; do
       [[ -f "$file" && ! -L "$file" ]] || continue
       cp "$file" "$target/baseline-$(basename "$file")"

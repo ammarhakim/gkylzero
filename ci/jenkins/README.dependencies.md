@@ -2,7 +2,7 @@
 
 [CI overview](README.md)
 
-All four workflows accept `GKEYLL_CI_PREBUILT_CONFIG`. In **Manage Jenkins →
+All five workflows accept `GKEYLL_CI_PREBUILT_CONFIG`. In **Manage Jenkins →
 System → Global properties → Environment variables**, set it to the absolute
 path of an existing `config.mak` on the build agent:
 

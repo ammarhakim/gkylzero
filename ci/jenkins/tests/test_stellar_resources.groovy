@@ -1,6 +1,9 @@
 // Run with: java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/tests/test_stellar_resources.groovy
 // Exercise resource requests without submitting Slurm jobs.
-def source = new File('ci/jenkins/jenkinsfile.stellar_cpu').text
+['stellar_cpu', 'stellar-ai-cpu'].each { platform ->
+def source = new File("ci/jenkins/jenkinsfile.${platform}").text
+// Exercise the same scheduling invariants with each platform's environment.
+source = source.replace('STELLAR_AI_CPU', 'STELLAR_CPU')
 new GroovyShell().parse(source)
 def helpers = ['buildJobs', 'positiveInteger', 'regressionJobs', 'regressionTestTimeout',
                'submitRegressionTests', 'submitParallelRegressionTests'].collect { name ->
@@ -40,3 +43,5 @@ try {
     assert false : 'Zero worker budget must be rejected'
 } catch (IllegalArgumentException expected) { }
 println('Stellar resource request tests passed')
+
+}

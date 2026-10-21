@@ -1,0 +1,119 @@
+# Stellar AI CPU Jenkins CI
+
+The `stellar-ai-cpu` job runs CPU unit tests, serial C regressions, and
+manifest-selected MPI C regressions on Stellar AI's `cpu` partition. It uses
+`machines/*.stellarai-cpu.sh`, with Open MPI 5.0.10 and no GPU requests.
+Anaconda is loaded only for dependency downloads; its MPI must not shadow
+Open MPI in build or simulation environments.
+
+## Install and access
+
+From a reviewed checkout on a Stellar AI login or visualization host:
+
+```sh
+./ci/jenkins/install-stellar-ai-cpu.sh
+```
+
+The installer uses Jenkins 2.580.1 LTS, verifies the WAR SHA-256, installs
+Pipeline/Git/Credentials Binding plugins, and creates a private authenticated
+controller. It refuses to overwrite an existing configured controller. Java 21
+and tmux must be installed. The defaults are:
+
+- Shared root: `/scratch/gpfs/CSD/$USER/gkeyll_ci_stellar_ai_cpu`
+- Java: `/usr/lib/jvm/jre-21-openjdk`
+- tmux session: `gkeyll_ci_stellar_ai_cpu`
+- Job and node label: `gkeyll-ci-stellar-ai-cpu` and `stellar-ai-cpu`
+- Slurm: partition `cpu`, account `csd`, QoS `short`
+- Eight compilation workers and sixteen regression worker/rank slots
+
+Override `GKEYLL_CI_ROOT` or `JAVA_HOME` before installation if necessary.
+Change the account, QoS, or worker budgets in Jenkins global environment
+variables (`STELLAR_AI_CPU_SLURM_ACCOUNT`, `STELLAR_AI_CPU_SLURM_QOS`,
+`STELLAR_AI_CPU_BUILD_JOBS`, `STELLAR_AI_CPU_REGRESSION_JOBS`).
+
+On a virtual desktop on the **same host as Jenkins**, open
+`http://127.0.0.1:8080`. Sign in as `admin`; read the password locally:
+
+```sh
+cat "$GKEYLL_CI_ROOT/jenkins_home/admin-password"
+```
+
+If `GKEYLL_CI_ROOT` is unset, substitute the expanded default path above.
+From another machine, tunnel to the exact host running the controller, e.g.:
+
+```sh
+ssh -N -L 127.0.0.1:8083:127.0.0.1:8080 USER@stellarai-vis2.princeton.edu
+```
+
+Then open `http://127.0.0.1:8083`. Jenkins listens only on loopback and denies
+anonymous job access. The generated API token is stored with mode 600 in
+`jenkins_home/jenkins-cli.auth`; the CLI reads it without printing it.
+
+In **Manage Jenkins → Credentials → System → Global credentials**, add a
+**Username with password** credential. Use your GitHub username and token,
+and ID **`gkeyll-github-stellar-ai-cpu`**. See
+[GitHub reporting](README.reporting.md#reporting-credentials) for permissions.
+Do not paste tokens into source files or build parameters.
+
+## Run and restart
+
+```sh
+./ci/jenkins/gkeyll-ci.sh stellar-ai-cpu run --pr 1234 --follow
+./ci/jenkins/gkeyll-ci.sh stellar-ai-cpu run --candidate-ref main --baseline-ref main
+./ci/jenkins/gkeyll-ci.sh stellar-ai-cpu recent
+./ci/jenkins/gkeyll-ci.sh stellar-ai-cpu info --build 1
+./ci/jenkins/gkeyll-ci.sh stellar-ai-cpu start
+```
+
+The controller survives terminal disconnection in tmux. It does not restart
+automatically after a host reboot; run `start` on the same host to restart it.
+The persistent launcher is also under `$GKEYLL_CI_ROOT/trusted/ci/jenkins/`.
+Jenkins data is in scratch and remains subject to cluster storage policies.
+
+## Workflow branch and caching
+
+This installation always loads `ci/jenkins/jenkinsfile.stellar-ai-cpu` from
+**`jenkins-github-more-reporting`** using Jenkins **Pipeline script from SCM**.
+`GKEYLL_CI_TRUSTED_REF=jenkins-github-more-reporting` selects the shared reporting,
+cache, comparison, Slurm, and machine scripts. Each run fetches that branch once
+into a separate temporary directory and freezes its SHA for all those helpers.
+The tested PR, candidate commit, and baseline commit never select workflow code.
+Reports record the trusted CI SHA independently of the two tested SHAs.
+
+The branch must contain the Stellar AI files before the first build. Push
+reviewed workflow updates to that branch; subsequent builds pick them up without
+editing the job. The locally installed controller queue hook and launcher are
+separate: update those from a reviewed checkout and restart Jenkins while idle.
+The bootstrap hook does not overwrite administrator changes on restart.
+
+The job retains **two Jenkins builds and their artifacts**, including removal
+of older last-successful/last-stable records. This follows the existing CI
+storage convention: persistent run directories are separate and are not
+pruned by Jenkins build retention. See [storage](README.storage.md).
+
+The baseline lives outside Jenkins workspaces and build records at
+`$GKEYLL_CI_ROOT/baseline-cache/stellar-ai-cpu/<baseline-sha>/`. The first run
+creates it; later compatible runs reuse the executable, serial/MPI results,
+and diagnostics. Publication requires successful, complete regression data.
+An atomic manifest, checksums, and a platform lease protect against partial
+publication, corruption, and concurrent replacement. The cache key includes
+dependency configuration, all three machine scripts, Slurm payloads, and the
+MPI reduction policy. Set `GKEYLL_CI_CACHE_REVISION` after an in-place module
+or dependency upgrade. The new platform cannot reuse old Stellar CPU caches.
+
+Cache status is recorded in `ci-baseline-cache.txt` and consolidated into
+`ci-statistics.md`. A cache fixture pass verifies the lifecycle; an actual
+numerical baseline is populated only after a successful regression create run.
+
+## Verification
+
+```sh
+TEST_CACHE_PLATFORM=stellar-ai-cpu bash ci/jenkins/tests/test_baseline_cache.sh
+python3 -m unittest -v ci.jenkins.tests.test_stellar_ai_mpi_policy
+java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/tests/test_stellar_resources.groovy
+```
+
+Before the first full run, verify `Time::HiRes` and four-rank `srun --exact`
+on a CPU allocation with the same modules, account, and QoS. The older
+[Stellar guide](README.stellar_cpu.md#verify-the-compute-node-perl-runtime)
+describes the Perl check; use the Stellar AI module file and `--partition=cpu`.

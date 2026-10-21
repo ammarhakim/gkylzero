@@ -9,4 +9,4 @@ module purge
 module load intel-classic/2023.2.3
 module load openmpi/intel-classic-2023.2.3/5.0.10
 module load openblas/0.3.x
-module load anaconda3/2026.7 # To download ADAS.
+# Keep Anaconda MPI out of the build and simulation runtime.

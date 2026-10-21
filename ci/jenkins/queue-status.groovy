@@ -40,6 +40,7 @@ class GkeyllQueueStatus {
     static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build()
     static final Map PLATFORMS = [
         personal: ['PERSONAL', 'gkeyll-ci-personal', null],
+        'stellar-ai-cpu': ['STELLAR_AI_CPU', 'gkeyll-ci-stellar-ai-cpu', 'continuous-integration/jenkins/stellar-ai-cpu'],
         stellar_cpu: ['STELLAR_CPU', 'gkeyll-ci-stellar_cpu', 'continuous-integration/jenkins/stellar_cpu'],
         perlmutter_gpu: ['PERLMUTTER_GPU', 'gkeyll-ci-perlmutter_gpu', 'continuous-integration/jenkins/perlmutter_gpu'],
         team: ['TEAM_WORKSTATION', 'gkeyll-ci-team-workstation', 'continuous-integration/jenkins/team-workstation']
