@@ -57,4 +57,4 @@ gyrokinetic/creg/rt_gk_sheath_3x2v_p1
 gyrokinetic/creg/rt_gk_sheath_cx_2x2v_p1	
 gyrokinetic/creg/rt_gk_tcv_core_3x2v_p1	
 gyrokinetic/creg/rt_gk_tcv_iwl_adapt_source_3x2v_p1	
-gyrokinetic/creg/rt_gk_wham_kinetic_poa_1x2v_p1	
+gyrokinetic/creg/rt_gk_wham_kinetic_poa_1x2v_p1
