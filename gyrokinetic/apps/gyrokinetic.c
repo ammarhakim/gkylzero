@@ -284,46 +284,41 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   }
 
   // Create plane communicators.
-  if (app->cdim == 1) {
-    app->decomp_plane[0] = gkyl_rect_decomp_acquire(app->decomp);
-    app->comm_plane[0] = gkyl_comm_acquire(app->comm);
-  } else {
-    for (int dir = 0; dir < app->cdim; ++dir) {
-      // Identify ranks on the same plane as this one.
-      int num_ranks_plane = 0;
-      int ranks_plane[app->decomp->ndecomp];
-      for (int i = 0; i < app->decomp->ndecomp; i++) {
-        if (app->decomp->ranges[i].lower[dir] == app->local.lower[dir]) {
-          ranks_plane[num_ranks_plane] = i;
-          num_ranks_plane++;
-        }
+  for (int dir = 0; dir < app->cdim; ++dir) {
+    // Identify ranks on the same plane as this one.
+    int num_ranks_plane = 0;
+    int ranks_plane[app->decomp->ndecomp];
+    for (int i = 0; i < app->decomp->ndecomp; i++) {
+      if (app->decomp->ranges[i].lower[dir] == app->local.lower[dir]) {
+        ranks_plane[num_ranks_plane] = i;
+        num_ranks_plane++;
       }
-      // Create a range tangentially global, and local in perp direction.
-      int lower_plane[app->cdim], upper_plane[app->cdim];
-      for (int d = 0; d < app->cdim; ++d) {
-        lower_plane[d] = app->global.lower[d];
-        upper_plane[d] = app->global.upper[d];
-      }
-      lower_plane[dir] = app->local.lower[dir];
-      upper_plane[dir] = app->local.upper[dir];
-      struct gkyl_range range_plane;
-      gkyl_range_init(&range_plane, app->cdim, lower_plane, upper_plane);
-
-      // Create decomp.
-      int cuts_plane[GKYL_MAX_CDIM];
-      for (int d = 0; d < app->cdim; ++d) {
-        cuts_plane[d] = gk->parallelism.cuts[d];
-      }
-      cuts_plane[dir] = 1;
-      app->decomp_plane[dir] = gkyl_rect_decomp_new_from_cuts(app->cdim, cuts_plane, &range_plane);
-
-      // Create a new communicator with ranks on plane.
-      bool is_comm_valid;
-      app->comm_plane[dir] = gkyl_comm_create_comm_from_ranks(
-        app->comm, num_ranks_plane, ranks_plane, app->decomp_plane[dir], &is_comm_valid
-      );
-      assert(is_comm_valid);
     }
+    // Create a range global in perpendicular directions, and local in parallel direction.
+    int lower_plane[app->cdim], upper_plane[app->cdim];
+    for (int d = 0; d < app->cdim; ++d) {
+      lower_plane[d] = app->global.lower[d];
+      upper_plane[d] = app->global.upper[d];
+    }
+    lower_plane[dir] = app->local.lower[dir];
+    upper_plane[dir] = app->local.upper[dir];
+    struct gkyl_range range_plane;
+    gkyl_range_init(&range_plane, app->cdim, lower_plane, upper_plane);
+
+    // Create decomp.
+    int cuts_plane[GKYL_MAX_CDIM];
+    for (int d = 0; d < app->cdim; ++d) {
+      cuts_plane[d] = gk->parallelism.cuts[d];
+    }
+    cuts_plane[dir] = 1;
+    app->decomp_plane[dir] = gkyl_rect_decomp_new_from_cuts(app->cdim, cuts_plane, &range_plane);
+
+    // Create a new communicator with ranks on plane.
+    bool is_comm_valid;
+    app->comm_plane[dir] = gkyl_comm_create_comm_from_ranks(
+      app->comm, num_ranks_plane, ranks_plane, app->decomp_plane[dir], &is_comm_valid
+    );
+    assert(is_comm_valid);
   }
 
   // Skin and ghost ranges for configuration space fields.
@@ -885,6 +880,9 @@ gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
       app->omegaH_gf = omegaH_gf_red[0];
     }
     app->omegaH_gf *= 1.0 / pow(sqrt(2.0), app->cdim);
+
+    double omegaH_gf_local = app->omegaH_gf;
+    gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &omegaH_gf_local, &app->omegaH_gf);
 
     if (app->use_gpu) {
       gkyl_cu_free(omegaH_gf_red);
@@ -1742,7 +1740,7 @@ gkyl_gyrokinetic_app_write_geometry(
     app, app->gk_geom->geo_int.qprofile, arr_ho1, "geo_int_qprofile", "Safety factor."
   );
   gyrokinetic_app_geometry_copy_and_write(
-    app, app->gk_geom->geo_int.rtg33inv, arr_ho1, "geo_int_rtg33inv",
+    app, app->gk_geom->geo_int.B3overB, arr_ho1, "geo_int_B3overB",
     "Reciprocal square root of the zz covariant metric component."
   );
   gyrokinetic_app_geometry_copy_and_write(
@@ -4356,7 +4354,7 @@ gkyl_gyrokinetic_app_read_geometry(
     app, app->gk_geom->geo_int.qprofile, arr_ho1, geometry_inp->geometry_path, "geo_int_qprofile"
   );
   gyrokinetic_app_geometry_read_and_copy(
-    app, app->gk_geom->geo_int.rtg33inv, arr_ho1, geometry_inp->geometry_path, "geo_int_rtg33inv"
+    app, app->gk_geom->geo_int.B3overB, arr_ho1, geometry_inp->geometry_path, "geo_int_B3overB"
   );
   gyrokinetic_app_geometry_read_and_copy(
     app, app->gk_geom->geo_int.dualcurlbhatoverB, arr_ho3, geometry_inp->geometry_path,

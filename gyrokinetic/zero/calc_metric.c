@@ -666,10 +666,10 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
         dualcurlbhatoverB_n[2] = dualcurlbhat_n[2] / bmag_n[0];
 
         // set B^3/B = 1/sqrt(g_33)
-        double *rtg33inv_n = gkyl_array_fetch(
-          gk_geom->geo_int.rtg33inv_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx)
+        double *B3overB_n = gkyl_array_fetch(
+          gk_geom->geo_int.B3overB_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx)
         );
-        rtg33inv_n[0] = 1.0 / sqrt(gFld_n[5]);
+        B3overB_n[0] = 1.0 / sqrt(gFld_n[5]);
 
         // set b_i/JB
         double *bioverJB_n = gkyl_array_fetch(
@@ -719,7 +719,7 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
   );
   gkyl_nodal_ops_n2m(
     up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 1,
-    gk_geom->geo_int.rtg33inv_nodal, gk_geom->geo_int.rtg33inv, true
+    gk_geom->geo_int.B3overB_nodal, gk_geom->geo_int.B3overB, true
   );
   gkyl_nodal_ops_n2m(
     up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 3,
@@ -1905,10 +1905,10 @@ gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry *gk_g
         dualcurlbhatoverB_n[2] = dualcurlbhat_n[2] / bmag_n[0];
 
         // set B^3/B = 1/sqrt(g_33)
-        double *rtg33inv_n = gkyl_array_fetch(
-          gk_geom->geo_int.rtg33inv_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx)
+        double *B3overB_n = gkyl_array_fetch(
+          gk_geom->geo_int.B3overB_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx)
         );
-        rtg33inv_n[0] = 1.0 / sqrt(gFld_n[5]);
+        B3overB_n[0] = 1.0 / sqrt(gFld_n[5]);
 
         // set b_i/JB
         double *bioverJB_n = gkyl_array_fetch(
@@ -1953,7 +1953,7 @@ gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry *gk_g
   );
   gkyl_nodal_ops_n2m(
     up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 1,
-    gk_geom->geo_int.rtg33inv_nodal, gk_geom->geo_int.rtg33inv, true
+    gk_geom->geo_int.B3overB_nodal, gk_geom->geo_int.B3overB, true
   );
   gkyl_nodal_ops_n2m(
     up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 3,
@@ -2323,8 +2323,10 @@ gkyl_calc_metric_advance_bcart(
       }
     }
   }
+  // The m2n calls above evaluate at interior Gauss nodes; use the matching
+  // quadrature projection here, rather than treating these as corner values.
   gkyl_nodal_ops_n2m(
-    up->n2m, up->cbasis, up->grid, nrange, update_range, 3, bcartFld_nodal, bcartFld, false
+    up->n2m, up->cbasis, up->grid, nrange, update_range, 3, bcartFld_nodal, bcartFld, true
   );
   gkyl_array_release(bcartFld_nodal);
   gkyl_array_release(biFld_nodal);
