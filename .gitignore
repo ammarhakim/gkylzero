@@ -72,3 +72,5 @@ install-deps/*.npy
 
 # Agent related stuff
 .entire/
+# Entire per-user/local configuration
+.entire/settings.local.json
