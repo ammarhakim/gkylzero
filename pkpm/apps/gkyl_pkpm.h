@@ -51,10 +51,10 @@ struct gkyl_pkpm_source {
   void (*V_drift)(double t, const double *xn, double *fout, void *ctx); // drift velocity (3 components); optional
 };
 
-// Parameters for fluid species diffusion
+// Parameters of the momentum diffusion of a species (also on a position map)
 struct gkyl_pkpm_fluid_diffusion {
   double D; // constant diffusion coefficient
-  int order; // integer for order of the diffusion (4 for grad^4, 6 for grad^6, default is grad^2)
+  int order; // order of the diffusion: 2 (grad^2, the default) or 4 (grad^4)
   void *Dij_ctx; // context for applied diffusion function if using general diffusion tensor
   // pointer to applied diffusion function is using general diffusion tensor
   void (*Dij)(double t, const double *xn, double *Dout, void *ctx);

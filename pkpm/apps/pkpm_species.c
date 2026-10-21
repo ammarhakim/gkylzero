@@ -183,7 +183,6 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   s->pkpm_rho3 = mkarr(app->use_gpu, 3 * nc, app->local_ext.volume);
   gkyl_array_clear(s->pkpm_rho3, 0.0);
   s->pkpm_mom3 = mkarr(app->use_gpu, 3 * nc, app->local_ext.volume);
-  s->pkpm_mom3_rhs = mkarr(app->use_gpu, 3 * nc, app->local_ext.volume);
   s->pkpm_grad_rho = mkarr(app->use_gpu, cdim * 3 * nc, app->local_ext.volume);
   gkyl_array_clear(s->pkpm_grad_rho, 0.0);
   s->pkpm_grad_ln_n = mkarr(app->use_gpu, cdim * nc, app->local_ext.volume);
@@ -306,6 +305,11 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   s->harm_vol = gkyl_dg_pkpm_harm_vol_inew(&harm_vol_inp);
   s->harm_coef = mkarr(app->use_gpu, gkyl_dg_pkpm_harm_vol_num_coef(s->harm_vol), app->local_ext.volume);
   s->harm_wnode = mkarr(app->use_gpu, gkyl_dg_pkpm_harm_vol_num_wnode(s->harm_vol), app->local_ext.volume);
+  s->harm_exp = gkyl_dg_pkpm_harm_exp_new(&(struct gkyl_dg_pkpm_harm_exp_inp) {
+    .conf_basis = &app->confBasis, .qbym = s->info.charge / s->info.mass, .use_gpu = app->use_gpu});
+  s->harm_exp_coef = mkarr(app->use_gpu, gkyl_dg_pkpm_harm_exp_num_coef(s->harm_exp), app->local_ext.volume);
+  s->harm_exp_S = mkarr(app->use_gpu, gkyl_dg_pkpm_harm_exp_num_stage(s->harm_exp), s->local_ext.volume);
+  s->harm_exp_A = mkarr(app->use_gpu, gkyl_dg_pkpm_harm_exp_num_stage(s->harm_exp), s->local_ext.volume);
   struct gkyl_dg_pkpm_kinetic_vel_inp kinetic_vel_inp = {
     .conf_basis = &app->confBasis,
     .phase_basis = &app->basis,
@@ -409,39 +413,25 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     pkpm_species_lbo_init(app, s, &s->lbo);
   }
 
-  // initialize diffusion if present
+  // momentum diffusion, if present, on the position map (orders 2 and 4)
   s->has_diffusion = false;
   if (s->info.diffusion.D) {
     s->has_diffusion = true;
-    // The momentum-diffusion operator works on the computational grid and does not use the position map.
-    if (!app->pos_map->is_identity) {
-      gkyl_exit("pkpm_species: momentum diffusion does not support a position map.");
+    int order = s->info.diffusion.order < 2 ? 2 : s->info.diffusion.order;
+    if (order != 2 && order != 4) {
+      gkyl_exit("pkpm_species: momentum diffusion supports orders 2 and 4 only.");
     }
-    s->info.diffusion.order = s->info.diffusion.order < 2 ? 2 : s->info.diffusion.order;
-    int num_eqn = 3;
-
-    int szD = cdim;
-    s->diffD = mkarr(app->use_gpu, szD, 1);
-    struct gkyl_array *diffD_host = s->diffD;
-    if (app->use_gpu) {
-      diffD_host = mkarr(false, szD, 1);
+    struct gkyl_dg_pkpm_mom_diffusion_inp diff_inp = {
+      .conf_grid = &app->grid,
+      .conf_basis = &app->confBasis,
+      .pos_map = app->pos_map,
+      .order = order,
+      .use_gpu = app->use_gpu,
+    };
+    for (int d = 0; d < cdim; ++d) {
+      diff_inp.D[d] = s->info.diffusion.D;
     }
-    // Set diffusion coefficient in each direction to input value.
-    gkyl_array_clear(diffD_host, 0.);
-    for (int d = 0; d < cdim; d++) {
-      gkyl_array_shiftc(diffD_host, s->info.diffusion.D, d);
-    }
-
-    if (app->use_gpu) { // note: diffD_host is same as diffD when not on GPUs
-      gkyl_array_copy(s->diffD, diffD_host);
-      gkyl_array_release(diffD_host);
-    }
-
-    bool is_zero_flux[GKYL_MAX_CDIM] = {false};
-    s->diff_slvr = gkyl_dg_updater_diffusion_fluid_new(
-      &app->grid, &app->confBasis, num_eqn, NULL, s->info.diffusion.order, is_zero_flux,
-      app->use_gpu
-    );
+    s->mom_diff = gkyl_dg_pkpm_mom_diffusion_inew(&diff_inp);
   }
 
   // determine which directions are not periodic and get non-periodic BC info
@@ -859,6 +849,27 @@ pkpm_species_project_transverse(gkyl_pkpm_app *app, struct pkpm_species *species
   );
 }
 
+void
+pkpm_species_harm_exp_accum(gkyl_pkpm_app *app, struct pkpm_species *species, int stage, double h,
+  const struct gkyl_array *fin, const struct gkyl_array *rhs)
+{
+  // The linear part is frozen with the field and the step of stage 1 (the field of the start of
+  // the step); a restarted step freezes it again with the new step.
+  if (stage == 1) {
+    gkyl_dg_pkpm_harm_exp_coef(species->harm_exp, &app->local, h, app->field->tot_em, species->harm_exp_coef);
+  }
+  gkyl_dg_pkpm_harm_exp_accum(species->harm_exp, stage, h, &app->local, &species->local,
+    species->harm_exp_coef, fin, rhs, species->harm_exp_S, species->harm_exp_A);
+}
+
+void
+pkpm_species_harm_exp_state(gkyl_pkpm_app *app, struct pkpm_species *species, int stage, double h,
+  struct gkyl_array *fout)
+{
+  gkyl_dg_pkpm_harm_exp_state(species->harm_exp, stage, h, &app->local, &species->local,
+    species->harm_exp_coef, species->f, species->harm_exp_S, species->harm_exp_A, fout);
+}
+
 // Closures from the moments of the partial right-hand side rhs_A (configuration pass):
 // c_0 M0 = -M0(rhs_A), (alpha_0, c) from the first and scalar second moments and a_perp from the
 // perpendicular rows I_perp int M0_perp dw (pkpm-vars-closure.mac).
@@ -962,15 +973,7 @@ pkpm_species_rhs(
   species->fluid_tm += gkyl_time_diff_now_sec(tm);
 
   if (species->has_diffusion) {
-    // momentum diffusion only: the momentum block through 3-component scratch arrays
-    int nc = app->confBasis.num_basis;
-    gkyl_array_set_offset(species->pkpm_mom3, 1.0, fluidin, nc);
-    gkyl_array_clear(species->pkpm_mom3_rhs, 0.0);
-    gkyl_dg_updater_diffusion_fluid_advance(
-      species->diff_slvr, &app->local, species->diffD, species->pkpm_mom3, species->cflrate_fluid,
-      species->pkpm_mom3_rhs
-    );
-    gkyl_array_accumulate_offset(rhs_fluid, 1.0, species->pkpm_mom3_rhs, nc);
+    gkyl_dg_pkpm_mom_diffusion_advance(species->mom_diff, &app->local, fluidin, species->cflrate_fluid, rhs_fluid);
   }
 
   // If PKPM update is fully explicit, include the fluid-EM coupling in fluid update
@@ -1241,7 +1244,6 @@ pkpm_species_release(const gkyl_pkpm_app *app, const struct pkpm_species *s)
   gkyl_array_release(s->pkpm_moms_no_J);
   gkyl_array_release(s->fluid_no_J);
   gkyl_array_release(s->pkpm_cmoms);
-  gkyl_array_release(s->pkpm_mom3_rhs);
   if (app->use_gpu) {
     gkyl_array_release(s->pkpm_cmoms_host);
   }
@@ -1253,6 +1255,9 @@ pkpm_species_release(const gkyl_pkpm_app *app, const struct pkpm_species *s)
   gkyl_array_release(s->pkpm_rho);
   gkyl_array_release(s->pkpm_rho3);
   gkyl_array_release(s->pkpm_mom3);
+  if (s->has_diffusion) {
+    gkyl_dg_pkpm_mom_diffusion_release(s->mom_diff);
+  }
   gkyl_array_release(s->pkpm_grad_rho);
   gkyl_array_release(s->pkpm_grad_ln_n);
   gkyl_array_release(s->pkpm_c_0);
@@ -1271,6 +1276,10 @@ pkpm_species_release(const gkyl_pkpm_app *app, const struct pkpm_species *s)
   gkyl_dg_pkpm_harm_vol_release(s->harm_vol);
   gkyl_array_release(s->harm_coef);
   gkyl_array_release(s->harm_wnode);
+  gkyl_dg_pkpm_harm_exp_release(s->harm_exp);
+  gkyl_array_release(s->harm_exp_coef);
+  gkyl_array_release(s->harm_exp_S);
+  gkyl_array_release(s->harm_exp_A);
   gkyl_dg_pkpm_fluid_flux_surf_release(s->calc_fluid_flux);
   gkyl_hyper_dg_release(s->slvr_kinetic_conf);
   gkyl_hyper_dg_release(s->slvr_kinetic_vel);

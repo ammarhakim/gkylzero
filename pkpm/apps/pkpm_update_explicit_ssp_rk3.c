@@ -31,7 +31,7 @@ pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app *app, double dt0)
             fluidout[i] = app->species[i].fluid1;
           }
           pkpm_forward_euler(
-            app, tcurr, dt, fin, fluidin, app->field->em, fout, fluidout, app->field->em1, &st
+            app, 1, tcurr, dt, fin, fluidin, app->field->em, fout, fluidout, app->field->em1, &st
           );
           // Limit the EM solution if desired (done after update as post-hoc fix)
           pkpm_field_limiter(app, app->field, app->field->emnew);
@@ -54,7 +54,7 @@ pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app *app, double dt0)
             fluidout[i] = app->species[i].fluidnew;
           }
           pkpm_forward_euler(
-            app, tcurr + dt, dt, fin, fluidin, app->field->em1, fout, fluidout, app->field->emnew,
+            app, 2, tcurr + dt, dt, fin, fluidin, app->field->em1, fout, fluidout, app->field->emnew,
             &st
           );
           // Limit the EM solution if desired (done after update as post-hoc fix)
@@ -105,7 +105,7 @@ pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app *app, double dt0)
             fluidout[i] = app->species[i].fluidnew;
           }
           pkpm_forward_euler(
-            app, tcurr + dt / 2, dt, fin, fluidin, app->field->em1, fout, fluidout,
+            app, 3, tcurr + dt / 2, dt, fin, fluidin, app->field->em1, fout, fluidout,
             app->field->emnew, &st
           );
           // Limit the EM solution if desired (done after update as post-hoc fix)

@@ -69,10 +69,15 @@ pkpm_fluid_em_coupling_update(
   }
 
   // The ghost current enters the implicit solve as an applied current -<J_x> (frozen over
-  // the step, like the applied current itself).
+  // the step, like the applied current itself); its domain mean is that of the J-weighted
+  // (evolved) momenta, and it is used as a physical current like the rest of the solve.
   const struct gkyl_array *app_current = app->field->app_current_no_J;
   if (app->field->use_ghost_current) {
-    pkpm_field_calc_ghost_current(app, app->field, (const struct gkyl_array **)fluids);
+    const struct gkyl_array *fluids_J[GKYL_MAX_SPECIES];
+    for (int i = 0; i < num_species; ++i) {
+      fluids_J[i] = app->species[i].fluid;
+    }
+    pkpm_field_calc_ghost_current(app, app->field, fluids_J);
     gkyl_array_set(app->field->app_current_tot, 1.0, app->field->app_current_no_J);
     gkyl_array_accumulate_range(app->field->app_current_tot, -1.0, app->field->ghost_current, &app->local);
     app_current = app->field->app_current_tot;

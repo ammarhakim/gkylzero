@@ -63,7 +63,7 @@ struct pkpm_species_lw {
 
   bool has_diffusion; // Is there a diffusion operator?
   double D; // Diffusion coefficient.
-  double order; // Diffusion order (e.g., grad^2, grad^4, grad^6).
+  double order; // Diffusion order: 2 (grad^2) or 4 (grad^4).
 
   enum gkyl_collision_id collision_id; // Collision type.
 

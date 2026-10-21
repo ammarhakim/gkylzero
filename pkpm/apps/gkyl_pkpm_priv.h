@@ -29,10 +29,11 @@
 #include <gkyl_dg_pkpm_fluid_flux_surf.h>
 #include <gkyl_dg_pkpm_kinetic_conf.h>
 #include <gkyl_dg_pkpm_kinetic_vel.h>
+#include <gkyl_dg_pkpm_harm_exp.h>
 #include <gkyl_dg_pkpm_harm_vol.h>
 #include <gkyl_dg_pkpm_vel_flux_surf.h>
 #include <gkyl_dg_maxwell.h>
-#include <gkyl_dg_updater_diffusion_fluid.h>
+#include <gkyl_dg_pkpm_mom_diffusion.h>
 #include <gkyl_dg_updater_lbo_pkpm.h>
 #include <gkyl_dg_updater_moment_pkpm.h>
 #include <gkyl_dynvec.h>
@@ -258,7 +259,6 @@ struct pkpm_species {
   struct gkyl_array *pkpm_rho; // physical mass density (leading block of fluid_no_J)
   struct gkyl_array *pkpm_rho3; // [rho, 0, 0] for the weak-gradient kernels
   struct gkyl_array *pkpm_mom3; // momentum block of the fluid array (scratch for the 3-component consumers)
-  struct gkyl_array *pkpm_mom3_rhs; // 3-component right-hand-side scratch (momentum diffusion)
   struct gkyl_array *pkpm_grad_rho; // weak gradient of [rho, 0, 0] (scratch)
   struct gkyl_array *pkpm_grad_ln_n; // grad(ln n), cdim expansions
   struct gkyl_array *pkpm_c_0; // normalization closure of the factored update
@@ -272,6 +272,9 @@ struct pkpm_species {
   struct gkyl_dg_pkpm_harm_vol *harm_vol; // modal volume integrals of the first-harmonic terms (stage A)
   struct gkyl_array *harm_coef; // stored operator of the stage (gkyl_pkpm_harm_ops.h)
   struct gkyl_array *harm_wnode; // raw w-flux values of the stage at the w-face nodes
+  struct gkyl_dg_pkpm_harm_exp *harm_exp; // exponential update of the first-harmonic blocks (plan 17.6)
+  struct gkyl_array *harm_exp_coef; // its linear part frozen at the start of the step
+  struct gkyl_array *harm_exp_S, *harm_exp_A; // nodal N_1 (+ N_2) and the final weighted sum
   struct gkyl_array *fluid_flux_surf; // stored modal fluid fluxes [F_rho, F_x, F_y, F_z, F_E]
   struct gkyl_array *
     integ_pkpm_mom; // integrated PKPM variables [rho, rho ux, rho uy, rho uz, rho ux^2, rho uy^2, rho uz^2, p_par, p_perp]
@@ -351,9 +354,8 @@ struct pkpm_species {
   struct gkyl_array *fluid_flux_surf_host; // host mirror of the stored fluid fluxes (GPU only)
 
   // fluid diffusion
-  bool has_diffusion; // flag to indicate there is applied diffusion
-  struct gkyl_array *diffD; // array for diffusion tensor
-  struct gkyl_dg_updater_diffusion_fluid *diff_slvr; // Fluid diffusion equation solver
+  bool has_diffusion; // flag to indicate there is applied momentum diffusion
+  struct gkyl_dg_pkpm_mom_diffusion *mom_diff; // momentum diffusion on the position map
 
   double *omegaCfl_ptr_dist;
   double *omegaCfl_ptr_fluid;
@@ -412,6 +414,7 @@ struct pkpm_field {
   struct gkyl_dg_calc_pkpm_bvar *calc_bvar; // Updater computing b by nodal normalization
 
   bool limit_em; // boolean for whether or not we are limiting EM fields
+  struct gkyl_array *em_lim; // physical E, B being limited (scratch; only with limit_em)
   struct gkyl_dg_calc_em_vars *calc_em_vars; // Updater to limit EM fields
 
   gkyl_hyper_dg *slvr; // Maxwell solver
@@ -500,9 +503,10 @@ struct gkyl_pkpm_app {
 
 // Take a single forward Euler step of the PKPM system with the suggested time-step dt. The
 // first-harmonic blocks of the stage state fin are projected onto the plane perpendicular to the
-// stage's b first (in place).
+// stage's b first (in place). stage (1, 2 or 3) is the SSP-RK3 stage: the first-harmonic blocks of
+// fout are those of the exponential update of that stage in the Shu-Osher form of the driver.
 void pkpm_forward_euler(
-  gkyl_pkpm_app *app, double tcurr, double dt, struct gkyl_array *fin[],
+  gkyl_pkpm_app *app, int stage, double tcurr, double dt, struct gkyl_array *fin[],
   const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *fout[],
   struct gkyl_array *fluidout[], struct gkyl_array *emout, struct gkyl_update_status *st
 );
@@ -758,6 +762,14 @@ void pkpm_species_bgk_set_fixed_temp(gkyl_pkpm_app *app, struct pkpm_species *s,
 // Project M0_perp and N_perp of the distributions f onto the plane perpendicular to the current b
 // at the Gauss-Legendre nodes of b, in place, over the extended ranges (plan 17.11).
 void pkpm_species_project_transverse(gkyl_pkpm_app *app, struct pkpm_species *species, struct gkyl_array *f);
+// Exponential update of the first-harmonic blocks (plan 17.6, 17.7). Before the forward Euler
+// accumulate of stage s: freeze the linear part (q/m) (.) x B_n of the step (s = 1) and accumulate the
+// stage right-hand side rhs - L_n fin. After it: write the first-harmonic blocks of fout as the
+// value whose SSP-RK3 combination with the state at the start of the step is the exponential stage.
+void pkpm_species_harm_exp_accum(gkyl_pkpm_app *app, struct pkpm_species *species, int stage, double h,
+  const struct gkyl_array *fin, const struct gkyl_array *rhs);
+void pkpm_species_harm_exp_state(gkyl_pkpm_app *app, struct pkpm_species *species, int stage, double h,
+  struct gkyl_array *fout);
 
 // out += a conf * phase for every block of a phase array (the bin-op kernels act on one
 // block of num_basis components); phase may hold fewer blocks than out (e.g. [F, G] only).
@@ -913,8 +925,9 @@ void pkpm_field_calc_ext_em(gkyl_pkpm_app *app, struct pkpm_field *field, double
  */
 void pkpm_field_calc_app_current(gkyl_pkpm_app *app, struct pkpm_field *field, double tm);
 
-// Domain mean of the species x current (coefficient 0 of sum_s q_s M_x/m_s over the fluid
-// arrays given), stored as a constant in field->ghost_current.
+// Domain mean of the species x current (coefficient 0 of sum_s q_s M_x/m_s), stored as a
+// constant (physical) in field->ghost_current. fluidin are the J-weighted (evolved) fluid states:
+// their cell mean is the physical domain mean on a position map that fixes the end points.
 void pkpm_field_calc_ghost_current(
   gkyl_pkpm_app *app, struct pkpm_field *field, const struct gkyl_array *fluidin[]
 );

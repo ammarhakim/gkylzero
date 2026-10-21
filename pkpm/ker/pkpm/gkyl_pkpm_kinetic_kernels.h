@@ -7,6 +7,9 @@ GKYL_CU_DH double pkpm_kinetic_conf_vol_1x1v_ser_p1(const double *w, const doubl
   const double *bvar, const double *u, const double *xi, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH int pkpm_dist_normalize_1x1v_ser_p1(const double *nmoms, const double *f, double* GKYL_RESTRICT fbar); 
 GKYL_CU_DH void pkpm_dist_transverse_1x1v_ser_p1(const double *bvar, double* GKYL_RESTRICT f); 
+GKYL_CU_DH void pkpm_harm_exp_to_nodes_1x1v_ser_p1(const double *f, double* GKYL_RESTRICT fn); 
+GKYL_CU_DH void pkpm_harm_exp_to_modal_1x1v_ser_p1(const double *fn, double* GKYL_RESTRICT f); 
+GKYL_CU_DH void pkpm_harm_exp_conf_nodes_1x_ser_p1(const double *em, double* GKYL_RESTRICT Bn); 
 GKYL_CU_DH double pkpm_conf_flux_x_1x1v_ser_p1(const double *w, const double *dxv,
   const double *jacob_pos_l, const double *jacob_pos_r, const double *b_l, const double *b_r,
   const double *u_l, const double *u_r, const double *xi_l, const double *xi_r,
@@ -35,6 +38,9 @@ GKYL_CU_DH double pkpm_kinetic_conf_vol_2x1v_ser_p1(const double *w, const doubl
   const double *bvar, const double *u, const double *xi, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH int pkpm_dist_normalize_2x1v_ser_p1(const double *nmoms, const double *f, double* GKYL_RESTRICT fbar); 
 GKYL_CU_DH void pkpm_dist_transverse_2x1v_ser_p1(const double *bvar, double* GKYL_RESTRICT f); 
+GKYL_CU_DH void pkpm_harm_exp_to_nodes_2x1v_ser_p1(const double *f, double* GKYL_RESTRICT fn); 
+GKYL_CU_DH void pkpm_harm_exp_to_modal_2x1v_ser_p1(const double *fn, double* GKYL_RESTRICT f); 
+GKYL_CU_DH void pkpm_harm_exp_conf_nodes_2x_ser_p1(const double *em, double* GKYL_RESTRICT Bn); 
 GKYL_CU_DH double pkpm_conf_flux_x_2x1v_ser_p1(const double *w, const double *dxv,
   const double *jacob_pos_l, const double *jacob_pos_r, const double *b_l, const double *b_r,
   const double *u_l, const double *u_r, const double *xi_l, const double *xi_r,
@@ -70,6 +76,9 @@ GKYL_CU_DH double pkpm_kinetic_conf_vol_3x1v_ser_p1(const double *w, const doubl
   const double *bvar, const double *u, const double *xi, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH int pkpm_dist_normalize_3x1v_ser_p1(const double *nmoms, const double *f, double* GKYL_RESTRICT fbar); 
 GKYL_CU_DH void pkpm_dist_transverse_3x1v_ser_p1(const double *bvar, double* GKYL_RESTRICT f); 
+GKYL_CU_DH void pkpm_harm_exp_to_nodes_3x1v_ser_p1(const double *f, double* GKYL_RESTRICT fn); 
+GKYL_CU_DH void pkpm_harm_exp_to_modal_3x1v_ser_p1(const double *fn, double* GKYL_RESTRICT f); 
+GKYL_CU_DH void pkpm_harm_exp_conf_nodes_3x_ser_p1(const double *em, double* GKYL_RESTRICT Bn); 
 GKYL_CU_DH double pkpm_conf_flux_x_3x1v_ser_p1(const double *w, const double *dxv,
   const double *jacob_pos_l, const double *jacob_pos_r, const double *b_l, const double *b_r,
   const double *u_l, const double *u_r, const double *xi_l, const double *xi_r,

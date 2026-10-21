@@ -174,6 +174,9 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   // If not specified, set to 0.0 and updater sets default behavior (1/sqrt(3); see gkyl_dg_calc_em_vars.h)
   double limiter_fac = f->info.limiter_fac == 0 ? 0.0 : f->info.limiter_fac;
   f->limit_em = f->info.limit_em;
+  if (f->limit_em) {
+    f->em_lim = mkarr(app->use_gpu, 8 * app->confBasis.num_basis, app->local_ext.volume);
+  }
 
   struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c, ef, mf, app->use_gpu);
   // Create updaters for limiting EM fields
@@ -348,8 +351,11 @@ pkpm_field_limiter(gkyl_pkpm_app *app, struct pkpm_field *field, struct gkyl_arr
   if (field->limit_em) {
     struct timespec tm = gkyl_wall_clock();
 
-    // Limit the slopes of the solution
-    gkyl_dg_calc_em_vars_limiter(field->calc_em_vars, &app->local, em);
+    // Limit the slopes of the PHYSICAL field (on a position map the J-weighted field jumps with J
+    // between cells; on the identity map J = 1 exactly and this is the field itself)
+    gkyl_vlasov_position_map_divide_jacobpos_conf(app->pos_map, &app->local_ext, em->ncomp, em, field->em_lim);
+    gkyl_dg_calc_em_vars_limiter(field->calc_em_vars, &app->local, field->em_lim);
+    gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local, field->em_lim, em);
 
     app->stat.field_em_vars_tm += gkyl_time_diff_now_sec(tm);
 
@@ -400,9 +406,11 @@ pkpm_field_explicit_accumulate_current(
       gkyl_array_set_offset(s->pkpm_mom3, 1.0, fluidin[i], app->confBasis.num_basis);
       gkyl_array_accumulate_range(emout, -qbymeps, s->pkpm_mom3, &app->local);
     }
-    // Ghost current: add back the domain-mean current (coefficient 0 of E_x).
+    // Ghost current: add back the domain-mean current (coefficient 0 of E_x), J-weighted like
+    // the evolved field (a uniform current is then no source of E on a position map).
     if (field->use_ghost_current) {
       pkpm_field_calc_ghost_current(app, field, fluidin);
+      gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local, field->ghost_current, field->ghost_current);
       gkyl_array_accumulate_range(emout, 1.0 / field->info.epsilon0, field->ghost_current, &app->local);
     }
     // Accumulate applied current to electric field terms
@@ -573,6 +581,9 @@ pkpm_field_release(const gkyl_pkpm_app *app, struct pkpm_field *f)
   }
   gkyl_array_release(f->app_current_no_J);
   gkyl_array_release(f->em_no_J);
+  if (f->limit_em) {
+    gkyl_array_release(f->em_lim);
+  }
   if (app->use_gpu) {
     gkyl_array_release(f->em_no_J_host);
   }
