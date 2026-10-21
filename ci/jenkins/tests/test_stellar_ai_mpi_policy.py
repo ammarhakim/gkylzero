@@ -26,6 +26,7 @@ class StellarAiMpiPolicyTests(unittest.TestCase):
                         CI_CANDIDATE_DIR=str(self.root / 'candidate/gkeyll'),
                         CI_CANDIDATE_PREFIX=str(self.root / 'candidate/prefix'),
                         CI_TRUSTED_CHECKER=str(self.root / 'checker.lua'),
+                        SLURM_MPI_TYPE='none',
                         OMPI_MCA_coll='han,hcoll',
                         OMPI_MCA_coll_hcoll_enable='1',
                         OMPI_MCA_coll_tuned_use_dynamic_rules='0',
@@ -37,8 +38,8 @@ class StellarAiMpiPolicyTests(unittest.TestCase):
             binary.parent.mkdir(parents=True)
             binary.write_text('''#!/bin/bash
 set -eu
-printf '%s %s %s %s\\n' "$OMPI_MCA_coll_hcoll_enable" \\
-  "$OMPI_MCA_coll_tuned_use_dynamic_rules" "$OMPI_MCA_coll_tuned_allreduce_algorithm" "$OMPI_MCA_coll" \\
+printf '%s %s %s %s %s\\n' "$OMPI_MCA_coll_hcoll_enable" \\
+  "$OMPI_MCA_coll_tuned_use_dynamic_rules" "$OMPI_MCA_coll_tuned_allreduce_algorithm" "$OMPI_MCA_coll" "$SLURM_MPI_TYPE" \\
   >> "$CI_WORKSPACE/observed-policy.txt"
 ''')
             binary.chmod(0o755)
@@ -53,7 +54,7 @@ printf '%s %s %s %s\\n' "$OMPI_MCA_coll_hcoll_enable" \\
                                         capture_output=True, text=True)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 self.assertEqual(observed.read_text().splitlines(),
-                                 ['0 1 3 ^hcoll,han'] * (1 if mode == 'baseline-create' else 2))
+                                 ['0 1 3 ^hcoll,han pmix'] * (1 if mode == 'baseline-create' else 2))
 
     def test_runtime_payload_and_toolchain_both_affect_cache_key(self):
         payload = self.root / 'ci/jenkins' / PAYLOAD.name

@@ -4,7 +4,9 @@ The `stellar-ai-cpu` job runs CPU unit tests, serial C regressions, and
 manifest-selected MPI C regressions on Stellar AI's `cpu` partition. It uses
 `machines/*.stellarai-cpu.sh`, with Open MPI 5.0.10 and no GPU requests.
 Anaconda is loaded only for dependency downloads; its MPI must not shadow
-Open MPI in build or simulation environments.
+Open MPI in build or simulation environments. MPI regression payloads select
+`SLURM_MPI_TYPE=pmix` explicitly: Stellar AI provides the PMIx plugin but does
+not configure a default MPI plugin for `srun`.
 
 ## Install and access
 

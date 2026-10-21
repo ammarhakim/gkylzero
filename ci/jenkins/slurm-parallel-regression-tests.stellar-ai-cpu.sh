@@ -10,6 +10,11 @@ cd "$CI_WORKSPACE"
 . machines/module_load.stellarai-cpu.sh
 if [ -n "${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "$GKEYLL_CI_DEPENDENCY_ENV"; fi
 
+# Stellar AI exposes pmix_v5 but does not set Slurm's MpiDefault. The
+# regression runner uses srun --exact, so select PMIx for every MPI step.
+export SLURM_MPI_TYPE=pmix
+printf 'Slurm MPI plugin: %s\n' "$SLURM_MPI_TYPE"
+
 # Collective implementations can use different floating-point sum trees. Use
 # Open MPI's rank-ordered recursive doubling for reproducible CI baselines
 # and candidate runs, including reductions feeding adaptive sources.
