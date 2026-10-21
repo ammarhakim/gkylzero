@@ -8,6 +8,16 @@ Open MPI in build or simulation environments. MPI regression payloads select
 `SLURM_MPI_TYPE=pmix` explicitly: Stellar AI provides the PMIx plugin but does
 not configure a default MPI plugin for `srun`.
 
+The CI pipeline sets `ARCH_FLAGS="-march=x86-64-v4 -mtune=znver5"` in each
+run's generated `config.mak`, for both candidate and baseline builds (including
+copies of prebuilt configurations). Machine files and the original prebuilt
+configuration are unchanged. The visualization nodes are Intel Granite Rapids,
+while the CPU partition is AMD Turin (Zen 5). The shared instruction set lets
+Jenkins run the installed regression driver on the visualization host and tunes
+code for the AMD compute nodes. It also avoids GCC 14.3's `-march=native` AVX10
+alias warning. The effective CI architecture flags are included in the baseline
+cache fingerprint, so changing them forces a fresh baseline.
+
 ## Install and access
 
 From a reviewed checkout on a Stellar AI login or visualization host:

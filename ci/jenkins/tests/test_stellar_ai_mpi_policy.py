@@ -65,7 +65,8 @@ printf '%s %s %s %s %s\\n' "$OMPI_MCA_coll_hcoll_enable" \\
         tool = self.root / 'cache-tool'
         tool.write_text('#!/bin/bash\necho "${FIXTURE_CONTEXT:-toolchain-v1}"\n')
         tool.chmod(0o755)
-        env = dict(self.env, CI_BASELINE_CACHE_TOOL=str(tool))
+        env = dict(self.env, CI_BASELINE_CACHE_TOOL=str(tool),
+                   CI_ARCH_FLAGS='-march=x86-64-v4 -mtune=znver5')
 
         def context():
             return subprocess.check_output(['bash', '-c', CONTEXT_SCRIPT],
@@ -84,6 +85,10 @@ printf '%s %s %s %s %s\\n' "$OMPI_MCA_coll_hcoll_enable" \\
         module.write_text(':\n')
         self.assertEqual(original, context())
         env['FIXTURE_CONTEXT'] = 'toolchain-v2'
+        self.assertNotEqual(original, context())
+        del env['FIXTURE_CONTEXT']
+        self.assertEqual(original, context())
+        env['CI_ARCH_FLAGS'] = '-march=x86-64-v3 -mtune=generic'
         self.assertNotEqual(original, context())
 
 

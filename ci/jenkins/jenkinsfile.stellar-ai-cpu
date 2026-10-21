@@ -427,14 +427,34 @@ def submitRegressionTests(String mode, String baselineDir, String candidateDir) 
     )
 }
 
-// A baseline generated with another MPI reduction policy is not reusable.
+// Build on Intel vis2 and execute on AMD Turin: use their shared ISA,
+// with scheduling tuned for the CPU compute nodes.
+def ciArchitectureFlags() {
+    return '-march=x86-64-v4 -mtune=znver5'
+}
+
+// Only modify the disposable CI config, including copies of prebuilt configs.
+// The installed regression Makefile inherits this setting through config.mak.
+def applyCiArchitecture() {
+    withEnv(["CI_ARCH_FLAGS=${ciArchitectureFlags()}"]) {
+        sh '''#!/bin/bash
+            set -euo pipefail
+            test -s config.mak
+            printf '\\n# Stellar AI CPU CI architecture\\noverride ARCH_FLAGS := %s\\n' "$CI_ARCH_FLAGS" >> config.mak
+        '''
+    }
+}
+
+// Architecture, toolchain and MPI reduction policy must match the baseline.
 // Hash the payload actually submitted for both baseline and candidate runs.
 def baselineCacheContext() {
-    withEnv(["CI_BASELINE_CACHE_TOOL=${reporting.settings.cacheScript}"]) {
+    withEnv(["CI_BASELINE_CACHE_TOOL=${reporting.settings.cacheScript}",
+             "CI_ARCH_FLAGS=${ciArchitectureFlags()}"]) {
         return sh(returnStdout: true, script: '''#!/bin/bash
             set -euo pipefail
             {
                 "$CI_BASELINE_CACHE_TOOL" context
+                printf 'ARCH_FLAGS=%s\\n' "$CI_ARCH_FLAGS"
                 sha256sum machines/{module_load,configure,mkdeps}.stellarai-cpu.sh
                 sha256sum ci/jenkins/slurm-*.stellar-ai-cpu.sh
             } | sha256sum | cut -d' ' -f1
@@ -808,6 +828,7 @@ node(nodeLabel) {
                         set -euo pipefail
                         ./machines/configure.stellarai-cpu.sh
                     ''')
+                        applyCiArchitecture()
                     }
                 }
             }
@@ -876,6 +897,7 @@ node(nodeLabel) {
                                 ./machines/mkdeps.stellarai-cpu.sh
                                 ./machines/configure.stellarai-cpu.sh
                             ''')
+                            applyCiArchitecture()
                         }
                     }
                     }
