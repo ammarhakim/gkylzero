@@ -1,0 +1,47 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M5DW4YP76BDGN7R0E27S57BP",
+  "strategy": "manual-commit",
+  "branch": "debug-nunif-grid_cyl_map",
+  "checkpoints_count": 5,
+  "files_touched": [
+    "gyrokinetic/ker/gk_collisionless_flux/gk_collisionless_flux_zero_flux_surfx_1x1v_ser_p1.c",
+    "gyrokinetic/ker/gk_collisionless_flux/gk_collisionless_flux_zero_flux_surfx_1x2v_ser_p1.c",
+    "gyrokinetic/ker/gk_collisionless_flux/gk_collisionless_flux_zero_flux_surfx_2x2v_ser_p1.c",
+    "gyrokinetic/ker/gk_collisionless_flux/gk_collisionless_flux_zero_flux_surfx_3x2v_ser_p1.c",
+    "gyrokinetic/ker/gk_collisionless_flux/gk_collisionless_flux_zero_flux_surfy_2x2v_ser_p1.c",
+    "gyrokinetic/ker/gk_collisionless_flux/gk_collisionless_flux_zero_flux_surfy_3x2v_ser_p1.c",
+    "gyrokinetic/ker/gk_collisionless_flux/gk_collisionless_flux_zero_flux_surfz_3x2v_ser_p1.c",
+    "gyrokinetic/ker/gk_collisionless_flux/gkyl_gk_collisionless_flux_kernels.h",
+    "gyrokinetic/ker/gk_collisionless_passive_flux/gk_collisionless_passive_flux_zero_flux_surfx_1x1v_ser_p1.c",
+    "gyrokinetic/ker/gk_collisionless_passive_flux/gk_collisionless_passive_flux_zero_flux_surfx_1x2v_ser_p1.c",
+    "gyrokinetic/ker/gk_collisionless_passive_flux/gk_collisionless_passive_flux_zero_flux_surfx_2x2v_ser_p1.c",
+    "gyrokinetic/ker/gk_collisionless_passive_flux/gk_collisionless_passive_flux_zero_flux_surfx_3x2v_ser_p1.c",
+    "gyrokinetic/ker/gk_collisionless_passive_flux/gk_collisionless_passive_flux_zero_flux_surfy_2x2v_ser_p1.c",
+    "gyrokinetic/ker/gk_collisionless_passive_flux/gk_collisionless_passive_flux_zero_flux_surfy_3x2v_ser_p1.c",
+    "gyrokinetic/ker/gk_collisionless_passive_flux/gk_collisionless_passive_flux_zero_flux_surfz_3x2v_ser_p1.c",
+    "gyrokinetic/unit/ctest_gk_collisionless_flux.c",
+    "gyrokinetic/unit/ctest_gk_collisionless_passive_flux.c",
+    "gyrokinetic/unit/gk_collisionless_flux_test.h",
+    "gyrokinetic/zero/gk_collisionless_flux.c",
+    "gyrokinetic/zero/gk_collisionless_flux_cu.cu",
+    "gyrokinetic/zero/gkyl_gk_collisionless_flux_priv.h",
+    "gyrokinetic/zero/gkyl_gk_collisionless_passive_flux_priv.h"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 1180146,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 24496768,
+    "output_tokens": 101690,
+    "api_call_count": 191
+  }
+}
