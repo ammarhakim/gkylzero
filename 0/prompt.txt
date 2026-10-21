@@ -1,0 +1,17 @@
+Resolve the merge conflicts. I merged main into this branch
+
+---
+
+Resolve the merge conflicts. I merged main into this branch
+
+---
+
+<send_user_message_question_reply>
+[{"answer":"Keep that resolution","question":"The regression-differences file was resolved and staged by another process while I was working, keeping only this branch’s entries. Was that intentional?","questionItemId":"[\"request_user_input_async\",\"call_9da1d9b2bf54467f931f1e4fa89250ec\",0]"}]
+</send_user_message_question_reply>
+
+---
+
+<send_user_message_question_reply>
+[{"answer":"Keep that resolution","question":"The regression-differences file was resolved and staged by another process while I was working, keeping only this branch’s entries. Was that intentional?","questionItemId":"[\"request_user_input_async\",\"call_9da1d9b2bf54467f931f1e4fa89250ec\",0]"}]
+</send_user_message_question_reply>
