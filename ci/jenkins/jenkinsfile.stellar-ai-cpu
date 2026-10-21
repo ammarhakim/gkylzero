@@ -270,7 +270,9 @@ def prepareClusterScripts() {
 }
 
 def submitSlurmJob(String kind, String payload, String cpus, String timeLimit, List<String> extraExports = [], String tasks = '1') {
-    def qos = (env.STELLAR_AI_CPU_SLURM_QOS ?: 'pppl-short').trim()
+    def qos = (kind == 'unit'
+        ? (env.STELLAR_AI_CPU_UNIT_QOS ?: 'test')
+        : (env.STELLAR_AI_CPU_SLURM_QOS ?: 'short')).trim()
     def account = env.STELLAR_AI_CPU_SLURM_ACCOUNT?.trim()
     def idFile = "slurm-${kind}-job-id.txt"
     def statusFile = "slurm-${kind}-job-status.txt"
@@ -335,6 +337,7 @@ def submitSlurmJob(String kind, String payload, String cpus, String timeLimit, L
                 --nodes=1
                 "--ntasks=${CI_SLURM_TASKS}"
                 "--cpus-per-task=${CI_STELLAR_AI_CPU_CPUS}"
+                --mem-per-cpu=3G
                 "--qos=${CI_STELLAR_AI_CPU_QOS}"
                 "--time=${CI_STELLAR_AI_CPU_TIME}"
                 "--output=${CI_WORKSPACE}/${CI_SLURM_OUTPUT}"
@@ -401,7 +404,7 @@ def submitUnitTests(String candidateDir) {
         'unit',
         'ci/jenkins/slurm-unit-tests.stellar-ai-cpu.sh',
         '4',
-        (env.STELLAR_AI_CPU_UNIT_TIME ?: '04:00:00').trim(),
+        (env.STELLAR_AI_CPU_UNIT_TIME ?: '00:30:00').trim(),
         ["CI_CANDIDATE_DIR=${candidateDir}/gkeyll"]
     )
 }

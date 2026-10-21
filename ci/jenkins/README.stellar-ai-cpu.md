@@ -35,24 +35,31 @@ and tmux must be installed. The defaults are:
 - Java: `/usr/lib/jvm/jre-21-openjdk`
 - tmux session: `gkeyll_ci_stellar_ai_cpu`
 - Job and node label: `gkeyll-ci-stellar-ai-cpu` and `stellar-ai-cpu`
-- Slurm: partition `cpu`, account `csd`, QoS `pppl-short`
-- Four-hour allocations (`04:00:00`) for unit, serial regression, and MPI regression jobs
+- Slurm: partition `cpu`, account `csd`, 3 GiB of memory per allocated CPU core
+- Unit tests: QoS `test`, 30-minute allocations (`00:30:00`)
+- Serial and MPI regressions: QoS `short`, four-hour allocations (`04:00:00`)
 - Eight compilation workers and sixteen regression worker/rank slots
 
 Override `GKEYLL_CI_ROOT` or `JAVA_HOME` before installation if necessary.
 Change the account, QoS, or worker budgets in Jenkins global environment
-variables (`STELLAR_AI_CPU_SLURM_ACCOUNT`, `STELLAR_AI_CPU_SLURM_QOS`,
+variables (`STELLAR_AI_CPU_SLURM_ACCOUNT`, `STELLAR_AI_CPU_SLURM_QOS`
+for regressions, `STELLAR_AI_CPU_UNIT_QOS` for unit tests,
 `STELLAR_AI_CPU_BUILD_JOBS`, `STELLAR_AI_CPU_REGRESSION_JOBS`).
 
-The pipeline defaults to `pppl-short` and requests its full four-hour limit
-for each test allocation. `STELLAR_AI_CPU_UNIT_TIME` and
-`STELLAR_AI_CPU_REGRESSION_TIME` override the unit and regression allocation
-limits; keep them at or below `04:00:00` for this QoS.
+The [StellarAI scheduling documentation](https://researchcomputing.princeton.edu/systems/stellarai)
+lists CPU QoS limits of 30 minutes for `test` and four hours for `short`.
+`STELLAR_AI_CPU_UNIT_TIME` and `STELLAR_AI_CPU_REGRESSION_TIME` override the
+unit and regression allocation limits; keep them within the selected QoS
+limit. Unit QoS is independent of `STELLAR_AI_CPU_SLURM_QOS`. CPU jobs must
+request memory explicitly; the pipeline requests 3 GiB per core, below the
+documented 370 GB per 96-core node.
 
-For an existing controller, set `STELLAR_AI_CPU_SLURM_QOS=pppl-short` in
+For an existing controller, set `STELLAR_AI_CPU_SLURM_QOS=short` and
+`STELLAR_AI_CPU_UNIT_QOS=test` in
 **Manage Jenkins → System → Global properties → Environment variables**.
-Remove any shorter `STELLAR_AI_CPU_UNIT_TIME` or
-`STELLAR_AI_CPU_REGRESSION_TIME` overrides, or set them to `04:00:00`.
+Remove existing `STELLAR_AI_CPU_UNIT_TIME` and
+`STELLAR_AI_CPU_REGRESSION_TIME` overrides to use the defaults, or set them
+to `00:30:00` and `04:00:00`, respectively.
 The bootstrap hook preserves existing settings, so updating the checkout or
 restarting Jenkins alone does not replace a configured QoS or time override.
 
