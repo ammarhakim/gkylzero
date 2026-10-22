@@ -1,6 +1,6 @@
 ---
 name: code_style
-description: Gkeyll's C/C++/CUDA code style is enforced by clang-format. Use when writing or editing any .c/.h/.cpp/.hpp/.cu/.cuh file, to know how to format it and which files must never be reformatted.
+description: Gkeyll's C/C++/CUDA code style is enforced by clang-format. Use when writing or editing any .c/.h/.cpp/.hpp/.cu/.cuh file, to know how to format it and which files must never be reformatted. Also use when writing or editing python scripts.
 user-invocable: true
 ---
 
@@ -53,3 +53,9 @@ write the list any way you like and run the script.
 - Every function *definition* has its return type on its own line, so
   `grep '^gkyl_foo('` finds the definition. Declarations keep the type on the same line.
 - `case` labels are indented one level inside `switch`.
+
+# Python style
+
+Use the following style rules to format Python.
+
+- Use 2-spaces instead of indents, 4-spaces, or 4-space indents.

@@ -1,0 +1,340 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,booktabs,geometry,hyperref}
+\geometry{margin=1in}
+\title{Synthetic Miller GEQDSK generation in Gkeyll}
+\author{Gkeyll}
+\date{}
+\newcommand{\Ra}{R_{\mathrm{axis}}}
+\newcommand{\Za}{Z_{\mathrm{axis}}}
+\newcommand{\Romp}{R_{\mathrm{omp}}}
+\begin{document}
+\maketitle
+
+\section{Purpose, inputs, and conventions}
+The module \texttt{gkeyll\_gen\_miller\_eqdsk.py} constructs a synthetic
+axisymmetric magnetic geometry for the existing Gkeyll tokamak reader.
+Prescribed surfaces and safety factor determine poloidal flux, with constant
+$F=RB_\phi$. These choices do not in general solve the Grad--Shafranov equation.
+The GEQDSK pressure, pressure derivative, and current fields are zero
+placeholders; the physical wall is not specified.
+
+Lengths are in meters and magnetic fields in tesla. The flux $\psi$ is poloidal
+flux divided by $2\pi$, in Wb/radian. We set $\psi_{\rm axis}=0$, with positive
+$B_{\rm axis}$ and $q$ and flux increasing outward. The input function
+$q(\Romp)$ takes the major radius at the outboard midplane, in meters.
+The Miller surface label $r$ is a minor radius, whereas $R$ is the cylindrical
+major radius at an arbitrary poloidal position.
+
+Required parameters are $\Ra$, $B_{\rm axis}$, and the outboard LCFS major
+radius. Defaults are $\Za=0$, $\kappa=1$, $\delta=0$, and $A=0$, where
+$A$ denotes \texttt{a\_shift}. Optional outboard midplane bounds identify
+complete flux surfaces intended for a simulation. They are independent of
+the rectangular mesh bounds and do not crop the equilibrium to an annulus.
+Core annuli, SOL-only regions, and LCFS-crossing regions are all possible.
+Miller surfaces themselves contain no diverted X-point; the IWL infrastructure
+supplies wall cuts for the open-field-line portion of a simulation.
+
+\section{Surface map and analytic derivatives}
+Define $\eta=\arcsin\delta$ and $h=\theta+\eta\sin\theta$. Then
+\begin{align}
+R(r,\theta)&=\Ra-\frac{Ar^2}{2\Ra}+r\cos h, &
+Z(r,\theta)&=\Za+\kappa r\sin\theta,\\
+R_r&=-\frac{Ar}{\Ra}+\cos h, &
+R_\theta&=-r(1+\eta\cos\theta)\sin h,\\
+Z_r&=\kappa\sin\theta, & Z_\theta&=\kappa r\cos\theta.
+\end{align}
+Let $D=R_rZ_\theta-R_\theta Z_r$. The cylindrical volume Jacobian is
+$J_r=RD$. A useful regular expression is
+\begin{equation}
+\frac{D}{r}=\kappa\left[
+\left(\cos h-\frac{Ar}{\Ra}\right)\cos\theta
++(1+\eta\cos\theta)\sin h\sin\theta\right].
+\end{equation}
+The implementation checks positive $R$ and $D/r$ on sampled physical surfaces,
+including the limiting value at the axis. It also checks that the outboard
+midplane map remains increasing. These numerical checks cannot prove validity
+of an arbitrary user function between all sampled points.
+
+At $\theta=0$,
+\begin{equation}
+\Romp(r)=\Ra-\frac{Ar^2}{2\Ra}+r,\qquad
+\frac{d\Romp}{dr}=1-\frac{Ar}{\Ra}.
+\end{equation}
+For $d=\Romp-\Ra$, its stable increasing-branch inverse is
+\begin{equation}
+r=\frac{2d}{1+\sqrt{1-2Ad/\Ra}}.
+\end{equation}
+This expression includes the $A=0$ limit without cancellation. The LCFS
+radius $a$ is obtained by applying it to the specified LCFS major radius.
+A nonzero shift changes the horizontal surface center with radius; it is
+independent of the constant vertical offset $\Za$.
+
+\section{Flux, safety factor, and magnetic field}
+Set $F=\Ra B_{\rm axis}$. In cylindrical coordinates the field convention is
+\begin{equation}
+B_R=-\frac{\psi_Z}{R},\qquad B_Z=\frac{\psi_R}{R},\qquad B_\phi=\frac{F}{R}.
+\end{equation}
+Because $\psi=\psi(r)$,
+\begin{equation}
+\psi_R=\psi'(r)\frac{Z_\theta}{D},\qquad
+\psi_Z=-\psi'(r)\frac{R_\theta}{D},\qquad
+B_p=\frac{\psi'(r)}{RD}\sqrt{R_\theta^2+Z_\theta^2}.
+\end{equation}
+The toroidal turns per poloidal circuit give
+\begin{equation}
+q(r)=\frac{F}{2\pi\psi'(r)}\int_0^{2\pi}\frac{D}{R}\,d\theta.
+\end{equation}
+Consequently the imposed safety factor determines
+\begin{equation}
+\psi'(r)=\frac{F}{2\pi q(\Romp(r))}
+\int_0^{2\pi}\frac{D}{R}\,d\theta.
+\end{equation}
+The boundary flux is $\psi_b=\psi(a)$, and
+$\rho_\psi=\sqrt{\psi/\psi_b}$, including values above one in the physical SOL.
+The profile must be defined from the axis through the guard, even when the
+simulation begins away from the axis.
+
+\section{Radial quadrature and interpolation}
+Use $s=r^2$. With $g(s)=d\psi/ds$, the regular quadrature is
+\begin{equation}
+g(s)=\frac{F}{4\pi\Ra q(\Romp(\sqrt{s}))}
+\int_0^{2\pi}\frac{\Ra}{R}\frac{D}{r}\,d\theta.
+\end{equation}
+The integrand is dimensionless and has a finite limit at $s=0$. A constant
+triangularity extended to the axis can introduce $\sqrt{s}$ terms into $g$;
+finiteness does not imply an analytic Taylor series in $s$ or a smooth axis
+Hessian of $\psi(R,Z)$ for general triangular shapes.
+
+SciPy adaptive quadrature evaluates the integral with relative and
+dimensionless absolute tolerances $0.05\epsilon$, where the default
+$\epsilon=10^{-10}$. Estimated errors above
+$\epsilon\max(1,|I|)$ are rejected. All evaluated $q$ and $g$ must be finite
+and positive. A 65-node initial table uses $s_i=s_g(i/64)^4$ to cluster near
+the axis. A monotone piecewise cubic Hermite interpolant (PCHIP) represents
+$g$. Independent midpoint quadratures identify intervals for bisection;
+quadratures at unchanged locations are cached. Midpoint relative error is
+measured against $\max(|g|,10^{-8}\max_i g_i)$. Refinement stops when every
+midpoint error is at most $\epsilon$, with limits of 120 passes and 262145
+nodes. Failure to converge is reported, rather than reducing accuracy silently.
+
+Integrating the piecewise cubic gives a continuous flux function. Positivity
+of the shape-preserving interpolant makes flux strictly increasing off the
+axis. Bracketed Brent solves in $s$ invert flux, with relative tolerance
+$10^{-14}$ and absolute tolerance $10^{-14}s_g$. The inverse is restricted
+to the physical interval. The axis has $\psi'(0)=0$.
+
+\section{Inverting the R--Z map}
+For a requested physical point set
+\begin{equation}
+v=(Z-\Za)/\kappa,\qquad u=r\cos\theta,\qquad
+r=\sqrt{u^2+v^2},\qquad \beta=\eta v/r.
+\end{equation}
+The scalar equation is
+\begin{equation}
+R=\Ra-\frac{A(u^2+v^2)}{2\Ra}+u\cos\beta-v\sin\beta.
+\end{equation}
+At the origin the ratio $v/r$ is defined as zero. For $r>0$,
+\begin{equation}
+\beta_u=-\eta vu/r^3,\qquad
+R_u=\cos\beta-Au/\Ra-(u\sin\beta+v\cos\beta)\beta_u.
+\end{equation}
+Symmetric brackets start at $u=\pm r_g$ and expand by a factor of 1.5 as
+needed, at most 12 times. The derivative is checked at 65 locations across
+each bracket; a nonpositive derivative rejects a folded branch. Fifty
+vectorized bisections solve the equation. Recover $\theta=\operatorname{atan2}(v,u)$
+and verify the forward residual is at most $10^{-11}\Ra$.
+No scattered interpolation or nearest-point fill is used.
+
+\section{Coverage and rectangular continuation}
+The outer required radius is $\max(a,r_{\rm requested,hi})$, or $a$ if bounds
+are omitted. The physical guard is $r_g=(1+f)r_{\rm required}$, with $f=0.05$
+by default. Automatic rectangular bounds enclose the guard contour with
+two percent of its horizontal/vertical span added on each side. Explicit
+bounds must contain the axis and have positive minimum major radius.
+
+For $s>s_g=r_g^2$ continue the flux as
+\begin{equation}
+\psi(s)=\psi(s_g)+g(s_g)(s-s_g).
+\end{equation}
+This matches flux and its first radial derivative and stays increasing.
+It supplies numerical background at rectangular corners; it does not certify
+physical flux surfaces outside the guard or require q quadrature there.
+The analytic coordinate inverse must remain valid at background points.
+
+Measure distance in units of R and Z mesh spacings. Sampled LCFS and outer
+required contours must be at least three cells from the guard and box edges.
+Guard distances use a nearest-neighbor tree on 4097 guard points. Insufficient
+clearance fails with instructions to refine the mesh or enlarge the guard/box.
+All fields, certified bounds, background-node counts, and numerical settings
+are recorded in the JSON companion. Optional coverage endpoints are reported
+in all four radial coordinates.
+
+\section{GEQDSK serialization}
+The header uses a deterministic 48-character label followed by three I4
+integers. Arrays use five E16.9 values per line; a partially filled final line
+is terminated before the next array. Odd node counts from 5 to 999 are accepted.
+The flux array has Z as its outer index and R as its inner (fastest) index.
+The four one-dimensional profiles are $F$, zero pressure, zero $FF'$, and
+zero pressure derivative. QPSI is evaluated at uniform flux nodes between zero
+and $\psi_b$ by inverting the physical radial table. A 257-point closed LCFS
+polyline is written as alternating $(R,Z)$ pairs. LIMITR is zero. A temporary
+file in the output directory is closed successfully before replacing the
+destination. JSON records input provenance and the conventions above.
+
+\section{Examples and verification}
+The DIII-D and TCV examples retain the source input's q polynomials, field
+normalization, and shaping. TCV's input coordinate is linear in Miller radius;
+its exact surfaces have outboard endpoints approximately 1.051359 and
+1.155593 m. These differ from its nominal outboard bounds. TCV must be read
+with reflection disabled to preserve its vertical offset.
+
+The original LTX rational q has a pole at about 0.688328 m, inside its old
+sampled range. The replacement is
+\begin{equation}
+q(r)=q_a\exp\left[\frac{\hat s_a}{2}\left(\frac{r^2}{a^2}-1\right)\right].
+\end{equation}
+It preserves $q(a)=q_a$, $[r q'/q]_{a}=\hat s_a$, positivity, and $q'(0)=0$.
+
+The original LTX files remain available for comparison:
+\begin{itemize}
+\item \path{gyrokinetic/data/eqdsk/write_efit_ltx_miller.py}
+\item \path{gyrokinetic/data/eqdsk/ltx_miller.geqdsk}
+\end{itemize}
+
+For circular, unshifted, constant-q surfaces the independent reference is
+\begin{equation}
+\psi(r)=\frac{F}{q}\left[\Ra-\sqrt{\Ra^2-r^2}\right]
+=\frac{F}{q}\frac{r^2}{\Ra+\sqrt{\Ra^2-r^2}}.
+\end{equation}
+Tests compare this flux and its inverse to normalized tolerance $10^{-8}$,
+check analytic derivatives by finite differences, and read output with an
+independent fixed-width parser and Gkeyll's EFIT reader. Rectangular refinement
+uses 65, 129, and 257 nodes with sufficient guards. An independent tensor cubic
+interpolant reconstructs $\nabla\psi$, $B_p$, and $B$. Contour safety factor is
+checked using
+\begin{equation}
+q=\frac{F}{2\pi}\oint\frac{dl}{R^2B_p}.
+\end{equation}
+The target relative field and q error on the device simulation regions is
+$10^{-3}$. Physical contours are compared before coordinate-dependent metrics.
+Failure tests include invalid profiles, folds, inadequate coverage, malformed
+inputs, and the original LTX pole. Run the documented tests to obtain current
+results; no turbulence simulation is needed for this generator validation.
+
+\subsection{Recorded validation}
+The initial CPU validation on 21 October 2026 used $257\times257$ R--Z
+meshes and the supplied device inputs. Maximum errors on sampled simulation
+surfaces, using the independent tensor cubic reconstruction, were:
+\begin{center}
+\begin{tabular}{lrrrr}
+Device & $|\Delta\psi|/\psi_b$ & $|\Delta B|/B$ & $|\Delta B_p|/B_p$
+       & $|\Delta q|/q$ \\
+\hline
+LTX   & $8.0\,10^{-9}$ & $1.8\,10^{-8}$ & $2.9\,10^{-6}$ & $5.5\,10^{-7}$ \\
+DIII-D & $6.2\,10^{-9}$ & $1.6\,10^{-8}$ & $2.3\,10^{-6}$ & $4.3\,10^{-7}$ \\
+TCV   & $8.9\,10^{-9}$ & $6.7\,10^{-8}$ & $6.7\,10^{-6}$ & $7.5\,10^{-8}$ \\
+\end{tabular}
+\end{center}
+These are sampled errors, not global error bounds. Ten Python tests passed.
+Native C tests passed for generated C and Python equilibria, including EFIT
+reading, quadratic and cubic contour roots, and full quadratic tokamak geometry
+construction. The native generator and its unit driver also passed AddressSanitizer
+and UndefinedBehaviorSanitizer; the linked Gkeyll library was not instrumented.
+Existing LTX geometry and EFIT tests passed. Serial and two-rank MPI app tests
+initialized and advanced core-only, SOL-only, and crossing domains and checked
+collective error handling. GPU hardware and Valgrind were unavailable.
+
+\section{Native C updater and gyrokinetic app integration}
+\subsection{Updater interface}
+The implementation and public header reside in \path{gyrokinetic/zero/}:
+\path{gen_miller_eqdsk.c} and \path{gkyl_gen_miller_eqdsk.h}. Functions with prefix
+\texttt{gkyl\_gen\_miller\_eqdsk} provide the following operations:
+\begin{itemize}
+\item \texttt{\_inew}: construct the generator and radial flux table.
+\item \texttt{\_advance}: sample and validate the rectangular mesh.
+\item \texttt{\_write}: atomically write the sampled GEQDSK file.
+\item \texttt{\_get\_info}: return flux and coverage metadata.
+\item \texttt{\_psi\_from\_omp} and \texttt{\_omp\_from\_psi}: convert
+  between outboard major radius and physical flux.
+\item \texttt{\_surface}: evaluate the Miller surface map.
+\item \texttt{\_release}: free the generator.
+\end{itemize}
+The \texttt{qprofile} callback has arguments
+\texttt{(double R\_omp, void *ctx)}. This updater runs on the host during
+initialization and has no CUDA or MPI dependency.
+
+The native implementation uses the same radial model and PCHIP antiderivative.
+Its angular integration doubles a periodic trapezoidal rule from 32 through
+16384 points, accepting successive integrals when their difference is at most
+$0.05\,\mathrm{rtol}\max(1,|I|)$. It checks guard distances by direct search over
+the same 4097 samples and performs scalar bisections for rectangular inversion.
+
+\subsection{App inputs and coordinate conversion}
+Select Miller geometry by setting \texttt{geometry.geometry\_id}
+to \texttt{GKYL\_GEOMETRY\_MILLER}. Supply parameters through
+\texttt{geometry.miller\_grid\_info} of type
+\texttt{struct gkyl\_gen\_miller\_eqdsk\_inp}. In this mode, the app's
+\texttt{lower[0]} and \texttt{upper[0]} are outboard major radii in meters.
+Initialization resolves the mutable input \emph{in place} to $\psi$ bounds
+and \texttt{GKYL\_GEOMETRY\_TOKAMAK} before constructing the configuration grid.
+Solver callbacks subsequently receive the ordinary tokamak coordinates
+$(\psi,\alpha,\text{parallel coordinate})$, rather than the analytic input's
+$(x,y,\theta)$. Use the updater conversions when migrating physical profiles.
+Binormal extents and parallel coordinates follow the existing tokamak
+conventions; analytic-input callbacks require the corresponding coordinate
+transformations.
+
+The output is \texttt{<app-name>-miller.geqdsk} unless
+\texttt{geometry.efit\_info.filepath} is set. Rank zero writes the file;
+collective status handling and synchronization precede reading it. The file
+is retained, and generation parameters are recorded in geometry metadata.
+The $q$ callback must be deterministic and identical on all ranks.
+Initialization regenerates the file, including before a restart; there is no
+cached-file reuse mode. Keep the same geometry and $q$ inputs when restarting.
+
+The app selects IWL geometry, disables reflection, and derives the R--Z search
+bounds. In particular, \texttt{reflect=false} preserves TCV's vertical offset.
+The current interface supports single-block 2x/3x domains that exclude the
+coordinate singularity at the magnetic axis. Multiblock and language-binding
+APIs are not provided. Check the returned app pointer for \texttt{NULL} after
+a Miller initialization failure.
+
+An LCFS crossing sets \texttt{has\_LCFS} and must align with a $\psi$ cell face.
+Requested domain surfaces are not moved; a mismatch beyond GEQDSK serialization
+precision causes initialization to fail. The value \texttt{x\_LCFS} is represented
+by the matching grid face, while the wall cutoff uses the serialized boundary
+flux. Core-only and SOL-only domains have no internal split. Set ordinary
+species boundary conditions: twist-shift for a 3x core annulus and the desired
+open-line conditions for SOL/crossing cases. The existing mixed-domain
+machinery handles the core part of a crossing.
+
+\subsection{Native unit tests and app regression}
+From the repository root, build and run the native unit tests with:
+\begin{verbatim}
+make -j6 LIBRARY_TARGET=library gyrokinetic
+make -j6 build/gyrokinetic/unit/ctest_gen_miller_eqdsk
+./build/gyrokinetic/unit/ctest_gen_miller_eqdsk
+\end{verbatim}
+Use no more than half the available processors for \texttt{make}, reducing
+\texttt{-j6} as needed. Native tests construct temporary fixtures, so normal
+unit runs require no Python. To also exercise the native reader on Python
+outputs, generate \texttt{miller\_ltx.geqdsk}, \texttt{miller\_d3d.geqdsk}, and
+\texttt{miller\_tcv.geqdsk} in one directory and set
+\texttt{GKYL\_MILLER\_REFERENCE\_DIR} to that directory when running the test.
+Both quadratic and cubic reconstructions are checked; full geometry
+construction uses the existing quadratic tokamak path.
+
+The regression \path{gyrokinetic/creg/rt_gk_miller_3x2v_p1.c} initializes core-only,
+SOL-only, and LCFS-crossing domains and advances each by one step. Constant
+profiles and a static zero field isolate geometry and boundary-condition
+initialization. MPI partitions the third configuration (parallel) direction:
+\begin{verbatim}
+make -j6 build/gyrokinetic/creg/rt_gk_miller_3x2v_p1
+./build/gyrokinetic/creg/rt_gk_miller_3x2v_p1 -s1
+<MPI-prefix>/bin/mpirun -np 2 \
+  ./build/gyrokinetic/creg/rt_gk_miller_3x2v_p1 -M -e2 -s1
+\end{verbatim}
+These commands assume the repository root. To contain output in a scratch
+directory, run the executable by its absolute path and ensure that the runtime
+can locate the Gkeyll shared library.
+\end{document}
