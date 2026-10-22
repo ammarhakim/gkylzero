@@ -1,4 +1,4 @@
-#!/bin/bash -l
+#!/bin/bash
 # All-C regression payload for ci/jenkins/jenkinsfile.stellar-ai-cpu.
 #
 # Jenkins builds, installs, and compiles the candidate and trusted baseline on

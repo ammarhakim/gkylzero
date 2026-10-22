@@ -348,7 +348,13 @@ def submitSlurmJob(String kind, String payload, String cpus, String timeLimit, L
                 sbatch_args+=("--account=${CI_STELLAR_AI_CPU_ACCOUNT}")
             fi
 
-            submission="$(sbatch "${sbatch_args[@]}" "$CI_SLURM_PAYLOAD")"
+            # The visualization host's GPU modulefiles are not all installed
+            # on CPU nodes. Export only the batch runtime and explicit CI paths,
+            # never its module bookkeeping, library paths or shell functions.
+            submission="$(env -i HOME="$HOME" USER="$USER" LOGNAME="${LOGNAME:-$USER}" \
+                PATH=/usr/bin:/bin SLURM_EXPORT_ENV=ALL \
+                GKEYLL_CI_DEPENDENCY_ENV="${GKEYLL_CI_DEPENDENCY_ENV:-}" \
+                "$(command -v sbatch)" "${sbatch_args[@]}" "$CI_SLURM_PAYLOAD")"
             job_id="${submission%%;*}"
             if [[ ! "$job_id" =~ ^[0-9]+(_[0-9]+)?$ ]]; then
                 echo "ERROR: Could not parse Slurm job ID from: $submission" >&2

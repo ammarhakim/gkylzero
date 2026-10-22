@@ -1,4 +1,4 @@
-#!/bin/bash -l
+#!/bin/bash
 # Unit-test payload for ci/jenkins/jenkinsfile.stellar-ai-cpu.
 #
 # This script deliberately has no #SBATCH directives. The trusted Jenkins
@@ -11,9 +11,8 @@ set -euo pipefail
 
 cd "$CI_CANDIDATE_DIR"
 
-# A batch shell does not inherit a user's interactive module selection in a
-# reliable or reproducible way. Source the same environment used to configure
-# and build this checkout.
+# Initialize the compute node's modules without reading user login profiles.
+# Source the same toolchain used to configure and build this checkout.
 . machines/module_load.stellarai-cpu.sh
 if [ -n "${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "$GKEYLL_CI_DEPENDENCY_ENV"; fi
 

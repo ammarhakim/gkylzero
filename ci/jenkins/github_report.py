@@ -1166,7 +1166,8 @@ def publish_report(args, token=None):
         return '[Full file lists and comparison details]({})'.format(target['html_url']) if target else match.group(0)
 
     # Publish continuations first so a completed main report never points to
-    # missing diagnostics. Reuse those comments and clear obsolete pages.
+    # missing diagnostics. Delete obsolete pages only after replacing the main
+    # report, so its links remain valid if publication fails partway through.
     for index in reversed(range(len(pages))):
         page, page_marker = pages[index], markers[index]
         existing = next((c for c in reversed(comments) if (c.get('body') or '').startswith(page_marker + '\n')), None)
@@ -1191,10 +1192,9 @@ def publish_report(args, token=None):
     for comment in comments:
         old = comment.get('body') or ''
         if old.startswith(prefix) and not any(old.startswith(m + '\n') for m in markers):
-            old_marker = re.match(re.escape(prefix) + r'\d+" -->', old)
+            old_marker = re.match(re.escape(prefix) + r'\d+" -->\n', old)
             if old_marker:
-                api('PATCH', update_url.format(comment['id']), token, {'body': old_marker.group() +
-                    '\n\nThis continuation is no longer needed; see the [current report]({}).'.format(published[0]['html_url'])})
+                api('DELETE', update_url.format(comment['id']), token)
     print('Published CI report: ' + published[0]['html_url'])
     return published[0]
 

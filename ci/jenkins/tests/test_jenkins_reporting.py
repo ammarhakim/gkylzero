@@ -71,6 +71,11 @@ class ReportingTests(unittest.TestCase):
                            html_url='https://github.com/{}/commit/{}#commitcomment-{}'.format(
                                self.args.repo, self.args.commit, len(self.comments) + 1))
             self.comments.append(comment)
+        elif method == 'DELETE':
+            comment = next(c for c in self.comments if c['id'] == int(url.rsplit('/', 1)[-1]))
+            self.assertEqual(url, base + '/comments/{}'.format(comment['id']))
+            self.comments.remove(comment)
+            return None, ''
         else:
             self.assertEqual(method, 'PATCH')
             comment = next(c for c in self.comments if c['id'] == int(url.rsplit('/', 1)[-1]))
@@ -237,7 +242,7 @@ class ReportingTests(unittest.TestCase):
         self.assertFalse(report.superseded({'job': 'ci/PR-2', 'build_number': '10'},
                                           {'job': 'ci/PR-1', 'build_number': '9'}))
 
-    def test_overflow_pages_are_linked_and_old_pages_are_cleared(self):
+    def test_overflow_pages_are_linked_and_old_pages_are_deleted(self):
         self.pages(['Summary', 'Warnings', 'More warnings'])
         self.update()
         self.assertIn('part-3', self.comments[0]['body'])
@@ -248,8 +253,70 @@ class ReportingTests(unittest.TestCase):
         self.assertEqual(self.statuses[0]['target_url'], main['html_url'])
         self.pages(['Short clean report'])
         self.update()
-        self.assertEqual(len(self.comments), 3)
-        self.assertTrue(all('no longer needed' in c['body'] for c in self.comments[:2]))
+        self.assertEqual(self.comments, [main])
+        self.assertIn('Short clean report', main['body'])
+        self.assertEqual(sum(method == 'DELETE' for method, _, _ in self.calls), 2)
+
+    def test_cleanup_deletes_legacy_notices_and_preserves_other_comments(self):
+        marker = report.MARKER_FORMAT.format(self.args.context + '/part-4')
+        notice = marker + '\n\nThis continuation is no longer needed; see the current report.'
+        self.comments.extend([
+            dict(id=1, user={'id': 1}, body=notice),
+            dict(id=2, user={'id': 2}, body=notice),
+            dict(id=3, user={'id': 1}, body=notice.replace('ci/personal', 'ci/another')),
+            dict(id=4, user={'id': 1}, body=marker + ' quoted marker'),
+        ])
+        preserved = [dict(c) for c in self.comments[1:]]
+        self.update()
+        self.assertEqual(self.comments[:3], preserved)
+        self.assertEqual(len(self.comments), 4)
+
+    def test_failed_replacement_keeps_old_continuations(self):
+        self.pages(['Summary', 'Warnings', 'More warnings'])
+        self.update()
+        original = [dict(c) for c in self.comments]
+        self.pages(['Short clean report'])
+        def fail_update(method, url, token, payload=None):
+            if method == 'PATCH':
+                raise report.GitHubError(method, 403)
+            return self.api(method, url, token, payload)
+
+        with patch.object(report, 'api', side_effect=fail_update):
+            with self.assertRaises(report.GitHubError):
+                report.publish_report(self.args)
+        self.assertEqual(self.comments, original)
+        self.assertFalse(any(method == 'DELETE' for method, _, _ in self.calls))
+
+    def test_cleanup_preserves_reused_continuations(self):
+        self.pages(['Summary', 'Warnings', 'More warnings'])
+        self.update()
+        retained = self.comments[1:]
+        self.pages(['New summary', 'Remaining warnings'])
+        self.update()
+        self.assertEqual(self.comments, retained)
+        self.assertIn('Remaining warnings', self.comments[0]['body'])
+        self.assertIn('[Part 2](', self.comments[1]['body'])
+        self.assertNotIn('[Part 3](', self.comments[1]['body'])
+
+    def test_lost_delete_response_retries_without_duplicates(self):
+        self.pages(['Summary', 'Warnings', 'More warnings'])
+        self.update()
+        main = self.comments[-1]
+        self.pages(['Short clean report'])
+        failed = False
+
+        def flaky(method, url, token, payload=None):
+            nonlocal failed
+            result = self.api(method, url, token, payload)
+            if method == 'DELETE' and not failed:
+                failed = True
+                raise OSError('Response lost after deletion')
+            return result
+
+        with patch.object(report, 'api', side_effect=flaky):
+            self.update()
+        self.assertEqual(self.comments, [main])
+        self.assertEqual(self.sleep.call_count, 1)
 
     def test_other_users_and_other_contexts_are_never_edited(self):
         self.comments.append(dict(id=1, user={'id': 2}, body=Path('ci-report.md').read_text()))

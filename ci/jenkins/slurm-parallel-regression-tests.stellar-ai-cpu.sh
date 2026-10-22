@@ -1,4 +1,4 @@
-#!/bin/bash -l
+#!/bin/bash
 set -euo pipefail
 
 : "${CI_WORKSPACE:?}"

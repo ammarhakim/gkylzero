@@ -8,6 +8,13 @@ Open MPI in build or simulation environments. MPI regression payloads select
 `SLURM_MPI_TYPE=pmix` explicitly: Stellar AI provides the PMIx plugin but does
 not configure a default MPI plugin for `srun`.
 
+Slurm submissions start with a minimal environment and explicit CI paths,
+including the dependency environment file when configured. Batch scripts skip
+user login profiles, initialize Modules on the compute node, and load the CPU
+toolchain there. This avoids exporting visualization-host GPU module state
+whose modulefiles may not exist on CPU nodes. `SLURM_EXPORT_ENV=ALL` lets MPI
+steps inherit the resulting compute-node environment.
+
 The CI pipeline sets `ARCH_FLAGS="-march=x86-64-v4 -mtune=znver5"` in each
 run's generated `config.mak`, for both candidate and baseline builds (including
 copies of prebuilt configurations). Machine files and the original prebuilt
@@ -141,7 +148,7 @@ numerical baseline is populated only after a successful regression create run.
 
 ```sh
 TEST_CACHE_PLATFORM=stellar-ai-cpu bash ci/jenkins/tests/test_baseline_cache.sh
-python3 -m unittest -v ci.jenkins.tests.test_stellar_ai_mpi_policy
+python3 -m unittest -v ci.jenkins.tests.test_stellar_ai_mpi_policy ci.jenkins.tests.test_stellar_ai_batch_environment
 java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/tests/test_stellar_resources.groovy
 ```
 

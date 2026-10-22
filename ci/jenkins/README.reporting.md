@@ -206,7 +206,8 @@ build start through report generation; overlapping steps need not sum to it.
 
 Large reports continue in linked comments, published before updating the main
 comment. Only comments owned by the authenticated account with the exact
-context marker are edited; obsolete continuation pages are cleared. Queue IDs
+context marker are edited; obsolete continuation pages are deleted after the
+replacement report is published. Queue IDs
 (or build numbers within a job) prevent older runs from replacing newer reports
 on the same commit/context. Other commits' reports remain intact.
 
