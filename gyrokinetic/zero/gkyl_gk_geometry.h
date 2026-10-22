@@ -10,6 +10,7 @@
 #include <gkyl_tok_geo.h>
 #include <gkyl_mirror_grid_gen.h>
 #include <gkyl_position_map.h>
+#include <gkyl_gen_miller_eqdsk.h>
 
 typedef struct gk_geometry gk_geometry;
 
@@ -255,6 +256,7 @@ struct gkyl_gk_geometry_inp {
     tok_grid_info; // Context for tokamak geometry with computational domain info.
   struct gkyl_mirror_geo_grid_inp
     mirror_grid_info; // Context for mirror geometry with computational domain info.
+  struct gkyl_gen_miller_eqdsk_inp miller_grid_info; // Parameters for Miller geometry.
   struct gkyl_position_map *position_map; // Position map object.
   struct gkyl_comm *comm; // Communicator object.
 

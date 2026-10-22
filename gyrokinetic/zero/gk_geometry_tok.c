@@ -132,6 +132,33 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   up->io_meta_basic_len = sizeof(io_meta_basic) / sizeof(io_meta_basic[0]);
   up->io_meta_basic = gkyl_msgpack_map_elem_clone(up->io_meta_basic_len, io_meta_basic);
 
+  if (geometry_inp->miller_grid_info.qprofile) {
+    const struct gkyl_gen_miller_eqdsk_inp *miller = &geometry_inp->miller_grid_info;
+    struct gkyl_msgpack_map_elem miller_meta[] = {
+      {.key = "geometry_generator", .elem_type = GKYL_MP_STRING, .cval = "miller"},
+      {.key = "miller_R_axis", .elem_type = GKYL_MP_DOUBLE, .dval = miller->r_axis},
+      {.key = "miller_Z_axis", .elem_type = GKYL_MP_DOUBLE, .dval = miller->z_axis},
+      {.key = "miller_B_axis", .elem_type = GKYL_MP_DOUBLE, .dval = miller->b_axis},
+      {.key = "miller_R_lcfs", .elem_type = GKYL_MP_DOUBLE, .dval = miller->r_lcfs},
+      {
+        .key = "miller_kappa",
+        .elem_type = GKYL_MP_DOUBLE,
+        .dval = miller->kappa ? miller->kappa : 1,
+      },
+      {.key = "miller_delta", .elem_type = GKYL_MP_DOUBLE, .dval = miller->delta},
+      {.key = "miller_a_shift", .elem_type = GKYL_MP_DOUBLE, .dval = miller->a_shift},
+      {.key = "miller_psi_boundary", .elem_type = GKYL_MP_DOUBLE, .dval = geo->efit->sibry},
+      {.key = "miller_R_omp_lower", .elem_type = GKYL_MP_DOUBLE, .dval = miller->omp_bounds[0]},
+      {.key = "miller_R_omp_upper", .elem_type = GKYL_MP_DOUBLE, .dval = miller->omp_bounds[1]}
+    };
+    const struct gkyl_msgpack_map_elem *lists[] = {up->io_meta_basic, miller_meta};
+    int lengths[] = {up->io_meta_basic_len, sizeof miller_meta / sizeof miller_meta[0]};
+    struct gkyl_msgpack_map_elem *merged =
+      gkyl_msgpack_map_elem_union(2, lengths, lists, &up->io_meta_basic_len);
+    gkyl_msgpack_map_elem_release(lengths[0], up->io_meta_basic);
+    up->io_meta_basic = merged;
+  }
+
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->ref_count = gkyl_ref_count_init(gkyl_gk_geometry_free);
