@@ -22,15 +22,11 @@ void flash_fluid_species_init(struct gkyl_flash_inp *inp,
   s->fluid = mkarr(app->use_gpu, 5, app->local_fluid_ext.volume);
   s->fluid1 = mkarr(app->use_gpu, 5, app->local_fluid_ext.volume);
   s->fluidnew = mkarr(app->use_gpu, 5, app->local_fluid_ext.volume);
-  s->fluidtmp = mkarr(app->use_gpu, 5, app->local_fluid_ext.volume);
 
   // Primitive variables, [rho, ux, uy, uz, p]
   s->fluid_prim = mkarr(app->use_gpu, 5, app->local_fluid_ext.volume);
 
   s->fluid_phi = mkarr(app->use_gpu, 1, app->local_fluid_ext.volume);
-
-  // Array for storing cellwise CFL contributions
-  s->cflrate = mkarr(app->use_gpu, 1, app->local_fluid_ext.volume);
 
   // Flux contributions from the kinetic equation, [div(P)-grad(p), (P - pI) : grad(u)]
   s->flash_coupling_fluxes = mkarr(app->use_gpu, 3, app->local_fluid_ext.volume);
@@ -276,19 +272,17 @@ flash_fluid_species_release(struct flash_fluid_species *fs)
   gkyl_array_release(fs->fluid);
   gkyl_array_release(fs->fluid1);
   gkyl_array_release(fs->fluidnew);
-  gkyl_array_release(fs->fluidtmp);
   gkyl_array_release(fs->fluid_prim);
-  gkyl_array_release(fs->cflrate);
+  gkyl_array_release(fs->fluid_phi);
   gkyl_array_release(fs->flash_coupling_fluxes);
 
   gkyl_wave_geom_release(fs->wv_geom);
   gkyl_wv_eqn_release(fs->wv_eqn);
   gkyl_wave_prop_release(fs->up_wave_prop);
 
-  for (int i=0; i<3; ++i) {
-    gkyl_wv_apply_bc_release(fs->bc_lo[i]);
-    gkyl_wv_apply_bc_release(fs->bc_up[i]);
+  // BC updaters only exist in the cdim configuration-space directions.
+  for (int d=0; d<fs->grid.ndim; ++d) {
+    gkyl_wv_apply_bc_release(fs->bc_lo[d]);
+    gkyl_wv_apply_bc_release(fs->bc_up[d]);
   }
-
-  gkyl_free(fs);
 }

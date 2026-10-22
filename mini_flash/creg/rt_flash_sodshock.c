@@ -286,4 +286,8 @@ int main(int argc, char **argv) {
   printf("Fluid updates took %5.5f sec\n", stat.fluid_rhs_tm);
   printf("I/O took %5.5f sec\n", stat.io_tm);
   printf("Total time: %5.5f\n", runtime);
+
+  gkyl_flash_app_release(app);
+
+  return 0;
 }

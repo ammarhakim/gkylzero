@@ -187,6 +187,9 @@ void gkyl_flash_app_write(gkyl_flash_app* app, double tm, int frame);
  */
 void gkyl_flash_app_write_species(gkyl_flash_app* app, int sidx, double tm, int frame);
 
+void
+gkyl_flash_app_write_fluid_species(gkyl_flash_app *app, int sidx, double tm, int frame);
+
 /**
  * Compute and write PKPM diagnostic moments to file:
  * (rho, M1, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp)
@@ -196,7 +199,8 @@ void gkyl_flash_app_write_species(gkyl_flash_app* app, int sidx, double tm, int 
  * @param tm 
  * @param frame 
  */
-void gkyl_flash_app_write_pkpm_moms(gkyl_flash_app* app, int sidx, double tm, int frame);
+void 
+gkyl_flash_app_write_pkpm_moms(gkyl_flash_app* app, int sidx, double tm, int frame);
 
 /**
  * Write electromagnetic field data to file.
@@ -205,7 +209,8 @@ void gkyl_flash_app_write_pkpm_moms(gkyl_flash_app* app, int sidx, double tm, in
  * @param tm 
  * @param frame 
  */
-void gkyl_flash_write_field(gkyl_flash_app* app, double tm, int frame);
+void
+gkyl_flash_app_write_field(gkyl_flash_app *app, double tm, int frame);
 
 /**
  * Advance the mini-FLASH hybrid system by a single timestep with suggested

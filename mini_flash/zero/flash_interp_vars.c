@@ -94,4 +94,5 @@ void
 gkyl_flash_interp_vars_release(struct gkyl_flash_interp_vars *up)
 {
   gkyl_dg_fv_interpolate_release(up->interp);
+  gkyl_free(up);
 }

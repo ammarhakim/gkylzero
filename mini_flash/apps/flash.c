@@ -247,6 +247,14 @@ flash_io_meta_release(struct gkyl_msgpack_data *mt)
   gkyl_free(mt);
 }
 
+void
+gkyl_flash_app_calc_L2(gkyl_flash_app *app, double tm, int frame)
+{
+  for (int n=0; n<app->num_species; ++n) {
+    flash_species_calc_L2(app, tm, &app->species[n]);
+  }
+}
+
 // Write species data to gkyl output files.
 void
 gkyl_flash_app_write_species(gkyl_flash_app *app, int sidx, double tm, int frame)
@@ -417,4 +425,8 @@ gkyl_flash_app_release(gkyl_flash_app *app)
   gkyl_comm_release(app->comm_fluid);
   gkyl_comm_release(app->comm_kinetic);
   gkyl_flash_interp_vars_release(app->interp_vars);
+
+  gkyl_free(app->species);
+  gkyl_free(app->fluid_species);
+  gkyl_free(app);
 }

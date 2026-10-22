@@ -37,6 +37,7 @@ flash_field_new(struct gkyl_flash_inp *inp, struct gkyl_flash_app *app)
 
    f->ext_em = mkarr(app->use_gpu, 6*app->confBasis.num_basis, app->local_kinetic_ext.volume);
   // Check if external EM fields are specified
+  f->has_ext_em = false;
   if (f->info.ext_em_init) {
     f->has_ext_em = true;
     int num_ret_vals = 6;
@@ -112,6 +113,9 @@ flash_field_release(struct flash_field *f)
   gkyl_array_release(f->cell_avg_magB2);
   gkyl_array_release(f->div_b);
   gkyl_array_release(f->max_b);
+
+  if (f->has_ext_em)
+    gkyl_proj_on_basis_release(f->proj_ext_em);
 
   gkyl_wave_geom_release(f->geom);
 

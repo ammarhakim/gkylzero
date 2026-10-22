@@ -16,8 +16,11 @@ flash_species_lbo_init(gkyl_flash_app *app, struct flash_species *s, struct flas
   lbo->self_nu = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_kinetic_ext.volume);
   struct gkyl_array *self_nu = mkarr(false, app->confBasis.num_basis, app->local_kinetic_ext.volume);
 
-  lbo->num_cross_collisions = s->info.collisions.num_cross_collisions;
-  
+  // Cross-species collisions are not implemented.
+  if (s->info.collisions.num_cross_collisions) {
+    gkyl_exit("Cross-species collisions are not supported. Set `num_cross_collisions` = 0 in the species collision object.\n");
+  }
+
   // Verify that user specified collision frequency profile
   if (!s->info.collisions.self_nu) {
     gkyl_exit("No collision frequency profile. Specify `self_nu` collision frequency function in the species collision object.\n");
@@ -112,22 +115,5 @@ flash_species_lbo_release(const struct flash_lbo_collisions *lbo)
   gkyl_mom_calc_bcorr_release(lbo->bcorr_calc);
   gkyl_prim_lbo_calc_release(lbo->coll_pcalc);
 
-  if (lbo->num_cross_collisions) {
-    gkyl_dg_bin_op_mem_release(lbo->greene_factor_mem);
-    gkyl_array_release(lbo->cross_nu_prim_moms);
-    for (int i=0; i<lbo->num_cross_collisions; ++i) {
-      gkyl_array_release(lbo->cross_prim_moms[i]);
-      gkyl_array_release(lbo->cross_nu[i]);
-      gkyl_array_release(lbo->other_nu[i]);
-      gkyl_array_release(lbo->self_mnu[i]);
-      gkyl_array_release(lbo->self_mnu_m0[i]);
-      gkyl_array_release(lbo->other_mnu[i]);
-      gkyl_array_release(lbo->other_mnu_m0[i]);
-      gkyl_array_release(lbo->greene_num[i]);
-      gkyl_array_release(lbo->greene_den[i]);
-      gkyl_array_release(lbo->greene_factor[i]);
-    }
-    gkyl_prim_lbo_cross_calc_release(lbo->cross_calc);
-  }
   gkyl_dg_updater_lbo_pkpm_release(lbo->coll_slvr);
  }

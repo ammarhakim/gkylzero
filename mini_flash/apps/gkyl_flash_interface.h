@@ -5,20 +5,6 @@
 
 /**
  * Used for coupling to an external fluid solver.
- * Perform ONLY the kinetic update, taking a single forward Euler
- * timestep for the transformed kinetic equation in the moving frame.
- * The maximum timestep is returned in the status struct.
- * 
- * @param app 
- * @param dt 
- * @return struct gkyl_update_status 
- */
-struct gkyl_update_status
-gkyl_flash_app_vlasov_update(gkyl_flash_app *app, double dt);
-
-
-/**
- * Used for coupling to an external fluid solver.
  * Compute the momentum and energy flux contributions for coupling 
  * the kinetic equation a fluid system, storing the result
  * in the coupling_fluxes array.

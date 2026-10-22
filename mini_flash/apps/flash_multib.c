@@ -181,7 +181,6 @@ flash_multib_app_init_decomp(struct gkyl_flash_multib_app *mbapp, struct gkyl_fl
   gkyl_comm_get_size(mbinp->comm, &num_ranks);
   int num_blocks = gkyl_flash_block_geom_num_blocks(mbapp->block_geom);
 
-  mbapp->local_blocks = gkyl_malloc(num_blocks*sizeof(int));
   int *branks = gkyl_malloc(num_blocks*sizeof(int));
 
   // Compute number of ranks in each block.
@@ -204,7 +203,7 @@ flash_multib_app_init_decomp(struct gkyl_flash_multib_app *mbapp, struct gkyl_fl
   gkyl_free(branks);
 }
 
-void
+static void
 flash_multib_app_getranks(struct gkyl_flash_multib_app *mbapp, int block_id, int *rank_list)
 {
 
@@ -233,6 +232,9 @@ gkyl_flash_multib_app_new(struct gkyl_flash_multib_inp *mbinp)
   mbapp->cfl_frac = mbinp->cfl_frac == 0.0 ? 1.0 : mbinp->cfl_frac;
   strncpy(mbapp->name, mbinp->name, sizeof(mbinp->name));
 
+  // Are we initializing a fluid species?
+  mbapp->skip_fluid_species = mbinp->skip_fluid_species;
+
   int num_blocks = gkyl_flash_block_geom_num_blocks(mbapp->block_geom);
   int *branks = gkyl_malloc(num_blocks*sizeof(int));
 
@@ -254,8 +256,8 @@ gkyl_flash_multib_app_new(struct gkyl_flash_multib_inp *mbinp)
   // num_local_blocks valid communicators on each rank.
   mbapp->block_comms = gkyl_malloc(num_blocks*sizeof(struct gkyl_comm *));
 
-  mbapp->decomps_kin = gkyl_malloc(num_blocks*sizeof(struct gkyl_rect_decomp));
-  mbapp->decomps_flu = gkyl_malloc(num_blocks*sizeof(struct gkyl_rect_decomp));
+  mbapp->decomps_kin = gkyl_malloc(num_blocks*sizeof(struct gkyl_rect_decomp *));
+  mbapp->decomps_flu = gkyl_malloc(num_blocks*sizeof(struct gkyl_rect_decomp *));
   int lidx = 0, num_local_blocks = 0;
   int *rank_list = gkyl_malloc(num_ranks*sizeof(int)); // This is larger than needed.
   for (int i=0; i<num_blocks; ++i) {
@@ -296,10 +298,7 @@ gkyl_flash_multib_app_new(struct gkyl_flash_multib_inp *mbinp)
   mbapp->num_local_blocks = num_local_blocks;
   for (int b=0; b<mbapp->num_local_blocks; ++b) {
     printf("Rank %d handles block %d\n", my_rank, mbapp->local_blocks[b]);
-  } 
-
-  // Are we initializing a fluid species?
-  mbapp->skip_fluid_species = mbinp->skip_fluid_species;
+  }
 
   // One layer of ghost cells in each configuration space dimension by default
   int nghost_flu[3], nghost_kin[3] = {1};
@@ -418,6 +417,9 @@ gkyl_flash_multib_app_new(struct gkyl_flash_multib_inp *mbinp)
   }
 
   mbapp->stat = (struct gkyl_flash_stat) {};
+
+  gkyl_free(rank_list);
+  gkyl_free(branks);
 
   return mbapp;
 }
@@ -600,21 +602,46 @@ gkyl_flash_multib_app_write(gkyl_flash_multib_app *app, double tm, int frame)
 }
 
 void
-gkyl_flash_multib_app_release(gkyl_flash_multib_app *mbapp) 
+gkyl_flash_multib_app_release(gkyl_flash_multib_app *mbapp)
 {
-  gkyl_flash_block_geom_release(mbapp->block_geom);
+  int num_blocks = gkyl_flash_block_geom_num_blocks(mbapp->block_geom);
 
-  gkyl_free(mbapp->local_blocks);
+  // Inter-block send/recv connections.
+  for (int b=0; b<mbapp->num_local_blocks; ++b) {
+    gkyl_multib_comm_conn_release(mbapp->mbcc_sync_kin->send[b]);
+    gkyl_multib_comm_conn_release(mbapp->mbcc_sync_kin->recv[b]);
+  }
   gkyl_free(mbapp->mbcc_sync_kin->recv);
   gkyl_free(mbapp->mbcc_sync_kin->send);
   gkyl_free(mbapp->mbcc_sync_kin);
 
   if (!mbapp->skip_fluid_species) {
-
-  gkyl_free(mbapp->mbcc_sync_flu->recv);
-  gkyl_free(mbapp->mbcc_sync_flu->send);
-  gkyl_free(mbapp->mbcc_sync_flu);
+    for (int b=0; b<mbapp->num_local_blocks; ++b) {
+      gkyl_multib_comm_conn_release(mbapp->mbcc_sync_flu->send[b]);
+      gkyl_multib_comm_conn_release(mbapp->mbcc_sync_flu->recv[b]);
+    }
+    gkyl_free(mbapp->mbcc_sync_flu->recv);
+    gkyl_free(mbapp->mbcc_sync_flu->send);
+    gkyl_free(mbapp->mbcc_sync_flu);
   }
+
+  // Single-block apps.
+  for (int b=0; b<mbapp->num_local_blocks; ++b) {
+    gkyl_flash_app_release(mbapp->block_apps[b]);
+  }
+  gkyl_free(mbapp->block_apps);
+  gkyl_free(mbapp->local_blocks);
+
+  // Block communicators and decompositions (one per global block).
+  for (int i=0; i<num_blocks; ++i) {
+    gkyl_comm_release(mbapp->block_comms[i]);
+    gkyl_rect_decomp_release(mbapp->decomps_kin[i]);
+    if (!mbapp->skip_fluid_species)
+      gkyl_rect_decomp_release(mbapp->decomps_flu[i]);
+  }
+  gkyl_free(mbapp->block_comms);
+  gkyl_free(mbapp->decomps_kin);
+  gkyl_free(mbapp->decomps_flu);
 
   if (mbapp->decomp_type == GKYL_FLASH_MULTIB_DECOMP_RR) {
     gkyl_rrobin_decomp_release(mbapp->round_robin);
@@ -623,19 +650,9 @@ gkyl_flash_multib_app_release(gkyl_flash_multib_app *mbapp)
     gkyl_flash_decomp_release(mbapp->lin_decomp);
   }
 
-  for (int b=0; b<mbapp->num_local_blocks; ++b) {
-    gkyl_flash_app_release(mbapp->block_apps[b]);
-
-    gkyl_free(mbapp->decomps_kin[b]);
-    
-    if (!mbapp->skip_fluid_species)
-      gkyl_free(mbapp->decomps_flu[b]);
-  }
-
-  gkyl_free(mbapp->decomps_kin);
-  if (!mbapp->skip_fluid_species) 
-    gkyl_free(mbapp->decomps_flu);
-
+  gkyl_block_topo_release(mbapp->topo);
+  gkyl_flash_block_geom_release(mbapp->block_geom);
+  gkyl_comm_release(mbapp->comm);
 
   gkyl_free(mbapp);
 }

@@ -139,9 +139,6 @@ void
 gkyl_flash_multib_app_apply_bc(gkyl_flash_multib_app *app, double tcurr,
   struct gkyl_array *distf[], struct gkyl_array *fluid[]);
 
-void
-gkyl_flash_app_print_distf_val(gkyl_flash_multib_app *app);
-
 /**
  * Write out diagnostic files for each block of the multib app.
  * 
@@ -154,3 +151,9 @@ gkyl_flash_multib_app_write(struct gkyl_flash_multib_app *app, double tm, int fr
 
 double
 gkyl_flash_multib_app_compute_dt_max(gkyl_flash_multib_app *app);
+
+void
+gkyl_flash_multib_update(gkyl_flash_multib_app *app, double dt0);
+
+void
+gkyl_flash_multib_app_release(gkyl_flash_multib_app *mbapp);

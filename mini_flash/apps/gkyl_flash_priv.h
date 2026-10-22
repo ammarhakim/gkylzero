@@ -47,34 +47,11 @@ struct flash_lbo_collisions {
   struct gkyl_array *boundary_corrections; // LBO boundary corrections
   struct gkyl_mom_calc_bcorr *bcorr_calc; // LBO boundary corrections calculator
   struct gkyl_array *nu_sum, *prim_moms, *nu_prim_moms; // LBO primitive moments
-  bool normNu; // Boolean to determine if using Spitzer value
-  struct gkyl_array *norm_nu; // Array for normalization factor computed from Spitzer updater n/sqrt(2 vt^2)^3
-  struct gkyl_array *nu_init; // Array for initial collisionality when using Spitzer updater
-  struct gkyl_spitzer_coll_freq* spitzer_calc; // Updater for Spitzer collisionality if computing Spitzer value
 
-  double betaGreenep1; // value of Greene's factor beta + 1
-  double other_m[GKYL_MAX_SPECIES]; // masses of species being collided with
-  struct gkyl_array *other_prim_moms[GKYL_MAX_SPECIES]; // self-primitive moments of species being collided with
-  struct gkyl_array *cross_prim_moms[GKYL_MAX_SPECIES]; // LBO cross-primitive moments
-  struct gkyl_array *cross_nu[GKYL_MAX_SPECIES]; // LBO cross-species collision frequencies
-  struct gkyl_array *other_nu[GKYL_MAX_SPECIES];
-  struct gkyl_array *cross_nu_prim_moms; // weak multiplication of collision frequency and primitive moments
-  
-  struct gkyl_array *self_nu, *self_nu_prim_moms; // LBO self-primitive moments
-
-  struct array *pkpm_moms; // moments needed in LBO (single array includes Zeroth, First, and Second moment)
+  struct gkyl_array *self_nu; // LBO self collision frequency
   struct gkyl_array *m0;
-  struct gkyl_array *self_mnu_m0[GKYL_MAX_SPECIES], *self_mnu[GKYL_MAX_SPECIES];
-  struct gkyl_array *other_mnu_m0[GKYL_MAX_SPECIES], *other_mnu[GKYL_MAX_SPECIES];
-  struct gkyl_array *greene_num[GKYL_MAX_SPECIES], *greene_den[GKYL_MAX_SPECIES];
-  gkyl_dg_bin_op_mem *greene_factor_mem; // memory needed in computing Greene factor
-  struct gkyl_array *greene_factor[GKYL_MAX_SPECIES];
-
-  int num_cross_collisions; // number of species we cross-collide with
-  struct pkpm_species *collide_with[GKYL_MAX_SPECIES]; // pointers to cross-species we collide with
 
   gkyl_prim_lbo_calc *coll_pcalc; // LBO primitive moment calculator
-  gkyl_prim_lbo_cross_calc *cross_calc; // LBO cross-primitive moment calculator
   gkyl_dg_updater_collisions *coll_slvr; // collision solver
 };
 
@@ -86,9 +63,8 @@ struct flash_fluid_species {
   struct gkyl_range local, local_ext; // Local, local-ext configuration space ranges.
   struct gkyl_range global, global_ext; // Global, global-ext configuration space ranges.
 
-  struct gkyl_array *fluid, *fluid1, *fluidnew, *fluidtmp; // Fluid variable arrays.
+  struct gkyl_array *fluid, *fluid1, *fluidnew; // Fluid variable arrays.
   struct gkyl_array *fluid_prim; // (rho, ux, uy, uz, p) for diagnositcs.
-  struct gkyl_array *cflrate; // CFL contributions per cell
   struct gkyl_array *fluid_phi;
 
   struct gkyl_array *flash_coupling_fluxes; // Flux contribution terms, [div(P)-grad(p), (P - pI) : grad(u)].
@@ -131,7 +107,7 @@ struct flash_species {
   struct gkyl_array *L2_f; // Array to store L2 norm of the distribution function.
   gkyl_dynvec integ_L2_f; // Storage for integrated L^2 norm reduced across grid.
   struct gkyl_array *pkpm_div_ppar; // dif(p_par b_hat) for selv-consistent total pressure force.
-  struct gkyl_array *pkpm_prim, *pkpm_u, *pkpm_p_ij; // Primitive moments.
+  struct gkyl_array *pkpm_prim, *pkpm_p_ij; // Primitive moments.
   struct gkyl_array *cell_avg_prim; // Integer array for whether rho, p_par, or p_perp < 0.0 at control points
   struct gkyl_array *pkpm_prim_surf; // Surface expansions of primitive variables.
   struct gkyl_array *pkpm_lax, *pkpm_penalization; // Expansions of Lax penalization and momentum penalization.
@@ -192,8 +168,6 @@ struct flash_species {
                                      // [rho, ux, uy, uz, temp].
 
   bool skip_init_dist; // Flag to skip initializing the distribution function.
-
-  struct gkyl_array *f_skin_lo, *f_skin_up;
 };
 
 // Electromagnetic field object.

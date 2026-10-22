@@ -85,7 +85,6 @@ void flash_species_init(struct gkyl_flash_inp *inp,
   // [ux, uy, uz, 1/rho*div(p_par b), T_perp/m, m/T_perp, 3*T_xx/m, 3*T_yy/m, 3*T_zz/m]
   // pressure p_ij : (p_par - p_perp) b_i b_j + p_perp g_ij
   s->pkpm_prim = mkarr(app->use_gpu, 9*app->confBasis.num_basis, app->local_kinetic_ext.volume);
-  s->pkpm_u = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_kinetic_ext.volume);
   s->pkpm_p_ij = mkarr(app->use_gpu, 6*app->confBasis.num_basis, app->local_kinetic_ext.volume);
   // boolean array for primitive variables [rho, p_par, p_perp] is negative at control points
   // *only used for diagnostic purposes*
@@ -127,7 +126,7 @@ void flash_species_init(struct gkyl_flash_inp *inp,
   // Updater to compute PKPM vars:
   // pressure, primitive variables, and acceleration variables
   // also stores kernels for computing source terms, integrated variables
-  double limiter_fac = 0.3/sqrt(3); // default 1/sqrt(3)
+  double limiter_fac = 1.0/sqrt(3); // default 1/sqrt(3)
   s->calc_pkpm_vars_ext = gkyl_dg_calc_pkpm_vars_new(&app->grid_kinetic,
     &app->confBasis, &app->local_kinetic_ext, s->eqn_ten_mom, s->ten_mom_geom, limiter_fac, app->use_gpu);
   s->calc_pkpm_vars = gkyl_dg_calc_pkpm_vars_new(&app->grid_kinetic,
@@ -280,9 +279,6 @@ void flash_species_init(struct gkyl_flash_inp *inp,
     s->bc_conf_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, &app->fvBasis,
       &s->upper_skin_conf[d], &s->upper_ghost_conf[d], app->vdim, app->cdim, app->use_gpu);
   }
-
-  s->f_skin_lo = mkarr(app->use_gpu, 2*app->basis.num_basis, s->lower_skin->volume);
-  s->f_skin_up = mkarr(app->use_gpu, 2*app->basis.num_basis, s->upper_skin->volume);
 }
 
 // Compute initial distribution function as Maxwellian using input fluid moment data.
@@ -671,15 +667,19 @@ flash_species_set_vel_space_extents(gkyl_flash_app *app, struct flash_species *s
   // We use the 10 moment system since PKPM model generates a full pressure tensor
   // k0 = 0.0 and use_grad_closure = false because we do not need a closure 
   // (the kinetic equations are the closure)
+  gkyl_wv_eqn_release(s->eqn_ten_mom);
   s->eqn_ten_mom = gkyl_wv_ten_moment_new(0.0, false, false, 0, 0, app->use_gpu);
 
   // Geometry object for ten moment equations.
+  gkyl_wave_geom_release(s->ten_mom_geom);
   s->ten_mom_geom = gkyl_wave_geom_new(&app->grid_kinetic, &app->local_kinetic_ext, 0, 0, app->use_gpu);
 
   // Updater to compute PKPM vars:
   // pressure, primitive variables, and acceleration variables
   // also stores kernels for computing source terms, integrated variables
   double limiter_fac = 1.0/sqrt(3); // default 1/sqrt(3)
+  gkyl_dg_calc_pkpm_vars_release(s->calc_pkpm_vars_ext);
+  gkyl_dg_calc_pkpm_vars_release(s->calc_pkpm_vars);
   s->calc_pkpm_vars_ext = gkyl_dg_calc_pkpm_vars_new(&app->grid_kinetic,
     &app->confBasis, &app->local_kinetic_ext, s->eqn_ten_mom, s->ten_mom_geom, limiter_fac, app->use_gpu);
   s->calc_pkpm_vars = gkyl_dg_calc_pkpm_vars_new(&app->grid_kinetic,
@@ -688,19 +688,25 @@ flash_species_set_vel_space_extents(gkyl_flash_app *app, struct flash_species *s
   // Updater to compute PKPM dist vars
   // div(p_par b_hat) for self-consistent total pressure force and distribution function sources for
   // Laguerre couplings and vperp characteristics 
+  gkyl_dg_calc_pkpm_dist_vars_release(s->calc_pkpm_dist_vars);
   s->calc_pkpm_dist_vars = gkyl_dg_calc_pkpm_dist_vars_new(&s->grid, &app->confBasis, app->use_gpu);
 
   // Updater to compute PKPM moments (rho, p_par, p_perp, M1) and diagnostics
+  gkyl_array_release(s->pkpm_moms);
+  gkyl_dg_updater_moment_pkpm_release(s->pkpm_mom_calc);
   s->pkpm_moms = mkarr(app->use_gpu, 4*app->confBasis.num_basis, app->local_kinetic_ext.volume);
   s->pkpm_mom_calc = gkyl_dg_updater_moment_pkpm_new(&s->grid, &app->confBasis, 
     &app->basis, &app->local_kinetic, &s->local_vel, s->info.mass, false, app->use_gpu);
 
   // Diagnostic moments (rho, M1, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp)
+  gkyl_array_release(s->pkpm_moms_diag);
+  gkyl_dg_updater_moment_pkpm_release(s->pkpm_mom_calc_diag);
   s->pkpm_moms_diag = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_kinetic_ext.volume);
   s->pkpm_mom_calc_diag = gkyl_dg_updater_moment_pkpm_new(&s->grid, &app->confBasis, 
     &app->basis, &app->local_kinetic, &s->local_vel, s->info.mass, true, app->use_gpu);
 
   // Updater to compute flux contributions to Euler equations, [div(P)-grad(p), (P - pI) : grad(u), div(q)]
+  gkyl_dg_calc_flash_coupling_release(s->calc_flash_coupling);
   s->calc_flash_coupling = gkyl_dg_calc_flash_coupling_new(&s->grid, &app->grid_kinetic, &app->confBasis);
 
   // Updater for kinetic RHS.
@@ -760,7 +766,6 @@ flash_species_release(gkyl_flash_app *app, struct flash_species *s)
   gkyl_array_release(s->fnew);
   gkyl_array_release(s->pkpm_div_ppar);
   gkyl_array_release(s->pkpm_prim);
-  gkyl_array_release(s->pkpm_u);
   gkyl_array_release(s->pkpm_p_ij);
   gkyl_array_release(s->cell_avg_prim);
   gkyl_array_release(s->pkpm_prim_surf);
@@ -775,6 +780,8 @@ flash_species_release(gkyl_flash_app *app, struct flash_species *s)
   gkyl_array_release(s->F_k_m_1);
   gkyl_array_release(s->F_k_p_1);
   gkyl_array_release(s->cflrate_f);
+  gkyl_array_release(s->L2_f);
+  gkyl_dynvec_release(s->integ_L2_f);
 
   flash_species_lbo_release(&s->lbo);
   gkyl_wave_geom_release(s->ten_mom_geom);
@@ -802,6 +809,4 @@ flash_species_release(gkyl_flash_app *app, struct flash_species *s)
   if (s->init_dist_from_arrays) {
     gkyl_array_release(s->init_dist_moms);
   }
-
-  gkyl_free(s);
 }
