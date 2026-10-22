@@ -83,6 +83,9 @@ def code(text):
 
 
 def dropdown(title, body):
+    # Report policy: all main content belongs in collapsed dropdowns, including
+    # continuation pages. Keep sections as siblings to avoid deep trees; only
+    # the report heading and page navigation remain outside dropdowns.
     return '<details><summary>{}</summary>\n\n{}\n\n</details>'.format(
         html.escape(title), body)
 
@@ -267,10 +270,10 @@ def regression_sections(title, summary_file):
     if candidate_only_tests:
         lines += ["", "Candidate-only tests (executed but not compared to a baseline): "
                   + ", ".join(code(t) for t in candidate_only_tests)]
-    # Keep the totals visible and the two failure groups independently accessible.
+    # Keep totals and the two failure groups in sibling dropdowns.
     # Return separate sections so large file lists paginate as rendered content,
     # rather than being escaped as an "Extended CI summary (Markdown)" log.
-    sections = ['**{}**\n\n{}'.format(head, "\n".join(lines).strip())]
+    sections = [dropdown(head, "\n".join(lines).strip())]
     full_sections = []
     acked_status = dict(entry.rsplit(':', 1) for entry in
                         values.get('c_regression_acknowledged_status', []) if ':' in entry)
@@ -305,8 +308,8 @@ def regression_sections(title, summary_file):
             if test_details:
                 for chunk in wrapped_log_chunks('\n'.join(test_details)):
                     # Repeat identity on every chunk, including splits within a test.
-                    full_sections.append('**{} — {} [{}]**\n\n{}'.format(
-                        html.escape(group_title), code(name), code(status), chunk))
+                    full_sections.append(dropdown(group_title + ' — full file lists',
+                        '**{} [{}]**\n\n{}'.format(code(name), code(status), chunk)))
         if len(full_sections) > full_start:
             full_sections[full_start] = '<!-- ci-regression-files-{} -->\n\n{}'.format(
                 token, full_sections[full_start])

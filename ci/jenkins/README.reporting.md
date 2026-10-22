@@ -106,15 +106,23 @@ supersession checks need a working API and valid credentials.
 
 ## Completed reports
 
+All main report content must be inside collapsed dropdowns, including content
+on continuation pages. Only the report heading and page navigation remain
+outside. Prefer sibling sections to keep the report shallow; avoid adding
+wrapper dropdowns around existing groups or dropdowns for individual regression
+test previews.
+
 Reports use collapsed sections for:
 
 - Run details: candidate/baseline, machine, build/queue IDs, status context,
   trusted code commits, UTC timestamps, and queue/execution times.
 - Candidate/baseline unit tests, with layer totals and failure details.
+- Serial/parallel regression totals, layer counts, candidate-only tests, and
+  expected-diff entries whose tests pass, in a summary dropdown for each suite.
 - Acknowledged and unacknowledged regression tests, grouped separately for each
   serial/parallel suite, with every failing test's status and differing or
-  missing files. Regression totals are visible above these two dropdowns;
-  individual tests do not have dropdowns.
+  missing files. These groups are siblings of the regression summary dropdown;
+  individual test previews do not have dropdowns.
 - Stage durations, timings, the 20 slowest candidate regressions, and regression
   timing changes.
 - New/all compiler and other warnings, separate new/all time-step warnings,
@@ -136,7 +144,7 @@ groups omitted from the preview. Unavailable metrics are not invented.
 Omitted file/group counts are explicit. Long labels and diagnostic text are
 shortened in previews. Each acknowledgment group links directly to its complete
 file lists and original comparison details in GitHub continuation comments,
-with test identities repeated across page splits and no per-test dropdowns.
+inside dropdowns, with test identities repeated across page splits.
 No files are discarded from the checker summary or the full GitHub report.
 The report includes the regression information directly, without a fetch-logs
 dropdown.

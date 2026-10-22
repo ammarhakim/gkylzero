@@ -88,7 +88,7 @@ class FailureReportTests(unittest.TestCase):
         self.regression_fixture()
         sections, full_lists = report.regression_sections('Serial C regressions', 'ci-regression-summary.txt')
         text = '\n'.join(sections)
-        self.assertEqual(text.count('<details>'), 2)
+        self.assertEqual(text.count('<details>'), 3)
         self.assertIn('| moments | 3 | 2 | 2 :x: |', text)
         self.assertIn('Acknowledged tests (2)', sections[1])
         self.assertIn('Unacknowledged tests (2)', sections[2])
@@ -142,7 +142,7 @@ class FailureReportTests(unittest.TestCase):
             for tag in ('details', 'div', 'code'):
                 self.assertEqual(page.count('<' + tag + '>'), page.count('</' + tag + '>'))
         text = '\n'.join(pages)
-        self.assertEqual(pages[0].count('<details><summary>Serial C regressions:'), 2)
+        self.assertEqual(pages[0].count('<details><summary>Serial C regressions:'), 3)
         self.assertIn('ack_{0, 1, …, 999}.gkyl', pages[0])
         self.assertNotIn('ack_500.gkyl', pages[0])
         self.assertTrue(any('ack_500.gkyl' in page for page in pages[1:]))
