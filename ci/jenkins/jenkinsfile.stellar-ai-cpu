@@ -436,10 +436,11 @@ def submitRegressionTests(String mode, String baselineDir, String candidateDir) 
     )
 }
 
-// Build on Intel vis2 and execute on AMD Turin: use their shared ISA,
-// with scheduling tuned for the CPU compute nodes.
+// Build on Intel vis2 and execute on AMD Turin. GCC 14.3.1 on Stellar AI
+// miscompiles binop_cross_mul_1d_3d_ser_p1 with AVX-512 SLP vectorization.
+// Use their shared AVX2 ISA until the compiler is fixed and revalidated.
 def ciArchitectureFlags() {
-    return '-march=x86-64-v4 -mtune=znver5'
+    return '-march=x86-64-v3 -mtune=znver5'
 }
 
 // Only modify the disposable CI config, including copies of prebuilt configs.

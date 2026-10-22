@@ -15,14 +15,18 @@ toolchain there. This avoids exporting visualization-host GPU module state
 whose modulefiles may not exist on CPU nodes. `SLURM_EXPORT_ENV=ALL` lets MPI
 steps inherit the resulting compute-node environment.
 
-The CI pipeline sets `ARCH_FLAGS="-march=x86-64-v4 -mtune=znver5"` in each
+The CI pipeline sets `ARCH_FLAGS="-march=x86-64-v3 -mtune=znver5"` in each
 run's generated `config.mak`, for both candidate and baseline builds (including
 copies of prebuilt configurations). Machine files and the original prebuilt
 configuration are unchanged. The visualization nodes are Intel Granite Rapids,
 while the CPU partition is AMD Turin (Zen 5). The shared instruction set lets
 Jenkins run the installed regression driver on the visualization host and tunes
-code for the AMD compute nodes. It also avoids GCC 14.3's `-march=native` AVX10
-alias warning. The effective CI architecture flags are included in the baseline
+code for the AMD compute nodes. AVX2 avoids a reproduced GCC 14.3.1 AVX-512
+SLP miscompilation of `binop_cross_mul_1d_3d_ser_p1`: coefficients 2 and 3
+were incorrect in build #7. Disabling fast math did not fix it; compiling for
+AVX2 did. Keep this setting until a compiler upgrade passes the kernel codegen
+fixture and unit tests. It also avoids GCC 14.3's `-march=native` AVX10 alias
+warning. The effective CI architecture flags are included in the baseline
 cache fingerprint, so changing them forces a fresh baseline.
 
 ## Install and access
@@ -149,6 +153,7 @@ numerical baseline is populated only after a successful regression create run.
 ```sh
 TEST_CACHE_PLATFORM=stellar-ai-cpu bash ci/jenkins/tests/test_baseline_cache.sh
 python3 -m unittest -v ci.jenkins.tests.test_stellar_ai_mpi_policy ci.jenkins.tests.test_stellar_ai_batch_environment
+python3 -m unittest -v ci.jenkins.tests.test_stellar_ai_codegen
 java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/tests/test_stellar_resources.groovy
 ```
 
