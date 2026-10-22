@@ -184,8 +184,9 @@ struct gkyl_pkpm {
   struct gkyl_pkpm_field field; // field object
 
   bool use_explicit_source; // Use fully explicit SSP RK3 scheme
-    // Default is a first-order operator split with
-    // implicit fluid-EM coupling.
+    // Default is a staggered (Strang) operator split with implicit fluid-EM coupling: between
+    // updates the fluid and E lag by half a source step, and output and diagnostics see them
+    // synchronized; frames store the steps that make a restart continue the uninterrupted run.
 
   // Vertex positivity limiter of the fluid state [rho, M, E] (Zhang-Shu scaling of the
   // slopes toward the cell averages, applied after every forward-Euler stage, the implicit

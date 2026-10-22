@@ -74,6 +74,9 @@ struct pkpm_output_meta {
   const char *basis_type; // name of basis functions
   char basis_type_nm[64]; // used during read
   int num_cdim, num_vdim; // phase-space split of a hybrid basis (written when num_vdim > 0)
+  // Staggered operator split (0: none): the step of the last update and the step it suggested, so a
+  // restart continues as the uninterrupted run would.
+  double dt_prev, dt_suggested;
 };
 
 // data for moments
@@ -465,6 +468,13 @@ struct gkyl_pkpm_app {
   bool use_gpu; // should we use GPU (if present)
 
   double op_split_dt_prev; // step taken by the previous operator-split update (0: none yet)
+  double op_split_dt_suggested; // step suggested by the previous operator-split update (0: none yet)
+  // Staggered split: between updates the source-updated state (fluid, E) is half a source step
+  // behind tcurr. Output and diagnostics advance a copy of it by that half step (synchronized), and
+  // the next update restores the staggered state.
+  bool op_split_synced; // the fluid and field hold the synchronized state
+  struct gkyl_array *op_split_fluid[GKYL_MAX_SPECIES]; // staggered fluid states while synchronized
+  struct gkyl_array *op_split_em; // staggered field while synchronized
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
 
@@ -523,8 +533,16 @@ void pkpm_forward_euler(
   struct gkyl_array *fluidout[], struct gkyl_array *emout, struct gkyl_update_status *st
 );
 
-// Take a single time-step using a first-order operator split implicit fluid-EM coupling + SSP RK3
+// Take a single time-step of the staggered operator split: one implicit fluid-EM source step over the
+// interval between the midpoints of consecutive transport steps, then the SSP-RK3 transport step.
 struct gkyl_update_status pkpm_update_op_split(gkyl_pkpm_app *app, double dt0);
+
+// Staggered split: advance the source-updated state (fluid, E) by the half source step it lags tcurr,
+// keeping the staggered state for the next update (no-op if already synchronized or not staggered).
+void pkpm_op_split_sync(gkyl_pkpm_app *app);
+
+// Staggered split: restore the staggered state saved by pkpm_op_split_sync (no-op if not synchronized).
+void pkpm_op_split_unsync(gkyl_pkpm_app *app);
 
 // Take a fully explicit single time-step using a SSP RK3 (including explicit fluid-EM coupling)
 struct gkyl_update_status pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app *app, double dt0);

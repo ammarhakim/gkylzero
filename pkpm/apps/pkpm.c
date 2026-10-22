@@ -38,6 +38,12 @@ pkpm_array_meta_new(struct pkpm_output_meta meta)
   mpack_write_cstr(&writer, "basisType");
   mpack_write_cstr(&writer, meta.basis_type);
 
+  // the staggered operator split's last and suggested steps (restart, plan 17.34)
+  mpack_write_cstr(&writer, "dt_prev");
+  mpack_write_double(&writer, meta.dt_prev);
+  mpack_write_cstr(&writer, "dt_suggested");
+  mpack_write_double(&writer, meta.dt_suggested);
+
   // The phase-space split of a hybrid basis: the distribution files hold
   // PKPM_DIST_NUM_BLOCKS blocks, whose component count alone does not determine it.
   if (meta.num_vdim > 0) {
@@ -95,6 +101,11 @@ pkpm_meta_from_mpack(struct gkyl_msgpack_data *mt)
     strcpy(meta.basis_type_nm, basis_type);
     meta.basis_type = meta.basis_type_nm;
     MPACK_FREE(basis_type);
+
+    mpack_node_t dtp_node = mpack_node_map_cstr_optional(root, "dt_prev");
+    meta.dt_prev = mpack_node_is_missing(dtp_node) ? 0.0 : mpack_node_double(dtp_node);
+    mpack_node_t dts_node = mpack_node_map_cstr_optional(root, "dt_suggested");
+    meta.dt_suggested = mpack_node_is_missing(dts_node) ? 0.0 : mpack_node_double(dts_node);
 
     mpack_tree_destroy(&tree);
   }
@@ -340,6 +351,12 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
     app->pkpm_em = pkpm_fluid_em_coupling_init(app);
     app->update_func = pkpm_update_op_split;
     app->op_split_dt_prev = 0.0;
+    app->op_split_dt_suggested = 0.0;
+    app->op_split_synced = false;
+    for (int i = 0; i < app->num_species; ++i) {
+      app->op_split_fluid[i] = mkarr(app->use_gpu, app->species[i].fluid->ncomp, app->species[i].fluid->size);
+    }
+    app->op_split_em = mkarr(app->use_gpu, app->field->em->ncomp, app->field->em->size);
   }
 
   // initialize stat object
@@ -426,6 +443,7 @@ gkyl_pkpm_app_apply_ic_species(gkyl_pkpm_app *app, int sidx, double t0)
 void
 gkyl_pkpm_app_calc_integrated_mom(gkyl_pkpm_app *app, double tm)
 {
+  pkpm_op_split_sync(app); // the staggered split's source-updated state at tcurr
   double avals[9], avals_global[9];
 
   struct timespec wst = gkyl_wall_clock();
@@ -483,6 +501,7 @@ gkyl_pkpm_app_calc_integrated_L2_f(gkyl_pkpm_app *app, double tm)
 void
 gkyl_pkpm_app_calc_field_energy(gkyl_pkpm_app *app, double tm)
 {
+  pkpm_op_split_sync(app); // the staggered split's source-updated state at tcurr
   struct timespec wst = gkyl_wall_clock();
   pkpm_field_calc_energy(app, tm, app->field);
   app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
@@ -507,9 +526,12 @@ gkyl_pkpm_app_write(gkyl_pkpm_app *app, double tm, int frame)
 void
 gkyl_pkpm_app_write_field(gkyl_pkpm_app *app, double tm, int frame)
 {
+  pkpm_op_split_sync(app); // the staggered split's source-updated state at tcurr
   struct gkyl_msgpack_data *mt = pkpm_array_meta_new((struct pkpm_output_meta){
     .frame = frame,
     .stime = tm,
+    .dt_prev = app->op_split_dt_prev,
+    .dt_suggested = app->op_split_dt_suggested,
     .poly_order = app->poly_order,
     .basis_type = app->confBasis.id,
   });
@@ -570,6 +592,8 @@ gkyl_pkpm_app_write_species(gkyl_pkpm_app *app, int sidx, double tm, int frame)
   struct gkyl_msgpack_data *mt = pkpm_array_meta_new((struct pkpm_output_meta){
     .frame = frame,
     .stime = tm,
+    .dt_prev = app->op_split_dt_prev,
+    .dt_suggested = app->op_split_dt_suggested,
     .poly_order = app->poly_order,
     .basis_type = app->basis.id,
     .num_cdim = app->cdim,
@@ -597,9 +621,12 @@ gkyl_pkpm_app_write_species(gkyl_pkpm_app *app, int sidx, double tm, int frame)
 void
 gkyl_pkpm_app_write_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame)
 {
+  pkpm_op_split_sync(app); // the staggered split's source-updated state at tcurr
   struct gkyl_msgpack_data *mt = pkpm_array_meta_new((struct pkpm_output_meta){
     .frame = frame,
     .stime = tm,
+    .dt_prev = app->op_split_dt_prev,
+    .dt_suggested = app->op_split_dt_suggested,
     .poly_order = app->poly_order,
     .basis_type = app->confBasis.id,
   });
@@ -815,6 +842,7 @@ gkyl_pkpm_app_train_mom(
   struct gkyl_kn_vec *input_data, struct gkyl_kn_vec *output_data
 )
 {
+  pkpm_op_split_sync(app); // the staggered split's source-updated state at tcurr
   struct pkpm_species *s = &app->species[sidx];
   // the diagnostic moments need the thermal speed of the current state
   pkpm_species_calc_pkpm_vars(app, s, s->f, s->fluid);
@@ -948,9 +976,12 @@ gkyl_pkpm_app_test_mom(
   struct gkyl_kn_vec *output_data_predicted
 )
 {
+  pkpm_op_split_sync(app); // the staggered split's source-updated state at tcurr
   struct gkyl_msgpack_data *mt = pkpm_array_meta_new((struct pkpm_output_meta){
     .frame = frame,
     .stime = tm,
+    .dt_prev = app->op_split_dt_prev,
+    .dt_suggested = app->op_split_dt_suggested,
     .poly_order = app->poly_order,
     .basis_type = app->confBasis.id,
   });
@@ -1428,6 +1459,24 @@ header_from_file(gkyl_pkpm_app *app, const char *fname)
   return rstat;
 }
 
+// metadata of a frame file
+static struct pkpm_output_meta
+meta_from_file(const char *fname)
+{
+  struct pkpm_output_meta meta = {.frame = 0, .stime = 0.0};
+  FILE *fp = 0;
+  with_file(fp, fname, "r")
+  {
+    struct gkyl_rect_grid grid;
+    struct gkyl_array_header_info hdr;
+    if (gkyl_grid_sub_array_header_read_fp(&grid, &hdr, fp) == GKYL_ARRAY_RIO_SUCCESS) {
+      meta = pkpm_meta_from_mpack(&(struct gkyl_msgpack_data){.meta = hdr.meta, .meta_sz = hdr.meta_size});
+      gkyl_grid_sub_array_header_release(&hdr);
+    }
+  }
+  return meta;
+}
+
 struct gkyl_app_restart_status
 gkyl_pkpm_app_from_file_field(gkyl_pkpm_app *app, const char *fname)
 {
@@ -1561,6 +1610,25 @@ gkyl_pkpm_app_read_from_frame(gkyl_pkpm_app *app, int frame)
     rstat = gkyl_pkpm_app_from_frame_species(app, i, frame);
   }
 
+  app->tcurr = rstat.stime;
+  if (!app->use_explicit_source && rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+    // The frames hold the synchronized state of the staggered operator split (plan 17.34); the
+    // uninterrupted run held the sources half its last step behind. Step them back (the implicit
+    // midpoint rule is time-reversible: this inverts the synchronization step) and restore the steps,
+    // so the next update continues as the uninterrupted run. Frames without the steps restart as a
+    // new run (Lie start).
+    cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
+    struct pkpm_output_meta meta = meta_from_file(fileNm.str);
+    cstr_drop(&fileNm);
+    app->op_split_synced = false;
+    app->op_split_dt_prev = meta.dt_prev;
+    app->op_split_dt_suggested = meta.dt_suggested;
+    if (meta.dt_prev > 0.0) {
+      double dt_half = 0.5 * meta.dt_prev;
+      pkpm_fluid_em_coupling_update(app, app->pkpm_em, app->tcurr - 0.5 * dt_half, -dt_half);
+    }
+  }
+
   return rstat;
 }
 
@@ -1598,6 +1666,10 @@ gkyl_pkpm_app_release(gkyl_pkpm_app *app)
   pkpm_field_release(app, app->field);
   if (!app->use_explicit_source) {
     pkpm_fluid_em_coupling_release(app, app->pkpm_em);
+    for (int i = 0; i < app->num_species; ++i) {
+      gkyl_array_release(app->op_split_fluid[i]);
+    }
+    gkyl_array_release(app->op_split_em);
   }
 
   gkyl_comm_release(app->comm);
