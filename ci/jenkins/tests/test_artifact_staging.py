@@ -103,6 +103,9 @@ class ArtifactStagingTests(unittest.TestCase):
         self.assertEqual(sorted(p.name for p in (self.root / 'outside').iterdir()), ['secret.gkyl'])
         self.assertFalse(list(self.workspace.rglob('*.gkyl')))
         for root in (self.workspace, self.workspace / '_baseline'):
+            inventory = (root / RESULTS / 'ci-output-files.txt').read_bytes().split(b'\0')
+            self.assertEqual({name.decode() for name in inventory if name},
+                             {'./' + str(path.relative_to(RESULTS)) for path in outputs})
             self.assertEqual((root / RESULTS / 'moments/regressiondb').read_bytes(), b'database')
             self.assertEqual((root / RESULTS / 'runregression.config.lua').read_bytes(), b'return {}')
             self.assertEqual((root / RESULTS / 'moments/creg-runs/line\nbreak.txt').read_bytes(), b'diagnostic')

@@ -350,6 +350,11 @@ copy_artifact_files() {
       *) die "invalid artifact selection: $selection" ;;
     esac | tar -c -f - --null -T -
   ) | tar -x -f - -C "$destination"
+  if [[ "$selection" == diagnostics ]]; then
+    # Let the reporter count frames without unpacking the numerical archive.
+    # Match the archive's regular-file selection and preserve arbitrary names.
+    (cd "$source" && find . -type f -name '*.gkyl' -print0) > "$destination/ci-output-files.txt"
+  fi
 }
 
 pack_numerical_outputs() {

@@ -330,6 +330,44 @@ def regression_sections(title, summary_file):
     return sections, full_sections
 
 
+def regression_frame_sections():
+    """Count distinct post-initial frames across all outputs of each candidate test."""
+    root = 'gkylsoft/gkeyll-results'
+    inventory = os.path.join(root, 'ci-output-files.txt')
+    if os.path.isfile(inventory):
+        # Staging keeps a NUL-delimited inventory instead of loose numerical data.
+        paths = read_text(inventory).split('\0')
+    else:
+        paths = (os.path.relpath(os.path.join(directory, filename), root)
+                 for directory, _, filenames in os.walk(root)
+                 for filename in filenames
+                 if not os.path.islink(os.path.join(directory, filename)))
+    frames = {}
+    for path in paths:
+        match = re.fullmatch(
+            r'(?:\./)?(.+)/(creg|luareg)-runs/(cpu_serial|cpu_parallel|gpu_serial|gpu_parallel)/'
+            r'([^/]+)/[^/]*[_-](\d+)\.gkyl', path)
+        if not match:
+            continue
+        suite, kind, mode, name, frame = match.groups()
+        if int(frame) > 0:
+            frames.setdefault((suite, kind, mode, name), set()).add(int(frame))
+    rows = []
+    for (suite, kind, mode, name), numbers in sorted(frames.items()):
+        if len(numbers) > 1:
+            test = suite.rsplit('/', 1)[-1] + '/' + kind + '/' + name
+            cells = ' | '.join(code(value.replace('|', '&#124;').replace('\n', ' '))
+                               for value in (test, suite, mode))
+            rows.append('| {} | {} |'.format(cells, len(numbers)))
+    if not rows:
+        return []
+    return [dropdown('Regression tests outputting more than 1 frame', '\n'.join([
+        'Distinct output frame numbers per candidate test, excluding initial-condition frame 0. '
+        'Files for different fields or species at the same frame count once.', '',
+        '| Test | Suite/layer | Mode | Frames after frame 0 |',
+        '| --- | --- | --- | ---: |', *rows]))]
+
+
 def regression_timings(root):
     """Read the latest finalized invocation in each suite/layer database."""
     timings, issues = {}, []
@@ -422,12 +460,9 @@ def regression_timing_sections():
             cand, base = candidate[key][0], baseline[key][0]
             body.append('| {} | {:.3f} | {:.3f} | {:+.3f} | {:.3f}x | {} |'.format(
                 cells(key), base, cand, cand - base, cand / base, 'slower' if cand > base else 'faster'))
-    else:
-        body += ['', 'No comparisons meet the reporting thresholds.' if comparable else
-                 'Timing comparison unavailable: no matching successful baseline/candidate results.']
-    sections.append(dropdown('Regression timing changes: {} slower, {} faster (observed)'.format(
-        sum(candidate[key][0] > baseline[key][0] for key in changed),
-        sum(candidate[key][0] < baseline[key][0] for key in changed)), '\n'.join(body)))
+        sections.append(dropdown('Regression timing changes: {} slower, {} faster (observed)'.format(
+            sum(candidate[key][0] > baseline[key][0] for key in changed),
+            sum(candidate[key][0] < baseline[key][0] for key in changed)), '\n'.join(body)))
     if candidate_issues or baseline_issues:
         sections += detail_sections('Regression timing data unavailable or omitted',
                                     '\n'.join(candidate_issues + baseline_issues))
@@ -998,6 +1033,7 @@ def build_report(args):
         regression_files.extend(full_lists)
 
     parts.extend(regression_timing_sections())
+    parts.extend(regression_frame_sections())
 
     stage_timings = read_text('ci-stage-timings.json')
     if stage_timings:

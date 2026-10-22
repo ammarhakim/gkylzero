@@ -115,7 +115,7 @@ class RegressionTimingTests(unittest.TestCase):
         self.assertNotIn('`timeout`', table)
         self.assertNotIn('`skip`', table)
         self.assertLess(table.index('`test25`'), table.index('`test24`'))
-        self.assertIn('not statistically significant', body)
+        self.assertNotIn('Regression timing changes', body)
         self.assertEqual(Path('ci-status-description.txt').read_text().strip(),
                          'Passed: unit tests and C regressions.')
 
@@ -127,6 +127,7 @@ class RegressionTimingTests(unittest.TestCase):
         self.database([(name, 'c', -2, base) for name, base, cand in pairs], baseline=True)
         body = self.sections()[1]
         self.assertIn('26 slower, 1 faster', body)
+        self.assertIn('not statistically significant', body)
         self.assertIn('| 5.000 | 10.000 | +5.000 | 2.000x | slower |', body)
         self.assertIn('| 10.000 | 5.000 | -5.000 | 0.500x | faster |', body)
         for name in ('fast_base', 'fast_candidate', 'below_ratio', 'equal'):
@@ -159,7 +160,16 @@ class RegressionTimingTests(unittest.TestCase):
         values, issues = report.regression_timings('gkylsoft/gkeyll-results')
         self.assertEqual(len(values), 1)
         self.assertEqual(len(issues), 7)
-        self.assertIn('comparison unavailable', self.sections()[1])
+        self.assertNotIn('Regression timing changes', '\n'.join(self.sections()))
+
+    def test_no_change_section_without_qualifying_differences(self):
+        rows = [('equal', 'c', 1, 8), ('small_change', 'c', 1, 9),
+                ('short', 'c', 1, 20)]
+        self.database(rows)
+        self.database([('equal', 'c', -2, 8), ('small_change', 'c', -2, 5),
+                       ('short', 'c', -2, 4)], baseline=True)
+        self.assertEqual(len(self.sections()), 1)
+        self.assertNotIn('Regression timing changes', self.sections()[0])
 
     def test_unfinished_invocation_does_not_reuse_old_timings(self):
         self.database([('old', 'c', 1, 10)], guid='old')

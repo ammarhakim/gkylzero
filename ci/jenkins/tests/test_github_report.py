@@ -52,6 +52,47 @@ class FailureReportTests(unittest.TestCase):
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         Path(path).write_text(text)
 
+    def test_regression_frames_count_unique_nonzero_frames_without_field(self):
+        root = 'gkylsoft/gkeyll-results/'
+        self.assertEqual(report.regression_frame_sections(), [])
+        for filename in ('field_0.gkyl', 'field_1.gkyl', 'elc_0.gkyl', 'elc_1.gkyl',
+                         'ion_1.gkyl', 'integrated_mom.gkyl'):
+            self.write(root + 'vlasov/creg-runs/cpu_serial/rt_single/' + filename, '')
+        self.assertEqual(report.regression_frame_sections(), [])
+        for filename in ('elc_0.gkyl', 'elc_1.gkyl', 'elc_003.gkyl', 'ion_3.gkyl',
+                         'ion_8.gkyl', 'integrated_mom.gkyl', 'notes_9.txt'):
+            self.write(root + 'vlasov/creg-runs/cpu_serial/rt_many/' + filename, '')
+        # Accepted/baseline outputs, subdirectories, and symlinks are not run frames.
+        for prefix in ('vlasov/creg-accepted/rt_single/',
+                       'vlasov/creg-runs/cpu_serial/rt_single/_cpu_output/'):
+            for frame in (2, 3):
+                self.write(root + prefix + 'field_{}.gkyl'.format(frame), '')
+        for frame in (2, 3):
+            self.write('_baseline/' + root + 'vlasov/creg-runs/cpu_serial/rt_base/field_{}.gkyl'.format(frame), '')
+        Path(root + 'vlasov/creg-runs/cpu_serial/rt_single/field_4.gkyl').symlink_to('field_1.gkyl')
+        body = '\n'.join(report.regression_frame_sections())
+        self.assertIn('| `vlasov/creg/rt_many` | `vlasov` | `cpu_serial` | 3 |', body)
+        self.assertNotIn('rt_single', body)
+        self.assertNotIn('rt_base', body)
+
+    def test_regression_frames_from_staged_inventory_in_completed_report(self):
+        self.write('gkylsoft/gkeyll-results/ci-output-files.txt', '\0'.join([
+            './parallel-c-4/moments/creg-runs/gpu_parallel/rt_many/field_{}.gkyl'.format(frame)
+            for frame in (0, 1, 2)
+        ] + [
+            './vlasov/luareg-runs/cpu_serial/no_field/elc-{}.gkyl'.format(frame)
+            for frame in (0, 1, 2, 3)
+        ]) + '\0')
+        args = argparse.Namespace(platform='personal', context='ci/test', result='success', pr='', output='report.md')
+        with contextlib.redirect_stdout(io.StringIO()):
+            report.build_report(args)
+        body = Path('report.md').read_text()
+        self.assertIn('<summary>Regression tests outputting more than 1 frame</summary>', body)
+        self.assertIn('| `moments/creg/rt_many` | `parallel-c-4/moments` | `gpu_parallel` | 2 |', body)
+        self.assertIn('| `vlasov/luareg/no_field` | `vlasov` | `cpu_serial` | 3 |', body)
+        self.write('gkylsoft/gkeyll-results/ci-output-files.txt', '')
+        self.assertEqual(report.regression_frame_sections(), [])
+
     def test_expected_diff_entries_for_passing_tests(self):
         self.write('summary.txt', 'c_regression_passed=2\n'
                    'c_regression_listed_passing=moments/creg/rt_pass|inherited|rt_pass # old | reason\n'

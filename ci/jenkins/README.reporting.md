@@ -124,7 +124,12 @@ Reports use collapsed sections for:
   missing files. These groups are siblings of the regression summary dropdown;
   individual test previews do not have dropdowns.
 - Stage durations, timings, the 20 slowest candidate regressions, and regression
-  timing changes.
+  timing changes (only when differences meet the reporting thresholds).
+- Candidate regressions outputting more than one frame after initial-condition
+  frame 0, only when any are found. Counts use distinct numbered `.gkyl` outputs
+  across fields and species, so frames 0 and 1 alone do not trigger this section
+  and tests without field output are included. Staging preserves a filename
+  inventory for this check alongside the diagnostic artifacts.
 - New/all compiler and other warnings, separate new/all time-step warnings,
   all errors with log locations and context, and the failed build log's last
   100 lines.
