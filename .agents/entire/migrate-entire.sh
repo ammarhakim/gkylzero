@@ -210,6 +210,48 @@ cleanup()
 }
 trap cleanup EXIT
 
+# Push the object IDs to the exact ref names in a ls-remote/for-each-ref
+# manifest. A fetch into loose refs can change the case of shard directories
+# on case-insensitive filesystems, so local ref names are not a safe source
+# for the destination names.
+push_checkpoint_refs()
+{
+  local manifest="$1"
+  local oid ref
+  local -a refspecs=()
+
+  [[ -s "$manifest" ]] || return 0
+
+  git ls-remote "$DEST_URL" 'refs/entire/checkpoints/*' \
+    | sort -u > "$TMP/destination-before"
+
+  awk 'FILENAME == ARGV[1] { destination[$2] = $1; next }
+    ($2 in destination && destination[$2] != $1) {
+      print $2 " (source " $1 ", destination " destination[$2] ")"
+    }' "$TMP/destination-before" "$manifest" > "$TMP/conflicts"
+
+  if [[ -s "$TMP/conflicts" ]]; then
+    echo "Conflicting checkpoint refs at $DEST:" >&2
+    cat "$TMP/conflicts" >&2
+    fail "Refusing to overwrite destination checkpoint data."
+  fi
+
+  while read -r oid ref; do
+    git cat-file -e "${oid}^{commit}" \
+      || fail "Checkpoint object $oid for $ref is unavailable locally. Rerun the migration."
+
+    refspecs+=("$oid:$ref")
+    if [[ ${#refspecs[@]} -eq 100 ]]; then
+      git push --no-verify "$DEST_URL" "${refspecs[@]}"
+      refspecs=()
+    fi
+  done < "$manifest"
+
+  if [[ ${#refspecs[@]} -gt 0 ]]; then
+    git push --no-verify "$DEST_URL" "${refspecs[@]}"
+  fi
+}
+
 # ----------------------------------------------------------------------
 # Copy modern refs from SOURCE using a temporary local namespace.
 # ----------------------------------------------------------------------
@@ -223,8 +265,7 @@ if [[ -s "$TMP/source" ]]; then
   git fetch "$SOURCE_URL" \
     '+refs/entire/checkpoints/*:refs/migrate-entire/checkpoints/*'
 
-  git push --no-verify "$DEST_URL" \
-    'refs/migrate-entire/checkpoints/*:refs/entire/checkpoints/*'
+  push_checkpoint_refs "$TMP/source"
 fi
 
 # ----------------------------------------------------------------------
@@ -262,12 +303,11 @@ fi
 # Include any checkpoints currently present only in this checkout.
 # ----------------------------------------------------------------------
 
-if git for-each-ref --format='%(refname)' \
-     refs/entire/checkpoints/ | grep -q .; then
+git for-each-ref \
+  --format='%(objectname) %(refname)' \
+  refs/entire/checkpoints/ > "$TMP/local"
 
-  git push --no-verify "$DEST_URL" \
-    'refs/entire/checkpoints/*:refs/entire/checkpoints/*'
-fi
+push_checkpoint_refs "$TMP/local"
 
 # ----------------------------------------------------------------------
 # Verify all expected checkpoint refs and object IDs.
@@ -275,12 +315,9 @@ fi
 
 cp "$TMP/source" "$TMP/expected"
 
-git for-each-ref \
-  --format='%(objectname) %(refname)' \
-  refs/entire/checkpoints/ |
 while read -r oid ref; do
   printf '%s\t%s\n' "$oid" "$ref"
-done >> "$TMP/expected"
+done < "$TMP/local" >> "$TMP/expected"
 
 sort -u -o "$TMP/expected" "$TMP/expected"
 
