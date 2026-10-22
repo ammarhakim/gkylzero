@@ -5,6 +5,10 @@
 # Usage:
 #   ./.agents/entire/setup-entire.sh [options]
 #
+# Prerequisite:
+#   Install the Entire CLI before running this script:
+#   https://docs.entire.io/installation
+#
 # Options:
 #   --repo REPO       Repository used to store Entire checkpoint data.
 #                     Default: gkeyll-agvcs
@@ -33,6 +37,10 @@ usage()
   cat <<EOF
 Usage:
   $0 [options]
+
+Prerequisite:
+  Install the Entire CLI before running this script:
+  https://docs.entire.io/installation
 
 Options:
   --repo REPO       Repository used to store Entire checkpoint data.
