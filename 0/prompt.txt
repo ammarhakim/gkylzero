@@ -1,0 +1,210 @@
+I'd like to start a new project. My ultimate goal is to have a simple interface in gyrokinetic input files for requesting a Miller tokamak geometry, and provide only the minimum necessary inputs or functions that characterize that magnetic equilibrium. The gyrokinetic app would then generate an .eqdsk file, and run the rest of the simulation using the existing GKYL_GEOMETRY_TOKAMAK infrastructure.
+
+To that end I'd like to proceed in 3 stages.
+
+# Stage 1: clean up and extend existing python script for generating Miller eqdsk.
+
+Gkeyll has a python script for generating Miller equilibrium,
+
+gyrokinetic/data/eqdsk/write_efit_ltx_miller.py
+
+It is presently tailored for the LTX tokamak. I'd like to create a new python script or module (name it gkeyll_gen_miller_eqdsk.py) based on this, but such that it works for any tokamak (size, magnetic field, safety factor, shear, etc). For example, I'd like to test it by generating eqdsk files for simulations like gyrokinetic/creg/rt_gk_d3d_iwl_3x2v_p1.c and gyrokinetic/creg/rt_gk_tcv_iwl_adapt_source_3x2v_p1.c also. I'd also like its geometry functions to be consistent with the latest version in, for example, gyrokinetic/creg/rt_gk_tcv_iwl_adapt_source_3x2v_p1.c.
+
+# Stage 2: create a C version of gkeyll_gen_miller_eqdsk.py
+
+In this stage translate gkeyll_gen_miller_eqdsk.py into an updater to be located in gyrokinetic/zero/ and implement unit tests for it, named gkyl_gen_miller_eqdsk.
+
+# Stage 3: Plug gkyl_gen_miller_eqdsk into gyrokinetic app and provide new Miller API for input files.
+In this stage we'll add a new enum gkyl_geometry_id option, say GKYL_GEOMETRY_MILLER, for which the user's input file will provide a minimum set of parameters and functions (in a sub struct member of gkyl_gk_geometry_inp like struct gkyl_miller_geo_grid_inp miller_grid_info). The gyrokinetic app will then call gkyl_gen_miller_eqdsk before initializing the geometry (around line 351 of gyrokinetic/apps/gyrokinetic.c), switch the geometry type to GKYL_GEOMETRY_TOKAMAK and perform the simulation as if this was a GKYL_GEOMETRY_TOKAMAK with a numerical magnetic equilibrium.
+
+One detail is that for GKYL_GEOMETRY_TOKAMAK simulations the input file has input grid coordinate extents, specifically for the first dimension psi, which depend on knowledge of the eqdsk file (so that the user can pick the lower and upper psi). In this workflow it is perhaps not possible to pick psi a priori, so either: A) the user has to run the initialization once just to generate the eqdsk, examine it, pick psi bounds, and run the input file again, or B) the user provides the lower and upper normalized psi (i.e. rho = sqrt((psi - psi_axis)/(psi_sep - psi_axis)) assuming psi increasing outwards), and the app computes the psi bounds after the eqdsk is generated, or C) some other alternative I haven't thought of.
+
+Please evaluate this project and create a plan for it.
+
+---
+
+Write a comprehensive plan, with details for stage 1 and less detail for stages 2 and 3 for now.
+
+One change I'd like to make to stage 1: for the CLI to gkeyll_gen_miller_eqdsk.py, it should take a file which has definitions of the q function in it, rather than expecting the user to type the function out on the command line.
+
+---
+
+I'd like to discuss 4 things that may modify the plan:
+
+
+A) I may use this infrastructure to run a simulation with a domain away from both the axis AND the LCFS, or alternatively, for an SOL-only simulation outside the LCFS, or a simulation that has a portion inside and a portion outside the LCFS (like rt_gk_tcv_iwl_adapt_source_3x2v_p1). It's ok to expect the user to know and provide R_lcfs in all cases. Please keep that in mind in the plan.
+
+B) Add to the plan to generate a LaTeX (.tex) file documenting all the formulas and numerical methods used by gkeyll_gen_miller_eqdsk.py.
+
+C) You said "For shifted cases, distinguish bounds expressed in actual (R_{\rm omp}) from the existing input files’ linear computational-radius mapping." What exactly are "shifted cases"?
+
+D) What is the expected R_omp_bounds input, and what is that for? especially considering that the deliverable in stage 1 is an eqdsk that defines psi on the R-Z plane (where R is the major radius), not just at a range of minor radius.
+
+---
+
+ok, please write let me see the final plan and write it to an .md file
+
+---
+
+Implement the plan.
+
+---
+
+Please re-format the python scripts you added or edited so it uses 2-spaces instead of indents or 4-spaces.
+
+---
+
+Please add brief comments in R_omp and q functions in input python scripts descrbing them.
+
+---
+
+Please make gyrokinetic/data/eqdsk/README a markdown file
+
+---
+
+python gyrokinetic/data/eqdsk/gkeyll_gen_miller_eqdsk.py -h writes
+
+options:
+  -h, --help            show this help message and exit
+  --output OUTPUT
+  --nr NR
+  --nz NZ
+  --rtol RTOL
+  --rz-bounds RMIN RMAX ZMIN ZMAX
+  --guard-fraction GUARD_FRACTION
+  --plot PLOT
+
+Please give a very brief description to each of these options, including their default value if it's an optional argument.
+
+---
+
+I think the y label of the second plot generated by gyrokinetic/data/eqdsk/gkeyll_gen_miller_eqdsk.py may not be correct. Shouldn't it be q?
+
+---
+
+please make sure every function in gyrokinetic/data/eqdsk/gkeyll_gen_miller_eqdsk.py has a brief comment describing it.
+
+---
+
+same thing for gyrokinetic/data/eqdsk/test_gen_miller_eqdsk.py
+
+---
+
+Please move all these new Miller-rated files in gyrokinetic/data/eqdsk/ to a new subfolder gyrokinetic/data/eqdsk/miller/
+
+---
+
+git status
+
+---
+
+Please remove from gyrokinetic/data/eqdsk/miller/README.md the parts that do not pertain the python generator and files in gyrokinetic/data/eqdsk/miller/. That is, the parts having to do with the code i gyrokinetic/creg/, gyrokinetic/unit/, gyrokinetic/zero/ and gyrokinetic/zero/. If any of that is not yet documented in gkeyll_gen_miller_eqdsk.tex, please add it there instead.
+
+---
+
+Please rename miller_d3d.py miller_inp_d3d.py, and likewise for miller_ltx.py and miller_tcv.py.
+
+Additionally, please add an example of using gkeyll_gen_miller_eqdsk.py from a standalone python script, say with tcv, and call it gen_miller_tcv.py
+
+---
+
+Change gyrokinetic/data/eqdsk/miller/gen_miller_tcv.py by:
+- Don't use miller_inp_tcv.py. Make gen_miller_tcv.py standalone, even if you need to replace the inputs in it.
+- Remove the main() function, just have it be a flat python script.
+
+---
+
+and mention this new python script in gyrokinetic/data/eqdsk/miller/README.md
+
+---
+
+Please improve the comment under line 27 of gkeyll_gen_miller_eqdsk.py. It doesn't seem to describe this class suficiently well.
+
+---
+
+I think for consistency and clarity we should rename these functions in gkeyll_gen_miller_eqdsk.py as follows:
+- omp -> R_omp_at_r
+- surface -> RZ_at_rtheta
+- derivatives -> RZ_derivatives_at_rtheta
+- determinant_over_r -> RZdet_over_r
+- psi -> psi_at_r
+- dpsi_dr -> dpsidr_at_r
+- r_from_psi -> r_at_psi
+- coordinates -> fs_coords_at_R_omp
+- invert -> rtheta_at_RZ
+- magnetic_field -> Bfield_at_rtheta
+
+---
+
+What does r_from_omp do, how, and what does it return?
+
+---
+
+Please rename it r_at_R_omp
+
+---
+
+Make sure the comments in gyrokinetic/zero/gkyl_gen_miller_eqdsk.h all have the same style, that is, starting with
+
+/**
+ *
+
+, leaving a blank like (with " *" only) after the general description, and having a description of each argument.
+
+Also, please add this requirement in .agents/skills/code_style/SKILL.md so that it is enforced in the future
+
+---
+
+Please effect the same function renamins that we performed in the python script but in the C files in gyrokinetic/zero/, gyrokinetic/unit/ and gyrokinetic/apps/
+
+---
+
+Why did you edit gyrokinetic/Makefile-gyrokinetic? is that really necessary?
+
+---
+
+Why does gyrokinetic/data/eqdsk/miller/gkeyll_gen_miller_eqdsk.py output a .json file? what can I do with that file?
+
+---
+
+Add a descriptive comment to each local static function in gyrokinetic/zero/gen_miller_eqdsk.c
+
+---
+
+Why does gkyl_gen_miller_eqdsk_inew take error and error_size? no updater asked for this before
+
+---
+
+Remove them and simplify the error handling in gyrokinetic/apps/gyrokinetic.c
+
+---
+
+the unit test refers to a file name /tmp/gkyl_miller_XXXXXX . Why?
+
+---
+
+Where are thse functions mkstemp and unlink defined?
+
+---
+
+Tell me again why you changed gyrokinetic/Makefile-gyrokinetic. Is that truly necessary or can we do away with that?
+
+---
+
+Please create a version of gyrokinetic/creg/rt_gk_tcv_iwl_adapt_source_3x2v_p1.c named rt_gk_tcv_iwl_adapt_source_num_3x2v_p1.c which uses GKYL_GEOMETRY_MILLER instead.
+
+---
+
+You may need to add helper functions in gkyl_gen_miller_eqdsk that translate the tokamak computational coordinates (psi,alpha,theta) to the computational coordinates that the C2P input file (rt_gk_tcv_iwl_adapt_source_3x2v_p1) assumed.
+
+---
+
+Please update /Users/mfrancis/Documents/gkeyll/doc/notes/miller_eq/gkeyll_gen_miller_eqdsk.tex with the formulas/algorithms used by the new methods added in gyrokinetic/zero/gen_miller_eqdsk.c
+
+---
+
+Why does line 306 of gyrokinetic/apps/gyrokinetic.c set ftype to GKYL_GEOMETRY_TOKAMAK_IWL, say instead of GKYL_GEOMETRY_TOKAMAK_CORE?
+
+---
+
+rename ctx_configuration_profile to configuration_profile_ctx
