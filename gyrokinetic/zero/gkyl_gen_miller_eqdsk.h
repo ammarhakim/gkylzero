@@ -61,6 +61,38 @@ const struct gkyl_gen_miller_eqdsk_info *gkyl_gen_miller_eqdsk_get_info(
 );
 
 /**
+ * Evaluate flux at a Miller minor radius.
+ *
+ * @param up Generator.
+ * @param radius Miller minor radius [m].
+ * @return Poloidal flux divided by 2*pi [Wb/rad], or NaN outside physical coverage.
+ */
+double gkyl_gen_miller_eqdsk_psi_at_r(const gkyl_gen_miller_eqdsk *up, double radius);
+
+/**
+ * Invert poloidal flux to Miller minor radius.
+ *
+ * @param up Generator.
+ * @param psi Poloidal flux divided by 2*pi [Wb/rad].
+ * @return Miller minor radius [m], or NaN outside physical coverage.
+ */
+double gkyl_gen_miller_eqdsk_r_at_psi(const gkyl_gen_miller_eqdsk *up, double psi);
+
+/**
+ * Convert normalized poloidal arc length to Miller poloidal angle.
+ * This uses the default IWL full-contour convention: zero at the outboard midplane,
+ * +/-pi at the inboard midplane, including SOL contours cut at the inboard midplane.
+ * Custom plates, position maps, and other tokamak block conventions are excluded.
+ * The conversion uses the analytic Miller contour, so numerical GEQDSK interpolation
+ * introduces a small discrepancy when comparing with the tokamak geometry.
+ *
+ * @param up Generator with constant shaping parameters.
+ * @param theta_tok Tokamak normalized poloidal arc coordinate in [-pi, pi].
+ * @return Miller angle [rad], or NaN outside the stated interval.
+ */
+double gkyl_gen_miller_eqdsk_theta_at_theta_tok(const gkyl_gen_miller_eqdsk *up, double theta_tok);
+
+/**
  * Evaluate flux at a physical outboard midplane major radius.
  *
  * @param up Generator.

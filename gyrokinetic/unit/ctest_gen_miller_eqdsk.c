@@ -210,6 +210,91 @@ check_reader(
   gkyl_position_map_release(geometry.position_map);
 }
 
+/**
+ * Compute unit-radius Miller arc length independently for reference quadrature.
+ *
+ * @param theta Miller angle [rad].
+ * @param ctx Generator input containing elongation and triangularity.
+ * @return Arc length per unit radius and angle.
+ */
+static double
+reference_arc_speed(double theta, void *ctx)
+{
+  const struct gkyl_gen_miller_eqdsk_inp *inp = ctx;
+  double eta = asin(inp->delta);
+  double Rt = -(1 + eta * cos(theta)) * sin(theta + eta * sin(theta));
+  return sqrt(Rt * Rt + pow(inp->kappa * cos(theta), 2));
+}
+
+/**
+ * Integrate reference arc length with a separately resolved composite midpoint rule.
+ *
+ * @param inp Miller shape parameters.
+ * @param theta Upper Miller angle [rad]; the lower limit is zero.
+ * @return Unit-radius poloidal arc length.
+ */
+static double
+reference_arc(struct gkyl_gen_miller_eqdsk_inp *inp, double theta)
+{
+  int count = 131072;
+  double step = theta / count, integral = 0;
+  for (int j = 0; j < count; ++j) {
+    integral += reference_arc_speed((j + 0.5) * step, inp);
+  }
+  return step * integral;
+}
+
+/**
+ * Check flux inversion and arc-coordinate conversion for circular and shifted TCV shapes.
+ *
+ */
+static void
+test_coordinates(void)
+{
+  struct gkyl_gen_miller_eqdsk_inp inp = {
+    .r_axis = 2,
+    .b_axis = 1.5,
+    .r_lcfs = 2.5,
+    .kappa = 1,
+    .qprofile = constant_q,
+  };
+  for (int shape = 0; shape < 2; ++shape) {
+    if (shape) {
+      inp.kappa = 1.4;
+      inp.delta = -0.38;
+      inp.a_shift = 0.5;
+    }
+    gkyl_gen_miller_eqdsk *up = gkyl_gen_miller_eqdsk_inew(&inp);
+    TEST_ASSERT(up != NULL);
+    const struct gkyl_gen_miller_eqdsk_info *info = gkyl_gen_miller_eqdsk_get_info(up);
+    for (int j = 0; j <= 10; ++j) {
+      double radius = info->r_guard * j / 10;
+      double psi = gkyl_gen_miller_eqdsk_psi_at_r(up, radius);
+      TEST_CHECK(fabs(gkyl_gen_miller_eqdsk_r_at_psi(up, psi) - radius) < 1e-9);
+      double rz[2];
+      gkyl_gen_miller_eqdsk_RZ_at_rtheta(up, radius, 0, rz);
+      TEST_CHECK(fabs(gkyl_gen_miller_eqdsk_psi_at_R_omp(up, rz[0]) - psi) < 1e-12);
+    }
+    double half_arc = reference_arc(&inp, M_PI);
+    for (int j = -10; j <= 10; ++j) {
+      double theta_tok = M_PI * j / 10;
+      double theta = gkyl_gen_miller_eqdsk_theta_at_theta_tok(up, theta_tok);
+      double arc = theta == 0 ? 0 : reference_arc(&inp, fabs(theta));
+      TEST_CHECK(fabs(M_PI * arc / half_arc - fabs(theta_tok)) < 1e-10);
+      TEST_MSG(
+        "shape=%d, theta_tok=%.17g, theta=%.17g, arc residual=%.17g", shape, theta_tok, theta,
+        M_PI * arc / half_arc - fabs(theta_tok)
+      );
+      TEST_CHECK(theta * theta_tok >= 0);
+      if (!shape) {
+        TEST_CHECK(fabs(theta - theta_tok) < 1e-12);
+      }
+    }
+
+    gkyl_gen_miller_eqdsk_release(up);
+  }
+}
+
 static void
 test_devices(void)
 {
@@ -282,5 +367,6 @@ test_devices(void)
 TEST_LIST = {
   {"miller_circle_and_invalid_inputs", test_circle},
   {"miller_devices_and_reader", test_devices},
+  {"miller_coordinate_conversions", test_coordinates},
   {NULL, NULL}
 };

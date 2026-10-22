@@ -73,6 +73,12 @@ struct gkyl_gyrokinetic_projection {
       double gaussian_mean[GKYL_MAX_CDIM]; // Center in configuration space.
       double gaussian_std_dev
         [GKYL_MAX_CDIM]; // Sigma in configuration space, function is constant if sigma is 0.
+      // Optional nonnegative configuration envelope for MAXWELLIAN_GAUSSIAN.
+      // Evaluated once at t=0 in grid coordinates; overrides gaussian_mean/std_dev.
+      // The callback handles periodic wrapping and adds any desired profile floor.
+      // Its volume integral is normalized to one by the projection updater.
+      void (*configuration_profile)(double t, const double *xn, double *fout, void *ctx);
+      void *configuration_profile_ctx;
       double total_num_particles; // Total number of particle (M0 moment).
       double total_kin_energy; // Total kinetic energy (0.5*mass*M2 moment).
       double temp_max; // Maximum temperature of the Gaussian Maxwellian distribution.
@@ -252,6 +258,10 @@ struct gkyl_gyrokinetic_core_parallel_bcs {
 
 struct gkyl_gyrokinetic_geometry {
   enum gkyl_geometry_id geometry_id;
+  // For MILLER, lower[0]/upper[0] in gkyl_gk are outboard major radii [m].
+  // Initialization resolves these and geometry_id in place to psi and TOKAMAK.
+  // Profiles called by the solver subsequently receive the resolved tokamak coordinates.
+  struct gkyl_gen_miller_eqdsk_inp miller_grid_info;
   char geometry_path[128]; // Path to geometry files
 
   // Pointer to mapc2p function: xc are the computational space

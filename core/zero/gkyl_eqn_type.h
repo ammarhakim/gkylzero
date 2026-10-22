@@ -151,7 +151,8 @@ enum gkyl_geometry_id {
   GKYL_GEOMETRY_TOKAMAK, // Tokamak Geometry from Efit.
   GKYL_GEOMETRY_MIRROR, // Mirror Geometry from Efit.
   GKYL_GEOMETRY_MAPC2P, // General geometry from user provided mapc2p.
-  GKYL_GEOMETRY_FROMFILE // Geometry from file.
+  GKYL_GEOMETRY_MILLER, // Generate a Miller GEQDSK, then use tokamak geometry.
+  GKYL_GEOMETRY_FROMFILE, // Geometry from file.
 };
 
 // type of quadrature to use

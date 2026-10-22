@@ -17,6 +17,7 @@ struct gkyl_gen_miller_eqdsk {
   double eta, fpol, s_guard;
   double *s, *g, *slope, *flux, *mid, *new_s, *new_g, *new_mid;
   double *psi_rz, *qpsi, *guard;
+  double arc[MILLER_CONTOUR_NODES]; // Unit-radius arc length from Miller angle 0 to pi.
   bool sampled;
 };
 
@@ -354,24 +355,30 @@ gen_miller_psi_at_s(const gkyl_gen_miller_eqdsk *up, double s)
 }
 
 double
-gkyl_gen_miller_eqdsk_psi_at_R_omp(const gkyl_gen_miller_eqdsk *up, double r_omp)
+gkyl_gen_miller_eqdsk_psi_at_r(const gkyl_gen_miller_eqdsk *up, double radius)
 {
-  double radius = gen_miller_r_at_R_omp(up, r_omp);
-  if (!gen_miller_finite(radius) || radius > up->info.r_guard * (1 + 4 * DBL_EPSILON)) {
+  if (!gen_miller_finite(radius) || radius < 0 ||
+      radius > up->info.r_guard * (1 + 4 * DBL_EPSILON)) {
     return gen_miller_nan();
   }
   return gen_miller_psi_at_s(up, radius * radius);
 }
 
 double
-gkyl_gen_miller_eqdsk_R_omp_at_psi(const gkyl_gen_miller_eqdsk *up, double psi)
+gkyl_gen_miller_eqdsk_psi_at_R_omp(const gkyl_gen_miller_eqdsk *up, double r_omp)
+{
+  return gkyl_gen_miller_eqdsk_psi_at_r(up, gen_miller_r_at_R_omp(up, r_omp));
+}
+
+double
+gkyl_gen_miller_eqdsk_r_at_psi(const gkyl_gen_miller_eqdsk *up, double psi)
 {
   if (!gen_miller_finite(psi) || psi < 0 || psi > up->info.psi_guard) {
     return gen_miller_nan();
   }
 
   if (psi == 0) {
-    return up->inp.r_axis;
+    return 0;
   }
 
   double lo = 0, hi = up->s_guard;
@@ -384,7 +391,74 @@ gkyl_gen_miller_eqdsk_R_omp_at_psi(const gkyl_gen_miller_eqdsk *up, double psi)
     }
   }
 
-  return gen_miller_R_omp_at_r(up, sqrt((lo + hi) / 2));
+  return sqrt((lo + hi) / 2);
+}
+
+double
+gkyl_gen_miller_eqdsk_R_omp_at_psi(const gkyl_gen_miller_eqdsk *up, double psi)
+{
+  return gen_miller_R_omp_at_r(up, gkyl_gen_miller_eqdsk_r_at_psi(up, psi));
+}
+
+/**
+ * Evaluate poloidal arc length per unit minor radius and Miller angle.
+ *
+ * @param up Generator with constant elongation and triangularity.
+ * @param theta Miller poloidal angle [rad].
+ * @return sqrt(R_theta^2 + Z_theta^2)/r, including its axis limit.
+ */
+static double
+gen_miller_arc_speed(const gkyl_gen_miller_eqdsk *up, double theta)
+{
+  double cost = cos(theta);
+  double Rt = -(1 + up->eta * cost) * sin(theta + up->eta * sin(theta));
+  return hypot(Rt, up->inp.kappa * cost);
+}
+
+/**
+ * Integrate the unit-radius arc length on one small angle interval with Simpson's rule.
+ *
+ * @param up Generator.
+ * @param lower Lower Miller angle [rad].
+ * @param upper Upper Miller angle [rad].
+ * @return Unit-radius poloidal arc length on the interval.
+ */
+static double
+gen_miller_arc_interval(const gkyl_gen_miller_eqdsk *up, double lower, double upper)
+{
+  return (upper - lower) / 6 *
+         (gen_miller_arc_speed(up, lower) + 4 * gen_miller_arc_speed(up, (lower + upper) / 2) +
+          gen_miller_arc_speed(up, upper));
+}
+
+double
+gkyl_gen_miller_eqdsk_theta_at_theta_tok(const gkyl_gen_miller_eqdsk *up, double theta_tok)
+{
+  if (!gen_miller_finite(theta_tok) || fabs(theta_tok) > M_PI) {
+    return gen_miller_nan();
+  }
+  if (theta_tok == 0 || fabs(theta_tok) == M_PI) {
+    return theta_tok;
+  }
+  double target = fabs(theta_tok) / M_PI * up->arc[MILLER_CONTOUR_NODES - 1];
+  int lower = 0, upper = MILLER_CONTOUR_NODES - 1;
+  while (upper - lower > 1) {
+    int mid = (lower + upper) / 2;
+    if (up->arc[mid] < target) {
+      lower = mid;
+    } else {
+      upper = mid;
+    }
+  }
+  double step = M_PI / (MILLER_CONTOUR_NODES - 1), angle_lo = lower * step;
+  double theta = angle_lo + step * (target - up->arc[lower]) / (up->arc[upper] - up->arc[lower]);
+  // Refine within the table interval; the Simpson error is O(step^5).
+  for (int iter = 0; iter < 3; ++iter) {
+    double residual = up->arc[lower] + gen_miller_arc_interval(up, angle_lo, theta) - target;
+    theta -= residual / gen_miller_arc_speed(up, theta);
+    theta = fmax(angle_lo, fmin(upper * step, theta));
+  }
+  return copysign(theta, theta_tok);
 }
 
 const struct gkyl_gen_miller_eqdsk_info *
@@ -458,6 +532,10 @@ gkyl_gen_miller_eqdsk_inew(const struct gkyl_gen_miller_eqdsk_inp *inp)
 
   up->eta = asin(inp->delta);
   up->fpol = inp->r_axis * inp->b_axis;
+  for (int j = 1; j < MILLER_CONTOUR_NODES; ++j) {
+    double step = M_PI / (MILLER_CONTOUR_NODES - 1);
+    up->arc[j] = up->arc[j - 1] + gen_miller_arc_interval(up, (j - 1) * step, j * step);
+  }
   up->info.nr = up->inp.nr;
   up->info.nz = up->inp.nz;
   up->info.r_lcfs = gen_miller_r_at_R_omp(up, inp->r_lcfs);
