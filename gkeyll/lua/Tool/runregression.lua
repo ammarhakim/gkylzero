@@ -1227,9 +1227,21 @@ executeBatch = function(items, jobCount, onComplete, logStarts)
    local totalSlots = 0
    for _, item in ipairs(items) do totalSlots = totalSlots + (item.parallelRanks or 1) end
    jobCount = math.min(jobCount or totalSlots, totalSlots)
-   local timestamp = hasCmd("perl")
-      and "perl -MTime::HiRes=time -e 'printf \"%.6f\\n\", time'"
-      or "date +%s"
+   -- Probe the clock, not just the executable: compute nodes may have Perl
+   -- without Time::HiRes, and BSD date does not implement %N. Empty timing
+   -- markers would otherwise hide a successful command's exit marker.
+   local timestamp
+   for _, command in ipairs({"date +%s.%N",
+      "perl -MTime::HiRes=time -e 'printf \"%.6f\\n\", time'", "date +%s"}) do
+      local probe = io.popen(command .. " 2>/dev/null", "r")
+      local value = probe and probe:read("*a") or ""
+      if probe then probe:close() end
+      if tonumber(value) then
+         timestamp = command .. " 2>/dev/null || date +%s"
+         break
+      end
+   end
+   assert(timestamp, "No working clock for regression timings")
    -- Step 1: write a per-item wrapper script so we never have to embed
    -- arbitrary command strings inside the coordinator (avoids quoting issues).
    for _, item in ipairs(items) do

@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -20,6 +21,66 @@ def fragment(start, end):
 
 @unittest.skipUnless(LUAJIT, 'Set LUAJIT to run the scheduling fixtures')
 class SchedulingTests(unittest.TestCase):
+    def test_clock_fallbacks_preserve_exit_status(self):
+        # Match compute nodes with Perl installed but no Time::HiRes, and
+        # platforms whose date prints a literal N instead of nanoseconds.
+        for clock in ('gnu-date', 'perl', 'seconds'):
+            with self.subTest(clock=clock), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                bindir = root / 'bin'
+                bindir.mkdir()
+                date = bindir / 'date'
+                date.write_text('#!/bin/sh\n' + (
+                    'if [ "$1" = +%s.%N ]; then echo 123.N; exit 0; fi\n'
+                    if clock != 'gnu-date' else '') +
+                    'exec /usr/bin/date "$@"\n')
+                date.chmod(0o755)
+                perl = bindir / 'perl'
+                perl.write_text(
+                    '#!' + sys.executable + '\nimport time\nprint(time.time())\n'
+                    if clock == 'perl' else
+                    '#!/bin/sh\necho "Can\047t locate Time/HiRes.pm" >&2\nexit 2\n')
+                perl.chmod(0o755)
+                lua = r'''
+local root, clock = arg[1], arg[2]
+local TIMEOUT_CMD = "timeout"
+local function hasCmd(name) return os.execute("command -v " .. name .. " >/dev/null") == 0 end
+local function log(msg) end
+'''
+                lua += fragment('local function shellQuote(', 'local function hasGkylOutput(')
+                lua += fragment('local function wrapWithTimeout(', '-- ---- Test classification predicates')
+                lua += 'local executeBatch\n'
+                lua += fragment('executeBatch = function(', 'local function runLuaTest(')
+                lua += r'''
+local items = {}
+for idx, command in ipairs({"sleep 1.1; echo success", "exit 7", "sleep 3"}) do
+   local dir = root .. "/job" .. idx
+   assert(os.execute("mkdir -p " .. shellQuote(dir)) == 0)
+   items[idx] = {test={name="job" .. idx}, runDir=dir,
+      cmd=wrapWithTimeout(command, idx == 3 and 1 or 5, dir)}
+end
+local results = executeBatch(items, 3)
+assert(results[1].exitCode == 0 and results[1].runtm >= 1)
+assert(results[1].runlog:match("^%s*success\n$"), results[1].runlog)
+assert(results[2].exitCode == 7 and not results[2].timedOut)
+assert(results[3].exitCode == 124 and results[3].timedOut)
+for _, item in ipairs(items) do
+   local file = assert(io.open(item.runDir .. "/_parallel_out.txt"))
+   local raw = file:read("*a"); file:close()
+   assert(tonumber(raw:match("__START__:([^\n]+)")))
+   assert(tonumber(raw:match("__END__:([^\n]+)")))
+   assert(not raw:find("Time/HiRes", 1, true), raw)
+   if clock ~= "seconds" then assert(raw:match("__START__:%d+%.%d+")) end
+end
+'''
+                script = root / 'fixture.lua'
+                script.write_text(lua)
+                result = subprocess.run(
+                    [LUAJIT, str(script), directory, clock],
+                    env=dict(os.environ, PATH=str(bindir) + ':/usr/bin:/bin'),
+                    capture_output=True, text=True, timeout=15)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_mpi_worker_budget(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

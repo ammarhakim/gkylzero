@@ -157,7 +157,11 @@ python3 -m unittest -v ci.jenkins.tests.test_stellar_ai_codegen
 java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/tests/test_stellar_resources.groovy
 ```
 
-Before the first full run, verify `Time::HiRes` and four-rank `srun --exact`
-on a CPU allocation with the same modules, account, and QoS. The older
-[Stellar guide](README.stellar_cpu.md#verify-the-compute-node-perl-runtime)
-describes the Perl check; use the Stellar AI module file and `--partition=cpu`.
+Before the first full run, verify regression timing and four-rank `srun --exact`
+on a CPU allocation with the same modules, account, and QoS. The regression
+runner probes for numeric timestamps, preferring GNU `date +%s.%N`, then Perl's
+`Time::HiRes`, then whole-second `date +%s`. Perl being installed does not imply
+that `Time::HiRes` is available on compute nodes. Build #9 ran all 320 serial
+simulations successfully but misreported them as crashes because missing
+`Time::HiRes` left empty timing markers and error text after their exit markers.
+The clock fallback avoids requiring additional Perl modules on these nodes.
