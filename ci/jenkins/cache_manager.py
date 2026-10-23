@@ -17,8 +17,8 @@ import urllib.parse
 import urllib.request
 
 
-PLATFORMS = {"personal", "team-workstation", "stellar-cpu", "perlmutter-gpu"}
-SLURM_PLATFORMS = {"stellar-cpu", "perlmutter-gpu"}
+PLATFORMS = {"personal", "team-workstation", "stellar-cpu", "stellar-ai-cpu", "perlmutter-gpu"}
+SLURM_PLATFORMS = {"stellar-cpu", "stellar-ai-cpu", "perlmutter-gpu"}
 SHA = re.compile(r"[0-9a-f]{40}\Z")
 TAG = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]*\Z")
 WORKSPACE_SUFFIX = re.compile(r"(?:tmp|script|\d+(?:@tmp)?)\Z")
@@ -66,7 +66,10 @@ class CacheManager:
         self.controller = urllib.parse.urlunsplit((controller.scheme, controller.netloc,
                                                    controller.path.rstrip("/"), "", ""))
         self.auth_file = Path(args.auth_file) if args.auth_file else None
-        self.candidates = self.root / "candidate-cache" / self.platform
+        self.run_layout = getattr(args, "run_layout", False)
+        self.retain_runs = getattr(args, "retain_runs", "0") == "1"
+        self.cache_tool = getattr(args, "cache_tool", "")
+        self.candidates = self.root / ("runs" if self.run_layout else "candidate-cache") / self.platform
         self.baselines = self.root / "baseline-cache" / self.platform
         self.runs = self.root / "cache-runs" / self.platform
         self.workspaces = self.root / "workspaces" / self.job
@@ -164,6 +167,8 @@ class CacheManager:
         return sorted(path for path in self.candidates.iterdir() if path.is_dir() and not path.is_symlink())
 
     def prune_candidates(self, keep_latest=False):
+        if self.retain_runs:
+            return
         paths = self.candidate_tags()
         latest = ""
         if keep_latest:
@@ -199,6 +204,13 @@ class CacheManager:
         if not manifest.is_file():
             return False
         values = dict(line.split("=", 1) for line in manifest.read_text().splitlines() if "=" in line)
+        if self.cache_tool:
+            # Pruning checks completeness independently of this run's context.
+            # A different toolchain must not discard the last good baseline
+            # before its replacement has been built successfully.
+            environment = dict(os.environ, CI_BASELINE_CACHE_CONTEXT=values.get("context", ""),
+                               GKEYLL_CI_PREBUILT_CONFIG="")
+            return self.validate_baseline(sha, environment)
         if values.get("format_version") != "1" or values.get("platform") != self.platform or values.get("baseline_commit") != sha:
             return False
         if not (path / "gkeyll" / ".git").is_dir() or not os.access(path / "gkylsoft" / "gkeyll" / "bin" / "gkeyll", os.X_OK):
@@ -210,10 +222,23 @@ class CacheManager:
         result = subprocess.run(["git", "-C", str(path / "gkeyll"), "rev-parse", "HEAD"], capture_output=True, text=True)
         return result.returncode == 0 and result.stdout.strip() == sha
 
-    def baseline_users(self):
+    def validate_baseline(self, sha, environment=None):
+        result = subprocess.run(
+            ["bash", self.cache_tool, "valid", str(self.root), self.platform, sha],
+            capture_output=True, text=True, env=environment,
+        )
+        require(result.returncode in (0, 1), f"baseline validation failed: {result.stderr.strip()}")
+        return result.returncode == 0
+
+    def baseline_compatible(self, path, sha):
+        return self.validate_baseline(sha) if self.cache_tool else self.baseline_valid(path, sha)
+
+    def baseline_users(self, exclude=""):
         users = set()
         if self.runs.is_dir():
             for path in self.runs.glob("*.json"):
+                if path.stem == exclude:
+                    continue
                 if path.is_symlink():
                     raise RuntimeError(f"run record is a symlink: {path}")
                 record = self.read_record(path.stem)
@@ -233,6 +258,8 @@ class CacheManager:
         if not keep and keep_previous:
             keep = next((path.name for path in entries if SHA.fullmatch(path.name) and self.baseline_valid(path, path.name)), "")
         for path in entries:
+            if path.name == ".lock":
+                raise RuntimeError("legacy baseline lease exists; drain old runs before migration")
             require(SHA.fullmatch(path.name), f"unexpected baseline entry: {path}")
             if path.name not in users and path.name != keep:
                 remove_tree(path)
@@ -282,23 +309,27 @@ class CacheManager:
         def operation():
             record = self.read_record(self.tag)
             require(record is not None, "run is not registered")
-            record["baseline"] = sha
-            write_json(self.record_path, record)
             self.baselines.mkdir(parents=True, exist_ok=True)
             self.active_slurm_directories()
             path = self.baselines / sha
-            if self.baseline_valid(path, sha):
+            if self.baseline_compatible(path, sha):
+                record["baseline"] = sha
+                write_json(self.record_path, record)
                 os.utime(path, None)
                 self.prune_baselines(sha)
                 return "hit"
             if path.exists():
+                if sha in self.baseline_users(exclude=self.tag):
+                    return "wait"
                 owner = path / "cache-owner.txt"
                 if owner.is_file() and self.is_live(owner.read_text().strip()):
                     return "wait"
                 remove_tree(path)
-            self.prune_baselines(keep_previous=False)
+            self.prune_baselines()
             (path / "gkeyll").mkdir(parents=True)
             (path / "cache-owner.txt").write_text(self.tag + "\n")
+            record["baseline"] = sha
+            write_json(self.record_path, record)
             return "build"
         return self.locked(operation)
 
@@ -329,10 +360,10 @@ class CacheManager:
                 record["state"] = "finished"
                 write_json(self.record_path, record)
             self.active_slurm_directories()
-            self.prune_candidates(keep_latest=True)
+            self.prune_candidates(keep_latest=self.latest_path.is_file())
             self.prune_baselines()
             for path in self.runs.glob("*.json"):
-                if path.stem != self.tag and not self.is_live(path.stem) and not (self.candidates / path.stem).exists():
+                if path.stem != self.tag and not self.is_live(path.stem) and not self.slurm_uses_tag(path.stem) and not (self.candidates / path.stem).exists():
                     path.unlink()
         self.locked(operation)
 
@@ -349,6 +380,9 @@ def main():
     parser.add_argument("--controller-url", default="")
     parser.add_argument("--auth-file", default="")
     parser.add_argument("--sha", default="")
+    parser.add_argument("--cache-tool", default="", help="trusted baseline_cache.sh validator")
+    parser.add_argument("--run-layout", action="store_true", help="manage runs/<platform>/<tag> trees")
+    parser.add_argument("--retain-runs", choices=("0", "1"), default="0")
     args = parser.parse_args()
     manager = CacheManager(args)
     try:

@@ -161,6 +161,63 @@ class CacheManagerTests(unittest.TestCase):
             self.assertEqual(second.claim_baseline(sha), "hit")
             self.assertFalse((baseline / "cache-owner.txt").exists())
 
+    def test_incompatible_context_waits_for_readers_without_registering_waiters(self):
+        sha = "a" * 40
+        reader = self.manager("jenkins-test-1", "1")
+        first_waiter = self.manager()
+        second_waiter = self.manager("jenkins-test-3", "3")
+        self.states = {"1": "building", "2": "building", "3": "building"}
+        reader.begin()
+        first_waiter.begin()
+        second_waiter.begin()
+        self.assertEqual(reader.claim_baseline(sha), "build")
+        baseline = reader.baselines / sha
+        with patch.object(cache_manager.CacheManager, "baseline_valid", return_value=True):
+            reader.publish_baseline(sha)
+            with patch.object(cache_manager.CacheManager, "baseline_compatible", return_value=False):
+                self.assertEqual(first_waiter.claim_baseline(sha), "wait")
+                self.assertEqual(second_waiter.claim_baseline(sha), "wait")
+                self.assertNotIn("baseline", first_waiter.read_record(first_waiter.tag))
+                self.assertTrue(baseline.exists())
+                reader.finish()
+                self.assertEqual(first_waiter.claim_baseline(sha), "build")
+                self.assertEqual(second_waiter.claim_baseline(sha), "wait")
+
+    def test_run_layout_retains_history_or_prunes_to_latest(self):
+        for retain in ("0", "1"):
+            with self.subTest(retain=retain):
+                self.root = Path(self.temp.name) / retain
+                args = self.args("jenkins-test-1", "1")
+                args.run_layout, args.retain_runs = True, retain
+                old = cache_manager.CacheManager(args)
+                old.begin()
+                candidate = old.candidates / old.tag
+                candidate.mkdir(parents=True)
+                (candidate / "run.tar.gz").write_text("retained archive")
+                old.finish()
+                args = self.args()
+                args.run_layout, args.retain_runs = True, retain
+                new = cache_manager.CacheManager(args)
+                new.begin()
+                self.assertEqual(candidate.exists(), retain == "1")
+                self.assertEqual(new.candidates, self.root / "runs" / self.platform)
+
+    def test_validation_uses_saved_context_for_retention_and_current_for_hits(self):
+        manager = self.manager()
+        manager.cache_tool = "/trusted/baseline_cache.sh"
+        sha = "a" * 40
+        baseline = manager.baselines / sha
+        baseline.mkdir(parents=True)
+        (baseline / "cache-manifest.txt").write_text("format_version=2\ncontext=old-context\n")
+        with patch("cache_manager.subprocess.run", return_value=subprocess.CompletedProcess([], 0, "", "")) as run:
+            self.assertTrue(manager.baseline_valid(baseline, sha))
+            self.assertEqual(run.call_args.kwargs["env"]["CI_BASELINE_CACHE_CONTEXT"], "old-context")
+            self.assertTrue(manager.baseline_compatible(baseline, sha))
+            self.assertIsNone(run.call_args.kwargs["env"])
+        with patch("cache_manager.subprocess.run", return_value=subprocess.CompletedProcess([], 2, "", "broken helper")):
+            with self.assertRaisesRegex(RuntimeError, "validation failed"):
+                manager.baseline_compatible(baseline, sha)
+
     def test_symlink_is_not_followed(self):
         outside = self.root / "outside"
         outside.mkdir()
