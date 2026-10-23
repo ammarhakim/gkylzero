@@ -13,6 +13,7 @@ the gzip fallback), symlink exclusion, interrupted packaging, and retained
 baseline snapshots without running simulations:
 
 ```sh
+python3 ci/jenkins/test_cache_manager.py
 bash ci/jenkins/tests/test_baseline_cache.sh
 TEST_CACHE_PLATFORM=stellar-ai-cpu bash ci/jenkins/tests/test_baseline_cache.sh
 python3 -m unittest -v ci.jenkins.tests.test_artifact_staging ci.jenkins.tests.test_run_compaction

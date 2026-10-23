@@ -116,18 +116,26 @@ println 'PASS: shell startup precedes strict mode; workload failures and logs ar
     def index = lines.findIndexOf { it.contains(' publish-baseline ') }
     assert index >= 0
     def calls = []
+    def managerCalls = []
     def values = [cacheScript: '/trusted/cache.sh', cachePlatform: 'personal',
         reporting: [settings: [cacheScript: '/trusted/cache.sh']],
         gkeyllCiRoot: '/cache', baselineCommit: 'a' * 40,
         baselineStage: '/cache/baseline', baselineDir: '', env: [WORKSPACE: '/workspace'],
+        cacheManager: { String command, String sha -> managerCalls << [command, sha] },
+        baselinePublished: false,
         loggedSh: { String label, String command -> calls << [label, command] }]
     def publication = new Binding(values)
     def shell = new GroovyShell(publication)
-    def code = lines[index] + '\n' + lines[index + 1]
+    def end = (index..<lines.size()).find { lines[it].contains('baselineDir = baselineStage') }
+    def code = lines[index..end].join('\n')
     shell.evaluate(code)
     assert calls.size() == 1 && calls[0][0] == 'baseline-cache-publish'
     assert calls[0][1].contains(' publish-baseline ')
     assert publication.baselineDir == publication.baselineStage
+    if (platform != 'stellar-ai-cpu') {
+        assert managerCalls == [['publish-baseline', 'a' * 40]]
+        assert publication.baselinePublished
+    }
     publication.baselineDir = ''
     publication.loggedSh = { String label, String command -> throw new RuntimeException('rejected baseline') }
     try {

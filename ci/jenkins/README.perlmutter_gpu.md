@@ -172,7 +172,10 @@ System → Global properties → Environment variables**, set:
 | `PERLMUTTER_GPU_REGRESSION_TIME` | Optional; default `04:00:00` |
 | `PERLMUTTER_GPU_REGRESSION_JOBS` | Optional regression worker budget (one per serial test or MPI rank; MPI capped at four GPUs); default `4` |
 | `PERLMUTTER_GPU_REGRESSION_TEST_TIMEOUT` | Optional; default `900` |
-| `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for `github_report.py`, `jenkins_reporting.groovy`, and `check_regression_results.lua`; default `main`. Set it only while staging a CI change |
+| `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for reporting, regression checking, and cache tools; default `main`. Set it only while staging a CI change |
+| `CI_JENKINS_READ_AUTH_FILE` | Optional agent-readable Jenkins `user:api-token` file; default `$GKEYLL_CI_ROOT/jenkins_home/jenkins-cli.auth`; empty for anonymous reads |
+| `CI_JENKINS_LOCAL_URL` | Optional controller URL reachable from the login agent; default `http://127.0.0.1:8080` |
+| `GKEYLL_CI_RETAIN_RUNS` | Default `1` retains run history; `0` cleans inactive older runs after Jenkins/Slurm checks |
 
 `GKEYLL_CI_ROOT` retains a separate directory for each build under
 `runs/perlmutter-gpu/`, visible to GPU nodes; see

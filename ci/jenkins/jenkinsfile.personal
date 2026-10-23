@@ -259,6 +259,38 @@ def requireValue(String name, String value) {
     value
 }
 
+def prepareTrustedCacheTools(String root) {
+    def ref = validateRef('GKEYLL_CI_TRUSTED_REF', env.CI_TRUSTED_CI_COMMIT?.trim() ?: env.CI_TRUSTED_CI_COMMIT?.trim() ?: env.GKEYLL_CI_TRUSTED_REF?.trim() ?: 'main')
+    def control = "${root}/cache-control/${env.BUILD_TAG}"
+    withEnv(["CI_CONTROL_DIR=${control}", "CI_TRUSTED_CACHE_REF=${ref}"]) {
+        sh '''#!/bin/bash
+            set -euo pipefail
+            mkdir -p "$CI_CONTROL_DIR"
+            git init -q "$CI_CONTROL_DIR"
+            git -C "$CI_CONTROL_DIR" fetch --quiet --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_TRUSTED_CACHE_REF"
+            git -C "$CI_CONTROL_DIR" show FETCH_HEAD:ci/jenkins/cache_manager.py > "$CI_CONTROL_DIR/cache_manager.py"
+            rm -rf "$CI_CONTROL_DIR/.git"
+        '''
+    }
+    env.CI_CACHE_MANAGER = "${control}/cache_manager.py"
+    env.CI_BASELINE_CACHE_TOOL = reporting.settings.cacheScript
+}
+
+def cacheManager(String command, String sha = '') {
+    withEnv(["CI_CACHE_COMMAND=${command}", "CI_CACHE_SHA=${sha}"]) {
+        return sh(returnStdout: true, script: '''#!/bin/bash
+            set -euo pipefail
+            python3 "$CI_CACHE_MANAGER" "$CI_CACHE_COMMAND" \
+                --root "$GKEYLL_CI_ROOT" --platform "$CI_CACHE_PLATFORM" \
+                --tag "$BUILD_TAG" --job "$JOB_NAME" --number "$BUILD_NUMBER" \
+                --url "$BUILD_URL" --auth-file "${CI_JENKINS_READ_AUTH_FILE:-}" \
+                --sha "${CI_CACHE_SHA:-}" --run-layout \
+                --retain-runs "${GKEYLL_CI_RETAIN_RUNS:-1}" \
+                --cache-tool "$CI_BASELINE_CACHE_TOOL"
+        ''').trim()
+    }
+}
+
 def isCommitSha(String value) { value ==~ /[0-9a-fA-F]{40}/ }
 
 def shortRef(String ref) { isCommitSha(ref) ? ref.take(7) : ref }
@@ -609,11 +641,16 @@ def runCi = {
     def failureMessage = ''
     def platform = env.CI_PLATFORM?.trim() ?: 'personal'
     def cachePlatform = platform == 'team' ? 'team-workstation' : platform
+    env.CI_JENKINS_READ_AUTH_FILE = env.CI_JENKINS_READ_AUTH_FILE != null ? env.CI_JENKINS_READ_AUTH_FILE.trim() :
+        "${env.HOME}/.config/gkeyll/jenkins/${cachePlatform == 'team-workstation' ? 'team-workstation' : 'personal'}.auth"
     def baselineDir = ''
     def baselineStage = ''
     def candidateDir = ''
     def trustedChecker = ''
     def baselineCacheHit = false
+    def baselinePublished = false
+    def cacheStarted = false
+    env.CI_CACHE_PLATFORM = cachePlatform
     // Every controller needs its own status context, otherwise two machines
     // testing the same commit overwrite each other's status on GitHub.
     def statusContext = params.CI_QUEUE_CONTEXT?.trim() ?: env.CI_STATUS_CONTEXT?.trim() ?: env.PERSONAL_STATUS_CONTEXT?.trim()
@@ -624,8 +661,11 @@ def runCi = {
     loadReporting([credential: statusCredentialsId, context: statusContext, platform: platform,
         pr: candidatePr ?: '', ref: candidateRef ?: '', commit: commit])
     def cacheScript = reporting.settings.cacheScript
-    reporting.withBaselineCache(gkeyllCiRoot, cachePlatform) {
+    withEnv(["CI_CACHE_MANAGED=1"]) {
     try {
+    try {
+        ciStage('Prepare trusted cache tools') { prepareTrustedCacheTools(gkeyllCiRoot) }
+        ciStage('Clean inactive CI caches') { cacheStarted = true; cacheManager('begin') }
         ciStage('Resolve candidate and baseline') {
             currentBuild.displayName = "#${env.BUILD_NUMBER} ${candidatePr ? "PR-${candidatePr}" : shortRef(candidateRef)}"
             if (candidatePr) { candidateRef = "PR #${candidatePr}"; requestedBaseline = pullRequestBase(statusCredentialsId, candidatePr) }
@@ -666,8 +706,15 @@ def runCi = {
         reporting.progress('Gkeyll CI is running.')
         ciStage('Resolve baseline cache') {
             baselineDir = sh(returnStdout: true, script: "'${cacheScript}' baseline-path '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}'").trim()
-            baselineCacheHit = sh(returnStatus: true, script: "'${cacheScript}' valid '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}'") == 0
-            if (!baselineCacheHit) baselineStage = sh(returnStdout: true, script: "'${cacheScript}' prepare-baseline '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}'").trim()
+            def disposition = ''
+            timeout(time: 12, unit: 'HOURS') {
+                while (!(disposition in ['hit', 'build'])) {
+                    disposition = cacheManager('claim-baseline', baselineCommit)
+                    if (disposition == 'wait') sleep time: 15, unit: 'SECONDS'
+                }
+            }
+            baselineCacheHit = disposition == 'hit'
+            if (!baselineCacheHit) baselineStage = baselineDir
             writeFile file: 'ci-baseline-cache.txt', text: "status=${baselineCacheHit ? 'hit' : 'miss'}\nplatform=${cachePlatform}\nbaseline_commit=${baselineCommit}\npath=${baselineCacheHit ? baselineDir : baselineStage}\n"
             if (baselineCacheHit) sh "'${cacheScript}' restore-diagnostics '${baselineDir}' '${env.WORKSPACE}'"
         }
@@ -677,6 +724,8 @@ def runCi = {
                 ciStage('Build baseline cache') {
                     createBaseline(requestedBaseline, baselineStage, mkdeps, configure, jobs, regressionJobs, mpiExec)
                     loggedSh("baseline-cache-publish", "'${cacheScript}' publish-baseline '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}' '${baselineStage}' '${env.WORKSPACE}'")
+                    cacheManager('publish-baseline', baselineCommit)
+                    baselinePublished = true
                     baselineDir = baselineStage
                     writeFile file: 'ci-baseline-cache.txt', text: "status=saved\nplatform=${cachePlatform}\nbaseline_commit=${baselineCommit}\npath=${baselineDir}\n"
                 }
@@ -741,6 +790,13 @@ def runCi = {
             }
         }
         deleteDir()
+    }
+    } finally {
+        try {
+            if (cacheStarted && baselineStage && !baselinePublished) cacheManager('abort-baseline', baselineCommit)
+        } finally {
+            if (cacheStarted) cacheManager('finish')
+        }
     }
     }
 }

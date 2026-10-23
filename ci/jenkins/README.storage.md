@@ -52,14 +52,27 @@ Each candidate retains baseline
 diagnostics and copies of accepted outputs, so old runs do not depend on a
 surviving cache symlink.
 
-Jobs for one platform share a filesystem lease until artifact staging finishes.
-Concurrent jobs wait up to 12 hours; success, failure, and normal cancellation
-release the lease. After controller/agent loss, remove
-`baseline-cache/<platform>/.lock` only after confirming its recorded owner is
-no longer running.
+Personal, team workstation, Stellar CPU, and Perlmutter use `cache_manager.py`
+to coordinate concurrent runs under a filesystem lock. A run claims its baseline
+until diagnostics and numerical snapshots have been staged. Builds waiting for
+the same baseline retry for up to 12 hours; incompatible configurations wait
+until existing readers finish before rebuilding at the fixed install path.
+Cleanup checks Jenkins build state and surviving Slurm jobs before deleting
+inactive workspaces or baselines. Failed API/Slurm queries preserve files and
+fail cleanup. Failed baseline builds are removed after diagnostics are collected.
+Ownership records live under `cache-runs/`; trusted helpers use `cache-control/`.
+
+Agents need Jenkins API read access through `CI_JENKINS_READ_AUTH_FILE`, a
+mode-600 `user:api-token` file. An explicitly empty value enables anonymous
+reads. Cluster agents can set `CI_JENKINS_LOCAL_URL` (default
+`http://127.0.0.1:8080`) to the controller URL reachable from the login node.
+Shared storage must support `flock`; concurrent builds need enough executors.
+Drain old CI runs before deployment, and remove a legacy
+`baseline-cache/<platform>/.lock` only after its owner has stopped.
+Stellar AI retains the existing platform-wide lease workflow.
 
 Deploy trusted Jenkinsfiles with `jenkins_reporting.groovy`, `baseline_cache.sh`,
-`prebuilt_config.py`, and `github_report.py`. HPC payloads also source the
+`prebuilt_config.py`, `cache_manager.py`, and `github_report.py`. HPC payloads also source the
 baseline's saved runtime when invoking the trusted comparator.
 
 ## Retention
@@ -103,8 +116,14 @@ All four platforms default to retaining two Jenkins builds and their artifacts.
 Set `GKEYLL_CI_BUILDS_TO_KEEP` to a positive count to override it. Jenkins may
 preserve protected builds in addition to this count. Retention takes effect
 when the updated pipeline runs.
-This does not remove `runs/` directories; delete those explicitly when no longer
-needed. Use the [artifact command](README.md#unified-local-command) to retrieve
+By default `GKEYLL_CI_RETAIN_RUNS=1` preserves `runs/` directories for later
+inspection and optional compaction. Set `GKEYLL_CI_RETAIN_RUNS=0` on personal,
+team workstation, Stellar CPU, or Perlmutter to enable bounded retention:
+startup removes inactive older runs, and completion retains only the most
+recently started run plus any still-active runs. This includes compacted
+archives and run-local dependencies. Unknown owners stop cleanup; drain and
+manually remove older untracked run directories before enabling this policy.
+Jenkins artifact retention remains independent of this setting. Use the [artifact command](README.md#unified-local-command) to retrieve
 archived files.
 
 ## Optional run compaction
@@ -130,8 +149,9 @@ forwarded to the personal workflow. Manual helper invocations accept
 
 Compaction needs room for the archive alongside the original files. It reduces
 retained file counts, not peak compilation/test storage. The baseline cache
-remains unpacked. Run archives have no automatic count limit; Jenkins build
-retention does not delete them.
+remains unpacked. With `GKEYLL_CI_RETAIN_RUNS=1`, run archives have no automatic count limit;
+Jenkins build retention does not delete them. Bounded run retention (`0`)
+removes inactive archived runs under the same policy as unpacked runs.
 
 Restore in the original run directory to preserve embedded absolute paths:
 

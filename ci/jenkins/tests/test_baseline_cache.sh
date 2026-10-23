@@ -80,9 +80,34 @@ printf 'baseline CUDA log\n' > "$stage/gkeyll/cuda-build/compile.log"
 printf '\000baseline field\377' > "$stage/gkylsoft/gkeyll-results/moments/creg-accepted/field.gkyl"
 printf 'return {}\n' > "$stage/gkylsoft/gkeyll-results/runregression.config.lua"
 printf 'PREFIX=baseline\n' > "$stage/gkeyll/config.mak"
-entry="$($cache_tool publish-baseline "$root" "$platform" "$sha" "$stage" "$work_dir/baseline-workspace")"
+# Managed publication leaves deletion to the manager, which knows live readers.
+peer="$root/baseline-cache/$platform/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+mkdir -p "$peer"
+entry="$(CI_CACHE_MANAGED=1 $cache_tool publish-baseline "$root" "$platform" "$sha" "$stage" "$work_dir/baseline-workspace")"
+test -d "$peer"
+rmdir "$peer"
 $cache_tool valid "$root" "$platform" "$sha"
 test "$entry" = "$stage"
+# The concurrent manager must recognize format 2 and honor context changes.
+python3 - "$repo_root" "$root" "$platform" "$sha" <<'PYTHON'
+import os
+from pathlib import Path
+import sys
+import types
+sys.path.insert(0, str(Path(sys.argv[1]) / 'ci/jenkins'))
+from cache_manager import CacheManager
+root, platform, sha = sys.argv[2:]
+manager = CacheManager(types.SimpleNamespace(root=root, platform=platform,
+    tag='fixture-manager', job='fixture', number='1',
+    url='http://jenkins.invalid/job/fixture/1/', controller_url='', auth_file='',
+    cache_tool=str(Path(sys.argv[1]) / 'ci/jenkins/baseline_cache.sh')))
+path = manager.baselines / sha
+assert manager.baseline_valid(path, sha)
+assert manager.baseline_compatible(path, sha)
+os.environ['CI_BASELINE_CACHE_CONTEXT'] = 'different-context'
+assert manager.baseline_valid(path, sha)
+assert not manager.baseline_compatible(path, sha)
+PYTHON
 "$entry/gkylsoft/gkeyll/bin/gkeyll"
 
 printf 'outside manifest\n' > "$work_dir/outside-manifest.txt"

@@ -95,6 +95,14 @@ cache_payload_valid() {
   fi
 }
 
+run_tag() {
+  local tag="${BUILD_TAG:-manual}"
+  [[ "$tag" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*$ && "$tag" != *..* ]] || die 'BUILD_TAG is not a safe path component'
+  printf '%s' "$tag"
+}
+
+candidate_entry() { printf '%s/%s' "$(candidate_path "$1" "$2")" "$3"; }
+
 cache_tree_valid() {
   local entry="$1" platform="$2" sha="$3" manifest context
   manifest="$entry/cache-manifest.txt"
@@ -215,7 +223,9 @@ PYTHON
   printf 'format_version=2\nplatform=%s\nbaseline_commit=%s\ncontext=%s\ncreated_utc=%s\n' \
     "$platform" "$sha" "${CI_BASELINE_CACHE_CONTEXT:-$(cache_context)}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$target/cache-manifest.txt.tmp"
   mv "$target/cache-manifest.txt.tmp" "$target/cache-manifest.txt"
-  find "$parent" -mindepth 1 -maxdepth 1 -type d ! -name "$sha" ! -name '.lock' -exec rm -rf {} +
+  if [[ "${CI_CACHE_MANAGED:-0}" != 1 ]]; then
+    find "$parent" -mindepth 1 -maxdepth 1 -type d ! -name "$sha" ! -name '.lock' -exec rm -rf {} +
+  fi
   printf '%s' "$target"
 }
 
@@ -233,14 +243,15 @@ prepare_candidate() {
   cp -a "$source/." "$target/gkeyll/"
   [[ "$(git -C "$target/gkeyll" rev-parse HEAD 2>/dev/null || true)" == "$sha" ]] || die "candidate copy does not match $sha"
   rm -f "$target/candidate-manifest.txt"
-  printf 'candidate_commit=%s\nbaseline_commit=%s\nresult=building\nbuild_tag=%s\n' "$sha" "$baseline_sha" "${BUILD_TAG:-manual}" > "$target/candidate-manifest.txt"
+  printf 'candidate_commit=%s\nbaseline_commit=%s\nresult=building\nbuild_tag=%s\njob_name=%s\nbuild_number=%s\nbuild_url=%s\n' \
+    "$sha" "$baseline_sha" "$(run_tag)" "${JOB_NAME:-manual}" "${BUILD_NUMBER:-0}" "${BUILD_URL:-}" > "$target/candidate-manifest.txt"
   printf '%s' "$target"
 }
 
 finalize_candidate() {
   local root="$1" platform="$2" sha="$3" baseline_sha="$4" result="$5" stage="$6" workspace="$7" target file destination
   [[ "$sha" =~ ^[0-9a-f]{40}$ && "$baseline_sha" =~ ^[0-9a-f]{40}$ ]] || die 'candidate and baseline commits must be full SHAs'
-  target="$(candidate_path "$root" "$platform")/$sha"
+  target="$(candidate_entry "$root" "$platform" "$sha")"
   [[ -d "$target/gkeyll/.git" ]] || die "candidate checkout is missing: $target/gkeyll"
   [[ -d "$workspace" ]] || die "Jenkins workspace is missing: $workspace"
   [[ "$(git -C "$target/gkeyll" rev-parse HEAD 2>/dev/null || true)" == "$sha" ]] || die "candidate checkout does not match $sha"
@@ -259,8 +270,9 @@ finalize_candidate() {
     done
   fi
   rm -f "$target/candidate-manifest.txt"
-  printf 'candidate_commit=%s\nbaseline_commit=%s\nresult=%s\nterminal_stage=%s\nbuild_tag=%s\nfinished_utc=%s\n' \
-    "$sha" "$baseline_sha" "$result" "$stage" "${BUILD_TAG:-manual}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$target/candidate-manifest.txt"
+  printf 'candidate_commit=%s\nbaseline_commit=%s\nresult=%s\nterminal_stage=%s\nbuild_tag=%s\njob_name=%s\nbuild_number=%s\nbuild_url=%s\nfinished_utc=%s\n' \
+    "$sha" "$baseline_sha" "$result" "$stage" "$(run_tag)" "${JOB_NAME:-manual}" "${BUILD_NUMBER:-0}" "${BUILD_URL:-}" \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$target/candidate-manifest.txt"
 }
 
 # Caller-local arrays and extension are populated using Bash dynamic scope.
@@ -389,7 +401,7 @@ stage_candidate_artifacts() {
   local root="$1" platform="$2" sha="$3" workspace="$4" baseline_sha="${5:-}" target subtree file baseline started=$SECONDS
   [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || die 'candidate commit must be a full SHA'
   [[ -d "$workspace" ]] || die "Jenkins workspace is missing: $workspace"
-  target="$(candidate_path "$root" "$platform")/$sha"
+  target="$(candidate_entry "$root" "$platform" "$sha")"
   [[ -d "$target" ]] || die "candidate directory is missing: $target"
   if [[ -f "$target/gkeyll/config.mak" && ! -L "$target/gkeyll/config.mak" ]]; then
     rm -f "$workspace/ci-candidate-config.mak"

@@ -164,7 +164,10 @@ set the following values. Paste an expanded scratch path, not a literal `$USER`.
 | `STELLAR_CPU_REGRESSION_TEST_TIMEOUT` | Optional per-test limit in seconds; default `900` |
 | `STELLAR_CPU_NODE_LABEL` | Optional node label; default `stellar_cpu` |
 | `PERL5LIB` | Shared Perl library path when compute nodes lack `Time::HiRes`; see [runtime verification](#verify-the-compute-node-perl-runtime) |
-| `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for `github_report.py`, `jenkins_reporting.groovy`, and `check_regression_results.lua`; default `main`. Set it only while staging a CI change |
+| `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for reporting, regression checking, and cache tools; default `main`. Set it only while staging a CI change |
+| `CI_JENKINS_READ_AUTH_FILE` | Optional agent-readable Jenkins `user:api-token` file; default `$GKEYLL_CI_ROOT/jenkins_home/jenkins-cli.auth`; empty for anonymous reads |
+| `CI_JENKINS_LOCAL_URL` | Optional controller URL reachable from the login agent; default `http://127.0.0.1:8080` |
+| `GKEYLL_CI_RETAIN_RUNS` | Default `1` retains run history; `0` cleans inactive older runs after Jenkins/Slurm checks |
 
 Do not set a broad global `PATH` to an interactive shell configuration. The
 Pipeline initializes Stellar modules for each build and Slurm job. Its

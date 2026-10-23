@@ -170,12 +170,26 @@ probe:
         def creations = 0
         def candidateBuilds = 0
         def artifacts = [:]
+        def claims = 0
+        def published = 0
         def cacheBinding = new Binding([
             env: [WORKSPACE: tmp.absolutePath], cacheScript: '/trusted/cache',
             gkeyllCiRoot: '/cache', cachePlatform: 'personal', baselineCommit: 'a' * 40,
             requestedBaseline: 'a' * 40, baselineDir: '', baselineStage: '', baselineCacheHit: false,
             candidateDir: '/candidate', mkdeps: '', configure: '', jobs: '2', regressionJobs: '2', mpiExec: '',
             ciStage: { String name, Closure body -> body() },
+            timeout: { Map options, Closure body -> body() },
+            sleep: { Map options -> assert options.time == 15 },
+            loggedSh: { String label, String command -> assert label == 'baseline-cache-publish' },
+            cacheManager: { String command, String sha ->
+                assert sha == 'a' * 40
+                if (command == 'claim-baseline') {
+                    claims++
+                    return claims == 1 ? 'wait' : (hit ? 'hit' : 'build')
+                }
+                assert command == 'publish-baseline'
+                published++
+            },
             dir: { String path, Closure body -> body() },
             reporting: [withBaselineEnvironment: { String path, Closure body -> body() }],
             buildTree: { Object... args -> candidateBuilds++ },
@@ -189,6 +203,8 @@ probe:
             }
         ])
         new GroovyShell(cacheBinding).evaluate(control)
+        assert claims == 2
+        assert published == (hit ? 0 : 1)
         assert candidateBuilds == 1
         assert creations == (hit ? 0 : 1)
         assert artifacts['ci-baseline-cache.txt'].contains('status=' + (hit ? 'hit' : 'saved'))

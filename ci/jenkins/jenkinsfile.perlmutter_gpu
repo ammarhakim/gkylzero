@@ -64,7 +64,6 @@ properties([
         numToKeepStr: buildsToKeep,
         artifactNumToKeepStr: buildsToKeep
     )),
-    disableConcurrentBuilds(),
     parameters([
         string(
             name: 'CANDIDATE_PR',
@@ -98,6 +97,43 @@ def requireValue(String name, String value) {
         error("${name} is not configured. See ci/jenkins/README.perlmutter_gpu.md.")
     }
     return value
+}
+
+def prepareTrustedCacheTools(String root) {
+    def ref = reporting.settings.reportingCommit
+    def control = "${root}/cache-control/${env.BUILD_TAG}"
+    withEnv(["CI_CONTROL_DIR=${control}", "CI_TRUSTED_CACHE_REF=${ref}"]) {
+        sh '''#!/bin/bash -l
+            set -euo pipefail
+            mkdir -p "$CI_CONTROL_DIR"
+            git init -q "$CI_CONTROL_DIR"
+            git -C "$CI_CONTROL_DIR" fetch --quiet --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_TRUSTED_CACHE_REF"
+            git -C "$CI_CONTROL_DIR" show FETCH_HEAD:ci/jenkins/cache_manager.py > "$CI_CONTROL_DIR/cache_manager.py"
+            git -C "$CI_CONTROL_DIR" show FETCH_HEAD:machines/module_load.perlmutter-gpu.sh > "$CI_CONTROL_DIR/module_load.sh"
+            test -s "$CI_CONTROL_DIR/module_load.sh"
+            rm -rf "$CI_CONTROL_DIR/.git"
+        '''
+    }
+    env.CI_CACHE_MANAGER = "${control}/cache_manager.py"
+    env.CI_BASELINE_CACHE_TOOL = reporting.settings.cacheScript
+}
+
+def cacheManager(String command, String sha = '') {
+    withEnv(["CI_CACHE_COMMAND=${command}", "CI_CACHE_SHA=${sha}"]) {
+        return sh(returnStdout: true, script: '''#!/bin/bash -l
+            set -euo pipefail
+            . "$(dirname "$CI_CACHE_MANAGER")/module_load.sh" >&2
+            if [[ "$CI_CACHE_COMMAND" == begin ]]; then python3 --version >&2; fi
+            python3 "$CI_CACHE_MANAGER" "$CI_CACHE_COMMAND" \
+                --root "$GKEYLL_CI_ROOT" --platform "$CI_CACHE_PLATFORM" \
+                --tag "$BUILD_TAG" --job "$JOB_NAME" --number "$BUILD_NUMBER" \
+                --url "$BUILD_URL" --controller-url "${CI_JENKINS_LOCAL_URL:-http://127.0.0.1:8080}" \
+                --auth-file "${CI_JENKINS_READ_AUTH_FILE:-}" \
+                --sha "${CI_CACHE_SHA:-}" --run-layout \
+                --retain-runs "${GKEYLL_CI_RETAIN_RUNS:-1}" \
+                --cache-tool "$CI_BASELINE_CACHE_TOOL"
+        ''').trim()
+    }
 }
 
 def buildJobs() {
@@ -197,8 +233,9 @@ def baselineBehindCount(String statusCredentialsId, String baseline, String cand
         passwordVariable: 'GITHUB_STATUS_TOKEN'
     )]) {
         withEnv(["CI_BASELINE_COMMIT=${baseline}", "CI_CANDIDATE_COMMIT=${candidate}"]) {
-            return sh(returnStdout: true, script: '''#!/bin/bash
+            return sh(returnStdout: true, script: '''#!/bin/bash -l
                 set -euo pipefail
+                . "$(dirname "$CI_CACHE_MANAGER")/module_load.sh" >&2
                 curl --fail --silent --show-error \
                     --retry 2 --connect-timeout 15 --max-time 45 \
                     --header 'Accept: application/vnd.github+json' \
@@ -218,8 +255,9 @@ def resolvePullRequestBase(String statusCredentialsId, String prNumber) {
         passwordVariable: 'GITHUB_STATUS_TOKEN'
     )]) {
         withEnv(["GITHUB_PR_NUMBER=${prNumber}"]) {
-            baseRef = sh(returnStdout: true, script: '''#!/bin/bash
+            baseRef = sh(returnStdout: true, script: '''#!/bin/bash -l
                 set -euo pipefail
+                . "$(dirname "$CI_CACHE_MANAGER")/module_load.sh" >&2
                 curl --fail --silent --show-error \
                     --retry 2 --connect-timeout 15 --max-time 45 \
                     --header 'Accept: application/vnd.github+json' \
@@ -694,6 +732,10 @@ def failureMessage = ''
 def baselineDir = ''
 def baselineStage = ''
 def baselineCacheHit = false
+def baselinePublished = false
+def cacheStarted = false
+env.CI_CACHE_PLATFORM = 'perlmutter-gpu'
+env.CI_JENKINS_READ_AUTH_FILE = env.CI_JENKINS_READ_AUTH_FILE != null ? env.CI_JENKINS_READ_AUTH_FILE.trim() : "${gkeyllCiRoot}/jenkins_home/jenkins-cli.auth"
 
 def ciStage(String name, Closure body) { reporting.ciStage(name, body) }
 
@@ -716,8 +758,11 @@ node(nodeLabel) {
     ws("${workspaceRoot}/${env.JOB_NAME}/${env.BUILD_TAG}") {
         loadReporting([credential: statusCredentialsId, context: params.CI_QUEUE_CONTEXT?.trim() ?: 'continuous-integration/jenkins/perlmutter_gpu',
             platform: 'perlmutter_gpu', pr: candidatePr ?: '', ref: candidateRef ?: '', commit: candidateCommit])
-        reporting.withBaselineCache(gkeyllCiRoot, 'perlmutter-gpu') {
+        withEnv(["CI_CACHE_MANAGED=1"]) {
+    try {
         try {
+            ciStage('Prepare trusted cache tools') { prepareTrustedCacheTools(gkeyllCiRoot) }
+            ciStage('Clean inactive CI caches') { cacheStarted = true; cacheManager('begin') }
             ciStage('Resolve candidate and baseline') {
                 currentBuild.displayName = "#${env.BUILD_NUMBER} ${candidatePr ? "PR-${candidatePr}" : shortRef(candidateRef)}"
                 if (candidatePr) {
@@ -764,8 +809,15 @@ node(nodeLabel) {
             }
             ciStage('Resolve baseline cache') {
                 baselineDir = sh(returnStdout: true, script: "'${reporting.settings.cacheScript}' baseline-path '${gkeyllCiRoot}' 'perlmutter-gpu' '${baselineCommit}'").trim()
-                baselineCacheHit = sh(returnStatus: true, script: "'${reporting.settings.cacheScript}' valid '${gkeyllCiRoot}' 'perlmutter-gpu' '${baselineCommit}'") == 0
-                if (!baselineCacheHit) baselineStage = sh(returnStdout: true, script: "'${reporting.settings.cacheScript}' prepare-baseline '${gkeyllCiRoot}' 'perlmutter-gpu' '${baselineCommit}'").trim()
+                def disposition = ''
+                timeout(time: 12, unit: 'HOURS') {
+                    while (!(disposition in ['hit', 'build'])) {
+                        disposition = cacheManager('claim-baseline', baselineCommit)
+                        if (disposition == 'wait') sleep time: 15, unit: 'SECONDS'
+                    }
+                }
+                baselineCacheHit = disposition == 'hit'
+                if (!baselineCacheHit) baselineStage = baselineDir
                 writeFile file: 'ci-baseline-cache.txt', text: "status=${baselineCacheHit ? 'hit' : 'miss'}\nplatform=perlmutter-gpu\nbaseline_commit=${baselineCommit}\npath=${baselineCacheHit ? baselineDir : baselineStage}\n"
                 if (baselineCacheHit) sh "'${reporting.settings.cacheScript}' restore-diagnostics '${baselineDir}' '${env.WORKSPACE}'"
             }
@@ -902,6 +954,8 @@ node(nodeLabel) {
                     ciStage('Run baseline parallel C regressions (SLURM)') { submitParallelRegressionTests('baseline-create', baselineStage, candidateDir) }
                     ciStage('Publish baseline cache') {
                         loggedSh("baseline-cache-publish", "'${reporting.settings.cacheScript}' publish-baseline '${gkeyllCiRoot}' 'perlmutter-gpu' '${baselineCommit}' '${baselineStage}' '${env.WORKSPACE}'")
+                        cacheManager('publish-baseline', baselineCommit)
+                        baselinePublished = true
                         baselineDir = baselineStage
                         writeFile file: 'ci-baseline-cache.txt', text: "status=saved\nplatform=perlmutter-gpu\nbaseline_commit=${baselineCommit}\npath=${baselineDir}\n"
                     }
@@ -1005,6 +1059,13 @@ node(nodeLabel) {
                 }
             }
         }
+    } finally {
+        try {
+            if (cacheStarted && baselineStage && !baselinePublished) cacheManager('abort-baseline', baselineCommit)
+        } finally {
+            if (cacheStarted) cacheManager('finish')
+        }
+    }
         }
     }
 }

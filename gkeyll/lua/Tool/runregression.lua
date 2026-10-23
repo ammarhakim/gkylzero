@@ -1302,8 +1302,14 @@ executeBatch = function(items, jobCount, onComplete, logStarts)
       local stripped = raw
          :gsub("\n?__START__:[%d.]+\n?", "\n")
          :gsub("\n?__END__:[%d.]+\n?",   "\n")
-      local exitCode = tonumber(stripped:match("__EXIT__:(%d+)%s*$")) or 1
+      local exitCode = tonumber(stripped:match("__EXIT__:(%d+)%s*$"))
       local runlog   = stripped:gsub("\n?__EXIT__:%d+%s*$", "")
+      if exitCode == nil then
+         -- The wrapper did not confirm completion.  Do not compare or save
+         -- partial output as a successful regression result.
+         exitCode = -1
+         runlog = runlog .. "\nERROR: missing __EXIT__ marker (run interrupted)\n"
+      end
       -- Guarantee a trailing newline so whatever runregression logs next
       -- (e.g. "... saving accepted results" or the first "Comparing" line)
       -- doesn't get glued onto the test's own last line of output.

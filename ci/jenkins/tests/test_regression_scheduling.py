@@ -242,7 +242,9 @@ assert(results[2].timedOut)
 items[1].cmd = "exit 0" -- Missing exit marker must fail closed.
 messages = {}
 items[1].test.testType = "lua"
-assert(executeBatch({items[1]}, 1, nil, true)[1].exitCode ~= 0)
+local interrupted = executeBatch({items[1]}, 1, nil, true)[1]
+assert(interrupted.exitCode == -1)
+assert(interrupted.runlog:find("missing __EXIT__ marker (run interrupted)", 1, true))
 progress = table.concat(messages)
 assert(progress == "[Lua] running job1\n")
 assert(items[1].workerLabel == "")

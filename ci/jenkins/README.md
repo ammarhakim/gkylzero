@@ -42,6 +42,18 @@ add `--fetch` to download them into a new `gkeyll-ci-build-NUMBER` directory.
 Use `--only PATH[,PATH...]` and `--output-dir DIR` to select files and a new
 destination. Downloads preserve the Jenkins-relative directory hierarchy.
 
+## Candidate freshness and persistent data
+
+CI resolves both references to full SHAs and requires the candidate to contain
+the baseline commit before building or submitting Slurm jobs. Update a behind
+candidate before rerunning, or explicitly use `--allow-behind-candidate`
+(`ALLOW_BEHIND_CANDIDATE` in Jenkins) for a historical comparison. Reports
+record this override.
+
+Baseline caches retain validated builds and results. Candidates rebuild on each
+run. The [storage guide](README.storage.md) describes concurrent cache ownership,
+Jenkins/Slurm cleanup checks, retained run history, and optional bounded retention.
+
 ## Results in GitHub
 
 Each machine publishes a commit status while queued, running, and completed.
