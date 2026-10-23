@@ -94,7 +94,7 @@ ifdef USING_NVCC
 endif
 
 # build lib
-$(LLIB): $(OBJS) ../$(BUILD_DIR)/gyrokinetic/libg0gyrokinetic.so
+$(LLIB): $(OBJS) ../$(BUILD_DIR)/pkpm/libg0pkpm.so
 	$(MKDIR_P) $(dir $@)
 
 ifeq ($(UNAME),Linux)

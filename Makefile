@@ -22,7 +22,7 @@ PREFIX ?= ${HOME}/gkylsoft
 FIN_APP_LIB_DIR = -L../${BUILD_DIR}/pkpm
 FIN_APP_LIB = -lg0pkpm
 
-HAVE_APP_FLAGS = -DGKYL_HAVE_MINI_FLASH -DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS
+HAVE_APP_FLAGS = -DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS
 
 # Include config.mak and alltargets.mak files (if they exists) to overide defaults above
 -include config.mak
@@ -275,6 +275,9 @@ endif
 ifeq (${BUILD_APP}, pkpm)
 	MAKEFILE_FOR_EXT_C_INP_PHONY = pkpm pkpm-unit pkpm-regression
 endif
+ifeq (${BUILD_APP}, mini_flash)
+	MAKEFILE_FOR_EXT_C_INP_PHONY = mini_flash mini_flash-unit mini_flash-regression
+endif
 SED_REPS_STR2=s,MAKEFILE_FOR_EXT_C_INP_PHONY_TAG,${MAKEFILE_FOR_EXT_C_INP_PHONY},g
 
 
@@ -418,18 +421,27 @@ pkpm-valcheck: pkpm ## Run valgrind on unit tests in PKPM
 mini_flash: pkpm  ## Build mini-FLASH infrastructure code
 	cd mini_flash && $(MAKE) -f Makefile-mini_flash
 
-mini_flash-unit: pkpm-unit  ## Build mini-FLASH unit tests
+mini_flash-unit: mini_flash pkpm-unit ## Build mini-FLASH unit tests
 	cd mini_flash && $(MAKE) -f Makefile-mini_flash unit
 
-mini_flash-regression: pkpm-regression  ## Build mini-FLASH regression tests
+mini_flash-regression: mini_flash pkpm-regression ## Build mini-FLASH regression tests
 	cd mini_flash && $(MAKE) -f Makefile-mini_flash regression
 
-mini_flash-install: pkpm-install ## Install PKPM infrastructure code
+mini_flash-install: pkpm-install ## Install mini-FLASH infrastructure code
 	cd mini_flash && $(MAKE) -f Makefile-mini_flash install
 	cp -f mini_flash/creg/rt_arg_parse.h ${INSTALL_PREFIX}/${PROJ_NAME}/include/rt_arg_parse.h
 
-mini_flash-clean: ## Clean PKPM infrastructure code
+mini_flash-clean: ## Clean mini-FLASH infrastructure code
 	cd mini_flash && $(MAKE) -f Makefile-mini_flash clean
+
+mini_flash-check: mini_flash ## (Re)build and run unit tests in mini-FLASH
+	cd mini_flash && $(MAKE) -f Makefile-mini_flash check
+
+mini_flash-unit-run: ## Run mini-FLASH unit tests
+	cd mini_flash && $(MAKE) -f Makefile-mini_flash unit-run
+
+mini_flash-valcheck: mini_flash ## Run valgrind on unit tests in mini-FLASH
+	cd mini_flash && $(MAKE) -f Makefile-mini_flash valcheck
 
 ## Top-level Gkeyll target
 gkeyll: ${BUILD_APP} ## Build Gkeyll executable
@@ -461,7 +473,7 @@ check: ## Build (if needed) and run all unit tests
 unit-run: ## Run all unit tests without (re)building them
 	@if [ -n "$$GKYL_UNIT_RESULTS" ]; then export GKYL_TEST_LOG="$$GKYL_UNIT_RESULTS"; keep=1; \
 	else export GKYL_TEST_LOG=$$(mktemp); keep=0; fi; : > "$$GKYL_TEST_LOG"; \
-	for app in core moments vlasov gyrokinetic pkpm; do \
+	for app in core moments vlasov gyrokinetic pkpm mini_flash; do \
 	  $(MAKE) -C $$app -f Makefile-$$app unit-run; \
 	done; \
 	npass=$$(grep -c '^PASS ' "$$GKYL_TEST_LOG"); \
