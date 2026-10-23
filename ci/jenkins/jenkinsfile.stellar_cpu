@@ -905,7 +905,8 @@ node(nodeLabel) {
                     }
                     ciStage('Run baseline parallel C regressions (SLURM)') { submitParallelRegressionTests('baseline-create', baselineStage, candidateDir) }
                     ciStage('Publish baseline cache') {
-                        baselineDir = sh(returnStdout: true, script: "'${reporting.settings.cacheScript}' publish-baseline '${gkeyllCiRoot}' 'stellar-cpu' '${baselineCommit}' '${baselineStage}' '${env.WORKSPACE}'").trim()
+                        loggedSh("baseline-cache-publish", "'${reporting.settings.cacheScript}' publish-baseline '${gkeyllCiRoot}' 'stellar-cpu' '${baselineCommit}' '${baselineStage}' '${env.WORKSPACE}'")
+                        baselineDir = baselineStage
                         writeFile file: 'ci-baseline-cache.txt', text: "status=saved\nplatform=stellar-cpu\nbaseline_commit=${baselineCommit}\npath=${baselineDir}\n"
                     }
                 }

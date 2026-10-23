@@ -109,6 +109,35 @@ try {
 }
 println 'PASS: shell startup precedes strict mode; workload failures and logs are preserved'
 
+// Cache publication must use the logger on every platform. The cache helper
+// builds at its final path; successful publication does not relocate the tree.
+['personal', 'stellar_cpu', 'stellar-ai-cpu', 'perlmutter_gpu'].each { platform ->
+    def lines = new File("ci/jenkins/jenkinsfile.${platform}").readLines()
+    def index = lines.findIndexOf { it.contains(' publish-baseline ') }
+    assert index >= 0
+    def calls = []
+    def values = [cacheScript: '/trusted/cache.sh', cachePlatform: 'personal',
+        reporting: [settings: [cacheScript: '/trusted/cache.sh']],
+        gkeyllCiRoot: '/cache', baselineCommit: 'a' * 40,
+        baselineStage: '/cache/baseline', baselineDir: '', env: [WORKSPACE: '/workspace'],
+        loggedSh: { String label, String command -> calls << [label, command] }]
+    def publication = new Binding(values)
+    def shell = new GroovyShell(publication)
+    def code = lines[index] + '\n' + lines[index + 1]
+    shell.evaluate(code)
+    assert calls.size() == 1 && calls[0][0] == 'baseline-cache-publish'
+    assert calls[0][1].contains(' publish-baseline ')
+    assert publication.baselineDir == publication.baselineStage
+    publication.baselineDir = ''
+    publication.loggedSh = { String label, String command -> throw new RuntimeException('rejected baseline') }
+    try {
+        shell.evaluate(code)
+        assert false
+    } catch (RuntimeException expected) { assert expected.message == 'rejected baseline' }
+    assert publication.baselineDir == ''
+}
+println 'PASS: cache publication is logged and failed publication does not set a usable baseline'
+
 // Generate and retain the failure report even when checkout never resolved a SHA.
 script.settings.commit = ''
 commands.clear()

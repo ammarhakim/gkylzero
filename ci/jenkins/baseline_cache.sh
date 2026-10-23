@@ -145,6 +145,8 @@ import sqlite3
 import sys
 
 root = Path(sys.argv[1])
+failures = []
+status_names = {-6: 'crashed', -5: 'no output', -4: 'compile failed', -3: 'timed out'}
 for results in (root, root / 'parallel-c-4'):
     created = 0
     for layer in ('moments', 'vlasov', 'gyrokinetic', 'pkpm'):
@@ -156,12 +158,18 @@ for results in (root, root / 'parallel-c-4'):
                     sys.exit(f'baseline-cache: unfinished regression run in {path}')
                 continue
             guid, total, failed = meta
-            rows = db.execute('select status from RegressionData where guid=?', (guid,)).fetchall()
-            if failed or len(rows) != total or any(status not in (-2, -1) for status, in rows):
-                sys.exit(f'baseline-cache: incomplete or failed baseline creation in {path}')
-            created += sum(status == -2 for status, in rows)
+            rows = db.execute('select name, status from RegressionData where guid=?', (guid,)).fetchall()
+            rejected = [(name, status) for name, status in rows if status not in (-2, -1)]
+            if failed or len(rows) != total or rejected:
+                failures.append(f'baseline-cache: incomplete or failed baseline creation in {path}'
+                                f' (recorded {len(rows)}/{total} tests, nfail={failed})')
+                for name, status in rejected:
+                    failures.append(f'  {name}: {status_names.get(status, "unexpected status")} ({status})')
+            created += sum(status == -2 for name, status in rows)
     if not created:
-        sys.exit(f'baseline-cache: no accepted tests created in {results}')
+        failures.append(f'baseline-cache: no accepted tests created in {results}')
+if failures:
+    sys.exit('\n'.join(failures))
 PYTHON
   if [[ -n "$workspace" ]]; then
     mkdir -p "$target/ci-command-logs"

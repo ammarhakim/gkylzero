@@ -117,6 +117,13 @@ Reports use collapsed sections for:
 - Run details: candidate/baseline, machine, build/queue IDs, status context,
   trusted code commits, UTC timestamps, and queue/execution times.
 - Candidate/baseline unit tests, with layer totals and failure details.
+- Baseline/candidate regression execution failures, near the top of failed
+  reports: test names, CPU/GPU and serial/parallel mode, failure status, fatal
+  messages with line numbers, and the database containing the full output.
+  These come directly from the latest finalized regression invocation, even
+  when the runner exits zero or no failed command log was captured. Baseline
+  failures explain why the results cannot be cached. This reports observed
+  failures; identifying the responsible source change still requires diagnosis.
 - Serial/parallel regression totals, layer counts, candidate-only tests, and
   expected-diff entries whose tests pass, in a summary dropdown for each suite.
 - Acknowledged and unacknowledged regression tests, grouped separately for each

@@ -110,3 +110,9 @@ Set `GKEYLL` to the installed executable, `GKEYLL_CBC` to the built
 `python3 -m unittest ci.jenkins.tests.test_bgk_source_io`. When using build-tree
 executables, expose their shared libraries through `LD_LIBRARY_PATH`.
 
+The periodic geometry input fixture checks the CBC and Rosenbluth-Hinton
+field-line derivatives on both sides of the poloidal boundary without running
+simulations. Set `GKEYLL` to a matching CPU installation (including its
+`share/Makefile`) and expose its shared libraries, then run
+`python3 -m unittest -v ci.jenkins.tests.test_periodic_geometry_inputs`.
+

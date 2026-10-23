@@ -676,7 +676,8 @@ def runCi = {
             reporting.withBaselineEnvironment(baselineStage) {
                 ciStage('Build baseline cache') {
                     createBaseline(requestedBaseline, baselineStage, mkdeps, configure, jobs, regressionJobs, mpiExec)
-                    baselineDir = sh(returnStdout: true, script: "'${cacheScript}' publish-baseline '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}' '${baselineStage}' '${env.WORKSPACE}'").trim()
+                    loggedSh("baseline-cache-publish", "'${cacheScript}' publish-baseline '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}' '${baselineStage}' '${env.WORKSPACE}'")
+                    baselineDir = baselineStage
                     writeFile file: 'ci-baseline-cache.txt', text: "status=saved\nplatform=${cachePlatform}\nbaseline_commit=${baselineCommit}\npath=${baselineDir}\n"
                 }
             }

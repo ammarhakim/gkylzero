@@ -61,9 +61,9 @@ for results in (root, root / 'parallel-c-4'):
         (accepted / 'field.gkyl').write_bytes(b'accepted fixture')
         with sqlite3.connect(results / layer / 'regressiondb') as db:
             db.executescript("""create table RegressionMeta (guid text, ntotal integer, nfail integer);
-                create table RegressionData (guid text, status integer);
+                create table RegressionData (guid text, name text, status integer);
                 insert into RegressionMeta values ('create', 1, 0);
-                insert into RegressionData values ('create', -2);""")
+                insert into RegressionData values ('create', 'fixture', -2);""")
 PYTHON
 }
 make_results "$stage"
@@ -270,9 +270,29 @@ import sqlite3, sys
 with sqlite3.connect(sys.argv[1]) as db:
     db.execute('update RegressionData set status=-3')
 PYTHON
-if $cache_tool publish-baseline "$root" "$platform" "$next_sha" "$next_entry" "$work_dir/baseline-workspace" >/dev/null 2>&1; then
+if $cache_tool publish-baseline "$root" "$platform" "$next_sha" "$next_entry" "$work_dir/baseline-workspace" >"$work_dir/rejected.log" 2>&1; then
   echo 'failed create run was published' >&2; exit 1
 fi
+grep -q 'fixture: timed out (-3)' "$work_dir/rejected.log"
+test ! -e "$next_entry/cache-manifest.txt"
+$cache_tool valid "$root" "$platform" "$sha"
+
+# Reproduce the two numerical aborts in build 288. A successful process exit
+# does not make status -6 suitable for a baseline, and both names must survive.
+python3 - "$next_entry/gkylsoft/gkeyll-results/gyrokinetic/regressiondb" <<'PYTHON'
+import sqlite3, sys
+with sqlite3.connect(sys.argv[1]) as db:
+    db.execute('delete from RegressionData')
+    db.execute('update RegressionMeta set ntotal=2, nfail=2')
+    for name in ('rt_gk_cbc_2x2v_p1', 'rt_gk_rosenbluth_hinton_2x2v_p1'):
+        db.execute('insert into RegressionData values (?, ?, ?)',
+                   ('create', 'gyrokinetic/creg/' + name, -6))
+PYTHON
+if $cache_tool publish-baseline "$root" "$platform" "$next_sha" "$next_entry" "$work_dir/baseline-workspace" >"$work_dir/rejected.log" 2>&1; then
+  echo 'numerically aborted simulations were published' >&2; exit 1
+fi
+grep -q 'rt_gk_cbc_2x2v_p1: crashed (-6)' "$work_dir/rejected.log"
+grep -q 'rt_gk_rosenbluth_hinton_2x2v_p1: crashed (-6)' "$work_dir/rejected.log"
 test ! -e "$next_entry/cache-manifest.txt"
 $cache_tool valid "$root" "$platform" "$sha"
 populate_baseline "$next_sha"

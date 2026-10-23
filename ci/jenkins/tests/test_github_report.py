@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import re
+import sqlite3
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -673,6 +674,96 @@ class FailureReportTests(unittest.TestCase):
         self.assertIn('Exit code: 7', body)
         self.assertIn('\n'.join(lines[-100:]), log_text(body))
         self.assertNotIn('line 24\n', body)
+
+    def test_baseline_cache_rejection_reports_crashed_tests(self):
+        path = 'ci-command-logs/baseline-cache-publish.log'
+        self.write(path, 'baseline-cache: incomplete or failed baseline creation\n'
+                   '  gyrokinetic/creg/rt_gk_cbc_2x2v_p1: crashed (-6)\n'
+                   '  gyrokinetic/creg/rt_gk_rosenbluth_hinton_2x2v_p1: crashed (-6)\n')
+        self.write(path + '.exit', '1\n')
+        body = '\n'.join(report.failure_sections())
+        self.assertIn('rt_gk_cbc_2x2v_p1: crashed (-6)', body)
+        self.assertIn('rt_gk_rosenbluth_hinton_2x2v_p1: crashed (-6)', body)
+        self.assertIn('Exit code: 1', body)
+        self.assertNotIn('build log unavailable', body)
+
+    def execution_database(self, rows, baseline=True, suite='gyrokinetic', guid='create', finalized=True):
+        root = '_baseline/' if baseline else ''
+        path = Path(root + 'gkylsoft/gkeyll-results/' + suite + '/regressiondb')
+        path.parent.mkdir(parents=True, exist_ok=True)
+        mode = 'cpu_parallel' if suite.startswith('parallel-') else 'cpu_serial'
+        with contextlib.closing(sqlite3.connect(path)) as db, db:
+            db.executescript('''
+                CREATE TABLE IF NOT EXISTS RegressionMeta (guid TEXT, run_mode TEXT, ntotal INTEGER);
+                CREATE TABLE IF NOT EXISTS RegressionData
+                    (guid TEXT, name TEXT, test_type TEXT, status INTEGER, runtime REAL, runlog TEXT);
+            ''')
+            if finalized:
+                db.execute('INSERT INTO RegressionMeta VALUES (?, ?, ?)', (guid, mode, len(rows)))
+            db.executemany('INSERT INTO RegressionData VALUES (?, ?, ?, ?, ?, ?)',
+                           [(guid, name, 'c', status, 1., output) for name, status, output in rows])
+        return path
+
+    def test_baseline_numerical_aborts_are_prominent_without_a_failed_command_log(self):
+        names = ['gyrokinetic/creg/rt_gk_cbc_2x2v_p1',
+                 'gyrokinetic/creg/rt_gk_rosenbluth_hinton_2x2v_p1']
+        fatal = 'ERROR: Time-step was below 0.001*dt_init 20 consecutive times. Aborting simulation ....'
+        output = 'WARNING: Time-step dt = 1e-14 is below 0.001*dt_init\n' * 200
+        output += fatal + '\n' + 'Timing statistic: 1.0\n' * 150
+        self.execution_database([(name, -6, output) for name in names])
+        self.write('ci-failure-summary.txt', 'stage=Build baseline cache\nmessage=script returned exit code 1\n')
+        self.write('baseline-c-regression-create.log.exit', '0\n')
+        self.write('candidate-unit-results.txt', 'PASS core: ctest_array\n')
+        args = argparse.Namespace(platform='personal', context='ci/test', result='failure', pr='', output='ci-report.md')
+        with contextlib.redirect_stdout(io.StringIO()):
+            report.build_report(args)
+        body = Path(args.output).read_text()
+        section = body.split('<summary>Baseline regression execution failures (2)</summary>')[1].split('</details>')[0]
+        for name in names:
+            self.assertIn(name + ' [cpu_serial]: Simulation aborted: time-step collapse', log_text(section))
+        self.assertIn(fatal, log_text(section))
+        self.assertIn('cannot be published as a baseline cache', section)
+        self.assertIn('RegressionData.runlog', section)
+        self.assertNotIn('Timing statistic', section)
+        self.assertNotIn('WARNING:', section)
+        self.assertNotIn('build log unavailable', body)
+        self.assertLess(body.index('Baseline regression execution failures'), body.index('Candidate unit tests'))
+        self.assertIn('baseline regressions (2 execution failures)', Path('ci-status-description.txt').read_text())
+
+    def test_execution_failure_modes_and_fallback_output(self):
+        self.execution_database([('timeout', -3, 'last progress <1%>'), ('empty', -5, '')],
+                                suite='parallel-c-4/gyrokinetic')
+        self.execution_database([('compile', -4, 'a.c:1: error: broken'),
+                                 ('crash', -6, 'Segmentation fault'),
+                                 ('difference', 0, 'different arrays'),
+                                 ('passed', 1, ''), ('skipped', -1, '')], baseline=False)
+        sections, counts = report.regression_execution_failure_sections()
+        body = '\n'.join(sections)
+        self.assertEqual(counts, {'Baseline': 2, 'Candidate': 2})
+        self.assertIn('timeout [cpu_parallel]: Timed out', body)
+        self.assertIn('last progress &lt;1%&gt;', body)
+        self.assertIn('No per-test output was captured', body)
+        self.assertIn('compile [cpu_serial]: Compilation failed', body)
+        self.assertIn('Segmentation fault', body)
+        self.assertNotIn('difference [', body)
+        self.assertNotIn('passed [', body)
+        self.assertNotIn('skipped [', body)
+
+    def test_execution_failures_do_not_reuse_historical_results(self):
+        self.execution_database([('old_crash', -6, 'ERROR: old')], guid='old')
+        self.execution_database([('new_pass', -2, '')], guid='new')
+        self.assertEqual(report.regression_execution_failure_sections(), ([], {}))
+        self.execution_database([('in_progress', -6, 'ERROR: partial')], guid='unfinished', finalized=False)
+        sections, counts = report.regression_execution_failure_sections()
+        self.assertEqual(counts, {})
+        self.assertIn('latest invocation is unfinished', '\n'.join(sections))
+        self.assertNotIn('old_crash', '\n'.join(sections))
+
+    def test_unreadable_execution_database_does_not_break_reporting(self):
+        self.write('_baseline/gkylsoft/gkeyll-results/gyrokinetic/regressiondb', 'not sqlite')
+        sections, counts = report.regression_execution_failure_sections()
+        self.assertEqual(counts, {})
+        self.assertIn('details unavailable', '\n'.join(sections))
 
     def test_failed_build_path_aliases_share_one_tail_and_metadata(self):
         path = 'candidate-unit-build.log'

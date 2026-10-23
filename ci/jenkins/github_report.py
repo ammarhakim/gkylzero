@@ -775,7 +775,7 @@ def unit_section(label, results_file, log_file):
     return dropdown(head, "\n".join(body)), nfail, failing
 
 
-def status_description(result, stage, unit_fail, unit_failing, regression_files):
+def status_description(result, stage, unit_fail, unit_failing, regression_files, execution_failures=None):
     """One line for the GitHub status: name what failed, or what passed."""
     if result == "success":
         return "Passed: unit tests and C regressions."
@@ -790,6 +790,10 @@ def status_description(result, stage, unit_fail, unit_failing, regression_files)
             by_layer[item.split(":")[0]] = by_layer.get(item.split(":")[0], 0) + 1
         return "Failed: unit tests ({}).".format(
             ", ".join("{} {}".format(l, n) for l, n in by_layer.items()))
+    if execution_failures:
+        return 'Failed: {}.'.format(', '.join(
+            '{} regressions ({} execution failures)'.format(label.lower(), count)
+            for label, count in execution_failures.items()))
     failing = []
     for path in regression_files:
         failing += [e.rpartition(":")[0] for e in read_kv(path).get("c_regression_failure", [])]
@@ -802,7 +806,63 @@ def status_description(result, stage, unit_fail, unit_failing, regression_files)
     return "Failed at stage: {}.".format(stage)
 
 
-def failure_sections():
+def regression_execution_failure_sections():
+    """Surface failed executions even when create exited zero and no checker ran."""
+    sections, counts, issues = [], {}, []
+    statuses = {-6: 'Crashed or aborted', -5: 'No output', -4: 'Compilation failed', -3: 'Timed out'}
+    fatal = re.compile(r'\berror\b|\bfatal\b|segmentation fault|assertion.*fail|'
+                       r'time step crashing|time-step was below|update method failed', re.I)
+    for label, root in (('Baseline', '_baseline/gkylsoft/gkeyll-results'),
+                        ('Candidate', 'gkylsoft/gkeyll-results')):
+        details, count = [], 0
+        for path in sorted(glob.glob(root + '/**/regressiondb', recursive=True)):
+            try:
+                uri = 'file:' + urllib.parse.quote(os.path.abspath(path)) + '?mode=ro'
+                with closing(sqlite3.connect(uri, uri=True)) as db:
+                    meta = db.execute('SELECT guid, run_mode FROM RegressionMeta '
+                                      'ORDER BY rowid DESC LIMIT 1').fetchone()
+                    last = db.execute('SELECT guid FROM RegressionData ORDER BY rowid DESC LIMIT 1').fetchone()
+                    if meta is None and last is None:
+                        continue
+                    if meta is None or (last and last[0] != meta[0]):
+                        issues.append(path + ': latest invocation is unfinished; finalized failure summary unavailable.')
+                        continue
+                    guid, mode = meta
+                    rows = db.execute('SELECT name, status, runlog FROM RegressionData '
+                                      'WHERE guid=? AND status IN (-6, -5, -4, -3) ORDER BY name',
+                                      (guid,)).fetchall()
+                for name, status, output in rows:
+                    count += 1
+                    lines = ANSI.sub('', output or '').splitlines()
+                    # Fatal messages often precede long timing summaries. A tail
+                    # alone hides the reason, and thousands of dt warnings bury it.
+                    evidence = [(i, line) for i, line in enumerate(lines, 1) if fatal.search(line)]
+                    if not evidence:
+                        evidence = [(i, line) for i, line in enumerate(lines, 1) if line.strip()][-8:]
+                    reason = statuses[status]
+                    if status == -6 and any('time-step was below' in line.lower() for _, line in evidence):
+                        reason = 'Simulation aborted: time-step collapse'
+                    details += ['{} [{}]: {}'.format(name, mode, reason),
+                                'Full output: {} (RegressionData.runlog, test {}, guid {})'.format(path, name, guid)]
+                    details += ['  line {}: {}'.format(i, line) for i, line in evidence[:8]]
+                    if not evidence:
+                        details.append('  No per-test output was captured; failure status is {}.'.format(status))
+                    details.append('')
+            except sqlite3.Error as err:
+                issues.append(path + ': regression execution failure details unavailable: ' + str(err))
+        if count:
+            counts[label] = count
+            explanation = ('Baseline regression executions failed; these results cannot be published as a baseline cache. '
+                           'Fix the baseline or select a working baseline before retrying.' if label == 'Baseline' else
+                           'Candidate regression executions failed before numerical comparison could complete.')
+            sections.extend(detail_sections('{} regression execution failures ({})'.format(label, count),
+                                            explanation + '\n\n' + '\n'.join(details)))
+    if issues:
+        sections.extend(detail_sections('Regression execution diagnostics incomplete', '\n'.join(issues)))
+    return sections, counts
+
+
+def failure_sections(regression_details_available=False):
     """Show unfiltered tails first, keeping extracted warnings/errors separate."""
     detail = read_text('ci-failure-detail.txt').strip()
     match = re.search(r'^Full log: (.+?)(?: \(archived with the build\))?$', detail, re.M)
@@ -834,7 +894,7 @@ def failure_sections():
         heading = metadata + ['Full log: ' + path, '', tail or '(log is empty)']
         sections += detail_sections('Failed build log — last 100 lines: ' + path,
                                     '\n'.join(heading))
-    if not sections:
+    if not sections and not regression_details_available:
         sections += detail_sections('Failure details — build log unavailable',
                                     detail or 'No build log was captured before this failure; see the failed stage above.')
     return sections
@@ -1008,13 +1068,16 @@ def build_report(args):
     parts.append(dropdown('Run details', "  \n".join(meta)))
 
     stage = first(failure, "stage", os.environ.get('CI_FAILURE_STAGE', 'unknown'))
+    execution_failures = {}
     if args.result == 'pending':
         parts.append(dropdown('Current stage: ' + stage, '**Current stage:** ' + stage))
     elif args.result != "success":
         message = re.sub(r"^(?:[A-Za-z_$][\w$]*\.)+[A-Z]\w*(?:Exception|Error): ", "", first(failure, "message", ""))
         parts.append(dropdown('Failed at stage: ' + stage,
                               "**Failed at stage:** {}{}".format(stage, " — " + message if message else "")))
-        parts.extend(failure_sections())
+        execution_sections, execution_failures = regression_execution_failure_sections()
+        parts.extend(execution_sections)
+        parts.extend(failure_sections(regression_details_available=bool(execution_failures)))
 
     unit_fail, unit_failing = 0, []
     for label, results_file, log_file in (("Candidate", "candidate-unit-results.txt", "candidate-unit-test.log"),
@@ -1064,7 +1127,7 @@ def build_report(args):
         f.write(report)
     print("Wrote {} ({} characters)".format(args.output, len(report)))
     line = status_description(args.result, stage, unit_fail, unit_failing,
-                              ["ci-regression-summary.txt", "ci-parallel-regression-summary.txt"])
+                              ["ci-regression-summary.txt", "ci-parallel-regression-summary.txt"], execution_failures)
     if elapsed is not None and args.result != 'pending':
         outcome, separator, detail = line.partition(':')
         outcome = re.sub(r' at stage$', '', outcome.rstrip('.'))
