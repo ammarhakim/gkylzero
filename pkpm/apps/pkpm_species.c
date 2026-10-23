@@ -254,6 +254,9 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   s->calc_conf_flux = gkyl_dg_pkpm_conf_flux_surf_inew(&conf_flux_inp);
   int nkc = gkyl_dg_pkpm_conf_flux_surf_num_surf_basis(s->calc_conf_flux);
   s->conf_flux_surf = mkarr(app->use_gpu, 8 * cdim * nkc, s->local_ext.volume);
+  s->face_coef = mkarr(
+    app->use_gpu, gkyl_dg_pkpm_conf_flux_surf_face_coef_ncomp(s->calc_conf_flux), app->local_ext.volume
+  );
 
   struct gkyl_dg_pkpm_vel_flux_surf_inp vel_flux_inp = {
     .phase_grid = &s->grid,
@@ -499,15 +502,18 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   s->bc_buffer_up_fixed_fluid = mkarr(app->use_gpu, 5 * app->confBasis.num_basis, buff_sz_fluid);
 
   // Absorbing boundaries: the distribution functions vanish in the ghost cells; the
-  // fluid state is extrapolated (zero gradient) so that the primitive variables and
-  // their weak gradients are one-sided at the wall (a zero ghost state would be a huge
-  // gradient of xi, n and u that drives spurious forces in the wall cell), while the
-  // fluid fluxes through the wall are the moments of the kinetic upwind flux
-  // (gkyl_dg_pkpm_fluid_flux_surf_absorb), not the HLL flux against the ghost state.
+  // fluid state is the mirror image of the skin cell (even in the wall direction), so the
+  // ghost trace at the wall is the skin trace and the primitive variables, their weak
+  // gradients and the face averages of the flux coefficients are one-sided at the wall (a
+  // zero ghost state would be a huge gradient of xi, n and u that drives spurious forces in
+  // the wall cell; a copied one halves the wall-cell gradients). The fluid fluxes through
+  // the wall are the moments of the kinetic flux against the zero ghost distributions
+  // (pkpm_species_fluid_flux), not the fluid flux of the ghost state.
   s->bc_is_absorb = false;
   for (int d = 0; d < cdim; ++d) {
     s->bc_lo_reflect[d] = 0;
     s->bc_up_reflect[d] = 0;
+    s->bc_lo_theta[d] = s->bc_up_theta[d] = 0;
     // Lower BC updater. Copy BCs by default.
     enum gkyl_bc_basic_type bctype_dist = GKYL_BC_COPY;
     enum gkyl_bc_basic_type bctype_fluid = GKYL_BC_COPY;
@@ -516,8 +522,12 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
       bctype_fluid = GKYL_BC_COPY;
     } else if (s->lower_bc[d] == GKYL_SPECIES_ABSORB) {
       bctype_dist = GKYL_BC_ABSORB;
-      bctype_fluid = GKYL_BC_COPY;
+      bctype_fluid = GKYL_BC_REFLECT;
       s->bc_is_absorb = true;
+      s->bc_lo_theta[d] = gkyl_bc_basic_new(
+        d, GKYL_LOWER_EDGE, GKYL_BC_REFLECT, app->basis_on_dev.confBasis, &app->lower_skin[d],
+        &app->lower_ghost[d], app->confBasis.num_basis, app->cdim, app->use_gpu
+      );
     } else if (s->lower_bc[d] == GKYL_SPECIES_REFLECT) {
       // the distributions use bc_lo_reflect; the basic updater is not applied there
       bctype_dist = GKYL_BC_COPY;
@@ -545,8 +555,12 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
       bctype_fluid = GKYL_BC_COPY;
     } else if (s->upper_bc[d] == GKYL_SPECIES_ABSORB) {
       bctype_dist = GKYL_BC_ABSORB;
-      bctype_fluid = GKYL_BC_COPY;
+      bctype_fluid = GKYL_BC_REFLECT;
       s->bc_is_absorb = true;
+      s->bc_up_theta[d] = gkyl_bc_basic_new(
+        d, GKYL_UPPER_EDGE, GKYL_BC_REFLECT, app->basis_on_dev.confBasis, &app->upper_skin[d],
+        &app->upper_ghost[d], app->confBasis.num_basis, app->cdim, app->use_gpu
+      );
     } else if (s->upper_bc[d] == GKYL_SPECIES_REFLECT) {
       bctype_dist = GKYL_BC_COPY;
       bctype_fluid = GKYL_BC_PKPM_MOM_REFLECT;
@@ -724,8 +738,8 @@ pkpm_species_calc_pkpm_vars(
   int nc = app->confBasis.num_basis;
 
   // Raw normalized moments of [F, G] over the extended range (ghost cells hold valid data
-  // after the boundary conditions, the fluid state is extrapolated into the ghost cells
-  // of absorbing boundaries), the nodal primitive variables u and [xi, xi^2, p] of the fluid
+  // after the boundary conditions, the fluid state is mirrored into the ghost cells of
+  // absorbing boundaries), the nodal primitive variables u and [xi, xi^2, p] of the fluid
   // state, then the coupling moments. theta = T_perp/T is the zeroth moment of G directly.
   // The evolved fluid and distributions carry the position-map Jacobian J. The primitive
   // variables, the flow and grad(ln n) need the PHYSICAL fluid (a weak gradient of J rho
@@ -745,7 +759,7 @@ pkpm_species_calc_pkpm_vars(
   gkyl_array_set_offset(species->pkpm_theta, 1.0, species->pkpm_nmoms.marr, 2 * nc);
   gkyl_vlasov_position_map_divide_jacobpos_conf(app->pos_map, &app->local_ext, nc, species->pkpm_theta, species->pkpm_theta);
   // Weak gradient of u for the kinetic sources (bb:grad u); needs u in the ghost cells
-  // (with absorbing boundaries the ghost u is the last value computed there).
+  // (at absorbing boundaries that of the mirrored fluid state).
   gkyl_dg_calc_pkpm_vars_grad_u(species->calc_pkpm_vars, &app->local, species->pkpm_u, species->pkpm_grad_u);
   // grad(ln n) for the density-gradient source: weak gradient of [rho, 0, 0] divided by rho.
   gkyl_array_set_offset(species->pkpm_rho3, 1.0, species->pkpm_rho, 0);
@@ -758,6 +772,27 @@ pkpm_species_calc_pkpm_vars(
   // block of pkpm_xi3 receives xi^2 and is never read).
   gkyl_array_set_offset(species->pkpm_xi3, 1.0, species->pkpm_xi, 0);
   gkyl_dg_calc_pkpm_vars_grad_u(species->calc_pkpm_vars, &app->local, species->pkpm_xi3, species->pkpm_grad_xi);
+  // The face fluxes average u, xi and theta across every face. At absorbing walls u and xi of
+  // the mirrored fluid ghost are the mirror image of the skin values already; theta, the
+  // zeroth moment of the empty ghost G, is replaced by the mirror image of the skin cell, so
+  // that the face averages are the interior wall traces.
+  if (species->bc_is_absorb) {
+    for (int d = 0; d < app->cdim; ++d) {
+      if (species->bc_lo_theta[d]) {
+        gkyl_bc_basic_advance(species->bc_lo_theta[d], species->bc_buffer_fluid, species->pkpm_theta);
+      }
+      if (species->bc_up_theta[d]) {
+        gkyl_bc_basic_advance(species->bc_up_theta[d], species->bc_buffer_fluid, species->pkpm_theta);
+      }
+    }
+    gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, species->pkpm_theta);
+  }
+  // The coefficients of the configuration-space flux, once per configuration face: the kinetic
+  // flux of every velocity cell and the fluid flux read them.
+  gkyl_dg_pkpm_conf_flux_surf_face_coef(
+    species->calc_conf_flux, &app->local, app->field->bvar, species->pkpm_u, species->pkpm_xi,
+    species->pkpm_theta, species->face_coef
+  );
 
   app->stat.species_pkpm_vars_tm += gkyl_time_diff_now_sec(tm);
 }
@@ -786,8 +821,9 @@ pkpm_species_apply_positivity(
 // Face fluxes of the fluid system [rho, M, E] of the stage: the moments of the kinetic
 // configuration-space flux of the stage distributions (physical traces of rho, u, xi, b
 // on both sides), so the fluid and the distributions see one discrete transport. The
-// walls need no special case: an absorbing ghost (F = 0, fluid copied) gives the
-// one-sided upwind flux and a reflecting ghost cancels the mass and energy fluxes.
+// walls need no special case: an absorbing ghost (F = 0, fluid and theta mirrored) gives the
+// interior side's contribution with the interior wall coefficients, and a reflecting ghost
+// cancels the mass and energy fluxes.
 void
 pkpm_species_fluid_flux(
   gkyl_pkpm_app *app, struct pkpm_species *species, const struct gkyl_array *fin,
@@ -796,7 +832,7 @@ pkpm_species_fluid_flux(
 {
   gkyl_dg_pkpm_fluid_flux_surf_advance(
     species->calc_fluid_flux, &app->local, &app->local_ext, &species->local, &species->local_ext,
-    app->field->bvar, species->pkpm_u, species->pkpm_xi, species->pkpm_theta, species->fluid_no_J, fin,
+    app->field->bvar, species->pkpm_u, species->pkpm_xi, species->face_coef, species->fluid_no_J, fin,
     species->cflrate_fluid, species->fluid_flux_surf
   );
 }
@@ -813,8 +849,8 @@ pkpm_species_kinetic_conf_pass(
 {
   gkyl_array_clear(rhs, 0.0);
   gkyl_dg_pkpm_conf_flux_surf_advance(
-    species->calc_conf_flux, &app->local, &species->local, &species->local_ext, app->field->bvar,
-    species->pkpm_u, species->pkpm_xi, species->pkpm_theta, fin, species->cflrate_f, species->conf_flux_surf
+    species->calc_conf_flux, &app->local, &species->local, &species->local_ext, species->face_coef, fin,
+    species->cflrate_f, species->conf_flux_surf
   );
   gkyl_hyper_dg_advance(species->slvr_kinetic_conf, &species->local, fin, species->cflrate_f, rhs);
   // the known first-harmonic w fluxes and sources of the eight blocks (modal, exact)
@@ -1260,6 +1296,7 @@ pkpm_species_release(const gkyl_pkpm_app *app, const struct pkpm_species *s)
   gkyl_array_release(s->pkpm_rhs_moms);
   gkyl_array_release(s->pkpm_p_ij);
   gkyl_array_release(s->conf_flux_surf);
+  gkyl_array_release(s->face_coef);
   gkyl_array_release(s->vel_flux_surf);
   gkyl_array_release(s->fluid_flux_surf);
   gkyl_array_release(s->pkpm_rho);
@@ -1338,6 +1375,12 @@ pkpm_species_release(const gkyl_pkpm_app *app, const struct pkpm_species *s)
     }
     gkyl_bc_basic_release(s->bc_lo_fluid[d]);
     gkyl_bc_basic_release(s->bc_up_fluid[d]);
+    if (s->bc_lo_theta[d]) {
+      gkyl_bc_basic_release(s->bc_lo_theta[d]);
+    }
+    if (s->bc_up_theta[d]) {
+      gkyl_bc_basic_release(s->bc_up_theta[d]);
+    }
   }
 
   if (app->use_gpu) {

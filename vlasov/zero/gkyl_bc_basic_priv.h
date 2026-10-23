@@ -57,13 +57,16 @@ copy_bc(size_t nc, double *out, const double *inp, void *ctx)
   }
 }
 
+// Even mirror image across the boundary of every component (each block of num_basis coefficients).
 GKYL_CU_D static void
 reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   struct dg_bc_ctx *mc = (struct dg_bc_ctx *)ctx;
-  int dir = mc->dir;
+  int dir = mc->dir, nb = mc->basis->num_basis;
 
-  mc->basis->flip_odd_sign(dir, inp, out);
+  for (int b = 0; b < mc->ncomp; b += nb) {
+    mc->basis->flip_odd_sign(dir, &inp[b], &out[b]);
+  }
 }
 
 GKYL_CU_D static void

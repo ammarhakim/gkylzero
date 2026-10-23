@@ -185,7 +185,7 @@ struct sim {
   struct gkyl_dg_calc_pkpm_vars *vars;
   struct gkyl_dg_pkpm_conf_flux_surf *kin_flux_up;
   struct gkyl_dg_pkpm_fluid_flux_surf *fl_flux_up;
-  struct gkyl_array *kin_flux, *kin_cfl, *kin_rhs, *fl_flux, *fl_cfl, *fl_rhs;
+  struct gkyl_array *kin_flux, *kin_cfl, *kin_rhs, *fl_flux, *fl_cfl, *fl_rhs, *face_coef;
 };
 
 // Phase-space ranges with the app's layout: conf ghost cells and one velocity ghost cell
@@ -379,14 +379,15 @@ advance(struct sim *s)
   s->kin_flux_up = gkyl_dg_pkpm_conf_flux_surf_inew(&kin_inp);
   int nkc = gkyl_dg_pkpm_conf_flux_surf_num_surf_basis(s->kin_flux_up);
   s->kin_flux = mkarr(8 * cdim * nkc, pvol);
+  s->face_coef = mkarr(gkyl_dg_pkpm_conf_flux_surf_face_coef_ncomp(s->kin_flux_up), cvol);
+  gkyl_dg_pkpm_conf_flux_surf_face_coef(s->kin_flux_up, &s->clocal, s->bvar, s->u, s->xi, s->theta, s->face_coef);
   s->kin_cfl = mkarr(1, pvol);
   s->kin_rhs = mkarr(8 * np, pvol);
   gkyl_array_clear(s->kin_flux, 0.0);
   gkyl_array_clear(s->kin_cfl, 0.0);
   gkyl_array_clear(s->kin_rhs, 0.0);
   gkyl_dg_pkpm_conf_flux_surf_advance(
-    s->kin_flux_up, &s->clocal, &s->plocal, &s->plocal_ext, s->bvar, s->u, s->xi, s->theta, s->f, s->kin_cfl,
-    s->kin_flux
+    s->kin_flux_up, &s->clocal, &s->plocal, &s->plocal_ext, s->face_coef, s->f, s->kin_cfl, s->kin_flux
   );
   struct gkyl_dg_pkpm_kinetic_conf_inp kin_eqn_inp = {
     .conf_basis = &s->cbasis,
@@ -442,7 +443,7 @@ advance(struct sim *s)
   gkyl_array_clear(s->fl_cfl, 0.0);
   gkyl_array_clear(s->fl_rhs, 0.0);
   gkyl_dg_pkpm_fluid_flux_surf_advance(
-    s->fl_flux_up, &s->clocal, &s->clocal_ext, &s->plocal, &s->plocal_ext, s->bvar, s->u, s->xi, s->theta,
+    s->fl_flux_up, &s->clocal, &s->clocal_ext, &s->plocal, &s->plocal_ext, s->bvar, s->u, s->xi, s->face_coef,
     s->fluid_phys, s->f, s->fl_cfl, s->fl_flux
   );
   struct gkyl_dg_pkpm_fluid_inp fl_eqn_inp = {
@@ -469,7 +470,7 @@ teardown(struct sim *s)
   gkyl_vlasov_position_map_release(s->pos_map);
   struct gkyl_array *arrs[] = {s->em, s->dtb, s->bvar, s->grad_b, s->u, s->grad_u, s->xi, s->grad_xi, s->rho, s->rho3,
     s->grad_rho, s->grad_ln_n, s->theta, s->fluid_phys, s->fluid, s->cmoms, s->f, s->kin_flux, s->kin_cfl,
-    s->kin_rhs, s->fl_flux, s->fl_cfl, s->fl_rhs};
+    s->kin_rhs, s->fl_flux, s->fl_cfl, s->fl_rhs, s->face_coef};
   for (int i = 0; i < sizeof(arrs) / sizeof(arrs[0]); ++i) {
     gkyl_array_release(arrs[i]);
   }

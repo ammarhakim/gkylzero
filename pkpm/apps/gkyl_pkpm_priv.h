@@ -271,6 +271,7 @@ struct pkpm_species {
   struct gkyl_array *pkpm_rhs_moms; // moments of the configuration-pass right-hand side (separate scratch)
   struct gkyl_array *pkpm_p_ij; // p=1 projection of the pressure tensor (limiter scratch only)
   struct gkyl_array *conf_flux_surf; // stored modal configuration-space kinetic fluxes
+  struct gkyl_array *face_coef; // face coefficients of the configuration-space flux (once per face)
   struct gkyl_array *vel_flux_surf; // stored modal v_par kinetic fluxes
   struct gkyl_dg_pkpm_harm_vol *harm_vol; // modal volume integrals of the first-harmonic terms (stage A)
   struct gkyl_array *harm_coef; // stored operator of the stage (gkyl_pkpm_harm_ops.h)
@@ -335,6 +336,9 @@ struct pkpm_species {
   struct gkyl_bc_pkpm_species_reflect *bc_up_reflect[3];
   struct gkyl_bc_basic *bc_lo_fluid[3];
   struct gkyl_bc_basic *bc_up_fluid[3];
+  // absorbing walls (0 at other walls): theta mirrored (even image) into the ghost cells, whose
+  // empty G has no T_perp/T of its own, so that its face averages are the interior wall traces
+  struct gkyl_bc_basic *bc_lo_theta[3], *bc_up_theta[3];
   // To simplify BC application, store local skin and ghost ranges for distribution functions
   struct gkyl_range lower_skin_dist[GKYL_MAX_DIM];
   struct gkyl_range lower_ghost_dist[GKYL_MAX_DIM];

@@ -135,7 +135,7 @@ struct sim {
   struct gkyl_array *a_perp, *em, *dtb; // perpendicular force closure, static field, d_t B/|B| = 0
   struct gkyl_array *xi, *grad_xi, *scratch;
   struct gkyl_array *nmoms, *moms, *rhs_moms, *rho, *rho3, *grad_rho, *grad_ln_n;
-  struct gkyl_array *cflux, *vflux, *fflux, *cflrate_f, *cflrate_m;
+  struct gkyl_array *cflux, *vflux, *fflux, *cflrate_f, *cflrate_m, *face_coef;
   struct gkyl_dg_calc_pkpm_bvar *calc_b;
   struct gkyl_dg_calc_pkpm_vars *vars;
   struct gkyl_dg_updater_moment *mcalc;
@@ -270,6 +270,7 @@ sim_init(struct sim *s, const struct run_opts *o)
   s->calc_cflux = gkyl_dg_pkpm_conf_flux_surf_inew(&cinp);
   s->nkc = gkyl_dg_pkpm_conf_flux_surf_num_surf_basis(s->calc_cflux);
   s->cflux = mkarr(8 * s->nkc, pvol);
+  s->face_coef = mkarr(gkyl_dg_pkpm_conf_flux_surf_face_coef_ncomp(s->calc_cflux), s->clocal_ext.volume);
   struct gkyl_dg_pkpm_kinetic_conf_inp ainp = {
     .conf_basis = &s->cbasis,
     .phase_basis = &s->pbasis,
@@ -352,6 +353,7 @@ sim_release(struct sim *s)
   gkyl_array_release(s->hcoef);
   gkyl_array_release(s->hwn);
   gkyl_array_release(s->cflux);
+  gkyl_array_release(s->face_coef);
   gkyl_dg_pkpm_conf_flux_surf_release(s->calc_cflux);
   gkyl_dg_updater_moment_pkpm_release(s->mcalc);
   gkyl_dg_calc_pkpm_vars_release(s->vars);
@@ -433,6 +435,7 @@ sim_rhs(
   gkyl_dg_calc_pkpm_vars_grad_u(s->vars, &s->clocal, s->rho3, s->grad_rho);
   gkyl_dg_calc_pkpm_vars_grad_ln_n(s->vars, &s->clocal, s->rho, s->grad_rho, s->grad_ln_n);
   gkyl_dg_calc_pkpm_vars_grad_u(s->vars, &s->clocal, s->xi, s->grad_xi);
+  gkyl_dg_pkpm_conf_flux_surf_face_coef(s->calc_cflux, &s->clocal, s->bvar, s->u, s->xi, s->theta, s->face_coef);
 
   gkyl_array_clear(s->cflrate_f, 0.0);
   gkyl_array_clear(s->cflrate_m, 0.0);
@@ -442,14 +445,13 @@ sim_rhs(
   // Fluid face fluxes [F_rho, F_x, F_y, F_z, F_E] of the stage.
   gkyl_array_clear(s->fflux, 0.0);
   gkyl_dg_pkpm_fluid_flux_surf_advance(
-    s->calc_fflux, &s->clocal, &s->clocal_ext, &s->plocal, &s->plocal_ext, s->bvar, s->u, s->xi, s->theta,
+    s->calc_fflux, &s->clocal, &s->clocal_ext, &s->plocal, &s->plocal_ext, s->bvar, s->u, s->xi, s->face_coef,
     M, f, s->cflrate_m, s->fflux
   );
   if (!o->freeze_kinetic) {
     gkyl_array_clear(s->cflux, 0.0);
     gkyl_dg_pkpm_conf_flux_surf_advance(
-      s->calc_cflux, &s->clocal, &s->plocal, &s->plocal_ext, s->bvar, s->u, s->xi, s->theta, f, s->cflrate_f,
-      s->cflux
+      s->calc_cflux, &s->clocal, &s->plocal, &s->plocal_ext, s->face_coef, f, s->cflrate_f, s->cflux
     );
     gkyl_hyper_dg_advance(s->slvr_a, &s->plocal, f, s->cflrate_f, rhs_f);
     gkyl_dg_pkpm_harm_vol_coef(s->harm, &s->clocal, s->bvar, s->grad_b, s->u, s->grad_u, s->xi, s->grad_xi,
@@ -882,7 +884,8 @@ steady_gradient_residual(int Nx, int Nv, double alpha, bool verbose)
     gkyl_array_clear(rhsA, 0.0);
     gkyl_array_clear(s.cflrate_f, 0.0);
     gkyl_array_clear(s.cflux, 0.0);
-    gkyl_dg_pkpm_conf_flux_surf_advance(s.calc_cflux, &s.clocal, &s.plocal, &s.plocal_ext, s.bvar, s.u, s.xi, s.theta, f, s.cflrate_f, s.cflux);
+    gkyl_dg_pkpm_conf_flux_surf_face_coef(s.calc_cflux, &s.clocal, s.bvar, s.u, s.xi, s.theta, s.face_coef);
+    gkyl_dg_pkpm_conf_flux_surf_advance(s.calc_cflux, &s.clocal, &s.plocal, &s.plocal_ext, s.face_coef, f, s.cflrate_f, s.cflux);
     gkyl_hyper_dg_advance(s.slvr_a, &s.plocal, f, s.cflrate_f, rhsA);
     struct gkyl_range_iter it;
     gkyl_range_iter_init(&it, &s.plocal);

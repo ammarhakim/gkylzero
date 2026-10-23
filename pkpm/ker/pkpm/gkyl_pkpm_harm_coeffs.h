@@ -398,69 +398,127 @@ pkpm_harm_source_rate(const struct pkpm_harm_coeffs *c, double w)
   return fmax(fmax(rF, rG), fmax(rM, rN));
 }
 
-/**
- * Coupling part of the configuration-space flux of the eight blocks through a face with normal
- * e_d, T = J - V_n X (plan 17.14):
- *   T_F = xi M0_d,  T_G = xi N_d,  T_M0 = xi G (e_d - b b_d),  T_N = xi H (e_d - b b_d),
- * with the closure H = 4 theta G - 2 theta^2 F.
- */
-GKYL_CU_DH static inline void
-pkpm_harm_conf_coupling(int d, double xi, const double *b, double theta, const double *X, double *T)
-{
-  double G = X[1], H = 4.0 * theta * G - 2.0 * theta * theta * X[0];
-  T[0] = xi * X[2 + d];
-  T[1] = xi * X[5 + d];
-  for (int a = 0; a < 3; ++a) {
-    double pn = (a == d ? 1.0 : 0.0) - b[a] * b[d];
-    T[2 + a] = xi * G * pn;
-    T[5 + a] = xi * H * pn;
-  }
-}
+// Face coefficients of the configuration-space flux at one face node (plan 17.42), stored with
+// stride nn (the number of transverse face nodes) as fc[PKPM_FC_* nn]:
+#define PKPM_FC_A0 0 // {u_d}: a = A0 + A1 w is the speed of the flux function
+#define PKPM_FC_A1 1 // {xi} b_d
+#define PKPM_FC_C 2 // {xi} |b x e_d| sqrt((2 + sqrt 2) max({theta}, 0)): its coupled speed
+#define PKPM_FC_XI 3 // {xi}: T_F = XI M0_d, T_G = XI N_d
+#define PKPM_FC_P 4 // P_k = {xi} (delta_kd - b_k b_d), k = 0, 1, 2 (b = {b}/|{b}|): T_M0 = G P, T_N = H P
+#define PKPM_FC_H1 7 // 4 {theta}: H = H1 G - H2 F
+#define PKPM_FC_H2 8 // 2 {theta}^2
+#define PKPM_FC_UL 9 // u_d, xi b_d and c of the l side (lower cell)
+#define PKPM_FC_SL 10
+#define PKPM_FC_CL 11
+#define PKPM_FC_UR 12 // u_d, xi b_d and c of the r side (upper cell)
+#define PKPM_FC_SR 13
+#define PKPM_FC_CR 14
+#define PKPM_FC_NUM 15
 
 /**
- * HLL flux of the eight blocks through a configuration face with normal e_d at one face node and
- * one w (plan 17.14), as the two side contributions phi_l + phi_r. Side s has the trace X_s of the
- * blocks, the streaming speed vn_s = u_d + xi w b_d and xi, b, theta of its own cell. The speed
- * bounds are S_L = min(vn_l - c_l, vn_r - c_r, 0), S_R = max(vn_l + c_l, vn_r + c_r, 0) with
- * c = xi h sqrt((2 + sqrt 2) max(theta, 0)), h = |b x e_d| (the fastest of the coupled speeds
- * vn +- xi h sqrt((2 +- sqrt 2) theta); h is exactly zero for b along e_d), and
- *   phi_l = A_l X_l + (S_R/ds) T_l,  phi_r = A_r X_r - (S_L/ds) T_r,  ds = S_R - S_L,
- * A_l = (S_R vn_l - S_L S_R)/ds, A_r = (S_L S_R - S_L vn_r)/ds: the upwind flux of a side when all
- * speeds share its sign (zero flux when ds = 0). The bounds are returned in sb = [S_L, S_R].
+ * Face coefficients of the flux of the eight blocks through a configuration face with normal e_d
+ * at one face node (plans 17.14, 17.41, 17.42; discrete_energy_streaming.tex), from the traces of
+ * u_d, xi, b and theta of the cells below (l) and above (r) the face. The flux function is
+ * evaluated with the face averages {q} = (q_l + q_r)/2 of its coefficients, the field direction
+ * renormalized, b = {b}/|{b}| (zero where {b} = 0, as in d_t B/|B|):
+ *   J(X) = a X + T(X),  a = {u_d} + {xi} b_d w,
+ *   T_F = {xi} M0_d,  T_G = {xi} N_d,  T_M0 = {xi} G (e_d - b b_d),  T_N = {xi} H (e_d - b b_d),
+ * H = 4 {theta} G - 2 {theta}^2 F; a coefficient jump then enters the face only through the
+ * average, which the central-trace weak gradients of the coefficients (the frame sources) pair
+ * with. The coupled speeds are vn -+ c with c = xi |b x e_d| sqrt((2 + sqrt 2) theta) (the fastest
+ * of vn +- xi h sqrt((2 +- sqrt 2) theta)); the per-side speeds are kept for the time step.
+ * Written as fc[q*nn], q = PKPM_FC_*.
  */
 GKYL_CU_DH static inline void
-pkpm_harm_conf_flux(
-  int d, const double *X_l, const double *X_r, double vn_l, double vn_r, double xi_l, double xi_r,
-  const double *b_l, const double *b_r, double theta_l, double theta_r, double *phi_l, double *phi_r,
-  double *sb
+pkpm_harm_face_coef(
+  int d, double un_l, double un_r, double xi_l, double xi_r, const double *b_l, const double *b_r,
+  double theta_l, double theta_r, int nn, double *fc
 )
 {
   const double s2p = 3.414213562373095; // 2 + sqrt 2
   int d1 = (d + 1) % 3, d2 = (d + 2) % 3;
-  double h_l = sqrt(b_l[d1] * b_l[d1] + b_l[d2] * b_l[d2]);
-  double h_r = sqrt(b_r[d1] * b_r[d1] + b_r[d2] * b_r[d2]);
-  double c_l = xi_l * h_l * sqrt(s2p * fmax(theta_l, 0.0));
-  double c_r = xi_r * h_r * sqrt(s2p * fmax(theta_r, 0.0));
-  double s_l = fmin(fmin(vn_l - c_l, vn_r - c_r), 0.0);
-  double s_r = fmax(fmax(vn_l + c_l, vn_r + c_r), 0.0);
+  double xa = 0.5 * (xi_l + xi_r), tha = 0.5 * (theta_l + theta_r), ba[3];
+  for (int k = 0; k < 3; ++k) {
+    ba[k] = 0.5 * (b_l[k] + b_r[k]);
+  }
+  double bmag = sqrt(ba[0] * ba[0] + ba[1] * ba[1] + ba[2] * ba[2]);
+  double ibmag = bmag > 0.0 ? 1.0 / bmag : 0.0;
+  for (int k = 0; k < 3; ++k) {
+    ba[k] *= ibmag;
+  }
+  fc[PKPM_FC_A0 * nn] = 0.5 * (un_l + un_r);
+  fc[PKPM_FC_A1 * nn] = xa * ba[d];
+  fc[PKPM_FC_C * nn] = xa * sqrt(ba[d1] * ba[d1] + ba[d2] * ba[d2]) * sqrt(s2p * fmax(tha, 0.0));
+  fc[PKPM_FC_XI * nn] = xa;
+  for (int k = 0; k < 3; ++k) {
+    fc[(PKPM_FC_P + k) * nn] = xa * ((k == d ? 1.0 : 0.0) - ba[k] * ba[d]);
+  }
+  fc[PKPM_FC_H1 * nn] = 4.0 * tha;
+  fc[PKPM_FC_H2 * nn] = 2.0 * tha * tha;
+  fc[PKPM_FC_UL * nn] = un_l;
+  fc[PKPM_FC_SL * nn] = xi_l * b_l[d];
+  fc[PKPM_FC_CL * nn] = xi_l * sqrt(b_l[d1] * b_l[d1] + b_l[d2] * b_l[d2]) * sqrt(s2p * fmax(theta_l, 0.0));
+  fc[PKPM_FC_UR * nn] = un_r;
+  fc[PKPM_FC_SR * nn] = xi_r * b_r[d];
+  fc[PKPM_FC_CR * nn] = xi_r * sqrt(b_r[d1] * b_r[d1] + b_r[d2] * b_r[d2]) * sqrt(s2p * fmax(theta_r, 0.0));
+}
+
+/**
+ * Flux of the eight blocks through a configuration face with normal e_d at one face node and one
+ * w, from the face coefficients fc of the node (pkpm_harm_face_coef, stride nn), as the two side
+ * contributions phi_l + phi_r; each side keeps its own trace X_s. The HLL flux of J(X) = a X + T(X),
+ *   phi_l = (S_R J(X_l) - S_L S_R X_l)/ds,   phi_r = (S_L S_R X_r - S_L J(X_r))/ds,
+ * ds = S_R - S_L, is the product of averages a {X} + {T} plus a nonnegative dissipation. Its bounds
+ * are the wave speeds a and a -+ c of the frozen-coefficient flux, S_L = min(a - c, 0) and
+ * S_R = max(a + c, 0): the streaming part is a {X} - nu [X]/2 with nu = max(c, |a|) >= |a|, the
+ * dissipation the linear energy estimate needs (discrete_energy_streaming.tex, lemma 1). The time
+ * step sees the fastest signal at the node
+ * instead, the envelope of the speeds of both sides and of the face flux,
+ *   min(vn_l - c_l, vn_r - c_r, a - c, 0),   max(vn_l + c_l, vn_r + c_r, a + c, 0),
+ * vn_s = u_d,s + xi_s b_d,s w, returned in sb for the rate (plan 17.42). If ds = 0 (then a = 0 and
+ * c = 0) the flux is the central (T_l + T_r)/2.
+ */
+GKYL_CU_DH static inline void
+pkpm_harm_conf_flux(
+  int d, const double *X_l, const double *X_r, double w, const double *fc, int nn, double *phi_l,
+  double *phi_r, double *sb
+)
+{
+  double a = fc[PKPM_FC_A0 * nn] + fc[PKPM_FC_A1 * nn] * w, c = fc[PKPM_FC_C * nn];
+  double vn_l = fc[PKPM_FC_UL * nn] + fc[PKPM_FC_SL * nn] * w, c_l = fc[PKPM_FC_CL * nn];
+  double vn_r = fc[PKPM_FC_UR * nn] + fc[PKPM_FC_SR * nn] * w, c_r = fc[PKPM_FC_CR * nn];
+  double s_l = fmin(a - c, 0.0), s_r = fmax(a + c, 0.0);
+  sb[0] = fmin(fmin(vn_l - c_l, vn_r - c_r), s_l);
+  sb[1] = fmax(fmax(vn_l + c_l, vn_r + c_r), s_r);
+
+  // the coupling T of both sides
+  double xa = fc[PKPM_FC_XI * nn], h1 = fc[PKPM_FC_H1 * nn], h2 = fc[PKPM_FC_H2 * nn];
+  double T_l[8], T_r[8];
+  T_l[0] = xa * X_l[2 + d];
+  T_l[1] = xa * X_l[5 + d];
+  T_r[0] = xa * X_r[2 + d];
+  T_r[1] = xa * X_r[5 + d];
+  double H_l = h1 * X_l[1] - h2 * X_l[0], H_r = h1 * X_r[1] - h2 * X_r[0];
+  for (int k = 0; k < 3; ++k) {
+    double pk = fc[(PKPM_FC_P + k) * nn];
+    T_l[2 + k] = X_l[1] * pk;
+    T_l[5 + k] = H_l * pk;
+    T_r[2 + k] = X_r[1] * pk;
+    T_r[5 + k] = H_r * pk;
+  }
   double ds = s_r - s_l;
-  sb[0] = s_l;
-  sb[1] = s_r;
   if (!(ds > 0.0)) {
-    for (int c = 0; c < 8; ++c) {
-      phi_l[c] = 0.0;
-      phi_r[c] = 0.0;
+    for (int k = 0; k < 8; ++k) {
+      phi_l[k] = 0.5 * T_l[k];
+      phi_r[k] = 0.5 * T_r[k];
     }
     return;
   }
-  double T_l[8], T_r[8];
-  pkpm_harm_conf_coupling(d, xi_l, b_l, theta_l, X_l, T_l);
-  pkpm_harm_conf_coupling(d, xi_r, b_r, theta_r, X_r, T_r);
-  double A_l = (s_r * vn_l - s_l * s_r) / ds, A_r = (s_l * s_r - s_l * vn_r) / ds;
-  double w_l = s_r / ds, w_r = -s_l / ds;
-  for (int c = 0; c < 8; ++c) {
-    phi_l[c] = A_l * X_l[c] + w_l * T_l[c];
-    phi_r[c] = A_r * X_r[c] + w_r * T_r[c];
+  double w_l = s_r / ds, w_r = -s_l / ds, diss = s_l * s_r / ds;
+  double A_l = w_l * a - diss, A_r = w_r * a + diss;
+  for (int k = 0; k < 8; ++k) {
+    phi_l[k] = A_l * X_l[k] + w_l * T_l[k];
+    phi_r[k] = A_r * X_r[k] + w_r * T_r[k];
   }
 }
 

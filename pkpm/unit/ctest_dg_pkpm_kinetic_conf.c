@@ -630,8 +630,10 @@ test_closure(int cdim)
   struct gkyl_array *cflrate = mkarr(1, s.plocal_ext.volume);
   gkyl_array_clear(flux, 0.0);
   gkyl_array_clear(cflrate, 0.0);
+  struct gkyl_array *face_coef = mkarr(gkyl_dg_pkpm_conf_flux_surf_face_coef_ncomp(calc_flux), s.clocal_ext.volume);
+  gkyl_dg_pkpm_conf_flux_surf_face_coef(calc_flux, &s.clocal, s.bvar, s.u, s.xi, s.theta, face_coef);
   gkyl_dg_pkpm_conf_flux_surf_advance(
-    calc_flux, &s.clocal, &s.plocal, &s.plocal_ext, s.bvar, s.u, s.xi, s.theta, s.f, cflrate, flux
+    calc_flux, &s.clocal, &s.plocal, &s.plocal_ext, face_coef, s.f, cflrate, flux
   );
 
   struct gkyl_dg_eqn *eqn = make_eqn(&s, flux);
@@ -821,6 +823,7 @@ test_closure(int cdim)
   gkyl_dg_eqn_release(eqn);
   gkyl_array_release(cflrate);
   gkyl_array_release(flux);
+  gkyl_array_release(face_coef);
   gkyl_dg_pkpm_conf_flux_surf_release(calc_flux);
   teardown(&s);
 }

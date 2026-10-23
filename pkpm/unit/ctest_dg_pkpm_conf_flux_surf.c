@@ -127,29 +127,48 @@ flux_ref(int d, double V, double xi, const double *b, double theta, const double
   }
 }
 
-// Reference HLL flux of the eight blocks, long form (upwind branches, then the HLL average), with
-// the bounds V -+ xi |b x e_d| sqrt((2 + sqrt 2) theta) of both sides and zero. Returns
-// max(-S_L, S_R).
+// Reference HLL flux of the eight blocks, long form (upwind branches, then the HLL average), of
+// the flux function with face-averaged coefficients (plan 17.41): J(X) = a X + T(X) with
+// a = {u_d} + {xi} b_d w and T with {xi}, b = {b}/|{b}|, {theta}, {q} = (q_l + q_r)/2, applied to each
+// side's own state; the bounds of the flux are the averaged speeds a -+ c and zero,
+// c = xi |b x e_d| sqrt((2 + sqrt 2) theta) with the averaged coefficients (plan 17.42). Returns the
+// time-step speed: the largest of -S, S over the envelope of both sides' speeds V -+ c, a -+ c and 0.
 static double
-hll_ref(int d, const double *X_l, const double *X_r, double V_l, double V_r, double xi_l, double xi_r,
-  const double *b_l, const double *b_r, double th_l, double th_r, double *ghat)
+hll_ref(int d, const double *X_l, const double *X_r, double w, double u_l, double u_r, double xi_l,
+  double xi_r, const double *b_l, const double *b_r, double th_l, double th_r, double *ghat)
 {
-  double bx_l[3] = {0.0}, bx_r[3] = {0.0}, e[3] = {0.0};
-  e[d] = 1.0;
-  for (int a = 0; a < 3; ++a) { // b x e_d
-    bx_l[a] = b_l[(a + 1) % 3] * e[(a + 2) % 3] - b_l[(a + 2) % 3] * e[(a + 1) % 3];
-    bx_r[a] = b_r[(a + 1) % 3] * e[(a + 2) % 3] - b_r[(a + 2) % 3] * e[(a + 1) % 3];
+  double ba[3], xa = 0.5 * (xi_l + xi_r), tha = 0.5 * (th_l + th_r);
+  for (int a = 0; a < 3; ++a) {
+    ba[a] = 0.5 * (b_l[a] + b_r[a]);
   }
-  double h_l = sqrt(bx_l[0] * bx_l[0] + bx_l[1] * bx_l[1] + bx_l[2] * bx_l[2]);
-  double h_r = sqrt(bx_r[0] * bx_r[0] + bx_r[1] * bx_r[1] + bx_r[2] * bx_r[2]);
-  double c_l = xi_l * h_l * sqrt((2.0 + sqrt(2.0)) * th_l), c_r = xi_r * h_r * sqrt((2.0 + sqrt(2.0)) * th_r);
-  double s_l = fmin(fmin(V_l - c_l, V_r - c_r), 0.0), s_r = fmax(fmax(V_l + c_l, V_r + c_r), 0.0);
-  double J_l[8], J_r[8];
-  flux_ref(d, V_l, xi_l, b_l, th_l, X_l, J_l);
-  flux_ref(d, V_r, xi_r, b_r, th_r, X_r, J_r);
+  double bmag = sqrt(ba[0] * ba[0] + ba[1] * ba[1] + ba[2] * ba[2]);
+  for (int a = 0; a < 3; ++a) {
+    ba[a] = bmag > 0.0 ? ba[a] / bmag : 0.0;
+  }
+  const double *bs[3] = {b_l, b_r, ba};
+  double xs[3] = {xi_l, xi_r, xa}, ths[3] = {th_l, th_r, tha}, us[3] = {u_l, u_r, 0.5 * (u_l + u_r)};
+  double s_l = 0.0, s_r = 0.0, e[3] = {0.0}, env_l = 0.0, env_r = 0.0;
+  e[d] = 1.0;
+  for (int k = 0; k < 3; ++k) {
+    double bx[3];
+    for (int a = 0; a < 3; ++a) { // b x e_d
+      bx[a] = bs[k][(a + 1) % 3] * e[(a + 2) % 3] - bs[k][(a + 2) % 3] * e[(a + 1) % 3];
+    }
+    double h = sqrt(bx[0] * bx[0] + bx[1] * bx[1] + bx[2] * bx[2]);
+    double c = xs[k] * h * sqrt((2.0 + sqrt(2.0)) * ths[k]), V = us[k] + xs[k] * bs[k][d] * w;
+    env_l = fmin(env_l, V - c);
+    env_r = fmax(env_r, V + c);
+    if (k == 2) {
+      s_l = fmin(V - c, 0.0);
+      s_r = fmax(V + c, 0.0);
+    }
+  }
+  double J_l[8], J_r[8], a = us[2] + xa * ba[d] * w;
+  flux_ref(d, a, xa, ba, tha, X_l, J_l);
+  flux_ref(d, a, xa, ba, tha, X_r, J_r);
   for (int c = 0; c < 8; ++c) {
     if (s_l == 0.0 && s_r == 0.0) {
-      ghat[c] = 0.0;
+      ghat[c] = 0.5 * (J_l[c] + J_r[c]);
     } else if (s_l >= 0.0) {
       ghat[c] = J_l[c];
     } else if (s_r <= 0.0) {
@@ -158,7 +177,7 @@ hll_ref(int d, const double *X_l, const double *X_r, double V_l, double V_r, dou
       ghat[c] = (s_r * J_l[c] - s_l * J_r[c] + s_l * s_r * (X_r[c] - X_l[c])) / (s_r - s_l);
     }
   }
-  return fmax(-s_l, s_r);
+  return fmax(-env_l, env_r);
 }
 
 struct test_setup {
@@ -167,7 +186,7 @@ struct test_setup {
   struct gkyl_rect_grid cgrid, pgrid;
   struct gkyl_basis cbasis, pbasis;
   struct gkyl_range clocal, clocal_ext, plocal, plocal_ext;
-  struct gkyl_array *bvar, *u, *xi, *theta, *f, *cflrate, *flux;
+  struct gkyl_array *bvar, *u, *xi, *theta, *f, *cflrate, *flux, *face_coef;
   struct gkyl_dg_calc_pkpm_bvar *calc_b;
   struct gkyl_dg_pkpm_conf_flux_surf *calc_flux;
 };
@@ -236,11 +255,12 @@ setup(struct test_setup *s, int cdim)
   int nk = gkyl_dg_pkpm_conf_flux_surf_num_surf_basis(s->calc_flux);
   TEST_CHECK(nk == np / 2);
   s->flux = mkarr(8 * cdim * nk, s->plocal_ext.volume);
+  s->face_coef = mkarr(gkyl_dg_pkpm_conf_flux_surf_face_coef_ncomp(s->calc_flux), s->clocal_ext.volume);
   gkyl_array_clear(s->flux, 0.0);
   gkyl_array_clear(s->cflrate, 0.0);
+  gkyl_dg_pkpm_conf_flux_surf_face_coef(s->calc_flux, &s->clocal, s->bvar, s->u, s->xi, s->theta, s->face_coef);
   gkyl_dg_pkpm_conf_flux_surf_advance(
-    s->calc_flux, &s->clocal, &s->plocal, &s->plocal_ext, s->bvar, s->u, s->xi, s->theta, s->f,
-    s->cflrate, s->flux
+    s->calc_flux, &s->clocal, &s->plocal, &s->plocal_ext, s->face_coef, s->f, s->cflrate, s->flux
   );
 }
 
@@ -251,6 +271,7 @@ teardown(struct test_setup *s)
   gkyl_dg_pkpm_conf_flux_surf_release(s->calc_flux);
   gkyl_dg_calc_pkpm_bvar_release(s->calc_b);
   gkyl_array_release(s->flux);
+  gkyl_array_release(s->face_coef);
   gkyl_array_release(s->cflrate);
   gkyl_array_release(s->f);
   gkyl_array_release(s->u);
@@ -321,13 +342,12 @@ reference_face(
       br[a] = s->cbasis.eval_expand(zr, &b_r[a * nc]);
     }
     double xl = s->cbasis.eval_expand(zl, xi_l), xr = s->cbasis.eval_expand(zr, xi_r);
-    double V_l = xl * v * bl[dir] + s->cbasis.eval_expand(zl, &u_l[dir * nc]);
-    double V_r = xr * v * br[dir] + s->cbasis.eval_expand(zr, &u_r[dir * nc]);
+    double ul = s->cbasis.eval_expand(zl, &u_l[dir * nc]), ur = s->cbasis.eval_expand(zr, &u_r[dir * nc]);
     for (int c = 0; c < 8; ++c) {
       X_l[c] = s->pbasis.eval_expand(zl, &f_l[c * np]);
       X_r[c] = s->pbasis.eval_expand(zr, &f_r[c * np]);
     }
-    amax = fmax(amax, hll_ref(dir, X_l, X_r, V_l, V_r, xl, xr, bl, br, s->cbasis.eval_expand(zl, th_l),
+    amax = fmax(amax, hll_ref(dir, X_l, X_r, v, ul, ur, xl, xr, bl, br, s->cbasis.eval_expand(zl, th_l),
       s->cbasis.eval_expand(zr, th_r), ghat));
     for (int c = 0; c < 8; ++c) {
       for (int k = 0; k < nk; ++k) {

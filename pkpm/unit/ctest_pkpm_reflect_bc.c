@@ -18,6 +18,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_bc_basic.h>
 #include <gkyl_bc_pkpm_species_reflect.h>
+#include <gkyl_dg_pkpm_conf_flux_surf.h>
 #include <gkyl_dg_pkpm_fluid_flux_surf.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
@@ -206,7 +207,8 @@ identity_pos_map(
 
 // Fluid fluxes [F_rho, F_x, F_y, F_z, F_E] through the upper x wall for b = (cos a, sin a, 0)
 // in the interior; image 0: ghost b' = R b (PEC), 1: b' = -R b (symmetry), 2: b' = b (copied).
-// absorb: zero ghost distributions instead of the reflected ones (the outgoing one-sided flux).
+// absorb: zero ghost distributions instead of the reflected ones, with the fluid state and the field
+// continued into the ghost cell (the outgoing flux of the wall cell; the face flux averages them).
 void
 pkpm_reflect_wall_flux(double angle, int image, bool absorb, double *out)
 {
@@ -239,6 +241,12 @@ pkpm_reflect_wall_flux(double angle, int image, bool absorb, double *out)
   double ug[3] = {-u[0], u[1], u[2]};
   double E = 0.5 * rho * (u[0] * u[0] + u[1] * u[1] + u[2] * u[2]) + 1.5 * rho * xi * xi;
   double q[5] = {rho, rho * u[0], rho * u[1], rho * u[2], E};
+  if (absorb) {
+    for (int i = 0; i < 3; ++i) {
+      bg[i] = b[i];
+      ug[i] = u[i];
+    }
+  }
   double qg[5] = {rho, rho * ug[0], rho * ug[1], rho * ug[2], E};
   double xiv[3] = {xi, xi * xi, rho * xi * xi};
 
@@ -295,8 +303,18 @@ pkpm_reflect_wall_flux(double angle, int image, bool absorb, double *out)
       .use_gpu = false,
     });
   struct gkyl_array *flux = mkarr(5, clocal_ext.volume), *cfl = mkarr(1, clocal_ext.volume);
+  struct gkyl_dg_pkpm_conf_flux_surf *cf_up =
+    gkyl_dg_pkpm_conf_flux_surf_inew(&(struct gkyl_dg_pkpm_conf_flux_surf_inp){
+      .phase_grid = &pgrid,
+      .conf_basis = &cbasis,
+      .phase_basis = &pbasis,
+      .pos_map = pm,
+      .use_gpu = false,
+    });
+  struct gkyl_array *face_coef = mkarr(gkyl_dg_pkpm_conf_flux_surf_face_coef_ncomp(cf_up), clocal_ext.volume);
+  gkyl_dg_pkpm_conf_flux_surf_face_coef(cf_up, &clocal, bvar, uarr, xiarr, theta, face_coef);
   gkyl_dg_pkpm_fluid_flux_surf_advance(
-    up, &clocal, &clocal_ext, &plocal, &plocal_ext, bvar, uarr, xiarr, theta, fluid, f, cfl, flux
+    up, &clocal, &clocal_ext, &plocal, &plocal_ext, bvar, uarr, xiarr, face_coef, fluid, f, cfl, flux
   );
   int gidx[1] = {clocal.upper[0] + 1};
   const double *fl = gkyl_array_cfetch(flux, gkyl_range_idx(&clocal_ext, gidx));
@@ -304,9 +322,10 @@ pkpm_reflect_wall_flux(double angle, int image, bool absorb, double *out)
     out[c] = fl[c];
   }
   gkyl_dg_pkpm_fluid_flux_surf_release(up);
+  gkyl_dg_pkpm_conf_flux_surf_release(cf_up);
   gkyl_vlasov_position_map_release(pm);
-  struct gkyl_array *arrs[] = {fluid, uarr, bvar, xiarr, theta, f, flux, cfl};
-  for (int i = 0; i < 8; ++i) {
+  struct gkyl_array *arrs[] = {fluid, uarr, bvar, xiarr, theta, f, flux, cfl, face_coef};
+  for (int i = 0; i < 9; ++i) {
     gkyl_array_release(arrs[i]);
   }
 }

@@ -29,7 +29,9 @@ struct gkyl_dg_pkpm_fluid_flux_surf_inp {
  * the velocity cells, and the fluxes of [rho, M, E] are their moment maps with the physical
  * traces (rho, u, xi, b) of each side. The fluid system and the distributions thus see one
  * discrete transport, the perpendicular pressure included (no separate pressure term); with a
- * zero trace on one side (absorbing wall) the flux is the one-sided flux of the interior side.
+ * zero trace on one side (absorbing wall) the flux is the contribution of the interior side,
+ * whose face-averaged coefficients include the ghost u, xi, b and theta. The kinetic flux reads
+ * the face coefficients of every face (gkyl_dg_pkpm_conf_flux_surf_face_coef).
  * Each cell owns its *lower* face; the stored layout per cell is [direction][component][surface
  * mode] with 5 * num_surf_basis entries per direction.
  *
@@ -59,7 +61,7 @@ struct gkyl_dg_pkpm_fluid_flux_surf *gkyl_dg_pkpm_fluid_flux_surf_cu_dev_inew(
  * @param bvar Input magnetic field unit vector [bx, by, bz] (ghost cells filled).
  * @param u Input flow velocity [ux, uy, uz] (ghost cells filled).
  * @param xi Input thermal speed [xi, xi^2, p] (ghost cells filled).
- * @param theta Input T_perp/T = M0(G) (ghost cells filled).
+ * @param face_coef Input face coefficients of the kinetic flux (gkyl_dg_pkpm_conf_flux_surf_face_coef).
  * @param fluid Input PHYSICAL fluid state [rho, rho ux, rho uy, rho uz, E] (Jacobian divided out; ghost cells filled).
  * @param f Input Jacobian-weighted normalized distributions J [F, G, M0_perp, N_perp] (ghost cells filled).
  * @param cflrate Input cflrate. Accumulated to from the speed bounds of the faces.
@@ -69,7 +71,7 @@ void gkyl_dg_pkpm_fluid_flux_surf_advance(
   struct gkyl_dg_pkpm_fluid_flux_surf *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *conf_range_ext, const struct gkyl_range *phase_range,
   const struct gkyl_range *phase_range_ext, const struct gkyl_array *bvar, const struct gkyl_array *u,
-  const struct gkyl_array *xi, const struct gkyl_array *theta, const struct gkyl_array *fluid,
+  const struct gkyl_array *xi, const struct gkyl_array *face_coef, const struct gkyl_array *fluid,
   const struct gkyl_array *f, struct gkyl_array *cflrate, struct gkyl_array *fluid_flux_surf
 );
 
@@ -80,7 +82,7 @@ void gkyl_dg_pkpm_fluid_flux_surf_advance_cu(
   struct gkyl_dg_pkpm_fluid_flux_surf *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *conf_range_ext, const struct gkyl_range *phase_range,
   const struct gkyl_range *phase_range_ext, const struct gkyl_array *bvar, const struct gkyl_array *u,
-  const struct gkyl_array *xi, const struct gkyl_array *theta, const struct gkyl_array *fluid,
+  const struct gkyl_array *xi, const struct gkyl_array *face_coef, const struct gkyl_array *fluid,
   const struct gkyl_array *f, struct gkyl_array *cflrate, struct gkyl_array *fluid_flux_surf
 );
 

@@ -12,6 +12,62 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
+// One thread per interior configuration cell: the face coefficients of its lower faces in every
+// direction, plus the upper ghost-owned face at the domain edge.
+__global__ void
+gkyl_dg_pkpm_conf_flux_surf_face_coef_cu_kernel(
+  struct gkyl_dg_pkpm_conf_flux_surf *up, struct gkyl_range conf_range, const struct gkyl_array *bvar,
+  const struct gkyl_array *u, const struct gkyl_array *xi, const struct gkyl_array *theta,
+  struct gkyl_array *face_coef
+)
+{
+  int cdim = up->cdim, nfc = up->num_face_coef;
+  int idx[GKYL_MAX_DIM], idx_l[GKYL_MAX_DIM], idx_r[GKYL_MAX_DIM];
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x * blockDim.x; linc1 < conf_range.volume;
+       linc1 += gridDim.x * blockDim.x) {
+    gkyl_sub_range_inv_idx(&conf_range, linc1, idx);
+    long cidx = gkyl_range_idx(&conf_range, idx);
+    double *fc = (double *)gkyl_array_fetch(face_coef, cidx);
+    for (int dir = 0; dir < cdim; ++dir) {
+      gkyl_copy_int_arr(cdim, idx, idx_l);
+      idx_l[dir] = idx_l[dir] - 1;
+      long cidx_l = gkyl_range_idx(&conf_range, idx_l);
+      up->face_coef[dir](
+        (const double *)gkyl_array_cfetch(bvar, cidx_l), (const double *)gkyl_array_cfetch(bvar, cidx),
+        (const double *)gkyl_array_cfetch(u, cidx_l), (const double *)gkyl_array_cfetch(u, cidx),
+        (const double *)gkyl_array_cfetch(xi, cidx_l), (const double *)gkyl_array_cfetch(xi, cidx),
+        (const double *)gkyl_array_cfetch(theta, cidx_l), (const double *)gkyl_array_cfetch(theta, cidx),
+        &fc[dir * nfc]
+      );
+      if (idx[dir] == conf_range.upper[dir]) {
+        gkyl_copy_int_arr(cdim, idx, idx_r);
+        idx_r[dir] = idx_r[dir] + 1;
+        long cidx_r = gkyl_range_idx(&conf_range, idx_r);
+        double *fc_r = (double *)gkyl_array_fetch(face_coef, cidx_r);
+        up->face_coef[dir](
+          (const double *)gkyl_array_cfetch(bvar, cidx), (const double *)gkyl_array_cfetch(bvar, cidx_r),
+          (const double *)gkyl_array_cfetch(u, cidx), (const double *)gkyl_array_cfetch(u, cidx_r),
+          (const double *)gkyl_array_cfetch(xi, cidx), (const double *)gkyl_array_cfetch(xi, cidx_r),
+          (const double *)gkyl_array_cfetch(theta, cidx), (const double *)gkyl_array_cfetch(theta, cidx_r),
+          &fc_r[dir * nfc]
+        );
+      }
+    }
+  }
+}
+
+void
+gkyl_dg_pkpm_conf_flux_surf_face_coef_cu(
+  struct gkyl_dg_pkpm_conf_flux_surf *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *bvar, const struct gkyl_array *u, const struct gkyl_array *xi,
+  const struct gkyl_array *theta, struct gkyl_array *face_coef
+)
+{
+  gkyl_dg_pkpm_conf_flux_surf_face_coef_cu_kernel<<<conf_range->nblocks, conf_range->nthreads>>>(
+    up->on_dev, *conf_range, bvar->on_dev, u->on_dev, xi->on_dev, theta->on_dev, face_coef->on_dev
+  );
+}
+
 // One thread per interior phase-space cell: the cell's lower faces in every
 // configuration direction, plus the upper ghost-owned face at the domain edge
 // (written by exactly one interior cell per direction, so no atomics are needed).
@@ -19,14 +75,14 @@ __global__ void
 gkyl_dg_pkpm_conf_flux_surf_advance_cu_kernel(
   struct gkyl_dg_pkpm_conf_flux_surf *up, struct gkyl_range conf_range,
   struct gkyl_range phase_range, struct gkyl_range phase_range_ext,
-  const struct gkyl_array *bvar, const struct gkyl_array *u, const struct gkyl_array *xi,
-  const struct gkyl_array *theta, const struct gkyl_array *fin, struct gkyl_array *cflrate,
+  const struct gkyl_array *face_coef, const struct gkyl_array *fin, struct gkyl_array *cflrate,
   struct gkyl_array *conf_flux_surf
 )
 {
   int pdim = up->pdim;
   int cdim = up->cdim;
   int nflux = 8 * up->num_surf_basis;
+  int nfc = up->num_face_coef;
   int idx[GKYL_MAX_DIM], idx_l[GKYL_MAX_DIM], idx_r[GKYL_MAX_DIM];
   double xc[GKYL_MAX_DIM], xc_r[GKYL_MAX_DIM];
 
@@ -37,10 +93,7 @@ gkyl_dg_pkpm_conf_flux_surf_advance_cu_kernel(
     long pidx = gkyl_range_idx(&phase_range, idx);
     gkyl_rect_grid_cell_center(&up->phase_grid, idx, xc);
 
-    const double *b_c = (const double *)gkyl_array_cfetch(bvar, cidx);
-    const double *u_c = (const double *)gkyl_array_cfetch(u, cidx);
-    const double *xi_c = (const double *)gkyl_array_cfetch(xi, cidx);
-    const double *theta_c = (const double *)gkyl_array_cfetch(theta, cidx);
+    const double *fc_c = (const double *)gkyl_array_cfetch(face_coef, cidx);
     const double *jac_c = (const double *)gkyl_array_cfetch(up->jacob_pos, cidx);
     const double *f_c = (const double *)gkyl_array_cfetch(fin, pidx);
     double *cflrate_d = (double *)gkyl_array_fetch(cflrate, pidx);
@@ -53,11 +106,7 @@ gkyl_dg_pkpm_conf_flux_surf_advance_cu_kernel(
       long pidx_l = gkyl_range_idx(&phase_range, idx_l);
       cflrate_d[0] += up->conf_flux[dir](
         xc, up->phase_grid.dx, (const double *)gkyl_array_cfetch(up->jacob_pos, cidx_l), jac_c,
-        (const double *)gkyl_array_cfetch(bvar, cidx_l), b_c,
-        (const double *)gkyl_array_cfetch(u, cidx_l), u_c,
-        (const double *)gkyl_array_cfetch(xi, cidx_l), xi_c,
-        (const double *)gkyl_array_cfetch(theta, cidx_l), theta_c,
-        (const double *)gkyl_array_cfetch(fin, pidx_l), f_c, &flux[dir * nflux]
+        &fc_c[dir * nfc], (const double *)gkyl_array_cfetch(fin, pidx_l), f_c, &flux[dir * nflux]
       );
 
       if (idx[dir] == phase_range.upper[dir]) {
@@ -67,13 +116,10 @@ gkyl_dg_pkpm_conf_flux_surf_advance_cu_kernel(
         long pidx_r = gkyl_range_idx(&phase_range_ext, idx_r);
         gkyl_rect_grid_cell_center(&up->phase_grid, idx_r, xc_r);
         double *flux_r = (double *)gkyl_array_fetch(conf_flux_surf, pidx_r);
+        const double *fc_r = (const double *)gkyl_array_cfetch(face_coef, cidx_r);
         cflrate_d[0] += up->conf_flux[dir](
           xc_r, up->phase_grid.dx, jac_c, (const double *)gkyl_array_cfetch(up->jacob_pos, cidx_r),
-          b_c, (const double *)gkyl_array_cfetch(bvar, cidx_r), u_c,
-          (const double *)gkyl_array_cfetch(u, cidx_r), xi_c,
-          (const double *)gkyl_array_cfetch(xi, cidx_r), theta_c,
-          (const double *)gkyl_array_cfetch(theta, cidx_r), f_c,
-          (const double *)gkyl_array_cfetch(fin, pidx_r), &flux_r[dir * nflux]
+          &fc_r[dir * nfc], f_c, (const double *)gkyl_array_cfetch(fin, pidx_r), &flux_r[dir * nflux]
         );
       }
     }
@@ -84,14 +130,13 @@ void
 gkyl_dg_pkpm_conf_flux_surf_advance_cu(
   struct gkyl_dg_pkpm_conf_flux_surf *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_range *phase_range_ext,
-  const struct gkyl_array *bvar, const struct gkyl_array *u, const struct gkyl_array *xi,
-  const struct gkyl_array *theta, const struct gkyl_array *fin, struct gkyl_array *cflrate,
+  const struct gkyl_array *face_coef, const struct gkyl_array *fin, struct gkyl_array *cflrate,
   struct gkyl_array *conf_flux_surf
 )
 {
   gkyl_dg_pkpm_conf_flux_surf_advance_cu_kernel<<<phase_range->nblocks, phase_range->nthreads>>>(
-    up->on_dev, *conf_range, *phase_range, *phase_range_ext, bvar->on_dev, u->on_dev,
-    xi->on_dev, theta->on_dev, fin->on_dev, cflrate->on_dev, conf_flux_surf->on_dev
+    up->on_dev, *conf_range, *phase_range, *phase_range_ext, face_coef->on_dev, fin->on_dev,
+    cflrate->on_dev, conf_flux_surf->on_dev
   );
 }
 
@@ -101,6 +146,7 @@ dg_pkpm_conf_flux_surf_set_cu_dev_ptrs(
 )
 {
   for (int d = 0; d < cdim; ++d) {
+    up->face_coef[d] = choose_pkpm_conf_face_coef_kern(b_type, cdim, poly_order, d);
     up->conf_flux[d] = choose_pkpm_conf_flux_kern(b_type, cdim, poly_order, d);
   }
 }
@@ -117,6 +163,10 @@ gkyl_dg_pkpm_conf_flux_surf_cu_dev_inew(const struct gkyl_dg_pkpm_conf_flux_surf
   up->pdim = pdim;
   up->use_gpu = inp->use_gpu;
   up->num_surf_basis = inp->phase_basis->num_basis / 2;
+  up->num_face_coef = PKPM_FC_NUM;
+  for (int d = 1; d < cdim; ++d) {
+    up->num_face_coef *= 5; // the transverse nodes of the face
+  }
   // The device copy needs the device pointer of the Jacobian array; the host object keeps the
   // acquired map for its own lifetime management.
   assert(inp->pos_map);

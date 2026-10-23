@@ -18,7 +18,7 @@ __global__ void
 gkyl_dg_pkpm_fluid_flux_surf_advance_cu_kernel(
   struct gkyl_dg_pkpm_fluid_flux_surf *up, struct gkyl_range conf_range, struct gkyl_range conf_range_ext,
   struct gkyl_range phase_range, struct gkyl_range phase_range_ext, const struct gkyl_array *bvar,
-  const struct gkyl_array *u, const struct gkyl_array *xi, const struct gkyl_array *theta,
+  const struct gkyl_array *u, const struct gkyl_array *xi, const struct gkyl_array *face_coef,
   const struct gkyl_array *fluid, const struct gkyl_array *f, struct gkyl_array *cflrate,
   struct gkyl_array *fluid_flux_surf
 )
@@ -36,7 +36,7 @@ gkyl_dg_pkpm_fluid_flux_surf_advance_cu_kernel(
       gkyl_copy_int_arr(cdim, idx, idx_l);
       idx_l[dir] = idx_l[dir] - 1;
       cflrate_d[0] += pkpm_fluid_flux_face(
-        up, dir, idx_l, idx, &conf_range_ext, &phase_range, &phase_range_ext, bvar, u, xi, theta, fluid, f,
+        up, dir, idx_l, idx, &conf_range_ext, &phase_range, &phase_range_ext, bvar, u, xi, face_coef, fluid, f,
         &flux[dir * nflux]
       );
       if (idx[dir] == conf_range.upper[dir]) {
@@ -44,7 +44,7 @@ gkyl_dg_pkpm_fluid_flux_surf_advance_cu_kernel(
         idx_r[dir] = idx_r[dir] + 1;
         double *flux_r = (double *)gkyl_array_fetch(fluid_flux_surf, gkyl_range_idx(&conf_range_ext, idx_r));
         cflrate_d[0] += pkpm_fluid_flux_face(
-          up, dir, idx, idx_r, &conf_range_ext, &phase_range, &phase_range_ext, bvar, u, xi, theta, fluid, f,
+          up, dir, idx, idx_r, &conf_range_ext, &phase_range, &phase_range_ext, bvar, u, xi, face_coef, fluid, f,
           &flux_r[dir * nflux]
         );
       }
@@ -57,13 +57,13 @@ gkyl_dg_pkpm_fluid_flux_surf_advance_cu(
   struct gkyl_dg_pkpm_fluid_flux_surf *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *conf_range_ext, const struct gkyl_range *phase_range,
   const struct gkyl_range *phase_range_ext, const struct gkyl_array *bvar, const struct gkyl_array *u,
-  const struct gkyl_array *xi, const struct gkyl_array *theta, const struct gkyl_array *fluid,
+  const struct gkyl_array *xi, const struct gkyl_array *face_coef, const struct gkyl_array *fluid,
   const struct gkyl_array *f, struct gkyl_array *cflrate, struct gkyl_array *fluid_flux_surf
 )
 {
   gkyl_dg_pkpm_fluid_flux_surf_advance_cu_kernel<<<conf_range->nblocks, conf_range->nthreads>>>(
     up->on_dev, *conf_range, *conf_range_ext, *phase_range, *phase_range_ext, bvar->on_dev, u->on_dev,
-    xi->on_dev, theta->on_dev, fluid->on_dev, f->on_dev, cflrate->on_dev, fluid_flux_surf->on_dev
+    xi->on_dev, face_coef->on_dev, fluid->on_dev, f->on_dev, cflrate->on_dev, fluid_flux_surf->on_dev
   );
 }
 
@@ -95,6 +95,7 @@ gkyl_dg_pkpm_fluid_flux_surf_cu_dev_inew(const struct gkyl_dg_pkpm_fluid_flux_su
   for (int d = 1; d < cdim; ++d) {
     up->num_face_nodes *= 5; // the transverse nodes of the kinetic face flux
   }
+  up->num_face_coef = PKPM_FC_NUM * up->num_face_nodes;
   assert(inp->pos_map);
   up->pos_map = 0;
   up->jacob_pos = inp->pos_map->jacob_pos->on_dev;

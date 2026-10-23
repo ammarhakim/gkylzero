@@ -30,6 +30,7 @@ gkyl_dg_pkpm_fluid_flux_surf_inew(const struct gkyl_dg_pkpm_fluid_flux_surf_inp 
   for (int d = 1; d < cdim; ++d) {
     up->num_face_nodes *= 5; // the transverse nodes of the kinetic face flux
   }
+  up->num_face_coef = PKPM_FC_NUM * up->num_face_nodes;
   assert(inp->pos_map);
   up->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);
   up->jacob_pos = inp->pos_map->jacob_pos;
@@ -55,14 +56,14 @@ gkyl_dg_pkpm_fluid_flux_surf_advance(
   struct gkyl_dg_pkpm_fluid_flux_surf *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *conf_range_ext, const struct gkyl_range *phase_range,
   const struct gkyl_range *phase_range_ext, const struct gkyl_array *bvar, const struct gkyl_array *u,
-  const struct gkyl_array *xi, const struct gkyl_array *theta, const struct gkyl_array *fluid,
+  const struct gkyl_array *xi, const struct gkyl_array *face_coef, const struct gkyl_array *fluid,
   const struct gkyl_array *f, struct gkyl_array *cflrate, struct gkyl_array *fluid_flux_surf
 )
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(fluid_flux_surf)) {
     return gkyl_dg_pkpm_fluid_flux_surf_advance_cu(
-      up, conf_range, conf_range_ext, phase_range, phase_range_ext, bvar, u, xi, theta, fluid, f, cflrate, fluid_flux_surf
+      up, conf_range, conf_range_ext, phase_range, phase_range_ext, bvar, u, xi, face_coef, fluid, f, cflrate, fluid_flux_surf
     );
   }
 #endif
@@ -82,7 +83,7 @@ gkyl_dg_pkpm_fluid_flux_surf_advance(
       gkyl_copy_int_arr(cdim, iter.idx, idx_l);
       idx_l[dir] = idx_l[dir] - 1;
       cflrate_d[0] += pkpm_fluid_flux_face(
-        up, dir, idx_l, iter.idx, conf_range_ext, phase_range, phase_range_ext, bvar, u, xi, theta, fluid, f,
+        up, dir, idx_l, iter.idx, conf_range_ext, phase_range, phase_range_ext, bvar, u, xi, face_coef, fluid, f,
         &flux[dir * nflux]
       );
 
@@ -93,7 +94,7 @@ gkyl_dg_pkpm_fluid_flux_surf_advance(
         idx_r[dir] = idx_r[dir] + 1;
         double *flux_r = gkyl_array_fetch(fluid_flux_surf, gkyl_range_idx(conf_range_ext, idx_r));
         cflrate_d[0] += pkpm_fluid_flux_face(
-          up, dir, iter.idx, idx_r, conf_range_ext, phase_range, phase_range_ext, bvar, u, xi, theta, fluid, f,
+          up, dir, iter.idx, idx_r, conf_range_ext, phase_range, phase_range_ext, bvar, u, xi, face_coef, fluid, f,
           &flux_r[dir * nflux]
         );
       }
@@ -131,7 +132,7 @@ gkyl_dg_pkpm_fluid_flux_surf_advance_cu(
   struct gkyl_dg_pkpm_fluid_flux_surf *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *conf_range_ext, const struct gkyl_range *phase_range,
   const struct gkyl_range *phase_range_ext, const struct gkyl_array *bvar, const struct gkyl_array *u,
-  const struct gkyl_array *xi, const struct gkyl_array *theta, const struct gkyl_array *fluid,
+  const struct gkyl_array *xi, const struct gkyl_array *face_coef, const struct gkyl_array *fluid,
   const struct gkyl_array *f, struct gkyl_array *cflrate, struct gkyl_array *fluid_flux_surf
 )
 {
