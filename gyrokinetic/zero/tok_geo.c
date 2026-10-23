@@ -9067,24 +9067,23 @@ curlbhat_func(double psi, double r_curr, double Z, double phi, double *curlbhat,
   Bz = -1.0 / r_curr * dpsidR;
   bmag = sqrt(Br * Br + Bz * Bz + Bphi * Bphi);
 
-  dBrdR = 1.0 / r_curr * d2psidRdZ;
+  dBrdR = d2psidRdZ / r_curr - Br / r_curr;
   dBrdZ = 1.0 / r_curr * d2psidZ2;
-  dBzdR = -1.0 / r_curr * d2psidR2;
+  dBzdR = -d2psidR2 / r_curr - Bz / r_curr;
   dBzdZ = -1.0 / r_curr * d2psidRdZ;
 
   double dFdR = fpolprime * dpsidR;
   double dFdZ = fpolprime * dpsidZ;
   dBdR =
     1 / bmag * (Br * dBrdR + Bz * dBzdR + fpol / r_curr * (dFdR / r_curr - fpol / r_curr / r_curr));
-  dBdZ = 1 / bmag * (Br * dBrdZ + Bz * dBzdZ + fpol / r_curr * dFdZ);
+  dBdZ = 1 / bmag * (Br * dBrdZ + Bz * dBzdZ + fpol / r_curr * dFdZ / r_curr);
 
-  // Get the polar components (contravariant, upperscript components on tangent basis)
+  // Get contravariant R-Z-phi components of curlbhat (upperscript components on tangent basis).
   double polar_comp[3] = {0.0};
-  polar_comp[0] = 1.0 / bmag * -1.0 / r_curr * dFdZ -
-                  1.0 / bmag * 1.0 / bmag * dBdZ * fpol / r_curr; // R component ^1
-  polar_comp[1] = 1.0 / bmag * 1.0 / r_curr * (dBrdZ - dBzdR) +
-                  (-dBdR * Bz / r_curr + dBdZ * Br / r_curr); // Phi component ^2
-  polar_comp[2] = 1.0 / bmag * 1.0 / r_curr * dFdR + 1.0 / bmag * 1.0 / bmag * dBdR * fpol / r_curr;
+  polar_comp[0] = -dFdZ / (bmag * r_curr) + dBdZ * fpol / (bmag * bmag * r_curr); // R component ^1
+  polar_comp[1] = (dBrdZ - dBzdR) / (bmag * r_curr) +
+                  (dBdR * Bz - dBdZ * Br) / (bmag * bmag * r_curr); // Phi component ^2
+  polar_comp[2] = dFdR / (bmag * r_curr) - dBdR * fpol / (bmag * bmag * r_curr);
 
   // Convert to cartesian
   curlbhat[0] = polar_comp[0] * cos(phi) - polar_comp[1] * sin(phi) * r_curr;
@@ -9533,21 +9532,6 @@ gkyl_tok_geo_calc(
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
 
-  double dtheta = inp->cgrid.dx[TH_IDX], dpsi = inp->cgrid.dx[PSI_IDX],
-         dalpha = inp->cgrid.dx[AL_IDX];
-
-  double theta_lo = up->grid.lower[TH_IDX] +
-                    (up->local.lower[TH_IDX] - up->global.lower[TH_IDX]) * up->grid.dx[TH_IDX],
-         psi_lo = up->grid.lower[PSI_IDX] +
-                  (up->local.lower[PSI_IDX] - up->global.lower[PSI_IDX]) * up->grid.dx[PSI_IDX],
-         alpha_lo = up->grid.lower[AL_IDX] +
-                    (up->local.lower[AL_IDX] - up->global.lower[AL_IDX]) * up->grid.dx[AL_IDX];
-
-  double dx_fact = 1.0 / up->basis.poly_order;
-  dtheta *= dx_fact;
-  dpsi *= dx_fact;
-  dalpha *= dx_fact;
-
   double rclose = inp->rclose;
   double rright = inp->rright;
   double rleft = inp->rleft;
@@ -9597,15 +9581,21 @@ gkyl_tok_geo_calc(
   int cidx[3] = {0};
   for (int ia = nrange->lower[AL_IDX]; ia < nrange->lower[AL_IDX] + 1; ++ia) {
     cidx[AL_IDX] = ia;
-    double alpha_curr = alpha_lo + ia * dalpha;
+    double alpha_curr = gk_geometry_node_coord(
+      &up->grid, &up->local, &up->global, nrange, 1, ia, up->basis.poly_order, false
+    );
 
     for (int ip = nrange->lower[PSI_IDX]; ip <= nrange->upper[PSI_IDX]; ++ip) {
-      double psi_curr = psi_lo + ip * dpsi;
+      double psi_curr = gk_geometry_node_coord(
+        &up->grid, &up->local, &up->global, nrange, 0, ip, up->basis.poly_order, false
+      );
 
       // Non-uniform psi. Finite differences are calculated in calc_metric.c
-      position_map->maps[0](0.0, &psi_curr, &psi_curr, position_map->ctxs[0]);
+      double psi_curr_mapped;
+      position_map->maps[0](0.0, &psi_curr, &psi_curr_mapped, position_map->ctxs[0]);
+      psi_curr = psi_curr_mapped;
 
-      double darcL, arcL_curr, arcL_lo;
+      double arcL_curr;
 
       // For double null blocks this should set arc_ctx :
       // zmin, zmax, rclose, arcL_tot for all blocks. No left and right
@@ -9621,17 +9611,18 @@ gkyl_tok_geo_calc(
         );
       }
 
-      darcL = (arc_ctx.arc_hi - arc_ctx.arc_lo) / (up->basis.poly_order * inp->cgrid.cells[TH_IDX]);
       // At the beginning of each theta loop we need to reset things.
       cidx[PSI_IDX] = ip;
       arcL_curr = 0.0;
-      arcL_lo = tok_arc_from_theta(inp, &arc_ctx, theta_lo);
+
       double ridders_min, ridders_max;
       // Set node coordinates.
       for (int it = nrange->lower[TH_IDX]; it <= nrange->upper[TH_IDX]; ++it) {
         int it_delta = 0;
-        arcL_curr = arcL_lo + it * darcL;
-        double theta_curr = tok_theta_from_arc(inp, &arc_ctx, arcL_curr);
+
+        double theta_curr = gk_geometry_node_coord(
+          &up->grid, &up->local, &up->global, nrange, 2, it, up->basis.poly_order, false
+        );
 
         // Calculate derivatives using finite difference for ddtheta,
         // as well as transform the computational coordiante to the non-uniform field-aligned value
@@ -9652,7 +9643,6 @@ gkyl_tok_geo_calc(
           );
           abort();
         }
-        double march_arc_req = arcL_curr;
         double r_curr = 0.0, z_curr = 0.0, phi_curr = 0.0;
         if (ordered_mapping) {
           r_curr = ordered.r;
@@ -9796,8 +9786,13 @@ gkyl_tok_geo_calc(
   // Populate other alpha indices by using axisymmetry
   for (int ia = nrange->lower[AL_IDX] + 1; ia <= nrange->upper[AL_IDX]; ++ia) {
     cidx[AL_IDX] = ia;
-    double alpha_curr = alpha_lo + ia * dalpha;
-    double alpha_donor = alpha_lo + nrange->lower[AL_IDX] * dalpha;
+    double alpha_curr = gk_geometry_node_coord(
+      &up->grid, &up->local, &up->global, nrange, 1, ia, up->basis.poly_order, false
+    );
+    double alpha_donor = gk_geometry_node_coord(
+      &up->grid, &up->local, &up->global, nrange, 1, nrange->lower[AL_IDX], up->basis.poly_order,
+      false
+    );
     double alpha_diff = alpha_curr - alpha_donor;
     for (int ip = nrange->lower[PSI_IDX]; ip <= nrange->upper[PSI_IDX]; ++ip) {
       cidx[PSI_IDX] = ip;
@@ -10234,23 +10229,6 @@ gkyl_tok_geo_calc_interior(
   double dtheta = inp->cgrid.dx[TH_IDX], dpsi = inp->cgrid.dx[PSI_IDX],
          dalpha = inp->cgrid.dx[AL_IDX];
 
-  double theta_lo = up->grid.lower[TH_IDX] +
-                    (up->local.lower[TH_IDX] - up->global.lower[TH_IDX]) * up->grid.dx[TH_IDX],
-         psi_lo = up->grid.lower[PSI_IDX] +
-                  (up->local.lower[PSI_IDX] - up->global.lower[PSI_IDX]) * up->grid.dx[PSI_IDX],
-         alpha_lo = up->grid.lower[AL_IDX] +
-                    (up->local.lower[AL_IDX] - up->global.lower[AL_IDX]) * up->grid.dx[AL_IDX];
-
-  double dels[2] = {1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3)};
-  theta_lo = theta_lo + dels[1] * dtheta / 2.0;
-  psi_lo = psi_lo + dels[1] * dpsi / 2.0;
-  alpha_lo = alpha_lo + dels[1] * dalpha / 2.0;
-
-  double dx_fact = 1.0 / up->basis.poly_order;
-  dtheta *= dx_fact;
-  dpsi *= dx_fact;
-  dalpha *= dx_fact;
-
   // used for finite differences
   double delta_alpha = dalpha * 1e-2;
   double delta_psi = dpsi * 1e-2;
@@ -10313,22 +10291,28 @@ gkyl_tok_geo_calc_interior(
   int cidx[3] = {0};
   for (int ia = nrange->lower[AL_IDX]; ia < nrange->lower[AL_IDX] + 1; ++ia) {
     cidx[AL_IDX] = ia;
-    double alpha_curr = calc_running_coord(alpha_lo, ia - nrange->lower[AL_IDX], dalpha);
+    double alpha_curr = gk_geometry_node_coord(
+      &up->grid, &up->local, &up->global, nrange, 1, ia, up->basis.poly_order + 1, true
+    );
 
     for (int ip = nrange->lower[PSI_IDX]; ip <= nrange->upper[PSI_IDX]; ++ip) {
       int ip_delta_max = 3;
       for (int ip_delta = 0; ip_delta < ip_delta_max; ip_delta++) {
-        double psi_curr = calc_running_coord(psi_lo, ip - nrange->lower[PSI_IDX], dpsi) +
-                          modifiers[ip_delta] * delta_psi;
+        double psi_curr =
+          gk_geometry_node_coord(
+            &up->grid, &up->local, &up->global, nrange, 0, ip, up->basis.poly_order + 1, true
+          ) +
+          modifiers[ip_delta] * delta_psi;
 
         // Non-uniform psi. Finite differences are calculated in calc_metric.c
         double Psi_curr;
         position_map->maps[0](0.0, &psi_curr, &Psi_curr, position_map->ctxs[0]);
-        double dPsi_dpsi =
-          gkyl_position_map_slope(position_map, 0, psi_curr, delta_psi, ip, nrange);
+        double dPsi_dpsi = gkyl_position_map_slope(
+          position_map, 0, psi_curr, delta_psi, up->grid.lower[0], up->grid.upper[0]
+        );
         psi_curr = Psi_curr;
 
-        double darcL, arcL_curr, arcL_lo;
+        double arcL_curr;
 
         // For double null blocks this should set arc_ctx :
         // zmin, zmax, rclose, arcL_tot for all blocks. No left and right
@@ -10364,21 +10348,20 @@ gkyl_tok_geo_calc_interior(
         // qhat = - F(psi) * s(psi) / (R * grad(psi))
         // q = integral_0^2pi qhat dtheta
         //   = F(psi)*s(psi) * integral 1/(R*grad(psi)) dl
-        //   = 1/s(psi) * integral (dphidtheta) ; dphidtheta = F(psi)/(R*grad(psi))
+        //   = 1/s(psi) * integral (dphidtheta); dphidtheta = F(psi)/(R*grad(psi))
         // The legacy half-domain block types return zero from qprofile_func;
         // the full-domain branch above evaluates the unchanged legacy path.
 
-        darcL =
-          (arc_ctx.arc_hi - arc_ctx.arc_lo) / (up->basis.poly_order * inp->cgrid.cells[TH_IDX]);
         // at the beginning of each theta loop we need to reset things
         cidx[PSI_IDX] = ip;
         arcL_curr = 0.0;
-        arcL_lo = tok_arc_from_theta(inp, &arc_ctx, theta_lo);
+
         double ridders_min, ridders_max;
 
         for (int it = nrange->lower[TH_IDX]; it <= nrange->upper[TH_IDX]; ++it) {
-          arcL_curr = calc_running_coord(arcL_lo, it - nrange->lower[TH_IDX], darcL);
-          double theta_curr = tok_theta_from_arc(inp, &arc_ctx, arcL_curr);
+          double theta_curr = gk_geometry_node_coord(
+            &up->grid, &up->local, &up->global, nrange, 2, it, up->basis.poly_order + 1, true
+          );
 
           // Calculate derivatives using finite difference for ddtheta,
           // as well as transform the computational coordiante to the non-uniform field-aligned value
@@ -10387,8 +10370,9 @@ gkyl_tok_geo_calc_interior(
           // Non-uniform theta
           double Theta_curr;
           position_map->maps[2](0.0, &theta_curr, &Theta_curr, position_map->ctxs[2]);
-          double dTheta_dtheta =
-            gkyl_position_map_slope(position_map, 2, theta_curr, delta_theta, it, nrange);
+          double dTheta_dtheta = gkyl_position_map_slope(
+            position_map, 2, theta_curr, delta_theta, up->grid.lower[2], up->grid.upper[2]
+          );
           theta_curr = Theta_curr;
 
           struct tok_ordered_point ordered = {0.0};
@@ -10547,15 +10531,25 @@ gkyl_tok_geo_calc_interior(
   // Populate other alpha indices by using axisymmetry
   for (int ia = nrange->lower[AL_IDX] + 1; ia <= nrange->upper[AL_IDX]; ++ia) {
     cidx[AL_IDX] = ia;
-    double alpha_curr = calc_running_coord(alpha_lo, ia - nrange->lower[AL_IDX], dalpha);
-    double alpha_donor = calc_running_coord(alpha_lo, 0, dalpha);
+    double alpha_curr = gk_geometry_node_coord(
+      &up->grid, &up->local, &up->global, nrange, 1, ia, up->basis.poly_order + 1, true
+    );
+    double alpha_donor = gk_geometry_node_coord(
+      &up->grid, &up->local, &up->global, nrange, 1, nrange->lower[AL_IDX],
+      up->basis.poly_order + 1, true
+    );
     double alpha_diff = alpha_curr - alpha_donor;
     for (int ip = nrange->lower[PSI_IDX]; ip <= nrange->upper[PSI_IDX]; ++ip) {
       cidx[PSI_IDX] = ip;
       int ip_delta_max = 3;
       for (int ip_delta = 0; ip_delta < ip_delta_max; ip_delta++) {
-        double psi_curr = calc_running_coord(psi_lo, ip - nrange->lower[PSI_IDX], dpsi) +
-                          modifiers[ip_delta] * delta_psi;
+        double psi_comp =
+          gk_geometry_node_coord(
+            &up->grid, &up->local, &up->global, nrange, 0, ip, up->basis.poly_order + 1, true
+          ) +
+          modifiers[ip_delta] * delta_psi;
+        double psi_curr;
+        position_map->maps[0](0.0, &psi_comp, &psi_curr, position_map->ctxs[0]);
         for (int it = nrange->lower[TH_IDX]; it <= nrange->upper[TH_IDX]; ++it) {
           cidx[TH_IDX] = it;
           int lidx = 0;
@@ -10603,6 +10597,10 @@ gkyl_tok_geo_calc_interior(
             mc2p_n[lidx + Y_IDX] = donor_mc2p_n[lidx + Y_IDX];
             mc2p_n[lidx + Z_IDX] = donor_mc2p_n[lidx + Z_IDX] + alpha_diff;
             bmag_n[0] = donor_bmag_n[0];
+            double *qprofile_n = gkyl_array_fetch(qprofile_nodal, gkyl_range_idx(nrange, cidx));
+            const double *donor_qprofile_n =
+              gkyl_array_cfetch(qprofile_nodal, gkyl_range_idx(nrange, donor_cidx));
+            qprofile_n[0] = donor_qprofile_n[0];
             curlbhat_func(
               psi_curr, mc2p_n[lidx + X_IDX], mc2p_n[lidx + Y_IDX], mc2p_n[lidx + Z_IDX],
               curlbhat_n, &arc_ctx
@@ -10643,7 +10641,10 @@ gkyl_tok_geo_calc_interior(
         );
       }
       // the node's radial coordinate, as the construction loop placed it
-      double x = calc_running_coord(psi_lo, wall_iter.idx[PSI_IDX] - nrange->lower[PSI_IDX], dpsi);
+      double x = gk_geometry_node_coord(
+        &up->grid, &up->local, &up->global, nrange, PSI_IDX, wall_iter.idx[PSI_IDX],
+        up->basis.poly_order + 1, true
+      );
       if (!tok_wall_trial_record_where(
             false, false,
             tok_wall_trial_on_movable_side(x, up->grid.lower[PSI_IDX], up->grid.upper[PSI_IDX])
@@ -10705,15 +10706,6 @@ gkyl_tok_geo_calc_surface(
   double dtheta = inp->cgrid.dx[TH_IDX], dpsi = inp->cgrid.dx[PSI_IDX],
          dalpha = inp->cgrid.dx[AL_IDX];
 
-  double theta_lo = up->grid.lower[TH_IDX] +
-                    (up->local.lower[TH_IDX] - up->global.lower[TH_IDX]) * up->grid.dx[TH_IDX],
-         psi_lo = up->grid.lower[PSI_IDX] +
-                  (up->local.lower[PSI_IDX] - up->global.lower[PSI_IDX]) * up->grid.dx[PSI_IDX],
-         alpha_lo = up->grid.lower[AL_IDX] +
-                    (up->local.lower[AL_IDX] - up->global.lower[AL_IDX]) * up->grid.dx[AL_IDX];
-
-  double dels[2] = {1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3)};
-  theta_lo += dir == 2 ? 0.0 : dels[1] * dtheta / 2.0;
   // The pockets of the block's declared plates (see the corner pass), set only
   // around this pass's containment test.
   const bool plate_end[2] = {
@@ -10726,13 +10718,6 @@ gkyl_tok_geo_calc_surface(
   if (enforce_wall) {
     tok_wall_block_pockets(inp, geo, plate_end, 0, nrange, pocket);
   }
-  psi_lo += dir == 0 ? 0.0 : dels[1] * dpsi / 2.0;
-  alpha_lo += dir == 1 ? 0. : dels[1] * dalpha / 2.0;
-
-  double dx_fact = 1.0 / up->basis.poly_order;
-  dtheta *= dx_fact;
-  dpsi *= dx_fact;
-  dalpha *= dx_fact;
 
   // Used for finite differences.
   double delta_alpha = dalpha * 1e-2;
@@ -10792,8 +10777,10 @@ gkyl_tok_geo_calc_surface(
   int cidx[3] = {0};
   for (int ia = nrange->lower[AL_IDX]; ia < nrange->lower[AL_IDX] + 1; ++ia) {
     cidx[AL_IDX] = ia;
-    double alpha_curr = dir == 1 ? alpha_lo + ia * dalpha :
-                                   calc_running_coord(alpha_lo, ia - nrange->lower[AL_IDX], dalpha);
+    double alpha_curr = gk_geometry_node_coord(
+      &up->grid, &up->local, &up->global, nrange, 1, ia, dir == 1 ? 1 : up->basis.poly_order + 1,
+      dir != 1
+    );
 
     for (int ip = nrange->lower[PSI_IDX]; ip <= nrange->upper[PSI_IDX]; ++ip) {
       int ip_delta_max = 5;
@@ -10814,17 +10801,20 @@ gkyl_tok_geo_calc_surface(
           }
         }
 
-        double psi_curr = dir == 0 ? psi_lo + ip * dpsi :
-                                     calc_running_coord(psi_lo, ip - nrange->lower[PSI_IDX], dpsi);
+        double psi_curr = gk_geometry_node_coord(
+          &up->grid, &up->local, &up->global, nrange, 0, ip,
+          dir == 0 ? 1 : up->basis.poly_order + 1, dir != 0
+        );
         psi_curr += modifiers[ip_delta] * delta_psi;
         // Non-uniform psi. Finite differences are calculated in calc_metric.c
         double Psi_curr;
         position_map->maps[0](0.0, &psi_curr, &Psi_curr, position_map->ctxs[0]);
-        double dPsi_dpsi =
-          gkyl_position_map_slope(position_map, 0, psi_curr, delta_psi, ip, nrange);
+        double dPsi_dpsi = gkyl_position_map_slope(
+          position_map, 0, psi_curr, delta_psi, up->grid.lower[0], up->grid.upper[0]
+        );
         psi_curr = Psi_curr;
 
-        double darcL, arcL_curr, arcL_lo;
+        double arcL_curr;
 
         // For double null blocks this should set arc_ctx :
         // zmin, zmax, rclose, arcL_tot for all blocks. No left and right
@@ -10840,18 +10830,17 @@ gkyl_tok_geo_calc_surface(
           );
         }
 
-        darcL =
-          (arc_ctx.arc_hi - arc_ctx.arc_lo) / (up->basis.poly_order * inp->cgrid.cells[TH_IDX]);
         // at the beginning of each theta loop we need to reset things
         cidx[PSI_IDX] = ip;
         arcL_curr = 0.0;
-        arcL_lo = tok_arc_from_theta(inp, &arc_ctx, theta_lo);
+
         double ridders_min, ridders_max;
 
         for (int it = nrange->lower[TH_IDX]; it <= nrange->upper[TH_IDX]; ++it) {
-          arcL_curr = dir == 2 ? arcL_lo + it * darcL :
-                                 calc_running_coord(arcL_lo, it - nrange->lower[TH_IDX], darcL);
-          double theta_curr = tok_theta_from_arc(inp, &arc_ctx, arcL_curr);
+          double theta_curr = gk_geometry_node_coord(
+            &up->grid, &up->local, &up->global, nrange, 2, it,
+            dir == 2 ? 1 : up->basis.poly_order + 1, dir != 2
+          );
 
           // Calculate derivatives using finite difference for ddtheta,
           // as well as transform the computational coordiante to the non-uniform field-aligned value
@@ -10860,8 +10849,9 @@ gkyl_tok_geo_calc_surface(
           // Non-uniform theta
           double Theta_curr;
           position_map->maps[2](0.0, &theta_curr, &Theta_curr, position_map->ctxs[2]);
-          double dTheta_dtheta =
-            gkyl_position_map_slope(position_map, 2, theta_curr, delta_theta, it, nrange);
+          double dTheta_dtheta = gkyl_position_map_slope(
+            position_map, 2, theta_curr, delta_theta, up->grid.lower[2], up->grid.upper[2]
+          );
           theta_curr = Theta_curr;
 
           struct tok_ordered_point ordered = {0.0};
@@ -11033,8 +11023,10 @@ gkyl_tok_geo_calc_surface(
                   );
                 }
                 // the point's radial coordinate, as this loop placed it
-                double x = dir == 0 ? psi_lo + ip * dpsi :
-                                      calc_running_coord(psi_lo, ip - nrange->lower[PSI_IDX], dpsi);
+                double x = gk_geometry_node_coord(
+                  &up->grid, &up->local, &up->global, nrange, PSI_IDX, ip,
+                  dir == 0 ? 1 : up->basis.poly_order + 1, dir != 0
+                );
                 if (!tok_wall_trial_record_where(
                       false, false,
                       tok_wall_trial_on_movable_side(
@@ -11071,10 +11063,14 @@ gkyl_tok_geo_calc_surface(
   // Populate other alpha indices by using axisymmetry
   for (int ia = nrange->lower[AL_IDX] + 1; ia <= nrange->upper[AL_IDX]; ++ia) {
     cidx[AL_IDX] = ia;
-    double alpha_curr = dir == 1 ? alpha_lo + ia * dalpha :
-                                   calc_running_coord(alpha_lo, ia - nrange->lower[AL_IDX], dalpha);
-    double alpha_donor = dir == 1 ? alpha_lo + nrange->lower[AL_IDX] * dalpha :
-                                    calc_running_coord(alpha_lo, 0, dalpha);
+    double alpha_curr = gk_geometry_node_coord(
+      &up->grid, &up->local, &up->global, nrange, 1, ia, dir == 1 ? 1 : up->basis.poly_order + 1,
+      dir != 1
+    );
+    double alpha_donor = gk_geometry_node_coord(
+      &up->grid, &up->local, &up->global, nrange, 1, nrange->lower[AL_IDX],
+      dir == 1 ? 1 : up->basis.poly_order + 1, dir != 1
+    );
     double alpha_diff = alpha_curr - alpha_donor;
 
     for (int ip = nrange->lower[PSI_IDX]; ip <= nrange->upper[PSI_IDX]; ++ip) {
@@ -11096,10 +11092,14 @@ gkyl_tok_geo_calc_surface(
             continue;
           }
         }
-        double psi_curr = dir == 0 ? psi_lo + ip * dpsi :
-                                     calc_running_coord(psi_lo, ip - nrange->lower[PSI_IDX], dpsi);
-        psi_curr += modifiers[ip_delta] * delta_psi;
+        double psi_comp = gk_geometry_node_coord(
+          &up->grid, &up->local, &up->global, nrange, 0, ip,
+          dir == 0 ? 1 : up->basis.poly_order + 1, dir != 0
+        );
+        psi_comp += modifiers[ip_delta] * delta_psi;
 
+        double psi_curr;
+        position_map->maps[0](0.0, &psi_comp, &psi_curr, position_map->ctxs[0]);
         for (int it = nrange->lower[TH_IDX]; it <= nrange->upper[TH_IDX]; ++it) {
           cidx[TH_IDX] = it;
           int lidx = 0;

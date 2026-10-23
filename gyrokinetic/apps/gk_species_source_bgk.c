@@ -69,7 +69,7 @@ gk_species_source_bgk_rhs_heating_enabled(
   struct timespec wst = gkyl_wall_clock();
 
   // Compute Maxwellian moments (n, u_par, T/m).
-  gk_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
+  gk_species_moment_calc(app, &species->lte.moms, species->local, app->local, fin);
   gkyl_dg_div_op_range(
     species->lte.moms.mem_geo, &app->basis, 0, species->lte.moms.marr, 0, species->lte.moms.marr, 0,
     app->gk_geom->geo_int.jacobgeo, &app->local
@@ -128,13 +128,13 @@ gk_species_source_bgk_rhs_accumulate_maxwellian(
   struct timespec wst = gkyl_wall_clock();
 
   // Compute Maxwellian moments (n, u_par, T/m).
-  gk_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
+  gk_species_moment_calc(app, &species->lte.moms, species->local, app->local, fin);
   gk_species_moment_diag_jacobgeo_div(
     app, &species->lte.moms, species->lte.moms.marr, species->lte.moms.marr
   );
 
   // Compute M0,M1,M2
-  gk_species_moment_calc(&src->correct_mom_op, species->local, app->local, fin);
+  gk_species_moment_calc(app, &src->correct_mom_op, species->local, app->local, fin);
   gk_species_moment_diag_jacobgeo_div(
     app, &src->correct_mom_op, src->correct_mom_op.marr, src->correct_mom_op.marr
   );
@@ -347,7 +347,7 @@ gk_species_source_bgk_update_integrated_diags_enabled(
   double avals_global[num_mom];
 
   // Compute integrated moments of source term.
-  gk_species_moment_calc(&src->integ_mom_op, gks->local, app->local, src->Jrate_df);
+  gk_species_moment_calc(app, &src->integ_mom_op, gks->local, app->local, src->Jrate_df);
   app->stat.n_mom += 1;
 
   // Reduce (sum) over whole domain, append to diagnostics.
@@ -449,7 +449,8 @@ static void
 gk_species_source_bgk_write_array(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src, int frame,
   double stime, char *file_suffix, char *description, struct gkyl_msgpack_map_elem *iom,
-  int iom_len, struct gkyl_rect_grid grid, struct gkyl_range local, struct gkyl_array *arrout
+  int iom_len, struct gkyl_rect_grid grid, struct gkyl_range local, struct gkyl_comm *comm,
+  struct gkyl_array *arrout
 )
 {
   // Write out a conf-space or a phase-space array.
@@ -481,7 +482,7 @@ gk_species_source_bgk_write_array(
     arr_ho = gkyl_array_acquire(arrout);
   }
 
-  gkyl_comm_array_write(app->comm, &grid, &local, mt, arr_ho, fileNm);
+  gkyl_comm_array_write(comm, &grid, &local, mt, arr_ho, fileNm);
   gkyl_msgpack_data_release(mt);
   gkyl_array_release(arr_ho);
 }
@@ -597,11 +598,12 @@ gk_species_source_bgk_init(
           gk_species_source_bgk_update_integrated_diags_enabled;
         gk_species_source_bgk_write_array(
           app, gks, src, 0, 0.0, "source_bgk_rate", "BGK source relaxation rate.",
-          gks->io_meta_conf, gks->io_meta_conf_len, app->grid, app->local, src->rate
+          gks->io_meta_conf, gks->io_meta_conf_len, app->grid, app->local, app->comm, src->rate
         );
         gk_species_source_bgk_write_array(
           app, gks, src, 0, 0.0, "source_bgk_feq", "BGK source equilibrium function.",
-          gks->io_meta_phase, gks->io_meta_phase_len, gks->grid, gks->local, src->Jrate_df
+          gks->io_meta_phase, gks->io_meta_phase_len, gks->grid, gks->local, gks->comm,
+          src->Jrate_df
         );
       }
 
@@ -673,11 +675,12 @@ gk_species_source_bgk_init(
         // Write out the source_bgk rate and vtsq shape.
         gk_species_source_bgk_write_array(
           app, gks, src, 0, 0.0, "source_bgk_rate", "BGK source relaxation rate.",
-          gks->io_meta_conf, gks->io_meta_conf_len, app->grid, app->local, src->rate
+          gks->io_meta_conf, gks->io_meta_conf_len, app->grid, app->local, app->comm, src->rate
         );
         gk_species_source_bgk_write_array(
           app, gks, src, 0, 0.0, "source_bgk_temp_shape", "BGK source temperature shape.",
-          gks->io_meta_conf, gks->io_meta_conf_len, app->grid, app->local, src->vtsq_shape
+          gks->io_meta_conf, gks->io_meta_conf_len, app->grid, app->local, app->comm,
+          src->vtsq_shape
         );
       }
 

@@ -64,11 +64,18 @@ static const struct gkyl_str_int_pair gk_collisionless_type[] = {
   {0, 0}
 };
 
+// Gyrokinetic species scaling type -> enum map.
+static const struct gkyl_str_int_pair gk_species_scaling_type[] = {
+  {"None", GKYL_GK_SPECIES_SCALING_NONE},
+  {"Boltzmann", GKYL_GK_SPECIES_SCALING_BOLTZMANN},
+  {"Adiabatic", GKYL_GK_SPECIES_SCALING_ADIABATIC},
+  {0, 0}
+};
+
 // Gyrokinetic field type -> enum map.
 static const struct gkyl_str_int_pair gk_field_type[] = {
   {"Electrostatic", GKYL_GK_FIELD_ES},
   {"Boltzmann", GKYL_GK_FIELD_BOLTZMANN},
-  {"Adiabatic", GKYL_GK_FIELD_ADIABATIC},
   {"Electromagnetic", GKYL_GK_FIELD_EM},
   {0, 0}
 };
@@ -272,7 +279,6 @@ struct gyrokinetic_species_lw {
     collision_temp_ref; // Temperature used to calculate Coulomb logarithm for collision frequency.
   double collision_hbar; // Reduced Planck's constant for calculating collision frequency.
   double collision_eps0; // Vacuum permittivity for calculating collision frequency.
-  double collision_eV; // Elementary charge for calculating collision frequency.
 
   bool correct_all_moms; // Are we correcting all moments in collisions, or only density?
   double iter_eps; // Error tolerance for moment fixes in collisions (density is always exact).
@@ -358,7 +364,7 @@ struct gyrokinetic_species_lw {
 static int
 gyrokinetic_species_lw_new(lua_State *L)
 {
-  int vdim = 0;
+  int vdim = glua_tbl_get_integer(L, "vdim", 2);
   struct gkyl_gyrokinetic_species gk_species = {};
 
   gk_species.charge = glua_tbl_get_number(L, "charge", 0.0);
@@ -508,6 +514,11 @@ gyrokinetic_species_lw_new(lua_State *L)
     collisionless_type = glua_tbl_get_integer(L, "type", 0);
   }
 
+  with_lua_tbl_tbl(L, "scaling")
+  {
+    gk_species.scaling.type = glua_tbl_get_integer(L, "type", 0);
+  }
+
   enum gkyl_collision_id collision_id = GKYL_NO_COLLISIONS;
 
   bool has_self_nu_func = false;
@@ -521,7 +532,6 @@ gyrokinetic_species_lw_new(lua_State *L)
   double collision_temp_ref = 0.0;
   double collision_hbar = 0.0;
   double collision_eps0 = 0.0;
-  double collision_eV = 0.0;
 
   with_lua_tbl_tbl(L, "collisions")
   {
@@ -546,7 +556,6 @@ gyrokinetic_species_lw_new(lua_State *L)
     collision_temp_ref = glua_tbl_get_number(L, "referenceTemperature", 0.0);
     collision_hbar = glua_tbl_get_number(L, "hbar", 0.0);
     collision_eps0 = glua_tbl_get_number(L, "epsilon0", 0.0);
-    collision_eV = glua_tbl_get_number(L, "eV", 0.0);
   }
 
   enum gkyl_source_id source_id = GKYL_NO_SOURCE;
@@ -883,7 +892,6 @@ gyrokinetic_species_lw_new(lua_State *L)
   gks_lw->collision_temp_ref = collision_temp_ref;
   gks_lw->collision_hbar = collision_hbar;
   gks_lw->collision_eps0 = collision_eps0;
-  gks_lw->collision_eV = collision_eV;
 
   gks_lw->radiation_id = radiation_id;
 
@@ -1127,7 +1135,6 @@ gyrokinetic_field_lw_new(lua_State *L)
   gk_field.gkfield_id = glua_tbl_get_integer(L, "fieldID", 0);
   gk_field.electron_mass = glua_tbl_get_number(L, "electronMass", 0.0);
   gk_field.electron_charge = glua_tbl_get_number(L, "electronCharge", 0.0);
-  gk_field.electron_density = glua_tbl_get_number(L, "electronDensity", 0.0);
   gk_field.electron_temp = glua_tbl_get_number(L, "electronTemperature", 0.0);
 
   gk_field.kperpSq = glua_tbl_get_number(L, "kPerpSq", 0.0);
@@ -1240,7 +1247,6 @@ struct gyrokinetic_app_lw {
   double
     collision_hbar[GKYL_MAX_SPECIES]; // Reduced Planck's constant for calculating collision frequency.
   double collision_eps0[GKYL_MAX_SPECIES]; // Vacuum permittivity for calculating collision frequency.
-  double collision_eV[GKYL_MAX_SPECIES]; // Elementary charge for calculating collision frequency.
 
   bool correct_all_moms
     [GKYL_MAX_SPECIES]; // Are we correcting all moments in collisions, or only density?
@@ -1885,7 +1891,6 @@ gk_app_new(lua_State *L)
     app_lw->collision_temp_ref[s] = species[s]->collision_temp_ref;
     app_lw->collision_hbar[s] = species[s]->collision_hbar;
     app_lw->collision_eps0[s] = species[s]->collision_eps0;
-    app_lw->collision_eV[s] = species[s]->collision_eV;
 
     gk.species[s].collisionless.type = app_lw->collisionless_type[s];
 
@@ -1905,7 +1910,6 @@ gk_app_new(lua_State *L)
     gk.species[s].collisions.temp_ref = app_lw->collision_temp_ref[s];
     gk.species[s].collisions.hbar = app_lw->collision_hbar[s];
     gk.species[s].collisions.eps0 = app_lw->collision_eps0[s];
-    gk.species[s].collisions.eV = app_lw->collision_eV[s];
 
     app_lw->source_id[s] = species[s]->source_id;
 
@@ -2792,6 +2796,7 @@ gkyl_gyrokinetic_lw_openlibs(lua_State *L)
   gkyl_register_gyrokinetic_geometry_types(L);
   gkyl_register_gyrokinetic_position_map_types(L);
   gkyl_register_gyrokinetic_collisionless_types(L);
+  register_types(L, gk_species_scaling_type, "GKSpeciesScaling");
   gkyl_register_gyrokinetic_field_types(L);
   gkyl_register_gyrokinetic_radiation_types(L);
   gkyl_register_gyrokinetic_radiation_Te_types(L);
