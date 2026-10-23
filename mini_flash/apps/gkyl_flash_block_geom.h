@@ -1,9 +1,7 @@
 #pragma once
 
 #include <gkyl_block_topo.h>
-#include <gkyl_ref_count.h>
 #include <gkyl_util.h>
-#include <gkyl_flash.h>
 
 // Geometry info a single config-space block
 struct gkyl_flash_block_geom_info {

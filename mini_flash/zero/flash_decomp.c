@@ -1,3 +1,4 @@
+#include <gkyl_alloc.h>
 #include <gkyl_flash_decomp.h>
 
 // Internal struct

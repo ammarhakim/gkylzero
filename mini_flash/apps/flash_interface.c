@@ -1,5 +1,6 @@
 // Functions required for coupling with FLASH
 //
+#include <gkyl_dg_bin_ops.h>
 #include <gkyl_flash_multib_priv.h>
 #include <gkyl_flash_priv.h>
 

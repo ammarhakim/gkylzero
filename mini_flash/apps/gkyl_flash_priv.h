@@ -2,31 +2,21 @@
 
 #include <assert.h>
 #include <float.h>
-#include <math.h>
 #include <string.h>
 
-#include <gkyl_app_priv.h>
 #include <gkyl_bc_basic.h>
-#include <gkyl_dg_bin_ops.h>
 #include <gkyl_comm.h>
 #include <gkyl_dg_calc_flash_coupling.h>
 #include <gkyl_dg_calc_pkpm_dist_vars.h>
 #include <gkyl_dg_calc_pkpm_vars.h>
-#include <gkyl_dg_fv_interpolate.h>
 #include <gkyl_dg_updater_flash.h>
 #include <gkyl_dg_updater_lbo_pkpm.h>
 #include <gkyl_dg_updater_moment_pkpm.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_flash.h>
 #include <gkyl_flash_interp_vars.h>
-#include <gkyl_flash_proj_pkpm_lte_on_basis.h>
-#include <gkyl_kep_scheme.h>
 #include <gkyl_mom_calc_bcorr.h>
-#include <gkyl_null_comm.h>
 #include <gkyl_prim_lbo_calc.h>
-#include <gkyl_prim_lbo_cross_calc.h>
-#include <gkyl_prim_lbo_type.h>
-#include <gkyl_prim_lbo_pkpm.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_wave_geom.h>

@@ -1,4 +1,5 @@
 #include <gkyl_alloc.h>
+#include <gkyl_app_priv.h>
 #include <gkyl_dg_calc_em_vars.h>
 #include <gkyl_flash_priv.h>
 #include <gkyl_proj_on_basis.h>

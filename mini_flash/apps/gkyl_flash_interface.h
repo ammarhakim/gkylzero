@@ -1,5 +1,7 @@
 // Header containing functions required for coupling with FLASH
 //
+#pragma once
+
 #include <gkyl_flash_multib.h>
 #include <gkyl_flash.h>
 

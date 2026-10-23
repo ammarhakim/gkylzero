@@ -1,13 +1,9 @@
 
 #include <gkyl_alloc.h>
-#include <gkyl_dg_updater_pkpm.h>
 #include <gkyl_dg_updater_flash.h>
 #include <gkyl_dg_updater_flash_priv.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_util.h>
-#include <gkyl_wave_geom.h>
-#include <gkyl_wave_prop.h>
-#include <gkyl_wv_euler.h>
 
 gkyl_dg_updater_flash*
 gkyl_dg_updater_flash_new(const struct gkyl_rect_grid *conf_grid,

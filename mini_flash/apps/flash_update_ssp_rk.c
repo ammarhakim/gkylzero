@@ -1,3 +1,4 @@
+#include <gkyl_app_priv.h>
 #include <gkyl_flash_priv.h>
 #include <gkyl_flash.h>
 

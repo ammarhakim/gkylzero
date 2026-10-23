@@ -1,8 +1,9 @@
 #pragma once
 
+#include <gkyl_array.h>
+#include <gkyl_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_array.h>
 
 // Object type.
 typedef struct gkyl_dg_fv_interpolate gkyl_dg_fv_interpolate;

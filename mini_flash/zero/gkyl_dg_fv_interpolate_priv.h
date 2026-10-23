@@ -1,11 +1,8 @@
 #pragma once
 
-#include <gkyl_dg_fv_interpolate.h>
 #include <gkyl_dg_fv_interpolate_kernels.h>
-#include <gkyl_basis.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_range.h>
-#include <gkyl_util.h>
 
 // Function type for p=1 modal to finite volume conversion.
 typedef void (*dg_fv_interp_modal_to_fv_t)(const double *dg_data, double *fv_out[8]);

@@ -1,3 +1,5 @@
+#pragma once
+
 #include <gkyl_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>

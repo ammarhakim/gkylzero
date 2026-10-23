@@ -1,6 +1,9 @@
 #pragma once
 
-#include <gkyl_dg_fv_interpolate.h>
+#include <gkyl_array.h>
+#include <gkyl_basis.h>
+#include <gkyl_range.h>
+#include <gkyl_rect_grid.h>
 
 // Object type definition.
 typedef struct gkyl_flash_interp_vars gkyl_flash_interp_vars;

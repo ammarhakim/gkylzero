@@ -1,14 +1,8 @@
 #pragma once
 
-#include <gkyl_array_reduce.h>
 #include <gkyl_dg_eqn.h>
-#include <gkyl_dg_updater_flash.h>
-#include <gkyl_dg_vlasov_pkpm.h>
 #include <gkyl_flash_compute_cfl_kernels.h>
 #include <gkyl_hyper_dg.h>
-#include <gkyl_wave_geom.h>
-#include <gkyl_wave_prop.h>
-#include <gkyl_wv_euler.h>
 
 // Function types for CFL frequency calculation kernels
 typedef double (*flash_compute_cfl_vlasov_pkpm_boundary_accel_t)(const double *w, const double *dxv, 

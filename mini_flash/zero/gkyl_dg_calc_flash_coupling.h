@@ -1,10 +1,9 @@
 #pragma once
 
-#include <gkyl_alloc.h>
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
+#include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_rect_decomp.h>
 
 typedef struct gkyl_dg_calc_flash_coupling gkyl_dg_calc_flash_coupling;
 

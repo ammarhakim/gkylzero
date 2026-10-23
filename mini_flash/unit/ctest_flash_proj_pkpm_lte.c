@@ -1,7 +1,6 @@
 #include <acutest.h>
 
 #include <gkyl_array.h>
-#include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>

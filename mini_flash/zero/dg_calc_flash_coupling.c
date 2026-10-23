@@ -1,7 +1,7 @@
+#include <gkyl_alloc.h>
+#include <gkyl_array_ops.h>
 #include <gkyl_dg_calc_flash_coupling.h>
 #include <gkyl_dg_calc_flash_coupling_priv.h>
-
-#include <gkyl_array_rio.h>
 
 static inline void
 copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)

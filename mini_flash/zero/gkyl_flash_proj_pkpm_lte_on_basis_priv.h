@@ -1,11 +1,11 @@
-#include <math.h>
+#pragma once
+
 #include <string.h>
 
 #include <gkyl_basis.h>
+#include <gkyl_flash_proj_pkpm_lte_on_basis.h>
 #include <gkyl_gauss_quad_data.h>
-#include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
-#include <gkyl_rect_decomp.h>
 #include <gkyl_util.h>
 
 struct gkyl_flash_proj_pkpm_lte_on_basis {

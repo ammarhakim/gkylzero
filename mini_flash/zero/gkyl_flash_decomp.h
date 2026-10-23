@@ -1,8 +1,5 @@
 #pragma once
 
-#include <gkyl_alloc.h>
-#include <gkyl_rect_decomp.h>
-
 struct gkyl_flash_decomp {
     int ndim; // Dimensionality.
     int total_ranks; // Total number of ranks in decomposition.

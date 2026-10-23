@@ -1,3 +1,5 @@
+#include <gkyl_app_priv.h>
+#include <gkyl_dg_bin_ops.h>
 #include <gkyl_flash_priv.h>
 
 void

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <gkyl_dg_vlasov_pkpm.h>
-#include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 
 // Object type

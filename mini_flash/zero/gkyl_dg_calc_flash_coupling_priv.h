@@ -1,7 +1,5 @@
 #pragma once
 
-#include <gkyl_array_ops.h>
-#include <gkyl_dg_calc_flash_coupling.h>
 #include <gkyl_flash_coupling_kernels.h>
 
 // Function type for computing momentum flux term, div(P) - grad(p)
