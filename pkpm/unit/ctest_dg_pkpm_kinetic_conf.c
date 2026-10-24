@@ -514,9 +514,10 @@ test_harm_vol(int cdim)
     gkyl_dg_pkpm_harm_vol_coef(harm, &s.clocal, s.bvar, s.grad_b, s.u, s.grad_u, s.xi,
       s.grad_xi, s.grad_ln_n, s.theta, s.dtb, s.em, hcoef, hwn);
     gkyl_dg_pkpm_harm_vol_advance(harm, &s.clocal, &s.plocal, hcoef, s.f, cflrate, rhs);
-    // the column source bound (plan 17.27) against the Gershgorin row sums of the stored source
-    // entries sampled over the cell (corners included) and over |w| <= W
-    double W = harm->wmax, max_ratio = 0.0;
+    // the column source bound (plan 17.27, 17.44) against the Gershgorin row sums of the stored source
+    // entries plus |Omega| from the gyration entries, sampled over the cell (corners included) and
+    // over |w| <= W
+    double W = harm->wmax, max_ratio = 0.0, om_max = 0.0;
     int ns = 1;
     for (int d = 0; d < cdim; ++d) {
       ns *= 5;
@@ -541,6 +542,15 @@ test_harm_vol(int cdim)
             mode[k] *= ph[d][kk % 3];
           }
         }
+        double om2 = 0.0;
+        for (int e = 0; e < 3; ++e) {
+          double v = 0.0;
+          for (int k = 0; k < harm->n2; ++k) {
+            v += ho[PKPM_HO_GYR(e) * harm->n2 + k] * mode[k];
+          }
+          om2 += v * v;
+        }
+        om_max = fmax(om_max, sqrt(om2));
         for (int iw = 0; iw <= 8; ++iw) {
           double w = -W + 0.25 * W * iw, row[8] = {0.0};
           for (int p = 0; p < harm->nsrc; ++p) {
@@ -556,13 +566,14 @@ test_harm_vol(int cdim)
             row[harm->src_o[p]] += fabs(v);
           }
           for (int o = 0; o < 8; ++o) {
-            max_ratio = fmax(max_ratio, row[o] / bound);
+            max_ratio = fmax(max_ratio, (row[o] + sqrt(om2)) / bound);
           }
         }
       }
     }
     TEST_CHECK(max_ratio <= 1.0 + 1e-12);
-    TEST_MSG("cdim=%d: largest sampled source row sum / column bound %g", cdim, max_ratio);
+    TEST_MSG("cdim=%d: largest sampled source row sum + |Omega| / column bound %g", cdim, max_ratio);
+    TEST_CHECK(om_max > 0.0);
     gkyl_array_release(hcoef);
     gkyl_array_release(hwn);
   }

@@ -104,12 +104,11 @@ pkpm_forward_euler(
   double dta = st->dt_actual = dt < dtmin ? dt : dtmin;
   st->dt_suggested = dtmin;
 
-  // complete update of distribution function; the first-harmonic blocks are then replaced by the
-  // exponential update of the stage (the gyration and its change across the step, plan 17.6)
+  // complete update of distribution function; at the nodes the gyrophase mixing damps, the
+  // first-harmonic blocks are then replaced by the integrating-factor stage (plan 17.44)
   for (int i = 0; i < app->num_species; ++i) {
-    pkpm_species_harm_exp_accum(app, &app->species[i], stage, dta, fin[i], fout[i]);
     gkyl_array_accumulate(gkyl_array_scale(fout[i], dta), 1.0, fin[i]);
-    pkpm_species_harm_exp_state(app, &app->species[i], stage, dta, fout[i]);
+    pkpm_species_harm_exp_advance(app, &app->species[i], stage, dta, fout[i]);
     gkyl_array_accumulate(gkyl_array_scale(fluidout[i], dta), 1.0, fluidin[i]);
     pkpm_species_apply_positivity(app, &app->species[i], fluidout[i]);
     pkpm_species_apply_bc(app, &app->species[i], fout[i]);

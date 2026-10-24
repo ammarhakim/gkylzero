@@ -315,9 +315,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     .phase_grid = &s->grid, .conf_basis = &app->confBasis, .qbym = s->info.charge / s->info.mass,
     .mix = gyro_mix, .use_gpu = app->use_gpu});
   s->harm_exp_coef = mkarr(app->use_gpu, gkyl_dg_pkpm_harm_exp_num_coef(s->harm_exp), app->local_ext.volume);
-  s->harm_exp_S = mkarr(app->use_gpu, gkyl_dg_pkpm_harm_exp_num_stage(s->harm_exp), s->local_ext.volume);
-  s->harm_exp_A = mkarr(app->use_gpu, gkyl_dg_pkpm_harm_exp_num_stage(s->harm_exp), s->local_ext.volume);
-  s->harm_exp_nu = mkarr(app->use_gpu, gkyl_dg_pkpm_harm_exp_num_stage(s->harm_exp) / 6, s->local_ext.volume);
+  s->harm_exp_nu = mkarr(app->use_gpu, gkyl_dg_pkpm_harm_exp_num_rate(s->harm_exp), s->local_ext.volume);
   s->harm_exp_act = mkarr(app->use_gpu, 1, app->local_ext.volume);
   s->harm_exp_col = mkarr(app->use_gpu, gkyl_dg_pkpm_harm_exp_num_col(s->harm_exp), app->local_ext.volume);
   struct gkyl_dg_pkpm_kinetic_vel_inp kinetic_vel_inp = {
@@ -893,26 +891,17 @@ pkpm_species_project_transverse(gkyl_pkpm_app *app, struct pkpm_species *species
 }
 
 void
-pkpm_species_harm_exp_accum(gkyl_pkpm_app *app, struct pkpm_species *species, int stage, double h,
-  const struct gkyl_array *fin, const struct gkyl_array *rhs)
-{
-  // The linear part is frozen with the field and the step of stage 1 (the field of the start of
-  // the step); a restarted step freezes it again with the new step.
-  if (stage == 1) {
-    gkyl_dg_pkpm_harm_exp_coef(species->harm_exp, &app->local, h, app->field->tot_em, species->harm_exp_coef);
-    gkyl_array_clear(species->harm_exp_act, 0.0);
-  }
-  gkyl_dg_pkpm_harm_exp_accum(species->harm_exp, stage, h, &app->local, &species->local,
-    species->harm_exp_coef, fin, rhs, species->harm_exp_nu, species->harm_exp_act, species->harm_exp_S,
-    species->harm_exp_A);
-}
-
-void
-pkpm_species_harm_exp_state(gkyl_pkpm_app *app, struct pkpm_species *species, int stage, double h,
+pkpm_species_harm_exp_advance(gkyl_pkpm_app *app, struct pkpm_species *species, int stage, double h,
   struct gkyl_array *fout)
 {
-  gkyl_dg_pkpm_harm_exp_state(species->harm_exp, stage, h, &app->local, &species->local,
-    species->harm_exp_coef, species->harm_exp_nu, species->f, species->harm_exp_S, species->harm_exp_A, fout);
+  // The mixing is frozen with the field and the state of stage 1 (the start of the step); a
+  // restarted step freezes it again with the new step.
+  if (stage == 1) {
+    gkyl_dg_pkpm_harm_exp_coef(species->harm_exp, &app->local, app->field->tot_em, species->harm_exp_coef);
+    gkyl_array_clear(species->harm_exp_act, 0.0);
+  }
+  gkyl_dg_pkpm_harm_exp_advance(species->harm_exp, stage, h, &app->local, &species->local,
+    species->harm_exp_coef, species->f, species->harm_exp_nu, species->harm_exp_act, fout);
   gkyl_dg_pkpm_harm_exp_restore(species->harm_exp, &app->local, &species->local, species->harm_exp_act,
     species->harm_exp_col, fout);
 }
@@ -1325,8 +1314,6 @@ pkpm_species_release(const gkyl_pkpm_app *app, const struct pkpm_species *s)
   gkyl_array_release(s->harm_wnode);
   gkyl_dg_pkpm_harm_exp_release(s->harm_exp);
   gkyl_array_release(s->harm_exp_coef);
-  gkyl_array_release(s->harm_exp_S);
-  gkyl_array_release(s->harm_exp_A);
   gkyl_array_release(s->harm_exp_nu);
   gkyl_array_release(s->harm_exp_act);
   gkyl_array_release(s->harm_exp_col);

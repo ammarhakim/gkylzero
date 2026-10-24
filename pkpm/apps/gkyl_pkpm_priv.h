@@ -276,9 +276,8 @@ struct pkpm_species {
   struct gkyl_dg_pkpm_harm_vol *harm_vol; // modal volume integrals of the first-harmonic terms (stage A)
   struct gkyl_array *harm_coef; // stored operator of the stage (gkyl_pkpm_harm_ops.h)
   struct gkyl_array *harm_wnode; // raw w-flux values of the stage at the w-face nodes
-  struct gkyl_dg_pkpm_harm_exp *harm_exp; // exponential update of the first-harmonic blocks (plan 17.6)
-  struct gkyl_array *harm_exp_coef; // its linear part frozen at the start of the step
-  struct gkyl_array *harm_exp_S, *harm_exp_A; // nodal N_1 (+ N_2) and the final weighted sum
+  struct gkyl_dg_pkpm_harm_exp *harm_exp; // gyrophase-mixing integrating factor of the first harmonic (plan 17.44)
+  struct gkyl_array *harm_exp_coef; // its field (q/m) B frozen at the start of the step
   struct gkyl_array *harm_exp_nu; // gyrophase-mixing rate at the phase nodes, frozen per step
   struct gkyl_array *harm_exp_act; // configuration cells with a damped node (momentum restoration)
   struct gkyl_array *harm_exp_col; // w integrals of F and M0_perp of the restoration
@@ -529,8 +528,9 @@ struct gkyl_pkpm_app {
 
 // Take a single forward Euler step of the PKPM system with the suggested time-step dt. The
 // first-harmonic blocks of the stage state fin are projected onto the plane perpendicular to the
-// stage's b first (in place). stage (1, 2 or 3) is the SSP-RK3 stage: the first-harmonic blocks of
-// fout are those of the exponential update of that stage in the Shu-Osher form of the driver.
+// stage's b first (in place). stage (1, 2 or 3) is the SSP-RK3 stage: where the gyrophase mixing
+// damps, the first-harmonic blocks of fout are those of its integrating-factor stage in the Shu-Osher
+// form of the driver.
 void pkpm_forward_euler(
   gkyl_pkpm_app *app, int stage, double tcurr, double dt, struct gkyl_array *fin[],
   const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *fout[],
@@ -796,15 +796,13 @@ void pkpm_species_bgk_set_fixed_temp(gkyl_pkpm_app *app, struct pkpm_species *s,
 // Project M0_perp and N_perp of the distributions f onto the plane perpendicular to the current b
 // at the Gauss-Legendre nodes of b, in place, over the extended ranges (plan 17.11).
 void pkpm_species_project_transverse(gkyl_pkpm_app *app, struct pkpm_species *species, struct gkyl_array *f);
-// Exponential update of the first-harmonic blocks (plan 17.6, 17.7, 17.24). Before the forward
-// Euler accumulate of stage s: freeze the linear part of the step (s = 1: the gyration (q/m) (.) x B_n
-// and the gyrophase-mixing rate at the phase nodes) and accumulate the stage right-hand side
-// rhs - L_n fin. After it: write the first-harmonic blocks of fout as the value whose SSP-RK3
-// combination with the state at the start of the step is the exponential stage, and restore
-// int M0_perp dw = 0 where the mixing acted.
-void pkpm_species_harm_exp_accum(gkyl_pkpm_app *app, struct pkpm_species *species, int stage, double h,
-  const struct gkyl_array *fin, const struct gkyl_array *rhs);
-void pkpm_species_harm_exp_state(gkyl_pkpm_app *app, struct pkpm_species *species, int stage, double h,
+// Gyrophase-mixing integrating factor of the first-harmonic blocks (plan 17.44, 17.24), after the
+// forward Euler accumulate of stage s (fout = fin + h rhs; the gyration is explicit in rhs). At
+// s = 1 it freezes the mixing of the step (the field and the rate at the phase nodes). At damped
+// nodes it writes the first-harmonic blocks of fout as the value whose SSP-RK3 combination with the
+// state at the start of the step is the integrating-factor stage, and restores int M0_perp dw = 0
+// where the mixing acted.
+void pkpm_species_harm_exp_advance(gkyl_pkpm_app *app, struct pkpm_species *species, int stage, double h,
   struct gkyl_array *fout);
 
 // out += a conf * phase for every block of a phase array (the bin-op kernels act on one

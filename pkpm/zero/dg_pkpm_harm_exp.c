@@ -45,9 +45,9 @@ gkyl_dg_pkpm_harm_exp_num_coef(const struct gkyl_dg_pkpm_harm_exp *up)
 }
 
 int
-gkyl_dg_pkpm_harm_exp_num_stage(const struct gkyl_dg_pkpm_harm_exp *up)
+gkyl_dg_pkpm_harm_exp_num_rate(const struct gkyl_dg_pkpm_harm_exp *up)
 {
-  return up->num_phase_nodes * 6;
+  return up->num_phase_nodes;
 }
 
 int
@@ -58,13 +58,13 @@ gkyl_dg_pkpm_harm_exp_num_col(const struct gkyl_dg_pkpm_harm_exp *up)
 
 void
 gkyl_dg_pkpm_harm_exp_coef(
-  const struct gkyl_dg_pkpm_harm_exp *up, const struct gkyl_range *conf_range, double h,
+  const struct gkyl_dg_pkpm_harm_exp *up, const struct gkyl_range *conf_range,
   const struct gkyl_array *em, struct gkyl_array *coef
 )
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(coef)) {
-    gkyl_dg_pkpm_harm_exp_coef_cu(up, conf_range, h, em, coef);
+    gkyl_dg_pkpm_harm_exp_coef_cu(up, conf_range, em, coef);
     return;
   }
 #endif
@@ -72,46 +72,23 @@ gkyl_dg_pkpm_harm_exp_coef(
   gkyl_range_iter_init(&iter, conf_range);
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(conf_range, iter.idx);
-    pkpm_hx_coef_cell(up, h, gkyl_array_cfetch(em, loc), gkyl_array_fetch(coef, loc));
+    pkpm_hx_coef_cell(up, gkyl_array_cfetch(em, loc), gkyl_array_fetch(coef, loc));
   }
 }
 
 void
-gkyl_dg_pkpm_harm_exp_accum(
+gkyl_dg_pkpm_harm_exp_advance(
   const struct gkyl_dg_pkpm_harm_exp *up, int stage, double h, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, const struct gkyl_array *coef, const struct gkyl_array *fin,
-  const struct gkyl_array *rhs, struct gkyl_array *nu, struct gkyl_array *act, struct gkyl_array *S,
-  struct gkyl_array *A
+  const struct gkyl_range *phase_range, const struct gkyl_array *coef, const struct gkyl_array *f0,
+  struct gkyl_array *nu, struct gkyl_array *act, struct gkyl_array *out
 )
 {
-#ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(S)) {
-    gkyl_dg_pkpm_harm_exp_accum_cu(up, stage, h, conf_range, phase_range, coef, fin, rhs, nu, act, S, A);
+  if (up->mix <= 0.0) {
     return;
   }
-#endif
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, phase_range);
-  while (gkyl_range_iter_next(&iter)) {
-    long cloc = gkyl_range_idx(conf_range, iter.idx);
-    long ploc = gkyl_range_idx(phase_range, iter.idx);
-    pkpm_hx_accum_cell(up, stage, h, gkyl_array_cfetch(coef, cloc), gkyl_array_cfetch(fin, ploc),
-      gkyl_array_cfetch(rhs, ploc), up->mix > 0.0 ? gkyl_array_fetch(nu, ploc) : 0,
-      up->mix > 0.0 ? gkyl_array_fetch(act, cloc) : 0, gkyl_array_fetch(S, ploc), gkyl_array_fetch(A, ploc));
-  }
-}
-
-void
-gkyl_dg_pkpm_harm_exp_state(
-  const struct gkyl_dg_pkpm_harm_exp *up, int stage, double h, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, const struct gkyl_array *coef, const struct gkyl_array *nu,
-  const struct gkyl_array *f0, const struct gkyl_array *S, const struct gkyl_array *A,
-  struct gkyl_array *out
-)
-{
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
-    gkyl_dg_pkpm_harm_exp_state_cu(up, stage, h, conf_range, phase_range, coef, nu, f0, S, A, out);
+    gkyl_dg_pkpm_harm_exp_advance_cu(up, stage, h, conf_range, phase_range, coef, f0, nu, act, out);
     return;
   }
 #endif
@@ -120,9 +97,8 @@ gkyl_dg_pkpm_harm_exp_state(
   while (gkyl_range_iter_next(&iter)) {
     long cloc = gkyl_range_idx(conf_range, iter.idx);
     long ploc = gkyl_range_idx(phase_range, iter.idx);
-    pkpm_hx_state_cell(up, stage, h, gkyl_array_cfetch(coef, cloc),
-      up->mix > 0.0 ? gkyl_array_cfetch(nu, ploc) : 0, gkyl_array_cfetch(f0, ploc),
-      gkyl_array_cfetch(S, ploc), gkyl_array_cfetch(A, ploc), gkyl_array_fetch(out, ploc));
+    pkpm_hx_advance_cell(up, stage, h, gkyl_array_cfetch(coef, cloc), gkyl_array_cfetch(f0, ploc),
+      gkyl_array_fetch(nu, ploc), gkyl_array_fetch(act, cloc), gkyl_array_fetch(out, ploc));
   }
 }
 

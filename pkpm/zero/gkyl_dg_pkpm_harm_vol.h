@@ -107,8 +107,9 @@ void gkyl_dg_pkpm_harm_vol_coef_cu(
 
 /**
  * Accumulate the first-harmonic volume terms into rhs, and the bound of their source rate over each
- * column (absolute coefficients over the configuration cell, at the larger |w| edge; plan 17.27)
- * into cflrate in every cell of the column.
+ * column (absolute coefficients over the configuration cell, at the larger |w| edge; plan 17.27),
+ * plus the bound of the gyration rate |(q/m) B| over the cell (plan 17.44), into cflrate in every
+ * cell of the column.
  *
  * @param up Updater.
  * @param conf_range Configuration-space range indexing the coefficients.

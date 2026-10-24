@@ -1,8 +1,9 @@
-// Tests of the exponential Runge-Kutta update of the first-harmonic blocks (dg_pkpm_harm_exp),
-// driven through the three stages exactly as the SSP-RK3 driver of the app does: the nodal
-// transforms are exact inverses, the update is exact for a constant field and forcing at any
-// Omega dt, it is SSP-RK3 itself without a field, and it is third order with a field that changes
-// magnitude and direction across the step.
+// Tests of the gyrophase-mixing integrating factor of the first-harmonic blocks (dg_pkpm_harm_exp),
+// driven through the three stages exactly as the SSP-RK3 driver of the app does, with the gyration
+// explicit in the stage right-hand side: the nodal transforms are exact inverses, a step with the
+// mixing active is e^(-nu h) R_RK3(h Omega J) on the plane perpendicular to b (exact relaxation, the
+// SSP-RK3 gyration), states inside the bound are SSP-RK3 bit for bit, and the mixing relaxes a column
+// to the bound with int M0_perp dw kept zero.
 #include <math.h>
 
 #include <acutest.h>
@@ -22,11 +23,12 @@ struct hx_cell {
   struct gkyl_rect_grid pgrid;
   struct gkyl_range crange, prange;
   struct gkyl_dg_pkpm_harm_exp *up;
-  struct gkyl_array *em, *coef, *S, *A, *nu, *act;
+  struct gkyl_array *em, *coef, *nu, *act;
+  double om[3]; // (q/m) B (qbym = 1), uniform
 };
 
 static struct hx_cell
-hx_cell_new(int cdim)
+hx_cell_new(int cdim, double mix, double om0)
 {
   struct hx_cell c = {.cdim = cdim};
   gkyl_cart_modal_serendip(&c.cbasis, cdim, 1);
@@ -42,13 +44,23 @@ hx_cell_new(int cdim)
   int pcells[GKYL_MAX_DIM] = {1, 1, 1, 1};
   gkyl_rect_grid_init(&c.pgrid, cdim + 1, plo, pup, pcells);
   c.up = gkyl_dg_pkpm_harm_exp_new(&(struct gkyl_dg_pkpm_harm_exp_inp) {
-    .phase_grid = &c.pgrid, .conf_basis = &c.cbasis, .qbym = 1.0, .mix = 0.0, .use_gpu = false});
+    .phase_grid = &c.pgrid, .conf_basis = &c.cbasis, .qbym = 1.0, .mix = mix, .use_gpu = false});
   c.em = gkyl_array_new(GKYL_DOUBLE, 8 * c.nc, 1);
   c.coef = gkyl_array_new(GKYL_DOUBLE, gkyl_dg_pkpm_harm_exp_num_coef(c.up), 1);
-  c.S = gkyl_array_new(GKYL_DOUBLE, gkyl_dg_pkpm_harm_exp_num_stage(c.up), 1);
-  c.A = gkyl_array_new(GKYL_DOUBLE, gkyl_dg_pkpm_harm_exp_num_stage(c.up), 1);
-  c.nu = gkyl_array_new(GKYL_DOUBLE, gkyl_dg_pkpm_harm_exp_num_stage(c.up) / 6, 1);
+  c.nu = gkyl_array_new(GKYL_DOUBLE, gkyl_dg_pkpm_harm_exp_num_rate(c.up), 1);
   c.act = gkyl_array_new(GKYL_DOUBLE, 1, 1);
+  double n = sqrt(0.29);
+  c.om[0] = om0 * 0.3 / n;
+  c.om[1] = om0 * -0.2 / n;
+  c.om[2] = om0 * 0.4 / n;
+  // a spatially uniform field (only the constant mode of the configuration basis)
+  double *em = gkyl_array_fetch(c.em, 0);
+  for (int k = 0; k < 8 * c.nc; ++k) {
+    em[k] = 0.0;
+  }
+  for (int a = 0; a < 3; ++a) {
+    em[(3 + a) * c.nc] = c.om[a] * pow(sqrt(2.0), cdim);
+  }
   return c;
 }
 
@@ -58,61 +70,16 @@ hx_cell_release(struct hx_cell *c)
   gkyl_dg_pkpm_harm_exp_release(c->up);
   gkyl_array_release(c->em);
   gkyl_array_release(c->coef);
-  gkyl_array_release(c->S);
-  gkyl_array_release(c->A);
   gkyl_array_release(c->nu);
   gkyl_array_release(c->act);
 }
 
-// A spatially uniform field B (only the constant mode of the configuration basis).
+// rhs = U x omega (the gyration) in the first-harmonic blocks, F and G get zero. A uniform omega
+// makes the Galerkin product with U the cross product of the coefficient vectors.
 static void
-hx_set_field(struct hx_cell *c, const double *B)
+hx_rhs(const struct hx_cell *c, const double *f, double *rhs)
 {
-  double *em = gkyl_array_fetch(c->em, 0);
-  for (int k = 0; k < 8 * c->nc; ++k) {
-    em[k] = 0.0;
-  }
-  for (int a = 0; a < 3; ++a) {
-    em[(3 + a) * c->nc] = B[a] * pow(sqrt(2.0), c->cdim);
-  }
-}
-
-// The test problem, mode by mode of the first-harmonic blocks: dU/dt = U x omega(t) + S_k(t). A
-// uniform omega makes the Galerkin product with U the cross product of the coefficient vectors.
-struct hx_problem {
-  double om0; // magnitude scale of omega
-  bool vary; // omega and S change in time
-};
-
-static void
-hx_omega(const struct hx_problem *pb, double t, double *om)
-{
-  if (!pb->vary) {
-    double n = sqrt(0.29);
-    om[0] = pb->om0 * 0.3 / n;
-    om[1] = pb->om0 * -0.2 / n;
-    om[2] = pb->om0 * 0.4 / n;
-    return;
-  }
-  double ang = 0.3 * sin(0.7 * t), mag = pb->om0 * (1.0 + 0.2 * sin(0.7 * t + 1.0));
-  om[0] = mag * sin(ang);
-  om[1] = 0.0;
-  om[2] = mag * cos(ang);
-}
-
-static double
-hx_source(const struct hx_problem *pb, double t, int k, int a)
-{
-  double base = 0.3 + 0.1 * k - 0.2 * a;
-  return pb->vary ? base * (1.0 + 0.3 * sin(0.5 * t + k + a)) : base;
-}
-
-// rhs = U x omega(t) + S(t) in the first-harmonic blocks; F and G get zero.
-static void
-hx_rhs(const struct hx_cell *c, const struct hx_problem *pb, double t, const double *f, double *rhs)
-{
-  double om[3];
-  hx_omega(pb, t, om);
+  const double *om = c->om;
   for (int k = 0; k < 8 * c->np; ++k) {
     rhs[k] = 0.0;
   }
@@ -122,178 +89,82 @@ hx_rhs(const struct hx_cell *c, const struct hx_problem *pb, double t, const dou
       for (int a = 0; a < 3; ++a) {
         u[a] = f[(2 + 3 * v + a) * c->np + k];
       }
-      double uxo[3] = {u[1] * om[2] - u[2] * om[1], u[2] * om[0] - u[0] * om[2], u[0] * om[1] - u[1] * om[0]};
-      for (int a = 0; a < 3; ++a) {
-        rhs[(2 + 3 * v + a) * c->np + k] = uxo[a] + hx_source(pb, t, k + 3 * v, a);
-      }
+      rhs[(2 + 3 * v) * c->np + k] = u[1] * om[2] - u[2] * om[1];
+      rhs[(3 + 3 * v) * c->np + k] = u[2] * om[0] - u[0] * om[2];
+      rhs[(4 + 3 * v) * c->np + k] = u[0] * om[1] - u[1] * om[0];
     }
   }
 }
 
-// One step of the app's SSP-RK3 driver (Shu-Osher form, forward Euler stages) with the
-// exponential update written into the first-harmonic blocks of each stage output.
+// One step of the app's SSP-RK3 driver (Shu-Osher form, forward Euler stages) with the mixing
+// integrating factor written into the first-harmonic blocks of each stage output.
 static void
-hx_step(struct hx_cell *c, const struct hx_problem *pb, double t, double h, bool use_exp, double *f)
+hx_step(struct hx_cell *c, double h, bool use_mix, double *f)
 {
   int n = 8 * c->np;
-  double f1[8 * 24], fnew[8 * 24], rhs[8 * 24];
-  struct gkyl_array *fa = gkyl_array_new(GKYL_DOUBLE, n, 1), *f1a = gkyl_array_new(GKYL_DOUBLE, n, 1);
-  struct gkyl_array *ra = gkyl_array_new(GKYL_DOUBLE, n, 1), *oa = gkyl_array_new(GKYL_DOUBLE, n, 1);
-  double om[3];
-  hx_omega(pb, t, om);
-  hx_set_field(c, om); // qbym = 1
-  gkyl_dg_pkpm_harm_exp_coef(c->up, &c->crange, h, c->em, c->coef);
+  double fin[8 * 24], rhs[8 * 24];
+  struct gkyl_array *fa = gkyl_array_new(GKYL_DOUBLE, n, 1), *oa = gkyl_array_new(GKYL_DOUBLE, n, 1);
+  double *f0 = gkyl_array_fetch(fa, 0), *out = gkyl_array_fetch(oa, 0);
+  gkyl_dg_pkpm_harm_exp_coef(c->up, &c->crange, c->em, c->coef);
+  gkyl_array_clear(c->act, 0.0);
   for (int k = 0; k < n; ++k) {
-    ((double *)gkyl_array_fetch(fa, 0))[k] = f[k];
+    f0[k] = fin[k] = f[k];
   }
-  // stage 1
-  hx_rhs(c, pb, t, f, rhs);
-  for (int k = 0; k < n; ++k) {
-    f1[k] = f[k] + h * rhs[k];
-  }
-  if (use_exp) {
+  for (int s = 1; s <= 3; ++s) {
+    hx_rhs(c, fin, rhs);
     for (int k = 0; k < n; ++k) {
-      ((double *)gkyl_array_fetch(ra, 0))[k] = rhs[k];
-      ((double *)gkyl_array_fetch(oa, 0))[k] = f1[k];
+      out[k] = fin[k] + h * rhs[k];
     }
-    gkyl_dg_pkpm_harm_exp_accum(c->up, 1, h, &c->crange, &c->prange, c->coef, fa, ra, c->nu, c->act, c->S, c->A);
-    gkyl_dg_pkpm_harm_exp_state(c->up, 1, h, &c->crange, &c->prange, c->coef, c->nu, fa, c->S, c->A, oa);
-    for (int k = 0; k < n; ++k) {
-      f1[k] = ((double *)gkyl_array_fetch(oa, 0))[k];
+    if (use_mix) {
+      gkyl_dg_pkpm_harm_exp_advance(c->up, s, h, &c->crange, &c->prange, c->coef, fa, c->nu, c->act, oa);
     }
-  }
-  // stage 2
-  hx_rhs(c, pb, t + h, f1, rhs);
-  for (int k = 0; k < n; ++k) {
-    fnew[k] = f1[k] + h * rhs[k];
-  }
-  if (use_exp) {
     for (int k = 0; k < n; ++k) {
-      ((double *)gkyl_array_fetch(f1a, 0))[k] = f1[k];
-      ((double *)gkyl_array_fetch(ra, 0))[k] = rhs[k];
-      ((double *)gkyl_array_fetch(oa, 0))[k] = fnew[k];
-    }
-    gkyl_dg_pkpm_harm_exp_accum(c->up, 2, h, &c->crange, &c->prange, c->coef, f1a, ra, c->nu, c->act, c->S, c->A);
-    gkyl_dg_pkpm_harm_exp_state(c->up, 2, h, &c->crange, &c->prange, c->coef, c->nu, fa, c->S, c->A, oa);
-    for (int k = 0; k < n; ++k) {
-      fnew[k] = ((double *)gkyl_array_fetch(oa, 0))[k];
+      fin[k] = s == 1 ? out[k] : (s == 2 ? 0.75 * f[k] + 0.25 * out[k] : f[k] / 3.0 + 2.0 / 3.0 * out[k]);
     }
   }
   for (int k = 0; k < n; ++k) {
-    f1[k] = 0.75 * f[k] + 0.25 * fnew[k];
-  }
-  // stage 3
-  hx_rhs(c, pb, t + 0.5 * h, f1, rhs);
-  for (int k = 0; k < n; ++k) {
-    fnew[k] = f1[k] + h * rhs[k];
-  }
-  if (use_exp) {
-    for (int k = 0; k < n; ++k) {
-      ((double *)gkyl_array_fetch(f1a, 0))[k] = f1[k];
-      ((double *)gkyl_array_fetch(ra, 0))[k] = rhs[k];
-      ((double *)gkyl_array_fetch(oa, 0))[k] = fnew[k];
-    }
-    gkyl_dg_pkpm_harm_exp_accum(c->up, 3, h, &c->crange, &c->prange, c->coef, f1a, ra, c->nu, c->act, c->S, c->A);
-    gkyl_dg_pkpm_harm_exp_state(c->up, 3, h, &c->crange, &c->prange, c->coef, c->nu, fa, c->S, c->A, oa);
-    for (int k = 0; k < n; ++k) {
-      fnew[k] = ((double *)gkyl_array_fetch(oa, 0))[k];
-    }
-  }
-  for (int k = 0; k < n; ++k) {
-    f[k] = f[k] / 3.0 + 2.0 / 3.0 * fnew[k];
+    f[k] = fin[k];
   }
   gkyl_array_release(fa);
-  gkyl_array_release(f1a);
-  gkyl_array_release(ra);
   gkyl_array_release(oa);
 }
 
+// A state from nodal first-harmonic vectors perpendicular to omega with |M0_perp| = amp (1 + 0.1 p)
+// at phase node p (r_M = sqrt2 |M0_perp| with F = G = 1) and |N_perp| half of that (r_N < r_M), and
+// F = G = 1 at the nodes.
 static void
-hx_init(const struct hx_cell *c, double *f)
+hx_init_nodal(const struct hx_cell *c, double amp, double *f)
 {
+  double mag = sqrt(c->om[0] * c->om[0] + c->om[1] * c->om[1] + c->om[2] * c->om[2]);
+  double oh[3] = {c->om[0] / mag, c->om[1] / mag, c->om[2] / mag};
+  // e1 perpendicular to oh, e2 = oh x e1
+  double e1[3] = {oh[1], -oh[0], 0.0}, n1 = sqrt(oh[0] * oh[0] + oh[1] * oh[1]);
+  for (int a = 0; a < 3; ++a) {
+    e1[a] /= n1;
+  }
+  double e2[3] = {oh[1] * e1[2] - oh[2] * e1[1], oh[2] * e1[0] - oh[0] * e1[2], oh[0] * e1[1] - oh[1] * e1[0]};
   for (int k = 0; k < 8 * c->np; ++k) {
-    f[k] = 0.1 * sin(1.3 * k + 0.4);
+    f[k] = 0.0;
   }
-}
-
-static void
-hx_run(struct hx_cell *c, const struct hx_problem *pb, double T, int nstep, bool use_exp, double *f)
-{
-  hx_init(c, f);
-  double h = T / nstep;
-  for (int s = 0; s < nstep; ++s) {
-    hx_step(c, pb, s * h, h, use_exp, f);
-  }
-}
-
-// Classical RK4 reference of the same ODE.
-static void
-hx_ref(struct hx_cell *c, const struct hx_problem *pb, double T, int nstep, double *f)
-{
-  int n = 8 * c->np;
-  double k1[8 * 24], k2[8 * 24], k3[8 * 24], k4[8 * 24], tmp[8 * 24];
-  hx_init(c, f);
-  double h = T / nstep;
-  for (int s = 0; s < nstep; ++s) {
-    double t = s * h;
-    hx_rhs(c, pb, t, f, k1);
-    for (int k = 0; k < n; ++k) tmp[k] = f[k] + 0.5 * h * k1[k];
-    hx_rhs(c, pb, t + 0.5 * h, tmp, k2);
-    for (int k = 0; k < n; ++k) tmp[k] = f[k] + 0.5 * h * k2[k];
-    hx_rhs(c, pb, t + 0.5 * h, tmp, k3);
-    for (int k = 0; k < n; ++k) tmp[k] = f[k] + h * k3[k];
-    hx_rhs(c, pb, t + h, tmp, k4);
-    for (int k = 0; k < n; ++k) f[k] += h / 6.0 * (k1[k] + 2.0 * k2[k] + 2.0 * k3[k] + k4[k]);
-  }
-}
-
-// Exact solution with constant omega and S: U_par + S_par t, d + e^(tL)(U - d) with d = (S x om)/|om|^2.
-static void
-hx_exact_const(struct hx_cell *c, const struct hx_problem *pb, double T, double *f)
-{
-  double om[3];
-  hx_omega(pb, 0.0, om);
-  double mag = sqrt(om[0] * om[0] + om[1] * om[1] + om[2] * om[2]);
-  double oh[3] = {om[0] / mag, om[1] / mag, om[2] / mag};
-  hx_init(c, f);
-  for (int v = 0; v < 2; ++v) {
-    for (int k = 0; k < c->np; ++k) {
-      double u[3], s[3];
+  // F = G = 1: the constant mode of the orthonormal basis is 2^(-(cdim+1)/2)
+  f[0] = f[c->np] = pow(sqrt(2.0), c->cdim + 1);
+  double Xn[24 * 6];
+  for (int p = 0; p < c->np; ++p) {
+    double am = amp * (1.0 + 0.1 * p) / sqrt(2.0);
+    for (int v = 0; v < 2; ++v) {
+      double ph = 0.7 * p + 1.3 * v, s = v == 0 ? am : 0.5 * am;
       for (int a = 0; a < 3; ++a) {
-        u[a] = f[(2 + 3 * v + a) * c->np + k];
-        s[a] = hx_source(pb, 0.0, k + 3 * v, a);
-      }
-      double ub = u[0] * oh[0] + u[1] * oh[1] + u[2] * oh[2], sb = s[0] * oh[0] + s[1] * oh[1] + s[2] * oh[2];
-      double sp[3], d[3], w[3];
-      for (int a = 0; a < 3; ++a) sp[a] = s[a] - sb * oh[a];
-      d[0] = (sp[1] * om[2] - sp[2] * om[1]) / (mag * mag);
-      d[1] = (sp[2] * om[0] - sp[0] * om[2]) / (mag * mag);
-      d[2] = (sp[0] * om[1] - sp[1] * om[0]) / (mag * mag);
-      for (int a = 0; a < 3; ++a) w[a] = u[a] - ub * oh[a] - d[a];
-      double wxo[3] = {w[1] * oh[2] - w[2] * oh[1], w[2] * oh[0] - w[0] * oh[2], w[0] * oh[1] - w[1] * oh[0]};
-      double cs = cos(mag * T), sn = sin(mag * T);
-      for (int a = 0; a < 3; ++a) {
-        f[(2 + 3 * v + a) * c->np + k] = (ub + sb * T) * oh[a] + d[a] + cs * w[a] + sn * wxo[a];
+        Xn[6 * p + 3 * v + a] = s * (cos(ph) * e1[a] + sin(ph) * e2[a]);
       }
     }
   }
-}
-
-static double
-hx_rel_err(const struct hx_cell *c, const double *f, const double *g)
-{
-  double num = 0.0, den = 0.0;
-  for (int k = 2 * c->np; k < 8 * c->np; ++k) {
-    num += (f[k] - g[k]) * (f[k] - g[k]);
-    den += g[k] * g[k];
-  }
-  return sqrt(num / den);
+  pkpm_hx_to_modal(c->cdim, Xn, f);
 }
 
 static void
 test_transforms(int cdim)
 {
-  struct hx_cell c = hx_cell_new(cdim);
+  struct hx_cell c = hx_cell_new(cdim, 0.0, 1.0);
   double f[8 * 24], g[8 * 24], fn[24 * 6];
   for (int k = 0; k < 8 * c.np; ++k) {
     f[k] = sin(0.7 * k + 0.1);
@@ -317,103 +188,86 @@ static void test_transforms_1x(void) { test_transforms(1); }
 static void test_transforms_2x(void) { test_transforms(2); }
 static void test_transforms_3x(void) { test_transforms(3); }
 
-// Constant field and forcing: exact at any Omega dt (the drift, the rotation and the parallel growth).
+// The mixing active at every node (r = 1.5 (1 + 0.1 p) at phase node p), Omega h = 0.5: one step is,
+// node by node, e^(-nu h) R_RK3(h Omega J) on the plane perpendicular to b (the damping and the
+// rotation commute there, so the integrating factor is exact), with nu the rate of the start of the
+// step; uncapped (mix 2) and at the cap ln(r)/h (mix 100, the step ends on the bound up to R_RK3).
 static void
-test_constant(int cdim)
+test_damp_step(int cdim)
 {
-  struct hx_cell c = hx_cell_new(cdim);
-  double f[8 * 24], g[8 * 24];
-  double om_h[] = {0.1, 2.0, 10.0, 100.0, 1000.0};
-  for (int i = 0; i < 5; ++i) {
-    struct hx_problem pb = {.om0 = om_h[i] / 0.1, .vary = false};
-    hx_run(&c, &pb, 2.0, 20, true, f);
-    hx_exact_const(&c, &pb, 2.0, g);
-    double err = hx_rel_err(&c, f, g);
-    TEST_CHECK(err < 1e-12);
-    TEST_MSG("cdim %d, Omega dt = %g: relative error %g", cdim, om_h[i], err);
-  }
-  hx_cell_release(&c);
-}
-
-static void test_constant_1x(void) { test_constant(1); }
-static void test_constant_2x(void) { test_constant(2); }
-static void test_constant_3x(void) { test_constant(3); }
-
-// Without a field the update is SSP-RK3 (to round-off).
-static void
-test_no_field(void)
-{
-  struct hx_cell c = hx_cell_new(2);
-  double f[8 * 24], g[8 * 24];
-  struct hx_problem pb = {.om0 = 0.0, .vary = true};
-  hx_run(&c, &pb, 2.0, 20, true, f);
-  hx_run(&c, &pb, 2.0, 20, false, g);
-  double err = hx_rel_err(&c, f, g);
-  TEST_CHECK(err < 1e-14);
-  TEST_MSG("relative difference to SSP-RK3 %g", err);
-  hx_cell_release(&c);
-}
-
-// Zero first harmonic stays exactly zero.
-static void
-test_zero(void)
-{
-  struct hx_cell c = hx_cell_new(2);
-  struct hx_problem pb = {.om0 = 50.0, .vary = true};
-  double f[8 * 24], rhs[8 * 24];
-  for (int k = 0; k < 8 * c.np; ++k) {
-    f[k] = k < 2 * c.np ? 1.0 + 0.1 * k : 0.0;
-  }
-  // a zero right-hand side in the first-harmonic blocks: no source
-  struct gkyl_array *fa = gkyl_array_new(GKYL_DOUBLE, 8 * c.np, 1);
-  struct gkyl_array *ra = gkyl_array_new(GKYL_DOUBLE, 8 * c.np, 1);
-  struct gkyl_array *oa = gkyl_array_new(GKYL_DOUBLE, 8 * c.np, 1);
-  double B[3] = {1.0, 2.0, 3.0};
-  hx_set_field(&c, B);
-  gkyl_dg_pkpm_harm_exp_coef(c.up, &c.crange, 0.3, c.em, c.coef);
-  for (int k = 0; k < 8 * c.np; ++k) {
-    ((double *)gkyl_array_fetch(fa, 0))[k] = f[k];
-    ((double *)gkyl_array_fetch(ra, 0))[k] = k < 2 * c.np ? 0.5 : 0.0;
-    ((double *)gkyl_array_fetch(oa, 0))[k] = 7.0;
-  }
-  bool ok = true;
-  for (int s = 1; s <= 3; ++s) {
-    gkyl_dg_pkpm_harm_exp_accum(c.up, s, 0.3, &c.crange, &c.prange, c.coef, fa, ra, c.nu, c.act, c.S, c.A);
-    gkyl_dg_pkpm_harm_exp_state(c.up, s, 0.3, &c.crange, &c.prange, c.coef, c.nu, fa, c.S, c.A, oa);
-    const double *o = gkyl_array_cfetch(oa, 0);
+  double h = 0.1, mixes[2] = {2.0, 100.0};
+  for (int im = 0; im < 2; ++im) {
+    struct hx_cell c = hx_cell_new(cdim, mixes[im], 5.0);
+    double f[8 * 24], f0[8 * 24];
+    hx_init_nodal(&c, 1.5, f);
     for (int k = 0; k < 8 * c.np; ++k) {
-      ok = ok && (k < 2 * c.np ? o[k] == 7.0 : o[k] == 0.0);
+      f0[k] = f[k];
     }
+    hx_step(&c, h, true, f);
+    double Mn[24 * 6], Xn[24 * 6], fgn[24 * 2];
+    pkpm_hx_to_nodes(cdim, f0, Mn);
+    pkpm_hx_fg_to_nodes(cdim, f0, fgn);
+    pkpm_hx_to_nodes(cdim, f, Xn);
+    double oh[3];
+    double mag = pkpm_hx_axis(c.om, oh), y = mag * h, err = 0.0, vmax = 0.0;
+    int ncap = 0;
+    for (int p = 0; p < c.np; ++p) {
+      double nu = pkpm_hx_rate(c.up->mix, mag, h, fgn[2 * p], fgn[2 * p + 1], &Mn[6 * p], &Mn[6 * p + 3]);
+      TEST_CHECK(nu > 0.0);
+      const double *m0 = &Mn[6 * p];
+      double r = sqrt(2.0) * sqrt(m0[0] * m0[0] + m0[1] * m0[1] + m0[2] * m0[2]) / sqrt(fgn[2 * p] * fgn[2 * p + 1]);
+      ncap += fabs(nu - log(r) / h) < 1e-12 * nu;
+      double d = exp(-nu * h);
+      for (int v = 0; v < 2; ++v) {
+        const double *m = &Mn[6 * p + 3 * v];
+        double mxo[3] = {m[1] * oh[2] - m[2] * oh[1], m[2] * oh[0] - m[0] * oh[2], m[0] * oh[1] - m[1] * oh[0]};
+        for (int a = 0; a < 3; ++a) {
+          double ref = d * ((1.0 - 0.5 * y * y) * m[a] + (y - y * y * y / 6.0) * mxo[a]);
+          err = fmax(err, fabs(Xn[6 * p + 3 * v + a] - ref));
+          vmax = fmax(vmax, fabs(m[a]));
+        }
+      }
+    }
+    TEST_CHECK(err < 1e-13 * vmax);
+    TEST_MSG("cdim %d, mix %g: max nodal error %g (max |M| %g)", cdim, mixes[im], err, vmax);
+    TEST_CHECK(im == 0 ? ncap == 0 : ncap == c.np); // uncapped at mix 2, capped everywhere at 100
+    bool fg_same = true;
+    for (int k = 0; k < 2 * c.np; ++k) {
+      fg_same = fg_same && f[k] == f0[k];
+    }
+    TEST_CHECK(fg_same);
+    hx_cell_release(&c);
   }
-  TEST_CHECK(ok);
-  gkyl_array_release(fa);
-  gkyl_array_release(ra);
-  gkyl_array_release(oa);
-  hx_cell_release(&c);
 }
 
-// Field changing magnitude (20%) and direction (0.3 rad): third order with the frozen
-// exponential and the stage remainder.
+static void test_damp_step_1x(void) { test_damp_step(1); }
+static void test_damp_step_2x(void) { test_damp_step(2); }
+static void test_damp_step_3x(void) { test_damp_step(3); }
+
+// Inside the bound (r <= 0.74) with the mixing on, and with it off, the step is SSP-RK3 bit for bit.
 static void
-test_order(void)
+test_inactive(void)
 {
-  struct hx_cell c = hx_cell_new(1);
-  double f[8 * 24], g[8 * 24];
-  struct hx_problem pb = {.om0 = 4.0, .vary = true};
-  hx_ref(&c, &pb, 3.0, 60000, g);
-  double err[4];
-  int nsteps[4] = {15, 30, 60, 120};
-  for (int i = 0; i < 4; ++i) {
-    hx_run(&c, &pb, 3.0, nsteps[i], true, f);
-    err[i] = hx_rel_err(&c, f, g);
+  double mixes[2] = {10.0, -1.0};
+  for (int im = 0; im < 2; ++im) {
+    struct hx_cell c = hx_cell_new(2, mixes[im], 5.0);
+    double f[8 * 24], g[8 * 24];
+    hx_init_nodal(&c, 0.35, f);
+    for (int k = 0; k < 8 * c.np; ++k) {
+      g[k] = f[k];
+    }
+    for (int s = 0; s < 5; ++s) {
+      hx_step(&c, 0.1, true, f);
+      hx_step(&c, 0.1, false, g);
+    }
+    bool same = true;
+    for (int k = 0; k < 8 * c.np; ++k) {
+      same = same && f[k] == g[k];
+    }
+    TEST_CHECK(same);
+    TEST_MSG("mix %g", mixes[im]);
+    hx_cell_release(&c);
   }
-  for (int i = 1; i < 4; ++i) {
-    double order = log2(err[i - 1] / err[i]);
-    TEST_CHECK(order > 2.8);
-    TEST_MSG("Omega dt = %g -> %g: errors %g -> %g, order %g", 4.0 * 3.0 / nsteps[i - 1],
-      4.0 * 3.0 / nsteps[i], err[i - 1], err[i], order);
-  }
-  hx_cell_release(&c);
 }
 
 // The mixing rate of one node: zero inside the bound, mix |Omega| (1 - 1/r) beyond it, the full rate
@@ -446,7 +300,7 @@ struct hx_col {
   struct gkyl_rect_grid pgrid;
   struct gkyl_range crange, prange;
   struct gkyl_dg_pkpm_harm_exp *up;
-  struct gkyl_array *em, *coef, *S, *A, *nu, *act, *col;
+  struct gkyl_array *em, *coef, *nu, *act, *col;
   struct gkyl_array *f, *f1, *fnew, *rhs;
 };
 
@@ -468,9 +322,7 @@ hx_col_new(int nv, double mix)
   c.coef = gkyl_array_new(GKYL_DOUBLE, gkyl_dg_pkpm_harm_exp_num_coef(c.up), 1);
   c.col = gkyl_array_new(GKYL_DOUBLE, gkyl_dg_pkpm_harm_exp_num_col(c.up), 1);
   c.act = gkyl_array_new(GKYL_DOUBLE, 1, 1);
-  c.S = gkyl_array_new(GKYL_DOUBLE, gkyl_dg_pkpm_harm_exp_num_stage(c.up), nv);
-  c.A = gkyl_array_new(GKYL_DOUBLE, gkyl_dg_pkpm_harm_exp_num_stage(c.up), nv);
-  c.nu = gkyl_array_new(GKYL_DOUBLE, gkyl_dg_pkpm_harm_exp_num_stage(c.up) / 6, nv);
+  c.nu = gkyl_array_new(GKYL_DOUBLE, gkyl_dg_pkpm_harm_exp_num_rate(c.up), nv);
   c.f = gkyl_array_new(GKYL_DOUBLE, 8 * c.np, nv);
   c.f1 = gkyl_array_new(GKYL_DOUBLE, 8 * c.np, nv);
   c.fnew = gkyl_array_new(GKYL_DOUBLE, 8 * c.np, nv);
@@ -486,8 +338,8 @@ static void
 hx_col_release(struct hx_col *c)
 {
   gkyl_dg_pkpm_harm_exp_release(c->up);
-  struct gkyl_array *arrs[] = {c->em, c->coef, c->col, c->act, c->S, c->A, c->nu, c->f, c->f1, c->fnew, c->rhs};
-  for (int i = 0; i < 11; ++i) gkyl_array_release(arrs[i]);
+  struct gkyl_array *arrs[] = {c->em, c->coef, c->col, c->act, c->nu, c->f, c->f1, c->fnew, c->rhs};
+  for (int i = 0; i < 9; ++i) gkyl_array_release(arrs[i]);
 }
 
 // rhs = U x (q/m) B (the gyration) in the first-harmonic blocks.
@@ -508,19 +360,18 @@ hx_col_rhs(const struct hx_col *c, const struct gkyl_array *f, struct gkyl_array
   }
 }
 
-// One forward Euler stage of the driver with the exponential update and the restoration.
+// One forward Euler stage of the driver with the mixing integrating factor and the restoration.
 static void
 hx_col_stage(struct hx_col *c, int stage, double h, struct gkyl_array *fin, struct gkyl_array *fout)
 {
   if (stage == 1) {
-    gkyl_dg_pkpm_harm_exp_coef(c->up, &c->crange, h, c->em, c->coef);
+    gkyl_dg_pkpm_harm_exp_coef(c->up, &c->crange, c->em, c->coef);
     gkyl_array_clear(c->act, 0.0);
   }
   hx_col_rhs(c, fin, c->rhs);
-  gkyl_dg_pkpm_harm_exp_accum(c->up, stage, h, &c->crange, &c->prange, c->coef, fin, c->rhs, c->nu, c->act, c->S, c->A);
   gkyl_array_set(fout, 1.0, fin);
   gkyl_array_accumulate(fout, h, c->rhs);
-  gkyl_dg_pkpm_harm_exp_state(c->up, stage, h, &c->crange, &c->prange, c->coef, c->nu, c->f, c->S, c->A, fout);
+  gkyl_dg_pkpm_harm_exp_advance(c->up, stage, h, &c->crange, &c->prange, c->coef, c->f, c->nu, c->act, fout);
   gkyl_dg_pkpm_harm_exp_restore(c->up, &c->crange, &c->prange, c->act, c->col, fout);
 }
 
@@ -666,12 +517,10 @@ TEST_LIST = {
   {"test_transforms_1x", test_transforms_1x},
   {"test_transforms_2x", test_transforms_2x},
   {"test_transforms_3x", test_transforms_3x},
-  {"test_constant_1x", test_constant_1x},
-  {"test_constant_2x", test_constant_2x},
-  {"test_constant_3x", test_constant_3x},
-  {"test_no_field", test_no_field},
-  {"test_zero", test_zero},
-  {"test_order", test_order},
+  {"test_damp_step_1x", test_damp_step_1x},
+  {"test_damp_step_2x", test_damp_step_2x},
+  {"test_damp_step_3x", test_damp_step_3x},
+  {"test_inactive", test_inactive},
   {"test_rate", test_rate},
   {"test_mix_relax", test_mix_relax},
   {"test_mix_stiff", test_mix_stiff},
