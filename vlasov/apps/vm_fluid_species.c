@@ -389,8 +389,8 @@ vm_fluid_species_can_pb_fluid_calc_integrated(
   vm_fluid_species_prim_vars(app, f, f->fluid);
   // integrate |grad phi|^2
   gkyl_array_integrate_advance(
-    f->calc_can_pb_energy, f->phi, 1.0, f->can_pb_energy_fac, &app->local,
-    &app->local, f->red_can_pb_energy
+    f->calc_can_pb_energy, f->phi, 1.0, f->can_pb_energy_fac, &app->local, &app->local,
+    f->red_can_pb_energy
   );
   gkyl_comm_allreduce(
     app->comm, GKYL_DOUBLE, GKYL_SUM, 1, f->red_can_pb_energy, f->red_can_pb_energy_global
@@ -701,10 +701,11 @@ vm_fluid_species_rhs_enabled(
     fluid_species->advect_slvr, &app->local, fluid, fluid_species->cflrate, rhs
   );
 
-  // Accumulate explicit source contribution, e.g., external forces
-  // Only done if there are external forces and no EM fields, as fluid-EM coupling
-  // is handled by implicit source solve, see vm_fluid_em_coupling.c.
-  if (fluid_species->has_app_accel && !app->has_field) {
+  // Accumulate explicit source contribution, e.g., external forces. A fluid coupled
+  // implicitly to the EM field gets them in the implicit source solve instead (see
+  // vm_fluid_em_coupling.c); every other fluid, with or without a field, gets them here.
+  if (fluid_species->has_app_accel &&
+      !(app->has_fluid_em_coupling && vm_fluid_em_coupling_supported(fluid_species))) {
     gkyl_dg_calc_fluid_vars_source(
       fluid_species->calc_fluid_vars, &app->local, fluid_species->app_accel, fluid, rhs
     );

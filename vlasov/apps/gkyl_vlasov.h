@@ -348,8 +348,10 @@ struct gkyl_vlasov_species {
 
 // Parameter for electromagnetic fields.
 struct gkyl_vlasov_field {
-  enum gkyl_field_id field_id; // Type of field
-    // (e.g., Maxwell's, Poisson, see gkyl_eqn_type.h).
+  // Type of field, which selects the solver: GKYL_FIELD_E_B (Maxwell, the default),
+  // GKYL_FIELD_GR_D_B (GR Maxwell), GKYL_FIELD_PHI (Poisson) or GKYL_FIELD_NULL (no
+  // field, as skip_field). See gkyl_eqn_type.h.
+  enum gkyl_field_id field_id;
   bool is_static; // Set to true if field does not change in time.
 
   double epsilon0; // Permittivity of free space.
@@ -446,9 +448,8 @@ struct gkyl_vm {
   int num_species; // total number of species (kinetic + fluid)
   struct gkyl_vlasov_species species[GKYL_MAX_SPECIES]; // species objects
 
-  bool skip_field; // Skip field update or no field specified
-  struct gkyl_vlasov_field field; // field object
-  bool is_electrostatic; // Indicate whether to use Vlasov-Poisson.
+  bool skip_field; // No field; the field input must then be left unset.
+  struct gkyl_vlasov_field field; // Field input; its field_id selects the solver.
 
   struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
 };

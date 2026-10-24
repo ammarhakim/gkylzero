@@ -441,6 +441,7 @@ main(int argc, char **argv)
 
   // Field: screened electrostatics and self-gravity.
   struct gkyl_vlasov_field field = {
+    .field_id = GKYL_FIELD_PHI,
     .epsilon0 = ctx.epsilon0,
     .alpha_g = ctx.alpha_g,
     .mu_sq = ctx.mu_sq,
@@ -482,7 +483,6 @@ main(int argc, char **argv)
        }},
 
     .field = field,
-    .is_electrostatic = true,
 
     .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
   };

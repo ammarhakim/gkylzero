@@ -507,6 +507,13 @@ vm_species_apply_ic_static(gkyl_vlasov_app *app, struct vm_species *vms, double 
   } else {
     vm_species_projection_calc(app, vms, &vms->proj_init[0], vms->f, tm);
   }
+
+  // The boundary fluxes of the static f are fixed, so compute them once. f1 aliases f
+  // here: its ghost cells are cleared before the calculation (a static species has no
+  // boundary conditions to keep in them).
+  if (vms->calc_bflux) {
+    vm_species_bflux_rhs(app, vms, &vms->bflux, vms->f, vms->f1);
+  }
 }
 
 static double
@@ -855,7 +862,7 @@ vm_species_write_lte_enabled(gkyl_vlasov_app *app, struct vm_species *vms, doubl
   char fileNm[sz + 1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->name, frame);
 
-  vm_species_lte(app, vms, &vms->lte, vms->f);
+  vm_species_lte(app, vms, &vms->lte, vms->f, vms->lte.corr_channel_diag);
 
   // Divide out the velocity space Jacobian from LTE distribution if present
   // We do the division before I/O to increase the accuracy since we know
@@ -1101,12 +1108,6 @@ vm_species_release_dynamic(const gkyl_vlasov_app *app, const struct vm_species *
     vm_species_source_release(app, &vms->src);
   }
 
-  if (vms->lbo.collision_id == GKYL_LBO_COLLISIONS) {
-    vm_species_lbo_release(app, &vms->lbo);
-  } else if (vms->bgk.collision_id == GKYL_BGK_COLLISIONS) {
-    vm_species_bgk_release(app, &vms->bgk);
-  }
-
   if (vms->calc_bflux) {
     vm_species_bflux_release(app, &vms->bflux);
   }
@@ -1138,6 +1139,9 @@ vm_species_release_dynamic(const gkyl_vlasov_app *app, const struct vm_species *
 static void
 vm_species_release_static(const gkyl_vlasov_app *app, const struct vm_species *vms)
 {
+  if (vms->calc_bflux) {
+    vm_species_bflux_release(app, &vms->bflux);
+  }
 }
 
 // Initialize dynamic species object.
@@ -1286,6 +1290,12 @@ vm_species_new_static(
   // When using static species, only need one allocation.
   vms->f1 = vms->f;
   vms->fnew = vms->f;
+
+  // Boundary fluxes another species uses (a boundary-flux source or an emitting wall);
+  // computed once from the initial condition since f never changes.
+  if (vms->calc_bflux) {
+    vm_species_bflux_init(app, vms, &vms->bflux);
+  }
 
   // Set function pointers.
   vms->apply_ic_func = vm_species_apply_ic_static;
@@ -1495,6 +1505,16 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   vm_species_new_hamil(vm_app_inp, app, vms);
   vm_species_check_build(app, vms);
 
+  // Only the tensor p=1 hybrid has distinct low-order surface kernels (p+1 velocity
+  // nodes). A pure tensor p>=2 basis has just the (p+2)-node kernels, which the low-order
+  // surface layout of the velocity map does not match.
+  if (vms->info.use_lo && vms->basis.b_type == GKYL_BASIS_MODAL_TENSOR &&
+      vms->basis.poly_order > 1) {
+    gkyl_exit(
+      "vm_species: use_lo is only available for the tensor p=1 (hybrid) basis; tensor p>=2 has only the higher-order surface kernels."
+    );
+  }
+
   // Determine whether we have radiation.
   vm_species_new_radiation(vm_app_inp, app, vms);
 
@@ -1586,6 +1606,20 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   vms->source_id = vms->info.source.source_id;
   if (vms->source_id == GKYL_BFLUX_SOURCE) {
     vms->calc_bflux = true;
+  }
+
+  if (vms->info.is_static) {
+    // A static species is never updated: it can provide its moments (e.g. as a cross
+    // collision partner) and boundary fluxes to other species, but nothing may add to it.
+    if (vms->source_id) {
+      gkyl_exit("vm_species: a static species cannot have a source.");
+    }
+    for (int d = 0; d < cdim; ++d) {
+      if (vms->lower_bc[d].type == GKYL_SPECIES_EMISSION ||
+          vms->upper_bc[d].type == GKYL_SPECIES_EMISSION) {
+        gkyl_exit("vm_species: a static species cannot have an emitting wall.");
+      }
+    }
   }
 
   if (!vms->info.is_static) {
@@ -1687,6 +1721,8 @@ void
 vm_species_calc_integrated_mom(gkyl_vlasov_app *app, struct vm_species *vms, double tm)
 {
   vms->calc_integrated_mom_func(app, vms, tm);
+  // The LTE correction status is snapshotted at the same cadence.
+  vm_species_lte_calc_corr_status(app, &vms->lte, tm);
 }
 
 // Write integrated moments.
@@ -1694,6 +1730,7 @@ void
 vm_species_write_integrated_mom(gkyl_vlasov_app *app, struct vm_species *vms)
 {
   vms->write_integrated_mom_func(app, vms);
+  vm_species_lte_write_corr_status(app, vms);
 }
 
 // Calculate integrated f^2.
@@ -1794,6 +1831,14 @@ vm_species_release(const gkyl_vlasov_app *app, const struct vm_species *vms)
   gkyl_free(vms->moms);
 
   vm_species_lte_release(app, &vms->lte);
+
+  // Collision objects are created for static species too (they provide moments to
+  // cross-collision partners), so release them here rather than in release_func.
+  if (vms->lbo.collision_id == GKYL_LBO_COLLISIONS) {
+    vm_species_lbo_release(app, &vms->lbo);
+  } else if (vms->bgk.collision_id == GKYL_BGK_COLLISIONS) {
+    vm_species_bgk_release(app, &vms->bgk);
+  }
 
   vms->release_func(app, vms);
 }

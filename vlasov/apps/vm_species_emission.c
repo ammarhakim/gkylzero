@@ -150,8 +150,10 @@ vm_species_emission_cross_init(
 
     emit->yield[i] = mkarr(app->use_gpu, vms->basis.num_basis, emit->impact_buff_r[i]->volume);
     emit->spectrum[i] = mkarr(app->use_gpu, vms->basis.num_basis, emit->emit_buff_r->volume);
-    emit->weight[i] = mkarr(app->use_gpu, app->basis.num_basis, emit->impact_cbuff_r[i]->volume);
-    emit->flux[i] = mkarr(app->use_gpu, app->basis.num_basis, emit->impact_cbuff_r[i]->volume);
+    // Per boundary cell: the yield-weighted and the total incoming flux (see bc_weighted_delta).
+    emit->weight[i] = mkarr(app->use_gpu, 2, emit->impact_cbuff_r[i]->volume);
+    // Integrated M0, M1i, M2 of the impact species' boundary flux.
+    emit->flux[i] = mkarr(app->use_gpu, app->vdim + 2, emit->impact_cbuff_r[i]->volume);
     emit->bflux_arr[i] = emit->impact_species[i]->bflux.flux_arr[bdir];
     emit->k[i] = mkarr(app->use_gpu, app->basis.num_basis, emit->impact_cbuff_r[i]->volume);
     emit->weight_host[i] = app->use_gpu ?

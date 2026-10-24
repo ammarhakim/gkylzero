@@ -36,7 +36,6 @@ dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
 num_failures_max = 20 -- Maximum allowable number of consecutive small time-steps.
 
 vlasovApp = Vlasov.App.new {
-  isElectrostatic = true,
 
   tEnd = t_end,
   nFrame = num_frames,
@@ -92,6 +91,7 @@ vlasovApp = Vlasov.App.new {
   -- Field.
   -- Field: Poisson solve with the external potential well.
   field = Vlasov.Field.new {
+    fieldID = G0.FieldModel.Phi,
     epsilon0 = epsilon0,
 
     poissonBcs = {

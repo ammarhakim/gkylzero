@@ -568,13 +568,11 @@ main(int argc, char **argv)
   // scaled to Te and Te = 1 in code units, that charge is 1.
   char impact_species[1][128] = {"elc"};
   struct gkyl_emission_spectrum_model *spectrum_model[1] = {
-    gkyl_emission_spectrum_gaussian_new(1.0, ctx.E_0, ctx.tau, app_args.use_gpu),
+    gkyl_emission_spectrum_gaussian_new(1.0, ctx.E_0, ctx.tau, app_args.use_gpu)
   };
-  struct gkyl_emission_yield_model *yield_model[1] = {
-    gkyl_emission_yield_furman_pivi_new(
-      1.0, ctx.deltahat_ts, ctx.Ehat_ts, ctx.t1, ctx.t2, ctx.t3, ctx.t4, ctx.s, app_args.use_gpu
-    ),
-  };
+  struct gkyl_emission_yield_model *yield_model[1] = {gkyl_emission_yield_furman_pivi_new(
+    1.0, ctx.deltahat_ts, ctx.Ehat_ts, ctx.t1, ctx.t2, ctx.t3, ctx.t4, ctx.s, app_args.use_gpu
+  )};
   struct gkyl_emission_elastic_model *elastic_model = gkyl_emission_elastic_furman_pivi_new(
     1.0, ctx.P1_inf, ctx.P1_hat, ctx.E_hat, ctx.W, ctx.p, app_args.use_gpu
   );
@@ -690,6 +688,7 @@ main(int argc, char **argv)
 
   // Field.
   struct gkyl_vlasov_field field = {
+    .field_id = GKYL_FIELD_PHI,
     .epsilon0 = ctx.epsilon0,
 
     .poisson_bcs =
@@ -737,7 +736,6 @@ main(int argc, char **argv)
        }},
 
     .field = field,
-    .is_electrostatic = true,
 
     .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
   };

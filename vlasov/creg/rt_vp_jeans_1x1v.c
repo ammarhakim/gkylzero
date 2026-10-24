@@ -308,6 +308,7 @@ main(int argc, char **argv)
 
   // Field: self-gravity only (the species is neutral, so no electrostatic solve).
   struct gkyl_vlasov_field field = {
+    .field_id = GKYL_FIELD_PHI,
     .alpha_g = ctx.alpha_g,
 
     .poisson_bcs = {.lo_type = {GKYL_POISSON_PERIODIC}, .up_type = {GKYL_POISSON_PERIODIC}},
@@ -339,7 +340,6 @@ main(int argc, char **argv)
     }},
 
     .field = field,
-    .is_electrostatic = true,
 
     .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
   };

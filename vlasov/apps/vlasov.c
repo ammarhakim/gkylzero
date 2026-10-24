@@ -275,7 +275,8 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   app->vm_geom = gkyl_malloc(sizeof(struct vm_geom));
   vm_geom_init(vm, app, app->vm_geom);
 
-  app->has_field = !vm->skip_field; // note inversion of truth value
+  // No field when it is skipped or its type is the null field (vlasov_field_new).
+  app->has_field = !(vm->skip_field || vm->field.field_id == GKYL_FIELD_NULL);
   // A field object is always created: the null field when no field is present.
   app->field = vlasov_field_new(vm, app);
 
@@ -880,7 +881,12 @@ gkyl_vlasov_app_from_file_field(gkyl_vlasov_app *app, const char *fname)
 struct gkyl_app_restart_status
 gkyl_vlasov_app_from_file_species(gkyl_vlasov_app *app, int sidx, const char *fname)
 {
-  return vlasov_species_from_file(app, &app->species[sidx], fname);
+  struct gkyl_app_restart_status rstat = vlasov_species_from_file(app, &app->species[sidx], fname);
+  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+    vlasov_species_restart_bflux(app, &app->species[sidx]);
+    vlasov_species_restart_bc(app, &app->species[sidx]);
+  }
+  return rstat;
 }
 
 struct gkyl_app_restart_status
@@ -892,7 +898,13 @@ gkyl_vlasov_app_from_frame_field(gkyl_vlasov_app *app, int frame)
 struct gkyl_app_restart_status
 gkyl_vlasov_app_from_frame_species(gkyl_vlasov_app *app, int sidx, int frame)
 {
-  return vlasov_species_read_from_frame(app, &app->species[sidx], frame);
+  struct gkyl_app_restart_status rstat =
+    vlasov_species_read_from_frame(app, &app->species[sidx], frame);
+  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+    vlasov_species_restart_bflux(app, &app->species[sidx]);
+    vlasov_species_restart_bc(app, &app->species[sidx]);
+  }
+  return rstat;
 }
 
 struct gkyl_app_restart_status
@@ -904,17 +916,33 @@ gkyl_vlasov_app_read_from_frame(gkyl_vlasov_app *app, int frame)
   // app clock; the potential itself is solved from the distribution whenever it
   // is needed). The first failure is reported; otherwise the status carries the
   // frame and time read from the species files, or from the field file when
-  // there are no species.
+  // no species has a file (no species, or only static ones).
   struct gkyl_app_restart_status rstat = {.io_status = GKYL_ARRAY_RIO_SUCCESS};
+  bool has_species_file = false;
   for (int i = 0; i < app->num_species; i++) {
-    rstat = vlasov_species_read_from_frame(app, &app->species[i], frame);
-    if (rstat.io_status != GKYL_ARRAY_RIO_SUCCESS) {
-      return rstat;
+    struct gkyl_app_restart_status sstat =
+      vlasov_species_read_from_frame(app, &app->species[i], frame);
+    if (sstat.io_status != GKYL_ARRAY_RIO_SUCCESS) {
+      return sstat;
+    }
+    if (!(app->species[i].kinetic && app->species[i].kinetic->info.is_static)) {
+      rstat = sstat;
+      has_species_file = true;
     }
   }
 
+  // Rebuild the ghost cells once every species is read, as the initial conditions
+  // do: first all the boundary fluxes, since an emitting wall reads those of its
+  // impact species (which may come later in the species list), then the BCs.
+  for (int i = 0; i < app->num_species; i++) {
+    vlasov_species_restart_bflux(app, &app->species[i]);
+  }
+  for (int i = 0; i < app->num_species; i++) {
+    vlasov_species_restart_bc(app, &app->species[i]);
+  }
+
   struct gkyl_app_restart_status fstat = gkyl_vlasov_app_from_frame_field(app, frame);
-  if (fstat.io_status != GKYL_ARRAY_RIO_SUCCESS || app->num_species == 0) {
+  if (fstat.io_status != GKYL_ARRAY_RIO_SUCCESS || !has_species_file) {
     return fstat;
   }
 

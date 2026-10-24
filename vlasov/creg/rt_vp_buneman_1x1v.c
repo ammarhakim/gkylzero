@@ -396,6 +396,7 @@ main(int argc, char **argv)
 
   // Field.
   struct gkyl_vlasov_field field = {
+    .field_id = GKYL_FIELD_PHI,
     .epsilon0 = ctx.epsilon0,
 
     .poisson_bcs = {.lo_type = {GKYL_POISSON_PERIODIC}, .up_type = {GKYL_POISSON_PERIODIC}},
@@ -419,25 +420,22 @@ main(int argc, char **argv)
 
     .num_species = 2,
     .species =
-      {
-        {
-          .name = "elc",
-          .charge = ctx.charge_elc,
-          .mass = ctx.mass_elc,
-          .type = GKYL_SPECIES_VLASOV,
-          .kinetic = elc,
-        },
-        {
-          .name = "ion",
-          .charge = ctx.charge_ion,
-          .mass = ctx.mass_ion,
-          .type = GKYL_SPECIES_VLASOV,
-          .kinetic = ion,
-        },
-      },
+      {{
+         .name = "elc",
+         .charge = ctx.charge_elc,
+         .mass = ctx.mass_elc,
+         .type = GKYL_SPECIES_VLASOV,
+         .kinetic = elc,
+       },
+       {
+         .name = "ion",
+         .charge = ctx.charge_ion,
+         .mass = ctx.mass_ion,
+         .type = GKYL_SPECIES_VLASOV,
+         .kinetic = ion,
+       }},
 
     .field = field,
-    .is_electrostatic = true,
 
     .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
   };

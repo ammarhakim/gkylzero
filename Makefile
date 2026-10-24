@@ -510,6 +510,28 @@ unit-run: ## Run all unit tests without (re)building them
 	[ $$keep -eq 1 ] || rm -f "$$GKYL_TEST_LOG"; \
 	[ $$nfail -eq 0 ]
 
+# Run the MPI unit tests (mctest_*) on each rank count in MPI_UNIT_NP; tests
+# written for another rank count return without checking anything. Set MPIEXEC
+# for the local launcher, e.g. MPIEXEC=srun or MPIEXEC="mpirun --oversubscribe".
+MPIEXEC ?= mpirun
+MPI_UNIT_NP ?= 1 2 4
+mpi-unit-run: ## Run MPI unit tests on 1, 2 and 4 ranks without (re)building them
+	@if [ "${USE_MPI}" != "1" ]; then echo "Not built with MPI: no MPI unit tests to run."; exit 0; fi; \
+	log=$$(mktemp); npass=0; nfail=0; \
+	for unit in $(filter-out %.d %.dSYM,$(wildcard ${BUILD_DIR}/*/unit/mctest_*)); do \
+	  for np in ${MPI_UNIT_NP}; do \
+	    if ${MPIEXEC} -np $$np $$unit > "$$log" 2>&1; then \
+	      npass=$$((npass+1)); echo "PASS (np=$$np): $$unit"; \
+	    else \
+	      nfail=$$((nfail+1)); echo "FAIL (np=$$np): $$unit"; cat "$$log"; \
+	    fi; \
+	  done; \
+	done; \
+	rm -f "$$log"; \
+	echo "==================== gkeyll MPI unit test summary ===================="; \
+	echo "Passed: $$npass   Failed: $$nfail"; \
+	[ $$nfail -eq 0 ]
+
 # From: https://www.client9.com/self-documenting-makefiles/
 .PHONY: help
 help: ## Show help

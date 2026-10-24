@@ -213,7 +213,8 @@ gkyl_bc_emission_spectrum_advance(
 
       bc_weighted_delta(inp, up->cdim, up->dir, up->edge, xc, gain, w);
     }
-    double effective_delta = w[0] / w[1];
+    // With no incident flux there is nothing to emit (and the mean yield is 0/0).
+    double effective_delta = w[1] != 0.0 ? w[0] / w[1] : 0.0;
     const double *boundary_flux = gkyl_array_cfetch(flux, midx);
     double *out = gkyl_array_fetch(k, midx);
 

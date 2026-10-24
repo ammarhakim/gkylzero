@@ -358,6 +358,7 @@ main(int argc, char **argv)
 
   // Field: self-gravity only (the species is neutral), phi_g = 0 at the box edges.
   struct gkyl_vlasov_field field = {
+    .field_id = GKYL_FIELD_PHI,
     .alpha_g = ctx.alpha_g,
 
     .poisson_bcs =
@@ -402,7 +403,6 @@ main(int argc, char **argv)
     }},
 
     .field = field,
-    .is_electrostatic = true,
 
     .parallelism =
       {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0], app_args.cuts[1]}, .comm = comm},

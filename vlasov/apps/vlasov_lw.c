@@ -380,6 +380,38 @@ eqn_openlibs(lua_State *L)
 
 // Emitting-wall boundary condition context, defined with the emission objects below.
 static struct gkyl_bc_emission_ctx *emission_get(lua_State *L);
+static struct gkyl_bc_emission_ctx *emission_get_retained(lua_State *L);
+
+// Read the lower and upper BC types of the 'bc<dir>' table on top of the stack, in
+// either the nested form used by species, { lower = { type = ... }, upper = { type =
+// ... } }, or the array form { lowerType, upperType }. A table in neither form is an
+// error: it would otherwise silently leave the default (copy) BCs.
+static void
+vlasov_lw_get_bc_types(lua_State *L, const char *key, int bc_types[2])
+{
+  if (glua_tbl_has_key(L, "lower") || glua_tbl_has_key(L, "upper")) {
+    with_lua_tbl_tbl(L, "lower")
+    {
+      bc_types[0] = glua_tbl_get_integer(L, "type", 0);
+    }
+    with_lua_tbl_tbl(L, "upper")
+    {
+      bc_types[1] = glua_tbl_get_integer(L, "type", 0);
+    }
+    return;
+  }
+  int nbc = glua_objlen(L);
+  if (nbc == 0) {
+    luaL_error(
+      L,
+      "%s must be { lower = { type = ... }, upper = { type = ... } } or { lowerType, upperType }.",
+      key
+    );
+  }
+  for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+    bc_types[i] = glua_tbl_iget_integer(L, i + 1, 0);
+  }
+}
 
 /* *************** */
 /* Species methods */
@@ -619,12 +651,19 @@ vlasov_species_lw_new(lua_State *L)
 
   with_lua_tbl_tbl(L, "bcx")
   {
+    // Species BCs carry more than a type (e.g. the emission object), so only the
+    // nested form is accepted; anything else would silently leave the default BCs.
+    if (!glua_tbl_has_key(L, "lower") && !glua_tbl_has_key(L, "upper")) {
+      return luaL_error(
+        L, "species bcx must be { lower = { type = ... }, upper = { type = ... } }."
+      );
+    }
     with_lua_tbl_tbl(L, "lower")
     {
       vm_species.bcx.lower.type = glua_tbl_get_integer(L, "type", 0);
       with_lua_tbl_key(L, "emission")
       {
-        vm_species.bcx.lower.aux_ctx = emission_get(L);
+        vm_species.bcx.lower.aux_ctx = emission_get_retained(L);
       }
     }
 
@@ -633,19 +672,26 @@ vlasov_species_lw_new(lua_State *L)
       vm_species.bcx.upper.type = glua_tbl_get_integer(L, "type", 0);
       with_lua_tbl_key(L, "emission")
       {
-        vm_species.bcx.upper.aux_ctx = emission_get(L);
+        vm_species.bcx.upper.aux_ctx = emission_get_retained(L);
       }
     }
   }
 
   with_lua_tbl_tbl(L, "bcy")
   {
+    // Species BCs carry more than a type (e.g. the emission object), so only the
+    // nested form is accepted; anything else would silently leave the default BCs.
+    if (!glua_tbl_has_key(L, "lower") && !glua_tbl_has_key(L, "upper")) {
+      return luaL_error(
+        L, "species bcy must be { lower = { type = ... }, upper = { type = ... } }."
+      );
+    }
     with_lua_tbl_tbl(L, "lower")
     {
       vm_species.bcy.lower.type = glua_tbl_get_integer(L, "type", 0);
       with_lua_tbl_key(L, "emission")
       {
-        vm_species.bcy.lower.aux_ctx = emission_get(L);
+        vm_species.bcy.lower.aux_ctx = emission_get_retained(L);
       }
     }
 
@@ -654,19 +700,26 @@ vlasov_species_lw_new(lua_State *L)
       vm_species.bcy.upper.type = glua_tbl_get_integer(L, "type", 0);
       with_lua_tbl_key(L, "emission")
       {
-        vm_species.bcy.upper.aux_ctx = emission_get(L);
+        vm_species.bcy.upper.aux_ctx = emission_get_retained(L);
       }
     }
   }
 
   with_lua_tbl_tbl(L, "bcz")
   {
+    // Species BCs carry more than a type (e.g. the emission object), so only the
+    // nested form is accepted; anything else would silently leave the default BCs.
+    if (!glua_tbl_has_key(L, "lower") && !glua_tbl_has_key(L, "upper")) {
+      return luaL_error(
+        L, "species bcz must be { lower = { type = ... }, upper = { type = ... } }."
+      );
+    }
     with_lua_tbl_tbl(L, "lower")
     {
       vm_species.bcz.lower.type = glua_tbl_get_integer(L, "type", 0);
       with_lua_tbl_key(L, "emission")
       {
-        vm_species.bcz.lower.aux_ctx = emission_get(L);
+        vm_species.bcz.lower.aux_ctx = emission_get_retained(L);
       }
     }
 
@@ -675,7 +728,7 @@ vlasov_species_lw_new(lua_State *L)
       vm_species.bcz.upper.type = glua_tbl_get_integer(L, "type", 0);
       with_lua_tbl_key(L, "emission")
       {
-        vm_species.bcz.upper.aux_ctx = emission_get(L);
+        vm_species.bcz.upper.aux_ctx = emission_get_retained(L);
       }
     }
   }
@@ -1499,29 +1552,26 @@ vlasov_fluid_species_lw_new(lua_State *L)
 
   with_lua_tbl_tbl(L, "bcx")
   {
-    int nbc = glua_objlen(L);
-
-    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
-      vm_fluid_species.bcx[i] = glua_tbl_iget_integer(L, i + 1, 0);
-    }
+    int bc_types[2] = {vm_fluid_species.bcx[0], vm_fluid_species.bcx[1]};
+    vlasov_lw_get_bc_types(L, "bcx", bc_types);
+    vm_fluid_species.bcx[0] = bc_types[0];
+    vm_fluid_species.bcx[1] = bc_types[1];
   }
 
   with_lua_tbl_tbl(L, "bcy")
   {
-    int nbc = glua_objlen(L);
-
-    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
-      vm_fluid_species.bcy[i] = glua_tbl_iget_integer(L, i + 1, 0);
-    }
+    int bc_types[2] = {vm_fluid_species.bcy[0], vm_fluid_species.bcy[1]};
+    vlasov_lw_get_bc_types(L, "bcy", bc_types);
+    vm_fluid_species.bcy[0] = bc_types[0];
+    vm_fluid_species.bcy[1] = bc_types[1];
   }
 
   with_lua_tbl_tbl(L, "bcz")
   {
-    int nbc = glua_objlen(L);
-
-    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
-      vm_fluid_species.bcz[i] = glua_tbl_iget_integer(L, i + 1, 0);
-    }
+    int bc_types[2] = {vm_fluid_species.bcz[0], vm_fluid_species.bcz[1]};
+    vlasov_lw_get_bc_types(L, "bcz", bc_types);
+    vm_fluid_species.bcz[0] = bc_types[0];
+    vm_fluid_species.bcz[1] = bc_types[1];
   }
 
   struct vlasov_fluid_species_lw *vmfs_lw = lua_newuserdata(L, sizeof(*vmfs_lw));
@@ -1648,29 +1698,26 @@ vlasov_field_lw_new(lua_State *L)
 
   with_lua_tbl_tbl(L, "bcx")
   {
-    int nbc = glua_objlen(L);
-
-    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
-      vm_field.bcx[i] = glua_tbl_iget_integer(L, i + 1, 0);
-    }
+    int bc_types[2] = {vm_field.bcx[0], vm_field.bcx[1]};
+    vlasov_lw_get_bc_types(L, "bcx", bc_types);
+    vm_field.bcx[0] = bc_types[0];
+    vm_field.bcx[1] = bc_types[1];
   }
 
   with_lua_tbl_tbl(L, "bcy")
   {
-    int nbc = glua_objlen(L);
-
-    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
-      vm_field.bcy[i] = glua_tbl_iget_integer(L, i + 1, 0);
-    }
+    int bc_types[2] = {vm_field.bcy[0], vm_field.bcy[1]};
+    vlasov_lw_get_bc_types(L, "bcy", bc_types);
+    vm_field.bcy[0] = bc_types[0];
+    vm_field.bcy[1] = bc_types[1];
   }
 
   with_lua_tbl_tbl(L, "bcz")
   {
-    int nbc = glua_objlen(L);
-
-    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
-      vm_field.bcz[i] = glua_tbl_iget_integer(L, i + 1, 0);
-    }
+    int bc_types[2] = {vm_field.bcz[0], vm_field.bcz[1]};
+    vlasov_lw_get_bc_types(L, "bcz", bc_types);
+    vm_field.bcz[0] = bc_types[0];
+    vm_field.bcz[1] = bc_types[1];
   }
 
   with_lua_tbl_tbl(L, "poissonBcs")
@@ -2238,6 +2285,18 @@ emission_get(lua_State *L)
 {
   struct emission_lw **l_lw = luaL_checkudata(L, -1, VLASOV_EMISSION_METATABLE_NM);
   return (*l_lw)->ctx;
+}
+
+// As emission_get, and also retain the emission object (on top of the stack) for the
+// life of the program, as the input functions are: the species anchors its input
+// table, which the caller may still modify after constructing the species.
+static struct gkyl_bc_emission_ctx *
+emission_get_retained(lua_State *L)
+{
+  struct gkyl_bc_emission_ctx *ctx = emission_get(L);
+  lua_pushvalue(L, -1);
+  luaL_ref(L, LUA_REGISTRYINDEX);
+  return ctx;
 }
 
 // Emission spectra. Every model takes `charge`, the unit charge converting m v^2 / 2 to the
@@ -3038,9 +3097,16 @@ vm_app_new(lua_State *L)
     }
   }
 
-  // Set field input.
+  // Set field input. The field's fieldID selects the solver (Maxwell by default).
   vm.skip_field = glua_tbl_get_bool(L, "skipField", false);
-  vm.is_electrostatic = glua_tbl_get_bool(L, "isElectrostatic", false);
+  if (glua_tbl_has_key(L, "isElectrostatic")) {
+    return luaL_error(
+      L, "isElectrostatic was removed: set fieldID = G0.FieldModel.Phi in the field table."
+    );
+  }
+  if (vm.skip_field && glua_tbl_has_key(L, "field")) {
+    return luaL_error(L, "skipField = true and a field table are mutually exclusive.");
+  }
 
   with_lua_tbl_key(L, "field")
   {

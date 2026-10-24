@@ -516,9 +516,9 @@ vp_field_update(
   return DBL_MAX;
 }
 
-// Evaluate the external potentials and fields at the given time. Shared by the
-// initial conditions and the restart: the potentials themselves are solved from
-// the distribution wherever they are needed, so neither path solves them here.
+// Evaluate the external potentials and fields at the given time for the initial
+// conditions: the potentials themselves are solved from the distribution wherever
+// they are needed, so they are not solved here.
 static void
 vp_field_calc_ext(gkyl_vlasov_app *app, struct vm_field *field, double tm)
 {
@@ -529,7 +529,12 @@ vp_field_calc_ext(gkyl_vlasov_app *app, struct vm_field *field, double tm)
 struct gkyl_app_restart_status
 vp_field_from_file(gkyl_vlasov_app *app, struct vm_field *field, const char *fname)
 {
-  vp_field_calc_ext(app, field, app->tcurr);
+  // The time-stepping loop only re-evaluates the external potentials and fields
+  // when they evolve. Since a quantity that is not evolving keeps its initial
+  // value, pass 0.0 for it to guard against static inputs that were specified
+  // as being time-dependent.
+  vp_field_calc_ext_pot(app, field, field->ext_pot_evolve ? app->tcurr : 0.0);
+  vp_field_calc_ext_em(app, field, field->ext_em_evolve ? app->tcurr : 0.0);
   return (struct gkyl_app_restart_status){
     .io_status = GKYL_ARRAY_RIO_SUCCESS,
     .frame = 0,

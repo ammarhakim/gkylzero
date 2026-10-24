@@ -286,13 +286,10 @@ main(int argc, char **argv)
   // Field.
   // Field: Poisson solve with the external potential well.
   struct gkyl_vlasov_field field = {
+    .field_id = GKYL_FIELD_PHI,
     .epsilon0 = ctx.epsilon0,
 
-    .poisson_bcs =
-      {
-        .lo_type = {GKYL_POISSON_PERIODIC},
-        .up_type = {GKYL_POISSON_PERIODIC},
-      },
+    .poisson_bcs = {.lo_type = {GKYL_POISSON_PERIODIC}, .up_type = {GKYL_POISSON_PERIODIC}},
 
     .external_potentials = evalExtPotInit,
     .external_potentials_ctx = &ctx,
@@ -301,7 +298,6 @@ main(int argc, char **argv)
 
   // Vlasov-Poisson app.
   struct gkyl_vm app_inp = {
-    .is_electrostatic = true,
 
     .cdim = 1,
     .vdim = 1,
